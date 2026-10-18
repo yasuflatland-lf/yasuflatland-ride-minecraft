@@ -15,6 +15,7 @@ import {
   lowestBlockingLayer,
 } from "../../../../../src/domain/vehicle/kinds/camper/bodyGuard";
 import { CAMPER_SPEC } from "../../../../../src/domain/vehicle/kinds/camper/spec";
+import { MOTION } from "../../../../../src/domain/vehicle/motion/constants";
 import type { Form } from "../../../../../src/domain/vehicle/motion/forms";
 import {
   initialMotion,
@@ -79,6 +80,66 @@ function travel(v: Vec3): number {
   return Math.hypot(v.x + IMPULSE.x, v.z + IMPULSE.z);
 }
 
+/** Queries per tick: two layers in car form and four in the others, per lane, per block the end crosses. */
+function budget(form: Form, move: number): number {
+  const layers = LAYERS - lowestBlockingLayer(form);
+  return layers * LANES.length * (move <= 1 ? 1 : 2);
+}
+
+// The body's move per tick at top speed on default ground, about 1.30 blocks.
+const TOP_MOVE = CAMPER_SPEC.maxSpeed / MOTION.defaultFriction;
+const move = number(0.05, TOP_MOVE);
+
+/**
+ * Drives the end that `sign` picks toward `solid` (world cells) at `step`
+ * blocks per tick, and returns each lane's end point in world coordinates
+ * after every tick, and whether the guard stopped the body.
+ */
+function driveInto(
+  yaw: number,
+  sign: 1 | -1,
+  start: Vec3,
+  step: number,
+  solid: (cell: Vec3) => boolean,
+): { lanePoints: Vec3[][]; stopped: boolean } {
+  const f = forward(yaw);
+  const dir = { x: f.x * sign, z: f.z * sign };
+  const r = rightOf(dir);
+  const end = sign > 0 ? ends.front : ends.rear;
+  const at = { ...start };
+  const points = () =>
+    LANES.map((s) => ({
+      x: at.x + dir.x * end + r.x * s,
+      y: at.y,
+      z: at.z + dir.z * end + r.z * s,
+    }));
+  const lanePoints = [points()];
+  for (let tick = 0; tick < 200; tick++) {
+    const result = guardEnds(
+      {
+        ...motion(yaw, sign * 0.5),
+        impulse: { x: dir.x * step, z: dir.z * step },
+      },
+      {
+        velocity: STILL,
+        solidAt: (o) =>
+          solid({
+            x: Math.floor(at.x + o.x),
+            y: Math.floor(at.y + o.y),
+            z: Math.floor(at.z + o.z),
+          }),
+      },
+      ends,
+      "car",
+    );
+    if (result.blocked) return { lanePoints, stopped: true };
+    at.x += dir.x * step;
+    at.z += dir.z * step;
+    lanePoints.push(points());
+  }
+  return { lanePoints, stopped: false };
+}
+
 function endPoint(
   yaw: number,
   speed: number,
@@ -136,7 +197,9 @@ describe("camper end lanes", () => {
             z: f.z * reach + r.z * lane,
           };
           const sensor = world(at, [pillar]);
-          expect(endBlocked(sensor.solidAt, f, reach, ends, 2)).toBe(true);
+          expect(
+            endBlocked(sensor.solidAt, f, ends.front, reach, ends, 2),
+          ).toBe(true);
         },
       ),
     );
@@ -210,7 +273,7 @@ describe("camper body end guard", () => {
           );
           if (form === "car") {
             expect(result).toBe(step);
-            expect(sensor.queries).toHaveLength(8);
+            expect(sensor.queries).toHaveLength(budget("car", travel(v)));
           } else {
             expect(result.blocked).toBe(true);
             expect(result.state.speed).toBe(0);
@@ -256,12 +319,12 @@ describe("camper body end guard", () => {
   });
 
   it.each([
-    ["car", 8],
-    ["hover", 16],
-    ["submarine", 16],
+    ["car", 8, 16],
+    ["hover", 16, 32],
+    ["submarine", 16, 32],
   ] as const)(
-    "uses at most %s-form budget of %i queries for any heading, speed, and occupied cells",
-    (form, budget) => {
+    "uses at most the %s-form budget of %i queries within one block and %i across two, for any heading, speed, and occupied cells",
+    (form, oneBlock, twoBlocks) => {
       const walls = fc.array(
         fc.record({
           x: fc.integer({ min: -7, max: 7 }),
@@ -286,7 +349,9 @@ describe("camper body end guard", () => {
               ends,
               form,
             );
-            expect(sensor.queries.length).toBeLessThanOrEqual(budget);
+            expect(sensor.queries.length).toBeLessThanOrEqual(
+              travel(v) <= 1 ? oneBlock : twoBlocks,
+            );
             for (const offset of sensor.queries)
               expect(
                 dot(offset, step.forward) * Math.sign(speed),
@@ -295,14 +360,22 @@ describe("camper body end guard", () => {
         ),
       );
       // An open world spends the whole budget.
-      const sensor = world(STILL, []);
+      const near = world(STILL, []);
       guardEnds(
         motion(0, 0.5),
-        { velocity: STILL, solidAt: sensor.solidAt },
+        { velocity: STILL, solidAt: near.solidAt },
         ends,
         form,
       );
-      expect(sensor.queries).toHaveLength(budget);
+      expect(near.queries).toHaveLength(oneBlock);
+      const far = world(STILL, []);
+      guardEnds(
+        motion(0, 0.5),
+        { velocity: { x: 1, y: 0, z: 0 }, solidAt: far.solidAt },
+        ends,
+        form,
+      );
+      expect(far.queries).toHaveLength(twoBlocks);
     },
   );
 
@@ -319,7 +392,7 @@ describe("camper body end guard", () => {
     );
   });
 
-  it("looks ahead by this tick's applied velocity, not the internal speed", () => {
+  it("samples every block from the front to this tick's applied move, not the internal speed", () => {
     fc.assert(
       fc.property(
         heading,
@@ -334,11 +407,113 @@ describe("camper body end guard", () => {
             ends,
             "car",
           );
-          for (const offset of sensor.queries)
-            expect(dot(offset, forward(yaw))).toBeCloseTo(
-              ends.front + travel(v),
-              9,
+          const reach = ends.front + travel(v);
+          const along = sensor.queries.map((o) => dot(o, forward(yaw)));
+          for (const d of along) {
+            expect(d).toBeGreaterThan(ends.front);
+            expect(d).toBeLessThanOrEqual(reach + 1e-9);
+          }
+          const samples = [...new Set(along.map((d) => d.toFixed(9)))]
+            .map(Number)
+            .sort((a, b) => a - b);
+          expect(samples[samples.length - 1]).toBeCloseTo(reach, 9);
+          const gaps = [ends.front, ...samples]
+            .slice(1)
+            .map((d, i) => d - ([ends.front, ...samples][i] ?? 0));
+          for (const gap of gaps) expect(gap).toBeLessThanOrEqual(1 + 1e-9);
+        },
+      ),
+    );
+  });
+
+  it.each([
+    ["front", 1],
+    ["rear", -1],
+  ] as const)(
+    "never lets the %s pass a one-thick wall at any heading, start, and speed up to top speed",
+    (_end, sign) => {
+      fc.assert(
+        fc.property(
+          heading,
+          position,
+          number(0, 5),
+          move,
+          (yaw, at, gap, step) => {
+            const f = forward(yaw);
+            const dir = { x: f.x * sign, z: f.z * sign };
+            const alongX = Math.abs(dir.x) >= Math.abs(dir.z);
+            const toward = Math.sign(alongX ? dir.x : dir.z);
+            const coord = (p: Vec3) => (alongX ? p.x : p.z);
+            const start = driveInto(yaw, sign, at, 0, () => false)
+              .lanePoints[0] as Vec3[];
+            const lead =
+              toward * Math.max(...start.map((p) => toward * coord(p)));
+            // The wall's cell index: its near face lies `gap` or more beyond the leading lane.
+            const wall =
+              toward > 0
+                ? Math.floor(lead + gap) + 1
+                : Math.floor(lead - gap) - 1;
+            const run = driveInto(
+              yaw,
+              sign,
+              at,
+              step,
+              (c) => (alongX ? c.x : c.z) === wall,
             );
+            expect(run.stopped).toBe(true);
+            for (const points of run.lanePoints)
+              for (const p of points)
+                if (toward > 0) expect(coord(p)).toBeLessThan(wall);
+                else expect(coord(p)).toBeGreaterThanOrEqual(wall + 1);
+          },
+        ),
+      );
+    },
+  );
+
+  it("never lets the front pass a one-wide pillar anywhere across the body at a cardinal heading", () => {
+    const side = ends.halfWidth - 0.1;
+    fc.assert(
+      fc.property(
+        fc.constantFrom(0, 90, 180, 270),
+        position,
+        number(-side, side),
+        number(0, 5),
+        move,
+        (yaw, at, lateral, gap, step) => {
+          const f = forward(yaw);
+          const r = rightOf(f);
+          const alongX = Math.abs(f.x) > 0.5;
+          const toward = Math.round(alongX ? f.x : f.z);
+          const along = (p: Vec3) => (alongX ? p.x : p.z);
+          const across = (p: Vec3) => (alongX ? p.z : p.x);
+          const front = {
+            x: at.x + f.x * ends.front + r.x * lateral,
+            y: at.y,
+            z: at.z + f.z * ends.front + r.z * lateral,
+          };
+          const row = Math.floor(across(front));
+          const column =
+            toward > 0
+              ? Math.floor(along(front) + gap) + 1
+              : Math.floor(along(front) - gap) - 1;
+          const run = driveInto(
+            yaw,
+            1,
+            at,
+            step,
+            (c) =>
+              (alongX ? c.x : c.z) === column && (alongX ? c.z : c.x) === row,
+          );
+          expect(run.stopped).toBe(true);
+          const first = run.lanePoints[0] ?? [];
+          expect(first.some((p) => Math.floor(across(p)) === row)).toBe(true);
+          for (const points of run.lanePoints)
+            for (const p of points)
+              if (Math.floor(across(p)) === row) {
+                if (toward > 0) expect(along(p)).toBeLessThan(column);
+                else expect(along(p)).toBeGreaterThanOrEqual(column + 1);
+              }
         },
       ),
     );
@@ -353,6 +528,7 @@ describe("camper body end guard", () => {
           endBlocked(
             sensor.solidAt,
             forward(yaw),
+            ends.front,
             ends.front + travel(STILL),
             ends,
             2,

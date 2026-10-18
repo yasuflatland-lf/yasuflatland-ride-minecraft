@@ -202,6 +202,9 @@ function camperAccel(a: Arena): Promise<Outcome> {
   });
 }
 
+// The wall is one block thick, thinner than the 1.3-block top-speed move.
+// The guard samples every block the front crosses each tick, so it stops the
+// camper here whatever phase the front reaches the wall in (ADR 0067).
 async function camperWall(a: Arena): Promise<Outcome> {
   a.dim.runCommand(`fill 60 ${a.gy} 82 60 ${a.gy + 3} 89 stone`);
   try {

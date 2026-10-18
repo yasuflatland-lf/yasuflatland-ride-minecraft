@@ -138,6 +138,47 @@ it("never lets the front pass a wall face while driving into it from any start",
   );
 });
 
+it("never lets the front pass a one-thick wall while driving into it from any start", () => {
+  fc.assert(
+    fc.property(
+      fc.double({ min: 0, max: 40, noNaN: true }),
+      fc.double({ min: 0, max: 1, noNaN: true }),
+      fc.constantFrom(MOTION.defaultFriction, 0.6, 0.8),
+      (gap, cellOffset, mu) => {
+        const drive = new CamperDrive(-90, {});
+        const wallX = 60;
+        let body: Body = {
+          pos: { x: wallX - CAMPER_SPEC.bodyFront - gap - cellOffset, z: 0.5 },
+          vel: { x: 0, z: 0 },
+        };
+        let stopped = false;
+        for (let tick = 0; tick < 200; tick++) {
+          const location = { x: body.pos.x, y: 64, z: body.pos.z };
+          const out = drive.step(
+            { moveX: 0, moveY: 1, jump: false },
+            {
+              ...context(),
+              tick,
+              location,
+              velocity: { ...body.vel, y: 0 },
+              solidAt: (offset) =>
+                offset.y < 0 ||
+                (Math.floor(location.x + offset.x) === wallX &&
+                  offset.y < CAMPER_SPEC.carHeight),
+            },
+          );
+          body = engineStep(body, out.impulse, { mu }).body;
+          expect(body.pos.x + CAMPER_SPEC.bodyFront).toBeLessThanOrEqual(
+            wallX + 1e-9,
+          );
+          stopped ||= drive.speed === 0 && tick > 0;
+        }
+        expect(stopped).toBe(true);
+      },
+    ),
+  );
+});
+
 it("cancels the step jump when a curb lies ahead and a wall stands at the front end", () => {
   const drive = new CamperDrive(-90, {});
   const ctx = context();

@@ -20,6 +20,6 @@ Use the same controls as the SUV: see the [SUV controls table](suv.md#controls).
 
 ## How it moves
 
-The camper has the SUV's ground top speed of 0.9 blocks per tick, with gentler acceleration (about 3.75 s to top speed) and slower turns for its long body. It flies and dives with the same controls as the SUV. Its long body stops at a wall at both the front and the rear bumper, even a one-block pillar, and it still climbs one-block steps without hopping in place at a wall. Flying or diving, it stops before the nose enters any block, low ones included.
+The camper has the SUV's ground top speed of 0.9 blocks per tick, with gentler acceleration (about 3.75 s to top speed) and slower turns for its long body. It flies and dives with the same controls as the SUV. Its long body stops at a wall at both the front and the rear bumper, even a one-block pillar or a one-block-thick wall at top speed, and it still climbs one-block steps without hopping in place at a wall. Flying or diving, it stops before the nose enters any block, low ones included.
 
 The 16 dyes recolor the window band, the stripe with its W, and the lower skirt, leaving the white body unchanged. Headlights light the road up to 27 blocks ahead.
