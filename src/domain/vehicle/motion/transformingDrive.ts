@@ -102,6 +102,8 @@ function driveInputFor(raw: RawInput | undefined, form: Form): DriveInput {
   return { ...input, throttle: Math.max(0, input.throttle), handbrake: false };
 }
 
+export type StepGuard = (step: MotionResult, ctx: TickContext) => MotionResult;
+
 export class TransformingDrive implements Drive {
   private motion: MotionState;
   private formState: FormState;
@@ -118,6 +120,7 @@ export class TransformingDrive implements Drive {
     restored: RestoredValues,
     protected readonly spec: TransformingSpec,
     protected readonly limits: MotionLimits,
+    private readonly guard?: StepGuard,
   ) {
     const form = isForm(restored.form) ? restored.form : "car";
     this.motion = initialMotion(yaw);
@@ -180,7 +183,7 @@ export class TransformingDrive implements Drive {
     const form = this.formState.form;
     const input = driveInputFor(raw, form);
     const yawBefore = motion.yaw;
-    const step: MotionResult =
+    const moved: MotionResult =
       form === "car"
         ? stepMotion(
             motion,
@@ -196,6 +199,7 @@ export class TransformingDrive implements Drive {
             form === "submarine" ? this.spec.water : this.spec.air,
             this.limits,
           );
+    const step = this.guard ? this.guard(moved, ctx) : moved;
     this.bank = stepBank(this.bank, form, yawBefore, step.state.yaw, this.spec);
     let impulseY: number;
     if (form === "car") {
