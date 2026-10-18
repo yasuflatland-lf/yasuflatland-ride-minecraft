@@ -71,6 +71,21 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | B14 | Sit only in a rear deck seat and push the stick | Nothing happens; only the deck driver sets off | | |
 | B15 | On a docked boat, sit in the rear-left deck seat; have a second player get into the boat's rear-left seat from the water | The first player is left standing on the deck and the second sits in the boat; the boat stays docked | | |
 
+## Camper
+
+| # | Steps | Pass condition | PC | Mobile |
+|---|---|---|---|---|
+| C1 | Use the camper item on the ground | The camper faces forward and consumes the item, except in Creative | | |
+| C2 | Place it without 7 x 7 x 4 clear cells around it | No camper is placed | | |
+| C3 | Craft with an SUV item, a bed, a chest, and an oak door; repeat with different bed colors | The recipe works with every bed color | | |
+| C4 | Have four players ride | Seat 0 is the front-left driver; seats 2 and 3 face each other | | |
+| C5 | Drive forward and backward toward walls, then over a one-block step | Both ends stop without entering the wall; the camper climbs the step | | |
+| C6 | Double-tap jump to take off, then double-tap again to land | It flies and lands like the SUV | | |
+| C7 | Enter deep water and hold jump | It becomes a submarine and rises with jump | | |
+| C8 | Hit an empty camper three times without a dye | It drops its item | | |
+| C9 | Place a second camper | Your first camper disappears | | |
+| C10 | Hit it with each of the 16 dyes | The window band, stripe with its W, and lower skirt change color; the white body stays white | | |
+
 ## Upgrading from MyCar 0.5.0 and earlier
 
 Setup: in a world that used MyCar 0.5.0, place two vehicles and switch the headlights of one of them off, then stop the server and replace the old pack folders with the new ones as described under "Upgrading from MyCar 0.5.0 and earlier" in the [README](../README.md).
