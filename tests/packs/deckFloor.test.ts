@@ -1,5 +1,10 @@
 import { readFileSync } from "node:fs";
+import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import {
+  DECK_FLOOR_BLOCK,
+  DECK_FLOOR_HEIGHT_STATE,
+} from "../../src/infrastructure/vehicle/bedrock/identifiers";
 import { defined } from "../support/defined";
 import type { Json } from "../support/packFiles";
 
@@ -46,6 +51,28 @@ describe("Boat deck floor (ADR 0063)", () => {
           },
         },
       })),
+    );
+  });
+
+  // FloorBlocks resolves the floor permutation by these script constants, so
+  // they must name the block and the state the pack actually defines.
+  it("is the block the script lays floors with", () => {
+    expect(DECK_FLOOR_BLOCK).toBe(block.description.identifier);
+  });
+
+  it("selects each collision height by the state the script sets", () => {
+    const states = block.description.states as Record<string, number[]>;
+    fc.assert(
+      fc.property(fc.integer({ min: 1, max: 16 }), (height) => {
+        expect(states[DECK_FLOOR_HEIGHT_STATE]).toContain(height);
+        expect(
+          block.permutations.some(
+            (p) =>
+              p.condition ===
+              `q.block_state('${DECK_FLOOR_HEIGHT_STATE}') == ${height}`,
+          ),
+        ).toBe(true);
+      }),
     );
   });
 
