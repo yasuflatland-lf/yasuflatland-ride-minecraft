@@ -212,3 +212,70 @@ it("lists every paint in the camper render controller", () => {
     PAINTS.length,
   );
 });
+
+interface CamperAnimation {
+  bones?: Record<string, unknown>;
+  particle_effects?: Record<
+    string,
+    { effect: string; locator: string } | { effect: string; locator: string }[]
+  >;
+}
+
+const camperClient = JSON.parse(
+  readFileSync(`${RP}/entity/yasu_ride/camper.ce.json`, "utf8"),
+)["minecraft:client_entity"].description;
+const camperAnimations: Record<string, CamperAnimation> = JSON.parse(
+  readFileSync(`${RP}/animations/yasu_ride/camper.anim.json`, "utf8"),
+).animations;
+const camperControllers = JSON.parse(
+  readFileSync(`${RP}/animation_controllers/yasu_ride/camper.ac.json`, "utf8"),
+).animation_controllers;
+
+describe("camper animation references", () => {
+  it("resolves every client animation to a camper animation or controller", () => {
+    const names = new Set([
+      ...Object.keys(camperAnimations),
+      ...Object.keys(camperControllers),
+    ]);
+    expect(Object.keys(camperClient.animations)).toHaveLength(23);
+    for (const name of Object.values(camperClient.animations)) {
+      expect(names.has(String(name)), String(name)).toBe(true);
+    }
+  });
+
+  it("animates only root and the four wheel bones present in the model", () => {
+    const allowed = ["root", "wheel_fl", "wheel_fr", "wheel_rl", "wheel_rr"];
+    for (const animation of Object.values(camperAnimations)) {
+      for (const name of Object.keys(animation.bones ?? {})) {
+        expect(allowed).toContain(name);
+        expect(bones.map((b) => b.name)).toContain(name);
+      }
+    }
+  });
+
+  it("resolves every client sound effect to an existing sound definition", () => {
+    const sounds = JSON.parse(
+      readFileSync(`${RP}/sounds/sound_definitions.json`, "utf8"),
+    ).sound_definitions;
+    expect(Object.keys(camperClient.sound_effects)).toHaveLength(13);
+    for (const sound of Object.values(camperClient.sound_effects)) {
+      expect(Object.keys(sounds)).toContain(sound);
+    }
+  });
+
+  it("emits hover glow at all four locators present in the model", () => {
+    const glow = camperAnimations["animation.yasu_ride.camper.hover_glow"];
+    const effects = Object.values(glow?.particle_effects ?? {}).flat();
+    expect(effects.map((effect) => effect.locator).sort()).toEqual([
+      "hover_fl",
+      "hover_fr",
+      "hover_rl",
+      "hover_rr",
+    ]);
+    const locators = bones.flatMap((b) => Object.keys(b.locators ?? {}));
+    for (const effect of effects) {
+      expect(effect.effect).toBe("hover_glow");
+      expect(locators).toContain(effect.locator);
+    }
+  });
+});
