@@ -1,0 +1,399 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.yasu_ride.camper.wheels": {
+      "loop": true,
+      "bones": {
+        "wheel_fl": {
+          "rotation": ["-query.modified_distance_moved * 141.0", 0, 0]
+        },
+        "wheel_fr": {
+          "rotation": ["-query.modified_distance_moved * 141.0", 0, 0]
+        },
+        "wheel_rl": {
+          "rotation": ["-query.modified_distance_moved * 141.0", 0, 0]
+        },
+        "wheel_rr": {
+          "rotation": ["-query.modified_distance_moved * 141.0", 0, 0]
+        }
+      }
+    },
+    "animation.yasu_ride.camper.bank": {
+      "loop": true,
+      "bones": {
+        "root": {
+          "rotation": [0, 0, "-query.property('yasu_ride:bank')"]
+        }
+      }
+    },
+    "animation.yasu_ride.camper.exhaust": {
+      "loop": true,
+      "animation_length": 0.2,
+      "particle_effects": {
+        "0.0": {
+          "effect": "exhaust",
+          "locator": "exhaust"
+        }
+      }
+    },
+    "animation.yasu_ride.camper.engine_sound_0": {
+      "loop": true,
+      "animation_length": 1.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "engine_0"
+        }
+      }
+    },
+    "animation.yasu_ride.camper.engine_sound_1": {
+      "loop": true,
+      "animation_length": 1.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "engine_1"
+        }
+      }
+    },
+    "animation.yasu_ride.camper.engine_sound_2": {
+      "loop": true,
+      "animation_length": 1.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "engine_2"
+        }
+      }
+    },
+    "animation.yasu_ride.camper.engine_sound_3": {
+      "loop": true,
+      "animation_length": 1.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "engine_3"
+        }
+      }
+    },
+    "animation.yasu_ride.camper.engine_sound_4": {
+      "loop": true,
+      "animation_length": 1.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "engine_4"
+        }
+      }
+    },
+    "animation.yasu_ride.camper.engine_sound_5": {
+      "loop": true,
+      "animation_length": 1.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "engine_5"
+        }
+      }
+    },
+    "animation.yasu_ride.camper.hover_sound_0": {
+      "loop": true,
+      "animation_length": 1.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "hover_0"
+        }
+      }
+    },
+    "animation.yasu_ride.camper.hover_sound_1": {
+      "loop": true,
+      "animation_length": 1.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "hover_1"
+        }
+      }
+    },
+    "animation.yasu_ride.camper.hover_sound_2": {
+      "loop": true,
+      "animation_length": 1.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "hover_2"
+        }
+      }
+    },
+    "animation.yasu_ride.camper.hover_sound_3": {
+      "loop": true,
+      "animation_length": 1.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "hover_3"
+        }
+      }
+    },
+    "animation.yasu_ride.camper.hover_sound_4": {
+      "loop": true,
+      "animation_length": 1.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "hover_4"
+        }
+      }
+    },
+    "animation.yasu_ride.camper.submarine_sound": {
+      "loop": true,
+      "animation_length": 4.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "sonar"
+        }
+      }
+    },
+    "animation.yasu_ride.camper.wheels_deploy": {
+      "animation_length": 1.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "hover_start"
+        }
+      },
+      "bones": {
+        "wheel_fl": {
+          "rotation": {
+            "0.0": [0, 0, 0],
+            "1.0": [0, 0, 90]
+          },
+          "position": {
+            "0.0": [0, 0, 0],
+            "1.0": [0, 4, 0]
+          }
+        },
+        "wheel_rl": {
+          "rotation": {
+            "0.0": [0, 0, 0],
+            "1.0": [0, 0, 90]
+          },
+          "position": {
+            "0.0": [0, 0, 0],
+            "1.0": [0, 4, 0]
+          }
+        },
+        "wheel_fr": {
+          "rotation": {
+            "0.0": [0, 0, 0],
+            "1.0": [0, 0, -90]
+          },
+          "position": {
+            "0.0": [0, 0, 0],
+            "1.0": [0, 4, 0]
+          }
+        },
+        "wheel_rr": {
+          "rotation": {
+            "0.0": [0, 0, 0],
+            "1.0": [0, 0, -90]
+          },
+          "position": {
+            "0.0": [0, 0, 0],
+            "1.0": [0, 4, 0]
+          }
+        }
+      }
+    },
+    "animation.yasu_ride.camper.wheels_folded": {
+      "loop": true,
+      "bones": {
+        "wheel_fl": {
+          "rotation": [0, 0, 90],
+          "position": [0, 4, 0]
+        },
+        "wheel_rl": {
+          "rotation": [0, 0, 90],
+          "position": [0, 4, 0]
+        },
+        "wheel_fr": {
+          "rotation": [0, 0, -90],
+          "position": [0, 4, 0]
+        },
+        "wheel_rr": {
+          "rotation": [0, 0, -90],
+          "position": [0, 4, 0]
+        }
+      }
+    },
+    "animation.yasu_ride.camper.wheels_retract": {
+      "animation_length": 1.0,
+      "bones": {
+        "wheel_fl": {
+          "rotation": {
+            "0.0": [0, 0, 90],
+            "1.0": [0, 0, 0]
+          },
+          "position": {
+            "0.0": [0, 4, 0],
+            "1.0": [0, 0, 0]
+          }
+        },
+        "wheel_rl": {
+          "rotation": {
+            "0.0": [0, 0, 90],
+            "1.0": [0, 0, 0]
+          },
+          "position": {
+            "0.0": [0, 4, 0],
+            "1.0": [0, 0, 0]
+          }
+        },
+        "wheel_fr": {
+          "rotation": {
+            "0.0": [0, 0, -90],
+            "1.0": [0, 0, 0]
+          },
+          "position": {
+            "0.0": [0, 4, 0],
+            "1.0": [0, 0, 0]
+          }
+        },
+        "wheel_rr": {
+          "rotation": {
+            "0.0": [0, 0, -90],
+            "1.0": [0, 0, 0]
+          },
+          "position": {
+            "0.0": [0, 4, 0],
+            "1.0": [0, 0, 0]
+          }
+        }
+      }
+    },
+    "animation.yasu_ride.camper.hover_glow": {
+      "loop": true,
+      "animation_length": 0.1,
+      "particle_effects": {
+        "0.0": [
+          {
+            "effect": "hover_glow",
+            "locator": "hover_fl"
+          },
+          {
+            "effect": "hover_glow",
+            "locator": "hover_fr"
+          },
+          {
+            "effect": "hover_glow",
+            "locator": "hover_rl"
+          },
+          {
+            "effect": "hover_glow",
+            "locator": "hover_rr"
+          }
+        ]
+      }
+    },
+    "animation.yasu_ride.camper.dive": {
+      "animation_length": 1.0,
+      "bones": {
+        "wheel_fl": {
+          "rotation": {
+            "0.0": [0, 0, 0],
+            "1.0": [0, 0, 90]
+          },
+          "position": {
+            "0.0": [0, 0, 0],
+            "1.0": [0, 4, 0]
+          }
+        },
+        "wheel_rl": {
+          "rotation": {
+            "0.0": [0, 0, 0],
+            "1.0": [0, 0, 90]
+          },
+          "position": {
+            "0.0": [0, 0, 0],
+            "1.0": [0, 4, 0]
+          }
+        },
+        "wheel_fr": {
+          "rotation": {
+            "0.0": [0, 0, 0],
+            "1.0": [0, 0, -90]
+          },
+          "position": {
+            "0.0": [0, 0, 0],
+            "1.0": [0, 4, 0]
+          }
+        },
+        "wheel_rr": {
+          "rotation": {
+            "0.0": [0, 0, 0],
+            "1.0": [0, 0, -90]
+          },
+          "position": {
+            "0.0": [0, 0, 0],
+            "1.0": [0, 4, 0]
+          }
+        }
+      }
+    },
+    "animation.yasu_ride.camper.submerged": {
+      "loop": true,
+      "bones": {
+        "wheel_fl": {
+          "rotation": [0, 0, 90],
+          "position": [0, 4, 0]
+        },
+        "wheel_rl": {
+          "rotation": [0, 0, 90],
+          "position": [0, 4, 0]
+        },
+        "wheel_fr": {
+          "rotation": [0, 0, -90],
+          "position": [0, 4, 0]
+        },
+        "wheel_rr": {
+          "rotation": [0, 0, -90],
+          "position": [0, 4, 0]
+        }
+      }
+    },
+    "animation.yasu_ride.camper.surface": {
+      "animation_length": 1.0,
+      "bones": {
+        "wheel_fl": {
+          "rotation": {
+            "0.0": [0, 0, 90],
+            "1.0": [0, 0, 0]
+          },
+          "position": {
+            "0.0": [0, 4, 0],
+            "1.0": [0, 0, 0]
+          }
+        },
+        "wheel_rl": {
+          "rotation": {
+            "0.0": [0, 0, 90],
+            "1.0": [0, 0, 0]
+          },
+          "position": {
+            "0.0": [0, 4, 0],
+            "1.0": [0, 0, 0]
+          }
+        },
+        "wheel_fr": {
+          "rotation": {
+            "0.0": [0, 0, -90],
+            "1.0": [0, 0, 0]
+          },
+          "position": {
+            "0.0": [0, 4, 0],
+            "1.0": [0, 0, 0]
+          }
+        },
+        "wheel_rr": {
+          "rotation": {
+            "0.0": [0, 0, -90],
+            "1.0": [0, 0, 0]
+          },
+          "position": {
+            "0.0": [0, 4, 0],
+            "1.0": [0, 0, 0]
+          }
+        }
+      }
+    }
+  }
+}
