@@ -26,11 +26,13 @@ export const CAMPER_PROFILE: VehicleProfile = Object.freeze({
     reach: CAMPER_SPEC.headlightReach,
     lanes: Object.freeze([0]),
   }),
-  // The clearance is axis-aligned and the camper can face any way, so a 7 x 7 square
-  // covers its 3 x 7 body in every facing (ADR 0067).
+  // The clearance is axis-aligned and the camper can face any way. With the bumper and
+  // ladder the body is 7.6 blocks long, and at 45 degrees a rear corner reaches
+  // (3.9 + 1.5) / sqrt(2) = 3.82 blocks from the center, so a 9 x 9 square (4.5 blocks
+  // each way) covers the whole body in every facing (ADR 0067).
   placement: Object.freeze({
     surfaces: Object.freeze<PlacementSurface[]>(["top"]),
-    clearance: Object.freeze({ halfX: 3, halfZ: 3, height: 4 }),
+    clearance: Object.freeze({ halfX: 4, halfZ: 4, height: 4 }),
   }),
 });
 

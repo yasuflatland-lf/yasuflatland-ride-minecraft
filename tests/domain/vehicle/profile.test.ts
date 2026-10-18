@@ -11,6 +11,7 @@ import {
   CAMPER_MOTION,
   CAMPER_PROFILE,
 } from "../../../src/domain/vehicle/kinds/camper/profile";
+import { CAMPER_SPEC } from "../../../src/domain/vehicle/kinds/camper/spec";
 import {
   createVehicle,
   KINDS,
@@ -521,5 +522,28 @@ describe("vehicle profiles (ADR 0050)", () => {
 
   it("limits each player to one camper", () => {
     expect(CAMPER_PROFILE.fleetLimit).toBe(1);
+  });
+
+  it("clears every cell the camper's body reaches at any facing", () => {
+    const { halfX, halfZ } = CAMPER_PROFILE.placement.clearance;
+    fc.assert(
+      fc.property(fc.double({ min: 0, max: 360, noNaN: true }), (yaw) => {
+        const f = forward(yaw);
+        const r = rightOf(f);
+        for (const ahead of [CAMPER_SPEC.bodyFront, -CAMPER_SPEC.bodyRear])
+          for (const side of [-1, 1].map(
+            (s) => s * CAMPER_SPEC.bodyHalfWidth,
+          )) {
+            // The camper spawns at the cell center, so cells -half..half span
+            // half + 0.5 blocks each way.
+            expect(Math.abs(f.x * ahead + r.x * side)).toBeLessThanOrEqual(
+              halfX + 0.5,
+            );
+            expect(Math.abs(f.z * ahead + r.z * side)).toBeLessThanOrEqual(
+              halfZ + 0.5,
+            );
+          }
+      }),
+    );
   });
 });
