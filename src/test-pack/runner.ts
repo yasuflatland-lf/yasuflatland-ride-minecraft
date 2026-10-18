@@ -280,25 +280,48 @@ function camperLand(a: Arena): Promise<Outcome> {
   });
 }
 
+// The camper dive tank: glass walls from a.gy to a.gy + 6 around water up to a.gy + 5,
+// so the water's top is a.gy + 6 and the rim's top is a.gy + 7.
+const CAMPER_TANK = {
+  waterTop: 6,
+  rimTop: 7, // the top face of the glass layer at a.gy + waterTop
+  // Hover climbs at the SUV's rate, which flight_climb_descend shows rises at
+  // least 2.5 blocks in 20 ticks of held Jump, so 20 ticks clear the rim by 1.
+  climbTicks: 20,
+  rimClearance: 1,
+} as const;
+
 async function camperDive(a: Arena): Promise<Outcome> {
   // The flat world's four-block ground cannot hold a pool deep enough for the camper.
   try {
-    a.dim.runCommand(`fill 100 ${a.gy} 61 118 ${a.gy + 6} 69 glass`);
-    a.dim.runCommand(`fill 101 ${a.gy} 62 117 ${a.gy + 5} 68 water`);
+    const rim = a.gy + CAMPER_TANK.waterTop;
+    a.dim.runCommand(`fill 100 ${a.gy} 61 118 ${rim} 69 glass`);
+    a.dim.runCommand(`fill 101 ${a.gy} 62 117 ${rim - 1} 68 water`);
     // The glass fill also roofed the tank; open its top layer so the camper can surface.
-    a.dim.runCommand(`fill 101 ${a.gy + 6} 62 117 ${a.gy + 6} 68 air`);
+    a.dim.runCommand(`fill 101 ${rim} 62 117 ${rim} 68 air`);
     return await withCamper(a, 109.5, 65.5, -90, async (car) => {
       const enteredAt = await ticksUntilForm(car, "submarine", 40);
       drive(car, 0, 0, true);
       const hoverAt = await ticksUntilForm(car, "hover", 80);
-      const y = car.location.y;
+      // Hover needs dry feet, so its first tick already sits at the water's top;
+      // only the climb after it shows the camper leaves the tank.
+      let peak = car.location.y - a.gy;
+      for (let t = 0; hoverAt >= 0 && t < CAMPER_TANK.climbTicks; t++) {
+        await wait(1);
+        peak = Math.max(peak, car.location.y - a.gy);
+      }
       return {
-        pass: enteredAt >= 0 && hoverAt >= 0 && y >= a.gy + 6 - 0.1,
-        detail: `enteredAt=${enteredAt} hoverAt=${hoverAt} rise=${(y - a.gy).toFixed(2)}`,
+        pass:
+          enteredAt >= 0 &&
+          hoverAt >= 0 &&
+          peak >= CAMPER_TANK.rimTop + CAMPER_TANK.rimClearance,
+        detail: `enteredAt=${enteredAt} hoverAt=${hoverAt} peak=${peak.toFixed(2)} aboveWater=${(peak - CAMPER_TANK.waterTop).toFixed(2)}`,
       };
     });
   } finally {
-    a.dim.runCommand(`fill 100 ${a.gy} 61 118 ${a.gy + 6} 69 air`);
+    a.dim.runCommand(
+      `fill 100 ${a.gy} 61 118 ${a.gy + CAMPER_TANK.waterTop} 69 air`,
+    );
   }
 }
 
@@ -1621,7 +1644,7 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
     // Estimates until CI reports measured ticks (ADR 0054).
     ["camper_takeoff", 60, () => camperTakeoff(a)],
     ["camper_land", 140, () => camperLand(a)],
-    ["camper_dive", 120, () => camperDive(a)],
+    ["camper_dive", 140, () => camperDive(a)],
     ["accel_and_step1", 85, () => accelAndStep1(a)],
     ["passable_no_hop", 65, () => passableNoHop(a)],
     ["turn_and_handbrake", 130, () => turnAndHandbrake(a)],
