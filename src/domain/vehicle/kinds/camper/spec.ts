@@ -7,7 +7,7 @@ export const CAMPER_SPEC = {
   // Driving (ADR 0002, 0067)
   maxSpeed: 0.9, // blocks/tick, as the SUV (owner's choice)
   maxReverse: 0.15,
-  accel: 0.012, // about 2.5 s to full speed, half the SUV's, for a heavy body
+  accel: 0.012, // 0.9 / 0.012 = 75 ticks, about 3.75 s to full speed at 20 tps; about half the SUV's 0.0225, for a heavy body
   reverseAccel: 0.006,
   brake: 0.04, // as the SUV
   drag: 0.02, // as the SUV

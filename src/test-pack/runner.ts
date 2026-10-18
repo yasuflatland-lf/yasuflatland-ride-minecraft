@@ -1535,7 +1535,10 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
   // The middle number is the test's ticks as last logged in CI; shardsOf packs
   // by it, so update it when a test gets much slower or faster (ADR 0054).
   const allTests: [string, number, () => Promise<Outcome>][] = [
-    ["camper_accel", 110, () => camperAccel(a)],
+    // camper_accel and camper_wall have no CI log yet. camper_accel is estimated
+    // at about 75 ticks to top speed plus about 67 at 0.9 blocks/tick to x = 100;
+    // camper_wall waits a fixed 150 ticks.
+    ["camper_accel", 140, () => camperAccel(a)],
     ["camper_wall", 150, () => camperWall(a)],
     ["accel_and_step1", 85, () => accelAndStep1(a)],
     ["passable_no_hop", 65, () => passableNoHop(a)],
