@@ -75,12 +75,15 @@ ACCENT_BASES = {
 
 HW = 24  # half width
 FRONT, REAR = -56, 56
-BOTTOM, FLOOR, CEIL, ROOF = 8, 16, 61, 64  # roof flush with the third cell's bottom
+BOTTOM, FLOOR, CEIL, ROOF = 8, 16, 61, 64  # roof 4.0 blocks up, the top of the fourth cell from the ground
 FRONT_AXLE, REAR_AXLE = -31.5, 31
 WHEEL_R = 6.5
 DOOR = (-7, 7, 12, 54)  # z0, z1, y0, y1 on the right side; local cell z = 0
-# The rear wall starts at the footprint's edge and its profile only reaches outward, so a
-# block or chest in the last row never shows through the back.
+# The sides end at the footprint's edge (REAR = 56) and the rear profile (rear_z) never comes
+# closer than 56.5, so a block or chest in the last row never shows through the back. The
+# rear wall's rows are 1 px deep behind the profile, though, so where the profile is under
+# 57 they start inside the last cell row: from 55.5 in the window band (y 37 to 52) and up
+# to y 53.5, where the top lean has not yet reached 57. A block there overlaps the wall.
 REAR_INNER = REAR
 
 
@@ -122,7 +125,8 @@ STEPS_32 = tuple(i * 11.25 for i in range(16))
 
 
 def disc(axis, cx, cy, cz, r, depth, color, steps=STEPS_32):
-    """A 32-sided disc from bars turned about its normal: 'x' (wheels) or 'z' (lamps)."""
+    """A disc of 2 * len(steps) sides (32 with the default steps) from bars turned about its
+    normal: 'x' (wheels) or 'z' (lamps)."""
     n = 2 * len(steps)
     long, short = 2 * r, 2 * r * math.tan(math.pi / n)
     out = []
@@ -232,7 +236,7 @@ for x0, x1, windows in ((HW - 1, HW, right_windows), (-HW, -HW + 1, left_windows
     body += panel("x", lo, hi, CAB_WIN[1] + 1, REAR_INNER, *BAND_Y, band_holes, "khaki")
     lo, hi = (out, out + 0.12) if right else (out - 0.12, out)
     # The stripe dips into a large W ahead of the door; the W's top stays open between
-    # its outer arms. The user chose to keep this logo (it needs an ADR before release).
+    # its outer arms. The owner chose to keep this logo, an exception recorded in ADR 0067.
     w_open = (w_z(W_ARM_END[0]), w_z(W_ARM_START[1]))  # only between the outer arms
     body += panel("x", lo, hi, STRIPE_FRONT, REAR_INNER, *STRIPE_Y, door_cut + [(*w_open, *STRIPE_Y)], "stripe")
     y = STRIPE_Y[0]
@@ -691,7 +695,7 @@ def bucket_seat(x0, x1):
     return out
 
 
-# Bed at the rear left: two cells (local x = +1, z = -2 and -3), 9 px high like the
+# Bed at the rear left: two cells (build cell x = -1, z = +2 and +3), 9 px high like the
 # future parked bed block (the driving model is visual only).
 BED = (-HW + 1, -8, 24, REAR - 1)  # x0, x1, z0, z1
 body.append(box(BED[0], FLOOR, BED[2], BED[1], FLOOR + 3, BED[3], "wood"))

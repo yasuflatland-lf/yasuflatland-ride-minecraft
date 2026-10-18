@@ -164,7 +164,8 @@ describe("camper model assets (ADR 0067)", () => {
       ]);
       expect(texture.pixels.equals(khaki.pixels), paint).toBe(false);
       for (let i = 0; i < khaki.width; i++) {
-        // The spike palette puts tan, khaki, and stripe in slots 3, 4, and 6.
+        // The PALETTE order in tools/gen_camper.py puts tan, khaki, and stripe
+        // in slots 3, 4, and 6.
         if ([3, 4, 6].includes(i)) continue;
         expect(texture.pixels.subarray(i * 4, i * 4 + 4), paint).toEqual(
           khaki.pixels.subarray(i * 4, i * 4 + 4),
