@@ -213,12 +213,13 @@ it("lists every paint in the camper render controller", () => {
   );
 });
 
+interface ParticleEffect {
+  effect: string;
+  locator: string;
+}
 interface CamperAnimation {
   bones?: Record<string, unknown>;
-  particle_effects?: Record<
-    string,
-    { effect: string; locator: string } | { effect: string; locator: string }[]
-  >;
+  particle_effects?: Record<string, ParticleEffect | ParticleEffect[]>;
 }
 
 const camperClient = JSON.parse(
@@ -245,10 +246,11 @@ describe("camper animation references", () => {
 
   it("animates only root and the four wheel bones present in the model", () => {
     const allowed = ["root", "wheel_fl", "wheel_fr", "wheel_rl", "wheel_rr"];
+    const modelBones = bones.map((b) => b.name);
     for (const animation of Object.values(camperAnimations)) {
       for (const name of Object.keys(animation.bones ?? {})) {
         expect(allowed).toContain(name);
-        expect(bones.map((b) => b.name)).toContain(name);
+        expect(modelBones).toContain(name);
       }
     }
   });
@@ -258,8 +260,9 @@ describe("camper animation references", () => {
       readFileSync(`${RP}/sounds/sound_definitions.json`, "utf8"),
     ).sound_definitions;
     expect(Object.keys(camperClient.sound_effects)).toHaveLength(13);
+    const soundNames = Object.keys(sounds);
     for (const sound of Object.values(camperClient.sound_effects)) {
-      expect(Object.keys(sounds)).toContain(sound);
+      expect(soundNames).toContain(sound);
     }
   });
 
