@@ -76,11 +76,11 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | # | Steps | Pass condition | PC | Mobile |
 |---|---|---|---|---|
 | C1 | Use the camper item on the ground | The camper faces forward and consumes the item, except in Creative | | |
-| C2 | Place it without 7 x 7 x 4 clear cells around it | No camper is placed | | |
+| C2 | Place it with a block 4 cells from the target block (inside the 9 x 9 x 4 clear cells it needs) | No camper is placed | | |
 | C3 | Craft with an SUV item, a bed, a chest, and an oak door; repeat with different bed colors | The recipe works with every bed color | | |
 | C4 | Have four players ride | Seat 0 is the front-left driver; seats 2 and 3 face each other | | |
-| C5 | Drive forward and backward toward walls, then over a one-block step | Both ends stop without entering the wall; the camper climbs the step | | |
-| C6 | Double-tap jump to take off, then double-tap again to land | It flies and lands like the SUV | | |
+| C5 | Drive forward and backward toward walls and a one-block pillar off the center line, then over a one-block step, then at a one-block curb right in front of a wall | Both ends stop without entering the wall or the pillar; the camper climbs the step; at the curb it stops without hopping | | |
+| C6 | Double-tap jump to take off, fly low into a one-block-high hedge and then into a cliff, then double-tap again to land | It flies and lands like the SUV; the nose stops before entering the hedge or the cliff | | |
 | C7 | Enter deep water and hold jump | It becomes a submarine and rises with jump | | |
 | C8 | Hit an empty camper three times without a dye | It drops its item | | |
 | C9 | Place a second camper | Your first camper disappears | | |
