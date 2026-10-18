@@ -102,10 +102,16 @@ function clearInput(car: Entity): void {
   system.sendScriptEvent(INPUT_EVENT, `${car.id},clear`);
 }
 
-function spawnCar(a: Arena, x: number, z: number, yaw: number): Entity {
-  a.dim.runCommand(`summon ${ENTITY_TYPE.suv} ${x} ${a.gy} ${z}`);
+function spawnCar(
+  a: Arena,
+  x: number,
+  z: number,
+  yaw: number,
+  type = ENTITY_TYPE.suv,
+): Entity {
+  a.dim.runCommand(`summon ${type} ${x} ${a.gy} ${z}`);
   const car = a.dim.getEntities({
-    type: ENTITY_TYPE.suv,
+    type,
     location: { x, y: a.gy, z },
     maxDistance: 1.5,
   })[0];
@@ -120,8 +126,9 @@ async function withCar<T>(
   z: number,
   yaw: number,
   run: (car: Entity) => Promise<T>,
+  type = ENTITY_TYPE.suv,
 ): Promise<T> {
-  const car = spawnCar(a, x, z, yaw);
+  const car = spawnCar(a, x, z, yaw, type);
   try {
     return await run(car);
   } finally {
@@ -130,32 +137,14 @@ async function withCar<T>(
   }
 }
 
-function spawnCamper(a: Arena, x: number, z: number, yaw: number): Entity {
-  a.dim.runCommand(`summon ${ENTITY_TYPE.camper} ${x} ${a.gy} ${z}`);
-  const car = a.dim.getEntities({
-    type: ENTITY_TYPE.camper,
-    location: { x, y: a.gy, z },
-    maxDistance: 1.5,
-  })[0];
-  if (!car) throw new Error(`car not spawned at ${x},${z}`);
-  car.setRotation({ x: 0, y: yaw });
-  return car;
-}
-
-async function withCamper<T>(
+function withCamper<T>(
   a: Arena,
   x: number,
   z: number,
   yaw: number,
   run: (car: Entity) => Promise<T>,
 ): Promise<T> {
-  const car = spawnCamper(a, x, z, yaw);
-  try {
-    return await run(car);
-  } finally {
-    clearInput(car);
-    if (car.isValid) car.remove();
-  }
+  return withCar(a, x, z, yaw, run, ENTITY_TYPE.camper);
 }
 
 async function setupArena(): Promise<Arena> {
