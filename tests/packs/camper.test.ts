@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
+import { CAMPER_PROFILE } from "../../src/domain/vehicle/kinds/camper/profile";
 import { PAINTS } from "../../src/domain/vehicle/paint";
 
 const RP = "packs/yasu_ride_rp";
@@ -182,4 +183,32 @@ describe("camper model assets (ADR 0067)", () => {
       Buffer.from([238, 235, 226, 255]),
     );
   });
+});
+
+const camperEntity = JSON.parse(
+  readFileSync("packs/yasu_ride_bp/entities/yasu_ride/camper.se.json", "utf8"),
+)["minecraft:entity"];
+it("matches the camper's four seat positions and collision box to its profile", () => {
+  const components = camperEntity.components;
+  const seats = components["minecraft:rideable"].seats;
+  expect(seats).toHaveLength(4);
+  expect(
+    seats.map((seat: { position: number[] }) => ({
+      x: seat.position[0],
+      z: seat.position[2],
+    })),
+  ).toEqual(CAMPER_PROFILE.seats.positions);
+  expect(components["minecraft:collision_box"]).toEqual({
+    width: 3,
+    height: 4,
+  });
+});
+
+it("lists every paint in the camper render controller", () => {
+  const controller = JSON.parse(
+    readFileSync(`${RP}/render_controllers/yasu_ride/camper.rc.json`, "utf8"),
+  ).render_controllers["controller.render.yasu_ride.camper"];
+  expect(controller.arrays.textures["Array.paints"]).toHaveLength(
+    PAINTS.length,
+  );
 });
