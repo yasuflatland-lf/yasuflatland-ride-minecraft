@@ -643,13 +643,13 @@ def render(rp, icons=False):
 
     images = {name: rasterize(scenes[name], layers[name], to_screen) for name in POSES}
     images.update(render_boat(rp))
+    images.update(render_camper(rp))
     icon = None
     if icons:
         # Lamps lit without the dusk tint, so the body keeps its daylight colors
         pose = {**POSES["suv-flying.png"], "lamps": True}
         polygons = collect(geo, texture, folds, turns, pose)
         icon = render_icon(geo, polygons, camera)
-    images.update(render_camper(rp))
     return images, icon
 
 

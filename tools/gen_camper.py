@@ -134,14 +134,18 @@ def disc(axis, cx, cy, cz, r, depth, color, steps=STEPS_32):
     return out
 
 
-def ring_z(cx, cy, cz, r, t, color, n=16):
-    out = []
-    seg = 2 * math.pi * r / n * 1.08
-    for i in range(n):
-        a = 2 * math.pi * i / n
-        x, y = cx + r * math.cos(a), cy + r * math.sin(a)
-        out.append(box(x - seg / 2, y - t / 2, cz, x + seg / 2, y + t / 2, cz + t, color, [0, 0, math.degrees(a) + 90], [x, y, cz]))
-    return out
+def shift_in_slices(cube, cuts, dz_at):
+    """Copies of cube cut at the y values in cuts, each moved along z by dz_at(its middle y)."""
+    pieces = []
+    for a0, a1 in zip(cuts, cuts[1:]):
+        dz = dz_at((a0 + a1) / 2)
+        piece = json.loads(json.dumps(cube))
+        piece["origin"] = [cube["origin"][0], round(a0, 3), round(cube["origin"][2] + dz, 3)]
+        piece["size"] = [cube["size"][0], round(a1 - a0, 3), cube["size"][2]]
+        if "pivot" in piece:
+            piece["pivot"] = [piece["pivot"][0], piece["pivot"][1], round(piece["pivot"][2] + dz, 3)]
+        pieces.append(piece)
+    return pieces
 
 
 body = []
@@ -208,19 +212,18 @@ for a0, a1 in ARCHES:  # straight up to ARCH_SLOPE_Y, then sloping in by ARCH_IN
         arch_holes.append((a0 + inset, a1 - inset, y, y + ARCH_STEP))
 right_windows = [CAB_WIN, (-35, -10, *WIN_Y), (16, 24, *WIN_Y), (38, 50, *WIN_Y), (-31, -19, 56, 59)]
 left_windows = [CAB_WIN, (-29, -5, *WIN_Y), (-19, -8, 56, 59), (16, 21, 36, 48), (40, 49, 38, 47)]
-DOOR_HOLE = (DOOR[0], DOOR[1], DOOR[2], DOOR[3])
 for x0, x1, windows in ((HW - 1, HW, right_windows), (-HW, -HW + 1, left_windows)):
     right = x0 > 0
     sgn = 1 if right else -1
     out = x1 if right else x0
-    holes = windows + arch_holes + [(SIDE0, -50.5, 35.4, 49.5)] + ([DOOR_HOLE] if right else [])
+    holes = windows + arch_holes + [(SIDE0, -50.5, 35.4, 49.5)] + ([DOOR] if right else [])
     body += panel("x", x0, x1, SIDE0, REAR_INNER, BOTTOM, CEIL, holes, "white")
     inner = x0 - 0.2 if right else x1
     body += panel("x", inner, inner + 0.2, FRONT + 8, REAR_INNER, FLOOR, CEIL - 0.2, holes, "wall_in")
     # Tan lower skirt just proud of the wall.
     skirt_holes = arch_holes + ([(DOOR[0], DOOR[1], BOTTOM, 16)] if right else [])
-    body += panel("x", out, out + sgn * 0.12, SIDE0, REAR_INNER, BOTTOM, 15, skirt_holes, "tan") if right else \
-        panel("x", out - 0.12, out, SIDE0, REAR_INNER, BOTTOM, 15, skirt_holes, "tan")
+    lo, hi = (out, out + 0.12) if right else (out - 0.12, out)
+    body += panel("x", lo, hi, SIDE0, REAR_INNER, BOTTOM, 15, skirt_holes, "tan")
     # As on the side photo: a tan band at window height from the cab window back, and one
     # brown stripe below it. Both continue across the door, which carries its own copies.
     door_cut = [(DOOR[0], DOOR[1], 0, 99)] if right else []
@@ -306,6 +309,7 @@ WS_Z = FRONT + 2.5  # the windshield sits behind a ledge over the grille
 UPPER = (18, 29.5)  # upper grille, across the face and around the corners
 LOWER_Y = (8, 18)  # lower grille between the lamps, narrower at the bottom
 CORNER = 3 * math.sqrt(2)
+SLAT_Y = [UPPER[0] + 0.6 + i * 1.5 for i in range(int((UPPER[1] - UPPER[0]) / 1.5))]
 
 
 def corner(sx, z, y0, y1, color, inset=0.0):
@@ -317,7 +321,7 @@ for sx in (1, -1):
     body.append(corner(sx, FRONT, BOTTOM, UPPER[0], "white"))
     body.append(corner(sx, FRONT, UPPER[1], SILL_LOW, "white"))
     body.append(corner(sx, FRONT, UPPER[0], UPPER[1], "grille"))
-    for y in [UPPER[0] + 0.6 + i * 1.5 for i in range(int((UPPER[1] - UPPER[0]) / 1.5))]:
+    for y in SLAT_Y:
         body.append(corner(sx, FRONT, y, y + 0.8, "slat", inset=0.3))
     body.append(corner(sx, FRONT, BOTTOM, 15, "tan", inset=0.12))
     # Wraparound corner glass beside the windshield, in black rubber
@@ -332,7 +336,6 @@ body.append(box(-0.45, UPPER[1], FRONT - 0.45, 0.45, SILL_LOW, FRONT, "chrome"))
 # dip in a shallow V whose point reaches down into the lower grille.
 GDIV, V_DIP, STEP = 7.5, 1.2, 0.5
 body.append(box(-19.5, UPPER[0], FRONT + 0.7, 19.5, UPPER[1], FRONT + 1, "grille"))
-SLAT_Y = [UPPER[0] + 0.6 + i * 1.5 for i in range(int((UPPER[1] - UPPER[0]) / 1.5))]
 
 
 def dip(x):
@@ -435,14 +438,7 @@ for c in front:
         while cuts[-1] + SLICE < y0 + sy - 1e-6:
             cuts.append(cuts[-1] + SLICE)
     cuts.append(y0 + sy)
-    for a0, a1 in zip(cuts, cuts[1:]):
-        dz = taper_dz((a0 + a1) / 2)
-        piece = json.loads(json.dumps(c))
-        piece["origin"] = [c["origin"][0], round(a0, 3), round(c["origin"][2] + dz, 3)]
-        piece["size"] = [c["size"][0], round(a1 - a0, 3), c["size"][2]]
-        if "pivot" in piece:
-            piece["pivot"] = [piece["pivot"][0], piece["pivot"][1], round(piece["pivot"][2] + dz, 3)]
-        body.append(piece)
+    body += shift_in_slices(c, cuts, taper_dz)
 # The side walls reach forward to the overhang with a straight upright edge in chrome trim.
 EDGE_Z = FRONT - TAPER + 1.5
 for sx in (1, -1):
@@ -557,14 +553,7 @@ for c in rear:
         while cuts[-1] + 0.5 < y0 + sy - 1e-6:
             cuts.append(cuts[-1] + 0.5)
     cuts.append(y0 + sy)
-    for a0, a1 in zip(cuts, cuts[1:]):
-        dz = rear_z((a0 + a1) / 2) - REAR
-        piece = json.loads(json.dumps(c))
-        piece["origin"] = [c["origin"][0], round(a0, 3), round(c["origin"][2] + dz, 3)]
-        piece["size"] = [c["size"][0], round(a1 - a0, 3), c["size"][2]]
-        if "pivot" in piece:
-            piece["pivot"] = [piece["pivot"][0], piece["pivot"][1], round(piece["pivot"][2] + dz, 3)]
-        body.append(piece)
+    body += shift_in_slices(c, cuts, lambda y: rear_z(y) - REAR)
 # The rear wall itself in half-pixel rows from the inner face out to the profile, with
 # the side colors carried around the corner strips.
 y = BOTTOM
@@ -721,9 +710,8 @@ seat2 = [box(DIN_X[0], FLOOR, -23, DIN_X[1], FLOOR + 7, -10, "tweed"),
          box(DIN_X[0], FLOOR + 7, -24, DIN_X[1], FLOOR + 20, -21.5, "tweed")]
 seat3 = [box(DIN_X[0], FLOOR, 10, DIN_X[1], FLOOR + 7, 23, "tweed"),
          box(DIN_X[0], FLOOR + 7, 21.5, DIN_X[1], FLOOR + 20, 24, "tweed")]
-table = [box(DIN_X[0], FLOOR + 11, -6, -9, FLOOR + 12, 6, "wood"),
-         box(-15, FLOOR, -1, -13, FLOOR + 11, 1, "chrome")]
-body += table
+body.append(box(DIN_X[0], FLOOR + 11, -6, -9, FLOOR + 12, 6, "wood"))  # table
+body.append(box(-15, FLOOR, -1, -13, FLOOR + 11, 1, "chrome"))
 
 # Steering wheel, as on the reference: a thin ivory rim of 32 segments, one wide spoke from
 # 10 to 4 o'clock through a conical hub, and a chrome horn ring over the lower-left half.
@@ -755,6 +743,17 @@ for a in (90, 210, 330):  # the emblem's three points
     rad = math.radians(a)
     steering.append(box(0.45 * math.cos(rad) - 0.15, 0.45 * math.sin(rad) - 0.15, 1.4, 0.45 * math.cos(rad) + 0.15, 0.45 * math.sin(rad) + 0.15, 1.5, "needle"))
 steering.append(box(-0.7, -0.7, -13, 0.7, 0.7, -0.6, "dark_dash"))  # column down to the dashboard
+STEERING_PIVOT = [-12, 29, FRONT + 15]
+
+
+def moved(cube, offset):
+    """A copy of cube with its origin and pivot moved by offset."""
+    copy = dict(cube)
+    copy["origin"] = [v + d for v, d in zip(cube["origin"], offset)]
+    if "pivot" in cube:
+        copy["pivot"] = [v + d for v, d in zip(cube["pivot"], offset)]
+    return copy
+
 
 # Extract lenses after shaping the nose so they follow the same taper as the lamp pods.
 lens_slot = SLOTS.index("lens")
@@ -770,11 +769,11 @@ camper_bones = [
     *[{"name": f"seat_{i}", "parent": "body", "pivot": [0, FLOOR, 0], "cubes": cubes}
       for i, cubes in enumerate((seat0, seat1, seat2, seat3))],
     {"name": "door_entry", "parent": "body", "pivot": DOOR_HINGE, "cubes": door},
-    {"name": "steering", "parent": "body", "pivot": [-12, 29, FRONT + 15], "rotation": [50, 0, 0],
-     "cubes": [{**c, "origin": [c["origin"][0] - 12, c["origin"][1] + 29, c["origin"][2] + FRONT + 15],
-                **({"pivot": [c["pivot"][0] - 12, c["pivot"][1] + 29, c["pivot"][2] + FRONT + 15]} if "pivot" in c else {})}
-               for c in steering]},
+    {"name": "steering", "parent": "body", "pivot": STEERING_PIVOT, "rotation": [50, 0, 0],
+     "cubes": [moved(c, STEERING_PIVOT) for c in steering]},
 ]
+
+
 def mirror_x(bones):
     """Mirror the building frame (+x right) into the game's frame (+x left)."""
     for bone in bones:
@@ -864,8 +863,8 @@ ICON = [
     "................",
     "................",
 ]
-ICON_COLORS = {"W": (238, 235, 226, 255), "K": (150, 128, 72, 255), "G": (70, 86, 96, 255),
-               "S": (128, 98, 52, 255), "T": (186, 140, 92, 255), "B": (28, 28, 30, 255),
+ICON_COLORS = {"W": PALETTE["white"], "K": PALETTE["khaki"], "G": (70, 86, 96, 255),
+               "S": PALETTE["stripe"], "T": PALETTE["tan"], "B": (28, 28, 30, 255),
                "O": (60, 60, 60, 255), ".": (0, 0, 0, 0)}
 ITEM_TEXTURES.mkdir(parents=True, exist_ok=True)
 png(ITEM_TEXTURES / "camper_item.png", 16, 16, lambda x, y: ICON_COLORS[ICON[y][x]])
