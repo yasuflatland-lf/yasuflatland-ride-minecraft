@@ -149,7 +149,10 @@ export class TransformingDrive implements Drive {
     this.motion = alignOnMount(this.motion, driverYaw);
   }
 
-  /** Kinds with doors override this (ADR 0009). */
+  /**
+   * Kinds with doors override this to play the vacated seat's door animation
+   * and sound (ADR 0007, 0019).
+   */
   onSeatVacated(_seat: number): readonly EngineCommand[] {
     return [];
   }

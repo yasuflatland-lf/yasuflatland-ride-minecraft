@@ -1,4 +1,6 @@
-// Entity properties, events, and commands every transforming kind shares (ADR 0021, 0026, 0033).
+// Entity properties, events, and commands every transforming kind shares
+// (ADR 0021, 0026, 0033). ADR 0039 sets their names and 0055 keeps them local
+// to the entity.
 import type { EngineCommand } from "../drive";
 import { FORMS, type Form } from "./forms";
 
