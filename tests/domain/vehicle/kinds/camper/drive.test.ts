@@ -99,3 +99,95 @@ it.each([
     expect(Math.hypot(body.vel.x, body.vel.z)).toBeCloseTo(medium.maxSpeed, 9);
   },
 );
+
+it("never lets the front pass a wall face while driving into it from any start", () => {
+  fc.assert(
+    fc.property(
+      fc.double({ min: 0, max: 40, noNaN: true }),
+      fc.double({ min: 0, max: 1, noNaN: true }),
+      fc.constantFrom(MOTION.defaultFriction, 0.6, 0.8),
+      (gap, cellOffset, mu) => {
+        const drive = new CamperDrive(-90, {});
+        const wallX = 60;
+        let body: Body = {
+          pos: { x: wallX - CAMPER_SPEC.bodyFront - gap - cellOffset, z: 0.5 },
+          vel: { x: 0, z: 0 },
+        };
+        for (let tick = 0; tick < 200; tick++) {
+          const location = { x: body.pos.x, y: 64, z: body.pos.z };
+          const out = drive.step(
+            { moveX: 0, moveY: 1, jump: false },
+            {
+              ...context(),
+              tick,
+              location,
+              velocity: { ...body.vel, y: 0 },
+              solidAt: (offset) =>
+                offset.y < 0 ||
+                (Math.floor(location.x + offset.x) >= wallX &&
+                  offset.y < CAMPER_SPEC.carHeight),
+            },
+          );
+          body = engineStep(body, out.impulse, { mu }).body;
+          expect(body.pos.x + CAMPER_SPEC.bodyFront).toBeLessThanOrEqual(
+            wallX + 1e-9,
+          );
+        }
+      },
+    ),
+  );
+});
+
+it("cancels the step jump when a curb lies ahead and a wall stands at the front end", () => {
+  const drive = new CamperDrive(-90, {});
+  const ctx = context();
+  const wallX = ctx.location.x + CAMPER_SPEC.bodyFront;
+  ctx.solidAt = (offset) => {
+    const x = ctx.location.x + offset.x;
+    if (offset.y < 0) return true;
+    if (x >= wallX) return offset.y < CAMPER_SPEC.carHeight;
+    return x >= ctx.location.x + CAMPER_SPEC.hitboxFront && offset.y < 1;
+  };
+  for (let tick = 0; tick < 100; tick++) {
+    const out = drive.step(
+      { moveX: 0, moveY: 1, jump: false },
+      { ...ctx, tick },
+    );
+    expect(drive.speed).toBe(0);
+    expect(out.impulse.y).toBe(0);
+    expect(out.impulse.x).toBeCloseTo(0);
+    expect(out.impulse.z).toBeCloseTo(0);
+  }
+});
+
+it.each([
+  ["hover", 0],
+  ["hover", 2],
+  ["submarine", 0],
+  ["submarine", 3],
+] as const)(
+  "stops a %s camper at a wall in layer %i at the front end",
+  (form, layer) => {
+    const drive = new CamperDrive(-90, { form });
+    const location = { x: 0.5, y: 64, z: 0.5 };
+    const wallX = location.x + CAMPER_SPEC.bodyFront;
+    const ctx: TickContext = {
+      ...context(),
+      location,
+      onGround: false,
+      velocity: { x: 0.3, y: 0, z: 0.1 },
+      solidAt: (offset) => location.x + offset.x >= wallX && offset.y === layer,
+      waterAt: () => form === "submarine",
+    };
+    for (let tick = 0; tick < 100; tick++) {
+      const out = drive.step(
+        { moveX: 0, moveY: 1, jump: false },
+        { ...ctx, tick },
+      );
+      expect(drive.form).toBe(form);
+      expect(drive.speed).toBe(0);
+      expect(out.impulse.x).toBeCloseTo(-ctx.velocity.x);
+      expect(out.impulse.z).toBeCloseTo(-ctx.velocity.z);
+    }
+  },
+);

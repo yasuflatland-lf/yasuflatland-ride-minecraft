@@ -102,7 +102,15 @@ function driveInputFor(raw: RawInput | undefined, form: Form): DriveInput {
   return { ...input, throttle: Math.max(0, input.throttle), handbrake: false };
 }
 
-export type StepGuard = (step: MotionResult, ctx: TickContext) => MotionResult;
+/**
+ * A kind's last word on the horizontal step. It gets the form because only car
+ * form has a step probe that climbs low cells (ADR 0067).
+ */
+export type StepGuard = (
+  step: MotionResult,
+  ctx: TickContext,
+  form: Form,
+) => MotionResult;
 
 export class TransformingDrive implements Drive {
   private motion: MotionState;
@@ -199,7 +207,7 @@ export class TransformingDrive implements Drive {
             form === "submarine" ? this.spec.water : this.spec.air,
             this.limits,
           );
-    const step = this.guard ? this.guard(moved, ctx) : moved;
+    const step = this.guard ? this.guard(moved, ctx, form) : moved;
     this.bank = stepBank(this.bank, form, yawBefore, step.state.yaw, this.spec);
     let impulseY: number;
     if (form === "car") {

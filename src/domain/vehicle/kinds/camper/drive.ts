@@ -15,8 +15,12 @@ const CAMPER_ENDS: BodyEnds = {
 // No doors open when a seat is vacated; the entry door comes with parking.
 export class CamperDrive extends TransformingDrive {
   constructor(yaw: number, restored: RestoredValues) {
-    super(yaw, restored, CAMPER_TRANSFORMING, CAMPER_MOTION, (step, ctx) =>
-      guardEnds(step, ctx, CAMPER_ENDS),
+    super(
+      yaw,
+      restored,
+      CAMPER_TRANSFORMING,
+      CAMPER_MOTION,
+      (step, ctx, form) => guardEnds(step, ctx, CAMPER_ENDS, form),
     );
   }
 }
