@@ -1,5 +1,5 @@
 // Landing gear: the wheels unfold before touchdown instead of after (ADR 0033).
-import type { Form } from "./form";
+import type { Form } from "./forms";
 
 /**
  * Whether the wheels should be in the driving pose. Takeoff and flight fold

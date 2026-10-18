@@ -16,10 +16,6 @@ import {
 } from "../../../src/domain/vehicle/kinds/index";
 import { SuvDrive } from "../../../src/domain/vehicle/kinds/suv/drive";
 import {
-  type Form,
-  verticalImpulse,
-} from "../../../src/domain/vehicle/kinds/suv/form";
-import {
   SUV_MOTION,
   SUV_PROFILE,
 } from "../../../src/domain/vehicle/kinds/suv/profile";
@@ -29,6 +25,10 @@ import {
   WATER,
 } from "../../../src/domain/vehicle/kinds/suv/spec";
 import { MOTION } from "../../../src/domain/vehicle/motion/constants";
+import {
+  type Form,
+  verticalImpulse,
+} from "../../../src/domain/vehicle/motion/forms";
 import {
   initialMotion,
   stepFlightMotion,
@@ -530,7 +530,7 @@ describe("Motion medium contract", () => {
     );
   });
 
-  it("pre-divides vertical impulses by the supplied drag and keeps the air default", () => {
+  it("pre-divides vertical impulses by the supplied water and air drag", () => {
     fc.assert(
       fc.property(
         fc.double({
@@ -545,9 +545,11 @@ describe("Motion medium contract", () => {
               verticalImpulse(target, observed, WATER_VERTICAL_DRAG)) *
               WATER_VERTICAL_DRAG,
           ).toBeCloseTo(target, 12);
-          expect(verticalImpulse(target, observed)).toBe(
-            verticalImpulse(target, observed, SUV_SPEC.flightVerticalDrag),
-          );
+          expect(
+            (observed +
+              verticalImpulse(target, observed, SUV_SPEC.flightVerticalDrag)) *
+              SUV_SPEC.flightVerticalDrag,
+          ).toBeCloseTo(target, 12);
         },
       ),
     );

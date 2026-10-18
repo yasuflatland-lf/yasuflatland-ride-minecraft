@@ -1,8 +1,8 @@
 // Forms of the transforming vehicle (ADR 0039): double-tap Jump to take off
 // and land (ADR 0021), hold Jump to climb and pull the stick back to sink (ADR 0032).
-import { clamp } from "../../../shared/vec";
-import { type RawInput, toDriveInput } from "../../driveInput";
-import { SUV_SPEC } from "./spec";
+import { clamp } from "../../shared/vec";
+import { type RawInput, toDriveInput } from "../driveInput";
+import type { TransformingSpec } from "./transforming";
 
 export const FORMS = [
   "car",
@@ -36,8 +36,11 @@ export interface FormInput {
   waterDepth: number;
 }
 
-export function isSubmerged(waterDepth: number): boolean {
-  return waterDepth >= SUV_SPEC.carHeight;
+export function isSubmerged(
+  waterDepth: number,
+  spec: Pick<TransformingSpec, "carHeight">,
+): boolean {
+  return waterDepth >= spec.carHeight;
 }
 
 export function isDry(waterDepth: number): boolean {
@@ -56,13 +59,18 @@ function acceptsToggle(form: Form): boolean {
   return form === "car" || form === "hover";
 }
 
-function nextForm(prev: FormState, input: FormInput, toggle: boolean): Form {
-  if (isSubmerged(input.waterDepth)) return "submarine";
+function nextForm(
+  prev: FormState,
+  input: FormInput,
+  toggle: boolean,
+  spec: TransformingSpec,
+): Form {
+  if (isSubmerged(input.waterDepth, spec)) return "submarine";
   switch (prev.form) {
     case "car":
       return toggle && input.controlled ? "takeoff" : "car";
     case "takeoff":
-      return prev.formTicks >= SUV_SPEC.takeoffTicks ? "hover" : "takeoff";
+      return prev.formTicks >= spec.takeoffTicks ? "hover" : "takeoff";
     case "hover":
       // Sinking onto the ground lands at once, as touchdown ends landing (ADR 0034).
       if (input.onGround) return "car";
@@ -76,17 +84,21 @@ function nextForm(prev: FormState, input: FormInput, toggle: boolean): Form {
   }
 }
 
-export function stepForm(prev: FormState, input: FormInput): FormState {
+export function stepForm(
+  prev: FormState,
+  input: FormInput,
+  spec: TransformingSpec,
+): FormState {
   const tap = input.jump && !prev.jumpHeld;
   const accepts = acceptsToggle(prev.form);
   const toggle =
     tap &&
     accepts &&
     prev.lastTap !== undefined &&
-    input.tick - prev.lastTap <= SUV_SPEC.doubleTapTicks;
+    input.tick - prev.lastTap <= spec.doubleTapTicks;
   let lastTap = prev.lastTap;
   if (tap) lastTap = accepts && !toggle ? input.tick : undefined;
-  const form = nextForm(prev, input, toggle);
+  const form = nextForm(prev, input, toggle, spec);
   return {
     form,
     formTicks: form === prev.form ? prev.formTicks + 1 : 1,
@@ -114,19 +126,21 @@ export function climbInput(raw: RawInput | undefined): number {
  * sets it independent of the forward speed (ADR 0032).
  * SuvDrive uses submarineVerticalSpeed for submarine form.
  */
-export function verticalSpeed(form: Form, climb: number): number {
+export function verticalSpeed(
+  form: Form,
+  climb: number,
+  spec: TransformingSpec,
+): number {
   switch (form) {
     case "car":
     case "submarine":
       return 0;
     case "takeoff":
-      return SUV_SPEC.takeoffClimb;
+      return spec.takeoffClimb;
     case "landing":
-      return -SUV_SPEC.landingSink;
+      return -spec.landingSink;
     case "hover":
-      return Number.isFinite(climb)
-        ? clamp(climb, -1, 1) * SUV_SPEC.maxClimb
-        : 0;
+      return Number.isFinite(climb) ? clamp(climb, -1, 1) * spec.maxClimb : 0;
   }
 }
 
@@ -134,7 +148,7 @@ export function verticalSpeed(form: Form, climb: number): number {
 export function verticalImpulse(
   targetVy: number,
   vy: number,
-  drag: number = SUV_SPEC.flightVerticalDrag,
+  drag: number,
 ): number {
   return targetVy / drag - vy;
 }

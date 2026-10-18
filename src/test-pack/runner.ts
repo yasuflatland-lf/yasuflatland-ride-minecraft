@@ -9,9 +9,9 @@ import {
   SPORTSBOAT_PROFILE,
 } from "../domain/vehicle/kinds/sportsboat/profile";
 import type { SUV_ENTITY } from "../domain/vehicle/kinds/suv/entity";
-import { type Form, isForm } from "../domain/vehicle/kinds/suv/form";
 import { SUV_PROFILE } from "../domain/vehicle/kinds/suv/profile";
 import { SUV_SPEC } from "../domain/vehicle/kinds/suv/spec";
+import { type Form, isForm } from "../domain/vehicle/motion/forms";
 import { PAINTS } from "../domain/vehicle/paint";
 import {
   nearestSeat,
