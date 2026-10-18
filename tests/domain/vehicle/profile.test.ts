@@ -8,6 +8,10 @@ import {
 } from "../../../src/domain/vehicle/headlights";
 import { isVehicleKind, VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
 import {
+  CAMPER_MOTION,
+  CAMPER_PROFILE,
+} from "../../../src/domain/vehicle/kinds/camper/profile";
+import {
   createVehicle,
   KINDS,
   profileOf,
@@ -134,6 +138,7 @@ describe("vehicle profiles (ADR 0050)", () => {
   it("freezes every profile and motion limit so a write cannot change all vehicles of a kind", () => {
     expect(Object.isFrozen(KINDS)).toBe(true);
     expect(Object.isFrozen(SUV_MOTION)).toBe(true);
+    expect(Object.isFrozen(CAMPER_MOTION)).toBe(true);
     expect(Object.isFrozen(SPORTSBOAT_MOTION)).toBe(true);
     for (const kind of VEHICLE_KINDS) {
       expect(Object.isFrozen(KINDS[kind])).toBe(true);
@@ -163,7 +168,11 @@ describe("vehicle profiles (ADR 0050)", () => {
       fc.property(fc.constantFrom(...VEHICLE_KINDS), yaw, (kind, heading) => {
         expect(isVehicleKind(kind)).toBe(true);
         expect(profileOf(kind)).toBe(
-          kind === "suv" ? SUV_PROFILE : SPORTSBOAT_PROFILE,
+          {
+            suv: SUV_PROFILE,
+            sportsboat: SPORTSBOAT_PROFILE,
+            camper: CAMPER_PROFILE,
+          }[kind],
         );
         expect(createVehicle(kind, "v", heading).kind).toBe(kind);
         expect(
@@ -508,5 +517,9 @@ describe("vehicle profiles (ADR 0050)", () => {
         },
       ),
     );
+  });
+
+  it("limits each player to one camper", () => {
+    expect(CAMPER_PROFILE.fleetLimit).toBe(1);
   });
 });

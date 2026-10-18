@@ -12,10 +12,12 @@ export const VEHICLE_FAMILY = "yasu_ride_vehicle";
 export const ENTITY_TYPE: Readonly<Record<VehicleKind, string>> = {
   suv: id("suv"),
   sportsboat: id("sportsboat"),
+  camper: id("camper"),
 };
 export const ITEM_TYPE: Readonly<Record<VehicleKind, string>> = {
   suv: id("suv_item"),
   sportsboat: id("sportsboat_item"),
+  camper: id("camper_item"),
 };
 export function kindOfEntity(
   typeId: string | undefined,

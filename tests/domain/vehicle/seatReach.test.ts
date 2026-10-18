@@ -50,5 +50,5 @@ describe("farthestSeatReach", () => {
 });
 
 it("computes DECK_SEAT_REACH from the current kinds' seat layouts", () => {
-  expect(DECK_SEAT_REACH).toBeCloseTo(Math.hypot(0.38, 0.8));
+  expect(DECK_SEAT_REACH).toBeCloseTo(Math.hypot(0.75, 2.1));
 });

@@ -7,6 +7,9 @@ import type { VehicleProfile } from "../profile";
 import { ramQueryRadius } from "../ramQuery";
 import { farthestSeatReach } from "../seats";
 import { type RiderView, Vehicle } from "../vehicle";
+import { CamperDrive } from "./camper/drive";
+import { CAMPER_ENTITY } from "./camper/entity";
+import { CAMPER_PROFILE } from "./camper/profile";
 import { BoatDrive } from "./sportsboat/drive";
 import { SPORTSBOAT_ENTITY } from "./sportsboat/entity";
 import { SPORTSBOAT_PROFILE } from "./sportsboat/profile";
@@ -30,6 +33,11 @@ export const KINDS: Readonly<Record<VehicleKind, Readonly<KindDefinition>>> =
       profile: SUV_PROFILE,
       entity: SUV_ENTITY,
       createDrive: (yaw, restored) => new SuvDrive(yaw, restored),
+    }),
+    camper: Object.freeze<KindDefinition>({
+      profile: CAMPER_PROFILE,
+      entity: CAMPER_ENTITY,
+      createDrive: (yaw, restored) => new CamperDrive(yaw, restored),
     }),
     sportsboat: Object.freeze<KindDefinition>({
       profile: SPORTSBOAT_PROFILE,
