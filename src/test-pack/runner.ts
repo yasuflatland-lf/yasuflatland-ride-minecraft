@@ -227,6 +227,79 @@ async function camperWall(a: Arena): Promise<Outcome> {
   }
 }
 
+function camperTakeoff(a: Arena): Promise<Outcome> {
+  return withCamper(a, FLIGHT_LANE.x, FLIGHT_LANE.z, -90, async (car) => {
+    await doubleTap(car);
+    await wait(CAMPER_SPEC.takeoffTicks + 5);
+    const form = vehicleForm(car);
+    const rise = car.location.y - a.gy;
+    return {
+      pass: form === "hover" && rise >= 1.2 && rise <= 1.8,
+      detail: `form=${form} rise=${rise.toFixed(2)}`,
+    };
+  });
+}
+
+function camperLand(a: Arena): Promise<Outcome> {
+  return withCamper(a, FLIGHT_LANE.x, FLIGHT_LANE.z, -90, async (car) => {
+    await doubleTap(car);
+    await wait(CAMPER_SPEC.takeoffTicks + 5);
+    // Climb well above gearDownHeight so the wheels have to wait for the ground.
+    drive(car, 0, 0, true);
+    await wait(15);
+    drive(car, 0, 0, false);
+    await wait(2);
+    await doubleTap(car);
+    const afterTap = vehicleForm(car);
+    let gearY = Number.NaN;
+    let landedAt = -1;
+    for (let t = 0; t < 80; t++) {
+      await wait(1);
+      if (Number.isNaN(gearY) && suvProperty(car, "gear_down") === true)
+        gearY = car.location.y - a.gy;
+      if (vehicleForm(car) === "car") {
+        landedAt = t;
+        break;
+      }
+    }
+    const restY = car.location.y - a.gy;
+    // Gravity must be back on: a hop up has to come down again.
+    car.applyImpulse({ x: 0, y: 0.5, z: 0 });
+    await wait(40);
+    const afterHop = car.location.y - a.gy;
+    return {
+      pass:
+        afterTap === "landing" &&
+        landedAt >= 0 &&
+        gearY >= 2 &&
+        gearY <= CAMPER_SPEC.gearDownHeight + 0.5 &&
+        Math.abs(restY) <= 0.1 &&
+        Math.abs(afterHop) <= 0.1,
+      detail: `afterTap=${afterTap} gearY=${gearY.toFixed(2)} landedAt=${landedAt} restY=${restY.toFixed(2)} afterHop=${afterHop.toFixed(2)}`,
+    };
+  });
+}
+
+async function camperDive(a: Arena): Promise<Outcome> {
+  // The flat world's four-block ground cannot hold a pool deep enough for the camper.
+  try {
+    a.dim.runCommand(`fill 100 ${a.gy} 61 118 ${a.gy + 6} 69 glass`);
+    a.dim.runCommand(`fill 101 ${a.gy} 62 117 ${a.gy + 5} 68 water`);
+    return await withCamper(a, 109.5, 65.5, -90, async (car) => {
+      const enteredAt = await ticksUntilForm(car, "submarine", 40);
+      drive(car, 0, 0, true);
+      const hoverAt = await ticksUntilForm(car, "hover", 80);
+      const y = car.location.y;
+      return {
+        pass: enteredAt >= 0 && hoverAt >= 0 && y >= a.gy + 6 - 0.1,
+        detail: `enteredAt=${enteredAt} hoverAt=${hoverAt} rise=${(y - a.gy).toFixed(2)}`,
+      };
+    });
+  } finally {
+    a.dim.runCommand(`fill 100 ${a.gy} 61 118 ${a.gy + 6} 69 air`);
+  }
+}
+
 function accelAndStep1(a: Arena): Promise<Outcome> {
   a.dim.runCommand(`fill 60 ${a.gy} 15 70 ${a.gy} 25 stone`);
   return withCar(a, 5.5, 20.5, -90, async (car) => {
@@ -1543,6 +1616,10 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
     // camper_wall waits a fixed 150 ticks.
     ["camper_accel", 140, () => camperAccel(a)],
     ["camper_wall", 150, () => camperWall(a)],
+    // Estimates until CI reports measured ticks (ADR 0054).
+    ["camper_takeoff", 60, () => camperTakeoff(a)],
+    ["camper_land", 140, () => camperLand(a)],
+    ["camper_dive", 120, () => camperDive(a)],
     ["accel_and_step1", 85, () => accelAndStep1(a)],
     ["passable_no_hop", 65, () => passableNoHop(a)],
     ["turn_and_handbrake", 130, () => turnAndHandbrake(a)],
