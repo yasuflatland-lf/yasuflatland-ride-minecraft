@@ -379,6 +379,42 @@ describe("camper body end guard", () => {
     },
   );
 
+  it("samples only the cells behind the rear when reversing, at any whole-degree heading", () => {
+    // Whole degrees, since fc.double draws most headings within a hair of 0,
+    // where the forward axis has no x component to get wrong.
+    const wholeHeading = fc.integer({ min: 0, max: 359 });
+    fc.assert(
+      fc.property(
+        wholeHeading,
+        reverseSpeed,
+        position,
+        velocity,
+        anyForm,
+        (yaw, speed, at, v, form) => {
+          const sensor = world(at, []);
+          guardEnds(
+            motion(yaw, speed),
+            { velocity: v, solidAt: sensor.solidAt },
+            ends,
+            form,
+          );
+          const back = { x: -forward(yaw).x, z: -forward(yaw).z };
+          expect(sensor.queries.length).toBeGreaterThan(0);
+          for (const offset of sensor.queries) {
+            expect(dot(offset, back)).toBeGreaterThan(ends.rear);
+            expect(dot(offset, back)).toBeLessThanOrEqual(
+              ends.rear + travel(v) + 1e-9,
+            );
+            expect(Math.abs(dot(offset, rightOf(back)))).toBeLessThan(
+              ends.halfWidth,
+            );
+          }
+        },
+      ),
+      { examples: [[90, -0.3, STILL, STILL, "car"]] },
+    );
+  });
+
   it("makes no queries at rest and preserves the step", () => {
     fc.assert(
       fc.property(heading, position, velocity, anyForm, (yaw, at, v, form) => {

@@ -7,6 +7,8 @@ import {
   headlightCells,
   relight,
 } from "../../../src/domain/vehicle/headlights";
+import { CAMPER_PROFILE } from "../../../src/domain/vehicle/kinds/camper/profile";
+import { CAMPER_SPEC } from "../../../src/domain/vehicle/kinds/camper/spec";
 import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
 import { SUV_SPEC } from "../../../src/domain/vehicle/kinds/suv/spec";
 
@@ -59,15 +61,25 @@ describe("headlightCells (ADR 0020)", () => {
     );
   });
 
-  it("lights one cell per reach, since the reaches are farther apart than a cell's diagonal", () => {
-    fc.assert(
-      fc.property(location, yaw, (at, y) => {
-        expect(headlightCells(at, y, SUV_PROFILE.beams)).toHaveLength(
-          SUV_SPEC.headlightReach.length,
-        );
-      }),
-    );
-  });
+  it.each([
+    ["SUV", SUV_PROFILE.beams, SUV_SPEC.headlightReach],
+    ["camper", CAMPER_PROFILE.beams, CAMPER_SPEC.headlightReach],
+  ] as const)(
+    "lights one %s cell per reach on the center line, since the reaches are farther apart than a cell's diagonal",
+    (_kind, beams, reaches) => {
+      fc.assert(
+        fc.property(location, yaw, (at, y) => {
+          const f = forward(y);
+          const out = headlightCells(at, y, beams);
+          expect(out).toHaveLength(reaches.length);
+          for (const c of out) {
+            const d = { x: c.x + 0.5 - at.x, z: c.z + 0.5 - at.z };
+            expect(Math.abs(dot(d, rightOf(f)))).toBeLessThan(1);
+          }
+        }),
+      );
+    },
+  );
 });
 
 describe("relight (ADR 0020)", () => {
