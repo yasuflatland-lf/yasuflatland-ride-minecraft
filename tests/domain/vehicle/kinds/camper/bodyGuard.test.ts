@@ -153,6 +153,10 @@ function endPoint(
   return { x: f.x * reach + r.x * lane, y: layer, z: f.z * reach + r.z * lane };
 }
 
+// forward() at a cardinal yaw leaves sin/cos rounding of about 1e-16, so a probe
+// exactly on a wall face can land a hair across it.
+const FACE_EPSILON = 1e-9;
+
 describe("camper end lanes", () => {
   it("are center-most first, at most one block apart, and reach both sides of any body", () => {
     fc.assert(
@@ -499,8 +503,12 @@ describe("camper body end guard", () => {
             expect(run.stopped).toBe(true);
             for (const points of run.lanePoints)
               for (const p of points)
-                if (toward > 0) expect(coord(p)).toBeLessThan(wall);
-                else expect(coord(p)).toBeGreaterThanOrEqual(wall + 1);
+                if (toward > 0)
+                  expect(coord(p)).toBeLessThan(wall + FACE_EPSILON);
+                else
+                  expect(coord(p)).toBeGreaterThanOrEqual(
+                    wall + 1 - FACE_EPSILON,
+                  );
           },
         ),
       );
@@ -547,8 +555,12 @@ describe("camper body end guard", () => {
           for (const points of run.lanePoints)
             for (const p of points)
               if (Math.floor(across(p)) === row) {
-                if (toward > 0) expect(along(p)).toBeLessThan(column);
-                else expect(along(p)).toBeGreaterThanOrEqual(column + 1);
+                if (toward > 0)
+                  expect(along(p)).toBeLessThan(column + FACE_EPSILON);
+                else
+                  expect(along(p)).toBeGreaterThanOrEqual(
+                    column + 1 - FACE_EPSILON,
+                  );
               }
         },
       ),
