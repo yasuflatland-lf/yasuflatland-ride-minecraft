@@ -183,4 +183,73 @@ describe("per-kind submarine climb", () => {
       ),
     );
   });
+
+  it("scales a controlled climb by the supplied maxClimb", () => {
+    fc.assert(
+      fc.property(
+        fc.double({ min: 0.05, max: 1, noNaN: true }),
+        fc
+          .double({ noNaN: true, noDefaultInfinity: true })
+          .filter((c) => c !== 0),
+        input,
+        (maxClimb, climb, input) => {
+          const spec = { ...SUV_TRANSFORMING, maxClimb };
+          expect(
+            submarineVerticalSpeed({ ...input, climb, controlled: true }, spec),
+          ).toBe(Math.max(-1, Math.min(1, climb)) * maxClimb);
+        },
+      ),
+    );
+  });
+
+  it("floats toward the supplied float line at the supplied gain, capped by surfaceRise", () => {
+    fc.assert(
+      fc.property(
+        fc.double({ min: 0.1, max: 3, noNaN: true }),
+        fc.double({ min: 0.01, max: 2, noNaN: true }),
+        fc.double({ min: 0.01, max: 1, noNaN: true }),
+        fc.boolean(),
+        depth,
+        (floatDraft, floatGain, surfaceRise, controlled, waterDepth) => {
+          const spec = {
+            ...SUV_TRANSFORMING,
+            floatDraft,
+            floatGain,
+            surfaceRise,
+          };
+          const pull = Math.max(
+            -surfaceRise,
+            Math.min(
+              surfaceRise,
+              (finite(waterDepth) - floatDraft) * floatGain,
+            ),
+          );
+          expect(
+            submarineVerticalSpeed(
+              { climb: 0, controlled, rising: false, waterDepth },
+              spec,
+            ),
+          ).toBe(controlled ? Math.min(0, pull) : pull);
+        },
+      ),
+    );
+  });
+
+  it("holds still exactly at the supplied float line", () => {
+    fc.assert(
+      fc.property(
+        fc.double({ min: 0.1, max: 3, noNaN: true }),
+        fc.boolean(),
+        (floatDraft, controlled) => {
+          const spec = { ...SUV_TRANSFORMING, floatDraft };
+          expect(
+            submarineVerticalSpeed(
+              { climb: 0, controlled, rising: false, waterDepth: floatDraft },
+              spec,
+            ),
+          ).toBe(0);
+        },
+      ),
+    );
+  });
 });

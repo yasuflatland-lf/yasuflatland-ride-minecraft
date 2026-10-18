@@ -18,6 +18,7 @@ import {
   verticalImpulse,
   verticalSpeed,
 } from "../../../../src/domain/vehicle/motion/forms";
+import type { TransformingSpec } from "../../../../src/domain/vehicle/motion/transforming";
 import { SPEC } from "../../../../src/domain/vehicle/spec";
 import { shallowWaterDepth, waterDepth } from "../../../support/waterDepth";
 
@@ -37,12 +38,16 @@ const NEXT: Record<Form, readonly Form[]> = {
   submarine: ["hover", "car"],
 };
 
-function run(steps: readonly Step[], start = initialForm()): Frame[] {
+function run(
+  steps: readonly Step[],
+  start = initialForm(),
+  spec: TransformingSpec = SUV_TRANSFORMING,
+): Frame[] {
   let state = start;
   return steps.map((step, tick) => {
     const input = { ...step, tick };
     const before = state;
-    state = stepForm(state, input, SUV_TRANSFORMING);
+    state = stepForm(state, input, spec);
     return { input, before, after: state };
   });
 }
@@ -479,6 +484,48 @@ describe("per-kind transforming values", () => {
         fc.double(),
         (carHeight, depth) => {
           expect(isSubmerged(depth, { carHeight })).toBe(depth >= carHeight);
+        },
+      ),
+    );
+  });
+
+  it("submerges in stepForm at the supplied body height", () => {
+    fc.assert(
+      fc.property(
+        fc.double({ min: 0.5, max: 6, noNaN: true }),
+        // Offsets around the threshold, with 0 so the boundary itself is hit.
+        fc.oneof(fc.constant(0), fc.double({ min: -0.5, max: 1, noNaN: true })),
+        (carHeight, offset) => {
+          const spec = { ...SUV_TRANSFORMING, carHeight };
+          const waterDepth = carHeight + offset;
+          const next = stepForm(
+            initialForm(),
+            {
+              tick: 0,
+              jump: false,
+              controlled: true,
+              onGround: true,
+              waterDepth,
+            },
+            spec,
+          );
+          expect(next.form === "submarine").toBe(waterDepth >= carHeight);
+        },
+      ),
+    );
+  });
+
+  it("takes off on two presses within the supplied doubleTapTicks, and not further apart", () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 2, max: 40 }),
+        fc.integer({ min: 2, max: 60 }),
+        (doubleTapTicks, gap) => {
+          const spec = { ...SUV_TRANSFORMING, doubleTapTicks };
+          const last = run(taps([0, gap], gap + 1), initialForm(), spec).at(-1);
+          expect(last?.after.form).toBe(
+            gap <= doubleTapTicks ? "takeoff" : "car",
+          );
         },
       ),
     );
