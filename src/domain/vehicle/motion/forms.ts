@@ -4,6 +4,11 @@ import { clamp } from "../../shared/vec";
 import { type RawInput, toDriveInput } from "../driveInput";
 import type { TransformingSpec } from "./transforming";
 
+type FormSpec = Pick<
+  TransformingSpec,
+  "carHeight" | "doubleTapTicks" | "takeoffTicks"
+>;
+
 export const FORMS = [
   "car",
   "takeoff",
@@ -63,7 +68,7 @@ function nextForm(
   prev: FormState,
   input: FormInput,
   toggle: boolean,
-  spec: TransformingSpec,
+  spec: FormSpec,
 ): Form {
   if (isSubmerged(input.waterDepth, spec)) return "submarine";
   switch (prev.form) {
@@ -87,7 +92,7 @@ function nextForm(
 export function stepForm(
   prev: FormState,
   input: FormInput,
-  spec: TransformingSpec,
+  spec: FormSpec,
 ): FormState {
   const tap = input.jump && !prev.jumpHeld;
   const accepts = acceptsToggle(prev.form);
@@ -124,12 +129,12 @@ export function climbInput(raw: RawInput | undefined): number {
 /**
  * Target vertical velocity in blocks/tick. In hover form, the climb command
  * sets it independent of the forward speed (ADR 0032).
- * SuvDrive uses submarineVerticalSpeed for submarine form.
+ * Submarine form uses submarineVerticalSpeed instead.
  */
 export function verticalSpeed(
   form: Form,
   climb: number,
-  spec: TransformingSpec,
+  spec: Pick<TransformingSpec, "takeoffClimb" | "landingSink" | "maxClimb">,
 ): number {
   switch (form) {
     case "car":
