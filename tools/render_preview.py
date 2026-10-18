@@ -392,18 +392,42 @@ def ground_layers(polygons, pose, ground_y):
     return layers
 
 
+def game_turn(rotation):
+    # In game x and z rotations turn the other way from this rotate() (ADR 0051, 0058), for bones as
+    # for cubes
+    rx, ry, rz = rotation
+    return [-rx, ry, -rz]
+
+
+def bone_turns(bones):
+    """Bone name -> the (pivot, rotation) turns that pose its cubes, its own first and then each
+    rotated ancestor's, as the game composes a child bone inside its parent. Bones with no rotation
+    in their chain get none, so their cubes keep their exact coordinates."""
+    by_name = {bone["name"]: bone for bone in bones}
+    turns = {}
+    for bone in bones:
+        chain, current = [], bone
+        while current is not None:
+            if any(current.get("rotation", [0, 0, 0])):
+                chain.append((current["pivot"], game_turn(current["rotation"])))
+            current = by_name.get(current.get("parent"))
+        turns[bone["name"]] = chain
+    return turns
+
+
 def collect_boat(geo, texture, pose):
     """Return the boat's opaque faces as (quad, rgb, bloom group or None) and its see-through faces as
     (quad, rgb, alpha)."""
     desc = geo["description"]
     tint = NIGHT_TINT if pose["dusk"] else (1.0, 1.0, 1.0)
     polygons, glass = [], []
+    turns = bone_turns(geo["bones"])
     for bone in geo["bones"]:
         emissive = "lamp" if bone["name"] == "headlights" and pose["lamps"] else None
         for cube in bone.get("cubes", []):
-            # In game a cube's x and z rotations turn the other way from this rotate() (ADR 0051, 0058)
-            rx, ry, rz = cube.get("rotation", [0, 0, 0])
-            for face, quad in cube_faces({**cube, "rotation": [-rx, ry, -rz]}):
+            for face, quad in cube_faces({**cube, "rotation": game_turn(cube.get("rotation", [0, 0, 0]))}):
+                for pivot, rotation in turns[bone["name"]]:
+                    quad = [rotate(p, pivot, rotation) for p in quad]
                 quad = mirror(quad)
                 normal = cross(sub(quad[1], quad[0]), sub(quad[3], quad[0]))
                 if dot(normal, normal) == 0:
