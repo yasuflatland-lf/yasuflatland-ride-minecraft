@@ -1,0 +1,872 @@
+"""Generate the camper geometry, 16 accent paint textures, and item icon.
+
+Based on the owner's photos of a cab-over motorhome, with no manufacturer name.
+Model units are pixels (16 per block), with the front at -z (ADR 0009). Build
+coordinates use +x for right; mirror left and right just before writing into
+Bedrock's frame. The stripe's W is an explicit exception recorded in ADR 0067.
+Run: python3 -I tools/gen_camper.py packs/yasu_ride_rp
+"""
+
+import json
+import math
+import struct
+import sys
+import zlib
+from pathlib import Path
+
+RP = Path(sys.argv[1])
+MODELS = RP / "models/entity/yasu_ride"
+ENTITY_TEXTURES = RP / "textures/entity/yasu_ride"
+ITEM_TEXTURES = RP / "textures/items/yasu_ride"
+PALETTE = {
+    "white": (238, 235, 226, 255),
+    "panel": (226, 222, 210, 255),
+    "brown": (152, 98, 52, 255),
+    "tan": (186, 140, 92, 255),
+    "khaki": (150, 128, 72, 255),
+    "steel": (172, 172, 166, 255),
+    "stripe": (128, 98, 52, 255),
+    "black": (24, 24, 24, 255),
+    "tire": (34, 34, 36, 255),
+    "rim": (230, 228, 220, 255),
+    "chrome": (205, 206, 210, 255),
+    "slat": (168, 170, 172, 255),
+    "grille": (52, 54, 56, 255),
+    "glass": (70, 92, 108, 110),
+    "lens": (235, 235, 215, 255),
+    "amber": (240, 140, 30, 255),
+    "red": (200, 30, 30, 255),
+    "dash": (78, 104, 52, 255),
+    "dark_dash": (58, 80, 40, 255),
+    "gauge": (20, 20, 20, 255),
+    "seat": (150, 92, 50, 255),
+    "wood": (176, 136, 92, 255),
+    "wall_in": (196, 170, 128, 255),
+    "curtain": (196, 120, 60, 255),
+    "ivory": (232, 226, 204, 255),
+    "dash_pad": (88, 118, 60, 255),
+    "tweed": (104, 116, 58, 255),
+    "tweed_line": (78, 88, 42, 255),
+    "piping": (128, 140, 78, 255),
+    "needle": (245, 245, 245, 255),
+    "hub": (196, 192, 176, 255),
+}
+SLOTS = list(PALETTE)
+
+# Accent bases follow the SUV paints (ADR 0031); the white shell never changes.
+ACCENT_BASES = {
+    "khaki": PALETTE["khaki"][:3],
+    "green": (62, 96, 56),
+    "red": (128, 22, 26),
+    "white": (222, 222, 216),
+    "light_gray": (156, 156, 152),
+    "gray": (92, 94, 98),
+    "black": (34, 34, 36),
+    "orange": (190, 92, 28),
+    "yellow": (214, 178, 44),
+    "lime": (112, 160, 42),
+    "cyan": (30, 118, 124),
+    "light_blue": (92, 150, 204),
+    "blue": (40, 58, 128),
+    "purple": (94, 46, 128),
+    "magenta": (160, 52, 140),
+    "pink": (214, 132, 162),
+}
+
+HW = 24  # half width
+FRONT, REAR = -56, 56
+BOTTOM, FLOOR, CEIL, ROOF = 8, 16, 61, 64  # roof flush with the third cell's bottom
+FRONT_AXLE, REAR_AXLE = -31.5, 31
+WHEEL_R = 6.5
+DOOR = (-7, 7, 12, 54)  # z0, z1, y0, y1 on the right side; local cell z = 0
+# The rear wall starts at the footprint's edge and its profile only reaches outward, so a
+# block or chest in the last row never shows through the back.
+REAR_INNER = REAR
+
+
+def face(color):
+    return {"uv": [SLOTS.index(color), 0], "uv_size": [1, 1]}
+
+
+def box(x0, y0, z0, x1, y1, z1, color, rotation=None, pivot=None):
+    c = {
+        "origin": [round(min(x0, x1), 3), round(min(y0, y1), 3), round(min(z0, z1), 3)],
+        "size": [round(abs(x1 - x0), 3), round(abs(y1 - y0), 3), round(abs(z1 - z0), 3)],
+        "uv": {f: face(color) for f in ("north", "south", "east", "west", "up", "down")},
+    }
+    if rotation:
+        c["rotation"] = rotation
+        c["pivot"] = pivot
+    return c
+
+
+def panel(axis, p0, p1, u0, u1, v0, v1, holes, color):
+    """A flat panel minus rectangular holes. axis 'x': u = z, v = y; axis 'z': u = x, v = y."""
+    breaks = sorted({v0, v1, *[h[2] for h in holes], *[h[3] for h in holes]})
+    breaks = [b for b in breaks if v0 <= b <= v1]
+    out = []
+    for a, b in zip(breaks, breaks[1:]):
+        cuts = sorted((h[0], h[1]) for h in holes if h[2] <= a and h[3] >= b)
+        u = u0
+        for c0, c1 in cuts + [(u1, u1)]:
+            if c0 > u:
+                if axis == "x":
+                    out.append(box(p0, a, u, p1, b, c0, color))
+                else:
+                    out.append(box(u, a, p0, c0, b, p1, color))
+            u = max(u, c1)
+    return out
+
+
+STEPS_32 = tuple(i * 11.25 for i in range(16))
+
+
+def disc(axis, cx, cy, cz, r, depth, color, steps=STEPS_32):
+    """A 32-sided disc from bars turned about its normal: 'x' (wheels) or 'z' (lamps)."""
+    n = 2 * len(steps)
+    long, short = 2 * r, 2 * r * math.tan(math.pi / n)
+    out = []
+    for a in steps:
+        if axis == "x":
+            out.append(box(cx, cy - short / 2, cz - long / 2, cx + depth, cy + short / 2, cz + long / 2, color, [a, 0, 0], [cx, cy, cz]))
+        else:
+            out.append(box(cx - long / 2, cy - short / 2, cz, cx + long / 2, cy + short / 2, cz + depth, color, [0, 0, a], [cx, cy, cz]))
+    return out
+
+
+def ring_z(cx, cy, cz, r, t, color, n=16):
+    out = []
+    seg = 2 * math.pi * r / n * 1.08
+    for i in range(n):
+        a = 2 * math.pi * i / n
+        x, y = cx + r * math.cos(a), cy + r * math.sin(a)
+        out.append(box(x - seg / 2, y - t / 2, cz, x + seg / 2, y + t / 2, cz + t, color, [0, 0, math.degrees(a) + 90], [x, y, cz]))
+    return out
+
+
+body = []
+
+# --- Floor, roof and walls -------------------------------------------------
+body.append(box(-HW + 1, 13, FRONT + 1, HW - 1, FLOOR, REAR_INNER, "wood"))
+body.append(box(-HW, CEIL, FRONT, HW, ROOF, REAR_INNER, "white"))
+body.append(box(-HW + 1, CEIL - 0.2, FRONT + 1, HW - 1, CEIL, REAR_INNER, "panel"))
+
+WIN_Y = (36, 49)
+BAND_Y = (34.5, 50.5)
+STRIPE_Y = (29.5, 31.5)
+# The rear seen from the side, from the rear-corner photo: the top leans out to the roof
+# edge, the window band sits back, and the body below it steps out again and leans in
+# toward the bottom.
+REAR_TOP_LEAN, REAR_BAND_Y, REAR_BAND_DEPTH = (52, 4.5), (37, 52), 4.5
+REAR_LOW_STEP, REAR_LOW_LEAN = 1.0, 1.7
+
+
+REAR_OUT = REAR + REAR_BAND_DEPTH + 0.5  # the roof edge, the rearmost point of the body
+
+
+def rear_z(y):
+    """The rear surface at height y."""
+    y = max(y, BOTTOM)  # the bumper follows the bottom of the body
+    if y >= REAR_BAND_Y[1]:
+        return REAR_OUT - REAR_BAND_DEPTH * (ROOF - y) / (ROOF - REAR_BAND_Y[1])
+    if y >= REAR_BAND_Y[0]:
+        return REAR_OUT - REAR_BAND_DEPTH
+    return REAR_OUT - REAR_LOW_STEP - REAR_LOW_LEAN * (REAR_BAND_Y[0] - y) / (REAR_BAND_Y[0] - BOTTOM)
+
+
+STRIPE_FRONT = FRONT + 10
+# The W, measured on the side close-up: p runs from its rear edge (0) to its front edge (1).
+W_WIDTH, W_BOTTOM, W_STEP = 16.5, 18, 0.5
+W_REAR = FRONT_AXLE + W_WIDTH / 2  # centered over the front wheel
+W_MID = STRIPE_Y[1] - 0.32 * (STRIPE_Y[1] - W_BOTTOM)  # top of the middle peak
+W_ARM_START, W_ARM_END = (0.0, 0.17), (0.83, 1.0)
+
+
+def w_z(p):
+    return W_REAR - W_WIDTH * p
+
+
+# Each stroke: its p span at the bottom, its p span at the top, and its bottom and top y.
+W_STROKES = [
+    ((0.24, 0.41), W_ARM_START, W_BOTTOM, STRIPE_Y[0]),
+    ((0.28, 0.45), (0.50, 0.63), W_BOTTOM, W_MID),
+    ((0.66, 0.82), (0.50, 0.63), W_BOTTOM, W_MID),
+    ((0.62, 0.79), W_ARM_END, W_BOTTOM, STRIPE_Y[0]),
+]
+CAB_WIN = (-50, -38, 35, 50)
+SIDE0 = FRONT + 3  # side walls start behind the chamfered front corners
+# Wheel arches: wide at the bottom with the top corners cut, as on the photos.
+ARCHES = [(FRONT_AXLE - 9, FRONT_AXLE + 9), (REAR_AXLE - 9, REAR_AXLE + 9)]
+ARCH_TOP, ARCH_SLOPE_Y, ARCH_INSET, ARCH_STEP = 15, 9, 3.5, 0.25
+arch_holes = []
+for a0, a1 in ARCHES:  # straight up to ARCH_SLOPE_Y, then sloping in by ARCH_INSET in fine steps
+    arch_holes.append((a0, a1, 0, ARCH_SLOPE_Y))
+    n = round((ARCH_TOP - ARCH_SLOPE_Y) / ARCH_STEP)
+    for i in range(n):
+        inset = ARCH_INSET * (i + 0.5) / n
+        y = ARCH_SLOPE_Y + i * ARCH_STEP
+        arch_holes.append((a0 + inset, a1 - inset, y, y + ARCH_STEP))
+right_windows = [CAB_WIN, (-35, -10, *WIN_Y), (16, 24, *WIN_Y), (38, 50, *WIN_Y), (-31, -19, 56, 59)]
+left_windows = [CAB_WIN, (-29, -5, *WIN_Y), (-19, -8, 56, 59), (16, 21, 36, 48), (40, 49, 38, 47)]
+DOOR_HOLE = (DOOR[0], DOOR[1], DOOR[2], DOOR[3])
+for x0, x1, windows in ((HW - 1, HW, right_windows), (-HW, -HW + 1, left_windows)):
+    right = x0 > 0
+    sgn = 1 if right else -1
+    out = x1 if right else x0
+    holes = windows + arch_holes + [(SIDE0, -50.5, 35.4, 49.5)] + ([DOOR_HOLE] if right else [])
+    body += panel("x", x0, x1, SIDE0, REAR_INNER, BOTTOM, CEIL, holes, "white")
+    inner = x0 - 0.2 if right else x1
+    body += panel("x", inner, inner + 0.2, FRONT + 8, REAR_INNER, FLOOR, CEIL - 0.2, holes, "wall_in")
+    # Tan lower skirt just proud of the wall.
+    skirt_holes = arch_holes + ([(DOOR[0], DOOR[1], BOTTOM, 16)] if right else [])
+    body += panel("x", out, out + sgn * 0.12, SIDE0, REAR_INNER, BOTTOM, 15, skirt_holes, "tan") if right else \
+        panel("x", out - 0.12, out, SIDE0, REAR_INNER, BOTTOM, 15, skirt_holes, "tan")
+    # As on the side photo: a tan band at window height from the cab window back, and one
+    # brown stripe below it. Both continue across the door, which carries its own copies.
+    door_cut = [(DOOR[0], DOOR[1], 0, 99)] if right else []
+    lo, hi = (out, out + 0.1) if right else (out - 0.1, out)
+    band_holes = [w for w in windows if w[:2] != CAB_WIN[:2]] + door_cut
+    body += panel("x", lo, hi, CAB_WIN[1] + 1, REAR_INNER, *BAND_Y, band_holes, "khaki")
+    lo, hi = (out, out + 0.12) if right else (out - 0.12, out)
+    # The stripe dips into a large W ahead of the door; the W's top stays open between
+    # its outer arms. The user chose to keep this logo (it needs an ADR before release).
+    w_open = (w_z(W_ARM_END[0]), w_z(W_ARM_START[1]))  # only between the outer arms
+    body += panel("x", lo, hi, STRIPE_FRONT, REAR_INNER, *STRIPE_Y, door_cut + [(*w_open, *STRIPE_Y)], "stripe")
+    y = STRIPE_Y[0]
+    while y < STRIPE_Y[1] - 1e-6:  # the front end is cut on a slant, its top reaching further
+        f = (y + 0.125 - STRIPE_Y[0]) / (STRIPE_Y[1] - STRIPE_Y[0])
+        body.append(box(lo, y, STRIPE_FRONT - 3 * f, hi, y + 0.25, STRIPE_FRONT, "stripe"))
+        y += 0.25
+    for (b0, b1), (t0, t1), y_bottom, y_top in W_STROKES:
+        y = y_bottom
+        while y < y_top - 1e-6:
+            f = min((y + W_STEP - y_bottom) / (y_top - y_bottom), 1.0)
+            p0, p1 = b0 + (t0 - b0) * f, b1 + (t1 - b1) * f
+            body.append(box(lo, y, w_z(p1), hi, min(y + W_STEP, y_top), w_z(p0), "stripe"))
+            y += W_STEP
+    for a0, a1 in ARCHES:  # dark wheel wells
+        body.append(box(sgn * (HW - 6), ARCH_TOP, a0, sgn * (HW - 1), ARCH_TOP + 0.5, a1, "black"))
+        body.append(box(sgn * (HW - 6), 7, a0, sgn * (HW - 5.5), ARCH_TOP + 0.5, a1, "black"))
+    for z0, z1, y0, y1 in windows:
+        frame = "black" if (z0, z1) == CAB_WIN[:2] else "chrome"
+        for fz0, fz1, fy0, fy1 in ((z0 - 0.6, z1 + 0.6, y0 - 0.6, y0), (z0 - 0.6, z1 + 0.6, y1, y1 + 0.6),
+                                   (z0 - 0.6, z0, y0, y1), (z1, z1 + 0.6, y0, y1)):
+            body.append(box(out, fy0, fz0, out + sgn * 0.15, fy1, fz1, frame))
+        body.append(box(x0 + 0.4, y0, z0, x0 + 0.6, y1, z1, "glass"))
+        if z0 > -40 and y1 - y0 > 5:  # curtains drawn to the window edges inside
+            for cz0, cz1 in ((z0, z0 + 2.5), (z1 - 2.5, z1)):
+                body.append(box(inner - sgn * 0.3, y0, cz0, inner, y1 + 1, cz1, "curtain"))
+    # Vent wing at the front of the cab window
+    body.append(box(out, CAB_WIN[2], -46.5, out + sgn * 0.2, CAB_WIN[3], -45.9, "black"))
+    # Side marker lights near the front and rear corners
+    body.append(box(out, 10, FRONT + 4, out + sgn * 0.2, 12, FRONT + 6, "amber"))
+    mo0, mo1 = sorted((out, out + sgn * 0.2))
+    body.append(box(mo0, 29.6, FRONT + 3.5, mo1, 30.9, FRONT + 6.5, "red"))  # oval marker
+    body.append(box(mo0, 29.2, FRONT + 4, mo1, 31.3, FRONT + 6, "red"))
+    body.append(box(out, 19, REAR - 4, out + sgn * 0.2, 21, REAR - 2, "red"))
+
+body.append(box(HW, WIN_Y[0], -22.8, HW + 0.2, WIN_Y[1], -22.2, "chrome"))  # double window dividers
+body.append(box(-HW - 0.2, WIN_Y[0], -17.3, -HW, WIN_Y[1], -16.7, "chrome"))
+body.append(box(HW, 56, DOOR[1] + 0.8, HW + 0.5, 58, DOOR[1] + 2.6, "amber"))  # porch light
+body.append(box(HW, 13, 10, HW + 0.3, 19, 17, "slat"))  # small louvered vent
+# Louvered hatch low at the rear corner of both sides, small utility boxes.
+for sx in (HW, -HW):
+    o = 0.3 if sx > 0 else -0.3
+    body.append(box(sx, 10, 42, sx + o, 22, 53, "panel"))
+    for y in range(11, 22, 2):
+        body.append(box(sx + o, y, 43, sx + o * 1.6, y + 0.8, 52, "slat"))
+body.append(box(-HW - 0.3, 16, 13, -HW, 22, 19, "panel"))  # left side service hatch
+body.append(box(-HW - 0.4, 19, 14, -HW - 0.3, 20, 15.5, "chrome"))
+
+# Entry door stays closed until the later parking work; a fold-out step stays below it.
+DZ0, DZ1, DY0, DY1 = DOOR
+door = [box(HW - 1, DY0, DZ0 + 0.1, HW, DY1, DZ1 - 0.1, "white")]
+# The door window lines up with the side windows, as on the close-up photo.
+DW0, DW1 = DZ0 + 3, DZ1 - 3
+door.append(box(HW, WIN_Y[0], DW0, HW + 0.15, WIN_Y[1], DW1, "glass"))
+for fz0, fz1, fy0, fy1 in ((DW0 - 0.6, DW1 + 0.6, WIN_Y[0] - 0.6, WIN_Y[0]), (DW0 - 0.6, DW1 + 0.6, WIN_Y[1], WIN_Y[1] + 0.6),
+                           (DW0 - 0.6, DW0, *WIN_Y), (DW1, DW1 + 0.6, *WIN_Y)):
+    door.append(box(HW, fy0, fz0, HW + 0.18, fy1, fz1, "chrome"))
+door.append(box(HW, STRIPE_Y[0], DZ0 + 0.1, HW + 0.12, STRIPE_Y[1], DZ1 - 0.1, "stripe"))
+door.append(box(HW, BAND_Y[0], DZ0 + 0.1, HW + 0.1, BAND_Y[1], DZ1 - 0.1, "khaki"))
+door.append(box(HW, DY0, DZ0 + 0.1, HW + 0.12, 15, DZ1 - 0.1, "tan"))
+door.append(box(HW, 26, DZ1 - 2.5, HW + 0.6, 27, DZ1 - 1, "chrome"))  # handle outside
+door.append(box(HW - 1.6, 26, DZ1 - 2.5, HW - 1, 27, DZ1 - 1, "chrome"))  # handle inside
+DOOR_HINGE = [HW, 0, DZ0]
+body.append(box(HW, 7, DZ0 + 1, HW + 6, 8, DZ1 - 1, "black"))
+body.append(box(HW, 3.5, DZ0 + 1, HW + 6, 4.5, DZ1 - 1, "black"))
+for z in (DZ0 + 1, DZ1 - 2):
+    body.append(box(HW, 3.5, z, HW + 6, 8, z + 1, "black"))
+
+# --- Front ------------------------------------------------------------------
+SILL_LOW = 33  # the front face and corners stop here; the sloping sill caps them
+FRONT_START = len(body)
+FW = HW - 3  # half width of the flat front face; the corners are cut at 45 degrees
+WS_Z = FRONT + 2.5  # the windshield sits behind a ledge over the grille
+UPPER = (18, 29.5)  # upper grille, across the face and around the corners
+LOWER_Y = (8, 18)  # lower grille between the lamps, narrower at the bottom
+CORNER = 3 * math.sqrt(2)
+
+
+def corner(sx, z, y0, y1, color, inset=0.0):
+    cx, cz = sx * (FW + 1.5), z + 1.5
+    return box(cx - CORNER / 2, y0, cz - 0.5 - inset, cx + CORNER / 2, y1, cz + 0.5 - inset, color, [0, -sx * 45, 0], [cx, 0, cz])
+
+
+for sx in (1, -1):
+    body.append(corner(sx, FRONT, BOTTOM, UPPER[0], "white"))
+    body.append(corner(sx, FRONT, UPPER[1], SILL_LOW, "white"))
+    body.append(corner(sx, FRONT, UPPER[0], UPPER[1], "grille"))
+    for y in [UPPER[0] + 0.6 + i * 1.5 for i in range(int((UPPER[1] - UPPER[0]) / 1.5))]:
+        body.append(corner(sx, FRONT, y, y + 0.8, "slat", inset=0.3))
+    body.append(corner(sx, FRONT, BOTTOM, 15, "tan", inset=0.12))
+    # Wraparound corner glass beside the windshield, in black rubber
+    body.append(corner(sx, WS_Z, 36, 49.5, "glass"))
+    body.append(corner(sx, WS_Z, 35.4, 36, "black", inset=0.2))
+    body.append(corner(sx, WS_Z, 49.5, CEIL, "white"))
+body += panel("z", FRONT, FRONT + 1, -FW, FW, LOWER_Y[1], SILL_LOW, [(-19.5, 19.5, *UPPER)], "white")
+# The windshield's chrome center post continues as a raised rib over the sill and down the
+# face between the two upper panels to the grille, as on the photo.
+body.append(box(-0.45, UPPER[1], FRONT - 0.45, 0.45, SILL_LOW, FRONT, "chrome"))
+# Upper grille in three sections, as on the lower-front photo; the middle section's slats
+# dip in a shallow V whose point reaches down into the lower grille.
+GDIV, V_DIP, STEP = 7.5, 1.2, 0.5
+body.append(box(-19.5, UPPER[0], FRONT + 0.7, 19.5, UPPER[1], FRONT + 1, "grille"))
+SLAT_Y = [UPPER[0] + 0.6 + i * 1.5 for i in range(int((UPPER[1] - UPPER[0]) / 1.5))]
+
+
+def dip(x):
+    return V_DIP * (1 - abs(x) / GDIV)
+
+
+for x0, x1 in ((-19.5, -GDIV), (-GDIV, GDIV), (GDIV, 19.5)):
+    middle = x0 == -GDIV
+    for y in SLAT_Y:
+        if not middle:
+            body.append(box(x0 + 0.5, y, FRONT + 0.3, x1 - 0.5, y + 0.8, FRONT + 0.7, "slat"))
+            continue
+        xa = x0 + 0.5
+        while xa < x1 - 0.5 - 1e-6:
+            d = dip(xa + STEP / 2)
+            body.append(box(xa, y - d, FRONT + 0.3, xa + STEP, y - d + 0.8, FRONT + 0.7, "slat"))
+            xa += STEP
+    body.append(box(x0, UPPER[1] - 0.5, FRONT + 0.1, x1, UPPER[1], FRONT + 0.7, "chrome"))
+    if middle:  # the bottom bar and the backing follow the V down
+        xa = x0
+        while xa < x1 - 1e-6:
+            d = dip(xa + STEP / 2)
+            body.append(box(xa, UPPER[0] - d, FRONT + 0.1, xa + STEP, UPPER[0] - d + 0.5, FRONT + 0.7, "chrome"))
+            body.append(box(xa, UPPER[0] - d, FRONT + 0.7, xa + STEP, UPPER[0], FRONT + 1, "grille"))
+            xa += STEP
+    else:
+        body.append(box(x0, UPPER[0], FRONT + 0.1, x1, UPPER[0] + 0.5, FRONT + 0.7, "chrome"))
+    for fx in (x0, x1 - 0.5):
+        body.append(box(fx, UPPER[0], FRONT + 0.1, fx + 0.5, UPPER[1], FRONT + 0.7, "chrome"))
+# Below it, black lamp pods at both sides and a lower grille between them that narrows
+# toward the bumper; the pods' inner edges follow the grille's slanted sides.
+
+
+def lower_half(y):
+    return 8 + 4 * (y - LOWER_Y[0]) / (LOWER_Y[1] - LOWER_Y[0])
+
+
+y = LOWER_Y[0]
+while y < LOWER_Y[1] - 1e-6:
+    g = lower_half(y + STEP / 2)
+    body.append(box(-g, y, FRONT - 0.2, g, y + STEP, FRONT + 1, "black"))  # grille backing
+    for sx in (1, -1):
+        x0, x1 = sorted((sx * (g + 0.5), sx * FW))
+        body.append(box(x0, y, FRONT - 0.3, x1, y + STEP, FRONT + 1, "black"))  # lamp pod
+        e0, e1 = sorted((sx * g, sx * (g + 0.5)))
+        body.append(box(e0, y, FRONT - 0.6, e1, y + STEP, FRONT + 1, "chrome"))  # grille edge
+    y += STEP
+for i in range(6):
+    y = LOWER_Y[1] - 1.6 - i * 1.5
+    g = lower_half(y + 0.4)
+    body.append(box(-g, y, FRONT - 0.5, g, y + 0.8, FRONT - 0.2, "slat"))
+for sx in (1, -1):
+    # Headlight at the outer corner of the pod, the turn signal beside it inboard.
+    body += disc("z", sx * 17.8, 13.0, FRONT - 0.6, 2.6, 0.5, "chrome")
+    body += disc("z", sx * 17.8, 13.0, FRONT - 0.8, 2.1, 0.3, "lens")
+    body += disc("z", sx * 13.9, 12.6, FRONT - 0.6, 1.4, 0.4, "chrome")
+    body += disc("z", sx * 13.9, 12.6, FRONT - 0.8, 1.1, 0.3, "amber")
+# Stainless bumper, thick, wrapping a little around the corners
+body.append(box(-HW + 0.5, 3, FRONT - 3, HW - 0.5, 8, FRONT + 1, "steel"))
+body.append(box(-HW + 0.5, 7.6, FRONT - 3.1, HW - 0.5, 8, FRONT - 2.9, "chrome"))
+for sx in (1, -1):
+    x0, x1 = sorted((sx * (HW - 0.5), sx * (HW + 0.5)))
+    body.append(box(x0, 3, FRONT - 1.5, x1, 8, FRONT + 3, "steel"))
+body.append(box(-4.5, 4, FRONT - 3.2, 4.5, 6.4, FRONT - 3, "white"))  # plate
+
+# Split windshield leaning back in a black rubber frame.
+WS_LEAN = [-8, 0, 0]
+pivot = [0, 36, WS_Z]
+for x0, x1 in ((-FW, -0.6), (0.6, FW)):
+    body.append(box(x0, 36, WS_Z + 0.2, x1, 49.5, WS_Z + 0.4, "glass", WS_LEAN, pivot))
+for x0, x1, color in ((-0.7, 0.7, "chrome"), (-FW, -FW + 0.6, "black"), (FW - 0.6, FW, "black")):
+    body.append(box(x0, 36, WS_Z - 0.2, x1, 49.5, WS_Z + 0.6, color, WS_LEAN, pivot))
+for x in (-14, 5):
+    body.append(box(x, 36.6, WS_Z - 0.6, x + 8, 37.2, WS_Z, "black", [0, 0, 25], [x, 37, WS_Z]))
+
+# As on the cab close-up, the body under the windshield juts out at the sill and tapers
+# back toward the bottom: every front cube below the sill moves forward with its height,
+# tall ones cut into slices so the face steps back smoothly, and the side walls are
+# carried forward to meet it.
+SILL, TAPER, SLICE = 36, 2.0, 0.5
+
+
+def taper_dz(y):
+    # Full overhang from the upper grille up; the lamp panel and lower grille below it
+    # lean back toward the bumper, as on the front-corner photo.
+    if y >= UPPER[0]:
+        return -TAPER
+    return -TAPER + (TAPER + 0.5) * (UPPER[0] - y) / (UPPER[0] - BOTTOM)
+
+
+front, body = body[FRONT_START:], body[:FRONT_START]
+for c in front:
+    y0, sy = c["origin"][1], c["size"][1]
+    rot = c.get("rotation")
+    if y0 + sy / 2 >= SILL or (rot and rot[0]):
+        body.append(c)
+        continue
+    cuts = [y0]
+    if sy > SLICE * 1.5 and not (rot and rot[2]):
+        while cuts[-1] + SLICE < y0 + sy - 1e-6:
+            cuts.append(cuts[-1] + SLICE)
+    cuts.append(y0 + sy)
+    for a0, a1 in zip(cuts, cuts[1:]):
+        dz = taper_dz((a0 + a1) / 2)
+        piece = json.loads(json.dumps(c))
+        piece["origin"] = [c["origin"][0], round(a0, 3), round(c["origin"][2] + dz, 3)]
+        piece["size"] = [c["size"][0], round(a1 - a0, 3), c["size"][2]]
+        if "pivot" in piece:
+            piece["pivot"] = [piece["pivot"][0], piece["pivot"][1], round(piece["pivot"][2] + dz, 3)]
+        body.append(piece)
+# The side walls reach forward to the overhang with a straight upright edge in chrome trim.
+EDGE_Z = FRONT - TAPER + 1.5
+for sx in (1, -1):
+    x0, x1 = sorted((sx * (HW - 1), sx * HW))
+    body.append(box(x0, BOTTOM, EDGE_Z, x1, 15, SIDE0, "tan"))
+    body.append(box(x0, 15, EDGE_Z, x1, SILL_LOW, SIDE0, "white"))
+    t0, t1 = sorted((sx * (HW - 0.4), sx * (HW + 0.2)))
+    body.append(box(t0, BOTTOM, EDGE_Z - 0.2, t1, SILL_LOW, EDGE_Z + 0.5, "chrome"))
+# The sill: from the windshield foot it slopes down toward the front, as on the photo,
+# in quarter-pixel columns whose width follows the chamfered front corners.
+SILL_FRONT = FRONT - TAPER
+z = SILL_FRONT
+while z < WS_Z - 1e-6:
+    zc = z + 0.125
+    top = SILL - 1.5 * (WS_Z - zc) / (WS_Z - SILL_FRONT)
+    half = min(HW, FW + (zc - SILL_FRONT))
+    body.append(box(-half, SILL_LOW, z, half, top, z + 0.25, "white"))
+    for sx in (1, -1):  # chrome trim along the sloping edge on both sides
+        t0, t1 = sorted((sx * (half - 0.4), sx * (half + 0.2)))
+        body.append(box(t0, top - 0.4, z, t1, top + 0.05, z + 0.25, "chrome"))
+    body.append(box(-0.45, top - 0.2, z, 0.45, top + 0.35, z + 0.25, "chrome"))  # center rib
+    z += 0.25
+body.append(box(-0.45, SILL_LOW, SILL_FRONT - 0.45, 0.45, SILL - 1.5 + 0.35, SILL_FRONT, "chrome"))  # rib over the nose
+
+# The cab-over, as on the close-up photo: seen from the side its front is a chevron whose
+# point (the nose) sits a third of the way up; the lower face leans back to the windshield
+# top and narrows toward it, the upper face leans back to the roof edge.
+NOSE = WS_Z - 5
+CREASE = 54.5
+TOP_FRONT = NOSE + 7
+body.append(box(-HW, 49.5, WS_Z - 0.5, HW, ROOF, WS_Z + 6, "white"))
+LAYERS = round((CREASE - 49.5) / 0.25)  # quarter-pixel steps keep both faces smooth
+for i in range(LAYERS):
+    t = (i + 0.5) / LAYERS
+    y0 = 49.5 + (CREASE - 49.5) * i / LAYERS
+    half = HW - 3 + 3 * t
+    z_front = WS_Z - 1 + (NOSE - (WS_Z - 1)) * t
+    body.append(box(-half, y0, z_front, half, y0 + (CREASE - 49.5) / LAYERS, WS_Z, "white"))
+    if i == 0:
+        body.append(box(-half + 0.1, y0 - 0.1, z_front, half - 0.1, y0, WS_Z, "panel"))
+UPPER_LAYERS = round((ROOF - CREASE) / 0.25)
+for i in range(UPPER_LAYERS):
+    t = (i + 0.5) / UPPER_LAYERS
+    y0 = CREASE + (ROOF - CREASE) * t
+    z_front = NOSE + (TOP_FRONT - NOSE) * t
+    body.append(box(-HW, y0, z_front, HW, y0 + (ROOF - CREASE) / UPPER_LAYERS, WS_Z, "white"))
+body.append(box(-HW, CREASE - 0.2, NOSE - 0.1, HW, CREASE + 0.2, NOSE + 0.3, "panel"))  # crease line
+MARKER_Y = CREASE + (ROOF - CREASE) * 0.6
+marker_z = NOSE + (TOP_FRONT - NOSE) * 0.6
+for x in range(-18, 19, 6):
+    body.append(box(x - 0.8, MARKER_Y, marker_z - 0.3, x + 0.8, MARKER_Y + 0.8, marker_z + 0.2, "amber"))
+for sx in (1, -1):
+    # Oval side marker on the cab-over, just behind the top of the sloping face
+    x0, x1 = sorted((sx * HW, sx * (HW + 0.25)))
+    body.append(box(x0, 58.2, TOP_FRONT + 1.2, x1, 59.2, TOP_FRONT + 3.8, "amber"))
+    body.append(box(x0, 57.8, TOP_FRONT + 1.6, x1, 59.6, TOP_FRONT + 3.4, "amber"))
+    # West-coast mirrors, as on the close-up: a chrome rod standing off the front pillar on
+    # two brackets, carrying a tall mirror with rounded corners that faces the rear.
+    def xs(a, b):
+        return min(sx * a, sx * b), max(sx * a, sx * b)
+    mz = WS_Z + 3
+    for by in (35.5, 49.5):  # brackets from the pillar out to the rod
+        x0, x1 = xs(HW, HW + 3)
+        body.append(box(x0, by - 0.3, mz - 0.3, x1, by + 0.3, mz + 0.3, "chrome"))
+    x0, x1 = xs(HW + 2.6, HW + 3.4)
+    body.append(box(x0, 35.2, mz - 0.4, x1, 49.8, mz + 0.4, "chrome"))  # rod
+    MY0, MY1, MX0, MX1 = 37, 47.5, HW + 0.8, HW + 6.2
+    for inset, rise in ((1.8, 0), (0.9, 0.4), (0.35, 1.0), (0, 1.8)):  # rounded ends
+        x0, x1 = xs(MX0 + inset, MX1 - inset)
+        body.append(box(x0, MY0 + rise, mz + 0.4, x1, MY1 - rise, mz + 1.2, "chrome"))
+    for ry in [MY0 + 1.6 + i * 1.3 for i in range(6)]:  # ribs across its back, facing forward
+        x0, x1 = xs(MX0 + 0.5, MX1 - 0.5)
+        body.append(box(x0, ry, mz + 0.15, x1, ry + 0.45, mz + 0.4, "slat"))
+    x0, x1 = xs(MX0 + 0.4, MX1 - 0.4)
+    body.append(box(x0, MY0 + 0.4, mz + 1.2, x1, MY1 - 0.4, mz + 1.3, "glass"))
+
+# --- Rear -------------------------------------------------------------------
+REAR_START = len(body)
+REAR_WIN = (-17, 17, 38, 50)
+body.append(box(-17, 38, REAR - 0.6, 17, 50, REAR - 0.4, "glass"))
+body.append(box(-0.3, 38, REAR - 0.4, 0.3, 50, REAR + 0.1, "chrome"))
+for fy0, fy1 in ((37.4, 38), (50, 50.6)):
+    body.append(box(-17.6, fy0, REAR, 17.6, fy1, REAR + 0.2, "black"))
+for fx in (-17.6, 17):
+    body.append(box(fx, 38, REAR, fx + 0.6, 50, REAR + 0.2, "black"))
+for x in (-12, -4, 4, 12):
+    body += disc("z", x, ROOF - 2.2, REAR + 0.2, 0.7, 0.3, "red", steps=(0, 45))
+# Two-door hatch with a tan center bar, a tan band along the bottom, round tail lights.
+for x0, x1 in ((-13, -0.6), (0.6, 13)):
+    body.append(box(x0, 12, REAR, x1, 26, REAR + 0.2, "white"))
+    for fy0, fy1 in ((11.6, 12), (26, 26.4)):
+        body.append(box(x0 - 0.4, fy0, REAR, x1 + 0.4, fy1, REAR + 0.3, "slat"))
+    for fx in (x0 - 0.4, x1):
+        body.append(box(fx, 12, REAR, fx + 0.4, 26, REAR + 0.3, "slat"))
+body.append(box(-0.6, 10, REAR, 0.6, 27, REAR + 0.35, "tan"))
+body.append(box(-15, 10, REAR, 15, 11, REAR + 0.35, "tan"))
+body.append(box(-HW, BOTTOM, REAR, HW, 10, REAR + 0.15, "tan"))
+for sx in (1, -1):
+    body += disc("z", sx * 19, 15, REAR + 0.2, 1.6, 0.4, "red")
+body.append(box(-19, 17.5, REAR, -16, 21, REAR + 0.3, "panel"))  # backup light box
+body.append(box(-20, 10.5, REAR, -15, 13.5, REAR + 0.3, "white"))  # plate
+body.append(box(-HW - 0.5, 3, REAR - 1, HW + 0.5, 7.5, REAR + 2.5, "black"))  # bumper with step slots
+for x0 in (-17, -6, 5):
+    body.append(box(x0, 6.5, REAR + 2.5, x0 + 10, 7.6, REAR + 2.6, "grille"))
+# Everything above was drawn on a flat rear at REAR; move it onto the profile, in slices.
+rear, body = body[REAR_START:], body[:REAR_START]
+for c in rear:
+    y0, sy = c["origin"][1], c["size"][1]
+    rot = c.get("rotation")
+    cuts = [y0]
+    if sy > 0.75 and not rot and y0 + sy > BOTTOM:
+        while cuts[-1] + 0.5 < y0 + sy - 1e-6:
+            cuts.append(cuts[-1] + 0.5)
+    cuts.append(y0 + sy)
+    for a0, a1 in zip(cuts, cuts[1:]):
+        dz = rear_z((a0 + a1) / 2) - REAR
+        piece = json.loads(json.dumps(c))
+        piece["origin"] = [c["origin"][0], round(a0, 3), round(c["origin"][2] + dz, 3)]
+        piece["size"] = [c["size"][0], round(a1 - a0, 3), c["size"][2]]
+        if "pivot" in piece:
+            piece["pivot"] = [piece["pivot"][0], piece["pivot"][1], round(piece["pivot"][2] + dz, 3)]
+        body.append(piece)
+# The rear wall itself in half-pixel rows from the inner face out to the profile, with
+# the side colors carried around the corner strips.
+y = BOTTOM
+while y < ROOF - 1e-6:
+    yc = y + 0.25
+    z1 = rear_z(yc)
+    side = ("tan" if yc < 15 else "stripe" if STRIPE_Y[0] <= yc < STRIPE_Y[1]
+            else "khaki" if BAND_Y[0] <= yc < BAND_Y[1] else "white")
+    for sx in (1, -1):
+        x0, x1 = sorted((sx * HW, sx * (HW - 1)))
+        body.append(box(x0, y, min(REAR_INNER, z1 - 1), x1, y + 0.5, z1, side))
+    if REAR_WIN[2] <= yc < REAR_WIN[3]:
+        spans = [(-HW + 1, REAR_WIN[0]), (REAR_WIN[1], HW - 1)]
+    else:
+        spans = [(-HW + 1, HW - 1)]
+    for x0, x1 in spans:
+        body.append(box(x0, y, z1 - 1, x1, y + 0.5, z1, "white"))
+    y += 0.5
+# Ladder on the right of the rear, from the bumper over the roof edge to the rack.
+LADDER = (13, 21)
+for x in LADDER:
+    body.append(box(x, 7.5, REAR_OUT + 0.7, x + 0.8, ROOF + 4, REAR_OUT + 1.5, "chrome"))
+    body.append(box(x, ROOF + 3.2, REAR - 4, x + 0.8, ROOF + 4, REAR_OUT + 1.5, "chrome"))  # hoop over the edge
+    for y in (12, 30, ROOF - 2):
+        body.append(box(x, y, rear_z(y + 0.4) - 0.2, x + 0.8, y + 0.8, REAR_OUT + 0.7, "chrome"))  # standoffs
+for y in range(10, ROOF + 4, 4):
+    body.append(box(LADDER[0], y, REAR_OUT + 0.8, LADDER[1] + 0.8, y + 0.7, REAR_OUT + 1.4, "chrome"))
+
+# --- Roof -------------------------------------------------------------------
+def ac_unit(z0, z1):
+    out = [box(-7, ROOF, z0, 7, ROOF + 3.5, z1, "panel"), box(-6.5, ROOF + 3.5, z0 + 0.5, 6.5, ROOF + 4, z1 - 0.5, "panel")]
+    for z in range(int(z0) + 2, int(z1) - 2, 2):
+        out.append(box(7, ROOF + 0.8, z, 7.2, ROOF + 2.8, z + 1, "black"))
+    return out
+
+
+body += ac_unit(-34, -20)
+body += ac_unit(30, 44)
+body.append(box(-4, ROOF, -2, 4, ROOF + 1.6, 6, "panel"))  # small vent
+body.append(box(-3.5, ROOF + 1.6, -1.5, 3.5, ROOF + 2, 5.5, "white"))
+# Round black fan vent near the front left
+body.append(box(-18, ROOF, -48, -10, ROOF + 2.6, -40, "black"))
+for z in (-46, -42):
+    body += disc("z", -14, ROOF + 1.3, z, 1.2, 0.2, "grille", steps=(0, 45))
+body.append(box(-HW, ROOF - 0.6, FRONT + 4, -HW - 0.4, ROOF, REAR_OUT, "slat"))  # drip rails
+body.append(box(HW, ROOF - 0.6, FRONT + 4, HW + 0.4, ROOF, REAR_OUT, "slat"))
+# Roof rack around the rear air conditioner
+RACK = (22, 55)
+for sx in (1, -1):
+    body.append(box(sx * 19, ROOF + 3, RACK[0], sx * 20, ROOF + 4, RACK[1], "chrome"))
+    for z in range(RACK[0], RACK[1] + 1, 8):
+        body.append(box(sx * 19, ROOF, z, sx * 20, ROOF + 3, z + 1, "chrome"))
+for z in RACK:
+    body.append(box(-20, ROOF + 3, z, 20, ROOF + 4, z + 1, "chrome"))
+for x in range(-17, 18, 4):
+    body.append(box(x, ROOF + 0.5, RACK[0], x + 0.6, ROOF + 1, RACK[1], "slat"))
+
+# --- Chassis and wheels -----------------------------------------------------
+body.append(box(-18, 5, FRONT + 2, 18, BOTTOM + 1, REAR - 2, "black"))
+wheels = []
+hover = {}
+for end, z in (("f", FRONT_AXLE), ("r", REAR_AXLE)):
+    for sx in (1, -1):
+        cubes = []
+        name = end + ("l" if sx < 0 else "r")
+        center_x = sx * (HW - 0.6 - 2)
+        hover[f"hover_{name}"] = [center_x, 0, z]
+        x_out = sx * (HW - 0.6)
+        cubes += disc("x", min(x_out, x_out - sx * 4), WHEEL_R, z, WHEEL_R, 4, "tire")
+        face_x = x_out if sx > 0 else x_out - 0.3
+        cubes += disc("x", face_x, WHEEL_R, z, 4.4, 0.3, "rim")  # white steel wheel
+        cubes += disc("x", face_x + sx * 0.15, WHEEL_R, z, 3.0, 0.3, "slat")
+        cubes += disc("x", face_x + sx * 0.3, WHEEL_R, z, 1.7, 0.3, "chrome")
+
+        wheels.append({"name": f"wheel_{name}", "parent": "body",
+                       "pivot": [center_x, WHEEL_R, z], "cubes": cubes})
+
+# --- Cab interior (left-hand drive, as in the photos) -----------------------
+DASH_FACE = FRONT + 8  # the dashboard's rear face, toward the seats
+# Padded green dashboard with a rounded rear edge on top
+body.append(box(-HW + 1, FLOOR, FRONT + 1, HW - 1, 27, DASH_FACE, "dash"))
+body.append(box(-HW + 1, 27, WS_Z + 1.5, HW - 1, 28.6, DASH_FACE + 1, "dash_pad"))
+body.append(box(-HW + 1, 26.2, DASH_FACE + 1, HW - 1, 28.2, DASH_FACE + 1.8, "dash_pad", [45, 0, 0], [0, 27.2, DASH_FACE + 1.4]))
+body.append(box(-HW + 1, 25.6, DASH_FACE, HW - 1, 26.2, DASH_FACE + 0.6, "dark_dash"))
+# Two round gauges behind the wheel: speedometer and a cluster, chrome bezels on black faces.
+for gx, r in ((-16, 2.9), (-8.6, 2.6)):
+    body += disc("z", gx, 22.2, DASH_FACE, r + 0.5, 0.4, "chrome")
+    body += disc("z", gx, 22.2, DASH_FACE + 0.3, r, 0.3, "gauge")
+    for i in range(12):  # tick ring
+        a = math.radians(-30 + i * 20)
+        tx, ty = gx + (r - 0.5) * math.cos(a), 22.2 + (r - 0.5) * math.sin(a)
+        body.append(box(tx - 0.15, ty - 0.15, DASH_FACE + 0.55, tx + 0.15, ty + 0.15, DASH_FACE + 0.65, "needle"))
+    body.append(box(gx - 0.12, 22.2, DASH_FACE + 0.6, gx + 0.12, 22.2 + r - 0.6, DASH_FACE + 0.7, "amber", [0, 0, 35], [gx, 22.2, DASH_FACE + 0.6]))
+    body += disc("z", gx, 22.2, DASH_FACE + 0.65, 0.4, 0.2, "black", steps=(0, 45))
+# Knob cluster and switches in the middle
+for kx, ky in ((-3, 24), (-1, 24), (1, 24), (-3, 21.5), (-1, 21.5), (1, 21.5)):
+    body += disc("z", kx, ky, DASH_FACE, 0.55, 0.9, "chrome", steps=(0, 45))
+# Radio with two knobs and a dial on the passenger side, glovebox lid beyond it
+body.append(box(6, 21, DASH_FACE, 14, 23.6, DASH_FACE + 0.6, "chrome"))
+body.append(box(8.2, 21.6, DASH_FACE + 0.6, 11.8, 23, DASH_FACE + 0.7, "black"))
+for kx in (7, 13):
+    body += disc("z", kx, 22.3, DASH_FACE + 0.6, 0.6, 0.6, "chrome", steps=(0, 45))
+body.append(box(15, 19.5, DASH_FACE, 21.5, 24.5, DASH_FACE + 0.3, "wood"))
+body.append(box(17.6, 23.4, DASH_FACE + 0.3, 18.9, 23.9, DASH_FACE + 0.5, "chrome"))
+body += disc("z", 0, 28.7, DASH_FACE - 2.5, 1.2, 0.01, "grille", steps=(0, 45))  # defroster vent
+# Green vinyl engine cover between the seats, rounded on top
+body.append(box(-6, FLOOR, DASH_FACE, 6, 22, DASH_FACE + 13, "dash"))
+body.append(box(-5.2, 22, DASH_FACE + 0.5, 5.2, 23.6, DASH_FACE + 12.5, "dash"))
+body.append(box(-4, 23.6, DASH_FACE + 1, 4, 24.2, DASH_FACE + 12, "dash_pad"))
+# Pedals in the driver's footwell
+body.append(box(-15, FLOOR + 1, DASH_FACE + 0.5, -12.5, FLOOR + 3.5, DASH_FACE + 1, "black", [-25, 0, 0], [0, FLOOR + 1, DASH_FACE + 1]))
+body.append(box(-10.5, FLOOR + 0.5, DASH_FACE + 1, -8.5, FLOOR + 5, DASH_FACE + 1.4, "black", [-30, 0, 0], [0, FLOOR + 0.5, DASH_FACE + 1.2]))
+# Ivory door trim with an armrest on both cab walls
+for sx in (1, -1):
+    x_in = sx * (HW - 1.2)
+    body.append(box(x_in, FLOOR, -53, x_in - sx * 0.3, 27, -41, "ivory"))
+    body.append(box(x_in, 22, -51, x_in - sx * 1.6, 23.4, -43, "ivory"))
+
+
+def bucket_seat(x0, x1):
+    """A green tweed bucket seat with horizontal pleats and lighter piping."""
+    out = [box(x0 + 1, FLOOR, -39, x1 - 1, 18, -30, "black")]  # pedestal
+    out.append(box(x0, 18, -41, x1, 21.5, -29, "tweed"))
+    for z in [-40 + i * 1.4 for i in range(8)]:
+        out.append(box(x0 + 0.6, 21.5, z, x1 - 0.6, 21.7, z + 0.4, "tweed_line"))
+    out.append(box(x0 - 0.2, 21.2, -41.2, x1 + 0.2, 21.8, -40.8, "piping"))
+    pivot = [0, 21.5, -29.5]
+    lean = [-12, 0, 0]
+    out.append(box(x0, 21.5, -30, x1, 38, -28, "tweed", lean, pivot))
+    for y in [23 + i * 1.5 for i in range(10)]:
+        out.append(box(x0 + 0.6, y, -30.2, x1 - 0.6, y + 0.5, -30, "tweed_line", lean, pivot))
+    out.append(box(x0 - 0.2, 37.6, -30.2, x1 + 0.2, 38.3, -27.8, "piping", lean, pivot))
+    for xs in (x0 - 0.2, x1 - 0.4):
+        out.append(box(xs, 21.5, -30.2, xs + 0.6, 38.3, -27.8, "piping", lean, pivot))
+    return out
+
+
+# Bed at the rear left: two cells (local x = +1, z = -2 and -3), 9 px high like the
+# future parked bed block (the driving model is visual only).
+BED = (-HW + 1, -8, 24, REAR - 1)  # x0, x1, z0, z1
+body.append(box(BED[0], FLOOR, BED[2], BED[1], FLOOR + 3, BED[3], "wood"))
+body.append(box(BED[0] + 0.3, FLOOR + 3, BED[2] + 0.3, BED[1] - 0.3, FLOOR + 7.5, BED[3] - 0.3, "ivory"))
+body.append(box(BED[0] + 0.2, FLOOR + 7.5, BED[2] + 0.2, BED[1] - 0.2, FLOOR + 9, BED[3] - 8, "curtain"))
+body.append(box(BED[0] + 0.1, FLOOR + 5, BED[2] + 0.1, BED[1] - 0.1, FLOOR + 7.5, BED[2] + 0.4, "curtain"))  # blanket over the foot
+body.append(box(BED[0] + 0.2, FLOOR + 8.6, BED[3] - 9, BED[1] - 0.2, FLOOR + 9.4, BED[3] - 7.5, "ivory"))  # folded sheet
+body.append(box(BED[0] + 2, FLOOR + 7.5, BED[3] - 6, BED[1] - 2, FLOOR + 10, BED[3] - 1.5, "white"))  # pillow
+seat0 = bucket_seat(-18, -7)
+seat1 = bucket_seat(7, 18)
+
+# Facing dinette on the left behind the driver: seat 2 faces the rear, seat 3 forward,
+# with the table between them in the middle cell (seats 2 and 3 of minecraft:rideable).
+DIN_X = (-HW + 1, -8)
+seat2 = [box(DIN_X[0], FLOOR, -23, DIN_X[1], FLOOR + 7, -10, "tweed"),
+         box(DIN_X[0], FLOOR + 7, -24, DIN_X[1], FLOOR + 20, -21.5, "tweed")]
+seat3 = [box(DIN_X[0], FLOOR, 10, DIN_X[1], FLOOR + 7, 23, "tweed"),
+         box(DIN_X[0], FLOOR + 7, 21.5, DIN_X[1], FLOOR + 20, 24, "tweed")]
+table = [box(DIN_X[0], FLOOR + 11, -6, -9, FLOOR + 12, 6, "wood"),
+         box(-15, FLOOR, -1, -13, FLOOR + 11, 1, "chrome")]
+body += table
+
+# Steering wheel, as on the reference: a thin ivory rim of 32 segments, one wide spoke from
+# 10 to 4 o'clock through a conical hub, and a chrome horn ring over the lower-left half.
+# Built facing the driver (+z) in its own bone, which lays it back like a bus wheel.
+RIM_R = 7.2
+
+
+def arc_z(r, t, color, a0, a1, n):
+    out = []
+    span = math.radians(a1 - a0)
+    seg = abs(span) * r / n * 1.1
+    for i in range(n):
+        a = math.radians(a0) + span * (i + 0.5) / n
+        x, y = r * math.cos(a), r * math.sin(a)
+        out.append(box(x - seg / 2, y - t / 2, -t / 2, x + seg / 2, y + t / 2, t / 2, color, [0, 0, math.degrees(a) + 90], [x, y, 0]))
+    return out
+
+
+steering = arc_z(RIM_R, 0.9, "ivory", 0, 360, 32)
+steering += arc_z(RIM_R - 2.2, 0.35, "chrome", 160, 290, 12)
+for a in (150, -30):  # the spoke, tapering toward the rim
+    rad = math.radians(a)
+    mx, my = (RIM_R / 2 - 0.1) * math.cos(rad), (RIM_R / 2 - 0.1) * math.sin(rad)
+    steering.append(box(mx - RIM_R / 2, my - 0.8, -0.35, mx + RIM_R / 2, my + 0.8, 0.35, "ivory", [0, 0, a], [mx, my, 0]))
+steering += disc("z", 0, 0, -0.6, 2.2, 1.2, "hub")
+steering += disc("z", 0, 0, 0.6, 1.6, 0.6, "hub")
+steering += disc("z", 0, 0, 1.2, 0.9, 0.2, "black")
+for a in (90, 210, 330):  # the emblem's three points
+    rad = math.radians(a)
+    steering.append(box(0.45 * math.cos(rad) - 0.15, 0.45 * math.sin(rad) - 0.15, 1.4, 0.45 * math.cos(rad) + 0.15, 0.45 * math.sin(rad) + 0.15, 1.5, "needle"))
+steering.append(box(-0.7, -0.7, -13, 0.7, 0.7, -0.6, "dark_dash"))  # column down to the dashboard
+
+# Extract lenses after shaping the nose so they follow the same taper as the lamp pods.
+lens_slot = SLOTS.index("lens")
+headlights = [c for c in body if c["uv"]["north"]["uv"][0] == lens_slot]
+body = [c for c in body if c["uv"]["north"]["uv"][0] != lens_slot]
+
+camper_bones = [
+    {"name": "root", "pivot": [0, 0, 0]},
+    {"name": "body", "parent": "root", "pivot": [0, 0, 0], "cubes": body,
+     "locators": {**hover, "exhaust": [-12, 4, REAR - 4]}},
+    {"name": "headlights", "parent": "body", "pivot": [0, 0, 0], "cubes": headlights},
+    *wheels,
+    *[{"name": f"seat_{i}", "parent": "body", "pivot": [0, FLOOR, 0], "cubes": cubes}
+      for i, cubes in enumerate((seat0, seat1, seat2, seat3))],
+    {"name": "door_entry", "parent": "body", "pivot": DOOR_HINGE, "cubes": door},
+    {"name": "steering", "parent": "body", "pivot": [-12, 29, FRONT + 15], "rotation": [50, 0, 0],
+     "cubes": [{**c, "origin": [c["origin"][0] - 12, c["origin"][1] + 29, c["origin"][2] + FRONT + 15],
+                **({"pivot": [c["pivot"][0] - 12, c["pivot"][1] + 29, c["pivot"][2] + FRONT + 15]} if "pivot" in c else {})}
+               for c in steering]},
+]
+def mirror_x(bones):
+    """Mirror the building frame (+x right) into the game's frame (+x left)."""
+    for bone in bones:
+        bone["pivot"] = [-bone["pivot"][0], *bone["pivot"][1:]]
+        for name, (x, y, z) in bone.get("locators", {}).items():
+            bone["locators"][name] = [-x, y, z]
+        if "rotation" in bone:
+            rx, ry, rz = bone["rotation"]
+            bone["rotation"] = [rx, -ry, -rz]
+        for c in bone.get("cubes", []):
+            c["origin"] = [-(c["origin"][0] + c["size"][0]), *c["origin"][1:]]
+            if "pivot" in c:
+                c["pivot"] = [-c["pivot"][0], *c["pivot"][1:]]
+                rx, ry, rz = c["rotation"]
+                # A mirror negates y and z turns, but the game turns z the other way from
+                # the right-handed math these cubes are built with, so z stays as written
+                # (the sports boat generator keeps z for the same reason, ADR 0058).
+                c["rotation"] = [rx, -ry, rz]
+    return bones
+
+
+def rounded(value):
+    """Drop floating-point noise and normalize negative zero before writing."""
+    if isinstance(value, float):
+        return round(value, 3) + 0.0
+    if isinstance(value, list):
+        return [rounded(v) for v in value]
+    if isinstance(value, dict):
+        return {k: rounded(v) for k, v in value.items()}
+    return value
+
+
+mirror_x(camper_bones)
+geo = {
+    "format_version": "1.12.0",
+    "minecraft:geometry": [{
+        "description": {
+            "identifier": "geometry.yasu_ride.camper",
+            "texture_width": len(SLOTS), "texture_height": 1,
+            "visible_bounds_width": 10, "visible_bounds_height": 5,
+            "visible_bounds_offset": [0, 1.5, 0],
+        },
+        "bones": camper_bones,
+    }],
+}
+MODELS.mkdir(parents=True, exist_ok=True)
+(MODELS / "camper.geo.json").write_text(json.dumps(rounded(geo), separators=(",", ":")))
+
+
+def png(path, width, height, pixel):
+    raw = b"".join(b"\x00" + b"".join(bytes(pixel(x, y)) for x in range(width)) for y in range(height))
+
+    def chunk(t, d):
+        return struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d) & 0xFFFFFFFF)
+
+    head = struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0)
+    path.write_bytes(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", head) + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b""))
+
+
+def scale(color, factor):
+    return tuple(max(0, min(255, math.floor(c * factor + 0.5))) for c in color)
+
+
+ENTITY_TEXTURES.mkdir(parents=True, exist_ok=True)
+for paint, base in ACCENT_BASES.items():
+    colors = dict(PALETTE)
+    if paint != "khaki":
+        colors.update(khaki=(*scale(base, 0.85), 255), stripe=(*scale(base, 0.65), 255), tan=(*base, 255))
+    name = "camper" if paint == "khaki" else f"camper_{paint}"
+    png(ENTITY_TEXTURES / f"{name}.png", len(SLOTS), 1, lambda x, y: colors[SLOTS[x]])
+
+ICON = [
+    "................",
+    "................",
+    ".OOOOOOOOOOOOO..",
+    ".OWWWWWWWWWWWWO.",
+    ".OKKKKKKKKKGGGO.",
+    ".OKGGKKGGKKGGGO.",
+    ".OKGGKKGGKKWWWO.",
+    ".OWWWWWWWWWWWWO.",
+    ".OSSSSSSSSSSSSO.",
+    ".OWWWWWWWWWWWWO.",
+    ".OTTTTTTTTTTTTO.",
+    ".OOBBBOOOOOBBBO.",
+    "...BBB.....BBB..",
+    "................",
+    "................",
+    "................",
+]
+ICON_COLORS = {"W": (238, 235, 226, 255), "K": (150, 128, 72, 255), "G": (70, 86, 96, 255),
+               "S": (128, 98, 52, 255), "T": (186, 140, 92, 255), "B": (28, 28, 30, 255),
+               "O": (60, 60, 60, 255), ".": (0, 0, 0, 0)}
+ITEM_TEXTURES.mkdir(parents=True, exist_ok=True)
+png(ITEM_TEXTURES / "camper_item.png", 16, 16, lambda x, y: ICON_COLORS[ICON[y][x]])
+print("cubes:", sum(len(b.get("cubes", [])) for b in camper_bones))
