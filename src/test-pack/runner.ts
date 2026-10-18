@@ -285,6 +285,8 @@ async function camperDive(a: Arena): Promise<Outcome> {
   try {
     a.dim.runCommand(`fill 100 ${a.gy} 61 118 ${a.gy + 6} 69 glass`);
     a.dim.runCommand(`fill 101 ${a.gy} 62 117 ${a.gy + 5} 68 water`);
+    // The glass fill also roofed the tank; open its top layer so the camper can surface.
+    a.dim.runCommand(`fill 101 ${a.gy + 6} 62 117 ${a.gy + 6} 68 air`);
     return await withCamper(a, 109.5, 65.5, -90, async (car) => {
       const enteredAt = await ticksUntilForm(car, "submarine", 40);
       drive(car, 0, 0, true);
