@@ -11,6 +11,8 @@
 | ![The SUV on the ground, seen from its front-left corner](docs/images/suv-front-left.png) | ![The SUV with its headlights on, lighting the ground ahead](docs/images/suv-headlights.png) | ![The SUV flying with its wheels folded flat on gunmetal arms and glowing blue underneath](docs/images/suv-flying.png) | ![The SUV as a submarine, with sealed blue windows and its rear wheels turned backward on gunmetal arms](docs/images/suv-submarine.png) |
 | **Sports boat on the water** | **Headlights on** | **From the rear** | **From above** |
 | ![The black sports boat afloat, seen from its front-left corner](docs/images/sportsboat-afloat.png) | ![The sports boat with its headlights on, lighting the water ahead](docs/images/sportsboat-headlights.png) | ![The sports boat seen from its rear-left corner, showing the stern deck and the swim platform](docs/images/sportsboat-rear.png) | ![The sports boat seen from straight above, bow to the right](docs/images/sportsboat-top.png) |
+| **Camper** | **Headlights on** | **From the side** | **From the rear** |
+| ![The camper seen from its front-left corner](docs/images/camper-front-left.png) | ![The camper with its headlights on at dusk](docs/images/camper-headlights.png) | ![The camper seen from the side](docs/images/camper-side.png) | ![The camper seen from the rear](docs/images/camper-rear.png) |
 
 A vehicle add-on for Minecraft Bedrock Edition. It is built as a Behavior Pack + Resource Pack driven by the stable Script API (`@minecraft/server` 2.x), with no experimental toggles required. The target setup is a Bedrock Dedicated Server on a home LAN, with players joining from PC (keyboard) and mobile (touch).
 
