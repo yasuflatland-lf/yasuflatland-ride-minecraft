@@ -93,7 +93,7 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | C16 | Sit at the dinette from inside, then have the driver depart | The seated player rides along | | |
 | C17 | With all four seats taken, stand inside and have the driver depart | You are moved outside the door, facing away from the camper | | |
 | C18 | Park, open and close the door, run /reload midway through each swing, then depart | It stays parked after /reload, the door continues in its previous direction, and departing clears the room | | |
-| C19 | Stop on a flat dirt path and wait a second | It parks above the path without replacing it; the floor, body and seats align, and it departs normally | | |
+| C19 | Stop on a flat dirt path and wait a second | It parks with its floor in the cell above the path (the engine turns the path under the floor into dirt); the floor, body and seats align, and it departs normally | | |
 | C20 | Stop with a block just outside the door at feet or head height; remove it, park, then replace it and depart with all seats taken and another player standing inside | The first stop refuses parking with "Can't park here"; after parking the blocked exit allows departure but the standing player is not teleported into the block | | |
 | C21 | Stand on the roof near a side or end wall, then at its outer edge, and have the driver depart | You are seated if a seat is free or moved outside the clear door exit, including when your center is up to 0.3 blocks beyond the supported edge | | |
 

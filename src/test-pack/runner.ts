@@ -333,18 +333,16 @@ function camperParkSnow(a: Arena): Promise<Outcome> {
 
 async function camperParkPath(a: Arena): Promise<Outcome> {
   const ground = a.gy - 1;
-  a.dim.runCommand(`fill 103 ${ground} 73 114 ${ground} 84 dirt_path`);
+  a.dim.runCommand(`fill 103 ${ground} 73 114 ${ground} 84 grass_path`);
   try {
     return await atParkSpot(a, async (car) => {
       await wait(DOCK.ticks + 10);
       const laid = laidRoomCells(a, car);
-      const path = a.dim.getBlock({ x: 108, y: ground, z: 78 })?.typeId;
+      // A path under a full block turns into dirt, so the ground is only logged.
+      const under = a.dim.getBlock({ x: 108, y: ground, z: 78 })?.typeId;
       return {
-        pass:
-          laid === 103 &&
-          car.location.y === a.gy &&
-          path === "minecraft:dirt_path",
-        detail: `laid=${laid} y=${car.location.y} ground=${path}`,
+        pass: laid === 103 && car.location.y === a.gy,
+        detail: `laid=${laid} y=${car.location.y} ground=${under}`,
       };
     });
   } finally {
