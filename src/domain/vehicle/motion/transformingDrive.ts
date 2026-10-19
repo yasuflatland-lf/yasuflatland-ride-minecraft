@@ -156,6 +156,11 @@ export class TransformingDrive implements Drive {
     return this.bank;
   }
 
+  /** Stops the drive at rest facing `yaw`, for a kind that holds its vehicle (ADR 0068). */
+  protected restartAt(yaw: number): void {
+    this.motion = initialMotion(yaw);
+  }
+
   onDriverMounted(driverYaw: number): void {
     this.motion = alignOnMount(this.motion, driverYaw);
   }

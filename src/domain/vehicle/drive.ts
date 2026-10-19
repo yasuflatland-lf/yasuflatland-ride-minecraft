@@ -67,5 +67,7 @@ export interface Drive {
   /** Called when a new driver takes seat 0. */
   onDriverMounted(driverYaw: number): void;
   onSeatVacated(seat: number): readonly EngineCommand[];
+  /** Opens or closes the door of a held vehicle's room; false when it has none (ADR 0068). */
+  useDockDoor?(): boolean;
   step(raw: RawInput | undefined, ctx: TickContext): DriveStep;
 }

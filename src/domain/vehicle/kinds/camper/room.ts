@@ -1,0 +1,246 @@
+// The parked camper's room: its pose, its cells, and what may stand in them (ADR 0068).
+import {
+  forward,
+  leftOf,
+  normalizeYaw,
+  type Vec2,
+  type Vec3,
+} from "../../../shared/vec";
+import type { Box, ClearCell, Departure } from "../../dock";
+import type { DockCell, Face, HoldPose } from "../../floor";
+import { seatWorldPositions } from "../../seats";
+import { CAMPER_PROFILE } from "./profile";
+
+// Feet resting on a block top can read a hair below it.
+const FEET_EPSILON = 0.01;
+const QUARTER_TURN = 90;
+// In cells from the center cell: x = left (-1..1), z = forward (-3..3), as in the
+// spike (docs/spike-camper.md).
+const HALF_X = 1;
+const HALF_Z = 3;
+const WALL_X = HALF_X + 1;
+const WALL_Z = HALF_Z + 1;
+// The door is in the middle of the right side; x is left, so the right side is -WALL_X.
+const DOOR = { x: -WALL_X, z: 0 } as const;
+// The ground cell just outside the door.
+const EXIT = { x: -WALL_X - 1, z: 0 } as const;
+const WALL_LAYERS = [1, 2, 3] as const;
+// A plate at the top of the third layer leaves 2.81 blocks of headroom over the
+// floor and puts the roof top 4.0 blocks up, flush with the fourth layer (ADR 0068).
+const CEILING_LAYER = 3;
+const INSIDE_LAYERS = [1, 2] as const;
+const ROOF_LAYER = 4;
+// A half step under the door, in pixels.
+const DOOR_STEP_HEIGHT = 8;
+// Feet heights above the pose of a player standing inside (the floor top is at 1)
+// and on the roof (its top is at 4).
+const INSIDE_FEET = [0.5, 3.5] as const;
+const ROOF_FEET = [3.5, 6] as const;
+// The interior's edge cells end half a block past their centers.
+const STAND_HALF_X = HALF_X + 0.5;
+const STAND_HALF_Z = HALF_Z + 0.5;
+// Each deck seat's height above the pose: the camper's minecraft:rideable seat
+// height (1.1 in front, 1.2 at the dinette) minus the deck seat's own 0.52, so a
+// rider sits where the vehicle seat would put them.
+const DECK_SEAT_RISE = [0.58, 0.58, 0.68, 0.68] as const;
+
+export const AIR = "minecraft:air";
+
+/** Passable decorations that parking removes; anything else in a checked cell refuses (ADR 0068). */
+export const CLEARABLE_DECORATIONS: ReadonlySet<string> = new Set([
+  "minecraft:short_grass",
+  "minecraft:tall_grass",
+  "minecraft:fern",
+  "minecraft:large_fern",
+  "minecraft:deadbush",
+  "minecraft:short_dry_grass",
+  "minecraft:tall_dry_grass",
+  "minecraft:bush",
+  "minecraft:dandelion",
+  "minecraft:poppy",
+  "minecraft:blue_orchid",
+  "minecraft:allium",
+  "minecraft:azure_bluet",
+  "minecraft:red_tulip",
+  "minecraft:orange_tulip",
+  "minecraft:white_tulip",
+  "minecraft:pink_tulip",
+  "minecraft:oxeye_daisy",
+  "minecraft:cornflower",
+  "minecraft:lily_of_the_valley",
+  "minecraft:sunflower",
+  "minecraft:lilac",
+  "minecraft:rose_bush",
+  "minecraft:peony",
+  "minecraft:pink_petals",
+  "minecraft:wildflowers",
+  "minecraft:leaf_litter",
+  "minecraft:snow_layer",
+]);
+
+/** Names of the driver's action bar messages (lang keys yasu_ride.message.<name>). */
+export const PARK_MESSAGES = Object.freeze({
+  cannotPark: "cannot_park",
+  clearCargo: "clear_cargo",
+});
+
+export function snapYaw(yaw: number): number {
+  // + 0 turns -0 into 0, so it never leaks into a pose.
+  return normalizeYaw(Math.round(yaw / QUARTER_TURN) * QUARTER_TURN) + 0;
+}
+
+export function parkPose(location: Vec3, yaw: number): HoldPose {
+  return {
+    x: Math.floor(location.x) + 0.5,
+    y: Math.floor(location.y + FEET_EPSILON),
+    z: Math.floor(location.z) + 0.5,
+    yaw: snapYaw(yaw),
+  };
+}
+
+// The snapped yaw's forward and left in whole cells: -1, 0, or 1 on each axis.
+function axes(yaw: number): { f: Vec2; l: Vec2 } {
+  const exact = forward(yaw);
+  const f = { x: Math.round(exact.x) + 0, z: Math.round(exact.z) + 0 };
+  const l = leftOf(f);
+  return { f, l: { x: l.x + 0, z: l.z + 0 } };
+}
+
+function cellAt(pose: HoldPose, lx: number, lz: number, dy: number): Vec3 {
+  const { f, l } = axes(pose.yaw);
+  return {
+    x: Math.floor(pose.x) + lx * l.x + lz * f.x + 0,
+    y: pose.y + dy,
+    z: Math.floor(pose.z) + lx * l.z + lz * f.z + 0,
+  };
+}
+
+// The side of a wall cell that faces the room, from the unit vector toward it.
+function faceToward(v: Vec2): Face {
+  if (v.z !== 0) return v.z < 0 ? 0 : 1;
+  return v.x < 0 ? 2 : 3;
+}
+
+function interior(pose: HoldPose, layers: readonly number[]): Vec3[] {
+  const cells: Vec3[] = [];
+  for (const dy of layers)
+    for (let lx = -HALF_X; lx <= HALF_X; lx++)
+      for (let lz = -HALF_Z; lz <= HALF_Z; lz++)
+        cells.push(cellAt(pose, lx, lz, dy));
+  return cells;
+}
+
+/** The 103 cells of the parked room (ADR 0068). */
+export function roomCells(pose: HoldPose, doorOpen: boolean): DockCell[] {
+  const { f, l } = axes(pose.yaw);
+  const cells: DockCell[] = [
+    ...interior(pose, [0]).map((at) => ({
+      ...at,
+      block: { type: "floor" } as const,
+    })),
+    ...interior(pose, [CEILING_LAYER]).map((at) => ({
+      ...at,
+      block: { type: "ceiling" } as const,
+    })),
+  ];
+  for (const side of [-1, 1]) {
+    const lx = side * WALL_X;
+    const face = faceToward({ x: -side * l.x, z: -side * l.z });
+    for (let lz = -HALF_Z; lz <= HALF_Z; lz++)
+      for (const dy of WALL_LAYERS) {
+        const door = lx === DOOR.x && lz === DOOR.z;
+        cells.push({
+          ...cellAt(pose, lx, lz, dy),
+          block: door
+            ? { type: "door", face, open: doorOpen }
+            : { type: "wall", face },
+        });
+      }
+  }
+  for (const end of [-1, 1]) {
+    const face = faceToward({ x: -end * f.x, z: -end * f.z });
+    for (let lx = -HALF_X; lx <= HALF_X; lx++)
+      for (const dy of WALL_LAYERS)
+        cells.push({
+          ...cellAt(pose, lx, end * WALL_Z, dy),
+          block: { type: "wall", face },
+        });
+  }
+  cells.push({
+    ...cellAt(pose, DOOR.x, DOOR.z, 0),
+    block: { type: "deck", height: DOOR_STEP_HEIGHT },
+  });
+  return cells;
+}
+
+/**
+ * Cells that must hold air or a clearable decoration before parking: the room,
+ * and the interior the players will stand in, because the long body reaches past
+ * its square collision box and can stop around a flower or a low block.
+ */
+export function parkCheckCells(pose: HoldPose): Vec3[] {
+  return [
+    ...roomCells(pose, false).map(({ x, y, z }) => ({ x, y, z })),
+    ...interior(pose, INSIDE_LAYERS),
+  ];
+}
+
+/** Cells where a player's block keeps the camper parked: the interior and the roof top. */
+export function cargoCells(pose: HoldPose): Vec3[] {
+  return interior(pose, [...INSIDE_LAYERS, ROOF_LAYER]);
+}
+
+/** The decorations to remove, top layer first, or undefined when any cell refuses parking. */
+export function planPark(
+  cells: readonly Vec3[],
+  types: readonly (string | undefined)[],
+): ClearCell[] | undefined {
+  const clear: ClearCell[] = [];
+  for (const [i, cell] of cells.entries()) {
+    const typeId = types[i];
+    if (typeId === AIR) continue;
+    if (typeId === undefined || !CLEARABLE_DECORATIONS.has(typeId))
+      return undefined;
+    clear.push({ x: cell.x, y: cell.y, z: cell.z, typeId });
+  }
+  // Removing the lower half of a tall plant first would drop its upper half as an item.
+  return clear.sort((a, b) => b.y - a.y);
+}
+
+/** Unknown cells (an unloaded chunk) count as holding a block. */
+export function holdsCargo(types: readonly (string | undefined)[]): boolean {
+  return types.some((t) => t !== AIR);
+}
+
+function standingBox(
+  pose: HoldPose,
+  [low, high]: readonly [number, number],
+): Box {
+  const { f, l } = axes(pose.yaw);
+  const hx = Math.abs(f.x) * STAND_HALF_Z + Math.abs(l.x) * STAND_HALF_X;
+  const hz = Math.abs(f.z) * STAND_HALF_Z + Math.abs(l.z) * STAND_HALF_X;
+  return {
+    min: { x: pose.x - hx, y: pose.y + low, z: pose.z - hz },
+    max: { x: pose.x + hx, y: pose.y + high, z: pose.z + hz },
+  };
+}
+
+export function departure(pose: HoldPose): Departure {
+  const exit = cellAt(pose, EXIT.x, EXIT.z, 0);
+  return {
+    boxes: [standingBox(pose, INSIDE_FEET), standingBox(pose, ROOF_FEET)],
+    // Facing away from the body: the camper's right is its yaw plus a quarter turn.
+    exit: {
+      x: exit.x + 0.5,
+      y: pose.y,
+      z: exit.z + 0.5,
+      yaw: normalizeYaw(pose.yaw + QUARTER_TURN),
+    },
+  };
+}
+
+export function deckSeats(pose: HoldPose): Vec3[] {
+  return seatWorldPositions(pose, CAMPER_PROFILE.seats.positions).map(
+    (at, i) => ({ ...at, y: at.y + (DECK_SEAT_RISE[i] ?? 0) }),
+  );
+}
