@@ -20,7 +20,6 @@ import {
 } from "../../../../../src/domain/vehicle/kinds/index";
 import { SPORTSBOAT_ATTITUDE } from "../../../../../src/domain/vehicle/kinds/sportsboat/attitude";
 import {
-  DOCK,
   floorCells,
   holdHeight,
 } from "../../../../../src/domain/vehicle/kinds/sportsboat/deck";
@@ -45,6 +44,7 @@ import {
   SUV_PROFILE,
 } from "../../../../../src/domain/vehicle/kinds/suv/profile";
 import { MOTION } from "../../../../../src/domain/vehicle/motion/constants";
+import { DOCK } from "../../../../../src/domain/vehicle/motion/dock";
 import { FORMS } from "../../../../../src/domain/vehicle/motion/forms";
 import {
   initialMotion,
@@ -142,6 +142,7 @@ function context(
     velocity: { ...velocity, y: 0 },
     onGround: true,
     ...waterSensors(water.waterDepth, water.waterBelow),
+    blockTypes: () => [],
     solidAt: () => false,
     targets,
   };
@@ -180,7 +181,7 @@ describe("sports boat docking (ADR 0063)", () => {
           sequence.forEach((raw, tick) => {
             const step = drive.step(raw, { ...ctx, tick });
             if (step.dock === undefined) return;
-            expect(step.dock.floor).toStrictEqual(floorCells(step.dock.hold));
+            expect(step.dock.cells).toStrictEqual(floorCells(step.dock.hold));
             expect(step.dock.seats).toStrictEqual(
               seatWorldPositions(
                 step.dock.hold,
@@ -208,7 +209,7 @@ describe("sports boat docking (ADR 0063)", () => {
             const out = drive.step(undefined, ctx);
             expect(drive.isDocked).toBe(false);
             expect(out.dock?.hold).toBeUndefined();
-            expect(out.dock?.floor).toBeUndefined();
+            expect(out.dock?.cells).toBeUndefined();
             expect(out.commands).toStrictEqual(tick === 1 ? LEVEL : []);
           }
           const out = drive.step(undefined, ctx);
@@ -225,7 +226,7 @@ describe("sports boat docking (ADR 0063)", () => {
           expect(out.commands).toStrictEqual(dockCommands());
           expect(out.dock?.hold).toStrictEqual(hold);
           if (!out.dock) throw new Error("missing dock hold");
-          expect(out.dock.floor).toStrictEqual(floorCells(out.dock.hold));
+          expect(out.dock.cells).toStrictEqual(floorCells(out.dock.hold));
           expect(out.dock.seats).toStrictEqual(
             seatWorldPositions(
               out.dock.hold,
@@ -303,7 +304,7 @@ describe("sports boat docking (ADR 0063)", () => {
               waterAt: () => false,
             });
             expect(out.dock?.hold).toBe(hold);
-            expect(out.dock?.floor).toStrictEqual(floorCells(hold));
+            expect(out.dock?.cells).toStrictEqual(floorCells(hold));
             expect(out.impulse).toStrictEqual({ x: 0, y: 0, z: 0 });
             expect(out.forward).toStrictEqual(forward(drive.yaw));
             expect(out.commands).toStrictEqual([]);
@@ -347,7 +348,7 @@ describe("sports boat docking (ADR 0063)", () => {
           });
           expect(drive.isDocked).toBe(false);
           expect(out.dock?.hold).toBeUndefined();
-          expect(out.dock?.floor).toBeUndefined();
+          expect(out.dock?.cells).toBeUndefined();
           expect(out.dock?.seats ?? []).toStrictEqual([]);
           expect(drive.state).toStrictEqual(normal.state);
           drive.restore({ motion: initialMotion(drive.yaw) });
@@ -381,7 +382,7 @@ describe("sports boat docking (ADR 0063)", () => {
             yaw: normalizeYaw(heading),
           });
           if (!out.dock) throw new Error("missing dock hold");
-          expect(out.dock.floor).toStrictEqual(floorCells(out.dock.hold));
+          expect(out.dock.cells).toStrictEqual(floorCells(out.dock.hold));
           expect(out.dock.seats).toStrictEqual(
             seatWorldPositions(
               out.dock.hold,

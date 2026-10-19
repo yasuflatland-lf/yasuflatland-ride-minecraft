@@ -1,6 +1,6 @@
 // Collision floor geometry and water-relative hold height for a stopped sports boat (ADR 0063).
 import { clamp, forward, type Vec2 } from "../../../shared/vec";
-import type { FloorCell, HoldPose } from "../../floor";
+import type { DockCell, HoldPose } from "../../floor";
 import { toLocal } from "../../seats";
 
 export interface DeckPart {
@@ -10,16 +10,8 @@ export interface DeckPart {
   readonly height: number;
 }
 
-export const DOCK = Object.freeze({
-  /** ADR 0063: below 0.005 blocks/tick counts as stopped. */
-  maxSpeed: 0.005,
-  /** ADR 0063: require 20 consecutive stopped ticks (1 second). */
-  ticks: 20,
-  /** ADR 0063: measured mean draft at rest, in blocks. */
-  draft: 0.45,
-  /** ADR 0063: stick movement above 0.1 requests departure. */
-  stick: 0.1,
-});
+/** ADR 0063: measured mean draft at rest, in blocks. */
+export const DECK_DRAFT = 0.45;
 
 const PIXELS_PER_BLOCK = 16;
 const WATER_OFFSETS = [2, 1, 0, -1] as const;
@@ -81,11 +73,11 @@ function scanRange(center: number): readonly [number, number] {
   ];
 }
 
-export function floorCells(pose: HoldPose): FloorCell[] {
+export function floorCells(pose: HoldPose): DockCell[] {
   const f = forward(pose.yaw);
   const [xMin, xMax] = scanRange(pose.x);
   const [zMin, zMax] = scanRange(pose.z);
-  const cells: FloorCell[] = [];
+  const cells: DockCell[] = [];
   for (let x = xMin; x <= xMax; x++) {
     for (let z = zMin; z <= zMax; z++) {
       const local = toLocal({ x: x + 0.5 - pose.x, z: z + 0.5 - pose.z }, f);
@@ -100,7 +92,7 @@ export function floorCells(pose: HoldPose): FloorCell[] {
         1,
         PIXELS_PER_BLOCK,
       );
-      cells.push({ x, y, z, height });
+      cells.push({ x, y, z, block: { type: "deck", height } });
     }
   }
   return cells;
@@ -111,7 +103,7 @@ export function holdHeight(
   waterAt: (dy: number) => boolean,
 ): number | undefined {
   for (const dy of WATER_OFFSETS) {
-    if (waterAt(dy)) return Math.floor(feetY + dy) + 1 - DOCK.draft;
+    if (waterAt(dy)) return Math.floor(feetY + dy) + 1 - DECK_DRAFT;
   }
   return undefined;
 }

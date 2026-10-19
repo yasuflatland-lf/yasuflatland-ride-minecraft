@@ -44,6 +44,7 @@ it("emits no seat commands when the drive has no doors", () => {
     velocity: { x: 0, y: 0, z: 0 },
     onGround: true,
     ...waterSensors(),
+    blockTypes: () => [],
     solidAt: () => false,
     targets: () => [],
   });

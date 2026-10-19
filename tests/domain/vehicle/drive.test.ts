@@ -22,6 +22,7 @@ function stillContext(onGround: boolean, waterDepth = 0): TickContext {
     velocity: { x: 0, y: 0, z: 0 },
     onGround,
     ...waterSensors(waterDepth),
+    blockTypes: () => [],
     solidAt: () => false,
     targets: () => [],
   };
