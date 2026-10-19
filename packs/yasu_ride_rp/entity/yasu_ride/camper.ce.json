@@ -1,0 +1,35 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "yasu_ride:camper",
+      "materials": {
+        "default": "entity_alphablend",
+        "lamp": "entity",
+        "lamp_lit": "entity_emissive"
+      },
+      "textures": {
+        "default": "textures/entity/yasu_ride/camper",
+        "green": "textures/entity/yasu_ride/camper_green",
+        "red": "textures/entity/yasu_ride/camper_red",
+        "white": "textures/entity/yasu_ride/camper_white",
+        "light_gray": "textures/entity/yasu_ride/camper_light_gray",
+        "gray": "textures/entity/yasu_ride/camper_gray",
+        "black": "textures/entity/yasu_ride/camper_black",
+        "orange": "textures/entity/yasu_ride/camper_orange",
+        "yellow": "textures/entity/yasu_ride/camper_yellow",
+        "lime": "textures/entity/yasu_ride/camper_lime",
+        "cyan": "textures/entity/yasu_ride/camper_cyan",
+        "light_blue": "textures/entity/yasu_ride/camper_light_blue",
+        "blue": "textures/entity/yasu_ride/camper_blue",
+        "purple": "textures/entity/yasu_ride/camper_purple",
+        "magenta": "textures/entity/yasu_ride/camper_magenta",
+        "pink": "textures/entity/yasu_ride/camper_pink"
+      },
+      "geometry": {
+        "default": "geometry.yasu_ride.camper"
+      },
+      "render_controllers": ["controller.render.yasu_ride.camper"]
+    }
+  }
+}

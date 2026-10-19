@@ -170,6 +170,7 @@ describe("Fleet (ADR 0038, ADR 0066)", () => {
         fc.record({
           suv: fc.integer({ min: 1, max: 5 }),
           sportsboat: fc.integer({ min: 1, max: 5 }),
+          camper: fc.integer({ min: 1, max: 5 }),
         }),
         steps,
         (limits, operations) => {

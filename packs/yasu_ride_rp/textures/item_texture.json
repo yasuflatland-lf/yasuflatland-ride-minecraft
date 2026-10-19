@@ -10,6 +10,9 @@
     },
     "yasu_ride_sportsboat_item": {
       "textures": "textures/items/yasu_ride/sportsboat_item"
+    },
+    "yasu_ride_camper_item": {
+      "textures": "textures/items/yasu_ride/camper_item"
     }
   }
 }

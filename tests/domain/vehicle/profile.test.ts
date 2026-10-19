@@ -8,6 +8,11 @@ import {
 } from "../../../src/domain/vehicle/headlights";
 import { isVehicleKind, VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
 import {
+  CAMPER_MOTION,
+  CAMPER_PROFILE,
+} from "../../../src/domain/vehicle/kinds/camper/profile";
+import { CAMPER_SPEC } from "../../../src/domain/vehicle/kinds/camper/spec";
+import {
   createVehicle,
   KINDS,
   profileOf,
@@ -134,6 +139,7 @@ describe("vehicle profiles (ADR 0050)", () => {
   it("freezes every profile and motion limit so a write cannot change all vehicles of a kind", () => {
     expect(Object.isFrozen(KINDS)).toBe(true);
     expect(Object.isFrozen(SUV_MOTION)).toBe(true);
+    expect(Object.isFrozen(CAMPER_MOTION)).toBe(true);
     expect(Object.isFrozen(SPORTSBOAT_MOTION)).toBe(true);
     for (const kind of VEHICLE_KINDS) {
       expect(Object.isFrozen(KINDS[kind])).toBe(true);
@@ -163,7 +169,11 @@ describe("vehicle profiles (ADR 0050)", () => {
       fc.property(fc.constantFrom(...VEHICLE_KINDS), yaw, (kind, heading) => {
         expect(isVehicleKind(kind)).toBe(true);
         expect(profileOf(kind)).toBe(
-          kind === "suv" ? SUV_PROFILE : SPORTSBOAT_PROFILE,
+          {
+            suv: SUV_PROFILE,
+            sportsboat: SPORTSBOAT_PROFILE,
+            camper: CAMPER_PROFILE,
+          }[kind],
         );
         expect(createVehicle(kind, "v", heading).kind).toBe(kind);
         expect(
@@ -507,6 +517,33 @@ describe("vehicle profiles (ADR 0050)", () => {
           ).toBeLessThanOrEqual(RAM_QUERY_RADIUS);
         },
       ),
+    );
+  });
+
+  it("limits each player to one camper", () => {
+    expect(CAMPER_PROFILE.fleetLimit).toBe(1);
+  });
+
+  it("clears every cell the camper's body reaches at any facing", () => {
+    const { halfX, halfZ } = CAMPER_PROFILE.placement.clearance;
+    fc.assert(
+      fc.property(fc.double({ min: 0, max: 360, noNaN: true }), (yaw) => {
+        const f = forward(yaw);
+        const r = rightOf(f);
+        for (const ahead of [CAMPER_SPEC.bodyFront, -CAMPER_SPEC.bodyRear])
+          for (const side of [-1, 1].map(
+            (s) => s * CAMPER_SPEC.bodyHalfWidth,
+          )) {
+            // The camper spawns at the cell center, so cells -half..half span
+            // half + 0.5 blocks each way.
+            expect(Math.abs(f.x * ahead + r.x * side)).toBeLessThanOrEqual(
+              halfX + 0.5,
+            );
+            expect(Math.abs(f.z * ahead + r.z * side)).toBeLessThanOrEqual(
+              halfZ + 0.5,
+            );
+          }
+      }),
     );
   });
 });

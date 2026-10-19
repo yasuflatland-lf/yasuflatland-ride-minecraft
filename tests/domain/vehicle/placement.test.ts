@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
 import type { Vec3 } from "../../../src/domain/shared/vec";
+import { CAMPER_PROFILE } from "../../../src/domain/vehicle/kinds/camper/profile";
 import { SPORTSBOAT_PROFILE } from "../../../src/domain/vehicle/kinds/sportsboat/profile";
 import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
 import {
@@ -310,22 +311,28 @@ describe("placementCell (ADR 0050, ADR 0051)", () => {
     );
   });
 
-  it("places a land kind only on the top face of the clicked block, ignoring water", () => {
-    fc.assert(
-      fc.property(
-        cell,
-        fc.constantFrom(...FACES),
-        near,
-        (clicked, face, offsets) => {
-          const waterAt = vi.fn(waterOf(clicked, offsets));
-          expect(
-            placementCell(SUV_PROFILE.placement, clicked, face, waterAt),
-          ).toEqual(face === "up" ? clicked : undefined);
-          expect(waterAt).not.toHaveBeenCalled();
-        },
-      ),
-    );
-  });
+  it.each([
+    ["SUV", SUV_PROFILE.placement],
+    ["camper", CAMPER_PROFILE.placement],
+  ] as const)(
+    "places the %s, a land kind, only on the top face of the clicked block, ignoring water",
+    (_kind, rule) => {
+      fc.assert(
+        fc.property(
+          cell,
+          fc.constantFrom(...FACES),
+          near,
+          (clicked, face, offsets) => {
+            const waterAt = vi.fn(waterOf(clicked, offsets));
+            expect(placementCell(rule, clicked, face, waterAt)).toEqual(
+              face === "up" ? clicked : undefined,
+            );
+            expect(waterAt).not.toHaveBeenCalled();
+          },
+        ),
+      );
+    },
+  );
 
   it("places a water kind at the top of the water in the clicked cell or next to the clicked face, else only on a top face", () => {
     fc.assert(

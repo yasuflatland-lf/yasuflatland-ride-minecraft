@@ -3,6 +3,7 @@
 import { type Dimension, type Entity, system, world } from "@minecraft/server";
 import { dot, forward, type Vec3 } from "../domain/shared/vec";
 import { headlightCells } from "../domain/vehicle/headlights";
+import { CAMPER_SPEC } from "../domain/vehicle/kinds/camper/spec";
 import { BoatDrive } from "../domain/vehicle/kinds/sportsboat/drive";
 import {
   SPORTSBOAT_MOTION,
@@ -101,10 +102,16 @@ function clearInput(car: Entity): void {
   system.sendScriptEvent(INPUT_EVENT, `${car.id},clear`);
 }
 
-function spawnCar(a: Arena, x: number, z: number, yaw: number): Entity {
-  a.dim.runCommand(`summon ${ENTITY_TYPE.suv} ${x} ${a.gy} ${z}`);
+function spawnCar(
+  a: Arena,
+  x: number,
+  z: number,
+  yaw: number,
+  type = ENTITY_TYPE.suv,
+): Entity {
+  a.dim.runCommand(`summon ${type} ${x} ${a.gy} ${z}`);
   const car = a.dim.getEntities({
-    type: ENTITY_TYPE.suv,
+    type,
     location: { x, y: a.gy, z },
     maxDistance: 1.5,
   })[0];
@@ -119,14 +126,25 @@ async function withCar<T>(
   z: number,
   yaw: number,
   run: (car: Entity) => Promise<T>,
+  type = ENTITY_TYPE.suv,
 ): Promise<T> {
-  const car = spawnCar(a, x, z, yaw);
+  const car = spawnCar(a, x, z, yaw, type);
   try {
     return await run(car);
   } finally {
     clearInput(car);
     if (car.isValid) car.remove();
   }
+}
+
+function withCamper<T>(
+  a: Arena,
+  x: number,
+  z: number,
+  yaw: number,
+  run: (car: Entity) => Promise<T>,
+): Promise<T> {
+  return withCar(a, x, z, yaw, run, ENTITY_TYPE.camper);
 }
 
 async function setupArena(): Promise<Arena> {
@@ -160,6 +178,7 @@ async function setupArena(): Promise<Arena> {
   dim.runCommand(`fill ${minX} ${gy + 7} 0 60 ${gy + 20} 12 air`);
   dim.runCommand(`kill @e[type=${ENTITY_TYPE.suv}]`);
   dim.runCommand(`kill @e[type=${ENTITY_TYPE.sportsboat}]`);
+  dim.runCommand(`kill @e[type=${ENTITY_TYPE.camper}]`);
   dim.runCommand("kill @e[type=cow]");
   dim.runCommand(`kill @e[type=${SEAT_PROBE}]`);
   // The pool's water replaces the stone under passable_no_hop's carpets and
@@ -167,6 +186,45 @@ async function setupArena(): Promise<Arena> {
   dim.runCommand("kill @e[type=item]");
   await wait(5);
   return { dim, gy };
+}
+
+function camperAccel(a: Arena): Promise<Outcome> {
+  return withCamper(a, 5.5, 85.5, -90, async (car) => {
+    drive(car, 0, 1);
+    let reach = -1;
+    for (let t = 0; t < 200; t++) {
+      await wait(1);
+      if (reach < 0 && hlen(car.getVelocity()) >= CAMPER_SPEC.maxSpeed * 0.95)
+        reach = t;
+      if (car.location.x > 100) break;
+    }
+    return { pass: reach >= 60 && reach <= 90, detail: `reach95=${reach}` };
+  });
+}
+
+// The wall is one block thick, thinner than the 1.3-block top-speed move.
+// The guard samples every block the front crosses each tick, so it stops the
+// camper here whatever phase the front reaches the wall in (ADR 0067).
+async function camperWall(a: Arena): Promise<Outcome> {
+  a.dim.runCommand(`fill 60 ${a.gy} 82 60 ${a.gy + 3} 89 stone`);
+  try {
+    return await withCamper(a, 30.5, 85.5, -90, async (car) => {
+      drive(car, 0, 1);
+      let front = car.location.x + CAMPER_SPEC.bodyFront;
+      for (let t = 0; t < 150; t++) {
+        await wait(1);
+        front = Math.max(front, car.location.x + CAMPER_SPEC.bodyFront);
+      }
+      const x = car.location.x;
+      const speed = hlen(car.getVelocity());
+      return {
+        pass: front <= 60.05 && x > 50 && speed < 0.05,
+        detail: `front=${front.toFixed(3)} x=${x.toFixed(3)} speed=${speed.toFixed(3)}`,
+      };
+    });
+  } finally {
+    a.dim.runCommand(`fill 60 ${a.gy} 82 60 ${a.gy + 3} 89 air`);
+  }
 }
 
 function accelAndStep1(a: Arena): Promise<Outcome> {
@@ -1480,6 +1538,11 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
   // The middle number is the test's ticks as last logged in CI; shardsOf packs
   // by it, so update it when a test gets much slower or faster (ADR 0054).
   const allTests: [string, number, () => Promise<Outcome>][] = [
+    // camper_accel and camper_wall have no CI log yet. camper_accel is estimated
+    // at about 75 ticks to top speed plus about 67 at 0.9 blocks/tick to x = 100;
+    // camper_wall waits a fixed 150 ticks.
+    ["camper_accel", 140, () => camperAccel(a)],
+    ["camper_wall", 150, () => camperWall(a)],
     ["accel_and_step1", 85, () => accelAndStep1(a)],
     ["passable_no_hop", 65, () => passableNoHop(a)],
     ["turn_and_handbrake", 130, () => turnAndHandbrake(a)],
