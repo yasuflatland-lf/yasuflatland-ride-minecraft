@@ -77,7 +77,11 @@ HW = 24  # half width
 FRONT, REAR = -56, 56
 BOTTOM, FLOOR, CEIL, ROOF = 8, 16, 61, 64  # roof 4.0 blocks up, the top of the fourth cell from the ground
 FRONT_AXLE, REAR_AXLE = -31.5, 31
-WHEEL_R = 6.5
+WHEEL_R = 9.75
+# Keep the existing 2.5 px end gaps and 2 px top gap; scaling the gaps crowds the rear hatch.
+ARCH_HALF = WHEEL_R + 2.5
+ARCH_TOP, ARCH_SLOPE_Y, ARCH_INSET, ARCH_STEP = 2 * WHEEL_R + 2, 13.5, 5.25, 0.25
+ARCHES = [(FRONT_AXLE - ARCH_HALF, FRONT_AXLE + ARCH_HALF), (REAR_AXLE - ARCH_HALF, REAR_AXLE + ARCH_HALF)]
 DOOR = (-7, 7, 12, 54)  # z0, z1, y0, y1 on the right side; local cell z = 0
 # The sides end at the footprint's edge (REAR = 56) and the rear profile (rear_z) never comes
 # closer than 56.5, so a block or chest in the last row never shows through the back. The
@@ -184,7 +188,7 @@ def rear_z(y):
 
 STRIPE_FRONT = FRONT + 10
 # The W, measured on the side close-up: p runs from its rear edge (0) to its front edge (1).
-W_WIDTH, W_BOTTOM, W_STEP = 16.5, 18, 0.5
+W_WIDTH, W_BOTTOM, W_STEP = 16.5, ARCH_TOP + 1.5, 0.5
 W_REAR = FRONT_AXLE + W_WIDTH / 2  # centered over the front wheel
 W_MID = STRIPE_Y[1] - 0.32 * (STRIPE_Y[1] - W_BOTTOM)  # top of the middle peak
 W_ARM_START, W_ARM_END = (0.0, 0.17), (0.83, 1.0)
@@ -204,8 +208,6 @@ W_STROKES = [
 CAB_WIN = (-50, -38, 35, 50)
 SIDE0 = FRONT + 3  # side walls start behind the chamfered front corners
 # Wheel arches: wide at the bottom with the top corners cut, as on the photos.
-ARCHES = [(FRONT_AXLE - 9, FRONT_AXLE + 9), (REAR_AXLE - 9, REAR_AXLE + 9)]
-ARCH_TOP, ARCH_SLOPE_Y, ARCH_INSET, ARCH_STEP = 15, 9, 3.5, 0.25
 arch_holes = []
 for a0, a1 in ARCHES:  # straight up to ARCH_SLOPE_Y, then sloping in by ARCH_INSET in fine steps
     arch_holes.append((a0, a1, 0, ARCH_SLOPE_Y))
@@ -251,9 +253,6 @@ for x0, x1, windows in ((HW - 1, HW, right_windows), (-HW, -HW + 1, left_windows
             p0, p1 = b0 + (t0 - b0) * f, b1 + (t1 - b1) * f
             body.append(box(lo, y, w_z(p1), hi, min(y + W_STEP, y_top), w_z(p0), "stripe"))
             y += W_STEP
-    for a0, a1 in ARCHES:  # dark wheel wells
-        body.append(box(sgn * (HW - 6), ARCH_TOP, a0, sgn * (HW - 1), ARCH_TOP + 0.5, a1, "black"))
-        body.append(box(sgn * (HW - 6), 7, a0, sgn * (HW - 5.5), ARCH_TOP + 0.5, a1, "black"))
     for z0, z1, y0, y1 in windows:
         frame = "black" if (z0, z1) == CAB_WIN[:2] else "chrome"
         for fz0, fz1, fy0, fy1 in ((z0 - 0.6, z1 + 0.6, y0 - 0.6, y0), (z0 - 0.6, z1 + 0.6, y1, y1 + 0.6),
@@ -279,9 +278,9 @@ body.append(box(HW, 13, 10, HW + 0.3, 19, 17, "slat"))  # small louvered vent
 # Louvered hatch low at the rear corner of both sides, small utility boxes.
 for sx in (HW, -HW):
     o = 0.3 if sx > 0 else -0.3
-    body.append(box(sx, 10, 42, sx + o, 22, 53, "panel"))
+    body.append(box(sx, 10, 44, sx + o, 22, 55, "panel"))
     for y in range(11, 22, 2):
-        body.append(box(sx + o, y, 43, sx + o * 1.6, y + 0.8, 52, "slat"))
+        body.append(box(sx + o, y, 45, sx + o * 1.6, y + 0.8, 54, "slat"))
 body.append(box(-HW - 0.3, 16, 13, -HW, 22, 19, "panel"))  # left side service hatch
 body.append(box(-HW - 0.4, 19, 14, -HW - 0.3, 20, 15.5, "chrome"))
 
@@ -628,9 +627,9 @@ for end, z in (("f", FRONT_AXLE), ("r", REAR_AXLE)):
         x_out = sx * (HW - 0.6)
         cubes += disc("x", min(x_out, x_out - sx * 4), WHEEL_R, z, WHEEL_R, 4, "tire")
         face_x = x_out if sx > 0 else x_out - 0.3
-        cubes += disc("x", face_x, WHEEL_R, z, 4.4, 0.3, "rim")  # white steel wheel
-        cubes += disc("x", face_x + sx * 0.15, WHEEL_R, z, 3.0, 0.3, "slat")
-        cubes += disc("x", face_x + sx * 0.3, WHEEL_R, z, 1.7, 0.3, "chrome")
+        cubes += disc("x", face_x, WHEEL_R, z, 6.6, 0.3, "rim")  # white steel wheel
+        cubes += disc("x", face_x + sx * 0.15, WHEEL_R, z, 4.5, 0.3, "slat")
+        cubes += disc("x", face_x + sx * 0.3, WHEEL_R, z, 2.55, 0.3, "chrome")
 
         wheels.append({"name": f"wheel_{name}", "parent": "body",
                        "pivot": [center_x, WHEEL_R, z], "cubes": cubes})
@@ -758,6 +757,47 @@ def moved(cube, offset):
         copy["pivot"] = [v + d for v, d in zip(cube["pivot"], offset)]
     return copy
 
+
+def carve(cube, hole):
+    """Pieces of an unrotated cube outside the box hole = (x0, y0, z0, x1, y1, z1)."""
+    lo = cube["origin"]
+    hi = [o + d for o, d in zip(lo, cube["size"])]
+    if "rotation" in cube or any(hi[i] <= hole[i] or lo[i] >= hole[i + 3] for i in range(3)):
+        return [cube]
+    pieces, a, b = [], list(lo), list(hi)
+    for axis in range(3):
+        if a[axis] < hole[axis]:
+            pieces.append((list(a), [*b[:axis], hole[axis], *b[axis + 1:]]))
+            a[axis] = hole[axis]
+        if b[axis] > hole[axis + 3]:
+            pieces.append(([*a[:axis], hole[axis + 3], *a[axis + 1:]], list(b)))
+            b[axis] = hole[axis + 3]
+    out = []
+    for p0, p1 in pieces:
+        piece = json.loads(json.dumps(cube))
+        piece["origin"] = [round(v, 3) for v in p0]
+        piece["size"] = [round(v1 - v0, 3) for v0, v1 in zip(p0, p1)]
+        out.append(piece)
+    return out
+
+
+# The larger tires rise above the floor. Thin panels enclose them inside without
+# closing the exterior arches; the floor and furniture must leave room for the panels.
+for sgn in (1, -1):
+    for a0, a1 in ARCHES:
+        x_room, x_dark, x_wheel, x_wall = (sgn * (HW - d) for d in (5.7, 5.4, 5.1, 1))
+        hole = (min(x_room, x_wall), -99, a0 - 0.3, max(x_room, x_wall), ARCH_TOP + 0.8, a1 + 0.3)
+        body = [p for c in body for p in carve(c, hole)]
+        seat2 = [p for c in seat2 for p in carve(c, hole)]
+        seat3 = [p for c in seat3 for p in carve(c, hole)]
+        body.append(box(x_dark, 7, a0, x_wheel, ARCH_TOP + 0.5, a1, "black"))
+        body.append(box(x_dark, ARCH_TOP, a0, x_wall, ARCH_TOP + 0.5, a1, "black"))
+        for e0, e1 in ((a0, a0 + 0.3), (a1 - 0.3, a1)):
+            body.append(box(x_wheel, 13, e0, x_wall, ARCH_TOP, e1, "black"))
+        body.append(box(x_room, FLOOR, a0 - 0.3, x_dark, ARCH_TOP + 0.8, a1 + 0.3, "wood"))
+        body.append(box(x_room, ARCH_TOP + 0.5, a0 - 0.3, x_wall, ARCH_TOP + 0.8, a1 + 0.3, "wood"))
+        for e0, e1 in ((a0 - 0.3, a0), (a1, a1 + 0.3)):
+            body.append(box(x_dark, 13, e0, x_wall, ARCH_TOP + 0.5, e1, "wood"))
 
 # Extract lenses after shaping the nose so they follow the same taper as the lamp pods.
 lens_slot = SLOTS.index("lens")
