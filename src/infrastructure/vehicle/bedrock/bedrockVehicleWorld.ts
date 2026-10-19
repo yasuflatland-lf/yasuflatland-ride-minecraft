@@ -104,14 +104,14 @@ export class BedrockVehicleWorld
   private readonly headlightBlocks = new HeadlightBlocks();
   private readonly deckSeats = new DeckSeats();
   private readonly dockBlocks = new DockBlocks();
-
-  dockDoorOwner(dimensionId: string, cell: Vec3): string | undefined {
-    return this.dockBlocks.doorOwner(dimensionId, cell);
-  }
-
   private readonly holds = new Map<string, HoldPose>();
 
   constructor(private readonly testInputs: TestInputStore) {}
+
+  /** The vehicle whose laid room door is at this cell, if any (ADR 0068). */
+  dockDoorOwner(dimensionId: string, cell: Vec3): string | undefined {
+    return this.dockBlocks.doorOwner(dimensionId, cell);
+  }
 
   private entity(id: string): Entity | undefined {
     const e = this.current.get(id) ?? world.getEntity(id);
