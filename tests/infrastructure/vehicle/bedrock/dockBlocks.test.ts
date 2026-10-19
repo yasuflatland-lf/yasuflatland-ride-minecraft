@@ -2,7 +2,7 @@ import type { Entity } from "@minecraft/server";
 import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
 import type { DockCell } from "../../../../src/domain/vehicle/floor";
-import { cellKey } from "../../../../src/domain/vehicle/headlights";
+import { type Cell, cellKey } from "../../../../src/domain/vehicle/headlights";
 import { DockBlocks } from "../../../../src/infrastructure/vehicle/bedrock/dockBlocks";
 import {
   CAMPER_CEILING_BLOCK,
@@ -58,8 +58,7 @@ function fakeDimension(id: string) {
     { typeId: string; states?: Record<string, number | boolean> }
   >();
   let unavailable: Unavailable;
-  const at = (c: DockCell) =>
-    blocks.get(cellKey(c)) ?? { typeId: "minecraft:air" };
+  const at = (c: Cell) => blocks.get(cellKey(c)) ?? { typeId: "minecraft:air" };
   const writes: string[] = [];
   const dimension = {
     id,
@@ -286,16 +285,27 @@ describe("DockBlocks (ADR 0063)", () => {
   });
 
   it.each([
-    "{",
-    "{}",
-    '[{"x":0,"y":0,"z":0,"height":17}]',
-    '[{"x":0,"y":0,"z":0,"height":0}]',
-    '[{"x":0.5,"y":0,"z":0,"height":1}]',
-  ])("ignores malformed saved floor cells: %s", (raw) => {
+    { raw: "{", seed: { x: 0, y: 64, z: 0 } },
+    { raw: "{}", seed: { x: 0, y: 64, z: 0 } },
+    {
+      raw: '[{"x":0,"y":0,"z":0,"height":17}]',
+      seed: { x: 0, y: 0, z: 0 },
+    },
+    {
+      raw: '[{"x":0,"y":0,"z":0,"height":0}]',
+      seed: { x: 0, y: 0, z: 0 },
+    },
+    {
+      raw: '[{"x":0.5,"y":0,"z":0,"height":1}]',
+      seed: { x: 0.5, y: 0, z: 0 },
+    },
+  ])("ignores malformed saved floor cells: $raw", ({ raw, seed }) => {
     const f = fixture();
+    f.blocks.set(cellKey(seed), { typeId: DECK_FLOOR_BLOCK });
     f.saved.set(DECK_CELLS_PROPERTY, raw);
     expect(() => new DockBlocks().lay(f.car.id, f.car, [])).not.toThrow();
-    expect(f.blocks.size).toBe(0);
+    expect(f.at(seed).typeId).toBe(DECK_FLOOR_BLOCK);
+    expect(f.saved.get(DECK_CELLS_PROPERTY)).toBe(raw);
   });
 });
 
@@ -335,6 +345,34 @@ it("lays every block type with its states and changes only an opened door", () =
   for (const c of roomCells) expect(f.at(c).typeId).toBe("minecraft:air");
 });
 
+it.each([
+  {
+    before: { type: "wall", face: 2 },
+    after: { type: "door", face: 3, open: true },
+    expected: {
+      typeId: CAMPER_DOOR_BLOCK,
+      states: { [ROOM_FACE_STATE]: 3, [ROOM_OPEN_STATE]: true },
+    },
+  },
+  {
+    before: { type: "deck", height: 9 },
+    after: { type: "floor" },
+    expected: { typeId: CAMPER_FLOOR_BLOCK, states: undefined },
+  },
+] as const)(
+  "replaces a $before.type cell with a $after.type cell at the same position",
+  ({ before, after, expected }) => {
+    const f = fixture();
+    const docks = new DockBlocks();
+    const position = { x: 0, y: 64, z: 0 };
+    docks.lay(f.car.id, f.car, [{ ...position, block: before }]);
+    const wanted = { ...position, block: after };
+    docks.lay(f.car.id, f.car, [wanted]);
+    expect(f.at(position)).toEqual(expected);
+    expect(f.savedCells()).toEqual([wanted]);
+  },
+);
+
 it("preserves replacements of wall and door cells", () => {
   const f = fixture();
   const docks = new DockBlocks();
@@ -360,24 +398,25 @@ it("clears saved deck cells from the legacy height-only format", () => {
 });
 
 it.each([
-  { type: "unknown" },
-  { type: "deck", height: 0 },
-  { type: "deck", height: 17 },
-  { type: "deck", height: 1.5 },
-  { type: "wall", face: -1 },
-  { type: "wall", face: 4 },
-  { type: "wall", face: 1.5 },
-  { type: "door", face: 0, open: "true" },
-  { type: "door", face: 4, open: true },
-  null,
-])("ignores invalid saved dock blocks: %j", (block) => {
+  { block: { type: "unknown" }, seed: DECK_FLOOR_BLOCK },
+  { block: { type: "deck", height: 0 }, seed: DECK_FLOOR_BLOCK },
+  { block: { type: "deck", height: 17 }, seed: DECK_FLOOR_BLOCK },
+  { block: { type: "deck", height: 1.5 }, seed: DECK_FLOOR_BLOCK },
+  { block: { type: "wall", face: -1 }, seed: CAMPER_WALL_BLOCK },
+  { block: { type: "wall", face: 4 }, seed: CAMPER_WALL_BLOCK },
+  { block: { type: "wall", face: 1.5 }, seed: CAMPER_WALL_BLOCK },
+  { block: { type: "door", face: 0, open: "true" }, seed: CAMPER_DOOR_BLOCK },
+  { block: { type: "door", face: 4, open: true }, seed: CAMPER_DOOR_BLOCK },
+  { block: null, seed: DECK_FLOOR_BLOCK },
+])("ignores invalid saved dock blocks: $block", ({ block, seed }) => {
   const f = fixture();
-  f.saved.set(
-    DECK_CELLS_PROPERTY,
-    JSON.stringify([{ x: 0, y: 64, z: 0, block }]),
-  );
+  const position = { x: 0, y: 64, z: 0 };
+  const raw = JSON.stringify([{ ...position, block }]);
+  f.blocks.set(cellKey(position), { typeId: seed });
+  f.saved.set(DECK_CELLS_PROPERTY, raw);
   new DockBlocks().lay(f.car.id, f.car, []);
-  expect(f.blocks.size).toBe(0);
+  expect(f.at(position).typeId).toBe(seed);
+  expect(f.saved.get(DECK_CELLS_PROPERTY)).toBe(raw);
 });
 
 it("finds only the owner of a laid door in the same dimension", () => {

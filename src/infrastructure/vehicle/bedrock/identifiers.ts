@@ -103,7 +103,7 @@ export function fleetEntryOf(entity: {
 }
 
 export const AIR_BLOCK = "minecraft:air";
-/** Invisible room blocks of a parked camper (ADR 0068). */
+/** Invisible room blocks of a parked camper (ADR 0063, 0068). */
 export const CAMPER_FLOOR_BLOCK = id("camper_floor");
 export const CAMPER_CEILING_BLOCK = id("camper_ceiling");
 export const CAMPER_WALL_BLOCK = id("camper_wall");
@@ -113,6 +113,6 @@ export const CAMPER_DOOR_COMPONENT = id("camper_door");
 /** Block states of the wall and the door: the cell side of the plate (Face), and whether the door is open. */
 export const ROOM_FACE_STATE = id("face");
 export const ROOM_OPEN_STATE = id("open");
-/** Action bar messages a drive shows its driver (ADR 0068). */
+/** Action bar messages a drive shows its driver (ADR 0063, 0068). */
 export const messageKey = (name: string): string =>
   `${NAMESPACE}.message.${name}`;
