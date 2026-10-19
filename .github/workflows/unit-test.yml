@@ -1,0 +1,109 @@
+name: Unit Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      # Install Node and pnpm as pinned in mise.toml
+      - uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+
+      - run: pnpm install --frozen-lockfile
+
+      # Format and lint check (config files are checked even before source code lands)
+      - run: pnpm exec biome ci
+
+      # Code, comments, and docs must be in English (AGENTS.md)
+      - run: pnpm run lint:lang
+
+      # Unused files, exports, and dependencies (ADR 0048)
+      - run: pnpm run lint:unused
+
+      # main has no source code yet, so only run these once tsconfig.json exists
+      - id: src
+        run: echo "present=$([ -f tsconfig.json ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+      - if: steps.src.outputs.present == 'true'
+        run: pnpm run typecheck
+
+      # Import rules between layers, features, and kinds (ADR 0065)
+      - if: steps.src.outputs.present == 'true'
+        run: pnpm run lint:deps
+
+      - if: steps.src.outputs.present == 'true'
+        run: pnpm run test:coverage
+
+      - if: steps.src.outputs.present == 'true'
+        run: pnpm run build
+
+      # Catch a yasu_ride_bp -> yasu_ride_rp dependency version mismatch before a release tag does
+      - if: steps.src.outputs.present == 'true'
+        run: pnpm run package
+
+      - name: Upload coverage to Codecov
+        if: always() && steps.src.outputs.present == 'true'
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage/lcov.info
+          flags: unit
+          fail_ci_if_error: false
+
+  # The renderer takes about 27 s, as long as the rest of the checks, so it
+  # runs beside them (ADR 0054). It only needs Python's standard library.
+  model:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # Depth 2 keeps the pull request's base as HEAD^1 of the merge commit
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+
+      # A pull request that touches none of the renderer's inputs or outputs
+      # cannot make them stale, so it skips the render (ADR 0057). Pushes to
+      # main always render.
+      - id: inputs
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT" != pull_request ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only HEAD^1 HEAD | grep -qE '^(tools/render_preview\.py|packs/yasu_ride_rp/(models|textures/entity|animations)/|packs/[^/]+/pack_icon\.png$|docs/images/|package\.json$|mise\.toml$|\.github/workflows/unit-test\.yml$)'; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.inputs.outputs.changed == 'true'
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+
+      # The README previews and pack icons must be re-rendered whenever the model or its texture changes
+      - if: steps.inputs.outputs.changed == 'true'
+        run: pnpm run model:check
+
+  # The main ruleset requires a status check named "check", so keep this job
+  # id. It fails unless every job above succeeded.
+  check:
+    if: always()
+    needs: [unit, model]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - run: echo "unit=${{ needs.unit.result }} model=${{ needs.model.result }}"
+      - if: needs.unit.result != 'success' || needs.model.result != 'success'
+        run: exit 1

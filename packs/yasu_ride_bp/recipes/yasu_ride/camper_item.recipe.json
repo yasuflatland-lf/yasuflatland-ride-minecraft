@@ -1,0 +1,30 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shapeless": {
+    "description": {
+      "identifier": "yasu_ride:camper_item"
+    },
+    "tags": ["crafting_table"],
+    "unlock": {
+      "context": "AlwaysUnlocked"
+    },
+    "ingredients": [
+      {
+        "item": "yasu_ride:suv_item"
+      },
+      {
+        "item": "minecraft:bed"
+      },
+      {
+        "item": "minecraft:chest"
+      },
+      {
+        "item": "minecraft:wooden_door"
+      }
+    ],
+    "result": {
+      "item": "yasu_ride:camper_item",
+      "count": 1
+    }
+  }
+}

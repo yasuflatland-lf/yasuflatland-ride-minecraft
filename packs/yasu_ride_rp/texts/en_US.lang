@@ -1,0 +1,9 @@
+item.yasu_ride:suv_item.name=SUV
+entity.yasu_ride:suv.name=SUV
+item.yasu_ride:headlight_switch.name=Headlight Switch
+item.yasu_ride:sportsboat_item.name=Sports Boat
+entity.yasu_ride:sportsboat.name=Sports Boat
+item.yasu_ride:camper_item.name=Camper
+entity.yasu_ride:camper.name=Camper
+entity.yasu_ride:deck_seat.name=Boat Seat
+tile.yasu_ride:deck_floor.name=Boat Deck
