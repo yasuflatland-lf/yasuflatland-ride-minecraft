@@ -22,6 +22,7 @@ import type { Vec3 } from "../../../domain/shared/vec";
 import {
   type ClearCell,
   type Departure,
+  DOCK_RESTORED,
   inBox,
 } from "../../../domain/vehicle/dock";
 import type { EngineCommand } from "../../../domain/vehicle/drive";
@@ -39,7 +40,7 @@ import type { RamHit, RamTarget } from "../../../domain/vehicle/ram";
 import type { RiderView } from "../../../domain/vehicle/vehicle";
 import type { TestInputStore } from "../testInput/testInputStore";
 import { DeckSeats } from "./deckSeats";
-import { DockBlocks } from "./dockBlocks";
+import { DockBlocks, savedDock } from "./dockBlocks";
 import { HeadlightBlocks, isLightBlock } from "./headlightBlocks";
 import {
   AIR_BLOCK,
@@ -155,13 +156,19 @@ export class BedrockVehicleWorld
           deckSeatInputs: this.deckSeats
             .riders(car)
             .map((player) => (player ? rawInputOf(player) : undefined)),
-          restored: () =>
-            Object.fromEntries(
-              entityContractOf(kind).restored.map((name) => [
-                name,
-                car.getProperty(entityPropertyId(name)),
-              ]),
-            ),
+          restored: () => {
+            const dock = savedDock(car);
+            return {
+              [DOCK_RESTORED.laid]: dock.laid,
+              [DOCK_RESTORED.doorOpen]: dock.doorOpen,
+              ...Object.fromEntries(
+                entityContractOf(kind).restored.map((name) => [
+                  name,
+                  car.getProperty(entityPropertyId(name)),
+                ]),
+              ),
+            };
+          },
           headlights: car.getProperty(HEADLIGHTS_PROPERTY) === true,
           testInput: this.testInputs.get(car.id),
         });

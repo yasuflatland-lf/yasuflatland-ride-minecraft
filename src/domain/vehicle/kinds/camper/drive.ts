@@ -1,5 +1,5 @@
 import { clamp, forward } from "../../../shared/vec";
-import type { ClearCell } from "../../dock";
+import { type ClearCell, DOCK_RESTORED } from "../../dock";
 import type {
   DriveStep,
   EngineCommand,
@@ -22,6 +22,7 @@ import {
   isPassable,
   PARK_MESSAGES,
   parkCheckCells,
+  parkDecorations,
   parkPose,
   planPark,
   roomCells,
@@ -45,6 +46,7 @@ const AT_REST = { x: 0, y: 0, z: 0 } as const;
 export class CamperDrive extends TransformingDrive {
   private parked: HoldPose | undefined;
   private restoredDocked: boolean;
+  private readonly restoredLaid: boolean;
   // False on the parking tick: its teleport and dock event take effect only at
   // the end of the tick, and a floor laid under a body that still collides would
   // push it up (ADR 0068).
@@ -67,6 +69,7 @@ export class CamperDrive extends TransformingDrive {
       (step, ctx, form) => guardEnds(step, ctx, CAMPER_ENDS, form),
     );
     this.restoredDocked = restored.docked === true;
+    this.restoredLaid = restored[DOCK_RESTORED.laid] === true;
     const door = typeof restored.door === "number" ? restored.door : 0;
     this.doorStep = this.restoredDocked
       ? clamp(Math.round(door * DOOR_STEPS), 0, DOOR_STEPS)
@@ -93,9 +96,14 @@ export class CamperDrive extends TransformingDrive {
   override step(raw: RawInput | undefined, ctx: TickContext): DriveStep {
     if (this.restoredDocked) {
       this.restoredDocked = false;
-      // The room is already laid, so it is neither checked again nor delayed.
-      this.park(parkPose(ctx.location, this.yaw), []);
+      const pose = parkPose(ctx.location, this.yaw);
+      this.park(
+        pose,
+        this.restoredLaid ? [] : (this.clearForPark(pose, ctx, true) ?? []),
+      );
+      // A docked entity already has no collision, so recovery may clear and lay together.
       this.roomLaid = true;
+      if (!this.restoredLaid) return this.parkedStep(pose, ctx);
     }
     const pushed = pushesStick(raw);
     const pressed = pushed && !this.stickWasPushed;
@@ -134,15 +142,7 @@ export class CamperDrive extends TransformingDrive {
       return this.withDoor(step);
     this.parkTried = true;
     const pose = parkPose(ctx.location, this.yaw);
-    const cells = parkCheckCells(pose);
-    const feet = wallFootCells(pose);
-    const types = ctx.blockTypes([...cells, ...feet]);
-    const clear = planPark(
-      cells,
-      types.slice(0, cells.length),
-      feet,
-      types.slice(cells.length),
-    );
+    const clear = this.clearForPark(pose, ctx);
     if (!clear)
       return { ...this.withDoor(step), message: PARK_MESSAGES.cannotPark };
     this.park(pose, clear);
@@ -151,6 +151,22 @@ export class CamperDrive extends TransformingDrive {
       ...held,
       commands: [...step.commands, ...dockCommands(), ...held.commands],
     };
+  }
+
+  private clearForPark(
+    pose: HoldPose,
+    ctx: TickContext,
+    recovering = false,
+  ): ClearCell[] | undefined {
+    const cells = parkCheckCells(pose);
+    const feet = wallFootCells(pose);
+    const types = ctx.blockTypes([...cells, ...feet]);
+    return (recovering ? parkDecorations : planPark)(
+      cells,
+      types.slice(0, cells.length),
+      feet,
+      types.slice(cells.length),
+    );
   }
 
   private park(pose: HoldPose, clear: readonly ClearCell[]): void {

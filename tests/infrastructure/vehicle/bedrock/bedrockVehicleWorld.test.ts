@@ -488,7 +488,11 @@ it.each([
     const snapshot = world.loadedVehicles()[0];
     expect(car.getProperty.mock.calls).toEqual([[HEADLIGHTS_PROPERTY]]);
     car.getProperty.mockClear();
-    expect(snapshot?.restored()).toStrictEqual({ [name]: value });
+    expect(snapshot?.restored()).toStrictEqual({
+      [name]: value,
+      dockLaid: false,
+      dockDoorOpen: undefined,
+    });
     expect(car.getProperty.mock.calls).toEqual([[`${NAMESPACE}:${name}`]]);
   },
 );
@@ -760,4 +764,25 @@ describe("BedrockVehicleWorld dock ports", () => {
     world.seatStandingPlayers("car", departure);
     expect(dimension.getPlayers).not.toHaveBeenCalled();
   });
+});
+
+it("restores dock values lazily from the saved cells instead of entity properties", () => {
+  vi.resetAllMocks();
+  const { world, car } = fixture();
+  car.typeId = ENTITY_TYPE.camper;
+  car.getDynamicProperty.mockReturnValue(
+    JSON.stringify([
+      { x: 0, y: 64, z: 0, block: { type: "door", face: 2, open: true } },
+    ]),
+  );
+  const snapshot = world.loadedVehicles()[0];
+  car.getDynamicProperty.mockClear();
+  expect(snapshot?.restored()).toMatchObject({
+    dockLaid: true,
+    dockDoorOpen: true,
+  });
+  expect(car.getDynamicProperty).toHaveBeenCalledExactlyOnceWith(
+    DECK_CELLS_PROPERTY,
+  );
+  expect(car.getProperty.mock.calls.flat()).not.toContain("yasu_ride:dockLaid");
 });

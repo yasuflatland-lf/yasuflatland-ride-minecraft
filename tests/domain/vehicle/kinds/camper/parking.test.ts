@@ -246,7 +246,12 @@ it("toggles all three door cells and swings the model in ten bounded steps each 
 
 it("restores a laid open room immediately without a scan or dock event", () => {
   const f = fixture();
-  const drive = new CamperDrive(90, { form: "car", docked: true, door: 1 });
+  const drive = new CamperDrive(90, {
+    form: "car",
+    docked: true,
+    door: 1,
+    dockLaid: true,
+  });
   drive.onDriverMounted(-45);
   const out = drive.step(undefined, f.ctx);
   expect(out.dock?.cells).toEqual(
@@ -304,6 +309,45 @@ it("checks both exit cells before parking and leaves overflow standing when the 
           ...exitCells(f.pose),
         ]);
         expect(f.blockTypes.mock.calls.at(-1)?.[0]).toHaveLength(65);
+      },
+    ),
+  );
+});
+
+it("recovers an unlaid parked room once, clearing matching plants before laying even after a blocked check", () => {
+  fc.assert(
+    fc.property(
+      fc.boolean(),
+      fc.integer({ min: 0, max: 18 }),
+      (blocked, index) => {
+        const f = fixture();
+        const drive = new CamperDrive(f.pose.yaw, {
+          form: "car",
+          docked: true,
+          dockLaid: false,
+        });
+        const lower = defined(wallFootCells(f.pose)[index], "wall foot");
+        const upper = { ...lower, y: lower.y + 1 };
+        for (const cell of [lower, upper])
+          f.blocks.set(cellKey(cell), "minecraft:tall_grass");
+        if (blocked)
+          f.blocks.set(
+            cellKey(defined(cargoCells(f.pose)[0], "cargo cell")),
+            "minecraft:stone",
+          );
+        const out = drive.step(undefined, f.ctx);
+        expect(out.clear).toEqual([
+          { ...upper, typeId: "minecraft:tall_grass" },
+          { ...lower, typeId: "minecraft:tall_grass" },
+        ]);
+        expect(out.dock?.cells).toEqual(roomCells(f.pose, false));
+        expect(f.blockTypes).toHaveBeenCalledExactlyOnceWith([
+          ...parkCheckCells(f.pose),
+          ...wallFootCells(f.pose),
+        ]);
+        for (let tick = 0; tick < 30; tick++)
+          expect(drive.step(undefined, f.ctx).clear).toEqual([]);
+        expect(f.blockTypes).toHaveBeenCalledTimes(1);
       },
     ),
   );

@@ -229,7 +229,8 @@ export function planPark(
   return parkDecorations(cells, types, feet, footTypes);
 }
 
-function parkDecorations(
+/** Clears only decorations even if a restored unlaid room now has a blocking cell. */
+export function parkDecorations(
   cells: readonly Vec3[],
   types: readonly (string | undefined)[],
   feet: readonly Vec3[],

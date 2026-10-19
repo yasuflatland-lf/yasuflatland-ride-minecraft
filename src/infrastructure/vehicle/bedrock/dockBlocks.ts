@@ -138,6 +138,19 @@ function savedCells(car: Entity): DockCell[] {
   }
 }
 
+/** State derived from the cells actually laid, with one saved-property read per rebuild. */
+export function savedDock(car: Entity): {
+  laid: boolean;
+  doorOpen: boolean | undefined;
+} {
+  const cells = savedCells(car);
+  const door = cells.find((c) => c.block.type === "door");
+  return {
+    laid: cells.length > 0,
+    doorOpen: door?.block.type === "door" ? door.block.open : undefined,
+  };
+}
+
 export class DockBlocks {
   private readonly laid = new Map<string, Laid>();
 
