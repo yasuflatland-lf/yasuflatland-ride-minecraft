@@ -10,7 +10,6 @@ import {
   ROOM_FACE_STATE,
   ROOM_OPEN_STATE,
 } from "../../src/infrastructure/vehicle/bedrock/identifiers";
-import type { Json } from "../support/packFiles";
 
 const BP = "packs/yasu_ride_bp";
 const read = (path: string) => JSON.parse(readFileSync(path, "utf8"));
@@ -59,7 +58,6 @@ describe("Camper room blocks (ADR 0068)", () => {
         expect(block.components).not.toHaveProperty(
           "minecraft:custom_components",
         );
-      expect(block.components).not.toHaveProperty(CAMPER_DOOR_BLOCK);
     },
   );
 
@@ -91,25 +89,19 @@ describe("Camper room blocks (ADR 0068)", () => {
 
   it("defines one door permutation for every face and open state", () => {
     const door = readBlock("door")["minecraft:block"];
-    const wall = readBlock("wall")["minecraft:block"];
     expect(door.description.states).toEqual({
       [ROOM_FACE_STATE]: [0, 1, 2, 3],
       [ROOM_OPEN_STATE]: [false, true],
     });
     expect(door.permutations).toEqual(
-      wall.permutations.flatMap(
-        (permutation: { components: Json }, face: number) =>
-          [false, true].map((open) => ({
-            condition: `q.block_state('${ROOM_FACE_STATE}') == ${face} && q.block_state('${ROOM_OPEN_STATE}') == ${open}`,
-            components: {
-              "minecraft:selection_box": open
-                ? fullCell
-                : permutation.components["minecraft:collision_box"],
-              "minecraft:collision_box": open
-                ? false
-                : permutation.components["minecraft:collision_box"],
-            },
-          })),
+      wallPlates.flatMap((plate, face) =>
+        [false, true].map((open) => ({
+          condition: `q.block_state('${ROOM_FACE_STATE}') == ${face} && q.block_state('${ROOM_OPEN_STATE}') == ${open}`,
+          components: {
+            "minecraft:selection_box": open ? fullCell : plate,
+            "minecraft:collision_box": open ? false : plate,
+          },
+        })),
       ),
     );
   });

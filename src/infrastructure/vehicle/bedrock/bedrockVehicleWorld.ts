@@ -232,8 +232,8 @@ export class BedrockVehicleWorld
     cells: readonly Vec3[],
   ): (string | undefined)[] {
     const car = this.entity(vehicleId);
+    if (!car) return cells.map(() => undefined);
     return cells.map((c) => {
-      if (!car) return undefined;
       try {
         const b = car.dimension.getBlock(c);
         if (!b) return undefined;
