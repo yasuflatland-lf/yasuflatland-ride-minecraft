@@ -12,7 +12,8 @@ Four SUV poses share one camera and one scale, so they line up side by side in t
 ground, with the headlights on at night, flying with the wheels folded (ADR 0027), and under water
 as a submarine (ADR 0045). Four sports boat pictures share another scale: afloat in its default
 black and with the headlights on at night from the SUV's angle, from its rear-left corner, and from
-straight above (ADR 0056).
+straight above (ADR 0056). Four camper pictures share a third scale: front-left,
+headlights at dusk, side, and rear, without water layers (ADR 0067).
 
 Only the standard library is used, like gen_model.py. The arithmetic avoids math.sin/cos (their
 last bit can differ between platforms' libm) so the same model renders to the same pixels on a Mac
@@ -110,6 +111,15 @@ BOAT_POSES = {
     "sportsboat-headlights.png": {"lamps": True, "dusk": True, "view": VIEW_DIRECTION, "screen_up": None},
     "sportsboat-rear.png": {"lamps": False, "dusk": False, "view": BOAT_REAR_VIEW, "screen_up": None},
     "sportsboat-top.png": {"lamps": False, "dusk": False, "view": BOAT_TOP_VIEW, "screen_up": BOAT_TOP_SCREEN_UP},
+}
+
+CAMPER_GEOMETRY = "models/entity/yasu_ride/camper.geo.json"
+CAMPER_TEXTURE = "textures/entity/yasu_ride/camper.png"
+CAMPER_POSES = {
+    "camper-front-left.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.65, -1.0), "screen_up": None},
+    "camper-headlights.png": {"lamps": True, "dusk": True, "view": (-1.0, 0.65, -1.0), "screen_up": None},
+    "camper-side.png": {"lamps": False, "dusk": False, "view": (1.0, 0.15, 0.0001), "screen_up": None},
+    "camper-rear.png": {"lamps": False, "dusk": False, "view": (1.0, 0.6, 1.0), "screen_up": None},
 }
 
 POSES = {
@@ -382,18 +392,42 @@ def ground_layers(polygons, pose, ground_y):
     return layers
 
 
+def game_turn(rotation):
+    # In game x and z rotations turn the other way from this rotate() (ADR 0051, 0058), for bones as
+    # for cubes
+    rx, ry, rz = rotation
+    return [-rx, ry, -rz]
+
+
+def bone_turns(bones):
+    """Bone name -> the (pivot, rotation) turns that pose its cubes, its own first and then each
+    rotated ancestor's, as the game composes a child bone inside its parent. Bones with no rotation
+    in their chain get none, so their cubes keep their exact coordinates."""
+    by_name = {bone["name"]: bone for bone in bones}
+    turns = {}
+    for bone in bones:
+        chain, current = [], bone
+        while current is not None:
+            if any(current.get("rotation", [0, 0, 0])):
+                chain.append((current["pivot"], game_turn(current["rotation"])))
+            current = by_name.get(current.get("parent"))
+        turns[bone["name"]] = chain
+    return turns
+
+
 def collect_boat(geo, texture, pose):
     """Return the boat's opaque faces as (quad, rgb, bloom group or None) and its see-through faces as
     (quad, rgb, alpha)."""
     desc = geo["description"]
     tint = NIGHT_TINT if pose["dusk"] else (1.0, 1.0, 1.0)
     polygons, glass = [], []
+    turns = bone_turns(geo["bones"])
     for bone in geo["bones"]:
         emissive = "lamp" if bone["name"] == "headlights" and pose["lamps"] else None
         for cube in bone.get("cubes", []):
-            # In game a cube's x and z rotations turn the other way from this rotate() (ADR 0051, 0058)
-            rx, ry, rz = cube.get("rotation", [0, 0, 0])
-            for face, quad in cube_faces({**cube, "rotation": [-rx, ry, -rz]}):
+            for face, quad in cube_faces({**cube, "rotation": game_turn(cube.get("rotation", [0, 0, 0]))}):
+                for pivot, rotation in turns[bone["name"]]:
+                    quad = [rotate(p, pivot, rotation) for p in quad]
                 quad = mirror(quad)
                 normal = cross(sub(quad[1], quad[0]), sub(quad[3], quad[0]))
                 if dot(normal, normal) == 0:
@@ -633,6 +667,7 @@ def render(rp, icons=False):
 
     images = {name: rasterize(scenes[name], layers[name], to_screen) for name in POSES}
     images.update(render_boat(rp))
+    images.update(render_camper(rp))
     icon = None
     if icons:
         # Lamps lit without the dusk tint, so the body keeps its daylight colors
@@ -697,6 +732,26 @@ def render_boat(rp):
             polygons, glass = scenes[name]
             images[name] = rasterize(polygons, [], to_screen, see_through=glass + layers[name])
     return {name: images[name] for name in BOAT_POSES}
+
+
+def render_camper(rp):
+    geo = json.loads((rp / CAMPER_GEOMETRY).read_text())["minecraft:geometry"][0]
+    texture = read_png(rp / CAMPER_TEXTURE)
+    scenes = {name: collect_boat(geo, texture, pose) for name, pose in CAMPER_POSES.items()}
+    points = [p for polygons, _ in scenes.values() for quad, _, _ in polygons for p in quad]
+    frames = {}
+    for name, pose in CAMPER_POSES.items():
+        frames.setdefault((pose["view"], pose["screen_up"]), []).append(name)
+    views = [
+        (Camera(points, view, screen_up), [q for name in names for q, _, _ in scenes[name][0]])
+        for (view, screen_up), names in frames.items()
+    ]
+    images = {}
+    for names, to_screen in zip(frames.values(), fit_views(views)):
+        for name in names:
+            polygons, glass = scenes[name]
+            images[name] = rasterize(polygons, [], to_screen, see_through=glass)
+    return {name: images[name] for name in CAMPER_POSES}
 
 
 def render_icon(geo, polygons, camera):
