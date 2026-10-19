@@ -13,6 +13,7 @@ import {
 import { cellKey } from "../../../domain/vehicle/headlights";
 import { isLightBlock } from "./headlightBlocks";
 import {
+  AIR_BLOCK,
   CAMPER_CEILING_BLOCK,
   CAMPER_DOOR_BLOCK,
   CAMPER_FLOOR_BLOCK,
@@ -106,6 +107,22 @@ function permutationOf(block: DockBlock): BlockPermutation {
   }
 }
 
+// Boats saved height-only cells before typed docks; restore them as decks
+// so a reload or restart can still clear their blocks (ADR 0063).
+function upgradeHeightOnlyCell(value: unknown): unknown {
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    !("block" in value) &&
+    "height" in value &&
+    isHeight(value.height)
+  ) {
+    const { height, ...cell } = value;
+    return { ...cell, block: { type: "deck", height } };
+  }
+  return value;
+}
+
 // The cells a vehicle laid are saved on the entity, so a /reload or a restart
 // can still clear them.
 function savedCells(car: Entity): DockCell[] {
@@ -114,23 +131,7 @@ function savedCells(car: Entity): DockCell[] {
   try {
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed
-      .map((value: unknown) => {
-        // Boats saved height-only cells before typed docks; restore them as decks
-        // so a reload or restart can still clear their blocks (ADR 0063).
-        if (
-          typeof value === "object" &&
-          value !== null &&
-          !("block" in value) &&
-          "height" in value &&
-          isHeight(value.height)
-        ) {
-          const { height, ...cell } = value;
-          return { ...cell, block: { type: "deck", height } };
-        }
-        return value;
-      })
-      .filter(isDockCell);
+    return parsed.map(upgradeHeightOnlyCell).filter(isDockCell);
   } catch {
     return [];
   }
@@ -193,7 +194,7 @@ export class DockBlocks {
         // cell then too.
         if (!b) continue;
         // A replacement block belongs to the player, not the vehicle.
-        if (b.typeId === blockIdOf(c.block)) b.setType("minecraft:air");
+        if (b.typeId === blockIdOf(c.block)) b.setType(AIR_BLOCK);
         cleared.add(cellKey(c));
       } catch {
         // Unloaded chunk: keep the cell and clear it on a later tick.
