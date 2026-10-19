@@ -43,8 +43,11 @@ const ROOF_FEET = [3.5, 6] as const;
 // The interior's edge cells end half a block past their centers.
 const STAND_HALF_X = HALF_X + 0.5;
 const STAND_HALF_Z = HALF_Z + 0.5;
-// Half a player width keeps supported players at the roof edge in the departure box.
-const ROOF_EDGE_MARGIN = 0.3;
+// The wall plates are 2 px thick on the room side of their cells, so the roof top
+// ends 0.125 past the interior; half a player width (0.3) past that a player
+// still stands on it.
+const ROOF_HALF_X = STAND_HALF_X + 0.125 + 0.3;
+const ROOF_HALF_Z = STAND_HALF_Z + 0.125 + 0.3;
 // Each deck seat's height above the pose: the camper's minecraft:rideable seat
 // height (1.1 in front, 1.2 at the dinette) minus the deck seat's own 0.52, so a
 // rider sits where the vehicle seat would put them.
@@ -283,12 +286,7 @@ export function departure(pose: HoldPose, exitClear = true): Departure {
   return {
     boxes: [
       standingBox(pose, INSIDE_FEET),
-      standingBox(
-        pose,
-        ROOF_FEET,
-        WALL_X + 0.5 + ROOF_EDGE_MARGIN,
-        WALL_Z + 0.5 + ROOF_EDGE_MARGIN,
-      ),
+      standingBox(pose, ROOF_FEET, ROOF_HALF_X, ROOF_HALF_Z),
     ],
     // Facing away from the body: the camper's right is its yaw plus a quarter turn.
     exit: exitClear

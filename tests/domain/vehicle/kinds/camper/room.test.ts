@@ -286,9 +286,10 @@ it("includes roof wall plates and supported player centers beyond their edges", 
       const roof = defined(departure(p).boxes[1], "roof box");
       for (const [x, z, inside] of [
         [1.6, 3.6, true],
-        [2.79, 4.79, true],
-        [2.81, 0, false],
-        [0, 4.81, false],
+        [1.92, 3.92, true],
+        [1.93, 0, false],
+        [0, 3.93, false],
+        [2.79, 4.79, false],
       ] as const) {
         const at = {
           x: p.x + sign * (x * f.z + z * f.x),
