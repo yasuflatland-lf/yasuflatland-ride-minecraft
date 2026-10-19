@@ -331,6 +331,27 @@ function camperParkSnow(a: Arena): Promise<Outcome> {
   });
 }
 
+async function camperParkPath(a: Arena): Promise<Outcome> {
+  const ground = a.gy - 1;
+  a.dim.runCommand(`fill 103 ${ground} 73 114 ${ground} 84 dirt_path`);
+  try {
+    return await atParkSpot(a, async (car) => {
+      await wait(DOCK.ticks + 10);
+      const laid = laidRoomCells(a, car);
+      const path = a.dim.getBlock({ x: 108, y: ground, z: 78 })?.typeId;
+      return {
+        pass:
+          laid === 103 &&
+          car.location.y === a.gy &&
+          path === "minecraft:dirt_path",
+        detail: `laid=${laid} y=${car.location.y} ground=${path}`,
+      };
+    });
+  } finally {
+    a.dim.runCommand(`fill 103 ${ground} 73 114 ${ground} 84 stone`);
+  }
+}
+
 function camperDepart(a: Arena): Promise<Outcome> {
   return atParkSpot(a, async (car) => {
     await wait(DOCK.ticks + 10);
@@ -1789,6 +1810,7 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
     ["camper_park", 60, () => camperPark(a)],
     ["camper_park_blocked", 60, () => camperParkBlocked(a)],
     ["camper_park_snow", 60, () => camperParkSnow(a)],
+    ["camper_park_path", 60, () => camperParkPath(a)],
     ["camper_depart", 80, () => camperDepart(a)],
     ["camper_depart_cargo", 80, () => camperDepartCargo(a)],
     ["accel_and_step1", 85, () => accelAndStep1(a)],

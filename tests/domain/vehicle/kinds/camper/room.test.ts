@@ -285,3 +285,28 @@ it("includes roof wall plates and supported player centers beyond their edges", 
     }),
   );
 });
+
+it("snaps the body and floor together above low ground and down through lower snow layers", () => {
+  fc.assert(
+    fc.property(
+      fc.integer({ min: -64, max: 300 }),
+      fc.oneof(
+        fc.double({ min: 0, max: 0.849999, noNaN: true }),
+        fc.double({ min: 0.85, max: 0.999999, noNaN: true }),
+      ),
+      (base, fraction) => {
+        const p = parkPose({ x: 0, y: base + fraction, z: 0 }, 0);
+        const layer = base + (fraction >= 0.85 ? 1 : 0);
+        expect(p.y).toBe(layer);
+        expect(
+          roomCells(p, false)
+            .filter((c) => c.block.type === "floor")
+            .every((c) => c.y === layer),
+        ).toBe(true);
+        expect(parkCheckCells(p).every((c) => c.y >= layer)).toBe(true);
+        expect(departure(p).exit?.y).toBe(layer);
+        expect(deckSeats(p)[0]?.y).toBeCloseTo(layer + 0.58);
+      },
+    ),
+  );
+});

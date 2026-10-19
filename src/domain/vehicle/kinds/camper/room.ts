@@ -13,6 +13,8 @@ import { CAMPER_PROFILE } from "./profile";
 
 // Feet resting on a block top can read a hair below it.
 const FEET_EPSILON = 0.01;
+// Path, farmland, mud and soul sand tops need the floor in the next cell (ADR 0068).
+const LOW_GROUND_THRESHOLD = 0.85;
 const QUARTER_TURN = 90;
 // In cells from the center cell: x = left (-1..1), z = forward (-3..3), as in the
 // spike (docs/spike-camper.md).
@@ -94,7 +96,10 @@ export function snapYaw(yaw: number): number {
 export function parkPose(location: Vec3, yaw: number): HoldPose {
   return {
     x: Math.floor(location.x) + 0.5,
-    y: Math.floor(location.y + FEET_EPSILON),
+    y:
+      location.y >= Math.floor(location.y) + LOW_GROUND_THRESHOLD
+        ? Math.ceil(location.y) + 0
+        : Math.floor(location.y + FEET_EPSILON),
     z: Math.floor(location.z) + 0.5,
     yaw: snapYaw(yaw),
   };
