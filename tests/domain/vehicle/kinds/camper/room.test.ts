@@ -130,13 +130,13 @@ it("faces every plate inward and stacks the three door cells above the half step
   );
 });
 
-it("checks 145 unique cells including the room and keeps all 63 cargo cells outside its blocks", () => {
+it("checks 166 unique cells including the room and keeps all 63 cargo cells outside its blocks", () => {
   fc.assert(
     fc.property(pose, (p) => {
       const room = new Set(roomCells(p, false).map(cellKey));
       const check = parkCheckCells(p).map(cellKey);
-      expect(check).toHaveLength(145);
-      expect(new Set(check).size).toBe(145);
+      expect(check).toHaveLength(166);
+      expect(new Set(check).size).toBe(166);
       for (const c of room) expect(check).toContain(c);
       const cargo = cargoCells(p).map(cellKey);
       expect(cargo).toHaveLength(63);
@@ -151,10 +151,10 @@ it("plans only decorations, top first, and rejects any blocking or unknown cell"
     fc.property(
       pose,
       fc.array(fc.constantFrom(AIR, ...CLEARABLE_DECORATIONS), {
-        minLength: 145,
-        maxLength: 145,
+        minLength: 166,
+        maxLength: 166,
       }),
-      fc.integer({ min: 0, max: 144 }),
+      fc.integer({ min: 0, max: 165 }),
       fc.oneof(
         fc.constant(undefined),
         fc.string().filter((t) => t !== AIR && !CLEARABLE_DECORATIONS.has(t)),
@@ -236,5 +236,30 @@ it("puts four deck seats at the profile's horizontal positions and the measured 
         );
       });
     }),
+  );
+});
+
+it("checks every roof cell and clears decorations there", () => {
+  fc.assert(
+    fc.property(
+      pose,
+      fc.integer({ min: 0, max: 20 }),
+      fc.constantFrom(...CLEARABLE_DECORATIONS),
+      (p, index, typeId) => {
+        const roof = defined(cargoCells(p).slice(42)[index], "roof cell");
+        const cells = parkCheckCells(p);
+        expect(cells.map(cellKey)).toContain(cellKey(roof));
+        const types = cells.map((c) =>
+          cellKey(c) === cellKey(roof) ? typeId : AIR,
+        );
+        expect(planPark(cells, types)).toEqual([{ ...roof, typeId }]);
+        expect(
+          planPark(
+            cells,
+            types.map((t) => (t === typeId ? "minecraft:stone" : t)),
+          ),
+        ).toBeUndefined();
+      },
+    ),
   );
 });

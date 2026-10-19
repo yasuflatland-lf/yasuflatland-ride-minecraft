@@ -69,7 +69,7 @@ it("holds only the pose on tick 20, lays the room next tick, and scans once", ()
 it("refuses any blocking cell once per stop, then retries after the stick resets the stop", () => {
   fc.assert(
     fc.property(
-      fc.integer({ min: 0, max: 144 }),
+      fc.integer({ min: 0, max: 165 }),
       fc.string().filter((t) => t !== AIR && !CLEARABLE_DECORATIONS.has(t)),
       (index, type) => {
         const f = fixture();
@@ -99,7 +99,7 @@ it("refuses any blocking cell once per stop, then retries after the stick resets
 it("clears only decorations once on the tick after parking, top first", () => {
   fc.assert(
     fc.property(
-      fc.uniqueArray(fc.integer({ min: 0, max: 144 }), {
+      fc.uniqueArray(fc.integer({ min: 0, max: 165 }), {
         minLength: 1,
         maxLength: 20,
       }),

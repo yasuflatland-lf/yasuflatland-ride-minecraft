@@ -175,13 +175,13 @@ export function roomCells(pose: HoldPose, doorOpen: boolean): DockCell[] {
 
 /**
  * Cells that must hold air or a clearable decoration before parking: the room,
- * and the interior the players will stand in, because the long body reaches past
+ * the roof, and the interior the players will stand in, because the long body reaches past
  * its square collision box and can stop around a flower or a low block.
  */
 export function parkCheckCells(pose: HoldPose): Vec3[] {
   return [
     ...roomCells(pose, false).map(({ x, y, z }) => ({ x, y, z })),
-    ...interior(pose, INSIDE_LAYERS),
+    ...interior(pose, [...INSIDE_LAYERS, ROOF_LAYER]),
   ];
 }
 
