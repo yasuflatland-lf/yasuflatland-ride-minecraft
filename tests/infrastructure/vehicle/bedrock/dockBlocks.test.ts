@@ -379,3 +379,18 @@ it.each([
   new DockBlocks().lay(f.car.id, f.car, []);
   expect(f.blocks.size).toBe(0);
 });
+
+it("finds only the owner of a laid door in the same dimension", () => {
+  const f = fixture();
+  const docks = new DockBlocks();
+  docks.lay(f.car.id, f.car, roomCells);
+  for (const c of roomCells) {
+    expect(docks.doorOwner(f.car.dimension.id, c)).toBe(
+      c.block.type === "door" ? f.car.id : undefined,
+    );
+    expect(docks.doorOwner("nether", c)).toBeUndefined();
+  }
+  docks.lay(f.car.id, f.car, []);
+  for (const c of roomCells)
+    expect(docks.doorOwner(f.car.dimension.id, c)).toBeUndefined();
+});
