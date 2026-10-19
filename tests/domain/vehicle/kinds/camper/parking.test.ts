@@ -352,3 +352,32 @@ it("recovers an unlaid parked room once, clearing matching plants before laying 
     ),
   );
 });
+
+it("restores the saved door target through either direction of a partial swing", () => {
+  fc.assert(
+    fc.property(fc.boolean(), fc.integer({ min: 1, max: 9 }), (open, step) => {
+      const f = fixture();
+      const drive = new CamperDrive(0, {
+        form: "car",
+        docked: true,
+        dockLaid: true,
+        door: step / 10,
+        dockDoorOpen: open,
+      });
+      for (let tick = 1; tick <= (open ? 10 - step : step); tick++) {
+        const out = drive.step(undefined, f.ctx);
+        expect(out.commands).toContainEqual({
+          type: "setProperty",
+          name: "door",
+          value: (step + (open ? tick : -tick)) / 10,
+        });
+        expect(
+          out.dock?.cells
+            .filter((c) => c.block.type === "door")
+            .every((c) => c.block.type === "door" && c.block.open === open),
+        ).toBe(true);
+      }
+      expect(drive.step(undefined, f.ctx).commands).toEqual([]);
+    }),
+  );
+});

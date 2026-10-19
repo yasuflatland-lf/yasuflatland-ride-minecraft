@@ -74,7 +74,11 @@ export class CamperDrive extends TransformingDrive {
     this.doorStep = this.restoredDocked
       ? clamp(Math.round(door * DOOR_STEPS), 0, DOOR_STEPS)
       : 0;
-    this.doorOpen = this.doorStep * 2 >= DOOR_STEPS;
+    const savedTarget = restored[DOCK_RESTORED.doorOpen];
+    this.doorOpen =
+      this.restoredDocked && typeof savedTarget === "boolean"
+        ? savedTarget
+        : this.doorStep * 2 >= DOOR_STEPS;
   }
 
   get isParked(): boolean {
