@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { VEHICLE_KINDS } from "../../src/domain/vehicle/kind";
 import {
+  DECK_SEAT_TYPE,
   ENTITY_TYPE,
   HEADLIGHT_SWITCH_TYPE,
   ITEM_TYPE,
@@ -170,7 +171,7 @@ describe("Resource Pack and Behavior Pack references", () => {
 
   it("defines the identifiers the script uses", () => {
     expect(bpEntityIds).toEqual(
-      expect.arrayContaining(Object.values(ENTITY_TYPE)),
+      expect.arrayContaining([...Object.values(ENTITY_TYPE), DECK_SEAT_TYPE]),
     );
     expect(bpItems.map((i) => i.description.identifier)).toEqual(
       expect.arrayContaining([
