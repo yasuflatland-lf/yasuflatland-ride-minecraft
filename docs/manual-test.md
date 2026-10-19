@@ -86,6 +86,13 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | C9 | Place a second camper | Your first camper disappears | | |
 | C10 | Hit its front bumper with each of the 16 dyes | The window band, stripe with its W, and lower skirt change color; the white body stays white | | |
 | C11 | Tap and long-press the camper's body anywhere but the front bumper | Nothing happens: no hit, no ride, no paint | | |
+| C12 | Stop on flat grass with flowers and wait a second | The camper turns to the nearest quarter turn and parks; the grass and flowers under it are gone; you can walk inside | | |
+| C13 | Stop with a stone block where a wall would go | It does not park; the driver sees "Can't park here" | | |
+| C14 | Tap the door from outside, then from inside, several times | It opens outward and closes each time; the door swings smoothly | | |
+| C15 | Place and break blocks on the floor and on the roof | They place and break; push forward from the driver's seat: it stays parked and says "Clear the blocks inside first"; clear them and push again: it departs | | |
+| C16 | Sit at the dinette from inside, then have the driver depart | The seated player rides along | | |
+| C17 | With all four seats taken, stand inside and have the driver depart | You are moved outside the door, facing away from the camper | | |
+| C18 | Park, run /reload, then depart | It stays parked after /reload, the door keeps its state, and departing clears the room | | |
 
 ## Upgrading from MyCar 0.5.0 and earlier
 

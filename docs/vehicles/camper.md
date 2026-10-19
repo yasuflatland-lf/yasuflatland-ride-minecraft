@@ -23,3 +23,9 @@ Use the same controls as the SUV: see the [SUV controls table](suv.md#controls).
 The camper has the SUV's ground top speed of 0.9 blocks per tick, with gentler acceleration (about 3.75 s to top speed) and slower turns for its long body. It flies and dives with the same controls as the SUV. Its long body stops at a wall at both the front and the rear bumper, even a one-block pillar or a one-block-thick wall at top speed, and it still climbs one-block steps without hopping in place at a wall. Flying or diving, it stops before the nose enters any block, low ones included.
 
 The 16 dyes recolor the window band, the stripe with its W, and the lower skirt, leaving the white body unchanged. Headlights light the road up to 27 blocks ahead.
+
+## Parking
+
+Stop on flat ground and leave the controls alone for a second: the camper parks. It turns to the nearest quarter turn and you can walk inside, sit at the dinette, and place blocks on the floor and the roof. Tap the door from either side to open or close it. If grass or flowers are in the way they are removed; anything else, or a slab under the camper, keeps it from parking and the driver sees "Can't park here".
+
+To drive off, sit in the driver's seat and push forward or back. Anyone standing inside or on the roof is seated, or moved outside the door if every seat is taken. While a block you placed is inside or on the roof, the camper stays parked and asks you to clear it first.
