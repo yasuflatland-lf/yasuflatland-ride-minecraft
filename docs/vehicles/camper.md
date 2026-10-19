@@ -12,7 +12,7 @@ A four-seat camper with a facing dinette that drives, flies, and dives. Back to 
 - The camper is not given as a starter item
 - Use the item on a block's top face with 9 x 9 x 4 clear cells around it
 - Each player keeps one camper; placing another removes their previous camper
-- Hit an empty camper 3 times without a dye to break it back into the item
+- Hit the front bumper of an empty camper 3 times without a dye to break it back into the item; the bumper is the only part that takes hits, so you also get in and paint there
 
 ## Controls
 
