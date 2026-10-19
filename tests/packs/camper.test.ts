@@ -212,3 +212,214 @@ it("lists every paint in the camper render controller", () => {
     PAINTS.length,
   );
 });
+
+interface ParticleEffect {
+  effect: string;
+  locator: string;
+}
+interface SoundEffect {
+  effect: string;
+}
+type Keyframes<T> = T | Record<string, T>;
+interface BonePose {
+  rotation?: Keyframes<unknown[]>;
+  position?: Keyframes<unknown[]>;
+}
+interface CamperAnimation {
+  animation_length?: number;
+  loop?: boolean;
+  bones?: Record<string, BonePose>;
+  particle_effects?: Record<string, ParticleEffect | ParticleEffect[]>;
+  sound_effects?: Record<string, SoundEffect | SoundEffect[]>;
+}
+interface ControllerState {
+  animations: (string | Record<string, string>)[];
+  transitions: Record<string, string>[];
+}
+interface Controller {
+  initial_state: string;
+  states: Record<string, ControllerState>;
+}
+
+const camperClient = JSON.parse(
+  readFileSync(`${RP}/entity/yasu_ride/camper.ce.json`, "utf8"),
+)["minecraft:client_entity"].description;
+const camperAnimations: Record<string, CamperAnimation> = JSON.parse(
+  readFileSync(`${RP}/animations/yasu_ride/camper.anim.json`, "utf8"),
+).animations;
+const camperControllers: Record<string, Controller> = JSON.parse(
+  readFileSync(`${RP}/animation_controllers/yasu_ride/camper.ac.json`, "utf8"),
+).animation_controllers;
+const camperForm = camperControllers[
+  "controller.animation.yasu_ride.camper.form"
+] as Controller;
+const suvClient = JSON.parse(
+  readFileSync(`${RP}/entity/yasu_ride/suv.ce.json`, "utf8"),
+)["minecraft:client_entity"].description;
+const suvAnimations: Record<string, CamperAnimation> = JSON.parse(
+  readFileSync(`${RP}/animations/yasu_ride/suv.anim.json`, "utf8"),
+).animations;
+const suvForm: Controller = JSON.parse(
+  readFileSync(`${RP}/animation_controllers/yasu_ride/suv.ac.json`, "utf8"),
+).animation_controllers["controller.animation.yasu_ride.suv.form"];
+const WHEELS = ["wheel_fl", "wheel_fr", "wheel_rl", "wheel_rr"];
+const camperAnimation = (name: string): CamperAnimation => {
+  const found = camperAnimations[`animation.yasu_ride.camper.${name}`];
+  expect(found, name).toBeDefined();
+  return found as CamperAnimation;
+};
+// A conditional entry in a state's animations or in scripts.animate is { name: condition }.
+const shortName = (entry: string | Record<string, string>): string =>
+  typeof entry === "string" ? entry : (Object.keys(entry)[0] ?? "");
+const effectsOf = <T>(byTime: Record<string, T | T[]> | undefined): T[] =>
+  Object.values(byTime ?? {}).flat() as T[];
+
+describe("camper animation references", () => {
+  it("resolves every client animation to a camper animation or controller", () => {
+    const names = new Set([
+      ...Object.keys(camperAnimations),
+      ...Object.keys(camperControllers),
+    ]);
+    expect(Object.keys(camperClient.animations)).toHaveLength(23);
+    for (const name of Object.values(camperClient.animations)) {
+      expect(names.has(String(name)), String(name)).toBe(true);
+    }
+  });
+
+  it("animates only root and the four wheel bones present in the model", () => {
+    const allowed = ["root", "wheel_fl", "wheel_fr", "wheel_rl", "wheel_rr"];
+    const modelBones = bones.map((b) => b.name);
+    for (const animation of Object.values(camperAnimations)) {
+      for (const name of Object.keys(animation.bones ?? {})) {
+        expect(allowed).toContain(name);
+        expect(modelBones).toContain(name);
+      }
+    }
+  });
+
+  it("resolves every client sound effect to an existing sound definition", () => {
+    const sounds = JSON.parse(
+      readFileSync(`${RP}/sounds/sound_definitions.json`, "utf8"),
+    ).sound_definitions;
+    expect(Object.keys(camperClient.sound_effects)).toHaveLength(13);
+    const soundNames = Object.keys(sounds);
+    for (const sound of Object.values(camperClient.sound_effects)) {
+      expect(soundNames).toContain(sound);
+    }
+  });
+
+  it("emits hover glow at all four locators present in the model", () => {
+    const glow = camperAnimations["animation.yasu_ride.camper.hover_glow"];
+    const effects = Object.values(glow?.particle_effects ?? {}).flat();
+    expect(effects.map((effect) => effect.locator).sort()).toEqual([
+      "hover_fl",
+      "hover_fr",
+      "hover_rl",
+      "hover_rr",
+    ]);
+    const locators = bones.flatMap((b) => Object.keys(b.locators ?? {}));
+    for (const effect of effects) {
+      expect(effect.effect).toBe("hover_glow");
+      expect(locators).toContain(effect.locator);
+    }
+  });
+
+  it("plays only camper animations from every form controller state", () => {
+    for (const [state, { animations }] of Object.entries(camperForm.states)) {
+      for (const entry of animations) {
+        const id = camperClient.animations[shortName(entry)];
+        expect(id, `${state}: ${shortName(entry)}`).toBeDefined();
+        expect(camperAnimations[id], `${state}: ${id}`).toBeDefined();
+      }
+    }
+  });
+
+  it("keeps the SUV form controller's states and transitions", () => {
+    expect(camperForm).toEqual(suvForm);
+    const states = Object.keys(camperForm.states);
+    expect(states).toContain(camperForm.initial_state);
+    for (const { transitions } of Object.values(camperForm.states))
+      for (const transition of transitions)
+        for (const target of Object.keys(transition))
+          expect(states).toContain(target);
+  });
+
+  it("animates only names the client entity defines, as the SUV does", () => {
+    expect(camperClient.scripts.animate).toEqual(suvClient.scripts.animate);
+    for (const entry of camperClient.scripts.animate)
+      expect(Object.keys(camperClient.animations)).toContain(shortName(entry));
+  });
+
+  it("plays only sound and particle effects the client entity defines, at locators in the model", () => {
+    const sounds = Object.keys(camperClient.sound_effects);
+    const particles = Object.keys(camperClient.particle_effects);
+    const locators = bones.flatMap((b) => Object.keys(b.locators ?? {}));
+    expect(camperClient.particle_effects).toEqual(suvClient.particle_effects);
+    for (const [name, animation] of Object.entries(camperAnimations)) {
+      for (const sound of effectsOf(animation.sound_effects))
+        expect(sounds, name).toContain(sound.effect);
+      for (const particle of effectsOf(animation.particle_effects)) {
+        expect(particles, name).toContain(particle.effect);
+        expect(locators, name).toContain(particle.locator);
+      }
+    }
+  });
+
+  it("folds the wheels with the SUV's rotation and lifts them 4 px into the wheel wells", () => {
+    const deploy = camperAnimation("wheels_deploy");
+    const suvDeploy = suvAnimations[
+      "animation.yasu_ride.suv.wheels_deploy"
+    ] as CamperAnimation;
+    expect(deploy.animation_length).toBe(1);
+    expect(effectsOf(deploy.sound_effects)).toEqual([
+      { effect: "hover_start" },
+    ]);
+    expect(Object.keys(deploy.sound_effects ?? {})).toEqual(["0.0"]);
+    for (const w of WHEELS) {
+      expect(deploy.bones?.[w]?.rotation, w).toEqual(
+        suvDeploy.bones?.[w]?.rotation,
+      );
+      expect(deploy.bones?.[w]?.position, w).toEqual({
+        "0.0": [0, 0, 0],
+        "1.0": [0, 4, 0],
+      });
+    }
+  });
+
+  it("holds the folded pose deploy ends at and retracts back out of it", () => {
+    const deploy = camperAnimation("wheels_deploy");
+    const folded = camperAnimation("wheels_folded");
+    const retract = camperAnimation("wheels_retract");
+    expect(folded.loop).toBe(true);
+    expect(retract.animation_length).toBe(1);
+    expect(retract.sound_effects).toBeUndefined();
+    for (const w of WHEELS) {
+      for (const channel of ["rotation", "position"] as const) {
+        const keys = deploy.bones?.[w]?.[channel] as Record<string, unknown>;
+        expect(folded.bones?.[w]?.[channel], `${w} ${channel}`).toEqual(
+          keys["1.0"],
+        );
+        expect(retract.bones?.[w]?.[channel], `${w} ${channel}`).toEqual({
+          "0.0": keys["1.0"],
+          "1.0": keys["0.0"],
+        });
+      }
+    }
+  });
+
+  it("dives, stays submerged, and surfaces in the deploy, folded, and retract poses without sound", () => {
+    const pairs = [
+      ["dive", "wheels_deploy"],
+      ["submerged", "wheels_folded"],
+      ["surface", "wheels_retract"],
+    ] as const;
+    for (const [water, air] of pairs) {
+      const underwater = camperAnimation(water);
+      const flight = camperAnimation(air);
+      expect(underwater.bones, water).toEqual(flight.bones);
+      expect(underwater.animation_length, water).toBe(flight.animation_length);
+      expect(underwater.loop, water).toBe(flight.loop);
+      expect(underwater.sound_effects, water).toBeUndefined();
+    }
+  });
+});
