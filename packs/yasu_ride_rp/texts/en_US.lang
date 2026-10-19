@@ -7,3 +7,5 @@ item.yasu_ride:camper_item.name=Camper
 entity.yasu_ride:camper.name=Camper
 entity.yasu_ride:deck_seat.name=Boat Seat
 tile.yasu_ride:deck_floor.name=Boat Deck
+yasu_ride.message.cannot_park=Can't park here
+yasu_ride.message.clear_cargo=Clear the blocks inside first

@@ -394,6 +394,14 @@
           }
         }
       }
+    },
+    "animation.yasu_ride.camper.door": {
+      "loop": true,
+      "bones": {
+        "door_entry": {
+          "rotation": [0, "q.property('yasu_ride:door') * -100", 0]
+        }
+      }
     }
   }
 }

@@ -285,14 +285,21 @@ describe("camper animation references", () => {
       ...Object.keys(camperAnimations),
       ...Object.keys(camperControllers),
     ]);
-    expect(Object.keys(camperClient.animations)).toHaveLength(23);
+    expect(Object.keys(camperClient.animations)).toHaveLength(24);
     for (const name of Object.values(camperClient.animations)) {
       expect(names.has(String(name)), String(name)).toBe(true);
     }
   });
 
-  it("animates only root and the four wheel bones present in the model", () => {
-    const allowed = ["root", "wheel_fl", "wheel_fr", "wheel_rl", "wheel_rr"];
+  it("animates only root, the wheels, and the entry door present in the model", () => {
+    const allowed = [
+      "root",
+      "wheel_fl",
+      "wheel_fr",
+      "wheel_rl",
+      "wheel_rr",
+      "door_entry",
+    ];
     const modelBones = bones.map((b) => b.name);
     for (const animation of Object.values(camperAnimations)) {
       for (const name of Object.keys(animation.bones ?? {})) {
