@@ -460,6 +460,7 @@
       "minecraft:type_family": {
         "family": ["yasu_ride_vehicle", "inanimate"]
       },
+      "minecraft:collision_box": { "width": 3.0, "height": 4.0 },
       "minecraft:custom_hit_test": {
         "hitboxes": [{ "width": 1.0, "height": 1.0, "pivot": [0, 0.5, 3.7] }]
       },

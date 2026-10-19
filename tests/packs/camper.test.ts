@@ -440,8 +440,15 @@ describe("camper animation references", () => {
 });
 
 describe("camper parking assets (ADR 0068)", () => {
+  it("keeps the 3 x 4 collision box in the base components", () => {
+    // Taps never reach custom_hit_test without a base collision box (ADR 0068).
+    expect(camperEntity.components["minecraft:collision_box"]).toEqual({
+      width: 3,
+      height: 4,
+    });
+  });
+
   it("switches collision and gravity groups when parking and departing", () => {
-    expect(camperEntity.components["minecraft:collision_box"]).toBeUndefined();
     expect(camperEntity.component_groups["yasu_ride:undocked"]).toEqual({
       "minecraft:collision_box": { width: 3, height: 4 },
     });

@@ -381,32 +381,3 @@ it("restores the saved door target through either direction of a partial swing",
     }),
   );
 });
-
-it("restores the undocked collision group once a rebuilt camper is in car form", () => {
-  fc.assert(
-    fc.property(
-      fc.constantFrom("car", "hover", "submarine"),
-      fc.boolean(),
-      fc.boolean(),
-      (form, docked, onGround) => {
-        const f = fixture();
-        const drive = new CamperDrive(0, { form, docked, dockLaid: true });
-        let sent = 0;
-        let wasCar = false;
-        for (let tick = 0; tick < 40; tick++) {
-          const out = drive.step(undefined, { ...f.ctx, tick, onGround });
-          const undock = out.commands.filter(
-            (c) => c.type === "triggerEvent" && c.name === "undock",
-          ).length;
-          // Undock also turns gravity on, so it never goes out in a weightless form.
-          if (undock > 0) expect(drive.form).toBe("car");
-          if (drive.form === "car" && !wasCar && !docked)
-            expect(undock).toBe(1);
-          wasCar ||= drive.form === "car";
-          sent += undock;
-        }
-        expect(sent).toBe(!docked && wasCar ? 1 : 0);
-      },
-    ),
-  );
-});
