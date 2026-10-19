@@ -104,6 +104,11 @@ export class BedrockVehicleWorld
   private readonly headlightBlocks = new HeadlightBlocks();
   private readonly deckSeats = new DeckSeats();
   private readonly dockBlocks = new DockBlocks();
+
+  dockDoorOwner(dimensionId: string, cell: Vec3): string | undefined {
+    return this.dockBlocks.doorOwner(dimensionId, cell);
+  }
+
   private readonly holds = new Map<string, HoldPose>();
 
   constructor(private readonly testInputs: TestInputStore) {}
