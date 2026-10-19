@@ -70,8 +70,9 @@ This directory records design decisions and the reasons behind them. The format 
 | [0064](0064-dock-step.md) | Group the hold, floor, and deck seats into an optional dock | Accepted |
 | [0065](0065-check-import-rules-with-dependency-cruiser.md) | Check the import rules with dependency-cruiser | Accepted |
 | [0066](0066-limit-vehicles-per-player-and-kind.md) | Limit vehicles per player and per kind | Accepted |
-| [0067](0067-camper.md) | Camper | Accepted |
+| [0067](0067-camper.md) | Camper | Superseded in part by 0068 and 0069 |
 | [0068](0068-park-the-camper-with-room-blocks.md) | Park the camper with room blocks | Accepted |
+| [0069](0069-camper-right-hand-drive.md) | Seat the camper's driver on the right like the SUV | Accepted |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 
