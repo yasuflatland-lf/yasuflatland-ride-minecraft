@@ -2,7 +2,7 @@
 // main Behavior Pack, so they drive the vehicle through script events.
 import { type Dimension, type Entity, system, world } from "@minecraft/server";
 import { dot, forward, type Vec3 } from "../domain/shared/vec";
-import type { DockBlock } from "../domain/vehicle/floor";
+import type { DockBlock, DockCell, HoldPose } from "../domain/vehicle/floor";
 import { headlightCells } from "../domain/vehicle/headlights";
 import {
   cargoCells,
@@ -66,11 +66,26 @@ const ROOM_BLOCK: Readonly<Record<DockBlock["type"], string>> = {
   door: CAMPER_DOOR_BLOCK,
 };
 
-function laidRoomCells(a: Arena, car: Entity): number {
-  const pose = parkPose(car.location, car.getRotation().y);
-  return roomCells(pose, false).filter(
+function carPose(car: Entity): HoldPose {
+  return parkPose(car.location, car.getRotation().y);
+}
+
+function parkSpotPose(a: Arena): HoldPose {
+  return parkPose({ x: PARK_SPOT.x, y: a.gy, z: PARK_SPOT.z }, PARK_SPOT.yaw);
+}
+
+function countLaid(a: Arena, cells: readonly DockCell[]): number {
+  return cells.filter(
     (c) => a.dim.getBlock(c)?.typeId === ROOM_BLOCK[c.block.type],
   ).length;
+}
+
+function laidRoomCells(a: Arena, car: Entity): number {
+  return countLaid(a, roomCells(carPose(car), false));
+}
+
+function movedFrom(car: Entity, pose: HoldPose): number {
+  return Math.hypot(car.location.x - pose.x, car.location.z - pose.z);
 }
 
 // Removing the camper clears its room a tick later; the fill also clears what a
@@ -278,10 +293,7 @@ function camperPark(a: Arena): Promise<Outcome> {
 }
 
 function camperParkBlocked(a: Arena): Promise<Outcome> {
-  const pose = parkPose(
-    { x: PARK_SPOT.x, y: a.gy, z: PARK_SPOT.z },
-    PARK_SPOT.yaw,
-  );
+  const pose = parkSpotPose(a);
   const wall = roomCells(pose, false).find((c) => c.block.type === "wall");
   if (!wall) throw new Error("room has no wall");
   a.dim.runCommand(`setblock ${wall.x} ${wall.y} ${wall.z} stone`);
@@ -297,10 +309,7 @@ function camperParkBlocked(a: Arena): Promise<Outcome> {
 }
 
 function camperParkSnow(a: Arena): Promise<Outcome> {
-  const pose = parkPose(
-    { x: PARK_SPOT.x, y: a.gy, z: PARK_SPOT.z },
-    PARK_SPOT.yaw,
-  );
+  const pose = parkSpotPose(a);
   const distance = (c: Vec3) =>
     Math.hypot(c.x + 0.5 - pose.x, c.z + 0.5 - pose.z);
   const corners = roomCells(pose, false)
@@ -325,15 +334,13 @@ function camperParkSnow(a: Arena): Promise<Outcome> {
 function camperDepart(a: Arena): Promise<Outcome> {
   return atParkSpot(a, async (car) => {
     await wait(DOCK.ticks + 10);
-    const parked = laidRoomCells(a, car);
-    const pose = parkPose(car.location, car.getRotation().y);
+    const pose = carPose(car);
     const cells = roomCells(pose, false);
+    const parked = countLaid(a, cells);
     drive(car, 0, 1);
     await wait(15);
-    const remaining = cells.filter(
-      (c) => a.dim.getBlock(c)?.typeId === ROOM_BLOCK[c.block.type],
-    ).length;
-    const moved = Math.hypot(car.location.x - pose.x, car.location.z - pose.z);
+    const remaining = countLaid(a, cells);
+    const moved = movedFrom(car, pose);
     return {
       pass: parked === 103 && remaining === 0 && moved >= 0.1,
       detail: `parked=${parked} remaining=${remaining} moved=${moved.toFixed(3)}`,
@@ -344,14 +351,14 @@ function camperDepart(a: Arena): Promise<Outcome> {
 function camperDepartCargo(a: Arena): Promise<Outcome> {
   return atParkSpot(a, async (car) => {
     await wait(DOCK.ticks + 10);
-    const pose = parkPose(car.location, car.getRotation().y);
+    const pose = carPose(car);
     const cargo = cargoCells(pose)[0];
     if (!cargo) throw new Error("room has no cargo cells");
     a.dim.runCommand(`setblock ${cargo.x} ${cargo.y} ${cargo.z} stone`);
     drive(car, 0, 1);
     await wait(20);
     const laid = laidRoomCells(a, car);
-    const moved = Math.hypot(car.location.x - pose.x, car.location.z - pose.z);
+    const moved = movedFrom(car, pose);
     return {
       pass: laid === 103 && moved < 0.01,
       detail: `laid=${laid} moved=${moved.toFixed(3)}`,
