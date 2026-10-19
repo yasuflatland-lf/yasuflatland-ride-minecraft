@@ -10,14 +10,16 @@ export const CAMPER_PROFILE: VehicleProfile = Object.freeze({
     halfWidth: CAMPER_SPEC.bodyHalfWidth,
   }),
   /**
-   * x = left, z = forward. 0 = driver (front left, left-hand drive), 1 = front passenger,
-   * 2 = dinette facing the rear, 3 = dinette facing forward. Must match minecraft:rideable
-   * in packs/yasu_ride_bp/entities/yasu_ride/camper.se.json (ADR 0019).
+   * x = left, z = forward. 0 = driver (front right, right-hand drive like the SUV),
+   * 1 = front passenger, 2 = dinette facing the rear, 3 = dinette facing forward; the
+   * dinette stays on the left, behind the passenger, clear of the door (ADR 0069).
+   * Must match minecraft:rideable in packs/yasu_ride_bp/entities/yasu_ride/camper.se.json
+   * (ADR 0019).
    */
   seats: Object.freeze({
     positions: Object.freeze([
-      { x: 0.75, z: 2.1 },
       { x: -0.75, z: 2.1 },
+      { x: 0.75, z: 2.1 },
       { x: 1.0, z: 1.0 },
       { x: 1.0, z: -1.0 },
     ]),
