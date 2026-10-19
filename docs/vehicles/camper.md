@@ -26,6 +26,12 @@ The 16 dyes recolor the window band, the stripe with its W, and the lower skirt,
 
 ## Parking
 
-Stop on flat ground and leave the controls alone for a second: the camper parks. It turns to the nearest quarter turn and you can walk inside, sit at the dinette, and place blocks on the floor and the roof. Tap the door from either side to open or close it. If grass or flowers are in the way they are removed; anything else, or a slab under the camper, keeps it from parking and the driver sees "Can't park here".
+Stop on flat ground and leave the controls alone for a second: the camper parks. It turns to the nearest quarter turn and you can walk inside, sit at the dinette, and place blocks on the floor and the roof. Tap the door from either side to open or close it.
 
-To drive off, sit in the driver's seat and push forward or back. Anyone standing inside or on the roof is seated, or moved outside the door if every seat is taken. While a block you placed is inside or on the roof, the camper stays parked and asks you to clear it first.
+Parking checks the room, the interior, the space above the roof, and the feet and head space outside the door: 168 cells. Air and headlight light blocks are allowed. Listed grass, flowers and snow layers are cleared from the top down, including a matching tall plant root under a wall. Anything else, including an unloaded cell or a slab under the camper, keeps it from parking and the driver sees "Can't park here".
+
+Dirt paths, farmland, mud and soul sand support parking: when the feet are within 0.15 blocks below the next cell boundary, the floor and body snap up to that boundary. Otherwise they snap to `floor(y + 0.01)`, so lower snow layers can be cleared. The room and seats stay aligned with the body.
+
+To drive off, sit in the driver's seat and push forward or back. Anyone standing inside or on the full roof, including its wall plates and up to 0.3 blocks beyond the edge, is seated if a seat is free. Players without a seat move outside the door if its exit is clear; if either exit cell is blocked, they stay where they are while the camper departs. The departure check reads the 63 interior and roof cells and the two exit cells in one batch. While a block you placed is inside or on the roof, the camper stays parked and asks you to clear it first.
+
+After a reload, a parked camper keeps its room and the door continues toward the target saved in its door blocks. If the reload interrupted parking before the room was laid, it checks and clears decorations once, then lays the room that tick. Any newly occupied cells are preserved and skipped; this recovery does not scan again every tick. A camper rebuilt in car form while undocked restores its driving collision box once.

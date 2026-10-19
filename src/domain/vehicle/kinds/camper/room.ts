@@ -182,9 +182,8 @@ export function roomCells(pose: HoldPose, doorOpen: boolean): DockCell[] {
 }
 
 /**
- * Cells that must hold air or a clearable decoration before parking: the room,
- * the roof, and the interior the players will stand in, because the long body reaches past
- * its square collision box and can stop around a flower or a low block.
+ * The 168 parking checks include standing space and the exit because the long
+ * body reaches past its collision box and can stop around a flower or low block.
  */
 export function parkCheckCells(pose: HoldPose): Vec3[] {
   return [

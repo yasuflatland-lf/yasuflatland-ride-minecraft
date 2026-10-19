@@ -87,12 +87,15 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | C10 | Hit its front bumper with each of the 16 dyes | The window band, stripe with its W, and lower skirt change color; the white body stays white | | |
 | C11 | Tap and long-press the camper's body anywhere but the front bumper | Nothing happens: no hit, no ride, no paint | | |
 | C12 | Stop on flat grass with flowers and wait a second | The camper turns to the nearest quarter turn and parks; the grass and flowers under it are gone; you can walk inside | | |
-| C13 | Stop with a stone block where a wall would go | It does not park; the driver sees "Can't park here" | | |
+| C13 | Stop with a stone block where a wall would go; repeat with a block above the roof | It does not park; the driver sees "Can't park here" | | |
 | C14 | Tap the door from outside, then from inside, several times | It opens outward and closes each time; the door swings smoothly | | |
 | C15 | Place and break blocks on the floor and on the roof | They place and break; push forward from the driver's seat: it stays parked and says "Clear the blocks inside first"; clear them and push again: it departs | | |
 | C16 | Sit at the dinette from inside, then have the driver depart | The seated player rides along | | |
 | C17 | With all four seats taken, stand inside and have the driver depart | You are moved outside the door, facing away from the camper | | |
-| C18 | Park, run /reload, then depart | It stays parked after /reload, the door keeps its state, and departing clears the room | | |
+| C18 | Park, open and close the door, run /reload midway through each swing, then depart | It stays parked after /reload, the door continues in its previous direction, and departing clears the room | | |
+| C19 | Stop on a flat dirt path and wait a second | It parks above the path without replacing it; the floor, body and seats align, and it departs normally | | |
+| C20 | Stop with a block just outside the door at feet or head height; remove it, park, then replace it and depart with all seats taken and another player standing inside | The first stop refuses parking with "Can't park here"; after parking the blocked exit allows departure but the standing player is not teleported into the block | | |
+| C21 | Stand on the roof near a side or end wall, then at its outer edge, and have the driver depart | You are seated if a seat is free or moved outside the clear door exit, including when your center is up to 0.3 blocks beyond the supported edge | | |
 
 ## Upgrading from MyCar 0.5.0 and earlier
 
