@@ -752,6 +752,9 @@ describe("BedrockVehicleWorld dock ports", () => {
       expect(p.teleport).toHaveBeenCalledExactlyOnceWith(departure.exit, {
         rotation: { x: 0, y: 90 },
       });
+    for (const p of [far, otherBox]) p.teleport.mockClear();
+    world.seatStandingPlayers("car", { boxes: departure.boxes });
+    for (const p of [far, otherBox]) expect(p.teleport).not.toHaveBeenCalled();
     car.getComponent.mockReturnValue(undefined);
     dimension.getPlayers.mockClear();
     world.seatStandingPlayers("car", departure);

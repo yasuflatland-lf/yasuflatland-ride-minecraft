@@ -25,7 +25,7 @@ export interface Box {
 /** Where standing players are looked for when a vehicle departs, and where those without a seat go. */
 export interface Departure {
   readonly boxes: readonly Box[];
-  readonly exit: HoldPose;
+  readonly exit?: HoldPose;
 }
 
 export function inBox(box: Box, at: Vec3): boolean {

@@ -130,13 +130,13 @@ it("faces every plate inward and stacks the three door cells above the half step
   );
 });
 
-it("checks 166 unique cells including the room and keeps all 63 cargo cells outside its blocks", () => {
+it("checks 168 unique cells including the room and keeps all 63 cargo cells outside its blocks", () => {
   fc.assert(
     fc.property(pose, (p) => {
       const room = new Set(roomCells(p, false).map(cellKey));
       const check = parkCheckCells(p).map(cellKey);
-      expect(check).toHaveLength(166);
-      expect(new Set(check).size).toBe(166);
+      expect(check).toHaveLength(168);
+      expect(new Set(check).size).toBe(168);
       for (const c of room) expect(check).toContain(c);
       const cargo = cargoCells(p).map(cellKey);
       expect(cargo).toHaveLength(63);
@@ -151,10 +151,10 @@ it("plans only decorations, top first, and rejects any blocking or unknown cell"
     fc.property(
       pose,
       fc.array(fc.constantFrom(AIR, ...CLEARABLE_DECORATIONS), {
-        minLength: 166,
-        maxLength: 166,
+        minLength: 168,
+        maxLength: 168,
       }),
-      fc.integer({ min: 0, max: 165 }),
+      fc.integer({ min: 0, max: 167 }),
       fc.oneof(
         fc.constant(undefined),
         fc.string().filter((t) => t !== AIR && !CLEARABLE_DECORATIONS.has(t)),
@@ -207,17 +207,16 @@ it("departs to the adjacent outside door cell facing away and encloses the floor
         y: p.y,
         z: door.z + 0.5 + dz / 2,
       });
-      const f = forward(out.exit.yaw);
-      expect(
-        f.x * (out.exit.x - p.x) + f.z * (out.exit.z - p.z),
-      ).toBeGreaterThan(0);
+      const exit = defined(out.exit, "exit");
+      const f = forward(exit.yaw);
+      expect(f.x * (exit.x - p.x) + f.z * (exit.z - p.z)).toBeGreaterThan(0);
       expect(
         inBox(defined(out.boxes[0], "interior box"), { ...p, y: p.y + 1 }),
       ).toBe(true);
       expect(
         inBox(defined(out.boxes[1], "roof box"), { ...p, y: p.y + 4 }),
       ).toBe(true);
-      expect(out.boxes.some((b) => inBox(b, out.exit))).toBe(false);
+      expect(out.boxes.some((b) => inBox(b, exit))).toBe(false);
     }),
   );
 });

@@ -281,7 +281,7 @@ export class BedrockVehicleWorld
           distanceSq(b.location, car.location),
       );
     for (const p of standing)
-      if (!rideable.addRider(p))
+      if (!rideable.addRider(p) && departure.exit)
         p.teleport(departure.exit, {
           rotation: { x: 0, y: departure.exit.yaw },
         });

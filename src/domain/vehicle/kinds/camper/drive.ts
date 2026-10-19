@@ -17,7 +17,9 @@ import {
   cargoCells,
   deckSeats,
   departure,
+  exitCells,
   holdsCargo,
+  isPassable,
   PARK_MESSAGES,
   parkCheckCells,
   parkPose,
@@ -100,12 +102,20 @@ export class CamperDrive extends TransformingDrive {
     const parked = this.parked;
     if (parked) {
       if (!pressed) return this.parkedStep(parked, ctx);
-      if (holdsCargo(ctx.blockTypes(cargoCells(parked))))
+      const cargo = cargoCells(parked);
+      // The 63 cargo cells and two exit cells share one departure batch.
+      const types = ctx.blockTypes([...cargo, ...exitCells(parked)]);
+      if (holdsCargo(types.slice(0, cargo.length)))
         return {
           ...this.parkedStep(parked, ctx),
           message: PARK_MESSAGES.clearCargo,
         };
-      return this.depart(parked, raw, ctx);
+      return this.depart(
+        parked,
+        raw,
+        ctx,
+        types.slice(cargo.length).every(isPassable),
+      );
     }
     const step = super.step(raw, ctx);
     const still =
@@ -168,6 +178,7 @@ export class CamperDrive extends TransformingDrive {
     pose: HoldPose,
     raw: RawInput | undefined,
     ctx: TickContext,
+    exitClear: boolean,
   ): DriveStep {
     this.parked = undefined;
     this.pendingClear = [];
@@ -178,7 +189,7 @@ export class CamperDrive extends TransformingDrive {
       ...step,
       commands: [...undockCommands(), ...this.doorCommands(), ...step.commands],
       boardDeckRiders: true,
-      depart: departure(pose),
+      depart: departure(pose, exitClear),
     };
   }
 

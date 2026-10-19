@@ -12,6 +12,7 @@ import {
   CLEARABLE_DECORATIONS,
   cargoCells,
   departure,
+  exitCells,
   parkCheckCells,
   parkPose,
   roomCells,
@@ -69,7 +70,7 @@ it("holds only the pose on tick 20, lays the room next tick, and scans once", ()
 it("refuses any blocking cell once per stop, then retries after the stick resets the stop", () => {
   fc.assert(
     fc.property(
-      fc.integer({ min: 0, max: 165 }),
+      fc.integer({ min: 0, max: 167 }),
       fc.string().filter((t) => t !== AIR && !CLEARABLE_DECORATIONS.has(t)),
       (index, type) => {
         const f = fixture();
@@ -99,7 +100,7 @@ it("refuses any blocking cell once per stop, then retries after the stick resets
 it("clears only decorations once on the tick after parking, top first", () => {
   fc.assert(
     fc.property(
-      fc.uniqueArray(fc.integer({ min: 0, max: 165 }), {
+      fc.uniqueArray(fc.integer({ min: 0, max: 167 }), {
         minLength: 1,
         maxLength: 20,
       }),
@@ -188,7 +189,10 @@ it("departs on the stick press, undocks before properties, and boards deck rider
   expect(out.depart).toEqual(departure(f.pose));
   expect(out.boardDeckRiders).toBe(true);
   expect(f.drive.isParked).toBe(false);
-  expect(f.blockTypes).toHaveBeenLastCalledWith(cargoCells(f.pose));
+  expect(f.blockTypes).toHaveBeenLastCalledWith([
+    ...cargoCells(f.pose),
+    ...exitCells(f.pose),
+  ]);
 });
 
 it("refuses cargo only on each press and requires a new press after cargo is cleared", () => {
@@ -267,4 +271,36 @@ it("keeps the snapped yaw when a parked driver's mount changes and boards from d
   expect(f.step().boardDeckRiders).toBe(true);
   f.ctx.deckSeatInputs = [undefined, PUSH];
   expect(f.step().boardDeckRiders).toBe(false);
+});
+
+it("checks both exit cells before parking and leaves overflow standing when the exit later blocks", () => {
+  fc.assert(
+    fc.property(
+      fc.integer({ min: 0, max: 1 }),
+      fc.constantFrom(AIR, ...CLEARABLE_DECORATIONS, "minecraft:stone"),
+      (index, typeId) => {
+        const f = fixture();
+        const cell = defined(exitCells(f.pose)[index], "exit cell");
+        expect(parkCheckCells(f.pose).map(cellKey)).toContain(cellKey(cell));
+        f.blocks.set(cellKey(cell), "minecraft:stone");
+        f.park();
+        expect(f.drive.isParked).toBe(false);
+        f.step(PUSH);
+        f.blocks.clear();
+        f.park();
+        f.blocks.set(cellKey(cell), typeId);
+        const out = f.step(PUSH);
+        expect(out.dock).toBeUndefined();
+        expect(out.depart).toBeDefined();
+        expect(out.depart?.exit).toEqual(
+          typeId === "minecraft:stone" ? undefined : departure(f.pose).exit,
+        );
+        expect(f.blockTypes).toHaveBeenLastCalledWith([
+          ...cargoCells(f.pose),
+          ...exitCells(f.pose),
+        ]);
+        expect(f.blockTypes.mock.calls.at(-1)?.[0]).toHaveLength(65);
+      },
+    ),
+  );
 });

@@ -189,7 +189,20 @@ export function parkCheckCells(pose: HoldPose): Vec3[] {
   return [
     ...roomCells(pose, false).map(({ x, y, z }) => ({ x, y, z })),
     ...interior(pose, [...INSIDE_LAYERS, ROOF_LAYER]),
+    ...exitCells(pose),
   ];
+}
+
+/** Feet and head beside the door step; checked at parking and departure. */
+export function exitCells(pose: HoldPose): Vec3[] {
+  return INSIDE_LAYERS.map((layer) => cellAt(pose, EXIT.x, EXIT.z, layer));
+}
+
+export function isPassable(typeId: string | undefined): boolean {
+  return (
+    typeId === AIR ||
+    (typeId !== undefined && CLEARABLE_DECORATIONS.has(typeId))
+  );
 }
 
 /** Cells where a player's block keeps the camper parked: the interior and the roof top. */
@@ -234,7 +247,7 @@ function standingBox(
   };
 }
 
-export function departure(pose: HoldPose): Departure {
+export function departure(pose: HoldPose, exitClear = true): Departure {
   const exit = cellAt(pose, EXIT.x, EXIT.z, 0);
   return {
     boxes: [
@@ -247,12 +260,14 @@ export function departure(pose: HoldPose): Departure {
       ),
     ],
     // Facing away from the body: the camper's right is its yaw plus a quarter turn.
-    exit: {
-      x: exit.x + 0.5,
-      y: pose.y,
-      z: exit.z + 0.5,
-      yaw: normalizeYaw(pose.yaw + QUARTER_TURN),
-    },
+    exit: exitClear
+      ? {
+          x: exit.x + 0.5,
+          y: pose.y,
+          z: exit.z + 0.5,
+          yaw: normalizeYaw(pose.yaw + QUARTER_TURN),
+        }
+      : undefined,
   };
 }
 
