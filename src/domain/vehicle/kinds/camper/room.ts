@@ -8,6 +8,7 @@ import {
 } from "../../../shared/vec";
 import type { Box, ClearCell, Departure } from "../../dock";
 import type { DockCell, Face, HoldPose } from "../../floor";
+import { cellKey } from "../../headlights";
 import { seatWorldPositions } from "../../seats";
 import { CAMPER_PROFILE } from "./profile";
 
@@ -210,18 +211,44 @@ export function cargoCells(pose: HoldPose): Vec3[] {
   return interior(pose, [...INSIDE_LAYERS, ROOF_LAYER]);
 }
 
+/** Layer-zero wall roots are read for matching plants, never to refuse parking. */
+export function wallFootCells(pose: HoldPose): Vec3[] {
+  return roomCells(pose, false)
+    .filter((c) => c.block.type === "wall" && c.y === pose.y + 1)
+    .map(({ x, y, z }) => ({ x, y: y - 1, z }));
+}
+
 /** The decorations to remove, top layer first, or undefined when any cell refuses parking. */
 export function planPark(
   cells: readonly Vec3[],
   types: readonly (string | undefined)[],
+  feet: readonly Vec3[] = [],
+  footTypes: readonly (string | undefined)[] = [],
 ): ClearCell[] | undefined {
+  if (cells.some((_, i) => !isPassable(types[i]))) return undefined;
+  return parkDecorations(cells, types, feet, footTypes);
+}
+
+function parkDecorations(
+  cells: readonly Vec3[],
+  types: readonly (string | undefined)[],
+  feet: readonly Vec3[],
+  footTypes: readonly (string | undefined)[],
+): ClearCell[] {
   const clear: ClearCell[] = [];
   for (const [i, cell] of cells.entries()) {
     const typeId = types[i];
-    if (typeId === AIR) continue;
-    if (typeId === undefined || !CLEARABLE_DECORATIONS.has(typeId))
-      return undefined;
-    clear.push({ x: cell.x, y: cell.y, z: cell.z, typeId });
+    if (typeId !== undefined && CLEARABLE_DECORATIONS.has(typeId))
+      clear.push({ ...cell, typeId });
+  }
+  const upperTypes = new Map(clear.map((c) => [cellKey(c), c.typeId]));
+  for (const [i, cell] of feet.entries()) {
+    const typeId = footTypes[i];
+    if (
+      typeId !== undefined &&
+      upperTypes.get(cellKey({ ...cell, y: cell.y + 1 })) === typeId
+    )
+      clear.push({ ...cell, typeId });
   }
   // Removing the lower half of a tall plant first would drop its upper half as an item.
   return clear.sort((a, b) => b.y - a.y);

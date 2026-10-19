@@ -25,6 +25,7 @@ import {
   parkPose,
   planPark,
   roomCells,
+  wallFootCells,
 } from "./room";
 import { CAMPER_SPEC, CAMPER_TRANSFORMING } from "./spec";
 
@@ -134,7 +135,14 @@ export class CamperDrive extends TransformingDrive {
     this.parkTried = true;
     const pose = parkPose(ctx.location, this.yaw);
     const cells = parkCheckCells(pose);
-    const clear = planPark(cells, ctx.blockTypes(cells));
+    const feet = wallFootCells(pose);
+    const types = ctx.blockTypes([...cells, ...feet]);
+    const clear = planPark(
+      cells,
+      types.slice(0, cells.length),
+      feet,
+      types.slice(cells.length),
+    );
     if (!clear)
       return { ...this.withDoor(step), message: PARK_MESSAGES.cannotPark };
     this.park(pose, clear);

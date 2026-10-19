@@ -16,6 +16,7 @@ import {
   planPark,
   roomCells,
   snapYaw,
+  wallFootCells,
 } from "../../../../../src/domain/vehicle/kinds/camper/room";
 import { seatWorldPositions } from "../../../../../src/domain/vehicle/seats";
 import { defined } from "../../../../support/defined";
@@ -305,6 +306,65 @@ it("snaps the body and floor together above low ground and down through lower sn
         expect(parkCheckCells(p).every((c) => c.y >= layer)).toBe(true);
         expect(departure(p).exit?.y).toBe(layer);
         expect(deckSeats(p)[0]?.y).toBeCloseTo(layer + 0.58);
+      },
+    ),
+  );
+});
+
+it("clears wall-foot decorations only below a cleared matching upper half, upper first", () => {
+  fc.assert(
+    fc.property(
+      pose,
+      fc.integer({ min: 0, max: 18 }),
+      fc.constantFrom(...CLEARABLE_DECORATIONS),
+      fc.constantFrom(
+        AIR,
+        "minecraft:stone",
+        "minecraft:fern",
+        "minecraft:tall_grass",
+      ),
+      fc.boolean(),
+      (p, index, plant, lowerType, upperPresent) => {
+        const feet = wallFootCells(p);
+        expect(feet).toHaveLength(19);
+        expect(new Set(feet.map(cellKey)).size).toBe(19);
+        const cells = parkCheckCells(p);
+        expect(
+          feet.every(
+            (c) => !cells.some((checked) => cellKey(c) === cellKey(checked)),
+          ),
+        ).toBe(true);
+        const lower = defined(feet[index], "wall foot");
+        const upper = { ...lower, y: lower.y + 1 };
+        expect(cells.map(cellKey)).toContain(cellKey(upper));
+        const clear = defined(
+          planPark(
+            cells,
+            cells.map((c) =>
+              upperPresent && cellKey(c) === cellKey(upper) ? plant : AIR,
+            ),
+            feet,
+            feet.map((c) => (cellKey(c) === cellKey(lower) ? lowerType : AIR)),
+          ),
+          "clear plan",
+        );
+        const lowerIndex = clear.findIndex(
+          (c) => cellKey(c) === cellKey(lower),
+        );
+        expect(lowerIndex >= 0).toBe(upperPresent && plant === lowerType);
+        for (const c of clear.filter((c) =>
+          feet.some((foot) => cellKey(c) === cellKey(foot)),
+        )) {
+          const upperIndex = clear.findIndex(
+            (u) =>
+              u.x === c.x &&
+              u.z === c.z &&
+              u.y === c.y + 1 &&
+              u.typeId === c.typeId,
+          );
+          expect(upperIndex).toBeGreaterThanOrEqual(0);
+          expect(upperIndex).toBeLessThan(clear.indexOf(c));
+        }
       },
     ),
   );

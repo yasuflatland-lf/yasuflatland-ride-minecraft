@@ -16,6 +16,7 @@ import {
   parkCheckCells,
   parkPose,
   roomCells,
+  wallFootCells,
 } from "../../../../../src/domain/vehicle/kinds/camper/room";
 import { DOCK } from "../../../../../src/domain/vehicle/motion/dock";
 import { defined } from "../../../../support/defined";
@@ -62,7 +63,10 @@ it("holds only the pose on tick 20, lays the room next tick, and scans once", ()
     value: true,
   });
   expect(f.step().dock?.cells).toEqual(roomCells(f.pose, false));
-  expect(f.blockTypes).toHaveBeenCalledExactlyOnceWith(parkCheckCells(f.pose));
+  expect(f.blockTypes).toHaveBeenCalledExactlyOnceWith([
+    ...parkCheckCells(f.pose),
+    ...wallFootCells(f.pose),
+  ]);
   expect(f.drive.isParked).toBe(true);
   expect(f.drive.speed).toBe(0);
 });
