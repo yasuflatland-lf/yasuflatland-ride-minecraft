@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { FORMS } from "../../../../../src/domain/vehicle/kinds/suv/form";
-import { nextGearDown } from "../../../../../src/domain/vehicle/kinds/suv/landingGear";
+import { FORMS } from "../../../../src/domain/vehicle/motion/forms";
+import { nextGearDown } from "../../../../src/domain/vehicle/motion/landingGear";
 
 describe("nextGearDown (ADR 0033)", () => {
   const form = fc.constantFrom(...FORMS);

@@ -13,7 +13,19 @@ import {
   type RawInput,
   toDriveInput,
 } from "../../driveInput";
+import { bankSink, stepBank } from "../../motion/bank";
 import { MOTION } from "../../motion/constants";
+import {
+  climbInput,
+  type Form,
+  type FormState,
+  initialForm,
+  isForm,
+  stepForm,
+  verticalImpulse,
+  verticalSpeed,
+} from "../../motion/forms";
+import { nextGearDown } from "../../motion/landingGear";
 import {
   alignOnMount,
   initialMotion,
@@ -24,23 +36,11 @@ import {
   stepMotion,
 } from "../../motion/motion";
 import { stepHeight } from "../../motion/stepUp";
+import { submarineVerticalSpeed } from "../../motion/submarine";
 import { waterDepthAt } from "../../motion/water";
-import { bankSink, stepBank } from "./bank";
 import { bankCommand, doorCommands, formCommands, gearCommand } from "./entity";
-import {
-  climbInput,
-  type Form,
-  type FormState,
-  initialForm,
-  isForm,
-  stepForm,
-  verticalImpulse,
-  verticalSpeed,
-} from "./form";
-import { nextGearDown } from "./landingGear";
 import { SUV_MOTION } from "./profile";
-import { AIR, SUV_SPEC, WATER } from "./spec";
-import { submarineVerticalSpeed } from "./submarine";
+import { AIR, SUV_SPEC, SUV_TRANSFORMING, WATER } from "./spec";
 
 function stepProbe(ctx: TickContext, drop = 0): StepProbe {
   return (f, speed) => {
@@ -149,13 +149,17 @@ export class SuvDrive implements Drive {
     );
     const velocity = { x: ctx.velocity.x, z: ctx.velocity.z };
     const before = this.formState.form;
-    this.formState = stepForm(this.formState, {
-      tick: ctx.tick,
-      jump: raw?.jump ?? false,
-      controlled: raw !== undefined,
-      onGround: ctx.onGround,
-      waterDepth,
-    });
+    this.formState = stepForm(
+      this.formState,
+      {
+        tick: ctx.tick,
+        jump: raw?.jump ?? false,
+        controlled: raw !== undefined,
+        onGround: ctx.onGround,
+        waterDepth,
+      },
+      SUV_TRANSFORMING,
+    );
     const form = this.formState.form;
     const input = driveInputFor(raw, form);
     const yawBefore = motion.yaw;
@@ -175,7 +179,13 @@ export class SuvDrive implements Drive {
             form === "submarine" ? WATER : AIR,
             SUV_MOTION,
           );
-    this.bank = stepBank(this.bank, form, yawBefore, step.state.yaw);
+    this.bank = stepBank(
+      this.bank,
+      form,
+      yawBefore,
+      step.state.yaw,
+      SUV_TRANSFORMING,
+    );
     let impulseY: number;
     if (form === "car") {
       impulseY = step.jumpVelocity;
@@ -192,12 +202,15 @@ export class SuvDrive implements Drive {
           step.forward,
           Math.max(step.state.speed, MOTION.stepMinSpeed),
         ) > 0;
-      const targetVy = submarineVerticalSpeed({
-        climb: climbInput(raw),
-        controlled: raw !== undefined,
-        rising,
-        waterDepth,
-      });
+      const targetVy = submarineVerticalSpeed(
+        {
+          climb: climbInput(raw),
+          controlled: raw !== undefined,
+          rising,
+          waterDepth,
+        },
+        SUV_TRANSFORMING,
+      );
       impulseY = verticalImpulse(
         targetVy,
         ctx.velocity.y,
@@ -205,11 +218,16 @@ export class SuvDrive implements Drive {
       );
     } else {
       const targetVy = clamp(
-        verticalSpeed(form, climbInput(raw)) - bankSink(form, this.bank),
+        verticalSpeed(form, climbInput(raw), SUV_TRANSFORMING) -
+          bankSink(form, this.bank, SUV_TRANSFORMING),
         -SUV_SPEC.maxClimb,
         SUV_SPEC.maxClimb,
       );
-      impulseY = verticalImpulse(targetVy, ctx.velocity.y);
+      impulseY = verticalImpulse(
+        targetVy,
+        ctx.velocity.y,
+        SUV_SPEC.flightVerticalDrag,
+      );
     }
     const bank = this.bank === this.sentBank ? undefined : this.bank;
     this.sentBank = this.bank;

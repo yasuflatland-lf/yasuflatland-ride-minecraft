@@ -91,8 +91,8 @@ describe("dependency-cruiser rules (ADR 0065)", () => {
     [
       "same kind",
       {
-        "src/domain/vehicle/kinds/suv/drive.ts": importX("./form"),
-        "src/domain/vehicle/kinds/suv/form.ts": EXPORTS_X,
+        "src/domain/vehicle/kinds/suv/drive.ts": importX("./spec"),
+        "src/domain/vehicle/kinds/suv/spec.ts": EXPORTS_X,
       },
       [],
     ],

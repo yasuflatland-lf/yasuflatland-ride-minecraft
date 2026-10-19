@@ -40,12 +40,12 @@ import {
   SPORTSBOAT_MOTION,
   SPORTSBOAT_PROFILE,
 } from "../../../../../src/domain/vehicle/kinds/sportsboat/profile";
-import { FORMS } from "../../../../../src/domain/vehicle/kinds/suv/form";
 import {
   SUV_MOTION,
   SUV_PROFILE,
 } from "../../../../../src/domain/vehicle/kinds/suv/profile";
 import { MOTION } from "../../../../../src/domain/vehicle/motion/constants";
+import { FORMS } from "../../../../../src/domain/vehicle/motion/forms";
 import {
   initialMotion,
   type MotionState,

@@ -1,6 +1,6 @@
 import type { EngineCommand } from "../../drive";
 import type { EntityContract } from "../../entityContract";
-import { FORMS, type Form } from "./form";
+import { FORMS, type Form } from "../../motion/forms";
 import { SUV_SPEC } from "./spec";
 
 export const SUV_ENTITY = {

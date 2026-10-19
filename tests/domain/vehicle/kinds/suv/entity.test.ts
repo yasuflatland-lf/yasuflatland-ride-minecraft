@@ -5,7 +5,7 @@ import {
   doorCommands,
   formCommands,
 } from "../../../../../src/domain/vehicle/kinds/suv/entity";
-import { FORMS } from "../../../../../src/domain/vehicle/kinds/suv/form";
+import { FORMS } from "../../../../../src/domain/vehicle/motion/forms";
 
 it("keeps gravity on only in car form and writes the form after the event (ADR 0021, 0039)", () => {
   fc.assert(

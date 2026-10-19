@@ -13,9 +13,9 @@ import {
   rebuildVehicle,
 } from "../../../src/domain/vehicle/kinds/index";
 import { SuvDrive } from "../../../src/domain/vehicle/kinds/suv/drive";
-import type { Form } from "../../../src/domain/vehicle/kinds/suv/form";
 import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
 import { SUV_SPEC } from "../../../src/domain/vehicle/kinds/suv/spec";
+import type { Form } from "../../../src/domain/vehicle/motion/forms";
 import { SPEC } from "../../../src/domain/vehicle/spec";
 import { type TickOutcome, Vehicle } from "../../../src/domain/vehicle/vehicle";
 import { propertyValue } from "../../support/engineCommands";

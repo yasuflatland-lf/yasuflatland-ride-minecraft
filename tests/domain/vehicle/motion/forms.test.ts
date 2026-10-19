@@ -1,6 +1,10 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
+  SUV_SPEC,
+  SUV_TRANSFORMING,
+} from "../../../../src/domain/vehicle/kinds/suv/spec";
+import {
   climbInput,
   FORMS,
   type Form,
@@ -13,10 +17,10 @@ import {
   stepForm,
   verticalImpulse,
   verticalSpeed,
-} from "../../../../../src/domain/vehicle/kinds/suv/form";
-import { SUV_SPEC } from "../../../../../src/domain/vehicle/kinds/suv/spec";
-import { SPEC } from "../../../../../src/domain/vehicle/spec";
-import { shallowWaterDepth, waterDepth } from "../../../../support/waterDepth";
+} from "../../../../src/domain/vehicle/motion/forms";
+import type { TransformingSpec } from "../../../../src/domain/vehicle/motion/transforming";
+import { SPEC } from "../../../../src/domain/vehicle/spec";
+import { shallowWaterDepth, waterDepth } from "../../../support/waterDepth";
 
 type Step = Omit<FormInput, "tick">;
 interface Frame {
@@ -34,12 +38,16 @@ const NEXT: Record<Form, readonly Form[]> = {
   submarine: ["hover", "car"],
 };
 
-function run(steps: readonly Step[], start = initialForm()): Frame[] {
+function run(
+  steps: readonly Step[],
+  start = initialForm(),
+  spec: TransformingSpec = SUV_TRANSFORMING,
+): Frame[] {
   let state = start;
   return steps.map((step, tick) => {
     const input = { ...step, tick };
     const before = state;
-    state = stepForm(state, input);
+    state = stepForm(state, input, spec);
     return { input, before, after: state };
   });
 }
@@ -287,9 +295,9 @@ describe("verticalSpeed (ADR 0021, 0032)", () => {
   it("never exceeds maxClimb up or down while flying", () => {
     fc.assert(
       fc.property(fc.double(), (c) => {
-        expect(Math.abs(verticalSpeed("hover", c))).toBeLessThanOrEqual(
-          SUV_SPEC.maxClimb,
-        );
+        expect(
+          Math.abs(verticalSpeed("hover", c, SUV_TRANSFORMING)),
+        ).toBeLessThanOrEqual(SUV_SPEC.maxClimb);
       }),
     );
   });
@@ -297,7 +305,7 @@ describe("verticalSpeed (ADR 0021, 0032)", () => {
   it("follows the climb command while flying", () => {
     fc.assert(
       fc.property(climb, (c) => {
-        expect(verticalSpeed("hover", c)).toBeCloseTo(
+        expect(verticalSpeed("hover", c, SUV_TRANSFORMING)).toBeCloseTo(
           c * SUV_SPEC.maxClimb,
           12,
         );
@@ -308,16 +316,20 @@ describe("verticalSpeed (ADR 0021, 0032)", () => {
   it("rises at takeoffClimb in takeoff, sinks at landingSink while landing, and is 0 on the ground", () => {
     fc.assert(
       fc.property(climb, (c) => {
-        expect(verticalSpeed("takeoff", c)).toBe(SUV_SPEC.takeoffClimb);
-        expect(verticalSpeed("landing", c)).toBe(-SUV_SPEC.landingSink);
-        expect(verticalSpeed("car", c)).toBe(0);
+        expect(verticalSpeed("takeoff", c, SUV_TRANSFORMING)).toBe(
+          SUV_SPEC.takeoffClimb,
+        );
+        expect(verticalSpeed("landing", c, SUV_TRANSFORMING)).toBe(
+          -SUV_SPEC.landingSink,
+        );
+        expect(verticalSpeed("car", c, SUV_TRANSFORMING)).toBe(0);
       }),
     );
   });
 
   it("holds altitude for a climb command that is not a finite number", () => {
     for (const v of [Number.NaN, Infinity, -Infinity])
-      expect(verticalSpeed("hover", v)).toBe(0);
+      expect(verticalSpeed("hover", v, SUV_TRANSFORMING)).toBe(0);
   });
 });
 
@@ -327,7 +339,8 @@ describe("verticalImpulse", () => {
     fc.assert(
       fc.property(v, v, (target, vy) => {
         expect(
-          (vy + verticalImpulse(target, vy)) * SUV_SPEC.flightVerticalDrag,
+          (vy + verticalImpulse(target, vy, SUV_SPEC.flightVerticalDrag)) *
+            SUV_SPEC.flightVerticalDrag,
         ).toBeCloseTo(target, 9);
       }),
     );
@@ -352,13 +365,15 @@ describe("submarine form transitions", () => {
   it("detects submerged and dry depths, including non-finite values", () => {
     fc.assert(
       fc.property(fc.oneof(waterDepth, fc.double()), (depth) => {
-        expect(isSubmerged(depth)).toBe(depth >= SUV_SPEC.carHeight);
+        expect(isSubmerged(depth, SUV_TRANSFORMING)).toBe(
+          depth >= SUV_SPEC.carHeight,
+        );
         expect(isDry(depth)).toBe(!(depth > 0));
       }),
     );
     expect(isDry(Number.NaN)).toBe(true);
-    expect(isSubmerged(SUV_SPEC.carHeight)).toBe(true);
-    expect(isSubmerged(1)).toBe(false);
+    expect(isSubmerged(SUV_SPEC.carHeight, SUV_TRANSFORMING)).toBe(true);
+    expect(isSubmerged(1, SUV_TRANSFORMING)).toBe(false);
   });
 
   it("submergence wins over every other transition from every other form", () => {
@@ -375,6 +390,7 @@ describe("submarine form transitions", () => {
               stepForm(
                 { form, formTicks, jumpHeld, lastTap },
                 { ...i, waterDepth },
+                SUV_TRANSFORMING,
               ).form,
             ).toBe("submarine");
           }
@@ -386,7 +402,7 @@ describe("submarine form transitions", () => {
   it("breaches to hover exactly when dry, controlled, and Jump is held", () => {
     fc.assert(
       fc.property(submarine, input, (s, i) => {
-        expect(stepForm(s, i).form === "hover").toBe(
+        expect(stepForm(s, i, SUV_TRANSFORMING).form === "hover").toBe(
           !(i.waterDepth > 0) && i.controlled && i.jump,
         );
       }),
@@ -398,7 +414,7 @@ describe("submarine form transitions", () => {
       fc.property(submarine, input, (s, i) => {
         const dry = !(i.waterDepth > 0);
         const breach = dry && i.controlled && i.jump;
-        expect(stepForm(s, i).form === "car").toBe(
+        expect(stepForm(s, i, SUV_TRANSFORMING).form === "car").toBe(
           !breach &&
             (dry || (i.onGround && !(i.waterDepth >= SUV_SPEC.carHeight))),
         );
@@ -430,8 +446,103 @@ describe("submarine form transitions", () => {
   it("is 0 in submarine form", () => {
     fc.assert(
       fc.property(fc.double(), (climb) => {
-        expect(verticalSpeed("submarine", climb)).toBe(0);
+        expect(verticalSpeed("submarine", climb, SUV_TRANSFORMING)).toBe(0);
       }),
+    );
+  });
+});
+
+describe("per-kind transforming values", () => {
+  it("first enters hover on the call after takeoffTicks is reached", () => {
+    fc.assert(
+      fc.property(fc.integer({ min: 1, max: 60 }), (takeoffTicks) => {
+        const spec = { ...SUV_TRANSFORMING, takeoffTicks };
+        let state = initialForm("takeoff");
+        const input = {
+          tick: 0,
+          jump: false,
+          controlled: true,
+          onGround: false,
+          waterDepth: 0,
+        };
+        for (let tick = 1; tick <= takeoffTicks; tick++) {
+          state = stepForm(state, { ...input, tick }, spec);
+          expect(state.form).toBe("takeoff");
+          expect(state.formTicks).toBe(tick);
+        }
+        expect(
+          stepForm(state, { ...input, tick: takeoffTicks + 1 }, spec).form,
+        ).toBe("hover");
+      }),
+    );
+  });
+
+  it("uses the supplied body height as the submergence threshold", () => {
+    fc.assert(
+      fc.property(
+        fc.double({ min: 0.5, max: 6, noNaN: true }),
+        fc.double(),
+        (carHeight, depth) => {
+          expect(isSubmerged(depth, { carHeight })).toBe(depth >= carHeight);
+        },
+      ),
+    );
+  });
+
+  it("submerges in stepForm at the supplied body height", () => {
+    fc.assert(
+      fc.property(
+        fc.double({ min: 0.5, max: 6, noNaN: true }),
+        // Offsets around the threshold, with 0 so the boundary itself is hit.
+        fc.oneof(fc.constant(0), fc.double({ min: -0.5, max: 1, noNaN: true })),
+        (carHeight, offset) => {
+          const spec = { ...SUV_TRANSFORMING, carHeight };
+          const waterDepth = carHeight + offset;
+          const next = stepForm(
+            initialForm(),
+            {
+              tick: 0,
+              jump: false,
+              controlled: true,
+              onGround: true,
+              waterDepth,
+            },
+            spec,
+          );
+          expect(next.form === "submarine").toBe(waterDepth >= carHeight);
+        },
+      ),
+    );
+  });
+
+  it("takes off on two presses within the supplied doubleTapTicks, and not further apart", () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 2, max: 40 }),
+        fc.integer({ min: 2, max: 60 }),
+        (doubleTapTicks, gap) => {
+          const spec = { ...SUV_TRANSFORMING, doubleTapTicks };
+          const last = run(taps([0, gap], gap + 1), initialForm(), spec).at(-1);
+          expect(last?.after.form).toBe(
+            gap <= doubleTapTicks ? "takeoff" : "car",
+          );
+        },
+      ),
+    );
+  });
+
+  it("bounds hover vertical speed by the supplied maxClimb", () => {
+    fc.assert(
+      fc.property(
+        fc.double({ min: 0.05, max: 1, noNaN: true }),
+        fc.double(),
+        (maxClimb, climb) => {
+          const spec = { ...SUV_TRANSFORMING, maxClimb };
+          expect(
+            Math.abs(verticalSpeed("hover", climb, spec)),
+          ).toBeLessThanOrEqual(maxClimb);
+        },
+      ),
     );
   });
 });

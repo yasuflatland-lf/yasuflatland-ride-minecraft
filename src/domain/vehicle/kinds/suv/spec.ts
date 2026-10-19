@@ -1,4 +1,5 @@
 import type { Medium } from "../../motion/motion";
+import type { TransformingSpec } from "../../motion/transforming";
 
 // The SUV's own tuning values (ADR 0055). See docs/adr/0002-0008 for the rationale.
 export const SUV_SPEC = {
@@ -63,3 +64,28 @@ export const WATER: Medium = {
   drag: SUV_SPEC.waterDrag,
   maxSpeed: SUV_SPEC.maxWaterSpeed,
 };
+
+// The SUV's values for the shared transforming drivetrain (ADR 0050).
+export const SUV_TRANSFORMING: TransformingSpec = Object.freeze({
+  carHeight: SUV_SPEC.carHeight,
+  doubleTapTicks: SUV_SPEC.doubleTapTicks,
+  takeoffTicks: SUV_SPEC.takeoffTicks,
+  takeoffClimb: SUV_SPEC.takeoffClimb,
+  landingSink: SUV_SPEC.landingSink,
+  maxClimb: SUV_SPEC.maxClimb,
+  flightVerticalDrag: SUV_SPEC.flightVerticalDrag,
+  waterVerticalDrag: SUV_SPEC.waterVerticalDrag,
+  floatDraft: SUV_SPEC.floatDraft,
+  floatGain: SUV_SPEC.floatGain,
+  surfaceRise: SUV_SPEC.surfaceRise,
+  submarineStepProbeDrop: SUV_SPEC.submarineStepProbeDrop,
+  turnRate: SUV_SPEC.turnRate,
+  maxBank: SUV_SPEC.maxBank,
+  bankRate: SUV_SPEC.bankRate,
+  bankSink: SUV_SPEC.bankSink,
+  gearDownHeight: SUV_SPEC.gearDownHeight,
+  gearProbeOffset: SUV_SPEC.gearProbeOffset,
+  hitboxFront: SUV_SPEC.hitboxFront,
+  air: AIR,
+  water: WATER,
+});
