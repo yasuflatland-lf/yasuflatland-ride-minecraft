@@ -1,3 +1,4 @@
+import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
   CORE_EVENT_PREFIXES,
@@ -15,6 +16,7 @@ import {
   HEADLIGHT_SWITCH_TYPE,
   HEADLIGHTS_PROPERTY,
   ITEM_TYPE,
+  isVehicleEntity,
   kindOfEntity,
   kindOfItem,
   LIT_CELLS_PROPERTY,
@@ -44,6 +46,7 @@ describe("identifiers (ADR 0047)", () => {
     "round-trips the entity and item IDs of %s",
     (kind) => {
       expect(kindOfEntity(ENTITY_TYPE[kind])).toBe(kind);
+      expect(isVehicleEntity(ENTITY_TYPE[kind])).toBe(true);
       expect(kindOfItem(ITEM_TYPE[kind])).toBe(kind);
     },
   );
@@ -52,6 +55,7 @@ describe("identifiers (ADR 0047)", () => {
     "does not recognize an unrelated type %s",
     (typeId) => {
       expect(kindOfEntity(typeId)).toBeUndefined();
+      expect(isVehicleEntity(typeId)).toBe(false);
       expect(kindOfItem(typeId)).toBeUndefined();
     },
   );
@@ -59,8 +63,22 @@ describe("identifiers (ADR 0047)", () => {
   it("does not confuse entity and item IDs", () => {
     for (const kind of VEHICLE_KINDS) {
       expect(kindOfEntity(ITEM_TYPE[kind])).toBeUndefined();
+      expect(isVehicleEntity(ITEM_TYPE[kind])).toBe(false);
       expect(kindOfItem(ENTITY_TYPE[kind])).toBeUndefined();
     }
+  });
+
+  it("recognizes exactly the vehicle entity types", () => {
+    fc.assert(
+      fc.property(
+        fc.oneof(fc.string(), fc.constantFrom(...Object.values(ENTITY_TYPE))),
+        (typeId) => {
+          expect(isVehicleEntity(typeId)).toBe(
+            Object.values(ENTITY_TYPE).includes(typeId),
+          );
+        },
+      ),
+    );
   });
 
   it("gives every listed add-on identifier its own snake_case name in the add-on namespace", () => {
