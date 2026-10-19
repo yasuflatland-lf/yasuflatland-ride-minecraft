@@ -381,3 +381,27 @@ it("restores the saved door target through either direction of a partial swing",
     }),
   );
 });
+
+it("restores the undocked collision group once for rebuilt cars without changing weightless forms", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom("car", "hover", "submarine"),
+      fc.boolean(),
+      (form, docked) => {
+        const f = fixture();
+        const drive = new CamperDrive(0, { form, docked, dockLaid: true });
+        const event = { type: "triggerEvent", name: "undock" };
+        const first = drive.step(undefined, f.ctx);
+        expect(
+          first.commands.filter(
+            (c) => c.type === "triggerEvent" && c.name === "undock",
+          ),
+        ).toEqual(!docked && form === "car" ? [event] : []);
+        for (let tick = 0; tick < 10; tick++)
+          expect(drive.step(undefined, f.ctx).commands).not.toContainEqual(
+            event,
+          );
+      },
+    ),
+  );
+});

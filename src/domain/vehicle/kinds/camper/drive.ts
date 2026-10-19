@@ -47,6 +47,7 @@ export class CamperDrive extends TransformingDrive {
   private parked: HoldPose | undefined;
   private restoredDocked: boolean;
   private readonly restoredLaid: boolean;
+  private restoreCollision: boolean;
   // False on the parking tick: its teleport and dock event take effect only at
   // the end of the tick, and a floor laid under a body that still collides would
   // push it up (ADR 0068).
@@ -70,6 +71,8 @@ export class CamperDrive extends TransformingDrive {
     );
     this.restoredDocked = restored.docked === true;
     this.restoredLaid = restored[DOCK_RESTORED.laid] === true;
+    // Undock also restores gravity; weightless forms must keep their physics group.
+    this.restoreCollision = !this.restoredDocked && this.form === "car";
     const door = typeof restored.door === "number" ? restored.door : 0;
     this.doorStep = this.restoredDocked
       ? clamp(Math.round(door * DOOR_STEPS), 0, DOOR_STEPS)
@@ -130,7 +133,11 @@ export class CamperDrive extends TransformingDrive {
         types.slice(cargo.length).every(isPassable),
       );
     }
-    const step = super.step(raw, ctx);
+    let step = super.step(raw, ctx);
+    if (this.restoreCollision) {
+      this.restoreCollision = false;
+      step = { ...step, commands: [...undockCommands(), ...step.commands] };
+    }
     const still =
       this.form === "car" &&
       ctx.onGround &&
