@@ -635,7 +635,7 @@ for end, z in (("f", FRONT_AXLE), ("r", REAR_AXLE)):
         wheels.append({"name": f"wheel_{name}", "parent": "body",
                        "pivot": [center_x, WHEEL_R, z], "cubes": cubes})
 
-# --- Cab interior (left-hand drive, as in the photos) -----------------------
+# --- Cab interior (right-hand drive, like the SUV; ADR 0069) ----------------
 DASH_FACE = FRONT + 8  # the dashboard's rear face, toward the seats
 # Padded green dashboard with a rounded rear edge on top
 body.append(box(-HW + 1, FLOOR, FRONT + 1, HW - 1, 27, DASH_FACE, "dash"))
@@ -643,7 +643,7 @@ body.append(box(-HW + 1, 27, WS_Z + 1.5, HW - 1, 28.6, DASH_FACE + 1, "dash_pad"
 body.append(box(-HW + 1, 26.2, DASH_FACE + 1, HW - 1, 28.2, DASH_FACE + 1.8, "dash_pad", [45, 0, 0], [0, 27.2, DASH_FACE + 1.4]))
 body.append(box(-HW + 1, 25.6, DASH_FACE, HW - 1, 26.2, DASH_FACE + 0.6, "dark_dash"))
 # Two round gauges behind the wheel: speedometer and a cluster, chrome bezels on black faces.
-for gx, r in ((-16, 2.9), (-8.6, 2.6)):
+for gx, r in ((16, 2.9), (8.6, 2.6)):
     body += disc("z", gx, 22.2, DASH_FACE, r + 0.5, 0.4, "chrome")
     body += disc("z", gx, 22.2, DASH_FACE + 0.3, r, 0.3, "gauge")
     for i in range(12):  # tick ring
@@ -656,20 +656,20 @@ for gx, r in ((-16, 2.9), (-8.6, 2.6)):
 for kx, ky in ((-3, 24), (-1, 24), (1, 24), (-3, 21.5), (-1, 21.5), (1, 21.5)):
     body += disc("z", kx, ky, DASH_FACE, 0.55, 0.9, "chrome", steps=(0, 45))
 # Radio with two knobs and a dial on the passenger side, glovebox lid beyond it
-body.append(box(6, 21, DASH_FACE, 14, 23.6, DASH_FACE + 0.6, "chrome"))
-body.append(box(8.2, 21.6, DASH_FACE + 0.6, 11.8, 23, DASH_FACE + 0.7, "black"))
-for kx in (7, 13):
+body.append(box(-14, 21, DASH_FACE, -6, 23.6, DASH_FACE + 0.6, "chrome"))
+body.append(box(-11.8, 21.6, DASH_FACE + 0.6, -8.2, 23, DASH_FACE + 0.7, "black"))
+for kx in (-13, -7):
     body += disc("z", kx, 22.3, DASH_FACE + 0.6, 0.6, 0.6, "chrome", steps=(0, 45))
-body.append(box(15, 19.5, DASH_FACE, 21.5, 24.5, DASH_FACE + 0.3, "wood"))
-body.append(box(17.6, 23.4, DASH_FACE + 0.3, 18.9, 23.9, DASH_FACE + 0.5, "chrome"))
+body.append(box(-21.5, 19.5, DASH_FACE, -15, 24.5, DASH_FACE + 0.3, "wood"))
+body.append(box(-18.9, 23.4, DASH_FACE + 0.3, -17.6, 23.9, DASH_FACE + 0.5, "chrome"))
 body += disc("z", 0, 28.7, DASH_FACE - 2.5, 1.2, 0.01, "grille", steps=(0, 45))  # defroster vent
 # Green vinyl engine cover between the seats, rounded on top
 body.append(box(-6, FLOOR, DASH_FACE, 6, 22, DASH_FACE + 13, "dash"))
 body.append(box(-5.2, 22, DASH_FACE + 0.5, 5.2, 23.6, DASH_FACE + 12.5, "dash"))
 body.append(box(-4, 23.6, DASH_FACE + 1, 4, 24.2, DASH_FACE + 12, "dash_pad"))
 # Pedals in the driver's footwell
-body.append(box(-15, FLOOR + 1, DASH_FACE + 0.5, -12.5, FLOOR + 3.5, DASH_FACE + 1, "black", [-25, 0, 0], [0, FLOOR + 1, DASH_FACE + 1]))
-body.append(box(-10.5, FLOOR + 0.5, DASH_FACE + 1, -8.5, FLOOR + 5, DASH_FACE + 1.4, "black", [-30, 0, 0], [0, FLOOR + 0.5, DASH_FACE + 1.2]))
+body.append(box(12.5, FLOOR + 1, DASH_FACE + 0.5, 15, FLOOR + 3.5, DASH_FACE + 1, "black", [-25, 0, 0], [0, FLOOR + 1, DASH_FACE + 1]))
+body.append(box(8.5, FLOOR + 0.5, DASH_FACE + 1, 10.5, FLOOR + 5, DASH_FACE + 1.4, "black", [-30, 0, 0], [0, FLOOR + 0.5, DASH_FACE + 1.2]))
 # Ivory door trim with an armrest on both cab walls
 for sx in (1, -1):
     x_in = sx * (HW - 1.2)
@@ -704,10 +704,10 @@ body.append(box(BED[0] + 0.2, FLOOR + 7.5, BED[2] + 0.2, BED[1] - 0.2, FLOOR + 9
 body.append(box(BED[0] + 0.1, FLOOR + 5, BED[2] + 0.1, BED[1] - 0.1, FLOOR + 7.5, BED[2] + 0.4, "curtain"))  # blanket over the foot
 body.append(box(BED[0] + 0.2, FLOOR + 8.6, BED[3] - 9, BED[1] - 0.2, FLOOR + 9.4, BED[3] - 7.5, "ivory"))  # folded sheet
 body.append(box(BED[0] + 2, FLOOR + 7.5, BED[3] - 6, BED[1] - 2, FLOOR + 10, BED[3] - 1.5, "white"))  # pillow
-seat0 = bucket_seat(-18, -7)
-seat1 = bucket_seat(7, 18)
+seat0 = bucket_seat(7, 18)
+seat1 = bucket_seat(-18, -7)
 
-# Facing dinette on the left behind the driver: seat 2 faces the rear, seat 3 forward,
+# Facing dinette on the left behind the passenger: seat 2 faces the rear, seat 3 forward,
 # with the table between them in the middle cell (seats 2 and 3 of minecraft:rideable).
 DIN_X = (-HW + 1, -8)
 seat2 = [box(DIN_X[0], FLOOR, -23, DIN_X[1], FLOOR + 7, -10, "tweed"),
@@ -747,7 +747,7 @@ for a in (90, 210, 330):  # the emblem's three points
     rad = math.radians(a)
     steering.append(box(0.45 * math.cos(rad) - 0.15, 0.45 * math.sin(rad) - 0.15, 1.4, 0.45 * math.cos(rad) + 0.15, 0.45 * math.sin(rad) + 0.15, 1.5, "needle"))
 steering.append(box(-0.7, -0.7, -13, 0.7, 0.7, -0.6, "dark_dash"))  # column down to the dashboard
-STEERING_PIVOT = [-12, 29, FRONT + 15]
+STEERING_PIVOT = [12, 29, FRONT + 15]
 
 
 def moved(cube, offset):
