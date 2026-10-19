@@ -263,3 +263,25 @@ it("checks every roof cell and clears decorations there", () => {
     ),
   );
 });
+
+it("includes roof wall plates and supported player centers beyond their edges", () => {
+  fc.assert(
+    fc.property(pose, fc.constantFrom(-1, 1), (p, sign) => {
+      const f = forward(p.yaw);
+      const roof = defined(departure(p).boxes[1], "roof box");
+      for (const [x, z, inside] of [
+        [1.6, 3.6, true],
+        [2.79, 4.79, true],
+        [2.81, 0, false],
+        [0, 4.81, false],
+      ] as const) {
+        const at = {
+          x: p.x + sign * (x * f.z + z * f.x),
+          z: p.z + sign * (-x * f.x + z * f.z),
+          y: p.y + 4,
+        };
+        expect(inBox(roof, at)).toBe(inside);
+      }
+    }),
+  );
+});

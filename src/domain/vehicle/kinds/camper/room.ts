@@ -39,6 +39,8 @@ const ROOF_FEET = [3.5, 6] as const;
 // The interior's edge cells end half a block past their centers.
 const STAND_HALF_X = HALF_X + 0.5;
 const STAND_HALF_Z = HALF_Z + 0.5;
+// Half a player width keeps supported players at the roof edge in the departure box.
+const ROOF_EDGE_MARGIN = 0.3;
 // Each deck seat's height above the pose: the camper's minecraft:rideable seat
 // height (1.1 in front, 1.2 at the dinette) minus the deck seat's own 0.52, so a
 // rider sits where the vehicle seat would put them.
@@ -215,10 +217,12 @@ export function holdsCargo(types: readonly (string | undefined)[]): boolean {
 function standingBox(
   pose: HoldPose,
   [low, high]: readonly [number, number],
+  halfX = STAND_HALF_X,
+  halfZ = STAND_HALF_Z,
 ): Box {
   const { f, l } = axes(pose.yaw);
-  const hx = Math.abs(f.x) * STAND_HALF_Z + Math.abs(l.x) * STAND_HALF_X;
-  const hz = Math.abs(f.z) * STAND_HALF_Z + Math.abs(l.z) * STAND_HALF_X;
+  const hx = Math.abs(f.x) * halfZ + Math.abs(l.x) * halfX;
+  const hz = Math.abs(f.z) * halfZ + Math.abs(l.z) * halfX;
   return {
     min: { x: pose.x - hx, y: pose.y + low, z: pose.z - hz },
     max: { x: pose.x + hx, y: pose.y + high, z: pose.z + hz },
@@ -228,7 +232,15 @@ function standingBox(
 export function departure(pose: HoldPose): Departure {
   const exit = cellAt(pose, EXIT.x, EXIT.z, 0);
   return {
-    boxes: [standingBox(pose, INSIDE_FEET), standingBox(pose, ROOF_FEET)],
+    boxes: [
+      standingBox(pose, INSIDE_FEET),
+      standingBox(
+        pose,
+        ROOF_FEET,
+        WALL_X + 0.5 + ROOF_EDGE_MARGIN,
+        WALL_Z + 0.5 + ROOF_EDGE_MARGIN,
+      ),
+    ],
     // Facing away from the body: the camper's right is its yaw plus a quarter turn.
     exit: {
       x: exit.x + 0.5,
