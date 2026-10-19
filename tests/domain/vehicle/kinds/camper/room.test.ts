@@ -10,6 +10,7 @@ import {
   cargoCells,
   deckSeats,
   departure,
+  exitCells,
   holdsCargo,
   parkCheckCells,
   parkPose,
@@ -218,6 +219,20 @@ it("departs to the adjacent outside door cell facing away and encloses the floor
         inBox(defined(out.boxes[1], "roof box"), { ...p, y: p.y + 4 }),
       ).toBe(true);
       expect(out.boxes.some((b) => inBox(b, exit))).toBe(false);
+    }),
+  );
+});
+
+it("checks the feet and head cells of a player standing at the exit", () => {
+  fc.assert(
+    fc.property(pose, (p) => {
+      const exit = defined(departure(p).exit, "exit");
+      const feet = {
+        x: Math.floor(exit.x),
+        y: Math.floor(exit.y),
+        z: Math.floor(exit.z),
+      };
+      expect(exitCells(p)).toEqual([feet, { ...feet, y: feet.y + 1 }]);
     }),
   );
 });

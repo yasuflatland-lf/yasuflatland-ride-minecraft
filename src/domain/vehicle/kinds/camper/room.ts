@@ -32,6 +32,7 @@ const WALL_LAYERS = [1, 2, 3] as const;
 // floor and puts the roof top 4.0 blocks up, flush with the fourth layer (ADR 0068).
 const CEILING_LAYER = 3;
 const INSIDE_LAYERS = [1, 2] as const;
+const EXIT_LAYERS = [0, 1] as const;
 const ROOF_LAYER = 4;
 // A half step under the door, in pixels.
 const DOOR_STEP_HEIGHT = 8;
@@ -193,9 +194,12 @@ export function parkCheckCells(pose: HoldPose): Vec3[] {
   ];
 }
 
-/** Feet and head beside the door step; checked at parking and departure. */
+/**
+ * The feet and head cells of a player moved to the exit: on the ground beside
+ * the door step, so at the floor's layer and the one above it.
+ */
 export function exitCells(pose: HoldPose): Vec3[] {
-  return INSIDE_LAYERS.map((layer) => cellAt(pose, EXIT.x, EXIT.z, layer));
+  return EXIT_LAYERS.map((layer) => cellAt(pose, EXIT.x, EXIT.z, layer));
 }
 
 export function isPassable(typeId: string | undefined): boolean {
