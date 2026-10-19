@@ -1,4 +1,4 @@
-// What a held vehicle keeps around it while it stands still (ADR 0063, 0064).
+// What a held vehicle keeps around it while it stands still (ADR 0063, 0064, 0068).
 import type { Vec3 } from "../shared/vec";
 import type { DockCell, HoldPose } from "./floor";
 import type { Cell } from "./headlights";

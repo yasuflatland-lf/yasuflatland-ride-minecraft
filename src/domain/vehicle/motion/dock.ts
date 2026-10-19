@@ -1,4 +1,4 @@
-// When a stopped vehicle counts as held, shared by every kind that holds (ADR 0063).
+// When a stopped vehicle counts as held, shared by every kind that holds (ADR 0063, 0068).
 import type { RawInput } from "../driveInput";
 
 export const DOCK = Object.freeze({

@@ -20,7 +20,7 @@ export interface TickContext {
   /**
    * Block type IDs at these world cells, in order. Air and light blocks read as
    * "minecraft:air"; a cell in an unloaded chunk reads as undefined. Drives call it
-   * only on rare ticks, such as a park attempt (ADR 0063).
+   * only on rare ticks, such as a park attempt (ADR 0063, 0068).
    */
   blockTypes(cells: readonly Vec3[]): readonly (string | undefined)[];
   /** Nearby targets. Called only when the speed exceeds the ram threshold. */
@@ -45,11 +45,11 @@ export interface RiderState {
 
 export interface DriveStep {
   dock?: Dock;
-  /** Blocks to remove this tick before the dock's cells are laid (ADR 0063). */
+  /** Blocks to remove this tick before the dock's cells are laid (ADR 0063, 0068). */
   clear?: readonly ClearCell[];
-  /** Shown on the driver's action bar as the lang key yasu_ride.message.<name> (ADR 0063). */
+  /** Shown on the driver's action bar as the lang key yasu_ride.message.<name> (ADR 0063, 0068). */
   message?: string;
-  /** Seats the players standing in these boxes this tick, or moves them to the exit (ADR 0063). */
+  /** Seats the players standing in these boxes this tick, or moves them to the exit (ADR 0063, 0068). */
   depart?: Departure;
   /** Moves every deck seat rider into the vehicle this tick (ADR 0063). */
   boardDeckRiders?: boolean;
