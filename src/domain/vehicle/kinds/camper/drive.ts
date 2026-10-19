@@ -71,8 +71,9 @@ export class CamperDrive extends TransformingDrive {
     );
     this.restoredDocked = restored.docked === true;
     this.restoredLaid = restored[DOCK_RESTORED.laid] === true;
-    // Undock also restores gravity; weightless forms must keep their physics group.
-    this.restoreCollision = !this.restoredDocked && this.form === "car";
+    // Campers spawned before the undocked group existed have no collision box.
+    // Undock also restores gravity, so it waits for car form (ADR 0068).
+    this.restoreCollision = !this.restoredDocked;
     const door = typeof restored.door === "number" ? restored.door : 0;
     this.doorStep = this.restoredDocked
       ? clamp(Math.round(door * DOOR_STEPS), 0, DOOR_STEPS)
@@ -134,7 +135,7 @@ export class CamperDrive extends TransformingDrive {
       );
     }
     let step = super.step(raw, ctx);
-    if (this.restoreCollision) {
+    if (this.restoreCollision && this.form === "car") {
       this.restoreCollision = false;
       step = { ...step, commands: [...undockCommands(), ...step.commands] };
     }
