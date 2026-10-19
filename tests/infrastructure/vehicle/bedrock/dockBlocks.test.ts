@@ -1,18 +1,25 @@
 import type { Entity } from "@minecraft/server";
 import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
-import type { FloorCell } from "../../../../src/domain/vehicle/floor";
+import type { DockCell } from "../../../../src/domain/vehicle/floor";
 import { cellKey } from "../../../../src/domain/vehicle/headlights";
-import { FloorBlocks } from "../../../../src/infrastructure/vehicle/bedrock/floorBlocks";
+import { DockBlocks } from "../../../../src/infrastructure/vehicle/bedrock/dockBlocks";
 import {
+  CAMPER_CEILING_BLOCK,
+  CAMPER_DOOR_BLOCK,
+  CAMPER_FLOOR_BLOCK,
+  CAMPER_WALL_BLOCK,
   DECK_CELLS_PROPERTY,
   DECK_FLOOR_BLOCK,
   DECK_FLOOR_HEIGHT_STATE,
+  ROOM_FACE_STATE,
+  ROOM_OPEN_STATE,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
+import { defined } from "../../../support/defined";
 
 vi.mock("@minecraft/server", () => ({
   BlockPermutation: {
-    resolve: (typeId: string, states: Record<string, number>) => ({
+    resolve: (typeId: string, states: Record<string, number | boolean>) => ({
       typeId,
       states,
     }),
@@ -23,7 +30,10 @@ const cell = fc.record({
   x: fc.integer({ min: -3, max: 3 }),
   y: fc.integer({ min: -3, max: 3 }),
   z: fc.integer({ min: -3, max: 3 }),
-  height: fc.integer({ min: 1, max: 16 }),
+  block: fc.record({
+    type: fc.constant("deck" as const),
+    height: fc.integer({ min: 1, max: 16 }),
+  }),
 });
 const cells = fc.uniqueArray(cell, {
   selector: cellKey,
@@ -33,20 +43,27 @@ const cells = fc.uniqueArray(cell, {
 
 type Unavailable = "throw" | "undefined" | undefined;
 
-const nextHeight = (c: FloorCell): FloorCell => ({
+const nextHeight = (c: DockCell): DockCell => ({
   ...c,
-  height: (c.height % 16) + 1,
+  block: {
+    type: "deck",
+    height: ((c.block.type === "deck" ? c.block.height : 0) % 16) + 1,
+  },
 });
 
 // Each dimension has its own blocks, so a test can tell which one was changed.
 function fakeDimension(id: string) {
-  const blocks = new Map<string, { typeId: string; height?: number }>();
+  const blocks = new Map<
+    string,
+    { typeId: string; states?: Record<string, number | boolean> }
+  >();
   let unavailable: Unavailable;
-  const at = (c: FloorCell) =>
+  const at = (c: DockCell) =>
     blocks.get(cellKey(c)) ?? { typeId: "minecraft:air" };
+  const writes: string[] = [];
   const dimension = {
     id,
-    getBlock: (c: FloorCell) => {
+    getBlock: (c: DockCell) => {
       if (unavailable === "throw") throw new Error("unloaded");
       if (unavailable === "undefined") return undefined;
       return {
@@ -59,17 +76,20 @@ function fakeDimension(id: string) {
         setType: (typeId: string) => blocks.set(cellKey(c), { typeId }),
         setPermutation: (p: {
           typeId: string;
-          states: Record<string, number>;
-        }) =>
-          blocks.set(cellKey(c), {
+          states: Record<string, number | boolean>;
+        }) => {
+          writes.push(cellKey(c));
+          return blocks.set(cellKey(c), {
             typeId: p.typeId,
-            height: p.states[DECK_FLOOR_HEIGHT_STATE],
-          }),
+            states: p.states,
+          });
+        },
       };
     },
   };
   return {
     dimension,
+    writes,
     at,
     blocks,
     unavailable: (mode: Unavailable) => {
@@ -90,6 +110,7 @@ function fixture() {
   } as unknown as Entity;
   return {
     car,
+    writes: overworld.writes,
     at: overworld.at,
     blocks: overworld.blocks,
     saved,
@@ -98,29 +119,35 @@ function fixture() {
   };
 }
 
-describe("FloorBlocks (ADR 0063)", () => {
+describe("DockBlocks (ADR 0063)", () => {
   it("persists placed cells, restores them after reload, resizes owned cells and clears them", () => {
     fc.assert(
       fc.property(cells, (wanted) => {
         const f = fixture();
-        const floors = new FloorBlocks();
+        const floors = new DockBlocks();
         floors.lay(f.car.id, f.car, wanted);
         for (const c of wanted)
           expect(f.at(c)).toEqual({
             typeId: DECK_FLOOR_BLOCK,
-            height: c.height,
+            states: {
+              [DECK_FLOOR_HEIGHT_STATE]:
+                c.block.type === "deck" ? c.block.height : NaN,
+            },
           });
         expect(f.savedCells()).toEqual(wanted);
         const resized = wanted.map(nextHeight);
-        const reloaded = new FloorBlocks();
+        const reloaded = new DockBlocks();
         reloaded.lay(f.car.id, f.car, resized);
         for (const c of resized)
           expect(f.at(c)).toEqual({
             typeId: DECK_FLOOR_BLOCK,
-            height: c.height,
+            states: {
+              [DECK_FLOOR_HEIGHT_STATE]:
+                c.block.type === "deck" ? c.block.height : NaN,
+            },
           });
         expect(f.savedCells()).toEqual(resized);
-        new FloorBlocks().lay(f.car.id, f.car, []);
+        new DockBlocks().lay(f.car.id, f.car, []);
         for (const c of wanted) expect(f.at(c).typeId).toBe("minecraft:air");
         expect(f.saved.get(DECK_CELLS_PROPERTY)).toBeUndefined();
       }),
@@ -131,7 +158,7 @@ describe("FloorBlocks (ADR 0063)", () => {
     fc.assert(
       fc.property(cells, (wanted) => {
         const f = fixture();
-        const floors = new FloorBlocks();
+        const floors = new DockBlocks();
         wanted.forEach((c, i) => {
           f.blocks.set(cellKey(c), {
             typeId:
@@ -163,7 +190,7 @@ describe("FloorBlocks (ADR 0063)", () => {
         fc.constantFrom("throw", "undefined"),
         (wanted, mode) => {
           const f = fixture();
-          const floors = new FloorBlocks();
+          const floors = new DockBlocks();
           f.unavailable(mode);
           floors.lay(f.car.id, f.car, wanted);
           expect(f.saved.get(DECK_CELLS_PROPERTY)).toBeUndefined();
@@ -187,7 +214,7 @@ describe("FloorBlocks (ADR 0063)", () => {
     fc.assert(
       fc.property(cells, (wanted) => {
         const f = fixture();
-        const floors = new FloorBlocks();
+        const floors = new DockBlocks();
         floors.lay(f.car.id, f.car, wanted);
         const before = f.saved.get(DECK_CELLS_PROPERTY);
         const resized = wanted.map(nextHeight);
@@ -206,7 +233,7 @@ describe("FloorBlocks (ADR 0063)", () => {
       fc.property(cells, cells, (wanted, there) => {
         const f = fixture();
         const nether = fakeDimension("nether");
-        const floors = new FloorBlocks();
+        const floors = new DockBlocks();
         floors.lay(f.car.id, f.car, wanted);
         for (const c of wanted)
           nether.blocks.set(cellKey(c), { typeId: DECK_FLOOR_BLOCK });
@@ -223,7 +250,10 @@ describe("FloorBlocks (ADR 0063)", () => {
         for (const c of there)
           expect(nether.at(c)).toEqual({
             typeId: DECK_FLOOR_BLOCK,
-            height: c.height,
+            states: {
+              [DECK_FLOOR_HEIGHT_STATE]:
+                c.block.type === "deck" ? c.block.height : NaN,
+            },
           });
         expect(f.savedCells()).toEqual(there);
       }),
@@ -238,7 +268,7 @@ describe("FloorBlocks (ADR 0063)", () => {
         (wanted, mode) => {
           const f = fixture();
           const nether = fakeDimension("nether");
-          const floors = new FloorBlocks();
+          const floors = new DockBlocks();
           floors.lay(f.car.id, f.car, wanted);
           f.unavailable(mode);
           Object.assign(f.car, { dimension: nether.dimension });
@@ -264,7 +294,88 @@ describe("FloorBlocks (ADR 0063)", () => {
   ])("ignores malformed saved floor cells: %s", (raw) => {
     const f = fixture();
     f.saved.set(DECK_CELLS_PROPERTY, raw);
-    expect(() => new FloorBlocks().lay(f.car.id, f.car, [])).not.toThrow();
+    expect(() => new DockBlocks().lay(f.car.id, f.car, [])).not.toThrow();
     expect(f.blocks.size).toBe(0);
   });
+});
+
+const roomCells: DockCell[] = [
+  { x: 0, y: 64, z: 0, block: { type: "deck", height: 9 } },
+  { x: 1, y: 64, z: 0, block: { type: "floor" } },
+  { x: 2, y: 64, z: 0, block: { type: "ceiling" } },
+  { x: 3, y: 64, z: 0, block: { type: "wall", face: 2 } },
+  { x: 4, y: 64, z: 0, block: { type: "door", face: 3, open: false } },
+];
+
+it("lays every block type with its states and changes only an opened door", () => {
+  const f = fixture();
+  const docks = new DockBlocks();
+  docks.lay(f.car.id, f.car, roomCells);
+  expect(roomCells.map(f.at)).toEqual([
+    { typeId: DECK_FLOOR_BLOCK, states: { [DECK_FLOOR_HEIGHT_STATE]: 9 } },
+    { typeId: CAMPER_FLOOR_BLOCK, states: undefined },
+    { typeId: CAMPER_CEILING_BLOCK, states: undefined },
+    { typeId: CAMPER_WALL_BLOCK, states: { [ROOM_FACE_STATE]: 2 } },
+    {
+      typeId: CAMPER_DOOR_BLOCK,
+      states: { [ROOM_FACE_STATE]: 3, [ROOM_OPEN_STATE]: false },
+    },
+  ]);
+  f.writes.length = 0;
+  const opened = roomCells.map((c) =>
+    c.block.type === "door" ? { ...c, block: { ...c.block, open: true } } : c,
+  );
+  docks.lay(f.car.id, f.car, opened);
+  expect(f.writes).toEqual([cellKey(defined(roomCells[4], "door cell"))]);
+  expect(f.at(defined(roomCells[4], "door cell")).states).toEqual({
+    [ROOM_FACE_STATE]: 3,
+    [ROOM_OPEN_STATE]: true,
+  });
+  new DockBlocks().lay(f.car.id, f.car, []);
+  for (const c of roomCells) expect(f.at(c).typeId).toBe("minecraft:air");
+});
+
+it("preserves replacements of wall and door cells", () => {
+  const f = fixture();
+  const docks = new DockBlocks();
+  docks.lay(f.car.id, f.car, roomCells);
+  for (const c of roomCells.slice(3))
+    f.blocks.set(cellKey(c), { typeId: "minecraft:stone" });
+  docks.lay(f.car.id, f.car, []);
+  for (const c of roomCells.slice(3))
+    expect(f.at(c).typeId).toBe("minecraft:stone");
+});
+
+it("clears saved deck cells from the legacy height-only format", () => {
+  const f = fixture();
+  const c = defined(roomCells[0], "deck cell");
+  f.saved.set(
+    DECK_CELLS_PROPERTY,
+    JSON.stringify([{ x: c.x, y: c.y, z: c.z, height: 9 }]),
+  );
+  f.blocks.set(cellKey(c), { typeId: DECK_FLOOR_BLOCK });
+  new DockBlocks().lay(f.car.id, f.car, []);
+  expect(f.at(c).typeId).toBe("minecraft:air");
+  expect(f.saved.get(DECK_CELLS_PROPERTY)).toBeUndefined();
+});
+
+it.each([
+  { type: "unknown" },
+  { type: "deck", height: 0 },
+  { type: "deck", height: 17 },
+  { type: "deck", height: 1.5 },
+  { type: "wall", face: -1 },
+  { type: "wall", face: 4 },
+  { type: "wall", face: 1.5 },
+  { type: "door", face: 0, open: "true" },
+  { type: "door", face: 4, open: true },
+  null,
+])("ignores invalid saved dock blocks: %j", (block) => {
+  const f = fixture();
+  f.saved.set(
+    DECK_CELLS_PROPERTY,
+    JSON.stringify([{ x: 0, y: 64, z: 0, block }]),
+  );
+  new DockBlocks().lay(f.car.id, f.car, []);
+  expect(f.blocks.size).toBe(0);
 });

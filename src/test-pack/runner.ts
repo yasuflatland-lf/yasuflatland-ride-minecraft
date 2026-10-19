@@ -958,7 +958,7 @@ const BOAT_DOCK_TEST = {
   holdTicks: 40,
   heightTolerance: 0.02,
   floorRadius: 3,
-  minFloorCells: 8,
+  minDeckCells: 8,
   undockTicks: 10,
   clearRadius: 4,
   departureTicks: 40,
@@ -1121,7 +1121,7 @@ function boatDock(a: Arena): Promise<Outcome> {
           pass:
             held &&
             maxHeightError <= BOAT_DOCK_TEST.heightTolerance &&
-            floorCount >= BOAT_DOCK_TEST.minFloorCells &&
+            floorCount >= BOAT_DOCK_TEST.minDeckCells &&
             leftDock &&
             remainingFloor === 0 &&
             distance >= BOAT_DOCK_TEST.minDeparture,
@@ -1178,6 +1178,7 @@ function boatDrag(a: Arena): Promise<Outcome> {
               // The replica stays afloat for the whole run.
               location: boat.location,
               waterAt: () => true,
+              blockTypes: (cells) => cells.map(() => "minecraft:air"),
               solidAt: () => false,
               targets: () => [],
             },
