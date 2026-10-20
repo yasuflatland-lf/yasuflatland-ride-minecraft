@@ -533,6 +533,71 @@ describe("stepMotion (properties, ADR 0002/0003)", () => {
     );
   });
 
+  it("a wall tick never flips the sign of the internal speed and never raises it (ADR 0077)", () => {
+    const speed = fc.double({
+      min: -SUV_SPEC.maxReverse,
+      max: SUV_SPEC.maxSpeed,
+      noNaN: true,
+    });
+    const yaw = fc.double({ min: -180, max: 180, noNaN: true });
+    const friction = fc.option(fc.double({ min: 0.5, max: 1, noNaN: true }), {
+      nil: undefined,
+    });
+    const stopped = fc.double({
+      min: MOTION.blockedAxisMin * 2,
+      max: 2,
+      noNaN: true,
+    });
+    const component = fc.double({ min: -2, max: 2, noNaN: true });
+    fc.assert(
+      fc.property(
+        speed,
+        yaw,
+        friction,
+        driveInput,
+        fc.boolean(),
+        stopped,
+        fc.boolean(),
+        component,
+        component,
+        (sp, y, fr, input, onX, st, negative, other, kept) => {
+          const s = negative ? -st : st;
+          const expected = onX ? { x: s, z: kept } : { x: kept, z: s };
+          const velocity = onX ? { x: 0, z: other } : { x: other, z: 0 };
+          const r = stepMotion(
+            { speed: sp, yaw: y, stepTicks: 0, friction: fr, expected },
+            input,
+            { velocity, onGround: true },
+            () => 0,
+            SUV_MOTION,
+          );
+          const free = updateSpeed(sp, input.throttle, input.creep, SUV_MOTION);
+          expect(r.blocked).toBe(true);
+          expect(Math.sign(r.state.speed) * Math.sign(free)).not.toBe(-1);
+          expect(Math.abs(r.state.speed)).toBeLessThanOrEqual(Math.abs(free));
+        },
+      ),
+    );
+  });
+
+  it("a wall that bounces a forward vehicle slightly backward stops it at 0 (ADR 0077)", () => {
+    const r = stepMotion(
+      {
+        speed: 0.1,
+        yaw: 0,
+        stepTicks: 0,
+        friction: 0.9,
+        expected: { x: 0, z: 0.5 },
+      },
+      NEUTRAL_INPUT,
+      { velocity: { x: 0, z: -0.01 }, onGround: true },
+      () => 0,
+      SUV_MOTION,
+    );
+    expect(r.blocked).toBe(true);
+    expect(r.state.speed).toBe(0);
+  });
+
   it("does not detect collisions without walls, including on landing", () => {
     fc.assert(
       fc.property(inputs, mu, terrain, (ins, m, ter) => {

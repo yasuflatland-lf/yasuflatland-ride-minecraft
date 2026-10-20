@@ -119,14 +119,14 @@ export function hitWall(v: Vec2, given: Vec2, keptRatio: number): boolean {
   return axisBlocked(v.x, given.x) || axisBlocked(v.z, given.z);
 }
 
-/** Lowers the internal speed to the actual forward speed after a wall hit. */
-function speedAfterWall(
-  speed: number,
-  vLong: number,
-  limits: MotionLimits,
-): number {
+/**
+ * Lowers the internal speed to the actual forward speed after a wall hit,
+ * but never past 0: a body bounced slightly backward by the wall must not
+ * turn forward speed into reverse (ADR 0077).
+ */
+function speedAfterWall(speed: number, vLong: number): number {
   if (Math.abs(vLong) >= Math.abs(speed)) return speed;
-  return clamp(vLong, -limits.maxReverse, limits.maxSpeed);
+  return speed > 0 ? clamp(vLong, 0, speed) : clamp(vLong, speed, 0);
 }
 
 export function stepMotion(
@@ -152,7 +152,7 @@ export function stepMotion(
     blocked = hitWall(v, e, limit);
     if (blocked) {
       // While colliding, freeze the friction estimate.
-      st.speed = speedAfterWall(st.speed, vLong, limits);
+      st.speed = speedAfterWall(st.speed, vLong);
     } else {
       const eLen2 = e.x * e.x + e.z * e.z;
       if (eLen2 > MOTION.minExpectedForFriction ** 2) {
@@ -245,7 +245,7 @@ export function stepMediumMotion(
       prev.mediumExpected,
       (medium.wallDrag ?? medium.drag) * MOTION.blockedRatio,
     );
-  if (blocked) speed = speedAfterWall(speed, vLong, limits);
+  if (blocked) speed = speedAfterWall(speed, vLong);
   const keepLat = 1 - limits.grip;
   const target = clampLength(
     {
