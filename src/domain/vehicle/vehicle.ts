@@ -4,6 +4,13 @@ import type { ClearCell, Departure, Dock } from "./dock";
 import type { Drive, EngineCommand, RiderState, TickContext } from "./drive";
 import type { RawInput } from "./driveInput";
 import { type Cell, headlightCells as cellsLitFrom } from "./headlights";
+import {
+  type HeldItem,
+  type Hint,
+  type HintControls,
+  type HintName,
+  hintAt,
+} from "./hints";
 import { EMPTY_COUNTER, type HitCounter, registerHit } from "./hitCounter";
 import type { VehicleKind } from "./kind";
 import type { ChaseCamera, VehicleProfile } from "./profile";
@@ -79,6 +86,9 @@ export class Vehicle {
   private lastSwitchUseTick = Number.NEGATIVE_INFINITY;
   /** Ticks since the last tick with a driver; infinite until the first driver (ADR 0078). */
   private driverlessTicks = Number.POSITIVE_INFINITY;
+  /** As of the last tick: held in place (ADR 0063, 0068), and nobody in the driver's seat or its deck seat. */
+  private docked = false;
+  private driverSeatFree = true;
 
   /** Called only by kinds/index.ts, which picks the drive for the kind. */
   constructor(
@@ -125,6 +135,39 @@ export class Vehicle {
     return this.profile.chaseCamera;
   }
 
+  /** Whether this kind shows hints to players on foot (ADR 0086). */
+  get showsHints(): boolean {
+    return this.profile.hints !== undefined;
+  }
+
+  /**
+   * The hint for a player on foot whose feet are `offset` from the vehicle's location.
+   * A hint already shown to them (`current`) keeps showing up to SPEC.hintExitMargin
+   * past its reach, so standing on the edge does not flicker (ADR 0086).
+   */
+  hint(
+    offset: Vec3,
+    held: HeldItem,
+    controls: HintControls,
+    current?: HintName,
+  ): Hint | undefined {
+    const view = {
+      kind: this.kind,
+      offset,
+      yaw: this.drive.yaw,
+      docked: this.docked,
+      driverSeatFree: this.driverSeatFree,
+      hasRiders: this.seats.size > 0,
+      held,
+      controls,
+    };
+    const seats = this.profile.seats.positions;
+    const hint = hintAt(this.profile.hints, seats, view);
+    if (hint || current === undefined) return hint;
+    const kept = hintAt(this.profile.hints, seats, view, SPEC.hintExitMargin);
+    return kept?.name === current ? kept : undefined;
+  }
+
   /** A player tapped the door of this vehicle's room. Returns whether it opened or closed (ADR 0068). */
   useDockDoor(): boolean {
     return this.drive.useDockDoor?.() ?? false;
@@ -142,13 +185,17 @@ export class Vehicle {
 
     const raw = driver?.raw ?? testInput;
     const taken = new Set(this.seats.values());
+    const deckSeatInputs = sensors.deckSeatInputs.map((deckInput, seat) =>
+      taken.has(seat) ? undefined : deckInput,
+    );
     const step = this.drive.step(raw, {
       ...sensors,
       awaitingDriver,
-      deckSeatInputs: sensors.deckSeatInputs.map((deckInput, seat) =>
-        taken.has(seat) ? undefined : deckInput,
-      ),
+      deckSeatInputs,
     });
+    this.docked = step.dock !== undefined;
+    // A deck seat's input is defined only while a player sits in it.
+    this.driverSeatFree = !taken.has(0) && deckSeatInputs[0] === undefined;
 
     return {
       dock: step.dock && {

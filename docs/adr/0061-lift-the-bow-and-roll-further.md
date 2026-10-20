@@ -1,6 +1,6 @@
 # 0061. Lift the sports boat bow the right way and roll it further
 
-- Status: Accepted
+- Status: Accepted (the 7-degree bow rise is superseded by [0085](0085-halve-the-sports-boat-bow-rise.md))
 - Date: 2026-10-12
 
 ## Context

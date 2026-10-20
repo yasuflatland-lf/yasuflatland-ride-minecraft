@@ -1,4 +1,5 @@
 import type { Vec2 } from "../shared/vec";
+import type { HintZones } from "./hints";
 import type { VehicleKind } from "./kind";
 import type { Paint } from "./paint";
 import type { PlacementRule } from "./placement";
@@ -38,4 +39,9 @@ export interface VehicleProfile {
   readonly chaseCamera: ChaseCamera;
   /** The paint the variant-0 slot (PAINTS[0]) shows for this kind (ADR 0076). */
   readonly defaultPaint: Paint;
+  /**
+   * Where players on foot get hints (ADR 0086). Absent = the kind shows no hints: the
+   * SUV and the boat take hits on their whole body.
+   */
+  readonly hints?: HintZones;
 }

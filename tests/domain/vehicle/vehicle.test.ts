@@ -12,7 +12,9 @@ import {
 import type { Drive } from "../../../src/domain/vehicle/drive";
 import type { RawInput } from "../../../src/domain/vehicle/driveInput";
 import { headlightCells } from "../../../src/domain/vehicle/headlights";
+import { HINTS } from "../../../src/domain/vehicle/hints";
 import { VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
+import { CAMPER_PROFILE } from "../../../src/domain/vehicle/kinds/camper/profile";
 import {
   createVehicle,
   profileOf,
@@ -845,4 +847,130 @@ it("blanks only the occupied dock seat in the outcome", () => {
   expect(outcome.dock?.seats[2]).toBeUndefined();
   for (const seat of [0, 1, 3])
     expect(outcome.dock?.seats[seat]).toEqual(seats[seat]);
+});
+
+describe("hints (ADR 0086)", () => {
+  const SEAT0 = defined(CAMPER_PROFILE.seats.positions[0], "seat 0");
+  const BUMPER = defined(CAMPER_PROFILE.hints?.bumper, "bumper zone");
+  const YAW = 0;
+  /** At yaw 0 a local point (x left, z ahead) is the same world offset. */
+  const beside = { x: SEAT0.x, y: 1, z: SEAT0.z - 1 };
+
+  function camper(docked: boolean) {
+    const drive: Drive = {
+      speed: 0,
+      yaw: YAW,
+      onDriverMounted() {},
+      onSeatVacated: () => [],
+      step: () => ({
+        impulse: { x: 0, y: 0, z: 0 },
+        forward: forward(YAW),
+        commands: [],
+        riders: { thirdPerson: false, underwater: false },
+        ...(docked && {
+          dock: { hold: { x: 0, y: 0, z: 0, yaw: YAW }, cells: [], seats: [] },
+        }),
+      }),
+    };
+    return new Vehicle("v", CAMPER_PROFILE, drive);
+  }
+
+  function tick(
+    vehicle: Vehicle,
+    riders: RiderView[] = [],
+    deckSeatInputs: (RawInput | undefined)[] = [],
+  ) {
+    vehicle.tick({
+      tick: 0,
+      riders,
+      deckSeatInputs,
+      velocity: { x: 0, y: 0, z: 0 },
+      onGround: true,
+      ...waterSensors(),
+      blockTypes: () => [],
+      solidAt: () => false,
+      targets: () => [],
+    });
+  }
+
+  it("offers the driver's seat only while parked", () => {
+    const parked = camper(true);
+    tick(parked);
+    expect(parked.hint(beside, "other", "mouse")).toEqual({
+      name: HINTS.driveMouse,
+    });
+    const driving = camper(false);
+    tick(driving);
+    expect(driving.hint(beside, "other", "mouse")).toBeUndefined();
+  });
+
+  it("offers the driver's seat only while nobody sits in it or on its deck seat", () => {
+    const onDeck = camper(true);
+    tick(onDeck, [], [IDLE]);
+    expect(onDeck.hint(beside, "other", "touch")).toBeUndefined();
+    const aboard = camper(true);
+    tick(aboard, [{ id: "r", offset: SEAT0, yaw: YAW, raw: IDLE }]);
+    expect(aboard.hint(beside, "other", "touch")).toBeUndefined();
+    const other = camper(true);
+    tick(other, [], [undefined, IDLE]);
+    expect(other.hint(beside, "other", "touch")).toEqual({
+      name: HINTS.driveTouch,
+    });
+  });
+
+  it("drops the pick-up hint while a rider keeps the camper whole, but still offers paint", () => {
+    const vehicle = camper(false);
+    tick(vehicle, [{ id: "r", offset: SEAT0, yaw: YAW, raw: IDLE }]);
+    const front = { x: 0, y: 0, z: BUMPER.boxZ + BUMPER.boxHalf + 0.5 };
+    expect(vehicle.hint(front, "other", "touch")).toBeUndefined();
+    expect(vehicle.hint(front, "dye", "touch")?.name).toBe(HINTS.paint);
+    expect(vehicle.receiveHit(0)).toBe(false);
+  });
+
+  it("keeps a shown bumper hint for a player who steps up to the margin into the body", () => {
+    fc.assert(
+      fc.property(
+        fc.double({ min: 0.01, max: SPEC.hintExitMargin - 0.01, noNaN: true }),
+        (inside) => {
+          const vehicle = camper(false);
+          tick(vehicle);
+          const at = { x: 0, y: 0, z: BUMPER.boxZ - inside };
+          expect(vehicle.hint(at, "other", "touch")).toBeUndefined();
+          expect(
+            vehicle.hint(at, "other", "touch", HINTS.bumperTouch)?.name,
+          ).toBe(HINTS.bumperTouch);
+        },
+      ),
+    );
+  });
+
+  it("keeps a shown hint up to the exit margin past its reach", () => {
+    fc.assert(
+      fc.property(
+        fc.double({ min: 0.01, max: SPEC.hintExitMargin - 0.01, noNaN: true }),
+        (past) => {
+          const vehicle = camper(false);
+          tick(vehicle);
+          const at = {
+            x: 0,
+            y: 0,
+            z: BUMPER.boxZ + BUMPER.boxHalf + BUMPER.reach + past,
+          };
+          expect(vehicle.hint(at, "dye", "touch")).toBeUndefined();
+          expect(vehicle.hint(at, "dye", "touch", HINTS.paint)).toEqual({
+            name: HINTS.paint,
+            with: [{ vehicle: "camper" }],
+          });
+          // Another hint than the one shown does not get the margin.
+          expect(
+            vehicle.hint(at, "dye", "touch", HINTS.bumperTouch),
+          ).toBeUndefined();
+          const beyond = { ...at, z: at.z + SPEC.hintExitMargin };
+          expect(
+            vehicle.hint(beyond, "dye", "touch", HINTS.paint),
+          ).toBeUndefined();
+        },
+      ),
+    );
+  });
 });

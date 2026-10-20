@@ -18,7 +18,7 @@
         },
         "yasu_ride:trim": {
           "type": "float",
-          "range": [0.0, 7.0],
+          "range": [0.0, 3.5],
           "default": 0.0,
           "client_sync": true
         },

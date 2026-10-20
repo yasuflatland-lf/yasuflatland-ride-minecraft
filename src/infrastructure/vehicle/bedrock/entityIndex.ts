@@ -24,6 +24,11 @@ export class EntityIndex {
     return new Set(this.current.keys());
   }
 
+  /** The vehicles tracked since the last clear(). */
+  tracked(): Entity[] {
+    return [...this.current.values()];
+  }
+
   entity(id: string): Entity | undefined {
     const e = this.current.get(id) ?? world.getEntity(id);
     return e?.isValid ? e : undefined;

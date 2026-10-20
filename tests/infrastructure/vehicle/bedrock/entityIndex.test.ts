@@ -39,6 +39,17 @@ describe("EntityIndex", () => {
     expect(index.entity("c")).toBeUndefined();
   });
 
+  it("lists the tracked entities until clear()", () => {
+    const index = new EntityIndex();
+    const a = stub("a");
+    const b = stub("b", false);
+    index.track(a);
+    index.track(b);
+    expect(index.tracked()).toEqual([a, b]);
+    index.clear();
+    expect(index.tracked()).toEqual([]);
+  });
+
   it("forgets tracked entities on clear()", () => {
     const index = new EntityIndex();
     index.track(stub("a"));

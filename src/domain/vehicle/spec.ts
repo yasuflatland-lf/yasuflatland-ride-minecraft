@@ -25,4 +25,9 @@ export const SPEC = {
   // Vehicle limit (ADR 0038, ADR 0066)
   maxUnownedVehicles: 10, // vehicles with no owner (summoned, or placed before ADR 0066), all kinds together
   maxEvicted: 64, // evicted vehicles remembered until their chunk loads; one dropped from the list joins again as the oldest when it loads
+  // Hints near a vehicle (ADR 0086)
+  hintCheckInterval: 5, // ticks; 0.25 s is quick enough for a walking player and spares the per-tick scan
+  hintRefreshTicks: 40, // ticks; assumes the action bar stays up longer than 2 s, which is undocumented and not yet measured (ADR 0086)
+  hintShowTicks: 100, // ticks a hint keeps being re-sent after a player comes near; then it fades until they leave or pick up another item
+  hintExitMargin: 0.5, // blocks past the reach a shown hint keeps showing, so standing on the edge does not flicker
 } as const;
