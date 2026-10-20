@@ -1,6 +1,6 @@
 # 0068. Park the camper with room blocks
 
-- Status: Accepted
+- Status: Accepted (the front deck seat rise is superseded by [0070](0070-raise-the-camper-front-seats.md))
 - Date: 2026-10-19
 
 ## Context

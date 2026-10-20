@@ -252,7 +252,7 @@ it("puts four deck seats at the profile's horizontal positions and the measured 
         expect(s.x).toBe(world[i]?.x);
         expect(s.z).toBe(world[i]?.z);
         expect(s.y).toBeCloseTo(
-          p.y + defined([0.58, 0.58, 0.68, 0.68][i], "rise"),
+          p.y + defined([0.98, 0.98, 0.68, 0.68][i], "rise"),
         );
       });
     }),
@@ -338,7 +338,7 @@ it("snaps the body and floor together above low ground and down through lower sn
         ).toBe(true);
         expect(parkCheckCells(p).every((c) => c.y >= layer)).toBe(true);
         expect(departure(p).exit?.y).toBe(layer);
-        expect(deckSeats(p)[0]?.y).toBeCloseTo(layer + 0.58);
+        expect(deckSeats(p)[0]?.y).toBeCloseTo(layer + 0.98);
       },
     ),
   );
