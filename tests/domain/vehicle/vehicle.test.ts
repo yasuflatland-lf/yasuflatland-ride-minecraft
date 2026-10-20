@@ -942,6 +942,17 @@ describe("hints (ADR 0086)", () => {
     );
   });
 
+  it("keeps a shown paint hint beside the door side where the widened driver's seat zone reaches (issue #355)", () => {
+    const vehicle = camper(true);
+    tick(vehicle);
+    const at = { x: -2.6, y: 1, z: 2.1 };
+    expect(vehicle.hint(at, "dye", "touch")).toBeUndefined();
+    expect(vehicle.hint(at, "dye", "touch", HINTS.paint)).toEqual({
+      name: HINTS.paint,
+      with: [{ vehicle: "camper" }],
+    });
+  });
+
   it("keeps a shown hint up to the exit margin past its reach", () => {
     fc.assert(
       fc.property(

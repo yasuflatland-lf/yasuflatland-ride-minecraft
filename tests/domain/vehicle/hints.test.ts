@@ -14,6 +14,7 @@ import {
   hintAt,
   NO_HINT,
   stepHint,
+  zoneOf,
 } from "../../../src/domain/vehicle/hints";
 import { CAMPER_PROFILE } from "../../../src/domain/vehicle/kinds/camper/profile";
 import { CAMPER_SPEC } from "../../../src/domain/vehicle/kinds/camper/spec";
@@ -214,7 +215,7 @@ describe("hintAt", () => {
     );
   });
 
-  it("keeps every hint when the reach widens", () => {
+  it("keeps every hint within its own zone when the reach widens", () => {
     fc.assert(
       fc.property(
         viewArb,
@@ -222,10 +223,44 @@ describe("hintAt", () => {
         (s, margin) => {
           const hint = hintAt(ZONES, SEATS, viewOf(s));
           if (hint)
-            expect(hintAt(ZONES, SEATS, viewOf(s), margin)).toEqual(hint);
+            expect(
+              hintAt(zoneOf(ZONES, hint.name), SEATS, viewOf(s), margin),
+            ).toEqual(hint);
         },
       ),
     );
+  });
+
+  it("keeps the paint hint where a widened driver's seat zone overlaps it (issue #355)", () => {
+    const view = viewOf({
+      x: 0.0003,
+      y: 0.5003,
+      z: 3.7003,
+      yaw: 0,
+      docked: true,
+      driverSeatFree: true,
+      hasRiders: false,
+      held: "dye",
+      controls: "touch",
+    });
+    const paint = { name: HINTS.paint, with: [{ vehicle: "camper" }] };
+    expect(hintAt(ZONES, SEATS, view)).toEqual(paint);
+    // The whole prioritized result switches to the seat, so the retry uses one zone.
+    expect(hintAt(ZONES, SEATS, view, 0.2675)).toEqual({
+      name: HINTS.driveTouch,
+    });
+    expect(hintAt(zoneOf(ZONES, HINTS.paint), SEATS, view, 0.2675)).toEqual(
+      paint,
+    );
+  });
+
+  it("holds each hint by the zone that gives it", () => {
+    for (const name of Object.values(HINTS))
+      expect(zoneOf(ZONES, name)).toEqual(
+        name.startsWith("drive_")
+          ? { driverSeat: SEAT_ZONE }
+          : { bumper: BUMPER },
+      );
   });
 
   it("shows the seat hint to a player standing beside the driver's seat in the room", () => {
