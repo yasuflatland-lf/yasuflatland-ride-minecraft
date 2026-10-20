@@ -4,11 +4,11 @@ import { MOTION } from "./constants";
 export type SolidAt = (ahead: number, side: number, dy: number) => boolean;
 
 /** The 3 look-ahead rays (center, left, right; a positive side is the vehicle's right). */
-export const STEP_LANES: readonly number[] = [
+export const STEP_LANES: readonly number[] = Object.freeze([
   0,
   -MOTION.stepLaneOffset,
   MOTION.stepLaneOffset,
-];
+]);
 
 // Block centers the vehicle would occupy standing on a step of `height`, so
 // the clearance check follows the body height (1.6 gives height + 0.5 and

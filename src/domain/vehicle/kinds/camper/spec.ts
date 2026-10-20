@@ -3,7 +3,7 @@ import type { TransformingSpec } from "../../motion/transforming";
 
 // The camper's own tuning values (ADR 0067). Values marked "as the SUV" repeat the SUV's
 // numbers because the owner asked for the same behavior; they are not shared constants.
-export const CAMPER_SPEC = {
+export const CAMPER_SPEC = Object.freeze({
   // Driving (ADR 0002, 0067)
   maxSpeed: 0.9, // blocks/tick, as the SUV (owner's choice)
   maxReverse: 0.15,
@@ -22,7 +22,7 @@ export const CAMPER_SPEC = {
   bodyFront: 3.7, // the front bumper
   bodyRear: 3.9, // the rear ladder
   bodyHalfWidth: 1.5, // the tires' outer faces
-  headlightReach: [4, 9, 15, 21, 27], // as the SUV (ADR 0020)
+  headlightReach: Object.freeze([4, 9, 15, 21, 27] as const), // as the SUV (ADR 0020)
   // Bumper hitboxes (ADR 0084): 1 x 1 x 1 boxes side by side at z = bodyFront
   bumperBoxXs: [-1, 0, 1],
   bumperBoxY: 0.5, // the box center; the boxes span the bottom block of the body
@@ -54,16 +54,16 @@ export const CAMPER_SPEC = {
   gearDownHeight: 4,
   gearProbeOffset: 1.2, // inside the 3-wide collision box, as the SUV's 0.8 inside 1.8
   bankSink: 0.03,
-} as const;
+} as const);
 
-export const CAMPER_AIR: Medium = {
+export const CAMPER_AIR: Medium = Object.freeze({
   drag: CAMPER_SPEC.flightDrag,
   maxSpeed: CAMPER_SPEC.maxSpeed,
-};
-export const CAMPER_WATER: Medium = {
+});
+export const CAMPER_WATER: Medium = Object.freeze({
   drag: CAMPER_SPEC.waterDrag,
   maxSpeed: CAMPER_SPEC.maxWaterSpeed,
-};
+});
 
 export const CAMPER_TRANSFORMING: TransformingSpec = Object.freeze({
   carHeight: CAMPER_SPEC.carHeight,

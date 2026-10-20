@@ -1,5 +1,5 @@
 // Tuning values the vehicle core reads (ADR 0055). See docs/adr/0002-0008 for the rationale.
-export const SPEC = {
+export const SPEC = Object.freeze({
   // Input (ADR 0018)
   throttleDeadzone: 0.1,
   throttleFullAt: 0.5,
@@ -30,4 +30,4 @@ export const SPEC = {
   hintRefreshTicks: 40, // ticks; assumes the action bar stays up longer than 2 s, which is undocumented and not yet measured (ADR 0086)
   hintShowTicks: 100, // ticks a hint keeps being re-sent after a player comes near; then it fades until they leave or pick up another item
   hintExitMargin: 0.5, // blocks past the reach a shown hint keeps showing, so standing on the edge does not flicker
-} as const;
+} as const);
