@@ -34,6 +34,10 @@ coverage:
   status:
     project:
       default:
+        # Refactors that delete or move covered lines lower the ratio by a few
+        # hundredths of a percent with no new untested code; the patch status
+        # still catches untested additions.
+        threshold: 0.1%
         paths:
           - src/domain/**
           - src/application/**
