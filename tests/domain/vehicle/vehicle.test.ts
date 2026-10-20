@@ -151,7 +151,7 @@ class Sim {
       this.impulseY.push(out.impulse.y);
       this.hits.push(...out.hits.map((h) => h.id));
       this.events.push(
-        ...out.seatCommands
+        ...out.finalCommands
           .filter((c) => c.type === "playAnimation")
           .map(
             (c) =>
@@ -737,10 +737,13 @@ describe("Vehicle water depth context", () => {
             targets: () => [],
           };
           const out = vehicle.tick(ctx);
-          expect(propertyValue(out.commands, "form")).toBe("submarine");
+          expect(propertyValue(out.stepCommands, "form")).toBe("submarine");
           expect(out.riders.underwater).toBe(true);
           expect(
-            propertyValue(vehicle.tick({ ...ctx, tick: 1 }).commands, "form"),
+            propertyValue(
+              vehicle.tick({ ...ctx, tick: 1 }).stepCommands,
+              "form",
+            ),
           ).toBeUndefined();
         },
       ),
@@ -761,7 +764,7 @@ describe("Vehicle water depth context", () => {
           blockTypes: () => [],
           solidAt: () => false,
           targets: () => [],
-        }).commands,
+        }).stepCommands,
         "form",
       ),
     ).toBe("car");
@@ -792,7 +795,7 @@ it("concatenates seat commands in seat order when multiple riders leave", () => 
     solidAt: () => false,
     targets: () => [],
   });
-  expect(out.seatCommands).toStrictEqual(
+  expect(out.finalCommands).toStrictEqual(
     DOOR_BY_SEAT.flatMap((name) => [
       { type: "playAnimation", name },
       { type: "playSound", name: "random.door_open" },

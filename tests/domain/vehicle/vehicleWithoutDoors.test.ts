@@ -48,5 +48,5 @@ it("emits no seat commands when the drive has no doors", () => {
     solidAt: () => false,
     targets: () => [],
   });
-  expect(out.seatCommands).toStrictEqual([]);
+  expect(out.finalCommands).toStrictEqual([]);
 });

@@ -24,6 +24,36 @@ export interface VehicleTickInput extends TickContext {
   testInput?: RawInput;
 }
 
+/**
+ * What one vehicle does this tick. The application's per-vehicle tick
+ * applies it with these world calls, in this order, and a throw skips the
+ * rest of that vehicle's tick (ADR 0055). Steps 3, 9, 10 and 11 run every
+ * tick: with nothing to keep, they release what the vehicle held, seated,
+ * laid or lit before.
+ *
+ * 1. `stepCommands`, in order, before anything else that could throw,
+ *    because drives send them only on change (ADR 0055).
+ * 2. `message` on the action bar of `driverId`, only when there is one.
+ * 3. `dock.hold`; with no `dock`, the hold is released (ADR 0063, 0064).
+ * 4. `clear`, when not empty, before the dock's cells are laid (ADR 0068).
+ * 5. `riders` is collected. After every vehicle has ticked, the chase
+ *    cameras are synced (ADR 0028, 0071), and water breathing is refreshed
+ *    every `SPEC.waterBreathingInterval` ticks (ADR 0040).
+ * 6. `impulse` and `yaw`, only when there is no `dock`: a docked vehicle is
+ *    held instead of moved (ADR 0063).
+ * 7. `boardDeckRiders`: the deck-seat riders move into the vehicle
+ *    (ADR 0063), before standing players are seated (ADR 0068).
+ * 8. `depart`: seat the standing players, nearest first, and move those
+ *    left without a seat to the exit (ADR 0068).
+ * 9. `dock.seats` at `yaw`, after boarding and departure; with no `dock`,
+ *    the deck seats are removed.
+ * 10. `dock.cells`; with no `dock`, the laid cells are cleared.
+ * 11. Headlight cells along the vehicle's heading after this tick, or none
+ *     when its headlights are off (ADR 0020).
+ * 12. `hits`, credited to `driverId`.
+ * 13. `finalCommands`, last: the vacated seats' commands, such as the door
+ *     animation (ADR 0007, 0055).
+ */
 export interface TickOutcome {
   dock?: Dock;
   clear: readonly ClearCell[];
@@ -34,8 +64,8 @@ export interface TickOutcome {
   yaw: number;
   hits: RamHit[];
   driverId?: string;
-  commands: readonly EngineCommand[];
-  seatCommands: readonly EngineCommand[];
+  stepCommands: readonly EngineCommand[];
+  finalCommands: readonly EngineCommand[];
   riders: RiderState;
 }
 
@@ -132,8 +162,8 @@ export class Vehicle {
       yaw: this.drive.yaw,
       hits: this.ram(input, step.forward),
       driverId: driver?.id,
-      commands: step.commands,
-      seatCommands,
+      stepCommands: step.commands,
+      finalCommands: seatCommands,
       riders: step.riders,
     };
   }

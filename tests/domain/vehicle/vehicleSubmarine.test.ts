@@ -109,16 +109,16 @@ class DiveSim {
       solidAt: (offset) => this.y + offset.y < 0 || this.obstacle(offset),
       targets: this.targets,
     });
-    const form = propertyValue(out.commands, "form") as Form | undefined;
+    const form = propertyValue(out.stepCommands, "form") as Form | undefined;
     if (form) {
       this.changes.push(form);
       this.form = form;
     }
-    const gear = propertyValue(out.commands, "gear_down");
+    const gear = propertyValue(out.stepCommands, "gear_down");
     if (typeof gear === "boolean") this.wheelsDown = gear;
-    const bank = propertyValue(out.commands, "bank");
+    const bank = propertyValue(out.stepCommands, "bank");
     if (typeof bank === "number") this.bankAngle = bank;
-    for (const command of out.commands)
+    for (const command of out.stepCommands)
       if (command.type === "triggerEvent")
         this.gravity = command.name === "gravity_on";
     const underwater = this.form === "submarine";
@@ -411,7 +411,7 @@ describe("Vehicle as a submarine", () => {
             // The client sees every new angle: it is sent on the tick it
             // changes, and on the first tick (ADR 0026). The drive's own
             // angle is the reference, so a skipped send cannot hide.
-            const bank = propertyValue(out.commands, "bank");
+            const bank = propertyValue(out.stepCommands, "bank");
             if (drive.bankAngle !== sent) {
               expect(bank).toBe(drive.bankAngle);
               if (
@@ -422,8 +422,8 @@ describe("Vehicle as a submarine", () => {
             }
             if (typeof bank === "number") sent = bank;
             expect(
-              propertyValue(out.commands, "gear_down") === undefined ||
-                propertyValue(out.commands, "gear_down"),
+              propertyValue(out.stepCommands, "gear_down") === undefined ||
+                propertyValue(out.stepCommands, "gear_down"),
             ).toBe(true);
             expect(length(sim.body.vel)).toBeLessThanOrEqual(
               SUV_SPEC.maxWaterSpeed + 1e-9,
