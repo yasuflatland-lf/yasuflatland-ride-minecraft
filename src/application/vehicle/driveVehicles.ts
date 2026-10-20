@@ -1,6 +1,5 @@
 // Use case: every tick, move all loaded vehicles.
-import { headlightCells } from "../../domain/vehicle/headlights";
-import { profileOf, rebuildVehicle } from "../../domain/vehicle/kinds/index";
+import { rebuildVehicle } from "../../domain/vehicle/kinds/index";
 import type { ChaseCamera } from "../../domain/vehicle/profile";
 import { SPEC } from "../../domain/vehicle/spec";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
@@ -60,7 +59,7 @@ export class DriveVehicles {
         this.world.holdAt(snap.id, out.dock?.hold);
         if (out.clear.length > 0) this.world.clearBlocks(snap.id, out.clear);
         if (out.riders.thirdPerson) {
-          const camera = profileOf(vehicle.kind).chaseCamera;
+          const camera = vehicle.chaseCamera;
           for (const rider of snap.riders) offRoad.set(rider.id, camera);
         }
         if (out.riders.underwater)
@@ -72,13 +71,7 @@ export class DriveVehicles {
         this.world.layDock(snap.id, out.dock?.cells ?? []);
         this.world.shineHeadlights(
           snap.id,
-          snap.headlights
-            ? headlightCells(
-                snap.location,
-                out.yaw,
-                profileOf(vehicle.kind).beams,
-              )
-            : [],
+          snap.headlights ? vehicle.headlightCells(snap.location) : [],
         );
         for (const hit of out.hits) this.world.damage(hit, out.driverId);
         this.world.run(snap.id, out.seatCommands);

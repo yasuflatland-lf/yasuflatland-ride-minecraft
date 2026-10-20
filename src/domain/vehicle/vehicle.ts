@@ -4,9 +4,10 @@ import type { ClearCell, Departure, Dock } from "./dock";
 import type { Drive, EngineCommand, RiderState, TickContext } from "./drive";
 import type { RawInput } from "./driveInput";
 import type { VehicleEvent } from "./events";
+import { type Cell, headlightCells as cellsLitFrom } from "./headlights";
 import { EMPTY_COUNTER, type HitCounter, registerHit } from "./hitCounter";
 import type { VehicleKind } from "./kind";
-import type { VehicleProfile } from "./profile";
+import type { ChaseCamera, VehicleProfile } from "./profile";
 import { type RamHit, selectHits } from "./ram";
 import { occupiedSeats, vacatedSeats } from "./seats";
 import { SPEC } from "./spec";
@@ -79,6 +80,16 @@ export class Vehicle {
 
   get yaw(): number {
     return this.drive.yaw;
+  }
+
+  /** Cells the headlights light with the vehicle at `location`, along its current heading (ADR 0020). */
+  headlightCells(location: Vec3): Cell[] {
+    return cellsLitFrom(location, this.drive.yaw, this.profile.beams);
+  }
+
+  /** The camera this kind gives riders while the drive asks for third person: in flight and in submarine form (ADR 0028, 0040, 0071). */
+  get chaseCamera(): ChaseCamera {
+    return this.profile.chaseCamera;
   }
 
   /** A player tapped the door of this vehicle's room. Returns whether it opened or closed (ADR 0068). */
