@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { asVehicleId } from "../../../src/domain/shared/ids";
+import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
 import {
   dot,
   forward,
@@ -124,7 +124,7 @@ class Sim {
   run(v: Vehicle, ticks: number, from = 0) {
     for (let t = from; t < from + ticks; t++) {
       const riders: RiderView[] = this.riders.map((r) => ({
-        id: r.id,
+        id: asPlayerId(r.id),
         offset: seatOffset(this.yaw, r.seat),
         yaw: r.yaw,
         raw: r.raw,
@@ -182,7 +182,7 @@ describe("Vehicle (aggregate)", () => {
           tick: 0,
           riders: [
             {
-              id: "driver",
+              id: asPlayerId("driver"),
               offset: defined(SUV_PROFILE.seats.positions[0], "driver seat"),
               yaw: 0,
               raw: { ...FORWARD, moveY: throttle },
@@ -359,7 +359,7 @@ describe("Vehicle (aggregate)", () => {
             ...passengers.slice(i),
           ];
           const riders: RiderView[] = sim.riders.map((r) => ({
-            id: r.id,
+            id: asPlayerId(r.id),
             offset: seatOffset(0, r.seat),
             yaw: r.yaw,
             raw: r.raw,
@@ -511,7 +511,7 @@ describe("Vehicle (aggregate)", () => {
     sim.run(v, 10);
     sim.riders = [{ id: "d", seat: 1, yaw: 0, raw: FORWARD }];
     sim.run(v, 1, 10);
-    expect(v.flipHeadlightSwitch("d", 100)).toBe(true);
+    expect(v.flipHeadlightSwitch(asPlayerId("d"), 100)).toBe(true);
   });
 
   it("makes the passenger who moved up to the driver's seat the driver once the driver leaves", () => {
@@ -524,7 +524,7 @@ describe("Vehicle (aggregate)", () => {
     sim.run(v, 5);
     sim.riders = [{ id: "p", seat: 0, yaw: 0, raw: IDLE }];
     sim.run(v, 1, 5);
-    expect(v.flipHeadlightSwitch("p", 100)).toBe(true);
+    expect(v.flipHeadlightSwitch(asPlayerId("p"), 100)).toBe(true);
   });
 
   it("when the driver disappears (e.g. disconnects), emits the driver's door event once and the vehicle coasts to a stop", () => {
@@ -594,7 +594,7 @@ describe("Vehicle (aggregate)", () => {
             })),
           ];
           const riders: RiderView[] = sim.riders.map((r) => ({
-            id: r.id,
+            id: asPlayerId(r.id),
             offset: seatOffset(yaw, r.seat),
             yaw: r.yaw,
             raw: r.raw,
@@ -612,13 +612,13 @@ describe("Vehicle (aggregate)", () => {
 
 describe("Vehicle headlight switch (ADR 0020)", () => {
   const driver: RiderView = {
-    id: "d",
+    id: asPlayerId("d"),
     offset: seatOffset(0, 0),
     yaw: 0,
     raw: IDLE,
   };
   const passenger: RiderView = {
-    id: "p",
+    id: asPlayerId("p"),
     offset: seatOffset(0, 1),
     yaw: 0,
     raw: IDLE,
@@ -632,14 +632,17 @@ describe("Vehicle headlight switch (ADR 0020)", () => {
       [driver, passenger],
       {},
     );
-    expect(v.flipHeadlightSwitch("p", 0)).toBe(false);
-    expect(v.flipHeadlightSwitch("outsider", 0)).toBe(false);
-    expect(v.flipHeadlightSwitch("d", 0)).toBe(true);
+    expect(v.flipHeadlightSwitch(asPlayerId("p"), 0)).toBe(false);
+    expect(v.flipHeadlightSwitch(asPlayerId("outsider"), 0)).toBe(false);
+    expect(v.flipHeadlightSwitch(asPlayerId("d"), 0)).toBe(true);
   });
 
   it("does not flip for anyone when nobody drives", () => {
     expect(
-      createVehicle("suv", asVehicleId("v"), 0).flipHeadlightSwitch("d", 0),
+      createVehicle("suv", asVehicleId("v"), 0).flipHeadlightSwitch(
+        asPlayerId("d"),
+        0,
+      ),
     ).toBe(false);
   });
 
@@ -656,7 +659,7 @@ describe("Vehicle headlight switch (ADR 0020)", () => {
               i === 0 ||
               t - defined(ticks[i - 1], "previous use") >=
                 SPEC.headlightSwitchCooldown;
-            expect(v.flipHeadlightSwitch("d", t)).toBe(idle);
+            expect(v.flipHeadlightSwitch(asPlayerId("d"), t)).toBe(idle);
           });
         },
       ),
@@ -696,7 +699,7 @@ describe("Vehicle headlight cells and chase camera (ADR 0020, 0071)", () => {
           tick: 0,
           riders: [
             {
-              id: "d",
+              id: asPlayerId("d"),
               offset: { x: l.x * s.x + f.x * s.z, z: l.z * s.x + f.z * s.z },
               yaw: driverYaw,
               raw: IDLE,
@@ -801,7 +804,7 @@ it("concatenates seat commands in seat order when multiple riders leave", () => 
     asVehicleId("v"),
     0,
     [3, 1, 2, 0].map((seat) => ({
-      id: `r${seat}`,
+      id: asPlayerId(`r${seat}`),
       offset: seatOffset(0, seat),
       yaw: 0,
       raw: IDLE,
@@ -852,7 +855,7 @@ it("blanks only the occupied dock seat in the outcome", () => {
     tick: 0,
     riders: [
       {
-        id: "r",
+        id: asPlayerId("r"),
         offset: defined(SPORTSBOAT_PROFILE.seats.positions[2], "seat 2"),
         yaw: 0,
         raw: IDLE,
@@ -931,7 +934,7 @@ describe("hints (ADR 0086)", () => {
     tick(onDeck, [], [IDLE]);
     expect(onDeck.hint(beside, "other", "touch")).toBeUndefined();
     const aboard = camper(true);
-    tick(aboard, [{ id: "r", offset: SEAT0, yaw: YAW, raw: IDLE }]);
+    tick(aboard, [{ id: asPlayerId("r"), offset: SEAT0, yaw: YAW, raw: IDLE }]);
     expect(aboard.hint(beside, "other", "touch")).toBeUndefined();
     const other = camper(true);
     tick(other, [], [undefined, IDLE]);
@@ -942,7 +945,9 @@ describe("hints (ADR 0086)", () => {
 
   it("drops the pick-up hint while a rider keeps the camper whole, but still offers paint", () => {
     const vehicle = camper(false);
-    tick(vehicle, [{ id: "r", offset: SEAT0, yaw: YAW, raw: IDLE }]);
+    tick(vehicle, [
+      { id: asPlayerId("r"), offset: SEAT0, yaw: YAW, raw: IDLE },
+    ]);
     const front = { x: 0, y: 0, z: BUMPER.boxZ + BUMPER.boxHalf + 0.5 };
     expect(vehicle.hint(front, "other", "touch")).toBeUndefined();
     expect(vehicle.hint(front, "dye", "touch")?.name).toBe(HINTS.paint);

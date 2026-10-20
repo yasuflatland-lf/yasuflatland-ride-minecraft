@@ -1,6 +1,10 @@
 import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { asVehicleId } from "../../../../src/domain/shared/ids";
+import {
+  asDimensionId,
+  asPlayerId,
+  asVehicleId,
+} from "../../../../src/domain/shared/ids";
 import type { EngineCommand } from "../../../../src/domain/vehicle/drive";
 import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
 import { SPEC } from "../../../../src/domain/vehicle/spec";
@@ -122,9 +126,15 @@ describe("BedrockPlacementWorld (ADR 0066)", () => {
     (kind) => {
       const { dimension, car, placement } = fixture();
       dimension.spawnEntity.mockReturnValue(car);
-      const ownerId = "placing-player";
+      const ownerId = asPlayerId("placing-player");
       expect(
-        placement.spawnVehicle("overworld", car.location, 45, kind, ownerId),
+        placement.spawnVehicle(
+          asDimensionId("overworld"),
+          car.location,
+          45,
+          kind,
+          ownerId,
+        ),
       ).toBe(car.id);
       expect(dimension.spawnEntity).toHaveBeenCalledExactlyOnceWith(
         ENTITY_TYPE[kind],
@@ -153,7 +163,11 @@ describe("BedrockPlacementWorld water query (ADR 0051)", () => {
       const { dimension, placement } = fixture();
       dimension.getBlock.mockReturnValue({ typeId, isWaterlogged: false });
       expect(
-        placement.isWaterAt("overworld", { x: 1.7, y: 64.2, z: -0.5 }),
+        placement.isWaterAt(asDimensionId("overworld"), {
+          x: 1.7,
+          y: 64.2,
+          z: -0.5,
+        }),
       ).toBe(true);
       expect(game.getDimension).toHaveBeenCalledWith("overworld");
       expect(dimension.getBlock).toHaveBeenCalledWith({ x: 1, y: 64, z: -1 });
@@ -166,18 +180,26 @@ describe("BedrockPlacementWorld water query (ADR 0051)", () => {
       typeId: "minecraft:kelp",
       isWaterlogged: true,
     });
-    expect(placement.isWaterAt("overworld", { x: 0, y: 64, z: 0 })).toBe(true);
+    expect(
+      placement.isWaterAt(asDimensionId("overworld"), { x: 0, y: 64, z: 0 }),
+    ).toBe(true);
     dimension.getBlock.mockReturnValueOnce({
       typeId: "minecraft:air",
       isWaterlogged: false,
     });
-    expect(placement.isWaterAt("overworld", { x: 0, y: 64, z: 0 })).toBe(false);
+    expect(
+      placement.isWaterAt(asDimensionId("overworld"), { x: 0, y: 64, z: 0 }),
+    ).toBe(false);
     dimension.getBlock.mockImplementationOnce(() => {
       throw new Error("unloaded");
     });
-    expect(placement.isWaterAt("overworld", { x: 0, y: 64, z: 0 })).toBe(false);
+    expect(
+      placement.isWaterAt(asDimensionId("overworld"), { x: 0, y: 64, z: 0 }),
+    ).toBe(false);
     dimension.getBlock.mockReturnValueOnce(undefined);
-    expect(placement.isWaterAt("overworld", { x: 0, y: 64, z: 0 })).toBe(false);
+    expect(
+      placement.isWaterAt(asDimensionId("overworld"), { x: 0, y: 64, z: 0 }),
+    ).toBe(false);
   });
 
   it("is dry in an unknown dimension", () => {
@@ -185,7 +207,9 @@ describe("BedrockPlacementWorld water query (ADR 0051)", () => {
     game.getDimension.mockImplementation(() => {
       throw new Error("unknown");
     });
-    expect(placement.isWaterAt("nowhere", { x: 0, y: 0, z: 0 })).toBe(false);
+    expect(
+      placement.isWaterAt(asDimensionId("nowhere"), { x: 0, y: 0, z: 0 }),
+    ).toBe(false);
   });
 });
 
@@ -263,8 +287,8 @@ describe("BedrockVehicleWorld submarine wiring (ADR 0040)", () => {
     game.getEntity.mockImplementation((id: string) =>
       id === "rider" ? { typeId: "minecraft:player", addEffect } : undefined,
     );
-    world.giveWaterBreathing("rider", SPEC.waterBreathingTicks);
-    world.giveWaterBreathing("missing", SPEC.waterBreathingTicks);
+    world.giveWaterBreathing(asPlayerId("rider"), SPEC.waterBreathingTicks);
+    world.giveWaterBreathing(asPlayerId("missing"), SPEC.waterBreathingTicks);
     expect(addEffect.mock.calls).toEqual([
       ["water_breathing", SPEC.waterBreathingTicks, { showParticles: false }],
     ]);
@@ -336,7 +360,7 @@ describe("BedrockVehicleWorld snapshots", () => {
   it("gives the item of the requested kind", () => {
     for (const kind of VEHICLE_KINDS) {
       const { inventory } = fixture();
-      const playerId = "player";
+      const playerId = asPlayerId("player");
       const addItem = vi.fn();
       const player = {
         id: playerId,
@@ -488,10 +512,10 @@ describe("BedrockVehicleWorld flight wiring", () => {
     game.getEntity.mockImplementation((id: string) =>
       id === "rider" ? { typeId: "minecraft:player", camera } : undefined,
     );
-    world.setChaseCamera("rider", "near");
+    world.setChaseCamera(asPlayerId("rider"), "near");
     expect(camera.setCamera.mock.calls).toEqual([["minecraft:third_person"]]);
     expect(camera.clear).not.toHaveBeenCalled();
-    world.setChaseCamera("rider", undefined);
+    world.setChaseCamera(asPlayerId("rider"), undefined);
     expect(camera.clear).toHaveBeenCalledTimes(1);
     expect(camera.setCamera).toHaveBeenCalledTimes(1);
   });
@@ -502,7 +526,7 @@ describe("BedrockVehicleWorld flight wiring", () => {
     game.getEntity.mockImplementation((id: string) =>
       id === "rider" ? { typeId: "minecraft:player", camera } : undefined,
     );
-    world.setChaseCamera("rider", "far");
+    world.setChaseCamera(asPlayerId("rider"), "far");
     expect(camera.setCamera.mock.calls).toEqual([["yasu_ride:far_chase"]]);
   });
 });
@@ -815,9 +839,9 @@ describe("BedrockVehicleWorld dock ports", () => {
     game.getEntity.mockImplementation((id) =>
       id === "player" ? player : undefined,
     );
-    world.showMessage("missing", "park_blocked");
+    world.showMessage(asPlayerId("missing"), "park_blocked");
     expect(player.onScreenDisplay.setActionBar).not.toHaveBeenCalled();
-    world.showMessage("player", "park_blocked");
+    world.showMessage(asPlayerId("player"), "park_blocked");
     expect(player.onScreenDisplay.setActionBar).toHaveBeenCalledExactlyOnceWith(
       { translate: "yasu_ride.message.park_blocked" },
     );

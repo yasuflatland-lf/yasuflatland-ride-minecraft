@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
-import { asVehicleId } from "../../../src/domain/shared/ids";
+import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
 import type { EngineCommand } from "../../../src/domain/vehicle/drive";
 import type {
   EntityContract,
@@ -83,7 +83,7 @@ it.each(VEHICLE_KINDS)(
               riders: s.mounted
                 ? [
                     {
-                      id: "driver",
+                      id: asPlayerId("driver"),
                       offset: { x: 0.38, z: -0.35 },
                       yaw: s.driverYaw,
                       raw: s.raw ?? { moveX: 0, moveY: 0, jump: false },

@@ -12,6 +12,11 @@ import type {
   PlaceVehicle,
   PlaceVehicleCommand,
 } from "../../../../application/vehicle/placeVehicle";
+import {
+  asDimensionId,
+  asPlayerId,
+  type PlayerId,
+} from "../../../../domain/shared/ids";
 import { TickScopedSet } from "../../../../domain/shared/tickScoped";
 import type { Vec3 } from "../../../../domain/shared/vec";
 import type { VehicleKind } from "../../../../domain/vehicle/kind";
@@ -48,8 +53,8 @@ export function registerPlacement(placeVehicle: PlaceVehicle): void {
     blockLocation: Vec3,
   ): PlaceVehicleCommand => ({
     kind,
-    playerId: player.id,
-    dimensionId: dimension.id,
+    playerId: asPlayerId(player.id),
+    dimensionId: asDimensionId(dimension.id),
     blockLocation,
     yaw: player.getRotation().y,
     slot: player.selectedSlotIndex,
@@ -60,7 +65,7 @@ export function registerPlacement(placeVehicle: PlaceVehicle): void {
   const cellFor = (kind: VehicleKind, block: Block, face: Direction) =>
     placeVehicle.cellFor(
       kind,
-      block.dimension.id,
+      asDimensionId(block.dimension.id),
       block.location,
       BLOCK_FACE[face],
     );
@@ -76,7 +81,7 @@ export function registerPlacement(placeVehicle: PlaceVehicle): void {
     const cell = cellFor(kind, ev.block, ev.blockFace);
     if (cell === undefined) return;
     ev.cancel = true;
-    if (!requested(ev.player.id)) return;
+    if (!requested(asPlayerId(ev.player.id))) return;
     const cmd = placeCommand(ev.player, kind, ev.block.dimension, cell);
     system.run(() => place(cmd));
   });
@@ -96,13 +101,13 @@ export function registerPlacement(placeVehicle: PlaceVehicle): void {
     });
     if (!hit || !isWaterAt(hit.block.dimension, hit.block.location)) return;
     const cell = cellFor(kind, hit.block, hit.face);
-    if (cell && requested(player.id))
+    if (cell && requested(asPlayerId(player.id)))
       place(placeCommand(player, kind, hit.block.dimension, cell));
   });
 }
 
 /** Returns true for the first call per player in a game tick. */
-function oncePerPlayerPerTick(): (playerId: string) => boolean {
-  const seen = new TickScopedSet<string>();
+function oncePerPlayerPerTick(): (playerId: PlayerId) => boolean {
+  const seen = new TickScopedSet<PlayerId>();
   return (playerId) => seen.add(system.currentTick, playerId);
 }

@@ -1,4 +1,4 @@
-import type { VehicleId } from "../shared/ids";
+import type { PlayerId, VehicleId } from "../shared/ids";
 // Aggregate for one vehicle: wires its drive to its seating, cooldowns, and hit count.
 import { forward, type Vec2, type Vec3 } from "../shared/vec";
 import { RamCooldowns, SwitchCooldown } from "./cooldowns";
@@ -25,7 +25,7 @@ import { Seating } from "./seating";
 import { SPEC } from "./spec";
 
 export interface RiderView {
-  readonly id: string;
+  readonly id: PlayerId;
   readonly offset: Vec2;
   readonly yaw: number;
   readonly raw: RawInput;
@@ -78,7 +78,7 @@ export interface TickOutcome {
   impulse: Vec3;
   yaw: number;
   hits: RamHit[];
-  driverId?: string;
+  driverId?: PlayerId;
   stepCommands: readonly EngineCommand[];
   finalCommands: readonly EngineCommand[];
   riders: RiderState;
@@ -268,7 +268,7 @@ export class Vehicle {
    * after the switch has been idle for the cooldown, so a burst of uses from
    * one touch flips it once (ADR 0024). Returns whether it flipped.
    */
-  flipHeadlightSwitch(playerId: string, tick: number): boolean {
+  flipHeadlightSwitch(playerId: PlayerId, tick: number): boolean {
     if (playerId !== this.seating.driver) return false;
     return this.switchCooldown.tryUse(tick, SPEC.headlightSwitchCooldown);
   }

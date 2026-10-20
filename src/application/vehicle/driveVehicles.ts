@@ -1,4 +1,4 @@
-import type { VehicleId } from "../../domain/shared/ids";
+import type { PlayerId, VehicleId } from "../../domain/shared/ids";
 // Use case: every tick, move all loaded vehicles.
 import { rebuildVehicle } from "../../domain/vehicle/kinds/index";
 import type { ChaseCamera } from "../../domain/vehicle/profile";
@@ -21,8 +21,8 @@ export class DriveVehicles {
 
   execute(tick: number): void {
     const seen = new Set<VehicleId>();
-    const thirdPersonRiders = new Map<string, ChaseCamera>();
-    const underwater = new Set<string>();
+    const thirdPersonRiders = new Map<PlayerId, ChaseCamera>();
+    const underwater = new Set<PlayerId>();
     // A failure in one vehicle must not stop the others.
     forEachIsolated(
       this.world.loadedVehicles(),
@@ -41,8 +41,8 @@ export class DriveVehicles {
   private tickVehicle(
     snap: VehicleSnapshot,
     tick: number,
-    thirdPersonRiders: Map<string, ChaseCamera>,
-    underwater: Set<string>,
+    thirdPersonRiders: Map<PlayerId, ChaseCamera>,
+    underwater: Set<PlayerId>,
   ): void {
     let vehicle = this.repo.get(snap.id);
     if (!vehicle) {

@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { asVehicleId } from "../../../src/domain/shared/ids";
+import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
 import {
   dot,
   forward,
@@ -88,7 +88,7 @@ class FlightSim {
     const yaw = this.vehicle.yaw;
     const seats = profileOf(this.vehicle.kind).seats.positions;
     const riders: RiderView[] = this.riders.map((r) => ({
-      id: r.id,
+      id: asPlayerId(r.id),
       offset: seatOffset(seats, yaw, r.seat),
       yaw,
       raw: r.seat === 0 ? (input ?? IDLE) : IDLE,
@@ -594,7 +594,7 @@ describe("Driver handover in flight (ADR 0078)", () => {
 
     it(`gets no handover ticks when rebuilt in flight with nobody in the driver seat (${kind})`, () => {
       const q: RiderView = {
-        id: "Q",
+        id: asPlayerId("Q"),
         offset: seatOffset(profileOf(kind).seats.positions, 0, 1),
         yaw: 0,
         raw: IDLE,

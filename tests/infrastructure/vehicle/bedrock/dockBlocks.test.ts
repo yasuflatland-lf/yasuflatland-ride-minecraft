@@ -1,7 +1,7 @@
 import type { Entity } from "@minecraft/server";
 import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
-import { asVehicleId } from "../../../../src/domain/shared/ids";
+import { asDimensionId, asVehicleId } from "../../../../src/domain/shared/ids";
 import type { DockCell } from "../../../../src/domain/vehicle/dock/floor";
 import {
   type Cell,
@@ -433,14 +433,16 @@ it("finds only the owner of a laid door in the same dimension", () => {
   const docks = new DockBlocks();
   docks.lay(asVehicleId(f.car.id), f.car, roomCells);
   for (const c of roomCells) {
-    expect(docks.doorOwner(f.car.dimension.id, c)).toBe(
+    expect(docks.doorOwner(asDimensionId(f.car.dimension.id), c)).toBe(
       c.block.type === "door" ? f.car.id : undefined,
     );
-    expect(docks.doorOwner("nether", c)).toBeUndefined();
+    expect(docks.doorOwner(asDimensionId("nether"), c)).toBeUndefined();
   }
   docks.lay(asVehicleId(f.car.id), f.car, []);
   for (const c of roomCells)
-    expect(docks.doorOwner(f.car.dimension.id, c)).toBeUndefined();
+    expect(
+      docks.doorOwner(asDimensionId(f.car.dimension.id), c),
+    ).toBeUndefined();
 });
 
 it("derives laid state and door target from saved dock cells in one property read", () => {

@@ -1,4 +1,4 @@
-import type { VehicleId } from "../../domain/shared/ids";
+import type { PlayerId, VehicleId } from "../../domain/shared/ids";
 // Use case: a player hits a vehicle with a dye to repaint its body (ADR 0031, 0036, 0076).
 import { TickScopedMap } from "../../domain/shared/tickScoped";
 import { profileOf } from "../../domain/vehicle/kinds/index";
@@ -7,7 +7,7 @@ import type { PaintWorld } from "./ports/paint";
 import type { Clock } from "./ports/shared";
 
 export interface PaintVehicleCommand {
-  playerId: string;
+  playerId: PlayerId;
   vehicleId: VehicleId;
   paint: Paint;
 }

@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { asVehicleId } from "../../../../src/domain/shared/ids";
+import { asPlayerId, asVehicleId } from "../../../../src/domain/shared/ids";
 import {
   Fleet,
   type FleetEntry,
@@ -172,7 +172,9 @@ describe("Fleet (ADR 0038, ADR 0066)", () => {
         op: fc.constantFrom("admit", "admitAsOldest", "forget"),
         id: fc.nat(300).map((n) => asVehicleId(`v${n}`)),
         kind: fc.constantFrom(...VEHICLE_KINDS),
-        owner: fc.constantFrom(undefined, "", "a", "b", "a:suv"),
+        owner: fc
+          .constantFrom(undefined, "", "a", "b", "a:suv")
+          .map((o) => (o === undefined ? undefined : asPlayerId(o))),
       }),
       { minLength: 200, maxLength: 300 },
     );
@@ -243,30 +245,46 @@ describe("Fleet (ADR 0038, ADR 0066)", () => {
 
   it("evicts an owner's first SUV when their eleventh SUV arrives", () => {
     const fleet = Fleet.empty(fleetLimitOf);
-    for (const id of ids(11)) fleet.admit({ ...entry(id), owner: "a" });
+    for (const id of ids(11))
+      fleet.admit({ ...entry(id), owner: asPlayerId("a") });
     expect(fleet.state().evicted).toEqual(["v0"]);
     expect(fleet.state().order.map((e) => e.id)).toEqual(ids(11).slice(1));
   });
 
   it("evicts an owner's first boat without evicting their SUVs or another owner's vehicles", () => {
     const fleet = Fleet.empty(fleetLimitOf);
-    const suvs = entries(ids(10)).map((e) => ({ ...e, owner: "a" }));
+    const suvs = entries(ids(10)).map((e) => ({
+      ...e,
+      owner: asPlayerId("a"),
+    }));
     const otherBoat = {
       id: asVehicleId("other"),
       kind: "sportsboat" as const,
-      owner: "b",
+      owner: asPlayerId("b"),
     };
     for (const e of suvs) fleet.admit(e);
-    fleet.admit({ id: asVehicleId("first"), kind: "sportsboat", owner: "a" });
+    fleet.admit({
+      id: asVehicleId("first"),
+      kind: "sportsboat",
+      owner: asPlayerId("a"),
+    });
     fleet.admit(otherBoat);
-    fleet.admit({ id: asVehicleId("second"), kind: "sportsboat", owner: "a" });
+    fleet.admit({
+      id: asVehicleId("second"),
+      kind: "sportsboat",
+      owner: asPlayerId("a"),
+    });
     expect(fleet.state().evicted).toEqual(["first"]);
     expect(fleet.state().order).toEqual([
       ...suvs,
       otherBoat,
       { id: "second", kind: "sportsboat", owner: "a" },
     ]);
-    fleet.admit({ id: asVehicleId("other-suv"), kind: "suv", owner: "b" });
+    fleet.admit({
+      id: asVehicleId("other-suv"),
+      kind: "suv",
+      owner: asPlayerId("b"),
+    });
     expect(fleet.state().evicted).toEqual(["first"]);
     expect(fleet.state().order.slice(0, suvs.length)).toEqual(suvs);
   });
@@ -275,12 +293,28 @@ describe("Fleet (ADR 0038, ADR 0066)", () => {
     const fleet = Fleet.restore(
       {
         order: [
-          { id: asVehicleId("a-first"), kind: "sportsboat", owner: "a" },
+          {
+            id: asVehicleId("a-first"),
+            kind: "sportsboat",
+            owner: asPlayerId("a"),
+          },
           ...entries(ids(10)),
-          { id: asVehicleId("b-first"), kind: "sportsboat", owner: "b" },
+          {
+            id: asVehicleId("b-first"),
+            kind: "sportsboat",
+            owner: asPlayerId("b"),
+          },
           { id: asVehicleId("unowned-boat"), kind: "sportsboat" },
-          { id: asVehicleId("a-second"), kind: "sportsboat", owner: "a" },
-          { id: asVehicleId("b-second"), kind: "sportsboat", owner: "b" },
+          {
+            id: asVehicleId("a-second"),
+            kind: "sportsboat",
+            owner: asPlayerId("a"),
+          },
+          {
+            id: asVehicleId("b-second"),
+            kind: "sportsboat",
+            owner: asPlayerId("b"),
+          },
         ],
         evicted: [asVehicleId("previous")],
       },
@@ -302,44 +336,52 @@ describe("Fleet (ADR 0038, ADR 0066)", () => {
 
   it("keeps the first occurrence of each id even when later metadata differs", () => {
     fc.assert(
-      fc.property(fc.string().map(asVehicleId), fc.string(), (id, owner) => {
-        const first = { id, kind: "sportsboat" as const, owner };
-        const fleet = Fleet.restore(
-          {
-            order: [first, entry(id)],
-            evicted: [id],
-          },
-          fleetLimitOf,
-        );
-        fleet.admit(entry(id));
-        fleet.admitAsOldest(entry(id));
-        expect(fleet.state()).toEqual({ order: [first], evicted: [] });
-      }),
+      fc.property(
+        fc.string().map(asVehicleId),
+        fc.string().map(asPlayerId),
+        (id, owner) => {
+          const first = { id, kind: "sportsboat" as const, owner };
+          const fleet = Fleet.restore(
+            {
+              order: [first, entry(id)],
+              evicted: [id],
+            },
+            fleetLimitOf,
+          );
+          fleet.admit(entry(id));
+          fleet.admitAsOldest(entry(id));
+          expect(fleet.state()).toEqual({ order: [first], evicted: [] });
+        },
+      ),
     );
   });
 
   it("copies entries on admission, restoration, and state reads", () => {
     fc.assert(
-      fc.property(fc.string().map(asVehicleId), fc.string(), (id, owner) => {
-        const original = { id, kind: "suv" as const, owner };
-        const expected = { ...original };
-        const restored = Fleet.restore(
-          { order: [original], evicted: [] },
-          fleetLimitOf,
-        );
-        const admitted = Fleet.empty(fleetLimitOf);
-        admitted.admit(original);
-        const found = Fleet.empty(fleetLimitOf);
-        found.admitAsOldest(original);
-        original.owner += "changed";
-        for (const fleet of [restored, admitted, found]) {
-          const state = fleet.state();
-          expect(state.order).toEqual([expected]);
-          expect(state.order[0]).not.toBe(fleet.state().order[0]);
-          expect(state.order).not.toBe(fleet.state().order);
-          expect(state.evicted).not.toBe(fleet.state().evicted);
-        }
-      }),
+      fc.property(
+        fc.string().map(asVehicleId),
+        fc.string().map(asPlayerId),
+        (id, owner) => {
+          const original = { id, kind: "suv" as const, owner };
+          const expected = { ...original };
+          const restored = Fleet.restore(
+            { order: [original], evicted: [] },
+            fleetLimitOf,
+          );
+          const admitted = Fleet.empty(fleetLimitOf);
+          admitted.admit(original);
+          const found = Fleet.empty(fleetLimitOf);
+          found.admitAsOldest(original);
+          original.owner = asPlayerId(`${original.owner}changed`);
+          for (const fleet of [restored, admitted, found]) {
+            const state = fleet.state();
+            expect(state.order).toEqual([expected]);
+            expect(state.order[0]).not.toBe(fleet.state().order[0]);
+            expect(state.order).not.toBe(fleet.state().order);
+            expect(state.evicted).not.toBe(fleet.state().evicted);
+          }
+        },
+      ),
     );
   });
 });

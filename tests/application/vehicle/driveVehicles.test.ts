@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
 import { DriveVehicles } from "../../../src/application/vehicle/driveVehicles";
-import { asVehicleId } from "../../../src/domain/shared/ids";
+import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
 import { forward } from "../../../src/domain/shared/vec";
 import type { Drive, DriveStep } from "../../../src/domain/vehicle/drive";
 import type { RawInput } from "../../../src/domain/vehicle/driveInput";
@@ -122,7 +122,7 @@ describe("DriveVehicles", () => {
 
   it("forwards ram hits to the world with the driver as the attacker", () => {
     const driver = {
-      id: "d",
+      id: asPlayerId("d"),
       offset: { x: -0.38, z: 0.35 },
       yaw: 0,
       raw: FULL_THROTTLE,
@@ -151,7 +151,7 @@ describe("DriveVehicles", () => {
     const world = new FakeWorld();
     const repo = new InMemoryRepo();
     const driver = {
-      id: "d",
+      id: asPlayerId("d"),
       offset: { x: -0.38, z: 0.35 },
       yaw: 75,
       raw: { moveX: 0, moveY: 0, jump: false },
@@ -201,14 +201,14 @@ describe("DriveVehicles", () => {
       const repo = new InMemoryRepo();
       const log = logger();
       const driver = {
-        id: "driver",
+        id: asPlayerId("driver"),
         offset: defined(SUV_PROFILE.seats.positions[0], "driver seat"),
         yaw: 0,
         raw: FULL_THROTTLE,
       };
       const passenger = {
         ...driver,
-        id: "passenger",
+        id: asPlayerId("passenger"),
         offset: defined(SUV_PROFILE.seats.positions[1], "passenger seat"),
       };
       repo.save(
@@ -224,7 +224,7 @@ describe("DriveVehicles", () => {
         }),
         snapshot("good", {
           waterDepth: SUV_SPEC.carHeight,
-          riders: [{ ...driver, id: "other" }],
+          riders: [{ ...driver, id: asPlayerId("other") }],
           headlights: true,
         }),
       ];
@@ -257,7 +257,7 @@ describe("DriveVehicles", () => {
     const repo = new InMemoryRepo();
     const uc = new DriveVehicles(world, repo, logger());
     const driver = {
-      id: "d",
+      id: asPlayerId("d"),
       offset: { x: -0.38, z: 0.35 },
       yaw: 0,
       raw: { moveX: 0, moveY: 0, jump: false },
@@ -399,7 +399,7 @@ describe("DriveVehicles", () => {
 
 describe("DriveVehicles third-person camera in flight (ADR 0028)", () => {
   const rider = (id: string) => ({
-    id,
+    id: asPlayerId(id),
     offset: { x: -0.38, z: 0.35 },
     yaw: 0,
     raw: { moveX: 0, moveY: 0, jump: false },
@@ -579,7 +579,7 @@ describe("DriveVehicles third-person camera in flight (ADR 0028)", () => {
 
 describe("DriveVehicles submarine riders (ADR 0040)", () => {
   const rider = (id: string) => ({
-    id,
+    id: asPlayerId(id),
     offset: { x: -0.38, z: 0.35 },
     yaw: 0,
     raw: { moveX: 0, moveY: 0, jump: false },
@@ -796,7 +796,7 @@ describe("DriveVehicles dock ports", () => {
         riders: driver
           ? [
               {
-                id: "driver",
+                id: asPlayerId("driver"),
                 offset: defined(SUV_PROFILE.seats.positions[0], "driver seat"),
                 yaw: 0,
                 raw: FULL_THROTTLE,

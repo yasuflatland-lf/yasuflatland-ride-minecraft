@@ -2,7 +2,11 @@
 // BedrockVehicleWorld.loadedVehicles() every tick so the other adapters reuse
 // the same Entity objects instead of asking the world again.
 import { type Entity, type Player, world } from "@minecraft/server";
-import { asVehicleId, type VehicleId } from "../../../domain/shared/ids";
+import {
+  asVehicleId,
+  type PlayerId,
+  type VehicleId,
+} from "../../../domain/shared/ids";
 import { PLAYER_TYPE } from "./identifiers";
 
 export const DIMENSIONS = ["overworld", "nether", "the_end"] as const;
@@ -37,7 +41,7 @@ export class EntityIndex {
     return e?.isValid ? e : undefined;
   }
 
-  player(playerId: string): Player | undefined {
+  player(playerId: PlayerId): Player | undefined {
     const player = world.getEntity(playerId);
     return player && isPlayer(player) ? player : undefined;
   }

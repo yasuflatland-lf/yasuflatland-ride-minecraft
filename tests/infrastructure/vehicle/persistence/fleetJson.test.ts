@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { asVehicleId } from "../../../../src/domain/shared/ids";
+import { asPlayerId, asVehicleId } from "../../../../src/domain/shared/ids";
 import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
 import {
   parseFleetState,
@@ -65,7 +65,7 @@ describe("parseFleetState (ADR 0038)", () => {
       .record({
         id: fc.string(),
         kind: fc.constantFrom(...VEHICLE_KINDS),
-        owner: fc.option(fc.string(), { nil: undefined }),
+        owner: fc.option(fc.string().map(asPlayerId), { nil: undefined }),
       })
       .map(({ id, kind, owner }) => ({
         id: asVehicleId(id),

@@ -4,7 +4,7 @@ import {
   type Dimension,
   type Entity,
 } from "@minecraft/server";
-import type { VehicleId } from "../../../domain/shared/ids";
+import type { DimensionId, VehicleId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import {
   type DockBlock,
@@ -156,7 +156,7 @@ export class DockBlocks {
   private readonly laid = new Map<VehicleId, Laid>();
 
   /** The vehicle whose laid door is at this cell, if any. */
-  doorOwner(dimensionId: string, cell: Vec3): VehicleId | undefined {
+  doorOwner(dimensionId: DimensionId, cell: Vec3): VehicleId | undefined {
     const key = cellKey(cell);
     for (const [vehicleId, entry] of this.laid)
       if (

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { asVehicleId } from "../../../../src/domain/shared/ids";
+import { asPlayerId, asVehicleId } from "../../../../src/domain/shared/ids";
 import { Fleet } from "../../../../src/domain/vehicle/fleet/fleet";
 import { fleetLimitOf } from "../../../../src/domain/vehicle/kinds/index";
 import { FLEET_PROPERTY } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
@@ -31,7 +31,11 @@ describe("DynamicPropertyFleetRepository (ADR 0038)", () => {
     const { repo } = repository();
     const state = {
       order: [
-        { id: asVehicleId("a"), kind: "suv" as const, owner: "player" },
+        {
+          id: asVehicleId("a"),
+          kind: "suv" as const,
+          owner: asPlayerId("player"),
+        },
         { id: asVehicleId("b"), kind: "sportsboat" as const },
       ],
       evicted: [asVehicleId("c")],

@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { PaintVehicle } from "../../../src/application/vehicle/paintVehicle";
-import { asVehicleId } from "../../../src/domain/shared/ids";
+import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
 import { VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
 import { PAINTS, type Paint } from "../../../src/domain/vehicle/paint/paint";
 import { FakeClock, FakeWorld } from "./fakes";
@@ -41,7 +41,7 @@ describe("PaintVehicle (ADR 0031)", () => {
         const clock = new FakeClock();
         expect(
           new PaintVehicle(world, clock).execute({
-            playerId: "p",
+            playerId: asPlayerId("p"),
             vehicleId: asVehicleId("a"),
             paint: to,
           }),
@@ -62,7 +62,7 @@ describe("PaintVehicle (ADR 0031)", () => {
         const clock = new FakeClock();
         expect(
           new PaintVehicle(world, clock).execute({
-            playerId: "p",
+            playerId: asPlayerId("p"),
             vehicleId: asVehicleId("a"),
             paint: color,
           }),
@@ -77,7 +77,7 @@ describe("PaintVehicle (ADR 0031)", () => {
     const clock = new FakeClock();
     expect(
       new PaintVehicle(world, clock).execute({
-        playerId: "p",
+        playerId: asPlayerId("p"),
         vehicleId: asVehicleId("gone"),
         paint: "red",
       }),
@@ -96,7 +96,7 @@ describe("PaintVehicle (ADR 0031)", () => {
         const hit = (playerId: string, tick: number) => {
           clock.tick = tick;
           return useCase.execute({
-            playerId,
+            playerId: asPlayerId(playerId),
             vehicleId: asVehicleId("a"),
             paint: to,
           });
@@ -124,7 +124,7 @@ describe("PaintVehicle (ADR 0031)", () => {
           ["q", second],
         ] as const)
           useCase.execute({
-            playerId,
+            playerId: asPlayerId(playerId),
             vehicleId: asVehicleId("a"),
             paint: color,
           });
@@ -156,7 +156,7 @@ describe("PaintVehicle (ADR 0031)", () => {
           const hit = (color: Paint, at: number) => {
             clock.tick = at;
             return useCase.execute({
-              playerId: "p",
+              playerId: asPlayerId("p"),
               vehicleId: asVehicleId("a"),
               paint: color,
             });
@@ -191,7 +191,7 @@ describe("PaintVehicle (ADR 0031)", () => {
           const uc = new PaintVehicle(world, clock);
           expect(
             uc.execute({
-              playerId: "p",
+              playerId: asPlayerId("p"),
               vehicleId: asVehicleId("a"),
               paint: to,
             }),
@@ -219,7 +219,7 @@ describe("PaintVehicle (ADR 0031)", () => {
         const uc = new PaintVehicle(world, clock);
         expect(
           uc.execute({
-            playerId: "p",
+            playerId: asPlayerId("p"),
             vehicleId: asVehicleId("a"),
             paint: to,
           }),
@@ -236,7 +236,7 @@ describe("PaintVehicle (ADR 0031)", () => {
     const uc = new PaintVehicle(world, clock);
     expect(
       uc.execute({
-        playerId: "p",
+        playerId: asPlayerId("p"),
         vehicleId: asVehicleId("a"),
         paint: "green",
       }),
@@ -252,7 +252,7 @@ describe("PaintVehicle (ADR 0031)", () => {
     clock.tick = 5;
     const hit = (color: Paint) =>
       uc.execute({
-        playerId: "p",
+        playerId: asPlayerId("p"),
         vehicleId: asVehicleId("a"),
         paint: color,
       });
@@ -273,7 +273,7 @@ it("asks the world about creative mode for the painting player only", () => {
       if (otherCreative) world.creativePlayers.add("q");
       expect(
         new PaintVehicle(world, new FakeClock()).execute({
-          playerId: "p",
+          playerId: asPlayerId("p"),
           vehicleId: asVehicleId("a"),
           paint: to,
         }),

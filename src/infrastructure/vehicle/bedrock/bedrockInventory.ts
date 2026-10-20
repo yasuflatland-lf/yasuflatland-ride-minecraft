@@ -1,6 +1,7 @@
 // Implements StarterWorld; consumeHeld is the one place that takes a held item.
 import { ItemStack } from "@minecraft/server";
 import type { StarterWorld } from "../../../application/vehicle/ports/placement";
+import type { PlayerId } from "../../../domain/shared/ids";
 import type { VehicleKind } from "../../../domain/vehicle/kind";
 import type { EntityIndex } from "./entityIndex";
 import { ITEM_TYPE, STARTER_RECEIVED_PROPERTY } from "./identifiers";
@@ -9,7 +10,7 @@ export class BedrockInventory implements StarterWorld {
   constructor(private readonly index: EntityIndex) {}
 
   /** Takes one item from `slot` (the selected one by default), but only if it still holds `typeId`. */
-  consumeHeld(playerId: string, typeId: string, slot?: number): boolean {
+  consumeHeld(playerId: PlayerId, typeId: string, slot?: number): boolean {
     const player = this.index.player(playerId);
     if (!player) return false;
     const inv = player.getComponent("minecraft:inventory")?.container;
@@ -26,13 +27,13 @@ export class BedrockInventory implements StarterWorld {
     return true;
   }
 
-  receivedStarter(playerId: string): boolean | undefined {
+  receivedStarter(playerId: PlayerId): boolean | undefined {
     const player = this.index.player(playerId);
     if (!player) return undefined;
     return player.getDynamicProperty(STARTER_RECEIVED_PROPERTY) === true;
   }
 
-  giveVehicleItem(playerId: string, kind: VehicleKind): void {
+  giveVehicleItem(playerId: PlayerId, kind: VehicleKind): void {
     const player = this.index.player(playerId);
     if (!player) return;
     const inv = player.getComponent("minecraft:inventory")?.container;
@@ -41,7 +42,7 @@ export class BedrockInventory implements StarterWorld {
     if (leftover) player.dimension.spawnItem(leftover, player.location);
   }
 
-  markStarterReceived(playerId: string): void {
+  markStarterReceived(playerId: PlayerId): void {
     this.index
       .player(playerId)
       ?.setDynamicProperty(STARTER_RECEIVED_PROPERTY, true);

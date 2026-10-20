@@ -1,4 +1,8 @@
-import type { VehicleId } from "../../../domain/shared/ids";
+import type {
+  DimensionId,
+  PlayerId,
+  VehicleId,
+} from "../../../domain/shared/ids";
 // Ports the per-tick drive requires from the game; implemented in the infrastructure layer (ADR 0012).
 import type { Vec3 } from "../../../domain/shared/vec";
 import type { ClearCell, Departure } from "../../../domain/vehicle/dock/dock";
@@ -58,7 +62,7 @@ export interface DriveWorld {
   /** Sets each cell to air if it still holds the type it had at the check. */
   clearBlocks(vehicleId: VehicleId, cells: readonly ClearCell[]): void;
   /** Shows the lang key yasu_ride.message.<name> on a player's action bar; does nothing for a missing player. */
-  showMessage(playerId: string, name: string): void;
+  showMessage(playerId: PlayerId, name: string): void;
   /**
    * Seats the players standing in the departure's boxes, nearest to the vehicle first,
    * and moves those left without a seat to the exit.
@@ -67,10 +71,10 @@ export interface DriveWorld {
   applyMotion(vehicleId: VehicleId, impulse: Vec3, yaw: number): void;
   run(vehicleId: VehicleId, commands: readonly EngineCommand[]): void;
   /** Switches a player's view to a third-person camera, or back to their own when undefined (ADR 0028, 0071). */
-  setChaseCamera(playerId: string, camera: ChaseCamera | undefined): void;
+  setChaseCamera(playerId: PlayerId, camera: ChaseCamera | undefined): void;
   /** Refreshes water breathing; does nothing for a missing player (ADR 0040). */
-  giveWaterBreathing(playerId: string, ticks: number): void;
-  damage(hit: RamHit, attackerId: string | undefined): void;
+  giveWaterBreathing(playerId: PlayerId, ticks: number): void;
+  damage(hit: RamHit, attackerId: PlayerId | undefined): void;
   /**
    * Keeps light blocks in exactly these cells for the vehicle and clears the
    * ones it lit before.
@@ -85,8 +89,8 @@ export interface DriveWorld {
 }
 
 export interface HintPlayerView {
-  id: string;
-  dimensionId: string;
+  id: PlayerId;
+  dimensionId: DimensionId;
   /** Feet. */
   location: Vec3;
   /** Riding any entity, a vehicle, a deck seat or a vanilla mount. */
@@ -97,7 +101,7 @@ export interface HintPlayerView {
 
 export interface HintVehicleView {
   id: VehicleId;
-  dimensionId: string;
+  dimensionId: DimensionId;
   location: Vec3;
 }
 
@@ -107,7 +111,7 @@ export interface HintWorld {
   /** The vehicles driven this tick. */
   hintVehicles(): HintVehicleView[];
   /** Shows the lang key yasu_ride.hint.<name> on the action bar; does nothing for a missing player. */
-  showHint(playerId: string, hint: Hint): void;
+  showHint(playerId: PlayerId, hint: Hint): void;
   /** Empties the action bar; does nothing for a missing player. */
-  clearHint(playerId: string): void;
+  clearHint(playerId: PlayerId): void;
 }

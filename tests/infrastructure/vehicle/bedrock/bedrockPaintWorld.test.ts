@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { asVehicleId } from "../../../../src/domain/shared/ids";
+import { asPlayerId, asVehicleId } from "../../../../src/domain/shared/ids";
 import { PAINTS } from "../../../../src/domain/vehicle/paint/paint";
 import type { BedrockInventory } from "../../../../src/infrastructure/vehicle/bedrock/bedrockInventory";
 import { BedrockPaintWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockPaintWorld";
@@ -87,7 +87,7 @@ describe("BedrockPaintWorld", () => {
 
   it.each(PAINTS)("takes one %s dye from the held slot", (color) => {
     const { consumeHeld, paint } = fixture();
-    paint.consumeDye("player", color);
+    paint.consumeDye(asPlayerId("player"), color);
     expect(consumeHeld).toHaveBeenCalledExactlyOnceWith("player", dyeOf(color));
   });
 });

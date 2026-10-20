@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { asPlayerId } from "../../../src/domain/shared/ids";
 import { forward, leftOf, type Vec2 } from "../../../src/domain/shared/vec";
 import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
 import {
@@ -44,11 +45,11 @@ describe("seats (ADR 0019)", () => {
         fc.shuffledSubarray([0, 1, 2, 3], { minLength: 1 }),
         (y, seats) => {
           const riders = seats.map((i) => ({
-            id: `p${i}`,
+            id: asPlayerId(`p${i}`),
             offset: worldOffset(y, i),
           }));
           const map = occupiedSeats(riders, forward(y), SEATS);
-          for (const i of seats) expect(map.get(`p${i}`)).toBe(i);
+          for (const i of seats) expect(map.get(asPlayerId(`p${i}`))).toBe(i);
         },
       ),
     );
@@ -67,7 +68,7 @@ describe("seats (ADR 0019)", () => {
         const f = forward(heading);
         const left = leftOf(f);
         const riders = layout.map((position, i) => ({
-          id: `r${i}`,
+          id: asPlayerId(`r${i}`),
           offset: {
             x: left.x * position.x + f.x * position.z,
             z: left.z * position.x + f.z * position.z,
@@ -76,7 +77,7 @@ describe("seats (ADR 0019)", () => {
         const seats = occupiedSeats(riders, f, layout);
         for (const [i, position] of layout.entries()) {
           expect(nearestSeat(position, layout)).toBe(i);
-          expect(seats.get(`r${i}`)).toBe(i);
+          expect(seats.get(asPlayerId(`r${i}`))).toBe(i);
         }
       }),
     );
@@ -94,10 +95,10 @@ describe("seats (ADR 0019)", () => {
 
   it("returns the seats of occupants who left", () => {
     const prev = new Map([
-      ["a", 0],
-      ["b", 2],
+      [asPlayerId("a"), 0],
+      [asPlayerId("b"), 2],
     ]);
-    expect(vacatedSeats(prev, new Map([["b", 2]]))).toEqual([0]);
+    expect(vacatedSeats(prev, new Map([[asPlayerId("b"), 2]]))).toEqual([0]);
     expect(vacatedSeats(prev, prev)).toEqual([]);
   });
 });

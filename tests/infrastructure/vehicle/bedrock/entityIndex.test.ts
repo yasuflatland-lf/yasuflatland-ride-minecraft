@@ -1,7 +1,7 @@
 import type { Entity } from "@minecraft/server";
 import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { asVehicleId } from "../../../../src/domain/shared/ids";
+import { asPlayerId, asVehicleId } from "../../../../src/domain/shared/ids";
 import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
 import { PLAYER_TYPE } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 
@@ -67,9 +67,9 @@ describe("EntityIndex", () => {
     game.getEntity.mockImplementation((id: string) =>
       id === "p" ? player : id === "cow" ? cow : undefined,
     );
-    expect(index.player("p")).toBe(player);
-    expect(index.player("cow")).toBeUndefined();
-    expect(index.player("missing")).toBeUndefined();
+    expect(index.player(asPlayerId("p"))).toBe(player);
+    expect(index.player(asPlayerId("cow"))).toBeUndefined();
+    expect(index.player(asPlayerId("missing"))).toBeUndefined();
   });
 
   it("tracked ids are exactly the tracked entities' ids, and each resolves to its own entity", () => {
