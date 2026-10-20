@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { SwitchHeadlights } from "../../../src/application/vehicle/switchHeadlights";
+import { asVehicleId } from "../../../src/domain/shared/ids";
 import { rebuildVehicle } from "../../../src/domain/vehicle/kinds/index";
 import { SPEC } from "../../../src/domain/vehicle/spec";
 import type { RiderView } from "../../../src/domain/vehicle/vehicle";
@@ -21,7 +22,15 @@ const rider = (id: string, seat: 0 | 1): RiderView => ({
 function setup() {
   const world = new FakeWorld();
   const repo = new InMemoryRepo();
-  repo.save(rebuildVehicle("suv", "a", 0, [rider("d", 0), rider("p", 1)], {}));
+  repo.save(
+    rebuildVehicle(
+      "suv",
+      asVehicleId("a"),
+      0,
+      [rider("d", 0), rider("p", 1)],
+      {},
+    ),
+  );
   world.headlights.set("a", false);
   const clock = new FakeClock();
   return { world, uc: new SwitchHeadlights(world, repo, clock), clock };
@@ -30,25 +39,31 @@ function setup() {
 describe("SwitchHeadlights (ADR 0020)", () => {
   it("the driver turns the headlights on and off again", () => {
     const { world, uc, clock } = setup();
-    expect(uc.execute({ playerId: "d", vehicleId: "a" })).toBe(true);
+    expect(uc.execute({ playerId: "d", vehicleId: asVehicleId("a") })).toBe(
+      true,
+    );
     expect(world.headlights.get("a")).toBe(true);
     const later = SPEC.headlightSwitchCooldown;
     clock.tick = later;
-    expect(uc.execute({ playerId: "d", vehicleId: "a" })).toBe(true);
+    expect(uc.execute({ playerId: "d", vehicleId: asVehicleId("a") })).toBe(
+      true,
+    );
     expect(world.headlights.get("a")).toBe(false);
   });
 
   it("a passenger cannot switch them", () => {
     const { world, uc } = setup();
-    expect(uc.execute({ playerId: "p", vehicleId: "a" })).toBe(false);
+    expect(uc.execute({ playerId: "p", vehicleId: asVehicleId("a") })).toBe(
+      false,
+    );
     expect(world.calls).toEqual([]);
   });
 
   it("one tap that arrives twice switches only once", () => {
     const { world, uc, clock } = setup();
-    uc.execute({ playerId: "d", vehicleId: "a" });
+    uc.execute({ playerId: "d", vehicleId: asVehicleId("a") });
     clock.tick = 1;
-    uc.execute({ playerId: "d", vehicleId: "a" });
+    uc.execute({ playerId: "d", vehicleId: asVehicleId("a") });
     expect(world.calls).toEqual(["headlights:a:true"]);
   });
 
@@ -56,16 +71,20 @@ describe("SwitchHeadlights (ADR 0020)", () => {
     const { world, uc, clock } = setup();
     for (const tick of [0, 4, 8, 13, 17, 21]) {
       clock.tick = tick;
-      uc.execute({ playerId: "d", vehicleId: "a" });
+      uc.execute({ playerId: "d", vehicleId: asVehicleId("a") });
     }
     expect(world.calls).toEqual(["headlights:a:true"]);
   });
 
   it("does nothing for a vehicle that is not loaded or no longer exists", () => {
     const { world, uc } = setup();
-    expect(uc.execute({ playerId: "d", vehicleId: "b" })).toBe(false);
+    expect(uc.execute({ playerId: "d", vehicleId: asVehicleId("b") })).toBe(
+      false,
+    );
     world.headlights.delete("a");
-    expect(uc.execute({ playerId: "d", vehicleId: "a" })).toBe(false);
+    expect(uc.execute({ playerId: "d", vehicleId: asVehicleId("a") })).toBe(
+      false,
+    );
     expect(world.calls).toEqual([]);
   });
 });

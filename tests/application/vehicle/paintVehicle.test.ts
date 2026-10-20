@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { PaintVehicle } from "../../../src/application/vehicle/paintVehicle";
+import { asVehicleId } from "../../../src/domain/shared/ids";
 import { VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
 import { PAINTS, type Paint } from "../../../src/domain/vehicle/paint/paint";
 import { FakeClock, FakeWorld } from "./fakes";
@@ -41,7 +42,7 @@ describe("PaintVehicle (ADR 0031)", () => {
         expect(
           new PaintVehicle(world, clock).execute({
             playerId: "p",
-            vehicleId: "a",
+            vehicleId: asVehicleId("a"),
             paint: to,
           }),
         ).toBe(true);
@@ -62,7 +63,7 @@ describe("PaintVehicle (ADR 0031)", () => {
         expect(
           new PaintVehicle(world, clock).execute({
             playerId: "p",
-            vehicleId: "a",
+            vehicleId: asVehicleId("a"),
             paint: color,
           }),
         ).toBe(false);
@@ -77,7 +78,7 @@ describe("PaintVehicle (ADR 0031)", () => {
     expect(
       new PaintVehicle(world, clock).execute({
         playerId: "p",
-        vehicleId: "gone",
+        vehicleId: asVehicleId("gone"),
         paint: "red",
       }),
     ).toBe(false);
@@ -96,7 +97,7 @@ describe("PaintVehicle (ADR 0031)", () => {
           clock.tick = tick;
           return useCase.execute({
             playerId,
-            vehicleId: "a",
+            vehicleId: asVehicleId("a"),
             paint: to,
           });
         };
@@ -124,7 +125,7 @@ describe("PaintVehicle (ADR 0031)", () => {
         ] as const)
           useCase.execute({
             playerId,
-            vehicleId: "a",
+            vehicleId: asVehicleId("a"),
             paint: color,
           });
         expect(world.calls).toEqual([
@@ -156,7 +157,7 @@ describe("PaintVehicle (ADR 0031)", () => {
             clock.tick = at;
             return useCase.execute({
               playerId: "p",
-              vehicleId: "a",
+              vehicleId: asVehicleId("a"),
               paint: color,
             });
           };
@@ -191,7 +192,7 @@ describe("PaintVehicle (ADR 0031)", () => {
           expect(
             uc.execute({
               playerId: "p",
-              vehicleId: "a",
+              vehicleId: asVehicleId("a"),
               paint: to,
             }),
           ).toBe(!same);
@@ -219,7 +220,7 @@ describe("PaintVehicle (ADR 0031)", () => {
         expect(
           uc.execute({
             playerId: "p",
-            vehicleId: "a",
+            vehicleId: asVehicleId("a"),
             paint: to,
           }),
         ).toBe(false);
@@ -236,7 +237,7 @@ describe("PaintVehicle (ADR 0031)", () => {
     expect(
       uc.execute({
         playerId: "p",
-        vehicleId: "a",
+        vehicleId: asVehicleId("a"),
         paint: "green",
       }),
     ).toBe(false);
@@ -252,7 +253,7 @@ describe("PaintVehicle (ADR 0031)", () => {
     const hit = (color: Paint) =>
       uc.execute({
         playerId: "p",
-        vehicleId: "a",
+        vehicleId: asVehicleId("a"),
         paint: color,
       });
     expect(hit("red")).toBe(true);
@@ -273,7 +274,7 @@ it("asks the world about creative mode for the painting player only", () => {
       expect(
         new PaintVehicle(world, new FakeClock()).execute({
           playerId: "p",
-          vehicleId: "a",
+          vehicleId: asVehicleId("a"),
           paint: to,
         }),
       ).toBe(true);

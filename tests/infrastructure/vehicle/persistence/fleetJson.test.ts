@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { asVehicleId } from "../../../../src/domain/shared/ids";
 import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
 import {
   parseFleetState,
@@ -67,13 +68,16 @@ describe("parseFleetState (ADR 0038)", () => {
         owner: fc.option(fc.string(), { nil: undefined }),
       })
       .map(({ id, kind, owner }) => ({
-        id,
+        id: asVehicleId(id),
         kind,
         ...(owner === undefined ? {} : { owner }),
       }));
     fc.assert(
       fc.property(
-        fc.record({ order: fc.array(entry), evicted: fc.array(fc.string()) }),
+        fc.record({
+          order: fc.array(entry),
+          evicted: fc.array(fc.string().map(asVehicleId)),
+        }),
         (state) => {
           const raw = serializeFleetState(state);
           expect(JSON.parse(raw)).toEqual({ version: 2, ...state });

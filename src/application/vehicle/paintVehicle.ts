@@ -1,3 +1,4 @@
+import type { VehicleId } from "../../domain/shared/ids";
 // Use case: a player hits a vehicle with a dye to repaint its body (ADR 0031, 0036, 0076).
 import { TickScopedMap } from "../../domain/shared/tickScoped";
 import { profileOf } from "../../domain/vehicle/kinds/index";
@@ -7,7 +8,7 @@ import type { Clock } from "./ports/shared";
 
 export interface PaintVehicleCommand {
   playerId: string;
-  vehicleId: string;
+  vehicleId: VehicleId;
   paint: Paint;
 }
 
@@ -15,7 +16,7 @@ export class PaintVehicle {
   // The engine applies a paint on the next tick, so until then paintOf still
   // reports the old color and a second hit in the same tick would repaint and
   // use another dye (ADR 0037). Paints made in the current tick override it.
-  private readonly painted = new TickScopedMap<string, Paint>();
+  private readonly painted = new TickScopedMap<VehicleId, Paint>();
 
   constructor(
     private readonly world: PaintWorld,

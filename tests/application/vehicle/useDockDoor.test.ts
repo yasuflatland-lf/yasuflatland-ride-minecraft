@@ -1,13 +1,14 @@
 import { expect, it } from "vitest";
 import { UseDockDoor } from "../../../src/application/vehicle/useDockDoor";
+import { asVehicleId } from "../../../src/domain/shared/ids";
 import { createVehicle } from "../../../src/domain/vehicle/kinds/index";
 import { InMemoryRepo } from "./fakes";
 
 it("ignores unknown vehicles and toggles the parked camper's door both ways", () => {
   const repo = new InMemoryRepo();
   const use = new UseDockDoor(repo);
-  expect(use.execute({ vehicleId: "unknown" })).toBe(false);
-  const car = createVehicle("camper", "car", 0);
+  expect(use.execute({ vehicleId: asVehicleId("unknown") })).toBe(false);
+  const car = createVehicle("camper", asVehicleId("car"), 0);
   repo.save(car);
   expect(use.execute({ vehicleId: car.id })).toBe(false);
   const tick = (time: number) =>

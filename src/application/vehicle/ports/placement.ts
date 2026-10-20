@@ -1,3 +1,4 @@
+import type { VehicleId } from "../../../domain/shared/ids";
 // Ports for placing a vehicle and handing out the starter item; implemented in the infrastructure layer (ADR 0012).
 import type { Vec3 } from "../../../domain/shared/vec";
 import type { VehicleKind } from "../../../domain/vehicle/kind";
@@ -12,7 +13,7 @@ export interface PlacementWorld {
     yaw: number,
     kind: VehicleKind,
     ownerId: string,
-  ): string;
+  ): VehicleId;
   /** Takes one vehicle item from `slot`. False when that slot no longer holds one. */
   consumeVehicleItem(
     playerId: string,

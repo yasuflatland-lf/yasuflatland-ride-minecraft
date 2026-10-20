@@ -1,3 +1,4 @@
+import type { VehicleId } from "../../domain/shared/ids";
 // Use case: every tick, move all loaded vehicles.
 import { rebuildVehicle } from "../../domain/vehicle/kinds/index";
 import type { ChaseCamera } from "../../domain/vehicle/profile";
@@ -19,7 +20,7 @@ export class DriveVehicles {
   }
 
   execute(tick: number): void {
-    const seen = new Set<string>();
+    const seen = new Set<VehicleId>();
     const thirdPersonRiders = new Map<string, ChaseCamera>();
     const underwater = new Set<string>();
     // A failure in one vehicle must not stop the others.
@@ -96,7 +97,7 @@ export class DriveVehicles {
     this.world.run(snap.id, out.finalCommands);
   }
 
-  private releaseGone(seen: ReadonlySet<string>): void {
+  private releaseGone(seen: ReadonlySet<VehicleId>): void {
     const gone = this.repo.ids().filter((id) => !seen.has(id));
     for (const id of gone) this.repo.remove(id);
     // One failed release must not skip the other vehicles.

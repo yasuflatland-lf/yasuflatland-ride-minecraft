@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { LimitVehicles } from "../../../src/application/vehicle/limitVehicles";
+import { asVehicleId } from "../../../src/domain/shared/ids";
 import {
   createVehicle,
   fleetLimitOf,
@@ -8,7 +9,7 @@ import {
 import { SPEC } from "../../../src/domain/vehicle/spec";
 import { FakeFleetRepository, FakeWorld, InMemoryRepo } from "./fakes";
 
-const entry = (id: string) => ({ id, kind: "suv" as const });
+const entry = (id: string) => ({ id: asVehicleId(id), kind: "suv" as const });
 const entries = (ids: string[]) => ids.map(entry);
 
 const ids = (n: number) => Array.from({ length: n }, (_, i) => `v${i}`);
@@ -33,11 +34,11 @@ describe("LimitVehicles (ADR 0038)", () => {
   it("removes the oldest loaded vehicle when a new one spawns over the limit", () => {
     const { world, repo, fleets, uc } = setup();
     fleets.state = { order: entries(full), evicted: [] };
-    repo.save(createVehicle("suv", "v0", 0));
+    repo.save(createVehicle("suv", asVehicleId("v0"), 0));
     world.loaded = entries([...full, "new"]);
     uc.spawned(entry("new"));
     expect(world.calls).toEqual(["remove:v0"]);
-    expect(repo.get("v0")).toBeUndefined();
+    expect(repo.get(asVehicleId("v0"))).toBeUndefined();
     expect(fleets.state.order).toEqual(entries([...full.slice(1), "new"]));
     expect(fleets.state.evicted).toEqual([]);
   });
@@ -129,10 +130,22 @@ describe("LimitVehicles (ADR 0038)", () => {
   });
   it("removes the loaded first boat when its owner spawns a second, leaving other owners and kinds alone", () => {
     const { world, repo, fleets, warnings, uc } = setup();
-    const first = { id: "first", kind: "sportsboat" as const, owner: "a" };
-    const second = { id: "second", kind: "sportsboat" as const, owner: "a" };
-    const other = { id: "other", kind: "sportsboat" as const, owner: "b" };
-    const suv = { id: "suv", kind: "suv" as const, owner: "a" };
+    const first = {
+      id: asVehicleId("first"),
+      kind: "sportsboat" as const,
+      owner: "a",
+    };
+    const second = {
+      id: asVehicleId("second"),
+      kind: "sportsboat" as const,
+      owner: "a",
+    };
+    const other = {
+      id: asVehicleId("other"),
+      kind: "sportsboat" as const,
+      owner: "b",
+    };
+    const suv = { id: asVehicleId("suv"), kind: "suv" as const, owner: "a" };
     fleets.state = { order: [first, other, suv], evicted: [] };
     world.loaded = [first, other, suv, second];
     for (const e of world.loaded) repo.save(createVehicle(e.kind, e.id, 0));

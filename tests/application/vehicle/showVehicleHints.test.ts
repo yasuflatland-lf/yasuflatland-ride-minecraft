@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { HintPlayerView } from "../../../src/application/vehicle/ports/drive";
 import { ShowVehicleHints } from "../../../src/application/vehicle/showVehicleHints";
+import { asVehicleId } from "../../../src/domain/shared/ids";
 import { HINTS } from "../../../src/domain/vehicle/hints";
 import type { VehicleKind } from "../../../src/domain/vehicle/kind";
 import { CAMPER_PROFILE } from "../../../src/domain/vehicle/kinds/camper/profile";
@@ -48,9 +49,9 @@ function checkAt(tick: number) {
 }
 
 function addVehicle(kind: VehicleKind, id = "v", dimensionId = "overworld") {
-  const vehicle = createVehicle(kind, id, 0);
+  const vehicle = createVehicle(kind, asVehicleId(id), 0);
   repo.save(vehicle);
-  world.vehicles.push({ id, dimensionId, location: AT });
+  world.vehicles.push({ id: asVehicleId(id), dimensionId, location: AT });
   return vehicle;
 }
 

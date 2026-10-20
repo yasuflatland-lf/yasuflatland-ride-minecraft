@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { asVehicleId } from "../../../src/domain/shared/ids";
 import {
   dot,
   forward,
@@ -84,7 +85,7 @@ class DiveSim {
 
   constructor(
     readonly surface: number,
-    readonly vehicle = createVehicle("suv", "vehicle", 0),
+    readonly vehicle = createVehicle("suv", asVehicleId("vehicle"), 0),
     form: Form = "car",
   ) {
     this.form = form;
@@ -147,7 +148,10 @@ describe("Vehicle as a submarine", () => {
   it("enters submarine once and holds depth on a submerged floor without ping-pong", () => {
     fc.assert(
       fc.property(depth, yaw, (d, heading) => {
-        const sim = new DiveSim(d, createVehicle("suv", "vehicle", heading));
+        const sim = new DiveSim(
+          d,
+          createVehicle("suv", asVehicleId("vehicle"), heading),
+        );
         sim.run(IDLE, 300);
         expect(sim.changes).toEqual(["submarine"]);
         expect(sim.form).toBe("submarine");
@@ -170,7 +174,10 @@ describe("Vehicle as a submarine", () => {
   it("levels off at water speed and coasts without reversing when the stick is pulled back", () => {
     fc.assert(
       fc.property(yaw, (heading) => {
-        const sim = new DiveSim(100, createVehicle("suv", "vehicle", heading));
+        const sim = new DiveSim(
+          100,
+          createVehicle("suv", asVehicleId("vehicle"), heading),
+        );
         sim.y = 50;
         sim.run(FORWARD, 100);
         expect(length(sim.body.vel)).toBeCloseTo(SUV_SPEC.maxWaterSpeed, 6);
@@ -193,7 +200,9 @@ describe("Vehicle as a submarine", () => {
       fc.property(depth, (d) => {
         const sim = new DiveSim(
           100,
-          rebuildVehicle("suv", "vehicle", 0, [], { form: "submarine" }),
+          rebuildVehicle("suv", asVehicleId("vehicle"), 0, [], {
+            form: "submarine",
+          }),
           "submarine",
         );
         sim.y = 100 - d;
@@ -271,7 +280,7 @@ describe("Vehicle as a submarine", () => {
         (gap, heading) => {
           const sim = new DiveSim(
             100,
-            rebuildVehicle("suv", "vehicle", heading, [], {
+            rebuildVehicle("suv", asVehicleId("vehicle"), heading, [], {
               form: "submarine",
             }),
             "submarine",
@@ -390,7 +399,7 @@ describe("Vehicle as a submarine", () => {
           const drive = new SuvDrive(0, {});
           const sim = new DiveSim(
             1000,
-            new Vehicle("vehicle", SUV_PROFILE, drive),
+            new Vehicle(asVehicleId("vehicle"), SUV_PROFILE, drive),
           );
           sim.y = 500;
           let sent: number | undefined;
@@ -460,7 +469,9 @@ describe("Vehicle as a submarine", () => {
       fc.property(shallowDepth, (d) => {
         const beached = new DiveSim(
           d,
-          rebuildVehicle("suv", "vehicle", 0, [], { form: "submarine" }),
+          rebuildVehicle("suv", asVehicleId("vehicle"), 0, [], {
+            form: "submarine",
+          }),
           "submarine",
         );
         beached.step(IDLE);

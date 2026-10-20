@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { asVehicleId } from "../../../src/domain/shared/ids";
 import { dot, forward, rightOf } from "../../../src/domain/shared/vec";
 import { NEUTRAL_CONTROL } from "../../../src/domain/vehicle/driveInput";
 import { EMPTY_COUNTER } from "../../../src/domain/vehicle/hitCounter";
@@ -240,9 +241,10 @@ describe("vehicle profiles (ADR 0050)", () => {
             camper: CAMPER_PROFILE,
           }[kind],
         );
-        expect(createVehicle(kind, "v", heading).kind).toBe(kind);
+        expect(createVehicle(kind, asVehicleId("v"), heading).kind).toBe(kind);
         expect(
-          rebuildVehicle(kind, "v", heading, [], { form: "car" }).kind,
+          rebuildVehicle(kind, asVehicleId("v"), heading, [], { form: "car" })
+            .kind,
         ).toBe(kind);
       }),
     );
@@ -656,8 +658,10 @@ describe("vehicle hints (ADR 0086)", () => {
   it("gives no hints to the kinds that take hits on their whole body", () => {
     expect(SUV_PROFILE.hints).toBeUndefined();
     expect(SPORTSBOAT_PROFILE.hints).toBeUndefined();
-    expect(createVehicle("suv", "v", 0).showsHints).toBe(false);
-    expect(createVehicle("sportsboat", "v", 0).showsHints).toBe(false);
-    expect(createVehicle("camper", "v", 0).showsHints).toBe(true);
+    expect(createVehicle("suv", asVehicleId("v"), 0).showsHints).toBe(false);
+    expect(createVehicle("sportsboat", asVehicleId("v"), 0).showsHints).toBe(
+      false,
+    );
+    expect(createVehicle("camper", asVehicleId("v"), 0).showsHints).toBe(true);
   });
 });
