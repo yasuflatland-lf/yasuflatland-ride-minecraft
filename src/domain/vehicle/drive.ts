@@ -1,6 +1,6 @@
 // How one vehicle kind moves each tick, under the shared core in vehicle.ts (ADR 0050, 0055).
 import type { Vec2, Vec3 } from "../shared/vec";
-import type { ClearCell, Departure, Dock, DockRestoredKey } from "./dock";
+import type { ClearCell, Departure, Dock, DockRestoredKey } from "./dock/dock";
 import type { RawInput } from "./driveInput";
 
 /** Sensors and inputs from auxiliary seats. Riders, the test input and the ram query stay with the core (ADR 0083). */

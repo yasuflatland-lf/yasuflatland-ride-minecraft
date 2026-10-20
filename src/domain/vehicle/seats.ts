@@ -7,7 +7,7 @@ import {
   type Vec2,
   type Vec3,
 } from "../shared/vec";
-import type { HoldPose } from "./floor";
+import type { HoldPose } from "./dock/floor";
 import type { SeatLayout } from "./profile";
 
 /** The farthest any seat in these layouts sits from its vehicle's location, in blocks on the ground plane. Deck seats stand at these spots at the vehicle's own height (seatWorldPositions), so this bounds their distance to the vehicle. */

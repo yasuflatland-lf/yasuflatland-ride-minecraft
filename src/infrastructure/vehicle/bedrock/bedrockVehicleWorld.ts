@@ -17,15 +17,15 @@ import {
   type Departure,
   DOCK_RESTORED,
   inBox,
-} from "../../../domain/vehicle/dock";
+} from "../../../domain/vehicle/dock/dock";
+import type { DockCell, HoldPose } from "../../../domain/vehicle/dock/floor";
 import type { EngineCommand } from "../../../domain/vehicle/drive";
 import type { RawInput } from "../../../domain/vehicle/driveInput";
-import type { DockCell, HoldPose } from "../../../domain/vehicle/floor";
-import type { Cell } from "../../../domain/vehicle/headlights";
 import {
   entityContractOf,
   RAM_QUERY_RADIUS,
 } from "../../../domain/vehicle/kinds/index";
+import type { Cell } from "../../../domain/vehicle/lighting/headlights";
 import type { ChaseCamera } from "../../../domain/vehicle/profile";
 import type { RamHit, RamTarget } from "../../../domain/vehicle/ram";
 import type { RiderView } from "../../../domain/vehicle/vehicle";

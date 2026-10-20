@@ -9,13 +9,13 @@ import {
   type Vec2,
   type Vec3,
 } from "../../../../../src/domain/shared/vec";
+import type { HoldPose } from "../../../../../src/domain/vehicle/dock/floor";
 import type { RestoredValues } from "../../../../../src/domain/vehicle/drive";
 import {
   type ControlInput,
   type RawInput,
   toDriveInput,
 } from "../../../../../src/domain/vehicle/driveInput";
-import type { HoldPose } from "../../../../../src/domain/vehicle/floor";
 import type { VehicleKind } from "../../../../../src/domain/vehicle/kind";
 import {
   createVehicle,

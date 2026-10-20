@@ -1,14 +1,14 @@
 // Capabilities the application layer requires from the game (ports). Implementations live in the infrastructure layer (ADR 0012).
 import type { Vec3 } from "../../domain/shared/vec";
-import type { ClearCell, Departure } from "../../domain/vehicle/dock";
+import type { ClearCell, Departure } from "../../domain/vehicle/dock/dock";
+import type { DockCell, HoldPose } from "../../domain/vehicle/dock/floor";
 import type { EngineCommand, RestoredValues } from "../../domain/vehicle/drive";
 import type { RawInput } from "../../domain/vehicle/driveInput";
-import type { FleetEntry } from "../../domain/vehicle/fleet";
-import type { DockCell, HoldPose } from "../../domain/vehicle/floor";
-import type { Cell } from "../../domain/vehicle/headlights";
+import type { FleetEntry } from "../../domain/vehicle/fleet/fleet";
 import type { HeldItem, Hint, HintControls } from "../../domain/vehicle/hints";
 import type { VehicleKind } from "../../domain/vehicle/kind";
-import type { Paint } from "../../domain/vehicle/paint";
+import type { Cell } from "../../domain/vehicle/lighting/headlights";
+import type { Paint } from "../../domain/vehicle/paint/paint";
 import type { ChaseCamera } from "../../domain/vehicle/profile";
 import type { RamHit, RamTarget } from "../../domain/vehicle/ram";
 import type { RiderView } from "../../domain/vehicle/vehicle";

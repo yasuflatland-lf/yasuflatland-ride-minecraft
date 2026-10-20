@@ -1,5 +1,5 @@
 import type { MotionLimits, TyreLimits } from "../../motion/limits";
-import type { PlacementSurface } from "../../placement";
+import type { PlacementSurface } from "../../placement/placement";
 import type { VehicleProfile } from "../../profile";
 import { CAMPER_SPEC } from "./spec";
 

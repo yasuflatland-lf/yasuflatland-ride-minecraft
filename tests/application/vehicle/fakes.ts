@@ -13,20 +13,29 @@ import type {
   VehicleSnapshot,
 } from "../../../src/application/vehicle/ports";
 import type { Vec3 } from "../../../src/domain/shared/vec";
-import type { ClearCell, Departure } from "../../../src/domain/vehicle/dock";
+import type {
+  ClearCell,
+  Departure,
+} from "../../../src/domain/vehicle/dock/dock";
+import type {
+  DockCell,
+  HoldPose,
+} from "../../../src/domain/vehicle/dock/floor";
 import type { EngineCommand } from "../../../src/domain/vehicle/drive";
 import {
   Fleet,
   type FleetEntry,
   type FleetLimitOf,
   type FleetState,
-} from "../../../src/domain/vehicle/fleet";
-import type { FleetRepository } from "../../../src/domain/vehicle/fleetRepository";
-import type { DockCell, HoldPose } from "../../../src/domain/vehicle/floor";
-import { type Cell, cellKey } from "../../../src/domain/vehicle/headlights";
+} from "../../../src/domain/vehicle/fleet/fleet";
+import type { FleetRepository } from "../../../src/domain/vehicle/fleet/fleetRepository";
 import type { Hint } from "../../../src/domain/vehicle/hints";
 import type { VehicleKind } from "../../../src/domain/vehicle/kind";
-import type { Paint } from "../../../src/domain/vehicle/paint";
+import {
+  type Cell,
+  cellKey,
+} from "../../../src/domain/vehicle/lighting/headlights";
+import type { Paint } from "../../../src/domain/vehicle/paint/paint";
 import type { ChaseCamera } from "../../../src/domain/vehicle/profile";
 import type { RamHit, RamTarget } from "../../../src/domain/vehicle/ram";
 import type { Vehicle } from "../../../src/domain/vehicle/vehicle";

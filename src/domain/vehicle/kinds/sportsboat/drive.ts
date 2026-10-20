@@ -1,6 +1,7 @@
 // The sports boat's drive: the engine floats the hull and the script drives only x and z (ADR 0051).
 import { clamp, dot, type Vec2 } from "../../../shared/vec";
-import type { Dock } from "../../dock";
+import type { Dock } from "../../dock/dock";
+import type { HoldPose } from "../../dock/floor";
 import type { Drive, DriveStep, EngineCommand, TickContext } from "../../drive";
 import {
   type ControlInput,
@@ -8,7 +9,6 @@ import {
   toDriveInput,
 } from "../../driveInput";
 import type { RestoredOf } from "../../entityContract";
-import type { HoldPose } from "../../floor";
 import { MOTION } from "../../motion/constants";
 import { DOCK, heldStep, pushesStick } from "../../motion/dock";
 import { dockCommands, undockCommands } from "../../motion/dockEntity";

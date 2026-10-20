@@ -6,8 +6,7 @@ import {
   normalizeYaw,
   rightOf,
 } from "../../../../../src/domain/shared/vec";
-import { inBox } from "../../../../../src/domain/vehicle/dock";
-import { cellKey } from "../../../../../src/domain/vehicle/headlights";
+import { inBox } from "../../../../../src/domain/vehicle/dock/dock";
 import { CAMPER_PROFILE } from "../../../../../src/domain/vehicle/kinds/camper/profile";
 import {
   AIR,
@@ -24,6 +23,7 @@ import {
   snapYaw,
   wallFootCells,
 } from "../../../../../src/domain/vehicle/kinds/camper/room";
+import { cellKey } from "../../../../../src/domain/vehicle/lighting/headlights";
 import { seatWorldPositions } from "../../../../../src/domain/vehicle/seats";
 import { defined } from "../../../../support/defined";
 

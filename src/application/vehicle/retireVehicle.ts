@@ -2,7 +2,7 @@
 // for an eviction over the limit (ADR 0066). The world removal goes first and
 // is not caught: when it throws, the aggregate and the fleet entry stay, so
 // LimitVehicles can retry the eviction when the vehicle next loads.
-import type { Fleet } from "../../domain/vehicle/fleet";
+import type { Fleet } from "../../domain/vehicle/fleet/fleet";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
 import type { BreakWorld } from "./ports";
 

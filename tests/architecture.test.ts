@@ -177,6 +177,46 @@ describe("dependency-cruiser rules (ADR 0065)", () => {
       ["core-imports-motion"],
     ],
     [
+      "core subfolder importing motion",
+      {
+        "src/domain/vehicle/fleet/fleet.ts": importX("../motion/motion"),
+        "src/domain/vehicle/motion/motion.ts": EXPORTS_X,
+      },
+      ["core-imports-motion"],
+    ],
+    [
+      "core subfolder importing kind",
+      {
+        "src/domain/vehicle/fleet/fleet.ts": importX("../kinds/suv/spec"),
+        "src/domain/vehicle/kinds/suv/spec.ts": EXPORTS_X,
+      },
+      ["core-imports-kind"],
+    ],
+    [
+      "core subfolder importing another subfolder",
+      {
+        "src/domain/vehicle/dock/floor.ts": importX("../lighting/headlights"),
+        "src/domain/vehicle/lighting/headlights.ts": EXPORTS_X,
+      },
+      [],
+    ],
+    [
+      "core subfolder importing the flat core",
+      {
+        "src/domain/vehicle/fleet/fleet.ts": importX("../spec"),
+        "src/domain/vehicle/spec.ts": EXPORTS_X,
+      },
+      [],
+    ],
+    [
+      "motion importing motion",
+      {
+        "src/domain/vehicle/motion/forms.ts": importX("./motion"),
+        "src/domain/vehicle/motion/motion.ts": EXPORTS_X,
+      },
+      [],
+    ],
+    [
       "application entry",
       {
         "src/application/vehicle/place.ts": importX(

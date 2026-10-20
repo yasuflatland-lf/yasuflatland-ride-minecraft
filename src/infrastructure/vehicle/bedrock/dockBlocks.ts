@@ -10,8 +10,8 @@ import {
   type DockCell,
   type Face,
   refloor,
-} from "../../../domain/vehicle/floor";
-import { cellKey } from "../../../domain/vehicle/headlights";
+} from "../../../domain/vehicle/dock/floor";
+import { cellKey } from "../../../domain/vehicle/lighting/headlights";
 import { isLightBlock } from "./headlightBlocks";
 import {
   AIR_BLOCK,

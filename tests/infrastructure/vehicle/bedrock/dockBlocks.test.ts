@@ -1,8 +1,11 @@
 import type { Entity } from "@minecraft/server";
 import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
-import type { DockCell } from "../../../../src/domain/vehicle/floor";
-import { type Cell, cellKey } from "../../../../src/domain/vehicle/headlights";
+import type { DockCell } from "../../../../src/domain/vehicle/dock/floor";
+import {
+  type Cell,
+  cellKey,
+} from "../../../../src/domain/vehicle/lighting/headlights";
 import {
   DockBlocks,
   savedDock,

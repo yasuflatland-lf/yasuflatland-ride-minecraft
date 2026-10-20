@@ -11,7 +11,6 @@ import {
 } from "../../../src/domain/shared/vec";
 import type { Drive } from "../../../src/domain/vehicle/drive";
 import type { RawInput } from "../../../src/domain/vehicle/driveInput";
-import { headlightCells } from "../../../src/domain/vehicle/headlights";
 import { HINTS } from "../../../src/domain/vehicle/hints";
 import { VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
 import { CAMPER_PROFILE } from "../../../src/domain/vehicle/kinds/camper/profile";
@@ -24,6 +23,7 @@ import { SPORTSBOAT_PROFILE } from "../../../src/domain/vehicle/kinds/sportsboat
 import { DOOR_BY_SEAT } from "../../../src/domain/vehicle/kinds/suv/entity";
 import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
 import { SUV_SPEC } from "../../../src/domain/vehicle/kinds/suv/spec";
+import { headlightCells } from "../../../src/domain/vehicle/lighting/headlights";
 import { MOTION } from "../../../src/domain/vehicle/motion/constants";
 import { STEP_LANES } from "../../../src/domain/vehicle/motion/stepUp";
 import type { RamTarget } from "../../../src/domain/vehicle/ram";

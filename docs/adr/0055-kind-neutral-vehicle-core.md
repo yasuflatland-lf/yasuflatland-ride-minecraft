@@ -1,6 +1,6 @@
 # 0055. Kind-neutral vehicle core
 
-- Status: Superseded in part by 0083 (targets() in TickContext) and 0087 (the boat's tuning table); extended by 0064, 0065, 0072, and 0089
+- Status: Superseded in part by 0083 (targets() in TickContext) and 0087 (the boat's tuning table); extended by 0064, 0065, 0072, 0089, and 0090
 - Date: 2026-10-12
 
 ## Context

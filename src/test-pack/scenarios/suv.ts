@@ -1,10 +1,10 @@
 import type { Entity } from "@minecraft/server";
 import { dot, forward, length, type Vec2 } from "../../domain/shared/vec";
-import { headlightCells } from "../../domain/vehicle/headlights";
 import { SUV_PROFILE } from "../../domain/vehicle/kinds/suv/profile";
 import { SUV_SPEC } from "../../domain/vehicle/kinds/suv/spec";
+import { headlightCells } from "../../domain/vehicle/lighting/headlights";
 import type { Form } from "../../domain/vehicle/motion/forms";
-import { PAINTS } from "../../domain/vehicle/paint";
+import { PAINTS } from "../../domain/vehicle/paint/paint";
 import { nearestSeat, toLocal } from "../../domain/vehicle/seats";
 import { SPEC } from "../../domain/vehicle/spec";
 import {

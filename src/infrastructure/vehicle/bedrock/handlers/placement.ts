@@ -15,7 +15,7 @@ import type {
 import { TickScopedSet } from "../../../../domain/shared/tickScoped";
 import type { Vec3 } from "../../../../domain/shared/vec";
 import type { VehicleKind } from "../../../../domain/vehicle/kind";
-import type { BlockFace } from "../../../../domain/vehicle/placement";
+import type { BlockFace } from "../../../../domain/vehicle/placement/placement";
 import { kindOfItem } from "../identifiers";
 import { isWaterAt } from "../water";
 

@@ -1,6 +1,6 @@
 // Use case: a player hit a vehicle (ADR 0008).
 
-import type { FleetRepository } from "../../domain/vehicle/fleetRepository";
+import type { FleetRepository } from "../../domain/vehicle/fleet/fleetRepository";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
 import type { BreakWorld, Clock } from "./ports";
 import { retireVehicle } from "./retireVehicle";

@@ -9,7 +9,7 @@ import { profileOf } from "../../../src/domain/vehicle/kinds/index";
 import {
   type BlockFace,
   placementCell,
-} from "../../../src/domain/vehicle/placement";
+} from "../../../src/domain/vehicle/placement/placement";
 import { FakeWorld, InMemoryRepo } from "./fakes";
 
 const cmd: PlaceVehicleCommand = {

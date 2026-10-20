@@ -2,7 +2,7 @@
 import { GameMode } from "@minecraft/server";
 import type { PaintWorld } from "../../../application/vehicle/ports";
 import type { VehicleKind } from "../../../domain/vehicle/kind";
-import { PAINTS, type Paint } from "../../../domain/vehicle/paint";
+import { PAINTS, type Paint } from "../../../domain/vehicle/paint/paint";
 import type { BedrockInventory } from "./bedrockInventory";
 import type { EntityIndex } from "./entityIndex";
 import { dyeOf, kindOfEntity, PAINT_VARIANT, paintEvent } from "./identifiers";

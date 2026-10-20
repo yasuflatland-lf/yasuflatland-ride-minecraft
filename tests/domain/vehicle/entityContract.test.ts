@@ -14,7 +14,7 @@ import {
   TRANSFORMING_EVENTS,
   transformingProperties,
 } from "../../../src/domain/vehicle/motion/transformingEntity";
-import { PAINTS } from "../../../src/domain/vehicle/paint";
+import { PAINTS } from "../../../src/domain/vehicle/paint/paint";
 
 const TRANSFORMING = {
   properties: transformingProperties(10),

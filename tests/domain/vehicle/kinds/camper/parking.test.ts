@@ -5,7 +5,6 @@ import type {
   TickContext,
 } from "../../../../../src/domain/vehicle/drive";
 import type { RawInput } from "../../../../../src/domain/vehicle/driveInput";
-import { cellKey } from "../../../../../src/domain/vehicle/headlights";
 import { CamperDrive } from "../../../../../src/domain/vehicle/kinds/camper/drive";
 import {
   AIR,
@@ -18,6 +17,7 @@ import {
   roomCells,
   wallFootCells,
 } from "../../../../../src/domain/vehicle/kinds/camper/room";
+import { cellKey } from "../../../../../src/domain/vehicle/lighting/headlights";
 import { DOCK } from "../../../../../src/domain/vehicle/motion/dock";
 import { defined } from "../../../../support/defined";
 

@@ -1,7 +1,7 @@
 import type { Entity } from "@minecraft/server";
 import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
-import type { HoldPose } from "../../../../src/domain/vehicle/floor";
+import type { HoldPose } from "../../../../src/domain/vehicle/dock/floor";
 import { VehicleReleaser } from "../../../../src/infrastructure/vehicle/bedrock/vehicleReleaser";
 
 const STEPS = ["shine", "lay", "keep"] as const;
