@@ -1,4 +1,5 @@
 import { expect, it, vi } from "vitest";
+import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
 import { rebuildVehicle } from "../../../src/domain/vehicle/kinds/index";
 import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
 import { defined } from "../../support/defined";
@@ -25,11 +26,11 @@ vi.mock(
 it("emits no seat commands when the drive has no doors", () => {
   const vehicle = rebuildVehicle(
     "suv",
-    "v",
+    asVehicleId("v"),
     0,
     [
       {
-        id: "driver",
+        id: asPlayerId("driver"),
         offset: defined(SUV_PROFILE.seats.positions[0], "driver seat"),
         yaw: 0,
         raw: { moveX: 0, moveY: 0, jump: false },

@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { asPlayerId, asVehicleId } from "../../../../../src/domain/shared/ids";
 import {
   clamp,
   forward,
@@ -161,7 +162,7 @@ const LEVEL = [
 ];
 
 function boat(heading: number): Vehicle {
-  return createVehicle("sportsboat", "boat", heading);
+  return createVehicle("sportsboat", asVehicleId("boat"), heading);
 }
 
 describe("sports boat docking (ADR 0063)", () => {
@@ -531,7 +532,7 @@ describe("sports boat docking (ADR 0063)", () => {
         fc.boolean(),
         (heading, driverYaw, water, moveX, moveY, restored) => {
           const vehicle = restored
-            ? rebuildVehicle("sportsboat", "boat", heading, [], {
+            ? rebuildVehicle("sportsboat", asVehicleId("boat"), heading, [], {
                 docked: true,
               })
             : boat(heading);
@@ -543,7 +544,7 @@ describe("sports boat docking (ADR 0063)", () => {
           const f = forward(heading);
           const left = leftOf(f);
           const driver = {
-            id: "driver",
+            id: asPlayerId("driver"),
             offset: {
               x: left.x * seat.x + f.x * seat.z,
               z: left.z * seat.x + f.z * seat.z,
@@ -847,9 +848,15 @@ describe("SportsboatDrive (ADR 0051)", () => {
           thirdPerson: false,
           underwater: false,
         });
-        const rebuilt = rebuildVehicle("sportsboat", "boat", heading, [], {
-          form,
-        });
+        const rebuilt = rebuildVehicle(
+          "sportsboat",
+          asVehicleId("boat"),
+          heading,
+          [],
+          {
+            form,
+          },
+        );
         const out = rebuilt.tick(context(0, undefined, { x: 0, z: 0 }, AFLOAT));
         expect(out.stepCommands).toStrictEqual(LEVEL);
         expect(out.riders).toStrictEqual({
@@ -1211,7 +1218,7 @@ describe("SportsboatDrive (ADR 0051)", () => {
 describe("a sports boat Vehicle (ADR 0051)", () => {
   it("rams a target 3.2 blocks ahead at speed and not one 3.6 ahead, while an SUV at the same speed rams neither", () => {
     const drive = (kind: VehicleKind, heading: number, ticks: number) => {
-      const vehicle = createVehicle(kind, kind, heading);
+      const vehicle = createVehicle(kind, asVehicleId(kind), heading);
       const afloat = kind === "sportsboat";
       const sim = new BoatSim(
         vehicle,
@@ -1258,7 +1265,7 @@ describe("a sports boat Vehicle (ADR 0051)", () => {
           const f = forward(heading);
           const left = leftOf(f);
           const rider = {
-            id: "rider",
+            id: asPlayerId("rider"),
             offset: {
               x: left.x * local.x + f.x * local.z,
               z: left.z * local.x + f.z * local.z,
@@ -1479,16 +1486,22 @@ it("keeps deck seats only at empty boat seats and ignores the deck driver while 
         maxLength: 4,
       }),
       (heading, taken, inputs) => {
-        const vehicle = rebuildVehicle("sportsboat", "boat", heading, [], {
-          docked: true,
-        });
+        const vehicle = rebuildVehicle(
+          "sportsboat",
+          asVehicleId("boat"),
+          heading,
+          [],
+          {
+            docked: true,
+          },
+        );
         const f = forward(heading);
         const left = leftOf(f);
         const riders = taken.map((seat) => {
           const at = SPORTSBOAT_PROFILE.seats.positions[seat];
           if (at === undefined) throw new Error(`no seat ${seat}`);
           return {
-            id: `rider${seat}`,
+            id: asPlayerId(`rider${seat}`),
             offset: {
               x: left.x * at.x + f.x * at.z,
               z: left.z * at.x + f.z * at.z,

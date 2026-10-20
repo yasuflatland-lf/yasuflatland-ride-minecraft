@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
+import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
 import type { EngineCommand } from "../../../src/domain/vehicle/drive";
 import type {
   EntityContract,
@@ -73,7 +74,7 @@ it.each(VEHICLE_KINDS)(
         number(-180, 180),
         fc.array(sample, { minLength: 200, maxLength: 200 }),
         (yaw, samples) => {
-          const vehicle = createVehicle(kind, "v", yaw);
+          const vehicle = createVehicle(kind, asVehicleId("v"), yaw);
           const contract = entityContractOf(kind);
           samples.forEach((s, tick) => {
             const out = vehicle.tick({
@@ -82,7 +83,7 @@ it.each(VEHICLE_KINDS)(
               riders: s.mounted
                 ? [
                     {
-                      id: "driver",
+                      id: asPlayerId("driver"),
                       offset: { x: 0.38, z: -0.35 },
                       yaw: s.driverYaw,
                       raw: s.raw ?? { moveX: 0, moveY: 0, jump: false },

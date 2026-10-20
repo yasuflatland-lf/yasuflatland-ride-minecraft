@@ -1,5 +1,5 @@
 // Runs one step per item so that a failure in one item does not stop the others.
-import type { Logger } from "./ports";
+import type { Logger } from "./ports/shared";
 
 /**
  * Calls `fn` for each item in order. When `fn` throws, it logs

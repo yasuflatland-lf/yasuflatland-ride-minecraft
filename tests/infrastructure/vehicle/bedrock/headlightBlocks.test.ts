@@ -1,6 +1,7 @@
 import type { Entity } from "@minecraft/server";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { asVehicleId } from "../../../../src/domain/shared/ids";
 import { cellKey } from "../../../../src/domain/vehicle/lighting/headlights";
 import { HeadlightBlocks } from "../../../../src/infrastructure/vehicle/bedrock/headlightBlocks";
 import {
@@ -39,11 +40,11 @@ describe("HeadlightBlocks (ADR 0020)", () => {
         const grid = blockGrid();
         const car = vehicleIn(grid);
         const lights = new HeadlightBlocks();
-        lights.shine(car.id, car, wanted);
+        lights.shine(asVehicleId(car.id), car, wanted);
         expect(wanted.map(grid.typeAt)).toEqual(
           wanted.map(() => "minecraft:light_block_15"),
         );
-        lights.shine(car.id, car, []);
+        lights.shine(asVehicleId(car.id), car, []);
         expect(wanted.map(grid.typeAt)).toEqual(
           wanted.map(() => "minecraft:air"),
         );
@@ -57,18 +58,18 @@ describe("HeadlightBlocks (ADR 0020)", () => {
         const grid = blockGrid();
         const car = vehicleIn(grid);
         const lights = new HeadlightBlocks();
-        lights.shine(car.id, car, wanted);
+        lights.shine(asVehicleId(car.id), car, wanted);
         const [first, ...others] = wanted;
         const placed = defined(first, "first wanted cell");
         grid.getBlock(placed).setType("minecraft:stone");
-        lights.shine(car.id, car, []);
+        lights.shine(asVehicleId(car.id), car, []);
         expect(grid.typeAt(placed)).toBe("minecraft:stone");
         expect(others.map(grid.typeAt)).toEqual(
           others.map(() => "minecraft:air"),
         );
         expect(car.getDynamicProperty(LIT_CELLS_PROPERTY)).toBeUndefined();
         grid.getBlock(placed).setType("minecraft:air");
-        lights.shine(car.id, car, wanted);
+        lights.shine(asVehicleId(car.id), car, wanted);
         expect(wanted.map(grid.typeAt)).toEqual(wanted.map(() => LIGHT_BLOCK));
       }),
     );
@@ -80,8 +81,8 @@ describe("HeadlightBlocks (ADR 0020)", () => {
         const grid = blockGrid();
         const car = vehicleIn(grid);
         const lights = new HeadlightBlocks();
-        lights.shine(car.id, car, wanted);
-        lights.clearGone(new Set([car.id]));
+        lights.shine(asVehicleId(car.id), car, wanted);
+        lights.clearGone(new Set([asVehicleId(car.id)]));
         expect(wanted.map(grid.typeAt)).toEqual(wanted.map(() => LIGHT_BLOCK));
         lights.clearGone(new Set());
         expect(wanted.map(grid.typeAt)).toEqual(
@@ -98,11 +99,11 @@ describe("HeadlightBlocks (ADR 0020)", () => {
         const nether = blockGrid();
         const car = vehicleIn(overworld);
         const lights = new HeadlightBlocks();
-        lights.shine(car.id, car, wanted);
+        lights.shine(asVehicleId(car.id), car, wanted);
         Object.assign(car, {
           dimension: { id: "nether", getBlock: nether.getBlock },
         });
-        lights.shine(car.id, car, wanted);
+        lights.shine(asVehicleId(car.id), car, wanted);
         expect(wanted.map(overworld.typeAt)).toEqual(
           wanted.map(() => "minecraft:air"),
         );
@@ -115,6 +116,8 @@ describe("HeadlightBlocks (ADR 0020)", () => {
 
   it("does nothing for a gone vehicle it has not lit", () => {
     const lights = new HeadlightBlocks();
-    expect(() => lights.shine("gone", undefined, [])).not.toThrow();
+    expect(() =>
+      lights.shine(asVehicleId("gone"), undefined, []),
+    ).not.toThrow();
   });
 });

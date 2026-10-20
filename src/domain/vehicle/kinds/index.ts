@@ -1,3 +1,4 @@
+import type { VehicleId } from "../../shared/ids";
 // The only way to build a vehicle: every caller names the kind, so none falls back to SUV values (ADR 0055).
 import type { Drive, RestoredValues } from "../drive";
 import type { EntityContract } from "../entityContract";
@@ -60,7 +61,7 @@ export const DECK_SEAT_REACH = farthestSeatReach(
 
 export function createVehicle(
   kind: VehicleKind,
-  id: string,
+  id: VehicleId,
   yaw: number,
 ): Vehicle {
   return new Vehicle(id, profileOf(kind), KINDS[kind].createDrive(yaw, {}));
@@ -74,7 +75,7 @@ export function createVehicle(
  */
 export function rebuildVehicle(
   kind: VehicleKind,
-  id: string,
+  id: VehicleId,
   yaw: number,
   riders: readonly RiderView[],
   restored: RestoredValues,

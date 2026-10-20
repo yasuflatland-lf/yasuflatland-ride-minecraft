@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { GiveStarterVehicle } from "../../../src/application/vehicle/giveStarterVehicle";
+import { asPlayerId } from "../../../src/domain/shared/ids";
 import { FakeWorld } from "./fakes";
 
 describe("GiveStarterVehicle (ADR 0023)", () => {
@@ -12,7 +13,7 @@ describe("GiveStarterVehicle (ADR 0023)", () => {
           const world = new FakeWorld();
           for (const id of joins) world.starters.set(id, false);
           const give = new GiveStarterVehicle(world);
-          for (const id of joins) give.execute(id);
+          for (const id of joins) give.execute(asPlayerId(id));
           const players = [...new Set(joins)];
           expect(world.calls.filter((c) => c.startsWith("give:"))).toEqual(
             players.map((id) => `give:${id}:suv`),
@@ -26,7 +27,7 @@ describe("GiveStarterVehicle (ADR 0023)", () => {
   it("marks the player only after giving the item", () => {
     const world = new FakeWorld();
     world.starters.set("p", false);
-    expect(new GiveStarterVehicle(world).execute("p")).toBe(true);
+    expect(new GiveStarterVehicle(world).execute(asPlayerId("p"))).toBe(true);
     expect(world.calls).toEqual(["give:p:suv", "mark:p"]);
   });
 
@@ -34,8 +35,8 @@ describe("GiveStarterVehicle (ADR 0023)", () => {
     const world = new FakeWorld();
     world.starters.set("p", true);
     const give = new GiveStarterVehicle(world);
-    expect(give.execute("p")).toBe(false);
-    expect(give.execute("gone")).toBe(false);
+    expect(give.execute(asPlayerId("p"))).toBe(false);
+    expect(give.execute(asPlayerId("gone"))).toBe(false);
     expect(world.calls).toEqual([]);
   });
 });

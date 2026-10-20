@@ -1,8 +1,9 @@
+import type { VehicleId } from "../../domain/shared/ids";
 // Use case: a player tapped the door of a held vehicle's room (ADR 0068).
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
 
 export interface UseDockDoorCommand {
-  vehicleId: string;
+  vehicleId: VehicleId;
 }
 
 export class UseDockDoor {

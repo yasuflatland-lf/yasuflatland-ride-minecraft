@@ -4,6 +4,11 @@ import {
   PlaceVehicle,
   type PlaceVehicleCommand,
 } from "../../../src/application/vehicle/placeVehicle";
+import {
+  asDimensionId,
+  asPlayerId,
+  asVehicleId,
+} from "../../../src/domain/shared/ids";
 import { VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
 import { profileOf } from "../../../src/domain/vehicle/kinds/index";
 import {
@@ -14,8 +19,8 @@ import { FakeWorld, InMemoryRepo } from "./fakes";
 
 const cmd: PlaceVehicleCommand = {
   kind: "suv",
-  playerId: "p",
-  dimensionId: "minecraft:overworld",
+  playerId: asPlayerId("p"),
+  dimensionId: asDimensionId("minecraft:overworld"),
   blockLocation: { x: 10, y: 64, z: -3 },
   yaw: 45,
   slot: 2,
@@ -25,7 +30,7 @@ describe("PlaceVehicle (ADR 0008)", () => {
   it("records the placing player as the owner of each vehicle (ADR 0066)", () => {
     fc.assert(
       fc.property(
-        fc.array(fc.string(), { minLength: 1 }),
+        fc.array(fc.string().map(asPlayerId), { minLength: 1 }),
         fc.constantFrom(...VEHICLE_KINDS),
         fc.boolean(),
         (playerIds, kind, creative) => {
@@ -50,8 +55,8 @@ describe("PlaceVehicle (ADR 0008)", () => {
       "consume:p:2:suv",
       "spawn:minecraft:overworld:10.5,65,-2.5:45:suv",
     ]);
-    expect(repo.get("v1")?.kind).toBe(cmd.kind);
-    expect(repo.get("v1")?.yaw).toBeCloseTo(45);
+    expect(repo.get(asVehicleId("v1"))?.kind).toBe(cmd.kind);
+    expect(repo.get(asVehicleId("v1"))?.yaw).toBeCloseTo(45);
   });
 
   it("does not consume the item in creative mode", () => {
@@ -77,7 +82,7 @@ describe("PlaceVehicle (ADR 0008)", () => {
     const repo = new InMemoryRepo();
     expect(new PlaceVehicle(world, repo).execute(cmd)).toBe(false);
     expect(world.calls).toEqual([]);
-    expect(repo.get("v1")).toBeUndefined();
+    expect(repo.get(asVehicleId("v1"))).toBeUndefined();
     expect(world.owners.size).toBe(0);
   });
 
@@ -104,7 +109,7 @@ describe("PlaceVehicle placement cell (ADR 0050, ADR 0051)", () => {
         cellArb,
         fc.constantFrom(...FACES),
         fc.integer({ min: 0, max: 20 }),
-        fc.string({ minLength: 1 }),
+        fc.string({ minLength: 1 }).map(asDimensionId),
         (kind, clicked, face, depth, dimensionId) => {
           const world = new FakeWorld();
           const placement = new PlaceVehicle(world, new InMemoryRepo());
@@ -146,9 +151,9 @@ describe("PlaceVehicle placement cell (ADR 0050, ADR 0051)", () => {
           const world = new FakeWorld();
           const placement = new PlaceVehicle(world, new InMemoryRepo());
           world.water = () => wet;
-          expect(placement.cellFor(kind, "overworld", clicked, face)).toEqual(
-            face === "up" ? clicked : undefined,
-          );
+          expect(
+            placement.cellFor(kind, asDimensionId("overworld"), clicked, face),
+          ).toEqual(face === "up" ? clicked : undefined);
         },
       ),
     );
@@ -168,7 +173,12 @@ describe("PlaceVehicle placement cell (ADR 0050, ADR 0051)", () => {
             at.y > clicked.y &&
             at.y <= clicked.y + depth;
           expect(
-            placement.cellFor("sportsboat", "overworld", clicked, "up"),
+            placement.cellFor(
+              "sportsboat",
+              asDimensionId("overworld"),
+              clicked,
+              "up",
+            ),
           ).toEqual({ x: clicked.x, y: clicked.y + depth, z: clicked.z });
         },
       ),
@@ -181,10 +191,20 @@ describe("PlaceVehicle placement cell (ADR 0050, ADR 0051)", () => {
     const clicked = { x: 2, y: 5, z: 3 };
     world.water = (at) => at.x === 3 && at.y >= 4 && at.y <= 6;
     expect(
-      placement.cellFor("sportsboat", "overworld", clicked, "east"),
+      placement.cellFor(
+        "sportsboat",
+        asDimensionId("overworld"),
+        clicked,
+        "east",
+      ),
     ).toEqual({ x: 3, y: 6, z: 3 });
     expect(
-      placement.cellFor("sportsboat", "overworld", clicked, "west"),
+      placement.cellFor(
+        "sportsboat",
+        asDimensionId("overworld"),
+        clicked,
+        "west",
+      ),
     ).toBeUndefined();
   });
 

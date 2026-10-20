@@ -1,7 +1,7 @@
 // Keeps the fleet in a world dynamic property, so the order of the vehicles
 // survives /reload and server restarts (ADR 0038).
 import { world } from "@minecraft/server";
-import type { Logger } from "../../../application/vehicle/ports";
+import type { Logger } from "../../../application/vehicle/ports/shared";
 import { Fleet, type FleetLimitOf } from "../../../domain/vehicle/fleet/fleet";
 import type { FleetRepository } from "../../../domain/vehicle/fleet/fleetRepository";
 import { FLEET_PROPERTY } from "../bedrock/identifiers";

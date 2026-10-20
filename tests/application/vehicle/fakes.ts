@@ -1,17 +1,22 @@
 import type {
-  BreakWorld,
-  Clock,
   DriveWorld,
-  HeadlightWorld,
   HintPlayerView,
   HintVehicleView,
   HintWorld,
+  VehicleSnapshot,
+} from "../../../src/application/vehicle/ports/drive";
+import type {
+  BreakWorld,
   LimitWorld,
-  PaintWorld,
+} from "../../../src/application/vehicle/ports/fleet";
+import type { HeadlightWorld } from "../../../src/application/vehicle/ports/headlights";
+import type { PaintWorld } from "../../../src/application/vehicle/ports/paint";
+import type {
   PlacementWorld,
   StarterWorld,
-  VehicleSnapshot,
-} from "../../../src/application/vehicle/ports";
+} from "../../../src/application/vehicle/ports/placement";
+import type { Clock } from "../../../src/application/vehicle/ports/shared";
+import { asVehicleId, type VehicleId } from "../../../src/domain/shared/ids";
 import type { Vec3 } from "../../../src/domain/shared/vec";
 import type {
   ClearCell,
@@ -50,14 +55,14 @@ export class FakeClock implements Clock {
 }
 
 export class InMemoryRepo implements VehicleRepository {
-  readonly map = new Map<string, Vehicle>();
-  get(id: string) {
+  readonly map = new Map<VehicleId, Vehicle>();
+  get(id: VehicleId) {
     return this.map.get(id);
   }
   save(v: Vehicle) {
     this.map.set(v.id, v);
   }
-  remove(id: string) {
+  remove(id: VehicleId) {
     this.map.delete(id);
   }
   ids() {
@@ -252,7 +257,7 @@ export class FakeWorld
     kind: VehicleKind,
     ownerId: string,
   ) {
-    const id = `v${this.nextId++}`;
+    const id = asVehicleId(`v${this.nextId++}`);
     this.owners.set(id, ownerId);
     this.calls.push(`spawn:${dim}:${at.x},${at.y},${at.z}:${yaw}:${kind}`);
     return id;
@@ -326,7 +331,7 @@ export const snapshot = (
   const { waterDepth, waterBelow, ...fields } = over;
   const sensors = waterSensors(waterDepth, waterBelow);
   const snap: VehicleSnapshot = {
-    id,
+    id: asVehicleId(id),
     kind: "suv",
     location: sensors.location,
     yaw: 0,

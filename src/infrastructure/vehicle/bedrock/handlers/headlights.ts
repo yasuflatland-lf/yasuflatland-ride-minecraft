@@ -2,6 +2,12 @@
 // whether its use reaches itemUse or an interaction with the vehicle (ADR 0020, 0024).
 import { type Entity, system, world } from "@minecraft/server";
 import type { SwitchHeadlights } from "../../../../application/vehicle/switchHeadlights";
+import {
+  asPlayerId,
+  asVehicleId,
+  type PlayerId,
+  type VehicleId,
+} from "../../../../domain/shared/ids";
 import { HEADLIGHT_SWITCH_TYPE, isVehicleEntity } from "../identifiers";
 
 export function registerHeadlights(headlights: SwitchHeadlights): void {
@@ -9,7 +15,7 @@ export function registerHeadlights(headlights: SwitchHeadlights): void {
     const mount = player.getComponent("minecraft:riding")?.entityRidingOn;
     return isVehicleEntity(mount?.typeId) ? mount : undefined;
   };
-  const switchHeadlights = (playerId: string, vehicleId: string) =>
+  const switchHeadlights = (playerId: PlayerId, vehicleId: VehicleId) =>
     headlights.execute({
       playerId,
       vehicleId,
@@ -18,7 +24,8 @@ export function registerHeadlights(headlights: SwitchHeadlights): void {
   world.afterEvents.itemUse.subscribe((ev) => {
     if (ev.itemStack.typeId !== HEADLIGHT_SWITCH_TYPE) return;
     const vehicle = ridden(ev.source);
-    if (vehicle) switchHeadlights(ev.source.id, vehicle.id);
+    if (vehicle)
+      switchHeadlights(asPlayerId(ev.source.id), asVehicleId(vehicle.id));
   });
 
   world.beforeEvents.playerInteractWithEntity.subscribe((ev) => {
@@ -30,8 +37,8 @@ export function registerHeadlights(headlights: SwitchHeadlights): void {
       ridden(ev.player)?.id === ev.target.id
     ) {
       ev.cancel = true;
-      const playerId = ev.player.id;
-      const vehicleId = ev.target.id;
+      const playerId = asPlayerId(ev.player.id);
+      const vehicleId = asVehicleId(ev.target.id);
       system.run(() => switchHeadlights(playerId, vehicleId));
     }
   });

@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { asPlayerId } from "../../../src/domain/shared/ids";
 import { forward, leftOf, type Vec2 } from "../../../src/domain/shared/vec";
 import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
 import { Seating } from "../../../src/domain/vehicle/seating";
@@ -45,7 +46,10 @@ function worldOffset(yawDeg: number, i: number): Vec2 {
 }
 
 function place(list: readonly Spec[], yawDeg: number): RiderPos[] {
-  return list.map((r) => ({ id: r.id, offset: worldOffset(yawDeg, r.seat) }));
+  return list.map((r) => ({
+    id: asPlayerId(r.id),
+    offset: worldOffset(yawDeg, r.seat),
+  }));
 }
 
 describe("Seating (ADR 0019, ADR 0025)", () => {

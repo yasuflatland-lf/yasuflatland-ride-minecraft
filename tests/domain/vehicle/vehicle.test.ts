@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
 import {
   dot,
   forward,
@@ -123,7 +124,7 @@ class Sim {
   run(v: Vehicle, ticks: number, from = 0) {
     for (let t = from; t < from + ticks; t++) {
       const riders: RiderView[] = this.riders.map((r) => ({
-        id: r.id,
+        id: asPlayerId(r.id),
         offset: seatOffset(this.yaw, r.seat),
         yaw: r.yaw,
         raw: r.raw,
@@ -168,20 +169,20 @@ describe("Vehicle (aggregate)", () => {
   it("moves forward when the rider in the driver's seat presses the accelerator", () => {
     const sim = new Sim();
     sim.riders = [{ id: "d", seat: 0, yaw: 0, raw: FORWARD }];
-    sim.run(createVehicle("suv", "car", 0), 40);
+    sim.run(createVehicle("suv", asVehicleId("car"), 0), 40);
     expect(sim.pos.z).toBeGreaterThan(5);
   });
 
   it("uses the driver's input ahead of conflicting test input", () => {
     fc.assert(
       fc.property(fc.double({ min: 0.5, max: 1, noNaN: true }), (throttle) => {
-        const vehicle = createVehicle("suv", "car", 0);
+        const vehicle = createVehicle("suv", asVehicleId("car"), 0);
         const out = vehicle.tick({
           deckSeatInputs: [],
           tick: 0,
           riders: [
             {
-              id: "driver",
+              id: asPlayerId("driver"),
               offset: defined(SUV_PROFILE.seats.positions[0], "driver seat"),
               yaw: 0,
               raw: { ...FORWARD, moveY: throttle },
@@ -205,14 +206,14 @@ describe("Vehicle (aggregate)", () => {
   it("cannot be driven by a passenger alone", () => {
     const sim = new Sim();
     sim.riders = [{ id: "p", seat: 1, yaw: 0, raw: FORWARD }];
-    sim.run(createVehicle("suv", "car", 0), 40);
+    sim.run(createVehicle("suv", asVehicleId("car"), 0), 40);
     expect(Math.hypot(sim.pos.x, sim.pos.z)).toBeLessThan(0.01);
   });
 
   it("aligns the vehicle's heading with the driver's view when boarding while stopped", () => {
     const sim = new Sim();
     sim.riders = [{ id: "d", seat: 0, yaw: 120, raw: IDLE }];
-    const v = createVehicle("suv", "car", 0);
+    const v = createVehicle("suv", asVehicleId("car"), 0);
     sim.run(v, 1);
     expect(v.yaw).toBeCloseTo(120);
   });
@@ -227,7 +228,7 @@ describe("Vehicle (aggregate)", () => {
         }),
         (boardYaw, laterYaws) => {
           const sim = new Sim();
-          const v = createVehicle("suv", "car", 0);
+          const v = createVehicle("suv", asVehicleId("car"), 0);
           sim.riders = [{ id: "d", seat: 0, yaw: boardYaw, raw: IDLE }];
           sim.run(v, 1);
           laterYaws.forEach((yaw, i) => {
@@ -246,7 +247,7 @@ describe("Vehicle (aggregate)", () => {
         fc.double({ min: 10, max: 350, noNaN: true }),
         (viewOffset) => {
           const sim = new Sim();
-          const v = createVehicle("suv", "car", 0);
+          const v = createVehicle("suv", asVehicleId("car"), 0);
           sim.riders = [{ id: "d", seat: 0, yaw: 0, raw: FORWARD }];
           sim.run(v, 20);
           expect(Math.abs(v.speed)).toBeGreaterThan(MOTION.mountAlignSpeed);
@@ -269,7 +270,10 @@ describe("Vehicle (aggregate)", () => {
           sim.yaw = yaw;
           sim.solid = stepAhead(yaw, stepDistance, height);
           sim.riders = [{ id: "d", seat: 0, yaw, raw: FORWARD }];
-          sim.run(createVehicle("suv", "car", yaw), STEP_REACH_TICKS);
+          sim.run(
+            createVehicle("suv", asVehicleId("car"), yaw),
+            STEP_REACH_TICKS,
+          );
           expect(dot(sim.pos, forward(yaw))).toBeLessThan(
             stepDistance - SUV_SPEC.hitboxFront,
           );
@@ -292,7 +296,10 @@ describe("Vehicle (aggregate)", () => {
           sim.yaw = yaw;
           sim.solid = stepOnLane(yaw, 8, 2, lane);
           sim.riders = [{ id: "d", seat: 0, yaw, raw: FORWARD }];
-          sim.run(createVehicle("suv", "car", yaw), STEP_REACH_TICKS);
+          sim.run(
+            createVehicle("suv", asVehicleId("car"), yaw),
+            STEP_REACH_TICKS,
+          );
           expect(dot(sim.pos, forward(yaw))).toBeLessThan(
             8 - SUV_SPEC.hitboxFront,
           );
@@ -323,7 +330,10 @@ describe("Vehicle (aggregate)", () => {
           return ceiling || step(p);
         };
         sim.riders = [{ id: "d", seat: 0, yaw, raw: FORWARD }];
-        sim.run(createVehicle("suv", "car", yaw), STEP_REACH_TICKS);
+        sim.run(
+          createVehicle("suv", asVehicleId("car"), yaw),
+          STEP_REACH_TICKS,
+        );
         expect(sim.impulseY.every((y) => y === 0)).toBe(true);
       }),
     );
@@ -349,12 +359,12 @@ describe("Vehicle (aggregate)", () => {
             ...passengers.slice(i),
           ];
           const riders: RiderView[] = sim.riders.map((r) => ({
-            id: r.id,
+            id: asPlayerId(r.id),
             offset: seatOffset(0, r.seat),
             yaw: r.yaw,
             raw: r.raw,
           }));
-          const v = rebuildVehicle("suv", "car", 0, riders, {});
+          const v = rebuildVehicle("suv", asVehicleId("car"), 0, riders, {});
           sim.run(v, 40);
           expect(sim.pos.z).toBeGreaterThan(5);
         },
@@ -371,7 +381,7 @@ describe("Vehicle (aggregate)", () => {
     };
     const board = (raw: RawInput) => {
       const sim = new Sim();
-      const v = createVehicle("suv", "car", 0);
+      const v = createVehicle("suv", asVehicleId("car"), 0);
       sim.testInput = raw;
       sim.run(v, 1);
       const speed = v.speed;
@@ -387,7 +397,7 @@ describe("Vehicle (aggregate)", () => {
 
   it("keeps the heading when a driver boards a vehicle reversing faster than mountAlignSpeed (ADR 0019)", () => {
     const sim = new Sim();
-    const v = createVehicle("suv", "car", 0);
+    const v = createVehicle("suv", asVehicleId("car"), 0);
     sim.testInput = { moveX: 0, moveY: -1, jump: false };
     let tick = 0;
     for (; tick < 40 && v.speed >= -MOTION.mountAlignSpeed; tick++) {
@@ -403,7 +413,7 @@ describe("Vehicle (aggregate)", () => {
   it("does not query nearby targets at exactly ramMinSpeed, as when creeping up a step (ADR 0006)", () => {
     // A step jump raises a slower vehicle to stepMinSpeed, which equals
     // ramMinSpeed, so creeping up a step reaches the threshold exactly.
-    const v = createVehicle("suv", "car", 0);
+    const v = createVehicle("suv", asVehicleId("car"), 0);
     let vel: Vec2 = { x: 0, z: 0 };
     let pos: Vec2 = { x: 0, z: 0 };
     const step = stepAhead(0, 3, 1);
@@ -460,7 +470,7 @@ describe("Vehicle (aggregate)", () => {
           const moveYs = phases.flatMap((p) =>
             Array<number>(p.ticks).fill(p.moveY),
           );
-          const v = createVehicle("suv", "car", 0);
+          const v = createVehicle("suv", asVehicleId("car"), 0);
           let vel: Vec2 = { x: 0, z: 0 };
           let pos: Vec2 = { x: 0, z: 0 };
           moveYs.forEach((moveY, tick) => {
@@ -496,17 +506,17 @@ describe("Vehicle (aggregate)", () => {
 
   it("keeps the driver while they ride, even when their position reads as another seat for a tick (ADR 0025)", () => {
     const sim = new Sim();
-    const v = createVehicle("suv", "car", 0);
+    const v = createVehicle("suv", asVehicleId("car"), 0);
     sim.riders = [{ id: "d", seat: 0, yaw: 0, raw: FORWARD }];
     sim.run(v, 10);
     sim.riders = [{ id: "d", seat: 1, yaw: 0, raw: FORWARD }];
     sim.run(v, 1, 10);
-    expect(v.flipHeadlightSwitch("d", 100)).toBe(true);
+    expect(v.flipHeadlightSwitch(asPlayerId("d"), 100)).toBe(true);
   });
 
   it("makes the passenger who moved up to the driver's seat the driver once the driver leaves", () => {
     const sim = new Sim();
-    const v = createVehicle("suv", "car", 0);
+    const v = createVehicle("suv", asVehicleId("car"), 0);
     sim.riders = [
       { id: "d", seat: 0, yaw: 0, raw: IDLE },
       { id: "p", seat: 1, yaw: 0, raw: IDLE },
@@ -514,12 +524,12 @@ describe("Vehicle (aggregate)", () => {
     sim.run(v, 5);
     sim.riders = [{ id: "p", seat: 0, yaw: 0, raw: IDLE }];
     sim.run(v, 1, 5);
-    expect(v.flipHeadlightSwitch("p", 100)).toBe(true);
+    expect(v.flipHeadlightSwitch(asPlayerId("p"), 100)).toBe(true);
   });
 
   it("when the driver disappears (e.g. disconnects), emits the driver's door event once and the vehicle coasts to a stop", () => {
     const sim = new Sim();
-    const v = createVehicle("suv", "car", 0);
+    const v = createVehicle("suv", asVehicleId("car"), 0);
     sim.riders = [{ id: "d", seat: 0, yaw: 0, raw: FORWARD }];
     sim.run(v, 40);
     sim.riders = [];
@@ -531,7 +541,7 @@ describe("Vehicle (aggregate)", () => {
   it("moves on the test input when there is no driver", () => {
     const sim = new Sim();
     sim.testInput = FORWARD;
-    sim.run(createVehicle("suv", "car", 0), 40);
+    sim.run(createVehicle("suv", asVehicleId("car"), 0), 40);
     expect(sim.pos.z).toBeGreaterThan(5);
   });
 
@@ -539,13 +549,13 @@ describe("Vehicle (aggregate)", () => {
     const sim = new Sim();
     sim.riders = [{ id: "d", seat: 0, yaw: 0, raw: FORWARD }];
     sim.targets = [{ id: "cow", offset: { x: 0, y: 0, z: 1.5 } }];
-    sim.run(createVehicle("suv", "car", 0), 40);
+    sim.run(createVehicle("suv", asVehicleId("car"), 0), 40);
     expect(sim.hits.length).toBeGreaterThan(0);
     expect(sim.hits.length).toBeLessThanOrEqual(4);
   });
 
   it("an empty vehicle breaks after 3 hits, but not while occupied", () => {
-    const empty = createVehicle("suv", "a", 0);
+    const empty = createVehicle("suv", asVehicleId("a"), 0);
     new Sim().run(empty, 1);
     expect([
       empty.receiveHit(1),
@@ -555,7 +565,7 @@ describe("Vehicle (aggregate)", () => {
 
     const sim = new Sim();
     sim.riders = [{ id: "d", seat: 0, yaw: 0, raw: IDLE }];
-    const occupied = createVehicle("suv", "b", 0);
+    const occupied = createVehicle("suv", asVehicleId("b"), 0);
     sim.run(occupied, 1);
     expect([1, 2, 3, 4].map((t) => occupied.receiveHit(t))).toEqual([
       false,
@@ -584,12 +594,12 @@ describe("Vehicle (aggregate)", () => {
             })),
           ];
           const riders: RiderView[] = sim.riders.map((r) => ({
-            id: r.id,
+            id: asPlayerId(r.id),
             offset: seatOffset(yaw, r.seat),
             yaw: r.yaw,
             raw: r.raw,
           }));
-          const v = rebuildVehicle("suv", "car", yaw, riders, {});
+          const v = rebuildVehicle("suv", asVehicleId("car"), yaw, riders, {});
           sim.run(v, 1);
           const turned = ((((v.yaw - yaw) % 360) + 540) % 360) - 180;
           expect(turned).toBeCloseTo(0);
@@ -602,29 +612,38 @@ describe("Vehicle (aggregate)", () => {
 
 describe("Vehicle headlight switch (ADR 0020)", () => {
   const driver: RiderView = {
-    id: "d",
+    id: asPlayerId("d"),
     offset: seatOffset(0, 0),
     yaw: 0,
     raw: IDLE,
   };
   const passenger: RiderView = {
-    id: "p",
+    id: asPlayerId("p"),
     offset: seatOffset(0, 1),
     yaw: 0,
     raw: IDLE,
   };
 
   it("flips only for the driver", () => {
-    const v = rebuildVehicle("suv", "v", 0, [driver, passenger], {});
-    expect(v.flipHeadlightSwitch("p", 0)).toBe(false);
-    expect(v.flipHeadlightSwitch("outsider", 0)).toBe(false);
-    expect(v.flipHeadlightSwitch("d", 0)).toBe(true);
+    const v = rebuildVehicle(
+      "suv",
+      asVehicleId("v"),
+      0,
+      [driver, passenger],
+      {},
+    );
+    expect(v.flipHeadlightSwitch(asPlayerId("p"), 0)).toBe(false);
+    expect(v.flipHeadlightSwitch(asPlayerId("outsider"), 0)).toBe(false);
+    expect(v.flipHeadlightSwitch(asPlayerId("d"), 0)).toBe(true);
   });
 
   it("does not flip for anyone when nobody drives", () => {
-    expect(createVehicle("suv", "v", 0).flipHeadlightSwitch("d", 0)).toBe(
-      false,
-    );
+    expect(
+      createVehicle("suv", asVehicleId("v"), 0).flipHeadlightSwitch(
+        asPlayerId("d"),
+        0,
+      ),
+    ).toBe(false);
   });
 
   it("flips only on a use that follows a cooldown of idle switch", () => {
@@ -634,13 +653,13 @@ describe("Vehicle headlight switch (ADR 0020)", () => {
           .uniqueArray(fc.integer({ min: 0, max: 200 }))
           .map((t) => t.sort((a, b) => a - b)),
         (ticks) => {
-          const v = rebuildVehicle("suv", "v", 0, [driver], {});
+          const v = rebuildVehicle("suv", asVehicleId("v"), 0, [driver], {});
           ticks.forEach((t, i) => {
             const idle =
               i === 0 ||
               t - defined(ticks[i - 1], "previous use") >=
                 SPEC.headlightSwitchCooldown;
-            expect(v.flipHeadlightSwitch("d", t)).toBe(idle);
+            expect(v.flipHeadlightSwitch(asPlayerId("d"), t)).toBe(idle);
           });
         },
       ),
@@ -660,7 +679,7 @@ describe("Vehicle headlight cells and chase camera (ADR 0020, 0071)", () => {
   it("lights the cells of its kind's beam pattern along its own heading", () => {
     fc.assert(
       fc.property(kind, heading, location, (k, h, at) => {
-        const v = createVehicle(k, "v", h);
+        const v = createVehicle(k, asVehicleId("v"), h);
         expect(v.headlightCells(at)).toEqual(
           headlightCells(at, v.yaw, profileOf(k).beams),
         );
@@ -671,7 +690,7 @@ describe("Vehicle headlight cells and chase camera (ADR 0020, 0071)", () => {
   it("lights along the heading the driver gave it on the tick", () => {
     fc.assert(
       fc.property(kind, heading, heading, location, (k, h, driverYaw, at) => {
-        const v = createVehicle(k, "v", h);
+        const v = createVehicle(k, asVehicleId("v"), h);
         const f = forward(h);
         const l = leftOf(f);
         const s = defined(profileOf(k).seats.positions[0], "driver seat");
@@ -680,7 +699,7 @@ describe("Vehicle headlight cells and chase camera (ADR 0020, 0071)", () => {
           tick: 0,
           riders: [
             {
-              id: "d",
+              id: asPlayerId("d"),
               offset: { x: l.x * s.x + f.x * s.z, z: l.z * s.x + f.z * s.z },
               yaw: driverYaw,
               raw: IDLE,
@@ -704,13 +723,19 @@ describe("Vehicle headlight cells and chase camera (ADR 0020, 0071)", () => {
   });
 
   it.each(VEHICLE_KINDS)("answers its kind's chase camera (%s)", (k) => {
-    expect(createVehicle(k, "v", 0).chaseCamera).toBe(profileOf(k).chaseCamera);
+    expect(createVehicle(k, asVehicleId("v"), 0).chaseCamera).toBe(
+      profileOf(k).chaseCamera,
+    );
   });
 
   it("pulls the camper's camera back and keeps the near view for the SUV and the sports boat", () => {
-    expect(createVehicle("camper", "v", 0).chaseCamera).toBe("far");
-    expect(createVehicle("suv", "v", 0).chaseCamera).toBe("near");
-    expect(createVehicle("sportsboat", "v", 0).chaseCamera).toBe("near");
+    expect(createVehicle("camper", asVehicleId("v"), 0).chaseCamera).toBe(
+      "far",
+    );
+    expect(createVehicle("suv", asVehicleId("v"), 0).chaseCamera).toBe("near");
+    expect(createVehicle("sportsboat", asVehicleId("v"), 0).chaseCamera).toBe(
+      "near",
+    );
   });
 });
 
@@ -724,7 +749,7 @@ describe("Vehicle water depth context", () => {
           noNaN: true,
         }),
         (waterDepth) => {
-          const vehicle = createVehicle("suv", "car", 0);
+          const vehicle = createVehicle("suv", asVehicleId("car"), 0);
           const ctx: VehicleTickInput = {
             deckSeatInputs: [],
             tick: 0,
@@ -751,7 +776,9 @@ describe("Vehicle water depth context", () => {
   });
 
   it("treats dry cells as dry", () => {
-    const vehicle = rebuildVehicle("suv", "car", 0, [], { form: "submarine" });
+    const vehicle = rebuildVehicle("suv", asVehicleId("car"), 0, [], {
+      form: "submarine",
+    });
     expect(
       propertyValue(
         vehicle.tick({
@@ -774,10 +801,10 @@ describe("Vehicle water depth context", () => {
 it("concatenates seat commands in seat order when multiple riders leave", () => {
   const vehicle = rebuildVehicle(
     "suv",
-    "v",
+    asVehicleId("v"),
     0,
     [3, 1, 2, 0].map((seat) => ({
-      id: `r${seat}`,
+      id: asPlayerId(`r${seat}`),
       offset: seatOffset(0, seat),
       yaw: 0,
       raw: IDLE,
@@ -823,12 +850,12 @@ it("blanks only the occupied dock seat in the outcome", () => {
       dock: { hold: { x: 0, y: 0, z: 0, yaw: 0 }, cells: [], seats },
     }),
   };
-  const vehicle = new Vehicle("v", SPORTSBOAT_PROFILE, drive);
+  const vehicle = new Vehicle(asVehicleId("v"), SPORTSBOAT_PROFILE, drive);
   const outcome = vehicle.tick({
     tick: 0,
     riders: [
       {
-        id: "r",
+        id: asPlayerId("r"),
         offset: defined(SPORTSBOAT_PROFILE.seats.positions[2], "seat 2"),
         yaw: 0,
         raw: IDLE,
@@ -870,7 +897,7 @@ describe("hints (ADR 0086)", () => {
         }),
       }),
     };
-    return new Vehicle("v", CAMPER_PROFILE, drive);
+    return new Vehicle(asVehicleId("v"), CAMPER_PROFILE, drive);
   }
 
   function tick(
@@ -907,7 +934,7 @@ describe("hints (ADR 0086)", () => {
     tick(onDeck, [], [IDLE]);
     expect(onDeck.hint(beside, "other", "touch")).toBeUndefined();
     const aboard = camper(true);
-    tick(aboard, [{ id: "r", offset: SEAT0, yaw: YAW, raw: IDLE }]);
+    tick(aboard, [{ id: asPlayerId("r"), offset: SEAT0, yaw: YAW, raw: IDLE }]);
     expect(aboard.hint(beside, "other", "touch")).toBeUndefined();
     const other = camper(true);
     tick(other, [], [undefined, IDLE]);
@@ -918,7 +945,9 @@ describe("hints (ADR 0086)", () => {
 
   it("drops the pick-up hint while a rider keeps the camper whole, but still offers paint", () => {
     const vehicle = camper(false);
-    tick(vehicle, [{ id: "r", offset: SEAT0, yaw: YAW, raw: IDLE }]);
+    tick(vehicle, [
+      { id: asPlayerId("r"), offset: SEAT0, yaw: YAW, raw: IDLE },
+    ]);
     const front = { x: 0, y: 0, z: BUMPER.boxZ + BUMPER.boxHalf + 0.5 };
     expect(vehicle.hint(front, "other", "touch")).toBeUndefined();
     expect(vehicle.hint(front, "dye", "touch")?.name).toBe(HINTS.paint);

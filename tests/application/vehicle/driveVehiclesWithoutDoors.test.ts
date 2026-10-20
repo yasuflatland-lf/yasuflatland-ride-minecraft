@@ -1,5 +1,6 @@
 import { expect, it, vi } from "vitest";
 import { DriveVehicles } from "../../../src/application/vehicle/driveVehicles";
+import { asPlayerId } from "../../../src/domain/shared/ids";
 import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
 import { defined } from "../../support/defined";
 import { FakeWorld, InMemoryRepo, snapshot } from "./fakes";
@@ -31,7 +32,7 @@ it("plays no door when a rider leaves a vehicle whose drive has no doors", () =>
     snapshot("v", {
       riders: [
         {
-          id: "driver",
+          id: asPlayerId("driver"),
           offset: defined(SUV_PROFILE.seats.positions[0], "driver seat"),
           yaw: 0,
           raw: { moveX: 0, moveY: 0, jump: false },

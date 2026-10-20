@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { asPlayerId, asVehicleId } from "../../../../src/domain/shared/ids";
 import { PAINTS } from "../../../../src/domain/vehicle/paint/paint";
 import type { BedrockInventory } from "../../../../src/infrastructure/vehicle/bedrock/bedrockInventory";
 import { BedrockPaintWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockPaintWorld";
@@ -48,26 +49,26 @@ describe("BedrockPaintWorld", () => {
             ? { value: PAINT_VARIANT[expected] }
             : undefined,
         );
-        expect(paint.paintOf(vehicle.id)).toBe(expected);
+        expect(paint.paintOf(asVehicleId(vehicle.id))).toBe(expected);
       }),
     );
   });
 
   it("reads variant 0 when the vehicle has no variant component", () => {
     const { vehicle, paint } = fixture();
-    expect(paint.paintOf(vehicle.id)).toBe(PAINTS[0]);
+    expect(paint.paintOf(asVehicleId(vehicle.id))).toBe(PAINTS[0]);
   });
 
   it("has no paint for a missing vehicle or an unknown variant", () => {
     const { vehicle, paint } = fixture();
-    expect(paint.paintOf("missing")).toBeUndefined();
+    expect(paint.paintOf(asVehicleId("missing"))).toBeUndefined();
     vehicle.getComponent.mockReturnValue({ value: PAINTS.length });
-    expect(paint.paintOf(vehicle.id)).toBeUndefined();
+    expect(paint.paintOf(asVehicleId(vehicle.id))).toBeUndefined();
   });
 
   it.each(PAINTS)("paints the vehicle %s with the dye sound", (color) => {
     const { dimension, vehicle, paint } = fixture();
-    paint.paint(vehicle.id, color);
+    paint.paint(asVehicleId(vehicle.id), color);
     expect(vehicle.triggerEvent).toHaveBeenCalledExactlyOnceWith(
       paintEvent(color),
     );
@@ -79,14 +80,14 @@ describe("BedrockPaintWorld", () => {
 
   it("does not paint a missing vehicle", () => {
     const { dimension, vehicle, paint } = fixture();
-    paint.paint("missing", "red");
+    paint.paint(asVehicleId("missing"), "red");
     expect(vehicle.triggerEvent).not.toHaveBeenCalled();
     expect(dimension.playSound).not.toHaveBeenCalled();
   });
 
   it.each(PAINTS)("takes one %s dye from the held slot", (color) => {
     const { consumeHeld, paint } = fixture();
-    paint.consumeDye("player", color);
+    paint.consumeDye(asPlayerId("player"), color);
     expect(consumeHeld).toHaveBeenCalledExactlyOnceWith("player", dyeOf(color));
   });
 });

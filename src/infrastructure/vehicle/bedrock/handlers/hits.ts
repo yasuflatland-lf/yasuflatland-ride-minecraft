@@ -3,6 +3,7 @@
 import { Player, world } from "@minecraft/server";
 import type { HitVehicle } from "../../../../application/vehicle/hitVehicle";
 import type { PaintVehicle } from "../../../../application/vehicle/paintVehicle";
+import { asPlayerId, asVehicleId } from "../../../../domain/shared/ids";
 import { standsOnDeck } from "../deck";
 import { heldDye } from "../heldDye";
 import { isVehicleEntity } from "../identifiers";
@@ -17,17 +18,18 @@ export function registerHits(
     const player = ev.damagingEntity;
     if (!isVehicleEntity(ev.hitEntity.typeId) || !(player instanceof Player))
       return;
+    const vehicleId = asVehicleId(ev.hitEntity.id);
     const paint = heldDye(player);
     if (paint) {
       paintVehicle.execute({
-        playerId: player.id,
-        vehicleId: ev.hitEntity.id,
+        playerId: asPlayerId(player.id),
+        vehicleId,
         paint,
       });
       return;
     }
     hitVehicle.execute({
-      vehicleId: ev.hitEntity.id,
+      vehicleId,
       fromDeck: standsOnDeck(player),
     });
   });

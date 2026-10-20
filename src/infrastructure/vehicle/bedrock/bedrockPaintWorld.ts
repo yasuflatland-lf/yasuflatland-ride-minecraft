@@ -1,6 +1,7 @@
 // Implements PaintWorld with @minecraft/server (ADR 0012).
 import { GameMode } from "@minecraft/server";
-import type { PaintWorld } from "../../../application/vehicle/ports";
+import type { PaintWorld } from "../../../application/vehicle/ports/paint";
+import type { PlayerId, VehicleId } from "../../../domain/shared/ids";
 import type { VehicleKind } from "../../../domain/vehicle/kind";
 import { PAINTS, type Paint } from "../../../domain/vehicle/paint/paint";
 import type { BedrockInventory } from "./bedrockInventory";
@@ -13,28 +14,28 @@ export class BedrockPaintWorld implements PaintWorld {
     private readonly inventory: BedrockInventory,
   ) {}
 
-  paintOf(vehicleId: string): Paint | undefined {
+  paintOf(vehicleId: VehicleId): Paint | undefined {
     const vehicle = this.index.entity(vehicleId);
     if (!vehicle) return undefined;
     const variant = vehicle.getComponent("minecraft:variant")?.value ?? 0;
     return PAINTS.find((p) => PAINT_VARIANT[p] === variant);
   }
 
-  kindOf(vehicleId: string): VehicleKind | undefined {
+  kindOf(vehicleId: VehicleId): VehicleKind | undefined {
     return kindOfEntity(this.index.entity(vehicleId)?.typeId);
   }
 
-  paint(vehicleId: string, paint: Paint): void {
+  paint(vehicleId: VehicleId, paint: Paint): void {
     const vehicle = this.index.entity(vehicleId);
     if (!vehicle) return;
     vehicle.triggerEvent(paintEvent(paint));
     vehicle.dimension.playSound("dye.use", vehicle.location);
   }
 
-  consumeDye(playerId: string, paint: Paint): void {
+  consumeDye(playerId: PlayerId, paint: Paint): void {
     this.inventory.consumeHeld(playerId, dyeOf(paint));
   }
-  isCreative(playerId: string): boolean {
+  isCreative(playerId: PlayerId): boolean {
     const player = this.index.player(playerId);
     // getGameMode throws on a handle whose player has left (isValid false).
     return (

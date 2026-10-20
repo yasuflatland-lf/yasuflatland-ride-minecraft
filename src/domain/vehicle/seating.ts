@@ -1,3 +1,4 @@
+import type { PlayerId } from "../shared/ids";
 // Which rider sits where and who drives (ADR 0019, ADR 0025).
 import type { Vec2 } from "../shared/vec";
 import type { SeatLayout } from "./profile";
@@ -12,8 +13,8 @@ interface SeatingUpdate<R extends RiderPos> {
 }
 
 export class Seating {
-  private seats: ReadonlyMap<string, number> = new Map();
-  private driverId: string | undefined;
+  private seats: ReadonlyMap<PlayerId, number> = new Map();
+  private driverId: PlayerId | undefined;
 
   constructor(private readonly positions: SeatLayout["positions"]) {}
 
@@ -51,7 +52,7 @@ export class Seating {
   }
 
   /** The id of the current driver, if any. */
-  get driver(): string | undefined {
+  get driver(): PlayerId | undefined {
     return this.driverId;
   }
 

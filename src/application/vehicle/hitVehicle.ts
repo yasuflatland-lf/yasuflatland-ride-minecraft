@@ -1,12 +1,14 @@
+import type { VehicleId } from "../../domain/shared/ids";
 // Use case: a player hit a vehicle (ADR 0008).
 
 import type { FleetRepository } from "../../domain/vehicle/fleet/fleetRepository";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
-import type { BreakWorld, Clock } from "./ports";
+import type { BreakWorld } from "./ports/fleet";
+import type { Clock } from "./ports/shared";
 import { retireVehicle } from "./retireVehicle";
 
 export interface HitVehicleCommand {
-  vehicleId: string;
+  vehicleId: VehicleId;
   /** The attacker stands on a deck floor block (ADR 0063). */
   fromDeck: boolean;
 }

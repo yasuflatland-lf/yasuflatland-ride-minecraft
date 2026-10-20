@@ -10,7 +10,13 @@ import type {
   HintPlayerView,
   HintVehicleView,
   HintWorld,
-} from "../../../application/vehicle/ports";
+} from "../../../application/vehicle/ports/drive";
+import {
+  asDimensionId,
+  asPlayerId,
+  asVehicleId,
+  type PlayerId,
+} from "../../../domain/shared/ids";
 import type {
   HeldItem,
   Hint,
@@ -54,8 +60,8 @@ export class BedrockHintWorld implements HintWorld {
         if (player.getGameMode() === GameMode.Spectator) return [];
         return [
           {
-            id: player.id,
-            dimensionId: player.dimension.id,
+            id: asPlayerId(player.id),
+            dimensionId: asDimensionId(player.dimension.id),
             location: player.location,
             riding: player.getComponent("minecraft:riding") !== undefined,
             held: heldOf(player),
@@ -74,8 +80,8 @@ export class BedrockHintWorld implements HintWorld {
         return car.isValid
           ? [
               {
-                id: car.id,
-                dimensionId: car.dimension.id,
+                id: asVehicleId(car.id),
+                dimensionId: asDimensionId(car.dimension.id),
                 location: car.location,
               },
             ]
@@ -86,7 +92,7 @@ export class BedrockHintWorld implements HintWorld {
     });
   }
 
-  showHint(playerId: string, hint: Hint): void {
+  showHint(playerId: PlayerId, hint: Hint): void {
     this.setActionBar(playerId, {
       rawtext: [
         hint.with
@@ -99,12 +105,12 @@ export class BedrockHintWorld implements HintWorld {
     });
   }
 
-  clearHint(playerId: string): void {
+  clearHint(playerId: PlayerId): void {
     this.setActionBar(playerId, "");
   }
 
   private setActionBar(
-    playerId: string,
+    playerId: PlayerId,
     text: Parameters<Player["onScreenDisplay"]["setActionBar"]>[0],
   ): void {
     try {

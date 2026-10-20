@@ -1,5 +1,6 @@
 // Light blocks in front of vehicles with their headlights on (ADR 0020).
 import type { Block, Dimension, Entity } from "@minecraft/server";
+import type { VehicleId } from "../../../domain/shared/ids";
 import {
   type Cell,
   cellKey,
@@ -36,11 +37,11 @@ function savedCells(vehicle: Entity): Cell[] {
 }
 
 export class HeadlightBlocks {
-  private readonly lit = new Map<string, Lit>();
+  private readonly lit = new Map<VehicleId, Lit>();
 
   /** `vehicle` is undefined when the entity is gone; its cells are then only cleared. */
   shine(
-    vehicleId: string,
+    vehicleId: VehicleId,
     vehicle: Entity | undefined,
     wanted: readonly Cell[],
   ) {
@@ -70,7 +71,7 @@ export class HeadlightBlocks {
    * loads may have lit cells in chunks that are not loaded yet, and nothing
    * else asks for its id again (ADR 0038).
    */
-  clearGone(live: ReadonlySet<string>): void {
+  clearGone(live: ReadonlySet<VehicleId>): void {
     for (const [id, entry] of this.lit) {
       if (live.has(id)) continue;
       this.update(entry, []);

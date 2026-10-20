@@ -1,14 +1,16 @@
+import type { PlayerId } from "../../domain/shared/ids";
 // The effects a drive puts on its riders: the chase camera (ADR 0028) and water breathing.
 import type { ChaseCamera } from "../../domain/vehicle/profile";
 import { SPEC } from "../../domain/vehicle/spec";
 import { forEachIsolated } from "./isolated";
-import type { DriveWorld, Logger } from "./ports";
+import type { DriveWorld } from "./ports/drive";
+import type { Logger } from "./ports/shared";
 
 export class RiderEffects {
   /** Players this use case switched to a third-person camera, and which one (ADR 0028). */
-  private readonly thirdPerson = new Map<string, ChaseCamera>();
+  private readonly thirdPerson = new Map<PlayerId, ChaseCamera>();
   /** Players whose camera switch failed and was logged, so a retry every tick logs once. */
-  private readonly cameraFailed = new Set<string>();
+  private readonly cameraFailed = new Set<PlayerId>();
 
   constructor(
     private readonly world: Pick<
@@ -24,7 +26,7 @@ export class RiderEffects {
    * switch either way is retried on the next tick. A player who left needs no
    * clearing: the world does nothing for a missing player, so they are dropped.
    */
-  syncCameras(thirdPersonRiders: ReadonlyMap<string, ChaseCamera>): void {
+  syncCameras(thirdPersonRiders: ReadonlyMap<PlayerId, ChaseCamera>): void {
     for (const [id, camera] of thirdPersonRiders)
       if (this.thirdPerson.get(id) !== camera && this.switchCamera(id, camera))
         this.thirdPerson.set(id, camera);
@@ -34,7 +36,7 @@ export class RiderEffects {
   }
 
   /** Refreshes water breathing for the riders under water, once every SPEC.waterBreathingInterval ticks. */
-  refreshWaterBreathing(underwater: ReadonlySet<string>, tick: number): void {
+  refreshWaterBreathing(underwater: ReadonlySet<PlayerId>, tick: number): void {
     if (tick % SPEC.waterBreathingInterval !== 0) return;
     forEachIsolated(
       underwater,
@@ -44,7 +46,7 @@ export class RiderEffects {
     );
   }
 
-  private switchCamera(id: string, camera: ChaseCamera | undefined): boolean {
+  private switchCamera(id: PlayerId, camera: ChaseCamera | undefined): boolean {
     try {
       this.world.setChaseCamera(id, camera);
       this.cameraFailed.delete(id);

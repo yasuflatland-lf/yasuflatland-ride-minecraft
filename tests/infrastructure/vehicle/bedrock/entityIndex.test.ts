@@ -1,6 +1,7 @@
 import type { Entity } from "@minecraft/server";
 import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { asPlayerId, asVehicleId } from "../../../../src/domain/shared/ids";
 import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
 import { PLAYER_TYPE } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 
@@ -17,7 +18,7 @@ describe("EntityIndex", () => {
     const index = new EntityIndex();
     const a = stub("a");
     index.track(a);
-    expect(index.entity("a")).toBe(a);
+    expect(index.entity(asVehicleId("a"))).toBe(a);
     expect(game.getEntity).not.toHaveBeenCalled();
   });
 
@@ -25,18 +26,18 @@ describe("EntityIndex", () => {
     const index = new EntityIndex();
     const x = stub("x");
     game.getEntity.mockReturnValue(x);
-    expect(index.entity("x")).toBe(x);
+    expect(index.entity(asVehicleId("x"))).toBe(x);
     expect(game.getEntity).toHaveBeenCalledWith("x");
   });
 
   it("returns undefined for an invalid or missing entity", () => {
     const index = new EntityIndex();
     index.track(stub("a", false));
-    expect(index.entity("a")).toBeUndefined();
+    expect(index.entity(asVehicleId("a"))).toBeUndefined();
     game.getEntity.mockReturnValueOnce(stub("b", false));
-    expect(index.entity("b")).toBeUndefined();
+    expect(index.entity(asVehicleId("b"))).toBeUndefined();
     game.getEntity.mockReturnValueOnce(undefined);
-    expect(index.entity("c")).toBeUndefined();
+    expect(index.entity(asVehicleId("c"))).toBeUndefined();
   });
 
   it("lists the tracked entities until clear()", () => {
@@ -55,7 +56,7 @@ describe("EntityIndex", () => {
     index.track(stub("a"));
     index.clear();
     expect(index.trackedIds()).toEqual(new Set());
-    expect(index.entity("a")).toBeUndefined();
+    expect(index.entity(asVehicleId("a"))).toBeUndefined();
     expect(game.getEntity).toHaveBeenCalledWith("a");
   });
 
@@ -66,9 +67,9 @@ describe("EntityIndex", () => {
     game.getEntity.mockImplementation((id: string) =>
       id === "p" ? player : id === "cow" ? cow : undefined,
     );
-    expect(index.player("p")).toBe(player);
-    expect(index.player("cow")).toBeUndefined();
-    expect(index.player("missing")).toBeUndefined();
+    expect(index.player(asPlayerId("p"))).toBe(player);
+    expect(index.player(asPlayerId("cow"))).toBeUndefined();
+    expect(index.player(asPlayerId("missing"))).toBeUndefined();
   });
 
   it("tracked ids are exactly the tracked entities' ids, and each resolves to its own entity", () => {
@@ -80,7 +81,8 @@ describe("EntityIndex", () => {
           const entities = new Map(ids.map((id) => [id, stub(id)]));
           for (const e of entities.values()) index.track(e);
           expect(index.trackedIds()).toEqual(new Set(ids));
-          for (const [id, e] of entities) expect(index.entity(id)).toBe(e);
+          for (const [id, e] of entities)
+            expect(index.entity(asVehicleId(id))).toBe(e);
           expect(game.getEntity).not.toHaveBeenCalled();
         },
       ),
