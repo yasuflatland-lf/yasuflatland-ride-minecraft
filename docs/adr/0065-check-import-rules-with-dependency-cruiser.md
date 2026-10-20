@@ -1,6 +1,6 @@
 # 0065. Check the import rules with dependency-cruiser
 
-- Status: Accepted
+- Status: Extended by 0072
 - Date: 2026-10-13
 - Extends: 0012, 0046, 0055
 

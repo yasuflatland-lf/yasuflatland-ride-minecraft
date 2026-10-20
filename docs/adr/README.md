@@ -58,7 +58,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0052](0052-retry-camera-switches-and-break-seat-ties-low.md) | Retry camera switches in both directions, and break seat ties toward the lower index | Accepted |
 | [0053](0053-estimate-buoyant-boat-water-drag.md) | Estimate the buoyant boat's water drag | Accepted |
 | [0054](0054-shard-in-game-tests-in-ci.md) | Shard the in-game tests across four CI jobs and run model:check beside the unit tests | Accepted |
-| [0055](0055-kind-neutral-vehicle-core.md) | Kind-neutral vehicle core | Extended by 0064, 0065 |
+| [0055](0055-kind-neutral-vehicle-core.md) | Kind-neutral vehicle core | Extended by 0064, 0065, and 0072 |
 | [0056](0056-sports-boat-previews.md) | Render README previews of the sports boat | Accepted |
 | [0057](0057-skip-model-check-when-inputs-unchanged.md) | Skip model:check on pull requests that leave the renderer's files alone | Accepted |
 | [0058](0058-refine-the-sports-boat-interior.md) | Refine the sports boat interior from reference photos | Accepted |
@@ -68,13 +68,14 @@ This directory records design decisions and the reasons behind them. The format 
 | [0062](0062-fresh-dev-pack-version-on-every-start.md) | Serve the dev BDS's packs under a fresh dev-only version on every start | Accepted |
 | [0063](0063-walk-on-a-stopped-sports-boat.md) | Walk on a stopped sports boat | Extended by 0064 |
 | [0064](0064-dock-step.md) | Group the hold, floor, and deck seats into an optional dock | Accepted |
-| [0065](0065-check-import-rules-with-dependency-cruiser.md) | Check the import rules with dependency-cruiser | Accepted |
+| [0065](0065-check-import-rules-with-dependency-cruiser.md) | Check the import rules with dependency-cruiser | Extended by 0072 |
 | [0066](0066-limit-vehicles-per-player-and-kind.md) | Limit vehicles per player and per kind | Accepted |
 | [0067](0067-camper.md) | Camper | Superseded in part by 0068 and 0069 |
 | [0068](0068-park-the-camper-with-room-blocks.md) | Park the camper with room blocks | Superseded in part by 0070 |
 | [0069](0069-camper-right-hand-drive.md) | Seat the camper's driver on the right like the SUV | Superseded in part by 0070 |
 | [0070](0070-raise-the-camper-front-seats.md) | Raise the camper's front seats | Accepted |
 | [0071](0071-pull-the-camper-chase-camera-back.md) | Pull the camper's chase camera back | Accepted |
+| [0072](0072-keep-motion-behind-the-kinds.md) | Keep motion/ behind the kinds | Accepted |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 

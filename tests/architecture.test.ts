@@ -227,6 +227,42 @@ describe("dependency-cruiser rules (ADR 0065)", () => {
       ["outer-layer-imports-kind"],
     ],
     [
+      "application motion",
+      {
+        "src/application/vehicle/x.ts": importX(
+          "../../domain/vehicle/motion/motion",
+        ),
+        "src/domain/vehicle/motion/motion.ts": EXPORTS_X,
+      },
+      ["outer-layer-imports-motion"],
+    ],
+    [
+      "infrastructure motion",
+      {
+        "src/infrastructure/vehicle/x.ts": importX(
+          "../../domain/vehicle/motion/motion",
+        ),
+        "src/domain/vehicle/motion/motion.ts": EXPORTS_X,
+      },
+      ["outer-layer-imports-motion"],
+    ],
+    [
+      "kind importing motion",
+      {
+        "src/domain/vehicle/kinds/suv/drive.ts": importX("../../motion/motion"),
+        "src/domain/vehicle/motion/motion.ts": EXPORTS_X,
+      },
+      [],
+    ],
+    [
+      "kinds index importing motion",
+      {
+        "src/domain/vehicle/kinds/index.ts": importX("../motion/motion"),
+        "src/domain/vehicle/motion/motion.ts": EXPORTS_X,
+      },
+      [],
+    ],
+    [
       "kind names without imports",
       {
         "src/domain/vehicle/kind.ts": EXPORTS_X,
