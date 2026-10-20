@@ -1202,7 +1202,7 @@ class Attitude {
   }
 }
 
-describe("a sports boat's trim and roll (ADR 0059)", () => {
+describe("a sports boat's trim and roll (ADR 0059, ADR 0079)", () => {
   it("afloat at full throttle, lifts the bow fully while gaining speed and levels it at top speed", () => {
     fc.assert(
       fc.property(yaw, afloatWater, (heading, water) => {
@@ -1264,6 +1264,38 @@ describe("a sports boat's trim and roll (ADR 0059)", () => {
           for (let i = 0; i < 20; i++)
             attitude.read(sim.step(FULL_THROTTLE, water));
           expect(attitude.roll).toBe(0);
+        },
+      ),
+    );
+  });
+
+  it("afloat and reversing with steer, rolls by the sign of speed times the heading change", () => {
+    fc.assert(
+      fc.property(
+        yaw,
+        fc.constantFrom(1, -1),
+        afloatWater,
+        (heading, side, water) => {
+          const sim = new BoatSim(boat(heading), SPORTSBOAT_WATER.drag);
+          const attitude = new Attitude();
+          const stick = { moveX: 0.5 * side, moveY: -1, jump: false };
+          let dyaw = 0;
+          for (let i = 0; i < 20; i++) {
+            const before = sim.vehicle.yaw;
+            attitude.read(sim.step(stick, water));
+            dyaw = yawDelta(before, sim.vehicle.yaw);
+          }
+          expect(sim.vehicle.speed).toBe(-SPORTSBOAT_MOTION.maxReverse);
+          expect(Math.sign(attitude.roll)).toBe(
+            Math.sign(sim.vehicle.speed * dyaw),
+          );
+          expect(attitude.roll).toBeCloseTo(
+            -side *
+              0.5 *
+              (SPORTSBOAT_MOTION.maxReverse / SPORTSBOAT_MOTION.maxSpeed) *
+              SPORTSBOAT_ATTITUDE.maxRoll,
+            9,
+          );
         },
       ),
     );

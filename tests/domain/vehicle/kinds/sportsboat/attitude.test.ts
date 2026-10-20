@@ -16,6 +16,7 @@ const roll = number(-maxRoll, maxRoll);
 const speed = number(-SPORTSBOAT_MOTION.maxSpeed, SPORTSBOAT_MOTION.maxSpeed);
 const yaw = number(-180, 180);
 const turn = number(-3, 3).map((t) => t * SPORTSBOAT_MOTION.turnRate);
+const reverseSpeed = fc.integer({ min: 1, max: 20 }).map((n) => -n / 100);
 
 describe("stepTrim (ADR 0059)", () => {
   it("rises at most trimRiseRate, settles at most trimSettleRate per tick, and stays within 0 and maxTrim", () => {
@@ -73,7 +74,7 @@ describe("stepTrim (ADR 0059)", () => {
   });
 });
 
-describe("stepRoll (ADR 0059)", () => {
+describe("stepRoll (ADR 0059, ADR 0079)", () => {
   it("moves at most rollRate per tick and stays within maxRoll", () => {
     fc.assert(
       fc.property(roll, yaw, turn, speed, fc.boolean(), (prev, y, d, s, a) => {
@@ -158,5 +159,33 @@ describe("stepRoll (ADR 0059)", () => {
     expect(stepRoll(0, 0, 3, 0.5, true, limits)).toBe(0);
     expect(stepRoll(0, 0, 3, 0, true, limits)).toBe(0);
     expect(stepRoll(5, 0, 3, 0.5, true, limits)).toBe(5 - rollRate);
+  });
+
+  it("afloat and reversing, lowers the left side when the heading turns right and the right side when it turns left", () => {
+    fc.assert(
+      fc.property(yaw, number(0.1, 6), reverseSpeed, (y, d, s) => {
+        const right = stepRoll(0, y, y + d, s, true, SPORTSBOAT_MOTION);
+        const left = stepRoll(0, y, y - d, s, true, SPORTSBOAT_MOTION);
+        expect(right).toBeLessThan(0);
+        expect(left).toBeGreaterThan(0);
+      }),
+    );
+  });
+
+  it("flipping the sign of the speed flips the roll", () => {
+    fc.assert(
+      fc.property(
+        yaw,
+        number(0.1, 6),
+        fc.constantFrom(1, -1),
+        number(0.01, SPORTSBOAT_MOTION.maxSpeed),
+        (y, d, side, s) => {
+          const a = stepRoll(0, y, y + side * d, s, true, SPORTSBOAT_MOTION);
+          const b = stepRoll(0, y, y + side * d, -s, true, SPORTSBOAT_MOTION);
+          expect(a).not.toBe(0);
+          expect(b).toBeCloseTo(-a, 12);
+        },
+      ),
+    );
   });
 });
