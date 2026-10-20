@@ -26,7 +26,14 @@ describe("stepBank (ADR 0026, 0044)", () => {
   it("moves at most bankRate per tick and stays within maxBank", () => {
     fc.assert(
       fc.property(angle, form, yaw, turn, (prev, m, y, d) => {
-        const next = stepBank(prev, m, y, y + d, SUV_TRANSFORMING);
+        const next = stepBank(
+          prev,
+          m,
+          y,
+          y + d,
+          SUV_SPEC.turnRate,
+          SUV_TRANSFORMING,
+        );
         expect(Math.abs(next - prev)).toBeLessThanOrEqual(
           SUV_SPEC.bankRate + 1e-9,
         );
@@ -42,25 +49,38 @@ describe("stepBank (ADR 0026, 0044)", () => {
         yaw,
         fc.double({ min: 0.1, max: 20, noNaN: true }),
         (m, y, d) => {
-          expect(stepBank(0, m, y, y + d, SUV_TRANSFORMING)).toBeGreaterThan(0);
-          expect(stepBank(0, m, y, y - d, SUV_TRANSFORMING)).toBeLessThan(0);
+          expect(
+            stepBank(0, m, y, y + d, SUV_SPEC.turnRate, SUV_TRANSFORMING),
+          ).toBeGreaterThan(0);
+          expect(
+            stepBank(0, m, y, y - d, SUV_SPEC.turnRate, SUV_TRANSFORMING),
+          ).toBeLessThan(0);
         },
       ),
     );
   });
 
   it("measures the turn across the ±180° wrap", () => {
-    expect(stepBank(0, "hover", 178, -178, SUV_TRANSFORMING)).toBeGreaterThan(
-      0,
-    );
-    expect(stepBank(0, "hover", -178, 178, SUV_TRANSFORMING)).toBeLessThan(0);
+    expect(
+      stepBank(0, "hover", 178, -178, SUV_SPEC.turnRate, SUV_TRANSFORMING),
+    ).toBeGreaterThan(0);
+    expect(
+      stepBank(0, "hover", -178, 178, SUV_SPEC.turnRate, SUV_TRANSFORMING),
+    ).toBeLessThan(0);
   });
 
   it("settles at maxBank for a turn at the full turn rate", () => {
     for (const m of BANKING) {
       let bank = 0;
       for (let t = 0; t < 30; t++)
-        bank = stepBank(bank, m, 0, SUV_SPEC.turnRate, SUV_TRANSFORMING);
+        bank = stepBank(
+          bank,
+          m,
+          0,
+          SUV_SPEC.turnRate,
+          SUV_SPEC.turnRate,
+          SUV_TRANSFORMING,
+        );
       expect(bank, m).toBe(SUV_SPEC.maxBank);
     }
   });
@@ -80,6 +100,7 @@ describe("stepBank (ADR 0026, 0044)", () => {
               m,
               y,
               normalizeYaw(y + share * SUV_SPEC.turnRate),
+              SUV_SPEC.turnRate,
               SUV_TRANSFORMING,
             );
           expect(bank).toBeCloseTo(share * SUV_SPEC.maxBank, 9);
@@ -95,7 +116,14 @@ describe("stepBank (ADR 0026, 0044)", () => {
         const level = (BANKING as readonly string[]).includes(m) ? 0 : d;
         const ticks = Math.ceil((2 * SUV_SPEC.maxBank) / SUV_SPEC.bankRate);
         for (let t = 0; t < ticks; t++)
-          bank = stepBank(bank, m, y, y + level, SUV_TRANSFORMING);
+          bank = stepBank(
+            bank,
+            m,
+            y,
+            y + level,
+            SUV_SPEC.turnRate,
+            SUV_TRANSFORMING,
+          );
         expect(bank).toBe(0);
       }),
     );
@@ -153,11 +181,29 @@ describe("per-kind bank limits", () => {
         (maxBank, bankRate, share, form, yaw, turn) => {
           const spec = { ...SUV_TRANSFORMING, maxBank, bankRate };
           const prev = share * maxBank;
-          const next = stepBank(prev, form, yaw, yaw + turn, spec);
+          const next = stepBank(
+            prev,
+            form,
+            yaw,
+            yaw + turn,
+            SUV_SPEC.turnRate,
+            spec,
+          );
           expect(Math.abs(next)).toBeLessThanOrEqual(maxBank + 1e-9);
           expect(Math.abs(next - prev)).toBeLessThanOrEqual(bankRate + 1e-9);
         },
       ),
+    );
+  });
+
+  it("banks fully at whatever full turn rate it is given", () => {
+    fc.assert(
+      fc.property(fc.integer({ min: 1, max: 12 }), banking, (rate, m) => {
+        let bank = 0;
+        for (let t = 0; t < 30; t++)
+          bank = stepBank(bank, m, 0, rate, rate, SUV_TRANSFORMING);
+        expect(bank).toBe(SUV_SPEC.maxBank);
+      }),
     );
   });
 });

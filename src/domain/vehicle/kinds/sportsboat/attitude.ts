@@ -1,13 +1,15 @@
 // How the hull sits on the water as it drives: the bow rises while the boat
 // gains speed, and the hull rolls into a turn (ADR 0059, ADR 0061).
-import { clamp, normalizeYaw } from "../../../shared/vec";
-import { SPORTSBOAT_MOTION } from "./profile";
+import { approach, clamp } from "../../../shared/vec";
+import type { MotionLimits } from "../../motion/limits";
+import { turnFraction } from "../../motion/turn";
 
 export const SPORTSBOAT_ATTITUDE = {
-  /** Degrees of bow rise while the forward speed grows by a full `accel` per tick. */
+  /**
+   * Degrees of bow rise while the forward speed grows by a full `accel` per
+   * tick (the drive's limits).
+   */
   maxTrim: 7,
-  /** Speed gained per tick that gives `maxTrim`: full throttle from rest. */
-  fullGain: SPORTSBOAT_MOTION.accel,
   /** Degrees per tick toward a higher trim, so the bow lifts in about 0.7 s. */
   trimRiseRate: 0.5,
   /** Degrees per tick toward a lower trim, so the bow settles in about 1.4 s. */
@@ -28,17 +30,21 @@ export function stepTrim(
   speedBefore: number,
   speedAfter: number,
   afloat: boolean,
+  limits: Pick<MotionLimits, "accel">,
 ): number {
   const gain = Math.max(speedAfter, 0) - Math.max(speedBefore, 0);
-  const target = afloat
-    ? clamp(gain / SPORTSBOAT_ATTITUDE.fullGain, 0, 1) *
-      SPORTSBOAT_ATTITUDE.maxTrim
-    : 0;
-  const rate =
-    target > prev
-      ? SPORTSBOAT_ATTITUDE.trimRiseRate
-      : SPORTSBOAT_ATTITUDE.trimSettleRate;
-  return prev + clamp(target - prev, -rate, rate);
+  // A zero accel limit gives Infinity or NaN; hold the bow level then.
+  const share = gain / limits.accel;
+  const target =
+    afloat && Number.isFinite(share)
+      ? clamp(share, 0, 1) * SPORTSBOAT_ATTITUDE.maxTrim
+      : 0;
+  return approach(
+    prev,
+    target,
+    SPORTSBOAT_ATTITUDE.trimRiseRate,
+    SPORTSBOAT_ATTITUDE.trimSettleRate,
+  );
 }
 
 /**
@@ -53,13 +59,14 @@ export function stepRoll(
   yawAfter: number,
   speed: number,
   afloat: boolean,
+  limits: Pick<MotionLimits, "turnRate" | "maxSpeed">,
 ): number {
-  const turn = normalizeYaw(yawAfter - yawBefore) / SPORTSBOAT_MOTION.turnRate;
-  const pace = Math.abs(speed) / SPORTSBOAT_MOTION.maxSpeed;
+  const turn = turnFraction(yawBefore, yawAfter, limits.turnRate);
+  // A zero top speed gives Infinity or NaN; hold the hull level then.
+  const pace = Math.abs(speed) / limits.maxSpeed;
   const target =
-    afloat && Number.isFinite(turn)
+    afloat && turn !== undefined && Number.isFinite(pace)
       ? clamp(turn, -1, 1) * clamp(pace, 0, 1) * SPORTSBOAT_ATTITUDE.maxRoll
       : 0;
-  const rate = SPORTSBOAT_ATTITUDE.rollRate;
-  return prev + clamp(target - prev, -rate, rate);
+  return approach(prev, target, SPORTSBOAT_ATTITUDE.rollRate);
 }

@@ -79,7 +79,6 @@ export const SUV_TRANSFORMING: TransformingSpec = Object.freeze({
   floatGain: SUV_SPEC.floatGain,
   surfaceRise: SUV_SPEC.surfaceRise,
   submarineStepProbeDrop: SUV_SPEC.submarineStepProbeDrop,
-  turnRate: SUV_SPEC.turnRate,
   maxBank: SUV_SPEC.maxBank,
   bankRate: SUV_SPEC.bankRate,
   bankSink: SUV_SPEC.bankSink,
