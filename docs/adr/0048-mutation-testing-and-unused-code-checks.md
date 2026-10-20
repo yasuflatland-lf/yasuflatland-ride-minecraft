@@ -1,6 +1,6 @@
 # 0048. Mutation testing with Stryker, and unused code checks with knip
 
-- Status: Accepted
+- Status: Extended by 0088
 - Date: 2026-10-12
 
 ## Context
