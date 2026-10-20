@@ -97,7 +97,7 @@ it.each(VEHICLE_KINDS)(
               solidAt: () => s.solid,
               targets: () => [],
             });
-            for (const command of [...out.commands, ...out.seatCommands])
+            for (const command of [...out.stepCommands, ...out.finalCommands])
               check(command, contract);
           });
         },

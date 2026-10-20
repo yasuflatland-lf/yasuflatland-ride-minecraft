@@ -105,19 +105,19 @@ class FlightSim {
       solidAt: (offset) => this.y + offset.y < 0,
       targets: () => [],
     });
-    const gearDown = propertyValue(out.commands, "gear_down");
+    const gearDown = propertyValue(out.stepCommands, "gear_down");
     if (typeof gearDown === "boolean") {
       this.gearYs.push([gearDown, this.y]);
       this.wheelsDown = gearDown;
     }
-    const bank = propertyValue(out.commands, "bank");
+    const bank = propertyValue(out.stepCommands, "bank");
     if (typeof bank === "number") this.bankAngle = bank;
-    const form = propertyValue(out.commands, "form") as Form | undefined;
+    const form = propertyValue(out.stepCommands, "form") as Form | undefined;
     if (form) {
       this.changes.push(form);
       this.form = form;
     }
-    for (const command of out.commands)
+    for (const command of out.stepCommands)
       if (command.type === "triggerEvent")
         this.gravity = command.name === "gravity_on";
     const drag = this.horizontalDrag();
@@ -389,7 +389,7 @@ describe("Vehicle banking (ADR 0026)", () => {
             expect(Math.abs(drive.bankAngle)).toBeLessThanOrEqual(
               SUV_SPEC.maxBank + 1e-9,
             );
-            const bank = propertyValue(out.commands, "bank");
+            const bank = propertyValue(out.stepCommands, "bank");
             if (drive.bankAngle !== sent) {
               expect(bank).toBe(drive.bankAngle);
               if (

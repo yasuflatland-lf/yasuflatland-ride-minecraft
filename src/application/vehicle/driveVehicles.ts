@@ -71,7 +71,7 @@ export class DriveVehicles {
       targets: () => this.world.targetsNear(snap.id),
     });
     // Commands are sent on change, so send them before anything else that could throw.
-    this.world.run(snap.id, out.commands);
+    this.world.run(snap.id, out.stepCommands);
     if (out.message && out.driverId)
       this.world.showMessage(out.driverId, out.message);
     this.world.holdAt(snap.id, out.dock?.hold);
@@ -92,7 +92,7 @@ export class DriveVehicles {
       snap.headlights ? vehicle.headlightCells(snap.location) : [],
     );
     for (const hit of out.hits) this.world.damage(hit, out.driverId);
-    this.world.run(snap.id, out.seatCommands);
+    this.world.run(snap.id, out.finalCommands);
   }
 
   private releaseGone(seen: ReadonlySet<string>): void {

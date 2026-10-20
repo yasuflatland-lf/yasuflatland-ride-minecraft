@@ -845,7 +845,7 @@ describe("SportsboatDrive (ADR 0051)", () => {
           form,
         });
         const out = rebuilt.tick(context(0, undefined, { x: 0, z: 0 }, AFLOAT));
-        expect(out.commands).toStrictEqual(LEVEL);
+        expect(out.stepCommands).toStrictEqual(LEVEL);
         expect(out.riders).toStrictEqual({
           thirdPerson: false,
           underwater: false,
@@ -1112,7 +1112,7 @@ describe("SportsboatDrive (ADR 0051)", () => {
               solidAt: () => t.solid,
             });
             expect(out.impulse.y).toBe(0);
-            for (const command of out.commands) {
+            for (const command of out.stepCommands) {
               if (
                 command.type === "triggerEvent" ||
                 (command.type === "setProperty" && command.name === "docked")
@@ -1277,7 +1277,7 @@ describe("a sports boat Vehicle (ADR 0051)", () => {
           const vacated = vehicle.tick(
             context(1, undefined, { x: 0, z: 0 }, AFLOAT),
           );
-          expect(vacated.seatCommands).toStrictEqual([]);
+          expect(vacated.finalCommands).toStrictEqual([]);
         },
       ),
     );
@@ -1308,7 +1308,7 @@ class Attitude {
   roll = 0;
 
   read(out: TickOutcome): void {
-    for (const command of out.commands) {
+    for (const command of out.stepCommands) {
       if (command.type !== "setProperty") continue;
       if (command.name === "trim") this.trim = command.value as number;
       if (command.name === "roll") this.roll = command.value as number;
@@ -1417,9 +1417,9 @@ describe("a sports boat's trim and roll (ADR 0059, ADR 0079)", () => {
 
   it("sends trim and roll only when they change", () => {
     const sim = new BoatSim(boat(0), SPORTSBOAT_WATER.drag);
-    expect(sim.step(undefined, AFLOAT).commands).toStrictEqual(LEVEL);
+    expect(sim.step(undefined, AFLOAT).stepCommands).toStrictEqual(LEVEL);
     for (let i = 0; i < 10; i++)
-      expect(sim.step(undefined, AFLOAT).commands).toStrictEqual([]);
+      expect(sim.step(undefined, AFLOAT).stepCommands).toStrictEqual([]);
   });
 });
 
