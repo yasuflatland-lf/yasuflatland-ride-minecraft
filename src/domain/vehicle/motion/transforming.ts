@@ -18,8 +18,6 @@ export interface TransformingSpec {
   readonly floatGain: number;
   readonly surfaceRise: number;
   readonly submarineStepProbeDrop: number;
-  /** Degrees/tick at full steering; a turn at this rate banks fully. */
-  readonly turnRate: number;
   readonly maxBank: number;
   readonly bankRate: number;
   readonly bankSink: number;

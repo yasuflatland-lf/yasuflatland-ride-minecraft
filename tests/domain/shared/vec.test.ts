@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
+  approach,
   clampLength,
   dot,
   forward,
@@ -86,6 +87,55 @@ describe("vec", () => {
     fc.assert(
       fc.property(fc.integer({ min: -1000, max: 1000 }), (turns) => {
         expect(normalizeYaw(180 + 360 * turns)).toBe(180);
+      }),
+    );
+  });
+});
+
+describe("approach", () => {
+  const n = fc.double({ min: -1000, max: 1000, noNaN: true });
+  const step = fc.double({ min: 0, max: 100, noNaN: true });
+
+  it("moves up by at most `up` toward a higher target and down by at most `down` toward a lower one", () => {
+    fc.assert(
+      fc.property(n, n, step, step, (prev, target, up, down) => {
+        const r = approach(prev, target, up, down);
+        if (target > prev) {
+          expect(r - prev).toBeLessThanOrEqual(up + 1e-9);
+          expect(r).toBeGreaterThanOrEqual(prev);
+        } else {
+          expect(prev - r).toBeLessThanOrEqual(down + 1e-9);
+          expect(r).toBeLessThanOrEqual(prev);
+        }
+      }),
+    );
+  });
+
+  it("never passes the target", () => {
+    fc.assert(
+      fc.property(n, n, step, step, (prev, target, up, down) => {
+        const r = approach(prev, target, up, down);
+        expect((r - target) * (prev - target)).toBeGreaterThanOrEqual(-1e-6);
+        expect(Math.abs(r - target)).toBeLessThanOrEqual(
+          Math.abs(prev - target) + 1e-9,
+        );
+      }),
+    );
+  });
+
+  it("lands exactly on the target when it is within one step", () => {
+    fc.assert(
+      fc.property(n, n, step, step, (prev, target, up, down) => {
+        fc.pre(target > prev ? target - prev <= up : prev - target <= down);
+        expect(approach(prev, target, up, down)).toBeCloseTo(target, 9);
+      }),
+    );
+  });
+
+  it("with one step, moves the same in both directions", () => {
+    fc.assert(
+      fc.property(n, n, step, (prev, target, up) => {
+        expect(approach(prev, target, up)).toBe(approach(prev, target, up, up));
       }),
     );
   });

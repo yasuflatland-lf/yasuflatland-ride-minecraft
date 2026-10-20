@@ -21,7 +21,7 @@ describe("stepTrim (ADR 0059)", () => {
   it("rises at most trimRiseRate, settles at most trimSettleRate per tick, and stays within 0 and maxTrim", () => {
     fc.assert(
       fc.property(trim, speed, speed, fc.boolean(), (prev, a, b, afloat) => {
-        const next = stepTrim(prev, a, b, afloat);
+        const next = stepTrim(prev, a, b, afloat, SPORTSBOAT_MOTION);
         expect(next - prev).toBeLessThanOrEqual(trimRiseRate + 1e-9);
         expect(prev - next).toBeLessThanOrEqual(trimSettleRate + 1e-9);
         expect(next).toBeGreaterThanOrEqual(-1e-9);
@@ -33,18 +33,43 @@ describe("stepTrim (ADR 0059)", () => {
   it("settles at maxTrim while afloat and gaining a full accel per tick", () => {
     let t = 0;
     for (let i = 0; i < 30; i++)
-      t = stepTrim(t, 0.2, 0.2 + SPORTSBOAT_MOTION.accel, true);
+      t = stepTrim(
+        t,
+        0.2,
+        0.2 + SPORTSBOAT_MOTION.accel,
+        true,
+        SPORTSBOAT_MOTION,
+      );
     expect(t).toBeCloseTo(maxTrim, 9);
   });
 
   it("never rises while holding speed, slowing, reversing, or aground", () => {
     fc.assert(
       fc.property(trim, speed, number(0, 0.1), (prev, s, loss) => {
-        expect(stepTrim(prev, s, s - loss, true)).toBeLessThanOrEqual(prev);
-        expect(stepTrim(prev, -0.1, -0.2, true)).toBeLessThanOrEqual(prev);
-        expect(stepTrim(prev, s, s + loss, false)).toBeLessThanOrEqual(prev);
+        expect(
+          stepTrim(prev, s, s - loss, true, SPORTSBOAT_MOTION),
+        ).toBeLessThanOrEqual(prev);
+        expect(
+          stepTrim(prev, -0.1, -0.2, true, SPORTSBOAT_MOTION),
+        ).toBeLessThanOrEqual(prev);
+        expect(
+          stepTrim(prev, s, s + loss, false, SPORTSBOAT_MOTION),
+        ).toBeLessThanOrEqual(prev);
       }),
     );
+  });
+
+  it("settles at maxTrim when gaining the injected accel per tick", () => {
+    const limits = { accel: 0.01 };
+    let t = 0;
+    for (let i = 0; i < 30; i++) t = stepTrim(t, 0.2, 0.21, true, limits);
+    expect(t).toBeCloseTo(maxTrim, 9);
+  });
+
+  it("levels the trim target when the injected accel is zero", () => {
+    expect(stepTrim(0, 0.2, 0.21, true, { accel: 0 })).toBe(0);
+    expect(stepTrim(0, 0, 0, true, { accel: 0 })).toBe(0);
+    expect(stepTrim(3, 0.2, 0.21, true, { accel: 0 })).toBe(3 - trimSettleRate);
   });
 });
 
@@ -52,7 +77,7 @@ describe("stepRoll (ADR 0059)", () => {
   it("moves at most rollRate per tick and stays within maxRoll", () => {
     fc.assert(
       fc.property(roll, yaw, turn, speed, fc.boolean(), (prev, y, d, s, a) => {
-        const next = stepRoll(prev, y, y + d, s, a);
+        const next = stepRoll(prev, y, y + d, s, a, SPORTSBOAT_MOTION);
         expect(Math.abs(next - prev)).toBeLessThanOrEqual(rollRate + 1e-9);
         expect(Math.abs(next)).toBeLessThanOrEqual(maxRoll + 1e-9);
       }),
@@ -62,22 +87,35 @@ describe("stepRoll (ADR 0059)", () => {
   it("afloat and moving, lowers the right side when the heading turns right (yaw increases) and the left when it turns left", () => {
     fc.assert(
       fc.property(yaw, number(0.1, 6), number(0.1, 1.12), (y, d, s) => {
-        expect(stepRoll(0, y, y + d, s, true)).toBeGreaterThan(0);
-        expect(stepRoll(0, y, y - d, s, true)).toBeLessThan(0);
+        expect(
+          stepRoll(0, y, y + d, s, true, SPORTSBOAT_MOTION),
+        ).toBeGreaterThan(0);
+        expect(stepRoll(0, y, y - d, s, true, SPORTSBOAT_MOTION)).toBeLessThan(
+          0,
+        );
       }),
     );
   });
 
   it("measures the turn across the ±180° wrap", () => {
-    expect(stepRoll(0, 178, -178, 1, true)).toBeGreaterThan(0);
-    expect(stepRoll(0, -178, 178, 1, true)).toBeLessThan(0);
+    expect(stepRoll(0, 178, -178, 1, true, SPORTSBOAT_MOTION)).toBeGreaterThan(
+      0,
+    );
+    expect(stepRoll(0, -178, 178, 1, true, SPORTSBOAT_MOTION)).toBeLessThan(0);
   });
 
   it("rolls less at lower speed for the same turn, and stays level at rest or aground", () => {
     const settle = (s: number, afloat: boolean) => {
       let r = 0;
       for (let i = 0; i < 30; i++)
-        r = stepRoll(r, 0, SPORTSBOAT_MOTION.turnRate, s, afloat);
+        r = stepRoll(
+          r,
+          0,
+          SPORTSBOAT_MOTION.turnRate,
+          s,
+          afloat,
+          SPORTSBOAT_MOTION,
+        );
       return r;
     };
     expect(settle(SPORTSBOAT_MOTION.maxSpeed, true)).toBe(maxRoll);
@@ -87,5 +125,38 @@ describe("stepRoll (ADR 0059)", () => {
     );
     expect(settle(0, true)).toBe(0);
     expect(settle(SPORTSBOAT_MOTION.maxSpeed, false)).toBe(0);
+  });
+
+  it("rolls fully at the injected full turn rate and top speed", () => {
+    const limits = { turnRate: 3, maxSpeed: 0.5 };
+    let r = 0;
+    for (let i = 0; i < 30; i++) r = stepRoll(r, 0, 3, 0.5, true, limits);
+    expect(r).toBe(maxRoll);
+  });
+
+  it("scales the roll target by the injected limits", () => {
+    fc.assert(
+      fc.property(
+        fc.double({ min: 1, max: 12, noNaN: true }),
+        fc.double({ min: 0.2, max: 2, noNaN: true }),
+        fc.integer({ min: -10, max: 10 }),
+        (turnRate, maxSpeed, tenths) => {
+          let r = 0;
+          for (let i = 0; i < 30; i++)
+            r = stepRoll(r, 0, (tenths / 10) * turnRate, maxSpeed, true, {
+              turnRate,
+              maxSpeed,
+            });
+          expect(r).toBeCloseTo((tenths / 10) * maxRoll, 9);
+        },
+      ),
+    );
+  });
+
+  it("holds level when the injected top speed is zero", () => {
+    const limits = { turnRate: 3, maxSpeed: 0 };
+    expect(stepRoll(0, 0, 3, 0.5, true, limits)).toBe(0);
+    expect(stepRoll(0, 0, 3, 0, true, limits)).toBe(0);
+    expect(stepRoll(5, 0, 3, 0.5, true, limits)).toBe(5 - rollRate);
   });
 });

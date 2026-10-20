@@ -213,7 +213,14 @@ export class TransformingDrive implements Drive {
             this.limits,
           );
     const step = this.guard ? this.guard(moved, ctx, form) : moved;
-    this.bank = stepBank(this.bank, form, yawBefore, step.state.yaw, this.spec);
+    this.bank = stepBank(
+      this.bank,
+      form,
+      yawBefore,
+      step.state.yaw,
+      this.limits.turnRate,
+      this.spec,
+    );
     let impulseY: number;
     if (form === "car") {
       impulseY = step.jumpVelocity;

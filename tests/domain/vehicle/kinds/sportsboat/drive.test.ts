@@ -935,6 +935,25 @@ describe("SportsboatDrive (ADR 0051)", () => {
     );
   });
 
+  it("afloat, speeds past the boat's own top speed when its limits allow more", () => {
+    const drive = new SportsboatDrive(
+      0,
+      {},
+      {
+        ...SPORTSBOAT_MOTION,
+        maxSpeed: 2,
+      },
+    ).restore({
+      motion: { ...initialMotion(0), speed: SPORTSBOAT_MOTION.maxSpeed },
+    });
+    drive.step(FULL_THROTTLE, context(0, undefined, { x: 0, z: 0 }, AFLOAT));
+    expect(drive.speed).toBeGreaterThan(SPORTSBOAT_MOTION.maxSpeed);
+    expect(drive.speed).toBeCloseTo(
+      SPORTSBOAT_MOTION.maxSpeed + SPORTSBOAT_MOTION.accel,
+      9,
+    );
+  });
+
   it("afloat with the stick held sideways, settles at creep speed from rest or from full speed and keeps turning", () => {
     fc.assert(
       fc.property(

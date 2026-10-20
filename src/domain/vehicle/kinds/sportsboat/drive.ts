@@ -57,6 +57,7 @@ export const SPORTSBOAT_DRAG = {
 
 export const SPORTSBOAT_WATER: Medium = {
   drag: SPORTSBOAT_DRAG.initial,
+  // The drive overrides this with its own limits' maxSpeed; it stays so this is a complete Medium.
   maxSpeed: SPORTSBOAT_MOTION.maxSpeed,
 };
 
@@ -220,6 +221,7 @@ export class SportsboatDrive implements Drive {
         ctx.velocity,
         {
           ...SPORTSBOAT_WATER,
+          maxSpeed: this.limits.maxSpeed,
           drag: waterDrag,
           wallDrag: currentWaterDrag(this.dragEstimate),
         },
@@ -256,13 +258,20 @@ export class SportsboatDrive implements Drive {
       this.trim = 0;
       this.roll = 0;
     } else {
-      this.trim = stepTrim(this.trim, motion.speed, step.state.speed, afloat);
+      this.trim = stepTrim(
+        this.trim,
+        motion.speed,
+        step.state.speed,
+        afloat,
+        this.limits,
+      );
       this.roll = stepRoll(
         this.roll,
         motion.yaw,
         step.state.yaw,
         step.state.speed,
         afloat,
+        this.limits,
       );
     }
     if (this.trim !== this.sentTrim) commands.push(trimCommand(this.trim));

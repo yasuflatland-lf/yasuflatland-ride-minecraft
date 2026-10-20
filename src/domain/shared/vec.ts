@@ -34,6 +34,19 @@ export function clamp(x: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, x));
 }
 
+/**
+ * Moves `prev` toward `target` by at most `up` when the target is higher and
+ * at most `down` when it is lower, never passing the target.
+ */
+export function approach(
+  prev: number,
+  target: number,
+  up: number,
+  down: number = up,
+): number {
+  return prev + clamp(target - prev, -down, up);
+}
+
 export function clampLength(v: Vec2, max: number): Vec2 {
   const l = length(v);
   return l > max && l > 0 ? { x: (v.x * max) / l, z: (v.z * max) / l } : v;

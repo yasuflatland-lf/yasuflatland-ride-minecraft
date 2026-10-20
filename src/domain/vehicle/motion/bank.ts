@@ -1,12 +1,13 @@
 // Banking into turns in flight, like an airplane (ADR 0026), and under water (ADR 0044).
-import { clamp, normalizeYaw } from "../../shared/vec";
+import { approach, clamp } from "../../shared/vec";
 import type { Form } from "./forms";
 import type { TransformingSpec } from "./transforming";
+import { turnFraction } from "./turn";
 
 /**
  * Next bank angle in degrees; positive lowers the right side. In flight and
  * under water the target follows how fast the heading turns, so a turn at the
- * full turn rate banks fully whatever the speed or direction of travel. In
+ * full `turnRate` banks fully whatever the speed or direction of travel. In
  * every other form the target is level. The angle moves toward the target by at most
  * `spec.bankRate` per tick.
  */
@@ -15,14 +16,15 @@ export function stepBank(
   form: Form,
   yawBefore: number,
   yawAfter: number,
-  spec: Pick<TransformingSpec, "turnRate" | "maxBank" | "bankRate">,
+  turnRate: number,
+  spec: Pick<TransformingSpec, "maxBank" | "bankRate">,
 ): number {
-  const turn = normalizeYaw(yawAfter - yawBefore) / spec.turnRate;
+  const turn = turnFraction(yawBefore, yawAfter, turnRate);
   const target =
-    (form === "hover" || form === "submarine") && Number.isFinite(turn)
+    (form === "hover" || form === "submarine") && turn !== undefined
       ? clamp(turn, -1, 1) * spec.maxBank
       : 0;
-  return prev + clamp(target - prev, -spec.bankRate, spec.bankRate);
+  return approach(prev, target, spec.bankRate);
 }
 
 /** Altitude lost per tick while flying banked, in proportion to the bank angle. */
