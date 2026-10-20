@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { asDimensionId, asPlayerId } from "../../../../src/domain/shared/ids";
 import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
 import type { BedrockInventory } from "../../../../src/infrastructure/vehicle/bedrock/bedrockInventory";
 import { BedrockPlacementWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockPlacementWorld";
@@ -36,17 +37,17 @@ describe("BedrockPlacementWorld cell queries", () => {
   ])("treats block %o as air: %s", (block, expected) => {
     const { dimension, placement } = fixture();
     dimension.getBlock.mockReturnValue(block);
-    expect(placement.isAir("overworld", at)).toBe(expected);
+    expect(placement.isAir(asDimensionId("overworld"), at)).toBe(expected);
     expect(dimension.getBlock).toHaveBeenCalledExactlyOnceWith(at);
   });
 
   it("treats an unknown dimension or an unloaded cell as not air", () => {
     const { dimension, placement } = fixture();
-    expect(placement.isAir("nowhere", at)).toBe(false);
+    expect(placement.isAir(asDimensionId("nowhere"), at)).toBe(false);
     dimension.getBlock.mockImplementation(() => {
       throw new Error("unloaded chunk");
     });
-    expect(placement.isAir("overworld", at)).toBe(false);
+    expect(placement.isAir(asDimensionId("overworld"), at)).toBe(false);
   });
 });
 
@@ -61,7 +62,9 @@ describe("BedrockPlacementWorld vehicle item", () => {
   )("takes one %s item from the given slot (taken: %s)", (kind, taken) => {
     const { consumeHeld, placement } = fixture();
     consumeHeld.mockReturnValue(taken);
-    expect(placement.consumeVehicleItem("player", 4, kind)).toBe(taken);
+    expect(placement.consumeVehicleItem(asPlayerId("player"), 4, kind)).toBe(
+      taken,
+    );
     expect(consumeHeld).toHaveBeenCalledExactlyOnceWith(
       "player",
       ITEM_TYPE[kind],

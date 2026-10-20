@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { asVehicleId } from "../../../../../src/domain/shared/ids";
+import { asPlayerId, asVehicleId } from "../../../../../src/domain/shared/ids";
 import {
   clamp,
   forward,
@@ -544,7 +544,7 @@ describe("sports boat docking (ADR 0063)", () => {
           const f = forward(heading);
           const left = leftOf(f);
           const driver = {
-            id: "driver",
+            id: asPlayerId("driver"),
             offset: {
               x: left.x * seat.x + f.x * seat.z,
               z: left.z * seat.x + f.z * seat.z,
@@ -1265,7 +1265,7 @@ describe("a sports boat Vehicle (ADR 0051)", () => {
           const f = forward(heading);
           const left = leftOf(f);
           const rider = {
-            id: "rider",
+            id: asPlayerId("rider"),
             offset: {
               x: left.x * local.x + f.x * local.z,
               z: left.z * local.x + f.z * local.z,
@@ -1501,7 +1501,7 @@ it("keeps deck seats only at empty boat seats and ignores the deck driver while 
           const at = SPORTSBOAT_PROFILE.seats.positions[seat];
           if (at === undefined) throw new Error(`no seat ${seat}`);
           return {
-            id: `rider${seat}`,
+            id: asPlayerId(`rider${seat}`),
             offset: {
               x: left.x * at.x + f.x * at.z,
               z: left.z * at.x + f.z * at.z,

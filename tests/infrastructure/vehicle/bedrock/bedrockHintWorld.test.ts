@@ -1,6 +1,7 @@
 import type { Entity } from "@minecraft/server";
 import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { asPlayerId } from "../../../../src/domain/shared/ids";
 import { HINTS } from "../../../../src/domain/vehicle/hints";
 import { PAINTS } from "../../../../src/domain/vehicle/paint/paint";
 import { BedrockHintWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockHintWorld";
@@ -146,13 +147,13 @@ describe("BedrockHintWorld", () => {
       id === player.id ? player : undefined,
     );
     const hints = new BedrockHintWorld(new EntityIndex());
-    hints.showHint("p", {
+    hints.showHint(asPlayerId("p"), {
       name: HINTS.bumperMouse,
       with: [{ number: 3 }, { vehicle: "camper" }],
     });
-    hints.showHint("p", { name: HINTS.driveTouch });
-    hints.clearHint("p");
-    hints.showHint("missing", { name: HINTS.paint });
+    hints.showHint(asPlayerId("p"), { name: HINTS.driveTouch });
+    hints.clearHint(asPlayerId("p"));
+    hints.showHint(asPlayerId("missing"), { name: HINTS.paint });
     expect(player.onScreenDisplay.setActionBar.mock.calls).toEqual([
       [
         {
@@ -182,6 +183,6 @@ describe("BedrockHintWorld", () => {
     });
     game.getEntity.mockReturnValue(player);
     const hints = new BedrockHintWorld(new EntityIndex());
-    expect(() => hints.clearHint("p")).not.toThrow();
+    expect(() => hints.clearHint(asPlayerId("p"))).not.toThrow();
   });
 });

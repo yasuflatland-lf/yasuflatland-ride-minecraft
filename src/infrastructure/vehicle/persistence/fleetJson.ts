@@ -1,4 +1,4 @@
-import { asVehicleId } from "../../../domain/shared/ids";
+import { asPlayerId, asVehicleId } from "../../../domain/shared/ids";
 // Reads and writes the fleet stored as JSON in a dynamic property (ADR 0038, ADR 0066).
 import type {
   FleetEntry,
@@ -22,7 +22,7 @@ function parseEntry(value: unknown): FleetEntry {
   if (owner === undefined) return { id: asVehicleId(id), kind };
   if (typeof owner !== "string")
     throw new Error("order entry owner is not a string");
-  return { id: asVehicleId(id), kind, owner };
+  return { id: asVehicleId(id), kind, owner: asPlayerId(owner) };
 }
 
 /** Throws with the reason when `raw` is not a stored fleet. */

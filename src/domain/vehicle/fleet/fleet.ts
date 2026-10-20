@@ -1,4 +1,4 @@
-import type { VehicleId } from "../../shared/ids";
+import type { PlayerId, VehicleId } from "../../shared/ids";
 // The vehicles in a world in the order they appeared, and the ones evicted to
 // keep each owner and kind at its limit (ADR 0038, ADR 0066). A script cannot
 // remove an entity in an unloaded chunk, so it waits until its chunk loads.
@@ -11,7 +11,7 @@ export interface FleetEntry {
   readonly id: VehicleId;
   readonly kind: VehicleKind;
   /** Player.id of the player who placed it; undefined when summoned by command or placed before ADR 0066. */
-  readonly owner?: string;
+  readonly owner?: PlayerId;
 }
 
 export interface FleetState {

@@ -1,3 +1,4 @@
+import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 // Use case: place a vehicle from its item on the cell its kind's placement rule
 // (profile.placement) picks (ADR 0008, ADR 0050): the SUV and the camper on the top
 // face of a block (ADR 0067), the sports boat at the water surface from any face or
@@ -16,8 +17,8 @@ import type { PlacementWorld } from "./ports/placement";
 
 export interface PlaceVehicleCommand {
   kind: VehicleKind;
-  playerId: string;
-  dimensionId: string;
+  playerId: PlayerId;
+  dimensionId: DimensionId;
   /**
    * Cell the vehicle sits on top of (integer coordinates): the block the item was
    * used on, or for a water kind the top water cell above or beside it (ADR 0051).
@@ -43,7 +44,7 @@ export class PlaceVehicle {
    */
   cellFor(
     kind: VehicleKind,
-    dimensionId: string,
+    dimensionId: DimensionId,
     clicked: Vec3,
     face: BlockFace,
   ): Vec3 | undefined {

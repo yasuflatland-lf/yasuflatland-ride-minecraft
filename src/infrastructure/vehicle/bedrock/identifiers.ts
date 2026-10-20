@@ -1,4 +1,4 @@
-import { asVehicleId } from "../../../domain/shared/ids";
+import { asPlayerId, asVehicleId } from "../../../domain/shared/ids";
 import {
   HEADLIGHTS_PROPERTY_NAME,
   paintEventName,
@@ -129,7 +129,10 @@ export function fleetEntryOf(entity: {
   return {
     id: asVehicleId(entity.id),
     kind,
-    owner: typeof owner === "string" && owner.length > 0 ? owner : undefined,
+    owner:
+      typeof owner === "string" && owner.length > 0
+        ? asPlayerId(owner)
+        : undefined,
   };
 }
 

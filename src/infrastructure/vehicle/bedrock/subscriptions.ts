@@ -8,7 +8,7 @@ import type { PlaceVehicle } from "../../../application/vehicle/placeVehicle";
 import type { ShowVehicleHints } from "../../../application/vehicle/showVehicleHints";
 import type { SwitchHeadlights } from "../../../application/vehicle/switchHeadlights";
 import type { UseDockDoor } from "../../../application/vehicle/useDockDoor";
-import type { VehicleId } from "../../../domain/shared/ids";
+import type { DimensionId, VehicleId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import type { TestInputStore } from "../testInput/testInputStore";
 import { registerDockDoor } from "./handlers/dockDoor";
@@ -33,7 +33,10 @@ export function registerSubscriptions(
     hints: ShowVehicleHints;
   },
   testInputs: TestInputStore,
-  dockDoorOwner: (dimensionId: string, cell: Vec3) => VehicleId | undefined,
+  dockDoorOwner: (
+    dimensionId: DimensionId,
+    cell: Vec3,
+  ) => VehicleId | undefined,
 ): void {
   registerDockDoor(useCases.door, dockDoorOwner);
   registerDrive(useCases.drive, useCases.hints);

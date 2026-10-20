@@ -2,7 +2,11 @@ import fc from "fast-check";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { HintPlayerView } from "../../../src/application/vehicle/ports/drive";
 import { ShowVehicleHints } from "../../../src/application/vehicle/showVehicleHints";
-import { asVehicleId } from "../../../src/domain/shared/ids";
+import {
+  asDimensionId,
+  asPlayerId,
+  asVehicleId,
+} from "../../../src/domain/shared/ids";
 import { HINTS } from "../../../src/domain/vehicle/hints";
 import type { VehicleKind } from "../../../src/domain/vehicle/kind";
 import { CAMPER_PROFILE } from "../../../src/domain/vehicle/kinds/camper/profile";
@@ -51,13 +55,17 @@ function checkAt(tick: number) {
 function addVehicle(kind: VehicleKind, id = "v", dimensionId = "overworld") {
   const vehicle = createVehicle(kind, asVehicleId(id), 0);
   repo.save(vehicle);
-  world.vehicles.push({ id: asVehicleId(id), dimensionId, location: AT });
+  world.vehicles.push({
+    id: asVehicleId(id),
+    dimensionId: asDimensionId(dimensionId),
+    location: AT,
+  });
   return vehicle;
 }
 
 const player = (over: Partial<HintPlayerView> = {}): HintPlayerView => ({
-  id: "p",
-  dimensionId: "overworld",
+  id: asPlayerId("p"),
+  dimensionId: asDimensionId("overworld"),
   location: IN_FRONT,
   riding: false,
   held: "other",
@@ -86,8 +94,8 @@ describe("ShowVehicleHints (ADR 0086)", () => {
     addVehicle("camper");
     world.players = [
       player(),
-      player({ id: "q", controls: "mouse" }),
-      player({ id: "d", held: "dye" }),
+      player({ id: asPlayerId("q"), controls: "mouse" }),
+      player({ id: asPlayerId("d"), held: "dye" }),
     ];
     checkAt(0);
     expect(world.sent).toEqual([
@@ -107,8 +115,11 @@ describe("ShowVehicleHints (ADR 0086)", () => {
     addVehicle("camper");
     world.players = [
       player({ riding: true }),
-      player({ id: "far", location: FAR }),
-      player({ id: "nether", dimensionId: "nether" }),
+      player({ id: asPlayerId("far"), location: FAR }),
+      player({
+        id: asPlayerId("nether"),
+        dimensionId: asDimensionId("nether"),
+      }),
     ];
     checkAt(0);
     expect(world.sent).toEqual([]);

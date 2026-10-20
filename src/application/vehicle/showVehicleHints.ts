@@ -1,3 +1,4 @@
+import type { PlayerId } from "../../domain/shared/ids";
 // Use case: hint players on foot near a vehicle where to hit it and how to drive it (ADR 0086).
 import type { Vec3 } from "../../domain/shared/vec";
 import {
@@ -25,7 +26,7 @@ const squaredDistance = (a: Vec3, b: Vec3) =>
   (a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2;
 
 export class ShowVehicleHints {
-  private readonly states = new Map<string, HintState>();
+  private readonly states = new Map<PlayerId, HintState>();
 
   constructor(
     private readonly world: HintWorld,
@@ -41,7 +42,7 @@ export class ShowVehicleHints {
     });
     if (vehicles.length === 0 && this.states.size === 0) return;
     const tick = this.clock.now();
-    const present = new Set<string>();
+    const present = new Set<PlayerId>();
     for (const player of this.world.hintPlayers()) {
       present.add(player.id);
       const state = this.states.get(player.id) ?? NO_HINT;

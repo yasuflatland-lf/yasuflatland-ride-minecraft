@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { LimitVehicles } from "../../../src/application/vehicle/limitVehicles";
-import { asVehicleId } from "../../../src/domain/shared/ids";
+import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
 import {
   createVehicle,
   fleetLimitOf,
@@ -133,19 +133,23 @@ describe("LimitVehicles (ADR 0038)", () => {
     const first = {
       id: asVehicleId("first"),
       kind: "sportsboat" as const,
-      owner: "a",
+      owner: asPlayerId("a"),
     };
     const second = {
       id: asVehicleId("second"),
       kind: "sportsboat" as const,
-      owner: "a",
+      owner: asPlayerId("a"),
     };
     const other = {
       id: asVehicleId("other"),
       kind: "sportsboat" as const,
-      owner: "b",
+      owner: asPlayerId("b"),
     };
-    const suv = { id: asVehicleId("suv"), kind: "suv" as const, owner: "a" };
+    const suv = {
+      id: asVehicleId("suv"),
+      kind: "suv" as const,
+      owner: asPlayerId("a"),
+    };
     fleets.state = { order: [first, other, suv], evicted: [] };
     world.loaded = [first, other, suv, second];
     for (const e of world.loaded) repo.save(createVehicle(e.kind, e.id, 0));

@@ -11,7 +11,13 @@ import type {
   DriveWorld,
   VehicleSnapshot,
 } from "../../../application/vehicle/ports/drive";
-import { asVehicleId, type VehicleId } from "../../../domain/shared/ids";
+import {
+  asPlayerId,
+  asVehicleId,
+  type DimensionId,
+  type PlayerId,
+  type VehicleId,
+} from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import {
   type ClearCell,
@@ -91,7 +97,7 @@ export class BedrockVehicleWorld implements DriveWorld {
   ) {}
 
   /** The vehicle whose laid room door is at this cell, if any (ADR 0068). */
-  dockDoorOwner(dimensionId: string, cell: Vec3): VehicleId | undefined {
+  dockDoorOwner(dimensionId: DimensionId, cell: Vec3): VehicleId | undefined {
     return this.dockBlocks.doorOwner(dimensionId, cell);
   }
 
@@ -151,7 +157,7 @@ export class BedrockVehicleWorld implements DriveWorld {
       .filter(isPlayer)
       .map((p) => {
         return {
-          id: p.id,
+          id: asPlayerId(p.id),
           offset: {
             x: p.location.x - vehicle.location.x,
             z: p.location.z - vehicle.location.z,
@@ -227,7 +233,7 @@ export class BedrockVehicleWorld implements DriveWorld {
     }
   }
 
-  showMessage(playerId: string, name: string): void {
+  showMessage(playerId: PlayerId, name: string): void {
     this.index.player(playerId)?.onScreenDisplay.setActionBar({
       translate: messageKey(name),
     });
@@ -350,20 +356,20 @@ export class BedrockVehicleWorld implements DriveWorld {
     }
   }
 
-  setChaseCamera(playerId: string, chase: ChaseCamera | undefined): void {
+  setChaseCamera(playerId: PlayerId, chase: ChaseCamera | undefined): void {
     const camera = this.index.player(playerId)?.camera;
     if (!camera) return;
     if (chase) camera.setCamera(CHASE_CAMERAS[chase]);
     else camera.clear();
   }
 
-  giveWaterBreathing(playerId: string, ticks: number): void {
+  giveWaterBreathing(playerId: PlayerId, ticks: number): void {
     this.index.player(playerId)?.addEffect("water_breathing", ticks, {
       showParticles: false,
     });
   }
 
-  damage(hit: RamHit, attackerId: string | undefined): void {
+  damage(hit: RamHit, attackerId: PlayerId | undefined): void {
     const target = world.getEntity(hit.id);
     if (!target?.isValid) return;
     const attacker = attackerId ? world.getEntity(attackerId) : undefined;
