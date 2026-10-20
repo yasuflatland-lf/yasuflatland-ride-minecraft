@@ -114,16 +114,67 @@ describe("camper model assets (ADR 0067)", () => {
       ["rr", -21.4, 31],
     ] as const) {
       const wheel = bone(`wheel_${name}`);
-      expect(wheel.pivot).toEqual([x, 6.5, z]);
+      expect(wheel.pivot).toEqual([x, 9.75, z]);
       expect(locators?.[`hover_${name}`]).toEqual([x, 0, z]);
       expect(wheel.cubes).toHaveLength(64);
       expect(new Set(wheel.cubes?.map((c) => c.uv.north?.uv[0])).size).toBe(4);
       for (const cube of wheel.cubes ?? []) {
-        expect(cube.pivot?.[1]).toBe(6.5);
+        expect(cube.pivot?.[1]).toBe(9.75);
         expect(cube.rotation).toBeDefined();
       }
     }
     expect(bone("door_entry").pivot).toEqual([-24, 0, -7]);
+  });
+
+  it("keeps every rotated wheel cube above ground with the tires touching it", () => {
+    for (const name of WHEELS) {
+      const heights = (bone(name).cubes ?? []).flatMap((cube) => {
+        const angle = ((cube.rotation?.[0] ?? 0) * Math.PI) / 180;
+        const py = cube.pivot?.[1] ?? 0;
+        const pz = cube.pivot?.[2] ?? 0;
+        return Array.from({ length: 8 }, (_, corner) => {
+          const y =
+            (cube.origin[1] ?? 0) + ((corner >> 1) & 1) * (cube.size[1] ?? 0);
+          const z =
+            (cube.origin[2] ?? 0) + ((corner >> 2) & 1) * (cube.size[2] ?? 0);
+          return py + (y - py) * Math.cos(angle) - (z - pz) * Math.sin(angle);
+        });
+      });
+      // Geometry coordinates are rounded to three decimal places by the generator.
+      expect(
+        heights.every((y) => y >= -0.0005),
+        name,
+      ).toBe(true);
+      expect(Math.min(...heights), name).toBeCloseTo(0, 3);
+      expect(Math.max(...heights), name).toBeCloseTo(19.5, 3);
+    }
+  });
+
+  it("clears furniture and wall lining from all four wheel housings", () => {
+    const interior = bones.filter(
+      (b) => b.name === "body" || b.name.startsWith("seat_"),
+    );
+    for (const [x0, x1] of [
+      [18.3, 23],
+      [-23, -18.3],
+    ]) {
+      for (const axle of [-31.5, 31]) {
+        const low = [x0, -99, axle - 12.25 - 0.3];
+        const high = [x1, 22.3, axle + 12.25 + 0.3];
+        for (const b of interior) {
+          for (const cube of b.cubes ?? []) {
+            // Palette slots 7 and 21 are the black and wood panels enclosing the well.
+            if ([7, 21].includes(cube.uv.north?.uv[0] ?? -1)) continue;
+            const overlaps = cube.origin.every(
+              (start, axis) =>
+                start < (high[axis] ?? 0) - 0.001 &&
+                start + (cube.size[axis] ?? 0) > (low[axis] ?? 0) + 0.001,
+            );
+            expect(overlaps, `${b.name}: ${cube.origin}`).toBe(false);
+          }
+        }
+      }
+    }
   });
 
   it("keeps the facing dinette on the left behind the passenger, clear of the bed and side walls", () => {
@@ -136,14 +187,22 @@ describe("camper model assets (ADR 0067)", () => {
     expect(bone("seat_1").cubes?.every((c) => (c.origin[0] ?? 0) > 0)).toBe(
       true,
     );
-    for (const name of ["seat_2", "seat_3"]) {
+    for (const [name, z0, z1] of [
+      ["seat_2", -24, -10],
+      ["seat_3", 10, 24],
+    ] as const) {
       const cubes = bone(name).cubes ?? [];
-      expect(cubes).toHaveLength(2);
+      expect(cubes.length).toBeGreaterThan(0);
+      expect(Math.min(...cubes.map((c) => c.origin[0] ?? 0))).toBe(8);
+      expect(
+        Math.max(...cubes.map((c) => (c.origin[0] ?? 0) + (c.size[0] ?? 0))),
+      ).toBe(23);
+      expect(Math.min(...cubes.map((c) => c.origin[2] ?? 0))).toBe(z0);
+      expect(
+        Math.max(...cubes.map((c) => (c.origin[2] ?? 0) + (c.size[2] ?? 0))),
+      ).toBe(z1);
       for (const c of cubes) {
-        expect(c.origin[0]).toBe(8);
-        expect(c.size[0]).toBe(15);
         expect(c.origin[1]).toBeGreaterThanOrEqual(16);
-        expect((c.origin[2] ?? 0) + (c.size[2] ?? 0)).toBeLessThanOrEqual(24);
       }
     }
   });
@@ -389,7 +448,25 @@ describe("camper animation references", () => {
     }
   });
 
-  it("folds the wheels with the SUV's rotation and lifts them 4 px into the wheel wells", () => {
+  it("matches wheel spin to the circumference derived from each wheel pivot", () => {
+    for (const w of WHEELS) {
+      const rotation = camperAnimation("wheels").bones?.[w]
+        ?.rotation as unknown[];
+      const expression = String(rotation[0]);
+      expect(expression).toMatch(
+        /^-query\.modified_distance_moved \* \d+\.\d$/,
+      );
+      const coefficient = Number(expression.split(" * ")[1]);
+      const radius = bone(w).pivot[1] ?? 0;
+      expect(coefficient, w).toBeCloseTo(
+        360 / ((2 * Math.PI * radius) / 16),
+        1,
+      );
+      expect(rotation.slice(1)).toEqual([0, 0]);
+    }
+  });
+
+  it("folds the wheels with the SUV's rotation and lifts them 0.75 px below the floor", () => {
     const deploy = camperAnimation("wheels_deploy");
     const suvDeploy = suvAnimations[
       "animation.yasu_ride.suv.wheels_deploy"
@@ -405,8 +482,12 @@ describe("camper animation references", () => {
       );
       expect(deploy.bones?.[w]?.position, w).toEqual({
         "0.0": [0, 0, 0],
-        "1.0": [0, 4, 0],
+        "1.0": [0, 0.75, 0],
       });
+      const position = deploy.bones?.[w]?.position as Record<string, number[]>;
+      expect((bone(w).pivot[1] ?? 0) + (position["1.0"]?.[1] ?? 0) + 2, w).toBe(
+        12.5,
+      );
     }
   });
 
