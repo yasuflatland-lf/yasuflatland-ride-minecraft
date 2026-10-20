@@ -1,6 +1,6 @@
 # 0077. Never reverse the internal speed on a wall hit
 
-- Status: Accepted
+- Status: Superseded in part by 0081 (lowering the speed toward the actual forward speed while sliding along a wall)
 - Date: 2026-10-20
 - Supersedes in part: 0003 (lowering the internal speed to a backward actual forward speed after a wall hit, and the reverse-limit clamp that came with it)
 

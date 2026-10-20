@@ -21,8 +21,11 @@ import { MOTION } from "../../../../src/domain/vehicle/motion/constants";
 import type { MotionLimits } from "../../../../src/domain/vehicle/motion/limits";
 import {
   alignOnMount,
+  blockedAxes,
+  hitWall,
   initialMotion,
   type MotionState,
+  speedAfterWall,
   steerYaw,
   stepMotion,
   updateSpeed,
@@ -49,7 +52,6 @@ function repeat(input: DriveInput, ticks: number): DriveInput[] {
 interface Frame {
   state: MotionState;
   body: Body;
-  touching: boolean;
   blocked: boolean;
   jumpVelocity: number;
   onGround: boolean;
@@ -86,7 +88,6 @@ function simulate(
     frames.push({
       state,
       body,
-      touching: e.touching,
       blocked: r.blocked,
       jumpVelocity: r.jumpVelocity,
       onGround: t.onGround,
@@ -100,6 +101,51 @@ function lateral(v: Vec2, yaw: number): number {
   const l = dot(v, f);
   return Math.hypot(v.x - f.x * l, v.z - f.z * l);
 }
+
+interface WallFrame {
+  blocked: boolean;
+  speed: number;
+  friction: number | undefined;
+  along: number;
+}
+
+/**
+ * Full throttle at a wall whose normal is +x, heading theta degrees off that
+ * normal: forward(-90 + theta) = (cos theta, sin theta). The engine keeps k of
+ * the velocity and, from tick `free` on, zeroes x as a wall does (ADR 0003).
+ */
+function driveAtWall(
+  theta: number,
+  k: number,
+  free = 60,
+  contact = 60,
+): WallFrame[] {
+  let state = initialMotion(-90 + theta);
+  let vel: Vec2 = { x: 0, z: 0 };
+  const frames: WallFrame[] = [];
+  for (let t = 0; t < free + contact; t++) {
+    const r = stepMotion(
+      state,
+      FULL_THROTTLE,
+      { velocity: vel, onGround: true },
+      () => 0,
+      SUV_MOTION,
+    );
+    state = r.state;
+    const x = t >= free ? 0 : vel.x + r.impulse.x;
+    vel = { x: x * k, z: (vel.z + r.impulse.z) * k };
+    frames.push({
+      blocked: r.blocked,
+      speed: r.state.speed,
+      friction: r.state.friction,
+      along: vel.z,
+    });
+  }
+  return frames;
+}
+
+const frameAt = (frames: readonly WallFrame[], i: number) =>
+  defined(frames[i], `frame ${i}`);
 
 const driveInput = fc.record({
   throttle: fc.double({ min: -1, max: 1, noNaN: true }),
@@ -833,26 +879,77 @@ describe("stepMotion (properties, ADR 0002/0003)", () => {
     );
   });
 
-  it("stops when hitting a wall at an angle, with speed along the wall no greater than the along-wall component just before impact", () => {
-    const yaw0 = fc.double({ min: -130, max: -50, noNaN: true }); // Faces roughly toward +x (the wall)
-    const wallX = fc.double({ min: 8, max: 20, noNaN: true });
+  it("slides along a wall hit at an angle, keeping the impact along-wall speed (ADR 0081)", () => {
     fc.assert(
-      fc.property(yaw0, wallX, mu, (y, w, m) => {
-        const frames = simulate(
-          repeat(FULL_THROTTLE, 200),
-          { mu: m, wallX: w },
-          y,
-        );
-        const first = frames.findIndex((f) => f.touching);
-        expect(first).toBeGreaterThan(0);
-        const before = Math.abs(
-          defined(frames[first - 1], "frame before impact").body.vel.z,
-        );
-        for (const f of frames.slice(first)) {
-          expect(Math.abs(f.body.vel.z)).toBeLessThanOrEqual(before + 0.05);
-        }
-        expect(frames.slice(first + 2).some((f) => f.blocked)).toBe(true);
-      }),
+      fc.property(
+        fc.integer({ min: 5, max: 85 }),
+        fc.integer({ min: 50, max: 100 }).map((n) => n / 100),
+        (theta, k) => {
+          const frames = driveAtWall(theta, k);
+          const first = frameAt(frames, 60);
+          expect(first.along).toBeGreaterThan(0);
+          for (let i = 61; i < 120; i++) {
+            const fr = frameAt(frames, i);
+            expect(fr.blocked).toBe(true);
+            expect(Math.abs(fr.along - first.along)).toBeLessThanOrEqual(1e-6);
+            expect(fr.friction).toBe(first.friction);
+            expect(fr.speed).toBeGreaterThan(0);
+          }
+          let flips = 0;
+          for (let i = 1; i < frames.length; i++)
+            if (frameAt(frames, i).blocked !== frameAt(frames, i - 1).blocked)
+              flips++;
+          expect(flips).toBe(1);
+        },
+      ),
+    );
+  });
+
+  it("stops at a wall hit nearly head-on, as before (ADR 0081)", () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 0, max: 2 }),
+        fc.integer({ min: 50, max: 100 }).map((n) => n / 100),
+        (theta, k) => {
+          const last = frameAt(driveAtWall(theta, k), 119);
+          expect(last.speed).toBeGreaterThanOrEqual(0);
+          expect(last.speed).toBeLessThanOrEqual(0.05);
+          expect(Math.abs(last.along)).toBeLessThan(0.05);
+        },
+      ),
+    );
+  });
+
+  it("a blocked tick carries no sideways velocity (ADR 0081)", () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: -180, max: 180 }),
+        fc.integer({ min: 1, max: 90 }).map((n) => n / 100),
+        fc.double({ min: -0.5, max: 0.5, noNaN: true }),
+        (yaw, speed, side) => {
+          const f = forward(yaw);
+          const v = { x: -f.z * side, z: f.x * side };
+          const r = stepMotion(
+            {
+              ...initialMotion(yaw),
+              speed,
+              friction: 0.69,
+              expected: { x: f.x * 2, z: f.z * 2 },
+            },
+            NEUTRAL_INPUT,
+            { velocity: v, onGround: true },
+            () => 0,
+            SUV_MOTION,
+          );
+          expect(r.blocked).toBe(true);
+          const after = {
+            x: (v.x + r.impulse.x) * 0.69,
+            z: (v.z + r.impulse.z) * 0.69,
+          };
+          const sideways = { x: -r.forward.z, z: r.forward.x };
+          expect(Math.abs(dot(after, sideways))).toBeLessThan(1e-9);
+        },
+      ),
     );
   });
 
@@ -952,5 +1049,85 @@ describe("stepMotion (properties, ADR 0002/0003)", () => {
     ]);
     expect(airborne.state.friction).toBe(0.9);
     expect(airborne.state.expected).toBeUndefined();
+  });
+});
+
+describe("blockedAxes / speedAfterWall (ADR 0003, 0081)", () => {
+  const component = fc.double({ min: -2, max: 2, noNaN: true });
+  const vec = fc.record({ x: component, z: component });
+
+  it("blockedAxes checks each axis on its own and hitWall is either axis", () => {
+    fc.assert(
+      fc.property(
+        vec,
+        vec,
+        fc.double({ min: 0.25, max: 0.5, noNaN: true }),
+        component,
+        (v, given, ratio, otherZ) => {
+          const a = blockedAxes(v, given, ratio);
+          expect(hitWall(v, given, ratio)).toBe(a.x || a.z);
+          expect(blockedAxes({ x: v.x, z: otherZ }, given, ratio).x).toBe(a.x);
+        },
+      ),
+    );
+  });
+
+  it("speedAfterWall never raises the speed and never changes its sign", () => {
+    fc.assert(
+      fc.property(
+        fc.double({ min: -1, max: 1, noNaN: true }),
+        vec,
+        fc.integer({ min: -180, max: 180 }),
+        fc.record({ x: fc.boolean(), z: fc.boolean() }),
+        (speed, v, yaw, axes) => {
+          const out = speedAfterWall(speed, v, forward(yaw), axes);
+          expect(Math.abs(out)).toBeLessThanOrEqual(Math.abs(speed));
+          expect(out * speed).toBeGreaterThanOrEqual(0);
+          if (speed === 0) expect(out).toBe(0);
+        },
+      ),
+    );
+  });
+
+  it("speedAfterWall keeps the speed whose free-axis component matches the along-wall velocity", () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 5, max: 85 }),
+        fc.constantFrom(1, -1),
+        fc.integer({ min: 1, max: 90 }).map((n) => n / 100),
+        fc.integer({ min: 0, max: 100 }).map((n) => n / 100),
+        fc.boolean(),
+        (theta, sign, speed, along, wallOnX) => {
+          const f = wallOnX ? forward(-90 + theta) : forward(-theta);
+          const v = wallOnX
+            ? { x: 0, z: f.z * along * sign }
+            : { x: f.x * along * sign, z: 0 };
+          const axes = { x: wallOnX, z: !wallOnX };
+          expect(speedAfterWall(sign * speed, v, f, axes)).toBeCloseTo(
+            sign * Math.min(speed, along),
+            12,
+          );
+        },
+      ),
+    );
+  });
+
+  it("speedAfterWall falls back to the forward speed when both axes are blocked, nearly head-on, or moving backward along the wall", () => {
+    const diagonal = forward(-45);
+    const both = { x: 0.1, z: 0.1 };
+    expect(
+      speedAfterWall(0.9, both, diagonal, { x: true, z: true }),
+    ).toBeCloseTo(Math.max(0, dot(both, diagonal)), 12);
+    const headOn = forward(-90 + 1);
+    const along = { x: 0, z: 0.5 };
+    expect(
+      speedAfterWall(0.9, along, headOn, { x: true, z: false }),
+    ).toBeCloseTo(Math.max(0, dot(along, headOn)), 12);
+    expect(
+      speedAfterWall(0.9, { x: 0, z: -0.3 }, diagonal, { x: true, z: false }),
+    ).toBe(0);
+    expect(
+      speedAfterWall(-0.2, { x: 0, z: -0.1 }, diagonal, { x: true, z: false }),
+    ).toBeCloseTo(-Math.min(0.2, 0.1 / diagonal.z), 12);
   });
 });

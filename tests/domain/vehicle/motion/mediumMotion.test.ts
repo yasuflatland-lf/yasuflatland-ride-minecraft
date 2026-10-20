@@ -16,15 +16,23 @@ import { SUV_MOTION } from "../../../../src/domain/vehicle/kinds/suv/profile";
 import { AIR, SUV_SPEC } from "../../../../src/domain/vehicle/kinds/suv/spec";
 import { MOTION } from "../../../../src/domain/vehicle/motion/constants";
 import {
+  blockedAxes,
   initialMotion,
   type MotionResult,
   type MotionState,
+  speedAfterWall,
   stepMediumMotion,
   updateSpeed,
 } from "../../../../src/domain/vehicle/motion/motion";
 
 // The in-game flight_cruise test checks this assumption against the engine.
 const ENGINE_DRAG = SUV_SPEC.flightDrag;
+const FULL_THROTTLE: DriveInput = {
+  throttle: 1,
+  steer: 0,
+  handbrake: false,
+  creep: false,
+};
 
 function fly(inputs: readonly DriveInput[]): { r: MotionResult; vel: Vec2 }[] {
   let state = initialMotion(0);
@@ -110,7 +118,7 @@ describe("stepMediumMotion (ADR 0021, 0075)", () => {
     expect(length(last)).toBeGreaterThanOrEqual(SUV_SPEC.maxSpeed * 0.95);
   });
 
-  it("reports a wall and drops to the forward speed when an expected axis comes back zero", () => {
+  it("reports a wall and keeps the wall speed when an expected axis comes back zero (ADR 0081)", () => {
     const axisValue = fc
       .double({ min: MOTION.blockedAxisMin, max: 2, noNaN: true })
       .filter((a) => a > MOTION.blockedAxisMin)
@@ -135,9 +143,17 @@ describe("stepMediumMotion (ADR 0021, 0075)", () => {
             SUV_MOTION,
           );
           expect(r.blocked).toBe(true);
-          const vLong = dot(v, forward(r.state.yaw));
-          expect(Math.abs(r.state.speed)).toBeLessThanOrEqual(
-            Math.abs(vLong) + SUV_SPEC.accel + 1e-9,
+          const free = Math.min(
+            updateSpeed(s.speed, input.throttle, input.creep, SUV_MOTION),
+            SUV_SPEC.maxSpeed,
+          );
+          const axes = blockedAxes(
+            v,
+            e,
+            (AIR.wallDrag ?? AIR.drag) * MOTION.blockedRatio,
+          );
+          expect(r.state.speed).toBe(
+            speedAfterWall(free, v, forward(r.state.yaw), axes),
           );
         },
       ),
@@ -294,6 +310,38 @@ describe("stepMediumMotion walls and sideways velocity (ADR 0002, 0003)", () => 
     );
     expect(r.blocked).toBe(true);
     expect(r.state.speed).toBe(0);
+  });
+
+  it("slides along a wall hit at an angle in a medium (ADR 0081)", () => {
+    fc.assert(
+      fc.property(fc.integer({ min: 5, max: 85 }), (theta) => {
+        let state = initialMotion(-90 + theta);
+        let vel: Vec2 = { x: 0, z: 0 };
+        let impact = 0;
+        for (let t = 0; t < 120; t++) {
+          const r = stepMediumMotion(
+            state,
+            FULL_THROTTLE,
+            vel,
+            AIR,
+            SUV_MOTION,
+          );
+          state = r.state;
+          const x = t >= 60 ? 0 : vel.x + r.impulse.x;
+          vel = {
+            x: x * ENGINE_DRAG,
+            z: (vel.z + r.impulse.z) * ENGINE_DRAG,
+          };
+          if (t === 60) impact = vel.z;
+          if (t > 60) {
+            expect(r.blocked).toBe(true);
+            expect(Math.abs(vel.z - impact)).toBeLessThanOrEqual(1e-6);
+            expect(r.state.speed).toBeGreaterThan(0);
+          }
+        }
+        expect(impact).toBeGreaterThan(0);
+      }),
+    );
   });
 
   it("aims for the internal speed forward and keeps 1 - grip of the sideways velocity (ADR 0002)", () => {

@@ -14,12 +14,14 @@ import {
   guardEnds,
   lowestBlockingLayer,
 } from "../../../../../src/domain/vehicle/kinds/camper/bodyGuard";
+import { CAMPER_MOTION } from "../../../../../src/domain/vehicle/kinds/camper/profile";
 import { CAMPER_SPEC } from "../../../../../src/domain/vehicle/kinds/camper/spec";
 import { MOTION } from "../../../../../src/domain/vehicle/motion/constants";
 import type { Form } from "../../../../../src/domain/vehicle/motion/forms";
 import {
   initialMotion,
   type MotionResult,
+  stepMotion,
 } from "../../../../../src/domain/vehicle/motion/motion";
 
 const ends: BodyEnds = {
@@ -585,6 +587,47 @@ describe("camper body end guard", () => {
         ).toBe(true);
         expect(sensor.queries).toEqual([hit]);
       }),
+    );
+  });
+
+  it("still stops a camper whose front cells are solid after the motion step slid it along a wall (ADR 0067, 0081)", () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 5, max: 80 }),
+        fc
+          .integer({ min: 30, max: Math.round(CAMPER_SPEC.maxSpeed * 100) })
+          .map((n) => n / 100),
+        (theta, speed) => {
+          const yaw = -90 + theta;
+          const f = forward(yaw);
+          const given = speed / MOTION.defaultFriction;
+          const prev = {
+            ...initialMotion(yaw),
+            speed,
+            friction: MOTION.defaultFriction,
+            expected: { x: f.x * given, z: f.z * given },
+          };
+          const v = { x: 0, z: f.z * speed };
+          const moved = stepMotion(
+            prev,
+            { throttle: 1, steer: 0, handbrake: false, creep: false },
+            { velocity: v, onGround: true },
+            () => 0,
+            CAMPER_MOTION,
+          );
+          expect(moved.blocked).toBe(true);
+          expect(moved.state.speed).toBeGreaterThan(0);
+          const result = guardEnds(
+            moved,
+            { velocity: { x: v.x, y: 0, z: v.z }, solidAt: () => true },
+            ends,
+            "car",
+          );
+          expect(result.state.speed).toBe(0);
+          expect(result.blocked).toBe(true);
+          expect(result.impulse).toEqual({ x: -v.x, z: -v.z });
+        },
+      ),
     );
   });
 });

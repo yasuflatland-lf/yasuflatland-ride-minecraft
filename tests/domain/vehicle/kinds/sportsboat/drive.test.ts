@@ -1177,6 +1177,35 @@ describe("SportsboatDrive (ADR 0051)", () => {
       ),
     );
   });
+
+  it("keeps the water drag estimate and the along-wall speed while pressed against a shore at an angle (ADR 0053, 0081)", () => {
+    fc.assert(
+      fc.property(fc.integer({ min: 10, max: 80 }), (theta) => {
+        const drive = new SportsboatDrive(-90 + theta, {});
+        let vel: Vec2 = { x: 0, z: 0 };
+        let drag0: number | undefined;
+        let impact = 0;
+        for (let t = 0; t < 140; t++) {
+          const out = drive.step(
+            FULL_THROTTLE,
+            context(t, FULL_THROTTLE, vel, AFLOAT),
+          );
+          const x = t >= 80 ? 0 : vel.x + out.impulse.x;
+          vel = { x: x * 0.85, z: (vel.z + out.impulse.z) * 0.85 };
+          if (t === 80) {
+            drag0 = drive.waterDrag;
+            impact = vel.z;
+          }
+          if (t > 80) {
+            expect(drive.waterDrag).toBe(drag0);
+            expect(Math.abs(vel.z - impact)).toBeLessThanOrEqual(1e-6);
+            expect(drive.speed).toBeGreaterThan(0);
+          }
+        }
+        expect(impact).toBeGreaterThan(0);
+      }),
+    );
+  });
 });
 
 describe("a sports boat Vehicle (ADR 0051)", () => {
