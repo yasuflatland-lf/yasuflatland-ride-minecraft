@@ -13,6 +13,7 @@ import {
   type RawInput,
   toDriveInput,
 } from "../driveInput";
+import { SyncedValue } from "../syncedValue";
 import { bankSink, stepBank } from "./bank";
 import { MOTION } from "./constants";
 import {
@@ -116,12 +117,9 @@ export class TransformingDrive implements Drive {
   private motion: MotionState;
   private formState: FormState;
   private bank = 0;
-  // Undefined until the first tick, so a rebuilt vehicle clears a bank the
-  // entity kept from before /reload.
-  private sentBank: number | undefined;
+  private readonly bankSync = new SyncedValue<number>();
   private gearDown: boolean;
-  // Undefined until the first tick, like sentBank.
-  private sentGearDown: boolean | undefined;
+  private readonly gearDownSync = new SyncedValue<boolean>();
 
   constructor(
     yaw: number,
@@ -267,14 +265,11 @@ export class TransformingDrive implements Drive {
         this.spec.flightVerticalDrag,
       );
     }
-    const bank = this.bank === this.sentBank ? undefined : this.bank;
-    this.sentBank = this.bank;
+    const bank = this.bankSync.next(this.bank);
     this.gearDown = nextGearDown(this.gearDown, form, () =>
       groundNear(ctx, step.forward, this.spec),
     );
-    const gearDown =
-      this.gearDown === this.sentGearDown ? undefined : this.gearDown;
-    this.sentGearDown = this.gearDown;
+    const gearDown = this.gearDownSync.next(this.gearDown);
 
     this.motion = step.state;
     return {
