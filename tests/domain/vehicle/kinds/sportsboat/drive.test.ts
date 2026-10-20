@@ -8,6 +8,7 @@ import {
   type Vec2,
   type Vec3,
 } from "../../../../../src/domain/shared/vec";
+import type { RestoredValues } from "../../../../../src/domain/vehicle/drive";
 import {
   type DriveInput,
   type RawInput,
@@ -32,11 +33,7 @@ import {
   SPORTSBOAT_WATER,
   SportsboatDrive,
 } from "../../../../../src/domain/vehicle/kinds/sportsboat/drive";
-import {
-  dockCommands,
-  SPORTSBOAT_ENTITY,
-  undockCommands,
-} from "../../../../../src/domain/vehicle/kinds/sportsboat/entity";
+import { SPORTSBOAT_ENTITY } from "../../../../../src/domain/vehicle/kinds/sportsboat/entity";
 import {
   SPORTSBOAT_MOTION,
   SPORTSBOAT_PROFILE,
@@ -47,6 +44,10 @@ import {
 } from "../../../../../src/domain/vehicle/kinds/suv/profile";
 import { MOTION } from "../../../../../src/domain/vehicle/motion/constants";
 import { DOCK } from "../../../../../src/domain/vehicle/motion/dock";
+import {
+  dockCommands,
+  undockCommands,
+} from "../../../../../src/domain/vehicle/motion/dockEntity";
 import { FORMS } from "../../../../../src/domain/vehicle/motion/forms";
 import {
   initialMotion,
@@ -827,7 +828,9 @@ describe("SportsboatDrive (ADR 0051)", () => {
   it("is the sports boat's drive and keeps no form, gear, or bank whatever form it is given", () => {
     fc.assert(
       fc.property(fc.constantFrom(...FORMS), yaw, (form, heading) => {
-        const drive = new SportsboatDrive(heading, { form });
+        // Widened on purpose: the boat must ignore a form it is not declared to restore
+        const restored: RestoredValues = { form };
+        const drive = new SportsboatDrive(heading, restored);
         const step = drive.step(
           undefined,
           context(0, undefined, { x: 0, z: 0 }, AFLOAT),
