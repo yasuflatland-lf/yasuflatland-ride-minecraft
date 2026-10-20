@@ -611,23 +611,38 @@ function ramCow(a: Arena): Promise<Outcome> {
 }
 
 function wallDiagonal(a: Arena): Promise<Outcome> {
+  // The wall's face spans z 20-41; past its end the sliding car is free
+  // again and drives on toward +x (ADR 0081).
+  const wallEndZ = 41;
   a.dim.runCommand(`fill 45 ${a.gy} 20 45 ${a.gy + 3} 40 stone`);
   return withCar(a, 20.5, 24.5, -70, async (car) => {
     drive(car, 0, 1);
     let before = 0;
     let maxAfter = 0;
+    let endSide = 0;
+    let contactTicks = 0;
+    let maxX = car.location.x;
     let hit = false;
     for (let t = 0; t < 120; t++) {
       await wait(1);
+      if (car.location.z + SUV_SPEC.bodyHalfWidth > wallEndZ) break;
       const v = car.getVelocity();
+      maxX = Math.max(maxX, car.location.x);
       if (!hit && car.location.x > 43.5) hit = true;
-      if (hit) maxAfter = Math.max(maxAfter, Math.abs(v.z));
-      else before = Math.abs(v.z);
+      if (hit) {
+        maxAfter = Math.max(maxAfter, Math.abs(v.z));
+        endSide = Math.abs(v.z);
+        contactTicks++;
+      } else before = Math.abs(v.z);
     }
-    const x = car.location.x;
     return {
-      pass: hit && x < 45 && maxAfter <= before + 0.1,
-      detail: `x=${x.toFixed(2)} sideBefore=${before.toFixed(3)} sideAfterMax=${maxAfter.toFixed(3)}`,
+      pass:
+        hit &&
+        contactTicks >= 5 &&
+        maxX < 45 &&
+        maxAfter <= before + 0.1 &&
+        endSide >= 0.7 * before,
+      detail: `x=${maxX.toFixed(2)} contactTicks=${contactTicks} sideBefore=${before.toFixed(3)} sideAfterMax=${maxAfter.toFixed(3)} sideEnd=${endSide.toFixed(3)}`,
     };
   });
 }

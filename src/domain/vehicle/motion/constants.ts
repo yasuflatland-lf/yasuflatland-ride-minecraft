@@ -10,6 +10,9 @@ export const MOTION = {
   airControl: 0.2,
   blockedAxisMin: 0.03,
   blockedRatio: 0.5,
+  // Below this heading component along a wall, about 3 degrees from head-on,
+  // a vehicle stops at the wall instead of sliding along it (ADR 0081).
+  wallSlideMinCos: 0.05,
   minExpectedForFriction: 0.05,
   // Steps (ADR 0004)
   stepVelocity: 0.75,

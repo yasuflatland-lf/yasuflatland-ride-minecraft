@@ -1,4 +1,4 @@
-// One tick of vehicle movement (ADR 0002, 0003, 0074).
+// One tick of vehicle movement (ADR 0002, 0003, 0074, 0081).
 import {
   clamp,
   clampLength,
@@ -108,25 +108,57 @@ export function steerYaw(
   return normalizeYaw(yaw - steer * limits.turnRate * factor);
 }
 
-/**
- * Whether the observed velocity kept less than `keptRatio` of what was given
- * on either axis. The engine zeroes velocity per axis at walls, so x and z
- * are checked separately (ADR 0003).
- */
-export function hitWall(v: Vec2, given: Vec2, keptRatio: number): boolean {
-  const axisBlocked = (ve: number, ee: number) =>
-    Math.abs(ee) > MOTION.blockedAxisMin && ve / ee < keptRatio;
-  return axisBlocked(v.x, given.x) || axisBlocked(v.z, given.z);
+export interface BlockedAxes {
+  readonly x: boolean;
+  readonly z: boolean;
 }
 
 /**
- * Lowers the internal speed to the actual forward speed after a wall hit,
- * but never past 0: a body bounced slightly backward by the wall must not
- * turn forward speed into reverse (ADR 0077).
+ * Which axes kept less than `keptRatio` of the velocity given on them. The
+ * engine zeroes velocity per axis at walls, so x and z are checked
+ * separately (ADR 0003, 0081).
  */
-function speedAfterWall(speed: number, vLong: number): number {
-  if (Math.abs(vLong) >= Math.abs(speed)) return speed;
-  return speed > 0 ? clamp(vLong, 0, speed) : clamp(vLong, speed, 0);
+export function blockedAxes(
+  v: Vec2,
+  given: Vec2,
+  keptRatio: number,
+): BlockedAxes {
+  const axisBlocked = (ve: number, ee: number) =>
+    Math.abs(ee) > MOTION.blockedAxisMin && ve / ee < keptRatio;
+  return { x: axisBlocked(v.x, given.x), z: axisBlocked(v.z, given.z) };
+}
+
+/** Whether either axis hit a wall (ADR 0003). */
+export function hitWall(v: Vec2, given: Vec2, keptRatio: number): boolean {
+  const axes = blockedAxes(v, given, keptRatio);
+  return axes.x || axes.z;
+}
+
+/**
+ * The internal speed after a wall hit (ADR 0081). With one axis blocked and
+ * the heading still running along the wall, keep the speed whose free-axis
+ * component matches the observed along-wall velocity; otherwise keep the
+ * observed forward speed. Never raises the speed or changes its sign.
+ */
+export function speedAfterWall(
+  speed: number,
+  v: Vec2,
+  f: Vec2,
+  axes: BlockedAxes,
+): number {
+  const sgn = Math.sign(speed);
+  if (sgn === 0) return 0;
+  let kept = Math.max(0, sgn * dot(v, f));
+  if (axes.x !== axes.z) {
+    const fFree = axes.x ? f.z : f.x;
+    const vFree = axes.x ? v.z : v.x;
+    if (
+      Math.abs(fFree) >= MOTION.wallSlideMinCos &&
+      Math.sign(vFree) === Math.sign(fFree) * sgn
+    )
+      kept = Math.abs(vFree) / Math.abs(fFree);
+  }
+  return sgn * Math.min(Math.abs(speed), kept);
 }
 
 export function stepMotion(
@@ -149,10 +181,12 @@ export function stepMotion(
   if (prev.expected && obs.onGround) {
     const e = prev.expected;
     const limit = (friction ?? MOTION.defaultFriction) * MOTION.blockedRatio;
-    blocked = hitWall(v, e, limit);
+    const axes = blockedAxes(v, e, limit);
+    blocked = axes.x || axes.z;
     if (blocked) {
-      // While colliding, freeze the friction estimate.
-      speed = speedAfterWall(speed, vLong);
+      // While colliding, freeze the friction estimate (ADR 0003) and slide
+      // along the wall (ADR 0081).
+      speed = speedAfterWall(speed, v, f, axes);
     } else {
       const eLen2 = e.x * e.x + e.z * e.z;
       if (eLen2 > MOTION.minExpectedForFriction ** 2) {
@@ -189,7 +223,9 @@ export function stepMotion(
   // fraction of the sideways component, and cap the result at max speed (ADR 0002).
   const lat = { x: v.x - f.x * vLong, z: v.z - f.z * vLong };
   const grip = input.handbrake ? limits.handbrakeGrip : limits.grip;
-  const keepLat = stepping ? 0 : 1 - grip;
+  // A blocked tick carries no sideways velocity, so the along-wall speed
+  // stays at its impact value (ADR 0081).
+  const keepLat = stepping || blocked ? 0 : 1 - grip;
   const target = clampLength(
     { x: f.x * speed + lat.x * keepLat, z: f.z * speed + lat.z * keepLat },
     limits.maxSpeed,
@@ -220,8 +256,9 @@ export function stepMotion(
  * pre-divides: air or water with gravity off, or a buoyant hull (ADR 0021,
  * 0053, 0075). There is no ground friction to estimate, so the impulse is
  * pre-divided by the medium's drag and applied in full. The handbrake does
- * not exist here. Walls are detected per axis as on the ground (ADR 0003),
- * against the medium's wall drag. Step rise is handled by the aggregate.
+ * not exist here. Walls are detected per axis against the medium's wall
+ * drag and slid along as on the ground (ADR 0003, 0081). Step rise is
+ * handled by the aggregate.
  */
 export function stepMediumMotion(
   prev: MotionState,
@@ -241,15 +278,18 @@ export function stepMediumMotion(
   const yaw = steerYaw(prev.yaw, speed, input.steer, limits);
   const f = forward(yaw);
   const vLong = dot(v, f);
-  const blocked =
-    prev.mediumExpected !== undefined &&
-    hitWall(
-      v,
-      prev.mediumExpected,
-      (medium.wallDrag ?? medium.drag) * MOTION.blockedRatio,
-    );
-  if (blocked) speed = speedAfterWall(speed, vLong);
-  const keepLat = 1 - limits.grip;
+  const axes: BlockedAxes =
+    prev.mediumExpected === undefined
+      ? { x: false, z: false }
+      : blockedAxes(
+          v,
+          prev.mediumExpected,
+          (medium.wallDrag ?? medium.drag) * MOTION.blockedRatio,
+        );
+  const blocked = axes.x || axes.z;
+  if (blocked) speed = speedAfterWall(speed, v, f, axes);
+  // A blocked tick carries no sideways velocity (ADR 0081).
+  const keepLat = blocked ? 0 : 1 - limits.grip;
   const target = clampLength(
     {
       x: f.x * speed + (v.x - f.x * vLong) * keepLat,
