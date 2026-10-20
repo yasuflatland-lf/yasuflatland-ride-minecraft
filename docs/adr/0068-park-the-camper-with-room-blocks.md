@@ -1,6 +1,6 @@
 # 0068. Park the camper with room blocks
 
-- Status: Accepted (the front deck seat rise is superseded by [0070](0070-raise-the-camper-front-seats.md))
+- Status: Accepted (the front deck seat rise is superseded by [0070](0070-raise-the-camper-front-seats.md), and the single bumper hitbox by [0084](0084-camper-hitbox-spans-the-bumper.md))
 - Date: 2026-10-19
 
 ## Context
