@@ -386,16 +386,14 @@ describe("Vehicle banking (ADR 0026)", () => {
           ];
           for (const input of controls) {
             const out = sim.step(input);
-            expect(Math.abs(drive.bankAngle)).toBeLessThanOrEqual(
+            const bankNow = drive.inspect().bank;
+            expect(Math.abs(bankNow)).toBeLessThanOrEqual(
               SUV_SPEC.maxBank + 1e-9,
             );
             const bank = propertyValue(out.stepCommands, "bank");
-            if (drive.bankAngle !== sent) {
-              expect(bank).toBe(drive.bankAngle);
-              if (
-                Math.abs(drive.bankAngle) > 0 &&
-                Math.abs(drive.bankAngle) < SUV_SPEC.maxBank
-              )
+            if (bankNow !== sent) {
+              expect(bank).toBe(bankNow);
+              if (Math.abs(bankNow) > 0 && Math.abs(bankNow) < SUV_SPEC.maxBank)
                 intermediateChanges++;
             }
             if (typeof bank === "number") sent = bank;
@@ -466,13 +464,13 @@ describe("Vehicle landing gear (ADR 0033)", () => {
       targets: () => [],
     });
     return {
-      wheelsDown: drive.wheelsDown,
+      wheelsDown: drive.inspect().wheelsDown,
       gearDown: propertyValue(out.commands, "gear_down"),
     };
   }
 
   it("starts with the wheels down when placed", () => {
-    expect(new SuvDrive(0, {}).wheelsDown).toBe(true);
+    expect(new SuvDrive(0, {}).inspect().wheelsDown).toBe(true);
   });
 
   it("keeps the wheels folded when rebuilt while landing high above the ground", () => {

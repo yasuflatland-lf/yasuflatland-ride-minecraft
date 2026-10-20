@@ -77,8 +77,16 @@ export class CamperDrive extends TransformingDrive {
         : this.doorStep * 2 >= DOOR_STEPS;
   }
 
-  get isParked(): boolean {
-    return this.parked !== undefined;
+  /**
+   * The transforming drive's snapshot plus whether the camper is parked, for
+   * unit tests only. Production code must not call it.
+   */
+  override inspect(): Readonly<{
+    wheelsDown: boolean;
+    bank: number;
+    parked: boolean;
+  }> {
+    return { ...super.inspect(), parked: this.parked !== undefined };
   }
 
   override onDriverMounted(driverYaw: number): void {

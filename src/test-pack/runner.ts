@@ -1417,11 +1417,11 @@ function boatDrag(a: Arena): Promise<Outcome> {
           }
           if (throttle && t >= 60) {
             steadySpeeds.push(speed);
-            if (replica.waterDrag !== undefined)
-              steadyDrag.push(replica.waterDrag);
+            const drag = replica.inspect().waterDrag;
+            if (drag !== undefined) steadyDrag.push(drag);
           }
           lines.push(
-            `tick=${t + 1} ${throttle ? "throttle" : "coast"} impulse=${hlen(step.impulse).toFixed(3)} given=${hlen(given).toFixed(3)} observed=${speed.toFixed(3)} feet=${(boat.location.y - a.gy).toFixed(3)} water=${water ? 1 : 0} drag=${replica.waterDrag?.toFixed(3) ?? "n/a"} ratio=${ratio?.toFixed(3) ?? "n/a"}`,
+            `tick=${t + 1} ${throttle ? "throttle" : "coast"} impulse=${hlen(step.impulse).toFixed(3)} given=${hlen(given).toFixed(3)} observed=${speed.toFixed(3)} feet=${(boat.location.y - a.gy).toFixed(3)} water=${water ? 1 : 0} drag=${replica.inspect().waterDrag?.toFixed(3) ?? "n/a"} ratio=${ratio?.toFixed(3) ?? "n/a"}`,
           );
         }
         const meanText = (values: number[]) =>
@@ -1434,7 +1434,7 @@ function boatDrag(a: Arena): Promise<Outcome> {
         });
         return {
           pass: distance >= 5,
-          detail: `distance=${distance.toFixed(3)} water(${summary(waterRatios)}) air(${summary(airRatios)}) steadySpeed=${meanText(steadySpeeds)} coastRatio=${meanText(coastRatios)} finalDrag=${replica.waterDrag?.toFixed(3) ?? "n/a"} steadyDrag=${Math.min(...steadyDrag).toFixed(3)}-${Math.max(...steadyDrag).toFixed(3)}`,
+          detail: `distance=${distance.toFixed(3)} water(${summary(waterRatios)}) air(${summary(airRatios)}) steadySpeed=${meanText(steadySpeeds)} coastRatio=${meanText(coastRatios)} finalDrag=${replica.inspect().waterDrag?.toFixed(3) ?? "n/a"} steadyDrag=${Math.min(...steadyDrag).toFixed(3)}-${Math.max(...steadyDrag).toFixed(3)}`,
           lines,
         };
       },

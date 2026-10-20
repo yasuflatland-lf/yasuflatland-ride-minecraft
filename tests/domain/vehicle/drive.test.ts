@@ -33,8 +33,8 @@ it("starts the SUV drive in the given form, unbanked, with the wheels down only 
     fc.property(fc.constantFrom(...FORMS), yaw, (form, heading) => {
       const drive = new SuvDrive(heading, { form: form });
       expect(drive.form).toBe(form);
-      expect(drive.wheelsDown).toBe(form === "car");
-      expect(drive.bankAngle).toBe(0);
+      expect(drive.inspect().wheelsDown).toBe(form === "car");
+      expect(drive.inspect().bank).toBe(0);
     }),
   );
 });
@@ -49,7 +49,17 @@ it("keeps an SUV drive started in hover hovering with the gear folded on its fir
   expect(propertyValue(result.commands, "gear_down")).toBe(false);
   expect(propertyValue(result.commands, "bank")).toBe(0);
   expect(drive.form).toBe("hover");
-  expect(drive.wheelsDown).toBe(false);
+  expect(drive.inspect().wheelsDown).toBe(false);
+});
+
+it("returns an inspect snapshot that later ticks do not change", () => {
+  const drive = new SuvDrive(0, { form: "hover" });
+  const before = drive.inspect();
+  for (let i = 0; i < 5; i++)
+    drive.step({ moveX: 1, moveY: 1, jump: false }, stillContext(false));
+  expect(before).toStrictEqual({ wheelsDown: false, bank: 0 });
+  expect(drive.inspect().bank).not.toBe(0);
+  expect(drive.inspect()).not.toBe(before);
 });
 
 it("aligns a boat below mountAlignSpeed and keeps its heading at or above it, without changing speed (ADR 0019)", () => {

@@ -146,12 +146,12 @@ export class TransformingDrive implements Drive {
     return this.formState.form;
   }
 
-  get wheelsDown(): boolean {
-    return this.gearDown;
-  }
-
-  get bankAngle(): number {
-    return this.bank;
+  /**
+   * A read-only snapshot of state the engine never reads back, for unit tests
+   * only. Production code must not call it. Kinds may extend the snapshot.
+   */
+  inspect(): Readonly<{ wheelsDown: boolean; bank: number }> {
+    return { wheelsDown: this.gearDown, bank: this.bank };
   }
 
   /** Stops the drive at rest facing `yaw`, for a kind that holds its vehicle (ADR 0068). */
