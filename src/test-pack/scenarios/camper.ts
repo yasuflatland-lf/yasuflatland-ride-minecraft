@@ -1,0 +1,272 @@
+import type { Entity } from "@minecraft/server";
+import { length, type Vec3 } from "../../domain/shared/vec";
+import type { DockBlock, DockCell, HoldPose } from "../../domain/vehicle/floor";
+import {
+  cargoCells,
+  parkPose,
+  roomCells,
+} from "../../domain/vehicle/kinds/camper/room";
+import { CAMPER_SPEC } from "../../domain/vehicle/kinds/camper/spec";
+import { DOCK } from "../../domain/vehicle/motion/dock";
+import {
+  CAMPER_CEILING_BLOCK,
+  CAMPER_DOOR_BLOCK,
+  CAMPER_FLOOR_BLOCK,
+  CAMPER_WALL_BLOCK,
+  DECK_FLOOR_BLOCK,
+} from "../../infrastructure/vehicle/bedrock/identifiers";
+import { type Arena, drive, type Outcome, wait, withCamper } from "../arena";
+import {
+  FLIGHT_LANE,
+  gearDownLandingOutcome,
+  takeOff,
+  takeoffOutcome,
+  ticksToReach,
+  ticksUntilForm,
+} from "./shared";
+
+// Clear of the other tests: camper_accel's lane at z 85, the dive tank at z 61-69,
+// and the pool and flight lanes west of x 90.
+const PARK_SPOT = { x: 108.5, z: 78.5, yaw: 90 } as const;
+
+const ROOM_BLOCK: Readonly<Record<DockBlock["type"], string>> = {
+  deck: DECK_FLOOR_BLOCK,
+  floor: CAMPER_FLOOR_BLOCK,
+  ceiling: CAMPER_CEILING_BLOCK,
+  wall: CAMPER_WALL_BLOCK,
+  door: CAMPER_DOOR_BLOCK,
+};
+
+function carPose(car: Entity): HoldPose {
+  return parkPose(car.location, car.getRotation().y);
+}
+
+function parkSpotPose(a: Arena): HoldPose {
+  return parkPose({ x: PARK_SPOT.x, y: a.gy, z: PARK_SPOT.z }, PARK_SPOT.yaw);
+}
+
+function countLaid(a: Arena, cells: readonly DockCell[]): number {
+  return cells.filter(
+    (c) => a.dim.getBlock(c)?.typeId === ROOM_BLOCK[c.block.type],
+  ).length;
+}
+
+function laidRoomCells(a: Arena, car: Entity): number {
+  return countLaid(a, roomCells(carPose(car), false));
+}
+
+function movedFrom(car: Entity, pose: HoldPose): number {
+  return Math.hypot(car.location.x - pose.x, car.location.z - pose.z);
+}
+
+// Removing the camper clears its room a tick later; the fill also clears what a
+// test placed, so the next test starts on bare ground.
+async function atParkSpot(
+  a: Arena,
+  run: (car: Entity) => Promise<Outcome>,
+): Promise<Outcome> {
+  try {
+    return await withCamper(a, PARK_SPOT.x, PARK_SPOT.z, PARK_SPOT.yaw, run);
+  } finally {
+    a.dim.runCommand(`fill 103 ${a.gy} 73 114 ${a.gy + 5} 84 air`);
+  }
+}
+
+export function camperAccel(a: Arena): Promise<Outcome> {
+  return withCamper(a, 5.5, 85.5, -90, async (car) => {
+    drive(car, 0, 1);
+    const reach = await ticksToReach(
+      car,
+      0.95,
+      CAMPER_SPEC.maxSpeed,
+      200,
+      () => car.location.x > 100,
+    );
+    return { pass: reach >= 60 && reach <= 90, detail: `reach95=${reach}` };
+  });
+}
+
+// The wall is one block thick, thinner than the 1.3-block top-speed move.
+// The guard samples every block the front crosses each tick, so it stops the
+// camper here whatever phase the front reaches the wall in (ADR 0067).
+export async function camperWall(a: Arena): Promise<Outcome> {
+  a.dim.runCommand(`fill 60 ${a.gy} 82 60 ${a.gy + 3} 89 stone`);
+  try {
+    return await withCamper(a, 30.5, 85.5, -90, async (car) => {
+      drive(car, 0, 1);
+      let front = car.location.x + CAMPER_SPEC.bodyFront;
+      for (let t = 0; t < 150; t++) {
+        await wait(1);
+        front = Math.max(front, car.location.x + CAMPER_SPEC.bodyFront);
+      }
+      const x = car.location.x;
+      const speed = length(car.getVelocity());
+      return {
+        pass: front <= 60.05 && x > 50 && speed < 0.05,
+        detail: `front=${front.toFixed(3)} x=${x.toFixed(3)} speed=${speed.toFixed(3)}`,
+      };
+    });
+  } finally {
+    a.dim.runCommand(`fill 60 ${a.gy} 82 60 ${a.gy + 3} 89 air`);
+  }
+}
+
+export function camperPark(a: Arena): Promise<Outcome> {
+  return atParkSpot(a, async (car) => {
+    await wait(DOCK.ticks + 10);
+    const laid = laidRoomCells(a, car);
+    return { pass: laid === 103, detail: `laid=${laid}` };
+  });
+}
+
+export function camperParkBlocked(a: Arena): Promise<Outcome> {
+  const pose = parkSpotPose(a);
+  const wall = roomCells(pose, false).find((c) => c.block.type === "wall");
+  if (!wall) throw new Error("room has no wall");
+  a.dim.runCommand(`setblock ${wall.x} ${wall.y} ${wall.z} stone`);
+  return atParkSpot(a, async (car) => {
+    await wait(DOCK.ticks + 10);
+    const laid = laidRoomCells(a, car);
+    const type = a.dim.getBlock(wall)?.typeId;
+    return {
+      pass: laid === 0 && type === "minecraft:stone",
+      detail: `laid=${laid} wall=${type}`,
+    };
+  });
+}
+
+export function camperParkSnow(a: Arena): Promise<Outcome> {
+  const pose = parkSpotPose(a);
+  const distance = (c: Vec3) =>
+    Math.hypot(c.x + 0.5 - pose.x, c.z + 0.5 - pose.z);
+  const corners = roomCells(pose, false)
+    .filter((c) => c.block.type === "floor")
+    .sort((a, b) => distance(b) - distance(a))
+    .slice(0, 4);
+  for (const c of corners)
+    a.dim.runCommand(`setblock ${c.x} ${c.y} ${c.z} snow_layer`);
+  return atParkSpot(a, async (car) => {
+    await wait(DOCK.ticks + 10);
+    const laid = laidRoomCells(a, car);
+    const floors = corners.filter(
+      (c) => a.dim.getBlock(c)?.typeId === CAMPER_FLOOR_BLOCK,
+    ).length;
+    return {
+      pass: laid === 103 && floors === 4,
+      detail: `laid=${laid} snowReplaced=${floors}`,
+    };
+  });
+}
+
+export async function camperParkPath(a: Arena): Promise<Outcome> {
+  const ground = a.gy - 1;
+  a.dim.runCommand(`fill 103 ${ground} 73 114 ${ground} 84 grass_path`);
+  try {
+    return await atParkSpot(a, async (car) => {
+      await wait(DOCK.ticks + 10);
+      const laid = laidRoomCells(a, car);
+      // A path under a full block turns into dirt, so the ground is only logged.
+      const under = a.dim.getBlock({ x: 108, y: ground, z: 78 })?.typeId;
+      return {
+        pass: laid === 103 && car.location.y === a.gy,
+        detail: `laid=${laid} y=${car.location.y} ground=${under}`,
+      };
+    });
+  } finally {
+    a.dim.runCommand(`fill 103 ${ground} 73 114 ${ground} 84 stone`);
+  }
+}
+
+export function camperDepart(a: Arena): Promise<Outcome> {
+  return atParkSpot(a, async (car) => {
+    await wait(DOCK.ticks + 10);
+    const pose = carPose(car);
+    const cells = roomCells(pose, false);
+    const parked = countLaid(a, cells);
+    drive(car, 0, 1);
+    await wait(15);
+    const remaining = countLaid(a, cells);
+    const moved = movedFrom(car, pose);
+    return {
+      pass: parked === 103 && remaining === 0 && moved >= 0.1,
+      detail: `parked=${parked} remaining=${remaining} moved=${moved.toFixed(3)}`,
+    };
+  });
+}
+
+export function camperDepartCargo(a: Arena): Promise<Outcome> {
+  return atParkSpot(a, async (car) => {
+    await wait(DOCK.ticks + 10);
+    const pose = carPose(car);
+    const cargo = cargoCells(pose)[0];
+    if (!cargo) throw new Error("room has no cargo cells");
+    a.dim.runCommand(`setblock ${cargo.x} ${cargo.y} ${cargo.z} stone`);
+    drive(car, 0, 1);
+    await wait(20);
+    const laid = laidRoomCells(a, car);
+    const moved = movedFrom(car, pose);
+    return {
+      pass: laid === 103 && moved < 0.01,
+      detail: `laid=${laid} moved=${moved.toFixed(3)}`,
+    };
+  });
+}
+
+export function camperTakeoff(a: Arena): Promise<Outcome> {
+  return withCamper(a, FLIGHT_LANE.x, FLIGHT_LANE.z, -90, async (car) => {
+    await takeOff(car, CAMPER_SPEC.takeoffTicks);
+    return takeoffOutcome(a, car);
+  });
+}
+
+export function camperLand(a: Arena): Promise<Outcome> {
+  return withCamper(a, FLIGHT_LANE.x, FLIGHT_LANE.z, -90, async (car) => {
+    await takeOff(car, CAMPER_SPEC.takeoffTicks);
+    return gearDownLandingOutcome(a, car, CAMPER_SPEC.gearDownHeight);
+  });
+}
+
+// The camper dive tank: glass walls from a.gy to a.gy + 6 around water up to a.gy + 5,
+// so the water's top is a.gy + 6 and the rim's top is a.gy + 7.
+const CAMPER_TANK = {
+  waterTop: 6,
+  rimTop: 7, // the top face of the glass layer at a.gy + waterTop
+  // Hover climbs at the SUV's rate, which flight_climb_descend shows rises at
+  // least 2.5 blocks in 20 ticks of held Jump, so 20 ticks clear the rim by 1.
+  climbTicks: 20,
+  rimClearance: 1,
+} as const;
+
+export async function camperDive(a: Arena): Promise<Outcome> {
+  // The flat world's four-block ground cannot hold a pool deep enough for the camper.
+  try {
+    const rim = a.gy + CAMPER_TANK.waterTop;
+    a.dim.runCommand(`fill 100 ${a.gy} 61 118 ${rim} 69 glass`);
+    a.dim.runCommand(`fill 101 ${a.gy} 62 117 ${rim - 1} 68 water`);
+    // The glass fill also roofed the tank; open its top layer so the camper can surface.
+    a.dim.runCommand(`fill 101 ${rim} 62 117 ${rim} 68 air`);
+    return await withCamper(a, 109.5, 65.5, -90, async (car) => {
+      const enteredAt = await ticksUntilForm(car, "submarine", 40);
+      drive(car, 0, 0, true);
+      const hoverAt = await ticksUntilForm(car, "hover", 80);
+      // Hover needs dry feet, so its first tick already sits at the water's top;
+      // only the climb after it shows the camper leaves the tank.
+      let peak = car.location.y - a.gy;
+      for (let t = 0; hoverAt >= 0 && t < CAMPER_TANK.climbTicks; t++) {
+        await wait(1);
+        peak = Math.max(peak, car.location.y - a.gy);
+      }
+      return {
+        pass:
+          enteredAt >= 0 &&
+          hoverAt >= 0 &&
+          peak >= CAMPER_TANK.rimTop + CAMPER_TANK.rimClearance,
+        detail: `enteredAt=${enteredAt} hoverAt=${hoverAt} peak=${peak.toFixed(2)} aboveWater=${(peak - CAMPER_TANK.waterTop).toFixed(2)}`,
+      };
+    });
+  } finally {
+    a.dim.runCommand(
+      `fill 100 ${a.gy} 61 118 ${a.gy + CAMPER_TANK.waterTop} 69 air`,
+    );
+  }
+}
