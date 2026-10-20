@@ -3,7 +3,6 @@ import { forward, type Vec2, type Vec3 } from "../shared/vec";
 import type { ClearCell, Departure, Dock } from "./dock";
 import type { Drive, EngineCommand, RiderState, TickContext } from "./drive";
 import type { RawInput } from "./driveInput";
-import type { VehicleEvent } from "./events";
 import { type Cell, headlightCells as cellsLitFrom } from "./headlights";
 import { EMPTY_COUNTER, type HitCounter, registerHit } from "./hitCounter";
 import type { VehicleKind } from "./kind";
@@ -187,10 +186,10 @@ export class Vehicle {
     return idle >= SPEC.headlightSwitchCooldown;
   }
 
-  /** Hit by a player. Returns VehicleBroken when the vehicle breaks (ADR 0008). */
-  receiveHit(tick: number): VehicleEvent[] {
+  /** Hit by a player. Returns whether the vehicle breaks (ADR 0008). */
+  receiveHit(tick: number): boolean {
     const r = registerHit(this.hitCounter, tick, this.seats.size > 0);
     this.hitCounter = r.counter;
-    return r.broken ? [{ type: "VehicleBroken", vehicleId: this.id }] : [];
+    return r.broken;
   }
 }

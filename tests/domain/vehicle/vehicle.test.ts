@@ -547,17 +547,22 @@ describe("Vehicle (aggregate)", () => {
   it("an empty vehicle breaks after 3 hits, but not while occupied", () => {
     const empty = createVehicle("suv", "a", 0);
     new Sim().run(empty, 1);
-    expect(
-      [empty.receiveHit(1), empty.receiveHit(2), empty.receiveHit(3)].map(
-        (e) => e.length,
-      ),
-    ).toEqual([0, 0, 1]);
+    expect([
+      empty.receiveHit(1),
+      empty.receiveHit(2),
+      empty.receiveHit(3),
+    ]).toEqual([false, false, true]);
 
     const sim = new Sim();
     sim.riders = [{ id: "d", seat: 0, yaw: 0, raw: IDLE }];
     const occupied = createVehicle("suv", "b", 0);
     sim.run(occupied, 1);
-    expect([1, 2, 3, 4].flatMap((t) => occupied.receiveHit(t))).toEqual([]);
+    expect([1, 2, 3, 4].map((t) => occupied.receiveHit(t))).toEqual([
+      false,
+      false,
+      false,
+      false,
+    ]);
   });
 
   it("a rebuilt vehicle keeps its heading and emits no seat events on its first tick with riders already seated", () => {
