@@ -116,7 +116,7 @@ describe("sports boat Behavior Pack entity (ADR 0051)", () => {
       },
       "yasu_ride:trim": {
         type: "float",
-        range: [0, 7],
+        range: [0, 3.5],
         default: 0,
         client_sync: true,
       },
