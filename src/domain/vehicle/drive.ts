@@ -2,9 +2,8 @@
 import type { Vec2, Vec3 } from "../shared/vec";
 import type { ClearCell, Departure, Dock, DockRestoredKey } from "./dock";
 import type { RawInput } from "./driveInput";
-import type { RamTarget } from "./ram";
 
-/** Sensors and inputs from auxiliary seats. Vehicle riders stay with the core. */
+/** Sensors and inputs from auxiliary seats. Riders, the test input and the ram query stay with the core (ADR 0083). */
 export interface TickContext {
   tick: number;
   deckSeatInputs: readonly (RawInput | undefined)[];
@@ -23,8 +22,6 @@ export interface TickContext {
    * only on rare ticks, such as a park attempt (ADR 0063, 0068).
    */
   blockTypes(cells: readonly Vec3[]): readonly (string | undefined)[];
-  /** Nearby targets. Called only when the speed exceeds the ram threshold. */
-  targets(): readonly RamTarget[];
   /**
    * True while the core waits for a passenger to move into seat 0 after the
    * driver left (ADR 0078). The drive then has no input but stays controlled.

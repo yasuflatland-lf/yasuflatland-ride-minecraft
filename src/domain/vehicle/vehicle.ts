@@ -7,7 +7,7 @@ import { type Cell, headlightCells as cellsLitFrom } from "./headlights";
 import { EMPTY_COUNTER, type HitCounter, registerHit } from "./hitCounter";
 import type { VehicleKind } from "./kind";
 import type { ChaseCamera, VehicleProfile } from "./profile";
-import { type RamHit, selectHits } from "./ram";
+import { type RamHit, type RamTarget, selectHits } from "./ram";
 import { occupiedSeats, vacatedSeats } from "./seats";
 import { SPEC } from "./spec";
 
@@ -22,6 +22,8 @@ export interface VehicleTickInput extends TickContext {
   riders: readonly RiderView[];
   /** Input used only when there is no driver (for in-game tests). */
   testInput?: RawInput;
+  /** Nearby targets. Called only when the speed exceeds the ram threshold (ADR 0083). */
+  targets(): readonly RamTarget[];
 }
 
 /**
@@ -129,20 +131,21 @@ export class Vehicle {
   }
 
   tick(input: VehicleTickInput): TickOutcome {
-    const seatCommands = this.updateSeats(input.riders);
-    const driver = this.updateDriver(input.riders);
+    const { riders, testInput, targets, ...sensors } = input;
+    const seatCommands = this.updateSeats(riders);
+    const driver = this.updateDriver(riders);
     this.driverlessTicks = driver ? 0 : this.driverlessTicks + 1;
     const awaitingDriver =
       driver === undefined &&
-      input.riders.length > 0 &&
+      riders.length > 0 &&
       this.driverlessTicks <= SPEC.driverHandoverTicks;
 
-    const raw = driver?.raw ?? input.testInput;
+    const raw = driver?.raw ?? testInput;
     const taken = new Set(this.seats.values());
     const step = this.drive.step(raw, {
-      ...input,
+      ...sensors,
       awaitingDriver,
-      deckSeatInputs: input.deckSeatInputs.map((deckInput, seat) =>
+      deckSeatInputs: sensors.deckSeatInputs.map((deckInput, seat) =>
         taken.has(seat) ? undefined : deckInput,
       ),
     });
@@ -160,7 +163,7 @@ export class Vehicle {
       boardDeckRiders: step.boardDeckRiders ?? false,
       impulse: step.impulse,
       yaw: this.drive.yaw,
-      hits: this.ram(input, step.forward),
+      hits: this.ram(sensors.tick, targets, step.forward),
       driverId: driver?.id,
       stepCommands: step.commands,
       finalCommands: seatCommands,
@@ -195,20 +198,24 @@ export class Vehicle {
     return driver;
   }
 
-  private ram(ctx: TickContext, f: Vec2): RamHit[] {
+  private ram(
+    tick: number,
+    targets: () => readonly RamTarget[],
+    f: Vec2,
+  ): RamHit[] {
     for (const [id, t] of this.lastHit)
-      if (ctx.tick - t >= SPEC.ramCooldown) this.lastHit.delete(id);
+      if (tick - t >= SPEC.ramCooldown) this.lastHit.delete(id);
     // selectHits checks the speed too; checking here skips the targets() query.
     if (Math.abs(this.drive.speed) <= SPEC.ramMinSpeed) return [];
     const hits = selectHits(
       f,
       this.drive.speed,
-      ctx.targets(),
+      targets(),
       this.lastHit,
-      ctx.tick,
+      tick,
       this.profile.ram,
     );
-    for (const h of hits) this.lastHit.set(h.id, ctx.tick);
+    for (const h of hits) this.lastHit.set(h.id, tick);
     return hits;
   }
 

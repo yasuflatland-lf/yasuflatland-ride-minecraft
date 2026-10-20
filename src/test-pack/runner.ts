@@ -1392,7 +1392,6 @@ function boatDrag(a: Arena): Promise<Outcome> {
               waterAt: () => true,
               blockTypes: (cells) => cells.map(() => "minecraft:air"),
               solidAt: () => false,
-              targets: () => [],
             },
           );
           const given = {
