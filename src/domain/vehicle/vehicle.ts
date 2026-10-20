@@ -1,6 +1,6 @@
 // Aggregate for one vehicle: its drive, driver, seats, ram cooldowns, and the hit count.
 import { forward, type Vec2, type Vec3 } from "../shared/vec";
-import type { Dock } from "./dock";
+import type { ClearCell, Departure, Dock } from "./dock";
 import type { Drive, EngineCommand, RiderState, TickContext } from "./drive";
 import type { RawInput } from "./driveInput";
 import type { VehicleEvent } from "./events";
@@ -26,6 +26,9 @@ export interface VehicleTickInput extends TickContext {
 
 export interface TickOutcome {
   dock?: Dock;
+  clear: readonly ClearCell[];
+  message?: string;
+  depart?: Departure;
   boardDeckRiders: boolean;
   impulse: Vec3;
   yaw: number;
@@ -98,6 +101,9 @@ export class Vehicle {
           taken.has(seat) ? undefined : at,
         ),
       },
+      clear: step.clear ?? [],
+      message: step.message,
+      depart: step.depart,
       boardDeckRiders: step.boardDeckRiders ?? false,
       impulse: step.impulse,
       yaw: this.drive.yaw,

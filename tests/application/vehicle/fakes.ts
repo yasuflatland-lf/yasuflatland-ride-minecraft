@@ -9,6 +9,7 @@ import type {
   VehicleSnapshot,
 } from "../../../src/application/vehicle/ports";
 import type { Vec3 } from "../../../src/domain/shared/vec";
+import type { ClearCell, Departure } from "../../../src/domain/vehicle/dock";
 import type { EngineCommand } from "../../../src/domain/vehicle/drive";
 import {
   Fleet,
@@ -17,8 +18,8 @@ import {
   type FleetState,
 } from "../../../src/domain/vehicle/fleet";
 import type { FleetRepository } from "../../../src/domain/vehicle/fleetRepository";
-import type { FloorCell, HoldPose } from "../../../src/domain/vehicle/floor";
-import type { Cell } from "../../../src/domain/vehicle/headlights";
+import type { DockCell, HoldPose } from "../../../src/domain/vehicle/floor";
+import { type Cell, cellKey } from "../../../src/domain/vehicle/headlights";
 import type { VehicleKind } from "../../../src/domain/vehicle/kind";
 import type { Paint } from "../../../src/domain/vehicle/paint";
 import type { RamHit, RamTarget } from "../../../src/domain/vehicle/ram";
@@ -78,7 +79,11 @@ export class FakeWorld
   /** The cells each vehicle was last told to light. */
   readonly shone = new Map<string, readonly Cell[]>();
   readonly held = new Map<string, HoldPose | undefined>();
-  readonly floors = new Map<string, readonly FloorCell[]>();
+  readonly docks = new Map<string, readonly DockCell[]>();
+  readonly typesAt = new Map<string, string>();
+  readonly cleared: { vehicleId: string; cells: readonly ClearCell[] }[] = [];
+  readonly messages: { playerId: string; name: string }[] = [];
+  readonly departures: { vehicleId: string; departure: Departure }[] = [];
   air = (_at: Vec3) => true;
   /** Whether the slot a vehicle item was used from still holds one. */
   itemInSlot = true;
@@ -91,6 +96,25 @@ export class FakeWorld
   readonly calls: string[] = [];
   private nextId = 1;
 
+  blockTypes(
+    _vehicleId: string,
+    cells: readonly Vec3[],
+  ): (string | undefined)[] {
+    this.calls.push("blockTypes");
+    return cells.map((c) => this.typesAt.get(cellKey(c)) ?? "minecraft:air");
+  }
+  clearBlocks(vehicleId: string, cells: readonly ClearCell[]) {
+    this.calls.push("clearBlocks");
+    this.cleared.push({ vehicleId, cells });
+  }
+  showMessage(playerId: string, name: string) {
+    this.calls.push("showMessage");
+    this.messages.push({ playerId, name });
+  }
+  seatStandingPlayers(vehicleId: string, departure: Departure) {
+    this.calls.push("seatStandingPlayers");
+    this.departures.push({ vehicleId, departure });
+  }
   loadedVehicles() {
     return this.snapshots;
   }
@@ -116,9 +140,12 @@ export class FakeWorld
     _positions: readonly (Vec3 | undefined)[],
     _yaw: number,
   ) {}
-  boardDeckRiders(_id: string) {}
-  layFloor(id: string, cells: readonly FloorCell[]) {
-    this.floors.set(id, cells);
+  boardDeckRiders(_id: string) {
+    this.calls.push("boardDeckRiders");
+  }
+  layDock(id: string, cells: readonly DockCell[]) {
+    this.calls.push("layDock");
+    this.docks.set(id, cells);
   }
   applyMotion(id: string, _impulse: Vec3, yaw: number) {
     if (id === this.failOn) throw new Error("boom");

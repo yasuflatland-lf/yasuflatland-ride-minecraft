@@ -1,16 +1,28 @@
-// Persistent collision floors for held vehicles (ADR 0063).
+// Persistent blocks that held vehicles lay: decks, and a parked camper's room (ADR 0063).
 import {
   BlockPermutation,
   type Dimension,
   type Entity,
 } from "@minecraft/server";
-import { type FloorCell, refloor } from "../../../domain/vehicle/floor";
+import {
+  type DockBlock,
+  type DockCell,
+  type Face,
+  refloor,
+} from "../../../domain/vehicle/floor";
 import { cellKey } from "../../../domain/vehicle/headlights";
 import { isLightBlock } from "./headlightBlocks";
 import {
+  AIR_BLOCK,
+  CAMPER_CEILING_BLOCK,
+  CAMPER_DOOR_BLOCK,
+  CAMPER_FLOOR_BLOCK,
+  CAMPER_WALL_BLOCK,
   DECK_CELLS_PROPERTY,
   DECK_FLOOR_BLOCK,
   DECK_FLOOR_HEIGHT_STATE,
+  ROOM_FACE_STATE,
+  ROOM_OPEN_STATE,
 } from "./identifiers";
 
 // The block defines one collision permutation per pixel height (ADR 0063).
@@ -19,34 +31,113 @@ const MAX_HEIGHT = 16;
 
 interface Laid {
   dimension: Dimension;
-  cells: FloorCell[];
+  cells: DockCell[];
 }
 
-function isFloorCell(v: unknown): v is FloorCell {
+function isHeight(v: unknown): v is number {
+  return (
+    typeof v === "number" &&
+    Number.isInteger(v) &&
+    v >= MIN_HEIGHT &&
+    v <= MAX_HEIGHT
+  );
+}
+
+function isFace(v: unknown): v is Face {
+  return typeof v === "number" && Number.isInteger(v) && v >= 0 && v <= 3;
+}
+
+function isDockCell(v: unknown): v is DockCell {
   if (typeof v !== "object" || v === null) return false;
   const c = v as Record<string, unknown>;
-  return (
-    [c.x, c.y, c.z, c.height].every(Number.isInteger) &&
-    typeof c.height === "number" &&
-    c.height >= MIN_HEIGHT &&
-    c.height <= MAX_HEIGHT
-  );
+  if (
+    ![c.x, c.y, c.z].every(Number.isInteger) ||
+    typeof c.block !== "object" ||
+    c.block === null
+  )
+    return false;
+  const b = c.block as Record<string, unknown>;
+  switch (b.type) {
+    case "deck":
+      return isHeight(b.height);
+    case "floor":
+    case "ceiling":
+      return true;
+    case "wall":
+      return isFace(b.face);
+    case "door":
+      return isFace(b.face) && typeof b.open === "boolean";
+    default:
+      return false;
+  }
+}
+
+function blockIdOf(block: DockBlock): string {
+  switch (block.type) {
+    case "deck":
+      return DECK_FLOOR_BLOCK;
+    case "floor":
+      return CAMPER_FLOOR_BLOCK;
+    case "ceiling":
+      return CAMPER_CEILING_BLOCK;
+    case "wall":
+      return CAMPER_WALL_BLOCK;
+    case "door":
+      return CAMPER_DOOR_BLOCK;
+  }
+}
+
+function permutationOf(block: DockBlock): BlockPermutation {
+  switch (block.type) {
+    case "deck":
+      return BlockPermutation.resolve(DECK_FLOOR_BLOCK, {
+        [DECK_FLOOR_HEIGHT_STATE]: block.height,
+      });
+    case "wall":
+      return BlockPermutation.resolve(CAMPER_WALL_BLOCK, {
+        [ROOM_FACE_STATE]: block.face,
+      });
+    case "door":
+      return BlockPermutation.resolve(CAMPER_DOOR_BLOCK, {
+        [ROOM_FACE_STATE]: block.face,
+        [ROOM_OPEN_STATE]: block.open,
+      });
+    default:
+      return BlockPermutation.resolve(blockIdOf(block));
+  }
+}
+
+// Boats saved height-only cells before typed docks; restore them as decks
+// so a reload or restart can still clear their blocks (ADR 0063).
+function upgradeHeightOnlyCell(value: unknown): unknown {
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    !("block" in value) &&
+    "height" in value &&
+    isHeight(value.height)
+  ) {
+    const { height, ...cell } = value;
+    return { ...cell, block: { type: "deck", height } };
+  }
+  return value;
 }
 
 // The cells a vehicle laid are saved on the entity, so a /reload or a restart
 // can still clear them.
-function savedCells(car: Entity): FloorCell[] {
+function savedCells(car: Entity): DockCell[] {
   const raw = car.getDynamicProperty(DECK_CELLS_PROPERTY);
   if (typeof raw !== "string") return [];
   try {
     const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter(isFloorCell) : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map(upgradeHeightOnlyCell).filter(isDockCell);
   } catch {
     return [];
   }
 }
 
-export class FloorBlocks {
+export class DockBlocks {
   private readonly laid = new Map<string, Laid>();
   // Cells left in a dimension the vehicle has left because their chunk was
   // unloaded at the time; the saved property only describes the current
@@ -54,11 +145,7 @@ export class FloorBlocks {
   private stranded: Laid[] = [];
 
   /** `car` is undefined when the vehicle is gone; its cells are then only cleared. */
-  lay(
-    vehicleId: string,
-    car: Entity | undefined,
-    wanted: readonly FloorCell[],
-  ) {
+  lay(vehicleId: string, car: Entity | undefined, wanted: readonly DockCell[]) {
     let entry = this.laid.get(vehicleId);
     if (!entry) {
       if (!car) return;
@@ -97,7 +184,7 @@ export class FloorBlocks {
     this.stranded = this.stranded.filter((entry) => entry.cells.length > 0);
   }
 
-  private update(entry: Laid, wanted: readonly FloorCell[]): void {
+  private update(entry: Laid, wanted: readonly DockCell[]): void {
     const { clear, place } = refloor(entry.cells, wanted);
     const cleared = new Set<string>();
     for (const c of clear) {
@@ -107,7 +194,7 @@ export class FloorBlocks {
         // cell then too.
         if (!b) continue;
         // A replacement block belongs to the player, not the vehicle.
-        if (b.typeId === DECK_FLOOR_BLOCK) b.setType("minecraft:air");
+        if (b.typeId === blockIdOf(c.block)) b.setType(AIR_BLOCK);
         cleared.add(cellKey(c));
       } catch {
         // Unloaded chunk: keep the cell and clear it on a later tick.
@@ -122,13 +209,11 @@ export class FloorBlocks {
       try {
         const b = entry.dimension.getBlock(c);
         if (!b) continue;
-        const ownFloor = cells.has(cellKey(c)) && b.typeId === DECK_FLOOR_BLOCK;
-        if (!b.isAir && !isLightBlock(b) && !ownFloor) continue;
-        b.setPermutation(
-          BlockPermutation.resolve(DECK_FLOOR_BLOCK, {
-            [DECK_FLOOR_HEIGHT_STATE]: c.height,
-          }),
-        );
+        const before = cells.get(cellKey(c));
+        const ownBlock =
+          before !== undefined && b.typeId === blockIdOf(before.block);
+        if (!b.isAir && !isLightBlock(b) && !ownBlock) continue;
+        b.setPermutation(permutationOf(c.block));
         cells.set(cellKey(c), c);
       } catch {
         // Unloaded chunk or outside the world: retry placement on a later tick.

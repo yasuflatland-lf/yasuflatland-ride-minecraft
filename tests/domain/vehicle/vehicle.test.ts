@@ -131,6 +131,7 @@ class Sim {
         velocity: { ...this.vel, y: 0 },
         onGround: true,
         ...waterSensors(),
+        blockTypes: () => [],
         solidAt: (o) =>
           this.solid({ x: this.pos.x + o.x, y: o.y, z: this.pos.z + o.z }),
         targets: () => this.targets,
@@ -185,6 +186,7 @@ describe("Vehicle (aggregate)", () => {
           velocity: { x: 0, y: 0, z: 0 },
           onGround: true,
           ...waterSensors(),
+          blockTypes: () => [],
           solidAt: () => false,
           targets: () => [],
         });
@@ -411,6 +413,7 @@ describe("Vehicle (aggregate)", () => {
         velocity: { ...vel, y: 0 },
         onGround: true,
         ...waterSensors(),
+        blockTypes: () => [],
         solidAt: (o) => step({ x: at.x + o.x, y: o.y, z: at.z + o.z }),
         targets: () => {
           queried = true;
@@ -465,6 +468,7 @@ describe("Vehicle (aggregate)", () => {
               velocity: { ...vel, y: 0 },
               onGround: true,
               ...waterSensors(),
+              blockTypes: () => [],
               solidAt: () => false,
               targets: () => {
                 queried = true;
@@ -654,6 +658,7 @@ describe("Vehicle water depth context", () => {
             velocity: { x: 0, y: 0, z: 0 },
             onGround: true,
             ...waterSensors(waterDepth),
+            blockTypes: () => [],
             solidAt: () => false,
             targets: () => [],
           };
@@ -679,6 +684,7 @@ describe("Vehicle water depth context", () => {
           velocity: { x: 0, y: 0, z: 0 },
           onGround: false,
           ...waterSensors(),
+          blockTypes: () => [],
           solidAt: () => false,
           targets: () => [],
         }).commands,
@@ -708,6 +714,7 @@ it("concatenates seat commands in seat order when multiple riders leave", () => 
     velocity: { x: 0, y: 0, z: 0 },
     onGround: true,
     ...waterSensors(),
+    blockTypes: () => [],
     solidAt: () => false,
     targets: () => [],
   });
@@ -736,7 +743,7 @@ it("blanks only the occupied dock seat in the outcome", () => {
       forward: { x: 0, z: 1 },
       commands: [],
       riders: { thirdPerson: false, underwater: false },
-      dock: { hold: { x: 0, y: 0, z: 0, yaw: 0 }, floor: [], seats },
+      dock: { hold: { x: 0, y: 0, z: 0, yaw: 0 }, cells: [], seats },
     }),
   };
   const vehicle = new Vehicle("v", SPORTSBOAT_PROFILE, drive);
@@ -754,6 +761,7 @@ it("blanks only the occupied dock seat in the outcome", () => {
     velocity: { x: 0, y: 0, z: 0 },
     onGround: false,
     ...waterSensors(),
+    blockTypes: () => [],
     solidAt: () => false,
     targets: () => [],
   });

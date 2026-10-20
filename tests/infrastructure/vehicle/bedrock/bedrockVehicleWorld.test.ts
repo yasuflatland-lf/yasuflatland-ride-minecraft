@@ -47,6 +47,7 @@ vi.mock("@minecraft/server", () => ({
 function fixture() {
   const dimension = {
     getBlock: vi.fn(),
+    getPlayers: vi.fn(),
     getEntities: vi.fn(),
     spawnItem: vi.fn(),
     spawnEntity: vi.fn(),
@@ -523,11 +524,16 @@ describe("BedrockVehicleWorld holds (ADR 0063)", () => {
     const { dimension, world, car } = fixture();
     const grid = blockGrid();
     dimension.getBlock.mockImplementation(grid.getBlock);
-    const cell = { x: 0, y: 64, z: 3, height: 9 };
+    const cell = {
+      x: 0,
+      y: 64,
+      z: 3,
+      block: { type: "deck" as const, height: 9 },
+    };
     const pose = { x: 1, y: 64.5, z: -2, yaw: 30 };
     world.loadedVehicles();
     world.holdAt(car.id, pose);
-    world.layFloor(car.id, [cell]);
+    world.layDock(car.id, [cell]);
     expect(grid.typeAt(cell)).toBe(DECK_FLOOR_BLOCK);
     world.removeVehicle(car.id);
     expect(grid.typeAt(cell)).toBe("minecraft:air");
@@ -544,11 +550,16 @@ describe("BedrockVehicleWorld holds (ADR 0063)", () => {
     const { dimension, world, car } = fixture();
     const grid = blockGrid();
     dimension.getBlock.mockImplementation(grid.getBlock);
-    const cell = { x: 0, y: 64, z: 3, height: 9 };
+    const cell = {
+      x: 0,
+      y: 64,
+      z: 3,
+      block: { type: "deck" as const, height: 9 },
+    };
     const pose = { x: 1, y: 64.5, z: -2, yaw: 30 };
     world.loadedVehicles();
     world.holdAt(car.id, pose);
-    world.layFloor(car.id, [cell]);
+    world.layDock(car.id, [cell]);
     dimension.getEntities.mockReturnValue([]);
     world.loadedVehicles();
     expect(grid.typeAt(cell)).toBe("minecraft:air");
@@ -607,5 +618,143 @@ describe("BedrockVehicleWorld deck seats (ADR 0063)", () => {
     world.boardDeckRiders(car.id);
     expect(seatRideable.ejectRider).toHaveBeenCalledWith(player);
     expect(boatRideable.addRider).toHaveBeenCalledWith(player);
+  });
+});
+
+describe("BedrockVehicleWorld dock ports", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("reads world cells in order, normalizes air and light, and tolerates unavailable blocks", () => {
+    const { world, dimension } = fixture();
+    const cells = Array.from({ length: 7 }, (_, x) => ({ x, y: 64, z: 5 }));
+    dimension.getBlock
+      .mockReturnValueOnce({ typeId: "minecraft:air", isAir: true })
+      .mockReturnValueOnce({ typeId: "minecraft:light_block_15" })
+      .mockReturnValueOnce({
+        typeId: "minecraft:light_block",
+        permutation: { getState: () => 7 },
+      })
+      .mockReturnValueOnce({ typeId: "minecraft:stone" })
+      .mockReturnValueOnce({ typeId: "minecraft:water" })
+      .mockReturnValueOnce(undefined)
+      .mockImplementationOnce(() => {
+        throw new Error("unloaded");
+      });
+    expect(world.blockTypes("car", cells)).toEqual([
+      "minecraft:air",
+      "minecraft:air",
+      "minecraft:air",
+      "minecraft:stone",
+      "minecraft:water",
+      undefined,
+      undefined,
+    ]);
+    expect(dimension.getBlock.mock.calls).toEqual(cells.map((c) => [c]));
+    dimension.getBlock.mockClear();
+    expect(world.blockTypes("missing", cells)).toEqual(
+      cells.map(() => undefined),
+    );
+    expect(dimension.getBlock).not.toHaveBeenCalled();
+  });
+
+  it("clears only cells whose checked type still matches", () => {
+    const { world, dimension } = fixture();
+    const matching = { typeId: "minecraft:short_grass", setType: vi.fn() };
+    const replacement = { typeId: "minecraft:stone", setType: vi.fn() };
+    dimension.getBlock
+      .mockReturnValueOnce(matching)
+      .mockReturnValueOnce(replacement)
+      .mockReturnValueOnce(undefined)
+      .mockImplementationOnce(() => {
+        throw new Error("unloaded");
+      });
+    const cells = Array.from({ length: 4 }, (_, x) => ({
+      x,
+      y: 64,
+      z: 0,
+      typeId: "minecraft:short_grass",
+    }));
+    world.clearBlocks("missing", cells);
+    expect(dimension.getBlock).not.toHaveBeenCalled();
+    world.clearBlocks("car", cells);
+    expect(matching.setType).toHaveBeenCalledExactlyOnceWith("minecraft:air");
+    expect(replacement.setType).not.toHaveBeenCalled();
+  });
+
+  it("shows the translated message on a present player's action bar", () => {
+    const { world } = fixture();
+    const player = {
+      typeId: PLAYER_TYPE,
+      onScreenDisplay: { setActionBar: vi.fn() },
+    };
+    game.getEntity.mockImplementation((id) =>
+      id === "player" ? player : undefined,
+    );
+    world.showMessage("missing", "park_blocked");
+    expect(player.onScreenDisplay.setActionBar).not.toHaveBeenCalled();
+    world.showMessage("player", "park_blocked");
+    expect(player.onScreenDisplay.setActionBar).toHaveBeenCalledExactlyOnceWith(
+      { translate: "yasu_ride.message.park_blocked" },
+    );
+  });
+
+  it("seats only standing players inside any box nearest first and teleports overflow", () => {
+    const { world, car, dimension } = fixture();
+    car.location = { x: 0, y: 64, z: 0 };
+    const player = (
+      id: string,
+      x: number,
+      y: number,
+      z: number,
+      riding = false,
+    ) => ({
+      id,
+      location: { x, y, z },
+      getComponent: vi.fn(() => (riding ? {} : undefined)),
+      teleport: vi.fn(),
+    });
+    const far = player("far", 2, 66, 1);
+    const near = player("near", 0, 64, 0);
+    const middle = player("middle", 0, 65, 1);
+    const outside = player("outside", 3, 64, 0);
+    const riding = player("riding", 0, 64, 0, true);
+    const otherBox = player("otherBox", -2, 64, 0);
+    dimension.getPlayers.mockReturnValue([
+      far,
+      outside,
+      riding,
+      middle,
+      near,
+      otherBox,
+    ]);
+    const addRider = vi
+      .fn()
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(true)
+      .mockReturnValue(false);
+    car.getComponent.mockImplementation((name) =>
+      name === "minecraft:rideable" ? { addRider } : undefined,
+    );
+    const departure = {
+      boxes: [
+        { min: { x: 0, y: 64, z: 0 }, max: { x: 3, y: 67, z: 3 } },
+        { min: { x: -3, y: 64, z: 0 }, max: { x: 0, y: 67, z: 3 } },
+      ],
+      exit: { x: 5, y: 64, z: 2, yaw: 90 },
+    };
+    world.seatStandingPlayers("missing", departure);
+    expect(dimension.getPlayers).not.toHaveBeenCalled();
+    world.seatStandingPlayers("car", departure);
+    expect(addRider.mock.calls).toEqual([[near], [middle], [otherBox], [far]]);
+    for (const p of [near, middle, outside, riding])
+      expect(p.teleport).not.toHaveBeenCalled();
+    for (const p of [far, otherBox])
+      expect(p.teleport).toHaveBeenCalledExactlyOnceWith(departure.exit, {
+        rotation: { x: 0, y: 90 },
+      });
+    car.getComponent.mockReturnValue(undefined);
+    dimension.getPlayers.mockClear();
+    world.seatStandingPlayers("car", departure);
+    expect(dimension.getPlayers).not.toHaveBeenCalled();
   });
 });

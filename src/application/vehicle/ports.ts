@@ -1,9 +1,10 @@
 // Capabilities the application layer requires from the game (ports). Implementations live in the infrastructure layer (ADR 0012).
 import type { Vec3 } from "../../domain/shared/vec";
+import type { ClearCell, Departure } from "../../domain/vehicle/dock";
 import type { EngineCommand, RestoredValues } from "../../domain/vehicle/drive";
 import type { RawInput } from "../../domain/vehicle/driveInput";
 import type { FleetEntry } from "../../domain/vehicle/fleet";
-import type { FloorCell, HoldPose } from "../../domain/vehicle/floor";
+import type { DockCell, HoldPose } from "../../domain/vehicle/floor";
 import type { Cell } from "../../domain/vehicle/headlights";
 import type { VehicleKind } from "../../domain/vehicle/kind";
 import type { Paint } from "../../domain/vehicle/paint";
@@ -38,10 +39,21 @@ export interface DriveWorld {
   /** While a pose is set, teleports the vehicle there and clears its velocity every tick instead of applying the impulse. */
   holdAt(vehicleId: string, pose: HoldPose | undefined): void;
   /**
-   * Keeps yasu_ride:deck_floor in exactly these cells for the vehicle and clears
-   * the ones it laid before. Also called with no cells for a vehicle that is gone.
+   * Keeps exactly these dock cells for the vehicle and clears the ones it laid before.
+   * Also called with no cells for a vehicle that is gone.
    */
-  layFloor(vehicleId: string, cells: readonly FloorCell[]): void;
+  layDock(vehicleId: string, cells: readonly DockCell[]): void;
+  /** See TickContext.blockTypes; world cells, in the vehicle's dimension. */
+  blockTypes(vehicleId: string, cells: readonly Vec3[]): (string | undefined)[];
+  /** Sets each cell to air if it still holds the type it had at the check. */
+  clearBlocks(vehicleId: string, cells: readonly ClearCell[]): void;
+  /** Shows the lang key yasu_ride.message.<name> on a player's action bar; does nothing for a missing player. */
+  showMessage(playerId: string, name: string): void;
+  /**
+   * Seats the players standing in the departure's boxes, nearest to the vehicle first,
+   * and moves those left without a seat to the exit.
+   */
+  seatStandingPlayers(vehicleId: string, departure: Departure): void;
   applyMotion(vehicleId: string, impulse: Vec3, yaw: number): void;
   run(vehicleId: string, commands: readonly EngineCommand[]): void;
   /** Switches a player's view to the third-person camera, or back to their own (ADR 0028). */

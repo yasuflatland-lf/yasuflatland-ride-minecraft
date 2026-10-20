@@ -16,6 +16,7 @@ import {
 } from "../../driveInput";
 import type { HoldPose } from "../../floor";
 import { MOTION } from "../../motion/constants";
+import { DOCK, pushesStick } from "../../motion/dock";
 import {
   alignOnMount,
   hitWall,
@@ -30,7 +31,7 @@ import { waterBelowAt, waterDepthAt } from "../../motion/water";
 import type { MotionLimits } from "../../profile";
 import { seatWorldPositions } from "../../seats";
 import { stepRoll, stepTrim } from "./attitude";
-import { DOCK, floorCells, holdHeight } from "./deck";
+import { floorCells, holdHeight } from "./deck";
 import {
   dockCommands,
   rollCommand,
@@ -88,17 +89,10 @@ export function estimateWaterDrag(
   );
 }
 
-function pushesStick(input: RawInput | undefined): boolean {
-  return (
-    input !== undefined &&
-    Math.max(Math.abs(input.moveX), Math.abs(input.moveY)) > DOCK.stick
-  );
-}
-
 function dockAt(pose: HoldPose): Dock {
   return {
     hold: pose,
-    floor: floorCells(pose),
+    cells: floorCells(pose),
     seats: seatWorldPositions(pose, SPORTSBOAT_PROFILE.seats.positions),
   };
 }

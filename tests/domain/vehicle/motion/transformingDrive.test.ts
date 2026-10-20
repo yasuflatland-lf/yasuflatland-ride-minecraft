@@ -20,6 +20,7 @@ function context(depth = 0): TickContext {
     velocity: { x: 0, y: 0, z: 0 },
     onGround: true,
     ...waterSensors(depth),
+    blockTypes: () => [],
     solidAt: (offset) => offset.y < 0,
     targets: () => [],
   };
