@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { SPORTSBOAT_PROFILE } from "../../src/domain/vehicle/kinds/sportsboat/profile";
 import { PAINTS } from "../../src/domain/vehicle/paint";
 import {
   HEADLIGHTS_PROPERTY,
@@ -48,19 +49,17 @@ describe("sports boat Behavior Pack entity (ADR 0051)", () => {
     });
   });
 
-  it("has four seats at the SUV's x and z, 0.52 up, with the driver in seat 0", () => {
+  it("seat x and z and their order match SPORTSBOAT_PROFILE.seats.positions, every seat 0.52 up, with the driver in seat 0", () => {
     const rideable = c["minecraft:rideable"];
+    const seats: { position: number[] }[] = rideable.seats;
     expect(rideable.controlling_seat).toBe(0);
     expect(rideable.family_types).toEqual(["player"]);
     expect(rideable.crouching_skip_interact).toBe(true);
-    expect(
-      rideable.seats.map((s: { position: number[] }) => s.position),
-    ).toEqual([
-      [-0.38, 0.52, 0.35],
-      [0.38, 0.52, 0.35],
-      [-0.38, 0.52, -0.8],
-      [0.38, 0.52, -0.8],
-    ]);
+    expect(seats).toHaveLength(SPORTSBOAT_PROFILE.seats.positions.length);
+    expect(seats.map((s) => [s.position[0], s.position[2]])).toEqual(
+      SPORTSBOAT_PROFILE.seats.positions.map((p) => [p.x, p.z]),
+    );
+    expect(seats.map((s) => s.position[1])).toEqual(seats.map(() => 0.52));
     expect(rideable.seats[0].lock_rider_rotation).toBe(90);
   });
 
