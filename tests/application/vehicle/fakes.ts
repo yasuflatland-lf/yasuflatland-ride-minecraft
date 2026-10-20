@@ -2,6 +2,9 @@ import type {
   BreakWorld,
   DriveWorld,
   HeadlightWorld,
+  HintPlayerView,
+  HintVehicleView,
+  HintWorld,
   LimitWorld,
   PaintWorld,
   PlacementWorld,
@@ -20,6 +23,7 @@ import {
 import type { FleetRepository } from "../../../src/domain/vehicle/fleetRepository";
 import type { DockCell, HoldPose } from "../../../src/domain/vehicle/floor";
 import { type Cell, cellKey } from "../../../src/domain/vehicle/headlights";
+import type { Hint } from "../../../src/domain/vehicle/hints";
 import type { VehicleKind } from "../../../src/domain/vehicle/kind";
 import type { Paint } from "../../../src/domain/vehicle/paint";
 import type { ChaseCamera } from "../../../src/domain/vehicle/profile";
@@ -263,6 +267,26 @@ export class FakeWorld
   }
   consumeDye(playerId: string, paint: Paint) {
     this.calls.push(`dye:${playerId}:${paint}`);
+  }
+}
+
+export class FakeHintWorld implements HintWorld {
+  players: HintPlayerView[] = [];
+  vehicles: HintVehicleView[] = [];
+  playerScans = 0;
+  readonly sent: { playerId: string; hint?: Hint }[] = [];
+  hintPlayers() {
+    this.playerScans++;
+    return this.players;
+  }
+  hintVehicles() {
+    return this.vehicles;
+  }
+  showHint(playerId: string, hint: Hint) {
+    this.sent.push({ playerId, hint });
+  }
+  clearHint(playerId: string) {
+    this.sent.push({ playerId });
   }
 }
 

@@ -6,11 +6,13 @@ import { HitVehicle } from "../../application/vehicle/hitVehicle";
 import { LimitVehicles } from "../../application/vehicle/limitVehicles";
 import { PaintVehicle } from "../../application/vehicle/paintVehicle";
 import { PlaceVehicle } from "../../application/vehicle/placeVehicle";
+import { ShowVehicleHints } from "../../application/vehicle/showVehicleHints";
 import { SwitchHeadlights } from "../../application/vehicle/switchHeadlights";
 import { UseDockDoor } from "../../application/vehicle/useDockDoor";
 import { fleetLimitOf } from "../../domain/vehicle/kinds/index";
 import { NAMESPACE } from "../shared/identifiers";
 import { BedrockHeadlightWorld } from "./bedrock/bedrockHeadlightWorld";
+import { BedrockHintWorld } from "./bedrock/bedrockHintWorld";
 import { BedrockInventory } from "./bedrock/bedrockInventory";
 import { BedrockPaintWorld } from "./bedrock/bedrockPaintWorld";
 import { BedrockPlacementWorld } from "./bedrock/bedrockPlacementWorld";
@@ -39,6 +41,7 @@ export function installVehicles(): void {
       paint: new PaintVehicle(new BedrockPaintWorld(index, inventory)),
       headlights: new SwitchHeadlights(new BedrockHeadlightWorld(index), repo),
       door: new UseDockDoor(repo),
+      hints: new ShowVehicleHints(new BedrockHintWorld(index), repo),
     },
     store,
     (dimensionId, cell) => bedrock.dockDoorOwner(dimensionId, cell),

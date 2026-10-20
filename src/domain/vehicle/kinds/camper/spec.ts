@@ -23,6 +23,15 @@ export const CAMPER_SPEC = {
   bodyRear: 3.9, // the rear ladder
   bodyHalfWidth: 1.5, // the tires' outer faces
   headlightReach: [4, 9, 15, 21, 27], // as the SUV (ADR 0020)
+  // Bumper hitboxes (ADR 0084): 1 x 1 x 1 boxes side by side at z = bodyFront
+  bumperBoxXs: [-1, 0, 1],
+  bumperBoxY: 0.5, // the box center; the boxes span the bottom block of the body
+  bumperBoxSize: 1,
+  // Hints (ADR 0086), in blocks
+  bumperHintReach: 1.5,
+  bumperHintFeet: [-1, 1.5], // from the ground in front of the bumper up to standing on a 1-block step
+  seatHintReach: 1.5,
+  seatHintFeet: [0.5, 3.5], // on the parked room's floor, below its roof (ADR 0068)
   // Flight (ADR 0021, 0032), as the SUV
   doubleTapTicks: 8,
   takeoffTicks: 20,

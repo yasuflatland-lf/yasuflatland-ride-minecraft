@@ -114,10 +114,10 @@ it("keeps only the bumper hitboxes from spawn and preserves the undocked camper'
   // A hitbox is square in x and z, so three 1-block boxes cover the 3-block
   // bumper without reaching more than half a block into the room (ADR 0084).
   expect(entity.components["minecraft:custom_hit_test"].hitboxes).toEqual(
-    [-1, 0, 1].map((x) => ({
-      width: 1,
-      height: 1,
-      pivot: [x, 0.5, CAMPER_SPEC.bodyFront],
+    CAMPER_SPEC.bumperBoxXs.map((x) => ({
+      width: CAMPER_SPEC.bumperBoxSize,
+      height: CAMPER_SPEC.bumperBoxSize,
+      pivot: [x, CAMPER_SPEC.bumperBoxY, CAMPER_SPEC.bodyFront],
     })),
   );
   expect(

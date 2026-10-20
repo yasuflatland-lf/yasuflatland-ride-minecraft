@@ -5,12 +5,14 @@ import {
   type ItemUseAfterEvent,
   type PlayerInteractWithBlockBeforeEvent,
   type StartupEvent,
+  system,
   world,
 } from "@minecraft/server";
 import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
 import { PlaceVehicle } from "../../../../src/application/vehicle/placeVehicle";
 import type { PlacementWorld } from "../../../../src/application/vehicle/ports";
+import { SPEC } from "../../../../src/domain/vehicle/spec";
 import type { VehicleRepository } from "../../../../src/domain/vehicle/vehicleRepository";
 import {
   CAMPER_DOOR_COMPONENT,
@@ -22,6 +24,7 @@ import {
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 import { registerSubscriptions } from "../../../../src/infrastructure/vehicle/bedrock/subscriptions";
 import { TestInputStore } from "../../../../src/infrastructure/vehicle/testInput/testInputStore";
+import { defined } from "../../../support/defined";
 
 const game = vi.hoisted(() => ({
   before:
@@ -428,4 +431,25 @@ it("registers door interactions during startup and dispatches only owned doors",
   owner.mockReturnValue("camper");
   interact(event, { params: undefined });
   expect(door.execute).toHaveBeenCalledExactlyOnceWith({ vehicleId: "camper" });
+});
+
+it("checks the hints every hint interval, after the drive on the same tick (ADR 0086)", () => {
+  const drive = { execute: vi.fn() };
+  const hints = { execute: vi.fn() };
+  registerSubscriptions(
+    { drive, hints } as unknown as Parameters<typeof registerSubscriptions>[0],
+    new TestInputStore(),
+    () => undefined,
+  );
+  const intervals = vi.mocked(system.runInterval).mock.calls;
+  expect(intervals.map(([, ticks]) => ticks)).toEqual([
+    1,
+    SPEC.hintCheckInterval,
+  ]);
+  for (const [callback] of intervals) callback();
+  expect(drive.execute).toHaveBeenCalledWith(game.currentTick);
+  expect(hints.execute).toHaveBeenCalledWith(game.currentTick);
+  expect(drive.execute.mock.invocationCallOrder[0]).toBeLessThan(
+    defined(hints.execute.mock.invocationCallOrder[0], "hints call"),
+  );
 });
