@@ -1,13 +1,14 @@
 // Use case: every tick, move all loaded vehicles.
 import { headlightCells } from "../../domain/vehicle/headlights";
 import { profileOf, rebuildVehicle } from "../../domain/vehicle/kinds/index";
+import type { ChaseCamera } from "../../domain/vehicle/profile";
 import { SPEC } from "../../domain/vehicle/spec";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
 import type { DriveWorld, Logger } from "./ports";
 
 export class DriveVehicles {
-  /** Players this use case switched to the third-person camera (ADR 0028). */
-  private readonly thirdPerson = new Set<string>();
+  /** Players this use case switched to a third-person camera, and which one (ADR 0028). */
+  private readonly thirdPerson = new Map<string, ChaseCamera>();
   /** Players whose camera switch failed and was logged, so a retry every tick logs once. */
   private readonly cameraFailed = new Set<string>();
 
@@ -19,7 +20,7 @@ export class DriveVehicles {
 
   execute(tick: number): void {
     const seen = new Set<string>();
-    const offRoad = new Set<string>();
+    const offRoad = new Map<string, ChaseCamera>();
     const underwater = new Set<string>();
     for (const snap of this.world.loadedVehicles()) {
       seen.add(snap.id);
@@ -58,8 +59,10 @@ export class DriveVehicles {
           this.world.showMessage(out.driverId, out.message);
         this.world.holdAt(snap.id, out.dock?.hold);
         if (out.clear.length > 0) this.world.clearBlocks(snap.id, out.clear);
-        if (out.riders.thirdPerson)
-          for (const rider of snap.riders) offRoad.add(rider.id);
+        if (out.riders.thirdPerson) {
+          const camera = profileOf(vehicle.kind).chaseCamera;
+          for (const rider of snap.riders) offRoad.set(rider.id, camera);
+        }
         if (out.riders.underwater)
           for (const rider of snap.riders) underwater.add(rider.id);
         if (!out.dock) this.world.applyMotion(snap.id, out.impulse, out.yaw);
@@ -123,18 +126,18 @@ export class DriveVehicles {
    * switch either way is retried on the next tick. A player who left needs no
    * clearing: the world does nothing for a missing player, so they are dropped.
    */
-  private syncCameras(offRoad: ReadonlySet<string>): void {
-    for (const id of offRoad)
-      if (!this.thirdPerson.has(id) && this.switchCamera(id, true))
-        this.thirdPerson.add(id);
-    for (const id of this.thirdPerson)
-      if (!offRoad.has(id) && this.switchCamera(id, false))
+  private syncCameras(offRoad: ReadonlyMap<string, ChaseCamera>): void {
+    for (const [id, camera] of offRoad)
+      if (this.thirdPerson.get(id) !== camera && this.switchCamera(id, camera))
+        this.thirdPerson.set(id, camera);
+    for (const id of this.thirdPerson.keys())
+      if (!offRoad.has(id) && this.switchCamera(id, undefined))
         this.thirdPerson.delete(id);
   }
 
-  private switchCamera(id: string, thirdPerson: boolean): boolean {
+  private switchCamera(id: string, camera: ChaseCamera | undefined): boolean {
     try {
-      this.world.setThirdPerson(id, thirdPerson);
+      this.world.setChaseCamera(id, camera);
       this.cameraFailed.delete(id);
       return true;
     } catch (e) {

@@ -35,6 +35,7 @@ export const SUV_PROFILE: VehicleProfile = Object.freeze({
     // 3 × 2 × 3 cells fit the 1.8-wide, 1.6-high collision box (ADR 0009).
     clearance: Object.freeze({ halfX: 1, halfZ: 1, height: 2 }),
   }),
+  chaseCamera: "near",
 });
 
 // Frozen because every SUV drive shares this one object.

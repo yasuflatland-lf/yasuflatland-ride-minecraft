@@ -36,6 +36,7 @@ export const CAMPER_PROFILE: VehicleProfile = Object.freeze({
     surfaces: Object.freeze<PlacementSurface[]>(["top"]),
     clearance: Object.freeze({ halfX: 4, halfZ: 4, height: 4 }),
   }),
+  chaseCamera: "near",
 });
 
 export const CAMPER_MOTION: MotionLimits = Object.freeze({

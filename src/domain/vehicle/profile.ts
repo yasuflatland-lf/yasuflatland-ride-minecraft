@@ -35,6 +35,12 @@ export interface BeamPattern {
   readonly lanes: readonly number[];
 }
 
+/**
+ * The view riders get off the road (ADR 0028, 0071): `near` is the vanilla view from
+ * behind, as F5 shows it, and `far` pulls back far enough to show a long body whole.
+ */
+export type ChaseCamera = "near" | "far";
+
 export interface VehicleProfile {
   readonly kind: VehicleKind;
   /** Most vehicles of this kind one player keeps; one more removes their oldest (ADR 0066). */
@@ -43,4 +49,5 @@ export interface VehicleProfile {
   readonly seats: SeatLayout;
   readonly beams: BeamPattern;
   readonly placement: PlacementRule;
+  readonly chaseCamera: ChaseCamera;
 }

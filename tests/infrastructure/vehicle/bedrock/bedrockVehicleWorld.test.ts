@@ -380,10 +380,10 @@ describe("BedrockVehicleWorld flight wiring", () => {
     game.getEntity.mockImplementation((id: string) =>
       id === "rider" ? { typeId: "minecraft:player", camera } : undefined,
     );
-    world.setThirdPerson("rider", true);
+    world.setChaseCamera("rider", "near");
     expect(camera.setCamera.mock.calls).toEqual([["minecraft:third_person"]]);
     expect(camera.clear).not.toHaveBeenCalled();
-    world.setThirdPerson("rider", false);
+    world.setChaseCamera("rider", undefined);
     expect(camera.clear).toHaveBeenCalledTimes(1);
     expect(camera.setCamera).toHaveBeenCalledTimes(1);
   });

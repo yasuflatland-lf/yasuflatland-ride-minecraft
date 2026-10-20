@@ -95,6 +95,7 @@ describe("vehicle profiles (ADR 0050)", () => {
         surfaces: ["top"],
         clearance: { halfX: 1, halfZ: 1, height: 2 },
       },
+      chaseCamera: "near",
     });
   });
 
@@ -132,6 +133,7 @@ describe("vehicle profiles (ADR 0050)", () => {
         surfaces: ["water", "top"],
         clearance: { halfX: 1, halfZ: 1, height: 2 },
       },
+      chaseCamera: "near",
     });
     expect(profileOf("sportsboat")).toBe(SPORTSBOAT_PROFILE);
   });

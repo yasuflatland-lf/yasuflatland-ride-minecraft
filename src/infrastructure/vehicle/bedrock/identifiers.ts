@@ -1,6 +1,7 @@
 import type { FleetEntry } from "../../../domain/vehicle/fleet";
 import { VEHICLE_KINDS, type VehicleKind } from "../../../domain/vehicle/kind";
 import { PAINTS, type Paint } from "../../../domain/vehicle/paint";
+import type { ChaseCamera } from "../../../domain/vehicle/profile";
 import { id, NAMESPACE } from "../../shared/identifiers";
 
 /**
@@ -67,8 +68,15 @@ export const LIGHT_BLOCK = "minecraft:light_block_15";
  * (jump is 0 / 1). "<vehicleId>,clear" clears the input.
  */
 export const TEST_INPUT_EVENT = id("test_input");
-/** Vanilla camera preset that views the player from behind, as F5 does (ADR 0028). */
-export const THIRD_PERSON_CAMERA = "minecraft:third_person";
+/**
+ * Camera presets for each chase camera: the vanilla preset that views the player from
+ * behind, as F5 does (ADR 0028), and the pack's preset pulled back from it (ADR 0071).
+ */
+export const CHASE_CAMERAS: Readonly<Record<ChaseCamera, string>> =
+  Object.freeze({
+    near: "minecraft:third_person",
+    far: id("far_chase"),
+  });
 
 /** The vanilla dye that repaints a vehicle with a paint (ADR 0031). Brown dye turns it back to khaki. */
 export function dyeOf(paint: Paint): string {
