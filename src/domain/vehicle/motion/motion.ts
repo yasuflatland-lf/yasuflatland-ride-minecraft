@@ -1,4 +1,4 @@
-// One tick of vehicle movement (ADR 0002, 0003, 0074, 0081).
+// One tick of vehicle movement (ADR 0002, 0003, 0074, 0081, 0082).
 import {
   clamp,
   clampLength,
@@ -135,6 +135,28 @@ export function hitWall(v: Vec2, given: Vec2, keptRatio: number): boolean {
 }
 
 /**
+ * Walled axes on the ground. A wall zeroes its axis, so a driven axis is a
+ * wall when it kept almost nothing, or when it kept less than `keptRatio`
+ * while the other driven axis kept more. A uniform slowdown on every driven
+ * axis is a slow surface, which the friction estimate learns (ADR 0082).
+ */
+export function groundWallAxes(
+  v: Vec2,
+  given: Vec2,
+  keptRatio: number,
+): BlockedAxes {
+  const ratio = (ve: number, ee: number) =>
+    Math.abs(ee) > MOTION.blockedAxisMin ? ve / ee : undefined;
+  const rx = ratio(v.x, given.x);
+  const rz = ratio(v.z, given.z);
+  const wall = (r: number | undefined, other: number | undefined) =>
+    r !== undefined &&
+    (r < MOTION.wallKeptMax ||
+      (r < keptRatio && other !== undefined && other >= keptRatio));
+  return { x: wall(rx, rz), z: wall(rz, rx) };
+}
+
+/**
  * The internal speed after a wall hit (ADR 0081). With one axis blocked and
  * the heading still running along the wall, keep the speed whose free-axis
  * component matches the observed along-wall velocity; otherwise keep the
@@ -175,13 +197,13 @@ export function stepMotion(
   const vLong = dot(v, f);
 
   // Distinguish friction from wall collisions by how much of the previous
-  // tick's given velocity remains (ADR 0003).
+  // tick's given velocity remains (ADR 0003, 0082).
   let friction = prev.friction;
   let blocked = false;
   if (prev.expected && obs.onGround) {
     const e = prev.expected;
     const limit = (friction ?? MOTION.defaultFriction) * MOTION.blockedRatio;
-    const axes = blockedAxes(v, e, limit);
+    const axes = groundWallAxes(v, e, limit);
     blocked = axes.x || axes.z;
     if (blocked) {
       // While colliding, freeze the friction estimate (ADR 0003) and slide

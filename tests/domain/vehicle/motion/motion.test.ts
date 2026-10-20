@@ -22,6 +22,7 @@ import type { MotionLimits } from "../../../../src/domain/vehicle/motion/limits"
 import {
   alignOnMount,
   blockedAxes,
+  groundWallAxes,
   hitWall,
   initialMotion,
   type MotionState,
@@ -55,6 +56,7 @@ interface Frame {
   blocked: boolean;
   jumpVelocity: number;
   onGround: boolean;
+  touching: boolean;
 }
 
 /** Per-tick terrain: whether the vehicle is on the ground and whether a step lies ahead. */
@@ -91,6 +93,7 @@ function simulate(
       blocked: r.blocked,
       jumpVelocity: r.jumpVelocity,
       onGround: t.onGround,
+      touching: e.touching,
     });
   });
   return frames;
@@ -194,7 +197,7 @@ describe("alignOnMount (ADR 0019)", () => {
             0,
           ),
         ),
-        fc.option(fc.double({ min: 0.5, max: 1, noNaN: true }), {
+        fc.option(fc.double({ min: MOTION.frictionMin, max: 1, noNaN: true }), {
           nil: undefined,
         }),
         fc.integer({ min: 0, max: MOTION.stepTicks }),
@@ -764,9 +767,12 @@ describe("stepMotion (properties, ADR 0002/0003)", () => {
         noNaN: true,
       }),
       yaw: fc.double({ min: -180, max: 180, noNaN: true }),
-      friction: fc.option(fc.double({ min: 0.5, max: 1, noNaN: true }), {
-        nil: undefined,
-      }),
+      friction: fc.option(
+        fc.double({ min: MOTION.frictionMin, max: 1, noNaN: true }),
+        {
+          nil: undefined,
+        },
+      ),
       expected: fc.option(vel, { nil: undefined }),
       stepTicks: fc.constant(0),
     });
@@ -883,7 +889,9 @@ describe("stepMotion (properties, ADR 0002/0003)", () => {
     fc.assert(
       fc.property(
         fc.integer({ min: 5, max: 85 }),
-        fc.integer({ min: 50, max: 100 }).map((n) => n / 100),
+        fc
+          .integer({ min: Math.round(MOTION.frictionMin * 100), max: 100 })
+          .map((n) => n / 100),
         (theta, k) => {
           const frames = driveAtWall(theta, k);
           const first = frameAt(frames, 60);
@@ -1049,6 +1057,225 @@ describe("stepMotion (properties, ADR 0002/0003)", () => {
     ]);
     expect(airborne.state.friction).toBe(0.9);
     expect(airborne.state.expected).toBeUndefined();
+  });
+});
+
+describe("ground walls and slow surfaces (ADR 0082)", () => {
+  const axis = fc.double({ min: -2, max: 2, noNaN: true });
+  const givenVel = fc.record({ x: axis, z: axis });
+  const keptRatio = fc.double({
+    min: MOTION.frictionMin * MOTION.blockedRatio,
+    max: MOTION.frictionMax * MOTION.blockedRatio,
+    noNaN: true,
+  });
+  // Strictly above blockedAxisMin, either sign.
+  const drivenAxis = fc
+    .tuple(
+      fc.double({ min: 0.05, max: 2, noNaN: true }),
+      fc.constantFrom(1, -1),
+    )
+    .map(([m, s]) => m * s);
+  // At most blockedAxisMin, either sign.
+  const undrivenAxis = fc.double({
+    min: -MOTION.blockedAxisMin,
+    max: MOTION.blockedAxisMin,
+    noNaN: true,
+  });
+  const surface = fc.integer({ min: 20, max: 100 }).map((n) => n / 100);
+
+  it("learns any uniform surface from 0.2 to 1 and reaches 90% of max speed", () => {
+    fc.assert(
+      fc.property(
+        surface,
+        fc.double({ min: -180, max: 180, noNaN: true }),
+        (k, yaw) => {
+          const frames = simulate(repeat(FULL_THROTTLE, 200), { mu: k }, yaw);
+          const friction = defined(
+            defined(frames[59], "tick 60").state.friction,
+            "friction at tick 60",
+          );
+          expect(Math.abs(friction - k)).toBeLessThanOrEqual(0.01);
+          expect(
+            length(defined(frames[199], "tick 200").body.vel),
+          ).toBeGreaterThanOrEqual(0.9 * SUV_SPEC.maxSpeed - 1e-9);
+          expect(frames.every((f) => !f.blocked)).toBe(true);
+        },
+      ),
+    );
+  });
+
+  it("a head-on wall is still a wall and freezes the friction estimate on any surface", () => {
+    fc.assert(
+      fc.property(
+        surface,
+        fc.double({ min: 8, max: 20, noNaN: true }),
+        fc.double({ min: -92, max: -88, noNaN: true }),
+        (k, wallX, yaw) => {
+          const frames = simulate(
+            repeat(FULL_THROTTLE, 200),
+            { mu: k, wallX },
+            yaw,
+          );
+          const first = frames.findIndex((f) => f.touching);
+          expect(first).toBeGreaterThan(0);
+          expect(first).toBeLessThan(198);
+          expect(defined(frames[first + 1], "tick after contact").blocked).toBe(
+            true,
+          );
+          const frozen = defined(frames[first], "contact tick").state.friction;
+          for (let i = first + 1; i < frames.length; i++)
+            expect(defined(frames[i], `tick ${i}`).state.friction).toBe(frozen);
+          expect(
+            Math.abs(defined(frames[199], "tick 200").body.vel.x),
+          ).toBeLessThan(1e-6);
+        },
+      ),
+    );
+  });
+
+  it("groundWallAxes: a uniform ratio of at least wallKeptMax on every axis is never a wall", () => {
+    fc.assert(
+      fc.property(
+        givenVel,
+        fc.double({ min: MOTION.wallKeptMax, max: 1, noNaN: true }),
+        keptRatio,
+        (given, k, ratio) => {
+          // (given.x * k) / given.x can land one ulp on the other side of a threshold.
+          fc.pre(k >= MOTION.wallKeptMax + 1e-9 && Math.abs(k - ratio) > 1e-9);
+          expect(
+            groundWallAxes({ x: given.x * k, z: given.z * k }, given, ratio),
+          ).toEqual({ x: false, z: false });
+        },
+      ),
+    );
+  });
+
+  it("groundWallAxes: a zeroed driven axis is a wall", () => {
+    fc.assert(
+      fc.property(
+        givenVel,
+        keptRatio,
+        fc.double({ min: -1, max: 1, noNaN: true }),
+        (given, ratio, otherKept) => {
+          expect(
+            groundWallAxes({ x: 0, z: given.z * otherKept }, given, ratio).x,
+          ).toBe(Math.abs(given.x) > MOTION.blockedAxisMin);
+          expect(
+            groundWallAxes({ x: given.x * otherKept, z: 0 }, given, ratio).z,
+          ).toBe(Math.abs(given.z) > MOTION.blockedAxisMin);
+        },
+      ),
+    );
+  });
+
+  it("groundWallAxes: an undriven axis is never a wall", () => {
+    fc.assert(
+      fc.property(
+        givenVel,
+        axis,
+        undrivenAxis,
+        keptRatio,
+        (v, other, small, ratio) => {
+          expect(groundWallAxes(v, { x: small, z: other }, ratio).x).toBe(
+            false,
+          );
+          expect(groundWallAxes(v, { x: other, z: small }, ratio).z).toBe(
+            false,
+          );
+        },
+      ),
+    );
+  });
+
+  it("groundWallAxes: driven axes that disagree across keptRatio mark the lower one", () => {
+    fc.assert(
+      fc.property(
+        drivenAxis,
+        drivenAxis,
+        fc.integer({ min: 15, max: 49 }),
+        fc.integer({ min: 16, max: 50 }),
+        fc.integer({ min: 17, max: 100 }),
+        fc.boolean(),
+        (gx, gz, lowPct, keptPct, highPct, lowOnX) => {
+          fc.pre(lowPct < keptPct && highPct > keptPct);
+          const low = lowPct / 100;
+          const high = highPct / 100;
+          const given = { x: gx, z: gz };
+          const v = lowOnX
+            ? { x: gx * low, z: gz * high }
+            : { x: gx * high, z: gz * low };
+          expect(groundWallAxes(v, given, keptPct / 100)).toEqual({
+            x: lowOnX,
+            z: !lowOnX,
+          });
+        },
+      ),
+    );
+  });
+
+  it("groundWallAxes examples: disagreeing axes, a uniform slow surface, and one driven axis", () => {
+    expect(groundWallAxes({ x: 0.2, z: 0.69 }, { x: 1, z: 1 }, 0.345)).toEqual({
+      x: true,
+      z: false,
+    });
+    expect(groundWallAxes({ x: 0.2, z: 0.3 }, { x: 1, z: 1 }, 0.345)).toEqual({
+      x: false,
+      z: false,
+    });
+    // One driven axis keeping 0.3 is a friction sample, where 0003 read a wall.
+    expect(groundWallAxes({ x: 0.3, z: 0 }, { x: 1, z: 0 }, 0.345)).toEqual({
+      x: false,
+      z: false,
+    });
+    // z at exactly blockedAxisMin is not driven.
+    expect(
+      groundWallAxes({ x: 0.3, z: 0.02 }, { x: 1, z: 0.03 }, 0.345),
+    ).toEqual({ x: false, z: false });
+    expect(groundWallAxes({ x: 0.1, z: 0 }, { x: 1, z: 0 }, 0.345)).toEqual({
+      x: true,
+      z: false,
+    });
+    // Pushed back on x.
+    expect(groundWallAxes({ x: -0.05, z: 0.3 }, { x: 1, z: 1 }, 0.345)).toEqual(
+      { x: true, z: false },
+    );
+  });
+
+  it("leaving a slow surface is never a wall, stays below maxSpeed / frictionMin, and settles within 25 ticks", () => {
+    fc.assert(
+      fc.property(
+        surface,
+        surface,
+        fc.integer({ min: -180, max: 180 }),
+        (k1, k2, yaw) => {
+          let state = initialMotion(yaw);
+          let body: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
+          for (let i = 0; i < 225; i++) {
+            const r = stepMotion(
+              state,
+              FULL_THROTTLE,
+              { velocity: body.vel, onGround: true },
+              () => 0,
+              SUV_MOTION,
+            );
+            state = r.state;
+            body = engineStep(
+              body,
+              r.impulse,
+              { mu: i < 200 ? k1 : k2 },
+              true,
+            ).body;
+            expect(r.blocked).toBe(false);
+            expect(length(body.vel)).toBeLessThanOrEqual(
+              SUV_SPEC.maxSpeed / MOTION.frictionMin + 1e-9,
+            );
+          }
+          expect(length(body.vel)).toBeLessThanOrEqual(
+            SUV_SPEC.maxSpeed * 1.01,
+          );
+        },
+      ),
+    );
   });
 });
 

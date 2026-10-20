@@ -640,11 +640,50 @@ function wallDiagonal(a: Arena): Promise<Outcome> {
         hit &&
         contactTicks >= 5 &&
         maxX < 45 &&
-        maxAfter <= before + 0.1 &&
+        // The tick the body first reaches the wall keeps only part of its x
+        // velocity, and since frictionMin is 0.2 that sample lowers the
+        // estimate slightly more, so the slide runs about 3% faster than
+        // under the 0.5 clamp (0.413 against 0.402; ADR 0082).
+        maxAfter <= before + 0.12 &&
         endSide >= 0.7 * before,
       detail: `x=${maxX.toFixed(2)} contactTicks=${contactTicks} sideBefore=${before.toFixed(3)} sideAfterMax=${maxAfter.toFixed(3)} sideEnd=${endSide.toFixed(3)}`,
     };
   });
+}
+
+// Soul sand slows everything on it on both axes, which the friction estimate
+// must learn instead of reading it as a wall (ADR 0082).
+async function suvSoulSand(a: Arena): Promise<Outcome> {
+  const floor = a.gy - 1;
+  a.dim.runCommand(`fill 93 ${floor} 1 98 ${floor} 58 soul_sand`);
+  try {
+    return await withCar(a, 95.5, 3.5, 0, async (car) => {
+      drive(car, 0, 1);
+      let max = 0;
+      let reach = -1;
+      let under = "none";
+      for (let t = 0; t < 200; t++) {
+        await wait(1);
+        const speed = hlen(car.getVelocity());
+        max = Math.max(max, speed);
+        if (reach < 0 && speed >= 0.3) reach = t;
+        if (t === 5)
+          under =
+            a.dim.getBlock({
+              x: Math.floor(car.location.x),
+              y: Math.floor(car.location.y),
+              z: Math.floor(car.location.z),
+            })?.typeId ?? "none";
+        if (car.location.z > 54) break;
+      }
+      return {
+        pass: under === "minecraft:soul_sand" && max >= 0.3,
+        detail: `max=${max.toFixed(3)} reach0.3=${reach} under=${under} y=${(car.location.y - a.gy).toFixed(3)}`,
+      };
+    });
+  } finally {
+    a.dim.runCommand(`fill 93 ${floor} 1 98 ${floor} 58 stone`);
+  }
 }
 
 function step2(
@@ -1857,6 +1896,8 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
     ["boat_cruise", 235, () => boatCruise(a)],
     ["boat_shore", 165, () => boatShore(a)],
     ["boat_ram", 76, () => boatRam(a)],
+    // Estimate until CI reports measured ticks (ADR 0054).
+    ["suv_soul_sand", 200, () => suvSoulSand(a)],
   ];
   const shards = shardsOf(
     allTests.map(([, ticks]) => ticks),
