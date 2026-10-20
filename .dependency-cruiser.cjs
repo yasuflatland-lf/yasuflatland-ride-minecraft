@@ -1,4 +1,4 @@
-// Architecture rules (ADR 0012, 0046, 0055, 0065), checked by `pnpm lint:deps`.
+// Architecture rules (ADR 0012, 0046, 0055, 0065, 0072), checked by `pnpm lint:deps`.
 const LAYER = "(?:domain|application|infrastructure)";
 const KINDS = "^src/domain/vehicle/kinds/";
 
@@ -69,6 +69,14 @@ module.exports = {
       severity: "error",
       from: { path: "^src/(?:application|infrastructure)/" },
       to: { path: KINDS, pathNot: `${KINDS}index\\.ts$` },
+    },
+    {
+      name: "outer-layer-imports-motion",
+      comment:
+        "Application and infrastructure reach motion/ only through a kind (ADR 0072).",
+      severity: "error",
+      from: { path: "^src/(?:application|infrastructure)/" },
+      to: { path: "^src/domain/vehicle/motion/" },
     },
     {
       name: "kind-names-import-nothing",
