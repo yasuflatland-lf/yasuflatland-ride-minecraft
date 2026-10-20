@@ -35,7 +35,7 @@ The boat seats 4. The first player to get in drives from the front-right seat an
 - **Deck.** A boat that floats still with no driver for a second holds its place and lays an invisible floor, so players can walk on its deck. Choose a seat by right-clicking it on PC or long-pressing it on mobile. When the deck driver pushes the stick, seated players board the boat in seat order and it sets off; a passenger may move to a lower seat if lower seats were empty. Only the deck driver can set off. Driving off clears the floor and deck seats
 - **Wake and attitude.** While it moves faster than 2 blocks a second, bubbles and foam stream from the jet nozzles under the stern. The bow lifts while the boat gains speed and settles once it reaches a steady speed, and the hull leans into turns, more at higher speed
 - **Engine sound.** While someone rides, a V8 burbles with its exhaust bubbling under the water, and the revs and the hiss of the water rise in eight steps with the speed
-- **Shores.** It cannot leave the water: shores stop it, and it cannot drive on land. A boat placed on land coasts to a stop
+- **Shores.** It cannot drive forward onto land: shores stop it. On land, whether it was placed there, pushed there by a piston, or left there when the water drained, it can only reverse, slowly, so you can back it into the water. It cannot climb a block in either direction
 - **Ramming.** It damages mobs it hits at speed. The boat and the people inside take no damage
 - **Headlights.** Two beams light the water up to about 60 blocks ahead
 - **Paint.** The hull starts black. Each of the 16 dyes repaints it in that dye's color, and brown dye turns it back to black; black or brown dye on a black hull does nothing and keeps the dye; each repaint uses one dye

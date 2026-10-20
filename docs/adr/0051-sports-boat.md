@@ -1,6 +1,6 @@
 # 0051. Sports boat
 
-- Status: Superseded in part by 0066 (counting boats under the world limit of 10); extended by 0058 and 0063
+- Status: Superseded in part by 0066 (counting boats under the world limit of 10) and 0080 (a beached boat coasting to a stop, and the boat never leaving the water by itself); extended by 0058 and 0063
 - Date: 2026-10-12
 
 ## Context
@@ -32,3 +32,5 @@ The [sports boat spike](../spike-sportsboat.md) tried a separate driven entity m
 [0053](0053-estimate-buoyant-boat-water-drag.md) measures the water drag and estimates it every tick.
 
 [0058](0058-refine-the-sports-boat-interior.md) refines the interior, helm, wheel, speakers, and top of the spike's model.
+
+[0080](0080-beached-sports-boat-can-reverse.md) lets a beached boat reverse back into the water.

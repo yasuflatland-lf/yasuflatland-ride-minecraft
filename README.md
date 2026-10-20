@@ -23,7 +23,7 @@ This add-on holds only rides. House-building parts will ship as a separate add-o
 | Vehicle | What it does | Details |
 |---|---|---|
 | **SUV** | Drives on land, flies, and dives as a submarine. Every player gets one on their first join | [Controls and details](docs/vehicles/suv.md) |
-| **Sports boat** | Drives on water; shores stop it | [Controls and details](docs/vehicles/sportsboat.md) |
+| **Sports boat** | Drives on water; shores stop it, and on land it can only reverse | [Controls and details](docs/vehicles/sportsboat.md) |
 | **Camper** | Drives, flies, and dives like the SUV, with a long body and a facing dinette | [Controls and details](docs/vehicles/camper.md) |
 
 All three seat 4, can be repainted with any of the 16 dyes, and light the way with a headlight switch item. Each can be placed from its item and broken back into it. Each player keeps at most 10 SUVs, 1 sports boat, and 1 camper: placing one more removes that player's oldest of that kind.
