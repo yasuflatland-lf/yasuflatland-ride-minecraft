@@ -1,4 +1,4 @@
-// Kind-neutral hold pose and the cells a stopped vehicle lays (ADR 0063).
+// Kind-neutral hold pose and the cells a stopped vehicle lays (ADR 0063, 0068).
 import { type Cell, cellKey } from "./headlights";
 
 export interface HoldPose {

@@ -1,4 +1,4 @@
-// Persistent blocks that held vehicles lay: decks, and a parked camper's room (ADR 0063).
+// Persistent blocks that held vehicles lay: decks, and a parked camper's room (ADR 0063, 0068).
 import {
   BlockPermutation,
   type Dimension,
