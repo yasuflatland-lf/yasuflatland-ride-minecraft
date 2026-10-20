@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
-import { forward } from "../../../src/domain/shared/vec";
+import { forward, normalizeYaw } from "../../../src/domain/shared/vec";
 import type { TickContext } from "../../../src/domain/vehicle/drive";
 import { SportsboatDrive } from "../../../src/domain/vehicle/kinds/sportsboat/drive";
 import { SuvDrive } from "../../../src/domain/vehicle/kinds/suv/drive";
@@ -75,7 +75,9 @@ it("aligns a boat below mountAlignSpeed and keeps its heading at or above it, wi
           const before = drive.yaw;
           drive.onDriverMounted(driverYaw);
           expect(drive.yaw).toBe(
-            Math.abs(speed) < MOTION.mountAlignSpeed ? driverYaw : before,
+            Math.abs(speed) < MOTION.mountAlignSpeed
+              ? normalizeYaw(driverYaw)
+              : before,
           );
           expect(drive.speed).toBe(speed);
         }
@@ -90,7 +92,7 @@ it("aligns a stopped SUV but keeps a moving SUV's heading and speed on mounting 
       const driverYaw = heading + turn;
       const stopped = new SuvDrive(heading, {});
       stopped.onDriverMounted(driverYaw);
-      expect(stopped.yaw).toBe(driverYaw);
+      expect(stopped.yaw).toBe(normalizeYaw(driverYaw));
       expect(stopped.speed).toBe(0);
       for (const moveY of [-1, 1]) {
         const drive = new SuvDrive(heading, {});
