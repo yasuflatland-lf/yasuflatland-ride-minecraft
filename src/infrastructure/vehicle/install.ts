@@ -11,6 +11,7 @@ import { SwitchHeadlights } from "../../application/vehicle/switchHeadlights";
 import { UseDockDoor } from "../../application/vehicle/useDockDoor";
 import { fleetLimitOf } from "../../domain/vehicle/kinds/index";
 import { NAMESPACE } from "../shared/identifiers";
+import { BedrockFleetWorld } from "./bedrock/bedrockFleetWorld";
 import { BedrockHeadlightWorld } from "./bedrock/bedrockHeadlightWorld";
 import { BedrockHintWorld } from "./bedrock/bedrockHintWorld";
 import { BedrockInventory } from "./bedrock/bedrockInventory";
@@ -29,6 +30,7 @@ export function installVehicles(): void {
   const index = new EntityIndex();
   const inventory = new BedrockInventory(index);
   const bedrock = new BedrockVehicleWorld(index, store);
+  const fleetWorld = new BedrockFleetWorld(index, bedrock.releaser);
   const log = { warn: (m: string) => console.warn(`[${NAMESPACE}] ${m}`) };
   const fleets = new DynamicPropertyFleetRepository(log, fleetLimitOf);
   registerSubscriptions(
@@ -36,8 +38,8 @@ export function installVehicles(): void {
       drive: new DriveVehicles(bedrock, repo, log),
       place: new PlaceVehicle(new BedrockPlacementWorld(inventory), repo),
       starter: new GiveStarterVehicle(inventory),
-      hit: new HitVehicle(bedrock, repo, fleets),
-      limit: new LimitVehicles(bedrock, repo, fleets, log),
+      hit: new HitVehicle(fleetWorld, repo, fleets),
+      limit: new LimitVehicles(fleetWorld, repo, fleets, log),
       paint: new PaintVehicle(new BedrockPaintWorld(index, inventory)),
       headlights: new SwitchHeadlights(new BedrockHeadlightWorld(index), repo),
       door: new UseDockDoor(repo),

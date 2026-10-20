@@ -102,7 +102,7 @@ export class FakeWorld
   failCameraOn: string | undefined;
   failBreathingOn: string | undefined;
   failRemoveOn: string | undefined;
-  failShineOn: string | undefined;
+  failReleaseOn: string | undefined;
   readonly calls: string[] = [];
   private nextId = 1;
 
@@ -204,8 +204,11 @@ export class FakeWorld
     this.calls.push(`damage:${hit.id}:${attackerId ?? "-"}`);
   }
   shineHeadlights(id: string, cells: readonly Cell[]) {
-    if (id === this.failShineOn) throw new Error("lights");
     this.shone.set(id, cells);
+  }
+  releaseVehicle(id: string) {
+    if (id === this.failReleaseOn) throw new Error("release");
+    this.calls.push(`release:${id}`);
   }
   headlightsOn(id: string) {
     return this.headlights.get(id);

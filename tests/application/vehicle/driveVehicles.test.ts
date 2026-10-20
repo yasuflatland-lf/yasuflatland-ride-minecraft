@@ -105,29 +105,21 @@ describe("DriveVehicles", () => {
     expect(world.calls).toContain("motion:a:0");
   });
 
-  it.each(["shineHeadlights", "layDock", "holdAt", "keepDeckSeats"] as const)(
-    "clears all resources of a disappeared vehicle even when %s fails",
-    (failed) => {
-      const world = new FakeWorld();
-      const repo = new InMemoryRepo();
-      repo.save(createVehicle("suv", "gone", 0));
-      const log = logger();
-      const shine = vi.spyOn(world, "shineHeadlights");
-      const floor = vi.spyOn(world, "layDock");
-      const hold = vi.spyOn(world, "holdAt");
-      const seats = vi.spyOn(world, "keepDeckSeats");
-      vi.spyOn(world, failed).mockImplementation(() => {
-        throw new Error("cleanup");
-      });
-      new DriveVehicles(world, repo, log).execute(0);
-      expect(shine).toHaveBeenCalledWith("gone", []);
-      expect(floor).toHaveBeenCalledWith("gone", []);
-      expect(hold).toHaveBeenCalledWith("gone", undefined);
-      expect(seats).toHaveBeenCalledWith("gone", [], 0);
-      expect(log.lines).toEqual(["gone: Error: cleanup"]);
-      expect(repo.ids()).toEqual([]);
-    },
-  );
+  it("releases each vehicle that is no longer loaded once, and logs a failed release without skipping the others", () => {
+    const world = new FakeWorld();
+    const repo = new InMemoryRepo();
+    const log = logger();
+    repo.save(createVehicle("suv", "stuck", 0));
+    repo.save(createVehicle("suv", "gone", 0));
+    world.snapshots = [snapshot("a")];
+    world.failReleaseOn = "stuck";
+    new DriveVehicles(world, repo, log).execute(0);
+    expect(world.calls.filter((c) => c.startsWith("release:"))).toEqual([
+      "release:gone",
+    ]);
+    expect(log.lines).toEqual(["stuck: Error: release"]);
+    expect(repo.ids()).toEqual(["a"]);
+  });
 
   it("forwards ram hits to the world with the driver as the attacker", () => {
     const driver = {
@@ -188,9 +180,9 @@ describe("DriveVehicles", () => {
     world.snapshots = [snapshot("a")];
     new DriveVehicles(world, repo, logger()).execute(0);
     expect(repo.ids()).toEqual(["a"]);
-    expect(world.docks.get("gone")).toEqual([]);
-    expect(world.held.has("gone")).toBe(true);
-    expect(world.held.get("gone")).toBeUndefined();
+    expect(world.calls.filter((c) => c.startsWith("release:"))).toEqual([
+      "release:gone",
+    ]);
   });
 
   it("keeps moving the other vehicles and logs the error when one vehicle throws", () => {
@@ -403,29 +395,6 @@ describe("DriveVehicles", () => {
       headlightCells(location, 30, SUV_PROFILE.beams),
     );
     expect(world.shone.get("off")).toEqual([]);
-  });
-
-  it("clears the lights of a vehicle that is no longer loaded", () => {
-    const world = new FakeWorld();
-    const repo = new InMemoryRepo();
-    repo.save(createVehicle("suv", "gone", 0));
-    world.shone.set("gone", [{ x: 0, y: 0, z: 4 }]);
-    new DriveVehicles(world, repo, logger()).execute(0);
-    expect(world.shone.get("gone")).toEqual([]);
-  });
-
-  it("logs a failed light clear of an unloaded vehicle and still clears and forgets the others", () => {
-    const world = new FakeWorld();
-    const repo = new InMemoryRepo();
-    const log = logger();
-    repo.save(createVehicle("suv", "stuck", 0));
-    repo.save(createVehicle("suv", "gone", 0));
-    world.shone.set("gone", [{ x: 0, y: 0, z: 4 }]);
-    world.failShineOn = "stuck";
-    new DriveVehicles(world, repo, log).execute(0);
-    expect(log.lines).toEqual(["stuck: Error: lights"]);
-    expect(world.shone.get("gone")).toEqual([]);
-    expect(repo.ids()).toEqual([]);
   });
 });
 

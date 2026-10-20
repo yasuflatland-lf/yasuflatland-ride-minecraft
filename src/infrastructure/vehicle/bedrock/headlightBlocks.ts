@@ -24,8 +24,8 @@ function isCell(v: unknown): v is Cell {
 
 // The cells a vehicle lit are saved on the entity, so a /reload or a restart
 // can still clear them.
-function savedCells(car: Entity): Cell[] {
-  const raw = car.getDynamicProperty(LIT_CELLS_PROPERTY);
+function savedCells(vehicle: Entity): Cell[] {
+  const raw = vehicle.getDynamicProperty(LIT_CELLS_PROPERTY);
   if (typeof raw !== "string") return [];
   try {
     const parsed: unknown = JSON.parse(raw);
@@ -38,23 +38,27 @@ function savedCells(car: Entity): Cell[] {
 export class HeadlightBlocks {
   private readonly lit = new Map<string, Lit>();
 
-  /** `car` is undefined when the vehicle is gone; its cells are then only cleared. */
-  shine(vehicleId: string, car: Entity | undefined, wanted: readonly Cell[]) {
+  /** `vehicle` is undefined when the entity is gone; its cells are then only cleared. */
+  shine(
+    vehicleId: string,
+    vehicle: Entity | undefined,
+    wanted: readonly Cell[],
+  ) {
     let entry = this.lit.get(vehicleId);
     if (!entry) {
-      if (!car) return;
-      entry = { dimension: car.dimension, cells: savedCells(car) };
+      if (!vehicle) return;
+      entry = { dimension: vehicle.dimension, cells: savedCells(vehicle) };
     }
-    if (car && car.dimension.id !== entry.dimension.id) {
+    if (vehicle && vehicle.dimension.id !== entry.dimension.id) {
       this.update(entry, []);
-      entry = { dimension: car.dimension, cells: [] };
+      entry = { dimension: vehicle.dimension, cells: [] };
     }
     const before = entry.cells.map(cellKey).join(";");
-    this.update(entry, car ? wanted : []);
+    this.update(entry, vehicle ? wanted : []);
     if (entry.cells.length > 0) this.lit.set(vehicleId, entry);
     else this.lit.delete(vehicleId);
-    if (car?.isValid && entry.cells.map(cellKey).join(";") !== before) {
-      car.setDynamicProperty(
+    if (vehicle?.isValid && entry.cells.map(cellKey).join(";") !== before) {
+      vehicle.setDynamicProperty(
         LIT_CELLS_PROPERTY,
         entry.cells.length > 0 ? JSON.stringify(entry.cells) : undefined,
       );

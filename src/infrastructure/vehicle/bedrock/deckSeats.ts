@@ -20,8 +20,8 @@ const TELEPORT_TOLERANCE = 0.05;
 const ORPHAN_MARGIN = 5;
 const ORPHAN_RADIUS = DECK_SEAT_REACH + ORPHAN_MARGIN;
 
-function savedIds(car: Entity): (string | null)[] {
-  const raw = car.getDynamicProperty(DECK_SEATS_PROPERTY);
+function savedIds(vehicle: Entity): (string | null)[] {
+  const raw = vehicle.getDynamicProperty(DECK_SEATS_PROPERTY);
   if (typeof raw !== "string") return [];
   try {
     const parsed: unknown = JSON.parse(raw);
@@ -64,35 +64,35 @@ export function removeOrphanDeckSeat(seat: Entity): void {
 export class DeckSeats {
   private readonly kept = new Map<string, (string | null)[]>();
 
-  private ids(car: Entity): (string | null)[] {
-    const ids = this.kept.get(car.id) ?? savedIds(car);
-    this.kept.set(car.id, ids);
+  private ids(vehicle: Entity): (string | null)[] {
+    const ids = this.kept.get(vehicle.id) ?? savedIds(vehicle);
+    this.kept.set(vehicle.id, ids);
     return ids;
   }
 
   keep(
     vehicleId: string,
-    car: Entity | undefined,
+    vehicle: Entity | undefined,
     positions: readonly (Vec3 | undefined)[],
     yaw: number,
   ): void {
-    const ids = car ? this.ids(car) : (this.kept.get(vehicleId) ?? []);
+    const ids = vehicle ? this.ids(vehicle) : (this.kept.get(vehicleId) ?? []);
     const before = JSON.stringify(ids);
-    const wanted = car ? positions : [];
+    const wanted = vehicle ? positions : [];
     for (let index = 0; index < Math.max(ids.length, wanted.length); index++) {
       let seat = seatEntity(ids[index], vehicleId);
       const at = wanted[index];
-      if (!at || !car) {
+      if (!at || !vehicle) {
         seat?.remove();
         ids[index] = null;
         continue;
       }
-      if (seat && seat.dimension.id !== car.dimension.id) {
+      if (seat && seat.dimension.id !== vehicle.dimension.id) {
         seat.remove();
         seat = undefined;
       }
       if (!seat) {
-        seat = car.dimension.spawnEntity(DECK_SEAT_TYPE, at);
+        seat = vehicle.dimension.spawnEntity(DECK_SEAT_TYPE, at);
         seat.setDynamicProperty(DECK_SEAT_OF_PROPERTY, vehicleId);
         seat.setRotation({ x: 0, y: yaw });
         ids[index] = seat.id;
@@ -109,22 +109,24 @@ export class DeckSeats {
     ids.length = wanted.length;
     if (ids.length > 0) this.kept.set(vehicleId, ids);
     else this.kept.delete(vehicleId);
-    if (car?.isValid && JSON.stringify(ids) !== before)
-      car.setDynamicProperty(
+    if (vehicle?.isValid && JSON.stringify(ids) !== before)
+      vehicle.setDynamicProperty(
         DECK_SEATS_PROPERTY,
         ids.length > 0 ? JSON.stringify(ids) : undefined,
       );
   }
 
-  riders(car: Entity): (Player | undefined)[] {
-    return this.ids(car).map((id) => seatedPlayer(seatEntity(id, car.id)));
+  riders(vehicle: Entity): (Player | undefined)[] {
+    return this.ids(vehicle).map((id) =>
+      seatedPlayer(seatEntity(id, vehicle.id)),
+    );
   }
 
-  board(car: Entity): void {
-    const rideable = car.getComponent("minecraft:rideable");
+  board(vehicle: Entity): void {
+    const rideable = vehicle.getComponent("minecraft:rideable");
     if (!rideable) return;
-    for (const id of this.ids(car)) {
-      const seat = seatEntity(id, car.id);
+    for (const id of this.ids(vehicle)) {
+      const seat = seatEntity(id, vehicle.id);
       const seatRideable = seat?.getComponent("minecraft:rideable");
       const player = seatedPlayer(seat);
       if (!player || !seatRideable) continue;

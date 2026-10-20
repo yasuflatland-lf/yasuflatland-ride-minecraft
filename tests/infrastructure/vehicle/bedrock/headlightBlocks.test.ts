@@ -90,4 +90,31 @@ describe("HeadlightBlocks (ADR 0020)", () => {
       }),
     );
   });
+
+  it("turns the old dimension's light back into air and lights the new one when the vehicle changes dimension", () => {
+    fc.assert(
+      fc.property(cells, (wanted) => {
+        const overworld = blockGrid();
+        const nether = blockGrid();
+        const car = vehicleIn(overworld);
+        const lights = new HeadlightBlocks();
+        lights.shine(car.id, car, wanted);
+        Object.assign(car, {
+          dimension: { id: "nether", getBlock: nether.getBlock },
+        });
+        lights.shine(car.id, car, wanted);
+        expect(wanted.map(overworld.typeAt)).toEqual(
+          wanted.map(() => "minecraft:air"),
+        );
+        expect(wanted.map(nether.typeAt)).toEqual(
+          wanted.map(() => LIGHT_BLOCK),
+        );
+      }),
+    );
+  });
+
+  it("does nothing for a gone vehicle it has not lit", () => {
+    const lights = new HeadlightBlocks();
+    expect(() => lights.shine("gone", undefined, [])).not.toThrow();
+  });
 });
