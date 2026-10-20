@@ -7,7 +7,8 @@ export type IsAir = (dx: number, dy: number, dz: number) => boolean;
 /**
  * The cells that must be air for a kind to be placed: -halfX..halfX,
  * -halfZ..halfZ, and 1..height above the block. It must cover the kind's
- * collision box (ADR 0055).
+ * collision box (ADR 0055); tests/packs/placementClearance.test.ts checks
+ * this against each entity file.
  */
 export interface Clearance {
   readonly halfX: number;
