@@ -3,7 +3,7 @@ export const MOTION = {
   mountAlignSpeed: 0.01, // Below this speed, align the vehicle with the driver's view on entry
   // Friction and walls (ADR 0003)
   defaultFriction: 0.69,
-  frictionMin: 0.5,
+  frictionMin: 0.2, // Lowest surface the estimate learns (ADR 0082)
   frictionMax: 1,
   frictionEma: 0.2,
   airFriction: 0.91,
@@ -13,6 +13,9 @@ export const MOTION = {
   // Below this heading component along a wall, about 3 degrees from head-on,
   // a vehicle stops at the wall instead of sliding along it (ADR 0081).
   wallSlideMinCos: 0.05,
+  // The engine zeroes a walled axis, so a kept ratio this low means a wall,
+  // not a slow surface (ADR 0082).
+  wallKeptMax: 0.15,
   minExpectedForFriction: 0.05,
   // Steps (ADR 0004)
   stepVelocity: 0.75,

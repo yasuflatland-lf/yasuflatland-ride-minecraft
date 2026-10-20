@@ -6,7 +6,7 @@ This directory records design decisions and the reasons behind them. The format 
 |---|---|---|
 | [0001](0001-bedrock-addon-with-stable-script-api.md) | Build a Bedrock add-on and use only the stable Script API | Accepted |
 | [0002](0002-script-driven-vehicle-movement.md) | Drive vehicles by setting their velocity from the script | Extended by 0074 |
-| [0003](0003-friction-compensation-and-axis-wall-detection.md) | Estimate and compensate for ground friction, and detect wall collisions per axis | Superseded in part by 0077 and 0081 |
+| [0003](0003-friction-compensation-and-axis-wall-detection.md) | Estimate and compensate for ground friction, and detect wall collisions per axis | Superseded in part by 0077, 0081, and 0082 |
 | [0004](0004-two-block-step-up-by-look-ahead.md) | Climb two-block steps by looking ahead in the script | Superseded in part by 0035 |
 | [0005](0005-touch-throttle-compensation.md) | Compensate the throttle from the mobile joystick | Superseded by 0018 |
 | [0006](0006-ram-damage-and-occupant-protection.md) | Ram damage detection, and always protecting occupants | Accepted |
@@ -85,6 +85,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0079](0079-roll-by-signed-speed.md) | Roll the sports boat by its signed speed | Accepted |
 | [0080](0080-beached-sports-boat-can-reverse.md) | A beached sports boat can only reverse | Accepted |
 | [0081](0081-slide-along-walls.md) | Slide along walls | Accepted |
+| [0082](0082-learn-strongly-slowing-surfaces.md) | Learn strongly slowing surfaces | Accepted |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 
