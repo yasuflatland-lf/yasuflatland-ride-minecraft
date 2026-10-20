@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { asVehicleId } from "../../../src/domain/shared/ids";
 import {
   dot,
   forward,
@@ -66,7 +67,7 @@ class FlightSim {
   riders: { id: string; seat: number }[] = [];
 
   constructor(
-    readonly vehicle: Vehicle = createVehicle("suv", "car", 0),
+    readonly vehicle: Vehicle = createVehicle("suv", asVehicleId("car"), 0),
     form: Form = "car",
   ) {
     this.form = form;
@@ -318,7 +319,7 @@ describe("Vehicle in flight (ADR 0021)", () => {
 
   it("keeps flying without reporting a change when rebuilt in flight", () => {
     const sim = new FlightSim(
-      rebuildVehicle("suv", "car", 0, [], { form: "hover" }),
+      rebuildVehicle("suv", asVehicleId("car"), 0, [], { form: "hover" }),
       "hover",
     );
     sim.y = 5;
@@ -371,7 +372,7 @@ describe("Vehicle banking (ADR 0026)", () => {
         (inputs) => {
           const drive = new SuvDrive(0, { form: "hover" });
           const sim = new FlightSim(
-            new Vehicle("car", SUV_PROFILE, drive),
+            new Vehicle(asVehicleId("car"), SUV_PROFILE, drive),
             "hover",
           );
           sim.y = 1000;
@@ -405,7 +406,7 @@ describe("Vehicle banking (ADR 0026)", () => {
 
   function flying(): FlightSim {
     const sim = new FlightSim(
-      rebuildVehicle("suv", "car", 0, [], { form: "hover" }),
+      rebuildVehicle("suv", asVehicleId("car"), 0, [], { form: "hover" }),
       "hover",
     );
     sim.y = 10;
@@ -520,7 +521,7 @@ function riddenFlyingSim(
   kind: "suv" | "camper",
   extra: { id: string; seat: number }[] = [],
 ): FlightSim {
-  const sim = new FlightSim(createVehicle(kind, "car", 0));
+  const sim = new FlightSim(createVehicle(kind, asVehicleId("car"), 0));
   sim.riders = [{ id: "P", seat: 0 }, { id: "Q", seat: 1 }, ...extra];
   sim.doubleTap();
   sim.run(IDLE, TAKEOFF_TICKS[kind]);
@@ -599,7 +600,7 @@ describe("Driver handover in flight (ADR 0078)", () => {
         raw: IDLE,
       };
       const sim = new FlightSim(
-        rebuildVehicle(kind, "car", 0, [q], { form: "hover" }),
+        rebuildVehicle(kind, asVehicleId("car"), 0, [q], { form: "hover" }),
         "hover",
       );
       sim.y = 5;

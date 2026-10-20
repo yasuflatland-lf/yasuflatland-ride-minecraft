@@ -1,3 +1,4 @@
+import { asVehicleId } from "../../../domain/shared/ids";
 import {
   HEADLIGHTS_PROPERTY_NAME,
   paintEventName,
@@ -126,7 +127,7 @@ export function fleetEntryOf(entity: {
   if (kind === undefined) return undefined;
   const owner = entity.getDynamicProperty(OWNER_PROPERTY);
   return {
-    id: entity.id,
+    id: asVehicleId(entity.id),
     kind,
     owner: typeof owner === "string" && owner.length > 0 ? owner : undefined,
   };

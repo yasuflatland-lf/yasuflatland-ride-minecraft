@@ -1,3 +1,4 @@
+import type { VehicleId } from "../../../domain/shared/ids";
 // Ports the per-tick drive requires from the game; implemented in the infrastructure layer (ADR 0012).
 import type { Vec3 } from "../../../domain/shared/vec";
 import type { ClearCell, Departure } from "../../../domain/vehicle/dock/dock";
@@ -20,7 +21,7 @@ import type { RiderView } from "../../../domain/vehicle/vehicle";
 
 export interface VehicleSnapshot {
   kind: VehicleKind;
-  id: string;
+  id: VehicleId;
   location: Vec3;
   yaw: number;
   velocity: Vec3;
@@ -35,33 +36,36 @@ export interface VehicleSnapshot {
 export interface DriveWorld {
   loadedVehicles(): VehicleSnapshot[];
   keepDeckSeats(
-    vehicleId: string,
+    vehicleId: VehicleId,
     positions: readonly (Vec3 | undefined)[],
     yaw: number,
   ): void;
-  boardDeckRiders(vehicleId: string): void;
-  waterAt(vehicleId: string, offset: Vec3): boolean;
-  solidAt(vehicleId: string, offset: Vec3): boolean;
-  targetsNear(vehicleId: string): RamTarget[];
+  boardDeckRiders(vehicleId: VehicleId): void;
+  waterAt(vehicleId: VehicleId, offset: Vec3): boolean;
+  solidAt(vehicleId: VehicleId, offset: Vec3): boolean;
+  targetsNear(vehicleId: VehicleId): RamTarget[];
   /** While a pose is set, teleports the vehicle there and clears its velocity every tick instead of applying the impulse. */
-  holdAt(vehicleId: string, pose: HoldPose | undefined): void;
+  holdAt(vehicleId: VehicleId, pose: HoldPose | undefined): void;
   /**
    * Keeps exactly these dock cells for the vehicle and clears the ones it laid before.
    */
-  layDock(vehicleId: string, cells: readonly DockCell[]): void;
+  layDock(vehicleId: VehicleId, cells: readonly DockCell[]): void;
   /** See TickContext.blockTypes; world cells, in the vehicle's dimension. */
-  blockTypes(vehicleId: string, cells: readonly Vec3[]): (string | undefined)[];
+  blockTypes(
+    vehicleId: VehicleId,
+    cells: readonly Vec3[],
+  ): (string | undefined)[];
   /** Sets each cell to air if it still holds the type it had at the check. */
-  clearBlocks(vehicleId: string, cells: readonly ClearCell[]): void;
+  clearBlocks(vehicleId: VehicleId, cells: readonly ClearCell[]): void;
   /** Shows the lang key yasu_ride.message.<name> on a player's action bar; does nothing for a missing player. */
   showMessage(playerId: string, name: string): void;
   /**
    * Seats the players standing in the departure's boxes, nearest to the vehicle first,
    * and moves those left without a seat to the exit.
    */
-  seatStandingPlayers(vehicleId: string, departure: Departure): void;
-  applyMotion(vehicleId: string, impulse: Vec3, yaw: number): void;
-  run(vehicleId: string, commands: readonly EngineCommand[]): void;
+  seatStandingPlayers(vehicleId: VehicleId, departure: Departure): void;
+  applyMotion(vehicleId: VehicleId, impulse: Vec3, yaw: number): void;
+  run(vehicleId: VehicleId, commands: readonly EngineCommand[]): void;
   /** Switches a player's view to a third-person camera, or back to their own when undefined (ADR 0028, 0071). */
   setChaseCamera(playerId: string, camera: ChaseCamera | undefined): void;
   /** Refreshes water breathing; does nothing for a missing player (ADR 0040). */
@@ -71,13 +75,13 @@ export interface DriveWorld {
    * Keeps light blocks in exactly these cells for the vehicle and clears the
    * ones it lit before.
    */
-  shineHeadlights(vehicleId: string, cells: readonly Cell[]): void;
+  shineHeadlights(vehicleId: VehicleId, cells: readonly Cell[]): void;
   /**
    * Releases everything the world keeps for a vehicle that is no longer loaded:
    * its light blocks, dock cells, deck seats and hold. Every part is attempted
    * even when one fails; the first failure is then thrown.
    */
-  releaseVehicle(vehicleId: string): void;
+  releaseVehicle(vehicleId: VehicleId): void;
 }
 
 export interface HintPlayerView {
@@ -92,7 +96,7 @@ export interface HintPlayerView {
 }
 
 export interface HintVehicleView {
-  id: string;
+  id: VehicleId;
   dimensionId: string;
   location: Vec3;
 }

@@ -1,3 +1,4 @@
+import { asVehicleId } from "../../../domain/shared/ids";
 // Reads and writes the fleet stored as JSON in a dynamic property (ADR 0038, ADR 0066).
 import type {
   FleetEntry,
@@ -18,10 +19,10 @@ function parseEntry(value: unknown): FleetEntry {
   const { id, kind, owner } = value as Record<string, unknown>;
   if (typeof id !== "string") throw new Error("order entry id is not a string");
   if (!isVehicleKind(kind)) throw new Error("order entry kind is unknown");
-  if (owner === undefined) return { id, kind };
+  if (owner === undefined) return { id: asVehicleId(id), kind };
   if (typeof owner !== "string")
     throw new Error("order entry owner is not a string");
-  return { id, kind, owner };
+  return { id: asVehicleId(id), kind, owner };
 }
 
 /** Throws with the reason when `raw` is not a stored fleet. */
@@ -35,13 +36,13 @@ export function parseFleetState(raw: unknown): FleetState {
     if (!Array.isArray(order))
       throw new Error("order is not a list of entries");
     if (!isIdList(evicted)) throw new Error("evicted is not a list of ids");
-    return { order: order.map(parseEntry), evicted };
+    return { order: order.map(parseEntry), evicted: evicted.map(asVehicleId) };
   }
   if ("version" in v) throw new Error("unsupported fleet version");
   if (!isIdList(order) || !isIdList(evicted))
     throw new Error("order or evicted is not a list of ids");
   // Found vehicles rejoin as oldest with their real kind and owner (ADR 0066).
-  return { order: [], evicted };
+  return { order: [], evicted: evicted.map(asVehicleId) };
 }
 
 export function serializeFleetState(state: FleetState): string {

@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
+import { asVehicleId } from "../../../src/domain/shared/ids";
 import type { EngineCommand } from "../../../src/domain/vehicle/drive";
 import type {
   EntityContract,
@@ -73,7 +74,7 @@ it.each(VEHICLE_KINDS)(
         number(-180, 180),
         fc.array(sample, { minLength: 200, maxLength: 200 }),
         (yaw, samples) => {
-          const vehicle = createVehicle(kind, "v", yaw);
+          const vehicle = createVehicle(kind, asVehicleId("v"), yaw);
           const contract = entityContractOf(kind);
           samples.forEach((s, tick) => {
             const out = vehicle.tick({

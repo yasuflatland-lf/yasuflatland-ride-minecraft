@@ -11,6 +11,7 @@ import type {
   HintVehicleView,
   HintWorld,
 } from "../../../application/vehicle/ports/drive";
+import { asVehicleId } from "../../../domain/shared/ids";
 import type {
   HeldItem,
   Hint,
@@ -74,7 +75,7 @@ export class BedrockHintWorld implements HintWorld {
         return car.isValid
           ? [
               {
-                id: car.id,
+                id: asVehicleId(car.id),
                 dimensionId: car.dimension.id,
                 location: car.location,
               },

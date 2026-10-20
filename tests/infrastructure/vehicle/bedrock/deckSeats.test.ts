@@ -1,6 +1,7 @@
 import type { Entity } from "@minecraft/server";
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
+import { asVehicleId } from "../../../../src/domain/shared/ids";
 import type { Vec3 } from "../../../../src/domain/shared/vec";
 import { DECK_SEAT_REACH } from "../../../../src/domain/vehicle/kinds/index";
 import {
@@ -82,7 +83,7 @@ it("restores seat ownership, replaces missing seats, moves drifted seats and cle
       fc.integer({ min: -180, max: 180 }),
       (positions, yaw) => {
         const f = fixture();
-        new DeckSeats().keep(f.car.id, f.car, positions, yaw);
+        new DeckSeats().keep(asVehicleId(f.car.id), f.car, positions, yaw);
         const ids: string[] = JSON.parse(
           String(f.boat.saved.get(DECK_SEATS_PROPERTY)),
         );
@@ -94,24 +95,24 @@ it("restores seat ownership, replaces missing seats, moves drifted seats and cle
           expect(seat?.setRotation).toHaveBeenCalledWith({ x: 0, y: yaw });
         });
         const reloaded = new DeckSeats();
-        reloaded.keep(f.car.id, f.car, positions, yaw);
+        reloaded.keep(asVehicleId(f.car.id), f.car, positions, yaw);
         expect(f.dimension.spawnEntity).toHaveBeenCalledTimes(4);
         for (const id of ids)
           expect(f.entities.get(id)?.teleport).not.toHaveBeenCalled();
         f.entities.get(ids[0] ?? "")?.remove();
         const shifted = positions.map((p) => ({ ...p, x: p.x + 1 }));
-        reloaded.keep(f.car.id, f.car, shifted, yaw);
+        reloaded.keep(asVehicleId(f.car.id), f.car, shifted, yaw);
         expect(f.dimension.spawnEntity).toHaveBeenCalledTimes(5);
-        reloaded.clearGone(new Set([f.car.id]));
+        reloaded.clearGone(new Set([asVehicleId(f.car.id)]));
         expect(
           f.dimension.getEntities().filter((e) => e.typeId === DECK_SEAT_TYPE),
         ).toHaveLength(4);
-        reloaded.keep(f.car.id, f.car, [], yaw);
+        reloaded.keep(asVehicleId(f.car.id), f.car, [], yaw);
         expect(f.boat.saved.get(DECK_SEATS_PROPERTY)).toBeUndefined();
         expect(
           f.dimension.getEntities().filter((e) => e.typeId === DECK_SEAT_TYPE),
         ).toEqual([]);
-        reloaded.keep(f.car.id, f.car, positions, yaw);
+        reloaded.keep(asVehicleId(f.car.id), f.car, positions, yaw);
         reloaded.clearGone(new Set());
         expect(
           f.dimension.getEntities().filter((e) => e.typeId === DECK_SEAT_TYPE),
@@ -127,7 +128,7 @@ it("boards occupied deck seats in index order across gaps", () => {
       const f = fixture();
       const seats = new DeckSeats();
       seats.keep(
-        f.car.id,
+        asVehicleId(f.car.id),
         f.car,
         Array.from({ length: 4 }, () => ({ x: 0, y: 0, z: 0 })),
         0,
@@ -160,7 +161,7 @@ it("boards occupied deck seats in index order across gaps", () => {
 
 it("removes a loaded orphan and preserves a seat with a nearby loaded owner", () => {
   const f = fixture();
-  new DeckSeats().keep(f.car.id, f.car, [{ x: 0, y: 0, z: 0 }], 0);
+  new DeckSeats().keep(asVehicleId(f.car.id), f.car, [{ x: 0, y: 0, z: 0 }], 0);
   const seat = f.dimension
     .getEntities()
     .find((e) => e.typeId === DECK_SEAT_TYPE);
@@ -184,12 +185,12 @@ it("removes only the deck seats whose boat seat is taken and keeps the others in
       (positions, taken) => {
         const f = fixture();
         const seats = new DeckSeats();
-        seats.keep(f.car.id, f.car, positions, 0);
+        seats.keep(asVehicleId(f.car.id), f.car, positions, 0);
         const ids: string[] = JSON.parse(
           String(f.boat.saved.get(DECK_SEATS_PROPERTY)),
         );
         seats.keep(
-          f.car.id,
+          asVehicleId(f.car.id),
           f.car,
           positions.map((at, seat) => (taken.includes(seat) ? undefined : at)),
           0,
@@ -231,7 +232,12 @@ it("leaves a non-seat or removed entity alone when checking for orphans", () => 
 
 it("ignores a vehicle it never kept seats for once the vehicle is gone", () => {
   const f = fixture();
-  new DeckSeats().keep("unknown", undefined, [{ x: 0, y: 0, z: 0 }], 0);
+  new DeckSeats().keep(
+    asVehicleId("unknown"),
+    undefined,
+    [{ x: 0, y: 0, z: 0 }],
+    0,
+  );
   expect(f.dimension.spawnEntity).not.toHaveBeenCalled();
 });
 
@@ -239,12 +245,12 @@ it("replaces a seat left in another dimension by one beside the boat", () => {
   const f = fixture();
   const seats = new DeckSeats();
   const at = [{ x: 1, y: 2, z: 3 }];
-  seats.keep(f.car.id, f.car, at, 0);
+  seats.keep(asVehicleId(f.car.id), f.car, at, 0);
   const [first] = JSON.parse(String(f.boat.saved.get(DECK_SEATS_PROPERTY)));
   const old = f.entities.get(first);
   if (!old) throw new Error("missing seat");
   old.dimension = { id: "nether" } as unknown as Entity["dimension"];
-  seats.keep(f.car.id, f.car, at, 0);
+  seats.keep(asVehicleId(f.car.id), f.car, at, 0);
   expect(old.remove).toHaveBeenCalledOnce();
   const [second] = JSON.parse(String(f.boat.saved.get(DECK_SEATS_PROPERTY)));
   expect(second).not.toBe(first);
@@ -254,7 +260,7 @@ it("replaces a seat left in another dimension by one beside the boat", () => {
 it("boards nobody without a rideable boat, and keeps a refused rider on the deck seat", () => {
   const f = fixture();
   const seats = new DeckSeats();
-  seats.keep(f.car.id, f.car, [{ x: 0, y: 0, z: 0 }], 0);
+  seats.keep(asVehicleId(f.car.id), f.car, [{ x: 0, y: 0, z: 0 }], 0);
   const [id] = JSON.parse(String(f.boat.saved.get(DECK_SEATS_PROPERTY)));
   const seat = f.entities.get(id);
   if (!seat) throw new Error("missing seat");

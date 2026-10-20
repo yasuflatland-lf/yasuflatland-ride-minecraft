@@ -11,6 +11,7 @@ import type {
   DriveWorld,
   VehicleSnapshot,
 } from "../../../application/vehicle/ports/drive";
+import { asVehicleId, type VehicleId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import {
   type ClearCell,
@@ -75,7 +76,7 @@ export class BedrockVehicleWorld implements DriveWorld {
   private readonly headlightBlocks = new HeadlightBlocks();
   private readonly deckSeats = new DeckSeats();
   private readonly dockBlocks = new DockBlocks();
-  private readonly holds = new Map<string, HoldPose>();
+  private readonly holds = new Map<VehicleId, HoldPose>();
   /** Shared with BedrockFleetWorld so a removed vehicle releases the same blocks, seats and hold. */
   readonly releaser = new VehicleReleaser(
     this.headlightBlocks,
@@ -90,7 +91,7 @@ export class BedrockVehicleWorld implements DriveWorld {
   ) {}
 
   /** The vehicle whose laid room door is at this cell, if any (ADR 0068). */
-  dockDoorOwner(dimensionId: string, cell: Vec3): string | undefined {
+  dockDoorOwner(dimensionId: string, cell: Vec3): VehicleId | undefined {
     return this.dockBlocks.doorOwner(dimensionId, cell);
   }
 
@@ -103,10 +104,11 @@ export class BedrockVehicleWorld implements DriveWorld {
         .getEntities({ families: [VEHICLE_FAMILY] })) {
         const kind = kindOfEntity(vehicle.typeId);
         if (kind === undefined) continue;
+        const id = asVehicleId(vehicle.id);
         this.index.track(vehicle);
         const v = vehicle.getVelocity();
         snapshots.push({
-          id: vehicle.id,
+          id,
           kind,
           location: vehicle.location,
           yaw: vehicle.getRotation().y,
@@ -130,7 +132,7 @@ export class BedrockVehicleWorld implements DriveWorld {
             };
           },
           headlights: vehicle.getProperty(HEADLIGHTS_PROPERTY) === true,
-          testInput: this.testInputs.get(vehicle.id),
+          testInput: this.testInputs.get(id),
         });
       }
     }
@@ -160,13 +162,13 @@ export class BedrockVehicleWorld implements DriveWorld {
       });
   }
 
-  waterAt(vehicleId: string, offset: Vec3): boolean {
+  waterAt(vehicleId: VehicleId, offset: Vec3): boolean {
     const vehicle = this.index.entity(vehicleId);
     if (!vehicle) return false;
     return isWaterAt(vehicle.dimension, offsetFrom(vehicle, offset));
   }
 
-  solidAt(vehicleId: string, offset: Vec3): boolean {
+  solidAt(vehicleId: VehicleId, offset: Vec3): boolean {
     const vehicle = this.index.entity(vehicleId);
     if (!vehicle) return false;
     try {
@@ -195,7 +197,7 @@ export class BedrockVehicleWorld implements DriveWorld {
   }
 
   blockTypes(
-    vehicleId: string,
+    vehicleId: VehicleId,
     cells: readonly Vec3[],
   ): (string | undefined)[] {
     const vehicle = this.index.entity(vehicleId);
@@ -211,7 +213,7 @@ export class BedrockVehicleWorld implements DriveWorld {
     });
   }
 
-  clearBlocks(vehicleId: string, cells: readonly ClearCell[]): void {
+  clearBlocks(vehicleId: VehicleId, cells: readonly ClearCell[]): void {
     const vehicle = this.index.entity(vehicleId);
     if (!vehicle) return;
     for (const c of cells) {
@@ -231,7 +233,7 @@ export class BedrockVehicleWorld implements DriveWorld {
     });
   }
 
-  seatStandingPlayers(vehicleId: string, departure: Departure): void {
+  seatStandingPlayers(vehicleId: VehicleId, departure: Departure): void {
     const vehicle = this.index.entity(vehicleId);
     const rideable = vehicle?.getComponent("minecraft:rideable");
     if (!vehicle || !rideable) return;
@@ -254,7 +256,7 @@ export class BedrockVehicleWorld implements DriveWorld {
         });
   }
 
-  targetsNear(vehicleId: string): RamTarget[] {
+  targetsNear(vehicleId: VehicleId): RamTarget[] {
     const vehicle = this.index.entity(vehicleId);
     if (!vehicle) return [];
     return vehicle.dimension
@@ -278,7 +280,7 @@ export class BedrockVehicleWorld implements DriveWorld {
       }));
   }
 
-  holdAt(vehicleId: string, pose: HoldPose | undefined): void {
+  holdAt(vehicleId: VehicleId, pose: HoldPose | undefined): void {
     if (!pose) {
       this.holds.delete(vehicleId);
       return;
@@ -294,7 +296,7 @@ export class BedrockVehicleWorld implements DriveWorld {
   }
 
   keepDeckSeats(
-    vehicleId: string,
+    vehicleId: VehicleId,
     positions: readonly (Vec3 | undefined)[],
     yaw: number,
   ): void {
@@ -306,16 +308,16 @@ export class BedrockVehicleWorld implements DriveWorld {
     );
   }
 
-  boardDeckRiders(vehicleId: string): void {
+  boardDeckRiders(vehicleId: VehicleId): void {
     const vehicle = this.index.entity(vehicleId);
     if (vehicle) this.deckSeats.board(vehicle);
   }
 
-  layDock(vehicleId: string, cells: readonly DockCell[]): void {
+  layDock(vehicleId: VehicleId, cells: readonly DockCell[]): void {
     this.dockBlocks.lay(vehicleId, this.index.entity(vehicleId), cells);
   }
 
-  applyMotion(vehicleId: string, impulse: Vec3, yaw: number): void {
+  applyMotion(vehicleId: VehicleId, impulse: Vec3, yaw: number): void {
     if (this.holds.has(vehicleId)) return;
     const vehicle = this.index.entity(vehicleId);
     if (!vehicle) return;
@@ -323,7 +325,7 @@ export class BedrockVehicleWorld implements DriveWorld {
     vehicle.setRotation({ x: 0, y: yaw });
   }
 
-  run(vehicleId: string, commands: readonly EngineCommand[]): void {
+  run(vehicleId: VehicleId, commands: readonly EngineCommand[]): void {
     const entity = this.index.entity(vehicleId);
     if (!entity) return;
     for (const command of commands) {
@@ -372,11 +374,11 @@ export class BedrockVehicleWorld implements DriveWorld {
     target.applyKnockback({ x: hit.push.x, z: hit.push.z }, hit.pushUp);
   }
 
-  shineHeadlights(vehicleId: string, cells: readonly Cell[]): void {
+  shineHeadlights(vehicleId: VehicleId, cells: readonly Cell[]): void {
     this.headlightBlocks.shine(vehicleId, this.index.entity(vehicleId), cells);
   }
 
-  releaseVehicle(vehicleId: string): void {
+  releaseVehicle(vehicleId: VehicleId): void {
     this.releaser.release(vehicleId, this.index.entity(vehicleId));
   }
 }

@@ -1,6 +1,9 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { asVehicleId } from "../../../../src/domain/shared/ids";
 import { TestInputStore } from "../../../../src/infrastructure/vehicle/testInput/testInputStore";
+
+const vehicleId = fc.string().map(asVehicleId);
 
 const input = fc.record({
   moveX: fc.double({ min: -1, max: 1, noNaN: true }),
@@ -11,7 +14,7 @@ const input = fc.record({
 describe("TestInputStore", () => {
   it("input for an unregistered vehicle is undefined", () => {
     fc.assert(
-      fc.property(fc.string(), (id) => {
+      fc.property(vehicleId, (id) => {
         expect(new TestInputStore().get(id)).toBeUndefined();
       }),
     );
@@ -19,7 +22,7 @@ describe("TestInputStore", () => {
 
   it("returns a registered input and updates the input for the same id", () => {
     fc.assert(
-      fc.property(fc.string(), input, input, (id, first, next) => {
+      fc.property(vehicleId, input, input, (id, first, next) => {
         const store = new TestInputStore();
         store.set(id, first);
         expect(store.get(id)).toEqual(first);
@@ -32,7 +35,7 @@ describe("TestInputStore", () => {
   it("clear removes only the input of the given vehicle", () => {
     fc.assert(
       fc.property(
-        fc.tuple(fc.string(), fc.string()).filter(([a, b]) => a !== b),
+        fc.tuple(vehicleId, vehicleId).filter(([a, b]) => a !== b),
         input,
         (ids, raw) => {
           const [removed, kept] = ids;
@@ -52,7 +55,7 @@ describe("TestInputStore", () => {
   it("retain keeps only the inputs of vehicles in the given set", () => {
     fc.assert(
       fc.property(
-        fc.uniqueArray(fc.string(), { minLength: 2 }),
+        fc.uniqueArray(vehicleId, { minLength: 2 }),
         input,
         fc.nat(),
         (ids, raw, count) => {

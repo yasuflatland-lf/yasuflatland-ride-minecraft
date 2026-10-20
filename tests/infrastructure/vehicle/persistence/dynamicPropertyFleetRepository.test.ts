@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { asVehicleId } from "../../../../src/domain/shared/ids";
 import { Fleet } from "../../../../src/domain/vehicle/fleet/fleet";
 import { fleetLimitOf } from "../../../../src/domain/vehicle/kinds/index";
 import { FLEET_PROPERTY } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
@@ -30,10 +31,10 @@ describe("DynamicPropertyFleetRepository (ADR 0038)", () => {
     const { repo } = repository();
     const state = {
       order: [
-        { id: "a", kind: "suv" as const, owner: "player" },
-        { id: "b", kind: "sportsboat" as const },
+        { id: asVehicleId("a"), kind: "suv" as const, owner: "player" },
+        { id: asVehicleId("b"), kind: "sportsboat" as const },
       ],
-      evicted: ["c"],
+      evicted: [asVehicleId("c")],
     };
     repo.save(Fleet.restore(state, fleetLimitOf));
     expect(stored.get(FLEET_PROPERTY)).toBe(

@@ -1,3 +1,4 @@
+import type { VehicleId } from "../../domain/shared/ids";
 // Use case: a player uses the headlight switch while riding a vehicle (ADR 0020).
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
 import type { HeadlightWorld } from "./ports/headlights";
@@ -5,7 +6,7 @@ import type { Clock } from "./ports/shared";
 
 export interface SwitchHeadlightsCommand {
   playerId: string;
-  vehicleId: string;
+  vehicleId: VehicleId;
 }
 
 export class SwitchHeadlights {

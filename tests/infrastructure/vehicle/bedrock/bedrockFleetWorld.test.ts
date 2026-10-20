@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { asVehicleId } from "../../../../src/domain/shared/ids";
 import { BedrockFleetWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockFleetWorld";
 import { BedrockVehicleWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockVehicleWorld";
 import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
@@ -148,7 +149,7 @@ describe("BedrockFleetWorld drop and removal (ADR 0038, 0063)", () => {
 
   it("drops the item of the broken entity's kind at its location", () => {
     const { car, dimension, fleet } = fixture();
-    fleet.dropVehicleItem(car.id);
+    fleet.dropVehicleItem(asVehicleId(car.id));
     expect(dimension.spawnItem).toHaveBeenCalledWith(
       expect.objectContaining({ typeId: ITEM_TYPE.suv, amount: 1 }),
       car.location,
@@ -161,8 +162,8 @@ describe("BedrockFleetWorld drop and removal (ADR 0038, 0063)", () => {
       id === "unknown" ? { ...car, typeId: "yasu_ride:unknown" } : undefined,
     );
     entities.length = 0;
-    fleet.dropVehicleItem("missing");
-    fleet.dropVehicleItem("unknown");
+    fleet.dropVehicleItem(asVehicleId("missing"));
+    fleet.dropVehicleItem(asVehicleId("unknown"));
     expect(dimension.spawnItem).not.toHaveBeenCalled();
   });
 
@@ -178,17 +179,17 @@ describe("BedrockFleetWorld drop and removal (ADR 0038, 0063)", () => {
     };
     const pose = { x: 1, y: 64.5, z: -2, yaw: 30 };
     world.loadedVehicles();
-    world.holdAt(car.id, pose);
-    world.layDock(car.id, [cell]);
+    world.holdAt(asVehicleId(car.id), pose);
+    world.layDock(asVehicleId(car.id), [cell]);
     expect(grid.typeAt(cell)).toBe(DECK_FLOOR_BLOCK);
-    fleet.removeVehicle(car.id);
+    fleet.removeVehicle(asVehicleId(car.id));
     expect(grid.typeAt(cell)).toBe("minecraft:air");
     expect(car.setDynamicProperty).toHaveBeenLastCalledWith(
       DECK_CELLS_PROPERTY,
       undefined,
     );
     expect(car.remove).toHaveBeenCalledOnce();
-    world.applyMotion(car.id, { x: 0, y: 0, z: 1 }, pose.yaw);
+    world.applyMotion(asVehicleId(car.id), { x: 0, y: 0, z: 1 }, pose.yaw);
     expect(car.applyImpulse).toHaveBeenCalledOnce();
   });
 
@@ -198,9 +199,9 @@ describe("BedrockFleetWorld drop and removal (ADR 0038, 0063)", () => {
     dimension.getBlock.mockImplementation(grid.getBlock);
     const cell = { x: 0, y: 65, z: 4 };
     world.loadedVehicles();
-    world.shineHeadlights(car.id, [cell]);
+    world.shineHeadlights(asVehicleId(car.id), [cell]);
     expect(grid.typeAt(cell)).toBe("minecraft:light_block_15");
-    fleet.removeVehicle(car.id);
+    fleet.removeVehicle(asVehicleId(car.id));
     expect(grid.typeAt(cell)).toBe("minecraft:air");
     expect(car.remove).toHaveBeenCalledOnce();
   });
@@ -212,7 +213,7 @@ describe("BedrockFleetWorld drop and removal (ADR 0038, 0063)", () => {
         throw new Error("x");
       },
     } as unknown as VehicleReleaser);
-    expect(() => fleet.removeVehicle(car.id)).toThrow("x");
+    expect(() => fleet.removeVehicle(asVehicleId(car.id))).toThrow("x");
     expect(car.remove).not.toHaveBeenCalled();
   });
 });

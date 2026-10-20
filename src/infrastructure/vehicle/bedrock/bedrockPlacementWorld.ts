@@ -1,6 +1,7 @@
 // Implements PlacementWorld with @minecraft/server (ADR 0012).
 import { GameMode, world } from "@minecraft/server";
 import type { PlacementWorld } from "../../../application/vehicle/ports/placement";
+import { asVehicleId, type VehicleId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import type { VehicleKind } from "../../../domain/vehicle/kind";
 import type { BedrockInventory } from "./bedrockInventory";
@@ -38,13 +39,13 @@ export class BedrockPlacementWorld implements PlacementWorld {
     yaw: number,
     kind: VehicleKind,
     ownerId: string,
-  ): string {
+  ): VehicleId {
     const vehicle = world
       .getDimension(dimensionId)
       .spawnEntity(ENTITY_TYPE[kind], at);
     vehicle.setRotation({ x: 0, y: yaw });
     vehicle.setDynamicProperty(OWNER_PROPERTY, ownerId);
-    return vehicle.id;
+    return asVehicleId(vehicle.id);
   }
 
   consumeVehicleItem(

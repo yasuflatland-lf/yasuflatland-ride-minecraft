@@ -4,6 +4,7 @@ import {
   PlaceVehicle,
   type PlaceVehicleCommand,
 } from "../../../src/application/vehicle/placeVehicle";
+import { asVehicleId } from "../../../src/domain/shared/ids";
 import { VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
 import { profileOf } from "../../../src/domain/vehicle/kinds/index";
 import {
@@ -50,8 +51,8 @@ describe("PlaceVehicle (ADR 0008)", () => {
       "consume:p:2:suv",
       "spawn:minecraft:overworld:10.5,65,-2.5:45:suv",
     ]);
-    expect(repo.get("v1")?.kind).toBe(cmd.kind);
-    expect(repo.get("v1")?.yaw).toBeCloseTo(45);
+    expect(repo.get(asVehicleId("v1"))?.kind).toBe(cmd.kind);
+    expect(repo.get(asVehicleId("v1"))?.yaw).toBeCloseTo(45);
   });
 
   it("does not consume the item in creative mode", () => {
@@ -77,7 +78,7 @@ describe("PlaceVehicle (ADR 0008)", () => {
     const repo = new InMemoryRepo();
     expect(new PlaceVehicle(world, repo).execute(cmd)).toBe(false);
     expect(world.calls).toEqual([]);
-    expect(repo.get("v1")).toBeUndefined();
+    expect(repo.get(asVehicleId("v1"))).toBeUndefined();
     expect(world.owners.size).toBe(0);
   });
 

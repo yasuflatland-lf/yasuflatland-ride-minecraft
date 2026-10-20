@@ -1,5 +1,6 @@
 // Persistent auxiliary seats for held vehicles (ADR 0063).
 import { type Entity, type Player, world } from "@minecraft/server";
+import { asVehicleId, type VehicleId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { DECK_SEAT_REACH } from "../../../domain/vehicle/kinds/index";
 import {
@@ -62,16 +63,17 @@ export function removeOrphanDeckSeat(seat: Entity): void {
 }
 
 export class DeckSeats {
-  private readonly kept = new Map<string, (string | null)[]>();
+  private readonly kept = new Map<VehicleId, (string | null)[]>();
 
   private ids(vehicle: Entity): (string | null)[] {
-    const ids = this.kept.get(vehicle.id) ?? savedIds(vehicle);
-    this.kept.set(vehicle.id, ids);
-    return ids;
+    const id = asVehicleId(vehicle.id);
+    const seatIds = this.kept.get(id) ?? savedIds(vehicle);
+    this.kept.set(id, seatIds);
+    return seatIds;
   }
 
   keep(
-    vehicleId: string,
+    vehicleId: VehicleId,
     vehicle: Entity | undefined,
     positions: readonly (Vec3 | undefined)[],
     yaw: number,
@@ -135,7 +137,7 @@ export class DeckSeats {
     }
   }
 
-  clearGone(live: ReadonlySet<string>): void {
+  clearGone(live: ReadonlySet<VehicleId>): void {
     for (const id of this.kept.keys())
       if (!live.has(id)) this.keep(id, undefined, [], 0);
   }

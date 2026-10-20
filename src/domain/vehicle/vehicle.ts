@@ -1,3 +1,4 @@
+import type { VehicleId } from "../shared/ids";
 // Aggregate for one vehicle: wires its drive to its seating, cooldowns, and hit count.
 import { forward, type Vec2, type Vec3 } from "../shared/vec";
 import { RamCooldowns, SwitchCooldown } from "./cooldowns";
@@ -96,7 +97,7 @@ export class Vehicle {
 
   /** Called only by kinds/index.ts, which picks the drive for the kind. */
   constructor(
-    readonly id: string,
+    readonly id: VehicleId,
     private readonly profile: VehicleProfile,
     private readonly drive: Drive,
   ) {
@@ -111,7 +112,7 @@ export class Vehicle {
    * before the drive normalizes it.
    */
   static withRidersAboard(
-    id: string,
+    id: VehicleId,
     profile: VehicleProfile,
     drive: Drive,
     riders: readonly RiderView[],

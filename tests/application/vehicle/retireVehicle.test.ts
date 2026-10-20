@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { retireVehicle } from "../../../src/application/vehicle/retireVehicle";
+import { asVehicleId } from "../../../src/domain/shared/ids";
 import { Fleet } from "../../../src/domain/vehicle/fleet/fleet";
 import {
   VEHICLE_KINDS,
@@ -21,18 +22,18 @@ function setup(kind: VehicleKind, id: string, failRemove = false) {
     },
   };
   const repo = new InMemoryRepo();
-  repo.save(createVehicle(kind, id, 0));
+  repo.save(createVehicle(kind, asVehicleId(id), 0));
   const repoRemove = repo.remove.bind(repo);
   repo.remove = (vehicleId: string) => {
     log.push(`repo:${vehicleId}`);
-    repoRemove(vehicleId);
+    repoRemove(asVehicleId(vehicleId));
   };
   const fleet = Fleet.empty(fleetLimitOf);
-  fleet.admit({ id, kind });
+  fleet.admit({ id: asVehicleId(id), kind });
   const fleetForget = fleet.forget.bind(fleet);
   fleet.forget = (vehicleId: string) => {
     log.push(`fleet:${vehicleId}`);
-    fleetForget(vehicleId);
+    fleetForget(asVehicleId(vehicleId));
   };
   return { log, world, repo, fleet };
 }
@@ -45,10 +46,10 @@ describe("retireVehicle (ADR 0008, 0038, 0066)", () => {
         fc.string({ minLength: 1 }),
         (kind, id) => {
           const { log, world, repo, fleet } = setup(kind, id);
-          retireVehicle(world, repo, fleet, id);
+          retireVehicle(world, repo, fleet, asVehicleId(id));
           expect(log).toEqual([`world:${id}`, `repo:${id}`, `fleet:${id}`]);
-          expect(repo.get(id)).toBeUndefined();
-          expect(fleet.knows(id)).toBe(false);
+          expect(repo.get(asVehicleId(id))).toBeUndefined();
+          expect(fleet.knows(asVehicleId(id))).toBe(false);
         },
       ),
     );
@@ -56,9 +57,11 @@ describe("retireVehicle (ADR 0008, 0038, 0066)", () => {
 
   it("leaves the repository and the fleet untouched when the world removal fails", () => {
     const { log, world, repo, fleet } = setup("suv", "a", true);
-    expect(() => retireVehicle(world, repo, fleet, "a")).toThrow("remove");
+    expect(() => retireVehicle(world, repo, fleet, asVehicleId("a"))).toThrow(
+      "remove",
+    );
     expect(log).toEqual([]);
-    expect(repo.get("a")).toBeDefined();
-    expect(fleet.knows("a")).toBe(true);
+    expect(repo.get(asVehicleId("a"))).toBeDefined();
+    expect(fleet.knows(asVehicleId("a"))).toBe(true);
   });
 });

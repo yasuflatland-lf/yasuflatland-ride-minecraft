@@ -4,6 +4,7 @@ import type {
   BreakWorld,
   LimitWorld,
 } from "../../../application/vehicle/ports/fleet";
+import type { VehicleId } from "../../../domain/shared/ids";
 import type { FleetEntry } from "../../../domain/vehicle/fleet/fleet";
 import { DIMENSIONS, type EntityIndex } from "./entityIndex";
 import {
@@ -30,7 +31,7 @@ export class BedrockFleetWorld implements LimitWorld, BreakWorld {
     );
   }
 
-  dropVehicleItem(vehicleId: string): void {
+  dropVehicleItem(vehicleId: VehicleId): void {
     const vehicle = this.index.entity(vehicleId);
     if (!vehicle) return;
     const kind = kindOfEntity(vehicle.typeId);
@@ -41,7 +42,7 @@ export class BedrockFleetWorld implements LimitWorld, BreakWorld {
     );
   }
 
-  removeVehicle(vehicleId: string): void {
+  removeVehicle(vehicleId: VehicleId): void {
     const vehicle = this.index.entity(vehicleId);
     this.releaser.release(vehicleId, vehicle);
     vehicle?.remove();

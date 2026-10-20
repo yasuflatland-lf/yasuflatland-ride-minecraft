@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
 import { DriveVehicles } from "../../../src/application/vehicle/driveVehicles";
+import { asVehicleId } from "../../../src/domain/shared/ids";
 import { forward } from "../../../src/domain/shared/vec";
 import type { Drive, DriveStep } from "../../../src/domain/vehicle/drive";
 import type { RawInput } from "../../../src/domain/vehicle/driveInput";
@@ -32,7 +33,7 @@ function ramAhead(over: Parameters<typeof snapshot>[1]): string[] {
   const uc = new DriveVehicles(world, repo, logger());
   world.targets = [{ id: "cow", offset: { x: 0, y: 0, z: 1 } }];
   for (let tick = 0; tick < 200; tick++) {
-    const speed = repo.get("a")?.speed ?? 0;
+    const speed = repo.get(asVehicleId("a"))?.speed ?? 0;
     world.snapshots = [
       snapshot("a", { ...over, velocity: { x: 0, y: 0, z: speed } }),
     ];
@@ -79,7 +80,7 @@ describe("DriveVehicles", () => {
           };
           const world = new FakeWorld();
           const repo = new InMemoryRepo();
-          repo.save(new Vehicle("held", SUV_PROFILE, drive));
+          repo.save(new Vehicle(asVehicleId("held"), SUV_PROFILE, drive));
           world.snapshots = [snapshot("held")];
           new DriveVehicles(world, repo, logger()).execute(0);
           expect(world.held.get("held")).toEqual(hold);
@@ -107,8 +108,8 @@ describe("DriveVehicles", () => {
     const world = new FakeWorld();
     const repo = new InMemoryRepo();
     const log = logger();
-    repo.save(createVehicle("suv", "stuck", 0));
-    repo.save(createVehicle("suv", "gone", 0));
+    repo.save(createVehicle("suv", asVehicleId("stuck"), 0));
+    repo.save(createVehicle("suv", asVehicleId("gone"), 0));
     world.snapshots = [snapshot("a")];
     world.failReleaseOn = "stuck";
     new DriveVehicles(world, repo, log).execute(0);
@@ -157,7 +158,7 @@ describe("DriveVehicles", () => {
     };
     world.snapshots = [snapshot("a", { yaw: 10, riders: [driver] })];
     new DriveVehicles(world, repo, logger()).execute(0);
-    expect(repo.get("a")?.yaw).toBeCloseTo(10);
+    expect(repo.get(asVehicleId("a"))?.yaw).toBeCloseTo(10);
     expect(world.calls).toContain("motion:a:10");
   });
 
@@ -168,13 +169,13 @@ describe("DriveVehicles", () => {
     expect(() =>
       new DriveVehicles(world, repo, logger()).execute(0),
     ).not.toThrow();
-    expect(repo.get("a")?.speed).toBeLessThanOrEqual(0.0225);
+    expect(repo.get(asVehicleId("a"))?.speed).toBeLessThanOrEqual(0.0225);
   });
 
   it("discards the aggregates of vehicles that are no longer loaded", () => {
     const world = new FakeWorld();
     const repo = new InMemoryRepo();
-    repo.save(createVehicle("suv", "gone", 0));
+    repo.save(createVehicle("suv", asVehicleId("gone"), 0));
     world.snapshots = [snapshot("a")];
     new DriveVehicles(world, repo, logger()).execute(0);
     expect(repo.ids()).toEqual(["a"]);
@@ -211,7 +212,7 @@ describe("DriveVehicles", () => {
         offset: defined(SUV_PROFILE.seats.positions[1], "passenger seat"),
       };
       repo.save(
-        rebuildVehicle("suv", "bad", 0, [driver, passenger], {
+        rebuildVehicle("suv", asVehicleId("bad"), 0, [driver, passenger], {
           form: "submarine",
         }),
       );
@@ -357,7 +358,7 @@ describe("DriveVehicles", () => {
     const fly = (ticks: number) => {
       for (let i = 0; i < ticks; i++) {
         // Feed back the velocity the engine would report for the heading and speed.
-        const v = repo.get("a");
+        const v = repo.get(asVehicleId("a"));
         const f = forward(v?.yaw ?? 0);
         const speed = (v?.speed ?? 0) * SUV_SPEC.flightDrag;
         world.snapshots = [
@@ -705,7 +706,7 @@ it("drives a boat with water below high feet and leaves a dry boat still", () =>
         }),
       ];
       new DriveVehicles(world, repo, log).execute(0);
-      const speed = repo.get("boat")?.speed;
+      const speed = repo.get(asVehicleId("boat"))?.speed;
       if (waterBelow) expect(speed).toBeGreaterThan(0);
       else expect(speed).toBe(0);
       expect(log.lines).toEqual([]);
@@ -789,7 +790,7 @@ describe("DriveVehicles dock ports", () => {
         };
       },
     };
-    repo.save(new Vehicle("a", SUV_PROFILE, drive));
+    repo.save(new Vehicle(asVehicleId("a"), SUV_PROFILE, drive));
     world.snapshots = [
       snapshot("a", {
         riders: driver

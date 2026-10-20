@@ -4,6 +4,7 @@ import {
   type Dimension,
   type Entity,
 } from "@minecraft/server";
+import type { VehicleId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import {
   type DockBlock,
@@ -152,10 +153,10 @@ export function savedDock(vehicle: Entity): {
 }
 
 export class DockBlocks {
-  private readonly laid = new Map<string, Laid>();
+  private readonly laid = new Map<VehicleId, Laid>();
 
   /** The vehicle whose laid door is at this cell, if any. */
-  doorOwner(dimensionId: string, cell: Vec3): string | undefined {
+  doorOwner(dimensionId: string, cell: Vec3): VehicleId | undefined {
     const key = cellKey(cell);
     for (const [vehicleId, entry] of this.laid)
       if (
@@ -173,7 +174,7 @@ export class DockBlocks {
 
   /** `vehicle` is undefined when the entity is gone; its cells are then only cleared. */
   lay(
-    vehicleId: string,
+    vehicleId: VehicleId,
     vehicle: Entity | undefined,
     wanted: readonly DockCell[],
   ) {
@@ -205,7 +206,7 @@ export class DockBlocks {
    * loads may have floor cells in chunks that are not loaded yet, and nothing
    * else asks for its id again (ADR 0038).
    */
-  clearGone(live: ReadonlySet<string>): void {
+  clearGone(live: ReadonlySet<VehicleId>): void {
     for (const [id, entry] of this.laid) {
       if (live.has(id)) continue;
       this.update(entry, []);

@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { asVehicleId } from "../../../../src/domain/shared/ids";
 import { BedrockHeadlightWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockHeadlightWorld";
 import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
 import { HEADLIGHTS_PROPERTY } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
@@ -37,21 +38,23 @@ describe("BedrockHeadlightWorld", () => {
         vehicle.getProperty.mockImplementation((key: string) =>
           key === HEADLIGHTS_PROPERTY ? stored : undefined,
         );
-        expect(headlights.headlightsOn(vehicle.id)).toBe(stored === true);
+        expect(headlights.headlightsOn(asVehicleId(vehicle.id))).toBe(
+          stored === true,
+        );
       }),
     );
   });
 
   it("has no headlight state for a missing or invalid vehicle", () => {
     const { vehicle, headlights } = fixture();
-    expect(headlights.headlightsOn("missing")).toBeUndefined();
+    expect(headlights.headlightsOn(asVehicleId("missing"))).toBeUndefined();
     vehicle.isValid = false;
-    expect(headlights.headlightsOn(vehicle.id)).toBeUndefined();
+    expect(headlights.headlightsOn(asVehicleId(vehicle.id))).toBeUndefined();
   });
 
   it.each([true, false])("switches the headlights to %s with a click", (on) => {
     const { dimension, vehicle, headlights } = fixture();
-    headlights.setHeadlights(vehicle.id, on);
+    headlights.setHeadlights(asVehicleId(vehicle.id), on);
     expect(vehicle.setProperty).toHaveBeenCalledExactlyOnceWith(
       HEADLIGHTS_PROPERTY,
       on,
@@ -64,7 +67,7 @@ describe("BedrockHeadlightWorld", () => {
 
   it("does nothing to a missing vehicle", () => {
     const { dimension, vehicle, headlights } = fixture();
-    headlights.setHeadlights("missing", true);
+    headlights.setHeadlights(asVehicleId("missing"), true);
     expect(vehicle.setProperty).not.toHaveBeenCalled();
     expect(dimension.playSound).not.toHaveBeenCalled();
   });

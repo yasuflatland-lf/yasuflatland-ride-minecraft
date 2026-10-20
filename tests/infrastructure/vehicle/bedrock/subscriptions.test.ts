@@ -17,6 +17,7 @@ import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
 import { PlaceVehicle } from "../../../../src/application/vehicle/placeVehicle";
 import type { PlacementWorld } from "../../../../src/application/vehicle/ports/placement";
+import { asVehicleId, type VehicleId } from "../../../../src/domain/shared/ids";
 import { SPEC } from "../../../../src/domain/vehicle/spec";
 import type { VehicleRepository } from "../../../../src/domain/vehicle/vehicleRepository";
 import {
@@ -381,6 +382,23 @@ it("routes itemUse to placement or headlights by item, in either subscriber orde
   );
 });
 
+it("leaves the headlights alone when the switch is used without riding a vehicle", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom(undefined, { id: "pig", typeId: "minecraft:pig" }),
+      (mount) => {
+        const f = fixture(HEADLIGHT_SWITCH_TYPE);
+        f.player.getComponent = (name: string) =>
+          name === "minecraft:riding" && mount
+            ? { entityRidingOn: mount }
+            : undefined;
+        f.use();
+        expect(f.headlights.execute).not.toHaveBeenCalled();
+      },
+    ),
+  );
+});
+
 it("paints a hit vehicle with a held dye and otherwise damages it, ignoring other hits", () => {
   const hit = { execute: vi.fn() };
   const paint = { execute: vi.fn() };
@@ -550,7 +568,8 @@ it("passes fleet metadata on spawn and load and skips invalid or unrelated entit
 
 it("registers door interactions during startup and dispatches only owned doors", () => {
   const door = { execute: vi.fn() };
-  const owner = vi.fn<(dimensionId: string, cell: At) => string | undefined>();
+  const owner =
+    vi.fn<(dimensionId: string, cell: At) => VehicleId | undefined>();
   registerSubscriptions(
     { door } as unknown as Parameters<typeof registerSubscriptions>[0],
     new TestInputStore(),
@@ -576,7 +595,7 @@ it("registers door interactions during startup and dispatches only owned doors",
   interact(event, { params: undefined });
   expect(owner).toHaveBeenCalledExactlyOnceWith("overworld", cell);
   expect(door.execute).not.toHaveBeenCalled();
-  owner.mockReturnValue("camper");
+  owner.mockReturnValue(asVehicleId("camper"));
   interact(event, { params: undefined });
   expect(door.execute).toHaveBeenCalledExactlyOnceWith({ vehicleId: "camper" });
 });
@@ -643,14 +662,22 @@ it("stores and clears test input only from server script events", () => {
     } as unknown as ScriptEventCommandMessageAfterEvent);
   send("suv,1,0,1", "Entity");
   send("suv,1,0,1", "Server", "minecraft:other");
-  expect(inputs.get("suv")).toBeUndefined();
+  expect(inputs.get(asVehicleId("suv"))).toBeUndefined();
   send("suv,1,-1,1");
-  expect(inputs.get("suv")).toEqual({ moveX: 1, moveY: -1, jump: true });
+  expect(inputs.get(asVehicleId("suv"))).toEqual({
+    moveX: 1,
+    moveY: -1,
+    jump: true,
+  });
   const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
   send("suv,bad");
   expect(warn).toHaveBeenCalledOnce();
   warn.mockRestore();
-  expect(inputs.get("suv")).toEqual({ moveX: 1, moveY: -1, jump: true });
+  expect(inputs.get(asVehicleId("suv"))).toEqual({
+    moveX: 1,
+    moveY: -1,
+    jump: true,
+  });
   send("suv,clear");
-  expect(inputs.get("suv")).toBeUndefined();
+  expect(inputs.get(asVehicleId("suv"))).toBeUndefined();
 });

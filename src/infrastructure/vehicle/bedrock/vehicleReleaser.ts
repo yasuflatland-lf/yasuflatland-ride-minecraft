@@ -3,6 +3,7 @@
 // 0064, 0068), deck seats (ADR 0063) and its hold pose. Used when a vehicle is
 // removed and when it is no longer loaded.
 import type { Entity } from "@minecraft/server";
+import type { VehicleId } from "../../../domain/shared/ids";
 import type { HoldPose } from "../../../domain/vehicle/dock/floor";
 import type { DeckSeats } from "./deckSeats";
 import type { DockBlocks } from "./dockBlocks";
@@ -13,7 +14,7 @@ export class VehicleReleaser {
     private readonly headlightBlocks: Pick<HeadlightBlocks, "shine">,
     private readonly dockBlocks: Pick<DockBlocks, "lay">,
     private readonly deckSeats: Pick<DeckSeats, "keep">,
-    private readonly holds: Map<string, HoldPose>,
+    private readonly holds: Map<VehicleId, HoldPose>,
   ) {}
 
   /**
@@ -21,7 +22,7 @@ export class VehicleReleaser {
    * then only cleared. Every step runs even when an earlier one throws, and
    * the first error is rethrown afterwards.
    */
-  release(vehicleId: string, vehicle: Entity | undefined): void {
+  release(vehicleId: VehicleId, vehicle: Entity | undefined): void {
     let failure: { error: unknown } | undefined;
     for (const step of [
       () => this.headlightBlocks.shine(vehicleId, vehicle, []),

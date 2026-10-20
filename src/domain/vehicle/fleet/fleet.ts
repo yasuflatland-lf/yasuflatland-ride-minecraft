@@ -1,3 +1,4 @@
+import type { VehicleId } from "../../shared/ids";
 // The vehicles in a world in the order they appeared, and the ones evicted to
 // keep each owner and kind at its limit (ADR 0038, ADR 0066). A script cannot
 // remove an entity in an unloaded chunk, so it waits until its chunk loads.
@@ -7,7 +8,7 @@ import { SPEC } from "../spec";
 export type FleetLimitOf = (kind: VehicleKind) => number;
 
 export interface FleetEntry {
-  readonly id: string;
+  readonly id: VehicleId;
   readonly kind: VehicleKind;
   /** Player.id of the player who placed it; undefined when summoned by command or placed before ADR 0066. */
   readonly owner?: string;
@@ -17,13 +18,13 @@ export interface FleetState {
   /** Oldest first. */
   readonly order: readonly FleetEntry[];
   /** Oldest eviction first. */
-  readonly evicted: readonly string[];
+  readonly evicted: readonly VehicleId[];
 }
 
 export class Fleet {
   private constructor(
     private order: FleetEntry[],
-    private evicted: string[],
+    private evicted: VehicleId[],
     private readonly limitOf: FleetLimitOf,
   ) {}
 
@@ -36,7 +37,7 @@ export class Fleet {
    * hand, so a repeated id counts once and a tracked id is not also evicted.
    */
   static restore(state: FleetState, limitOf: FleetLimitOf): Fleet {
-    const tracked = new Set<string>();
+    const tracked = new Set<VehicleId>();
     const order: FleetEntry[] = [];
     for (const entry of state.order) {
       if (tracked.has(entry.id)) continue;
@@ -58,15 +59,15 @@ export class Fleet {
     };
   }
 
-  has(id: string): boolean {
+  has(id: VehicleId): boolean {
     return this.order.some((entry) => entry.id === id);
   }
 
-  isEvicted(id: string): boolean {
+  isEvicted(id: VehicleId): boolean {
     return this.evicted.includes(id);
   }
 
-  knows(id: string): boolean {
+  knows(id: VehicleId): boolean {
     return this.has(id) || this.isEvicted(id);
   }
 
@@ -91,7 +92,7 @@ export class Fleet {
   }
 
   /** Stops tracking a vehicle that is gone. */
-  forget(id: string): void {
+  forget(id: VehicleId): void {
     this.order = this.order.filter((entry) => entry.id !== id);
     this.evicted = this.evicted.filter((e) => e !== id);
   }
@@ -105,7 +106,7 @@ export class Fleet {
       group.push(entry);
       groups.set(key, group);
     }
-    const removed = new Set<string>();
+    const removed = new Set<VehicleId>();
     for (const group of groups.values()) {
       const first = group[0];
       if (!first) continue;
