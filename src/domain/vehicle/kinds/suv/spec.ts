@@ -2,7 +2,7 @@ import type { Medium } from "../../motion/motion";
 import type { TransformingSpec } from "../../motion/transforming";
 
 // The SUV's own tuning values (ADR 0055). See docs/adr/0002-0008 for the rationale.
-export const SUV_SPEC = {
+export const SUV_SPEC = Object.freeze({
   // Driving (ADR 0002)
   maxSpeed: 0.9, // blocks/tick
   maxReverse: 0.2,
@@ -22,7 +22,7 @@ export const SUV_SPEC = {
   bodyFront: 1.85, // the front bumper and fog lamps
   bodyHalfWidth: 1.1, // the tires' outer faces
   // Headlights (ADR 0020)
-  headlightReach: [4, 9, 15, 21, 27], // blocks ahead of the vehicle's center, one light block each; 6 apart, the road surface between them stays at level 10 or brighter (ADR 0024)
+  headlightReach: Object.freeze([4, 9, 15, 21, 27] as const), // blocks ahead of the vehicle's center, one light block each; 6 apart, the road surface between them stays at level 10 or brighter (ADR 0024)
   // Flight (ADR 0021)
   doubleTapTicks: 8, // A second Jump press within this many ticks toggles flight
   takeoffTicks: 20,
@@ -54,16 +54,16 @@ export const SUV_SPEC = {
   gearDownHeight: 4, // blocks of air below the vehicle within which landing unfolds the wheels
   gearProbeOffset: 0.8, // blocks from the center to the probed corners, inside the 1.8-block hitbox
   bankSink: 0.03, // blocks/tick of altitude lost at full bank
-} as const;
+} as const);
 
-export const AIR: Medium = {
+export const AIR: Medium = Object.freeze({
   drag: SUV_SPEC.flightDrag,
   maxSpeed: SUV_SPEC.maxSpeed,
-};
-export const WATER: Medium = {
+});
+export const WATER: Medium = Object.freeze({
   drag: SUV_SPEC.waterDrag,
   maxSpeed: SUV_SPEC.maxWaterSpeed,
-};
+});
 
 // The SUV's values for the shared transforming drivetrain (ADR 0050).
 export const SUV_TRANSFORMING: TransformingSpec = Object.freeze({

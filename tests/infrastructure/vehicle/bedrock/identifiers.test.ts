@@ -169,4 +169,9 @@ describe("identifiers (ADR 0047)", () => {
       }),
     ).toBeUndefined();
   });
+
+  it("freezes the entity and item type tables", () => {
+    expect(Object.isFrozen(ENTITY_TYPE)).toBe(true);
+    expect(Object.isFrozen(ITEM_TYPE)).toBe(true);
+  });
 });

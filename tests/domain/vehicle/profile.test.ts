@@ -6,12 +6,18 @@ import {
   cellKey,
   headlightCells,
 } from "../../../src/domain/vehicle/headlights";
+import { EMPTY_COUNTER } from "../../../src/domain/vehicle/hitCounter";
 import { isVehicleKind, VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
 import {
   CAMPER_MOTION,
   CAMPER_PROFILE,
 } from "../../../src/domain/vehicle/kinds/camper/profile";
-import { CAMPER_SPEC } from "../../../src/domain/vehicle/kinds/camper/spec";
+import {
+  CAMPER_AIR,
+  CAMPER_SPEC,
+  CAMPER_TRANSFORMING,
+  CAMPER_WATER,
+} from "../../../src/domain/vehicle/kinds/camper/spec";
 import {
   createVehicle,
   KINDS,
@@ -27,7 +33,12 @@ import {
   SUV_MOTION,
   SUV_PROFILE,
 } from "../../../src/domain/vehicle/kinds/suv/profile";
-import { SUV_SPEC } from "../../../src/domain/vehicle/kinds/suv/spec";
+import {
+  AIR,
+  SUV_SPEC,
+  SUV_TRANSFORMING,
+  WATER,
+} from "../../../src/domain/vehicle/kinds/suv/spec";
 import { MOTION } from "../../../src/domain/vehicle/motion/constants";
 import {
   initialMotion,
@@ -35,6 +46,7 @@ import {
   stepMotion,
   updateSpeed,
 } from "../../../src/domain/vehicle/motion/motion";
+import { STEP_LANES } from "../../../src/domain/vehicle/motion/stepUp";
 import { selectHits } from "../../../src/domain/vehicle/ram";
 import { SPEC } from "../../../src/domain/vehicle/spec";
 
@@ -153,11 +165,38 @@ describe("vehicle profiles (ADR 0050)", () => {
         profile.ram,
         profile.seats,
         profile.beams,
+        profile.beams.reach,
         profile.beams.lanes,
         profile.placement,
       ]) {
         expect(Object.isFrozen(part)).toBe(true);
       }
+    }
+  });
+
+  it("freezes the tuning tables, media and shared value objects so a write cannot change every vehicle", () => {
+    for (const table of [
+      SPEC,
+      MOTION,
+      STEP_LANES,
+      SUV_SPEC,
+      SUV_SPEC.headlightReach,
+      AIR,
+      WATER,
+      SUV_TRANSFORMING,
+      SUV_TRANSFORMING.air,
+      SUV_TRANSFORMING.water,
+      CAMPER_SPEC,
+      CAMPER_SPEC.headlightReach,
+      CAMPER_AIR,
+      CAMPER_WATER,
+      CAMPER_TRANSFORMING,
+      CAMPER_TRANSFORMING.air,
+      CAMPER_TRANSFORMING.water,
+      NEUTRAL_INPUT,
+      EMPTY_COUNTER,
+    ]) {
+      expect(Object.isFrozen(table)).toBe(true);
     }
   });
 

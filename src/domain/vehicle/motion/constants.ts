@@ -1,5 +1,5 @@
 // Tuning values the shared motion functions read (ADR 0055). See docs/adr/0002-0008 for the rationale.
-export const MOTION = {
+export const MOTION = Object.freeze({
   mountAlignSpeed: 0.01, // Below this speed, align the vehicle with the driver's view on entry
   // Friction and walls (ADR 0003)
   defaultFriction: 0.69,
@@ -31,4 +31,4 @@ export const MOTION = {
   stepLookaheadMargin: 0.3,
   stepLaneOffset: 0.8,
   stepScanStep: 0.2,
-} as const;
+} as const);

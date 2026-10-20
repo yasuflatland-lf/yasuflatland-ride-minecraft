@@ -2,24 +2,24 @@ import { clamp } from "../shared/vec";
 import { SPEC } from "./spec";
 
 export interface RawInput {
-  moveX: number;
-  moveY: number;
-  jump: boolean;
+  readonly moveX: number;
+  readonly moveY: number;
+  readonly jump: boolean;
 }
 export interface DriveInput {
-  throttle: number;
-  steer: number;
-  handbrake: boolean;
+  readonly throttle: number;
+  readonly steer: number;
+  readonly handbrake: boolean;
   /** Steering with the stick held sideways: move forward slowly instead of throttling (ADR 0018). */
-  creep: boolean;
+  readonly creep: boolean;
 }
 
-export const NEUTRAL_INPUT: DriveInput = {
+export const NEUTRAL_INPUT: DriveInput = Object.freeze({
   throttle: 0,
   steer: 0,
   handbrake: false,
   creep: false,
-};
+});
 
 const SIDEWAYS_SLOPE = Math.tan((SPEC.sidewaysAngle * Math.PI) / 180);
 

@@ -15,16 +15,18 @@ import { id, NAMESPACE } from "../../shared/identifiers";
  * keep the known kinds, so an entity without it is never driven or counted.
  */
 export const VEHICLE_FAMILY = "yasu_ride_vehicle";
-export const ENTITY_TYPE: Readonly<Record<VehicleKind, string>> = {
-  suv: id("suv"),
-  sportsboat: id("sportsboat"),
-  camper: id("camper"),
-};
-export const ITEM_TYPE: Readonly<Record<VehicleKind, string>> = {
+export const ENTITY_TYPE: Readonly<Record<VehicleKind, string>> = Object.freeze(
+  {
+    suv: id("suv"),
+    sportsboat: id("sportsboat"),
+    camper: id("camper"),
+  },
+);
+export const ITEM_TYPE: Readonly<Record<VehicleKind, string>> = Object.freeze({
   suv: id("suv_item"),
   sportsboat: id("sportsboat_item"),
   camper: id("camper_item"),
-};
+});
 export function kindOfEntity(
   typeId: string | undefined,
 ): VehicleKind | undefined {
