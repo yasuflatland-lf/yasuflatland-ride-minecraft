@@ -3,7 +3,10 @@ import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
 import type { DockCell } from "../../../../src/domain/vehicle/floor";
 import { type Cell, cellKey } from "../../../../src/domain/vehicle/headlights";
-import { DockBlocks } from "../../../../src/infrastructure/vehicle/bedrock/dockBlocks";
+import {
+  DockBlocks,
+  savedDock,
+} from "../../../../src/infrastructure/vehicle/bedrock/dockBlocks";
 import {
   CAMPER_CEILING_BLOCK,
   CAMPER_DOOR_BLOCK,
@@ -417,4 +420,49 @@ it.each([
   new DockBlocks().lay(f.car.id, f.car, []);
   expect(f.at(position).typeId).toBe(seed);
   expect(f.saved.get(DECK_CELLS_PROPERTY)).toBe(raw);
+});
+
+it("finds only the owner of a laid door in the same dimension", () => {
+  const f = fixture();
+  const docks = new DockBlocks();
+  docks.lay(f.car.id, f.car, roomCells);
+  for (const c of roomCells) {
+    expect(docks.doorOwner(f.car.dimension.id, c)).toBe(
+      c.block.type === "door" ? f.car.id : undefined,
+    );
+    expect(docks.doorOwner("nether", c)).toBeUndefined();
+  }
+  docks.lay(f.car.id, f.car, []);
+  for (const c of roomCells)
+    expect(docks.doorOwner(f.car.dimension.id, c)).toBeUndefined();
+});
+
+it("derives laid state and door target from saved dock cells in one property read", () => {
+  fc.assert(
+    fc.property(fc.boolean(), (open) => {
+      const f = fixture();
+      const read = vi.spyOn(f.car, "getDynamicProperty");
+      expect(savedDock(f.car)).toEqual({ laid: false, doorOpen: undefined });
+      for (const raw of ["{", "{}", "[]"]) {
+        f.saved.set(DECK_CELLS_PROPERTY, raw);
+        expect(savedDock(f.car)).toEqual({ laid: false, doorOpen: undefined });
+      }
+      f.saved.set(
+        DECK_CELLS_PROPERTY,
+        JSON.stringify([{ x: 0, y: 64, z: 0, height: 8 }]),
+      );
+      expect(savedDock(f.car)).toEqual({ laid: true, doorOpen: undefined });
+      f.saved.set(
+        DECK_CELLS_PROPERTY,
+        JSON.stringify(
+          roomCells.map((c) =>
+            c.block.type === "door" ? { ...c, block: { ...c.block, open } } : c,
+          ),
+        ),
+      );
+      read.mockClear();
+      expect(savedDock(f.car)).toEqual({ laid: true, doorOpen: open });
+      expect(read).toHaveBeenCalledExactlyOnceWith(DECK_CELLS_PROPERTY);
+    }),
+  );
 });

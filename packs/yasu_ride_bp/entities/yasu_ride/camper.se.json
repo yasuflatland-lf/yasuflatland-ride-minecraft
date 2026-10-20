@@ -6,6 +6,17 @@
       "is_spawnable": false,
       "is_summonable": true,
       "properties": {
+        "yasu_ride:docked": {
+          "type": "bool",
+          "default": false,
+          "client_sync": false
+        },
+        "yasu_ride:door": {
+          "type": "float",
+          "range": [0.0, 1.0],
+          "default": 0.0,
+          "client_sync": true
+        },
         "yasu_ride:form": {
           "type": "enum",
           "values": ["car", "takeoff", "hover", "landing", "submarine"],
@@ -31,6 +42,13 @@
       }
     },
     "component_groups": {
+      "yasu_ride:undocked": {
+        "minecraft:collision_box": { "width": 3.0, "height": 4.0 }
+      },
+      "yasu_ride:docked": {
+        "minecraft:physics": { "has_collision": false, "has_gravity": false },
+        "minecraft:collision_box": { "width": 0.4, "height": 0.4 }
+      },
       "yasu_ride:paint_khaki": { "minecraft:variant": { "value": 0 } },
       "yasu_ride:paint_green": { "minecraft:variant": { "value": 1 } },
       "yasu_ride:paint_red": { "minecraft:variant": { "value": 2 } },
@@ -61,6 +79,21 @@
       "yasu_ride:weighted": { "minecraft:physics": {} }
     },
     "events": {
+      "minecraft:entity_spawned": {
+        "add": { "component_groups": ["yasu_ride:undocked"] }
+      },
+      "yasu_ride:dock": {
+        "remove": {
+          "component_groups": ["yasu_ride:weighted", "yasu_ride:undocked"]
+        },
+        "add": { "component_groups": ["yasu_ride:docked"] }
+      },
+      "yasu_ride:undock": {
+        "remove": { "component_groups": ["yasu_ride:docked"] },
+        "add": {
+          "component_groups": ["yasu_ride:weighted", "yasu_ride:undocked"]
+        }
+      },
       "yasu_ride:paint_khaki": {
         "add": { "component_groups": ["yasu_ride:paint_khaki"] },
         "remove": {

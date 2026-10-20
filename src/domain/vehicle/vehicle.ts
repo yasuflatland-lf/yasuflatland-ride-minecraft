@@ -81,6 +81,11 @@ export class Vehicle {
     return this.drive.yaw;
   }
 
+  /** A player tapped the door of this vehicle's room. Returns whether it opened or closed (ADR 0068). */
+  useDockDoor(): boolean {
+    return this.drive.useDockDoor?.() ?? false;
+  }
+
   tick(input: VehicleTickInput): TickOutcome {
     const seatCommands = this.updateSeats(input.riders);
     const driver = this.updateDriver(input.riders);

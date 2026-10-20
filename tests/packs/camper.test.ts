@@ -3,6 +3,7 @@ import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 import { CAMPER_PROFILE } from "../../src/domain/vehicle/kinds/camper/profile";
 import { PAINTS } from "../../src/domain/vehicle/paint";
+import { CAMPER_DOOR_COMPONENT } from "../../src/infrastructure/vehicle/bedrock/identifiers";
 
 const RP = "packs/yasu_ride_rp";
 const geometryText = readFileSync(
@@ -198,7 +199,11 @@ it("matches the camper's four seat positions and collision box to its profile", 
       z: seat.position[2],
     })),
   ).toEqual(CAMPER_PROFILE.seats.positions);
-  expect(components["minecraft:collision_box"]).toEqual({
+  expect(
+    camperEntity.component_groups["yasu_ride:undocked"][
+      "minecraft:collision_box"
+    ],
+  ).toEqual({
     width: 3,
     height: 4,
   });
@@ -280,14 +285,21 @@ describe("camper animation references", () => {
       ...Object.keys(camperAnimations),
       ...Object.keys(camperControllers),
     ]);
-    expect(Object.keys(camperClient.animations)).toHaveLength(23);
+    expect(Object.keys(camperClient.animations)).toHaveLength(24);
     for (const name of Object.values(camperClient.animations)) {
       expect(names.has(String(name)), String(name)).toBe(true);
     }
   });
 
-  it("animates only root and the four wheel bones present in the model", () => {
-    const allowed = ["root", "wheel_fl", "wheel_fr", "wheel_rl", "wheel_rr"];
+  it("animates only root, the wheels, and the entry door present in the model", () => {
+    const allowed = [
+      "root",
+      "wheel_fl",
+      "wheel_fr",
+      "wheel_rl",
+      "wheel_rr",
+      "door_entry",
+    ];
     const modelBones = bones.map((b) => b.name);
     for (const animation of Object.values(camperAnimations)) {
       for (const name of Object.keys(animation.bones ?? {})) {
@@ -345,7 +357,10 @@ describe("camper animation references", () => {
   });
 
   it("animates only names the client entity defines, as the SUV does", () => {
-    expect(camperClient.scripts.animate).toEqual(suvClient.scripts.animate);
+    expect(camperClient.scripts.animate).toEqual([
+      ...suvClient.scripts.animate,
+      "door",
+    ]);
     for (const entry of camperClient.scripts.animate)
       expect(Object.keys(camperClient.animations)).toContain(shortName(entry));
   });
@@ -422,4 +437,70 @@ describe("camper animation references", () => {
       expect(underwater.sound_effects, water).toBeUndefined();
     }
   });
+});
+
+describe("camper parking assets (ADR 0068)", () => {
+  it("keeps the 3 x 4 collision box in the base components", () => {
+    // Taps never reach custom_hit_test without a base collision box (ADR 0068).
+    expect(camperEntity.components["minecraft:collision_box"]).toEqual({
+      width: 3,
+      height: 4,
+    });
+  });
+
+  it("switches collision and gravity groups when parking and departing", () => {
+    expect(camperEntity.component_groups["yasu_ride:undocked"]).toEqual({
+      "minecraft:collision_box": { width: 3, height: 4 },
+    });
+    expect(camperEntity.component_groups["yasu_ride:docked"]).toEqual({
+      "minecraft:physics": { has_collision: false, has_gravity: false },
+      "minecraft:collision_box": { width: 0.4, height: 0.4 },
+    });
+    expect(camperEntity.events["minecraft:entity_spawned"]).toEqual({
+      add: { component_groups: ["yasu_ride:undocked"] },
+    });
+    expect(camperEntity.events["yasu_ride:dock"]).toEqual({
+      remove: {
+        component_groups: ["yasu_ride:weighted", "yasu_ride:undocked"],
+      },
+      add: { component_groups: ["yasu_ride:docked"] },
+    });
+    expect(camperEntity.events["yasu_ride:undock"]).toEqual({
+      remove: { component_groups: ["yasu_ride:docked"] },
+      add: { component_groups: ["yasu_ride:weighted", "yasu_ride:undocked"] },
+    });
+  });
+
+  it("registers the door component and rotates only the model's entry door", () => {
+    const door = JSON.parse(
+      readFileSync(
+        "packs/yasu_ride_bp/blocks/yasu_ride/camper_door.block.json",
+        "utf8",
+      ),
+    )["minecraft:block"];
+    expect(door.components["minecraft:custom_components"]).toEqual([
+      CAMPER_DOOR_COMPONENT,
+    ]);
+    expect(camperClient.animations.door).toBe(
+      "animation.yasu_ride.camper.door",
+    );
+    expect(camperClient.scripts.animate).toContain("door");
+    const animation = camperAnimations["animation.yasu_ride.camper.door"];
+    expect(animation?.loop).toBe(true);
+    expect(animation?.bones).toEqual({
+      door_entry: { rotation: [0, "q.property('yasu_ride:door') * -100", 0] },
+    });
+    expect(bones.map((b) => b.name)).toContain("door_entry");
+  });
+
+  it.each(["en_US", "ja_JP"])(
+    "translates parking and cargo messages in %s",
+    (locale) => {
+      const lang = readFileSync(`${RP}/texts/${locale}.lang`, "utf8");
+      for (const name of ["cannot_park", "clear_cargo"])
+        expect(lang).toMatch(
+          new RegExp(`^yasu_ride\\.message\\.${name}=.+$`, "m"),
+        );
+    },
+  );
 });

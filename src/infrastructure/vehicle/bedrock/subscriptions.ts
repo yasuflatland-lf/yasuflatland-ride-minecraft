@@ -21,6 +21,7 @@ import type {
   PlaceVehicleCommand,
 } from "../../../application/vehicle/placeVehicle";
 import type { SwitchHeadlights } from "../../../application/vehicle/switchHeadlights";
+import type { UseDockDoor } from "../../../application/vehicle/useDockDoor";
 import type { Vec3 } from "../../../domain/shared/vec";
 import type { VehicleKind } from "../../../domain/vehicle/kind";
 import { profileOf } from "../../../domain/vehicle/kinds/index";
@@ -34,6 +35,7 @@ import type { TestInputStore } from "../testInput/testInputStore";
 import { standsOnDeck } from "./deck";
 import { removeOrphanDeckSeat } from "./deckSeats";
 import {
+  CAMPER_DOOR_COMPONENT,
   fleetEntryOf,
   HEADLIGHT_SWITCH_TYPE,
   isVehicleEntity,
@@ -65,9 +67,21 @@ export function registerSubscriptions(
     limit: LimitVehicles;
     paint: PaintVehicle;
     headlights: SwitchHeadlights;
+    door: UseDockDoor;
   },
   testInputs: TestInputStore,
+  dockDoorOwner: (dimensionId: string, cell: Vec3) => string | undefined,
 ): void {
+  // A tap on any of the 3 door cells toggles the door; the drive owns its state,
+  // and the next dock re-places the door cells (ADR 0068).
+  system.beforeEvents.startup.subscribe(({ blockComponentRegistry }) => {
+    blockComponentRegistry.registerCustomComponent(CAMPER_DOOR_COMPONENT, {
+      onPlayerInteract: (ev) => {
+        const vehicleId = dockDoorOwner(ev.dimension.id, ev.block.location);
+        if (vehicleId) useCases.door.execute({ vehicleId });
+      },
+    });
+  });
   system.runInterval(() => useCases.drive.execute(system.currentTick), 1);
   // The fleet never sees a vehicle spawn while the script is not running, so it
   // reads back the loaded ones once on start. After that only events add

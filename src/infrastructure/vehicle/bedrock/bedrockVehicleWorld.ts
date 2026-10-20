@@ -22,6 +22,7 @@ import type { Vec3 } from "../../../domain/shared/vec";
 import {
   type ClearCell,
   type Departure,
+  DOCK_RESTORED,
   inBox,
 } from "../../../domain/vehicle/dock";
 import type { EngineCommand } from "../../../domain/vehicle/drive";
@@ -39,7 +40,7 @@ import type { RamHit, RamTarget } from "../../../domain/vehicle/ram";
 import type { RiderView } from "../../../domain/vehicle/vehicle";
 import type { TestInputStore } from "../testInput/testInputStore";
 import { DeckSeats } from "./deckSeats";
-import { DockBlocks } from "./dockBlocks";
+import { DockBlocks, savedDock } from "./dockBlocks";
 import { HeadlightBlocks, isLightBlock } from "./headlightBlocks";
 import {
   AIR_BLOCK,
@@ -108,6 +109,11 @@ export class BedrockVehicleWorld
 
   constructor(private readonly testInputs: TestInputStore) {}
 
+  /** The vehicle whose laid room door is at this cell, if any (ADR 0068). */
+  dockDoorOwner(dimensionId: string, cell: Vec3): string | undefined {
+    return this.dockBlocks.doorOwner(dimensionId, cell);
+  }
+
   private entity(id: string): Entity | undefined {
     const e = this.current.get(id) ?? world.getEntity(id);
     return e?.isValid ? e : undefined;
@@ -150,13 +156,19 @@ export class BedrockVehicleWorld
           deckSeatInputs: this.deckSeats
             .riders(car)
             .map((player) => (player ? rawInputOf(player) : undefined)),
-          restored: () =>
-            Object.fromEntries(
-              entityContractOf(kind).restored.map((name) => [
-                name,
-                car.getProperty(entityPropertyId(name)),
-              ]),
-            ),
+          restored: () => {
+            const dock = savedDock(car);
+            return {
+              [DOCK_RESTORED.laid]: dock.laid,
+              [DOCK_RESTORED.doorOpen]: dock.doorOpen,
+              ...Object.fromEntries(
+                entityContractOf(kind).restored.map((name) => [
+                  name,
+                  car.getProperty(entityPropertyId(name)),
+                ]),
+              ),
+            };
+          },
           headlights: car.getProperty(HEADLIGHTS_PROPERTY) === true,
           testInput: this.testInputs.get(car.id),
         });
@@ -276,7 +288,7 @@ export class BedrockVehicleWorld
           distanceSq(b.location, car.location),
       );
     for (const p of standing)
-      if (!rideable.addRider(p))
+      if (!rideable.addRider(p) && departure.exit)
         p.teleport(departure.exit, {
           rotation: { x: 0, y: departure.exit.yaw },
         });

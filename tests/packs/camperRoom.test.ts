@@ -4,6 +4,7 @@ import { CAMPER_SPEC } from "../../src/domain/vehicle/kinds/camper/spec";
 import {
   CAMPER_CEILING_BLOCK,
   CAMPER_DOOR_BLOCK,
+  CAMPER_DOOR_COMPONENT,
   CAMPER_FLOOR_BLOCK,
   CAMPER_WALL_BLOCK,
   ROOM_FACE_STATE,
@@ -49,9 +50,14 @@ describe("Camper room blocks (ADR 0068)", () => {
       expect(block.components["minecraft:material_instances"]).toEqual({
         "*": { texture: "glass", render_method: "alpha_test" },
       });
-      expect(block.components).not.toHaveProperty(
-        "minecraft:custom_components",
-      );
+      if (name === "door")
+        expect(block.components["minecraft:custom_components"]).toEqual([
+          CAMPER_DOOR_COMPONENT,
+        ]);
+      else
+        expect(block.components).not.toHaveProperty(
+          "minecraft:custom_components",
+        );
     },
   );
 
@@ -101,14 +107,16 @@ describe("Camper room blocks (ADR 0068)", () => {
   });
 });
 
-it("keeps only a bumper hitbox from spawn and preserves the camper's body collision", () => {
+it("keeps only a bumper hitbox from spawn and preserves the undocked camper's body collision", () => {
   const entity = read(`${BP}/entities/yasu_ride/camper.se.json`)[
     "minecraft:entity"
   ];
   expect(entity.components["minecraft:custom_hit_test"].hitboxes).toEqual([
     { width: 1, height: 1, pivot: [0, 0.5, CAMPER_SPEC.bodyFront] },
   ]);
-  expect(entity.components["minecraft:collision_box"]).toEqual({
+  expect(
+    entity.component_groups["yasu_ride:undocked"]["minecraft:collision_box"],
+  ).toEqual({
     width: 3,
     height: 4,
   });

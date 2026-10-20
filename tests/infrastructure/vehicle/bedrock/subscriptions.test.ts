@@ -1,13 +1,16 @@
 import {
+  type BlockCustomComponent,
   type EntityLoadAfterEvent,
   type EntitySpawnAfterEvent,
   type ItemUseAfterEvent,
   type PlayerInteractWithBlockBeforeEvent,
+  type StartupEvent,
   world,
 } from "@minecraft/server";
 import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
 import {
+  CAMPER_DOOR_COMPONENT,
   DECK_SEAT_OF_PROPERTY,
   DECK_SEAT_TYPE,
   ENTITY_TYPE,
@@ -24,6 +27,7 @@ const game = vi.hoisted(() => ({
     >(),
   use: vi.fn<(handler: (ev: ItemUseAfterEvent) => void) => void>(),
   run: vi.fn<(callback: () => void) => void>(),
+  startup: vi.fn<(handler: (ev: StartupEvent) => void) => void>(),
   currentTick: 10,
 }));
 vi.mock("@minecraft/server", () => {
@@ -47,6 +51,7 @@ vi.mock("@minecraft/server", () => {
       },
       run: game.run,
       runInterval: vi.fn(),
+      beforeEvents: { startup: { subscribe: game.startup } },
       afterEvents: { scriptEventReceive: signal() },
     },
     world: {
@@ -97,6 +102,7 @@ function fixture(
   registerSubscriptions(
     { place } as unknown as Parameters<typeof registerSubscriptions>[0],
     new TestInputStore(),
+    () => undefined,
   );
   const before = game.before.mock.calls.at(-1)?.[0];
   const use = game.use.mock.calls.at(-1)?.[0];
@@ -295,6 +301,7 @@ it("removes an orphan deck seat that loads with a chunk, but not one that is jus
   registerSubscriptions(
     { limit } as unknown as Parameters<typeof registerSubscriptions>[0],
     new TestInputStore(),
+    () => undefined,
   );
   const spawn = vi
     .mocked(world.afterEvents.entitySpawn.subscribe)
@@ -330,6 +337,7 @@ it("passes fleet metadata on spawn and load and skips invalid or unrelated entit
   registerSubscriptions(
     { limit } as unknown as Parameters<typeof registerSubscriptions>[0],
     new TestInputStore(),
+    () => undefined,
   );
   const spawn = vi
     .mocked(world.afterEvents.entitySpawn.subscribe)
@@ -363,4 +371,37 @@ it("passes fleet metadata on spawn and load and skips invalid or unrelated entit
   }
   expect(limit.spawned).toHaveBeenCalledTimes(1);
   expect(limit.found).toHaveBeenCalledTimes(2);
+});
+
+it("registers door interactions during startup and dispatches only owned doors", () => {
+  const door = { execute: vi.fn() };
+  const owner = vi.fn<(dimensionId: string, cell: At) => string | undefined>();
+  registerSubscriptions(
+    { door } as unknown as Parameters<typeof registerSubscriptions>[0],
+    new TestInputStore(),
+    owner,
+  );
+  const startup = game.startup.mock.calls.at(-1)?.[0];
+  if (!startup) throw new Error("startup not subscribed synchronously");
+  const registerCustomComponent =
+    vi.fn<(name: string, component: BlockCustomComponent) => void>();
+  startup({
+    blockComponentRegistry: { registerCustomComponent },
+  } as unknown as StartupEvent);
+  expect(registerCustomComponent.mock.calls[0]?.[0]).toBe(
+    CAMPER_DOOR_COMPONENT,
+  );
+  const interact = registerCustomComponent.mock.calls[0]?.[1].onPlayerInteract;
+  if (!interact) throw new Error("door interaction missing");
+  const cell = { x: 1, y: 64, z: 2 };
+  const event = {
+    dimension: { id: "overworld" },
+    block: { location: cell },
+  } as Parameters<typeof interact>[0];
+  interact(event, { params: undefined });
+  expect(owner).toHaveBeenCalledExactlyOnceWith("overworld", cell);
+  expect(door.execute).not.toHaveBeenCalled();
+  owner.mockReturnValue("camper");
+  interact(event, { params: undefined });
+  expect(door.execute).toHaveBeenCalledExactlyOnceWith({ vehicleId: "camper" });
 });

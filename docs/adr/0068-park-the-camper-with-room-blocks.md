@@ -26,7 +26,7 @@ The owner wants to walk inside a stopped camper, open and close its door, and pl
 
 ## Consequences
 
-- Parking and departure each cost one batch of block lookups (168 and 65 cells), not a per-tick scan
+- Parking and departure each cost one batch of block lookups (168 checked cells plus 19 wall-root cells when parking; 65 cells on departure), not a per-tick scan
 - A camper parks only on flat, clear ground; a slab under it, or anything a player built where its room goes, refuses it
 - From outside, only the bumper reacts to taps
 - Blocks placed inside stay in the world until part 4 records them and carries them with the camper; until then they keep the camper parked

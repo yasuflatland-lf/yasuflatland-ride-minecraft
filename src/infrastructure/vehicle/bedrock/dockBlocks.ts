@@ -4,6 +4,7 @@ import {
   type Dimension,
   type Entity,
 } from "@minecraft/server";
+import type { Vec3 } from "../../../domain/shared/vec";
 import {
   type DockBlock,
   type DockCell,
@@ -137,8 +138,34 @@ function savedCells(car: Entity): DockCell[] {
   }
 }
 
+/** State derived from the cells actually laid, with one saved-property read per rebuild. */
+export function savedDock(car: Entity): {
+  laid: boolean;
+  doorOpen: boolean | undefined;
+} {
+  const cells = savedCells(car);
+  const door = cells.find((c) => c.block.type === "door");
+  return {
+    laid: cells.length > 0,
+    doorOpen: door?.block.type === "door" ? door.block.open : undefined,
+  };
+}
+
 export class DockBlocks {
   private readonly laid = new Map<string, Laid>();
+
+  /** The vehicle whose laid door is at this cell, if any. */
+  doorOwner(dimensionId: string, cell: Vec3): string | undefined {
+    const key = cellKey(cell);
+    for (const [vehicleId, entry] of this.laid)
+      if (
+        entry.dimension.id === dimensionId &&
+        entry.cells.some((c) => c.block.type === "door" && cellKey(c) === key)
+      )
+        return vehicleId;
+    return undefined;
+  }
+
   // Cells left in a dimension the vehicle has left because their chunk was
   // unloaded at the time; the saved property only describes the current
   // dimension, so they are kept here until a later tick clears them.

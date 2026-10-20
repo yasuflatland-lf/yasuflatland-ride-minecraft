@@ -7,6 +7,7 @@ import { LimitVehicles } from "../../application/vehicle/limitVehicles";
 import { PaintVehicle } from "../../application/vehicle/paintVehicle";
 import { PlaceVehicle } from "../../application/vehicle/placeVehicle";
 import { SwitchHeadlights } from "../../application/vehicle/switchHeadlights";
+import { UseDockDoor } from "../../application/vehicle/useDockDoor";
 import { fleetLimitOf } from "../../domain/vehicle/kinds/index";
 import { NAMESPACE } from "../shared/identifiers";
 import { BedrockVehicleWorld } from "./bedrock/bedrockVehicleWorld";
@@ -30,7 +31,9 @@ export function installVehicles(): void {
       limit: new LimitVehicles(bedrock, repo, fleets, log),
       paint: new PaintVehicle(bedrock),
       headlights: new SwitchHeadlights(bedrock, repo),
+      door: new UseDockDoor(repo),
     },
     store,
+    (dimensionId, cell) => bedrock.dockDoorOwner(dimensionId, cell),
   );
 }
