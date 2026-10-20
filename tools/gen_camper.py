@@ -812,6 +812,15 @@ lens_slot = SLOTS.index("lens")
 headlights = [c for c in body if c["uv"]["north"]["uv"][0] == lens_slot]
 body = [c for c in body if c["uv"]["north"]["uv"][0] != lens_slot]
 
+# Glass gets its own bones, listed last, so only glass is alpha-blended and it draws after the
+# opaque interior. Blending the whole model let a near pane drawn early hide the cabin behind it
+# and show the terrain on the far side (ADR 0091).
+glass_slot = SLOTS.index("glass")
+glass = [c for c in body if c["uv"]["north"]["uv"][0] == glass_slot]
+body = [c for c in body if c["uv"]["north"]["uv"][0] != glass_slot]
+door_glass = [c for c in door if c["uv"]["north"]["uv"][0] == glass_slot]
+door = [c for c in door if c["uv"]["north"]["uv"][0] != glass_slot]
+
 camper_bones = [
     {"name": "root", "pivot": [0, 0, 0]},
     {"name": "body", "parent": "root", "pivot": [0, 0, 0], "cubes": body,
@@ -823,6 +832,8 @@ camper_bones = [
     {"name": "door_entry", "parent": "body", "pivot": DOOR_HINGE, "cubes": door},
     {"name": "steering", "parent": "body", "pivot": STEERING_PIVOT, "rotation": [STEERING_LEAN, 0, 0],
      "cubes": [moved(c, STEERING_PIVOT) for c in steering]},
+    {"name": "glass", "parent": "body", "pivot": [0, 0, 0], "cubes": glass},
+    {"name": "door_glass", "parent": "door_entry", "pivot": DOOR_HINGE, "cubes": door_glass},
 ]
 
 

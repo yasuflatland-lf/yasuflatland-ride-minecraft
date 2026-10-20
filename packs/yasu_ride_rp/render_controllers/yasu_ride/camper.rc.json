@@ -34,6 +34,12 @@
         },
         {
           "headlights": "Array.lamps[query.property('yasu_ride:headlights') ? 1 : 0]"
+        },
+        {
+          "glass": "Material.glass"
+        },
+        {
+          "door_glass": "Material.glass"
         }
       ],
       "textures": ["Array.paints[query.variant]"]

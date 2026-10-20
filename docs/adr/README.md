@@ -12,7 +12,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0006](0006-ram-damage-and-occupant-protection.md) | Ram damage detection, and always protecting occupants | Accepted |
 | [0007](0007-seats-and-driver.md) | Seats and choosing the driver | Superseded by 0019 |
 | [0008](0008-vehicle-item-and-breaking.md) | Placing and picking up vehicles | Superseded in part by 0036 |
-| [0009](0009-vehicle-model-conventions.md) | Vehicle model conventions, and accepting a square collision box | Accepted |
+| [0009](0009-vehicle-model-conventions.md) | Vehicle model conventions, and accepting a square collision box | Extended by 0091 |
 | [0010](0010-testing-strategy.md) | Testing strategy | Accepted |
 | [0011](0011-dev-server-docker-raknet.md) | Run the development server as BDS in Docker with raknet | Superseded by 0015 |
 | [0012](0012-ddd-layered-architecture.md) | Split the code into domain, application, and infrastructure layers | Extended by 0065 |
@@ -70,7 +70,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0064](0064-dock-step.md) | Group the hold, floor, and deck seats into an optional dock | Accepted |
 | [0065](0065-check-import-rules-with-dependency-cruiser.md) | Check the import rules with dependency-cruiser | Extended by 0072 |
 | [0066](0066-limit-vehicles-per-player-and-kind.md) | Limit vehicles per player and per kind | Accepted |
-| [0067](0067-camper.md) | Camper | Superseded in part by 0068 and 0069 |
+| [0067](0067-camper.md) | Camper | Superseded in part by 0068 and 0069; extended by 0091 |
 | [0068](0068-park-the-camper-with-room-blocks.md) | Park the camper with room blocks | Superseded in part by 0070 and 0084; extended by 0086 |
 | [0069](0069-camper-right-hand-drive.md) | Seat the camper's driver on the right like the SUV | Superseded in part by 0070 |
 | [0070](0070-raise-the-camper-front-seats.md) | Raise the camper's front seats | Accepted |
@@ -94,6 +94,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0088](0088-keep-the-in-game-test-fixtures-out-of-mutation.md) | Keep the in-game test fixtures out of mutation testing | Accepted |
 | [0089](0089-per-kind-control-mapping.md) | Each kind maps the stick to handbrake and creep | Accepted |
 | [0090](0090-group-the-vehicle-core-by-subcontext.md) | Group the vehicle core by subcontext | Accepted |
+| [0091](0091-alpha-blend-only-the-camper-glass.md) | Alpha-blend only the camper glass | Accepted |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 
