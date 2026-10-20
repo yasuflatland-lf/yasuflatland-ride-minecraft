@@ -126,14 +126,14 @@ describe("camper model assets (ADR 0067)", () => {
     expect(bone("door_entry").pivot).toEqual([-24, 0, -7]);
   });
 
-  it("keeps the facing dinette on the driver's side, clear of the bed and side walls", () => {
+  it("keeps the facing dinette on the left behind the passenger, clear of the bed and side walls", () => {
     for (const name of ["seat_0", "seat_1", "headlights"]) {
       expect(bone(name).cubes?.length).toBeGreaterThan(0);
     }
-    expect(bone("seat_0").cubes?.every((c) => (c.origin[0] ?? 0) > 0)).toBe(
+    expect(bone("seat_0").cubes?.every((c) => (c.origin[0] ?? 0) < 0)).toBe(
       true,
     );
-    expect(bone("seat_1").cubes?.every((c) => (c.origin[0] ?? 0) < 0)).toBe(
+    expect(bone("seat_1").cubes?.every((c) => (c.origin[0] ?? 0) > 0)).toBe(
       true,
     );
     for (const name of ["seat_2", "seat_3"]) {
@@ -145,6 +145,15 @@ describe("camper model assets (ADR 0067)", () => {
         expect(c.origin[1]).toBeGreaterThanOrEqual(16);
         expect((c.origin[2] ?? 0) + (c.size[2] ?? 0)).toBeLessThanOrEqual(24);
       }
+    }
+  });
+
+  it("puts the steering wheel and column on the right in front of the driver", () => {
+    const steering = bone("steering");
+    expect(steering.pivot).toEqual([-12, 29, -41]);
+    expect(steering.cubes?.length).toBeGreaterThan(0);
+    for (const cube of steering.cubes ?? []) {
+      expect((cube.origin[0] ?? 0) + (cube.size[0] ?? 0) / 2).toBeLessThan(0);
     }
   });
 

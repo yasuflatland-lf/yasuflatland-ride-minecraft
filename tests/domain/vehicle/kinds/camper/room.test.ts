@@ -1,6 +1,11 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
-import { forward, normalizeYaw } from "../../../../../src/domain/shared/vec";
+import {
+  dot,
+  forward,
+  normalizeYaw,
+  rightOf,
+} from "../../../../../src/domain/shared/vec";
 import { inBox } from "../../../../../src/domain/vehicle/dock";
 import { cellKey } from "../../../../../src/domain/vehicle/headlights";
 import { CAMPER_PROFILE } from "../../../../../src/domain/vehicle/kinds/camper/profile";
@@ -250,6 +255,18 @@ it("puts four deck seats at the profile's horizontal positions and the measured 
           p.y + defined([0.58, 0.58, 0.68, 0.68][i], "rise"),
         );
       });
+    }),
+  );
+});
+
+it("puts the driver's deck seat at the front right at every parked pose", () => {
+  fc.assert(
+    fc.property(pose, (p) => {
+      const driver = defined(deckSeats(p)[0], "driver's deck seat");
+      const offset = { x: driver.x - p.x, z: driver.z - p.z };
+      const facing = forward(p.yaw);
+      expect(dot(offset, rightOf(facing))).toBeCloseTo(0.75);
+      expect(dot(offset, facing)).toBeCloseTo(2.1);
     }),
   );
 });

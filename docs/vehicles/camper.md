@@ -16,7 +16,7 @@ A four-seat camper with a facing dinette that drives, flies, and dives. Back to 
 
 ## Controls
 
-Use the same controls as the SUV: see the [SUV controls table](suv.md#controls). Seat 0 is the front-left driver; seats 2 and 3 face each other at the dinette.
+Use the same controls as the SUV: see the [SUV controls table](suv.md#controls). Seat 0 is the front-right driver, as in the SUV; seats 2 and 3 face each other at the dinette on the left.
 
 ## How it moves
 
