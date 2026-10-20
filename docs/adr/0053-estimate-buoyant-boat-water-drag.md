@@ -37,3 +37,5 @@ With the fixed 0.83 the boat held 1.140 blocks/tick over ticks 60–80 (21 sampl
 - The driver still has to ride the boat and confirm that the top speed and the turning feel right
 
 Note (0055, 0075): `BoatDrive` in `boatDrive.ts` is now `SportsboatDrive` in `src/domain/vehicle/kinds/sportsboat/drive.ts` (0055 moved the file, 0075 renamed the class), `stepFlightMotion` is `stepMediumMotion`, and the drag sample is read from `MotionState.mediumExpected` (0075).
+
+Note (0087): the `SPORTSBOAT_DRAG` values now live in `SPORTSBOAT_SPEC` (`waterDragInitial`, `waterDragMin`, `waterDragMax`, `waterDragSmoothing`, `waterDragMinGiven`) in `src/domain/vehicle/kinds/sportsboat/spec.ts`; `SPORTSBOAT_DRAG` in `drive.ts` keeps its keys and reads them.

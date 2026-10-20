@@ -2,6 +2,7 @@
 import { clamp, forward, type Vec2 } from "../../../shared/vec";
 import type { DockCell, HoldPose } from "../../floor";
 import { toLocal } from "../../seats";
+import { SPORTSBOAT_SPEC } from "./spec";
 
 export interface DeckPart {
   readonly halfWidth: number;
@@ -10,15 +11,14 @@ export interface DeckPart {
   readonly height: number;
 }
 
-/** ADR 0063: measured mean draft at rest, in blocks. */
-export const DECK_DRAFT = 0.45;
+/** From SPORTSBOAT_SPEC (ADR 0063). */
+export const DECK_DRAFT = SPORTSBOAT_SPEC.deckDraft;
 
 const PIXELS_PER_BLOCK = 16;
 const WATER_OFFSETS = [2, 1, 0, -1] as const;
 
 export const DECK = Object.freeze({
-  /** ADR 0063: a 0.3-block margin covered 13 to 16 cells in the spike. */
-  margin: 0.3,
+  margin: SPORTSBOAT_SPEC.deckMargin,
   // From tools/gen_sportsboat.py, in blocks: x = left, z = forward;
   // collision tops include the measured 0.3 px of teak (ADR 0063).
   parts: Object.freeze<DeckPart[]>([
