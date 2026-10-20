@@ -10,7 +10,7 @@ import { type RiderView, Vehicle } from "../vehicle";
 import { CamperDrive } from "./camper/drive";
 import { CAMPER_ENTITY } from "./camper/entity";
 import { CAMPER_PROFILE } from "./camper/profile";
-import { BoatDrive } from "./sportsboat/drive";
+import { SportsboatDrive } from "./sportsboat/drive";
 import { SPORTSBOAT_ENTITY } from "./sportsboat/entity";
 import { SPORTSBOAT_PROFILE } from "./sportsboat/profile";
 import { SuvDrive } from "./suv/drive";
@@ -42,7 +42,7 @@ export const KINDS: Readonly<Record<VehicleKind, Readonly<KindDefinition>>> =
     sportsboat: Object.freeze<KindDefinition>({
       profile: SPORTSBOAT_PROFILE,
       entity: SPORTSBOAT_ENTITY,
-      createDrive: (yaw, restored) => new BoatDrive(yaw, restored),
+      createDrive: (yaw, restored) => new SportsboatDrive(yaw, restored),
     }),
   });
 

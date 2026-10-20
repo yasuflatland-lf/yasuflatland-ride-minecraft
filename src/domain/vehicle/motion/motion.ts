@@ -8,8 +8,8 @@ import {
   type Vec2,
 } from "../../shared/vec";
 import type { DriveInput } from "../driveInput";
-import type { MotionLimits } from "../profile";
 import { MOTION } from "./constants";
+import type { MotionLimits } from "./limits";
 
 export interface Medium {
   readonly drag: number;
@@ -31,9 +31,9 @@ export interface MotionState {
   // tick was on the ground: in the air the engine applies airFriction and only
   // airControl of the impulse, so the ratio would not measure ground friction.
   expected?: Vec2;
-  // Velocity flight aimed for in the previous tick, kept apart from
-  // `expected` so flight ratios never feed the ground friction estimate.
-  airExpected?: Vec2;
+  // Velocity the medium step aimed for in the previous tick, kept apart from
+  // `expected` so its ratios never feed the ground friction estimate.
+  mediumExpected?: Vec2;
   stepTicks: number; // Remaining ticks of control in the air after jumping up a step
 }
 
@@ -136,7 +136,7 @@ export function stepMotion(
   probe: StepProbe,
   limits: MotionLimits,
 ): MotionResult {
-  const st: MotionState = { ...prev, airExpected: undefined };
+  const st: MotionState = { ...prev, mediumExpected: undefined };
   st.speed = updateSpeed(st.speed, input.throttle, input.creep, limits);
   st.yaw = steerYaw(st.yaw, st.speed, input.steer, limits);
   const f = forward(st.yaw);
@@ -213,13 +213,14 @@ export function stepMotion(
 }
 
 /**
- * One tick of horizontal movement with gravity off (ADR 0021). There is no
- * ground friction to estimate, so the impulse is pre-divided by the medium's
- * drag and applied in full. The handbrake does not exist in the air or under
- * water. Walls are detected per axis as on the ground (ADR 0003), against the
- * medium's wall drag. Step rise is handled by the aggregate.
+ * One tick of horizontal movement in a medium whose engine drag the script
+ * pre-divides: air or water with gravity off, or a buoyant hull (ADR 0021,
+ * 0053, 0075). There is no ground friction to estimate, so the impulse is
+ * pre-divided by the medium's drag and applied in full. The handbrake does
+ * not exist here. Walls are detected per axis as on the ground (ADR 0003),
+ * against the medium's wall drag. Step rise is handled by the aggregate.
  */
-export function stepFlightMotion(
+export function stepMediumMotion(
   prev: MotionState,
   input: DriveInput,
   v: Vec2,
@@ -238,10 +239,10 @@ export function stepFlightMotion(
   const f = forward(yaw);
   const vLong = dot(v, f);
   const blocked =
-    prev.airExpected !== undefined &&
+    prev.mediumExpected !== undefined &&
     hitWall(
       v,
-      prev.airExpected,
+      prev.mediumExpected,
       (medium.wallDrag ?? medium.drag) * MOTION.blockedRatio,
     );
   if (blocked) speed = speedAfterWall(speed, vLong, limits);
@@ -263,7 +264,7 @@ export function stepFlightMotion(
       speed,
       yaw,
       expected: undefined,
-      airExpected: given,
+      mediumExpected: given,
       stepTicks: 0,
     },
     forward: f,

@@ -17,6 +17,7 @@ import { SPORTSBOAT_MOTION } from "../../../../src/domain/vehicle/kinds/sportsbo
 import { SUV_MOTION } from "../../../../src/domain/vehicle/kinds/suv/profile";
 import { SUV_SPEC } from "../../../../src/domain/vehicle/kinds/suv/spec";
 import { MOTION } from "../../../../src/domain/vehicle/motion/constants";
+import type { MotionLimits } from "../../../../src/domain/vehicle/motion/limits";
 import {
   alignOnMount,
   initialMotion,
@@ -25,7 +26,6 @@ import {
   stepMotion,
   updateSpeed,
 } from "../../../../src/domain/vehicle/motion/motion";
-import type { MotionLimits } from "../../../../src/domain/vehicle/profile";
 import { SPEC } from "../../../../src/domain/vehicle/spec";
 import { defined } from "../../../support/defined";
 import {

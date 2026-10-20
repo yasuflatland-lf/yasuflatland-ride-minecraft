@@ -42,7 +42,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0036](0036-paint-by-hitting-with-a-dye.md) | Paint by hitting with a dye, and get in by interacting | Accepted |
 | [0037](0037-one-dye-per-repaint-within-a-tick.md) | Use one dye per repaint within a tick | Accepted |
 | [0038](0038-keep-at-most-ten-vehicles-in-a-world.md) | Keep at most ten vehicles in a world | Superseded by 0066 |
-| [0039](0039-vehicle-forms.md) | Vehicle forms | Accepted |
+| [0039](0039-vehicle-forms.md) | Vehicle forms | Superseded in part by 0075 |
 | [0040](0040-submarine.md) | Submarine form | Superseded in part by 0042, 0044, and 0045 |
 | [0041](0041-sonar-sound-under-water.md) | Sonar sound under water | Accepted |
 | [0042](0042-bronze-four-blade-propellers.md) | Bronze four-blade propellers | Accepted |
@@ -78,6 +78,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0072](0072-keep-motion-behind-the-kinds.md) | Keep motion/ behind the kinds | Accepted |
 | [0073](0073-hover-sound-on-a-riderless-vehicle.md) | Keep the hover sound on a riderless vehicle until its wheels come down | Accepted |
 | [0074](0074-light-braking-at-least-coasting.md) | Light braking is never weaker than coasting | Accepted |
+| [0075](0075-name-the-medium-step-after-the-medium.md) | Name the shared medium step after the medium | Accepted |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 

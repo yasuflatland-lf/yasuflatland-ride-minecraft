@@ -13,7 +13,6 @@ import {
   type RawInput,
   toDriveInput,
 } from "../driveInput";
-import type { MotionLimits } from "../profile";
 import { bankSink, stepBank } from "./bank";
 import { MOTION } from "./constants";
 import {
@@ -27,13 +26,14 @@ import {
   verticalSpeed,
 } from "./forms";
 import { nextGearDown } from "./landingGear";
+import type { MotionLimits } from "./limits";
 import {
   alignOnMount,
   initialMotion,
   type MotionResult,
   type MotionState,
   type StepProbe,
-  stepFlightMotion,
+  stepMediumMotion,
   stepMotion,
 } from "./motion";
 import { stepHeight } from "./stepUp";
@@ -205,7 +205,7 @@ export class TransformingDrive implements Drive {
             stepProbe(ctx, this.spec),
             this.limits,
           )
-        : stepFlightMotion(
+        : stepMediumMotion(
             motion,
             input,
             velocity,

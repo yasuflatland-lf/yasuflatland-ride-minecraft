@@ -1,5 +1,6 @@
+import type { MotionLimits } from "../../motion/limits";
 import type { PlacementSurface } from "../../placement";
-import type { MotionLimits, VehicleProfile } from "../../profile";
+import type { VehicleProfile } from "../../profile";
 import { SUV_SPEC } from "./spec";
 
 // Frozen because this one object is shared by every SUV; a write would change

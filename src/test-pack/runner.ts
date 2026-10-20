@@ -10,7 +10,7 @@ import {
   roomCells,
 } from "../domain/vehicle/kinds/camper/room";
 import { CAMPER_SPEC } from "../domain/vehicle/kinds/camper/spec";
-import { BoatDrive } from "../domain/vehicle/kinds/sportsboat/drive";
+import { SportsboatDrive } from "../domain/vehicle/kinds/sportsboat/drive";
 import {
   SPORTSBOAT_MOTION,
   SPORTSBOAT_PROFILE,
@@ -1317,7 +1317,7 @@ function boatDrag(a: Arena): Promise<Outcome> {
         const steadySpeeds: number[] = [];
         const coastRatios: number[] = [];
         const steadyDrag: number[] = [];
-        const replica = new BoatDrive(boat.getRotation().y, {});
+        const replica = new SportsboatDrive(boat.getRotation().y, {});
         const lines: string[] = [];
         drive(boat, 0, 1);
         for (let t = 0; t < 93; t++) {

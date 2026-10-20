@@ -89,3 +89,5 @@ The trace test pins exact behavior, which 0010 avoids for lasting tests, so it w
 Two notes on the result. The SUV's seat layout moved out of the core's `seats.ts` into `SUV_PROFILE` in `kinds/suv/profile.ts`, and `nearestSeat` and `occupiedSeats` take the positions without a default (#185). `kinds/index.ts` also exports `KINDS`, so a test can check that its rows are frozen, and `RAM_QUERY_RADIUS`, the radius the infrastructure searches for ram targets, computed from every kind's profile.
 
 0055 supersedes 0050's flat layout, SUV-only tuning in `SPEC`, motion limits in `VehicleProfile`, and aggregate-owned motion state, and extends 0046. Step 7 also updated the architecture rules in AGENTS.md. Revisit the command vocabulary if it grows past eight operations, or if the add-on is ported away from Bedrock.
+
+Note (0075): `stepFlightMotion` is now `stepMediumMotion`, and `airExpected` is `mediumExpected`. The sports boat drive in `kinds/sportsboat/drive.ts` (`boatDrive.ts` before step 7) is now the class `SportsboatDrive`. `MotionLimits` (point 5) moved to `motion/limits.ts` with its fields unchanged.
