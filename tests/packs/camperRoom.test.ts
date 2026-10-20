@@ -107,13 +107,19 @@ describe("Camper room blocks (ADR 0068)", () => {
   });
 });
 
-it("keeps only a bumper hitbox from spawn and preserves the undocked camper's body collision", () => {
+it("keeps only the bumper hitboxes from spawn and preserves the undocked camper's body collision", () => {
   const entity = read(`${BP}/entities/yasu_ride/camper.se.json`)[
     "minecraft:entity"
   ];
-  expect(entity.components["minecraft:custom_hit_test"].hitboxes).toEqual([
-    { width: 1, height: 1, pivot: [0, 0.5, CAMPER_SPEC.bodyFront] },
-  ]);
+  // A hitbox is square in x and z, so three 1-block boxes cover the 3-block
+  // bumper without reaching more than half a block into the room (ADR 0084).
+  expect(entity.components["minecraft:custom_hit_test"].hitboxes).toEqual(
+    [-1, 0, 1].map((x) => ({
+      width: 1,
+      height: 1,
+      pivot: [x, 0.5, CAMPER_SPEC.bodyFront],
+    })),
+  );
   expect(
     entity.component_groups["yasu_ride:undocked"]["minecraft:collision_box"],
   ).toEqual({
