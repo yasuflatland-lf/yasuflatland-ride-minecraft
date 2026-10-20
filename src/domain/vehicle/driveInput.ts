@@ -23,9 +23,16 @@ export const NEUTRAL_INPUT: DriveInput = {
 
 const SIDEWAYS_SLOPE = Math.tan((SPEC.sidewaysAngle * Math.PI) / 180);
 
-/** Converts the movement vector and jump input to throttle, steering, and handbrake (ADR 0018). */
-export function toDriveInput(raw: RawInput): DriveInput {
-  if (!Number.isFinite(raw.moveX) || !Number.isFinite(raw.moveY)) {
+/**
+ * Converts the movement vector and jump input to throttle, steering, and
+ * handbrake (ADR 0018). No input, as on a tick without a driver, is neutral.
+ */
+export function toDriveInput(raw: RawInput | undefined): DriveInput {
+  if (
+    raw === undefined ||
+    !Number.isFinite(raw.moveX) ||
+    !Number.isFinite(raw.moveY)
+  ) {
     return NEUTRAL_INPUT;
   }
   const steer = clamp(raw.moveX, -1, 1);

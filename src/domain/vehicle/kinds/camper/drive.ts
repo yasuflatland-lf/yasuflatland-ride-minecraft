@@ -1,10 +1,10 @@
-import { clamp, forward } from "../../../shared/vec";
+import { clamp } from "../../../shared/vec";
 import { type ClearCell, DOCK_RESTORED } from "../../dock";
 import type { DriveStep, EngineCommand, TickContext } from "../../drive";
 import type { RawInput } from "../../driveInput";
 import type { RestoredOf } from "../../entityContract";
 import type { HoldPose } from "../../floor";
-import { DOCK, pushesStick } from "../../motion/dock";
+import { DOCK, heldStep, pushesStick } from "../../motion/dock";
 import { dockCommands, undockCommands } from "../../motion/dockEntity";
 import { TransformingDrive } from "../../motion/transformingDrive";
 import { SyncedValue } from "../../syncedValue";
@@ -37,7 +37,6 @@ const CAMPER_ENDS: BodyEnds = {
 
 // The door swings in 10 steps of 0.1, one per tick: half a second (ADR 0068).
 const DOOR_STEPS = 10;
-const AT_REST = { x: 0, y: 0, z: 0 } as const;
 
 // The shared transforming drivetrain with the camper's values, its end check
 // (ADR 0067), and parking (ADR 0068).
@@ -184,19 +183,15 @@ export class CamperDrive extends TransformingDrive {
     const clear = lay ? this.pendingClear : [];
     if (lay) this.pendingClear = [];
     this.roomLaid = true;
-    return {
-      dock: {
-        hold: pose,
-        cells: lay ? roomCells(pose, this.doorOpen) : [],
-        seats: deckSeats(pose),
-      },
-      clear,
-      boardDeckRiders: pushesStick(ctx.deckSeatInputs[0]),
-      impulse: AT_REST,
-      forward: forward(pose.yaw),
-      commands: this.doorCommands(),
-      riders: { thirdPerson: false, underwater: false },
+    const dock = {
+      hold: pose,
+      cells: lay ? roomCells(pose, this.doorOpen) : [],
+      seats: deckSeats(pose),
     };
+    return heldStep(dock, pose.yaw, ctx.deckSeatInputs, {
+      commands: this.doorCommands(),
+      clear,
+    });
   }
 
   private depart(
