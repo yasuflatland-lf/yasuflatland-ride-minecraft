@@ -224,11 +224,12 @@ describe("camper body end guard", () => {
         fc.integer({ min: 0, max: 10 }),
         (yaw, speed, at, v, form, layer, lane, stepTicks) => {
           fc.pre(layer >= lowestBlockingLayer(form));
+          const base = motion(yaw, speed);
           const step = {
-            ...motion(yaw, speed),
+            ...base,
+            state: { ...base.state, stepTicks },
             jumpVelocity: 0.45,
           };
-          step.state.stepTicks = stepTicks;
           const before = structuredClone(step);
           const sensor = world(at, [endPoint(yaw, speed, v, layer, lane)]);
           const result = guardEnds(

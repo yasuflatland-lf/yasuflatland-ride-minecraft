@@ -895,4 +895,62 @@ describe("stepMotion (properties, ADR 0002/0003)", () => {
     expect(r.jumpVelocity).toBe(MOTION.oneStepVelocity);
     expect(r.state.speed).toBeGreaterThanOrEqual(MOTION.stepMinSpeed);
   });
+
+  it("keeps the key set of the returned state (absent friction stays absent)", () => {
+    const noStep = () => 0 as const;
+    const keys = (state: MotionState) => Object.keys(state).sort();
+
+    // Ground, no previous expected velocity: the estimate does not run.
+    const fresh = stepMotion(
+      initialMotion(0),
+      NEUTRAL_INPUT,
+      { velocity: { x: 0, z: 0 }, onGround: true },
+      noStep,
+      SUV_MOTION,
+    );
+    expect(keys(fresh.state)).toEqual([
+      "expected",
+      "mediumExpected",
+      "speed",
+      "stepTicks",
+      "yaw",
+    ]);
+
+    // Ground, 70% of the previous expected velocity kept: the estimate runs.
+    const estimated = stepMotion(
+      { ...initialMotion(0), expected: { x: 0, z: 0.5 } },
+      NEUTRAL_INPUT,
+      { velocity: { x: 0, z: 0.35 }, onGround: true },
+      noStep,
+      SUV_MOTION,
+    );
+    expect(keys(estimated.state)).toEqual([
+      "expected",
+      "friction",
+      "mediumExpected",
+      "speed",
+      "stepTicks",
+      "yaw",
+    ]);
+    expect(estimated.state.friction).toBeCloseTo(0.7, 12);
+
+    // In the air: the previous estimate is kept and expected is cleared.
+    const airborne = stepMotion(
+      { ...initialMotion(0), friction: 0.9, expected: { x: 0, z: 0.5 } },
+      NEUTRAL_INPUT,
+      { velocity: { x: 0, z: 0.4 }, onGround: false },
+      noStep,
+      SUV_MOTION,
+    );
+    expect(keys(airborne.state)).toEqual([
+      "expected",
+      "friction",
+      "mediumExpected",
+      "speed",
+      "stepTicks",
+      "yaw",
+    ]);
+    expect(airborne.state.friction).toBe(0.9);
+    expect(airborne.state.expected).toBeUndefined();
+  });
 });
