@@ -5,7 +5,7 @@ This directory records design decisions and the reasons behind them. The format 
 | No. | Decision | Status |
 |---|---|---|
 | [0001](0001-bedrock-addon-with-stable-script-api.md) | Build a Bedrock add-on and use only the stable Script API | Accepted |
-| [0002](0002-script-driven-vehicle-movement.md) | Drive vehicles by setting their velocity from the script | Accepted |
+| [0002](0002-script-driven-vehicle-movement.md) | Drive vehicles by setting their velocity from the script | Extended by 0074 |
 | [0003](0003-friction-compensation-and-axis-wall-detection.md) | Estimate and compensate for ground friction, and detect wall collisions per axis | Accepted |
 | [0004](0004-two-block-step-up-by-look-ahead.md) | Climb two-block steps by looking ahead in the script | Superseded in part by 0035 |
 | [0005](0005-touch-throttle-compensation.md) | Compensate the throttle from the mobile joystick | Superseded by 0018 |
@@ -21,7 +21,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0015](0015-dev-server-docker-nethernet.md) | Run the development server as BDS in Docker with NetherNet | Extended by 0062 |
 | [0016](0016-readme-preview-rendered-from-model.md) | Render the README preview from the model files | Superseded by 0027 |
 | [0017](0017-repaint-vehicles-with-dye.md) | Repaint vehicles with dye | Superseded by 0031 |
-| [0018](0018-sideways-stick-creeps-forward.md) | Treat a sideways stick as a slow forward turn | Accepted |
+| [0018](0018-sideways-stick-creeps-forward.md) | Treat a sideways stick as a slow forward turn | Extended by 0074 |
 | [0019](0019-passengers-move-up-to-the-driver-seat.md) | Passengers move up to the driver seat | Accepted |
 | [0020](0020-headlights.md) | Headlights that light up the road | Accepted |
 | [0021](0021-flight-mode.md) | Flight mode: toggle with a double tap, climb with the view pitch, and switch gravity with a component group | Superseded in part by 0032, 0034, and 0039 |
@@ -77,6 +77,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0071](0071-pull-the-camper-chase-camera-back.md) | Pull the camper's chase camera back | Accepted |
 | [0072](0072-keep-motion-behind-the-kinds.md) | Keep motion/ behind the kinds | Accepted |
 | [0073](0073-hover-sound-on-a-riderless-vehicle.md) | Keep the hover sound on a riderless vehicle until its wheels come down | Accepted |
+| [0074](0074-light-braking-at-least-coasting.md) | Light braking is never weaker than coasting | Accepted |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 

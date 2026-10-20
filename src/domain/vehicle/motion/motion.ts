@@ -1,4 +1,4 @@
-// One tick of vehicle movement (ADR 0002, 0003).
+// One tick of vehicle movement (ADR 0002, 0003, 0074).
 import {
   clamp,
   clampLength,
@@ -81,9 +81,17 @@ export function updateSpeed(
     );
   }
   let s = speed;
-  if (throttle > 0) s += (s < 0 ? limits.brake : limits.accel) * throttle;
+  // A light brake must not slow the vehicle less than releasing the stick (ADR 0074).
+  if (throttle > 0)
+    s +=
+      s < 0
+        ? Math.max(limits.drag, limits.brake * throttle)
+        : limits.accel * throttle;
   else if (throttle < 0)
-    s += (s > 0 ? limits.brake : limits.reverseAccel) * throttle;
+    s -=
+      s > 0
+        ? Math.max(limits.drag, limits.brake * -throttle)
+        : limits.reverseAccel * -throttle;
   else s -= Math.sign(s) * Math.min(Math.abs(s), limits.drag);
   return clamp(s, -limits.maxReverse, limits.maxSpeed);
 }
