@@ -10,7 +10,7 @@ import { TransformingDrive } from "../../motion/transformingDrive";
 import { SyncedValue } from "../../syncedValue";
 import { type BodyEnds, guardEnds } from "./bodyGuard";
 import { type CAMPER_ENTITY, doorCommand } from "./entity";
-import { CAMPER_MOTION } from "./profile";
+import { CAMPER_MOTION, CAMPER_TYRES } from "./profile";
 import {
   cargoCells,
   deckSeats,
@@ -62,6 +62,7 @@ export class CamperDrive extends TransformingDrive {
       restored,
       CAMPER_TRANSFORMING,
       CAMPER_MOTION,
+      CAMPER_TYRES,
       (step, ctx, form) => guardEnds(step, ctx, CAMPER_ENDS, form),
     );
     this.restoredDocked = restored.docked === true;

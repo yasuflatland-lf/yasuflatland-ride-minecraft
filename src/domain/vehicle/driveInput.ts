@@ -6,49 +6,54 @@ export interface RawInput {
   readonly moveY: number;
   readonly jump: boolean;
 }
-export interface DriveInput {
+/**
+ * The stick and Jump before any kind gives them a meaning (ADR 0018, 0089).
+ * Each kind maps `jump` and `sideways` to its own controls.
+ */
+export interface ControlInput {
   readonly throttle: number;
   readonly steer: number;
-  readonly handbrake: boolean;
-  /** Steering with the stick held sideways: move forward slowly instead of throttling (ADR 0018). */
-  readonly creep: boolean;
+  /** Jump is held. */
+  readonly jump: boolean;
+  /** The stick is held sideways (ADR 0018): it only steers, and `throttle` is 0. */
+  readonly sideways: boolean;
 }
 
-export const NEUTRAL_INPUT: DriveInput = Object.freeze({
+export const NEUTRAL_CONTROL: ControlInput = Object.freeze({
   throttle: 0,
   steer: 0,
-  handbrake: false,
-  creep: false,
+  jump: false,
+  sideways: false,
 });
 
 const SIDEWAYS_SLOPE = Math.tan((SPEC.sidewaysAngle * Math.PI) / 180);
 
 /**
- * Converts the movement vector and jump input to throttle, steering, and
- * handbrake (ADR 0018). No input, as on a tick without a driver, is neutral.
+ * Converts the movement vector and Jump to a control input (ADR 0018, 0089).
+ * No input, as on a tick without a driver, is neutral.
  */
-export function toDriveInput(raw: RawInput | undefined): DriveInput {
+export function toDriveInput(raw: RawInput | undefined): ControlInput {
   if (
     raw === undefined ||
     !Number.isFinite(raw.moveX) ||
     !Number.isFinite(raw.moveY)
   ) {
-    return NEUTRAL_INPUT;
+    return NEUTRAL_CONTROL;
   }
   const steer = clamp(raw.moveX, -1, 1);
-  const sideways = Math.abs(steer);
+  const across = Math.abs(steer);
   // A phone stick pushed straight right reads about -0.2 forward/backward,
   // which would otherwise reverse the vehicle and flip the steering.
   if (
-    sideways > SPEC.throttleDeadzone &&
-    Math.abs(raw.moveY) <= sideways * SIDEWAYS_SLOPE
+    across > SPEC.throttleDeadzone &&
+    Math.abs(raw.moveY) <= across * SIDEWAYS_SLOPE
   ) {
-    return { throttle: 0, steer, handbrake: raw.jump, creep: true };
+    return { throttle: 0, steer, jump: raw.jump, sideways: true };
   }
   const magnitude = Math.abs(raw.moveY);
   const throttle =
     magnitude <= SPEC.throttleDeadzone
       ? 0
       : Math.sign(raw.moveY) * Math.min(1, magnitude / SPEC.throttleFullAt);
-  return { throttle, steer, handbrake: raw.jump, creep: false };
+  return { throttle, steer, jump: raw.jump, sideways: false };
 }

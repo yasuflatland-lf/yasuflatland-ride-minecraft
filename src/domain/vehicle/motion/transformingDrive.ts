@@ -7,12 +7,7 @@ import type {
   RestoredValues,
   TickContext,
 } from "../drive";
-import {
-  type DriveInput,
-  NEUTRAL_INPUT,
-  type RawInput,
-  toDriveInput,
-} from "../driveInput";
+import { NEUTRAL_CONTROL, type RawInput, toDriveInput } from "../driveInput";
 import { SyncedValue } from "../syncedValue";
 import { bankSink, stepBank } from "./bank";
 import { MOTION } from "./constants";
@@ -27,9 +22,10 @@ import {
   verticalSpeed,
 } from "./forms";
 import { nextGearDown } from "./landingGear";
-import type { MotionLimits } from "./limits";
+import type { MotionLimits, TyreLimits } from "./limits";
 import {
   alignOnMount,
+  type GroundInput,
   initialMotion,
   type MotionResult,
   type MotionState,
@@ -84,13 +80,21 @@ function groundNear(
 /**
  * Takeoff ignores the controls, and there is no handbrake in the air or as a
  * submarine (ADR 0021). Out of car form the stick pulled back sinks instead of
- * reversing, in the air (ADR 0032) and under water (ADR 0040).
+ * reversing, in the air (ADR 0032) and under water (ADR 0040). A sideways
+ * stick creeps in every form (ADR 0018, 0089).
  */
-function driveInputFor(raw: RawInput | undefined, form: Form): DriveInput {
-  if (form === "takeoff") return NEUTRAL_INPUT;
-  const input = toDriveInput(raw);
-  if (form === "car") return input;
-  return { ...input, throttle: Math.max(0, input.throttle), handbrake: false };
+export function groundInputFor(
+  raw: RawInput | undefined,
+  form: Form,
+): GroundInput {
+  const control = form === "takeoff" ? NEUTRAL_CONTROL : toDriveInput(raw);
+  const car = form === "car";
+  return {
+    throttle: car ? control.throttle : Math.max(0, control.throttle),
+    steer: control.steer,
+    handbrake: car && control.jump,
+    creep: control.sideways,
+  };
 }
 
 /**
@@ -116,6 +120,7 @@ export class TransformingDrive implements Drive {
     restored: RestoredValues<"form">,
     protected readonly spec: TransformingSpec,
     protected readonly limits: MotionLimits,
+    protected readonly tyres: TyreLimits,
     private readonly guard?: StepGuard,
   ) {
     const form = isForm(restored.form) ? restored.form : "car";
@@ -184,7 +189,7 @@ export class TransformingDrive implements Drive {
       this.spec,
     );
     const form = this.formState.form;
-    const input = driveInputFor(raw, form);
+    const input = groundInputFor(raw, form);
     const yawBefore = motion.yaw;
     const moved: MotionResult =
       form === "car"
@@ -194,6 +199,7 @@ export class TransformingDrive implements Drive {
             { velocity, onGround: ctx.onGround },
             stepProbe(ctx, this.spec),
             this.limits,
+            this.tyres,
           )
         : stepMediumMotion(
             motion,
@@ -201,6 +207,7 @@ export class TransformingDrive implements Drive {
             velocity,
             form === "submarine" ? this.spec.water : this.spec.air,
             this.limits,
+            this.tyres.creepSpeed,
           );
     const step = this.guard ? this.guard(moved, ctx, form) : moved;
     this.bank = stepBank(
