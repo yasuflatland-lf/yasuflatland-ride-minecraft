@@ -2,6 +2,7 @@
 import type { Fleet, FleetEntry } from "../../domain/vehicle/fleet";
 import type { FleetRepository } from "../../domain/vehicle/fleetRepository";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
+import { forEachIsolated } from "./isolated";
 import type { LimitWorld, Logger } from "./ports";
 import { retireVehicle } from "./retireVehicle";
 
@@ -47,17 +48,18 @@ export class LimitVehicles {
 
   private removeLoadedEvicted(fleet: Fleet): boolean {
     let removed = false;
-    for (const { id } of this.world.loadedFleetEntries()) {
-      if (!fleet.isEvicted(id)) continue;
-      // One failure must not cost the others, or the save of the fleet.
-      try {
+    // One failure must not cost the others, or the save of the fleet.
+    forEachIsolated(
+      this.world.loadedFleetEntries(),
+      ({ id }) => {
+        if (!fleet.isEvicted(id)) return;
         retireVehicle(this.world, this.repo, fleet, id);
         removed = true;
         this.log.warn(`${id}: removed, over the limit`);
-      } catch (e) {
-        this.log.warn(`${id}: ${e}`);
-      }
-    }
+      },
+      this.log,
+      ({ id }) => id,
+    );
     return removed;
   }
 }
