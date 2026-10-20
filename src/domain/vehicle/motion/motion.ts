@@ -24,17 +24,17 @@ export interface Medium {
 }
 
 export interface MotionState {
-  speed: number; // Internal forward/reverse speed (blocks/tick; negative means reverse)
-  yaw: number;
-  friction?: number; // Ground friction estimate; undefined until estimated
+  readonly speed: number; // Internal forward/reverse speed (blocks/tick; negative means reverse)
+  readonly yaw: number;
+  readonly friction?: number; // Ground friction estimate; undefined until estimated
   // Velocity the script aimed for in the previous tick. Kept only when that
   // tick was on the ground: in the air the engine applies airFriction and only
   // airControl of the impulse, so the ratio would not measure ground friction.
-  expected?: Vec2;
+  readonly expected?: Vec2;
   // Velocity the medium step aimed for in the previous tick, kept apart from
   // `expected` so its ratios never feed the ground friction estimate.
-  mediumExpected?: Vec2;
-  stepTicks: number; // Remaining ticks of control in the air after jumping up a step
+  readonly mediumExpected?: Vec2;
+  readonly stepTicks: number; // Remaining ticks of control in the air after jumping up a step
 }
 
 export function initialMotion(yaw: number): MotionState {
@@ -136,23 +136,23 @@ export function stepMotion(
   probe: StepProbe,
   limits: MotionLimits,
 ): MotionResult {
-  const st: MotionState = { ...prev, mediumExpected: undefined };
-  st.speed = updateSpeed(st.speed, input.throttle, input.creep, limits);
-  st.yaw = steerYaw(st.yaw, st.speed, input.steer, limits);
-  const f = forward(st.yaw);
+  let speed = updateSpeed(prev.speed, input.throttle, input.creep, limits);
+  const yaw = steerYaw(prev.yaw, speed, input.steer, limits);
+  const f = forward(yaw);
   const v = obs.velocity;
   const vLong = dot(v, f);
 
   // Distinguish friction from wall collisions by how much of the previous
   // tick's given velocity remains (ADR 0003).
+  let friction = prev.friction;
   let blocked = false;
-  if (st.expected && obs.onGround) {
-    const e = st.expected;
-    const limit = (st.friction ?? MOTION.defaultFriction) * MOTION.blockedRatio;
+  if (prev.expected && obs.onGround) {
+    const e = prev.expected;
+    const limit = (friction ?? MOTION.defaultFriction) * MOTION.blockedRatio;
     blocked = hitWall(v, e, limit);
     if (blocked) {
       // While colliding, freeze the friction estimate.
-      st.speed = speedAfterWall(st.speed, vLong);
+      speed = speedAfterWall(speed, vLong);
     } else {
       const eLen2 = e.x * e.x + e.z * e.z;
       if (eLen2 > MOTION.minExpectedForFriction ** 2) {
@@ -161,30 +161,29 @@ export function stepMotion(
           MOTION.frictionMin,
           MOTION.frictionMax,
         );
-        st.friction =
-          st.friction === undefined
+        friction =
+          friction === undefined
             ? r
-            : st.friction * (1 - MOTION.frictionEma) + r * MOTION.frictionEma;
+            : friction * (1 - MOTION.frictionEma) + r * MOTION.frictionEma;
       }
     }
   }
-  const friction = obs.onGround
-    ? (st.friction ?? MOTION.defaultFriction)
+  const applied = obs.onGround
+    ? (friction ?? MOTION.defaultFriction)
     : MOTION.airFriction;
 
   // Steps (ADR 0004, 0035)
   let jumpVelocity = 0;
+  let stepTicks = prev.stepTicks;
   const height =
-    input.throttle > 0 && st.speed >= 0 && obs.onGround
-      ? probe(f, st.speed)
-      : 0;
+    input.throttle > 0 && speed >= 0 && obs.onGround ? probe(f, speed) : 0;
   if (height > 0) {
     jumpVelocity = height === 2 ? MOTION.stepVelocity : MOTION.oneStepVelocity;
-    st.speed = Math.max(st.speed, MOTION.stepMinSpeed);
-    st.stepTicks = MOTION.stepTicks;
+    speed = Math.max(speed, MOTION.stepMinSpeed);
+    stepTicks = MOTION.stepTicks;
   }
-  const stepping = st.stepTicks > 0;
-  if (stepping) st.stepTicks--;
+  const stepping = stepTicks > 0;
+  if (stepping) stepTicks--;
 
   // Set the forward component to the internal speed, cancel a grip-sized
   // fraction of the sideways component, and cap the result at max speed (ADR 0002).
@@ -192,19 +191,23 @@ export function stepMotion(
   const grip = input.handbrake ? limits.handbrakeGrip : limits.grip;
   const keepLat = stepping ? 0 : 1 - grip;
   const target = clampLength(
-    {
-      x: f.x * st.speed + lat.x * keepLat,
-      z: f.z * st.speed + lat.z * keepLat,
-    },
+    { x: f.x * speed + lat.x * keepLat, z: f.z * speed + lat.z * keepLat },
     limits.maxSpeed,
   );
   // Pre-divide by friction so the velocity left after the engine applies
   // friction this tick is the target.
-  const given = { x: target.x / friction, z: target.z / friction };
-  st.expected = obs.onGround ? given : undefined;
+  const given = { x: target.x / applied, z: target.z / applied };
   const control = obs.onGround || stepping ? 1 : MOTION.airControl;
   return {
-    state: st,
+    state: {
+      ...prev,
+      speed,
+      yaw,
+      ...(friction === undefined ? {} : { friction }),
+      expected: obs.onGround ? given : undefined,
+      mediumExpected: undefined,
+      stepTicks,
+    },
     forward: f,
     jumpVelocity,
     blocked,
