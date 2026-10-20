@@ -10,7 +10,6 @@ export const SPORTSBOAT_SPEC = Object.freeze({
   turnRate: 6, // degrees/tick at full steering input (ADR 0051)
   steerFullSpeed: 0.08,
   grip: 0.6,
-  handbrakeGrip: 0.6, // Equal to grip: the boat has no handbrake
   creepSpeed: 0.12, // Below SPEC.ramMinSpeed, so creeping never rams (ADR 0006)
   // Body
   // The height of the sportsboat collision box, which bounds the water depth

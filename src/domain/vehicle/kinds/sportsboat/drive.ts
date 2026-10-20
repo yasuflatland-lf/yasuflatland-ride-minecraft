@@ -2,18 +2,24 @@
 import { clamp, dot, type Vec2 } from "../../../shared/vec";
 import type { Dock } from "../../dock";
 import type { Drive, DriveStep, EngineCommand, TickContext } from "../../drive";
-import { type DriveInput, type RawInput, toDriveInput } from "../../driveInput";
+import {
+  type ControlInput,
+  type RawInput,
+  toDriveInput,
+} from "../../driveInput";
 import type { RestoredOf } from "../../entityContract";
 import type { HoldPose } from "../../floor";
 import { MOTION } from "../../motion/constants";
 import { DOCK, heldStep, pushesStick } from "../../motion/dock";
 import { dockCommands, undockCommands } from "../../motion/dockEntity";
-import type { MotionLimits } from "../../motion/limits";
+import type { MotionLimits, TyreLimits } from "../../motion/limits";
 import {
   alignOnMount,
+  type GroundInput,
   hitWall,
   initialMotion,
   type Medium,
+  type MediumInput,
   type MotionResult,
   type MotionState,
   stepMediumMotion,
@@ -79,11 +85,20 @@ function dockAt(pose: HoldPose): Dock {
   };
 }
 
-/** The input a beached boat drives by: reverse and steering only, never forward or creep (ADR 0080). */
-export function beachedInput(input: DriveInput): DriveInput {
+/** Afloat, a sideways stick creeps and Jump does nothing: the boat has no handbrake (ADR 0089). */
+export function afloatInput(control: ControlInput): MediumInput {
   return {
-    throttle: Math.min(0, input.throttle),
-    steer: input.steer,
+    throttle: control.throttle,
+    steer: control.steer,
+    creep: control.sideways,
+  };
+}
+
+/** The input a beached boat drives by: reverse and steering only, never forward or creep (ADR 0080). */
+export function beachedInput(control: ControlInput): GroundInput {
+  return {
+    throttle: Math.min(0, control.throttle),
+    steer: control.steer,
     handbrake: false,
     creep: false,
   };
@@ -102,6 +117,7 @@ export interface SportsboatDriveState {
 
 export class SportsboatDrive implements Drive {
   private motion: MotionState;
+  private readonly beachedTyres: TyreLimits;
   private dragEstimate: number | undefined;
   private trim = 0;
   private roll = 0;
@@ -111,14 +127,21 @@ export class SportsboatDrive implements Drive {
   private readonly trimSync = new SyncedValue<number>();
   private readonly rollSync = new SyncedValue<number>();
 
-  /** `limits` other than the boat's own are for tests that vary one value. */
+  /** `limits` and `creepSpeed` other than the boat's own are for tests that vary one value. */
   constructor(
     yaw: number,
     restored: RestoredOf<typeof SPORTSBOAT_ENTITY>,
     private readonly limits: MotionLimits = SPORTSBOAT_MOTION,
+    private readonly creepSpeed: number = SPORTSBOAT_SPEC.creepSpeed,
   ) {
     this.motion = initialMotion(yaw);
     this.restoredDocked = restored.docked === true;
+    // A beached hull has no handbrake and does not creep (beachedInput), so
+    // stepMotion never reads these; the grip stands in for the handbrake grip.
+    this.beachedTyres = Object.freeze({
+      handbrakeGrip: limits.grip,
+      creepSpeed,
+    });
   }
 
   get speed(): number {
@@ -196,8 +219,8 @@ export class SportsboatDrive implements Drive {
       this.docked = undefined;
       this.stillTicks = 0;
     }
-    // There is no handbrake: neither path below reads it, so jump does nothing.
-    const input: DriveInput = toDriveInput(raw);
+    // The boat maps the controls itself: no handbrake, creep only afloat (ADR 0089).
+    const control = toDriveInput(raw);
     const motion = this.motion;
     let step: MotionResult;
     const depth = waterDepthAt(
@@ -216,7 +239,7 @@ export class SportsboatDrive implements Drive {
       // estimator checked, so a tick taken as a drag sample is never also a wall hit.
       step = stepMediumMotion(
         motion,
-        input,
+        afloatInput(control),
         ctx.velocity,
         {
           ...SPORTSBOAT_WATER,
@@ -225,6 +248,7 @@ export class SportsboatDrive implements Drive {
           wallDrag: currentWaterDrag(this.dragEstimate),
         },
         this.limits,
+        this.creepSpeed,
       );
       this.dragEstimate = waterDrag;
     } else {
@@ -232,10 +256,11 @@ export class SportsboatDrive implements Drive {
       // (ADR 0080); it never steps up a block.
       step = stepMotion(
         motion,
-        beachedInput(input),
+        beachedInput(control),
         { velocity: ctx.velocity, onGround: ctx.onGround },
         () => 0,
         this.limits,
+        this.beachedTyres,
       );
     }
     this.motion = step.state;

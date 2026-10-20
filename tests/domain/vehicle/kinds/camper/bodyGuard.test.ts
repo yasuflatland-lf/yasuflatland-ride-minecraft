@@ -14,7 +14,10 @@ import {
   guardEnds,
   lowestBlockingLayer,
 } from "../../../../../src/domain/vehicle/kinds/camper/bodyGuard";
-import { CAMPER_MOTION } from "../../../../../src/domain/vehicle/kinds/camper/profile";
+import {
+  CAMPER_MOTION,
+  CAMPER_TYRES,
+} from "../../../../../src/domain/vehicle/kinds/camper/profile";
 import { CAMPER_SPEC } from "../../../../../src/domain/vehicle/kinds/camper/spec";
 import { MOTION } from "../../../../../src/domain/vehicle/motion/constants";
 import type { Form } from "../../../../../src/domain/vehicle/motion/forms";
@@ -614,6 +617,7 @@ describe("camper body end guard", () => {
             { velocity: v, onGround: true },
             () => 0,
             CAMPER_MOTION,
+            CAMPER_TYRES,
           );
           expect(moved.blocked).toBe(true);
           expect(moved.state.speed).toBeGreaterThan(0);

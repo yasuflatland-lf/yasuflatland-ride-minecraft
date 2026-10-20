@@ -1,4 +1,4 @@
-import type { MotionLimits } from "../../motion/limits";
+import type { MotionLimits, TyreLimits } from "../../motion/limits";
 import type { PlacementSurface } from "../../placement";
 import type { VehicleProfile } from "../../profile";
 import { SUV_SPEC } from "./spec";
@@ -51,6 +51,10 @@ export const SUV_MOTION: MotionLimits = Object.freeze({
   turnRate: SUV_SPEC.turnRate,
   steerFullSpeed: SUV_SPEC.steerFullSpeed,
   grip: SUV_SPEC.grip,
+});
+
+// Frozen because every SUV drive shares this one object.
+export const SUV_TYRES: TyreLimits = Object.freeze({
   handbrakeGrip: SUV_SPEC.handbrakeGrip,
   creepSpeed: SUV_SPEC.creepSpeed,
 });

@@ -1,6 +1,6 @@
 # 0018. Treat a sideways stick as a slow forward turn
 
-- Status: Extended by 0074
+- Status: Extended by 0074 and 0089
 - Date: 2026-10-11
 
 ## Context

@@ -6,15 +6,17 @@ import {
   length,
   type Vec2,
 } from "../../../../src/domain/shared/vec";
-import {
-  type DriveInput,
-  NEUTRAL_INPUT,
-  toDriveInput,
-} from "../../../../src/domain/vehicle/driveInput";
+import { toDriveInput } from "../../../../src/domain/vehicle/driveInput";
+import { afloatInput } from "../../../../src/domain/vehicle/kinds/sportsboat/drive";
 import { SPORTSBOAT_MOTION } from "../../../../src/domain/vehicle/kinds/sportsboat/profile";
-import { SUV_MOTION } from "../../../../src/domain/vehicle/kinds/suv/profile";
+import { SPORTSBOAT_SPEC } from "../../../../src/domain/vehicle/kinds/sportsboat/spec";
+import {
+  SUV_MOTION,
+  SUV_TYRES,
+} from "../../../../src/domain/vehicle/kinds/suv/profile";
 import { AIR, SUV_SPEC } from "../../../../src/domain/vehicle/kinds/suv/spec";
 import { MOTION } from "../../../../src/domain/vehicle/motion/constants";
+import type { GroundInput } from "../../../../src/domain/vehicle/motion/motion";
 import {
   blockedAxes,
   initialMotion,
@@ -25,20 +27,34 @@ import {
   updateSpeed,
 } from "../../../../src/domain/vehicle/motion/motion";
 
+const NEUTRAL_GROUND: GroundInput = {
+  throttle: 0,
+  steer: 0,
+  handbrake: false,
+  creep: false,
+};
+
 // The in-game flight_cruise test checks this assumption against the engine.
 const ENGINE_DRAG = SUV_SPEC.flightDrag;
-const FULL_THROTTLE: DriveInput = {
+const FULL_THROTTLE: GroundInput = {
   throttle: 1,
   steer: 0,
   handbrake: false,
   creep: false,
 };
 
-function fly(inputs: readonly DriveInput[]): { r: MotionResult; vel: Vec2 }[] {
+function fly(inputs: readonly GroundInput[]): { r: MotionResult; vel: Vec2 }[] {
   let state = initialMotion(0);
   let vel: Vec2 = { x: 0, z: 0 };
   return inputs.map((input) => {
-    const r = stepMediumMotion(state, input, vel, AIR, SUV_MOTION);
+    const r = stepMediumMotion(
+      state,
+      input,
+      vel,
+      AIR,
+      SUV_MOTION,
+      SUV_TYRES.creepSpeed,
+    );
     state = r.state;
     vel = {
       x: (vel.x + r.impulse.x) * ENGINE_DRAG,
@@ -141,10 +157,17 @@ describe("stepMediumMotion (ADR 0021, 0075)", () => {
             v,
             AIR,
             SUV_MOTION,
+            SUV_TYRES.creepSpeed,
           );
           expect(r.blocked).toBe(true);
           const free = Math.min(
-            updateSpeed(s.speed, input.throttle, input.creep, SUV_MOTION),
+            updateSpeed(
+              s.speed,
+              input.throttle,
+              input.creep,
+              SUV_MOTION,
+              SUV_TYRES.creepSpeed,
+            ),
             SUV_SPEC.maxSpeed,
           );
           const axes = blockedAxes(
@@ -165,10 +188,23 @@ describe("stepMediumMotion (ADR 0021, 0075)", () => {
       fc.property(flyingState, driveInput, (s, input) => {
         const e = s.mediumExpected;
         const v = { x: e.x * ENGINE_DRAG, z: e.z * ENGINE_DRAG };
-        const r = stepMediumMotion(prevState(s), input, v, AIR, SUV_MOTION);
+        const r = stepMediumMotion(
+          prevState(s),
+          input,
+          v,
+          AIR,
+          SUV_MOTION,
+          SUV_TYRES.creepSpeed,
+        );
         expect(r.blocked).toBe(false);
         expect(r.state.speed).toBe(
-          updateSpeed(s.speed, input.throttle, input.creep, SUV_MOTION),
+          updateSpeed(
+            s.speed,
+            input.throttle,
+            input.creep,
+            SUV_MOTION,
+            SUV_TYRES.creepSpeed,
+          ),
         );
       }),
     );
@@ -205,6 +241,7 @@ describe("stepMediumMotion walls and sideways velocity (ADR 0002, 0003)", () => 
             v,
             AIR,
             SUV_MOTION,
+            SUV_TYRES.creepSpeed,
           );
           expect(r.blocked).toBe(false);
         },
@@ -216,10 +253,11 @@ describe("stepMediumMotion walls and sideways velocity (ADR 0002, 0003)", () => 
     const kept = SUV_SPEC.flightDrag * MOTION.blockedRatio;
     const r = stepMediumMotion(
       prevState({ speed: 0.5, yaw: 0, mediumExpected: { x: 1, z: 1 } }),
-      { throttle: 0, steer: 0, handbrake: false, creep: false },
+      { throttle: 0, steer: 0, creep: false },
       { x: kept, z: kept },
       AIR,
       SUV_MOTION,
+      SUV_TYRES.creepSpeed,
     );
     expect(r.blocked).toBe(false);
   });
@@ -227,10 +265,11 @@ describe("stepMediumMotion walls and sideways velocity (ADR 0002, 0003)", () => 
   it("reports a wall when the velocity comes back reversed on an axis (ADR 0003)", () => {
     const r = stepMediumMotion(
       prevState({ speed: 0.5, yaw: 0, mediumExpected: { x: 1, z: 1 } }),
-      { throttle: 0, steer: 0, handbrake: false, creep: false },
+      { throttle: 0, steer: 0, creep: false },
       { x: -0.5, z: ENGINE_DRAG },
       AIR,
       SUV_MOTION,
+      SUV_TYRES.creepSpeed,
     );
     expect(r.blocked).toBe(true);
   });
@@ -255,9 +294,16 @@ describe("stepMediumMotion walls and sideways velocity (ADR 0002, 0003)", () => 
             v,
             AIR,
             SUV_MOTION,
+            SUV_TYRES.creepSpeed,
           );
           const free = Math.min(
-            updateSpeed(s.speed, input.throttle, input.creep, SUV_MOTION),
+            updateSpeed(
+              s.speed,
+              input.throttle,
+              input.creep,
+              SUV_MOTION,
+              SUV_TYRES.creepSpeed,
+            ),
             SUV_SPEC.maxSpeed,
           );
           expect(Math.abs(r.state.speed)).toBeLessThanOrEqual(
@@ -288,9 +334,16 @@ describe("stepMediumMotion walls and sideways velocity (ADR 0002, 0003)", () => 
             v,
             AIR,
             SUV_MOTION,
+            SUV_TYRES.creepSpeed,
           );
           const free = Math.min(
-            updateSpeed(s.speed, input.throttle, input.creep, SUV_MOTION),
+            updateSpeed(
+              s.speed,
+              input.throttle,
+              input.creep,
+              SUV_MOTION,
+              SUV_TYRES.creepSpeed,
+            ),
             SUV_SPEC.maxSpeed,
           );
           expect(r.blocked).toBe(true);
@@ -303,10 +356,11 @@ describe("stepMediumMotion walls and sideways velocity (ADR 0002, 0003)", () => 
   it("a wall that bounces a body backward stops it at 0 instead of reversing (ADR 0077)", () => {
     const r = stepMediumMotion(
       prevState({ speed: 0.1, yaw: -180, mediumExpected: { x: 0, z: -0.5 } }),
-      { throttle: 0, steer: 0, handbrake: false, creep: false },
+      { throttle: 0, steer: 0, creep: false },
       { x: 0, z: 0.05 },
       AIR,
       SUV_MOTION,
+      SUV_TYRES.creepSpeed,
     );
     expect(r.blocked).toBe(true);
     expect(r.state.speed).toBe(0);
@@ -325,6 +379,7 @@ describe("stepMediumMotion walls and sideways velocity (ADR 0002, 0003)", () => 
             vel,
             AIR,
             SUV_MOTION,
+            SUV_TYRES.creepSpeed,
           );
           state = r.state;
           const x = t >= 60 ? 0 : vel.x + r.impulse.x;
@@ -361,6 +416,7 @@ describe("stepMediumMotion walls and sideways velocity (ADR 0002, 0003)", () => 
             v,
             AIR,
             SUV_MOTION,
+            SUV_TYRES.creepSpeed,
           );
           const f = forward(r.state.yaw);
           const aimed = {
@@ -396,14 +452,21 @@ describe("light braking afloat (ADR 0074)", () => {
         expect(
           stepMediumMotion(
             prev,
-            toDriveInput({ moveX: 0, moveY, jump: false }),
+            afloatInput(toDriveInput({ moveX: 0, moveY, jump: false })),
             v,
             medium,
             SPORTSBOAT_MOTION,
+            SPORTSBOAT_SPEC.creepSpeed,
           ).state.speed,
         ).toBeLessThanOrEqual(
-          stepMediumMotion(prev, NEUTRAL_INPUT, v, medium, SPORTSBOAT_MOTION)
-            .state.speed,
+          stepMediumMotion(
+            prev,
+            NEUTRAL_GROUND,
+            v,
+            medium,
+            SPORTSBOAT_MOTION,
+            SPORTSBOAT_SPEC.creepSpeed,
+          ).state.speed,
         );
       }),
     );
