@@ -4,10 +4,8 @@ import {
   type Dimension,
   Direction,
   type Entity,
-  EntityInitializationCause,
   GameMode,
   Player,
-  ScriptEventSource,
   system,
   world,
 } from "@minecraft/server";
@@ -26,20 +24,18 @@ import type { UseDockDoor } from "../../../application/vehicle/useDockDoor";
 import type { Vec3 } from "../../../domain/shared/vec";
 import type { VehicleKind } from "../../../domain/vehicle/kind";
 import type { BlockFace } from "../../../domain/vehicle/placement";
-import { SPEC } from "../../../domain/vehicle/spec";
-import { NAMESPACE } from "../../shared/identifiers";
-import { parseTestInputMessage } from "../testInput/testInputMessage";
 import type { TestInputStore } from "../testInput/testInputStore";
 import { standsOnDeck } from "./deck";
-import { removeOrphanDeckSeat } from "./deckSeats";
+import { registerDockDoor } from "./handlers/dockDoor";
+import { registerDrive } from "./handlers/drive";
+import { registerFleet } from "./handlers/fleet";
+import { registerStarter } from "./handlers/starter";
+import { registerTestInput } from "./handlers/testInput";
 import { heldDye } from "./heldDye";
 import {
-  CAMPER_DOOR_COMPONENT,
-  fleetEntryOf,
   HEADLIGHT_SWITCH_TYPE,
   isVehicleEntity,
   kindOfItem,
-  TEST_INPUT_EVENT,
 } from "./identifiers";
 import { isWaterAt } from "./water";
 
@@ -71,68 +67,10 @@ export function registerSubscriptions(
   testInputs: TestInputStore,
   dockDoorOwner: (dimensionId: string, cell: Vec3) => string | undefined,
 ): void {
-  // A tap on any of the 3 door cells toggles the door; the drive owns its state,
-  // and the next dock re-places the door cells (ADR 0068).
-  system.beforeEvents.startup.subscribe(({ blockComponentRegistry }) => {
-    blockComponentRegistry.registerCustomComponent(CAMPER_DOOR_COMPONENT, {
-      onPlayerInteract: (ev) => {
-        const vehicleId = dockDoorOwner(ev.dimension.id, ev.block.location);
-        if (vehicleId) useCases.door.execute({ vehicleId });
-      },
-    });
-  });
-  system.runInterval(() => useCases.drive.execute(system.currentTick), 1);
-  // Registered after the drive, so on the ticks both run the hints read this
-  // tick's parked state and the vehicles the drive just indexed (ADR 0086).
-  system.runInterval(
-    () => useCases.hints.execute(system.currentTick),
-    SPEC.hintCheckInterval,
-  );
-  // The fleet never sees a vehicle spawn while the script is not running, so it
-  // reads back the loaded ones once on start. After that only events add
-  // vehicles: a scan would take a vehicle summoned this tick, whose spawn event
-  // has not arrived yet, for one that was already there (ADR 0038). A vehicle
-  // that is no longer valid was removed by an earlier event for the same load.
-  system.run(() => useCases.limit.start());
-  world.afterEvents.entityLoad.subscribe((ev) => {
-    removeOrphanDeckSeat(ev.entity);
-    if (!ev.entity.isValid) return;
-    const entry = fleetEntryOf(ev.entity);
-    if (entry) useCases.limit.found([entry]);
-  });
-  world.afterEvents.entitySpawn.subscribe((ev) => {
-    if (ev.cause === EntityInitializationCause.Loaded)
-      removeOrphanDeckSeat(ev.entity);
-    if (!ev.entity.isValid) return;
-    const entry = fleetEntryOf(ev.entity);
-    if (!entry) return;
-    if (ev.cause === EntityInitializationCause.Loaded) {
-      useCases.limit.found([entry]);
-    } else {
-      useCases.limit.spawned(entry);
-    }
-  });
-
-  system.afterEvents.scriptEventReceive.subscribe(
-    (ev) => {
-      if (
-        ev.id !== TEST_INPUT_EVENT ||
-        ev.sourceType !== ScriptEventSource.Server
-      )
-        return;
-      const parsed = parseTestInputMessage(ev.message);
-      if (!parsed) {
-        console.warn(`[${NAMESPACE}] ignored test input: ${ev.message}`);
-        return;
-      }
-      if (parsed.input !== undefined) {
-        testInputs.set(parsed.vehicleId, parsed.input);
-      } else {
-        testInputs.clear(parsed.vehicleId);
-      }
-    },
-    { namespaces: [NAMESPACE] },
-  );
+  registerDockDoor(useCases.door, dockDoorOwner);
+  registerDrive(useCases.drive, useCases.hints);
+  registerFleet(useCases.limit);
+  registerTestInput(testInputs);
 
   // One tap on water can fire both the block interaction and itemUse, in the
   // same tick, so each player gets one placement request and one placement per
@@ -183,11 +121,7 @@ export function registerSubscriptions(
     system.run(() => place(cmd));
   });
 
-  // initialSpawn is true on every join, not only the first one, so a player
-  // dynamic property records who already received the item (ADR 0023).
-  world.afterEvents.playerSpawn.subscribe((ev) => {
-    if (ev.initialSpawn) useCases.starter.execute(ev.player.id);
-  });
+  registerStarter(useCases.starter);
 
   // Painting listens to hits, not interactions: on touch a short tap on an
   // entity is an attack, and the interaction is left to getting in (ADR 0036).
