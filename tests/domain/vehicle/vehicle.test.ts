@@ -11,8 +11,11 @@ import {
 } from "../../../src/domain/shared/vec";
 import type { Drive } from "../../../src/domain/vehicle/drive";
 import type { RawInput } from "../../../src/domain/vehicle/driveInput";
+import { headlightCells } from "../../../src/domain/vehicle/headlights";
+import { VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
 import {
   createVehicle,
+  profileOf,
   rebuildVehicle,
 } from "../../../src/domain/vehicle/kinds/index";
 import { SPORTSBOAT_PROFILE } from "../../../src/domain/vehicle/kinds/sportsboat/profile";
@@ -637,6 +640,72 @@ describe("Vehicle headlight switch (ADR 0020)", () => {
         },
       ),
     );
+  });
+});
+
+describe("Vehicle headlight cells and chase camera (ADR 0020, 0071)", () => {
+  const kind = fc.constantFrom(...VEHICLE_KINDS);
+  const heading = fc.integer({ min: -18_000, max: 18_000 }).map((c) => c / 100);
+  const location = fc.record({
+    x: fc.double({ min: -1e5, max: 1e5, noNaN: true }),
+    y: fc.double({ min: -64, max: 300, noNaN: true }),
+    z: fc.double({ min: -1e5, max: 1e5, noNaN: true }),
+  });
+
+  it("lights the cells of its kind's beam pattern along its own heading", () => {
+    fc.assert(
+      fc.property(kind, heading, location, (k, h, at) => {
+        const v = createVehicle(k, "v", h);
+        expect(v.headlightCells(at)).toEqual(
+          headlightCells(at, v.yaw, profileOf(k).beams),
+        );
+      }),
+    );
+  });
+
+  it("lights along the heading the driver gave it on the tick", () => {
+    fc.assert(
+      fc.property(kind, heading, heading, location, (k, h, driverYaw, at) => {
+        const v = createVehicle(k, "v", h);
+        const f = forward(h);
+        const l = leftOf(f);
+        const s = defined(profileOf(k).seats.positions[0], "driver seat");
+        const out = v.tick({
+          deckSeatInputs: [],
+          tick: 0,
+          riders: [
+            {
+              id: "d",
+              offset: { x: l.x * s.x + f.x * s.z, z: l.z * s.x + f.z * s.z },
+              yaw: driverYaw,
+              raw: IDLE,
+            },
+          ],
+          testInput: IDLE,
+          velocity: { x: 0, y: 0, z: 0 },
+          onGround: true,
+          ...waterSensors(),
+          location: at,
+          blockTypes: () => [],
+          solidAt: () => false,
+          targets: () => [],
+        });
+        expect(out.driverId).toBe("d");
+        expect(v.headlightCells(at)).toEqual(
+          headlightCells(at, out.yaw, profileOf(k).beams),
+        );
+      }),
+    );
+  });
+
+  it.each(VEHICLE_KINDS)("answers its kind's chase camera (%s)", (k) => {
+    expect(createVehicle(k, "v", 0).chaseCamera).toBe(profileOf(k).chaseCamera);
+  });
+
+  it("pulls the camper's camera back and keeps the near view for the SUV and the sports boat", () => {
+    expect(createVehicle("camper", "v", 0).chaseCamera).toBe("far");
+    expect(createVehicle("suv", "v", 0).chaseCamera).toBe("near");
+    expect(createVehicle("sportsboat", "v", 0).chaseCamera).toBe("near");
   });
 });
 
