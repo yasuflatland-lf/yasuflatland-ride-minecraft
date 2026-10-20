@@ -11,11 +11,7 @@ import {
 import type {
   BreakWorld,
   DriveWorld,
-  HeadlightWorld,
   LimitWorld,
-  PaintWorld,
-  PlacementWorld,
-  StarterWorld,
   VehicleSnapshot,
 } from "../../../application/vehicle/ports";
 import type { Vec3 } from "../../../domain/shared/vec";
@@ -30,24 +26,21 @@ import type { RawInput } from "../../../domain/vehicle/driveInput";
 import type { FleetEntry } from "../../../domain/vehicle/fleet";
 import type { DockCell, HoldPose } from "../../../domain/vehicle/floor";
 import type { Cell } from "../../../domain/vehicle/headlights";
-import type { VehicleKind } from "../../../domain/vehicle/kind";
 import {
   entityContractOf,
   RAM_QUERY_RADIUS,
 } from "../../../domain/vehicle/kinds/index";
-import { PAINTS, type Paint } from "../../../domain/vehicle/paint";
 import type { ChaseCamera } from "../../../domain/vehicle/profile";
 import type { RamHit, RamTarget } from "../../../domain/vehicle/ram";
 import type { RiderView } from "../../../domain/vehicle/vehicle";
 import type { TestInputStore } from "../testInput/testInputStore";
 import { DeckSeats } from "./deckSeats";
 import { DockBlocks, savedDock } from "./dockBlocks";
+import { type EntityIndex, isPlayer } from "./entityIndex";
 import { HeadlightBlocks, isLightBlock } from "./headlightBlocks";
 import {
   AIR_BLOCK,
   CHASE_CAMERAS,
-  dyeOf,
-  ENTITY_TYPE,
   entityAnimationId,
   entityEventId,
   entityPropertyId,
@@ -57,17 +50,11 @@ import {
   isVehicleEntity,
   kindOfEntity,
   messageKey,
-  OWNER_PROPERTY,
-  PAINT_VARIANT,
-  PLAYER_TYPE,
-  paintEvent,
-  STARTER_RECEIVED_PROPERTY,
   VEHICLE_FAMILY,
 } from "./identifiers";
 import { isWaterAt } from "./water";
 
 const DIMENSIONS = ["overworld", "nether", "the_end"] as const;
-const isPlayer = (e: Entity): e is Player => e.typeId === PLAYER_TYPE;
 
 function rawInputOf(player: Player): RawInput {
   const movement = player.inputInfo.getMovementVector();
@@ -91,38 +78,20 @@ function distanceSq(a: Vec3, b: Vec3): number {
   return (a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2;
 }
 
-export class BedrockVehicleWorld
-  implements
-    DriveWorld,
-    PlacementWorld,
-    StarterWorld,
-    BreakWorld,
-    PaintWorld,
-    HeadlightWorld,
-    LimitWorld
-{
-  /** Vehicles collected by loadedVehicles() for this tick. The other methods look them up here by id. */
-  private current = new Map<string, Entity>();
+export class BedrockVehicleWorld implements DriveWorld, BreakWorld, LimitWorld {
   private readonly headlightBlocks = new HeadlightBlocks();
   private readonly deckSeats = new DeckSeats();
   private readonly dockBlocks = new DockBlocks();
   private readonly holds = new Map<string, HoldPose>();
 
-  constructor(private readonly testInputs: TestInputStore) {}
+  constructor(
+    private readonly index: EntityIndex,
+    private readonly testInputs: TestInputStore,
+  ) {}
 
   /** The vehicle whose laid room door is at this cell, if any (ADR 0068). */
   dockDoorOwner(dimensionId: string, cell: Vec3): string | undefined {
     return this.dockBlocks.doorOwner(dimensionId, cell);
-  }
-
-  private entity(id: string): Entity | undefined {
-    const e = this.current.get(id) ?? world.getEntity(id);
-    return e?.isValid ? e : undefined;
-  }
-
-  private player(playerId: string): Player | undefined {
-    const player = world.getEntity(playerId);
-    return player && isPlayer(player) ? player : undefined;
   }
 
   loadedFleetEntries(): FleetEntry[] {
@@ -136,7 +105,7 @@ export class BedrockVehicleWorld
   }
 
   loadedVehicles(): VehicleSnapshot[] {
-    this.current = new Map();
+    this.index.clear();
     const snapshots: VehicleSnapshot[] = [];
     for (const dimId of DIMENSIONS) {
       for (const car of world
@@ -144,7 +113,7 @@ export class BedrockVehicleWorld
         .getEntities({ families: [VEHICLE_FAMILY] })) {
         const kind = kindOfEntity(car.typeId);
         if (kind === undefined) continue;
-        this.current.set(car.id, car);
+        this.index.track(car);
         const v = car.getVelocity();
         snapshots.push({
           id: car.id,
@@ -175,7 +144,7 @@ export class BedrockVehicleWorld
         });
       }
     }
-    const live = new Set(this.current.keys());
+    const live = this.index.trackedIds();
     this.testInputs.retain(live);
     this.headlightBlocks.clearGone(live);
     this.dockBlocks.clearGone(live);
@@ -202,13 +171,13 @@ export class BedrockVehicleWorld
   }
 
   waterAt(vehicleId: string, offset: Vec3): boolean {
-    const car = this.entity(vehicleId);
+    const car = this.index.entity(vehicleId);
     if (!car) return false;
     return isWaterAt(car.dimension, offsetFrom(car, offset));
   }
 
   solidAt(vehicleId: string, offset: Vec3): boolean {
-    const car = this.entity(vehicleId);
+    const car = this.index.entity(vehicleId);
     if (!car) return false;
     try {
       const at = offsetFrom(car, offset);
@@ -239,7 +208,7 @@ export class BedrockVehicleWorld
     vehicleId: string,
     cells: readonly Vec3[],
   ): (string | undefined)[] {
-    const car = this.entity(vehicleId);
+    const car = this.index.entity(vehicleId);
     if (!car) return cells.map(() => undefined);
     return cells.map((c) => {
       try {
@@ -253,7 +222,7 @@ export class BedrockVehicleWorld
   }
 
   clearBlocks(vehicleId: string, cells: readonly ClearCell[]): void {
-    const car = this.entity(vehicleId);
+    const car = this.index.entity(vehicleId);
     if (!car) return;
     for (const c of cells) {
       try {
@@ -267,13 +236,13 @@ export class BedrockVehicleWorld
   }
 
   showMessage(playerId: string, name: string): void {
-    this.player(playerId)?.onScreenDisplay.setActionBar({
+    this.index.player(playerId)?.onScreenDisplay.setActionBar({
       translate: messageKey(name),
     });
   }
 
   seatStandingPlayers(vehicleId: string, departure: Departure): void {
-    const car = this.entity(vehicleId);
+    const car = this.index.entity(vehicleId);
     const rideable = car?.getComponent("minecraft:rideable");
     if (!car || !rideable) return;
     const standing = car.dimension
@@ -296,7 +265,7 @@ export class BedrockVehicleWorld
   }
 
   targetsNear(vehicleId: string): RamTarget[] {
-    const car = this.entity(vehicleId);
+    const car = this.index.entity(vehicleId);
     if (!car) return [];
     return car.dimension
       .getEntities({
@@ -325,7 +294,7 @@ export class BedrockVehicleWorld
       return;
     }
     this.holds.set(vehicleId, pose);
-    const car = this.entity(vehicleId);
+    const car = this.index.entity(vehicleId);
     if (!car) return;
     car.teleport(
       { x: pose.x, y: pose.y, z: pose.z },
@@ -339,28 +308,33 @@ export class BedrockVehicleWorld
     positions: readonly (Vec3 | undefined)[],
     yaw: number,
   ): void {
-    this.deckSeats.keep(vehicleId, this.entity(vehicleId), positions, yaw);
+    this.deckSeats.keep(
+      vehicleId,
+      this.index.entity(vehicleId),
+      positions,
+      yaw,
+    );
   }
 
   boardDeckRiders(vehicleId: string): void {
-    const car = this.entity(vehicleId);
+    const car = this.index.entity(vehicleId);
     if (car) this.deckSeats.board(car);
   }
 
   layDock(vehicleId: string, cells: readonly DockCell[]): void {
-    this.dockBlocks.lay(vehicleId, this.entity(vehicleId), cells);
+    this.dockBlocks.lay(vehicleId, this.index.entity(vehicleId), cells);
   }
 
   applyMotion(vehicleId: string, impulse: Vec3, yaw: number): void {
     if (this.holds.has(vehicleId)) return;
-    const car = this.entity(vehicleId);
+    const car = this.index.entity(vehicleId);
     if (!car) return;
     car.applyImpulse(impulse);
     car.setRotation({ x: 0, y: yaw });
   }
 
   run(vehicleId: string, commands: readonly EngineCommand[]): void {
-    const entity = this.entity(vehicleId);
+    const entity = this.index.entity(vehicleId);
     if (!entity) return;
     for (const command of commands) {
       switch (command.type) {
@@ -385,14 +359,14 @@ export class BedrockVehicleWorld
   }
 
   setChaseCamera(playerId: string, chase: ChaseCamera | undefined): void {
-    const camera = this.player(playerId)?.camera;
+    const camera = this.index.player(playerId)?.camera;
     if (!camera) return;
     if (chase) camera.setCamera(CHASE_CAMERAS[chase]);
     else camera.clear();
   }
 
   giveWaterBreathing(playerId: string, ticks: number): void {
-    this.player(playerId)?.addEffect("water_breathing", ticks, {
+    this.index.player(playerId)?.addEffect("water_breathing", ticks, {
       showParticles: false,
     });
   }
@@ -408,89 +382,8 @@ export class BedrockVehicleWorld
     target.applyKnockback({ x: hit.push.x, z: hit.push.z }, hit.pushUp);
   }
 
-  isAir(dimensionId: string, at: Vec3): boolean {
-    try {
-      const b = world.getDimension(dimensionId).getBlock(at);
-      return b !== undefined && (b.isAir || isLightBlock(b));
-    } catch {
-      return false;
-    }
-  }
-
-  isWaterAt(dimensionId: string, at: Vec3): boolean {
-    try {
-      return isWaterAt(world.getDimension(dimensionId), at);
-    } catch {
-      return false; // Unknown dimension id
-    }
-  }
-
-  spawnVehicle(
-    dimensionId: string,
-    at: Vec3,
-    yaw: number,
-    kind: VehicleKind,
-    ownerId: string,
-  ): string {
-    const car = world
-      .getDimension(dimensionId)
-      .spawnEntity(ENTITY_TYPE[kind], at);
-    car.setRotation({ x: 0, y: yaw });
-    car.setDynamicProperty(OWNER_PROPERTY, ownerId);
-    return car.id;
-  }
-
-  consumeVehicleItem(
-    playerId: string,
-    slot: number,
-    kind: VehicleKind,
-  ): boolean {
-    return this.consumeHeld(playerId, ITEM_TYPE[kind], slot);
-  }
-
-  /** Takes one item from `slot` (the selected one by default), but only if it still holds `typeId`. */
-  private consumeHeld(
-    playerId: string,
-    typeId: string,
-    slot?: number,
-  ): boolean {
-    const player = this.player(playerId);
-    if (!player) return false;
-    const inv = player.getComponent("minecraft:inventory")?.container;
-    if (!inv) return false;
-    const at = slot ?? player.selectedSlotIndex;
-    const item = inv.getItem(at);
-    if (!item || item.typeId !== typeId) return false;
-    if (item.amount > 1) {
-      item.amount -= 1;
-      inv.setItem(at, item);
-    } else {
-      inv.setItem(at, undefined);
-    }
-    return true;
-  }
-
-  receivedStarter(playerId: string): boolean | undefined {
-    const player = this.player(playerId);
-    if (!player) return undefined;
-    return player.getDynamicProperty(STARTER_RECEIVED_PROPERTY) === true;
-  }
-
-  giveVehicleItem(playerId: string, kind: VehicleKind): void {
-    const player = this.player(playerId);
-    if (!player) return;
-    const inv = player.getComponent("minecraft:inventory")?.container;
-    const item = new ItemStack(ITEM_TYPE[kind], 1);
-    const leftover = inv ? inv.addItem(item) : item;
-    if (leftover) player.dimension.spawnItem(leftover, player.location);
-  }
-
-  markStarterReceived(playerId: string): void {
-    this.player(playerId)?.setDynamicProperty(STARTER_RECEIVED_PROPERTY, true);
-  }
-
   dropVehicleItem(vehicleId: string): void {
-    const car = this.entity(vehicleId);
+    const car = this.index.entity(vehicleId);
     if (!car) return;
     const kind = kindOfEntity(car.typeId);
     if (kind === undefined) return;
@@ -498,7 +391,7 @@ export class BedrockVehicleWorld
   }
 
   removeVehicle(vehicleId: string): void {
-    const car = this.entity(vehicleId);
+    const car = this.index.entity(vehicleId);
     this.headlightBlocks.shine(vehicleId, car, []);
     this.dockBlocks.lay(vehicleId, car, []);
     this.deckSeats.keep(vehicleId, car, [], 0);
@@ -507,41 +400,6 @@ export class BedrockVehicleWorld
   }
 
   shineHeadlights(vehicleId: string, cells: readonly Cell[]): void {
-    this.headlightBlocks.shine(vehicleId, this.entity(vehicleId), cells);
-  }
-
-  headlightsOn(vehicleId: string): boolean | undefined {
-    const car = this.entity(vehicleId);
-    if (!car) return undefined;
-    return car.getProperty(HEADLIGHTS_PROPERTY) === true;
-  }
-
-  setHeadlights(vehicleId: string, on: boolean): void {
-    const car = this.entity(vehicleId);
-    if (!car) return;
-    car.setProperty(HEADLIGHTS_PROPERTY, on);
-    car.dimension.playSound("random.click", car.location);
-  }
-
-  paintOf(vehicleId: string): Paint | undefined {
-    const car = this.entity(vehicleId);
-    if (!car) return undefined;
-    const variant = car.getComponent("minecraft:variant")?.value ?? 0;
-    return PAINTS.find((p) => PAINT_VARIANT[p] === variant);
-  }
-
-  kindOf(vehicleId: string): VehicleKind | undefined {
-    return kindOfEntity(this.entity(vehicleId)?.typeId);
-  }
-
-  paint(vehicleId: string, paint: Paint): void {
-    const car = this.entity(vehicleId);
-    if (!car) return;
-    car.triggerEvent(paintEvent(paint));
-    car.dimension.playSound("dye.use", car.location);
-  }
-
-  consumeDye(playerId: string, paint: Paint): void {
-    this.consumeHeld(playerId, dyeOf(paint));
+    this.headlightBlocks.shine(vehicleId, this.index.entity(vehicleId), cells);
   }
 }
