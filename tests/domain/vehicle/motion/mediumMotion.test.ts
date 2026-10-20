@@ -252,6 +252,50 @@ describe("stepMediumMotion walls and sideways velocity (ADR 0002, 0003)", () => 
     );
   });
 
+  it("a wall tick never flips the sign of the internal speed (ADR 0077)", () => {
+    fc.assert(
+      fc.property(
+        flyingState,
+        driveInput,
+        fc.boolean(),
+        component,
+        component,
+        (s, input, onX, stopped, other) => {
+          fc.pre(Math.abs(stopped) > MOTION.blockedAxisMin);
+          const e = onX
+            ? { x: stopped, z: s.mediumExpected.z }
+            : { x: s.mediumExpected.x, z: stopped };
+          const v = onX ? { x: 0, z: other } : { x: other, z: 0 };
+          const r = stepMediumMotion(
+            prevState({ ...s, mediumExpected: e }),
+            input,
+            v,
+            AIR,
+            SUV_MOTION,
+          );
+          const free = Math.min(
+            updateSpeed(s.speed, input.throttle, input.creep, SUV_MOTION),
+            SUV_SPEC.maxSpeed,
+          );
+          expect(r.blocked).toBe(true);
+          expect(Math.sign(r.state.speed) * Math.sign(free)).not.toBe(-1);
+        },
+      ),
+    );
+  });
+
+  it("a wall that bounces a body backward stops it at 0 instead of reversing (ADR 0077)", () => {
+    const r = stepMediumMotion(
+      prevState({ speed: 0.1, yaw: -180, mediumExpected: { x: 0, z: -0.5 } }),
+      { throttle: 0, steer: 0, handbrake: false, creep: false },
+      { x: 0, z: 0.05 },
+      AIR,
+      SUV_MOTION,
+    );
+    expect(r.blocked).toBe(true);
+    expect(r.state.speed).toBe(0);
+  });
+
   it("aims for the internal speed forward and keeps 1 - grip of the sideways velocity (ADR 0002)", () => {
     const small = fc.integer({ min: -300, max: 300 }).map((n) => n / 1000);
     fc.assert(

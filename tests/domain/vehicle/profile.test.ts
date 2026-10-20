@@ -442,9 +442,9 @@ describe("vehicle profiles (ADR 0050)", () => {
     );
   });
 
-  it("clamps the speed left after a wall hit to the profile reverse limit", () => {
-    // Faster than the vehicle forward, but pushed backward by the wall harder
-    // than the profile may reverse, so only the profile's limit can bound it.
+  it("a wall hit never turns any profile's forward speed into reverse (ADR 0077)", () => {
+    // Pushed backward by the wall harder than the profile may reverse: before
+    // ADR 0077 the speed ended at the reverse limit, now it stops at 0.
     const wallCase = fc
       .tuple(limits, number(0, 1), number(0.01, 0.99))
       .map(([motion, reverse, ratio]) => {
@@ -479,7 +479,7 @@ describe("vehicle profiles (ADR 0050)", () => {
         );
         for (const out of [ground, flight]) {
           expect(out.blocked).toBe(true);
-          expect(out.state.speed).toBe(-motion.maxReverse);
+          expect(out.state.speed).toBe(0);
         }
       }),
     );

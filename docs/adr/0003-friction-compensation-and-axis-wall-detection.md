@@ -1,6 +1,6 @@
 # 0003. Estimate and compensate for ground friction, and detect wall collisions per axis
 
-- Status: Accepted
+- Status: Superseded in part by 0077 (lowering the internal speed to a backward actual forward speed after a wall hit)
 - Date: 2026-10-10
 
 ## Context
