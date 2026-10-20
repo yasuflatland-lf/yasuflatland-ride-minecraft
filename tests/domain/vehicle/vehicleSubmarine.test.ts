@@ -404,7 +404,8 @@ describe("Vehicle as a submarine", () => {
           ];
           for (const input of controls) {
             const out = sim.step(input);
-            expect(Math.abs(drive.bankAngle)).toBeLessThanOrEqual(
+            const bankNow = drive.inspect().bank;
+            expect(Math.abs(bankNow)).toBeLessThanOrEqual(
               SUV_SPEC.maxBank + 1e-9,
             );
             expect(sim.wheelsDown).toBe(true);
@@ -412,12 +413,9 @@ describe("Vehicle as a submarine", () => {
             // changes, and on the first tick (ADR 0026). The drive's own
             // angle is the reference, so a skipped send cannot hide.
             const bank = propertyValue(out.stepCommands, "bank");
-            if (drive.bankAngle !== sent) {
-              expect(bank).toBe(drive.bankAngle);
-              if (
-                Math.abs(drive.bankAngle) > 0 &&
-                Math.abs(drive.bankAngle) < SUV_SPEC.maxBank
-              )
+            if (bankNow !== sent) {
+              expect(bank).toBe(bankNow);
+              if (Math.abs(bankNow) > 0 && Math.abs(bankNow) < SUV_SPEC.maxBank)
                 intermediateChanges++;
             }
             if (typeof bank === "number") sent = bank;

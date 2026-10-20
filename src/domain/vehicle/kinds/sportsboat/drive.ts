@@ -127,10 +127,6 @@ export class SportsboatDrive implements Drive {
     this.restoredDocked = restored.docked === true;
   }
 
-  get isDocked(): boolean {
-    return this.docked !== undefined;
-  }
-
   get speed(): number {
     return this.motion.speed;
   }
@@ -139,23 +135,36 @@ export class SportsboatDrive implements Drive {
     return this.motion.yaw;
   }
 
-  get trimAngle(): number {
-    return this.trim;
+  /**
+   * A read-only snapshot of state the engine never reads back, for unit tests
+   * and in-game test scenarios only. Production code must not call it.
+   */
+  inspect(): Readonly<{
+    docked: boolean;
+    waterDrag: number | undefined;
+    trim: number;
+    roll: number;
+  }> {
+    return {
+      docked: this.docked !== undefined,
+      waterDrag: this.dragEstimate,
+      trim: this.trim,
+      roll: this.roll,
+    };
   }
 
-  get rollAngle(): number {
-    return this.roll;
-  }
-
-  get waterDrag(): number | undefined {
-    return this.dragEstimate;
-  }
-
+  /**
+   * The state this drive carries to the next tick. Tests save it and hand it
+   * to restore() to start another drive mid-run.
+   */
   get state(): SportsboatDriveState {
     return { motion: this.motion, waterDrag: this.dragEstimate };
   }
 
-  /** Starts the drive from a given state, for tests that begin mid-run. */
+  /**
+   * Starts the drive from a state saved with `state`. Only tests call it; a
+   * rebuilt vehicle starts from its RestoredValues instead.
+   */
   restore(state: SportsboatDriveState): this {
     this.motion = state.motion;
     this.dragEstimate = state.waterDrag;

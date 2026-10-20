@@ -67,7 +67,7 @@ it("holds only the pose on tick 20, lays the room next tick, and scans once", ()
     ...parkCheckCells(f.pose),
     ...wallFootCells(f.pose),
   ]);
-  expect(f.drive.isParked).toBe(true);
+  expect(f.drive.inspect().parked).toBe(true);
   expect(f.drive.speed).toBe(0);
 });
 
@@ -94,7 +94,7 @@ it("refuses any blocking cell once per stop, then retries after the stick resets
         f.step(PUSH);
         f.blocks.clear();
         f.park();
-        expect(f.drive.isParked).toBe(true);
+        expect(f.drive.inspect().parked).toBe(true);
         expect(f.blockTypes).toHaveBeenCalledTimes(2);
       },
     ),
@@ -192,7 +192,7 @@ it("departs on the stick press, undocks before properties, and boards deck rider
   ]);
   expect(out.depart).toEqual(departure(f.pose));
   expect(out.boardDeckRiders).toBe(true);
-  expect(f.drive.isParked).toBe(false);
+  expect(f.drive.inspect().parked).toBe(false);
   expect(f.blockTypes).toHaveBeenLastCalledWith([
     ...cargoCells(f.pose),
     ...exitCells(f.pose),
@@ -293,7 +293,7 @@ it("checks both exit cells before parking and leaves overflow standing when the 
         expect(parkCheckCells(f.pose).map(cellKey)).toContain(cellKey(cell));
         f.blocks.set(cellKey(cell), "minecraft:stone");
         f.park();
-        expect(f.drive.isParked).toBe(false);
+        expect(f.drive.inspect().parked).toBe(false);
         f.step(PUSH);
         f.blocks.clear();
         f.park();
