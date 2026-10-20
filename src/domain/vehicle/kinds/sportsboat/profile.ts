@@ -1,12 +1,16 @@
 import type { MotionLimits } from "../../motion/limits";
 import type { PlacementSurface } from "../../placement";
 import type { VehicleProfile } from "../../profile";
+import { SPORTSBOAT_SPEC } from "./spec";
 
 /** The sports boat's own values (ADR 0051), written out even where they equal the SUV's today. */
 export const SPORTSBOAT_PROFILE: VehicleProfile = Object.freeze({
   kind: "sportsboat",
   fleetLimit: 1, // Per player (ADR 0066).
-  ram: Object.freeze({ front: 3.0, halfWidth: 1.06 }), // ADR 0051
+  ram: Object.freeze({
+    front: SPORTSBOAT_SPEC.ramFront,
+    halfWidth: SPORTSBOAT_SPEC.ramHalfWidth,
+  }),
   // Must match minecraft:rideable in packs/yasu_ride_bp/entities/yasu_ride/sportsboat.se.json; the SUV's x/z, no doors (ADR 0051).
   seats: Object.freeze({
     positions: Object.freeze([
@@ -33,17 +37,17 @@ export const SPORTSBOAT_PROFILE: VehicleProfile = Object.freeze({
   defaultPaint: "black", // ADR 0051, 0076
 });
 
-/** The sports boat's own limits (ADR 0051), written out even where they equal the SUV's today. */
+/** The sports boat's motion limits, read from SPORTSBOAT_SPEC (ADR 0087). */
 export const SPORTSBOAT_MOTION: MotionLimits = Object.freeze({
-  maxSpeed: 1.12, // ADR 0051
-  maxReverse: 0.2, // ADR 0051
-  accel: 0.0225, // ADR 0051
-  reverseAccel: 0.01125, // Half of accel, as on land
-  brake: 0.04,
-  drag: 0.02,
-  turnRate: 6, // degrees/tick at full steering input (ADR 0051)
-  steerFullSpeed: 0.08,
-  grip: 0.6,
-  handbrakeGrip: 0.6, // Equal to grip: the boat has no handbrake
-  creepSpeed: 0.12, // Below SPEC.ramMinSpeed, so creeping never rams (ADR 0006)
+  maxSpeed: SPORTSBOAT_SPEC.maxSpeed,
+  maxReverse: SPORTSBOAT_SPEC.maxReverse,
+  accel: SPORTSBOAT_SPEC.accel,
+  reverseAccel: SPORTSBOAT_SPEC.reverseAccel,
+  brake: SPORTSBOAT_SPEC.brake,
+  drag: SPORTSBOAT_SPEC.drag,
+  turnRate: SPORTSBOAT_SPEC.turnRate,
+  steerFullSpeed: SPORTSBOAT_SPEC.steerFullSpeed,
+  grip: SPORTSBOAT_SPEC.grip,
+  handbrakeGrip: SPORTSBOAT_SPEC.handbrakeGrip,
+  creepSpeed: SPORTSBOAT_SPEC.creepSpeed,
 });

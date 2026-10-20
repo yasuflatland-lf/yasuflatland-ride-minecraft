@@ -26,27 +26,21 @@ import { stepRoll, stepTrim } from "./attitude";
 import { floorCells, holdHeight } from "./deck";
 import { rollCommand, type SPORTSBOAT_ENTITY, trimCommand } from "./entity";
 import { SPORTSBOAT_MOTION, SPORTSBOAT_PROFILE } from "./profile";
+import { SPORTSBOAT_SPEC } from "./spec";
 
-// The height of the sportsboat collision box, which bounds the water depth
-// query; the boat only tests whether the depth is above zero.
-const SPORTSBOAT_HEIGHT = 1.2;
+export const SPORTSBOAT_DRAG = Object.freeze({
+  initial: SPORTSBOAT_SPEC.waterDragInitial,
+  min: SPORTSBOAT_SPEC.waterDragMin,
+  max: SPORTSBOAT_SPEC.waterDragMax,
+  smoothing: SPORTSBOAT_SPEC.waterDragSmoothing,
+  minGiven: SPORTSBOAT_SPEC.waterDragMinGiven,
+});
 
-// boat_drag measured 0.833 at full speed, 0.916-0.927 on the 3 ticks of every
-// 14 at the top of the bob, and 0.815 the tick after; weight 0.1 keeps one bump
-// to about +0.02 on the estimate (ADR 0053).
-export const SPORTSBOAT_DRAG = {
-  initial: 0.83,
-  min: 0.7,
-  max: 0.95,
-  smoothing: 0.1,
-  minGiven: 0.05,
-} as const;
-
-export const SPORTSBOAT_WATER: Medium = {
+export const SPORTSBOAT_WATER: Medium = Object.freeze({
   drag: SPORTSBOAT_DRAG.initial,
   // The drive overrides this with its own limits' maxSpeed; it stays so this is a complete Medium.
-  maxSpeed: SPORTSBOAT_MOTION.maxSpeed,
-};
+  maxSpeed: SPORTSBOAT_SPEC.maxSpeed,
+});
 
 function boundDrag(drag: number): number {
   return clamp(drag, SPORTSBOAT_DRAG.min, SPORTSBOAT_DRAG.max);
@@ -206,7 +200,11 @@ export class SportsboatDrive implements Drive {
     const input: DriveInput = toDriveInput(raw);
     const motion = this.motion;
     let step: MotionResult;
-    const depth = waterDepthAt(ctx.location, ctx.waterAt, SPORTSBOAT_HEIGHT);
+    const depth = waterDepthAt(
+      ctx.location,
+      ctx.waterAt,
+      SPORTSBOAT_SPEC.height,
+    );
     const afloat = isAfloat(depth, () => waterBelowAt(ctx.waterAt));
     if (afloat) {
       const waterDrag = estimateWaterDrag(

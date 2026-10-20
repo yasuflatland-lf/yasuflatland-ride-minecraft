@@ -1,9 +1,9 @@
 import type { EngineCommand } from "../../drive";
 import { commandsFor, type EntityContract } from "../../entityContract";
 import { DOCK_EVENTS, DOCK_PROPERTIES } from "../../motion/dockEntity";
-import { SPORTSBOAT_ATTITUDE } from "./attitude";
+import { SPORTSBOAT_SPEC } from "./spec";
 
-const { maxTrim, maxRoll } = SPORTSBOAT_ATTITUDE;
+const { maxTrim, maxRoll } = SPORTSBOAT_SPEC;
 
 export const SPORTSBOAT_ENTITY = {
   properties: {
