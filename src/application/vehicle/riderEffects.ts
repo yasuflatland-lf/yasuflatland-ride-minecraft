@@ -2,7 +2,8 @@
 import type { ChaseCamera } from "../../domain/vehicle/profile";
 import { SPEC } from "../../domain/vehicle/spec";
 import { forEachIsolated } from "./isolated";
-import type { DriveWorld, Logger } from "./ports";
+import type { DriveWorld } from "./ports/drive";
+import type { Logger } from "./ports/shared";
 
 export class RiderEffects {
   /** Players this use case switched to a third-person camera, and which one (ADR 0028). */

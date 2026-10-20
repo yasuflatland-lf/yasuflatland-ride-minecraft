@@ -1,6 +1,7 @@
 // Use case: a player uses the headlight switch while riding a vehicle (ADR 0020).
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
-import type { Clock, HeadlightWorld } from "./ports";
+import type { HeadlightWorld } from "./ports/headlights";
+import type { Clock } from "./ports/shared";
 
 export interface SwitchHeadlightsCommand {
   playerId: string;

@@ -1,6 +1,6 @@
 // Implements PlacementWorld with @minecraft/server (ADR 0012).
 import { GameMode, world } from "@minecraft/server";
-import type { PlacementWorld } from "../../../application/vehicle/ports";
+import type { PlacementWorld } from "../../../application/vehicle/ports/placement";
 import type { Vec3 } from "../../../domain/shared/vec";
 import type { VehicleKind } from "../../../domain/vehicle/kind";
 import type { BedrockInventory } from "./bedrockInventory";

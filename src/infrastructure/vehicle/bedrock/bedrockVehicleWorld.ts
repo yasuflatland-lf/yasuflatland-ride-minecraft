@@ -10,7 +10,7 @@ import {
 import type {
   DriveWorld,
   VehicleSnapshot,
-} from "../../../application/vehicle/ports";
+} from "../../../application/vehicle/ports/drive";
 import type { Vec3 } from "../../../domain/shared/vec";
 import {
   type ClearCell,

@@ -1,5 +1,5 @@
 // Implements HeadlightWorld with @minecraft/server (ADR 0012).
-import type { HeadlightWorld } from "../../../application/vehicle/ports";
+import type { HeadlightWorld } from "../../../application/vehicle/ports/headlights";
 import type { EntityIndex } from "./entityIndex";
 import { HEADLIGHTS_PROPERTY } from "./identifiers";
 

@@ -10,7 +10,7 @@ import type {
   HintPlayerView,
   HintVehicleView,
   HintWorld,
-} from "../../../application/vehicle/ports";
+} from "../../../application/vehicle/ports/drive";
 import type {
   HeldItem,
   Hint,
