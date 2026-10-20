@@ -10,8 +10,5 @@ export function registerDrive(
   system.runInterval(() => drive.execute(system.currentTick), 1);
   // Registered after the drive, so on the ticks both run the hints read this
   // tick's parked state and the vehicles the drive just indexed (ADR 0086).
-  system.runInterval(
-    () => hints.execute(system.currentTick),
-    SPEC.hintCheckInterval,
-  );
+  system.runInterval(() => hints.execute(), SPEC.hintCheckInterval);
 }

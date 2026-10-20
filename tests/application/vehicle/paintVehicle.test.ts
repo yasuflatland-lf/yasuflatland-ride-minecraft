@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { PaintVehicle } from "../../../src/application/vehicle/paintVehicle";
 import { VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
 import { PAINTS, type Paint } from "../../../src/domain/vehicle/paint";
-import { FakeWorld } from "./fakes";
+import { FakeClock, FakeWorld } from "./fakes";
 
 const paint = fc.constantFrom(...PAINTS);
 
@@ -36,13 +36,13 @@ describe("PaintVehicle (ADR 0031)", () => {
         fc.pre(from !== to);
         const world = new FakeWorld();
         world.paints.set("a", from);
+        if (creative) world.creativePlayers.add("p");
+        const clock = new FakeClock();
         expect(
-          new PaintVehicle(world).execute({
+          new PaintVehicle(world, clock).execute({
             playerId: "p",
             vehicleId: "a",
             paint: to,
-            creative,
-            tick: 0,
           }),
         ).toBe(true);
         expect(world.paints.get("a")).toBe(to);
@@ -58,13 +58,12 @@ describe("PaintVehicle (ADR 0031)", () => {
       fc.property(paint, (color) => {
         const world = new FakeWorld();
         world.paints.set("a", color);
+        const clock = new FakeClock();
         expect(
-          new PaintVehicle(world).execute({
+          new PaintVehicle(world, clock).execute({
             playerId: "p",
             vehicleId: "a",
             paint: color,
-            creative: false,
-            tick: 0,
           }),
         ).toBe(false);
         expect(world.calls).toEqual([]);
@@ -74,13 +73,12 @@ describe("PaintVehicle (ADR 0031)", () => {
 
   it("does nothing for a vehicle that no longer exists", () => {
     const world = new FakeWorld();
+    const clock = new FakeClock();
     expect(
-      new PaintVehicle(world).execute({
+      new PaintVehicle(world, clock).execute({
         playerId: "p",
         vehicleId: "gone",
         paint: "red",
-        creative: false,
-        tick: 0,
       }),
     ).toBe(false);
     expect(world.calls).toEqual([]);
@@ -92,15 +90,16 @@ describe("PaintVehicle (ADR 0031)", () => {
         fc.pre(from !== to);
         const world = new LaggingWorld();
         world.setApplied("a", from);
-        const useCase = new PaintVehicle(world);
-        const hit = (playerId: string, tick: number) =>
-          useCase.execute({
+        const clock = new FakeClock();
+        const useCase = new PaintVehicle(world, clock);
+        const hit = (playerId: string, tick: number) => {
+          clock.tick = tick;
+          return useCase.execute({
             playerId,
             vehicleId: "a",
             paint: to,
-            creative: false,
-            tick,
           });
+        };
         expect(hit("p", 7)).toBe(true);
         expect(hit("q", 7)).toBe(false);
         world.nextTick();
@@ -116,7 +115,9 @@ describe("PaintVehicle (ADR 0031)", () => {
         fc.pre(from !== first && first !== second);
         const world = new LaggingWorld();
         world.setApplied("a", from);
-        const useCase = new PaintVehicle(world);
+        const clock = new FakeClock();
+        const useCase = new PaintVehicle(world, clock);
+        clock.tick = 7;
         for (const [playerId, color] of [
           ["p", first],
           ["q", second],
@@ -125,8 +126,6 @@ describe("PaintVehicle (ADR 0031)", () => {
             playerId,
             vehicleId: "a",
             paint: color,
-            creative: false,
-            tick: 7,
           });
         expect(world.calls).toEqual([
           `paint:a:${first}`,
@@ -151,15 +150,16 @@ describe("PaintVehicle (ADR 0031)", () => {
           fc.pre(next !== to);
           const world = new FakeWorld();
           world.paints.set("a", from);
-          const useCase = new PaintVehicle(world);
-          const hit = (color: Paint, at: number) =>
-            useCase.execute({
+          const clock = new FakeClock();
+          const useCase = new PaintVehicle(world, clock);
+          const hit = (color: Paint, at: number) => {
+            clock.tick = at;
+            return useCase.execute({
               playerId: "p",
               vehicleId: "a",
               paint: color,
-              creative: false,
-              tick: at,
             });
+          };
           expect(hit(to, tick)).toBe(true);
           world.paints.delete("a");
           expect(hit(next, tick + later)).toBe(false);
@@ -180,19 +180,19 @@ describe("PaintVehicle (ADR 0031)", () => {
           const world = new FakeWorld();
           world.paints.set("a", from);
           world.kinds.set("a", kind);
+          if (creative) world.creativePlayers.add("p");
           const blackish = (p: Paint) => p === "khaki" || p === "black";
           const same =
             kind === "sportsboat"
               ? from === to || (blackish(from) && blackish(to))
               : from === to;
-          const uc = new PaintVehicle(world);
+          const clock = new FakeClock();
+          const uc = new PaintVehicle(world, clock);
           expect(
             uc.execute({
               playerId: "p",
               vehicleId: "a",
               paint: to,
-              creative,
-              tick: 0,
             }),
           ).toBe(!same);
           if (same) {
@@ -214,14 +214,13 @@ describe("PaintVehicle (ADR 0031)", () => {
         const world = new FakeWorld();
         world.paints.set("a", from);
         world.kinds.set("a", "sportsboat");
-        const uc = new PaintVehicle(world);
+        const clock = new FakeClock();
+        const uc = new PaintVehicle(world, clock);
         expect(
           uc.execute({
             playerId: "p",
             vehicleId: "a",
             paint: to,
-            creative: false,
-            tick: 0,
           }),
         ).toBe(false);
         expect(world.calls).toEqual([]);
@@ -232,14 +231,13 @@ describe("PaintVehicle (ADR 0031)", () => {
   it("does nothing when the vehicle's kind is unknown", () => {
     const world = new KindlessWorld();
     world.paints.set("a", "red");
-    const uc = new PaintVehicle(world);
+    const clock = new FakeClock();
+    const uc = new PaintVehicle(world, clock);
     expect(
       uc.execute({
         playerId: "p",
         vehicleId: "a",
         paint: "green",
-        creative: false,
-        tick: 0,
       }),
     ).toBe(false);
     expect(world.calls).toEqual([]);
@@ -248,18 +246,38 @@ describe("PaintVehicle (ADR 0031)", () => {
   it("does nothing to a vehicle removed after a repaint in the same tick (ADR 0037, 0076)", () => {
     const world = new FakeWorld();
     world.paints.set("a", "khaki");
-    const uc = new PaintVehicle(world);
+    const clock = new FakeClock();
+    const uc = new PaintVehicle(world, clock);
+    clock.tick = 5;
     const hit = (color: Paint) =>
       uc.execute({
         playerId: "p",
         vehicleId: "a",
         paint: color,
-        creative: false,
-        tick: 5,
       });
     expect(hit("red")).toBe(true);
     world.paints.delete("a");
     expect(hit("green")).toBe(false);
     expect(world.calls).toEqual(["paint:a:red", "dye:p:red"]);
   });
+});
+
+it("asks the world about creative mode for the painting player only", () => {
+  fc.assert(
+    fc.property(paint, paint, fc.boolean(), (from, to, otherCreative) => {
+      fc.pre(from !== to);
+      const world = new FakeWorld();
+      world.paints.set("a", from);
+      world.kinds.set("a", "suv");
+      if (otherCreative) world.creativePlayers.add("q");
+      expect(
+        new PaintVehicle(world, new FakeClock()).execute({
+          playerId: "p",
+          vehicleId: "a",
+          paint: to,
+        }),
+      ).toBe(true);
+      expect(world.calls).toEqual([`paint:a:${to}`, `dye:p:${to}`]);
+    }),
+  );
 });

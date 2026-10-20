@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
 import type { BedrockInventory } from "../../../../src/infrastructure/vehicle/bedrock/bedrockInventory";
 import { BedrockPlacementWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockPlacementWorld";
+import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
 import { ITEM_TYPE } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 
 const game = vi.hoisted(() => ({ getDimension: vi.fn() }));
@@ -18,7 +19,7 @@ function fixture() {
   return {
     dimension,
     consumeHeld,
-    placement: new BedrockPlacementWorld(inventory),
+    placement: new BedrockPlacementWorld(inventory, new EntityIndex()),
   };
 }
 

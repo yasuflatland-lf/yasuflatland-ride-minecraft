@@ -2,12 +2,11 @@
 
 import type { FleetRepository } from "../../domain/vehicle/fleetRepository";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
-import type { BreakWorld } from "./ports";
+import type { BreakWorld, Clock } from "./ports";
 import { retireVehicle } from "./retireVehicle";
 
 export interface HitVehicleCommand {
   vehicleId: string;
-  tick: number;
   /** The attacker stands on a deck floor block (ADR 0063). */
   fromDeck: boolean;
 }
@@ -17,13 +16,14 @@ export class HitVehicle {
     private readonly world: BreakWorld,
     private readonly repo: VehicleRepository,
     private readonly fleets: FleetRepository,
+    private readonly clock: Clock,
   ) {}
 
   execute(cmd: HitVehicleCommand): boolean {
     if (cmd.fromDeck) return false;
     const vehicle = this.repo.get(cmd.vehicleId);
     if (!vehicle) return false;
-    if (!vehicle.receiveHit(cmd.tick)) return false;
+    if (!vehicle.receiveHit(this.clock.now())) return false;
     this.world.dropVehicleItem(cmd.vehicleId);
     const fleet = this.fleets.load();
     retireVehicle(this.world, this.repo, fleet, cmd.vehicleId);

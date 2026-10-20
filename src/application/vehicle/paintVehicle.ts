@@ -2,14 +2,12 @@
 import { TickScopedMap } from "../../domain/shared/tickScoped";
 import { profileOf } from "../../domain/vehicle/kinds/index";
 import { effectivePaint, type Paint } from "../../domain/vehicle/paint";
-import type { PaintWorld } from "./ports";
+import type { Clock, PaintWorld } from "./ports";
 
 export interface PaintVehicleCommand {
   playerId: string;
   vehicleId: string;
   paint: Paint;
-  creative: boolean;
-  tick: number;
 }
 
 export class PaintVehicle {
@@ -18,11 +16,15 @@ export class PaintVehicle {
   // use another dye (ADR 0037). Paints made in the current tick override it.
   private readonly painted = new TickScopedMap<string, Paint>();
 
-  constructor(private readonly world: PaintWorld) {}
+  constructor(
+    private readonly world: PaintWorld,
+    private readonly clock: Clock,
+  ) {}
 
   execute(cmd: PaintVehicleCommand): boolean {
+    const tick = this.clock.now();
     const current =
-      this.painted.get(cmd.tick, cmd.vehicleId) ??
+      this.painted.get(tick, cmd.vehicleId) ??
       this.world.paintOf(cmd.vehicleId);
     const kind = this.world.kindOf(cmd.vehicleId);
     if (current === undefined || kind === undefined) return false;
@@ -35,8 +37,9 @@ export class PaintVehicle {
     )
       return false;
     this.world.paint(cmd.vehicleId, cmd.paint);
-    this.painted.set(cmd.tick, cmd.vehicleId, cmd.paint);
-    if (!cmd.creative) this.world.consumeDye(cmd.playerId, cmd.paint);
+    this.painted.set(tick, cmd.vehicleId, cmd.paint);
+    if (!this.world.isCreative(cmd.playerId))
+      this.world.consumeDye(cmd.playerId, cmd.paint);
     return true;
   }
 }

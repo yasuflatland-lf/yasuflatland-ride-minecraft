@@ -1,6 +1,6 @@
 // Routes a player's hit on a vehicle: a held dye repaints it, anything else
 // damages it (ADR 0036).
-import { GameMode, Player, system, world } from "@minecraft/server";
+import { Player, world } from "@minecraft/server";
 import type { HitVehicle } from "../../../../application/vehicle/hitVehicle";
 import type { PaintVehicle } from "../../../../application/vehicle/paintVehicle";
 import { standsOnDeck } from "../deck";
@@ -23,14 +23,11 @@ export function registerHits(
         playerId: player.id,
         vehicleId: ev.hitEntity.id,
         paint,
-        creative: player.getGameMode() === GameMode.Creative,
-        tick: system.currentTick,
       });
       return;
     }
     hitVehicle.execute({
       vehicleId: ev.hitEntity.id,
-      tick: system.currentTick,
       fromDeck: standsOnDeck(player),
     });
   });

@@ -92,6 +92,8 @@ export interface PlacementWorld {
     slot: number,
     kind: VehicleKind,
   ): boolean;
+  /** Whether the player is in creative mode; false when the player is not in the world. */
+  isCreative(playerId: string): boolean;
 }
 
 export interface StarterWorld {
@@ -120,6 +122,8 @@ export interface PaintWorld {
   kindOf(vehicleId: string): VehicleKind | undefined;
   paint(vehicleId: string, paint: Paint): void;
   consumeDye(playerId: string, paint: Paint): void;
+  /** Whether the player is in creative mode; false when the player is not in the world. */
+  isCreative(playerId: string): boolean;
 }
 
 export interface HeadlightWorld {
@@ -158,4 +162,9 @@ export interface HintWorld {
 
 export interface Logger {
   warn(message: string): void;
+}
+
+/** The current game tick (one tick is 1/20 s). */
+export interface Clock {
+  now(): number;
 }

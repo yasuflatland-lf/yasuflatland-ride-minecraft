@@ -13,7 +13,6 @@ export function registerHeadlights(headlights: SwitchHeadlights): void {
     headlights.execute({
       playerId,
       vehicleId,
-      tick: system.currentTick,
     });
 
   world.afterEvents.itemUse.subscribe((ev) => {
