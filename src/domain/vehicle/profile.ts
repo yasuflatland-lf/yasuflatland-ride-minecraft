@@ -1,5 +1,6 @@
 import type { Vec2 } from "../shared/vec";
 import type { VehicleKind } from "./kind";
+import type { Paint } from "./paint";
 import type { PlacementRule } from "./placement";
 
 /** Body dimensions from the center, in blocks. */
@@ -35,4 +36,6 @@ export interface VehicleProfile {
   readonly beams: BeamPattern;
   readonly placement: PlacementRule;
   readonly chaseCamera: ChaseCamera;
+  /** The paint the variant-0 slot (PAINTS[0]) shows for this kind (ADR 0076). */
+  readonly defaultPaint: Paint;
 }

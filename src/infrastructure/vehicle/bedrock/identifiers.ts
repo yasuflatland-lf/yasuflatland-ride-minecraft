@@ -83,8 +83,7 @@ export const CHASE_CAMERAS: Readonly<Record<ChaseCamera, string>> =
 
 /**
  * The vanilla dye that repaints a vehicle with a paint (ADR 0031). Brown dye
- * turns it back to variant 0, the kind's starting paint: khaki on the SUV and
- * the camper, black on the sports boat (ADR 0051).
+ * turns it back to variant 0, which shows the kind's default paint (ADR 0076).
  */
 export function dyeOf(paint: Paint): string {
   const color = paint === "khaki" ? "brown" : paint;

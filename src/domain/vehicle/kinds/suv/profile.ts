@@ -37,6 +37,7 @@ export const SUV_PROFILE: VehicleProfile = Object.freeze({
     clearance: Object.freeze({ halfX: 1, halfZ: 1, height: 2 }),
   }),
   chaseCamera: "near",
+  defaultPaint: "khaki",
 });
 
 // Frozen because every SUV drive shares this one object.

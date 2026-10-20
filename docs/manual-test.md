@@ -59,7 +59,7 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | B2 | Use the boat item on the top of a dry block, then on the side of a dry block with no water next to it, then aimed at dry ground beyond reach | The first tap places the boat on the clicked block and it cannot drive on land; the other two place nothing and use no item | | |
 | B3 | Seat four riders and look forward from the driver's seat | All four riders fit and the driver's eye level sees over the windshield | | |
 | B4 | Drive forward, reverse, turn, and drive into a shore level with the water | The boat responds on water and stops at the shore without leaving the water | | |
-| B5 | Tap (mobile) / left-click (PC) the boat with a dye, then brown dye | The hull turns the dye's color, then back to black; each repaint uses one dye (not in Creative) | | |
+| B5 | Tap (mobile) / left-click (PC) the boat with a dye, then brown dye, then black dye / place a new boat and tap it with black dye, then brown dye | The hull turns the dye's color, then back to black, and the black dye changes nothing; each repaint uses one dye (not in Creative) / nothing changes and both dyes stay (ADR 0076) | | |
 | B6 | At night, drive with the headlight switch in hand and use it | Two beams light the water about 60 blocks ahead and follow the boat | | |
 | B7 | Place an empty boat and hit its bow 3 times; repeat with another boat's middle, then another boat's stern | Each boat breaks and drops one boat item | | |
 | B8 | Ram a mob at full throttle (Survival) | The mob takes damage and the boat and riders take none | | |

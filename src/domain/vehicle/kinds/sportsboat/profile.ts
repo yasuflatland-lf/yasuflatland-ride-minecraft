@@ -30,6 +30,7 @@ export const SPORTSBOAT_PROFILE: VehicleProfile = Object.freeze({
     clearance: Object.freeze({ halfX: 1, halfZ: 1, height: 2 }),
   }),
   chaseCamera: "near",
+  defaultPaint: "black", // ADR 0051, 0076
 });
 
 /** The sports boat's own limits (ADR 0051), written out even where they equal the SUV's today. */

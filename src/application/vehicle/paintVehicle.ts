@@ -1,5 +1,6 @@
-// Use case: a player hits a vehicle with a dye to repaint its body (ADR 0031, 0036).
-import type { Paint } from "../../domain/vehicle/paint";
+// Use case: a player hits a vehicle with a dye to repaint its body (ADR 0031, 0036, 0076).
+import { profileOf } from "../../domain/vehicle/kinds/index";
+import { effectivePaint, type Paint } from "../../domain/vehicle/paint";
 import type { PaintWorld } from "./ports";
 
 export interface PaintVehicleCommand {
@@ -26,8 +27,16 @@ export class PaintVehicle {
     }
     const current =
       this.painted.get(cmd.vehicleId) ?? this.world.paintOf(cmd.vehicleId);
-    // A dye of the color the vehicle already has would be used up for nothing.
-    if (current === undefined || current === cmd.paint) return false;
+    const kind = this.world.kindOf(cmd.vehicleId);
+    if (current === undefined || kind === undefined) return false;
+    // A dye of the color the vehicle already shows would be used up for
+    // nothing; the variant-0 slot shows the kind's default paint (ADR 0076).
+    const { defaultPaint } = profileOf(kind);
+    if (
+      effectivePaint(current, defaultPaint) ===
+      effectivePaint(cmd.paint, defaultPaint)
+    )
+      return false;
     this.world.paint(cmd.vehicleId, cmd.paint);
     this.painted.set(cmd.vehicleId, cmd.paint);
     if (!cmd.creative) this.world.consumeDye(cmd.playerId, cmd.paint);

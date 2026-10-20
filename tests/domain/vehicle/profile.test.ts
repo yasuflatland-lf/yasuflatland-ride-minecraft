@@ -96,6 +96,7 @@ describe("vehicle profiles (ADR 0050)", () => {
         clearance: { halfX: 1, halfZ: 1, height: 2 },
       },
       chaseCamera: "near",
+      defaultPaint: "khaki",
     });
   });
 
@@ -134,6 +135,7 @@ describe("vehicle profiles (ADR 0050)", () => {
         clearance: { halfX: 1, halfZ: 1, height: 2 },
       },
       chaseCamera: "near",
+      defaultPaint: "black",
     });
     expect(profileOf("sportsboat")).toBe(SPORTSBOAT_PROFILE);
   });
@@ -524,6 +526,10 @@ describe("vehicle profiles (ADR 0050)", () => {
 
   it("limits each player to one camper", () => {
     expect(CAMPER_PROFILE.fleetLimit).toBe(1);
+  });
+
+  it("gives the camper a khaki default paint (ADR 0067, 0076)", () => {
+    expect(CAMPER_PROFILE.defaultPaint).toBe("khaki");
   });
 
   it("clears every cell the camper's body reaches at any facing", () => {
