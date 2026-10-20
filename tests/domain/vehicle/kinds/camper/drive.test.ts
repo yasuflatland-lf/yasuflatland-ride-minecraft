@@ -17,6 +17,7 @@ function context(): TickContext {
     location: { x: 0.5, y: 64, z: 0.5 },
     velocity: { x: 0, y: 0, z: 0 },
     onGround: true,
+    blockTypes: () => [],
     solidAt: (offset) => offset.y < 0,
     waterAt: () => false,
     targets: () => [],

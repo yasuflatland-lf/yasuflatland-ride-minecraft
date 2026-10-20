@@ -2,16 +2,22 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { forward, leftOf } from "../../../../../src/domain/shared/vec";
 import type {
-  FloorCell,
+  DockCell,
   HoldPose,
 } from "../../../../../src/domain/vehicle/floor";
 import {
   DECK,
+  DECK_DRAFT,
   type DeckPart,
-  DOCK,
   floorCells,
   holdHeight,
 } from "../../../../../src/domain/vehicle/kinds/sportsboat/deck";
+import { DOCK } from "../../../../../src/domain/vehicle/motion/dock";
+
+function deckHeight(cell: DockCell): number {
+  if (cell.block.type !== "deck") throw new Error("Expected a deck cell");
+  return cell.block.height;
+}
 
 const number = (min: number, max: number) =>
   fc.double({ min, max, noNaN: true });
@@ -38,7 +44,7 @@ const WINDOW =
 
 function coveringParts(
   p: HoldPose,
-  cell: Pick<FloorCell, "x" | "z">,
+  cell: Pick<DockCell, "x" | "z">,
 ): DeckPart[] {
   const f = forward(p.yaw);
   const left = leftOf(f);
@@ -59,9 +65,9 @@ describe("sports boat deck floor (ADR 0063)", () => {
     expect(DOCK).toStrictEqual({
       maxSpeed: 0.005,
       ticks: 20,
-      draft: 0.45,
       stick: 0.1,
     });
+    expect(DECK_DRAFT).toBe(0.45);
     expect(DECK.margin).toBe(0.3);
     expect(DECK.parts).toStrictEqual([
       { halfWidth: 0.96, zMin: -2.75, zMax: 0.875, height: 9.3 / 16 },
@@ -108,15 +114,15 @@ describe("sports boat deck floor (ADR 0063)", () => {
           const top = Math.max(
             ...coveringParts(p, cell).map((part) => p.y + part.height),
           );
-          expect(Number.isInteger(cell.height)).toBe(true);
-          expect(cell.height).toBeGreaterThanOrEqual(1);
-          expect(cell.height).toBeLessThanOrEqual(16);
+          expect(Number.isInteger(deckHeight(cell))).toBe(true);
+          expect(deckHeight(cell)).toBeGreaterThanOrEqual(1);
+          expect(deckHeight(cell)).toBeLessThanOrEqual(16);
           expect(cell.y).toBe(Math.floor(top));
           if (Math.round((top - cell.y) * 16) === 0) {
-            expect(cell.height).toBe(1);
+            expect(deckHeight(cell)).toBe(1);
           } else {
             expect(
-              Math.abs(cell.y + cell.height / 16 - top),
+              Math.abs(cell.y + deckHeight(cell) / 16 - top),
             ).toBeLessThanOrEqual(1 / 32);
           }
         }
@@ -174,15 +180,15 @@ describe("sports boat deck floor (ADR 0063)", () => {
     const cells = floorCells({ x: 267.5, y: -60.45, z: 15.5, yaw: 0 });
     expect(cells.length).toBeGreaterThanOrEqual(13);
     expect(new Set(cells.map((cell) => cell.y))).toStrictEqual(new Set([-60]));
-    const heightAt = (z: number) =>
-      cells.find((cell) => cell.x === 267 && cell.z === z)?.height;
+    const heightAt = (z: number) => {
+      const block = cells.find((cell) => cell.x === 267 && cell.z === z)?.block;
+      return block?.type === "deck" ? block.height : undefined;
+    };
     expect(heightAt(15)).toBe(2);
     expect(heightAt(17)).toBe(4);
     // The grown cockpit and bow overlap at z = 16; the higher bow wins.
     expect(heightAt(16)).toBe(4);
-    expect(new Set(cells.map((cell) => cell.height))).toStrictEqual(
-      new Set([2, 4]),
-    );
+    expect(new Set(cells.map(deckHeight))).toStrictEqual(new Set([2, 4]));
   });
 
   it("clamps an exact block top to one pixel and rounds a top just below the next block to sixteen", () => {
@@ -203,7 +209,7 @@ describe("sports boat deck floor (ADR 0063)", () => {
             x: 0,
             y,
             z: 0,
-            height: fraction === 0 ? 1 : 16,
+            block: { type: "deck", height: fraction === 0 ? 1 : 16 },
           });
         },
       ),
@@ -231,7 +237,7 @@ describe("holdHeight (ADR 0063)", () => {
           expect(height).toBe(
             first === -1
               ? undefined
-              : Math.floor(feetY + (offsets[first] as number)) + 1 - DOCK.draft,
+              : Math.floor(feetY + (offsets[first] as number)) + 1 - DECK_DRAFT,
           );
         },
       ),
@@ -248,4 +254,12 @@ describe("holdHeight (ADR 0063)", () => {
     );
     expect(holdHeight(feetY, () => false)).toBeUndefined();
   });
+});
+
+it("lays only deck blocks", () => {
+  fc.assert(
+    fc.property(pose, (p) => {
+      expect(floorCells(p).every((c) => c.block.type === "deck")).toBe(true);
+    }),
+  );
 });

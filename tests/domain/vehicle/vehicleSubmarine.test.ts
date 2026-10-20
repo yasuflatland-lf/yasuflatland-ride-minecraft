@@ -105,6 +105,7 @@ class DiveSim {
       velocity: { ...this.body.vel, y: this.vy },
       onGround: this.y <= 0,
       ...waterSensors(this.waterDepth),
+      blockTypes: () => [],
       solidAt: (offset) => this.y + offset.y < 0 || this.obstacle(offset),
       targets: this.targets,
     });

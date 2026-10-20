@@ -58,12 +58,15 @@ describe("DriveVehicles", () => {
             x: fc.integer(),
             y: fc.integer(),
             z: fc.integer(),
-            height: fc.integer({ min: 1, max: 16 }),
+            block: fc.record({
+              type: fc.constant("deck" as const),
+              height: fc.integer({ min: 1, max: 16 }),
+            }),
           }),
         ),
         (hold, floor) => {
           const step: DriveStep = {
-            dock: { hold, floor, seats: [] },
+            dock: { hold, cells: floor, seats: [] },
             impulse: { x: 0, y: 0, z: 1 },
             forward: { x: 0, z: 1 },
             commands: [],
@@ -82,7 +85,7 @@ describe("DriveVehicles", () => {
           world.snapshots = [snapshot("held")];
           new DriveVehicles(world, repo, logger()).execute(0);
           expect(world.held.get("held")).toEqual(hold);
-          expect(world.floors.get("held")).toEqual(floor);
+          expect(world.docks.get("held")).toEqual(floor);
           expect(world.calls.some((c) => c.startsWith("motion:held:"))).toBe(
             false,
           );
@@ -95,14 +98,14 @@ describe("DriveVehicles", () => {
     const world = new FakeWorld();
     world.snapshots = [snapshot("a")];
     const holdAt = vi.spyOn(world, "holdAt");
-    const layFloor = vi.spyOn(world, "layFloor");
+    const layDock = vi.spyOn(world, "layDock");
     new DriveVehicles(world, new InMemoryRepo(), logger()).execute(0);
     expect(holdAt).toHaveBeenCalledWith("a", undefined);
-    expect(layFloor).toHaveBeenCalledWith("a", []);
+    expect(layDock).toHaveBeenCalledWith("a", []);
     expect(world.calls).toContain("motion:a:0");
   });
 
-  it.each(["shineHeadlights", "layFloor", "holdAt", "keepDeckSeats"] as const)(
+  it.each(["shineHeadlights", "layDock", "holdAt", "keepDeckSeats"] as const)(
     "clears all resources of a disappeared vehicle even when %s fails",
     (failed) => {
       const world = new FakeWorld();
@@ -110,7 +113,7 @@ describe("DriveVehicles", () => {
       repo.save(createVehicle("suv", "gone", 0));
       const log = logger();
       const shine = vi.spyOn(world, "shineHeadlights");
-      const floor = vi.spyOn(world, "layFloor");
+      const floor = vi.spyOn(world, "layDock");
       const hold = vi.spyOn(world, "holdAt");
       const seats = vi.spyOn(world, "keepDeckSeats");
       vi.spyOn(world, failed).mockImplementation(() => {
@@ -185,7 +188,7 @@ describe("DriveVehicles", () => {
     world.snapshots = [snapshot("a")];
     new DriveVehicles(world, repo, logger()).execute(0);
     expect(repo.ids()).toEqual(["a"]);
-    expect(world.floors.get("gone")).toEqual([]);
+    expect(world.docks.get("gone")).toEqual([]);
     expect(world.held.has("gone")).toBe(true);
     expect(world.held.get("gone")).toBeUndefined();
   });
@@ -760,4 +763,98 @@ it("clears deck seats without boarding for ordinary motion", () => {
   new DriveVehicles(world, new InMemoryRepo(), logger()).execute(0);
   expect(board).not.toHaveBeenCalled();
   expect(keep).toHaveBeenCalledWith("a", [], 0);
+});
+
+describe("DriveVehicles dock ports", () => {
+  function fixture(step: Partial<DriveStep>, driver = false, query = false) {
+    const world = new FakeWorld();
+    const repo = new InMemoryRepo();
+    const at = { x: 8, y: 64, z: 9 };
+    world.typesAt.set("8,64,9", "minecraft:stone");
+    let types: readonly (string | undefined)[] = [];
+    const drive: Drive = {
+      speed: 0,
+      yaw: 0,
+      onDriverMounted: () => {},
+      onSeatVacated: () => [],
+      step: (_raw, ctx) => {
+        if (query) types = ctx.blockTypes([at, { ...at, y: 65 }]);
+        return {
+          impulse: { x: 0, y: 0, z: 0 },
+          forward: { x: 0, z: 1 },
+          commands: [],
+          riders: { thirdPerson: false, underwater: false },
+          ...step,
+        };
+      },
+    };
+    repo.save(new Vehicle("a", SUV_PROFILE, drive));
+    world.snapshots = [
+      snapshot("a", {
+        riders: driver
+          ? [
+              {
+                id: "driver",
+                offset: defined(SUV_PROFILE.seats.positions[0], "driver seat"),
+                yaw: 0,
+                raw: FULL_THROTTLE,
+              },
+            ]
+          : [],
+      }),
+    ];
+    const blockTypes = vi.spyOn(world, "blockTypes");
+    new DriveVehicles(world, repo, logger()).execute(0);
+    return { world, types, at, blockTypes };
+  }
+
+  it("clears checked blocks before laying dock cells in the same tick", () => {
+    const clear = [{ x: 8, y: 64, z: 9, typeId: "minecraft:short_grass" }];
+    const { world } = fixture({
+      clear,
+      dock: {
+        hold: { x: 0, y: 64, z: 0, yaw: 0 },
+        cells: [{ x: 8, y: 64, z: 9, block: { type: "floor" } }],
+        seats: [],
+      },
+    });
+    expect(world.cleared).toEqual([{ vehicleId: "a", cells: clear }]);
+    expect(
+      world.calls.filter((c) => c === "clearBlocks" || c === "layDock"),
+    ).toEqual(["clearBlocks", "layDock"]);
+  });
+
+  it.each([true, false])(
+    "shows messages only when a driver exists: %s",
+    (driver) => {
+      const { world } = fixture({ message: "park_blocked" }, driver);
+      expect(world.messages).toEqual(
+        driver ? [{ playerId: "driver", name: "park_blocked" }] : [],
+      );
+    },
+  );
+
+  it("boards deck riders before seating standing players", () => {
+    const depart = {
+      boxes: [{ min: { x: 0, y: 64, z: 0 }, max: { x: 3, y: 67, z: 4 } }],
+      exit: { x: 4, y: 64, z: 0, yaw: 90 },
+    };
+    const { world } = fixture({ boardDeckRiders: true, depart });
+    expect(world.departures).toEqual([{ vehicleId: "a", departure: depart }]);
+    expect(
+      world.calls.filter(
+        (c) => c === "boardDeckRiders" || c === "seatStandingPlayers",
+      ),
+    ).toEqual(["boardDeckRiders", "seatStandingPlayers"]);
+  });
+
+  it("forwards lazy block queries with the vehicle id and world cells", () => {
+    const { types, at, blockTypes } = fixture({}, false, true);
+    expect(types).toEqual(["minecraft:stone", "minecraft:air"]);
+    expect(blockTypes).toHaveBeenCalledExactlyOnceWith("a", [
+      at,
+      { ...at, y: 65 },
+    ]);
+    expect(fixture({}).blockTypes).not.toHaveBeenCalled();
+  });
 });

@@ -54,7 +54,7 @@ describe("Boat deck floor (ADR 0063)", () => {
     );
   });
 
-  // FloorBlocks resolves the floor permutation by these script constants, so
+  // DockBlocks resolves the floor permutation by these script constants, so
   // they must name the block and the state the pack actually defines.
   it("is the block the script lays floors with", () => {
     expect(DECK_FLOOR_BLOCK).toBe(block.description.identifier);

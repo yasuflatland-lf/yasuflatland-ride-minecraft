@@ -93,6 +93,7 @@ it.each(VEHICLE_KINDS)(
               velocity: s.velocity,
               onGround: s.ground,
               ...waterSensors(s.depth, s.below),
+              blockTypes: () => [],
               solidAt: () => s.solid,
               targets: () => [],
             });

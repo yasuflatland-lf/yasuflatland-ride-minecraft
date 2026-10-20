@@ -71,6 +71,7 @@ class FlightSim {
       velocity: { ...this.vel, y: this.vy },
       onGround: this.onGround,
       ...waterSensors(),
+      blockTypes: () => [],
       // The ground is solid below y = 0.
       solidAt: (offset) => this.y + offset.y < 0,
       targets: () => [],
@@ -311,6 +312,7 @@ describe("Vehicle in flight (ADR 0021)", () => {
         velocity: { x: 0, y: 0, z: 0 },
         onGround: false,
         ...waterSensors(),
+        blockTypes: () => [],
         solidAt: () => false,
         targets: () => [
           {
@@ -430,6 +432,7 @@ describe("Vehicle landing gear (ADR 0033)", () => {
       velocity: { x: 0, y: 0, z: 0 },
       onGround: false,
       ...waterSensors(),
+      blockTypes: () => [],
       solidAt,
       targets: () => [],
     });

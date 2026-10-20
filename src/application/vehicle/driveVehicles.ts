@@ -49,19 +49,24 @@ export class DriveVehicles {
           onGround: snap.onGround,
           waterAt: (offset) => this.world.waterAt(snap.id, offset),
           solidAt: (offset) => this.world.solidAt(snap.id, offset),
+          blockTypes: (cells) => this.world.blockTypes(snap.id, cells),
           targets: () => this.world.targetsNear(snap.id),
         });
         // Commands are sent on change, so send them before anything else that could throw.
         this.world.run(snap.id, out.commands);
+        if (out.message && out.driverId)
+          this.world.showMessage(out.driverId, out.message);
         this.world.holdAt(snap.id, out.dock?.hold);
+        if (out.clear.length > 0) this.world.clearBlocks(snap.id, out.clear);
         if (out.riders.thirdPerson)
           for (const rider of snap.riders) offRoad.add(rider.id);
         if (out.riders.underwater)
           for (const rider of snap.riders) underwater.add(rider.id);
         if (!out.dock) this.world.applyMotion(snap.id, out.impulse, out.yaw);
         if (out.boardDeckRiders) this.world.boardDeckRiders(snap.id);
+        if (out.depart) this.world.seatStandingPlayers(snap.id, out.depart);
         this.world.keepDeckSeats(snap.id, out.dock?.seats ?? [], out.yaw);
-        this.world.layFloor(snap.id, out.dock?.floor ?? []);
+        this.world.layDock(snap.id, out.dock?.cells ?? []);
         this.world.shineHeadlights(
           snap.id,
           snap.headlights
@@ -86,7 +91,7 @@ export class DriveVehicles {
       for (const release of [
         () => this.world.keepDeckSeats(id, [], 0),
         () => this.world.shineHeadlights(id, []),
-        () => this.world.layFloor(id, []),
+        () => this.world.layDock(id, []),
         () => this.world.holdAt(id, undefined),
       ]) {
         try {

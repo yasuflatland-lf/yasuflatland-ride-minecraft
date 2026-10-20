@@ -1,6 +1,6 @@
 # 0067. Camper
 
-- Status: Accepted
+- Status: Accepted (the hitboxes are superseded by [0068](0068-park-the-camper-with-room-blocks.md))
 - Date: 2026-10-19
 
 ## Context
