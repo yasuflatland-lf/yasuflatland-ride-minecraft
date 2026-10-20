@@ -555,3 +555,31 @@ describe("vehicle profiles (ADR 0050)", () => {
     );
   });
 });
+
+describe("vehicle hints (ADR 0086)", () => {
+  it("puts the camper's bumper hint on its hitboxes and its seat hint in the parked room", () => {
+    expect(CAMPER_PROFILE.hints).toEqual({
+      bumper: {
+        boxXs: CAMPER_SPEC.bumperBoxXs,
+        boxZ: CAMPER_SPEC.bodyFront,
+        boxHalf: CAMPER_SPEC.bumperBoxSize / 2,
+        bodyHalfWidth: CAMPER_SPEC.bodyHalfWidth,
+        reach: CAMPER_SPEC.bumperHintReach,
+        feet: CAMPER_SPEC.bumperHintFeet,
+      },
+      driverSeat: {
+        reach: CAMPER_SPEC.seatHintReach,
+        feet: CAMPER_SPEC.seatHintFeet,
+      },
+    });
+    expect(Object.isFrozen(CAMPER_PROFILE.hints)).toBe(true);
+  });
+
+  it("gives no hints to the kinds that take hits on their whole body", () => {
+    expect(SUV_PROFILE.hints).toBeUndefined();
+    expect(SPORTSBOAT_PROFILE.hints).toBeUndefined();
+    expect(createVehicle("suv", "v", 0).showsHints).toBe(false);
+    expect(createVehicle("sportsboat", "v", 0).showsHints).toBe(false);
+    expect(createVehicle("camper", "v", 0).showsHints).toBe(true);
+  });
+});

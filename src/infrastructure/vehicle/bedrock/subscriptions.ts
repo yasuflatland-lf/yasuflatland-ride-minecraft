@@ -20,23 +20,25 @@ import type {
   PlaceVehicle,
   PlaceVehicleCommand,
 } from "../../../application/vehicle/placeVehicle";
+import type { ShowVehicleHints } from "../../../application/vehicle/showVehicleHints";
 import type { SwitchHeadlights } from "../../../application/vehicle/switchHeadlights";
 import type { UseDockDoor } from "../../../application/vehicle/useDockDoor";
 import type { Vec3 } from "../../../domain/shared/vec";
 import type { VehicleKind } from "../../../domain/vehicle/kind";
 import type { BlockFace } from "../../../domain/vehicle/placement";
+import { SPEC } from "../../../domain/vehicle/spec";
 import { NAMESPACE } from "../../shared/identifiers";
 import { parseTestInputMessage } from "../testInput/testInputMessage";
 import type { TestInputStore } from "../testInput/testInputStore";
 import { standsOnDeck } from "./deck";
 import { removeOrphanDeckSeat } from "./deckSeats";
+import { heldDye } from "./heldDye";
 import {
   CAMPER_DOOR_COMPONENT,
   fleetEntryOf,
   HEADLIGHT_SWITCH_TYPE,
   isVehicleEntity,
   kindOfItem,
-  PAINT_BY_DYE,
   TEST_INPUT_EVENT,
 } from "./identifiers";
 import { isWaterAt } from "./water";
@@ -64,6 +66,7 @@ export function registerSubscriptions(
     paint: PaintVehicle;
     headlights: SwitchHeadlights;
     door: UseDockDoor;
+    hints: ShowVehicleHints;
   },
   testInputs: TestInputStore,
   dockDoorOwner: (dimensionId: string, cell: Vec3) => string | undefined,
@@ -79,6 +82,12 @@ export function registerSubscriptions(
     });
   });
   system.runInterval(() => useCases.drive.execute(system.currentTick), 1);
+  // Registered after the drive, so on the ticks both run the hints read this
+  // tick's parked state and the vehicles the drive just indexed (ADR 0086).
+  system.runInterval(
+    () => useCases.hints.execute(system.currentTick),
+    SPEC.hintCheckInterval,
+  );
   // The fleet never sees a vehicle spawn while the script is not running, so it
   // reads back the loaded ones once on start. After that only events add
   // vehicles: a scan would take a vehicle summoned this tick, whose spawn event
@@ -186,10 +195,7 @@ export function registerSubscriptions(
     const player = ev.damagingEntity;
     if (!isVehicleEntity(ev.hitEntity.typeId) || !(player instanceof Player))
       return;
-    const held = player
-      .getComponent("minecraft:inventory")
-      ?.container?.getItem(player.selectedSlotIndex);
-    const paint = PAINT_BY_DYE[held?.typeId ?? ""];
+    const paint = heldDye(player);
     if (paint) {
       useCases.paint.execute({
         playerId: player.id,

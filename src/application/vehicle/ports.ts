@@ -6,6 +6,7 @@ import type { RawInput } from "../../domain/vehicle/driveInput";
 import type { FleetEntry } from "../../domain/vehicle/fleet";
 import type { DockCell, HoldPose } from "../../domain/vehicle/floor";
 import type { Cell } from "../../domain/vehicle/headlights";
+import type { HeldItem, Hint, HintControls } from "../../domain/vehicle/hints";
 import type { VehicleKind } from "../../domain/vehicle/kind";
 import type { Paint } from "../../domain/vehicle/paint";
 import type { ChaseCamera } from "../../domain/vehicle/profile";
@@ -120,6 +121,34 @@ export interface HeadlightWorld {
   /** undefined when the vehicle no longer exists. */
   headlightsOn(vehicleId: string): boolean | undefined;
   setHeadlights(vehicleId: string, on: boolean): void;
+}
+
+export interface HintPlayerView {
+  id: string;
+  dimensionId: string;
+  /** Feet. */
+  location: Vec3;
+  /** Riding any entity, a vehicle, a deck seat or a vanilla mount. */
+  riding: boolean;
+  held: HeldItem;
+  controls: HintControls;
+}
+
+export interface HintVehicleView {
+  id: string;
+  dimensionId: string;
+  location: Vec3;
+}
+
+export interface HintWorld {
+  /** Players who can get hints; spectators are left out. */
+  hintPlayers(): HintPlayerView[];
+  /** The vehicles driven this tick. */
+  hintVehicles(): HintVehicleView[];
+  /** Shows the lang key yasu_ride.hint.<name> on the action bar; does nothing for a missing player. */
+  showHint(playerId: string, hint: Hint): void;
+  /** Empties the action bar; does nothing for a missing player. */
+  clearHint(playerId: string): void;
 }
 
 export interface Logger {

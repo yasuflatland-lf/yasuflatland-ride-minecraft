@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
+import { HINTS } from "../../src/domain/vehicle/hints";
 import { CAMPER_PROFILE } from "../../src/domain/vehicle/kinds/camper/profile";
 import { PAINTS } from "../../src/domain/vehicle/paint";
 import { CAMPER_DOOR_COMPONENT } from "../../src/infrastructure/vehicle/bedrock/identifiers";
@@ -591,6 +592,23 @@ describe("camper parking assets (ADR 0068)", () => {
         expect(lang).toMatch(
           new RegExp(`^yasu_ride\\.message\\.${name}=.+$`, "m"),
         );
+    },
+  );
+
+  it.each(["en_US", "ja_JP"])(
+    "translates every hint in %s, with the hit count and the vehicle name in the bumper hints and the vehicle name in the paint hint",
+    (locale) => {
+      const lang = readFileSync(`${RP}/texts/${locale}.lang`, "utf8");
+      for (const name of Object.values(HINTS)) {
+        const line = lang.match(
+          new RegExp(`^yasu_ride\\.hint\\.${name}=(.+)$`, "m"),
+        );
+        expect(line, name).not.toBeNull();
+        const args = line?.[1]?.match(/%s/g)?.length ?? 0;
+        expect(args, name).toBe(
+          name.startsWith("bumper_") ? 2 : name === HINTS.paint ? 1 : 0,
+        );
+      }
     },
   );
 });
