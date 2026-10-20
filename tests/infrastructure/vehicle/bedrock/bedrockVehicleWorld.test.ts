@@ -313,13 +313,6 @@ describe("BedrockVehicleWorld snapshots", () => {
         });
         const ids = dimIds.map((dimId) => `car-${dimId}`);
         expect(world.loadedVehicles().map((s) => s.id)).toEqual(ids);
-        expect(world.loadedFleetEntries()).toEqual(
-          dimIds.map((dimId) => ({
-            id: `car-${dimId}`,
-            kind: "sportsboat",
-            owner: `owner-${dimId}`,
-          })),
-        );
       }),
     );
   });
@@ -330,18 +323,6 @@ describe("BedrockVehicleWorld snapshots", () => {
     expect(
       world.loadedVehicles().map((s) => ({ id: s.id, kind: s.kind })),
     ).toEqual([{ id: car.id, kind: "suv" }]);
-    expect(world.loadedFleetEntries()).toEqual([
-      { id: car.id, kind: "suv", owner: undefined },
-    ]);
-  });
-
-  it("drops the item of the broken entity's kind at its location", () => {
-    const { car, dimension, world } = fixture();
-    world.dropVehicleItem(car.id);
-    expect(dimension.spawnItem).toHaveBeenCalledWith(
-      expect.objectContaining({ typeId: ITEM_TYPE.suv, amount: 1 }),
-      car.location,
-    );
   });
 
   it("gives the item of the requested kind", () => {
@@ -614,32 +595,6 @@ describe("BedrockVehicleWorld holds (ADR 0063)", () => {
     expect(car.teleport).toHaveBeenCalledTimes(3);
   });
 
-  it("clears the floor and releases the hold of a removed vehicle", () => {
-    const { dimension, world, car } = fixture();
-    const grid = blockGrid();
-    dimension.getBlock.mockImplementation(grid.getBlock);
-    const cell = {
-      x: 0,
-      y: 64,
-      z: 3,
-      block: { type: "deck" as const, height: 9 },
-    };
-    const pose = { x: 1, y: 64.5, z: -2, yaw: 30 };
-    world.loadedVehicles();
-    world.holdAt(car.id, pose);
-    world.layDock(car.id, [cell]);
-    expect(grid.typeAt(cell)).toBe(DECK_FLOOR_BLOCK);
-    world.removeVehicle(car.id);
-    expect(grid.typeAt(cell)).toBe("minecraft:air");
-    expect(car.setDynamicProperty).toHaveBeenLastCalledWith(
-      DECK_CELLS_PROPERTY,
-      undefined,
-    );
-    expect(car.remove).toHaveBeenCalledOnce();
-    world.applyMotion(car.id, { x: 0, y: 0, z: 1 }, pose.yaw);
-    expect(car.applyImpulse).toHaveBeenCalledOnce();
-  });
-
   it("clears the floor and releases the hold of a vehicle that is no longer loaded (ADR 0038)", () => {
     const { dimension, world, car } = fixture();
     const grid = blockGrid();
@@ -659,6 +614,35 @@ describe("BedrockVehicleWorld holds (ADR 0063)", () => {
     expect(grid.typeAt(cell)).toBe("minecraft:air");
     dimension.getEntities.mockReturnValue([car]);
     world.loadedVehicles();
+    world.applyMotion(car.id, { x: 0, y: 0, z: 1 }, pose.yaw);
+    expect(car.applyImpulse).toHaveBeenCalledOnce();
+  });
+
+  it("releases the floor, the lights and the hold of a vehicle that is gone", () => {
+    const { dimension, world, car } = fixture();
+    const grid = blockGrid();
+    dimension.getBlock.mockImplementation(grid.getBlock);
+    const deck = {
+      x: 0,
+      y: 64,
+      z: 3,
+      block: { type: "deck" as const, height: 9 },
+    };
+    const light = { x: 0, y: 65, z: 4 };
+    const pose = { x: 1, y: 64.5, z: -2, yaw: 30 };
+    world.loadedVehicles();
+    world.holdAt(car.id, pose);
+    world.layDock(car.id, [deck]);
+    world.shineHeadlights(car.id, [light]);
+    expect(grid.typeAt(deck)).toBe(DECK_FLOOR_BLOCK);
+    expect(grid.typeAt(light)).toBe("minecraft:light_block_15");
+    car.setDynamicProperty.mockClear();
+    car.isValid = false;
+    world.releaseVehicle(car.id);
+    expect(grid.typeAt(deck)).toBe("minecraft:air");
+    expect(grid.typeAt(light)).toBe("minecraft:air");
+    expect(car.setDynamicProperty).not.toHaveBeenCalled();
+    car.isValid = true;
     world.applyMotion(car.id, { x: 0, y: 0, z: 1 }, pose.yaw);
     expect(car.applyImpulse).toHaveBeenCalledOnce();
   });
@@ -892,5 +876,75 @@ describe("BedrockVehicleWorld with a missing vehicle", () => {
     const { world, dimension } = fixture();
     world.keepDeckSeats("missing", [{ x: 0, y: 64, z: 0 }], 0);
     expect(dimension.spawnEntity).not.toHaveBeenCalled();
+  });
+});
+
+describe("BedrockVehicleWorld solid and ram queries around a loaded vehicle", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  function blockAt(y: number, above: { isAir: boolean; isLiquid: boolean }) {
+    return {
+      typeId: "minecraft:stone",
+      isAir: false,
+      isLiquid: false,
+      location: { x: -2, y, z: 2 },
+      above: () => above,
+    };
+  }
+
+  it("counts a cell solid only when a downward ray stops on it (ADR 0035)", () => {
+    fc.assert(
+      fc.property(fc.boolean(), (rayHits) => {
+        const { world, dimension } = fixture();
+        dimension.getBlock.mockReturnValue(
+          blockAt(63, { isAir: true, isLiquid: false }),
+        );
+        const getBlockFromRay = vi.fn(() =>
+          rayHits ? { block: { location: { y: 63 } } } : undefined,
+        );
+        Object.assign(dimension, { getBlockFromRay });
+        expect(world.solidAt("car", { x: -1, y: -1, z: 0 })).toBe(rayHits);
+        expect(getBlockFromRay).toHaveBeenCalledOnce();
+      }),
+    );
+  });
+
+  it("counts a cell under another block as solid without a ray", () => {
+    const { world, dimension } = fixture();
+    dimension.getBlock.mockReturnValue(
+      blockAt(63, { isAir: false, isLiquid: false }),
+    );
+    const getBlockFromRay = vi.fn();
+    Object.assign(dimension, { getBlockFromRay });
+    expect(world.solidAt("car", { x: 0, y: -1, z: 0 })).toBe(true);
+    expect(getBlockFromRay).not.toHaveBeenCalled();
+  });
+
+  it("lists the other entities near it with their offsets and whether they ride a vehicle", () => {
+    const { world, entities, car } = fixture();
+    const rider = {
+      ...car,
+      id: "zombie",
+      typeId: "minecraft:zombie",
+      families: [],
+      location: { x: 0.75, y: 65.25, z: 0.75 },
+      getComponent: vi.fn((name: string): unknown =>
+        name === "minecraft:riding"
+          ? { entityRidingOn: { typeId: ENTITY_TYPE.suv } }
+          : undefined,
+      ),
+    };
+    const walker = { ...rider, id: "pig", getComponent: vi.fn() };
+    entities.push(rider, walker);
+    expect(world.targetsNear(car.id)).toEqual([
+      { id: "zombie", offset: { x: 2, y: 1, z: -2 }, protectedOccupant: true },
+      { id: "pig", offset: { x: 2, y: 1, z: -2 }, protectedOccupant: false },
+    ]);
+  });
+
+  it("does not move a vehicle that is not loaded", () => {
+    const { world, car } = fixture();
+    world.applyMotion("missing", { x: 0, y: 0, z: 1 }, 0);
+    expect(car.applyImpulse).not.toHaveBeenCalled();
   });
 });

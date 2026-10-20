@@ -96,21 +96,14 @@ export class DriveVehicles {
   }
 
   private releaseGone(seen: ReadonlySet<string>): void {
-    for (const id of this.repo.ids()) {
-      if (seen.has(id)) continue;
-      this.repo.remove(id);
-      // Each release runs on its own so one failure does not skip the others.
-      forEachIsolated(
-        [
-          () => this.world.keepDeckSeats(id, [], 0),
-          () => this.world.shineHeadlights(id, []),
-          () => this.world.layDock(id, []),
-          () => this.world.holdAt(id, undefined),
-        ],
-        (release) => release(),
-        this.log,
-        () => id,
-      );
-    }
+    const gone = this.repo.ids().filter((id) => !seen.has(id));
+    for (const id of gone) this.repo.remove(id);
+    // One failed release must not skip the other vehicles.
+    forEachIsolated(
+      gone,
+      (id) => this.world.releaseVehicle(id),
+      this.log,
+      (id) => id,
+    );
   }
 }

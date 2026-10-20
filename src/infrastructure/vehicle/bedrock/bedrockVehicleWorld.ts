@@ -4,14 +4,11 @@ import {
   type Entity,
   EntityDamageCause,
   InputButton,
-  ItemStack,
   type Player,
   world,
 } from "@minecraft/server";
 import type {
-  BreakWorld,
   DriveWorld,
-  LimitWorld,
   VehicleSnapshot,
 } from "../../../application/vehicle/ports";
 import type { Vec3 } from "../../../domain/shared/vec";
@@ -23,7 +20,6 @@ import {
 } from "../../../domain/vehicle/dock";
 import type { EngineCommand } from "../../../domain/vehicle/drive";
 import type { RawInput } from "../../../domain/vehicle/driveInput";
-import type { FleetEntry } from "../../../domain/vehicle/fleet";
 import type { DockCell, HoldPose } from "../../../domain/vehicle/floor";
 import type { Cell } from "../../../domain/vehicle/headlights";
 import {
@@ -36,7 +32,7 @@ import type { RiderView } from "../../../domain/vehicle/vehicle";
 import type { TestInputStore } from "../testInput/testInputStore";
 import { DeckSeats } from "./deckSeats";
 import { DockBlocks, savedDock } from "./dockBlocks";
-import { type EntityIndex, isPlayer } from "./entityIndex";
+import { DIMENSIONS, type EntityIndex, isPlayer } from "./entityIndex";
 import { HeadlightBlocks, isLightBlock } from "./headlightBlocks";
 import {
   AIR_BLOCK,
@@ -44,17 +40,14 @@ import {
   entityAnimationId,
   entityEventId,
   entityPropertyId,
-  fleetEntryOf,
   HEADLIGHTS_PROPERTY,
-  ITEM_TYPE,
   isVehicleEntity,
   kindOfEntity,
   messageKey,
   VEHICLE_FAMILY,
 } from "./identifiers";
+import { VehicleReleaser } from "./vehicleReleaser";
 import { isWaterAt } from "./water";
-
-const DIMENSIONS = ["overworld", "nether", "the_end"] as const;
 
 function rawInputOf(player: Player): RawInput {
   const movement = player.inputInfo.getMovementVector();
@@ -66,11 +59,11 @@ function rawInputOf(player: Player): RawInput {
   };
 }
 
-function offsetFrom(car: Entity, offset: Vec3): Vec3 {
+function offsetFrom(vehicle: Entity, offset: Vec3): Vec3 {
   return {
-    x: car.location.x + offset.x,
-    y: car.location.y + offset.y,
-    z: car.location.z + offset.z,
+    x: vehicle.location.x + offset.x,
+    y: vehicle.location.y + offset.y,
+    z: vehicle.location.z + offset.z,
   };
 }
 
@@ -78,11 +71,18 @@ function distanceSq(a: Vec3, b: Vec3): number {
   return (a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2;
 }
 
-export class BedrockVehicleWorld implements DriveWorld, BreakWorld, LimitWorld {
+export class BedrockVehicleWorld implements DriveWorld {
   private readonly headlightBlocks = new HeadlightBlocks();
   private readonly deckSeats = new DeckSeats();
   private readonly dockBlocks = new DockBlocks();
   private readonly holds = new Map<string, HoldPose>();
+  /** Shared with BedrockFleetWorld so a removed vehicle releases the same blocks, seats and hold. */
+  readonly releaser = new VehicleReleaser(
+    this.headlightBlocks,
+    this.dockBlocks,
+    this.deckSeats,
+    this.holds,
+  );
 
   constructor(
     private readonly index: EntityIndex,
@@ -94,53 +94,43 @@ export class BedrockVehicleWorld implements DriveWorld, BreakWorld, LimitWorld {
     return this.dockBlocks.doorOwner(dimensionId, cell);
   }
 
-  loadedFleetEntries(): FleetEntry[] {
-    return DIMENSIONS.flatMap((dimId) =>
-      world
-        .getDimension(dimId)
-        .getEntities({ families: [VEHICLE_FAMILY] })
-        .map(fleetEntryOf)
-        .filter((entry) => entry !== undefined),
-    );
-  }
-
   loadedVehicles(): VehicleSnapshot[] {
     this.index.clear();
     const snapshots: VehicleSnapshot[] = [];
     for (const dimId of DIMENSIONS) {
-      for (const car of world
+      for (const vehicle of world
         .getDimension(dimId)
         .getEntities({ families: [VEHICLE_FAMILY] })) {
-        const kind = kindOfEntity(car.typeId);
+        const kind = kindOfEntity(vehicle.typeId);
         if (kind === undefined) continue;
-        this.index.track(car);
-        const v = car.getVelocity();
+        this.index.track(vehicle);
+        const v = vehicle.getVelocity();
         snapshots.push({
-          id: car.id,
+          id: vehicle.id,
           kind,
-          location: car.location,
-          yaw: car.getRotation().y,
+          location: vehicle.location,
+          yaw: vehicle.getRotation().y,
           velocity: v,
-          onGround: car.isOnGround,
-          riders: this.riders(car),
+          onGround: vehicle.isOnGround,
+          riders: this.riders(vehicle),
           deckSeatInputs: this.deckSeats
-            .riders(car)
+            .riders(vehicle)
             .map((player) => (player ? rawInputOf(player) : undefined)),
           restored: () => {
-            const dock = savedDock(car);
+            const dock = savedDock(vehicle);
             return {
               [DOCK_RESTORED.laid]: dock.laid,
               [DOCK_RESTORED.doorOpen]: dock.doorOpen,
               ...Object.fromEntries(
                 entityContractOf(kind).restored.map((name) => [
                   name,
-                  car.getProperty(entityPropertyId(name)),
+                  vehicle.getProperty(entityPropertyId(name)),
                 ]),
               ),
             };
           },
-          headlights: car.getProperty(HEADLIGHTS_PROPERTY) === true,
-          testInput: this.testInputs.get(car.id),
+          headlights: vehicle.getProperty(HEADLIGHTS_PROPERTY) === true,
+          testInput: this.testInputs.get(vehicle.id),
         });
       }
     }
@@ -154,15 +144,15 @@ export class BedrockVehicleWorld implements DriveWorld, BreakWorld, LimitWorld {
     return snapshots;
   }
 
-  private riders(car: Entity): RiderView[] {
-    return (car.getComponent("minecraft:rideable")?.getRiders() ?? [])
+  private riders(vehicle: Entity): RiderView[] {
+    return (vehicle.getComponent("minecraft:rideable")?.getRiders() ?? [])
       .filter(isPlayer)
       .map((p) => {
         return {
           id: p.id,
           offset: {
-            x: p.location.x - car.location.x,
-            z: p.location.z - car.location.z,
+            x: p.location.x - vehicle.location.x,
+            z: p.location.z - vehicle.location.z,
           },
           yaw: p.getRotation().y,
           raw: rawInputOf(p),
@@ -171,17 +161,17 @@ export class BedrockVehicleWorld implements DriveWorld, BreakWorld, LimitWorld {
   }
 
   waterAt(vehicleId: string, offset: Vec3): boolean {
-    const car = this.index.entity(vehicleId);
-    if (!car) return false;
-    return isWaterAt(car.dimension, offsetFrom(car, offset));
+    const vehicle = this.index.entity(vehicleId);
+    if (!vehicle) return false;
+    return isWaterAt(vehicle.dimension, offsetFrom(vehicle, offset));
   }
 
   solidAt(vehicleId: string, offset: Vec3): boolean {
-    const car = this.index.entity(vehicleId);
-    if (!car) return false;
+    const vehicle = this.index.entity(vehicleId);
+    if (!vehicle) return false;
     try {
-      const at = offsetFrom(car, offset);
-      const b = car.dimension.getBlock(at);
+      const at = offsetFrom(vehicle, offset);
+      const b = vehicle.dimension.getBlock(at);
       if (!b || b.isAir || b.isLiquid || isLightBlock(b)) return false;
       // A ray that starts inside a block finds nothing, so a cell under
       // another block counts as solid without one.
@@ -189,7 +179,7 @@ export class BedrockVehicleWorld implements DriveWorld, BreakWorld, LimitWorld {
       if (above && !above.isAir && !above.isLiquid) return true;
       // Flowers, grass, carpets and torches have no collision box: a ray cast
       // down from just above the cell passes through them (ADR 0035).
-      const hit = car.dimension.getBlockFromRay(
+      const hit = vehicle.dimension.getBlockFromRay(
         { x: at.x, y: b.location.y + 1.001, z: at.z },
         { x: 0, y: -1, z: 0 },
         {
@@ -208,11 +198,11 @@ export class BedrockVehicleWorld implements DriveWorld, BreakWorld, LimitWorld {
     vehicleId: string,
     cells: readonly Vec3[],
   ): (string | undefined)[] {
-    const car = this.index.entity(vehicleId);
-    if (!car) return cells.map(() => undefined);
+    const vehicle = this.index.entity(vehicleId);
+    if (!vehicle) return cells.map(() => undefined);
     return cells.map((c) => {
       try {
-        const b = car.dimension.getBlock(c);
+        const b = vehicle.dimension.getBlock(c);
         if (!b) return undefined;
         return b.isAir || isLightBlock(b) ? AIR_BLOCK : b.typeId;
       } catch {
@@ -222,11 +212,11 @@ export class BedrockVehicleWorld implements DriveWorld, BreakWorld, LimitWorld {
   }
 
   clearBlocks(vehicleId: string, cells: readonly ClearCell[]): void {
-    const car = this.index.entity(vehicleId);
-    if (!car) return;
+    const vehicle = this.index.entity(vehicleId);
+    if (!vehicle) return;
     for (const c of cells) {
       try {
-        const b = car.dimension.getBlock(c);
+        const b = vehicle.dimension.getBlock(c);
         // A block placed since the check belongs to a player.
         if (b?.typeId === c.typeId) b.setType(AIR_BLOCK);
       } catch {
@@ -242,10 +232,10 @@ export class BedrockVehicleWorld implements DriveWorld, BreakWorld, LimitWorld {
   }
 
   seatStandingPlayers(vehicleId: string, departure: Departure): void {
-    const car = this.index.entity(vehicleId);
-    const rideable = car?.getComponent("minecraft:rideable");
-    if (!car || !rideable) return;
-    const standing = car.dimension
+    const vehicle = this.index.entity(vehicleId);
+    const rideable = vehicle?.getComponent("minecraft:rideable");
+    if (!vehicle || !rideable) return;
+    const standing = vehicle.dimension
       .getPlayers()
       .filter(
         (p) =>
@@ -254,8 +244,8 @@ export class BedrockVehicleWorld implements DriveWorld, BreakWorld, LimitWorld {
       )
       .sort(
         (a, b) =>
-          distanceSq(a.location, car.location) -
-          distanceSq(b.location, car.location),
+          distanceSq(a.location, vehicle.location) -
+          distanceSq(b.location, vehicle.location),
       );
     for (const p of standing)
       if (!rideable.addRider(p) && departure.exit)
@@ -265,22 +255,22 @@ export class BedrockVehicleWorld implements DriveWorld, BreakWorld, LimitWorld {
   }
 
   targetsNear(vehicleId: string): RamTarget[] {
-    const car = this.index.entity(vehicleId);
-    if (!car) return [];
-    return car.dimension
+    const vehicle = this.index.entity(vehicleId);
+    if (!vehicle) return [];
+    return vehicle.dimension
       .getEntities({
-        location: car.location,
+        location: vehicle.location,
         maxDistance: RAM_QUERY_RADIUS,
         excludeFamilies: ["inanimate"],
         excludeTypes: ["minecraft:item", "minecraft:xp_orb"],
       })
-      .filter((e) => e.id !== car.id)
+      .filter((e) => e.id !== vehicle.id)
       .map((e) => ({
         id: e.id,
         offset: {
-          x: e.location.x - car.location.x,
-          y: e.location.y - car.location.y,
-          z: e.location.z - car.location.z,
+          x: e.location.x - vehicle.location.x,
+          y: e.location.y - vehicle.location.y,
+          z: e.location.z - vehicle.location.z,
         },
         protectedOccupant: isVehicleEntity(
           e.getComponent("minecraft:riding")?.entityRidingOn?.typeId,
@@ -294,13 +284,13 @@ export class BedrockVehicleWorld implements DriveWorld, BreakWorld, LimitWorld {
       return;
     }
     this.holds.set(vehicleId, pose);
-    const car = this.index.entity(vehicleId);
-    if (!car) return;
-    car.teleport(
+    const vehicle = this.index.entity(vehicleId);
+    if (!vehicle) return;
+    vehicle.teleport(
       { x: pose.x, y: pose.y, z: pose.z },
       { rotation: { x: 0, y: pose.yaw } },
     );
-    car.clearVelocity();
+    vehicle.clearVelocity();
   }
 
   keepDeckSeats(
@@ -317,8 +307,8 @@ export class BedrockVehicleWorld implements DriveWorld, BreakWorld, LimitWorld {
   }
 
   boardDeckRiders(vehicleId: string): void {
-    const car = this.index.entity(vehicleId);
-    if (car) this.deckSeats.board(car);
+    const vehicle = this.index.entity(vehicleId);
+    if (vehicle) this.deckSeats.board(vehicle);
   }
 
   layDock(vehicleId: string, cells: readonly DockCell[]): void {
@@ -327,10 +317,10 @@ export class BedrockVehicleWorld implements DriveWorld, BreakWorld, LimitWorld {
 
   applyMotion(vehicleId: string, impulse: Vec3, yaw: number): void {
     if (this.holds.has(vehicleId)) return;
-    const car = this.index.entity(vehicleId);
-    if (!car) return;
-    car.applyImpulse(impulse);
-    car.setRotation({ x: 0, y: yaw });
+    const vehicle = this.index.entity(vehicleId);
+    if (!vehicle) return;
+    vehicle.applyImpulse(impulse);
+    vehicle.setRotation({ x: 0, y: yaw });
   }
 
   run(vehicleId: string, commands: readonly EngineCommand[]): void {
@@ -382,24 +372,11 @@ export class BedrockVehicleWorld implements DriveWorld, BreakWorld, LimitWorld {
     target.applyKnockback({ x: hit.push.x, z: hit.push.z }, hit.pushUp);
   }
 
-  dropVehicleItem(vehicleId: string): void {
-    const car = this.index.entity(vehicleId);
-    if (!car) return;
-    const kind = kindOfEntity(car.typeId);
-    if (kind === undefined) return;
-    car.dimension.spawnItem(new ItemStack(ITEM_TYPE[kind], 1), car.location);
-  }
-
-  removeVehicle(vehicleId: string): void {
-    const car = this.index.entity(vehicleId);
-    this.headlightBlocks.shine(vehicleId, car, []);
-    this.dockBlocks.lay(vehicleId, car, []);
-    this.deckSeats.keep(vehicleId, car, [], 0);
-    this.holds.delete(vehicleId);
-    car?.remove();
-  }
-
   shineHeadlights(vehicleId: string, cells: readonly Cell[]): void {
     this.headlightBlocks.shine(vehicleId, this.index.entity(vehicleId), cells);
+  }
+
+  releaseVehicle(vehicleId: string): void {
+    this.releaser.release(vehicleId, this.index.entity(vehicleId));
   }
 }

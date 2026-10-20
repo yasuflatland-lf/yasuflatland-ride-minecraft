@@ -126,8 +126,8 @@ function upgradeHeightOnlyCell(value: unknown): unknown {
 
 // The cells a vehicle laid are saved on the entity, so a /reload or a restart
 // can still clear them.
-function savedCells(car: Entity): DockCell[] {
-  const raw = car.getDynamicProperty(DECK_CELLS_PROPERTY);
+function savedCells(vehicle: Entity): DockCell[] {
+  const raw = vehicle.getDynamicProperty(DECK_CELLS_PROPERTY);
   if (typeof raw !== "string") return [];
   try {
     const parsed: unknown = JSON.parse(raw);
@@ -139,11 +139,11 @@ function savedCells(car: Entity): DockCell[] {
 }
 
 /** State derived from the cells actually laid, with one saved-property read per rebuild. */
-export function savedDock(car: Entity): {
+export function savedDock(vehicle: Entity): {
   laid: boolean;
   doorOpen: boolean | undefined;
 } {
-  const cells = savedCells(car);
+  const cells = savedCells(vehicle);
   const door = cells.find((c) => c.block.type === "door");
   return {
     laid: cells.length > 0,
@@ -171,24 +171,28 @@ export class DockBlocks {
   // dimension, so they are kept here until a later tick clears them.
   private stranded: Laid[] = [];
 
-  /** `car` is undefined when the vehicle is gone; its cells are then only cleared. */
-  lay(vehicleId: string, car: Entity | undefined, wanted: readonly DockCell[]) {
+  /** `vehicle` is undefined when the entity is gone; its cells are then only cleared. */
+  lay(
+    vehicleId: string,
+    vehicle: Entity | undefined,
+    wanted: readonly DockCell[],
+  ) {
     let entry = this.laid.get(vehicleId);
     if (!entry) {
-      if (!car) return;
-      entry = { dimension: car.dimension, cells: savedCells(car) };
+      if (!vehicle) return;
+      entry = { dimension: vehicle.dimension, cells: savedCells(vehicle) };
     }
     const before = JSON.stringify(entry.cells);
-    if (car && car.dimension.id !== entry.dimension.id) {
+    if (vehicle && vehicle.dimension.id !== entry.dimension.id) {
       this.update(entry, []);
       if (entry.cells.length > 0) this.stranded.push(entry);
-      entry = { dimension: car.dimension, cells: [] };
+      entry = { dimension: vehicle.dimension, cells: [] };
     }
-    this.update(entry, car ? wanted : []);
+    this.update(entry, vehicle ? wanted : []);
     if (entry.cells.length > 0) this.laid.set(vehicleId, entry);
     else this.laid.delete(vehicleId);
-    if (car?.isValid && JSON.stringify(entry.cells) !== before) {
-      car.setDynamicProperty(
+    if (vehicle?.isValid && JSON.stringify(entry.cells) !== before) {
+      vehicle.setDynamicProperty(
         DECK_CELLS_PROPERTY,
         entry.cells.length > 0 ? JSON.stringify(entry.cells) : undefined,
       );

@@ -42,7 +42,6 @@ export interface DriveWorld {
   holdAt(vehicleId: string, pose: HoldPose | undefined): void;
   /**
    * Keeps exactly these dock cells for the vehicle and clears the ones it laid before.
-   * Also called with no cells for a vehicle that is gone.
    */
   layDock(vehicleId: string, cells: readonly DockCell[]): void;
   /** See TickContext.blockTypes; world cells, in the vehicle's dimension. */
@@ -65,9 +64,15 @@ export interface DriveWorld {
   damage(hit: RamHit, attackerId: string | undefined): void;
   /**
    * Keeps light blocks in exactly these cells for the vehicle and clears the
-   * ones it lit before. Also called with no cells for a vehicle that is gone.
+   * ones it lit before.
    */
   shineHeadlights(vehicleId: string, cells: readonly Cell[]): void;
+  /**
+   * Releases everything the world keeps for a vehicle that is no longer loaded:
+   * its light blocks, dock cells, deck seats and hold. Every part is attempted
+   * even when one fails; the first failure is then thrown.
+   */
+  releaseVehicle(vehicleId: string): void;
 }
 
 export interface PlacementWorld {

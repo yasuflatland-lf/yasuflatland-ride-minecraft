@@ -4,6 +4,8 @@
 import { type Entity, type Player, world } from "@minecraft/server";
 import { PLAYER_TYPE } from "./identifiers";
 
+export const DIMENSIONS = ["overworld", "nether", "the_end"] as const;
+
 export const isPlayer = (e: Entity): e is Player => e.typeId === PLAYER_TYPE;
 
 export class EntityIndex {
