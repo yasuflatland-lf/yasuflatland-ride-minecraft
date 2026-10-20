@@ -17,6 +17,7 @@ import {
 import type { HoldPose } from "../../floor";
 import { MOTION } from "../../motion/constants";
 import { DOCK, pushesStick } from "../../motion/dock";
+import type { MotionLimits } from "../../motion/limits";
 import {
   alignOnMount,
   hitWall,
@@ -24,11 +25,10 @@ import {
   type Medium,
   type MotionResult,
   type MotionState,
-  stepFlightMotion,
+  stepMediumMotion,
   stepMotion,
 } from "../../motion/motion";
 import { waterBelowAt, waterDepthAt } from "../../motion/water";
-import type { MotionLimits } from "../../profile";
 import { seatWorldPositions } from "../../seats";
 import { stepRoll, stepTrim } from "./attitude";
 import { floorCells, holdHeight } from "./deck";
@@ -101,14 +101,14 @@ export function isAfloat(depth: number, below: () => boolean): boolean {
   return depth > 0 || below();
 }
 
-/** What a boat drive carries from one tick to the next. */
-export interface BoatDriveState {
+/** What a sports boat drive carries from one tick to the next. */
+export interface SportsboatDriveState {
   readonly motion: MotionState;
   /** The water drag estimate (ADR 0053): undefined until the boat first floats, kept while beached. */
   readonly waterDrag?: number;
 }
 
-export class BoatDrive implements Drive {
+export class SportsboatDrive implements Drive {
   private motion: MotionState;
   private dragEstimate: number | undefined;
   private trim = 0;
@@ -155,12 +155,12 @@ export class BoatDrive implements Drive {
     return this.dragEstimate;
   }
 
-  get state(): BoatDriveState {
+  get state(): SportsboatDriveState {
     return { motion: this.motion, waterDrag: this.dragEstimate };
   }
 
   /** Starts the drive from a given state, for tests that begin mid-run. */
-  restore(state: BoatDriveState): this {
+  restore(state: SportsboatDriveState): this {
     this.motion = state.motion;
     this.dragEstimate = state.waterDrag;
     return this;
@@ -209,12 +209,12 @@ export class BoatDrive implements Drive {
     if (afloat) {
       const waterDrag = estimateWaterDrag(
         this.dragEstimate,
-        motion.airExpected,
+        motion.mediumExpected,
         ctx.velocity,
       );
       // Divide by the updated estimate, but check walls against the one the
       // estimator checked, so a tick taken as a drag sample is never also a wall hit.
-      step = stepFlightMotion(
+      step = stepMediumMotion(
         motion,
         input,
         ctx.velocity,

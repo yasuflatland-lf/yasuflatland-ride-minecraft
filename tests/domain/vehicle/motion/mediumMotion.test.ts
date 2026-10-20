@@ -19,7 +19,7 @@ import {
   initialMotion,
   type MotionResult,
   type MotionState,
-  stepFlightMotion,
+  stepMediumMotion,
   updateSpeed,
 } from "../../../../src/domain/vehicle/motion/motion";
 
@@ -30,7 +30,7 @@ function fly(inputs: readonly DriveInput[]): { r: MotionResult; vel: Vec2 }[] {
   let state = initialMotion(0);
   let vel: Vec2 = { x: 0, z: 0 };
   return inputs.map((input) => {
-    const r = stepFlightMotion(state, input, vel, AIR, SUV_MOTION);
+    const r = stepMediumMotion(state, input, vel, AIR, SUV_MOTION);
     state = r.state;
     vel = {
       x: (vel.x + r.impulse.x) * ENGINE_DRAG,
@@ -56,15 +56,15 @@ const flyingState = fc.record({
     noNaN: true,
   }),
   yaw: fc.double({ min: -180, max: 180, noNaN: true }),
-  airExpected: vec,
+  mediumExpected: vec,
 });
 const prevState = (s: {
   speed: number;
   yaw: number;
-  airExpected: Vec2;
+  mediumExpected: Vec2;
 }): MotionState => ({ ...s, stepTicks: 0 });
 
-describe("stepFlightMotion (ADR 0021)", () => {
+describe("stepMediumMotion (ADR 0021, 0075)", () => {
   it("keeps horizontal speed within max speed", () => {
     fc.assert(
       fc.property(inputs, (ins) => {
@@ -124,11 +124,11 @@ describe("stepFlightMotion (ADR 0021)", () => {
         component,
         (s, input, onX, stopped, other) => {
           const e = onX
-            ? { x: stopped, z: s.airExpected.z }
-            : { x: s.airExpected.x, z: stopped };
+            ? { x: stopped, z: s.mediumExpected.z }
+            : { x: s.mediumExpected.x, z: stopped };
           const v = onX ? { x: 0, z: other } : { x: other, z: 0 };
-          const r = stepFlightMotion(
-            prevState({ ...s, airExpected: e }),
+          const r = stepMediumMotion(
+            prevState({ ...s, mediumExpected: e }),
             input,
             v,
             AIR,
@@ -147,9 +147,9 @@ describe("stepFlightMotion (ADR 0021)", () => {
   it("does not report a wall when the velocity keeps the free-flight share of what was given", () => {
     fc.assert(
       fc.property(flyingState, driveInput, (s, input) => {
-        const e = s.airExpected;
+        const e = s.mediumExpected;
         const v = { x: e.x * ENGINE_DRAG, z: e.z * ENGINE_DRAG };
-        const r = stepFlightMotion(prevState(s), input, v, AIR, SUV_MOTION);
+        const r = stepMediumMotion(prevState(s), input, v, AIR, SUV_MOTION);
         expect(r.blocked).toBe(false);
         expect(r.state.speed).toBe(
           updateSpeed(s.speed, input.throttle, input.creep, SUV_MOTION),
@@ -159,7 +159,7 @@ describe("stepFlightMotion (ADR 0021)", () => {
   });
 });
 
-describe("stepFlightMotion walls and sideways velocity (ADR 0002, 0003)", () => {
+describe("stepMediumMotion walls and sideways velocity (ADR 0002, 0003)", () => {
   it("skips an axis whose given velocity is blockedAxisMin or less, whatever comes back on it (ADR 0003)", () => {
     const small = fc.oneof(
       fc.constantFrom(MOTION.blockedAxisMin, -MOTION.blockedAxisMin, 0),
@@ -178,13 +178,13 @@ describe("stepFlightMotion walls and sideways velocity (ADR 0002, 0003)", () => 
         component,
         (s, input, onX, tiny, back) => {
           const e = onX
-            ? { x: tiny, z: s.airExpected.z }
-            : { x: s.airExpected.x, z: tiny };
+            ? { x: tiny, z: s.mediumExpected.z }
+            : { x: s.mediumExpected.x, z: tiny };
           const v = onX
             ? { x: back, z: e.z * ENGINE_DRAG }
             : { x: e.x * ENGINE_DRAG, z: back };
-          const r = stepFlightMotion(
-            prevState({ ...s, airExpected: e }),
+          const r = stepMediumMotion(
+            prevState({ ...s, mediumExpected: e }),
             input,
             v,
             AIR,
@@ -198,8 +198,8 @@ describe("stepFlightMotion walls and sideways velocity (ADR 0002, 0003)", () => 
 
   it("does not report a wall when an axis keeps exactly half the drag share (ADR 0003)", () => {
     const kept = SUV_SPEC.flightDrag * MOTION.blockedRatio;
-    const r = stepFlightMotion(
-      prevState({ speed: 0.5, yaw: 0, airExpected: { x: 1, z: 1 } }),
+    const r = stepMediumMotion(
+      prevState({ speed: 0.5, yaw: 0, mediumExpected: { x: 1, z: 1 } }),
       { throttle: 0, steer: 0, handbrake: false, creep: false },
       { x: kept, z: kept },
       AIR,
@@ -209,8 +209,8 @@ describe("stepFlightMotion walls and sideways velocity (ADR 0002, 0003)", () => 
   });
 
   it("reports a wall when the velocity comes back reversed on an axis (ADR 0003)", () => {
-    const r = stepFlightMotion(
-      prevState({ speed: 0.5, yaw: 0, airExpected: { x: 1, z: 1 } }),
+    const r = stepMediumMotion(
+      prevState({ speed: 0.5, yaw: 0, mediumExpected: { x: 1, z: 1 } }),
       { throttle: 0, steer: 0, handbrake: false, creep: false },
       { x: -0.5, z: ENGINE_DRAG },
       AIR,
@@ -230,11 +230,11 @@ describe("stepFlightMotion walls and sideways velocity (ADR 0002, 0003)", () => 
         (s, input, onX, stopped, other) => {
           fc.pre(Math.abs(stopped) > MOTION.blockedAxisMin);
           const e = onX
-            ? { x: stopped, z: s.airExpected.z }
-            : { x: s.airExpected.x, z: stopped };
+            ? { x: stopped, z: s.mediumExpected.z }
+            : { x: s.mediumExpected.x, z: stopped };
           const v = onX ? { x: 0, z: other } : { x: other, z: 0 };
-          const r = stepFlightMotion(
-            prevState({ ...s, airExpected: e }),
+          const r = stepMediumMotion(
+            prevState({ ...s, mediumExpected: e }),
             input,
             v,
             AIR,
@@ -263,7 +263,7 @@ describe("stepFlightMotion walls and sideways velocity (ADR 0002, 0003)", () => 
         small,
         (speed, yaw, input, vx, vz) => {
           const v = { x: vx, z: vz };
-          const r = stepFlightMotion(
+          const r = stepMediumMotion(
             { speed, yaw, stepTicks: 0 },
             input,
             v,
@@ -302,7 +302,7 @@ describe("light braking afloat (ADR 0074)", () => {
         const v = { x: 0, z: 0 };
         const medium = { drag: 0.83, maxSpeed: SPORTSBOAT_MOTION.maxSpeed };
         expect(
-          stepFlightMotion(
+          stepMediumMotion(
             prev,
             toDriveInput({ moveX: 0, moveY, jump: false }),
             v,
@@ -310,7 +310,7 @@ describe("light braking afloat (ADR 0074)", () => {
             SPORTSBOAT_MOTION,
           ).state.speed,
         ).toBeLessThanOrEqual(
-          stepFlightMotion(prev, NEUTRAL_INPUT, v, medium, SPORTSBOAT_MOTION)
+          stepMediumMotion(prev, NEUTRAL_INPUT, v, medium, SPORTSBOAT_MOTION)
             .state.speed,
         );
       }),

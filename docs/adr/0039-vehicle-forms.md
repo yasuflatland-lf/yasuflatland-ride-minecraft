@@ -1,6 +1,6 @@
 # 0039. Vehicle forms
 
-- Status: Accepted
+- Status: Superseded in part by 0075 (the name of the shared medium step)
 - Date: 2026-10-11
 - Supersedes in part: 0021 (the vocabulary, the property, and the component group and event names)
 

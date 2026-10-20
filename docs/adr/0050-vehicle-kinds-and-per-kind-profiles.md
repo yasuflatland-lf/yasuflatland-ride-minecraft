@@ -19,3 +19,5 @@ All driven entities belong to the vehicle feature, but 0046 left its internal la
 ## Consequences
 
 A new kind needs a new profile, a new drive, and a new row in the identifier table. Shared logic never branches on the kind. The profile and the drive interface arrive before the second kind ships, so the SUV refactor can be reviewed on its own against unchanged SUV behavior. Revisit the flat layout when more drives make it hard to navigate.
+
+Note (0055, 0075): `suvDrive.ts` and `boatDrive.ts` are now `kinds/suv/drive.ts` (`SuvDrive`) and `kinds/sportsboat/drive.ts` (`SportsboatDrive`), and `MotionLimits` lives in `motion/limits.ts`.

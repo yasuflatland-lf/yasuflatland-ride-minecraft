@@ -1,5 +1,6 @@
+import type { MotionLimits } from "../../motion/limits";
 import type { PlacementSurface } from "../../placement";
-import type { MotionLimits, VehicleProfile } from "../../profile";
+import type { VehicleProfile } from "../../profile";
 import { CAMPER_SPEC } from "./spec";
 
 export const CAMPER_PROFILE: VehicleProfile = Object.freeze({

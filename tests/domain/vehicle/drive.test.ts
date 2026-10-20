@@ -2,7 +2,7 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { forward } from "../../../src/domain/shared/vec";
 import type { TickContext } from "../../../src/domain/vehicle/drive";
-import { BoatDrive } from "../../../src/domain/vehicle/kinds/sportsboat/drive";
+import { SportsboatDrive } from "../../../src/domain/vehicle/kinds/sportsboat/drive";
 import { SuvDrive } from "../../../src/domain/vehicle/kinds/suv/drive";
 import { MOTION } from "../../../src/domain/vehicle/motion/constants";
 import { FORMS } from "../../../src/domain/vehicle/motion/forms";
@@ -69,7 +69,7 @@ it("aligns a boat below mountAlignSpeed and keeps its heading at or above it, wi
           MOTION.mountAlignSpeed,
           -MOTION.mountAlignSpeed,
         ]) {
-          const drive = new BoatDrive(heading, {}).restore({
+          const drive = new SportsboatDrive(heading, {}).restore({
             motion: { ...initialMotion(heading), speed },
           });
           const before = drive.yaw;

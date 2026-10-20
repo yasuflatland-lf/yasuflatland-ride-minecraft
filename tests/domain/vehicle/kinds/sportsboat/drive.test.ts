@@ -24,11 +24,11 @@ import {
   holdHeight,
 } from "../../../../../src/domain/vehicle/kinds/sportsboat/deck";
 import {
-  BoatDrive,
   estimateWaterDrag,
   isAfloat,
   SPORTSBOAT_DRAG,
   SPORTSBOAT_WATER,
+  SportsboatDrive,
 } from "../../../../../src/domain/vehicle/kinds/sportsboat/drive";
 import {
   dockCommands,
@@ -49,7 +49,7 @@ import { FORMS } from "../../../../../src/domain/vehicle/motion/forms";
 import {
   initialMotion,
   type MotionState,
-  stepFlightMotion,
+  stepMediumMotion,
 } from "../../../../../src/domain/vehicle/motion/motion";
 import type { RamTarget } from "../../../../../src/domain/vehicle/ram";
 import { seatWorldPositions } from "../../../../../src/domain/vehicle/seats";
@@ -170,7 +170,7 @@ describe("sports boat docking (ADR 0063)", () => {
           maxLength: 50,
         }),
         (heading, water, x, z, inputs) => {
-          const drive = new BoatDrive(heading, {});
+          const drive = new SportsboatDrive(heading, {});
           const ctx = context(0, undefined, { x: 0, z: 0 }, water);
           ctx.location = { ...ctx.location, x, z };
           const sequence = [
@@ -202,7 +202,7 @@ describe("sports boat docking (ADR 0063)", () => {
         number(-100, 100),
         number(-100, 100),
         (heading, water, x, z) => {
-          const drive = new BoatDrive(heading, {});
+          const drive = new SportsboatDrive(heading, {});
           const ctx = context(0, undefined, { x: 0, z: 0 }, water);
           ctx.location = { ...ctx.location, x, z };
           for (let tick = 1; tick < DOCK.ticks; tick++) {
@@ -242,7 +242,7 @@ describe("sports boat docking (ADR 0063)", () => {
     fc.assert(
       fc.property(yaw, rawInput, afloatWater, (heading, raw, water) => {
         // Zero acceleration isolates input presence from changes in speed.
-        const drive = new BoatDrive(
+        const drive = new SportsboatDrive(
           heading,
           {},
           { ...SPORTSBOAT_MOTION, accel: 0, reverseAccel: 0, creepSpeed: 0 },
@@ -255,12 +255,12 @@ describe("sports boat docking (ADR 0063)", () => {
           expect(drive.step(undefined, ctx).dock?.hold).toBeUndefined();
         }
         expect(drive.step(undefined, ctx).dock?.hold).toBeDefined();
-        const occupied = new BoatDrive(heading, {});
+        const occupied = new SportsboatDrive(heading, {});
         for (let tick = 0; tick < DOCK.ticks * 3; tick++) {
           expect(occupied.step(raw, ctx).dock?.hold).toBeUndefined();
           expect(occupied.isDocked).toBe(false);
         }
-        const idle = new BoatDrive(heading, {});
+        const idle = new SportsboatDrive(heading, {});
         for (let tick = 0; tick < DOCK.ticks * 3; tick++) {
           expect(
             idle.step({ moveX: 0, moveY: 0, jump: raw.jump }, ctx).dock?.hold,
@@ -285,7 +285,7 @@ describe("sports boat docking (ADR 0063)", () => {
           maxLength: 50,
         }),
         (heading, water, inputs) => {
-          const drive = new BoatDrive(heading, {});
+          const drive = new SportsboatDrive(heading, {});
           const ctx = context(0, undefined, { x: 0, z: 0 }, water);
           let out = drive.step(undefined, ctx);
           for (let tick = 1; tick < DOCK.ticks; tick++)
@@ -326,8 +326,8 @@ describe("sports boat docking (ADR 0063)", () => {
         number(DOCK.stick, 1).filter((n) => n > DOCK.stick),
         fc.constantFrom(-1, 1),
         (heading, water, axis, magnitude, sign) => {
-          const drive = new BoatDrive(heading, {});
-          const normal = new BoatDrive(heading, {});
+          const drive = new SportsboatDrive(heading, {});
+          const normal = new SportsboatDrive(heading, {});
           const ctx = context(0, undefined, { x: 0, z: 0 }, water);
           for (let tick = 0; tick < DOCK.ticks; tick++) {
             drive.step(undefined, ctx);
@@ -368,7 +368,7 @@ describe("sports boat docking (ADR 0063)", () => {
         number(-60, 300),
         number(-100, 100),
         (heading, x, y, z) => {
-          const drive = new BoatDrive(heading, { docked: true });
+          const drive = new SportsboatDrive(heading, { docked: true });
           const ctx = {
             ...context(0, undefined, { x: 0, z: 0 }, BEACHED),
             location: { x, y, z },
@@ -406,7 +406,7 @@ describe("sports boat docking (ADR 0063)", () => {
         afloatWater,
         fc.constantFrom(-1, 1),
         (heading, water, sign) => {
-          const drive = new BoatDrive(
+          const drive = new SportsboatDrive(
             heading,
             {},
             { ...SPORTSBOAT_MOTION, drag: 0 },
@@ -438,7 +438,7 @@ describe("sports boat docking (ADR 0063)", () => {
   it("waits for a water column before holding a boat sensed afloat only below its feet", () => {
     fc.assert(
       fc.property(yaw, (heading) => {
-        const drive = new BoatDrive(heading, {});
+        const drive = new SportsboatDrive(heading, {});
         const ctx = {
           ...context(0, undefined, { x: 0, z: 0 }, BEACHED),
           waterAt: (o: Vec3) => o.y === -0.3,
@@ -458,7 +458,7 @@ describe("sports boat docking (ADR 0063)", () => {
   it("levels residual trim when docking and keeps it level afterward", () => {
     fc.assert(
       fc.property(yaw, afloatWater, (heading, water) => {
-        const drive = new BoatDrive(heading, {});
+        const drive = new SportsboatDrive(heading, {});
         const ctx = context(0, undefined, { x: 0, z: 0 }, water);
         for (
           let tick = 0;
@@ -466,7 +466,7 @@ describe("sports boat docking (ADR 0063)", () => {
           tick++
         ) {
           drive.step(FULL_THROTTLE, ctx);
-          const given = drive.state.motion.airExpected;
+          const given = drive.state.motion.mediumExpected;
           if (!given) throw new Error("missing afloat given velocity");
           ctx.velocity = {
             x: given.x * SPORTSBOAT_WATER.drag,
@@ -493,7 +493,7 @@ describe("sports boat docking (ADR 0063)", () => {
   it("never docks beached and resets the count when it leaves the water", () => {
     fc.assert(
       fc.property(yaw, afloatWater, (heading, water) => {
-        const drive = new BoatDrive(heading, {});
+        const drive = new SportsboatDrive(heading, {});
         const ctx = context(0, undefined, { x: 0, z: 0 }, water);
         for (let tick = 1; tick < DOCK.ticks; tick++)
           drive.step(undefined, ctx);
@@ -705,17 +705,17 @@ describe("estimateWaterDrag (ADR 0053)", () => {
   });
 });
 
-describe("BoatDrive (ADR 0051)", () => {
+describe("SportsboatDrive (ADR 0051)", () => {
   it("carries the water estimate afloat and beached, and a higher estimate gives less velocity for the same target", () => {
     fc.assert(
       fc.property(yaw, number(SPORTSBOAT_DRAG.min, 0.89), (heading, low) => {
         const motion = { ...initialMotion(heading), speed: 0.5 };
         const ctx = context(0, FULL_THROTTLE, { x: 0, z: 0 }, AFLOAT);
-        const drive = new BoatDrive(heading, {}).restore({
+        const drive = new SportsboatDrive(heading, {}).restore({
           motion,
           waterDrag: low,
         });
-        const higher = new BoatDrive(heading, {}).restore({
+        const higher = new SportsboatDrive(heading, {}).restore({
           motion,
           waterDrag: low + 0.04,
         });
@@ -726,7 +726,7 @@ describe("BoatDrive (ADR 0051)", () => {
         expect(drive.waterDrag).toBe(low);
         expect(higher.state.waterDrag).toBeCloseTo(low + 0.04, 12);
         expect(length(b.impulse)).toBeLessThan(length(a.impulse));
-        const given = afterA.motion.airExpected;
+        const given = afterA.motion.mediumExpected;
         if (!given) throw new Error("missing afloat given velocity");
         const observed = { x: given.x * 0.9, z: given.z * 0.9 };
         const next = drive.step(FULL_THROTTLE, {
@@ -738,7 +738,7 @@ describe("BoatDrive (ADR 0051)", () => {
         // The impulse divides by the updated estimate, not the one stored in a.
         const updated = afterNext.waterDrag ?? 0;
         expect(updated).not.toBeCloseTo(low, 6);
-        const expected = stepFlightMotion(
+        const expected = stepMediumMotion(
           afterA.motion,
           toDriveInput(FULL_THROTTLE),
           observed,
@@ -753,7 +753,7 @@ describe("BoatDrive (ADR 0051)", () => {
           velocity: { y: 0, x: 0, z: 0 },
         });
         expect(drive.state.waterDrag).toBe(afterNext.waterDrag);
-        expect(drive.state.motion.airExpected).toBeUndefined();
+        expect(drive.state.motion.mediumExpected).toBeUndefined();
       }),
     );
   });
@@ -770,12 +770,12 @@ describe("BoatDrive (ADR 0051)", () => {
           const motion: MotionState = {
             ...initialMotion(0),
             speed: 1,
-            airExpected: { x: 0.1, z: 1 },
+            mediumExpected: { x: 0.1, z: 1 },
           };
           const velocity = (xRatio: number) => ({ x: 0.1 * xRatio, z: 0.95 });
           /** The drive's state after one tick from `m` and the estimate `prev`. */
           const step = (v: Vec2, m = motion) => {
-            const drive = new BoatDrive(0, {}).restore({
+            const drive = new SportsboatDrive(0, {}).restore({
               motion: m,
               waterDrag: prev,
             });
@@ -784,7 +784,7 @@ describe("BoatDrive (ADR 0051)", () => {
           };
           const unblocked = step(velocity(0.5), {
             ...motion,
-            airExpected: undefined,
+            mediumExpected: undefined,
           }).motion.speed;
           const sampled = step(velocity(prev * MOTION.blockedRatio + over));
           const raised = sampled.waterDrag ?? 0;
@@ -804,7 +804,7 @@ describe("BoatDrive (ADR 0051)", () => {
   it("is the sports boat's drive and keeps no form, gear, or bank whatever form it is given", () => {
     fc.assert(
       fc.property(fc.constantFrom(...FORMS), yaw, (form, heading) => {
-        const drive = new BoatDrive(heading, { form });
+        const drive = new SportsboatDrive(heading, { form });
         const step = drive.step(
           undefined,
           context(0, undefined, { x: 0, z: 0 }, AFLOAT),
@@ -917,7 +917,7 @@ describe("BoatDrive (ADR 0051)", () => {
         afloatWater,
         (heading, s, turnRate, water) => {
           const motion = { ...initialMotion(heading), speed: 0.5 };
-          const drive = new BoatDrive(
+          const drive = new SportsboatDrive(
             heading,
             {},
             {
@@ -1058,7 +1058,7 @@ describe("BoatDrive (ADR 0051)", () => {
           const motion = { ...initialMotion(heading), speed };
           const ctx = { ...context(0, undefined, velocity, w), onGround };
           const run = (jump: boolean) => {
-            const drive = new BoatDrive(
+            const drive = new SportsboatDrive(
               heading,
               {},
               {
@@ -1154,7 +1154,7 @@ describe("a sports boat Vehicle (ADR 0051)", () => {
 it("queries below the boat only when its depth query is dry", () => {
   fc.assert(
     fc.property(fc.boolean(), fc.boolean(), (atFeet, below) => {
-      const drive = new BoatDrive(0, {});
+      const drive = new SportsboatDrive(0, {});
       const ctx = context(0, FULL_THROTTLE, { x: 0, z: 0 }, BEACHED);
       const probes: number[] = [];
       drive.step(FULL_THROTTLE, {
@@ -1267,7 +1267,7 @@ it("only the deck driver above the stick threshold requests boarding and keeps t
         maxLength: 4,
       }),
       (heading, inputs) => {
-        const drive = new BoatDrive(heading, { docked: true });
+        const drive = new SportsboatDrive(heading, { docked: true });
         const ctx = {
           ...context(0, undefined, { x: 0, z: 0 }, AFLOAT),
           deckSeatInputs: inputs,

@@ -31,7 +31,7 @@ import { SUV_SPEC } from "../../../src/domain/vehicle/kinds/suv/spec";
 import { MOTION } from "../../../src/domain/vehicle/motion/constants";
 import {
   initialMotion,
-  stepFlightMotion,
+  stepMediumMotion,
   stepMotion,
   updateSpeed,
 } from "../../../src/domain/vehicle/motion/motion";
@@ -225,7 +225,7 @@ describe("vehicle profiles (ADR 0050)", () => {
         velocity,
         (motion, mediumMax, drag, heading, control, v) => {
           const maximum = Math.min(motion.maxSpeed, mediumMax);
-          const out = stepFlightMotion(
+          const out = stepMediumMotion(
             { ...initialMotion(heading), speed: motion.maxSpeed },
             control,
             v,
@@ -239,7 +239,7 @@ describe("vehicle profiles (ADR 0050)", () => {
               (v.z + out.impulse.z) * drag,
             ),
           ).toBeLessThanOrEqual(maximum + 1e-9);
-          const full = stepFlightMotion(
+          const full = stepMediumMotion(
             { ...initialMotion(heading), speed: motion.maxSpeed },
             { ...NEUTRAL_INPUT, throttle: 1 },
             { x: 0, z: 0 },
@@ -468,8 +468,8 @@ describe("vehicle profiles (ADR 0050)", () => {
           () => 0,
           motion,
         );
-        const flight = stepFlightMotion(
-          { ...start, airExpected: aimed },
+        const flight = stepMediumMotion(
+          { ...start, mediumExpected: aimed },
           pushed,
           v,
           { drag: 1, maxSpeed: 5 },

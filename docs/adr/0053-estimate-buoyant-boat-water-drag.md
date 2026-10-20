@@ -35,3 +35,5 @@ With the fixed 0.83 the boat held 1.140 blocks/tick over ticks 60–80 (21 sampl
 - The estimate lags the bob, so the speed still rises by about 0.1 for three ticks of every 14
 - A slowdown that is not a wall but trips the wall check, such as pushing a mob, freezes the estimate and lowers the internal speed instead of raising the compensation (0003)
 - The driver still has to ride the boat and confirm that the top speed and the turning feel right
+
+Note (0055, 0075): `BoatDrive` in `boatDrive.ts` is now `SportsboatDrive` in `src/domain/vehicle/kinds/sportsboat/drive.ts` (0055 moved the file, 0075 renamed the class), `stepFlightMotion` is `stepMediumMotion`, and the drag sample is read from `MotionState.mediumExpected` (0075).

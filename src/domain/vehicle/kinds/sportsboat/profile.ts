@@ -1,5 +1,6 @@
+import type { MotionLimits } from "../../motion/limits";
 import type { PlacementSurface } from "../../placement";
-import type { MotionLimits, VehicleProfile } from "../../profile";
+import type { VehicleProfile } from "../../profile";
 
 /** The sports boat's own values (ADR 0051), written out even where they equal the SUV's today. */
 export const SPORTSBOAT_PROFILE: VehicleProfile = Object.freeze({

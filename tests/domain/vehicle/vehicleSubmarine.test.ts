@@ -31,7 +31,7 @@ import {
 } from "../../../src/domain/vehicle/motion/forms";
 import {
   initialMotion,
-  stepFlightMotion,
+  stepMediumMotion,
 } from "../../../src/domain/vehicle/motion/motion";
 import type { RamTarget } from "../../../src/domain/vehicle/ram";
 import { type TickOutcome, Vehicle } from "../../../src/domain/vehicle/vehicle";
@@ -508,18 +508,18 @@ describe("Motion medium contract", () => {
         const state = {
           ...initialMotion(onX ? -90 : 0),
           speed: SUV_SPEC.maxWaterSpeed,
-          airExpected: expected,
+          mediumExpected: expected,
         };
         expect(
-          stepFlightMotion(state, FULL_THROTTLE, velocity, WATER, SUV_MOTION)
+          stepMediumMotion(state, FULL_THROTTLE, velocity, WATER, SUV_MOTION)
             .blocked,
         ).toBe(false);
         expect(
-          stepFlightMotion(state, FULL_THROTTLE, velocity, AIR, SUV_MOTION)
+          stepMediumMotion(state, FULL_THROTTLE, velocity, AIR, SUV_MOTION)
             .blocked,
         ).toBe(true);
         expect(
-          stepFlightMotion(
+          stepMediumMotion(
             state,
             FULL_THROTTLE,
             { x: 0, z: 0 },
