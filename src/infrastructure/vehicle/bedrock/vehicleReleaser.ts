@@ -3,7 +3,7 @@
 // 0064, 0068), deck seats (ADR 0063) and its hold pose. Used when a vehicle is
 // removed and when it is no longer loaded.
 import type { Entity } from "@minecraft/server";
-import type { HoldPose } from "../../../domain/vehicle/floor";
+import type { HoldPose } from "../../../domain/vehicle/dock/floor";
 import type { DeckSeats } from "./deckSeats";
 import type { DockBlocks } from "./dockBlocks";
 import type { HeadlightBlocks } from "./headlightBlocks";

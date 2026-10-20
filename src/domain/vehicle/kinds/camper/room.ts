@@ -6,9 +6,9 @@ import {
   type Vec2,
   type Vec3,
 } from "../../../shared/vec";
-import type { Box, ClearCell, Departure } from "../../dock";
-import type { DockCell, Face, HoldPose } from "../../floor";
-import { cellKey } from "../../headlights";
+import type { Box, ClearCell, Departure } from "../../dock/dock";
+import type { DockCell, Face, HoldPose } from "../../dock/floor";
+import { cellKey } from "../../lighting/headlights";
 import { seatWorldPositions } from "../../seats";
 import { CAMPER_PROFILE } from "./profile";
 

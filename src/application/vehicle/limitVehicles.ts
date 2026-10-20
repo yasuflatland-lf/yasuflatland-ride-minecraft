@@ -1,6 +1,6 @@
 // Use case: remove the oldest vehicles over each owner and kind limit (ADR 0066).
-import type { Fleet, FleetEntry } from "../../domain/vehicle/fleet";
-import type { FleetRepository } from "../../domain/vehicle/fleetRepository";
+import type { Fleet, FleetEntry } from "../../domain/vehicle/fleet/fleet";
+import type { FleetRepository } from "../../domain/vehicle/fleet/fleetRepository";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
 import { forEachIsolated } from "./isolated";
 import type { LimitWorld, Logger } from "./ports";

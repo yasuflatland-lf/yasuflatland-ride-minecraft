@@ -1,7 +1,7 @@
 // What a held vehicle keeps around it while it stands still (ADR 0063, 0064, 0068).
-import type { Vec3 } from "../shared/vec";
+import type { Vec3 } from "../../shared/vec";
+import type { Cell } from "../lighting/headlights";
 import type { DockCell, HoldPose } from "./floor";
-import type { Cell } from "./headlights";
 
 /** Values infrastructure derives from saved laid cells, not entity properties. */
 export const DOCK_RESTORED = {

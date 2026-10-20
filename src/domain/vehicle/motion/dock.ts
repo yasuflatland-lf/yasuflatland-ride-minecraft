@@ -1,7 +1,7 @@
 // When a stopped vehicle counts as held, and the step it takes while held,
 // shared by every kind that holds (ADR 0063, 0068).
 import { forward } from "../../shared/vec";
-import type { ClearCell, Dock } from "../dock";
+import type { ClearCell, Dock } from "../dock/dock";
 import type { DriveStep, EngineCommand, TickContext } from "../drive";
 import type { RawInput } from "../driveInput";
 

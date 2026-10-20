@@ -4,7 +4,7 @@ import type {
   BreakWorld,
   LimitWorld,
 } from "../../../application/vehicle/ports";
-import type { FleetEntry } from "../../../domain/vehicle/fleet";
+import type { FleetEntry } from "../../../domain/vehicle/fleet/fleet";
 import { DIMENSIONS, type EntityIndex } from "./entityIndex";
 import {
   fleetEntryOf,

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { Fleet } from "../../../../src/domain/vehicle/fleet";
+import { Fleet } from "../../../../src/domain/vehicle/fleet/fleet";
 import { fleetLimitOf } from "../../../../src/domain/vehicle/kinds/index";
 import { FLEET_PROPERTY } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 import { DynamicPropertyFleetRepository } from "../../../../src/infrastructure/vehicle/persistence/dynamicPropertyFleetRepository";

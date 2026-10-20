@@ -4,7 +4,7 @@ import { forward, leftOf } from "../../../../../src/domain/shared/vec";
 import type {
   DockCell,
   HoldPose,
-} from "../../../../../src/domain/vehicle/floor";
+} from "../../../../../src/domain/vehicle/dock/floor";
 import {
   DECK,
   DECK_DRAFT,

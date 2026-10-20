@@ -10,7 +10,7 @@ import {
   type BlockFace,
   canPlaceAt,
   placementCell,
-} from "../../domain/vehicle/placement";
+} from "../../domain/vehicle/placement/placement";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
 import type { PlacementWorld } from "./ports";
 

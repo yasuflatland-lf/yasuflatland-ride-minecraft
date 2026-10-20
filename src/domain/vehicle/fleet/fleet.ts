@@ -1,8 +1,8 @@
 // The vehicles in a world in the order they appeared, and the ones evicted to
 // keep each owner and kind at its limit (ADR 0038, ADR 0066). A script cannot
 // remove an entity in an unloaded chunk, so it waits until its chunk loads.
-import type { VehicleKind } from "./kind";
-import { SPEC } from "./spec";
+import type { VehicleKind } from "../kind";
+import { SPEC } from "../spec";
 
 export type FleetLimitOf = (kind: VehicleKind) => number;
 

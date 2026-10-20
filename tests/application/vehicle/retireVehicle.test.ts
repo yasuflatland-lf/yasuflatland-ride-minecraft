@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { retireVehicle } from "../../../src/application/vehicle/retireVehicle";
-import { Fleet } from "../../../src/domain/vehicle/fleet";
+import { Fleet } from "../../../src/domain/vehicle/fleet/fleet";
 import {
   VEHICLE_KINDS,
   type VehicleKind,

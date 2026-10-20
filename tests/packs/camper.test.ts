@@ -3,7 +3,7 @@ import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 import { HINTS } from "../../src/domain/vehicle/hints";
 import { CAMPER_PROFILE } from "../../src/domain/vehicle/kinds/camper/profile";
-import { PAINTS } from "../../src/domain/vehicle/paint";
+import { PAINTS } from "../../src/domain/vehicle/paint/paint";
 import { CAMPER_DOOR_COMPONENT } from "../../src/infrastructure/vehicle/bedrock/identifiers";
 
 const RP = "packs/yasu_ride_rp";

@@ -4,13 +4,13 @@ import { DriveVehicles } from "../../../src/application/vehicle/driveVehicles";
 import { forward } from "../../../src/domain/shared/vec";
 import type { Drive, DriveStep } from "../../../src/domain/vehicle/drive";
 import type { RawInput } from "../../../src/domain/vehicle/driveInput";
-import { headlightCells } from "../../../src/domain/vehicle/headlights";
 import {
   createVehicle,
   rebuildVehicle,
 } from "../../../src/domain/vehicle/kinds/index";
 import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
 import { SUV_SPEC } from "../../../src/domain/vehicle/kinds/suv/spec";
+import { headlightCells } from "../../../src/domain/vehicle/lighting/headlights";
 import { SPEC } from "../../../src/domain/vehicle/spec";
 import { Vehicle } from "../../../src/domain/vehicle/vehicle";
 import { defined } from "../../support/defined";

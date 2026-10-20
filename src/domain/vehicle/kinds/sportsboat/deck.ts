@@ -1,6 +1,6 @@
 // Collision floor geometry and water-relative hold height for a stopped sports boat (ADR 0063).
 import { clamp, forward, type Vec2 } from "../../../shared/vec";
-import type { DockCell, HoldPose } from "../../floor";
+import type { DockCell, HoldPose } from "../../dock/floor";
 import { toLocal } from "../../seats";
 import { SPORTSBOAT_SPEC } from "./spec";
 

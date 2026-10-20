@@ -1,5 +1,5 @@
 import type { EngineCommand, RestoredValues } from "./drive";
-import type { Paint } from "./paint";
+import type { Paint } from "./paint/paint";
 
 export type PropertySpec =
   | { type: "enum"; values: readonly string[] }

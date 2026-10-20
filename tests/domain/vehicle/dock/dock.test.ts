@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
-import { inBox } from "../../../src/domain/vehicle/dock";
+import { inBox } from "../../../../src/domain/vehicle/dock/dock";
 
 it("includes min and excludes max on every axis", () => {
   const point = fc.record({

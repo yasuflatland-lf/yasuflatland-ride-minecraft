@@ -2,8 +2,8 @@
 // survives /reload and server restarts (ADR 0038).
 import { world } from "@minecraft/server";
 import type { Logger } from "../../../application/vehicle/ports";
-import { Fleet, type FleetLimitOf } from "../../../domain/vehicle/fleet";
-import type { FleetRepository } from "../../../domain/vehicle/fleetRepository";
+import { Fleet, type FleetLimitOf } from "../../../domain/vehicle/fleet/fleet";
+import type { FleetRepository } from "../../../domain/vehicle/fleet/fleetRepository";
 import { FLEET_PROPERTY } from "../bedrock/identifiers";
 import { parseFleetState, serializeFleetState } from "./fleetJson";
 

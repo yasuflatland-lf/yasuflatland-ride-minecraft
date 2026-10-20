@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { PAINTS } from "../../../../src/domain/vehicle/paint";
+import { PAINTS } from "../../../../src/domain/vehicle/paint/paint";
 import type { BedrockInventory } from "../../../../src/infrastructure/vehicle/bedrock/bedrockInventory";
 import { BedrockPaintWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockPaintWorld";
 import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";

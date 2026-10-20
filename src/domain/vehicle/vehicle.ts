@@ -1,10 +1,9 @@
 // Aggregate for one vehicle: wires its drive to its seating, cooldowns, and hit count.
 import { forward, type Vec2, type Vec3 } from "../shared/vec";
 import { RamCooldowns, SwitchCooldown } from "./cooldowns";
-import type { ClearCell, Departure, Dock } from "./dock";
+import type { ClearCell, Departure, Dock } from "./dock/dock";
 import type { Drive, EngineCommand, RiderState, TickContext } from "./drive";
 import type { RawInput } from "./driveInput";
-import { type Cell, headlightCells as cellsLitFrom } from "./headlights";
 import {
   type HeldItem,
   type Hint,
@@ -15,6 +14,10 @@ import {
 } from "./hints";
 import { EMPTY_COUNTER, type HitCounter, registerHit } from "./hitCounter";
 import type { VehicleKind } from "./kind";
+import {
+  type Cell,
+  headlightCells as cellsLitFrom,
+} from "./lighting/headlights";
 import type { ChaseCamera, VehicleProfile } from "./profile";
 import { type RamHit, type RamTarget, selectHits } from "./ram";
 import { Seating } from "./seating";

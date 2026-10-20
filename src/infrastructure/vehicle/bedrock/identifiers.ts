@@ -2,9 +2,9 @@ import {
   HEADLIGHTS_PROPERTY_NAME,
   paintEventName,
 } from "../../../domain/vehicle/entityContract";
-import type { FleetEntry } from "../../../domain/vehicle/fleet";
+import type { FleetEntry } from "../../../domain/vehicle/fleet/fleet";
 import { VEHICLE_KINDS, type VehicleKind } from "../../../domain/vehicle/kind";
-import { PAINTS, type Paint } from "../../../domain/vehicle/paint";
+import { PAINTS, type Paint } from "../../../domain/vehicle/paint/paint";
 import type { ChaseCamera } from "../../../domain/vehicle/profile";
 import type { RamMount } from "../../../domain/vehicle/ram";
 import { id, NAMESPACE } from "../../shared/identifiers";

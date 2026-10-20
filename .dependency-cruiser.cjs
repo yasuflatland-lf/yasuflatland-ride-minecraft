@@ -1,4 +1,4 @@
-// Architecture rules (ADR 0012, 0046, 0055, 0065, 0072), checked by `pnpm lint:deps`.
+// Architecture rules (ADR 0012, 0046, 0055, 0065, 0072, 0090), checked by `pnpm lint:deps`.
 const LAYER = "(?:domain|application|infrastructure)";
 const KINDS = "^src/domain/vehicle/kinds/";
 
@@ -57,9 +57,13 @@ module.exports = {
     },
     {
       name: "core-imports-motion",
-      comment: "The core never imports motion/ (ADR 0055).",
+      comment:
+        "The core, including its subfolders, never imports motion/ (ADR 0055, 0090).",
       severity: "error",
-      from: { path: "^src/domain/vehicle/[^/]+$" },
+      from: {
+        path: "^src/domain/vehicle/",
+        pathNot: "^src/domain/vehicle/(?:kinds|motion)/",
+      },
       to: { path: "^src/domain/vehicle/motion/" },
     },
     {

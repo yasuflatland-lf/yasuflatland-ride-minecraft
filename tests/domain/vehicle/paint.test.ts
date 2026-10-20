@@ -1,6 +1,9 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { effectivePaint, PAINTS } from "../../../src/domain/vehicle/paint";
+import {
+  effectivePaint,
+  PAINTS,
+} from "../../../src/domain/vehicle/paint/paint";
 
 describe("effectivePaint (ADR 0076)", () => {
   it("the variant-0 slot shows the default", () => {

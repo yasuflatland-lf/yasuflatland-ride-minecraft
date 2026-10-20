@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { VEHICLE_KINDS, type VehicleKind } from "../../src/domain/vehicle/kind";
 import { profileOf } from "../../src/domain/vehicle/kinds/index";
-import { PAINTS, type Paint } from "../../src/domain/vehicle/paint";
+import { PAINTS, type Paint } from "../../src/domain/vehicle/paint/paint";
 import {
   PAINT_BY_DYE,
   PAINT_VARIANT,

@@ -2,7 +2,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { PaintVehicle } from "../../../src/application/vehicle/paintVehicle";
 import { VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
-import { PAINTS, type Paint } from "../../../src/domain/vehicle/paint";
+import { PAINTS, type Paint } from "../../../src/domain/vehicle/paint/paint";
 import { FakeClock, FakeWorld } from "./fakes";
 
 const paint = fc.constantFrom(...PAINTS);

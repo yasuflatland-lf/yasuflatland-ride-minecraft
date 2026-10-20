@@ -6,7 +6,7 @@ import {
   paintEventName,
 } from "../../../../src/domain/vehicle/entityContract";
 import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
-import { PAINTS } from "../../../../src/domain/vehicle/paint";
+import { PAINTS } from "../../../../src/domain/vehicle/paint/paint";
 import { NAMESPACE } from "../../../../src/infrastructure/shared/identifiers";
 import {
   DECK_SEAT_TYPE,

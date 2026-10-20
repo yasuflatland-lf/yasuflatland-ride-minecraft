@@ -4,9 +4,9 @@ import {
   type DockBlock,
   refloor,
   sameBlock,
-} from "../../../src/domain/vehicle/floor";
-import { cellKey } from "../../../src/domain/vehicle/headlights";
-import { defined } from "../../support/defined";
+} from "../../../../src/domain/vehicle/dock/floor";
+import { cellKey } from "../../../../src/domain/vehicle/lighting/headlights";
+import { defined } from "../../../support/defined";
 
 const block: fc.Arbitrary<DockBlock> = fc.oneof(
   fc.record({

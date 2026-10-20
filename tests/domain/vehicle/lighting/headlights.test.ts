@@ -1,16 +1,16 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { dot, forward, rightOf } from "../../../src/domain/shared/vec";
+import { dot, forward, rightOf } from "../../../../src/domain/shared/vec";
+import { CAMPER_PROFILE } from "../../../../src/domain/vehicle/kinds/camper/profile";
+import { CAMPER_SPEC } from "../../../../src/domain/vehicle/kinds/camper/spec";
+import { SUV_PROFILE } from "../../../../src/domain/vehicle/kinds/suv/profile";
+import { SUV_SPEC } from "../../../../src/domain/vehicle/kinds/suv/spec";
 import {
   type Cell,
   cellKey,
   headlightCells,
   relight,
-} from "../../../src/domain/vehicle/headlights";
-import { CAMPER_PROFILE } from "../../../src/domain/vehicle/kinds/camper/profile";
-import { CAMPER_SPEC } from "../../../src/domain/vehicle/kinds/camper/spec";
-import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
-import { SUV_SPEC } from "../../../src/domain/vehicle/kinds/suv/spec";
+} from "../../../../src/domain/vehicle/lighting/headlights";
 
 const coord = fc.double({ min: -1e5, max: 1e5, noNaN: true });
 const location = fc.record({

@@ -1,6 +1,6 @@
 // Where a vehicle goes when its item is used on a block (ADR 0008, ADR 0051),
 // and whether there is room for it there.
-import type { Vec3 } from "../shared/vec";
+import type { Vec3 } from "../../shared/vec";
 
 export type IsAir = (dx: number, dy: number, dz: number) => boolean;
 

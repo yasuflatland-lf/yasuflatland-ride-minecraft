@@ -2,10 +2,6 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { dot, forward, rightOf } from "../../../src/domain/shared/vec";
 import { NEUTRAL_CONTROL } from "../../../src/domain/vehicle/driveInput";
-import {
-  cellKey,
-  headlightCells,
-} from "../../../src/domain/vehicle/headlights";
 import { EMPTY_COUNTER } from "../../../src/domain/vehicle/hitCounter";
 import { isVehicleKind, VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
 import {
@@ -42,6 +38,10 @@ import {
   SUV_TRANSFORMING,
   WATER,
 } from "../../../src/domain/vehicle/kinds/suv/spec";
+import {
+  cellKey,
+  headlightCells,
+} from "../../../src/domain/vehicle/lighting/headlights";
 import { MOTION } from "../../../src/domain/vehicle/motion/constants";
 import {
   type GroundInput,

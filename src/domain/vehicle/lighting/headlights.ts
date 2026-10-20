@@ -1,6 +1,6 @@
 // Where a vehicle with its headlights on puts light blocks (ADR 0020).
-import { forward, localPoint, type Vec3 } from "../shared/vec";
-import type { BeamPattern } from "./profile";
+import { forward, localPoint, type Vec3 } from "../../shared/vec";
+import type { BeamPattern } from "../profile";
 
 /** Block cell, as integer coordinates. */
 export type Cell = Vec3;

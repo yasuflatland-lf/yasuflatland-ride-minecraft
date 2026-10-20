@@ -1,7 +1,7 @@
 import type { Entity } from "@minecraft/server";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { cellKey } from "../../../../src/domain/vehicle/headlights";
+import { cellKey } from "../../../../src/domain/vehicle/lighting/headlights";
 import { HeadlightBlocks } from "../../../../src/infrastructure/vehicle/bedrock/headlightBlocks";
 import {
   LIGHT_BLOCK,

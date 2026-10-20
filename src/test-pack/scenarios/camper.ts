@@ -1,6 +1,10 @@
 import type { Entity } from "@minecraft/server";
 import { length, type Vec3 } from "../../domain/shared/vec";
-import type { DockBlock, DockCell, HoldPose } from "../../domain/vehicle/floor";
+import type {
+  DockBlock,
+  DockCell,
+  HoldPose,
+} from "../../domain/vehicle/dock/floor";
 import {
   cargoCells,
   parkPose,

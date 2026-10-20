@@ -2,7 +2,7 @@ import type { Entity } from "@minecraft/server";
 import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { HINTS } from "../../../../src/domain/vehicle/hints";
-import { PAINTS } from "../../../../src/domain/vehicle/paint";
+import { PAINTS } from "../../../../src/domain/vehicle/paint/paint";
 import { BedrockHintWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockHintWorld";
 import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
 import {

@@ -1,5 +1,5 @@
 import type { MotionLimits } from "../../motion/limits";
-import type { PlacementSurface } from "../../placement";
+import type { PlacementSurface } from "../../placement/placement";
 import type { VehicleProfile } from "../../profile";
 import { SPORTSBOAT_SPEC } from "./spec";
 

@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { SPORTSBOAT_PROFILE } from "../../src/domain/vehicle/kinds/sportsboat/profile";
-import { PAINTS } from "../../src/domain/vehicle/paint";
+import { PAINTS } from "../../src/domain/vehicle/paint/paint";
 import {
   HEADLIGHTS_PROPERTY,
   PAINT_VARIANT,

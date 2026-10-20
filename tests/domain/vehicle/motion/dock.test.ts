@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { forward } from "../../../../src/domain/shared/vec";
-import type { Dock } from "../../../../src/domain/vehicle/dock";
+import type { Dock } from "../../../../src/domain/vehicle/dock/dock";
 import type { EngineCommand } from "../../../../src/domain/vehicle/drive";
 import {
   DOCK,

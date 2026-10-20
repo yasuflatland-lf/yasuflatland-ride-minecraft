@@ -1,9 +1,9 @@
 import { clamp } from "../../../shared/vec";
-import { type ClearCell, DOCK_RESTORED } from "../../dock";
+import { type ClearCell, DOCK_RESTORED } from "../../dock/dock";
+import type { HoldPose } from "../../dock/floor";
 import type { DriveStep, EngineCommand, TickContext } from "../../drive";
 import type { RawInput } from "../../driveInput";
 import type { RestoredOf } from "../../entityContract";
-import type { HoldPose } from "../../floor";
 import { DOCK, heldStep, pushesStick } from "../../motion/dock";
 import { dockCommands, undockCommands } from "../../motion/dockEntity";
 import { TransformingDrive } from "../../motion/transformingDrive";

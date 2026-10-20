@@ -4,7 +4,7 @@ import {
   type Cell,
   cellKey,
   relight,
-} from "../../../domain/vehicle/headlights";
+} from "../../../domain/vehicle/lighting/headlights";
 import { LIGHT_BLOCK, LIT_CELLS_PROPERTY } from "./identifiers";
 
 /** Light blocks are not solid and a player cannot see them, so the scripts treat them as air. */

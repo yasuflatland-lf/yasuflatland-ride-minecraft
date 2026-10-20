@@ -1,9 +1,12 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { Fleet, type FleetEntry } from "../../../src/domain/vehicle/fleet";
-import { VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
-import { fleetLimitOf } from "../../../src/domain/vehicle/kinds/index";
-import { SPEC } from "../../../src/domain/vehicle/spec";
+import {
+  Fleet,
+  type FleetEntry,
+} from "../../../../src/domain/vehicle/fleet/fleet";
+import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
+import { fleetLimitOf } from "../../../../src/domain/vehicle/kinds/index";
+import { SPEC } from "../../../../src/domain/vehicle/spec";
 
 const entry = (id: string) => ({ id, kind: "suv" as const });
 const entries = (ids: string[]) => ids.map(entry);

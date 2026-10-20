@@ -1,7 +1,7 @@
 // Use case: a player hits a vehicle with a dye to repaint its body (ADR 0031, 0036, 0076).
 import { TickScopedMap } from "../../domain/shared/tickScoped";
 import { profileOf } from "../../domain/vehicle/kinds/index";
-import { effectivePaint, type Paint } from "../../domain/vehicle/paint";
+import { effectivePaint, type Paint } from "../../domain/vehicle/paint/paint";
 import type { Clock, PaintWorld } from "./ports";
 
 export interface PaintVehicleCommand {
