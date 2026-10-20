@@ -16,6 +16,11 @@ export const MOTION = {
   // The engine zeroes a walled axis, so a kept ratio this low means a wall,
   // not a slow surface (ADR 0082).
   wallKeptMax: 0.15,
+  // A uniform slow surface keeps the same ratio on every driven axis, up to
+  // float rounding: 1 ulp in the script's float64, about 1e-7 relative after
+  // the engine's float32 velocity. Ratios this close (relative) agree, so they
+  // are a surface, not a wall (ADR 0082, #340).
+  axisRatioTie: 1e-6,
   minExpectedForFriction: 0.05,
   // Steps (ADR 0004)
   stepVelocity: 0.75,
