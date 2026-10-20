@@ -1140,8 +1140,9 @@ describe("ground walls and slow surfaces (ADR 0082)", () => {
         fc.double({ min: MOTION.wallKeptMax, max: 1, noNaN: true }),
         keptRatio,
         (given, k, ratio) => {
-          // (given.x * k) / given.x can land one ulp on the other side of a threshold.
-          fc.pre(k >= MOTION.wallKeptMax + 1e-9 && Math.abs(k - ratio) > 1e-9);
+          // (given.x * k) / given.x can land one ulp below wallKeptMax. At
+          // keptRatio the ulp gap between axes is a tie, not a wall (#340).
+          fc.pre(k >= MOTION.wallKeptMax + 1e-9);
           expect(
             groundWallAxes({ x: given.x * k, z: given.z * k }, given, ratio),
           ).toEqual({ x: false, z: false });
@@ -1239,43 +1240,68 @@ describe("ground walls and slow surfaces (ADR 0082)", () => {
     expect(groundWallAxes({ x: -0.05, z: 0.3 }, { x: 1, z: 1 }, 0.345)).toEqual(
       { x: true, z: false },
     );
+    // Axes one ulp apart across keptRatio agree: a surface, not a wall (#340).
+    expect(
+      groundWallAxes(
+        { x: 0.21000000000000002, z: 0.21 },
+        { x: 1, z: 1 },
+        0.21000000000000002,
+      ),
+    ).toEqual({ x: false, z: false });
+    expect(groundWallAxes({ x: 0.3, z: 0.1 }, { x: 1, z: 1 }, 0.2)).toEqual({
+      x: false,
+      z: true,
+    });
   });
 
-  it("leaving a slow surface is never a wall, stays below maxSpeed / frictionMin, and settles within 25 ticks", () => {
+  // Drives 200 ticks on k1, then 25 on k2.
+  const changeSurface = (k1: number, k2: number, yaw: number) => {
+    let state = initialMotion(yaw);
+    let body: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
+    for (let i = 0; i < 225; i++) {
+      const r = stepMotion(
+        state,
+        FULL_THROTTLE,
+        { velocity: body.vel, onGround: true },
+        () => 0,
+        SUV_MOTION,
+      );
+      state = r.state;
+      body = engineStep(body, r.impulse, { mu: i < 200 ? k1 : k2 }, true).body;
+      expect(r.blocked).toBe(false);
+      expect(length(body.vel)).toBeLessThanOrEqual(
+        SUV_SPEC.maxSpeed / MOTION.frictionMin + 1e-9,
+      );
+    }
+    expect(length(body.vel)).toBeLessThanOrEqual(SUV_SPEC.maxSpeed * 1.01);
+  };
+
+  it("changing to another surface is never a wall, stays below maxSpeed / frictionMin, and settles within 25 ticks", () => {
     fc.assert(
       fc.property(
         surface,
         surface,
         fc.integer({ min: -180, max: 180 }),
-        (k1, k2, yaw) => {
-          let state = initialMotion(yaw);
-          let body: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
-          for (let i = 0; i < 225; i++) {
-            const r = stepMotion(
-              state,
-              FULL_THROTTLE,
-              { velocity: body.vel, onGround: true },
-              () => 0,
-              SUV_MOTION,
-            );
-            state = r.state;
-            body = engineStep(
-              body,
-              r.impulse,
-              { mu: i < 200 ? k1 : k2 },
-              true,
-            ).body;
-            expect(r.blocked).toBe(false);
-            expect(length(body.vel)).toBeLessThanOrEqual(
-              SUV_SPEC.maxSpeed / MOTION.frictionMin + 1e-9,
-            );
-          }
-          expect(length(body.vel)).toBeLessThanOrEqual(
-            SUV_SPEC.maxSpeed * 1.01,
-          );
-        },
+        changeSurface,
       ),
     );
+  });
+
+  it("a surface that keeps exactly blockedRatio of the estimate is never a wall", () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 20, max: 50 }).map((n) => n / 100),
+        fc.integer({ min: -180, max: 180 }),
+        (k2, yaw) => changeSurface(2 * k2, k2, yaw),
+      ),
+    );
+  });
+
+  it("changing surface examples: ties at keptRatio found by fast-check (#340)", () => {
+    // k2 is exactly half the estimate on the first tick on it.
+    changeSurface(0.42, 0.21, -1);
+    // The estimate reaches 2 * k2 one tick after the change.
+    changeSurface(0.9, 0.4, 45);
   });
 });
 

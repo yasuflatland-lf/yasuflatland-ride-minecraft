@@ -137,8 +137,9 @@ export function hitWall(v: Vec2, given: Vec2, keptRatio: number): boolean {
 /**
  * Walled axes on the ground. A wall zeroes its axis, so a driven axis is a
  * wall when it kept almost nothing, or when it kept less than `keptRatio`
- * while the other driven axis kept more. A uniform slowdown on every driven
- * axis is a slow surface, which the friction estimate learns (ADR 0082).
+ * while the other driven axis kept more, by more than rounding. A uniform
+ * slowdown on every driven axis is a slow surface, which the friction
+ * estimate learns (ADR 0082).
  */
 export function groundWallAxes(
   v: Vec2,
@@ -152,7 +153,10 @@ export function groundWallAxes(
   const wall = (r: number | undefined, other: number | undefined) =>
     r !== undefined &&
     (r < MOTION.wallKeptMax ||
-      (r < keptRatio && other !== undefined && other >= keptRatio));
+      (r < keptRatio &&
+        other !== undefined &&
+        other >= keptRatio &&
+        other - r > MOTION.axisRatioTie * other));
   return { x: wall(rx, rz), z: wall(rz, rx) };
 }
 
