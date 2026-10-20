@@ -1,5 +1,5 @@
 // How the hull sits on the water as it drives: the bow rises while the boat
-// gains speed, and the hull rolls into a turn (ADR 0059, ADR 0061).
+// gains speed, and the hull rolls into a turn (ADR 0059, ADR 0061, ADR 0079).
 import { approach, clamp } from "../../../shared/vec";
 import type { MotionLimits } from "../../motion/limits";
 import { turnFraction } from "../../motion/turn";
@@ -49,9 +49,11 @@ export function stepTrim(
 
 /**
  * Next roll in degrees; positive lowers the right side, as the SUV's bank
- * does (ADR 0026). Afloat, the target leans into the turn in proportion to how
- * fast the heading turns and to the speed, so the hull stays level when it
- * turns slowly or at rest. Aground, the target is level.
+ * does (ADR 0026). Afloat, the target leans by the sign of speed times yaw
+ * rate, in proportion to how fast the heading turns and to the signed speed,
+ * so the hull leans toward the same side forward and in reverse for the same
+ * stick, and stays level when it turns slowly or at rest (ADR 0059, ADR 0079).
+ * Aground, the target is level.
  */
 export function stepRoll(
   prev: number,
@@ -63,10 +65,10 @@ export function stepRoll(
 ): number {
   const turn = turnFraction(yawBefore, yawAfter, limits.turnRate);
   // A zero top speed gives Infinity or NaN; hold the hull level then.
-  const pace = Math.abs(speed) / limits.maxSpeed;
+  const pace = speed / limits.maxSpeed;
   const target =
     afloat && turn !== undefined && Number.isFinite(pace)
-      ? clamp(turn, -1, 1) * clamp(pace, 0, 1) * SPORTSBOAT_ATTITUDE.maxRoll
+      ? clamp(turn, -1, 1) * clamp(pace, -1, 1) * SPORTSBOAT_ATTITUDE.maxRoll
       : 0;
   return approach(prev, target, SPORTSBOAT_ATTITUDE.rollRate);
 }
