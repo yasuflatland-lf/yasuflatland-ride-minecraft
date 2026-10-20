@@ -1,5 +1,5 @@
 import fc from "fast-check";
-import { expect, it } from "vitest";
+import { expect, expectTypeOf, it } from "vitest";
 import { forward, normalizeYaw } from "../../../src/domain/shared/vec";
 import type { TickContext } from "../../../src/domain/vehicle/drive";
 import { SportsboatDrive } from "../../../src/domain/vehicle/kinds/sportsboat/drive";
@@ -7,6 +7,7 @@ import { SuvDrive } from "../../../src/domain/vehicle/kinds/suv/drive";
 import { MOTION } from "../../../src/domain/vehicle/motion/constants";
 import { FORMS } from "../../../src/domain/vehicle/motion/forms";
 import { initialMotion } from "../../../src/domain/vehicle/motion/motion";
+import type { VehicleTickInput } from "../../../src/domain/vehicle/vehicle";
 import { propertyValue } from "../../support/engineCommands";
 import { waterSensors } from "../../support/waterDepth";
 
@@ -14,7 +15,7 @@ const number = (min: number, max: number) =>
   fc.double({ min, max, noNaN: true });
 const yaw = number(-180, 180);
 
-/** A stopped vehicle with no blocks or ram targets around it. */
+/** A stopped vehicle with no blocks around it. */
 function stillContext(onGround: boolean, waterDepth = 0): TickContext {
   return {
     deckSeatInputs: [],
@@ -24,7 +25,6 @@ function stillContext(onGround: boolean, waterDepth = 0): TickContext {
     ...waterSensors(waterDepth),
     blockTypes: () => [],
     solidAt: () => false,
-    targets: () => [],
   };
 }
 
@@ -125,4 +125,9 @@ it("aligns a stopped SUV but keeps a moving SUV's heading and speed on mounting 
       }
     }),
   );
+});
+
+it("keeps the ram target query out of the drive's sensors (ADR 0083)", () => {
+  expectTypeOf<TickContext>().not.toHaveProperty("targets");
+  expectTypeOf<VehicleTickInput>().toHaveProperty("targets");
 });

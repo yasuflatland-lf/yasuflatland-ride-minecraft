@@ -22,7 +22,6 @@ function context(depth = 0): TickContext {
     ...waterSensors(depth),
     blockTypes: () => [],
     solidAt: (offset) => offset.y < 0,
-    targets: () => [],
   };
 }
 

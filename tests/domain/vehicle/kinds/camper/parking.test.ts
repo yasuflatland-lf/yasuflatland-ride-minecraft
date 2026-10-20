@@ -37,7 +37,6 @@ function fixture() {
     deckSeatInputs: [],
     solidAt: () => false,
     waterAt: () => false,
-    targets: () => [],
     blockTypes,
   };
   const drive = new CamperDrive(37, {});

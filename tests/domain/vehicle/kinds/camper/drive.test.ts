@@ -20,7 +20,6 @@ function context(): TickContext {
     blockTypes: () => [],
     solidAt: (offset) => offset.y < 0,
     waterAt: () => false,
-    targets: () => [],
   };
 }
 

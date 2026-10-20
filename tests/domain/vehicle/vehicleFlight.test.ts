@@ -461,7 +461,6 @@ describe("Vehicle landing gear (ADR 0033)", () => {
       ...waterSensors(),
       blockTypes: () => [],
       solidAt,
-      targets: () => [],
     });
     return {
       wheelsDown: drive.inspect().wheelsDown,

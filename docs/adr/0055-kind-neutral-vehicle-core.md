@@ -1,6 +1,6 @@
 # 0055. Kind-neutral vehicle core
 
-- Status: Extended by 0064, 0065, and 0072
+- Status: Superseded in part by 0083 (targets() in TickContext); extended by 0064, 0065, and 0072
 - Date: 2026-10-12
 
 ## Context
