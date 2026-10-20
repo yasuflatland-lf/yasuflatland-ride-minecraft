@@ -1,17 +1,22 @@
-// Capabilities the application layer requires from the game (ports). Implementations live in the infrastructure layer (ADR 0012).
-import type { Vec3 } from "../../domain/shared/vec";
-import type { ClearCell, Departure } from "../../domain/vehicle/dock/dock";
-import type { DockCell, HoldPose } from "../../domain/vehicle/dock/floor";
-import type { EngineCommand, RestoredValues } from "../../domain/vehicle/drive";
-import type { RawInput } from "../../domain/vehicle/driveInput";
-import type { FleetEntry } from "../../domain/vehicle/fleet/fleet";
-import type { HeldItem, Hint, HintControls } from "../../domain/vehicle/hints";
-import type { VehicleKind } from "../../domain/vehicle/kind";
-import type { Cell } from "../../domain/vehicle/lighting/headlights";
-import type { Paint } from "../../domain/vehicle/paint/paint";
-import type { ChaseCamera } from "../../domain/vehicle/profile";
-import type { RamHit, RamTarget } from "../../domain/vehicle/ram";
-import type { RiderView } from "../../domain/vehicle/vehicle";
+// Ports the per-tick drive requires from the game; implemented in the infrastructure layer (ADR 0012).
+import type { Vec3 } from "../../../domain/shared/vec";
+import type { ClearCell, Departure } from "../../../domain/vehicle/dock/dock";
+import type { DockCell, HoldPose } from "../../../domain/vehicle/dock/floor";
+import type {
+  EngineCommand,
+  RestoredValues,
+} from "../../../domain/vehicle/drive";
+import type { RawInput } from "../../../domain/vehicle/driveInput";
+import type {
+  HeldItem,
+  Hint,
+  HintControls,
+} from "../../../domain/vehicle/hints";
+import type { VehicleKind } from "../../../domain/vehicle/kind";
+import type { Cell } from "../../../domain/vehicle/lighting/headlights";
+import type { ChaseCamera } from "../../../domain/vehicle/profile";
+import type { RamHit, RamTarget } from "../../../domain/vehicle/ram";
+import type { RiderView } from "../../../domain/vehicle/vehicle";
 
 export interface VehicleSnapshot {
   kind: VehicleKind;
@@ -75,63 +80,6 @@ export interface DriveWorld {
   releaseVehicle(vehicleId: string): void;
 }
 
-export interface PlacementWorld {
-  isAir(dimensionId: string, at: Vec3): boolean;
-  /** Whether the block cell at `at` holds water, including a waterlogged block. False for an unloaded cell or an unknown dimension. */
-  isWaterAt(dimensionId: string, at: Vec3): boolean;
-  spawnVehicle(
-    dimensionId: string,
-    at: Vec3,
-    yaw: number,
-    kind: VehicleKind,
-    ownerId: string,
-  ): string;
-  /** Takes one vehicle item from `slot`. False when that slot no longer holds one. */
-  consumeVehicleItem(
-    playerId: string,
-    slot: number,
-    kind: VehicleKind,
-  ): boolean;
-  /** Whether the player is in creative mode; false when the player is not in the world. */
-  isCreative(playerId: string): boolean;
-}
-
-export interface StarterWorld {
-  /** undefined when the player is no longer in the world. */
-  receivedStarter(playerId: string): boolean | undefined;
-  /** Puts one item of this kind in the inventory, or at the player's feet when it is full. */
-  giveVehicleItem(playerId: string, kind: VehicleKind): void;
-  markStarterReceived(playerId: string): void;
-}
-
-export interface BreakWorld {
-  dropVehicleItem(vehicleId: string): void;
-  removeVehicle(vehicleId: string): void;
-}
-
-export interface LimitWorld {
-  /** Vehicles in loaded chunks, in every dimension. */
-  loadedFleetEntries(): FleetEntry[];
-  removeVehicle(vehicleId: string): void;
-}
-
-export interface PaintWorld {
-  /** undefined when the vehicle no longer exists. */
-  paintOf(vehicleId: string): Paint | undefined;
-  /** undefined when the vehicle no longer exists or is not a vehicle. */
-  kindOf(vehicleId: string): VehicleKind | undefined;
-  paint(vehicleId: string, paint: Paint): void;
-  consumeDye(playerId: string, paint: Paint): void;
-  /** Whether the player is in creative mode; false when the player is not in the world. */
-  isCreative(playerId: string): boolean;
-}
-
-export interface HeadlightWorld {
-  /** undefined when the vehicle no longer exists. */
-  headlightsOn(vehicleId: string): boolean | undefined;
-  setHeadlights(vehicleId: string, on: boolean): void;
-}
-
 export interface HintPlayerView {
   id: string;
   dimensionId: string;
@@ -158,13 +106,4 @@ export interface HintWorld {
   showHint(playerId: string, hint: Hint): void;
   /** Empties the action bar; does nothing for a missing player. */
   clearHint(playerId: string): void;
-}
-
-export interface Logger {
-  warn(message: string): void;
-}
-
-/** The current game tick (one tick is 1/20 s). */
-export interface Clock {
-  now(): number;
 }

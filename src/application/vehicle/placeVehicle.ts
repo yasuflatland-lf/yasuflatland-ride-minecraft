@@ -12,7 +12,7 @@ import {
   placementCell,
 } from "../../domain/vehicle/placement/placement";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
-import type { PlacementWorld } from "./ports";
+import type { PlacementWorld } from "./ports/placement";
 
 export interface PlaceVehicleCommand {
   kind: VehicleKind;

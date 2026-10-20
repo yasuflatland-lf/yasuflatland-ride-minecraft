@@ -2,7 +2,8 @@
 
 import type { FleetRepository } from "../../domain/vehicle/fleet/fleetRepository";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
-import type { BreakWorld, Clock } from "./ports";
+import type { BreakWorld } from "./ports/fleet";
+import type { Clock } from "./ports/shared";
 import { retireVehicle } from "./retireVehicle";
 
 export interface HitVehicleCommand {

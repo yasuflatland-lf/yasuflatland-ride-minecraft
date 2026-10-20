@@ -1,17 +1,21 @@
 import type {
-  BreakWorld,
-  Clock,
   DriveWorld,
-  HeadlightWorld,
   HintPlayerView,
   HintVehicleView,
   HintWorld,
+  VehicleSnapshot,
+} from "../../../src/application/vehicle/ports/drive";
+import type {
+  BreakWorld,
   LimitWorld,
-  PaintWorld,
+} from "../../../src/application/vehicle/ports/fleet";
+import type { HeadlightWorld } from "../../../src/application/vehicle/ports/headlights";
+import type { PaintWorld } from "../../../src/application/vehicle/ports/paint";
+import type {
   PlacementWorld,
   StarterWorld,
-  VehicleSnapshot,
-} from "../../../src/application/vehicle/ports";
+} from "../../../src/application/vehicle/ports/placement";
+import type { Clock } from "../../../src/application/vehicle/ports/shared";
 import type { Vec3 } from "../../../src/domain/shared/vec";
 import type {
   ClearCell,

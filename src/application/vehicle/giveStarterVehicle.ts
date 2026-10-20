@@ -1,6 +1,6 @@
 // Use case: give each player one vehicle item the first time they join the world (ADR 0023).
 import type { VehicleKind } from "../../domain/vehicle/kind";
-import type { StarterWorld } from "./ports";
+import type { StarterWorld } from "./ports/placement";
 
 // The SUV drives on land, where every new player starts (ADR 0023).
 const STARTER_KIND: VehicleKind = "suv";

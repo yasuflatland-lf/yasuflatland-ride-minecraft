@@ -2,7 +2,8 @@
 import { TickScopedMap } from "../../domain/shared/tickScoped";
 import { profileOf } from "../../domain/vehicle/kinds/index";
 import { effectivePaint, type Paint } from "../../domain/vehicle/paint/paint";
-import type { Clock, PaintWorld } from "./ports";
+import type { PaintWorld } from "./ports/paint";
+import type { Clock } from "./ports/shared";
 
 export interface PaintVehicleCommand {
   playerId: string;

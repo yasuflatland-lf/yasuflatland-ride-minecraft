@@ -3,7 +3,7 @@ import { ItemStack, world } from "@minecraft/server";
 import type {
   BreakWorld,
   LimitWorld,
-} from "../../../application/vehicle/ports";
+} from "../../../application/vehicle/ports/fleet";
 import type { FleetEntry } from "../../../domain/vehicle/fleet/fleet";
 import { DIMENSIONS, type EntityIndex } from "./entityIndex";
 import {

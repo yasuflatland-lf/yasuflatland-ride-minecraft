@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { beforeEach, describe, expect, it } from "vitest";
-import type { HintPlayerView } from "../../../src/application/vehicle/ports";
+import type { HintPlayerView } from "../../../src/application/vehicle/ports/drive";
 import { ShowVehicleHints } from "../../../src/application/vehicle/showVehicleHints";
 import { HINTS } from "../../../src/domain/vehicle/hints";
 import type { VehicleKind } from "../../../src/domain/vehicle/kind";

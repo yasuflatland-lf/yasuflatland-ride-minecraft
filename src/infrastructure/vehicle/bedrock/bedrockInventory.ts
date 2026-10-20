@@ -1,6 +1,6 @@
 // Implements StarterWorld; consumeHeld is the one place that takes a held item.
 import { ItemStack } from "@minecraft/server";
-import type { StarterWorld } from "../../../application/vehicle/ports";
+import type { StarterWorld } from "../../../application/vehicle/ports/placement";
 import type { VehicleKind } from "../../../domain/vehicle/kind";
 import type { EntityIndex } from "./entityIndex";
 import { ITEM_TYPE, STARTER_RECEIVED_PROPERTY } from "./identifiers";

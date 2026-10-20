@@ -8,12 +8,8 @@ import {
 } from "../../domain/vehicle/hints";
 import type { Vehicle } from "../../domain/vehicle/vehicle";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
-import type {
-  Clock,
-  HintPlayerView,
-  HintVehicleView,
-  HintWorld,
-} from "./ports";
+import type { HintPlayerView, HintVehicleView, HintWorld } from "./ports/drive";
+import type { Clock } from "./ports/shared";
 
 interface Near {
   view: HintVehicleView;

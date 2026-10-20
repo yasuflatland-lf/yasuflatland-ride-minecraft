@@ -16,7 +16,7 @@ import {
 import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
 import { PlaceVehicle } from "../../../../src/application/vehicle/placeVehicle";
-import type { PlacementWorld } from "../../../../src/application/vehicle/ports";
+import type { PlacementWorld } from "../../../../src/application/vehicle/ports/placement";
 import { SPEC } from "../../../../src/domain/vehicle/spec";
 import type { VehicleRepository } from "../../../../src/domain/vehicle/vehicleRepository";
 import {

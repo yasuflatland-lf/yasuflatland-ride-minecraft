@@ -4,7 +4,7 @@
 // LimitVehicles can retry the eviction when the vehicle next loads.
 import type { Fleet } from "../../domain/vehicle/fleet/fleet";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
-import type { BreakWorld } from "./ports";
+import type { BreakWorld } from "./ports/fleet";
 
 export function retireVehicle(
   world: Pick<BreakWorld, "removeVehicle">,

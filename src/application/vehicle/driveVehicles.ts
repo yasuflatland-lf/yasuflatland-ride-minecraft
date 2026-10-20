@@ -3,7 +3,8 @@ import { rebuildVehicle } from "../../domain/vehicle/kinds/index";
 import type { ChaseCamera } from "../../domain/vehicle/profile";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
 import { forEachIsolated } from "./isolated";
-import type { DriveWorld, Logger, VehicleSnapshot } from "./ports";
+import type { DriveWorld, VehicleSnapshot } from "./ports/drive";
+import type { Logger } from "./ports/shared";
 import { RiderEffects } from "./riderEffects";
 
 export class DriveVehicles {

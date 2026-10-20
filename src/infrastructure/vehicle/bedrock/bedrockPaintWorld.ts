@@ -1,6 +1,6 @@
 // Implements PaintWorld with @minecraft/server (ADR 0012).
 import { GameMode } from "@minecraft/server";
-import type { PaintWorld } from "../../../application/vehicle/ports";
+import type { PaintWorld } from "../../../application/vehicle/ports/paint";
 import type { VehicleKind } from "../../../domain/vehicle/kind";
 import { PAINTS, type Paint } from "../../../domain/vehicle/paint/paint";
 import type { BedrockInventory } from "./bedrockInventory";
