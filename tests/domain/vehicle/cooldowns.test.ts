@@ -90,7 +90,6 @@ describe("RamCooldowns (ADR 0006)", () => {
     const target: RamTarget = {
       id: "t",
       offset: { x: 0, y: 0, z: 1 },
-      protectedOccupant: false,
     };
     fc.assert(
       fc.property(

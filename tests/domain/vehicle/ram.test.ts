@@ -4,7 +4,9 @@ import { dot, forward, rightOf } from "../../../src/domain/shared/vec";
 import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
 import { SUV_SPEC } from "../../../src/domain/vehicle/kinds/suv/spec";
 import {
+  isProtectedFromRam,
   type RamHit,
+  type RamMount,
   type RamTarget,
   ramDamage,
   selectHits,
@@ -41,14 +43,14 @@ function at(
   ahead: number,
   side: number,
   dy = 0,
-  protectedOccupant = false,
+  mount?: RamMount,
 ): RamTarget {
   const f = forward(yawDeg);
   const r = rightOf(f);
   return {
     id: "t",
     offset: { x: f.x * ahead + r.x * side, y: dy, z: f.z * ahead + r.z * side },
-    protectedOccupant,
+    mount,
   };
 }
 
@@ -225,7 +227,7 @@ describe("selectHits (ADR 0006)", () => {
             selectHits(
               forward(y),
               s,
-              [at(y, ahead, 0, 0, true)],
+              [at(y, ahead, 0, 0, "vehicle")],
               new Map(),
               0,
               SUV_PROFILE.ram,
@@ -291,5 +293,134 @@ describe("selectHits (ADR 0006)", () => {
         SUV_PROFILE.ram,
       ),
     ).toHaveLength(0);
+  });
+
+  describe("ram protection by mount (ADR 0006)", () => {
+    // Slow speeds are mixed in so that the rule is checked below the ram
+    // speed too, where selectHits returns no hits for anyone.
+    const anySpeed = fc.oneof(
+      fastSpeed,
+      fastReverse,
+      fc.double({
+        min: -SUV_SPEC.maxReverse,
+        max: SUV_SPEC.maxSpeed,
+        noNaN: true,
+      }),
+    );
+    const nearOffset = fc.record({
+      x: fc.double({ min: -5, max: 5, noNaN: true }),
+      y: fc.double({ min: -5, max: 5, noNaN: true }),
+      z: fc.double({ min: -5, max: 5, noNaN: true }),
+    });
+    const lastHitTick = fc.option(fc.integer({ min: 0, max: 1000 }), {
+      nil: undefined,
+    });
+    const tick = fc.integer({ min: 0, max: 2000 });
+    const lastHitOf = (
+      last: number | undefined,
+    ): ReadonlyMap<string, number> =>
+      last === undefined ? new Map() : new Map([["t", last]]);
+
+    it("protects only a target that rides a vehicle", () => {
+      expect(
+        isProtectedFromRam({
+          id: "t",
+          offset: { x: 0, y: 0, z: 1 },
+          mount: "vehicle",
+        }),
+      ).toBe(true);
+      expect(
+        isProtectedFromRam({
+          id: "t",
+          offset: { x: 0, y: 0, z: 1 },
+          mount: "deckSeat",
+        }),
+      ).toBe(false);
+      expect(
+        isProtectedFromRam({ id: "t", offset: { x: 0, y: 0, z: 1 } }),
+      ).toBe(false);
+    });
+
+    it("never hits a target that rides a vehicle", () => {
+      fc.assert(
+        fc.property(
+          yaw,
+          anySpeed,
+          nearOffset,
+          lastHitTick,
+          tick,
+          (y, s, offset, last, now) => {
+            expect(
+              selectHits(
+                forward(y),
+                s,
+                [{ id: "t", offset, mount: "vehicle" }],
+                lastHitOf(last),
+                now,
+                SUV_PROFILE.ram,
+              ),
+            ).toHaveLength(0);
+          },
+        ),
+      );
+    });
+
+    it("treats a deck-seat rider like a target on foot", () => {
+      fc.assert(
+        fc.property(
+          yaw,
+          anySpeed,
+          nearOffset,
+          lastHitTick,
+          tick,
+          (y, s, offset, last, now) => {
+            const f = forward(y);
+            const lastHit = lastHitOf(last);
+            expect(
+              selectHits(
+                f,
+                s,
+                [{ id: "t", offset, mount: "deckSeat" }],
+                lastHit,
+                now,
+                SUV_PROFILE.ram,
+              ),
+            ).toEqual(
+              selectHits(
+                f,
+                s,
+                [{ id: "t", offset }],
+                lastHit,
+                now,
+                SUV_PROFILE.ram,
+              ),
+            );
+          },
+        ),
+      );
+    });
+
+    it("hits a deck-seat rider in the detection area", () => {
+      fc.assert(
+        fc.property(
+          yaw,
+          fastSpeed,
+          insideAhead,
+          insideSide,
+          (y, s, ahead, side) => {
+            onlyHit(
+              selectHits(
+                forward(y),
+                s,
+                [at(y, ahead, side, 0, "deckSeat")],
+                new Map(),
+                0,
+                SUV_PROFILE.ram,
+              ),
+            );
+          },
+        ),
+      );
+    });
   });
 });

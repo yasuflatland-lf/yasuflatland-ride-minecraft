@@ -359,7 +359,6 @@ describe("vehicle profiles (ADR 0050)", () => {
               y: 0,
               z: f.z * ahead * direction,
             },
-            protectedOccupant: false,
           });
           const reach = front + SPEC.targetHalfWidth;
           const targets = [
@@ -417,7 +416,6 @@ describe("vehicle profiles (ADR 0050)", () => {
               y: 0,
               z: f.z * ahead + right.z * side * sign,
             },
-            protectedOccupant: false,
           });
           const width = halfWidth + SPEC.targetHalfWidth;
           const targets = [

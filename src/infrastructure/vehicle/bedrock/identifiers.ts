@@ -6,6 +6,7 @@ import type { FleetEntry } from "../../../domain/vehicle/fleet";
 import { VEHICLE_KINDS, type VehicleKind } from "../../../domain/vehicle/kind";
 import { PAINTS, type Paint } from "../../../domain/vehicle/paint";
 import type { ChaseCamera } from "../../../domain/vehicle/profile";
+import type { RamMount } from "../../../domain/vehicle/ram";
 import { id, NAMESPACE } from "../../shared/identifiers";
 
 /**
@@ -65,6 +66,12 @@ export const DECK_FLOOR_HEIGHT_STATE = id("height");
 export const DECK_CELLS_PROPERTY = id("deck_cells");
 /** Auxiliary seat entity spawned on a held vehicle (ADR 0063). */
 export const DECK_SEAT_TYPE = id("deck_seat");
+/** Maps the type of the entity a ram target rides to the domain's mount (ADR 0006, 0063, 0068). */
+export function ramMountOf(typeId: string | undefined): RamMount | undefined {
+  if (isVehicleEntity(typeId)) return "vehicle";
+  if (typeId === DECK_SEAT_TYPE) return "deckSeat";
+  return undefined;
+}
 /** Dynamic property on a vehicle holding its deck seat entity ids as JSON. */
 export const DECK_SEATS_PROPERTY = id("deck_seats");
 /** Dynamic property on a deck seat holding the id of its vehicle. */
