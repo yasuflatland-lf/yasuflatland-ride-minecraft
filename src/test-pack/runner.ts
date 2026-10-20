@@ -1,7 +1,13 @@
 // In-game tests (ADR 0010). They run in a script environment separate from the
 // main Behavior Pack, so they drive the vehicle through script events.
-import { type Dimension, type Entity, system, world } from "@minecraft/server";
-import { dot, forward, type Vec3 } from "../domain/shared/vec";
+import { type Entity, system } from "@minecraft/server";
+import {
+  dot,
+  forward,
+  length,
+  type Vec2,
+  type Vec3,
+} from "../domain/shared/vec";
 import type { DockBlock, DockCell, HoldPose } from "../domain/vehicle/floor";
 import { headlightCells } from "../domain/vehicle/headlights";
 import {
@@ -15,11 +21,10 @@ import {
   SPORTSBOAT_MOTION,
   SPORTSBOAT_PROFILE,
 } from "../domain/vehicle/kinds/sportsboat/profile";
-import type { SUV_ENTITY } from "../domain/vehicle/kinds/suv/entity";
 import { SUV_PROFILE } from "../domain/vehicle/kinds/suv/profile";
 import { SUV_SPEC } from "../domain/vehicle/kinds/suv/spec";
 import { DOCK } from "../domain/vehicle/motion/dock";
-import { type Form, isForm } from "../domain/vehicle/motion/forms";
+import type { Form } from "../domain/vehicle/motion/forms";
 import { PAINTS } from "../domain/vehicle/paint";
 import {
   nearestSeat,
@@ -34,14 +39,28 @@ import {
   CAMPER_WALL_BLOCK,
   DECK_FLOOR_BLOCK,
   DECK_SEAT_TYPE,
-  ENTITY_TYPE,
   entityPropertyId,
   HEADLIGHTS_PROPERTY,
-  TEST_INPUT_EVENT as INPUT_EVENT,
   LIGHT_BLOCK,
   PAINT_VARIANT,
   paintEvent,
 } from "../infrastructure/vehicle/bedrock/identifiers";
+import {
+  type Arena,
+  clearInput,
+  drive,
+  insideArena,
+  type Outcome,
+  POOL,
+  SEAT_PROBE,
+  setupArena,
+  spawnCar,
+  wait,
+  withBoat,
+  withCamper,
+  withCar,
+  withPool,
+} from "./arena";
 import {
   LOG_TAG,
   linePrefix,
@@ -51,9 +70,14 @@ import {
   TEST_EVENT,
 } from "./protocol";
 import { hitTick, judgeRam, PUSH_WINDOW, type RamSample } from "./ramJudge";
-
-// setupArena clears and floors this x/z rectangle and keeps it ticking.
-const ARENA = { minX: 0, maxX: 120, minZ: 0, maxZ: 90 } as const;
+import {
+  gearDownLandingOutcome,
+  suvProperty,
+  takeOff,
+  takeoffOutcome,
+  ticksToReach,
+  vehicleForm,
+} from "./scenarios/shared";
 
 // Clear of the other tests: camper_accel's lane at z 85, the dive tank at z 61-69,
 // and the pool and flight lanes west of x 90.
@@ -101,160 +125,29 @@ async function atParkSpot(
   }
 }
 
-// Mirrors the SUV's minecraft:rideable but seats cows, because only players
-// can ride the SUV and a test has no players (ADR 0010).
-const SEAT_PROBE = "yasu_ride_test:seat_probe";
-
-interface Outcome {
-  pass: boolean;
-  detail: string;
-  lines?: string[];
-}
-interface Arena {
-  dim: Dimension;
-  gy: number;
-}
-interface Horizontal {
-  x: number;
-  z: number;
-}
-
 function log(runId: string, msg: string): void {
   console.warn(`${linePrefix(runId)}${msg}`);
-}
-
-function wait(ticks: number): Promise<void> {
-  return new Promise((resolve) => system.runTimeout(resolve, ticks));
-}
-
-function hlen(v: Horizontal): number {
-  return Math.hypot(v.x, v.z);
 }
 
 function mean(values: number[]): number {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
-function slipAngleDeg(v: Horizontal, yaw: number): number {
-  const f = forward(yaw);
-  const cos = (v.x * f.x + v.z * f.z) / hlen(v);
+function slipAngleDeg(v: Vec2, yaw: number): number {
+  const cos = dot(v, forward(yaw)) / length(v);
   return (Math.acos(Math.min(1, Math.max(-1, cos))) * 180) / Math.PI;
-}
-
-function insideArena(p: Horizontal): boolean {
-  const m = SUV_SPEC.bodyHalfWidth;
-  return (
-    p.x >= ARENA.minX + m &&
-    p.x <= ARENA.maxX + 1 - m &&
-    p.z >= ARENA.minZ + m &&
-    p.z <= ARENA.maxZ + 1 - m
-  );
-}
-
-function drive(car: Entity, x: number, y: number, jump = false): void {
-  system.sendScriptEvent(INPUT_EVENT, `${car.id},${x},${y},${jump ? 1 : 0}`);
-}
-
-function clearInput(car: Entity): void {
-  system.sendScriptEvent(INPUT_EVENT, `${car.id},clear`);
-}
-
-function spawnCar(
-  a: Arena,
-  x: number,
-  z: number,
-  yaw: number,
-  type = ENTITY_TYPE.suv,
-): Entity {
-  a.dim.runCommand(`summon ${type} ${x} ${a.gy} ${z}`);
-  const car = a.dim.getEntities({
-    type,
-    location: { x, y: a.gy, z },
-    maxDistance: 1.5,
-  })[0];
-  if (!car) throw new Error(`car not spawned at ${x},${z}`);
-  car.setRotation({ x: 0, y: yaw });
-  return car;
-}
-
-async function withCar<T>(
-  a: Arena,
-  x: number,
-  z: number,
-  yaw: number,
-  run: (car: Entity) => Promise<T>,
-  type = ENTITY_TYPE.suv,
-): Promise<T> {
-  const car = spawnCar(a, x, z, yaw, type);
-  try {
-    return await run(car);
-  } finally {
-    clearInput(car);
-    if (car.isValid) car.remove();
-  }
-}
-
-function withCamper<T>(
-  a: Arena,
-  x: number,
-  z: number,
-  yaw: number,
-  run: (car: Entity) => Promise<T>,
-): Promise<T> {
-  return withCar(a, x, z, yaw, run, ENTITY_TYPE.camper);
-}
-
-async function setupArena(): Promise<Arena> {
-  const dim = world.getDimension("overworld");
-  const { minX, maxX, minZ, maxZ } = ARENA;
-  // An existing area of the same name keeps its old bounds; withPool reports
-  // the fill that then fails in the chunks left out.
-  dim.runCommand(
-    `tickingarea add ${minX} -64 ${minZ} ${maxX} 0 ${maxZ} yasu_ride_arena true`,
-  );
-  await wait(60);
-  const top = dim.getTopmostBlock({ x: 5, z: 20 });
-  if (!top) throw new Error("arena chunk not loaded");
-  const gy = top.location.y + 1;
-  // fill is capped at 32,768 blocks per call, so the clear is split in four.
-  const midX = (minX + maxX) / 2;
-  const midZ = Math.floor((minZ + maxZ) / 2);
-  for (const [x0, x1] of [
-    [minX, midX],
-    [midX + 1, maxX],
-  ])
-    for (const [z0, z1] of [
-      [minZ, midZ],
-      [midZ + 1, maxZ],
-    ])
-      dim.runCommand(`fill ${x0} ${gy} ${z0} ${x1} ${gy + 6} ${z1} air`);
-  dim.runCommand(
-    `fill ${minX} ${gy - 1} ${minZ} ${maxX} ${gy - 1} ${maxZ} stone`,
-  );
-  // The flight tests climb up to about 8 blocks above the floor along z = 4.5.
-  dim.runCommand(`fill ${minX} ${gy + 7} 0 60 ${gy + 20} 12 air`);
-  dim.runCommand(`kill @e[type=${ENTITY_TYPE.suv}]`);
-  dim.runCommand(`kill @e[type=${ENTITY_TYPE.sportsboat}]`);
-  dim.runCommand(`kill @e[type=${ENTITY_TYPE.camper}]`);
-  dim.runCommand("kill @e[type=cow]");
-  dim.runCommand(`kill @e[type=${SEAT_PROBE}]`);
-  // The pool's water replaces the stone under passable_no_hop's carpets and
-  // torches, which then drop as items.
-  dim.runCommand("kill @e[type=item]");
-  await wait(5);
-  return { dim, gy };
 }
 
 function camperAccel(a: Arena): Promise<Outcome> {
   return withCamper(a, 5.5, 85.5, -90, async (car) => {
     drive(car, 0, 1);
-    let reach = -1;
-    for (let t = 0; t < 200; t++) {
-      await wait(1);
-      if (reach < 0 && hlen(car.getVelocity()) >= CAMPER_SPEC.maxSpeed * 0.95)
-        reach = t;
-      if (car.location.x > 100) break;
-    }
+    const reach = await ticksToReach(
+      car,
+      0.95,
+      CAMPER_SPEC.maxSpeed,
+      200,
+      () => car.location.x > 100,
+    );
     return { pass: reach >= 60 && reach <= 90, detail: `reach95=${reach}` };
   });
 }
@@ -273,7 +166,7 @@ async function camperWall(a: Arena): Promise<Outcome> {
         front = Math.max(front, car.location.x + CAMPER_SPEC.bodyFront);
       }
       const x = car.location.x;
-      const speed = hlen(car.getVelocity());
+      const speed = length(car.getVelocity());
       return {
         pass: front <= 60.05 && x > 50 && speed < 0.05,
         detail: `front=${front.toFixed(3)} x=${x.toFixed(3)} speed=${speed.toFixed(3)}`,
@@ -387,54 +280,15 @@ function camperDepartCargo(a: Arena): Promise<Outcome> {
 
 function camperTakeoff(a: Arena): Promise<Outcome> {
   return withCamper(a, FLIGHT_LANE.x, FLIGHT_LANE.z, -90, async (car) => {
-    await doubleTap(car);
-    await wait(CAMPER_SPEC.takeoffTicks + 5);
-    const form = vehicleForm(car);
-    const rise = car.location.y - a.gy;
-    return {
-      pass: form === "hover" && rise >= 1.2 && rise <= 1.8,
-      detail: `form=${form} rise=${rise.toFixed(2)}`,
-    };
+    await takeOff(car, CAMPER_SPEC.takeoffTicks);
+    return takeoffOutcome(a, car);
   });
 }
 
 function camperLand(a: Arena): Promise<Outcome> {
   return withCamper(a, FLIGHT_LANE.x, FLIGHT_LANE.z, -90, async (car) => {
-    await doubleTap(car);
-    await wait(CAMPER_SPEC.takeoffTicks + 5);
-    // Climb well above gearDownHeight so the wheels have to wait for the ground.
-    drive(car, 0, 0, true);
-    await wait(15);
-    drive(car, 0, 0, false);
-    await wait(2);
-    await doubleTap(car);
-    const afterTap = vehicleForm(car);
-    let gearY = Number.NaN;
-    let landedAt = -1;
-    for (let t = 0; t < 80; t++) {
-      await wait(1);
-      if (Number.isNaN(gearY) && suvProperty(car, "gear_down") === true)
-        gearY = car.location.y - a.gy;
-      if (vehicleForm(car) === "car") {
-        landedAt = t;
-        break;
-      }
-    }
-    const restY = car.location.y - a.gy;
-    // Gravity must be back on: a hop up has to come down again.
-    car.applyImpulse({ x: 0, y: 0.5, z: 0 });
-    await wait(40);
-    const afterHop = car.location.y - a.gy;
-    return {
-      pass:
-        afterTap === "landing" &&
-        landedAt >= 0 &&
-        gearY >= 2 &&
-        gearY <= CAMPER_SPEC.gearDownHeight + 0.5 &&
-        Math.abs(restY) <= 0.1 &&
-        Math.abs(afterHop) <= 0.1,
-      detail: `afterTap=${afterTap} gearY=${gearY.toFixed(2)} landedAt=${landedAt} restY=${restY.toFixed(2)} afterHop=${afterHop.toFixed(2)}`,
-    };
+    await takeOff(car, CAMPER_SPEC.takeoffTicks);
+    return gearDownLandingOutcome(a, car, CAMPER_SPEC.gearDownHeight);
   });
 }
 
@@ -487,13 +341,13 @@ function accelAndStep1(a: Arena): Promise<Outcome> {
   a.dim.runCommand(`fill 60 ${a.gy} 15 70 ${a.gy} 25 stone`);
   return withCar(a, 5.5, 20.5, -90, async (car) => {
     drive(car, 0, 1);
-    let reach = -1;
-    for (let t = 0; t < 200; t++) {
-      await wait(1);
-      if (reach < 0 && hlen(car.getVelocity()) >= SUV_SPEC.maxSpeed * 0.95)
-        reach = t;
-      if (car.location.x > 63) break;
-    }
+    const reach = await ticksToReach(
+      car,
+      0.95,
+      SUV_SPEC.maxSpeed,
+      200,
+      () => car.location.x > 63,
+    );
     const climbed = car.location.y >= a.gy + 0.9;
     // The tick the input takes effect shifts by 0 or 1 depending on pack run
     // order, so the 45-tick target gets one tick of slack.
@@ -541,9 +395,9 @@ async function turnAndHandbrake(a: Arena): Promise<Outcome> {
       let inside = true;
       for (let t = 0; t < 20; t++) {
         await wait(1);
-        inside &&= insideArena(car.location);
+        inside &&= insideArena(car.location, SUV_SPEC.bodyHalfWidth);
         const v = car.getVelocity();
-        const speed = hlen(v);
+        const speed = length(v);
         maxSpeed = Math.max(maxSpeed, speed);
         if (speed > 0.02) {
           maxSlip = Math.max(maxSlip, slipAngleDeg(v, car.getRotation().y));
@@ -664,7 +518,7 @@ async function suvSoulSand(a: Arena): Promise<Outcome> {
       let under = "none";
       for (let t = 0; t < 200; t++) {
         await wait(1);
-        const speed = hlen(car.getVelocity());
+        const speed = length(car.getVelocity());
         max = Math.max(max, speed);
         if (reach < 0 && speed >= 0.3) reach = t;
         if (t === 5)
@@ -842,36 +696,13 @@ function headlightsFollowAndClear(a: Arena): Promise<Outcome> {
 
 const FLIGHT_LANE = { x: 5.5, z: 4.5 } as const;
 
-function suvProperty(
-  car: Entity,
-  name: keyof typeof SUV_ENTITY.properties,
-): ReturnType<Entity["getProperty"]> {
-  return car.getProperty(entityPropertyId(name));
-}
-
-function vehicleForm(car: Entity): Form | undefined {
-  const form = suvProperty(car, "form");
-  return isForm(form) ? form : undefined;
-}
-
-/** Two Jump presses 4 ticks apart (ADR 0021). */
-async function doubleTap(car: Entity): Promise<void> {
-  for (let i = 0; i < 2; i++) {
-    drive(car, 0, 0, true);
-    await wait(2);
-    drive(car, 0, 0, false);
-    await wait(2);
-  }
-}
-
 /** Runs `run` on a car that has taken off over the flight lane. */
 function withAirborneCar<T>(
   a: Arena,
   run: (car: Entity) => Promise<T>,
 ): Promise<T> {
   return withCar(a, FLIGHT_LANE.x, FLIGHT_LANE.z, -90, async (car) => {
-    await doubleTap(car);
-    await wait(SUV_SPEC.takeoffTicks + 5);
+    await takeOff(car, SUV_SPEC.takeoffTicks);
     return run(car);
   });
 }
@@ -894,14 +725,7 @@ function ticksUntilGround(car: Entity, limit: number): Promise<number> {
 }
 
 function flightTakeoff(a: Arena): Promise<Outcome> {
-  return withAirborneCar(a, async (car) => {
-    const form = vehicleForm(car);
-    const rise = car.location.y - a.gy;
-    return {
-      pass: form === "hover" && rise >= 1.2 && rise <= 1.8,
-      detail: `form=${form} rise=${rise.toFixed(2)}`,
-    };
-  });
+  return withAirborneCar(a, async (car) => takeoffOutcome(a, car));
 }
 
 function flightCruise(a: Arena): Promise<Outcome> {
@@ -916,7 +740,7 @@ function flightCruise(a: Arena): Promise<Outcome> {
         minY = Math.min(minY, car.location.y);
         maxY = Math.max(maxY, car.location.y);
       }
-      if (t >= 50) speed = Math.max(speed, hlen(car.getVelocity()));
+      if (t >= 50) speed = Math.max(speed, length(car.getVelocity()));
     }
     const altRange = maxY - minY;
     // At steady state the speed is maxSpeed * engineDrag / SUV_SPEC.flightDrag,
@@ -968,41 +792,9 @@ function flightBank(a: Arena): Promise<Outcome> {
 }
 
 function flightLand(a: Arena): Promise<Outcome> {
-  return withAirborneCar(a, async (car) => {
-    // Climb well above gearDownHeight so the wheels have to wait for the ground.
-    drive(car, 0, 0, true);
-    await wait(15);
-    drive(car, 0, 0, false);
-    await wait(2);
-    await doubleTap(car);
-    const afterTap = vehicleForm(car);
-    let gearY = Number.NaN;
-    let landedAt = -1;
-    for (let t = 0; t < 80; t++) {
-      await wait(1);
-      if (Number.isNaN(gearY) && suvProperty(car, "gear_down") === true)
-        gearY = car.location.y - a.gy;
-      if (vehicleForm(car) === "car") {
-        landedAt = t;
-        break;
-      }
-    }
-    const restY = car.location.y - a.gy;
-    // Gravity must be back on: a hop up has to come down again.
-    car.applyImpulse({ x: 0, y: 0.5, z: 0 });
-    await wait(40);
-    const afterHop = car.location.y - a.gy;
-    return {
-      pass:
-        afterTap === "landing" &&
-        landedAt >= 0 &&
-        gearY >= 2 &&
-        gearY <= SUV_SPEC.gearDownHeight + 0.5 &&
-        Math.abs(restY) <= 0.1 &&
-        Math.abs(afterHop) <= 0.1,
-      detail: `afterTap=${afterTap} gearY=${gearY.toFixed(2)} landedAt=${landedAt} restY=${restY.toFixed(2)} afterHop=${afterHop.toFixed(2)}`,
-    };
-  });
+  return withAirborneCar(a, (car) =>
+    gearDownLandingOutcome(a, car, SUV_SPEC.gearDownHeight),
+  );
 }
 
 function flightTouchdown(a: Arena): Promise<Outcome> {
@@ -1034,9 +826,6 @@ function flightDriverless(a: Arena): Promise<Outcome> {
   });
 }
 
-// 80 blocks across z, so a submarine has room to turn (submarine_bank); the
-// lane runs along the low-z edge and right turns head into the open water.
-const POOL = { minX: 15, maxX: 85, minZ: 2, maxZ: 81, z: 7.5 } as const;
 // Along +z at x = 20.5 the pool is clear for a full throttle and coast;
 // wall_diagonal's wall stands at x = 45.
 const POOL_SOUTH_LANE = { x: POOL.minX + 5.5, z: POOL.minZ + 2.5, yaw: 0 };
@@ -1053,81 +842,6 @@ const DEPTH_HOLD_TOLERANCE = 0.1;
 
 function withinFivePercent(value: number, target: number): boolean {
   return value >= target * 0.95 && value <= target * 1.05;
-}
-
-async function withPool<T>(
-  a: Arena,
-  depth: number,
-  run: () => Promise<T>,
-): Promise<T> {
-  const { minX, maxX, minZ, maxZ } = POOL;
-  const bottom = a.gy - depth;
-  const worldMin = a.dim.heightRange.min;
-  if (bottom - 1 < worldMin)
-    throw new Error(
-      `Pool of depth ${depth} needs a floor at y=${bottom - 1}, below the world's minimum y=${worldMin}`,
-    );
-  const fillPool = (block: string) =>
-    a.dim.runCommand(
-      `fill ${minX} ${bottom} ${minZ} ${maxX} ${a.gy - 1} ${maxZ} ${block}`,
-    );
-  a.dim.runCommand(
-    `fill ${minX} ${bottom - 1} ${minZ} ${maxX} ${bottom - 1} ${maxZ} stone`,
-  );
-  // Contain the water even when the arena's original terrain has caves.
-  for (const x of [minX - 1, maxX + 1])
-    a.dim.runCommand(
-      `fill ${x} ${bottom} ${minZ - 1} ${x} ${a.gy - 1} ${maxZ + 1} stone`,
-    );
-  for (const z of [minZ - 1, maxZ + 1])
-    a.dim.runCommand(
-      `fill ${minX} ${bottom} ${z} ${maxX} ${a.gy - 1} ${z} stone`,
-    );
-  // runCommand reports a fill into unloaded chunks as successCount 0 instead
-  // of throwing. Seen in game with an arena ticking area kept from a smaller
-  // arena under the same name: every submarine test then failed with
-  // enteredAt=-1.
-  if (fillPool("water").successCount === 0)
-    throw new Error(
-      `the pool was not filled: check that "tickingarea list" shows yasu_ride_arena covering x ${ARENA.minX}-${ARENA.maxX}, z ${ARENA.minZ}-${ARENA.maxZ}`,
-    );
-  try {
-    await wait(5);
-    return await run();
-  } finally {
-    fillPool("air");
-    a.dim.runCommand(
-      `fill ${minX} ${a.gy - 1} ${minZ} ${maxX} ${a.gy - 1} ${maxZ} stone`,
-    );
-  }
-}
-
-async function withBoat<T>(
-  a: Arena,
-  run: (boat: Entity) => Promise<T>,
-  start: Horizontal & { yaw: number } = {
-    x: POOL.minX + 5.5,
-    z: POOL.z,
-    yaw: -90,
-  },
-  settleTicks = 40,
-): Promise<T> {
-  const { x, z } = start;
-  a.dim.runCommand(`summon ${ENTITY_TYPE.sportsboat} ${x} ${a.gy} ${z}`);
-  const boat = a.dim.getEntities({
-    type: ENTITY_TYPE.sportsboat,
-    location: { x, y: a.gy, z },
-    maxDistance: 1.5,
-  })[0];
-  if (!boat) throw new Error("boat not spawned at the pool surface");
-  boat.setRotation({ x: 0, y: start.yaw });
-  try {
-    if (settleTicks > 0) await wait(settleTicks); // Let the boat settle on the water
-    return await run(boat);
-  } finally {
-    clearInput(boat);
-    if (boat.isValid) boat.remove();
-  }
 }
 
 function boatFloat(a: Arena): Promise<Outcome> {
@@ -1398,11 +1112,11 @@ function boatDrag(a: Arena): Promise<Outcome> {
             x: observed.x + step.impulse.x,
             z: observed.z + step.impulse.z,
           };
-          const previousSpeed = hlen(observed);
+          const previousSpeed = length(observed);
           // Each row pairs the given velocity at t with the observation at t+1.
           await wait(1);
           observed = boat.getVelocity();
-          const speed = hlen(observed);
+          const speed = length(observed);
           const water = feetInWater(boat);
           const denominator = throttle ? dot(given, given) : previousSpeed;
           const ratio =
@@ -1420,14 +1134,14 @@ function boatDrag(a: Arena): Promise<Outcome> {
             if (drag !== undefined) steadyDrag.push(drag);
           }
           lines.push(
-            `tick=${t + 1} ${throttle ? "throttle" : "coast"} impulse=${hlen(step.impulse).toFixed(3)} given=${hlen(given).toFixed(3)} observed=${speed.toFixed(3)} feet=${(boat.location.y - a.gy).toFixed(3)} water=${water ? 1 : 0} drag=${replica.inspect().waterDrag?.toFixed(3) ?? "n/a"} ratio=${ratio?.toFixed(3) ?? "n/a"}`,
+            `tick=${t + 1} ${throttle ? "throttle" : "coast"} impulse=${length(step.impulse).toFixed(3)} given=${length(given).toFixed(3)} observed=${speed.toFixed(3)} feet=${(boat.location.y - a.gy).toFixed(3)} water=${water ? 1 : 0} drag=${replica.inspect().waterDrag?.toFixed(3) ?? "n/a"} ratio=${ratio?.toFixed(3) ?? "n/a"}`,
           );
         }
         const meanText = (values: number[]) =>
           values.length > 0 ? mean(values).toFixed(3) : "n/a";
         const summary = (values: number[]) =>
           `mean=${meanText(values)} spread=${values.length > 0 ? (Math.max(...values) - Math.min(...values)).toFixed(3) : "n/a"} n=${values.length}`;
-        const distance = hlen({
+        const distance = length({
           x: boat.location.x - start.x,
           z: boat.location.z - start.z,
         });
@@ -1451,7 +1165,7 @@ function boatCruise(a: Arena): Promise<Outcome> {
         const speeds: number[] = [];
         for (let t = 1; t <= 70; t++) {
           await wait(1);
-          if (t >= 51) speeds.push(hlen(boat.getVelocity()));
+          if (t >= 51) speeds.push(length(boat.getVelocity()));
         }
         return mean(speeds);
       },
@@ -1464,7 +1178,7 @@ function boatCruise(a: Arena): Promise<Outcome> {
         const cruiseSpeeds: number[] = [];
         for (let t = 1; t <= 55; t++) {
           await wait(1);
-          if (t >= 51) cruiseSpeeds.push(hlen(boat.getVelocity()));
+          if (t >= 51) cruiseSpeeds.push(length(boat.getVelocity()));
         }
         const cruiseSpeed = mean(cruiseSpeeds);
         drive(boat, -1, 1);
@@ -1478,7 +1192,7 @@ function boatCruise(a: Arena): Promise<Outcome> {
           degrees += ((next - yaw + 540) % 360) - 180;
           yaw = next;
           ticks++;
-          speeds.push(hlen(boat.getVelocity()));
+          speeds.push(length(boat.getVelocity()));
         }
         return {
           cruiseSpeed,
@@ -1514,7 +1228,7 @@ function boatShore(a: Arena): Promise<Outcome> {
       await wait(120);
       const x = boat.location.x;
       const feet = boat.location.y - a.gy;
-      const speed = hlen(boat.getVelocity());
+      const speed = length(boat.getVelocity());
       return {
         pass: x - x0 > 10 && x < shoreX && feet < 0 && speed < 0.05,
         detail: `x=${x.toFixed(2)} feet=${feet.toFixed(3)} speed=${speed.toFixed(3)}`,
@@ -1593,7 +1307,7 @@ function submarineDive(a: Arena): Promise<Outcome> {
         submerged &&= vehicleForm(car) === "submarine";
         minY = Math.min(minY, car.location.y);
         maxY = Math.max(maxY, car.location.y);
-        if (t >= 50) speed = Math.max(speed, hlen(car.getVelocity()));
+        if (t >= 50) speed = Math.max(speed, length(car.getVelocity()));
       }
       const drift = Math.max(y0 - minY, maxY - y0);
       const bed = a.gy - DIVE_DEPTH;

@@ -51,7 +51,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0045](0045-submarine-preview.md) | Add a submarine pose to the README previews | Accepted |
 | [0046](0046-organize-each-layer-by-feature.md) | Organize each layer by feature | Extended by 0050, 0055, 0065 |
 | [0047](0047-rename-to-yasuflatland-ride.md) | Rename to Yasuflatland Ride | Accepted |
-| [0048](0048-mutation-testing-and-unused-code-checks.md) | Mutation testing with Stryker, and unused code checks with knip | Accepted |
+| [0048](0048-mutation-testing-and-unused-code-checks.md) | Mutation testing with Stryker, and unused code checks with knip | Extended by 0088 |
 | [0049](0049-pack-icons-rendered-from-model.md) | Render pack icons from the hovering SUV model | Accepted |
 | [0050](0050-vehicle-kinds-and-per-kind-profiles.md) | Vehicle kinds and per-kind profiles | Superseded in part by 0055 |
 | [0051](0051-sports-boat.md) | Sports boat | Superseded in part by 0066 and 0080; extended by 0058 and 0063 |
@@ -91,6 +91,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0085](0085-halve-the-sports-boat-bow-rise.md) | Halve the sports boat bow rise | Accepted |
 | [0086](0086-camper-hints-near-the-bumper-and-the-parked-driver-seat.md) | Show camper hints near the bumper and the parked driver's seat | Accepted |
 | [0087](0087-sports-boat-spec-table.md) | Keep the sports boat tuning in one spec table | Accepted |
+| [0088](0088-keep-the-in-game-test-fixtures-out-of-mutation.md) | Keep the in-game test fixtures out of mutation testing | Accepted |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 
