@@ -26,6 +26,7 @@ import {
 } from "../../motion/motion";
 import { waterBelowAt, waterDepthAt } from "../../motion/water";
 import { seatWorldPositions } from "../../seats";
+import { SyncedValue } from "../../syncedValue";
 import { stepRoll, stepTrim } from "./attitude";
 import { floorCells, holdHeight } from "./deck";
 import { rollCommand, type SPORTSBOAT_ENTITY, trimCommand } from "./entity";
@@ -118,10 +119,8 @@ export class SportsboatDrive implements Drive {
   private docked: HoldPose | undefined;
   private stillTicks = 0;
   private restoredDocked: boolean;
-  // Undefined until the first tick, so a rebuilt vehicle clears a trim or roll
-  // the entity kept from before /reload, as the SUV does with its bank.
-  private sentTrim: number | undefined;
-  private sentRoll: number | undefined;
+  private readonly trimSync = new SyncedValue<number>();
+  private readonly rollSync = new SyncedValue<number>();
 
   /** `limits` other than the boat's own are for tests that vary one value. */
   constructor(
@@ -276,10 +275,10 @@ export class SportsboatDrive implements Drive {
         this.limits,
       );
     }
-    if (this.trim !== this.sentTrim) commands.push(trimCommand(this.trim));
-    if (this.roll !== this.sentRoll) commands.push(rollCommand(this.roll));
-    this.sentTrim = this.trim;
-    this.sentRoll = this.roll;
+    const trim = this.trimSync.next(this.trim);
+    if (trim !== undefined) commands.push(trimCommand(trim));
+    const roll = this.rollSync.next(this.roll);
+    if (roll !== undefined) commands.push(rollCommand(roll));
     // Buoyancy and gravity belong to the engine, so the script never pushes vertically.
     return {
       impulse: { x: step.impulse.x, y: 0, z: step.impulse.z },

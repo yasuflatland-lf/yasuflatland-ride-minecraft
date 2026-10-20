@@ -7,6 +7,7 @@ import type { HoldPose } from "../../floor";
 import { DOCK, pushesStick } from "../../motion/dock";
 import { dockCommands, undockCommands } from "../../motion/dockEntity";
 import { TransformingDrive } from "../../motion/transformingDrive";
+import { SyncedValue } from "../../syncedValue";
 import { type BodyEnds, guardEnds } from "./bodyGuard";
 import { type CAMPER_ENTITY, doorCommand } from "./entity";
 import { CAMPER_MOTION } from "./profile";
@@ -54,8 +55,7 @@ export class CamperDrive extends TransformingDrive {
   private stickWasPushed = false;
   private doorOpen: boolean;
   private doorStep: number;
-  // Undefined until the first tick, so a rebuilt vehicle re-sends its door, as with the bank.
-  private sentDoorStep: number | undefined;
+  private readonly doorStepSync = new SyncedValue<number>();
 
   constructor(yaw: number, restored: RestoredOf<typeof CAMPER_ENTITY>) {
     super(
@@ -228,8 +228,7 @@ export class CamperDrive extends TransformingDrive {
   private doorCommands(): EngineCommand[] {
     const target = this.doorOpen ? DOOR_STEPS : 0;
     this.doorStep += Math.sign(target - this.doorStep);
-    if (this.doorStep === this.sentDoorStep) return [];
-    this.sentDoorStep = this.doorStep;
-    return [doorCommand(this.doorStep / DOOR_STEPS)];
+    const step = this.doorStepSync.next(this.doorStep);
+    return step === undefined ? [] : [doorCommand(step / DOOR_STEPS)];
   }
 }
