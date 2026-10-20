@@ -175,6 +175,8 @@ export class TransformingDrive implements Drive {
 
   step(raw: RawInput | undefined, ctx: TickContext): DriveStep {
     const motion = this.motion;
+    // A passenger may be moving up to the driver seat (ADR 0078).
+    const controlled = raw !== undefined || ctx.awaitingDriver === true;
     const waterDepth = waterDepthAt(
       ctx.location,
       ctx.waterAt,
@@ -187,7 +189,7 @@ export class TransformingDrive implements Drive {
       {
         tick: ctx.tick,
         jump: raw?.jump ?? false,
-        controlled: raw !== undefined,
+        controlled,
         onGround: ctx.onGround,
         waterDepth,
       },
@@ -241,7 +243,7 @@ export class TransformingDrive implements Drive {
       const targetVy = submarineVerticalSpeed(
         {
           climb: climbInput(raw),
-          controlled: raw !== undefined,
+          controlled,
           rising,
           waterDepth,
         },

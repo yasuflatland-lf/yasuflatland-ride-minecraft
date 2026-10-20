@@ -20,6 +20,8 @@ export const SPEC = {
   headlightSwitchCooldown: 10, // ticks of idle switch; a held touch repeats the use every 4-6 ticks on mobile (ADR 0024)
   waterBreathingInterval: 20, // ticks
   waterBreathingTicks: 60, // ticks
+  // Driver handover in flight (ADR 0078)
+  driverHandoverTicks: 6, // ticks; Bedrock moves a passenger into seat 0 within 5 ticks (ADR 0019), plus one of margin
   // Vehicle limit (ADR 0038, ADR 0066)
   maxUnownedVehicles: 10, // vehicles with no owner (summoned, or placed before ADR 0066), all kinds together
   maxEvicted: 64, // evicted vehicles remembered until their chunk loads; one dropped from the list joins again as the oldest when it loads
