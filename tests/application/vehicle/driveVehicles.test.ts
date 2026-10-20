@@ -485,6 +485,40 @@ describe("DriveVehicles third-person camera in flight (ADR 0028)", () => {
     expect(cameraCalls(world)).toEqual(["camera:p:third", "camera:p:own"]);
   });
 
+  it("pulls the camera back for a flying camper, and keeps the near view for a flying SUV (ADR 0071)", () => {
+    const world = new FakeWorld();
+    const uc = new DriveVehicles(world, new InMemoryRepo(), logger());
+    const flying = {
+      restored: () => ({ form: "hover" }) as const,
+      onGround: false,
+    };
+    world.snapshots = [
+      snapshot("a", { ...flying, riders: [rider("p")] }),
+      snapshot("b", { ...flying, kind: "camper", riders: [rider("q")] }),
+    ];
+    uc.execute(0);
+    uc.execute(1);
+    expect(cameraCalls(world)).toEqual(["camera:p:third", "camera:q:far"]);
+  });
+
+  it("switches a rider to the new vehicle's camera when they change vehicles in flight", () => {
+    const world = new FakeWorld();
+    const uc = new DriveVehicles(world, new InMemoryRepo(), logger());
+    const flying = {
+      restored: () => ({ form: "hover" }) as const,
+      onGround: false,
+    };
+    world.snapshots = [snapshot("a", { ...flying, riders: [rider("p")] })];
+    uc.execute(0);
+    world.snapshots = [
+      snapshot("a", flying),
+      snapshot("b", { ...flying, kind: "camper", riders: [rider("p")] }),
+    ];
+    uc.execute(1);
+    uc.execute(2);
+    expect(cameraCalls(world)).toEqual(["camera:p:third", "camera:p:far"]);
+  });
+
   it("leaves riders of a vehicle on the ground with their own view", () => {
     const world = new FakeWorld();
     const uc = new DriveVehicles(world, new InMemoryRepo(), logger());

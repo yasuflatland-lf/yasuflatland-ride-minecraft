@@ -36,7 +36,9 @@ export const CAMPER_PROFILE: VehicleProfile = Object.freeze({
     surfaces: Object.freeze<PlacementSurface[]>(["top"]),
     clearance: Object.freeze({ halfX: 4, halfZ: 4, height: 4 }),
   }),
-  chaseCamera: "near",
+  // The vanilla view from behind stays inside the 7.6-block body, which hides the camper
+  // in flight (ADR 0071).
+  chaseCamera: "far",
 });
 
 export const CAMPER_MOTION: MotionLimits = Object.freeze({

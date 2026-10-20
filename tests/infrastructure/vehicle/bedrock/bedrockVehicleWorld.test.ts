@@ -387,6 +387,16 @@ describe("BedrockVehicleWorld flight wiring", () => {
     expect(camera.clear).toHaveBeenCalledTimes(1);
     expect(camera.setCamera).toHaveBeenCalledTimes(1);
   });
+
+  it("switches a rider to the pack's far chase preset (ADR 0071)", () => {
+    const { world } = fixture();
+    const camera = { setCamera: vi.fn(), clear: vi.fn() };
+    game.getEntity.mockImplementation((id: string) =>
+      id === "rider" ? { typeId: "minecraft:player", camera } : undefined,
+    );
+    world.setChaseCamera("rider", "far");
+    expect(camera.setCamera.mock.calls).toEqual([["yasu_ride:far_chase"]]);
+  });
 });
 
 describe("BedrockVehicleWorld command interpreter", () => {
