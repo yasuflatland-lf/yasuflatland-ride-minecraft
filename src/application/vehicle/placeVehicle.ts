@@ -1,6 +1,8 @@
 // Use case: place a vehicle from its item on the cell its kind's placement rule
-// picks (ADR 0008, ADR 0050): the SUV on the top face of a block, the sports boat
-// at the water surface from any face or the view ray, or on land from a top face (ADR 0051).
+// (profile.placement) picks (ADR 0008, ADR 0050): the SUV and the camper on the top
+// face of a block (ADR 0067), the sports boat at the water surface from any face or
+// the view ray first, then on land from a top face (ADR 0051). Infrastructure picks
+// the cell with placementCell; this use case checks profile.placement.clearance.
 import type { Vec3 } from "../../domain/shared/vec";
 import type { VehicleKind } from "../../domain/vehicle/kind";
 import { createVehicle, profileOf } from "../../domain/vehicle/kinds/index";
