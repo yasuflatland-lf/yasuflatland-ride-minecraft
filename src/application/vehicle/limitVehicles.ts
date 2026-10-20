@@ -3,6 +3,7 @@ import type { Fleet, FleetEntry } from "../../domain/vehicle/fleet";
 import type { FleetRepository } from "../../domain/vehicle/fleetRepository";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
 import type { LimitWorld, Logger } from "./ports";
+import { retireVehicle } from "./retireVehicle";
 
 export class LimitVehicles {
   constructor(
@@ -50,9 +51,7 @@ export class LimitVehicles {
       if (!fleet.isEvicted(id)) continue;
       // One failure must not cost the others, or the save of the fleet.
       try {
-        this.world.removeVehicle(id);
-        this.repo.remove(id);
-        fleet.forget(id);
+        retireVehicle(this.world, this.repo, fleet, id);
         removed = true;
         this.log.warn(`${id}: removed, over the limit`);
       } catch (e) {

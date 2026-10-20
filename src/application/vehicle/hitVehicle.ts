@@ -3,6 +3,7 @@
 import type { FleetRepository } from "../../domain/vehicle/fleetRepository";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
 import type { BreakWorld } from "./ports";
+import { retireVehicle } from "./retireVehicle";
 
 export interface HitVehicleCommand {
   vehicleId: string;
@@ -22,15 +23,10 @@ export class HitVehicle {
     if (cmd.fromDeck) return false;
     const vehicle = this.repo.get(cmd.vehicleId);
     if (!vehicle) return false;
-    const broken = vehicle
-      .receiveHit(cmd.tick)
-      .some((e) => e.type === "VehicleBroken");
-    if (!broken) return false;
+    if (!vehicle.receiveHit(cmd.tick)) return false;
     this.world.dropVehicleItem(cmd.vehicleId);
-    this.world.removeVehicle(cmd.vehicleId);
-    this.repo.remove(cmd.vehicleId);
     const fleet = this.fleets.load();
-    fleet.forget(cmd.vehicleId);
+    retireVehicle(this.world, this.repo, fleet, cmd.vehicleId);
     this.fleets.save(fleet);
     return true;
   }
