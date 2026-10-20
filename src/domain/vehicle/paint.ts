@@ -1,6 +1,5 @@
-// Body colors a vehicle can be painted with dye (ADR 0031). A placed vehicle starts in
-// variant 0: khaki on the SUV and the camper, black on the sports boat, whose variant 0
-// texture is black (ADR 0051).
+// Body colors a vehicle can be painted with dye (ADR 0031). A placed vehicle starts at
+// variant 0, which shows its kind's default paint (ADR 0076).
 // The order is the minecraft:variant index that vehicles in existing worlds store and that the paint
 // events and render controller map to, so new paints go at the end.
 export const PAINTS = [
@@ -22,3 +21,8 @@ export const PAINTS = [
   "pink",
 ] as const;
 export type Paint = (typeof PAINTS)[number];
+
+/** The paint a vehicle shows: the variant-0 slot shows its kind's default paint (ADR 0076). */
+export function effectivePaint(paint: Paint, defaultPaint: Paint): Paint {
+  return paint === PAINTS[0] ? defaultPaint : paint;
+}

@@ -38,4 +38,4 @@ The boat seats 4. The first player to get in drives from the front-right seat an
 - **Shores.** It cannot leave the water: shores stop it, and it cannot drive on land. A boat placed on land coasts to a stop
 - **Ramming.** It damages mobs it hits at speed. The boat and the people inside take no damage
 - **Headlights.** Two beams light the water up to about 60 blocks ahead
-- **Paint.** The hull starts black. Each of the 16 dyes repaints it in that dye's color, and brown dye turns it back to black; each repaint uses one dye
+- **Paint.** The hull starts black. Each of the 16 dyes repaints it in that dye's color, and brown dye turns it back to black; black or brown dye on a black hull does nothing and keeps the dye; each repaint uses one dye

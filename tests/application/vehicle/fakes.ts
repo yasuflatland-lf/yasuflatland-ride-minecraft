@@ -73,6 +73,7 @@ export class FakeWorld
   loaded: FleetEntry[] = [];
   targets: RamTarget[] = [];
   readonly paints = new Map<string, Paint>();
+  readonly kinds = new Map<string, VehicleKind>();
   readonly owners = new Map<string, string>();
   readonly headlights = new Map<string, boolean>();
   /** Players in the world, and whether each has received the starter item. */
@@ -252,6 +253,9 @@ export class FakeWorld
   }
   paintOf(id: string) {
     return this.paints.get(id);
+  }
+  kindOf(id: string) {
+    return this.paints.has(id) ? (this.kinds.get(id) ?? "suv") : undefined;
   }
   paint(id: string, paint: Paint) {
     this.paints.set(id, paint);

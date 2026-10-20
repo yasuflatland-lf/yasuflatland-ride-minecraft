@@ -40,6 +40,7 @@ export const CAMPER_PROFILE: VehicleProfile = Object.freeze({
   // The vanilla view from behind stays inside the 7.6-block body, which hides the camper
   // in flight (ADR 0071).
   chaseCamera: "far",
+  defaultPaint: "khaki", // ADR 0067, 0076
 });
 
 export const CAMPER_MOTION: MotionLimits = Object.freeze({

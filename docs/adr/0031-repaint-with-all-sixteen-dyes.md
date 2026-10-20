@@ -1,6 +1,6 @@
 # 0031. Repaint vehicles with all sixteen dyes
 
-- Status: Superseded in part by 0036 (painting by interacting)
+- Status: Superseded in part by 0036 (painting by interacting); extended by 0076
 - Date: 2026-10-11
 - Supersedes: 0017
 

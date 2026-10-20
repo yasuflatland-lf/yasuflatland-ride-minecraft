@@ -420,6 +420,27 @@ describe("BedrockVehicleWorld snapshots", () => {
   });
 });
 
+describe("BedrockVehicleWorld paint wiring (ADR 0076)", () => {
+  it.each(VEHICLE_KINDS)("reports the kind of a %s entity", (kind) => {
+    const { car, world } = fixture();
+    car.typeId = ENTITY_TYPE[kind];
+    expect(world.kindOf(car.id)).toBe(kind);
+  });
+
+  it("an unknown type has no kind", () => {
+    const { car, world } = fixture();
+    car.typeId = "yasu_ride:unknown";
+    expect(world.kindOf(car.id)).toBeUndefined();
+  });
+
+  it("a missing or invalid vehicle has no kind", () => {
+    const { car, world } = fixture();
+    expect(world.kindOf("missing")).toBeUndefined();
+    car.isValid = false;
+    expect(world.kindOf(car.id)).toBeUndefined();
+  });
+});
+
 describe("BedrockVehicleWorld flight wiring", () => {
   beforeEach(() => vi.resetAllMocks());
 

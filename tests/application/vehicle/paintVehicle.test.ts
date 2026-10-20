@@ -1,10 +1,17 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { PaintVehicle } from "../../../src/application/vehicle/paintVehicle";
+import { VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
 import { PAINTS, type Paint } from "../../../src/domain/vehicle/paint";
 import { FakeWorld } from "./fakes";
 
 const paint = fc.constantFrom(...PAINTS);
+
+class KindlessWorld extends FakeWorld {
+  override kindOf() {
+    return undefined;
+  }
+}
 
 // The engine applies a paint event's variant on the next tick, so paintOf
 // still reports the old color for the rest of the tick it was painted in.
@@ -160,5 +167,99 @@ describe("PaintVehicle (ADR 0031)", () => {
         },
       ),
     );
+  });
+
+  it("repaints exactly when the shown color changes, per kind (ADR 0076)", () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom(...VEHICLE_KINDS),
+        paint,
+        paint,
+        fc.boolean(),
+        (kind, from, to, creative) => {
+          const world = new FakeWorld();
+          world.paints.set("a", from);
+          world.kinds.set("a", kind);
+          const blackish = (p: Paint) => p === "khaki" || p === "black";
+          const same =
+            kind === "sportsboat"
+              ? from === to || (blackish(from) && blackish(to))
+              : from === to;
+          const uc = new PaintVehicle(world);
+          expect(
+            uc.execute({
+              playerId: "p",
+              vehicleId: "a",
+              paint: to,
+              creative,
+              tick: 0,
+            }),
+          ).toBe(!same);
+          if (same) {
+            expect(world.calls).toEqual([]);
+            expect(world.paints.get("a")).toBe(from);
+          } else {
+            expect(world.calls).toEqual(
+              creative ? [`paint:a:${to}`] : [`paint:a:${to}`, `dye:p:${to}`],
+            );
+          }
+        },
+      ),
+    );
+  });
+
+  it("black or brown dye on a new or black sports boat keeps the dye (ADR 0076)", () => {
+    for (const from of ["khaki", "black"] as const) {
+      for (const to of ["black", "khaki"] as const) {
+        const world = new FakeWorld();
+        world.paints.set("a", from);
+        world.kinds.set("a", "sportsboat");
+        const uc = new PaintVehicle(world);
+        expect(
+          uc.execute({
+            playerId: "p",
+            vehicleId: "a",
+            paint: to,
+            creative: false,
+            tick: 0,
+          }),
+        ).toBe(false);
+        expect(world.calls).toEqual([]);
+      }
+    }
+  });
+
+  it("does nothing when the vehicle's kind is unknown", () => {
+    const world = new KindlessWorld();
+    world.paints.set("a", "red");
+    const uc = new PaintVehicle(world);
+    expect(
+      uc.execute({
+        playerId: "p",
+        vehicleId: "a",
+        paint: "green",
+        creative: false,
+        tick: 0,
+      }),
+    ).toBe(false);
+    expect(world.calls).toEqual([]);
+  });
+
+  it("does nothing to a vehicle removed after a repaint in the same tick (ADR 0037, 0076)", () => {
+    const world = new FakeWorld();
+    world.paints.set("a", "khaki");
+    const uc = new PaintVehicle(world);
+    const hit = (color: Paint) =>
+      uc.execute({
+        playerId: "p",
+        vehicleId: "a",
+        paint: color,
+        creative: false,
+        tick: 5,
+      });
+    expect(hit("red")).toBe(true);
+    world.paints.delete("a");
+    expect(hit("green")).toBe(false);
+    expect(world.calls).toEqual(["paint:a:red", "dye:p:red"]);
   });
 });

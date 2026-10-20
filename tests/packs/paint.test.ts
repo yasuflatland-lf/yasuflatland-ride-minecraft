@@ -1,6 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { PAINTS } from "../../src/domain/vehicle/paint";
+import { VEHICLE_KINDS, type VehicleKind } from "../../src/domain/vehicle/kind";
+import { profileOf } from "../../src/domain/vehicle/kinds/index";
+import { PAINTS, type Paint } from "../../src/domain/vehicle/paint";
 import {
   PAINT_BY_DYE,
   PAINT_VARIANT,
@@ -18,8 +20,20 @@ const controller = read(
   "packs/yasu_ride_rp/render_controllers/yasu_ride/suv.rc.json",
 ).render_controllers["controller.render.yasu_ride.suv"];
 
+const RP = "packs/yasu_ride_rp";
+/** The texture file a kind shows for a paint, resolved through its render controller. */
+function textureOf(kind: VehicleKind, paint: Paint): string {
+  const ce = read(`${RP}/entity/yasu_ride/${kind}.ce.json`)[
+    "minecraft:client_entity"
+  ].description;
+  const rc = read(`${RP}/render_controllers/yasu_ride/${kind}.rc.json`)
+    .render_controllers[`controller.render.yasu_ride.${kind}`];
+  const slot: string = rc.arrays.textures["Array.paints"][PAINT_VARIANT[paint]];
+  return `${RP}/${ce.textures[slot.replace("Texture.", "")]}.png`;
+}
+
 describe("vehicle paints (ADR 0031)", () => {
-  it("a new vehicle starts khaki", () => {
+  it("a new SUV starts at variant 0, its khaki default paint", () => {
     expect(entity.components["minecraft:variant"].value).toBe(
       PAINT_VARIANT.khaki,
     );
@@ -83,5 +97,21 @@ describe("vehicle paints (ADR 0031)", () => {
 
   it("khaki, green, and red keep the variants ADR 0017 gave them", () => {
     expect(PAINTS.slice(0, 3)).toEqual(["khaki", "green", "red"]);
+  });
+
+  it("each kind's default paint matches the texture its variant-0 slot shows (ADR 0076)", () => {
+    for (const kind of VEHICLE_KINDS) {
+      for (const paint of PAINTS)
+        expect(existsSync(textureOf(kind, paint)), `${kind} ${paint}`).toBe(
+          true,
+        );
+      const base = readFileSync(textureOf(kind, PAINTS[0]));
+      const same = PAINTS.slice(1).filter((p) =>
+        readFileSync(textureOf(kind, p)).equals(base),
+      );
+      const { defaultPaint } = profileOf(kind);
+      if (same.length === 0) expect(defaultPaint, kind).toBe(PAINTS[0]);
+      else expect(same, kind).toEqual([defaultPaint]);
+    }
   });
 });

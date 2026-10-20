@@ -530,6 +530,10 @@ export class BedrockVehicleWorld
     return PAINTS.find((p) => PAINT_VARIANT[p] === variant);
   }
 
+  kindOf(vehicleId: string): VehicleKind | undefined {
+    return kindOfEntity(this.entity(vehicleId)?.typeId);
+  }
+
   paint(vehicleId: string, paint: Paint): void {
     const car = this.entity(vehicleId);
     if (!car) return;

@@ -110,6 +110,8 @@ export interface LimitWorld {
 export interface PaintWorld {
   /** undefined when the vehicle no longer exists. */
   paintOf(vehicleId: string): Paint | undefined;
+  /** undefined when the vehicle no longer exists or is not a vehicle. */
+  kindOf(vehicleId: string): VehicleKind | undefined;
   paint(vehicleId: string, paint: Paint): void;
   consumeDye(playerId: string, paint: Paint): void;
 }
