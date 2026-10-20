@@ -10,7 +10,10 @@ import {
 import {
   type DriveInput,
   NEUTRAL_INPUT,
+  toDriveInput,
 } from "../../../../src/domain/vehicle/driveInput";
+import { CAMPER_MOTION } from "../../../../src/domain/vehicle/kinds/camper/profile";
+import { SPORTSBOAT_MOTION } from "../../../../src/domain/vehicle/kinds/sportsboat/profile";
 import { SUV_MOTION } from "../../../../src/domain/vehicle/kinds/suv/profile";
 import { SUV_SPEC } from "../../../../src/domain/vehicle/kinds/suv/spec";
 import { MOTION } from "../../../../src/domain/vehicle/motion/constants";
@@ -22,6 +25,7 @@ import {
   stepMotion,
   updateSpeed,
 } from "../../../../src/domain/vehicle/motion/motion";
+import type { MotionLimits } from "../../../../src/domain/vehicle/profile";
 import { SPEC } from "../../../../src/domain/vehicle/spec";
 import { defined } from "../../../support/defined";
 import {
@@ -279,7 +283,7 @@ describe("updateSpeed / steerYaw", () => {
     );
   });
 
-  it("forward throttle while reversing brakes by brake times throttle (ADR 0002)", () => {
+  it("forward throttle while reversing brakes by the larger of drag and brake times throttle (ADR 0002, 0074)", () => {
     // A filter, because max: 0 also yields 0 and -0, which are a standstill, not reversing.
     const speed = fc
       .double({ min: -SUV_SPEC.maxReverse, max: 0, noNaN: true })
@@ -287,21 +291,21 @@ describe("updateSpeed / steerYaw", () => {
     fc.assert(
       fc.property(speed, forwardThrottle, (s, t) => {
         expect(updateSpeed(s, t, false, SUV_MOTION)).toBeCloseTo(
-          s + SUV_SPEC.brake * t,
+          s + Math.max(SUV_SPEC.drag, SUV_SPEC.brake * t),
           12,
         );
       }),
     );
   });
 
-  it("reverse throttle while moving forward brakes by brake times throttle (ADR 0002)", () => {
+  it("reverse throttle while moving forward brakes by the larger of drag and brake times throttle (ADR 0002, 0074)", () => {
     const speed = fc
       .double({ min: 0, max: SUV_SPEC.maxSpeed, noNaN: true })
       .filter((s) => s > 0);
     fc.assert(
       fc.property(speed, reverseThrottle, (s, t) => {
         expect(updateSpeed(s, t, false, SUV_MOTION)).toBeCloseTo(
-          s + SUV_SPEC.brake * t,
+          s - Math.max(SUV_SPEC.drag, SUV_SPEC.brake * -t),
           12,
         );
       }),
@@ -379,6 +383,75 @@ describe("updateSpeed / steerYaw", () => {
       yaw = steerYaw(yaw, SUV_SPEC.maxSpeed, 1, SUV_MOTION);
     expect(yaw).toBeGreaterThan(-180);
     expect(yaw).toBeLessThanOrEqual(180);
+  });
+});
+
+describe("light braking (ADR 0074)", () => {
+  const lightBack = fc.integer({ min: 101, max: 1000 }).map((n) => -n / 1000);
+  const lightForward = fc.integer({ min: 101, max: 1000 }).map((n) => n / 1000);
+  const forwardSpeed = (L: MotionLimits) =>
+    fc.integer({ min: 1, max: 10000 }).map((n) => (n / 10000) * L.maxSpeed);
+  const reverseSpeed = (L: MotionLimits) =>
+    fc.integer({ min: 1, max: 10000 }).map((n) => -(n / 10000) * L.maxReverse);
+  const KINDS = [
+    ["SUV", SUV_MOTION],
+    ["camper", CAMPER_MOTION],
+    ["sports boat", SPORTSBOAT_MOTION],
+  ] as const;
+
+  it.each(KINDS)(
+    "%s: pulling the stick back while moving forward slows at least as much as releasing it",
+    (_name, L) => {
+      fc.assert(
+        fc.property(forwardSpeed(L), lightBack, (speed, moveY) => {
+          const input = toDriveInput({ moveX: 0, moveY, jump: false });
+          expect(
+            updateSpeed(speed, input.throttle, input.creep, L),
+          ).toBeLessThanOrEqual(updateSpeed(speed, 0, false, L));
+        }),
+      );
+    },
+  );
+
+  it.each(KINDS)(
+    "%s: pushing the stick forward while reversing slows at least as much as releasing it",
+    (_name, L) => {
+      fc.assert(
+        fc.property(reverseSpeed(L), lightForward, (speed, moveY) => {
+          const input = toDriveInput({ moveX: 0, moveY, jump: false });
+          expect(
+            updateSpeed(speed, input.throttle, input.creep, L),
+          ).toBeGreaterThanOrEqual(updateSpeed(speed, 0, false, L));
+        }),
+      );
+    },
+  );
+
+  it("a light brake stops the SUV from max speed no later than coasting", () => {
+    const throttle = toDriveInput({
+      moveX: 0,
+      moveY: -0.125,
+      jump: false,
+    }).throttle;
+    let brakeTicks = 0;
+    let s: number = SUV_SPEC.maxSpeed;
+    while (s > 0 && brakeTicks < 1000) {
+      s = updateSpeed(s, throttle, false, SUV_MOTION);
+      brakeTicks++;
+    }
+    let coastTicks = 0;
+    s = SUV_SPEC.maxSpeed;
+    while (s !== 0 && coastTicks < 1000) {
+      s = updateSpeed(s, 0, false, SUV_MOTION);
+      coastTicks++;
+    }
+    expect(coastTicks).toBe(45);
+    expect(brakeTicks).toBeLessThanOrEqual(coastTicks);
+  });
+
+  it("a light brake at speed 0.5 removes drag and a full brake removes brake (ADR 0074)", () => {
+    expect(updateSpeed(0.5, -0.25, false, SUV_MOTION)).toBeCloseTo(0.48, 12);
+    expect(updateSpeed(0.5, -1, false, SUV_MOTION)).toBeCloseTo(0.46, 12);
   });
 });
 

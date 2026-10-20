@@ -6,7 +6,12 @@ import {
   length,
   type Vec2,
 } from "../../../../src/domain/shared/vec";
-import type { DriveInput } from "../../../../src/domain/vehicle/driveInput";
+import {
+  type DriveInput,
+  NEUTRAL_INPUT,
+  toDriveInput,
+} from "../../../../src/domain/vehicle/driveInput";
+import { SPORTSBOAT_MOTION } from "../../../../src/domain/vehicle/kinds/sportsboat/profile";
 import { SUV_MOTION } from "../../../../src/domain/vehicle/kinds/suv/profile";
 import { AIR, SUV_SPEC } from "../../../../src/domain/vehicle/kinds/suv/spec";
 import { MOTION } from "../../../../src/domain/vehicle/motion/constants";
@@ -280,6 +285,35 @@ describe("stepFlightMotion walls and sideways velocity (ADR 0002, 0003)", () => 
           expect(side(aimed).z).toBeCloseTo(side(v).z * keep, 9);
         },
       ),
+    );
+  });
+});
+
+describe("light braking afloat (ADR 0074)", () => {
+  const lightBack = fc.integer({ min: 101, max: 1000 }).map((n) => -n / 1000);
+  const boatForwardSpeed = fc
+    .integer({ min: 1, max: 10000 })
+    .map((n) => (n / 10000) * SPORTSBOAT_MOTION.maxSpeed);
+
+  it("the sports boat afloat slows at least as much under a light brake as when released", () => {
+    fc.assert(
+      fc.property(boatForwardSpeed, lightBack, (speed, moveY) => {
+        const prev: MotionState = { speed, yaw: 0, stepTicks: 0 };
+        const v = { x: 0, z: 0 };
+        const medium = { drag: 0.83, maxSpeed: SPORTSBOAT_MOTION.maxSpeed };
+        expect(
+          stepFlightMotion(
+            prev,
+            toDriveInput({ moveX: 0, moveY, jump: false }),
+            v,
+            medium,
+            SPORTSBOAT_MOTION,
+          ).state.speed,
+        ).toBeLessThanOrEqual(
+          stepFlightMotion(prev, NEUTRAL_INPUT, v, medium, SPORTSBOAT_MOTION)
+            .state.speed,
+        );
+      }),
     );
   });
 });

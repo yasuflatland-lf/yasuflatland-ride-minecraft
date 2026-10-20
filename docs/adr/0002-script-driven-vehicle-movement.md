@@ -1,6 +1,6 @@
 # 0002. Drive vehicles by setting their velocity from the script
 
-- Status: Accepted
+- Status: Extended by 0074
 - Date: 2026-10-10
 
 ## Context
