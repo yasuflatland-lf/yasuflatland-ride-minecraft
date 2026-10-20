@@ -5,7 +5,12 @@ import {
   createVehicle,
   fleetLimitOf,
 } from "../../../src/domain/vehicle/kinds/index";
-import { FakeFleetRepository, FakeWorld, InMemoryRepo } from "./fakes";
+import {
+  FakeClock,
+  FakeFleetRepository,
+  FakeWorld,
+  InMemoryRepo,
+} from "./fakes";
 
 describe("HitVehicle (ADR 0008)", () => {
   it("on the third hit, drops the item, removes the vehicle, and discards the aggregate", () => {
@@ -17,11 +22,13 @@ describe("HitVehicle (ADR 0008)", () => {
       order: ["a", "b"].map((id) => ({ id, kind: "suv" as const })),
       evicted: [],
     };
-    const uc = new HitVehicle(world, repo, fleets);
+    const clock = new FakeClock();
+    const uc = new HitVehicle(world, repo, fleets, clock);
     expect(
-      [1, 2, 3].map((tick) =>
-        uc.execute({ vehicleId: "a", tick, fromDeck: false }),
-      ),
+      [1, 2, 3].map((tick) => {
+        clock.tick = tick;
+        return uc.execute({ vehicleId: "a", fromDeck: false });
+      }),
     ).toEqual([false, false, true]);
     expect(world.calls).toEqual(["drop:a", "remove:a"]);
     expect(repo.get("a")).toBeUndefined();
@@ -36,26 +43,27 @@ describe("HitVehicle (ADR 0008)", () => {
         const repo = new InMemoryRepo();
         const vehicle = createVehicle("sportsboat", "a", 0);
         repo.save(vehicle);
+        const clock = new FakeClock();
         const uc = new HitVehicle(
           world,
           repo,
           new FakeFleetRepository(fleetLimitOf),
+          clock,
         );
         for (let tick = 1; tick <= hits; tick++) {
-          expect(uc.execute({ vehicleId: "a", tick, fromDeck: true })).toBe(
-            false,
-          );
+          clock.tick = tick;
+          expect(uc.execute({ vehicleId: "a", fromDeck: true })).toBe(false);
           expect(world.calls).toEqual([]);
           expect(repo.get("a")).toBe(vehicle);
         }
         expect(
-          [1, 2, 3].map((offset) =>
-            uc.execute({
+          [1, 2, 3].map((offset) => {
+            clock.tick = hits + offset;
+            return uc.execute({
               vehicleId: "a",
-              tick: hits + offset,
               fromDeck: false,
-            }),
-          ),
+            });
+          }),
         ).toEqual([false, false, true]);
       }),
     );
@@ -63,14 +71,15 @@ describe("HitVehicle (ADR 0008)", () => {
 
   it("does nothing for a vehicle not in the repository", () => {
     const world = new FakeWorld();
+    const clock = new FakeClock();
     expect(
       new HitVehicle(
         world,
         new InMemoryRepo(),
         new FakeFleetRepository(fleetLimitOf),
+        clock,
       ).execute({
         vehicleId: "x",
-        tick: 0,
         fromDeck: false,
       }),
     ).toBe(false);

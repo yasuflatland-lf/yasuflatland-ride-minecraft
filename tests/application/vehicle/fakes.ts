@@ -1,5 +1,6 @@
 import type {
   BreakWorld,
+  Clock,
   DriveWorld,
   HeadlightWorld,
   HintPlayerView,
@@ -31,6 +32,13 @@ import type { RamHit, RamTarget } from "../../../src/domain/vehicle/ram";
 import type { Vehicle } from "../../../src/domain/vehicle/vehicle";
 import type { VehicleRepository } from "../../../src/domain/vehicle/vehicleRepository";
 import { waterSensors } from "../../support/waterDepth";
+
+export class FakeClock implements Clock {
+  tick = 0;
+  now() {
+    return this.tick;
+  }
+}
 
 export class InMemoryRepo implements VehicleRepository {
   readonly map = new Map<string, Vehicle>();
@@ -73,6 +81,10 @@ export class FakeWorld
     HeadlightWorld,
     LimitWorld
 {
+  readonly creativePlayers = new Set<string>();
+  isCreative(playerId: string) {
+    return this.creativePlayers.has(playerId);
+  }
   snapshots: VehicleSnapshot[] = [];
   loaded: FleetEntry[] = [];
   targets: RamTarget[] = [];

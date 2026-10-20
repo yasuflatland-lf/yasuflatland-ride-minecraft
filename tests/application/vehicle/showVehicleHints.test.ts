@@ -10,7 +10,7 @@ import { DOCK } from "../../../src/domain/vehicle/motion/dock";
 import { SPEC } from "../../../src/domain/vehicle/spec";
 import type { Vehicle } from "../../../src/domain/vehicle/vehicle";
 import { defined } from "../../support/defined";
-import { FakeHintWorld, InMemoryRepo } from "./fakes";
+import { FakeClock, FakeHintWorld, InMemoryRepo } from "./fakes";
 
 const AT = { x: 0.5, y: 64, z: 0.5 };
 const BUMPER = defined(CAMPER_PROFILE.hints?.bumper, "bumper zone");
@@ -39,7 +39,13 @@ function tickVehicle(vehicle: Vehicle, tick: number) {
 
 let world: FakeHintWorld;
 let repo: InMemoryRepo;
+let clock: FakeClock;
 let hints: ShowVehicleHints;
+
+function checkAt(tick: number) {
+  clock.tick = tick;
+  hints.execute();
+}
 
 function addVehicle(kind: VehicleKind, id = "v", dimensionId = "overworld") {
   const vehicle = createVehicle(kind, id, 0);
@@ -61,7 +67,8 @@ const player = (over: Partial<HintPlayerView> = {}): HintPlayerView => ({
 beforeEach(() => {
   world = new FakeHintWorld();
   repo = new InMemoryRepo();
-  hints = new ShowVehicleHints(world, repo);
+  clock = new FakeClock();
+  hints = new ShowVehicleHints(world, repo, clock);
 });
 
 describe("ShowVehicleHints (ADR 0086)", () => {
@@ -69,7 +76,7 @@ describe("ShowVehicleHints (ADR 0086)", () => {
     addVehicle("suv");
     addVehicle("sportsboat", "boat");
     world.players = [player()];
-    hints.execute(0);
+    checkAt(0);
     expect(world.playerScans).toBe(0);
     expect(world.sent).toEqual([]);
   });
@@ -81,7 +88,7 @@ describe("ShowVehicleHints (ADR 0086)", () => {
       player({ id: "q", controls: "mouse" }),
       player({ id: "d", held: "dye" }),
     ];
-    hints.execute(0);
+    checkAt(0);
     expect(world.sent).toEqual([
       {
         playerId: "p",
@@ -102,7 +109,7 @@ describe("ShowVehicleHints (ADR 0086)", () => {
       player({ id: "far", location: FAR }),
       player({ id: "nether", dimensionId: "nether" }),
     ];
-    hints.execute(0);
+    checkAt(0);
     expect(world.sent).toEqual([]);
   });
 
@@ -115,7 +122,7 @@ describe("ShowVehicleHints (ADR 0086)", () => {
         location: { x: AT.x + SEAT0.x, y: AT.y + 1, z: AT.z + SEAT0.z - 1 },
       }),
     ];
-    hints.execute(DOCK.ticks);
+    checkAt(DOCK.ticks);
     expect(world.sent).toEqual([
       { playerId: "p", hint: { name: HINTS.driveTouch } },
     ]);
@@ -128,7 +135,7 @@ describe("ShowVehicleHints (ADR 0086)", () => {
     const end = SPEC.hintShowTicks * 2;
     for (let t = 0; t <= end; t += STEP) {
       const before = world.sent.length;
-      hints.execute(t);
+      checkAt(t);
       if (world.sent.length > before) shownAt.push(t);
     }
     const expected: number[] = [];
@@ -136,8 +143,8 @@ describe("ShowVehicleHints (ADR 0086)", () => {
       expected.push(t);
     expect(shownAt).toEqual(expected);
     world.players = [player({ location: FAR })];
-    hints.execute(end + STEP);
-    hints.execute(end + 2 * STEP);
+    checkAt(end + STEP);
+    checkAt(end + 2 * STEP);
     expect(world.sent.at(-1)).toEqual({ playerId: "p" });
     expect(world.sent.filter((s) => s.hint === undefined)).toHaveLength(1);
   });
@@ -145,22 +152,22 @@ describe("ShowVehicleHints (ADR 0086)", () => {
   it("leaves the action bar alone when the player mounts", () => {
     addVehicle("camper");
     world.players = [player()];
-    hints.execute(0);
+    checkAt(0);
     world.players = [player({ riding: true })];
-    hints.execute(STEP);
+    checkAt(STEP);
     world.players = [player({ riding: false, location: FAR })];
-    hints.execute(2 * STEP);
+    checkAt(2 * STEP);
     expect(world.sent).toHaveLength(1);
   });
 
   it("forgets a player who left, so their hint shows at once when they come back", () => {
     addVehicle("camper");
     world.players = [player()];
-    hints.execute(0);
+    checkAt(0);
     world.players = [];
-    hints.execute(STEP);
+    checkAt(STEP);
     world.players = [player()];
-    hints.execute(2 * STEP);
+    checkAt(2 * STEP);
     expect(world.sent).toHaveLength(2);
   });
 
@@ -169,12 +176,13 @@ describe("ShowVehicleHints (ADR 0086)", () => {
       fc.property(fc.integer({ min: 1, max: 100 }), (checks) => {
         world = new FakeHintWorld();
         repo = new InMemoryRepo();
-        hints = new ShowVehicleHints(world, repo);
+        clock = new FakeClock();
+        hints = new ShowVehicleHints(world, repo, clock);
         addVehicle("camper");
         world.players = [player()];
-        for (let i = 0; i < checks; i++) hints.execute(i * STEP);
+        for (let i = 0; i < checks; i++) checkAt(i * STEP);
         world.players = [player({ held: "dye" })];
-        hints.execute(checks * STEP);
+        checkAt(checks * STEP);
         expect(world.sent.at(-1)).toEqual({
           playerId: "p",
           hint: { name: HINTS.paint, with: [CAMPER] },

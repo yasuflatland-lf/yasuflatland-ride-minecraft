@@ -4,7 +4,6 @@ import {
   type Block,
   type Dimension,
   Direction,
-  GameMode,
   type Player,
   system,
   world,
@@ -53,7 +52,6 @@ export function registerPlacement(placeVehicle: PlaceVehicle): void {
     dimensionId: dimension.id,
     blockLocation,
     yaw: player.getRotation().y,
-    creative: player.getGameMode() === GameMode.Creative,
     slot: player.selectedSlotIndex,
   });
   // The interaction ray skips liquids and reports the bed under the water or

@@ -18,7 +18,6 @@ const cmd: PlaceVehicleCommand = {
   dimensionId: "minecraft:overworld",
   blockLocation: { x: 10, y: 64, z: -3 },
   yaw: 45,
-  creative: false,
   slot: 2,
 };
 
@@ -32,10 +31,11 @@ describe("PlaceVehicle (ADR 0008)", () => {
         (playerIds, kind, creative) => {
           const world = new FakeWorld();
           const placement = new PlaceVehicle(world, new InMemoryRepo());
+          if (creative)
+            for (const playerId of playerIds)
+              world.creativePlayers.add(playerId);
           for (const playerId of playerIds)
-            expect(
-              placement.execute({ ...cmd, playerId, kind, creative }),
-            ).toBe(true);
+            expect(placement.execute({ ...cmd, playerId, kind })).toBe(true);
           expect([...world.owners.values()]).toEqual(playerIds);
         },
       ),
@@ -56,10 +56,8 @@ describe("PlaceVehicle (ADR 0008)", () => {
 
   it("does not consume the item in creative mode", () => {
     const world = new FakeWorld();
-    new PlaceVehicle(world, new InMemoryRepo()).execute({
-      ...cmd,
-      creative: true,
-    });
+    world.creativePlayers.add("p");
+    new PlaceVehicle(world, new InMemoryRepo()).execute(cmd);
     expect(world.calls.some((c) => c.startsWith("consume"))).toBe(false);
   });
 
@@ -85,13 +83,9 @@ describe("PlaceVehicle (ADR 0008)", () => {
 
   it("places a vehicle in creative mode without needing the item in the slot", () => {
     const world = new FakeWorld();
+    world.creativePlayers.add("p");
     world.itemInSlot = false;
-    expect(
-      new PlaceVehicle(world, new InMemoryRepo()).execute({
-        ...cmd,
-        creative: true,
-      }),
-    ).toBe(true);
+    expect(new PlaceVehicle(world, new InMemoryRepo()).execute(cmd)).toBe(true);
   });
 });
 
@@ -210,4 +204,23 @@ describe("PlaceVehicle placement cell (ADR 0050, ADR 0051)", () => {
       }),
     );
   });
+});
+
+it("consumes the item unless the placing player is in creative mode", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom(...VEHICLE_KINDS),
+      fc.boolean(),
+      (kind, creative) => {
+        const world = new FakeWorld();
+        if (creative) world.creativePlayers.add("p");
+        expect(
+          new PlaceVehicle(world, new InMemoryRepo()).execute({ ...cmd, kind }),
+        ).toBe(true);
+        expect(world.calls.some((c) => c.startsWith("consume"))).toBe(
+          !creative,
+        );
+      },
+    ),
+  );
 });

@@ -31,6 +31,7 @@ const game = vi.hoisted(() => ({
 }));
 vi.mock("@minecraft/server", () => ({
   world: game,
+  GameMode: { Creative: "Creative", Survival: "Survival" },
   ButtonState: {},
   InputButton: {},
   EntityDamageCause: {},
@@ -102,7 +103,7 @@ function fixture() {
   return {
     index,
     inventory,
-    placement: new BedrockPlacementWorld(inventory),
+    placement: new BedrockPlacementWorld(inventory, index),
     paint: new BedrockPaintWorld(index, inventory),
     inputs,
     entities,
@@ -985,5 +986,56 @@ describe("BedrockVehicleWorld solid and ram queries around a loaded vehicle", ()
     const { world, car } = fixture();
     world.applyMotion("missing", { x: 0, y: 0, z: 1 }, 0);
     expect(car.applyImpulse).not.toHaveBeenCalled();
+  });
+});
+
+type Fixture = ReturnType<typeof fixture>;
+const creativeAdapters: [
+  string,
+  (f: Fixture) => { isCreative(id: string): boolean },
+][] = [
+  ["BedrockPlacementWorld", (f) => f.placement],
+  ["BedrockPaintWorld", (f) => new BedrockPaintWorld(f.index, f.inventory)],
+];
+
+describe.each(creativeAdapters)("%s isCreative", (_name, adapterOf) => {
+  beforeEach(() => vi.resetAllMocks());
+  const player = (mode: string, isValid = true) => ({
+    id: "p",
+    typeId: PLAYER_TYPE,
+    isValid,
+    getGameMode: vi.fn(() => mode),
+  });
+  it("is true for a valid player in creative", () => {
+    const f = fixture();
+    game.getEntity.mockImplementation(() => player("Creative"));
+    expect(adapterOf(f).isCreative("p")).toBe(true);
+  });
+  it("is false for a player in survival", () => {
+    const f = fixture();
+    game.getEntity.mockImplementation(() => player("Survival"));
+    expect(adapterOf(f).isCreative("p")).toBe(false);
+  });
+  it("is false for a missing entity", () => {
+    const f = fixture();
+    game.getEntity.mockImplementation(() => undefined);
+    expect(adapterOf(f).isCreative("p")).toBe(false);
+  });
+  it("is false for an entity that is not a player", () => {
+    const f = fixture();
+    game.getEntity.mockImplementation(() => ({
+      id: "p",
+      typeId: ENTITY_TYPE.suv,
+      isValid: true,
+      getGameMode: vi.fn(() => "Creative"),
+    }));
+    expect(adapterOf(f).isCreative("p")).toBe(false);
+  });
+  it("is false without asking the game mode for a player who has left", () => {
+    const f = fixture();
+    const left = player("Creative", false);
+    game.getEntity.mockImplementation(() => left);
+    expect(adapterOf(f).isCreative("p")).toBe(false);
+    expect(left.getGameMode).not.toHaveBeenCalled();
   });
 });

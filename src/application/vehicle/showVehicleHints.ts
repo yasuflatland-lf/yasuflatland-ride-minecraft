@@ -8,7 +8,12 @@ import {
 } from "../../domain/vehicle/hints";
 import type { Vehicle } from "../../domain/vehicle/vehicle";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
-import type { HintPlayerView, HintVehicleView, HintWorld } from "./ports";
+import type {
+  Clock,
+  HintPlayerView,
+  HintVehicleView,
+  HintWorld,
+} from "./ports";
 
 interface Near {
   view: HintVehicleView;
@@ -29,15 +34,17 @@ export class ShowVehicleHints {
   constructor(
     private readonly world: HintWorld,
     private readonly repo: VehicleRepository,
+    private readonly clock: Clock,
   ) {}
 
   /** Runs after the drive tick, so each vehicle's parked state is this tick's. */
-  execute(tick: number): void {
+  execute(): void {
     const vehicles = this.world.hintVehicles().flatMap((view) => {
       const vehicle = this.repo.get(view.id);
       return vehicle?.showsHints ? [{ view, vehicle }] : [];
     });
     if (vehicles.length === 0 && this.states.size === 0) return;
+    const tick = this.clock.now();
     const present = new Set<string>();
     for (const player of this.world.hintPlayers()) {
       present.add(player.id);

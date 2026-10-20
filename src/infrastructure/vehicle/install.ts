@@ -20,6 +20,7 @@ import { BedrockPlacementWorld } from "./bedrock/bedrockPlacementWorld";
 import { BedrockVehicleWorld } from "./bedrock/bedrockVehicleWorld";
 import { EntityIndex } from "./bedrock/entityIndex";
 import { registerSubscriptions } from "./bedrock/subscriptions";
+import { systemClock } from "./bedrock/systemClock";
 import { DynamicPropertyFleetRepository } from "./persistence/dynamicPropertyFleetRepository";
 import { InMemoryVehicleRepository } from "./persistence/inMemoryVehicleRepository";
 import { TestInputStore } from "./testInput/testInputStore";
@@ -36,14 +37,28 @@ export function installVehicles(): void {
   registerSubscriptions(
     {
       drive: new DriveVehicles(bedrock, repo, log),
-      place: new PlaceVehicle(new BedrockPlacementWorld(inventory), repo),
+      place: new PlaceVehicle(
+        new BedrockPlacementWorld(inventory, index),
+        repo,
+      ),
       starter: new GiveStarterVehicle(inventory),
-      hit: new HitVehicle(fleetWorld, repo, fleets),
+      hit: new HitVehicle(fleetWorld, repo, fleets, systemClock),
       limit: new LimitVehicles(fleetWorld, repo, fleets, log),
-      paint: new PaintVehicle(new BedrockPaintWorld(index, inventory)),
-      headlights: new SwitchHeadlights(new BedrockHeadlightWorld(index), repo),
+      paint: new PaintVehicle(
+        new BedrockPaintWorld(index, inventory),
+        systemClock,
+      ),
+      headlights: new SwitchHeadlights(
+        new BedrockHeadlightWorld(index),
+        repo,
+        systemClock,
+      ),
       door: new UseDockDoor(repo),
-      hints: new ShowVehicleHints(new BedrockHintWorld(index), repo),
+      hints: new ShowVehicleHints(
+        new BedrockHintWorld(index),
+        repo,
+        systemClock,
+      ),
     },
     store,
     (dimensionId, cell) => bedrock.dockDoorOwner(dimensionId, cell),

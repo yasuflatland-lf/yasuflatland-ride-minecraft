@@ -1,4 +1,5 @@
 // Implements PaintWorld with @minecraft/server (ADR 0012).
+import { GameMode } from "@minecraft/server";
 import type { PaintWorld } from "../../../application/vehicle/ports";
 import type { VehicleKind } from "../../../domain/vehicle/kind";
 import { PAINTS, type Paint } from "../../../domain/vehicle/paint";
@@ -32,5 +33,12 @@ export class BedrockPaintWorld implements PaintWorld {
 
   consumeDye(playerId: string, paint: Paint): void {
     this.inventory.consumeHeld(playerId, dyeOf(paint));
+  }
+  isCreative(playerId: string): boolean {
+    const player = this.index.player(playerId);
+    // getGameMode throws on a handle whose player has left (isValid false).
+    return (
+      player?.isValid === true && player.getGameMode() === GameMode.Creative
+    );
   }
 }

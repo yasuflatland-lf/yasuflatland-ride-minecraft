@@ -55,7 +55,6 @@ vi.mock("@minecraft/server", () => {
       East: "East",
       West: "West",
     },
-    GameMode: { Creative: "Creative" },
     EntityInitializationCause: { Loaded: "Loaded", Spawned: "Spawned" },
     ScriptEventSource: { Server: "Server", Entity: "Entity" },
     Player: class {},
@@ -107,7 +106,6 @@ function fixture(
     id: "player",
     selectedSlotIndex: 2,
     getRotation: () => ({ y: -90 }),
-    getGameMode: () => "Survival",
     getBlockFromViewDirection: vi.fn<
       () => { block: typeof block; face: string } | undefined
     >(() => ({ block: rayBlock, face: "Up" })),
@@ -122,6 +120,7 @@ function fixture(
   };
   const placementWorld: PlacementWorld = {
     isAir: notUsed,
+    isCreative: notUsed,
     isWaterAt: (dimensionId, at) => {
       waterDimensions.push(dimensionId);
       return water(at);
@@ -191,7 +190,6 @@ const boatAt = (blockLocation: At) => ({
   dimensionId: "overworld",
   blockLocation,
   yaw: -90,
-  creative: false,
   slot: 2,
 });
 
@@ -368,7 +366,6 @@ it("routes itemUse to placement or headlights by item, in either subscriber orde
           expect(f.headlights.execute).toHaveBeenCalledExactlyOnceWith({
             playerId: "player",
             vehicleId: "vehicle",
-            tick: 10,
           });
         else expect(f.headlights.execute).not.toHaveBeenCalled();
         if (typeId === ITEM_TYPE.sportsboat)
@@ -406,7 +403,6 @@ it("paints a hit vehicle with a held dye and otherwise damages it, ignoring othe
     selectedSlotIndex: 0,
     location: { x: 0.5, y: 64, z: 0.5 },
     dimension: { getBlock: () => ({ typeId: "minecraft:stone" }) },
-    getGameMode: () => "Creative",
     getComponent: () => ({
       container: { getItem: () => (held ? { typeId: held } : undefined) },
     }),
@@ -426,15 +422,12 @@ it("paints a hit vehicle with a held dye and otherwise damages it, ignoring othe
     playerId: "player",
     vehicleId: "vehicle",
     paint: dyePaint,
-    creative: true,
-    tick: 10,
   });
   expect(hit.execute).not.toHaveBeenCalled();
   held = undefined;
   send(player);
   expect(hit.execute).toHaveBeenCalledExactlyOnceWith({
     vehicleId: "vehicle",
-    tick: 10,
     fromDeck: false,
   });
   expect(paint.execute).toHaveBeenCalledOnce();
@@ -475,7 +468,6 @@ it("switches the headlights of the ridden vehicle when its rider interacts with 
   expect(f.headlights.execute).toHaveBeenCalledExactlyOnceWith({
     playerId: "player",
     vehicleId: "vehicle",
-    tick: 11,
   });
 });
 
@@ -604,7 +596,7 @@ it("checks the hints every hint interval, after the drive on the same tick (ADR 
   ]);
   for (const [callback] of intervals) callback();
   expect(drive.execute).toHaveBeenCalledWith(game.currentTick);
-  expect(hints.execute).toHaveBeenCalledWith(game.currentTick);
+  expect(hints.execute).toHaveBeenCalledOnce();
   expect(drive.execute.mock.invocationCallOrder[0]).toBeLessThan(
     defined(hints.execute.mock.invocationCallOrder[0], "hints call"),
   );
