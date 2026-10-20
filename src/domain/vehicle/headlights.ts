@@ -1,5 +1,5 @@
 // Where a vehicle with its headlights on puts light blocks (ADR 0020).
-import { forward, rightOf, type Vec3 } from "../shared/vec";
+import { forward, localPoint, type Vec3 } from "../shared/vec";
 import type { BeamPattern } from "./profile";
 
 /** Block cell, as integer coordinates. */
@@ -18,16 +18,12 @@ export function headlightCells(
   beams: BeamPattern,
 ): Cell[] {
   const f = forward(yaw);
-  const right = rightOf(f);
   const y = Math.floor(location.y) + 1;
   const cells = new Map<string, Cell>();
   for (const reach of beams.reach) {
     for (const lane of beams.lanes) {
-      const c = {
-        x: Math.floor(location.x + f.x * reach + right.x * lane),
-        y,
-        z: Math.floor(location.z + f.z * reach + right.z * lane),
-      };
+      const p = localPoint(location, f, reach, lane);
+      const c = { x: Math.floor(p.x), y, z: Math.floor(p.z) };
       cells.set(cellKey(c), c);
     }
   }

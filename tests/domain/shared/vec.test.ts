@@ -7,11 +7,18 @@ import {
   forward,
   leftOf,
   length,
+  localOffset,
+  localPoint,
   normalizeYaw,
   rightOf,
 } from "../../../src/domain/shared/vec";
+import { toLocal } from "../../../src/domain/vehicle/seats";
 
 const yaw = fc.double({ min: -720, max: 720, noNaN: true });
+const reach = fc.double({ min: -20, max: 20, noNaN: true });
+const coord = fc.double({ min: -3e7, max: 3e7, noNaN: true });
+const point = fc.record({ x: coord, z: coord });
+const unit = yaw.map(forward);
 
 describe("vec", () => {
   it("yaw 0 points toward +z (south), and yaw -90 points toward +x (east)", () => {
@@ -89,6 +96,65 @@ describe("vec", () => {
         expect(normalizeYaw(180 + 360 * turns)).toBe(180);
       }),
     );
+  });
+
+  it("localOffset matches the inline right-handed offset bit for bit", () => {
+    fc.assert(
+      fc.property(unit, reach, reach, (f, a, s) => {
+        const r = rightOf(f);
+        const o = localOffset(f, a, s);
+        expect(o.x + 0).toBe(f.x * a + r.x * s + 0);
+        expect(o.z + 0).toBe(f.z * a + r.z * s + 0);
+      }),
+    );
+  });
+
+  it("localPoint matches the inline origin-first sum bit for bit", () => {
+    fc.assert(
+      fc.property(point, unit, reach, reach, (o, f, a, s) => {
+        const r = rightOf(f);
+        const p = localPoint(o, f, a, s);
+        expect(p.x + 0).toBe(o.x + f.x * a + r.x * s + 0);
+        expect(p.z + 0).toBe(o.z + f.z * a + r.z * s + 0);
+      }),
+    );
+  });
+
+  it("localPoint with a negated seat x matches the old left-handed seat sum bit for bit", () => {
+    fc.assert(
+      fc.property(point, unit, reach, reach, (o, f, a, s) => {
+        const l = leftOf(f);
+        const p = localPoint(o, f, a, -s);
+        expect(p.x + 0).toBe(o.x + f.x * a + l.x * s + 0);
+        expect(p.z + 0).toBe(o.z + f.z * a + l.z * s + 0);
+      }),
+    );
+  });
+
+  it("localOffset with no sideways part scales the facing", () => {
+    fc.assert(
+      fc.property(unit, reach, (f, a) => {
+        const o = localOffset(f, a, 0);
+        expect(o.x + 0).toBe(f.x * a + 0);
+        expect(o.z + 0).toBe(f.z * a + 0);
+      }),
+    );
+  });
+
+  it("toLocal undoes localOffset with seat x on the left", () => {
+    fc.assert(
+      fc.property(unit, reach, reach, (f, a, s) => {
+        const back = toLocal(localOffset(f, a, s), f);
+        expect(back.x).toBeCloseTo(-s, 9);
+        expect(back.z).toBeCloseTo(a, 9);
+      }),
+    );
+  });
+
+  it("facing south, one block to the right is west", () => {
+    const o = localOffset(forward(0), 0, 1);
+    expect(o.x).toBeCloseTo(-1);
+    expect(o.z).toBeCloseTo(0);
   });
 });
 

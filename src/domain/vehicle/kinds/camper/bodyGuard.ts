@@ -1,5 +1,5 @@
 // Stops the camper's long body at walls the square collision box cannot see (ADR 0067).
-import { rightOf, type Vec2, type Vec3 } from "../../../shared/vec";
+import { localOffset, type Vec2, type Vec3 } from "../../../shared/vec";
 import type { TickContext } from "../../drive";
 import type { Form } from "../../motion/forms";
 import type { MotionResult } from "../../motion/motion";
@@ -71,19 +71,13 @@ export function endBlocked(
   ends: BodyEnds,
   lowestLayer: number,
 ): boolean {
-  const r = rightOf(dir);
   const lanes = endLanes(ends.halfWidth);
   for (const reach of travelSamples(from, to))
     for (let dy = lowestLayer; dy < Math.ceil(ends.height); dy++)
-      for (const s of lanes) // stops at the first hit
-        if (
-          solidAt({
-            x: dir.x * reach + r.x * s,
-            y: dy,
-            z: dir.z * reach + r.z * s,
-          })
-        )
-          return true;
+      for (const s of lanes) {
+        const o = localOffset(dir, reach, s);
+        if (solidAt({ x: o.x, y: dy, z: o.z })) return true; // stops at the first hit
+      }
   return false;
 }
 

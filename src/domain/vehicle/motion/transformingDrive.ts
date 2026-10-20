@@ -1,5 +1,5 @@
 // Shared transforming drivetrain: forms, landing gear, bank, and vertical motion (ADR 0050).
-import { clamp, rightOf, type Vec2 } from "../../shared/vec";
+import { clamp, localOffset, type Vec2 } from "../../shared/vec";
 import type {
   Drive,
   DriveStep,
@@ -48,19 +48,15 @@ function stepProbe(
   spec: TransformingSpec,
   drop = 0,
 ): StepProbe {
-  return (f, speed) => {
-    const r = rightOf(f);
-    return stepHeight(
-      (ahead, side, dy) =>
-        ctx.solidAt({
-          x: f.x * ahead + r.x * side,
-          y: dy - drop,
-          z: f.z * ahead + r.z * side,
-        }),
+  return (f, speed) =>
+    stepHeight(
+      (ahead, side, dy) => {
+        const o = localOffset(f, ahead, side);
+        return ctx.solidAt({ x: o.x, y: dy - drop, z: o.z });
+      },
       speed,
       { front: spec.hitboxFront, height: spec.carHeight },
     );
-  };
 }
 
 /** Whether there is a solid block within gearDownHeight below the center or a corner of the vehicle. */
@@ -69,7 +65,6 @@ function groundNear(
   f: Vec2,
   spec: TransformingSpec,
 ): boolean {
-  const r = rightOf(f);
   const d = spec.gearProbeOffset;
   const spots = [
     [0, 0],
@@ -79,15 +74,10 @@ function groundNear(
     [-d, -d],
   ] as const;
   for (let dy = 1; dy <= spec.gearDownHeight; dy++)
-    for (const [ahead, side] of spots)
-      if (
-        ctx.solidAt({
-          x: f.x * ahead + r.x * side,
-          y: -dy,
-          z: f.z * ahead + r.z * side,
-        })
-      )
-        return true;
+    for (const [ahead, side] of spots) {
+      const o = localOffset(f, ahead, side);
+      if (ctx.solidAt({ x: o.x, y: -dy, z: o.z })) return true;
+    }
   return false;
 }
 
