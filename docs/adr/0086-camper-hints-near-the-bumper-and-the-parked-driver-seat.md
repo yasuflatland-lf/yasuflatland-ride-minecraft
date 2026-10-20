@@ -35,4 +35,5 @@ The SUV and the sports boat take hits on their whole body, so they need no such 
 - The action bar's display time is not documented; the 40-tick refresh assumes it stays up for more than 2 seconds. Measure it on a phone and on a PC, and lower the refresh if the hint blinks
 - The empty clear also wipes any other action-bar text the player had at that moment. If that shows up in play, drop the clear and let the hint fade
 - `lastInputModeUsed` reports the last input used, so a phone with a keyboard attached can switch variants mid-hint; the new variant shows at once
+- The exit margin widens only the zone of the shown hint; priority between zones applies only when a new hint is chosen, so a widened driver's seat zone cannot take over a shown bumper or paint hint ([#355](https://github.com/yasuflatland-lf/yasuflatland-ride-minecraft/issues/355))
 - Another kind can get hints by adding `hints` to its profile, for example the sports boat's driver deck seat (0063)

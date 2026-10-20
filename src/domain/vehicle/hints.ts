@@ -84,9 +84,11 @@ export interface HintView {
 const within = (y: number, [lo, hi]: FeetBand) => y >= lo && y <= hi;
 
 /**
- * The hint for a player at `view.offset`, or none. `margin` widens every zone, its
- * reach and the edge of the body it leaves out, so a widened zone holds the narrow one
- * (ADR 0086).
+ * The hint for a player at `view.offset`, or none. The driver's seat wins where both
+ * zones apply. `margin` widens every zone, its reach and the edge of the body it leaves
+ * out, so within each zone the widened one holds the narrow one. Across zones it does
+ * not: a widened driver's seat zone can overlap the bumper zone, so hold a shown hint
+ * with `zoneOf` (ADR 0086).
  */
 export function hintAt(
   zones: HintZones | undefined,
@@ -129,6 +131,19 @@ export function hintAt(
     name: BUMPER_HINT[view.controls],
     with: [{ number: SPEC.hitsToBreak }, vehicle],
   };
+}
+
+const DRIVE_HINTS: ReadonlySet<HintName> = new Set(Object.values(DRIVE_HINT));
+
+/**
+ * Only the zone that gives `name`. A shown hint keeps showing until the exit margin
+ * past every edge of its own zone, so it is held by that zone alone and not lost to a
+ * widened zone with a higher priority (ADR 0086).
+ */
+export function zoneOf(zones: HintZones, name: HintName): HintZones {
+  return DRIVE_HINTS.has(name)
+    ? { driverSeat: zones.driverSeat }
+    : { bumper: zones.bumper };
 }
 
 function distanceToBumper(

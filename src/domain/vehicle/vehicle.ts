@@ -11,6 +11,7 @@ import {
   type HintControls,
   type HintName,
   hintAt,
+  zoneOf,
 } from "./hints";
 import { EMPTY_COUNTER, type HitCounter, registerHit } from "./hitCounter";
 import type { VehicleKind } from "./kind";
@@ -152,7 +153,8 @@ export class Vehicle {
   /**
    * The hint for a player on foot whose feet are `offset` from the vehicle's location.
    * A hint already shown to them (`current`) keeps showing up to SPEC.hintExitMargin
-   * past its reach, so standing on the edge does not flicker (ADR 0086).
+   * past the edges of its own zone, so standing on the edge does not flicker. A new
+   * hint is picked with the zones at their narrow edges (ADR 0086, issue #355).
    */
   hint(
     offset: Vec3,
@@ -171,9 +173,15 @@ export class Vehicle {
       controls,
     };
     const seats = this.profile.seats.positions;
-    const hint = hintAt(this.profile.hints, seats, view);
-    if (hint || current === undefined) return hint;
-    const kept = hintAt(this.profile.hints, seats, view, SPEC.hintExitMargin);
+    const zones = this.profile.hints;
+    const hint = hintAt(zones, seats, view);
+    if (hint || current === undefined || !zones) return hint;
+    const kept = hintAt(
+      zoneOf(zones, current),
+      seats,
+      view,
+      SPEC.hintExitMargin,
+    );
     return kept?.name === current ? kept : undefined;
   }
 
