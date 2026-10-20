@@ -114,3 +114,28 @@ export async function gearDownLandingOutcome(
     detail: `afterTap=${afterTap} gearY=${gearY.toFixed(2)} landedAt=${landedAt} restY=${restY.toFixed(2)} afterHop=${afterHop.toFixed(2)}`,
   };
 }
+
+export function summonCow(a: Arena, x: number, z: number): Entity | undefined {
+  // Mobs from spawnEntity far from players despawn at once, so use summon.
+  a.dim.runCommand(`summon minecraft:cow ${x} ${a.gy} ${z}`);
+  return a.dim.getEntities({
+    type: "minecraft:cow",
+    location: { x, y: a.gy, z },
+    maxDistance: 2,
+  })[0];
+}
+
+export const FLIGHT_LANE = { x: 5.5, z: 4.5 } as const;
+
+/** Ticks until the vehicle form reads `form`, or -1 after `limit` ticks. */
+export async function ticksUntilForm(
+  car: Entity,
+  form: Form,
+  limit: number,
+): Promise<number> {
+  for (let t = 0; t < limit; t++) {
+    await wait(1);
+    if (vehicleForm(car) === form) return t;
+  }
+  return -1;
+}
