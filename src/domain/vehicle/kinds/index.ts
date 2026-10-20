@@ -79,13 +79,13 @@ export function rebuildVehicle(
   riders: readonly RiderView[],
   restored: RestoredValues,
 ): Vehicle {
-  const vehicle = new Vehicle(
+  return Vehicle.withRidersAboard(
     id,
     profileOf(kind),
     KINDS[kind].createDrive(yaw, restored),
+    riders,
+    yaw,
   );
-  vehicle.seatRiders(riders, yaw);
-  return vehicle;
 }
 
 export function profileOf(kind: VehicleKind): VehicleProfile {

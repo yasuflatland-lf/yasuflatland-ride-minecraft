@@ -1,5 +1,6 @@
-// Aggregate for one vehicle: its drive, driver, seats, ram cooldowns, and the hit count.
+// Aggregate for one vehicle: wires its drive to its seating, cooldowns, and hit count.
 import { forward, type Vec2, type Vec3 } from "../shared/vec";
+import { RamCooldowns, SwitchCooldown } from "./cooldowns";
 import type { ClearCell, Departure, Dock } from "./dock";
 import type { Drive, EngineCommand, RiderState, TickContext } from "./drive";
 import type { RawInput } from "./driveInput";
@@ -15,14 +16,14 @@ import { EMPTY_COUNTER, type HitCounter, registerHit } from "./hitCounter";
 import type { VehicleKind } from "./kind";
 import type { ChaseCamera, VehicleProfile } from "./profile";
 import { type RamHit, type RamTarget, selectHits } from "./ram";
-import { occupiedSeats, vacatedSeats } from "./seats";
+import { Seating } from "./seating";
 import { SPEC } from "./spec";
 
 export interface RiderView {
-  id: string;
-  offset: Vec2;
-  yaw: number;
-  raw: RawInput;
+  readonly id: string;
+  readonly offset: Vec2;
+  readonly yaw: number;
+  readonly raw: RawInput;
 }
 
 export interface VehicleTickInput extends TickContext {
@@ -79,11 +80,10 @@ export interface TickOutcome {
 }
 
 export class Vehicle {
-  private driverId: string | undefined;
-  private seats = new Map<string, number>();
-  private readonly lastHit = new Map<string, number>();
+  private seating: Seating;
+  private readonly ramCooldowns = new RamCooldowns();
+  private readonly switchCooldown = new SwitchCooldown();
   private hitCounter: HitCounter = EMPTY_COUNTER;
-  private lastSwitchUseTick = Number.NEGATIVE_INFINITY;
   /** Ticks since the last tick with a driver; infinite until the first driver (ADR 0078). */
   private driverlessTicks = Number.POSITIVE_INFINITY;
   /** As of the last tick: held in place (ADR 0063, 0068), and nobody in the driver's seat or its deck seat. */
@@ -95,22 +95,31 @@ export class Vehicle {
     readonly id: string,
     private readonly profile: VehicleProfile,
     private readonly drive: Drive,
-  ) {}
+  ) {
+    this.seating = new Seating(profile.seats.positions);
+  }
 
   /**
-   * Seats riders who were already aboard when the aggregate was lost (e.g.
-   * after `/reload`), so the first tick does not treat the current driver as
-   * newly mounted, which would snap the heading to the driver's view. Called
-   * only by kinds/index.ts. `yaw` is the entity's heading as read, before the
-   * drive normalizes it.
+   * Rebuilds a vehicle whose aggregate was lost (e.g. after `/reload`) with the
+   * riders already aboard seated, so the first tick does not treat the current
+   * driver as newly mounted, which would snap the heading to the driver's view.
+   * Called only by kinds/index.ts. `yaw` is the entity's heading as read,
+   * before the drive normalizes it.
    */
-  seatRiders(riders: readonly RiderView[], yaw: number): void {
-    this.seats = occupiedSeats(
+  static withRidersAboard(
+    id: string,
+    profile: VehicleProfile,
+    drive: Drive,
+    riders: readonly RiderView[],
+    yaw: number,
+  ): Vehicle {
+    const vehicle = new Vehicle(id, profile, drive);
+    vehicle.seating = Seating.restore(
+      profile.seats.positions,
       riders,
       forward(yaw),
-      this.profile.seats.positions,
     );
-    this.driverId = riders.find((r) => this.seats.get(r.id) === 0)?.id;
+    return vehicle;
   }
 
   get kind(): VehicleKind {
@@ -157,7 +166,7 @@ export class Vehicle {
       yaw: this.drive.yaw,
       docked: this.docked,
       driverSeatFree: this.driverSeatFree,
-      hasRiders: this.seats.size > 0,
+      hasRiders: this.seating.occupied,
       held,
       controls,
     };
@@ -175,8 +184,12 @@ export class Vehicle {
 
   tick(input: VehicleTickInput): TickOutcome {
     const { riders, testInput, targets, ...sensors } = input;
-    const seatCommands = this.updateSeats(riders);
-    const driver = this.updateDriver(riders);
+    const seated = this.seating.update(riders, forward(this.drive.yaw));
+    const seatCommands = seated.vacated.flatMap((seat) =>
+      this.drive.onSeatVacated(seat),
+    );
+    const driver = seated.driver;
+    if (seated.mounted && driver) this.drive.onDriverMounted(driver.yaw);
     this.driverlessTicks = driver ? 0 : this.driverlessTicks + 1;
     const awaitingDriver =
       driver === undefined &&
@@ -184,7 +197,7 @@ export class Vehicle {
       this.driverlessTicks <= SPEC.driverHandoverTicks;
 
     const raw = driver?.raw ?? testInput;
-    const taken = new Set(this.seats.values());
+    const taken = this.seating.taken();
     const deckSeatInputs = sensors.deckSeatInputs.map((deckInput, seat) =>
       taken.has(seat) ? undefined : deckInput,
     );
@@ -218,51 +231,23 @@ export class Vehicle {
     };
   }
 
-  private updateSeats(riders: readonly RiderView[]): readonly EngineCommand[] {
-    const seats = occupiedSeats(
-      riders,
-      forward(this.drive.yaw),
-      this.profile.seats.positions,
-    );
-    const commands = vacatedSeats(this.seats, seats)
-      .sort((a, b) => a - b)
-      .flatMap((seat) => this.drive.onSeatVacated(seat));
-    this.seats = seats;
-    return commands;
-  }
-
-  private updateDriver(riders: readonly RiderView[]): RiderView | undefined {
-    // Driver = the rider in the driver's seat (seat 0) (ADR 0019). A driver
-    // stays the driver while they ride: a rider's position can lag the moving
-    // vehicle by a tick and read as another seat, which in flight would land
-    // the vehicle (ADR 0025).
-    const driver =
-      riders.find((r) => r.id === this.driverId) ??
-      riders.find((r) => this.seats.get(r.id) === 0);
-    if (driver && this.driverId !== driver.id)
-      this.drive.onDriverMounted(driver.yaw);
-    this.driverId = driver?.id;
-    return driver;
-  }
-
   private ram(
     tick: number,
     targets: () => readonly RamTarget[],
     f: Vec2,
   ): RamHit[] {
-    for (const [id, t] of this.lastHit)
-      if (tick - t >= SPEC.ramCooldown) this.lastHit.delete(id);
+    this.ramCooldowns.prune(tick);
     // selectHits checks the speed too; checking here skips the targets() query.
     if (Math.abs(this.drive.speed) <= SPEC.ramMinSpeed) return [];
     const hits = selectHits(
       f,
       this.drive.speed,
       targets(),
-      this.lastHit,
+      this.ramCooldowns.recent,
       tick,
       this.profile.ram,
     );
-    for (const h of hits) this.lastHit.set(h.id, tick);
+    this.ramCooldowns.record(hits, tick);
     return hits;
   }
 
@@ -272,15 +257,13 @@ export class Vehicle {
    * one touch flips it once (ADR 0024). Returns whether it flipped.
    */
   flipHeadlightSwitch(playerId: string, tick: number): boolean {
-    if (playerId !== this.driverId) return false;
-    const idle = tick - this.lastSwitchUseTick;
-    this.lastSwitchUseTick = tick;
-    return idle >= SPEC.headlightSwitchCooldown;
+    if (playerId !== this.seating.driver) return false;
+    return this.switchCooldown.tryUse(tick, SPEC.headlightSwitchCooldown);
   }
 
   /** Hit by a player. Returns whether the vehicle breaks (ADR 0008). */
   receiveHit(tick: number): boolean {
-    const r = registerHit(this.hitCounter, tick, this.seats.size > 0);
+    const r = registerHit(this.hitCounter, tick, this.seating.occupied);
     this.hitCounter = r.counter;
     return r.broken;
   }
