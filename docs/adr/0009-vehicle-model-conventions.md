@@ -1,6 +1,6 @@
 # 0009. Vehicle model conventions, and accepting a square collision box
 
-- Status: Accepted
+- Status: Accepted (extended by [0091](0091-alpha-blend-only-the-camper-glass.md))
 - Date: 2026-10-10
 
 ## Context

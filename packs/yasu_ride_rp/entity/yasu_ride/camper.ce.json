@@ -4,9 +4,10 @@
     "description": {
       "identifier": "yasu_ride:camper",
       "materials": {
-        "default": "entity_alphablend",
+        "default": "entity",
         "lamp": "entity",
-        "lamp_lit": "entity_emissive"
+        "lamp_lit": "entity_emissive",
+        "glass": "entity_alphablend"
       },
       "textures": {
         "default": "textures/entity/yasu_ride/camper",
