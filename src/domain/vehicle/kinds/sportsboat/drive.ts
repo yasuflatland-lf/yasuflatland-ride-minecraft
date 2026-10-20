@@ -1,22 +1,18 @@
 // The sports boat's drive: the engine floats the hull and the script drives only x and z (ADR 0051).
 import { clamp, dot, forward, type Vec2 } from "../../../shared/vec";
 import type { Dock } from "../../dock";
-import type {
-  Drive,
-  DriveStep,
-  EngineCommand,
-  RestoredValues,
-  TickContext,
-} from "../../drive";
+import type { Drive, DriveStep, EngineCommand, TickContext } from "../../drive";
 import {
   type DriveInput,
   NEUTRAL_INPUT,
   type RawInput,
   toDriveInput,
 } from "../../driveInput";
+import type { RestoredOf } from "../../entityContract";
 import type { HoldPose } from "../../floor";
 import { MOTION } from "../../motion/constants";
 import { DOCK, pushesStick } from "../../motion/dock";
+import { dockCommands, undockCommands } from "../../motion/dockEntity";
 import type { MotionLimits } from "../../motion/limits";
 import {
   alignOnMount,
@@ -32,12 +28,7 @@ import { waterBelowAt, waterDepthAt } from "../../motion/water";
 import { seatWorldPositions } from "../../seats";
 import { stepRoll, stepTrim } from "./attitude";
 import { floorCells, holdHeight } from "./deck";
-import {
-  dockCommands,
-  rollCommand,
-  trimCommand,
-  undockCommands,
-} from "./entity";
+import { rollCommand, type SPORTSBOAT_ENTITY, trimCommand } from "./entity";
 import { SPORTSBOAT_MOTION, SPORTSBOAT_PROFILE } from "./profile";
 
 // The height of the sportsboat collision box, which bounds the water depth
@@ -135,7 +126,7 @@ export class SportsboatDrive implements Drive {
   /** `limits` other than the boat's own are for tests that vary one value. */
   constructor(
     yaw: number,
-    restored: RestoredValues,
+    restored: RestoredOf<typeof SPORTSBOAT_ENTITY>,
     private readonly limits: MotionLimits = SPORTSBOAT_MOTION,
   ) {
     this.motion = initialMotion(yaw);

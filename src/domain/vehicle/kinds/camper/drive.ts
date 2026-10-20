@@ -1,17 +1,14 @@
 import { clamp, forward } from "../../../shared/vec";
 import { type ClearCell, DOCK_RESTORED } from "../../dock";
-import type {
-  DriveStep,
-  EngineCommand,
-  RestoredValues,
-  TickContext,
-} from "../../drive";
+import type { DriveStep, EngineCommand, TickContext } from "../../drive";
 import type { RawInput } from "../../driveInput";
+import type { RestoredOf } from "../../entityContract";
 import type { HoldPose } from "../../floor";
 import { DOCK, pushesStick } from "../../motion/dock";
+import { dockCommands, undockCommands } from "../../motion/dockEntity";
 import { TransformingDrive } from "../../motion/transformingDrive";
 import { type BodyEnds, guardEnds } from "./bodyGuard";
-import { dockCommands, doorCommand, undockCommands } from "./entity";
+import { type CAMPER_ENTITY, doorCommand } from "./entity";
 import { CAMPER_MOTION } from "./profile";
 import {
   cargoCells,
@@ -60,7 +57,7 @@ export class CamperDrive extends TransformingDrive {
   // Undefined until the first tick, so a rebuilt vehicle re-sends its door, as with the bank.
   private sentDoorStep: number | undefined;
 
-  constructor(yaw: number, restored: RestoredValues) {
+  constructor(yaw: number, restored: RestoredOf<typeof CAMPER_ENTITY>) {
     super(
       yaw,
       restored,

@@ -125,7 +125,7 @@ export class TransformingDrive implements Drive {
 
   constructor(
     yaw: number,
-    restored: RestoredValues,
+    restored: RestoredValues<"form">,
     protected readonly spec: TransformingSpec,
     protected readonly limits: MotionLimits,
     private readonly guard?: StepGuard,

@@ -1,3 +1,7 @@
+import {
+  HEADLIGHTS_PROPERTY_NAME,
+  paintEventName,
+} from "../../../domain/vehicle/entityContract";
 import type { FleetEntry } from "../../../domain/vehicle/fleet";
 import { VEHICLE_KINDS, type VehicleKind } from "../../../domain/vehicle/kind";
 import { PAINTS, type Paint } from "../../../domain/vehicle/paint";
@@ -46,7 +50,7 @@ export const HEADLIGHT_SWITCH_TYPE = id("headlight_switch");
  * Entity property declared in every vehicle entity file (suv, sportsboat and
  * camper .se.json); the render controller makes the lamps glow by it.
  */
-export const HEADLIGHTS_PROPERTY = id("headlights");
+export const HEADLIGHTS_PROPERTY = id(HEADLIGHTS_PROPERTY_NAME);
 /** Dynamic property on a vehicle holding the cells it put light blocks in. */
 export const LIT_CELLS_PROPERTY = id("lit_cells");
 export const entityPropertyId = (name: string): string => id(name);
@@ -102,7 +106,7 @@ export const PAINT_VARIANT: Readonly<Record<Paint, number>> =
  * Entity event declared in every vehicle entity file (suv, sportsboat and
  * camper .se.json) that sets the variant for a paint.
  */
-export const paintEvent = (paint: Paint): string => id(`paint_${paint}`);
+export const paintEvent = (paint: Paint): string => id(paintEventName(paint));
 
 export function fleetEntryOf(entity: {
   id: string;

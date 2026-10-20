@@ -9,6 +9,9 @@ export const DOCK_RESTORED = {
   doorOpen: "dockDoorOpen",
 } as const;
 
+export type DockRestoredKey =
+  (typeof DOCK_RESTORED)[keyof typeof DOCK_RESTORED];
+
 /** Present only while a drive holds its vehicle; a kind that never holds never returns one. */
 export interface Dock {
   readonly hold: HoldPose;

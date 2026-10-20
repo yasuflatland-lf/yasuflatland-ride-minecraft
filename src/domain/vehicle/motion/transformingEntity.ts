@@ -2,6 +2,7 @@
 // (ADR 0021, 0026, 0033). ADR 0039 sets their names and 0055 keeps them local
 // to the entity.
 import type { EngineCommand } from "../drive";
+import { commandsFor } from "../entityContract";
 import { FORMS, type Form } from "./forms";
 
 export function transformingProperties(maxBank: number) {
@@ -14,20 +15,19 @@ export function transformingProperties(maxBank: number) {
 
 export const TRANSFORMING_EVENTS = ["gravity_on", "gravity_off"] as const;
 
-type TransformingProperty = keyof ReturnType<typeof transformingProperties>;
+type TransformingFragment = {
+  properties: ReturnType<typeof transformingProperties>;
+  events: typeof TRANSFORMING_EVENTS;
+};
 
-function property(
-  name: TransformingProperty,
-  value: number | boolean | Form,
-): EngineCommand {
-  return { type: "setProperty", name, value };
-}
+const { property, event } = commandsFor<TransformingFragment>();
 
 export function formCommands(form: Form): EngineCommand[] {
-  const name: (typeof TRANSFORMING_EVENTS)[number] =
-    form === "car" ? "gravity_on" : "gravity_off";
   // Gravity goes first so a failed event leaves the restored form unchanged (ADR 0021).
-  return [{ type: "triggerEvent", name }, property("form", form)];
+  return [
+    event(form === "car" ? "gravity_on" : "gravity_off"),
+    property("form", form),
+  ];
 }
 
 export function bankCommand(degrees: number): EngineCommand {

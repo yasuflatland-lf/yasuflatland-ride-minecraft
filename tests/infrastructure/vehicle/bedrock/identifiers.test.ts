@@ -1,8 +1,9 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
-  CORE_EVENT_PREFIXES,
   CORE_PROPERTY_NAMES,
+  HEADLIGHTS_PROPERTY_NAME,
+  paintEventName,
 } from "../../../../src/domain/vehicle/entityContract";
 import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
 import { PAINTS } from "../../../../src/domain/vehicle/paint";
@@ -28,8 +29,9 @@ import {
 
 describe("identifiers (ADR 0047)", () => {
   it("reserves the property identifiers the core writes (ADR 0055)", () => {
-    expect(CORE_PROPERTY_NAMES).toContain("headlights");
-    expect(entityPropertyId("headlights")).toBe(HEADLIGHTS_PROPERTY);
+    expect(HEADLIGHTS_PROPERTY).toBe(
+      entityPropertyId(HEADLIGHTS_PROPERTY_NAME),
+    );
     for (const name of CORE_PROPERTY_NAMES)
       expect(entityPropertyId(name)).toBe(HEADLIGHTS_PROPERTY);
   });
@@ -37,8 +39,7 @@ describe("identifiers (ADR 0047)", () => {
   it.each(PAINTS)(
     "reserves the core paint event prefix for %s (ADR 0055)",
     (paint) => {
-      expect(CORE_EVENT_PREFIXES).toContain("paint_");
-      expect(paintEvent(paint).startsWith(entityEventId("paint_"))).toBe(true);
+      expect(paintEvent(paint)).toBe(entityEventId(paintEventName(paint)));
     },
   );
 
