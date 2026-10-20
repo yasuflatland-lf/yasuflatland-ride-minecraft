@@ -4,6 +4,8 @@ import {
   type EntitySpawnAfterEvent,
   type ItemUseAfterEvent,
   type PlayerInteractWithBlockBeforeEvent,
+  type PlayerSpawnAfterEvent,
+  type ScriptEventCommandMessageAfterEvent,
   type StartupEvent,
   system,
   world,
@@ -21,6 +23,7 @@ import {
   ENTITY_TYPE,
   ITEM_TYPE,
   OWNER_PROPERTY,
+  TEST_INPUT_EVENT,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 import { registerSubscriptions } from "../../../../src/infrastructure/vehicle/bedrock/subscriptions";
 import { TestInputStore } from "../../../../src/infrastructure/vehicle/testInput/testInputStore";
@@ -49,7 +52,7 @@ vi.mock("@minecraft/server", () => {
     },
     GameMode: { Creative: "Creative" },
     EntityInitializationCause: { Loaded: "Loaded", Spawned: "Spawned" },
-    ScriptEventSource: {},
+    ScriptEventSource: { Server: "Server", Entity: "Entity" },
     Player: class {},
     system: {
       get currentTick() {
@@ -452,4 +455,57 @@ it("checks the hints every hint interval, after the drive on the same tick (ADR 
   expect(drive.execute.mock.invocationCallOrder[0]).toBeLessThan(
     defined(hints.execute.mock.invocationCallOrder[0], "hints call"),
   );
+});
+
+it("gives the starter vehicle only on a player's initial spawn", () => {
+  const starter = { execute: vi.fn() };
+  registerSubscriptions(
+    { starter } as unknown as Parameters<typeof registerSubscriptions>[0],
+    new TestInputStore(),
+    () => undefined,
+  );
+  const spawn = vi
+    .mocked(world.afterEvents.playerSpawn.subscribe)
+    .mock.calls.at(-1)?.[0];
+  if (!spawn) throw new Error("playerSpawn not subscribed");
+  const player = { id: "player" };
+  spawn({ player, initialSpawn: false } as unknown as PlayerSpawnAfterEvent);
+  expect(starter.execute).not.toHaveBeenCalled();
+  spawn({ player, initialSpawn: true } as unknown as PlayerSpawnAfterEvent);
+  expect(starter.execute).toHaveBeenCalledExactlyOnceWith("player");
+});
+
+it("stores and clears test input only from server script events", () => {
+  const inputs = new TestInputStore();
+  registerSubscriptions(
+    {} as unknown as Parameters<typeof registerSubscriptions>[0],
+    inputs,
+    () => undefined,
+  );
+  const receive = vi
+    .mocked(system.afterEvents.scriptEventReceive.subscribe)
+    .mock.calls.at(-1)?.[0];
+  if (!receive) throw new Error("scriptEventReceive not subscribed");
+  const send = (
+    message: string,
+    sourceType = "Server",
+    id = TEST_INPUT_EVENT,
+  ) =>
+    receive({
+      id,
+      message,
+      sourceType,
+    } as unknown as ScriptEventCommandMessageAfterEvent);
+  send("suv,1,0,1", "Entity");
+  send("suv,1,0,1", "Server", "minecraft:other");
+  expect(inputs.get("suv")).toBeUndefined();
+  send("suv,1,-1,1");
+  expect(inputs.get("suv")).toEqual({ moveX: 1, moveY: -1, jump: true });
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+  send("suv,bad");
+  expect(warn).toHaveBeenCalledOnce();
+  warn.mockRestore();
+  expect(inputs.get("suv")).toEqual({ moveX: 1, moveY: -1, jump: true });
+  send("suv,clear");
+  expect(inputs.get("suv")).toBeUndefined();
 });
