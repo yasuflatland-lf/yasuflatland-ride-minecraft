@@ -5,6 +5,7 @@ import {
   dot,
   forward,
   length,
+  normalizeYaw,
   type Vec2,
 } from "../../../../src/domain/shared/vec";
 import {
@@ -162,11 +163,59 @@ describe("alignOnMount (ADR 0019)", () => {
           expect(out).toStrictEqual({
             ...state,
             yaw:
-              Math.abs(speed) < MOTION.mountAlignSpeed ? driverYaw : state.yaw,
+              Math.abs(speed) < MOTION.mountAlignSpeed
+                ? normalizeYaw(driverYaw)
+                : state.yaw,
           });
         },
       ),
     );
+  });
+
+  it("stores the driver's yaw normalized into (-180, 180] below mountAlignSpeed", () => {
+    fc.assert(
+      fc.property(
+        fc.double({ min: -180, max: 180, noNaN: true }),
+        fc
+          .double({
+            min: -MOTION.mountAlignSpeed,
+            max: MOTION.mountAlignSpeed,
+            noNaN: true,
+          })
+          .filter((s) => Math.abs(s) < MOTION.mountAlignSpeed),
+        fc.integer({ min: -720000, max: 720000 }).map((n) => n / 1000),
+        (yaw, speed, driverYaw) => {
+          const state: MotionState = { ...initialMotion(yaw), speed };
+          const out = alignOnMount(state, driverYaw);
+          expect(out.yaw).toBeGreaterThan(-180);
+          expect(out.yaw).toBeLessThanOrEqual(180);
+          expect(out.yaw).toBe(normalizeYaw(driverYaw));
+          expect(out).toStrictEqual({ ...state, yaw: normalizeYaw(driverYaw) });
+        },
+      ),
+    );
+  });
+
+  it("returns the same state object at or above mountAlignSpeed", () => {
+    fc.assert(
+      fc.property(
+        fc.double({ min: -180, max: 180, noNaN: true }),
+        fc.oneof(
+          fc.double({ min: MOTION.mountAlignSpeed, max: 1, noNaN: true }),
+          fc.double({ min: -1, max: -MOTION.mountAlignSpeed, noNaN: true }),
+        ),
+        fc.integer({ min: -720000, max: 720000 }).map((n) => n / 1000),
+        (yaw, speed, driverYaw) => {
+          const state: MotionState = { ...initialMotion(yaw), speed };
+          expect(alignOnMount(state, driverYaw)).toBe(state);
+        },
+      ),
+    );
+  });
+
+  it("normalizes an out-of-range driver yaw", () => {
+    expect(alignOnMount(initialMotion(0), 270).yaw).toBe(-90);
+    expect(alignOnMount(initialMotion(0), -180).yaw).toBe(180);
   });
 });
 

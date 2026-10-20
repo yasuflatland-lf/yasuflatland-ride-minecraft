@@ -47,7 +47,7 @@ export function alignOnMount(
   driverYaw: number,
 ): MotionState {
   return Math.abs(state.speed) < MOTION.mountAlignSpeed
-    ? { ...state, yaw: driverYaw }
+    ? { ...state, yaw: normalizeYaw(driverYaw) }
     : state;
 }
 
