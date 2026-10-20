@@ -9,6 +9,9 @@ import {
 } from "@minecraft/server";
 import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
+import { PlaceVehicle } from "../../../../src/application/vehicle/placeVehicle";
+import type { PlacementWorld } from "../../../../src/application/vehicle/ports";
+import type { VehicleRepository } from "../../../../src/domain/vehicle/vehicleRepository";
 import {
   CAMPER_DOOR_COMPONENT,
   DECK_SEAT_OF_PROPERTY,
@@ -98,7 +101,26 @@ function fixture(
       () => { block: typeof block; face: string } | undefined
     >(() => ({ block: rayBlock, face: "Up" })),
   };
-  const place = { execute: vi.fn() };
+  const waterDimensions: string[] = [];
+  const notUsed = (): never => {
+    throw new Error("not used by cellFor or placesOnWater");
+  };
+  const placementWorld: PlacementWorld = {
+    isAir: notUsed,
+    isWaterAt: (dimensionId, at) => {
+      waterDimensions.push(dimensionId);
+      return water(at);
+    },
+    spawnVehicle: notUsed,
+    consumeVehicleItem: notUsed,
+  };
+  // cellFor and placesOnWater never touch the repository.
+  const placement = new PlaceVehicle(placementWorld, {} as VehicleRepository);
+  const place = {
+    execute: vi.fn(),
+    cellFor: placement.cellFor.bind(placement),
+    placesOnWater: placement.placesOnWater.bind(placement),
+  };
   registerSubscriptions(
     { place } as unknown as Parameters<typeof registerSubscriptions>[0],
     new TestInputStore(),
@@ -120,6 +142,7 @@ function fixture(
     event,
     player,
     place,
+    waterDimensions,
     dimension,
     interact: () =>
       before(event as unknown as PlayerInteractWithBlockBeforeEvent),
@@ -161,6 +184,7 @@ it("places the boat at the water surface on the next tick from the bed's top fac
         const f = fixture(ITEM_TYPE.sportsboat, depth);
         f.event.blockFace = face;
         f.interact();
+        expect(new Set(f.waterDimensions)).toEqual(new Set(["overworld"]));
         expect(f.event.cancel).toBe(face === "Up");
         expect(f.place.execute).not.toHaveBeenCalled();
         f.nextTick();

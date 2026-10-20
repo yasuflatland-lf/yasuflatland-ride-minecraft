@@ -417,6 +417,14 @@ export class BedrockVehicleWorld
     }
   }
 
+  isWaterAt(dimensionId: string, at: Vec3): boolean {
+    try {
+      return isWaterAt(world.getDimension(dimensionId), at);
+    } catch {
+      return false; // Unknown dimension id
+    }
+  }
+
   spawnVehicle(
     dimensionId: string,
     at: Vec3,
