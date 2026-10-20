@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
+  clamp,
   forward,
   leftOf,
   length,
@@ -10,7 +11,7 @@ import {
 } from "../../../../../src/domain/shared/vec";
 import type { RestoredValues } from "../../../../../src/domain/vehicle/drive";
 import {
-  type DriveInput,
+  type ControlInput,
   type RawInput,
   toDriveInput,
 } from "../../../../../src/domain/vehicle/driveInput";
@@ -26,6 +27,7 @@ import {
   holdHeight,
 } from "../../../../../src/domain/vehicle/kinds/sportsboat/deck";
 import {
+  afloatInput,
   beachedInput,
   estimateWaterDrag,
   isAfloat,
@@ -38,6 +40,7 @@ import {
   SPORTSBOAT_MOTION,
   SPORTSBOAT_PROFILE,
 } from "../../../../../src/domain/vehicle/kinds/sportsboat/profile";
+import { SPORTSBOAT_SPEC } from "../../../../../src/domain/vehicle/kinds/sportsboat/spec";
 import {
   SUV_MOTION,
   SUV_PROFILE,
@@ -53,6 +56,7 @@ import {
   initialMotion,
   type MotionState,
   stepMediumMotion,
+  stepMotion,
 } from "../../../../../src/domain/vehicle/motion/motion";
 import type { RamTarget } from "../../../../../src/domain/vehicle/ram";
 import { seatWorldPositions } from "../../../../../src/domain/vehicle/seats";
@@ -248,7 +252,8 @@ describe("sports boat docking (ADR 0063)", () => {
         const drive = new SportsboatDrive(
           heading,
           {},
-          { ...SPORTSBOAT_MOTION, accel: 0, reverseAccel: 0, creepSpeed: 0 },
+          { ...SPORTSBOAT_MOTION, accel: 0, reverseAccel: 0 },
+          0,
         );
         const ctx = context(0, undefined, { x: 0, z: 0 }, water);
         for (let tick = 1; tick < DOCK.ticks; tick++)
@@ -567,11 +572,11 @@ describe("sports boat docking (ADR 0063)", () => {
 
 describe("beachedInput (ADR 0080)", () => {
   it("keeps reverse throttle and steering and drops forward throttle, creep, and the handbrake", () => {
-    const anyInput: fc.Arbitrary<DriveInput> = fc.record({
+    const anyInput: fc.Arbitrary<ControlInput> = fc.record({
       throttle: number(-1, 1),
       steer: number(-1, 1),
-      handbrake: fc.boolean(),
-      creep: fc.boolean(),
+      jump: fc.boolean(),
+      sideways: fc.boolean(),
     });
     fc.assert(
       fc.property(anyInput, (input) => {
@@ -764,10 +769,11 @@ describe("SportsboatDrive (ADR 0051)", () => {
         expect(updated).not.toBeCloseTo(low, 6);
         const expected = stepMediumMotion(
           afterA.motion,
-          toDriveInput(FULL_THROTTLE),
+          afloatInput(toDriveInput(FULL_THROTTLE)),
           observed,
           { ...SPORTSBOAT_WATER, drag: updated },
           SPORTSBOAT_MOTION,
+          SPORTSBOAT_SPEC.creepSpeed,
         );
         expect(next.impulse.x).toBeCloseTo(expected.impulse.x, 12);
         expect(next.impulse.z).toBeCloseTo(expected.impulse.z, 12);
@@ -992,7 +998,7 @@ describe("SportsboatDrive (ADR 0051)", () => {
           for (let i = 0; i < throttleTicks; i++)
             sim.step(FULL_THROTTLE, water);
           for (let i = 0; i < 100; i++) sim.step(stick, water);
-          expect(sim.vehicle.speed).toBe(SPORTSBOAT_MOTION.creepSpeed);
+          expect(sim.vehicle.speed).toBe(SPORTSBOAT_SPEC.creepSpeed);
           const before = sim.vehicle.yaw;
           sim.step(stick, water);
           expect(yawDelta(before, sim.vehicle.yaw)).toBeCloseTo(
@@ -1141,9 +1147,8 @@ describe("SportsboatDrive (ADR 0051)", () => {
     );
   });
 
-  it("ignores jump afloat or beached, even with a handbrake grip that differs from its grip", () => {
-    // SPORTSBOAT_MOTION sets handbrakeGrip equal to grip, which would hide a
-    // path that reads the handbrake; a differing one makes such a path show.
+  it("ignores jump afloat or beached (ADR 0089)", () => {
+    // The boat maps Jump to nothing (ADR 0089), so a held Jump changes no step.
     const water = fc.oneof(
       afloatWater,
       fc.constant(BEACHED),
@@ -1157,19 +1162,11 @@ describe("SportsboatDrive (ADR 0051)", () => {
         water,
         fc.boolean(),
         rawInput,
-        number(0, 1),
-        (heading, speed, velocity, w, onGround, raw, handbrakeGrip) => {
+        (heading, speed, velocity, w, onGround, raw) => {
           const motion = { ...initialMotion(heading), speed };
           const ctx = { ...context(0, undefined, velocity, w), onGround };
           const run = (jump: boolean) => {
-            const drive = new SportsboatDrive(
-              heading,
-              {},
-              {
-                ...SPORTSBOAT_MOTION,
-                handbrakeGrip,
-              },
-            ).restore({ motion });
+            const drive = new SportsboatDrive(heading, {}).restore({ motion });
             return {
               step: drive.step({ ...raw, jump }, ctx),
               state: drive.state,
@@ -1516,4 +1513,177 @@ it("keeps deck seats only at empty boat seats and ignores the deck driver while 
       },
     ),
   );
+});
+
+// The mapping before ADR 0089, kept as an oracle.
+interface LegacyDriveInput {
+  throttle: number;
+  steer: number;
+  handbrake: boolean;
+  creep: boolean;
+}
+const LEGACY_NEUTRAL: LegacyDriveInput = {
+  throttle: 0,
+  steer: 0,
+  handbrake: false,
+  creep: false,
+};
+const LEGACY_SLOPE = Math.tan((SPEC.sidewaysAngle * Math.PI) / 180);
+function legacyToDriveInput(raw: RawInput | undefined): LegacyDriveInput {
+  if (
+    raw === undefined ||
+    !Number.isFinite(raw.moveX) ||
+    !Number.isFinite(raw.moveY)
+  ) {
+    return LEGACY_NEUTRAL;
+  }
+  const steer = clamp(raw.moveX, -1, 1);
+  const sideways = Math.abs(steer);
+  // A phone stick pushed straight right reads about -0.2 forward/backward,
+  // which would otherwise reverse the vehicle and flip the steering.
+  if (
+    sideways > SPEC.throttleDeadzone &&
+    Math.abs(raw.moveY) <= sideways * LEGACY_SLOPE
+  ) {
+    return { throttle: 0, steer, handbrake: raw.jump, creep: true };
+  }
+  const magnitude = Math.abs(raw.moveY);
+  const throttle =
+    magnitude <= SPEC.throttleDeadzone
+      ? 0
+      : Math.sign(raw.moveY) * Math.min(1, magnitude / SPEC.throttleFullAt);
+  return { throttle, steer, handbrake: raw.jump, creep: false };
+}
+
+function legacyBeachedInput(input: LegacyDriveInput): LegacyDriveInput {
+  return {
+    throttle: Math.min(0, input.throttle),
+    steer: input.steer,
+    handbrake: false,
+    creep: false,
+  };
+}
+
+const anyAxis = fc.oneof(
+  fc.double({ min: -1.5, max: 1.5, noNaN: true }),
+  fc.double(),
+);
+const anyRaw: fc.Arbitrary<RawInput> = fc.record({
+  moveX: anyAxis,
+  moveY: anyAxis,
+  jump: fc.boolean(),
+});
+const anyRawOrNone = fc.option(anyRaw, { nil: undefined });
+
+const LEGACY_SPORTSBOAT = {
+  maxSpeed: 1.12,
+  maxReverse: 0.2,
+  accel: 0.0225,
+  reverseAccel: 0.01125,
+  brake: 0.04,
+  drag: 0.02,
+  turnRate: 6,
+  steerFullSpeed: 0.08,
+  grip: 0.6,
+  handbrakeGrip: 0.6,
+  creepSpeed: 0.12,
+};
+
+describe("sports boat control mapping (ADR 0089)", () => {
+  it("maps the stick afloat as the old drive input did, without a handbrake", () => {
+    fc.assert(
+      fc.property(anyRawOrNone, (raw) => {
+        const o = legacyToDriveInput(raw);
+        expect(afloatInput(toDriveInput(raw))).toStrictEqual({
+          throttle: o.throttle,
+          steer: o.steer,
+          creep: o.creep,
+        });
+      }),
+      { numRuns: 100 },
+    );
+  });
+
+  it("maps the stick beached as the old beached input did", () => {
+    fc.assert(
+      fc.property(anyRawOrNone, (raw) => {
+        expect(beachedInput(toDriveInput(raw))).toStrictEqual(
+          legacyBeachedInput(legacyToDriveInput(raw)),
+        );
+      }),
+      { numRuns: 100 },
+    );
+  });
+
+  it("moves afloat and beached tick by tick as the old mapping did", () => {
+    fc.assert(
+      fc.property(
+        yaw,
+        fc.record({
+          drag: number(0.7, 0.95),
+          maxSpeed: fc.constant(SPORTSBOAT_MOTION.maxSpeed),
+        }),
+        fc.array(
+          fc.record({
+            raw: anyRawOrNone,
+            velocity: fc.record({ x: number(-2, 2), z: number(-2, 2) }),
+            afloat: fc.boolean(),
+            onGround: fc.boolean(),
+          }),
+          { minLength: 1, maxLength: 60 },
+        ),
+        (heading, medium, ticks) => {
+          let next = initialMotion(heading);
+          let old = initialMotion(heading);
+          for (const { raw, velocity, afloat, onGround } of ticks) {
+            const result = afloat
+              ? stepMediumMotion(
+                  next,
+                  afloatInput(toDriveInput(raw)),
+                  velocity,
+                  medium,
+                  SPORTSBOAT_MOTION,
+                  SPORTSBOAT_SPEC.creepSpeed,
+                )
+              : stepMotion(
+                  next,
+                  beachedInput(toDriveInput(raw)),
+                  { velocity, onGround },
+                  () => 0,
+                  SPORTSBOAT_MOTION,
+                  {
+                    handbrakeGrip: SPORTSBOAT_MOTION.grip,
+                    creepSpeed: SPORTSBOAT_SPEC.creepSpeed,
+                  },
+                );
+            const oracle = afloat
+              ? stepMediumMotion(
+                  old,
+                  legacyToDriveInput(raw),
+                  velocity,
+                  medium,
+                  LEGACY_SPORTSBOAT,
+                  LEGACY_SPORTSBOAT.creepSpeed,
+                )
+              : stepMotion(
+                  old,
+                  legacyBeachedInput(legacyToDriveInput(raw)),
+                  { velocity, onGround },
+                  () => 0,
+                  LEGACY_SPORTSBOAT,
+                  LEGACY_SPORTSBOAT,
+                );
+            expect(result.state.speed).toBe(oracle.state.speed);
+            expect(result.state.yaw).toBe(oracle.state.yaw);
+            expect(result.impulse.x).toBe(oracle.impulse.x);
+            expect(result.impulse.z).toBe(oracle.impulse.z);
+            expect(result.blocked).toBe(oracle.blocked);
+            next = result.state;
+            old = oracle.state;
+          }
+        },
+      ),
+      { numRuns: 100 },
+    );
+  });
 });

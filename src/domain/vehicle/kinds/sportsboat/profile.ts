@@ -48,6 +48,4 @@ export const SPORTSBOAT_MOTION: MotionLimits = Object.freeze({
   turnRate: SPORTSBOAT_SPEC.turnRate,
   steerFullSpeed: SPORTSBOAT_SPEC.steerFullSpeed,
   grip: SPORTSBOAT_SPEC.grip,
-  handbrakeGrip: SPORTSBOAT_SPEC.handbrakeGrip,
-  creepSpeed: SPORTSBOAT_SPEC.creepSpeed,
 });

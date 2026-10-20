@@ -9,6 +9,14 @@ export interface MotionLimits {
   readonly turnRate: number;
   readonly steerFullSpeed: number;
   readonly grip: number;
+}
+
+/**
+ * Values only the ground step reads (ADR 0089): the grip under the handbrake and
+ * the creep speed (ADR 0018). A kind without a ground handbrake, such as the
+ * sports boat, gives its creep speed to the medium step on its own.
+ */
+export interface TyreLimits {
   readonly handbrakeGrip: number;
   readonly creepSpeed: number;
 }

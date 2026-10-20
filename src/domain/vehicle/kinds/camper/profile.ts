@@ -1,4 +1,4 @@
-import type { MotionLimits } from "../../motion/limits";
+import type { MotionLimits, TyreLimits } from "../../motion/limits";
 import type { PlacementSurface } from "../../placement";
 import type { VehicleProfile } from "../../profile";
 import { CAMPER_SPEC } from "./spec";
@@ -69,6 +69,10 @@ export const CAMPER_MOTION: MotionLimits = Object.freeze({
   turnRate: CAMPER_SPEC.turnRate,
   steerFullSpeed: CAMPER_SPEC.steerFullSpeed,
   grip: CAMPER_SPEC.grip,
+});
+
+// Frozen because every camper drive shares this one object.
+export const CAMPER_TYRES: TyreLimits = Object.freeze({
   handbrakeGrip: CAMPER_SPEC.handbrakeGrip,
   creepSpeed: CAMPER_SPEC.creepSpeed,
 });

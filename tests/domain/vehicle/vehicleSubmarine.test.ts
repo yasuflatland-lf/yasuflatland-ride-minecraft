@@ -6,10 +6,7 @@ import {
   length,
   type Vec3,
 } from "../../../src/domain/shared/vec";
-import type {
-  DriveInput,
-  RawInput,
-} from "../../../src/domain/vehicle/driveInput";
+import type { RawInput } from "../../../src/domain/vehicle/driveInput";
 import {
   createVehicle,
   rebuildVehicle,
@@ -18,6 +15,7 @@ import { SuvDrive } from "../../../src/domain/vehicle/kinds/suv/drive";
 import {
   SUV_MOTION,
   SUV_PROFILE,
+  SUV_TYRES,
 } from "../../../src/domain/vehicle/kinds/suv/profile";
 import {
   AIR,
@@ -29,6 +27,7 @@ import {
   type Form,
   verticalImpulse,
 } from "../../../src/domain/vehicle/motion/forms";
+import type { GroundInput } from "../../../src/domain/vehicle/motion/motion";
 import {
   initialMotion,
   stepMediumMotion,
@@ -48,7 +47,7 @@ import { waterSensors } from "../../support/waterDepth";
 
 const IDLE: RawInput = { moveX: 0, moveY: 0, jump: false };
 const FORWARD: RawInput = { ...IDLE, moveY: 1 };
-const FULL_THROTTLE: DriveInput = {
+const FULL_THROTTLE: GroundInput = {
   throttle: 1,
   steer: 0,
   handbrake: false,
@@ -507,12 +506,24 @@ describe("Motion medium contract", () => {
           mediumExpected: expected,
         };
         expect(
-          stepMediumMotion(state, FULL_THROTTLE, velocity, WATER, SUV_MOTION)
-            .blocked,
+          stepMediumMotion(
+            state,
+            FULL_THROTTLE,
+            velocity,
+            WATER,
+            SUV_MOTION,
+            SUV_TYRES.creepSpeed,
+          ).blocked,
         ).toBe(false);
         expect(
-          stepMediumMotion(state, FULL_THROTTLE, velocity, AIR, SUV_MOTION)
-            .blocked,
+          stepMediumMotion(
+            state,
+            FULL_THROTTLE,
+            velocity,
+            AIR,
+            SUV_MOTION,
+            SUV_TYRES.creepSpeed,
+          ).blocked,
         ).toBe(true);
         expect(
           stepMediumMotion(
@@ -521,6 +532,7 @@ describe("Motion medium contract", () => {
             { x: 0, z: 0 },
             WATER,
             SUV_MOTION,
+            SUV_TYRES.creepSpeed,
           ).blocked,
         ).toBe(true);
       }),

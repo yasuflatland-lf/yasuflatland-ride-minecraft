@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { dot, forward, rightOf } from "../../../src/domain/shared/vec";
-import { NEUTRAL_INPUT } from "../../../src/domain/vehicle/driveInput";
+import { NEUTRAL_CONTROL } from "../../../src/domain/vehicle/driveInput";
 import {
   cellKey,
   headlightCells,
@@ -11,6 +11,7 @@ import { isVehicleKind, VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
 import {
   CAMPER_MOTION,
   CAMPER_PROFILE,
+  CAMPER_TYRES,
 } from "../../../src/domain/vehicle/kinds/camper/profile";
 import {
   CAMPER_AIR,
@@ -29,9 +30,11 @@ import {
   SPORTSBOAT_MOTION,
   SPORTSBOAT_PROFILE,
 } from "../../../src/domain/vehicle/kinds/sportsboat/profile";
+import { SPORTSBOAT_SPEC } from "../../../src/domain/vehicle/kinds/sportsboat/spec";
 import {
   SUV_MOTION,
   SUV_PROFILE,
+  SUV_TYRES,
 } from "../../../src/domain/vehicle/kinds/suv/profile";
 import {
   AIR,
@@ -41,6 +44,7 @@ import {
 } from "../../../src/domain/vehicle/kinds/suv/spec";
 import { MOTION } from "../../../src/domain/vehicle/motion/constants";
 import {
+  type GroundInput,
   initialMotion,
   stepMediumMotion,
   stepMotion,
@@ -49,6 +53,13 @@ import {
 import { STEP_LANES } from "../../../src/domain/vehicle/motion/stepUp";
 import { selectHits } from "../../../src/domain/vehicle/ram";
 import { SPEC } from "../../../src/domain/vehicle/spec";
+
+const NEUTRAL_GROUND: GroundInput = {
+  throttle: 0,
+  steer: 0,
+  handbrake: false,
+  creep: false,
+};
 
 const number = (min: number, max: number) =>
   fc.double({ min, max, noNaN: true });
@@ -87,6 +98,8 @@ describe("vehicle profiles (ADR 0050)", () => {
       turnRate: SUV_SPEC.turnRate,
       steerFullSpeed: SUV_SPEC.steerFullSpeed,
       grip: SUV_SPEC.grip,
+    });
+    expect(SUV_TYRES).toEqual({
       handbrakeGrip: SUV_SPEC.handbrakeGrip,
       creepSpeed: SUV_SPEC.creepSpeed,
     });
@@ -112,6 +125,13 @@ describe("vehicle profiles (ADR 0050)", () => {
     });
   });
 
+  it("reads the camper's tyre values from its spec (ADR 0089)", () => {
+    expect(CAMPER_TYRES).toEqual({
+      handbrakeGrip: CAMPER_SPEC.handbrakeGrip,
+      creepSpeed: CAMPER_SPEC.creepSpeed,
+    });
+  });
+
   it("gives the sports boat its own values from ADR 0051", () => {
     expect(SPORTSBOAT_MOTION).toStrictEqual({
       maxSpeed: 1.12,
@@ -123,9 +143,9 @@ describe("vehicle profiles (ADR 0050)", () => {
       turnRate: 6,
       steerFullSpeed: 0.08,
       grip: 0.6,
-      handbrakeGrip: 0.6,
-      creepSpeed: 0.12,
     });
+    expect(SPORTSBOAT_SPEC.creepSpeed).toBe(0.12);
+    expect("handbrakeGrip" in SPORTSBOAT_SPEC).toBe(false);
     expect(SPORTSBOAT_PROFILE).toStrictEqual({
       kind: "sportsboat",
       fleetLimit: 1,
@@ -154,6 +174,8 @@ describe("vehicle profiles (ADR 0050)", () => {
 
   it("freezes every profile and motion limit so a write cannot change all vehicles of a kind", () => {
     expect(Object.isFrozen(KINDS)).toBe(true);
+    expect(Object.isFrozen(SUV_TYRES)).toBe(true);
+    expect(Object.isFrozen(CAMPER_TYRES)).toBe(true);
     expect(Object.isFrozen(SUV_MOTION)).toBe(true);
     expect(Object.isFrozen(CAMPER_MOTION)).toBe(true);
     expect(Object.isFrozen(SPORTSBOAT_MOTION)).toBe(true);
@@ -193,7 +215,7 @@ describe("vehicle profiles (ADR 0050)", () => {
       CAMPER_TRANSFORMING,
       CAMPER_TRANSFORMING.air,
       CAMPER_TRANSFORMING.water,
-      NEUTRAL_INPUT,
+      NEUTRAL_CONTROL,
       EMPTY_COUNTER,
     ]) {
       expect(Object.isFrozen(table)).toBe(true);
@@ -234,7 +256,13 @@ describe("vehicle profiles (ADR 0050)", () => {
         (motion, inputs) => {
           let speed = 0;
           for (const control of inputs) {
-            speed = updateSpeed(speed, control.throttle, control.creep, motion);
+            speed = updateSpeed(
+              speed,
+              control.throttle,
+              control.creep,
+              motion,
+              motion.creepSpeed,
+            );
             expect(speed).toBeLessThanOrEqual(motion.maxSpeed);
             expect(speed).toBeGreaterThanOrEqual(-motion.maxReverse);
           }
@@ -248,9 +276,17 @@ describe("vehicle profiles (ADR 0050)", () => {
       fc.property(number(1, 4), number(0.001, 0.1), (maxSpeed, accel) => {
         const motion = { ...SUV_MOTION, maxSpeed, accel };
         expect(
-          updateSpeed(SUV_SPEC.maxSpeed, 1, false, motion),
+          updateSpeed(
+            SUV_SPEC.maxSpeed,
+            1,
+            false,
+            motion,
+            SUV_TYRES.creepSpeed,
+          ),
         ).toBeGreaterThan(SUV_SPEC.maxSpeed);
-        expect(updateSpeed(maxSpeed, 1, false, motion)).toBe(maxSpeed);
+        expect(
+          updateSpeed(maxSpeed, 1, false, motion, SUV_TYRES.creepSpeed),
+        ).toBe(maxSpeed);
       }),
     );
   });
@@ -272,6 +308,7 @@ describe("vehicle profiles (ADR 0050)", () => {
             v,
             { drag, maxSpeed: mediumMax },
             motion,
+            motion.creepSpeed,
           );
           expect(out.state.speed).toBeLessThanOrEqual(maximum);
           expect(
@@ -282,10 +319,11 @@ describe("vehicle profiles (ADR 0050)", () => {
           ).toBeLessThanOrEqual(maximum + 1e-9);
           const full = stepMediumMotion(
             { ...initialMotion(heading), speed: motion.maxSpeed },
-            { ...NEUTRAL_INPUT, throttle: 1 },
+            { ...NEUTRAL_GROUND, throttle: 1 },
             { x: 0, z: 0 },
             { drag, maxSpeed: mediumMax },
             motion,
+            motion.creepSpeed,
           );
           expect(full.state.speed).toBe(maximum);
           expect(
@@ -310,9 +348,10 @@ describe("vehicle profiles (ADR 0050)", () => {
           const v = { x: right.x * 0.1, z: right.z * 0.1 };
           const out = stepMotion(
             { ...initialMotion(heading), speed },
-            { ...NEUTRAL_INPUT, steer, handbrake },
+            { ...NEUTRAL_GROUND, steer, handbrake },
             { velocity: v, onGround: true },
             () => 0,
+            motion,
             motion,
           );
           const nextSpeed = Math.max(0, speed - motion.drag);
@@ -490,7 +529,7 @@ describe("vehicle profiles (ADR 0050)", () => {
         const vLong = -(maxReverse + (maxSpeed - maxReverse) * ratio);
         return { motion: { ...motion, maxSpeed, maxReverse }, vLong };
       });
-    const pushed = { ...NEUTRAL_INPUT, throttle: 1 };
+    const pushed = { ...NEUTRAL_GROUND, throttle: 1 };
     fc.assert(
       fc.property(wallCase, yaw, ({ motion, vLong }, heading) => {
         const f = forward(heading);
@@ -506,6 +545,7 @@ describe("vehicle profiles (ADR 0050)", () => {
           { velocity: v, onGround: true },
           () => 0,
           motion,
+          motion,
         );
         const flight = stepMediumMotion(
           { ...start, mediumExpected: aimed },
@@ -513,6 +553,7 @@ describe("vehicle profiles (ADR 0050)", () => {
           v,
           { drag: 1, maxSpeed: 5 },
           motion,
+          motion.creepSpeed,
         );
         for (const out of [ground, flight]) {
           expect(out.blocked).toBe(true);

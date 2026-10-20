@@ -7,9 +7,8 @@ import {
   normalizeYaw,
   type Vec2,
 } from "../../shared/vec";
-import type { DriveInput } from "../driveInput";
 import { MOTION } from "./constants";
-import type { MotionLimits } from "./limits";
+import type { MotionLimits, TyreLimits } from "./limits";
 
 export interface Medium {
   readonly drag: number;
@@ -21,6 +20,19 @@ export interface Medium {
    * (ADR 0053).
    */
   readonly wallDrag?: number;
+}
+
+/** What the medium step reads from a kind's controls (ADR 0089). */
+export interface MediumInput {
+  readonly throttle: number;
+  readonly steer: number;
+  /** Move forward slowly at the creep speed instead of throttling (ADR 0018). */
+  readonly creep: boolean;
+}
+
+/** What the ground step reads: the medium input plus the handbrake (ADR 0089). */
+export interface GroundInput extends MediumInput {
+  readonly handbrake: boolean;
 }
 
 export interface MotionState {
@@ -71,12 +83,12 @@ export function updateSpeed(
   throttle: number,
   creep: boolean,
   limits: MotionLimits,
+  creepSpeed: number,
 ): number {
   if (creep) {
-    if (speed >= limits.creepSpeed)
-      return Math.max(limits.creepSpeed, speed - limits.drag);
+    if (speed >= creepSpeed) return Math.max(creepSpeed, speed - limits.drag);
     return Math.min(
-      limits.creepSpeed,
+      creepSpeed,
       speed + (speed < 0 ? limits.brake : limits.accel),
     );
   }
@@ -189,12 +201,19 @@ export function speedAfterWall(
 
 export function stepMotion(
   prev: MotionState,
-  input: DriveInput,
+  input: GroundInput,
   obs: Observation,
   probe: StepProbe,
   limits: MotionLimits,
+  tyres: TyreLimits,
 ): MotionResult {
-  let speed = updateSpeed(prev.speed, input.throttle, input.creep, limits);
+  let speed = updateSpeed(
+    prev.speed,
+    input.throttle,
+    input.creep,
+    limits,
+    tyres.creepSpeed,
+  );
   const yaw = steerYaw(prev.yaw, speed, input.steer, limits);
   const f = forward(yaw);
   const v = obs.velocity;
@@ -248,7 +267,7 @@ export function stepMotion(
   // Set the forward component to the internal speed, cancel a grip-sized
   // fraction of the sideways component, and cap the result at max speed (ADR 0002).
   const lat = { x: v.x - f.x * vLong, z: v.z - f.z * vLong };
-  const grip = input.handbrake ? limits.handbrakeGrip : limits.grip;
+  const grip = input.handbrake ? tyres.handbrakeGrip : limits.grip;
   // A blocked tick carries no sideways velocity, so the along-wall speed
   // stays at its impact value (ADR 0081).
   const keepLat = stepping || blocked ? 0 : 1 - grip;
@@ -288,17 +307,18 @@ export function stepMotion(
  */
 export function stepMediumMotion(
   prev: MotionState,
-  input: DriveInput,
+  input: MediumInput,
   v: Vec2,
   medium: Medium,
   limits: MotionLimits,
+  creepSpeed: number,
 ): MotionResult {
   // Without the cap, speed keeps climbing toward limits.maxSpeed under water
   // while clampLength hides it, and a released throttle coasts at full water
   // speed until speed falls back below maxWaterSpeed.
   const maxSpeed = Math.min(limits.maxSpeed, medium.maxSpeed);
   let speed = Math.min(
-    updateSpeed(prev.speed, input.throttle, input.creep, limits),
+    updateSpeed(prev.speed, input.throttle, input.creep, limits, creepSpeed),
     maxSpeed,
   );
   const yaw = steerYaw(prev.yaw, speed, input.steer, limits);
