@@ -98,6 +98,16 @@ function dockAt(pose: HoldPose): Dock {
   };
 }
 
+/** The input a beached boat drives by: reverse and steering only, never forward or creep (ADR 0080). */
+export function beachedInput(input: DriveInput): DriveInput {
+  return {
+    throttle: Math.min(0, input.throttle),
+    steer: input.steer,
+    handbrake: false,
+    creep: false,
+  };
+}
+
 export function isAfloat(depth: number, below: () => boolean): boolean {
   return depth > 0 || below();
 }
@@ -229,10 +239,11 @@ export class SportsboatDrive implements Drive {
       );
       this.dragEstimate = waterDrag;
     } else {
-      // Beached, it coasts to a stop and never steps up a block.
+      // Beached, it can only reverse, so a player can back it into the water
+      // (ADR 0080); it never steps up a block.
       step = stepMotion(
         motion,
-        NEUTRAL_INPUT,
+        beachedInput(input),
         { velocity: ctx.velocity, onGround: ctx.onGround },
         () => 0,
         this.limits,

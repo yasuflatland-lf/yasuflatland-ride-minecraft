@@ -9,6 +9,7 @@ import {
   type Vec3,
 } from "../../../../../src/domain/shared/vec";
 import {
+  type DriveInput,
   type RawInput,
   toDriveInput,
 } from "../../../../../src/domain/vehicle/driveInput";
@@ -24,6 +25,7 @@ import {
   holdHeight,
 } from "../../../../../src/domain/vehicle/kinds/sportsboat/deck";
 import {
+  beachedInput,
   estimateWaterDrag,
   isAfloat,
   SPORTSBOAT_DRAG,
@@ -562,6 +564,27 @@ describe("sports boat docking (ADR 0063)", () => {
   });
 });
 
+describe("beachedInput (ADR 0080)", () => {
+  it("keeps reverse throttle and steering and drops forward throttle, creep, and the handbrake", () => {
+    const anyInput: fc.Arbitrary<DriveInput> = fc.record({
+      throttle: number(-1, 1),
+      steer: number(-1, 1),
+      handbrake: fc.boolean(),
+      creep: fc.boolean(),
+    });
+    fc.assert(
+      fc.property(anyInput, (input) => {
+        expect(beachedInput(input)).toStrictEqual({
+          throttle: Math.min(0, input.throttle),
+          steer: input.steer,
+          handbrake: false,
+          creep: false,
+        });
+      }),
+    );
+  });
+});
+
 describe("isAfloat (ADR 0051)", () => {
   it("is afloat with water at the feet or 0.3 blocks below them, and beached otherwise", () => {
     fc.assert(
@@ -978,15 +1001,40 @@ describe("SportsboatDrive (ADR 0051)", () => {
     );
   });
 
-  it("beached, never gains speed whatever the input and coasts to a stop", () => {
+  it("beached, never gains forward speed and never passes the reverse limit, whatever the input", () => {
     fc.assert(
       fc.property(
         yaw,
         fc.integer({ min: 0, max: 80 }),
         fc.array(fc.option(rawInput, { nil: undefined }), {
-          minLength: 60,
+          minLength: 1,
           maxLength: 80,
         }),
+        (heading, afloatTicks, inputs) => {
+          const sim = new BoatSim(boat(heading), MOTION.defaultFriction);
+          for (let i = 0; i < afloatTicks; i++) sim.step(FULL_THROTTLE, AFLOAT);
+          for (const raw of inputs) {
+            const before = sim.vehicle.speed;
+            sim.step(raw, BEACHED);
+            expect(sim.vehicle.speed).toBeLessThanOrEqual(Math.max(before, 0));
+            expect(sim.vehicle.speed).toBeGreaterThanOrEqual(
+              -SPORTSBOAT_MOTION.maxReverse,
+            );
+          }
+        },
+      ),
+    );
+  });
+
+  it("beached without the stick pulled back, never gains speed and coasts to a stop", () => {
+    const notBack = fc
+      .option(rawInput, { nil: undefined })
+      .filter((raw) => raw === undefined || toDriveInput(raw).throttle >= 0);
+    fc.assert(
+      fc.property(
+        yaw,
+        fc.integer({ min: 0, max: 80 }),
+        fc.array(notBack, { minLength: 60, maxLength: 80 }),
         (heading, afloatTicks, inputs) => {
           const sim = new BoatSim(boat(heading), MOTION.defaultFriction);
           for (let i = 0; i < afloatTicks; i++) sim.step(FULL_THROTTLE, AFLOAT);
@@ -999,6 +1047,40 @@ describe("SportsboatDrive (ADR 0051)", () => {
           expect(sim.vehicle.speed).toBe(0);
         },
       ),
+    );
+  });
+
+  it("beached with the stick pulled back, reverses within the reverse limit and reaches it within 30 ticks at full reverse", () => {
+    fc.assert(
+      fc.property(yaw, number(-1, -0.25), (heading, moveY) => {
+        const sim = new BoatSim(boat(heading), MOTION.defaultFriction);
+        const stick = { moveX: 0, moveY, jump: false };
+        for (let i = 0; i < 30; i++) {
+          sim.step(stick, BEACHED);
+          expect(sim.vehicle.speed).toBeLessThan(0);
+          expect(sim.vehicle.speed).toBeGreaterThanOrEqual(
+            -SPORTSBOAT_MOTION.maxReverse,
+          );
+        }
+        if (moveY <= -SPEC.throttleFullAt)
+          expect(sim.vehicle.speed).toBe(-SPORTSBOAT_MOTION.maxReverse);
+      }),
+    );
+  });
+
+  it("beached and reversing, turns the other way from the stick by the profile's turnRate", () => {
+    fc.assert(
+      fc.property(yaw, steer, (heading, s) => {
+        const sim = new BoatSim(boat(heading), MOTION.defaultFriction);
+        const stick = { moveX: 0, moveY: -1, jump: false };
+        for (let i = 0; i < 20; i++) sim.step(stick, BEACHED);
+        const before = sim.vehicle.yaw;
+        sim.step({ ...stick, moveX: s }, BEACHED);
+        expect(yawDelta(before, sim.vehicle.yaw)).toBeCloseTo(
+          s * SPORTSBOAT_MOTION.turnRate,
+          9,
+        );
+      }),
     );
   });
 
