@@ -432,6 +432,45 @@ describe("BedrockPaintWorld paint wiring (ADR 0076)", () => {
   });
 });
 
+describe("BedrockVehicleWorld ram targets (ADR 0006)", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("reports what each nearby entity rides as its ram mount", () => {
+    const { dimension, car, world } = fixture();
+    const near = (id: string, x: number, riding: unknown) => ({
+      id,
+      location: { x, y: 64.5, z: 3 },
+      getComponent: (name: string) =>
+        name === "minecraft:riding" ? riding : undefined,
+    });
+    dimension.getEntities.mockReturnValue([
+      car,
+      near("boatRider", 0, {
+        entityRidingOn: { typeId: ENTITY_TYPE.sportsboat },
+      }),
+      near("deckRider", 1, { entityRidingOn: { typeId: DECK_SEAT_TYPE } }),
+      near("walker", 2, undefined),
+    ]);
+    expect(world.targetsNear("car")).toEqual([
+      {
+        id: "boatRider",
+        offset: { x: 1.25, y: 0.25, z: 0.25 },
+        mount: "vehicle",
+      },
+      {
+        id: "deckRider",
+        offset: { x: 2.25, y: 0.25, z: 0.25 },
+        mount: "deckSeat",
+      },
+      { id: "walker", offset: { x: 3.25, y: 0.25, z: 0.25 }, mount: undefined },
+    ]);
+    expect(dimension.getEntities).toHaveBeenCalledWith(
+      expect.objectContaining({ location: car.location }),
+    );
+    expect(world.targetsNear("missing")).toEqual([]);
+  });
+});
+
 describe("BedrockVehicleWorld flight wiring", () => {
   beforeEach(() => vi.resetAllMocks());
 
@@ -937,8 +976,8 @@ describe("BedrockVehicleWorld solid and ram queries around a loaded vehicle", ()
     const walker = { ...rider, id: "pig", getComponent: vi.fn() };
     entities.push(rider, walker);
     expect(world.targetsNear(car.id)).toEqual([
-      { id: "zombie", offset: { x: 2, y: 1, z: -2 }, protectedOccupant: true },
-      { id: "pig", offset: { x: 2, y: 1, z: -2 }, protectedOccupant: false },
+      { id: "zombie", offset: { x: 2, y: 1, z: -2 }, mount: "vehicle" },
+      { id: "pig", offset: { x: 2, y: 1, z: -2 }, mount: undefined },
     ]);
   });
 

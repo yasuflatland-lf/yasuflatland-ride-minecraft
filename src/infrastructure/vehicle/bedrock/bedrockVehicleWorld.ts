@@ -41,9 +41,9 @@ import {
   entityEventId,
   entityPropertyId,
   HEADLIGHTS_PROPERTY,
-  isVehicleEntity,
   kindOfEntity,
   messageKey,
+  ramMountOf,
   VEHICLE_FAMILY,
 } from "./identifiers";
 import { VehicleReleaser } from "./vehicleReleaser";
@@ -272,7 +272,7 @@ export class BedrockVehicleWorld implements DriveWorld {
           y: e.location.y - vehicle.location.y,
           z: e.location.z - vehicle.location.z,
         },
-        protectedOccupant: isVehicleEntity(
+        mount: ramMountOf(
           e.getComponent("minecraft:riding")?.entityRidingOn?.typeId,
         ),
       }));

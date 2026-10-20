@@ -30,9 +30,7 @@ function ramAhead(over: Parameters<typeof snapshot>[1]): string[] {
   const world = new FakeWorld();
   const repo = new InMemoryRepo();
   const uc = new DriveVehicles(world, repo, logger());
-  world.targets = [
-    { id: "cow", offset: { x: 0, y: 0, z: 1 }, protectedOccupant: false },
-  ];
+  world.targets = [{ id: "cow", offset: { x: 0, y: 0, z: 1 } }];
   for (let tick = 0; tick < 200; tick++) {
     const speed = repo.get("a")?.speed ?? 0;
     world.snapshots = [

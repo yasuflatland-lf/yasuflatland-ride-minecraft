@@ -9,6 +9,7 @@ import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
 import { PAINTS } from "../../../../src/domain/vehicle/paint";
 import { NAMESPACE } from "../../../../src/infrastructure/shared/identifiers";
 import {
+  DECK_SEAT_TYPE,
   ENTITY_TYPE,
   entityEventId,
   entityPropertyId,
@@ -23,6 +24,7 @@ import {
   LIT_CELLS_PROPERTY,
   OWNER_PROPERTY,
   paintEvent,
+  ramMountOf,
   STARTER_RECEIVED_PROPERTY,
   TEST_INPUT_EVENT,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
@@ -77,6 +79,38 @@ describe("identifiers (ADR 0047)", () => {
           expect(isVehicleEntity(typeId)).toBe(
             Object.values(ENTITY_TYPE).includes(typeId),
           );
+        },
+      ),
+    );
+  });
+
+  it("maps a ridden entity type to the ram mount (ADR 0006)", () => {
+    for (const kind of VEHICLE_KINDS)
+      expect(ramMountOf(ENTITY_TYPE[kind])).toBe("vehicle");
+    expect(ramMountOf(DECK_SEAT_TYPE)).toBe("deckSeat");
+    for (const typeId of [
+      undefined,
+      "minecraft:boat",
+      "minecraft:horse",
+      ITEM_TYPE.suv,
+    ])
+      expect(ramMountOf(typeId)).toBeUndefined();
+  });
+
+  it("gives a ram mount only to vehicle entities and deck seats", () => {
+    fc.assert(
+      fc.property(
+        fc.oneof(
+          fc.string(),
+          fc.constantFrom(...Object.values(ENTITY_TYPE), DECK_SEAT_TYPE),
+        ),
+        (typeId) => {
+          const expected = Object.values(ENTITY_TYPE).includes(typeId)
+            ? "vehicle"
+            : typeId === DECK_SEAT_TYPE
+              ? "deckSeat"
+              : undefined;
+          expect(ramMountOf(typeId)).toBe(expected);
         },
       ),
     );

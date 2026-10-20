@@ -1225,7 +1225,7 @@ describe("a sports boat Vehicle (ADR 0051)", () => {
       const ahead = (id: string, blocks: number): RamTarget => {
         const f = forward(vehicle.yaw);
         const offset: Vec3 = { x: f.x * blocks, y: 0, z: f.z * blocks };
-        return { id, offset, protectedOccupant: false };
+        return { id, offset };
       };
       const out = sim.step(FULL_THROTTLE, water, () => [
         ahead("near", 3.2),

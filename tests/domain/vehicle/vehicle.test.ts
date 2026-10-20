@@ -538,9 +538,7 @@ describe("Vehicle (aggregate)", () => {
   it("rams a target ahead, and does not hit the same target again within 10 ticks", () => {
     const sim = new Sim();
     sim.riders = [{ id: "d", seat: 0, yaw: 0, raw: FORWARD }];
-    sim.targets = [
-      { id: "cow", offset: { x: 0, y: 0, z: 1.5 }, protectedOccupant: false },
-    ];
+    sim.targets = [{ id: "cow", offset: { x: 0, y: 0, z: 1.5 } }];
     sim.run(createVehicle("suv", "car", 0), 40);
     expect(sim.hits.length).toBeGreaterThan(0);
     expect(sim.hits.length).toBeLessThanOrEqual(4);

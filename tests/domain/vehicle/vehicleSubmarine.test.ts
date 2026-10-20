@@ -473,9 +473,7 @@ describe("Vehicle as a submarine", () => {
   it("keeps ram damage enabled and lowers speed when a wall stops it", () => {
     const sim = new DiveSim(100);
     sim.run(FORWARD, 60);
-    sim.targets = () => [
-      { id: "mob", offset: { x: 0, y: 0, z: 1.5 }, protectedOccupant: false },
-    ];
+    sim.targets = () => [{ id: "mob", offset: { x: 0, y: 0, z: 1.5 } }];
     expect(sim.step(FORWARD).hits).toHaveLength(1);
     sim.body.vel = { x: 0, z: 0 };
     const stopped = sim.step(FORWARD);

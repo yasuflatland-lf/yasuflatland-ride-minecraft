@@ -47,7 +47,7 @@ describe("RAM_QUERY_RADIUS", () => {
           const hits = selectHits(
             f,
             speed,
-            [{ id: "t", offset, protectedOccupant: false }],
+            [{ id: "t", offset }],
             new Map(),
             0,
             SUV_PROFILE.ram,
@@ -68,7 +68,7 @@ describe("RAM_QUERY_RADIUS", () => {
       selectHits(
         f,
         SUV_SPEC.maxSpeed,
-        [{ id: "t", offset, protectedOccupant: false }],
+        [{ id: "t", offset }],
         new Map(),
         0,
         SUV_PROFILE.ram,

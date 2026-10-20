@@ -347,7 +347,6 @@ describe("Vehicle in flight (ADR 0021)", () => {
           {
             id: "mob",
             offset: { x: f.x * 1.5, y: 0, z: f.z * 1.5 },
-            protectedOccupant: false,
           },
         ],
       });
