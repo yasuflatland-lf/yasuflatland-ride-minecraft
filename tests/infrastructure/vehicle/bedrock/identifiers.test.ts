@@ -54,14 +54,17 @@ describe("identifiers (ADR 0047)", () => {
     },
   );
 
-  it.each([undefined, "minecraft:cow", "yasu_ride:unknown", "toString"])(
-    "does not recognize an unrelated type %s",
-    (typeId) => {
-      expect(kindOfEntity(typeId)).toBeUndefined();
-      expect(isVehicleEntity(typeId)).toBe(false);
-      expect(kindOfItem(typeId)).toBeUndefined();
-    },
-  );
+  it.each([
+    undefined,
+    "minecraft:cow",
+    "yasu_ride:unknown",
+    "toString",
+    HEADLIGHT_SWITCH_TYPE,
+  ])("does not recognize an unrelated type %s", (typeId) => {
+    expect(kindOfEntity(typeId)).toBeUndefined();
+    expect(isVehicleEntity(typeId)).toBe(false);
+    expect(kindOfItem(typeId)).toBeUndefined();
+  });
 
   it("does not confuse entity and item IDs", () => {
     for (const kind of VEHICLE_KINDS) {
