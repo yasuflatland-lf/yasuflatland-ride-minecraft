@@ -49,9 +49,9 @@ const STAND_HALF_Z = HALF_Z + 0.5;
 const ROOF_HALF_X = STAND_HALF_X + 0.125 + 0.3;
 const ROOF_HALF_Z = STAND_HALF_Z + 0.125 + 0.3;
 // Each deck seat's height above the pose: the camper's minecraft:rideable seat
-// height (1.1 in front, 1.2 at the dinette) minus the deck seat's own 0.52, so a
+// height (1.5 in front, 1.2 at the dinette) minus the deck seat's own 0.52, so a
 // rider sits where the vehicle seat would put them.
-const DECK_SEAT_RISE = [0.58, 0.58, 0.68, 0.68] as const;
+const DECK_SEAT_RISE = [0.98, 0.98, 0.68, 0.68] as const;
 
 export const AIR = "minecraft:air";
 

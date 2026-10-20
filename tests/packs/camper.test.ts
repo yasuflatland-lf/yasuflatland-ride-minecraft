@@ -114,12 +114,12 @@ describe("camper model assets (ADR 0067)", () => {
       ["rr", -21.4, 31],
     ] as const) {
       const wheel = bone(`wheel_${name}`);
-      expect(wheel.pivot).toEqual([x, 9.75, z]);
+      expect(wheel.pivot).toEqual([x, 7.8, z]);
       expect(locators?.[`hover_${name}`]).toEqual([x, 0, z]);
       expect(wheel.cubes).toHaveLength(64);
       expect(new Set(wheel.cubes?.map((c) => c.uv.north?.uv[0])).size).toBe(4);
       for (const cube of wheel.cubes ?? []) {
-        expect(cube.pivot?.[1]).toBe(9.75);
+        expect(cube.pivot?.[1]).toBe(7.8);
         expect(cube.rotation).toBeDefined();
       }
     }
@@ -146,7 +146,7 @@ describe("camper model assets (ADR 0067)", () => {
         name,
       ).toBe(true);
       expect(Math.min(...heights), name).toBeCloseTo(0, 3);
-      expect(Math.max(...heights), name).toBeCloseTo(19.5, 3);
+      expect(Math.max(...heights), name).toBeCloseTo(15.6, 3);
     }
   });
 
@@ -159,8 +159,8 @@ describe("camper model assets (ADR 0067)", () => {
       [-23, -18.3],
     ]) {
       for (const axle of [-31.5, 31]) {
-        const low = [x0, -99, axle - 12.25 - 0.3];
-        const high = [x1, 22.3, axle + 12.25 + 0.3];
+        const low = [x0, -99, axle - 10.3 - 0.3];
+        const high = [x1, 18.4, axle + 10.3 + 0.3];
         for (const b of interior) {
           for (const cube of b.cubes ?? []) {
             // Palette slots 7 and 21 are the black and wood panels enclosing the well.
@@ -196,11 +196,11 @@ describe("camper model assets (ADR 0067)", () => {
       expect(Math.min(...cubes.map((c) => c.origin[0] ?? 0))).toBe(8);
       expect(
         Math.max(...cubes.map((c) => (c.origin[0] ?? 0) + (c.size[0] ?? 0))),
-      ).toBe(23);
+      ).toBeCloseTo(23, 3);
       expect(Math.min(...cubes.map((c) => c.origin[2] ?? 0))).toBe(z0);
       expect(
         Math.max(...cubes.map((c) => (c.origin[2] ?? 0) + (c.size[2] ?? 0))),
-      ).toBe(z1);
+      ).toBeCloseTo(z1, 3);
       for (const c of cubes) {
         expect(c.origin[1]).toBeGreaterThanOrEqual(16);
       }
@@ -209,7 +209,7 @@ describe("camper model assets (ADR 0067)", () => {
 
   it("puts the steering wheel and column on the right in front of the driver", () => {
     const steering = bone("steering");
-    expect(steering.pivot).toEqual([-12, 29, -41]);
+    expect(steering.pivot).toEqual([-12, 33, -41]);
     expect(steering.cubes?.length).toBeGreaterThan(0);
     for (const cube of steering.cubes ?? []) {
       expect((cube.origin[0] ?? 0) + (cube.size[0] ?? 0) / 2).toBeLessThan(0);
@@ -466,7 +466,7 @@ describe("camper animation references", () => {
     }
   });
 
-  it("folds the wheels with the SUV's rotation and lifts them 0.75 px below the floor", () => {
+  it("folds the wheels with the SUV's rotation and lifts them 2.7 px below the floor", () => {
     const deploy = camperAnimation("wheels_deploy");
     const suvDeploy = suvAnimations[
       "animation.yasu_ride.suv.wheels_deploy"
@@ -482,7 +482,7 @@ describe("camper animation references", () => {
       );
       expect(deploy.bones?.[w]?.position, w).toEqual({
         "0.0": [0, 0, 0],
-        "1.0": [0, 0.75, 0],
+        "1.0": [0, 2.7, 0],
       });
       const position = deploy.bones?.[w]?.position as Record<string, number[]>;
       expect((bone(w).pivot[1] ?? 0) + (position["1.0"]?.[1] ?? 0) + 2, w).toBe(

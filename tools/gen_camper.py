@@ -77,10 +77,10 @@ HW = 24  # half width
 FRONT, REAR = -56, 56
 BOTTOM, FLOOR, CEIL, ROOF = 8, 16, 61, 64  # roof 4.0 blocks up, the top of the fourth cell from the ground
 FRONT_AXLE, REAR_AXLE = -31.5, 31
-WHEEL_R = 9.75
+WHEEL_R = 7.8
 # Keep the existing 2.5 px end gaps and 2 px top gap; scaling the gaps crowds the rear hatch.
 ARCH_HALF = WHEEL_R + 2.5
-ARCH_TOP, ARCH_SLOPE_Y, ARCH_INSET, ARCH_STEP = 2 * WHEEL_R + 2, 13.5, 5.25, 0.25
+ARCH_TOP, ARCH_SLOPE_Y, ARCH_INSET, ARCH_STEP = 2 * WHEEL_R + 2, 10.8, 4.2, 0.25
 ARCHES = [(FRONT_AXLE - ARCH_HALF, FRONT_AXLE + ARCH_HALF), (REAR_AXLE - ARCH_HALF, REAR_AXLE + ARCH_HALF)]
 DOOR = (-7, 7, 12, 54)  # z0, z1, y0, y1 on the right side; local cell z = 0
 # The sides end at the footprint's edge (REAR = 56) and the rear profile (rear_z) never comes
@@ -627,9 +627,9 @@ for end, z in (("f", FRONT_AXLE), ("r", REAR_AXLE)):
         x_out = sx * (HW - 0.6)
         cubes += disc("x", min(x_out, x_out - sx * 4), WHEEL_R, z, WHEEL_R, 4, "tire")
         face_x = x_out if sx > 0 else x_out - 0.3
-        cubes += disc("x", face_x, WHEEL_R, z, 6.6, 0.3, "rim")  # white steel wheel
-        cubes += disc("x", face_x + sx * 0.15, WHEEL_R, z, 4.5, 0.3, "slat")
-        cubes += disc("x", face_x + sx * 0.3, WHEEL_R, z, 2.55, 0.3, "chrome")
+        cubes += disc("x", face_x, WHEEL_R, z, 5.28, 0.3, "rim")  # white steel wheel
+        cubes += disc("x", face_x + sx * 0.15, WHEEL_R, z, 3.6, 0.3, "slat")
+        cubes += disc("x", face_x + sx * 0.3, WHEEL_R, z, 2.04, 0.3, "chrome")
 
         wheels.append({"name": f"wheel_{name}", "parent": "body",
                        "pivot": [center_x, WHEEL_R, z], "cubes": cubes})
@@ -676,21 +676,27 @@ for sx in (1, -1):
     body.append(box(x_in, 22, -51, x_in - sx * 1.6, 23.4, -43, "ivory"))
 
 
+# The front cushions sit 0.4 blocks above where they started, with minecraft:rideable's
+# front seats at 1.5, so a seated player's eyes clear the windshield's lower frame (36).
+FRONT_SEAT_RISE = 6.4
+
+
 def bucket_seat(x0, x1):
     """A green tweed bucket seat with horizontal pleats and lighter piping."""
-    out = [box(x0 + 1, FLOOR, -39, x1 - 1, 18, -30, "black")]  # pedestal
-    out.append(box(x0, 18, -41, x1, 21.5, -29, "tweed"))
+    r = FRONT_SEAT_RISE
+    out = [box(x0 + 1, FLOOR, -39, x1 - 1, 18 + r, -30, "black")]  # pedestal
+    out.append(box(x0, 18 + r, -41, x1, 21.5 + r, -29, "tweed"))
     for z in [-40 + i * 1.4 for i in range(8)]:
-        out.append(box(x0 + 0.6, 21.5, z, x1 - 0.6, 21.7, z + 0.4, "tweed_line"))
-    out.append(box(x0 - 0.2, 21.2, -41.2, x1 + 0.2, 21.8, -40.8, "piping"))
-    pivot = [0, 21.5, -29.5]
+        out.append(box(x0 + 0.6, 21.5 + r, z, x1 - 0.6, 21.7 + r, z + 0.4, "tweed_line"))
+    out.append(box(x0 - 0.2, 21.2 + r, -41.2, x1 + 0.2, 21.8 + r, -40.8, "piping"))
+    pivot = [0, 21.5 + r, -29.5]
     lean = [-12, 0, 0]
-    out.append(box(x0, 21.5, -30, x1, 38, -28, "tweed", lean, pivot))
-    for y in [23 + i * 1.5 for i in range(10)]:
+    out.append(box(x0, 21.5 + r, -30, x1, 38 + r, -28, "tweed", lean, pivot))
+    for y in [23 + r + i * 1.5 for i in range(10)]:
         out.append(box(x0 + 0.6, y, -30.2, x1 - 0.6, y + 0.5, -30, "tweed_line", lean, pivot))
-    out.append(box(x0 - 0.2, 37.6, -30.2, x1 + 0.2, 38.3, -27.8, "piping", lean, pivot))
+    out.append(box(x0 - 0.2, 37.6 + r, -30.2, x1 + 0.2, 38.3 + r, -27.8, "piping", lean, pivot))
     for xs in (x0 - 0.2, x1 - 0.4):
-        out.append(box(xs, 21.5, -30.2, xs + 0.6, 38.3, -27.8, "piping", lean, pivot))
+        out.append(box(xs, 21.5 + r, -30.2, xs + 0.6, 38.3 + r, -27.8, "piping", lean, pivot))
     return out
 
 
@@ -745,8 +751,10 @@ steering += disc("z", 0, 0, 1.2, 0.9, 0.2, "black")
 for a in (90, 210, 330):  # the emblem's three points
     rad = math.radians(a)
     steering.append(box(0.45 * math.cos(rad) - 0.15, 0.45 * math.sin(rad) - 0.15, 1.4, 0.45 * math.cos(rad) + 0.15, 0.45 * math.sin(rad) + 0.15, 1.5, "needle"))
-steering.append(box(-0.7, -0.7, -13, 0.7, 0.7, -0.6, "dark_dash"))  # column down to the dashboard
-STEERING_PIVOT = [12, 29, FRONT + 15]
+steering.append(box(-0.7, -0.7, -16, 0.7, 0.7, -0.6, "dark_dash"))  # column down to the dashboard
+# Raised and laid back with the front seats so its lower rim clears the cushion and its
+# upper rim stays under the driver's line of sight to the windshield's lower frame.
+STEERING_PIVOT, STEERING_LEAN = [12, 33, FRONT + 15], 65
 
 
 def moved(cube, offset):
@@ -781,7 +789,7 @@ def carve(cube, hole):
     return out
 
 
-# The larger tires rise above the floor. Thin panels enclose them inside without
+# The arches rise above the floor. Thin panels enclose them inside without
 # closing the exterior arches; the floor and furniture must leave room for the panels.
 for sgn in (1, -1):
     for a0, a1 in ARCHES:
@@ -813,7 +821,7 @@ camper_bones = [
     *[{"name": f"seat_{i}", "parent": "body", "pivot": [0, FLOOR, 0], "cubes": cubes}
       for i, cubes in enumerate((seat0, seat1, seat2, seat3))],
     {"name": "door_entry", "parent": "body", "pivot": DOOR_HINGE, "cubes": door},
-    {"name": "steering", "parent": "body", "pivot": STEERING_PIVOT, "rotation": [50, 0, 0],
+    {"name": "steering", "parent": "body", "pivot": STEERING_PIVOT, "rotation": [STEERING_LEAN, 0, 0],
      "cubes": [moved(c, STEERING_PIVOT) for c in steering]},
 ]
 
