@@ -1,6 +1,6 @@
 # 0030. Engine and hover sounds from client animations, stepped by speed
 
-- Status: Accepted
+- Status: Extended by 0073
 - Date: 2026-10-11
 
 ## Context
