@@ -22,6 +22,33 @@ export function leftOf(f: Vec2): Vec2 {
   return { x: f.z, z: -f.x };
 }
 
+/**
+ * The world offset of a point `ahead` blocks along `f` and `right` blocks to
+ * its right (negative `right` is to the left).
+ */
+export function localOffset(f: Vec2, ahead: number, right: number): Vec2 {
+  const r = rightOf(f);
+  return { x: f.x * ahead + r.x * right, z: f.z * ahead + r.z * right };
+}
+
+/**
+ * The world point `ahead` blocks along `f` and `right` blocks to the right of
+ * `origin` (negative `right` is to the left). Adds in the order
+ * origin + ahead + right, which callers that floor the result rely on.
+ */
+export function localPoint(
+  origin: Vec2,
+  f: Vec2,
+  ahead: number,
+  right: number,
+): Vec2 {
+  const r = rightOf(f);
+  return {
+    x: origin.x + f.x * ahead + r.x * right,
+    z: origin.z + f.z * ahead + r.z * right,
+  };
+}
+
 export function dot(a: Vec2, b: Vec2): number {
   return a.x * b.x + a.z * b.z;
 }

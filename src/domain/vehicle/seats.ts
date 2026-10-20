@@ -1,5 +1,12 @@
 // Seat assignment and dismount detection (ADR 0019).
-import { dot, forward, leftOf, type Vec2, type Vec3 } from "../shared/vec";
+import {
+  dot,
+  forward,
+  leftOf,
+  localPoint,
+  type Vec2,
+  type Vec3,
+} from "../shared/vec";
 import type { HoldPose } from "./floor";
 import type { SeatLayout } from "./profile";
 
@@ -61,10 +68,9 @@ export function seatWorldPositions(
   positions: SeatLayout["positions"],
 ): Vec3[] {
   const f = forward(pose.yaw);
-  const left = leftOf(f);
-  return positions.map((seat) => ({
-    x: pose.x + f.x * seat.z + left.x * seat.x,
-    y: pose.y,
-    z: pose.z + f.z * seat.z + left.z * seat.x,
-  }));
+  return positions.map((seat) => {
+    // Seat x is positive to the left; localPoint takes right-positive offsets.
+    const p = localPoint(pose, f, seat.z, -seat.x);
+    return { x: p.x, y: pose.y, z: p.z };
+  });
 }
