@@ -10,6 +10,9 @@ const client = read(`${RP}/entity/yasu_ride/suv.ce.json`)[
 const anims = read(`${RP}/animations/yasu_ride/suv.anim.json`).animations;
 const controller = read(`${RP}/animation_controllers/yasu_ride/suv.ac.json`)
   .animation_controllers["controller.animation.yasu_ride.suv.form"];
+const camperController = read(
+  `${RP}/animation_controllers/yasu_ride/camper.ac.json`,
+).animation_controllers["controller.animation.yasu_ride.camper.form"];
 const render = read(`${RP}/render_controllers/yasu_ride/suv.rc.json`)
   .render_controllers["controller.render.yasu_ride.suv"];
 const particle = read(
@@ -306,6 +309,28 @@ describe("Resource Pack sounds (ADR 0030)", () => {
       ]);
     });
   });
+
+  it.each([
+    ["suv", controller],
+    ["camper", camperController],
+  ])(
+    "%s keeps the hover sound on a riderless vehicle (ADR 0073)",
+    (_kind, form) => {
+      const conditions = form.states.hover.animations
+        .filter(
+          (a: unknown): a is Record<string, string> =>
+            typeof a === "object" && a !== null,
+        )
+        .flatMap((entry: Record<string, string>) =>
+          Object.entries(entry).filter(([name]) =>
+            name.startsWith("hover_sound_"),
+          ),
+        );
+      expect(conditions.length).toBeGreaterThan(1);
+      for (const [name, condition] of conditions)
+        expect(condition, name).not.toContain("has_rider");
+    },
+  );
 
   /** The sound effects an animate entry plays: a short name, or { name: condition }. */
   const effectsOfEntry = (entry: unknown): string[] => {
