@@ -1,4 +1,4 @@
-// Select targets in a rectangle in front of the car (behind it when reversing) and decide the damage and push (ADR 0006).
+// Select targets in a rectangle in front of the vehicle (behind it when reversing) and decide the damage and push (ADR 0006).
 import { dot, rightOf, type Vec2, type Vec3 } from "../shared/vec";
 import type { RamBody } from "./profile";
 import { SPEC } from "./spec";

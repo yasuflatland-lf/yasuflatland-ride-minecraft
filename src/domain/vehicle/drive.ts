@@ -33,7 +33,11 @@ export type EngineCommand =
   | { type: "playAnimation"; name: string }
   | { type: "playSound"; name: string }; // at the vehicle's location
 
-/** Entity properties read back when an aggregate is rebuilt (ADR 0021, 0055). */
+/**
+ * Values read back when an aggregate is rebuilt (ADR 0021, 0055): the entity
+ * properties the kind's entity contract lists in `restored`, plus the dock
+ * values infrastructure derives from saved laid cells (DOCK_RESTORED, ADR 0068).
+ */
 export type RestoredValues = Readonly<
   Record<string, string | number | boolean | undefined>
 >;

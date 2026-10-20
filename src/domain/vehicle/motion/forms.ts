@@ -37,7 +37,10 @@ export interface FormInput {
   /** Whether a driver or test input controls the vehicle. */
   controlled: boolean;
   onGround: boolean;
-  /** Water surface height above the feet in blocks; 0 out of water, capped at carHeight + 1 by infrastructure. */
+  /**
+   * Water surface height above the feet in blocks; 0 out of water, capped at
+   * TransformingSpec.carHeight + 1 by waterDepthAt in motion/water.ts (ADR 0040).
+   */
   waterDepth: number;
 }
 
