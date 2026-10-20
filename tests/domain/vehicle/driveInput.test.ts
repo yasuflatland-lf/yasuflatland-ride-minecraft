@@ -21,6 +21,10 @@ const sideways = fc
   }));
 
 describe("toDriveInput (ADR 0018)", () => {
+  it("yields the neutral input when there is no input", () => {
+    expect(toDriveInput(undefined)).toBe(NEUTRAL_INPUT);
+  });
+
   it("yields neutral input when the left/right or forward/backward input is NaN or positive/negative Infinity", () => {
     fc.assert(
       fc.property(

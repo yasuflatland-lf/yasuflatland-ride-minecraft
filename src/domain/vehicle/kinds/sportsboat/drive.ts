@@ -1,17 +1,12 @@
 // The sports boat's drive: the engine floats the hull and the script drives only x and z (ADR 0051).
-import { clamp, dot, forward, type Vec2 } from "../../../shared/vec";
+import { clamp, dot, type Vec2 } from "../../../shared/vec";
 import type { Dock } from "../../dock";
 import type { Drive, DriveStep, EngineCommand, TickContext } from "../../drive";
-import {
-  type DriveInput,
-  NEUTRAL_INPUT,
-  type RawInput,
-  toDriveInput,
-} from "../../driveInput";
+import { type DriveInput, type RawInput, toDriveInput } from "../../driveInput";
 import type { RestoredOf } from "../../entityContract";
 import type { HoldPose } from "../../floor";
 import { MOTION } from "../../motion/constants";
-import { DOCK, pushesStick } from "../../motion/dock";
+import { DOCK, heldStep, pushesStick } from "../../motion/dock";
 import { dockCommands, undockCommands } from "../../motion/dockEntity";
 import type { MotionLimits } from "../../motion/limits";
 import {
@@ -187,14 +182,11 @@ export class SportsboatDrive implements Drive {
     let boardDeckRiders = false;
     if (this.docked) {
       if (!pushesStick(raw)) {
-        return {
-          dock: dockAt(this.docked),
-          boardDeckRiders: pushesStick(ctx.deckSeatInputs[0]),
-          impulse: { x: 0, y: 0, z: 0 },
-          forward: forward(this.docked.yaw),
-          commands: [],
-          riders: { thirdPerson: false, underwater: false },
-        };
+        return heldStep(
+          dockAt(this.docked),
+          this.docked.yaw,
+          ctx.deckSeatInputs,
+        );
       }
       boardDeckRiders = true;
       commands.push(...undockCommands());
@@ -202,7 +194,7 @@ export class SportsboatDrive implements Drive {
       this.stillTicks = 0;
     }
     // There is no handbrake: neither path below reads it, so jump does nothing.
-    const input: DriveInput = raw ? toDriveInput(raw) : NEUTRAL_INPUT;
+    const input: DriveInput = toDriveInput(raw);
     const motion = this.motion;
     let step: MotionResult;
     const depth = waterDepthAt(ctx.location, ctx.waterAt, SPORTSBOAT_HEIGHT);

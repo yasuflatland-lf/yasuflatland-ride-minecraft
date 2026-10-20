@@ -97,7 +97,7 @@ function groundNear(
  * reversing, in the air (ADR 0032) and under water (ADR 0040).
  */
 function driveInputFor(raw: RawInput | undefined, form: Form): DriveInput {
-  if (!raw || form === "takeoff") return NEUTRAL_INPUT;
+  if (form === "takeoff") return NEUTRAL_INPUT;
   const input = toDriveInput(raw);
   if (form === "car") return input;
   return { ...input, throttle: Math.max(0, input.throttle), handbrake: false };
