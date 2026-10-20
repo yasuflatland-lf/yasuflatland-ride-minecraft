@@ -25,6 +25,11 @@ export interface TickContext {
   blockTypes(cells: readonly Vec3[]): readonly (string | undefined)[];
   /** Nearby targets. Called only when the speed exceeds the ram threshold. */
   targets(): readonly RamTarget[];
+  /**
+   * True while the core waits for a passenger to move into seat 0 after the
+   * driver left (ADR 0078). The drive then has no input but stays controlled.
+   */
+  readonly awaitingDriver?: boolean;
 }
 
 export type EngineCommand =

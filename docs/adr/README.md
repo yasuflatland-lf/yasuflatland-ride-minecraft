@@ -24,7 +24,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0018](0018-sideways-stick-creeps-forward.md) | Treat a sideways stick as a slow forward turn | Extended by 0074 |
 | [0019](0019-passengers-move-up-to-the-driver-seat.md) | Passengers move up to the driver seat | Accepted |
 | [0020](0020-headlights.md) | Headlights that light up the road | Accepted |
-| [0021](0021-flight-mode.md) | Flight mode: toggle with a double tap, climb with the view pitch, and switch gravity with a component group | Superseded in part by 0032, 0034, and 0039 |
+| [0021](0021-flight-mode.md) | Flight mode: toggle with a double tap, climb with the view pitch, and switch gravity with a component group | Superseded in part by 0032, 0034, 0039, and 0078 |
 | [0022](0022-fold-wheels-and-glow-in-flight.md) | Fold the wheels and light their undersides in flight | Superseded in part by 0033 and 0043 |
 | [0023](0023-starter-vehicle-on-first-join.md) | Give each player a vehicle item on their first join | Accepted |
 | [0024](0024-item-use-on-mobile-and-longer-headlights.md) | Make the vehicle item and the headlight switch work on mobile, and light the road three times farther | Accepted |
@@ -43,7 +43,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0037](0037-one-dye-per-repaint-within-a-tick.md) | Use one dye per repaint within a tick | Accepted |
 | [0038](0038-keep-at-most-ten-vehicles-in-a-world.md) | Keep at most ten vehicles in a world | Superseded by 0066 |
 | [0039](0039-vehicle-forms.md) | Vehicle forms | Superseded in part by 0075 |
-| [0040](0040-submarine.md) | Submarine form | Superseded in part by 0042, 0044, and 0045 |
+| [0040](0040-submarine.md) | Submarine form | Superseded in part by 0042, 0044, 0045, and 0078 |
 | [0041](0041-sonar-sound-under-water.md) | Sonar sound under water | Accepted |
 | [0042](0042-bronze-four-blade-propellers.md) | Bronze four-blade propellers | Accepted |
 | [0043](0043-wheel-arms.md) | Wheel arms in flight and under water | Accepted |
@@ -81,6 +81,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0075](0075-name-the-medium-step-after-the-medium.md) | Name the shared medium step after the medium | Accepted |
 | [0076](0076-per-kind-default-paint.md) | Each kind names its default paint; a dye matching it does nothing | Accepted |
 | [0077](0077-never-reverse-the-internal-speed-on-a-wall-hit.md) | Never reverse the internal speed on a wall hit | Accepted |
+| [0078](0078-wait-for-a-passenger-before-landing.md) | Wait for a passenger to move up before landing a driverless flying vehicle | Accepted |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 

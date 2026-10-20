@@ -45,6 +45,8 @@ export class Vehicle {
   private readonly lastHit = new Map<string, number>();
   private hitCounter: HitCounter = EMPTY_COUNTER;
   private lastSwitchUseTick = Number.NEGATIVE_INFINITY;
+  /** Ticks since the last tick with a driver; infinite until the first driver (ADR 0078). */
+  private driverlessTicks = Number.POSITIVE_INFINITY;
 
   /** Called only by kinds/index.ts, which picks the drive for the kind. */
   constructor(
@@ -99,11 +101,17 @@ export class Vehicle {
   tick(input: VehicleTickInput): TickOutcome {
     const seatCommands = this.updateSeats(input.riders);
     const driver = this.updateDriver(input.riders);
+    this.driverlessTicks = driver ? 0 : this.driverlessTicks + 1;
+    const awaitingDriver =
+      driver === undefined &&
+      input.riders.length > 0 &&
+      this.driverlessTicks <= SPEC.driverHandoverTicks;
 
     const raw = driver?.raw ?? input.testInput;
     const taken = new Set(this.seats.values());
     const step = this.drive.step(raw, {
       ...input,
+      awaitingDriver,
       deckSeatInputs: input.deckSeatInputs.map((deckInput, seat) =>
         taken.has(seat) ? undefined : deckInput,
       ),

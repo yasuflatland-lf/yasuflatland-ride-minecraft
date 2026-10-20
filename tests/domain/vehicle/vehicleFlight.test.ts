@@ -3,13 +3,16 @@ import { describe, expect, it } from "vitest";
 import {
   dot,
   forward,
+  leftOf,
   rightOf,
   type Vec2,
   type Vec3,
 } from "../../../src/domain/shared/vec";
 import type { RawInput } from "../../../src/domain/vehicle/driveInput";
+import { CAMPER_SPEC } from "../../../src/domain/vehicle/kinds/camper/spec";
 import {
   createVehicle,
+  profileOf,
   rebuildVehicle,
 } from "../../../src/domain/vehicle/kinds/index";
 import { SuvDrive } from "../../../src/domain/vehicle/kinds/suv/drive";
@@ -17,7 +20,12 @@ import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
 import { SUV_SPEC } from "../../../src/domain/vehicle/kinds/suv/spec";
 import type { Form } from "../../../src/domain/vehicle/motion/forms";
 import { SPEC } from "../../../src/domain/vehicle/spec";
-import { type TickOutcome, Vehicle } from "../../../src/domain/vehicle/vehicle";
+import {
+  type RiderView,
+  type TickOutcome,
+  Vehicle,
+} from "../../../src/domain/vehicle/vehicle";
+import { defined } from "../../support/defined";
 import { propertyValue } from "../../support/engineCommands";
 import { AIR_DRAG, GRAVITY, VERTICAL_DRAG } from "../../support/engineModel";
 import { waterSensors } from "../../support/waterDepth";
@@ -25,6 +33,17 @@ import { waterSensors } from "../../support/waterDepth";
 const GROUND_FRICTION = 0.688;
 const IDLE: RawInput = { moveX: 0, moveY: 0, jump: false };
 const FORWARD: RawInput = { moveX: 0, moveY: 1, jump: false };
+
+function seatOffset(
+  positions: readonly { x: number; z: number }[],
+  yaw: number,
+  seat: number,
+): Vec2 {
+  const f = forward(yaw);
+  const l = leftOf(f);
+  const s = defined(positions[seat], `seat ${seat}`);
+  return { x: l.x * s.x + f.x * s.z, z: l.z * s.x + f.z * s.z };
+}
 
 /**
  * One vehicle driven by test input over flat ground at y = 0. Gravity follows
@@ -43,6 +62,8 @@ class FlightSim {
   readonly changes: Form[] = [];
   /** Each landing gear change with the height it happened at. */
   readonly gearYs: [boolean, number][] = [];
+  /** Riders by seat; the seat-0 rider gets the step's input, the others idle. */
+  riders: { id: string; seat: number }[] = [];
 
   constructor(
     readonly vehicle: Vehicle = createVehicle("suv", "car", 0),
@@ -63,11 +84,19 @@ class FlightSim {
   }
 
   step(input: RawInput | undefined): TickOutcome {
+    const yaw = this.vehicle.yaw;
+    const seats = profileOf(this.vehicle.kind).seats.positions;
+    const riders: RiderView[] = this.riders.map((r) => ({
+      id: r.id,
+      offset: seatOffset(seats, yaw, r.seat),
+      yaw,
+      raw: r.seat === 0 ? (input ?? IDLE) : IDLE,
+    }));
     const out = this.vehicle.tick({
       deckSeatInputs: [],
       tick: this.tick++,
-      riders: [],
-      testInput: input,
+      riders,
+      testInput: riders.length > 0 ? undefined : input,
       velocity: { ...this.vel, y: this.vy },
       onGround: this.onGround,
       ...waterSensors(),
@@ -483,4 +512,104 @@ describe("Vehicle landing gear (ADR 0033)", () => {
       ),
     );
   });
+});
+
+const TAKEOFF_TICKS: Record<"suv" | "camper", number> = {
+  suv: SUV_SPEC.takeoffTicks,
+  camper: CAMPER_SPEC.takeoffTicks,
+};
+const HOLD_JUMP: RawInput = { ...IDLE, jump: true };
+
+function riddenFlyingSim(
+  kind: "suv" | "camper",
+  extra: { id: string; seat: number }[] = [],
+): FlightSim {
+  const sim = new FlightSim(createVehicle(kind, "car", 0));
+  sim.riders = [{ id: "P", seat: 0 }, { id: "Q", seat: 1 }, ...extra];
+  sim.doubleTap();
+  sim.run(IDLE, TAKEOFF_TICKS[kind]);
+  expect(sim.form).toBe("hover");
+  return sim;
+}
+
+describe("Driver handover in flight (ADR 0078)", () => {
+  for (const kind of ["suv", "camper"] as const) {
+    it(`keeps hovering while a passenger moves up within the handover ticks, and the new driver climbs (${kind})`, () => {
+      fc.assert(
+        fc.property(
+          fc.integer({ min: 0, max: SPEC.driverHandoverTicks }),
+          (gap) => {
+            const sim = riddenFlyingSim(kind);
+            const before = sim.changes.length;
+            sim.riders = [{ id: "Q", seat: 1 }];
+            sim.run(undefined, gap);
+            sim.riders = [{ id: "Q", seat: 0 }];
+            const y0 = sim.y;
+            const first = sim.step(HOLD_JUMP);
+            sim.run(HOLD_JUMP, 9);
+            expect(first.impulse.y).toBeGreaterThan(0);
+            expect(sim.changes.slice(before)).not.toContain("landing");
+            expect(sim.form).toBe("hover");
+            expect(sim.y).toBeGreaterThan(y0);
+          },
+        ),
+      );
+    });
+
+    it(`starts landing on the tick after the handover ticks when nobody moves up (${kind})`, () => {
+      const sim = riddenFlyingSim(kind);
+      const before = sim.changes.length;
+      sim.riders = [{ id: "Q", seat: 1 }];
+      sim.run(undefined, SPEC.driverHandoverTicks);
+      expect(sim.changes.slice(before)).not.toContain("landing");
+      expect(sim.form).toBe("hover");
+      sim.step(undefined);
+      expect(sim.form).toBe("landing");
+      sim.run(undefined, 80);
+      expect(sim.form).toBe("car");
+    });
+
+    it(`starts landing at once when the last rider leaves (${kind})`, () => {
+      const sim = riddenFlyingSim(kind);
+      sim.riders = [];
+      sim.step(undefined);
+      expect(sim.changes.at(-1)).toBe("landing");
+    });
+
+    it(`restarts the handover ticks after a new driver has driven (${kind})`, () => {
+      const sim = riddenFlyingSim(kind, [{ id: "R", seat: 2 }]);
+      const before = sim.changes.length;
+      sim.riders = [
+        { id: "Q", seat: 1 },
+        { id: "R", seat: 2 },
+      ];
+      sim.run(undefined, SPEC.driverHandoverTicks - 1);
+      sim.riders = [
+        { id: "Q", seat: 0 },
+        { id: "R", seat: 2 },
+      ];
+      sim.step(IDLE);
+      sim.riders = [{ id: "R", seat: 1 }];
+      sim.run(undefined, SPEC.driverHandoverTicks);
+      expect(sim.changes.slice(before)).not.toContain("landing");
+      expect(sim.form).toBe("hover");
+    });
+
+    it(`gets no handover ticks when rebuilt in flight with nobody in the driver seat (${kind})`, () => {
+      const q: RiderView = {
+        id: "Q",
+        offset: seatOffset(profileOf(kind).seats.positions, 0, 1),
+        yaw: 0,
+        raw: IDLE,
+      };
+      const sim = new FlightSim(
+        rebuildVehicle(kind, "car", 0, [q], { form: "hover" }),
+        "hover",
+      );
+      sim.y = 5;
+      sim.riders = [{ id: "Q", seat: 1 }];
+      sim.step(undefined);
+      expect(sim.changes[0]).toBe("landing");
+    });
+  }
 });
