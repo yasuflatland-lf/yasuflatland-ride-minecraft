@@ -1,9 +1,12 @@
 import {
   type BlockCustomComponent,
+  type EntityHitEntityAfterEvent,
   type EntityLoadAfterEvent,
   type EntitySpawnAfterEvent,
   type ItemUseAfterEvent,
+  Player,
   type PlayerInteractWithBlockBeforeEvent,
+  type PlayerInteractWithEntityBeforeEvent,
   type PlayerSpawnAfterEvent,
   type ScriptEventCommandMessageAfterEvent,
   type StartupEvent,
@@ -21,8 +24,10 @@ import {
   DECK_SEAT_OF_PROPERTY,
   DECK_SEAT_TYPE,
   ENTITY_TYPE,
+  HEADLIGHT_SWITCH_TYPE,
   ITEM_TYPE,
   OWNER_PROPERTY,
+  PAINT_BY_DYE,
   TEST_INPUT_EVENT,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 import { registerSubscriptions } from "../../../../src/infrastructure/vehicle/bedrock/subscriptions";
@@ -106,6 +111,10 @@ function fixture(
     getBlockFromViewDirection: vi.fn<
       () => { block: typeof block; face: string } | undefined
     >(() => ({ block: rayBlock, face: "Up" })),
+    getComponent: (name: string) =>
+      name === "minecraft:riding"
+        ? { entityRidingOn: { id: "vehicle", typeId: ENTITY_TYPE.suv } }
+        : undefined,
   };
   const waterDimensions: string[] = [];
   const notUsed = (): never => {
@@ -127,14 +136,20 @@ function fixture(
     cellFor: placement.cellFor.bind(placement),
     placesOnWater: placement.placesOnWater.bind(placement),
   };
+  const headlights = { execute: vi.fn() };
+  const usesBefore = game.use.mock.calls.length;
   registerSubscriptions(
-    { place } as unknown as Parameters<typeof registerSubscriptions>[0],
+    { place, headlights } as unknown as Parameters<
+      typeof registerSubscriptions
+    >[0],
     new TestInputStore(),
     () => undefined,
   );
   const before = game.before.mock.calls.at(-1)?.[0];
-  const use = game.use.mock.calls.at(-1)?.[0];
-  if (!before || !use) throw new Error("subscriptions missing");
+  const uses = game.use.mock.calls
+    .slice(usesBefore)
+    .map(([handler]) => handler);
+  if (!before || uses.length !== 2) throw new Error("subscriptions missing");
   game.run.mockClear();
   const event = {
     isFirstEvent: true,
@@ -148,15 +163,19 @@ function fixture(
     event,
     player,
     place,
+    headlights,
+    uses,
     waterDimensions,
     dimension,
     interact: () =>
       before(event as unknown as PlayerInteractWithBlockBeforeEvent),
-    use: () =>
-      use({
+    use: () => {
+      const ev = {
         itemStack: { typeId },
         source: player,
-      } as unknown as ItemUseAfterEvent),
+      } as unknown as ItemUseAfterEvent;
+      for (const handler of uses) handler(ev);
+    },
     // system.run callbacks run on the next tick.
     nextTick: () => {
       game.currentTick++;
@@ -324,6 +343,140 @@ it("limits deferred placement and itemUse to one placement on their execution ti
       expect(f.place.execute).toHaveBeenCalledTimes(1);
     }),
   );
+});
+
+it("routes itemUse to placement or headlights by item, in either subscriber order", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom(
+        ITEM_TYPE.suv,
+        ITEM_TYPE.sportsboat,
+        ITEM_TYPE.camper,
+        HEADLIGHT_SWITCH_TYPE,
+        "minecraft:stick",
+      ),
+      fc.boolean(),
+      (typeId, reversed) => {
+        const f = fixture(typeId);
+        const ev = {
+          itemStack: { typeId },
+          source: f.player,
+        } as unknown as ItemUseAfterEvent;
+        for (const handler of reversed ? [...f.uses].reverse() : f.uses)
+          handler(ev);
+        if (typeId === HEADLIGHT_SWITCH_TYPE)
+          expect(f.headlights.execute).toHaveBeenCalledExactlyOnceWith({
+            playerId: "player",
+            vehicleId: "vehicle",
+            tick: 10,
+          });
+        else expect(f.headlights.execute).not.toHaveBeenCalled();
+        if (typeId === ITEM_TYPE.sportsboat)
+          expect(f.place.execute).toHaveBeenCalledExactlyOnceWith(
+            boatAt({ x: 2, y: 8, z: 3 }),
+          );
+        else expect(f.place.execute).not.toHaveBeenCalled();
+        expect(f.player.getBlockFromViewDirection).toHaveBeenCalledTimes(
+          typeId === ITEM_TYPE.sportsboat ? 1 : 0,
+        );
+      },
+    ),
+  );
+});
+
+it("paints a hit vehicle with a held dye and otherwise damages it, ignoring other hits", () => {
+  const hit = { execute: vi.fn() };
+  const paint = { execute: vi.fn() };
+  registerSubscriptions(
+    { hit, paint } as unknown as Parameters<typeof registerSubscriptions>[0],
+    new TestInputStore(),
+    () => undefined,
+  );
+  const onHit = vi
+    .mocked(world.afterEvents.entityHitEntity.subscribe)
+    .mock.calls.at(-1)?.[0];
+  if (!onHit) throw new Error("entityHitEntity not subscribed");
+  const [dye, dyePaint] = defined(
+    Object.entries(PAINT_BY_DYE)[0],
+    "a dye paint",
+  );
+  let held: string | undefined = dye;
+  const player = Object.assign(Object.create(Player.prototype) as object, {
+    id: "player",
+    selectedSlotIndex: 0,
+    location: { x: 0.5, y: 64, z: 0.5 },
+    dimension: { getBlock: () => ({ typeId: "minecraft:stone" }) },
+    getGameMode: () => "Creative",
+    getComponent: () => ({
+      container: { getItem: () => (held ? { typeId: held } : undefined) },
+    }),
+  });
+  const vehicle = { id: "vehicle", typeId: ENTITY_TYPE.suv };
+  const send = (damagingEntity: unknown, hitEntity = vehicle) =>
+    onHit({
+      damagingEntity,
+      hitEntity,
+    } as unknown as EntityHitEntityAfterEvent);
+  send(player, { id: "cow", typeId: "minecraft:cow" });
+  send({ id: "zombie" });
+  expect(paint.execute).not.toHaveBeenCalled();
+  expect(hit.execute).not.toHaveBeenCalled();
+  send(player);
+  expect(paint.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId: "player",
+    vehicleId: "vehicle",
+    paint: dyePaint,
+    creative: true,
+    tick: 10,
+  });
+  expect(hit.execute).not.toHaveBeenCalled();
+  held = undefined;
+  send(player);
+  expect(hit.execute).toHaveBeenCalledExactlyOnceWith({
+    vehicleId: "vehicle",
+    tick: 10,
+    fromDeck: false,
+  });
+  expect(paint.execute).toHaveBeenCalledOnce();
+});
+
+it("switches the headlights of the ridden vehicle when its rider interacts with it holding the switch", () => {
+  const f = fixture(HEADLIGHT_SWITCH_TYPE);
+  const interact = vi
+    .mocked(world.beforeEvents.playerInteractWithEntity.subscribe)
+    .mock.calls.at(-1)?.[0];
+  if (!interact) throw new Error("playerInteractWithEntity not subscribed");
+  const send = (
+    typeId: string | undefined,
+    target: { id: string; typeId: string },
+  ) => {
+    const ev = {
+      player: f.player,
+      target,
+      itemStack: typeId ? { typeId } : undefined,
+      cancel: false,
+    };
+    interact(ev as unknown as PlayerInteractWithEntityBeforeEvent);
+    return ev.cancel;
+  };
+  const ridden = { id: "vehicle", typeId: ENTITY_TYPE.suv };
+  expect(
+    send(HEADLIGHT_SWITCH_TYPE, { id: "cow", typeId: "minecraft:cow" }),
+  ).toBe(false);
+  expect(
+    send(HEADLIGHT_SWITCH_TYPE, { id: "other", typeId: ENTITY_TYPE.suv }),
+  ).toBe(false);
+  expect(send(undefined, ridden)).toBe(false);
+  expect(send("minecraft:stick", ridden)).toBe(false);
+  expect(game.run).not.toHaveBeenCalled();
+  expect(send(HEADLIGHT_SWITCH_TYPE, ridden)).toBe(true);
+  expect(f.headlights.execute).not.toHaveBeenCalled();
+  f.nextTick();
+  expect(f.headlights.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId: "player",
+    vehicleId: "vehicle",
+    tick: 11,
+  });
 });
 
 it("removes an orphan deck seat that loads with a chunk, but not one that is just spawned", () => {
