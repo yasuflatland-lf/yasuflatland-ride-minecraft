@@ -36,6 +36,7 @@ import {
   RAM_QUERY_RADIUS,
 } from "../../../domain/vehicle/kinds/index";
 import { PAINTS, type Paint } from "../../../domain/vehicle/paint";
+import type { ChaseCamera } from "../../../domain/vehicle/profile";
 import type { RamHit, RamTarget } from "../../../domain/vehicle/ram";
 import type { RiderView } from "../../../domain/vehicle/vehicle";
 import type { TestInputStore } from "../testInput/testInputStore";
@@ -44,6 +45,7 @@ import { DockBlocks, savedDock } from "./dockBlocks";
 import { HeadlightBlocks, isLightBlock } from "./headlightBlocks";
 import {
   AIR_BLOCK,
+  CHASE_CAMERAS,
   dyeOf,
   ENTITY_TYPE,
   entityAnimationId,
@@ -60,7 +62,6 @@ import {
   PLAYER_TYPE,
   paintEvent,
   STARTER_RECEIVED_PROPERTY,
-  THIRD_PERSON_CAMERA,
   VEHICLE_FAMILY,
 } from "./identifiers";
 import { isWaterAt } from "./water";
@@ -383,10 +384,10 @@ export class BedrockVehicleWorld
     }
   }
 
-  setThirdPerson(playerId: string, on: boolean): void {
+  setChaseCamera(playerId: string, chase: ChaseCamera | undefined): void {
     const camera = this.player(playerId)?.camera;
     if (!camera) return;
-    if (on) camera.setCamera(THIRD_PERSON_CAMERA);
+    if (chase) camera.setCamera(CHASE_CAMERAS[chase]);
     else camera.clear();
   }
 

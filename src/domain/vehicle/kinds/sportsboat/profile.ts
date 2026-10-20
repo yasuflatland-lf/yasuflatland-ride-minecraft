@@ -28,6 +28,7 @@ export const SPORTSBOAT_PROFILE: VehicleProfile = Object.freeze({
     // 3 × 2 × 3 cells fit the 2.2-wide, 1.2-high collision box (ADR 0051).
     clearance: Object.freeze({ halfX: 1, halfZ: 1, height: 2 }),
   }),
+  chaseCamera: "near",
 });
 
 /** The sports boat's own limits (ADR 0051), written out even where they equal the SUV's today. */

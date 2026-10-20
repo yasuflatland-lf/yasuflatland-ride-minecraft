@@ -22,6 +22,7 @@ import type { DockCell, HoldPose } from "../../../src/domain/vehicle/floor";
 import { type Cell, cellKey } from "../../../src/domain/vehicle/headlights";
 import type { VehicleKind } from "../../../src/domain/vehicle/kind";
 import type { Paint } from "../../../src/domain/vehicle/paint";
+import type { ChaseCamera } from "../../../src/domain/vehicle/profile";
 import type { RamHit, RamTarget } from "../../../src/domain/vehicle/ram";
 import type { Vehicle } from "../../../src/domain/vehicle/vehicle";
 import type { VehicleRepository } from "../../../src/domain/vehicle/vehicleRepository";
@@ -181,9 +182,10 @@ export class FakeWorld
       "car"
     );
   }
-  setThirdPerson(id: string, on: boolean) {
+  setChaseCamera(id: string, camera: ChaseCamera | undefined) {
     if (id === this.failCameraOn) throw new Error("camera");
-    this.calls.push(`camera:${id}:${on ? "third" : "own"}`);
+    const view = { near: "third", far: "far" }[camera ?? "near"];
+    this.calls.push(`camera:${id}:${camera ? view : "own"}`);
   }
   giveWaterBreathing(id: string, ticks: number) {
     if (id === this.failBreathingOn) throw new Error("breathing");

@@ -99,6 +99,7 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | C22 | Park the camper, sit in the front-right deck seat, and push the stick | The rider moves into seat 0 on the right and the camper drives off; the dinette and the other deck seats are where they were | | |
 | C23 | Inspect both sides, front, and rear. Drive on level ground at low and top speed. Double-tap jump to take off, then land. Enter deep water and dive. Park and walk inside | The tires touch the ground and fit inside the arches with visible clearance. Their rotation matches travel speed without appearing to slide. In hover and submarine forms they fold below the floor without protruding through the body or interior. No tires show inside; wheel housings appear along the walls | | |
 | C24 | Sit in the driver's seat and then the front passenger seat in first person, on PC and mobile, and look straight ahead | You see the road through the windshield over the dashboard and the steering wheel; the steering wheel does not cut into the cushion (ADR 0070) | | |
+| C25 | Fly the camper from the driver's seat, turn the view around, then dive into deep water; then fly the SUV | In the camper the camera pulls back far enough to show the whole camper from behind, and it turns with your view; in the SUV the view is the usual F5 distance (ADR 0071) | | |
 
 ## Upgrading from MyCar 0.5.0 and earlier
 

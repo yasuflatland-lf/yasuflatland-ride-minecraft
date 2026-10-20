@@ -8,6 +8,7 @@ import type { DockCell, HoldPose } from "../../domain/vehicle/floor";
 import type { Cell } from "../../domain/vehicle/headlights";
 import type { VehicleKind } from "../../domain/vehicle/kind";
 import type { Paint } from "../../domain/vehicle/paint";
+import type { ChaseCamera } from "../../domain/vehicle/profile";
 import type { RamHit, RamTarget } from "../../domain/vehicle/ram";
 import type { RiderView } from "../../domain/vehicle/vehicle";
 
@@ -56,8 +57,8 @@ export interface DriveWorld {
   seatStandingPlayers(vehicleId: string, departure: Departure): void;
   applyMotion(vehicleId: string, impulse: Vec3, yaw: number): void;
   run(vehicleId: string, commands: readonly EngineCommand[]): void;
-  /** Switches a player's view to the third-person camera, or back to their own (ADR 0028). */
-  setThirdPerson(playerId: string, on: boolean): void;
+  /** Switches a player's view to a third-person camera, or back to their own when undefined (ADR 0028, 0071). */
+  setChaseCamera(playerId: string, camera: ChaseCamera | undefined): void;
   /** Refreshes water breathing; does nothing for a missing player (ADR 0040). */
   giveWaterBreathing(playerId: string, ticks: number): void;
   damage(hit: RamHit, attackerId: string | undefined): void;
