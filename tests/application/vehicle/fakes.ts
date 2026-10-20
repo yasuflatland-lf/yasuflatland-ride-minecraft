@@ -86,6 +86,10 @@ export class FakeWorld
   readonly messages: { playerId: string; name: string }[] = [];
   readonly departures: { vehicleId: string; departure: Departure }[] = [];
   air = (_at: Vec3) => true;
+  /** Which cells hold water; dry everywhere unless a test says otherwise. */
+  water = (_at: Vec3) => false;
+  /** The dimension of every water query, in order. */
+  readonly waterDimensions: string[] = [];
   /** Whether the slot a vehicle item was used from still holds one. */
   itemInSlot = true;
   failOn: string | undefined;
@@ -207,6 +211,10 @@ export class FakeWorld
   }
   isAir(_dim: string, at: Vec3) {
     return this.air(at);
+  }
+  isWaterAt(dim: string, at: Vec3) {
+    this.waterDimensions.push(dim);
+    return this.water(at);
   }
   spawnVehicle(
     dim: string,

@@ -24,11 +24,7 @@ import type { SwitchHeadlights } from "../../../application/vehicle/switchHeadli
 import type { UseDockDoor } from "../../../application/vehicle/useDockDoor";
 import type { Vec3 } from "../../../domain/shared/vec";
 import type { VehicleKind } from "../../../domain/vehicle/kind";
-import { profileOf } from "../../../domain/vehicle/kinds/index";
-import {
-  type BlockFace,
-  placementCell,
-} from "../../../domain/vehicle/placement";
+import type { BlockFace } from "../../../domain/vehicle/placement";
 import { NAMESPACE } from "../../shared/identifiers";
 import { parseTestInputMessage } from "../testInput/testInputMessage";
 import type { TestInputStore } from "../testInput/testInputStore";
@@ -155,11 +151,11 @@ export function registerSubscriptions(
   // the shore beside it, so a water kind climbs to the top water cell of the
   // clicked or the adjacent cell (docs/spike-sportsboat.md).
   const cellFor = (kind: VehicleKind, block: Block, face: Direction) =>
-    placementCell(
-      profileOf(kind).placement,
+    useCases.place.cellFor(
+      kind,
+      block.dimension.id,
       block.location,
       BLOCK_FACE[face],
-      (at) => isWaterAt(block.dimension, at),
     );
 
   // The after-event only fires when the interaction did something, and an item
@@ -227,10 +223,7 @@ export function registerSubscriptions(
   // through the block interaction above, which keeps the normal reach.
   world.afterEvents.itemUse.subscribe((ev) => {
     const kind = kindOfItem(ev.itemStack.typeId);
-    if (
-      kind !== undefined &&
-      profileOf(kind).placement.surfaces.includes("water")
-    ) {
+    if (kind !== undefined && useCases.place.placesOnWater(kind)) {
       const player = ev.source;
       const hit = player.getBlockFromViewDirection({
         includeLiquidBlocks: true,

@@ -128,6 +128,55 @@ describe("BedrockVehicleWorld placement (ADR 0066)", () => {
   );
 });
 
+describe("BedrockVehicleWorld placement water query (ADR 0051)", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it.each([
+    "minecraft:water",
+    "minecraft:flowing_water",
+    "minecraft:bubble_column",
+  ])(
+    "counts %s in the named dimension as water at the floored cell",
+    (typeId) => {
+      const { dimension, world } = fixture();
+      dimension.getBlock.mockReturnValue({ typeId, isWaterlogged: false });
+      expect(world.isWaterAt("overworld", { x: 1.7, y: 64.2, z: -0.5 })).toBe(
+        true,
+      );
+      expect(game.getDimension).toHaveBeenCalledWith("overworld");
+      expect(dimension.getBlock).toHaveBeenCalledWith({ x: 1, y: 64, z: -1 });
+    },
+  );
+
+  it("counts a waterlogged block as water and air or an unloaded cell as dry", () => {
+    const { dimension, world } = fixture();
+    dimension.getBlock.mockReturnValueOnce({
+      typeId: "minecraft:kelp",
+      isWaterlogged: true,
+    });
+    expect(world.isWaterAt("overworld", { x: 0, y: 64, z: 0 })).toBe(true);
+    dimension.getBlock.mockReturnValueOnce({
+      typeId: "minecraft:air",
+      isWaterlogged: false,
+    });
+    expect(world.isWaterAt("overworld", { x: 0, y: 64, z: 0 })).toBe(false);
+    dimension.getBlock.mockImplementationOnce(() => {
+      throw new Error("unloaded");
+    });
+    expect(world.isWaterAt("overworld", { x: 0, y: 64, z: 0 })).toBe(false);
+    dimension.getBlock.mockReturnValueOnce(undefined);
+    expect(world.isWaterAt("overworld", { x: 0, y: 64, z: 0 })).toBe(false);
+  });
+
+  it("is dry in an unknown dimension", () => {
+    const { world } = fixture();
+    game.getDimension.mockImplementation(() => {
+      throw new Error("unknown");
+    });
+    expect(world.isWaterAt("nowhere", { x: 0, y: 0, z: 0 })).toBe(false);
+  });
+});
+
 describe("BedrockVehicleWorld submarine wiring (ADR 0040)", () => {
   beforeEach(() => vi.resetAllMocks());
 
