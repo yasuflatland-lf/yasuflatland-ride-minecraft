@@ -138,6 +138,19 @@ function cellAt(pose: HoldPose, lx: number, lz: number, dy: number): Vec3 {
   };
 }
 
+// The shower-toilet's column; a tap on its floor cell opens its door or runs the shower (ADR 0094).
+const SHOWER_COLUMN = (() => {
+  const cell = CAMPER_FURNITURE.find((f) => f.kind === "shower_toilet")
+    ?.cells[0];
+  if (!cell) throw new Error("CAMPER_FURNITURE has no shower_toilet cell");
+  return { x: cell.x, z: cell.z };
+})();
+
+/** The floor cell under the shower-toilet (ADR 0094). */
+export function showerFloorCell(pose: HoldPose): Vec3 {
+  return cellAt(pose, SHOWER_COLUMN.x, SHOWER_COLUMN.z, 0);
+}
+
 /** The world cell of a decor slot at a parked pose (ADR 0093). */
 export function decorSlotCell(pose: HoldPose, slot: DecorSlot): Vec3 {
   return cellAt(pose, slot.cell.x, slot.cell.z, slot.cell.layer);

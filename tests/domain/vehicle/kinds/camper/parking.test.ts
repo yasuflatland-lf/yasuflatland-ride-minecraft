@@ -1,5 +1,5 @@
 import fc from "fast-check";
-import { expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type {
   DriveStep,
   TickContext,
@@ -22,8 +22,10 @@ import {
   parkCheckCells,
   parkPose,
   roomCells,
+  showerFloorCell,
   wallFootCells,
 } from "../../../../../src/domain/vehicle/kinds/camper/room";
+import { CAMPER_SPEC } from "../../../../../src/domain/vehicle/kinds/camper/spec";
 import { cellKey } from "../../../../../src/domain/vehicle/lighting/headlights";
 import { DOCK } from "../../../../../src/domain/vehicle/motion/dock";
 import { defined } from "../../../../support/defined";
@@ -589,4 +591,151 @@ it("keeps placed decor through a departure and refuses changes while driving", (
   ).toBeUndefined();
   expect(f.drive.placeDecor("table", "mug_pair")).toBe(false);
   expect(f.drive.removeDecor(decorSlotCell(f.pose, stove))).toBeUndefined();
+});
+
+describe("shower-toilet (ADR 0094)", () => {
+  const ORIGIN = { x: 0, y: 0, z: 0 };
+  const named = (out: DriveStep, name: string) =>
+    out.commands.filter((c) => c.type === "setProperty" && c.name === name);
+
+  it("ignores floor taps, the shower door, and the shower until parked", () => {
+    const f = fixture();
+    expect(f.drive.floorTap(showerFloorCell(f.pose), ORIGIN)).toBeUndefined();
+    expect(f.drive.useShowerDoor()).toBe(false);
+    expect(f.drive.runShower()).toBe(false);
+  });
+
+  it("routes a shower floor tap to the shower from inside its column and to the door from anywhere else", () => {
+    const f = fixture();
+    f.park();
+    f.step();
+    const floor = showerFloorCell(f.pose);
+    fc.assert(
+      fc.property(
+        fc.double({ min: -3, max: 3, noNaN: true }),
+        fc.double({ min: -3, max: 3, noNaN: true }),
+        (dx, dz) => {
+          const player = {
+            x: floor.x + 0.5 + dx,
+            y: floor.y + 1,
+            z: floor.z + 0.5 + dz,
+          };
+          const inside =
+            Math.floor(player.x) === floor.x &&
+            Math.floor(player.z) === floor.z;
+          expect(f.drive.floorTap(floor, player)).toBe(
+            inside ? "shower" : "showerDoor",
+          );
+          for (const c of roomCells(f.pose, false))
+            if (cellKey(c) !== cellKey(floor))
+              expect(f.drive.floorTap(c, player)).toBeUndefined();
+          expect(
+            f.drive.floorTap({ ...floor, y: floor.y + 1 }, player),
+          ).toBeUndefined();
+        },
+      ),
+    );
+  });
+
+  it("swings the shower door in ten bounded steps each way and leaves the entry door shut", () => {
+    const f = fixture();
+    f.park();
+    expect(f.drive.useShowerDoor()).toBe(true);
+    for (const open of [true, false]) {
+      if (!open) expect(f.drive.useShowerDoor()).toBe(true);
+      for (let tick = 1; tick <= 10; tick++) {
+        const out = f.step();
+        expect(out.commands).toContainEqual({
+          type: "setProperty",
+          name: "shower_door",
+          value: (open ? tick : 10 - tick) / 10,
+        });
+        expect(
+          out.dock?.cells
+            .filter((c) => c.block.type === "door")
+            .every((c) => c.block.type === "door" && c.block.open === false),
+        ).toBe(true);
+      }
+      expect(f.step().commands).toEqual([]);
+    }
+  });
+
+  it("runs the shower for exactly showerTicks ticks and starts over on a new tap", () => {
+    const f = fixture();
+    f.park();
+    f.step();
+    expect(f.drive.runShower()).toBe(true);
+    expect(f.step().commands).toContainEqual({
+      type: "setProperty",
+      name: "shower",
+      value: true,
+    });
+    for (let i = 0; i < CAMPER_SPEC.showerTicks - 1; i++)
+      expect(named(f.step(), "shower")).toEqual([]);
+    expect(f.step().commands).toContainEqual({
+      type: "setProperty",
+      name: "shower",
+      value: false,
+    });
+    const off = { type: "setProperty", name: "shower", value: false };
+    f.drive.runShower();
+    for (let i = 0; i < 50; i++) f.step();
+    f.drive.runShower();
+    for (let i = 0; i < CAMPER_SPEC.showerTicks; i++)
+      expect(f.step().commands).not.toContainEqual(off);
+    expect(f.step().commands).toContainEqual(off);
+  });
+
+  it("shuts the shower door and stops the shower on departure", () => {
+    const f = fixture();
+    f.park();
+    f.step();
+    f.drive.useShowerDoor();
+    f.drive.runShower();
+    for (let i = 0; i < 10; i++) f.step();
+    const out = f.step(PUSH);
+    expect(out.commands).toContainEqual({
+      type: "setProperty",
+      name: "shower_door",
+      value: 0,
+    });
+    expect(out.commands).toContainEqual({
+      type: "setProperty",
+      name: "shower",
+      value: false,
+    });
+    expect(out.depart).toBeDefined();
+    expect(f.drive.runShower()).toBe(false);
+    expect(f.drive.floorTap(showerFloorCell(f.pose), ORIGIN)).toBeUndefined();
+  });
+
+  it("restores the shower door's swing but not the shower after a reload", () => {
+    const f = fixture();
+    const restored = (showerDoor: number) =>
+      new CamperDrive(37, {
+        form: "car",
+        docked: true,
+        door: 0,
+        dockLaid: true,
+        shower_door: showerDoor,
+      });
+    const open = restored(1).step(undefined, f.ctx);
+    expect(open.commands).toContainEqual({
+      type: "setProperty",
+      name: "shower_door",
+      value: 1,
+    });
+    expect(open.commands).toContainEqual({
+      type: "setProperty",
+      name: "shower",
+      value: false,
+    });
+    const partial = restored(0.3);
+    for (const value of [0.2, 0.1, 0])
+      expect(partial.step(undefined, f.ctx).commands).toContainEqual({
+        type: "setProperty",
+        name: "shower_door",
+        value,
+      });
+  });
 });
