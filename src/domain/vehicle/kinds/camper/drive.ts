@@ -121,7 +121,7 @@ export class CamperDrive extends TransformingDrive {
     if (parked) {
       if (!pressed) return this.parkedStep(parked, ctx);
       const cargo = cargoCells(parked);
-      // The 63 cargo cells and two exit cells share one departure batch.
+      // The 61 cargo cells and two exit cells share one departure batch.
       const types = ctx.blockTypes([...cargo, ...exitCells(parked)]);
       if (holdsCargo(types.slice(0, cargo.length)))
         return {

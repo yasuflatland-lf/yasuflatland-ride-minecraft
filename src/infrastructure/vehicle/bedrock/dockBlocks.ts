@@ -16,6 +16,7 @@ import { cellKey } from "../../../domain/vehicle/lighting/headlights";
 import { isLightBlock } from "./headlightBlocks";
 import {
   AIR_BLOCK,
+  CAMPER_BED_BLOCK,
   CAMPER_CEILING_BLOCK,
   CAMPER_DOOR_BLOCK,
   CAMPER_FLOOR_BLOCK,
@@ -64,6 +65,7 @@ function isDockCell(v: unknown): v is DockCell {
       return isHeight(b.height);
     case "floor":
     case "ceiling":
+    case "bed":
       return true;
     case "wall":
       return isFace(b.face);
@@ -86,6 +88,8 @@ function blockIdOf(block: DockBlock): string {
       return CAMPER_WALL_BLOCK;
     case "door":
       return CAMPER_DOOR_BLOCK;
+    case "bed":
+      return CAMPER_BED_BLOCK;
   }
 }
 
