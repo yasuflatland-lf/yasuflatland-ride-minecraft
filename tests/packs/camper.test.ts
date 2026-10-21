@@ -233,6 +233,44 @@ describe("camper model assets (ADR 0067)", () => {
     }
   });
 
+  // The wheel's cubes are built in its own plane and only moved by the pivot, so x and y
+  // relative to the pivot are the wheel's own axes.
+  it("keeps the steering wheel inside its rim (sightline)", () => {
+    const steering = bone("steering");
+    for (const cube of steering.cubes ?? []) {
+      const dx =
+        (cube.origin[0] ?? 0) +
+        (cube.size[0] ?? 0) / 2 -
+        (steering.pivot[0] ?? 0);
+      const dy =
+        (cube.origin[1] ?? 0) +
+        (cube.size[1] ?? 0) / 2 -
+        (steering.pivot[1] ?? 0);
+      expect(Math.hypot(dx, dy)).toBeLessThanOrEqual(7.2 + 0.5);
+    }
+  });
+
+  it("keeps the wheel's spokes level (owner decision in #410)", () => {
+    const palette = readFileSync("tools/gen_camper.py", "utf8").match(
+      /^PALETTE = \{\n([\s\S]*?)^\}/m,
+    )?.[1];
+    const slots = [...(palette ?? "").matchAll(/^\s+"(\w+)":/gm)].map(
+      (m) => m[1],
+    );
+    const ivory = slots.indexOf("ivory");
+    expect(ivory).toBeGreaterThanOrEqual(0);
+    const spokes = (bone("steering").cubes ?? []).filter(
+      (cube) => cube.uv.north?.uv[0] === ivory && Math.max(...cube.size) >= 3,
+    );
+    expect(spokes.length).toBeGreaterThan(0);
+    for (const cube of spokes) {
+      const z = cube.rotation?.[2] ?? 0;
+      expect([0, 180, -180]).toContain(z);
+      expect(cube.rotation?.[0] ?? 0).toBe(0);
+      expect(cube.rotation?.[1] ?? 0).toBe(0);
+    }
+  });
+
   it("generates all 16 equally sized paints, changing only the three accent swatches", () => {
     const files = readdirSync(`${RP}/textures/entity/yasu_ride`).filter(
       (name) => /^camper(?:_\w+)?\.png$/.test(name),
