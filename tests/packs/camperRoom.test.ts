@@ -10,6 +10,8 @@ import {
   CAMPER_DOOR_COMPONENT,
   CAMPER_FLOOR_BLOCK,
   CAMPER_FURNITURE_BLOCK,
+  CAMPER_SHOWER_TOILET_BLOCK,
+  CAMPER_SHOWER_TOILET_COMPONENT,
   CAMPER_WALL_BLOCK,
   DECOR_HEIGHT_STATE,
   ROOM_FACE_STATE,
@@ -32,6 +34,7 @@ const wallPlates = [
 const customComponents: Record<string, string[]> = {
   door: [CAMPER_DOOR_COMPONENT],
   bed: [CAMPER_BED_COMPONENT],
+  shower_toilet: [CAMPER_SHOWER_TOILET_COMPONENT],
 };
 
 describe("Camper room blocks (ADR 0068)", () => {
@@ -42,6 +45,7 @@ describe("Camper room blocks (ADR 0068)", () => {
     ["door", CAMPER_DOOR_BLOCK],
     ["bed", CAMPER_BED_BLOCK],
     ["furniture", CAMPER_FURNITURE_BLOCK],
+    ["shower_toilet", CAMPER_SHOWER_TOILET_BLOCK],
   ])(
     "defines an invisible, indestructible %s with the script's identifier",
     (name, identifier) => {
@@ -125,6 +129,21 @@ describe("Camper room blocks (ADR 0068)", () => {
         expect(top, slot.id).toBe(16);
       }
     }
+  });
+
+  it("gives the shower-toilet no collision and a selectable 2 px plate on each face (ADR 0098)", () => {
+    const block = readBlock("shower_toilet")["minecraft:block"];
+    expect(block.description.states).toEqual({
+      [ROOM_FACE_STATE]: [0, 1, 2, 3],
+    });
+    expect(block.components["minecraft:collision_box"]).toBe(false);
+    expect(block.components).not.toHaveProperty("minecraft:selection_box");
+    expect(block.permutations).toEqual(
+      wallPlates.map((box, face) => ({
+        condition: `q.block_state('yasu_ride:face') == ${face}`,
+        components: { "minecraft:selection_box": box },
+      })),
+    );
   });
 
   it("defines all four wall faces with no selection box", () => {

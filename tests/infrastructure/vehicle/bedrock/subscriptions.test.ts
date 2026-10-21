@@ -27,6 +27,8 @@ import {
   CAMPER_DOOR_COMPONENT,
   CAMPER_FLOOR_BLOCK,
   CAMPER_FURNITURE_BLOCK,
+  CAMPER_SHOWER_TOILET_BLOCK,
+  CAMPER_SHOWER_TOILET_COMPONENT,
   CAMPER_WALL_BLOCK,
   DECK_FLOOR_BLOCK,
   DECK_SEAT_OF_PROPERTY,
@@ -629,6 +631,7 @@ it("cancels a player's break only of a block a held vehicle laid (ADR 0096)", ()
 });
 
 it("registers door interactions during startup and dispatches only owned doors", () => {
+  const before = game.startup.mock.calls.length;
   const door = { execute: vi.fn() };
   const owner =
     vi.fn<(dimensionId: string, cell: At) => VehicleId | undefined>();
@@ -639,17 +642,18 @@ it("registers door interactions during startup and dispatches only owned doors",
     () => undefined,
     () => undefined,
   );
-  const startup = game.startup.mock.calls.at(-1)?.[0];
-  if (!startup) throw new Error("startup not subscribed synchronously");
+  const startups = game.startup.mock.calls.slice(before);
+  if (startups.length === 0)
+    throw new Error("startup not subscribed synchronously");
   const registerCustomComponent =
     vi.fn<(name: string, component: BlockCustomComponent) => void>();
-  startup({
-    blockComponentRegistry: { registerCustomComponent },
-  } as unknown as StartupEvent);
-  expect(registerCustomComponent.mock.calls[0]?.[0]).toBe(
-    CAMPER_DOOR_COMPONENT,
-  );
-  const interact = registerCustomComponent.mock.calls[0]?.[1].onPlayerInteract;
+  for (const [startup] of startups)
+    startup({
+      blockComponentRegistry: { registerCustomComponent },
+    } as unknown as StartupEvent);
+  const interact = registerCustomComponent.mock.calls.find(
+    ([name]) => name === CAMPER_DOOR_COMPONENT,
+  )?.[1].onPlayerInteract;
   if (!interact) throw new Error("door interaction missing");
   const cell = { x: 1, y: 64, z: 2 };
   const event = {
@@ -708,6 +712,89 @@ it("registers bed interactions during startup and passes the player, dimension, 
     { params: undefined },
   );
   expect(bed.execute).not.toHaveBeenCalled();
+});
+
+it("registers shower-toilet presses during startup and sends an empty hand to the door from outside and to the shower from inside (ADR 0098)", () => {
+  const before = game.startup.mock.calls.length;
+  const showerDoor = { execute: vi.fn() };
+  const shower = { execute: vi.fn() };
+  const owner = vi.fn<(dimensionId: string, cell: At) => VehicleId | undefined>(
+    () => asVehicleId("camper"),
+  );
+  registerSubscriptions(
+    { showerDoor, shower } as unknown as Parameters<
+      typeof registerSubscriptions
+    >[0],
+    new TestInputStore(),
+    () => undefined,
+    owner,
+    () => undefined,
+  );
+  const registerCustomComponent =
+    vi.fn<(name: string, component: BlockCustomComponent) => void>();
+  for (const [startup] of game.startup.mock.calls.slice(before))
+    startup({
+      blockComponentRegistry: { registerCustomComponent },
+    } as unknown as StartupEvent);
+  const interact = registerCustomComponent.mock.calls.find(
+    ([name]) => name === CAMPER_SHOWER_TOILET_COMPONENT,
+  )?.[1].onPlayerInteract;
+  if (!interact) throw new Error("shower-toilet interaction missing");
+  const cell = { x: 4, y: 65, z: -7 };
+  fc.assert(
+    fc.property(
+      fc.double({ min: -3, max: 3, noNaN: true }),
+      fc.double({ min: -3, max: 3, noNaN: true }),
+      fc.boolean(),
+      fc.boolean(),
+      fc.boolean(),
+      (dx, dz, held, owned, hasPlayer) => {
+        owner.mockClear();
+        showerDoor.execute.mockClear();
+        shower.execute.mockClear();
+        owner.mockReturnValue(owned ? asVehicleId("camper") : undefined);
+        const player = {
+          id: "p",
+          location: { x: 4.5 + dx, y: 65, z: -6.5 + dz },
+          selectedSlotIndex: 0,
+          getComponent: () => ({
+            container: {
+              getItem: () => (held ? { typeId: "minecraft:stone" } : undefined),
+            },
+          }),
+        };
+        interact(
+          {
+            dimension: { id: "overworld" },
+            block: { location: cell },
+            player: hasPlayer ? player : undefined,
+          } as unknown as Parameters<typeof interact>[0],
+          { params: undefined },
+        );
+        if (!hasPlayer || held) {
+          expect(owner).not.toHaveBeenCalled();
+          expect(showerDoor.execute).not.toHaveBeenCalled();
+          expect(shower.execute).not.toHaveBeenCalled();
+          return;
+        }
+        expect(owner).toHaveBeenCalledExactlyOnceWith("overworld", cell);
+        if (!owned) {
+          expect(showerDoor.execute).not.toHaveBeenCalled();
+          expect(shower.execute).not.toHaveBeenCalled();
+          return;
+        }
+        const inside =
+          Math.floor(4.5 + dx) === 4 && Math.floor(-6.5 + dz) === -7;
+        const [used, idle] = inside
+          ? [shower, showerDoor]
+          : [showerDoor, shower];
+        expect(used.execute).toHaveBeenCalledExactlyOnceWith({
+          vehicleId: "camper",
+        });
+        expect(idle.execute).not.toHaveBeenCalled();
+      },
+    ),
+  );
 });
 
 it("checks the hints every hint interval, after the drive on the same tick (ADR 0086)", () => {
@@ -845,14 +932,13 @@ it("sets decor only from server test decor script events (ADR 0093)", () => {
 function decorFixture() {
   const placeDecor = { execute: vi.fn() };
   const removeDecor = { execute: vi.fn() };
-  const floor = { execute: vi.fn() };
   const owner = vi.fn<(dimensionId: string, cell: At) => VehicleId | undefined>(
     () => asVehicleId("car"),
   );
   const before = game.before.mock.calls.length;
   const startupsBefore = game.startup.mock.calls.length;
   registerSubscriptions(
-    { placeDecor, removeDecor, floor } as unknown as Parameters<
+    { placeDecor, removeDecor } as unknown as Parameters<
       typeof registerSubscriptions
     >[0],
     new TestInputStore(),
@@ -884,7 +970,7 @@ function decorFixture() {
     handler(ev as unknown as PlayerInteractWithBlockBeforeEvent);
     return ev;
   };
-  return { placeDecor, removeDecor, floor, owner, startupsBefore, event, send };
+  return { placeDecor, removeDecor, owner, startupsBefore, event, send };
 }
 
 it("places held camping gear on a camper room, furniture, or decor block on the next tick and cancels every repeat (ADR 0093, 0097)", () => {
@@ -1042,39 +1128,32 @@ it("lets a player sit on a deck seat with an empty hand, other items, no slot un
   }
 });
 
-it("taps the camper floor with an empty hand on the next tick without cancelling (ADR 0094)", () => {
-  const { placeDecor, floor, owner, event, send } = decorFixture();
-  const tap = event({ itemStack: undefined });
-  expect(send(tap).cancel).toBe(false);
-  expect(owner).not.toHaveBeenCalled();
-  expect(floor.execute).not.toHaveBeenCalled();
-  for (const [callback] of game.run.mock.calls) callback();
-  expect(floor.execute).toHaveBeenCalledExactlyOnceWith({
-    dimensionId: "minecraft:overworld",
-    cell: { x: 1, y: 64, z: 2 },
-    player: { x: 1.5, y: 65, z: 2.5 },
-  });
-  expect(placeDecor.execute).not.toHaveBeenCalled();
-  const quiet = (ev: ReturnType<typeof event>) => {
-    game.run.mockClear();
+it("leaves empty-hand presses on room blocks alone (ADR 0098)", () => {
+  for (const typeId of [CAMPER_FLOOR_BLOCK, CAMPER_SHOWER_TOILET_BLOCK]) {
+    const { placeDecor, event, send } = decorFixture();
+    const ev = event({ itemStack: undefined });
+    ev.block = { ...ev.block, typeId };
     expect(send(ev).cancel).toBe(false);
     expect(game.run).not.toHaveBeenCalled();
-  };
-  quiet(event({ itemStack: undefined, isFirstEvent: false }));
-  for (const typeId of [CAMPER_WALL_BLOCK, DECK_FLOOR_BLOCK]) {
-    const other = event({ itemStack: undefined });
-    other.block = { ...other.block, typeId };
-    quiet(other);
+    expect(placeDecor.execute).not.toHaveBeenCalled();
   }
-  quiet(event({ itemStack: { typeId: "minecraft:stone" } }));
-  game.run.mockClear();
-  floor.execute.mockClear();
-  expect(
-    send(event({ itemStack: { typeId: "yasu_ride:percolator" } })).cancel,
-  ).toBe(true);
+});
+
+it("places held camping gear pressed on the shower-toilet block like on any room block (ADR 0098)", () => {
+  const { placeDecor, event, send } = decorFixture();
+  const ev = event();
+  ev.block = { ...ev.block, typeId: CAMPER_SHOWER_TOILET_BLOCK };
+  expect(send(ev).cancel).toBe(true);
+  expect(placeDecor.execute).not.toHaveBeenCalled();
   for (const [callback] of game.run.mock.calls) callback();
-  expect(placeDecor.execute).toHaveBeenCalledOnce();
-  expect(floor.execute).not.toHaveBeenCalled();
+  expect(placeDecor.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId: "p",
+    vehicleId: "car",
+    item: "percolator",
+    point: { x: 1.25, y: 65, z: 2.5 },
+    cell: { x: 1, y: 64, z: 2 },
+    hotbarSlot: 4,
+  });
 });
 
 it("takes decor back on an empty-hand interaction with a decor block (ADR 0093)", () => {

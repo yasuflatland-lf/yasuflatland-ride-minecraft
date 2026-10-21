@@ -18,6 +18,7 @@ import {
   CAMPER_DOOR_BLOCK,
   CAMPER_FLOOR_BLOCK,
   CAMPER_FURNITURE_BLOCK,
+  CAMPER_SHOWER_TOILET_BLOCK,
   CAMPER_WALL_BLOCK,
   DECK_CELLS_PROPERTY,
   DECK_FLOOR_BLOCK,
@@ -338,6 +339,7 @@ const roomCells: DockCell[] = [
     block: { type: "decor", item: "potted_plant", face: 1, height: 12 },
   },
   { x: 7, y: 64, z: 0, block: { type: "furniture", height: 0 } },
+  { x: 8, y: 64, z: 0, block: { type: "showerToilet", face: 0 } },
 ];
 
 it("lays every block type with its states and changes only an opened door", () => {
@@ -359,6 +361,7 @@ it("lays every block type with its states and changes only an opened door", () =
       states: { [DECOR_FACE_STATE]: 1, [DECOR_HEIGHT_STATE]: 12 },
     },
     { typeId: CAMPER_FURNITURE_BLOCK, states: { [DECOR_HEIGHT_STATE]: 0 } },
+    { typeId: CAMPER_SHOWER_TOILET_BLOCK, states: { [ROOM_FACE_STATE]: 0 } },
   ]);
   f.writes.length = 0;
   const opened = roomCells.map((c) =>
@@ -402,7 +405,7 @@ it.each([
   },
 );
 
-it("preserves replacements of wall, door, bed, decor, and furniture cells", () => {
+it("preserves replacements of wall, door, bed, decor, furniture, and shower-toilet cells", () => {
   const f = fixture();
   const docks = new DockBlocks();
   docks.lay(asVehicleId(f.car.id), f.car, roomCells);
@@ -479,6 +482,31 @@ it("restores a saved bed cell and clears it", () => {
   new DockBlocks().lay(asVehicleId(f.car.id), f.car, []);
   expect(f.at(cell).typeId).toBe("minecraft:air");
   expect(f.saved.get(DECK_CELLS_PROPERTY)).toBeUndefined();
+});
+
+it("restores a saved shower-toilet cell with its face and drops one without a valid face (ADR 0098)", () => {
+  const cell = { x: 0, y: 64, z: 0 };
+  const f = fixture();
+  f.saved.set(
+    DECK_CELLS_PROPERTY,
+    JSON.stringify([{ ...cell, block: { type: "showerToilet", face: 2 } }]),
+  );
+  f.blocks.set(cellKey(cell), { typeId: CAMPER_SHOWER_TOILET_BLOCK });
+  new DockBlocks().lay(asVehicleId(f.car.id), f.car, []);
+  expect(f.at(cell).typeId).toBe("minecraft:air");
+  expect(f.saved.get(DECK_CELLS_PROPERTY)).toBeUndefined();
+  for (const block of [
+    { type: "showerToilet" },
+    { type: "showerToilet", face: 4 },
+  ]) {
+    const g = fixture();
+    const raw = JSON.stringify([{ ...cell, block }]);
+    g.saved.set(DECK_CELLS_PROPERTY, raw);
+    g.blocks.set(cellKey(cell), { typeId: CAMPER_SHOWER_TOILET_BLOCK });
+    new DockBlocks().lay(asVehicleId(g.car.id), g.car, []);
+    expect(g.at(cell).typeId).toBe(CAMPER_SHOWER_TOILET_BLOCK);
+    expect(g.saved.get(DECK_CELLS_PROPERTY)).toBe(raw);
+  }
 });
 
 it("clears saved deck cells from the legacy height-only format", () => {
@@ -595,22 +623,6 @@ it("finds the owner of a laid furniture cell through cellOwner only (ADR 0097)",
   );
   expect(docks.cellOwner(here, furniture)).toBe(f.car.id);
   expect(docks.doorOwner(here, furniture)).toBeUndefined();
-  expect(docks.floorOwner(here, furniture)).toBeUndefined();
-});
-
-it("finds only the owner of a laid floor in the same dimension (ADR 0094)", () => {
-  const f = fixture();
-  const docks = new DockBlocks();
-  docks.lay(asVehicleId(f.car.id), f.car, roomCells);
-  const here = asDimensionId(f.car.dimension.id);
-  expect(roomCells.some((c) => c.block.type === "floor")).toBe(true);
-  for (const c of roomCells) {
-    expect(docks.floorOwner(here, c)).toBe(
-      c.block.type === "floor" ? f.car.id : undefined,
-    );
-    expect(docks.floorOwner(asDimensionId("nether"), c)).toBeUndefined();
-  }
-  expect(docks.floorOwner(here, { x: 0, y: 70, z: 0 })).toBeUndefined();
 });
 
 it("derives laid state and door target from saved dock cells in one property read", () => {

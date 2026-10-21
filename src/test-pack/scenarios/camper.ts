@@ -23,12 +23,14 @@ import {
   CAMPER_DOOR_BLOCK,
   CAMPER_FLOOR_BLOCK,
   CAMPER_FURNITURE_BLOCK,
+  CAMPER_SHOWER_TOILET_BLOCK,
   CAMPER_WALL_BLOCK,
   DECK_FLOOR_BLOCK,
   DECK_SEAT_TYPE,
   DECOR_FACE_STATE,
   DECOR_HEIGHT_STATE,
   decorBlockId,
+  ROOM_FACE_STATE,
 } from "../../infrastructure/vehicle/bedrock/identifiers";
 import {
   type Arena,
@@ -77,6 +79,7 @@ const ROOM_BLOCK: Readonly<
   door: CAMPER_DOOR_BLOCK,
   bed: CAMPER_BED_BLOCK,
   furniture: CAMPER_FURNITURE_BLOCK,
+  showerToilet: CAMPER_SHOWER_TOILET_BLOCK,
 };
 
 function laidTypeOf(block: DockBlock): string {
@@ -162,7 +165,7 @@ export function camperPark(a: Arena): Promise<Outcome> {
   return atParkSpot(a, async (car) => {
     await wait(DOCK.ticks + 10);
     const laid = laidRoomCells(a, car);
-    return { pass: laid === 105, detail: `laid=${laid}` };
+    return { pass: laid === 107, detail: `laid=${laid}` };
   });
 }
 
@@ -199,7 +202,7 @@ export function camperParkSnow(a: Arena): Promise<Outcome> {
       (c) => a.dim.getBlock(c)?.typeId === CAMPER_FLOOR_BLOCK,
     ).length;
     return {
-      pass: laid === 105 && floors === 4,
+      pass: laid === 107 && floors === 4,
       detail: `laid=${laid} snowReplaced=${floors}`,
     };
   });
@@ -215,7 +218,7 @@ export async function camperParkPath(a: Arena): Promise<Outcome> {
       // A path under a full block turns into dirt, so the ground is only logged.
       const under = a.dim.getBlock({ x: 108, y: ground, z: 78 })?.typeId;
       return {
-        pass: laid === 105 && car.location.y === a.gy,
+        pass: laid === 107 && car.location.y === a.gy,
         detail: `laid=${laid} y=${car.location.y} ground=${under}`,
       };
     });
@@ -235,7 +238,7 @@ export function camperDepart(a: Arena): Promise<Outcome> {
     const remaining = countLaid(a, cells);
     const moved = movedFrom(car, pose);
     return {
-      pass: parked === 105 && remaining === 0 && moved >= 0.1,
+      pass: parked === 107 && remaining === 0 && moved >= 0.1,
       detail: `parked=${parked} remaining=${remaining} moved=${moved.toFixed(3)}`,
     };
   });
@@ -253,8 +256,41 @@ export function camperDepartCargo(a: Arena): Promise<Outcome> {
     const laid = laidRoomCells(a, car);
     const moved = movedFrom(car, pose);
     return {
-      pass: laid === 105 && moved < 0.01,
+      pass: laid === 107 && moved < 0.01,
       detail: `laid=${laid} moved=${moved.toFixed(3)}`,
+    };
+  });
+}
+
+type ShowerToiletCell = DockCell & {
+  readonly block: Extract<DockBlock, { type: "showerToilet" }>;
+};
+
+function isShowerToiletCell(c: DockCell): c is ShowerToiletCell {
+  return c.block.type === "showerToilet";
+}
+
+// The shower-toilet block counts only with its plate toward the aisle (ADR 0098).
+export function camperShowerToiletBlock(a: Arena): Promise<Outcome> {
+  return atParkSpot(a, async (car) => {
+    await wait(DOCK.ticks + 10);
+    const pose = carPose(car);
+    const cells = roomCells(pose, false).filter(isShowerToiletCell);
+    const laid = cells.filter((c) => {
+      const block = a.dim.getBlock(c);
+      return (
+        block?.typeId === CAMPER_SHOWER_TOILET_BLOCK &&
+        block.permutation.getAllStates()[ROOM_FACE_STATE] === c.block.face
+      );
+    }).length;
+    drive(car, 0, 1);
+    await wait(15);
+    const cleared = cells.filter(
+      (c) => a.dim.getBlock(c)?.typeId === "minecraft:air",
+    ).length;
+    return {
+      pass: cells.length === 2 && laid === 2 && cleared === 2,
+      detail: `cells=${cells.length} laid=${laid} cleared=${cleared}`,
     };
   });
 }

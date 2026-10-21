@@ -6,7 +6,6 @@ import {
 } from "@minecraft/server";
 import type { PlaceDecor } from "../../../../application/vehicle/placeDecor";
 import type { RemoveDecor } from "../../../../application/vehicle/removeDecor";
-import type { TapDockFloor } from "../../../../application/vehicle/tapDockFloor";
 import {
   asDimensionId,
   asPlayerId,
@@ -18,7 +17,6 @@ import { TickScopedSet } from "../../../../domain/shared/tickScoped";
 import type { Vec3 } from "../../../../domain/shared/vec";
 import {
   CAMPER_DECOR_COMPONENT,
-  CAMPER_FLOOR_BLOCK,
   CAMPER_FURNITURE_BLOCK,
   campingGearOfDecorBlock,
   campingGearOfItem,
@@ -39,16 +37,13 @@ export function registerDecor(
   place: PlaceDecor,
   remove: RemoveDecor,
   dockCellOwner: DockCellOwner,
-  floor: TapDockFloor,
 ): void {
-  // Placing gear and empty-hand floor taps (ADR 0094) listen to the before event because
-  // most room blocks have no custom component. A gear tap on a laid cell cancels every
-  // repeat of the long-press, so held gear never opens the door or sleeps in the bed
-  // (ADR 0093). A floor tap is never cancelled.
+  // Placing gear listens to the before event because most room blocks have no custom
+  // component. A gear tap on a laid cell cancels every repeat of the long-press, so held
+  // gear never opens a door, runs the shower, or sleeps in the bed (ADR 0093, 0098).
   world.beforeEvents.playerInteractWithBlock.subscribe((ev) => {
     const item = campingGearOfItem(ev.itemStack?.typeId);
     if (item !== undefined) placeGear(ev, item, place, dockCellOwner);
-    else if (!ev.itemStack) tapFloor(ev, floor);
   });
   // A deck seat stands on each dinette seat's slot and takes the press first, so held
   // gear on a deck seat goes to the slot instead of seating the player (ADR 0097). The
@@ -168,21 +163,4 @@ function seatSlotCell(
     if (holdsSlot(cell)) return cell;
   }
   return undefined;
-}
-
-// The shower-toilet is drawn only by the model, so taps on it reach the floor block under it.
-// A floor custom component would make players sneak to place blocks, so empty-hand floor taps
-// are caught here and not cancelled: vanilla does nothing on them (ADR 0094).
-function tapFloor(
-  ev: PlayerInteractWithBlockBeforeEvent,
-  floor: TapDockFloor,
-): void {
-  const { block } = ev;
-  if (!ev.isFirstEvent || block.typeId !== CAMPER_FLOOR_BLOCK) return;
-  const tap = {
-    dimensionId: asDimensionId(block.dimension.id),
-    cell: block.location,
-    player: ev.player.location,
-  };
-  system.run(() => floor.execute(tap));
 }

@@ -1,6 +1,4 @@
 // The camper's furniture in local room cells: what it fills and where decor stands on it (ADR 0093).
-import type { DockBlock } from "../../dock/floor";
-
 export type FurnitureKind =
   | "dashboard"
   | "table"
@@ -28,24 +26,24 @@ export interface DecorSlot {
   readonly height: number;
 }
 
+/** A room block a piece of furniture fills its cells with; roomCells turns a faced one toward the aisle (ADR 0092, 0098). */
+export type FurnitureBlock =
+  | { readonly type: "bed" }
+  | { readonly type: "showerToilet" };
+
 interface Furniture {
   readonly kind: FurnitureKind;
   readonly cells: readonly LocalCell[];
   readonly slots: readonly DecorSlot[];
   /** Laid in every cell; furniture without one is drawn only by the model and can be walked through. */
-  readonly block?: DockBlock;
+  readonly block?: FurnitureBlock;
 }
 
+// The shower-toilet's two cells; their block opens the shower door or runs the shower (ADR 0094, 0098).
 const SHOWER_TOILET_CELLS = [
   { x: -1, z: -3, layer: 1 },
   { x: -1, z: -3, layer: 2 },
 ] as const satisfies readonly LocalCell[];
-
-/** The shower-toilet's column; a tap on its floor cell opens its door or runs the shower (ADR 0094). */
-export const SHOWER_COLUMN = {
-  x: SHOWER_TOILET_CELLS[0].x,
-  z: SHOWER_TOILET_CELLS[0].z,
-} as const;
 
 // Slot heights are the furniture's top at the middle of the cell in tools/gen_camper.py, or 0
 // for a hanging slot; tests/packs/camper.test.ts checks them against the generated model (ADR 0093).
@@ -134,5 +132,6 @@ export const CAMPER_FURNITURE: readonly Furniture[] = [
     kind: "shower_toilet",
     cells: SHOWER_TOILET_CELLS,
     slots: [],
+    block: { type: "showerToilet" },
   },
 ];

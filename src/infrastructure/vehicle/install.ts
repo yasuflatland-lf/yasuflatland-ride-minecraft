@@ -14,7 +14,6 @@ import { SetDecor } from "../../application/vehicle/setDecor";
 import { ShowVehicleHints } from "../../application/vehicle/showVehicleHints";
 import { SleepInBed } from "../../application/vehicle/sleepInBed";
 import { SwitchHeadlights } from "../../application/vehicle/switchHeadlights";
-import { TapDockFloor } from "../../application/vehicle/tapDockFloor";
 import { UseDockDoor } from "../../application/vehicle/useDockDoor";
 import { UseShowerDoor } from "../../application/vehicle/useShowerDoor";
 import { fleetLimitOf } from "../../domain/vehicle/kinds/index";
@@ -67,12 +66,8 @@ export function installVehicles(): void {
       ),
       door: new UseDockDoor(repo),
       bed: new SleepInBed(new BedrockBedWorld(index)),
-      floor: new TapDockFloor(
-        bedrock,
-        repo,
-        new UseShowerDoor(repo),
-        new RunShower(repo),
-      ),
+      showerDoor: new UseShowerDoor(repo),
+      shower: new RunShower(repo),
       decor: new SetDecor(decorWorld, repo),
       placeDecor: new PlaceDecor(decorWorld, repo),
       removeDecor: new RemoveDecor(decorWorld, repo),

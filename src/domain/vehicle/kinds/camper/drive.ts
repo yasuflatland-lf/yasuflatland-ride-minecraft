@@ -2,12 +2,7 @@ import { clamp, type Vec3 } from "../../../shared/vec";
 import { type DecorPlacement, isDecorItem, parseDecor } from "../../dock/decor";
 import { type ClearCell, DOCK_RESTORED } from "../../dock/dock";
 import type { HoldPose } from "../../dock/floor";
-import type {
-  DriveStep,
-  EngineCommand,
-  FloorTap,
-  TickContext,
-} from "../../drive";
+import type { DriveStep, EngineCommand, TickContext } from "../../drive";
 import type { RawInput } from "../../driveInput";
 import type { RestoredOf } from "../../entityContract";
 import { DOCK, heldStep, pushesStick } from "../../motion/dock";
@@ -40,7 +35,6 @@ import {
   parkPose,
   planPark,
   roomCells,
-  showerFloorCell,
   slotCells,
   wallFootCells,
 } from "./room";
@@ -141,16 +135,6 @@ export class CamperDrive extends TransformingDrive {
     if (!this.parked) return false;
     this.doorOpen = !this.doorOpen;
     return true;
-  }
-
-  floorTap(cell: Vec3, player: Vec3): FloorTap | undefined {
-    if (!this.parked) return undefined;
-    const floor = showerFloorCell(this.parked);
-    if (cell.x !== floor.x || cell.y !== floor.y || cell.z !== floor.z)
-      return undefined;
-    return Math.floor(player.x) === floor.x && Math.floor(player.z) === floor.z
-      ? "shower"
-      : "showerDoor";
   }
 
   useShowerDoor(): boolean {
