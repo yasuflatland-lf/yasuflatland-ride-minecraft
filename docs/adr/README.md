@@ -66,12 +66,12 @@ This directory records design decisions and the reasons behind them. The format 
 | [0060](0060-sports-boat-engine-sound.md) | Sports boat engine sound | Accepted |
 | [0061](0061-lift-the-bow-and-roll-further.md) | Lift the sports boat bow the right way and roll it further | Superseded in part by 0085 |
 | [0062](0062-fresh-dev-pack-version-on-every-start.md) | Serve the dev BDS's packs under a fresh dev-only version on every start | Accepted |
-| [0063](0063-walk-on-a-stopped-sports-boat.md) | Walk on a stopped sports boat | Extended by 0064, 0093, and 0095 |
+| [0063](0063-walk-on-a-stopped-sports-boat.md) | Walk on a stopped sports boat | Extended by 0064, 0093, 0095, and 0096 |
 | [0064](0064-dock-step.md) | Group the hold, floor, and deck seats into an optional dock | Accepted |
 | [0065](0065-check-import-rules-with-dependency-cruiser.md) | Check the import rules with dependency-cruiser | Extended by 0072 |
 | [0066](0066-limit-vehicles-per-player-and-kind.md) | Limit vehicles per player and per kind | Accepted |
 | [0067](0067-camper.md) | Camper | Superseded in part by 0068 and 0069; extended by 0091 and 0093 |
-| [0068](0068-park-the-camper-with-room-blocks.md) | Park the camper with room blocks | Superseded in part by 0070 and 0084; extended by 0086, 0092, 0093, 0094, and 0095 |
+| [0068](0068-park-the-camper-with-room-blocks.md) | Park the camper with room blocks | Superseded in part by 0070 and 0084; extended by 0086, 0092, 0093, 0094, 0095, and 0096 |
 | [0069](0069-camper-right-hand-drive.md) | Seat the camper's driver on the right like the SUV | Superseded in part by 0070 |
 | [0070](0070-raise-the-camper-front-seats.md) | Raise the camper's front seats | Accepted |
 | [0071](0071-pull-the-camper-chase-camera-back.md) | Pull the camper's chase camera back | Accepted |
@@ -96,9 +96,10 @@ This directory records design decisions and the reasons behind them. The format 
 | [0090](0090-group-the-vehicle-core-by-subcontext.md) | Group the vehicle core by subcontext | Accepted |
 | [0091](0091-alpha-blend-only-the-camper-glass.md) | Alpha-blend only the camper glass | Accepted |
 | [0092](0092-a-bed-in-the-parked-camper.md) | A bed in the parked camper | Extended by 0093 |
-| [0093](0093-decorate-the-parked-camper.md) | Decorate the parked camper | Extended by 0094 and 0095 |
+| [0093](0093-decorate-the-parked-camper.md) | Decorate the parked camper | Extended by 0094, 0095, and 0096 |
 | [0094](0094-the-camper-shower-toilet-door-and-shower.md) | The camper's shower-toilet door and shower | Accepted |
 | [0095](0095-sit-on-the-camper-toilet-while-parked.md) | Sit on the camper toilet while parked | Accepted |
+| [0096](0096-keep-the-dock-blocks-whole.md) | Keep a parked vehicle's dock blocks whole | Accepted |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 

@@ -1,6 +1,6 @@
 # 0063. Walk on a stopped sports boat
 
-- Status: Accepted (extended by [0064](0064-dock-step.md), [0093](0093-decorate-the-parked-camper.md), and [0095](0095-sit-on-the-camper-toilet-while-parked.md))
+- Status: Accepted (extended by [0064](0064-dock-step.md), [0093](0093-decorate-the-parked-camper.md), [0095](0095-sit-on-the-camper-toilet-while-parked.md), and [0096](0096-keep-the-dock-blocks-whole.md))
 - Date: 2026-10-13
 - Extends: 0051
 

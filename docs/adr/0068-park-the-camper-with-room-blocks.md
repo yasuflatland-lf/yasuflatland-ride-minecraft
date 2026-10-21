@@ -1,6 +1,6 @@
 # 0068. Park the camper with room blocks
 
-- Status: Accepted (the front deck seat rise is superseded by [0070](0070-raise-the-camper-front-seats.md), and the single bumper hitbox by [0084](0084-camper-hitbox-spans-the-bumper.md); extended by [0086](0086-camper-hints-near-the-bumper-and-the-parked-driver-seat.md), [0092](0092-a-bed-in-the-parked-camper.md), [0093](0093-decorate-the-parked-camper.md), [0094](0094-the-camper-shower-toilet-door-and-shower.md), and [0095](0095-sit-on-the-camper-toilet-while-parked.md))
+- Status: Accepted (the front deck seat rise is superseded by [0070](0070-raise-the-camper-front-seats.md), and the single bumper hitbox by [0084](0084-camper-hitbox-spans-the-bumper.md); extended by [0086](0086-camper-hints-near-the-bumper-and-the-parked-driver-seat.md), [0092](0092-a-bed-in-the-parked-camper.md), [0093](0093-decorate-the-parked-camper.md), [0094](0094-the-camper-shower-toilet-door-and-shower.md), [0095](0095-sit-on-the-camper-toilet-while-parked.md), and [0096](0096-keep-the-dock-blocks-whole.md))
 - Date: 2026-10-19
 
 ## Context
