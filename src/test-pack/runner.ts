@@ -71,29 +71,24 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
   // The middle number is the test's ticks as last logged in CI; shardsOf packs
   // by it, so update it when a test gets much slower or faster (ADR 0054).
   const allTests: [string, number, () => Promise<Outcome>][] = [
-    // camper_accel and camper_wall have no CI log yet. camper_accel is estimated
-    // at about 75 ticks to top speed plus about 67 at 0.9 blocks/tick to x = 100;
-    // camper_wall waits a fixed 150 ticks.
-    ["camper_accel", 140, () => camperAccel(a)],
+    ["camper_accel", 144, () => camperAccel(a)],
     ["camper_wall", 150, () => camperWall(a)],
-    // Estimates until CI reports measured ticks (ADR 0054).
-    ["camper_takeoff", 60, () => camperTakeoff(a)],
+    ["camper_takeoff", 33, () => camperTakeoff(a)],
     ["camper_land", 140, () => camperLand(a)],
-    ["camper_dive", 140, () => camperDive(a)],
-    // Estimates until CI reports measured ticks (ADR 0054).
-    ["camper_park", 60, () => camperPark(a)],
-    ["camper_park_blocked", 60, () => camperParkBlocked(a)],
-    ["camper_park_snow", 60, () => camperParkSnow(a)],
-    ["camper_park_path", 60, () => camperParkPath(a)],
-    ["camper_depart", 80, () => camperDepart(a)],
-    ["camper_depart_cargo", 80, () => camperDepartCargo(a)],
-    ["camper_toilet_seat", 80, () => camperToiletSeat(a)],
-    ["camper_decor", 80, () => camperDecor(a)],
+    ["camper_dive", 45, () => camperDive(a)],
+    ["camper_park", 30, () => camperPark(a)],
+    ["camper_park_blocked", 30, () => camperParkBlocked(a)],
+    ["camper_park_snow", 30, () => camperParkSnow(a)],
+    ["camper_park_path", 30, () => camperParkPath(a)],
+    ["camper_depart", 45, () => camperDepart(a)],
+    ["camper_depart_cargo", 50, () => camperDepartCargo(a)],
+    ["camper_toilet_seat", 31, () => camperToiletSeat(a)],
+    ["camper_decor", 51, () => camperDecor(a)],
     ["accel_and_step1", 85, () => accelAndStep1(a)],
     ["passable_no_hop", 65, () => passableNoHop(a)],
     ["turn_and_handbrake", 130, () => turnAndHandbrake(a)],
     ["ram_cow", 44, () => ramCow(a)],
-    ["wall_diagonal", 120, () => wallDiagonal(a)],
+    ["wall_diagonal", 70, () => wallDiagonal(a)],
     ["step2_front", 52, () => step2(a, 8, -90, 100)],
     ["step2_diagonal", 57, () => step2(a, 30, -60, 100)],
     ["seats_after_driver_leaves", 20, () => seatsAfterDriverLeaves(a)],
@@ -114,16 +109,14 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
     ["submarine_shallow", 118, () => submarineShallow(a)],
     ["vehicle_limit", 20, () => vehicleLimit(a)],
     ["boat_float", 105, () => boatFloat(a)],
-    ["boat_dock", 110, () => boatDock(a)],
-    ["boat_deck_seats", 110, () => boatDeckSeats(a)],
+    ["boat_dock", 76, () => boatDock(a)],
+    ["boat_deck_seats", 27, () => boatDeckSeats(a)],
     ["boat_drag", 138, () => boatDrag(a)],
-    ["boat_cruise", 235, () => boatCruise(a)],
+    ["boat_cruise", 270, () => boatCruise(a)],
     ["boat_shore", 165, () => boatShore(a)],
-    ["boat_ram", 76, () => boatRam(a)],
-    // Estimate until CI reports measured ticks (ADR 0054).
-    ["suv_soul_sand", 200, () => suvSoulSand(a)],
-    // Estimate until CI reports measured ticks (ADR 0054).
-    ["camping_gear_blocks", 2, () => campingGearBlocks(a)],
+    ["boat_ram", 77, () => boatRam(a)],
+    ["suv_soul_sand", 78, () => suvSoulSand(a)],
+    ["camping_gear_blocks", 0, () => campingGearBlocks(a)],
   ];
   const shards = shardsOf(
     allTests.map(([, ticks]) => ticks),
