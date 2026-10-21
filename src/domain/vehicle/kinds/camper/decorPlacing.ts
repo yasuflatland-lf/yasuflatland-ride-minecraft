@@ -5,9 +5,12 @@ import type { HoldPose } from "../../dock/floor";
 import { CAMPING_GEAR_IDS, HANGING_GEAR_IDS } from "./campingGear";
 import { cellTaken, DECOR_SLOTS } from "./decor";
 import type { DecorSlot } from "./furniture";
-import { decorSlotCell, decorSpotOffset } from "./room";
+import { decorOverCell, decorSlotCell, decorSpotOffset } from "./room";
 
 const PX_PER_BLOCK = 16;
+
+const sameWorldCell = (a: Vec3, b: Vec3): boolean =>
+  a.x === b.x && a.y === b.y && a.z === b.z;
 
 /**
  * The slots that accept `item`, in slot order; none for an unknown item. A standing
@@ -70,16 +73,31 @@ export function nearestFreeSlot(
 
 /** The slots whose world cell is `cell` at `pose`, in DECOR_SLOTS order. */
 export function slotsAt(pose: HoldPose, cell: Vec3): DecorSlot[] {
+  return DECOR_SLOTS.filter((slot) =>
+    sameWorldCell(decorSlotCell(pose, slot), cell),
+  );
+}
+
+/**
+ * The slots of the furniture under a press on `cell`, in DECOR_SLOTS order: those drawn over
+ * `cell`, and those drawn over the furniture of a slot hosted in `cell`. A press on a shelf
+ * board, the table, or either item on them names both of their slots (ADR 0108).
+ */
+export function pressedSlots(pose: HoldPose, cell: Vec3): DecorSlot[] {
+  const overs = [
+    cell,
+    ...slotsAt(pose, cell).map((s) => decorOverCell(pose, s)),
+  ];
   return DECOR_SLOTS.filter((slot) => {
-    const c = decorSlotCell(pose, slot);
-    return c.x === cell.x && c.y === cell.y && c.z === cell.z;
+    const over = decorOverCell(pose, slot);
+    return overs.some((c) => sameWorldCell(c, over));
   });
 }
 
 /**
- * The slot of the pressed `cell` nearest `point` when the cell is free and has slots
- * accepting `item`; otherwise the free accepting slot nearest `point` (ADR 0093, 0097,
- * 0105), or none when `exact`: a press on a dinette seat names one slot, and filling
+ * The free slot accepting `item` nearest `point` among the pressed furniture's slots, when
+ * it has one; otherwise the free accepting slot nearest `point` (ADR 0093, 0097, 0105,
+ * 0108), or none when `exact`: a press on a dinette seat names one slot, and filling
  * another one left the player unable to tell where the item went (ADR 0104).
  */
 export function slotForPress(
@@ -91,7 +109,7 @@ export function slotForPress(
   exact: boolean,
 ): DecorSlot | undefined {
   const accepting = new Set(slotsFor(item));
-  const pressed = slotsAt(pose, cell).filter(
+  const pressed = pressedSlots(pose, cell).filter(
     (slot) => accepting.has(slot) && !cellTaken(slot, decor),
   );
   if (pressed.length > 0) return nearest(pose, pressed, point);

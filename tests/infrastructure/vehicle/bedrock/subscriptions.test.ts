@@ -19,6 +19,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { PlaceVehicle } from "../../../../src/application/vehicle/placeVehicle";
 import type { PlacementWorld } from "../../../../src/application/vehicle/ports/placement";
 import { asVehicleId, type VehicleId } from "../../../../src/domain/shared/ids";
+import { HOSTED_DECOR_SPOTS } from "../../../../src/domain/vehicle/kinds/index";
 import { SPEC } from "../../../../src/domain/vehicle/spec";
 import type { VehicleRepository } from "../../../../src/domain/vehicle/vehicleRepository";
 import {
@@ -33,6 +34,7 @@ import {
   DECK_FLOOR_BLOCK,
   DECK_SEAT_OF_PROPERTY,
   DECK_SEAT_TYPE,
+  DECOR_SPOT_STATE,
   decorBlockId,
   ENTITY_TYPE,
   GIFT_ITEM,
@@ -1046,6 +1048,7 @@ it("leaves other items, other blocks, and cells no camper laid alone", () => {
 function seatFixture(
   slotBlock: string | null = CAMPER_FURNITURE_BLOCK,
   loaded = true,
+  states: Record<string, number> = { [DECOR_SPOT_STATE]: 0 },
 ) {
   const entitySubscribe = vi.mocked(
     world.beforeEvents.playerInteractWithEntity.subscribe,
@@ -1065,6 +1068,7 @@ function seatFixture(
             at.x === slot.x && at.y === slot.y && at.z === slot.z && slotBlock
               ? slotBlock
               : "minecraft:air",
+          permutation: { getAllStates: () => states },
         }
       : undefined,
   );
@@ -1087,9 +1091,16 @@ function seatFixture(
 }
 
 it("places held camping gear on the dinette slot under a pressed deck seat instead of seating the player, once per long-press, as an exact press (ADR 0024, 0097, 0104)", () => {
-  for (const slotBlock of [CAMPER_FURNITURE_BLOCK, decorBlockId("cushion")]) {
-    const { placeDecor, owner, slot, seatEvent, sendSeat } =
-      seatFixture(slotBlock);
+  for (const [slotBlock, states] of [
+    [CAMPER_FURNITURE_BLOCK, {}],
+    [decorBlockId("cushion"), { [DECOR_SPOT_STATE]: 0 }],
+    [decorBlockId("cushion"), {}],
+  ] as const) {
+    const { placeDecor, owner, slot, seatEvent, sendSeat } = seatFixture(
+      slotBlock,
+      true,
+      states,
+    );
     expect(sendSeat(seatEvent()).cancel).toBe(true);
     expect(owner).toHaveBeenCalledExactlyOnceWith("minecraft:overworld", slot);
     expect(placeDecor.execute).not.toHaveBeenCalled();
@@ -1146,6 +1157,12 @@ it("lets a player sit on a deck seat with an empty hand, other items, no slot un
     seatFixture(null),
     seatFixture(CAMPER_FLOOR_BLOCK),
     seatFixture(CAMPER_FURNITURE_BLOCK, false),
+    // The shelf's front ends are hosted above the driver's seat and drawn over the shelf (ADR 0108).
+    ...[...HOSTED_DECOR_SPOTS].map((spot) =>
+      seatFixture(decorBlockId("cushion"), true, {
+        [DECOR_SPOT_STATE]: defined(spot, "hosted spot"),
+      }),
+    ),
   ]) {
     expect(f.sendSeat(f.seatEvent()).cancel).toBe(false);
     expect(f.owner).not.toHaveBeenCalled();

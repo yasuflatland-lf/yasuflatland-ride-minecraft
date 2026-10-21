@@ -372,6 +372,56 @@ export function camperDecor(a: Arena): Promise<Outcome> {
   });
 }
 
+// Both ends of the low shelf board and of the table, and the high board's front end. The
+// second item of each is hosted in the driver's seat cell or the aisle cell (ADR 0108).
+const PAIRED_DECOR: readonly DecorPlacement[] = [
+  { slot: "shelf_low", item: "book_stack" },
+  { slot: "shelf_low_front", item: "cushion" },
+  { slot: "shelf_high_front", item: "photo_frame" },
+  { slot: "table", item: "fruit_bowl" },
+  { slot: "table_aisle", item: "mug_pair" },
+];
+const HOSTED_DECOR: readonly DecorPlacement[] = PAIRED_DECOR.filter(
+  ({ slot }) =>
+    ["shelf_low_front", "shelf_high_front", "table_aisle"].includes(slot),
+);
+
+export function camperDecorPairs(a: Arena): Promise<Outcome> {
+  return atParkSpot(a, async (car) => {
+    await wait(DOCK.ticks + 10);
+    const pose = carPose(car);
+    for (const d of PAIRED_DECOR) setDecor(car, d.slot, d.item);
+    await wait(3);
+    const laid = laidDecor(a, pose, PAIRED_DECOR);
+    const furniture = laidFurniture(a, pose, PAIRED_DECOR);
+    const hosted = decorCells(pose, HOSTED_DECOR);
+    for (const d of HOSTED_DECOR) setDecor(car, d.slot, undefined);
+    await wait(3);
+    // An emptied host cell holds nothing: no furniture block in the aisle or the driver's seat.
+    const emptied = hosted.filter(
+      (c) => a.dim.getBlock(c)?.typeId === "minecraft:air",
+    ).length;
+    const kept = laidDecor(a, pose, PAIRED_DECOR.slice(0, 1));
+    for (const d of HOSTED_DECOR) setDecor(car, d.slot, d.item);
+    await wait(3);
+    drive(car, 0, 1);
+    await wait(15);
+    const remaining = laidDecor(a, pose, PAIRED_DECOR);
+    const moved = movedFrom(car, pose);
+    return {
+      pass:
+        laid === PAIRED_DECOR.length &&
+        furniture === furnitureCells(pose, PAIRED_DECOR).length &&
+        hosted.length === HOSTED_DECOR.length &&
+        emptied === hosted.length &&
+        kept === 1 &&
+        remaining === 0 &&
+        moved >= 0.1,
+      detail: `laid=${laid} furniture=${furniture} hosted=${hosted.length} emptied=${emptied} kept=${kept} remaining=${remaining} moved=${moved.toFixed(3)}`,
+    };
+  });
+}
+
 export function camperRelay(a: Arena): Promise<Outcome> {
   return atParkSpot(a, async (car) => {
     await wait(DOCK.ticks + 10);

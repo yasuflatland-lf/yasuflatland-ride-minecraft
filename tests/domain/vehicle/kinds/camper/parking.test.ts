@@ -249,7 +249,7 @@ it("departs on the stick press, undocks before properties, and boards deck rider
 
 it("refuses cargo only on each press and requires a new press after cargo is cleared", () => {
   fc.assert(
-    fc.property(fc.integer({ min: 0, max: 48 }), (index) => {
+    fc.property(fc.integer({ min: 0, max: 45 }), (index) => {
       const f = fixture();
       f.park();
       const cell = defined(cargoCells(f.pose)[index], "cargo cell");
@@ -644,7 +644,7 @@ const cabinetEntries = [
 ];
 
 it("stows an entry of a removed slot when no slot that takes its item is free, and lists it last (ADR 0103)", () => {
-  expect(standingCells).toHaveLength(9);
+  expect(standingCells).toHaveLength(12);
   const f = fixture(JSON.stringify([...fullSlots, ...cabinetEntries]));
   expect(f.drive.decor()).toEqual([...fullSlots, ...cabinetEntries]);
   expect(f.drive.setDecor("wall_cabinet_front", undefined)).toBe(false);
@@ -841,6 +841,74 @@ it("puts the stove item on the burner nearest the press and takes no second item
         ]);
         expect(f.drive.removeDecor(cell)).toBe("saucepan");
         expect(f.drive.decor()).toEqual([]);
+      },
+    ),
+  );
+});
+
+it("places both ends of a shelf board or the table from presses on the furniture or its items, lays the second in its neighbor host cell, and departs past them (ADR 0108)", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom(0, 90, 180, -90),
+      fc.constantFrom(
+        ["shelf_low", "shelf_low_front"],
+        ["shelf_high", "shelf_high_front"],
+        ["table", "table_aisle"],
+      ),
+      (yaw, [own, hostedId]) => {
+        const f = fixture(undefined, yaw);
+        f.park();
+        f.step();
+        const inCell = slotNamed(own);
+        const hosted = slotNamed(hostedId);
+        const furniture = decorSlotCell(f.pose, inCell);
+        const host = decorSlotCell(f.pose, hosted);
+        // Empty, the host cell holds no furniture block: it is the aisle or the driver's seat.
+        const empty = defined(f.step().dock, "laid dock").cells;
+        expect(empty.some((c) => cellKey(c) === cellKey(host))).toBe(false);
+        expect(
+          empty.filter((c) => cellKey(c) === cellKey(furniture)),
+        ).toHaveLength(1);
+        expect(
+          f.drive.decorSlotFor(
+            "cushion",
+            slotPoint(f.pose, hosted),
+            furniture,
+            false,
+          ),
+        ).toBe(hostedId);
+        expect(f.drive.placeDecor(hostedId, "cushion")).toBe(true);
+        expect(
+          f.drive.decorSlotFor(
+            "book_stack",
+            slotPoint(f.pose, hosted),
+            host,
+            false,
+          ),
+        ).toBe(own);
+        expect(f.drive.placeDecor(own, "book_stack")).toBe(true);
+        const laid = defined(f.step().dock, "laid dock").cells;
+        expect(laid.filter((c) => cellKey(c) === cellKey(host))).toEqual([
+          {
+            ...host,
+            block: {
+              type: "decor",
+              item: "cushion",
+              face: decorFace(f.pose.yaw),
+              height: hosted.height,
+              spot: hosted.spot,
+            },
+          },
+        ]);
+        f.blocks.set(cellKey(furniture), "yasu_ride:book_stack_decor");
+        f.blocks.set(cellKey(host), "minecraft:stone");
+        expect(f.step(PUSH).message).toBe("clear_cargo");
+        f.step(NEUTRAL);
+        expect(f.drive.removeDecor(host)).toBe("cushion");
+        expect(f.drive.decor()).toEqual([{ slot: own, item: "book_stack" }]);
+        expect(f.drive.placeDecor(hostedId, "cushion")).toBe(true);
+        f.blocks.set(cellKey(host), "yasu_ride:cushion_decor");
+        expect(f.step(PUSH).depart).toBeDefined();
       },
     ),
   );

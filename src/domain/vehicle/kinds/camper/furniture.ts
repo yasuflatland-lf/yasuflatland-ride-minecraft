@@ -20,7 +20,13 @@ export interface LocalCell {
 /** A place for one decor item. Its id is saved with the decor, so it never changes. */
 export interface DecorSlot {
   readonly id: string;
+  /** The host cell, where the slot's decor or furniture block is laid; a cell holds one block (ADR 0107, 0108). */
   readonly cell: LocalCell;
+  /**
+   * The furniture cell the item is drawn over when it is not the host cell: a second item
+   * on a one-cell furniture is hosted in a free neighbor and its spot moves it back (ADR 0108).
+   */
+  readonly over?: LocalCell;
   /**
    * The furniture's top above the cell bottom, in pixels (0 to 15). For a hanging slot, the lift
    * that puts a hanging item's top at the top of the cell: 16 minus the hanging items' height (ADR 0102).
@@ -28,11 +34,11 @@ export interface DecorSlot {
   readonly height: number;
   /** Items hang from this slot instead of standing on it (ADR 0093, 0102). */
   readonly hanging?: true;
-  /** The index in DECOR_SPOTS of where on its cell the item stands; the cell middle when omitted (ADR 0107). */
+  /** The index in DECOR_SPOTS of where the item stands, from its host cell's middle; the middle when omitted (ADR 0107, 0108). */
   readonly spot?: number;
 }
 
-/** A point on a cell's top in pixels from the cell middle: `left` and `forward` as in LocalCell. */
+/** A point in pixels from a host cell's middle, `left` and `forward` as in LocalCell; it may lie in a neighbor (ADR 0108). */
 export interface DecorSpot {
   readonly left: number;
   readonly forward: number;
@@ -44,12 +50,23 @@ export interface DecorSpot {
 // either side of the cell middle across the aisle and 5.4 px toward the sink or 5.35 px
 // toward the far flange. The wall-side spots sit 0.5 px in from their burner centers so the
 // widest item (7 px) clears the wall at 22.8 px; they stay on the 3.2 px grate (ADR 0107).
+// 5 to 8 hold two items on a shelf board or the table (ADR 0108). The 14 px boards run
+// 7 px either side of the shelf cell middle along the camper, and the deepest item reaches
+// 3 px forward and back, so the ends sit 3.5 px either side of the middle: 5 in the shelf
+// cell, 6 hosted one cell forward (16 - 3.5 = 12.5). The table top runs 7 px either side of
+// its middle across the camper, and the widest item reaches 3.5 px to each side: 7 sits
+// 3.3 px toward the wall, clear of the wall at 22.8 px, and 8, hosted in the aisle cell,
+// 3.7 px toward the aisle (16 - 3.7 = 12.3), so the two cannot touch.
 export const DECOR_SPOTS: readonly DecorSpot[] = [
   { left: 0, forward: 0 },
   { left: 3.8, forward: 5.4 },
   { left: 3.8, forward: -5.35 },
   { left: -3.3, forward: 5.4 },
   { left: -3.3, forward: -5.35 },
+  { left: 0, forward: -3.5 },
+  { left: 0, forward: -12.5 },
+  { left: 3.3, forward: 0 },
+  { left: 12.3, forward: 0 },
 ];
 
 /** A room block a piece of furniture fills its cells with; roomCells turns a faced one toward the aisle (ADR 0092, 0098). */
@@ -72,6 +89,9 @@ const SHOWER_TOILET_CELLS = [
 ] as const satisfies readonly LocalCell[];
 
 const STOVE_CELL = { x: -1, z: -2, layer: 1 } as const satisfies LocalCell;
+const TABLE_CELL = { x: 1, z: 0, layer: 1 } as const satisfies LocalCell;
+const SHELF_LOW_CELL = { x: -1, z: 1, layer: 1 } as const satisfies LocalCell;
+const SHELF_HIGH_CELL = { x: -1, z: 1, layer: 2 } as const satisfies LocalCell;
 
 // Slot heights are the furniture's top at the slot's spot in tools/gen_camper.py, or, for
 // a hanging slot, 16 minus the hanging items' height; tests/packs/camper.test.ts checks them
@@ -90,10 +110,20 @@ export const CAMPER_FURNITURE: readonly Furniture[] = [
       { id: "dashboard_left", cell: { x: 1, z: 3, layer: 2 }, height: 3 },
     ],
   },
+  // Two items across the table; the aisle-side one is hosted in the aisle cell (ADR 0108).
   {
     kind: "table",
-    cells: [{ x: 1, z: 0, layer: 1 }],
-    slots: [{ id: "table", cell: { x: 1, z: 0, layer: 1 }, height: 12 }],
+    cells: [TABLE_CELL],
+    slots: [
+      { id: "table", cell: TABLE_CELL, height: 12, spot: 7 },
+      {
+        id: "table_aisle",
+        cell: { x: 0, z: 0, layer: 1 },
+        over: TABLE_CELL,
+        height: 12,
+        spot: 8,
+      },
+    ],
   },
   {
     kind: "dinette_seat",
@@ -116,15 +146,28 @@ export const CAMPER_FURNITURE: readonly Furniture[] = [
     slots: [],
     block: { type: "bed" },
   },
+  // Two items per board along the camper. The rear end keeps the board's old id; the front
+  // end is hosted in the driver's seat cell in front of the shelf (ADR 0108).
   {
     kind: "shelf",
-    cells: [
-      { x: -1, z: 1, layer: 1 },
-      { x: -1, z: 1, layer: 2 },
-    ],
+    cells: [SHELF_LOW_CELL, SHELF_HIGH_CELL],
     slots: [
-      { id: "shelf_low", cell: { x: -1, z: 1, layer: 1 }, height: 10 },
-      { id: "shelf_high", cell: { x: -1, z: 1, layer: 2 }, height: 4 },
+      { id: "shelf_low", cell: SHELF_LOW_CELL, height: 10, spot: 5 },
+      {
+        id: "shelf_low_front",
+        cell: { x: -1, z: 2, layer: 1 },
+        over: SHELF_LOW_CELL,
+        height: 10,
+        spot: 6,
+      },
+      { id: "shelf_high", cell: SHELF_HIGH_CELL, height: 4, spot: 5 },
+      {
+        id: "shelf_high_front",
+        cell: { x: -1, z: 2, layer: 2 },
+        over: SHELF_HIGH_CELL,
+        height: 4,
+        spot: 6,
+      },
     ],
   },
   // The sink is in front of the stove, as on the real range (ADR 0100). One slot per burner,

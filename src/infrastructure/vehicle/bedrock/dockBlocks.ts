@@ -41,8 +41,8 @@ const MAX_HEIGHT = 16;
 // The decor and furniture blocks define one yasu_ride:height state per pixel (ADR 0093, 0097).
 const MIN_DECOR_HEIGHT = 0;
 const MAX_DECOR_HEIGHT = 15;
-// The decor blocks define yasu_ride:spot 0 to 4, one per DECOR_SPOTS entry (ADR 0107).
-const MAX_DECOR_SPOT = 4;
+// The decor blocks define yasu_ride:spot 0 to 8, one per DECOR_SPOTS entry (ADR 0107, 0108).
+const MAX_DECOR_SPOT = 8;
 // Reading a laid cell costs one getBlock call, and a parked camper lays about 107
 // to 119 cells, so the cells are read once a second per vehicle, not every tick (ADR 0096).
 export const DOCK_RECHECK_TICKS = 20;

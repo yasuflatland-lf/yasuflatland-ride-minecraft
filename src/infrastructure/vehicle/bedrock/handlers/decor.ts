@@ -1,4 +1,5 @@
 import {
+  type Block,
   type PlayerInteractWithBlockBeforeEvent,
   type PlayerInteractWithEntityBeforeEvent,
   system,
@@ -15,6 +16,7 @@ import {
 } from "../../../../domain/shared/ids";
 import type { Vec3 } from "../../../../domain/shared/vec";
 import {
+  HOSTED_DECOR_SPOTS,
   SeatPresses,
   seatSlotCell,
 } from "../../../../domain/vehicle/kinds/index";
@@ -24,6 +26,7 @@ import {
   campingGearOfDecorBlock,
   campingGearOfItem,
   DECK_SEAT_TYPE,
+  DECOR_SPOT_STATE,
   isCamperRoomBlock,
 } from "../identifiers";
 
@@ -139,7 +142,7 @@ function placeGearOnSeat(
   const at = seat.location;
   const point = { x: at.x, y: at.y, z: at.z };
   const slot = seatSlotCell(point, (cell) =>
-    isSlotBlock(dimension.getBlock(cell)?.typeId),
+    isSeatSlotBlock(dimension.getBlock(cell)),
   );
   if (slot === undefined) return;
   const vehicleId = dockCellOwner(dimensionId, slot);
@@ -161,11 +164,15 @@ function placeGearOnSeat(
   );
 }
 
-/** An empty slot's furniture block or a placed gear's decor block (ADR 0093, 0097). */
-function isSlotBlock(typeId: string | undefined): boolean {
-  if (typeId === undefined) return false;
-  return (
-    typeId === CAMPER_FURNITURE_BLOCK ||
-    campingGearOfDecorBlock(typeId) !== undefined
-  );
+/**
+ * An empty slot's furniture block or a placed gear's decor block (ADR 0093, 0097). A decor
+ * block drawn over a neighbor's furniture, such as the shelf's front end hosted above the
+ * driver's seat, names no seat's slot, so the driver still sits with gear in hand (ADR 0108).
+ */
+function isSeatSlotBlock(block: Block | undefined): boolean {
+  if (block === undefined) return false;
+  if (block.typeId === CAMPER_FURNITURE_BLOCK) return true;
+  if (campingGearOfDecorBlock(block.typeId) === undefined) return false;
+  const spot = block.permutation.getAllStates()[DECOR_SPOT_STATE];
+  return typeof spot !== "number" || !HOSTED_DECOR_SPOTS.has(spot);
 }

@@ -13,6 +13,7 @@ import {
 import {
   camperAccel,
   camperDecor,
+  camperDecorPairs,
   camperDepart,
   camperDepartCargo,
   camperDive,
@@ -87,6 +88,7 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
     ["camper_toilet_seat", 31, () => camperToiletSeat(a)],
     ["camper_shower_toilet_block", 45, () => camperShowerToiletBlock(a)],
     ["camper_decor", 51, () => camperDecor(a)],
+    ["camper_decor_pairs", 54, () => camperDecorPairs(a)],
     ["camper_relay", 55, () => camperRelay(a)],
     ["accel_and_step1", 85, () => accelAndStep1(a)],
     ["passable_no_hop", 65, () => passableNoHop(a)],

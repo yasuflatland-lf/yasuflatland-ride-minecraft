@@ -607,7 +607,7 @@ it.each([
     seed: decorBlockId("potted_plant"),
   },
   {
-    block: { type: "decor", item: "potted_plant", face: 0, height: 0, spot: 5 },
+    block: { type: "decor", item: "potted_plant", face: 0, height: 0, spot: 9 },
     seed: decorBlockId("potted_plant"),
   },
   {

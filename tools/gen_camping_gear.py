@@ -44,12 +44,34 @@ FACES = range(len(FACE_ROTATION))
 HEIGHTS = range(16)  # HEIGHT_STATE, px above the cell bottom
 # SPOT_STATE says where on its cell the item stands (ADR 0107): index = DECOR_SPOTS in
 # src/domain/vehicle/kinds/camper/furniture.ts, as (left, forward) px from the cell middle in the
-# camper's room frame. Spot 0 is the middle; 1 to 4 are the stove burners, which are 15 px high
-# (SPOT_HEIGHTS), so only those permutations are written. tests/packs/campingGear.test.ts ties
-# both to the domain slots.
+# camper's room frame. Spot 0 is the middle; 1 to 4 are the stove burners, which are 15 px high;
+# 5 and 6 are the rear and front ends of a shelf board (10 and 4 px), and 7 and 8 the wall and
+# aisle sides of the table (12 px), where 6 and 8 are hosted one cell away (ADR 0108). Only the
+# heights in SPOT_HEIGHTS get permutations. tests/packs/campingGear.test.ts ties both to the
+# domain slots.
 SPOT_STATE = "yasu_ride:spot"
-SPOTS = [(0, 0), (3.8, 5.4), (3.8, -5.35), (-3.3, 5.4), (-3.3, -5.35)]
-SPOT_HEIGHTS = [list(HEIGHTS)] + [[15]] * (len(SPOTS) - 1)
+SPOTS = [
+    (0, 0),
+    (3.8, 5.4),
+    (3.8, -5.35),
+    (-3.3, 5.4),
+    (-3.3, -5.35),
+    (0, -3.5),
+    (0, -12.5),
+    (3.3, 0),
+    (12.3, 0),
+]
+SPOT_HEIGHTS = [list(HEIGHTS)] + [[15]] * 4 + [[4, 10]] * 2 + [[12]] * 2
+# Two items share a shelf board or the table, so each one's selection box covers only its half
+# of the furniture cell, from the furniture middle to the cell edge, as (left0, left1, forward0,
+# forward1) px from the item in the camper's room frame (ADR 0108). Without it the two boxes
+# would overlap and a press there could reach either item.
+SPOT_BOXES = {
+    5: (-8, 8, -4.5, 3.5),
+    6: (-8, 8, -3.5, 4.5),
+    7: (-3.3, 4.7, -8, 8),
+    8: (-4.3, 3.7, -8, 8),
+}
 GROUP = "yasu_ride:camping_gear"
 # The box a player gets with their first camper (ADR 0093): the group's icon and first item.
 BOX = "camping_gear_box"
@@ -358,6 +380,27 @@ def selection_box(item):
     return {"origin": [-half, num(y0), -half], "size": [CELL_PX, num(max(1, y1 - y0)), CELL_PX]}
 
 
+def half_box(item, spot):
+    """A standing item's box on a spot that shares its furniture (SPOT_BOXES) in the gear model's
+    frame, where the camper's left is -x and its forward -z (FACE_ROTATION)."""
+    y0, y1 = y_span(item)
+    l0, l1, f0, f1 = SPOT_BOXES[spot]
+    return {"origin": [num(-l1), num(y0), num(-f1)], "size": [num(l1 - l0), num(max(1, y1 - y0)), num(f1 - f0)]}
+
+
+def permutation_components(item, face, spot, height):
+    dx, dz = spot_translation(face, spot)
+    components = {
+        "minecraft:transformation": {
+            "rotation": [0, FACE_ROTATION[face], 0],
+            "translation": [num(dx), num(height / 16), num(dz)],
+        }
+    }
+    if spot in SPOT_BOXES and not item["hanging"]:
+        components["minecraft:selection_box"] = half_box(item, spot)
+    return components
+
+
 def decor_block(item):
     gid = item["id"]
     return {
@@ -390,16 +433,10 @@ def decor_block(item):
                         f"q.block_state('{FACE_STATE}') == {face} && q.block_state('{SPOT_STATE}') == {spot}"
                         f" && q.block_state('{HEIGHT_STATE}') == {height}"
                     ),
-                    "components": {
-                        "minecraft:transformation": {
-                            "rotation": [0, FACE_ROTATION[face], 0],
-                            "translation": [num(dx), num(height / 16), num(dz)],
-                        }
-                    },
+                    "components": permutation_components(item, face, spot, height),
                 }
                 for face in FACES
                 for spot in range(len(SPOTS))
-                for dx, dz in [spot_translation(face, spot)]
                 for height in SPOT_HEIGHTS[spot]
             ],
         },

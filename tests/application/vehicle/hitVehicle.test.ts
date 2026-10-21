@@ -167,6 +167,6 @@ describe("HitVehicle (ADR 0008)", () => {
     expect(world.calls).toContain(
       `giveDecor:p:${saved.map((d) => d.item).join(",")}`,
     );
-    expect(saved).toHaveLength(11);
+    expect(saved).toHaveLength(14);
   });
 });

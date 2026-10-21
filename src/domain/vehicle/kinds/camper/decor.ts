@@ -14,7 +14,12 @@ function sameCell(a: LocalCell, b: LocalCell): boolean {
   return a.x === b.x && a.z === b.z && a.layer === b.layer;
 }
 
-/** The slots in `cell`, in DECOR_SLOTS order. */
+/** The furniture cell a slot's item is drawn over: its host cell unless a neighbor hosts it (ADR 0108). */
+export function overCell(slot: DecorSlot): LocalCell {
+  return slot.over ?? slot.cell;
+}
+
+/** The slots hosted in `cell`, in DECOR_SLOTS order. */
 export function cellSlots(cell: LocalCell): DecorSlot[] {
   return DECOR_SLOTS.filter((s) => sameCell(s.cell, cell));
 }
@@ -26,8 +31,9 @@ export interface DecorCell {
 }
 
 /**
- * Every cell that holds a slot, once, in the order of its first slot. A cell holds one
- * block, so the stove's four burner slots share one decor or furniture block (ADR 0107).
+ * Every cell that hosts a slot, once, in the order of its first slot. A cell holds one
+ * block, so the stove's four burner slots share one decor or furniture block (ADR 0107),
+ * and a second item on a shelf board or the table is hosted in a neighbor (ADR 0108).
  */
 export const DECOR_CELLS: readonly DecorCell[] = DECOR_SLOTS.filter(
   (slot, i) => DECOR_SLOTS.findIndex((s) => sameCell(s.cell, slot.cell)) === i,
@@ -51,3 +57,11 @@ export function cellTaken(
 ): boolean {
   return decorInCell(slot.cell, decor) !== undefined;
 }
+
+/**
+ * The spots of slots drawn over a neighbor's furniture. Their decor blocks stand in the aisle
+ * or over the driver's seat, so a deck seat under one does not name its slot (ADR 0108).
+ */
+export const HOSTED_DECOR_SPOTS: ReadonlySet<number | undefined> = new Set(
+  DECOR_SLOTS.filter((s) => s.over !== undefined).map((s) => s.spot),
+);

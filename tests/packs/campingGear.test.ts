@@ -4,7 +4,11 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { forward } from "../../src/domain/shared/vec";
 import { DECOR_SLOTS } from "../../src/domain/vehicle/kinds/camper/decor";
-import { DECOR_SPOTS } from "../../src/domain/vehicle/kinds/camper/furniture";
+import {
+  DECOR_SPOTS,
+  type DecorSlot,
+  type LocalCell,
+} from "../../src/domain/vehicle/kinds/camper/furniture";
 import { decorSpotOffset } from "../../src/domain/vehicle/kinds/camper/room";
 import {
   CAMPER_DECOR_COMPONENT,
@@ -317,6 +321,7 @@ interface Permutation {
   condition: string;
   components: {
     "minecraft:transformation": { rotation: number[]; translation: number[] };
+    "minecraft:selection_box"?: { origin: number[]; size: number[] };
   };
 }
 
@@ -361,6 +366,50 @@ function selectionBox(g: Gear) {
   return { origin: [-8, y0, -8], size: [16, Math.max(1, y1 - y0), 16] };
 }
 
+const cellKey = ({ x, z, layer }: LocalCell) => `${x},${z},${layer}`;
+const overOf = (s: DecorSlot) => s.over ?? s.cell;
+// A slot shares its furniture with a slot hosted in another cell: a shelf board's or the
+// table's two ends (ADR 0108).
+const sharesFurniture = (s: DecorSlot) =>
+  DECOR_SLOTS.some(
+    (o) =>
+      cellKey(overOf(o)) === cellKey(overOf(s)) &&
+      cellKey(o.cell) !== cellKey(s.cell),
+  );
+const HALF_SPOTS = new Set(
+  DECOR_SLOTS.filter(sharesFurniture).map((s) => s.spot ?? 0),
+);
+// The item's (left, forward) px from the middle of the furniture cell it is drawn over.
+function fromFurnitureMiddle(spot: number) {
+  const slot = DECOR_SLOTS.find((s) => (s.spot ?? 0) === spot);
+  if (slot === undefined) throw new Error(`no slot on spot ${spot}`);
+  const { left, forward: ahead } = DECOR_SPOTS[spot] ?? { left: 0, forward: 0 };
+  // Rounded, so 12.3 - 16 reads -3.7 as the generator writes it.
+  const px = (v: number) => Math.round(v * 1e6) / 1e6;
+  return {
+    left: px(left - 16 * (overOf(slot).x - slot.cell.x)),
+    forward: px(ahead - 16 * (overOf(slot).z - slot.cell.z)),
+  };
+}
+// The span along one axis of the item's half of its furniture cell, from the item at 0:
+// from the furniture middle to the cell edge on the item's side; the whole cell across.
+function halfSpan(d: number): [number, number] {
+  if (d === 0) return [-8, 8];
+  const edge = Math.sign(d) * 8 - d;
+  return [Math.min(-d, edge), Math.max(-d, edge)];
+}
+// In the gear model's frame the camper's left is -x and its forward -z (ADR 0107).
+function halfBox(g: Gear, spot: number) {
+  const [y0, y1] = ySpan(g);
+  const d = fromFurnitureMiddle(spot);
+  const [l0, l1] = halfSpan(d.left);
+  const [f0, f1] = halfSpan(d.forward);
+  return {
+    origin: [-l1, y0, -f1],
+    size: [l1 - l0, Math.max(1, y1 - y0), f1 - f0],
+  };
+}
+
 function expectedDecor(g: Gear) {
   return {
     format_version: "1.21.80",
@@ -398,6 +447,9 @@ function expectedDecor(g: Gear) {
                 rotation: [0, FACE_ROTATION[face], 0],
                 translation: translation(face, spot, height),
               },
+              ...(HALF_SPOTS.has(spot) && !g.hanging
+                ? { "minecraft:selection_box": halfBox(g, spot) }
+                : {}),
             },
           })),
         ),
@@ -514,6 +566,84 @@ describe("camping gear blocks and items (ADR 0093)", () => {
         }
     // Face 0 is yaw 0: the camper faces +z, so its left is +x (ADR 0107).
     expect(translation(0, 1, 15)).toEqual([3.8 / 16, 15 / 16, 5.4 / 16]);
+  });
+
+  it("splits a shelf board's or the table's cell between its two items' selection boxes at the furniture middle, inside the furniture cell, in every facing (ADR 0108)", () => {
+    expect([...HALF_SPOTS].sort()).toEqual([5, 6, 7, 8]);
+    const pairs = [
+      ["shelf_low", "shelf_low_front"],
+      ["shelf_high", "shelf_high_front"],
+      ["table", "table_aisle"],
+    ] as const;
+    const slotOf = (id: string) => {
+      const slot = DECOR_SLOTS.find((s) => s.id === id);
+      if (slot === undefined) throw new Error(id);
+      return slot;
+    };
+    const blocks = SPEC.filter((g) => !g.hanging).map((g) => ({
+      g,
+      block: decorOf(g),
+    }));
+    for (const pair of pairs)
+      for (const face of [0, 1, 2, 3])
+        for (const { g, block } of blocks) {
+          // Each box in world blocks relative to the furniture cell's middle.
+          const boxes = pair.map((id) => {
+            const slot = slotOf(id);
+            const spot = slot.spot ?? 0;
+            const permutation = block["minecraft:block"].permutations.find(
+              (p) => p.condition === condition(face, spot, slot.height),
+            );
+            const box = permutation?.components["minecraft:selection_box"];
+            if (box === undefined) throw new Error(`${g.id} ${id}`);
+            const turn = permutation?.components["minecraft:transformation"];
+            const [tx = 0, , tz = 0] = turn?.translation ?? [];
+            const rad = ((turn?.rotation[1] ?? 0) * Math.PI) / 180;
+            const c = Math.round(Math.cos(rad));
+            const s = Math.round(Math.sin(rad));
+            // Bedrock's block turn: +90 takes north (-z) to west (-x).
+            const corners = [0, 1].flatMap((i) =>
+              [0, 1].map((k) => {
+                const x = (box.origin[0] ?? 0) + i * (box.size[0] ?? 0);
+                const z = (box.origin[2] ?? 0) + k * (box.size[2] ?? 0);
+                return { x: (x * c + z * s) / 16, z: (-x * s + z * c) / 16 };
+              }),
+            );
+            const host = slot.cell;
+            const over = overOf(slot);
+            const yaw = 90 * face;
+            const f = forward(yaw);
+            const l = { x: f.z, z: -f.x };
+            const shift = {
+              x: (host.x - over.x) * l.x + (host.z - over.z) * f.x,
+              z: (host.x - over.x) * l.z + (host.z - over.z) * f.z,
+            };
+            const xs = corners.map((p) => p.x + tx + shift.x);
+            const zs = corners.map((p) => p.z + tz + shift.z);
+            return {
+              x0: Math.min(...xs),
+              x1: Math.max(...xs),
+              z0: Math.min(...zs),
+              z1: Math.max(...zs),
+            };
+          });
+          const [a, b] = boxes;
+          if (a === undefined || b === undefined) throw new Error("pair");
+          for (const box of boxes) {
+            expect(box.x0, g.id).toBeGreaterThanOrEqual(-0.5 - 1e-9);
+            expect(box.x1, g.id).toBeLessThanOrEqual(0.5 + 1e-9);
+            expect(box.z0, g.id).toBeGreaterThanOrEqual(-0.5 - 1e-9);
+            expect(box.z1, g.id).toBeLessThanOrEqual(0.5 + 1e-9);
+          }
+          const overlapX = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0);
+          const overlapZ = Math.min(a.z1, b.z1) - Math.max(a.z0, b.z0);
+          expect(Math.min(overlapX, overlapZ), `${g.id} ${pair}`).toBeCloseTo(
+            0,
+            9,
+          );
+          const area = (q: typeof a) => (q.x1 - q.x0) * (q.z1 - q.z0);
+          expect(area(a) + area(b), `${g.id} ${pair}`).toBeCloseTo(1, 9);
+        }
   });
 
   it("covers the whole cell with a standing item's selection box and only the footprint with a hanging item's (ADR 0097, 0105)", () => {

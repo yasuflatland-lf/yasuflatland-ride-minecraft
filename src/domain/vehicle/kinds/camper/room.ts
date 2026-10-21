@@ -11,7 +11,7 @@ import type { Box, ClearCell, DeckSeatSpot, Departure } from "../../dock/dock";
 import type { DockBlock, DockCell, Face, HoldPose } from "../../dock/floor";
 import { cellKey } from "../../lighting/headlights";
 import { seatWorldPositions } from "../../seats";
-import { DECOR_CELLS, decorInCell, decorSlot } from "./decor";
+import { DECOR_CELLS, decorInCell, decorSlot, overCell } from "./decor";
 import {
   CAMPER_FURNITURE,
   DECOR_SPOTS,
@@ -160,6 +160,12 @@ export function decorSlotCell(pose: HoldPose, slot: DecorSlot): Vec3 {
   return cellAt(pose, slot.cell.x, slot.cell.z, slot.cell.layer);
 }
 
+/** The world cell of the furniture a slot's item is drawn over (ADR 0108). */
+export function decorOverCell(pose: HoldPose, slot: DecorSlot): Vec3 {
+  const { x, z, layer } = overCell(slot);
+  return cellAt(pose, x, z, layer);
+}
+
 /**
  * The world offset in blocks from a cell's middle to the decor spot `spot` (an index in
  * DECOR_SPOTS) at a snapped `yaw`: a decor block's yasu_ride:spot translation (ADR 0107).
@@ -301,24 +307,26 @@ type FurnitureCell = DockCell & {
 /**
  * A furniture block in every slot cell that holds no decor, at the height of the cell's first
  * slot, or the hanging box for a hanging slot, in DECOR_CELLS order (ADR 0097, 0102, 0105).
+ * A cell that only hosts slots drawn over a neighbor gets none: it is the aisle or the
+ * driver's seat, and a box there would catch presses meant for them (ADR 0108).
  */
 export function furnitureCells(
   pose: HoldPose,
   decor: readonly DecorPlacement[],
 ): FurnitureCell[] {
-  return DECOR_CELLS.filter(({ cell }) => !decorInCell(cell, decor)).map(
+  return DECOR_CELLS.filter(({ cell }) => !decorInCell(cell, decor)).flatMap(
     ({ cell, slots }) => {
-      const first = slots[0];
-      return {
-        ...cellAt(pose, cell.x, cell.z, cell.layer),
-        block: {
-          type: "furniture",
-          height:
-            first === undefined || first.hanging
-              ? HANGING_FURNITURE_HEIGHT
-              : first.height,
-        } as const,
-      };
+      const first = slots.find((s) => s.over === undefined);
+      if (!first) return [];
+      return [
+        {
+          ...cellAt(pose, cell.x, cell.z, cell.layer),
+          block: {
+            type: "furniture",
+            height: first.hanging ? HANGING_FURNITURE_HEIGHT : first.height,
+          } as const,
+        },
+      ];
     },
   );
 }
