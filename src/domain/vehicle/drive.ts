@@ -70,6 +70,9 @@ export interface DriveStep {
   riders: RiderState;
 }
 
+/** What a player's tap on a floor cell of a held vehicle's room does (ADR 0094). */
+export type FloorTap = "showerDoor" | "shower";
+
 export interface Drive {
   /** Internal forward/reverse speed in blocks/tick; negative means reverse. */
   readonly speed: number;
@@ -79,6 +82,12 @@ export interface Drive {
   onSeatVacated(seat: number): readonly EngineCommand[];
   /** Opens or closes the door of a held vehicle's room; false when it has none (ADR 0068). */
   useDockDoor?(): boolean;
+  /** What a tap on this floor cell does, given where the tapping player stands; undefined for nothing (ADR 0094). */
+  floorTap?(cell: Vec3, player: Vec3): FloorTap | undefined;
+  /** Opens or closes the shower door of a held vehicle; false when it has none (ADR 0094). */
+  useShowerDoor?(): boolean;
+  /** Runs the shower of a held vehicle for a fixed time; false when it has none (ADR 0094). */
+  runShower?(): boolean;
   /** The decor of the vehicle's room, in slot order; absent for kinds without decor (ADR 0093). */
   decor?(): readonly DecorPlacement[];
   /** Puts `item` in `slot`, or empties it when undefined. Returns whether the decor changed (ADR 0093). */

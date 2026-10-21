@@ -822,6 +822,9 @@ steering.append(box(-0.7, -0.7, -16, 0.7, 0.7, -0.6, "dark_dash"))  # column dow
 # Raised and laid back with the front seats so its lower rim clears the cushion and its
 # upper rim stays under the driver's line of sight to the windshield's lower frame.
 STEERING_PIVOT, STEERING_LEAN = [12, 33, FRONT + 15], 65
+# Where the spray leaves: the middle of the underside of the shower head that 2/9 modeled on the
+# shower-toilet's rear wall, so the water comes out of the visible head (ADR 0094).
+SHOWER_HEAD = [20.5, 44.5, 53.75]
 
 
 def moved(cube, offset):
@@ -891,7 +894,7 @@ door = [c for c in door if c["uv"]["north"]["uv"][0] != glass_slot]
 camper_bones = [
     {"name": "root", "pivot": [0, 0, 0]},
     {"name": "body", "parent": "root", "pivot": [0, 0, 0], "cubes": body,
-     "locators": {**hover, "exhaust": [-12, 4, REAR - 4]}},
+     "locators": {**hover, "exhaust": [-12, 4, REAR - 4], "shower_head": SHOWER_HEAD}},
     {"name": "headlights", "parent": "body", "pivot": [0, 0, 0], "cubes": headlights},
     *wheels,
     *[{"name": f"seat_{i}", "parent": "body", "pivot": [0, FLOOR, 0], "cubes": cubes}

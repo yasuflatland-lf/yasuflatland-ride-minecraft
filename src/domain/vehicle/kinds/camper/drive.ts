@@ -2,7 +2,12 @@ import { clamp, type Vec3 } from "../../../shared/vec";
 import { type DecorPlacement, isDecorItem, parseDecor } from "../../dock/decor";
 import { type ClearCell, DOCK_RESTORED } from "../../dock/dock";
 import type { HoldPose } from "../../dock/floor";
-import type { DriveStep, EngineCommand, TickContext } from "../../drive";
+import type {
+  DriveStep,
+  EngineCommand,
+  FloorTap,
+  TickContext,
+} from "../../drive";
 import type { RawInput } from "../../driveInput";
 import type { RestoredOf } from "../../entityContract";
 import { DOCK, heldStep, pushesStick } from "../../motion/dock";
@@ -12,7 +17,12 @@ import { SyncedValue } from "../../syncedValue";
 import { type BodyEnds, guardEnds } from "./bodyGuard";
 import { DECOR_SLOTS, decorSlot } from "./decor";
 import { nearestFreeSlot, slotAt, slotsFor } from "./decorPlacing";
-import { type CAMPER_ENTITY, doorCommand } from "./entity";
+import {
+  type CAMPER_ENTITY,
+  doorCommand,
+  showerCommand,
+  showerDoorCommand,
+} from "./entity";
 import { CAMPER_MOTION, CAMPER_TYRES } from "./profile";
 import {
   cargoCells,
@@ -29,6 +39,7 @@ import {
   parkPose,
   planPark,
   roomCells,
+  showerFloorCell,
   wallFootCells,
 } from "./room";
 import { CAMPER_SPEC, CAMPER_TRANSFORMING } from "./spec";
@@ -42,6 +53,17 @@ const CAMPER_ENDS: BodyEnds = {
 
 // The door swings in 10 steps of 0.1, one per tick: half a second (ADR 0068).
 const DOOR_STEPS = 10;
+
+/** A door's swing restored in DOOR_STEPS; a camper that was not docked starts with it shut. */
+function restoredDoorStep(open: unknown, docked: boolean): number {
+  if (!docked || typeof open !== "number") return 0;
+  return clamp(Math.round(open * DOOR_STEPS), 0, DOOR_STEPS);
+}
+
+/** Moves a door one step toward open or shut. */
+function swing(step: number, open: boolean): number {
+  return step + Math.sign((open ? DOOR_STEPS : 0) - step);
+}
 
 // The shared transforming drivetrain with the camper's values, its end check
 // (ADR 0067), and parking (ADR 0068).
@@ -60,6 +82,12 @@ export class CamperDrive extends TransformingDrive {
   private doorOpen: boolean;
   private doorStep: number;
   private readonly doorStepSync = new SyncedValue<number>();
+  // The shower door swings in the entry door's DOOR_STEPS (ADR 0094).
+  private showerDoorOpen: boolean;
+  private showerDoorStep: number;
+  private readonly showerDoorStepSync = new SyncedValue<number>();
+  private showerTicks = 0;
+  private readonly showerSync = new SyncedValue<boolean>();
   private readonly decorBySlot = new Map<string, string>();
 
   constructor(yaw: number, restored: RestoredOf<typeof CAMPER_ENTITY>) {
@@ -73,10 +101,7 @@ export class CamperDrive extends TransformingDrive {
     );
     this.restoredDocked = restored.docked === true;
     this.restoredLaid = restored[DOCK_RESTORED.laid] === true;
-    const door = typeof restored.door === "number" ? restored.door : 0;
-    this.doorStep = this.restoredDocked
-      ? clamp(Math.round(door * DOOR_STEPS), 0, DOOR_STEPS)
-      : 0;
+    this.doorStep = restoredDoorStep(restored.door, this.restoredDocked);
     const savedTarget = restored[DOCK_RESTORED.doorOpen];
     this.doorOpen =
       this.restoredDocked && typeof savedTarget === "boolean"
@@ -85,6 +110,11 @@ export class CamperDrive extends TransformingDrive {
     // Decor survives driving: it is restored whether or not the camper was docked (ADR 0093).
     for (const { slot, item } of parseDecor(restored[DOCK_RESTORED.decor]))
       if (decorSlot(slot)) this.decorBySlot.set(slot, item);
+    this.showerDoorStep = restoredDoorStep(
+      restored.shower_door,
+      this.restoredDocked,
+    );
+    this.showerDoorOpen = this.showerDoorStep * 2 >= DOOR_STEPS;
   }
 
   /**
@@ -108,6 +138,28 @@ export class CamperDrive extends TransformingDrive {
   useDockDoor(): boolean {
     if (!this.parked) return false;
     this.doorOpen = !this.doorOpen;
+    return true;
+  }
+
+  floorTap(cell: Vec3, player: Vec3): FloorTap | undefined {
+    if (!this.parked) return undefined;
+    const floor = showerFloorCell(this.parked);
+    if (cell.x !== floor.x || cell.y !== floor.y || cell.z !== floor.z)
+      return undefined;
+    return Math.floor(player.x) === floor.x && Math.floor(player.z) === floor.z
+      ? "shower"
+      : "showerDoor";
+  }
+
+  useShowerDoor(): boolean {
+    if (!this.parked) return false;
+    this.showerDoorOpen = !this.showerDoorOpen;
+    return true;
+  }
+
+  runShower(): boolean {
+    if (!this.parked) return false;
+    this.showerTicks = CAMPER_SPEC.showerTicks;
     return true;
   }
 
@@ -208,16 +260,19 @@ export class CamperDrive extends TransformingDrive {
     if (!still) {
       this.stillTicks = 0;
       this.parkTried = false;
-      return this.withDoor(step);
+      return this.withProperties(step);
     }
     this.stillTicks = Math.min(this.stillTicks + 1, DOCK.ticks);
     if (this.stillTicks < DOCK.ticks || this.parkTried)
-      return this.withDoor(step);
+      return this.withProperties(step);
     this.parkTried = true;
     const pose = parkPose(ctx.location, this.yaw);
     const clear = this.clearForPark(pose, ctx);
     if (!clear)
-      return { ...this.withDoor(step), message: PARK_MESSAGES.cannotPark };
+      return {
+        ...this.withProperties(step),
+        message: PARK_MESSAGES.cannotPark,
+      };
     this.park(pose, clear);
     const held = this.parkedStep(pose, ctx);
     return {
@@ -264,7 +319,7 @@ export class CamperDrive extends TransformingDrive {
       seats: deckSeats(pose),
     };
     return heldStep(dock, pose.yaw, ctx.deckSeatInputs, {
-      commands: this.doorCommands(),
+      commands: this.propertyCommands(),
       clear,
     });
   }
@@ -279,26 +334,47 @@ export class CamperDrive extends TransformingDrive {
     this.pendingClear = [];
     this.doorOpen = false;
     this.doorStep = 0;
+    this.showerDoorOpen = false;
+    this.showerDoorStep = 0;
+    this.showerTicks = 0;
     const step = super.step(raw, ctx);
     return {
       ...step,
-      commands: [...undockCommands(), ...this.doorCommands(), ...step.commands],
+      commands: [
+        ...undockCommands(),
+        ...this.propertyCommands(),
+        ...step.commands,
+      ],
       boardDeckRiders: true,
       depart: departure(pose, exitClear),
     };
   }
 
-  private withDoor(step: DriveStep): DriveStep {
-    const door = this.doorCommands();
-    return door.length === 0
+  private withProperties(step: DriveStep): DriveStep {
+    const properties = this.propertyCommands();
+    return properties.length === 0
       ? step
-      : { ...step, commands: [...step.commands, ...door] };
+      : { ...step, commands: [...step.commands, ...properties] };
   }
 
   private doorCommands(): EngineCommand[] {
-    const target = this.doorOpen ? DOOR_STEPS : 0;
-    this.doorStep += Math.sign(target - this.doorStep);
+    this.doorStep = swing(this.doorStep, this.doorOpen);
     const step = this.doorStepSync.next(this.doorStep);
     return step === undefined ? [] : [doorCommand(step / DOOR_STEPS)];
+  }
+
+  private propertyCommands(): EngineCommand[] {
+    return [...this.doorCommands(), ...this.showerCommands()];
+  }
+
+  private showerCommands(): EngineCommand[] {
+    this.showerDoorStep = swing(this.showerDoorStep, this.showerDoorOpen);
+    const door = this.showerDoorStepSync.next(this.showerDoorStep);
+    const running = this.showerSync.next(this.showerTicks > 0);
+    this.showerTicks = Math.max(this.showerTicks - 1, 0);
+    return [
+      ...(door === undefined ? [] : [showerDoorCommand(door / DOOR_STEPS)]),
+      ...(running === undefined ? [] : [showerCommand(running)]),
+    ];
   }
 }

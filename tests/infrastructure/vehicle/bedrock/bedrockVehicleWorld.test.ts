@@ -13,6 +13,7 @@ import { BedrockInventory } from "../../../../src/infrastructure/vehicle/bedrock
 import { BedrockPaintWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockPaintWorld";
 import { BedrockPlacementWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockPlacementWorld";
 import { BedrockVehicleWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockVehicleWorld";
+import { DockBlocks } from "../../../../src/infrastructure/vehicle/bedrock/dockBlocks";
 import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
 import {
   DECK_CELLS_PROPERTY,
@@ -1081,6 +1082,25 @@ describe.each(creativeAdapters)("%s isCreative", (_name, adapterOf) => {
     expect(adapterOf(f).isCreative("p")).toBe(false);
     expect(left.getGameMode).not.toHaveBeenCalled();
   });
+});
+
+it("answers each dock owner query from the room blocks it laid (ADR 0068, 0093, 0094)", () => {
+  const f = fixture();
+  const here = asDimensionId("overworld");
+  const cell = { x: 1, y: 64, z: 2 };
+  const owners = [
+    ["doorOwner", "dockDoorOwner", "door"],
+    ["cellOwner", "dockCellOwner", "cell"],
+    ["floorOwner", "floorOwner", "floor"],
+  ] as const;
+  for (const [dock, query, owner] of owners) {
+    const spy = vi
+      .spyOn(DockBlocks.prototype, dock)
+      .mockReturnValue(asVehicleId(owner));
+    expect(f.world[query](here, cell)).toBe(asVehicleId(owner));
+    expect(spy).toHaveBeenCalledExactlyOnceWith(here, cell);
+    spy.mockRestore();
+  }
 });
 
 describe("BedrockVehicleWorld dock owners (ADR 0068, 0093)", () => {

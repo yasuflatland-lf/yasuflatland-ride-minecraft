@@ -402,6 +402,33 @@
           "rotation": [0, "q.property('yasu_ride:door') * -100", 0]
         }
       }
+    },
+    "animation.yasu_ride.camper.shower_door": {
+      "loop": true,
+      "bones": {
+        "shower_door": {
+          "rotation": [0, "q.property('yasu_ride:shower_door') * -90", 0]
+        }
+      }
+    },
+    "animation.yasu_ride.camper.shower": {
+      "loop": true,
+      "animation_length": 0.1,
+      "particle_effects": {
+        "0.0": {
+          "effect": "shower",
+          "locator": "shower_head"
+        }
+      }
+    },
+    "animation.yasu_ride.camper.shower_sound": {
+      "loop": true,
+      "animation_length": 1.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "shower"
+        }
+      }
     }
   }
 }

@@ -9,11 +9,14 @@ import { PaintVehicle } from "../../application/vehicle/paintVehicle";
 import { PlaceDecor } from "../../application/vehicle/placeDecor";
 import { PlaceVehicle } from "../../application/vehicle/placeVehicle";
 import { RemoveDecor } from "../../application/vehicle/removeDecor";
+import { RunShower } from "../../application/vehicle/runShower";
 import { SetDecor } from "../../application/vehicle/setDecor";
 import { ShowVehicleHints } from "../../application/vehicle/showVehicleHints";
 import { SleepInBed } from "../../application/vehicle/sleepInBed";
 import { SwitchHeadlights } from "../../application/vehicle/switchHeadlights";
+import { TapDockFloor } from "../../application/vehicle/tapDockFloor";
 import { UseDockDoor } from "../../application/vehicle/useDockDoor";
+import { UseShowerDoor } from "../../application/vehicle/useShowerDoor";
 import { fleetLimitOf } from "../../domain/vehicle/kinds/index";
 import { NAMESPACE } from "../shared/identifiers";
 import { BedrockBedWorld } from "./bedrock/bedrockBedWorld";
@@ -64,6 +67,12 @@ export function installVehicles(): void {
       ),
       door: new UseDockDoor(repo),
       bed: new SleepInBed(new BedrockBedWorld(index)),
+      floor: new TapDockFloor(
+        bedrock,
+        repo,
+        new UseShowerDoor(repo),
+        new RunShower(repo),
+      ),
       decor: new SetDecor(decorWorld, repo),
       placeDecor: new PlaceDecor(decorWorld, repo),
       removeDecor: new RemoveDecor(decorWorld, repo),

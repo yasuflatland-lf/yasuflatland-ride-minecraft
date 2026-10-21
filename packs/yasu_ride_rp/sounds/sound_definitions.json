@@ -126,6 +126,12 @@
       "min_distance": 4.0,
       "max_distance": 32.0,
       "sounds": [{ "name": "sounds/yasu_ride/boat_engine_7", "volume": 0.78 }]
+    },
+    "yasu_ride.shower": {
+      "category": "neutral",
+      "min_distance": 2.0,
+      "max_distance": 12.0,
+      "sounds": [{ "name": "sounds/yasu_ride/shower", "volume": 0.4 }]
     }
   }
 }

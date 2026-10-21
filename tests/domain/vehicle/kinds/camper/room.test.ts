@@ -25,6 +25,7 @@ import {
   parkPose,
   planPark,
   roomCells,
+  showerFloorCell,
   snapYaw,
   wallFootCells,
 } from "../../../../../src/domain/vehicle/kinds/camper/room";
@@ -553,6 +554,27 @@ it("lets a decor cell hold only air or its own decor block (ADR 0093)", () => {
       expect(ownDecor(undefined, item)).toBe(false);
       expect(ownDecor("minecraft:stone", item)).toBe(false);
       expect(ownDecor(`yasu_ride:${other}_decor`, item)).toBe(false);
+    }),
+  );
+});
+
+it("puts the shower floor cell under the shower-toilet at the rear right (ADR 0094)", () => {
+  fc.assert(
+    fc.property(pose, (p) => {
+      const c = showerFloorCell(p);
+      const exact = forward(p.yaw);
+      const f = { x: Math.round(exact.x) + 0, z: Math.round(exact.z) + 0 };
+      const left = leftOf(f);
+      const l = { x: left.x + 0, z: left.z + 0 };
+      const d = { x: c.x - Math.floor(p.x), z: c.z - Math.floor(p.z) };
+      expect(c.y).toBe(p.y);
+      expect(dot(d, l)).toBe(-1);
+      expect(dot(d, f)).toBe(-3);
+      expect(
+        roomCells(p, false).some(
+          (r) => cellKey(r) === cellKey(c) && r.block.type === "floor",
+        ),
+      ).toBe(true);
     }),
   );
 });

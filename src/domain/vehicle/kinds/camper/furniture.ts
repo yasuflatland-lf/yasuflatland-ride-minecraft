@@ -36,6 +36,17 @@ interface Furniture {
   readonly block?: DockBlock;
 }
 
+const SHOWER_TOILET_CELLS = [
+  { x: -1, z: -3, layer: 1 },
+  { x: -1, z: -3, layer: 2 },
+] as const satisfies readonly LocalCell[];
+
+/** The shower-toilet's column; a tap on its floor cell opens its door or runs the shower (ADR 0094). */
+export const SHOWER_COLUMN = {
+  x: SHOWER_TOILET_CELLS[0].x,
+  z: SHOWER_TOILET_CELLS[0].z,
+} as const;
+
 // Slot heights are the furniture's top at the middle of the cell in tools/gen_camper.py, or 0
 // for a hanging slot; tests/packs/camper.test.ts checks them against the generated model (ADR 0093).
 export const CAMPER_FURNITURE: readonly Furniture[] = [
@@ -121,10 +132,7 @@ export const CAMPER_FURNITURE: readonly Furniture[] = [
   },
   {
     kind: "shower_toilet",
-    cells: [
-      { x: -1, z: -3, layer: 1 },
-      { x: -1, z: -3, layer: 2 },
-    ],
+    cells: SHOWER_TOILET_CELLS,
     slots: [],
   },
 ];

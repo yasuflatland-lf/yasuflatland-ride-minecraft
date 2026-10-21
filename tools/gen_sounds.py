@@ -12,6 +12,7 @@ out in the water, a faint return from far away, and the low rumble of the deep u
 boat_engine_0 to boat_engine_7: the sports boat's engine (ADR 0060): the deep, lumpy burble of a
 cross-plane V8, its wet exhaust bubbling out under the water, and the hiss of the hull cutting the water,
 at rising engine speeds. The client picks one by the boat's speed.
+shower: the loop of running water played while the camper's shower runs (ADR 0094).
 
 Only the standard library is used, and the random generator is seeded, so the output is reproducible.
 The loops repeat without a click: the hover loops are sums of sines with whole cycles in the loop, and
@@ -70,6 +71,8 @@ BUBBLE_PITCH = (70, 220)
 # The hull cutting the water: a noise band whose level rises from idle to full speed.
 WATER_BAND = (400, 3800)
 WATER_GAIN = (0.04, 0.55)
+# Running water from the camper's shower head (ADR 0094): a bright hiss band (Hz).
+SHOWER_BAND = (1200, 6000)
 
 
 def write(name, samples):
@@ -162,6 +165,15 @@ def hover_start(rng):
     lo, hi = HOVER_AIR_BANDS[0]
     air = periodic_noise(rng, length, lo, hi, 250)
     return [(1 - (1 - i / n) ** 3) * air[i] for i in range(n)]
+
+
+def shower(rng):
+    # A bright hiss with a quick flutter, like water drumming on a shower tray; the 1 s loop holds
+    # 6 whole flutters, so it repeats without a seam.
+    length = 1.0
+    n = round(RATE * length)
+    spray = periodic_noise(rng, length, SHOWER_BAND[0], SHOWER_BAND[1], 300)
+    return [(1 + 0.15 * math.sin(2 * math.pi * 6 * i / n)) * spray[i] for i in range(n)]
 
 
 def sonar(rng):
@@ -259,4 +271,6 @@ write("sonar", sonar(rng))
 rng = random.Random(60)
 for level, rate in enumerate(BOAT_CYCLE_RATES):
     write(f"boat_engine_{level}", boat_engine(rng, rate))
+rng = random.Random(70)
+write("shower", shower(rng))
 print("wrote", ", ".join(sorted(p.name for p in OUT.glob("*.wav"))))

@@ -12,7 +12,12 @@ import type { DockBlock, DockCell, Face, HoldPose } from "../../dock/floor";
 import { cellKey } from "../../lighting/headlights";
 import { seatWorldPositions } from "../../seats";
 import { decorSlot } from "./decor";
-import { CAMPER_FURNITURE, type DecorSlot, type LocalCell } from "./furniture";
+import {
+  CAMPER_FURNITURE,
+  type DecorSlot,
+  type LocalCell,
+  SHOWER_COLUMN,
+} from "./furniture";
 import { CAMPER_PROFILE } from "./profile";
 
 // Feet resting on a block top can read a hair below it.
@@ -136,6 +141,11 @@ function cellAt(pose: HoldPose, lx: number, lz: number, dy: number): Vec3 {
     y: pose.y + dy,
     z: Math.floor(pose.z) + lx * l.z + lz * f.z + 0,
   };
+}
+
+/** The floor cell under the shower-toilet (ADR 0094). */
+export function showerFloorCell(pose: HoldPose): Vec3 {
+  return cellAt(pose, SHOWER_COLUMN.x, SHOWER_COLUMN.z, 0);
 }
 
 /** The world cell of a decor slot at a parked pose (ADR 0093). */

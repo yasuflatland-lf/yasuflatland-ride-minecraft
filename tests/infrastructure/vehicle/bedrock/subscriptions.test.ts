@@ -25,6 +25,7 @@ import {
   CAMPER_DECOR_COMPONENT,
   CAMPER_DOOR_COMPONENT,
   CAMPER_FLOOR_BLOCK,
+  CAMPER_WALL_BLOCK,
   DECK_FLOOR_BLOCK,
   DECK_SEAT_OF_PROPERTY,
   DECK_SEAT_TYPE,
@@ -792,13 +793,14 @@ it("sets decor only from server test decor script events (ADR 0093)", () => {
 function decorFixture() {
   const placeDecor = { execute: vi.fn() };
   const removeDecor = { execute: vi.fn() };
+  const floor = { execute: vi.fn() };
   const owner = vi.fn<(dimensionId: string, cell: At) => VehicleId | undefined>(
     () => asVehicleId("car"),
   );
   const before = game.before.mock.calls.length;
   const startupsBefore = game.startup.mock.calls.length;
   registerSubscriptions(
-    { placeDecor, removeDecor } as unknown as Parameters<
+    { placeDecor, removeDecor, floor } as unknown as Parameters<
       typeof registerSubscriptions
     >[0],
     new TestInputStore(),
@@ -818,14 +820,18 @@ function decorFixture() {
       dimension: { id: "minecraft:overworld" },
     },
     faceLocation: { x: 0.25, y: 1, z: 0.5 },
-    player: { id: "p", selectedSlotIndex: 4 },
+    player: {
+      id: "p",
+      selectedSlotIndex: 4,
+      location: { x: 1.5, y: 65, z: 2.5 },
+    },
     ...overrides,
   });
   const send = (ev: ReturnType<typeof event>) => {
     handler(ev as unknown as PlayerInteractWithBlockBeforeEvent);
     return ev;
   };
-  return { placeDecor, removeDecor, owner, startupsBefore, event, send };
+  return { placeDecor, removeDecor, floor, owner, startupsBefore, event, send };
 }
 
 it("places held camping gear on a camper room or decor block on the next tick and cancels every repeat (ADR 0093)", () => {
@@ -866,7 +872,11 @@ it("leaves other items, other blocks, and cells no camper laid alone", () => {
       ev.block = { ...ev.block, typeId: DECK_FLOOR_BLOCK };
       return f.send(ev);
     },
-    (f) => f.send(f.event({ itemStack: undefined })),
+    (f) => {
+      const ev = f.event({ itemStack: undefined });
+      ev.block = { ...ev.block, typeId: CAMPER_WALL_BLOCK };
+      return f.send(ev);
+    },
     (f) => {
       f.owner.mockReturnValue(undefined);
       return f.send(f.event());
@@ -877,6 +887,41 @@ it("leaves other items, other blocks, and cells no camper laid alone", () => {
     expect(run(f).cancel).toBe(false);
     expect(game.run).not.toHaveBeenCalled();
   }
+});
+
+it("taps the camper floor with an empty hand on the next tick without cancelling (ADR 0094)", () => {
+  const { placeDecor, floor, owner, event, send } = decorFixture();
+  const tap = event({ itemStack: undefined });
+  expect(send(tap).cancel).toBe(false);
+  expect(owner).not.toHaveBeenCalled();
+  expect(floor.execute).not.toHaveBeenCalled();
+  for (const [callback] of game.run.mock.calls) callback();
+  expect(floor.execute).toHaveBeenCalledExactlyOnceWith({
+    dimensionId: "minecraft:overworld",
+    cell: { x: 1, y: 64, z: 2 },
+    player: { x: 1.5, y: 65, z: 2.5 },
+  });
+  expect(placeDecor.execute).not.toHaveBeenCalled();
+  const quiet = (ev: ReturnType<typeof event>) => {
+    game.run.mockClear();
+    expect(send(ev).cancel).toBe(false);
+    expect(game.run).not.toHaveBeenCalled();
+  };
+  quiet(event({ itemStack: undefined, isFirstEvent: false }));
+  for (const typeId of [CAMPER_WALL_BLOCK, DECK_FLOOR_BLOCK]) {
+    const other = event({ itemStack: undefined });
+    other.block = { ...other.block, typeId };
+    quiet(other);
+  }
+  quiet(event({ itemStack: { typeId: "minecraft:stone" } }));
+  game.run.mockClear();
+  floor.execute.mockClear();
+  expect(
+    send(event({ itemStack: { typeId: "yasu_ride:percolator" } })).cancel,
+  ).toBe(true);
+  for (const [callback] of game.run.mock.calls) callback();
+  expect(placeDecor.execute).toHaveBeenCalledOnce();
+  expect(floor.execute).not.toHaveBeenCalled();
 });
 
 it("takes decor back on an empty-hand interaction with a decor block (ADR 0093)", () => {
