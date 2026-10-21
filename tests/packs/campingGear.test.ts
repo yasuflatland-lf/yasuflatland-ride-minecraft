@@ -513,9 +513,12 @@ describe("camping gear blocks and items (ADR 0093)", () => {
       ).toBe(ATLAS_KEY);
   });
 
-  it("lists every gear item in spec order in the Camping Gear group of the Items tab", () => {
-    const items = SPEC.map((g) => `yasu_ride:${g.id}`);
-    expect(items).toHaveLength(19);
+  it("lists the camping gear box, then every gear item in spec order, in the Camping Gear group of the Items tab", () => {
+    const items = [
+      "yasu_ride:camping_gear_box",
+      ...SPEC.map((g) => `yasu_ride:${g.id}`),
+    ];
+    expect(items).toHaveLength(20);
     expect(readJson(`${BP}/item_catalog/crafting_item_catalog.json`)).toEqual({
       format_version: "1.21.60",
       "minecraft:crafting_items_catalog": {
@@ -525,7 +528,7 @@ describe("camping gear blocks and items (ADR 0093)", () => {
             groups: [
               {
                 group_identifier: {
-                  icon: "yasu_ride:percolator",
+                  icon: "yasu_ride:camping_gear_box",
                   name: "yasu_ride:camping_gear",
                 },
                 items,
