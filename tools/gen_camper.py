@@ -229,7 +229,8 @@ for x0, x1, windows in ((HW - 1, HW, right_windows), (-HW, -HW + 1, left_windows
     right = x0 > 0
     sgn = 1 if right else -1
     out = x1 if right else x0
-    holes = windows + arch_holes + [(SIDE0, -50.5, 35.4, 52)]  # up to where the cab-over chevron passes SIDE0 + ([DOOR] if right else [])
+    # The front cut-out reaches up to where the cab-over chevron passes SIDE0.
+    holes = windows + arch_holes + [(SIDE0, -50.5, 35.4, 52)] + ([DOOR] if right else [])
     body += panel("x", x0, x1, SIDE0, REAR_INNER, BOTTOM, CEIL, holes, "white")
     inner = x0 - 0.2 if right else x1
     body += panel("x", inner, inner + 0.2, FRONT + 8, REAR_INNER, FLOOR, CEIL - 0.2, holes, "wall_in")
@@ -491,10 +492,14 @@ def lerp(a, b, t):
     return a + (b - a) * t
 
 
+def molding(sx, y0, y1, z):
+    x0, x1 = sorted((sx * (HW - 0.3), sx * (HW + 0.2)))
+    body.append(box(x0, y0, z - 0.2, x1, y1, z + 0.8, "chrome"))
+
+
 def chevron_molding(y0, y1, z):
     for sx in (1, -1):
-        x0, x1 = sorted((sx * (HW - 0.3), sx * (HW + 0.2)))
-        body.append(box(x0, y0, z - 0.2, x1, y1, z + 0.8, "chrome"))
+        molding(sx, y0, y1, z)
 
 
 LAYERS = round((CREASE - CAP_Y0) / 0.25)  # quarter-pixel steps keep both faces smooth
@@ -521,8 +526,7 @@ for i in range(UPPER_LAYERS):
     if 60 <= y0 < 62.5:  # the dark window set into the upper face, right of centre on the photo
         body.append(box(-3.5, y0, zf - 0.1, 9.5, y0 + 0.25, zf + 0.3, "grille"))
 for sx in (1, -1):  # the molding carries on down the pillar to the corner glass foot
-    x0, x1 = sorted((sx * (HW - 0.3), sx * (HW + 0.2)))
-    body.append(box(x0, 35.4, BOT_S - 0.2, x1, CAP_Y0, BOT_S + 0.8, "chrome"))
+    molding(sx, 35.4, CAP_Y0, BOT_S)
     body.append(corner(sx, WS_Z, 49.2, 49.7, "chrome"))  # header strip over the corner glass
 body.append(box(-FW, 49.2, BOT_C - 0.3, FW, 49.7, BOT_C + 2.2, "chrome"))  # windshield header strip
 body.append(box(-HW - 0.2, ROOF - 0.6, TOP_FRONT - 0.3, HW + 0.2, ROOF + 0.1, TOP_FRONT + 0.7, "chrome"))
