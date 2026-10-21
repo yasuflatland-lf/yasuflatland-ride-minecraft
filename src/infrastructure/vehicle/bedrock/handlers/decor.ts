@@ -73,10 +73,11 @@ export function registerDecor(
         );
         if (vehicleId === undefined) return;
         // A shelf board's or the table's pair block draws two items, and the press takes
-        // back the one nearest where the line of sight meets the board (ADR 0108, 0110).
+        // back the end nearest the pressed x and z (ADR 0108). Both ends stand at one
+        // height, so y does not choose; and the eye is left out because this event's
+        // faceLocation.y is unmeasured, while the placing event's comes inverted (ADR 0111).
         const at = ev.block.location;
         const face = ev.faceLocation;
-        const head = player.getHeadLocation();
         remove.execute({
           playerId: asPlayerId(player.id),
           vehicleId,
@@ -85,7 +86,6 @@ export function registerDecor(
             face === undefined
               ? undefined
               : { x: at.x + face.x, y: at.y + face.y, z: at.z + face.z },
-          eye: { x: head.x, y: head.y, z: head.z },
         });
       },
     });

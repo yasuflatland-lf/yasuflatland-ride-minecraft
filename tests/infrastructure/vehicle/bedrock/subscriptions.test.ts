@@ -1235,14 +1235,14 @@ it("takes decor back on an empty-hand interaction with a decor block (ADR 0093)"
           }
         : undefined,
     }) as unknown as Parameters<typeof interact>[0];
-  // The press point and the eye tell the two items of a pair block apart (ADR 0108, 0110).
+  // The pressed x and z tell the two items of a pair block apart; the eye is not sent,
+  // since this event's faceLocation.y is unmeasured (ADR 0108, 0111).
   interact(event(), { params: undefined });
   expect(removeDecor.execute).toHaveBeenCalledExactlyOnceWith({
     playerId: "p",
     vehicleId: "car",
     cell,
     point: { x: 1.25, y: 65.5, z: 2.75 },
-    eye,
   });
   removeDecor.execute.mockClear();
   interact(event(undefined, true, false), { params: undefined });
@@ -1251,7 +1251,6 @@ it("takes decor back on an empty-hand interaction with a decor block (ADR 0093)"
     vehicleId: "car",
     cell,
     point: undefined,
-    eye,
   });
   removeDecor.execute.mockClear();
   interact(event({ typeId: "minecraft:stone" }), { params: undefined });

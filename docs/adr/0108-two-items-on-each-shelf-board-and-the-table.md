@@ -56,8 +56,8 @@ Facts this decision builds on:
 
 ### Pressing
 
-- A press with gear on a shelf board's or the table's block, the furniture block or the pair block, names both of its slots, and the item goes to the free end nearest the press, measured along the line of sight (0110). With one end taken, a press anywhere on the block sends the item to the other end
-- An empty-hand press on a pair block takes back the end nearest the press: the custom component's `faceLocation` gives the hit point and `getHeadLocation()` the eye, and the end is picked along the line of sight as when placing (0110). Without a face location the first held end is taken
+- A press with gear on a shelf board's or the table's block, the furniture block or the pair block, names both of its slots, and the item goes to the free end nearest the press, measured along the line of sight (0110). The pressed height is corrected as on a decor block (0111): the pair block's lift is its height state, or the table's one slot height, since the table's block has no height state. With one end taken, a press anywhere on the block sends the item to the other end
+- An empty-hand press on a pair block takes back the end nearest the pressed x and z, from the custom component's `faceLocation`. Both ends stand at one height, so y does not choose between them. The eye is not used: 0111 measured that the placing event reports y inverted, and nobody has measured this event's y, so a line of sight through it could point anywhere. Without a face location the first held end is taken
 - A pair block counts as a decor block wherever one is recognized: a gear press on it places decor, and it is a slot block above a deck seat (0097)
 
 ### Departure, saved decor, and the earlier build
@@ -74,7 +74,7 @@ Facts this decision builds on:
 ## Consequences
 
 - Each shelf board and the table hold two items, in any combination, and a cell still holds one block. The driver's seat cells and the aisle cell stay free of decor
-- An empty-hand press on a pair block takes back the item nearest where the line of sight meets the furniture top, so a press between the two items takes the one the player looks closer to. Check in game, in all four facings, that each item comes back when pressed and that the one aimed at is the one taken
+- An empty-hand press on a pair block takes back the item nearest the pressed x and z on its box, which spans 8 px above the furniture top. A press on the box top lands nearer the player than the item the player looks at, so a press between the two items leans toward the nearer one. Check in game, in all four facings, that each item comes back when pressed and that the one aimed at is the one taken
 - The pair blocks rely on `bone_visibility` with `q.block_state` expressions. Microsoft Learn documents Molang in `bone_visibility` without naming the query, so check in game that each end shows only its own item, including the sugar pot next to another item
 - The sugar pot's glass is opaque on a shelf board or the table and see-through elsewhere
 - The outline covers both items of a board or the table, and 8 px of height above the furniture top whatever the items' heights
