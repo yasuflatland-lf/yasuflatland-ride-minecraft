@@ -1,0 +1,110 @@
+name: Release
+
+# Either push a v* tag, or press "Run workflow" on main to tag the current
+# commit with the Behavior Pack version and release it.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  # Third-party actions and dependency scripts run here, without write access
+  # to the repository.
+  build:
+    if: github.ref_type == 'tag' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # A manual run derives the tag from the manifest and refuses to reuse one,
+      # so a release always points at the commit that was built.
+      - id: tag
+        run: |
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            tag="$GITHUB_REF_NAME"
+          else
+            tag="v$(node -p 'require("./packs/yasu_ride_bp/manifest.json").header.version.join(".")')"
+            if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null; then
+              echo "::error::$tag already exists; bump the version in packs/yasu_ride_bp/manifest.json"
+              exit 1
+            fi
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      # The generated notes only list PR titles, so each release needs a
+      # player-facing summary. Checked before the build so a missing one fails
+      # fast, and before a manual run creates the tag.
+      - run: |
+          notes="docs/releases/$TAG.md"
+          if [ ! -f "$notes" ]; then
+            echo "::error::$notes is missing; copy docs/releases/TEMPLATE.md and describe what changed for players"
+            exit 1
+          fi
+          mkdir -p dist
+          cp "$notes" dist/release-notes.md
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+
+      # Install Node and pnpm as pinned in mise.toml. Pinned to a commit
+      # because the tag would otherwise feed code into a release build.
+      - uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+
+      # Devices keep a cached Resource Pack with the same UUID and version, so a
+      # changed Resource Pack needs a new version (ADR 0015). On a tag push the
+      # tag being released already points at HEAD, so describe from HEAD^ to
+      # find the previous release. On a manual run the release job creates the
+      # tag later, and HEAD^ gives the same answer as HEAD.
+      - run: node scripts/check-rp-version.mjs "$(git describe --tags --abbrev=0 --match 'v*' HEAD^ 2>/dev/null || true)"
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm run typecheck
+
+      - run: pnpm test
+
+      - run: pnpm run build
+
+      # The tag must match the Behavior Pack version so the file name and the
+      # version players see in-game agree (tag v0.1.0 -> manifest [0, 1, 0])
+      - run: pnpm run package
+        env:
+          EXPECTED_VERSION: ${{ steps.tag.outputs.tag }}
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: mcaddon
+          path: |
+            dist/*.mcaddon
+            dist/release-notes.md
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: mcaddon
+          path: dist
+
+      # On a manual run the tag does not exist yet; --target creates it on the built commit.
+      # --notes-file goes above the generated PR list.
+      - run: gh release create "$TAG" dist/*.mcaddon --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --generate-notes --notes-file dist/release-notes.md
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.build.outputs.tag }}

@@ -1,0 +1,56 @@
+{
+  "format_version": "1.12.0",
+  "minecraft:geometry": [
+    {
+      "description": {
+        "identifier": "geometry.yasu_ride.road_map",
+        "texture_width": 16,
+        "texture_height": 16
+      },
+      "bones": [
+        {
+          "name": "root",
+          "pivot": [0, 0, 0],
+          "cubes": [
+            {
+              "origin": [-3, 0, -2],
+              "size": [6, 0.5, 4],
+              "uv": {
+                "north": { "uv": [12, 8], "uv_size": [4, 4] },
+                "south": { "uv": [12, 8], "uv_size": [4, 4] },
+                "east": { "uv": [12, 8], "uv_size": [4, 4] },
+                "west": { "uv": [12, 8], "uv_size": [4, 4] },
+                "up": { "uv": [12, 8], "uv_size": [4, 4] },
+                "down": { "uv": [12, 8], "uv_size": [4, 4] }
+              }
+            },
+            {
+              "origin": [-3, 0.5, -2],
+              "size": [3, 0.5, 4],
+              "uv": {
+                "north": { "uv": [0, 12], "uv_size": [4, 4] },
+                "south": { "uv": [0, 12], "uv_size": [4, 4] },
+                "east": { "uv": [0, 12], "uv_size": [4, 4] },
+                "west": { "uv": [0, 12], "uv_size": [4, 4] },
+                "up": { "uv": [0, 12], "uv_size": [4, 4] },
+                "down": { "uv": [0, 12], "uv_size": [4, 4] }
+              }
+            },
+            {
+              "origin": [0.5, 0.5, -0.25],
+              "size": [2.5, 0.25, 0.5],
+              "uv": {
+                "north": { "uv": [8, 8], "uv_size": [4, 4] },
+                "south": { "uv": [8, 8], "uv_size": [4, 4] },
+                "east": { "uv": [8, 8], "uv_size": [4, 4] },
+                "west": { "uv": [8, 8], "uv_size": [4, 4] },
+                "up": { "uv": [8, 8], "uv_size": [4, 4] },
+                "down": { "uv": [8, 8], "uv_size": [4, 4] }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

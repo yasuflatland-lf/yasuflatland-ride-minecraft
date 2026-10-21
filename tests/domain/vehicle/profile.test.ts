@@ -1,0 +1,667 @@
+import fc from "fast-check";
+import { describe, expect, it } from "vitest";
+import { asVehicleId } from "../../../src/domain/shared/ids";
+import { dot, forward, rightOf } from "../../../src/domain/shared/vec";
+import { NEUTRAL_CONTROL } from "../../../src/domain/vehicle/driveInput";
+import { EMPTY_COUNTER } from "../../../src/domain/vehicle/hitCounter";
+import { isVehicleKind, VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
+import {
+  CAMPER_MOTION,
+  CAMPER_PROFILE,
+  CAMPER_TYRES,
+} from "../../../src/domain/vehicle/kinds/camper/profile";
+import {
+  CAMPER_AIR,
+  CAMPER_SPEC,
+  CAMPER_TRANSFORMING,
+  CAMPER_WATER,
+} from "../../../src/domain/vehicle/kinds/camper/spec";
+import {
+  createVehicle,
+  KINDS,
+  profileOf,
+  RAM_QUERY_RADIUS,
+  rebuildVehicle,
+} from "../../../src/domain/vehicle/kinds/index";
+import {
+  SPORTSBOAT_MOTION,
+  SPORTSBOAT_PROFILE,
+} from "../../../src/domain/vehicle/kinds/sportsboat/profile";
+import { SPORTSBOAT_SPEC } from "../../../src/domain/vehicle/kinds/sportsboat/spec";
+import {
+  SUV_MOTION,
+  SUV_PROFILE,
+  SUV_TYRES,
+} from "../../../src/domain/vehicle/kinds/suv/profile";
+import {
+  AIR,
+  SUV_SPEC,
+  SUV_TRANSFORMING,
+  WATER,
+} from "../../../src/domain/vehicle/kinds/suv/spec";
+import {
+  cellKey,
+  headlightCells,
+} from "../../../src/domain/vehicle/lighting/headlights";
+import { MOTION } from "../../../src/domain/vehicle/motion/constants";
+import {
+  type GroundInput,
+  initialMotion,
+  stepMediumMotion,
+  stepMotion,
+  updateSpeed,
+} from "../../../src/domain/vehicle/motion/motion";
+import { STEP_LANES } from "../../../src/domain/vehicle/motion/stepUp";
+import { selectHits } from "../../../src/domain/vehicle/ram";
+import { SPEC } from "../../../src/domain/vehicle/spec";
+
+const NEUTRAL_GROUND: GroundInput = {
+  throttle: 0,
+  steer: 0,
+  handbrake: false,
+  creep: false,
+};
+
+const number = (min: number, max: number) =>
+  fc.double({ min, max, noNaN: true });
+const yaw = fc.integer({ min: -18000, max: 18000 }).map((n) => n / 100);
+const limits = fc.record({
+  maxSpeed: number(0.2, 4),
+  maxReverse: number(0.01, 0.2),
+  accel: number(0.001, 0.1),
+  reverseAccel: number(0.001, 0.1),
+  brake: number(0.001, 0.1),
+  drag: number(0.001, 0.1),
+  turnRate: number(1, 12),
+  steerFullSpeed: number(0.01, 0.2),
+  grip: number(0, 1),
+  handbrakeGrip: number(0, 1),
+  creepSpeed: number(0.01, 0.2),
+});
+const throttle = number(-1, 1);
+const input = fc.record({
+  throttle,
+  steer: throttle,
+  handbrake: fc.boolean(),
+  creep: fc.boolean(),
+});
+const velocity = fc.record({ x: number(-5, 5), z: number(-5, 5) });
+
+describe("vehicle profiles (ADR 0050)", () => {
+  it("builds the SUV profile from the existing tuning and seat data", () => {
+    expect(SUV_MOTION).toEqual({
+      maxSpeed: SUV_SPEC.maxSpeed,
+      maxReverse: SUV_SPEC.maxReverse,
+      accel: SUV_SPEC.accel,
+      reverseAccel: SUV_SPEC.reverseAccel,
+      brake: SUV_SPEC.brake,
+      drag: SUV_SPEC.drag,
+      turnRate: SUV_SPEC.turnRate,
+      steerFullSpeed: SUV_SPEC.steerFullSpeed,
+      grip: SUV_SPEC.grip,
+    });
+    expect(SUV_TYRES).toEqual({
+      handbrakeGrip: SUV_SPEC.handbrakeGrip,
+      creepSpeed: SUV_SPEC.creepSpeed,
+    });
+    expect(SUV_PROFILE).toEqual({
+      kind: "suv",
+      fleetLimit: 10,
+      ram: { front: SUV_SPEC.bodyFront, halfWidth: SUV_SPEC.bodyHalfWidth },
+      seats: {
+        positions: [
+          { x: -0.38, z: 0.35 },
+          { x: 0.38, z: 0.35 },
+          { x: -0.38, z: -0.8 },
+          { x: 0.38, z: -0.8 },
+        ],
+      },
+      beams: { reach: SUV_SPEC.headlightReach, lanes: [0] },
+      placement: {
+        surfaces: ["top"],
+        clearance: { halfX: 1, halfZ: 1, height: 2 },
+      },
+      chaseCamera: "near",
+      defaultPaint: "khaki",
+    });
+  });
+
+  it("reads the camper's tyre values from its spec (ADR 0089)", () => {
+    expect(CAMPER_TYRES).toEqual({
+      handbrakeGrip: CAMPER_SPEC.handbrakeGrip,
+      creepSpeed: CAMPER_SPEC.creepSpeed,
+    });
+  });
+
+  it("gives the sports boat its own values from ADR 0051", () => {
+    expect(SPORTSBOAT_MOTION).toStrictEqual({
+      maxSpeed: 1.12,
+      maxReverse: 0.2,
+      accel: 0.0225,
+      reverseAccel: 0.01125,
+      brake: 0.04,
+      drag: 0.02,
+      turnRate: 6,
+      steerFullSpeed: 0.08,
+      grip: 0.6,
+    });
+    expect(SPORTSBOAT_SPEC.creepSpeed).toBe(0.12);
+    expect("handbrakeGrip" in SPORTSBOAT_SPEC).toBe(false);
+    expect(SPORTSBOAT_PROFILE).toStrictEqual({
+      kind: "sportsboat",
+      fleetLimit: 1,
+      ram: { front: 3.0, halfWidth: 1.06 },
+      seats: {
+        positions: [
+          { x: -0.38, z: 0.35 },
+          { x: 0.38, z: 0.35 },
+          { x: -0.38, z: -0.8 },
+          { x: 0.38, z: -0.8 },
+        ],
+      },
+      beams: {
+        reach: Array.from({ length: 15 }, (_, i) => 4 * (i + 1)),
+        lanes: [-3, 3],
+      },
+      placement: {
+        surfaces: ["water", "top"],
+        clearance: { halfX: 1, halfZ: 1, height: 2 },
+      },
+      chaseCamera: "near",
+      defaultPaint: "black",
+    });
+    expect(profileOf("sportsboat")).toBe(SPORTSBOAT_PROFILE);
+  });
+
+  it("freezes every profile and motion limit so a write cannot change all vehicles of a kind", () => {
+    expect(Object.isFrozen(KINDS)).toBe(true);
+    expect(Object.isFrozen(SUV_TYRES)).toBe(true);
+    expect(Object.isFrozen(CAMPER_TYRES)).toBe(true);
+    expect(Object.isFrozen(SUV_MOTION)).toBe(true);
+    expect(Object.isFrozen(CAMPER_MOTION)).toBe(true);
+    expect(Object.isFrozen(SPORTSBOAT_MOTION)).toBe(true);
+    for (const kind of VEHICLE_KINDS) {
+      expect(Object.isFrozen(KINDS[kind])).toBe(true);
+      const profile = profileOf(kind);
+      for (const part of [
+        profile,
+        profile.ram,
+        profile.seats,
+        profile.beams,
+        profile.beams.reach,
+        profile.beams.lanes,
+        profile.placement,
+      ]) {
+        expect(Object.isFrozen(part)).toBe(true);
+      }
+    }
+  });
+
+  it("freezes the tuning tables, media and shared value objects so a write cannot change every vehicle", () => {
+    for (const table of [
+      SPEC,
+      MOTION,
+      STEP_LANES,
+      SUV_SPEC,
+      SUV_SPEC.headlightReach,
+      AIR,
+      WATER,
+      SUV_TRANSFORMING,
+      SUV_TRANSFORMING.air,
+      SUV_TRANSFORMING.water,
+      CAMPER_SPEC,
+      CAMPER_SPEC.headlightReach,
+      CAMPER_AIR,
+      CAMPER_WATER,
+      CAMPER_TRANSFORMING,
+      CAMPER_TRANSFORMING.air,
+      CAMPER_TRANSFORMING.water,
+      NEUTRAL_CONTROL,
+      EMPTY_COUNTER,
+    ]) {
+      expect(Object.isFrozen(table)).toBe(true);
+    }
+  });
+
+  it("recognizes exactly the registered kinds and preserves kind when creating or rebuilding", () => {
+    fc.assert(
+      fc.property(fc.anything(), (value) => {
+        expect(isVehicleKind(value)).toBe(
+          VEHICLE_KINDS.some((kind) => kind === value),
+        );
+      }),
+    );
+    fc.assert(
+      fc.property(fc.constantFrom(...VEHICLE_KINDS), yaw, (kind, heading) => {
+        expect(isVehicleKind(kind)).toBe(true);
+        expect(profileOf(kind)).toBe(
+          {
+            suv: SUV_PROFILE,
+            sportsboat: SPORTSBOAT_PROFILE,
+            camper: CAMPER_PROFILE,
+          }[kind],
+        );
+        expect(createVehicle(kind, asVehicleId("v"), heading).kind).toBe(kind);
+        expect(
+          rebuildVehicle(kind, asVehicleId("v"), heading, [], { form: "car" })
+            .kind,
+        ).toBe(kind);
+      }),
+    );
+  });
+
+  it("keeps speed inside the profile limits across arbitrary control sequences", () => {
+    fc.assert(
+      fc.property(
+        limits,
+        fc.array(input, { minLength: 1, maxLength: 200 }),
+        (motion, inputs) => {
+          let speed = 0;
+          for (const control of inputs) {
+            speed = updateSpeed(
+              speed,
+              control.throttle,
+              control.creep,
+              motion,
+              motion.creepSpeed,
+            );
+            expect(speed).toBeLessThanOrEqual(motion.maxSpeed);
+            expect(speed).toBeGreaterThanOrEqual(-motion.maxReverse);
+          }
+        },
+      ),
+    );
+  });
+
+  it("accelerates above the SUV maximum when the profile allows it", () => {
+    fc.assert(
+      fc.property(number(1, 4), number(0.001, 0.1), (maxSpeed, accel) => {
+        const motion = { ...SUV_MOTION, maxSpeed, accel };
+        expect(
+          updateSpeed(
+            SUV_SPEC.maxSpeed,
+            1,
+            false,
+            motion,
+            SUV_TYRES.creepSpeed,
+          ),
+        ).toBeGreaterThan(SUV_SPEC.maxSpeed);
+        expect(
+          updateSpeed(maxSpeed, 1, false, motion, SUV_TYRES.creepSpeed),
+        ).toBe(maxSpeed);
+      }),
+    );
+  });
+
+  it("caps flight speed and velocity at the smaller profile or medium maximum", () => {
+    fc.assert(
+      fc.property(
+        limits,
+        number(0.2, 5),
+        number(0.5, 1),
+        yaw,
+        input,
+        velocity,
+        (motion, mediumMax, drag, heading, control, v) => {
+          const maximum = Math.min(motion.maxSpeed, mediumMax);
+          const out = stepMediumMotion(
+            { ...initialMotion(heading), speed: motion.maxSpeed },
+            control,
+            v,
+            { drag, maxSpeed: mediumMax },
+            motion,
+            motion.creepSpeed,
+          );
+          expect(out.state.speed).toBeLessThanOrEqual(maximum);
+          expect(
+            Math.hypot(
+              (v.x + out.impulse.x) * drag,
+              (v.z + out.impulse.z) * drag,
+            ),
+          ).toBeLessThanOrEqual(maximum + 1e-9);
+          const full = stepMediumMotion(
+            { ...initialMotion(heading), speed: motion.maxSpeed },
+            { ...NEUTRAL_GROUND, throttle: 1 },
+            { x: 0, z: 0 },
+            { drag, maxSpeed: mediumMax },
+            motion,
+            motion.creepSpeed,
+          );
+          expect(full.state.speed).toBe(maximum);
+          expect(
+            Math.hypot(full.impulse.x * drag, full.impulse.z * drag),
+          ).toBeCloseTo(maximum, 10);
+        },
+      ),
+    );
+  });
+
+  it("uses profile steering and grip on the ground", () => {
+    fc.assert(
+      fc.property(
+        limits,
+        yaw,
+        throttle,
+        fc.boolean(),
+        (motion, heading, steer, handbrake) => {
+          const speed = motion.maxSpeed / 2;
+          const f = forward(heading);
+          const right = rightOf(f);
+          const v = { x: right.x * 0.1, z: right.z * 0.1 };
+          const out = stepMotion(
+            { ...initialMotion(heading), speed },
+            { ...NEUTRAL_GROUND, steer, handbrake },
+            { velocity: v, onGround: true },
+            () => 0,
+            motion,
+            motion,
+          );
+          const nextSpeed = Math.max(0, speed - motion.drag);
+          const turn =
+            steer *
+            motion.turnRate *
+            Math.min(1, nextSpeed / motion.steerFullSpeed);
+          expect(out.forward.x).toBeCloseTo(forward(heading - turn).x, 10);
+          expect(out.forward.z).toBeCloseTo(forward(heading - turn).z, 10);
+          const sideways = dot(v, rightOf(out.forward));
+          const given = {
+            x: (v.x + out.impulse.x) * MOTION.defaultFriction,
+            z: (v.z + out.impulse.z) * MOTION.defaultFriction,
+          };
+          expect(dot(given, rightOf(out.forward))).toBeCloseTo(
+            sideways * (1 - (handbrake ? motion.handbrakeGrip : motion.grip)),
+            10,
+          );
+        },
+      ),
+    );
+  });
+
+  it("places each beam lane sideways from its reach and deduplicates cells", () => {
+    const beams = fc.record({
+      reach: fc.array(number(0, 40), { maxLength: 8 }),
+      lanes: fc.array(number(-8, 8), { maxLength: 6 }),
+    });
+    const location = fc.record({
+      x: number(-100, 100),
+      y: number(-64, 300),
+      z: number(-100, 100),
+    });
+    fc.assert(
+      fc.property(beams, location, yaw, (pattern, at, heading) => {
+        const out = headlightCells(at, heading, pattern);
+        expect(out.length).toBeLessThanOrEqual(
+          pattern.reach.length * pattern.lanes.length,
+        );
+        expect(new Set(out.map(cellKey)).size).toBe(out.length);
+        const f = forward(heading);
+        const right = rightOf(f);
+        const expected = new Set<string>();
+        for (const reach of pattern.reach) {
+          for (const lane of pattern.lanes) {
+            const origin = {
+              x: at.x + f.x * reach,
+              y: at.y,
+              z: at.z + f.z * reach,
+            };
+            const shifted = {
+              x: origin.x + right.x * lane,
+              y: origin.y,
+              z: origin.z + right.z * lane,
+            };
+            const single = headlightCells(shifted, heading, {
+              reach: [0],
+              lanes: [0],
+            });
+            for (const cell of single) expected.add(cellKey(cell));
+          }
+        }
+        expect(new Set(out.map(cellKey))).toEqual(expected);
+      }),
+    );
+  });
+
+  it("hits just inside a longer body's reach and misses just outside", () => {
+    fc.assert(
+      fc.property(
+        number(2, 10),
+        number(0.1, 3),
+        number(0.0001, 0.05),
+        yaw,
+        fc.boolean(),
+        (front, halfWidth, gap, heading, reversing) => {
+          const f = forward(heading);
+          const direction = reversing ? -1 : 1;
+          const target = (id: string, ahead: number) => ({
+            id,
+            offset: {
+              x: f.x * ahead * direction,
+              y: 0,
+              z: f.z * ahead * direction,
+            },
+          });
+          const reach = front + SPEC.targetHalfWidth;
+          const targets = [
+            target("inside", reach - gap),
+            target("outside", reach + gap),
+          ];
+          expect(
+            selectHits(
+              f,
+              direction * SUV_SPEC.maxReverse,
+              targets,
+              new Map(),
+              0,
+              {
+                front,
+                halfWidth,
+              },
+            ).map((hit) => hit.id),
+          ).toEqual(["inside"]);
+          expect(
+            selectHits(
+              f,
+              direction * SUV_SPEC.maxReverse,
+              targets,
+              new Map(),
+              0,
+              SUV_PROFILE.ram,
+            ),
+          ).toEqual([]);
+        },
+      ),
+    );
+  });
+
+  it("hits just inside a body's half width and misses just outside", () => {
+    fc.assert(
+      fc.property(
+        number(2, 10),
+        number(0.1, 3),
+        number(0.0001, 0.05),
+        number(0.05, 0.95),
+        yaw,
+        fc.boolean(),
+        fc.boolean(),
+        (front, halfWidth, gap, aheadRatio, heading, reversing, leftSide) => {
+          const f = forward(heading);
+          const right = rightOf(f);
+          const direction = reversing ? -1 : 1;
+          const ahead = (front + SPEC.targetHalfWidth) * aheadRatio * direction;
+          const sign = leftSide ? -1 : 1;
+          const target = (id: string, side: number) => ({
+            id,
+            offset: {
+              x: f.x * ahead + right.x * side * sign,
+              y: 0,
+              z: f.z * ahead + right.z * side * sign,
+            },
+          });
+          const width = halfWidth + SPEC.targetHalfWidth;
+          const targets = [
+            target("inside", width - gap),
+            target("outside", width + gap),
+          ];
+          expect(
+            selectHits(
+              f,
+              direction * SUV_SPEC.maxReverse,
+              targets,
+              new Map(),
+              0,
+              {
+                front,
+                halfWidth,
+              },
+            ).map((hit) => hit.id),
+          ).toEqual(["inside"]);
+        },
+      ),
+    );
+  });
+
+  it("a wall hit never turns any profile's forward speed into reverse (ADR 0077)", () => {
+    // Pushed backward by the wall harder than the profile may reverse: before
+    // ADR 0077 the speed ended at the reverse limit, now it stops at 0.
+    const wallCase = fc
+      .tuple(limits, number(0, 1), number(0.01, 0.99))
+      .map(([motion, reverse, ratio]) => {
+        const maxSpeed = Math.max(motion.maxSpeed, motion.maxReverse + 0.1);
+        const maxReverse = motion.maxReverse * (0.1 + 0.9 * reverse);
+        const vLong = -(maxReverse + (maxSpeed - maxReverse) * ratio);
+        return { motion: { ...motion, maxSpeed, maxReverse }, vLong };
+      });
+    const pushed = { ...NEUTRAL_GROUND, throttle: 1 };
+    fc.assert(
+      fc.property(wallCase, yaw, ({ motion, vLong }, heading) => {
+        const f = forward(heading);
+        const aimed = {
+          x: f.x * motion.maxSpeed * 4,
+          z: f.z * motion.maxSpeed * 4,
+        };
+        const v = { x: f.x * vLong, z: f.z * vLong };
+        const start = { ...initialMotion(heading), speed: motion.maxSpeed };
+        const ground = stepMotion(
+          { ...start, expected: aimed },
+          pushed,
+          { velocity: v, onGround: true },
+          () => 0,
+          motion,
+          motion,
+        );
+        const flight = stepMediumMotion(
+          { ...start, mediumExpected: aimed },
+          pushed,
+          v,
+          { drag: 1, maxSpeed: 5 },
+          motion,
+          motion.creepSpeed,
+        );
+        for (const out of [ground, flight]) {
+          expect(out.blocked).toBe(true);
+          expect(out.state.speed).toBe(0);
+        }
+      }),
+    );
+  });
+
+  it("queries every profile's hit box including its far corners", () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom(...VEHICLE_KINDS),
+        yaw,
+        number(0, 1),
+        number(-1, 1),
+        number(0, 1),
+        fc.boolean(),
+        (kind, heading, aheadRatio, sideRatio, heightRatio, reverse) => {
+          const body = profileOf(kind).ram;
+          const f = forward(heading);
+          const right = rightOf(f);
+          const ahead =
+            (body.front + SPEC.targetHalfWidth) *
+            aheadRatio *
+            (reverse ? -1 : 1);
+          const side = (body.halfWidth + SPEC.targetHalfWidth) * sideRatio;
+          const y =
+            SPEC.ramMinDy + (SPEC.ramMaxDy - SPEC.ramMinDy) * heightRatio;
+          expect(
+            Math.hypot(
+              f.x * ahead + right.x * side,
+              y,
+              f.z * ahead + right.z * side,
+            ),
+          ).toBeLessThanOrEqual(RAM_QUERY_RADIUS + 1e-9);
+          expect(
+            Math.hypot(
+              body.front + SPEC.targetHalfWidth,
+              body.halfWidth + SPEC.targetHalfWidth,
+              Math.max(Math.abs(SPEC.ramMinDy), Math.abs(SPEC.ramMaxDy)),
+            ),
+          ).toBeLessThanOrEqual(RAM_QUERY_RADIUS);
+        },
+      ),
+    );
+  });
+
+  it("limits each player to one camper", () => {
+    expect(CAMPER_PROFILE.fleetLimit).toBe(1);
+  });
+
+  it("gives the camper a khaki default paint (ADR 0067, 0076)", () => {
+    expect(CAMPER_PROFILE.defaultPaint).toBe("khaki");
+  });
+
+  it("clears every cell the camper's body reaches at any facing", () => {
+    const { halfX, halfZ } = CAMPER_PROFILE.placement.clearance;
+    fc.assert(
+      fc.property(fc.double({ min: 0, max: 360, noNaN: true }), (yaw) => {
+        const f = forward(yaw);
+        const r = rightOf(f);
+        for (const ahead of [CAMPER_SPEC.bodyFront, -CAMPER_SPEC.bodyRear])
+          for (const side of [-1, 1].map(
+            (s) => s * CAMPER_SPEC.bodyHalfWidth,
+          )) {
+            // The camper spawns at the cell center, so cells -half..half span
+            // half + 0.5 blocks each way.
+            expect(Math.abs(f.x * ahead + r.x * side)).toBeLessThanOrEqual(
+              halfX + 0.5,
+            );
+            expect(Math.abs(f.z * ahead + r.z * side)).toBeLessThanOrEqual(
+              halfZ + 0.5,
+            );
+          }
+      }),
+    );
+  });
+});
+
+describe("vehicle hints (ADR 0086)", () => {
+  it("puts the camper's bumper hint on its hitboxes and its seat hint in the parked room", () => {
+    expect(CAMPER_PROFILE.hints).toEqual({
+      bumper: {
+        boxXs: CAMPER_SPEC.bumperBoxXs,
+        boxZ: CAMPER_SPEC.bodyFront,
+        boxHalf: CAMPER_SPEC.bumperBoxSize / 2,
+        bodyHalfWidth: CAMPER_SPEC.bodyHalfWidth,
+        reach: CAMPER_SPEC.bumperHintReach,
+        feet: CAMPER_SPEC.bumperHintFeet,
+      },
+      driverSeat: {
+        reach: CAMPER_SPEC.seatHintReach,
+        feet: CAMPER_SPEC.seatHintFeet,
+      },
+    });
+    expect(Object.isFrozen(CAMPER_PROFILE.hints)).toBe(true);
+  });
+
+  it("gives no hints to the kinds that take hits on their whole body", () => {
+    expect(SUV_PROFILE.hints).toBeUndefined();
+    expect(SPORTSBOAT_PROFILE.hints).toBeUndefined();
+    expect(createVehicle("suv", asVehicleId("v"), 0).showsHints).toBe(false);
+    expect(createVehicle("sportsboat", asVehicleId("v"), 0).showsHints).toBe(
+      false,
+    );
+    expect(createVehicle("camper", asVehicleId("v"), 0).showsHints).toBe(true);
+  });
+});

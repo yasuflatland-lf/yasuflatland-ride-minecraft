@@ -1,0 +1,14 @@
+{
+  "format_version": "1.21.80",
+  "minecraft:item": {
+    "description": {
+      "identifier": "yasu_ride:road_map",
+      "menu_category": { "category": "items" }
+    },
+    "components": {
+      "minecraft:icon": "yasu_ride_road_map",
+      "minecraft:max_stack_size": 64,
+      "minecraft:display_name": { "value": "item.yasu_ride:road_map.name" }
+    }
+  }
+}

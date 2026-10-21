@@ -1,0 +1,40 @@
+{
+  "format_version": "1.21.60",
+  "minecraft:crafting_items_catalog": {
+    "categories": [
+      {
+        "category_name": "items",
+        "groups": [
+          {
+            "group_identifier": {
+              "icon": "yasu_ride:camping_gear_box",
+              "name": "yasu_ride:camping_gear"
+            },
+            "items": [
+              "yasu_ride:camping_gear_box",
+              "yasu_ride:potted_plant",
+              "yasu_ride:macrame_planter",
+              "yasu_ride:cactus_pot",
+              "yasu_ride:percolator",
+              "yasu_ride:enamel_kettle",
+              "yasu_ride:saucepan",
+              "yasu_ride:mug_pair",
+              "yasu_ride:sugar_pot",
+              "yasu_ride:fruit_bowl",
+              "yasu_ride:toaster",
+              "yasu_ride:oil_lamp",
+              "yasu_ride:lava_lamp",
+              "yasu_ride:transistor_radio",
+              "yasu_ride:book_stack",
+              "yasu_ride:road_map",
+              "yasu_ride:photo_frame",
+              "yasu_ride:cushion",
+              "yasu_ride:tissue_box",
+              "yasu_ride:desk_fan"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -2,14 +2,14 @@
 import { SPEC } from "./spec";
 
 export interface HitCounter {
-  count: number;
-  lastTick: number;
+  readonly count: number;
+  readonly lastTick: number;
 }
 
-export const EMPTY_COUNTER: HitCounter = {
+export const EMPTY_COUNTER: HitCounter = Object.freeze({
   count: 0,
   lastTick: Number.NEGATIVE_INFINITY,
-};
+});
 
 export function registerHit(
   counter: HitCounter,

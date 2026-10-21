@@ -1,0 +1,1060 @@
+import {
+  type BlockCustomComponent,
+  type EntityHitEntityAfterEvent,
+  type EntityLoadAfterEvent,
+  type EntitySpawnAfterEvent,
+  type ItemUseAfterEvent,
+  Player,
+  type PlayerInteractWithBlockBeforeEvent,
+  type PlayerInteractWithEntityBeforeEvent,
+  type PlayerSpawnAfterEvent,
+  type ScriptEventCommandMessageAfterEvent,
+  type StartupEvent,
+  system,
+  world,
+} from "@minecraft/server";
+import fc from "fast-check";
+import { beforeEach, expect, it, vi } from "vitest";
+import { PlaceVehicle } from "../../../../src/application/vehicle/placeVehicle";
+import type { PlacementWorld } from "../../../../src/application/vehicle/ports/placement";
+import { asVehicleId, type VehicleId } from "../../../../src/domain/shared/ids";
+import { SPEC } from "../../../../src/domain/vehicle/spec";
+import type { VehicleRepository } from "../../../../src/domain/vehicle/vehicleRepository";
+import {
+  CAMPER_BED_COMPONENT,
+  CAMPER_DECOR_COMPONENT,
+  CAMPER_DOOR_COMPONENT,
+  CAMPER_FLOOR_BLOCK,
+  CAMPER_WALL_BLOCK,
+  DECK_FLOOR_BLOCK,
+  DECK_SEAT_OF_PROPERTY,
+  DECK_SEAT_TYPE,
+  decorBlockId,
+  ENTITY_TYPE,
+  GIFT_ITEM,
+  HEADLIGHT_SWITCH_TYPE,
+  ITEM_TYPE,
+  OWNER_PROPERTY,
+  PAINT_BY_DYE,
+  TEST_DECOR_EVENT,
+  TEST_INPUT_EVENT,
+} from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
+import { registerSubscriptions } from "../../../../src/infrastructure/vehicle/bedrock/subscriptions";
+import { TestInputStore } from "../../../../src/infrastructure/vehicle/testInput/testInputStore";
+import { defined } from "../../../support/defined";
+
+const game = vi.hoisted(() => ({
+  before:
+    vi.fn<
+      (handler: (ev: PlayerInteractWithBlockBeforeEvent) => void) => void
+    >(),
+  use: vi.fn<(handler: (ev: ItemUseAfterEvent) => void) => void>(),
+  run: vi.fn<(callback: () => void) => void>(),
+  startup: vi.fn<(handler: (ev: StartupEvent) => void) => void>(),
+  currentTick: 10,
+}));
+vi.mock("@minecraft/server", () => {
+  const signal = () => ({ subscribe: vi.fn() });
+  return {
+    Direction: {
+      Up: "Up",
+      Down: "Down",
+      North: "North",
+      South: "South",
+      East: "East",
+      West: "West",
+    },
+    EntityInitializationCause: { Loaded: "Loaded", Spawned: "Spawned" },
+    ScriptEventSource: { Server: "Server", Entity: "Entity" },
+    Player: class {},
+    system: {
+      get currentTick() {
+        return game.currentTick;
+      },
+      run: game.run,
+      runInterval: vi.fn(),
+      beforeEvents: { startup: { subscribe: game.startup } },
+      afterEvents: { scriptEventReceive: signal() },
+    },
+    world: {
+      beforeEvents: {
+        playerInteractWithBlock: { subscribe: game.before },
+        playerInteractWithEntity: signal(),
+      },
+      afterEvents: {
+        itemUse: { subscribe: game.use },
+        entityLoad: signal(),
+        entitySpawn: signal(),
+        playerSpawn: signal(),
+        entityHitEntity: signal(),
+      },
+    },
+  };
+});
+
+const FACES = ["Up", "Down", "North", "South", "East", "West"] as const;
+type At = { x: number; y: number; z: number };
+
+// The clicked block sits at y 5 with `depth` water cells above it at every x/z,
+// unless `water` says otherwise. The view ray hits the water cell at y 7.
+function fixture(
+  typeId = ITEM_TYPE.sportsboat,
+  depth = 3,
+  water = (at: At) => at.y > 5 && at.y <= 5 + depth,
+) {
+  const dimension = {
+    id: "overworld",
+    getBlock: vi.fn((at: At) => ({
+      typeId: water(at) ? "minecraft:water" : "minecraft:air",
+      isWaterlogged: false,
+    })),
+  };
+  const block = { dimension, location: { x: 2, y: 5, z: 3 } };
+  const rayBlock = { dimension, location: { x: 2, y: 7, z: 3 } };
+  const player = {
+    id: "player",
+    selectedSlotIndex: 2,
+    getRotation: () => ({ y: -90 }),
+    getBlockFromViewDirection: vi.fn<
+      () => { block: typeof block; face: string } | undefined
+    >(() => ({ block: rayBlock, face: "Up" })),
+    getComponent: (name: string) =>
+      name === "minecraft:riding"
+        ? { entityRidingOn: { id: "vehicle", typeId: ENTITY_TYPE.suv } }
+        : undefined,
+  };
+  const waterDimensions: string[] = [];
+  const notUsed = (): never => {
+    throw new Error("not used by cellFor or placesOnWater");
+  };
+  const placementWorld: PlacementWorld = {
+    isAir: notUsed,
+    isCreative: notUsed,
+    isWaterAt: (dimensionId, at) => {
+      waterDimensions.push(dimensionId);
+      return water(at);
+    },
+    spawnVehicle: notUsed,
+    consumeVehicleItem: notUsed,
+    receivedGift: notUsed,
+    giveGift: notUsed,
+    markGiftReceived: notUsed,
+  };
+  // cellFor and placesOnWater never touch the repository.
+  const placement = new PlaceVehicle(placementWorld, {} as VehicleRepository);
+  const place = {
+    execute: vi.fn(),
+    cellFor: placement.cellFor.bind(placement),
+    placesOnWater: placement.placesOnWater.bind(placement),
+  };
+  const headlights = { execute: vi.fn() };
+  const usesBefore = game.use.mock.calls.length;
+  registerSubscriptions(
+    { place, headlights } as unknown as Parameters<
+      typeof registerSubscriptions
+    >[0],
+    new TestInputStore(),
+    () => undefined,
+    () => undefined,
+  );
+  const before = game.before.mock.calls.at(-1)?.[0];
+  const uses = game.use.mock.calls
+    .slice(usesBefore)
+    .map(([handler]) => handler);
+  if (!before || uses.length !== 3) throw new Error("subscriptions missing");
+  game.run.mockClear();
+  const event = {
+    isFirstEvent: true,
+    itemStack: { typeId },
+    blockFace: "Up",
+    cancel: false,
+    block,
+    player,
+  };
+  return {
+    event,
+    player,
+    place,
+    headlights,
+    uses,
+    waterDimensions,
+    dimension,
+    interact: () =>
+      before(event as unknown as PlayerInteractWithBlockBeforeEvent),
+    use: () => {
+      const ev = {
+        itemStack: { typeId },
+        source: player,
+      } as unknown as ItemUseAfterEvent;
+      for (const handler of uses) handler(ev);
+    },
+    // system.run callbacks run on the next tick.
+    nextTick: () => {
+      game.currentTick++;
+      for (const [callback] of game.run.mock.calls) callback();
+      game.run.mockClear();
+    },
+  };
+}
+
+const boatAt = (blockLocation: At) => ({
+  kind: "sportsboat",
+  playerId: "player",
+  dimensionId: "overworld",
+  blockLocation,
+  yaw: -90,
+  slot: 2,
+});
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  game.currentTick = 10;
+});
+
+it("places the boat at the water surface on the next tick from the bed's top face, and not from a dry side or bottom face", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom(...FACES),
+      fc.integer({ min: 0, max: 16 }),
+      (face, depth) => {
+        const f = fixture(ITEM_TYPE.sportsboat, depth);
+        f.event.blockFace = face;
+        f.interact();
+        expect(new Set(f.waterDimensions)).toEqual(new Set(["overworld"]));
+        expect(f.event.cancel).toBe(face === "Up");
+        expect(f.place.execute).not.toHaveBeenCalled();
+        f.nextTick();
+        if (face === "Up")
+          expect(f.place.execute).toHaveBeenCalledExactlyOnceWith(
+            boatAt({ x: 2, y: 5 + depth, z: 3 }),
+          );
+        else expect(f.place.execute).not.toHaveBeenCalled();
+      },
+    ),
+  );
+});
+
+it("places the boat on the water beside a shore whose side is clicked", () => {
+  // Water fills x 3 from y 4 to y 6, beside the clicked block's east face.
+  const f = fixture(
+    ITEM_TYPE.sportsboat,
+    0,
+    (at) => at.x === 3 && at.y >= 4 && at.y <= 6,
+  );
+  f.event.blockFace = "East";
+  f.interact();
+  expect(f.event.cancel).toBe(true);
+  f.nextTick();
+  expect(f.place.execute).toHaveBeenCalledExactlyOnceWith(
+    boatAt({ x: 3, y: 6, z: 3 }),
+  );
+});
+
+it("keeps SUV placement restricted to first events on the top face without climbing", () => {
+  fc.assert(
+    fc.property(fc.constantFrom(...FACES), fc.boolean(), (face, first) => {
+      const f = fixture(ITEM_TYPE.suv);
+      f.event.blockFace = face;
+      f.event.isFirstEvent = first;
+      f.interact();
+      f.use();
+      f.nextTick();
+      expect(f.event.cancel).toBe(first && face === "Up");
+      expect(f.place.execute).toHaveBeenCalledTimes(
+        first && face === "Up" ? 1 : 0,
+      );
+      if (first && face === "Up")
+        expect(f.place.execute.mock.calls[0]?.[0].blockLocation).toEqual({
+          x: 2,
+          y: 5,
+          z: 3,
+        });
+      expect(f.player.getBlockFromViewDirection).not.toHaveBeenCalled();
+    }),
+  );
+});
+
+it("places one boat when one tap fires both the interaction and itemUse in the same tick", () => {
+  fc.assert(
+    fc.property(fc.boolean(), (interactFirst) => {
+      const f = fixture();
+      if (interactFirst) {
+        f.interact();
+        f.use();
+      } else {
+        f.use();
+        f.interact();
+      }
+      f.use();
+      f.nextTick();
+      expect(f.place.execute).toHaveBeenCalledExactlyOnceWith(
+        boatAt({ x: 2, y: 8, z: 3 }),
+      );
+      expect(f.player.getBlockFromViewDirection).toHaveBeenCalledWith({
+        includeLiquidBlocks: true,
+        includePassableBlocks: true,
+        maxDistance: 12,
+      });
+      f.player.id = "other";
+      f.use();
+      expect(f.place.execute).toHaveBeenCalledTimes(2);
+      f.nextTick();
+      f.use();
+      expect(f.place.execute).toHaveBeenCalledTimes(3);
+    }),
+  );
+});
+
+it("ignores a repeated boat interaction", () => {
+  const f = fixture();
+  f.event.isFirstEvent = false;
+  f.interact();
+  f.nextTick();
+  expect(f.event.cancel).toBe(false);
+  expect(f.place.execute).not.toHaveBeenCalled();
+});
+
+it("places nothing from an itemUse ray that misses or hits land, and leaves that tick's request to the interaction", () => {
+  fc.assert(
+    fc.property(fc.boolean(), (miss) => {
+      const f = fixture();
+      f.player.getBlockFromViewDirection.mockReturnValue(
+        miss
+          ? undefined
+          : {
+              block: { ...f.event.block, location: { x: 2, y: 2, z: 3 } },
+              face: "Up",
+            },
+      );
+      f.use();
+      expect(f.place.execute).not.toHaveBeenCalled();
+      f.interact();
+      f.nextTick();
+      expect(f.place.execute).toHaveBeenCalledExactlyOnceWith(
+        boatAt({ x: 2, y: 8, z: 3 }),
+      );
+    }),
+  );
+});
+
+it("limits deferred placement and itemUse to one placement on their execution tick", () => {
+  fc.assert(
+    fc.property(fc.boolean(), (flushFirst) => {
+      const f = fixture();
+      f.interact();
+      if (flushFirst) {
+        f.nextTick();
+        f.use();
+      } else {
+        game.currentTick++;
+        f.use();
+        game.currentTick--;
+        f.nextTick();
+      }
+      expect(f.place.execute).toHaveBeenCalledTimes(1);
+    }),
+  );
+});
+
+it("routes itemUse to placement or headlights by item, in either subscriber order", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom(
+        ITEM_TYPE.suv,
+        ITEM_TYPE.sportsboat,
+        ITEM_TYPE.camper,
+        HEADLIGHT_SWITCH_TYPE,
+        "minecraft:stick",
+      ),
+      fc.boolean(),
+      (typeId, reversed) => {
+        const f = fixture(typeId);
+        const ev = {
+          itemStack: { typeId },
+          source: f.player,
+        } as unknown as ItemUseAfterEvent;
+        for (const handler of reversed ? [...f.uses].reverse() : f.uses)
+          handler(ev);
+        if (typeId === HEADLIGHT_SWITCH_TYPE)
+          expect(f.headlights.execute).toHaveBeenCalledExactlyOnceWith({
+            playerId: "player",
+            vehicleId: "vehicle",
+          });
+        else expect(f.headlights.execute).not.toHaveBeenCalled();
+        if (typeId === ITEM_TYPE.sportsboat)
+          expect(f.place.execute).toHaveBeenCalledExactlyOnceWith(
+            boatAt({ x: 2, y: 8, z: 3 }),
+          );
+        else expect(f.place.execute).not.toHaveBeenCalled();
+        expect(f.player.getBlockFromViewDirection).toHaveBeenCalledTimes(
+          typeId === ITEM_TYPE.sportsboat ? 1 : 0,
+        );
+      },
+    ),
+  );
+});
+
+it("leaves the headlights alone when the switch is used without riding a vehicle", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom(undefined, { id: "pig", typeId: "minecraft:pig" }),
+      (mount) => {
+        const f = fixture(HEADLIGHT_SWITCH_TYPE);
+        f.player.getComponent = (name: string) =>
+          name === "minecraft:riding" && mount
+            ? { entityRidingOn: mount }
+            : undefined;
+        f.use();
+        expect(f.headlights.execute).not.toHaveBeenCalled();
+      },
+    ),
+  );
+});
+
+it("paints a hit vehicle with a held dye and otherwise damages it, ignoring other hits", () => {
+  const hit = { execute: vi.fn() };
+  const paint = { execute: vi.fn() };
+  registerSubscriptions(
+    { hit, paint } as unknown as Parameters<typeof registerSubscriptions>[0],
+    new TestInputStore(),
+    () => undefined,
+    () => undefined,
+  );
+  const onHit = vi
+    .mocked(world.afterEvents.entityHitEntity.subscribe)
+    .mock.calls.at(-1)?.[0];
+  if (!onHit) throw new Error("entityHitEntity not subscribed");
+  const [dye, dyePaint] = defined(
+    Object.entries(PAINT_BY_DYE)[0],
+    "a dye paint",
+  );
+  let held: string | undefined = dye;
+  const player = Object.assign(Object.create(Player.prototype) as object, {
+    id: "player",
+    selectedSlotIndex: 0,
+    location: { x: 0.5, y: 64, z: 0.5 },
+    dimension: { getBlock: () => ({ typeId: "minecraft:stone" }) },
+    getComponent: () => ({
+      container: { getItem: () => (held ? { typeId: held } : undefined) },
+    }),
+  });
+  const vehicle = { id: "vehicle", typeId: ENTITY_TYPE.suv };
+  const send = (damagingEntity: unknown, hitEntity = vehicle) =>
+    onHit({
+      damagingEntity,
+      hitEntity,
+    } as unknown as EntityHitEntityAfterEvent);
+  send(player, { id: "cow", typeId: "minecraft:cow" });
+  send({ id: "zombie" });
+  expect(paint.execute).not.toHaveBeenCalled();
+  expect(hit.execute).not.toHaveBeenCalled();
+  send(player);
+  expect(paint.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId: "player",
+    vehicleId: "vehicle",
+    paint: dyePaint,
+  });
+  expect(hit.execute).not.toHaveBeenCalled();
+  held = undefined;
+  send(player);
+  expect(hit.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId: "player",
+    vehicleId: "vehicle",
+    fromDeck: false,
+  });
+  expect(paint.execute).toHaveBeenCalledOnce();
+});
+
+it("switches the headlights of the ridden vehicle when its rider interacts with it holding the switch", () => {
+  const f = fixture(HEADLIGHT_SWITCH_TYPE);
+  const interact = vi
+    .mocked(world.beforeEvents.playerInteractWithEntity.subscribe)
+    .mock.calls.at(-1)?.[0];
+  if (!interact) throw new Error("playerInteractWithEntity not subscribed");
+  const send = (
+    typeId: string | undefined,
+    target: { id: string; typeId: string },
+  ) => {
+    const ev = {
+      player: f.player,
+      target,
+      itemStack: typeId ? { typeId } : undefined,
+      cancel: false,
+    };
+    interact(ev as unknown as PlayerInteractWithEntityBeforeEvent);
+    return ev.cancel;
+  };
+  const ridden = { id: "vehicle", typeId: ENTITY_TYPE.suv };
+  expect(
+    send(HEADLIGHT_SWITCH_TYPE, { id: "cow", typeId: "minecraft:cow" }),
+  ).toBe(false);
+  expect(
+    send(HEADLIGHT_SWITCH_TYPE, { id: "other", typeId: ENTITY_TYPE.suv }),
+  ).toBe(false);
+  expect(send(undefined, ridden)).toBe(false);
+  expect(send("minecraft:stick", ridden)).toBe(false);
+  expect(game.run).not.toHaveBeenCalled();
+  expect(send(HEADLIGHT_SWITCH_TYPE, ridden)).toBe(true);
+  expect(f.headlights.execute).not.toHaveBeenCalled();
+  f.nextTick();
+  expect(f.headlights.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId: "player",
+    vehicleId: "vehicle",
+  });
+});
+
+it("removes an orphan deck seat that loads with a chunk, but not one that is just spawned", () => {
+  const limit = { start: vi.fn(), found: vi.fn(), spawned: vi.fn() };
+  registerSubscriptions(
+    { limit } as unknown as Parameters<typeof registerSubscriptions>[0],
+    new TestInputStore(),
+    () => undefined,
+    () => undefined,
+  );
+  const spawn = vi
+    .mocked(world.afterEvents.entitySpawn.subscribe)
+    .mock.calls.at(-1)?.[0];
+  if (!spawn) throw new Error("entitySpawn not subscribed");
+  const seat = () => ({
+    typeId: DECK_SEAT_TYPE,
+    isValid: true,
+    location: { x: 0, y: 0, z: 0 },
+    dimension: { getEntities: () => [] },
+    getDynamicProperty: (key: string) =>
+      key === DECK_SEAT_OF_PROPERTY ? "gone" : undefined,
+    remove: vi.fn(),
+  });
+  const loaded = seat();
+  const spawned = seat();
+  spawn({
+    entity: loaded,
+    cause: "Loaded",
+  } as unknown as EntitySpawnAfterEvent);
+  spawn({
+    entity: spawned,
+    cause: "Spawned",
+  } as unknown as EntitySpawnAfterEvent);
+  expect(loaded.remove).toHaveBeenCalledOnce();
+  expect(spawned.remove).not.toHaveBeenCalled();
+  expect(limit.found).not.toHaveBeenCalled();
+  expect(limit.spawned).not.toHaveBeenCalled();
+});
+
+it("passes fleet metadata on spawn and load and skips invalid or unrelated entities", () => {
+  const limit = { start: vi.fn(), found: vi.fn(), spawned: vi.fn() };
+  registerSubscriptions(
+    { limit } as unknown as Parameters<typeof registerSubscriptions>[0],
+    new TestInputStore(),
+    () => undefined,
+    () => undefined,
+  );
+  const spawn = vi
+    .mocked(world.afterEvents.entitySpawn.subscribe)
+    .mock.calls.at(-1)?.[0];
+  const load = vi
+    .mocked(world.afterEvents.entityLoad.subscribe)
+    .mock.calls.at(-1)?.[0];
+  if (!spawn || !load) throw new Error("fleet events not subscribed");
+  const entity = {
+    id: "boat",
+    typeId: ENTITY_TYPE.sportsboat,
+    isValid: true,
+    getDynamicProperty: (key: string) =>
+      key === OWNER_PROPERTY ? "player" : undefined,
+  };
+  const entry = { id: "boat", kind: "sportsboat", owner: "player" };
+  spawn({ entity, cause: "Spawned" } as unknown as EntitySpawnAfterEvent);
+  expect(limit.spawned).toHaveBeenCalledExactlyOnceWith(entry);
+  spawn({ entity, cause: "Loaded" } as unknown as EntitySpawnAfterEvent);
+  load({ entity } as unknown as EntityLoadAfterEvent);
+  expect(limit.found.mock.calls).toEqual([[[entry]], [[entry]]]);
+  for (const skipped of [
+    { ...entity, isValid: false },
+    { ...entity, typeId: "minecraft:cow" },
+  ]) {
+    spawn({
+      entity: skipped,
+      cause: "Spawned",
+    } as unknown as EntitySpawnAfterEvent);
+    load({ entity: skipped } as unknown as EntityLoadAfterEvent);
+  }
+  expect(limit.spawned).toHaveBeenCalledTimes(1);
+  expect(limit.found).toHaveBeenCalledTimes(2);
+});
+
+it("registers door interactions during startup and dispatches only owned doors", () => {
+  const door = { execute: vi.fn() };
+  const owner =
+    vi.fn<(dimensionId: string, cell: At) => VehicleId | undefined>();
+  registerSubscriptions(
+    { door } as unknown as Parameters<typeof registerSubscriptions>[0],
+    new TestInputStore(),
+    owner,
+    () => undefined,
+  );
+  const startup = game.startup.mock.calls.at(-1)?.[0];
+  if (!startup) throw new Error("startup not subscribed synchronously");
+  const registerCustomComponent =
+    vi.fn<(name: string, component: BlockCustomComponent) => void>();
+  startup({
+    blockComponentRegistry: { registerCustomComponent },
+  } as unknown as StartupEvent);
+  expect(registerCustomComponent.mock.calls[0]?.[0]).toBe(
+    CAMPER_DOOR_COMPONENT,
+  );
+  const interact = registerCustomComponent.mock.calls[0]?.[1].onPlayerInteract;
+  if (!interact) throw new Error("door interaction missing");
+  const cell = { x: 1, y: 64, z: 2 };
+  const event = {
+    dimension: { id: "overworld" },
+    block: { location: cell },
+  } as Parameters<typeof interact>[0];
+  interact(event, { params: undefined });
+  expect(owner).toHaveBeenCalledExactlyOnceWith("overworld", cell);
+  expect(door.execute).not.toHaveBeenCalled();
+  owner.mockReturnValue(asVehicleId("camper"));
+  interact(event, { params: undefined });
+  expect(door.execute).toHaveBeenCalledExactlyOnceWith({ vehicleId: "camper" });
+});
+
+it("registers bed interactions during startup and passes the player, dimension, and cell (ADR 0092)", () => {
+  const before = game.startup.mock.calls.length;
+  const bed = { execute: vi.fn() };
+  registerSubscriptions(
+    { bed } as unknown as Parameters<typeof registerSubscriptions>[0],
+    new TestInputStore(),
+    vi.fn(),
+    () => undefined,
+  );
+  const registerCustomComponent =
+    vi.fn<(name: string, component: BlockCustomComponent) => void>();
+  for (const [startup] of game.startup.mock.calls.slice(before)) {
+    startup({
+      blockComponentRegistry: { registerCustomComponent },
+    } as unknown as StartupEvent);
+  }
+  const interact = registerCustomComponent.mock.calls.find(
+    ([name]) => name === CAMPER_BED_COMPONENT,
+  )?.[1].onPlayerInteract;
+  if (!interact) throw new Error("bed interaction missing");
+  const cell = { x: 1, y: 65, z: 2 };
+  interact(
+    {
+      dimension: { id: "minecraft:overworld" },
+      block: { location: cell },
+      player: { id: "p" },
+    } as Parameters<typeof interact>[0],
+    { params: undefined },
+  );
+  expect(bed.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId: "p",
+    dimensionId: "minecraft:overworld",
+    cell,
+  });
+  bed.execute.mockClear();
+  interact(
+    {
+      dimension: { id: "minecraft:overworld" },
+      block: { location: cell },
+    } as Parameters<typeof interact>[0],
+    { params: undefined },
+  );
+  expect(bed.execute).not.toHaveBeenCalled();
+});
+
+it("checks the hints every hint interval, after the drive on the same tick (ADR 0086)", () => {
+  const drive = { execute: vi.fn() };
+  const hints = { execute: vi.fn() };
+  registerSubscriptions(
+    { drive, hints } as unknown as Parameters<typeof registerSubscriptions>[0],
+    new TestInputStore(),
+    () => undefined,
+    () => undefined,
+  );
+  const intervals = vi.mocked(system.runInterval).mock.calls;
+  expect(intervals.map(([, ticks]) => ticks)).toEqual([
+    1,
+    SPEC.hintCheckInterval,
+  ]);
+  for (const [callback] of intervals) callback();
+  expect(drive.execute).toHaveBeenCalledWith(game.currentTick);
+  expect(hints.execute).toHaveBeenCalledOnce();
+  expect(drive.execute.mock.invocationCallOrder[0]).toBeLessThan(
+    defined(hints.execute.mock.invocationCallOrder[0], "hints call"),
+  );
+});
+
+it("gives the starter vehicle only on a player's initial spawn", () => {
+  const starter = { execute: vi.fn() };
+  registerSubscriptions(
+    { starter } as unknown as Parameters<typeof registerSubscriptions>[0],
+    new TestInputStore(),
+    () => undefined,
+    () => undefined,
+  );
+  const spawn = vi
+    .mocked(world.afterEvents.playerSpawn.subscribe)
+    .mock.calls.at(-1)?.[0];
+  if (!spawn) throw new Error("playerSpawn not subscribed");
+  const player = { id: "player" };
+  spawn({ player, initialSpawn: false } as unknown as PlayerSpawnAfterEvent);
+  expect(starter.execute).not.toHaveBeenCalled();
+  spawn({ player, initialSpawn: true } as unknown as PlayerSpawnAfterEvent);
+  expect(starter.execute).toHaveBeenCalledExactlyOnceWith("player");
+});
+
+it("stores and clears test input only from server script events", () => {
+  const inputs = new TestInputStore();
+  registerSubscriptions(
+    {} as unknown as Parameters<typeof registerSubscriptions>[0],
+    inputs,
+    () => undefined,
+    () => undefined,
+  );
+  const receive = vi
+    .mocked(system.afterEvents.scriptEventReceive.subscribe)
+    .mock.calls.at(-1)?.[0];
+  if (!receive) throw new Error("scriptEventReceive not subscribed");
+  const send = (
+    message: string,
+    sourceType = "Server",
+    id = TEST_INPUT_EVENT,
+  ) =>
+    receive({
+      id,
+      message,
+      sourceType,
+    } as unknown as ScriptEventCommandMessageAfterEvent);
+  send("suv,1,0,1", "Entity");
+  send("suv,1,0,1", "Server", "minecraft:other");
+  expect(inputs.get(asVehicleId("suv"))).toBeUndefined();
+  send("suv,1,-1,1");
+  expect(inputs.get(asVehicleId("suv"))).toEqual({
+    moveX: 1,
+    moveY: -1,
+    jump: true,
+  });
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+  send("suv,bad");
+  expect(warn).toHaveBeenCalledOnce();
+  warn.mockRestore();
+  expect(inputs.get(asVehicleId("suv"))).toEqual({
+    moveX: 1,
+    moveY: -1,
+    jump: true,
+  });
+  send("suv,clear");
+  expect(inputs.get(asVehicleId("suv"))).toBeUndefined();
+});
+
+it("sets decor only from server test decor script events (ADR 0093)", () => {
+  const decor = { execute: vi.fn() };
+  registerSubscriptions(
+    { decor } as unknown as Parameters<typeof registerSubscriptions>[0],
+    new TestInputStore(),
+    () => undefined,
+    () => undefined,
+  );
+  const receive = vi
+    .mocked(system.afterEvents.scriptEventReceive.subscribe)
+    .mock.calls.at(-2)?.[0];
+  if (!receive) throw new Error("scriptEventReceive not subscribed");
+  const send = (
+    message: string,
+    sourceType = "Server",
+    id = TEST_DECOR_EVENT,
+  ) =>
+    receive({
+      id,
+      message,
+      sourceType,
+    } as unknown as ScriptEventCommandMessageAfterEvent);
+  send("car,table,potted_plant", "Entity");
+  send("car,table,potted_plant", "Server", "minecraft:other");
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+  send("car,bad");
+  expect(warn).toHaveBeenCalledOnce();
+  warn.mockRestore();
+  expect(decor.execute).not.toHaveBeenCalled();
+  send("car,table,potted_plant");
+  expect(decor.execute).toHaveBeenCalledExactlyOnceWith({
+    vehicleId: "car",
+    slot: "table",
+    item: "potted_plant",
+  });
+  send("car,table,clear");
+  expect(decor.execute).toHaveBeenLastCalledWith({
+    vehicleId: "car",
+    slot: "table",
+    item: undefined,
+  });
+});
+
+function decorFixture() {
+  const placeDecor = { execute: vi.fn() };
+  const removeDecor = { execute: vi.fn() };
+  const floor = { execute: vi.fn() };
+  const owner = vi.fn<(dimensionId: string, cell: At) => VehicleId | undefined>(
+    () => asVehicleId("car"),
+  );
+  const before = game.before.mock.calls.length;
+  const startupsBefore = game.startup.mock.calls.length;
+  registerSubscriptions(
+    { placeDecor, removeDecor, floor } as unknown as Parameters<
+      typeof registerSubscriptions
+    >[0],
+    new TestInputStore(),
+    () => undefined,
+    owner,
+  );
+  // registerDecor subscribes first.
+  const handler = defined(game.before.mock.calls[before], "decor handler")[0];
+  game.run.mockClear();
+  const event = (overrides: Record<string, unknown> = {}) => ({
+    isFirstEvent: true,
+    cancel: false,
+    itemStack: { typeId: "yasu_ride:percolator" },
+    block: {
+      typeId: CAMPER_FLOOR_BLOCK,
+      location: { x: 1, y: 64, z: 2 },
+      dimension: { id: "minecraft:overworld" },
+    },
+    faceLocation: { x: 0.25, y: 1, z: 0.5 },
+    player: {
+      id: "p",
+      selectedSlotIndex: 4,
+      location: { x: 1.5, y: 65, z: 2.5 },
+    },
+    ...overrides,
+  });
+  const send = (ev: ReturnType<typeof event>) => {
+    handler(ev as unknown as PlayerInteractWithBlockBeforeEvent);
+    return ev;
+  };
+  return { placeDecor, removeDecor, floor, owner, startupsBefore, event, send };
+}
+
+it("places held camping gear on a camper room or decor block on the next tick and cancels every repeat (ADR 0093)", () => {
+  for (const typeId of [CAMPER_FLOOR_BLOCK, decorBlockId("percolator")]) {
+    const { placeDecor, owner, event, send } = decorFixture();
+    const ev = event();
+    ev.block = { ...ev.block, typeId };
+    expect(send(ev).cancel).toBe(true);
+    expect(owner).toHaveBeenCalledExactlyOnceWith("minecraft:overworld", {
+      x: 1,
+      y: 64,
+      z: 2,
+    });
+    expect(placeDecor.execute).not.toHaveBeenCalled();
+    for (const [callback] of game.run.mock.calls) callback();
+    expect(placeDecor.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId: "p",
+      vehicleId: "car",
+      item: "percolator",
+      point: { x: 1.25, y: 65, z: 2.5 },
+      hotbarSlot: 4,
+    });
+    game.run.mockClear();
+    const repeat = event({ isFirstEvent: false });
+    repeat.block = { ...repeat.block, typeId };
+    expect(send(repeat).cancel).toBe(true);
+    expect(game.run).not.toHaveBeenCalled();
+  }
+});
+
+it("leaves other items, other blocks, and cells no camper laid alone", () => {
+  const cases: ((f: ReturnType<typeof decorFixture>) => {
+    cancel: boolean;
+  })[] = [
+    (f) => f.send(f.event({ itemStack: { typeId: "minecraft:stone" } })),
+    (f) => {
+      const ev = f.event();
+      ev.block = { ...ev.block, typeId: DECK_FLOOR_BLOCK };
+      return f.send(ev);
+    },
+    (f) => {
+      const ev = f.event({ itemStack: undefined });
+      ev.block = { ...ev.block, typeId: CAMPER_WALL_BLOCK };
+      return f.send(ev);
+    },
+    (f) => {
+      f.owner.mockReturnValue(undefined);
+      return f.send(f.event());
+    },
+  ];
+  for (const run of cases) {
+    const f = decorFixture();
+    expect(run(f).cancel).toBe(false);
+    expect(game.run).not.toHaveBeenCalled();
+  }
+});
+
+it("taps the camper floor with an empty hand on the next tick without cancelling (ADR 0094)", () => {
+  const { placeDecor, floor, owner, event, send } = decorFixture();
+  const tap = event({ itemStack: undefined });
+  expect(send(tap).cancel).toBe(false);
+  expect(owner).not.toHaveBeenCalled();
+  expect(floor.execute).not.toHaveBeenCalled();
+  for (const [callback] of game.run.mock.calls) callback();
+  expect(floor.execute).toHaveBeenCalledExactlyOnceWith({
+    dimensionId: "minecraft:overworld",
+    cell: { x: 1, y: 64, z: 2 },
+    player: { x: 1.5, y: 65, z: 2.5 },
+  });
+  expect(placeDecor.execute).not.toHaveBeenCalled();
+  const quiet = (ev: ReturnType<typeof event>) => {
+    game.run.mockClear();
+    expect(send(ev).cancel).toBe(false);
+    expect(game.run).not.toHaveBeenCalled();
+  };
+  quiet(event({ itemStack: undefined, isFirstEvent: false }));
+  for (const typeId of [CAMPER_WALL_BLOCK, DECK_FLOOR_BLOCK]) {
+    const other = event({ itemStack: undefined });
+    other.block = { ...other.block, typeId };
+    quiet(other);
+  }
+  quiet(event({ itemStack: { typeId: "minecraft:stone" } }));
+  game.run.mockClear();
+  floor.execute.mockClear();
+  expect(
+    send(event({ itemStack: { typeId: "yasu_ride:percolator" } })).cancel,
+  ).toBe(true);
+  for (const [callback] of game.run.mock.calls) callback();
+  expect(placeDecor.execute).toHaveBeenCalledOnce();
+  expect(floor.execute).not.toHaveBeenCalled();
+});
+
+it("takes decor back on an empty-hand interaction with a decor block (ADR 0093)", () => {
+  const { removeDecor, owner, startupsBefore } = decorFixture();
+  const registerCustomComponent =
+    vi.fn<(name: string, component: BlockCustomComponent) => void>();
+  for (const [startup] of game.startup.mock.calls.slice(startupsBefore))
+    startup({
+      blockComponentRegistry: { registerCustomComponent },
+    } as unknown as StartupEvent);
+  const interact = registerCustomComponent.mock.calls.find(
+    ([name]) => name === CAMPER_DECOR_COMPONENT,
+  )?.[1].onPlayerInteract;
+  if (!interact) throw new Error("decor interaction missing");
+  const cell = { x: 1, y: 65, z: 2 };
+  const event = (held?: { typeId: string }, withPlayer = true) =>
+    ({
+      dimension: { id: "minecraft:overworld" },
+      block: { location: cell },
+      player: withPlayer
+        ? {
+            id: "p",
+            selectedSlotIndex: 0,
+            getComponent: () => ({ container: { getItem: () => held } }),
+          }
+        : undefined,
+    }) as unknown as Parameters<typeof interact>[0];
+  interact(event(), { params: undefined });
+  expect(removeDecor.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId: "p",
+    vehicleId: "car",
+    cell,
+  });
+  removeDecor.execute.mockClear();
+  interact(event({ typeId: "minecraft:stone" }), { params: undefined });
+  interact(event(undefined, false), { params: undefined });
+  owner.mockReturnValue(undefined);
+  interact(event(), { params: undefined });
+  expect(removeDecor.execute).not.toHaveBeenCalled();
+});
+
+function registerGiftFixture() {
+  const gift = { execute: vi.fn() };
+  const headlights = { execute: vi.fn() };
+  registerSubscriptions(
+    { gift, headlights } as unknown as Parameters<
+      typeof registerSubscriptions
+    >[0],
+    new TestInputStore(),
+    () => undefined,
+    () => undefined,
+  );
+  return gift;
+}
+
+it("opens a gift box used in the air from the selected slot (ADR 0093)", () => {
+  const usesBefore = game.use.mock.calls.length;
+  const gift = registerGiftFixture();
+  const uses = game.use.mock.calls
+    .slice(usesBefore)
+    .map(([handler]) => handler);
+  fc.assert(
+    fc.property(
+      fc.constantFrom(
+        GIFT_ITEM.camping_gear_box,
+        HEADLIGHT_SWITCH_TYPE,
+        "minecraft:stick",
+      ),
+      (typeId) => {
+        gift.execute.mockClear();
+        for (const use of uses)
+          use({
+            itemStack: { typeId },
+            source: {
+              id: "player",
+              selectedSlotIndex: 5,
+              getComponent: () => undefined,
+            },
+          } as unknown as ItemUseAfterEvent);
+        if (typeId === GIFT_ITEM.camping_gear_box)
+          expect(gift.execute).toHaveBeenCalledExactlyOnceWith({
+            playerId: "player",
+            gift: "camping_gear_box",
+            slot: 5,
+          });
+        else expect(gift.execute).not.toHaveBeenCalled();
+      },
+    ),
+  );
+});
+
+it("opens a gift box used on a block on the next tick and cancels the interaction (ADR 0093)", () => {
+  const beforeCount = game.before.mock.calls.length;
+  const gift = registerGiftFixture();
+  game.run.mockClear();
+  const handlers = game.before.mock.calls
+    .slice(beforeCount)
+    .map(([handler]) => handler);
+  const interact = (typeId: string, isFirstEvent: boolean) => {
+    const ev = {
+      isFirstEvent,
+      itemStack: { typeId },
+      blockFace: "Up",
+      cancel: false,
+      block: {
+        typeId: "minecraft:grass_block",
+        dimension: { id: "overworld" },
+        location: { x: 0, y: 64, z: 0 },
+      },
+      faceLocation: { x: 0.5, y: 1, z: 0.5 },
+      player: { id: "player", selectedSlotIndex: 5 },
+    };
+    for (const handler of handlers)
+      handler(ev as unknown as PlayerInteractWithBlockBeforeEvent);
+    return ev;
+  };
+  expect(interact(GIFT_ITEM.camping_gear_box, true).cancel).toBe(true);
+  expect(game.run).toHaveBeenCalledTimes(1);
+  expect(gift.execute).not.toHaveBeenCalled();
+  for (const [callback] of game.run.mock.calls) callback();
+  expect(gift.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId: "player",
+    gift: "camping_gear_box",
+    slot: 5,
+  });
+  for (const [typeId, isFirstEvent] of [
+    [GIFT_ITEM.camping_gear_box, false],
+    ["minecraft:stick", true],
+  ] as const) {
+    game.run.mockClear();
+    gift.execute.mockClear();
+    expect(interact(typeId, isFirstEvent).cancel).toBe(false);
+    expect(game.run).not.toHaveBeenCalled();
+    expect(gift.execute).not.toHaveBeenCalled();
+  }
+});

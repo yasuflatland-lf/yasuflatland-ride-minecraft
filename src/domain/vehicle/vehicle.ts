@@ -1,180 +1,330 @@
-// Aggregate for one vehicle: motion, driver, seats, ram cooldowns, and the hit count.
-import { forward, rightOf, type Vec2, type Vec3 } from "../shared/vec";
-import { NEUTRAL_INPUT, type RawInput, toDriveInput } from "./driveInput";
-import type { VehicleEvent } from "./events";
-import { EMPTY_COUNTER, type HitCounter, registerHit } from "./hitCounter";
+import type { PlayerId, VehicleId } from "../shared/ids";
+// Aggregate for one vehicle: wires its drive to its seating, cooldowns, and hit count.
+import { forward, type Vec2, type Vec3 } from "../shared/vec";
+import { RamCooldowns, SwitchCooldown } from "./cooldowns";
+import type { DecorPlacement } from "./dock/decor";
+import type { ClearCell, Departure, Dock } from "./dock/dock";
+import type {
+  Drive,
+  EngineCommand,
+  FloorTap,
+  RiderState,
+  TickContext,
+} from "./drive";
+import type { RawInput } from "./driveInput";
 import {
-  initialMotion,
-  type MotionState,
-  type StepProbe,
-  stepMotion,
-} from "./motion";
+  type HeldItem,
+  type Hint,
+  type HintControls,
+  type HintName,
+  hintAt,
+  zoneOf,
+} from "./hints";
+import { EMPTY_COUNTER, type HitCounter, registerHit } from "./hitCounter";
+import type { VehicleKind } from "./kind";
+import {
+  type Cell,
+  headlightCells as cellsLitFrom,
+} from "./lighting/headlights";
+import type { ChaseCamera, VehicleProfile } from "./profile";
 import { type RamHit, type RamTarget, selectHits } from "./ram";
-import { DOOR_BY_SEAT, occupiedSeats, vacatedSeats } from "./seats";
+import { Seating } from "./seating";
 import { SPEC } from "./spec";
-import { shouldStepUp } from "./stepUp";
 
 export interface RiderView {
-  id: string;
-  offset: Vec2;
-  yaw: number;
-  raw: RawInput;
+  readonly id: PlayerId;
+  readonly offset: Vec2;
+  readonly yaw: number;
+  readonly raw: RawInput;
 }
 
-export interface TickContext {
-  tick: number;
+export interface VehicleTickInput extends TickContext {
   riders: readonly RiderView[];
   /** Input used only when there is no driver (for in-game tests). */
   testInput?: RawInput;
-  velocity: Vec2;
-  onGround: boolean;
-  /** Whether the block at entity location + offset (world axes, y from the feet) is solid; air and liquids are not. */
-  solidAt(offset: Vec3): boolean;
-  /** Nearby targets. Called only when the speed exceeds the ram threshold. */
+  /** Nearby targets. Called only when the speed exceeds the ram threshold (ADR 0083). */
   targets(): readonly RamTarget[];
 }
 
+/**
+ * What one vehicle does this tick. The application's per-vehicle tick
+ * applies it with these world calls, in this order, and a throw skips the
+ * rest of that vehicle's tick (ADR 0055). Steps 3, 9, 10 and 11 run every
+ * tick: with nothing to keep, they release what the vehicle held, seated,
+ * laid or lit before.
+ *
+ * 1. `stepCommands`, in order, before anything else that could throw,
+ *    because drives send them only on change (ADR 0055).
+ * 2. `message` on the action bar of `driverId`, only when there is one.
+ * 3. `dock.hold`; with no `dock`, the hold is released (ADR 0063, 0064).
+ * 4. `clear`, when not empty, before the dock's cells are laid (ADR 0068).
+ * 5. `riders` is collected. After every vehicle has ticked, the chase
+ *    cameras are synced (ADR 0028, 0071), and water breathing is refreshed
+ *    every `SPEC.waterBreathingInterval` ticks (ADR 0040).
+ * 6. `impulse` and `yaw`, only when there is no `dock`: a docked vehicle is
+ *    held instead of moved (ADR 0063).
+ * 7. `boardDeckRiders`: the deck-seat riders move into the vehicle
+ *    (ADR 0063), before standing players are seated (ADR 0068).
+ * 8. `depart`: take any deck-seat rider the vehicle refused off their deck
+ *    seat, then seat them and the standing players, nearest first, and move
+ *    those left without a seat to the exit (ADR 0068, 0095).
+ * 9. `dock.seats` at `yaw`, after boarding and departure; with no `dock`,
+ *    the deck seats are removed.
+ * 10. `dock.cells`; with no `dock`, the laid cells are cleared.
+ * 11. Headlight cells along the vehicle's heading after this tick, or none
+ *     when its headlights are off (ADR 0020).
+ * 12. `hits`, credited to `driverId`.
+ * 13. `finalCommands`, last: the vacated seats' commands, such as the door
+ *     animation (ADR 0007, 0055).
+ */
 export interface TickOutcome {
+  dock?: Dock;
+  clear: readonly ClearCell[];
+  message?: string;
+  depart?: Departure;
+  boardDeckRiders: boolean;
   impulse: Vec3;
   yaw: number;
   hits: RamHit[];
-  driverId?: string;
-  events: VehicleEvent[];
-}
-
-function stepProbe(ctx: TickContext): StepProbe {
-  return (f, speed) => {
-    const r = rightOf(f);
-    return shouldStepUp(
-      (ahead, side, dy) =>
-        ctx.solidAt({
-          x: f.x * ahead + r.x * side,
-          y: dy,
-          z: f.z * ahead + r.z * side,
-        }),
-      speed,
-    );
-  };
+  driverId?: PlayerId;
+  stepCommands: readonly EngineCommand[];
+  finalCommands: readonly EngineCommand[];
+  riders: RiderState;
 }
 
 export class Vehicle {
-  private motion: MotionState;
-  private driverId: string | undefined;
-  private seats = new Map<string, number>();
-  private readonly lastHit = new Map<string, number>();
+  private seating: Seating;
+  private readonly ramCooldowns = new RamCooldowns();
+  private readonly switchCooldown = new SwitchCooldown();
   private hitCounter: HitCounter = EMPTY_COUNTER;
+  /** Ticks since the last tick with a driver; infinite until the first driver (ADR 0078). */
+  private driverlessTicks = Number.POSITIVE_INFINITY;
+  /** As of the last tick: held in place (ADR 0063, 0068), and nobody in the driver's seat or its deck seat. */
+  private docked = false;
+  private driverSeatFree = true;
 
-  private constructor(
-    readonly id: string,
-    yaw: number,
+  /** Called only by kinds/index.ts, which picks the drive for the kind. */
+  constructor(
+    readonly id: VehicleId,
+    private readonly profile: VehicleProfile,
+    private readonly drive: Drive,
   ) {
-    this.motion = initialMotion(yaw);
-  }
-
-  static create(id: string, yaw: number): Vehicle {
-    return new Vehicle(id, yaw);
+    this.seating = new Seating(profile.seats.positions);
   }
 
   /**
-   * Rebuilds a vehicle whose aggregate was lost (e.g. after `/reload`) while
-   * riders may already be seated. Seeding the seats and the driver keeps the
-   * first tick from treating the current driver as newly mounted, which would
-   * snap the heading to the driver's view.
+   * Rebuilds a vehicle whose aggregate was lost (e.g. after `/reload`) with the
+   * riders already aboard seated, so the first tick does not treat the current
+   * driver as newly mounted, which would snap the heading to the driver's view.
+   * Called only by kinds/index.ts. `yaw` is the entity's heading as read,
+   * before the drive normalizes it.
    */
-  static rebuild(
-    id: string,
-    yaw: number,
+  static withRidersAboard(
+    id: VehicleId,
+    profile: VehicleProfile,
+    drive: Drive,
     riders: readonly RiderView[],
+    yaw: number,
   ): Vehicle {
-    const v = new Vehicle(id, yaw);
-    v.seats = occupiedSeats(riders, forward(yaw));
-    v.driverId = riders.find((r) => v.seats.get(r.id) === 0)?.id;
-    return v;
+    const vehicle = new Vehicle(id, profile, drive);
+    vehicle.seating = Seating.restore(
+      profile.seats.positions,
+      riders,
+      forward(yaw),
+    );
+    return vehicle;
+  }
+
+  get kind(): VehicleKind {
+    return this.profile.kind;
   }
 
   get speed(): number {
-    return this.motion.speed;
+    return this.drive.speed;
   }
 
   get yaw(): number {
-    return this.motion.yaw;
+    return this.drive.yaw;
   }
 
-  tick(ctx: TickContext): TickOutcome {
-    const events = this.updateSeats(ctx.riders);
-    const driver = this.updateDriver(ctx.riders);
+  /** Cells the headlights light with the vehicle at `location`, along its current heading (ADR 0020). */
+  headlightCells(location: Vec3): Cell[] {
+    return cellsLitFrom(location, this.drive.yaw, this.profile.beams);
+  }
 
-    const raw = driver ? driver.raw : ctx.testInput;
-    const input = raw ? toDriveInput(raw) : NEUTRAL_INPUT;
-    const step = stepMotion(
-      this.motion,
-      input,
-      { velocity: ctx.velocity, onGround: ctx.onGround },
-      stepProbe(ctx),
+  /** The camera this kind gives riders while the drive asks for third person: in flight and in submarine form (ADR 0028, 0040, 0071). */
+  get chaseCamera(): ChaseCamera {
+    return this.profile.chaseCamera;
+  }
+
+  /** Whether this kind shows hints to players on foot (ADR 0086). */
+  get showsHints(): boolean {
+    return this.profile.hints !== undefined;
+  }
+
+  /**
+   * The hint for a player on foot whose feet are `offset` from the vehicle's location.
+   * A hint already shown to them (`current`) keeps showing up to SPEC.hintExitMargin
+   * past the edges of its own zone, so standing on the edge does not flicker. A new
+   * hint is picked with the zones at their narrow edges (ADR 0086, issue #355).
+   */
+  hint(
+    offset: Vec3,
+    held: HeldItem,
+    controls: HintControls,
+    current?: HintName,
+  ): Hint | undefined {
+    const view = {
+      kind: this.kind,
+      offset,
+      yaw: this.drive.yaw,
+      docked: this.docked,
+      driverSeatFree: this.driverSeatFree,
+      hasRiders: this.seating.occupied,
+      held,
+      controls,
+    };
+    const seats = this.profile.seats.positions;
+    const zones = this.profile.hints;
+    const hint = hintAt(zones, seats, view);
+    if (hint || current === undefined || !zones) return hint;
+    const kept = hintAt(
+      zoneOf(zones, current),
+      seats,
+      view,
+      SPEC.hintExitMargin,
     );
-    this.motion = step.state;
+    return kept?.name === current ? kept : undefined;
+  }
+
+  /** A player tapped the door of this vehicle's room. Returns whether it opened or closed (ADR 0068). */
+  useDockDoor(): boolean {
+    return this.drive.useDockDoor?.() ?? false;
+  }
+
+  /** What a player's tap on this floor cell of the vehicle's room does (ADR 0094). */
+  floorTap(cell: Vec3, player: Vec3): FloorTap | undefined {
+    return this.drive.floorTap?.(cell, player);
+  }
+
+  /** A player tapped the shower door. Returns whether it opened or closed (ADR 0094). */
+  useShowerDoor(): boolean {
+    return this.drive.useShowerDoor?.() ?? false;
+  }
+
+  /** A player asked for the shower. Returns whether it runs (ADR 0094). */
+  runShower(): boolean {
+    return this.drive.runShower?.() ?? false;
+  }
+
+  /** The decor of this vehicle's room, in slot order (ADR 0093). */
+  decor(): readonly DecorPlacement[] {
+    return this.drive.decor?.() ?? [];
+  }
+
+  /** Puts `item` in `slot`, or empties it when undefined. Returns whether the decor changed (ADR 0093). */
+  setDecor(slot: string, item: string | undefined): boolean {
+    return this.drive.setDecor?.(slot, item) ?? false;
+  }
+
+  /** The free decor slot nearest `point` that accepts `item`; undefined for a kind without decor (ADR 0093). */
+  decorSlotFor(item: string, point: Vec3): string | undefined {
+    return this.drive.decorSlotFor?.(item, point);
+  }
+
+  /** A player puts `item` in `slot`. Returns whether it was placed (ADR 0093). */
+  placeDecor(slot: string, item: string): boolean {
+    return this.drive.placeDecor?.(slot, item) ?? false;
+  }
+
+  /** A player takes the decor at world `cell` out. Returns its item, if any (ADR 0093). */
+  removeDecor(cell: Vec3): string | undefined {
+    return this.drive.removeDecor?.(cell);
+  }
+
+  tick(input: VehicleTickInput): TickOutcome {
+    const { riders, testInput, targets, ...sensors } = input;
+    const seated = this.seating.update(riders, forward(this.drive.yaw));
+    const seatCommands = seated.vacated.flatMap((seat) =>
+      this.drive.onSeatVacated(seat),
+    );
+    const driver = seated.driver;
+    if (seated.mounted && driver) this.drive.onDriverMounted(driver.yaw);
+    this.driverlessTicks = driver ? 0 : this.driverlessTicks + 1;
+    const awaitingDriver =
+      driver === undefined &&
+      riders.length > 0 &&
+      this.driverlessTicks <= SPEC.driverHandoverTicks;
+
+    const raw = driver?.raw ?? testInput;
+    const taken = this.seating.taken();
+    const deckSeatInputs = sensors.deckSeatInputs.map((deckInput, seat) =>
+      taken.has(seat) ? undefined : deckInput,
+    );
+    const step = this.drive.step(raw, {
+      ...sensors,
+      awaitingDriver,
+      deckSeatInputs,
+    });
+    this.docked = step.dock !== undefined;
+    // A deck seat's input is defined only while a player sits in it.
+    this.driverSeatFree = !taken.has(0) && deckSeatInputs[0] === undefined;
 
     return {
-      impulse: {
-        x: step.impulse.x,
-        y: step.jumped ? SPEC.stepVelocity : 0,
-        z: step.impulse.z,
+      dock: step.dock && {
+        ...step.dock,
+        seats: step.dock.seats.map((at, seat) =>
+          taken.has(seat) ? undefined : at,
+        ),
       },
-      yaw: step.state.yaw,
-      hits: this.ram(ctx, step.forward),
+      clear: step.clear ?? [],
+      message: step.message,
+      depart: step.depart,
+      boardDeckRiders: step.boardDeckRiders ?? false,
+      impulse: step.impulse,
+      yaw: this.drive.yaw,
+      hits: this.ram(sensors.tick, targets, step.forward),
       driverId: driver?.id,
-      events,
+      stepCommands: step.commands,
+      finalCommands: seatCommands,
+      riders: step.riders,
     };
   }
 
-  private updateSeats(riders: readonly RiderView[]): VehicleEvent[] {
-    const seats = occupiedSeats(riders, forward(this.motion.yaw));
-    const events: VehicleEvent[] = vacatedSeats(this.seats, seats).map(
-      (seat) => ({
-        type: "SeatVacated",
-        vehicleId: this.id,
-        seat,
-        door: DOOR_BY_SEAT[seat]!,
-      }),
-    );
-    this.seats = seats;
-    return events;
-  }
-
-  private updateDriver(riders: readonly RiderView[]): RiderView | undefined {
-    // Driver = the rider in the driver's seat (seat 0) (ADR 0007)
-    const driver = riders.find((r) => this.seats.get(r.id) === 0);
-    if (
-      driver &&
-      this.driverId !== driver.id &&
-      Math.abs(this.motion.speed) < SPEC.mountAlignSpeed
-    ) {
-      this.motion = { ...this.motion, yaw: driver.yaw };
-    }
-    this.driverId = driver?.id;
-    return driver;
-  }
-
-  private ram(ctx: TickContext, f: Vec2): RamHit[] {
-    for (const [id, t] of this.lastHit)
-      if (ctx.tick - t >= SPEC.ramCooldown) this.lastHit.delete(id);
+  private ram(
+    tick: number,
+    targets: () => readonly RamTarget[],
+    f: Vec2,
+  ): RamHit[] {
+    this.ramCooldowns.prune(tick);
     // selectHits checks the speed too; checking here skips the targets() query.
-    if (Math.abs(this.motion.speed) <= SPEC.ramMinSpeed) return [];
+    if (Math.abs(this.drive.speed) <= SPEC.ramMinSpeed) return [];
     const hits = selectHits(
       f,
-      this.motion.speed,
-      ctx.targets(),
-      this.lastHit,
-      ctx.tick,
+      this.drive.speed,
+      targets(),
+      this.ramCooldowns.recent,
+      tick,
+      this.profile.ram,
     );
-    for (const h of hits) this.lastHit.set(h.id, ctx.tick);
+    this.ramCooldowns.record(hits, tick);
     return hits;
   }
 
-  /** Hit by a player. Returns VehicleBroken when the vehicle breaks (ADR 0008). */
-  receiveHit(tick: number): VehicleEvent[] {
-    const r = registerHit(this.hitCounter, tick, this.seats.size > 0);
+  /**
+   * A player uses the headlight switch. Only the driver may flip it, and only
+   * after the switch has been idle for the cooldown, so a burst of uses from
+   * one touch flips it once (ADR 0024). Returns whether it flipped.
+   */
+  flipHeadlightSwitch(playerId: PlayerId, tick: number): boolean {
+    if (playerId !== this.seating.driver) return false;
+    return this.switchCooldown.tryUse(tick, SPEC.headlightSwitchCooldown);
+  }
+
+  /** Hit by a player. Returns whether the vehicle breaks (ADR 0008). */
+  receiveHit(tick: number): boolean {
+    const r = registerHit(this.hitCounter, tick, this.seating.occupied);
     this.hitCounter = r.counter;
-    return r.broken ? [{ type: "VehicleBroken", vehicleId: this.id }] : [];
+    return r.broken;
   }
 }
