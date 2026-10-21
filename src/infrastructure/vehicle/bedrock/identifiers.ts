@@ -145,6 +145,8 @@ export const CAMPER_DOOR_BLOCK = id("camper_door");
 export const CAMPER_BED_BLOCK = id("camper_bed");
 /** Custom component handling taps on camper door blocks (ADR 0068). */
 export const CAMPER_DOOR_COMPONENT = id("camper_door");
+/** Custom component handling taps on camper bed blocks (ADR 0092). */
+export const CAMPER_BED_COMPONENT = id("camper_bed");
 /** Block states of the wall and the door: the cell side of the plate (Face), and whether the door is open. */
 export const ROOM_FACE_STATE = id("face");
 export const ROOM_OPEN_STATE = id("open");
