@@ -47,8 +47,8 @@ export function registerDecor(
   // A deck seat stands on each dinette seat's slot and takes the press first, so held
   // gear on a deck seat goes to the slot instead of seating the player (ADR 0097). A
   // taken seat refuses the gear, and the press stays cancelled, so the player does not
-  // sit either (ADR 0104). The
-  // headlight switch on the same signal is not camping gear, so the two never both act.
+  // sit either (ADR 0104). The headlight switch on the same signal is not camping
+  // gear, so the two never both act.
   const seatPresses = new SeatPresses<PlayerId>();
   world.beforeEvents.playerInteractWithEntity.subscribe((ev) => {
     const item = campingGearOfItem(ev.itemStack?.typeId);
