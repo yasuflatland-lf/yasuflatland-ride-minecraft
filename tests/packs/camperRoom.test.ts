@@ -54,9 +54,10 @@ describe("Camper room blocks (ADR 0068)", () => {
       expect(file.format_version).toBe("1.21.80");
       expect(block.description.identifier).toBe(identifier);
       expect(block.description.menu_category).toEqual({ category: "none" });
-      expect(block.components["minecraft:geometry"]).toBe(
-        "geometry.yasu_ride.deck_floor",
-      );
+      expect(block.components["minecraft:geometry"]).toEqual({
+        identifier: "geometry.yasu_ride.deck_floor",
+        bone_visibility: { root: false },
+      });
       expect(block.components["minecraft:destructible_by_mining"]).toBe(false);
       expect(block.components["minecraft:destructible_by_explosion"]).toBe(
         false,

@@ -11,7 +11,10 @@
       }
     },
     "components": {
-      "minecraft:geometry": "geometry.yasu_ride.deck_floor",
+      "minecraft:geometry": {
+        "identifier": "geometry.yasu_ride.deck_floor",
+        "bone_visibility": { "root": false }
+      },
       "minecraft:material_instances": {
         "*": {
           "texture": "glass",
