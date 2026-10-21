@@ -150,6 +150,7 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | C71 | Park the camper and, on a phone, aim at the dinette, the driver's deck seat, and the toilet (with the shower-toilet door open); then set the game language to Japanese and repeat | The interact button reads "Sit" on each seat, and in Japanese it shows the text from ja_JP.lang for action.interact.yasu_ride.sit; it never reads "Ride" | | |
 | C72 | Park the camper, put a potted plant on the table and a transistor radio on the dashboard, then look at them from inside and from outside through the windows, on a phone and on PC | Both items show from every side; no small dot or flicker shows anywhere in the room (ADR 0101) | | |
 | C73 | With items on the table and the dashboard, walk 30 blocks away and come back, then restart the server and look again | The items still show (ADR 0101) | | |
+| C74 | Park, hang a Macrame Hanging Planter on the ceiling hook, and look at it from the dinette, from the aisle, and from outside through a window, on a phone and on PC; aim at it, then long-press it with an empty hand | The planter shows as a planter (pot, leaves, and cords) with its top knot at the hook, never as a plain textured block; aiming at it outlines the planter, and the long-press gives it back (ADR 0102) | | |
 
 ## Upgrading from MyCar 0.5.0 and earlier
 
