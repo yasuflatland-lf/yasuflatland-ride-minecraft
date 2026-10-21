@@ -246,12 +246,6 @@ def y_span(item):
     return (HOOK_Y - h, HOOK_Y) if item["hanging"] else (0, h)
 
 
-def selection_span(item):
-    """The decor block's outline covers the model, clipped to its cell (ADR 0099)."""
-    lo, hi = y_span(item)
-    return max(0, lo), min(CELL_PX, hi)
-
-
 def validate(spec):
     """Stop before writing anything when a shape disagrees with its spec row."""
     errors = []
@@ -336,7 +330,8 @@ def num(v):
 def decor_block(item):
     gid = item["id"]
     w = item["width_px"]
-    y0, y1 = selection_span(item)
+    # validate() keeps the model inside its cell, so the outline can follow it (ADR 0099).
+    y0, y1 = y_span(item)
     return {
         "format_version": "1.21.80",
         "minecraft:block": {
