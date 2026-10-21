@@ -1,6 +1,6 @@
 # 0110. Pick decor slots along the line of sight
 
-- Status: Accepted
+- Status: Extended by 0111
 - Date: 2026-10-22
 - Supersedes in part: 0107 (measuring a slot's nearness from the hit point)
 
