@@ -20,6 +20,7 @@ import type { TestInputStore } from "../testInput/testInputStore";
 import { registerDecor } from "./handlers/decor";
 import { registerDockBed } from "./handlers/dockBed";
 import { registerDockDoor } from "./handlers/dockDoor";
+import { registerDockGuard } from "./handlers/dockGuard";
 import { registerDrive } from "./handlers/drive";
 import { registerFleet } from "./handlers/fleet";
 import { registerGifts } from "./handlers/gift";
@@ -57,6 +58,11 @@ export function registerSubscriptions(
     dimensionId: DimensionId,
     cell: Vec3,
   ) => VehicleId | undefined,
+  dockBlockOwner: (
+    dimensionId: DimensionId,
+    cell: Vec3,
+    typeId: string,
+  ) => VehicleId | undefined,
 ): void {
   registerDecor(
     useCases.placeDecor,
@@ -66,6 +72,7 @@ export function registerSubscriptions(
   );
   registerDockBed(useCases.bed);
   registerDockDoor(useCases.door, dockDoorOwner);
+  registerDockGuard(dockBlockOwner);
   registerDrive(useCases.drive, useCases.hints);
   registerFleet(useCases.limit);
   registerTestDecor(useCases.decor);

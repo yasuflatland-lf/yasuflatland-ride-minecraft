@@ -18,6 +18,7 @@ import { BedrockVehicleWorld } from "../../../../src/infrastructure/vehicle/bedr
 import { DockBlocks } from "../../../../src/infrastructure/vehicle/bedrock/dockBlocks";
 import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
 import {
+  CAMPER_FLOOR_BLOCK,
   DECK_CELLS_PROPERTY,
   DECK_FLOOR_BLOCK,
   DECK_SEAT_OF_PROPERTY,
@@ -1166,6 +1167,20 @@ it("answers each dock owner query from the room blocks it laid (ADR 0068, 0093, 
     expect(spy).toHaveBeenCalledExactlyOnceWith(here, cell);
     spy.mockRestore();
   }
+});
+
+it("answers dockBlockOwner from the blocks DockBlocks laid (ADR 0096)", () => {
+  const f = fixture();
+  const here = asDimensionId("overworld");
+  const cell = { x: 1, y: 64, z: 2 };
+  const spy = vi
+    .spyOn(DockBlocks.prototype, "laidBlockOwner")
+    .mockReturnValue(asVehicleId("camper"));
+  expect(f.world.dockBlockOwner(here, cell, CAMPER_FLOOR_BLOCK)).toBe(
+    asVehicleId("camper"),
+  );
+  expect(spy).toHaveBeenCalledExactlyOnceWith(here, cell, CAMPER_FLOOR_BLOCK);
+  spy.mockRestore();
 });
 
 describe("BedrockVehicleWorld dock owners (ADR 0068, 0093)", () => {

@@ -132,6 +132,8 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | C55 | In a parked camper, with an empty hand, long-press the shower-toilet floor beside the toilet from the aisle, then from inside the shower-toilet; repeat with right-click on PC | The door opens or closes from the aisle and the shower runs from inside; neither long-press seats you on the toilet (ADR 0095) | | |
 | C56 | Sit on the toilet while another player sits in the driver's deck seat and drives off, with a camper seat free | You ride along in a free camper seat (ADR 0095) | | |
 | C57 | Fill all four camper seats, sit a fifth player on the toilet, and drive off | The fifth player stands on the ground outside the door, facing away from the camper (ADR 0095) | | |
+| C58 | In Creative, park the camper, then try to break the floor, a wall, the door, the bed, the door step, and a placed camping gear item, by click on PC and by long-press and tap on a phone | Nothing breaks, and no hole or gap flickers into view; an empty-hand long-press on the camping gear still takes it back (ADR 0096) | | |
+| C59 | Park the camper and run `/fill` or `/setblock` to set one floor cell and one wall cell to air | Both come back within about a second; a block you place into such a gap first is kept and can be broken (ADR 0096) | | |
 
 ## Upgrading from MyCar 0.5.0 and earlier
 

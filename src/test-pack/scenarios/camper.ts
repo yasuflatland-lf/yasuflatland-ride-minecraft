@@ -15,6 +15,7 @@ import {
 } from "../../domain/vehicle/kinds/camper/room";
 import { CAMPER_SPEC } from "../../domain/vehicle/kinds/camper/spec";
 import { DOCK } from "../../domain/vehicle/motion/dock";
+import { DOCK_RECHECK_TICKS } from "../../infrastructure/vehicle/bedrock/dockBlocks";
 import {
   CAMPER_BED_BLOCK,
   CAMPER_CEILING_BLOCK,
@@ -59,6 +60,10 @@ const CAMPER_DECK_SEATS_TEST = {
   clearRadius: 9,
   clearTicks: 10,
 } as const;
+
+// Test bound, not an ADR value: a lost cell is laid again on the next check,
+// at most DOCK_RECHECK_TICKS lays later; twice that allows for a slow tick.
+const CAMPER_RELAY_TICKS = DOCK_RECHECK_TICKS * 2;
 
 const ROOM_BLOCK: Readonly<
   Record<Exclude<DockBlock["type"], "decor">, string>
@@ -298,6 +303,38 @@ export function camperDecor(a: Arena): Promise<Outcome> {
         remaining === 0 &&
         moved >= 0.1,
       detail: `laid=${laid} kept=${kept} emptied=${emptied} remaining=${remaining} moved=${moved.toFixed(3)}`,
+    };
+  });
+}
+
+export function camperRelay(a: Arena): Promise<Outcome> {
+  return atParkSpot(a, async (car) => {
+    await wait(DOCK.ticks + 10);
+    const pose = carPose(car);
+    setDecor(car, "table", "potted_plant");
+    await wait(3);
+    const room = roomCells(pose, false);
+    const floor = room.find((c) => c.block.type === "floor");
+    if (!floor) throw new Error("room has no floor");
+    const wall = room.find((c) => c.block.type === "wall");
+    if (!wall) throw new Error("room has no wall");
+    const decor = decorCells(pose, [
+      { slot: "table", item: "potted_plant" },
+    ])[0];
+    if (!decor) throw new Error("camper has no table slot");
+    const lost = [floor, wall, decor];
+    const before = countLaid(a, lost);
+    for (const c of lost) a.dim.runCommand(`setblock ${c.x} ${c.y} ${c.z} air`);
+    const emptied = countLaid(a, lost);
+    let ticks = 0;
+    while (countLaid(a, lost) !== lost.length && ticks < CAMPER_RELAY_TICKS) {
+      await wait(1);
+      ticks++;
+    }
+    const relaid = countLaid(a, lost);
+    return {
+      pass: before === lost.length && emptied === 0 && relaid === lost.length,
+      detail: `before=${before} emptied=${emptied} relaid=${relaid} ticks=${ticks}`,
     };
   });
 }

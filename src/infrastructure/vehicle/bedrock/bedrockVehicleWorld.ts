@@ -114,6 +114,15 @@ export class BedrockVehicleWorld implements DriveWorld, DockFloorWorld {
     return this.dockBlocks.floorOwner(dimensionId, cell);
   }
 
+  /** The vehicle whose laid dock block this is, while the world still holds it (ADR 0096). */
+  dockBlockOwner(
+    dimensionId: DimensionId,
+    cell: Vec3,
+    typeId: string,
+  ): VehicleId | undefined {
+    return this.dockBlocks.laidBlockOwner(dimensionId, cell, typeId);
+  }
+
   loadedVehicles(): VehicleSnapshot[] {
     this.index.clear();
     const snapshots: VehicleSnapshot[] = [];

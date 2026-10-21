@@ -5,6 +5,7 @@ import {
   type EntitySpawnAfterEvent,
   type ItemUseAfterEvent,
   Player,
+  type PlayerBreakBlockBeforeEvent,
   type PlayerInteractWithBlockBeforeEvent,
   type PlayerInteractWithEntityBeforeEvent,
   type PlayerSpawnAfterEvent,
@@ -49,6 +50,8 @@ const game = vi.hoisted(() => ({
       (handler: (ev: PlayerInteractWithBlockBeforeEvent) => void) => void
     >(),
   use: vi.fn<(handler: (ev: ItemUseAfterEvent) => void) => void>(),
+  breakBlock:
+    vi.fn<(handler: (ev: PlayerBreakBlockBeforeEvent) => void) => void>(),
   run: vi.fn<(callback: () => void) => void>(),
   startup: vi.fn<(handler: (ev: StartupEvent) => void) => void>(),
   currentTick: 10,
@@ -80,6 +83,7 @@ vi.mock("@minecraft/server", () => {
       beforeEvents: {
         playerInteractWithBlock: { subscribe: game.before },
         playerInteractWithEntity: signal(),
+        playerBreakBlock: { subscribe: game.breakBlock },
       },
       afterEvents: {
         itemUse: { subscribe: game.use },
@@ -154,6 +158,7 @@ function fixture(
       typeof registerSubscriptions
     >[0],
     new TestInputStore(),
+    () => undefined,
     () => undefined,
     () => undefined,
   );
@@ -419,6 +424,7 @@ it("paints a hit vehicle with a held dye and otherwise damages it, ignoring othe
     new TestInputStore(),
     () => undefined,
     () => undefined,
+    () => undefined,
   );
   const onHit = vi
     .mocked(world.afterEvents.entityHitEntity.subscribe)
@@ -510,6 +516,7 @@ it("removes an orphan deck seat that loads with a chunk, but not one that is jus
     new TestInputStore(),
     () => undefined,
     () => undefined,
+    () => undefined,
   );
   const spawn = vi
     .mocked(world.afterEvents.entitySpawn.subscribe)
@@ -547,6 +554,7 @@ it("passes fleet metadata on spawn and load and skips invalid or unrelated entit
     new TestInputStore(),
     () => undefined,
     () => undefined,
+    () => undefined,
   );
   const spawn = vi
     .mocked(world.afterEvents.entitySpawn.subscribe)
@@ -582,6 +590,43 @@ it("passes fleet metadata on spawn and load and skips invalid or unrelated entit
   expect(limit.found).toHaveBeenCalledTimes(2);
 });
 
+it("cancels a player's break only of a block a held vehicle laid (ADR 0096)", () => {
+  const owner =
+    vi.fn<
+      (dimensionId: string, cell: At, typeId: string) => VehicleId | undefined
+    >();
+  registerSubscriptions(
+    {} as unknown as Parameters<typeof registerSubscriptions>[0],
+    new TestInputStore(),
+    () => undefined,
+    () => undefined,
+    owner,
+  );
+  const handler = game.breakBlock.mock.calls.at(-1)?.[0];
+  if (!handler) throw new Error("playerBreakBlock not subscribed");
+  // Registration itself schedules work through system.run; only the guard is checked.
+  game.run.mockClear();
+  const cell = { x: 1, y: 64, z: 2 };
+  const breakAt = () => {
+    const event = {
+      dimension: { id: "overworld" },
+      block: { location: cell, typeId: CAMPER_FLOOR_BLOCK },
+      cancel: false,
+    };
+    handler(event as unknown as PlayerBreakBlockBeforeEvent);
+    return event;
+  };
+  expect(breakAt().cancel).toBe(false);
+  expect(owner).toHaveBeenCalledExactlyOnceWith(
+    "overworld",
+    cell,
+    CAMPER_FLOOR_BLOCK,
+  );
+  owner.mockReturnValue(asVehicleId("camper"));
+  expect(breakAt().cancel).toBe(true);
+  expect(game.run).not.toHaveBeenCalled();
+});
+
 it("registers door interactions during startup and dispatches only owned doors", () => {
   const door = { execute: vi.fn() };
   const owner =
@@ -590,6 +635,7 @@ it("registers door interactions during startup and dispatches only owned doors",
     { door } as unknown as Parameters<typeof registerSubscriptions>[0],
     new TestInputStore(),
     owner,
+    () => undefined,
     () => undefined,
   );
   const startup = game.startup.mock.calls.at(-1)?.[0];
@@ -624,6 +670,7 @@ it("registers bed interactions during startup and passes the player, dimension, 
     { bed } as unknown as Parameters<typeof registerSubscriptions>[0],
     new TestInputStore(),
     vi.fn(),
+    () => undefined,
     () => undefined,
   );
   const registerCustomComponent =
@@ -670,6 +717,7 @@ it("checks the hints every hint interval, after the drive on the same tick (ADR 
     new TestInputStore(),
     () => undefined,
     () => undefined,
+    () => undefined,
   );
   const intervals = vi.mocked(system.runInterval).mock.calls;
   expect(intervals.map(([, ticks]) => ticks)).toEqual([
@@ -691,6 +739,7 @@ it("gives the starter vehicle only on a player's initial spawn", () => {
     new TestInputStore(),
     () => undefined,
     () => undefined,
+    () => undefined,
   );
   const spawn = vi
     .mocked(world.afterEvents.playerSpawn.subscribe)
@@ -708,6 +757,7 @@ it("stores and clears test input only from server script events", () => {
   registerSubscriptions(
     {} as unknown as Parameters<typeof registerSubscriptions>[0],
     inputs,
+    () => undefined,
     () => undefined,
     () => undefined,
   );
@@ -752,6 +802,7 @@ it("sets decor only from server test decor script events (ADR 0093)", () => {
   registerSubscriptions(
     { decor } as unknown as Parameters<typeof registerSubscriptions>[0],
     new TestInputStore(),
+    () => undefined,
     () => undefined,
     () => undefined,
   );
@@ -806,6 +857,7 @@ function decorFixture() {
     new TestInputStore(),
     () => undefined,
     owner,
+    () => undefined,
   );
   // registerDecor subscribes first.
   const handler = defined(game.before.mock.calls[before], "decor handler")[0];
@@ -971,6 +1023,7 @@ function registerGiftFixture() {
       typeof registerSubscriptions
     >[0],
     new TestInputStore(),
+    () => undefined,
     () => undefined,
     () => undefined,
   );
