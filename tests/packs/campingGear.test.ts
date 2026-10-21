@@ -338,9 +338,7 @@ const condition = (face: number, height: number) =>
 
 function expectedDecor(g: Gear) {
   const w = g.width_px;
-  const [lo, hi] = ySpan(g);
-  const y0 = Math.max(lo, 0);
-  const y1 = Math.min(hi, 16);
+  const [y0, y1] = ySpan(g);
   return {
     format_version: "1.21.80",
     "minecraft:block": {

@@ -17,13 +17,11 @@ export function registerDockGuard(
   // block at once, so breaks of a held vehicle's laid blocks are cancelled here (ADR 0096).
   world.beforeEvents.playerBreakBlock.subscribe((ev) => {
     const { block } = ev;
-    if (
-      dockBlockOwner(
-        asDimensionId(ev.dimension.id),
-        block.location,
-        block.typeId,
-      ) !== undefined
-    )
-      ev.cancel = true;
+    const vehicleId = dockBlockOwner(
+      asDimensionId(ev.dimension.id),
+      block.location,
+      block.typeId,
+    );
+    if (vehicleId !== undefined) ev.cancel = true;
   });
 }
