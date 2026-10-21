@@ -76,12 +76,13 @@ describe("Boat deck floor (ADR 0063)", () => {
     );
   });
 
-  it("references an invisible model with a root bone and no cubes", () => {
+  it("references the hidden-cube model and hides its bone (ADR 0101)", () => {
     const file = read(`${RP}/models/blocks/yasu_ride/deck_floor.geo.json`);
     expect(file.format_version).toBe("1.12.0");
-    expect(block.components["minecraft:geometry"]).toBe(
-      "geometry.yasu_ride.deck_floor",
-    );
+    expect(block.components["minecraft:geometry"]).toEqual({
+      identifier: "geometry.yasu_ride.deck_floor",
+      bone_visibility: { root: false },
+    });
     expect(file["minecraft:geometry"]).toEqual([
       {
         description: {
@@ -89,7 +90,13 @@ describe("Boat deck floor (ADR 0063)", () => {
           texture_width: 16,
           texture_height: 16,
         },
-        bones: [{ name: "root", pivot: [0, 0, 0] }],
+        bones: [
+          {
+            name: "root",
+            pivot: [0, 0, 0],
+            cubes: [{ origin: [-0.5, 0, -0.5], size: [1, 1, 1], uv: [0, 0] }],
+          },
+        ],
       },
     ]);
   });

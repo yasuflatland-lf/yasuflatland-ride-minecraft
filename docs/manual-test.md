@@ -71,6 +71,7 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | B14 | Sit only in a rear deck seat and push the stick | Nothing happens; only the deck driver sets off | | |
 | B15 | On a docked boat, sit in the rear-left deck seat; have a second player get into the boat's rear-left seat from the water | The first player is left standing on the deck and the second sits in the boat; the boat stays docked | | |
 | B16 | Dock the boat and, on a phone, aim at a deck seat | The interact button reads "Sit", not "Ride" | | |
+| B17 | Stop the sports boat until it lays its deck, walk on the deck, and look at the deck from above and from the water | The deck holds you as before, and nothing shows on it (ADR 0101) | | |
 
 ## Camper
 
@@ -147,6 +148,8 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | C69 | Park the camper facing each of the four directions and long-press the shower-toilet door from the aisle each time | The door opens and closes at every heading (ADR 0098) | | |
 | C70 | Park, hold a Macrame Hanging Planter, and long-press inside the camper on a phone; look at it from the dinette and from the aisle, aim at it, then long-press it with an empty hand; repeat with right-click on PC | The planter hangs under the hook above the table, drawn as a planter and not as a square of pixel noise, with the cord meeting its top knot; aiming at it outlines the planter itself; the empty-hand long-press takes it back (ADR 0099) | | |
 | C71 | Park the camper and, on a phone, aim at the dinette, the driver's deck seat, and the toilet (with the shower-toilet door open); then set the game language to Japanese and repeat | The interact button reads "Sit" on each seat, and in Japanese it shows the text from ja_JP.lang for action.interact.yasu_ride.sit; it never reads "Ride" | | |
+| C72 | Park the camper, put a potted plant on the table and a transistor radio on the dashboard, then look at them from inside and from outside through the windows, on a phone and on PC | Both items show from every side; no small dot or flicker shows anywhere in the room (ADR 0101) | | |
+| C73 | With items on the table and the dashboard, walk 30 blocks away and come back, then restart the server and look again | The items still show (ADR 0101) | | |
 
 ## Upgrading from MyCar 0.5.0 and earlier
 
