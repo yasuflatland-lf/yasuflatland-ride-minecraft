@@ -83,7 +83,7 @@ jobs:
         run: |
           if [ "$EVENT" != pull_request ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
-          elif git diff --name-only HEAD^1 HEAD | grep -qE '^(tools/(render_preview|gen_camping_gear)\.py|tools/camping_gear\.json|packs/yasu_ride_rp/(models|textures/entity|textures/blocks|animations)/|packs/yasu_ride_rp/textures/terrain_texture\.json$|packs/[^/]+/pack_icon\.png$|docs/images/|package\.json$|mise\.toml$|\.github/workflows/unit-test\.yml$)'; then
+          elif git diff --name-only HEAD^1 HEAD | grep -qE '^(tools/(render_preview|gen_camping_gear)\.py|tools/camping_gear\.json|packs/yasu_ride_rp/(models|textures/entity|textures/blocks|textures/items|animations)/|packs/yasu_ride_rp/textures/(terrain|item)_texture\.json$|packs/yasu_ride_bp/(blocks|items|item_catalog)/|packs/[^/]+/pack_icon\.png$|docs/images/|package\.json$|mise\.toml$|\.github/workflows/unit-test\.yml$)'; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
