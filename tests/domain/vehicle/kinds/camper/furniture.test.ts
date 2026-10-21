@@ -69,7 +69,7 @@ it("gives the shower-toilet its own block in both of its cells (ADR 0098)", () =
   ]);
 });
 
-it("lists the ten furniture kinds once each, in order", () => {
+it("lists the nine furniture kinds once each, in order", () => {
   expect(CAMPER_FURNITURE.map((f) => f.kind)).toEqual([
     "dashboard",
     "table",
@@ -78,7 +78,6 @@ it("lists the ten furniture kinds once each, in order", () => {
     "shelf",
     "stove",
     "counter",
-    "wall_cabinet",
     "ceiling_hook",
     "shower_toilet",
   ]);
@@ -99,8 +98,6 @@ it("keeps the saved slot ids, cells, and heights", () => {
     ["shelf_high", -1, 1, 2, 4],
     ["stove", -1, -2, 1, 14],
     ["counter", -1, -1, 1, 14],
-    ["wall_cabinet_front", -1, -1, 2, 13],
-    ["wall_cabinet_rear", -1, -2, 2, 13],
     ["ceiling_hook", 1, 0, 2, 6],
   ]);
 });

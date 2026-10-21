@@ -766,7 +766,7 @@ describe("camper furniture model (ADR 0093)", () => {
 
   it("puts every standing decor slot on the model's top surface and runs the ceiling hook from the ceiling plate to the top of its cell (ADR 0093, 0099, 0102)", () => {
     const slots = CAMPER_FURNITURE.flatMap((f) => f.slots);
-    expect(slots).toHaveLength(12);
+    expect(slots).toHaveLength(10);
     const unrotatedCubes = bones
       .filter((b) => b.rotation === undefined)
       .flatMap((b) => b.cubes ?? [])
@@ -840,6 +840,26 @@ describe("camper furniture model (ADR 0093)", () => {
         ).toBe(false);
       }
     }
+  });
+
+  it("raises the wall cabinet to the ceiling (ADR 0103)", () => {
+    // The cell (-1, -1, 2) the cabinet's front half used to stand in, at its middle.
+    const x = 16 * -1;
+    const z = -16 * -1;
+    const covering = (bones.find((b) => b.name === "body")?.cubes ?? [])
+      .filter((cube) => cube.rotation === undefined)
+      .filter((cube) => {
+        const [ox = 0, , oz = 0] = cube.origin;
+        const [sx = 0, , sz = 0] = cube.size;
+        return ox <= x && x <= ox + sx && oz <= z && z <= oz + sz;
+      })
+      .map((cube) => {
+        const [, oy = 0] = cube.origin;
+        const [, sy = 0] = cube.size;
+        return [oy, oy + sy] as const;
+      });
+    expect(covering).toContainEqual([54, 61]);
+    expect(covering.some(([lo, hi]) => lo < 54 && hi > 32)).toBe(false);
   });
 
   it("keeps every body cube, rotated ones included, below the stove slot's top under the widest item's footprint (ADR 0100)", () => {

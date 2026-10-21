@@ -83,7 +83,7 @@ export interface Drive {
   useShowerDoor?(): boolean;
   /** Runs the shower of a held vehicle for a fixed time; false when it has none (ADR 0094). */
   runShower?(): boolean;
-  /** The decor of the vehicle's room, in slot order; absent for kinds without decor (ADR 0093). */
+  /** The decor of the vehicle's room, in slot order, then any stowed decor whose slot no longer exists (ADR 0103); absent for kinds without decor (ADR 0093). */
   decor?(): readonly DecorPlacement[];
   /** Puts `item` in `slot`, or empties it when undefined. Returns whether the decor changed (ADR 0093). */
   setDecor?(slot: string, item: string | undefined): boolean;

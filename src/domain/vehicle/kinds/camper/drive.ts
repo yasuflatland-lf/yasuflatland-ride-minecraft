@@ -85,6 +85,9 @@ export class CamperDrive extends TransformingDrive {
   private showerTicks = 0;
   private readonly showerSync = new SyncedValue<boolean>();
   private readonly decorBySlot = new Map<string, string>();
+  // Saved decor whose slot no longer exists and that no free slot could take; it is
+  // kept, saved, and given back when the camper breaks (ADR 0103).
+  private readonly stowedDecor: DecorPlacement[] = [];
 
   constructor(yaw: number, restored: RestoredOf<typeof CAMPER_ENTITY>) {
     super(
@@ -104,8 +107,18 @@ export class CamperDrive extends TransformingDrive {
         ? savedTarget
         : this.doorStep * 2 >= DOOR_STEPS;
     // Decor survives driving: it is restored whether or not the camper was docked (ADR 0093).
-    for (const { slot, item } of parseDecor(restored[DOCK_RESTORED.decor]))
+    // An entry whose slot no longer exists moves to the first free slot that takes its item, or is stowed (ADR 0103).
+    const saved = parseDecor(restored[DOCK_RESTORED.decor]);
+    for (const { slot, item } of saved)
       if (decorSlot(slot)) this.decorBySlot.set(slot, item);
+    for (const entry of saved) {
+      if (decorSlot(entry.slot)) continue;
+      const free = slotsFor(entry.item).find(
+        ({ id }) => !this.decorBySlot.has(id),
+      );
+      if (free) this.decorBySlot.set(free.id, entry.item);
+      else this.stowedDecor.push(entry);
+    }
     this.showerDoorStep = restoredDoorStep(
       restored.shower_door,
       this.restoredDocked,
@@ -150,10 +163,11 @@ export class CamperDrive extends TransformingDrive {
   }
 
   decor(): readonly DecorPlacement[] {
-    return DECOR_SLOTS.flatMap(({ id }) => {
+    const inSlots = DECOR_SLOTS.flatMap(({ id }) => {
       const item = this.decorBySlot.get(id);
       return item === undefined ? [] : [{ slot: id, item }];
     });
+    return [...inSlots, ...this.stowedDecor];
   }
 
   setDecor(slot: string, item: string | undefined): boolean {
