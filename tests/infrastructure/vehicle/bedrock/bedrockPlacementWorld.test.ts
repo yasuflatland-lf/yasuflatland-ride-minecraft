@@ -16,10 +16,21 @@ function fixture() {
     return dimension;
   });
   const consumeHeld = vi.fn();
-  const inventory = { consumeHeld } as unknown as BedrockInventory;
+  const receivedGift = vi.fn();
+  const giveGift = vi.fn();
+  const markGiftReceived = vi.fn();
+  const inventory = {
+    consumeHeld,
+    receivedGift,
+    giveGift,
+    markGiftReceived,
+  } as unknown as BedrockInventory;
   return {
     dimension,
     consumeHeld,
+    receivedGift,
+    giveGift,
+    markGiftReceived,
     placement: new BedrockPlacementWorld(inventory, new EntityIndex()),
   };
 }
@@ -70,5 +81,19 @@ describe("BedrockPlacementWorld vehicle item", () => {
       ITEM_TYPE[kind],
       4,
     );
+  });
+
+  it("delegates the gift flag, give, and mark to the inventory", () => {
+    const { receivedGift, giveGift, markGiftReceived, placement } = fixture();
+    receivedGift.mockReturnValue(true);
+    const player = asPlayerId("player");
+    expect(placement.receivedGift(player, "camping_gear_box")).toBe(true);
+    placement.giveGift(player, "camping_gear_box");
+    placement.markGiftReceived(player, "camping_gear_box");
+    for (const stub of [receivedGift, giveGift, markGiftReceived])
+      expect(stub).toHaveBeenCalledExactlyOnceWith(
+        "player",
+        "camping_gear_box",
+      );
   });
 });

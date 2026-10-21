@@ -4,6 +4,7 @@ import { DriveVehicles } from "../../application/vehicle/driveVehicles";
 import { GiveStarterVehicle } from "../../application/vehicle/giveStarterVehicle";
 import { HitVehicle } from "../../application/vehicle/hitVehicle";
 import { LimitVehicles } from "../../application/vehicle/limitVehicles";
+import { OpenGift } from "../../application/vehicle/openGift";
 import { PaintVehicle } from "../../application/vehicle/paintVehicle";
 import { PlaceDecor } from "../../application/vehicle/placeDecor";
 import { PlaceVehicle } from "../../application/vehicle/placeVehicle";
@@ -49,6 +50,7 @@ export function installVehicles(): void {
         repo,
       ),
       starter: new GiveStarterVehicle(inventory),
+      gift: new OpenGift(inventory),
       hit: new HitVehicle(fleetWorld, repo, fleets, systemClock),
       limit: new LimitVehicles(fleetWorld, repo, fleets, log),
       paint: new PaintVehicle(
