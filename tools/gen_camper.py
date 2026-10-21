@@ -220,7 +220,7 @@ for a0, a1 in ARCHES:  # straight up to ARCH_SLOPE_Y, then sloping in by ARCH_IN
         arch_holes.append((a0 + inset, a1 - inset, y, y + ARCH_STEP))
 # No window between the door and the shower room: the wall cabinet covers that wall.
 right_windows = [CAB_WIN, (-35, -10, *WIN_Y), (38, 50, *WIN_Y), (-31, -19, 56, 59)]
-left_windows = [CAB_WIN, (-29, -5, *WIN_Y), (-19, -8, 56, 59), (16, 21, 36, 48), (40, 49, 38, 47)]
+left_windows = [CAB_WIN, (-29, -5, *WIN_Y), (-19, -8, 56, 59), (16, 21, *WIN_Y), (40, 49, *WIN_Y)]
 for x0, x1, windows in ((HW - 1, HW, right_windows), (-HW, -HW + 1, left_windows)):
     right = x0 > 0
     sgn = 1 if right else -1
