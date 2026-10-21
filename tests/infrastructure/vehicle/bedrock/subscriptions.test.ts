@@ -30,6 +30,7 @@ import {
   DECK_SEAT_TYPE,
   decorBlockId,
   ENTITY_TYPE,
+  GIFT_ITEM,
   HEADLIGHT_SWITCH_TYPE,
   ITEM_TYPE,
   OWNER_PROPERTY,
@@ -134,6 +135,9 @@ function fixture(
     },
     spawnVehicle: notUsed,
     consumeVehicleItem: notUsed,
+    receivedGift: notUsed,
+    giveGift: notUsed,
+    markGiftReceived: notUsed,
   };
   // cellFor and placesOnWater never touch the repository.
   const placement = new PlaceVehicle(placementWorld, {} as VehicleRepository);
@@ -156,7 +160,7 @@ function fixture(
   const uses = game.use.mock.calls
     .slice(usesBefore)
     .map(([handler]) => handler);
-  if (!before || uses.length !== 2) throw new Error("subscriptions missing");
+  if (!before || uses.length !== 3) throw new Error("subscriptions missing");
   game.run.mockClear();
   const event = {
     isFirstEvent: true,
@@ -912,4 +916,100 @@ it("takes decor back on an empty-hand interaction with a decor block (ADR 0093)"
   owner.mockReturnValue(undefined);
   interact(event(), { params: undefined });
   expect(removeDecor.execute).not.toHaveBeenCalled();
+});
+
+function registerGiftFixture() {
+  const gift = { execute: vi.fn() };
+  const headlights = { execute: vi.fn() };
+  registerSubscriptions(
+    { gift, headlights } as unknown as Parameters<
+      typeof registerSubscriptions
+    >[0],
+    new TestInputStore(),
+    () => undefined,
+    () => undefined,
+  );
+  return gift;
+}
+
+it("opens a gift box used in the air from the selected slot (ADR 0093)", () => {
+  const usesBefore = game.use.mock.calls.length;
+  const gift = registerGiftFixture();
+  const uses = game.use.mock.calls
+    .slice(usesBefore)
+    .map(([handler]) => handler);
+  fc.assert(
+    fc.property(
+      fc.constantFrom(
+        GIFT_ITEM.camping_gear_box,
+        HEADLIGHT_SWITCH_TYPE,
+        "minecraft:stick",
+      ),
+      (typeId) => {
+        gift.execute.mockClear();
+        for (const use of uses)
+          use({
+            itemStack: { typeId },
+            source: {
+              id: "player",
+              selectedSlotIndex: 5,
+              getComponent: () => undefined,
+            },
+          } as unknown as ItemUseAfterEvent);
+        if (typeId === GIFT_ITEM.camping_gear_box)
+          expect(gift.execute).toHaveBeenCalledExactlyOnceWith({
+            playerId: "player",
+            gift: "camping_gear_box",
+            slot: 5,
+          });
+        else expect(gift.execute).not.toHaveBeenCalled();
+      },
+    ),
+  );
+});
+
+it("opens a gift box used on a block on the next tick and cancels the interaction (ADR 0093)", () => {
+  const beforeCount = game.before.mock.calls.length;
+  const gift = registerGiftFixture();
+  game.run.mockClear();
+  const handlers = game.before.mock.calls
+    .slice(beforeCount)
+    .map(([handler]) => handler);
+  const interact = (typeId: string, isFirstEvent: boolean) => {
+    const ev = {
+      isFirstEvent,
+      itemStack: { typeId },
+      blockFace: "Up",
+      cancel: false,
+      block: {
+        typeId: "minecraft:grass_block",
+        dimension: { id: "overworld" },
+        location: { x: 0, y: 64, z: 0 },
+      },
+      faceLocation: { x: 0.5, y: 1, z: 0.5 },
+      player: { id: "player", selectedSlotIndex: 5 },
+    };
+    for (const handler of handlers)
+      handler(ev as unknown as PlayerInteractWithBlockBeforeEvent);
+    return ev;
+  };
+  expect(interact(GIFT_ITEM.camping_gear_box, true).cancel).toBe(true);
+  expect(game.run).toHaveBeenCalledTimes(1);
+  expect(gift.execute).not.toHaveBeenCalled();
+  for (const [callback] of game.run.mock.calls) callback();
+  expect(gift.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId: "player",
+    gift: "camping_gear_box",
+    slot: 5,
+  });
+  for (const [typeId, isFirstEvent] of [
+    [GIFT_ITEM.camping_gear_box, false],
+    ["minecraft:stick", true],
+  ] as const) {
+    game.run.mockClear();
+    gift.execute.mockClear();
+    expect(interact(typeId, isFirstEvent).cancel).toBe(false);
+    expect(game.run).not.toHaveBeenCalled();
+    expect(gift.execute).not.toHaveBeenCalled();
+  }
 });

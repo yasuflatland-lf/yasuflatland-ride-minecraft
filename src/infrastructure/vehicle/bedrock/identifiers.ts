@@ -7,6 +7,10 @@ import type { FleetEntry } from "../../../domain/vehicle/fleet/fleet";
 import { VEHICLE_KINDS, type VehicleKind } from "../../../domain/vehicle/kind";
 import { CAMPING_GEAR_IDS } from "../../../domain/vehicle/kinds/index";
 import { PAINTS, type Paint } from "../../../domain/vehicle/paint/paint";
+import {
+  PLACEMENT_GIFTS,
+  type PlacementGift,
+} from "../../../domain/vehicle/placement/gift";
 import type { ChaseCamera } from "../../../domain/vehicle/profile";
 import type { RamMount } from "../../../domain/vehicle/ram";
 import { id, NAMESPACE } from "../../shared/identifiers";
@@ -45,6 +49,37 @@ export function kindOfItem(
 export const PLAYER_TYPE = "minecraft:player";
 /** Dynamic property on a player, set after they have been given their starter vehicle item (ADR 0023). */
 export const STARTER_RECEIVED_PROPERTY = id("starter_received");
+
+/** The item of each placement gift (ADR 0093). */
+export const GIFT_ITEM: Readonly<Record<PlacementGift, string>> = Object.freeze(
+  {
+    camping_gear_box: id("camping_gear_box"),
+  },
+);
+
+/** Player dynamic property recording who received each gift (ADR 0093). */
+export const GIFT_RECEIVED_PROPERTY: Readonly<Record<PlacementGift, string>> =
+  Object.freeze({ camping_gear_box: id("camping_gear_given") });
+
+/** The items each gift holds, in tools/camping_gear.json order (ADR 0093). */
+export const GIFT_CONTENTS: Readonly<Record<PlacementGift, readonly string[]>> =
+  Object.freeze({
+    camping_gear_box: Object.freeze(CAMPING_GEAR_IDS.map(id)),
+  });
+
+/** Lang key of the lore line on every item a gift holds (ADR 0093). */
+export const GIFT_LORE: Readonly<Record<PlacementGift, string>> = Object.freeze(
+  {
+    camping_gear_box: `${NAMESPACE}.lore.camping_gear`,
+  },
+);
+
+export function giftOfItem(
+  typeId: string | undefined,
+): PlacementGift | undefined {
+  return PLACEMENT_GIFTS.find((gift) => GIFT_ITEM[gift] === typeId);
+}
+
 /** World dynamic property holding the fleet as JSON (ADR 0038). */
 export const FLEET_PROPERTY = id("fleet");
 /** Entity dynamic property on a vehicle placed from its item: the placing player's id (ADR 0066). */

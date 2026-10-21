@@ -6,6 +6,7 @@ import type {
 // Ports for placing a vehicle and handing out the starter item; implemented in the infrastructure layer (ADR 0012).
 import type { Vec3 } from "../../../domain/shared/vec";
 import type { VehicleKind } from "../../../domain/vehicle/kind";
+import type { PlacementGift } from "../../../domain/vehicle/placement/gift";
 
 export interface PlacementWorld {
   isAir(dimensionId: DimensionId, at: Vec3): boolean;
@@ -26,6 +27,11 @@ export interface PlacementWorld {
   ): boolean;
   /** Whether the player is in creative mode; false when the player is not in the world. */
   isCreative(playerId: PlayerId): boolean;
+  /** Whether the player has received `gift`; undefined when the player is no longer in the world. */
+  receivedGift(playerId: PlayerId, gift: PlacementGift): boolean | undefined;
+  /** Puts one `gift` item in the inventory, or at the player's feet when it is full. */
+  giveGift(playerId: PlayerId, gift: PlacementGift): void;
+  markGiftReceived(playerId: PlayerId, gift: PlacementGift): void;
 }
 
 export interface StarterWorld {
@@ -34,4 +40,14 @@ export interface StarterWorld {
   /** Puts one item of this kind in the inventory, or at the player's feet when it is full. */
   giveVehicleItem(playerId: PlayerId, kind: VehicleKind): void;
   markStarterReceived(playerId: PlayerId): void;
+}
+
+export interface GiftBoxWorld {
+  /** Takes one `gift` box from `slot`. False when that slot no longer holds one. */
+  consumeGift(playerId: PlayerId, gift: PlacementGift, slot: number): boolean;
+  /**
+   * Puts every item `gift` holds in the inventory, each with the gift's lore line;
+   * what does not fit drops at the player's feet.
+   */
+  unpackGift(playerId: PlayerId, gift: PlacementGift): void;
 }

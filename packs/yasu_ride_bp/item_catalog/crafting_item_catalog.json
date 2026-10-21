@@ -7,10 +7,11 @@
         "groups": [
           {
             "group_identifier": {
-              "icon": "yasu_ride:percolator",
+              "icon": "yasu_ride:camping_gear_box",
               "name": "yasu_ride:camping_gear"
             },
             "items": [
+              "yasu_ride:camping_gear_box",
               "yasu_ride:potted_plant",
               "yasu_ride:macrame_planter",
               "yasu_ride:cactus_pot",

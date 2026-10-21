@@ -41,6 +41,7 @@ export const CAMPER_PROFILE: VehicleProfile = Object.freeze({
   // in flight (ADR 0071).
   chaseCamera: "far",
   defaultPaint: "khaki", // ADR 0067, 0076
+  placementGift: "camping_gear_box", // ADR 0093
   // The camper takes hits only on its bumper boxes, so players need to be told where
   // to hit it and, once it is parked, how to take the wheel (ADR 0086).
   hints: Object.freeze({

@@ -9,6 +9,7 @@ import {
 } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import type { VehicleKind } from "../../../domain/vehicle/kind";
+import type { PlacementGift } from "../../../domain/vehicle/placement/gift";
 import type { BedrockInventory } from "./bedrockInventory";
 import type { EntityIndex } from "./entityIndex";
 import { isLightBlock } from "./headlightBlocks";
@@ -70,6 +71,19 @@ export class BedrockPlacementWorld implements PlacementWorld {
   ): boolean {
     return this.inventory.consumeHeld(playerId, ITEM_TYPE[kind], slot);
   }
+
+  receivedGift(playerId: PlayerId, gift: PlacementGift): boolean | undefined {
+    return this.inventory.receivedGift(playerId, gift);
+  }
+
+  giveGift(playerId: PlayerId, gift: PlacementGift): void {
+    this.inventory.giveGift(playerId, gift);
+  }
+
+  markGiftReceived(playerId: PlayerId, gift: PlacementGift): void {
+    this.inventory.markGiftReceived(playerId, gift);
+  }
+
   isCreative(playerId: PlayerId): boolean {
     return isCreativePlayer(this.index, playerId);
   }

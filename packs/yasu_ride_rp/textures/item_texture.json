@@ -12,6 +12,9 @@
     "yasu_ride_camper_item": {
       "textures": "textures/items/yasu_ride/camper_item"
     },
+    "yasu_ride_camping_gear_box": {
+      "textures": "textures/items/yasu_ride/camping_gear_box"
+    },
     "yasu_ride_potted_plant": {
       "textures": "textures/items/yasu_ride/potted_plant"
     },

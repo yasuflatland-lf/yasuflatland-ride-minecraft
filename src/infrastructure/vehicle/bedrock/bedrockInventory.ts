@@ -1,12 +1,23 @@
-// Implements StarterWorld; consumeHeld is the one place that takes a held item.
+// Implements StarterWorld and GiftBoxWorld; consumeHeld is the one place that takes a held item.
 import { ItemStack } from "@minecraft/server";
-import type { StarterWorld } from "../../../application/vehicle/ports/placement";
+import type {
+  GiftBoxWorld,
+  StarterWorld,
+} from "../../../application/vehicle/ports/placement";
 import type { PlayerId } from "../../../domain/shared/ids";
 import type { VehicleKind } from "../../../domain/vehicle/kind";
+import type { PlacementGift } from "../../../domain/vehicle/placement/gift";
 import type { EntityIndex } from "./entityIndex";
-import { ITEM_TYPE, STARTER_RECEIVED_PROPERTY } from "./identifiers";
+import {
+  GIFT_CONTENTS,
+  GIFT_ITEM,
+  GIFT_LORE,
+  GIFT_RECEIVED_PROPERTY,
+  ITEM_TYPE,
+  STARTER_RECEIVED_PROPERTY,
+} from "./identifiers";
 
-export class BedrockInventory implements StarterWorld {
+export class BedrockInventory implements StarterWorld, GiftBoxWorld {
   constructor(private readonly index: EntityIndex) {}
 
   /** Takes one item from `slot` (the selected one by default), but only if it still holds `typeId`. */
@@ -35,23 +46,62 @@ export class BedrockInventory implements StarterWorld {
 
   /** Puts one of each item type into the player's inventory and drops what does not fit at the player's feet. */
   giveItems(playerId: PlayerId, typeIds: readonly string[]): void {
-    const player = this.index.player(playerId);
-    if (!player) return;
-    const inv = player.getComponent("minecraft:inventory")?.container;
-    for (const typeId of typeIds) {
-      const item = new ItemStack(typeId, 1);
-      const leftover = inv ? inv.addItem(item) : item;
-      if (leftover) player.dimension.spawnItem(leftover, player.location);
-    }
+    this.give(
+      playerId,
+      typeIds.map((typeId) => new ItemStack(typeId, 1)),
+    );
   }
 
   giveVehicleItem(playerId: PlayerId, kind: VehicleKind): void {
-    this.giveItems(playerId, [ITEM_TYPE[kind]]);
+    this.give(playerId, [new ItemStack(ITEM_TYPE[kind], 1)]);
   }
 
   markStarterReceived(playerId: PlayerId): void {
     this.index
       .player(playerId)
       ?.setDynamicProperty(STARTER_RECEIVED_PROPERTY, true);
+  }
+
+  receivedGift(playerId: PlayerId, gift: PlacementGift): boolean | undefined {
+    const player = this.index.player(playerId);
+    if (!player) return undefined;
+    return player.getDynamicProperty(GIFT_RECEIVED_PROPERTY[gift]) === true;
+  }
+
+  giveGift(playerId: PlayerId, gift: PlacementGift): void {
+    this.give(playerId, [new ItemStack(GIFT_ITEM[gift], 1)]);
+  }
+
+  markGiftReceived(playerId: PlayerId, gift: PlacementGift): void {
+    this.index
+      .player(playerId)
+      ?.setDynamicProperty(GIFT_RECEIVED_PROPERTY[gift], true);
+  }
+
+  consumeGift(playerId: PlayerId, gift: PlacementGift, slot: number): boolean {
+    return this.consumeHeld(playerId, GIFT_ITEM[gift], slot);
+  }
+
+  unpackGift(playerId: PlayerId, gift: PlacementGift): void {
+    this.give(
+      playerId,
+      GIFT_CONTENTS[gift].map((typeId) => {
+        const item = new ItemStack(typeId, 1);
+        // A RawMessage lore line needs @minecraft/server 2.2.0 (manifest, ADR 0093).
+        item.setLore([{ translate: GIFT_LORE[gift] }]);
+        return item;
+      }),
+    );
+  }
+
+  /** Adds each item to the inventory and drops what does not fit at the player's feet. */
+  private give(playerId: PlayerId, items: readonly ItemStack[]): void {
+    const player = this.index.player(playerId);
+    if (!player) return;
+    const inv = player.getComponent("minecraft:inventory")?.container;
+    for (const item of items) {
+      const leftover = inv ? inv.addItem(item) : item;
+      if (leftover) player.dimension.spawnItem(leftover, player.location);
+    }
   }
 }

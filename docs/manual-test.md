@@ -115,6 +115,12 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | C38 | Place items in Creative | The items are placed and the stack in your hand does not shrink | | |
 | C39 | Place two items, drive away, park again, then run `/reload` | Both items are back in their spots after parking again and after the reload | | |
 | C40 | Place two items, get out, and hit the camper from outside until it breaks | The camper item drops, and both decor items are in your inventory | | |
+| C41 | With a player who has never placed a camper, place a camper | A Camping Gear Box is added to the inventory, or drops at your feet when it is full (ADR 0093) | | |
+| C42 | Hit the camper's bumper 3 times to take it back, then place it again | No second box is given | | |
+| C43 | Hold the box and use it in the air (tap on a phone, right-click on PC) | The box is gone and the 19 camping gear items are in the inventory, each showing "Camping gear" under its name | | |
+| C44 | Get another box from the creative inventory, fill all but three inventory slots, and use the box on a grass block | Nothing is placed on the grass; the items that do not fit drop at your feet | | |
+| C45 | Open the creative inventory's Items tab | The Camping Gear group shows the box as its icon and holds the box first, then the 19 items | | |
+| C46 | Set the game language to Japanese, then open a box and look at an unpacked item | The line under the item's name shows the Japanese text from ja_JP.lang, not the key yasu_ride.lore.camping_gear | | |
 
 ## Upgrading from MyCar 0.5.0 and earlier
 

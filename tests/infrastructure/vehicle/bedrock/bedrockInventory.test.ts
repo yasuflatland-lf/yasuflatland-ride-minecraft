@@ -5,6 +5,9 @@ import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
 import { BedrockInventory } from "../../../../src/infrastructure/vehicle/bedrock/bedrockInventory";
 import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
 import {
+  GIFT_CONTENTS,
+  GIFT_ITEM,
+  GIFT_RECEIVED_PROPERTY,
   ITEM_TYPE,
   PLAYER_TYPE,
   STARTER_RECEIVED_PROPERTY,
@@ -18,6 +21,9 @@ vi.mock("@minecraft/server", () => ({
       public typeId: string,
       public amount: number,
     ) {}
+    setLore(lore: unknown[]) {
+      Object.assign(this, { lore });
+    }
   },
 }));
 
@@ -217,5 +223,133 @@ describe("BedrockInventory", () => {
       expect(container.addItem).not.toHaveBeenCalled();
       expect(dimension.spawnItem).not.toHaveBeenCalled();
     });
+  });
+
+  it("reports no gift flag for a missing player", () => {
+    const { inventory } = fixture();
+    expect(
+      inventory.receivedGift(asPlayerId("nobody"), "camping_gear_box"),
+    ).toBeUndefined();
+  });
+
+  it("reports the gift flag only when it is exactly true", () => {
+    fc.assert(
+      fc.property(fc.constantFrom(true, false, undefined, "true"), (stored) => {
+        const { player, inventory } = fixture();
+        player.getDynamicProperty.mockReturnValue(stored);
+        expect(
+          inventory.receivedGift(asPlayerId("player"), "camping_gear_box"),
+        ).toBe(stored === true);
+        expect(player.getDynamicProperty).toHaveBeenCalledWith(
+          GIFT_RECEIVED_PROPERTY.camping_gear_box,
+        );
+      }),
+    );
+    expect(GIFT_RECEIVED_PROPERTY.camping_gear_box).toBe(
+      "yasu_ride:camping_gear_given",
+    );
+  });
+
+  it("marks the gift as received on a present player", () => {
+    const { player, inventory } = fixture();
+    inventory.markGiftReceived(asPlayerId("player"), "camping_gear_box");
+    expect(player.setDynamicProperty).toHaveBeenCalledTimes(1);
+    expect(player.setDynamicProperty).toHaveBeenCalledWith(
+      "yasu_ride:camping_gear_given",
+      true,
+    );
+    player.setDynamicProperty.mockClear();
+    expect(() =>
+      inventory.markGiftReceived(asPlayerId("nobody"), "camping_gear_box"),
+    ).not.toThrow();
+    expect(player.setDynamicProperty).not.toHaveBeenCalled();
+  });
+
+  it("puts one camping gear box in the inventory", () => {
+    const { container, dimension, inventory } = fixture();
+    container.addItem.mockReturnValue(undefined);
+    inventory.giveGift(asPlayerId("player"), "camping_gear_box");
+    expect(container.addItem).toHaveBeenCalledTimes(1);
+    expect(container.addItem).toHaveBeenCalledWith({
+      typeId: "yasu_ride:camping_gear_box",
+      amount: 1,
+    });
+    expect(dimension.spawnItem).not.toHaveBeenCalled();
+  });
+
+  it("takes the gift box only from the given slot", () => {
+    const { container, inventory } = fixture();
+    container.getItem.mockImplementation((slot: number) =>
+      slot === 4
+        ? { typeId: GIFT_ITEM.camping_gear_box, amount: 1 }
+        : undefined,
+    );
+    expect(
+      inventory.consumeGift(asPlayerId("player"), "camping_gear_box", 4),
+    ).toBe(true);
+    expect(container.getItem).toHaveBeenCalledWith(4);
+    expect(container.setItem).toHaveBeenCalledWith(4, undefined);
+    container.getItem.mockImplementation((slot: number) =>
+      slot === 4 ? { typeId: "minecraft:stick", amount: 1 } : undefined,
+    );
+    expect(
+      inventory.consumeGift(asPlayerId("player"), "camping_gear_box", 4),
+    ).toBe(false);
+  });
+
+  it("unpacks every gear item once, in order, with the camping gear lore line", () => {
+    const { container, dimension, inventory } = fixture();
+    container.addItem.mockReturnValue(undefined);
+    inventory.unpackGift(asPlayerId("player"), "camping_gear_box");
+    expect(container.addItem.mock.calls).toEqual(
+      GIFT_CONTENTS.camping_gear_box.map((typeId) => [
+        {
+          typeId,
+          amount: 1,
+          lore: [{ translate: "yasu_ride.lore.camping_gear" }],
+        },
+      ]),
+    );
+    expect(container.addItem).toHaveBeenCalledTimes(19);
+    expect(dimension.spawnItem).not.toHaveBeenCalled();
+  });
+
+  it("drops each unpacked item that does not fit at the player", () => {
+    const { container, dimension, player, inventory } = fixture();
+    const count = GIFT_CONTENTS.camping_gear_box.length;
+    fc.assert(
+      fc.property(
+        fc.array(fc.boolean(), { minLength: count, maxLength: count }),
+        (fits) => {
+          container.addItem.mockReset();
+          dimension.spawnItem.mockClear();
+          let i = 0;
+          container.addItem.mockImplementation((item: unknown) =>
+            fits[i++] ? undefined : item,
+          );
+          inventory.unpackGift(asPlayerId("player"), "camping_gear_box");
+          const items = container.addItem.mock.calls.map(([item]) => item);
+          expect(dimension.spawnItem.mock.calls).toEqual(
+            items
+              .filter((_, k) => !fits[k])
+              .map((item) => [item, player.location]),
+          );
+        },
+      ),
+    );
+  });
+
+  it("unpacks at the feet of a player without an inventory", () => {
+    const { dimension, player, inventory } = fixture();
+    player.getComponent.mockReturnValue(undefined);
+    inventory.unpackGift(asPlayerId("player"), "camping_gear_box");
+    expect(dimension.spawnItem).toHaveBeenCalledTimes(19);
+  });
+
+  it("unpacks nothing for a missing player", () => {
+    const { container, dimension, inventory } = fixture();
+    inventory.unpackGift(asPlayerId("nobody"), "camping_gear_box");
+    expect(container.addItem).not.toHaveBeenCalled();
+    expect(dimension.spawnItem).not.toHaveBeenCalled();
   });
 });

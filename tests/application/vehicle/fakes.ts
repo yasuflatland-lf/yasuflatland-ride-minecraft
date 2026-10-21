@@ -13,6 +13,7 @@ import type {
 import type { HeadlightWorld } from "../../../src/application/vehicle/ports/headlights";
 import type { PaintWorld } from "../../../src/application/vehicle/ports/paint";
 import type {
+  GiftBoxWorld,
   PlacementWorld,
   StarterWorld,
 } from "../../../src/application/vehicle/ports/placement";
@@ -45,6 +46,7 @@ import {
   cellKey,
 } from "../../../src/domain/vehicle/lighting/headlights";
 import type { Paint } from "../../../src/domain/vehicle/paint/paint";
+import type { PlacementGift } from "../../../src/domain/vehicle/placement/gift";
 import type { ChaseCamera } from "../../../src/domain/vehicle/profile";
 import type { RamHit, RamTarget } from "../../../src/domain/vehicle/ram";
 import type { Vehicle } from "../../../src/domain/vehicle/vehicle";
@@ -98,7 +100,8 @@ export class FakeWorld
     PaintWorld,
     HeadlightWorld,
     LimitWorld,
-    DecorPlacingWorld
+    DecorPlacingWorld,
+    GiftBoxWorld
 {
   readonly creativePlayers = new Set<string>();
   isCreative(playerId: string) {
@@ -128,6 +131,12 @@ export class FakeWorld
   readonly waterDimensions: string[] = [];
   /** Whether the slot a vehicle item was used from still holds one. */
   itemInSlot = true;
+  /** Players who left the world; gift queries return undefined for them. */
+  readonly absentPlayers = new Set<string>();
+  /** `${playerId}:${gift}` for every gift a player has received. */
+  readonly giftsReceived = new Set<string>();
+  /** Whether the slot a gift box was used from still holds one. */
+  giftInSlot = true;
   failOn: string | undefined;
   failRunOn: { id: string; name: string } | undefined;
   failCameraOn: string | undefined;
@@ -294,6 +303,26 @@ export class FakeWorld
   markStarterReceived(playerId: string) {
     this.starters.set(playerId, true);
     this.calls.push(`mark:${playerId}`);
+  }
+  receivedGift(playerId: string, gift: PlacementGift) {
+    return this.absentPlayers.has(playerId)
+      ? undefined
+      : this.giftsReceived.has(`${playerId}:${gift}`);
+  }
+  giveGift(playerId: string, gift: PlacementGift) {
+    this.calls.push(`gift:${playerId}:${gift}`);
+  }
+  markGiftReceived(playerId: string, gift: PlacementGift) {
+    this.giftsReceived.add(`${playerId}:${gift}`);
+    this.calls.push(`markGift:${playerId}:${gift}`);
+  }
+  consumeGift(playerId: string, gift: PlacementGift, slot: number) {
+    if (!this.giftInSlot) return false;
+    this.calls.push(`takeGift:${playerId}:${slot}:${gift}`);
+    return true;
+  }
+  unpackGift(playerId: string, gift: PlacementGift) {
+    this.calls.push(`unpack:${playerId}:${gift}`);
   }
   dropVehicleItem(id: string) {
     this.calls.push(`drop:${id}`);
