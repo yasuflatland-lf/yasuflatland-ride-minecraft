@@ -9,6 +9,7 @@ import {
   removeOrphanDeckSeat,
 } from "../../../../src/infrastructure/vehicle/bedrock/deckSeats";
 import {
+  DECK_SEAT_COMPACT_EVENT,
   DECK_SEAT_OF_PROPERTY,
   DECK_SEAT_TYPE,
   DECK_SEATS_PROPERTY,
@@ -55,6 +56,7 @@ function fixture() {
         saved.set(key, value),
       getComponent: () => rideable,
       setRotation: vi.fn(),
+      triggerEvent: vi.fn(),
       teleport: vi.fn((at: Vec3) => {
         e.location = at;
       }),
@@ -272,4 +274,63 @@ it("boards nobody without a rideable boat, and keeps a refused rider on the deck
   seats.board(f.car);
   expect(seat.rideable.ejectRider).toHaveBeenCalledWith(player);
   expect(seats.riders(f.car).map((p) => p?.id)).toEqual(["player"]);
+});
+
+it("triggers the compact event once on each newly spawned compact seat only (ADR 0095)", () => {
+  fc.assert(
+    fc.property(
+      fc.array(fc.boolean(), { minLength: 1, maxLength: 6 }),
+      (flags) => {
+        const f = fixture();
+        const seats = new DeckSeats();
+        const spots = flags.map((compact, x) => ({ x, y: 0, z: 0, compact }));
+        seats.keep(asVehicleId(f.car.id), f.car, spots, 0);
+        const ids: string[] = JSON.parse(
+          String(f.boat.saved.get(DECK_SEATS_PROPERTY)),
+        );
+        const check = () =>
+          ids.forEach((id, i) => {
+            const seat = f.entities.get(id);
+            if (!seat) throw new Error("missing seat");
+            if (flags[i])
+              expect(seat.triggerEvent).toHaveBeenCalledExactlyOnceWith(
+                DECK_SEAT_COMPACT_EVENT,
+              );
+            else expect(seat.triggerEvent).not.toHaveBeenCalled();
+          });
+        check();
+        seats.keep(asVehicleId(f.car.id), f.car, spots, 0);
+        check();
+      },
+    ),
+  );
+});
+
+it("ejects every deck seat rider in seat order and returns them (ADR 0095)", () => {
+  fc.assert(
+    fc.property(fc.subarray([0, 1, 2, 3, 4]), (occupied) => {
+      const f = fixture();
+      const seats = new DeckSeats();
+      seats.keep(
+        asVehicleId(f.car.id),
+        f.car,
+        Array.from({ length: 5 }, () => ({ x: 0, y: 0, z: 0 })),
+        0,
+      );
+      const ids: string[] = JSON.parse(
+        String(f.boat.saved.get(DECK_SEATS_PROPERTY)),
+      );
+      ids.forEach((id, i) => {
+        if (occupied.includes(i))
+          f.entities
+            .get(id)
+            ?.riders.push({ id: `player${i}`, typeId: "minecraft:player" });
+      });
+      expect(seats.eject(f.car).map((p) => p.id)).toEqual(
+        occupied.map((i) => `player${i}`),
+      );
+      expect(seats.riders(f.car)).toEqual(Array(5).fill(undefined));
+      expect(f.boarded).toEqual([]);
+    }),
+  );
 });

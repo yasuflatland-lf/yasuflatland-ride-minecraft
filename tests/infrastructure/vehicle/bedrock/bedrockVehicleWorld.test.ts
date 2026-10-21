@@ -850,6 +850,118 @@ describe("BedrockVehicleWorld dock ports", () => {
     );
   });
 
+  it("moves a deck rider the camper refused at departure to the exit before standing players (ADR 0095)", () => {
+    const { world, car, dimension } = fixture();
+    car.location = { x: 0, y: 64, z: 0 };
+    const toilet = {
+      id: "toilet",
+      typeId: PLAYER_TYPE,
+      location: { x: 1, y: 64, z: 1 },
+      getComponent: vi.fn(() => undefined),
+      teleport: vi.fn(),
+    };
+    const near = {
+      id: "near",
+      typeId: PLAYER_TYPE,
+      location: { x: 0, y: 64, z: 0 },
+      getComponent: vi.fn(() => undefined),
+      teleport: vi.fn(),
+    };
+    const seatRiders: unknown[] = [toilet];
+    const seatRideable = {
+      getRiders: () => seatRiders,
+      ejectRider: vi.fn(() => seatRiders.splice(0)),
+    };
+    const seat = {
+      id: "seat4",
+      typeId: DECK_SEAT_TYPE,
+      isValid: true,
+      getDynamicProperty: (key: string) =>
+        key === DECK_SEAT_OF_PROPERTY ? car.id : undefined,
+      getComponent: () => seatRideable,
+    };
+    car.getDynamicProperty.mockImplementation((key: string) =>
+      key === DECK_SEATS_PROPERTY ? JSON.stringify([seat.id]) : undefined,
+    );
+    game.getEntity.mockImplementation((id: string) =>
+      id === car.id ? car : id === seat.id ? seat : undefined,
+    );
+    dimension.getPlayers.mockReturnValue([toilet, near]);
+    const addRider = vi.fn().mockReturnValue(false);
+    car.getComponent.mockImplementation((name: string) =>
+      name === "minecraft:rideable" ? { addRider } : undefined,
+    );
+    const departure = {
+      boxes: [
+        { min: { x: 0, y: 64, z: 0 }, max: { x: 3, y: 67, z: 3 } },
+        { min: { x: -3, y: 64, z: 0 }, max: { x: 0, y: 67, z: 3 } },
+      ],
+      exit: { x: 5, y: 64, z: 2, yaw: 90 },
+    };
+    world.seatStandingPlayers(asVehicleId("car"), departure);
+    expect(seatRideable.ejectRider).toHaveBeenCalledExactlyOnceWith(toilet);
+    expect(addRider.mock.calls).toEqual([[toilet], [near]]);
+    for (const p of [toilet, near])
+      expect(p.teleport).toHaveBeenCalledExactlyOnceWith(departure.exit, {
+        rotation: { x: 0, y: 90 },
+      });
+  });
+
+  it("leaves a refused deck rider standing when the exit is blocked (ADR 0095)", () => {
+    const { world, car, dimension } = fixture();
+    car.location = { x: 0, y: 64, z: 0 };
+    const toilet = {
+      id: "toilet",
+      typeId: PLAYER_TYPE,
+      location: { x: 1, y: 64, z: 1 },
+      getComponent: vi.fn(() => undefined),
+      teleport: vi.fn(),
+    };
+    const near = {
+      id: "near",
+      typeId: PLAYER_TYPE,
+      location: { x: 0, y: 64, z: 0 },
+      getComponent: vi.fn(() => undefined),
+      teleport: vi.fn(),
+    };
+    const seatRiders: unknown[] = [toilet];
+    const seatRideable = {
+      getRiders: () => seatRiders,
+      ejectRider: vi.fn(() => seatRiders.splice(0)),
+    };
+    const seat = {
+      id: "seat4",
+      typeId: DECK_SEAT_TYPE,
+      isValid: true,
+      getDynamicProperty: (key: string) =>
+        key === DECK_SEAT_OF_PROPERTY ? car.id : undefined,
+      getComponent: () => seatRideable,
+    };
+    car.getDynamicProperty.mockImplementation((key: string) =>
+      key === DECK_SEATS_PROPERTY ? JSON.stringify([seat.id]) : undefined,
+    );
+    game.getEntity.mockImplementation((id: string) =>
+      id === car.id ? car : id === seat.id ? seat : undefined,
+    );
+    dimension.getPlayers.mockReturnValue([toilet, near]);
+    const addRider = vi.fn().mockReturnValue(false);
+    car.getComponent.mockImplementation((name: string) =>
+      name === "minecraft:rideable" ? { addRider } : undefined,
+    );
+    const departure = {
+      boxes: [
+        { min: { x: 0, y: 64, z: 0 }, max: { x: 3, y: 67, z: 3 } },
+        { min: { x: -3, y: 64, z: 0 }, max: { x: 0, y: 67, z: 3 } },
+      ],
+      exit: undefined,
+    };
+    world.seatStandingPlayers(asVehicleId("car"), departure);
+    expect(seatRideable.ejectRider).toHaveBeenCalledExactlyOnceWith(toilet);
+    expect(addRider.mock.calls).toEqual([[toilet], [near]]);
+    expect(toilet.teleport).not.toHaveBeenCalled();
+    expect(near.teleport).not.toHaveBeenCalled();
+  });
+
   it("seats only standing players inside any box nearest first and teleports overflow", () => {
     const { world, car, dimension } = fixture();
     car.location = { x: 0, y: 64, z: 0 };
