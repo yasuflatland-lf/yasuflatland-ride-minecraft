@@ -1,6 +1,6 @@
 # 0093. Decorate the parked camper
 
-- Status: Accepted (the press on a model-only top, the per-item places, and the cargo check of decor slot cells are superseded by [0097](0097-press-the-camper-furniture-to-place-decor.md); extended by [0094](0094-the-camper-shower-toilet-door-and-shower.md), [0095](0095-sit-on-the-camper-toilet-while-parked.md), [0096](0096-keep-the-dock-blocks-whole.md), and [0098](0098-a-block-for-the-camper-shower-toilet.md))
+- Status: Accepted (the press on a model-only top, the per-item places, and the cargo check of decor slot cells are superseded by [0097](0097-press-the-camper-furniture-to-place-decor.md), and the floor-tap trigger of the shower-toilet by [0098](0098-a-block-for-the-camper-shower-toilet.md); extended by [0094](0094-the-camper-shower-toilet-door-and-shower.md), [0095](0095-sit-on-the-camper-toilet-while-parked.md), and [0096](0096-keep-the-dock-blocks-whole.md))
 - Date: 2026-10-21
 - Extends: 0009, 0063, 0067, 0068, 0092
 
