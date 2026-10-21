@@ -113,9 +113,17 @@ describe("camper model assets (ADR 0067)", () => {
   it("puts wheel pivots at the axle centers and hover locators directly below after mirroring", () => {
     const locators = bone("body").locators;
     expect(Object.keys(locators ?? {}).sort()).toEqual(
-      ["hover_fl", "hover_fr", "hover_rl", "hover_rr", "exhaust"].sort(),
+      [
+        "hover_fl",
+        "hover_fr",
+        "hover_rl",
+        "hover_rr",
+        "exhaust",
+        "shower_head",
+      ].sort(),
     );
     expect(locators?.exhaust).toEqual([12, 4, 52]);
+    expect(locators?.shower_head).toEqual([-20.5, 44.5, 53.75]);
     for (const [name, x, z] of [
       ["fl", 21.4, -31.5],
       ["fr", -21.4, -31.5],
@@ -433,13 +441,13 @@ describe("camper animation references", () => {
       ...Object.keys(camperAnimations),
       ...Object.keys(camperControllers),
     ]);
-    expect(Object.keys(camperClient.animations)).toHaveLength(24);
+    expect(Object.keys(camperClient.animations)).toHaveLength(27);
     for (const name of Object.values(camperClient.animations)) {
       expect(names.has(String(name)), String(name)).toBe(true);
     }
   });
 
-  it("animates only root, the wheels, and the entry door present in the model", () => {
+  it("animates only root, the wheels, the entry door, and the shower door present in the model", () => {
     const allowed = [
       "root",
       "wheel_fl",
@@ -447,6 +455,7 @@ describe("camper animation references", () => {
       "wheel_rl",
       "wheel_rr",
       "door_entry",
+      "shower_door",
     ];
     const modelBones = bones.map((b) => b.name);
     for (const animation of Object.values(camperAnimations)) {
@@ -461,7 +470,7 @@ describe("camper animation references", () => {
     const sounds = JSON.parse(
       readFileSync(`${RP}/sounds/sound_definitions.json`, "utf8"),
     ).sound_definitions;
-    expect(Object.keys(camperClient.sound_effects)).toHaveLength(13);
+    expect(Object.keys(camperClient.sound_effects)).toHaveLength(14);
     const soundNames = Object.keys(sounds);
     for (const sound of Object.values(camperClient.sound_effects)) {
       expect(soundNames).toContain(sound);
@@ -508,6 +517,9 @@ describe("camper animation references", () => {
     expect(camperClient.scripts.animate).toEqual([
       ...suvClient.scripts.animate,
       "door",
+      "shower_door",
+      { shower: "q.property('yasu_ride:shower')" },
+      { shower_sound: "q.property('yasu_ride:shower')" },
     ]);
     for (const entry of camperClient.scripts.animate)
       expect(Object.keys(camperClient.animations)).toContain(shortName(entry));
@@ -517,7 +529,10 @@ describe("camper animation references", () => {
     const sounds = Object.keys(camperClient.sound_effects);
     const particles = Object.keys(camperClient.particle_effects);
     const locators = bones.flatMap((b) => Object.keys(b.locators ?? {}));
-    expect(camperClient.particle_effects).toEqual(suvClient.particle_effects);
+    expect(camperClient.particle_effects).toEqual({
+      ...suvClient.particle_effects,
+      shower: "yasu_ride:shower_spray",
+    });
     for (const [name, animation] of Object.entries(camperAnimations)) {
       for (const sound of effectsOf(animation.sound_effects))
         expect(sounds, name).toContain(sound.effect);
@@ -526,6 +541,38 @@ describe("camper animation references", () => {
         expect(locators, name).toContain(particle.locator);
       }
     }
+  });
+
+  it("rotates the shower door by its property and sprays at the shower head only while the shower runs (ADR 0094)", () => {
+    const door = camperAnimation("shower_door");
+    expect(door.loop).toBe(true);
+    expect(door.bones).toEqual({
+      shower_door: {
+        rotation: [0, "q.property('yasu_ride:shower_door') * -90", 0],
+      },
+    });
+    const spray = camperAnimation("shower");
+    expect(spray.animation_length).toBe(0.1);
+    expect(effectsOf(spray.particle_effects)).toEqual([
+      { effect: "shower", locator: "shower_head" },
+    ]);
+    const sound = camperAnimation("shower_sound");
+    expect(sound.animation_length).toBe(1);
+    expect(effectsOf(sound.sound_effects)).toEqual([{ effect: "shower" }]);
+    const particle = JSON.parse(
+      readFileSync(
+        `${RP}/particles/yasu_ride/shower_spray.particle.json`,
+        "utf8",
+      ),
+    ).particle_effect.description.identifier;
+    expect(camperClient.particle_effects.shower).toBe(particle);
+    expect(camperClient.sound_effects.shower).toBe("yasu_ride.shower");
+    const definition = JSON.parse(
+      readFileSync(`${RP}/sounds/sound_definitions.json`, "utf8"),
+    ).sound_definitions["yasu_ride.shower"];
+    const wavs = readdirSync(`${RP}/sounds/yasu_ride`);
+    for (const { name } of definition.sounds as { name: string }[])
+      expect(wavs).toContain(`${name.split("/").at(-1)}.wav`);
   });
 
   it("matches wheel spin to the circumference derived from each wheel pivot", () => {

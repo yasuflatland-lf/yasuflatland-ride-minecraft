@@ -17,6 +17,17 @@
           "default": 0.0,
           "client_sync": true
         },
+        "yasu_ride:shower_door": {
+          "type": "float",
+          "range": [0.0, 1.0],
+          "default": 0.0,
+          "client_sync": true
+        },
+        "yasu_ride:shower": {
+          "type": "bool",
+          "default": false,
+          "client_sync": true
+        },
         "yasu_ride:form": {
           "type": "enum",
           "values": ["car", "takeoff", "hover", "landing", "submarine"],
