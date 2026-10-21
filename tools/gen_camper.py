@@ -128,17 +128,21 @@ def panel(axis, p0, p1, u0, u1, v0, v1, holes, color):
 
 
 STEPS_32 = tuple(i * 11.25 for i in range(16))
+STEPS_16 = tuple(i * 22.5 for i in range(8))
+STEPS_8 = tuple(i * 45.0 for i in range(4))
 
 
 def disc(axis, cx, cy, cz, r, depth, color, steps=STEPS_32):
     """A disc of 2 * len(steps) sides (32 with the default steps) from bars turned about its
-    normal: 'x' (wheels) or 'z' (lamps)."""
+    normal: 'x' (wheels), 'y' (stove burners), or 'z' (lamps)."""
     n = 2 * len(steps)
     long, short = 2 * r, 2 * r * math.tan(math.pi / n)
     out = []
     for a in steps:
         if axis == "x":
             out.append(box(cx, cy - short / 2, cz - long / 2, cx + depth, cy + short / 2, cz + long / 2, color, [a, 0, 0], [cx, cy, cz]))
+        elif axis == "y":
+            out.append(box(cx - long / 2, cy, cz - short / 2, cx + long / 2, cy + depth, cz + short / 2, color, [0, a, 0], [cx, cy, cz]))
         else:
             out.append(box(cx - long / 2, cy - short / 2, cz, cx + long / 2, cy + short / 2, cz + depth, color, [0, 0, a], [cx, cy, cz]))
     return out
@@ -759,24 +763,85 @@ body.append(box(FURN_X[0], 35, -23, FURN_X[1], 36, -9, "brown"))  # high board, 
 body.append(box(FURN_X[0], 48, SHELF_Z[0], FURN_X[1], 49, SHELF_Z[1], "wood"))  # top
 for y in (28, 38):  # fiddle rails along the aisle edge
     body.append(box(FURN_X[0], y, -23, FURN_X[0] + 0.4, y + 0.4, -9, "chrome"))
-# Counter behind the door: the stove in cell z = -1, the sink in cell z = -2, tops at 30.
+# Counter behind the door: the sink in cell z = -1, the stove in cell z = -2 (ADR 0100), tops
+# at 30. Each cell's middle stays flat at 30 for its decor slot, so the sink and every burner
+# part keep off it.
 COUNTER_Z = (8.5, 39.5)
+STOVE_Z = (24, COUNTER_Z[1])
 body.append(box(FURN_X[0], FLOOR, COUNTER_Z[0], 22.8, 29, COUNTER_Z[1], "wood"))
-body.append(box(8.5, 29, COUNTER_Z[0], 22.8, 30, 24, "steel"))  # cooktop
-body.append(box(8.5, 29, 24, 22.8, 30, COUNTER_Z[1], "harvest"))  # counter top
-for bx in (12, 19):  # burner grates, off the cell's middle where the decor stands
-    for bz in (12, 20):
-        body.append(box(bx - 2, 30, bz - 2, bx + 2, 30.2, bz + 2, "black"))
-body.append(box(8.7, 18, 9.5, FURN_X[0], 26, 23, "black"))  # oven door
-body.append(box(8.3, 24.5, 11, 8.7, 25.2, 21.5, "chrome"))  # oven handle
-for z in (11, 14, 18, 21):  # stove knobs
-    body.append(box(8.4, 27, z - 0.6, FURN_X[0], 28, z + 0.6, "chrome"))
-body.append(box(8.7, FLOOR + 1, 25, FURN_X[0], 28, 39, "avocado"))  # cupboard door
-body.append(box(8.3, 25, 26, 8.7, 26.5, 26.8, "chrome"))
-body.append(box(11, 30, 33.5, 20, 30.15, 39, "steel"))  # sink, behind the slot
-body.append(box(15, 30.15, 35.8, 16, 30.2, 36.8, "black"))  # drain
-body.append(box(20.5, 30, 35.5, 21.5, 34, 36.5, "chrome"))  # tap
-body.append(box(17.5, 33, 35.5, 21.5, 34, 36.5, "chrome"))  # spout
+body.append(box(8.5, 29, COUNTER_Z[0], 22.8, 30, STOVE_Z[0], "harvest"))  # counter top
+body.append(box(8.7, FLOOR + 1, 9.5, FURN_X[0], 28, 23.5, "avocado"))  # cupboard door
+body.append(box(8.3, 25, 22.2, 8.7, 26.5, 23, "chrome"))
+body.append(box(11, 30, 17.5, 20, 30.15, 23, "steel"))  # sink, behind the slot
+body.append(box(15, 30.15, 19.8, 16, 30.2, 20.8, "black"))  # drain
+body.append(box(20.5, 30, 19.5, 21.5, 34, 20.5, "chrome"))  # tap
+body.append(box(17.5, 33, 19.5, 21.5, 34, 20.5, "chrome"))  # spout
+
+
+GRATE_R = 2.7  # half the burner grate's outer width
+
+
+def burner(cx, cz, turn):
+    """One gas burner: drip bowl, dark gap, head with its port band and top disc, a black grate
+    ring, and six raised prongs turned by `turn` degrees."""
+    body.extend(disc("y", cx, 30, cz, 2.45, 0.08, "panel", STEPS_16))  # drip bowl
+    body.extend(disc("y", cx, 30.08, cz, 1.3, 0.06, "grille", STEPS_16))  # gap around the head
+    body.extend(disc("y", cx, 30.14, cz, 0.85, 0.56, "hub", STEPS_8))  # head
+    body.extend(disc("y", cx, 30.45, cz, 0.9, 0.08, "grille", STEPS_8))  # port band
+    body.extend(disc("y", cx, 30.7, cz, 0.5, 0.1, "steel", STEPS_8))  # top disc
+    side, t = 2.3, 0.35
+    for dx, dz in ((-1, 0), (1, 0), (0, -1), (0, 1)):  # grate ring
+        mx, mz = cx + dx * (GRATE_R - t / 2), cz + dz * (GRATE_R - t / 2)
+        hx, hz = (t / 2, side / 2) if dx else (side / 2, t / 2)
+        body.append(box(mx - hx, 30.08, mz - hz, mx + hx, 30.4, mz + hz, "black"))
+    d = 2.6 / math.sqrt(2)
+    for dx, dz in ((-1, -1), (-1, 1), (1, -1), (1, 1)):
+        mx, mz = cx + dx * d, cz + dz * d
+        body.append(box(mx - t / 2, 30.08, mz - side / 2, mx + t / 2, 30.4, mz + side / 2, "black", [0, -dx * dz * 45, 0], [mx, 30.08, mz]))
+    for k in range(6):  # prongs, laid out toward the aisle and turned into place
+        a = [0, turn + 60 * k, 0]
+        pivot = [cx, 30.4, cz]
+        body.append(box(cx - 2.85, 30.4, cz - 0.15, cx - 1.0, 30.7, cz + 0.15, "black", a, pivot))
+        body.append(box(cx - 2.85, 30.4, cz - 0.15, cx - 2.45, 30.95, cz + 0.15, "black", a, pivot))
+
+
+# Stove (ADR 0100): the sink side is z 24, the far side z 39.5, the knobs face the aisle.
+body.append(box(8.5, 29, STOVE_Z[0], 22.8, 30, STOVE_Z[1], "steel"))  # cooktop plate
+body.append(box(8.3, 29.2, 24.2, 8.8, 30.2, 39.3, "chrome"))  # rolled front lip
+body.append(box(8.8, 30, 39.1, 22.8, 30.3, 39.5, "steel"))  # far-side flange
+body.append(box(8.8, 29.9, 24, 22.8, 30.2, 24.3, "chrome"))  # sink-side trim
+body.append(box(21.7, 30, 31.6, 22.4, 30.4, 39.1, "steel"))  # rear strip, plain half
+body.append(box(21.7, 29.95, 24.3, 22.4, 30.35, 31.6, "grille"))  # rear vent band
+for k in range(12):
+    z = 24.7 + 0.55 * k
+    body.append(box(21.8, 30.35, z, 22.3, 30.38, z + 0.25, "black"))
+body.append(box(22.4, 30, STOVE_Z[0], 22.8, 31, STOVE_Z[1], "ivory"))  # ledge at the wall
+for i, bx in enumerate((11.75, 18.9)):
+    for j, bz in enumerate((28.4, 35.6)):
+        burner(bx, bz, 30 * ((i + j) % 2))
+# Control panel leaning back 20 degrees with five knobs toward the far end; the sink-side third
+# stays blank.
+# Every cube stays at x 8 or more before and after the lean, out of the aisle.
+LEAN = ([0, 0, -20], [8.5, 26.6, 31.75])  # about its lower front edge, top toward the wall
+body.append(box(8.5, 26.6, 24.2, 8.8, 29.2, 39.3, "harvest", *LEAN))
+for y in (27.4, 28.4):  # woodgrain lines
+    body.append(box(8.48, y, 24.2, 8.5, y + 0.1, 39.3, "wood", *LEAN))
+for z in (29.9, 31.9, 33.9, 35.9, 37.9):
+    body.append(box(8.07, 27.15, z - 0.75, 8.5, 28.65, z + 0.75, "black", *LEAN))
+    body.append(box(8.4, 27.0, z - 0.85, 8.5, 28.8, z + 0.85, "chrome", *LEAN))  # skirt
+    body.append(box(8.02, 27.4, z - 0.5, 8.07, 28.4, z + 0.5, "chrome", *LEAN))  # face cap
+    body.append(box(8.0, 27.85, z - 0.45, 8.02, 27.95, z + 0.45, "black", *LEAN))  # pointer
+body.append(box(8.45, 26.3, 24.2, 9.0, 26.6, 39.3, "chrome"))  # strip under the panel
+# Oven: a chrome bar across the top of a brushed door in a stainless frame.
+body.append(box(8.7, 26.1, 24.5, 9.0, 26.3, 39.0, "brown"))  # shadow line
+body.append(box(8.1, 25.3, 25.0, 8.45, 25.8, 38.5, "chrome"))  # handle bar
+for z in (25.3, 37.7):
+    body.append(box(8.45, 25.4, z, 8.7, 25.7, z + 0.5, "chrome"))
+body.append(box(8.6, 17, 24.5, 9.0, 26.1, 39.0, "steel"))  # door frame
+body.append(box(8.5, 17.8, 25.5, 8.6, 24.8, 38.0, "chrome"))  # door face
+body.append(box(8.9, FLOOR, 24.5, 9.0, FLOOR + 1, 39.0, "black"))  # toe kick
+for z0, z1 in ((24.0, 24.4), (39.1, 39.5)):  # side trims down the range front
+    body.append(box(8.5, FLOOR + 0.5, z0, 9.0, 29, z1, "steel"))
 # Wall cabinet over the counter (cells z = -1 and -2, one layer up), top 45; its bottom at 38
 # clears the tallest stove item (7 px on 30).
 body.append(box(10, 38, COUNTER_Z[0], 22.8, 45, 37.5, "wood"))
