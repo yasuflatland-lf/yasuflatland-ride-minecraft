@@ -1,0 +1,9 @@
+{
+  "resource_pack_name": "yasu_ride",
+  "texture_name": "atlas.terrain",
+  "texture_data": {
+    "yasu_ride_camping_gear": {
+      "textures": "textures/blocks/yasu_ride/camping_gear"
+    }
+  }
+}
