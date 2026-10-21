@@ -85,5 +85,7 @@ export function installVehicles(): void {
     store,
     (dimensionId, cell) => bedrock.dockDoorOwner(dimensionId, cell),
     (dimensionId, cell) => bedrock.dockCellOwner(dimensionId, cell),
+    (dimensionId, cell, typeId) =>
+      bedrock.dockBlockOwner(dimensionId, cell, typeId),
   );
 }
