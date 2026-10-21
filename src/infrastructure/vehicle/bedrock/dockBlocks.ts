@@ -22,6 +22,7 @@ import {
   CAMPER_DOOR_BLOCK,
   CAMPER_FLOOR_BLOCK,
   CAMPER_FURNITURE_BLOCK,
+  CAMPER_SHOWER_TOILET_BLOCK,
   CAMPER_WALL_BLOCK,
   DECK_CELLS_PROPERTY,
   DECK_FLOOR_BLOCK,
@@ -39,8 +40,8 @@ const MAX_HEIGHT = 16;
 // The decor and furniture blocks define one yasu_ride:height state per pixel (ADR 0093, 0097).
 const MIN_DECOR_HEIGHT = 0;
 const MAX_DECOR_HEIGHT = 15;
-// Reading a laid cell costs one getBlock call, and a parked camper lays about 105
-// to 117 cells, so the cells are read once a second per vehicle, not every tick (ADR 0096).
+// Reading a laid cell costs one getBlock call, and a parked camper lays about 107
+// to 119 cells, so the cells are read once a second per vehicle, not every tick (ADR 0096).
 export const DOCK_RECHECK_TICKS = 20;
 const NONE_LOST: ReadonlySet<string> = new Set();
 
@@ -96,6 +97,8 @@ function isDockCell(v: unknown): v is DockCell {
       return isFace(b.face);
     case "door":
       return isFace(b.face) && typeof b.open === "boolean";
+    case "showerToilet":
+      return isFace(b.face);
     case "decor":
       return (
         typeof b.item === "string" &&
@@ -122,6 +125,8 @@ function blockIdOf(block: DockBlock): string {
       return CAMPER_DOOR_BLOCK;
     case "bed":
       return CAMPER_BED_BLOCK;
+    case "showerToilet":
+      return CAMPER_SHOWER_TOILET_BLOCK;
     case "furniture":
       return CAMPER_FURNITURE_BLOCK;
     case "decor":
@@ -143,6 +148,10 @@ function permutationOf(block: DockBlock): BlockPermutation {
       return BlockPermutation.resolve(CAMPER_DOOR_BLOCK, {
         [ROOM_FACE_STATE]: block.face,
         [ROOM_OPEN_STATE]: block.open,
+      });
+    case "showerToilet":
+      return BlockPermutation.resolve(CAMPER_SHOWER_TOILET_BLOCK, {
+        [ROOM_FACE_STATE]: block.face,
       });
     case "furniture":
       return BlockPermutation.resolve(CAMPER_FURNITURE_BLOCK, {
@@ -212,11 +221,6 @@ export class DockBlocks {
   /** The vehicle that laid any dock block at this cell, if any (ADR 0093). */
   cellOwner(dimensionId: DimensionId, cell: Vec3): VehicleId | undefined {
     return this.ownerOf(dimensionId, cell, () => true);
-  }
-
-  /** The vehicle whose laid floor is at this cell, if any (ADR 0094). */
-  floorOwner(dimensionId: DimensionId, cell: Vec3): VehicleId | undefined {
-    return this.ownerOf(dimensionId, cell, (b) => b.type === "floor");
   }
 
   /** The vehicle that laid this cell, while the world still holds the block it laid there (ADR 0096). */

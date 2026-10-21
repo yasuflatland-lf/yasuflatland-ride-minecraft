@@ -121,15 +121,15 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | C44 | Get another box from the creative inventory, fill all but three inventory slots, and use the box on a grass block | Nothing is placed on the grass; the items that do not fit drop at your feet | | |
 | C45 | Open the creative inventory's Items tab | The Camping Gear group shows the box as its icon and holds the box first, then the 19 items | | |
 | C46 | Set the game language to Japanese, then open a box and look at an unpacked item | The line under the item's name shows the Japanese text from ja_JP.lang, not the key yasu_ride.lore.camping_gear | | |
-| C47 | Park, stand in the aisle next to the shower-toilet at the rear right with an empty hand, and long-press its floor; long-press again; repeat on PC with right-click | The shower door swings into the aisle over half a second, then shuts; nothing else in the camper moves (ADR 0094) | | |
-| C48 | Open the shower door, step inside, look down, and long-press the floor with an empty hand | Water sprays down from the shower head with a running-water sound for about 5 seconds, then stops; the door does not move | | |
-| C49 | Run the shower and long-press the floor inside again after about 3 seconds | The shower keeps running for about 5 seconds after the second press | | |
+| C47 | Park, stand in the aisle next to the shower-toilet at the rear right with an empty hand, and long-press its door; long-press again; repeat on PC with right-click | The shower door swings into the aisle over half a second, then shuts; nothing else in the camper moves (ADR 0094, 0098) | | |
+| C48 | Open the shower door, step inside, turn toward the door, and long-press it with an empty hand | Water sprays down from the shower head with a running-water sound for about 5 seconds, then stops; the door does not move (ADR 0098) | | |
+| C49 | Run the shower and long-press the door from inside again after about 3 seconds | The shower keeps running for about 5 seconds after the second press | | |
 | C50 | Open the shower door, run the shower, and drive away | The shower stops and the shower door is shut while driving | | |
 | C51 | Open the shower door and run `/reload` | The shower door is still open and the shower is off | | |
-| C52 | Hold a camping gear item and long-press the shower-toilet's floor from the aisle | The shower door does not move | | |
-| C53 | Hold a stone block and long-press the shower-toilet's floor from the aisle, then the aisle floor | The stone is placed both times, and neither the shower door nor the shower reacts | | |
+| C52 | Hold a camping gear item and long-press the shower-toilet door from the aisle | The shower door does not move | | |
+| C53 | Hold a stone block and long-press the shower-toilet door from the aisle, then sneak and long-press it again | Neither the shower door nor the shower reacts; no stone ends up inside the shower-toilet (ADR 0098) | | |
 | C54 | Park, open the shower-toilet door, step in, and long-press the toilet on a phone; repeat with right-click on PC; then sneak | You sit on the toilet at its seat height, neither sunk into it nor floating above it; sneaking stands you up (ADR 0095) | | |
-| C55 | In a parked camper, with an empty hand, long-press the shower-toilet floor beside the toilet from the aisle, then from inside the shower-toilet; repeat with right-click on PC | The door opens or closes from the aisle and the shower runs from inside; neither long-press seats you on the toilet (ADR 0095) | | |
+| C55 | In a parked camper, with an empty hand, long-press the shower-toilet from the aisle aimed at the door's top, middle, and bottom (where the toilet stands behind it), then from inside aimed at the door; repeat with right-click on PC | Every press from the aisle opens or closes the door and the press from inside runs the shower; none of them seats you on the toilet or shows "Ride" (ADR 0098) | | |
 | C56 | Sit on the toilet while another player sits in the driver's deck seat and drives off, with a camper seat free | You ride along in a free camper seat (ADR 0095) | | |
 | C57 | Fill all four camper seats, sit a fifth player on the toilet, and drive off | The fifth player stands on the ground outside the door, facing away from the camper (ADR 0095) | | |
 | C58 | In Creative, park the camper, then try to break the floor, a wall, the door, the bed, the door step, and a placed camping gear item, by click on PC and by long-press and tap on a phone | Nothing breaks, and no hole or gap flickers into view; an empty-hand long-press on the camping gear still takes it back (ADR 0096) | | |
@@ -142,6 +142,8 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | C65 | Hold a macrame planter and long-press the space under the ceiling hook above the table | The planter goes on the ceiling hook (ADR 0097) | | |
 | C66 | Hold a cushion and long-press each dinette seat on a phone for two seconds, then right-click each on PC | One cushion goes on the seat you pressed per press, and you do not sit; with an empty hand you sit as before (ADR 0097) | | |
 | C67 | Put a percolator on the stove, then hold a toaster and long-press the percolator itself, not the stove top beside it | The toaster goes on the free spot nearest the point you pressed, and the percolator stays (ADR 0097) | | |
+| C68 | In Creative, with an empty hand, hit the shower-toilet door from the aisle a few times, then long-press it | Nothing breaks, and the door still opens and closes (ADR 0098) | | |
+| C69 | Park the camper facing each of the four directions and long-press the shower-toilet door from the aisle each time | The door opens and closes at every heading (ADR 0098) | | |
 
 ## Upgrading from MyCar 0.5.0 and earlier
 

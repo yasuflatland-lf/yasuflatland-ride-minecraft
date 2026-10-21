@@ -15,8 +15,8 @@ import { DECOR_SLOTS, decorSlot } from "./decor";
 import {
   CAMPER_FURNITURE,
   type DecorSlot,
+  type FurnitureBlock,
   type LocalCell,
-  SHOWER_COLUMN,
 } from "./furniture";
 import { CAMPER_PARKED_SEATS, CAMPER_PROFILE } from "./profile";
 
@@ -37,9 +37,10 @@ const DOOR = { x: -WALL_X, z: 0 } as const;
 // nor cargo (ADR 0092, 0093).
 const FURNITURE_BLOCKS: readonly {
   readonly cell: LocalCell;
-  readonly block: DockBlock;
+  readonly block: FurnitureBlock;
 }[] = CAMPER_FURNITURE.filter(
-  (f): f is typeof f & { readonly block: DockBlock } => f.block !== undefined,
+  (f): f is typeof f & { readonly block: FurnitureBlock } =>
+    f.block !== undefined,
 ).flatMap(({ cells, block }) => cells.map((cell) => ({ cell, block })));
 // The ground cell just outside the door.
 const EXIT = { x: -WALL_X - 1, z: 0 } as const;
@@ -149,11 +150,6 @@ function cellAt(pose: HoldPose, lx: number, lz: number, dy: number): Vec3 {
   };
 }
 
-/** The floor cell under the shower-toilet (ADR 0094). */
-export function showerFloorCell(pose: HoldPose): Vec3 {
-  return cellAt(pose, SHOWER_COLUMN.x, SHOWER_COLUMN.z, 0);
-}
-
 /** The world cell of a decor slot at a parked pose (ADR 0093). */
 export function decorSlotCell(pose: HoldPose, slot: DecorSlot): Vec3 {
   return cellAt(pose, slot.cell.x, slot.cell.z, slot.cell.layer);
@@ -163,6 +159,19 @@ export function decorSlotCell(pose: HoldPose, slot: DecorSlot): Vec3 {
 function faceToward(v: Vec2): Face {
   if (v.z !== 0) return v.z < 0 ? 0 : 1;
   return v.x < 0 ? 2 : 3;
+}
+
+// The aisle is local x 0, so a furniture block at x -1 or 1 faces it along -x times left.
+function laidFurnitureBlock(
+  block: FurnitureBlock,
+  cell: LocalCell,
+  l: Vec2,
+): DockBlock {
+  if (block.type !== "showerToilet") return block;
+  return {
+    type: "showerToilet",
+    face: faceToward({ x: -cell.x * l.x, z: -cell.x * l.z }),
+  };
 }
 
 function holdsFurnitureBlock(lx: number, lz: number, dy: number): boolean {
@@ -182,7 +191,7 @@ function interior(pose: HoldPose, layers: readonly number[]): Vec3[] {
   return cells;
 }
 
-/** The 105 cells of the parked room: its shell, the door step, and every furniture block (ADR 0068, 0092, 0093). */
+/** The 107 cells of the parked room: its shell, the door step, and every furniture block (ADR 0068, 0092, 0093, 0098). */
 export function roomCells(pose: HoldPose, doorOpen: boolean): DockCell[] {
   const { f, l } = axes(pose.yaw);
   const cells: DockCell[] = [
@@ -223,7 +232,10 @@ export function roomCells(pose: HoldPose, doorOpen: boolean): DockCell[] {
     block: { type: "deck", height: DOOR_STEP_HEIGHT },
   });
   for (const { cell, block } of FURNITURE_BLOCKS)
-    cells.push({ ...cellAt(pose, cell.x, cell.z, cell.layer), block });
+    cells.push({
+      ...cellAt(pose, cell.x, cell.z, cell.layer),
+      block: laidFurnitureBlock(block, cell, l),
+    });
   return cells;
 }
 

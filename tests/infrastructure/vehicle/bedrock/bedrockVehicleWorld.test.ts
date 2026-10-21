@@ -1150,14 +1150,13 @@ describe.each(creativeAdapters)("%s isCreative", (_name, adapterOf) => {
   });
 });
 
-it("answers each dock owner query from the room blocks it laid (ADR 0068, 0093, 0094)", () => {
+it("answers each dock owner query from the room blocks it laid (ADR 0068, 0093)", () => {
   const f = fixture();
   const here = asDimensionId("overworld");
   const cell = { x: 1, y: 64, z: 2 };
   const owners = [
     ["doorOwner", "dockDoorOwner", "door"],
     ["cellOwner", "dockCellOwner", "cell"],
-    ["floorOwner", "floorOwner", "floor"],
   ] as const;
   for (const [dock, query, owner] of owners) {
     const spy = vi

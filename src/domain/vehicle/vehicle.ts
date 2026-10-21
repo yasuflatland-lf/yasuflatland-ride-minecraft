@@ -4,13 +4,7 @@ import { forward, type Vec2, type Vec3 } from "../shared/vec";
 import { RamCooldowns, SwitchCooldown } from "./cooldowns";
 import type { DecorPlacement } from "./dock/decor";
 import type { ClearCell, Departure, Dock } from "./dock/dock";
-import type {
-  Drive,
-  EngineCommand,
-  FloorTap,
-  RiderState,
-  TickContext,
-} from "./drive";
+import type { Drive, EngineCommand, RiderState, TickContext } from "./drive";
 import type { RawInput } from "./driveInput";
 import {
   type HeldItem,
@@ -200,11 +194,6 @@ export class Vehicle {
   /** A player tapped the door of this vehicle's room. Returns whether it opened or closed (ADR 0068). */
   useDockDoor(): boolean {
     return this.drive.useDockDoor?.() ?? false;
-  }
-
-  /** What a player's tap on this floor cell of the vehicle's room does (ADR 0094). */
-  floorTap(cell: Vec3, player: Vec3): FloorTap | undefined {
-    return this.drive.floorTap?.(cell, player);
   }
 
   /** A player tapped the shower door. Returns whether it opened or closed (ADR 0094). */

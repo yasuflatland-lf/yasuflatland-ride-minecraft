@@ -24,6 +24,8 @@ export type DockBlock =
   | { readonly type: "furniture"; readonly height: number }
   | { readonly type: "wall"; readonly face: Face }
   | { readonly type: "door"; readonly face: Face; readonly open: boolean }
+  /** The shower-toilet's block: selectable only by a plate on `face`, toward the aisle (ADR 0098). */
+  | { readonly type: "showerToilet"; readonly face: Face }
   /**
    * A decor item laid as yasu_ride:<item>_decor: `face` is the vehicle's yaw
    * quarter (decorFace), not a side of the cell, and `height` is 0..15 px (ADR 0093).
@@ -49,6 +51,8 @@ export function sameBlock(a: DockBlock, b: DockBlock): boolean {
       return b.type === "wall" && a.face === b.face;
     case "door":
       return b.type === "door" && a.face === b.face && a.open === b.open;
+    case "showerToilet":
+      return b.type === "showerToilet" && a.face === b.face;
     case "decor":
       return (
         b.type === "decor" &&

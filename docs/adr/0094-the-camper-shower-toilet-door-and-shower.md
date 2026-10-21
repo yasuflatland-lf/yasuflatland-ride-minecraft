@@ -1,6 +1,6 @@
 # 0094. The camper's shower-toilet door and shower
 
-- Status: Accepted
+- Status: Accepted (the floor-tap trigger is superseded by [0098](0098-a-block-for-the-camper-shower-toilet.md))
 - Date: 2026-10-21
 - Extends: 0068, 0093
 

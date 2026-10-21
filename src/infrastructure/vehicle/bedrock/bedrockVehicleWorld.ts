@@ -7,7 +7,6 @@ import {
   type Player,
   world,
 } from "@minecraft/server";
-import type { DockFloorWorld } from "../../../application/vehicle/ports/dockFloor";
 import type {
   DriveWorld,
   VehicleSnapshot,
@@ -81,7 +80,7 @@ function distanceSq(a: Vec3, b: Vec3): number {
   return (a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2;
 }
 
-export class BedrockVehicleWorld implements DriveWorld, DockFloorWorld {
+export class BedrockVehicleWorld implements DriveWorld {
   private readonly headlightBlocks = new HeadlightBlocks();
   private readonly deckSeats = new DeckSeats();
   private readonly dockBlocks = new DockBlocks();
@@ -107,11 +106,6 @@ export class BedrockVehicleWorld implements DriveWorld, DockFloorWorld {
   /** The vehicle that laid any dock block at this cell, if any (ADR 0093). */
   dockCellOwner(dimensionId: DimensionId, cell: Vec3): VehicleId | undefined {
     return this.dockBlocks.cellOwner(dimensionId, cell);
-  }
-
-  /** The vehicle whose laid room floor is at this cell, if any (ADR 0094). */
-  floorOwner(dimensionId: DimensionId, cell: Vec3): VehicleId | undefined {
-    return this.dockBlocks.floorOwner(dimensionId, cell);
   }
 
   /** The vehicle whose laid dock block this is, while the world still holds it (ADR 0096). */

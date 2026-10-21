@@ -182,15 +182,21 @@ export const CAMPER_CEILING_BLOCK = id("camper_ceiling");
 export const CAMPER_WALL_BLOCK = id("camper_wall");
 export const CAMPER_DOOR_BLOCK = id("camper_door");
 export const CAMPER_BED_BLOCK = id("camper_bed");
+export const CAMPER_SHOWER_TOILET_BLOCK = id("camper_shower_toilet");
 /** Invisible, collisionless block over an empty decor slot's furniture top (ADR 0097). */
 export const CAMPER_FURNITURE_BLOCK = id("camper_furniture");
 /** Custom component handling taps on camper door blocks (ADR 0068). */
 export const CAMPER_DOOR_COMPONENT = id("camper_door");
 /** Custom component handling taps on camper bed blocks (ADR 0092). */
 export const CAMPER_BED_COMPONENT = id("camper_bed");
+/** Custom component handling presses on the camper shower-toilet block (ADR 0098). */
+export const CAMPER_SHOWER_TOILET_COMPONENT = id("camper_shower_toilet");
 /** A camper's decor, as JSON [{ slot, item }] (ADR 0093). */
 export const DECOR_PROPERTY = id("decor");
-/** Block states of the wall and the door: the cell side of the plate (Face), and whether the door is open. */
+/**
+ * Block states of the wall and the door: the cell side of the plate (Face), and whether
+ * the door is open. The face is also the side of the shower-toilet's plate (ADR 0098).
+ */
 export const ROOM_FACE_STATE = id("face");
 export const ROOM_OPEN_STATE = id("open");
 /** Camping gear decor block state: the parked camper's yaw quarter (ADR 0093). */
@@ -212,9 +218,10 @@ const CAMPER_ROOM_BLOCKS: ReadonlySet<string> = new Set([
   CAMPER_DOOR_BLOCK,
   CAMPER_BED_BLOCK,
   CAMPER_FURNITURE_BLOCK,
+  CAMPER_SHOWER_TOILET_BLOCK,
 ]);
 
-/** A block the parked camper's room lays (ADR 0068, 0092, 0097); the door step is a shared deck floor and is left out. */
+/** A block the parked camper's room lays (ADR 0068, 0092, 0097, 0098); the door step is a shared deck floor and is left out. */
 export function isCamperRoomBlock(typeId: string): boolean {
   return CAMPER_ROOM_BLOCKS.has(typeId);
 }

@@ -16,6 +16,7 @@ const decorBlock = fc.record({
   height: fc.integer({ min: 0, max: 15 }),
 });
 const furnitureHeight = fc.integer({ min: 0, max: 15 });
+const showerToiletFace = fc.constantFrom(0, 1, 2, 3);
 const block: fc.Arbitrary<DockBlock> = fc.oneof(
   fc.record({
     type: fc.constant("deck" as const),
@@ -34,6 +35,7 @@ const block: fc.Arbitrary<DockBlock> = fc.oneof(
     face: fc.constantFrom(0, 1, 2, 3),
     open: fc.boolean(),
   }),
+  showerToiletFace.map((face) => ({ type: "showerToilet" as const, face })),
   decorBlock,
 );
 const cell = fc.record({
@@ -192,6 +194,20 @@ describe("sameBlock", () => {
           );
         },
       ),
+    );
+  });
+
+  it("tells shower-toilet blocks apart by face only (ADR 0098)", () => {
+    fc.assert(
+      fc.property(showerToiletFace, showerToiletFace, block, (a, b, other) => {
+        const showerToilet = { type: "showerToilet", face: a } as const;
+        expect(sameBlock(showerToilet, { type: "showerToilet", face: b })).toBe(
+          a === b,
+        );
+        expect(sameBlock(showerToilet, other)).toBe(
+          other.type === "showerToilet" && other.face === a,
+        );
+      }),
     );
   });
 

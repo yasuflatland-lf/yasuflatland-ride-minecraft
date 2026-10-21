@@ -20,7 +20,6 @@ import {
   parkCheckCells,
   parkPose,
   roomCells,
-  showerFloorCell,
   slotCells,
   wallFootCells,
 } from "../../../../../src/domain/vehicle/kinds/camper/room";
@@ -234,7 +233,7 @@ it("departs on the stick press, undocks before properties, and boards deck rider
 
 it("refuses cargo only on each press and requires a new press after cargo is cleared", () => {
   fc.assert(
-    fc.property(fc.integer({ min: 0, max: 48 }), (index) => {
+    fc.property(fc.integer({ min: 0, max: 46 }), (index) => {
       const f = fixture();
       f.park();
       const cell = defined(cargoCells(f.pose)[index], "cargo cell");
@@ -344,7 +343,7 @@ it("checks both exit cells before parking and leaves overflow standing when the 
           ...slotCells(f.pose),
           ...exitCells(f.pose),
         ]);
-        expect(f.blockTypes.mock.calls.at(-1)?.[0]).toHaveLength(63);
+        expect(f.blockTypes.mock.calls.at(-1)?.[0]).toHaveLength(61);
       },
     ),
   );
@@ -509,7 +508,7 @@ it("departs past its own decor blocks and refuses any other block in a slot cell
     ...slotCells(f.pose),
     ...exitCells(f.pose),
   ]);
-  expect(f.blockTypes.mock.calls.at(-1)?.[0]).toHaveLength(63);
+  expect(f.blockTypes.mock.calls.at(-1)?.[0]).toHaveLength(61);
 
   const departs = (withDecor: boolean, typeId: string) => {
     const g = parked(withDecor);
@@ -651,47 +650,13 @@ it("places the item in the pressed slot ahead of a nearer free slot (ADR 0097)",
 });
 
 describe("shower-toilet (ADR 0094)", () => {
-  const ORIGIN = { x: 0, y: 0, z: 0 };
   const named = (out: DriveStep, name: string) =>
     out.commands.filter((c) => c.type === "setProperty" && c.name === name);
 
-  it("ignores floor taps, the shower door, and the shower until parked", () => {
+  it("ignores the shower door and the shower until parked", () => {
     const f = fixture();
-    expect(f.drive.floorTap(showerFloorCell(f.pose), ORIGIN)).toBeUndefined();
     expect(f.drive.useShowerDoor()).toBe(false);
     expect(f.drive.runShower()).toBe(false);
-  });
-
-  it("routes a shower floor tap to the shower from inside its column and to the door from anywhere else", () => {
-    const f = fixture();
-    f.park();
-    f.step();
-    const floor = showerFloorCell(f.pose);
-    fc.assert(
-      fc.property(
-        fc.double({ min: -3, max: 3, noNaN: true }),
-        fc.double({ min: -3, max: 3, noNaN: true }),
-        (dx, dz) => {
-          const player = {
-            x: floor.x + 0.5 + dx,
-            y: floor.y + 1,
-            z: floor.z + 0.5 + dz,
-          };
-          const inside =
-            Math.floor(player.x) === floor.x &&
-            Math.floor(player.z) === floor.z;
-          expect(f.drive.floorTap(floor, player)).toBe(
-            inside ? "shower" : "showerDoor",
-          );
-          for (const c of roomCells(f.pose, false))
-            if (cellKey(c) !== cellKey(floor))
-              expect(f.drive.floorTap(c, player)).toBeUndefined();
-          expect(
-            f.drive.floorTap({ ...floor, y: floor.y + 1 }, player),
-          ).toBeUndefined();
-        },
-      ),
-    );
   });
 
   it("swings the shower door in ten bounded steps each way and leaves the entry door shut", () => {
@@ -763,7 +728,6 @@ describe("shower-toilet (ADR 0094)", () => {
     });
     expect(out.depart).toBeDefined();
     expect(f.drive.runShower()).toBe(false);
-    expect(f.drive.floorTap(showerFloorCell(f.pose), ORIGIN)).toBeUndefined();
   });
 
   it("restores the shower door's swing but not the shower after a reload", () => {

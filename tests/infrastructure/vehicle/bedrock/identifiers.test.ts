@@ -16,6 +16,8 @@ import {
   CAMPER_DOOR_BLOCK,
   CAMPER_FLOOR_BLOCK,
   CAMPER_FURNITURE_BLOCK,
+  CAMPER_SHOWER_TOILET_BLOCK,
+  CAMPER_SHOWER_TOILET_COMPONENT,
   CAMPER_WALL_BLOCK,
   campingGearItem,
   campingGearOfDecorBlock,
@@ -227,6 +229,7 @@ describe("identifiers (ADR 0047)", () => {
       CAMPER_DOOR_BLOCK,
       CAMPER_BED_BLOCK,
       CAMPER_FURNITURE_BLOCK,
+      CAMPER_SHOWER_TOILET_BLOCK,
     ])
       expect(isCamperRoomBlock(typeId)).toBe(true);
     for (const typeId of [
@@ -240,5 +243,12 @@ describe("identifiers (ADR 0047)", () => {
   it("names the furniture block the way the domain's slot check expects (ADR 0097)", () => {
     expect(CAMPER_FURNITURE_BLOCK).toBe("yasu_ride:camper_furniture");
     expect(ownSlotBlock(CAMPER_FURNITURE_BLOCK, undefined)).toBe(true);
+  });
+
+  it("names the shower-toilet block and its custom component (ADR 0098)", () => {
+    expect(CAMPER_SHOWER_TOILET_BLOCK).toBe("yasu_ride:camper_shower_toilet");
+    expect(CAMPER_SHOWER_TOILET_COMPONENT).toBe(
+      "yasu_ride:camper_shower_toilet",
+    );
   });
 });

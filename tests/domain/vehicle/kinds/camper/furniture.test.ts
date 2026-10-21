@@ -60,6 +60,15 @@ it("lays the bed block in the two cells under the model's bed (ADR 0092)", () =>
   ]);
 });
 
+it("gives the shower-toilet its own block in both of its cells (ADR 0098)", () => {
+  const row = CAMPER_FURNITURE.find((r) => r.kind === "shower_toilet");
+  expect(row?.block).toEqual({ type: "showerToilet" });
+  expect(row?.cells).toEqual([
+    { x: -1, z: -3, layer: 1 },
+    { x: -1, z: -3, layer: 2 },
+  ]);
+});
+
 it("lists the ten furniture kinds once each, in order", () => {
   expect(CAMPER_FURNITURE.map((f) => f.kind)).toEqual([
     "dashboard",
@@ -110,7 +119,9 @@ it("puts every slot in a cell of its own furniture, 0 to 15 px up", () => {
 it("keeps every furniture cell inside the interior, apart from the others, and off the cell inside the door", () => {
   const cells = new Set<string>();
   for (const row of CAMPER_FURNITURE) {
-    expect(row.block !== undefined).toBe(row.kind === "bed");
+    expect(row.block !== undefined).toBe(
+      row.kind === "bed" || row.kind === "shower_toilet",
+    );
     for (const cell of row.cells) {
       expect(cell.x).toBeGreaterThanOrEqual(-1);
       expect(cell.x).toBeLessThanOrEqual(1);
