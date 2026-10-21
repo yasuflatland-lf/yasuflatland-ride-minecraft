@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
+import { SLEEP_MESSAGES } from "../../src/domain/vehicle/dock/sleep";
 import { HINTS } from "../../src/domain/vehicle/hints";
 import { CAMPER_PROFILE } from "../../src/domain/vehicle/kinds/camper/profile";
 import { PAINTS } from "../../src/domain/vehicle/paint/paint";
@@ -656,6 +657,14 @@ describe("camper parking assets (ADR 0068)", () => {
         );
     },
   );
+
+  it.each(["en_US", "ja_JP"])("translates the bed message in %s", (locale) => {
+    const lang = readFileSync(`${RP}/texts/${locale}.lang`, "utf8");
+    for (const name of Object.values(SLEEP_MESSAGES))
+      expect(lang).toMatch(
+        new RegExp(`^yasu_ride\\.message\\.${name}=.+$`, "m"),
+      );
+  });
 
   it.each(["en_US", "ja_JP"])(
     "translates every hint in %s, with the hit count and the vehicle name in the bumper hints and the vehicle name in the paint hint",
