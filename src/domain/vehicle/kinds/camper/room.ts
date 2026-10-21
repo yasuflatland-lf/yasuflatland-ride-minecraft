@@ -7,9 +7,10 @@ import {
   type Vec3,
 } from "../../../shared/vec";
 import type { Box, ClearCell, Departure } from "../../dock/dock";
-import type { DockCell, Face, HoldPose } from "../../dock/floor";
+import type { DockBlock, DockCell, Face, HoldPose } from "../../dock/floor";
 import { cellKey } from "../../lighting/headlights";
 import { seatWorldPositions } from "../../seats";
+import { CAMPER_FURNITURE, type LocalCell } from "./furniture";
 import { CAMPER_PROFILE } from "./profile";
 
 // Feet resting on a block top can read a hair below it.
@@ -25,12 +26,14 @@ const WALL_X = HALF_X + 1;
 const WALL_Z = HALF_Z + 1;
 // The door is in the middle of the right side; x is left, so the right side is -WALL_X.
 const DOOR = { x: -WALL_X, z: 0 } as const;
-// The two cells under the model's bed at the rear left (tools/gen_camper.py, ADR 0092).
-const BED = [
-  { x: 1, z: -2 },
-  { x: 1, z: -3 },
-] as const;
-const BED_LAYER = 1;
+// Furniture with a room block fills its cells, so they are neither open interior
+// nor cargo (ADR 0092, 0093).
+const FURNITURE_BLOCKS: readonly {
+  readonly cell: LocalCell;
+  readonly block: DockBlock;
+}[] = CAMPER_FURNITURE.flatMap(({ cells, block }) =>
+  block === undefined ? [] : cells.map((cell) => ({ cell, block })),
+);
 // The ground cell just outside the door.
 const EXIT = { x: -WALL_X - 1, z: 0 } as const;
 const WALL_LAYERS = [1, 2, 3] as const;
@@ -139,21 +142,24 @@ function faceToward(v: Vec2): Face {
   return v.x < 0 ? 2 : 3;
 }
 
-function isBed(lx: number, lz: number, dy: number): boolean {
-  return dy === BED_LAYER && BED.some((b) => b.x === lx && b.z === lz);
+function holdsFurnitureBlock(lx: number, lz: number, dy: number): boolean {
+  return FURNITURE_BLOCKS.some(
+    ({ cell }) => cell.x === lx && cell.z === lz && cell.layer === dy,
+  );
 }
 
-/** The interior cells at `layers` that the bed does not fill. */
+/** The interior cells at `layers` that no furniture block fills. */
 function interior(pose: HoldPose, layers: readonly number[]): Vec3[] {
   const cells: Vec3[] = [];
   for (const dy of layers)
     for (let lx = -HALF_X; lx <= HALF_X; lx++)
       for (let lz = -HALF_Z; lz <= HALF_Z; lz++)
-        if (!isBed(lx, lz, dy)) cells.push(cellAt(pose, lx, lz, dy));
+        if (!holdsFurnitureBlock(lx, lz, dy))
+          cells.push(cellAt(pose, lx, lz, dy));
   return cells;
 }
 
-/** The 105 cells of the parked room (ADR 0068, 0092). */
+/** The 105 cells of the parked room: its shell, the door step, and every furniture block (ADR 0068, 0092, 0093). */
 export function roomCells(pose: HoldPose, doorOpen: boolean): DockCell[] {
   const { f, l } = axes(pose.yaw);
   const cells: DockCell[] = [
@@ -193,11 +199,8 @@ export function roomCells(pose: HoldPose, doorOpen: boolean): DockCell[] {
     ...cellAt(pose, DOOR.x, DOOR.z, 0),
     block: { type: "deck", height: DOOR_STEP_HEIGHT },
   });
-  for (const b of BED)
-    cells.push({
-      ...cellAt(pose, b.x, b.z, BED_LAYER),
-      block: { type: "bed" },
-    });
+  for (const { cell, block } of FURNITURE_BLOCKS)
+    cells.push({ ...cellAt(pose, cell.x, cell.z, cell.layer), block });
   return cells;
 }
 
@@ -228,10 +231,7 @@ export function isPassable(typeId: string | undefined): boolean {
   );
 }
 
-/**
- * Cells where a player's block keeps the camper parked: the interior and the
- * roof top. The bed cells are room blocks, not cargo (ADR 0092).
- */
+/** Cells where a player's block keeps the camper parked: the interior outside furniture blocks, then the roof top (ADR 0092, 0093). */
 export function cargoCells(pose: HoldPose): Vec3[] {
   return interior(pose, [...INSIDE_LAYERS, ROOF_LAYER]);
 }

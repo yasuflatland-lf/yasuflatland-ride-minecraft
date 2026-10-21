@@ -159,6 +159,30 @@ it("lays the two bed cells at the rear left, one layer above the floor (ADR 0092
   );
 });
 
+it("covers the interior and the roof exactly once with cargo cells and furniture block cells (ADR 0093)", () => {
+  fc.assert(
+    fc.property(pose, (p) => {
+      const blocks = roomCells(p, false).filter((c) => c.block.type === "bed");
+      const cargo = cargoCells(p);
+      const cargoKeys = new Set(cargo.map(cellKey));
+      for (const key of blocks.map(cellKey))
+        expect(cargoKeys.has(key)).toBe(false);
+      const all = [...cargo, ...blocks];
+      expect(new Set(all.map(cellKey)).size).toBe(63);
+      const exact = forward(p.yaw);
+      const f = { x: Math.round(exact.x) + 0, z: Math.round(exact.z) + 0 };
+      const left = leftOf(f);
+      const l = { x: left.x + 0, z: left.z + 0 };
+      for (const c of all) {
+        expect([1, 2, 4].includes(c.y - p.y)).toBe(true);
+        const d = { x: c.x - Math.floor(p.x), z: c.z - Math.floor(p.z) };
+        expect(Math.abs(dot(d, l))).toBeLessThanOrEqual(1);
+        expect(Math.abs(dot(d, f))).toBeLessThanOrEqual(3);
+      }
+    }),
+  );
+});
+
 it("checks 168 unique cells including the room and keeps all 61 cargo cells outside its blocks", () => {
   fc.assert(
     fc.property(pose, (p) => {
