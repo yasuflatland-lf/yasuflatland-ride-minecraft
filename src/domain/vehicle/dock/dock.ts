@@ -3,10 +3,11 @@ import type { Vec3 } from "../../shared/vec";
 import type { Cell } from "../lighting/headlights";
 import type { DockCell, HoldPose } from "./floor";
 
-/** Values infrastructure derives from saved laid cells, not entity properties. */
+/** Values infrastructure reads from the vehicle's dynamic properties (laid cells, decor), not entity properties. */
 export const DOCK_RESTORED = {
   laid: "dockLaid",
   doorOpen: "dockDoorOpen",
+  decor: "dockDecor",
 } as const;
 
 export type DockRestoredKey =

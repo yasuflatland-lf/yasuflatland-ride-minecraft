@@ -70,8 +70,9 @@ export function createVehicle(
 /**
  * Rebuilds a vehicle whose aggregate was lost; `restored` holds the values read
  * back: the entity properties its kind's entity contract lists in `restored`,
- * plus the dock values infrastructure derives (DOCK_RESTORED, ADR 0068). The
- * form comes from the entity, so a vehicle in the air keeps flying (ADR 0021).
+ * plus the dock values infrastructure reads from the vehicle's dynamic
+ * properties (laid cells, decor; DOCK_RESTORED, ADR 0068, 0093). The form
+ * comes from the entity, so a vehicle in the air keeps flying (ADR 0021).
  */
 export function rebuildVehicle(
   kind: VehicleKind,

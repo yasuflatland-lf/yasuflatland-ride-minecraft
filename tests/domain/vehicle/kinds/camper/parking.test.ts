@@ -5,11 +5,13 @@ import type {
   TickContext,
 } from "../../../../../src/domain/vehicle/drive";
 import type { RawInput } from "../../../../../src/domain/vehicle/driveInput";
+import { DECOR_SLOTS } from "../../../../../src/domain/vehicle/kinds/camper/decor";
 import { CamperDrive } from "../../../../../src/domain/vehicle/kinds/camper/drive";
 import {
   AIR,
   CLEARABLE_DECORATIONS,
   cargoCells,
+  decorCells,
   departure,
   exitCells,
   parkCheckCells,
@@ -23,6 +25,23 @@ import { defined } from "../../../../support/defined";
 
 const PUSH = { moveX: 0, moveY: 1, jump: false };
 const NEUTRAL = { moveX: 0, moveY: 0, jump: false };
+const decorItem = fc.constantFrom("potted_plant", "percolator", "cushion");
+const decor = fc
+  .subarray([...DECOR_SLOTS])
+  .chain((slots) =>
+    fc.tuple(
+      ...slots.map((s) => decorItem.map((item) => ({ slot: s.id, item }))),
+    ),
+  );
+const shuffledDecor = fc
+  .shuffledSubarray([...DECOR_SLOTS])
+  .chain((slots) =>
+    fc.tuple(
+      ...slots.map((s) => decorItem.map((item) => ({ slot: s.id, item }))),
+    ),
+  );
+const slotIndex = (p: { slot: string }) =>
+  DECOR_SLOTS.findIndex((s) => s.id === p.slot);
 function fixture() {
   const blocks = new Map<string, string>();
   const blockTypes = vi.fn(
@@ -379,4 +398,139 @@ it("restores the saved door target through either direction of a partial swing",
       expect(drive.step(undefined, f.ctx).commands).toEqual([]);
     }),
   );
+});
+
+it("sets, replaces, and empties only known slots and lists decor in slot order (ADR 0093)", () => {
+  fc.assert(
+    fc.property(shuffledDecor, (placements) => {
+      const f = fixture();
+      for (const { slot, item } of placements) {
+        expect(f.drive.setDecor(slot, item)).toBe(true);
+        expect(f.drive.setDecor(slot, item)).toBe(false);
+      }
+      const sorted = [...placements].sort(
+        (a, b) => slotIndex(a) - slotIndex(b),
+      );
+      expect(f.drive.decor()).toEqual(sorted);
+      const first = placements[0];
+      if (first) {
+        const { slot, item }: { slot: string; item: string } = first;
+        const otherItem = item === "mug_pair" ? "toaster" : "mug_pair";
+        expect(f.drive.setDecor(slot, otherItem)).toBe(true);
+        expect(f.drive.decor()).toContainEqual({ slot, item: otherItem });
+        expect(f.drive.setDecor(slot, item)).toBe(true);
+        expect(f.drive.decor()).toEqual(sorted);
+      }
+      expect(f.drive.setDecor("nowhere", "mug_pair")).toBe(false);
+      expect(
+        f.drive.setDecor(defined(DECOR_SLOTS[0], "slot").id, "Bad Item"),
+      ).toBe(false);
+      expect(f.drive.decor()).toEqual(sorted);
+      for (const { slot } of placements) {
+        expect(f.drive.setDecor(slot, undefined)).toBe(true);
+        expect(f.drive.setDecor(slot, undefined)).toBe(false);
+      }
+      expect(f.drive.decor()).toEqual([]);
+    }),
+  );
+});
+
+it("lays the decor with the room on the tick after parking (ADR 0093)", () => {
+  fc.assert(
+    fc.property(decor, (placements) => {
+      const f = fixture();
+      for (const { slot, item } of placements) f.drive.setDecor(slot, item);
+      f.park();
+      expect(f.step().dock?.cells).toEqual([
+        ...roomCells(f.pose, false),
+        ...decorCells(f.pose, f.drive.decor()),
+      ]);
+    }),
+  );
+});
+
+it("lays decor set while parked on the next step and clears an emptied slot", () => {
+  const f = fixture();
+  f.park();
+  f.step();
+  f.drive.setDecor("table", "potted_plant");
+  expect(f.step().dock?.cells).toContainEqual(
+    decorCells(f.pose, [{ slot: "table", item: "potted_plant" }])[0],
+  );
+  f.drive.setDecor("table", undefined);
+  expect(f.step().dock?.cells.some((c) => c.block.type === "decor")).toBe(
+    false,
+  );
+});
+
+it("departs past its own decor blocks and refuses any other block in a decor cell (ADR 0093)", () => {
+  const parked = () => {
+    const f = fixture();
+    f.drive.setDecor("table", "potted_plant");
+    f.park();
+    f.step();
+    return f;
+  };
+  const f = parked();
+  const table = defined(decorCells(f.pose, f.drive.decor())[0], "table cell");
+  f.blocks.set(cellKey(table), "yasu_ride:potted_plant_decor");
+  const out = f.step(PUSH);
+  expect(out.depart).toBeDefined();
+  expect(out.message).toBeUndefined();
+  expect(f.blockTypes.mock.calls.at(-1)?.[0]).toEqual([
+    ...cargoCells(f.pose, f.drive.decor()),
+    ...decorCells(f.pose, f.drive.decor()).map(({ x, y, z }) => ({ x, y, z })),
+    ...exitCells(f.pose),
+  ]);
+
+  const stone = parked();
+  stone.blocks.set(cellKey(table), "minecraft:stone");
+  const refused = stone.step(PUSH);
+  expect(refused.message).toBe("clear_cargo");
+  expect(refused.depart).toBeUndefined();
+
+  const cargo = parked();
+  cargo.blocks.set(
+    cellKey(
+      defined(cargoCells(cargo.pose, cargo.drive.decor())[0], "cargo cell"),
+    ),
+    "minecraft:stone",
+  );
+  expect(cargo.step(PUSH).message).toBe("clear_cargo");
+});
+
+it("keeps the decor through departure and lays it again on the next park", () => {
+  const f = fixture();
+  f.drive.setDecor("stove", "percolator");
+  f.park();
+  f.step();
+  expect(f.step(PUSH).depart).toBeDefined();
+  const stove = decorCells(f.pose, [{ slot: "stove", item: "percolator" }])[0];
+  let relaid = false;
+  for (let i = 0; i < 100 && !relaid; i++) {
+    const cells = f.step(NEUTRAL).dock?.cells ?? [];
+    if (cells.length > 0) {
+      expect(cells).toContainEqual(stove);
+      relaid = true;
+    }
+  }
+  expect(relaid).toBe(true);
+});
+
+it("restores saved decor in known slots only, docked or not", () => {
+  const saved = JSON.stringify([
+    { slot: "table", item: "potted_plant" },
+    { slot: "nowhere", item: "cushion" },
+    { slot: "stove", item: "Bad Item" },
+  ]);
+  const expected = [{ slot: "table", item: "potted_plant" }];
+  expect(new CamperDrive(37, { dockDecor: saved }).decor()).toEqual(expected);
+  expect(
+    new CamperDrive(37, {
+      dockDecor: saved,
+      docked: true,
+      dockLaid: true,
+      form: "car",
+    }).decor(),
+  ).toEqual(expected);
 });
