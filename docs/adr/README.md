@@ -110,7 +110,8 @@ This directory records design decisions and the reasons behind them. The format 
 | [0104](0104-refuse-a-press-on-a-taken-seat.md) | Refuse a press on a taken seat | Accepted |
 | [0105](0105-toggle-a-camper-door-once-per-swing.md) | Toggle a camper door once per swing | Accepted |
 | [0106](0106-raise-the-camper-dashboard-to-the-windshield.md) | Raise the camper dashboard to the windshield | Accepted |
-| [0107](0107-stand-stove-gear-on-a-burner.md) | Stand stove gear on a burner, and widen the standing decor box | Accepted |
+| [0107](0107-stand-stove-gear-on-a-burner.md) | Stand stove gear on a burner, and widen the standing decor box | Superseded in part by 0110 |
+| [0110](0110-pick-decor-slots-along-the-line-of-sight.md) | Pick decor slots along the line of sight | Accepted |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 
