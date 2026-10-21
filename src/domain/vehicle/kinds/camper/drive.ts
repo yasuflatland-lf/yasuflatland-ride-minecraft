@@ -11,6 +11,7 @@ import { TransformingDrive } from "../../motion/transformingDrive";
 import { SyncedValue } from "../../syncedValue";
 import { type BodyEnds, guardEnds } from "./bodyGuard";
 import {
+  cellSlots,
   cellTaken,
   DECOR_CELLS,
   DECOR_SLOTS,
@@ -195,8 +196,8 @@ export class CamperDrive extends TransformingDrive {
       this.decorBySlot.delete(slot);
       return true;
     }
-    const cell = DECOR_CELLS.find(({ slots }) => slots.includes(target));
-    for (const other of cell?.slots ?? []) this.decorBySlot.delete(other.id);
+    for (const other of cellSlots(target.cell))
+      this.decorBySlot.delete(other.id);
     this.decorBySlot.set(slot, item);
     return true;
   }

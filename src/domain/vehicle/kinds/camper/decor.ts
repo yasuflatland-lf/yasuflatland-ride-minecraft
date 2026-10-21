@@ -14,6 +14,11 @@ function sameCell(a: LocalCell, b: LocalCell): boolean {
   return a.x === b.x && a.z === b.z && a.layer === b.layer;
 }
 
+/** The slots in `cell`, in DECOR_SLOTS order. */
+export function cellSlots(cell: LocalCell): DecorSlot[] {
+  return DECOR_SLOTS.filter((s) => sameCell(s.cell, cell));
+}
+
 /** A cell that holds decor slots, with its slots in DECOR_SLOTS order. */
 export interface DecorCell {
   readonly cell: LocalCell;
@@ -26,10 +31,7 @@ export interface DecorCell {
  */
 export const DECOR_CELLS: readonly DecorCell[] = DECOR_SLOTS.filter(
   (slot, i) => DECOR_SLOTS.findIndex((s) => sameCell(s.cell, slot.cell)) === i,
-).map(({ cell }) => ({
-  cell,
-  slots: DECOR_SLOTS.filter((s) => sameCell(s.cell, cell)),
-}));
+).map(({ cell }) => ({ cell, slots: cellSlots(cell) }));
 
 /** The decor in a known slot of `cell`, if any; the first one when the list holds several. */
 export function decorInCell(
