@@ -738,11 +738,11 @@ for ly, lx in ((20.0, 21.4), (19.45, 20.8)):
     body.append(box(20.3, ly - 0.12, PANEL_Z, 21.95, ly + 0.12, PANEL_Z + 0.05, "grille"))
     body.append(box(lx - 0.18, ly - 0.2, PANEL_Z + 0.05, lx + 0.18, ly + 0.2, PANEL_Z + 0.35, "chrome"))
 # Round air vent lying flat on the dash top before the driver; it rises 0.25 px over the pad.
-VENT_Y = 28.6
-body += disc("y", 12, VENT_Y, -52.5, 1.4, 0.15, "chrome", steps=STEPS_8)
-body += disc("y", 12, VENT_Y, -52.5, 1.1, 0.2, "steel", steps=STEPS_8)
-for sz in (-0.6, 0, 0.6):
-    body.append(box(11.0, VENT_Y, -52.5 + sz - 0.12, 13.0, VENT_Y + 0.25, -52.5 + sz + 0.12, "black"))
+VENT_X, VENT_Y, VENT_Z = 12, 28.6, -52.5
+body += disc("y", VENT_X, VENT_Y, VENT_Z, 1.4, 0.15, "chrome", steps=STEPS_8)
+body += disc("y", VENT_X, VENT_Y, VENT_Z, 1.1, 0.2, "steel", steps=STEPS_8)
+for sz in (-0.6, 0, 0.6):  # the louvres
+    body.append(box(VENT_X - 1, VENT_Y, VENT_Z + sz - 0.12, VENT_X + 1, VENT_Y + 0.25, VENT_Z + sz + 0.12, "black"))
 # Knob cluster and switches in the middle
 for kx, ky in ((-3, 24), (-1, 24), (1, 24), (-3, 21.5), (-1, 21.5), (1, 21.5)):
     body += disc("z", kx, ky, DASH_FACE, 0.55, 0.9, "chrome", steps=(0, 45))

@@ -238,15 +238,13 @@ describe("camper model assets (ADR 0067)", () => {
   it("keeps the steering wheel inside its rim (sightline)", () => {
     const steering = bone("steering");
     for (const cube of steering.cubes ?? []) {
-      const dx =
-        (cube.origin[0] ?? 0) +
-        (cube.size[0] ?? 0) / 2 -
-        (steering.pivot[0] ?? 0);
-      const dy =
-        (cube.origin[1] ?? 0) +
-        (cube.size[1] ?? 0) / 2 -
-        (steering.pivot[1] ?? 0);
-      expect(Math.hypot(dx, dy)).toBeLessThanOrEqual(7.2 + 0.5);
+      const fromPivot = (axis: number) =>
+        (cube.origin[axis] ?? 0) +
+        (cube.size[axis] ?? 0) / 2 -
+        (steering.pivot[axis] ?? 0);
+      expect(Math.hypot(fromPivot(0), fromPivot(1))).toBeLessThanOrEqual(
+        7.2 + 0.5,
+      );
     }
   });
 
