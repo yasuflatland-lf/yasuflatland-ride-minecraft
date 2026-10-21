@@ -3,6 +3,7 @@ import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import { asVehicleId } from "../../../../src/domain/shared/ids";
 import type { Vec3 } from "../../../../src/domain/shared/vec";
+import type { DeckSeatSpot } from "../../../../src/domain/vehicle/dock/dock";
 import { DECK_SEAT_REACH } from "../../../../src/domain/vehicle/kinds/index";
 import {
   DeckSeats,
@@ -21,8 +22,16 @@ vi.mock("@minecraft/server", () => ({ world: game }));
 function fixture() {
   const entities = new Map<string, ReturnType<typeof entity>>();
   const boarded: string[] = [];
+  // Cells that hold a block, by "x,y,z"; every other cell is air.
+  const blocks = new Map<string, string>();
   const dimension = {
     id: "overworld",
+    getBlock: vi.fn((at: Vec3) => {
+      const typeId = blocks.get(
+        `${Math.floor(at.x)},${Math.floor(at.y)},${Math.floor(at.z)}`,
+      );
+      return { typeId: typeId ?? "minecraft:air", isAir: typeId === undefined };
+    }),
     spawnEntity: vi.fn((type: string, at: Vec3) =>
       entity(`seat${entities.size}`, type, at),
     ),
@@ -69,7 +78,54 @@ function fixture() {
   }
   const boat = entity("boat", "yasu_ride:sportsboat");
   game.getEntity.mockImplementation((id: string) => entities.get(id));
-  return { boat, car: boat as unknown as Entity, entities, dimension, boarded };
+  return {
+    boat,
+    car: boat as unknown as Entity,
+    entities,
+    dimension,
+    boarded,
+    blocks,
+  };
+}
+
+function seatedPlayer(
+  id: string,
+  dimension: { id: string } = { id: "overworld" },
+) {
+  const p = {
+    id,
+    typeId: "minecraft:player",
+    isValid: true,
+    dimension,
+    riding: undefined as object | undefined,
+    getComponent: (name: string) =>
+      name === "minecraft:riding" ? p.riding : undefined,
+    getRotation: () => ({ x: 12, y: 34 }),
+    teleport: vi.fn(),
+  };
+  return p;
+}
+
+const STAND = { x: 4.5, y: 1, z: 2.5 } as const;
+
+/** Keeps one deck seat with a stand spot and seats a player on it. */
+function seatedOnce(spot: DeckSeatSpot = { x: 0, y: 0, z: 0, stand: STAND }) {
+  const f = fixture();
+  const seats = new DeckSeats();
+  const vehicleId = asVehicleId(f.car.id);
+  seats.keep(vehicleId, f.car, [spot], 0);
+  const [id] = JSON.parse(String(f.boat.saved.get(DECK_SEATS_PROPERTY)));
+  const seat = f.entities.get(id);
+  if (!seat) throw new Error("missing seat");
+  const player = seatedPlayer("player");
+  seat.riders.push(player);
+  player.riding = seat;
+  seats.keep(vehicleId, f.car, [spot], 0);
+  const standUp = () => {
+    seat.riders.splice(0);
+    player.riding = undefined;
+  };
+  return { f, seats, seat, player, vehicleId, spot, standUp };
 }
 
 const point = fc.record({
@@ -333,4 +389,149 @@ it("ejects every deck seat rider in seat order and returns them (ADR 0095)", () 
       expect(f.boarded).toEqual([]);
     }),
   );
+});
+
+it("stands up exactly the players who left a kept deck seat for nothing, at their seat's spot, keeping their view (ADR 0109)", () => {
+  fc.assert(
+    fc.property(
+      fc.subarray([0, 1, 2, 3, 4]),
+      fc.subarray([0, 1, 2, 3, 4]),
+      (occupied, leaving) => {
+        const f = fixture();
+        const seats = new DeckSeats();
+        const vehicleId = asVehicleId(f.car.id);
+        const spots = Array.from({ length: 5 }, (_, i) => ({
+          x: i,
+          y: 0,
+          z: 0,
+          stand: { x: i + 0.5, y: 1, z: 2.5 },
+        }));
+        seats.keep(vehicleId, f.car, spots, 0);
+        const ids: string[] = JSON.parse(
+          String(f.boat.saved.get(DECK_SEATS_PROPERTY)),
+        );
+        const players = ids.map((id, i) => {
+          const player = seatedPlayer(`player${i}`);
+          const seat = f.entities.get(id);
+          if (seat && occupied.includes(i)) {
+            seat.riders.push(player);
+            player.riding = seat;
+          }
+          return player;
+        });
+        seats.keep(vehicleId, f.car, spots, 0);
+        for (const i of leaving) {
+          const riders = f.entities.get(ids[i] ?? "")?.riders ?? [];
+          const at = riders.findIndex((r) => r.id === `player${i}`);
+          if (at >= 0) riders.splice(at, 1);
+          const player = players[i];
+          if (player) player.riding = undefined;
+        }
+        seats.keep(vehicleId, f.car, spots, 0);
+        players.forEach((player, i) => {
+          if (occupied.includes(i) && leaving.includes(i))
+            expect(player.teleport).toHaveBeenCalledExactlyOnceWith(
+              spots[i]?.stand,
+              { rotation: { x: 12, y: 34 } },
+            );
+          else expect(player.teleport).not.toHaveBeenCalled();
+        });
+        // Standing up happens once: the next keep no longer counts them as seated.
+        seats.keep(vehicleId, f.car, spots, 0);
+        for (const player of players)
+          expect(player.teleport.mock.calls.length).toBeLessThanOrEqual(1);
+      },
+    ),
+  );
+});
+
+it("leaves a player who still rides something where they are, so boarding moves nobody (ADR 0109)", () => {
+  const { f, seats, seat, player, vehicleId, spot } = seatedOnce();
+  seats.board(f.car);
+  player.riding = {};
+  expect(seat.riders).toEqual([]);
+  seats.keep(vehicleId, f.car, [spot], 0);
+  expect(player.teleport).not.toHaveBeenCalled();
+});
+
+it("leaves the riders of removed deck seats to the engine: departure, a taken vehicle seat, a gone vehicle (ADR 0109)", () => {
+  for (const next of [[], [undefined]] as const) {
+    const { f, seats, seat, player, vehicleId, standUp } = seatedOnce();
+    standUp();
+    seats.keep(vehicleId, f.car, next, 0);
+    expect(seat.remove).toHaveBeenCalled();
+    expect(player.teleport).not.toHaveBeenCalled();
+  }
+  const { seats, player, vehicleId, standUp } = seatedOnce();
+  standUp();
+  seats.clearGone(new Set());
+  seats.keep(vehicleId, undefined, [], 0);
+  expect(player.teleport).not.toHaveBeenCalled();
+});
+
+it("moves nobody after a reload, for a seat without a stand spot, or onto a replaced seat (ADR 0109)", () => {
+  {
+    const { f, player, vehicleId, spot, standUp } = seatedOnce();
+    standUp();
+    new DeckSeats().keep(vehicleId, f.car, [spot], 0);
+    expect(player.teleport).not.toHaveBeenCalled();
+  }
+  {
+    const { f, seats, player, vehicleId, spot, standUp } = seatedOnce({
+      x: 0,
+      y: 0,
+      z: 0,
+    });
+    standUp();
+    seats.keep(vehicleId, f.car, [spot], 0);
+    expect(player.teleport).not.toHaveBeenCalled();
+  }
+  {
+    const { f, seats, seat, player, vehicleId, spot, standUp } = seatedOnce();
+    standUp();
+    seat.remove();
+    seats.keep(vehicleId, f.car, [spot], 0);
+    expect(f.dimension.spawnEntity).toHaveBeenCalledTimes(2);
+    expect(player.teleport).not.toHaveBeenCalled();
+  }
+});
+
+it("leaves the engine's spot when the stand cells are blocked or the player is gone (ADR 0109)", () => {
+  for (const cell of ["4,1,2", "4,2,2"]) {
+    const { f, seats, player, vehicleId, spot, standUp } = seatedOnce();
+    f.blocks.set(cell, "minecraft:stone");
+    standUp();
+    seats.keep(vehicleId, f.car, [spot], 0);
+    expect(player.teleport).not.toHaveBeenCalled();
+  }
+  {
+    const { f, seats, player, vehicleId, spot, standUp } = seatedOnce();
+    f.blocks.set("4,2,2", "minecraft:light_block_15");
+    standUp();
+    seats.keep(vehicleId, f.car, [spot], 0);
+    expect(player.teleport).toHaveBeenCalledOnce();
+  }
+  {
+    const { f, seats, player, vehicleId, spot, standUp } = seatedOnce();
+    f.dimension.getBlock.mockImplementation(() => {
+      throw new Error("unloaded");
+    });
+    standUp();
+    seats.keep(vehicleId, f.car, [spot], 0);
+    expect(player.teleport).not.toHaveBeenCalled();
+  }
+  {
+    const { f, seats, player, vehicleId, spot, standUp } = seatedOnce();
+    player.isValid = false;
+    standUp();
+    seats.keep(vehicleId, f.car, [spot], 0);
+    expect(player.teleport).not.toHaveBeenCalled();
+  }
+  {
+    const { f, seats, player, vehicleId, spot, standUp } = seatedOnce();
+    player.dimension = { id: "nether" };
+    standUp();
+    seats.keep(vehicleId, f.car, [spot], 0);
+    expect(player.teleport).not.toHaveBeenCalled();
+  }
 });

@@ -760,3 +760,51 @@ it("puts the toilet seat inside the shower-toilet cell at the rear right at ever
     }),
   );
 });
+
+it("stands each deck seat's rider up on the floor of an open aisle cell beside the seat (ADR 0109)", () => {
+  fc.assert(
+    fc.property(pose, (p) => {
+      const open = new Set(cargoCells(p).map(cellKey));
+      const floor = new Set(
+        roomCells(p, false)
+          .filter((c) => c.block.type === "floor")
+          .map(cellKey),
+      );
+      const facing = forward(p.yaw);
+      const left = leftOf(facing);
+      const aisleZ = deckSeats(p).map((seat) => {
+        const stand = defined(seat.stand, "stand spot");
+        const feet = {
+          x: Math.floor(stand.x),
+          y: stand.y,
+          z: Math.floor(stand.z),
+        };
+        // Feet at the floor top, in the middle of the cell.
+        expect(stand.y).toBe(p.y + 1);
+        expect(stand.x - feet.x).toBe(0.5);
+        expect(stand.z - feet.z).toBe(0.5);
+        expect(floor.has(cellKey({ ...feet, y: feet.y - 1 }))).toBe(true);
+        expect(open.has(cellKey(feet))).toBe(true);
+        expect(open.has(cellKey({ ...feet, y: feet.y + 1 }))).toBe(true);
+        const offset = { x: stand.x - p.x, z: stand.z - p.z };
+        expect(dot(offset, left)).toBeCloseTo(0);
+        // A step from the seat, not across the room.
+        expect(
+          Math.hypot(stand.x - seat.x, stand.z - seat.z),
+        ).toBeLessThanOrEqual(1.5);
+        return Math.round(dot(offset, facing));
+      });
+      expect(aisleZ).toEqual([2, 2, 1, -1, -3]);
+    }),
+  );
+});
+
+it("puts every stand spot inside the box departure seats standing players from (ADR 0068, 0109)", () => {
+  fc.assert(
+    fc.property(pose, (p) => {
+      const inside = defined(departure(p).boxes[0], "inside box");
+      for (const seat of deckSeats(p))
+        expect(inBox(inside, defined(seat.stand, "stand spot"))).toBe(true);
+    }),
+  );
+});
