@@ -117,7 +117,12 @@ export async function gearDownLandingOutcome(
 
 export function summonCow(a: Arena, x: number, z: number): Entity | undefined {
   // Mobs from spawnEntity far from players despawn at once, so use summon.
-  a.dim.runCommand(`summon minecraft:cow ${x} ${a.gy} ${z}`);
+  // A bare summon runs entity_spawned, which makes a baby cow on a random
+  // roll; spawn_adult keeps the target size fixed. The spawn event is only
+  // accepted after the yaw and pitch arguments.
+  a.dim.runCommand(
+    `summon minecraft:cow ${x} ${a.gy} ${z} 0 0 minecraft:spawn_adult`,
+  );
   return a.dim.getEntities({
     type: "minecraft:cow",
     location: { x, y: a.gy, z },
