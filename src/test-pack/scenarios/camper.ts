@@ -357,7 +357,7 @@ export function camperRelay(a: Arena): Promise<Outcome> {
     }
     const relaid = countLaid(a, lost);
     return {
-      pass: before === 3 && emptied === 0 && relaid === 3,
+      pass: before === lost.length && emptied === 0 && relaid === lost.length,
       detail: `before=${before} emptied=${emptied} relaid=${relaid} ticks=${ticks}`,
     };
   });
