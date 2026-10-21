@@ -134,14 +134,9 @@ function placeGearOnSeat(
   const dimensionId = asDimensionId(dimension.id);
   const at = seat.location;
   const point = { x: at.x, y: at.y, z: at.z };
-  const slot = seatSlotCell(point, (cell) => {
-    const typeId = dimension.getBlock(cell)?.typeId;
-    return (
-      typeId !== undefined &&
-      (typeId === CAMPER_FURNITURE_BLOCK ||
-        campingGearOfDecorBlock(typeId) !== undefined)
-    );
-  });
+  const slot = seatSlotCell(point, (cell) =>
+    isSlotBlock(dimension.getBlock(cell)?.typeId),
+  );
   if (slot === undefined) return;
   const vehicleId = dockCellOwner(dimensionId, slot);
   if (vehicleId === undefined) return;
@@ -152,6 +147,15 @@ function placeGearOnSeat(
   const hotbarSlot = ev.player.selectedSlotIndex;
   system.run(() =>
     place.execute({ playerId, vehicleId, item, point, cell: slot, hotbarSlot }),
+  );
+}
+
+/** An empty slot's furniture block or a placed gear's decor block (ADR 0093, 0097). */
+function isSlotBlock(typeId: string | undefined): boolean {
+  if (typeId === undefined) return false;
+  return (
+    typeId === CAMPER_FURNITURE_BLOCK ||
+    campingGearOfDecorBlock(typeId) !== undefined
   );
 }
 
