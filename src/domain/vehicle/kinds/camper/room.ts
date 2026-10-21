@@ -499,8 +499,9 @@ export function deckSeats(pose: HoldPose): DeckSeatSpot[] {
   const toilet = seatWorldPositions(pose, CAMPER_PARKED_SEATS.positions).map(
     (at) => ({ ...at, y: at.y + TOILET_SEAT_RISE, compact: true }),
   );
-  return [...vehicleDeckSeats(pose), ...toilet].map((at, i) => {
-    const stand = DECK_SEAT_STAND_CELLS[i];
-    return stand ? { ...at, stand: standPoint(pose, stand) } : at;
-  });
+  const stands = DECK_SEAT_STAND_CELLS.map((cell) => standPoint(pose, cell));
+  return [...vehicleDeckSeats(pose), ...toilet].map((at, i) => ({
+    ...at,
+    stand: stands[i],
+  }));
 }
