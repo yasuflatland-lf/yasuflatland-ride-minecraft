@@ -463,6 +463,44 @@ it("measures from the pressed point as before when the line of sight does not de
   );
 });
 
+it("measures each slot where the descending line of sight crosses its height, and a slot level with or above the eye from the pressed point (ADR 0110)", () => {
+  const offset = fc.double({ min: -6, max: 6, noNaN: true });
+  // Where the ray from `eye` through `point` drops to `h`, as a fraction of the drop to `point`.
+  const seen = (eye: Vec3, point: Vec3, h: number): Vec3 => {
+    if (point.y >= eye.y || h >= eye.y) return point;
+    const k = (eye.y - h) / (eye.y - point.y);
+    return {
+      x: eye.x + k * (point.x - eye.x),
+      y: h,
+      z: eye.z + k * (point.z - eye.z),
+    };
+  };
+  fc.assert(
+    fc.property(
+      pose,
+      gear.chain((id) => fc.tuple(fc.constant(id), fc.subarray(slotsFor(id)))),
+      fc.tuple(offset, offset, offset),
+      fc.tuple(offset, offset, offset),
+      (p, [id, taken], [dx, dy, dz], [ex, ey, ez]) => {
+        const decor = taken.map((s) => ({ slot: s.id, item: id }));
+        const point = { x: p.x + dx, y: p.y + dy, z: p.z + dz };
+        const eye = { x: p.x + ex, y: p.y + ey, z: p.z + ez };
+        const gap = (s: DecorSlot) => {
+          const at = slotPoint(p, s);
+          return squared(at, seen(eye, point, at.y));
+        };
+        const expected = slotsFor(id)
+          .filter(freeOf(taken))
+          .reduce<DecorSlot | undefined>(
+            (best, s) => (best === undefined || gap(s) < gap(best) ? s : best),
+            undefined,
+          );
+        expect(nearestFreeSlot(p, id, decor, point, eye)).toBe(expected);
+      },
+    ),
+  );
+});
+
 it("puts a saucepan on the near aisle-side burner for the side-face press logged in #431 (ADR 0110)", () => {
   // The stove cell is (320, -59, -520). The line of sight entered the furniture block's
   // west face 0.207 above the cell bottom, and the pressed point alone picked stove_rear.
