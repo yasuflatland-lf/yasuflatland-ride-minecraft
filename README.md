@@ -28,6 +28,10 @@ This add-on holds only rides. House-building parts will ship as a separate add-o
 
 All three seat 4, can be repainted with any of the 16 dyes, and light the way with a headlight switch item. Each can be placed from its item and broken back into it. Each player keeps at most 10 SUVs, 1 sports boat, and 1 camper: placing one more removes that player's oldest of that kind.
 
+## Items
+
+Items other than vehicles, such as the 19 pieces of camping gear made to decorate a parked camper, are listed with previews in [the item groups](docs/items/README.md).
+
 ## Installing
 
 Download `yasuflatland-ride-<version>.mcaddon` from the [latest release](https://github.com/yasuflatland-lf/yasuflatland-ride-minecraft/releases/latest) and open it on your device; on iPad, follow [these steps](docs/installing-on-ipad.md). Turn on **Yasuflatland Ride** under a world's Behavior Packs; no experiments are needed. Players who join a server that already has the packs do not need to install anything: the server sends the Resource Pack when they join, so accept the download prompt.
@@ -53,8 +57,8 @@ pnpm lint            # format and lint check with Biome
 pnpm test            # unit tests, property-based tests, and the layer dependency check
 pnpm build           # bundle the TypeScript into the Behavior Pack
 pnpm package         # zip the packs into dist/yasuflatland-ride-<version>.mcaddon (run after build)
-pnpm model           # generate the SUV and sports boat models and textures, the README previews, and pack icons
-pnpm model:check     # fail if the README previews or pack icons are out of date with the model
+pnpm model           # generate the vehicle models and textures, the camping gear block models and atlas, the README and item previews, and pack icons
+pnpm model:check     # fail if the camping gear models, the README or item previews, or the pack icons are out of date
 pnpm server:up       # start the dev BDS in Docker
 pnpm server:restart  # restart it under a new dev-only Resource Pack version
 pnpm test:game       # in-game tests
