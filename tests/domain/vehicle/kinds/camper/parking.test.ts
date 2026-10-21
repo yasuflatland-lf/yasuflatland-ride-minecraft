@@ -1,13 +1,20 @@
 import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
-import { parseDecor } from "../../../../../src/domain/vehicle/dock/decor";
+import {
+  decorFace,
+  parseDecor,
+} from "../../../../../src/domain/vehicle/dock/decor";
 import type {
   DriveStep,
   TickContext,
 } from "../../../../../src/domain/vehicle/drive";
 import type { RawInput } from "../../../../../src/domain/vehicle/driveInput";
 import { CAMPING_GEAR_IDS } from "../../../../../src/domain/vehicle/kinds/camper/campingGear";
-import { DECOR_SLOTS } from "../../../../../src/domain/vehicle/kinds/camper/decor";
+import {
+  DECOR_CELLS,
+  DECOR_SLOTS,
+  decorSlot,
+} from "../../../../../src/domain/vehicle/kinds/camper/decor";
 import {
   slotPoint,
   slotsFor,
@@ -36,20 +43,21 @@ import { defined } from "../../../../support/defined";
 const PUSH = { moveX: 0, moveY: 1, jump: false };
 const NEUTRAL = { moveX: 0, moveY: 0, jump: false };
 const decorItem = fc.constantFrom("potted_plant", "percolator", "cushion");
-const decor = fc
-  .subarray([...DECOR_SLOTS])
-  .chain((slots) =>
-    fc.tuple(
-      ...slots.map((s) => decorItem.map((item) => ({ slot: s.id, item }))),
+// At most one placement per slot cell, as the drive keeps it (ADR 0107).
+const inCells = (cells: readonly (typeof DECOR_CELLS)[number][]) =>
+  fc.tuple(
+    ...cells.map(({ slots }) =>
+      fc
+        .tuple(fc.constantFrom(...slots), decorItem)
+        .map(([s, item]) => ({ slot: s.id, item })),
     ),
   );
-const shuffledDecor = fc
-  .shuffledSubarray([...DECOR_SLOTS])
-  .chain((slots) =>
-    fc.tuple(
-      ...slots.map((s) => decorItem.map((item) => ({ slot: s.id, item }))),
-    ),
-  );
+const decor = fc.subarray([...DECOR_CELLS]).chain(inCells);
+const shuffledDecor = fc.shuffledSubarray([...DECOR_CELLS]).chain(inCells);
+const cellOf = (slot: string) => {
+  const cell = decorSlot(slot)?.cell;
+  return cell && `${cell.x},${cell.z},${cell.layer}`;
+};
 const slotNamed = (id: string) =>
   defined(
     DECOR_SLOTS.find((s) => s.id === id),
@@ -57,7 +65,7 @@ const slotNamed = (id: string) =>
   );
 const slotIndex = (p: { slot: string }) =>
   DECOR_SLOTS.findIndex((s) => s.id === p.slot);
-function fixture(dockDecor?: string) {
+function fixture(dockDecor?: string, yaw = 37) {
   const blocks = new Map<string, string>();
   const blockTypes = vi.fn(
     (cells: readonly { x: number; y: number; z: number }[]) =>
@@ -74,7 +82,7 @@ function fixture(dockDecor?: string) {
     blockTypes,
   };
   const drive = new CamperDrive(
-    37,
+    yaw,
     dockDecor === undefined ? {} : { dockDecor },
   );
   const pose = parkPose(ctx.location, drive.yaw);
@@ -624,9 +632,10 @@ it("moves a hanging item of a removed slot to the free ceiling hook (ADR 0103)",
   ]);
 });
 
-const standingSlots = DECOR_SLOTS.filter((s) => !s.hanging);
-const fullSlots = standingSlots.map(({ id }) => ({
-  slot: id,
+// One item per standing cell fills every standing slot (ADR 0107).
+const standingCells = DECOR_CELLS.filter(({ slots }) => !slots[0]?.hanging);
+const fullSlots = standingCells.map(({ slots }) => ({
+  slot: defined(slots[0], "first slot").id,
   item: "potted_plant",
 }));
 const cabinetEntries = [
@@ -635,7 +644,7 @@ const cabinetEntries = [
 ];
 
 it("stows an entry of a removed slot when no slot that takes its item is free, and lists it last (ADR 0103)", () => {
-  expect(standingSlots).toHaveLength(9);
+  expect(standingCells).toHaveLength(9);
   const f = fixture(JSON.stringify([...fullSlots, ...cabinetEntries]));
   expect(f.drive.decor()).toEqual([...fullSlots, ...cabinetEntries]);
   expect(f.drive.setDecor("wall_cabinet_front", undefined)).toBe(false);
@@ -671,13 +680,27 @@ it("never loses a saved item when restoring (ADR 0103)", () => {
         list.map((e) => e.item).sort();
       expect(items(d)).toEqual(items(parsed));
       expect(new Set(d.map((e) => e.slot)).size).toBe(d.length);
-      const known = new Set(DECOR_SLOTS.map((s) => s.id));
-      for (const e of parsed)
-        if (known.has(e.slot)) expect(d).toContainEqual(e);
-      const taken = new Set(d.map((e) => e.slot));
-      for (const e of d)
-        if (!known.has(e.slot))
-          for (const s of slotsFor(e.item)) expect(taken.has(s.id)).toBe(true);
+      // A known slot keeps its entry unless an earlier entry took its cell (ADR 0107).
+      for (const [i, e] of parsed.entries()) {
+        const cell = cellOf(e.slot);
+        if (cell && !parsed.slice(0, i).some((o) => cellOf(o.slot) === cell))
+          expect(d).toContainEqual(e);
+      }
+      // The placed entries come first, one per cell; a stowed entry follows, and every
+      // slot that takes its item has its cell taken.
+      const placed = d.filter((e, i) => {
+        const cell = cellOf(e.slot);
+        return (
+          cell !== undefined &&
+          !d.slice(0, i).some((o) => cellOf(o.slot) === cell)
+        );
+      });
+      const takenCells = new Set(placed.map((e) => cellOf(e.slot)));
+      for (const e of d.slice(placed.length)) {
+        expect(placed).not.toContain(e);
+        for (const s of slotsFor(e.item))
+          expect(takenCells.has(cellOf(s.id))).toBe(true);
+      }
     }),
   );
 });
@@ -763,6 +786,85 @@ it("places the item in the pressed slot ahead of a nearer free slot (ADR 0097)",
       false,
     ),
   ).toBe("shelf_high");
+});
+
+it("puts the stove item on the burner nearest the press and takes no second item while one burner holds one (ADR 0107)", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom(0, 90, 180, -90),
+      fc.constantFrom("stove", "stove_rear", "stove_wall", "stove_wall_rear"),
+      fc.constantFrom("stove", "stove_rear", "stove_wall", "stove_wall_rear"),
+      (yaw, first, second) => {
+        const f = fixture(undefined, yaw);
+        f.park();
+        f.step();
+        const burner = slotNamed(first);
+        const cell = decorSlotCell(f.pose, burner);
+        expect(
+          f.drive.decorSlotFor(
+            "saucepan",
+            slotPoint(f.pose, burner),
+            cell,
+            false,
+          ),
+        ).toBe(first);
+        expect(f.drive.placeDecor(first, "saucepan")).toBe(true);
+        const point = slotPoint(f.pose, slotNamed(second));
+        expect(f.drive.placeDecor(second, "enamel_kettle")).toBe(false);
+        expect(
+          f.drive.decorSlotFor("enamel_kettle", point, cell, true),
+        ).toBeUndefined();
+        expect(
+          decorSlot(
+            defined(
+              f.drive.decorSlotFor("enamel_kettle", point, cell, false),
+              "fallback slot",
+            ),
+          )?.cell,
+        ).not.toEqual(burner.cell);
+        const laid = defined(f.step().dock, "laid dock").cells;
+        expect(
+          laid.filter(
+            (c) => c.x === cell.x && c.y === cell.y && c.z === cell.z,
+          ),
+        ).toEqual([
+          {
+            ...cell,
+            block: {
+              type: "decor",
+              item: "saucepan",
+              face: decorFace(f.pose.yaw),
+              height: 15,
+              spot: burner.spot,
+            },
+          },
+        ]);
+        expect(f.drive.removeDecor(cell)).toBe("saucepan");
+        expect(f.drive.decor()).toEqual([]);
+      },
+    ),
+  );
+});
+
+it("replaces the item of a cell when a test sets another slot of it (ADR 0107)", () => {
+  const f = fixture();
+  expect(f.drive.setDecor("stove", "saucepan")).toBe(true);
+  expect(f.drive.setDecor("stove_wall_rear", "enamel_kettle")).toBe(true);
+  expect(f.drive.decor()).toEqual([
+    { slot: "stove_wall_rear", item: "enamel_kettle" },
+  ]);
+  expect(f.drive.setDecor("stove", undefined)).toBe(false);
+});
+
+it("restores saved decor in the old stove slot on its burner and moves a second entry of the stove cell to a free slot (ADR 0107)", () => {
+  const saved = JSON.stringify([
+    { slot: "stove", item: "percolator" },
+    { slot: "stove_rear", item: "saucepan" },
+  ]);
+  expect(new CamperDrive(0, { dockDecor: saved }).decor()).toEqual([
+    { slot: "dashboard_center", item: "saucepan" },
+    { slot: "stove", item: "percolator" },
+  ]);
 });
 
 it("refuses an exact press on a taken slot instead of offering another one (ADR 0104)", () => {

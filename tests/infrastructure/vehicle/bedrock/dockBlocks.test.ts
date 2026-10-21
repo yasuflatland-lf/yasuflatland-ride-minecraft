@@ -25,6 +25,7 @@ import {
   DECK_FLOOR_HEIGHT_STATE,
   DECOR_FACE_STATE,
   DECOR_HEIGHT_STATE,
+  DECOR_SPOT_STATE,
   decorBlockId,
   ROOM_FACE_STATE,
   ROOM_OPEN_STATE,
@@ -336,7 +337,13 @@ const roomCells: DockCell[] = [
     x: 6,
     y: 64,
     z: 0,
-    block: { type: "decor", item: "potted_plant", face: 1, height: 12 },
+    block: {
+      type: "decor",
+      item: "potted_plant",
+      face: 1,
+      height: 15,
+      spot: 3,
+    },
   },
   { x: 7, y: 64, z: 0, block: { type: "furniture", height: 0 } },
   { x: 8, y: 64, z: 0, block: { type: "showerToilet", face: 0 } },
@@ -358,7 +365,11 @@ it("lays every block type with its states and changes only an opened door", () =
     { typeId: CAMPER_BED_BLOCK, states: undefined },
     {
       typeId: decorBlockId("potted_plant"),
-      states: { [DECOR_FACE_STATE]: 1, [DECOR_HEIGHT_STATE]: 12 },
+      states: {
+        [DECOR_FACE_STATE]: 1,
+        [DECOR_HEIGHT_STATE]: 15,
+        [DECOR_SPOT_STATE]: 3,
+      },
     },
     { typeId: CAMPER_FURNITURE_BLOCK, states: { [DECOR_HEIGHT_STATE]: 0 } },
     { typeId: CAMPER_SHOWER_TOILET_BLOCK, states: { [ROOM_FACE_STATE]: 0 } },
@@ -420,10 +431,14 @@ it("replaces a decor item in place and clears it", () => {
   const f = fixture();
   const docks = new DockBlocks();
   const position = { x: 0, y: 64, z: 0 };
-  const states = { [DECOR_FACE_STATE]: 2, [DECOR_HEIGHT_STATE]: 7 };
+  const states = {
+    [DECOR_FACE_STATE]: 2,
+    [DECOR_HEIGHT_STATE]: 7,
+    [DECOR_SPOT_STATE]: 0,
+  };
   const decorAt = (item: string): DockCell => ({
     ...position,
-    block: { type: "decor", item, face: 2, height: 7 },
+    block: { type: "decor", item, face: 2, height: 7, spot: 0 },
   });
   docks.lay(asVehicleId(f.car.id), f.car, [decorAt("potted_plant")]);
   expect(f.at(position)).toEqual({
@@ -448,7 +463,13 @@ it("switches a slot between furniture and decor in place and clears it (ADR 0097
   };
   const decor: DockCell = {
     ...position,
-    block: { type: "decor", item: "potted_plant", face: 1, height: 12 },
+    block: {
+      type: "decor",
+      item: "potted_plant",
+      face: 1,
+      height: 12,
+      spot: 0,
+    },
   };
   const furnitureLaid = {
     typeId: CAMPER_FURNITURE_BLOCK,
@@ -460,7 +481,11 @@ it("switches a slot between furniture and decor in place and clears it (ADR 0097
   docks.lay(asVehicleId(f.car.id), f.car, [decor]);
   expect(f.at(position)).toEqual({
     typeId: decorBlockId("potted_plant"),
-    states: { [DECOR_FACE_STATE]: 1, [DECOR_HEIGHT_STATE]: 12 },
+    states: {
+      [DECOR_FACE_STATE]: 1,
+      [DECOR_HEIGHT_STATE]: 12,
+      [DECOR_SPOT_STATE]: 0,
+    },
   });
   expect(f.savedCells()).toEqual([decor]);
   docks.lay(asVehicleId(f.car.id), f.car, [furniture]);
@@ -522,6 +547,31 @@ it("clears saved deck cells from the legacy height-only format", () => {
   expect(f.saved.get(DECK_CELLS_PROPERTY)).toBeUndefined();
 });
 
+it("reads a saved decor cell from before the spot state as standing in the cell middle (ADR 0107)", () => {
+  const f = fixture();
+  const position = { x: 0, y: 64, z: 0 };
+  const block = { type: "decor", item: "percolator", face: 2, height: 14 };
+  f.saved.set(DECK_CELLS_PROPERTY, JSON.stringify([{ ...position, block }]));
+  f.blocks.set(cellKey(position), { typeId: decorBlockId("percolator") });
+  const docks = new DockBlocks();
+  const moved: DockCell = {
+    ...position,
+    block: { type: "decor", item: "percolator", face: 2, height: 15, spot: 1 },
+  };
+  docks.lay(asVehicleId(f.car.id), f.car, [moved]);
+  expect(f.at(position)).toEqual({
+    typeId: decorBlockId("percolator"),
+    states: {
+      [DECOR_FACE_STATE]: 2,
+      [DECOR_HEIGHT_STATE]: 15,
+      [DECOR_SPOT_STATE]: 1,
+    },
+  });
+  docks.lay(asVehicleId(f.car.id), f.car, []);
+  expect(f.at(position).typeId).toBe("minecraft:air");
+  expect(f.saved.get(DECK_CELLS_PROPERTY)).toBeUndefined();
+});
+
 it.each([
   { block: { type: "unknown" }, seed: DECK_FLOOR_BLOCK },
   { block: { type: "deck", height: 0 }, seed: DECK_FLOOR_BLOCK },
@@ -554,6 +604,30 @@ it.each([
   },
   {
     block: { type: "decor", item: "potted_plant", face: 0, height: 1.5 },
+    seed: decorBlockId("potted_plant"),
+  },
+  {
+    block: { type: "decor", item: "potted_plant", face: 0, height: 0, spot: 5 },
+    seed: decorBlockId("potted_plant"),
+  },
+  {
+    block: {
+      type: "decor",
+      item: "potted_plant",
+      face: 0,
+      height: 0,
+      spot: -1,
+    },
+    seed: decorBlockId("potted_plant"),
+  },
+  {
+    block: {
+      type: "decor",
+      item: "potted_plant",
+      face: 0,
+      height: 0,
+      spot: 0.5,
+    },
     seed: decorBlockId("potted_plant"),
   },
   { block: { type: "furniture", height: 16 }, seed: CAMPER_FURNITURE_BLOCK },

@@ -1,6 +1,7 @@
 import { expect, it } from "vitest";
 import {
   CAMPER_FURNITURE,
+  DECOR_SPOTS,
   type LocalCell,
 } from "../../../../../src/domain/vehicle/kinds/camper/furniture";
 
@@ -25,20 +26,33 @@ it("gives each cell to at most one furniture row", () => {
   expect(new Set(keys).size).toBe(keys.length);
 });
 
-it("puts every slot in its own furniture's cell, one slot per cell, with a unique id and a height from 0 to 15", () => {
+it("puts every slot in its own furniture's cell, with a unique id, a height from 0 to 15, and a known spot; only the stove shares a cell among its burners (ADR 0107)", () => {
   const ids: string[] = [];
-  const cells: string[] = [];
+  const cells = new Map<string, Set<string>>();
   for (const row of CAMPER_FURNITURE)
     for (const slot of row.slots) {
       expect(row.cells).toContainEqual(slot.cell);
       expect(Number.isInteger(slot.height)).toBe(true);
       expect(slot.height).toBeGreaterThanOrEqual(0);
       expect(slot.height).toBeLessThanOrEqual(15);
+      expect(DECOR_SPOTS[slot.spot ?? 0]).toBeDefined();
       ids.push(slot.id);
-      cells.push(key(slot.cell));
+      const kinds = cells.get(key(slot.cell)) ?? new Set<string>();
+      kinds.add(row.kind);
+      cells.set(key(slot.cell), kinds);
     }
   expect(new Set(ids).size).toBe(ids.length);
-  expect(new Set(cells).size).toBe(cells.length);
+  for (const kinds of cells.values()) expect(kinds.size).toBe(1);
+  const stove = CAMPER_FURNITURE.find((f) => f.kind === "stove")?.slots ?? [];
+  expect(new Set(stove.map((s) => s.spot)).size).toBe(stove.length);
+  expect(new Set(stove.map((s) => s.height)).size).toBe(1);
+});
+
+it("keeps each spot within 8 px of its cell middle, so its point stays on its cell (ADR 0107)", () => {
+  for (const { left, forward } of DECOR_SPOTS) {
+    expect(Math.abs(left)).toBeLessThan(8);
+    expect(Math.abs(forward)).toBeLessThan(8);
+  }
 });
 
 it("keeps slots off furniture that lays a block", () => {
@@ -96,7 +110,10 @@ it("keeps the saved slot ids, cells, and heights", () => {
     ["dinette_rear", 1, -1, 1, 7],
     ["shelf_low", -1, 1, 1, 10],
     ["shelf_high", -1, 1, 2, 4],
-    ["stove", -1, -2, 1, 14],
+    ["stove", -1, -2, 1, 15],
+    ["stove_rear", -1, -2, 1, 15],
+    ["stove_wall", -1, -2, 1, 15],
+    ["stove_wall_rear", -1, -2, 1, 15],
     ["counter", -1, -1, 1, 14],
     ["ceiling_hook", 1, 0, 2, 6],
   ]);

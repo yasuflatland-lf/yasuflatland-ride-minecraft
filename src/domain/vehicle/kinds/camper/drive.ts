@@ -10,8 +10,15 @@ import { dockCommands, undockCommands } from "../../motion/dockEntity";
 import { TransformingDrive } from "../../motion/transformingDrive";
 import { SyncedValue } from "../../syncedValue";
 import { type BodyEnds, guardEnds } from "./bodyGuard";
-import { DECOR_SLOTS, decorSlot } from "./decor";
-import { slotAt, slotForPress, slotsFor } from "./decorPlacing";
+import {
+  cellSlots,
+  cellTaken,
+  DECOR_CELLS,
+  DECOR_SLOTS,
+  decorInCell,
+  decorSlot,
+} from "./decor";
+import { slotForPress, slotsAt, slotsFor } from "./decorPlacing";
 import { DoorToggle } from "./doorToggle";
 import {
   type CAMPER_ENTITY,
@@ -110,14 +117,19 @@ export class CamperDrive extends TransformingDrive {
         ? savedTarget
         : this.doorStep * 2 >= DOOR_STEPS;
     // Decor survives driving: it is restored whether or not the camper was docked (ADR 0093).
-    // An entry whose slot no longer exists moves to the first free slot that takes its item, or is stowed (ADR 0103).
+    // An entry whose slot no longer exists, or whose cell an earlier entry already holds,
+    // moves to the first free slot that takes its item, or is stowed (ADR 0103, 0105).
     const saved = parseDecor(restored[DOCK_RESTORED.decor]);
-    for (const { slot, item } of saved)
-      if (decorSlot(slot)) this.decorBySlot.set(slot, item);
+    const homeless: DecorPlacement[] = [];
     for (const entry of saved) {
-      if (decorSlot(entry.slot)) continue;
+      const slot = decorSlot(entry.slot);
+      if (slot && !cellTaken(slot, this.placed()))
+        this.decorBySlot.set(slot.id, entry.item);
+      else homeless.push(entry);
+    }
+    for (const entry of homeless) {
       const free = slotsFor(entry.item).find(
-        ({ id }) => !this.decorBySlot.has(id),
+        (slot) => !cellTaken(slot, this.placed()),
       );
       if (free) this.decorBySlot.set(free.id, entry.item);
       else this.stowedDecor.push(entry);
@@ -166,19 +178,30 @@ export class CamperDrive extends TransformingDrive {
   }
 
   decor(): readonly DecorPlacement[] {
-    const inSlots = DECOR_SLOTS.flatMap(({ id }) => {
+    return [...this.placed(), ...this.stowedDecor];
+  }
+
+  // The decor in slots, without the stowed entries: a stowed entry may name a slot whose
+  // cell another entry holds, and it is neither laid nor counted as taking that cell.
+  private placed(): DecorPlacement[] {
+    return DECOR_SLOTS.flatMap(({ id }) => {
       const item = this.decorBySlot.get(id);
       return item === undefined ? [] : [{ slot: id, item }];
     });
-    return [...inSlots, ...this.stowedDecor];
   }
 
+  /** Sets or clears one slot; an item replaces whatever another slot of its cell held (ADR 0107). */
   setDecor(slot: string, item: string | undefined): boolean {
-    if (!decorSlot(slot) || (item !== undefined && !isDecorItem(item)))
-      return false;
+    const target = decorSlot(slot);
+    if (!target || (item !== undefined && !isDecorItem(item))) return false;
     if (this.decorBySlot.get(slot) === item) return false;
-    if (item === undefined) this.decorBySlot.delete(slot);
-    else this.decorBySlot.set(slot, item);
+    if (item === undefined) {
+      this.decorBySlot.delete(slot);
+      return true;
+    }
+    for (const other of cellSlots(target.cell))
+      this.decorBySlot.delete(other.id);
+    this.decorBySlot.set(slot, item);
     return true;
   }
 
@@ -192,26 +215,25 @@ export class CamperDrive extends TransformingDrive {
     exact: boolean,
   ): string | undefined {
     if (!this.parked) return undefined;
-    return slotForPress(this.parked, item, this.decor(), cell, point, exact)
+    return slotForPress(this.parked, item, this.placed(), cell, point, exact)
       ?.id;
   }
 
   placeDecor(slot: string, item: string): boolean {
-    if (
-      !this.parked ||
-      this.decorBySlot.has(slot) ||
-      !slotsFor(item).some((s) => s.id === slot)
-    )
+    const target = slotsFor(item).find((s) => s.id === slot);
+    if (!this.parked || !target || cellTaken(target, this.placed()))
       return false;
     return this.setDecor(slot, item);
   }
 
+  /** Takes back the item in the pressed cell, whichever of the cell's slots holds it (ADR 0107). */
   removeDecor(cell: Vec3): string | undefined {
     if (!this.parked) return undefined;
-    const slot = slotAt(this.parked, cell);
+    const slot = slotsAt(this.parked, cell).find(({ id }) =>
+      this.decorBySlot.has(id),
+    );
     if (!slot) return undefined;
     const item = this.decorBySlot.get(slot.id);
-    if (item === undefined) return undefined;
     this.setDecor(slot.id, undefined);
     return item;
   }
@@ -237,13 +259,15 @@ export class CamperDrive extends TransformingDrive {
       const cargo = cargoCells(parked);
       const slots = slotCells(parked);
       // The cargo cells, the slot cells, and the two exit cells share one departure
-      // batch; a slot cell is clear only with air, its furniture block, or its own decor (ADR 0093, 0097).
+      // batch; a slot cell is clear only with air, its furniture block, or its own decor (ADR 0093, 0097, 0105).
       const types = ctx.blockTypes([...cargo, ...slots, ...exitCells(parked)]);
       const slotTypes = types.slice(cargo.length, cargo.length + slots.length);
+      const decor = this.placed();
       if (
         holdsCargo(types.slice(0, cargo.length)) ||
-        DECOR_SLOTS.some(
-          ({ id }, i) => !ownSlotBlock(slotTypes[i], this.decorBySlot.get(id)),
+        DECOR_CELLS.some(
+          ({ cell }, i) =>
+            !ownSlotBlock(slotTypes[i], decorInCell(cell, decor)?.item),
         )
       )
         return {
@@ -322,8 +346,8 @@ export class CamperDrive extends TransformingDrive {
       cells: lay
         ? [
             ...roomCells(pose, this.doorOpen),
-            ...decorCells(pose, this.decor()),
-            ...furnitureCells(pose, this.decor()),
+            ...decorCells(pose, this.placed()),
+            ...furnitureCells(pose, this.placed()),
           ]
         : [],
       seats: deckSeats(pose),

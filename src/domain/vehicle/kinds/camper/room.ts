@@ -11,9 +11,10 @@ import type { Box, ClearCell, DeckSeatSpot, Departure } from "../../dock/dock";
 import type { DockBlock, DockCell, Face, HoldPose } from "../../dock/floor";
 import { cellKey } from "../../lighting/headlights";
 import { seatWorldPositions } from "../../seats";
-import { DECOR_SLOTS, decorSlot } from "./decor";
+import { DECOR_CELLS, decorInCell, decorSlot } from "./decor";
 import {
   CAMPER_FURNITURE,
+  DECOR_SPOTS,
   type DecorSlot,
   type FurnitureBlock,
   type LocalCell,
@@ -25,6 +26,7 @@ const FEET_EPSILON = 0.01;
 // Path, farmland, mud and soul sand tops need the floor in the next cell (ADR 0068).
 const LOW_GROUND_THRESHOLD = 0.85;
 const QUARTER_TURN = 90;
+const PX_PER_BLOCK = 16;
 // In cells from the center cell: x = left (-1..1), z = forward (-3..3), as in the
 // spike (docs/spike-camper.md).
 const HALF_X = 1;
@@ -158,6 +160,19 @@ export function decorSlotCell(pose: HoldPose, slot: DecorSlot): Vec3 {
   return cellAt(pose, slot.cell.x, slot.cell.z, slot.cell.layer);
 }
 
+/**
+ * The world offset in blocks from a cell's middle to the decor spot `spot` (an index in
+ * DECOR_SPOTS) at a snapped `yaw`: a decor block's yasu_ride:spot translation (ADR 0107).
+ */
+export function decorSpotOffset(yaw: number, spot: number): Vec2 {
+  const { left, forward } = DECOR_SPOTS[spot] ?? { left: 0, forward: 0 };
+  const { f, l } = axes(yaw);
+  return {
+    x: (left * l.x + forward * f.x) / PX_PER_BLOCK + 0,
+    z: (left * l.z + forward * f.z) / PX_PER_BLOCK + 0,
+  };
+}
+
 // The side of a wall cell that faces the room, from the unit vector toward it.
 function faceToward(v: Vec2): Face {
   if (v.z !== 0) return v.z < 0 ? 0 : 1;
@@ -246,19 +261,34 @@ type DecorCell = DockCell & {
   readonly block: Extract<DockBlock, { type: "decor" }>;
 };
 
-/** One decor block per placement in a known slot, at the slot's cell and height, turned to the yaw quarter (ADR 0093). */
+/**
+ * One decor block per slot cell that holds a placement in a known slot, at the slot's
+ * height and spot, turned to the yaw quarter. A cell holds one block, so the first
+ * placement in a cell wins (ADR 0093, 0105).
+ */
 export function decorCells(
   pose: HoldPose,
   decor: readonly DecorPlacement[],
 ): DecorCell[] {
   const face = decorFace(pose.yaw);
+  const laid = new Set<string>();
   return decor.flatMap(({ slot, item }) => {
     const s = decorSlot(slot);
     if (!s) return [];
+    const at = decorSlotCell(pose, s);
+    const key = cellKey(at);
+    if (laid.has(key)) return [];
+    laid.add(key);
     return [
       {
-        ...decorSlotCell(pose, s),
-        block: { type: "decor", item, face, height: s.height } as const,
+        ...at,
+        block: {
+          type: "decor",
+          item,
+          face,
+          height: s.height,
+          spot: s.spot ?? 0,
+        } as const,
       },
     ];
   });
@@ -269,26 +299,35 @@ type FurnitureCell = DockCell & {
 };
 
 /**
- * A furniture block in every decor slot that holds no decor, at the slot's height, or the hanging
- * box for a hanging slot, in DECOR_SLOTS order (ADR 0097, 0102).
+ * A furniture block in every slot cell that holds no decor, at the height of the cell's first
+ * slot, or the hanging box for a hanging slot, in DECOR_CELLS order (ADR 0097, 0102, 0105).
  */
 export function furnitureCells(
   pose: HoldPose,
   decor: readonly DecorPlacement[],
 ): FurnitureCell[] {
-  const taken = new Set(decor.map(({ slot }) => slot));
-  return DECOR_SLOTS.filter(({ id }) => !taken.has(id)).map((s) => ({
-    ...decorSlotCell(pose, s),
-    block: {
-      type: "furniture",
-      height: s.hanging ? HANGING_FURNITURE_HEIGHT : s.height,
-    } as const,
-  }));
+  return DECOR_CELLS.filter(({ cell }) => !decorInCell(cell, decor)).map(
+    ({ cell, slots }) => {
+      const first = slots[0];
+      return {
+        ...cellAt(pose, cell.x, cell.z, cell.layer),
+        block: {
+          type: "furniture",
+          height:
+            first === undefined || first.hanging
+              ? HANGING_FURNITURE_HEIGHT
+              : first.height,
+        } as const,
+      };
+    },
+  );
 }
 
-/** The cell of every decor slot, in DECOR_SLOTS order (ADR 0097). */
+/** Every slot cell once, in DECOR_CELLS order (ADR 0097, 0105). */
 export function slotCells(pose: HoldPose): Vec3[] {
-  return DECOR_SLOTS.map((s) => decorSlotCell(pose, s));
+  return DECOR_CELLS.map(({ cell }) =>
+    cellAt(pose, cell.x, cell.z, cell.layer),
+  );
 }
 
 /**

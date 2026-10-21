@@ -4,10 +4,13 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { forward } from "../../src/domain/shared/vec";
 import { DECOR_SLOTS } from "../../src/domain/vehicle/kinds/camper/decor";
+import { DECOR_SPOTS } from "../../src/domain/vehicle/kinds/camper/furniture";
+import { decorSpotOffset } from "../../src/domain/vehicle/kinds/camper/room";
 import {
   CAMPER_DECOR_COMPONENT,
   DECOR_FACE_STATE,
   DECOR_HEIGHT_STATE,
+  DECOR_SPOT_STATE,
   decorBlockId,
 } from "../../src/infrastructure/vehicle/bedrock/identifiers";
 
@@ -330,12 +333,35 @@ const readJson = (path: string) => JSON.parse(readFileSync(path, "utf8"));
 const decorPath = (g: Gear) =>
   `${BP}/blocks/yasu_ride/${g.id}_decor.block.json`;
 const decorOf = (g: Gear) => readJson(decorPath(g)) as DecorBlock;
-const condition = (face: number, height: number) =>
-  `q.block_state('yasu_ride:face') == ${face} && q.block_state('yasu_ride:height') == ${height}`;
+const condition = (face: number, spot: number, height: number) =>
+  `q.block_state('yasu_ride:face') == ${face} && q.block_state('yasu_ride:spot') == ${spot} && q.block_state('yasu_ride:height') == ${height}`;
+const SPOTS = DECOR_SPOTS.map((_, spot) => spot);
+// The middle spot takes every height; another spot only the heights of the slots on it (ADR 0107).
+const spotHeights = (spot: number) =>
+  spot === 0
+    ? HEIGHTS
+    : [
+        ...new Set(
+          DECOR_SLOTS.filter((s) => s.spot === spot).map((s) => s.height),
+        ),
+      ].sort((a, b) => a - b);
+const translation = (face: number, spot: number, height: number) => {
+  const { x, z } = decorSpotOffset(90 * face, spot);
+  return [x, height / 16, z];
+};
+
+// A standing item's box spans the cell from its base to its top, at least 1 px; a hanging
+// item's stays at its footprint (ADR 0097, 0105).
+function selectionBox(g: Gear) {
+  const [y0, y1] = ySpan(g);
+  if (g.hanging) {
+    const w = g.width_px;
+    return { origin: [-w / 2, y0, -w / 2], size: [w, y1 - y0, w] };
+  }
+  return { origin: [-8, y0, -8], size: [16, Math.max(1, y1 - y0), 16] };
+}
 
 function expectedDecor(g: Gear) {
-  const w = g.width_px;
-  const [y0, y1] = ySpan(g);
   return {
     format_version: "1.21.80",
     "minecraft:block": {
@@ -345,6 +371,7 @@ function expectedDecor(g: Gear) {
         states: {
           [DECOR_FACE_STATE]: [0, 1, 2, 3],
           [DECOR_HEIGHT_STATE]: HEIGHTS,
+          [DECOR_SPOT_STATE]: SPOTS,
         },
       },
       components: {
@@ -360,21 +387,20 @@ function expectedDecor(g: Gear) {
         "minecraft:destructible_by_explosion": false,
         "minecraft:custom_components": [CAMPER_DECOR_COMPONENT],
         "minecraft:collision_box": false,
-        "minecraft:selection_box": {
-          origin: [-w / 2, y0, -w / 2],
-          size: [w, y1 - y0, w],
-        },
+        "minecraft:selection_box": selectionBox(g),
       },
       permutations: [0, 1, 2, 3].flatMap((face) =>
-        HEIGHTS.map((height) => ({
-          condition: condition(face, height),
-          components: {
-            "minecraft:transformation": {
-              rotation: [0, FACE_ROTATION[face], 0],
-              translation: [0, height / 16, 0],
+        SPOTS.flatMap((spot) =>
+          spotHeights(spot).map((height) => ({
+            condition: condition(face, spot, height),
+            components: {
+              "minecraft:transformation": {
+                rotation: [0, FACE_ROTATION[face], 0],
+                translation: translation(face, spot, height),
+              },
             },
-          },
-        })),
+          })),
+        ),
       ),
     },
   };
@@ -394,7 +420,7 @@ function langValues(locale: string): Map<string, string[]> {
 }
 
 describe("camping gear blocks and items (ADR 0093)", () => {
-  it("defines one decor block per gear with no collision, a selection box over its model, and the decor component (ADR 0093, 0102)", () => {
+  it("defines one decor block per gear with no collision, a selection box over its cell or its hanging model, and the decor component (ADR 0093, 0102, 0105)", () => {
     for (const g of SPEC) {
       const block = decorOf(g);
       expect(block, g.id).toEqual(expectedDecor(g));
@@ -451,7 +477,7 @@ describe("camping gear blocks and items (ADR 0093)", () => {
             blocks
               .get(g.id)
               ?.["minecraft:block"].permutations.filter(
-                (p) => p.condition === condition(face, height),
+                (p) => p.condition === condition(face, 0, height),
               ) ?? [];
           expect(matches).toHaveLength(1);
           const turn = matches[0]?.components["minecraft:transformation"];
@@ -470,6 +496,47 @@ describe("camping gear blocks and items (ADR 0093)", () => {
         },
       ),
     );
+  });
+
+  it("draws every slot's item at its spot for every face, moved by the domain's spot offset (ADR 0107)", () => {
+    const blocks = SPEC.map(decorOf);
+    for (const slot of DECOR_SLOTS)
+      for (const face of [0, 1, 2, 3])
+        for (const block of blocks) {
+          const spot = slot.spot ?? 0;
+          const matches = block["minecraft:block"].permutations.filter(
+            (p) => p.condition === condition(face, spot, slot.height),
+          );
+          expect(matches, slot.id).toHaveLength(1);
+          expect(
+            matches[0]?.components["minecraft:transformation"].translation,
+          ).toEqual(translation(face, spot, slot.height));
+        }
+    // Face 0 is yaw 0: the camper faces +z, so its left is +x (ADR 0107).
+    expect(translation(0, 1, 15)).toEqual([3.8 / 16, 15 / 16, 5.4 / 16]);
+  });
+
+  it("covers the whole cell with a standing item's selection box and only the footprint with a hanging item's (ADR 0097, 0105)", () => {
+    for (const g of SPEC) {
+      const box = decorOf(g)["minecraft:block"].components[
+        "minecraft:selection_box"
+      ] as { origin: number[]; size: number[] };
+      const [x0 = 0, y0 = 0, z0 = 0] = box.origin;
+      const [sx = 0, sy = 0, sz = 0] = box.size;
+      expect(y0, g.id).toBe(0);
+      expect(sy, g.id).toBeGreaterThanOrEqual(1);
+      expect(sy, g.id).toBeGreaterThanOrEqual(g.height_px);
+      if (g.hanging) {
+        expect([x0, z0, sx, sz], g.id).toEqual([
+          -g.width_px / 2,
+          -g.width_px / 2,
+          g.width_px,
+          g.width_px,
+        ]);
+      } else {
+        expect([x0, z0, sx, sz], g.id).toEqual([-8, -8, 16, 16]);
+      }
+    }
   });
 
   it("defines one stackable item per gear with its icon and name key", () => {

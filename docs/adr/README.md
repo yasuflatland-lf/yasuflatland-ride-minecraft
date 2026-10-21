@@ -100,16 +100,17 @@ This directory records design decisions and the reasons behind them. The format 
 | [0094](0094-the-camper-shower-toilet-door-and-shower.md) | The camper's shower-toilet door and shower | Superseded in part by 0098; extended by 0105 |
 | [0095](0095-sit-on-the-camper-toilet-while-parked.md) | Sit on the camper toilet while parked | Extended by 0098 |
 | [0096](0096-keep-the-dock-blocks-whole.md) | Keep a parked vehicle's dock blocks whole | Accepted |
-| [0097](0097-press-the-camper-furniture-to-place-decor.md) | Press the camper furniture to place decor | Superseded in part by 0103; extended by 0104 |
+| [0097](0097-press-the-camper-furniture-to-place-decor.md) | Press the camper furniture to place decor | Superseded in part by 0103 and 0107; extended by 0104 |
 | [0098](0098-a-block-for-the-camper-shower-toilet.md) | A block for the camper's shower-toilet | Accepted |
 | [0099](0099-hang-the-camper-planter-inside-its-cell.md) | Hang the camper planter inside its cell | Superseded in part by 0102 |
-| [0100](0100-swap-the-camper-stove-and-sink.md) | Swap the camper stove and sink | Accepted |
+| [0100](0100-swap-the-camper-stove-and-sink.md) | Swap the camper stove and sink | Superseded in part by 0107 |
 | [0101](0101-give-invisible-blocks-a-hidden-cube.md) | Give invisible blocks a hidden cube | Accepted |
 | [0102](0102-lift-the-hanging-planter-from-its-cell-bottom.md) | Lift the hanging planter from its cell bottom | Accepted |
 | [0103](0103-raise-the-camper-wall-cabinet-to-the-ceiling.md) | Raise the camper wall cabinet to the ceiling | Accepted |
 | [0104](0104-refuse-a-press-on-a-taken-seat.md) | Refuse a press on a taken seat | Accepted |
 | [0105](0105-toggle-a-camper-door-once-per-swing.md) | Toggle a camper door once per swing | Accepted |
 | [0106](0106-raise-the-camper-dashboard-to-the-windshield.md) | Raise the camper dashboard to the windshield | Accepted |
+| [0107](0107-stand-stove-gear-on-a-burner.md) | Stand stove gear on a burner, and widen the standing decor box | Accepted |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 

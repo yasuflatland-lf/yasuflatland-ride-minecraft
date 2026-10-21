@@ -203,6 +203,8 @@ export const ROOM_OPEN_STATE = id("open");
 export const DECOR_FACE_STATE = id("face");
 /** The slot height in px, on the decor blocks and on the furniture block (ADR 0093, 0097). */
 export const DECOR_HEIGHT_STATE = id("height");
+/** Decor block state: where on its cell the item stands, an index in DECOR_SPOTS (ADR 0107). */
+export const DECOR_SPOT_STATE = id("spot");
 /** The decor block that shows a camping gear item in a parked camper (ADR 0093). */
 export function decorBlockId(item: string): string {
   return id(`${item}_decor`);
