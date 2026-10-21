@@ -23,9 +23,9 @@ const PREVIEW_SIZE = 128;
 const ATLAS_SIZE = 16;
 const SWATCH = 4;
 const GLASS_UV = [8, 12];
-// The underside of the ceiling plate above the ceiling_hook slot, where a
-// hanging item ends (HOOK_Y in tools/gen_camping_gear.py, ADR 0093).
-const HOOK_Y = 29;
+// The top of the ceiling_hook slot's cell, where a hanging item ends (HOOK_Y
+// in tools/gen_camping_gear.py, ADR 0099).
+const HOOK_Y = 16;
 const MAX_STANDING_HEIGHT = 8;
 const MAX_HANGING_HEIGHT = 10;
 
@@ -66,7 +66,7 @@ const geometryOf = (id: string) =>
 
 const cubesOf = (id: string) => geometryOf(id).bones.flatMap((b) => b.cubes);
 
-const ySpan = (g: Gear) =>
+const ySpan = (g: Gear): [number, number] =>
   g.hanging ? [HOOK_Y - g.height_px, HOOK_Y] : [0, g.height_px];
 
 // A standing item goes on any spot but the ceiling hook, which takes only a hanging one (ADR 0097).
@@ -215,6 +215,17 @@ describe("camping gear block models (ADR 0093)", () => {
   );
 
   it.each(SPEC)(
+    "$id: stays inside its cell, 0 to 16 px high (ADR 0099)",
+    (g) => {
+      const cubes = cubesOf(g.id);
+      for (const c of cubes) {
+        expect(c.origin[1], g.id).toBeGreaterThanOrEqual(0);
+        expect(c.origin[1] + c.size[1], g.id).toBeLessThanOrEqual(16);
+      }
+    },
+  );
+
+  it.each(SPEC)(
     "$id: uses the glass swatch only when the spec says glass",
     (g) => {
       const usesGlass = cubesOf(g.id).some((c) =>
@@ -327,6 +338,9 @@ const condition = (face: number, height: number) =>
 
 function expectedDecor(g: Gear) {
   const w = g.width_px;
+  const [lo, hi] = ySpan(g);
+  const y0 = Math.max(lo, 0);
+  const y1 = Math.min(hi, 16);
   return {
     format_version: "1.21.80",
     "minecraft:block": {
@@ -352,8 +366,8 @@ function expectedDecor(g: Gear) {
         "minecraft:custom_components": [CAMPER_DECOR_COMPONENT],
         "minecraft:collision_box": false,
         "minecraft:selection_box": {
-          origin: [-w / 2, 0, -w / 2],
-          size: [w, g.height_px, w],
+          origin: [-w / 2, y0, -w / 2],
+          size: [w, y1 - y0, w],
         },
       },
       permutations: [0, 1, 2, 3].flatMap((face) =>
@@ -385,7 +399,7 @@ function langValues(locale: string): Map<string, string[]> {
 }
 
 describe("camping gear blocks and items (ADR 0093)", () => {
-  it("defines one decor block per gear with no collision, a centered selection box, and the decor component", () => {
+  it("defines one decor block per gear with no collision, a selection box over its model, and the decor component (ADR 0093, 0099)", () => {
     for (const g of SPEC) {
       const block = decorOf(g);
       expect(block, g.id).toEqual(expectedDecor(g));
@@ -398,6 +412,18 @@ describe("camping gear blocks and items (ADR 0093)", () => {
         .filter((f) => f.endsWith("_decor.block.json"))
         .sort(),
     ).toEqual(SPEC.map((g) => `${g.id}_decor.block.json`).sort());
+  });
+
+  it("hangs the macrame planter from the top of its cell, with its outline over it (ADR 0099)", () => {
+    const planter = SPEC.find((g) => g.id === "macrame_planter");
+    if (planter === undefined) throw new Error("macrame_planter is missing");
+    const cubes = cubesOf(planter.id);
+    const bottom = Math.min(...cubes.map((c) => c.origin[1]));
+    const top = Math.max(...cubes.map((c) => c.origin[1] + c.size[1]));
+    expect([bottom, top]).toEqual([6, 16]);
+    expect(
+      decorOf(planter)["minecraft:block"].components["minecraft:selection_box"],
+    ).toEqual({ origin: [-2.5, 6, -2.5], size: [5, 10, 5] });
   });
 
   it("registers the decor component on every camping gear block (ADR 0093)", () => {

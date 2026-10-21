@@ -45,9 +45,11 @@ BOX = "camping_gear_box"
 GROUP_ICON = f"yasu_ride:{BOX}"
 ATLAS_SIZE = 16
 SWATCH = 4
-# A hanging item's top, in px above the bottom of the ceiling_hook slot's cell: the underside of the
-# ceiling plate (ADR 0093). Block geometry may reach 30 px, so the top stays inside that limit.
-HOOK_Y = 29
+# A hanging item's top, in px above the bottom of the ceiling_hook slot's cell: the top of the
+# cell, where the camper model's hook ends. The client did not draw a model that reached 29 px and
+# showed an unshaped block instead, so every model stays within its cell (ADR 0099).
+HOOK_Y = 16
+CELL_PX = 16
 # 1970s motorhome colors (#347): avocado, harvest gold, burnt orange, brown, cream, and chrome
 PALETTE = {
     "cream": (240, 228, 196, 255),
@@ -244,6 +246,12 @@ def y_span(item):
     return (HOOK_Y - h, HOOK_Y) if item["hanging"] else (0, h)
 
 
+def selection_span(item):
+    """The decor block's outline covers the model, clipped to its cell (ADR 0099)."""
+    lo, hi = y_span(item)
+    return max(0, lo), min(CELL_PX, hi)
+
+
 def validate(spec):
     """Stop before writing anything when a shape disagrees with its spec row."""
     errors = []
@@ -262,6 +270,8 @@ def validate(spec):
         ylo, yhi = y_span(item)
         if (y0, y1) != (ylo, yhi):
             errors.append(f"{item['id']}: y spans {y0}..{y1}, not {ylo}..{yhi}")
+        if y0 < 0 or y1 > CELL_PX:
+            errors.append(f"{item['id']}: y spans {y0}..{y1}, outside the cell")
         if z0 < -8 or z1 > 8:
             errors.append(f"{item['id']}: z spans {z0}..{z1}, outside the cell")
         glass = any(c["uv"]["north"] == face("glass") for c in cubes)
@@ -326,7 +336,7 @@ def num(v):
 def decor_block(item):
     gid = item["id"]
     w = item["width_px"]
-    h = item["height_px"]
+    y0, y1 = selection_span(item)
     return {
         "format_version": "1.21.80",
         "minecraft:block": {
@@ -345,7 +355,7 @@ def decor_block(item):
                 "minecraft:destructible_by_explosion": False,
                 "minecraft:custom_components": ["yasu_ride:camper_decor"],
                 "minecraft:collision_box": False,
-                "minecraft:selection_box": {"origin": [num(-w / 2), 0, num(-w / 2)], "size": [w, h, w]},
+                "minecraft:selection_box": {"origin": [num(-w / 2), num(y0), num(-w / 2)], "size": [w, num(y1 - y0), w]},
             },
             "permutations": [
                 {
