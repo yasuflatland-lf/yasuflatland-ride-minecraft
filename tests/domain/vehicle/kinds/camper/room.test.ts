@@ -501,8 +501,9 @@ it("lays each decor at its slot's cell, the yaw quarter, and the slot height (AD
           "slot",
         );
         const at = { x: c.x - Math.floor(p.x), z: c.z - Math.floor(p.z) };
-        expect(dot(at, l)).toBe(slot.cell.x);
-        expect(dot(at, f)).toBe(slot.cell.z);
+        // + 0 because a zero axis times a negative offset is -0, which toBe rejects.
+        expect(dot(at, l) + 0).toBe(slot.cell.x);
+        expect(dot(at, f) + 0).toBe(slot.cell.z);
         expect(c.y).toBe(p.y + slot.cell.layer);
         expect(c.block).toEqual({
           type: "decor",
