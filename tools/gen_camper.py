@@ -798,11 +798,11 @@ def burner(cx, cz, turn):
     for dx, dz in ((-1, -1), (-1, 1), (1, -1), (1, 1)):
         mx, mz = cx + dx * d, cz + dz * d
         body.append(box(mx - t / 2, 30.08, mz - side / 2, mx + t / 2, 30.4, mz + side / 2, "black", [0, -dx * dz * 45, 0], [mx, 30.08, mz]))
+    pivot = [cx, 30.4, cz]
     for k in range(6):  # prongs, laid out toward the aisle and turned into place
-        a = [0, turn + 60 * k, 0]
-        pivot = [cx, 30.4, cz]
-        body.append(box(cx - 2.85, 30.4, cz - 0.15, cx - 1.0, 30.7, cz + 0.15, "black", a, pivot))
-        body.append(box(cx - 2.85, 30.4, cz - 0.15, cx - 2.45, 30.95, cz + 0.15, "black", a, pivot))
+        rotation = [0, turn + 60 * k, 0]
+        body.append(box(cx - 2.85, 30.4, cz - 0.15, cx - 1.0, 30.7, cz + 0.15, "black", rotation, pivot))
+        body.append(box(cx - 2.85, 30.4, cz - 0.15, cx - 2.45, 30.95, cz + 0.15, "black", rotation, pivot))
 
 
 # Stove (ADR 0100): the sink side is z 24, the far side z 39.5, the knobs face the aisle.
