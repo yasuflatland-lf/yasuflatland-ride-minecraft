@@ -46,7 +46,7 @@
       "minecraft:rideable": {
         "seat_count": 1,
         "family_types": ["player"],
-        "interact_text": "action.interact.ride.horse",
+        "interact_text": "action.interact.yasu_ride.sit",
         "crouching_skip_interact": true,
         "seats": [{ "position": [0, 0.52, 0] }]
       }
