@@ -11,6 +11,7 @@ A four-seat camper with a facing dinette that drives, flies, and dives. Back to 
 - Combine an SUV item, a bed, a chest, and an oak door at a crafting table
 - The camper is not given as a starter item
 - Use the item on a block's top face with 9 x 9 x 4 clear cells around it
+- The first time you place a camper, you also get a Camping Gear Box; use it to unpack the 19 [camping gear](../items/camping-gear.md) items
 - Each player keeps one camper; placing another removes their previous camper
 - Hit the front bumper of an empty camper 3 times without a dye to break it back into the item; the bumper is the only part that takes hits, so you also get in and paint there
 
