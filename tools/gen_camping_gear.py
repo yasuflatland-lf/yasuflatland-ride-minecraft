@@ -340,7 +340,7 @@ def main():
         return
     stale = stale_files(documents, atlas)
     if stale:
-        sys.exit(f"{', '.join(stale)} out of date with tools/camping_gear.json. Run `pnpm model` and commit the result.")
+        sys.exit(f"{', '.join(stale)} out of date with tools/gen_camping_gear.py and tools/camping_gear.json. Run `pnpm model` and commit the result.")
     print("camping gear models and atlas are up to date")
 
 if __name__ == "__main__":
