@@ -614,7 +614,7 @@ it("stows an entry of a removed slot when no slot that takes its item is free, a
   expect(f.drive.placeDecor("wall_cabinet_front", "cushion")).toBe(false);
   const laid = defined(f.step().dock, "laid dock").cells;
   expect(laid.filter((c) => c.block.type === "decor")).toEqual(
-    decorCells(f.pose, f.drive.decor().slice(0, 9)),
+    decorCells(f.pose, fullSlots),
   );
   expect(laid.filter((c) => c.block.type === "furniture")).toEqual(
     furnitureCells(f.pose, fullSlots),
