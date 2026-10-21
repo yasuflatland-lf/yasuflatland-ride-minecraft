@@ -12,7 +12,12 @@ import type { DockBlock, DockCell, Face, HoldPose } from "../../dock/floor";
 import { cellKey } from "../../lighting/headlights";
 import { seatWorldPositions } from "../../seats";
 import { decorSlot } from "./decor";
-import { CAMPER_FURNITURE, type DecorSlot, type LocalCell } from "./furniture";
+import {
+  CAMPER_FURNITURE,
+  type DecorSlot,
+  type LocalCell,
+  SHOWER_COLUMN,
+} from "./furniture";
 import { CAMPER_PROFILE } from "./profile";
 
 // Feet resting on a block top can read a hair below it.
@@ -137,14 +142,6 @@ function cellAt(pose: HoldPose, lx: number, lz: number, dy: number): Vec3 {
     z: Math.floor(pose.z) + lx * l.z + lz * f.z + 0,
   };
 }
-
-// The shower-toilet's column; a tap on its floor cell opens its door or runs the shower (ADR 0094).
-const SHOWER_COLUMN = (() => {
-  const cell = CAMPER_FURNITURE.find((f) => f.kind === "shower_toilet")
-    ?.cells[0];
-  if (!cell) throw new Error("CAMPER_FURNITURE has no shower_toilet cell");
-  return { x: cell.x, z: cell.z };
-})();
 
 /** The floor cell under the shower-toilet (ADR 0094). */
 export function showerFloorCell(pose: HoldPose): Vec3 {
