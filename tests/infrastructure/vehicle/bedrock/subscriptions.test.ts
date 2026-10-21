@@ -21,6 +21,7 @@ import { asVehicleId, type VehicleId } from "../../../../src/domain/shared/ids";
 import { SPEC } from "../../../../src/domain/vehicle/spec";
 import type { VehicleRepository } from "../../../../src/domain/vehicle/vehicleRepository";
 import {
+  CAMPER_BED_COMPONENT,
   CAMPER_DOOR_COMPONENT,
   DECK_SEAT_OF_PROPERTY,
   DECK_SEAT_TYPE,
@@ -598,6 +599,50 @@ it("registers door interactions during startup and dispatches only owned doors",
   owner.mockReturnValue(asVehicleId("camper"));
   interact(event, { params: undefined });
   expect(door.execute).toHaveBeenCalledExactlyOnceWith({ vehicleId: "camper" });
+});
+
+it("registers bed interactions during startup and passes the player, dimension, and cell (ADR 0092)", () => {
+  const before = game.startup.mock.calls.length;
+  const bed = { execute: vi.fn() };
+  registerSubscriptions(
+    { bed } as unknown as Parameters<typeof registerSubscriptions>[0],
+    new TestInputStore(),
+    vi.fn(),
+  );
+  const registerCustomComponent =
+    vi.fn<(name: string, component: BlockCustomComponent) => void>();
+  for (const [startup] of game.startup.mock.calls.slice(before)) {
+    startup({
+      blockComponentRegistry: { registerCustomComponent },
+    } as unknown as StartupEvent);
+  }
+  const interact = registerCustomComponent.mock.calls.find(
+    ([name]) => name === CAMPER_BED_COMPONENT,
+  )?.[1].onPlayerInteract;
+  if (!interact) throw new Error("bed interaction missing");
+  const cell = { x: 1, y: 65, z: 2 };
+  interact(
+    {
+      dimension: { id: "minecraft:overworld" },
+      block: { location: cell },
+      player: { id: "p" },
+    } as Parameters<typeof interact>[0],
+    { params: undefined },
+  );
+  expect(bed.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId: "p",
+    dimensionId: "minecraft:overworld",
+    cell,
+  });
+  bed.execute.mockClear();
+  interact(
+    {
+      dimension: { id: "minecraft:overworld" },
+      block: { location: cell },
+    } as Parameters<typeof interact>[0],
+    { params: undefined },
+  );
+  expect(bed.execute).not.toHaveBeenCalled();
 });
 
 it("checks the hints every hint interval, after the drive on the same tick (ADR 0086)", () => {

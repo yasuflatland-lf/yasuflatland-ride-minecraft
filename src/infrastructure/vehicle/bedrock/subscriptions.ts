@@ -6,11 +6,13 @@ import type { LimitVehicles } from "../../../application/vehicle/limitVehicles";
 import type { PaintVehicle } from "../../../application/vehicle/paintVehicle";
 import type { PlaceVehicle } from "../../../application/vehicle/placeVehicle";
 import type { ShowVehicleHints } from "../../../application/vehicle/showVehicleHints";
+import type { SleepInBed } from "../../../application/vehicle/sleepInBed";
 import type { SwitchHeadlights } from "../../../application/vehicle/switchHeadlights";
 import type { UseDockDoor } from "../../../application/vehicle/useDockDoor";
 import type { DimensionId, VehicleId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import type { TestInputStore } from "../testInput/testInputStore";
+import { registerDockBed } from "./handlers/dockBed";
 import { registerDockDoor } from "./handlers/dockDoor";
 import { registerDrive } from "./handlers/drive";
 import { registerFleet } from "./handlers/fleet";
@@ -30,6 +32,7 @@ export function registerSubscriptions(
     paint: PaintVehicle;
     headlights: SwitchHeadlights;
     door: UseDockDoor;
+    bed: SleepInBed;
     hints: ShowVehicleHints;
   },
   testInputs: TestInputStore,
@@ -38,6 +41,7 @@ export function registerSubscriptions(
     cell: Vec3,
   ) => VehicleId | undefined,
 ): void {
+  registerDockBed(useCases.bed);
   registerDockDoor(useCases.door, dockDoorOwner);
   registerDrive(useCases.drive, useCases.hints);
   registerFleet(useCases.limit);

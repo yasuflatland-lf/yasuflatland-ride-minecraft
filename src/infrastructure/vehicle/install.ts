@@ -7,10 +7,12 @@ import { LimitVehicles } from "../../application/vehicle/limitVehicles";
 import { PaintVehicle } from "../../application/vehicle/paintVehicle";
 import { PlaceVehicle } from "../../application/vehicle/placeVehicle";
 import { ShowVehicleHints } from "../../application/vehicle/showVehicleHints";
+import { SleepInBed } from "../../application/vehicle/sleepInBed";
 import { SwitchHeadlights } from "../../application/vehicle/switchHeadlights";
 import { UseDockDoor } from "../../application/vehicle/useDockDoor";
 import { fleetLimitOf } from "../../domain/vehicle/kinds/index";
 import { NAMESPACE } from "../shared/identifiers";
+import { BedrockBedWorld } from "./bedrock/bedrockBedWorld";
 import { BedrockFleetWorld } from "./bedrock/bedrockFleetWorld";
 import { BedrockHeadlightWorld } from "./bedrock/bedrockHeadlightWorld";
 import { BedrockHintWorld } from "./bedrock/bedrockHintWorld";
@@ -54,6 +56,7 @@ export function installVehicles(): void {
         systemClock,
       ),
       door: new UseDockDoor(repo),
+      bed: new SleepInBed(new BedrockBedWorld(index)),
       hints: new ShowVehicleHints(
         new BedrockHintWorld(index),
         repo,
