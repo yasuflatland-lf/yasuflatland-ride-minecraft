@@ -395,23 +395,27 @@ export const snapshot = (
 };
 
 /** A camper parked at (0.5, 64, 0.5) with its room laid; the next tick a test runs is tick(21). */
+/** Ticks a riderless vehicle standing still on open ground at (0.5, 64, 0.5). */
+export function stillTick(vehicle: Vehicle, time: number) {
+  return vehicle.tick({
+    tick: time,
+    riders: [],
+    deckSeatInputs: [],
+    location: { x: 0.5, y: 64, z: 0.5 },
+    velocity: { x: 0, y: 0, z: 0 },
+    onGround: true,
+    solidAt: () => false,
+    waterAt: () => false,
+    targets: () => [],
+    blockTypes: (cells) => cells.map(() => "minecraft:air"),
+  });
+}
+
 export function parkedCamper() {
   const repo = new InMemoryRepo();
   const car = createVehicle("camper", asVehicleId("car"), 0);
   repo.save(car);
-  const tick = (time: number) =>
-    car.tick({
-      tick: time,
-      riders: [],
-      deckSeatInputs: [],
-      location: { x: 0.5, y: 64, z: 0.5 },
-      velocity: { x: 0, y: 0, z: 0 },
-      onGround: true,
-      solidAt: () => false,
-      waterAt: () => false,
-      targets: () => [],
-      blockTypes: (cells) => cells.map(() => "minecraft:air"),
-    });
+  const tick = (time: number) => stillTick(car, time);
   for (let time = 0; time <= 20; time++) tick(time);
   return {
     car,

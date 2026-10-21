@@ -4,14 +4,10 @@ import { RunShower } from "../../../src/application/vehicle/runShower";
 import { TapDockFloor } from "../../../src/application/vehicle/tapDockFloor";
 import { UseShowerDoor } from "../../../src/application/vehicle/useShowerDoor";
 import { asDimensionId, asVehicleId } from "../../../src/domain/shared/ids";
-import {
-  parkPose,
-  showerFloorCell,
-} from "../../../src/domain/vehicle/kinds/camper/room";
+import { showerFloorCell } from "../../../src/domain/vehicle/kinds/camper/room";
 import { createVehicle } from "../../../src/domain/vehicle/kinds/index";
-import type { Vehicle } from "../../../src/domain/vehicle/vehicle";
 import type { VehicleRepository } from "../../../src/domain/vehicle/vehicleRepository";
-import { InMemoryRepo } from "./fakes";
+import { parkedCamper } from "./fakes";
 
 const cmd = {
   dimensionId: asDimensionId("overworld"),
@@ -88,29 +84,10 @@ it("ignores a floor whose vehicle is gone", () => {
 });
 
 it("routes a real parked camper's shower floor tap to its door, and ignores an SUV", () => {
-  const repo = new InMemoryRepo();
-  const car = createVehicle("camper", asVehicleId("car"), 0);
+  const { car, pose, repo, tick } = parkedCamper();
   const suv = createVehicle("suv", asVehicleId("suv"), 0);
-  repo.save(car);
   repo.save(suv);
-  const tick = (vehicle: Vehicle, time: number) =>
-    vehicle.tick({
-      tick: time,
-      riders: [],
-      deckSeatInputs: [],
-      location: { x: 0.5, y: 64, z: 0.5 },
-      velocity: { x: 0, y: 0, z: 0 },
-      onGround: true,
-      solidAt: () => false,
-      waterAt: () => false,
-      targets: () => [],
-      blockTypes: (cells) => cells.map(() => "minecraft:air"),
-    });
-  for (let i = 0; i < 20; i++) {
-    tick(car, i);
-    tick(suv, i);
-  }
-  const floor = showerFloorCell(parkPose({ x: 0.5, y: 64, z: 0.5 }, 0));
+  const floor = showerFloorCell(pose);
   const player = { x: floor.x + 1.5, y: floor.y + 1, z: floor.z + 0.5 };
   const tap = (world: { floorOwner: () => ReturnType<typeof asVehicleId> }) =>
     new TapDockFloor(
@@ -120,7 +97,7 @@ it("routes a real parked camper's shower floor tap to its door, and ignores an S
       new RunShower(repo),
     ).execute({ dimensionId: asDimensionId("overworld"), cell: floor, player });
   expect(tap({ floorOwner: () => car.id })).toBe(true);
-  expect(tick(car, 20).stepCommands).toContainEqual({
+  expect(tick(21).stepCommands).toContainEqual({
     type: "setProperty",
     name: "shower_door",
     value: 0.1,

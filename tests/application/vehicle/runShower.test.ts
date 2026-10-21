@@ -2,22 +2,7 @@ import { expect, it } from "vitest";
 import { RunShower } from "../../../src/application/vehicle/runShower";
 import { asVehicleId } from "../../../src/domain/shared/ids";
 import { createVehicle } from "../../../src/domain/vehicle/kinds/index";
-import type { Vehicle } from "../../../src/domain/vehicle/vehicle";
-import { InMemoryRepo } from "./fakes";
-
-const tick = (vehicle: Vehicle, time: number) =>
-  vehicle.tick({
-    tick: time,
-    riders: [],
-    deckSeatInputs: [],
-    location: { x: 0.5, y: 64, z: 0.5 },
-    velocity: { x: 0, y: 0, z: 0 },
-    onGround: true,
-    solidAt: () => false,
-    waterAt: () => false,
-    targets: () => [],
-    blockTypes: (cells) => cells.map(() => "minecraft:air"),
-  });
+import { InMemoryRepo, stillTick } from "./fakes";
 
 it("ignores unknown vehicles, SUVs, and a moving camper, and runs for a parked camper (ADR 0094)", () => {
   const repo = new InMemoryRepo();
@@ -29,7 +14,7 @@ it("ignores unknown vehicles, SUVs, and a moving camper, and runs for a parked c
   const car = createVehicle("camper", asVehicleId("car"), 0);
   repo.save(car);
   expect(use.execute({ vehicleId: car.id })).toBe(false);
-  for (let i = 0; i < 20; i++) tick(car, i);
+  for (let i = 0; i < 20; i++) stillTick(car, i);
   expect(use.execute({ vehicleId: car.id })).toBe(true);
   expect(use.execute({ vehicleId: car.id })).toBe(true);
 });
