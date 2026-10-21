@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { HitVehicle } from "../../../src/application/vehicle/hitVehicle";
-import { asVehicleId } from "../../../src/domain/shared/ids";
+import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
 import {
   createVehicle,
   fleetLimitOf,
@@ -11,6 +11,7 @@ import {
   FakeFleetRepository,
   FakeWorld,
   InMemoryRepo,
+  parkedCamper,
 } from "./fakes";
 
 describe("HitVehicle (ADR 0008)", () => {
@@ -31,7 +32,11 @@ describe("HitVehicle (ADR 0008)", () => {
     expect(
       [1, 2, 3].map((tick) => {
         clock.tick = tick;
-        return uc.execute({ vehicleId: asVehicleId("a"), fromDeck: false });
+        return uc.execute({
+          playerId: asPlayerId("p"),
+          vehicleId: asVehicleId("a"),
+          fromDeck: false,
+        });
       }),
     ).toEqual([false, false, true]);
     expect(world.calls).toEqual(["drop:a", "remove:a"]);
@@ -57,7 +62,11 @@ describe("HitVehicle (ADR 0008)", () => {
         for (let tick = 1; tick <= hits; tick++) {
           clock.tick = tick;
           expect(
-            uc.execute({ vehicleId: asVehicleId("a"), fromDeck: true }),
+            uc.execute({
+              playerId: asPlayerId("p"),
+              vehicleId: asVehicleId("a"),
+              fromDeck: true,
+            }),
           ).toBe(false);
           expect(world.calls).toEqual([]);
           expect(repo.get(asVehicleId("a"))).toBe(vehicle);
@@ -66,6 +75,7 @@ describe("HitVehicle (ADR 0008)", () => {
           [1, 2, 3].map((offset) => {
             clock.tick = hits + offset;
             return uc.execute({
+              playerId: asPlayerId("p"),
               vehicleId: asVehicleId("a"),
               fromDeck: false,
             });
@@ -85,10 +95,39 @@ describe("HitVehicle (ADR 0008)", () => {
         new FakeFleetRepository(fleetLimitOf),
         clock,
       ).execute({
+        playerId: asPlayerId("p"),
         vehicleId: asVehicleId("x"),
         fromDeck: false,
       }),
     ).toBe(false);
     expect(world.calls).toEqual([]);
+  });
+
+  it("gives the placed decor to the hitter when the camper breaks (ADR 0093)", () => {
+    const { car, repo } = parkedCamper();
+    car.placeDecor("stove", "percolator");
+    const world = new FakeWorld();
+    const clock = new FakeClock();
+    const uc = new HitVehicle(
+      world,
+      repo,
+      new FakeFleetRepository(fleetLimitOf),
+      clock,
+    );
+    expect(
+      [1, 2, 3].map((tick) => {
+        clock.tick = tick;
+        return uc.execute({
+          playerId: asPlayerId("p"),
+          vehicleId: car.id,
+          fromDeck: false,
+        });
+      }),
+    ).toEqual([false, false, true]);
+    expect(world.calls).toEqual([
+      "drop:car",
+      "giveDecor:p:percolator",
+      "remove:car",
+    ]);
   });
 });
