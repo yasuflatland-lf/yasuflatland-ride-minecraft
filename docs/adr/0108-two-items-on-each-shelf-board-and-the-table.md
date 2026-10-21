@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-22
-- Supersedes in part: 0093 (one slot on each shelf board and on the table), 0097 (a press first tries the slots of the pressed cell only, and a deck seat names the slot of the first slot block above it, whatever that block draws), 0107 (a spot within its own cell, a standing decor box over the whole cell for every spot, and a furniture block in every slot cell)
+- Supersedes in part: 0093 (one slot on each shelf board and on the table), 0107 (on the shelf boards and the table: a cell holding one item, an empty-hand press taking back whichever slot's item, one decor block per occupied slot cell, and a standing box that ends at the item's top)
 
 ## Context
 
@@ -10,48 +10,68 @@ In the play test of 2026-10-22 (#424) the owner asked for two items side by side
 
 Facts this decision builds on:
 
-- A room cell holds one block, so it shows one decor item, and the decor block draws its item through `minecraft:transformation`, whose translation moves the selection box with the model (0093, 0097, 0107). The shelf fills one cell per board, (-1, 1, 1) and (-1, 1, 2), and the table one cell, (1, 0, 1), so a second item on a board or the table cannot have its own block in that cell
-- 0107 gave a slot a spot: an offset in pixels from its cell middle, turned with the camper's yaw into the decor block's `yasu_ride:spot` translation
+- A room cell holds one block. Until now each placed item had its own decor block, `yasu_ride:<item>_decor`, which draws the item through `minecraft:transformation`: it turns the model by the camper's yaw quarter and moves it by the slot's spot and height (0093, 0107). The shelf fills one cell per board, (-1, 1, 1) and (-1, 1, 2), and the table one cell, (1, 0, 1)
 - In `tools/gen_camper.py` each shelf board runs from model z -23 to -9, 7 px either side of the shelf cell's middle at z -16, between end panels at -23.5 to -23 and -9 to -8.5; it is 13.4 px deep (x 9 to 22.4). The low board's top is 10 px above its cell bottom and the high board's 4 px. The table top runs from x -23 to -9 across the camper, 7 px either side of its cell middle at x -16, and from z -6 to 6 along it, 12 px above its cell bottom. The camper wall's inner face is 22.8 px from the middle
 - The standing items reach at most 3.5 px to each side across the camper (the cushion) and 3 px forward and back (the cushion and the fruit bowl). Two items along a board need 6 px of its 14 px; two across the table need 7 px of its 14 px. Two items along the 12 px table would overlap, so the table's pair runs across it
-- The neighbor cells of each furniture, while parked:
-  - Shelf: in front of it, (-1, 2, 1) and (-1, 2, 2) are the driver's seat cell. The driver's deck seat stands there, but no room block, furniture block, door, exit, or slot does; they were cargo cells, read only when the camper departs. Behind it, (-1, 0, 1) is the cell inside the entry door, which every player walks through and which no furniture may fill. Toward the aisle, (0, 1, 1) is the aisle. Toward the wall is the wall
-  - Table: in front of and behind it are the dinette seats, whose cells already host their own slots, and above it the ceiling hook's cell hosts the hook's slot. Toward the wall is the wall. Toward the aisle, (0, 0, 1) is an aisle cell with no room block, furniture, deck seat, door, or exit; it was a cargo cell
-- A decor block has no collision, so a block in the aisle or the driver's seat cell does not stop a player walking or sitting there
+- The first build of this ADR laid the second item's decor block in a free neighbor cell, the driver's seat cell for the shelf and the aisle cell for the table, and translated it 12.5 px (shelf) or 12.3 px (table) back over the furniture. In game every decor block rendered as the fallback block, and the client content log showed, for every such permutation:
+
+  `[Blocks][error]-Block name = 'yasu_ride:toaster_decor' | Transformation Component error for yasu_ride:toaster_decor["yasu_ride:spot" : 6, "yasu_ride:height" : 10, "yasu_ride:face" : 3] : Schematic 'geometry.yasu_ride.toaster' is not included within the unit cube on axis x.`
+
+  and the same for spot 8 at height 12 on axis z. One bad permutation makes the client reject the whole block definition, so every placed block of that item type showed as the fallback block, not only the hosted ones
+- That is the documented limit for block geometry, applied after the transformation. Microsoft Learn ([Advanced Block Visuals](https://learn.microsoft.com/en-us/minecraft/creator/documents/customblockoversized)): a block is at most 30 px on each axis, within 30 px of the origin in each direction, and "at least 1 pixel of your block on each axis must be contained by the base 16x16x16 block". The working decor blocks already rise above their cell (a counter item at 14 px, a stove item at 15 px, the cushion 0.4 px past the cell edge on a burner), and the client accepts them, because each keeps part of the item in the cell. The hosted item was moved entirely out of the cell on one axis, so nothing of it was left inside. A block's model cannot draw an item that sits wholly in a neighbor cell
+- The selection box is limited to the cell before the transformation: origin and origin + size within (-8, 0, -8) to (8, 16, 8) ([minecraft:selection_box](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/blockreference/examples/blockcomponents/minecraftblock_selection_box))
+- Both items of a pair stand inside the furniture cell: a board's ends 3.5 px either side of its middle, the table's 3.3 px toward the wall and 3.7 px toward the aisle. So one block in the furniture cell can draw both and keep them in its cell
+- Block limits checked on Microsoft Learn before choosing the encoding:
+  - [Block states and permutations](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/blockreference/examples/blockstatesandpermutations): a state lists its values, and permutation conditions may only use `query.block_state()`. All blocks of a world together should stay under 65,536 permutations; above that the game warns that performance may degrade
+  - A state holds at most 16 values. Microsoft Learn does not state this number; the [Bedrock Wiki](https://wiki.bedrock.dev/blocks/block-states) does, and it matches the 0 to 15 `yasu_ride:height` state that every decor block already uses
+  - [minecraft:geometry](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/blockreference/examples/blockcomponents/minecraftblock_geometry): `bone_visibility` sets each bone's visibility by name, and its values take Molang expressions since 1.20.10
+  - [geometry 1.12.0](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/schemasreference/schemas/minecraftschema_geometry_1.12.0): a cube face may name a `material_instance`, so one block can mix opaque and blending faces. No limit on bones or cubes is documented
+  - [minecraft:transformation](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/blockreference/examples/blockcomponents/minecraftblock_transformation): rotation in 90 degree steps, translation, and scale, about the block's center; the page states no bounds of its own
 
 ## Decision
 
-### A slot hosted in a neighbor
+### Slots
 
-- A slot keeps `cell`, now its host cell: the cell where its decor or furniture block is laid. A slot whose item stands over another furniture cell names that cell in `over`. A slot's spot is measured from its host cell's middle and may lie up to one cell away; `tests/domain/vehicle/kinds/camper/furniture.test.ts` checks that every spot lies within 8 px of its furniture cell's middle and that a host cell outside the furniture is a free interior neighbor on the same layer
-- Each shelf board gets two slots along the camper, 3.5 px either side of the board middle: 0.5 px clear of each end panel and 1 px apart for the deepest items. The rear end stays in the shelf cell and keeps the board's id, `shelf_low` or `shelf_high`; it is spot 5 (forward -3.5). The front end, `shelf_low_front` or `shelf_high_front`, is hosted in the driver's seat cell on the same layer, (-1, 2, 1) or (-1, 2, 2), at spot 6 (forward -12.5 = -16 + 3.5)
-- The table gets two slots across the camper. `table` keeps its id and stands its item 3.3 px toward the wall, spot 7 (left 3.3), so the widest item ends at the wall's inner face. `table_aisle` is hosted in the aisle cell (0, 0, 1) and stands its item 3.7 px toward the aisle, spot 8 (left 12.3 = 16 - 3.7). The two widest items touch and do not overlap; the aisle-side one overhangs the table's aisle edge by 0.2 px
-- The driver's seat cell is used rather than the cell inside the door because that cell must stay free for walking in (0068), and the shelf's front end is next to the driver's seat anyway. The aisle cell is the only free neighbor of the table
-- A cell still holds one item, so the rules of 0107 for a taken cell hold per host cell: the two ends of a board or the table are taken independently
-- A host cell outside its furniture is air while it is empty, so a player can put a block there, as in any cargo cell. A slot whose cell holds anything but air, the furniture block, or its own decor is not free: a press skips it and picks among the other free slots, so the item is never taken from the hand while its decor block cannot be laid. The press reads the slot cells once
+- Each shelf board gets two slots along the camper, both in the board's cell: the rear end keeps the board's id, `shelf_low` or `shelf_high`, at spot 5 (forward -3.5), and the front end, `shelf_low_front` or `shelf_high_front`, is at spot 6 (forward 3.5). The ends stay 0.5 px clear of each end panel and 1 px apart for the deepest items
+- The table gets two slots across the camper, both in the table's cell: `table` keeps its id at spot 7 (left 3.3), so the widest item ends at the wall's inner face, and `table_aisle` is at spot 8 (left -3.7). The two widest items touch and do not overlap; the aisle-side one overhangs the table's aisle edge by 0.2 px
+- A slot of a two-item furniture names its `pair`: the furniture kind (`shelf` or `table`) and its end (0 or 1). Its item is taken only by its own end: the nearest-free-slot rule, the pressed-cell rule, placing, and restoring count a pair slot as taken while that slot holds decor. Every other slot still counts as taken while any slot of its cell holds decor (0107)
+- `DECOR_SPOTS` 5 to 8 give the pair ends' offsets for slot points; they are not `yasu_ride:spot` values. The decor blocks keep spots 0 to 4 and their 80 permutations from 0107
+
+### The pair blocks
+
+- `yasu_ride:shelf_decor_pair` and `yasu_ride:table_decor_pair` draw both items of a shelf board or the table. The room lays the pair block in the furniture cell while either end holds an item, the furniture block while neither does. The dock block is `{ type: "decorPair", pair, face, height, end0?, end1? }`, with at least one end set
+- Their geometry, `geometry.yasu_ride.<kind>_decor_pair`, has one bone per standing item per end, `end<n>_<item>`, 36 bones and 142 cubes. Each bone holds the item's cubes moved to its end's spot in the gear model's frame (the camper's left at -x, its forward at -z), so all of them stay over the furniture cell: x -3.5 to 3.5 and z -6.5 to 6.5 for the shelf, x -6.8 to 7.2 and z -3 to 3 for the table
+- States, each within 16 values:
+  - `yasu_ride:face` (0 to 3), the camper's yaw quarter as on a decor block
+  - `yasu_ride:height`, the slot heights of the furniture: 4 and 10 for the shelf, 12 for the table
+  - For each end n, the item as a code: 0 for an empty end and 1 + the item's index among the 18 standing items in `tools/camping_gear.json` order (`STANDING_GEAR_IDS`). 19 codes do not fit one state, so the code is split into `yasu_ride:end<n>_page` = code / 10 (0 or 1) and `yasu_ride:end<n>_item` = code % 10 (0 to 9)
+- `bone_visibility` shows `end<n>_<item>` exactly when `q.block_state('yasu_ride:end<n>_page')` and `q.block_state('yasu_ride:end<n>_item')` name that item's code, so any two items, or one with the other end empty, render
+- Each permutation matches face and height only, turns the block by the face, and lifts it by the height, with no horizontal translation: 8 permutations for the shelf and 4 for the table. The state combinations come to 3,200 for the shelf and 1,600 for the table, against 6,080 for all 19 decor blocks together
+- The glass item's faces use the `glass` material instance, rendered with `blend`; every other face uses `*` with `opaque`, as on the item's own decor block
+- The selection box covers the whole cell from the furniture top up to the tallest standing item, 8 px, over both items. The outline covers both ends; the owner accepted that
+- `tools/gen_camping_gear.py` writes both blocks and both geometries (`PAIRS`, `PAIR_PAGE_SIZE`). `tests/packs/campingGear.test.ts` checks that each end's bone stands where the domain measures its slot in every facing, that each end's states show exactly the bone of the item the scripts set, and that every state stays within 16 values
 
 ### Pressing
 
-- A press on a cell names the slots of the furniture under it: the slots drawn over that cell, and the slots drawn over the furniture of a slot hosted in that cell (`pressedSlots`). A press on a shelf board's or the table's furniture block or on either of its items names both of its slots, and the item goes to the free one whose point is nearest the hit point. A press anywhere else keeps the nearest-free-slot rule. An empty-hand press takes back the item of the pressed block's own cell, as before
-- A cell that only hosts slots drawn over a neighbor gets no furniture block while it is empty. The aisle cell and the driver's seat cell stay air, so a box there never catches a press meant for the aisle, the floor, or the driver's seat. An empty second slot is reached through its furniture: the furniture block while both ends are empty, the other end's item once that one holds something, or, past the item's half box, the room block behind, which falls back to the nearest free slot
-- A deck seat names the slot of the first slot block above it (0097, 0104). A decor block drawn over a neighbor's furniture, on spot 6 or 8 (`HOSTED_DECOR_SPOTS`), names none, so a press on the driver's deck seat with gear in hand still seats the driver while the shelf's front end holds an item
+- A press with gear on a shelf board's or the table's block, the furniture block or the pair block, names both of its slots, and the item goes to the free end nearest the press, measured along the line of sight (0110). With one end taken, a press anywhere on the block sends the item to the other end
+- An empty-hand press on a pair block takes back the end nearest the press: the custom component's `faceLocation` gives the hit point and `getHeadLocation()` the eye, and the end is picked along the line of sight as when placing (0110). Without a face location the first held end is taken
+- A pair block counts as a decor block wherever one is recognized: a gear press on it places decor, and it is a slot block above a deck seat (0097)
 
-### The decor box on a shared furniture
+### Departure, saved decor, and the earlier build
 
-- The decor blocks get spots 5 to 8, so `yasu_ride:spot` runs from 0 to 8. Spots 5 and 6 have permutations for heights 4 and 10, and spots 7 and 8 for height 12, so every decor block has 80 + 24 = 104 permutations
-- On spots 5 to 8 a standing item's selection box covers only its half of the furniture cell: from the furniture middle to the cell edge on its side along the pair's axis, and the whole cell across it, from the item's base to its top as in 0107. The two halves of a board or the table do not overlap, so a press there reaches one item, and no box of a hosted item reaches into the aisle or the driver's seat cell. `tools/gen_camping_gear.py` writes the box in each permutation of those spots (`SPOT_BOXES`), and `tests/packs/campingGear.test.ts` derives it from the domain slots and checks in every facing that the two boxes of each pair stay inside the furniture cell and split it exactly
-- Every other spot keeps the whole-cell box of 0107, and a hanging item keeps its footprint box
+- The departure check accepts, in a pair cell, air, the furniture block, or the pair block of that furniture while either end holds an item. The cargo cells, the slot cells, and the 168 park checks are as before this ADR
+- Decor saved in `shelf_low`, `shelf_high`, or `table` before this ADR comes back at the rear end of its board or the wall side of the table. Decor saved by the first build in `shelf_low_front`, `shelf_high_front`, or `table_aisle` comes back at those ends
+- Dock cells that the first build saved with spots 5 to 8 are still read, so the next lay clears the decor blocks it left in the driver's seat cells, the aisle cell, and the furniture cells
 
-### Departure and parking
+### A check on every block
 
-- A host cell is a slot cell like any other: it is not a cargo cell, the park check requires it to be passable, and the departure check accepts air, the furniture block, or the decor block of the item in that cell. The cargo cells drop from 49 to 46 and the slot cells rise from 10 to 13; the 168 park checks stay the same
+- `tests/packs/blockGeometry.test.ts` reads every block, applies each permutation's transformation to the cubes its geometry can show, and fails when any axis keeps less than 1 px inside the cell or reaches past 30 px, or when a selection box leaves the cell. It also checks that the pair blocks keep both items inside the cell horizontally in every permutation. The first build's toaster permutation fails this check on the axis the client named
 
 ## Consequences
 
-- Each shelf board and the table hold two items. Decor saved in `shelf_low` or `shelf_high` moves 3.5 px toward the rear of its board, and decor saved in `table` moves 3.3 px toward the wall; no saved decor is lost
-- The decor block of a hosted item stands 12.5 px (shelf) or 12.3 px (table) away from where it is drawn, and its half box lies entirely outside its own cell, over the furniture. 0107 only had boxes reaching 5.4 px past their cell. Check in game that a hosted item renders over the board or the table in all four facings and that it can be pressed, both to take it back and to place a second item. If the engine picks a block only through its own cell, a hosted item cannot be pressed; then revisit with a box that keeps a sliver in its host cell, or with the pair on one cell's spots
-- With one item at the shelf's rear end or the table's wall side, a press on the empty half has no decor box over it and reaches the wall or the floor behind, which sends the item to the nearest free slot, normally the empty end. Check in game that it does
-- The front-end decor blocks share the driver's seat cells with the driver's deck seat. Check that the driver can still sit, ride off, and see out with items on both front ends
-- The table's aisle-side block shares the aisle cell with walking players. Check that walking through the aisle, in either direction, is not stopped and that a press aimed down the aisle does not catch the table item's box
-- Every decor block definition grows from 80 to 104 permutations. The Behavior Pack changes and the server needs a restart (0015); the Resource Pack does not change, because the gear models stay the same
-- Another furniture that wants two items in one cell needs a free neighbor cell to host the second, new `DECOR_SPOTS` entries, the same offsets and heights in `SPOTS` and `SPOT_HEIGHTS` of `tools/gen_camping_gear.py`, and half boxes in `SPOT_BOXES`
+- Each shelf board and the table hold two items, in any combination, and a cell still holds one block. The driver's seat cells and the aisle cell stay free of decor
+- An empty-hand press on a pair block takes back the item nearest where the line of sight meets the furniture top, so a press between the two items takes the one the player looks closer to. Check in game, in all four facings, that each item comes back when pressed and that the one aimed at is the one taken
+- The pair blocks rely on `bone_visibility` with `q.block_state` expressions. Microsoft Learn documents Molang in `bone_visibility` without naming the query, so check in game that each end shows only its own item, including the glass sugar pot next to an opaque item
+- The outline covers both items of a board or the table, and 8 px of height above the furniture top whatever the items' heights
+- The Resource Pack changes (two geometries), so its version goes up (0015), and the server needs a restart for the new blocks
+- Another furniture that wants two items in one cell needs its own pair block: a `PAIRS` entry in `tools/gen_camping_gear.py`, its spots in `DECOR_SPOTS`, and its slots marked with `pair`. A third item per cell needs a third end with its own page and item states, and 18 more bones
