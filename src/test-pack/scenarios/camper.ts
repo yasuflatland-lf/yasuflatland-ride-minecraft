@@ -249,7 +249,6 @@ function laidDecor(
   decor: readonly DecorPlacement[],
 ): number {
   return decorCells(pose, decor).filter((c) => {
-    if (c.block.type !== "decor") return false;
     const block = a.dim.getBlock(c);
     const states = block?.permutation.getAllStates();
     return (
