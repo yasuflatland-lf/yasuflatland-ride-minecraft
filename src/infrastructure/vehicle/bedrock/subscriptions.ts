@@ -5,6 +5,7 @@ import type { HitVehicle } from "../../../application/vehicle/hitVehicle";
 import type { LimitVehicles } from "../../../application/vehicle/limitVehicles";
 import type { PaintVehicle } from "../../../application/vehicle/paintVehicle";
 import type { PlaceVehicle } from "../../../application/vehicle/placeVehicle";
+import type { SetDecor } from "../../../application/vehicle/setDecor";
 import type { ShowVehicleHints } from "../../../application/vehicle/showVehicleHints";
 import type { SleepInBed } from "../../../application/vehicle/sleepInBed";
 import type { SwitchHeadlights } from "../../../application/vehicle/switchHeadlights";
@@ -20,6 +21,7 @@ import { registerHeadlights } from "./handlers/headlights";
 import { registerHits } from "./handlers/hits";
 import { registerPlacement } from "./handlers/placement";
 import { registerStarter } from "./handlers/starter";
+import { registerTestDecor } from "./handlers/testDecor";
 import { registerTestInput } from "./handlers/testInput";
 
 export function registerSubscriptions(
@@ -33,6 +35,7 @@ export function registerSubscriptions(
     headlights: SwitchHeadlights;
     door: UseDockDoor;
     bed: SleepInBed;
+    decor: SetDecor;
     hints: ShowVehicleHints;
   },
   testInputs: TestInputStore,
@@ -45,6 +48,7 @@ export function registerSubscriptions(
   registerDockDoor(useCases.door, dockDoorOwner);
   registerDrive(useCases.drive, useCases.hints);
   registerFleet(useCases.limit);
+  registerTestDecor(useCases.decor);
   registerTestInput(testInputs);
   registerPlacement(useCases.place);
   registerStarter(useCases.starter);

@@ -10,6 +10,8 @@ import { PAINTS } from "../../../../src/domain/vehicle/paint/paint";
 import { NAMESPACE } from "../../../../src/infrastructure/shared/identifiers";
 import {
   DECK_SEAT_TYPE,
+  DECOR_PROPERTY,
+  decorBlockId,
   ENTITY_TYPE,
   entityEventId,
   entityPropertyId,
@@ -26,6 +28,7 @@ import {
   paintEvent,
   ramMountOf,
   STARTER_RECEIVED_PROPERTY,
+  TEST_DECOR_EVENT,
   TEST_INPUT_EVENT,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 
@@ -131,6 +134,8 @@ describe("identifiers (ADR 0047)", () => {
       HEADLIGHTS_PROPERTY,
       LIT_CELLS_PROPERTY,
       TEST_INPUT_EVENT,
+      DECOR_PROPERTY,
+      TEST_DECOR_EVENT,
       ...["form", "bank", "gear_down"].map(entityPropertyId),
       ...["gravity_on", "gravity_off"].map(entityEventId),
       ...PAINTS.map(paintEvent),
@@ -139,6 +144,14 @@ describe("identifiers (ADR 0047)", () => {
       expect(id).toMatch(new RegExp(`^${NAMESPACE}:[a-z][a-z0-9_]*$`));
     }
     expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("names an item's decor block", () => {
+    fc.assert(
+      fc.property(fc.stringMatching(/^[a-z][a-z0-9_]{0,20}$/), (item) => {
+        expect(decorBlockId(item)).toBe(`yasu_ride:${item}_decor`);
+      }),
+    );
   });
   it.each(VEHICLE_KINDS)(
     "reads the fleet entry and ownership of %s (ADR 0066)",
