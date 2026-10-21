@@ -8,6 +8,7 @@ item.yasu_ride:camping_gear_box.name=キャンピング用品の箱
 entity.yasu_ride:camper.name=キャンピングカー
 entity.yasu_ride:deck_seat.name=ボートの座席
 tile.yasu_ride:deck_floor.name=ボートの甲板
+action.interact.yasu_ride.sit=座る
 yasu_ride.message.cannot_park=ここでは駐車できません
 yasu_ride.message.clear_cargo=車内のブロックを片付けてください
 yasu_ride.message.sleep_at_night=夜にしか眠れません

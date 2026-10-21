@@ -70,6 +70,7 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | B13 | On a docked boat's deck, long-press (mobile) / right-click (PC) the rear-left seat; have a second player use the driver seat, then push the driver's stick | Each player sits in the chosen seat; on the push both move into the boat, the driver stays in seat 0, and the boat leaves. With lower seats empty, a passenger may move to a lower seat on departure (ADR 0063) | | |
 | B14 | Sit only in a rear deck seat and push the stick | Nothing happens; only the deck driver sets off | | |
 | B15 | On a docked boat, sit in the rear-left deck seat; have a second player get into the boat's rear-left seat from the water | The first player is left standing on the deck and the second sits in the boat; the boat stays docked | | |
+| B16 | Dock the boat and, on a phone, aim at a deck seat | The interact button reads "Sit", not "Ride" | | |
 
 ## Camper
 
@@ -129,7 +130,7 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | C52 | Hold a camping gear item and long-press the shower-toilet door from the aisle | The shower door does not move | | |
 | C53 | Hold a stone block and long-press the shower-toilet door from the aisle, then sneak and long-press it again | Neither the shower door nor the shower reacts; no stone ends up inside the shower-toilet (ADR 0098) | | |
 | C54 | Park, open the shower-toilet door, step in, and long-press the toilet on a phone; repeat with right-click on PC; then sneak | You sit on the toilet at its seat height, neither sunk into it nor floating above it; sneaking stands you up (ADR 0095) | | |
-| C55 | In a parked camper, with an empty hand, long-press the shower-toilet from the aisle aimed at the door's top, middle, and bottom (where the toilet stands behind it), then from inside aimed at the door; repeat with right-click on PC | Every press from the aisle opens or closes the door and the press from inside runs the shower; none of them seats you on the toilet or shows "Ride" (ADR 0098) | | |
+| C55 | In a parked camper, with an empty hand, long-press the shower-toilet from the aisle aimed at the door's top, middle, and bottom (where the toilet stands behind it), then from inside aimed at the door; repeat with right-click on PC | Every press from the aisle opens or closes the door and the press from inside runs the shower; none of them seats you on the toilet or shows "Sit" (ADR 0098) | | |
 | C56 | Sit on the toilet while another player sits in the driver's deck seat and drives off, with a camper seat free | You ride along in a free camper seat (ADR 0095) | | |
 | C57 | Fill all four camper seats, sit a fifth player on the toilet, and drive off | The fifth player stands on the ground outside the door, facing away from the camper (ADR 0095) | | |
 | C58 | In Creative, park the camper, then try to break the floor, a wall, the door, the bed, the door step, and a placed camping gear item, by click on PC and by long-press and tap on a phone | Nothing breaks, and no hole or gap flickers into view; an empty-hand long-press on the camping gear still takes it back (ADR 0096) | | |
@@ -145,6 +146,7 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | C68 | In Creative, with an empty hand, hit the shower-toilet door from the aisle a few times, then long-press it | Nothing breaks, and the door still opens and closes (ADR 0098) | | |
 | C69 | Park the camper facing each of the four directions and long-press the shower-toilet door from the aisle each time | The door opens and closes at every heading (ADR 0098) | | |
 | C70 | Park, hold a Macrame Hanging Planter, and long-press inside the camper on a phone; look at it from the dinette and from the aisle, aim at it, then long-press it with an empty hand; repeat with right-click on PC | The planter hangs under the hook above the table, drawn as a planter and not as a square of pixel noise, with the cord meeting its top knot; aiming at it outlines the planter itself; the empty-hand long-press takes it back (ADR 0099) | | |
+| C71 | Park the camper and, on a phone, aim at the dinette, the driver's deck seat, and the toilet (with the shower-toilet door open); then set the game language to Japanese and repeat | The interact button reads "Sit" on each seat, and in Japanese it shows the text from ja_JP.lang for action.interact.yasu_ride.sit; it never reads "Ride" | | |
 
 ## Upgrading from MyCar 0.5.0 and earlier
 

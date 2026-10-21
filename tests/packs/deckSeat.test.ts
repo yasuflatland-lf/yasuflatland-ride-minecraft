@@ -27,7 +27,7 @@ describe("Boat deck seat (ADR 0063)", () => {
     expect(entity.components["minecraft:rideable"]).toEqual({
       seat_count: 1,
       family_types: ["player"],
-      interact_text: "action.interact.ride.horse",
+      interact_text: "action.interact.yasu_ride.sit",
       crouching_skip_interact: true,
       seats: [{ position: [0, 0.52, 0] }],
     });
@@ -123,4 +123,20 @@ describe("Boat deck seat (ADR 0063)", () => {
     expect(names[0]?.trim()).not.toBe("");
     if (locale === "en_US") expect(names[0]).toBe("Boat Seat");
   });
+
+  it.each(["en_US", "ja_JP"])(
+    "labels the seat's interact button in %s",
+    (locale) => {
+      const key = entity.components["minecraft:rideable"].interact_text;
+      expect(key).toMatch(/^action\.interact\.yasu_ride\.[a-z_]+$/);
+      const labels = readFileSync(`${RP}/texts/${locale}.lang`, "utf8")
+        .split(/\r?\n/)
+        .filter((line) => line.startsWith(`${key}=`))
+        .map((line) => line.slice(line.indexOf("=") + 1));
+      expect(labels).toHaveLength(1);
+      if (locale === "en_US") expect(labels[0]).toBe("Sit");
+      // pnpm lint:lang allows Japanese only in texts/*.lang (AGENTS.md)
+      if (locale === "ja_JP") expect(labels[0]).toBe("\u5ea7\u308b");
+    },
+  );
 });
