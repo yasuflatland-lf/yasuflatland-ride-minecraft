@@ -134,6 +134,7 @@ describe("Boat deck seat (ADR 0063)", () => {
     ["ja_JP", "\u5ea7\u308b"],
   ])("labels the seat's interact button in %s", (locale, label) => {
     const key = entity.components["minecraft:rideable"].interact_text;
+    expect(key).toMatch(/^action\.interact\.yasu_ride\.[a-z_]+$/);
     expect(langValues(locale, key)).toEqual([label]);
   });
 });
