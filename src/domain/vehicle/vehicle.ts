@@ -65,8 +65,9 @@ export interface VehicleTickInput extends TickContext {
  *    held instead of moved (ADR 0063).
  * 7. `boardDeckRiders`: the deck-seat riders move into the vehicle
  *    (ADR 0063), before standing players are seated (ADR 0068).
- * 8. `depart`: seat the standing players, nearest first, and move those
- *    left without a seat to the exit (ADR 0068).
+ * 8. `depart`: take any deck-seat rider the vehicle refused off their deck
+ *    seat, then seat them and the standing players, nearest first, and move
+ *    those left without a seat to the exit (ADR 0068, 0095).
  * 9. `dock.seats` at `yaw`, after boarding and departure; with no `dock`,
  *    the deck seats are removed.
  * 10. `dock.cells`; with no `dock`, the laid cells are cleared.

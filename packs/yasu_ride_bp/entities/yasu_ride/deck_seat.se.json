@@ -6,6 +6,14 @@
       "is_spawnable": false,
       "is_summonable": true
     },
+    "component_groups": {
+      "yasu_ride:compact": {
+        "minecraft:collision_box": {
+          "width": 0.5,
+          "height": 0.8
+        }
+      }
+    },
     "components": {
       "minecraft:type_family": {
         "family": ["yasu_ride_deck_seat", "inanimate"]
@@ -41,6 +49,13 @@
         "interact_text": "action.interact.ride.horse",
         "crouching_skip_interact": true,
         "seats": [{ "position": [0, 0.52, 0] }]
+      }
+    },
+    "events": {
+      "yasu_ride:compact": {
+        "add": {
+          "component_groups": ["yasu_ride:compact"]
+        }
       }
     }
   }

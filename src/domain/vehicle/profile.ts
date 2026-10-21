@@ -35,6 +35,11 @@ export interface VehicleProfile {
   readonly fleetLimit: number;
   readonly ram: RamBody;
   readonly seats: SeatLayout;
+  /**
+   * Seats that exist only while the vehicle is parked, as deck seats after the deck
+   * seats of its own seats (x = left, z = forward). Absent = none (ADR 0095).
+   */
+  readonly parkedSeats?: SeatLayout;
   readonly beams: BeamPattern;
   readonly placement: PlacementRule;
   readonly chaseCamera: ChaseCamera;

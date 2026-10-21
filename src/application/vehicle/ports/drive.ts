@@ -5,7 +5,11 @@ import type {
 } from "../../../domain/shared/ids";
 // Ports the per-tick drive requires from the game; implemented in the infrastructure layer (ADR 0012).
 import type { Vec3 } from "../../../domain/shared/vec";
-import type { ClearCell, Departure } from "../../../domain/vehicle/dock/dock";
+import type {
+  ClearCell,
+  DeckSeatSpot,
+  Departure,
+} from "../../../domain/vehicle/dock/dock";
 import type { DockCell, HoldPose } from "../../../domain/vehicle/dock/floor";
 import type {
   EngineCommand,
@@ -41,7 +45,7 @@ export interface DriveWorld {
   loadedVehicles(): VehicleSnapshot[];
   keepDeckSeats(
     vehicleId: VehicleId,
-    positions: readonly (Vec3 | undefined)[],
+    positions: readonly (DeckSeatSpot | undefined)[],
     yaw: number,
   ): void;
   boardDeckRiders(vehicleId: VehicleId): void;
@@ -64,8 +68,9 @@ export interface DriveWorld {
   /** Shows the lang key yasu_ride.message.<name> on a player's action bar; does nothing for a missing player. */
   showMessage(playerId: PlayerId, name: string): void;
   /**
-   * Seats the players standing in the departure's boxes, nearest to the vehicle first,
-   * and moves those left without a seat to the exit.
+   * Takes any deck-seat rider the vehicle refused off their deck seat, then seats them
+   * and the players standing in the departure's boxes (nearest to the vehicle first),
+   * and moves those left without a seat to the exit (ADR 0068, 0095).
    */
   seatStandingPlayers(vehicleId: VehicleId, departure: Departure): void;
   applyMotion(vehicleId: VehicleId, impulse: Vec3, yaw: number): void;

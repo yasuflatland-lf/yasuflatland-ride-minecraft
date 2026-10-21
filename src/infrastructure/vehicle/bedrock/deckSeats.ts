@@ -1,9 +1,10 @@
 // Persistent auxiliary seats for held vehicles (ADR 0063).
 import { type Entity, type Player, world } from "@minecraft/server";
 import { asVehicleId, type VehicleId } from "../../../domain/shared/ids";
-import type { Vec3 } from "../../../domain/shared/vec";
+import type { DeckSeatSpot } from "../../../domain/vehicle/dock/dock";
 import { DECK_SEAT_REACH } from "../../../domain/vehicle/kinds/index";
 import {
+  DECK_SEAT_COMPACT_EVENT,
   DECK_SEAT_OF_PROPERTY,
   DECK_SEAT_TYPE,
   DECK_SEATS_PROPERTY,
@@ -75,7 +76,7 @@ export class DeckSeats {
   keep(
     vehicleId: VehicleId,
     vehicle: Entity | undefined,
-    positions: readonly (Vec3 | undefined)[],
+    positions: readonly (DeckSeatSpot | undefined)[],
     yaw: number,
   ): void {
     const ids = vehicle ? this.ids(vehicle) : (this.kept.get(vehicleId) ?? []);
@@ -97,6 +98,7 @@ export class DeckSeats {
         seat = vehicle.dimension.spawnEntity(DECK_SEAT_TYPE, at);
         seat.setDynamicProperty(DECK_SEAT_OF_PROPERTY, vehicleId);
         seat.setRotation({ x: 0, y: yaw });
+        if (at.compact) seat.triggerEvent(DECK_SEAT_COMPACT_EVENT);
         ids[index] = seat.id;
       } else if (
         Math.hypot(
@@ -135,6 +137,19 @@ export class DeckSeats {
       seatRideable.ejectRider(player);
       if (!rideable.addRider(player)) seatRideable.addRider(player);
     }
+  }
+
+  /** Takes every player off this vehicle's deck seats and returns them in seat order (ADR 0095). */
+  eject(vehicle: Entity): Player[] {
+    const players: Player[] = [];
+    for (const id of this.ids(vehicle)) {
+      const seat = seatEntity(id, vehicle.id);
+      const player = seatedPlayer(seat);
+      if (!seat || !player) continue;
+      seat.getComponent("minecraft:rideable")?.ejectRider(player);
+      players.push(player);
+    }
+    return players;
   }
 
   clearGone(live: ReadonlySet<VehicleId>): void {

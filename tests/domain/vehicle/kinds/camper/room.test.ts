@@ -305,19 +305,32 @@ it("checks the feet and head cells of a player standing at the exit", () => {
   );
 });
 
-it("puts four deck seats at the profile's horizontal positions and the measured rises", () => {
+it("puts a deck seat at each profile seat with the measured rises, then the compact toilet seat (ADR 0095)", () => {
   fc.assert(
     fc.property(pose, (p) => {
       const seats = deckSeats(p);
       const world = seatWorldPositions(p, CAMPER_PROFILE.seats.positions);
-      expect(seats).toHaveLength(4);
-      seats.forEach((s, i) => {
+      expect(seats).toHaveLength(5);
+      seats.slice(0, 4).forEach((s, i) => {
+        expect(s).not.toHaveProperty("compact");
         expect(s.x).toBe(world[i]?.x);
         expect(s.z).toBe(world[i]?.z);
         expect(s.y).toBeCloseTo(
           p.y + defined([0.98, 0.98, 0.68, 0.68][i], "rise"),
         );
       });
+      const toilet = defined(seats[4], "toilet seat");
+      const at = defined(
+        seatWorldPositions(
+          p,
+          defined(CAMPER_PROFILE.parkedSeats, "parked seats").positions,
+        )[0],
+        "toilet position",
+      );
+      expect(toilet.x).toBe(at.x);
+      expect(toilet.z).toBe(at.z);
+      expect(toilet.y).toBeCloseTo(p.y + 0.68);
+      expect(toilet.compact).toBe(true);
     }),
   );
 });
@@ -575,6 +588,28 @@ it("puts the shower floor cell under the shower-toilet at the rear right (ADR 00
           (r) => cellKey(r) === cellKey(c) && r.block.type === "floor",
         ),
       ).toBe(true);
+    }),
+  );
+});
+
+it("puts the toilet seat inside the shower-toilet cell at the rear right at every parked pose (ADR 0095)", () => {
+  fc.assert(
+    fc.property(pose, (p) => {
+      const toilet = defined(
+        CAMPER_PROFILE.parkedSeats?.positions[0],
+        "toilet position",
+      );
+      const seat = defined(deckSeats(p)[4], "toilet seat");
+      const offset = { x: seat.x - p.x, z: seat.z - p.z };
+      const facing = forward(p.yaw);
+      const right = dot(offset, rightOf(facing));
+      const front = dot(offset, facing);
+      expect(right).toBeCloseTo(-toilet.x);
+      expect(right).toBeGreaterThanOrEqual(0.5);
+      expect(right).toBeLessThanOrEqual(1.5);
+      expect(front).toBeCloseTo(toilet.z);
+      expect(front).toBeGreaterThanOrEqual(-3.5);
+      expect(front).toBeLessThanOrEqual(-2.5);
     }),
   );
 });

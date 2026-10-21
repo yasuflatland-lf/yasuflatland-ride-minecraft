@@ -740,3 +740,19 @@ describe("shower-toilet (ADR 0094)", () => {
       });
   });
 });
+
+it("keeps the compact toilet seat while parked and ignores its stick (ADR 0095)", () => {
+  const f = fixture();
+  f.park();
+  f.step();
+  const out = f.drive.step(undefined, {
+    ...f.ctx,
+    tick: 99,
+    deckSeatInputs: [undefined, undefined, undefined, undefined, PUSH],
+  });
+  expect(out.dock?.seats).toHaveLength(5);
+  expect(out.dock?.seats[4]?.compact).toBe(true);
+  expect(out.boardDeckRiders).toBe(false);
+  expect(out.depart).toBeUndefined();
+  expect(f.drive.inspect().parked).toBe(true);
+});

@@ -22,6 +22,7 @@ import {
   camperParkPath,
   camperParkSnow,
   camperTakeoff,
+  camperToiletSeat,
   camperWall,
 } from "./scenarios/camper";
 import { campingGearBlocks } from "./scenarios/campingGear";
@@ -86,6 +87,7 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
     ["camper_park_path", 60, () => camperParkPath(a)],
     ["camper_depart", 80, () => camperDepart(a)],
     ["camper_depart_cargo", 80, () => camperDepartCargo(a)],
+    ["camper_toilet_seat", 80, () => camperToiletSeat(a)],
     ["camper_decor", 80, () => camperDecor(a)],
     ["accel_and_step1", 85, () => accelAndStep1(a)],
     ["passable_no_hop", 65, () => passableNoHop(a)],

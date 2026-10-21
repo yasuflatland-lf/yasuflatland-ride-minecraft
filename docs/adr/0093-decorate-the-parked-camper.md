@@ -1,6 +1,6 @@
 # 0093. Decorate the parked camper
 
-- Status: Accepted (extended by [0094](0094-the-camper-shower-toilet-door-and-shower.md))
+- Status: Accepted (extended by [0094](0094-the-camper-shower-toilet-door-and-shower.md) and [0095](0095-sit-on-the-camper-toilet-while-parked.md))
 - Date: 2026-10-21
 - Extends: 0009, 0063, 0067, 0068, 0092
 

@@ -22,6 +22,7 @@ import {
 import type { Vec3 } from "../../../domain/shared/vec";
 import {
   type ClearCell,
+  type DeckSeatSpot,
   type Departure,
   DOCK_RESTORED,
   inBox,
@@ -256,10 +257,15 @@ export class BedrockVehicleWorld implements DriveWorld, DockFloorWorld {
     const vehicle = this.index.entity(vehicleId);
     const rideable = vehicle?.getComponent("minecraft:rideable");
     if (!vehicle || !rideable) return;
+    // Boarding already ran this tick, so a player still on a deck seat was refused
+    // a seat; the deck seats go next, so they leave like a standing player (ADR 0095).
+    const refused = this.deckSeats.eject(vehicle);
+    const refusedIds = new Set(refused.map((p) => p.id));
     const standing = vehicle.dimension
       .getPlayers()
       .filter(
         (p) =>
+          !refusedIds.has(p.id) &&
           !p.getComponent("minecraft:riding") &&
           departure.boxes.some((box) => inBox(box, p.location)),
       )
@@ -268,7 +274,7 @@ export class BedrockVehicleWorld implements DriveWorld, DockFloorWorld {
           distanceSq(a.location, vehicle.location) -
           distanceSq(b.location, vehicle.location),
       );
-    for (const p of standing)
+    for (const p of [...refused, ...standing])
       if (!rideable.addRider(p) && departure.exit)
         p.teleport(departure.exit, {
           rotation: { x: 0, y: departure.exit.yaw },
@@ -316,7 +322,7 @@ export class BedrockVehicleWorld implements DriveWorld, DockFloorWorld {
 
   keepDeckSeats(
     vehicleId: VehicleId,
-    positions: readonly (Vec3 | undefined)[],
+    positions: readonly (DeckSeatSpot | undefined)[],
     yaw: number,
   ): void {
     this.deckSeats.keep(

@@ -1,7 +1,13 @@
 import type { MotionLimits, TyreLimits } from "../../motion/limits";
 import type { PlacementSurface } from "../../placement/placement";
-import type { VehicleProfile } from "../../profile";
+import type { SeatLayout, VehicleProfile } from "../../profile";
 import { CAMPER_SPEC } from "./spec";
+
+// Deck seat 4 is the toilet seat in the shower-toilet at the rear right; it is never
+// a vehicle seat, so nobody rides it while the camper moves (ADR 0095).
+export const CAMPER_PARKED_SEATS: SeatLayout = Object.freeze({
+  positions: Object.freeze([{ x: -1.031, z: -3.0 }]),
+});
 
 export const CAMPER_PROFILE: VehicleProfile = Object.freeze({
   kind: "camper",
@@ -25,6 +31,7 @@ export const CAMPER_PROFILE: VehicleProfile = Object.freeze({
       { x: 1.0, z: -1.0 },
     ]),
   }),
+  parkedSeats: CAMPER_PARKED_SEATS,
   beams: Object.freeze({
     reach: CAMPER_SPEC.headlightReach,
     lanes: Object.freeze([0]),

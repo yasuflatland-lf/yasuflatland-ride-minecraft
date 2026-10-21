@@ -1,6 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
+import { DECK_SEAT_COMPACT_EVENT } from "../../src/infrastructure/vehicle/bedrock/identifiers";
+
 const read = (p: string) => JSON.parse(readFileSync(p, "utf8"));
 
 const BP = "packs/yasu_ride_bp";
@@ -58,6 +60,18 @@ describe("Boat deck seat (ADR 0063)", () => {
     expect(entity.components["minecraft:knockback_resistance"]).toEqual({
       value: 1.0,
     });
+  });
+
+  it("shrinks only a compact seat's box to the toilet (ADR 0095)", () => {
+    expect(entity.component_groups).toEqual({
+      "yasu_ride:compact": {
+        "minecraft:collision_box": { width: 0.5, height: 0.8 },
+      },
+    });
+    expect(entity.events).toEqual({
+      "yasu_ride:compact": { add: { component_groups: ["yasu_ride:compact"] } },
+    });
+    expect(DECK_SEAT_COMPACT_EVENT).toBe("yasu_ride:compact");
   });
 
   it("takes no damage from any cause", () => {
