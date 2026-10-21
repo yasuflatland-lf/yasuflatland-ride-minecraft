@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   PlaceDecor,
   type PlaceDecorCommand,
@@ -77,6 +77,14 @@ describe("PlaceDecor (ADR 0093)", () => {
     expect(place.execute(cmd)).toBe(false);
     expect(world.calls).toEqual([]);
     expect(car.decor()).toEqual([]);
+  });
+
+  it("saves nothing when the vehicle refuses the slot it offered", () => {
+    const { car, world, place, cmd } = setup();
+    world.creativePlayers.add("p");
+    vi.spyOn(car, "placeDecor").mockReturnValue(false);
+    expect(place.execute(cmd)).toBe(false);
+    expect(world.calls).toEqual([]);
   });
 
   it("ignores an unknown vehicle", () => {
