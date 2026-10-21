@@ -27,6 +27,12 @@ export interface Dock {
 /** Where a deck seat stands. A compact seat has a small hit box, so the floor around it still takes long-presses (ADR 0095). */
 export interface DeckSeatSpot extends Vec3 {
   readonly compact?: boolean;
+  /**
+   * Where a rider who stands up from this seat while the vehicle stays parked is put,
+   * feet on the floor, in place of the engine's dismount spot. Left out, the engine's
+   * spot stands (ADR 0109).
+   */
+  readonly stand?: Vec3;
 }
 
 /** A block to remove before laying cells, and the type it had when the drive checked it. */

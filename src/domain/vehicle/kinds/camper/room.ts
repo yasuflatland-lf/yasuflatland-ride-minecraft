@@ -74,6 +74,17 @@ const DECK_SEAT_RISE = [0.98, 0.98, 0.68, 0.68] as const;
 // The toilet seat is as high as the dinette seats, so the toilet's deck seat takes
 // the dinette's rise (ADR 0095).
 const TOILET_SEAT_RISE = 0.68;
+// Deck seat i's rider stands up into the aisle cell (local x 0) beside that seat,
+// on the floor: the front seats into the cell just behind them, each dinette seat
+// into the cell beside it, and the toilet seat into the cell in front of the
+// shower-toilet door (ADR 0109).
+const DECK_SEAT_STAND_CELLS: readonly LocalCell[] = Object.freeze([
+  { x: 0, z: 2, layer: 1 },
+  { x: 0, z: 2, layer: 1 },
+  { x: 0, z: 1, layer: 1 },
+  { x: 0, z: -1, layer: 1 },
+  { x: 0, z: -3, layer: 1 },
+]);
 
 export const AIR = "minecraft:air";
 // The namespace-free name of yasu_ride:camper_furniture; identifiers.test.ts checks
@@ -474,10 +485,23 @@ function vehicleDeckSeats(pose: HoldPose): Vec3[] {
   );
 }
 
-/** A deck seat at each profile seat, then the compact toilet seat (ADR 0068, 0095). */
+/** The middle of a local cell's bottom: where a player standing in it has their feet. */
+function standPoint(pose: HoldPose, cell: LocalCell): Vec3 {
+  const at = cellAt(pose, cell.x, cell.z, cell.layer);
+  return { x: at.x + 0.5, y: at.y, z: at.z + 0.5 };
+}
+
+/**
+ * A deck seat at each profile seat, then the compact toilet seat, each with the
+ * aisle spot its rider stands up to (ADR 0068, 0095, 0109).
+ */
 export function deckSeats(pose: HoldPose): DeckSeatSpot[] {
   const toilet = seatWorldPositions(pose, CAMPER_PARKED_SEATS.positions).map(
     (at) => ({ ...at, y: at.y + TOILET_SEAT_RISE, compact: true }),
   );
-  return [...vehicleDeckSeats(pose), ...toilet];
+  const stands = DECK_SEAT_STAND_CELLS.map((cell) => standPoint(pose, cell));
+  return [...vehicleDeckSeats(pose), ...toilet].map((at, i) => ({
+    ...at,
+    stand: stands[i],
+  }));
 }
