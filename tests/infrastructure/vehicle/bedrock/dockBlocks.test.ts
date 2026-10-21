@@ -8,6 +8,7 @@ import {
   cellKey,
 } from "../../../../src/domain/vehicle/lighting/headlights";
 import {
+  DOCK_RECHECK_TICKS,
   DockBlocks,
   savedDock,
 } from "../../../../src/infrastructure/vehicle/bedrock/dockBlocks";
@@ -586,4 +587,130 @@ it("derives laid state and door target from saved dock cells in one property rea
       expect(read).toHaveBeenCalledExactlyOnceWith(DECK_CELLS_PROPERTY);
     }),
   );
+});
+
+describe("DockBlocks lost cells (ADR 0096)", () => {
+  const id = asVehicleId("car");
+
+  it("lays lost cells again on the check after DOCK_RECHECK_TICKS lays and leaves other blocks alone (ADR 0096)", () => {
+    fc.assert(
+      fc.property(
+        cells,
+        fc.array(fc.constantFrom("keep", "air", "light", "stone")),
+        (wanted, flags) => {
+          const f = fixture();
+          const floors = new DockBlocks();
+          floors.lay(id, f.car, wanted);
+          const flagOf = (i: number) => flags[i] ?? "keep";
+          wanted.forEach((c, i) => {
+            const key = cellKey(c);
+            if (flagOf(i) === "air") f.blocks.delete(key);
+            if (flagOf(i) === "light")
+              f.blocks.set(key, { typeId: "minecraft:light_block_15" });
+            if (flagOf(i) === "stone")
+              f.blocks.set(key, { typeId: "minecraft:stone" });
+          });
+          for (let i = 0; i < DOCK_RECHECK_TICKS - 1; i++)
+            floors.lay(id, f.car, wanted);
+          wanted.forEach((c, i) => {
+            if (flagOf(i) === "air")
+              expect(f.at(c).typeId).toBe("minecraft:air");
+          });
+          floors.lay(id, f.car, wanted);
+          wanted.forEach((c, i) => {
+            if (flagOf(i) === "stone")
+              expect(f.at(c).typeId).toBe("minecraft:stone");
+            else
+              expect(f.at(c)).toEqual({
+                typeId: DECK_FLOOR_BLOCK,
+                states: {
+                  [DECK_FLOOR_HEIGHT_STATE]:
+                    c.block.type === "deck" ? c.block.height : undefined,
+                },
+              });
+          });
+          expect(f.savedCells()).toEqual(wanted);
+        },
+      ),
+    );
+  });
+
+  it("reads no block between checks (ADR 0096)", () => {
+    const f = fixture();
+    const docks = new DockBlocks();
+    docks.lay(id, f.car, roomCells);
+    const getBlock = vi.spyOn(f.car.dimension, "getBlock");
+    for (let i = 0; i < DOCK_RECHECK_TICKS - 1; i++)
+      docks.lay(id, f.car, roomCells);
+    expect(getBlock).not.toHaveBeenCalled();
+    docks.lay(id, f.car, roomCells);
+    expect(getBlock).toHaveBeenCalledTimes(roomCells.length);
+  });
+
+  it("reads the saved cells on the first lay after a reload (ADR 0096)", () => {
+    const f = fixture();
+    new DockBlocks().lay(id, f.car, roomCells);
+    const floor = defined(roomCells[1], "floor cell");
+    f.blocks.delete(cellKey(floor));
+    new DockBlocks().lay(id, f.car, roomCells);
+    expect(f.at(floor).typeId).toBe(CAMPER_FLOOR_BLOCK);
+  });
+
+  it("skips a lost cell in an unloaded chunk until a later check (ADR 0096)", () => {
+    fc.assert(
+      fc.property(
+        cells,
+        fc.constantFrom("throw" as const, "undefined" as const),
+        (wanted, mode) => {
+          const f = fixture();
+          const floors = new DockBlocks();
+          floors.lay(id, f.car, wanted);
+          for (const c of wanted) f.blocks.delete(cellKey(c));
+          f.unavailable(mode);
+          for (let i = 0; i < DOCK_RECHECK_TICKS; i++)
+            floors.lay(id, f.car, wanted);
+          f.unavailable(undefined);
+          for (let i = 0; i < DOCK_RECHECK_TICKS - 1; i++)
+            floors.lay(id, f.car, wanted);
+          for (const c of wanted) expect(f.at(c).typeId).toBe("minecraft:air");
+          floors.lay(id, f.car, wanted);
+          for (const c of wanted) expect(f.at(c).typeId).toBe(DECK_FLOOR_BLOCK);
+        },
+      ),
+    );
+  });
+
+  it("does not read the world for a vehicle that is gone or wants no cells (ADR 0096)", () => {
+    const f = fixture();
+    const docks = new DockBlocks();
+    docks.lay(id, f.car, roomCells);
+    const getBlock = vi.spyOn(f.car.dimension, "getBlock");
+    docks.lay(id, f.car, []);
+    expect(getBlock).toHaveBeenCalledTimes(roomCells.length);
+    for (let i = 0; i < DOCK_RECHECK_TICKS; i++) {
+      docks.lay(id, undefined, []);
+      docks.lay(id, f.car, []);
+    }
+    expect(getBlock).toHaveBeenCalledTimes(roomCells.length);
+  });
+
+  it("finds the owner of a laid cell only while the world holds the block it laid (ADR 0096)", () => {
+    const f = fixture();
+    const docks = new DockBlocks();
+    docks.lay(id, f.car, roomCells);
+    const here = asDimensionId(f.car.dimension.id);
+    for (const c of roomCells) {
+      expect(docks.laidBlockOwner(here, c, f.at(c).typeId)).toBe(f.car.id);
+      expect(docks.laidBlockOwner(here, c, "minecraft:stone")).toBeUndefined();
+      expect(
+        docks.laidBlockOwner(asDimensionId("nether"), c, f.at(c).typeId),
+      ).toBeUndefined();
+    }
+    expect(
+      docks.laidBlockOwner(here, { x: 0, y: 70, z: 0 }, DECK_FLOOR_BLOCK),
+    ).toBeUndefined();
+    docks.lay(id, f.car, []);
+    for (const c of roomCells)
+      expect(docks.laidBlockOwner(here, c, f.at(c).typeId)).toBeUndefined();
+  });
 });

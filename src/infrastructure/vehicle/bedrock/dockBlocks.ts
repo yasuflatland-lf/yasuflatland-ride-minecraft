@@ -38,10 +38,16 @@ const MAX_HEIGHT = 16;
 // The decor block defines one yasu_ride:height state per pixel (ADR 0093).
 const MIN_DECOR_HEIGHT = 0;
 const MAX_DECOR_HEIGHT = 15;
+// Reading a laid cell costs one getBlock call, and a parked camper lays about 105
+// to 117 cells, so the cells are read once a second per vehicle, not every tick (ADR 0096).
+export const DOCK_RECHECK_TICKS = 20;
+const NONE_LOST: ReadonlySet<string> = new Set();
 
 interface Laid {
   dimension: Dimension;
   cells: DockCell[];
+  /** Lays left until the laid cells are read again for blocks the world lost (ADR 0096). */
+  recheckIn: number;
 }
 
 function isHeight(v: unknown): v is number {
@@ -204,6 +210,19 @@ export class DockBlocks {
     return this.ownerOf(dimensionId, cell, (b) => b.type === "floor");
   }
 
+  /** The vehicle that laid this cell, while the world still holds the block it laid there (ADR 0096). */
+  laidBlockOwner(
+    dimensionId: DimensionId,
+    cell: Vec3,
+    typeId: string,
+  ): VehicleId | undefined {
+    return this.ownerOf(
+      dimensionId,
+      cell,
+      (block) => blockIdOf(block) === typeId,
+    );
+  }
+
   private ownerOf(
     dimensionId: DimensionId,
     cell: Vec3,
@@ -233,15 +252,21 @@ export class DockBlocks {
     let entry = this.laid.get(vehicleId);
     if (!entry) {
       if (!vehicle) return;
-      entry = { dimension: vehicle.dimension, cells: savedCells(vehicle) };
+      entry = {
+        dimension: vehicle.dimension,
+        cells: savedCells(vehicle),
+        recheckIn: 0,
+      };
     }
     const before = JSON.stringify(entry.cells);
     if (vehicle && vehicle.dimension.id !== entry.dimension.id) {
       this.update(entry, []);
       if (entry.cells.length > 0) this.stranded.push(entry);
-      entry = { dimension: vehicle.dimension, cells: [] };
+      entry = { dimension: vehicle.dimension, cells: [], recheckIn: 0 };
     }
-    this.update(entry, vehicle ? wanted : []);
+    const lost =
+      vehicle && wanted.length > 0 ? this.lostCells(entry) : NONE_LOST;
+    this.update(entry, vehicle ? wanted : [], lost);
     if (entry.cells.length > 0) this.laid.set(vehicleId, entry);
     else this.laid.delete(vehicleId);
     if (vehicle?.isValid && JSON.stringify(entry.cells) !== before) {
@@ -268,8 +293,33 @@ export class DockBlocks {
     this.stranded = this.stranded.filter((entry) => entry.cells.length > 0);
   }
 
-  private update(entry: Laid, wanted: readonly DockCell[]): void {
-    const { clear, place } = refloor(entry.cells, wanted);
+  /** Keys of the laid cells whose block the world lost, read once every DOCK_RECHECK_TICKS lays (ADR 0096). */
+  private lostCells(entry: Laid): ReadonlySet<string> {
+    if (entry.recheckIn > 0) {
+      entry.recheckIn--;
+      return NONE_LOST;
+    }
+    entry.recheckIn = DOCK_RECHECK_TICKS - 1;
+    const lost = new Set<string>();
+    for (const c of entry.cells) {
+      try {
+        const b = entry.dimension.getBlock(c);
+        if (b && (b.isAir || isLightBlock(b))) lost.add(cellKey(c));
+      } catch {
+        // Unloaded chunk or outside the world: read it again on a later check.
+      }
+    }
+    return lost;
+  }
+
+  private update(
+    entry: Laid,
+    wanted: readonly DockCell[],
+    lost: ReadonlySet<string> = NONE_LOST,
+  ): void {
+    const { clear, place } = refloor(entry.cells, wanted, (c) =>
+      lost.has(cellKey(c)),
+    );
     const cleared = new Set<string>();
     for (const c of clear) {
       try {
