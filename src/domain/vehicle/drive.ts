@@ -87,12 +87,13 @@ export interface Drive {
   decor?(): readonly DecorPlacement[];
   /** Puts `item` in `slot`, or empties it when undefined. Returns whether the decor changed (ADR 0093). */
   setDecor?(slot: string, item: string | undefined): boolean;
-  /** The free decor slot that accepts `item`: the slot of the pressed world `cell` when it can take it, else the one nearest `point` unless `exact`, once the vehicle has parked (after its parking tick); undefined otherwise (ADR 0093, 0097, 0104). */
+  /** The free decor slot that accepts `item`: the slot of the pressed world `cell` when it can take it, else the one nearest `point` unless `exact`, once the vehicle has parked (after its parking tick); undefined otherwise. With the player's `eye`, nearness is measured along the line of sight (ADR 0093, 0097, 0104, 0110). */
   decorSlotFor?(
     item: string,
     point: Vec3,
     cell: Vec3,
     exact: boolean,
+    eye?: Vec3,
   ): string | undefined;
   /** A player puts `item` in `slot`; false when the vehicle is not parked or the slot is taken or does not accept it (ADR 0093). */
   placeDecor?(slot: string, item: string): boolean;

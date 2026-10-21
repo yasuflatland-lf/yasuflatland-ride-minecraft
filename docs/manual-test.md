@@ -162,6 +162,9 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | C83 | Put a toaster on the stove, then long-press the stove top beside it, away from the toaster, with an empty hand, standing in the aisle and sitting on the toilet side | The toaster comes back; the toilet seat's ride button never shows (ADR 0107) | | |
 | C84 | Put a cushion on a wall-side burner and a book stack on the counter next to the stove; long-press the counter top right next to the stove with an empty hand | The cushion does not poke through the wall; the press on the counter takes back the book stack, not the cushion (ADR 0107) | | |
 | C85 | On a build before this change, park and put a percolator on the stove; update to this change, restart the server, and look inside | The percolator stands on the aisle-side burner toward the sink (ADR 0107) | | |
+| C100 | Park facing each of the four directions in turn; stand in the aisle right next to the stove, hold a saucepan, and long-press each of the four burners in turn, aiming steeply down at it, taking it back with an empty hand between presses; repeat standing one block back in the aisle, on a phone and on PC | The saucepan lands on the burner aimed at every time, including the near aisle-side burners pressed close to the stove's edge (ADR 0110) | | |
+| C101 | Hold a potted plant and long-press the low shelf's front edge and the high shelf's front edge, then the table's and the counter's edges from the aisle, taking each item back between presses | Each item lands on the shelf, the table, or the counter aimed at, never on the shelf above or below it (ADR 0110) | | |
+| C102 | Hold a macrame planter and long-press the ceiling hook, take it back, then long-press the table top under the hook from the aisle | The planter hangs from the hook both times (ADR 0110) | | |
 
 ## Upgrading from MyCar 0.5.0 and earlier
 

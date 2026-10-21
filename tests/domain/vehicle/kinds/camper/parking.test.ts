@@ -878,6 +878,28 @@ it("refuses an exact press on a taken slot instead of offering another one (ADR 
   expect(f.drive.decorSlotFor("toaster", point, cell, false)).toBeDefined();
 });
 
+it("picks the burner along the line of sight from the eye when one is given (ADR 0110)", () => {
+  const f = fixture();
+  f.park();
+  f.step();
+  const wall = slotNamed("stove_wall");
+  const aim = slotPoint(f.pose, wall);
+  const eye = { x: aim.x + 0.6, y: aim.y + 1.2, z: aim.z + 0.4 };
+  // Twice as far from the eye as the burner: below the stove top, as on a side face.
+  const point = {
+    x: 2 * aim.x - eye.x,
+    y: 2 * aim.y - eye.y,
+    z: 2 * aim.z - eye.z,
+  };
+  const cell = decorSlotCell(f.pose, wall);
+  expect(f.drive.decorSlotFor("saucepan", point, cell, false)).not.toBe(
+    "stove_wall",
+  );
+  expect(f.drive.decorSlotFor("saucepan", point, cell, false, eye)).toBe(
+    "stove_wall",
+  );
+});
+
 describe("shower-toilet (ADR 0094)", () => {
   const named = (out: DriveStep, name: string) =>
     out.commands.filter((c) => c.type === "setProperty" && c.name === name);

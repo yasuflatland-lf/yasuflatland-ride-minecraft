@@ -970,6 +970,7 @@ function decorFixture() {
       id: "p",
       selectedSlotIndex: 4,
       location: { x: 1.5, y: 65, z: 2.5 },
+      getHeadLocation: () => ({ x: 1.5, y: 66.62, z: 2.5 }),
     },
     ...overrides,
   });
@@ -980,7 +981,7 @@ function decorFixture() {
   return { placeDecor, removeDecor, owner, startupsBefore, event, send };
 }
 
-it("places held camping gear on a camper room, furniture, or decor block on the next tick and cancels every repeat, falling back to another slot (ADR 0093, 0097, 0104)", () => {
+it("places held camping gear on a camper room, furniture, or decor block on the next tick and cancels every repeat, falling back to another slot, with the player's eye (ADR 0093, 0097, 0104, 0110)", () => {
   for (const typeId of [
     CAMPER_FLOOR_BLOCK,
     CAMPER_FURNITURE_BLOCK,
@@ -1005,6 +1006,7 @@ it("places held camping gear on a camper room, furniture, or decor block on the 
       cell: { x: 1, y: 64, z: 2 },
       hotbarSlot: 4,
       exact: false,
+      eye: { x: 1.5, y: 66.62, z: 2.5 },
     });
     game.run.mockClear();
     const repeat = event({ isFirstEvent: false });
@@ -1179,6 +1181,7 @@ it("places held camping gear pressed on the shower-toilet block like on any room
     cell: { x: 1, y: 64, z: 2 },
     hotbarSlot: 4,
     exact: false,
+    eye: { x: 1.5, y: 66.62, z: 2.5 },
   });
 });
 
