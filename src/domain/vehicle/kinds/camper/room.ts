@@ -170,7 +170,7 @@ function laidFurnitureBlock(
   if (block.type !== "showerToilet") return block;
   return {
     type: "showerToilet",
-    face: faceToward({ x: -cell.x * l.x + 0, z: -cell.x * l.z + 0 }),
+    face: faceToward({ x: -cell.x * l.x, z: -cell.x * l.z }),
   };
 }
 
