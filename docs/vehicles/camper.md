@@ -44,3 +44,7 @@ Long-press or use the bed at the rear left of a parked camper to set your spawn 
 ## Decorating
 
 While the camper is parked, hold a camping gear item and long-press or right-click anywhere inside it. The item goes to the free spot nearest the point you pressed, among the spots that accept it: the dashboard, the table, the dinette seats, the shelf, the stove, the counter, the wall cabinet, and the ceiling hook above the table. Items that stand on the shelf also fit on the wall cabinet. If every spot for that item is taken, you see "No free spot for this item" and keep the item. Placing takes the item from your hand, except in Creative. Long-press or right-click a placed item with an empty hand to take it back into your inventory; if your inventory is full, it drops at your feet. Placed items stay through driving and reloads. When you break the camper back into its item, every placed item comes back to you the same way.
+
+## Shower
+
+The shower-toilet at the rear right of a parked camper has its own door. With an empty hand, long-press (or right-click) its floor from outside to open or close the door. Step inside and long-press the floor under you, again with an empty hand, to run the shower: water sprays from the shower head with the sound of running water for 5 seconds, and another long-press starts the 5 seconds over. Driving away shuts the door and stops the shower.

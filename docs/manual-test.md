@@ -121,6 +121,13 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | C44 | Get another box from the creative inventory, fill all but three inventory slots, and use the box on a grass block | Nothing is placed on the grass; the items that do not fit drop at your feet | | |
 | C45 | Open the creative inventory's Items tab | The Camping Gear group shows the box as its icon and holds the box first, then the 19 items | | |
 | C46 | Set the game language to Japanese, then open a box and look at an unpacked item | The line under the item's name shows the Japanese text from ja_JP.lang, not the key yasu_ride.lore.camping_gear | | |
+| C47 | Park, stand in the aisle next to the shower-toilet at the rear right with an empty hand, and long-press its floor; long-press again; repeat on PC with right-click | The shower door swings into the aisle over half a second, then shuts; nothing else in the camper moves (ADR 0094) | | |
+| C48 | Open the shower door, step inside, look down, and long-press the floor with an empty hand | Water sprays down from the shower head with a running-water sound for about 5 seconds, then stops; the door does not move | | |
+| C49 | Run the shower and long-press the floor inside again after about 3 seconds | The shower keeps running for about 5 seconds after the second press | | |
+| C50 | Open the shower door, run the shower, and drive away | The shower stops and the shower door is shut while driving | | |
+| C51 | Open the shower door and run `/reload` | The shower door is still open and the shower is off | | |
+| C52 | Hold a camping gear item and long-press the shower-toilet's floor from the aisle | The shower door does not move | | |
+| C53 | Hold a stone block and long-press the shower-toilet's floor from the aisle, then the aisle floor | The stone is placed both times, and neither the shower door nor the shower reacts | | |
 
 ## Upgrading from MyCar 0.5.0 and earlier
 
