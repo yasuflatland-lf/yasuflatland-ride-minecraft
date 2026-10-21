@@ -25,7 +25,7 @@ export function registerShowerToilet(
       CAMPER_SHOWER_TOILET_COMPONENT,
       {
         onPlayerInteract: (ev) => {
-          const player = ev.player;
+          const { player } = ev;
           if (!player) return;
           const held = player
             .getComponent("minecraft:inventory")

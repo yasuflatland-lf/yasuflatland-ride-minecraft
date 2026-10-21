@@ -2,8 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-10-21
-- Supersedes in part: 0094 (the floor-tap trigger of the shower door and the shower)
-- Extends: 0068, 0093, 0095
+- Supersedes in part: 0093 (the floor-tap trigger of the shower-toilet), 0094 (the floor-tap trigger of the shower door and the shower)
+- Extends: 0068, 0095
 
 ## Context
 
