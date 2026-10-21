@@ -199,6 +199,11 @@ export class DockBlocks {
     return this.ownerOf(dimensionId, cell, () => true);
   }
 
+  /** The vehicle whose laid floor is at this cell, if any (ADR 0094). */
+  floorOwner(dimensionId: DimensionId, cell: Vec3): VehicleId | undefined {
+    return this.ownerOf(dimensionId, cell, (b) => b.type === "floor");
+  }
+
   private ownerOf(
     dimensionId: DimensionId,
     cell: Vec3,

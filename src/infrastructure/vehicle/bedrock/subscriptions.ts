@@ -12,6 +12,7 @@ import type { SetDecor } from "../../../application/vehicle/setDecor";
 import type { ShowVehicleHints } from "../../../application/vehicle/showVehicleHints";
 import type { SleepInBed } from "../../../application/vehicle/sleepInBed";
 import type { SwitchHeadlights } from "../../../application/vehicle/switchHeadlights";
+import type { TapDockFloor } from "../../../application/vehicle/tapDockFloor";
 import type { UseDockDoor } from "../../../application/vehicle/useDockDoor";
 import type { DimensionId, VehicleId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
@@ -41,6 +42,7 @@ export function registerSubscriptions(
     headlights: SwitchHeadlights;
     door: UseDockDoor;
     bed: SleepInBed;
+    floor: TapDockFloor;
     decor: SetDecor;
     placeDecor: PlaceDecor;
     removeDecor: RemoveDecor;
@@ -56,7 +58,12 @@ export function registerSubscriptions(
     cell: Vec3,
   ) => VehicleId | undefined,
 ): void {
-  registerDecor(useCases.placeDecor, useCases.removeDecor, dockCellOwner);
+  registerDecor(
+    useCases.placeDecor,
+    useCases.removeDecor,
+    dockCellOwner,
+    useCases.floor,
+  );
   registerDockBed(useCases.bed);
   registerDockDoor(useCases.door, dockDoorOwner);
   registerDrive(useCases.drive, useCases.hints);

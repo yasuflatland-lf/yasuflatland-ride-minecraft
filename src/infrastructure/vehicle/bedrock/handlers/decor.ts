@@ -1,6 +1,7 @@
 import { system, world } from "@minecraft/server";
 import type { PlaceDecor } from "../../../../application/vehicle/placeDecor";
 import type { RemoveDecor } from "../../../../application/vehicle/removeDecor";
+import type { TapDockFloor } from "../../../../application/vehicle/tapDockFloor";
 import {
   asDimensionId,
   asPlayerId,
@@ -10,6 +11,7 @@ import {
 import type { Vec3 } from "../../../../domain/shared/vec";
 import {
   CAMPER_DECOR_COMPONENT,
+  CAMPER_FLOOR_BLOCK,
   campingGearOfDecorBlock,
   campingGearOfItem,
   isCamperRoomBlock,
@@ -22,40 +24,54 @@ export function registerDecor(
     dimensionId: DimensionId,
     cell: Vec3,
   ) => VehicleId | undefined,
+  floor: TapDockFloor,
 ): void {
   // Placing listens to the before event because most room blocks have no custom
   // component. Every repeat of a long-press is cancelled too, so a held gear item
   // never opens the door or sleeps in the bed (ADR 0093).
   world.beforeEvents.playerInteractWithBlock.subscribe((ev) => {
-    const item = campingGearOfItem(ev.itemStack?.typeId);
     const { block } = ev;
-    if (
-      item === undefined ||
-      !(
-        isCamperRoomBlock(block.typeId) ||
-        campingGearOfDecorBlock(block.typeId) !== undefined
+    const item = campingGearOfItem(ev.itemStack?.typeId);
+    if (item !== undefined) {
+      if (
+        !(
+          isCamperRoomBlock(block.typeId) ||
+          campingGearOfDecorBlock(block.typeId) !== undefined
+        )
       )
-    )
+        return;
+      const vehicleId = dockCellOwner(
+        asDimensionId(block.dimension.id),
+        block.location,
+      );
+      if (vehicleId === undefined) return;
+      ev.cancel = true;
+      if (!ev.isFirstEvent) return;
+      // faceLocation is relative to the block's bottom north-west corner.
+      const point = {
+        x: block.location.x + ev.faceLocation.x,
+        y: block.location.y + ev.faceLocation.y,
+        z: block.location.z + ev.faceLocation.z,
+      };
+      const playerId = asPlayerId(ev.player.id);
+      const hotbarSlot = ev.player.selectedSlotIndex;
+      // Before events cannot change the world, so the item is taken on the next tick.
+      system.run(() =>
+        place.execute({ playerId, vehicleId, item, point, hotbarSlot }),
+      );
       return;
-    const vehicleId = dockCellOwner(
-      asDimensionId(block.dimension.id),
-      block.location,
-    );
-    if (vehicleId === undefined) return;
-    ev.cancel = true;
-    if (!ev.isFirstEvent) return;
-    // faceLocation is relative to the block's bottom north-west corner.
-    const point = {
-      x: block.location.x + ev.faceLocation.x,
-      y: block.location.y + ev.faceLocation.y,
-      z: block.location.z + ev.faceLocation.z,
+    }
+    // The shower-toilet is drawn only by the model, so taps on it reach the floor block under it.
+    // A floor custom component would make players sneak to place blocks, so empty-hand floor taps
+    // are caught here and not cancelled: vanilla does nothing on them (ADR 0094).
+    if (!ev.isFirstEvent || ev.itemStack || block.typeId !== CAMPER_FLOOR_BLOCK)
+      return;
+    const tap = {
+      dimensionId: asDimensionId(block.dimension.id),
+      cell: block.location,
+      player: ev.player.location,
     };
-    const playerId = asPlayerId(ev.player.id);
-    const hotbarSlot = ev.player.selectedSlotIndex;
-    // Before events cannot change the world, so the item is taken on the next tick.
-    system.run(() =>
-      place.execute({ playerId, vehicleId, item, point, hotbarSlot }),
-    );
+    system.run(() => floor.execute(tap));
   });
   // Removing goes through the decor block's custom component, like the room door (ADR 0068, 0093).
   system.beforeEvents.startup.subscribe(({ blockComponentRegistry }) => {

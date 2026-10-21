@@ -543,6 +543,21 @@ it("finds the owner of any laid cell, but of a door only through doorOwner, in t
   expect(docks.doorOwner(here, door)).toBe(f.car.id);
 });
 
+it("finds only the owner of a laid floor in the same dimension (ADR 0094)", () => {
+  const f = fixture();
+  const docks = new DockBlocks();
+  docks.lay(asVehicleId(f.car.id), f.car, roomCells);
+  const here = asDimensionId(f.car.dimension.id);
+  expect(roomCells.some((c) => c.block.type === "floor")).toBe(true);
+  for (const c of roomCells) {
+    expect(docks.floorOwner(here, c)).toBe(
+      c.block.type === "floor" ? f.car.id : undefined,
+    );
+    expect(docks.floorOwner(asDimensionId("nether"), c)).toBeUndefined();
+  }
+  expect(docks.floorOwner(here, { x: 0, y: 70, z: 0 })).toBeUndefined();
+});
+
 it("derives laid state and door target from saved dock cells in one property read", () => {
   fc.assert(
     fc.property(fc.boolean(), (open) => {
