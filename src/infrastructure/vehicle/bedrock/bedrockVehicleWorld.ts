@@ -37,6 +37,7 @@ import type { ChaseCamera } from "../../../domain/vehicle/profile";
 import type { RamHit, RamTarget } from "../../../domain/vehicle/ram";
 import type { RiderView } from "../../../domain/vehicle/vehicle";
 import type { TestInputStore } from "../testInput/testInputStore";
+import { savedDecor } from "./bedrockDecorWorld";
 import { DeckSeats } from "./deckSeats";
 import { DockBlocks, savedDock } from "./dockBlocks";
 import { DIMENSIONS, type EntityIndex, isPlayer } from "./entityIndex";
@@ -129,6 +130,7 @@ export class BedrockVehicleWorld implements DriveWorld {
             return {
               [DOCK_RESTORED.laid]: dock.laid,
               [DOCK_RESTORED.doorOpen]: dock.doorOpen,
+              [DOCK_RESTORED.decor]: savedDecor(vehicle),
               ...Object.fromEntries(
                 entityContractOf(kind).restored.map((name) => [
                   name,

@@ -85,6 +85,7 @@ export const LIGHT_BLOCK = "minecraft:light_block_15";
  * (jump is 0 / 1). "<vehicleId>,clear" clears the input.
  */
 export const TEST_INPUT_EVENT = id("test_input");
+export const TEST_DECOR_EVENT = id("test_decor");
 /**
  * Camera presets for each chase camera: the vanilla preset that views the player from
  * behind, as F5 does (ADR 0028), and the pack's preset pulled back from it (ADR 0071).
@@ -147,6 +148,8 @@ export const CAMPER_BED_BLOCK = id("camper_bed");
 export const CAMPER_DOOR_COMPONENT = id("camper_door");
 /** Custom component handling taps on camper bed blocks (ADR 0092). */
 export const CAMPER_BED_COMPONENT = id("camper_bed");
+/** A camper's decor, as JSON [{ slot, item }] (ADR 0093). */
+export const DECOR_PROPERTY = id("decor");
 /** Block states of the wall and the door: the cell side of the plate (Face), and whether the door is open. */
 export const ROOM_FACE_STATE = id("face");
 export const ROOM_OPEN_STATE = id("open");

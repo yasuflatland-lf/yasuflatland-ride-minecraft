@@ -30,6 +30,7 @@ import {
   ITEM_TYPE,
   OWNER_PROPERTY,
   PAINT_BY_DYE,
+  TEST_DECOR_EVENT,
   TEST_INPUT_EVENT,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 import { registerSubscriptions } from "../../../../src/infrastructure/vehicle/bedrock/subscriptions";
@@ -725,4 +726,46 @@ it("stores and clears test input only from server script events", () => {
   });
   send("suv,clear");
   expect(inputs.get(asVehicleId("suv"))).toBeUndefined();
+});
+
+it("sets decor only from server test decor script events (ADR 0093)", () => {
+  const decor = { execute: vi.fn() };
+  registerSubscriptions(
+    { decor } as unknown as Parameters<typeof registerSubscriptions>[0],
+    new TestInputStore(),
+    () => undefined,
+  );
+  const receive = vi
+    .mocked(system.afterEvents.scriptEventReceive.subscribe)
+    .mock.calls.at(-2)?.[0];
+  if (!receive) throw new Error("scriptEventReceive not subscribed");
+  const send = (
+    message: string,
+    sourceType = "Server",
+    id = TEST_DECOR_EVENT,
+  ) =>
+    receive({
+      id,
+      message,
+      sourceType,
+    } as unknown as ScriptEventCommandMessageAfterEvent);
+  send("car,table,potted_plant", "Entity");
+  send("car,table,potted_plant", "Server", "minecraft:other");
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+  send("car,bad");
+  expect(warn).toHaveBeenCalledOnce();
+  warn.mockRestore();
+  expect(decor.execute).not.toHaveBeenCalled();
+  send("car,table,potted_plant");
+  expect(decor.execute).toHaveBeenCalledExactlyOnceWith({
+    vehicleId: "car",
+    slot: "table",
+    item: "potted_plant",
+  });
+  send("car,table,clear");
+  expect(decor.execute).toHaveBeenLastCalledWith({
+    vehicleId: "car",
+    slot: "table",
+    item: undefined,
+  });
 });
