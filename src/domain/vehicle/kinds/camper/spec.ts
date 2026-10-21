@@ -56,6 +56,8 @@ export const CAMPER_SPEC = Object.freeze({
   bankSink: 0.03,
   // Shower-toilet (ADR 0094)
   showerTicks: 100, // 5 s at 20 ticks per second
+  // Decor (ADR 0097)
+  seatPressIdleTicks: 10, // a held touch repeats every 4-6 ticks on mobile (ADR 0024)
 } as const);
 
 export const CAMPER_AIR: Medium = Object.freeze({
