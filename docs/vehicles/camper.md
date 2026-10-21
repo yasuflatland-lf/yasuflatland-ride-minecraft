@@ -35,6 +35,8 @@ Dirt paths, farmland, mud and soul sand, which are lower than a full block, supp
 
 To drive off, sit in the driver's seat and push forward or back. Anyone standing inside or on the full roof, including its wall plates and up to 0.3 blocks beyond the edge, is seated if a seat is free. Players without a seat move outside the door if its exit is clear; if either exit cell is blocked, they stay where they are while the camper departs. The departure check reads the 61 interior and roof cells outside the bed and the two exit cells in one batch. While a block you placed is inside or on the roof, the camper stays parked and asks you to clear it first.
 
+The room, the bed, the door step, and placed camping gear cannot be broken, not even in Creative. Take camping gear back with an empty-hand long-press as described under [Decorating](#decorating). If a command such as `/fill` removes part of the room while the camper is parked, the camper puts it back within a second. A block you put in such a gap first stays yours.
+
 After a reload, a parked camper keeps its room and the door continues toward the target saved in its door blocks. If the reload interrupted parking before the room was laid, it checks and clears decorations once, then lays the room that tick. Any newly occupied cells are preserved and skipped; this recovery does not scan again every tick.
 
 ## Sleeping
