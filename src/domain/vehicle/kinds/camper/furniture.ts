@@ -50,7 +50,8 @@ const SHOWER_TOILET_CELLS = [
 ] as const satisfies readonly LocalCell[];
 
 // Slot heights are the furniture's top at the middle of the cell in tools/gen_camper.py, or, for
-// a hanging slot, 16 minus the hanging items' height; tests/packs/camper.test.ts checks them against the generated model (ADR 0093).
+// a hanging slot, 16 minus the hanging items' height; tests/packs/camper.test.ts checks them
+// against the generated model (ADR 0093, 0102).
 export const CAMPER_FURNITURE: readonly Furniture[] = [
   {
     kind: "dashboard",
