@@ -1,5 +1,6 @@
 // How one vehicle kind moves each tick, under the shared core in vehicle.ts (ADR 0050, 0055).
 import type { Vec2, Vec3 } from "../shared/vec";
+import type { DecorPlacement } from "./dock/decor";
 import type { ClearCell, Departure, Dock, DockRestoredKey } from "./dock/dock";
 import type { RawInput } from "./driveInput";
 
@@ -38,7 +39,8 @@ export type EngineCommand =
 /**
  * Values read back when an aggregate is rebuilt (ADR 0021, 0055): the entity
  * properties the kind's entity contract lists in `restored`, plus the dock
- * values infrastructure derives from saved laid cells (DOCK_RESTORED, ADR 0068).
+ * values infrastructure reads from the vehicle's dynamic properties (laid
+ * cells, decor; DOCK_RESTORED, ADR 0068, 0093).
  * K narrows the keys to one kind's restored list; the default accepts any key
  * at the boundary.
  */
@@ -77,5 +79,9 @@ export interface Drive {
   onSeatVacated(seat: number): readonly EngineCommand[];
   /** Opens or closes the door of a held vehicle's room; false when it has none (ADR 0068). */
   useDockDoor?(): boolean;
+  /** The decor of the vehicle's room, in slot order; absent for kinds without decor (ADR 0093). */
+  decor?(): readonly DecorPlacement[];
+  /** Puts `item` in `slot`, or empties it when undefined. Returns whether the decor changed (ADR 0093). */
+  setDecor?(slot: string, item: string | undefined): boolean;
   step(raw: RawInput | undefined, ctx: TickContext): DriveStep;
 }

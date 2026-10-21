@@ -8,6 +8,12 @@ import {
 import { cellKey } from "../../../../src/domain/vehicle/lighting/headlights";
 import { defined } from "../../../support/defined";
 
+const decorBlock = fc.record({
+  type: fc.constant("decor" as const),
+  item: fc.constantFrom("potted_plant", "percolator"),
+  face: fc.constantFrom(0, 1, 2, 3),
+  height: fc.integer({ min: 0, max: 15 }),
+});
 const block: fc.Arbitrary<DockBlock> = fc.oneof(
   fc.record({
     type: fc.constant("deck" as const),
@@ -24,6 +30,7 @@ const block: fc.Arbitrary<DockBlock> = fc.oneof(
     face: fc.constantFrom(0, 1, 2, 3),
     open: fc.boolean(),
   }),
+  decorBlock,
 );
 const cell = fc.record({
   x: fc.integer({ min: -3, max: 3 }),
@@ -116,6 +123,22 @@ describe("sameBlock", () => {
         expect(sameBlock(a, b)).toBe(sameBlock(b, a));
         if (a.type !== b.type) expect(sameBlock(a, b)).toBe(false);
       }),
+    );
+  });
+
+  it("tells decor apart by item, face, and height", () => {
+    fc.assert(
+      fc.property(
+        fc.oneof(
+          fc.tuple(decorBlock, decorBlock),
+          decorBlock.map((a) => [a, { ...a }] as const),
+        ),
+        ([a, b]) => {
+          expect(sameBlock(a, b)).toBe(
+            a.item === b.item && a.face === b.face && a.height === b.height,
+          );
+        },
+      ),
     );
   });
 });

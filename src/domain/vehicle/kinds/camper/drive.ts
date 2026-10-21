@@ -1,4 +1,5 @@
 import { clamp } from "../../../shared/vec";
+import { type DecorPlacement, isDecorItem, parseDecor } from "../../dock/decor";
 import { type ClearCell, DOCK_RESTORED } from "../../dock/dock";
 import type { HoldPose } from "../../dock/floor";
 import type { DriveStep, EngineCommand, TickContext } from "../../drive";
@@ -9,15 +10,18 @@ import { dockCommands, undockCommands } from "../../motion/dockEntity";
 import { TransformingDrive } from "../../motion/transformingDrive";
 import { SyncedValue } from "../../syncedValue";
 import { type BodyEnds, guardEnds } from "./bodyGuard";
+import { DECOR_SLOTS, decorSlot } from "./decor";
 import { type CAMPER_ENTITY, doorCommand } from "./entity";
 import { CAMPER_MOTION, CAMPER_TYRES } from "./profile";
 import {
   cargoCells,
   deckSeats,
+  decorCells,
   departure,
   exitCells,
   holdsCargo,
   isPassable,
+  ownDecor,
   PARK_MESSAGES,
   parkCheckCells,
   parkDecorations,
@@ -55,6 +59,7 @@ export class CamperDrive extends TransformingDrive {
   private doorOpen: boolean;
   private doorStep: number;
   private readonly doorStepSync = new SyncedValue<number>();
+  private readonly decorBySlot = new Map<string, string>();
 
   constructor(yaw: number, restored: RestoredOf<typeof CAMPER_ENTITY>) {
     super(
@@ -76,6 +81,9 @@ export class CamperDrive extends TransformingDrive {
       this.restoredDocked && typeof savedTarget === "boolean"
         ? savedTarget
         : this.doorStep * 2 >= DOOR_STEPS;
+    // Decor survives driving: it is restored whether or not the camper was docked (ADR 0093).
+    for (const { slot, item } of parseDecor(restored[DOCK_RESTORED.decor]))
+      if (decorSlot(slot)) this.decorBySlot.set(slot, item);
   }
 
   /**
@@ -102,6 +110,22 @@ export class CamperDrive extends TransformingDrive {
     return true;
   }
 
+  decor(): readonly DecorPlacement[] {
+    return DECOR_SLOTS.flatMap(({ id }) => {
+      const item = this.decorBySlot.get(id);
+      return item === undefined ? [] : [{ slot: id, item }];
+    });
+  }
+
+  setDecor(slot: string, item: string | undefined): boolean {
+    if (!decorSlot(slot) || (item !== undefined && !isDecorItem(item)))
+      return false;
+    if (this.decorBySlot.get(slot) === item) return false;
+    if (item === undefined) this.decorBySlot.delete(slot);
+    else this.decorBySlot.set(slot, item);
+    return true;
+  }
+
   override step(raw: RawInput | undefined, ctx: TickContext): DriveStep {
     if (this.restoredDocked) {
       this.restoredDocked = false;
@@ -120,10 +144,21 @@ export class CamperDrive extends TransformingDrive {
     const parked = this.parked;
     if (parked) {
       if (!pressed) return this.parkedStep(parked, ctx);
-      const cargo = cargoCells(parked);
-      // The 61 cargo cells and two exit cells share one departure batch.
-      const types = ctx.blockTypes([...cargo, ...exitCells(parked)]);
-      if (holdsCargo(types.slice(0, cargo.length)))
+      const placed = this.decor();
+      const decor = decorCells(parked, placed);
+      const cargo = cargoCells(parked, placed);
+      // The cargo cells, the decor cells, and the two exit cells share one
+      // departure batch; a decor cell is clear only with air or its own decor block.
+      const types = ctx.blockTypes([
+        ...cargo,
+        ...decor.map(({ x, y, z }) => ({ x, y, z })),
+        ...exitCells(parked),
+      ]);
+      const decorTypes = types.slice(cargo.length, cargo.length + decor.length);
+      if (
+        holdsCargo(types.slice(0, cargo.length)) ||
+        decor.some((c, i) => !ownDecor(decorTypes[i], c.block.item))
+      )
         return {
           ...this.parkedStep(parked, ctx),
           message: PARK_MESSAGES.clearCargo,
@@ -132,7 +167,7 @@ export class CamperDrive extends TransformingDrive {
         parked,
         raw,
         ctx,
-        types.slice(cargo.length).every(isPassable),
+        types.slice(cargo.length + decor.length).every(isPassable),
       );
     }
     const step = super.step(raw, ctx);
@@ -194,7 +229,9 @@ export class CamperDrive extends TransformingDrive {
     this.roomLaid = true;
     const dock = {
       hold: pose,
-      cells: lay ? roomCells(pose, this.doorOpen) : [],
+      cells: lay
+        ? [...roomCells(pose, this.doorOpen), ...decorCells(pose, this.decor())]
+        : [],
       seats: deckSeats(pose),
     };
     return heldStep(dock, pose.yaw, ctx.deckSeatInputs, {

@@ -1,5 +1,6 @@
 import type { Entity } from "@minecraft/server";
 import { length, type Vec3 } from "../../domain/shared/vec";
+import type { DecorPlacement } from "../../domain/vehicle/dock/decor";
 import type {
   DockBlock,
   DockCell,
@@ -7,6 +8,7 @@ import type {
 } from "../../domain/vehicle/dock/floor";
 import {
   cargoCells,
+  decorCells,
   parkPose,
   roomCells,
 } from "../../domain/vehicle/kinds/camper/room";
@@ -19,8 +21,18 @@ import {
   CAMPER_FLOOR_BLOCK,
   CAMPER_WALL_BLOCK,
   DECK_FLOOR_BLOCK,
+  DECOR_FACE_STATE,
+  DECOR_HEIGHT_STATE,
+  decorBlockId,
 } from "../../infrastructure/vehicle/bedrock/identifiers";
-import { type Arena, drive, type Outcome, wait, withCamper } from "../arena";
+import {
+  type Arena,
+  drive,
+  type Outcome,
+  setDecor,
+  wait,
+  withCamper,
+} from "../arena";
 import {
   FLIGHT_LANE,
   gearDownLandingOutcome,
@@ -34,7 +46,9 @@ import {
 // and the pool and flight lanes west of x 90.
 const PARK_SPOT = { x: 108.5, z: 78.5, yaw: 90 } as const;
 
-const ROOM_BLOCK: Readonly<Record<DockBlock["type"], string>> = {
+const ROOM_BLOCK: Readonly<
+  Record<Exclude<DockBlock["type"], "decor">, string>
+> = {
   deck: DECK_FLOOR_BLOCK,
   floor: CAMPER_FLOOR_BLOCK,
   ceiling: CAMPER_CEILING_BLOCK,
@@ -42,6 +56,12 @@ const ROOM_BLOCK: Readonly<Record<DockBlock["type"], string>> = {
   door: CAMPER_DOOR_BLOCK,
   bed: CAMPER_BED_BLOCK,
 };
+
+function laidTypeOf(block: DockBlock): string {
+  return block.type === "decor"
+    ? decorBlockId(block.item)
+    : ROOM_BLOCK[block.type];
+}
 
 function carPose(car: Entity): HoldPose {
   return parkPose(car.location, car.getRotation().y);
@@ -52,9 +72,8 @@ function parkSpotPose(a: Arena): HoldPose {
 }
 
 function countLaid(a: Arena, cells: readonly DockCell[]): number {
-  return cells.filter(
-    (c) => a.dim.getBlock(c)?.typeId === ROOM_BLOCK[c.block.type],
-  ).length;
+  return cells.filter((c) => a.dim.getBlock(c)?.typeId === laidTypeOf(c.block))
+    .length;
 }
 
 function laidRoomCells(a: Arena, car: Entity): number {
@@ -214,6 +233,57 @@ export function camperDepartCargo(a: Arena): Promise<Outcome> {
     return {
       pass: laid === 105 && moved < 0.01,
       detail: `laid=${laid} moved=${moved.toFixed(3)}`,
+    };
+  });
+}
+
+const DECOR: readonly DecorPlacement[] = [
+  { slot: "table", item: "potted_plant" },
+  { slot: "dashboard_center", item: "transistor_radio" },
+];
+
+// A decor block counts only with its item's block, the yaw quarter, and the slot height.
+function laidDecor(
+  a: Arena,
+  pose: HoldPose,
+  decor: readonly DecorPlacement[],
+): number {
+  return decorCells(pose, decor).filter((c) => {
+    const block = a.dim.getBlock(c);
+    const states = block?.permutation.getAllStates();
+    return (
+      block?.typeId === decorBlockId(c.block.item) &&
+      states?.[DECOR_FACE_STATE] === c.block.face &&
+      states?.[DECOR_HEIGHT_STATE] === c.block.height
+    );
+  }).length;
+}
+
+export function camperDecor(a: Arena): Promise<Outcome> {
+  return atParkSpot(a, async (car) => {
+    await wait(DOCK.ticks + 10);
+    const pose = carPose(car);
+    for (const d of DECOR) setDecor(car, d.slot, d.item);
+    await wait(3);
+    const laid = laidDecor(a, pose, DECOR);
+    setDecor(car, "table", undefined);
+    await wait(3);
+    const kept = laidDecor(a, pose, DECOR.slice(1));
+    const table = decorCells(pose, DECOR.slice(0, 1))[0];
+    if (!table) throw new Error("camper has no table slot");
+    const emptied = a.dim.getBlock(table)?.typeId;
+    drive(car, 0, 1);
+    await wait(15);
+    const remaining = laidDecor(a, pose, DECOR.slice(1));
+    const moved = movedFrom(car, pose);
+    return {
+      pass:
+        laid === 2 &&
+        kept === 1 &&
+        emptied === "minecraft:air" &&
+        remaining === 0 &&
+        moved >= 0.1,
+      detail: `laid=${laid} kept=${kept} emptied=${emptied} remaining=${remaining} moved=${moved.toFixed(3)}`,
     };
   });
 }

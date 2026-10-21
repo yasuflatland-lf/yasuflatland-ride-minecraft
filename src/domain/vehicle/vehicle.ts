@@ -2,6 +2,7 @@ import type { PlayerId, VehicleId } from "../shared/ids";
 // Aggregate for one vehicle: wires its drive to its seating, cooldowns, and hit count.
 import { forward, type Vec2, type Vec3 } from "../shared/vec";
 import { RamCooldowns, SwitchCooldown } from "./cooldowns";
+import type { DecorPlacement } from "./dock/decor";
 import type { ClearCell, Departure, Dock } from "./dock/dock";
 import type { Drive, EngineCommand, RiderState, TickContext } from "./drive";
 import type { RawInput } from "./driveInput";
@@ -192,6 +193,16 @@ export class Vehicle {
   /** A player tapped the door of this vehicle's room. Returns whether it opened or closed (ADR 0068). */
   useDockDoor(): boolean {
     return this.drive.useDockDoor?.() ?? false;
+  }
+
+  /** The decor of this vehicle's room, in slot order (ADR 0093). */
+  decor(): readonly DecorPlacement[] {
+    return this.drive.decor?.() ?? [];
+  }
+
+  /** Puts `item` in `slot`, or empties it when undefined. Returns whether the decor changed (ADR 0093). */
+  setDecor(slot: string, item: string | undefined): boolean {
+    return this.drive.setDecor?.(slot, item) ?? false;
   }
 
   tick(input: VehicleTickInput): TickOutcome {

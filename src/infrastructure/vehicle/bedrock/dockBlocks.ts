@@ -6,6 +6,7 @@ import {
 } from "@minecraft/server";
 import type { DimensionId, VehicleId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
+import { isDecorItem } from "../../../domain/vehicle/dock/decor";
 import {
   type DockBlock,
   type DockCell,
@@ -24,6 +25,9 @@ import {
   DECK_CELLS_PROPERTY,
   DECK_FLOOR_BLOCK,
   DECK_FLOOR_HEIGHT_STATE,
+  DECOR_FACE_STATE,
+  DECOR_HEIGHT_STATE,
+  decorBlockId,
   ROOM_FACE_STATE,
   ROOM_OPEN_STATE,
 } from "./identifiers";
@@ -31,6 +35,9 @@ import {
 // The block defines one collision permutation per pixel height (ADR 0063).
 const MIN_HEIGHT = 1;
 const MAX_HEIGHT = 16;
+// The decor block defines one yasu_ride:height state per pixel (ADR 0093).
+const MIN_DECOR_HEIGHT = 0;
+const MAX_DECOR_HEIGHT = 15;
 
 interface Laid {
   dimension: Dimension;
@@ -43,6 +50,15 @@ function isHeight(v: unknown): v is number {
     Number.isInteger(v) &&
     v >= MIN_HEIGHT &&
     v <= MAX_HEIGHT
+  );
+}
+
+function isDecorHeight(v: unknown): v is number {
+  return (
+    typeof v === "number" &&
+    Number.isInteger(v) &&
+    v >= MIN_DECOR_HEIGHT &&
+    v <= MAX_DECOR_HEIGHT
   );
 }
 
@@ -71,6 +87,13 @@ function isDockCell(v: unknown): v is DockCell {
       return isFace(b.face);
     case "door":
       return isFace(b.face) && typeof b.open === "boolean";
+    case "decor":
+      return (
+        typeof b.item === "string" &&
+        isDecorItem(b.item) &&
+        isFace(b.face) &&
+        isDecorHeight(b.height)
+      );
     default:
       return false;
   }
@@ -90,6 +113,8 @@ function blockIdOf(block: DockBlock): string {
       return CAMPER_DOOR_BLOCK;
     case "bed":
       return CAMPER_BED_BLOCK;
+    case "decor":
+      return decorBlockId(block.item);
   }
 }
 
@@ -107,6 +132,11 @@ function permutationOf(block: DockBlock): BlockPermutation {
       return BlockPermutation.resolve(CAMPER_DOOR_BLOCK, {
         [ROOM_FACE_STATE]: block.face,
         [ROOM_OPEN_STATE]: block.open,
+      });
+    case "decor":
+      return BlockPermutation.resolve(decorBlockId(block.item), {
+        [DECOR_FACE_STATE]: block.face,
+        [DECOR_HEIGHT_STATE]: block.height,
       });
     default:
       return BlockPermutation.resolve(blockIdOf(block));

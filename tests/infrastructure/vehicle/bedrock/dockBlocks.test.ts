@@ -20,6 +20,9 @@ import {
   DECK_CELLS_PROPERTY,
   DECK_FLOOR_BLOCK,
   DECK_FLOOR_HEIGHT_STATE,
+  DECOR_FACE_STATE,
+  DECOR_HEIGHT_STATE,
+  decorBlockId,
   ROOM_FACE_STATE,
   ROOM_OPEN_STATE,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
@@ -326,6 +329,12 @@ const roomCells: DockCell[] = [
   { x: 3, y: 64, z: 0, block: { type: "wall", face: 2 } },
   { x: 4, y: 64, z: 0, block: { type: "door", face: 3, open: false } },
   { x: 5, y: 64, z: 0, block: { type: "bed" } },
+  {
+    x: 6,
+    y: 64,
+    z: 0,
+    block: { type: "decor", item: "potted_plant", face: 1, height: 12 },
+  },
 ];
 
 it("lays every block type with its states and changes only an opened door", () => {
@@ -342,6 +351,10 @@ it("lays every block type with its states and changes only an opened door", () =
       states: { [ROOM_FACE_STATE]: 3, [ROOM_OPEN_STATE]: false },
     },
     { typeId: CAMPER_BED_BLOCK, states: undefined },
+    {
+      typeId: decorBlockId("potted_plant"),
+      states: { [DECOR_FACE_STATE]: 1, [DECOR_HEIGHT_STATE]: 12 },
+    },
   ]);
   f.writes.length = 0;
   const opened = roomCells.map((c) =>
@@ -385,7 +398,7 @@ it.each([
   },
 );
 
-it("preserves replacements of wall, door, and bed cells", () => {
+it("preserves replacements of wall, door, bed, and decor cells", () => {
   const f = fixture();
   const docks = new DockBlocks();
   docks.lay(asVehicleId(f.car.id), f.car, roomCells);
@@ -394,6 +407,28 @@ it("preserves replacements of wall, door, and bed cells", () => {
   docks.lay(asVehicleId(f.car.id), f.car, []);
   for (const c of roomCells.slice(3))
     expect(f.at(c).typeId).toBe("minecraft:stone");
+});
+
+it("replaces a decor item in place and clears it", () => {
+  const f = fixture();
+  const docks = new DockBlocks();
+  const position = { x: 0, y: 64, z: 0 };
+  const states = { [DECOR_FACE_STATE]: 2, [DECOR_HEIGHT_STATE]: 7 };
+  const decorAt = (item: string): DockCell => ({
+    ...position,
+    block: { type: "decor", item, face: 2, height: 7 },
+  });
+  docks.lay(asVehicleId(f.car.id), f.car, [decorAt("potted_plant")]);
+  expect(f.at(position)).toEqual({
+    typeId: decorBlockId("potted_plant"),
+    states,
+  });
+  docks.lay(asVehicleId(f.car.id), f.car, [decorAt("mug_pair")]);
+  expect(f.at(position)).toEqual({ typeId: decorBlockId("mug_pair"), states });
+  expect(f.savedCells()).toEqual([decorAt("mug_pair")]);
+  docks.lay(asVehicleId(f.car.id), f.car, []);
+  expect(f.at(position).typeId).toBe("minecraft:air");
+  expect(f.saved.get(DECK_CELLS_PROPERTY)).toBeUndefined();
 });
 
 it("restores a saved bed cell and clears it", () => {
@@ -432,6 +467,30 @@ it.each([
   { block: { type: "wall", face: 1.5 }, seed: CAMPER_WALL_BLOCK },
   { block: { type: "door", face: 0, open: "true" }, seed: CAMPER_DOOR_BLOCK },
   { block: { type: "door", face: 4, open: true }, seed: CAMPER_DOOR_BLOCK },
+  {
+    block: { type: "decor", item: "Potted Plant", face: 0, height: 0 },
+    seed: decorBlockId("potted_plant"),
+  },
+  {
+    block: { type: "decor", item: 3, face: 0, height: 0 },
+    seed: decorBlockId("potted_plant"),
+  },
+  {
+    block: { type: "decor", item: "potted_plant", face: 4, height: 0 },
+    seed: decorBlockId("potted_plant"),
+  },
+  {
+    block: { type: "decor", item: "potted_plant", face: 0, height: 16 },
+    seed: decorBlockId("potted_plant"),
+  },
+  {
+    block: { type: "decor", item: "potted_plant", face: 0, height: -1 },
+    seed: decorBlockId("potted_plant"),
+  },
+  {
+    block: { type: "decor", item: "potted_plant", face: 0, height: 1.5 },
+    seed: decorBlockId("potted_plant"),
+  },
   { block: null, seed: DECK_FLOOR_BLOCK },
 ])("ignores invalid saved dock blocks: $block", ({ block, seed }) => {
   const f = fixture();

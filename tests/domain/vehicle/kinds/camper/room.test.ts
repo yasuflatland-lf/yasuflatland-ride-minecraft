@@ -7,16 +7,20 @@ import {
   normalizeYaw,
   rightOf,
 } from "../../../../../src/domain/shared/vec";
+import { decorFace } from "../../../../../src/domain/vehicle/dock/decor";
 import { inBox } from "../../../../../src/domain/vehicle/dock/dock";
+import { DECOR_SLOTS } from "../../../../../src/domain/vehicle/kinds/camper/decor";
 import { CAMPER_PROFILE } from "../../../../../src/domain/vehicle/kinds/camper/profile";
 import {
   AIR,
   CLEARABLE_DECORATIONS,
   cargoCells,
   deckSeats,
+  decorCells,
   departure,
   exitCells,
   holdsCargo,
+  ownDecor,
   parkCheckCells,
   parkPose,
   planPark,
@@ -41,6 +45,18 @@ const location = fc.record({
 });
 const yaw = fc.double({ min: -720, max: 720, noNaN: true });
 const pose = fc.tuple(location, yaw).map(([at, angle]) => parkPose(at, angle));
+const decor = fc
+  .subarray([...DECOR_SLOTS])
+  .chain((slots) =>
+    fc.tuple(
+      ...slots.map((s) =>
+        fc
+          .constantFrom("potted_plant", "percolator", "cushion")
+          .map((item) => ({ slot: s.id, item })),
+      ),
+    ),
+  );
+const itemId = fc.stringMatching(/^[a-z][a-z0-9_]{0,15}$/);
 
 it("lays 105 distinct integer cells with the specified counts at any snapped pose", () => {
   fc.assert(
@@ -446,5 +462,97 @@ it("clears wall-foot decorations only below a cleared matching upper half, upper
         }
       },
     ),
+  );
+});
+
+it("lists the twelve decor slots with distinct ids (ADR 0093)", () => {
+  expect(DECOR_SLOTS).toHaveLength(12);
+  expect(new Set(DECOR_SLOTS.map((s) => s.id))).toEqual(
+    new Set([
+      "dashboard_center",
+      "dashboard_left",
+      "table",
+      "dinette_front",
+      "dinette_rear",
+      "shelf_low",
+      "shelf_high",
+      "stove",
+      "counter",
+      "wall_cabinet_front",
+      "wall_cabinet_rear",
+      "ceiling_hook",
+    ]),
+  );
+});
+
+it("lays each decor at its slot's cell, the yaw quarter, and the slot height (ADR 0093)", () => {
+  fc.assert(
+    fc.property(pose, decor, (p, d) => {
+      const cells = decorCells(p, d);
+      expect(cells).toHaveLength(d.length);
+      const exact = forward(p.yaw);
+      const f = { x: Math.round(exact.x) + 0, z: Math.round(exact.z) + 0 };
+      const left = leftOf(f);
+      const l = { x: left.x + 0, z: left.z + 0 };
+      for (const [i, c] of cells.entries()) {
+        const { slot: id, item } = defined(d[i], "placement");
+        const slot = defined(
+          DECOR_SLOTS.find((s) => s.id === id),
+          "slot",
+        );
+        const at = { x: c.x - Math.floor(p.x), z: c.z - Math.floor(p.z) };
+        // + 0 because a zero axis times a negative offset is -0, which toBe rejects.
+        expect(dot(at, l) + 0).toBe(slot.cell.x);
+        expect(dot(at, f) + 0).toBe(slot.cell.z);
+        expect(c.y).toBe(p.y + slot.cell.layer);
+        expect(c.block).toEqual({
+          type: "decor",
+          item,
+          face: decorFace(p.yaw),
+          height: slot.height,
+        });
+      }
+      expect(decorCells(p, [{ slot: "nowhere", item: "mug_pair" }])).toEqual(
+        [],
+      );
+    }),
+  );
+});
+
+it("puts no decor cell on a room cell (ADR 0093)", () => {
+  const all = DECOR_SLOTS.map((s) => ({ slot: s.id, item: "potted_plant" }));
+  fc.assert(
+    fc.property(pose, (p) => {
+      const room = new Set(roomCells(p, false).map(cellKey));
+      for (const key of decorCells(p, all).map(cellKey))
+        expect(room.has(key)).toBe(false);
+    }),
+  );
+});
+
+it("reads the camper's decor cells apart from the cargo cells (ADR 0093)", () => {
+  fc.assert(
+    fc.property(pose, decor, (p, d) => {
+      const decorKeys = new Set(decorCells(p, d).map(cellKey));
+      const all = cargoCells(p);
+      const allKeys = new Set(all.map(cellKey));
+      for (const key of decorKeys) expect(allKeys.has(key)).toBe(true);
+      const cargo = cargoCells(p, d);
+      expect(cargo).toEqual(all.filter((c) => !decorKeys.has(cellKey(c))));
+      expect(cargo).toHaveLength(all.length - d.length);
+    }),
+  );
+});
+
+it("lets a decor cell hold only air or its own decor block (ADR 0093)", () => {
+  fc.assert(
+    fc.property(itemId, itemId, (item, other) => {
+      fc.pre(item !== other);
+      expect(ownDecor(AIR, item)).toBe(true);
+      expect(ownDecor(`yasu_ride:${item}_decor`, item)).toBe(true);
+      expect(ownDecor(undefined, item)).toBe(false);
+      expect(ownDecor("minecraft:stone", item)).toBe(false);
+      expect(ownDecor(`yasu_ride:${other}_decor`, item)).toBe(false);
+    }),
   );
 });
