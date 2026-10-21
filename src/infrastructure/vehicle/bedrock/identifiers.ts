@@ -5,7 +5,10 @@ import {
 } from "../../../domain/vehicle/entityContract";
 import type { FleetEntry } from "../../../domain/vehicle/fleet/fleet";
 import { VEHICLE_KINDS, type VehicleKind } from "../../../domain/vehicle/kind";
-import { CAMPING_GEAR_IDS } from "../../../domain/vehicle/kinds/index";
+import {
+  CAMPING_GEAR_IDS,
+  STANDING_GEAR_IDS,
+} from "../../../domain/vehicle/kinds/index";
 import { PAINTS, type Paint } from "../../../domain/vehicle/paint/paint";
 import {
   PLACEMENT_GIFTS,
@@ -208,6 +211,47 @@ export const DECOR_SPOT_STATE = id("spot");
 /** The decor block that shows a camping gear item in a parked camper (ADR 0093). */
 export function decorBlockId(item: string): string {
   return id(`${item}_decor`);
+}
+
+/** The block that draws both items of a shelf board or the table, `kind` "shelf" or "table" (ADR 0108). */
+export function pairDecorBlockId(kind: string): string {
+  return id(`${kind}_decor_pair`);
+}
+/**
+ * The pair block's states for the item at each end. A block state holds at most 16 values
+ * and an end takes 19 (empty or one of 18 standing items), so the end's code, 0 for empty
+ * and 1 + its index in STANDING_GEAR_IDS, is split into `page` (code / PAIR_PAGE_SIZE) and
+ * `item` (code % PAIR_PAGE_SIZE) (ADR 0108).
+ */
+export const PAIR_END_STATES = [
+  { item: id("end0_item"), page: id("end0_page") },
+  { item: id("end1_item"), page: id("end1_page") },
+] as const;
+export const PAIR_PAGE_SIZE = 10;
+
+/** The pair block's states for `item` at end `end`, both 0 for an empty end (ADR 0108). */
+export function pairEndStates(
+  end: 0 | 1,
+  item: string | undefined,
+): Record<string, number> {
+  const code = item === undefined ? 0 : STANDING_GEAR_IDS.indexOf(item) + 1;
+  const states = PAIR_END_STATES[end];
+  return {
+    [states.page]: Math.floor(code / PAIR_PAGE_SIZE),
+    [states.item]: code % PAIR_PAGE_SIZE,
+  };
+}
+
+const PAIR_DECOR_BLOCKS: ReadonlySet<string> = new Set(
+  ["shelf", "table"].map(pairDecorBlockId),
+);
+
+/** Whether `typeId` is a camping gear decor block or a pair block (ADR 0093, 0108). */
+export function isDecorBlock(typeId: string): boolean {
+  return (
+    campingGearOfDecorBlock(typeId) !== undefined ||
+    PAIR_DECOR_BLOCKS.has(typeId)
+  );
 }
 
 /** Custom component handling taps on camper decor blocks (ADR 0093). */

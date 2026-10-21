@@ -41,8 +41,6 @@ import { DOCK } from "../../../../../src/domain/vehicle/motion/dock";
 import { defined } from "../../../../support/defined";
 
 const PUSH = { moveX: 0, moveY: 1, jump: false };
-// Every slot cell reads as air: nothing of a player's stands in the room.
-const ALL_AIR = (cells: readonly unknown[]) => cells.map(() => AIR);
 const NEUTRAL = { moveX: 0, moveY: 0, jump: false };
 const decorItem = fc.constantFrom("potted_plant", "percolator", "cushion");
 // At most one placement per slot cell, as the drive keeps it (ADR 0107).
@@ -60,6 +58,8 @@ const cellOf = (slot: string) => {
   const cell = decorSlot(slot)?.cell;
   return cell && `${cell.x},${cell.z},${cell.layer}`;
 };
+// Where a slot's item goes: its cell, or its own end on a shelf board or the table (ADR 0108).
+const placeOf = (slot: string) => (decorSlot(slot)?.pair ? slot : cellOf(slot));
 const slotNamed = (id: string) =>
   defined(
     DECOR_SLOTS.find((s) => s.id === id),
@@ -251,7 +251,7 @@ it("departs on the stick press, undocks before properties, and boards deck rider
 
 it("refuses cargo only on each press and requires a new press after cargo is cleared", () => {
   fc.assert(
-    fc.property(fc.integer({ min: 0, max: 45 }), (index) => {
+    fc.property(fc.integer({ min: 0, max: 48 }), (index) => {
       const f = fixture();
       f.park();
       const cell = defined(cargoCells(f.pose)[index], "cargo cell");
@@ -539,13 +539,13 @@ it("lays decor set while parked on the next step and lays the furniture block ag
 it("departs past its own decor blocks and refuses any other block in a slot cell (ADR 0093, 0097)", () => {
   const parked = (withDecor = true) => {
     const f = fixture();
-    if (withDecor) f.drive.setDecor("table", "potted_plant");
+    if (withDecor) f.drive.setDecor("counter", "potted_plant");
     f.park();
     f.step();
     return f;
   };
   const f = parked();
-  const table = decorSlotCell(f.pose, slotNamed("table"));
+  const table = decorSlotCell(f.pose, slotNamed("counter"));
   f.blocks.set(cellKey(table), "yasu_ride:potted_plant_decor");
   const out = f.step(PUSH);
   expect(out.depart).toBeDefined();
@@ -636,26 +636,28 @@ it("moves a hanging item of a removed slot to the free ceiling hook (ADR 0103)",
 
 // One item per standing cell fills every standing slot (ADR 0107).
 const standingCells = DECOR_CELLS.filter(({ slots }) => !slots[0]?.hanging);
-const fullSlots = standingCells.map(({ slots }) => ({
-  slot: defined(slots[0], "first slot").id,
-  item: "potted_plant",
-}));
+// Every standing cell full: its first slot, or both ends of a shelf board or the table (ADR 0108).
+const fullSlots = standingCells.flatMap(({ slots }) =>
+  slots
+    .filter((s, i) => i === 0 || s.pair)
+    .map((s) => ({ slot: s.id, item: "potted_plant" })),
+);
 const cabinetEntries = [
   { slot: "wall_cabinet_front", item: "lava_lamp" },
   { slot: "wall_cabinet_rear", item: "toaster" },
 ];
 
 it("stows an entry of a removed slot when no slot that takes its item is free, and lists it last (ADR 0103)", () => {
-  expect(standingCells).toHaveLength(12);
+  expect(standingCells).toHaveLength(9);
   const f = fixture(JSON.stringify([...fullSlots, ...cabinetEntries]));
   expect(f.drive.decor()).toEqual([...fullSlots, ...cabinetEntries]);
   expect(f.drive.setDecor("wall_cabinet_front", undefined)).toBe(false);
   f.park();
   expect(f.drive.placeDecor("wall_cabinet_front", "cushion")).toBe(false);
   const laid = defined(f.step().dock, "laid dock").cells;
-  expect(laid.filter((c) => c.block.type === "decor")).toEqual(
-    decorCells(f.pose, fullSlots),
-  );
+  expect(
+    laid.filter((c) => ["decor", "decorPair"].includes(c.block.type)),
+  ).toEqual(decorCells(f.pose, fullSlots));
   expect(laid.filter((c) => c.block.type === "furniture")).toEqual(
     furnitureCells(f.pose, fullSlots),
   );
@@ -682,26 +684,27 @@ it("never loses a saved item when restoring (ADR 0103)", () => {
         list.map((e) => e.item).sort();
       expect(items(d)).toEqual(items(parsed));
       expect(new Set(d.map((e) => e.slot)).size).toBe(d.length);
-      // A known slot keeps its entry unless an earlier entry took its cell (ADR 0107).
+      // A known slot keeps its entry unless an earlier entry took its place: its cell, or
+      // its own end of a shelf board or the table (ADR 0107, 0108).
       for (const [i, e] of parsed.entries()) {
-        const cell = cellOf(e.slot);
-        if (cell && !parsed.slice(0, i).some((o) => cellOf(o.slot) === cell))
+        const place = placeOf(e.slot);
+        if (place && !parsed.slice(0, i).some((o) => placeOf(o.slot) === place))
           expect(d).toContainEqual(e);
       }
-      // The placed entries come first, one per cell; a stowed entry follows, and every
-      // slot that takes its item has its cell taken.
+      // The placed entries come first, one per place; a stowed entry follows, and every
+      // slot that takes its item has its place taken.
       const placed = d.filter((e, i) => {
-        const cell = cellOf(e.slot);
+        const place = placeOf(e.slot);
         return (
-          cell !== undefined &&
-          !d.slice(0, i).some((o) => cellOf(o.slot) === cell)
+          place !== undefined &&
+          !d.slice(0, i).some((o) => placeOf(o.slot) === place)
         );
       });
-      const takenCells = new Set(placed.map((e) => cellOf(e.slot)));
+      const takenPlaces = new Set(placed.map((e) => placeOf(e.slot)));
       for (const e of d.slice(placed.length)) {
         expect(placed).not.toContain(e);
         for (const s of slotsFor(e.item))
-          expect(takenCells.has(cellOf(s.id))).toBe(true);
+          expect(takenPlaces.has(placeOf(s.id))).toBe(true);
       }
     }),
   );
@@ -715,30 +718,27 @@ it("places and removes decor by hand once parked, and lays it with the room on t
   const point = slotPoint(f.pose, stove);
   const cell = decorSlotCell(f.pose, stove);
   expect(
-    f.drive.decorSlotFor("percolator", point, cell, false, ALL_AIR),
+    f.drive.decorSlotFor("percolator", point, cell, false),
   ).toBeUndefined();
   expect(f.drive.placeDecor("stove", "percolator")).toBe(false);
   expect(f.drive.removeDecor(cell)).toBeUndefined();
   expect(f.drive.decor()).toEqual([]);
 
   expect(f.step().dock?.cells).toEqual([]);
-  expect(f.drive.decorSlotFor("percolator", point, cell, false, ALL_AIR)).toBe(
-    "stove",
-  );
+  expect(f.drive.decorSlotFor("percolator", point, cell, false)).toBe("stove");
   expect(f.drive.placeDecor("ceiling_hook", "percolator")).toBe(false);
   expect(f.drive.placeDecor("nowhere", "percolator")).toBe(false);
   expect(f.drive.placeDecor("stove", "percolator")).toBe(true);
   expect(f.drive.placeDecor("stove", "enamel_kettle")).toBe(false);
-  expect(
-    f.drive.decorSlotFor("enamel_kettle", point, cell, false, ALL_AIR),
-  ).not.toBe("stove");
+  expect(f.drive.decorSlotFor("enamel_kettle", point, cell, false)).not.toBe(
+    "stove",
+  );
   expect(
     f.drive.decorSlotFor(
       "macrame_planter",
       point,
       decorSlotCell(f.pose, slotNamed("ceiling_hook")),
       false,
-      ALL_AIR,
     ),
   ).toBe("ceiling_hook");
 
@@ -773,7 +773,6 @@ it("keeps placed decor through a departure and refuses changes while driving", (
       slotPoint(f.pose, stove),
       decorSlotCell(f.pose, stove),
       false,
-      ALL_AIR,
     ),
   ).toBeUndefined();
   expect(f.drive.placeDecor("table", "mug_pair")).toBe(false);
@@ -790,7 +789,6 @@ it("places the item in the pressed slot ahead of a nearer free slot (ADR 0097)",
       slotPoint(f.pose, slotNamed("shelf_low")),
       decorSlotCell(f.pose, slotNamed("shelf_high")),
       false,
-      ALL_AIR,
     ),
   ).toBe("shelf_high");
 });
@@ -813,25 +811,18 @@ it("puts the stove item on the burner nearest the press and takes no second item
             slotPoint(f.pose, burner),
             cell,
             false,
-            ALL_AIR,
           ),
         ).toBe(first);
         expect(f.drive.placeDecor(first, "saucepan")).toBe(true);
         const point = slotPoint(f.pose, slotNamed(second));
         expect(f.drive.placeDecor(second, "enamel_kettle")).toBe(false);
         expect(
-          f.drive.decorSlotFor("enamel_kettle", point, cell, true, ALL_AIR),
+          f.drive.decorSlotFor("enamel_kettle", point, cell, true),
         ).toBeUndefined();
         expect(
           decorSlot(
             defined(
-              f.drive.decorSlotFor(
-                "enamel_kettle",
-                point,
-                cell,
-                false,
-                ALL_AIR,
-              ),
+              f.drive.decorSlotFor("enamel_kettle", point, cell, false),
               "fallback slot",
             ),
           )?.cell,
@@ -860,7 +851,7 @@ it("puts the stove item on the burner nearest the press and takes no second item
   );
 });
 
-it("places both ends of a shelf board or the table from presses on the furniture or its items, lays the second in its neighbor host cell, and departs past them (ADR 0108)", () => {
+it("holds two items on each shelf board and the table: a press on its cell sends the next item to the free end, one pair block draws both, an empty-hand press takes back the end nearest the press, and the camper departs past the pair block (ADR 0108)", () => {
   fc.assert(
     fc.property(
       fc.constantFrom(0, 90, 180, -90),
@@ -869,65 +860,88 @@ it("places both ends of a shelf board or the table from presses on the furniture
         ["shelf_high", "shelf_high_front"],
         ["table", "table_aisle"],
       ),
-      (yaw, [own, hostedId]) => {
+      fc.boolean(),
+      (yaw, ends, swap) => {
         const f = fixture(undefined, yaw);
         f.park();
         f.step();
-        const inCell = slotNamed(own);
-        const hosted = slotNamed(hostedId);
-        const furniture = decorSlotCell(f.pose, inCell);
-        const host = decorSlotCell(f.pose, hosted);
-        // Empty, the host cell holds no furniture block: it is the aisle or the driver's seat.
-        const empty = defined(f.step().dock, "laid dock").cells;
-        expect(empty.some((c) => cellKey(c) === cellKey(host))).toBe(false);
+        const [first, second] = (swap ? [...ends].reverse() : ends).map(
+          slotNamed,
+        );
+        if (!first?.pair || !second?.pair) throw new Error("no pair ends");
+        const cell = decorSlotCell(f.pose, first);
+        expect(decorSlotCell(f.pose, second)).toEqual(cell);
+        const at = (s: typeof first) => slotPoint(f.pose, s);
+        expect(f.drive.decorSlotFor("cushion", at(first), cell, false)).toBe(
+          first.id,
+        );
+        expect(f.drive.placeDecor(first.id, "cushion")).toBe(true);
+        // Even a press on the first item sends the next one to the free end.
+        expect(f.drive.decorSlotFor("book_stack", at(first), cell, false)).toBe(
+          second.id,
+        );
+        expect(f.drive.placeDecor(second.id, "book_stack")).toBe(true);
         expect(
-          empty.filter((c) => cellKey(c) === cellKey(furniture)),
-        ).toHaveLength(1);
-        expect(
-          f.drive.decorSlotFor(
-            "cushion",
-            slotPoint(f.pose, hosted),
-            furniture,
-            false,
-            ALL_AIR,
-          ),
-        ).toBe(hostedId);
-        expect(f.drive.placeDecor(hostedId, "cushion")).toBe(true);
-        expect(
-          f.drive.decorSlotFor(
-            "book_stack",
-            slotPoint(f.pose, hosted),
-            host,
-            false,
-            ALL_AIR,
-          ),
-        ).toBe(own);
-        expect(f.drive.placeDecor(own, "book_stack")).toBe(true);
-        const laid = defined(f.step().dock, "laid dock").cells;
-        expect(laid.filter((c) => cellKey(c) === cellKey(host))).toEqual([
-          {
-            ...host,
-            block: {
-              type: "decor",
-              item: "cushion",
-              face: decorFace(f.pose.yaw),
-              height: hosted.height,
-              spot: hosted.spot,
-            },
-          },
-        ]);
-        f.blocks.set(cellKey(furniture), "yasu_ride:book_stack_decor");
-        f.blocks.set(cellKey(host), "minecraft:stone");
+          f.drive.decorSlotFor("toaster", at(first), cell, true),
+        ).toBeUndefined();
+        const both = [
+          { slot: first.id, item: "cushion" },
+          { slot: second.id, item: "book_stack" },
+        ];
+        const laid = defined(f.step().dock, "laid dock").cells.filter(
+          (c) => cellKey(c) === cellKey(cell),
+        );
+        expect(laid).toEqual(decorCells(f.pose, both));
+        expect(laid[0]?.block).toEqual({
+          type: "decorPair",
+          pair: first.pair.kind,
+          face: decorFace(f.pose.yaw),
+          height: first.height,
+          [`end${first.pair.end}`]: "cushion",
+          [`end${second.pair.end}`]: "book_stack",
+        });
+        f.blocks.set(cellKey(cell), `yasu_ride:${first.pair.kind}_decor_pair`);
+        expect(f.drive.removeDecor(cell, at(second))).toBe("book_stack");
+        expect(f.drive.decor()).toEqual([{ slot: first.id, item: "cushion" }]);
+        expect(f.drive.placeDecor(second.id, "book_stack")).toBe(true);
+        expect(f.drive.removeDecor(cell, at(first))).toBe("cushion");
+        expect(f.drive.placeDecor(first.id, "cushion")).toBe(true);
+        f.step();
+        f.blocks.set(cellKey(cell), `yasu_ride:cushion_decor`);
         expect(f.step(PUSH).message).toBe("clear_cargo");
         f.step(NEUTRAL);
-        expect(f.drive.removeDecor(host)).toBe("cushion");
-        expect(f.drive.decor()).toEqual([{ slot: own, item: "book_stack" }]);
-        expect(f.drive.placeDecor(hostedId, "cushion")).toBe(true);
-        f.blocks.set(cellKey(host), "yasu_ride:cushion_decor");
+        f.blocks.set(cellKey(cell), `yasu_ride:${first.pair.kind}_decor_pair`);
         expect(f.step(PUSH).depart).toBeDefined();
       },
     ),
   );
+});
+
+it("takes back the pair end the line of sight is aimed at, though the press lands nearer the other end (ADR 0108, 0110)", () => {
+  const f = fixture(undefined, 0);
+  f.park();
+  f.step();
+  const near = slotNamed("table_aisle");
+  const far = slotNamed("table");
+  const fill = () => {
+    f.drive.setDecor(near.id, "mug_pair");
+    f.drive.setDecor(far.id, "fruit_bowl");
+  };
+  fill();
+  // At yaw 0 the aisle is toward -x. Seen from the aisle, the ray toward the wall-side item
+  // enters the pair block's 8 px tall box halfway to the eye, over the aisle-side half.
+  const aim = slotPoint(f.pose, far);
+  const eye = { x: aim.x - 1.2, y: aim.y + 1, z: aim.z };
+  const point = {
+    x: (aim.x + eye.x) / 2,
+    y: (aim.y + eye.y) / 2,
+    z: (aim.z + eye.z) / 2,
+  };
+  const cell = decorSlotCell(f.pose, far);
+  expect(f.drive.removeDecor(cell, point)).toBe("mug_pair");
+  fill();
+  expect(f.drive.removeDecor(cell, point, eye)).toBe("fruit_bowl");
+  expect(f.drive.decor()).toEqual([{ slot: near.id, item: "mug_pair" }]);
 });
 
 it("replaces the item of a cell when a test sets another slot of it (ADR 0107)", () => {
@@ -958,12 +972,8 @@ it("refuses an exact press on a taken slot instead of offering another one (ADR 
   expect(f.drive.placeDecor("stove", "percolator")).toBe(true);
   const point = slotPoint(f.pose, stove);
   const cell = decorSlotCell(f.pose, stove);
-  expect(
-    f.drive.decorSlotFor("toaster", point, cell, true, ALL_AIR),
-  ).toBeUndefined();
-  expect(
-    f.drive.decorSlotFor("toaster", point, cell, false, ALL_AIR),
-  ).toBeDefined();
+  expect(f.drive.decorSlotFor("toaster", point, cell, true)).toBeUndefined();
+  expect(f.drive.decorSlotFor("toaster", point, cell, false)).toBeDefined();
 });
 
 it("picks the burner along the line of sight from the eye when one is given (ADR 0110)", () => {
@@ -980,12 +990,12 @@ it("picks the burner along the line of sight from the eye when one is given (ADR
     z: 2 * aim.z - eye.z,
   };
   const cell = decorSlotCell(f.pose, wall);
-  expect(
-    f.drive.decorSlotFor("saucepan", point, cell, false, ALL_AIR),
-  ).not.toBe("stove_wall");
-  expect(
-    f.drive.decorSlotFor("saucepan", point, cell, false, ALL_AIR, eye),
-  ).toBe("stove_wall");
+  expect(f.drive.decorSlotFor("saucepan", point, cell, false)).not.toBe(
+    "stove_wall",
+  );
+  expect(f.drive.decorSlotFor("saucepan", point, cell, false, eye)).toBe(
+    "stove_wall",
+  );
 });
 
 describe("shower-toilet (ADR 0094)", () => {

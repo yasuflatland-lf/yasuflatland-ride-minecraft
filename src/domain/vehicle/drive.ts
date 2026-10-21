@@ -87,18 +87,17 @@ export interface Drive {
   decor?(): readonly DecorPlacement[];
   /** Puts `item` in `slot`, or empties it when undefined. Returns whether the decor changed (ADR 0093). */
   setDecor?(slot: string, item: string | undefined): boolean;
-  /** The free decor slot that accepts `item`: the slot of the pressed world `cell` when it can take it, else the one nearest `point` unless `exact`, once the vehicle has parked (after its parking tick); undefined otherwise. `blockTypes` reads world cells as TickContext.blockTypes does, so a slot cell holding a player's block is skipped. With the player's `eye`, nearness is measured along the line of sight (ADR 0093, 0097, 0104, 0108, 0110). */
+  /** The free decor slot that accepts `item`: the slot of the pressed world `cell` when it can take it, else the one nearest `point` unless `exact`, once the vehicle has parked (after its parking tick); undefined otherwise. With the player's `eye`, nearness is measured along the line of sight (ADR 0093, 0097, 0104, 0110). */
   decorSlotFor?(
     item: string,
     point: Vec3,
     cell: Vec3,
     exact: boolean,
-    blockTypes: (cells: readonly Vec3[]) => readonly (string | undefined)[],
     eye?: Vec3,
   ): string | undefined;
   /** A player puts `item` in `slot`; false when the vehicle is not parked or the slot is taken or does not accept it (ADR 0093). */
   placeDecor?(slot: string, item: string): boolean;
-  /** A player takes the decor out of the slot at world `cell` while parked; returns its item, or undefined when there is none (ADR 0093). */
-  removeDecor?(cell: Vec3): string | undefined;
+  /** A player takes the decor out of the slot at world `cell` while parked, the one nearest the pressed `point` (seen from `eye`) when the cell holds two; returns its item, or undefined when there is none (ADR 0093, 0108). */
+  removeDecor?(cell: Vec3, point?: Vec3, eye?: Vec3): string | undefined;
   step(raw: RawInput | undefined, ctx: TickContext): DriveStep;
 }

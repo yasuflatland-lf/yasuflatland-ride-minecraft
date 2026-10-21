@@ -31,6 +31,8 @@ import {
   DECOR_HEIGHT_STATE,
   DECOR_SPOT_STATE,
   decorBlockId,
+  pairDecorBlockId,
+  pairEndStates,
   ROOM_FACE_STATE,
 } from "../../infrastructure/vehicle/bedrock/identifiers";
 import {
@@ -71,7 +73,7 @@ const CAMPER_DECK_SEATS_TEST = {
 const CAMPER_RELAY_TICKS = DOCK_RECHECK_TICKS * 2;
 
 const ROOM_BLOCK: Readonly<
-  Record<Exclude<DockBlock["type"], "decor">, string>
+  Record<Exclude<DockBlock["type"], "decor" | "decorPair">, string>
 > = {
   deck: DECK_FLOOR_BLOCK,
   floor: CAMPER_FLOOR_BLOCK,
@@ -84,9 +86,9 @@ const ROOM_BLOCK: Readonly<
 };
 
 function laidTypeOf(block: DockBlock): string {
-  return block.type === "decor"
-    ? decorBlockId(block.item)
-    : ROOM_BLOCK[block.type];
+  if (block.type === "decor") return decorBlockId(block.item);
+  if (block.type === "decorPair") return pairDecorBlockId(block.pair);
+  return ROOM_BLOCK[block.type];
 }
 
 function carPose(car: Entity): HoldPose {
@@ -304,7 +306,8 @@ const DECOR: readonly DecorPlacement[] = [
   { slot: "stove_wall_rear", item: "saucepan" },
 ];
 
-// A decor block counts only with its item's block, the yaw quarter, the slot height, and the spot.
+// A decor block counts only with its item's block, the yaw quarter, the slot height, and the
+// spot; a pair block with the item at each end instead of the spot (ADR 0108).
 function laidDecor(
   a: Arena,
   pose: HoldPose,
@@ -313,12 +316,19 @@ function laidDecor(
   return decorCells(pose, decor).filter((c) => {
     const block = a.dim.getBlock(c);
     const states = block?.permutation.getAllStates();
-    return (
-      block?.typeId === decorBlockId(c.block.item) &&
-      states?.[DECOR_FACE_STATE] === c.block.face &&
-      states?.[DECOR_HEIGHT_STATE] === c.block.height &&
-      states?.[DECOR_SPOT_STATE] === c.block.spot
-    );
+    if (
+      block?.typeId !== laidTypeOf(c.block) ||
+      states?.[DECOR_FACE_STATE] !== c.block.face ||
+      states?.[DECOR_HEIGHT_STATE] !== c.block.height
+    )
+      return false;
+    if (c.block.type === "decor")
+      return states[DECOR_SPOT_STATE] === c.block.spot;
+    const ends = {
+      ...pairEndStates(0, c.block.end0),
+      ...pairEndStates(1, c.block.end1),
+    };
+    return Object.entries(ends).every(([name, v]) => states[name] === v);
   }).length;
 }
 
@@ -372,8 +382,8 @@ export function camperDecor(a: Arena): Promise<Outcome> {
   });
 }
 
-// Both ends of the low shelf board and of the table, and the high board's front end. The
-// second item of each is hosted in the driver's seat cell or the aisle cell (ADR 0108).
+// Both ends of the low shelf board and of the table, and the high board's front end only: each
+// furniture cell lays one pair block that draws its two items (ADR 0108).
 const PAIRED_DECOR: readonly DecorPlacement[] = [
   { slot: "shelf_low", item: "book_stack" },
   { slot: "shelf_low_front", item: "cushion" },
@@ -381,10 +391,6 @@ const PAIRED_DECOR: readonly DecorPlacement[] = [
   { slot: "table", item: "fruit_bowl" },
   { slot: "table_aisle", item: "mug_pair" },
 ];
-const HOSTED_DECOR: readonly DecorPlacement[] = PAIRED_DECOR.filter(
-  ({ slot }) =>
-    ["shelf_low_front", "shelf_high_front", "table_aisle"].includes(slot),
-);
 
 export function camperDecorPairs(a: Arena): Promise<Outcome> {
   return atParkSpot(a, async (car) => {
@@ -392,32 +398,27 @@ export function camperDecorPairs(a: Arena): Promise<Outcome> {
     const pose = carPose(car);
     for (const d of PAIRED_DECOR) setDecor(car, d.slot, d.item);
     await wait(3);
+    const blocks = decorCells(pose, PAIRED_DECOR).length;
     const laid = laidDecor(a, pose, PAIRED_DECOR);
-    const furniture = laidFurniture(a, pose, PAIRED_DECOR);
-    const hosted = decorCells(pose, HOSTED_DECOR);
-    for (const d of HOSTED_DECOR) setDecor(car, d.slot, undefined);
+    // Emptying one end keeps the pair block with the other end's item.
+    setDecor(car, "table_aisle", undefined);
     await wait(3);
-    // An emptied host cell holds nothing: no furniture block in the aisle or the driver's seat.
-    const emptied = hosted.filter(
-      (c) => a.dim.getBlock(c)?.typeId === "minecraft:air",
-    ).length;
-    const kept = laidDecor(a, pose, PAIRED_DECOR.slice(0, 1));
-    for (const d of HOSTED_DECOR) setDecor(car, d.slot, d.item);
+    const oneEnd = PAIRED_DECOR.filter(({ slot }) => slot !== "table_aisle");
+    const kept = laidDecor(a, pose, oneEnd);
+    for (const d of oneEnd) setDecor(car, d.slot, undefined);
     await wait(3);
+    const furniture = laidFurniture(a, pose, []);
     drive(car, 0, 1);
     await wait(15);
-    const remaining = laidDecor(a, pose, PAIRED_DECOR);
     const moved = movedFrom(car, pose);
     return {
       pass:
-        laid === PAIRED_DECOR.length &&
-        furniture === furnitureCells(pose, PAIRED_DECOR).length &&
-        hosted.length === HOSTED_DECOR.length &&
-        emptied === hosted.length &&
-        kept === 1 &&
-        remaining === 0 &&
+        blocks === 3 &&
+        laid === 3 &&
+        kept === 3 &&
+        furniture === furnitureCells(pose, []).length &&
         moved >= 0.1,
-      detail: `laid=${laid} furniture=${furniture} hosted=${hosted.length} emptied=${emptied} kept=${kept} remaining=${remaining} moved=${moved.toFixed(3)}`,
+      detail: `blocks=${blocks} laid=${laid} kept=${kept} furniture=${furniture} moved=${moved.toFixed(3)}`,
     };
   });
 }

@@ -1,6 +1,5 @@
 import { BlockPermutation, ItemStack } from "@minecraft/server";
 import gear from "../../../tools/camping_gear.json";
-import { DECOR_SPOTS } from "../../domain/vehicle/kinds/camper/furniture";
 import { id } from "../../infrastructure/shared/identifiers";
 import {
   DECOR_FACE_STATE,
@@ -16,9 +15,8 @@ const ROW = { x: 119, z: 1 } as const;
 // The 19 items of ADR 0093; a spec that loses an item fails here as well as in the unit tests.
 const GEAR_COUNT = 19;
 
-// The decor blocks' yasu_ride:spot values: the cell middle, the four stove burners, and the
-// two ends of a shelf board and of the table (ADR 0107, 0108).
-const SPOTS = DECOR_SPOTS.length;
+// The decor blocks' yasu_ride:spot values: the cell middle and the four stove burners (ADR 0107).
+const SPOTS = 5;
 
 /** Sets every decor block with a mix of face, height, and spot states and creates every gear item. */
 export function campingGearBlocks(a: Arena): Promise<Outcome> {

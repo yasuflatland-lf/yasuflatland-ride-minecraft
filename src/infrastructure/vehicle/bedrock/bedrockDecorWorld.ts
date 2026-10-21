@@ -2,14 +2,12 @@
 import type { Entity } from "@minecraft/server";
 import type { DecorPlacingWorld } from "../../../application/vehicle/ports/decor";
 import type { PlayerId, VehicleId } from "../../../domain/shared/ids";
-import type { Vec3 } from "../../../domain/shared/vec";
 import {
   type DecorPlacement,
   serializeDecor,
 } from "../../../domain/vehicle/dock/decor";
 import type { BedrockInventory } from "./bedrockInventory";
 import { isCreativePlayer } from "./bedrockPlacementWorld";
-import { blockTypesNear } from "./blockTypes";
 import type { EntityIndex } from "./entityIndex";
 import { campingGearItem, DECOR_PROPERTY, messageKey } from "./identifiers";
 
@@ -60,12 +58,5 @@ export class BedrockDecorWorld implements DecorPlacingWorld {
     this.index.player(playerId)?.onScreenDisplay.setActionBar({
       translate: messageKey(name),
     });
-  }
-
-  blockTypes(
-    vehicleId: VehicleId,
-    cells: readonly Vec3[],
-  ): (string | undefined)[] {
-    return blockTypesNear(this.index.entity(vehicleId), cells);
   }
 }

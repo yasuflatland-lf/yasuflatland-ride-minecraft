@@ -19,7 +19,6 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { PlaceVehicle } from "../../../../src/application/vehicle/placeVehicle";
 import type { PlacementWorld } from "../../../../src/application/vehicle/ports/placement";
 import { asVehicleId, type VehicleId } from "../../../../src/domain/shared/ids";
-import { HOSTED_DECOR_SPOTS } from "../../../../src/domain/vehicle/kinds/index";
 import { SPEC } from "../../../../src/domain/vehicle/spec";
 import type { VehicleRepository } from "../../../../src/domain/vehicle/vehicleRepository";
 import {
@@ -34,7 +33,6 @@ import {
   DECK_FLOOR_BLOCK,
   DECK_SEAT_OF_PROPERTY,
   DECK_SEAT_TYPE,
-  DECOR_SPOT_STATE,
   decorBlockId,
   ENTITY_TYPE,
   GIFT_ITEM,
@@ -42,6 +40,7 @@ import {
   ITEM_TYPE,
   OWNER_PROPERTY,
   PAINT_BY_DYE,
+  pairDecorBlockId,
   TEST_DECOR_EVENT,
   TEST_INPUT_EVENT,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
@@ -983,11 +982,12 @@ function decorFixture() {
   return { placeDecor, removeDecor, owner, startupsBefore, event, send };
 }
 
-it("places held camping gear on a camper room, furniture, or decor block on the next tick and cancels every repeat, falling back to another slot, with the player's eye (ADR 0093, 0097, 0104, 0110)", () => {
+it("places held camping gear on a camper room, furniture, decor, or pair block on the next tick and cancels every repeat, falling back to another slot, with the player's eye (ADR 0093, 0097, 0104, 0108, 0110)", () => {
   for (const typeId of [
     CAMPER_FLOOR_BLOCK,
     CAMPER_FURNITURE_BLOCK,
     decorBlockId("percolator"),
+    pairDecorBlockId("table"),
   ]) {
     const { placeDecor, owner, event, send } = decorFixture();
     const ev = event();
@@ -1050,7 +1050,6 @@ it("leaves other items, other blocks, and cells no camper laid alone", () => {
 function seatFixture(
   slotBlock: string | null = CAMPER_FURNITURE_BLOCK,
   loaded = true,
-  states: Record<string, number> = { [DECOR_SPOT_STATE]: 0 },
 ) {
   const entitySubscribe = vi.mocked(
     world.beforeEvents.playerInteractWithEntity.subscribe,
@@ -1070,7 +1069,6 @@ function seatFixture(
             at.x === slot.x && at.y === slot.y && at.z === slot.z && slotBlock
               ? slotBlock
               : "minecraft:air",
-          permutation: { getAllStates: () => states },
         }
       : undefined,
   );
@@ -1093,16 +1091,9 @@ function seatFixture(
 }
 
 it("places held camping gear on the dinette slot under a pressed deck seat instead of seating the player, once per long-press, as an exact press (ADR 0024, 0097, 0104)", () => {
-  for (const [slotBlock, states] of [
-    [CAMPER_FURNITURE_BLOCK, {}],
-    [decorBlockId("cushion"), { [DECOR_SPOT_STATE]: 0 }],
-    [decorBlockId("cushion"), {}],
-  ] as const) {
-    const { placeDecor, owner, slot, seatEvent, sendSeat } = seatFixture(
-      slotBlock,
-      true,
-      states,
-    );
+  for (const slotBlock of [CAMPER_FURNITURE_BLOCK, decorBlockId("cushion")]) {
+    const { placeDecor, owner, slot, seatEvent, sendSeat } =
+      seatFixture(slotBlock);
     expect(sendSeat(seatEvent()).cancel).toBe(true);
     expect(owner).toHaveBeenCalledExactlyOnceWith("minecraft:overworld", slot);
     expect(placeDecor.execute).not.toHaveBeenCalled();
@@ -1159,12 +1150,6 @@ it("lets a player sit on a deck seat with an empty hand, other items, no slot un
     seatFixture(null),
     seatFixture(CAMPER_FLOOR_BLOCK),
     seatFixture(CAMPER_FURNITURE_BLOCK, false),
-    // The shelf's front ends are hosted above the driver's seat and drawn over the shelf (ADR 0108).
-    ...[...HOSTED_DECOR_SPOTS].map((spot) =>
-      seatFixture(decorBlockId("cushion"), true, {
-        [DECOR_SPOT_STATE]: defined(spot, "hosted spot"),
-      }),
-    ),
   ]) {
     expect(f.sendSeat(f.seatEvent()).cancel).toBe(false);
     expect(f.owner).not.toHaveBeenCalled();
@@ -1215,23 +1200,42 @@ it("takes decor back on an empty-hand interaction with a decor block (ADR 0093)"
   )?.[1].onPlayerInteract;
   if (!interact) throw new Error("decor interaction missing");
   const cell = { x: 1, y: 65, z: 2 };
-  const event = (held?: { typeId: string }, withPlayer = true) =>
+  const eye = { x: 0.4, y: 66.6, z: 2.2 };
+  const event = (
+    held?: { typeId: string },
+    withPlayer = true,
+    withFace = true,
+  ) =>
     ({
       dimension: { id: "minecraft:overworld" },
       block: { location: cell },
+      faceLocation: withFace ? { x: 0.25, y: 0.5, z: 0.75 } : undefined,
       player: withPlayer
         ? {
             id: "p",
             selectedSlotIndex: 0,
             getComponent: () => ({ container: { getItem: () => held } }),
+            getHeadLocation: () => eye,
           }
         : undefined,
     }) as unknown as Parameters<typeof interact>[0];
+  // The press point and the eye tell the two items of a pair block apart (ADR 0108, 0110).
   interact(event(), { params: undefined });
   expect(removeDecor.execute).toHaveBeenCalledExactlyOnceWith({
     playerId: "p",
     vehicleId: "car",
     cell,
+    point: { x: 1.25, y: 65.5, z: 2.75 },
+    eye,
+  });
+  removeDecor.execute.mockClear();
+  interact(event(undefined, true, false), { params: undefined });
+  expect(removeDecor.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId: "p",
+    vehicleId: "car",
+    cell,
+    point: undefined,
+    eye,
   });
   removeDecor.execute.mockClear();
   interact(event({ typeId: "minecraft:stone" }), { params: undefined });

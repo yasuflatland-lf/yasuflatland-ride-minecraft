@@ -37,7 +37,6 @@ export class PlaceDecor {
       cmd.point,
       cmd.cell,
       cmd.exact,
-      (cells) => this.world.blockTypes(cmd.vehicleId, cells),
       cmd.eye,
     );
     if (slot === undefined) {

@@ -19,6 +19,7 @@ import {
   CLEARABLE_DECORATIONS,
   cargoCells,
   deckSeats,
+  decorBlockName,
   decorCells,
   decorSlotCell,
   departure,
@@ -229,7 +230,7 @@ it("covers the interior and the roof exactly once with cargo cells, slot cells, 
   );
 });
 
-it("checks 168 unique cells including the room and keeps all 46 cargo cells outside its blocks and slots (ADR 0097, 0098, 0108)", () => {
+it("checks 168 unique cells including the room and keeps all 49 cargo cells outside its blocks and slots (ADR 0097, 0098)", () => {
   fc.assert(
     fc.property(pose, (p) => {
       const room = new Set(roomCells(p, false).map(cellKey));
@@ -238,8 +239,8 @@ it("checks 168 unique cells including the room and keeps all 46 cargo cells outs
       expect(new Set(check).size).toBe(168);
       for (const c of room) expect(check).toContain(c);
       const cargo = cargoCells(p).map(cellKey);
-      expect(cargo).toHaveLength(46);
-      expect(new Set(cargo).size).toBe(46);
+      expect(cargo).toHaveLength(49);
+      expect(new Set(cargo).size).toBe(49);
       expect(cargo.some((c) => room.has(c))).toBe(false);
       for (const key of slotCells(p).map(cellKey)) {
         expect(room.has(key)).toBe(false);
@@ -388,7 +389,7 @@ it("checks every roof cell and clears decorations there", () => {
       fc.integer({ min: 0, max: 20 }),
       fc.constantFrom(...CLEARABLE_DECORATIONS),
       (p, index, typeId) => {
-        const roof = defined(cargoCells(p).slice(25)[index], "roof cell");
+        const roof = defined(cargoCells(p).slice(28)[index], "roof cell");
         expect(roof.y - p.y).toBe(4);
         const cells = parkCheckCells(p);
         expect(cells.map(cellKey)).toContain(cellKey(roof));
@@ -538,7 +539,7 @@ it("lists the sixteen decor slots with distinct ids (ADR 0093, 0103, 0105, 0108)
   );
 });
 
-it("lays each decor at its slot's cell, the yaw quarter, the slot height, and the slot's spot (ADR 0093, 0105)", () => {
+it("lays each decor at its slot's cell, the yaw quarter, the slot height, and the slot's spot, or as its end of a pair block (ADR 0093, 0105, 0108)", () => {
   fc.assert(
     fc.property(pose, decor, (p, d) => {
       const cells = decorCells(p, d);
@@ -558,13 +559,23 @@ it("lays each decor at its slot's cell, the yaw quarter, the slot height, and th
         expect(dot(at, l) + 0).toBe(slot.cell.x);
         expect(dot(at, f) + 0).toBe(slot.cell.z);
         expect(c.y).toBe(p.y + slot.cell.layer);
-        expect(c.block).toEqual({
-          type: "decor",
-          item,
-          face: decorFace(p.yaw),
-          height: slot.height,
-          spot: slot.spot ?? 0,
-        });
+        expect(c.block).toEqual(
+          slot.pair
+            ? {
+                type: "decorPair",
+                pair: slot.pair.kind,
+                face: decorFace(p.yaw),
+                height: slot.height,
+                [`end${slot.pair.end}`]: item,
+              }
+            : {
+                type: "decor",
+                item,
+                face: decorFace(p.yaw),
+                height: slot.height,
+                spot: slot.spot ?? 0,
+              },
+        );
       }
       expect(decorCells(p, [{ slot: "nowhere", item: "mug_pair" }])).toEqual(
         [],
@@ -584,34 +595,14 @@ it("puts no decor cell on a room cell (ADR 0093)", () => {
   );
 });
 
-it("lays a furniture block in every slot cell without decor but a cell that only hosts slots drawn over a neighbor, and none in a cargo, room, or shower-toilet cell (ADR 0097, 0105, 0108)", () => {
-  // The aisle cell and the driver's seat cells host the table's and the shelf boards' second slots.
-  const hostedOnly = DECOR_CELLS.filter(({ slots }) =>
-    slots.every((s) => s.over !== undefined),
-  );
-  expect(hostedOnly.map(({ cell }) => cell)).toEqual([
-    { x: 0, z: 0, layer: 1 },
-    { x: -1, z: 2, layer: 1 },
-    { x: -1, z: 2, layer: 2 },
-  ]);
+it("lays a furniture block in every slot cell without decor and none in a cargo, room, or shower-toilet cell (ADR 0097, 0105)", () => {
   fc.assert(
     fc.property(pose, decor, (p, d) => {
       const furniture = furnitureCells(p, d);
+      expect(furniture).toHaveLength(DECOR_CELLS.length - d.length);
       const laid = [...decorCells(p, d), ...furniture].map(cellKey);
       expect(new Set(laid).size).toBe(laid.length);
-      const decorKeys = new Set(decorCells(p, d).map(cellKey));
-      const hostedKeys = new Set(
-        hostedOnly.map(({ slots: [first] }) =>
-          cellKey(decorSlotCell(p, defined(first, "hosted slot"))),
-        ),
-      );
-      expect(new Set(laid)).toEqual(
-        new Set(
-          slotCells(p)
-            .map(cellKey)
-            .filter((key) => decorKeys.has(key) || !hostedKeys.has(key)),
-        ),
-      );
+      expect(new Set(laid)).toEqual(new Set(slotCells(p).map(cellKey)));
       const cargo = new Set(cargoCells(p).map(cellKey));
       const room = new Set(roomCells(p, false).map(cellKey));
       const exact = forward(p.yaw);
@@ -673,18 +664,36 @@ it("lays the stove's furniture block once, at its burners' height, while no burn
   );
 });
 
-it("lets a slot cell hold only air, the furniture block, or its own decor block (ADR 0097)", () => {
+it("lets a slot cell hold only air, the furniture block, or the block its decor lays (ADR 0097, 0108)", () => {
   fc.assert(
     fc.property(itemId, itemId, (item, other) => {
       fc.pre(item !== other);
-      for (const slotItem of [item, undefined]) {
-        expect(ownSlotBlock(AIR, slotItem)).toBe(true);
-        expect(ownSlotBlock("yasu_ride:camper_furniture", slotItem)).toBe(true);
-        expect(ownSlotBlock(undefined, slotItem)).toBe(false);
-        expect(ownSlotBlock("minecraft:stone", slotItem)).toBe(false);
-        expect(ownSlotBlock(`yasu_ride:${other}_decor`, slotItem)).toBe(false);
-        expect(ownSlotBlock(`yasu_ride:${item}_decor`, slotItem)).toBe(
-          slotItem === item,
+      for (const name of [`${item}_decor`, undefined]) {
+        expect(ownSlotBlock(AIR, name)).toBe(true);
+        expect(ownSlotBlock("yasu_ride:camper_furniture", name)).toBe(true);
+        expect(ownSlotBlock(undefined, name)).toBe(false);
+        expect(ownSlotBlock("minecraft:stone", name)).toBe(false);
+        expect(ownSlotBlock(`yasu_ride:${other}_decor`, name)).toBe(false);
+        expect(ownSlotBlock(`yasu_ride:${item}_decor`, name)).toBe(
+          name !== undefined,
+        );
+      }
+    }),
+  );
+});
+
+it("names the block a cell's decor lays: the pair block on a shelf board or the table, else the item's decor block (ADR 0093, 0108)", () => {
+  fc.assert(
+    fc.property(decor, (d) => {
+      for (const { cell, slots } of DECOR_CELLS) {
+        const placed = d.find((e) => slots.some((s) => s.id === e.slot));
+        const pair = slots[0]?.pair;
+        expect(decorBlockName(cell, d)).toBe(
+          placed === undefined
+            ? undefined
+            : pair
+              ? `${pair.kind}_decor_pair`
+              : `${placed.item}_decor`,
         );
       }
     }),
@@ -694,35 +703,9 @@ it("lets a slot cell hold only air, the furniture block, or its own decor block 
 it("puts each dinette deck seat under its dinette slot, the first slot cell from the seat's cell up, and no other deck seat under a slot (ADR 0097)", () => {
   fc.assert(
     fc.property(pose, (p) => {
-      // A decor block drawn over a neighbor belongs to no seat: the infrastructure skips the
-      // shelf's front-end blocks above the driver's seat (ADR 0108).
       const slots = new Map(
-        DECOR_SLOTS.filter((s) => s.over === undefined).map((s) => [
-          cellKey(decorSlotCell(p, s)),
-          s.id,
-        ]),
+        DECOR_SLOTS.map((s) => [cellKey(decorSlotCell(p, s)), s.id]),
       );
-      const hosted = new Map(
-        DECOR_SLOTS.filter((s) => s.over !== undefined).map((s) => [
-          cellKey(decorSlotCell(p, s)),
-          s.id,
-        ]),
-      );
-      const driver = defined(deckSeats(p)[0], "driver seat");
-      const column = [0, 1, 2].map((dy) =>
-        hosted.get(
-          cellKey({
-            x: Math.floor(driver.x),
-            y: Math.floor(driver.y) + dy,
-            z: Math.floor(driver.z),
-          }),
-        ),
-      );
-      expect(column).toEqual([
-        undefined,
-        "shelf_low_front",
-        "shelf_high_front",
-      ]);
       const firstSlotAbove = (seat: { x: number; y: number; z: number }) => {
         const cell = seatSlotCell(seat, (c) => slots.has(cellKey(c)));
         return cell === undefined ? undefined : slots.get(cellKey(cell));

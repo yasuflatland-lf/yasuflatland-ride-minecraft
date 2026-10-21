@@ -5,12 +5,9 @@ import type { HoldPose } from "../../dock/floor";
 import { CAMPING_GEAR_IDS, HANGING_GEAR_IDS } from "./campingGear";
 import { cellTaken, DECOR_SLOTS } from "./decor";
 import type { DecorSlot } from "./furniture";
-import { decorOverCell, decorSlotCell, decorSpotOffset } from "./room";
+import { decorSlotCell, decorSpotOffset } from "./room";
 
 const PX_PER_BLOCK = 16;
-
-const sameWorldCell = (a: Vec3, b: Vec3): boolean =>
-  a.x === b.x && a.y === b.y && a.z === b.z;
 
 /**
  * The slots that accept `item`, in slot order; none for an unknown item. A standing
@@ -22,7 +19,7 @@ export function slotsFor(item: string): DecorSlot[] {
   return DECOR_SLOTS.filter((slot) => (slot.hanging === true) === hanging);
 }
 
-/** The point on a slot's surface where its decor stands: its spot from the host cell's middle, over its furniture (ADR 0107, 0108). */
+/** The point on a slot's surface where its decor stands: its spot on the cell (ADR 0107). */
 export function slotPoint(pose: HoldPose, slot: DecorSlot): Vec3 {
   const c = decorSlotCell(pose, slot);
   const offset = decorSpotOffset(pose.yaw, slot.spot ?? 0);
@@ -55,7 +52,7 @@ function sightAt(eye: Vec3 | undefined, point: Vec3, y: number): Vec3 {
  * The slot among `slots` whose point is nearest where the line of sight from `eye`
  * through `pressed` crosses that slot's surface (ADR 0110); on a tie, the one listed first.
  */
-function nearest(
+export function nearest(
   pose: HoldPose,
   slots: readonly DecorSlot[],
   pressed: Vec3,
@@ -79,22 +76,20 @@ function nearest(
 /**
  * The free slot accepting `item` whose point is nearest `point`, or with `eye`, nearest
  * where the line of sight through `point` crosses its surface (ADR 0110); on a tie, the
- * slot listed first. A slot is free while no slot of its cell holds decor (ADR 0107) and
- * `clear` says its cell can take a decor block: a host cell outside its furniture is
- * air while empty, so a player's block may stand there (ADR 0108). Undefined when
- * every accepting slot is taken.
+ * slot listed first. A slot is free while no slot of its cell holds decor (ADR 0107), or on
+ * a shelf board or the table, while its own end holds none (ADR 0108). Undefined when every
+ * accepting slot is taken.
  */
 export function nearestFreeSlot(
   pose: HoldPose,
   item: string,
   decor: readonly DecorPlacement[],
   point: Vec3,
-  clear: (slot: DecorSlot) => boolean,
   eye?: Vec3,
 ): DecorSlot | undefined {
   return nearest(
     pose,
-    slotsFor(item).filter((slot) => !cellTaken(slot, decor) && clear(slot)),
+    slotsFor(item).filter((slot) => !cellTaken(slot, decor)),
     point,
     eye,
   );
@@ -102,34 +97,20 @@ export function nearestFreeSlot(
 
 /** The slots whose world cell is `cell` at `pose`, in DECOR_SLOTS order. */
 export function slotsAt(pose: HoldPose, cell: Vec3): DecorSlot[] {
-  return DECOR_SLOTS.filter((slot) =>
-    sameWorldCell(decorSlotCell(pose, slot), cell),
-  );
-}
-
-/**
- * The slots of the furniture under a press on `cell`, in DECOR_SLOTS order: those drawn over
- * `cell`, and those drawn over the furniture of a slot hosted in `cell`. A press on a shelf
- * board, the table, or either item on them names both of their slots (ADR 0108).
- */
-export function pressedSlots(pose: HoldPose, cell: Vec3): DecorSlot[] {
-  const overs = [
-    cell,
-    ...slotsAt(pose, cell).map((s) => decorOverCell(pose, s)),
-  ];
   return DECOR_SLOTS.filter((slot) => {
-    const over = decorOverCell(pose, slot);
-    return overs.some((c) => sameWorldCell(c, over));
+    const c = decorSlotCell(pose, slot);
+    return c.x === cell.x && c.y === cell.y && c.z === cell.z;
   });
 }
 
 /**
- * The free slot accepting `item` nearest `point` among the pressed furniture's slots, when
- * it has one; otherwise the free accepting slot nearest `point` (ADR 0093, 0097, 0105,
- * 0108), or none when `exact`: a press on a dinette seat names one slot, and filling
- * another one left the player unable to tell where the item went (ADR 0104). A slot is
- * free as in nearestFreeSlot, `clear` included. With the player's `eye`, nearness is
- * measured where the line of sight crosses each slot's surface (ADR 0110).
+ * The free slot of the pressed `cell` nearest `point` when the cell has free slots
+ * accepting `item`, such as the free end of a shelf board or the table (ADR 0108);
+ * otherwise the free accepting slot nearest `point` (ADR 0093, 0097, 0105), or none when
+ * `exact`: a press on a dinette seat names one slot, and filling
+ * another one left the player unable to tell where the item went (ADR 0104). With the
+ * player's `eye`, nearness is measured where the line of sight crosses each slot's
+ * surface (ADR 0110).
  */
 export function slotForPress(
   pose: HoldPose,
@@ -138,14 +119,13 @@ export function slotForPress(
   cell: Vec3,
   point: Vec3,
   exact: boolean,
-  clear: (slot: DecorSlot) => boolean,
   eye?: Vec3,
 ): DecorSlot | undefined {
   const accepting = new Set(slotsFor(item));
-  const pressed = pressedSlots(pose, cell).filter(
-    (slot) => accepting.has(slot) && !cellTaken(slot, decor) && clear(slot),
+  const pressed = slotsAt(pose, cell).filter(
+    (slot) => accepting.has(slot) && !cellTaken(slot, decor),
   );
   if (pressed.length > 0) return nearest(pose, pressed, point, eye);
   if (exact) return undefined;
-  return nearestFreeSlot(pose, item, decor, point, clear, eye);
+  return nearestFreeSlot(pose, item, decor, point, eye);
 }

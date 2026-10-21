@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { RemoveDecor } from "../../../src/application/vehicle/removeDecor";
 import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
 import { decorSlot } from "../../../src/domain/vehicle/kinds/camper/decor";
+import { slotPoint } from "../../../src/domain/vehicle/kinds/camper/decorPlacing";
 import { decorSlotCell } from "../../../src/domain/vehicle/kinds/camper/room";
 import { FakeWorld, parkedCamper } from "./fakes";
 
@@ -30,6 +31,27 @@ describe("RemoveDecor (ADR 0093)", () => {
       "giveDecor:p:percolator",
     ]);
     expect(car.decor()).toEqual([{ slot: "table", item: "mug_pair" }]);
+  });
+
+  it("takes back the end of the table nearest the pressed point (ADR 0108)", () => {
+    const { car, pose, world, remove } = setup();
+    car.placeDecor("table", "fruit_bowl");
+    car.placeDecor("table_aisle", "mug_pair");
+    const aisle = decorSlot("table_aisle");
+    if (!aisle) throw new Error("no table_aisle slot");
+    expect(
+      remove.execute({
+        playerId: asPlayerId("p"),
+        vehicleId: car.id,
+        cell: decorSlotCell(pose, aisle),
+        point: slotPoint(pose, aisle),
+        eye: { ...slotPoint(pose, aisle), y: pose.y + 3 },
+      }),
+    ).toBe(true);
+    expect(world.calls).toEqual([
+      "saveDecor:car:table=fruit_bowl",
+      "giveDecor:p:mug_pair",
+    ]);
   });
 
   it("does nothing for a cell without decor or an unknown vehicle", () => {

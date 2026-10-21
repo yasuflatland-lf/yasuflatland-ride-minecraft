@@ -134,9 +134,12 @@ describe("HitVehicle (ADR 0008)", () => {
   });
 
   it("gives back stowed decor when the camper breaks (ADR 0103)", () => {
-    // One item per standing cell: a cell holds one item (ADR 0107).
-    const standing = DECOR_CELLS.flatMap(({ slots: [first] }) =>
-      first && !first.hanging ? [{ slot: first.id, item: "potted_plant" }] : [],
+    // One item per standing cell, a cell holds one item (ADR 0107), and one per end of a
+    // shelf board or the table (ADR 0108).
+    const standing = DECOR_CELLS.flatMap(({ slots }) =>
+      slots
+        .filter((s, i) => !s.hanging && (i === 0 || s.pair))
+        .map((s) => ({ slot: s.id, item: "potted_plant" })),
     );
     const saved = [
       ...standing,

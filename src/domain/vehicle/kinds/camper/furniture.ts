@@ -1,4 +1,6 @@
 // The camper's furniture in local room cells: what it fills and where decor stands on it (ADR 0093).
+import type { DockBlock } from "../../dock/floor";
+
 type FurnitureKind =
   | "dashboard"
   | "table"
@@ -17,16 +19,19 @@ export interface LocalCell {
   readonly layer: number;
 }
 
+/** A furniture whose one cell holds two items, each drawn by the cell's one pair block (ADR 0108). */
+type DecorPairKind = Extract<DockBlock, { type: "decorPair" }>["pair"];
+
+/** One end of a furniture that holds two items in one cell (ADR 0108). */
+interface DecorPairEnd {
+  readonly kind: DecorPairKind;
+  readonly end: 0 | 1;
+}
+
 /** A place for one decor item. Its id is saved with the decor, so it never changes. */
 export interface DecorSlot {
   readonly id: string;
-  /** The host cell, where the slot's decor or furniture block is laid; a cell holds one block (ADR 0107, 0108). */
   readonly cell: LocalCell;
-  /**
-   * The furniture cell the item is drawn over when it is not the host cell: a second item
-   * on a one-cell furniture is hosted in a free neighbor and its spot moves it back (ADR 0108).
-   */
-  readonly over?: LocalCell;
   /**
    * The furniture's top above the cell bottom, in pixels (0 to 15). For a hanging slot, the lift
    * that puts a hanging item's top at the top of the cell: 16 minus the hanging items' height (ADR 0102).
@@ -34,29 +39,35 @@ export interface DecorSlot {
   readonly height: number;
   /** Items hang from this slot instead of standing on it (ADR 0093, 0102). */
   readonly hanging?: true;
-  /** The index in DECOR_SPOTS of where the item stands, from its host cell's middle; the middle when omitted (ADR 0107, 0108). */
+  /** The index in DECOR_SPOTS of where on its cell the item stands; the cell middle when omitted (ADR 0107). */
   readonly spot?: number;
+  /**
+   * The end of a two-item furniture this slot is. Its item is drawn by the cell's pair block
+   * with the other end's, so the cell holds one item per end instead of one in all (ADR 0108).
+   */
+  readonly pair?: DecorPairEnd;
 }
 
-/** A point in pixels from a host cell's middle, `left` and `forward` as in LocalCell; it may lie in a neighbor (ADR 0108). */
+/** A point on a cell's top in pixels from the cell middle: `left` and `forward` as in LocalCell. */
 export interface DecorSpot {
   readonly left: number;
   readonly forward: number;
 }
 
-// Index = a decor block's yasu_ride:spot state; tools/gen_camping_gear.py lists the same
+// Indexes 0 to 4 are a decor block's yasu_ride:spot state; tools/gen_camping_gear.py lists the same
 // offsets and tests/packs/campingGear.test.ts ties its translations to them. 0 is the cell
 // middle; 1 to 4 are the stove burners, whose centers in tools/gen_camper.py are 3.8 px
 // either side of the cell middle across the aisle and 5.4 px toward the sink or 5.35 px
 // toward the far flange. The wall-side spots sit 0.5 px in from their burner centers so the
 // widest item (7 px) clears the wall at 22.8 px; they stay on the 3.2 px grate (ADR 0107).
-// 5 to 8 hold two items on a shelf board or the table (ADR 0108). The 14 px boards run
-// 7 px either side of the shelf cell middle along the camper, and the deepest item reaches
-// 3 px forward and back, so the ends sit 3.5 px either side of the middle: 5 in the shelf
-// cell, 6 hosted one cell forward (16 - 3.5 = 12.5). The table top runs 7 px either side of
-// its middle across the camper, and the widest item reaches 3.5 px to each side: 7 sits
-// 3.3 px toward the wall, clear of the wall at 22.8 px, and 8, hosted in the aisle cell,
-// 3.7 px toward the aisle (16 - 3.7 = 12.3), so the two cannot touch.
+// 5 to 8 are the ends of a shelf board and of the table, where a pair block draws both items
+// at once, so they are not yasu_ride:spot values; tools/gen_camping_gear.py places the items
+// in the pair geometry at the same offsets (ADR 0108). Each 14 px board runs 7 px either side
+// of the cell middle along the camper and the deepest item reaches 3 px forward and back, so
+// the ends sit 3.5 px either side: 0.5 px from each end panel and 1 px apart. The table top
+// runs 7 px either side across the camper and the widest item reaches 3.5 px to each side:
+// the wall side sits 3.3 px toward the wall, clear of its inner face at 22.8 px, and the
+// aisle side 3.7 px toward the aisle, so the two cannot touch.
 export const DECOR_SPOTS: readonly DecorSpot[] = [
   { left: 0, forward: 0 },
   { left: 3.8, forward: 5.4 },
@@ -64,9 +75,9 @@ export const DECOR_SPOTS: readonly DecorSpot[] = [
   { left: -3.3, forward: 5.4 },
   { left: -3.3, forward: -5.35 },
   { left: 0, forward: -3.5 },
-  { left: 0, forward: -12.5 },
+  { left: 0, forward: 3.5 },
   { left: 3.3, forward: 0 },
-  { left: 12.3, forward: 0 },
+  { left: -3.7, forward: 0 },
 ];
 
 /** A room block a piece of furniture fills its cells with; roomCells turns a faced one toward the aisle (ADR 0092, 0098). */
@@ -110,18 +121,25 @@ export const CAMPER_FURNITURE: readonly Furniture[] = [
       { id: "dashboard_left", cell: { x: 1, z: 3, layer: 2 }, height: 3 },
     ],
   },
-  // Two items across the table; the aisle-side one is hosted in the aisle cell (ADR 0108).
+  // Two items across the table, drawn by one pair block. "table" keeps its id for saved
+  // decor at the wall side (ADR 0108).
   {
     kind: "table",
     cells: [TABLE_CELL],
     slots: [
-      { id: "table", cell: TABLE_CELL, height: 12, spot: 7 },
+      {
+        id: "table",
+        cell: TABLE_CELL,
+        height: 12,
+        spot: 7,
+        pair: { kind: "table", end: 0 },
+      },
       {
         id: "table_aisle",
-        cell: { x: 0, z: 0, layer: 1 },
-        over: TABLE_CELL,
+        cell: TABLE_CELL,
         height: 12,
         spot: 8,
+        pair: { kind: "table", end: 1 },
       },
     ],
   },
@@ -146,27 +164,39 @@ export const CAMPER_FURNITURE: readonly Furniture[] = [
     slots: [],
     block: { type: "bed" },
   },
-  // Two items per board along the camper. The rear end keeps the board's old id; the front
-  // end is hosted in the driver's seat cell in front of the shelf (ADR 0108).
+  // Two items along each board, drawn by one pair block per board. The rear ends keep the
+  // boards' ids for saved decor (ADR 0108).
   {
     kind: "shelf",
     cells: [SHELF_LOW_CELL, SHELF_HIGH_CELL],
     slots: [
-      { id: "shelf_low", cell: SHELF_LOW_CELL, height: 10, spot: 5 },
+      {
+        id: "shelf_low",
+        cell: SHELF_LOW_CELL,
+        height: 10,
+        spot: 5,
+        pair: { kind: "shelf", end: 0 },
+      },
       {
         id: "shelf_low_front",
-        cell: { x: -1, z: 2, layer: 1 },
-        over: SHELF_LOW_CELL,
+        cell: SHELF_LOW_CELL,
         height: 10,
         spot: 6,
+        pair: { kind: "shelf", end: 1 },
       },
-      { id: "shelf_high", cell: SHELF_HIGH_CELL, height: 4, spot: 5 },
+      {
+        id: "shelf_high",
+        cell: SHELF_HIGH_CELL,
+        height: 4,
+        spot: 5,
+        pair: { kind: "shelf", end: 0 },
+      },
       {
         id: "shelf_high_front",
-        cell: { x: -1, z: 2, layer: 2 },
-        over: SHELF_HIGH_CELL,
+        cell: SHELF_HIGH_CELL,
         height: 4,
         spot: 6,
+        pair: { kind: "shelf", end: 1 },
       },
     ],
   },

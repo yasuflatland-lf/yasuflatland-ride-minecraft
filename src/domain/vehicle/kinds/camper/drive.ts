@@ -5,21 +5,19 @@ import type { HoldPose } from "../../dock/floor";
 import type { DriveStep, EngineCommand, TickContext } from "../../drive";
 import type { RawInput } from "../../driveInput";
 import type { RestoredOf } from "../../entityContract";
-import { cellKey } from "../../lighting/headlights";
 import { DOCK, heldStep, pushesStick } from "../../motion/dock";
 import { dockCommands, undockCommands } from "../../motion/dockEntity";
 import { TransformingDrive } from "../../motion/transformingDrive";
 import { SyncedValue } from "../../syncedValue";
 import { type BodyEnds, guardEnds } from "./bodyGuard";
 import {
-  cellSlots,
   cellTaken,
   DECOR_CELLS,
   DECOR_SLOTS,
-  decorInCell,
   decorSlot,
+  sharingSlots,
 } from "./decor";
-import { slotForPress, slotsAt, slotsFor } from "./decorPlacing";
+import { nearest, slotForPress, slotsAt, slotsFor } from "./decorPlacing";
 import { DoorToggle } from "./doorToggle";
 import {
   type CAMPER_ENTITY,
@@ -31,8 +29,8 @@ import { CAMPER_MOTION, CAMPER_TYRES } from "./profile";
 import {
   cargoCells,
   deckSeats,
+  decorBlockName,
   decorCells,
-  decorSlotCell,
   departure,
   exitCells,
   furnitureCells,
@@ -192,7 +190,7 @@ export class CamperDrive extends TransformingDrive {
     });
   }
 
-  /** Sets or clears one slot; an item replaces whatever another slot of its cell held (ADR 0107). */
+  /** Sets or clears one slot; an item replaces whatever a slot sharing its place held (ADR 0107, 0108). */
   setDecor(slot: string, item: string | undefined): boolean {
     const target = decorSlot(slot);
     if (!target || (item !== undefined && !isDecorItem(item))) return false;
@@ -201,8 +199,7 @@ export class CamperDrive extends TransformingDrive {
       this.decorBySlot.delete(slot);
       return true;
     }
-    for (const other of cellSlots(target.cell))
-      this.decorBySlot.delete(other.id);
+    for (const other of sharingSlots(target)) this.decorBySlot.delete(other.id);
     this.decorBySlot.set(slot, item);
     return true;
   }
@@ -215,26 +212,16 @@ export class CamperDrive extends TransformingDrive {
     point: Vec3,
     cell: Vec3,
     exact: boolean,
-    blockTypes: (cells: readonly Vec3[]) => readonly (string | undefined)[],
     eye?: Vec3,
   ): string | undefined {
-    const pose = this.parked;
-    if (!pose) return undefined;
-    // A host cell outside its furniture is air while empty, so a player's block may stand
-    // there; decor sent to it would not be laid until the block is gone (ADR 0108).
-    const cells = slotCells(pose);
-    const types = blockTypes(cells);
-    const clear = new Set(
-      cells.filter((_, i) => ownSlotBlock(types[i], undefined)).map(cellKey),
-    );
+    if (!this.parked) return undefined;
     return slotForPress(
-      pose,
+      this.parked,
       item,
       this.placed(),
       cell,
       point,
       exact,
-      (slot) => clear.has(cellKey(decorSlotCell(pose, slot))),
       eye,
     )?.id;
   }
@@ -246,12 +233,18 @@ export class CamperDrive extends TransformingDrive {
     return this.setDecor(slot, item);
   }
 
-  /** Takes back the item in the pressed cell, whichever of the cell's slots holds it (ADR 0107). */
-  removeDecor(cell: Vec3): string | undefined {
+  /**
+   * Takes back the item in the pressed cell, whichever of the cell's slots holds it (ADR 0107).
+   * A shelf board or the table may hold two, and the one nearest `point` is taken, measured
+   * along the line of sight from `eye` as when placing (ADR 0108, 0110).
+   */
+  removeDecor(cell: Vec3, point?: Vec3, eye?: Vec3): string | undefined {
     if (!this.parked) return undefined;
-    const slot = slotsAt(this.parked, cell).find(({ id }) =>
+    const held = slotsAt(this.parked, cell).filter(({ id }) =>
       this.decorBySlot.has(id),
     );
+    const slot =
+      point === undefined ? held[0] : nearest(this.parked, held, point, eye);
     if (!slot) return undefined;
     const item = this.decorBySlot.get(slot.id);
     this.setDecor(slot.id, undefined);
@@ -287,7 +280,7 @@ export class CamperDrive extends TransformingDrive {
         holdsCargo(types.slice(0, cargo.length)) ||
         DECOR_CELLS.some(
           ({ cell }, i) =>
-            !ownSlotBlock(slotTypes[i], decorInCell(cell, decor)?.item),
+            !ownSlotBlock(slotTypes[i], decorBlockName(cell, decor)),
         )
       )
         return {

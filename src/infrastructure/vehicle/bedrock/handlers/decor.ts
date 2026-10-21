@@ -1,5 +1,4 @@
 import {
-  type Block,
   type PlayerInteractWithBlockBeforeEvent,
   type PlayerInteractWithEntityBeforeEvent,
   system,
@@ -16,18 +15,16 @@ import {
 } from "../../../../domain/shared/ids";
 import type { Vec3 } from "../../../../domain/shared/vec";
 import {
-  HOSTED_DECOR_SPOTS,
   SeatPresses,
   seatSlotCell,
 } from "../../../../domain/vehicle/kinds/index";
 import {
   CAMPER_DECOR_COMPONENT,
   CAMPER_FURNITURE_BLOCK,
-  campingGearOfDecorBlock,
   campingGearOfItem,
   DECK_SEAT_TYPE,
-  DECOR_SPOT_STATE,
   isCamperRoomBlock,
+  isDecorBlock,
 } from "../identifiers";
 
 type DockCellOwner = (
@@ -73,10 +70,20 @@ export function registerDecor(
           ev.block.location,
         );
         if (vehicleId === undefined) return;
+        // A shelf board's or the table's pair block draws two items, and the press takes
+        // back the one nearest where the line of sight meets the board (ADR 0108, 0110).
+        const at = ev.block.location;
+        const face = ev.faceLocation;
+        const head = player.getHeadLocation();
         remove.execute({
           playerId: asPlayerId(player.id),
           vehicleId,
-          cell: ev.block.location,
+          cell: at,
+          point:
+            face === undefined
+              ? undefined
+              : { x: at.x + face.x, y: at.y + face.y, z: at.z + face.z },
+          eye: { x: head.x, y: head.y, z: head.z },
         });
       },
     });
@@ -91,8 +98,7 @@ function placeGear(
 ): void {
   const { block } = ev;
   const pressedRoom =
-    isCamperRoomBlock(block.typeId) ||
-    campingGearOfDecorBlock(block.typeId) !== undefined;
+    isCamperRoomBlock(block.typeId) || isDecorBlock(block.typeId);
   if (!pressedRoom) return;
   const vehicleId = dockCellOwner(
     asDimensionId(block.dimension.id),
@@ -147,7 +153,7 @@ function placeGearOnSeat(
   const at = seat.location;
   const point = { x: at.x, y: at.y, z: at.z };
   const slot = seatSlotCell(point, (cell) =>
-    isSeatSlotBlock(dimension.getBlock(cell)),
+    isSlotBlock(dimension.getBlock(cell)?.typeId),
   );
   if (slot === undefined) return;
   const vehicleId = dockCellOwner(dimensionId, slot);
@@ -169,15 +175,8 @@ function placeGearOnSeat(
   );
 }
 
-/**
- * An empty slot's furniture block or a placed gear's decor block (ADR 0093, 0097). A decor
- * block drawn over a neighbor's furniture, such as the shelf's front end hosted above the
- * driver's seat, names no seat's slot, so the driver still sits with gear in hand (ADR 0108).
- */
-function isSeatSlotBlock(block: Block | undefined): boolean {
-  if (block === undefined) return false;
-  if (block.typeId === CAMPER_FURNITURE_BLOCK) return true;
-  if (campingGearOfDecorBlock(block.typeId) === undefined) return false;
-  const spot = block.permutation.getAllStates()[DECOR_SPOT_STATE];
-  return typeof spot !== "number" || !HOSTED_DECOR_SPOTS.has(spot);
+/** An empty slot's furniture block or a placed gear's decor or pair block (ADR 0093, 0097, 0108). */
+function isSlotBlock(typeId: string | undefined): boolean {
+  if (typeId === undefined) return false;
+  return typeId === CAMPER_FURNITURE_BLOCK || isDecorBlock(typeId);
 }
