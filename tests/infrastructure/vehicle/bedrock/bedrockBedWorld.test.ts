@@ -87,9 +87,13 @@ describe("BedrockBedWorld (ADR 0092)", () => {
       asDimensionId("minecraft:overworld"),
       { x: 1, y: 65, z: 2 },
     );
+    expect(() =>
+      bed.showMessage(asPlayerId("missing"), "sleep_at_night"),
+    ).not.toThrow();
     expect(player.camera.fade).not.toHaveBeenCalled();
     expect(game.system.runTimeout).not.toHaveBeenCalled();
     expect(player.setSpawnPoint).not.toHaveBeenCalled();
+    expect(player.onScreenDisplay.setActionBar).not.toHaveBeenCalled();
   });
 
   it("shows the night-only message on the action bar", () => {
