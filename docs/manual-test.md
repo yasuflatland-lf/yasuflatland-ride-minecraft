@@ -101,6 +101,10 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | C24 | Sit in the driver's seat and then the front passenger seat in first person, on PC and mobile, and look straight ahead | You see the road through the windshield over the dashboard and the steering wheel; the steering wheel does not cut into the cushion (ADR 0070) | | |
 | C25 | Fly the camper from the driver's seat, turn the view around, then dive into deep water; then fly the SUV | In the camper the camera pulls back far enough to show the whole camper from behind, and it turns with your view; in the SUV the view is the usual F5 distance (ADR 0071) | | |
 | C26 | Park, walk to the bed at the rear left, step onto it, and place a block on top of it | The bed stops you like a low block and you can stand on it; the block on top keeps the camper parked with "Clear the blocks inside first" | | |
+| C27 | Park at night (`/time set 13000`) and long-press the bed on a phone; repeat with right-click on PC | The screen fades to black and back, and it is morning for every player | | |
+| C28 | Long-press the bed during the day (`/time set 1000`) | "You can sleep only at night" shows; the time does not change | | |
+| C29 | Long-press the bed, then die (`/kill`) | You respawn standing on the bed, not stuck inside it | | |
+| C30 | Long-press the bed, drive the camper away, then die | You respawn where the bed was | | |
 
 ## Upgrading from MyCar 0.5.0 and earlier
 

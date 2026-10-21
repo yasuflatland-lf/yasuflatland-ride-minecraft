@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { CAMPER_SPEC } from "../../src/domain/vehicle/kinds/camper/spec";
 import {
   CAMPER_BED_BLOCK,
+  CAMPER_BED_COMPONENT,
   CAMPER_CEILING_BLOCK,
   CAMPER_DOOR_BLOCK,
   CAMPER_DOOR_COMPONENT,
@@ -25,6 +26,10 @@ const wallPlates = [
   { origin: [6, 0, -8], size: [2, 16, 16] },
   { origin: [-8, 0, -8], size: [2, 16, 16] },
 ];
+const customComponents: Record<string, string[]> = {
+  door: [CAMPER_DOOR_COMPONENT],
+  bed: [CAMPER_BED_COMPONENT],
+};
 
 describe("Camper room blocks (ADR 0068)", () => {
   it.each([
@@ -53,10 +58,11 @@ describe("Camper room blocks (ADR 0068)", () => {
       expect(block.components["minecraft:material_instances"]).toEqual({
         "*": { texture: "glass", render_method: "alpha_test" },
       });
-      if (name === "door")
-        expect(block.components["minecraft:custom_components"]).toEqual([
-          CAMPER_DOOR_COMPONENT,
-        ]);
+      const expected = customComponents[name];
+      if (expected)
+        expect(block.components["minecraft:custom_components"]).toEqual(
+          expected,
+        );
       else
         expect(block.components).not.toHaveProperty(
           "minecraft:custom_components",

@@ -35,3 +35,7 @@ Dirt paths, farmland, mud and soul sand, which are lower than a full block, supp
 To drive off, sit in the driver's seat and push forward or back. Anyone standing inside or on the full roof, including its wall plates and up to 0.3 blocks beyond the edge, is seated if a seat is free. Players without a seat move outside the door if its exit is clear; if either exit cell is blocked, they stay where they are while the camper departs. The departure check reads the 61 interior and roof cells outside the bed and the two exit cells in one batch. While a block you placed is inside or on the roof, the camper stays parked and asks you to clear it first.
 
 After a reload, a parked camper keeps its room and the door continues toward the target saved in its door blocks. If the reload interrupted parking before the room was laid, it checks and clears decorations once, then lays the room that tick. Any newly occupied cells are preserved and skipped; this recovery does not scan again every tick.
+
+## Sleeping
+
+Long-press or use the bed at the rear left of a parked camper to set your spawn point there. At night (time of day 12542 to 23459), your screen fades to black and the night is skipped to the morning for everyone. At other times you see "You can sleep only at night". The bed works only in the Overworld. If the camper drives away, you still respawn where it was parked.
