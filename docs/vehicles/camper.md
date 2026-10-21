@@ -48,3 +48,7 @@ While the camper is parked, hold a camping gear item and long-press or right-cli
 ## Shower
 
 The shower-toilet at the rear right of a parked camper has its own door. With an empty hand, long-press (or right-click) its floor from outside to open or close the door. Step inside and long-press the floor under you, again with an empty hand, to run the shower: water sprays from the shower head with the sound of running water for 5 seconds, and another long-press starts the 5 seconds over. Driving away shuts the door and stops the shower.
+
+## Toilet
+
+While the camper is parked, long-press or use the toilet in the shower-toilet at the rear right to sit on it, and sneak to stand up. Only the toilet itself takes the long-press, so long-pressing the floor around it with an empty hand still opens the shower-toilet door and runs the shower. When the driver sets off, a player on the toilet moves into a free seat. If every seat is taken, they move outside the door like a player left standing, or stay standing inside if the way out is blocked.

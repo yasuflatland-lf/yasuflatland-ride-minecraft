@@ -128,6 +128,10 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | C51 | Open the shower door and run `/reload` | The shower door is still open and the shower is off | | |
 | C52 | Hold a camping gear item and long-press the shower-toilet's floor from the aisle | The shower door does not move | | |
 | C53 | Hold a stone block and long-press the shower-toilet's floor from the aisle, then the aisle floor | The stone is placed both times, and neither the shower door nor the shower reacts | | |
+| C54 | Park, open the shower-toilet door, step in, and long-press the toilet on a phone; repeat with right-click on PC; then sneak | You sit on the toilet at its seat height, neither sunk into it nor floating above it; sneaking stands you up (ADR 0095) | | |
+| C55 | In a parked camper, with an empty hand, long-press the shower-toilet floor beside the toilet from the aisle, then from inside the shower-toilet; repeat with right-click on PC | The door opens or closes from the aisle and the shower runs from inside; neither long-press seats you on the toilet (ADR 0095) | | |
+| C56 | Sit on the toilet while another player sits in the driver's deck seat and drives off, with a camper seat free | You ride along in a free camper seat (ADR 0095) | | |
+| C57 | Fill all four camper seats, sit a fifth player on the toilet, and drive off | The fifth player stands on the ground outside the door, facing away from the camper (ADR 0095) | | |
 
 ## Upgrading from MyCar 0.5.0 and earlier
 
