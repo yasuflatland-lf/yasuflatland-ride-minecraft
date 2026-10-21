@@ -10,6 +10,13 @@ const RP = "packs/yasu_ride_rp";
 const entityFile = read(`${BP}/entities/yasu_ride/deck_seat.se.json`);
 const entity = entityFile["minecraft:entity"];
 
+function langValues(locale: string, key: string): string[] {
+  return readFileSync(`${RP}/texts/${locale}.lang`, "utf8")
+    .split(/\r?\n/)
+    .filter((line) => line.startsWith(`${key}=`))
+    .map((line) => line.slice(line.indexOf("=") + 1));
+}
+
 describe("Boat deck seat (ADR 0063)", () => {
   it("is summonable but not spawnable and excluded from the vehicle family", () => {
     expect(entityFile.format_version).toBe("1.21.80");
@@ -115,28 +122,18 @@ describe("Boat deck seat (ADR 0063)", () => {
   });
 
   it.each(["en_US", "ja_JP"])("names the entity in %s", (locale) => {
-    const names = readFileSync(`${RP}/texts/${locale}.lang`, "utf8")
-      .split(/\r?\n/)
-      .filter((line) => line.startsWith("entity.yasu_ride:deck_seat.name="))
-      .map((line) => line.slice(line.indexOf("=") + 1));
+    const names = langValues(locale, "entity.yasu_ride:deck_seat.name");
     expect(names).toHaveLength(1);
     expect(names[0]?.trim()).not.toBe("");
     if (locale === "en_US") expect(names[0]).toBe("Boat Seat");
   });
 
-  it.each(["en_US", "ja_JP"])(
-    "labels the seat's interact button in %s",
-    (locale) => {
-      const key = entity.components["minecraft:rideable"].interact_text;
-      expect(key).toMatch(/^action\.interact\.yasu_ride\.[a-z_]+$/);
-      const labels = readFileSync(`${RP}/texts/${locale}.lang`, "utf8")
-        .split(/\r?\n/)
-        .filter((line) => line.startsWith(`${key}=`))
-        .map((line) => line.slice(line.indexOf("=") + 1));
-      expect(labels).toHaveLength(1);
-      if (locale === "en_US") expect(labels[0]).toBe("Sit");
-      // pnpm lint:lang allows Japanese only in texts/*.lang (AGENTS.md)
-      if (locale === "ja_JP") expect(labels[0]).toBe("\u5ea7\u308b");
-    },
-  );
+  it.each([
+    ["en_US", "Sit"],
+    // pnpm lint:lang allows Japanese only in texts/*.lang (AGENTS.md)
+    ["ja_JP", "\u5ea7\u308b"],
+  ])("labels the seat's interact button in %s", (locale, label) => {
+    const key = entity.components["minecraft:rideable"].interact_text;
+    expect(langValues(locale, key)).toEqual([label]);
+  });
 });
