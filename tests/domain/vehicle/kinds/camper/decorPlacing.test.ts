@@ -40,7 +40,7 @@ it("accepts a standing item on every slot but the ceiling hook and a hanging ite
     fc.property(gear, (id) => {
       const hanging = HANGING_GEAR_IDS.has(id);
       expect(slotsFor(id)).toEqual(
-        SLOTS.filter(({ kind }) => (kind === "ceiling_hook") === hanging).map(
+        SLOTS.filter(({ slot }) => (slot.hanging === true) === hanging).map(
           ({ slot }) => slot,
         ),
       );

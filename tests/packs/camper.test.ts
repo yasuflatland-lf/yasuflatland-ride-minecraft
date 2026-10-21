@@ -764,7 +764,7 @@ describe("camper furniture model (ADR 0093)", () => {
   // A hanging decor item's top: the top of its cell, where the hook ends (ADR 0099).
   const HANG_TOP = 16;
 
-  it("puts every standing decor slot on the model's top surface and runs the ceiling hook from the ceiling plate to the top of its cell (ADR 0093, 0099)", () => {
+  it("puts every standing decor slot on the model's top surface and runs the ceiling hook from the ceiling plate to the top of its cell (ADR 0093, 0099, 0102)", () => {
     const slots = CAMPER_FURNITURE.flatMap((f) => f.slots);
     expect(slots).toHaveLength(12);
     const unrotatedCubes = bones
@@ -780,7 +780,7 @@ describe("camper furniture model (ADR 0093)", () => {
         const [sx = 0, , sz = 0] = cube.size;
         return ox <= x && x <= ox + sx && oz <= z && z <= oz + sz;
       });
-      if (slot.height > 0) {
+      if (slot.hanging !== true) {
         const tops = covering.flatMap((cube) => {
           const [, oy = 0] = cube.origin;
           const [, sy = 0] = cube.size;

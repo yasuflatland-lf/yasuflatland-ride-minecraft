@@ -113,7 +113,7 @@ describe("Camper room blocks (ADR 0068)", () => {
     );
   });
 
-  it("covers each slot's furniture top (ADR 0097)", () => {
+  it("covers each slot's furniture top (ADR 0097, 0102)", () => {
     const block = readBlock("furniture")["minecraft:block"];
     const boxOf = (height: number): { origin: number[]; size: number[] } =>
       block.permutations.find(
@@ -121,9 +121,9 @@ describe("Camper room blocks (ADR 0068)", () => {
           p.condition === `q.block_state('${DECOR_HEIGHT_STATE}') == ${height}`,
       ).components["minecraft:selection_box"];
     for (const slot of DECOR_SLOTS) {
-      const { origin, size } = boxOf(slot.height);
+      const { origin, size } = boxOf(slot.hanging ? 0 : slot.height);
       const [bottom, top] = [origin[1], (origin[1] ?? 0) + (size[1] ?? 0)];
-      if (slot.height > 0)
+      if (slot.hanging !== true)
         expect([bottom, top], slot.id).toEqual([0, slot.height]);
       else {
         expect(bottom, slot.id).toBeGreaterThanOrEqual(0);

@@ -77,6 +77,9 @@ export const AIR = "minecraft:air";
 // The namespace-free name of yasu_ride:camper_furniture; identifiers.test.ts checks
 // it against CAMPER_FURNITURE_BLOCK (ADR 0097).
 const FURNITURE_BLOCK_SUFFIX = ":camper_furniture";
+// yasu_ride:camper_furniture's height 0 is the hanging box under the hook,
+// whatever the hanging slot's own height (ADR 0097, 0102).
+const HANGING_FURNITURE_HEIGHT = 0;
 
 /** Passable decorations that parking removes; anything else in a checked cell refuses (ADR 0068). */
 export const CLEARABLE_DECORATIONS: ReadonlySet<string> = new Set([
@@ -265,7 +268,10 @@ type FurnitureCell = DockCell & {
   readonly block: Extract<DockBlock, { type: "furniture" }>;
 };
 
-/** A furniture block in every decor slot that holds no decor, at the slot's height, in DECOR_SLOTS order (ADR 0097). */
+/**
+ * A furniture block in every decor slot that holds no decor, at the slot's height, or the hanging
+ * box for a hanging slot, in DECOR_SLOTS order (ADR 0097, 0102).
+ */
 export function furnitureCells(
   pose: HoldPose,
   decor: readonly DecorPlacement[],
@@ -273,7 +279,10 @@ export function furnitureCells(
   const taken = new Set(decor.map(({ slot }) => slot));
   return DECOR_SLOTS.filter(({ id }) => !taken.has(id)).map((s) => ({
     ...decorSlotCell(pose, s),
-    block: { type: "furniture", height: s.height } as const,
+    block: {
+      type: "furniture",
+      height: s.hanging ? HANGING_FURNITURE_HEIGHT : s.height,
+    } as const,
   }));
 }
 

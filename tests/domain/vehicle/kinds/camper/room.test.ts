@@ -591,7 +591,10 @@ it("lays a furniture block in every slot without decor and none in a cargo, room
           DECOR_SLOTS.find((s) => cellKey(decorSlotCell(p, s)) === cellKey(c)),
           "slot at furniture cell",
         );
-        expect(c.block).toEqual({ type: "furniture", height: slot.height });
+        expect(c.block).toEqual({
+          type: "furniture",
+          height: slot.hanging ? 0 : slot.height,
+        });
         expect(cargo.has(cellKey(c))).toBe(false);
         expect(room.has(cellKey(c))).toBe(false);
         const at = { x: c.x - Math.floor(p.x), z: c.z - Math.floor(p.z) };

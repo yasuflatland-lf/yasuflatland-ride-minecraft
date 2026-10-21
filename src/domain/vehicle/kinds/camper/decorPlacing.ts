@@ -3,31 +3,20 @@ import type { Vec3 } from "../../../shared/vec";
 import type { DecorPlacement } from "../../dock/decor";
 import type { HoldPose } from "../../dock/floor";
 import { CAMPING_GEAR_IDS, HANGING_GEAR_IDS } from "./campingGear";
-import {
-  CAMPER_FURNITURE,
-  type DecorSlot,
-  type FurnitureKind,
-} from "./furniture";
+import { DECOR_SLOTS } from "./decor";
+import type { DecorSlot } from "./furniture";
 import { decorSlotCell } from "./room";
 
 const PX_PER_BLOCK = 16;
 
-/** Every decor slot with its furniture kind, in DECOR_SLOTS order. */
-const SLOTS: readonly { kind: FurnitureKind; slot: DecorSlot }[] =
-  CAMPER_FURNITURE.flatMap((f) =>
-    f.slots.map((slot) => ({ kind: f.kind, slot })),
-  );
-
 /**
  * The slots that accept `item`, in slot order; none for an unknown item. A standing
- * item fits every slot but the ceiling hook, and a hanging item only the hook (ADR 0097).
+ * item fits every standing slot, and a hanging item only a hanging slot (ADR 0097, 0102).
  */
 export function slotsFor(item: string): DecorSlot[] {
   if (!CAMPING_GEAR_IDS.includes(item)) return [];
   const hanging = HANGING_GEAR_IDS.has(item);
-  return SLOTS.filter(({ kind }) => (kind === "ceiling_hook") === hanging).map(
-    ({ slot }) => slot,
-  );
+  return DECOR_SLOTS.filter((slot) => (slot.hanging === true) === hanging);
 }
 
 /** The middle of a slot's surface, where its decor stands. */
@@ -63,10 +52,10 @@ export function nearestFreeSlot(
 
 /** The slot whose world cell is `cell` at `pose`, if any. */
 export function slotAt(pose: HoldPose, cell: Vec3): DecorSlot | undefined {
-  return SLOTS.find(({ slot }) => {
+  return DECOR_SLOTS.find((slot) => {
     const c = decorSlotCell(pose, slot);
     return c.x === cell.x && c.y === cell.y && c.z === cell.z;
-  })?.slot;
+  });
 }
 
 /**
