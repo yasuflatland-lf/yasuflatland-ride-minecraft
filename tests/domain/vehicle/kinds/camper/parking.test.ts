@@ -41,6 +41,8 @@ import { DOCK } from "../../../../../src/domain/vehicle/motion/dock";
 import { defined } from "../../../../support/defined";
 
 const PUSH = { moveX: 0, moveY: 1, jump: false };
+// Every slot cell reads as air: nothing of a player's stands in the room.
+const ALL_AIR = (cells: readonly unknown[]) => cells.map(() => AIR);
 const NEUTRAL = { moveX: 0, moveY: 0, jump: false };
 const decorItem = fc.constantFrom("potted_plant", "percolator", "cushion");
 // At most one placement per slot cell, as the drive keeps it (ADR 0107).
@@ -713,27 +715,30 @@ it("places and removes decor by hand once parked, and lays it with the room on t
   const point = slotPoint(f.pose, stove);
   const cell = decorSlotCell(f.pose, stove);
   expect(
-    f.drive.decorSlotFor("percolator", point, cell, false),
+    f.drive.decorSlotFor("percolator", point, cell, false, ALL_AIR),
   ).toBeUndefined();
   expect(f.drive.placeDecor("stove", "percolator")).toBe(false);
   expect(f.drive.removeDecor(cell)).toBeUndefined();
   expect(f.drive.decor()).toEqual([]);
 
   expect(f.step().dock?.cells).toEqual([]);
-  expect(f.drive.decorSlotFor("percolator", point, cell, false)).toBe("stove");
+  expect(f.drive.decorSlotFor("percolator", point, cell, false, ALL_AIR)).toBe(
+    "stove",
+  );
   expect(f.drive.placeDecor("ceiling_hook", "percolator")).toBe(false);
   expect(f.drive.placeDecor("nowhere", "percolator")).toBe(false);
   expect(f.drive.placeDecor("stove", "percolator")).toBe(true);
   expect(f.drive.placeDecor("stove", "enamel_kettle")).toBe(false);
-  expect(f.drive.decorSlotFor("enamel_kettle", point, cell, false)).not.toBe(
-    "stove",
-  );
+  expect(
+    f.drive.decorSlotFor("enamel_kettle", point, cell, false, ALL_AIR),
+  ).not.toBe("stove");
   expect(
     f.drive.decorSlotFor(
       "macrame_planter",
       point,
       decorSlotCell(f.pose, slotNamed("ceiling_hook")),
       false,
+      ALL_AIR,
     ),
   ).toBe("ceiling_hook");
 
@@ -768,6 +773,7 @@ it("keeps placed decor through a departure and refuses changes while driving", (
       slotPoint(f.pose, stove),
       decorSlotCell(f.pose, stove),
       false,
+      ALL_AIR,
     ),
   ).toBeUndefined();
   expect(f.drive.placeDecor("table", "mug_pair")).toBe(false);
@@ -784,6 +790,7 @@ it("places the item in the pressed slot ahead of a nearer free slot (ADR 0097)",
       slotPoint(f.pose, slotNamed("shelf_low")),
       decorSlotCell(f.pose, slotNamed("shelf_high")),
       false,
+      ALL_AIR,
     ),
   ).toBe("shelf_high");
 });
@@ -806,18 +813,25 @@ it("puts the stove item on the burner nearest the press and takes no second item
             slotPoint(f.pose, burner),
             cell,
             false,
+            ALL_AIR,
           ),
         ).toBe(first);
         expect(f.drive.placeDecor(first, "saucepan")).toBe(true);
         const point = slotPoint(f.pose, slotNamed(second));
         expect(f.drive.placeDecor(second, "enamel_kettle")).toBe(false);
         expect(
-          f.drive.decorSlotFor("enamel_kettle", point, cell, true),
+          f.drive.decorSlotFor("enamel_kettle", point, cell, true, ALL_AIR),
         ).toBeUndefined();
         expect(
           decorSlot(
             defined(
-              f.drive.decorSlotFor("enamel_kettle", point, cell, false),
+              f.drive.decorSlotFor(
+                "enamel_kettle",
+                point,
+                cell,
+                false,
+                ALL_AIR,
+              ),
               "fallback slot",
             ),
           )?.cell,
@@ -875,6 +889,7 @@ it("places both ends of a shelf board or the table from presses on the furniture
             slotPoint(f.pose, hosted),
             furniture,
             false,
+            ALL_AIR,
           ),
         ).toBe(hostedId);
         expect(f.drive.placeDecor(hostedId, "cushion")).toBe(true);
@@ -884,6 +899,7 @@ it("places both ends of a shelf board or the table from presses on the furniture
             slotPoint(f.pose, hosted),
             host,
             false,
+            ALL_AIR,
           ),
         ).toBe(own);
         expect(f.drive.placeDecor(own, "book_stack")).toBe(true);
@@ -942,8 +958,12 @@ it("refuses an exact press on a taken slot instead of offering another one (ADR 
   expect(f.drive.placeDecor("stove", "percolator")).toBe(true);
   const point = slotPoint(f.pose, stove);
   const cell = decorSlotCell(f.pose, stove);
-  expect(f.drive.decorSlotFor("toaster", point, cell, true)).toBeUndefined();
-  expect(f.drive.decorSlotFor("toaster", point, cell, false)).toBeDefined();
+  expect(
+    f.drive.decorSlotFor("toaster", point, cell, true, ALL_AIR),
+  ).toBeUndefined();
+  expect(
+    f.drive.decorSlotFor("toaster", point, cell, false, ALL_AIR),
+  ).toBeDefined();
 });
 
 describe("shower-toilet (ADR 0094)", () => {

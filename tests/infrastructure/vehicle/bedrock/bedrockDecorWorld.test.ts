@@ -130,6 +130,35 @@ describe("BedrockDecorWorld (ADR 0093)", () => {
     expect(player.onScreenDisplay.setActionBar).toHaveBeenCalledTimes(1);
   });
 
+  it("reads slot cells in the vehicle's dimension, a light block as air, and an unreadable cell or a missing vehicle as undefined (ADR 0108)", () => {
+    const { vehicle, world } = fixture();
+    const blocks: Record<number, unknown> = {
+      0: { typeId: "minecraft:air", isAir: true },
+      1: { typeId: "minecraft:light_block_15", isAir: false },
+      2: { typeId: "minecraft:chest", isAir: false },
+      3: undefined,
+    };
+    Object.assign(vehicle, {
+      dimension: {
+        getBlock: vi.fn(({ x }: { x: number }) => {
+          if (x === 4) throw new Error("unloaded");
+          return blocks[x];
+        }),
+      },
+    });
+    const cells = [0, 1, 2, 3, 4].map((x) => ({ x, y: 64, z: 0 }));
+    expect(world.blockTypes(asVehicleId(vehicle.id), cells)).toEqual([
+      "minecraft:air",
+      "minecraft:air",
+      "minecraft:chest",
+      undefined,
+      undefined,
+    ]);
+    expect(world.blockTypes(asVehicleId("missing"), cells)).toEqual(
+      cells.map(() => undefined),
+    );
+  });
+
   it("reports Creative only for a valid player in Creative", () => {
     const { player, world } = fixture();
     player.getGameMode.mockReturnValue("Creative");

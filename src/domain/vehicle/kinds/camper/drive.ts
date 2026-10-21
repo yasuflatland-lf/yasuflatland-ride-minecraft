@@ -5,6 +5,7 @@ import type { HoldPose } from "../../dock/floor";
 import type { DriveStep, EngineCommand, TickContext } from "../../drive";
 import type { RawInput } from "../../driveInput";
 import type { RestoredOf } from "../../entityContract";
+import { cellKey } from "../../lighting/headlights";
 import { DOCK, heldStep, pushesStick } from "../../motion/dock";
 import { dockCommands, undockCommands } from "../../motion/dockEntity";
 import { TransformingDrive } from "../../motion/transformingDrive";
@@ -31,6 +32,7 @@ import {
   cargoCells,
   deckSeats,
   decorCells,
+  decorSlotCell,
   departure,
   exitCells,
   furnitureCells,
@@ -213,10 +215,20 @@ export class CamperDrive extends TransformingDrive {
     point: Vec3,
     cell: Vec3,
     exact: boolean,
+    blockTypes: (cells: readonly Vec3[]) => readonly (string | undefined)[],
   ): string | undefined {
-    if (!this.parked) return undefined;
-    return slotForPress(this.parked, item, this.placed(), cell, point, exact)
-      ?.id;
+    const pose = this.parked;
+    if (!pose) return undefined;
+    // A host cell outside its furniture is air while empty, so a player's block may stand
+    // there; decor sent to it would not be laid until the block is gone (ADR 0108).
+    const cells = slotCells(pose);
+    const types = blockTypes(cells);
+    const clear = new Set(
+      cells.filter((_, i) => ownSlotBlock(types[i], undefined)).map(cellKey),
+    );
+    return slotForPress(pose, item, this.placed(), cell, point, exact, (slot) =>
+      clear.has(cellKey(decorSlotCell(pose, slot))),
+    )?.id;
   }
 
   placeDecor(slot: string, item: string): boolean {

@@ -1,4 +1,5 @@
 import type { PlayerId, VehicleId } from "../../../domain/shared/ids";
+import type { Vec3 } from "../../../domain/shared/vec";
 import type { DecorPlacement } from "../../../domain/vehicle/dock/decor";
 // Port for saving a vehicle's decor; implemented in the infrastructure layer (ADR 0012, 0093).
 
@@ -20,4 +21,9 @@ export interface DecorPlacingWorld extends DecorWorld {
   giveDecorItems(playerId: PlayerId, items: readonly string[]): void;
   /** Shows the lang key yasu_ride.message.<name> on a player's action bar; does nothing for a missing player. */
   showMessage(playerId: PlayerId, name: string): void;
+  /** See TickContext.blockTypes; world cells, in the vehicle's dimension, so decor skips a slot cell holding a player's block (ADR 0108). */
+  blockTypes(
+    vehicleId: VehicleId,
+    cells: readonly Vec3[],
+  ): (string | undefined)[];
 }

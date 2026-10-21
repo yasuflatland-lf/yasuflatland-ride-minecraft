@@ -65,6 +65,16 @@ it("keeps each slot's spot within 8 px of its furniture cell's middle, so its po
   }
 });
 
+it("gives the hosted slots spots no slot in its own furniture cell uses, so a deck seat can tell a hosted decor block by its spot (ADR 0108)", () => {
+  const slots = CAMPER_FURNITURE.flatMap((f) => f.slots);
+  const hostedSpots = new Set(
+    slots.filter((s) => s.over !== undefined).map((s) => s.spot),
+  );
+  expect(hostedSpots.has(undefined)).toBe(false);
+  for (const s of slots.filter((s) => s.over === undefined))
+    expect(hostedSpots.has(s.spot), s.id).toBe(false);
+});
+
 it("hosts a slot outside its furniture only in a free interior neighbor on the same layer (ADR 0108)", () => {
   const furnitureCells = new Set(
     CAMPER_FURNITURE.flatMap((f) => f.cells.map(key)),

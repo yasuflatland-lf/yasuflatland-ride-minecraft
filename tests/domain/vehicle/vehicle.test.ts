@@ -40,6 +40,7 @@ import { engineStep } from "../../support/engineModel";
 import { waterSensors } from "../../support/waterDepth";
 
 const FORWARD: RawInput = { moveX: 0, moveY: 1, jump: false };
+const AIR = (cells: readonly Vec3[]) => cells.map(() => "minecraft:air");
 const IDLE: RawInput = { moveX: 0, moveY: 0, jump: false };
 const GROUND_FRICTION = 0.688;
 /**
@@ -1021,6 +1022,7 @@ it("has no hand-placed decor for a kind without decor (ADR 0093)", () => {
       { x: 0, y: 0, z: 0 },
       { x: 0, y: 0, z: 0 },
       false,
+      AIR,
     ),
   ).toBeUndefined();
   expect(suv.placeDecor("stove", "percolator")).toBe(false);

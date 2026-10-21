@@ -30,7 +30,13 @@ export class PlaceDecor {
   execute(cmd: PlaceDecorCommand): boolean {
     const vehicle = this.repo.get(cmd.vehicleId);
     if (!vehicle) return false;
-    const slot = vehicle.decorSlotFor(cmd.item, cmd.point, cmd.cell, cmd.exact);
+    const slot = vehicle.decorSlotFor(
+      cmd.item,
+      cmd.point,
+      cmd.cell,
+      cmd.exact,
+      (cells) => this.world.blockTypes(cmd.vehicleId, cells),
+    );
     if (slot === undefined) {
       this.world.showMessage(cmd.playerId, DECOR_MESSAGES.noSlot);
       return false;

@@ -7,6 +7,7 @@ import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
 import { decorSlot } from "../../../src/domain/vehicle/kinds/camper/decor";
 import { slotPoint } from "../../../src/domain/vehicle/kinds/camper/decorPlacing";
 import { decorSlotCell } from "../../../src/domain/vehicle/kinds/camper/room";
+import { cellKey } from "../../../src/domain/vehicle/lighting/headlights";
 import { FakeWorld, parkedCamper } from "./fakes";
 
 function slot(id: string) {
@@ -38,6 +39,7 @@ describe("PlaceDecor (ADR 0093, 0097)", () => {
     world.itemInSlot = true;
     expect(place.execute(cmd)).toBe(true);
     expect(world.calls).toEqual([
+      "blockTypes",
       "consumeDecor:p:4:percolator",
       "saveDecor:car:stove=percolator",
     ]);
@@ -58,7 +60,10 @@ describe("PlaceDecor (ADR 0093, 0097)", () => {
     const { world, place, cmd } = setup();
     world.creativePlayers.add("p");
     expect(place.execute(cmd)).toBe(true);
-    expect(world.calls).toEqual(["saveDecor:car:stove=percolator"]);
+    expect(world.calls).toEqual([
+      "blockTypes",
+      "saveDecor:car:stove=percolator",
+    ]);
   });
 
   it("shows the no-slot message, keeps the item, and saves nothing when every accepting slot is taken", () => {
@@ -77,8 +82,10 @@ describe("PlaceDecor (ADR 0093, 0097)", () => {
       name: "decor_no_slot",
     });
     expect(world.calls).toEqual([
+      "blockTypes",
       "consumeDecor:p:4:macrame_planter",
       "saveDecor:car:ceiling_hook=macrame_planter",
+      "blockTypes",
       "showMessage",
     ]);
   });
@@ -94,7 +101,10 @@ describe("PlaceDecor (ADR 0093, 0097)", () => {
         cell: decorSlotCell(pose, slot("shelf_high")),
       }),
     ).toBe(true);
-    expect(world.calls).toEqual(["saveDecor:car:shelf_high=potted_plant"]);
+    expect(world.calls).toEqual([
+      "blockTypes",
+      "saveDecor:car:shelf_high=potted_plant",
+    ]);
   });
 
   it("refuses an exact press on a taken slot with the no-slot message, consuming and saving nothing (ADR 0104)", () => {
@@ -107,7 +117,7 @@ describe("PlaceDecor (ADR 0093, 0097)", () => {
       playerId: "p",
       name: "decor_no_slot",
     });
-    expect(world.calls).toEqual(["showMessage"]);
+    expect(world.calls).toEqual(["blockTypes", "showMessage"]);
     expect(car.decor()).toEqual([{ slot: "stove", item: "percolator" }]);
   });
 
@@ -115,7 +125,7 @@ describe("PlaceDecor (ADR 0093, 0097)", () => {
     const { car, world, place, cmd } = setup();
     world.itemInSlot = false;
     expect(place.execute(cmd)).toBe(false);
-    expect(world.calls).toEqual([]);
+    expect(world.calls).toEqual(["blockTypes"]);
     expect(car.decor()).toEqual([]);
   });
 
@@ -124,7 +134,27 @@ describe("PlaceDecor (ADR 0093, 0097)", () => {
     world.creativePlayers.add("p");
     vi.spyOn(car, "placeDecor").mockReturnValue(false);
     expect(place.execute(cmd)).toBe(false);
-    expect(world.calls).toEqual([]);
+    expect(world.calls).toEqual(["blockTypes"]);
+  });
+
+  it("skips a slot whose host cell holds a player's block and sends the item to the nearest free slot instead (ADR 0108)", () => {
+    const { pose, world, place, cmd } = setup();
+    world.creativePlayers.add("p");
+    const aisle = slot("table_aisle");
+    world.typesAt.set(cellKey(decorSlotCell(pose, aisle)), "minecraft:chest");
+    const press = {
+      ...cmd,
+      item: "mug_pair",
+      point: slotPoint(pose, aisle),
+      cell: decorSlotCell(pose, slot("table")),
+    };
+    expect(place.execute(press)).toBe(true);
+    expect(world.calls).toEqual(["blockTypes", "saveDecor:car:table=mug_pair"]);
+    world.typesAt.clear();
+    expect(place.execute(press)).toBe(true);
+    expect(world.calls.at(-1)).toBe(
+      "saveDecor:car:table=mug_pair,table_aisle=mug_pair",
+    );
   });
 
   it("ignores an unknown vehicle", () => {

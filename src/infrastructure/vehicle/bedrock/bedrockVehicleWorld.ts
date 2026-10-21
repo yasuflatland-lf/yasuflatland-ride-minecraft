@@ -39,6 +39,7 @@ import type { RamHit, RamTarget } from "../../../domain/vehicle/ram";
 import type { RiderView } from "../../../domain/vehicle/vehicle";
 import type { TestInputStore } from "../testInput/testInputStore";
 import { savedDecor } from "./bedrockDecorWorld";
+import { blockTypesNear } from "./blockTypes";
 import { DeckSeats } from "./deckSeats";
 import { DockBlocks, savedDock } from "./dockBlocks";
 import { DIMENSIONS, type EntityIndex, isPlayer } from "./entityIndex";
@@ -223,17 +224,7 @@ export class BedrockVehicleWorld implements DriveWorld {
     vehicleId: VehicleId,
     cells: readonly Vec3[],
   ): (string | undefined)[] {
-    const vehicle = this.index.entity(vehicleId);
-    if (!vehicle) return cells.map(() => undefined);
-    return cells.map((c) => {
-      try {
-        const b = vehicle.dimension.getBlock(c);
-        if (!b) return undefined;
-        return b.isAir || isLightBlock(b) ? AIR_BLOCK : b.typeId;
-      } catch {
-        return undefined; // Unloaded chunk or outside the world
-      }
-    });
+    return blockTypesNear(this.index.entity(vehicleId), cells);
   }
 
   clearBlocks(vehicleId: VehicleId, cells: readonly ClearCell[]): void {

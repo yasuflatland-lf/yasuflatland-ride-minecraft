@@ -87,12 +87,13 @@ export interface Drive {
   decor?(): readonly DecorPlacement[];
   /** Puts `item` in `slot`, or empties it when undefined. Returns whether the decor changed (ADR 0093). */
   setDecor?(slot: string, item: string | undefined): boolean;
-  /** The free decor slot that accepts `item`: the slot of the pressed world `cell` when it can take it, else the one nearest `point` unless `exact`, once the vehicle has parked (after its parking tick); undefined otherwise (ADR 0093, 0097, 0104). */
+  /** The free decor slot that accepts `item`: the slot of the pressed world `cell` when it can take it, else the one nearest `point` unless `exact`, once the vehicle has parked (after its parking tick); undefined otherwise. `blockTypes` reads world cells as TickContext.blockTypes does, so a slot cell holding a player's block is skipped (ADR 0093, 0097, 0104, 0108). */
   decorSlotFor?(
     item: string,
     point: Vec3,
     cell: Vec3,
     exact: boolean,
+    blockTypes: (cells: readonly Vec3[]) => readonly (string | undefined)[],
   ): string | undefined;
   /** A player puts `item` in `slot`; false when the vehicle is not parked or the slot is taken or does not accept it (ADR 0093). */
   placeDecor?(slot: string, item: string): boolean;

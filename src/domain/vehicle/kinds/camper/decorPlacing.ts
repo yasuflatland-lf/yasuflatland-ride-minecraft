@@ -22,7 +22,7 @@ export function slotsFor(item: string): DecorSlot[] {
   return DECOR_SLOTS.filter((slot) => (slot.hanging === true) === hanging);
 }
 
-/** The point on a slot's surface where its decor stands: its spot on the cell (ADR 0107). */
+/** The point on a slot's surface where its decor stands: its spot from the host cell's middle, over its furniture (ADR 0107, 0108). */
 export function slotPoint(pose: HoldPose, slot: DecorSlot): Vec3 {
   const c = decorSlotCell(pose, slot);
   const offset = decorSpotOffset(pose.yaw, slot.spot ?? 0);
@@ -55,18 +55,21 @@ function nearest(
 
 /**
  * The free slot accepting `item` whose point is nearest `point`; on a tie, the slot
- * listed first. A slot is free while no slot of its cell holds decor (ADR 0107).
- * Undefined when every accepting slot is taken.
+ * listed first. A slot is free while no slot of its cell holds decor (ADR 0107) and
+ * `clear` says its cell can take a decor block: a host cell outside its furniture is
+ * air while empty, so a player's block may stand there (ADR 0108). Undefined when
+ * every accepting slot is taken.
  */
 export function nearestFreeSlot(
   pose: HoldPose,
   item: string,
   decor: readonly DecorPlacement[],
   point: Vec3,
+  clear: (slot: DecorSlot) => boolean,
 ): DecorSlot | undefined {
   return nearest(
     pose,
-    slotsFor(item).filter((slot) => !cellTaken(slot, decor)),
+    slotsFor(item).filter((slot) => !cellTaken(slot, decor) && clear(slot)),
     point,
   );
 }
@@ -98,7 +101,8 @@ export function pressedSlots(pose: HoldPose, cell: Vec3): DecorSlot[] {
  * The free slot accepting `item` nearest `point` among the pressed furniture's slots, when
  * it has one; otherwise the free accepting slot nearest `point` (ADR 0093, 0097, 0105,
  * 0108), or none when `exact`: a press on a dinette seat names one slot, and filling
- * another one left the player unable to tell where the item went (ADR 0104).
+ * another one left the player unable to tell where the item went (ADR 0104). A slot is
+ * free as in nearestFreeSlot, `clear` included.
  */
 export function slotForPress(
   pose: HoldPose,
@@ -107,12 +111,13 @@ export function slotForPress(
   cell: Vec3,
   point: Vec3,
   exact: boolean,
+  clear: (slot: DecorSlot) => boolean,
 ): DecorSlot | undefined {
   const accepting = new Set(slotsFor(item));
   const pressed = pressedSlots(pose, cell).filter(
-    (slot) => accepting.has(slot) && !cellTaken(slot, decor),
+    (slot) => accepting.has(slot) && !cellTaken(slot, decor) && clear(slot),
   );
   if (pressed.length > 0) return nearest(pose, pressed, point);
   if (exact) return undefined;
-  return nearestFreeSlot(pose, item, decor, point);
+  return nearestFreeSlot(pose, item, decor, point, clear);
 }

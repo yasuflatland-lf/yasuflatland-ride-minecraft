@@ -52,6 +52,8 @@ const gear = fc.constantFrom(...CAMPING_GEAR_IDS);
 const ids = (slots: readonly { id: string }[]) => slots.map((s) => s.id);
 const squared = (a: Vec3, b: Vec3) =>
   (a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2;
+// Every slot cell can take a decor block.
+const CLEAR = () => true;
 const localKey = (c: LocalCell) => `${c.x},${c.z},${c.layer}`;
 const sameCell = (a: DecorSlot, b: DecorSlot) =>
   localKey(a.cell) === localKey(b.cell);
@@ -273,7 +275,7 @@ it("picks the nearest free accepting slot, the first one on a tie, and none when
         const decor = taken.map((s) => ({ slot: s.id, item: id }));
         const point = { x: p.x + dx, y: p.y + dy, z: p.z + dz };
         const free = slotsFor(id).filter(freeOf(taken));
-        expect(nearestFreeSlot(p, id, decor, point)).toBe(
+        expect(nearestFreeSlot(p, id, decor, point, CLEAR)).toBe(
           nearestOf(p, free, point),
         );
       },
@@ -293,11 +295,11 @@ it("prefers the pressed furniture's free slot nearest the hit point when it acce
         const decor = taken.map((s) => ({ slot: s.id, item: id }));
         const point = { x: p.x + dx, y: p.y + dy, z: p.z + dz };
         const cell = decorSlotCell(p, slot);
-        const nearest = nearestFreeSlot(p, id, decor, point);
+        const nearest = nearestFreeSlot(p, id, decor, point, CLEAR);
         const pressed = slotsFor(id)
           .filter((s) => pressedOf(slot).includes(s))
           .filter(freeOf(taken));
-        expect(slotForPress(p, id, decor, cell, point, false)).toBe(
+        expect(slotForPress(p, id, decor, cell, point, false, CLEAR)).toBe(
           pressed.length > 0 ? nearestOf(p, pressed, point) : nearest,
         );
         const first = decorSlotCell(p, defined(SLOTS[0], "first slot").slot);
@@ -309,6 +311,7 @@ it("prefers the pressed furniture's free slot nearest the hit point when it acce
             { ...first, y: first.y + 5 },
             point,
             false,
+            CLEAR,
           ),
         ).toBe(nearest);
       },
@@ -331,11 +334,19 @@ it("with an exact press returns the pressed slot when it accepts the item and is
         const pressed = slotsFor(id)
           .filter((s) => pressedOf(slot).includes(s))
           .filter(freeOf(taken));
-        expect(slotForPress(p, id, decor, cell, point, true)).toBe(
+        expect(slotForPress(p, id, decor, cell, point, true, CLEAR)).toBe(
           nearestOf(p, pressed, point),
         );
         expect(
-          slotForPress(p, id, decor, { ...cell, y: cell.y + 100 }, point, true),
+          slotForPress(
+            p,
+            id,
+            decor,
+            { ...cell, y: cell.y + 100 },
+            point,
+            true,
+            CLEAR,
+          ),
         ).toBeUndefined();
       },
     ),
@@ -393,14 +404,14 @@ it("puts an item pressed on a shelf board or the table at the end nearest the hi
         const point = { x: at.x + dx, y: at.y, z: at.z + dz };
         // The furniture block lies in the cell of the pair's slot that is not hosted elsewhere.
         const furniture = decorSlotCell(p, slot.over ? partner : slot);
-        expect(slotForPress(p, "book_stack", [], furniture, point, false)).toBe(
-          slot,
-        );
+        expect(
+          slotForPress(p, "book_stack", [], furniture, point, false, CLEAR),
+        ).toBe(slot);
         const taken = [{ slot: id, item: "mug_pair" }];
         for (const cell of [furniture, decorSlotCell(p, slot)])
-          expect(slotForPress(p, "book_stack", taken, cell, point, false)).toBe(
-            partner,
-          );
+          expect(
+            slotForPress(p, "book_stack", taken, cell, point, false, CLEAR),
+          ).toBe(partner);
       },
     ),
   );
@@ -418,6 +429,7 @@ it("puts a potted plant on the high shelf when it is pressed, though the low she
       decorSlotCell(p, high),
       slotPoint(p, low),
       false,
+      CLEAR,
     ),
   ).toBe(high);
 });
@@ -443,6 +455,7 @@ it("puts an item pressed on the stove on the burner nearest the hit point, in ev
             decorSlotCell(p, burner),
             { x: at.x + dx, y: at.y, z: at.z + dz },
             false,
+            CLEAR,
           ),
         ).toBe(burner);
       },
@@ -468,9 +481,10 @@ it("takes no second item on the stove while any burner holds one (ADR 0107)", ()
           decorSlotCell(p, pressed),
           point,
           false,
+          CLEAR,
         );
         expect(STOVE_IDS).not.toContain(chosen?.id);
-        expect(chosen).toBe(nearestFreeSlot(p, "toaster", decor, point));
+        expect(chosen).toBe(nearestFreeSlot(p, "toaster", decor, point, CLEAR));
         expect(
           slotForPress(
             p,
@@ -479,6 +493,7 @@ it("takes no second item on the stove while any burner holds one (ADR 0107)", ()
             decorSlotCell(p, pressed),
             point,
             true,
+            CLEAR,
           ),
         ).toBeUndefined();
       },
@@ -498,6 +513,31 @@ it("sends a standing item pressed on the ceiling hook to the nearest free standi
       decorSlotCell(p, hook),
       slotPoint(p, hook),
       false,
+      CLEAR,
     ),
   ).toBe(table);
+});
+
+it("never picks a slot whose cell cannot take a decor block, pressed or as the fallback (ADR 0108)", () => {
+  fc.assert(
+    fc.property(
+      pose,
+      gear,
+      fc.subarray(DECOR_SLOTS.map((s) => s.id)),
+      fc.constantFrom(...DECOR_SLOTS),
+      (p, id, blockedIds, pressed) => {
+        const blocked = new Set(blockedIds);
+        const clear = (s: DecorSlot) => !blocked.has(s.id);
+        const point = slotPoint(p, pressed);
+        const cell = decorSlotCell(p, pressed);
+        for (const exact of [false, true]) {
+          const chosen = slotForPress(p, id, [], cell, point, exact, clear);
+          if (chosen !== undefined) expect(blocked.has(chosen.id)).toBe(false);
+        }
+        const nearest = nearestFreeSlot(p, id, [], point, clear);
+        if (nearest !== undefined) expect(blocked.has(nearest.id)).toBe(false);
+        expect(nearestFreeSlot(p, id, [], point, () => false)).toBeUndefined();
+      },
+    ),
+  );
 });
