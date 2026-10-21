@@ -683,15 +683,18 @@ describe("DockBlocks lost cells (ADR 0096)", () => {
   it("does not read the world for a vehicle that is gone or wants no cells (ADR 0096)", () => {
     const f = fixture();
     const docks = new DockBlocks();
-    docks.lay(id, f.car, roomCells);
+    for (let i = 0; i < DOCK_RECHECK_TICKS; i++)
+      docks.lay(id, f.car, roomCells);
+    // The next lay that wants cells would read every laid cell, and a throwing
+    // getBlock keeps the cells laid so each lay below still reaches the guard.
+    f.unavailable("throw");
     const getBlock = vi.spyOn(f.car.dimension, "getBlock");
+    docks.lay(id, undefined, roomCells);
+    docks.lay(id, undefined, []);
     docks.lay(id, f.car, []);
-    expect(getBlock).toHaveBeenCalledTimes(roomCells.length);
-    for (let i = 0; i < DOCK_RECHECK_TICKS; i++) {
-      docks.lay(id, undefined, []);
-      docks.lay(id, f.car, []);
-    }
-    expect(getBlock).toHaveBeenCalledTimes(roomCells.length);
+    expect(getBlock).toHaveBeenCalledTimes(3 * roomCells.length);
+    docks.lay(id, f.car, roomCells);
+    expect(getBlock).toHaveBeenCalledTimes(4 * roomCells.length);
   });
 
   it("finds the owner of a laid cell only while the world holds the block it laid (ADR 0096)", () => {
