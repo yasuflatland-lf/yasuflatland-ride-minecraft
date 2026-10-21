@@ -6,10 +6,7 @@ import type {
 } from "../../../../../src/domain/vehicle/drive";
 import type { RawInput } from "../../../../../src/domain/vehicle/driveInput";
 import { DECOR_SLOTS } from "../../../../../src/domain/vehicle/kinds/camper/decor";
-import {
-  slotPoint,
-  slotsFor,
-} from "../../../../../src/domain/vehicle/kinds/camper/decorPlacing";
+import { slotPoint } from "../../../../../src/domain/vehicle/kinds/camper/decorPlacing";
 import { CamperDrive } from "../../../../../src/domain/vehicle/kinds/camper/drive";
 import {
   AIR,
@@ -19,10 +16,12 @@ import {
   decorSlotCell,
   departure,
   exitCells,
+  furnitureCells,
   parkCheckCells,
   parkPose,
   roomCells,
   showerFloorCell,
+  slotCells,
   wallFootCells,
 } from "../../../../../src/domain/vehicle/kinds/camper/room";
 import { CAMPER_SPEC } from "../../../../../src/domain/vehicle/kinds/camper/spec";
@@ -46,6 +45,11 @@ const shuffledDecor = fc
     fc.tuple(
       ...slots.map((s) => decorItem.map((item) => ({ slot: s.id, item }))),
     ),
+  );
+const slotNamed = (id: string) =>
+  defined(
+    DECOR_SLOTS.find((s) => s.id === id),
+    id,
   );
 const slotIndex = (p: { slot: string }) =>
   DECOR_SLOTS.findIndex((s) => s.id === p.slot);
@@ -87,7 +91,10 @@ it("holds only the pose on tick 20, lays the room next tick, and scans once", ()
     name: "docked",
     value: true,
   });
-  expect(f.step().dock?.cells).toEqual(roomCells(f.pose, false));
+  expect(f.step().dock?.cells).toEqual([
+    ...roomCells(f.pose, false),
+    ...furnitureCells(f.pose, []),
+  ]);
   expect(f.blockTypes).toHaveBeenCalledExactlyOnceWith([
     ...parkCheckCells(f.pose),
     ...wallFootCells(f.pose),
@@ -220,13 +227,14 @@ it("departs on the stick press, undocks before properties, and boards deck rider
   expect(f.drive.inspect().parked).toBe(false);
   expect(f.blockTypes).toHaveBeenLastCalledWith([
     ...cargoCells(f.pose),
+    ...slotCells(f.pose),
     ...exitCells(f.pose),
   ]);
 });
 
 it("refuses cargo only on each press and requires a new press after cargo is cleared", () => {
   fc.assert(
-    fc.property(fc.integer({ min: 0, max: 60 }), (index) => {
+    fc.property(fc.integer({ min: 0, max: 48 }), (index) => {
       const f = fixture();
       f.park();
       const cell = defined(cargoCells(f.pose)[index], "cargo cell");
@@ -279,9 +287,11 @@ it("restores a laid open room immediately without a scan or dock event", () => {
   });
   drive.onDriverMounted(-45);
   const out = drive.step(undefined, f.ctx);
-  expect(out.dock?.cells).toEqual(
-    roomCells(parkPose(f.ctx.location, 90), true),
-  );
+  const pose = parkPose(f.ctx.location, 90);
+  expect(out.dock?.cells).toEqual([
+    ...roomCells(pose, true),
+    ...furnitureCells(pose, []),
+  ]);
   expect(out.commands).not.toContainEqual({
     type: "triggerEvent",
     name: "dock",
@@ -331,6 +341,7 @@ it("checks both exit cells before parking and leaves overflow standing when the 
         );
         expect(f.blockTypes).toHaveBeenLastCalledWith([
           ...cargoCells(f.pose),
+          ...slotCells(f.pose),
           ...exitCells(f.pose),
         ]);
         expect(f.blockTypes.mock.calls.at(-1)?.[0]).toHaveLength(63);
@@ -365,7 +376,10 @@ it("recovers an unlaid parked room once, clearing matching plants before laying 
           { ...upper, typeId: "minecraft:tall_grass" },
           { ...lower, typeId: "minecraft:tall_grass" },
         ]);
-        expect(out.dock?.cells).toEqual(roomCells(f.pose, false));
+        expect(out.dock?.cells).toEqual([
+          ...roomCells(f.pose, false),
+          ...furnitureCells(f.pose, []),
+        ]);
         expect(f.blockTypes).toHaveBeenCalledExactlyOnceWith([
           ...parkCheckCells(f.pose),
           ...wallFootCells(f.pose),
@@ -451,56 +465,74 @@ it("lays the decor with the room on the tick after parking (ADR 0093)", () => {
       expect(f.step().dock?.cells).toEqual([
         ...roomCells(f.pose, false),
         ...decorCells(f.pose, f.drive.decor()),
+        ...furnitureCells(f.pose, f.drive.decor()),
       ]);
     }),
   );
 });
 
-it("lays decor set while parked on the next step and clears an emptied slot", () => {
+it("lays decor set while parked on the next step and lays the furniture block again in an emptied slot (ADR 0097)", () => {
   const f = fixture();
   f.park();
   f.step();
+  const table = decorSlotCell(f.pose, slotNamed("table"));
+  const furniture = { ...table, block: { type: "furniture", height: 12 } };
+  expect(f.step().dock?.cells).toContainEqual(furniture);
   f.drive.setDecor("table", "potted_plant");
-  expect(f.step().dock?.cells).toContainEqual(
+  const laid = f.step().dock?.cells;
+  expect(laid).toContainEqual(
     decorCells(f.pose, [{ slot: "table", item: "potted_plant" }])[0],
   );
+  expect(laid).not.toContainEqual(furniture);
   f.drive.setDecor("table", undefined);
-  expect(f.step().dock?.cells.some((c) => c.block.type === "decor")).toBe(
-    false,
-  );
+  const emptied = f.step().dock?.cells;
+  expect(emptied?.some((c) => c.block.type === "decor")).toBe(false);
+  expect(emptied).toContainEqual(furniture);
 });
 
-it("departs past its own decor blocks and refuses any other block in a decor cell (ADR 0093)", () => {
-  const parked = () => {
+it("departs past its own decor blocks and refuses any other block in a slot cell (ADR 0093, 0097)", () => {
+  const parked = (withDecor = true) => {
     const f = fixture();
-    f.drive.setDecor("table", "potted_plant");
+    if (withDecor) f.drive.setDecor("table", "potted_plant");
     f.park();
     f.step();
     return f;
   };
   const f = parked();
-  const table = defined(decorCells(f.pose, f.drive.decor())[0], "table cell");
+  const table = decorSlotCell(f.pose, slotNamed("table"));
   f.blocks.set(cellKey(table), "yasu_ride:potted_plant_decor");
   const out = f.step(PUSH);
   expect(out.depart).toBeDefined();
   expect(out.message).toBeUndefined();
   expect(f.blockTypes.mock.calls.at(-1)?.[0]).toEqual([
-    ...cargoCells(f.pose, f.drive.decor()),
-    ...decorCells(f.pose, f.drive.decor()).map(({ x, y, z }) => ({ x, y, z })),
+    ...cargoCells(f.pose),
+    ...slotCells(f.pose),
     ...exitCells(f.pose),
   ]);
+  expect(f.blockTypes.mock.calls.at(-1)?.[0]).toHaveLength(63);
 
-  const stone = parked();
-  stone.blocks.set(cellKey(table), "minecraft:stone");
-  const refused = stone.step(PUSH);
-  expect(refused.message).toBe("clear_cargo");
-  expect(refused.depart).toBeUndefined();
+  const departs = (withDecor: boolean, typeId: string) => {
+    const g = parked(withDecor);
+    g.blocks.set(cellKey(table), typeId);
+    return g.step(PUSH);
+  };
+  for (const withDecor of [false, true])
+    expect(
+      departs(withDecor, "yasu_ride:camper_furniture").depart,
+    ).toBeDefined();
+  for (const [withDecor, typeId] of [
+    [true, "minecraft:stone"],
+    [false, "minecraft:stone"],
+    [false, "yasu_ride:potted_plant_decor"],
+  ] as const) {
+    const refused = departs(withDecor, typeId);
+    expect(refused.message).toBe("clear_cargo");
+    expect(refused.depart).toBeUndefined();
+  }
 
   const cargo = parked();
   cargo.blocks.set(
-    cellKey(
-      defined(cargoCells(cargo.pose, cargo.drive.decor())[0], "cargo cell"),
-    ),
+    cellKey(defined(cargoCells(cargo.pose)[0], "cargo cell")),
     "minecraft:stone",
   );
   expect(cargo.step(PUSH).message).toBe("clear_cargo");
@@ -542,25 +574,32 @@ it("restores saved decor in known slots only, docked or not", () => {
   ).toEqual(expected);
 });
 
-const stove = defined(slotsFor("percolator")[0], "stove slot");
+const stove = slotNamed("stove");
 
 it("places and removes decor by hand once parked, and lays it with the room on the next step (ADR 0093)", () => {
   const f = fixture();
   for (let i = 1; i < DOCK.ticks; i++) f.step();
   const point = slotPoint(f.pose, stove);
   const cell = decorSlotCell(f.pose, stove);
-  expect(f.drive.decorSlotFor("percolator", point)).toBeUndefined();
+  expect(f.drive.decorSlotFor("percolator", point, cell)).toBeUndefined();
   expect(f.drive.placeDecor("stove", "percolator")).toBe(false);
   expect(f.drive.removeDecor(cell)).toBeUndefined();
   expect(f.drive.decor()).toEqual([]);
 
   expect(f.step().dock?.cells).toEqual([]);
-  expect(f.drive.decorSlotFor("percolator", point)).toBe("stove");
-  expect(f.drive.placeDecor("table", "percolator")).toBe(false);
+  expect(f.drive.decorSlotFor("percolator", point, cell)).toBe("stove");
+  expect(f.drive.placeDecor("ceiling_hook", "percolator")).toBe(false);
   expect(f.drive.placeDecor("nowhere", "percolator")).toBe(false);
   expect(f.drive.placeDecor("stove", "percolator")).toBe(true);
   expect(f.drive.placeDecor("stove", "enamel_kettle")).toBe(false);
-  expect(f.drive.decorSlotFor("enamel_kettle", point)).toBeUndefined();
+  expect(f.drive.decorSlotFor("enamel_kettle", point, cell)).not.toBe("stove");
+  expect(
+    f.drive.decorSlotFor(
+      "macrame_planter",
+      point,
+      decorSlotCell(f.pose, slotNamed("ceiling_hook")),
+    ),
+  ).toBe("ceiling_hook");
 
   const laid = defined(f.step().dock, "laid dock").cells;
   expect(laid).toEqual(expect.arrayContaining(roomCells(f.pose, false)));
@@ -588,10 +627,27 @@ it("keeps placed decor through a departure and refuses changes while driving", (
   expect(f.step(PUSH).depart).toEqual(departure(f.pose));
   expect(f.drive.decor()).toEqual([{ slot: "stove", item: "percolator" }]);
   expect(
-    f.drive.decorSlotFor("enamel_kettle", slotPoint(f.pose, stove)),
+    f.drive.decorSlotFor(
+      "enamel_kettle",
+      slotPoint(f.pose, stove),
+      decorSlotCell(f.pose, stove),
+    ),
   ).toBeUndefined();
   expect(f.drive.placeDecor("table", "mug_pair")).toBe(false);
   expect(f.drive.removeDecor(decorSlotCell(f.pose, stove))).toBeUndefined();
+});
+
+it("places the item in the pressed slot ahead of a nearer free slot (ADR 0097)", () => {
+  const f = fixture();
+  f.park();
+  f.step();
+  expect(
+    f.drive.decorSlotFor(
+      "potted_plant",
+      slotPoint(f.pose, slotNamed("shelf_low")),
+      decorSlotCell(f.pose, slotNamed("shelf_high")),
+    ),
+  ).toBe("shelf_high");
 });
 
 describe("shower-toilet (ADR 0094)", () => {

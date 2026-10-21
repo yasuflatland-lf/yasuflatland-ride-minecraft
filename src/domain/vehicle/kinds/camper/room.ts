@@ -11,7 +11,7 @@ import type { Box, ClearCell, DeckSeatSpot, Departure } from "../../dock/dock";
 import type { DockBlock, DockCell, Face, HoldPose } from "../../dock/floor";
 import { cellKey } from "../../lighting/headlights";
 import { seatWorldPositions } from "../../seats";
-import { decorSlot } from "./decor";
+import { DECOR_SLOTS, decorSlot } from "./decor";
 import {
   CAMPER_FURNITURE,
   type DecorSlot,
@@ -73,6 +73,9 @@ const DECK_SEAT_RISE = [0.98, 0.98, 0.68, 0.68] as const;
 const TOILET_SEAT_RISE = 0.68;
 
 export const AIR = "minecraft:air";
+// The namespace-free name of yasu_ride:camper_furniture; identifiers.test.ts checks
+// it against CAMPER_FURNITURE_BLOCK (ADR 0097).
+const FURNITURE_BLOCK_SUFFIX = ":camper_furniture";
 
 /** Passable decorations that parking removes; anything else in a checked cell refuses (ADR 0068). */
 export const CLEARABLE_DECORATIONS: ReadonlySet<string> = new Set([
@@ -246,9 +249,40 @@ export function decorCells(
   });
 }
 
-/** A decor cell lets the camper leave only while it holds air or that slot's own decor block (ADR 0093). */
-export function ownDecor(typeId: string | undefined, item: string): boolean {
-  return typeId === AIR || typeId?.endsWith(`:${item}_decor`) === true;
+type FurnitureCell = DockCell & {
+  readonly block: Extract<DockBlock, { type: "furniture" }>;
+};
+
+/** A furniture block in every decor slot that holds no decor, at the slot's height, in DECOR_SLOTS order (ADR 0097). */
+export function furnitureCells(
+  pose: HoldPose,
+  decor: readonly DecorPlacement[],
+): FurnitureCell[] {
+  const taken = new Set(decor.map(({ slot }) => slot));
+  return DECOR_SLOTS.filter(({ id }) => !taken.has(id)).map((s) => ({
+    ...decorSlotCell(pose, s),
+    block: { type: "furniture", height: s.height } as const,
+  }));
+}
+
+/** The cell of every decor slot, in DECOR_SLOTS order (ADR 0097). */
+export function slotCells(pose: HoldPose): Vec3[] {
+  return DECOR_SLOTS.map((s) => decorSlotCell(pose, s));
+}
+
+/**
+ * A slot cell lets the camper leave only while it holds air, the furniture block, or
+ * the decor block of `item`, the item in that slot (undefined for an empty slot) (ADR 0093, 0097).
+ */
+export function ownSlotBlock(
+  typeId: string | undefined,
+  item: string | undefined,
+): boolean {
+  // An occupied slot may still hold its furniture block: decor placed this tick
+  // is laid only on the next step.
+  if (typeId === AIR || typeId?.endsWith(FURNITURE_BLOCK_SUFFIX) === true)
+    return true;
+  return item !== undefined && typeId?.endsWith(`:${item}_decor`) === true;
 }
 
 /**
@@ -259,6 +293,7 @@ export function parkCheckCells(pose: HoldPose): Vec3[] {
   return [
     ...roomCells(pose, false).map(({ x, y, z }) => ({ x, y, z })),
     ...cargoCells(pose),
+    ...slotCells(pose),
     ...exitCells(pose),
   ];
 }
@@ -280,16 +315,13 @@ export function isPassable(typeId: string | undefined): boolean {
 
 /**
  * Cells where a player's block keeps the camper parked: the interior outside
- * furniture blocks, then the roof top (ADR 0092, 0093). Decor cells are read
- * separately, with ownDecor (ADR 0093).
+ * furniture blocks and decor slots, then the roof top (ADR 0092, 0093, 0097).
+ * Slot cells are read separately, with ownSlotBlock.
  */
-export function cargoCells(
-  pose: HoldPose,
-  decor: readonly DecorPlacement[] = [],
-): Vec3[] {
-  const decorKeys = new Set(decorCells(pose, decor).map(cellKey));
+export function cargoCells(pose: HoldPose): Vec3[] {
+  const slots = new Set(slotCells(pose).map(cellKey));
   return interior(pose, [...INSIDE_LAYERS, ROOF_LAYER]).filter(
-    (c) => !decorKeys.has(cellKey(c)),
+    (c) => !slots.has(cellKey(c)),
   );
 }
 

@@ -26,6 +26,7 @@ import {
   CAMPER_DECOR_COMPONENT,
   CAMPER_DOOR_COMPONENT,
   CAMPER_FLOOR_BLOCK,
+  CAMPER_FURNITURE_BLOCK,
   CAMPER_WALL_BLOCK,
   DECK_FLOOR_BLOCK,
   DECK_SEAT_OF_PROPERTY,
@@ -886,8 +887,12 @@ function decorFixture() {
   return { placeDecor, removeDecor, floor, owner, startupsBefore, event, send };
 }
 
-it("places held camping gear on a camper room or decor block on the next tick and cancels every repeat (ADR 0093)", () => {
-  for (const typeId of [CAMPER_FLOOR_BLOCK, decorBlockId("percolator")]) {
+it("places held camping gear on a camper room, furniture, or decor block on the next tick and cancels every repeat (ADR 0093, 0097)", () => {
+  for (const typeId of [
+    CAMPER_FLOOR_BLOCK,
+    CAMPER_FURNITURE_BLOCK,
+    decorBlockId("percolator"),
+  ]) {
     const { placeDecor, owner, event, send } = decorFixture();
     const ev = event();
     ev.block = { ...ev.block, typeId };
@@ -904,6 +909,7 @@ it("places held camping gear on a camper room or decor block on the next tick an
       vehicleId: "car",
       item: "percolator",
       point: { x: 1.25, y: 65, z: 2.5 },
+      cell: { x: 1, y: 64, z: 2 },
       hotbarSlot: 4,
     });
     game.run.mockClear();
@@ -937,6 +943,101 @@ it("leaves other items, other blocks, and cells no camper laid alone", () => {
   for (const run of cases) {
     const f = decorFixture();
     expect(run(f).cancel).toBe(false);
+    expect(game.run).not.toHaveBeenCalled();
+  }
+});
+
+// The dinette seat stands on the floor layer at y 64; its slot cell is the one above.
+function seatFixture(slotBlock: string | null = CAMPER_FURNITURE_BLOCK) {
+  const entitySubscribe = vi.mocked(
+    world.beforeEvents.playerInteractWithEntity.subscribe,
+  );
+  const before = entitySubscribe.mock.calls.length;
+  const f = decorFixture();
+  // registerDecor subscribes first.
+  const handler = defined(
+    entitySubscribe.mock.calls[before],
+    "decor seat handler",
+  )[0];
+  const slot = { x: 1, y: 65, z: 2 };
+  const getBlock = vi.fn((at: At) => ({
+    typeId:
+      at.x === slot.x && at.y === slot.y && at.z === slot.z && slotBlock
+        ? slotBlock
+        : "minecraft:air",
+  }));
+  const seatEvent = (overrides: Record<string, unknown> = {}) => ({
+    cancel: false,
+    itemStack: { typeId: "yasu_ride:cushion" },
+    target: {
+      typeId: DECK_SEAT_TYPE,
+      location: { x: 1.5, y: 64.68, z: 2.5 },
+      dimension: { id: "minecraft:overworld", getBlock },
+    },
+    player: { id: "p", selectedSlotIndex: 3 },
+    ...overrides,
+  });
+  const sendSeat = (ev: ReturnType<typeof seatEvent>) => {
+    handler(ev as unknown as PlayerInteractWithEntityBeforeEvent);
+    return ev;
+  };
+  return { ...f, slot, seatEvent, sendSeat };
+}
+
+it("places held camping gear on the dinette slot under a pressed deck seat instead of seating the player, once per tick (ADR 0097)", () => {
+  for (const slotBlock of [CAMPER_FURNITURE_BLOCK, decorBlockId("cushion")]) {
+    const { placeDecor, owner, slot, seatEvent, sendSeat } =
+      seatFixture(slotBlock);
+    expect(sendSeat(seatEvent()).cancel).toBe(true);
+    expect(owner).toHaveBeenCalledExactlyOnceWith("minecraft:overworld", slot);
+    expect(placeDecor.execute).not.toHaveBeenCalled();
+    for (const [callback] of game.run.mock.calls) callback();
+    expect(placeDecor.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId: "p",
+      vehicleId: "car",
+      item: "cushion",
+      point: { x: 1.5, y: 64.68, z: 2.5 },
+      cell: slot,
+      hotbarSlot: 3,
+    });
+    game.run.mockClear();
+    expect(sendSeat(seatEvent()).cancel).toBe(true);
+    expect(game.run).not.toHaveBeenCalled();
+    game.currentTick++;
+    expect(sendSeat(seatEvent()).cancel).toBe(true);
+    expect(game.run).toHaveBeenCalledOnce();
+  }
+});
+
+it("lets a player sit on a deck seat with an empty hand, other items, no slot under it, or no camper (ADR 0097)", () => {
+  const cases: ((f: ReturnType<typeof seatFixture>) => { cancel: boolean })[] =
+    [
+      (f) => f.sendSeat(f.seatEvent({ itemStack: undefined })),
+      (f) =>
+        f.sendSeat(f.seatEvent({ itemStack: { typeId: "minecraft:stone" } })),
+      (f) =>
+        f.sendSeat(
+          f.seatEvent({ itemStack: { typeId: HEADLIGHT_SWITCH_TYPE } }),
+        ),
+      (f) => {
+        const ev = f.seatEvent();
+        ev.target = { ...ev.target, typeId: "minecraft:cow" };
+        return f.sendSeat(ev);
+      },
+      (f) => {
+        f.owner.mockReturnValue(undefined);
+        return f.sendSeat(f.seatEvent());
+      },
+    ];
+  for (const run of cases) {
+    const f = seatFixture();
+    expect(run(f).cancel).toBe(false);
+    expect(game.run).not.toHaveBeenCalled();
+  }
+  for (const slotBlock of [null, CAMPER_FLOOR_BLOCK]) {
+    const f = seatFixture(slotBlock);
+    expect(f.sendSeat(f.seatEvent()).cancel).toBe(false);
+    expect(f.owner).not.toHaveBeenCalled();
     expect(game.run).not.toHaveBeenCalled();
   }
 });

@@ -16,7 +16,7 @@ import { TransformingDrive } from "../../motion/transformingDrive";
 import { SyncedValue } from "../../syncedValue";
 import { type BodyEnds, guardEnds } from "./bodyGuard";
 import { DECOR_SLOTS, decorSlot } from "./decor";
-import { nearestFreeSlot, slotAt, slotsFor } from "./decorPlacing";
+import { slotAt, slotForPress, slotsFor } from "./decorPlacing";
 import {
   type CAMPER_ENTITY,
   doorCommand,
@@ -30,9 +30,10 @@ import {
   decorCells,
   departure,
   exitCells,
+  furnitureCells,
   holdsCargo,
   isPassable,
-  ownDecor,
+  ownSlotBlock,
   PARK_MESSAGES,
   parkCheckCells,
   parkDecorations,
@@ -40,6 +41,7 @@ import {
   planPark,
   roomCells,
   showerFloorCell,
+  slotCells,
   wallFootCells,
 } from "./room";
 import { CAMPER_SPEC, CAMPER_TRANSFORMING } from "./spec";
@@ -182,9 +184,9 @@ export class CamperDrive extends TransformingDrive {
   // No roomLaid check: parkedStep sets it on the parking tick itself, so it is
   // always true between steps while parked, and decor placed now is laid with
   // the room on the next step (ADR 0068, 0093).
-  decorSlotFor(item: string, point: Vec3): string | undefined {
+  decorSlotFor(item: string, point: Vec3, cell: Vec3): string | undefined {
     if (!this.parked) return undefined;
-    return nearestFreeSlot(this.parked, item, this.decor(), point)?.id;
+    return slotForPress(this.parked, item, this.decor(), cell, point)?.id;
   }
 
   placeDecor(slot: string, item: string): boolean {
@@ -225,20 +227,17 @@ export class CamperDrive extends TransformingDrive {
     const parked = this.parked;
     if (parked) {
       if (!pressed) return this.parkedStep(parked, ctx);
-      const placed = this.decor();
-      const decor = decorCells(parked, placed);
-      const cargo = cargoCells(parked, placed);
-      // The cargo cells, the decor cells, and the two exit cells share one
-      // departure batch; a decor cell is clear only with air or its own decor block.
-      const types = ctx.blockTypes([
-        ...cargo,
-        ...decor.map(({ x, y, z }) => ({ x, y, z })),
-        ...exitCells(parked),
-      ]);
-      const decorTypes = types.slice(cargo.length, cargo.length + decor.length);
+      const cargo = cargoCells(parked);
+      const slots = slotCells(parked);
+      // The cargo cells, the slot cells, and the two exit cells share one departure
+      // batch; a slot cell is clear only with air, its furniture block, or its own decor (ADR 0093, 0097).
+      const types = ctx.blockTypes([...cargo, ...slots, ...exitCells(parked)]);
+      const slotTypes = types.slice(cargo.length, cargo.length + slots.length);
       if (
         holdsCargo(types.slice(0, cargo.length)) ||
-        decor.some((c, i) => !ownDecor(decorTypes[i], c.block.item))
+        DECOR_SLOTS.some(
+          ({ id }, i) => !ownSlotBlock(slotTypes[i], this.decorBySlot.get(id)),
+        )
       )
         return {
           ...this.parkedStep(parked, ctx),
@@ -248,7 +247,7 @@ export class CamperDrive extends TransformingDrive {
         parked,
         raw,
         ctx,
-        types.slice(cargo.length + decor.length).every(isPassable),
+        types.slice(cargo.length + slots.length).every(isPassable),
       );
     }
     const step = super.step(raw, ctx);
@@ -314,7 +313,11 @@ export class CamperDrive extends TransformingDrive {
     const dock = {
       hold: pose,
       cells: lay
-        ? [...roomCells(pose, this.doorOpen), ...decorCells(pose, this.decor())]
+        ? [
+            ...roomCells(pose, this.doorOpen),
+            ...decorCells(pose, this.decor()),
+            ...furnitureCells(pose, this.decor()),
+          ]
         : [],
       seats: deckSeats(pose),
     };

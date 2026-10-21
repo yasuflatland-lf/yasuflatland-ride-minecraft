@@ -6,6 +6,7 @@ import {
   paintEventName,
 } from "../../../../src/domain/vehicle/entityContract";
 import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
+import { ownSlotBlock } from "../../../../src/domain/vehicle/kinds/camper/room";
 import { CAMPING_GEAR_IDS } from "../../../../src/domain/vehicle/kinds/index";
 import { PAINTS } from "../../../../src/domain/vehicle/paint/paint";
 import { NAMESPACE } from "../../../../src/infrastructure/shared/identifiers";
@@ -14,6 +15,7 @@ import {
   CAMPER_CEILING_BLOCK,
   CAMPER_DOOR_BLOCK,
   CAMPER_FLOOR_BLOCK,
+  CAMPER_FURNITURE_BLOCK,
   CAMPER_WALL_BLOCK,
   campingGearItem,
   campingGearOfDecorBlock,
@@ -224,6 +226,7 @@ describe("identifiers (ADR 0047)", () => {
       CAMPER_WALL_BLOCK,
       CAMPER_DOOR_BLOCK,
       CAMPER_BED_BLOCK,
+      CAMPER_FURNITURE_BLOCK,
     ])
       expect(isCamperRoomBlock(typeId)).toBe(true);
     for (const typeId of [
@@ -232,5 +235,10 @@ describe("identifiers (ADR 0047)", () => {
       "minecraft:stone",
     ])
       expect(isCamperRoomBlock(typeId)).toBe(false);
+  });
+
+  it("names the furniture block the way the domain's slot check expects (ADR 0097)", () => {
+    expect(CAMPER_FURNITURE_BLOCK).toBe("yasu_ride:camper_furniture");
+    expect(ownSlotBlock(CAMPER_FURNITURE_BLOCK, undefined)).toBe(true);
   });
 });

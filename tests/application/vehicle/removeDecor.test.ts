@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { RemoveDecor } from "../../../src/application/vehicle/removeDecor";
 import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
-import { slotsFor } from "../../../src/domain/vehicle/kinds/camper/decorPlacing";
+import { decorSlot } from "../../../src/domain/vehicle/kinds/camper/decor";
 import { decorSlotCell } from "../../../src/domain/vehicle/kinds/camper/room";
 import { FakeWorld, parkedCamper } from "./fakes";
 
 function setup() {
   const { car, pose, repo } = parkedCamper();
   const world = new FakeWorld();
-  const stove = slotsFor("percolator")[0];
+  const stove = decorSlot("stove");
   if (!stove) throw new Error("no stove slot");
   return { car, pose, world, remove: new RemoveDecor(world, repo), stove };
 }

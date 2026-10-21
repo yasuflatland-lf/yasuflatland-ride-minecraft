@@ -10,6 +10,7 @@ import {
   cargoCells,
   deckSeats,
   decorCells,
+  furnitureCells,
   parkPose,
   roomCells,
 } from "../../domain/vehicle/kinds/camper/room";
@@ -21,6 +22,7 @@ import {
   CAMPER_CEILING_BLOCK,
   CAMPER_DOOR_BLOCK,
   CAMPER_FLOOR_BLOCK,
+  CAMPER_FURNITURE_BLOCK,
   CAMPER_WALL_BLOCK,
   DECK_FLOOR_BLOCK,
   DECK_SEAT_TYPE,
@@ -74,6 +76,7 @@ const ROOM_BLOCK: Readonly<
   wall: CAMPER_WALL_BLOCK,
   door: CAMPER_DOOR_BLOCK,
   bed: CAMPER_BED_BLOCK,
+  furniture: CAMPER_FURNITURE_BLOCK,
 };
 
 function laidTypeOf(block: DockBlock): string {
@@ -278,6 +281,21 @@ function laidDecor(
   }).length;
 }
 
+// A furniture block counts only at its slot height (ADR 0097).
+function laidFurniture(
+  a: Arena,
+  pose: HoldPose,
+  decor: readonly DecorPlacement[],
+): number {
+  return furnitureCells(pose, decor).filter((c) => {
+    const block = a.dim.getBlock(c);
+    return (
+      block?.typeId === CAMPER_FURNITURE_BLOCK &&
+      block.permutation.getAllStates()[DECOR_HEIGHT_STATE] === c.block.height
+    );
+  }).length;
+}
+
 export function camperDecor(a: Arena): Promise<Outcome> {
   return atParkSpot(a, async (car) => {
     await wait(DOCK.ticks + 10);
@@ -285,6 +303,7 @@ export function camperDecor(a: Arena): Promise<Outcome> {
     for (const d of DECOR) setDecor(car, d.slot, d.item);
     await wait(3);
     const laid = laidDecor(a, pose, DECOR);
+    const furniture = laidFurniture(a, pose, DECOR);
     setDecor(car, "table", undefined);
     await wait(3);
     const kept = laidDecor(a, pose, DECOR.slice(1));
@@ -294,15 +313,20 @@ export function camperDecor(a: Arena): Promise<Outcome> {
     drive(car, 0, 1);
     await wait(15);
     const remaining = laidDecor(a, pose, DECOR.slice(1));
+    const furnitureLeft = furnitureCells(pose, []).filter(
+      (c) => a.dim.getBlock(c)?.typeId === CAMPER_FURNITURE_BLOCK,
+    ).length;
     const moved = movedFrom(car, pose);
     return {
       pass:
         laid === 2 &&
+        furniture === 10 &&
         kept === 1 &&
-        emptied === "minecraft:air" &&
+        emptied === CAMPER_FURNITURE_BLOCK &&
         remaining === 0 &&
+        furnitureLeft === 0 &&
         moved >= 0.1,
-      detail: `laid=${laid} kept=${kept} emptied=${emptied} remaining=${remaining} moved=${moved.toFixed(3)}`,
+      detail: `laid=${laid} furniture=${furniture} kept=${kept} emptied=${emptied} remaining=${remaining} furnitureLeft=${furnitureLeft} moved=${moved.toFixed(3)}`,
     };
   });
 }

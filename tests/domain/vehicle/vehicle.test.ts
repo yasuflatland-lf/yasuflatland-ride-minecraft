@@ -1015,7 +1015,9 @@ describe("hints (ADR 0086)", () => {
 
 it("has no hand-placed decor for a kind without decor (ADR 0093)", () => {
   const suv = createVehicle("suv", asVehicleId("a"), 0);
-  expect(suv.decorSlotFor("percolator", { x: 0, y: 0, z: 0 })).toBeUndefined();
+  expect(
+    suv.decorSlotFor("percolator", { x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }),
+  ).toBeUndefined();
   expect(suv.placeDecor("stove", "percolator")).toBe(false);
   expect(suv.removeDecor({ x: 0, y: 0, z: 0 })).toBeUndefined();
   expect(suv.decor()).toEqual([]);

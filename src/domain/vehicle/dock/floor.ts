@@ -17,6 +17,11 @@ export type DockBlock =
   | { readonly type: "floor" }
   | { readonly type: "ceiling" }
   | { readonly type: "bed" }
+  /**
+   * A decor slot with no decor (yasu_ride:camper_furniture): no collision, a selection
+   * box over the furniture top; `height` is the slot's 0..15 px, 0 for a hanging slot (ADR 0097).
+   */
+  | { readonly type: "furniture"; readonly height: number }
   | { readonly type: "wall"; readonly face: Face }
   | { readonly type: "door"; readonly face: Face; readonly open: boolean }
   /**
@@ -38,6 +43,8 @@ export function sameBlock(a: DockBlock, b: DockBlock): boolean {
   switch (a.type) {
     case "deck":
       return b.type === "deck" && a.height === b.height;
+    case "furniture":
+      return b.type === "furniture" && a.height === b.height;
     case "wall":
       return b.type === "wall" && a.face === b.face;
     case "door":

@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { DECOR_SLOTS } from "../../src/domain/vehicle/kinds/camper/decor";
 import { CAMPER_SPEC } from "../../src/domain/vehicle/kinds/camper/spec";
 import {
   CAMPER_BED_BLOCK,
@@ -8,7 +9,9 @@ import {
   CAMPER_DOOR_BLOCK,
   CAMPER_DOOR_COMPONENT,
   CAMPER_FLOOR_BLOCK,
+  CAMPER_FURNITURE_BLOCK,
   CAMPER_WALL_BLOCK,
+  DECOR_HEIGHT_STATE,
   ROOM_FACE_STATE,
   ROOM_OPEN_STATE,
 } from "../../src/infrastructure/vehicle/bedrock/identifiers";
@@ -38,6 +41,7 @@ describe("Camper room blocks (ADR 0068)", () => {
     ["wall", CAMPER_WALL_BLOCK],
     ["door", CAMPER_DOOR_BLOCK],
     ["bed", CAMPER_BED_BLOCK],
+    ["furniture", CAMPER_FURNITURE_BLOCK],
   ])(
     "defines an invisible, indestructible %s with the script's identifier",
     (name, identifier) => {
@@ -82,6 +86,46 @@ describe("Camper room blocks (ADR 0068)", () => {
       expect(block.components["minecraft:selection_box"]).toEqual(box);
     },
   );
+
+  it("defines a collisionless furniture block with one selection box per slot height (ADR 0097)", () => {
+    const block = readBlock("furniture")["minecraft:block"];
+    const heights = Array.from({ length: 16 }, (_, h) => h);
+    expect(block.description.states).toEqual({
+      [DECOR_HEIGHT_STATE]: heights,
+    });
+    expect(block.components["minecraft:collision_box"]).toBe(false);
+    expect(block.components).not.toHaveProperty("minecraft:selection_box");
+    expect(block.permutations).toEqual(
+      heights.map((h) => ({
+        condition: `q.block_state('${DECOR_HEIGHT_STATE}') == ${h}`,
+        components: {
+          "minecraft:selection_box":
+            h === 0
+              ? { origin: [-4, 6, -4], size: [8, 10, 8] }
+              : { origin: [-8, 0, -8], size: [16, h, 16] },
+        },
+      })),
+    );
+  });
+
+  it("covers each slot's furniture top (ADR 0097)", () => {
+    const block = readBlock("furniture")["minecraft:block"];
+    const boxOf = (height: number): { origin: number[]; size: number[] } =>
+      block.permutations.find(
+        (p: { condition: string }) =>
+          p.condition === `q.block_state('${DECOR_HEIGHT_STATE}') == ${height}`,
+      ).components["minecraft:selection_box"];
+    for (const slot of DECOR_SLOTS) {
+      const { origin, size } = boxOf(slot.height);
+      const [bottom, top] = [origin[1], (origin[1] ?? 0) + (size[1] ?? 0)];
+      if (slot.height > 0)
+        expect([bottom, top], slot.id).toEqual([0, slot.height]);
+      else {
+        expect(bottom, slot.id).toBeGreaterThanOrEqual(0);
+        expect(top, slot.id).toBe(16);
+      }
+    }
+  });
 
   it("defines all four wall faces with no selection box", () => {
     const wall = readBlock("wall")["minecraft:block"];

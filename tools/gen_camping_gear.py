@@ -250,8 +250,8 @@ def validate(spec):
     if [item["id"] for item in spec] != list(SHAPES):
         errors.append("SHAPES must list exactly the ids of camping_gear.json, in the same order")
     for item in spec:
-        if item["hanging"] != (item["places"] == ["ceiling_hook"]):
-            errors.append(f"{item['id']}: hanging must be true exactly when places is [\"ceiling_hook\"]")
+        if not isinstance(item["hanging"], bool):
+            errors.append(f"{item['id']}: hanging must be true or false")
         cubes = SHAPES.get(item["id"], [])
         if not cubes:
             continue

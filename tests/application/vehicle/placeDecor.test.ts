@@ -4,30 +4,34 @@ import {
   type PlaceDecorCommand,
 } from "../../../src/application/vehicle/placeDecor";
 import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
-import {
-  slotPoint,
-  slotsFor,
-} from "../../../src/domain/vehicle/kinds/camper/decorPlacing";
+import { decorSlot } from "../../../src/domain/vehicle/kinds/camper/decor";
+import { slotPoint } from "../../../src/domain/vehicle/kinds/camper/decorPlacing";
 import { decorSlotCell } from "../../../src/domain/vehicle/kinds/camper/room";
 import { FakeWorld, parkedCamper } from "./fakes";
+
+function slot(id: string) {
+  const s = decorSlot(id);
+  if (!s) throw new Error(`no ${id} slot`);
+  return s;
+}
 
 function setup() {
   const { car, pose, repo, tick } = parkedCamper();
   const world = new FakeWorld();
   const place = new PlaceDecor(world, repo);
-  const stove = slotsFor("percolator")[0];
-  if (!stove) throw new Error("no stove slot");
+  const stove = slot("stove");
   const cmd: PlaceDecorCommand = {
     playerId: asPlayerId("p"),
     vehicleId: car.id,
     item: "percolator",
     point: slotPoint(pose, stove),
+    cell: decorSlotCell(pose, stove),
     hotbarSlot: 4,
   };
   return { car, pose, tick, world, place, stove, cmd };
 }
 
-describe("PlaceDecor (ADR 0093)", () => {
+describe("PlaceDecor (ADR 0093, 0097)", () => {
   it("places on the nearest free slot, takes the held item in Survival, saves the decor, and lays it next tick (ADR 0093)", () => {
     const { car, pose, tick, world, place, stove, cmd } = setup();
     world.itemInSlot = true;
@@ -57,18 +61,39 @@ describe("PlaceDecor (ADR 0093)", () => {
   });
 
   it("shows the no-slot message, keeps the item, and saves nothing when every accepting slot is taken", () => {
-    const { world, place, cmd } = setup();
-    place.execute(cmd);
-    expect(place.execute(cmd)).toBe(false);
+    const { pose, world, place, cmd } = setup();
+    const hook = slot("ceiling_hook");
+    const planter = {
+      ...cmd,
+      item: "macrame_planter",
+      point: slotPoint(pose, hook),
+      cell: decorSlotCell(pose, hook),
+    };
+    place.execute(planter);
+    expect(place.execute(planter)).toBe(false);
     expect(world.messages.at(-1)).toEqual({
       playerId: "p",
       name: "decor_no_slot",
     });
     expect(world.calls).toEqual([
-      "consumeDecor:p:4:percolator",
-      "saveDecor:car:stove=percolator",
+      "consumeDecor:p:4:macrame_planter",
+      "saveDecor:car:ceiling_hook=macrame_planter",
       "showMessage",
     ]);
+  });
+
+  it("places in the pressed slot when it accepts the item and is free (ADR 0097)", () => {
+    const { pose, world, place, cmd } = setup();
+    world.creativePlayers.add("p");
+    expect(
+      place.execute({
+        ...cmd,
+        item: "potted_plant",
+        point: slotPoint(pose, slot("shelf_low")),
+        cell: decorSlotCell(pose, slot("shelf_high")),
+      }),
+    ).toBe(true);
+    expect(world.calls).toEqual(["saveDecor:car:shelf_high=potted_plant"]);
   });
 
   it("places and saves nothing when the hotbar slot no longer holds the item", () => {
