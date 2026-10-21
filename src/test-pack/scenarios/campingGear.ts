@@ -15,7 +15,7 @@ const ROW = { x: 119, z: 1 } as const;
 // The 19 items of ADR 0093; a spec that loses an item fails here as well as in the unit tests.
 const GEAR_COUNT = 19;
 
-// The decor blocks' yasu_ride:spot values: the cell middle and the four stove burners (ADR 0105).
+// The decor blocks' yasu_ride:spot values: the cell middle and the four stove burners (ADR 0107).
 const SPOTS = 5;
 
 /** Sets every decor block with a mix of face, height, and spot states and creates every gear item. */

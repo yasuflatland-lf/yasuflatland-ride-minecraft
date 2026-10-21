@@ -26,7 +26,7 @@ it("gives each cell to at most one furniture row", () => {
   expect(new Set(keys).size).toBe(keys.length);
 });
 
-it("puts every slot in its own furniture's cell, with a unique id, a height from 0 to 15, and a known spot; only the stove shares a cell among its burners (ADR 0105)", () => {
+it("puts every slot in its own furniture's cell, with a unique id, a height from 0 to 15, and a known spot; only the stove shares a cell among its burners (ADR 0107)", () => {
   const ids: string[] = [];
   const cells = new Map<string, Set<string>>();
   for (const row of CAMPER_FURNITURE)
@@ -48,7 +48,7 @@ it("puts every slot in its own furniture's cell, with a unique id, a height from
   expect(new Set(stove.map((s) => s.height)).size).toBe(1);
 });
 
-it("keeps each spot within 8 px of its cell middle, so its point stays on its cell (ADR 0105)", () => {
+it("keeps each spot within 8 px of its cell middle, so its point stays on its cell (ADR 0107)", () => {
   for (const { left, forward } of DECOR_SPOTS) {
     expect(Math.abs(left)).toBeLessThan(8);
     expect(Math.abs(forward)).toBeLessThan(8);

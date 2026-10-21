@@ -28,7 +28,7 @@ export interface DecorSlot {
   readonly height: number;
   /** Items hang from this slot instead of standing on it (ADR 0093, 0102). */
   readonly hanging?: true;
-  /** The index in DECOR_SPOTS of where on its cell the item stands; the cell middle when omitted (ADR 0105). */
+  /** The index in DECOR_SPOTS of where on its cell the item stands; the cell middle when omitted (ADR 0107). */
   readonly spot?: number;
 }
 
@@ -43,7 +43,7 @@ export interface DecorSpot {
 // middle; 1 to 4 are the stove burners, whose centers in tools/gen_camper.py are 3.8 px
 // either side of the cell middle across the aisle and 5.4 px toward the sink or 5.35 px
 // toward the far flange. The wall-side spots sit 0.5 px in from their burner centers so the
-// widest item (7 px) clears the wall at 22.8 px; they stay on the 3.2 px grate (ADR 0105).
+// widest item (7 px) clears the wall at 22.8 px; they stay on the 3.2 px grate (ADR 0107).
 export const DECOR_SPOTS: readonly DecorSpot[] = [
   { left: 0, forward: 0 },
   { left: 3.8, forward: 5.4 },
@@ -128,7 +128,7 @@ export const CAMPER_FURNITURE: readonly Furniture[] = [
   },
   // The sink is in front of the stove, as on the real range (ADR 0100). One slot per burner,
   // all in one cell, so the stove holds one item; "stove" keeps its id for saved decor. Height
-  // 15 stands the item on the burner grate, whose prongs reach 14.95 px (ADR 0105).
+  // 15 stands the item on the burner grate, whose prongs reach 14.95 px (ADR 0107).
   {
     kind: "stove",
     cells: [STOVE_CELL],

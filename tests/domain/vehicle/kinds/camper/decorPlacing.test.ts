@@ -52,7 +52,7 @@ const squared = (a: Vec3, b: Vec3) =>
 const localKey = (c: LocalCell) => `${c.x},${c.z},${c.layer}`;
 const sameCell = (a: DecorSlot, b: DecorSlot) =>
   localKey(a.cell) === localKey(b.cell);
-// A slot is free while no slot of its cell holds decor (ADR 0105).
+// A slot is free while no slot of its cell holds decor (ADR 0107).
 const freeOf = (taken: readonly DecorSlot[]) => (s: DecorSlot) =>
   !taken.some((t) => sameCell(t, s));
 // The nearest slot to `point`, the first one on a tie, written out separately from the code.
@@ -94,7 +94,7 @@ it("accepts a standing item on every slot but the ceiling hook and a hanging ite
   expect(slotsFor("stone")).toEqual([]);
 });
 
-it("gives the stove one slot per burner in one cell, keeping the stove id, and every other furniture one slot per cell (ADR 0105)", () => {
+it("gives the stove one slot per burner in one cell, keeping the stove id, and every other furniture one slot per cell (ADR 0107)", () => {
   expect(SLOTS.map((s) => s.slot)).toEqual(DECOR_SLOTS);
   expect(SLOTS).toHaveLength(13);
   const stove = SLOTS.filter(({ kind }) => kind === "stove").map(
@@ -115,7 +115,7 @@ it("gives the stove one slot per burner in one cell, keeping the stove id, and e
   expect(DECOR_SPOTS).toHaveLength(5);
 });
 
-it("lists every slot cell once with its slots in slot order (ADR 0105)", () => {
+it("lists every slot cell once with its slots in slot order (ADR 0107)", () => {
   expect(DECOR_CELLS.flatMap(({ slots }) => slots)).toEqual(DECOR_SLOTS);
   expect(new Set(DECOR_CELLS.map(({ cell }) => localKey(cell))).size).toBe(
     DECOR_CELLS.length,
@@ -125,7 +125,7 @@ it("lists every slot cell once with its slots in slot order (ADR 0105)", () => {
     for (const s of slots) expect(s.cell).toEqual(cell);
 });
 
-it("counts a slot taken when any slot of its cell holds decor, and ignores unknown slots (ADR 0105)", () => {
+it("counts a slot taken when any slot of its cell holds decor, and ignores unknown slots (ADR 0107)", () => {
   fc.assert(
     fc.property(
       fc.constantFrom(...DECOR_SLOTS),
@@ -144,7 +144,7 @@ it("counts a slot taken when any slot of its cell holds decor, and ignores unkno
   );
 });
 
-it("moves a spot by its left and forward pixels along the snapped yaw's left and forward (ADR 0105)", () => {
+it("moves a spot by its left and forward pixels along the snapped yaw's left and forward (ADR 0107)", () => {
   fc.assert(
     fc.property(
       yaw,
@@ -189,7 +189,7 @@ it("puts each slot's point at its spot on its surface and lays its decor in its 
   );
 });
 
-it("lays one decor block per cell, the first placement in it (ADR 0105)", () => {
+it("lays one decor block per cell, the first placement in it (ADR 0107)", () => {
   fc.assert(
     fc.property(
       pose,
@@ -323,7 +323,7 @@ it("puts a potted plant on the high shelf when it is pressed, though the low she
   ).toBe(high);
 });
 
-it("puts an item pressed on the stove on the burner nearest the hit point, in every facing (ADR 0105)", () => {
+it("puts an item pressed on the stove on the burner nearest the hit point, in every facing (ADR 0107)", () => {
   fc.assert(
     fc.property(
       fc.constantFrom(0, 90, 180, -90),
@@ -351,7 +351,7 @@ it("puts an item pressed on the stove on the burner nearest the hit point, in ev
   );
 });
 
-it("takes no second item on the stove while any burner holds one (ADR 0105)", () => {
+it("takes no second item on the stove while any burner holds one (ADR 0107)", () => {
   fc.assert(
     fc.property(
       fc.constantFrom(0, 90, 180, -90),

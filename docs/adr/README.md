@@ -108,7 +108,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0102](0102-lift-the-hanging-planter-from-its-cell-bottom.md) | Lift the hanging planter from its cell bottom | Accepted |
 | [0103](0103-raise-the-camper-wall-cabinet-to-the-ceiling.md) | Raise the camper wall cabinet to the ceiling | Accepted |
 | [0104](0104-refuse-a-press-on-a-taken-seat.md) | Refuse a press on a taken seat | Accepted |
-| [0105](0105-stand-stove-gear-on-a-burner.md) | Stand stove gear on a burner, and widen the standing decor box | Accepted |
+| [0107](0107-stand-stove-gear-on-a-burner.md) | Stand stove gear on a burner, and widen the standing decor box | Accepted |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 

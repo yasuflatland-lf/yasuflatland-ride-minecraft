@@ -162,7 +162,7 @@ export function decorSlotCell(pose: HoldPose, slot: DecorSlot): Vec3 {
 
 /**
  * The world offset in blocks from a cell's middle to the decor spot `spot` (an index in
- * DECOR_SPOTS) at a snapped `yaw`: a decor block's yasu_ride:spot translation (ADR 0105).
+ * DECOR_SPOTS) at a snapped `yaw`: a decor block's yasu_ride:spot translation (ADR 0107).
  */
 export function decorSpotOffset(yaw: number, spot: number): Vec2 {
   const { left, forward } = DECOR_SPOTS[spot] ?? { left: 0, forward: 0 };

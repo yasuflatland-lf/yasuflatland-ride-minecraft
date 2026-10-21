@@ -1,4 +1,4 @@
-# 0105. Stand stove gear on a burner, and widen the standing decor box
+# 0107. Stand stove gear on a burner, and widen the standing decor box
 
 - Status: Accepted
 - Date: 2026-10-22

@@ -837,7 +837,7 @@ body.append(box(17.5, 33, 19.5, 21.5, 34, 20.5, "chrome"))  # spout
 
 # Every burner part stays outside the 7 px square around the cooktop middle (16, 32), the
 # footprint of the widest decor item (ADR 0100). Decor now stands on a burner grate instead
-# (ADR 0105), but the middle stays clear.
+# (ADR 0107), but the middle stays clear.
 BURNER_SCALE = 0.6  # burner reach 2.85 * 0.6 = 1.71 px, so it fits between that square and the flange
 GRATE_R = 2.7 * BURNER_SCALE  # half the burner grate's outer width
 

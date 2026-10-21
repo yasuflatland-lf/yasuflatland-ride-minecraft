@@ -52,7 +52,7 @@ const location = fc.record({
 });
 const yaw = fc.double({ min: -720, max: 720, noNaN: true });
 const pose = fc.tuple(location, yaw).map(([at, angle]) => parkPose(at, angle));
-// At most one placement per slot cell, as the drive keeps it (ADR 0105).
+// At most one placement per slot cell, as the drive keeps it (ADR 0107).
 const decor = fc
   .subarray([...DECOR_CELLS])
   .chain((cells) =>
@@ -626,7 +626,7 @@ it("lists each slot cell once, in the order of its first slot (ADR 0097, 0105)",
   );
 });
 
-it("lays the stove's furniture block once, at its burners' height, while no burner holds decor (ADR 0105)", () => {
+it("lays the stove's furniture block once, at its burners' height, while no burner holds decor (ADR 0107)", () => {
   fc.assert(
     fc.property(
       pose,

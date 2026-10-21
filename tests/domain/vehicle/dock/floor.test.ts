@@ -182,7 +182,7 @@ describe("sameBlock", () => {
     );
   });
 
-  it("tells decor apart by item, face, height, and spot (ADR 0105)", () => {
+  it("tells decor apart by item, face, height, and spot (ADR 0107)", () => {
     fc.assert(
       fc.property(
         fc.oneof(

@@ -42,7 +42,7 @@ HEIGHT_STATE = "yasu_ride:height"
 FACE_ROTATION = [180, 90, 0, -90]  # index = FACE_STATE = the camper's yaw quarter
 FACES = range(len(FACE_ROTATION))
 HEIGHTS = range(16)  # HEIGHT_STATE, px above the cell bottom
-# SPOT_STATE says where on its cell the item stands (ADR 0105): index = DECOR_SPOTS in
+# SPOT_STATE says where on its cell the item stands (ADR 0107): index = DECOR_SPOTS in
 # src/domain/vehicle/kinds/camper/furniture.ts, as (left, forward) px from the cell middle in the
 # camper's room frame. Spot 0 is the middle; 1 to 4 are the stove burners, which are 15 px high
 # (SPOT_HEIGHTS), so only those permutations are written. tests/packs/campingGear.test.ts ties
@@ -349,7 +349,7 @@ def selection_box(item):
     """A hanging item keeps its footprint, so the box under the hook does not catch presses
     aimed at the table below (ADR 0097). A standing item's box spans the whole cell from the
     item's base to its top, at least 1 px, so a press anywhere on the furniture top under it
-    reaches the decor block (ADR 0105)."""
+    reaches the decor block (ADR 0107)."""
     y0, y1 = y_span(item)
     if item["hanging"]:
         w = item["width_px"]

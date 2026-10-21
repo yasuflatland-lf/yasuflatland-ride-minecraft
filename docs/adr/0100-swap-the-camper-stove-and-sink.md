@@ -1,6 +1,6 @@
 # 0100. Swap the camper stove and sink
 
-- Status: Accepted (stove decor standing on the bare plate in the middle of the cooktop is superseded by [0105](0105-stand-stove-gear-on-a-burner.md): it stands on a burner)
+- Status: Accepted (stove decor standing on the bare plate in the middle of the cooktop is superseded by [0105](0107-stand-stove-gear-on-a-burner.md): it stands on a burner)
 - Date: 2026-10-21
 - Supersedes in part: 0093 (the stove and counter cells)
 

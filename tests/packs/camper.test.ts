@@ -1056,7 +1056,7 @@ describe("camper furniture model (ADR 0093)", () => {
     expect(covering.some(([lo, hi]) => lo < 54 && hi > 32)).toBe(false);
   });
 
-  it("stands each stove burner slot on top of its burner's grate (ADR 0105)", () => {
+  it("stands each stove burner slot on top of its burner's grate (ADR 0107)", () => {
     const points = bodyPoints();
     const burners = CAMPER_FURNITURE.flatMap((f) => f.slots).filter(
       (slot) => (slot.spot ?? 0) !== 0,

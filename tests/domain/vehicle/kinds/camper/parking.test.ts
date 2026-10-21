@@ -43,7 +43,7 @@ import { defined } from "../../../../support/defined";
 const PUSH = { moveX: 0, moveY: 1, jump: false };
 const NEUTRAL = { moveX: 0, moveY: 0, jump: false };
 const decorItem = fc.constantFrom("potted_plant", "percolator", "cushion");
-// At most one placement per slot cell, as the drive keeps it (ADR 0105).
+// At most one placement per slot cell, as the drive keeps it (ADR 0107).
 const inCells = (cells: readonly (typeof DECOR_CELLS)[number][]) =>
   fc.tuple(
     ...cells.map(({ slots }) =>
@@ -603,7 +603,7 @@ it("moves a hanging item of a removed slot to the free ceiling hook (ADR 0103)",
   ]);
 });
 
-// One item per standing cell fills every standing slot (ADR 0105).
+// One item per standing cell fills every standing slot (ADR 0107).
 const standingCells = DECOR_CELLS.filter(({ slots }) => !slots[0]?.hanging);
 const fullSlots = standingCells.map(({ slots }) => ({
   slot: defined(slots[0], "first slot").id,
@@ -651,7 +651,7 @@ it("never loses a saved item when restoring (ADR 0103)", () => {
         list.map((e) => e.item).sort();
       expect(items(d)).toEqual(items(parsed));
       expect(new Set(d.map((e) => e.slot)).size).toBe(d.length);
-      // A known slot keeps its entry unless an earlier entry took its cell (ADR 0105).
+      // A known slot keeps its entry unless an earlier entry took its cell (ADR 0107).
       for (const [i, e] of parsed.entries()) {
         const cell = cellOf(e.slot);
         if (cell && !parsed.slice(0, i).some((o) => cellOf(o.slot) === cell))
@@ -759,7 +759,7 @@ it("places the item in the pressed slot ahead of a nearer free slot (ADR 0097)",
   ).toBe("shelf_high");
 });
 
-it("puts the stove item on the burner nearest the press and takes no second item while one burner holds one (ADR 0105)", () => {
+it("puts the stove item on the burner nearest the press and takes no second item while one burner holds one (ADR 0107)", () => {
   fc.assert(
     fc.property(
       fc.constantFrom(0, 90, 180, -90),
@@ -817,7 +817,7 @@ it("puts the stove item on the burner nearest the press and takes no second item
   );
 });
 
-it("replaces the item of a cell when a test sets another slot of it (ADR 0105)", () => {
+it("replaces the item of a cell when a test sets another slot of it (ADR 0107)", () => {
   const f = fixture();
   expect(f.drive.setDecor("stove", "saucepan")).toBe(true);
   expect(f.drive.setDecor("stove_wall_rear", "enamel_kettle")).toBe(true);
@@ -827,7 +827,7 @@ it("replaces the item of a cell when a test sets another slot of it (ADR 0105)",
   expect(f.drive.setDecor("stove", undefined)).toBe(false);
 });
 
-it("restores saved decor in the old stove slot on its burner and moves a second entry of the stove cell to a free slot (ADR 0105)", () => {
+it("restores saved decor in the old stove slot on its burner and moves a second entry of the stove cell to a free slot (ADR 0107)", () => {
   const saved = JSON.stringify([
     { slot: "stove", item: "percolator" },
     { slot: "stove_rear", item: "saucepan" },

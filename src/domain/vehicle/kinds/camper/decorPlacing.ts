@@ -19,7 +19,7 @@ export function slotsFor(item: string): DecorSlot[] {
   return DECOR_SLOTS.filter((slot) => (slot.hanging === true) === hanging);
 }
 
-/** The point on a slot's surface where its decor stands: its spot on the cell (ADR 0105). */
+/** The point on a slot's surface where its decor stands: its spot on the cell (ADR 0107). */
 export function slotPoint(pose: HoldPose, slot: DecorSlot): Vec3 {
   const c = decorSlotCell(pose, slot);
   const offset = decorSpotOffset(pose.yaw, slot.spot ?? 0);
@@ -52,7 +52,7 @@ function nearest(
 
 /**
  * The free slot accepting `item` whose point is nearest `point`; on a tie, the slot
- * listed first. A slot is free while no slot of its cell holds decor (ADR 0105).
+ * listed first. A slot is free while no slot of its cell holds decor (ADR 0107).
  * Undefined when every accepting slot is taken.
  */
 export function nearestFreeSlot(

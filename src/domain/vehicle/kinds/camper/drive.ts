@@ -187,7 +187,7 @@ export class CamperDrive extends TransformingDrive {
     });
   }
 
-  /** Sets or clears one slot; an item replaces whatever another slot of its cell held (ADR 0105). */
+  /** Sets or clears one slot; an item replaces whatever another slot of its cell held (ADR 0107). */
   setDecor(slot: string, item: string | undefined): boolean {
     const target = decorSlot(slot);
     if (!target || (item !== undefined && !isDecorItem(item))) return false;
@@ -223,7 +223,7 @@ export class CamperDrive extends TransformingDrive {
     return this.setDecor(slot, item);
   }
 
-  /** Takes back the item in the pressed cell, whichever of the cell's slots holds it (ADR 0105). */
+  /** Takes back the item in the pressed cell, whichever of the cell's slots holds it (ADR 0107). */
   removeDecor(cell: Vec3): string | undefined {
     if (!this.parked) return undefined;
     const slot = slotsAt(this.parked, cell).find(({ id }) =>

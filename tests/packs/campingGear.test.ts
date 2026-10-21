@@ -336,7 +336,7 @@ const decorOf = (g: Gear) => readJson(decorPath(g)) as DecorBlock;
 const condition = (face: number, spot: number, height: number) =>
   `q.block_state('yasu_ride:face') == ${face} && q.block_state('yasu_ride:spot') == ${spot} && q.block_state('yasu_ride:height') == ${height}`;
 const SPOTS = DECOR_SPOTS.map((_, spot) => spot);
-// The middle spot takes every height; another spot only the heights of the slots on it (ADR 0105).
+// The middle spot takes every height; another spot only the heights of the slots on it (ADR 0107).
 const spotHeights = (spot: number) =>
   spot === 0
     ? HEIGHTS
@@ -498,7 +498,7 @@ describe("camping gear blocks and items (ADR 0093)", () => {
     );
   });
 
-  it("draws every slot's item at its spot for every face, moved by the domain's spot offset (ADR 0105)", () => {
+  it("draws every slot's item at its spot for every face, moved by the domain's spot offset (ADR 0107)", () => {
     const blocks = SPEC.map(decorOf);
     for (const slot of DECOR_SLOTS)
       for (const face of [0, 1, 2, 3])
@@ -512,7 +512,7 @@ describe("camping gear blocks and items (ADR 0093)", () => {
             matches[0]?.components["minecraft:transformation"].translation,
           ).toEqual(translation(face, spot, slot.height));
         }
-    // Face 0 is yaw 0: the camper faces +z, so its left is +x (ADR 0105).
+    // Face 0 is yaw 0: the camper faces +z, so its left is +x (ADR 0107).
     expect(translation(0, 1, 15)).toEqual([3.8 / 16, 15 / 16, 5.4 / 16]);
   });
 

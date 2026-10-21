@@ -547,7 +547,7 @@ it("clears saved deck cells from the legacy height-only format", () => {
   expect(f.saved.get(DECK_CELLS_PROPERTY)).toBeUndefined();
 });
 
-it("reads a saved decor cell from before the spot state as standing in the cell middle (ADR 0105)", () => {
+it("reads a saved decor cell from before the spot state as standing in the cell middle (ADR 0107)", () => {
   const f = fixture();
   const position = { x: 0, y: 64, z: 0 };
   const block = { type: "decor", item: "percolator", face: 2, height: 14 };

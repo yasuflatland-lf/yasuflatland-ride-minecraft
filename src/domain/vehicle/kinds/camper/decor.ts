@@ -27,7 +27,7 @@ export interface DecorCell {
 
 /**
  * Every cell that holds a slot, once, in the order of its first slot. A cell holds one
- * block, so the stove's four burner slots share one decor or furniture block (ADR 0105).
+ * block, so the stove's four burner slots share one decor or furniture block (ADR 0107).
  */
 export const DECOR_CELLS: readonly DecorCell[] = DECOR_SLOTS.filter(
   (slot, i) => DECOR_SLOTS.findIndex((s) => sameCell(s.cell, slot.cell)) === i,
@@ -44,7 +44,7 @@ export function decorInCell(
   });
 }
 
-/** Whether any slot in `slot`'s cell holds decor: a cell holds one item (ADR 0105). */
+/** Whether any slot in `slot`'s cell holds decor: a cell holds one item (ADR 0107). */
 export function cellTaken(
   slot: DecorSlot,
   decor: readonly DecorPlacement[],

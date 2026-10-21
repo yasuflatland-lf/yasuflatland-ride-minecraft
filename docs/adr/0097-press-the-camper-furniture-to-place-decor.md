@@ -1,6 +1,6 @@
 # 0097. Press the camper furniture to place decor
 
-- Status: Accepted (the wall cabinet halves among the standing slots are superseded by [0103](0103-raise-the-camper-wall-cabinet-to-the-ceiling.md); a standing decor block's footprint selection box is superseded by [0105](0105-stand-stove-gear-on-a-burner.md); extended by [0104](0104-refuse-a-press-on-a-taken-seat.md) (a press on a taken dinette seat is refused))
+- Status: Accepted (the wall cabinet halves among the standing slots are superseded by [0103](0103-raise-the-camper-wall-cabinet-to-the-ceiling.md); a standing decor block's footprint selection box is superseded by [0105](0107-stand-stove-gear-on-a-burner.md); extended by [0104](0104-refuse-a-press-on-a-taken-seat.md) (a press on a taken dinette seat is refused))
 - Date: 2026-10-21
 - Extends: 0068, 0093
 

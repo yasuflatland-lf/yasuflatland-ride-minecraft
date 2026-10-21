@@ -134,7 +134,7 @@ describe("HitVehicle (ADR 0008)", () => {
   });
 
   it("gives back stowed decor when the camper breaks (ADR 0103)", () => {
-    // One item per standing cell: a cell holds one item (ADR 0105).
+    // One item per standing cell: a cell holds one item (ADR 0107).
     const standing = DECOR_CELLS.flatMap(({ slots: [first] }) =>
       first && !first.hanging ? [{ slot: first.id, item: "potted_plant" }] : [],
     );
