@@ -1,11 +1,19 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { inflateSync } from "node:zlib";
+import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { forward } from "../../src/domain/shared/vec";
+import {
+  DECOR_FACE_STATE,
+  DECOR_HEIGHT_STATE,
+  decorBlockId,
+} from "../../src/infrastructure/vehicle/bedrock/identifiers";
 
 // tools/camping_gear.json is the one list of camping gear; these tests tie
 // it to the generated block models, the atlas, the previews, and the docs
 // (ADR 0093).
 const RP = "packs/yasu_ride_rp";
+const BP = "packs/yasu_ride_bp";
 const SPEC_PATH = "tools/camping_gear.json";
 const MODELS = `${RP}/models/blocks/yasu_ride`;
 const ATLAS = `${RP}/textures/blocks/yasu_ride/camping_gear.png`;
@@ -301,4 +309,247 @@ describe("camping gear docs (ADR 0093)", () => {
     );
     expect(section).toContain("](docs/items/README.md)");
   });
+});
+
+// The decor block states and their rotations, kept in tools/gen_camping_gear.py (ADR 0093)
+const FACE_ROTATION = [180, 90, 0, -90];
+const HEIGHTS = Array.from({ length: 16 }, (_, h) => h);
+const ATLAS_KEY = "yasu_ride_camping_gear";
+// "Camping Gear" in Japanese, escaped so that pnpm lint:lang passes on this file
+const JA_GROUP_NAME = "\u30ad\u30e3\u30f3\u30d4\u30f3\u30b0\u7528\u54c1";
+
+interface Permutation {
+  condition: string;
+  components: {
+    "minecraft:transformation": { rotation: number[]; translation: number[] };
+  };
+}
+
+interface DecorBlock {
+  "minecraft:block": {
+    components: Record<string, unknown> & {
+      "minecraft:material_instances": Record<string, { texture: string }>;
+    };
+    permutations: Permutation[];
+  };
+}
+
+const readJson = (path: string) => JSON.parse(readFileSync(path, "utf8"));
+const decorPath = (g: Gear) =>
+  `${BP}/blocks/yasu_ride/${g.id}_decor.block.json`;
+const decorOf = (g: Gear) => readJson(decorPath(g)) as DecorBlock;
+const condition = (face: number, height: number) =>
+  `q.block_state('yasu_ride:face') == ${face} && q.block_state('yasu_ride:height') == ${height}`;
+
+function expectedDecor(g: Gear) {
+  const w = g.width_px;
+  return {
+    format_version: "1.21.80",
+    "minecraft:block": {
+      description: {
+        identifier: decorBlockId(g.id),
+        menu_category: { category: "none" },
+        states: {
+          [DECOR_FACE_STATE]: [0, 1, 2, 3],
+          [DECOR_HEIGHT_STATE]: HEIGHTS,
+        },
+      },
+      components: {
+        "minecraft:geometry": `geometry.yasu_ride.${g.id}`,
+        "minecraft:material_instances": {
+          "*": {
+            texture: ATLAS_KEY,
+            render_method: g.glass ? "blend" : "opaque",
+          },
+        },
+        "minecraft:light_dampening": 0,
+        "minecraft:destructible_by_mining": false,
+        "minecraft:destructible_by_explosion": false,
+        "minecraft:collision_box": false,
+        "minecraft:selection_box": {
+          origin: [-w / 2, 0, -w / 2],
+          size: [w, g.height_px, w],
+        },
+      },
+      permutations: [0, 1, 2, 3].flatMap((face) =>
+        HEIGHTS.map((height) => ({
+          condition: condition(face, height),
+          components: {
+            "minecraft:transformation": {
+              rotation: [0, FACE_ROTATION[face], 0],
+              translation: [0, height / 16, 0],
+            },
+          },
+        })),
+      ),
+    },
+  };
+}
+
+function langValues(locale: string): Map<string, string[]> {
+  const values = new Map<string, string[]>();
+  for (const line of readFileSync(`${RP}/texts/${locale}.lang`, "utf8").split(
+    "\n",
+  )) {
+    const at = line.indexOf("=");
+    if (at < 0 || line.startsWith("#")) continue;
+    const key = line.slice(0, at);
+    values.set(key, [...(values.get(key) ?? []), line.slice(at + 1)]);
+  }
+  return values;
+}
+
+describe("camping gear blocks and items (ADR 0093)", () => {
+  it("defines one decor block per gear with no collision, a centered selection box, and no custom component", () => {
+    for (const g of SPEC) {
+      const block = decorOf(g);
+      expect(block, g.id).toEqual(expectedDecor(g));
+      const components = block["minecraft:block"].components;
+      expect(components).not.toHaveProperty(["minecraft:custom_components"]);
+      expect(components).not.toHaveProperty(["minecraft:loot"]);
+      expect(components).not.toHaveProperty(["minecraft:transformation"]);
+    }
+    expect(
+      readdirSync(`${BP}/blocks/yasu_ride`)
+        .filter((f) => f.endsWith("_decor.block.json"))
+        .sort(),
+    ).toEqual(SPEC.map((g) => `${g.id}_decor.block.json`).sort());
+  });
+
+  it("turns the gear model's -z to the camper's front for every face", () => {
+    const blocks = new Map(SPEC.map((g) => [g.id, decorOf(g)]));
+    fc.assert(
+      fc.property(
+        fc.constantFrom(...SPEC),
+        fc.integer({ min: 0, max: 3 }),
+        fc.integer({ min: 0, max: 15 }),
+        (g, face, height) => {
+          const matches =
+            blocks
+              .get(g.id)
+              ?.["minecraft:block"].permutations.filter(
+                (p) => p.condition === condition(face, height),
+              ) ?? [];
+          expect(matches).toHaveLength(1);
+          const turn = matches[0]?.components["minecraft:transformation"];
+          expect(turn?.translation).toEqual([0, height / 16, 0]);
+          const rad = ((turn?.rotation[1] ?? Number.NaN) * Math.PI) / 180;
+          // Bedrock's block turn: +90 takes north (model -z) to west
+          const front = {
+            x: Math.round(-Math.sin(rad)) + 0,
+            z: Math.round(-Math.cos(rad)) + 0,
+          };
+          const camper = forward(90 * face);
+          expect(front).toEqual({
+            x: Math.round(camper.x) + 0,
+            z: Math.round(camper.z) + 0,
+          });
+        },
+      ),
+    );
+  });
+
+  it("defines one stackable item per gear with its icon and name key", () => {
+    for (const g of SPEC)
+      expect(readJson(`${BP}/items/yasu_ride/${g.id}.item.json`)).toEqual({
+        format_version: "1.21.80",
+        "minecraft:item": {
+          description: {
+            identifier: `yasu_ride:${g.id}`,
+            menu_category: { category: "items" },
+          },
+          components: {
+            "minecraft:icon": `yasu_ride_${g.id}`,
+            "minecraft:max_stack_size": 64,
+            "minecraft:display_name": { value: `item.yasu_ride:${g.id}.name` },
+          },
+        },
+      });
+  });
+
+  it("registers every gear icon and renders it as a 32 by 32 RGBA image with transparency", () => {
+    const data = readJson(`${RP}/textures/item_texture.json`).texture_data;
+    for (const key of [
+      "yasu_ride_suv_item",
+      "yasu_ride_sportsboat_item",
+      "yasu_ride_camper_item",
+      "yasu_ride_headlight_switch",
+    ])
+      expect(data).toHaveProperty([key]);
+    for (const g of SPEC) {
+      expect(data[`yasu_ride_${g.id}`]).toEqual({
+        textures: `textures/items/yasu_ride/${g.id}`,
+      });
+      const { width, height, pixel } = readPng(
+        `${RP}/textures/items/yasu_ride/${g.id}.png`,
+      );
+      expect([width, height], g.id).toEqual([32, 32]);
+      expect(pixel(0, 0)[3], g.id).toBe(0);
+      let opaque = false;
+      for (let y = 0; y < height && !opaque; y++)
+        for (let x = 0; x < width && !opaque; x++)
+          opaque = pixel(x, y)[3] === 255;
+      expect(opaque, g.id).toBe(true);
+    }
+  });
+
+  it("uses the shared atlas's terrain texture for every decor block", () => {
+    const terrain = readJson(`${RP}/textures/terrain_texture.json`);
+    expect(terrain.texture_data).toHaveProperty([ATLAS_KEY]);
+    for (const g of SPEC)
+      expect(
+        decorOf(g)["minecraft:block"].components[
+          "minecraft:material_instances"
+        ]["*"]?.texture,
+      ).toBe(ATLAS_KEY);
+  });
+
+  it("lists every gear item in spec order in the Camping Gear group of the Items tab", () => {
+    const items = SPEC.map((g) => `yasu_ride:${g.id}`);
+    expect(items).toHaveLength(19);
+    expect(readJson(`${BP}/item_catalog/crafting_item_catalog.json`)).toEqual({
+      format_version: "1.21.60",
+      "minecraft:crafting_items_catalog": {
+        categories: [
+          {
+            category_name: "items",
+            groups: [
+              {
+                group_identifier: {
+                  icon: "yasu_ride:percolator",
+                  name: "yasu_ride:camping_gear",
+                },
+                items,
+              },
+            ],
+          },
+        ],
+      },
+    });
+  });
+
+  it.each(["en_US", "ja_JP"])(
+    "names the group, every gear item, and every decor block in %s",
+    (locale) => {
+      const values = langValues(locale);
+      const name = (g: Gear) => (locale === "en_US" ? g.name_en : g.name_ja);
+      const expected = new Map<string, string>([
+        [
+          "yasu_ride:camping_gear",
+          locale === "en_US" ? "Camping Gear" : JA_GROUP_NAME,
+        ],
+        ...SPEC.map((g): [string, string] => [
+          `item.yasu_ride:${g.id}.name`,
+          name(g),
+        ]),
+        ...SPEC.map((g): [string, string] => [
+          `tile.yasu_ride:${g.id}_decor.name`,
+          name(g),
+        ]),
+      ]);
+      expect(expected.size).toBe(1 + 2 * SPEC.length);
+      for (const [key, value] of expected)
+        expect(values.get(key), key).toEqual([value]);
+    },
+  );
 });
