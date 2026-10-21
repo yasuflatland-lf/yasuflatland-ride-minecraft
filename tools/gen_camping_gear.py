@@ -32,8 +32,11 @@ ATLAS_KEY = "yasu_ride_camping_gear"
 # Decor block states (ADR 0093). The rotation turns the gear model into the camper model's frame:
 # model -z to the camper's front. In a block frame, rotation 0 faces model -z north and +90 turns
 # north to west.
-FACE_ROTATION = [180, 90, 0, -90]  # index = yasu_ride:face = the camper's yaw quarter
-HEIGHTS = range(16)  # yasu_ride:height, px above the cell bottom
+FACE_STATE = "yasu_ride:face"
+HEIGHT_STATE = "yasu_ride:height"
+FACE_ROTATION = [180, 90, 0, -90]  # index = FACE_STATE = the camper's yaw quarter
+FACES = range(len(FACE_ROTATION))
+HEIGHTS = range(16)  # HEIGHT_STATE, px above the cell bottom
 GROUP = "yasu_ride:camping_gear"
 GROUP_ICON = "yasu_ride:percolator"  # 7/9 switches it to the camping gear box
 ATLAS_SIZE = 16
@@ -326,7 +329,7 @@ def decor_block(item):
             "description": {
                 "identifier": f"yasu_ride:{gid}_decor",
                 "menu_category": {"category": "none"},
-                "states": {"yasu_ride:face": [0, 1, 2, 3], "yasu_ride:height": list(HEIGHTS)},
+                "states": {FACE_STATE: list(FACES), HEIGHT_STATE: list(HEIGHTS)},
             },
             "components": {
                 "minecraft:geometry": f"geometry.yasu_ride.{gid}",
@@ -341,7 +344,7 @@ def decor_block(item):
             },
             "permutations": [
                 {
-                    "condition": f"q.block_state('yasu_ride:face') == {face} && q.block_state('yasu_ride:height') == {height}",
+                    "condition": f"q.block_state('{FACE_STATE}') == {face} && q.block_state('{HEIGHT_STATE}') == {height}",
                     "components": {
                         "minecraft:transformation": {
                             "rotation": [0, FACE_ROTATION[face], 0],
@@ -349,7 +352,7 @@ def decor_block(item):
                         }
                     },
                 }
-                for face in range(4)
+                for face in FACES
                 for height in HEIGHTS
             ],
         },
