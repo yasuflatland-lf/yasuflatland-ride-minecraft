@@ -211,22 +211,25 @@ export function roomCells(pose: HoldPose, doorOpen: boolean): DockCell[] {
   return cells;
 }
 
+type DecorCell = DockCell & {
+  readonly block: Extract<DockBlock, { type: "decor" }>;
+};
+
 /** One decor block per placement in a known slot, at the slot's cell and height, turned to the yaw quarter (ADR 0093). */
 export function decorCells(
   pose: HoldPose,
   decor: readonly DecorPlacement[],
-): DockCell[] {
+): DecorCell[] {
   const face = decorFace(pose.yaw);
   return decor.flatMap(({ slot, item }) => {
     const s = decorSlot(slot);
-    return s
-      ? [
-          {
-            ...decorSlotCell(pose, s),
-            block: { type: "decor", item, face, height: s.height } as const,
-          },
-        ]
-      : [];
+    if (!s) return [];
+    return [
+      {
+        ...decorSlotCell(pose, s),
+        block: { type: "decor", item, face, height: s.height } as const,
+      },
+    ];
   });
 }
 

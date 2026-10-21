@@ -173,8 +173,9 @@ export class CamperDrive extends TransformingDrive {
     const parked = this.parked;
     if (parked) {
       if (!pressed) return this.parkedStep(parked, ctx);
-      const decor = decorCells(parked, this.decor());
-      const cargo = cargoCells(parked, this.decor());
+      const placed = this.decor();
+      const decor = decorCells(parked, placed);
+      const cargo = cargoCells(parked, placed);
       // The cargo cells, the decor cells, and the two exit cells share one
       // departure batch; a decor cell is clear only with air or its own decor block.
       const types = ctx.blockTypes([
@@ -185,10 +186,7 @@ export class CamperDrive extends TransformingDrive {
       const decorTypes = types.slice(cargo.length, cargo.length + decor.length);
       if (
         holdsCargo(types.slice(0, cargo.length)) ||
-        decor.some(
-          (c, i) =>
-            c.block.type === "decor" && !ownDecor(decorTypes[i], c.block.item),
-        )
+        decor.some((c, i) => !ownDecor(decorTypes[i], c.block.item))
       )
         return {
           ...this.parkedStep(parked, ctx),

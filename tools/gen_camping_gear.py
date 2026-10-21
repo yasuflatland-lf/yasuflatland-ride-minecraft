@@ -32,8 +32,11 @@ ATLAS_KEY = "yasu_ride_camping_gear"
 # Decor block states (ADR 0093). The rotation turns the gear model into the camper model's frame:
 # model -z to the camper's front. In a block frame, rotation 0 faces model -z north and +90 turns
 # north to west.
-FACE_ROTATION = [180, 90, 0, -90]  # index = yasu_ride:face = the camper's yaw quarter
-HEIGHTS = range(16)  # yasu_ride:height, px above the cell bottom
+FACE_STATE = "yasu_ride:face"
+HEIGHT_STATE = "yasu_ride:height"
+FACE_ROTATION = [180, 90, 0, -90]  # index = FACE_STATE = the camper's yaw quarter
+FACES = range(len(FACE_ROTATION))
+HEIGHTS = range(16)  # HEIGHT_STATE, px above the cell bottom
 GROUP = "yasu_ride:camping_gear"
 GROUP_ICON = "yasu_ride:percolator"  # 7/9 switches it to the camping gear box
 ATLAS_SIZE = 16
@@ -326,7 +329,7 @@ def decor_block(item):
             "description": {
                 "identifier": f"yasu_ride:{gid}_decor",
                 "menu_category": {"category": "none"},
-                "states": {"yasu_ride:face": [0, 1, 2, 3], "yasu_ride:height": list(HEIGHTS)},
+                "states": {FACE_STATE: list(FACES), HEIGHT_STATE: list(HEIGHTS)},
             },
             "components": {
                 "minecraft:geometry": f"geometry.yasu_ride.{gid}",
@@ -342,7 +345,7 @@ def decor_block(item):
             },
             "permutations": [
                 {
-                    "condition": f"q.block_state('yasu_ride:face') == {face} && q.block_state('yasu_ride:height') == {height}",
+                    "condition": f"q.block_state('{FACE_STATE}') == {face} && q.block_state('{HEIGHT_STATE}') == {height}",
                     "components": {
                         "minecraft:transformation": {
                             "rotation": [0, FACE_ROTATION[face], 0],
@@ -350,7 +353,7 @@ def decor_block(item):
                         }
                     },
                 }
-                for face in range(4)
+                for face in FACES
                 for height in HEIGHTS
             ],
         },
@@ -402,6 +405,32 @@ def item_textures(current, spec):
     }
 
 
+def stale_files(documents, atlas):
+    stale = []
+    for path, document in documents.items():
+        try:
+            if json.loads(path.read_text()) != document:
+                stale.append(str(path))
+        except (OSError, ValueError) as e:
+            stale.append(f"{path} ({e})")
+    try:
+        if read_png(atlas, ATLAS_SIZE) != atlas_pixels():
+            stale.append(str(atlas))
+    except (OSError, ValueError, struct.error, zlib.error) as e:
+        stale.append(f"{atlas} ({e})")
+    return stale
+
+
+def write_files(documents, atlas):
+    for path, document in documents.items():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(document, separators=(",", ":")) + "\n")
+        print(f"wrote {path}")
+    atlas.parent.mkdir(parents=True, exist_ok=True)
+    write_png(atlas, ATLAS_SIZE, atlas_pixels())
+    print(f"wrote {atlas}")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("resource_pack", type=Path)
@@ -420,33 +449,14 @@ def main():
         documents[bp / ITEMS / f"{gid}.item.json"] = gear_item(item)
     documents[bp / CATALOG] = catalog(spec)
     documents[rp / ITEM_TEXTURES] = item_textures(json.loads((rp / ITEM_TEXTURES).read_text()), spec)
-    stale = []
-    for path, document in documents.items():
-        if args.check:
-            try:
-                if json.loads(path.read_text()) != document:
-                    stale.append(str(path))
-            except (OSError, ValueError) as e:
-                stale.append(f"{path} ({e})")
-        else:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(json.dumps(document, separators=(",", ":")) + "\n")
-            print(f"wrote {path}")
     atlas = rp / ATLAS
-    if args.check:
-        try:
-            if read_png(atlas, ATLAS_SIZE) != atlas_pixels():
-                stale.append(str(atlas))
-        except (OSError, ValueError, struct.error, zlib.error) as e:
-            stale.append(f"{atlas} ({e})")
-    else:
-        atlas.parent.mkdir(parents=True, exist_ok=True)
-        write_png(atlas, ATLAS_SIZE, atlas_pixels())
-        print(f"wrote {atlas}")
+    if not args.check:
+        write_files(documents, atlas)
+        return
+    stale = stale_files(documents, atlas)
     if stale:
-        sys.exit(f"{', '.join(stale)} out of date with tools/camping_gear.json. Run `pnpm model` and commit the result.")
-    if args.check:
-        print("camping gear models, atlas, blocks, items, and catalog are up to date")
+        sys.exit(f"{', '.join(stale)} out of date with tools/gen_camping_gear.py and tools/camping_gear.json. Run `pnpm model` and commit the result.")
+    print("camping gear models, atlas, blocks, items, and catalog are up to date")
 
 
 if __name__ == "__main__":
