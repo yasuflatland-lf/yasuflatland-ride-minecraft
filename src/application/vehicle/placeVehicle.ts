@@ -7,6 +7,7 @@ import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
 import type { VehicleKind } from "../../domain/vehicle/kind";
 import { createVehicle, profileOf } from "../../domain/vehicle/kinds/index";
+import type { PlacementGift } from "../../domain/vehicle/placement/gift";
 import {
   type BlockFace,
   canPlaceAt,
@@ -84,6 +85,16 @@ export class PlaceVehicle {
       cmd.playerId,
     );
     this.repo.save(createVehicle(cmd.kind, id, cmd.yaw));
+    this.giveGift(cmd.playerId, profileOf(cmd.kind).placementGift);
     return true;
+  }
+
+  // Marking only after giving means a give that throws is retried with the
+  // player's next vehicle of the kind instead of leaving them without it (ADR 0093).
+  private giveGift(playerId: PlayerId, gift: PlacementGift | undefined): void {
+    if (gift === undefined || this.world.receivedGift(playerId, gift) !== false)
+      return;
+    this.world.giveGift(playerId, gift);
+    this.world.markGiftReceived(playerId, gift);
   }
 }
