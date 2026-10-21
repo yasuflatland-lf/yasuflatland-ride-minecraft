@@ -842,6 +842,66 @@ describe("camper furniture model (ADR 0093)", () => {
     }
   });
 
+  it("keeps every body cube, rotated ones included, below the stove slot's top under the widest item's footprint (ADR 0100)", () => {
+    // The widest decor item is 7 px across (the cushion) and the tallest 7 px high.
+    const HALF_WIDTH = 3.5;
+    const ITEM_HEIGHT = 7;
+    const STEPS = 4;
+    const turn = (point: number[], pivot: number[], rotation: number[]) => {
+      let [x = 0, y = 0, z = 0] = point.map((v, i) => v - (pivot[i] ?? 0));
+      // The game turns z the other way from right-handed math (mirror_x in tools/gen_camper.py).
+      const [rx = 0, ry = 0, rz = 0] = rotation;
+      for (const [axis, degrees] of [
+        ["x", rx],
+        ["y", ry],
+        ["z", -rz],
+      ] as const) {
+        const s = Math.sin((degrees * Math.PI) / 180);
+        const c = Math.cos((degrees * Math.PI) / 180);
+        if (axis === "x") [y, z] = [y * c - z * s, y * s + z * c];
+        else if (axis === "y") [x, z] = [x * c + z * s, -x * s + z * c];
+        else [x, y] = [x * c - y * s, x * s + y * c];
+      }
+      return [x, y, z].map((v, i) => v + (pivot[i] ?? 0));
+    };
+    const points = (bone("body").cubes ?? []).flatMap((cube) => {
+      const out: number[][] = [];
+      for (let i = 0; i <= STEPS; i++)
+        for (let j = 0; j <= STEPS; j++)
+          for (let k = 0; k <= STEPS; k++) {
+            const p = [i, j, k].map(
+              (n, axis) =>
+                (cube.origin[axis] ?? 0) + ((cube.size[axis] ?? 0) * n) / STEPS,
+            );
+            out.push(
+              cube.rotation && cube.pivot
+                ? turn(p, cube.pivot, cube.rotation)
+                : p,
+            );
+          }
+      return out;
+    });
+    // Only the stove is held to this so far: the sink rim rises 0.15 px into the counter's
+    // footprint and the dashboard's slanted cubes into the dashboard's.
+    const standing = CAMPER_FURNITURE.flatMap((f) => f.slots).filter(
+      (slot) => slot.id === "stove",
+    );
+    expect(standing).toHaveLength(1);
+    for (const slot of standing) {
+      const x = 16 * slot.cell.x;
+      const z = -16 * slot.cell.z;
+      const top = 16 * slot.cell.layer + slot.height;
+      const intruding = points.filter(
+        ([px = 0, py = 0, pz = 0]) =>
+          Math.abs(px - x) < HALF_WIDTH &&
+          Math.abs(pz - z) < HALF_WIDTH &&
+          py > top + 1e-6 &&
+          py < top + ITEM_HEIGHT,
+      );
+      expect(intruding, slot.id).toEqual([]);
+    }
+  });
+
   it("keeps the aisle and the cell inside the entry door clear of the body's furniture", () => {
     for (const [low, high] of [
       [
