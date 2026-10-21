@@ -168,6 +168,7 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | C89 | Put an item only on the low board's rear end, hold another item, and long-press the board's empty front half, then the rear item; do the same with an item only on the table's wall side | The second item goes on the empty end of the same board or table each time (ADR 0108) | | |
 | C90 | Fill both front ends of the shelf and the table's aisle side; walk along the aisle and through the door both ways; sit in the driver's seat with a cushion in hand, then drive off and park again | Nothing stops you in the aisle; you sit in the driver's seat instead of placing the cushion; the camper drives off without "Clear the blocks inside first", and all three items are back after parking (ADR 0108) | | |
 | C91 | On a build before this change, park and put an item on each shelf board and on the table; update to this change, restart the server, and look inside | The shelf items stand at the rear ends of their boards and the table item on its wall side; nothing is lost (ADR 0108) | | |
+| C92 | Put a dirt block in the aisle cell beside the table, hold a mug pair, and long-press the table top near the aisle | The mug pair goes on the table's wall side or another free spot, not into the aisle cell, and stays visible; with every other spot taken you see "No free spot for this item" and keep the mug pair (ADR 0108) | | |
 
 ## Upgrading from MyCar 0.5.0 and earlier
 

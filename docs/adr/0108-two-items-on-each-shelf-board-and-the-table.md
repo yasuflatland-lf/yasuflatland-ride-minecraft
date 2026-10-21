@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-22
-- Supersedes in part: 0093 (one slot on each shelf board and on the table), 0107 (a spot within its own cell, a standing decor box over the whole cell for every spot, and a furniture block in every slot cell)
+- Supersedes in part: 0093 (one slot on each shelf board and on the table), 0097 (a press first tries the slots of the pressed cell only, and a deck seat names the slot of the first slot block above it, whatever that block draws), 0107 (a spot within its own cell, a standing decor box over the whole cell for every spot, and a furniture block in every slot cell)
 
 ## Context
 
@@ -28,6 +28,7 @@ Facts this decision builds on:
 - The table gets two slots across the camper. `table` keeps its id and stands its item 3.3 px toward the wall, spot 7 (left 3.3), so the widest item ends at the wall's inner face. `table_aisle` is hosted in the aisle cell (0, 0, 1) and stands its item 3.7 px toward the aisle, spot 8 (left 12.3 = 16 - 3.7). The two widest items touch and do not overlap; the aisle-side one overhangs the table's aisle edge by 0.2 px
 - The driver's seat cell is used rather than the cell inside the door because that cell must stay free for walking in (0068), and the shelf's front end is next to the driver's seat anyway. The aisle cell is the only free neighbor of the table
 - A cell still holds one item, so the rules of 0107 for a taken cell hold per host cell: the two ends of a board or the table are taken independently
+- A host cell outside its furniture is air while it is empty, so a player can put a block there, as in any cargo cell. A slot whose cell holds anything but air, the furniture block, or its own decor is not free: a press skips it and picks among the other free slots, so the item is never taken from the hand while its decor block cannot be laid. The press reads the slot cells once
 
 ### Pressing
 
