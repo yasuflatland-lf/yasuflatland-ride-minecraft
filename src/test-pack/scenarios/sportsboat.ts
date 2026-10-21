@@ -427,29 +427,56 @@ export function boatShore(a: Arena): Promise<Outcome> {
 export function boatRam(a: Arena): Promise<Outcome> {
   return withPool(a, 3, () =>
     withBoat(a, async (boat) => {
-      const cow = summonCow(a, boat.location.x + 14, boat.location.z);
+      const spot = {
+        x: boat.location.x + 14,
+        y: boat.location.y,
+        z: boat.location.z,
+      };
+      const cow = summonCow(a, spot.x, spot.z);
       if (!cow) return { pass: false, detail: "cow not found" };
+      // Slowness does not stop a mob in water: its float goal bobs it on a
+      // random roll and the hull can push it, which moved the cow out of the ram
+      // band (side 1.51, dy -0.5..1.8) in CI. Pin it to the lane at hull height
+      // until the first hit.
+      const pin = () => {
+        if (!cow.isValid) return;
+        cow.teleport(spot);
+        cow.clearVelocity();
+      };
+      let offset = "n/a";
       try {
+        if (cow.getComponent("minecraft:is_baby"))
+          return { pass: false, detail: "baby cow" };
         cow.addEffect("slowness", 600, {
           amplifier: 255,
           showParticles: false,
         });
+        pin();
         const hp0 = cow.getComponent("minecraft:health")?.currentValue ?? 0;
         const boatHp0 = boat.getComponent("minecraft:health")?.currentValue;
         drive(boat, 0, 1);
         let hp = hp0;
         let hit = false;
+        let hitTick = -1;
         for (let t = 0; t < 80 && !hit; t++) {
           await wait(1);
           hp = cow.isValid
             ? (cow.getComponent("minecraft:health")?.currentValue ?? 0)
             : 0;
           hit = hp < hp0;
+          if (hit) hitTick = t;
+          else pin();
+        }
+        if (cow.isValid) {
+          const ahead = cow.location.x - boat.location.x;
+          const side = cow.location.z - boat.location.z;
+          const dy = cow.location.y - boat.location.y;
+          offset = `${ahead.toFixed(2)},${side.toFixed(2)},${dy.toFixed(2)}`;
         }
         const boatHp = boat.getComponent("minecraft:health")?.currentValue;
         return {
           pass: hp0 > 0 && hit && boatHp0 !== undefined && boatHp === boatHp0,
-          detail: `cowHp=${hp0}->${hp} boatHp=${boatHp0}->${boatHp}`,
+          detail: `cowHp=${hp0}->${hp} boatHp=${boatHp0}->${boatHp} hitTick=${hitTick} cowOffset=${offset}`,
         };
       } finally {
         if (cow.isValid) cow.remove();
