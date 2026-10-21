@@ -18,6 +18,8 @@ import { SuvDrive } from "./suv/drive";
 import { SUV_ENTITY } from "./suv/entity";
 import { SUV_PROFILE } from "./suv/profile";
 
+export { CAMPING_GEAR_IDS } from "./camper/campingGear";
+
 export type { RestoredValues };
 
 interface KindDefinition {

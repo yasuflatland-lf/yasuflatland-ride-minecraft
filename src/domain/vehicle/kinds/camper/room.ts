@@ -12,7 +12,7 @@ import type { DockBlock, DockCell, Face, HoldPose } from "../../dock/floor";
 import { cellKey } from "../../lighting/headlights";
 import { seatWorldPositions } from "../../seats";
 import { decorSlot } from "./decor";
-import { CAMPER_FURNITURE, type LocalCell } from "./furniture";
+import { CAMPER_FURNITURE, type DecorSlot, type LocalCell } from "./furniture";
 import { CAMPER_PROFILE } from "./profile";
 
 // Feet resting on a block top can read a hair below it.
@@ -138,6 +138,11 @@ function cellAt(pose: HoldPose, lx: number, lz: number, dy: number): Vec3 {
   };
 }
 
+/** The world cell of a decor slot at a parked pose (ADR 0093). */
+export function decorSlotCell(pose: HoldPose, slot: DecorSlot): Vec3 {
+  return cellAt(pose, slot.cell.x, slot.cell.z, slot.cell.layer);
+}
+
 // The side of a wall cell that faces the room, from the unit vector toward it.
 function faceToward(v: Vec2): Face {
   if (v.z !== 0) return v.z < 0 ? 0 : 1;
@@ -217,7 +222,7 @@ export function decorCells(
     return s
       ? [
           {
-            ...cellAt(pose, s.cell.x, s.cell.z, s.cell.layer),
+            ...decorSlotCell(pose, s),
             block: { type: "decor", item, face, height: s.height } as const,
           },
         ]

@@ -1,4 +1,4 @@
-import { clamp } from "../../../shared/vec";
+import { clamp, type Vec3 } from "../../../shared/vec";
 import { type DecorPlacement, isDecorItem, parseDecor } from "../../dock/decor";
 import { type ClearCell, DOCK_RESTORED } from "../../dock/dock";
 import type { HoldPose } from "../../dock/floor";
@@ -11,6 +11,7 @@ import { TransformingDrive } from "../../motion/transformingDrive";
 import { SyncedValue } from "../../syncedValue";
 import { type BodyEnds, guardEnds } from "./bodyGuard";
 import { DECOR_SLOTS, decorSlot } from "./decor";
+import { nearestFreeSlot, slotAt, slotsFor } from "./decorPlacing";
 import { type CAMPER_ENTITY, doorCommand } from "./entity";
 import { CAMPER_MOTION, CAMPER_TYRES } from "./profile";
 import {
@@ -124,6 +125,33 @@ export class CamperDrive extends TransformingDrive {
     if (item === undefined) this.decorBySlot.delete(slot);
     else this.decorBySlot.set(slot, item);
     return true;
+  }
+
+  // No roomLaid check: parkedStep sets it on the parking tick itself, so it is
+  // always true between steps while parked, and decor placed now is laid with
+  // the room on the next step (ADR 0068, 0093).
+  decorSlotFor(item: string, point: Vec3): string | undefined {
+    if (!this.parked) return undefined;
+    return nearestFreeSlot(this.parked, item, this.decor(), point)?.id;
+  }
+
+  placeDecor(slot: string, item: string): boolean {
+    if (
+      !this.parked ||
+      this.decorBySlot.has(slot) ||
+      !slotsFor(item).some((s) => s.id === slot)
+    )
+      return false;
+    return this.setDecor(slot, item);
+  }
+
+  removeDecor(cell: Vec3): string | undefined {
+    if (!this.parked) return undefined;
+    const slot = slotAt(this.parked, cell);
+    const item = slot ? this.decorBySlot.get(slot.id) : undefined;
+    if (!slot || item === undefined) return undefined;
+    this.setDecor(slot.id, undefined);
+    return item;
   }
 
   override step(raw: RawInput | undefined, ctx: TickContext): DriveStep {

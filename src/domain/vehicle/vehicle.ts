@@ -205,6 +205,21 @@ export class Vehicle {
     return this.drive.setDecor?.(slot, item) ?? false;
   }
 
+  /** The free decor slot nearest `point` that accepts `item`; undefined for a kind without decor (ADR 0093). */
+  decorSlotFor(item: string, point: Vec3): string | undefined {
+    return this.drive.decorSlotFor?.(item, point);
+  }
+
+  /** A player puts `item` in `slot`. Returns whether it was placed (ADR 0093). */
+  placeDecor(slot: string, item: string): boolean {
+    return this.drive.placeDecor?.(slot, item) ?? false;
+  }
+
+  /** A player takes the decor at world `cell` out. Returns its item, if any (ADR 0093). */
+  removeDecor(cell: Vec3): string | undefined {
+    return this.drive.removeDecor?.(cell);
+  }
+
   tick(input: VehicleTickInput): TickOutcome {
     const { riders, testInput, targets, ...sensors } = input;
     const seated = this.seating.update(riders, forward(this.drive.yaw));

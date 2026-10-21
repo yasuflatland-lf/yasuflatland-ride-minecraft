@@ -6,12 +6,17 @@ import type {
 } from "../../../../../src/domain/vehicle/drive";
 import type { RawInput } from "../../../../../src/domain/vehicle/driveInput";
 import { DECOR_SLOTS } from "../../../../../src/domain/vehicle/kinds/camper/decor";
+import {
+  slotPoint,
+  slotsFor,
+} from "../../../../../src/domain/vehicle/kinds/camper/decorPlacing";
 import { CamperDrive } from "../../../../../src/domain/vehicle/kinds/camper/drive";
 import {
   AIR,
   CLEARABLE_DECORATIONS,
   cargoCells,
   decorCells,
+  decorSlotCell,
   departure,
   exitCells,
   parkCheckCells,
@@ -533,4 +538,55 @@ it("restores saved decor in known slots only, docked or not", () => {
       form: "car",
     }).decor(),
   ).toEqual(expected);
+});
+
+const stove = defined(slotsFor("percolator")[0], "stove slot");
+
+it("places and removes decor by hand once parked, and lays it with the room on the next step (ADR 0093)", () => {
+  const f = fixture();
+  for (let i = 1; i < DOCK.ticks; i++) f.step();
+  const point = slotPoint(f.pose, stove);
+  const cell = decorSlotCell(f.pose, stove);
+  expect(f.drive.decorSlotFor("percolator", point)).toBeUndefined();
+  expect(f.drive.placeDecor("stove", "percolator")).toBe(false);
+  expect(f.drive.removeDecor(cell)).toBeUndefined();
+  expect(f.drive.decor()).toEqual([]);
+
+  expect(f.step().dock?.cells).toEqual([]);
+  expect(f.drive.decorSlotFor("percolator", point)).toBe("stove");
+  expect(f.drive.placeDecor("table", "percolator")).toBe(false);
+  expect(f.drive.placeDecor("nowhere", "percolator")).toBe(false);
+  expect(f.drive.placeDecor("stove", "percolator")).toBe(true);
+  expect(f.drive.placeDecor("stove", "enamel_kettle")).toBe(false);
+  expect(f.drive.decorSlotFor("enamel_kettle", point)).toBeUndefined();
+
+  const laid = defined(f.step().dock, "laid dock").cells;
+  expect(laid).toEqual(expect.arrayContaining(roomCells(f.pose, false)));
+  const decorLaid = laid.filter((c) => c.block.type === "decor");
+  expect(decorLaid).toHaveLength(1);
+  expect(decorLaid[0]).toMatchObject({
+    ...cell,
+    block: { type: "decor", item: "percolator" },
+  });
+  expect(f.drive.decor()).toEqual([{ slot: "stove", item: "percolator" }]);
+
+  expect(f.drive.removeDecor(cell)).toBe("percolator");
+  expect(f.drive.removeDecor(cell)).toBeUndefined();
+  const after = defined(f.step().dock, "laid dock").cells;
+  expect(after.some((c) => c.block.type === "decor")).toBe(false);
+  expect(f.drive.decor()).toEqual([]);
+});
+
+it("keeps placed decor through a departure and refuses changes while driving", () => {
+  const f = fixture();
+  f.park();
+  expect(f.drive.placeDecor("stove", "percolator")).toBe(true);
+  f.step();
+  expect(f.step(PUSH).depart).toEqual(departure(f.pose));
+  expect(f.drive.decor()).toEqual([{ slot: "stove", item: "percolator" }]);
+  expect(
+    f.drive.decorSlotFor("enamel_kettle", slotPoint(f.pose, stove)),
+  ).toBeUndefined();
+  expect(f.drive.placeDecor("table", "mug_pair")).toBe(false);
+  expect(f.drive.removeDecor(decorSlotCell(f.pose, stove))).toBeUndefined();
 });
