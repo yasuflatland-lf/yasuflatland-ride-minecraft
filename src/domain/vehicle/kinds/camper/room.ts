@@ -214,14 +214,13 @@ export function decorCells(
   const face = decorFace(pose.yaw);
   return decor.flatMap(({ slot, item }) => {
     const s = decorSlot(slot);
-    return s
-      ? [
-          {
-            ...cellAt(pose, s.cell.x, s.cell.z, s.cell.layer),
-            block: { type: "decor", item, face, height: s.height } as const,
-          },
-        ]
-      : [];
+    if (!s) return [];
+    return [
+      {
+        ...cellAt(pose, s.cell.x, s.cell.z, s.cell.layer),
+        block: { type: "decor", item, face, height: s.height } as const,
+      },
+    ];
   });
 }
 
