@@ -89,7 +89,7 @@ export function registerPlacement(placeVehicle: PlaceVehicle): void {
   // A tap on open water past the interaction reach fires only itemUse. This ray
   // sees liquids, but only a water hit places a vehicle: land placement goes
   // through the block interaction above, which keeps the normal reach.
-  // The headlight switch has its own itemUse subscriber; no item passes both.
+  // The headlight switch and the gift boxes have their own itemUse subscribers; no item passes two.
   world.afterEvents.itemUse.subscribe((ev) => {
     const kind = kindOfItem(ev.itemStack.typeId);
     if (kind === undefined || !placeVehicle.placesOnWater(kind)) return;
