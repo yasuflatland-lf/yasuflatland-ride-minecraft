@@ -999,4 +999,27 @@ ICON_COLORS = {"W": PALETTE["white"], "K": PALETTE["khaki"], "G": (70, 86, 96, 2
                "O": (60, 60, 60, 255), ".": (0, 0, 0, 0)}
 ITEM_TEXTURES.mkdir(parents=True, exist_ok=True)
 png(ITEM_TEXTURES / "camper_item.png", 16, 16, lambda x, y: ICON_COLORS[ICON[y][x]])
+# The camping gear box a player gets with their first camper (ADR 0093), in the 1970s palette of #347.
+BOX_ICON = [
+    "................",
+    "................",
+    "................",
+    "..LLLLLLLLLLLL..",
+    ".LLLLLLLLLLLLLL.",
+    ".OOOOOOOOOOOOOO.",
+    ".CCCCCCCCCCCCCC.",
+    ".CCCCCCCCCCCCCC.",
+    ".GGGGGGGGGGGGGG.",
+    ".RRRRRRRRRRRRRR.",
+    ".AAAAAAAAAAAAAA.",
+    ".CCCCCCCCCCCCCC.",
+    ".CCCCCCCCCCCCCC.",
+    ".OOOOOOOOOOOOOO.",
+    "................",
+    "................",
+]
+BOX_ICON_COLORS = {"L": (222, 184, 135, 255), "C": (196, 150, 98, 255), "O": (110, 74, 40, 255),
+                   "G": (218, 165, 32, 255), "R": (204, 85, 0, 255), "A": (86, 130, 3, 255),
+                   ".": (0, 0, 0, 0)}
+png(ITEM_TEXTURES / "camping_gear_box.png", 16, 16, lambda x, y: BOX_ICON_COLORS[BOX_ICON[y][x]])
 print("cubes:", sum(len(b.get("cubes", [])) for b in camper_bones))

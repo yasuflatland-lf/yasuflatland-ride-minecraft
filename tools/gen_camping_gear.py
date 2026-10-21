@@ -10,7 +10,9 @@ color, so mipmapping in the block atlas does not bleed a neighbor's color into a
 compares parsed JSON and decoded pixels, because Biome reformats the geometry and zlib builds do not
 all compress identically. It also writes the Behavior Pack decor blocks, the items, the creative
 catalog, and the gear part of item_texture.json; the decor block's face and height states are
-described next to FACE_ROTATION.
+described next to FACE_ROTATION. The camping gear box (BOX) is the creative group's icon and first
+item, and its icon entry comes first in the generated part of item_texture.json; its item JSON and
+icon are written elsewhere (ADR 0093).
 """
 
 import argparse
@@ -35,7 +37,9 @@ ATLAS_KEY = "yasu_ride_camping_gear"
 FACE_ROTATION = [180, 90, 0, -90]  # index = yasu_ride:face = the camper's yaw quarter
 HEIGHTS = range(16)  # yasu_ride:height, px above the cell bottom
 GROUP = "yasu_ride:camping_gear"
-GROUP_ICON = "yasu_ride:percolator"  # 7/9 switches it to the camping gear box
+# The box a player gets with their first camper (ADR 0093): the group's icon and first item.
+BOX = "camping_gear_box"
+GROUP_ICON = f"yasu_ride:{BOX}"
 ATLAS_SIZE = 16
 SWATCH = 4
 # A hanging item's top, in px above the bottom of the ceiling_hook slot's cell: the underside of the
@@ -382,7 +386,7 @@ def catalog(spec):
                     "groups": [
                         {
                             "group_identifier": {"icon": GROUP_ICON, "name": GROUP},
-                            "items": [f"yasu_ride:{item['id']}" for item in spec],
+                            "items": [f"yasu_ride:{BOX}"] + [f"yasu_ride:{item['id']}" for item in spec],
                         }
                     ],
                 }
@@ -392,13 +396,16 @@ def catalog(spec):
 
 
 def item_textures(current, spec):
-    """Keep every other item texture in place and list the gear icons after them, in spec order."""
-    gear = {f"yasu_ride_{item['id']}": {"textures": f"textures/items/yasu_ride/{item['id']}"} for item in spec}
-    others = {k: v for k, v in current["texture_data"].items() if k not in gear}
+    """Keep every other entry in its order, then the box and each gear item, in spec order (ADR 0093)."""
+    owned = [BOX] + [item["id"] for item in spec]
+    keys = {f"yasu_ride_{i}" for i in owned}
+    data = {k: v for k, v in current["texture_data"].items() if k not in keys}
+    for i in owned:
+        data[f"yasu_ride_{i}"] = {"textures": f"textures/items/yasu_ride/{i}"}
     return {
         "resource_pack_name": current["resource_pack_name"],
         "texture_name": current["texture_name"],
-        "texture_data": {**others, **gear},
+        "texture_data": data,
     }
 
 
