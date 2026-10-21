@@ -794,6 +794,13 @@ it("registers shower-toilet presses during startup and sends an empty hand to th
         expect(idle.execute).not.toHaveBeenCalled();
       },
     ),
+    // Both outcomes on every run: Codecov saw a run with no press from outside.
+    {
+      examples: [
+        [0, 0, false, true, true],
+        [2, 2, false, true, true],
+      ],
+    },
   );
 });
 
