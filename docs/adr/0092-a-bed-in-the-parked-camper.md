@@ -1,6 +1,6 @@
 # 0092. A bed in the parked camper
 
-- Status: Accepted
+- Status: Accepted (extended by [0093](0093-decorate-the-parked-camper.md))
 - Date: 2026-10-21
 - Extends: 0068
 
