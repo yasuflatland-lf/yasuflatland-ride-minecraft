@@ -157,10 +157,7 @@ export class CamperDrive extends TransformingDrive {
       const decorTypes = types.slice(cargo.length, cargo.length + decor.length);
       if (
         holdsCargo(types.slice(0, cargo.length)) ||
-        decor.some(
-          (c, i) =>
-            c.block.type === "decor" && !ownDecor(decorTypes[i], c.block.item),
-        )
+        decor.some((c, i) => !ownDecor(decorTypes[i], c.block.item))
       )
         return {
           ...this.parkedStep(parked, ctx),
