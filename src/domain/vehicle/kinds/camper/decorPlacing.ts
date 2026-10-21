@@ -60,7 +60,9 @@ export function slotAt(pose: HoldPose, cell: Vec3): DecorSlot | undefined {
 
 /**
  * The slot of the pressed `cell` when it accepts `item` and is free; otherwise the
- * free accepting slot nearest `point` (ADR 0093, 0097).
+ * free accepting slot nearest `point` (ADR 0093, 0097), or none when `exact`: a
+ * press on a dinette seat names one slot, and filling another one left the player
+ * unable to tell where the item went (ADR 0104).
  */
 export function slotForPress(
   pose: HoldPose,
@@ -68,6 +70,7 @@ export function slotForPress(
   decor: readonly DecorPlacement[],
   cell: Vec3,
   point: Vec3,
+  exact: boolean,
 ): DecorSlot | undefined {
   const pressed = slotAt(pose, cell);
   if (
@@ -76,5 +79,6 @@ export function slotForPress(
     slotsFor(item).some((s) => s.id === pressed.id)
   )
     return pressed;
+  if (exact) return undefined;
   return nearestFreeSlot(pose, item, decor, point);
 }
