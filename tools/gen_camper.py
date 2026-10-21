@@ -222,7 +222,7 @@ for a0, a1 in ARCHES:  # straight up to ARCH_SLOPE_Y, then sloping in by ARCH_IN
         inset = ARCH_INSET * (i + 0.5) / n
         y = ARCH_SLOPE_Y + i * ARCH_STEP
         arch_holes.append((a0 + inset, a1 - inset, y, y + ARCH_STEP))
-# No window between the door and the shower room: the wall cabinet covers that wall.
+# No window between the door and the shower room, above the counter (ADR 0093, 0103).
 right_windows = [CAB_WIN, (-35, -10, *WIN_Y), (38, 50, *WIN_Y), (-31, -19, 56, 59)]
 left_windows = [CAB_WIN, (-29, -5, *WIN_Y), (-19, -8, 56, 59), (16, 21, *WIN_Y), (40, 49, *WIN_Y)]
 for x0, x1, windows in ((HW - 1, HW, right_windows), (-HW, -HW + 1, left_windows)):
@@ -872,13 +872,14 @@ body.append(box(8.5, 17.8, 25.5, 8.6, 24.8, 38.0, "chrome"))  # door face
 body.append(box(8.9, FLOOR, 24.5, 9.0, FLOOR + 1, 39.0, "black"))  # toe kick
 for z0, z1 in ((24.0, 24.4), (39.1, 39.5)):  # side trims down the range front
     body.append(box(8.5, FLOOR + 0.5, z0, 9.0, 29, z1, "steel"))
-# Wall cabinet over the counter (cells z = -1 and -2, one layer up), top 45; its bottom at 38
-# clears the tallest stove item (7 px on 30).
-body.append(box(10, 38, COUNTER_Z[0], 22.8, 45, 37.5, "wood"))
+# Wall cabinet over the counter, up at the ceiling (cells z = -1 and -2; ADR 0103): 7 px high with
+# its top at CEIL, so no decor stands on it.
+CABINET_Y = (CEIL - 7, CEIL)
+body.append(box(10, CABINET_Y[0], COUNTER_Z[0], 22.8, CABINET_Y[1], 37.5, "wood"))
 for z0, z1 in ((9, 22.8), (23.2, 37)):
-    body.append(box(9.7, 38.5, z0, 10, 44.5, z1, "avocado"))
+    body.append(box(9.7, CABINET_Y[0] + 0.5, z0, 10, CABINET_Y[1] - 0.5, z1, "avocado"))
 for z in (21.5, 23.8):
-    body.append(box(9.4, 39, z, 9.7, 40.5, z + 0.7, "chrome"))
+    body.append(box(9.4, CABINET_Y[0] + 1, z, 9.7, CABINET_Y[0] + 2.5, z + 0.7, "chrome"))
 # Shower-toilet room in the rear right corner (cell z = -3, two layers), door to the aisle.
 SHOWER_Z = (40.5, 41.1)  # front partition, behind the window curtain (38 to 40.5)
 body.append(box(8, FLOOR, SHOWER_Z[0], 22.8, CEIL - 0.2, SHOWER_Z[1], "ivory"))
