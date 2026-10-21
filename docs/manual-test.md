@@ -105,6 +105,7 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | C28 | Long-press the bed during the day (`/time set 1000`) | "You can sleep only at night" shows; the time does not change | | |
 | C29 | Long-press the bed, then die (`/kill`) | You respawn standing on the bed, not stuck inside it | | |
 | C30 | Long-press the bed, drive the camper away, then die | You respawn where the bed was | | |
+| C31 | Park, walk along the right side from the driver's seat to the rear, look up above the table, and look at the furniture from the aisle and from outside through the windows | A tall shelf stands behind the driver's seat, a counter with a stove and a sink stands behind the door with a wall cabinet above it, a closed shower-toilet room fills the rear right corner, and a small chrome hook hangs from the ceiling above the table; none of it blocks the door or the aisle, and nothing pokes through the outer walls, the wheel housings, the roof, or the rear wall (ADR 0093) | | |
 
 ## Upgrading from MyCar 0.5.0 and earlier
 
