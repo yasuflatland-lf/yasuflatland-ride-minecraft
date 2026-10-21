@@ -572,6 +572,7 @@ it("places and removes decor by hand once parked, and lays it with the room on t
   });
   expect(f.drive.decor()).toEqual([{ slot: "stove", item: "percolator" }]);
 
+  expect(f.drive.removeDecor({ ...cell, y: cell.y + 100 })).toBeUndefined();
   expect(f.drive.removeDecor(cell)).toBe("percolator");
   expect(f.drive.removeDecor(cell)).toBeUndefined();
   const after = defined(f.step().dock, "laid dock").cells;

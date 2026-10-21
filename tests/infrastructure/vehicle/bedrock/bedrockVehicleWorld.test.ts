@@ -1102,3 +1102,28 @@ it("answers each dock owner query from the room blocks it laid (ADR 0068, 0093, 
     spy.mockRestore();
   }
 });
+
+describe("BedrockVehicleWorld dock owners (ADR 0068, 0093)", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("reports the vehicle that laid a cell as its owner, and only a door as a door owner", () => {
+    const { dimension, car, world } = fixture();
+    Object.assign(dimension, { id: "overworld" });
+    const grid = blockGrid();
+    dimension.getBlock.mockImplementation(grid.getBlock);
+    const floor = { x: 0, y: 64, z: 0 };
+    const door = { x: 1, y: 64, z: 0 };
+    world.loadedVehicles();
+    world.layDock(asVehicleId(car.id), [
+      { ...floor, block: { type: "floor" } },
+      { ...door, block: { type: "door", face: 0, open: false } },
+    ]);
+    const here = asDimensionId("overworld");
+    expect(world.dockCellOwner(here, floor)).toBe(car.id);
+    expect(world.dockCellOwner(here, door)).toBe(car.id);
+    expect(world.dockDoorOwner(here, floor)).toBeUndefined();
+    expect(world.dockDoorOwner(here, door)).toBe(car.id);
+    expect(world.dockCellOwner(here, { x: 2, y: 64, z: 0 })).toBeUndefined();
+    expect(world.dockCellOwner(asDimensionId("nether"), floor)).toBeUndefined();
+  });
+});
