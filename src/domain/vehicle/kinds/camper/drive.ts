@@ -213,10 +213,18 @@ export class CamperDrive extends TransformingDrive {
     point: Vec3,
     cell: Vec3,
     exact: boolean,
+    eye?: Vec3,
   ): string | undefined {
     if (!this.parked) return undefined;
-    return slotForPress(this.parked, item, this.placed(), cell, point, exact)
-      ?.id;
+    return slotForPress(
+      this.parked,
+      item,
+      this.placed(),
+      cell,
+      point,
+      exact,
+      eye,
+    )?.id;
   }
 
   placeDecor(slot: string, item: string): boolean {

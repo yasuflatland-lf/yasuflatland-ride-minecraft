@@ -402,3 +402,79 @@ it("sends a standing item pressed on the ceiling hook to the nearest free standi
     ),
   ).toBe(table);
 });
+
+// A point on the ray from `eye` through `aim`, `t` times as far from the eye as `aim`.
+const along = (eye: Vec3, aim: Vec3, t: number): Vec3 => ({
+  x: eye.x + (aim.x - eye.x) * t,
+  y: eye.y + (aim.y - eye.y) * t,
+  z: eye.z + (aim.z - eye.z) * t,
+});
+// An eye above the slot's surface, off its vertical so the ray cannot run through a slot stacked above.
+const eyeOffset = fc
+  .tuple(
+    fc.double({ min: -3, max: 3, noNaN: true }),
+    fc.double({ min: 0.05, max: 3, noNaN: true }),
+    fc.double({ min: -3, max: 3, noNaN: true }),
+  )
+  .filter(([dx, , dz]) => Math.hypot(dx, dz) >= 0.05);
+
+it("picks the slot the line of sight is aimed at, wherever along the ray the press lands, side faces included (ADR 0110)", () => {
+  fc.assert(
+    fc.property(
+      pose,
+      gear.chain((id) =>
+        fc.tuple(fc.constant(id), fc.constantFrom(...slotsFor(id))),
+      ),
+      eyeOffset,
+      fc.double({ min: 0.2, max: 3, noNaN: true }),
+      (p, [id, target], [dx, dy, dz], t) => {
+        const aim = slotPoint(p, target);
+        const eye = { x: aim.x + dx, y: aim.y + dy, z: aim.z + dz };
+        const point = along(eye, aim, t);
+        expect(nearestFreeSlot(p, id, [], point, eye)).toBe(target);
+        expect(
+          slotForPress(p, id, [], decorSlotCell(p, target), point, false, eye),
+        ).toBe(target);
+      },
+    ),
+  );
+});
+
+it("measures from the pressed point as before when the line of sight does not descend (ADR 0110)", () => {
+  const offset = fc.double({ min: -6, max: 6, noNaN: true });
+  fc.assert(
+    fc.property(
+      pose,
+      gear.chain((id) => fc.tuple(fc.constant(id), fc.subarray(slotsFor(id)))),
+      fc.constantFrom(...SLOTS),
+      fc.tuple(offset, offset, offset),
+      fc.tuple(offset, fc.double({ min: 0, max: 6, noNaN: true }), offset),
+      fc.boolean(),
+      (p, [id, taken], { slot }, [dx, dy, dz], [ex, ey, ez], exact) => {
+        const decor = taken.map((s) => ({ slot: s.id, item: id }));
+        const point = { x: p.x + dx, y: p.y + dy, z: p.z + dz };
+        const eye = { x: point.x + ex, y: point.y - ey, z: point.z + ez };
+        const cell = decorSlotCell(p, slot);
+        expect(slotForPress(p, id, decor, cell, point, exact, eye)).toBe(
+          slotForPress(p, id, decor, cell, point, exact),
+        );
+      },
+    ),
+  );
+});
+
+it("puts a saucepan on the near aisle-side burner for the side-face press logged in #431 (ADR 0110)", () => {
+  // The stove cell is (320, -59, -520). The line of sight entered the furniture block's
+  // west face 0.207 above the cell bottom, and the pressed point alone picked stove_rear.
+  const p = parkPose({ x: 319.5, y: -60, z: -521.5 }, 180);
+  const cell = { x: 320, y: -59, z: -520 };
+  const point = { x: 320, y: -59 + 0.207, z: -520 + 0.648 };
+  const eye = { x: 319.67, y: -57.48, z: -520.19 };
+  expect(decorSlotCell(p, slotNamed("stove"))).toEqual(cell);
+  expect(slotForPress(p, "saucepan", [], cell, point, false)?.id).toBe(
+    "stove_rear",
+  );
+  expect(slotForPress(p, "saucepan", [], cell, point, false, eye)?.id).toBe(
+    "stove",
+  );
+});
