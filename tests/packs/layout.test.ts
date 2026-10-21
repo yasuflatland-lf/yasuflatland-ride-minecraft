@@ -28,6 +28,7 @@ const ENGINE_FIXED_FILES = new Set([
   "manifest.json",
   "texts/languages.json",
   "textures/item_texture.json",
+  "item_catalog/crafting_item_catalog.json",
   "textures/terrain_texture.json",
   "textures/flipbook_textures.json",
   "sounds/sound_definitions.json",

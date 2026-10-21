@@ -1,14 +1,16 @@
 """Generate the camping gear block models and their shared texture atlas (ADR 0093).
 
-    python3 -I tools/gen_camping_gear.py <resource pack>          write the files
-    python3 -I tools/gen_camping_gear.py <resource pack> --check  fail if any file is stale
+    python3 -I tools/gen_camping_gear.py <resource pack> <behavior pack>          write the files
+    python3 -I tools/gen_camping_gear.py <resource pack> <behavior pack> --check  fail if any file is stale
 
 tools/camping_gear.json lists the items; SHAPES below gives each item's cubes. Units are pixels (16
 per block). Every model is centered on x 0 and z 0, with its front at -z (ADR 0009). A standing item
 stands on y 0; a hanging item hangs from HOOK_Y. The atlas is 16 x 16 with one 4 x 4 swatch per
 color, so mipmapping in the block atlas does not bleed a neighbor's color into a face. --check
 compares parsed JSON and decoded pixels, because Biome reformats the geometry and zlib builds do not
-all compress identically.
+all compress identically. It also writes the Behavior Pack decor blocks, the items, the creative
+catalog, and the gear part of item_texture.json; the decor block's face and height states are
+described next to FACE_ROTATION.
 """
 
 import argparse
@@ -22,6 +24,18 @@ SPEC = Path(__file__).resolve().parent / "camping_gear.json"
 MODELS = "models/blocks/yasu_ride"
 ATLAS = "textures/blocks/yasu_ride/camping_gear.png"
 TERRAIN = "textures/terrain_texture.json"
+BLOCKS = "blocks/yasu_ride"
+ITEMS = "items/yasu_ride"
+CATALOG = "item_catalog/crafting_item_catalog.json"
+ITEM_TEXTURES = "textures/item_texture.json"
+ATLAS_KEY = "yasu_ride_camping_gear"
+# Decor block states (ADR 0093). The rotation turns the gear model into the camper model's frame:
+# model -z to the camper's front. In a block frame, rotation 0 faces model -z north and +90 turns
+# north to west.
+FACE_ROTATION = [180, 90, 0, -90]  # index = yasu_ride:face = the camper's yaw quarter
+HEIGHTS = range(16)  # yasu_ride:height, px above the cell bottom
+GROUP = "yasu_ride:camping_gear"
+GROUP_ICON = "yasu_ride:percolator"  # 7/9 switches it to the camping gear box
 ATLAS_SIZE = 16
 SWATCH = 4
 # A hanging item's top, in px above the bottom of the ceiling_hook slot's cell: the underside of the
@@ -294,13 +308,103 @@ def terrain():
     return {
         "resource_pack_name": "yasu_ride",
         "texture_name": "atlas.terrain",
-        "texture_data": {"yasu_ride_camping_gear": {"textures": "textures/blocks/yasu_ride/camping_gear"}},
+        "texture_data": {ATLAS_KEY: {"textures": "textures/blocks/yasu_ride/camping_gear"}},
+    }
+
+
+def num(v):
+    return int(v) if float(v).is_integer() else v
+
+
+def decor_block(item):
+    gid = item["id"]
+    w = item["width_px"]
+    h = item["height_px"]
+    return {
+        "format_version": "1.21.80",
+        "minecraft:block": {
+            "description": {
+                "identifier": f"yasu_ride:{gid}_decor",
+                "menu_category": {"category": "none"},
+                "states": {"yasu_ride:face": [0, 1, 2, 3], "yasu_ride:height": list(HEIGHTS)},
+            },
+            "components": {
+                "minecraft:geometry": f"geometry.yasu_ride.{gid}",
+                "minecraft:material_instances": {
+                    "*": {"texture": ATLAS_KEY, "render_method": "blend" if item["glass"] else "opaque"}
+                },
+                "minecraft:light_dampening": 0,
+                "minecraft:destructible_by_mining": False,
+                "minecraft:destructible_by_explosion": False,
+                "minecraft:collision_box": False,
+                "minecraft:selection_box": {"origin": [num(-w / 2), 0, num(-w / 2)], "size": [w, h, w]},
+            },
+            "permutations": [
+                {
+                    "condition": f"q.block_state('yasu_ride:face') == {face} && q.block_state('yasu_ride:height') == {height}",
+                    "components": {
+                        "minecraft:transformation": {
+                            "rotation": [0, FACE_ROTATION[face], 0],
+                            "translation": [0, num(height / 16), 0],
+                        }
+                    },
+                }
+                for face in range(4)
+                for height in HEIGHTS
+            ],
+        },
+    }
+
+
+def gear_item(item):
+    gid = item["id"]
+    return {
+        "format_version": "1.21.80",
+        "minecraft:item": {
+            "description": {"identifier": f"yasu_ride:{gid}", "menu_category": {"category": "items"}},
+            "components": {
+                "minecraft:icon": f"yasu_ride_{gid}",
+                "minecraft:max_stack_size": 64,
+                "minecraft:display_name": {"value": f"item.yasu_ride:{gid}.name"},
+            },
+        },
+    }
+
+
+def catalog(spec):
+    return {
+        "format_version": "1.21.60",
+        "minecraft:crafting_items_catalog": {
+            "categories": [
+                {
+                    "category_name": "items",
+                    "groups": [
+                        {
+                            "group_identifier": {"icon": GROUP_ICON, "name": GROUP},
+                            "items": [f"yasu_ride:{item['id']}" for item in spec],
+                        }
+                    ],
+                }
+            ]
+        },
+    }
+
+
+def item_textures(current, spec):
+    """Keep every other item texture in place and list the gear icons after them, in spec order."""
+    gear = {f"yasu_ride_{item['id']}": {"textures": f"textures/items/yasu_ride/{item['id']}"} for item in spec}
+    others = {k: v for k, v in current["texture_data"].items() if k not in gear}
+    return {
+        "resource_pack_name": current["resource_pack_name"],
+        "texture_name": current["texture_name"],
+        "texture_data": {**others, **gear},
     }
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("resource_pack", type=Path)
+    parser.add_argument("behavior_pack", type=Path)
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
     spec = json.loads(SPEC.read_text())
@@ -308,6 +412,13 @@ def main():
     rp = args.resource_pack
     documents = {rp / MODELS / f"{item_id}.geo.json": geometry(item_id, cubes) for item_id, cubes in SHAPES.items()}
     documents[rp / TERRAIN] = terrain()
+    bp = args.behavior_pack
+    for item in spec:
+        gid = item["id"]
+        documents[bp / BLOCKS / f"{gid}_decor.block.json"] = decor_block(item)
+        documents[bp / ITEMS / f"{gid}.item.json"] = gear_item(item)
+    documents[bp / CATALOG] = catalog(spec)
+    documents[rp / ITEM_TEXTURES] = item_textures(json.loads((rp / ITEM_TEXTURES).read_text()), spec)
     stale = []
     for path, document in documents.items():
         if args.check:
@@ -334,7 +445,7 @@ def main():
     if stale:
         sys.exit(f"{', '.join(stale)} out of date with tools/camping_gear.json. Run `pnpm model` and commit the result.")
     if args.check:
-        print("camping gear models and atlas are up to date")
+        print("camping gear models, atlas, blocks, items, and catalog are up to date")
 
 
 if __name__ == "__main__":

@@ -135,6 +135,9 @@ GEAR_TEXTURE = "textures/blocks/yasu_ride/camping_gear.png"
 GEAR_DIR = "items/camping-gear"
 GEAR_SIZE = 128
 GEAR_FILL = 0.8
+GEAR_ICON_DIR = "textures/items/yasu_ride"
+GEAR_ICON_SIZE = 32
+GEAR_ICON_PACK = "yasu_ride_rp"  # the --icons pack that receives the gear item icons
 
 POSES = {
     "suv-front-left.png": {"lamps": False, "dusk": False, "hover": False, "submarine": False},
@@ -769,18 +772,20 @@ def render_camper(rp):
     return {name: images[name] for name in CAMPER_POSES}
 
 
+def render_gear(rp, texture, gear_id, size):
+    """Draw one camping gear block model in a size-pixel square on transparency, seen like the vehicles."""
+    geo = json.loads((rp / GEAR_GEOMETRY.format(gear_id)).read_text())["minecraft:geometry"][0]
+    polygons, glass = collect_boat(geo, texture, {"lamps": False, "dusk": False})
+    quads = [quad for quad, _, _ in polygons + glass]
+    camera = Camera([p for quad in quads for p in quad])
+    return rasterize(polygons, [], fit_square(camera, quads, size), size, size, bloom={}, see_through=glass)
+
+
 def render_camping_gear(rp):
     texture = read_png(rp / GEAR_TEXTURE)
     images = {}
     for item in json.loads(GEAR_SPEC.read_text()):
-        geo = json.loads((rp / GEAR_GEOMETRY.format(item["id"])).read_text())["minecraft:geometry"][0]
-        polygons, glass = collect_boat(geo, texture, {"lamps": False, "dusk": False})
-        quads = [quad for quad, _, _ in polygons + glass]
-        camera = Camera([p for quad in quads for p in quad])
-        to_screen = fit_square(camera, quads, GEAR_SIZE)
-        images[f"{GEAR_DIR}/{item['id']}.png"] = rasterize(
-            polygons, [], to_screen, GEAR_SIZE, GEAR_SIZE, bloom={}, see_through=glass
-        )
+        images[f"{GEAR_DIR}/{item['id']}.png"] = render_gear(rp, texture, item["id"], GEAR_SIZE)
     return images
 
 
@@ -889,6 +894,12 @@ def main():
     for pack in args.icons:
         pixels = grayscale(icon) if pack.name == ICON_GRAYSCALE_PACK else icon
         targets.append((pack / "pack_icon.png", ICON_SIZE, ICON_SIZE, pixels, True))
+    for pack in args.icons:
+        if pack.name == GEAR_ICON_PACK:
+            texture = read_png(args.resource_pack / GEAR_TEXTURE)
+            for gear in json.loads(GEAR_SPEC.read_text()):
+                pixels = render_gear(args.resource_pack, texture, gear["id"], GEAR_ICON_SIZE)
+                targets.append((pack / GEAR_ICON_DIR / f"{gear['id']}.png", GEAR_ICON_SIZE, GEAR_ICON_SIZE, pixels, False))
     stale = []
     for target, width, height, pixels, rgb in targets:
         if args.check:
