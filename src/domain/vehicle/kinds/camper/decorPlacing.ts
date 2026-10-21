@@ -1,8 +1,8 @@
-// Placing camping gear on the parked camper's furniture (ADR 0093).
+// Placing camping gear on the parked camper's furniture (ADR 0093, 0097).
 import type { Vec3 } from "../../../shared/vec";
 import type { DecorPlacement } from "../../dock/decor";
 import type { HoldPose } from "../../dock/floor";
-import { CAMPING_GEAR } from "./campingGear";
+import { CAMPING_GEAR_IDS, HANGING_GEAR_IDS } from "./campingGear";
 import {
   CAMPER_FURNITURE,
   type DecorSlot,
@@ -18,15 +18,16 @@ const SLOTS: readonly { kind: FurnitureKind; slot: DecorSlot }[] =
     f.slots.map((slot) => ({ kind: f.kind, slot })),
   );
 
-/** The slots that accept `item`, in slot order; none for an unknown item. */
+/**
+ * The slots that accept `item`, in slot order; none for an unknown item. A standing
+ * item fits every slot but the ceiling hook, and a hanging item only the hook (ADR 0097).
+ */
 export function slotsFor(item: string): DecorSlot[] {
-  const places = CAMPING_GEAR.get(item) ?? [];
-  return SLOTS.filter(
-    ({ kind }) =>
-      places.includes(kind) ||
-      // A wall cabinet top is used like a shelf (ADR 0093).
-      (kind === "wall_cabinet" && places.includes("shelf")),
-  ).map(({ slot }) => slot);
+  if (!CAMPING_GEAR_IDS.includes(item)) return [];
+  const hanging = HANGING_GEAR_IDS.has(item);
+  return SLOTS.filter(({ kind }) => (kind === "ceiling_hook") === hanging).map(
+    ({ slot }) => slot,
+  );
 }
 
 /** The middle of a slot's surface, where its decor stands. */
@@ -66,4 +67,25 @@ export function slotAt(pose: HoldPose, cell: Vec3): DecorSlot | undefined {
     const c = decorSlotCell(pose, slot);
     return c.x === cell.x && c.y === cell.y && c.z === cell.z;
   })?.slot;
+}
+
+/**
+ * The slot of the pressed `cell` when it accepts `item` and is free; otherwise the
+ * free accepting slot nearest `point` (ADR 0093, 0097).
+ */
+export function slotForPress(
+  pose: HoldPose,
+  item: string,
+  decor: readonly DecorPlacement[],
+  cell: Vec3,
+  point: Vec3,
+): DecorSlot | undefined {
+  const pressed = slotAt(pose, cell);
+  if (
+    pressed &&
+    !decor.some((d) => d.slot === pressed.id) &&
+    slotsFor(item).some((s) => s.id === pressed.id)
+  )
+    return pressed;
+  return nearestFreeSlot(pose, item, decor, point);
 }

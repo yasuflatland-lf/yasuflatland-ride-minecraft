@@ -1,11 +1,12 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import type { Vec3 } from "../../../../../src/domain/shared/vec";
-import { CAMPING_GEAR } from "../../../../../src/domain/vehicle/kinds/camper/campingGear";
+import { HANGING_GEAR_IDS } from "../../../../../src/domain/vehicle/kinds/camper/campingGear";
 import { DECOR_SLOTS } from "../../../../../src/domain/vehicle/kinds/camper/decor";
 import {
   nearestFreeSlot,
   slotAt,
+  slotForPress,
   slotPoint,
   slotsFor,
 } from "../../../../../src/domain/vehicle/kinds/camper/decorPlacing";
@@ -34,29 +35,22 @@ const ids = (slots: readonly { id: string }[]) => slots.map((s) => s.id);
 const squared = (a: Vec3, b: Vec3) =>
   (a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2;
 
-it("accepts an item on exactly the slots of its places, plus the wall cabinet for shelf items (ADR 0093)", () => {
+it("accepts a standing item on every slot but the ceiling hook and a hanging item only on the hook (ADR 0097)", () => {
   fc.assert(
     fc.property(gear, (id) => {
-      const places = defined(CAMPING_GEAR.get(id), "places");
+      const hanging = HANGING_GEAR_IDS.has(id);
       expect(slotsFor(id)).toEqual(
-        SLOTS.filter(
-          ({ kind }) =>
-            places.includes(kind) ||
-            (kind === "wall_cabinet" && places.includes("shelf")),
-        ).map(({ slot }) => slot),
+        SLOTS.filter(({ kind }) => (kind === "ceiling_hook") === hanging).map(
+          ({ slot }) => slot,
+        ),
       );
     }),
   );
-  expect(ids(slotsFor("percolator"))).toEqual(["stove"]);
   expect(ids(slotsFor("macrame_planter"))).toEqual(["ceiling_hook"]);
-  expect(new Set(ids(slotsFor("lava_lamp")))).toEqual(
-    new Set([
-      "shelf_low",
-      "shelf_high",
-      "wall_cabinet_front",
-      "wall_cabinet_rear",
-    ]),
+  expect(ids(slotsFor("cushion"))).toEqual(
+    ids(DECOR_SLOTS.filter((s) => s.id !== "ceiling_hook")),
   );
+  expect(slotsFor("percolator")).toHaveLength(11);
   expect(slotsFor("constructor")).toEqual([]);
   expect(slotsFor("stone")).toEqual([]);
 });
@@ -126,4 +120,88 @@ it("picks the nearest free accepting slot, the first one on a tie, and none when
       },
     ),
   );
+});
+
+const slotNamed = (id: string) =>
+  defined(
+    SLOTS.find(({ slot }) => slot.id === id),
+    id,
+  ).slot;
+
+it("prefers the pressed slot when it accepts the item and is free, else the nearest free slot (ADR 0097)", () => {
+  const offset = fc.double({ min: -6, max: 6, noNaN: true });
+  fc.assert(
+    fc.property(
+      pose,
+      gear.chain((id) => fc.tuple(fc.constant(id), fc.subarray(slotsFor(id)))),
+      fc.constantFrom(...SLOTS),
+      fc.tuple(offset, offset, offset),
+      (p, [id, taken], { slot }, [dx, dy, dz]) => {
+        const decor = taken.map((s) => ({ slot: s.id, item: id }));
+        const point = { x: p.x + dx, y: p.y + dy, z: p.z + dz };
+        const cell = decorSlotCell(p, slot);
+        const nearest = nearestFreeSlot(p, id, decor, point);
+        const takes =
+          slotsFor(id).includes(slot) && !taken.some((s) => s.id === slot.id);
+        expect(slotForPress(p, id, decor, cell, point)).toBe(
+          takes ? slot : nearest,
+        );
+        const first = decorSlotCell(p, defined(SLOTS[0], "first slot").slot);
+        expect(
+          slotForPress(p, id, decor, { ...first, y: first.y + 5 }, point),
+        ).toBe(nearest);
+      },
+    ),
+  );
+});
+
+it("puts a potted plant on the high shelf when it is pressed, though the low shelf is nearer the hit point", () => {
+  const p = parkPose({ x: 0, y: 64, z: 0 }, 0);
+  const high = slotNamed("shelf_high");
+  const low = slotNamed("shelf_low");
+  expect(
+    slotForPress(
+      p,
+      "potted_plant",
+      [],
+      decorSlotCell(p, high),
+      slotPoint(p, low),
+    ),
+  ).toBe(high);
+});
+
+it("puts a cushion on the stove when the stove is pressed and free (ADR 0097)", () => {
+  const p = parkPose({ x: 0, y: 64, z: 0 }, 0);
+  const stove = slotNamed("stove");
+  expect(
+    slotForPress(
+      p,
+      "cushion",
+      [],
+      decorSlotCell(p, stove),
+      slotPoint(p, stove),
+    ),
+  ).toBe(stove);
+});
+
+it("sends a standing item pressed on the ceiling hook, or on a taken slot, to the nearest free standing slot (ADR 0097)", () => {
+  const p = parkPose({ x: 0, y: 64, z: 0 }, 0);
+  const hook = slotNamed("ceiling_hook");
+  const table = slotNamed("table");
+  expect(
+    slotForPress(p, "mug_pair", [], decorSlotCell(p, hook), slotPoint(p, hook)),
+  ).toBe(table);
+  const stove = slotNamed("stove");
+  const decor = [{ slot: "stove", item: "percolator" }];
+  const chosen = slotForPress(
+    p,
+    "toaster",
+    decor,
+    decorSlotCell(p, stove),
+    slotPoint(p, stove),
+  );
+  expect(chosen).toBe(
+    nearestFreeSlot(p, "toaster", decor, slotPoint(p, stove)),
+  );
+  expect(chosen?.id).not.toBe("stove");
 });

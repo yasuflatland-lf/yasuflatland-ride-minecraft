@@ -17,18 +17,22 @@ import {
   cargoCells,
   deckSeats,
   decorCells,
+  decorSlotCell,
   departure,
   exitCells,
+  furnitureCells,
   holdsCargo,
-  ownDecor,
+  ownSlotBlock,
   parkCheckCells,
   parkPose,
   planPark,
   roomCells,
   showerFloorCell,
+  slotCells,
   snapYaw,
   wallFootCells,
 } from "../../../../../src/domain/vehicle/kinds/camper/room";
+import { seatSlotCell } from "../../../../../src/domain/vehicle/kinds/camper/seatPress";
 import { cellKey } from "../../../../../src/domain/vehicle/lighting/headlights";
 import { seatWorldPositions } from "../../../../../src/domain/vehicle/seats";
 import { defined } from "../../../../support/defined";
@@ -176,7 +180,7 @@ it("lays the two bed cells at the rear left, one layer above the floor (ADR 0092
   );
 });
 
-it("covers the interior and the roof exactly once with cargo cells and furniture block cells (ADR 0093)", () => {
+it("covers the interior and the roof exactly once with cargo cells, slot cells, and furniture block cells (ADR 0093, 0097)", () => {
   fc.assert(
     fc.property(pose, (p) => {
       const blocks = roomCells(p, false).filter((c) => c.block.type === "bed");
@@ -184,7 +188,8 @@ it("covers the interior and the roof exactly once with cargo cells and furniture
       const cargoKeys = new Set(cargo.map(cellKey));
       for (const key of blocks.map(cellKey))
         expect(cargoKeys.has(key)).toBe(false);
-      const all = [...cargo, ...blocks];
+      const all = [...cargo, ...slotCells(p), ...blocks];
+      expect(all).toHaveLength(63);
       expect(new Set(all.map(cellKey)).size).toBe(63);
       const exact = forward(p.yaw);
       const f = { x: Math.round(exact.x) + 0, z: Math.round(exact.z) + 0 };
@@ -200,7 +205,7 @@ it("covers the interior and the roof exactly once with cargo cells and furniture
   );
 });
 
-it("checks 168 unique cells including the room and keeps all 61 cargo cells outside its blocks", () => {
+it("checks 168 unique cells including the room and keeps all 49 cargo cells outside its blocks and slots (ADR 0097)", () => {
   fc.assert(
     fc.property(pose, (p) => {
       const room = new Set(roomCells(p, false).map(cellKey));
@@ -209,9 +214,14 @@ it("checks 168 unique cells including the room and keeps all 61 cargo cells outs
       expect(new Set(check).size).toBe(168);
       for (const c of room) expect(check).toContain(c);
       const cargo = cargoCells(p).map(cellKey);
-      expect(cargo).toHaveLength(61);
-      expect(new Set(cargo).size).toBe(61);
+      expect(cargo).toHaveLength(49);
+      expect(new Set(cargo).size).toBe(49);
       expect(cargo.some((c) => room.has(c))).toBe(false);
+      for (const key of slotCells(p).map(cellKey)) {
+        expect(room.has(key)).toBe(false);
+        expect(cargo).not.toContain(key);
+        expect(check).toContain(key);
+      }
     }),
   );
 });
@@ -354,7 +364,8 @@ it("checks every roof cell and clears decorations there", () => {
       fc.integer({ min: 0, max: 20 }),
       fc.constantFrom(...CLEARABLE_DECORATIONS),
       (p, index, typeId) => {
-        const roof = defined(cargoCells(p).slice(40)[index], "roof cell");
+        const roof = defined(cargoCells(p).slice(28)[index], "roof cell");
+        expect(roof.y - p.y).toBe(4);
         const cells = parkCheckCells(p);
         expect(cells.map(cellKey)).toContain(cellKey(roof));
         const types = cells.map((c) =>
@@ -544,29 +555,78 @@ it("puts no decor cell on a room cell (ADR 0093)", () => {
   );
 });
 
-it("reads the camper's decor cells apart from the cargo cells (ADR 0093)", () => {
+it("lays a furniture block in every slot without decor and none in a cargo, room, or shower-toilet cell (ADR 0097)", () => {
   fc.assert(
     fc.property(pose, decor, (p, d) => {
-      const decorKeys = new Set(decorCells(p, d).map(cellKey));
-      const all = cargoCells(p);
-      const allKeys = new Set(all.map(cellKey));
-      for (const key of decorKeys) expect(allKeys.has(key)).toBe(true);
-      const cargo = cargoCells(p, d);
-      expect(cargo).toEqual(all.filter((c) => !decorKeys.has(cellKey(c))));
-      expect(cargo).toHaveLength(all.length - d.length);
+      const furniture = furnitureCells(p, d);
+      expect(furniture).toHaveLength(12 - d.length);
+      const laid = [...decorCells(p, d), ...furniture].map(cellKey);
+      expect(new Set(laid).size).toBe(laid.length);
+      expect(new Set(laid)).toEqual(new Set(slotCells(p).map(cellKey)));
+      const cargo = new Set(cargoCells(p).map(cellKey));
+      const room = new Set(roomCells(p, false).map(cellKey));
+      const exact = forward(p.yaw);
+      const f = { x: Math.round(exact.x) + 0, z: Math.round(exact.z) + 0 };
+      const left = leftOf(f);
+      const l = { x: left.x + 0, z: left.z + 0 };
+      for (const c of furniture) {
+        const slot = defined(
+          DECOR_SLOTS.find((s) => cellKey(decorSlotCell(p, s)) === cellKey(c)),
+          "slot at furniture cell",
+        );
+        expect(c.block).toEqual({ type: "furniture", height: slot.height });
+        expect(cargo.has(cellKey(c))).toBe(false);
+        expect(room.has(cellKey(c))).toBe(false);
+        const at = { x: c.x - Math.floor(p.x), z: c.z - Math.floor(p.z) };
+        expect(dot(at, l) + 0 === -1 && dot(at, f) + 0 === -3).toBe(false);
+      }
     }),
   );
 });
 
-it("lets a decor cell hold only air or its own decor block (ADR 0093)", () => {
+it("lists the slot cells in DECOR_SLOTS order (ADR 0097)", () => {
+  fc.assert(
+    fc.property(pose, (p) => {
+      expect(slotCells(p)).toEqual(DECOR_SLOTS.map((s) => decorSlotCell(p, s)));
+    }),
+  );
+});
+
+it("lets a slot cell hold only air, the furniture block, or its own decor block (ADR 0097)", () => {
   fc.assert(
     fc.property(itemId, itemId, (item, other) => {
       fc.pre(item !== other);
-      expect(ownDecor(AIR, item)).toBe(true);
-      expect(ownDecor(`yasu_ride:${item}_decor`, item)).toBe(true);
-      expect(ownDecor(undefined, item)).toBe(false);
-      expect(ownDecor("minecraft:stone", item)).toBe(false);
-      expect(ownDecor(`yasu_ride:${other}_decor`, item)).toBe(false);
+      for (const slotItem of [item, undefined]) {
+        expect(ownSlotBlock(AIR, slotItem)).toBe(true);
+        expect(ownSlotBlock("yasu_ride:camper_furniture", slotItem)).toBe(true);
+        expect(ownSlotBlock(undefined, slotItem)).toBe(false);
+        expect(ownSlotBlock("minecraft:stone", slotItem)).toBe(false);
+        expect(ownSlotBlock(`yasu_ride:${other}_decor`, slotItem)).toBe(false);
+        expect(ownSlotBlock(`yasu_ride:${item}_decor`, slotItem)).toBe(
+          slotItem === item,
+        );
+      }
+    }),
+  );
+});
+
+it("puts each dinette deck seat under its dinette slot, the first slot cell from the seat's cell up, and no other deck seat under a slot (ADR 0097)", () => {
+  fc.assert(
+    fc.property(pose, (p) => {
+      const slots = new Map(
+        DECOR_SLOTS.map((s) => [cellKey(decorSlotCell(p, s)), s.id]),
+      );
+      const firstSlotAbove = (seat: { x: number; y: number; z: number }) => {
+        const cell = seatSlotCell(seat, (c) => slots.has(cellKey(c)));
+        return cell === undefined ? undefined : slots.get(cellKey(cell));
+      };
+      expect(deckSeats(p).map(firstSlotAbove)).toEqual([
+        undefined,
+        undefined,
+        "dinette_front",
+        "dinette_rear",
+        undefined,
+      ]);
     }),
   );
 });

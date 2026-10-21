@@ -35,7 +35,6 @@ interface Gear {
   name_ja: string;
   width_px: number;
   height_px: number;
-  places: string[];
   glass: boolean;
   hanging: boolean;
   reference: string | null;
@@ -57,17 +56,6 @@ interface Cube {
 const specText = readFileSync(SPEC_PATH, "utf8");
 const SPEC = JSON.parse(specText) as Gear[];
 
-// The furniture kinds that have decor slots (ADR 0093), with their names in the docs.
-const PLACE_NAMES: Record<string, string> = {
-  dashboard: "dashboard",
-  table: "table",
-  dinette_seat: "dinette seat",
-  shelf: "shelf",
-  stove: "stove",
-  counter: "counter",
-  ceiling_hook: "ceiling hook",
-};
-
 const geometryOf = (id: string) =>
   JSON.parse(readFileSync(`${MODELS}/${id}.geo.json`, "utf8"))[
     "minecraft:geometry"
@@ -81,15 +69,14 @@ const cubesOf = (id: string) => geometryOf(id).bones.flatMap((b) => b.cubes);
 const ySpan = (g: Gear) =>
   g.hanging ? [HOOK_Y - g.height_px, HOOK_Y] : [0, g.height_px];
 
-function placesText(places: string[]): string {
-  const text = places.map((p) => PLACE_NAMES[p] ?? p).join(", ");
-  return text.charAt(0).toUpperCase() + text.slice(1);
-}
+// A standing item goes on any spot but the ceiling hook, which takes only a hanging one (ADR 0097).
+const placementText = (g: Gear) =>
+  g.hanging ? "Hangs from the ceiling hook" : "Stands";
 
 function docsRow(g: Gear): string {
   const reference =
     g.reference === null ? "None" : `[Reference](${g.reference})`;
-  return `| ![${g.name_en}](../images/items/camping-gear/${g.id}.png) | ${g.name_en} | ${g.width_px} × ${g.height_px} | ${placesText(g.places)} | ${reference} |`;
+  return `| ![${g.name_en}](../images/items/camping-gear/${g.id}.png) | ${g.name_en} | ${g.width_px} × ${g.height_px} | ${placementText(g)} | ${reference} |`;
 }
 
 // The generators write unfiltered 8-bit RGBA rows.
@@ -158,7 +145,7 @@ describe("camping gear spec (ADR 0093)", () => {
   });
 
   it.each(SPEC)(
-    "$id: has a name, a size that fits its slot, and known places",
+    "$id: has a name, a size that fits its slot, and says whether it hangs",
     (g) => {
       expect(g.name_en).toMatch(/^[A-Z][A-Za-z ]*[a-z]$/);
       expect(
@@ -170,12 +157,8 @@ describe("camping gear spec (ADR 0093)", () => {
           g.height_px >= 1 &&
           g.height_px <= maxHeight,
       ).toBe(true);
-      expect(g.places.length).toBeGreaterThan(0);
-      expect(new Set(g.places).size).toBe(g.places.length);
-      for (const p of g.places) expect(Object.keys(PLACE_NAMES)).toContain(p);
-      expect(g.hanging).toBe(
-        g.places.length === 1 && g.places[0] === "ceiling_hook",
-      );
+      expect(g).not.toHaveProperty("places");
+      expect(g.hanging).toBe(g.id === "macrame_planter");
       expect(g.glass).toBe(g.id === "sugar_pot");
       expect(g.reference === null || /^https:\/\/\S+$/.test(g.reference)).toBe(
         true,
@@ -294,7 +277,7 @@ describe("camping gear docs (ADR 0093)", () => {
   it("counts the camping gear on the item groups page", () => {
     const lines = readFileSync("docs/items/README.md", "utf8").split("\n");
     expect(lines).toContain(
-      `| **Camping Gear** | ${SPEC.length} | [Previews and places](camping-gear.md) |`,
+      `| **Camping Gear** | ${SPEC.length} | [Previews and placement](camping-gear.md) |`,
     );
   });
 

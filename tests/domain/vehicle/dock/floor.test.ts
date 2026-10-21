@@ -15,6 +15,7 @@ const decorBlock = fc.record({
   face: fc.constantFrom(0, 1, 2, 3),
   height: fc.integer({ min: 0, max: 15 }),
 });
+const furnitureHeight = fc.integer({ min: 0, max: 15 });
 const block: fc.Arbitrary<DockBlock> = fc.oneof(
   fc.record({
     type: fc.constant("deck" as const),
@@ -22,6 +23,8 @@ const block: fc.Arbitrary<DockBlock> = fc.oneof(
   }),
   fc.constant({ type: "floor" as const }),
   fc.constant({ type: "ceiling" as const }),
+  fc.constant({ type: "bed" as const }),
+  furnitureHeight.map((height) => ({ type: "furniture" as const, height })),
   fc.record({
     type: fc.constant("wall" as const),
     face: fc.constantFrom(0, 1, 2, 3),
@@ -187,6 +190,25 @@ describe("sameBlock", () => {
           expect(sameBlock(a, b)).toBe(
             a.item === b.item && a.face === b.face && a.height === b.height,
           );
+        },
+      ),
+    );
+  });
+
+  it("tells furniture apart by height (ADR 0097)", () => {
+    fc.assert(
+      fc.property(
+        furnitureHeight,
+        furnitureHeight,
+        decorBlock,
+        (a, b, decor) => {
+          const furniture = { type: "furniture", height: a } as const;
+          expect(sameBlock(furniture, { type: "furniture", height: b })).toBe(
+            a === b,
+          );
+          expect(sameBlock(furniture, decor)).toBe(false);
+          expect(sameBlock(furniture, { type: "bed" })).toBe(false);
+          expect(sameBlock({ type: "bed" }, furniture)).toBe(false);
         },
       ),
     );

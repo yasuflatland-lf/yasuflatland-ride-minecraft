@@ -17,6 +17,7 @@ import {
   CAMPER_CEILING_BLOCK,
   CAMPER_DOOR_BLOCK,
   CAMPER_FLOOR_BLOCK,
+  CAMPER_FURNITURE_BLOCK,
   CAMPER_WALL_BLOCK,
   DECK_CELLS_PROPERTY,
   DECK_FLOOR_BLOCK,
@@ -336,6 +337,7 @@ const roomCells: DockCell[] = [
     z: 0,
     block: { type: "decor", item: "potted_plant", face: 1, height: 12 },
   },
+  { x: 7, y: 64, z: 0, block: { type: "furniture", height: 0 } },
 ];
 
 it("lays every block type with its states and changes only an opened door", () => {
@@ -356,6 +358,7 @@ it("lays every block type with its states and changes only an opened door", () =
       typeId: decorBlockId("potted_plant"),
       states: { [DECOR_FACE_STATE]: 1, [DECOR_HEIGHT_STATE]: 12 },
     },
+    { typeId: CAMPER_FURNITURE_BLOCK, states: { [DECOR_HEIGHT_STATE]: 0 } },
   ]);
   f.writes.length = 0;
   const opened = roomCells.map((c) =>
@@ -399,7 +402,7 @@ it.each([
   },
 );
 
-it("preserves replacements of wall, door, bed, and decor cells", () => {
+it("preserves replacements of wall, door, bed, decor, and furniture cells", () => {
   const f = fixture();
   const docks = new DockBlocks();
   docks.lay(asVehicleId(f.car.id), f.car, roomCells);
@@ -427,6 +430,39 @@ it("replaces a decor item in place and clears it", () => {
   docks.lay(asVehicleId(f.car.id), f.car, [decorAt("mug_pair")]);
   expect(f.at(position)).toEqual({ typeId: decorBlockId("mug_pair"), states });
   expect(f.savedCells()).toEqual([decorAt("mug_pair")]);
+  docks.lay(asVehicleId(f.car.id), f.car, []);
+  expect(f.at(position).typeId).toBe("minecraft:air");
+  expect(f.saved.get(DECK_CELLS_PROPERTY)).toBeUndefined();
+});
+
+it("switches a slot between furniture and decor in place and clears it (ADR 0097)", () => {
+  const f = fixture();
+  const docks = new DockBlocks();
+  const position = { x: 0, y: 64, z: 0 };
+  const furniture: DockCell = {
+    ...position,
+    block: { type: "furniture", height: 12 },
+  };
+  const decor: DockCell = {
+    ...position,
+    block: { type: "decor", item: "potted_plant", face: 1, height: 12 },
+  };
+  const furnitureLaid = {
+    typeId: CAMPER_FURNITURE_BLOCK,
+    states: { [DECOR_HEIGHT_STATE]: 12 },
+  };
+  docks.lay(asVehicleId(f.car.id), f.car, [furniture]);
+  expect(f.at(position)).toEqual(furnitureLaid);
+  expect(f.savedCells()).toEqual([furniture]);
+  docks.lay(asVehicleId(f.car.id), f.car, [decor]);
+  expect(f.at(position)).toEqual({
+    typeId: decorBlockId("potted_plant"),
+    states: { [DECOR_FACE_STATE]: 1, [DECOR_HEIGHT_STATE]: 12 },
+  });
+  expect(f.savedCells()).toEqual([decor]);
+  docks.lay(asVehicleId(f.car.id), f.car, [furniture]);
+  expect(f.at(position)).toEqual(furnitureLaid);
+  expect(f.savedCells()).toEqual([furniture]);
   docks.lay(asVehicleId(f.car.id), f.car, []);
   expect(f.at(position).typeId).toBe("minecraft:air");
   expect(f.saved.get(DECK_CELLS_PROPERTY)).toBeUndefined();
@@ -492,6 +528,10 @@ it.each([
     block: { type: "decor", item: "potted_plant", face: 0, height: 1.5 },
     seed: decorBlockId("potted_plant"),
   },
+  { block: { type: "furniture", height: 16 }, seed: CAMPER_FURNITURE_BLOCK },
+  { block: { type: "furniture", height: -1 }, seed: CAMPER_FURNITURE_BLOCK },
+  { block: { type: "furniture", height: 1.5 }, seed: CAMPER_FURNITURE_BLOCK },
+  { block: { type: "furniture", height: "12" }, seed: CAMPER_FURNITURE_BLOCK },
   { block: null, seed: DECK_FLOOR_BLOCK },
 ])("ignores invalid saved dock blocks: $block", ({ block, seed }) => {
   const f = fixture();
@@ -542,6 +582,20 @@ it("finds the owner of any laid cell, but of a door only through doorOwner, in t
   );
   expect(docks.doorOwner(here, floor)).toBeUndefined();
   expect(docks.doorOwner(here, door)).toBe(f.car.id);
+});
+
+it("finds the owner of a laid furniture cell through cellOwner only (ADR 0097)", () => {
+  const f = fixture();
+  const docks = new DockBlocks();
+  docks.lay(asVehicleId(f.car.id), f.car, roomCells);
+  const here = asDimensionId(f.car.dimension.id);
+  const furniture = defined(
+    roomCells.find((c) => c.block.type === "furniture"),
+    "furniture cell",
+  );
+  expect(docks.cellOwner(here, furniture)).toBe(f.car.id);
+  expect(docks.doorOwner(here, furniture)).toBeUndefined();
+  expect(docks.floorOwner(here, furniture)).toBeUndefined();
 });
 
 it("finds only the owner of a laid floor in the same dimension (ADR 0094)", () => {

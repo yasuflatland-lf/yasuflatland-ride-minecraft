@@ -1,5 +1,6 @@
 import {
   type PlayerInteractWithBlockBeforeEvent,
+  type PlayerInteractWithEntityBeforeEvent,
   system,
   world,
 } from "@minecraft/server";
@@ -10,24 +11,33 @@ import {
   asDimensionId,
   asPlayerId,
   type DimensionId,
+  type PlayerId,
   type VehicleId,
 } from "../../../../domain/shared/ids";
 import type { Vec3 } from "../../../../domain/shared/vec";
 import {
+  SeatPresses,
+  seatSlotCell,
+} from "../../../../domain/vehicle/kinds/index";
+import {
   CAMPER_DECOR_COMPONENT,
   CAMPER_FLOOR_BLOCK,
+  CAMPER_FURNITURE_BLOCK,
   campingGearOfDecorBlock,
   campingGearOfItem,
+  DECK_SEAT_TYPE,
   isCamperRoomBlock,
 } from "../identifiers";
+
+type DockCellOwner = (
+  dimensionId: DimensionId,
+  cell: Vec3,
+) => VehicleId | undefined;
 
 export function registerDecor(
   place: PlaceDecor,
   remove: RemoveDecor,
-  dockCellOwner: (
-    dimensionId: DimensionId,
-    cell: Vec3,
-  ) => VehicleId | undefined,
+  dockCellOwner: DockCellOwner,
   floor: TapDockFloor,
 ): void {
   // Placing gear and empty-hand floor taps (ADR 0094) listen to the before event because
@@ -38,6 +48,15 @@ export function registerDecor(
     const item = campingGearOfItem(ev.itemStack?.typeId);
     if (item !== undefined) placeGear(ev, item, place, dockCellOwner);
     else if (!ev.itemStack) tapFloor(ev, floor);
+  });
+  // A deck seat stands on each dinette seat's slot and takes the press first, so held
+  // gear on a deck seat goes to the slot instead of seating the player (ADR 0097). The
+  // headlight switch on the same signal is not camping gear, so the two never both act.
+  const seatPresses = new SeatPresses<PlayerId>();
+  world.beforeEvents.playerInteractWithEntity.subscribe((ev) => {
+    const item = campingGearOfItem(ev.itemStack?.typeId);
+    if (item !== undefined)
+      placeGearOnSeat(ev, item, place, dockCellOwner, seatPresses);
   });
   // Removing goes through the decor block's custom component, like the room door (ADR 0068, 0093).
   system.beforeEvents.startup.subscribe(({ blockComponentRegistry }) => {
@@ -68,10 +87,7 @@ function placeGear(
   ev: PlayerInteractWithBlockBeforeEvent,
   item: string,
   place: PlaceDecor,
-  dockCellOwner: (
-    dimensionId: DimensionId,
-    cell: Vec3,
-  ) => VehicleId | undefined,
+  dockCellOwner: DockCellOwner,
 ): void {
   const { block } = ev;
   const pressedRoom =
@@ -91,11 +107,53 @@ function placeGear(
     y: block.location.y + ev.faceLocation.y,
     z: block.location.z + ev.faceLocation.z,
   };
+  const cell = {
+    x: block.location.x,
+    y: block.location.y,
+    z: block.location.z,
+  };
   const playerId = asPlayerId(ev.player.id);
   const hotbarSlot = ev.player.selectedSlotIndex;
   // Before events cannot change the world, so the item is taken on the next tick.
   system.run(() =>
-    place.execute({ playerId, vehicleId, item, point, hotbarSlot }),
+    place.execute({ playerId, vehicleId, item, point, cell, hotbarSlot }),
+  );
+}
+
+function placeGearOnSeat(
+  ev: PlayerInteractWithEntityBeforeEvent,
+  item: string,
+  place: PlaceDecor,
+  dockCellOwner: DockCellOwner,
+  seatPresses: SeatPresses<PlayerId>,
+): void {
+  const seat = ev.target;
+  if (seat.typeId !== DECK_SEAT_TYPE) return;
+  const dimension = seat.dimension;
+  const dimensionId = asDimensionId(dimension.id);
+  const at = seat.location;
+  const point = { x: at.x, y: at.y, z: at.z };
+  const slot = seatSlotCell(point, (cell) =>
+    isSlotBlock(dimension.getBlock(cell)?.typeId),
+  );
+  if (slot === undefined) return;
+  const vehicleId = dockCellOwner(dimensionId, slot);
+  if (vehicleId === undefined) return;
+  ev.cancel = true;
+  const playerId = asPlayerId(ev.player.id);
+  if (!seatPresses.press(system.currentTick, playerId)) return;
+  const hotbarSlot = ev.player.selectedSlotIndex;
+  system.run(() =>
+    place.execute({ playerId, vehicleId, item, point, cell: slot, hotbarSlot }),
+  );
+}
+
+/** An empty slot's furniture block or a placed gear's decor block (ADR 0093, 0097). */
+function isSlotBlock(typeId: string | undefined): boolean {
+  if (typeId === undefined) return false;
+  return (
+    typeId === CAMPER_FURNITURE_BLOCK ||
+    campingGearOfDecorBlock(typeId) !== undefined
   );
 }
 

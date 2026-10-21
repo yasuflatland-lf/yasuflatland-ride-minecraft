@@ -1,6 +1,6 @@
 import type { PlayerId, VehicleId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
-// Use case: a player long-pressed a parked vehicle's room holding a camping gear item (ADR 0093).
+// Use case: a player long-pressed a parked vehicle's room holding a camping gear item (ADR 0093, 0097).
 import { DECOR_MESSAGES } from "../../domain/vehicle/dock/decorMessages";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
 import type { DecorPlacingWorld } from "./ports/decor";
@@ -12,6 +12,8 @@ export interface PlaceDecorCommand {
   item: string;
   /** The world point the player pressed. */
   point: Vec3;
+  /** The world cell of the block the player pressed (ADR 0097). */
+  cell: Vec3;
   /** The hotbar slot that held the item when the player pressed. */
   hotbarSlot: number;
 }
@@ -26,7 +28,7 @@ export class PlaceDecor {
   execute(cmd: PlaceDecorCommand): boolean {
     const vehicle = this.repo.get(cmd.vehicleId);
     if (!vehicle) return false;
-    const slot = vehicle.decorSlotFor(cmd.item, cmd.point);
+    const slot = vehicle.decorSlotFor(cmd.item, cmd.point, cmd.cell);
     if (slot === undefined) {
       this.world.showMessage(cmd.playerId, DECOR_MESSAGES.noSlot);
       return false;

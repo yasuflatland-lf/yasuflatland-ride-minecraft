@@ -5,7 +5,6 @@
     "name_ja": "\u89b3\u8449\u690d\u7269\u306e\u9262\u690d\u3048",
     "width_px": 5,
     "height_px": 8,
-    "places": ["table", "shelf"],
     "glass": false,
     "hanging": false,
     "reference": null
@@ -16,7 +15,6 @@
     "name_ja": "\u30de\u30af\u30e9\u30e1\u306e\u540a\u308a\u4e0b\u3052\u30d7\u30e9\u30f3\u30bf\u30fc",
     "width_px": 5,
     "height_px": 10,
-    "places": ["ceiling_hook"],
     "glass": false,
     "hanging": true,
     "reference": null
@@ -27,7 +25,6 @@
     "name_ja": "\u30b5\u30dc\u30c6\u30f3\u306e\u9262",
     "width_px": 4,
     "height_px": 7,
-    "places": ["shelf", "table"],
     "glass": false,
     "hanging": false,
     "reference": null
@@ -38,7 +35,6 @@
     "name_ja": "\u30d1\u30fc\u30b3\u30ec\u30fc\u30bf\u30fc",
     "width_px": 4,
     "height_px": 7,
-    "places": ["stove"],
     "glass": false,
     "hanging": false,
     "reference": null
@@ -49,7 +45,6 @@
     "name_ja": "\u30db\u30fc\u30ed\u30fc\u306e\u30b1\u30c8\u30eb",
     "width_px": 5,
     "height_px": 5,
-    "places": ["stove"],
     "glass": false,
     "hanging": false,
     "reference": null
@@ -60,7 +55,6 @@
     "name_ja": "\u7247\u624b\u934b",
     "width_px": 6,
     "height_px": 3,
-    "places": ["stove"],
     "glass": false,
     "hanging": false,
     "reference": null
@@ -71,7 +65,6 @@
     "name_ja": "\u30de\u30b0\u30ab\u30c3\u30d7 2 \u500b",
     "width_px": 4,
     "height_px": 3,
-    "places": ["table", "counter"],
     "glass": false,
     "hanging": false,
     "reference": null
@@ -82,7 +75,6 @@
     "name_ja": "\u30ac\u30e9\u30b9\u306e\u30b7\u30e5\u30ac\u30fc\u30dd\u30c3\u30c8",
     "width_px": 3,
     "height_px": 4,
-    "places": ["counter"],
     "glass": true,
     "hanging": false,
     "reference": null
@@ -93,7 +85,6 @@
     "name_ja": "\u30d5\u30eb\u30fc\u30c4\u30dc\u30a6\u30eb",
     "width_px": 6,
     "height_px": 3,
-    "places": ["table"],
     "glass": false,
     "hanging": false,
     "reference": null
@@ -104,7 +95,6 @@
     "name_ja": "\u30af\u30ed\u30fc\u30e0\u306e\u30c8\u30fc\u30b9\u30bf\u30fc",
     "width_px": 6,
     "height_px": 5,
-    "places": ["counter"],
     "glass": false,
     "hanging": false,
     "reference": null
@@ -115,7 +105,6 @@
     "name_ja": "\u30aa\u30a4\u30eb\u30e9\u30f3\u30d7",
     "width_px": 4,
     "height_px": 7,
-    "places": ["table", "shelf"],
     "glass": false,
     "hanging": false,
     "reference": null
@@ -126,7 +115,6 @@
     "name_ja": "\u30e9\u30d0\u30e9\u30f3\u30d7",
     "width_px": 3,
     "height_px": 8,
-    "places": ["shelf"],
     "glass": false,
     "hanging": false,
     "reference": null
@@ -137,7 +125,6 @@
     "name_ja": "\u30c8\u30e9\u30f3\u30b8\u30b9\u30bf\u30e9\u30b8\u30aa",
     "width_px": 6,
     "height_px": 4,
-    "places": ["shelf", "dashboard"],
     "glass": false,
     "hanging": false,
     "reference": null
@@ -148,7 +135,6 @@
     "name_ja": "\u7a4d\u3093\u3060\u672c",
     "width_px": 6,
     "height_px": 3,
-    "places": ["shelf", "table"],
     "glass": false,
     "hanging": false,
     "reference": null
@@ -159,7 +145,6 @@
     "name_ja": "\u7573\u3093\u3060\u30ed\u30fc\u30c9\u30de\u30c3\u30d7",
     "width_px": 6,
     "height_px": 1,
-    "places": ["table", "dashboard"],
     "glass": false,
     "hanging": false,
     "reference": null
@@ -170,7 +155,6 @@
     "name_ja": "\u5199\u771f\u7acb\u3066",
     "width_px": 4,
     "height_px": 5,
-    "places": ["shelf"],
     "glass": false,
     "hanging": false,
     "reference": null
@@ -181,7 +165,6 @@
     "name_ja": "\u30af\u30c3\u30b7\u30e7\u30f3",
     "width_px": 7,
     "height_px": 3,
-    "places": ["dinette_seat"],
     "glass": false,
     "hanging": false,
     "reference": null
@@ -192,7 +175,6 @@
     "name_ja": "\u30c6\u30a3\u30c3\u30b7\u30e5\u30dc\u30c3\u30af\u30b9",
     "width_px": 5,
     "height_px": 3,
-    "places": ["dashboard", "shelf"],
     "glass": false,
     "hanging": false,
     "reference": null
@@ -203,7 +185,6 @@
     "name_ja": "\u5353\u4e0a\u6247\u98a8\u6a5f",
     "width_px": 4,
     "height_px": 6,
-    "places": ["counter", "dashboard"],
     "glass": false,
     "hanging": false,
     "reference": null

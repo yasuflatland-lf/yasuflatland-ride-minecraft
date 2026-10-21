@@ -21,6 +21,7 @@ import {
   CAMPER_CEILING_BLOCK,
   CAMPER_DOOR_BLOCK,
   CAMPER_FLOOR_BLOCK,
+  CAMPER_FURNITURE_BLOCK,
   CAMPER_WALL_BLOCK,
   DECK_CELLS_PROPERTY,
   DECK_FLOOR_BLOCK,
@@ -35,7 +36,7 @@ import {
 // The block defines one collision permutation per pixel height (ADR 0063).
 const MIN_HEIGHT = 1;
 const MAX_HEIGHT = 16;
-// The decor block defines one yasu_ride:height state per pixel (ADR 0093).
+// The decor and furniture blocks define one yasu_ride:height state per pixel (ADR 0093, 0097).
 const MIN_DECOR_HEIGHT = 0;
 const MAX_DECOR_HEIGHT = 15;
 // Reading a laid cell costs one getBlock call, and a parked camper lays about 105
@@ -89,6 +90,8 @@ function isDockCell(v: unknown): v is DockCell {
     case "ceiling":
     case "bed":
       return true;
+    case "furniture":
+      return isDecorHeight(b.height);
     case "wall":
       return isFace(b.face);
     case "door":
@@ -119,6 +122,8 @@ function blockIdOf(block: DockBlock): string {
       return CAMPER_DOOR_BLOCK;
     case "bed":
       return CAMPER_BED_BLOCK;
+    case "furniture":
+      return CAMPER_FURNITURE_BLOCK;
     case "decor":
       return decorBlockId(block.item);
   }
@@ -138,6 +143,10 @@ function permutationOf(block: DockBlock): BlockPermutation {
       return BlockPermutation.resolve(CAMPER_DOOR_BLOCK, {
         [ROOM_FACE_STATE]: block.face,
         [ROOM_OPEN_STATE]: block.open,
+      });
+    case "furniture":
+      return BlockPermutation.resolve(CAMPER_FURNITURE_BLOCK, {
+        [DECOR_HEIGHT_STATE]: block.height,
       });
     case "decor":
       return BlockPermutation.resolve(decorBlockId(block.item), {
