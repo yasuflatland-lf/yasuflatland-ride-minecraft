@@ -2,6 +2,7 @@
 import { type Dimension, type Entity, system, world } from "@minecraft/server";
 import type { Vec2 } from "../domain/shared/vec";
 import {
+  TEST_DECOR_EVENT as DECOR_EVENT,
   ENTITY_TYPE,
   TEST_INPUT_EVENT as INPUT_EVENT,
 } from "../infrastructure/vehicle/bedrock/identifiers";
@@ -46,6 +47,14 @@ export function drive(car: Entity, x: number, y: number, jump = false): void {
 
 export function clearInput(car: Entity): void {
   system.sendScriptEvent(INPUT_EVENT, `${car.id},clear`);
+}
+
+export function setDecor(
+  car: Entity,
+  slot: string,
+  item: string | undefined,
+): void {
+  system.sendScriptEvent(DECOR_EVENT, `${car.id},${slot},${item ?? "clear"}`);
 }
 
 export function spawnCar(
