@@ -97,15 +97,16 @@ export const CAMPER_FURNITURE: readonly Furniture[] = [
       { id: "shelf_high", cell: { x: -1, z: 1, layer: 2 }, height: 4 },
     ],
   },
+  // The sink is in front of the stove, as on the real range (ADR 0100).
   {
     kind: "stove",
-    cells: [{ x: -1, z: -1, layer: 1 }],
-    slots: [{ id: "stove", cell: { x: -1, z: -1, layer: 1 }, height: 14 }],
+    cells: [{ x: -1, z: -2, layer: 1 }],
+    slots: [{ id: "stove", cell: { x: -1, z: -2, layer: 1 }, height: 14 }],
   },
   {
     kind: "counter",
-    cells: [{ x: -1, z: -2, layer: 1 }],
-    slots: [{ id: "counter", cell: { x: -1, z: -2, layer: 1 }, height: 14 }],
+    cells: [{ x: -1, z: -1, layer: 1 }],
+    slots: [{ id: "counter", cell: { x: -1, z: -1, layer: 1 }, height: 14 }],
   },
   {
     kind: "wall_cabinet",
