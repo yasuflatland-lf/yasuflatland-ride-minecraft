@@ -17,6 +17,7 @@ import {
   PAIR_PAGE_SIZE,
   pairDecorBlockId,
   pairEndStates,
+  pairHeightStates,
 } from "../../src/infrastructure/vehicle/bedrock/identifiers";
 import { defined } from "../support/defined";
 
@@ -578,7 +579,7 @@ describe("camping gear blocks and items (ADR 0093)", () => {
     }
   });
 
-  it("defines a pair block for each two-item furniture: face, the heights of its slots, and each end's item as a page and an item state, all within 16 values (ADR 0108)", () => {
+  it("defines a pair block for each two-item furniture: face, the heights of its slots when there are two or more, and each end's item as a page and an item state, all within 2 to 16 values (ADR 0108)", () => {
     const standing = SPEC.filter((g) => !g.hanging);
     for (const kind of PAIR_KINDS) {
       const block = pairOf(kind)["minecraft:block"];
@@ -589,20 +590,30 @@ describe("camping gear blocks and items (ADR 0093)", () => {
       const pages = Math.ceil((standing.length + 1) / PAIR_PAGE_SIZE);
       const range = (n: number) => Array.from({ length: n }, (_, i) => i);
       const [end0, end1] = PAIR_END_STATES;
+      // BDS rejects an enum state with one value, so the table's one height is not a state.
+      const lifted = heights.length > 1;
+      expect(lifted).toBe(kind === "shelf");
       expect(block.description).toEqual({
         identifier: pairDecorBlockId(kind),
         menu_category: { category: "none" },
         states: {
           [DECOR_FACE_STATE]: [0, 1, 2, 3],
-          [DECOR_HEIGHT_STATE]: heights,
+          ...(lifted ? { [DECOR_HEIGHT_STATE]: heights } : {}),
           [end0.item]: range(PAIR_PAGE_SIZE),
           [end0.page]: range(pages),
           [end1.item]: range(PAIR_PAGE_SIZE),
           [end1.page]: range(pages),
         },
       });
-      for (const values of Object.values(block.description.states))
+      // The scripts set the height state exactly when the block defines it.
+      for (const height of heights)
+        expect(pairHeightStates(kind, height)).toEqual(
+          lifted ? { [DECOR_HEIGHT_STATE]: height } : {},
+        );
+      for (const values of Object.values(block.description.states)) {
+        expect(values.length).toBeGreaterThanOrEqual(2);
         expect(values.length).toBeLessThanOrEqual(16);
+      }
       const c = block.components;
       expect(c["minecraft:collision_box"]).toBe(false);
       expect(c["minecraft:custom_components"]).toEqual([
@@ -613,16 +624,18 @@ describe("camping gear blocks and items (ADR 0093)", () => {
         origin: [-8, 0, -8],
         size: [16, MAX_STANDING_HEIGHT, 16],
       });
+      // BDS rejects a block that mixes opaque and blending material instances.
       expect(c["minecraft:material_instances"]).toEqual({
         "*": { texture: ATLAS_KEY, render_method: "opaque" },
-        glass: { texture: ATLAS_KEY, render_method: "blend" },
       });
       expect(c).not.toHaveProperty(["minecraft:transformation"]);
       // Only turned by the face and lifted by the height: the items stay over the cell.
       expect(block.permutations).toEqual(
         [0, 1, 2, 3].flatMap((face) =>
           heights.map((height) => ({
-            condition: `q.block_state('yasu_ride:face') == ${face} && q.block_state('yasu_ride:height') == ${height}`,
+            condition: lifted
+              ? `q.block_state('yasu_ride:face') == ${face} && q.block_state('yasu_ride:height') == ${height}`
+              : `q.block_state('yasu_ride:face') == ${face}`,
             components: {
               "minecraft:transformation": {
                 rotation: [0, FACE_ROTATION[face], 0],
@@ -663,7 +676,7 @@ describe("camping gear blocks and items (ADR 0093)", () => {
     }
   });
 
-  it("draws each end's item at its slot's spot, so the block's turn puts it where the domain measures the slot, and keeps the glass item's faces on the blending material (ADR 0108)", () => {
+  it("draws each end's item at its slot's spot, so the block's turn puts it where the domain measures the slot, with every face on the block's one opaque material (ADR 0108)", () => {
     for (const slot of DECOR_SLOTS.filter((s) => s.pair)) {
       const pair = defined(slot.pair, "pair");
       const { left, forward: ahead } = defined(
@@ -686,14 +699,6 @@ describe("camping gear blocks and items (ADR 0093)", () => {
             origin: [c.origin[0] - left, c.origin[1], c.origin[2] - ahead].map(
               (v) => Math.round(v * 1000) / 1000 + 0,
             ),
-            uv: g.glass
-              ? Object.fromEntries(
-                  Object.entries(c.uv).map(([f, v]) => [
-                    f,
-                    { ...v, material_instance: "glass" },
-                  ]),
-                )
-              : c.uv,
           })),
         );
       }

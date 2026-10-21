@@ -69,7 +69,10 @@ PAIRS = {
 # pairEndStates in src/infrastructure/vehicle/bedrock/identifiers.ts.
 PAIR_PAGE_SIZE = 10
 MAX_STATE_VALUES = 16
-GLASS_INSTANCE = "glass"
+# BDS rejects a block whose enum state lists one value ("Block State enum array must have more
+# than 1 value"), so a pair whose ends share one height, the table, has no HEIGHT_STATE and its
+# permutations lift it by that height (ADR 0108).
+MIN_STATE_VALUES = 2
 GROUP = "yasu_ride:camping_gear"
 # The box a player gets with their first camper (ADR 0093): the group's icon and first item.
 BOX = "camping_gear_box"
@@ -263,18 +266,17 @@ def geometry(item_id, cubes):
 
 def pair_geometry(kind, spec):
     """One bone per standing item per end, its cubes moved to the end's spot in the gear model's
-    frame, where the camper's left is -x and its forward -z (FACE_ROTATION). A glass item's faces
-    use the glass material instance, so only they blend."""
+    frame, where the camper's left is -x and its forward -z (FACE_ROTATION). Every face is opaque,
+    the glass item's too: BDS rejects material instances that mix opaque and blending render
+    methods in one block ("MaterialInstances can't mix and match opaque and transparent
+    materials"), and blending every item would sort their faces wrongly (ADR 0108)."""
     bones = []
     for end, (left, ahead) in enumerate(PAIRS[kind]["ends"]):
         for item in standing(spec):
-            cubes = []
-            for c in SHAPES[item["id"]]:
-                x, y, z = c["origin"]
-                uv = c["uv"]
-                if item["glass"]:
-                    uv = {f: {**v, "material_instance": GLASS_INSTANCE} for f, v in uv.items()}
-                cubes.append({**c, "origin": [x - left, y, z - ahead], "uv": uv})
+            cubes = [
+                {**c, "origin": [c["origin"][0] - left, c["origin"][1], c["origin"][2] - ahead]}
+                for c in SHAPES[item["id"]]
+            ]
             bones.append({"name": pair_bone(end, item["id"]), "pivot": [0, 0, 0], "cubes": cubes})
     return rounded({
         "format_version": "1.12.0",
@@ -346,6 +348,8 @@ def validate(spec):
                     errors.append(f"{kind} end {end}: {item['id']} leaves the cell")
     if pair_pages(spec) > MAX_STATE_VALUES or PAIR_PAGE_SIZE > MAX_STATE_VALUES:
         errors.append("a pair block state holds more than 16 values")
+    if pair_pages(spec) < MIN_STATE_VALUES or PAIR_PAGE_SIZE < MIN_STATE_VALUES:
+        errors.append("a pair block state holds fewer than 2 values")
     if errors:
         sys.exit("\n".join(errors))
 
@@ -476,8 +480,9 @@ def decor_block(item):
 
 def pair_block(kind, spec):
     """Both items of a shelf board or the table in one block (PAIRS). Its permutations only turn
-    it by the face and lift it by the height, so the items stay over its own cell. The selection
-    box covers the whole cell up to the tallest standing item, over both items (ADR 0108)."""
+    it by the face and lift it by the height, so the items stay over its own cell. A pair with one
+    height has no height state (MIN_STATE_VALUES). The selection box covers the whole cell up to
+    the tallest standing item, over both items (ADR 0108)."""
     ids = [item["id"] for item in standing(spec)]
     visibility = {}
     for end in range(2):
@@ -490,6 +495,14 @@ def pair_block(kind, spec):
     top = max(item["height_px"] for item in standing(spec))
     half = CELL_PX // 2
     heights = PAIRS[kind]["heights"]
+    height_states = {HEIGHT_STATE: heights} if len(heights) >= MIN_STATE_VALUES else {}
+
+    def condition(face, height):
+        terms = [f"q.block_state('{FACE_STATE}') == {face}"]
+        if height_states:
+            terms.append(f"q.block_state('{HEIGHT_STATE}') == {height}")
+        return " && ".join(terms)
+
     return {
         "format_version": "1.21.80",
         "minecraft:block": {
@@ -498,7 +511,7 @@ def pair_block(kind, spec):
                 "menu_category": {"category": "none"},
                 "states": {
                     FACE_STATE: list(FACES),
-                    HEIGHT_STATE: heights,
+                    **height_states,
                     **{
                         f"yasu_ride:end{end}_{part}": list(range(size))
                         for end in range(2)
@@ -513,7 +526,6 @@ def pair_block(kind, spec):
                 },
                 "minecraft:material_instances": {
                     "*": {"texture": ATLAS_KEY, "render_method": "opaque"},
-                    GLASS_INSTANCE: {"texture": ATLAS_KEY, "render_method": "blend"},
                 },
                 "minecraft:light_dampening": 0,
                 "minecraft:destructible_by_mining": False,
@@ -524,7 +536,7 @@ def pair_block(kind, spec):
             },
             "permutations": [
                 {
-                    "condition": f"q.block_state('{FACE_STATE}') == {face} && q.block_state('{HEIGHT_STATE}') == {height}",
+                    "condition": condition(face, height),
                     "components": {
                         "minecraft:transformation": {
                             "rotation": [0, FACE_ROTATION[face], 0],

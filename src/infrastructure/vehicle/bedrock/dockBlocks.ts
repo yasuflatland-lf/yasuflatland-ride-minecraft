@@ -34,6 +34,7 @@ import {
   decorBlockId,
   pairDecorBlockId,
   pairEndStates,
+  pairHeightStates,
   ROOM_FACE_STATE,
   ROOM_OPEN_STATE,
 } from "./identifiers";
@@ -200,7 +201,7 @@ function permutationOf(block: DockBlock): BlockPermutation {
     case "decorPair":
       return BlockPermutation.resolve(pairDecorBlockId(block.pair), {
         [DECOR_FACE_STATE]: block.face,
-        [DECOR_HEIGHT_STATE]: block.height,
+        ...pairHeightStates(block.pair, block.height),
         ...pairEndStates(0, block.end0),
         ...pairEndStates(1, block.end1),
       });

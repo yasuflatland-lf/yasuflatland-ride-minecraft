@@ -335,3 +335,46 @@ describe("block bounds the client accepts (ADR 0108)", () => {
     ).toBeUndefined();
   });
 });
+
+// BDS refuses to load a block definition that breaks either rule below, and the block is then
+// missing from the world: the CI server logged both for PR #429's pair blocks (ADR 0108).
+describe("block definitions BDS loads (ADR 0108)", () => {
+  const definitions = jsonFileEntries(join(BP, "blocks")).map(
+    ({ path, json }) => ({
+      path: `blocks/${path}`,
+      block: json["minecraft:block"] as Json,
+    }),
+  );
+
+  it("lists at least two values in every enum state: 'Block State enum array must have more than 1 value'", () => {
+    for (const { path, block } of definitions) {
+      const description = block.description as {
+        states?: Record<string, unknown>;
+      };
+      for (const [state, values] of Object.entries(description.states ?? {}))
+        if (Array.isArray(values))
+          expect(values.length, `${path} ${state}`).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  it("keeps every material instance of a block opaque or every one not: 'MaterialInstances can't mix and match opaque and transparent materials'", () => {
+    for (const { path, block } of definitions) {
+      const permutations =
+        (block.permutations as { components?: Json }[] | undefined) ?? [];
+      for (const components of [
+        block.components as Json | undefined,
+        ...permutations.map((p) => p.components),
+      ]) {
+        const instances = components?.["minecraft:material_instances"] as
+          | Record<string, { render_method?: string }>
+          | undefined;
+        const opaque = new Set(
+          Object.values(instances ?? {}).map(
+            (i) => (i.render_method ?? "opaque") === "opaque",
+          ),
+        );
+        expect(opaque.size, path).toBeLessThanOrEqual(1);
+      }
+    }
+  });
+});

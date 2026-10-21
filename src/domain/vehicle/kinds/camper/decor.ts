@@ -10,6 +10,16 @@ export function decorSlot(id: string): DecorSlot | undefined {
   return DECOR_SLOTS.find((s) => s.id === id);
 }
 
+/** The slot heights of a two-item furniture's ends, lowest first: what its pair block is lifted by (ADR 0108). */
+export function pairHeights(
+  kind: NonNullable<DecorSlot["pair"]>["kind"],
+): number[] {
+  const heights = DECOR_SLOTS.filter((s) => s.pair?.kind === kind).map(
+    (s) => s.height,
+  );
+  return [...new Set(heights)].sort((a, b) => a - b);
+}
+
 function sameCell(a: LocalCell, b: LocalCell): boolean {
   return a.x === b.x && a.z === b.z && a.layer === b.layer;
 }

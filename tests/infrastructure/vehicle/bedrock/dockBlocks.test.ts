@@ -494,6 +494,34 @@ it("lays both items of a shelf board in one pair block, each end's code split in
   expect(f.at(position).typeId).toBe("minecraft:air");
 });
 
+it("lays the table's pair block without a height state, since its one height cannot be a state (ADR 0108)", () => {
+  const f = fixture();
+  const position = { x: 0, y: 64, z: 0 };
+  const [end0, end1] = PAIR_END_STATES;
+  new DockBlocks().lay(asVehicleId(f.car.id), f.car, [
+    {
+      ...position,
+      block: {
+        type: "decorPair",
+        pair: "table",
+        face: 1,
+        height: 12,
+        end0: "potted_plant",
+      },
+    },
+  ]);
+  expect(f.at(position)).toEqual({
+    typeId: pairDecorBlockId("table"),
+    states: {
+      [DECOR_FACE_STATE]: 1,
+      [end0.page]: 0,
+      [end0.item]: 1,
+      [end1.page]: 0,
+      [end1.item]: 0,
+    },
+  });
+});
+
 it("clears a decor block that an early ADR 0108 build laid at spot 6 (ADR 0108)", () => {
   const f = fixture();
   const position = { x: 0, y: 64, z: 0 };

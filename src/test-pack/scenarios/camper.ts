@@ -33,6 +33,7 @@ import {
   decorBlockId,
   pairDecorBlockId,
   pairEndStates,
+  pairHeightStates,
   ROOM_FACE_STATE,
 } from "../../infrastructure/vehicle/bedrock/identifiers";
 import {
@@ -318,13 +319,16 @@ function laidDecor(
     const states = block?.permutation.getAllStates();
     if (
       block?.typeId !== laidTypeOf(c.block) ||
-      states?.[DECOR_FACE_STATE] !== c.block.face ||
-      states?.[DECOR_HEIGHT_STATE] !== c.block.height
+      states?.[DECOR_FACE_STATE] !== c.block.face
     )
       return false;
     if (c.block.type === "decor")
-      return states[DECOR_SPOT_STATE] === c.block.spot;
+      return (
+        states[DECOR_HEIGHT_STATE] === c.block.height &&
+        states[DECOR_SPOT_STATE] === c.block.spot
+      );
     const ends = {
+      ...pairHeightStates(c.block.pair, c.block.height),
       ...pairEndStates(0, c.block.end0),
       ...pairEndStates(1, c.block.end1),
     };

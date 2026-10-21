@@ -7,6 +7,7 @@ import type { FleetEntry } from "../../../domain/vehicle/fleet/fleet";
 import { VEHICLE_KINDS, type VehicleKind } from "../../../domain/vehicle/kind";
 import {
   CAMPING_GEAR_IDS,
+  pairHeights,
   STANDING_GEAR_IDS,
 } from "../../../domain/vehicle/kinds/index";
 import { PAINTS, type Paint } from "../../../domain/vehicle/paint/paint";
@@ -240,6 +241,19 @@ export function pairEndStates(
     [states.page]: Math.floor(code / PAIR_PAGE_SIZE),
     [states.item]: code % PAIR_PAGE_SIZE,
   };
+}
+
+/**
+ * The pair block's height state for `height`. BDS rejects a block whose enum state lists one
+ * value ("Block State enum array must have more than 1 value"), so a pair block whose ends
+ * share one height, the table's, has no height state and its permutations lift it by that
+ * height; it gets no state here (ADR 0108).
+ */
+export function pairHeightStates(
+  kind: "shelf" | "table",
+  height: number,
+): Record<string, number> {
+  return pairHeights(kind).length > 1 ? { [DECOR_HEIGHT_STATE]: height } : {};
 }
 
 const PAIR_DECOR_BLOCKS: ReadonlySet<string> = new Set(
