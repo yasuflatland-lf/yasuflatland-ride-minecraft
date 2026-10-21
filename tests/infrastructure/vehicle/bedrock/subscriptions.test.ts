@@ -948,7 +948,11 @@ it("leaves other items, other blocks, and cells no camper laid alone", () => {
 });
 
 // The dinette seat stands on the floor layer at y 64; its slot cell is the one above.
-function seatFixture(slotBlock: string | null = CAMPER_FURNITURE_BLOCK) {
+// An unloaded chunk has no blocks, so getBlock returns undefined for every cell.
+function seatFixture(
+  slotBlock: string | null = CAMPER_FURNITURE_BLOCK,
+  loaded = true,
+) {
   const entitySubscribe = vi.mocked(
     world.beforeEvents.playerInteractWithEntity.subscribe,
   );
@@ -960,12 +964,16 @@ function seatFixture(slotBlock: string | null = CAMPER_FURNITURE_BLOCK) {
     "decor seat handler",
   )[0];
   const slot = { x: 1, y: 65, z: 2 };
-  const getBlock = vi.fn((at: At) => ({
-    typeId:
-      at.x === slot.x && at.y === slot.y && at.z === slot.z && slotBlock
-        ? slotBlock
-        : "minecraft:air",
-  }));
+  const getBlock = vi.fn((at: At) =>
+    loaded
+      ? {
+          typeId:
+            at.x === slot.x && at.y === slot.y && at.z === slot.z && slotBlock
+              ? slotBlock
+              : "minecraft:air",
+        }
+      : undefined,
+  );
   const seatEvent = (overrides: Record<string, unknown> = {}) => ({
     cancel: false,
     itemStack: { typeId: "yasu_ride:cushion" },
@@ -984,7 +992,7 @@ function seatFixture(slotBlock: string | null = CAMPER_FURNITURE_BLOCK) {
   return { ...f, slot, seatEvent, sendSeat };
 }
 
-it("places held camping gear on the dinette slot under a pressed deck seat instead of seating the player, once per tick (ADR 0097)", () => {
+it("places held camping gear on the dinette slot under a pressed deck seat instead of seating the player, once per long-press (ADR 0024, 0097)", () => {
   for (const slotBlock of [CAMPER_FURNITURE_BLOCK, decorBlockId("cushion")]) {
     const { placeDecor, owner, slot, seatEvent, sendSeat } =
       seatFixture(slotBlock);
@@ -1002,14 +1010,19 @@ it("places held camping gear on the dinette slot under a pressed deck seat inste
     });
     game.run.mockClear();
     expect(sendSeat(seatEvent()).cancel).toBe(true);
+    // A held touch repeats every 4 to 6 ticks; each repeat restarts the idle time.
+    for (const gap of [1, 5, 9]) {
+      game.currentTick += gap;
+      expect(sendSeat(seatEvent()).cancel).toBe(true);
+    }
     expect(game.run).not.toHaveBeenCalled();
-    game.currentTick++;
+    game.currentTick += 10;
     expect(sendSeat(seatEvent()).cancel).toBe(true);
     expect(game.run).toHaveBeenCalledOnce();
   }
 });
 
-it("lets a player sit on a deck seat with an empty hand, other items, no slot under it, or no camper (ADR 0097)", () => {
+it("lets a player sit on a deck seat with an empty hand, other items, no slot under it, an unloaded column, or no camper (ADR 0097)", () => {
   const cases: ((f: ReturnType<typeof seatFixture>) => { cancel: boolean })[] =
     [
       (f) => f.sendSeat(f.seatEvent({ itemStack: undefined })),
@@ -1034,8 +1047,11 @@ it("lets a player sit on a deck seat with an empty hand, other items, no slot un
     expect(run(f).cancel).toBe(false);
     expect(game.run).not.toHaveBeenCalled();
   }
-  for (const slotBlock of [null, CAMPER_FLOOR_BLOCK]) {
-    const f = seatFixture(slotBlock);
+  for (const f of [
+    seatFixture(null),
+    seatFixture(CAMPER_FLOOR_BLOCK),
+    seatFixture(CAMPER_FURNITURE_BLOCK, false),
+  ]) {
     expect(f.sendSeat(f.seatEvent()).cancel).toBe(false);
     expect(f.owner).not.toHaveBeenCalled();
     expect(game.run).not.toHaveBeenCalled();
