@@ -134,6 +134,14 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | C57 | Fill all four camper seats, sit a fifth player on the toilet, and drive off | The fifth player stands on the ground outside the door, facing away from the camper (ADR 0095) | | |
 | C58 | In Creative, park the camper, then try to break the floor, a wall, the door, the bed, the door step, and a placed camping gear item, by click on PC and by long-press and tap on a phone | Nothing breaks, and no hole or gap flickers into view; an empty-hand long-press on the camping gear still takes it back (ADR 0096) | | |
 | C59 | Park the camper and run `/fill` or `/setblock` to set one floor cell and one wall cell to air | Both come back within about a second; a block you place into such a gap first is kept and can be broken (ADR 0096) | | |
+| C60 | Park, sit in the driver's seat, hold a potted plant, and long-press the table top on a phone; repeat from a dinette seat and with right-click on PC | The plant stands on the table each time; nothing is placed outside the camper (ADR 0097) | | |
+| C61 | Standing in the aisle, hold a percolator and long-press the stove top, then a toaster on the counter, then a lava lamp on each half of the wall cabinet | Each item goes on the spot you pressed (ADR 0097) | | |
+| C62 | Hold a potted plant and long-press the high shelf while the low shelf is free | The plant goes on the high shelf (ADR 0097) | | |
+| C63 | Hold a cushion and long-press the stove top; then fill all 11 standing spots and try one more standing item | The cushion goes on the stove; with every standing spot taken you see "No free spot for this item" (ADR 0097) | | |
+| C64 | With an empty hand, long-press a dinette seat, then the table top under the ceiling hook from the aisle while holding a mug pair | You sit on the dinette seat; the mugs go on the table, not on the hook (ADR 0097) | | |
+| C65 | Hold a macrame planter and long-press the space under the ceiling hook above the table | The planter goes on the ceiling hook (ADR 0097) | | |
+| C66 | Hold a cushion and long-press each dinette seat on a phone, then right-click each on PC | The cushion goes on the seat you pressed and you do not sit; with an empty hand you sit as before (ADR 0097) | | |
+| C67 | Put a percolator on the stove, then hold a toaster and long-press the percolator | The toaster goes on the free spot nearest the point you pressed, and the percolator stays (ADR 0097) | | |
 
 ## Upgrading from MyCar 0.5.0 and earlier
 
