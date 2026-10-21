@@ -79,6 +79,7 @@ export function giftOfItem(
 ): PlacementGift | undefined {
   return PLACEMENT_GIFTS.find((gift) => GIFT_ITEM[gift] === typeId);
 }
+
 /** World dynamic property holding the fleet as JSON (ADR 0038). */
 export const FLEET_PROPERTY = id("fleet");
 /** Entity dynamic property on a vehicle placed from its item: the placing player's id (ADR 0066). */
