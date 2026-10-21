@@ -28,7 +28,29 @@ export interface DecorSlot {
   readonly height: number;
   /** Items hang from this slot instead of standing on it (ADR 0093, 0102). */
   readonly hanging?: true;
+  /** The index in DECOR_SPOTS of where on its cell the item stands; the cell middle when omitted (ADR 0105). */
+  readonly spot?: number;
 }
+
+/** A point on a cell's top in pixels from the cell middle: `left` and `forward` as in LocalCell. */
+export interface DecorSpot {
+  readonly left: number;
+  readonly forward: number;
+}
+
+// Index = a decor block's yasu_ride:spot state; tools/gen_camping_gear.py lists the same
+// offsets and tests/packs/campingGear.test.ts ties its translations to them. 0 is the cell
+// middle; 1 to 4 are the stove burners, whose centers in tools/gen_camper.py are 3.8 px
+// either side of the cell middle across the aisle and 5.4 px toward the sink or 5.35 px
+// toward the far flange. The wall-side spots sit 0.5 px in from their burner centers so the
+// widest item (7 px) clears the wall at 22.8 px; they stay on the 3.2 px grate (ADR 0105).
+export const DECOR_SPOTS: readonly DecorSpot[] = [
+  { left: 0, forward: 0 },
+  { left: 3.8, forward: 5.4 },
+  { left: 3.8, forward: -5.35 },
+  { left: -3.3, forward: 5.4 },
+  { left: -3.3, forward: -5.35 },
+];
 
 /** A room block a piece of furniture fills its cells with; roomCells turns a faced one toward the aisle (ADR 0092, 0098). */
 export type FurnitureBlock =
@@ -49,7 +71,9 @@ const SHOWER_TOILET_CELLS = [
   { x: -1, z: -3, layer: 2 },
 ] as const satisfies readonly LocalCell[];
 
-// Slot heights are the furniture's top at the middle of the cell in tools/gen_camper.py, or, for
+const STOVE_CELL = { x: -1, z: -2, layer: 1 } as const satisfies LocalCell;
+
+// Slot heights are the furniture's top at the slot's spot in tools/gen_camper.py, or, for
 // a hanging slot, 16 minus the hanging items' height; tests/packs/camper.test.ts checks them
 // against the generated model (ADR 0093, 0102).
 export const CAMPER_FURNITURE: readonly Furniture[] = [
@@ -102,11 +126,18 @@ export const CAMPER_FURNITURE: readonly Furniture[] = [
       { id: "shelf_high", cell: { x: -1, z: 1, layer: 2 }, height: 4 },
     ],
   },
-  // The sink is in front of the stove, as on the real range (ADR 0100).
+  // The sink is in front of the stove, as on the real range (ADR 0100). One slot per burner,
+  // all in one cell, so the stove holds one item; "stove" keeps its id for saved decor. Height
+  // 15 stands the item on the burner grate, whose prongs reach 14.95 px (ADR 0105).
   {
     kind: "stove",
-    cells: [{ x: -1, z: -2, layer: 1 }],
-    slots: [{ id: "stove", cell: { x: -1, z: -2, layer: 1 }, height: 14 }],
+    cells: [STOVE_CELL],
+    slots: [
+      { id: "stove", cell: STOVE_CELL, height: 15, spot: 1 },
+      { id: "stove_rear", cell: STOVE_CELL, height: 15, spot: 2 },
+      { id: "stove_wall", cell: STOVE_CELL, height: 15, spot: 3 },
+      { id: "stove_wall_rear", cell: STOVE_CELL, height: 15, spot: 4 },
+    ],
   },
   {
     kind: "counter",

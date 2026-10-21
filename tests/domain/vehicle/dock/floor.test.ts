@@ -14,6 +14,7 @@ const decorBlock = fc.record({
   item: fc.constantFrom("potted_plant", "percolator"),
   face: fc.constantFrom(0, 1, 2, 3),
   height: fc.integer({ min: 0, max: 15 }),
+  spot: fc.integer({ min: 0, max: 4 }),
 });
 const furnitureHeight = fc.integer({ min: 0, max: 15 });
 const showerToiletFace = fc.constantFrom(0, 1, 2, 3);
@@ -181,7 +182,7 @@ describe("sameBlock", () => {
     );
   });
 
-  it("tells decor apart by item, face, and height", () => {
+  it("tells decor apart by item, face, height, and spot (ADR 0105)", () => {
     fc.assert(
       fc.property(
         fc.oneof(
@@ -190,7 +191,10 @@ describe("sameBlock", () => {
         ),
         ([a, b]) => {
           expect(sameBlock(a, b)).toBe(
-            a.item === b.item && a.face === b.face && a.height === b.height,
+            a.item === b.item &&
+              a.face === b.face &&
+              a.height === b.height &&
+              a.spot === b.spot,
           );
         },
       ),

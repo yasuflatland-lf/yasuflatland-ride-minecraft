@@ -4,7 +4,11 @@ import { describe, expect, it } from "vitest";
 import { DECOR_MESSAGES } from "../../src/domain/vehicle/dock/decorMessages";
 import { SLEEP_MESSAGES } from "../../src/domain/vehicle/dock/sleep";
 import { HINTS } from "../../src/domain/vehicle/hints";
-import { CAMPER_FURNITURE } from "../../src/domain/vehicle/kinds/camper/furniture";
+import {
+  CAMPER_FURNITURE,
+  DECOR_SPOTS,
+  type DecorSlot,
+} from "../../src/domain/vehicle/kinds/camper/furniture";
 import { CAMPER_PROFILE } from "../../src/domain/vehicle/kinds/camper/profile";
 import { PAINTS } from "../../src/domain/vehicle/paint/paint";
 import { CAMPER_DOOR_COMPONENT } from "../../src/infrastructure/vehicle/bedrock/identifiers";
@@ -905,17 +909,65 @@ describe("camper furniture model (ADR 0093)", () => {
   const PLATE_UNDERSIDE = 29;
   // A hanging decor item's top: the top of its cell, where the hook ends (ADR 0099).
   const HANG_TOP = 16;
+  const STEPS = 4;
+
+  // A slot's spot in model pixels: x = 16 * left, z = -16 * forward (the front is -z, ADR 0009).
+  const slotXZ = (slot: DecorSlot) => {
+    const spot = DECOR_SPOTS[slot.spot ?? 0] ?? { left: 0, forward: 0 };
+    return {
+      x: 16 * slot.cell.x + spot.left,
+      z: -16 * slot.cell.z - spot.forward,
+    };
+  };
+
+  const turn = (point: number[], pivot: number[], rotation: number[]) => {
+    let [x = 0, y = 0, z = 0] = point.map((v, i) => v - (pivot[i] ?? 0));
+    // The game turns z the other way from right-handed math (mirror_x in tools/gen_camper.py).
+    const [rx = 0, ry = 0, rz = 0] = rotation;
+    for (const [axis, degrees] of [
+      ["x", rx],
+      ["y", ry],
+      ["z", -rz],
+    ] as const) {
+      const s = Math.sin((degrees * Math.PI) / 180);
+      const c = Math.cos((degrees * Math.PI) / 180);
+      if (axis === "x") [y, z] = [y * c - z * s, y * s + z * c];
+      else if (axis === "y") [x, z] = [x * c + z * s, -x * s + z * c];
+      else [x, y] = [x * c - y * s, x * s + y * c];
+    }
+    return [x, y, z].map((v, i) => v + (pivot[i] ?? 0));
+  };
+  // Points on every body cube, rotated ones included, STEPS + 1 per edge.
+  const bodyPoints = () =>
+    (bone("body").cubes ?? []).flatMap((cube) => {
+      const out: number[][] = [];
+      for (let i = 0; i <= STEPS; i++)
+        for (let j = 0; j <= STEPS; j++)
+          for (let k = 0; k <= STEPS; k++) {
+            const p = [i, j, k].map(
+              (n, axis) =>
+                (cube.origin[axis] ?? 0) + ((cube.size[axis] ?? 0) * n) / STEPS,
+            );
+            out.push(
+              cube.rotation && cube.pivot
+                ? turn(p, cube.pivot, cube.rotation)
+                : p,
+            );
+          }
+      return out;
+    });
 
   it("puts every standing decor slot on the model's top surface and runs the ceiling hook from the ceiling plate to the top of its cell (ADR 0093, 0099, 0102)", () => {
-    const slots = CAMPER_FURNITURE.flatMap((f) => f.slots);
-    expect(slots).toHaveLength(10);
+    const slots = CAMPER_FURNITURE.flatMap((f) => f.slots).filter(
+      (slot) => (slot.spot ?? 0) === 0,
+    );
+    expect(slots).toHaveLength(9);
     const unrotatedCubes = bones
       .filter((b) => b.rotation === undefined)
       .flatMap((b) => b.cubes ?? [])
       .filter((cube) => cube.rotation === undefined);
     for (const slot of slots) {
-      const x = 16 * slot.cell.x;
-      const z = -16 * slot.cell.z;
+      const { x, z } = slotXZ(slot);
       const bottom = 16 * slot.cell.layer;
       const covering = unrotatedCubes.filter((cube) => {
         const [ox = 0, , oz = 0] = cube.origin;
@@ -1004,64 +1056,84 @@ describe("camper furniture model (ADR 0093)", () => {
     expect(covering.some(([lo, hi]) => lo < 54 && hi > 32)).toBe(false);
   });
 
-  it("keeps every body cube, rotated ones included, below the stove slot's top under the widest item's footprint (ADR 0100)", () => {
-    // The widest decor item is 7 px across (the cushion) and the tallest 7 px high.
-    const HALF_WIDTH = 3.5;
-    const ITEM_HEIGHT = 7;
-    const STEPS = 4;
-    const turn = (point: number[], pivot: number[], rotation: number[]) => {
-      let [x = 0, y = 0, z = 0] = point.map((v, i) => v - (pivot[i] ?? 0));
-      // The game turns z the other way from right-handed math (mirror_x in tools/gen_camper.py).
-      const [rx = 0, ry = 0, rz = 0] = rotation;
-      for (const [axis, degrees] of [
-        ["x", rx],
-        ["y", ry],
-        ["z", -rz],
-      ] as const) {
-        const s = Math.sin((degrees * Math.PI) / 180);
-        const c = Math.cos((degrees * Math.PI) / 180);
-        if (axis === "x") [y, z] = [y * c - z * s, y * s + z * c];
-        else if (axis === "y") [x, z] = [x * c + z * s, -x * s + z * c];
-        else [x, y] = [x * c - y * s, x * s + y * c];
-      }
-      return [x, y, z].map((v, i) => v + (pivot[i] ?? 0));
-    };
-    const points = (bone("body").cubes ?? []).flatMap((cube) => {
-      const out: number[][] = [];
-      for (let i = 0; i <= STEPS; i++)
-        for (let j = 0; j <= STEPS; j++)
-          for (let k = 0; k <= STEPS; k++) {
-            const p = [i, j, k].map(
-              (n, axis) =>
-                (cube.origin[axis] ?? 0) + ((cube.size[axis] ?? 0) * n) / STEPS,
-            );
-            out.push(
-              cube.rotation && cube.pivot
-                ? turn(p, cube.pivot, cube.rotation)
-                : p,
-            );
-          }
-      return out;
+  it("stands each stove burner slot on top of its burner's grate (ADR 0105)", () => {
+    const points = bodyPoints();
+    const burners = CAMPER_FURNITURE.flatMap((f) => f.slots).filter(
+      (slot) => (slot.spot ?? 0) !== 0,
+    );
+    expect(burners.map((s) => s.id)).toEqual([
+      "stove",
+      "stove_rear",
+      "stove_wall",
+      "stove_wall_rear",
+    ]);
+    for (const slot of burners) {
+      const { x, z } = slotXZ(slot);
+      const bottom = 16 * slot.cell.layer;
+      // The burner's grate and prongs, and nothing above the cell.
+      const tops = points
+        .filter(
+          ([px = 0, py = 0, pz = 0]) =>
+            Math.abs(px - x) < 2 &&
+            Math.abs(pz - z) < 2 &&
+            py > bottom &&
+            py < bottom + 16,
+        )
+        .map(([, py = 0]) => py);
+      expect(tops.length, slot.id).toBeGreaterThan(0);
+      // The burner rises above the bare plate at 14 px, so the item cannot stand on the plate.
+      expect(Math.max(...tops) - bottom, slot.id).toBeGreaterThan(14);
+      expect(Math.ceil(Math.max(...tops) - bottom - 1e-9), slot.id).toBe(
+        slot.height,
+      );
+    }
+  });
+
+  it("keeps every body cube, rotated ones included, out of every standing item on each stove slot (ADR 0100, 0105)", () => {
+    const points = bodyPoints();
+    // Each standing item's box from its block model: half its width along the camper's left
+    // (model x), half its depth forward (model z), and its height. The decor block turns the
+    // model with the camper, so these axes hold in every facing.
+    const gear = (
+      JSON.parse(readFileSync("tools/camping_gear.json", "utf8")) as {
+        id: string;
+        hanging: boolean;
+      }[]
+    ).filter((g) => !g.hanging);
+    const items = gear.map(({ id }) => {
+      const geo = JSON.parse(
+        readFileSync(`${RP}/models/blocks/yasu_ride/${id}.geo.json`, "utf8"),
+      ) as { "minecraft:geometry": { bones: { cubes: Cube[] }[] }[] };
+      const cubes = geo["minecraft:geometry"].flatMap((g) =>
+        g.bones.flatMap((b) => b.cubes),
+      );
+      const reach = (axis: number) =>
+        Math.max(
+          ...cubes.flatMap((c) => [
+            Math.abs(c.origin[axis] ?? 0),
+            Math.abs((c.origin[axis] ?? 0) + (c.size[axis] ?? 0)),
+          ]),
+        );
+      return { id, halfX: reach(0), halfZ: reach(2), height: reach(1) };
     });
+    expect(items.length).toBeGreaterThan(0);
     // Only the stove is held to this so far: the sink rim rises 0.15 px into the counter's
     // footprint and the dashboard's slanted cubes into the dashboard's.
-    const standing = CAMPER_FURNITURE.flatMap((f) => f.slots).filter(
-      (slot) => slot.id === "stove",
-    );
-    expect(standing).toHaveLength(1);
-    for (const slot of standing) {
-      const x = 16 * slot.cell.x;
-      const z = -16 * slot.cell.z;
-      const top = 16 * slot.cell.layer + slot.height;
-      const intruding = points.filter(
-        ([px = 0, py = 0, pz = 0]) =>
-          Math.abs(px - x) < HALF_WIDTH &&
-          Math.abs(pz - z) < HALF_WIDTH &&
-          py > top + 1e-6 &&
-          py < top + ITEM_HEIGHT,
-      );
-      expect(intruding, slot.id).toEqual([]);
-    }
+    const standing = CAMPER_FURNITURE.find((f) => f.kind === "stove")?.slots;
+    expect(standing).toHaveLength(4);
+    for (const slot of standing ?? [])
+      for (const item of items) {
+        const { x, z } = slotXZ(slot);
+        const top = 16 * slot.cell.layer + slot.height;
+        const intruding = points.filter(
+          ([px = 0, py = 0, pz = 0]) =>
+            Math.abs(px - x) < item.halfX &&
+            Math.abs(pz - z) < item.halfZ &&
+            py > top + 1e-6 &&
+            py < top + item.height,
+        );
+        expect(intruding, `${slot.id} ${item.id}`).toEqual([]);
+      }
   });
 
   it("keeps the aisle and the cell inside the entry door clear of the body's furniture", () => {

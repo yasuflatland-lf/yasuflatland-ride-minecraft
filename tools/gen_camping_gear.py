@@ -10,7 +10,8 @@ stands on y 0; a hanging item also starts on y 0, and its slot's height lifts it
 not bleed a neighbor's color into a face. --check compares parsed JSON and decoded pixels, because
 Biome reformats the geometry and zlib builds do not all compress identically. It also writes the
 Behavior Pack decor blocks, the items, the creative catalog, and the gear part of
-item_texture.json; the decor block's face and height states are described next to FACE_ROTATION.
+item_texture.json; the decor block's face, height, and spot states are described next to
+FACE_ROTATION.
 The camping gear box (BOX) is the creative group's icon and first item, and its icon entry comes
 first in the generated part of item_texture.json; its item JSON and icon are written elsewhere (ADR
 0093).
@@ -18,6 +19,7 @@ first in the generated part of item_texture.json; its item JSON and icon are wri
 
 import argparse
 import json
+import math
 import struct
 import sys
 import zlib
@@ -40,6 +42,14 @@ HEIGHT_STATE = "yasu_ride:height"
 FACE_ROTATION = [180, 90, 0, -90]  # index = FACE_STATE = the camper's yaw quarter
 FACES = range(len(FACE_ROTATION))
 HEIGHTS = range(16)  # HEIGHT_STATE, px above the cell bottom
+# SPOT_STATE says where on its cell the item stands (ADR 0105): index = DECOR_SPOTS in
+# src/domain/vehicle/kinds/camper/furniture.ts, as (left, forward) px from the cell middle in the
+# camper's room frame. Spot 0 is the middle; 1 to 4 are the stove burners, which are 15 px high
+# (SPOT_HEIGHTS), so only those permutations are written. tests/packs/campingGear.test.ts ties
+# both to the domain slots.
+SPOT_STATE = "yasu_ride:spot"
+SPOTS = [(0, 0), (3.8, 5.4), (3.8, -5.35), (-3.3, 5.4), (-3.3, -5.35)]
+SPOT_HEIGHTS = [list(HEIGHTS)] + [[15]] * (len(SPOTS) - 1)
 GROUP = "yasu_ride:camping_gear"
 # The box a player gets with their first camper (ADR 0093): the group's icon and first item.
 BOX = "camping_gear_box"
@@ -324,18 +334,43 @@ def num(v):
     return int(v) if float(v).is_integer() else v
 
 
+def spot_translation(face, spot):
+    """The world offset in blocks of `spot` when the camper's yaw is face * 90 degrees: the
+    camper's forward is (-sin yaw, cos yaw) and its left (forward z, -forward x), as in room.ts.
+    The translation applies after the rotation, in world axes."""
+    left, ahead = SPOTS[spot]
+    yaw = math.radians(90 * face)
+    fx, fz = round(-math.sin(yaw)), round(math.cos(yaw))
+    lx, lz = fz, -fx
+    return ((left * lx + ahead * fx) / 16, (left * lz + ahead * fz) / 16)
+
+
+def selection_box(item):
+    """A hanging item keeps its footprint, so the box under the hook does not catch presses
+    aimed at the table below (ADR 0097). A standing item's box spans the whole cell from the
+    item's base to its top, at least 1 px, so a press anywhere on the furniture top under it
+    reaches the decor block (ADR 0105)."""
+    y0, y1 = y_span(item)
+    if item["hanging"]:
+        w = item["width_px"]
+        return {"origin": [num(-w / 2), num(y0), num(-w / 2)], "size": [w, num(y1 - y0), w]}
+    half = CELL_PX // 2
+    return {"origin": [-half, num(y0), -half], "size": [CELL_PX, num(max(1, y1 - y0)), CELL_PX]}
+
+
 def decor_block(item):
     gid = item["id"]
-    w = item["width_px"]
-    # validate() keeps the model inside its cell, so the outline can follow it (ADR 0099).
-    y0, y1 = y_span(item)
     return {
         "format_version": "1.21.80",
         "minecraft:block": {
             "description": {
                 "identifier": f"yasu_ride:{gid}_decor",
                 "menu_category": {"category": "none"},
-                "states": {FACE_STATE: list(FACES), HEIGHT_STATE: list(HEIGHTS)},
+                "states": {
+                    FACE_STATE: list(FACES),
+                    HEIGHT_STATE: list(HEIGHTS),
+                    SPOT_STATE: list(range(len(SPOTS))),
+                },
             },
             "components": {
                 "minecraft:geometry": f"geometry.yasu_ride.{gid}",
@@ -347,20 +382,25 @@ def decor_block(item):
                 "minecraft:destructible_by_explosion": False,
                 "minecraft:custom_components": ["yasu_ride:camper_decor"],
                 "minecraft:collision_box": False,
-                "minecraft:selection_box": {"origin": [num(-w / 2), num(y0), num(-w / 2)], "size": [w, num(y1 - y0), w]},
+                "minecraft:selection_box": selection_box(item),
             },
             "permutations": [
                 {
-                    "condition": f"q.block_state('{FACE_STATE}') == {face} && q.block_state('{HEIGHT_STATE}') == {height}",
+                    "condition": (
+                        f"q.block_state('{FACE_STATE}') == {face} && q.block_state('{SPOT_STATE}') == {spot}"
+                        f" && q.block_state('{HEIGHT_STATE}') == {height}"
+                    ),
                     "components": {
                         "minecraft:transformation": {
                             "rotation": [0, FACE_ROTATION[face], 0],
-                            "translation": [0, num(height / 16), 0],
+                            "translation": [num(dx), num(height / 16), num(dz)],
                         }
                     },
                 }
                 for face in FACES
-                for height in HEIGHTS
+                for spot in range(len(SPOTS))
+                for dx, dz in [spot_translation(face, spot)]
+                for height in SPOT_HEIGHTS[spot]
             ],
         },
     }

@@ -2,7 +2,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { HitVehicle } from "../../../src/application/vehicle/hitVehicle";
 import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
-import { DECOR_SLOTS } from "../../../src/domain/vehicle/kinds/camper/decor";
+import { DECOR_CELLS } from "../../../src/domain/vehicle/kinds/camper/decor";
 import {
   createVehicle,
   fleetLimitOf,
@@ -134,10 +134,10 @@ describe("HitVehicle (ADR 0008)", () => {
   });
 
   it("gives back stowed decor when the camper breaks (ADR 0103)", () => {
-    const standing = DECOR_SLOTS.filter((s) => !s.hanging).map(({ id }) => ({
-      slot: id,
-      item: "potted_plant",
-    }));
+    // One item per standing cell: a cell holds one item (ADR 0105).
+    const standing = DECOR_CELLS.flatMap(({ slots: [first] }) =>
+      first && !first.hanging ? [{ slot: first.id, item: "potted_plant" }] : [],
+    );
     const saved = [
       ...standing,
       { slot: "wall_cabinet_front", item: "lava_lamp" },

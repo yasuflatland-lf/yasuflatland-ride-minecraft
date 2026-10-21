@@ -29,6 +29,7 @@ import {
   DECK_FLOOR_HEIGHT_STATE,
   DECOR_FACE_STATE,
   DECOR_HEIGHT_STATE,
+  DECOR_SPOT_STATE,
   decorBlockId,
   ROOM_FACE_STATE,
   ROOM_OPEN_STATE,
@@ -40,6 +41,8 @@ const MAX_HEIGHT = 16;
 // The decor and furniture blocks define one yasu_ride:height state per pixel (ADR 0093, 0097).
 const MIN_DECOR_HEIGHT = 0;
 const MAX_DECOR_HEIGHT = 15;
+// The decor blocks define yasu_ride:spot 0 to 4, one per DECOR_SPOTS entry (ADR 0105).
+const MAX_DECOR_SPOT = 4;
 // Reading a laid cell costs one getBlock call, and a parked camper lays about 107
 // to 119 cells, so the cells are read once a second per vehicle, not every tick (ADR 0096).
 export const DOCK_RECHECK_TICKS = 20;
@@ -67,6 +70,15 @@ function isDecorHeight(v: unknown): v is number {
     Number.isInteger(v) &&
     v >= MIN_DECOR_HEIGHT &&
     v <= MAX_DECOR_HEIGHT
+  );
+}
+
+function isDecorSpot(v: unknown): v is number {
+  return (
+    typeof v === "number" &&
+    Number.isInteger(v) &&
+    v >= 0 &&
+    v <= MAX_DECOR_SPOT
   );
 }
 
@@ -104,7 +116,8 @@ function isDockCell(v: unknown): v is DockCell {
         typeof b.item === "string" &&
         isDecorItem(b.item) &&
         isFace(b.face) &&
-        isDecorHeight(b.height)
+        isDecorHeight(b.height) &&
+        isDecorSpot(b.spot)
       );
     default:
       return false;
@@ -161,6 +174,7 @@ function permutationOf(block: DockBlock): BlockPermutation {
       return BlockPermutation.resolve(decorBlockId(block.item), {
         [DECOR_FACE_STATE]: block.face,
         [DECOR_HEIGHT_STATE]: block.height,
+        [DECOR_SPOT_STATE]: block.spot,
       });
     default:
       return BlockPermutation.resolve(blockIdOf(block));
@@ -183,6 +197,22 @@ function upgradeHeightOnlyCell(value: unknown): unknown {
   return value;
 }
 
+// Decor cells saved before the spot state stood in the cell middle, spot 0 (ADR 0105).
+function upgradeSpotlessDecor(value: unknown): unknown {
+  if (typeof value !== "object" || value === null || !("block" in value))
+    return value;
+  const { block } = value;
+  if (
+    typeof block !== "object" ||
+    block === null ||
+    !("type" in block) ||
+    block.type !== "decor" ||
+    "spot" in block
+  )
+    return value;
+  return { ...value, block: { ...block, spot: 0 } };
+}
+
 // The cells a vehicle laid are saved on the entity, so a /reload or a restart
 // can still clear them.
 function savedCells(vehicle: Entity): DockCell[] {
@@ -191,7 +221,10 @@ function savedCells(vehicle: Entity): DockCell[] {
   try {
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.map(upgradeHeightOnlyCell).filter(isDockCell);
+    return parsed
+      .map(upgradeHeightOnlyCell)
+      .map(upgradeSpotlessDecor)
+      .filter(isDockCell);
   } catch {
     return [];
   }

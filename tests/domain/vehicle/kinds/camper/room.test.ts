@@ -9,7 +9,10 @@ import {
 } from "../../../../../src/domain/shared/vec";
 import { decorFace } from "../../../../../src/domain/vehicle/dock/decor";
 import { inBox } from "../../../../../src/domain/vehicle/dock/dock";
-import { DECOR_SLOTS } from "../../../../../src/domain/vehicle/kinds/camper/decor";
+import {
+  DECOR_CELLS,
+  DECOR_SLOTS,
+} from "../../../../../src/domain/vehicle/kinds/camper/decor";
 import { CAMPER_PROFILE } from "../../../../../src/domain/vehicle/kinds/camper/profile";
 import {
   AIR,
@@ -49,14 +52,18 @@ const location = fc.record({
 });
 const yaw = fc.double({ min: -720, max: 720, noNaN: true });
 const pose = fc.tuple(location, yaw).map(([at, angle]) => parkPose(at, angle));
+// At most one placement per slot cell, as the drive keeps it (ADR 0105).
 const decor = fc
-  .subarray([...DECOR_SLOTS])
-  .chain((slots) =>
+  .subarray([...DECOR_CELLS])
+  .chain((cells) =>
     fc.tuple(
-      ...slots.map((s) =>
+      ...cells.map(({ slots }) =>
         fc
-          .constantFrom("potted_plant", "percolator", "cushion")
-          .map((item) => ({ slot: s.id, item })),
+          .tuple(
+            fc.constantFrom(...slots),
+            fc.constantFrom("potted_plant", "percolator", "cushion"),
+          )
+          .map(([s, item]) => ({ slot: s.id, item })),
       ),
     ),
   );
@@ -507,8 +514,8 @@ it("clears wall-foot decorations only below a cleared matching upper half, upper
   );
 });
 
-it("lists the ten decor slots with distinct ids (ADR 0093, 0103)", () => {
-  expect(DECOR_SLOTS).toHaveLength(10);
+it("lists the thirteen decor slots with distinct ids (ADR 0093, 0103, 0105)", () => {
+  expect(DECOR_SLOTS).toHaveLength(13);
   expect(new Set(DECOR_SLOTS.map((s) => s.id))).toEqual(
     new Set([
       "dashboard_center",
@@ -519,13 +526,16 @@ it("lists the ten decor slots with distinct ids (ADR 0093, 0103)", () => {
       "shelf_low",
       "shelf_high",
       "stove",
+      "stove_rear",
+      "stove_wall",
+      "stove_wall_rear",
       "counter",
       "ceiling_hook",
     ]),
   );
 });
 
-it("lays each decor at its slot's cell, the yaw quarter, and the slot height (ADR 0093)", () => {
+it("lays each decor at its slot's cell, the yaw quarter, the slot height, and the slot's spot (ADR 0093, 0105)", () => {
   fc.assert(
     fc.property(pose, decor, (p, d) => {
       const cells = decorCells(p, d);
@@ -550,6 +560,7 @@ it("lays each decor at its slot's cell, the yaw quarter, and the slot height (AD
           item,
           face: decorFace(p.yaw),
           height: slot.height,
+          spot: slot.spot ?? 0,
         });
       }
       expect(decorCells(p, [{ slot: "nowhere", item: "mug_pair" }])).toEqual(
@@ -570,11 +581,11 @@ it("puts no decor cell on a room cell (ADR 0093)", () => {
   );
 });
 
-it("lays a furniture block in every slot without decor and none in a cargo, room, or shower-toilet cell (ADR 0097)", () => {
+it("lays a furniture block in every slot cell without decor and none in a cargo, room, or shower-toilet cell (ADR 0097, 0105)", () => {
   fc.assert(
     fc.property(pose, decor, (p, d) => {
       const furniture = furnitureCells(p, d);
-      expect(furniture).toHaveLength(DECOR_SLOTS.length - d.length);
+      expect(furniture).toHaveLength(DECOR_CELLS.length - d.length);
       const laid = [...decorCells(p, d), ...furniture].map(cellKey);
       expect(new Set(laid).size).toBe(laid.length);
       expect(new Set(laid)).toEqual(new Set(slotCells(p).map(cellKey)));
@@ -602,11 +613,40 @@ it("lays a furniture block in every slot without decor and none in a cargo, room
   );
 });
 
-it("lists the slot cells in DECOR_SLOTS order (ADR 0097)", () => {
+it("lists each slot cell once, in the order of its first slot (ADR 0097, 0105)", () => {
   fc.assert(
     fc.property(pose, (p) => {
-      expect(slotCells(p)).toEqual(DECOR_SLOTS.map((s) => decorSlotCell(p, s)));
+      const cells = DECOR_SLOTS.map((s) => decorSlotCell(p, s));
+      expect(slotCells(p)).toEqual(
+        cells.filter(
+          (c, i) => cells.findIndex((o) => cellKey(o) === cellKey(c)) === i,
+        ),
+      );
     }),
+  );
+});
+
+it("lays the stove's furniture block once, at its burners' height, while no burner holds decor (ADR 0105)", () => {
+  fc.assert(
+    fc.property(
+      pose,
+      fc.constantFrom("stove", "stove_rear", "stove_wall", "stove_wall_rear"),
+      (p, burner) => {
+        const stove = defined(
+          DECOR_SLOTS.find((s) => s.id === "stove"),
+          "stove",
+        );
+        const at = cellKey(decorSlotCell(p, stove));
+        const empty = furnitureCells(p, []).filter((c) => cellKey(c) === at);
+        expect(empty.map((c) => c.block)).toEqual([
+          { type: "furniture", height: 15 },
+        ]);
+        const held = [{ slot: burner, item: "saucepan" }];
+        expect(furnitureCells(p, held).some((c) => cellKey(c) === at)).toBe(
+          false,
+        );
+      },
+    ),
   );
 });
 

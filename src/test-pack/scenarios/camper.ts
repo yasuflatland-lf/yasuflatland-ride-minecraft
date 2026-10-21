@@ -29,6 +29,7 @@ import {
   DECK_SEAT_TYPE,
   DECOR_FACE_STATE,
   DECOR_HEIGHT_STATE,
+  DECOR_SPOT_STATE,
   decorBlockId,
   ROOM_FACE_STATE,
 } from "../../infrastructure/vehicle/bedrock/identifiers";
@@ -295,12 +296,15 @@ export function camperShowerToiletBlock(a: Arena): Promise<Outcome> {
   });
 }
 
+// The table comes first: camperDecor empties it with DECOR.slice(0, 1). The far wall-side
+// burner shares the stove cell with the three other burner slots (ADR 0105).
 const DECOR: readonly DecorPlacement[] = [
   { slot: "table", item: "potted_plant" },
   { slot: "dashboard_center", item: "transistor_radio" },
+  { slot: "stove_wall_rear", item: "saucepan" },
 ];
 
-// A decor block counts only with its item's block, the yaw quarter, and the slot height.
+// A decor block counts only with its item's block, the yaw quarter, the slot height, and the spot.
 function laidDecor(
   a: Arena,
   pose: HoldPose,
@@ -312,7 +316,8 @@ function laidDecor(
     return (
       block?.typeId === decorBlockId(c.block.item) &&
       states?.[DECOR_FACE_STATE] === c.block.face &&
-      states?.[DECOR_HEIGHT_STATE] === c.block.height
+      states?.[DECOR_HEIGHT_STATE] === c.block.height &&
+      states?.[DECOR_SPOT_STATE] === c.block.spot
     );
   }).length;
 }
@@ -355,9 +360,9 @@ export function camperDecor(a: Arena): Promise<Outcome> {
     const moved = movedFrom(car, pose);
     return {
       pass:
-        laid === 2 &&
-        furniture === 8 &&
-        kept === 1 &&
+        laid === 3 &&
+        furniture === 7 &&
+        kept === 2 &&
         emptied === CAMPER_FURNITURE_BLOCK &&
         remaining === 0 &&
         furnitureLeft === 0 &&
