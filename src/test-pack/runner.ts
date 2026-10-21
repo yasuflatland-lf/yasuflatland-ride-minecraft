@@ -12,6 +12,7 @@ import {
 } from "./protocol";
 import {
   camperAccel,
+  camperDecor,
   camperDepart,
   camperDepartCargo,
   camperDive,
@@ -85,6 +86,7 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
     ["camper_park_path", 60, () => camperParkPath(a)],
     ["camper_depart", 80, () => camperDepart(a)],
     ["camper_depart_cargo", 80, () => camperDepartCargo(a)],
+    ["camper_decor", 80, () => camperDecor(a)],
     ["accel_and_step1", 85, () => accelAndStep1(a)],
     ["passable_no_hop", 65, () => passableNoHop(a)],
     ["turn_and_handbrake", 130, () => turnAndHandbrake(a)],
