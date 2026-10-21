@@ -30,13 +30,14 @@ export function registerDecor(
   ) => VehicleId | undefined,
   floor: TapDockFloor,
 ): void {
-  // Placing listens to the before event because most room blocks have no custom
-  // component. Every repeat of a long-press is cancelled too, so a held gear item
-  // never opens the door or sleeps in the bed (ADR 0093).
+  // Placing gear and empty-hand floor taps (ADR 0094) listen to the before event because
+  // most room blocks have no custom component. A gear tap on a laid cell cancels every
+  // repeat of the long-press, so held gear never opens the door or sleeps in the bed
+  // (ADR 0093). A floor tap is never cancelled.
   world.beforeEvents.playerInteractWithBlock.subscribe((ev) => {
     const item = campingGearOfItem(ev.itemStack?.typeId);
-    if (item === undefined) tapFloor(ev, floor);
-    else placeGear(ev, item, place, dockCellOwner);
+    if (item !== undefined) placeGear(ev, item, place, dockCellOwner);
+    else if (!ev.itemStack) tapFloor(ev, floor);
   });
   // Removing goes through the decor block's custom component, like the room door (ADR 0068, 0093).
   system.beforeEvents.startup.subscribe(({ blockComponentRegistry }) => {
@@ -109,8 +110,7 @@ function tapFloor(
   floor: TapDockFloor,
 ): void {
   const { block } = ev;
-  if (!ev.isFirstEvent || ev.itemStack || block.typeId !== CAMPER_FLOOR_BLOCK)
-    return;
+  if (!ev.isFirstEvent || block.typeId !== CAMPER_FLOOR_BLOCK) return;
   const tap = {
     dimensionId: asDimensionId(block.dimension.id),
     cell: block.location,
