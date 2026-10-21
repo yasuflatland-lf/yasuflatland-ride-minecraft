@@ -1187,19 +1187,34 @@ describe("camper furniture model (ADR 0093)", () => {
       expect(16 * one.cell.layer + one.height).toBe(
         16 * two.cell.layer + two.height,
       );
-      for (const i of items)
-        for (const j of items)
-          expect(
-            Math.abs(p.x - q.x) >= i.halfX + j.halfX - 1e-9 ||
-              Math.abs(p.z - q.z) >= i.halfZ + j.halfZ - 1e-9,
-            `${a} ${i.id} and ${b} ${j.id}`,
-          ).toBe(true);
+      const touching = items.flatMap((i) =>
+        items
+          .filter(
+            (j) =>
+              Math.abs(p.x - q.x) < i.halfX + j.halfX - 1e-9 &&
+              Math.abs(p.z - q.z) < i.halfZ + j.halfZ - 1e-9,
+          )
+          .map((j) => `${a} ${i.id} and ${b} ${j.id}`),
+      );
+      expect(touching).toEqual([]);
     }
-    for (const slot of standing)
+    const halfX = Math.max(...items.map((i) => i.halfX));
+    const halfZ = Math.max(...items.map((i) => i.halfZ));
+    const height = Math.max(...items.map((i) => i.height));
+    for (const slot of standing) {
+      const { x, z } = slotXZ(slot);
+      const top = 16 * slot.cell.layer + slot.height;
+      // Narrowing to the points near the slot once keeps the per-item scans short; the run
+      // with coverage in CI exceeded the 5 s test timeout scanning every point per item.
+      const near = points.filter(
+        ([px = 0, py = 0, pz = 0]) =>
+          Math.abs(px - x) < halfX &&
+          Math.abs(pz - z) < halfZ &&
+          py > top + 1e-6 &&
+          py < top + height,
+      );
       for (const item of items) {
-        const { x, z } = slotXZ(slot);
-        const top = 16 * slot.cell.layer + slot.height;
-        const intruding = points.filter(
+        const intruding = near.filter(
           ([px = 0, py = 0, pz = 0]) =>
             Math.abs(px - x) < item.halfX &&
             Math.abs(pz - z) < item.halfZ &&
@@ -1208,6 +1223,7 @@ describe("camper furniture model (ADR 0093)", () => {
         );
         expect(intruding, `${slot.id} ${item.id}`).toEqual([]);
       }
+    }
   });
 
   it("keeps the aisle and the cell inside the entry door clear of the body's furniture", () => {
