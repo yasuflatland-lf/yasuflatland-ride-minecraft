@@ -31,6 +31,7 @@ import {
   snapYaw,
   wallFootCells,
 } from "../../../../../src/domain/vehicle/kinds/camper/room";
+import { seatSlotCell } from "../../../../../src/domain/vehicle/kinds/camper/seatPress";
 import { cellKey } from "../../../../../src/domain/vehicle/lighting/headlights";
 import { seatWorldPositions } from "../../../../../src/domain/vehicle/seats";
 import { defined } from "../../../../support/defined";
@@ -632,19 +633,9 @@ it("puts each dinette deck seat under its dinette slot, the first slot cell from
       const slots = new Map(
         DECOR_SLOTS.map((s) => [cellKey(decorSlotCell(p, s)), s.id]),
       );
-      // The deck seat handler searches the seat's cell and the two above it.
       const firstSlotAbove = (seat: { x: number; y: number; z: number }) => {
-        for (let dy = 0; dy < 3; dy++) {
-          const id = slots.get(
-            cellKey({
-              x: Math.floor(seat.x),
-              y: Math.floor(seat.y) + dy,
-              z: Math.floor(seat.z),
-            }),
-          );
-          if (id !== undefined) return id;
-        }
-        return undefined;
+        const cell = seatSlotCell(seat, (c) => slots.has(cellKey(c)));
+        return cell === undefined ? undefined : slots.get(cellKey(cell));
       };
       expect(deckSeats(p).map(firstSlotAbove)).toEqual([
         undefined,

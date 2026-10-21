@@ -32,7 +32,7 @@ The play test also showed two more problems:
 ### Pressing a dinette deck seat
 
 - `world.beforeEvents.playerInteractWithEntity` also places decor. When the held item is camping gear and the target is a `yasu_ride:deck_seat`, the handler looks for a slot cell in the seat's column: the seat's own cell and the two above it, the first that holds the furniture block or a decor block. When a parked vehicle laid that cell, the event is cancelled, so the player does not sit, and on the next tick decor is placed with that cell as the pressed cell and the seat's location as the hit point
-- The entity event has no `isFirstEvent`, so repeats of one press are dropped per player per tick, as vehicle placement does
+- The entity event has no `isFirstEvent`, and a held touch repeats it on later ticks (every 4 to 6 ticks on mobile, 0024). A seat press counts only after that player's seat presses have been idle for `CAMPER_SPEC.seatPressIdleTicks` (10 ticks), and every press restarts the idle time, as the headlight switch does (0024). One long-press places one item; two taps need half a second between them
 - With an empty hand or any other item the player sits as before. The front deck seats and the toilet's deck seat have no slot in their column, so nothing changes for them. The headlight switch, which uses the same event on the vehicle entity, is not camping gear, so the two handlers never act on the same press
 
 ### Departure
@@ -42,10 +42,11 @@ The play test also showed two more problems:
 
 ## Consequences
 
-- A press on any decor spot from anywhere inside, including a seat, reaches the camper, and a press on a spot that cannot take the item still gets an item placed elsewhere or the "No free spot for this item" message
+- A press on an empty decor spot from anywhere inside, including a seat, reaches the camper, and a press on a spot that cannot take the item still gets an item placed elsewhere or the "No free spot for this item" message
+- An occupied spot holds only its decor block, whose selection box is the item's own footprint. A press on the item reaches the camper; a press on the rest of an occupied stove, counter, or table top passes through as before. The decor box is not widened to the furniture top: `minecraft:transformation` moves the box up with the item, so it would have to start below its cell, and an empty-hand press anywhere on the top would then take the item back
 - Any standing item can go on any standing spot, so a cushion can stand on the stove. The owner chose this over per-item places, which refused most presses in the play test
 - The departure check reads 49 cargo cells, 12 slot cells, and 2 exit cells: still 63 cells in one batch
 - A vanilla block held while pressing a furniture top is placed in the cell next to the pressed face, inside the room, where before it went outside. That block is cargo and keeps the camper parked until it is removed
-- The furniture tops now stop presses that used to pass through them. Check on a phone and on PC that the dinette's deck seats still take a long-press to sit, and that the table top under the ceiling hook can still be pressed from the aisle. If the hook box catches presses aimed at the table, make it smaller
+- The furniture tops now stop presses that used to pass through them. Check on a phone and on PC that the dinette's deck seats still take a long-press to sit, and that the table top under the ceiling hook can still be pressed from the aisle. If the hook box catches presses aimed at the table, make it smaller. With gear in hand this cannot be seen, because the hook refuses a standing item and the nearest free slot is the table; an empty-hand press on an item on the table shows it, since the furniture block takes no empty-hand press and the item would not come back
 - Furniture without a slot (the dashboard's right cell, the bed, the shower-toilet) gets no furniture block
 - The new block needs a server restart (0015). The Resource Pack does not change: the block reuses the `deck_floor` geometry and the `glass` texture
