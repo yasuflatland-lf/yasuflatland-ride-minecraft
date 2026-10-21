@@ -8,6 +8,7 @@ import type {
 } from "../../domain/vehicle/dock/floor";
 import {
   cargoCells,
+  deckSeats,
   decorCells,
   parkPose,
   roomCells,
@@ -21,6 +22,7 @@ import {
   CAMPER_FLOOR_BLOCK,
   CAMPER_WALL_BLOCK,
   DECK_FLOOR_BLOCK,
+  DECK_SEAT_TYPE,
   DECOR_FACE_STATE,
   DECOR_HEIGHT_STATE,
   decorBlockId,
@@ -45,6 +47,18 @@ import {
 // Clear of the other tests: camper_accel's lane at z 85, the dive tank at z 61-69,
 // and the pool and flight lanes west of x 90.
 const PARK_SPOT = { x: 108.5, z: 78.5, yaw: 90 } as const;
+
+// Test bounds, not ADR values: the toilet seat stands about 3.2 blocks from the
+// camper, so a 5-block search finds all five seats; 0.1 allows for the seat
+// teleport tolerance; departure must clear every seat within the orphan-check
+// radius of deckSeats.ts within half a second.
+const CAMPER_DECK_SEATS_TEST = {
+  count: 5,
+  radius: 5,
+  tolerance: 0.1,
+  clearRadius: 9,
+  clearTicks: 10,
+} as const;
 
 const ROOM_BLOCK: Readonly<
   Record<Exclude<DockBlock["type"], "decor">, string>
@@ -345,4 +359,47 @@ export async function camperDive(a: Arena): Promise<Outcome> {
       `fill 100 ${a.gy} 61 118 ${a.gy + CAMPER_TANK.waterTop} 69 air`,
     );
   }
+}
+
+export function camperToiletSeat(a: Arena): Promise<Outcome> {
+  return atParkSpot(a, async (car) => {
+    await wait(DOCK.ticks + 10);
+    const pose = carPose(car);
+    const seatsWithin = (maxDistance: number) =>
+      a.dim.getEntities({
+        type: DECK_SEAT_TYPE,
+        location: pose,
+        maxDistance,
+      });
+    const seats = seatsWithin(CAMPER_DECK_SEATS_TEST.radius);
+    const unmatched = [...seats];
+    const positioned = deckSeats(pose).every((at) => {
+      const index = unmatched.findIndex(
+        (seat) =>
+          Math.hypot(
+            seat.location.x - at.x,
+            seat.location.y - at.y,
+            seat.location.z - at.z,
+          ) <= CAMPER_DECK_SEATS_TEST.tolerance,
+      );
+      if (index < 0) return false;
+      unmatched.splice(index, 1);
+      return true;
+    });
+    drive(car, 0, 1);
+    let remaining = seatsWithin(CAMPER_DECK_SEATS_TEST.clearRadius).length;
+    let clearTicks = 0;
+    while (remaining > 0 && clearTicks < CAMPER_DECK_SEATS_TEST.clearTicks) {
+      await wait(1);
+      clearTicks++;
+      remaining = seatsWithin(CAMPER_DECK_SEATS_TEST.clearRadius).length;
+    }
+    return {
+      pass:
+        seats.length === CAMPER_DECK_SEATS_TEST.count &&
+        positioned &&
+        remaining === 0,
+      detail: `seats=${seats.length} positioned=${positioned} clearTicks=${clearTicks} remaining=${remaining}`,
+    };
+  });
 }
