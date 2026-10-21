@@ -23,6 +23,7 @@ import {
   camperTakeoff,
   camperWall,
 } from "./scenarios/camper";
+import { campingGearBlocks } from "./scenarios/campingGear";
 import {
   boatCruise,
   boatDeckSeats,
@@ -117,6 +118,8 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
     ["boat_ram", 76, () => boatRam(a)],
     // Estimate until CI reports measured ticks (ADR 0054).
     ["suv_soul_sand", 200, () => suvSoulSand(a)],
+    // Estimate until CI reports measured ticks (ADR 0054).
+    ["camping_gear_blocks", 2, () => campingGearBlocks(a)],
   ];
   const shards = shardsOf(
     allTests.map(([, ticks]) => ticks),
