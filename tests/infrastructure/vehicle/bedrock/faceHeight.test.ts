@@ -99,6 +99,10 @@ it("gives the furniture block its box per height and every decor block its lift 
       },
     ),
   );
+  expect(pressedShape(decorBlockId("saucepan"), undefined)).toEqual({
+    kind: "decor",
+    lift: 0,
+  });
   expect(pressedShape(CAMPER_FURNITURE_BLOCK, undefined)).toBeUndefined();
   expect(pressedShape(CAMPER_WALL_BLOCK, undefined)).toBeUndefined();
   expect(pressedShape("minecraft:stone", undefined)).toBeUndefined();
