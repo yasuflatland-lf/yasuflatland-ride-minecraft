@@ -778,31 +778,36 @@ body.append(box(20.5, 30, 19.5, 21.5, 34, 20.5, "chrome"))  # tap
 body.append(box(17.5, 33, 19.5, 21.5, 34, 20.5, "chrome"))  # spout
 
 
-GRATE_R = 2.7  # half the burner grate's outer width
+# Every burner part stays outside the 7 px square around the stove slot point (16, 32), the
+# footprint of the widest decor item, so decor stands on bare plate (ADR 0100).
+BURNER_SCALE = 0.6  # burner reach 2.85 * 0.6 = 1.71 px, so it fits between that square and the flange
+GRATE_R = 2.7 * BURNER_SCALE  # half the burner grate's outer width
 
 
 def burner(cx, cz, turn):
     """One gas burner: drip bowl, dark gap, head with its port band and top disc, a black grate
-    ring, and six raised prongs turned by `turn` degrees."""
-    body.extend(disc("y", cx, 30, cz, 2.45, 0.08, "panel", STEPS_16))  # drip bowl
-    body.extend(disc("y", cx, 30.08, cz, 1.3, 0.06, "grille", STEPS_16))  # gap around the head
-    body.extend(disc("y", cx, 30.14, cz, 0.85, 0.56, "hub", STEPS_8))  # head
-    body.extend(disc("y", cx, 30.45, cz, 0.9, 0.08, "grille", STEPS_8))  # port band
-    body.extend(disc("y", cx, 30.7, cz, 0.5, 0.1, "steel", STEPS_8))  # top disc
-    side, t = 2.3, 0.35
+    ring, and six raised prongs turned by `turn` degrees. Widths scale by BURNER_SCALE, while
+    heights and bar thickness stay."""
+    k = BURNER_SCALE
+    body.extend(disc("y", cx, 30, cz, 2.45 * k, 0.08, "panel", STEPS_16))  # drip bowl
+    body.extend(disc("y", cx, 30.08, cz, 1.3 * k, 0.06, "grille", STEPS_16))  # gap around the head
+    body.extend(disc("y", cx, 30.14, cz, 0.85 * k, 0.56, "hub", STEPS_8))  # head
+    body.extend(disc("y", cx, 30.45, cz, 0.9 * k, 0.08, "grille", STEPS_8))  # port band
+    body.extend(disc("y", cx, 30.7, cz, 0.5 * k, 0.1, "steel", STEPS_8))  # top disc
+    side, t = 2.3 * k, 0.3
     for dx, dz in ((-1, 0), (1, 0), (0, -1), (0, 1)):  # grate ring
         mx, mz = cx + dx * (GRATE_R - t / 2), cz + dz * (GRATE_R - t / 2)
         hx, hz = (t / 2, side / 2) if dx else (side / 2, t / 2)
         body.append(box(mx - hx, 30.08, mz - hz, mx + hx, 30.4, mz + hz, "black"))
-    d = 2.6 / math.sqrt(2)
+    d = 2.6 * k / math.sqrt(2)
     for dx, dz in ((-1, -1), (-1, 1), (1, -1), (1, 1)):
         mx, mz = cx + dx * d, cz + dz * d
         body.append(box(mx - t / 2, 30.08, mz - side / 2, mx + t / 2, 30.4, mz + side / 2, "black", [0, -dx * dz * 45, 0], [mx, 30.08, mz]))
     pivot = [cx, 30.4, cz]
-    for k in range(6):  # prongs, laid out toward the aisle and turned into place
-        rotation = [0, turn + 60 * k, 0]
-        body.append(box(cx - 2.85, 30.4, cz - 0.15, cx - 1.0, 30.7, cz + 0.15, "black", rotation, pivot))
-        body.append(box(cx - 2.85, 30.4, cz - 0.15, cx - 2.45, 30.95, cz + 0.15, "black", rotation, pivot))
+    for n in range(6):  # prongs, laid out toward the aisle and turned into place
+        rotation = [0, turn + 60 * n, 0]
+        body.append(box(cx - 2.85 * k, 30.4, cz - 0.15, cx - 1.0 * k, 30.7, cz + 0.15, "black", rotation, pivot))
+        body.append(box(cx - 2.85 * k, 30.4, cz - 0.15, cx - 2.45 * k, 30.95, cz + 0.15, "black", rotation, pivot))
 
 
 # Stove (ADR 0100): the sink side is z 24, the far side z 39.5, the knobs face the aisle.
@@ -816,8 +821,9 @@ for k in range(12):
     z = 24.7 + 0.55 * k
     body.append(box(21.8, 30.35, z, 22.3, 30.38, z + 0.25, "black"))
 body.append(box(22.4, 30, STOVE_Z[0], 22.8, 31, STOVE_Z[1], "ivory"))  # ledge at the wall
-for i, bx in enumerate((11.75, 18.9)):
-    for j, bz in enumerate((28.4, 35.6)):
+# Centered on the slot point in x; in z each pair sits between that square and the trim or flange.
+for i, bx in enumerate((16 - 3.8, 16 + 3.8)):
+    for j, bz in enumerate((26.6, 37.35)):
         burner(bx, bz, 30 * ((i + j) % 2))
 # Control panel leaning back 20 degrees with five knobs toward the far end; the sink-side third
 # stays blank.
@@ -826,10 +832,30 @@ LEAN = ([0, 0, -20], [8.5, 26.6, 31.75])  # about its lower front edge, top towa
 body.append(box(8.5, 26.6, 24.2, 8.8, 29.2, 39.3, "harvest", *LEAN))
 for y in (27.4, 28.4):  # woodgrain lines
     body.append(box(8.48, y, 24.2, 8.5, y + 0.1, 39.3, "wood", *LEAN))
+KNOB_Y = 27.9
+
+
+def knob_octagon(x0, x1, cz, half, color):
+    """A knob part as an octagon about its own x axis, `half` from its center to each flat: a
+    cross of two bars and the same cross turned 45 degrees. The turned cross pivots on the knob
+    axis, so the sign of the game's x turn does not matter; it is moved by the gap between
+    turning 20 degrees about that pivot and about the panel's lean pivot, so it leans with the
+    rest of the panel (cube turns apply x before z)."""
+    rotation, pivot = LEAN
+    side = half * math.tan(math.pi / 8)
+    s, c = math.sin(math.radians(rotation[2])), math.cos(math.radians(rotation[2]))
+    up = KNOB_Y - pivot[1]  # the knob axis above the lean pivot
+    dx, dy = -up * s, up * c - up
+    axis = [pivot[0] + dx, KNOB_Y + dy, cz]
+    for hy, hz in ((half, side), (side, half)):
+        body.append(box(x0, KNOB_Y - hy, cz - hz, x1, KNOB_Y + hy, cz + hz, color, *LEAN))
+        body.append(box(x0 + dx, axis[1] - hy, cz - hz, x1 + dx, axis[1] + hy, cz + hz, color, [45, 0, rotation[2]], axis))
+
+
 for z in (29.9, 31.9, 33.9, 35.9, 37.9):
-    body.append(box(8.07, 27.15, z - 0.75, 8.5, 28.65, z + 0.75, "black", *LEAN))
-    body.append(box(8.4, 27.0, z - 0.85, 8.5, 28.8, z + 0.85, "chrome", *LEAN))  # skirt
-    body.append(box(8.02, 27.4, z - 0.5, 8.07, 28.4, z + 0.5, "chrome", *LEAN))  # face cap
+    knob_octagon(8.07, 8.5, z, 0.75, "black")
+    knob_octagon(8.4, 8.5, z, 0.85, "chrome")  # skirt
+    knob_octagon(8.02, 8.07, z, 0.5, "chrome")  # face cap
     body.append(box(8.0, 27.85, z - 0.45, 8.02, 27.95, z + 0.45, "black", *LEAN))  # pointer
 body.append(box(8.45, 26.3, 24.2, 9.0, 26.6, 39.3, "chrome"))  # strip under the panel
 # Oven: a chrome bar across the top of a brushed door in a stainless frame.
