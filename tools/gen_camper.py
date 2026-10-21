@@ -684,16 +684,69 @@ body.append(box(-HW + 1, FLOOR, FRONT + 1, HW - 1, 27, DASH_FACE, "dash"))
 body.append(box(-HW + 1, 27, WS_Z + 1.5, HW - 1, 28.6, DASH_FACE + 1, "dash_pad"))
 body.append(box(-HW + 1, 26.2, DASH_FACE + 1, HW - 1, 28.2, DASH_FACE + 1.8, "dash_pad", [45, 0, 0], [0, 27.2, DASH_FACE + 1.4]))
 body.append(box(-HW + 1, 25.6, DASH_FACE, HW - 1, 26.2, DASH_FACE + 0.6, "dark_dash"))
-# Two round gauges behind the wheel: speedometer and a cluster, chrome bezels on black faces.
-for gx, r in ((16, 2.9), (8.6, 2.6)):
-    body += disc("z", gx, 22.2, DASH_FACE, r + 0.5, 0.4, "chrome")
-    body += disc("z", gx, 22.2, DASH_FACE + 0.3, r, 0.3, "gauge")
-    for i in range(12):  # tick ring
-        a = math.radians(-30 + i * 20)
-        tx, ty = gx + (r - 0.5) * math.cos(a), 22.2 + (r - 0.5) * math.sin(a)
-        body.append(box(tx - 0.15, ty - 0.15, DASH_FACE + 0.55, tx + 0.15, ty + 0.15, DASH_FACE + 0.65, "needle"))
-    body.append(box(gx - 0.12, 22.2, DASH_FACE + 0.6, gx + 0.12, 22.2 + r - 0.6, DASH_FACE + 0.7, "amber", [0, 0, 35], [gx, 22.2, DASH_FACE + 0.6]))
-    body += disc("z", gx, 22.2, DASH_FACE + 0.65, 0.4, 0.2, "black", steps=(0, 45))
+# Instrument console in front of the driver, after the owner's reference photo (#410): the
+# photo's orange wood trim stays green, and its layout is kept, not mirrored, for the
+# right-hand drive (ADR 0069). Plain shapes and tick marks only, no logos or lettering.
+CON_Z = DASH_FACE + 0.2  # the face of the trim board
+PANEL = (10, 19, 22.2, 24.9)  # x0, y0, x1, y1 of the black instrument panel
+PANEL_Z = CON_Z + 0.2
+body.append(box(4.6, 17.4, DASH_FACE, 22.5, 25.4, CON_Z, "dash_pad"))
+body.append(box(PANEL[0] - 0.3, PANEL[1] - 0.3, CON_Z, PANEL[2] + 0.3, PANEL[3] + 0.3, CON_Z + 0.1, "dark_dash"))
+body.append(box(PANEL[0], PANEL[1], CON_Z + 0.1, PANEL[2], PANEL[3], PANEL_Z, "black"))
+# Round speaker grille at the left end of the trim
+body += disc("z", 7.6, 22.4, CON_Z, 1.7, 0.2, "chrome", steps=STEPS_8)
+body += disc("z", 7.6, 22.4, CON_Z + 0.1, 1.35, 0.15, "grille", steps=STEPS_8)
+# Chrome-framed gauge window: two small square gauges, the strip speedometer, two more gauges
+body.append(box(10.5, 22.9, PANEL_Z, 20.1, 24.5, PANEL_Z + 0.15, "chrome"))
+body.append(box(10.7, 23.1, PANEL_Z + 0.15, 19.9, 24.3, PANEL_Z + 0.2, "gauge"))
+for gx in (11.35, 12.45, 17.95, 19.05):
+    body.append(box(gx - 0.42, 23.25, PANEL_Z + 0.2, gx + 0.42, 24.15, PANEL_Z + 0.25, "steel"))
+    body.append(box(gx - 0.05, 23.35, PANEL_Z + 0.25, gx + 0.05, 23.95, PANEL_Z + 0.3, "black", [0, 0, 30], [gx, 23.35, PANEL_Z + 0.25]))
+for i in range(11):  # strip speedometer ticks
+    tx = 13.4 + i * 0.4
+    body.append(box(tx - 0.06, 23.8 if i % 2 else 23.65, PANEL_Z + 0.2, tx + 0.06, 24.15, PANEL_Z + 0.25, "needle"))
+body.append(box(13.3, 23.5, PANEL_Z + 0.2, 17.3, 23.6, PANEL_Z + 0.25, "needle"))
+body.append(box(14.95, 23.2, PANEL_Z + 0.25, 15.15, 23.95, PANEL_Z + 0.3, "amber"))
+# Indicator lamps under the window
+for lx, color in ((11.2, "amber"), (12.3, "red"), (17.9, "steel"), (19.0, "amber")):
+    body.append(box(lx - 0.4, 22.2, PANEL_Z, lx + 0.4, 22.6, PANEL_Z + 0.12, color))
+
+
+def rocker(x, y, lit):
+    """A small rocker switch: a chrome frame with a black or white rocker."""
+    return [box(x - 0.35, y - 0.45, PANEL_Z, x + 0.35, y + 0.45, PANEL_Z + 0.12, "chrome"),
+            box(x - 0.2, y - 0.3, PANEL_Z + 0.12, x + 0.2, y + 0.3, PANEL_Z + 0.32, "needle" if lit else "black")]
+
+
+def round_control(x, y, r):
+    return disc("z", x, y, PANEL_Z, r, 0.12, "chrome", steps=STEPS_8) + disc("z", x, y, PANEL_Z + 0.12, r - 0.15, 0.1, "gauge", steps=STEPS_8)
+
+
+# Lower rows: rocker switches and round controls. The steering column meets the panel at
+# x 11.3 to 12.7 below y 21.3, so the left pair of rockers flanks it instead of sitting on it.
+for rx, ry in ((10.6, 21.1), (13.4, 21.1), (10.6, 19.9), (13.4, 19.9), (16, 20.5), (18.6, 20.5)):
+    body += rocker(rx, ry, False)
+for cx in (14.75, 17.25):
+    body += round_control(cx, 20.5, 0.75)
+# Ignition switch at the upper right of the panel, above the door armrest (top at y 23.4)
+body += disc("z", 21.2, 24.15, PANEL_Z, 0.7, 0.2, "chrome", steps=STEPS_8)
+body += disc("z", 21.2, 24.15, PANEL_Z + 0.2, 0.38, 0.1, "black", steps=STEPS_8)
+# Right column: rocker switches in pairs and two slide levers. The door armrest reaches in to
+# x 21.2 at y 22 to 23.4 and through the whole console, so the rockers stay left of it.
+for ry in (22.3, 21.2):
+    for rx in (19.95, 20.8):
+        body += rocker(rx, ry, True)
+for ly, lx in ((20.0, 21.4), (19.45, 20.8)):
+    body.append(box(20.3, ly - 0.12, PANEL_Z, 21.95, ly + 0.12, PANEL_Z + 0.05, "grille"))
+    body.append(box(lx - 0.18, ly - 0.2, PANEL_Z + 0.05, lx + 0.18, ly + 0.2, PANEL_Z + 0.35, "chrome"))
+# Round air vent lying flat on the dash top before the driver; it rises 0.25 px over the pad.
+# The pad starts at WS_Z + 1.5, and the ring stays clear of that front edge with a small margin.
+VENT_R = 1.4
+VENT_X, VENT_Y, VENT_Z = 12, 28.6, WS_Z + 1.5 + VENT_R + 0.3
+body += disc("y", VENT_X, VENT_Y, VENT_Z, VENT_R, 0.15, "chrome", steps=STEPS_8)
+body += disc("y", VENT_X, VENT_Y, VENT_Z, 1.1, 0.2, "steel", steps=STEPS_8)
+for sz in (-0.6, 0, 0.6):  # the louvres
+    body.append(box(VENT_X - 1, VENT_Y, VENT_Z + sz - 0.12, VENT_X + 1, VENT_Y + 0.25, VENT_Z + sz + 0.12, "black"))
 # Knob cluster and switches in the middle
 for kx, ky in ((-3, 24), (-1, 24), (1, 24), (-3, 21.5), (-1, 21.5), (1, 21.5)):
     body += disc("z", kx, ky, DASH_FACE, 0.55, 0.9, "chrome", steps=(0, 45))
@@ -919,8 +972,9 @@ seat3 = [box(DIN_X[0], FLOOR, 10, DIN_X[1], FLOOR + 7, 23, "tweed"),
 body.append(box(DIN_X[0], FLOOR + 11, -6, -9, FLOOR + 12, 6, "wood"))  # table
 body.append(box(-15, FLOOR, -1, -13, FLOOR + 11, 1, "chrome"))
 
-# Steering wheel, as on the reference: a thin ivory rim of 32 segments, one wide spoke from
-# 10 to 4 o'clock through a conical hub, and a chrome horn ring over the lower-left half.
+# Steering wheel, as on the reference (#410): a thin ivory rim of 32 segments with finger grips
+# on its inner edge, one straight spoke bar through the hub held level as when driving straight
+# ahead (the photo's wheel is turned), a chrome half horn ring below it, and a plain round hub.
 # Built facing the driver (+z) in its own bone, which lays it back like a bus wheel.
 RIM_R = 7.2
 
@@ -937,17 +991,19 @@ def arc_z(r, t, color, a0, a1, n):
 
 
 steering = arc_z(RIM_R, 0.9, "ivory", 0, 360, 32)
-steering += arc_z(RIM_R - 2.2, 0.35, "chrome", 160, 290, 12)
-for a in (150, -30):  # the spoke, tapering toward the rim
+for i in range(36):  # finger grips, left out where the spokes meet the rim
+    a = i * 10 + 5
+    if min(a % 180, 180 - a % 180) < 15:
+        continue
     rad = math.radians(a)
-    mx, my = (RIM_R / 2 - 0.1) * math.cos(rad), (RIM_R / 2 - 0.1) * math.sin(rad)
-    steering.append(box(mx - RIM_R / 2, my - 0.8, -0.35, mx + RIM_R / 2, my + 0.8, 0.35, "ivory", [0, 0, a], [mx, my, 0]))
+    gx, gy = (RIM_R - 0.55) * math.cos(rad), (RIM_R - 0.55) * math.sin(rad)
+    steering.append(box(gx - 0.18, gy - 0.2, -0.3, gx + 0.18, gy + 0.2, 0.3, "ivory", [0, 0, a + 90], [gx, gy, 0]))
+steering.append(box(-RIM_R + 0.3, -0.6, -0.35, RIM_R - 0.3, 0.6, 0.35, "ivory"))  # the spoke bar
+steering.append(box(-RIM_R + 0.8, -0.15, 0.35, RIM_R - 0.8, 0.15, 0.45, "chrome"))
+steering += arc_z(RIM_R - 2.2, 0.35, "chrome", 180, 360, 16)  # the half horn ring
 steering += disc("z", 0, 0, -0.6, 2.2, 1.2, "hub")
-steering += disc("z", 0, 0, 0.6, 1.6, 0.6, "hub")
-steering += disc("z", 0, 0, 1.2, 0.9, 0.2, "black")
-for a in (90, 210, 330):  # the emblem's three points
-    rad = math.radians(a)
-    steering.append(box(0.45 * math.cos(rad) - 0.15, 0.45 * math.sin(rad) - 0.15, 1.4, 0.45 * math.cos(rad) + 0.15, 0.45 * math.sin(rad) + 0.15, 1.5, "needle"))
+steering += disc("z", 0, 0, 0.6, 1.6, 0.4, "chrome", steps=STEPS_16)
+steering += disc("z", 0, 0, 1.0, 1.25, 0.3, "black", steps=STEPS_16)
 steering.append(box(-0.7, -0.7, -16, 0.7, 0.7, -0.6, "dark_dash"))  # column down to the dashboard
 # Raised and laid back with the front seats so its lower rim clears the cushion and its
 # upper rim stays under the driver's line of sight to the windshield's lower frame.
