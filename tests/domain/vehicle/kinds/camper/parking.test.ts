@@ -1121,6 +1121,8 @@ it("keeps the compact toilet seat while parked and ignores its stick (ADR 0095)"
   });
   expect(out.dock?.seats).toHaveLength(5);
   expect(out.dock?.seats[4]?.compact).toBe(true);
+  // ADR 0109: every parked deck seat names where its rider stands up.
+  expect(out.dock?.seats.every((seat) => seat?.stand !== undefined)).toBe(true);
   expect(out.boardDeckRiders).toBe(false);
   expect(out.depart).toBeUndefined();
   expect(f.drive.inspect().parked).toBe(true);

@@ -556,3 +556,31 @@ export function camperToiletSeat(a: Arena): Promise<Outcome> {
     };
   });
 }
+
+// ADR 0109: a rider who stands up from a deck seat is put on the floor of an aisle
+// cell; no simulated player is available, so this checks that every stand spot
+// lands on a laid floor block with open feet and head cells.
+export function camperStandSpots(a: Arena): Promise<Outcome> {
+  return atParkSpot(a, async (car) => {
+    await wait(DOCK.ticks + 10);
+    const pose = carPose(car);
+    const wrong = deckSeats(pose).filter(({ stand }) => {
+      if (!stand) return true;
+      const feet = {
+        x: Math.floor(stand.x),
+        y: Math.floor(stand.y),
+        z: Math.floor(stand.z),
+      };
+      return (
+        a.dim.getBlock({ ...feet, y: feet.y - 1 })?.typeId !==
+          CAMPER_FLOOR_BLOCK ||
+        a.dim.getBlock(feet)?.isAir !== true ||
+        a.dim.getBlock({ ...feet, y: feet.y + 1 })?.isAir !== true
+      );
+    }).length;
+    return {
+      pass: wrong === 0,
+      detail: `wrong=${wrong}`,
+    };
+  });
+}
