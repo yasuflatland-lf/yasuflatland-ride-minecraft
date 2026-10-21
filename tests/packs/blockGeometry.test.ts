@@ -46,28 +46,28 @@ function identifierOf(reference: GeometryReference): string {
 }
 
 function blockGeometries(): BlockGeometry[] {
-  return jsonFileEntries(join(BP, "blocks")).flatMap(({ path, json }) => {
+  const geometries: BlockGeometry[] = [];
+  for (const { path, json } of jsonFileEntries(join(BP, "blocks"))) {
     const block = json["minecraft:block"] as Json;
+    const permutations =
+      (block.permutations as { components?: Json }[] | undefined) ?? [];
     const componentSets = [
       block.components as Json | undefined,
-      ...(
-        (block.permutations as { components?: Json }[] | undefined) ?? []
-      ).map((permutation) => permutation.components),
+      ...permutations.map((permutation) => permutation.components),
     ];
-    return componentSets.flatMap((components) => {
+    for (const components of componentSets) {
       const reference = components?.["minecraft:geometry"] as
         | GeometryReference
         | undefined;
-      if (reference === undefined) return [];
-      return [
-        {
-          path: `blocks/${path}`,
-          reference,
-          identifier: identifierOf(reference),
-        },
-      ];
-    });
-  });
+      if (reference === undefined) continue;
+      geometries.push({
+        path: `blocks/${path}`,
+        reference,
+        identifier: identifierOf(reference),
+      });
+    }
+  }
+  return geometries;
 }
 
 function modelCubes(): Map<string, Cube[]> {
