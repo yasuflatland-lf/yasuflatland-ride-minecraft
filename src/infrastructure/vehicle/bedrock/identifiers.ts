@@ -79,6 +79,7 @@ export function giftOfItem(
 ): PlacementGift | undefined {
   return PLACEMENT_GIFTS.find((gift) => GIFT_ITEM[gift] === typeId);
 }
+
 /** World dynamic property holding the fleet as JSON (ADR 0038). */
 export const FLEET_PROPERTY = id("fleet");
 /** Entity dynamic property on a vehicle placed from its item: the placing player's id (ADR 0066). */
@@ -188,11 +189,9 @@ export const DECOR_PROPERTY = id("decor");
 /** Block states of the wall and the door: the cell side of the plate (Face), and whether the door is open. */
 export const ROOM_FACE_STATE = id("face");
 export const ROOM_OPEN_STATE = id("open");
-
 /** Camping gear decor block states: the parked camper's yaw quarter and the slot height in px (ADR 0093). */
 export const DECOR_FACE_STATE = id("face");
 export const DECOR_HEIGHT_STATE = id("height");
-
 /** The decor block that shows a camping gear item in a parked camper (ADR 0093). */
 export function decorBlockId(item: string): string {
   return id(`${item}_decor`);

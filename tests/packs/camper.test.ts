@@ -22,10 +22,10 @@ interface Cube {
   uv: Record<string, { uv: number[] }>;
 }
 interface Bone {
-  rotation?: number[];
   name: string;
   parent?: string;
   pivot: number[];
+  rotation?: number[];
   cubes?: Cube[];
   locators?: Record<string, number[]>;
 }
@@ -765,24 +765,19 @@ describe("camper furniture model (ADR 0093)", () => {
   it("puts every standing decor slot on the model's top surface and hangs the ceiling slot under the ceiling plate", () => {
     const slots = CAMPER_FURNITURE.flatMap((f) => f.slots);
     expect(slots).toHaveLength(12);
+    const unrotatedCubes = bones
+      .filter((b) => b.rotation === undefined)
+      .flatMap((b) => b.cubes ?? [])
+      .filter((cube) => cube.rotation === undefined);
     for (const slot of slots) {
       const x = 16 * slot.cell.x;
       const z = -16 * slot.cell.z;
       const bottom = 16 * slot.cell.layer;
-      const covering = bones
-        .filter((b) => b.rotation === undefined)
-        .flatMap((b) => b.cubes ?? [])
-        .filter((cube) => {
-          const [ox = 0, , oz = 0] = cube.origin;
-          const [sx = 0, , sz = 0] = cube.size;
-          return (
-            cube.rotation === undefined &&
-            ox <= x &&
-            x <= ox + sx &&
-            oz <= z &&
-            z <= oz + sz
-          );
-        });
+      const covering = unrotatedCubes.filter((cube) => {
+        const [ox = 0, , oz = 0] = cube.origin;
+        const [sx = 0, , sz = 0] = cube.size;
+        return ox <= x && x <= ox + sx && oz <= z && z <= oz + sz;
+      });
       if (slot.height > 0) {
         const tops = covering.flatMap((cube) => {
           const [, oy = 0] = cube.origin;
@@ -813,19 +808,16 @@ describe("camper furniture model (ADR 0093)", () => {
           return sx < 16 && oy >= bottom && oy + sy <= underside + 1e-6;
         });
         expect(hook.length, slot.id).toBeGreaterThan(0);
+        const hookBottom = bottom + HANG_TOP - 1;
         for (const cube of hook) {
           const [, oy = 0] = cube.origin;
-          expect(oy, slot.id).toBeGreaterThanOrEqual(
-            bottom + HANG_TOP - 1 - 1e-6,
-          );
+          expect(oy, slot.id).toBeGreaterThanOrEqual(hookBottom - 1e-6);
         }
         expect(
           covering.some((cube) => {
             const [, oy = 0] = cube.origin;
             const [, sy = 0] = cube.size;
-            return (
-              oy < bottom + HANG_TOP - 1 - 0.001 && oy + sy > bottom + 0.001
-            );
+            return oy < hookBottom - 0.001 && oy + sy > bottom + 0.001;
           }),
           slot.id,
         ).toBe(false);

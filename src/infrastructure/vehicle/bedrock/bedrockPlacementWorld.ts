@@ -83,6 +83,7 @@ export class BedrockPlacementWorld implements PlacementWorld {
   markGiftReceived(playerId: PlayerId, gift: PlacementGift): void {
     this.inventory.markGiftReceived(playerId, gift);
   }
+
   isCreative(playerId: PlayerId): boolean {
     return isCreativePlayer(this.index, playerId);
   }
