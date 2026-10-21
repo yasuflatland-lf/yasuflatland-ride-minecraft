@@ -27,10 +27,6 @@ const INVISIBLE_BLOCKS = [
   "camper_wall",
   "deck_floor",
 ].map((name) => `blocks/yasu_ride/${name}.block.json`);
-// The hanging planter still hangs from y 6; #412 starts it at y 0 and removes this exception (ADR 0102).
-const STARTS_ABOVE_CELL_BOTTOM = new Set([
-  "geometry.yasu_ride.macrame_planter",
-]);
 
 type Cube = { origin: number[] };
 type GeometryReference = string | { identifier: string };
@@ -108,22 +104,10 @@ describe("block geometries (ADR 0101)", () => {
 
   it("starts every block geometry at the bottom of the cell (F2)", () => {
     for (const { path, identifier } of blocks) {
-      if (STARTS_ABOVE_CELL_BOTTOM.has(identifier)) continue;
       expect(
         lowestY(models.get(identifier) ?? []),
         `${path} names ${identifier}`,
       ).toBe(0);
-    }
-  });
-
-  it("keeps the exception list to geometries that still start above the cell bottom", () => {
-    for (const identifier of STARTS_ABOVE_CELL_BOTTOM) {
-      expect(blocks.some((block) => block.identifier === identifier)).toBe(
-        true,
-      );
-      expect(lowestY(models.get(identifier) ?? []), identifier).toBeGreaterThan(
-        0,
-      );
     }
   });
 
