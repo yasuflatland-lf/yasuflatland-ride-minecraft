@@ -660,23 +660,28 @@ it("places and removes decor by hand once parked, and lays it with the room on t
   for (let i = 1; i < DOCK.ticks; i++) f.step();
   const point = slotPoint(f.pose, stove);
   const cell = decorSlotCell(f.pose, stove);
-  expect(f.drive.decorSlotFor("percolator", point, cell)).toBeUndefined();
+  expect(
+    f.drive.decorSlotFor("percolator", point, cell, false),
+  ).toBeUndefined();
   expect(f.drive.placeDecor("stove", "percolator")).toBe(false);
   expect(f.drive.removeDecor(cell)).toBeUndefined();
   expect(f.drive.decor()).toEqual([]);
 
   expect(f.step().dock?.cells).toEqual([]);
-  expect(f.drive.decorSlotFor("percolator", point, cell)).toBe("stove");
+  expect(f.drive.decorSlotFor("percolator", point, cell, false)).toBe("stove");
   expect(f.drive.placeDecor("ceiling_hook", "percolator")).toBe(false);
   expect(f.drive.placeDecor("nowhere", "percolator")).toBe(false);
   expect(f.drive.placeDecor("stove", "percolator")).toBe(true);
   expect(f.drive.placeDecor("stove", "enamel_kettle")).toBe(false);
-  expect(f.drive.decorSlotFor("enamel_kettle", point, cell)).not.toBe("stove");
+  expect(f.drive.decorSlotFor("enamel_kettle", point, cell, false)).not.toBe(
+    "stove",
+  );
   expect(
     f.drive.decorSlotFor(
       "macrame_planter",
       point,
       decorSlotCell(f.pose, slotNamed("ceiling_hook")),
+      false,
     ),
   ).toBe("ceiling_hook");
 
@@ -710,6 +715,7 @@ it("keeps placed decor through a departure and refuses changes while driving", (
       "enamel_kettle",
       slotPoint(f.pose, stove),
       decorSlotCell(f.pose, stove),
+      false,
     ),
   ).toBeUndefined();
   expect(f.drive.placeDecor("table", "mug_pair")).toBe(false);
@@ -725,8 +731,20 @@ it("places the item in the pressed slot ahead of a nearer free slot (ADR 0097)",
       "potted_plant",
       slotPoint(f.pose, slotNamed("shelf_low")),
       decorSlotCell(f.pose, slotNamed("shelf_high")),
+      false,
     ),
   ).toBe("shelf_high");
+});
+
+it("refuses an exact press on a taken slot instead of offering another one (ADR 0104)", () => {
+  const f = fixture();
+  f.park();
+  f.step();
+  expect(f.drive.placeDecor("stove", "percolator")).toBe(true);
+  const point = slotPoint(f.pose, stove);
+  const cell = decorSlotCell(f.pose, stove);
+  expect(f.drive.decorSlotFor("toaster", point, cell, true)).toBeUndefined();
+  expect(f.drive.decorSlotFor("toaster", point, cell, false)).toBeDefined();
 });
 
 describe("shower-toilet (ADR 0094)", () => {

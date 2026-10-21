@@ -980,7 +980,7 @@ function decorFixture() {
   return { placeDecor, removeDecor, owner, startupsBefore, event, send };
 }
 
-it("places held camping gear on a camper room, furniture, or decor block on the next tick and cancels every repeat (ADR 0093, 0097)", () => {
+it("places held camping gear on a camper room, furniture, or decor block on the next tick and cancels every repeat, falling back to another slot (ADR 0093, 0097, 0104)", () => {
   for (const typeId of [
     CAMPER_FLOOR_BLOCK,
     CAMPER_FURNITURE_BLOCK,
@@ -1004,6 +1004,7 @@ it("places held camping gear on a camper room, furniture, or decor block on the 
       point: { x: 1.25, y: 65, z: 2.5 },
       cell: { x: 1, y: 64, z: 2 },
       hotbarSlot: 4,
+      exact: false,
     });
     game.run.mockClear();
     const repeat = event({ isFirstEvent: false });
@@ -1085,7 +1086,7 @@ function seatFixture(
   return { ...f, slot, seatEvent, sendSeat };
 }
 
-it("places held camping gear on the dinette slot under a pressed deck seat instead of seating the player, once per long-press (ADR 0024, 0097)", () => {
+it("places held camping gear on the dinette slot under a pressed deck seat instead of seating the player, once per long-press, as an exact press (ADR 0024, 0097, 0104)", () => {
   for (const slotBlock of [CAMPER_FURNITURE_BLOCK, decorBlockId("cushion")]) {
     const { placeDecor, owner, slot, seatEvent, sendSeat } =
       seatFixture(slotBlock);
@@ -1100,6 +1101,7 @@ it("places held camping gear on the dinette slot under a pressed deck seat inste
       point: { x: 1.5, y: 64.68, z: 2.5 },
       cell: slot,
       hotbarSlot: 3,
+      exact: true,
     });
     game.run.mockClear();
     expect(sendSeat(seatEvent()).cancel).toBe(true);
@@ -1176,6 +1178,7 @@ it("places held camping gear pressed on the shower-toilet block like on any room
     point: { x: 1.25, y: 65, z: 2.5 },
     cell: { x: 1, y: 64, z: 2 },
     hotbarSlot: 4,
+    exact: false,
   });
 });
 

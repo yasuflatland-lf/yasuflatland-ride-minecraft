@@ -45,7 +45,9 @@ export function registerDecor(
     if (item !== undefined) placeGear(ev, item, place, dockCellOwner);
   });
   // A deck seat stands on each dinette seat's slot and takes the press first, so held
-  // gear on a deck seat goes to the slot instead of seating the player (ADR 0097). The
+  // gear on a deck seat goes to the slot instead of seating the player (ADR 0097). A
+  // taken seat refuses the gear, and the press stays cancelled, so the player does not
+  // sit either (ADR 0104). The
   // headlight switch on the same signal is not camping gear, so the two never both act.
   const seatPresses = new SeatPresses<PlayerId>();
   world.beforeEvents.playerInteractWithEntity.subscribe((ev) => {
@@ -111,7 +113,15 @@ function placeGear(
   const hotbarSlot = ev.player.selectedSlotIndex;
   // Before events cannot change the world, so the item is taken on the next tick.
   system.run(() =>
-    place.execute({ playerId, vehicleId, item, point, cell, hotbarSlot }),
+    place.execute({
+      playerId,
+      vehicleId,
+      item,
+      point,
+      cell,
+      hotbarSlot,
+      exact: false,
+    }),
   );
 }
 
@@ -139,7 +149,15 @@ function placeGearOnSeat(
   if (!seatPresses.press(system.currentTick, playerId)) return;
   const hotbarSlot = ev.player.selectedSlotIndex;
   system.run(() =>
-    place.execute({ playerId, vehicleId, item, point, cell: slot, hotbarSlot }),
+    place.execute({
+      playerId,
+      vehicleId,
+      item,
+      point,
+      cell: slot,
+      hotbarSlot,
+      exact: true,
+    }),
   );
 }
 

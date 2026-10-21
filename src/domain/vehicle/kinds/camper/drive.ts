@@ -182,9 +182,15 @@ export class CamperDrive extends TransformingDrive {
   // No roomLaid check: parkedStep sets it on the parking tick itself, so it is
   // always true between steps while parked, and decor placed now is laid with
   // the room on the next step (ADR 0068, 0093).
-  decorSlotFor(item: string, point: Vec3, cell: Vec3): string | undefined {
+  decorSlotFor(
+    item: string,
+    point: Vec3,
+    cell: Vec3,
+    exact: boolean,
+  ): string | undefined {
     if (!this.parked) return undefined;
-    return slotForPress(this.parked, item, this.decor(), cell, point)?.id;
+    return slotForPress(this.parked, item, this.decor(), cell, point, exact)
+      ?.id;
   }
 
   placeDecor(slot: string, item: string): boolean {

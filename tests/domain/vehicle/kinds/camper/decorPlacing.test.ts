@@ -141,13 +141,45 @@ it("prefers the pressed slot when it accepts the item and is free, else the near
         const nearest = nearestFreeSlot(p, id, decor, point);
         const takes =
           slotsFor(id).includes(slot) && !taken.some((s) => s.id === slot.id);
-        expect(slotForPress(p, id, decor, cell, point)).toBe(
+        expect(slotForPress(p, id, decor, cell, point, false)).toBe(
           takes ? slot : nearest,
         );
         const first = decorSlotCell(p, defined(SLOTS[0], "first slot").slot);
         expect(
-          slotForPress(p, id, decor, { ...first, y: first.y + 5 }, point),
+          slotForPress(
+            p,
+            id,
+            decor,
+            { ...first, y: first.y + 5 },
+            point,
+            false,
+          ),
         ).toBe(nearest);
+      },
+    ),
+  );
+});
+
+it("with an exact press returns the pressed slot when it accepts the item and is free, else nothing, never another slot (ADR 0104)", () => {
+  const offset = fc.double({ min: -6, max: 6, noNaN: true });
+  fc.assert(
+    fc.property(
+      pose,
+      gear.chain((id) => fc.tuple(fc.constant(id), fc.subarray(slotsFor(id)))),
+      fc.constantFrom(...SLOTS),
+      fc.tuple(offset, offset, offset),
+      (p, [id, taken], { slot }, [dx, dy, dz]) => {
+        const decor = taken.map((s) => ({ slot: s.id, item: id }));
+        const point = { x: p.x + dx, y: p.y + dy, z: p.z + dz };
+        const cell = decorSlotCell(p, slot);
+        const takes =
+          slotsFor(id).includes(slot) && !taken.some((s) => s.id === slot.id);
+        expect(slotForPress(p, id, decor, cell, point, true)).toBe(
+          takes ? slot : undefined,
+        );
+        expect(
+          slotForPress(p, id, decor, { ...cell, y: cell.y + 100 }, point, true),
+        ).toBeUndefined();
       },
     ),
   );
@@ -164,6 +196,7 @@ it("puts a potted plant on the high shelf when it is pressed, though the low she
       [],
       decorSlotCell(p, high),
       slotPoint(p, low),
+      false,
     ),
   ).toBe(high);
 });
@@ -178,6 +211,7 @@ it("puts a cushion on the stove when the stove is pressed and free (ADR 0097)", 
       [],
       decorSlotCell(p, stove),
       slotPoint(p, stove),
+      false,
     ),
   ).toBe(stove);
 });
@@ -187,7 +221,14 @@ it("sends a standing item pressed on the ceiling hook, or on a taken slot, to th
   const hook = slotNamed("ceiling_hook");
   const table = slotNamed("table");
   expect(
-    slotForPress(p, "mug_pair", [], decorSlotCell(p, hook), slotPoint(p, hook)),
+    slotForPress(
+      p,
+      "mug_pair",
+      [],
+      decorSlotCell(p, hook),
+      slotPoint(p, hook),
+      false,
+    ),
   ).toBe(table);
   const stove = slotNamed("stove");
   const decor = [{ slot: "stove", item: "percolator" }];
@@ -197,6 +238,7 @@ it("sends a standing item pressed on the ceiling hook, or on a taken slot, to th
     decor,
     decorSlotCell(p, stove),
     slotPoint(p, stove),
+    false,
   );
   expect(chosen).toBe(
     nearestFreeSlot(p, "toaster", decor, slotPoint(p, stove)),

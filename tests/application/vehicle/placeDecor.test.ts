@@ -27,6 +27,7 @@ function setup() {
     point: slotPoint(pose, stove),
     cell: decorSlotCell(pose, stove),
     hotbarSlot: 4,
+    exact: false,
   };
   return { car, pose, tick, world, place, stove, cmd };
 }
@@ -94,6 +95,20 @@ describe("PlaceDecor (ADR 0093, 0097)", () => {
       }),
     ).toBe(true);
     expect(world.calls).toEqual(["saveDecor:car:shelf_high=potted_plant"]);
+  });
+
+  it("refuses an exact press on a taken slot with the no-slot message, consuming and saving nothing (ADR 0104)", () => {
+    const { car, world, place, cmd } = setup();
+    world.itemInSlot = true;
+    expect(place.execute(cmd)).toBe(true);
+    world.calls.length = 0;
+    expect(place.execute({ ...cmd, item: "toaster", exact: true })).toBe(false);
+    expect(world.messages.at(-1)).toEqual({
+      playerId: "p",
+      name: "decor_no_slot",
+    });
+    expect(world.calls).toEqual(["showMessage"]);
+    expect(car.decor()).toEqual([{ slot: "stove", item: "percolator" }]);
   });
 
   it("places and saves nothing when the hotbar slot no longer holds the item", () => {

@@ -16,6 +16,8 @@ export interface PlaceDecorCommand {
   cell: Vec3;
   /** The hotbar slot that held the item when the player pressed. */
   hotbarSlot: number;
+  /** The press names one slot (a dinette deck seat); refuse instead of falling back to another slot (ADR 0104). */
+  exact: boolean;
 }
 
 export class PlaceDecor {
@@ -28,7 +30,7 @@ export class PlaceDecor {
   execute(cmd: PlaceDecorCommand): boolean {
     const vehicle = this.repo.get(cmd.vehicleId);
     if (!vehicle) return false;
-    const slot = vehicle.decorSlotFor(cmd.item, cmd.point, cmd.cell);
+    const slot = vehicle.decorSlotFor(cmd.item, cmd.point, cmd.cell, cmd.exact);
     if (slot === undefined) {
       this.world.showMessage(cmd.playerId, DECOR_MESSAGES.noSlot);
       return false;
