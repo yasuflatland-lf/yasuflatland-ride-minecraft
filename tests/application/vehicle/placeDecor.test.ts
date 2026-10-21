@@ -107,6 +107,31 @@ describe("PlaceDecor (ADR 0093, 0097)", () => {
     ]);
   });
 
+  it("picks the slot along the line of sight from the player's eye (ADR 0110)", () => {
+    const { pose, world, place, cmd } = setup();
+    world.creativePlayers.add("p");
+    const wall = slot("stove_wall");
+    const aim = slotPoint(pose, wall);
+    const eye = { x: aim.x + 0.6, y: aim.y + 1.2, z: aim.z + 0.4 };
+    expect(
+      place.execute({
+        ...cmd,
+        item: "saucepan",
+        point: {
+          x: 2 * aim.x - eye.x,
+          y: 2 * aim.y - eye.y,
+          z: 2 * aim.z - eye.z,
+        },
+        cell: decorSlotCell(pose, wall),
+        eye,
+      }),
+    ).toBe(true);
+    expect(world.calls).toEqual([
+      "blockTypes",
+      "saveDecor:car:stove_wall=saucepan",
+    ]);
+  });
+
   it("refuses an exact press on a taken slot with the no-slot message, consuming and saving nothing (ADR 0104)", () => {
     const { car, world, place, cmd } = setup();
     world.itemInSlot = true;

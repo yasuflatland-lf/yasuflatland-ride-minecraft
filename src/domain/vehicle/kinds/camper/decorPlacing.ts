@@ -1,4 +1,4 @@
-// Placing camping gear on the parked camper's furniture (ADR 0093, 0097, 0105).
+// Placing camping gear on the parked camper's furniture (ADR 0093, 0097, 0105, 0110).
 import type { Vec3 } from "../../../shared/vec";
 import type { DecorPlacement } from "../../dock/decor";
 import type { HoldPose } from "../../dock/floor";
@@ -33,16 +33,39 @@ export function slotPoint(pose: HoldPose, slot: DecorSlot): Vec3 {
   };
 }
 
-/** The slot among `slots` whose point is nearest `point`; on a tie, the one listed first. */
+/**
+ * Where the line of sight from `eye` through `point` crosses the horizontal plane at
+ * height `y`. A ray that hits a furniture block's side face below its top crosses the
+ * top's plane over the spot the player looked at, not at the side (ADR 0110). Without
+ * an eye, or when the ray does not descend to the plane, the pressed point itself.
+ */
+function sightAt(eye: Vec3 | undefined, point: Vec3, y: number): Vec3 {
+  if (eye === undefined) return point;
+  const dy = point.y - eye.y;
+  if (dy >= 0 || y >= eye.y) return point;
+  const t = (y - eye.y) / dy;
+  return {
+    x: eye.x + (point.x - eye.x) * t,
+    y,
+    z: eye.z + (point.z - eye.z) * t,
+  };
+}
+
+/**
+ * The slot among `slots` whose point is nearest where the line of sight from `eye`
+ * through `pressed` crosses that slot's surface (ADR 0110); on a tie, the one listed first.
+ */
 function nearest(
   pose: HoldPose,
   slots: readonly DecorSlot[],
-  point: Vec3,
+  pressed: Vec3,
+  eye: Vec3 | undefined,
 ): DecorSlot | undefined {
   let best: DecorSlot | undefined;
   let bestDistance = Number.POSITIVE_INFINITY;
   for (const slot of slots) {
     const p = slotPoint(pose, slot);
+    const point = sightAt(eye, pressed, p.y);
     const distance =
       (p.x - point.x) ** 2 + (p.y - point.y) ** 2 + (p.z - point.z) ** 2;
     if (distance < bestDistance) {
@@ -54,8 +77,9 @@ function nearest(
 }
 
 /**
- * The free slot accepting `item` whose point is nearest `point`; on a tie, the slot
- * listed first. A slot is free while no slot of its cell holds decor (ADR 0107) and
+ * The free slot accepting `item` whose point is nearest `point`, or with `eye`, nearest
+ * where the line of sight through `point` crosses its surface (ADR 0110); on a tie, the
+ * slot listed first. A slot is free while no slot of its cell holds decor (ADR 0107) and
  * `clear` says its cell can take a decor block: a host cell outside its furniture is
  * air while empty, so a player's block may stand there (ADR 0108). Undefined when
  * every accepting slot is taken.
@@ -66,11 +90,13 @@ export function nearestFreeSlot(
   decor: readonly DecorPlacement[],
   point: Vec3,
   clear: (slot: DecorSlot) => boolean,
+  eye?: Vec3,
 ): DecorSlot | undefined {
   return nearest(
     pose,
     slotsFor(item).filter((slot) => !cellTaken(slot, decor) && clear(slot)),
     point,
+    eye,
   );
 }
 
@@ -102,7 +128,8 @@ export function pressedSlots(pose: HoldPose, cell: Vec3): DecorSlot[] {
  * it has one; otherwise the free accepting slot nearest `point` (ADR 0093, 0097, 0105,
  * 0108), or none when `exact`: a press on a dinette seat names one slot, and filling
  * another one left the player unable to tell where the item went (ADR 0104). A slot is
- * free as in nearestFreeSlot, `clear` included.
+ * free as in nearestFreeSlot, `clear` included. With the player's `eye`, nearness is
+ * measured where the line of sight crosses each slot's surface (ADR 0110).
  */
 export function slotForPress(
   pose: HoldPose,
@@ -112,12 +139,13 @@ export function slotForPress(
   point: Vec3,
   exact: boolean,
   clear: (slot: DecorSlot) => boolean,
+  eye?: Vec3,
 ): DecorSlot | undefined {
   const accepting = new Set(slotsFor(item));
   const pressed = pressedSlots(pose, cell).filter(
     (slot) => accepting.has(slot) && !cellTaken(slot, decor) && clear(slot),
   );
-  if (pressed.length > 0) return nearest(pose, pressed, point);
+  if (pressed.length > 0) return nearest(pose, pressed, point, eye);
   if (exact) return undefined;
-  return nearestFreeSlot(pose, item, decor, point, clear);
+  return nearestFreeSlot(pose, item, decor, point, clear, eye);
 }

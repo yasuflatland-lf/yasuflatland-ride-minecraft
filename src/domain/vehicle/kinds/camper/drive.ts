@@ -216,6 +216,7 @@ export class CamperDrive extends TransformingDrive {
     cell: Vec3,
     exact: boolean,
     blockTypes: (cells: readonly Vec3[]) => readonly (string | undefined)[],
+    eye?: Vec3,
   ): string | undefined {
     const pose = this.parked;
     if (!pose) return undefined;
@@ -226,8 +227,15 @@ export class CamperDrive extends TransformingDrive {
     const clear = new Set(
       cells.filter((_, i) => ownSlotBlock(types[i], undefined)).map(cellKey),
     );
-    return slotForPress(pose, item, this.placed(), cell, point, exact, (slot) =>
-      clear.has(cellKey(decorSlotCell(pose, slot))),
+    return slotForPress(
+      pose,
+      item,
+      this.placed(),
+      cell,
+      point,
+      exact,
+      (slot) => clear.has(cellKey(decorSlotCell(pose, slot))),
+      eye,
     )?.id;
   }
 

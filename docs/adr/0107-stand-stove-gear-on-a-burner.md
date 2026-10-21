@@ -1,6 +1,6 @@
 # 0107. Stand stove gear on a burner, and widen the standing decor box
 
-- Status: Accepted (a spot within its own cell, the whole-cell standing decor box for every spot, and a furniture block in every slot cell are superseded by [0108](0108-two-items-on-each-shelf-board-and-the-table.md): a shelf board's or the table's second slot is hosted in a neighbor cell, and its pair splits the furniture cell between two half boxes)
+- Status: Accepted (a spot within its own cell, the whole-cell standing decor box for every spot, and a furniture block in every slot cell are superseded by [0108](0108-two-items-on-each-shelf-board-and-the-table.md): a shelf board's or the table's second slot is hosted in a neighbor cell, and its pair splits the furniture cell between two half boxes; measuring a slot's nearness from the hit point is superseded by [0110](0110-pick-decor-slots-along-the-line-of-sight.md): it is measured where the line of sight crosses the slot's surface)
 - Date: 2026-10-22
 - Supersedes in part: 0097 (a decor block's selection box at the item's footprint), 0100 (stove decor standing on the bare plate in the middle of the cooktop)
 

@@ -112,6 +112,10 @@ function placeGear(
     y: block.location.y,
     z: block.location.z,
   };
+  // A press on a furniture block's side face lands below the spot the player looked
+  // at, so the slot is picked along the line of sight from the eye (ADR 0110).
+  const head = ev.player.getHeadLocation();
+  const eye = { x: head.x, y: head.y, z: head.z };
   const playerId = asPlayerId(ev.player.id);
   const hotbarSlot = ev.player.selectedSlotIndex;
   // Before events cannot change the world, so the item is taken on the next tick.
@@ -124,6 +128,7 @@ function placeGear(
       cell,
       hotbarSlot,
       exact: false,
+      eye,
     }),
   );
 }

@@ -18,6 +18,8 @@ export interface PlaceDecorCommand {
   hotbarSlot: number;
   /** The press names one slot (a dinette deck seat); refuse instead of falling back to another slot (ADR 0104). */
   exact: boolean;
+  /** The player's eye: the slot is picked where the line of sight through `point` crosses its surface (ADR 0110). */
+  eye?: Vec3;
 }
 
 export class PlaceDecor {
@@ -36,6 +38,7 @@ export class PlaceDecor {
       cmd.cell,
       cmd.exact,
       (cells) => this.world.blockTypes(cmd.vehicleId, cells),
+      cmd.eye,
     );
     if (slot === undefined) {
       this.world.showMessage(cmd.playerId, DECOR_MESSAGES.noSlot);
