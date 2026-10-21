@@ -10,6 +10,7 @@ tile.yasu_ride:deck_floor.name=ボートの甲板
 yasu_ride.message.cannot_park=ここでは駐車できません
 yasu_ride.message.clear_cargo=車内のブロックを片付けてください
 yasu_ride.message.sleep_at_night=夜にしか眠れません
+yasu_ride.message.decor_no_slot=この小物を置ける空きがありません
 yasu_ride.hint.bumper_touch=バンパーを%s回叩くと%sをアイテムに戻せます。長押しで乗れます
 yasu_ride.hint.bumper_mouse=バンパーを%s回叩くと%sをアイテムに戻せます。右クリックで乗れます
 yasu_ride.hint.bumper_other=バンパーを%s回叩くと%sをアイテムに戻せます。使用ボタンで乗れます

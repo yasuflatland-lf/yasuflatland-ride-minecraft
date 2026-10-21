@@ -4,6 +4,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { forward } from "../../src/domain/shared/vec";
 import {
+  CAMPER_DECOR_COMPONENT,
   DECOR_FACE_STATE,
   DECOR_HEIGHT_STATE,
   decorBlockId,
@@ -365,6 +366,7 @@ function expectedDecor(g: Gear) {
         "minecraft:light_dampening": 0,
         "minecraft:destructible_by_mining": false,
         "minecraft:destructible_by_explosion": false,
+        "minecraft:custom_components": [CAMPER_DECOR_COMPONENT],
         "minecraft:collision_box": false,
         "minecraft:selection_box": {
           origin: [-w / 2, 0, -w / 2],
@@ -400,12 +402,11 @@ function langValues(locale: string): Map<string, string[]> {
 }
 
 describe("camping gear blocks and items (ADR 0093)", () => {
-  it("defines one decor block per gear with no collision, a centered selection box, and no custom component", () => {
+  it("defines one decor block per gear with no collision, a centered selection box, and the decor component", () => {
     for (const g of SPEC) {
       const block = decorOf(g);
       expect(block, g.id).toEqual(expectedDecor(g));
       const components = block["minecraft:block"].components;
-      expect(components).not.toHaveProperty(["minecraft:custom_components"]);
       expect(components).not.toHaveProperty(["minecraft:loot"]);
       expect(components).not.toHaveProperty(["minecraft:transformation"]);
     }
@@ -414,6 +415,14 @@ describe("camping gear blocks and items (ADR 0093)", () => {
         .filter((f) => f.endsWith("_decor.block.json"))
         .sort(),
     ).toEqual(SPEC.map((g) => `${g.id}_decor.block.json`).sort());
+  });
+
+  it("registers the decor component on every camping gear block (ADR 0093)", () => {
+    for (const g of SPEC)
+      expect(
+        decorOf(g)["minecraft:block"].components["minecraft:custom_components"],
+        g.id,
+      ).toEqual([CAMPER_DECOR_COMPONENT]);
   });
 
   it("turns the gear model's -z to the camper's front for every face", () => {
