@@ -5,6 +5,7 @@ import {
 } from "../../../domain/vehicle/entityContract";
 import type { FleetEntry } from "../../../domain/vehicle/fleet/fleet";
 import { VEHICLE_KINDS, type VehicleKind } from "../../../domain/vehicle/kind";
+import { CAMPING_GEAR_IDS } from "../../../domain/vehicle/kinds/index";
 import { PAINTS, type Paint } from "../../../domain/vehicle/paint/paint";
 import type { ChaseCamera } from "../../../domain/vehicle/profile";
 import type { RamMount } from "../../../domain/vehicle/ram";
@@ -161,6 +162,39 @@ export const DECOR_HEIGHT_STATE = id("height");
 /** The decor block that shows a camping gear item in a parked camper (ADR 0093). */
 export function decorBlockId(item: string): string {
   return id(`${item}_decor`);
+}
+
+/** Custom component handling taps on camper decor blocks (ADR 0093). */
+export const CAMPER_DECOR_COMPONENT = id("camper_decor");
+
+const CAMPER_ROOM_BLOCKS: ReadonlySet<string> = new Set([
+  CAMPER_FLOOR_BLOCK,
+  CAMPER_CEILING_BLOCK,
+  CAMPER_WALL_BLOCK,
+  CAMPER_DOOR_BLOCK,
+  CAMPER_BED_BLOCK,
+]);
+
+/** A block the parked camper's room lays (ADR 0068, 0092); the door step is a shared deck floor and is left out. */
+export function isCamperRoomBlock(typeId: string): boolean {
+  return CAMPER_ROOM_BLOCKS.has(typeId);
+}
+
+/** The item type of a camping gear id (ADR 0093). */
+export function campingGearItem(gear: string): string {
+  return id(gear);
+}
+
+/** The camping gear id of an item type, if it is camping gear. */
+export function campingGearOfItem(
+  typeId: string | undefined,
+): string | undefined {
+  return CAMPING_GEAR_IDS.find((gear) => campingGearItem(gear) === typeId);
+}
+
+/** The camping gear id of a decor block type, if it is one. */
+export function campingGearOfDecorBlock(typeId: string): string | undefined {
+  return CAMPING_GEAR_IDS.find((gear) => decorBlockId(gear) === typeId);
 }
 /** Action bar messages a drive shows its driver (ADR 0063, 0068). */
 export const messageKey = (name: string): string =>

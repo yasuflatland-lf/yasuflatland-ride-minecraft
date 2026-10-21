@@ -6,9 +6,19 @@ import {
   paintEventName,
 } from "../../../../src/domain/vehicle/entityContract";
 import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
+import { CAMPING_GEAR_IDS } from "../../../../src/domain/vehicle/kinds/index";
 import { PAINTS } from "../../../../src/domain/vehicle/paint/paint";
 import { NAMESPACE } from "../../../../src/infrastructure/shared/identifiers";
 import {
+  CAMPER_BED_BLOCK,
+  CAMPER_CEILING_BLOCK,
+  CAMPER_DOOR_BLOCK,
+  CAMPER_FLOOR_BLOCK,
+  CAMPER_WALL_BLOCK,
+  campingGearItem,
+  campingGearOfDecorBlock,
+  campingGearOfItem,
+  DECK_FLOOR_BLOCK,
   DECK_SEAT_TYPE,
   DECOR_PROPERTY,
   decorBlockId,
@@ -20,6 +30,7 @@ import {
   HEADLIGHT_SWITCH_TYPE,
   HEADLIGHTS_PROPERTY,
   ITEM_TYPE,
+  isCamperRoomBlock,
   isVehicleEntity,
   kindOfEntity,
   kindOfItem,
@@ -189,5 +200,37 @@ describe("identifiers (ADR 0047)", () => {
   it("freezes the entity and item type tables", () => {
     expect(Object.isFrozen(ENTITY_TYPE)).toBe(true);
     expect(Object.isFrozen(ITEM_TYPE)).toBe(true);
+  });
+
+  it("maps camping gear items and decor blocks to their gear ids and nothing else (ADR 0093)", () => {
+    fc.assert(
+      fc.property(fc.constantFrom(...CAMPING_GEAR_IDS), (gear) => {
+        expect(campingGearOfItem(`yasu_ride:${gear}`)).toBe(gear);
+        expect(campingGearOfDecorBlock(`yasu_ride:${gear}_decor`)).toBe(gear);
+        expect(campingGearItem(gear)).toBe(`yasu_ride:${gear}`);
+        expect(campingGearOfItem(`yasu_ride:${gear}_decor`)).toBeUndefined();
+        expect(campingGearOfDecorBlock(`yasu_ride:${gear}`)).toBeUndefined();
+      }),
+    );
+    expect(campingGearOfItem(undefined)).toBeUndefined();
+    expect(campingGearOfItem(ITEM_TYPE.camper)).toBeUndefined();
+    expect(campingGearOfItem("minecraft:stone")).toBeUndefined();
+  });
+
+  it("recognizes only the camper's own room blocks", () => {
+    for (const typeId of [
+      CAMPER_FLOOR_BLOCK,
+      CAMPER_CEILING_BLOCK,
+      CAMPER_WALL_BLOCK,
+      CAMPER_DOOR_BLOCK,
+      CAMPER_BED_BLOCK,
+    ])
+      expect(isCamperRoomBlock(typeId)).toBe(true);
+    for (const typeId of [
+      DECK_FLOOR_BLOCK,
+      decorBlockId("percolator"),
+      "minecraft:stone",
+    ])
+      expect(isCamperRoomBlock(typeId)).toBe(false);
   });
 });

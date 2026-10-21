@@ -22,9 +22,13 @@ import { SPEC } from "../../../../src/domain/vehicle/spec";
 import type { VehicleRepository } from "../../../../src/domain/vehicle/vehicleRepository";
 import {
   CAMPER_BED_COMPONENT,
+  CAMPER_DECOR_COMPONENT,
   CAMPER_DOOR_COMPONENT,
+  CAMPER_FLOOR_BLOCK,
+  DECK_FLOOR_BLOCK,
   DECK_SEAT_OF_PROPERTY,
   DECK_SEAT_TYPE,
+  decorBlockId,
   ENTITY_TYPE,
   HEADLIGHT_SWITCH_TYPE,
   ITEM_TYPE,
@@ -145,6 +149,7 @@ function fixture(
       typeof registerSubscriptions
     >[0],
     new TestInputStore(),
+    () => undefined,
     () => undefined,
   );
   const before = game.before.mock.calls.at(-1)?.[0];
@@ -408,6 +413,7 @@ it("paints a hit vehicle with a held dye and otherwise damages it, ignoring othe
     { hit, paint } as unknown as Parameters<typeof registerSubscriptions>[0],
     new TestInputStore(),
     () => undefined,
+    () => undefined,
   );
   const onHit = vi
     .mocked(world.afterEvents.entityHitEntity.subscribe)
@@ -447,6 +453,7 @@ it("paints a hit vehicle with a held dye and otherwise damages it, ignoring othe
   held = undefined;
   send(player);
   expect(hit.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId: "player",
     vehicleId: "vehicle",
     fromDeck: false,
   });
@@ -497,6 +504,7 @@ it("removes an orphan deck seat that loads with a chunk, but not one that is jus
     { limit } as unknown as Parameters<typeof registerSubscriptions>[0],
     new TestInputStore(),
     () => undefined,
+    () => undefined,
   );
   const spawn = vi
     .mocked(world.afterEvents.entitySpawn.subscribe)
@@ -532,6 +540,7 @@ it("passes fleet metadata on spawn and load and skips invalid or unrelated entit
   registerSubscriptions(
     { limit } as unknown as Parameters<typeof registerSubscriptions>[0],
     new TestInputStore(),
+    () => undefined,
     () => undefined,
   );
   const spawn = vi
@@ -576,6 +585,7 @@ it("registers door interactions during startup and dispatches only owned doors",
     { door } as unknown as Parameters<typeof registerSubscriptions>[0],
     new TestInputStore(),
     owner,
+    () => undefined,
   );
   const startup = game.startup.mock.calls.at(-1)?.[0];
   if (!startup) throw new Error("startup not subscribed synchronously");
@@ -609,6 +619,7 @@ it("registers bed interactions during startup and passes the player, dimension, 
     { bed } as unknown as Parameters<typeof registerSubscriptions>[0],
     new TestInputStore(),
     vi.fn(),
+    () => undefined,
   );
   const registerCustomComponent =
     vi.fn<(name: string, component: BlockCustomComponent) => void>();
@@ -653,6 +664,7 @@ it("checks the hints every hint interval, after the drive on the same tick (ADR 
     { drive, hints } as unknown as Parameters<typeof registerSubscriptions>[0],
     new TestInputStore(),
     () => undefined,
+    () => undefined,
   );
   const intervals = vi.mocked(system.runInterval).mock.calls;
   expect(intervals.map(([, ticks]) => ticks)).toEqual([
@@ -673,6 +685,7 @@ it("gives the starter vehicle only on a player's initial spawn", () => {
     { starter } as unknown as Parameters<typeof registerSubscriptions>[0],
     new TestInputStore(),
     () => undefined,
+    () => undefined,
   );
   const spawn = vi
     .mocked(world.afterEvents.playerSpawn.subscribe)
@@ -690,6 +703,7 @@ it("stores and clears test input only from server script events", () => {
   registerSubscriptions(
     {} as unknown as Parameters<typeof registerSubscriptions>[0],
     inputs,
+    () => undefined,
     () => undefined,
   );
   const receive = vi
@@ -734,6 +748,7 @@ it("sets decor only from server test decor script events (ADR 0093)", () => {
     { decor } as unknown as Parameters<typeof registerSubscriptions>[0],
     new TestInputStore(),
     () => undefined,
+    () => undefined,
   );
   const receive = vi
     .mocked(system.afterEvents.scriptEventReceive.subscribe)
@@ -768,4 +783,133 @@ it("sets decor only from server test decor script events (ADR 0093)", () => {
     slot: "table",
     item: undefined,
   });
+});
+
+function decorFixture() {
+  const placeDecor = { execute: vi.fn() };
+  const removeDecor = { execute: vi.fn() };
+  const owner = vi.fn<(dimensionId: string, cell: At) => VehicleId | undefined>(
+    () => asVehicleId("car"),
+  );
+  const before = game.before.mock.calls.length;
+  const startupsBefore = game.startup.mock.calls.length;
+  registerSubscriptions(
+    { placeDecor, removeDecor } as unknown as Parameters<
+      typeof registerSubscriptions
+    >[0],
+    new TestInputStore(),
+    () => undefined,
+    owner,
+  );
+  // registerDecor subscribes first.
+  const handler = defined(game.before.mock.calls[before], "decor handler")[0];
+  game.run.mockClear();
+  const event = (overrides: Record<string, unknown> = {}) => ({
+    isFirstEvent: true,
+    cancel: false,
+    itemStack: { typeId: "yasu_ride:percolator" },
+    block: {
+      typeId: CAMPER_FLOOR_BLOCK,
+      location: { x: 1, y: 64, z: 2 },
+      dimension: { id: "minecraft:overworld" },
+    },
+    faceLocation: { x: 0.25, y: 1, z: 0.5 },
+    player: { id: "p", selectedSlotIndex: 4 },
+    ...overrides,
+  });
+  const send = (ev: ReturnType<typeof event>) => {
+    handler(ev as unknown as PlayerInteractWithBlockBeforeEvent);
+    return ev;
+  };
+  return { placeDecor, removeDecor, owner, startupsBefore, event, send };
+}
+
+it("places held camping gear on a camper room or decor block on the next tick and cancels every repeat (ADR 0093)", () => {
+  for (const typeId of [CAMPER_FLOOR_BLOCK, decorBlockId("percolator")]) {
+    const { placeDecor, owner, event, send } = decorFixture();
+    const ev = event();
+    ev.block = { ...ev.block, typeId };
+    expect(send(ev).cancel).toBe(true);
+    expect(owner).toHaveBeenCalledExactlyOnceWith("minecraft:overworld", {
+      x: 1,
+      y: 64,
+      z: 2,
+    });
+    expect(placeDecor.execute).not.toHaveBeenCalled();
+    for (const [callback] of game.run.mock.calls) callback();
+    expect(placeDecor.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId: "p",
+      vehicleId: "car",
+      item: "percolator",
+      point: { x: 1.25, y: 65, z: 2.5 },
+      hotbarSlot: 4,
+    });
+    game.run.mockClear();
+    const repeat = event({ isFirstEvent: false });
+    repeat.block = { ...repeat.block, typeId };
+    expect(send(repeat).cancel).toBe(true);
+    expect(game.run).not.toHaveBeenCalled();
+  }
+});
+
+it("leaves other items, other blocks, and cells no camper laid alone", () => {
+  const cases: ((f: ReturnType<typeof decorFixture>) => {
+    cancel: boolean;
+  })[] = [
+    (f) => f.send(f.event({ itemStack: { typeId: "minecraft:stone" } })),
+    (f) => {
+      const ev = f.event();
+      ev.block = { ...ev.block, typeId: DECK_FLOOR_BLOCK };
+      return f.send(ev);
+    },
+    (f) => f.send(f.event({ itemStack: undefined })),
+    (f) => {
+      f.owner.mockReturnValue(undefined);
+      return f.send(f.event());
+    },
+  ];
+  for (const run of cases) {
+    const f = decorFixture();
+    expect(run(f).cancel).toBe(false);
+    expect(game.run).not.toHaveBeenCalled();
+  }
+});
+
+it("takes decor back on an empty-hand interaction with a decor block (ADR 0093)", () => {
+  const { removeDecor, owner, startupsBefore } = decorFixture();
+  const registerCustomComponent =
+    vi.fn<(name: string, component: BlockCustomComponent) => void>();
+  for (const [startup] of game.startup.mock.calls.slice(startupsBefore))
+    startup({
+      blockComponentRegistry: { registerCustomComponent },
+    } as unknown as StartupEvent);
+  const interact = registerCustomComponent.mock.calls.find(
+    ([name]) => name === CAMPER_DECOR_COMPONENT,
+  )?.[1].onPlayerInteract;
+  if (!interact) throw new Error("decor interaction missing");
+  const cell = { x: 1, y: 65, z: 2 };
+  const event = (held?: { typeId: string }, withPlayer = true) =>
+    ({
+      dimension: { id: "minecraft:overworld" },
+      block: { location: cell },
+      player: withPlayer
+        ? {
+            id: "p",
+            selectedSlotIndex: 0,
+            getComponent: () => ({ container: { getItem: () => held } }),
+          }
+        : undefined,
+    }) as unknown as Parameters<typeof interact>[0];
+  interact(event(), { params: undefined });
+  expect(removeDecor.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId: "p",
+    vehicleId: "car",
+    cell,
+  });
+  removeDecor.execute.mockClear();
+  interact(event({ typeId: "minecraft:stone" }), { params: undefined });
+  interact(event(undefined, false), { params: undefined });
+  owner.mockReturnValue(undefined);
+  interact(event(), { params: undefined });
+  expect(removeDecor.execute).not.toHaveBeenCalled();
 });

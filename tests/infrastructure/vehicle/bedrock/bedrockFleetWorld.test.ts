@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { asVehicleId } from "../../../../src/domain/shared/ids";
+import { asPlayerId, asVehicleId } from "../../../../src/domain/shared/ids";
 import { BedrockFleetWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockFleetWorld";
 import { BedrockVehicleWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockVehicleWorld";
 import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
@@ -90,14 +90,16 @@ function fixture() {
   const inputs = new TestInputStore();
   const index = new EntityIndex();
   const world = new BedrockVehicleWorld(index, inputs);
+  const inventory = { giveItems: vi.fn() };
   return {
+    inventory,
     index,
     inputs,
     entities,
     dimension,
     car,
     world,
-    fleet: new BedrockFleetWorld(index, world.releaser),
+    fleet: new BedrockFleetWorld(index, world.releaser, inventory),
   };
 }
 
@@ -208,12 +210,24 @@ describe("BedrockFleetWorld drop and removal (ADR 0038, 0063)", () => {
 
   it("does not remove the entity when a release step throws", () => {
     const { car, index } = fixture();
-    const fleet = new BedrockFleetWorld(index, {
-      release: () => {
-        throw new Error("x");
-      },
-    } as unknown as VehicleReleaser);
+    const fleet = new BedrockFleetWorld(
+      index,
+      {
+        release: () => {
+          throw new Error("x");
+        },
+      } as unknown as VehicleReleaser,
+      { giveItems: vi.fn() },
+    );
     expect(() => fleet.removeVehicle(asVehicleId(car.id))).toThrow("x");
     expect(car.remove).not.toHaveBeenCalled();
+  });
+
+  it("gives the decor as camping gear items to the player (ADR 0093)", () => {
+    const { fleet, inventory } = fixture();
+    fleet.giveDecorItems(asPlayerId("p"), ["percolator"]);
+    expect(inventory.giveItems).toHaveBeenCalledExactlyOnceWith("p", [
+      "yasu_ride:percolator",
+    ]);
   });
 });

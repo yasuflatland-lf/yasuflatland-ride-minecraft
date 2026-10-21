@@ -190,4 +190,32 @@ describe("BedrockInventory", () => {
     expect(container.addItem).not.toHaveBeenCalled();
     expect(dimension.spawnItem).not.toHaveBeenCalled();
   });
+
+  describe("giveItems (ADR 0093)", () => {
+    it("gives each item into the inventory and drops only what does not fit at the player's feet", () => {
+      const { container, dimension, player, inventory } = fixture();
+      container.addItem.mockImplementation((item: { typeId: string }) =>
+        item.typeId === "yasu_ride:toaster" ? item : undefined,
+      );
+      inventory.giveItems(asPlayerId("player"), [
+        "yasu_ride:percolator",
+        "yasu_ride:toaster",
+      ]);
+      expect(container.addItem.mock.calls).toEqual([
+        [{ typeId: "yasu_ride:percolator", amount: 1 }],
+        [{ typeId: "yasu_ride:toaster", amount: 1 }],
+      ]);
+      expect(dimension.spawnItem).toHaveBeenCalledExactlyOnceWith(
+        { typeId: "yasu_ride:toaster", amount: 1 },
+        player.location,
+      );
+    });
+
+    it("gives nothing to a missing player", () => {
+      const { container, dimension, inventory } = fixture();
+      inventory.giveItems(asPlayerId("nobody"), ["yasu_ride:percolator"]);
+      expect(container.addItem).not.toHaveBeenCalled();
+      expect(dimension.spawnItem).not.toHaveBeenCalled();
+    });
+  });
 });

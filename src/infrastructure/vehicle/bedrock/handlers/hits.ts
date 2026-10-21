@@ -29,6 +29,7 @@ export function registerHits(
       return;
     }
     hitVehicle.execute({
+      playerId: asPlayerId(player.id),
       vehicleId,
       fromDeck: standsOnDeck(player),
     });
