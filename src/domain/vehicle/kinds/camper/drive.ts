@@ -148,8 +148,9 @@ export class CamperDrive extends TransformingDrive {
   removeDecor(cell: Vec3): string | undefined {
     if (!this.parked) return undefined;
     const slot = slotAt(this.parked, cell);
-    const item = slot ? this.decorBySlot.get(slot.id) : undefined;
-    if (!slot || item === undefined) return undefined;
+    if (!slot) return undefined;
+    const item = this.decorBySlot.get(slot.id);
+    if (item === undefined) return undefined;
     this.setDecor(slot.id, undefined);
     return item;
   }
