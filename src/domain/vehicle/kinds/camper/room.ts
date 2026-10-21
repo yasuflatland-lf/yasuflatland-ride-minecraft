@@ -139,21 +139,12 @@ function faceToward(v: Vec2): Face {
   return v.x < 0 ? 2 : 3;
 }
 
-function interior(pose: HoldPose, layers: readonly number[]): Vec3[] {
-  const cells: Vec3[] = [];
-  for (const dy of layers)
-    for (let lx = -HALF_X; lx <= HALF_X; lx++)
-      for (let lz = -HALF_Z; lz <= HALF_Z; lz++)
-        cells.push(cellAt(pose, lx, lz, dy));
-  return cells;
-}
-
 function isBed(lx: number, lz: number, dy: number): boolean {
   return dy === BED_LAYER && BED.some((b) => b.x === lx && b.z === lz);
 }
 
 /** The interior cells at `layers` that the bed does not fill. */
-function openInterior(pose: HoldPose, layers: readonly number[]): Vec3[] {
+function interior(pose: HoldPose, layers: readonly number[]): Vec3[] {
   const cells: Vec3[] = [];
   for (const dy of layers)
     for (let lx = -HALF_X; lx <= HALF_X; lx++)
@@ -217,8 +208,7 @@ export function roomCells(pose: HoldPose, doorOpen: boolean): DockCell[] {
 export function parkCheckCells(pose: HoldPose): Vec3[] {
   return [
     ...roomCells(pose, false).map(({ x, y, z }) => ({ x, y, z })),
-    ...openInterior(pose, INSIDE_LAYERS),
-    ...interior(pose, [ROOF_LAYER]),
+    ...cargoCells(pose),
     ...exitCells(pose),
   ];
 }
@@ -243,10 +233,7 @@ export function isPassable(typeId: string | undefined): boolean {
  * roof top. The bed cells are room blocks, not cargo (ADR 0092).
  */
 export function cargoCells(pose: HoldPose): Vec3[] {
-  return [
-    ...openInterior(pose, INSIDE_LAYERS),
-    ...interior(pose, [ROOF_LAYER]),
-  ];
+  return interior(pose, [...INSIDE_LAYERS, ROOF_LAYER]);
 }
 
 /** Layer-zero wall roots are read for matching plants, never to refuse parking. */
