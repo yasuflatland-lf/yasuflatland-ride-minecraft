@@ -103,8 +103,8 @@ it("keeps the saved slot ids, cells, and heights", () => {
       f.slots.map((s) => [s.id, s.cell.x, s.cell.z, s.cell.layer, s.height]),
     ),
   ).toEqual([
-    ["dashboard_center", 0, 3, 1, 13],
-    ["dashboard_left", 1, 3, 1, 13],
+    ["dashboard_center", 0, 3, 2, 3],
+    ["dashboard_left", 1, 3, 2, 3],
     ["table", 1, 0, 1, 12],
     ["dinette_front", 1, 1, 1, 7],
     ["dinette_rear", 1, -1, 1, 7],

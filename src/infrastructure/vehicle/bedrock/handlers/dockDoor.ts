@@ -16,7 +16,8 @@ export function registerDockDoor(
   ) => VehicleId | undefined,
 ): void {
   // A tap on any of the 3 door cells toggles the door; the drive owns its state,
-  // and the next dock re-places the door cells (ADR 0068).
+  // ignores a second tap within the swing, and the next dock re-places the door
+  // cells (ADR 0068, 0105).
   system.beforeEvents.startup.subscribe(({ blockComponentRegistry }) => {
     blockComponentRegistry.registerCustomComponent(CAMPER_DOOR_COMPONENT, {
       onPlayerInteract: (ev) => {

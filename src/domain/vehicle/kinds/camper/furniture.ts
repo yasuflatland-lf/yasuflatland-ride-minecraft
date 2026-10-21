@@ -77,16 +77,17 @@ const STOVE_CELL = { x: -1, z: -2, layer: 1 } as const satisfies LocalCell;
 // a hanging slot, 16 minus the hanging items' height; tests/packs/camper.test.ts checks them
 // against the generated model (ADR 0093, 0102).
 export const CAMPER_FURNITURE: readonly Furniture[] = [
+  // The dash top is at 35 px, 3 px into layer 2, just under the windshield (ADR 0106).
   {
     kind: "dashboard",
     cells: [
-      { x: -1, z: 3, layer: 1 },
-      { x: 0, z: 3, layer: 1 },
-      { x: 1, z: 3, layer: 1 },
+      { x: -1, z: 3, layer: 2 },
+      { x: 0, z: 3, layer: 2 },
+      { x: 1, z: 3, layer: 2 },
     ],
     slots: [
-      { id: "dashboard_center", cell: { x: 0, z: 3, layer: 1 }, height: 13 },
-      { id: "dashboard_left", cell: { x: 1, z: 3, layer: 1 }, height: 13 },
+      { id: "dashboard_center", cell: { x: 0, z: 3, layer: 2 }, height: 3 },
+      { id: "dashboard_left", cell: { x: 1, z: 3, layer: 2 }, height: 3 },
     ],
   },
   {

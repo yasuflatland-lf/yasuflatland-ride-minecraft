@@ -77,10 +77,10 @@ export interface Drive {
   /** Called when a new driver takes seat 0. */
   onDriverMounted(driverYaw: number): void;
   onSeatVacated(seat: number): readonly EngineCommand[];
-  /** Opens or closes the door of a held vehicle's room; false when it has none (ADR 0068). */
-  useDockDoor?(): boolean;
-  /** Opens or closes the shower door of a held vehicle; false when it has none (ADR 0094). */
-  useShowerDoor?(): boolean;
+  /** Opens or closes the door of a held vehicle's room at `tick`; false when it has none or the tap is ignored (ADR 0068, 0105). */
+  useDockDoor?(tick: number): boolean;
+  /** Opens or closes the shower door of a held vehicle at `tick`; false when it has none or the tap is ignored (ADR 0094, 0105). */
+  useShowerDoor?(tick: number): boolean;
   /** Runs the shower of a held vehicle for a fixed time; false when it has none (ADR 0094). */
   runShower?(): boolean;
   /** The decor of the vehicle's room, in slot order, then any stowed decor whose slot no longer exists (ADR 0103); absent for kinds without decor (ADR 0093). */
