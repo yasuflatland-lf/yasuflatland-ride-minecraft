@@ -54,6 +54,8 @@ export const CAMPER_SPEC = Object.freeze({
   gearDownHeight: 4,
   gearProbeOffset: 1.2, // inside the 3-wide collision box, as the SUV's 0.8 inside 1.8
   bankSink: 0.03,
+  // Doors (ADR 0068, 0094, 0105)
+  doorSwingTicks: 10, // one step of 0.1 per tick: half a second
   // Shower-toilet (ADR 0094)
   showerTicks: 100, // 5 s at 20 ticks per second
   // Decor (ADR 0097)

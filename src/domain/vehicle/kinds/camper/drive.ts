@@ -12,6 +12,7 @@ import { SyncedValue } from "../../syncedValue";
 import { type BodyEnds, guardEnds } from "./bodyGuard";
 import { DECOR_SLOTS, decorSlot } from "./decor";
 import { slotAt, slotForPress, slotsFor } from "./decorPlacing";
+import { DoorToggle } from "./doorToggle";
 import {
   type CAMPER_ENTITY,
   doorCommand,
@@ -47,8 +48,8 @@ const CAMPER_ENDS: BodyEnds = {
   height: CAMPER_SPEC.carHeight,
 };
 
-// The door swings in 10 steps of 0.1, one per tick: half a second (ADR 0068).
-const DOOR_STEPS = 10;
+// The door swings one step per tick (ADR 0068).
+const DOOR_STEPS = CAMPER_SPEC.doorSwingTicks;
 
 /** A door's swing restored in DOOR_STEPS; a camper that was not docked starts with it shut. */
 function restoredDoorStep(open: unknown, docked: boolean): number {
@@ -76,10 +77,12 @@ export class CamperDrive extends TransformingDrive {
   private parkTried = false;
   private stickWasPushed = false;
   private doorOpen: boolean;
+  private readonly doorToggle = new DoorToggle();
   private doorStep: number;
   private readonly doorStepSync = new SyncedValue<number>();
   // The shower door swings in the entry door's DOOR_STEPS (ADR 0094).
   private showerDoorOpen: boolean;
+  private readonly showerDoorToggle = new DoorToggle();
   private showerDoorStep: number;
   private readonly showerDoorStepSync = new SyncedValue<number>();
   private showerTicks = 0;
@@ -144,14 +147,14 @@ export class CamperDrive extends TransformingDrive {
     super.onDriverMounted(driverYaw);
   }
 
-  useDockDoor(): boolean {
-    if (!this.parked) return false;
+  useDockDoor(tick: number): boolean {
+    if (!this.parked || !this.doorToggle.tryToggle(tick)) return false;
     this.doorOpen = !this.doorOpen;
     return true;
   }
 
-  useShowerDoor(): boolean {
-    if (!this.parked) return false;
+  useShowerDoor(tick: number): boolean {
+    if (!this.parked || !this.showerDoorToggle.tryToggle(tick)) return false;
     this.showerDoorOpen = !this.showerDoorOpen;
     return true;
   }

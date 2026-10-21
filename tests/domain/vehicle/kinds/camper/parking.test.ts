@@ -262,11 +262,11 @@ it("refuses cargo only on each press and requires a new press after cargo is cle
 
 it("toggles all three door cells and swings the model in ten bounded steps each way", () => {
   const f = fixture();
-  expect(f.drive.useDockDoor()).toBe(false);
+  expect(f.drive.useDockDoor(f.ctx.tick)).toBe(false);
   f.park();
-  expect(f.drive.useDockDoor()).toBe(true);
+  expect(f.drive.useDockDoor(f.ctx.tick)).toBe(true);
   for (const open of [true, false]) {
-    if (!open) expect(f.drive.useDockDoor()).toBe(true);
+    if (!open) expect(f.drive.useDockDoor(f.ctx.tick)).toBe(true);
     for (let tick = 1; tick <= 10; tick++) {
       const out = f.step();
       const doors = out.dock?.cells.filter((c) => c.block.type === "door");
@@ -282,6 +282,35 @@ it("toggles all three door cells and swings the model in ten bounded steps each 
     }
     expect(f.step().commands).toEqual([]);
   }
+});
+
+it("toggles each door once for two taps within a swing and twice for taps a swing apart (ADR 0105)", () => {
+  fc.assert(
+    fc.property(
+      fc.integer({ min: 0, max: 2 * CAMPER_SPEC.doorSwingTicks }),
+      fc.constantFrom("door", "shower_door"),
+      (gap, name) => {
+        const f = fixture();
+        f.park();
+        const tap = (tick: number) =>
+          name === "door"
+            ? f.drive.useDockDoor(tick)
+            : f.drive.useShowerDoor(tick);
+        const values: unknown[] = [];
+        const step = () => {
+          for (const c of f.step().commands)
+            if (c.type === "setProperty" && c.name === name)
+              values.push(c.value);
+        };
+        const first = f.ctx.tick;
+        expect(tap(first)).toBe(true);
+        while (f.ctx.tick < first + gap) step();
+        expect(tap(f.ctx.tick)).toBe(gap >= CAMPER_SPEC.doorSwingTicks);
+        for (let i = 0; i < 2 * CAMPER_SPEC.doorSwingTicks; i++) step();
+        expect(values.at(-1)).toBe(gap >= CAMPER_SPEC.doorSwingTicks ? 0 : 1);
+      },
+    ),
+  );
 });
 
 it("restores a laid open room immediately without a scan or dock event", () => {
@@ -753,16 +782,16 @@ describe("shower-toilet (ADR 0094)", () => {
 
   it("ignores the shower door and the shower until parked", () => {
     const f = fixture();
-    expect(f.drive.useShowerDoor()).toBe(false);
+    expect(f.drive.useShowerDoor(f.ctx.tick)).toBe(false);
     expect(f.drive.runShower()).toBe(false);
   });
 
   it("swings the shower door in ten bounded steps each way and leaves the entry door shut", () => {
     const f = fixture();
     f.park();
-    expect(f.drive.useShowerDoor()).toBe(true);
+    expect(f.drive.useShowerDoor(f.ctx.tick)).toBe(true);
     for (const open of [true, false]) {
-      if (!open) expect(f.drive.useShowerDoor()).toBe(true);
+      if (!open) expect(f.drive.useShowerDoor(f.ctx.tick)).toBe(true);
       for (let tick = 1; tick <= 10; tick++) {
         const out = f.step();
         expect(out.commands).toContainEqual({
@@ -810,7 +839,7 @@ describe("shower-toilet (ADR 0094)", () => {
     const f = fixture();
     f.park();
     f.step();
-    f.drive.useShowerDoor();
+    f.drive.useShowerDoor(f.ctx.tick);
     f.drive.runShower();
     for (let i = 0; i < 10; i++) f.step();
     const out = f.step(PUSH);

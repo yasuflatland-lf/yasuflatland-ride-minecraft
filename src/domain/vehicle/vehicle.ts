@@ -191,14 +191,14 @@ export class Vehicle {
     return kept?.name === current ? kept : undefined;
   }
 
-  /** A player tapped the door of this vehicle's room. Returns whether it opened or closed (ADR 0068). */
-  useDockDoor(): boolean {
-    return this.drive.useDockDoor?.() ?? false;
+  /** A player tapped the door of this vehicle's room at `tick`. Returns whether it opened or closed (ADR 0068, 0105). */
+  useDockDoor(tick: number): boolean {
+    return this.drive.useDockDoor?.(tick) ?? false;
   }
 
-  /** A player tapped the shower door. Returns whether it opened or closed (ADR 0094). */
-  useShowerDoor(): boolean {
-    return this.drive.useShowerDoor?.() ?? false;
+  /** A player tapped the shower door at `tick`. Returns whether it opened or closed (ADR 0094, 0105). */
+  useShowerDoor(tick: number): boolean {
+    return this.drive.useShowerDoor?.(tick) ?? false;
   }
 
   /** A player asked for the shower. Returns whether it runs (ADR 0094). */
