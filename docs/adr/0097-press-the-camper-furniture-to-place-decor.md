@@ -1,6 +1,6 @@
 # 0097. Press the camper furniture to place decor
 
-- Status: Accepted (the wall cabinet halves among the standing slots are superseded by [0103](0103-raise-the-camper-wall-cabinet-to-the-ceiling.md); a press on a taken dinette seat is refused by [0104](0104-refuse-a-press-on-a-taken-seat.md))
+- Status: Accepted (the wall cabinet halves among the standing slots are superseded by [0103](0103-raise-the-camper-wall-cabinet-to-the-ceiling.md); extended by [0104](0104-refuse-a-press-on-a-taken-seat.md) (a press on a taken dinette seat is refused))
 - Date: 2026-10-21
 - Extends: 0068, 0093
 

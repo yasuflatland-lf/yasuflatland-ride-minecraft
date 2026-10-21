@@ -15,6 +15,7 @@ In the play test after 0103 (#410), repeated presses on one dinette seat that al
 - A press names one slot when it comes from a dinette deck seat. `PlaceDecorCommand.exact` is `true` for a seat press and `false` for a press on a furniture or decor block
 - With `exact`, the item goes on the pressed slot when that slot accepts it and is free. Otherwise nothing is placed: the player sees "No free spot for this item", keeps the item, and nothing is saved
 - Without `exact`, 0097's rule stays: the pressed slot when it accepts the item and is free, otherwise the free accepting slot nearest the hit point
+- This narrows 0097's rule that "No free spot for this item" shows only when every slot of the item's kind is taken: a seat press also shows it when the pressed slot is taken or does not accept the item
 - The seat press stays cancelled in both cases, so a refused press does not seat the player either. With an empty hand or any other item the player sits as before
 
 ## Consequences
