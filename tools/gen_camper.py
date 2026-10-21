@@ -50,6 +50,8 @@ PALETTE = {
     "piping": (128, 140, 78, 255),
     "needle": (245, 245, 245, 255),
     "hub": (196, 192, 176, 255),
+    "harvest": (214, 160, 48, 255),
+    "avocado": (120, 132, 54, 255),
 }
 SLOTS = list(PALETTE)
 
@@ -216,7 +218,8 @@ for a0, a1 in ARCHES:  # straight up to ARCH_SLOPE_Y, then sloping in by ARCH_IN
         inset = ARCH_INSET * (i + 0.5) / n
         y = ARCH_SLOPE_Y + i * ARCH_STEP
         arch_holes.append((a0 + inset, a1 - inset, y, y + ARCH_STEP))
-right_windows = [CAB_WIN, (-35, -10, *WIN_Y), (16, 24, *WIN_Y), (38, 50, *WIN_Y), (-31, -19, 56, 59)]
+# No window between the door and the shower room: the wall cabinet covers that wall.
+right_windows = [CAB_WIN, (-35, -10, *WIN_Y), (38, 50, *WIN_Y), (-31, -19, 56, 59)]
 left_windows = [CAB_WIN, (-29, -5, *WIN_Y), (-19, -8, 56, 59), (16, 21, 36, 48), (40, 49, 38, 47)]
 for x0, x1, windows in ((HW - 1, HW, right_windows), (-HW, -HW + 1, left_windows)):
     right = x0 > 0
@@ -709,6 +712,70 @@ body.append(box(BED[0] + 0.2, FLOOR + 7.5, BED[2] + 0.2, BED[1] - 0.2, FLOOR + 9
 body.append(box(BED[0] + 0.1, FLOOR + 5, BED[2] + 0.1, BED[1] - 0.1, FLOOR + 7.5, BED[2] + 0.4, "curtain"))  # blanket over the foot
 body.append(box(BED[0] + 0.2, FLOOR + 8.6, BED[3] - 9, BED[1] - 0.2, FLOOR + 9.4, BED[3] - 7.5, "ivory"))  # folded sheet
 body.append(box(BED[0] + 2, FLOOR + 7.5, BED[3] - 6, BED[1] - 2, FLOOR + 10, BED[3] - 1.5, "white"))  # pillow
+# --- Right-hand furniture (ADR 0093) ----------------------------------------
+# Each decor slot height in src/domain/vehicle/kinds/camper/furniture.ts is the top of the
+# furniture at the middle of its cell; tests/packs/camper.test.ts checks them against this model.
+FURN_X = (9, 22.4)  # clear of the curtains (22.5 to 22.8) and the aisle (x < 8)
+# Tall open shelf behind the driver (cell z = 1): a closed base, two boards, open to the window.
+SHELF_Z = (-23.5, -8.5)
+for z0, z1 in ((SHELF_Z[0], SHELF_Z[0] + 0.5), (SHELF_Z[1] - 0.5, SHELF_Z[1])):
+    body.append(box(FURN_X[0], FLOOR, z0, FURN_X[1], 49, z1, "wood"))  # end panels
+body.append(box(FURN_X[0], FLOOR, -23, FURN_X[1], 25, -9, "wood"))  # base cabinet
+body.append(box(8.7, FLOOR + 1, -22.5, FURN_X[0], 24.5, -9.5, "brown"))  # its door
+body.append(box(FURN_X[0], 25, -23, FURN_X[1], 26, -9, "brown"))  # low board, top 26
+body.append(box(FURN_X[0], 35, -23, FURN_X[1], 36, -9, "brown"))  # high board, top 36
+body.append(box(FURN_X[0], 48, SHELF_Z[0], FURN_X[1], 49, SHELF_Z[1], "wood"))  # top
+for y in (28, 38):  # fiddle rails along the aisle edge
+    body.append(box(FURN_X[0], y, -23, FURN_X[0] + 0.4, y + 0.4, -9, "chrome"))
+# Counter behind the door: the stove in cell z = -1, the sink in cell z = -2, tops at 30.
+COUNTER_Z = (8.5, 39.5)
+body.append(box(FURN_X[0], FLOOR, COUNTER_Z[0], 22.8, 29, COUNTER_Z[1], "wood"))
+body.append(box(8.5, 29, COUNTER_Z[0], 22.8, 30, 24, "steel"))  # cooktop
+body.append(box(8.5, 29, 24, 22.8, 30, COUNTER_Z[1], "harvest"))  # counter top
+for bx in (12, 19):  # burner grates, off the cell's middle where the decor stands
+    for bz in (12, 20):
+        body.append(box(bx - 2, 30, bz - 2, bx + 2, 30.2, bz + 2, "black"))
+body.append(box(8.7, 18, 9.5, FURN_X[0], 26, 23, "black"))  # oven door
+body.append(box(8.3, 24.5, 11, 8.7, 25.2, 21.5, "chrome"))  # oven handle
+for z in (11, 14, 18, 21):  # stove knobs
+    body.append(box(8.4, 27, z - 0.6, FURN_X[0], 28, z + 0.6, "chrome"))
+body.append(box(8.7, FLOOR + 1, 25, FURN_X[0], 28, 39, "avocado"))  # cupboard door
+body.append(box(8.3, 25, 26, 8.7, 26.5, 26.8, "chrome"))
+body.append(box(11, 30, 33.5, 20, 30.15, 39, "steel"))  # sink, behind the slot
+body.append(box(15, 30.15, 35.8, 16, 30.2, 36.8, "black"))  # drain
+body.append(box(20.5, 30, 35.5, 21.5, 34, 36.5, "chrome"))  # tap
+body.append(box(17.5, 33, 35.5, 21.5, 34, 36.5, "chrome"))  # spout
+# Wall cabinet over the counter (cells z = -1 and -2, one layer up), top 45; its bottom at 38
+# clears the tallest stove item (7 px on 30).
+body.append(box(10, 38, COUNTER_Z[0], 22.8, 45, 37.5, "wood"))
+for z0, z1 in ((9, 22.8), (23.2, 37)):
+    body.append(box(9.7, 38.5, z0, 10, 44.5, z1, "avocado"))
+for z in (21.5, 23.8):
+    body.append(box(9.4, 39, z, 9.7, 40.5, z + 0.7, "chrome"))
+# Shower-toilet room in the rear right corner (cell z = -3, two layers), door to the aisle.
+SHOWER_Z = (40.5, 41.1)  # front partition, behind the window curtain (38 to 40.5)
+body.append(box(8, FLOOR, SHOWER_Z[0], 22.8, CEIL - 0.2, SHOWER_Z[1], "ivory"))
+body.append(box(8, FLOOR, SHOWER_Z[1], 8.6, CEIL - 0.2, 42, "ivory"))  # front jamb
+body.append(box(8, FLOOR, 54, 8.6, CEIL - 0.2, 55.5, "ivory"))  # rear jamb, short of the rear wall
+body.append(box(8, 52, 42, 8.6, CEIL - 0.2, 54, "ivory"))  # header
+body.append(box(9, FLOOR, SHOWER_Z[1], 22.8, FLOOR + 0.3, 55.5, "white"))  # shower tray
+body.append(box(10.5, FLOOR + 0.3, 52, 11.5, FLOOR + 0.35, 53, "black"))  # drain
+body.append(box(14, FLOOR, 45.5, 20, 22, 50.5, "white"))  # toilet bowl
+body.append(box(13, 22, 45, 20, 23, 51, "ivory"))  # seat, 7 px up like the dinette
+body.append(box(19, 23, 45, 19.5, 31, 51, "ivory"))  # raised lid
+body.append(box(19.5, 26, 44.5, 22.6, 34, 51.5, "white"))  # tank
+body.append(box(21.5, 46, 53, 22.8, 47, 54.5, "chrome"))  # shower arm
+body.append(box(19.5, 44.5, 52.5, 21.5, 46, 55, "chrome"))  # shower head
+# The door is its own bone, hinged on its rear edge at the aisle face; it stays closed here.
+shower_door = [box(8, FLOOR + 0.5, 42.1, 8.6, 51.9, 53.9, "wood")]
+shower_door.append(box(7.4, 32, 43, 8, 33, 44.5, "chrome"))  # handle outside
+shower_door.append(box(8.6, 32, 43, 9.2, 33, 44.5, "chrome"))  # handle inside
+SHOWER_HINGE = [8, 0, 54]
+# Ceiling hook above the dinette table (cell x = 1, z = 0, layer 2): a hanging decor item's top
+# sits at the ceiling plate's underside, 29 px above the cell bottom, so the hook stays in the
+# top pixel under the plate and the space below it stays clear (ADR 0093).
+body.append(box(-17, CEIL - 0.4, -1, -15, CEIL - 0.2, 1, "chrome"))  # base plate
+body.append(box(-16.25, CEIL - 1, -0.25, -15.75, CEIL - 0.4, 0.25, "chrome"))  # hook
 seat0 = bucket_seat(7, 18)
 seat1 = bucket_seat(-18, -7)
 
@@ -832,6 +899,7 @@ camper_bones = [
     {"name": "door_entry", "parent": "body", "pivot": DOOR_HINGE, "cubes": door},
     {"name": "steering", "parent": "body", "pivot": STEERING_PIVOT, "rotation": [STEERING_LEAN, 0, 0],
      "cubes": [moved(c, STEERING_PIVOT) for c in steering]},
+    {"name": "shower_door", "parent": "body", "pivot": SHOWER_HINGE, "cubes": shower_door},
     {"name": "glass", "parent": "body", "pivot": [0, 0, 0], "cubes": glass},
     {"name": "door_glass", "parent": "door_entry", "pivot": DOOR_HINGE, "cubes": door_glass},
 ]
