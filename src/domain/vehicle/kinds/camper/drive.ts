@@ -54,6 +54,17 @@ const CAMPER_ENDS: BodyEnds = {
 // The door swings in 10 steps of 0.1, one per tick: half a second (ADR 0068).
 const DOOR_STEPS = 10;
 
+/** A door's swing restored in DOOR_STEPS; a camper that was not docked starts with it shut. */
+function restoredDoorStep(open: unknown, docked: boolean): number {
+  if (!docked || typeof open !== "number") return 0;
+  return clamp(Math.round(open * DOOR_STEPS), 0, DOOR_STEPS);
+}
+
+/** Moves a door one step toward open or shut. */
+function swing(step: number, open: boolean): number {
+  return step + Math.sign((open ? DOOR_STEPS : 0) - step);
+}
+
 // The shared transforming drivetrain with the camper's values, its end check
 // (ADR 0067), and parking (ADR 0068).
 export class CamperDrive extends TransformingDrive {
@@ -90,10 +101,7 @@ export class CamperDrive extends TransformingDrive {
     );
     this.restoredDocked = restored.docked === true;
     this.restoredLaid = restored[DOCK_RESTORED.laid] === true;
-    const door = typeof restored.door === "number" ? restored.door : 0;
-    this.doorStep = this.restoredDocked
-      ? clamp(Math.round(door * DOOR_STEPS), 0, DOOR_STEPS)
-      : 0;
+    this.doorStep = restoredDoorStep(restored.door, this.restoredDocked);
     const savedTarget = restored[DOCK_RESTORED.doorOpen];
     this.doorOpen =
       this.restoredDocked && typeof savedTarget === "boolean"
@@ -102,11 +110,10 @@ export class CamperDrive extends TransformingDrive {
     // Decor survives driving: it is restored whether or not the camper was docked (ADR 0093).
     for (const { slot, item } of parseDecor(restored[DOCK_RESTORED.decor]))
       if (decorSlot(slot)) this.decorBySlot.set(slot, item);
-    const showerDoor =
-      typeof restored.shower_door === "number" ? restored.shower_door : 0;
-    this.showerDoorStep = this.restoredDocked
-      ? clamp(Math.round(showerDoor * DOOR_STEPS), 0, DOOR_STEPS)
-      : 0;
+    this.showerDoorStep = restoredDoorStep(
+      restored.shower_door,
+      this.restoredDocked,
+    );
     this.showerDoorOpen = this.showerDoorStep * 2 >= DOOR_STEPS;
   }
 
@@ -352,8 +359,7 @@ export class CamperDrive extends TransformingDrive {
   }
 
   private doorCommands(): EngineCommand[] {
-    const target = this.doorOpen ? DOOR_STEPS : 0;
-    this.doorStep += Math.sign(target - this.doorStep);
+    this.doorStep = swing(this.doorStep, this.doorOpen);
     const step = this.doorStepSync.next(this.doorStep);
     return step === undefined ? [] : [doorCommand(step / DOOR_STEPS)];
   }
@@ -363,8 +369,7 @@ export class CamperDrive extends TransformingDrive {
   }
 
   private showerCommands(): EngineCommand[] {
-    const target = this.showerDoorOpen ? DOOR_STEPS : 0;
-    this.showerDoorStep += Math.sign(target - this.showerDoorStep);
+    this.showerDoorStep = swing(this.showerDoorStep, this.showerDoorOpen);
     const door = this.showerDoorStepSync.next(this.showerDoorStep);
     const running = this.showerSync.next(this.showerTicks > 0);
     this.showerTicks = Math.max(this.showerTicks - 1, 0);
