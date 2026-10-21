@@ -2,6 +2,7 @@ import type { Vec2 } from "../shared/vec";
 import type { HintZones } from "./hints";
 import type { VehicleKind } from "./kind";
 import type { Paint } from "./paint/paint";
+import type { PlacementGift } from "./placement/gift";
 import type { PlacementRule } from "./placement/placement";
 
 /** Body dimensions from the center, in blocks. */
@@ -44,4 +45,6 @@ export interface VehicleProfile {
    * SUV and the boat take hits on their whole body.
    */
   readonly hints?: HintZones;
+  /** The gift a player gets the first time they place this kind (ADR 0093). Absent = no gift. */
+  readonly placementGift?: PlacementGift;
 }

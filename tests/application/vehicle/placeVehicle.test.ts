@@ -94,6 +94,120 @@ describe("PlaceVehicle (ADR 0008)", () => {
   });
 });
 
+describe("PlaceVehicle placement gift (ADR 0093)", () => {
+  const giftCalls = (world: FakeWorld) =>
+    world.calls.filter((c) => c.startsWith("gift:"));
+
+  it("gives the kind's gift once after the first placement, in any game mode", () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom(...VEHICLE_KINDS),
+        fc.boolean(),
+        (kind, creative) => {
+          const world = new FakeWorld();
+          if (creative) world.creativePlayers.add("p");
+          const placement = new PlaceVehicle(world, new InMemoryRepo());
+          placement.execute({ ...cmd, kind });
+          placement.execute({ ...cmd, kind });
+          const gift = profileOf(kind).placementGift;
+          if (gift === undefined) {
+            expect(giftCalls(world)).toEqual([]);
+            return;
+          }
+          expect(giftCalls(world)).toEqual([`gift:p:${gift}`]);
+          const at = world.calls.indexOf(`gift:p:${gift}`);
+          expect(world.calls[at + 1]).toBe(`markGift:p:${gift}`);
+          const firstSpawn = world.calls.findIndex((c) =>
+            c.startsWith("spawn:"),
+          );
+          expect(firstSpawn).toBeGreaterThanOrEqual(0);
+          expect(firstSpawn).toBeLessThan(at);
+        },
+      ),
+    );
+  });
+
+  it("gives the box with the camper, after consuming the item and spawning", () => {
+    const world = new FakeWorld();
+    expect(
+      new PlaceVehicle(world, new InMemoryRepo()).execute({
+        ...cmd,
+        kind: "camper",
+      }),
+    ).toBe(true);
+    expect(world.calls).toEqual([
+      "consume:p:2:camper",
+      "spawn:minecraft:overworld:10.5,65,-2.5:45:camper",
+      "gift:p:camping_gear_box",
+      "markGift:p:camping_gear_box",
+    ]);
+  });
+
+  it("gives each player their own box", () => {
+    const world = new FakeWorld();
+    const placement = new PlaceVehicle(world, new InMemoryRepo());
+    for (const playerId of ["p", "q"].map(asPlayerId)) {
+      placement.execute({ ...cmd, kind: "camper", playerId });
+      placement.execute({ ...cmd, kind: "camper", playerId });
+    }
+    expect(giftCalls(world)).toEqual([
+      "gift:p:camping_gear_box",
+      "gift:q:camping_gear_box",
+    ]);
+  });
+
+  it.each([
+    [
+      "the slot no longer holds the item",
+      (world: FakeWorld) => {
+        world.itemInSlot = false;
+      },
+    ],
+    [
+      "a block is in the way",
+      (world: FakeWorld) => {
+        world.air = (at) => !(at.y === 66 && at.x === 10 && at.z === -3);
+      },
+    ],
+  ])("gives no box when the placement fails because %s", (_, setUp) => {
+    const world = new FakeWorld();
+    setUp(world);
+    expect(
+      new PlaceVehicle(world, new InMemoryRepo()).execute({
+        ...cmd,
+        kind: "camper",
+      }),
+    ).toBe(false);
+    expect(
+      world.calls.some(
+        (c) => c.startsWith("gift:") || c.startsWith("markGift:"),
+      ),
+    ).toBe(false);
+  });
+
+  it("gives no box to a player who left", () => {
+    const world = new FakeWorld();
+    world.absentPlayers.add("p");
+    expect(
+      new PlaceVehicle(world, new InMemoryRepo()).execute({
+        ...cmd,
+        kind: "camper",
+      }),
+    ).toBe(true);
+    expect(
+      world.calls.some(
+        (c) => c.startsWith("gift:") || c.startsWith("markGift:"),
+      ),
+    ).toBe(false);
+  });
+
+  it("gives the camping gear box only with the camper", () => {
+    expect(profileOf("camper").placementGift).toBe("camping_gear_box");
+    expect(profileOf("suv").placementGift).toBeUndefined();
+    expect(profileOf("sportsboat").placementGift).toBeUndefined();
+  });
+});
+
 const FACES: BlockFace[] = ["up", "down", "north", "south", "east", "west"];
 const cellArb = fc.record({
   x: fc.integer({ min: -64, max: 64 }),
