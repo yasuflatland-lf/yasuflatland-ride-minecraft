@@ -101,8 +101,16 @@ it("keeps the saved slot ids, cells, and heights", () => {
     ["counter", -1, -1, 1, 14],
     ["wall_cabinet_front", -1, -1, 2, 13],
     ["wall_cabinet_rear", -1, -2, 2, 13],
-    ["ceiling_hook", 1, 0, 2, 0],
+    ["ceiling_hook", 1, 0, 2, 6],
   ]);
+});
+
+it("marks only the ceiling hook as hanging (ADR 0102)", () => {
+  expect(
+    CAMPER_FURNITURE.flatMap((f) => f.slots)
+      .filter((s) => s.hanging === true)
+      .map((s) => s.id),
+  ).toEqual(["ceiling_hook"]);
 });
 
 it("puts every slot in a cell of its own furniture, 0 to 15 px up", () => {

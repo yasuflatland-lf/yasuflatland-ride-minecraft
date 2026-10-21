@@ -5,14 +5,15 @@
 
 tools/camping_gear.json lists the items; SHAPES below gives each item's cubes. Units are pixels (16
 per block). Every model is centered on x 0 and z 0, with its front at -z (ADR 0009). A standing item
-stands on y 0; a hanging item hangs from HOOK_Y. The atlas is 16 x 16 with one 4 x 4 swatch per
-color, so mipmapping in the block atlas does not bleed a neighbor's color into a face. --check
-compares parsed JSON and decoded pixels, because Biome reformats the geometry and zlib builds do not
-all compress identically. It also writes the Behavior Pack decor blocks, the items, the creative
-catalog, and the gear part of item_texture.json; the decor block's face and height states are
-described next to FACE_ROTATION. The camping gear box (BOX) is the creative group's icon and first
-item, and its icon entry comes first in the generated part of item_texture.json; its item JSON and
-icon are written elsewhere (ADR 0093).
+stands on y 0; a hanging item also starts on y 0, and its slot's height lifts it to the hook (ADR
+0102). The atlas is 16 x 16 with one 4 x 4 swatch per color, so mipmapping in the block atlas does
+not bleed a neighbor's color into a face. --check compares parsed JSON and decoded pixels, because
+Biome reformats the geometry and zlib builds do not all compress identically. It also writes the
+Behavior Pack decor blocks, the items, the creative catalog, and the gear part of
+item_texture.json; the decor block's face and height states are described next to FACE_ROTATION.
+The camping gear box (BOX) is the creative group's icon and first item, and its icon entry comes
+first in the generated part of item_texture.json; its item JSON and icon are written elsewhere (ADR
+0093).
 """
 
 import argparse
@@ -45,10 +46,6 @@ BOX = "camping_gear_box"
 GROUP_ICON = f"yasu_ride:{BOX}"
 ATLAS_SIZE = 16
 SWATCH = 4
-# A hanging item's top, in px above the bottom of the ceiling_hook slot's cell: the top of the
-# cell, where the camper model's hook ends. The client did not draw a model that reached 29 px and
-# showed an unshaped block instead, so every model stays within its cell (ADR 0099).
-HOOK_Y = 16
 CELL_PX = 16
 # 1970s motorhome colors (#347): avocado, harvest gold, burnt orange, brown, cream, and chrome
 PALETTE = {
@@ -92,16 +89,16 @@ SHAPES = {
         box(-1.5, 6, -1.5, 1.5, 8, 1.5, "avocado"),
     ],
     "macrame_planter": [
-        box(-2.5, HOOK_Y - 10, -2.5, 2.5, HOOK_Y - 7, 2.5, "terracotta"),
-        box(-2, HOOK_Y - 7, -2, 2, HOOK_Y - 5, 2, "leaf"),
-        box(0.5, HOOK_Y - 9.5, -3, 1.5, HOOK_Y - 7, -2.5, "leaf"),
-        box(-2.5, HOOK_Y - 7, -0.25, -2, HOOK_Y - 1.5, 0.25, "cream"),
-        box(2, HOOK_Y - 7, -0.25, 2.5, HOOK_Y - 1.5, 0.25, "cream"),
-        box(-0.25, HOOK_Y - 7, -2.5, 0.25, HOOK_Y - 1.5, -2, "cream"),
-        box(-0.25, HOOK_Y - 7, 2, 0.25, HOOK_Y - 1.5, 2.5, "cream"),
-        box(-2.5, HOOK_Y - 1.5, -0.25, 2.5, HOOK_Y - 1, 0.25, "cream"),
-        box(-0.25, HOOK_Y - 1.5, -2.5, 0.25, HOOK_Y - 1, 2.5, "cream"),
-        box(-0.5, HOOK_Y - 1, -0.5, 0.5, HOOK_Y, 0.5, "cream"),
+        box(-2.5, 0, -2.5, 2.5, 3, 2.5, "terracotta"),
+        box(-2, 3, -2, 2, 5, 2, "leaf"),
+        box(0.5, 0.5, -3, 1.5, 3, -2.5, "leaf"),
+        box(-2.5, 3, -0.25, -2, 8.5, 0.25, "cream"),
+        box(2, 3, -0.25, 2.5, 8.5, 0.25, "cream"),
+        box(-0.25, 3, -2.5, 0.25, 8.5, -2, "cream"),
+        box(-0.25, 3, 2, 0.25, 8.5, 2.5, "cream"),
+        box(-2.5, 8.5, -0.25, 2.5, 9, 0.25, "cream"),
+        box(-0.25, 8.5, -2.5, 0.25, 9, 2.5, "cream"),
+        box(-0.5, 9, -0.5, 0.5, 10, 0.5, "cream"),
     ],
     "cactus_pot": [
         box(-2, 0, -2, 2, 3, 2, "harvest_gold"),
@@ -241,9 +238,9 @@ def bounds(cubes):
 
 
 def y_span(item):
-    """A hanging item ends at HOOK_Y; every other item starts on the cell floor."""
-    h = item["height_px"]
-    return (HOOK_Y - h, HOOK_Y) if item["hanging"] else (0, h)
+    """Every item's model starts on y 0; a hanging item is lifted to the hook by its slot's
+    yasu_ride:height (ADR 0102)."""
+    return (0, item["height_px"])
 
 
 def validate(spec):

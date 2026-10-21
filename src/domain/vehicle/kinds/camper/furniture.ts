@@ -1,5 +1,5 @@
 // The camper's furniture in local room cells: what it fills and where decor stands on it (ADR 0093).
-export type FurnitureKind =
+type FurnitureKind =
   | "dashboard"
   | "table"
   | "dinette_seat"
@@ -22,8 +22,13 @@ export interface LocalCell {
 export interface DecorSlot {
   readonly id: string;
   readonly cell: LocalCell;
-  /** The furniture's top above the cell bottom, in pixels (0 to 15); 0 for the ceiling hook, where items hang. */
+  /**
+   * The furniture's top above the cell bottom, in pixels (0 to 15). For a hanging slot, the lift
+   * that puts a hanging item's top at the top of the cell: 16 minus the hanging items' height (ADR 0102).
+   */
   readonly height: number;
+  /** Items hang from this slot instead of standing on it (ADR 0093, 0102). */
+  readonly hanging?: true;
 }
 
 /** A room block a piece of furniture fills its cells with; roomCells turns a faced one toward the aisle (ADR 0092, 0098). */
@@ -45,8 +50,9 @@ const SHOWER_TOILET_CELLS = [
   { x: -1, z: -3, layer: 2 },
 ] as const satisfies readonly LocalCell[];
 
-// Slot heights are the furniture's top at the middle of the cell in tools/gen_camper.py, or 0
-// for a hanging slot; tests/packs/camper.test.ts checks them against the generated model (ADR 0093).
+// Slot heights are the furniture's top at the middle of the cell in tools/gen_camper.py, or, for
+// a hanging slot, 16 minus the hanging items' height; tests/packs/camper.test.ts checks them
+// against the generated model (ADR 0093, 0102).
 export const CAMPER_FURNITURE: readonly Furniture[] = [
   {
     kind: "dashboard",
@@ -123,11 +129,18 @@ export const CAMPER_FURNITURE: readonly Furniture[] = [
       { id: "wall_cabinet_rear", cell: { x: -1, z: -2, layer: 2 }, height: 13 },
     ],
   },
-  // Height 0: the item hangs from the hook under the ceiling plate instead of standing (ADR 0093).
+  // Height 6 lifts the 10 px hanging planter so its top meets the hook at the top of the cell (ADR 0099, 0102).
   {
     kind: "ceiling_hook",
     cells: [{ x: 1, z: 0, layer: 2 }],
-    slots: [{ id: "ceiling_hook", cell: { x: 1, z: 0, layer: 2 }, height: 0 }],
+    slots: [
+      {
+        id: "ceiling_hook",
+        cell: { x: 1, z: 0, layer: 2 },
+        height: 6,
+        hanging: true,
+      },
+    ],
   },
   {
     kind: "shower_toilet",
