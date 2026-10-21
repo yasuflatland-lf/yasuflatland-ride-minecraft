@@ -2,9 +2,7 @@
   "resource_pack_name": "yasu_ride",
   "texture_name": "atlas.items",
   "texture_data": {
-    "yasu_ride_suv_item": {
-      "textures": "textures/items/yasu_ride/suv_item"
-    },
+    "yasu_ride_suv_item": { "textures": "textures/items/yasu_ride/suv_item" },
     "yasu_ride_headlight_switch": {
       "textures": "textures/items/yasu_ride/headlight_switch"
     },
@@ -13,6 +11,45 @@
     },
     "yasu_ride_camper_item": {
       "textures": "textures/items/yasu_ride/camper_item"
-    }
+    },
+    "yasu_ride_potted_plant": {
+      "textures": "textures/items/yasu_ride/potted_plant"
+    },
+    "yasu_ride_macrame_planter": {
+      "textures": "textures/items/yasu_ride/macrame_planter"
+    },
+    "yasu_ride_cactus_pot": {
+      "textures": "textures/items/yasu_ride/cactus_pot"
+    },
+    "yasu_ride_percolator": {
+      "textures": "textures/items/yasu_ride/percolator"
+    },
+    "yasu_ride_enamel_kettle": {
+      "textures": "textures/items/yasu_ride/enamel_kettle"
+    },
+    "yasu_ride_saucepan": { "textures": "textures/items/yasu_ride/saucepan" },
+    "yasu_ride_mug_pair": { "textures": "textures/items/yasu_ride/mug_pair" },
+    "yasu_ride_sugar_pot": { "textures": "textures/items/yasu_ride/sugar_pot" },
+    "yasu_ride_fruit_bowl": {
+      "textures": "textures/items/yasu_ride/fruit_bowl"
+    },
+    "yasu_ride_toaster": { "textures": "textures/items/yasu_ride/toaster" },
+    "yasu_ride_oil_lamp": { "textures": "textures/items/yasu_ride/oil_lamp" },
+    "yasu_ride_lava_lamp": { "textures": "textures/items/yasu_ride/lava_lamp" },
+    "yasu_ride_transistor_radio": {
+      "textures": "textures/items/yasu_ride/transistor_radio"
+    },
+    "yasu_ride_book_stack": {
+      "textures": "textures/items/yasu_ride/book_stack"
+    },
+    "yasu_ride_road_map": { "textures": "textures/items/yasu_ride/road_map" },
+    "yasu_ride_photo_frame": {
+      "textures": "textures/items/yasu_ride/photo_frame"
+    },
+    "yasu_ride_cushion": { "textures": "textures/items/yasu_ride/cushion" },
+    "yasu_ride_tissue_box": {
+      "textures": "textures/items/yasu_ride/tissue_box"
+    },
+    "yasu_ride_desk_fan": { "textures": "textures/items/yasu_ride/desk_fan" }
   }
 }
