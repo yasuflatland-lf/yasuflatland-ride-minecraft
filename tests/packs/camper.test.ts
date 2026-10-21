@@ -3,6 +3,7 @@ import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 import { SLEEP_MESSAGES } from "../../src/domain/vehicle/dock/sleep";
 import { HINTS } from "../../src/domain/vehicle/hints";
+import { CAMPER_FURNITURE } from "../../src/domain/vehicle/kinds/camper/furniture";
 import { CAMPER_PROFILE } from "../../src/domain/vehicle/kinds/camper/profile";
 import { PAINTS } from "../../src/domain/vehicle/paint/paint";
 import { CAMPER_DOOR_COMPONENT } from "../../src/infrastructure/vehicle/bedrock/identifiers";
@@ -23,6 +24,7 @@ interface Bone {
   name: string;
   parent?: string;
   pivot: number[];
+  rotation?: number[];
   cubes?: Cube[];
   locators?: Record<string, number[]>;
 }
@@ -87,6 +89,7 @@ describe("camper model assets (ADR 0067)", () => {
         "seat_3",
         "door_entry",
         "steering",
+        "shower_door",
         "glass",
         "door_glass",
       ].sort(),
@@ -682,4 +685,110 @@ describe("camper parking assets (ADR 0068)", () => {
       }
     },
   );
+});
+
+describe("camper furniture model (ADR 0093)", () => {
+  // A hanging decor item's top: the ceiling plate's underside, 29 px above a layer-2 cell's bottom (ADR 0093).
+  const HANG_TOP = 29;
+
+  it("puts every standing decor slot on the model's top surface and hangs the ceiling slot under the ceiling plate", () => {
+    const slots = CAMPER_FURNITURE.flatMap((f) => f.slots);
+    expect(slots).toHaveLength(12);
+    const unrotatedCubes = bones
+      .filter((b) => b.rotation === undefined)
+      .flatMap((b) => b.cubes ?? [])
+      .filter((cube) => cube.rotation === undefined);
+    for (const slot of slots) {
+      const x = 16 * slot.cell.x;
+      const z = -16 * slot.cell.z;
+      const bottom = 16 * slot.cell.layer;
+      const covering = unrotatedCubes.filter((cube) => {
+        const [ox = 0, , oz = 0] = cube.origin;
+        const [sx = 0, , sz = 0] = cube.size;
+        return ox <= x && x <= ox + sx && oz <= z && z <= oz + sz;
+      });
+      if (slot.height > 0) {
+        const tops = covering.flatMap((cube) => {
+          const [, oy = 0] = cube.origin;
+          const [, sy = 0] = cube.size;
+          return oy < bottom + 16 && oy + sy > bottom ? [oy + sy] : [];
+        });
+        expect(tops.length, slot.id).toBeGreaterThan(0);
+        expect(Math.ceil(Math.max(...tops) - bottom - 1e-9), slot.id).toBe(
+          slot.height,
+        );
+      } else {
+        const plate = covering.filter((cube) => {
+          const [, oy = 0] = cube.origin;
+          const [sx = 0, , sz = 0] = cube.size;
+          return sx >= 16 && sz >= 16 && oy >= bottom;
+        });
+        expect(plate.length, slot.id).toBeGreaterThan(0);
+        const underside = Math.min(
+          ...plate.map((cube) => {
+            const [, oy = 0] = cube.origin;
+            return oy;
+          }),
+        );
+        expect(Math.ceil(underside - bottom - 1e-9), slot.id).toBe(HANG_TOP);
+        const hook = covering.filter((cube) => {
+          const [, oy = 0] = cube.origin;
+          const [sx = 0, sy = 0] = cube.size;
+          return sx < 16 && oy >= bottom && oy + sy <= underside + 1e-6;
+        });
+        expect(hook.length, slot.id).toBeGreaterThan(0);
+        const hookBottom = bottom + HANG_TOP - 1;
+        for (const cube of hook) {
+          const [, oy = 0] = cube.origin;
+          expect(oy, slot.id).toBeGreaterThanOrEqual(hookBottom - 1e-6);
+        }
+        expect(
+          covering.some((cube) => {
+            const [, oy = 0] = cube.origin;
+            const [, sy = 0] = cube.size;
+            return oy < hookBottom - 0.001 && oy + sy > bottom + 0.001;
+          }),
+          slot.id,
+        ).toBe(false);
+      }
+    }
+  });
+
+  it("keeps the aisle and the cell inside the entry door clear of the body's furniture", () => {
+    for (const [low, high] of [
+      [
+        [-8, 16, -24],
+        [8, 60.8, 55.5],
+      ],
+      [
+        [-22.8, 16, -8],
+        [-8, 60.8, 8],
+      ],
+    ] as const) {
+      for (const cube of bone("body").cubes ?? []) {
+        const overlaps = cube.origin.every(
+          (start, axis) =>
+            start < (high[axis] ?? 0) - 0.001 &&
+            start + (cube.size[axis] ?? 0) > (low[axis] ?? 0) + 0.001,
+        );
+        expect(overlaps, `body: ${cube.origin}`).toBe(false);
+      }
+    }
+  });
+
+  it("hinges the closed shower-toilet door on its rear edge at the aisle", () => {
+    const door = bone("shower_door");
+    expect(door.pivot).toEqual([-8, 0, 54]);
+    expect(door.parent).toBe("body");
+    expect(door.rotation).toBeUndefined();
+    expect(door.cubes?.length).toBeGreaterThan(0);
+    for (const cube of door.cubes ?? []) {
+      const [ox = 0, , oz = 0] = cube.origin;
+      const [sx = 0, , sz = 0] = cube.size;
+      expect(oz).toBeGreaterThanOrEqual(42);
+      expect(oz + sz).toBeLessThanOrEqual(54);
+      expect(ox).toBeGreaterThanOrEqual(-9.2 - 1e-6);
+      expect(ox + sx).toBeLessThanOrEqual(-7.4 + 1e-6);
+    }
+  });
 });
