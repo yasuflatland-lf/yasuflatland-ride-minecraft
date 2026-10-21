@@ -5,11 +5,14 @@ import { CAMPER_SPEC } from "../../../src/domain/vehicle/kinds/camper/spec";
 import { createVehicle } from "../../../src/domain/vehicle/kinds/index";
 import { FakeClock, InMemoryRepo, stillTick } from "./fakes";
 
-it("ignores unknown vehicles and toggles the parked camper's door both ways, once per swing (ADR 0068, 0105)", () => {
+it("ignores unknown vehicles and SUVs, and toggles the parked camper's door both ways, once per swing (ADR 0068, 0105)", () => {
   const repo = new InMemoryRepo();
   const clock = new FakeClock();
   const use = new UseDockDoor(repo, clock);
   expect(use.execute({ vehicleId: asVehicleId("unknown") })).toBe(false);
+  const suv = createVehicle("suv", asVehicleId("suv"), 0);
+  repo.save(suv);
+  expect(use.execute({ vehicleId: suv.id })).toBe(false);
   const car = createVehicle("camper", asVehicleId("car"), 0);
   repo.save(car);
   expect(use.execute({ vehicleId: car.id })).toBe(false);
