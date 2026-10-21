@@ -25,13 +25,15 @@ export class TapDockFloor {
   execute(cmd: TapDockFloorCommand): boolean {
     const vehicleId = this.world.floorOwner(cmd.dimensionId, cmd.cell);
     if (!vehicleId) return false;
-    switch (this.repo.get(vehicleId)?.floorTap(cmd.cell, cmd.player)) {
+    const tap = this.repo.get(vehicleId)?.floorTap(cmd.cell, cmd.player);
+    if (tap === undefined) return false;
+    switch (tap) {
       case "showerDoor":
         return this.showerDoor.execute({ vehicleId });
       case "shower":
         return this.shower.execute({ vehicleId });
       default:
-        return false;
+        return tap satisfies never;
     }
   }
 }
