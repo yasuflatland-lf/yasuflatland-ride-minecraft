@@ -54,10 +54,14 @@ export function sameBlock(a: DockBlock, b: DockBlock): boolean {
   }
 }
 
-/** Cells to clear and cells to place or replace to go from laid to wanted. */
+/**
+ * Cells to clear and cells to place or replace to go from laid to wanted. A laid
+ * cell that `lost` says the world no longer holds is placed again (ADR 0096).
+ */
 export function refloor(
   laid: readonly DockCell[],
   wanted: readonly DockCell[],
+  lost: (cell: DockCell) => boolean = () => false,
 ): { clear: DockCell[]; place: DockCell[] } {
   const laidByKey = new Map(laid.map((c) => [cellKey(c), c]));
   const wantedKeys = new Set(wanted.map(cellKey));
@@ -65,7 +69,11 @@ export function refloor(
     clear: laid.filter((c) => !wantedKeys.has(cellKey(c))),
     place: wanted.filter((c) => {
       const before = laidByKey.get(cellKey(c));
-      return before === undefined || !sameBlock(before.block, c.block);
+      return (
+        before === undefined ||
+        !sameBlock(before.block, c.block) ||
+        lost(before)
+      );
     }),
   };
 }

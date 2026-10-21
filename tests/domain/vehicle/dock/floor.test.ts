@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
   type DockBlock,
+  type DockCell,
   refloor,
   sameBlock,
 } from "../../../../src/domain/vehicle/dock/floor";
@@ -62,6 +63,55 @@ describe("refloor (ADR 0063)", () => {
         expect(after).toEqual(
           new Map(wanted.map((c) => [cellKey(c), c.block])),
         );
+      }),
+    );
+  });
+
+  it("places a laid cell again exactly when the lost predicate reports it, and clears the same cells (ADR 0096)", () => {
+    fc.assert(
+      fc.property(
+        cells,
+        cells,
+        fc.func(fc.boolean()),
+        (laid, wanted, isLost) => {
+          const { clear, place } = refloor(laid, wanted, isLost);
+          expect(clear).toEqual(refloor(laid, wanted).clear);
+          expect(place).toEqual(
+            wanted.filter((c) => {
+              const l = laid.find((x) => cellKey(x) === cellKey(c));
+              return (
+                l === undefined || !sameBlock(l.block, c.block) || isLost(l)
+              );
+            }),
+          );
+        },
+      ),
+    );
+  });
+
+  it("asks the lost predicate only about laid cells (ADR 0096)", () => {
+    fc.assert(
+      fc.property(cells, cells, (laid, wanted) => {
+        const asked: DockCell[] = [];
+        refloor(laid, wanted, (c) => {
+          asked.push(c);
+          return true;
+        });
+        for (const arg of asked) expect(laid.includes(arg)).toBe(true);
+      }),
+    );
+  });
+
+  it("places again every laid cell that is lost, and nothing else, for an unchanged dock (ADR 0096)", () => {
+    fc.assert(
+      fc.property(cells, fc.array(fc.boolean()), (laid, flags) => {
+        const lostKeys = new Set(
+          laid.filter((_, i) => flags[i] === true).map(cellKey),
+        );
+        expect(refloor(laid, laid, (c) => lostKeys.has(cellKey(c)))).toEqual({
+          clear: [],
+          place: laid.filter((c) => lostKeys.has(cellKey(c))),
+        });
       }),
     );
   });
