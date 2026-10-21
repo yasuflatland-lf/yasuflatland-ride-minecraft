@@ -10,6 +10,7 @@ tile.yasu_ride:deck_floor.name=Boat Deck
 yasu_ride.message.cannot_park=Can't park here
 yasu_ride.message.clear_cargo=Clear the blocks inside first
 yasu_ride.message.sleep_at_night=You can sleep only at night
+yasu_ride.message.decor_no_slot=No free spot for this item
 yasu_ride.hint.bumper_touch=Hit the bumper %s times to pick up the %s, or long-press it to get in
 yasu_ride.hint.bumper_mouse=Hit the bumper %s times to pick up the %s, or right-click it to get in
 yasu_ride.hint.bumper_other=Hit the bumper %s times to pick up the %s, or use it to get in

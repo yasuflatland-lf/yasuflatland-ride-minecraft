@@ -33,13 +33,20 @@ export class BedrockInventory implements StarterWorld {
     return player.getDynamicProperty(STARTER_RECEIVED_PROPERTY) === true;
   }
 
-  giveVehicleItem(playerId: PlayerId, kind: VehicleKind): void {
+  /** Puts one of each item type into the player's inventory and drops what does not fit at the player's feet. */
+  giveItems(playerId: PlayerId, typeIds: readonly string[]): void {
     const player = this.index.player(playerId);
     if (!player) return;
     const inv = player.getComponent("minecraft:inventory")?.container;
-    const item = new ItemStack(ITEM_TYPE[kind], 1);
-    const leftover = inv ? inv.addItem(item) : item;
-    if (leftover) player.dimension.spawnItem(leftover, player.location);
+    for (const typeId of typeIds) {
+      const item = new ItemStack(typeId, 1);
+      const leftover = inv ? inv.addItem(item) : item;
+      if (leftover) player.dimension.spawnItem(leftover, player.location);
+    }
+  }
+
+  giveVehicleItem(playerId: PlayerId, kind: VehicleKind): void {
+    this.giveItems(playerId, [ITEM_TYPE[kind]]);
   }
 
   markStarterReceived(playerId: PlayerId): void {

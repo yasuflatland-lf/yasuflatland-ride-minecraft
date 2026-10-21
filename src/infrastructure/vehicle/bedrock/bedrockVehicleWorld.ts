@@ -102,6 +102,11 @@ export class BedrockVehicleWorld implements DriveWorld {
     return this.dockBlocks.doorOwner(dimensionId, cell);
   }
 
+  /** The vehicle that laid any dock block at this cell, if any (ADR 0093). */
+  dockCellOwner(dimensionId: DimensionId, cell: Vec3): VehicleId | undefined {
+    return this.dockBlocks.cellOwner(dimensionId, cell);
+  }
+
   loadedVehicles(): VehicleSnapshot[] {
     this.index.clear();
     const snapshots: VehicleSnapshot[] = [];

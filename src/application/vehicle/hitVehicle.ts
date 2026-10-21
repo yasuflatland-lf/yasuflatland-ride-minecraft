@@ -1,4 +1,4 @@
-import type { VehicleId } from "../../domain/shared/ids";
+import type { PlayerId, VehicleId } from "../../domain/shared/ids";
 // Use case: a player hit a vehicle (ADR 0008).
 
 import type { FleetRepository } from "../../domain/vehicle/fleet/fleetRepository";
@@ -8,6 +8,8 @@ import type { Clock } from "./ports/shared";
 import { retireVehicle } from "./retireVehicle";
 
 export interface HitVehicleCommand {
+  /** The player who hit; placed decor goes to them (ADR 0093). */
+  playerId: PlayerId;
   vehicleId: VehicleId;
   /** The attacker stands on a deck floor block (ADR 0063). */
   fromDeck: boolean;
@@ -26,7 +28,9 @@ export class HitVehicle {
     const vehicle = this.repo.get(cmd.vehicleId);
     if (!vehicle) return false;
     if (!vehicle.receiveHit(this.clock.now())) return false;
+    const decor = vehicle.decor().map((d) => d.item);
     this.world.dropVehicleItem(cmd.vehicleId);
+    if (decor.length > 0) this.world.giveDecorItems(cmd.playerId, decor);
     const fleet = this.fleets.load();
     retireVehicle(this.world, this.repo, fleet, cmd.vehicleId);
     this.fleets.save(fleet);

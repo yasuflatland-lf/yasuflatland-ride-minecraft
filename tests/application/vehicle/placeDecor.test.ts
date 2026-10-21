@@ -1,0 +1,97 @@
+import { describe, expect, it, vi } from "vitest";
+import {
+  PlaceDecor,
+  type PlaceDecorCommand,
+} from "../../../src/application/vehicle/placeDecor";
+import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
+import {
+  slotPoint,
+  slotsFor,
+} from "../../../src/domain/vehicle/kinds/camper/decorPlacing";
+import { decorSlotCell } from "../../../src/domain/vehicle/kinds/camper/room";
+import { FakeWorld, parkedCamper } from "./fakes";
+
+function setup() {
+  const { car, pose, repo, tick } = parkedCamper();
+  const world = new FakeWorld();
+  const place = new PlaceDecor(world, repo);
+  const stove = slotsFor("percolator")[0];
+  if (!stove) throw new Error("no stove slot");
+  const cmd: PlaceDecorCommand = {
+    playerId: asPlayerId("p"),
+    vehicleId: car.id,
+    item: "percolator",
+    point: slotPoint(pose, stove),
+    hotbarSlot: 4,
+  };
+  return { car, pose, tick, world, place, stove, cmd };
+}
+
+describe("PlaceDecor (ADR 0093)", () => {
+  it("places on the nearest free slot, takes the held item in Survival, saves the decor, and lays it next tick (ADR 0093)", () => {
+    const { car, pose, tick, world, place, stove, cmd } = setup();
+    world.itemInSlot = true;
+    expect(place.execute(cmd)).toBe(true);
+    expect(world.calls).toEqual([
+      "consumeDecor:p:4:percolator",
+      "saveDecor:car:stove=percolator",
+    ]);
+    expect(car.decor()).toEqual([{ slot: "stove", item: "percolator" }]);
+    const at = decorSlotCell(pose, stove);
+    expect(
+      tick(21).dock?.cells.some(
+        (c) =>
+          c.block.type === "decor" &&
+          c.x === at.x &&
+          c.y === at.y &&
+          c.z === at.z,
+      ),
+    ).toBe(true);
+  });
+
+  it("places without taking the item in Creative", () => {
+    const { world, place, cmd } = setup();
+    world.creativePlayers.add("p");
+    expect(place.execute(cmd)).toBe(true);
+    expect(world.calls).toEqual(["saveDecor:car:stove=percolator"]);
+  });
+
+  it("shows the no-slot message, keeps the item, and saves nothing when every accepting slot is taken", () => {
+    const { world, place, cmd } = setup();
+    place.execute(cmd);
+    expect(place.execute(cmd)).toBe(false);
+    expect(world.messages.at(-1)).toEqual({
+      playerId: "p",
+      name: "decor_no_slot",
+    });
+    expect(world.calls).toEqual([
+      "consumeDecor:p:4:percolator",
+      "saveDecor:car:stove=percolator",
+      "showMessage",
+    ]);
+  });
+
+  it("places and saves nothing when the hotbar slot no longer holds the item", () => {
+    const { car, world, place, cmd } = setup();
+    world.itemInSlot = false;
+    expect(place.execute(cmd)).toBe(false);
+    expect(world.calls).toEqual([]);
+    expect(car.decor()).toEqual([]);
+  });
+
+  it("saves nothing when the vehicle refuses the slot it offered", () => {
+    const { car, world, place, cmd } = setup();
+    world.creativePlayers.add("p");
+    vi.spyOn(car, "placeDecor").mockReturnValue(false);
+    expect(place.execute(cmd)).toBe(false);
+    expect(world.calls).toEqual([]);
+  });
+
+  it("ignores an unknown vehicle", () => {
+    const { world, place, cmd } = setup();
+    expect(place.execute({ ...cmd, vehicleId: asVehicleId("unknown") })).toBe(
+      false,
+    );
+    expect(world.calls).toEqual([]);
+  });
+});

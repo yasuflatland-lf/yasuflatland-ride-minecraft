@@ -5,7 +5,9 @@ import { GiveStarterVehicle } from "../../application/vehicle/giveStarterVehicle
 import { HitVehicle } from "../../application/vehicle/hitVehicle";
 import { LimitVehicles } from "../../application/vehicle/limitVehicles";
 import { PaintVehicle } from "../../application/vehicle/paintVehicle";
+import { PlaceDecor } from "../../application/vehicle/placeDecor";
 import { PlaceVehicle } from "../../application/vehicle/placeVehicle";
+import { RemoveDecor } from "../../application/vehicle/removeDecor";
 import { SetDecor } from "../../application/vehicle/setDecor";
 import { ShowVehicleHints } from "../../application/vehicle/showVehicleHints";
 import { SleepInBed } from "../../application/vehicle/sleepInBed";
@@ -34,8 +36,9 @@ export function installVehicles(): void {
   const store = new TestInputStore();
   const index = new EntityIndex();
   const inventory = new BedrockInventory(index);
+  const decorWorld = new BedrockDecorWorld(index, inventory);
   const bedrock = new BedrockVehicleWorld(index, store);
-  const fleetWorld = new BedrockFleetWorld(index, bedrock.releaser);
+  const fleetWorld = new BedrockFleetWorld(index, bedrock.releaser, inventory);
   const log = { warn: (m: string) => console.warn(`[${NAMESPACE}] ${m}`) };
   const fleets = new DynamicPropertyFleetRepository(log, fleetLimitOf);
   registerSubscriptions(
@@ -59,7 +62,9 @@ export function installVehicles(): void {
       ),
       door: new UseDockDoor(repo),
       bed: new SleepInBed(new BedrockBedWorld(index)),
-      decor: new SetDecor(new BedrockDecorWorld(index), repo),
+      decor: new SetDecor(decorWorld, repo),
+      placeDecor: new PlaceDecor(decorWorld, repo),
+      removeDecor: new RemoveDecor(decorWorld, repo),
       hints: new ShowVehicleHints(
         new BedrockHintWorld(index),
         repo,
@@ -68,5 +73,6 @@ export function installVehicles(): void {
     },
     store,
     (dimensionId, cell) => bedrock.dockDoorOwner(dimensionId, cell),
+    (dimensionId, cell) => bedrock.dockCellOwner(dimensionId, cell),
   );
 }

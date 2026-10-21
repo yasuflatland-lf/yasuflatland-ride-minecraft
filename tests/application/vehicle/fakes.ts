@@ -1,3 +1,4 @@
+import type { DecorPlacingWorld } from "../../../src/application/vehicle/ports/decor";
 import type {
   DriveWorld,
   HintPlayerView,
@@ -18,6 +19,7 @@ import type {
 import type { Clock } from "../../../src/application/vehicle/ports/shared";
 import { asVehicleId, type VehicleId } from "../../../src/domain/shared/ids";
 import type { Vec3 } from "../../../src/domain/shared/vec";
+import type { DecorPlacement } from "../../../src/domain/vehicle/dock/decor";
 import type {
   ClearCell,
   Departure,
@@ -36,6 +38,8 @@ import {
 import type { FleetRepository } from "../../../src/domain/vehicle/fleet/fleetRepository";
 import type { Hint } from "../../../src/domain/vehicle/hints";
 import type { VehicleKind } from "../../../src/domain/vehicle/kind";
+import { parkPose } from "../../../src/domain/vehicle/kinds/camper/room";
+import { createVehicle } from "../../../src/domain/vehicle/kinds/index";
 import {
   type Cell,
   cellKey,
@@ -93,7 +97,8 @@ export class FakeWorld
     BreakWorld,
     PaintWorld,
     HeadlightWorld,
-    LimitWorld
+    LimitWorld,
+    DecorPlacingWorld
 {
   readonly creativePlayers = new Set<string>();
   isCreative(playerId: string) {
@@ -146,6 +151,19 @@ export class FakeWorld
   showMessage(playerId: string, name: string) {
     this.calls.push("showMessage");
     this.messages.push({ playerId, name });
+  }
+  consumeDecorItem(playerId: string, hotbarSlot: number, item: string) {
+    if (!this.itemInSlot) return false;
+    this.calls.push(`consumeDecor:${playerId}:${hotbarSlot}:${item}`);
+    return true;
+  }
+  giveDecorItems(playerId: string, items: readonly string[]) {
+    this.calls.push(`giveDecor:${playerId}:${items.join(",")}`);
+  }
+  saveDecor(vehicleId: string, decor: readonly DecorPlacement[]) {
+    this.calls.push(
+      `saveDecor:${vehicleId}:${decor.map((d) => `${d.slot}=${d.item}`).join(",")}`,
+    );
   }
   seatStandingPlayers(vehicleId: string, departure: Departure) {
     this.calls.push("seatStandingPlayers");
@@ -346,3 +364,30 @@ export const snapshot = (
   waterQueries.set(snap, sensors.waterAt);
   return snap;
 };
+
+/** A camper parked at (0.5, 64, 0.5) with its room laid; the next tick a test runs is tick(21). */
+export function parkedCamper() {
+  const repo = new InMemoryRepo();
+  const car = createVehicle("camper", asVehicleId("car"), 0);
+  repo.save(car);
+  const tick = (time: number) =>
+    car.tick({
+      tick: time,
+      riders: [],
+      deckSeatInputs: [],
+      location: { x: 0.5, y: 64, z: 0.5 },
+      velocity: { x: 0, y: 0, z: 0 },
+      onGround: true,
+      solidAt: () => false,
+      waterAt: () => false,
+      targets: () => [],
+      blockTypes: (cells) => cells.map(() => "minecraft:air"),
+    });
+  for (let time = 0; time <= 20; time++) tick(time);
+  return {
+    car,
+    pose: parkPose({ x: 0.5, y: 64, z: 0.5 }, car.yaw),
+    repo,
+    tick,
+  };
+}

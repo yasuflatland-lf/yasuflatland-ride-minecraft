@@ -15,6 +15,16 @@ import { isLightBlock } from "./headlightBlocks";
 import { ENTITY_TYPE, ITEM_TYPE, OWNER_PROPERTY } from "./identifiers";
 import { isWaterAt } from "./water";
 
+/** Whether the player is in Creative; false for a missing player. */
+export function isCreativePlayer(
+  index: EntityIndex,
+  playerId: PlayerId,
+): boolean {
+  const player = index.player(playerId);
+  // getGameMode throws on a handle whose player has left (isValid false).
+  return player?.isValid === true && player.getGameMode() === GameMode.Creative;
+}
+
 export class BedrockPlacementWorld implements PlacementWorld {
   constructor(
     private readonly inventory: BedrockInventory,
@@ -61,10 +71,6 @@ export class BedrockPlacementWorld implements PlacementWorld {
     return this.inventory.consumeHeld(playerId, ITEM_TYPE[kind], slot);
   }
   isCreative(playerId: PlayerId): boolean {
-    const player = this.index.player(playerId);
-    // getGameMode throws on a handle whose player has left (isValid false).
-    return (
-      player?.isValid === true && player.getGameMode() === GameMode.Creative
-    );
+    return isCreativePlayer(this.index, playerId);
   }
 }

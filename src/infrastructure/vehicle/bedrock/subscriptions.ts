@@ -4,7 +4,9 @@ import type { GiveStarterVehicle } from "../../../application/vehicle/giveStarte
 import type { HitVehicle } from "../../../application/vehicle/hitVehicle";
 import type { LimitVehicles } from "../../../application/vehicle/limitVehicles";
 import type { PaintVehicle } from "../../../application/vehicle/paintVehicle";
+import type { PlaceDecor } from "../../../application/vehicle/placeDecor";
 import type { PlaceVehicle } from "../../../application/vehicle/placeVehicle";
+import type { RemoveDecor } from "../../../application/vehicle/removeDecor";
 import type { SetDecor } from "../../../application/vehicle/setDecor";
 import type { ShowVehicleHints } from "../../../application/vehicle/showVehicleHints";
 import type { SleepInBed } from "../../../application/vehicle/sleepInBed";
@@ -13,6 +15,7 @@ import type { UseDockDoor } from "../../../application/vehicle/useDockDoor";
 import type { DimensionId, VehicleId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import type { TestInputStore } from "../testInput/testInputStore";
+import { registerDecor } from "./handlers/decor";
 import { registerDockBed } from "./handlers/dockBed";
 import { registerDockDoor } from "./handlers/dockDoor";
 import { registerDrive } from "./handlers/drive";
@@ -36,6 +39,8 @@ export function registerSubscriptions(
     door: UseDockDoor;
     bed: SleepInBed;
     decor: SetDecor;
+    placeDecor: PlaceDecor;
+    removeDecor: RemoveDecor;
     hints: ShowVehicleHints;
   },
   testInputs: TestInputStore,
@@ -43,7 +48,12 @@ export function registerSubscriptions(
     dimensionId: DimensionId,
     cell: Vec3,
   ) => VehicleId | undefined,
+  dockCellOwner: (
+    dimensionId: DimensionId,
+    cell: Vec3,
+  ) => VehicleId | undefined,
 ): void {
+  registerDecor(useCases.placeDecor, useCases.removeDecor, dockCellOwner);
   registerDockBed(useCases.bed);
   registerDockDoor(useCases.door, dockDoorOwner);
   registerDrive(useCases.drive, useCases.hints);

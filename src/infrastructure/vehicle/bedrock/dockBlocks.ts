@@ -191,11 +191,24 @@ export class DockBlocks {
 
   /** The vehicle whose laid door is at this cell, if any. */
   doorOwner(dimensionId: DimensionId, cell: Vec3): VehicleId | undefined {
+    return this.ownerOf(dimensionId, cell, (block) => block.type === "door");
+  }
+
+  /** The vehicle that laid any dock block at this cell, if any (ADR 0093). */
+  cellOwner(dimensionId: DimensionId, cell: Vec3): VehicleId | undefined {
+    return this.ownerOf(dimensionId, cell, () => true);
+  }
+
+  private ownerOf(
+    dimensionId: DimensionId,
+    cell: Vec3,
+    accepts: (block: DockBlock) => boolean,
+  ): VehicleId | undefined {
     const key = cellKey(cell);
     for (const [vehicleId, entry] of this.laid)
       if (
         entry.dimension.id === dimensionId &&
-        entry.cells.some((c) => c.block.type === "door" && cellKey(c) === key)
+        entry.cells.some((c) => accepts(c.block) && cellKey(c) === key)
       )
         return vehicleId;
     return undefined;

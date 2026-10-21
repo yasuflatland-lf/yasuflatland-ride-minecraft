@@ -1,7 +1,7 @@
 // The camper's furniture in local room cells: what it fills and where decor stands on it (ADR 0093).
 import type { DockBlock } from "../../dock/floor";
 
-type FurnitureKind =
+export type FurnitureKind =
   | "dashboard"
   | "table"
   | "dinette_seat"

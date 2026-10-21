@@ -339,6 +339,7 @@ def decor_block(item):
                 "minecraft:light_dampening": 0,
                 "minecraft:destructible_by_mining": False,
                 "minecraft:destructible_by_explosion": False,
+                "minecraft:custom_components": ["yasu_ride:camper_decor"],
                 "minecraft:collision_box": False,
                 "minecraft:selection_box": {"origin": [num(-w / 2), 0, num(-w / 2)], "size": [w, h, w]},
             },
