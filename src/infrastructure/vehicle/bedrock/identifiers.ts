@@ -256,15 +256,20 @@ export function pairHeightStates(
   return pairHeights(kind).length > 1 ? { [DECOR_HEIGHT_STATE]: height } : {};
 }
 
-const PAIR_DECOR_BLOCKS: ReadonlySet<string> = new Set(
-  ["shelf", "table"].map(pairDecorBlockId),
-);
+const PAIR_KINDS = ["shelf", "table"] as const;
+
+/** The furniture whose pair block `typeId` is, or undefined for any other block (ADR 0108). */
+export function pairKindOfBlock(
+  typeId: string,
+): (typeof PAIR_KINDS)[number] | undefined {
+  return PAIR_KINDS.find((kind) => pairDecorBlockId(kind) === typeId);
+}
 
 /** Whether `typeId` is a camping gear decor block or a pair block (ADR 0093, 0108). */
 export function isDecorBlock(typeId: string): boolean {
   return (
     campingGearOfDecorBlock(typeId) !== undefined ||
-    PAIR_DECOR_BLOCKS.has(typeId)
+    pairKindOfBlock(typeId) !== undefined
   );
 }
 

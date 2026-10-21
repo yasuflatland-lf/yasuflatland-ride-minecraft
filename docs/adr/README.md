@@ -113,7 +113,8 @@ This directory records design decisions and the reasons behind them. The format 
 | [0107](0107-stand-stove-gear-on-a-burner.md) | Stand stove gear on a burner, and widen the standing decor box | Superseded in part by 0108 and 0110 |
 | [0108](0108-two-items-on-each-shelf-board-and-the-table.md) | Two items on each shelf board and on the table | Accepted |
 | [0109](0109-stand-up-inside-the-parked-camper.md) | Stand up inside the parked camper | Accepted |
-| [0110](0110-pick-decor-slots-along-the-line-of-sight.md) | Pick decor slots along the line of sight | Accepted |
+| [0110](0110-pick-decor-slots-along-the-line-of-sight.md) | Pick decor slots along the line of sight | Extended by 0111 |
+| [0111](0111-correct-the-inverted-face-location-height.md) | Correct the inverted face location height | Accepted |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 

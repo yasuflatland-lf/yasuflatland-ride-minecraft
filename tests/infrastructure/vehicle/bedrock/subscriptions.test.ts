@@ -965,8 +965,15 @@ function decorFixture() {
       typeId: CAMPER_FLOOR_BLOCK,
       location: { x: 1, y: 64, z: 2 },
       dimension: { id: "minecraft:overworld" },
+      permutation: {
+        getAllStates: (): Record<string, number> => ({
+          "yasu_ride:height": 12,
+        }),
+      },
     },
-    faceLocation: { x: 0.25, y: 1, z: 0.5 },
+    blockFace: "Up",
+    // The engine reports y as 1 minus the real height (ADR 0111).
+    faceLocation: { x: 0.25, y: 0.25, z: 0.5 },
     player: {
       id: "p",
       selectedSlotIndex: 4,
@@ -982,16 +989,25 @@ function decorFixture() {
   return { placeDecor, removeDecor, owner, startupsBefore, event, send };
 }
 
-it("places held camping gear on a camper room, furniture, decor, or pair block on the next tick and cancels every repeat, falling back to another slot, with the player's eye (ADR 0093, 0097, 0104, 0108, 0110)", () => {
-  for (const typeId of [
-    CAMPER_FLOOR_BLOCK,
-    CAMPER_FURNITURE_BLOCK,
-    decorBlockId("percolator"),
-    pairDecorBlockId("table"),
-  ]) {
+it("places held camping gear on a camper room, furniture, decor, or pair block on the next tick and cancels every repeat, falling back to another slot, with the player's eye and the corrected height (ADR 0093, 0097, 0104, 0108, 0110, 0111)", () => {
+  // Up face: the floor top, the height-12 furniture top, and the decor or pair block's lift
+  // plus 1 - y. A side face: 1 - y on every block. The floor and the table's pair block have
+  // no height state; the table's pair block is lifted by the table's slot height, 12.
+  for (const [typeId, blockFace, y] of [
+    [CAMPER_FLOOR_BLOCK, "Up", 65],
+    [CAMPER_FURNITURE_BLOCK, "Up", 64.75],
+    [decorBlockId("percolator"), "Up", 65.5],
+    [pairDecorBlockId("table"), "Up", 65.5],
+    [CAMPER_FLOOR_BLOCK, "West", 64.75],
+    [CAMPER_FURNITURE_BLOCK, "West", 64.75],
+    [decorBlockId("percolator"), "West", 64.75],
+    [pairDecorBlockId("table"), "West", 64.75],
+  ] as const) {
     const { placeDecor, owner, event, send } = decorFixture();
-    const ev = event();
+    const ev = event({ blockFace });
     ev.block = { ...ev.block, typeId };
+    if (typeId === CAMPER_FLOOR_BLOCK || typeId === pairDecorBlockId("table"))
+      ev.block = { ...ev.block, permutation: { getAllStates: () => ({}) } };
     expect(send(ev).cancel).toBe(true);
     expect(owner).toHaveBeenCalledExactlyOnceWith("minecraft:overworld", {
       x: 1,
@@ -1004,7 +1020,7 @@ it("places held camping gear on a camper room, furniture, decor, or pair block o
       playerId: "p",
       vehicleId: "car",
       item: "percolator",
-      point: { x: 1.25, y: 65, z: 2.5 },
+      point: { x: 1.25, y, z: 2.5 },
       cell: { x: 1, y: 64, z: 2 },
       hotbarSlot: 4,
       exact: false,

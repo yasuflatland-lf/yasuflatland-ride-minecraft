@@ -18,11 +18,13 @@ import {
   SeatPresses,
   seatSlotCell,
 } from "../../../../domain/vehicle/kinds/index";
+import { pressedHeight, pressedShape } from "../faceHeight";
 import {
   CAMPER_DECOR_COMPONENT,
   CAMPER_FURNITURE_BLOCK,
   campingGearOfItem,
   DECK_SEAT_TYPE,
+  DECOR_HEIGHT_STATE,
   isCamperRoomBlock,
   isDecorBlock,
 } from "../identifiers";
@@ -107,10 +109,16 @@ function placeGear(
   if (vehicleId === undefined) return;
   ev.cancel = true;
   if (!ev.isFirstEvent) return;
-  // faceLocation is relative to the block's bottom north-west corner.
+  // faceLocation is relative to the block's bottom north-west corner, and its y comes
+  // inverted, so it is corrected before use (ADR 0111).
+  const height = block.permutation.getAllStates()[DECOR_HEIGHT_STATE];
+  const shape = pressedShape(
+    block.typeId,
+    typeof height === "number" ? height : undefined,
+  );
   const point = {
     x: block.location.x + ev.faceLocation.x,
-    y: block.location.y + ev.faceLocation.y,
+    y: block.location.y + pressedHeight(ev.blockFace, ev.faceLocation.y, shape),
     z: block.location.z + ev.faceLocation.z,
   };
   const cell = {
