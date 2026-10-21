@@ -7,7 +7,11 @@ import {
 import { CAMPER_SPEC } from "../../../../../src/domain/vehicle/kinds/camper/spec";
 import { cellKey } from "../../../../../src/domain/vehicle/lighting/headlights";
 
-const coordinate = fc.double({ min: -1000, max: 1000, noNaN: true });
+// Adding 0 turns -0 into +0: Math.floor(-0) is -0, which toEqual tells apart from the
+// +0 the expected cell gets from bottom + lowest.
+const coordinate = fc
+  .double({ min: -1000, max: 1000, noNaN: true })
+  .map((v) => v + 0);
 const seat = fc.record({ x: coordinate, y: coordinate, z: coordinate });
 
 it("finds the lowest slot cell in the seat's column, from the seat's cell up to two above, and nothing past that (ADR 0097)", () => {
