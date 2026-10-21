@@ -7,7 +7,7 @@ import {
   type Vec3,
 } from "../../../shared/vec";
 import { type DecorPlacement, decorFace } from "../../dock/decor";
-import type { Box, ClearCell, Departure } from "../../dock/dock";
+import type { Box, ClearCell, DeckSeatSpot, Departure } from "../../dock/dock";
 import type { DockBlock, DockCell, Face, HoldPose } from "../../dock/floor";
 import { cellKey } from "../../lighting/headlights";
 import { seatWorldPositions } from "../../seats";
@@ -68,6 +68,9 @@ const ROOF_HALF_Z = STAND_HALF_Z + 0.125 + 0.3;
 // height (1.5 in front, 1.2 at the dinette) minus the deck seat's own 0.52, so a
 // rider sits where the vehicle seat would put them.
 const DECK_SEAT_RISE = [0.98, 0.98, 0.68, 0.68] as const;
+// The toilet seat is as high as the dinette seats, so the toilet's deck seat takes
+// the dinette's rise (ADR 0095).
+const TOILET_SEAT_RISE = 0.68;
 
 export const AIR = "minecraft:air";
 
@@ -373,8 +376,15 @@ export function departure(pose: HoldPose, exitClear = true): Departure {
   };
 }
 
-export function deckSeats(pose: HoldPose): Vec3[] {
-  return seatWorldPositions(pose, CAMPER_PROFILE.seats.positions).map(
-    (at, i) => ({ ...at, y: at.y + (DECK_SEAT_RISE[i] ?? 0) }),
-  );
+/** A deck seat at each profile seat, then the compact toilet seat (ADR 0068, 0095). */
+export function deckSeats(pose: HoldPose): DeckSeatSpot[] {
+  const vehicleSeats = seatWorldPositions(
+    pose,
+    CAMPER_PROFILE.seats.positions,
+  ).map((at, i) => ({ ...at, y: at.y + (DECK_SEAT_RISE[i] ?? 0) }));
+  const parkedSeats = seatWorldPositions(
+    pose,
+    CAMPER_PROFILE.parkedSeats?.positions ?? [],
+  ).map((at) => ({ ...at, y: at.y + TOILET_SEAT_RISE, compact: true }));
+  return [...vehicleSeats, ...parkedSeats];
 }

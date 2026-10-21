@@ -25,6 +25,11 @@ export const CAMPER_PROFILE: VehicleProfile = Object.freeze({
       { x: 1.0, z: -1.0 },
     ]),
   }),
+  // Deck seat 4 is the toilet seat in the shower-toilet at the rear right; it is never
+  // a vehicle seat, so nobody rides it while the camper moves (ADR 0095).
+  parkedSeats: Object.freeze({
+    positions: Object.freeze([{ x: -1.031, z: -3.0 }]),
+  }),
   beams: Object.freeze({
     reach: CAMPER_SPEC.headlightReach,
     lanes: Object.freeze([0]),

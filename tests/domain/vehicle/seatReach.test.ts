@@ -1,7 +1,9 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { CAMPER_PROFILE } from "../../../src/domain/vehicle/kinds/camper/profile";
 import { DECK_SEAT_REACH } from "../../../src/domain/vehicle/kinds/index";
 import { farthestSeatReach } from "../../../src/domain/vehicle/seats";
+import { defined } from "../../support/defined";
 
 const position = fc.record({
   x: fc.double({ min: -5, max: 5, noNaN: true }),
@@ -49,6 +51,11 @@ describe("farthestSeatReach", () => {
   });
 });
 
-it("computes DECK_SEAT_REACH from the current kinds' seat layouts", () => {
-  expect(DECK_SEAT_REACH).toBeCloseTo(Math.hypot(0.75, 2.1));
+it("computes DECK_SEAT_REACH from the current kinds' seats and parked seats (ADR 0095)", () => {
+  const toilet = defined(
+    CAMPER_PROFILE.parkedSeats?.positions[0],
+    "toilet position",
+  );
+  expect(DECK_SEAT_REACH).toBeCloseTo(Math.hypot(toilet.x, toilet.z));
+  expect(DECK_SEAT_REACH).toBeGreaterThan(Math.hypot(0.75, 2.1));
 });

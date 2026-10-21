@@ -17,8 +17,16 @@ export type DockRestoredKey =
 export interface Dock {
   readonly hold: HoldPose;
   readonly cells: readonly DockCell[];
-  /** Deck seat i stands at seat i of the vehicle's profile; undefined where that seat has a rider. */
-  readonly seats: readonly (Vec3 | undefined)[];
+  /**
+   * Deck seat i stands at seat i of the vehicle's profile, and the profile's parked
+   * seats follow in order; undefined where that vehicle seat has a rider (ADR 0063, 0095).
+   */
+  readonly seats: readonly (DeckSeatSpot | undefined)[];
+}
+
+/** Where a deck seat stands. A compact seat has a small hit box, so the floor around it still takes long-presses (ADR 0095). */
+export interface DeckSeatSpot extends Vec3 {
+  readonly compact?: boolean;
 }
 
 /** A block to remove before laying cells, and the type it had when the drive checked it. */

@@ -56,9 +56,13 @@ export const RAM_QUERY_RADIUS = ramQueryRadius(
   Object.values(KINDS).map(({ profile }) => profile),
 );
 
-/** How far any kind's deck seat can stand from its vehicle; every kind is included so a new kind with farther seats is covered (ADR 0063). */
+/** How far any kind's deck seat can stand from its vehicle, parked seats included; every kind is included so a new kind with farther seats is covered (ADR 0063, 0095). */
 export const DECK_SEAT_REACH = farthestSeatReach(
-  Object.values(KINDS).map(({ profile }) => profile.seats),
+  Object.values(KINDS).flatMap(({ profile }) =>
+    profile.parkedSeats
+      ? [profile.seats, profile.parkedSeats]
+      : [profile.seats],
+  ),
 );
 
 export function createVehicle(
