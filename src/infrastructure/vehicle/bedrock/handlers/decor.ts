@@ -28,15 +28,12 @@ export function registerDecor(
   // never opens the door or sleeps in the bed (ADR 0093).
   world.beforeEvents.playerInteractWithBlock.subscribe((ev) => {
     const item = campingGearOfItem(ev.itemStack?.typeId);
+    if (item === undefined) return;
     const { block } = ev;
-    if (
-      item === undefined ||
-      !(
-        isCamperRoomBlock(block.typeId) ||
-        campingGearOfDecorBlock(block.typeId) !== undefined
-      )
-    )
-      return;
+    const pressedRoom =
+      isCamperRoomBlock(block.typeId) ||
+      campingGearOfDecorBlock(block.typeId) !== undefined;
+    if (!pressedRoom) return;
     const vehicleId = dockCellOwner(
       asDimensionId(block.dimension.id),
       block.location,
@@ -71,12 +68,12 @@ export function registerDecor(
           asDimensionId(ev.dimension.id),
           ev.block.location,
         );
-        if (vehicleId)
-          remove.execute({
-            playerId: asPlayerId(player.id),
-            vehicleId,
-            cell: ev.block.location,
-          });
+        if (vehicleId === undefined) return;
+        remove.execute({
+          playerId: asPlayerId(player.id),
+          vehicleId,
+          cell: ev.block.location,
+        });
       },
     });
   });

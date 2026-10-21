@@ -20,11 +20,12 @@ export function campingGearBlocks(a: Arena): Promise<Outcome> {
   try {
     gear.forEach((g, i) => {
       const at = { x: ROW.x, y: a.gy, z: ROW.z + i };
+      const blockId = decorBlockId(g.id);
       const face = i % 4;
       const height = (i * 5) % 16;
       try {
         a.dim.getBlock(at)?.setPermutation(
-          BlockPermutation.resolve(decorBlockId(g.id), {
+          BlockPermutation.resolve(blockId, {
             [DECOR_FACE_STATE]: face,
             [DECOR_HEIGHT_STATE]: height,
           }),
@@ -38,7 +39,7 @@ export function campingGearBlocks(a: Arena): Promise<Outcome> {
       const block = a.dim.getBlock(at);
       const states = block?.permutation.getAllStates();
       if (
-        block?.typeId !== decorBlockId(g.id) ||
+        block?.typeId !== blockId ||
         states?.[DECOR_FACE_STATE] !== face ||
         states?.[DECOR_HEIGHT_STATE] !== height
       )

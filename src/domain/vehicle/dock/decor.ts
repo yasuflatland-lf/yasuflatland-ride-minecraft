@@ -16,7 +16,7 @@ export function isDecorItem(item: string): boolean {
 
 /** The quarter turn of a snapped yaw: 0 at yaw 0, 1 at 90, 2 at 180, 3 at -90 (yasu_ride:face of a decor block). */
 export function decorFace(yaw: number): Face {
-  return ((((Math.round(yaw / QUARTER_TURN) % 4) + 4) % 4) + 0) as Face;
+  return (((Math.round(yaw / QUARTER_TURN) % 4) + 4) % 4) as Face;
 }
 
 /**
