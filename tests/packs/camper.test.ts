@@ -278,14 +278,16 @@ describe("camper model assets (ADR 0067)", () => {
 
   it("lays the dash-top air vent wholly on the dash pad (#414)", () => {
     const body = bone("body").cubes ?? [];
+    // The pad runs from 33.4 to 35, just under the windshield's lower frame at 36 (#422).
     const pads = body.filter(
       (cube) =>
-        near(cube.origin[1], 27) && near(cube.size[1], 1.6) && !cube.rotation,
+        near(cube.origin[1], 33.4) && near(cube.size[1], 1.6) && !cube.rotation,
     );
     expect(pads).toHaveLength(1);
     const pad = pads[0] as Cube;
     const [padX0, padX1] = extent(pad, 0);
     const [, padTop] = extent(pad, 1);
+    expect(padTop).toBeLessThan(36);
     const [padZ0, padZ1] = extent(pad, 2);
     const vent = body.filter((cube) => {
       const [x0, x1] = extent(cube, 0);

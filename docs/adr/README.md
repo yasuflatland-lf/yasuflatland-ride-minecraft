@@ -96,7 +96,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0090](0090-group-the-vehicle-core-by-subcontext.md) | Group the vehicle core by subcontext | Accepted |
 | [0091](0091-alpha-blend-only-the-camper-glass.md) | Alpha-blend only the camper glass | Accepted |
 | [0092](0092-a-bed-in-the-parked-camper.md) | A bed in the parked camper | Extended by 0093 |
-| [0093](0093-decorate-the-parked-camper.md) | Decorate the parked camper | Superseded in part by 0097, 0098, 0099, 0100, 0102, and 0103; extended by 0094, 0095, 0096, and 0101 |
+| [0093](0093-decorate-the-parked-camper.md) | Decorate the parked camper | Superseded in part by 0097, 0098, 0099, 0100, 0102, 0103, and 0105; extended by 0094, 0095, 0096, and 0101 |
 | [0094](0094-the-camper-shower-toilet-door-and-shower.md) | The camper's shower-toilet door and shower | Superseded in part by 0098 |
 | [0095](0095-sit-on-the-camper-toilet-while-parked.md) | Sit on the camper toilet while parked | Extended by 0098 |
 | [0096](0096-keep-the-dock-blocks-whole.md) | Keep a parked vehicle's dock blocks whole | Accepted |
@@ -108,6 +108,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0102](0102-lift-the-hanging-planter-from-its-cell-bottom.md) | Lift the hanging planter from its cell bottom | Accepted |
 | [0103](0103-raise-the-camper-wall-cabinet-to-the-ceiling.md) | Raise the camper wall cabinet to the ceiling | Accepted |
 | [0104](0104-refuse-a-press-on-a-taken-seat.md) | Refuse a press on a taken seat | Accepted |
+| [0105](0105-raise-the-camper-dashboard-to-the-windshield.md) | Raise the camper dashboard to the windshield | Accepted |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 

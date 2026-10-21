@@ -679,8 +679,14 @@ for end, z in (("f", FRONT_AXLE), ("r", REAR_AXLE)):
 
 # --- Cab interior (right-hand drive, like the SUV; ADR 0069) ----------------
 DASH_FACE = FRONT + 8  # the dashboard's rear face, toward the seats
-# Padded green dashboard with a rounded rear edge on top
-body.append(box(-HW + 1, FLOOR, FRONT + 1, HW - 1, 27, DASH_FACE, "dash"))
+# The dashboard and everything on it are drawn below with the pad top at 28.6 and then lifted
+# by DASH_RISE, so the pad top sits at 35, just under the windshield's lower frame (SILL, 36),
+# and the frame stays in sight (#422). The y values from here to the defroster vent are
+# before the lift.
+DASH_RISE = 6.4
+dash_start = len(body)
+# Padded green dashboard with a rounded rear edge on top; its body down to the floor is added
+# after the lift.
 body.append(box(-HW + 1, 27, WS_Z + 1.5, HW - 1, 28.6, DASH_FACE + 1, "dash_pad"))
 body.append(box(-HW + 1, 26.2, DASH_FACE + 1, HW - 1, 28.2, DASH_FACE + 1.8, "dash_pad", [45, 0, 0], [0, 27.2, DASH_FACE + 1.4]))
 body.append(box(-HW + 1, 25.6, DASH_FACE, HW - 1, 26.2, DASH_FACE + 0.6, "dark_dash"))
@@ -722,17 +728,18 @@ def round_control(x, y, r):
     return disc("z", x, y, PANEL_Z, r, 0.12, "chrome", steps=STEPS_8) + disc("z", x, y, PANEL_Z + 0.12, r - 0.15, 0.1, "gauge", steps=STEPS_8)
 
 
-# Lower rows: rocker switches and round controls. The steering column meets the panel at
-# x 11.3 to 12.7 below y 21.3, so the left pair of rockers flanks it instead of sitting on it.
+# Lower rows: rocker switches and round controls. The left pair of rockers stands at x 10.6 and
+# 13.4, either side of the steering column's x (11.3 to 12.7), which meets the dash body below
+# the lifted console.
 for rx, ry in ((10.6, 21.1), (13.4, 21.1), (10.6, 19.9), (13.4, 19.9), (16, 20.5), (18.6, 20.5)):
     body += rocker(rx, ry, False)
 for cx in (14.75, 17.25):
     body += round_control(cx, 20.5, 0.75)
-# Ignition switch at the upper right of the panel, above the door armrest (top at y 23.4)
+# Ignition switch at the upper right of the panel
 body += disc("z", 21.2, 24.15, PANEL_Z, 0.7, 0.2, "chrome", steps=STEPS_8)
 body += disc("z", 21.2, 24.15, PANEL_Z + 0.2, 0.38, 0.1, "black", steps=STEPS_8)
-# Right column: rocker switches in pairs and two slide levers. The door armrest reaches in to
-# x 21.2 at y 22 to 23.4 and through the whole console, so the rockers stay left of it.
+# Right column: rocker switches in pairs and two slide levers, left of x 21.2, where the door
+# armrest reaches in; after the lift the armrest (y 22 to 23.4) is below the console.
 for ry in (22.3, 21.2):
     for rx in (19.95, 20.8):
         body += rocker(rx, ry, True)
@@ -758,6 +765,11 @@ for kx in (-13, -7):
 body.append(box(-21.5, 19.5, DASH_FACE, -15, 24.5, DASH_FACE + 0.3, "wood"))
 body.append(box(-18.9, 23.4, DASH_FACE + 0.3, -17.6, 23.9, DASH_FACE + 0.5, "chrome"))
 body += disc("z", 0, 28.7, DASH_FACE - 2.5, 1.2, 0.01, "grille", steps=(0, 45))  # defroster vent
+for c in body[dash_start:]:
+    c["origin"][1] = round(c["origin"][1] + DASH_RISE, 3)
+    if "pivot" in c:
+        c["pivot"] = [c["pivot"][0], round(c["pivot"][1] + DASH_RISE, 3), c["pivot"][2]]
+body.append(box(-HW + 1, FLOOR, FRONT + 1, HW - 1, 27 + DASH_RISE, DASH_FACE, "dash"))
 # Green vinyl engine cover between the seats, rounded on top
 body.append(box(-6, FLOOR, DASH_FACE, 6, 22, DASH_FACE + 13, "dash"))
 body.append(box(-5.2, 22, DASH_FACE + 0.5, 5.2, 23.6, DASH_FACE + 12.5, "dash"))
