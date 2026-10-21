@@ -759,10 +759,12 @@ describe("camper parking assets (ADR 0068)", () => {
 });
 
 describe("camper furniture model (ADR 0093)", () => {
-  // A hanging decor item's top: the ceiling plate's underside, 29 px above a layer-2 cell's bottom (ADR 0093).
-  const HANG_TOP = 29;
+  // The ceiling plate's underside, 29 px above a layer-2 cell's bottom (ADR 0093).
+  const PLATE_UNDERSIDE = 29;
+  // A hanging decor item's top: the top of its cell, where the hook ends (ADR 0099).
+  const HANG_TOP = 16;
 
-  it("puts every standing decor slot on the model's top surface and hangs the ceiling slot under the ceiling plate", () => {
+  it("puts every standing decor slot on the model's top surface and runs the ceiling hook from the ceiling plate to the top of its cell (ADR 0093, 0099)", () => {
     const slots = CAMPER_FURNITURE.flatMap((f) => f.slots);
     expect(slots).toHaveLength(12);
     const unrotatedCubes = bones
@@ -801,23 +803,38 @@ describe("camper furniture model (ADR 0093)", () => {
             return oy;
           }),
         );
-        expect(Math.ceil(underside - bottom - 1e-9), slot.id).toBe(HANG_TOP);
+        expect(Math.ceil(underside - bottom - 1e-9), slot.id).toBe(
+          PLATE_UNDERSIDE,
+        );
         const hook = covering.filter((cube) => {
           const [, oy = 0] = cube.origin;
           const [sx = 0, sy = 0] = cube.size;
           return sx < 16 && oy >= bottom && oy + sy <= underside + 1e-6;
         });
         expect(hook.length, slot.id).toBeGreaterThan(0);
-        const hookBottom = bottom + HANG_TOP - 1;
-        for (const cube of hook) {
-          const [, oy = 0] = cube.origin;
-          expect(oy, slot.id).toBeGreaterThanOrEqual(hookBottom - 1e-6);
+        const cellTop = bottom + HANG_TOP;
+        const spans = hook
+          .map((cube) => {
+            const [, oy = 0] = cube.origin;
+            const [, sy = 0] = cube.size;
+            return [oy, oy + sy] as const;
+          })
+          .sort((a, b) => a[0] - b[0]);
+        for (const [lo] of spans) {
+          expect(lo, slot.id).toBeGreaterThanOrEqual(cellTop - 1e-6);
         }
+        expect(spans[0]?.[0], slot.id).toBeCloseTo(cellTop, 6);
+        let reach = cellTop;
+        for (const [lo, hi] of spans) {
+          expect(lo, slot.id).toBeLessThanOrEqual(reach + 1e-6);
+          reach = Math.max(reach, hi);
+        }
+        expect(reach, slot.id).toBeGreaterThanOrEqual(underside - 1e-6);
         expect(
           covering.some((cube) => {
             const [, oy = 0] = cube.origin;
             const [, sy = 0] = cube.size;
-            return oy < hookBottom - 0.001 && oy + sy > bottom + 0.001;
+            return oy < cellTop - 0.001 && oy + sy > bottom + 0.001;
           }),
           slot.id,
         ).toBe(false);

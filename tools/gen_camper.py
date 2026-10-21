@@ -771,11 +771,13 @@ shower_door = [box(8, FLOOR + 0.5, 42.1, 8.6, 51.9, 53.9, "wood")]
 shower_door.append(box(7.4, 32, 43, 8, 33, 44.5, "chrome"))  # handle outside
 shower_door.append(box(8.6, 32, 43, 9.2, 33, 44.5, "chrome"))  # handle inside
 SHOWER_HINGE = [8, 0, 54]
-# Ceiling hook above the dinette table (cell x = 1, z = 0, layer 2): a hanging decor item's top
-# sits at the ceiling plate's underside, 29 px above the cell bottom, so the hook stays in the
-# top pixel under the plate and the space below it stays clear (ADR 0093).
+# Ceiling hook above the dinette table (cell x = 1, z = 0, layer 2): a cord and a hook run from
+# the ceiling plate down to the top of that cell, where a hanging decor item's top sits. The
+# block model stays inside the cell, so the model draws the part above it (ADR 0099).
+HOOK_CELL_TOP = 3 * 16  # the top of layer 2
 body.append(box(-17, CEIL - 0.4, -1, -15, CEIL - 0.2, 1, "chrome"))  # base plate
-body.append(box(-16.25, CEIL - 1, -0.25, -15.75, CEIL - 0.4, 0.25, "chrome"))  # hook
+body.append(box(-16.2, HOOK_CELL_TOP + 1.5, -0.2, -15.8, CEIL - 0.4, 0.2, "ivory"))  # cord
+body.append(box(-16.5, HOOK_CELL_TOP, -0.5, -15.5, HOOK_CELL_TOP + 1.5, 0.5, "chrome"))  # hook
 seat0 = bucket_seat(7, 18)
 seat1 = bucket_seat(-18, -7)
 
