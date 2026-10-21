@@ -2,7 +2,7 @@
 
 Small 1970s motorhome gear made to decorate a parked camper. Back to the [item groups](README.md).
 
-Each item stands in the middle of one slot on the camper's furniture, except the Macrame Hanging Planter, which hangs from the ceiling hook. A standing item goes on any spot except the ceiling hook: the dashboard, the table, the dinette seats, the shelf, the stove, the counter, or the wall cabinet. The ceiling hook takes only the hanging planter (ADR 0097). Sizes are width × height in pixels, at 16 pixels per block. `pnpm model` draws the previews from the block models it generates from `tools/camping_gear.json`.
+Each item stands in the middle of one slot on the camper's furniture, except the Macrame Hanging Planter, which hangs from the ceiling hook. A standing item goes on any spot except the ceiling hook: the dashboard, the table, the dinette seats, the shelf, the stove, or the counter. The ceiling hook takes only the hanging planter (ADR 0097). Sizes are width × height in pixels, at 16 pixels per block. `pnpm model` draws the previews from the block models it generates from `tools/camping_gear.json`.
 
 | Preview | Name | Size (px) | Stands or hangs | Reference |
 |---|---|---|---|---|
