@@ -33,9 +33,9 @@ const DOOR = { x: -WALL_X, z: 0 } as const;
 const FURNITURE_BLOCKS: readonly {
   readonly cell: LocalCell;
   readonly block: DockBlock;
-}[] = CAMPER_FURNITURE.flatMap(({ cells, block }) =>
-  block === undefined ? [] : cells.map((cell) => ({ cell, block })),
-);
+}[] = CAMPER_FURNITURE.filter(
+  (f): f is typeof f & { readonly block: DockBlock } => f.block !== undefined,
+).flatMap(({ cells, block }) => cells.map((cell) => ({ cell, block })));
 // The ground cell just outside the door.
 const EXIT = { x: -WALL_X - 1, z: 0 } as const;
 const WALL_LAYERS = [1, 2, 3] as const;
