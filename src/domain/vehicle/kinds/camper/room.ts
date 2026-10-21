@@ -18,7 +18,7 @@ import {
   type LocalCell,
   SHOWER_COLUMN,
 } from "./furniture";
-import { CAMPER_PROFILE } from "./profile";
+import { CAMPER_PARKED_SEATS, CAMPER_PROFILE } from "./profile";
 
 // Feet resting on a block top can read a hair below it.
 const FEET_EPSILON = 0.01;
@@ -376,15 +376,16 @@ export function departure(pose: HoldPose, exitClear = true): Departure {
   };
 }
 
+function vehicleDeckSeats(pose: HoldPose): Vec3[] {
+  return seatWorldPositions(pose, CAMPER_PROFILE.seats.positions).map(
+    (at, i) => ({ ...at, y: at.y + (DECK_SEAT_RISE[i] ?? 0) }),
+  );
+}
+
 /** A deck seat at each profile seat, then the compact toilet seat (ADR 0068, 0095). */
 export function deckSeats(pose: HoldPose): DeckSeatSpot[] {
-  const vehicleSeats = seatWorldPositions(
-    pose,
-    CAMPER_PROFILE.seats.positions,
-  ).map((at, i) => ({ ...at, y: at.y + (DECK_SEAT_RISE[i] ?? 0) }));
-  const parkedSeats = seatWorldPositions(
-    pose,
-    CAMPER_PROFILE.parkedSeats?.positions ?? [],
-  ).map((at) => ({ ...at, y: at.y + TOILET_SEAT_RISE, compact: true }));
-  return [...vehicleSeats, ...parkedSeats];
+  const toilet = seatWorldPositions(pose, CAMPER_PARKED_SEATS.positions).map(
+    (at) => ({ ...at, y: at.y + TOILET_SEAT_RISE, compact: true }),
+  );
+  return [...vehicleDeckSeats(pose), ...toilet];
 }
