@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { CAMPER_SPEC } from "../../src/domain/vehicle/kinds/camper/spec";
 import {
+  CAMPER_BED_BLOCK,
   CAMPER_CEILING_BLOCK,
   CAMPER_DOOR_BLOCK,
   CAMPER_DOOR_COMPONENT,
@@ -16,6 +17,7 @@ const read = (path: string) => JSON.parse(readFileSync(path, "utf8"));
 const readBlock = (name: string) =>
   read(`${BP}/blocks/yasu_ride/camper_${name}.block.json`);
 const fullCell = { origin: [-8, 0, -8], size: [16, 16, 16] };
+const bedBox = { origin: [-8, 0, -8], size: [16, 9, 16] };
 const ceilingPlate = { origin: [-8, 13, -8], size: [16, 3, 16] };
 const wallPlates = [
   { origin: [-8, 0, -8], size: [16, 16, 2] },
@@ -30,6 +32,7 @@ describe("Camper room blocks (ADR 0068)", () => {
     ["ceiling", CAMPER_CEILING_BLOCK],
     ["wall", CAMPER_WALL_BLOCK],
     ["door", CAMPER_DOOR_BLOCK],
+    ["bed", CAMPER_BED_BLOCK],
   ])(
     "defines an invisible, indestructible %s with the script's identifier",
     (name, identifier) => {
@@ -64,6 +67,7 @@ describe("Camper room blocks (ADR 0068)", () => {
   it.each([
     ["floor", fullCell],
     ["ceiling", ceilingPlate],
+    ["bed", bedBox],
   ] as const)(
     "makes the %s selectable with its collision shape",
     (name, box) => {

@@ -13,6 +13,7 @@ import {
 import { CAMPER_SPEC } from "../../domain/vehicle/kinds/camper/spec";
 import { DOCK } from "../../domain/vehicle/motion/dock";
 import {
+  CAMPER_BED_BLOCK,
   CAMPER_CEILING_BLOCK,
   CAMPER_DOOR_BLOCK,
   CAMPER_FLOOR_BLOCK,
@@ -39,6 +40,7 @@ const ROOM_BLOCK: Readonly<Record<DockBlock["type"], string>> = {
   ceiling: CAMPER_CEILING_BLOCK,
   wall: CAMPER_WALL_BLOCK,
   door: CAMPER_DOOR_BLOCK,
+  bed: CAMPER_BED_BLOCK,
 };
 
 function carPose(car: Entity): HoldPose {
@@ -119,7 +121,7 @@ export function camperPark(a: Arena): Promise<Outcome> {
   return atParkSpot(a, async (car) => {
     await wait(DOCK.ticks + 10);
     const laid = laidRoomCells(a, car);
-    return { pass: laid === 103, detail: `laid=${laid}` };
+    return { pass: laid === 105, detail: `laid=${laid}` };
   });
 }
 
@@ -156,7 +158,7 @@ export function camperParkSnow(a: Arena): Promise<Outcome> {
       (c) => a.dim.getBlock(c)?.typeId === CAMPER_FLOOR_BLOCK,
     ).length;
     return {
-      pass: laid === 103 && floors === 4,
+      pass: laid === 105 && floors === 4,
       detail: `laid=${laid} snowReplaced=${floors}`,
     };
   });
@@ -172,7 +174,7 @@ export async function camperParkPath(a: Arena): Promise<Outcome> {
       // A path under a full block turns into dirt, so the ground is only logged.
       const under = a.dim.getBlock({ x: 108, y: ground, z: 78 })?.typeId;
       return {
-        pass: laid === 103 && car.location.y === a.gy,
+        pass: laid === 105 && car.location.y === a.gy,
         detail: `laid=${laid} y=${car.location.y} ground=${under}`,
       };
     });
@@ -192,7 +194,7 @@ export function camperDepart(a: Arena): Promise<Outcome> {
     const remaining = countLaid(a, cells);
     const moved = movedFrom(car, pose);
     return {
-      pass: parked === 103 && remaining === 0 && moved >= 0.1,
+      pass: parked === 105 && remaining === 0 && moved >= 0.1,
       detail: `parked=${parked} remaining=${remaining} moved=${moved.toFixed(3)}`,
     };
   });
@@ -210,7 +212,7 @@ export function camperDepartCargo(a: Arena): Promise<Outcome> {
     const laid = laidRoomCells(a, car);
     const moved = movedFrom(car, pose);
     return {
-      pass: laid === 103 && moved < 0.01,
+      pass: laid === 105 && moved < 0.01,
       detail: `laid=${laid} moved=${moved.toFixed(3)}`,
     };
   });

@@ -16,6 +16,7 @@ export type DockBlock =
   | { readonly type: "deck"; readonly height: number }
   | { readonly type: "floor" }
   | { readonly type: "ceiling" }
+  | { readonly type: "bed" }
   | { readonly type: "wall"; readonly face: Face }
   | { readonly type: "door"; readonly face: Face; readonly open: boolean };
 

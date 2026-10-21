@@ -12,6 +12,7 @@ import {
   savedDock,
 } from "../../../../src/infrastructure/vehicle/bedrock/dockBlocks";
 import {
+  CAMPER_BED_BLOCK,
   CAMPER_CEILING_BLOCK,
   CAMPER_DOOR_BLOCK,
   CAMPER_FLOOR_BLOCK,
@@ -324,6 +325,7 @@ const roomCells: DockCell[] = [
   { x: 2, y: 64, z: 0, block: { type: "ceiling" } },
   { x: 3, y: 64, z: 0, block: { type: "wall", face: 2 } },
   { x: 4, y: 64, z: 0, block: { type: "door", face: 3, open: false } },
+  { x: 5, y: 64, z: 0, block: { type: "bed" } },
 ];
 
 it("lays every block type with its states and changes only an opened door", () => {
@@ -339,6 +341,7 @@ it("lays every block type with its states and changes only an opened door", () =
       typeId: CAMPER_DOOR_BLOCK,
       states: { [ROOM_FACE_STATE]: 3, [ROOM_OPEN_STATE]: false },
     },
+    { typeId: CAMPER_BED_BLOCK, states: undefined },
   ]);
   f.writes.length = 0;
   const opened = roomCells.map((c) =>
@@ -382,7 +385,7 @@ it.each([
   },
 );
 
-it("preserves replacements of wall and door cells", () => {
+it("preserves replacements of wall, door, and bed cells", () => {
   const f = fixture();
   const docks = new DockBlocks();
   docks.lay(asVehicleId(f.car.id), f.car, roomCells);
@@ -391,6 +394,19 @@ it("preserves replacements of wall and door cells", () => {
   docks.lay(asVehicleId(f.car.id), f.car, []);
   for (const c of roomCells.slice(3))
     expect(f.at(c).typeId).toBe("minecraft:stone");
+});
+
+it("restores a saved bed cell and clears it", () => {
+  const f = fixture();
+  const cell = { x: 0, y: 64, z: 0 };
+  f.saved.set(
+    DECK_CELLS_PROPERTY,
+    JSON.stringify([{ ...cell, block: { type: "bed" } }]),
+  );
+  f.blocks.set(cellKey(cell), { typeId: CAMPER_BED_BLOCK });
+  new DockBlocks().lay(asVehicleId(f.car.id), f.car, []);
+  expect(f.at(cell).typeId).toBe("minecraft:air");
+  expect(f.saved.get(DECK_CELLS_PROPERTY)).toBeUndefined();
 });
 
 it("clears saved deck cells from the legacy height-only format", () => {

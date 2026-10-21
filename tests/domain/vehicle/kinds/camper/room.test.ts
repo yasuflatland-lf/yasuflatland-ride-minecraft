@@ -3,6 +3,7 @@ import { expect, it } from "vitest";
 import {
   dot,
   forward,
+  leftOf,
   normalizeYaw,
   rightOf,
 } from "../../../../../src/domain/shared/vec";
@@ -41,7 +42,7 @@ const location = fc.record({
 const yaw = fc.double({ min: -720, max: 720, noNaN: true });
 const pose = fc.tuple(location, yaw).map(([at, angle]) => parkPose(at, angle));
 
-it("lays 103 distinct integer cells with the specified counts at any snapped pose", () => {
+it("lays 105 distinct integer cells with the specified counts at any snapped pose", () => {
   fc.assert(
     fc.property(location, yaw, fc.boolean(), (at, angle, open) => {
       const p = parkPose(at, angle);
@@ -52,16 +53,16 @@ it("lays 103 distinct integer cells with the specified counts at any snapped pos
         yaw: snapYaw(angle),
       });
       const cells = roomCells(p, open);
-      expect(cells).toHaveLength(103);
-      expect(new Set(cells.map(cellKey)).size).toBe(103);
+      expect(cells).toHaveLength(105);
+      expect(new Set(cells.map(cellKey)).size).toBe(105);
       expect(
         Object.fromEntries(
-          ["floor", "ceiling", "wall", "door", "deck"].map((type) => [
+          ["floor", "ceiling", "wall", "door", "deck", "bed"].map((type) => [
             type,
             cells.filter((c) => c.block.type === type).length,
           ]),
         ),
-      ).toEqual({ floor: 21, ceiling: 21, wall: 57, door: 3, deck: 1 });
+      ).toEqual({ floor: 21, ceiling: 21, wall: 57, door: 3, deck: 1, bed: 2 });
       for (const c of cells)
         expect([c.x, c.y, c.z].every(Number.isInteger)).toBe(true);
     }),
@@ -137,7 +138,28 @@ it("faces every plate inward and stacks the three door cells above the half step
   );
 });
 
-it("checks 168 unique cells including the room and keeps all 63 cargo cells outside its blocks", () => {
+it("lays the two bed cells at the rear left, one layer above the floor (ADR 0092)", () => {
+  fc.assert(
+    fc.property(pose, (p) => {
+      const beds = roomCells(p, false).filter((c) => c.block.type === "bed");
+      expect(beds).toHaveLength(2);
+      const exact = forward(p.yaw);
+      const f = { x: Math.round(exact.x) + 0, z: Math.round(exact.z) + 0 };
+      const left = leftOf(f);
+      const l = { x: left.x + 0, z: left.z + 0 };
+      const along: number[] = [];
+      for (const c of beds) {
+        const d = { x: c.x - Math.floor(p.x), z: c.z - Math.floor(p.z) };
+        expect(c.y).toBe(p.y + 1);
+        expect(dot(d, l)).toBe(1);
+        along.push(dot(d, f));
+      }
+      expect(along.sort((a, b) => a - b)).toEqual([-3, -2]);
+    }),
+  );
+});
+
+it("checks 168 unique cells including the room and keeps all 61 cargo cells outside its blocks", () => {
   fc.assert(
     fc.property(pose, (p) => {
       const room = new Set(roomCells(p, false).map(cellKey));
@@ -146,8 +168,8 @@ it("checks 168 unique cells including the room and keeps all 63 cargo cells outs
       expect(new Set(check).size).toBe(168);
       for (const c of room) expect(check).toContain(c);
       const cargo = cargoCells(p).map(cellKey);
-      expect(cargo).toHaveLength(63);
-      expect(new Set(cargo).size).toBe(63);
+      expect(cargo).toHaveLength(61);
+      expect(new Set(cargo).size).toBe(61);
       expect(cargo.some((c) => room.has(c))).toBe(false);
     }),
   );
@@ -278,7 +300,7 @@ it("checks every roof cell and clears decorations there", () => {
       fc.integer({ min: 0, max: 20 }),
       fc.constantFrom(...CLEARABLE_DECORATIONS),
       (p, index, typeId) => {
-        const roof = defined(cargoCells(p).slice(42)[index], "roof cell");
+        const roof = defined(cargoCells(p).slice(40)[index], "roof cell");
         const cells = parkCheckCells(p);
         expect(cells.map(cellKey)).toContain(cellKey(roof));
         const types = cells.map((c) =>
