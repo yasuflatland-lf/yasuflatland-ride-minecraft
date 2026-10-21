@@ -166,6 +166,9 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | C93 | Park the camper with someone on each deck seat; the driver's deck seat rider pushes the stick to set off | Everyone is moved into the camper's seats and the camper drives off; nobody is put in the aisle first (ADR 0063, 0109) | | |
 | C94 | Fill all four camper seats while parked, put a fifth player on the toilet, and set off | The toilet rider is moved to the ground outside the door, as before (ADR 0095, 0109) | | |
 | C95 | Park the camper, put a block in the aisle cell beside a dinette seat at head height, then sit on that seat and stand up | You are not put into the block; you land where the game puts you, as before this change (ADR 0109) | | |
+| C100 | Park facing each of the four directions in turn; stand in the aisle right next to the stove, hold a saucepan, and long-press each of the four burners in turn, aiming steeply down at it, taking it back with an empty hand between presses; repeat standing one block back in the aisle, on a phone and on PC | The saucepan lands on the burner aimed at every time, including the near aisle-side burners pressed close to the stove's edge (ADR 0110) | | |
+| C101 | Hold a potted plant and long-press the low shelf's front edge and the high shelf's front edge, then the table's and the counter's edges from the aisle, taking each item back between presses | Each item lands on the shelf, the table, or the counter aimed at, never on the shelf above or below it (ADR 0110) | | |
+| C102 | Hold a macrame planter and long-press the ceiling hook, take it back, then long-press the table top under the hook from the aisle | The planter hangs from the hook both times (ADR 0110) | | |
 
 ## Upgrading from MyCar 0.5.0 and earlier
 

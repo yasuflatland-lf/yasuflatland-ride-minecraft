@@ -216,14 +216,15 @@ export class Vehicle {
     return this.drive.setDecor?.(slot, item) ?? false;
   }
 
-  /** The free decor slot that accepts `item`: the slot of the pressed `cell` when it can take it, else the one nearest `point` unless `exact`; undefined for a kind without decor (ADR 0093, 0097, 0104). */
+  /** The free decor slot that accepts `item`: the slot of the pressed `cell` when it can take it, else the one nearest `point` unless `exact`, measured along the line of sight from `eye` when given; undefined for a kind without decor (ADR 0093, 0097, 0104, 0110). */
   decorSlotFor(
     item: string,
     point: Vec3,
     cell: Vec3,
     exact: boolean,
+    eye?: Vec3,
   ): string | undefined {
-    return this.drive.decorSlotFor?.(item, point, cell, exact);
+    return this.drive.decorSlotFor?.(item, point, cell, exact, eye);
   }
 
   /** A player puts `item` in `slot`. Returns whether it was placed (ADR 0093). */
