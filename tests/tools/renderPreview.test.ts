@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 type Point = [number, number, number];
@@ -79,5 +80,31 @@ describe("render_preview.py bone rotations", () => {
 
   it("leaves bones outside the rotated chain where they are", () => {
     expectNear(centers, [0, 0, -5]);
+  });
+});
+
+describe("camping gear previews (ADR 0093)", () => {
+  it("renders every item of the spec into its own 128 px square and keeps the vehicle frame for the rest", () => {
+    const script = [
+      "import json, sys",
+      "from pathlib import Path",
+      "sys.path.insert(0, 'tools')",
+      "import render_preview",
+      "images = render_preview.render_camping_gear(Path('packs/yasu_ride_rp'))",
+      "names = list(images)",
+      "print(json.dumps({'names': names, 'lengths': sorted({len(v) for v in images.values()}),",
+      "  'sizes': [render_preview.image_size(n) for n in names + ['camper-side.png']]}))",
+    ].join("\n");
+    const out = JSON.parse(
+      execFileSync("python3", ["-I", "-c", script], { encoding: "utf8" }),
+    );
+    const ids = (
+      JSON.parse(readFileSync("tools/camping_gear.json", "utf8")) as {
+        id: string;
+      }[]
+    ).map((g) => g.id);
+    expect(out.names).toEqual(ids.map((id) => `items/camping-gear/${id}.png`));
+    expect(out.lengths).toEqual([128 * 128 * 4]);
+    expect(out.sizes).toEqual([...ids.map(() => [128, 128]), [800, 600]]);
   });
 });

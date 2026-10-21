@@ -15,6 +15,11 @@ black and with the headlights on at night from the SUV's angle, from its rear-le
 straight above (ADR 0056). Four camper pictures share a third scale: front-left,
 headlights at dusk, side, and rear, without water layers (ADR 0067).
 
+Each camping gear item in tools/camping_gear.json gets its own 128-pixel square preview in
+<output dir>/items/camping-gear/<id>.png, from the same angle as the vehicles, with no ground,
+its longer side filling 80 percent of the square, for its row in docs/items/camping-gear.md
+(ADR 0093).
+
 Only the standard library is used, like gen_model.py. The arithmetic avoids math.sin/cos (their
 last bit can differ between platforms' libm) so the same model renders to the same pixels on a Mac
 and on the Linux CI runner. --check compares decoded pixels rather than PNG bytes, because zlib
@@ -121,6 +126,15 @@ CAMPER_POSES = {
     "camper-side.png": {"lamps": False, "dusk": False, "view": (1.0, 0.15, 0.0001), "screen_up": None},
     "camper-rear.png": {"lamps": False, "dusk": False, "view": (1.0, 0.6, 1.0), "screen_up": None},
 }
+
+# Each camping gear item gets its own square preview for its row in docs/items/camping-gear.md,
+# filled to GEAR_FILL of the square so even the flat road map shows its detail (ADR 0093)
+GEAR_SPEC = Path(__file__).resolve().parent / "camping_gear.json"
+GEAR_GEOMETRY = "models/blocks/yasu_ride/{}.geo.json"
+GEAR_TEXTURE = "textures/blocks/yasu_ride/camping_gear.png"
+GEAR_DIR = "items/camping-gear"
+GEAR_SIZE = 128
+GEAR_FILL = 0.8
 
 POSES = {
     "suv-front-left.png": {"lamps": False, "dusk": False, "hover": False, "submarine": False},
@@ -668,6 +682,7 @@ def render(rp, icons=False):
     images = {name: rasterize(scenes[name], layers[name], to_screen) for name in POSES}
     images.update(render_boat(rp))
     images.update(render_camper(rp))
+    images.update(render_camping_gear(rp))
     icon = None
     if icons:
         # Lamps lit without the dusk tint, so the body keeps its daylight colors
@@ -754,6 +769,42 @@ def render_camper(rp):
     return {name: images[name] for name in CAMPER_POSES}
 
 
+def render_camping_gear(rp):
+    texture = read_png(rp / GEAR_TEXTURE)
+    images = {}
+    for item in json.loads(GEAR_SPEC.read_text()):
+        geo = json.loads((rp / GEAR_GEOMETRY.format(item["id"])).read_text())["minecraft:geometry"][0]
+        polygons, glass = collect_boat(geo, texture, {"lamps": False, "dusk": False})
+        quads = [quad for quad, _, _ in polygons + glass]
+        camera = Camera([p for quad in quads for p in quad])
+        to_screen = fit_square(camera, quads, GEAR_SIZE)
+        images[f"{GEAR_DIR}/{item['id']}.png"] = rasterize(
+            polygons, [], to_screen, GEAR_SIZE, GEAR_SIZE, bloom={}, see_through=glass
+        )
+    return images
+
+
+def fit_square(camera, quads, size):
+    """Return a to_screen function that centers the quads in a size-pixel square, their longer side
+    spanning GEAR_FILL of it."""
+    w = size * SUPERSAMPLE
+    projected = [camera.project(p) for quad in quads for p in quad]
+    xlo, xhi = min(p[0] for p in projected), max(p[0] for p in projected)
+    ylo, yhi = min(p[1] for p in projected), max(p[1] for p in projected)
+    scale = w * GEAR_FILL / max(xhi - xlo, yhi - ylo)
+    off_x = w / 2 - scale * (xlo + xhi) / 2
+    off_y = w / 2 - scale * (ylo + yhi) / 2
+
+    def to_screen(quad):
+        return [(off_x + scale * x, off_y + scale * y, q) for x, y, q in map(camera.project, quad)]
+
+    return to_screen
+
+
+def image_size(name):
+    return (GEAR_SIZE, GEAR_SIZE) if name.startswith(f"{GEAR_DIR}/") else (WIDTH, HEIGHT)
+
+
 def render_icon(geo, polygons, camera):
     """Fit the vehicle to ICON_FILL of the width over the background and the wheel discs."""
     size = ICON_SIZE
@@ -834,7 +885,7 @@ def main():
     if args.icons and not any(pack.name == ICON_GRAYSCALE_PACK for pack in args.icons):
         parser.error(f"--icons must include {ICON_GRAYSCALE_PACK}, which gets the grayscale icon")
     images, icon = render(args.resource_pack, bool(args.icons))
-    targets = [(args.output_dir / name, WIDTH, HEIGHT, pixels, False) for name, pixels in images.items()]
+    targets = [(args.output_dir / name, *image_size(name), pixels, False) for name, pixels in images.items()]
     for pack in args.icons:
         pixels = grayscale(icon) if pack.name == ICON_GRAYSCALE_PACK else icon
         targets.append((pack / "pack_icon.png", ICON_SIZE, ICON_SIZE, pixels, True))
