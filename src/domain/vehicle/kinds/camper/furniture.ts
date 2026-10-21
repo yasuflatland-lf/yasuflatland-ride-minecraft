@@ -7,7 +7,6 @@ type FurnitureKind =
   | "shelf"
   | "stove"
   | "counter"
-  | "wall_cabinet"
   | "ceiling_hook"
   | "shower_toilet";
 
@@ -112,21 +111,6 @@ export const CAMPER_FURNITURE: readonly Furniture[] = [
     kind: "counter",
     cells: [{ x: -1, z: -1, layer: 1 }],
     slots: [{ id: "counter", cell: { x: -1, z: -1, layer: 1 }, height: 14 }],
-  },
-  {
-    kind: "wall_cabinet",
-    cells: [
-      { x: -1, z: -1, layer: 2 },
-      { x: -1, z: -2, layer: 2 },
-    ],
-    slots: [
-      {
-        id: "wall_cabinet_front",
-        cell: { x: -1, z: -1, layer: 2 },
-        height: 13,
-      },
-      { id: "wall_cabinet_rear", cell: { x: -1, z: -2, layer: 2 }, height: 13 },
-    ],
   },
   // Height 6 lifts the 10 px hanging planter so its top meets the hook at the top of the cell (ADR 0099, 0102).
   {

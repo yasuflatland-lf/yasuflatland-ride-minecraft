@@ -50,14 +50,14 @@ it("accepts a standing item on every slot but the ceiling hook and a hanging ite
   expect(ids(slotsFor("cushion"))).toEqual(
     ids(DECOR_SLOTS.filter((s) => s.id !== "ceiling_hook")),
   );
-  expect(slotsFor("percolator")).toHaveLength(11);
+  expect(slotsFor("percolator")).toHaveLength(9);
   expect(slotsFor("constructor")).toEqual([]);
   expect(slotsFor("stone")).toEqual([]);
 });
 
 it("lists the slots in DECOR_SLOTS order, each at a distinct cell, with its point at the middle of its surface", () => {
   expect(SLOTS.map((s) => s.slot)).toEqual(DECOR_SLOTS);
-  expect(SLOTS).toHaveLength(12);
+  expect(SLOTS).toHaveLength(10);
   fc.assert(
     fc.property(pose, (p) => {
       const cells = SLOTS.map(({ slot }) => decorSlotCell(p, slot));

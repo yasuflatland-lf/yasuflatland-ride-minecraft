@@ -1,12 +1,17 @@
 import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
+import { parseDecor } from "../../../../../src/domain/vehicle/dock/decor";
 import type {
   DriveStep,
   TickContext,
 } from "../../../../../src/domain/vehicle/drive";
 import type { RawInput } from "../../../../../src/domain/vehicle/driveInput";
+import { CAMPING_GEAR_IDS } from "../../../../../src/domain/vehicle/kinds/camper/campingGear";
 import { DECOR_SLOTS } from "../../../../../src/domain/vehicle/kinds/camper/decor";
-import { slotPoint } from "../../../../../src/domain/vehicle/kinds/camper/decorPlacing";
+import {
+  slotPoint,
+  slotsFor,
+} from "../../../../../src/domain/vehicle/kinds/camper/decorPlacing";
 import { CamperDrive } from "../../../../../src/domain/vehicle/kinds/camper/drive";
 import {
   AIR,
@@ -52,7 +57,7 @@ const slotNamed = (id: string) =>
   );
 const slotIndex = (p: { slot: string }) =>
   DECOR_SLOTS.findIndex((s) => s.id === p.slot);
-function fixture() {
+function fixture(dockDecor?: string) {
   const blocks = new Map<string, string>();
   const blockTypes = vi.fn(
     (cells: readonly { x: number; y: number; z: number }[]) =>
@@ -68,7 +73,10 @@ function fixture() {
     waterAt: () => false,
     blockTypes,
   };
-  const drive = new CamperDrive(37, {});
+  const drive = new CamperDrive(
+    37,
+    dockDecor === undefined ? {} : { dockDecor },
+  );
   const pose = parkPose(ctx.location, drive.yaw);
   const step = (raw?: RawInput): DriveStep =>
     drive.step(raw, { ...ctx, tick: ctx.tick++ });
@@ -233,7 +241,7 @@ it("departs on the stick press, undocks before properties, and boards deck rider
 
 it("refuses cargo only on each press and requires a new press after cargo is cleared", () => {
   fc.assert(
-    fc.property(fc.integer({ min: 0, max: 46 }), (index) => {
+    fc.property(fc.integer({ min: 0, max: 48 }), (index) => {
       const f = fixture();
       f.park();
       const cell = defined(cargoCells(f.pose)[index], "cargo cell");
@@ -555,13 +563,18 @@ it("keeps the decor through departure and lays it again on the next park", () =>
   expect(relaid).toBe(true);
 });
 
-it("restores saved decor in known slots only, docked or not", () => {
+it("restores saved decor and moves an entry of a removed slot to the first free slot that takes it, docked or not (ADR 0103)", () => {
   const saved = JSON.stringify([
     { slot: "table", item: "potted_plant" },
+    { slot: "wall_cabinet_front", item: "lava_lamp" },
     { slot: "nowhere", item: "cushion" },
     { slot: "stove", item: "Bad Item" },
   ]);
-  const expected = [{ slot: "table", item: "potted_plant" }];
+  const expected = [
+    { slot: "dashboard_center", item: "lava_lamp" },
+    { slot: "dashboard_left", item: "cushion" },
+    { slot: "table", item: "potted_plant" },
+  ];
   expect(new CamperDrive(37, { dockDecor: saved }).decor()).toEqual(expected);
   expect(
     new CamperDrive(37, {
@@ -571,6 +584,73 @@ it("restores saved decor in known slots only, docked or not", () => {
       form: "car",
     }).decor(),
   ).toEqual(expected);
+});
+
+it("moves a hanging item of a removed slot to the free ceiling hook (ADR 0103)", () => {
+  const saved = JSON.stringify([
+    { slot: "wall_cabinet_rear", item: "macrame_planter" },
+  ]);
+  expect(new CamperDrive(37, { dockDecor: saved }).decor()).toEqual([
+    { slot: "ceiling_hook", item: "macrame_planter" },
+  ]);
+});
+
+const standingSlots = DECOR_SLOTS.filter((s) => !s.hanging);
+const fullSlots = standingSlots.map(({ id }) => ({
+  slot: id,
+  item: "potted_plant",
+}));
+const cabinetEntries = [
+  { slot: "wall_cabinet_front", item: "lava_lamp" },
+  { slot: "wall_cabinet_rear", item: "toaster" },
+];
+
+it("stows an entry of a removed slot when no slot that takes its item is free, and lists it last (ADR 0103)", () => {
+  expect(standingSlots).toHaveLength(9);
+  const f = fixture(JSON.stringify([...fullSlots, ...cabinetEntries]));
+  expect(f.drive.decor()).toEqual([...fullSlots, ...cabinetEntries]);
+  expect(f.drive.setDecor("wall_cabinet_front", undefined)).toBe(false);
+  f.park();
+  expect(f.drive.placeDecor("wall_cabinet_front", "cushion")).toBe(false);
+  const laid = defined(f.step().dock, "laid dock").cells;
+  expect(laid.filter((c) => c.block.type === "decor")).toEqual(
+    decorCells(f.pose, f.drive.decor().slice(0, 9)),
+  );
+  expect(laid.filter((c) => c.block.type === "furniture")).toEqual(
+    furnitureCells(f.pose, fullSlots),
+  );
+  expect(f.drive.decor()).toEqual([...fullSlots, ...cabinetEntries]);
+});
+
+it("never loses a saved item when restoring (ADR 0103)", () => {
+  const slotId = fc.constantFrom(
+    ...DECOR_SLOTS.map((s) => s.id),
+    "wall_cabinet_front",
+    "wall_cabinet_rear",
+    "nowhere",
+  );
+  const entry = fc.record({
+    slot: slotId,
+    item: fc.constantFrom(...CAMPING_GEAR_IDS),
+  });
+  fc.assert(
+    fc.property(fc.array(entry, { maxLength: 16 }), (entries) => {
+      const saved = JSON.stringify(entries);
+      const parsed = parseDecor(saved);
+      const d = new CamperDrive(0, { dockDecor: saved }).decor();
+      const items = (list: readonly { item: string }[]) =>
+        list.map((e) => e.item).sort();
+      expect(items(d)).toEqual(items(parsed));
+      expect(new Set(d.map((e) => e.slot)).size).toBe(d.length);
+      const known = new Set(DECOR_SLOTS.map((s) => s.id));
+      for (const e of parsed)
+        if (known.has(e.slot)) expect(d).toContainEqual(e);
+      const taken = new Set(d.map((e) => e.slot));
+      for (const e of d)
+        if (!known.has(e.slot))
+          for (const s of slotsFor(e.item)) expect(taken.has(s.id)).toBe(true);
+    }),
+  );
 });
 
 const stove = slotNamed("stove");

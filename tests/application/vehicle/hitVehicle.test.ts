@@ -2,9 +2,11 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { HitVehicle } from "../../../src/application/vehicle/hitVehicle";
 import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
+import { DECOR_SLOTS } from "../../../src/domain/vehicle/kinds/camper/decor";
 import {
   createVehicle,
   fleetLimitOf,
+  rebuildVehicle,
 } from "../../../src/domain/vehicle/kinds/index";
 import {
   FakeClock,
@@ -129,5 +131,42 @@ describe("HitVehicle (ADR 0008)", () => {
       "giveDecor:p:percolator",
       "remove:car",
     ]);
+  });
+
+  it("gives back stowed decor when the camper breaks (ADR 0103)", () => {
+    const standing = DECOR_SLOTS.filter((s) => !s.hanging).map(({ id }) => ({
+      slot: id,
+      item: "potted_plant",
+    }));
+    const saved = [
+      ...standing,
+      { slot: "wall_cabinet_front", item: "lava_lamp" },
+      { slot: "wall_cabinet_rear", item: "toaster" },
+    ];
+    const repo = new InMemoryRepo();
+    const car = rebuildVehicle("camper", asVehicleId("car"), 0, [], {
+      dockDecor: JSON.stringify(saved),
+    });
+    repo.save(car);
+    const world = new FakeWorld();
+    const clock = new FakeClock();
+    const uc = new HitVehicle(
+      world,
+      repo,
+      new FakeFleetRepository(fleetLimitOf),
+      clock,
+    );
+    for (const tick of [1, 2, 3]) {
+      clock.tick = tick;
+      uc.execute({
+        playerId: asPlayerId("p"),
+        vehicleId: car.id,
+        fromDeck: false,
+      });
+    }
+    expect(world.calls).toContain(
+      `giveDecor:p:${saved.map((d) => d.item).join(",")}`,
+    );
+    expect(saved).toHaveLength(11);
   });
 });

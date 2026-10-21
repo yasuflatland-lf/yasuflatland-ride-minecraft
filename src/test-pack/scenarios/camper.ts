@@ -356,7 +356,7 @@ export function camperDecor(a: Arena): Promise<Outcome> {
     return {
       pass:
         laid === 2 &&
-        furniture === 10 &&
+        furniture === 8 &&
         kept === 1 &&
         emptied === CAMPER_FURNITURE_BLOCK &&
         remaining === 0 &&

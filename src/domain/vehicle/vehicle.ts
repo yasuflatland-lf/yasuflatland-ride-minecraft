@@ -206,7 +206,7 @@ export class Vehicle {
     return this.drive.runShower?.() ?? false;
   }
 
-  /** The decor of this vehicle's room, in slot order (ADR 0093). */
+  /** The decor of this vehicle's room, in slot order, then any stowed decor whose slot no longer exists (ADR 0093, 0103). */
   decor(): readonly DecorPlacement[] {
     return this.drive.decor?.() ?? [];
   }

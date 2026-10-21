@@ -766,7 +766,7 @@ describe("camper furniture model (ADR 0093)", () => {
 
   it("puts every standing decor slot on the model's top surface and runs the ceiling hook from the ceiling plate to the top of its cell (ADR 0093, 0099, 0102)", () => {
     const slots = CAMPER_FURNITURE.flatMap((f) => f.slots);
-    expect(slots).toHaveLength(12);
+    expect(slots).toHaveLength(10);
     const unrotatedCubes = bones
       .filter((b) => b.rotation === undefined)
       .flatMap((b) => b.cubes ?? [])
