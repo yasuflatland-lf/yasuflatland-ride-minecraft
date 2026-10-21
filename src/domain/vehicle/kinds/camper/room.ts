@@ -6,10 +6,12 @@ import {
   type Vec2,
   type Vec3,
 } from "../../../shared/vec";
+import { type DecorPlacement, decorFace } from "../../dock/decor";
 import type { Box, ClearCell, Departure } from "../../dock/dock";
 import type { DockBlock, DockCell, Face, HoldPose } from "../../dock/floor";
 import { cellKey } from "../../lighting/headlights";
 import { seatWorldPositions } from "../../seats";
+import { decorSlot } from "./decor";
 import { CAMPER_FURNITURE, type LocalCell } from "./furniture";
 import { CAMPER_PROFILE } from "./profile";
 
@@ -204,6 +206,30 @@ export function roomCells(pose: HoldPose, doorOpen: boolean): DockCell[] {
   return cells;
 }
 
+/** One decor block per placement in a known slot, at the slot's cell and height, turned to the yaw quarter (ADR 0093). */
+export function decorCells(
+  pose: HoldPose,
+  decor: readonly DecorPlacement[],
+): DockCell[] {
+  const face = decorFace(pose.yaw);
+  return decor.flatMap(({ slot, item }) => {
+    const s = decorSlot(slot);
+    return s
+      ? [
+          {
+            ...cellAt(pose, s.cell.x, s.cell.z, s.cell.layer),
+            block: { type: "decor", item, face, height: s.height } as const,
+          },
+        ]
+      : [];
+  });
+}
+
+/** A decor cell lets the camper leave only while it holds air or that slot's own decor block (ADR 0093). */
+export function ownDecor(typeId: string | undefined, item: string): boolean {
+  return typeId === AIR || typeId?.endsWith(`:${item}_decor`) === true;
+}
+
 /**
  * The 168 parking checks include standing space and the exit because the long
  * body reaches past its collision box and can stop around a flower or low block.
@@ -231,9 +257,19 @@ export function isPassable(typeId: string | undefined): boolean {
   );
 }
 
-/** Cells where a player's block keeps the camper parked: the interior outside furniture blocks, then the roof top (ADR 0092, 0093). */
-export function cargoCells(pose: HoldPose): Vec3[] {
-  return interior(pose, [...INSIDE_LAYERS, ROOF_LAYER]);
+/**
+ * Cells where a player's block keeps the camper parked: the interior outside
+ * furniture blocks, then the roof top (ADR 0092, 0093). Decor cells are read
+ * separately, with ownDecor (ADR 0093).
+ */
+export function cargoCells(
+  pose: HoldPose,
+  decor: readonly DecorPlacement[] = [],
+): Vec3[] {
+  const decorKeys = new Set(decorCells(pose, decor).map(cellKey));
+  return interior(pose, [...INSIDE_LAYERS, ROOF_LAYER]).filter(
+    (c) => !decorKeys.has(cellKey(c)),
+  );
 }
 
 /** Layer-zero wall roots are read for matching plants, never to refuse parking. */

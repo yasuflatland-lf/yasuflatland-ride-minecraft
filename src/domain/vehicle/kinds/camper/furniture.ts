@@ -21,7 +21,7 @@ export interface LocalCell {
 }
 
 /** A place for one decor item. Its id is saved with the decor, so it never changes. */
-interface DecorSlot {
+export interface DecorSlot {
   readonly id: string;
   readonly cell: LocalCell;
   /** The furniture's top above the cell bottom, in pixels (0 to 15); 0 for the ceiling hook, where items hang. */

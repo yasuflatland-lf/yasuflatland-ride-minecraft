@@ -18,7 +18,17 @@ export type DockBlock =
   | { readonly type: "ceiling" }
   | { readonly type: "bed" }
   | { readonly type: "wall"; readonly face: Face }
-  | { readonly type: "door"; readonly face: Face; readonly open: boolean };
+  | { readonly type: "door"; readonly face: Face; readonly open: boolean }
+  /**
+   * A decor item laid as yasu_ride:<item>_decor: `face` is the vehicle's yaw
+   * quarter (decorFace), not a side of the cell, and `height` is 0..15 px (ADR 0093).
+   */
+  | {
+      readonly type: "decor";
+      readonly item: string;
+      readonly face: Face;
+      readonly height: number;
+    };
 
 export interface DockCell extends Cell {
   readonly block: DockBlock;
@@ -32,6 +42,13 @@ export function sameBlock(a: DockBlock, b: DockBlock): boolean {
       return b.type === "wall" && a.face === b.face;
     case "door":
       return b.type === "door" && a.face === b.face && a.open === b.open;
+    case "decor":
+      return (
+        b.type === "decor" &&
+        a.item === b.item &&
+        a.face === b.face &&
+        a.height === b.height
+      );
     default:
       return a.type === b.type;
   }
