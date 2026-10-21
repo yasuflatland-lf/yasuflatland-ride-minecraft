@@ -10,9 +10,10 @@ stands on y 0; a hanging item also starts on y 0, and its slot's height lifts it
 not bleed a neighbor's color into a face. --check compares parsed JSON and decoded pixels, because
 Biome reformats the geometry and zlib builds do not all compress identically. It also writes the
 Behavior Pack decor blocks, the items, the creative catalog, and the gear part of
-item_texture.json; the decor block's face and height states are described next to FACE_ROTATION. The camping gear box (BOX) is the creative group's icon and first
-item, and its icon entry comes first in the generated part of item_texture.json; its item JSON and
-icon are written elsewhere (ADR 0093).
+item_texture.json; the decor block's face and height states are described next to FACE_ROTATION.
+The camping gear box (BOX) is the creative group's icon and first item, and its icon entry comes
+first in the generated part of item_texture.json; its item JSON and icon are written elsewhere (ADR
+0093).
 """
 
 import argparse
