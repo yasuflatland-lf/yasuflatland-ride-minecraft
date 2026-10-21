@@ -42,6 +42,17 @@ const location = fc.record({
 const yaw = fc.double({ min: -720, max: 720, noNaN: true });
 const pose = fc.tuple(location, yaw).map(([at, angle]) => parkPose(at, angle));
 
+// The room's forward and left axes in whole cells; adding 0 turns -0 into 0.
+function roomAxes(yaw: number): {
+  f: { x: number; z: number };
+  l: { x: number; z: number };
+} {
+  const exact = forward(yaw);
+  const f = { x: Math.round(exact.x) + 0, z: Math.round(exact.z) + 0 };
+  const left = leftOf(f);
+  return { f, l: { x: left.x + 0, z: left.z + 0 } };
+}
+
 it("lays 105 distinct integer cells with the specified counts at any snapped pose", () => {
   fc.assert(
     fc.property(location, yaw, fc.boolean(), (at, angle, open) => {
@@ -143,10 +154,7 @@ it("lays the two bed cells at the rear left, one layer above the floor (ADR 0092
     fc.property(pose, (p) => {
       const beds = roomCells(p, false).filter((c) => c.block.type === "bed");
       expect(beds).toHaveLength(2);
-      const exact = forward(p.yaw);
-      const f = { x: Math.round(exact.x) + 0, z: Math.round(exact.z) + 0 };
-      const left = leftOf(f);
-      const l = { x: left.x + 0, z: left.z + 0 };
+      const { f, l } = roomAxes(p.yaw);
       const along: number[] = [];
       for (const c of beds) {
         const d = { x: c.x - Math.floor(p.x), z: c.z - Math.floor(p.z) };
@@ -169,10 +177,7 @@ it("covers the interior and the roof exactly once with cargo cells and furniture
         expect(cargoKeys.has(key)).toBe(false);
       const all = [...cargo, ...blocks];
       expect(new Set(all.map(cellKey)).size).toBe(63);
-      const exact = forward(p.yaw);
-      const f = { x: Math.round(exact.x) + 0, z: Math.round(exact.z) + 0 };
-      const left = leftOf(f);
-      const l = { x: left.x + 0, z: left.z + 0 };
+      const { f, l } = roomAxes(p.yaw);
       for (const c of all) {
         expect([1, 2, 4].includes(c.y - p.y)).toBe(true);
         const d = { x: c.x - Math.floor(p.x), z: c.z - Math.floor(p.z) };
