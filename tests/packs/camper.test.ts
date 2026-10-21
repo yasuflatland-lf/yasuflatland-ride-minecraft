@@ -377,6 +377,55 @@ describe("camper model assets (ADR 0067)", () => {
     }
   });
 
+  it("ends the steering column inside the raised dash body, below the console (#422)", () => {
+    const body = bone("body").cubes ?? [];
+    const dashBodies = body.filter(
+      (cube) =>
+        near(cube.origin[1], 16) &&
+        near(cube.size[0], 46) &&
+        near(cube.size[2], 7),
+    );
+    expect(dashBodies).toHaveLength(1);
+    const dash = dashBodies[0] as Cube;
+    const steering = bone("steering");
+    const column = (steering.cubes ?? []).find((cube) =>
+      near(cube.size[2], 15.4),
+    ) as Cube;
+    expect(column).toBeDefined();
+    const lean = ((steering.rotation?.[0] ?? 0) * Math.PI) / 180;
+    const [, py, pz] = steering.pivot as [number, number, number];
+    // The corners of the column's far end, in the wheel's own plane, turned by the bone's lean.
+    const [cx0, cx1] = extent(column, 0);
+    const [cy0, cy1] = extent(column, 1);
+    const [cz0] = extent(column, 2);
+    const corners = [cx0, cx1].flatMap((x) =>
+      [cy0, cy1].map((y) => {
+        const ly = y - py;
+        const lz = cz0 - pz;
+        return [
+          x,
+          py + ly * Math.cos(lean) + lz * Math.sin(lean),
+          pz - ly * Math.sin(lean) + lz * Math.cos(lean),
+        ];
+      }),
+    );
+    const inDash = corners.filter((corner) =>
+      corner.every((v, axis) => {
+        const [lo, hi] = extent(dash, axis);
+        return v > lo && v < hi;
+      }),
+    );
+    expect(inDash.length).toBeGreaterThan(0);
+    const consoles = body.filter(
+      (cube) =>
+        near(cube.size[0], 17.9) && near(cube.size[1], 8) && !cube.rotation,
+    );
+    expect(consoles).toHaveLength(1);
+    const [consoleBottom] = extent(consoles[0] as Cube, 1);
+    for (const corner of corners)
+      expect(corner[1] ?? 0).toBeLessThan(consoleBottom);
+  });
+
   it("generates all 16 equally sized paints, changing only the three accent swatches", () => {
     const files = readdirSync(`${RP}/textures/entity/yasu_ride`).filter(
       (name) => /^camper(?:_\w+)?\.png$/.test(name),
