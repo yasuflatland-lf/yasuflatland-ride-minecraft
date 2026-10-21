@@ -26,7 +26,7 @@ A deck seat loses its rider in other ways that must keep their current behavior:
   - A deck seat that is removed this tick (departure, its vehicle seat taken, the camper gone) is not kept, so its former rider keeps the engine's dismount spot, as before
   - A deck seat that was replaced (a new entity) does not match the remembered one
   - The remembered riders live in script memory only. After `/reload` or a restart nobody is remembered, so the first tick moves nobody, and the player keeps the engine's spot
-- The player is moved only when the feet and head cells at the stand point hold air or a light block, so a block a player put in the aisle leaves the engine's spot instead of trapping the rider inside it. A player in another dimension or no longer valid is not moved
+- The player is moved only when the feet and head cells at the stand point hold air or a light block, so a block a player put in the aisle leaves the engine's spot instead of trapping the rider inside it. A player in another dimension, no longer valid, dead, or more than 6 blocks from the deck seat is not moved: the engine's dismount spot is next to the seat, so a player that far left by `/tp`, an ender pearl or a portal and is not pulled back
 
 ## Consequences
 

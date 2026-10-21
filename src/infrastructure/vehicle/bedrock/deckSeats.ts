@@ -28,6 +28,11 @@ const TELEPORT_TOLERANCE = 0.05;
 // hold pose.
 const ORPHAN_MARGIN = 5;
 const ORPHAN_RADIUS = DECK_SEAT_REACH + ORPHAN_MARGIN;
+// The engine drops a dismounting rider next to the seat's box, outside the camper
+// wall or on its roof at worst, so within a few blocks of the seat. A player who
+// left the seat by /tp, an ender pearl or a portal lands farther and is not pulled
+// back into the aisle (ADR 0109).
+const STAND_UP_REACH = 6;
 
 function savedIds(vehicle: Entity): (string | null)[] {
   const raw = vehicle.getDynamicProperty(DECK_SEATS_PROPERTY);
@@ -84,7 +89,8 @@ function standClear(dimension: Dimension, at: Vec3): boolean {
 /**
  * Moves a player who rode `seat` when the deck seats were last kept, and now
  * rides nothing, to `at`, keeping their view (ADR 0109). A player boarded into the
- * vehicle or onto another seat still rides something and is left alone.
+ * vehicle or onto another seat still rides something and is left alone, and so is
+ * a dead player or one who went farther than the engine's dismount spot.
  */
 function standUp(seated: Seated, seat: Entity, at: Vec3): void {
   const { player } = seated;
@@ -92,6 +98,12 @@ function standUp(seated: Seated, seat: Entity, at: Vec3): void {
     !player.isValid ||
     player.dimension.id !== seat.dimension.id ||
     player.getComponent("minecraft:riding") ||
+    (player.getComponent("minecraft:health")?.currentValue ?? 1) <= 0 ||
+    Math.hypot(
+      player.location.x - seat.location.x,
+      player.location.y - seat.location.y,
+      player.location.z - seat.location.z,
+    ) > STAND_UP_REACH ||
     !standClear(seat.dimension, at)
   )
     return;

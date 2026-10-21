@@ -97,9 +97,16 @@ function seatedPlayer(
     typeId: "minecraft:player",
     isValid: true,
     dimension,
+    // Where the engine dropped them: next to the seats, which stand within x 0 to 4.
+    location: { x: 1, y: 0, z: 1 },
+    health: undefined as { currentValue: number } | undefined,
     riding: undefined as object | undefined,
     getComponent: (name: string) =>
-      name === "minecraft:riding" ? p.riding : undefined,
+      name === "minecraft:riding"
+        ? p.riding
+        : name === "minecraft:health"
+          ? p.health
+          : undefined,
     getRotation: () => ({ x: 12, y: 34 }),
     teleport: vi.fn(),
   };
@@ -492,6 +499,35 @@ it("moves nobody after a reload, for a seat without a stand spot, or onto a repl
     seat.remove();
     seats.keep(vehicleId, f.car, [spot], 0);
     expect(f.dimension.spawnEntity).toHaveBeenCalledTimes(2);
+    expect(player.teleport).not.toHaveBeenCalled();
+  }
+});
+
+it("leaves a player who is dead or went beyond the engine's dismount spot where they are (ADR 0109)", () => {
+  {
+    const { f, seats, player, vehicleId, spot, standUp } = seatedOnce();
+    player.health = { currentValue: 0 };
+    standUp();
+    seats.keep(vehicleId, f.car, [spot], 0);
+    expect(player.teleport).not.toHaveBeenCalled();
+  }
+  {
+    const { f, seats, player, vehicleId, spot, standUp } = seatedOnce();
+    player.health = { currentValue: 20 };
+    player.location = { x: 0, y: 3, z: -5 };
+    standUp();
+    seats.keep(vehicleId, f.car, [spot], 0);
+    expect(player.teleport).toHaveBeenCalledOnce();
+  }
+  for (const location of [
+    { x: 7, y: 0, z: 0 },
+    { x: 0, y: 7, z: 0 },
+    { x: 100, y: 64, z: -300 },
+  ]) {
+    const { f, seats, player, vehicleId, spot, standUp } = seatedOnce();
+    player.location = location;
+    standUp();
+    seats.keep(vehicleId, f.car, [spot], 0);
     expect(player.teleport).not.toHaveBeenCalled();
   }
 });
