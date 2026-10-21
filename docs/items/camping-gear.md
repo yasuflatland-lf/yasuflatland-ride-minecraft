@@ -2,7 +2,7 @@
 
 Small 1970s motorhome gear made to decorate a parked camper. Back to the [item groups](README.md).
 
-Each item stands in the middle of one slot on the camper's furniture, or on one of the stove's four burners, except the Macrame Hanging Planter, which hangs from the ceiling hook. A standing item goes on any spot except the ceiling hook: the dashboard, the table, the dinette seats, the shelf, the stove, or the counter. The ceiling hook takes only the hanging planter (ADR 0097). Sizes are width × height in pixels, at 16 pixels per block. `pnpm model` draws the previews from the block models it generates from `tools/camping_gear.json`.
+Each item stands in the middle of one slot on the camper's furniture, on one of the stove's four burners, or at one end of a shelf board or the table, which hold two items each, except the Macrame Hanging Planter, which hangs from the ceiling hook. A standing item goes on any spot except the ceiling hook: the dashboard, the table, the dinette seats, the shelf, the stove, or the counter. The ceiling hook takes only the hanging planter (ADR 0097). Sizes are width × height in pixels, at 16 pixels per block. `pnpm model` draws the previews from the block models it generates from `tools/camping_gear.json`.
 
 | Preview | Name | Size (px) | Stands or hangs | Reference |
 |---|---|---|---|---|
@@ -28,7 +28,7 @@ Each item stands in the middle of one slot on the camper's furniture, or on one 
 
 ## In the game
 
-Creative players find every item above in the **Camping Gear** group at the end of the Items tab. Each item has a decor block, `yasu_ride:<id>_decor`, that the parked camper lays on a furniture slot. The block has no collision and cannot be broken. Its `yasu_ride:height` state (0 to 15) lifts the gear by that many pixels to the slot's top. On the ceiling hook it lifts the hanging planter so that its top meets the hook. Its `yasu_ride:face` state is the parked camper's facing in quarter turns (0 south, 1 west, 2 north, 3 east). The block turns the gear so that the side shown at the front of its preview faces the camper's front.
+Creative players find every item above in the **Camping Gear** group at the end of the Items tab. Each item has a decor block, `yasu_ride:<id>_decor`, that the parked camper lays on a furniture slot. The block has no collision and cannot be broken. Its `yasu_ride:height` state (0 to 15) lifts the gear by that many pixels to the slot's top. On the ceiling hook it lifts the hanging planter so that its top meets the hook. Its `yasu_ride:face` state is the parked camper's facing in quarter turns (0 south, 1 west, 2 north, 3 east). The block turns the gear so that the side shown at the front of its preview faces the camper's front. Its `yasu_ride:spot` state (0 to 8) moves the gear from the middle of its cell to a stove burner or to one end of a shelf board or the table; the second item on a board or the table has its block in the next cell, the driver's seat or the aisle, and is drawn back over the furniture (ADR 0107, 0108).
 
 ## Getting the gear
 
