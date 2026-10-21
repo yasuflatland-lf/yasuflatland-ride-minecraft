@@ -53,7 +53,7 @@ const SHOWER_TOILET_CELLS = [
 // a hanging slot, 16 minus the hanging items' height; tests/packs/camper.test.ts checks them
 // against the generated model (ADR 0093, 0102).
 export const CAMPER_FURNITURE: readonly Furniture[] = [
-  // The dash top is at 35 px, 3 px into layer 2, just under the windshield (ADR 0105).
+  // The dash top is at 35 px, 3 px into layer 2, just under the windshield (ADR 0106).
   {
     kind: "dashboard",
     cells: [
