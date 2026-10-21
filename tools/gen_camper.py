@@ -722,24 +722,28 @@ def round_control(x, y, r):
     return disc("z", x, y, PANEL_Z, r, 0.12, "chrome", steps=STEPS_8) + disc("z", x, y, PANEL_Z + 0.12, r - 0.15, 0.1, "gauge", steps=STEPS_8)
 
 
-# Lower rows: rocker switches and round controls
-for rx, ry in ((10.8, 21.1), (11.8, 21.1), (10.8, 19.9), (11.8, 19.9), (15.3, 20.5), (18.4, 20.5)):
+# Lower rows: rocker switches and round controls. The steering column meets the panel at
+# x 11.3 to 12.7 below y 21.3, so the left pair of rockers flanks it instead of sitting on it.
+for rx, ry in ((10.6, 21.1), (13.4, 21.1), (10.6, 19.9), (13.4, 19.9), (16, 20.5), (18.6, 20.5)):
     body += rocker(rx, ry, False)
-for cx in (13.7, 16.85):
-    body += round_control(cx, 20.5, 0.85)
-# Ignition switch at the upper right of the panel
-body += disc("z", 21.2, 23.9, PANEL_Z, 0.7, 0.2, "chrome", steps=STEPS_8)
-body += disc("z", 21.2, 23.9, PANEL_Z + 0.2, 0.38, 0.1, "black", steps=STEPS_8)
-# Right column: rocker switches in pairs and two slide levers
-for ry in (22.3, 21.1):
-    for rx in (20.75, 21.65):
+for cx in (14.75, 17.25):
+    body += round_control(cx, 20.5, 0.75)
+# Ignition switch at the upper right of the panel, above the door armrest (top at y 23.4)
+body += disc("z", 21.2, 24.15, PANEL_Z, 0.7, 0.2, "chrome", steps=STEPS_8)
+body += disc("z", 21.2, 24.15, PANEL_Z + 0.2, 0.38, 0.1, "black", steps=STEPS_8)
+# Right column: rocker switches in pairs and two slide levers. The door armrest reaches in to
+# x 21.2 at y 22 to 23.4 and through the whole console, so the rockers stay left of it.
+for ry in (22.3, 21.2):
+    for rx in (19.95, 20.8):
         body += rocker(rx, ry, True)
 for ly, lx in ((20.0, 21.4), (19.45, 20.8)):
     body.append(box(20.3, ly - 0.12, PANEL_Z, 21.95, ly + 0.12, PANEL_Z + 0.05, "grille"))
     body.append(box(lx - 0.18, ly - 0.2, PANEL_Z + 0.05, lx + 0.18, ly + 0.2, PANEL_Z + 0.35, "chrome"))
 # Round air vent lying flat on the dash top before the driver; it rises 0.25 px over the pad.
-VENT_X, VENT_Y, VENT_Z = 12, 28.6, -52.5
-body += disc("y", VENT_X, VENT_Y, VENT_Z, 1.4, 0.15, "chrome", steps=STEPS_8)
+# The pad starts at WS_Z + 1.5, and the ring stays clear of that front edge with a small margin.
+VENT_R = 1.4
+VENT_X, VENT_Y, VENT_Z = 12, 28.6, WS_Z + 1.5 + VENT_R + 0.3
+body += disc("y", VENT_X, VENT_Y, VENT_Z, VENT_R, 0.15, "chrome", steps=STEPS_8)
 body += disc("y", VENT_X, VENT_Y, VENT_Z, 1.1, 0.2, "steel", steps=STEPS_8)
 for sz in (-0.6, 0, 0.6):  # the louvres
     body.append(box(VENT_X - 1, VENT_Y, VENT_Z + sz - 0.12, VENT_X + 1, VENT_Y + 0.25, VENT_Z + sz + 0.12, "black"))
