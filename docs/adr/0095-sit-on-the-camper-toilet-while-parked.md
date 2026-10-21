@@ -1,6 +1,6 @@
 # 0095. Sit on the camper toilet while parked
 
-- Status: Accepted
+- Status: Accepted (extended by [0098](0098-a-block-for-the-camper-shower-toilet.md))
 - Date: 2026-10-21
 - Extends: 0063, 0068, 0093
 
