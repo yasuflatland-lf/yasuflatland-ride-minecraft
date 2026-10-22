@@ -54,7 +54,7 @@ function refuse(
   if (why === "consume") world.consumeResult = false;
 }
 
-describe("PlaceChair (ADR 0121)", () => {
+describe("PlaceChair (ADR 0122)", () => {
   it("spawns one chair on top of the block, facing the player, and takes the item from the slot", () => {
     fc.assert(
       fc.property(command, (c) => {

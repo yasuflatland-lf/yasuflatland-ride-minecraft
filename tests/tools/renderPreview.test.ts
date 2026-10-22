@@ -83,7 +83,7 @@ describe("render_preview.py bone rotations", () => {
   });
 });
 
-describe("camping gear and low chair previews (ADR 0093, 0121)", () => {
+describe("camping gear and low chair previews (ADR 0093, 0122)", () => {
   it("renders every item of the spec and the low chair into their own 128 px squares and keeps the vehicle frame for the rest", () => {
     const script = [
       "import json, sys",

@@ -9,7 +9,7 @@ import { FakeChairWorld } from "./fakeChairWorld";
 const CHAIR = asChairId("chair");
 const PLAYER = asPlayerId("player");
 
-describe("HitChair (ADR 0121)", () => {
+describe("HitChair (ADR 0122)", () => {
   it("takes the chair back on the third hit in a row and drops exactly one item", () => {
     const world = new FakeChairWorld();
     const hit = new HitChair(world);

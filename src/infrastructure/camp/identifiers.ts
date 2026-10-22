@@ -1,4 +1,4 @@
-// The low chair's ids (ADR 0047, 0121).
+// The low chair's ids (ADR 0047, 0122).
 import { id } from "../shared/identifiers";
 
 export const LOW_CHAIR_TYPE = id("low_chair");

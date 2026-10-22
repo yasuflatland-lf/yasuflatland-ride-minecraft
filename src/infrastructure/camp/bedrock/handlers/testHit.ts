@@ -4,7 +4,7 @@ import { asChairId } from "../../../../domain/camp/chair";
 import { NAMESPACE } from "../../../shared/identifiers";
 import { TEST_CHAIR_HIT_EVENT } from "../../identifiers";
 
-// Lets in-game tests hit a chair, which a test has no player to do (ADR 0010, 0121).
+// Lets in-game tests hit a chair, which a test has no player to do (ADR 0010, 0122).
 export function registerTestChairHit(hitChair: HitChair): void {
   system.afterEvents.scriptEventReceive.subscribe(
     (ev) => {

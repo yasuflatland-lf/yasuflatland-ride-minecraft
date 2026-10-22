@@ -1,4 +1,4 @@
-// Use case: a hit on a low chair; the third in a row while nobody sits folds it back into its item (ADR 0121).
+// Use case: a hit on a low chair; the third in a row while nobody sits folds it back into its item (ADR 0122).
 import type { ChairId } from "../../domain/camp/chair";
 import { CHAIR_SPEC } from "../../domain/camp/spec";
 import {

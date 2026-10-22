@@ -18,7 +18,7 @@ headlights at dusk, side, and rear, without water layers (ADR 0067).
 Each camping gear item in tools/camping_gear.json gets its own 128-pixel square preview in
 <output dir>/items/camping-gear/<id>.png, from the same angle as the vehicles, with no ground,
 its longer side filling 80 percent of the square, for its row in docs/items/camping-gear.md
-(ADR 0093). The low chair gets one the same way, low_chair.png, from its entity model (ADR 0121).
+(ADR 0093). The low chair gets one the same way, low_chair.png, from its entity model (ADR 0122).
 
 Only the standard library is used, like gen_model.py. The arithmetic avoids math.sin/cos (their
 last bit can differ between platforms' libm) so the same model renders to the same pixels on a Mac
@@ -139,7 +139,7 @@ GEAR_ICON_DIR = "textures/items/yasu_ride"
 GEAR_ICON_SIZE = 32
 GEAR_ICON_PACK = "yasu_ride_rp"  # the --icons pack that receives the gear item icons
 # The low chair stands outside the vehicles and has its own entity model, but its preview and icon
-# match the gear's (ADR 0121)
+# match the gear's (ADR 0122)
 CHAIR_GEOMETRY = "models/entity/yasu_ride/low_chair.geo.json"
 CHAIR_TEXTURE = "textures/entity/yasu_ride/low_chair.png"
 CHAIR_PREVIEW = "low_chair"

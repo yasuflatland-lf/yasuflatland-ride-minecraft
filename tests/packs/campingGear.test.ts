@@ -284,7 +284,7 @@ describe("camping gear block models (ADR 0093)", () => {
 
 describe("camping gear docs (ADR 0093)", () => {
   it("renders a 128 px RGBA preview for every item and the low chair, and no other", () => {
-    // The low chair shares the folder but is not decor (ADR 0121)
+    // The low chair shares the folder but is not decor (ADR 0122)
     expect(readdirSync(PREVIEWS).sort()).toEqual(
       [...SPEC.map((g) => `${g.id}.png`), "low_chair.png"].sort(),
     );
@@ -863,7 +863,7 @@ describe("camping gear blocks and items (ADR 0093)", () => {
     const items = [
       "yasu_ride:camping_gear_box",
       ...SPEC.map((g) => `yasu_ride:${g.id}`),
-      // Not in the box: it stands outside the vehicles (ADR 0121)
+      // Not in the box: it stands outside the vehicles (ADR 0122)
       "yasu_ride:low_chair_item",
     ];
     expect(items).toHaveLength(21);

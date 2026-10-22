@@ -1,4 +1,4 @@
-// Use case: place a low chair from its item on the top of a block outside the vehicles (ADR 0121).
+// Use case: place a low chair from its item on the top of a block outside the vehicles (ADR 0122).
 import {
   type ChairFace,
   canPlaceChair,

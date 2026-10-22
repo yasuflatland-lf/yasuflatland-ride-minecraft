@@ -27,7 +27,7 @@ const hitsFor = (rule: HitRule) =>
     { maxLength: 60 },
   );
 
-describe("registerHit (ADR 0008, 0121)", () => {
+describe("registerHit (ADR 0008, 0122)", () => {
   it("breaks after 3 hits in quick succession with the vehicle rule", () => {
     let c = EMPTY_COUNTER;
     const results = [0, 10, 20].map((t) => {

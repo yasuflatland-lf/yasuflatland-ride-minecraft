@@ -1,4 +1,4 @@
-// Where a low chair goes when its item is used on a block, and which way it faces (ADR 0121).
+// Where a low chair goes when its item is used on a block, and which way it faces (ADR 0122).
 import type { Vec3 } from "../shared/vec";
 import { CHAIR_SPEC } from "./spec";
 

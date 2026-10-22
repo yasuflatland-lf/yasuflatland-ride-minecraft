@@ -21,7 +21,7 @@ const angleBetween = (a: number, b: number) => {
   return d > 180 ? 360 - d : d;
 };
 
-describe("chairCell (ADR 0121)", () => {
+describe("chairCell (ADR 0122)", () => {
   it("places on the clicked block only from its top face", () => {
     fc.assert(
       fc.property(cell, fc.constantFrom(...FACES), (at, face) => {
@@ -31,7 +31,7 @@ describe("chairCell (ADR 0121)", () => {
   });
 });
 
-describe("chairYaw (ADR 0121)", () => {
+describe("chairYaw (ADR 0122)", () => {
   it("snaps to a step, stays in (-180, 180], and faces the player within half a step", () => {
     fc.assert(
       fc.property(
@@ -57,7 +57,7 @@ describe("chairYaw (ADR 0121)", () => {
   });
 });
 
-describe("canPlaceChair (ADR 0121)", () => {
+describe("canPlaceChair (ADR 0122)", () => {
   it("is true exactly when every block from 1 to the clearance above is air", () => {
     fc.assert(
       fc.property(

@@ -1,4 +1,4 @@
-"""Generate the low chair's entity model and texture (ADR 0121).
+"""Generate the low chair's entity model and texture (ADR 0122).
 
     python3 -I tools/gen_low_chair.py <resource pack>          write the files
     python3 -I tools/gen_low_chair.py <resource pack> --check  fail if any file is stale
@@ -39,7 +39,7 @@ SLOTS = list(PALETTE)
 
 # The model must stay inside these bounds: about 0.8 block wide, a back no taller than a block and a
 # pixel, and no deeper than one block, so the 0.75-wide collision box of low_chair.se.json fits it
-# whichever way the chair faces (ADR 0121).
+# whichever way the chair faces (ADR 0122).
 MAX_HALF_WIDTH = 6.5
 MAX_HEIGHT = 17
 MAX_HALF_DEPTH = 8

@@ -1,5 +1,5 @@
 // Composition root: one install call per feature (ADR 0046). Only here may one
-// feature's output reach another: the camp feature asks the vehicles' space (ADR 0121).
+// feature's output reach another: the camp feature asks the vehicles' space (ADR 0122).
 import { installCamp } from "./camp/install";
 import { NAMESPACE } from "./shared/identifiers";
 import { installVehicles } from "./vehicle/install";

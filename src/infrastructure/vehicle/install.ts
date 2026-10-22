@@ -39,7 +39,7 @@ import { TestInputStore } from "./testInput/testInputStore";
 
 /**
  * Installs the vehicle feature. The returned check lets bootstrap hand other
- * features the vehicles' space without them importing this feature (ADR 0046, 0121).
+ * features the vehicles' space without them importing this feature (ADR 0046, 0122).
  */
 export function installVehicles(): {
   isVehicleSpace(dimensionId: DimensionId, cell: Vec3): boolean;

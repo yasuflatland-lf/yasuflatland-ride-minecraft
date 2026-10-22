@@ -1,4 +1,4 @@
-// Port for placing, sitting on, and taking back the low chair; implemented in the infrastructure layer (ADR 0012, 0121).
+// Port for placing, sitting on, and taking back the low chair; implemented in the infrastructure layer (ADR 0012, 0122).
 import type { ChairId } from "../../../domain/camp/chair";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";

@@ -1,4 +1,4 @@
-// Every tuning value of the low chair (ADR 0121).
+// Every tuning value of the low chair (ADR 0122).
 export const CHAIR_SPEC = Object.freeze({
   /** The chair turns to face the player in steps of this many degrees. */
   yawStep: 45,

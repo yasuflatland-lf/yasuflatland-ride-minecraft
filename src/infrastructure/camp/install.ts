@@ -1,4 +1,4 @@
-// Wires the camp feature: the low chair placed outside the vehicles (ADR 0121).
+// Wires the camp feature: the low chair placed outside the vehicles (ADR 0122).
 import { HitChair } from "../../application/camp/hitChair";
 import { PlaceChair } from "../../application/camp/placeChair";
 import type { DimensionId } from "../../domain/shared/ids";

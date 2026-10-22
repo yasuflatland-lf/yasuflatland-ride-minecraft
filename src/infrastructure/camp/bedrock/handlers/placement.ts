@@ -1,4 +1,4 @@
-// Places a low chair from its item, like a vehicle on land (ADR 0008, 0024, 0121).
+// Places a low chair from its item, like a vehicle on land (ADR 0008, 0024, 0122).
 import { Direction, system, world } from "@minecraft/server";
 import type {
   PlaceChair,

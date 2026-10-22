@@ -1,5 +1,5 @@
 // Counts the hits that take something down: a vehicle back into its item (ADR
-// 0008) and the low chair (ADR 0121). Each caller passes its own rule.
+// 0008) and the low chair (ADR 0122). Each caller passes its own rule.
 
 export interface HitCounter {
   readonly count: number;
