@@ -17,6 +17,13 @@ export interface SeatLayout {
   readonly positions: readonly Vec2[];
 }
 
+/**
+ * How a boarding player gets a seat. "engine" leaves it to minecraft:rideable, which
+ * seats riders by their place in its rider list (ADR 0019), so the lowest free seat
+ * fills first.
+ */
+type SeatBoarding = { readonly order: "engine" };
+
 export interface BeamPattern {
   /** Blocks ahead of the center. */
   readonly reach: readonly number[];
@@ -36,6 +43,8 @@ export interface VehicleProfile {
   readonly fleetLimit: number;
   readonly ram: RamBody;
   readonly seats: SeatLayout;
+  /** How a boarding player gets a seat, set per kind (ADR 0050). */
+  readonly boarding: SeatBoarding;
   /**
    * Seats that exist only while the vehicle is parked, as deck seats after the deck
    * seats of its own seats (x = left, z = forward). Absent = none (ADR 0095).
