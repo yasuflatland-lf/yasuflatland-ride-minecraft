@@ -18,8 +18,7 @@ export class BedrockPaintWorld implements PaintWorld {
     const vehicle = this.index.entity(vehicleId);
     if (!vehicle) return undefined;
     const variant = vehicle.getComponent("minecraft:variant")?.value ?? 0;
-    const paint: Paint | undefined = PAINTS[variant];
-    return paint;
+    return PAINTS[variant];
   }
 
   kindOf(vehicleId: VehicleId): VehicleKind | undefined {
