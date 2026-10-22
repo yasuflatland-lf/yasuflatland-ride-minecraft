@@ -182,11 +182,10 @@ export class TransformingDrive implements Drive {
       ctx.waterAt,
       this.spec.carHeight,
     );
-    const velocity = { x: ctx.velocity.x, z: ctx.velocity.z };
     const form = this.advanceForm(raw, ctx, controlled, waterDepth);
     const input = groundInputFor(raw, form);
     const yawBefore = this.motion.yaw;
-    const step = this.moveHorizontally(input, ctx, form, velocity);
+    const step = this.moveHorizontally(input, ctx, form);
     this.bank = stepBank(
       this.bank,
       form,
@@ -244,8 +243,8 @@ export class TransformingDrive implements Drive {
     input: GroundInput,
     ctx: TickContext,
     form: Form,
-    velocity: Vec2,
   ): MotionResult {
+    const velocity = { x: ctx.velocity.x, z: ctx.velocity.z };
     const moved: MotionResult =
       form === "car"
         ? stepMotion(
