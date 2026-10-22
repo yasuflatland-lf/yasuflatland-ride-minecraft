@@ -20,13 +20,17 @@ export interface SeatLayout {
 /**
  * How a boarding player gets a seat. "engine" leaves it to minecraft:rideable, which
  * seats riders by their place in its rider list (ADR 0019), so the lowest free seat
- * fills first. "chosen" seats them in the free seat nearest where their line of sight
- * crosses `aimHeight` blocks above the vehicle's feet, and keeps every rider in their
- * seat while others get in and out (ADR 0120).
+ * fills first. "chosen" seats them in the free seat they aim at, each seat a ball of
+ * `aimRadius` blocks at `aimHeight` above the vehicle's feet, and keeps every rider in
+ * their seat while others get in and out (ADR 0120).
  */
 type SeatBoarding =
   | { readonly order: "engine" }
-  | { readonly order: "chosen"; readonly aimHeight: number };
+  | {
+      readonly order: "chosen";
+      readonly aimHeight: number;
+      readonly aimRadius: number;
+    };
 
 export interface BeamPattern {
   /** Blocks ahead of the center. */

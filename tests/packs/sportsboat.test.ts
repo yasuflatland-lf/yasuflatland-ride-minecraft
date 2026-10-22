@@ -65,6 +65,12 @@ describe("sports boat Behavior Pack entity (ADR 0051)", () => {
     expect(seats.map((s) => s.position[1])).toEqual(seats.map(() => 0.52));
     // A boarding player's line of sight picks the seat at the riders' height (ADR 0120).
     expect(SPORTSBOAT_SPEC.seatAimHeight).toBe(0.52);
+    // Each seat's aim ball reaches halfway to the seat beside it.
+    const [left, right] = SPORTSBOAT_PROFILE.seats.positions;
+    expect(SPORTSBOAT_SPEC.seatAimRadius).toBeCloseTo(
+      Math.abs((left?.x ?? 0) - (right?.x ?? 0)) / 2,
+      9,
+    );
     expect(rideable.seats[0].lock_rider_rotation).toBe(90);
   });
 

@@ -22,7 +22,7 @@ import {
 } from "./lighting/headlights";
 import type { ChaseCamera, VehicleProfile } from "./profile";
 import { type RamHit, type RamTarget, selectHits } from "./ram";
-import { aimPoint, ChosenSeats, type SeatAssignment } from "./seatChoice";
+import { ChosenSeats, type SeatAssignment } from "./seatChoice";
 import { Seating } from "./seating";
 import { toLocal } from "./seats";
 import { SPEC } from "./spec";
@@ -141,7 +141,11 @@ export class Vehicle {
     this.seating = new Seating(profile.seats.positions, seatReadingOf(profile));
     this.chosenSeats =
       profile.boarding.order === "chosen"
-        ? new ChosenSeats(profile.seats.positions)
+        ? new ChosenSeats({
+            positions: profile.seats.positions,
+            height: profile.boarding.aimHeight,
+            radius: profile.boarding.aimRadius,
+          })
         : undefined;
   }
 
@@ -233,15 +237,19 @@ export class Vehicle {
 
   /**
    * A player on foot asks to get in, with their eye at `eye` from the vehicle's feet and
-   * looking along `view`. For a kind whose players choose their seat, the next tick seats
-   * them in the free seat nearest where they aim, and this returns true; otherwise it
-   * returns false and the engine seats them (ADR 0120).
+   * looking along `view`, or with no `view` to pick the seat nearest where they stand.
+   * For a kind whose players choose their seat, the next tick seats them in the free seat
+   * they aim at, and this returns true; otherwise it returns false and the engine seats
+   * them (ADR 0120).
    */
-  requestSeat(playerId: PlayerId, eye: Vec3, view: Vec3): boolean {
-    const boarding = this.profile.boarding;
-    if (boarding.order !== "chosen" || !this.chosenSeats) return false;
-    const aim = aimPoint(eye, view, boarding.aimHeight);
-    this.chosenSeats.request(playerId, toLocal(aim, forward(this.drive.yaw)));
+  requestSeat(playerId: PlayerId, eye: Vec3, view?: Vec3): boolean {
+    if (!this.chosenSeats) return false;
+    const f = forward(this.drive.yaw);
+    const local = (v: Vec3): Vec3 => ({ ...toLocal(v, f), y: v.y });
+    this.chosenSeats.request(playerId, {
+      eye: local(eye),
+      view: view && local(view),
+    });
     return true;
   }
 
@@ -322,7 +330,8 @@ export class Vehicle {
     this.docked = step.dock !== undefined;
     const seatLayout = this.layRiders(
       riders,
-      step.boardDeckRiders ? deckSeatRiders : undefined,
+      deckSeatRiders ?? [],
+      step.boardDeckRiders ?? false,
     );
     // A deck seat's input is defined only while a player sits in it.
     this.driverSeatFree = !taken.has(0) && deckSeatInputs[0] === undefined;
@@ -351,20 +360,28 @@ export class Vehicle {
   }
 
   /**
-   * The rider list for a kind whose players choose their seat. Deck-seat riders who board
-   * this tick ask for the seat of their deck seat, which is free while it stands (ADR 0063).
+   * The rider list for a kind whose players choose their seat. The seat of an occupied
+   * deck seat is held for its rider, since a player seated there would take the deck seat
+   * away under them (ADR 0063). Deck-seat riders who board this tick ask for that seat.
    */
   private layRiders(
     riders: readonly RiderView[],
-    boarding: readonly (PlayerId | undefined)[] | undefined,
+    deckSeatRiders: readonly (PlayerId | undefined)[],
+    departing: boolean,
   ): SeatAssignment | undefined {
-    if (!this.chosenSeats) return undefined;
+    const boarding = this.profile.boarding;
+    if (!this.chosenSeats || boarding.order !== "chosen") return undefined;
     const positions = this.profile.seats.positions;
-    for (const [seat, id] of (boarding ?? []).entries()) {
-      const at = positions[seat];
-      if (id !== undefined && at) this.chosenSeats.request(id, at);
-    }
-    return this.chosenSeats.settle(riders);
+    const held = deckSeatRiders.slice(0, positions.length);
+    if (departing)
+      for (const [seat, id] of held.entries()) {
+        const at = positions[seat];
+        if (id !== undefined && at)
+          this.chosenSeats.request(id, {
+            eye: { x: at.x, y: boarding.aimHeight, z: at.z },
+          });
+      }
+    return this.chosenSeats.settle(riders, held);
   }
 
   /**

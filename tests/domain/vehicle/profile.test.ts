@@ -160,7 +160,7 @@ describe("vehicle profiles (ADR 0050)", () => {
           { x: 0.38, z: -0.8 },
         ],
       },
-      boarding: { order: "chosen", aimHeight: 0.52 },
+      boarding: { order: "chosen", aimHeight: 0.52, aimRadius: 0.38 },
       beams: {
         reach: Array.from({ length: 15 }, (_, i) => 4 * (i + 1)),
         lanes: [-3, 3],

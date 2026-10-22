@@ -3,7 +3,6 @@
 import type { PlayerId } from "../shared/ids";
 import type { Vec2, Vec3 } from "../shared/vec";
 import type { SeatLayout } from "./profile";
-import { nearestSeat } from "./seats";
 
 /**
  * Who sits in each seat, by seat index; undefined is a free seat. The engine seats riders
@@ -19,41 +18,83 @@ export interface AboardRider {
 }
 
 /**
- * Where a player aims, as an offset from the vehicle's feet on the ground plane (world
- * axes). `eye` is the eye's offset from the vehicle's feet and `view` the view direction.
- * A sight line that comes down to `height` above the feet aims where it crosses that
- * height; any other aims at the point of its horizontal line nearest the vehicle's center,
- * which is the eye itself for a player looking straight up or down or away.
+ * Where a boarding player aims from, in seat coordinates: x = left, y = up from the
+ * vehicle's feet, z = forward. `view` is the line of sight; without one (a touch player,
+ * whose press does not follow the view direction) the player aims at where they stand.
  */
-export function aimPoint(eye: Vec3, view: Vec3, height: number): Vec2 {
-  if (view.y < 0 && eye.y > height) {
-    const t = (height - eye.y) / view.y;
-    return { x: eye.x + view.x * t, z: eye.z + view.z * t };
-  }
-  const flat = view.x * view.x + view.z * view.z;
-  const along = flat > 0 ? -(eye.x * view.x + eye.z * view.z) / flat : 0;
-  const t = Math.max(0, along);
-  return { x: eye.x + view.x * t, z: eye.z + view.z * t };
+export interface SeatAim {
+  readonly eye: Vec3;
+  readonly view?: Vec3;
+}
+
+/** The seats an aim is measured against: each is a ball of `radius` at `height` above the feet. */
+export interface SeatTargets {
+  readonly positions: SeatLayout["positions"];
+  readonly height: number;
+  readonly radius: number;
 }
 
 /**
- * The free seat nearest `aim` (seat coordinates: x = left, z = forward), the lower index on
- * a tie (ADR 0052); undefined when every seat is taken.
+ * How an aim reaches the seat at `seat`. A line of sight that passes within the radius
+ * hits it, `along` blocks from the eye to where it enters the ball; `miss` is how far the
+ * line of sight passes from the seat, never measured behind the eye. Without a line of
+ * sight nothing hits, and `miss` is the distance from the eye on the ground plane.
+ */
+export function aimReach(
+  aim: SeatAim,
+  seat: Vec2,
+  targets: SeatTargets,
+): { readonly hit: boolean; readonly along: number; readonly miss: number } {
+  const { eye, view } = aim;
+  const length = view ? Math.hypot(view.x, view.y, view.z) : 0;
+  if (!view || length === 0)
+    return {
+      hit: false,
+      along: 0,
+      miss: Math.hypot(seat.x - eye.x, seat.z - eye.z),
+    };
+  const u = { x: view.x / length, y: view.y / length, z: view.z / length };
+  const d = { x: seat.x - eye.x, y: targets.height - eye.y, z: seat.z - eye.z };
+  const t = Math.max(0, d.x * u.x + d.y * u.y + d.z * u.z);
+  const miss = Math.hypot(d.x - u.x * t, d.y - u.y * t, d.z - u.z * t);
+  const hit = miss <= targets.radius;
+  const inside = hit ? Math.sqrt(targets.radius ** 2 - miss ** 2) : 0;
+  return { hit, along: Math.max(0, t - inside), miss };
+}
+
+/**
+ * The free seat the aim picks, undefined when none is free. A seat is free when nobody
+ * sits in it and it is not `held` for another player. The first seat the line of sight
+ * enters wins; when it enters none, the seat it passes nearest; a tie goes to the lower
+ * index (ADR 0052).
  */
 export function chooseSeat(
-  aim: Vec2,
-  positions: SeatLayout["positions"],
+  aim: SeatAim,
+  targets: SeatTargets,
   seats: SeatAssignment,
+  held: SeatAssignment = [],
+  requester?: PlayerId,
 ): number | undefined {
-  const free = positions
-    .map((at, seat) => ({ at, seat }))
-    .filter(({ seat }) => seats[seat] === undefined);
-  if (free.length === 0) return undefined;
-  const pick = nearestSeat(
-    aim,
-    free.map(({ at }) => at),
-  );
-  return free[pick]?.seat;
+  let best: number | undefined;
+  let bestReach: ReturnType<typeof aimReach> | undefined;
+  for (const [seat, at] of targets.positions.entries()) {
+    if (seats[seat] !== undefined) continue;
+    if (held[seat] !== undefined && held[seat] !== requester) continue;
+    const reach = aimReach(aim, at, targets);
+    if (!bestReach || closer(reach, bestReach)) {
+      best = seat;
+      bestReach = reach;
+    }
+  }
+  return best;
+}
+
+function closer(
+  a: ReturnType<typeof aimReach>,
+  b: ReturnType<typeof aimReach>,
+): boolean {
+  if (a.hit !== b.hit) return a.hit;
+  return a.hit ? a.along < b.along : a.miss < b.miss;
 }
 
 /** The seats after a settle, and the players seated by a request who are not aboard yet. */
@@ -70,16 +111,19 @@ export interface SettledSeats {
  *   who was about to get in and did not is not a driver who left.
  * - A rider the engine seated without a request takes their rider-list slot when it is a
  *   free seat, else the lowest free seat, in slot order.
- * - A requested player who is not aboard yet takes the free seat nearest their aim, in
- *   request order; a request of a player already aboard is ignored, and one that finds
- *   every seat taken is dropped.
+ * - A requested player who is not aboard yet takes the free seat they aim at, in request
+ *   order; a request of a player already aboard is ignored, and one that finds every
+ *   seat taken is dropped. A seat `held` for a player, such as by a player on its deck
+ *   seat (ADR 0063), is free only to that player.
  */
 export function settleSeats(
   previous: SettledSeats,
   aboard: readonly AboardRider[],
-  requests: ReadonlyMap<PlayerId, Vec2>,
-  positions: SeatLayout["positions"],
+  requests: ReadonlyMap<PlayerId, SeatAim>,
+  targets: SeatTargets,
+  held: SeatAssignment = [],
 ): SettledSeats {
+  const { positions } = targets;
   const aboardIds = new Set(aboard.map((rider) => rider.id));
   const seats: (PlayerId | undefined)[] = positions.map((_, seat) => {
     const id = previous.seats[seat];
@@ -113,7 +157,7 @@ export function settleSeats(
   const boarding = new Set<PlayerId>();
   for (const [id, aim] of requests) {
     if (aboardIds.has(id)) continue;
-    const seat = chooseSeat(aim, positions, seats);
+    const seat = chooseSeat(aim, targets, seats, held, id);
     if (seat === undefined) continue;
     seats[seat] = id;
     boarding.add(id);
@@ -134,25 +178,30 @@ export function riderOrder(seats: SeatAssignment): SeatAssignment {
 /** The chosen seats of one vehicle (ADR 0120). */
 export class ChosenSeats {
   private settled: SettledSeats = { seats: [], boarding: new Set() };
-  private readonly requests = new Map<PlayerId, Vec2>();
+  private readonly requests = new Map<PlayerId, SeatAim>();
 
-  constructor(private readonly positions: SeatLayout["positions"]) {}
+  constructor(private readonly targets: SeatTargets) {}
 
-  /** A player on foot asks for the free seat nearest `aim` (seat coordinates), seated on the next settle. */
-  request(id: PlayerId, aim: Vec2): void {
+  /** A player on foot asks for the free seat they aim at, seated on the next settle. */
+  request(id: PlayerId, aim: SeatAim): void {
     this.requests.set(id, aim);
   }
 
   /**
    * Settles the seats with the riders aboard now and the requests since the last settle,
-   * which it then forgets, and returns the rider list to keep.
+   * which it then forgets, and returns the rider list to keep. Requests skip the seats
+   * `held` for other players.
    */
-  settle(aboard: readonly AboardRider[]): SeatAssignment {
+  settle(
+    aboard: readonly AboardRider[],
+    held: SeatAssignment = [],
+  ): SeatAssignment {
     this.settled = settleSeats(
       this.settled,
       aboard,
       this.requests,
-      this.positions,
+      this.targets,
+      held,
     );
     this.requests.clear();
     return riderOrder(this.settled.seats);

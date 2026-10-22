@@ -8,8 +8,8 @@ export interface BoardVehicleCommand {
   vehicleId: VehicleId;
   /** The player's eye, as an offset from the vehicle's feet. */
   eye: Vec3;
-  /** The player's view direction. */
-  view: Vec3;
+  /** The player's view direction, absent when their press does not follow it, as on touch. */
+  view?: Vec3;
 }
 
 export class BoardVehicle {

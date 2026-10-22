@@ -1,8 +1,9 @@
 // A press on a vehicle whose players choose their seat, or on one of its seat fillers, is
 // cancelled, and the vehicle seats the player in the free seat they aim at on its next
-// tick (ADR 0120). The before event gives no hit point, so the aim comes from the head
-// and the view direction, which work the same on touch and PC.
-import { world } from "@minecraft/server";
+// tick (ADR 0120). The before event gives no hit point, so a mouse or gamepad player aims
+// along their view direction. A touch player presses the vehicle wherever it shows on the
+// screen, not along the view direction, so they get the seat nearest where they stand.
+import { InputMode, world } from "@minecraft/server";
 import type { BoardVehicle } from "../../../../application/vehicle/boardVehicle";
 import { asPlayerId, asVehicleId } from "../../../../domain/shared/ids";
 import { isStandInEntity } from "../identifiers";
@@ -28,7 +29,10 @@ export function registerBoarding(boardVehicle: BoardVehicle): void {
       playerId: asPlayerId(player.id),
       vehicleId: asVehicleId(vehicle.id),
       eye: { x: head.x - at.x, y: head.y - at.y, z: head.z - at.z },
-      view: player.getViewDirection(),
+      view:
+        player.inputInfo.lastInputModeUsed === InputMode.Touch
+          ? undefined
+          : player.getViewDirection(),
     });
     if (taken) ev.cancel = true;
   });

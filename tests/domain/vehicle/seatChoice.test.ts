@@ -15,7 +15,7 @@ import {
 import { SPORTSBOAT_PROFILE } from "../../../src/domain/vehicle/kinds/sportsboat/profile";
 import { SPORTSBOAT_SPEC } from "../../../src/domain/vehicle/kinds/sportsboat/spec";
 import {
-  aimPoint,
+  aimReach,
   ChosenSeats,
   chooseSeat,
   riderOrder,
@@ -30,6 +30,8 @@ import {
 
 const SEATS = SPORTSBOAT_PROFILE.seats.positions;
 const AIM_HEIGHT = SPORTSBOAT_SPEC.seatAimHeight;
+const AIM_RADIUS = SPORTSBOAT_SPEC.seatAimRadius;
+const TARGETS = { positions: SEATS, height: AIM_HEIGHT, radius: AIM_RADIUS };
 const IDS = ["a", "b", "c", "d", "e", "f"].map(asPlayerId);
 const NONE = { seats: [], boarding: new Set<PlayerId>() };
 
@@ -61,112 +63,131 @@ function seatAt(yaw: number, seat: number) {
 
 const dist = (a: Vec2, b: Vec2) => Math.hypot(a.x - b.x, a.z - b.z);
 
-describe("aimPoint (ADR 0120)", () => {
-  it("is where a downward line of sight crosses the seat height", () => {
+describe("aimReach (ADR 0120)", () => {
+  it("hits a seat a line of sight points straight at, entering its ball one radius short of it", () => {
     fc.assert(
       fc.property(
         coord,
-        fc.double({ min: 0.6, max: 4, noNaN: true }),
+        fc.double({ min: 0, max: 4, noNaN: true }),
         coord,
-        yawArb,
         seatArb,
-        (x, up, z, yaw, seat) => {
-          const target = seatAt(yaw, seat);
-          const eye = { x, y: AIM_HEIGHT + up, z };
-          const d = {
-            x: target.x - eye.x,
-            y: target.y - eye.y,
-            z: target.z - eye.z,
-          };
-          const n = Math.hypot(d.x, d.y, d.z);
-          const view = { x: d.x / n, y: d.y / n, z: d.z / n };
-          const aim = aimPoint(eye, view, AIM_HEIGHT);
-          expect(dist(aim, target)).toBeLessThan(1e-6);
+        (x, y, z, seat) => {
+          const at = SEATS[seat] as Vec2;
+          const eye = { x, y, z };
+          const d = { x: at.x - x, y: AIM_HEIGHT - y, z: at.z - z };
+          fc.pre(Math.hypot(d.x, d.y, d.z) > 1e-3);
+          const reach = aimReach({ eye, view: d }, at, TARGETS);
+          expect(reach.hit).toBe(true);
+          expect(reach.miss).toBeLessThan(1e-6);
+          expect(reach.along).toBeCloseTo(
+            Math.max(0, Math.hypot(d.x, d.y, d.z) - AIM_RADIUS),
+            6,
+          );
         },
       ),
     );
   });
 
-  it("falls back to the point of a level or rising sight line nearest the center, never behind the eye", () => {
-    fc.assert(
-      fc.property(
-        coord,
-        coord,
-        coord,
-        coord,
-        fc.double({ min: 0, max: 1, noNaN: true }),
-        (x, z, vx, vz, vy) => {
-          const eye = { x, y: AIM_HEIGHT + 1, z };
-          const aim = aimPoint(eye, { x: vx, y: vy, z: vz }, AIM_HEIGHT);
-          const flat = vx * vx + vz * vz;
-          // On the forward ray from the eye.
-          const t = flat > 0 ? ((aim.x - x) * vx + (aim.z - z) * vz) / flat : 0;
-          expect(t).toBeGreaterThanOrEqual(-1e-9);
-          expect(aim.x).toBeCloseTo(x + vx * t, 6);
-          expect(aim.z).toBeCloseTo(z + vz * t, 6);
-          // No point of that ray is nearer the center.
-          for (const s of [0, 0.5, 1, 2, 8])
-            expect(Math.hypot(aim.x, aim.z)).toBeLessThanOrEqual(
-              Math.hypot(x + vx * s, z + vz * s) + 1e-6,
-            );
-        },
-      ),
+  it("measures a seat behind the eye from the eye itself", () => {
+    const eye = { x: 0, y: AIM_HEIGHT, z: 3 };
+    const reach = aimReach(
+      { eye, view: { x: 0, y: 0, z: 1 } },
+      SEATS[2] as Vec2,
+      TARGETS,
     );
+    expect(reach.hit).toBe(false);
+    expect(reach.miss).toBeCloseTo(Math.hypot(0.38, 3.8), 9);
   });
 });
 
 describe("chooseSeat (ADR 0120)", () => {
-  it("picks the free seat nearest the aim, and nothing when every seat is taken", () => {
+  const free = (seats: SeatAssignment, held: SeatAssignment, who: PlayerId) =>
+    SEATS.map((_, i) => i).filter(
+      (i) =>
+        seats[i] === undefined && (held[i] === undefined || held[i] === who),
+    );
+
+  it("takes the first free seat the line of sight enters, else the one it passes nearest, never a seat held for another player", () => {
+    const who = IDS[5] as PlayerId;
+    fc.assert(
+      fc.property(
+        fc.record({
+          x: coord,
+          y: fc.double({ min: 0, max: 4, noNaN: true }),
+          z: coord,
+        }),
+        fc.record({ x: coord, y: coord, z: coord }),
+        assignmentArb,
+        assignmentArb,
+        (eye, view, seats, held) => {
+          const aim = { eye, view };
+          const seat = chooseSeat(aim, TARGETS, seats, held, who);
+          const open = free(seats, held, who);
+          if (open.length === 0) {
+            expect(seat).toBeUndefined();
+            return;
+          }
+          expect(open).toContain(seat);
+          const reach = (i: number) => aimReach(aim, SEATS[i] as Vec2, TARGETS);
+          const chosen = reach(seat as number);
+          for (const other of open) {
+            const r = reach(other);
+            if (r.hit) {
+              expect(chosen.hit).toBe(true);
+              expect(chosen.along).toBeLessThanOrEqual(r.along);
+            } else if (!chosen.hit) {
+              expect(chosen.miss).toBeLessThanOrEqual(r.miss);
+            }
+          }
+        },
+      ),
+    );
+  });
+
+  it("without a line of sight, takes the free seat nearest where the player stands", () => {
     fc.assert(
       fc.property(coord, coord, assignmentArb, (x, z, seats) => {
-        const aim = { x, z };
-        const seat = chooseSeat(aim, SEATS, seats);
-        const free = SEATS.map((_, i) => i).filter(
-          (i) => seats[i] === undefined,
-        );
-        if (free.length === 0) {
+        const seat = chooseSeat({ eye: { x, y: 1.6, z } }, TARGETS, seats);
+        const open = free(seats, [], IDS[0] as PlayerId);
+        if (open.length === 0) {
           expect(seat).toBeUndefined();
           return;
         }
-        expect(seat).toBeDefined();
-        const chosen = seat as number;
-        expect(seats[chosen]).toBeUndefined();
-        for (const other of free)
-          expect(dist(aim, SEATS[chosen] as Vec2)).toBeLessThanOrEqual(
-            dist(aim, SEATS[other] as Vec2),
-          );
+        for (const other of open)
+          expect(
+            dist({ x, z }, SEATS[seat as number] as Vec2),
+          ).toBeLessThanOrEqual(dist({ x, z }, SEATS[other] as Vec2));
       }),
     );
   });
 
-  it("gives a player aiming at a rear seat that seat while the driver's seat is taken, not the front passenger's", () => {
-    for (const rear of [2, 3]) {
-      fc.assert(
-        fc.property(
-          coord,
-          fc.double({ min: 0.6, max: 3, noNaN: true }),
-          coord,
-          yawArb,
-          (x, up, z, yaw) => {
-            const target = seatAt(yaw, rear);
-            const eye = { x, y: AIM_HEIGHT + up, z };
-            const view = {
-              x: target.x - eye.x,
-              y: target.y - eye.y,
-              z: target.z - eye.z,
-            };
-            const aim = aimPoint(eye, view, AIM_HEIGHT);
-            const f = forward(yaw);
-            const l = leftOf(f);
-            const local = {
-              x: aim.x * l.x + aim.z * l.z,
-              z: aim.x * f.x + aim.z * f.z,
-            };
-            expect(chooseSeat(local, SEATS, [IDS[0]])).toBe(rear);
-          },
-        ),
-      );
+  it("gives the rear seat to a player behind the boat who looks level at it, looks up at it from the water, or aims above it", () => {
+    const rearLeft = SEATS[3] as Vec2;
+    const at = (y: number) => ({ x: rearLeft.x, y, z: rearLeft.z });
+    for (const [eye, target] of [
+      [
+        { x: 0.38, y: 0.7, z: -3 },
+        { x: 0.38, y: 0.7, z: 0 },
+      ],
+      [
+        { x: 0.38, y: AIM_HEIGHT, z: -3 },
+        { x: 0.38, y: AIM_HEIGHT, z: 0 },
+      ],
+      [{ x: 0.38, y: 0.1, z: -3 }, at(AIM_HEIGHT)],
+      [{ x: 0.38, y: 0.7, z: -3 }, at(1.0)],
+      [{ x: 2, y: 0.3, z: -0.8 }, at(0.9)],
+    ] as const) {
+      const view = {
+        x: target.x - eye.x,
+        y: target.y - eye.y,
+        z: target.z - eye.z,
+      };
+      expect(chooseSeat({ eye, view }, TARGETS, [IDS[0]])).toBe(3);
     }
+    // A touch player standing at the stern.
+    expect(
+      chooseSeat({ eye: { x: 0.5, y: 1, z: -2.5 } }, TARGETS, [IDS[0]]),
+    ).toBe(3);
   });
 });
 
@@ -179,14 +200,18 @@ describe("settleSeats (ADR 0120)", () => {
         fc.array(fc.tuple(fc.constantFrom(...IDS), coord, coord), {
           maxLength: 4,
         }),
-        (previous, aboardIds, asks) => {
+        assignmentArb,
+        (previous, aboardIds, asks, held) => {
           const aboard = aboardIds.map((id, slot) => ({ id, slot }));
-          const requests = new Map(asks.map(([id, x, z]) => [id, { x, z }]));
+          const requests = new Map(
+            asks.map(([id, x, z]) => [id, { eye: { x, y: 1.6, z } }]),
+          );
           const { seats, boarding } = settleSeats(
             { seats: previous, boarding: new Set() },
             aboard,
             requests,
-            SEATS,
+            TARGETS,
+            held,
           );
           const taken = seats.filter((id) => id !== undefined);
           expect(new Set(taken).size).toBe(taken.length);
@@ -206,6 +231,9 @@ describe("settleSeats (ADR 0120)", () => {
           for (const id of boarding) {
             expect(aboardIds.includes(id)).toBe(false);
             expect(requests.has(id)).toBe(true);
+            // Never in a seat held for another player (ADR 0063).
+            const seat = seats.indexOf(id);
+            expect(held[seat] === undefined || held[seat] === id).toBe(true);
           }
           for (const id of taken)
             expect(aboardIds.includes(id) || boarding.has(id)).toBe(true);
@@ -223,14 +251,14 @@ describe("settleSeats (ADR 0120)", () => {
         { id: rear, slot: 2 },
       ],
       new Map(),
-      SEATS,
+      TARGETS,
     );
     expect(after.seats).toEqual([front, undefined, undefined, rear]);
     const rearOnly = settleSeats(
       { seats: [driver, undefined, rear], boarding: new Set() },
       [{ id: rear, slot: 1 }],
       new Map(),
-      SEATS,
+      TARGETS,
     );
     expect(rearOnly.seats).toEqual([undefined, undefined, rear, undefined]);
   });
@@ -241,7 +269,7 @@ describe("settleSeats (ADR 0120)", () => {
       { seats: [missed, front], boarding: new Set([missed]) },
       [{ id: front, slot: 1 }],
       new Map(),
-      SEATS,
+      TARGETS,
     );
     expect(after.seats).toEqual([undefined, front, undefined, undefined]);
   });
@@ -256,7 +284,7 @@ describe("settleSeats (ADR 0120)", () => {
         { id: c, slot: 3 },
       ],
       new Map(),
-      SEATS,
+      TARGETS,
     );
     expect(after.seats).toEqual([b, undefined, a, c]);
   });
@@ -289,7 +317,7 @@ describe("ChosenSeats (ADR 0120)", () => {
     );
     fc.assert(
       fc.property(fc.array(stepArb, { maxLength: 30 }), (steps) => {
-        const chosen = new ChosenSeats(SEATS);
+        const chosen = new ChosenSeats(TARGETS);
         let layout: SeatAssignment = [];
         for (const step of steps) {
           let wanted: number | undefined;
@@ -302,7 +330,8 @@ describe("ChosenSeats (ADR 0120)", () => {
           if ("leave" in step) {
             aboard = aboard.filter((r) => r.id !== step.leave);
           } else if (!before.has(step.ask)) {
-            chosen.request(step.ask, SEATS[step.seat] as Vec2);
+            const at = SEATS[step.seat] as Vec2;
+            chosen.request(step.ask, { eye: { x: at.x, y: 1.6, z: at.z } });
             if (layout[step.seat] === undefined) wanted = step.seat;
           }
           layout = chosen.settle(aboard);
@@ -414,6 +443,51 @@ describe("Vehicle seat choice (ADR 0120)", () => {
     }
   });
 
+  it("never seats a pressing player in the seat of a deck seat someone sits on, which would take it away under them (ADR 0063)", () => {
+    fc.assert(
+      fc.property(
+        fc.array(fc.boolean(), { minLength: 4, maxLength: 4 }),
+        seatArb,
+        (sitting, aimed) => {
+          const drive: Drive = {
+            speed: 0,
+            yaw: 0,
+            onDriverMounted: () => {},
+            onSeatVacated: () => [],
+            step: () => ({ ...NO_COMMANDS, boardDeckRiders: false }),
+          };
+          const boat = new Vehicle(
+            asVehicleId("boat"),
+            SPORTSBOAT_PROFILE,
+            drive,
+          );
+          const deckSeatRiders = sitting.map((on, seat) =>
+            on ? asPlayerId(`deck${seat}`) : undefined,
+          );
+          const { eye, view } = looking({ x: 0, z: 0 }, aimed);
+          boat.requestSeat(asPlayerId("guest"), eye, view);
+          const layout =
+            boat.tick(input([], { deckSeatRiders })).seatLayout ?? [];
+          const seat = layout.indexOf(asPlayerId("guest"));
+          if (sitting.every(Boolean)) expect(seat).toBe(-1);
+          else expect(sitting[seat]).toBe(false);
+        },
+      ),
+    );
+  });
+
+  it("seats a touch player, who gives no line of sight, in the free seat nearest where they stand, whichever way the boat faces", () => {
+    fc.assert(
+      fc.property(yawArb, seatArb, (yaw, seat) => {
+        const boat = createVehicle("sportsboat", asVehicleId("boat"), yaw);
+        const at = seatAt(yaw, seat);
+        boat.requestSeat(asPlayerId("touch"), { x: at.x, y: 1.6, z: at.z });
+        const layout = boat.tick(input([])).seatLayout ?? [];
+        expect(layout.indexOf(asPlayerId("touch"))).toBe(seat);
+      }),
+    );
+  });
+
   it("boards each deck-seat rider into the boat seat of their deck seat when the boat sets off (ADR 0063)", () => {
     fc.assert(
       fc.property(
@@ -443,7 +517,7 @@ describe("Vehicle seat choice (ADR 0120)", () => {
 });
 
 it("starts with no seats", () => {
-  expect(settleSeats(NONE, [], new Map(), SEATS).seats).toEqual([
+  expect(settleSeats(NONE, [], new Map(), TARGETS).seats).toEqual([
     undefined,
     undefined,
     undefined,
