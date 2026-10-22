@@ -42,10 +42,7 @@ import {
   SPORTSBOAT_PROFILE,
 } from "../../../../../src/domain/vehicle/kinds/sportsboat/profile";
 import { SPORTSBOAT_SPEC } from "../../../../../src/domain/vehicle/kinds/sportsboat/spec";
-import {
-  SUV_MOTION,
-  SUV_PROFILE,
-} from "../../../../../src/domain/vehicle/kinds/suv/profile";
+import { SUV_MOTION } from "../../../../../src/domain/vehicle/kinds/suv/profile";
 import { MOTION } from "../../../../../src/domain/vehicle/motion/constants";
 import { DOCK } from "../../../../../src/domain/vehicle/motion/dock";
 import {
@@ -1249,10 +1246,12 @@ describe("a sports boat Vehicle (ADR 0051)", () => {
     );
   });
 
-  it("seats riders by the SUV's positions and emits no seat commands when one leaves", () => {
-    expect(SPORTSBOAT_PROFILE.seats.positions).toStrictEqual(
-      SUV_PROFILE.seats.positions,
-    );
+  it("seats riders by its own positions and emits no seat commands when one leaves", () => {
+    // The boat kept the SUV's first seat layout when the SUV's front seats moved back (ADR 0116).
+    expect(SPORTSBOAT_PROFILE.seats.positions[0]).toStrictEqual({
+      x: -0.38,
+      z: 0.35,
+    });
     fc.assert(
       fc.property(
         yaw,
@@ -1260,7 +1259,7 @@ describe("a sports boat Vehicle (ADR 0051)", () => {
         rawInput,
         (heading, seat, raw) => {
           const vehicle = boat(heading);
-          const local = SUV_PROFILE.seats.positions[seat];
+          const local = SPORTSBOAT_PROFILE.seats.positions[seat];
           if (local === undefined) throw new Error(`no seat ${seat}`);
           const f = forward(heading);
           const left = leftOf(f);

@@ -110,8 +110,8 @@ describe("vehicle profiles (ADR 0050)", () => {
       ram: { front: SUV_SPEC.bodyFront, halfWidth: SUV_SPEC.bodyHalfWidth },
       seats: {
         positions: [
-          { x: -0.38, z: 0.35 },
-          { x: 0.38, z: 0.35 },
+          { x: -0.38, z: 0.2 },
+          { x: 0.38, z: 0.2 },
           { x: -0.38, z: -0.8 },
           { x: 0.38, z: -0.8 },
         ],

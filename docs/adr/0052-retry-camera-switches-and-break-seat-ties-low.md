@@ -1,6 +1,6 @@
 # 0052. Retry camera switches in both directions, and break seat ties toward the lower index
 
-- Status: Accepted
+- Status: Superseded in part by 0117
 - Date: 2026-10-12
 - Supersedes in part: 0028 (the rule for retrying a failed camera clear)
 

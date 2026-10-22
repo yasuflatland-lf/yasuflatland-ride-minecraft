@@ -8,8 +8,8 @@ import { FakeClock, FakeWorld, InMemoryRepo } from "./fakes";
 
 // Seat positions of the driver (0) and front passenger (1) with the vehicle heading +z.
 const SEAT_OFFSETS = [
-  { x: -0.38, z: 0.35 },
-  { x: 0.38, z: 0.35 },
+  { x: -0.38, z: 0.2 },
+  { x: 0.38, z: 0.2 },
 ] as const;
 
 const rider = (id: string, seat: 0 | 1): RiderView => ({

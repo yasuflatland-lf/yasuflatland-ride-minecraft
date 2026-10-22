@@ -123,7 +123,7 @@ describe("DriveVehicles", () => {
   it("forwards ram hits to the world with the driver as the attacker", () => {
     const driver = {
       id: asPlayerId("d"),
-      offset: { x: -0.38, z: 0.35 },
+      offset: { x: -0.38, z: 0.2 },
       yaw: 0,
       raw: FULL_THROTTLE,
     };
@@ -152,7 +152,7 @@ describe("DriveVehicles", () => {
     const repo = new InMemoryRepo();
     const driver = {
       id: asPlayerId("d"),
-      offset: { x: -0.38, z: 0.35 },
+      offset: { x: -0.38, z: 0.2 },
       yaw: 75,
       raw: { moveX: 0, moveY: 0, jump: false },
     };
@@ -258,7 +258,7 @@ describe("DriveVehicles", () => {
     const uc = new DriveVehicles(world, repo, logger());
     const driver = {
       id: asPlayerId("d"),
-      offset: { x: -0.38, z: 0.35 },
+      offset: { x: -0.38, z: 0.2 },
       yaw: 0,
       raw: { moveX: 0, moveY: 0, jump: false },
     };
@@ -400,7 +400,7 @@ describe("DriveVehicles", () => {
 describe("DriveVehicles third-person camera in flight (ADR 0028)", () => {
   const rider = (id: string) => ({
     id: asPlayerId(id),
-    offset: { x: -0.38, z: 0.35 },
+    offset: { x: -0.38, z: 0.2 },
     yaw: 0,
     raw: { moveX: 0, moveY: 0, jump: false },
   });
@@ -580,7 +580,7 @@ describe("DriveVehicles third-person camera in flight (ADR 0028)", () => {
 describe("DriveVehicles submarine riders (ADR 0040)", () => {
   const rider = (id: string) => ({
     id: asPlayerId(id),
-    offset: { x: -0.38, z: 0.35 },
+    offset: { x: -0.38, z: 0.2 },
     yaw: 0,
     raw: { moveX: 0, moveY: 0, jump: false },
   });

@@ -376,9 +376,12 @@ def pleated_seat(x0, x1, z_back):
     return cubes
 
 
-# Seats: 2 in front and a rear bench made of two halves
-body += pleated_seat(2, 11, 0)
-body += pleated_seat(-11, -2, 0)
+# Seats: 2 in front and a rear bench made of two halves. The front seats sit 2 px behind where they
+# first stood, and their riders 2.4 px (ADR 0116), so a front rider ends up 5.2 px ahead of the seat's
+# back, the same as on the rear bench.
+FRONT_SEAT_Z = -2
+body += pleated_seat(2, 11, FRONT_SEAT_Z)
+body += pleated_seat(-11, -2, FRONT_SEAT_Z)
 body += pleated_seat(-11, 0, -18)
 body += pleated_seat(0, 11, -18)
 
@@ -908,8 +911,8 @@ geo = {
                 sub_arm("sub_arm_rl", -1, REAR_AXLE_Z),
                 sub_arm("sub_arm_rr", +1, REAR_AXLE_Z),
                 *[door(n) for n in DOORS],
-                {"name": "seat_0", "parent": "body", "pivot": [6, 10, 2]},
-                {"name": "seat_1", "parent": "body", "pivot": [-6, 10, 2]},
+                {"name": "seat_0", "parent": "body", "pivot": [6, 10, FRONT_SEAT_Z + 2]},
+                {"name": "seat_1", "parent": "body", "pivot": [-6, 10, FRONT_SEAT_Z + 2]},
                 {"name": "seat_2", "parent": "body", "pivot": [6, 10, -17]},
                 {"name": "seat_3", "parent": "body", "pivot": [-6, 10, -17]},
             ],
