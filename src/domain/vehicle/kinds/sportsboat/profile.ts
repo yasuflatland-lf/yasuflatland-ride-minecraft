@@ -11,6 +11,7 @@ export const SPORTSBOAT_PROFILE: VehicleProfile = Object.freeze({
     front: SPORTSBOAT_SPEC.ramFront,
     halfWidth: SPORTSBOAT_SPEC.ramHalfWidth,
   }),
+  footprint: SPORTSBOAT_SPEC.footprint,
   // Must match minecraft:rideable in packs/yasu_ride_bp/entities/yasu_ride/sportsboat.se.json; the SUV's first x/z, no doors (ADR 0051), kept when the SUV's front seats moved back (ADR 0117).
   seats: Object.freeze({
     positions: Object.freeze([

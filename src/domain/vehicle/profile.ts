@@ -35,6 +35,12 @@ export interface VehicleProfile {
   /** Most vehicles of this kind one player keeps; one more removes their oldest (ADR 0066). */
   readonly fleetLimit: number;
   readonly ram: RamBody;
+  /**
+   * The farthest any part of the body, or a stand-in box, reaches from the center
+   * across the ground, in blocks: a circle the vehicle covers at any heading. Things
+   * placed beside vehicles keep out of it (ADR 0122).
+   */
+  readonly footprint: number;
   readonly seats: SeatLayout;
   /**
    * Seats that exist only while the vehicle is parked, as deck seats after the deck

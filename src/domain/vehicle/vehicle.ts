@@ -1,3 +1,8 @@
+import {
+  EMPTY_COUNTER,
+  type HitCounter,
+  registerHit,
+} from "../shared/hitCounter";
 import type { PlayerId, VehicleId } from "../shared/ids";
 // Aggregate for one vehicle: wires its drive to its seating, cooldowns, and hit count.
 import { forward, type Vec2, type Vec3 } from "../shared/vec";
@@ -14,7 +19,6 @@ import {
   hintAt,
   zoneOf,
 } from "./hints";
-import { EMPTY_COUNTER, type HitCounter, registerHit } from "./hitCounter";
 import type { VehicleKind } from "./kind";
 import {
   type Cell,
@@ -402,7 +406,10 @@ export class Vehicle {
 
   /** Hit by a player. Returns whether the vehicle breaks (ADR 0008). */
   receiveHit(tick: number): boolean {
-    const r = registerHit(this.hitCounter, tick, this.seating.occupied);
+    const r = registerHit(this.hitCounter, tick, this.seating.occupied, {
+      hits: SPEC.hitsToBreak,
+      resetTicks: SPEC.hitResetTicks,
+    });
     this.hitCounter = r.counter;
     return r.broken;
   }

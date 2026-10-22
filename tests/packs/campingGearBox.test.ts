@@ -93,7 +93,9 @@ describe("camping gear box (ADR 0093)", () => {
     expect(group.group_identifier.icon).toBe(BOX);
     expect(items[0]).toBe(BOX);
     expect(items.filter((i) => i === BOX)).toHaveLength(1);
-    expect(new Set(items.slice(1))).toEqual(
+    // The low chair closes the group but is not in the box (ADR 0122)
+    expect(items.at(-1)).toBe("yasu_ride:low_chair_item");
+    expect(new Set(items.slice(1, -1))).toEqual(
       new Set(GIFT_CONTENTS.camping_gear_box),
     );
   });

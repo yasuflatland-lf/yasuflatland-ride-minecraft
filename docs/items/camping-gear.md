@@ -26,6 +26,17 @@ Each item stands in the middle of one slot on the camper's furniture, or at one 
 | ![Tissue Box](../images/items/camping-gear/tissue_box.png) | Tissue Box | 5 × 3 | Stands | None |
 | ![Desk Fan](../images/items/camping-gear/desk_fan.png) | Desk Fan | 4 × 6 | Stands | None |
 
+## Low Chair (outside the vehicles)
+
+![Low Chair](../images/items/camping-gear/low_chair.png)
+
+A low folding camp chair with a brown canvas sling seat and a reclined canvas back on a silver aluminium frame, with wooden armrests and X braces under the seat and across the back. It is not decor: it stands on the ground outside the vehicles (ADR 0122). It is about 12 × 16 pixels, and its seat is 6 pixels above the ground.
+
+- **Place it:** use the Low Chair item on the top of a block outside the vehicles. The chair faces you, turned to the nearest eighth of a turn. Clicked on short grass, a flower, or a carpet, it settles onto the ground under it. It needs two free blocks above the block, and it does not go on a camper's room blocks, within a vehicle's reach, or where another chair already stands. Outside Creative it uses up the item.
+- **Sit on it:** long-press it on touch screens, or right-click it with a mouse; the button reads **Sit**. Sneak or jump to get up.
+- **Take it back:** hit it three times in quick succession while nobody sits on it. It folds up and drops its item. Each hit before the third tells you how many more it takes.
+- **Get one:** in Creative, it is in the Camping Gear group at the end of the Items tab, after the gear. In Survival, craft it from two leather, two sticks, and two iron ingots (leather top-left and middle, sticks on either side of the middle, iron ingots in the bottom corners).
+
 ## In the game
 
 Creative players find every item above in the **Camping Gear** group at the end of the Items tab. Each item has a decor block, `yasu_ride:<id>_decor`, that the parked camper lays on a furniture slot. The block has no collision and cannot be broken. Its `yasu_ride:height` state (0 to 15) lifts the gear by that many pixels to the slot's top. On the ceiling hook it lifts the hanging planter so that its top meets the hook. Its `yasu_ride:face` state is the parked camper's facing in quarter turns (0 south, 1 west, 2 north, 3 east). The block turns the gear so that the side shown at the front of its preview faces the camper's front. Its `yasu_ride:spot` state (0 to 4) moves the gear from the middle of its cell to one of the four stove burner spots of ADR 0107, which no slot uses since the stove got one burner in its middle (ADR 0112). A shelf board and the table hold two items, drawn by one block in the furniture's cell, `yasu_ride:shelf_decor_pair` or `yasu_ride:table_decor_pair`, whose states name the item at each end (ADR 0108).

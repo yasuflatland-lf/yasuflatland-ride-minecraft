@@ -32,3 +32,11 @@ it("wires the decor use cases and the dock owner lookups into the subscriptions 
     dockBlockOwner?.(here, cell, "yasu_ride:camper_floor"),
   ).toBeUndefined();
 });
+
+it("returns the vehicles' space check for other features (ADR 0122)", () => {
+  const { isVehicleSpace } = installVehicles();
+  // No vehicle is loaded and no room block is laid, so no cell is vehicle space.
+  expect(
+    isVehicleSpace(asDimensionId("overworld"), { x: 0, y: 64, z: 0 }),
+  ).toBe(false);
+});

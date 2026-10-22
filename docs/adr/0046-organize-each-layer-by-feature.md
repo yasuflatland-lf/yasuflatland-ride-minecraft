@@ -1,6 +1,6 @@
 # 0046. Organize each layer by feature
 
-- Status: Extended by 0050, 0055
+- Status: Extended by 0050, 0055, and 0122 (Proposed)
 - Date: 2026-10-11
 
 ## Context
