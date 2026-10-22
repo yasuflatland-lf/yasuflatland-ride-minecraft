@@ -74,7 +74,7 @@ describe("DriveVehicles", () => {
           const drive: Drive = {
             speed: 0,
             yaw: hold.yaw,
-            resync() {},
+            resync: () => {},
             onDriverMounted: () => {},
             onSeatVacated: () => [],
             step: () => step,
@@ -799,7 +799,7 @@ describe("DriveVehicles dock ports", () => {
     const drive: Drive = {
       speed: 0,
       yaw: 0,
-      resync() {},
+      resync: () => {},
       onDriverMounted: () => {},
       onSeatVacated: () => [],
       step: (_raw, ctx) => {
@@ -976,7 +976,6 @@ it("converges to the reference entity after every successful tick despite failed
           }
         });
         fc.pre(throws > 0 && forms.size > 1);
-        expect(throws).toBeGreaterThan(0);
       },
     ),
   );
