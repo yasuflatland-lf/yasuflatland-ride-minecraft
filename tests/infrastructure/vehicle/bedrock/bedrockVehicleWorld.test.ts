@@ -1206,3 +1206,50 @@ describe("BedrockVehicleWorld dock owners (ADR 0068, 0093)", () => {
     expect(world.dockCellOwner(asDimensionId("nether"), floor)).toBeUndefined();
   });
 });
+
+describe("BedrockVehicleWorld.isVehicleSpace (ADR 0121)", () => {
+  beforeEach(() => vi.resetAllMocks());
+  const OVERWORLD = asDimensionId("overworld");
+
+  // The car stands in cell (-2, 64, 2); the SUV's placement clearance reaches one
+  // block to each side and two blocks up.
+  it.each<[Vec3, boolean]>([
+    [{ x: -2, y: 64, z: 2 }, true],
+    [{ x: -1, y: 66, z: 3 }, true],
+    [{ x: -3, y: 65, z: 1 }, true],
+    [{ x: 0, y: 64, z: 2 }, false],
+    [{ x: -2, y: 64, z: 4 }, false],
+    [{ x: -2, y: 67, z: 2 }, false],
+    [{ x: -2, y: 63, z: 2 }, false],
+  ])("treats %o as vehicle space: %s", (cell, expected) => {
+    const { world } = fixture();
+    expect(world.isVehicleSpace(OVERWORLD, cell)).toBe(expected);
+  });
+
+  it("treats a cell with a laid room block in it or under it as vehicle space", () => {
+    const { world, entities } = fixture();
+    entities.length = 0;
+    const laid = { x: 10, y: 70, z: 10 };
+    const owner = vi
+      .spyOn(world, "dockCellOwner")
+      .mockImplementation((_d, cell) =>
+        cell.x === laid.x && cell.y === laid.y && cell.z === laid.z
+          ? asVehicleId("car")
+          : undefined,
+      );
+    expect(world.isVehicleSpace(OVERWORLD, laid)).toBe(true);
+    expect(world.isVehicleSpace(OVERWORLD, { ...laid, y: 71 })).toBe(true);
+    expect(world.isVehicleSpace(OVERWORLD, { ...laid, y: 72 })).toBe(false);
+    owner.mockRestore();
+  });
+
+  it("is false in an unknown dimension", () => {
+    const { world } = fixture();
+    game.getDimension.mockImplementation(() => {
+      throw new Error("unknown dimension");
+    });
+    expect(
+      world.isVehicleSpace(asDimensionId("nowhere"), { x: 0, y: 0, z: 0 }),
+    ).toBe(false);
+  });
+});

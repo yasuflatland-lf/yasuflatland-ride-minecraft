@@ -29,8 +29,10 @@ import {
 import type { DockCell, HoldPose } from "../../../domain/vehicle/dock/floor";
 import type { EngineCommand } from "../../../domain/vehicle/drive";
 import type { RawInput } from "../../../domain/vehicle/driveInput";
+import { VEHICLE_KINDS } from "../../../domain/vehicle/kind";
 import {
   entityContractOf,
+  profileOf,
   RAM_QUERY_RADIUS,
 } from "../../../domain/vehicle/kinds/index";
 import type { Cell } from "../../../domain/vehicle/lighting/headlights";
@@ -78,6 +80,16 @@ function offsetFrom(vehicle: Entity, offset: Vec3): Vec3 {
   };
 }
 
+// How far from a cell's middle a vehicle can stand and still have the cell inside its
+// placement clearance: the farthest corner of the largest clearance box (ADR 0121).
+const SPACE_QUERY_RADIUS = Math.max(
+  ...VEHICLE_KINDS.map((kind) => {
+    const { halfX, halfZ, height } = profileOf(kind).placement.clearance;
+    const half = Math.max(halfX, halfZ) + 1;
+    return Math.hypot(half, height + 1, half);
+  }),
+);
+
 function distanceSq(a: Vec3, b: Vec3): number {
   return (a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2;
 }
@@ -119,6 +131,44 @@ export class BedrockVehicleWorld implements DriveWorld {
     typeId: string,
   ): VehicleId | undefined {
     return this.dockBlocks.laidBlockOwner(dimensionId, cell, typeId);
+  }
+
+  /**
+   * Whether a vehicle laid a room block in `cell` or in the block under it, or a
+   * loaded vehicle stands so near that `cell` is inside its kind's placement
+   * clearance, turned to any heading (ADR 0121).
+   */
+  isVehicleSpace(dimensionId: DimensionId, cell: Vec3): boolean {
+    const below = { x: cell.x, y: cell.y - 1, z: cell.z };
+    if (
+      this.dockCellOwner(dimensionId, cell) !== undefined ||
+      this.dockCellOwner(dimensionId, below) !== undefined
+    )
+      return true;
+    const middle = { x: cell.x + 0.5, y: cell.y, z: cell.z + 0.5 };
+    let near: Entity[];
+    try {
+      near = world.getDimension(dimensionId).getEntities({
+        families: [VEHICLE_FAMILY],
+        location: middle,
+        maxDistance: SPACE_QUERY_RADIUS,
+      });
+    } catch {
+      return false; // Unknown dimension id
+    }
+    return near.some((vehicle) => {
+      const kind = kindOfEntity(vehicle.typeId);
+      if (kind === undefined) return false;
+      const { halfX, halfZ, height } = profileOf(kind).placement.clearance;
+      const half = Math.max(halfX, halfZ);
+      const dy = cell.y - Math.floor(vehicle.location.y);
+      return (
+        Math.abs(cell.x - Math.floor(vehicle.location.x)) <= half &&
+        Math.abs(cell.z - Math.floor(vehicle.location.z)) <= half &&
+        dy >= 0 &&
+        dy <= height
+      );
+    });
   }
 
   loadedVehicles(): VehicleSnapshot[] {

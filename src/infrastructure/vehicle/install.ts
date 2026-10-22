@@ -17,6 +17,8 @@ import { SleepInBed } from "../../application/vehicle/sleepInBed";
 import { SwitchCeilingLights } from "../../application/vehicle/switchCeilingLights";
 import { SwitchHeadlights } from "../../application/vehicle/switchHeadlights";
 import { UseDockDoor } from "../../application/vehicle/useDockDoor";
+import type { DimensionId } from "../../domain/shared/ids";
+import type { Vec3 } from "../../domain/shared/vec";
 import { fleetLimitOf } from "../../domain/vehicle/kinds/index";
 import { NAMESPACE } from "../shared/identifiers";
 import { BedrockBedWorld } from "./bedrock/bedrockBedWorld";
@@ -35,7 +37,13 @@ import { DynamicPropertyFleetRepository } from "./persistence/dynamicPropertyFle
 import { InMemoryVehicleRepository } from "./persistence/inMemoryVehicleRepository";
 import { TestInputStore } from "./testInput/testInputStore";
 
-export function installVehicles(): void {
+/**
+ * Installs the vehicle feature. The returned check lets bootstrap hand other
+ * features the vehicles' space without them importing this feature (ADR 0046, 0121).
+ */
+export function installVehicles(): {
+  isVehicleSpace(dimensionId: DimensionId, cell: Vec3): boolean;
+} {
   const repo = new InMemoryVehicleRepository();
   const store = new TestInputStore();
   const index = new EntityIndex();
@@ -85,4 +93,8 @@ export function installVehicles(): void {
     (dimensionId, cell, typeId) =>
       bedrock.dockBlockOwner(dimensionId, cell, typeId),
   );
+  return {
+    isVehicleSpace: (dimensionId, cell) =>
+      bedrock.isVehicleSpace(dimensionId, cell),
+  };
 }
