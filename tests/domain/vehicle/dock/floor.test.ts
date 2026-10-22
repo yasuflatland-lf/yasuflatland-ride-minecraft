@@ -43,6 +43,7 @@ const block: fc.Arbitrary<DockBlock> = fc.oneof(
   fc.constant({ type: "floor" as const }),
   fc.constant({ type: "ceiling" as const }),
   fc.constant({ type: "bed" as const }),
+  fc.constant({ type: "light" as const }),
   furnitureHeight.map((height) => ({ type: "furniture" as const, height })),
   fc.record({
     type: fc.constant("wall" as const),

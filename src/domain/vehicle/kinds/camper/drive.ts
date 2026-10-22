@@ -29,7 +29,9 @@ import {
   CABINET_DOOR_PROPERTY,
   type CAMPER_ENTITY,
   cabinetDoorCommand,
+  ceilingLightsCommand,
   doorCommand,
+  SWITCH_CLICK,
   showerCommand,
   showerDoorCommand,
 } from "./entity";
@@ -38,6 +40,7 @@ import { CAMPER_MOTION, CAMPER_TYRES } from "./profile";
 import {
   cabinetCells,
   cargoCells,
+  ceilingLightCells,
   deckSeats,
   decorBlockName,
   decorCells,
@@ -45,6 +48,7 @@ import {
   exitCells,
   furnitureCells,
   holdsCargo,
+  insideRoom,
   isPassable,
   localCellAt,
   ownSlotBlock,
@@ -117,6 +121,10 @@ export class CamperDrive extends TransformingDrive {
   private readonly showerDoorStepSync = new SyncedValue<number>();
   private showerTicks = 0;
   private readonly showerSync = new SyncedValue<boolean>();
+  // The ceiling lights, switched by anyone in the parked room (ADR 0115).
+  private ceilingLightsOn: boolean;
+  private readonly ceilingLightsSync = new SyncedValue<boolean>();
+  private clickPending = false;
   // The wall cabinet doors swing in the entry door's DOOR_STEPS, each on its own (ADR 0114).
   private readonly cabinetDoors: ReadonlyMap<CabinetDoor, CabinetDoorState>;
   private readonly decorBySlot = new Map<string, string>();
@@ -171,6 +179,8 @@ export class CamperDrive extends TransformingDrive {
       this.restoredDocked,
     );
     this.showerDoorOpen = this.showerDoorStep * 2 >= DOOR_STEPS;
+    this.ceilingLightsOn =
+      this.restoredDocked && restored.ceiling_lights === true;
     this.cabinetDoors = new Map(
       CABINET_DOORS.map(({ door }) => {
         const step = restoredDoorStep(
@@ -255,6 +265,17 @@ export class CamperDrive extends TransformingDrive {
     }
     door.open = !door.open;
     return { kind: "door" };
+  }
+
+  /**
+   * A player with feet at `feet` uses the light switch: inside the parked room, it turns the
+   * ceiling lights on or off (ADR 0115). The vehicle core applies the switch's cooldown.
+   */
+  switchCeilingLights(feet: Vec3): boolean {
+    if (!this.parked || !insideRoom(this.parked, feet)) return false;
+    this.ceilingLightsOn = !this.ceilingLightsOn;
+    this.clickPending = true;
+    return true;
   }
 
   runShower(): boolean {
@@ -471,6 +492,7 @@ export class CamperDrive extends TransformingDrive {
             ...decorCells(pose, this.placed()),
             ...furnitureCells(pose, this.placed()),
             ...cabinetCells(pose, this.placed(), this.shownCabinets()),
+            ...(this.ceilingLightsOn ? ceilingLightCells(pose) : []),
           ]
         : [],
       seats: deckSeats(pose),
@@ -494,6 +516,9 @@ export class CamperDrive extends TransformingDrive {
     this.showerDoorOpen = false;
     this.showerDoorStep = 0;
     this.showerTicks = 0;
+    // The lights go out as the room folds away, and the next park starts dark (ADR 0115).
+    this.ceilingLightsOn = false;
+    this.clickPending = false;
     for (const door of this.cabinetDoors.values()) {
       door.open = false;
       door.step = 0;
@@ -529,6 +554,17 @@ export class CamperDrive extends TransformingDrive {
       ...this.doorCommands(),
       ...this.showerCommands(),
       ...this.cabinetCommands(),
+      ...this.ceilingLightCommands(),
+    ];
+  }
+
+  private ceilingLightCommands(): EngineCommand[] {
+    const on = this.ceilingLightsSync.next(this.ceilingLightsOn);
+    const click = this.clickPending;
+    this.clickPending = false;
+    return [
+      ...(on === undefined ? [] : [ceilingLightsCommand(on)]),
+      ...(click ? [SWITCH_CLICK] : []),
     ];
   }
 

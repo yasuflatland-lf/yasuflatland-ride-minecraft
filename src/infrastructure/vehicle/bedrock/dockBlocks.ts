@@ -33,6 +33,7 @@ import {
   DECOR_HEIGHT_STATE,
   DECOR_SPOT_STATE,
   decorBlockId,
+  LIGHT_BLOCK,
   pairDecorBlockId,
   pairEndStates,
   pairHeightStates,
@@ -50,7 +51,7 @@ const MAX_DECOR_HEIGHT = 15;
 // spots up to 8; those saved cells are still read, so a lay clears their blocks.
 const MAX_DECOR_SPOT = 8;
 // Reading a laid cell costs one getBlock call, and a parked camper lays about 107
-// to 119 cells, so the cells are read once a second per vehicle, not every tick (ADR 0096).
+// to 121 cells, so the cells are read once a second per vehicle, not every tick (ADR 0096).
 export const DOCK_RECHECK_TICKS = 20;
 const NONE_LOST: ReadonlySet<string> = new Set();
 
@@ -114,6 +115,7 @@ function isDockCell(v: unknown): v is DockCell {
     case "floor":
     case "ceiling":
     case "bed":
+    case "light":
       return true;
     case "furniture":
       return isDecorHeight(b.height);
@@ -167,6 +169,8 @@ function blockIdOf(block: DockBlock): string {
       return CAMPER_DOOR_BLOCK;
     case "bed":
       return CAMPER_BED_BLOCK;
+    case "light":
+      return LIGHT_BLOCK;
     case "showerToilet":
       return CAMPER_SHOWER_TOILET_BLOCK;
     case "cabinetDoor":
@@ -403,7 +407,12 @@ export class DockBlocks {
     for (const c of entry.cells) {
       try {
         const b = entry.dimension.getBlock(c);
-        if (b && (b.isAir || isLightBlock(b))) lost.add(cellKey(c));
+        // A light block counts as air, except in a cell where the dock laid that light (ADR 0115).
+        if (
+          b &&
+          (b.isAir || (isLightBlock(b) && b.typeId !== blockIdOf(c.block)))
+        )
+          lost.add(cellKey(c));
       } catch {
         // Unloaded chunk or outside the world: read it again on a later check.
       }

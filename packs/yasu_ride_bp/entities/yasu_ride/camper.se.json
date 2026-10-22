@@ -40,6 +40,11 @@
           "default": 0.0,
           "client_sync": true
         },
+        "yasu_ride:ceiling_lights": {
+          "type": "bool",
+          "default": false,
+          "client_sync": true
+        },
         "yasu_ride:form": {
           "type": "enum",
           "values": ["car", "takeoff", "hover", "landing", "submarine"],

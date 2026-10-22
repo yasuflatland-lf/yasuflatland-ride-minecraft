@@ -17,6 +17,8 @@ export type DockBlock =
   | { readonly type: "floor" }
   | { readonly type: "ceiling" }
   | { readonly type: "bed" }
+  /** A ceiling light's glow: a light block, invisible and without collision (ADR 0115). */
+  | { readonly type: "light" }
   /**
    * A decor slot with no decor (yasu_ride:camper_furniture): no collision, a selection
    * box over the furniture top; `height` is the slot's 0..15 px, 0 for a hanging slot (ADR 0097).
