@@ -103,6 +103,8 @@ describe("parseFleetState (ADR 0038, ADR 0124)", () => {
     [{ version: 4, order: [], evicted: [] }, /unsupported fleet version/],
     [{ version: 3, order: [], evicted: {} }, /not a list of entries/],
     [{ version: 3, order: [], evicted: [{ id: 1 }] }, /id is not a string/],
+    [{ version: 3, order: [], evicted: [null] }, /entry is not an object/],
+    [{ version: 3, order: [], evicted: [["a"]] }, /entry is not an object/],
     [{ version: null, order: [], evicted: [] }, /unsupported fleet version/],
     [{ version: 2, order: {}, evicted: [] }, /order is not a list/],
     [{ version: 2, order: [], evicted: [1] }, /evicted is not a list of ids/],
