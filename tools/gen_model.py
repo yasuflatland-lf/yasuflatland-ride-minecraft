@@ -377,7 +377,7 @@ def pleated_seat(x0, x1, z_back):
 
 
 # Seats: 2 in front and a rear bench made of two halves. The front seats sit 2 px behind where they
-# first stood, and their riders 2.4 px (ADR 0116), so a front rider ends up 5.2 px ahead of the seat's
+# first stood, and their riders 2.4 px (ADR 0117), so a front rider ends up 5.2 px ahead of the seat's
 # back, the same as on the rear bench.
 FRONT_SEAT_Z = -2
 body += pleated_seat(2, 11, FRONT_SEAT_Z)
