@@ -19,6 +19,7 @@ const HIDDEN_CUBE_REFERENCE = {
 };
 const INVISIBLE_BLOCKS = [
   "camper_bed",
+  "camper_cabinet_door",
   "camper_ceiling",
   "camper_door",
   "camper_floor",
@@ -121,7 +122,8 @@ describe("block geometries (ADR 0101)", () => {
     expect([...new Set(hidden.map(({ path }) => path))].sort()).toEqual(
       INVISIBLE_BLOCKS,
     );
-    // Besides the hidden cube, only the pair blocks pick bones: the item at each end (ADR 0108).
+    // Besides the hidden cube, only the pair blocks pick bones: the item at each end (ADR 0108),
+    // shown on the wall cabinet's only while its door is open (ADR 0114).
     const otherBoneVisibility = blocks.filter(
       ({ identifier, reference }) =>
         identifier !== HIDDEN_CUBE_GEOMETRY &&
@@ -145,9 +147,11 @@ const CELL_MIN = [-8, 0, -8] as const;
 const CELL_MAX = [8, 16, 8] as const;
 const MIN_INSIDE_PX = 1;
 const MAX_REACH_PX = 30;
-const PAIR_BLOCKS = ["shelf_decor_pair", "table_decor_pair"].map(
-  (name) => `blocks/yasu_ride/${name}.block.json`,
-);
+const PAIR_BLOCKS = [
+  "cabinet_decor_pair",
+  "shelf_decor_pair",
+  "table_decor_pair",
+].map((name) => `blocks/yasu_ride/${name}.block.json`);
 
 type Bounds = { lo: number[]; hi: number[] };
 type Box = { origin: number[]; size: number[] };

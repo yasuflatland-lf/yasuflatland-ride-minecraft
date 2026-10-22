@@ -1,5 +1,6 @@
 import { expect, it } from "vitest";
 import {
+  CABINET_DOORS,
   CAMPER_FURNITURE,
   DECOR_SPOTS,
   type LocalCell,
@@ -7,7 +8,11 @@ import {
 
 const key = ({ x, z, layer }: LocalCell): string => `${x},${z},${layer}`;
 
-it("keeps every furniture cell inside the room interior above the floor (ADR 0093)", () => {
+// The wall cabinet hangs under the ceiling plate, in the ceiling layer (ADR 0103, 0114).
+const layersOf = (kind: string): number[] =>
+  kind === "wall_cabinet" ? [3] : [1, 2];
+
+it("keeps every furniture cell inside the room interior above the floor, the wall cabinet in the ceiling layer (ADR 0093, 0114)", () => {
   for (const row of CAMPER_FURNITURE)
     for (const { x, z, layer } of row.cells) {
       expect(Number.isInteger(x)).toBe(true);
@@ -17,7 +22,7 @@ it("keeps every furniture cell inside the room interior above the floor (ADR 009
       expect(x).toBeLessThanOrEqual(1);
       expect(z).toBeGreaterThanOrEqual(-3);
       expect(z).toBeLessThanOrEqual(3);
-      expect([1, 2]).toContain(layer);
+      expect(layersOf(row.kind)).toContain(layer);
     }
 });
 
@@ -80,7 +85,7 @@ it("gives the shower-toilet its own block in both of its cells (ADR 0098)", () =
   ]);
 });
 
-it("lists the nine furniture kinds once each, in order", () => {
+it("lists the ten furniture kinds once each, in order, the wall cabinet last (ADR 0114)", () => {
   expect(CAMPER_FURNITURE.map((f) => f.kind)).toEqual([
     "dashboard",
     "table",
@@ -91,6 +96,7 @@ it("lists the nine furniture kinds once each, in order", () => {
     "counter",
     "ceiling_hook",
     "shower_toilet",
+    "wall_cabinet",
   ]);
 });
 
@@ -113,6 +119,41 @@ it("keeps the saved slot ids, cells, and heights", () => {
     ["stove", -1, -2, 1, 15],
     ["counter", -1, -1, 1, 14],
     ["ceiling_hook", 1, 0, 2, 6],
+    ["cabinet_sink_rear", -1, -1, 3, 3],
+    ["cabinet_sink_front", -1, -1, 3, 3],
+    ["cabinet_stove_rear", -1, -2, 3, 3],
+    ["cabinet_stove_front", -1, -2, 3, 3],
+  ]);
+});
+
+it("puts two slots behind each wall cabinet door, at the shelf boards' end spots, and no other slot behind a door (ADR 0114)", () => {
+  const slots = CAMPER_FURNITURE.flatMap((f) => f.slots);
+  for (const { door, cell } of CABINET_DOORS) {
+    const behind = slots.filter((s) => s.door === door);
+    expect(behind.map((s) => s.spot)).toEqual([5, 6]);
+    expect(behind.map((s) => s.pair)).toEqual([
+      { kind: "cabinet", end: 0 },
+      { kind: "cabinet", end: 1 },
+    ]);
+    for (const s of behind) expect(s.cell).toEqual(cell);
+  }
+  expect(slots.filter((s) => s.door !== undefined)).toHaveLength(4);
+});
+
+it("swings each cabinet door into the aisle cell beside its compartment, hinged at the cabinet's outer ends (ADR 0114)", () => {
+  expect(CABINET_DOORS).toEqual([
+    {
+      door: "sink",
+      cell: { x: -1, z: -1, layer: 3 },
+      aisle: { x: 0, z: -1, layer: 3 },
+      hinge: 1,
+    },
+    {
+      door: "stove",
+      cell: { x: -1, z: -2, layer: 3 },
+      aisle: { x: 0, z: -2, layer: 3 },
+      hinge: -1,
+    },
   ]);
 });
 
@@ -146,7 +187,7 @@ it("keeps every furniture cell inside the interior, apart from the others, and o
       expect(cell.x).toBeLessThanOrEqual(1);
       expect(cell.z).toBeGreaterThanOrEqual(-3);
       expect(cell.z).toBeLessThanOrEqual(3);
-      expect([1, 2]).toContain(cell.layer);
+      expect(layersOf(row.kind)).toContain(cell.layer);
       expect(cells.has(key(cell))).toBe(false);
       cells.add(key(cell));
       expect(cell.x === -1 && cell.z === 0).toBe(false);

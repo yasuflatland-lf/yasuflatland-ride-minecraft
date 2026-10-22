@@ -19,6 +19,7 @@ import { PAINTS } from "../../../../src/domain/vehicle/paint/paint";
 import { NAMESPACE } from "../../../../src/infrastructure/shared/identifiers";
 import {
   CAMPER_BED_BLOCK,
+  CAMPER_CABINET_DOOR_BLOCK,
   CAMPER_CEILING_BLOCK,
   CAMPER_DOOR_BLOCK,
   CAMPER_FLOOR_BLOCK,
@@ -235,6 +236,7 @@ describe("identifiers (ADR 0047)", () => {
 
   it("recognizes only the camper's own room blocks", () => {
     for (const typeId of [
+      CAMPER_CABINET_DOOR_BLOCK,
       CAMPER_FLOOR_BLOCK,
       CAMPER_CEILING_BLOCK,
       CAMPER_WALL_BLOCK,
@@ -280,8 +282,8 @@ describe("identifiers (ADR 0047)", () => {
     ).toBeLessThanOrEqual(16);
   });
 
-  it("names the pair blocks the way the domain's slot check expects and counts them as decor blocks (ADR 0108)", () => {
-    for (const kind of ["shelf", "table"]) {
+  it("names the pair blocks, the wall cabinet's too, the way the domain's slot check expects and counts them as decor blocks (ADR 0108, 0114)", () => {
+    for (const kind of ["shelf", "table", "cabinet"]) {
       expect(pairDecorBlockId(kind)).toBe(`yasu_ride:${kind}_decor_pair`);
       expect(isDecorBlock(pairDecorBlockId(kind))).toBe(true);
     }

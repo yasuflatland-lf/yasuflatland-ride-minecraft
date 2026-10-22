@@ -21,11 +21,13 @@ import {
 } from "../../../../../src/domain/vehicle/kinds/camper/decorPlacing";
 import {
   CAMPER_FURNITURE,
+  type CabinetDoor,
   DECOR_SPOTS,
   type DecorSlot,
   type LocalCell,
 } from "../../../../../src/domain/vehicle/kinds/camper/furniture";
 import {
+  cabinetCells,
   decorCells,
   decorSlotCell,
   decorSpotOffset,
@@ -63,7 +65,18 @@ const PAIR_IDS = [
   "shelf_low_front",
   "shelf_high",
   "shelf_high_front",
+  "cabinet_sink_rear",
+  "cabinet_sink_front",
+  "cabinet_stove_rear",
+  "cabinet_stove_front",
 ];
+const DOORS: readonly CabinetDoor[] = ["sink", "stove"];
+const openDoors = fc
+  .subarray([...DOORS])
+  .map((doors) => new Set<CabinetDoor>(doors));
+// A slot behind a cabinet door takes items only while that door is open (ADR 0114).
+const reachable = (open: ReadonlySet<CabinetDoor>) => (s: DecorSlot) =>
+  s.door === undefined || open.has(s.door);
 // The nearest slot to `point`, the first one on a tie, written out separately from the code.
 const nearestOf = (
   p: ReturnType<typeof parkPose>,
@@ -90,22 +103,48 @@ it("accepts a standing item on every slot but the ceiling hook and a hanging ite
     fc.property(gear, (id) => {
       const hanging = HANGING_GEAR_IDS.has(id);
       expect(slotsFor(id)).toEqual(
-        DECOR_SLOTS.filter((slot) => (slot.hanging === true) === hanging),
+        DECOR_SLOTS.filter(
+          (slot) =>
+            (slot.hanging === true) === hanging && slot.door === undefined,
+        ),
       );
     }),
   );
   expect(ids(slotsFor("macrame_planter"))).toEqual(["ceiling_hook"]);
   expect(ids(slotsFor("cushion"))).toEqual(
-    ids(DECOR_SLOTS.filter((s) => s.id !== "ceiling_hook")),
+    ids(DECOR_SLOTS.filter((s) => s.id !== "ceiling_hook" && !s.door)),
   );
   expect(slotsFor("percolator")).toHaveLength(12);
+  expect(slotsFor("percolator", new Set(DOORS))).toHaveLength(16);
   expect(slotsFor("constructor")).toEqual([]);
   expect(slotsFor("stone")).toEqual([]);
 });
 
-it("gives the stove one slot in its cell middle and every other furniture one slot per cell but a shelf board's or the table's two ends, keeping the burner spots (ADR 0107, 0108, 0112)", () => {
+it("takes standing items behind an open cabinet door and none behind a shut one, never a hanging item (ADR 0114)", () => {
+  fc.assert(
+    fc.property(gear, openDoors, (id, open) => {
+      expect(slotsFor(id, open)).toEqual(
+        DECOR_SLOTS.filter(
+          (slot) =>
+            (slot.hanging === true) === HANGING_GEAR_IDS.has(id) &&
+            reachable(open)(slot),
+        ),
+      );
+    }),
+  );
+  expect(ids(slotsFor("mug_pair", new Set<CabinetDoor>(["stove"])))).toEqual([
+    ...ids(slotsFor("mug_pair")),
+    "cabinet_stove_rear",
+    "cabinet_stove_front",
+  ]);
+  expect(ids(slotsFor("macrame_planter", new Set(DOORS)))).toEqual([
+    "ceiling_hook",
+  ]);
+});
+
+it("gives the stove one slot in its cell middle and every other furniture one slot per cell but a shelf board's, the table's, or a cabinet compartment's two ends, keeping the burner spots (ADR 0107, 0108, 0112, 0114)", () => {
   expect(SLOTS.map((s) => s.slot)).toEqual(DECOR_SLOTS);
-  expect(SLOTS).toHaveLength(13);
+  expect(SLOTS).toHaveLength(17);
   const stove = SLOTS.filter(({ kind }) => kind === "stove").map(
     ({ slot }) => slot,
   );
@@ -118,6 +157,10 @@ it("gives the stove one slot in its cell middle and every other furniture one sl
     [6, { kind: "shelf", end: 1 }],
     [5, { kind: "shelf", end: 0 }],
     [6, { kind: "shelf", end: 1 }],
+    [5, { kind: "cabinet", end: 0 }],
+    [6, { kind: "cabinet", end: 1 }],
+    [5, { kind: "cabinet", end: 0 }],
+    [6, { kind: "cabinet", end: 1 }],
   ]);
   for (let i = 0; i < pairs.length; i += 2)
     expect(
@@ -145,7 +188,7 @@ it("lists every slot cell once with its slots in slot order (ADR 0107)", () => {
   expect(new Set(DECOR_CELLS.map(({ cell }) => localKey(cell))).size).toBe(
     DECOR_CELLS.length,
   );
-  expect(DECOR_CELLS).toHaveLength(10);
+  expect(DECOR_CELLS).toHaveLength(12);
   for (const { cell, slots } of DECOR_CELLS)
     for (const s of slots) expect(s.cell).toEqual(cell);
 });
@@ -202,10 +245,25 @@ it("puts each slot's point at its spot on its surface and lays its decor in its 
           y: c.y + slot.height / 16,
           z: c.z + 0.5 + o.z,
         });
-        const laid = defined(
-          decorCells(p, [{ slot: slot.id, item: "potted_plant" }])[0],
-          "decor cell",
-        );
+        const decor = [{ slot: slot.id, item: "potted_plant" }];
+        if (slot.door !== undefined) {
+          // A cabinet compartment is laid by cabinetCells, not as decor (ADR 0114).
+          expect(decorCells(p, decor)).toEqual([]);
+          const cabinet = defined(
+            cabinetCells(p, decor, new Set()).find(
+              (cell) => cellKey(cell) === cellKey(c),
+            ),
+            "cabinet cell",
+          );
+          expect(cabinet.block).toEqual({
+            type: "cabinet",
+            face: decorFace(p.yaw),
+            open: false,
+            [`end${slot.pair?.end}`]: "potted_plant",
+          });
+          continue;
+        }
+        const laid = defined(decorCells(p, decor)[0], "decor cell");
         expect({ x: laid.x, y: laid.y, z: laid.z }).toEqual(c);
         expect(laid.block).toEqual(
           slot.pair
@@ -229,7 +287,7 @@ it("puts each slot's point at its spot on its surface and lays its decor in its 
   );
 });
 
-it("lays one block per cell: the first placement in it, or the pair block with the item at each end of a shelf board or the table (ADR 0107, 0108)", () => {
+it("lays one block per cell: the first placement in it, or the pair block with the item at each end of a shelf board or the table, leaving the cabinet to cabinetCells (ADR 0107, 0108, 0114)", () => {
   fc.assert(
     fc.property(
       pose,
@@ -242,7 +300,9 @@ it("lays one block per cell: the first placement in it, or the pair block with t
         );
         expect(new Set(laid.map(cellKey)).size).toBe(laid.length);
         const firsts = slots.filter(
-          (s, i) => slots.findIndex((t) => sameCell(t, s)) === i,
+          (s, i) =>
+            s.door === undefined &&
+            slots.findIndex((t) => sameCell(t, s)) === i,
         );
         expect(laid.map((c) => c.block)).toEqual(
           firsts.map((s) => {
@@ -569,5 +629,79 @@ it("puts a saucepan on the stove's one burner for the side-face press logged in 
   expect(slotForPress(p, "saucepan", [], cell, point, false)?.id).toBe("stove");
   expect(slotForPress(p, "saucepan", [], cell, point, false, eye)?.id).toBe(
     "stove",
+  );
+});
+
+it("lays a cabinet block in both compartments, full or empty, with each end's item, showing them only behind the doors in `shown` (ADR 0114)", () => {
+  const cabinetSlots = DECOR_SLOTS.filter((s) => s.door !== undefined);
+  fc.assert(
+    fc.property(
+      pose,
+      fc.subarray(cabinetSlots),
+      gear,
+      openDoors,
+      (p, taken, item, shown) => {
+        const decor = taken.map((s) => ({ slot: s.id, item }));
+        const laid = cabinetCells(p, decor, shown);
+        expect(laid).toHaveLength(2);
+        for (const door of DOORS) {
+          const ends = cabinetSlots.filter((s) => s.door === door);
+          const at = decorSlotCell(p, defined(ends[0], "end"));
+          const cell = defined(
+            laid.find((c) => cellKey(c) === cellKey(at)),
+            door,
+          );
+          expect(cell.block).toEqual({
+            type: "cabinet",
+            face: decorFace(p.yaw),
+            open: shown.has(door),
+            ...Object.fromEntries(
+              ends
+                .filter((s) => taken.includes(s))
+                .map((s) => [`end${s.pair?.end}`, item]),
+            ),
+          });
+        }
+      },
+    ),
+  );
+});
+
+it("sends gear pressed on a shut compartment to the nearest free slot elsewhere, and on an open one to its free end nearest the press (ADR 0114)", () => {
+  const offset = fc.double({ min: -6, max: 6, noNaN: true });
+  const cabinetSlots = DECOR_SLOTS.filter((s) => s.door !== undefined);
+  fc.assert(
+    fc.property(
+      pose,
+      fc.constantFrom(...cabinetSlots),
+      fc.subarray(DECOR_SLOTS.filter((s) => !s.hanging)),
+      openDoors,
+      fc.tuple(offset, offset, offset),
+      (p, slot, taken, open, [dx, dy, dz]) => {
+        const decor = taken.map((s) => ({ slot: s.id, item: "mug_pair" }));
+        const point = { x: p.x + dx, y: p.y + dy, z: p.z + dz };
+        const cell = decorSlotCell(p, slot);
+        const chosen = slotForPress(
+          p,
+          "mug_pair",
+          decor,
+          cell,
+          point,
+          false,
+          undefined,
+          open,
+        );
+        const pressed = DECOR_SLOTS.filter(
+          (s) => sameCell(s, slot) && reachable(open)(s),
+        ).filter(freeOf(taken));
+        expect(chosen).toBe(
+          pressed.length > 0
+            ? nearestOf(p, pressed, point)
+            : nearestFreeSlot(p, "mug_pair", decor, point, undefined, open),
+        );
+        if (chosen?.door !== undefined)
+          expect(open.has(chosen.door)).toBe(true);
+      },
+    ),
   );
 });

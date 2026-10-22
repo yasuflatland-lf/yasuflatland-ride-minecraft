@@ -13,7 +13,9 @@ import { cellKey } from "../../lighting/headlights";
 import { seatWorldPositions } from "../../seats";
 import { DECOR_CELLS, decorInCell, decorSlot } from "./decor";
 import {
+  CABINET_DOORS,
   CAMPER_FURNITURE,
+  type CabinetDoor,
   DECOR_SPOTS,
   type DecorSlot,
   type FurnitureBlock,
@@ -93,6 +95,9 @@ const FURNITURE_BLOCK_SUFFIX = ":camper_furniture";
 // yasu_ride:camper_furniture's height 0 is the hanging box under the hook,
 // whatever the hanging slot's own height (ADR 0097, 0102).
 const HANGING_FURNITURE_HEIGHT = 0;
+const NO_DOORS: ReadonlySet<CabinetDoor> = new Set();
+// The namespace-free name of yasu_ride:cabinet_decor_pair; identifiers.test.ts checks it (ADR 0114).
+const CABINET_BLOCK_NAME = "cabinet_decor_pair";
 
 /** Passable decorations that parking removes; anything else in a checked cell refuses (ADR 0068). */
 export const CLEARABLE_DECORATIONS: ReadonlySet<string> = new Set([
@@ -166,9 +171,14 @@ function cellAt(pose: HoldPose, lx: number, lz: number, dy: number): Vec3 {
   };
 }
 
+/** The world cell of a local room cell at a parked pose. */
+export function localCellAt(pose: HoldPose, cell: LocalCell): Vec3 {
+  return cellAt(pose, cell.x, cell.z, cell.layer);
+}
+
 /** The world cell of a decor slot at a parked pose (ADR 0093). */
 export function decorSlotCell(pose: HoldPose, slot: DecorSlot): Vec3 {
-  return cellAt(pose, slot.cell.x, slot.cell.z, slot.cell.layer);
+  return localCellAt(pose, slot.cell);
 }
 
 /**
@@ -220,18 +230,60 @@ function interior(pose: HoldPose, layers: readonly number[]): Vec3[] {
   return cells;
 }
 
-/** The 107 cells of the parked room: its shell, the door step, and every furniture block (ADR 0068, 0092, 0093, 0098). */
-export function roomCells(pose: HoldPose, doorOpen: boolean): DockCell[] {
+function sameLocal(a: LocalCell, b: LocalCell): boolean {
+  return a.x === b.x && a.z === b.z && a.layer === b.layer;
+}
+
+/**
+ * The ceiling cell's block: none over a cabinet compartment, whose cabinet block also holds
+ * the ceiling up (cabinetCells), and an open door's plate where that door swings into the
+ * aisle (ADR 0068, 0114).
+ */
+function ceilingBlock(
+  cell: LocalCell,
+  f: Vec2,
+  openCabinets: ReadonlySet<CabinetDoor>,
+): DockBlock | undefined {
+  if (CABINET_DOORS.some((d) => sameLocal(d.cell, cell))) return undefined;
+  const door = CABINET_DOORS.find(
+    (d) => openCabinets.has(d.door) && sameLocal(d.aisle, cell),
+  );
+  if (!door) return { type: "ceiling" };
+  return {
+    type: "cabinetDoor",
+    face: faceToward({ x: door.hinge * f.x, z: door.hinge * f.z }),
+  };
+}
+
+/**
+ * The 105 cells of the parked room: its shell, the door step, and every furniture block. The
+ * two wall cabinet cells under the ceiling are laid by cabinetCells, and an open cabinet
+ * door's aisle cell holds its plate instead of the ceiling (ADR 0068, 0092, 0093, 0098, 0114).
+ */
+export function roomCells(
+  pose: HoldPose,
+  doorOpen: boolean,
+  openCabinets: ReadonlySet<CabinetDoor> = NO_DOORS,
+): DockCell[] {
   const { f, l } = axes(pose.yaw);
+  const ceiling: DockCell[] = [];
+  for (let lx = -HALF_X; lx <= HALF_X; lx++)
+    for (let lz = -HALF_Z; lz <= HALF_Z; lz++) {
+      if (holdsFurnitureBlock(lx, lz, CEILING_LAYER)) continue;
+      const block = ceilingBlock(
+        { x: lx, z: lz, layer: CEILING_LAYER },
+        f,
+        openCabinets,
+      );
+      if (block)
+        ceiling.push({ ...cellAt(pose, lx, lz, CEILING_LAYER), block });
+    }
   const cells: DockCell[] = [
     ...interior(pose, [0]).map((at) => ({
       ...at,
       block: { type: "floor" } as const,
     })),
-    ...interior(pose, [CEILING_LAYER]).map((at) => ({
-      ...at,
-      block: { type: "ceiling" } as const,
-    })),
+    ...ceiling,
   ];
   for (const side of [-1, 1]) {
     const lx = side * WALL_X;
@@ -272,6 +324,10 @@ type DecorCell = DockCell & {
   readonly block: Extract<DockBlock, { type: "decor" | "decorPair" }>;
 };
 
+type CabinetCell = DockCell & {
+  readonly block: Extract<DockBlock, { type: "cabinet" }>;
+};
+
 /** The item at each end of the pair cell that holds `slot`, by DecorPairEnd.end (ADR 0108). */
 function pairItems(
   slot: DecorSlot,
@@ -299,7 +355,8 @@ function pairItems(
  * One block per slot cell that holds a placement in a known slot, turned to the yaw quarter.
  * On a shelf board or the table it is the pair block with the item at each end (ADR 0108);
  * elsewhere a decor block at the slot's height and spot, and since a cell holds one block,
- * the first placement in a cell wins (ADR 0093, 0105).
+ * the first placement in a cell wins (ADR 0093, 0105). The wall cabinet's cells are laid by
+ * cabinetCells, full or empty (ADR 0114).
  */
 export function decorCells(
   pose: HoldPose,
@@ -309,15 +366,16 @@ export function decorCells(
   const laid = new Set<string>();
   return decor.flatMap(({ slot, item }) => {
     const s = decorSlot(slot);
-    if (!s) return [];
+    const pair = s?.pair?.kind;
+    if (!s || pair === "cabinet") return [];
     const at = decorSlotCell(pose, s);
     const key = cellKey(at);
     if (laid.has(key)) return [];
     laid.add(key);
-    const block: DecorCell["block"] = s.pair
+    const block: DecorCell["block"] = pair
       ? {
           type: "decorPair",
-          pair: s.pair.kind,
+          pair,
           face,
           height: s.height,
           ...pairItems(s, decor),
@@ -327,6 +385,37 @@ export function decorCells(
   });
 }
 
+/**
+ * The cabinet block in each wall cabinet compartment, with the item at each end, its items
+ * drawn while its door is in `shown`: open or still swinging shut (ADR 0114).
+ */
+export function cabinetCells(
+  pose: HoldPose,
+  decor: readonly DecorPlacement[],
+  shown: ReadonlySet<CabinetDoor>,
+): CabinetCell[] {
+  const face = decorFace(pose.yaw);
+  return CABINET_DOORS.flatMap(({ door, cell }) => {
+    const slot = DECOR_CELLS.find((c) => sameLocal(c.cell, cell))?.slots[0];
+    if (!slot) return [];
+    return [
+      {
+        ...localCellAt(pose, cell),
+        block: {
+          type: "cabinet",
+          face,
+          open: shown.has(door),
+          ...pairItems(slot, decor),
+        },
+      },
+    ];
+  });
+}
+
+function isCabinetCell(cell: LocalCell): boolean {
+  return CABINET_DOORS.some((d) => sameLocal(d.cell, cell));
+}
+
 type FurnitureCell = DockCell & {
   readonly block: Extract<DockBlock, { type: "furniture" }>;
 };
@@ -334,26 +423,27 @@ type FurnitureCell = DockCell & {
 /**
  * A furniture block in every slot cell that holds no decor, at the height of the cell's first
  * slot, or the hanging box for a hanging slot, in DECOR_CELLS order (ADR 0097, 0102, 0105).
+ * The wall cabinet's cells always hold the cabinet block instead (ADR 0114).
  */
 export function furnitureCells(
   pose: HoldPose,
   decor: readonly DecorPlacement[],
 ): FurnitureCell[] {
-  return DECOR_CELLS.filter(({ cell }) => !decorInCell(cell, decor)).map(
-    ({ cell, slots }) => {
-      const first = slots[0];
-      return {
-        ...cellAt(pose, cell.x, cell.z, cell.layer),
-        block: {
-          type: "furniture",
-          height:
-            first === undefined || first.hanging
-              ? HANGING_FURNITURE_HEIGHT
-              : first.height,
-        } as const,
-      };
-    },
-  );
+  return DECOR_CELLS.filter(
+    ({ cell }) => !isCabinetCell(cell) && !decorInCell(cell, decor),
+  ).map(({ cell, slots }) => {
+    const first = slots[0];
+    return {
+      ...cellAt(pose, cell.x, cell.z, cell.layer),
+      block: {
+        type: "furniture",
+        height:
+          first === undefined || first.hanging
+            ? HANGING_FURNITURE_HEIGHT
+            : first.height,
+      } as const,
+    };
+  });
 }
 
 /** Every slot cell once, in DECOR_CELLS order (ADR 0097, 0105). */
@@ -366,12 +456,13 @@ export function slotCells(pose: HoldPose): Vec3[] {
 /**
  * The namespace-free name of the block the decor in `cell` lays: the pair block of a shelf
  * board or the table, or the decor block of the cell's item; undefined while the cell holds
- * no decor (ADR 0093, 0108).
+ * no decor (ADR 0093, 0108). A wall cabinet cell always lays the cabinet block (ADR 0114).
  */
 export function decorBlockName(
   cell: LocalCell,
   decor: readonly DecorPlacement[],
 ): string | undefined {
+  if (isCabinetCell(cell)) return CABINET_BLOCK_NAME;
   const placed = decorInCell(cell, decor);
   const slot = placed && decorSlot(placed.slot);
   if (!placed || !slot) return undefined;

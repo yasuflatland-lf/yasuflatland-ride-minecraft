@@ -187,6 +187,8 @@ export const CAMPER_WALL_BLOCK = id("camper_wall");
 export const CAMPER_DOOR_BLOCK = id("camper_door");
 export const CAMPER_BED_BLOCK = id("camper_bed");
 export const CAMPER_SHOWER_TOILET_BLOCK = id("camper_shower_toilet");
+/** An open wall cabinet door's plate in the aisle cell under the ceiling (ADR 0114). */
+export const CAMPER_CABINET_DOOR_BLOCK = id("camper_cabinet_door");
 /** Invisible, collisionless block over an empty decor slot's furniture top (ADR 0097). */
 export const CAMPER_FURNITURE_BLOCK = id("camper_furniture");
 /** Custom component handling taps on camper door blocks (ADR 0068). */
@@ -195,6 +197,8 @@ export const CAMPER_DOOR_COMPONENT = id("camper_door");
 export const CAMPER_BED_COMPONENT = id("camper_bed");
 /** Custom component handling presses on the camper shower-toilet block (ADR 0098). */
 export const CAMPER_SHOWER_TOILET_COMPONENT = id("camper_shower_toilet");
+/** Custom component handling presses on the wall cabinet's compartments and open doors (ADR 0114). */
+export const CAMPER_CABINET_COMPONENT = id("camper_cabinet");
 /** A camper's decor, as JSON [{ slot, item }] (ADR 0093). */
 export const DECOR_PROPERTY = id("decor");
 /**
@@ -214,7 +218,10 @@ export function decorBlockId(item: string): string {
   return id(`${item}_decor`);
 }
 
-/** The block that draws both items of a shelf board or the table, `kind` "shelf" or "table" (ADR 0108). */
+/**
+ * The block that draws both items of a shelf board or the table, `kind` "shelf" or "table"
+ * (ADR 0108), or of a wall cabinet compartment, `kind` "cabinet" (ADR 0114).
+ */
 export function pairDecorBlockId(kind: string): string {
   return id(`${kind}_decor_pair`);
 }
@@ -250,13 +257,13 @@ export function pairEndStates(
  * height; it gets no state here (ADR 0108).
  */
 export function pairHeightStates(
-  kind: "shelf" | "table",
+  kind: "shelf" | "table" | "cabinet",
   height: number,
 ): Record<string, number> {
   return pairHeights(kind).length > 1 ? { [DECOR_HEIGHT_STATE]: height } : {};
 }
 
-const PAIR_KINDS = ["shelf", "table"] as const;
+const PAIR_KINDS = ["shelf", "table", "cabinet"] as const;
 
 /** The furniture whose pair block `typeId` is, or undefined for any other block (ADR 0108). */
 export function pairKindOfBlock(
@@ -284,9 +291,10 @@ const CAMPER_ROOM_BLOCKS: ReadonlySet<string> = new Set([
   CAMPER_BED_BLOCK,
   CAMPER_FURNITURE_BLOCK,
   CAMPER_SHOWER_TOILET_BLOCK,
+  CAMPER_CABINET_DOOR_BLOCK,
 ]);
 
-/** A block the parked camper's room lays (ADR 0068, 0092, 0097, 0098); the door step is a shared deck floor and is left out. */
+/** A block the parked camper's room lays (ADR 0068, 0092, 0097, 0098, 0114); the door step is a shared deck floor and is left out. */
 export function isCamperRoomBlock(typeId: string): boolean {
   return CAMPER_ROOM_BLOCKS.has(typeId);
 }

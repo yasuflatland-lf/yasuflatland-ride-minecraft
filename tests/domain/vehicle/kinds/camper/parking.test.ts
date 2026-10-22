@@ -23,6 +23,7 @@ import { CamperDrive } from "../../../../../src/domain/vehicle/kinds/camper/driv
 import {
   AIR,
   CLEARABLE_DECORATIONS,
+  cabinetCells,
   cargoCells,
   decorCells,
   decorSlotCell,
@@ -111,6 +112,7 @@ it("holds only the pose on tick 20, lays the room next tick, and scans once", ()
   expect(f.step().dock?.cells).toEqual([
     ...roomCells(f.pose, false),
     ...furnitureCells(f.pose, []),
+    ...cabinetCells(f.pose, [], new Set()),
   ]);
   expect(f.blockTypes).toHaveBeenCalledExactlyOnceWith([
     ...parkCheckCells(f.pose),
@@ -337,6 +339,7 @@ it("restores a laid open room immediately without a scan or dock event", () => {
   expect(out.dock?.cells).toEqual([
     ...roomCells(pose, true),
     ...furnitureCells(pose, []),
+    ...cabinetCells(pose, [], new Set()),
   ]);
   expect(out.commands).not.toContainEqual({
     type: "triggerEvent",
@@ -390,7 +393,7 @@ it("checks both exit cells before parking and leaves overflow standing when the 
           ...slotCells(f.pose),
           ...exitCells(f.pose),
         ]);
-        expect(f.blockTypes.mock.calls.at(-1)?.[0]).toHaveLength(61);
+        expect(f.blockTypes.mock.calls.at(-1)?.[0]).toHaveLength(63);
       },
     ),
   );
@@ -425,6 +428,7 @@ it("recovers an unlaid parked room once, clearing matching plants before laying 
         expect(out.dock?.cells).toEqual([
           ...roomCells(f.pose, false),
           ...furnitureCells(f.pose, []),
+          ...cabinetCells(f.pose, [], new Set()),
         ]);
         expect(f.blockTypes).toHaveBeenCalledExactlyOnceWith([
           ...parkCheckCells(f.pose),
@@ -512,6 +516,7 @@ it("lays the decor with the room on the tick after parking (ADR 0093)", () => {
         ...roomCells(f.pose, false),
         ...decorCells(f.pose, f.drive.decor()),
         ...furnitureCells(f.pose, f.drive.decor()),
+        ...cabinetCells(f.pose, f.drive.decor(), new Set()),
       ]);
     }),
   );
@@ -555,7 +560,7 @@ it("departs past its own decor blocks and refuses any other block in a slot cell
     ...slotCells(f.pose),
     ...exitCells(f.pose),
   ]);
-  expect(f.blockTypes.mock.calls.at(-1)?.[0]).toHaveLength(61);
+  expect(f.blockTypes.mock.calls.at(-1)?.[0]).toHaveLength(63);
 
   const departs = (withDecor: boolean, typeId: string) => {
     const g = parked(withDecor);
@@ -648,7 +653,7 @@ const cabinetEntries = [
 ];
 
 it("stows an entry of a removed slot when no slot that takes its item is free, and lists it last (ADR 0103)", () => {
-  expect(standingCells).toHaveLength(9);
+  expect(standingCells).toHaveLength(11);
   const f = fixture(JSON.stringify([...fullSlots, ...cabinetEntries]));
   expect(f.drive.decor()).toEqual([...fullSlots, ...cabinetEntries]);
   expect(f.drive.setDecor("wall_cabinet_front", undefined)).toBe(false);

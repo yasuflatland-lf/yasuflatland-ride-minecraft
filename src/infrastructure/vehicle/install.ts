@@ -8,6 +8,7 @@ import { OpenGift } from "../../application/vehicle/openGift";
 import { PaintVehicle } from "../../application/vehicle/paintVehicle";
 import { PlaceDecor } from "../../application/vehicle/placeDecor";
 import { PlaceVehicle } from "../../application/vehicle/placeVehicle";
+import { PressCabinet } from "../../application/vehicle/pressCabinet";
 import { RemoveDecor } from "../../application/vehicle/removeDecor";
 import { RunShower } from "../../application/vehicle/runShower";
 import { SetDecor } from "../../application/vehicle/setDecor";
@@ -71,6 +72,7 @@ export function installVehicles(): void {
       decor: new SetDecor(decorWorld, repo),
       placeDecor: new PlaceDecor(decorWorld, repo),
       removeDecor: new RemoveDecor(decorWorld, repo),
+      cabinet: new PressCabinet(decorWorld, repo, systemClock),
       hints: new ShowVehicleHints(
         new BedrockHintWorld(index),
         repo,

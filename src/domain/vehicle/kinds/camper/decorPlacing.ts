@@ -1,22 +1,31 @@
-// Placing camping gear on the parked camper's furniture (ADR 0093, 0097, 0105, 0110).
+// Placing camping gear on the parked camper's furniture (ADR 0093, 0097, 0105, 0110, 0114).
 import type { Vec3 } from "../../../shared/vec";
 import type { DecorPlacement } from "../../dock/decor";
 import type { HoldPose } from "../../dock/floor";
 import { CAMPING_GEAR_IDS, HANGING_GEAR_IDS } from "./campingGear";
 import { cellTaken, DECOR_SLOTS } from "./decor";
-import type { DecorSlot } from "./furniture";
+import type { CabinetDoor, DecorSlot } from "./furniture";
 import { decorSlotCell, decorSpotOffset } from "./room";
 
 const PX_PER_BLOCK = 16;
+const NO_DOORS: ReadonlySet<CabinetDoor> = new Set();
 
 /**
  * The slots that accept `item`, in slot order; none for an unknown item. A standing
  * item fits every standing slot, and a hanging item only a hanging slot (ADR 0097, 0102).
+ * A slot behind a wall cabinet door counts only while that door is in `open` (ADR 0114).
  */
-export function slotsFor(item: string): DecorSlot[] {
+export function slotsFor(
+  item: string,
+  open: ReadonlySet<CabinetDoor> = NO_DOORS,
+): DecorSlot[] {
   if (!CAMPING_GEAR_IDS.includes(item)) return [];
   const hanging = HANGING_GEAR_IDS.has(item);
-  return DECOR_SLOTS.filter((slot) => (slot.hanging === true) === hanging);
+  return DECOR_SLOTS.filter(
+    (slot) =>
+      (slot.hanging === true) === hanging &&
+      (slot.door === undefined || open.has(slot.door)),
+  );
 }
 
 /** The point on a slot's surface where its decor stands: its spot on the cell (ADR 0107). */
@@ -77,8 +86,9 @@ export function nearest(
  * The free slot accepting `item` whose point is nearest `point`, or with `eye`, nearest
  * where the line of sight through `point` crosses its surface (ADR 0110); on a tie, the
  * slot listed first. A slot is free while no slot of its cell holds decor (ADR 0107), or on
- * a shelf board or the table, while its own end holds none (ADR 0108). Undefined when every
- * accepting slot is taken.
+ * a shelf board, the table, or a cabinet compartment, while its own end holds none (ADR
+ * 0108). Slots behind a cabinet door not in `open` are left out (ADR 0114). Undefined when
+ * every accepting slot is taken.
  */
 export function nearestFreeSlot(
   pose: HoldPose,
@@ -86,10 +96,11 @@ export function nearestFreeSlot(
   decor: readonly DecorPlacement[],
   point: Vec3,
   eye?: Vec3,
+  open: ReadonlySet<CabinetDoor> = NO_DOORS,
 ): DecorSlot | undefined {
   return nearest(
     pose,
-    slotsFor(item).filter((slot) => !cellTaken(slot, decor)),
+    slotsFor(item, open).filter((slot) => !cellTaken(slot, decor)),
     point,
     eye,
   );
@@ -110,7 +121,8 @@ export function slotsAt(pose: HoldPose, cell: Vec3): DecorSlot[] {
  * `exact`: a press on a dinette seat names one slot, and filling
  * another one left the player unable to tell where the item went (ADR 0104). With the
  * player's `eye`, nearness is measured where the line of sight crosses each slot's
- * surface (ADR 0110).
+ * surface (ADR 0110). Only the cabinet compartments whose doors are in `open` take items,
+ * so a press on a shut one sends the item elsewhere (ADR 0114).
  */
 export function slotForPress(
   pose: HoldPose,
@@ -120,12 +132,13 @@ export function slotForPress(
   point: Vec3,
   exact: boolean,
   eye?: Vec3,
+  open: ReadonlySet<CabinetDoor> = NO_DOORS,
 ): DecorSlot | undefined {
-  const accepting = new Set(slotsFor(item));
+  const accepting = new Set(slotsFor(item, open));
   const pressed = slotsAt(pose, cell).filter(
     (slot) => accepting.has(slot) && !cellTaken(slot, decor),
   );
   if (pressed.length > 0) return nearest(pose, pressed, point, eye);
   if (exact) return undefined;
-  return nearestFreeSlot(pose, item, decor, point, eye);
+  return nearestFreeSlot(pose, item, decor, point, eye, open);
 }

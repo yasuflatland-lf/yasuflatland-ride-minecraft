@@ -1,4 +1,4 @@
-import type { Entity } from "@minecraft/server";
+import { BlockPermutation, type Entity } from "@minecraft/server";
 import { length, type Vec3 } from "../../domain/shared/vec";
 import type { DecorPlacement } from "../../domain/vehicle/dock/decor";
 import type {
@@ -6,11 +6,14 @@ import type {
   DockCell,
   HoldPose,
 } from "../../domain/vehicle/dock/floor";
+import { CABINET_DOORS } from "../../domain/vehicle/kinds/camper/furniture";
 import {
+  cabinetCells,
   cargoCells,
   deckSeats,
   decorCells,
   furnitureCells,
+  localCellAt,
   parkPose,
   roomCells,
 } from "../../domain/vehicle/kinds/camper/room";
@@ -19,6 +22,7 @@ import { DOCK } from "../../domain/vehicle/motion/dock";
 import { DOCK_RECHECK_TICKS } from "../../infrastructure/vehicle/bedrock/dockBlocks";
 import {
   CAMPER_BED_BLOCK,
+  CAMPER_CABINET_DOOR_BLOCK,
   CAMPER_CEILING_BLOCK,
   CAMPER_DOOR_BLOCK,
   CAMPER_FLOOR_BLOCK,
@@ -35,6 +39,7 @@ import {
   pairEndStates,
   pairHeightStates,
   ROOM_FACE_STATE,
+  ROOM_OPEN_STATE,
 } from "../../infrastructure/vehicle/bedrock/identifiers";
 import {
   type Arena,
@@ -74,7 +79,7 @@ const CAMPER_DECK_SEATS_TEST = {
 const CAMPER_RELAY_TICKS = DOCK_RECHECK_TICKS * 2;
 
 const ROOM_BLOCK: Readonly<
-  Record<Exclude<DockBlock["type"], "decor" | "decorPair">, string>
+  Record<Exclude<DockBlock["type"], "decor" | "decorPair" | "cabinet">, string>
 > = {
   deck: DECK_FLOOR_BLOCK,
   floor: CAMPER_FLOOR_BLOCK,
@@ -84,11 +89,13 @@ const ROOM_BLOCK: Readonly<
   bed: CAMPER_BED_BLOCK,
   furniture: CAMPER_FURNITURE_BLOCK,
   showerToilet: CAMPER_SHOWER_TOILET_BLOCK,
+  cabinetDoor: CAMPER_CABINET_DOOR_BLOCK,
 };
 
 function laidTypeOf(block: DockBlock): string {
   if (block.type === "decor") return decorBlockId(block.item);
   if (block.type === "decorPair") return pairDecorBlockId(block.pair);
+  if (block.type === "cabinet") return pairDecorBlockId("cabinet");
   return ROOM_BLOCK[block.type];
 }
 
@@ -260,7 +267,7 @@ export function camperDepartCargo(a: Arena): Promise<Outcome> {
     const laid = laidRoomCells(a, car);
     const moved = movedFrom(car, pose);
     return {
-      pass: laid === 107 && moved < 0.01,
+      pass: laid === 105 && moved < 0.01,
       detail: `laid=${laid} moved=${moved.toFixed(3)}`,
     };
   });
@@ -423,6 +430,85 @@ export function camperDecorPairs(a: Arena): Promise<Outcome> {
         furniture === furnitureCells(pose, []).length &&
         moved >= 0.1,
       detail: `blocks=${blocks} laid=${laid} kept=${kept} furniture=${furniture} moved=${moved.toFixed(3)}`,
+    };
+  });
+}
+
+// One item behind each wall cabinet door. The doors open only on a player's press, which a
+// test cannot make, so this checks the shut cabinet the room lays, then that BDS loaded the
+// open cabinet and the door plate (ADR 0114).
+const CABINET_DECOR: readonly DecorPlacement[] = [
+  { slot: "cabinet_sink_rear", item: "toaster" },
+  { slot: "cabinet_stove_front", item: "mug_pair" },
+];
+
+export function camperCabinet(a: Arena): Promise<Outcome> {
+  return atParkSpot(a, async (car) => {
+    await wait(DOCK.ticks + 10);
+    const pose = carPose(car);
+    for (const d of CABINET_DECOR) setDecor(car, d.slot, d.item);
+    await wait(3);
+    const cabinets = cabinetCells(pose, CABINET_DECOR, new Set());
+    const laid = cabinets.filter((c) => {
+      const block = a.dim.getBlock(c);
+      const states = block?.permutation.getAllStates();
+      const want = {
+        [DECOR_FACE_STATE]: c.block.face,
+        [ROOM_OPEN_STATE]: false,
+        ...pairEndStates(0, c.block.end0),
+        ...pairEndStates(1, c.block.end1),
+      };
+      return (
+        block?.typeId === pairDecorBlockId("cabinet") &&
+        Object.entries(want).every(([name, v]) => states?.[name] === v)
+      );
+    }).length;
+    const ceilings = CABINET_DOORS.filter(
+      ({ aisle }) =>
+        a.dim.getBlock(localCellAt(pose, aisle))?.typeId ===
+        CAMPER_CEILING_BLOCK,
+    ).length;
+    drive(car, 0, 1);
+    await wait(15);
+    const cleared = cabinets.filter((c) => a.dim.getBlock(c)?.isAir).length;
+    // Inside the park spot, which atParkSpot fills with air afterwards.
+    const spot = { x: 108, y: a.gy + 2, z: 78 };
+    const resolved: string[] = [];
+    const set = (
+      at: { x: number; y: number; z: number },
+      typeId: string,
+      states: Record<string, string | number | boolean>,
+    ) => {
+      a.dim
+        .getBlock(at)
+        ?.setPermutation(BlockPermutation.resolve(typeId, states));
+      const block = a.dim.getBlock(at);
+      const got = block?.permutation.getAllStates();
+      if (
+        block?.typeId === typeId &&
+        Object.entries(states).every(([name, v]) => got?.[name] === v)
+      )
+        resolved.push(typeId);
+    };
+    for (const face of [0, 1, 2, 3]) {
+      set(spot, CAMPER_CABINET_DOOR_BLOCK, { [ROOM_FACE_STATE]: face });
+      set({ ...spot, y: spot.y + 1 }, pairDecorBlockId("cabinet"), {
+        [DECOR_FACE_STATE]: face,
+        [ROOM_OPEN_STATE]: true,
+        ...pairEndStates(0, "cushion"),
+        ...pairEndStates(1, "desk_fan"),
+      });
+    }
+    const moved = movedFrom(car, pose);
+    return {
+      pass:
+        cabinets.length === 2 &&
+        laid === 2 &&
+        ceilings === 2 &&
+        cleared === 2 &&
+        resolved.length === 8 &&
+        moved >= 0.1,
+      detail: `cabinets=${cabinets.length} laid=${laid} ceilings=${ceilings} cleared=${cleared} resolved=${resolved.length} moved=${moved.toFixed(3)}`,
     };
   });
 }

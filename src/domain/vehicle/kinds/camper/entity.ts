@@ -5,6 +5,7 @@ import {
   TRANSFORMING_EVENTS,
   transformingProperties,
 } from "../../motion/transformingEntity";
+import type { CabinetDoor } from "./furniture";
 import { CAMPER_SPEC } from "./spec";
 
 export const CAMPER_ENTITY = {
@@ -14,10 +15,19 @@ export const CAMPER_ENTITY = {
     door: { type: "float", range: [0, 1] },
     shower_door: { type: "float", range: [0, 1] },
     shower: { type: "bool" },
+    cabinet_sink_door: { type: "float", range: [0, 1] },
+    cabinet_stove_door: { type: "float", range: [0, 1] },
   },
   events: [...TRANSFORMING_EVENTS, ...DOCK_EVENTS],
   animations: [],
-  restored: ["form", "docked", "door", "shower_door"],
+  restored: [
+    "form",
+    "docked",
+    "door",
+    "shower_door",
+    "cabinet_sink_door",
+    "cabinet_stove_door",
+  ],
 } as const satisfies EntityContract;
 
 const { property } = commandsFor<typeof CAMPER_ENTITY>();
@@ -35,4 +45,18 @@ export function showerDoorCommand(open: number): EngineCommand {
 /** Whether the shower sprays this tick (ADR 0094). */
 export function showerCommand(on: boolean): EngineCommand {
   return property("shower", on);
+}
+
+/** The entity property that swings a wall cabinet door: 0 is shut, 1 is open into the aisle (ADR 0114). */
+export const CABINET_DOOR_PROPERTY = {
+  sink: "cabinet_sink_door",
+  stove: "cabinet_stove_door",
+} as const satisfies Record<CabinetDoor, keyof typeof CAMPER_ENTITY.properties>;
+
+/** 0 is shut, 1 is swung fully open into the aisle (ADR 0114). */
+export function cabinetDoorCommand(
+  door: CabinetDoor,
+  open: number,
+): EngineCommand {
+  return property(CABINET_DOOR_PROPERTY[door], open);
 }

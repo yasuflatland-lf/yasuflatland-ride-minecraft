@@ -8,6 +8,7 @@ import { DECOR_SPOTS } from "../../src/domain/vehicle/kinds/camper/furniture";
 import { decorSpotOffset } from "../../src/domain/vehicle/kinds/camper/room";
 import { STANDING_GEAR_IDS } from "../../src/domain/vehicle/kinds/index";
 import {
+  CAMPER_CABINET_COMPONENT,
   CAMPER_DECOR_COMPONENT,
   DECOR_FACE_STATE,
   DECOR_HEIGHT_STATE,
@@ -18,6 +19,7 @@ import {
   pairDecorBlockId,
   pairEndStates,
   pairHeightStates,
+  ROOM_OPEN_STATE,
 } from "../../src/infrastructure/vehicle/bedrock/identifiers";
 import { defined } from "../support/defined";
 
@@ -179,6 +181,7 @@ describe("camping gear block models (ADR 0093)", () => {
     expect(readdirSync(MODELS).sort()).toEqual(
       [
         "deck_floor",
+        "cabinet_decor_pair",
         "shelf_decor_pair",
         "table_decor_pair",
         ...SPEC.map((g) => g.id),
@@ -357,12 +360,17 @@ interface PairBlock {
 }
 const pairOf = (kind: string) =>
   readJson(`${BP}/blocks/yasu_ride/${kind}_decor_pair.block.json`) as PairBlock;
-// Evaluates the generated bone_visibility form, "q.block_state('<state>') == <n>" joined by &&.
-function molangTrue(expr: string, states: Record<string, number>): boolean {
+// Evaluates the generated bone_visibility form, "q.block_state('<state>') == <n>" joined by &&;
+// the cabinet's door state compares with true (ADR 0114).
+function molangTrue(
+  expr: string,
+  states: Record<string, number | boolean>,
+): boolean {
   return expr.split(" && ").every((term) => {
-    const m = /^q\.block_state\('([^']+)'\) == (\d+)$/.exec(term);
+    const m = /^q\.block_state\('([^']+)'\) == (\d+|true)$/.exec(term);
     if (!m) throw new Error(`unexpected bone_visibility term: ${term}`);
-    return states[m[1] ?? ""] === Number(m[2]);
+    const want = m[2] === "true" ? true : Number(m[2]);
+    return states[m[1] ?? ""] === want;
   });
 }
 const decorPath = (g: Gear) =>
@@ -652,7 +660,87 @@ describe("camping gear blocks and items (ADR 0093)", () => {
       readdirSync(`${BP}/blocks/yasu_ride`)
         .filter((f) => f.endsWith("_decor_pair.block.json"))
         .sort(),
-    ).toEqual(PAIR_KINDS.map((k) => `${k}_decor_pair.block.json`));
+    ).toEqual(
+      [...PAIR_KINDS, "cabinet"]
+        .map((k) => `${k}_decor_pair.block.json`)
+        .sort(),
+    );
+  });
+
+  it("defines the wall cabinet's compartment block as a pair block with a door state, its own component, the ceiling's collision, and a box over the compartment, all lifted onto the compartment floor (ADR 0114)", () => {
+    const standing = SPEC.filter((g) => !g.hanging);
+    const block = pairOf("cabinet")["minecraft:block"];
+    const pages = Math.ceil((standing.length + 1) / PAIR_PAGE_SIZE);
+    const range = (n: number) => Array.from({ length: n }, (_, i) => i);
+    const [end0, end1] = PAIR_END_STATES;
+    const heights = [
+      ...new Set(
+        DECOR_SLOTS.filter((s) => s.pair?.kind === "cabinet").map(
+          (s) => s.height,
+        ),
+      ),
+    ];
+    expect(heights).toEqual([3]);
+    const lift = heights[0] ?? Number.NaN;
+    expect(pairHeightStates("cabinet", lift)).toEqual({});
+    expect(block.description).toEqual({
+      identifier: pairDecorBlockId("cabinet"),
+      menu_category: { category: "none" },
+      states: {
+        [DECOR_FACE_STATE]: [0, 1, 2, 3],
+        [ROOM_OPEN_STATE]: [false, true],
+        [end0.item]: range(PAIR_PAGE_SIZE),
+        [end0.page]: range(pages),
+        [end1.item]: range(PAIR_PAGE_SIZE),
+        [end1.page]: range(pages),
+      },
+    });
+    const c = block.components;
+    expect(c["minecraft:custom_components"]).toEqual([
+      CAMPER_CABINET_COMPONENT,
+    ]);
+    // Lifted by 3 px, the collision is the ceiling plate's top 3 px of the cell and the box
+    // runs from the compartment floor to the top of the doors, over the tallest item.
+    expect(c["minecraft:collision_box"]).toEqual({
+      origin: [-8, 16 - 3 - lift, -8],
+      size: [16, 3, 16],
+    });
+    expect(c["minecraft:selection_box"]).toEqual({
+      origin: [-8, 0, -8],
+      size: [16, 10, 16],
+    });
+    expect(MAX_STANDING_HEIGHT).toBeLessThanOrEqual(10);
+    expect(c["minecraft:material_instances"]).toEqual({
+      "*": { texture: ATLAS_KEY, render_method: "opaque" },
+    });
+    expect(block.permutations).toEqual(
+      [0, 1, 2, 3].map((face) => ({
+        condition: `q.block_state('yasu_ride:face') == ${face}`,
+        components: {
+          "minecraft:transformation": {
+            rotation: [0, FACE_ROTATION[face], 0],
+            translation: [0, lift / 16, 0],
+          },
+        },
+      })),
+    );
+    // Shut, it shows nothing; open, exactly the bone of each end's item (ADR 0114).
+    const geometry = c["minecraft:geometry"];
+    for (const open of [false, true])
+      for (const end of [0, 1] as const)
+        for (const item of [undefined, ...STANDING_GEAR_IDS]) {
+          const states = {
+            ...pairEndStates(end, item),
+            [ROOM_OPEN_STATE]: open,
+          };
+          const shown = Object.entries(geometry.bone_visibility).filter(
+            ([bone, expr]) =>
+              bone.startsWith(`end${end}_`) && molangTrue(expr, states),
+          );
+          expect(shown.map(([bone]) => bone)).toEqual(
+            !open || item === undefined ? [] : [`end${end}_${item}`],
+          );
+        }
   });
 
   it("shows exactly the bone of the item that each end's states name, as the scripts set them (ADR 0108)", () => {

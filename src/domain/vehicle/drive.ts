@@ -1,6 +1,6 @@
 // How one vehicle kind moves each tick, under the shared core in vehicle.ts (ADR 0050, 0055).
 import type { Vec2, Vec3 } from "../shared/vec";
-import type { DecorPlacement } from "./dock/decor";
+import type { CabinetPress, DecorPlacement } from "./dock/decor";
 import type { ClearCell, Departure, Dock, DockRestoredKey } from "./dock/dock";
 import type { RawInput } from "./driveInput";
 
@@ -99,5 +99,11 @@ export interface Drive {
   placeDecor?(slot: string, item: string): boolean;
   /** A player takes the decor out of the slot at world `cell` while parked, the one nearest the pressed `point` (seen from `eye`) when the cell holds two; returns its item, or undefined when there is none (ADR 0093, 0108). */
   removeDecor?(cell: Vec3, point?: Vec3, eye?: Vec3): string | undefined;
+  /** A player pressed the wall cabinet at world `cell`, at `point` when known, at `tick`: opens or shuts a door, or takes an item out of an open compartment; undefined when nothing happened (ADR 0114). */
+  pressCabinet?(
+    cell: Vec3,
+    point: Vec3 | undefined,
+    tick: number,
+  ): CabinetPress | undefined;
   step(raw: RawInput | undefined, ctx: TickContext): DriveStep;
 }

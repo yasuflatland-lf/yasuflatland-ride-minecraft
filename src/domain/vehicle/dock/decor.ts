@@ -10,6 +10,14 @@ export interface DecorPlacement {
   readonly item: string;
 }
 
+/**
+ * What a press on a cabinet did: opened or closed a door, or took an item out of an open
+ * compartment (ADR 0114).
+ */
+export type CabinetPress =
+  | { readonly kind: "door" }
+  | { readonly kind: "item"; readonly item: string };
+
 export function isDecorItem(item: string): boolean {
   return ITEM_ID.test(item);
 }
