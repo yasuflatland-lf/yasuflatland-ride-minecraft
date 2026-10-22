@@ -1,18 +1,20 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { dot, forward, rightOf } from "../../../src/domain/shared/vec";
+import { VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
+import { profileOf } from "../../../src/domain/vehicle/kinds/index";
 import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
 import { SUV_SPEC } from "../../../src/domain/vehicle/kinds/suv/spec";
 import {
   isProtectedFromRam,
-  type RamHit,
   type RamMount,
-  type RamTarget,
   ramDamage,
   selectHits,
 } from "../../../src/domain/vehicle/ram";
 import { SPEC } from "../../../src/domain/vehicle/spec";
 
+const number = (min: number, max: number) =>
+  fc.double({ min, max, noNaN: true });
 // fc.double draws most values within a hair of 0, so it barely turns the
 // vehicle off the z axis. Whole hundredths of a degree cover every heading.
 const yaw = fc.integer({ min: -18_000, max: 18_000 }).map((c) => c / 100);
@@ -27,31 +29,8 @@ const fastReverse = fc.double({
   noNaN: true,
 });
 
-function onlyHit(hits: readonly RamHit[]): RamHit {
-  expect(hits).toHaveLength(1);
-  const [hit] = hits;
-  if (hit === undefined) throw new Error("expected one hit");
-  return hit;
-}
-
 function expectedPushMagnitude(speed: number): number {
   return SPEC.ramPushBase + Math.abs(speed) * SPEC.ramPushPerSpeed;
-}
-
-function at(
-  yawDeg: number,
-  ahead: number,
-  side: number,
-  dy = 0,
-  mount?: RamMount,
-): RamTarget {
-  const f = forward(yawDeg);
-  const r = rightOf(f);
-  return {
-    id: "t",
-    offset: { x: f.x * ahead + r.x * side, y: dy, z: f.z * ahead + r.z * side },
-    mount,
-  };
 }
 
 describe("ramDamage (ADR 0006)", () => {
@@ -71,228 +50,117 @@ describe("ramDamage (ADR 0006)", () => {
 });
 
 describe("selectHits (ADR 0006)", () => {
-  const reach = SUV_SPEC.bodyFront + SPEC.targetHalfWidth;
-  const halfWidth = SUV_SPEC.bodyHalfWidth + SPEC.targetHalfWidth;
-  // A target exactly on the boundary can fall outside the area due to rounding in forward and rightOf, so generate only points slightly inside both ends
-  const insideAhead = fc.double({ min: 1e-6, max: reach - 1e-6, noNaN: true });
-  const insideSide = fc.double({
-    min: -halfWidth + 1e-6,
-    max: halfWidth - 1e-6,
-    noNaN: true,
+  // Exact bounds, points at least 1e-6 inside, and points 0.01 to 3 blocks
+  // outside either end. Inside points are drawn more often so that enough
+  // runs land in the hit box on every axis at once.
+  const around = (lo: number, hi: number) =>
+    fc.oneof(
+      fc.constantFrom(lo, hi).map((v) => ({ v, exact: true })),
+      {
+        arbitrary: number(lo + 1e-6, hi - 1e-6).map((v) => ({
+          v,
+          exact: false,
+        })),
+        weight: 3,
+      },
+      fc
+        .oneof(number(lo - 3, lo - 0.01), number(hi + 0.01, hi + 3))
+        .map((v) => ({ v, exact: false })),
+    );
+  const body = fc.oneof(
+    fc.constantFrom(...VEHICLE_KINDS.map((k) => profileOf(k).ram)),
+    fc.record({ front: number(0.5, 10), halfWidth: number(0.1, 3) }),
+  );
+  const target = body.chain((b) => {
+    const reach = b.front + SPEC.targetHalfWidth;
+    const halfWidth = b.halfWidth + SPEC.targetHalfWidth;
+    return fc
+      .record({
+        ahead: around(0, reach),
+        side: around(-halfWidth, halfWidth),
+        dy: around(SPEC.ramMinDy, SPEC.ramMaxDy),
+      })
+      .chain(({ ahead, side, dy }) =>
+        // forward(0) and rightOf are exact, so an exact bound stays on the
+        // bound; at other headings rounding can push it either way.
+        (ahead.exact || side.exact || dy.exact ? fc.constant(0) : yaw).map(
+          (y) => ({
+            body: b,
+            reach,
+            halfWidth,
+            yaw: y,
+            ahead: ahead.v,
+            side: side.v,
+            dy: dy.v,
+          }),
+        ),
+      );
   });
+  const speed = fc.oneof(
+    fc.constantFrom(SPEC.ramMinSpeed, -SPEC.ramMinSpeed, 0),
+    fastSpeed,
+    fastReverse,
+    number(-SUV_SPEC.maxReverse, SUV_SPEC.maxSpeed),
+  );
+  const mount = fc.constantFrom<RamMount | undefined>(
+    undefined,
+    "deckSeat",
+    "vehicle",
+  );
+  const sinceLastHit = fc.option(
+    fc.oneof(
+      fc.constantFrom(SPEC.ramCooldown - 1, SPEC.ramCooldown),
+      fc.integer({ min: 0, max: 3 * SPEC.ramCooldown }),
+    ),
+    { nil: undefined },
+  );
 
-  it("hits targets in the detection area ahead and pushes them in the direction of travel", () => {
+  it("hits a target exactly when it is inside the hit box of any body, unprotected, and off cooldown", () => {
+    const tick = 1000;
     fc.assert(
-      fc.property(
-        yaw,
-        fastSpeed,
-        insideAhead,
-        insideSide,
-        fc.double({
-          min: SPEC.ramMinDy + 1e-6,
-          max: SPEC.ramMaxDy - 1e-6,
-          noNaN: true,
-        }),
-        (y, s, ahead, side, dy) => {
-          const f = forward(y);
-          const hits = selectHits(
-            f,
-            s,
-            [at(y, ahead, side, dy)],
-            new Map(),
-            0,
-            SUV_PROFILE.ram,
-          );
-          const { push, pushUp } = onlyHit(hits);
-          expect(dot(push, f)).toBeGreaterThan(0);
+      fc.property(target, speed, mount, sinceLastHit, (t, s, m, since) => {
+        const f = forward(t.yaw);
+        const r = rightOf(f);
+        // Behind the vehicle when reversing, so `ahead` is always measured
+        // along the direction of travel.
+        const along = t.ahead * (s < 0 ? -1 : 1);
+        const offset = {
+          x: f.x * along + r.x * t.side,
+          y: t.dy,
+          z: f.z * along + r.z * t.side,
+        };
+        const lastHit =
+          since === undefined ? new Map() : new Map([["t", tick - since]]);
+        const hits = selectHits(
+          f,
+          s,
+          [{ id: "t", offset, mount: m }],
+          lastHit,
+          tick,
+          t.body,
+        );
+        const expected =
+          Math.abs(s) > SPEC.ramMinSpeed &&
+          t.ahead >= 0 &&
+          t.ahead <= t.reach &&
+          Math.abs(t.side) <= t.halfWidth &&
+          t.dy >= SPEC.ramMinDy &&
+          t.dy <= SPEC.ramMaxDy &&
+          m !== "vehicle" &&
+          (since === undefined || since >= SPEC.ramCooldown);
+        expect(hits).toHaveLength(expected ? 1 : 0);
+        for (const { id, push, pushUp } of hits) {
+          expect(id).toBe("t");
+          expect(dot(push, f) * Math.sign(s)).toBeGreaterThan(0);
           expect(Math.hypot(push.x, push.z)).toBeCloseTo(
             expectedPushMagnitude(s),
             9,
           );
           expect(pushUp).toBe(SPEC.ramPushUp);
-        },
-      ),
-    );
-  });
-
-  it("does not hit targets beside the detection area", () => {
-    const beside = fc
-      .tuple(
-        fc.double({ min: halfWidth + 0.01, max: 3, noNaN: true }),
-        fc.boolean(),
-      )
-      .map(([d, left]) => (left ? -d : d));
-    fc.assert(
-      fc.property(yaw, fastSpeed, insideAhead, beside, (y, s, ahead, side) => {
-        expect(
-          selectHits(
-            forward(y),
-            s,
-            [at(y, ahead, side)],
-            new Map(),
-            0,
-            SUV_PROFILE.ram,
-          ),
-        ).toHaveLength(0);
+        }
       }),
+      { numRuns: 1000 },
     );
-  });
-
-  it("does not hit targets above or below the detection area", () => {
-    const offLevel = fc.oneof(
-      fc.double({ min: -3, max: SPEC.ramMinDy - 0.01, noNaN: true }),
-      fc.double({ min: SPEC.ramMaxDy + 0.01, max: 3, noNaN: true }),
-    );
-    fc.assert(
-      fc.property(
-        yaw,
-        fastSpeed,
-        insideAhead,
-        insideSide,
-        offLevel,
-        (y, s, ahead, side, dy) => {
-          expect(
-            selectHits(
-              forward(y),
-              s,
-              [at(y, ahead, side, dy)],
-              new Map(),
-              0,
-              SUV_PROFILE.ram,
-            ),
-          ).toHaveLength(0);
-        },
-      ),
-    );
-  });
-
-  it("does not hit targets behind or outside the detection area", () => {
-    const outside = fc.oneof(
-      fc.double({ min: -3, max: -0.01, noNaN: true }),
-      fc.double({ min: reach + 0.01, max: 3, noNaN: true }),
-    );
-    fc.assert(
-      fc.property(yaw, fastSpeed, outside, (y, s, ahead) => {
-        expect(
-          selectHits(
-            forward(y),
-            s,
-            [at(y, ahead, 0)],
-            new Map(),
-            0,
-            SUV_PROFILE.ram,
-          ),
-        ).toHaveLength(0);
-      }),
-    );
-  });
-
-  it("hits targets behind when reversing and pushes them away from the car", () => {
-    fc.assert(
-      fc.property(
-        yaw,
-        fastReverse,
-        insideAhead,
-        insideSide,
-        (y, s, behind, side) => {
-          const f = forward(y);
-          const hits = selectHits(
-            f,
-            s,
-            [at(y, -behind, side)],
-            new Map(),
-            0,
-            SUV_PROFILE.ram,
-          );
-          const { push, pushUp } = onlyHit(hits);
-          expect(dot(push, f)).toBeLessThan(0);
-          expect(Math.hypot(push.x, push.z)).toBeCloseTo(
-            expectedPushMagnitude(s),
-            9,
-          );
-          expect(pushUp).toBe(SPEC.ramPushUp);
-        },
-      ),
-    );
-  });
-
-  it("does not hit protected occupants (regardless of which car they occupy)", () => {
-    fc.assert(
-      fc.property(
-        yaw,
-        fastSpeed,
-        fc.double({ min: 0, max: reach, noNaN: true }),
-        (y, s, ahead) => {
-          expect(
-            selectHits(
-              forward(y),
-              s,
-              [at(y, ahead, 0, 0, "vehicle")],
-              new Map(),
-              0,
-              SUV_PROFILE.ram,
-            ),
-          ).toHaveLength(0);
-        },
-      ),
-    );
-  });
-
-  it("does not hit the same target again within 10 ticks", () => {
-    fc.assert(
-      fc.property(fc.integer({ min: 0, max: SPEC.ramCooldown - 1 }), (dt) => {
-        expect(
-          selectHits(
-            forward(0),
-            0.5,
-            [at(0, 1, 0)],
-            new Map([["t", 100]]),
-            100 + dt,
-            SUV_PROFILE.ram,
-          ),
-        ).toHaveLength(0);
-      }),
-    );
-    expect(
-      selectHits(
-        forward(0),
-        0.5,
-        [at(0, 1, 0)],
-        new Map([["t", 100]]),
-        100 + SPEC.ramCooldown,
-        SUV_PROFILE.ram,
-      ),
-    ).toHaveLength(1);
-  });
-
-  it("hits a target on any edge of the detection area", () => {
-    const f = forward(0);
-    const edges: RamTarget[] = [
-      at(0, 0, 0),
-      at(0, reach, 0),
-      at(0, 1, halfWidth),
-      at(0, 1, -halfWidth),
-      at(0, 1, 0, SPEC.ramMinDy),
-      at(0, 1, 0, SPEC.ramMaxDy),
-    ];
-    for (const target of edges)
-      expect(
-        selectHits(f, 0.5, [target], new Map(), 0, SUV_PROFILE.ram),
-        JSON.stringify(target),
-      ).toHaveLength(1);
-  });
-
-  it("does not hit at speeds of 0.15 or below", () => {
-    expect(
-      selectHits(
-        forward(0),
-        SPEC.ramMinSpeed,
-        [at(0, 1, 0)],
-        new Map(),
-        0,
-        SUV_PROFILE.ram,
-      ),
-    ).toHaveLength(0);
   });
 
   describe("ram protection by mount (ADR 0006)", () => {
@@ -341,30 +209,6 @@ describe("selectHits (ADR 0006)", () => {
       ).toBe(false);
     });
 
-    it("never hits a target that rides a vehicle", () => {
-      fc.assert(
-        fc.property(
-          yaw,
-          anySpeed,
-          nearOffset,
-          lastHitTick,
-          tick,
-          (y, s, offset, last, now) => {
-            expect(
-              selectHits(
-                forward(y),
-                s,
-                [{ id: "t", offset, mount: "vehicle" }],
-                lastHitOf(last),
-                now,
-                SUV_PROFILE.ram,
-              ),
-            ).toHaveLength(0);
-          },
-        ),
-      );
-    });
-
     it("treats a deck-seat rider like a target on foot", () => {
       fc.assert(
         fc.property(
@@ -392,29 +236,6 @@ describe("selectHits (ADR 0006)", () => {
                 [{ id: "t", offset }],
                 lastHit,
                 now,
-                SUV_PROFILE.ram,
-              ),
-            );
-          },
-        ),
-      );
-    });
-
-    it("hits a deck-seat rider in the detection area", () => {
-      fc.assert(
-        fc.property(
-          yaw,
-          fastSpeed,
-          insideAhead,
-          insideSide,
-          (y, s, ahead, side) => {
-            onlyHit(
-              selectHits(
-                forward(y),
-                s,
-                [at(y, ahead, side, 0, "deckSeat")],
-                new Map(),
-                0,
                 SUV_PROFILE.ram,
               ),
             );

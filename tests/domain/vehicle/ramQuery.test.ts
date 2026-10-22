@@ -1,14 +1,14 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { forward, rightOf } from "../../../src/domain/shared/vec";
-import { RAM_QUERY_RADIUS } from "../../../src/domain/vehicle/kinds/index";
-import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
+import { VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
+import {
+  profileOf,
+  RAM_QUERY_RADIUS,
+} from "../../../src/domain/vehicle/kinds/index";
 import { SUV_SPEC } from "../../../src/domain/vehicle/kinds/suv/spec";
 import { selectHits } from "../../../src/domain/vehicle/ram";
 import { SPEC } from "../../../src/domain/vehicle/spec";
-
-const reach = SUV_SPEC.bodyFront + SPEC.targetHalfWidth;
-const halfWidth = SUV_SPEC.bodyHalfWidth + SPEC.targetHalfWidth;
 
 // Mixes in the exact bounds so the far corners, where the sphere is tightest, are drawn often.
 const within = (min: number, max: number) =>
@@ -27,16 +27,26 @@ function offsetAt(yawDeg: number, ahead: number, side: number, dy: number) {
   };
 }
 
+const kindTarget = fc.constantFrom(...VEHICLE_KINDS).chain((kind) => {
+  const body = profileOf(kind).ram;
+  const reach = body.front + SPEC.targetHalfWidth;
+  const halfWidth = body.halfWidth + SPEC.targetHalfWidth;
+  return fc.record({
+    body: fc.constant(body),
+    ahead: within(0, reach),
+    side: within(-halfWidth, halfWidth),
+  });
+});
+
 describe("RAM_QUERY_RADIUS", () => {
   it("contains every target that selectHits would hit", () => {
     fc.assert(
       fc.property(
         fc.double({ min: -180, max: 180, noNaN: true }),
-        within(0, reach),
-        within(-halfWidth, halfWidth),
+        kindTarget,
         within(SPEC.ramMinDy, SPEC.ramMaxDy),
         fc.boolean(),
-        (yawDeg, ahead, side, dy, reversing) => {
+        (yawDeg, { body, ahead, side }, dy, reversing) => {
           const speed = reversing ? -SUV_SPEC.maxReverse : SUV_SPEC.maxSpeed;
           const { f, offset } = offsetAt(
             yawDeg,
@@ -50,7 +60,7 @@ describe("RAM_QUERY_RADIUS", () => {
             [{ id: "t", offset }],
             new Map(),
             0,
-            SUV_PROFILE.ram,
+            body,
           );
           fc.pre(hits.length === 1);
           expect(Math.hypot(offset.x, offset.y, offset.z)).toBeLessThanOrEqual(
@@ -59,23 +69,6 @@ describe("RAM_QUERY_RADIUS", () => {
         },
       ),
       { numRuns: 2000 },
-    );
-  });
-
-  it("reaches the top front corner of the hit box", () => {
-    const { f, offset } = offsetAt(0, reach, halfWidth, SPEC.ramMaxDy);
-    expect(
-      selectHits(
-        f,
-        SUV_SPEC.maxSpeed,
-        [{ id: "t", offset }],
-        new Map(),
-        0,
-        SUV_PROFILE.ram,
-      ),
-    ).toHaveLength(1);
-    expect(Math.hypot(offset.x, offset.y, offset.z)).toBeLessThanOrEqual(
-      RAM_QUERY_RADIUS + 1e-9,
     );
   });
 });
