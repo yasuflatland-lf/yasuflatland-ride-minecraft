@@ -449,6 +449,24 @@ describe("cells", () => {
     );
   });
 
+  it("lays the compartment of a door without slots with its floor at the cell bottom", () => {
+    const slotless = storageDoors<string>([
+      {
+        ...FRIDGE_LIKE,
+        doors: FRIDGE_LIKE.doors.map((d) => ({ ...d, slots: [] })),
+      },
+    ]);
+    fc.assert(
+      fc.property(pose, openOf(ALL_IDS), (p, shown) => {
+        looks.length = 0;
+        compartmentCells(p, [], shown, slotless);
+        expect(looks.map(({ height }) => height)).toEqual(
+          slotless.map(() => 0),
+        );
+      }),
+    );
+  });
+
   it("lays an open door's plate in its cell on its hinge side, in the ceiling or an inside layer, lit under a lit ceiling light, and leaves no ceiling over any compartment (ADR 0114, 0115, 0121)", () => {
     fc.assert(
       fc.property(pose, openOf(ALL_IDS), fc.boolean(), (p, open, lightsOn) => {
