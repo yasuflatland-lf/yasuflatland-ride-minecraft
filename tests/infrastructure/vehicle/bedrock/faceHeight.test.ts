@@ -15,6 +15,7 @@ import {
 } from "../../../../src/infrastructure/vehicle/bedrock/faceHeight";
 import {
   CAMPER_BED_BLOCK,
+  CAMPER_CABINET_DOOR_BLOCK,
   CAMPER_CEILING_BLOCK,
   CAMPER_DOOR_BLOCK,
   CAMPER_FLOOR_BLOCK,
@@ -152,6 +153,7 @@ it("keeps each room block's box top and bottom in step with its block file (ADR 
     CAMPER_SHOWER_TOILET_BLOCK,
     CAMPER_BED_BLOCK,
     CAMPER_CEILING_BLOCK,
+    CAMPER_CABINET_DOOR_BLOCK,
   ]) {
     const boxes = selectionBoxes(typeId);
     expect(boxes.length, typeId).toBeGreaterThan(0);
@@ -265,5 +267,32 @@ it("puts a saucepan on the stove's burner for any Up-face press on it, from any 
         ).toBe(stove);
       },
     ),
+  );
+});
+
+it("gives the wall cabinet's compartment block its box lifted onto the compartment floor, as its block file and transformation put it (ADR 0114)", () => {
+  const cabinet = pairDecorBlockId("cabinet");
+  const block = blockFile(cabinet);
+  const lifts = new Set(
+    (block.permutations as { components: Record<string, unknown> }[]).map(
+      ({ components }) =>
+        (
+          components["minecraft:transformation"] as {
+            translation: [number, number, number];
+          }
+        ).translation[1],
+    ),
+  );
+  expect([...lifts]).toEqual([3 / 16]);
+  const [box] = selectionBoxes(cabinet);
+  const { bottom, top } = vertical(defined(box, "cabinet box").box);
+  for (const height of [undefined, 3])
+    expect(pressedShape(cabinet, height)).toEqual({
+      kind: "room",
+      bottom: bottom + 3 / 16,
+      top: top + 3 / 16,
+    });
+  expect(pressedHeight("Down", 0.4, pressedShape(cabinet, undefined))).toBe(
+    3 / 16,
   );
 });

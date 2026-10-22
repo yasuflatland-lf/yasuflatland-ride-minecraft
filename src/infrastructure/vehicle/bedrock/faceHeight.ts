@@ -4,6 +4,7 @@
 import { pairHeights } from "../../../domain/vehicle/kinds/index";
 import {
   CAMPER_BED_BLOCK,
+  CAMPER_CABINET_DOOR_BLOCK,
   CAMPER_CEILING_BLOCK,
   CAMPER_DOOR_BLOCK,
   CAMPER_FLOOR_BLOCK,
@@ -26,6 +27,9 @@ export type PressedShape =
   | undefined;
 
 const FULL = { kind: "room", bottom: 0, top: 1 } as const;
+// A wall cabinet compartment's box rises this far above the lift its transformation adds:
+// from the compartment floor to the top of the door (ADR 0114).
+const CABINET_BOX_PX = 10;
 
 // Selection boxes of the room blocks in packs/yasu_ride_bp/blocks/yasu_ride; the wall
 // has none, so it is never pressed. tests/infrastructure/vehicle/bedrock/faceHeight.test.ts
@@ -36,6 +40,11 @@ const ROOM_BOXES: Readonly<Record<string, PressedShape>> = {
   [CAMPER_SHOWER_TOILET_BLOCK]: FULL,
   [CAMPER_BED_BLOCK]: { kind: "room", bottom: 0, top: 9 / PX_PER_BLOCK },
   [CAMPER_CEILING_BLOCK]: { kind: "room", bottom: 13 / PX_PER_BLOCK, top: 1 },
+  [CAMPER_CABINET_DOOR_BLOCK]: {
+    kind: "room",
+    bottom: 2 / PX_PER_BLOCK,
+    top: 13 / PX_PER_BLOCK,
+  },
 };
 
 /**
@@ -57,6 +66,15 @@ export function pressedShape(
   // A pair block is lifted like a decor block. The table's has no height state, since its
   // one height cannot be a state, and its permutations lift it by that height (ADR 0108).
   const pair = pairKindOfBlock(typeId);
+  // A cabinet compartment's box is a room box lifted with its one height (ADR 0114).
+  if (pair === "cabinet") {
+    const lift = Math.min(...pairHeights(pair));
+    return {
+      kind: "room",
+      bottom: lift / PX_PER_BLOCK,
+      top: (lift + CABINET_BOX_PX) / PX_PER_BLOCK,
+    };
+  }
   if (pair !== undefined)
     return {
       kind: "decor",

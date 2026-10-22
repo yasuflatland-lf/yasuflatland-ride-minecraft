@@ -7,6 +7,7 @@ import type { OpenGift } from "../../../application/vehicle/openGift";
 import type { PaintVehicle } from "../../../application/vehicle/paintVehicle";
 import type { PlaceDecor } from "../../../application/vehicle/placeDecor";
 import type { PlaceVehicle } from "../../../application/vehicle/placeVehicle";
+import type { PressCabinet } from "../../../application/vehicle/pressCabinet";
 import type { RemoveDecor } from "../../../application/vehicle/removeDecor";
 import type { RunShower } from "../../../application/vehicle/runShower";
 import type { SetDecor } from "../../../application/vehicle/setDecor";
@@ -18,6 +19,7 @@ import type { UseShowerDoor } from "../../../application/vehicle/useShowerDoor";
 import type { DimensionId, VehicleId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import type { TestInputStore } from "../testInput/testInputStore";
+import { registerCabinet } from "./handlers/cabinet";
 import { registerDecor } from "./handlers/decor";
 import { registerDockBed } from "./handlers/dockBed";
 import { registerDockDoor } from "./handlers/dockDoor";
@@ -50,6 +52,7 @@ export function registerSubscriptions(
     decor: SetDecor;
     placeDecor: PlaceDecor;
     removeDecor: RemoveDecor;
+    cabinet: PressCabinet;
     hints: ShowVehicleHints;
   },
   testInputs: TestInputStore,
@@ -72,6 +75,7 @@ export function registerSubscriptions(
   registerDockDoor(useCases.door, dockDoorOwner);
   registerDockGuard(dockBlockOwner);
   registerShowerToilet(useCases.showerDoor, useCases.shower, dockCellOwner);
+  registerCabinet(useCases.cabinet, dockCellOwner);
   registerDrive(useCases.drive, useCases.hints);
   registerFleet(useCases.limit);
   registerTestDecor(useCases.decor);

@@ -19,6 +19,7 @@ import { isLightBlock } from "./headlightBlocks";
 import {
   AIR_BLOCK,
   CAMPER_BED_BLOCK,
+  CAMPER_CABINET_DOOR_BLOCK,
   CAMPER_CEILING_BLOCK,
   CAMPER_DOOR_BLOCK,
   CAMPER_FLOOR_BLOCK,
@@ -121,7 +122,15 @@ function isDockCell(v: unknown): v is DockCell {
     case "door":
       return isFace(b.face) && typeof b.open === "boolean";
     case "showerToilet":
+    case "cabinetDoor":
       return isFace(b.face);
+    case "cabinet":
+      return (
+        isFace(b.face) &&
+        typeof b.open === "boolean" &&
+        isPairEnd(b.end0) &&
+        isPairEnd(b.end1)
+      );
     case "decor":
       return (
         typeof b.item === "string" &&
@@ -160,6 +169,10 @@ function blockIdOf(block: DockBlock): string {
       return CAMPER_BED_BLOCK;
     case "showerToilet":
       return CAMPER_SHOWER_TOILET_BLOCK;
+    case "cabinetDoor":
+      return CAMPER_CABINET_DOOR_BLOCK;
+    case "cabinet":
+      return pairDecorBlockId("cabinet");
     case "furniture":
       return CAMPER_FURNITURE_BLOCK;
     case "decor":
@@ -187,6 +200,17 @@ function permutationOf(block: DockBlock): BlockPermutation {
     case "showerToilet":
       return BlockPermutation.resolve(CAMPER_SHOWER_TOILET_BLOCK, {
         [ROOM_FACE_STATE]: block.face,
+      });
+    case "cabinetDoor":
+      return BlockPermutation.resolve(CAMPER_CABINET_DOOR_BLOCK, {
+        [ROOM_FACE_STATE]: block.face,
+      });
+    case "cabinet":
+      return BlockPermutation.resolve(pairDecorBlockId("cabinet"), {
+        [DECOR_FACE_STATE]: block.face,
+        [ROOM_OPEN_STATE]: block.open,
+        ...pairEndStates(0, block.end0),
+        ...pairEndStates(1, block.end1),
       });
     case "furniture":
       return BlockPermutation.resolve(CAMPER_FURNITURE_BLOCK, {

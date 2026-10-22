@@ -95,6 +95,8 @@ describe("camper model assets (ADR 0067)", () => {
         "door_entry",
         "steering",
         "shower_door",
+        "cabinet_sink_door",
+        "cabinet_stove_door",
         "glass",
         "door_glass",
       ].sort(),
@@ -638,13 +640,13 @@ describe("camper animation references", () => {
       ...Object.keys(camperAnimations),
       ...Object.keys(camperControllers),
     ]);
-    expect(Object.keys(camperClient.animations)).toHaveLength(27);
+    expect(Object.keys(camperClient.animations)).toHaveLength(29);
     for (const name of Object.values(camperClient.animations)) {
       expect(names.has(String(name)), String(name)).toBe(true);
     }
   });
 
-  it("animates only root, the wheels, the entry door, and the shower door present in the model", () => {
+  it("animates only root, the wheels, the entry door, the shower door, and the cabinet doors present in the model", () => {
     const allowed = [
       "root",
       "wheel_fl",
@@ -653,6 +655,8 @@ describe("camper animation references", () => {
       "wheel_rr",
       "door_entry",
       "shower_door",
+      "cabinet_sink_door",
+      "cabinet_stove_door",
     ];
     const modelBones = bones.map((b) => b.name);
     for (const animation of Object.values(camperAnimations)) {
@@ -715,6 +719,8 @@ describe("camper animation references", () => {
       ...suvClient.scripts.animate,
       "door",
       "shower_door",
+      "cabinet_sink_door",
+      "cabinet_stove_door",
       { shower: "q.property('yasu_ride:shower')" },
       { shower_sound: "q.property('yasu_ride:shower')" },
     ]);
@@ -770,6 +776,25 @@ describe("camper animation references", () => {
     const wavs = readdirSync(`${RP}/sounds/yasu_ride`);
     for (const { name } of definition.sounds as { name: string }[])
       expect(wavs).toContain(`${name.split("/").at(-1)}.wav`);
+  });
+
+  it("swings each wall cabinet door by its own property, the one over the sink and the one over the stove each way into the aisle (ADR 0114)", () => {
+    expect(camperAnimation("cabinet_sink_door")).toEqual({
+      loop: true,
+      bones: {
+        cabinet_sink_door: {
+          rotation: [0, "q.property('yasu_ride:cabinet_sink_door') * 90", 0],
+        },
+      },
+    });
+    expect(camperAnimation("cabinet_stove_door")).toEqual({
+      loop: true,
+      bones: {
+        cabinet_stove_door: {
+          rotation: [0, "q.property('yasu_ride:cabinet_stove_door') * -90", 0],
+        },
+      },
+    });
   });
 
   it("matches wheel spin to the circumference derived from each wheel pivot", () => {
@@ -1009,14 +1034,14 @@ describe("camper furniture model (ADR 0093)", () => {
     });
 
   // The slots that share their furniture cell with another item (ADR 0108), and the stove's.
-  const SHARED_KINDS = ["stove", "shelf", "table"];
+  const SHARED_KINDS = ["stove", "shelf", "table", "wall_cabinet"];
 
   it("puts every standing decor slot but the stove's on the model's top surface at its spot and runs the ceiling hook from the ceiling plate to the top of its cell (ADR 0093, 0099, 0102, 0108)", () => {
     // The stove's slot stands on its burner's grate, checked in the next test.
     const slots = CAMPER_FURNITURE.filter((f) => f.kind !== "stove").flatMap(
       (f) => f.slots,
     );
-    expect(slots).toHaveLength(12);
+    expect(slots).toHaveLength(16);
     const unrotatedCubes = bones
       .filter((b) => b.rotation === undefined)
       .flatMap((b) => b.cubes ?? [])
@@ -1030,10 +1055,17 @@ describe("camper furniture model (ADR 0093)", () => {
         return ox <= x && x <= ox + sx && oz <= z && z <= oz + sz;
       });
       if (slot.hanging !== true) {
+        // A cabinet compartment has its top panel and the ceiling over it, so only its
+        // floor, in the lower half of the cell, counts (ADR 0114).
+        const reach = slot.door === undefined ? 16 : 8;
         const tops = covering.flatMap((cube) => {
           const [, oy = 0] = cube.origin;
           const [, sy = 0] = cube.size;
-          return oy < bottom + 16 && oy + sy > bottom ? [oy + sy] : [];
+          return oy < bottom + reach &&
+            oy + sy > bottom &&
+            oy + sy < bottom + reach
+            ? [oy + sy]
+            : [];
         });
         expect(tops.length, slot.id).toBeGreaterThan(0);
         expect(Math.ceil(Math.max(...tops) - bottom - 1e-9), slot.id).toBe(
@@ -1091,8 +1123,8 @@ describe("camper furniture model (ADR 0093)", () => {
     }
   });
 
-  it("raises the wall cabinet to the ceiling (ADR 0103)", () => {
-    // The cell (-1, -1, 2) the cabinet's front half used to stand in, at its middle.
+  it("hangs the wall cabinet from the ceiling down to y 50, over the counter window, with a floor and a top panel 9 px apart (ADR 0103, 0113, 0114)", () => {
+    // The middle of the cell (-1, -1) the cabinet's sink compartment hangs in.
     const x = 16 * -1;
     const z = -16 * -1;
     const covering = (bones.find((b) => b.name === "body")?.cubes ?? [])
@@ -1107,8 +1139,10 @@ describe("camper furniture model (ADR 0093)", () => {
         const [, sy = 0] = cube.size;
         return [oy, oy + sy] as const;
       });
-    expect(covering).toContainEqual([54, 61]);
-    expect(covering.some(([lo, hi]) => lo < 54 && hi > 32)).toBe(false);
+    expect(covering).toContainEqual([50, 51]);
+    expect(covering).toContainEqual([60, 61]);
+    expect(covering.some(([lo, hi]) => lo < 60 && hi > 51)).toBe(false);
+    expect(covering.some(([lo, hi]) => lo < 50 && hi > 32)).toBe(false);
   });
 
   it("stands the stove slot on top of the grate of its one burner in the cell middle (ADR 0107, 0112)", () => {
@@ -1138,7 +1172,7 @@ describe("camper furniture model (ADR 0093)", () => {
     }
   });
 
-  it("keeps every body cube, rotated ones included, out of every standing item on each stove, shelf, and table slot, and the two items on a shelf board or the table apart (ADR 0100, 0105, 0108)", () => {
+  it("keeps every body cube, rotated ones included, out of every standing item on each stove, shelf, table, and wall cabinet slot, and the two items on a shelf board, the table, or a cabinet compartment apart (ADR 0100, 0105, 0108, 0114)", () => {
     const points = bodyPoints();
     // Each standing item's box from its block model: half its width along the camper's left
     // (model x), half its depth forward (model z), and its height. The decor block turns the
@@ -1172,12 +1206,15 @@ describe("camper furniture model (ADR 0093)", () => {
     const standing = CAMPER_FURNITURE.filter((f) =>
       SHARED_KINDS.includes(f.kind),
     ).flatMap((f) => f.slots);
-    expect(standing).toHaveLength(7);
-    // A shelf board's or the table's two items stand apart for any two items (ADR 0108).
+    expect(standing).toHaveLength(11);
+    // A shelf board's, the table's, or a cabinet compartment's two items stand apart for any
+    // two items (ADR 0108, 0114).
     for (const [a, b] of [
       ["shelf_low", "shelf_low_front"],
       ["shelf_high", "shelf_high_front"],
       ["table", "table_aisle"],
+      ["cabinet_sink_rear", "cabinet_sink_front"],
+      ["cabinet_stove_rear", "cabinet_stove_front"],
     ]) {
       const one = standing.find((s) => s.id === a);
       const two = standing.find((s) => s.id === b);
@@ -1261,6 +1298,44 @@ describe("camper furniture model (ADR 0093)", () => {
       expect(oz + sz).toBeLessThanOrEqual(54);
       expect(ox).toBeGreaterThanOrEqual(-9.2 - 1e-6);
       expect(ox + sx).toBeLessThanOrEqual(-7.4 + 1e-6);
+    }
+  });
+
+  it("hinges each wall cabinet door at the cabinet's outer end and swings it open into the aisle cell beside its compartment, under the ceiling (ADR 0114)", () => {
+    for (const [name, pivotZ, angle, cellZ] of [
+      ["cabinet_sink_door", 9, 90, [8, 24]],
+      ["cabinet_stove_door", 39, -90, [24, 40]],
+    ] as const) {
+      const door = bone(name);
+      expect(door.pivot).toEqual([-9.5, 0, pivotZ]);
+      expect(door.parent).toBe("body");
+      expect(door.cubes?.length).toBeGreaterThan(0);
+      for (const cube of door.cubes ?? [])
+        for (const corner of [0, 1].flatMap((i) =>
+          [0, 1].flatMap((j) =>
+            [0, 1].map((k) =>
+              [i, j, k].map(
+                (n, axis) =>
+                  (cube.origin[axis] ?? 0) + n * (cube.size[axis] ?? 0),
+              ),
+            ),
+          ),
+        )) {
+          const [cx = 0, cy = 0, cz = 0] = corner;
+          // Shut, the door covers its compartment on the aisle face of the cabinet.
+          expect(cx).toBeGreaterThanOrEqual(-10 - 1e-6);
+          expect(cx).toBeLessThanOrEqual(-9.2 + 1e-6);
+          expect(cz).toBeGreaterThanOrEqual(cellZ[0]);
+          expect(cz).toBeLessThanOrEqual(cellZ[1]);
+          expect(cy).toBeGreaterThanOrEqual(50);
+          expect(cy).toBeLessThanOrEqual(61);
+          // Open, it stands in the aisle cell, local x 0, beside its compartment.
+          const [ox = 0, , oz = 0] = turn(corner, door.pivot, [0, angle, 0]);
+          expect(ox, name).toBeGreaterThanOrEqual(-10 - 1e-6);
+          expect(ox, name).toBeLessThanOrEqual(8);
+          expect(oz, name).toBeGreaterThanOrEqual(cellZ[0]);
+          expect(oz, name).toBeLessThanOrEqual(cellZ[1]);
+        }
     }
   });
 });

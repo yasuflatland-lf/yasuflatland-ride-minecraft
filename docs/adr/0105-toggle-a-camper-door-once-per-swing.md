@@ -1,6 +1,6 @@
 # 0105. Toggle a camper door once per swing
 
-- Status: Accepted
+- Status: Accepted (extended by [0114](0114-open-the-camper-wall-cabinet.md): the wall cabinet doors keep a window each)
 - Date: 2026-10-22
 - Extends: 0068, 0094
 

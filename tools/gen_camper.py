@@ -935,14 +935,40 @@ body.append(box(8.5, 17.8, 25.5, 8.6, 24.8, 38.0, "chrome"))  # door face
 body.append(box(8.9, FLOOR, 24.5, 9.0, FLOOR + 1, 39.0, "black"))  # toe kick
 for z0, z1 in ((24.0, 24.4), (39.1, 39.5)):  # side trims down the range front
     body.append(box(8.5, FLOOR + 0.5, z0, 9.0, 29, z1, "steel"))
-# Wall cabinet over the counter, up at the ceiling (cells z = -1 and -2; ADR 0103): 7 px high with
-# its top at CEIL, so no decor stands on it.
-CABINET_Y = (CEIL - 7, CEIL)
-body.append(box(10, CABINET_Y[0], COUNTER_Z[0], 22.8, CABINET_Y[1], 37.5, "wood"))
-for z0, z1 in ((9, 22.8), (23.2, 37)):
-    body.append(box(9.7, CABINET_Y[0] + 0.5, z0, 10, CABINET_Y[1] - 0.5, z1, "avocado"))
-for z in (21.5, 23.8):
-    body.append(box(9.4, CABINET_Y[0] + 1, z, 9.7, CABINET_Y[0] + 2.5, z + 0.7, "chrome"))
+# Wall cabinet over the counter, up at the ceiling (cells z = -1 and -2; ADR 0103), with two
+# compartments behind two doors that open on their own (ADR 0114). It hangs from the ceiling
+# down to y 50, clear of the counter window's top at 49 (ADR 0113), so its compartment floor
+# tops at 51, 3 px above the ceiling layer's bottom, and its compartments are 9 px high inside:
+# enough for the tallest standing item, 8 px. The compartment over the sink spans the sink
+# cell and the one over the stove the stove cell, split at the cell edge z 24, so each one's
+# middle is its cell's middle, where the decor spots are.
+CABINET_Y = (CEIL - 11, CEIL)
+CABINET_Z = COUNTER_Z
+CABINET_X = (10, 22.8)  # behind the doors, up to the wall's inner face
+CABINET_SHELF = CABINET_Y[0] + 1
+body.append(box(CABINET_X[0], CABINET_Y[0], CABINET_Z[0], CABINET_X[1], CABINET_SHELF, CABINET_Z[1], "wood"))  # floor
+body.append(box(CABINET_X[0], CABINET_Y[1] - 1, CABINET_Z[0], CABINET_X[1], CABINET_Y[1], CABINET_Z[1], "wood"))  # top
+body.append(box(CABINET_X[1] - 0.5, CABINET_SHELF, CABINET_Z[0], CABINET_X[1], CABINET_Y[1] - 1, CABINET_Z[1], "brown"))  # back
+for z0, z1 in ((CABINET_Z[0], CABINET_Z[0] + 0.5), (23.75, 24.25), (CABINET_Z[1] - 0.5, CABINET_Z[1])):
+    body.append(box(CABINET_X[0], CABINET_SHELF, z0, CABINET_X[1] - 0.5, CABINET_Y[1] - 1, z1, "wood"))  # ends and divider
+CABINET_DOOR_X = (9.5, 10)
+CABINET_DOOR_Y = (CABINET_Y[0] + 0.5, CABINET_Y[1] - 0.5)
+
+
+def cabinet_door(z0, z1, handle_z):
+    """One door on the aisle face of the cabinet, with a chrome pull low on its free edge,
+    where a hand reaches up to it."""
+    out = [box(*(CABINET_DOOR_X[0], CABINET_DOOR_Y[0], z0), *(CABINET_DOOR_X[1], CABINET_DOOR_Y[1], z1), "avocado")]
+    out.append(box(CABINET_DOOR_X[0] - 0.3, CABINET_DOOR_Y[0] + 0.5, handle_z, CABINET_DOOR_X[0], CABINET_DOOR_Y[0] + 2, handle_z + 0.7, "chrome"))
+    return out
+
+
+# Each door is its own bone, hinged at the cabinet's outer end on the aisle face, so the two
+# open doors stand at the ends and leave the compartments' fronts free; they stay closed here.
+cabinet_sink_door = cabinet_door(9, 23.6, 22.3)
+CABINET_SINK_HINGE = [CABINET_DOOR_X[0], 0, 9]
+cabinet_stove_door = cabinet_door(24.4, 39, 24.9)
+CABINET_STOVE_HINGE = [CABINET_DOOR_X[0], 0, 39]
 # Shower-toilet room in the rear right corner (cell z = -3, two layers), door to the aisle.
 SHOWER_Z = (40.5, 41.1)  # front partition, behind the window curtain (38 to 40.5)
 body.append(box(8, FLOOR, SHOWER_Z[0], 22.8, CEIL - 0.2, SHOWER_Z[1], "ivory"))
@@ -1099,6 +1125,8 @@ camper_bones = [
     {"name": "steering", "parent": "body", "pivot": STEERING_PIVOT, "rotation": [STEERING_LEAN, 0, 0],
      "cubes": [moved(c, STEERING_PIVOT) for c in steering]},
     {"name": "shower_door", "parent": "body", "pivot": SHOWER_HINGE, "cubes": shower_door},
+    {"name": "cabinet_sink_door", "parent": "body", "pivot": CABINET_SINK_HINGE, "cubes": cabinet_sink_door},
+    {"name": "cabinet_stove_door", "parent": "body", "pivot": CABINET_STOVE_HINGE, "cubes": cabinet_stove_door},
     {"name": "glass", "parent": "body", "pivot": [0, 0, 0], "cubes": glass},
     {"name": "door_glass", "parent": "door_entry", "pivot": DOOR_HINGE, "cubes": door_glass},
 ]

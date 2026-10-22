@@ -50,7 +50,21 @@ export type DockBlock =
       readonly height: number;
       readonly end0?: string;
       readonly end1?: string;
-    };
+    }
+  /**
+   * One compartment of the camper's wall cabinet, laid as yasu_ride:cabinet_decor_pair whether
+   * or not it holds anything: `end0` and `end1` are its items, either or both unset, drawn only
+   * while `open`; `face` is the vehicle's yaw quarter as on a decor block (ADR 0114).
+   */
+  | {
+      readonly type: "cabinet";
+      readonly face: Face;
+      readonly open: boolean;
+      readonly end0?: string;
+      readonly end1?: string;
+    }
+  /** An open cabinet door, a plate on side `face` of its aisle cell under the ceiling (ADR 0114). */
+  | { readonly type: "cabinetDoor"; readonly face: Face };
 
 export interface DockCell extends Cell {
   readonly block: DockBlock;
@@ -68,6 +82,16 @@ export function sameBlock(a: DockBlock, b: DockBlock): boolean {
       return b.type === "door" && a.face === b.face && a.open === b.open;
     case "showerToilet":
       return b.type === "showerToilet" && a.face === b.face;
+    case "cabinetDoor":
+      return b.type === "cabinetDoor" && a.face === b.face;
+    case "cabinet":
+      return (
+        b.type === "cabinet" &&
+        a.face === b.face &&
+        a.open === b.open &&
+        a.end0 === b.end0 &&
+        a.end1 === b.end1
+      );
     case "decor":
       return (
         b.type === "decor" &&

@@ -23,6 +23,7 @@ import { SPEC } from "../../../../src/domain/vehicle/spec";
 import type { VehicleRepository } from "../../../../src/domain/vehicle/vehicleRepository";
 import {
   CAMPER_BED_COMPONENT,
+  CAMPER_CABINET_COMPONENT,
   CAMPER_DECOR_COMPONENT,
   CAMPER_DOOR_COMPONENT,
   CAMPER_FLOOR_BLOCK,
@@ -1258,6 +1259,71 @@ it("takes decor back on an empty-hand interaction with a decor block (ADR 0093)"
   owner.mockReturnValue(undefined);
   interact(event(), { params: undefined });
   expect(removeDecor.execute).not.toHaveBeenCalled();
+});
+
+it("sends an empty-hand press on the wall cabinet, with the pressed point, to the cabinet, and ignores a held item, no player, or no owner (ADR 0114)", () => {
+  const before = game.startup.mock.calls.length;
+  const cabinet = { execute: vi.fn() };
+  const owner = vi.fn<(dimensionId: string, cell: At) => VehicleId | undefined>(
+    () => asVehicleId("car"),
+  );
+  registerSubscriptions(
+    { cabinet } as unknown as Parameters<typeof registerSubscriptions>[0],
+    new TestInputStore(),
+    () => undefined,
+    owner,
+    () => undefined,
+  );
+  const registerCustomComponent =
+    vi.fn<(name: string, component: BlockCustomComponent) => void>();
+  for (const [startup] of game.startup.mock.calls.slice(before))
+    startup({
+      blockComponentRegistry: { registerCustomComponent },
+    } as unknown as StartupEvent);
+  const interact = registerCustomComponent.mock.calls.find(
+    ([name]) => name === CAMPER_CABINET_COMPONENT,
+  )?.[1].onPlayerInteract;
+  if (!interact) throw new Error("cabinet interaction missing");
+  const cell = { x: 3, y: 67, z: -4 };
+  const event = (
+    held?: { typeId: string },
+    withPlayer = true,
+    withFace = true,
+  ) =>
+    ({
+      dimension: { id: "minecraft:overworld" },
+      block: { location: cell },
+      faceLocation: withFace ? { x: 0.5, y: 0.25, z: 0.125 } : undefined,
+      player: withPlayer
+        ? {
+            id: "p",
+            selectedSlotIndex: 0,
+            getComponent: () => ({ container: { getItem: () => held } }),
+          }
+        : undefined,
+    }) as unknown as Parameters<typeof interact>[0];
+  interact(event(), { params: undefined });
+  expect(owner).toHaveBeenCalledExactlyOnceWith("minecraft:overworld", cell);
+  expect(cabinet.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId: "p",
+    vehicleId: "car",
+    cell,
+    point: { x: 3.5, y: 67.25, z: -3.875 },
+  });
+  cabinet.execute.mockClear();
+  interact(event(undefined, true, false), { params: undefined });
+  expect(cabinet.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId: "p",
+    vehicleId: "car",
+    cell,
+    point: undefined,
+  });
+  cabinet.execute.mockClear();
+  interact(event({ typeId: "minecraft:stone" }), { params: undefined });
+  interact(event(undefined, false), { params: undefined });
+  owner.mockReturnValue(undefined);
+  interact(event(), { params: undefined });
+  expect(cabinet.execute).not.toHaveBeenCalled();
 });
 
 function registerGiftFixture() {

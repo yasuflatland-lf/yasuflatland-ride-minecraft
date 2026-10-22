@@ -1,5 +1,10 @@
 import { clamp, type Vec3 } from "../../../shared/vec";
-import { type DecorPlacement, isDecorItem, parseDecor } from "../../dock/decor";
+import {
+  type CabinetPress,
+  type DecorPlacement,
+  isDecorItem,
+  parseDecor,
+} from "../../dock/decor";
 import { type ClearCell, DOCK_RESTORED } from "../../dock/dock";
 import type { HoldPose } from "../../dock/floor";
 import type { DriveStep, EngineCommand, TickContext } from "../../drive";
@@ -21,13 +26,17 @@ import {
 import { nearest, slotForPress, slotsAt, slotsFor } from "./decorPlacing";
 import { DoorToggle } from "./doorToggle";
 import {
+  CABINET_DOOR_PROPERTY,
   type CAMPER_ENTITY,
+  cabinetDoorCommand,
   doorCommand,
   showerCommand,
   showerDoorCommand,
 } from "./entity";
+import { CABINET_DOORS, type CabinetDoor } from "./furniture";
 import { CAMPER_MOTION, CAMPER_TYRES } from "./profile";
 import {
+  cabinetCells,
   cargoCells,
   deckSeats,
   decorBlockName,
@@ -37,6 +46,7 @@ import {
   furnitureCells,
   holdsCargo,
   isPassable,
+  localCellAt,
   ownSlotBlock,
   PARK_MESSAGES,
   parkCheckCells,
@@ -70,6 +80,18 @@ function swing(step: number, open: boolean): number {
   return step + Math.sign((open ? DOOR_STEPS : 0) - step);
 }
 
+/** One wall cabinet door: where it is heading, how far it has swung, and its tap window (ADR 0114). */
+interface CabinetDoorState {
+  open: boolean;
+  step: number;
+  readonly toggle: DoorToggle;
+  readonly sync: SyncedValue<number>;
+}
+
+function sameCell(a: Vec3, b: Vec3): boolean {
+  return a.x === b.x && a.y === b.y && a.z === b.z;
+}
+
 // The shared transforming drivetrain with the camper's values, its end check
 // (ADR 0067), and parking (ADR 0068).
 export class CamperDrive extends TransformingDrive {
@@ -95,6 +117,8 @@ export class CamperDrive extends TransformingDrive {
   private readonly showerDoorStepSync = new SyncedValue<number>();
   private showerTicks = 0;
   private readonly showerSync = new SyncedValue<boolean>();
+  // The wall cabinet doors swing in the entry door's DOOR_STEPS, each on its own (ADR 0114).
+  private readonly cabinetDoors: ReadonlyMap<CabinetDoor, CabinetDoorState>;
   private readonly decorBySlot = new Map<string, string>();
   // Saved decor whose slot no longer exists and that no free slot could take; it is
   // kept, saved, and given back when the camper breaks (ADR 0103).
@@ -132,8 +156,11 @@ export class CamperDrive extends TransformingDrive {
         this.decorBySlot.set(slot.id, entry.item);
       else homeless.push(entry);
     }
+    // A homeless entry may go into a shut cabinet: it is kept there out of sight until the
+    // door opens, which beats stowing it out of reach (ADR 0114).
+    const everyDoor = new Set(CABINET_DOORS.map(({ door }) => door));
     for (const entry of homeless) {
-      const free = slotsFor(entry.item).find(
+      const free = slotsFor(entry.item, everyDoor).find(
         (slot) => !cellTaken(slot, this.placed()),
       );
       if (free) this.decorBySlot.set(free.id, entry.item);
@@ -144,6 +171,23 @@ export class CamperDrive extends TransformingDrive {
       this.restoredDocked,
     );
     this.showerDoorOpen = this.showerDoorStep * 2 >= DOOR_STEPS;
+    this.cabinetDoors = new Map(
+      CABINET_DOORS.map(({ door }) => {
+        const step = restoredDoorStep(
+          restored[CABINET_DOOR_PROPERTY[door]],
+          this.restoredDocked,
+        );
+        return [
+          door,
+          {
+            open: step * 2 >= DOOR_STEPS,
+            step,
+            toggle: new DoorToggle(),
+            sync: new SyncedValue<number>(),
+          },
+        ];
+      }),
+    );
   }
 
   /**
@@ -174,6 +218,43 @@ export class CamperDrive extends TransformingDrive {
     if (!this.parked || !this.showerDoorToggle.tryToggle(tick)) return false;
     this.showerDoorOpen = !this.showerDoorOpen;
     return true;
+  }
+
+  /**
+   * A press on the wall cabinet at world `cell` (ADR 0114). On an open door's plate in the
+   * aisle it shuts that door. On a compartment it opens a shut door; on an open one it takes
+   * back the item at the end nearest `point`, or shuts the door when that end is empty. A tap
+   * may reach the block twice (ADR 0105), so a press within a swing of the door's last
+   * action does nothing; otherwise the echo of an opening tap could take an item out.
+   */
+  pressCabinet(
+    cell: Vec3,
+    point: Vec3 | undefined,
+    tick: number,
+  ): CabinetPress | undefined {
+    const pose = this.parked;
+    if (!pose) return undefined;
+    const place = CABINET_DOORS.find(
+      (d) =>
+        sameCell(localCellAt(pose, d.cell), cell) ||
+        sameCell(localCellAt(pose, d.aisle), cell),
+    );
+    const door = place && this.cabinetDoors.get(place.door);
+    if (!place || !door?.toggle.tryToggle(tick)) return undefined;
+    if (door.open && sameCell(localCellAt(pose, place.cell), cell)) {
+      const ends = slotsAt(pose, cell);
+      const end =
+        point === undefined
+          ? ends.find(({ id }) => this.decorBySlot.has(id))
+          : nearest(pose, ends, point, undefined);
+      const item = end && this.decorBySlot.get(end.id);
+      if (end && item !== undefined) {
+        this.setDecor(end.id, undefined);
+        return { kind: "item", item };
+      }
+    }
+    door.open = !door.open;
+    return { kind: "door" };
   }
 
   runShower(): boolean {
@@ -228,14 +309,33 @@ export class CamperDrive extends TransformingDrive {
       point,
       exact,
       eye,
+      this.openCabinets(),
     )?.id;
   }
 
   placeDecor(slot: string, item: string): boolean {
-    const target = slotsFor(item).find((s) => s.id === slot);
+    const target = slotsFor(item, this.openCabinets()).find(
+      (s) => s.id === slot,
+    );
     if (!this.parked || !target || cellTaken(target, this.placed()))
       return false;
     return this.setDecor(slot, item);
+  }
+
+  /** The cabinet doors open or opening: their compartments take and give items (ADR 0114). */
+  private openCabinets(): ReadonlySet<CabinetDoor> {
+    return new Set(
+      [...this.cabinetDoors].filter(([, d]) => d.open).map(([door]) => door),
+    );
+  }
+
+  /** The cabinet doors not yet fully shut: their compartments show their items (ADR 0114). */
+  private shownCabinets(): ReadonlySet<CabinetDoor> {
+    return new Set(
+      [...this.cabinetDoors]
+        .filter(([, d]) => d.step > 0)
+        .map(([door]) => door),
+    );
   }
 
   /**
@@ -245,8 +345,9 @@ export class CamperDrive extends TransformingDrive {
    */
   removeDecor(cell: Vec3, point?: Vec3, eye?: Vec3): string | undefined {
     if (!this.parked) return undefined;
-    const held = slotsAt(this.parked, cell).filter(({ id }) =>
-      this.decorBySlot.has(id),
+    // A cabinet compartment gives its items back only through pressCabinet (ADR 0114).
+    const held = slotsAt(this.parked, cell).filter(
+      ({ id, door }) => door === undefined && this.decorBySlot.has(id),
     );
     const slot =
       point === undefined ? held[0] : nearest(this.parked, held, point, eye);
@@ -359,19 +460,23 @@ export class CamperDrive extends TransformingDrive {
     const clear = lay ? this.pendingClear : [];
     if (lay) this.pendingClear = [];
     this.roomLaid = true;
+    // The doors swing first, so a cabinet shows its items on the tick its door starts to
+    // open and hides them on the tick it is shut (ADR 0114).
+    const commands = this.propertyCommands();
     const dock = {
       hold: pose,
       cells: lay
         ? [
-            ...roomCells(pose, this.doorOpen),
+            ...roomCells(pose, this.doorOpen, this.openCabinets()),
             ...decorCells(pose, this.placed()),
             ...furnitureCells(pose, this.placed()),
+            ...cabinetCells(pose, this.placed(), this.shownCabinets()),
           ]
         : [],
       seats: deckSeats(pose),
     };
     return heldStep(dock, pose.yaw, ctx.deckSeatInputs, {
-      commands: this.propertyCommands(),
+      commands,
       clear,
     });
   }
@@ -389,6 +494,10 @@ export class CamperDrive extends TransformingDrive {
     this.showerDoorOpen = false;
     this.showerDoorStep = 0;
     this.showerTicks = 0;
+    for (const door of this.cabinetDoors.values()) {
+      door.open = false;
+      door.step = 0;
+    }
     const step = super.step(raw, ctx);
     return {
       ...step,
@@ -416,7 +525,21 @@ export class CamperDrive extends TransformingDrive {
   }
 
   private propertyCommands(): EngineCommand[] {
-    return [...this.doorCommands(), ...this.showerCommands()];
+    return [
+      ...this.doorCommands(),
+      ...this.showerCommands(),
+      ...this.cabinetCommands(),
+    ];
+  }
+
+  private cabinetCommands(): EngineCommand[] {
+    return [...this.cabinetDoors].flatMap(([name, door]) => {
+      door.step = swing(door.step, door.open);
+      const step = door.sync.next(door.step);
+      return step === undefined
+        ? []
+        : [cabinetDoorCommand(name, step / DOOR_STEPS)];
+    });
   }
 
   private showerCommands(): EngineCommand[] {

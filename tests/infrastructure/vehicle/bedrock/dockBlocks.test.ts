@@ -14,6 +14,7 @@ import {
 } from "../../../../src/infrastructure/vehicle/bedrock/dockBlocks";
 import {
   CAMPER_BED_BLOCK,
+  CAMPER_CABINET_DOOR_BLOCK,
   CAMPER_CEILING_BLOCK,
   CAMPER_DOOR_BLOCK,
   CAMPER_FLOOR_BLOCK,
@@ -29,6 +30,7 @@ import {
   decorBlockId,
   PAIR_END_STATES,
   pairDecorBlockId,
+  pairEndStates,
   ROOM_FACE_STATE,
   ROOM_OPEN_STATE,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
@@ -349,6 +351,13 @@ const roomCells: DockCell[] = [
   },
   { x: 7, y: 64, z: 0, block: { type: "furniture", height: 0 } },
   { x: 8, y: 64, z: 0, block: { type: "showerToilet", face: 0 } },
+  { x: 9, y: 64, z: 0, block: { type: "cabinetDoor", face: 1 } },
+  {
+    x: 10,
+    y: 64,
+    z: 0,
+    block: { type: "cabinet", face: 2, open: true, end1: "toaster" },
+  },
 ];
 
 it("lays every block type with its states and changes only an opened door", () => {
@@ -375,6 +384,16 @@ it("lays every block type with its states and changes only an opened door", () =
     },
     { typeId: CAMPER_FURNITURE_BLOCK, states: { [DECOR_HEIGHT_STATE]: 0 } },
     { typeId: CAMPER_SHOWER_TOILET_BLOCK, states: { [ROOM_FACE_STATE]: 0 } },
+    { typeId: CAMPER_CABINET_DOOR_BLOCK, states: { [ROOM_FACE_STATE]: 1 } },
+    {
+      typeId: pairDecorBlockId("cabinet"),
+      states: {
+        [DECOR_FACE_STATE]: 2,
+        [ROOM_OPEN_STATE]: true,
+        ...pairEndStates(0, undefined),
+        ...pairEndStates(1, "toaster"),
+      },
+    },
   ]);
   f.writes.length = 0;
   const opened = roomCells.map((c) =>
@@ -990,4 +1009,37 @@ describe("DockBlocks lost cells (ADR 0096)", () => {
     for (const c of roomCells)
       expect(docks.laidBlockOwner(here, c, f.at(c).typeId)).toBeUndefined();
   });
+});
+
+it("restores saved cabinet cells, empty ones too, and drops malformed ones (ADR 0114)", () => {
+  const cell = { x: 0, y: 64, z: 0 };
+  for (const [block, typeId] of [
+    [{ type: "cabinet", face: 3, open: false }, pairDecorBlockId("cabinet")],
+    [
+      { type: "cabinet", face: 0, open: true, end0: "cushion" },
+      pairDecorBlockId("cabinet"),
+    ],
+    [{ type: "cabinetDoor", face: 2 }, CAMPER_CABINET_DOOR_BLOCK],
+  ] as const) {
+    const f = fixture();
+    f.saved.set(DECK_CELLS_PROPERTY, JSON.stringify([{ ...cell, block }]));
+    f.blocks.set(cellKey(cell), { typeId });
+    new DockBlocks().lay(asVehicleId(f.car.id), f.car, []);
+    expect(f.at(cell).typeId).toBe("minecraft:air");
+    expect(f.saved.get(DECK_CELLS_PROPERTY)).toBeUndefined();
+  }
+  for (const block of [
+    { type: "cabinet", face: 0 },
+    { type: "cabinet", face: 0, open: "yes" },
+    { type: "cabinet", face: 0, open: true, end0: "macrame_planter" },
+    { type: "cabinetDoor", face: 5 },
+  ]) {
+    const g = fixture();
+    const raw = JSON.stringify([{ ...cell, block }]);
+    g.saved.set(DECK_CELLS_PROPERTY, raw);
+    g.blocks.set(cellKey(cell), { typeId: CAMPER_CABINET_DOOR_BLOCK });
+    new DockBlocks().lay(asVehicleId(g.car.id), g.car, []);
+    expect(g.at(cell).typeId).toBe(CAMPER_CABINET_DOOR_BLOCK);
+    expect(g.saved.get(DECK_CELLS_PROPERTY)).toBe(raw);
+  }
 });
