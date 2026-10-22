@@ -130,7 +130,7 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
     ["submarine_unmanned", 211, () => submarineUnmanned(a)],
     ["submarine_shallow", 118, () => submarineShallow(a)],
     ["vehicle_limit", 20, () => vehicleLimit(a)],
-    ["fleet_remove_spike", 300, () => fleetRemoveSpike(a)],
+    ["fleet_remove_spike", 75, () => fleetRemoveSpike(a)],
     ["boat_float", 105, () => boatFloat(a)],
     ["boat_dock", 76, () => boatDock(a)],
     ["boat_deck_seats", 27, () => boatDeckSeats(a)],

@@ -10,6 +10,11 @@ import { type Arena, type Outcome, spawnCar, wait } from "../arena";
 
 const CASES = ["kill", "script", "unload"] as const;
 type Case = (typeof CASES)[number];
+interface Probe {
+  tick: number;
+  chunkLoaded: boolean;
+  entity: boolean | "threw";
+}
 interface Sample {
   case: Case;
   event: "beforeRemove" | "afterRemove" | "die";
@@ -18,9 +23,10 @@ interface Sample {
   typeId: string;
   dimension?: string;
   location?: Vector3;
-  chunkLoadedNextTick?: boolean;
-  entityNextTick?: boolean | "threw";
-  probeTick?: number;
+  // system.run from a before event can still run in the removal's tick, so
+  // the deferred read and a runTimeout read one tick later are kept apart.
+  deferred?: Probe;
+  nextTick?: Probe;
 }
 
 const UNLOAD_AREA = "yasu_ride_unload_spike";
@@ -42,6 +48,14 @@ function entityExists(id: string): boolean | "threw" {
   } catch {
     return "threw";
   }
+}
+
+function probeAt(dimension: Dimension, location: Vector3, id: string): Probe {
+  return {
+    tick: system.currentTick,
+    chunkLoaded: blockLoaded(dimension, location),
+    entity: entityExists(id),
+  };
 }
 
 function yesNo(seen: boolean): string {
@@ -85,18 +99,21 @@ export async function fleetRemoveSpike(a: Arena): Promise<Outcome> {
     const car = ev.removedEntity;
     const sample = record("beforeRemove", car.id, car.typeId);
     if (!sample) return;
-    // Before events are read-only, so the probes wait for the next tick.
+    // Before events are read-only, so both probes are deferred.
     const dimension = car.dimension;
     const location = { ...car.location };
     sample.dimension = dimension.id;
     sample.location = location;
-    const probe = system.run(() => {
-      probes.delete(probe);
-      sample.probeTick = system.currentTick;
-      sample.chunkLoadedNextTick = blockLoaded(dimension, location);
-      sample.entityNextTick = entityExists(sample.id);
+    const deferred = system.run(() => {
+      probes.delete(deferred);
+      sample.deferred = probeAt(dimension, location, sample.id);
     });
-    probes.add(probe);
+    const nextTick = system.runTimeout(() => {
+      probes.delete(nextTick);
+      sample.nextTick = probeAt(dimension, location, sample.id);
+    }, 1);
+    probes.add(deferred);
+    probes.add(nextTick);
   });
   const after = world.afterEvents.entityRemove.subscribe((ev) => {
     record("afterRemove", ev.removedEntityId, ev.typeId);
@@ -152,7 +169,7 @@ export async function fleetRemoveSpike(a: Arena): Promise<Outcome> {
         await wait(1);
         if (
           seen("unload", (s) => s.event === "afterRemove") &&
-          seen("unload", (s) => s.probeTick !== undefined)
+          seen("unload", (s) => s.nextTick !== undefined)
         )
           break;
       }
@@ -177,19 +194,21 @@ export async function fleetRemoveSpike(a: Arena): Promise<Outcome> {
     }
   }
   const summary = CASES.map((testCase) => {
-    const loadedNextTick = samples
-      .filter((s) => s.case === testCase && s.event === "beforeRemove")
-      .map((s) => s.chunkLoadedNextTick ?? "pending")
-      .join(",");
+    const removes = samples.filter(
+      (s) => s.case === testCase && s.event === "beforeRemove",
+    );
+    const loaded = (pick: (s: Sample) => Probe | undefined) =>
+      removes.map((s) => pick(s)?.chunkLoaded ?? "pending").join(",") ||
+      "unobserved";
     const remove = yesNo(seen(testCase, (s) => s.event === "afterRemove"));
     const died = yesNo(seen(testCase, (s) => s.event === "die"));
-    return `${testCase}: remove=${remove} die=${died} loadedNextTick=${loadedNextTick || "unobserved"}`;
+    return `${testCase}: remove=${remove} die=${died} loadedDeferred=${loaded((s) => s.deferred)} loadedNextTick=${loaded((s) => s.nextTick)}`;
   });
   return {
     pass:
       error === undefined &&
-      seen("kill", (s) => s.chunkLoadedNextTick === true) &&
-      seen("unload", (s) => s.chunkLoadedNextTick === false),
+      seen("kill", (s) => s.deferred?.chunkLoaded === true) &&
+      seen("unload", (s) => s.deferred?.chunkLoaded === false),
     detail: summary.join("; ") + (error ? `; error=${error}` : ""),
     lines: samples.map((s) => JSON.stringify(s)),
   };
