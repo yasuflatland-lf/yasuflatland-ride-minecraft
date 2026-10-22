@@ -139,6 +139,33 @@ export const CLEARABLE_DECORATIONS: ReadonlySet<string> = new Set([
   "minecraft:wildflowers",
   "minecraft:leaf_litter",
   "minecraft:snow_layer",
+  // Ground cover that grows on its own in forests, taigas, swamps and pale gardens
+  // (ADR 0119); saplings, torchflowers and pitcher plants are planted by players, so
+  // they still refuse parking.
+  "minecraft:golden_dandelion",
+  "minecraft:open_eyeblossom",
+  "minecraft:closed_eyeblossom",
+  "minecraft:brown_mushroom",
+  "minecraft:red_mushroom",
+  "minecraft:sweet_berry_bush",
+  "minecraft:firefly_bush",
+  "minecraft:moss_carpet",
+  "minecraft:pale_moss_carpet",
+]);
+
+/**
+ * Full natural ground blocks: one rising into a floor or door step cell has its top flush
+ * with the floor, so it stays there as floor (ADR 0119).
+ */
+export const NATURAL_GROUND: ReadonlySet<string> = new Set([
+  "minecraft:grass_block",
+  "minecraft:dirt",
+  "minecraft:coarse_dirt",
+  "minecraft:podzol",
+  "minecraft:mycelium",
+  "minecraft:dirt_with_roots",
+  "minecraft:moss_block",
+  "minecraft:pale_moss_block",
 ]);
 
 /** Names of the driver's action bar messages (lang keys yasu_ride.message.<name>). */
@@ -533,6 +560,41 @@ export function cargoCells(pose: HoldPose): Vec3[] {
   );
 }
 
+/** The ground-layer cells under the front end wall: the bumper's row (ADR 0116, 0119). */
+function bumperCells(pose: HoldPose): Vec3[] {
+  const cells: Vec3[] = [];
+  for (let lx = -HALF_X; lx <= HALF_X; lx++)
+    cells.push(cellAt(pose, lx, WALL_Z, 0));
+  return cells;
+}
+
+/**
+ * Where parking accepts more than air and plants, by cell key (ADR 0119): `ground` holds the
+ * floor cells, the door step and the exit's feet, where natural ground may rise, and `bumper`
+ * the wall feet in the bumper's row, whose plants are cleared even without an upper half.
+ */
+export interface ParkGround {
+  readonly ground: ReadonlySet<string>;
+  readonly bumper: ReadonlySet<string>;
+}
+
+const NO_PARK_GROUND: ParkGround = { ground: new Set(), bumper: new Set() };
+
+export function parkGround(pose: HoldPose): ParkGround {
+  const ground = roomCells(pose, false)
+    .filter((c) => c.y === pose.y)
+    .map(cellKey);
+  const exitFeet = cellAt(pose, EXIT.x, EXIT.z, EXIT_LAYERS[0]);
+  return {
+    ground: new Set([...ground, cellKey(exitFeet)]),
+    bumper: new Set(bumperCells(pose).map(cellKey)),
+  };
+}
+
+function isNaturalGround(typeId: string | undefined): boolean {
+  return typeId !== undefined && NATURAL_GROUND.has(typeId);
+}
+
 /** Layer-zero wall roots are read for matching plants, never to refuse parking. */
 export function wallFootCells(pose: HoldPose): Vec3[] {
   return roomCells(pose, false)
@@ -540,15 +602,23 @@ export function wallFootCells(pose: HoldPose): Vec3[] {
     .map(({ x, y, z }) => ({ x, y: y - 1, z }));
 }
 
-/** The decorations to remove, top layer first, or undefined when any cell refuses parking. */
+/**
+ * The decorations to remove, top layer first, or undefined when any cell refuses parking.
+ * Natural ground in a `ground` cell is left as it is: the dock lays no block over it
+ * (ADR 0119).
+ */
 export function planPark(
   cells: readonly Vec3[],
   types: readonly (string | undefined)[],
   feet: readonly Vec3[] = [],
   footTypes: readonly (string | undefined)[] = [],
+  spots: ParkGround = NO_PARK_GROUND,
 ): ClearCell[] | undefined {
-  if (cells.some((_, i) => !isPassable(types[i]))) return undefined;
-  return parkDecorations(cells, types, feet, footTypes);
+  const refuses = (cell: Vec3, typeId: string | undefined) =>
+    !isPassable(typeId) &&
+    !(isNaturalGround(typeId) && spots.ground.has(cellKey(cell)));
+  if (cells.some((cell, i) => refuses(cell, types[i]))) return undefined;
+  return parkDecorations(cells, types, feet, footTypes, spots);
 }
 
 /** Clears only decorations even if a restored unlaid room now has a blocking cell. */
@@ -557,6 +627,7 @@ export function parkDecorations(
   types: readonly (string | undefined)[],
   feet: readonly Vec3[],
   footTypes: readonly (string | undefined)[],
+  spots: ParkGround = NO_PARK_GROUND,
 ): ClearCell[] {
   const clear: ClearCell[] = [];
   for (const [i, cell] of cells.entries()) {
@@ -567,8 +638,12 @@ export function parkDecorations(
   const upperTypes = new Map(clear.map((c) => [cellKey(c), c.typeId]));
   for (const [i, cell] of feet.entries()) {
     const typeId = footTypes[i];
+    if (typeId === undefined) continue;
+    // A plant in the bumper's row would take the taps meant for the stand-in (ADR 0119).
+    const bumperPlant =
+      CLEARABLE_DECORATIONS.has(typeId) && spots.bumper.has(cellKey(cell));
     if (
-      typeId !== undefined &&
+      bumperPlant ||
       upperTypes.get(cellKey({ ...cell, y: cell.y + 1 })) === typeId
     )
       clear.push({ ...cell, typeId });

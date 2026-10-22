@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { forward, leftOf } from "../../../src/domain/shared/vec";
 import {
+  liftStandIn,
   nearestAxis,
   type StandInAxis,
   type StandInRule,
@@ -170,5 +171,36 @@ describe("standInPose", () => {
     const pose = standInPose(RULE, { x: 10.5, y: 64, z: -20.5 }, y, "x");
     expect(pose.x).toBe(10.5 + offset.x);
     expect(pose.z).toBe(-20.5 + offset.z);
+  });
+});
+
+describe("liftStandIn (ADR 0119)", () => {
+  it("rises by the solid layers counted from the feet up, never past maxLift, and reads no layer past the first open one", () => {
+    fc.assert(
+      fc.property(
+        point,
+        axis,
+        fc.array(fc.boolean(), { minLength: 0, maxLength: 6 }),
+        fc.integer({ min: 0, max: 4 }),
+        (at, a, solid, maxLift) => {
+          const pose = { ...at, name: "probe", axis: a };
+          const read: number[] = [];
+          const lifted = liftStandIn(pose, maxLift, (layer) => {
+            read.push(layer);
+            return solid[layer] ?? false;
+          });
+          const open = solid.indexOf(false);
+          const solidRun = open === -1 ? solid.length : open;
+          const lift = Math.min(solidRun, maxLift);
+          // With no lift the pose comes back as is, so a y of -0 stays -0.
+          expect(lifted).toEqual(
+            lift === 0 ? pose : { ...pose, y: at.y + lift },
+          );
+          expect(read).toEqual(
+            Array.from({ length: Math.min(lift + 1, maxLift) }, (_, i) => i),
+          );
+        },
+      ),
+    );
   });
 });

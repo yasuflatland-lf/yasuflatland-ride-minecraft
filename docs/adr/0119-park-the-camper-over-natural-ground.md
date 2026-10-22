@@ -1,0 +1,32 @@
+# 0119. Park the camper over natural ground, and lift its bumper stand-in out of it
+
+- Status: Proposed (to be Accepted once the iPad check under Consequences passes)
+- Date: 2026-10-22
+- Extends: 0068 (the parking check and the plants it clears), 0116 (the bumper stand-in)
+
+## Context
+
+Issue #456, from an iPad on the dev BDS: a camper stopped on grassland never parked, no room blocks were laid, and the player could not get back in. On bare, flat ground it parks.
+
+1. Parking reads 168 cells, plus the 19 wall feet, once per stop (0068), and refuses if any checked cell holds anything other than air or a plant on the clear list. The driver sees "Can't park here" once on the action bar, and the camper does not try again until it moves.
+2. The camper rests on a 3 x 4 collision box, but its room is 5 x 9 cells plus the exit cell, with the floor at the feet layer. The end guard ignores layers 0 and 1 in car form, since the step probe climbs them (0067), so the 3.7-block nose can stop over a rise of one or two blocks. A grass or dirt block one block above the feet in a floor cell outside the collision box, in the door step, or at the exit's feet refused parking, which happens easily on natural grassland.
+3. Several plants that grow on their own were missing from the clear list: mushrooms, sweet berry bushes, firefly bushes, golden dandelions, eyeblossoms, and moss carpets. Saplings (one is in the dev world), torchflowers, and pitcher plants were missing too, but players plant those.
+4. Since 0116 the bumper stand-in is the only way into a camper that is not parked. It stands at the camper's feet height, so its 1 x 1 x 1 boxes fill the ground-level cells in front of the bumper. A grass block rising there buries the boxes, so no tap reaches them. A plant there may also take the tap first. A parked camper is boarded through its deck seats, which is why the two symptoms appeared together.
+
+The dev world (superflat plains) shows a camper parked on flat `grass_block` with its room laid, so a flat grass surface with listed plants parks. The cause had to be a cell holding something else. It was not reproduced in game before this change.
+
+## Decision
+
+- **Natural ground in the floor.** `NATURAL_GROUND` in `kinds/camper/room.ts` lists the full natural ground blocks: `grass_block`, `dirt`, `coarse_dirt`, `podzol`, `mycelium`, `dirt_with_roots`, `moss_block`, and `pale_moss_block`. Parking accepts one in a ground cell: the 21 floor cells, the door step, and the exit's feet (`parkGround`). Its top is flush with the floor top, so it stays in place as floor. It is neither cleared nor covered: the dock already skips a non-air cell when it lays, and departure clears only the cells it laid, so nothing is destroyed or needs restoring. Natural ground at the exit's feet makes departure find the exit not clear, as any other block there does. Natural ground anywhere else (a wall, the interior, the roof, the exit's head) still refuses, because a room cannot be built into a hillside.
+- **More plants are cleared.** The clear list gains the ground cover that grows on its own: `golden_dandelion`, `open_eyeblossom`, `closed_eyeblossom`, `brown_mushroom`, `red_mushroom`, `sweet_berry_bush`, `firefly_bush`, `moss_carpet`, and `pale_moss_carpet`. Saplings, torchflowers, and pitcher plants stay off it, since refusing is better than silently destroying what a player planted. As in 0068, cleared plants are not put back.
+- **The bumper's row is cleared of plants.** When the camper parks, a plant on the clear list in one of the three wall feet under the front end wall, the bumper's row, is cleared even without a matching upper half, so it cannot take the taps meant for the stand-in. Other wall feet still clear only below a cleared upper half (0068).
+- **The stand-in rises out of the ground.** A stand-in rule takes an optional `maxLift`, set to `CAMPER_SPEC.bumperMaxLift` (2, the two layers the step probe climbs) for the camper. Each tick, `liftStandIn` raises the stand-in by the number of solid layers, counted from its feet up, in its middle box's cell, at most `maxLift`. It reads them with the drive's `solidAt`. Plants have no collision box, so they lift nothing. While the camper is held parked, the stand-in stands in the front end wall's column, and `solidAt` counts a cell under another block as solid, so the dock's wall blocks would read as more ground. The rule's `parkedMaxLift` (`CAMPER_SPEC.bumperParkedMaxLift`, 1) caps the lift there, since parking accepts ground only in the wall's foot. The SUV and the sports boat have no rule, and a camper on flat ground is unchanged.
+
+## Consequences
+
+- A camper parks on natural, uneven grassland wherever its floor meets the ground at most flush with the floor top. The raised blocks show as grass or dirt inside the room, and a player can stand on them. Breaking one while parked opens a hole, which the dock fills with a floor block as it would any lost floor cell (0096). That block goes away on departure.
+- A camper whose nose stops over a one- or two-block rise has its bumper boxes on the body above the rise, where a tap can reach them.
+- Each tick the camper reads up to two more cells with `solidAt`. A floor cell holding ground is offered to the dock every tick and skipped, which costs one block read per such cell.
+- Not covered: a rise in the interior above the floor, the walls, or the roof still refuses parking, and a plant in the bumper's row still takes taps while the camper is not parked. A double plant (tall grass, a large fern) on a rise in the bumper's middle cell reads its lower half as solid, for the same reason, so a camper that is not parked lifts its stand-in one block more there. Carpets and snow layers do not lift it: the downward ray passes through them (0035).
+- The in-game test `camper_park_grass` parks over a grass block in a front floor corner and one in the bumper's middle cell, among short grass and a mushroom, and expects 104 laid room cells, the plants cleared, both grass blocks kept, and the stand-in one block up.
+- Check on the iPad before this ADR is Accepted: on natural grassland with tall grass and a rise near the front, stop the camper and confirm it parks, then get out, long-press the front bumper of a camper that did not park (on a rise and on flat grass), and confirm you get back in. The second step is also the check of 0116's "long-press it to get in", which has not been done yet.

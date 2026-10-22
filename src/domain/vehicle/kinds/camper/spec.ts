@@ -31,6 +31,12 @@ export const CAMPER_SPEC = Object.freeze({
   // Degrees past the 45-degree line before a turning camper's bumper stand-in swaps to the
   // other row axis, so steering along a diagonal does not respawn it every tick (ADR 0116)
   bumperTurnMargin: 5,
+  // The car form's step probe climbs layers 0 and 1, so the nose can stop over a rise of up
+  // to two blocks; the stand-in rises over that much ground under its middle box (ADR 0119)
+  bumperMaxLift: 2,
+  // Parked, the middle box stands in the front end wall's column: parking accepts ground
+  // only in its foot, and the dock's wall blocks above would read as more ground (ADR 0119)
+  bumperParkedMaxLift: 1,
   // The camper's own hitbox: a cube this wide and high on its feet, inside the parked floor
   // block under its center, so no tap reaches the camper itself (ADR 0116)
   hiddenHitboxSize: 0.1,
