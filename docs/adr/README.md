@@ -124,6 +124,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0118](0118-close-the-camper-shower-door-from-either-side.md) | Close the camper shower door from either side | Accepted |
 | [0119](0119-park-the-camper-over-natural-ground.md) | Park the camper over natural ground, and lift its bumper stand-in out of it | Proposed |
 | [0121](0121-doored-storage-in-the-camper.md) | Doored storage in the camper | Accepted |
+| [0121](0121-a-low-chair-to-sit-on-outside-the-vehicles.md) | A low chair to sit on outside the vehicles | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 
