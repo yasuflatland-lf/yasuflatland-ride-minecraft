@@ -14,6 +14,8 @@ import {
 } from "../../src/infrastructure/vehicle/bedrock/identifiers";
 import { jsonFiles } from "../support/packFiles";
 
+const MAX_ENTITY_PROPERTIES = 32;
+
 const animations = new Set(
   jsonFiles("packs/yasu_ride_rp/animations").flatMap((file) =>
     Object.keys(file.animations ?? {}),
@@ -55,5 +57,9 @@ it.each(VEHICLE_KINDS)(
     }
     for (const name of contract.restored)
       expect(contract.properties).toHaveProperty(name);
+    // An entity declares at most 32 properties; the fridge doors took the camper to 13 (ADR 0123).
+    expect(
+      Object.keys(entity.description.properties).length,
+    ).toBeLessThanOrEqual(MAX_ENTITY_PROPERTIES);
   },
 );

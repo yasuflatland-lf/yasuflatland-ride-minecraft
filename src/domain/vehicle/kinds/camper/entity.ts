@@ -17,6 +17,8 @@ export const CAMPER_ENTITY = {
     shower: { type: "bool" },
     cabinet_sink_door: { type: "float", range: [0, 1] },
     cabinet_stove_door: { type: "float", range: [0, 1] },
+    fridge_top_door: { type: "float", range: [0, 1] },
+    fridge_bottom_door: { type: "float", range: [0, 1] },
     ceiling_lights: { type: "bool" },
   },
   events: [...TRANSFORMING_EVENTS, ...DOCK_EVENTS],
@@ -28,6 +30,8 @@ export const CAMPER_ENTITY = {
     "shower_door",
     "cabinet_sink_door",
     "cabinet_stove_door",
+    "fridge_top_door",
+    "fridge_bottom_door",
     "ceiling_lights",
   ],
 } as const satisfies EntityContract;
@@ -51,11 +55,13 @@ export function showerCommand(on: boolean): EngineCommand {
 
 /**
  * The entity property that swings each storage door: 0 is shut, 1 is open into the aisle
- * (ADR 0114, 0121). A new door fails to compile here until its property is declared.
+ * (ADR 0114, 0121, 0123). A new door fails to compile here until its property is declared.
  */
 export const STORAGE_DOOR_PROPERTY = {
   sink: "cabinet_sink_door",
   stove: "cabinet_stove_door",
+  fridge_top: "fridge_top_door",
+  fridge_bottom: "fridge_bottom_door",
 } as const satisfies Record<
   StorageDoorId,
   keyof typeof CAMPER_ENTITY.properties

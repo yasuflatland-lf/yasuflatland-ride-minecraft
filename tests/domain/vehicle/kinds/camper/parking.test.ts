@@ -20,6 +20,7 @@ import {
   slotsFor,
 } from "../../../../../src/domain/vehicle/kinds/camper/decorPlacing";
 import { CamperDrive } from "../../../../../src/domain/vehicle/kinds/camper/drive";
+import { STORAGE_DOORS } from "../../../../../src/domain/vehicle/kinds/camper/furniture";
 import {
   AIR,
   CLEARABLE_DECORATIONS,
@@ -36,6 +37,7 @@ import {
   parkPose,
   roomCells,
   slotCells,
+  storagePlateChecks,
   wallFootCells,
 } from "../../../../../src/domain/vehicle/kinds/camper/room";
 import { CAMPER_SPEC } from "../../../../../src/domain/vehicle/kinds/camper/spec";
@@ -44,6 +46,10 @@ import { DOCK } from "../../../../../src/domain/vehicle/motion/dock";
 import { defined } from "../../../../support/defined";
 
 const PUSH = { moveX: 0, moveY: 1, jump: false };
+// The fridge's plate cells in the inside layers, read on departure after the slot cells
+// (ADR 0121, 0123).
+const insidePlates = (pose: Parameters<typeof storagePlateChecks>[0]) =>
+  storagePlateChecks(pose, STORAGE_DOORS).map(({ cell }) => cell);
 const NEUTRAL = { moveX: 0, moveY: 0, jump: false };
 const decorItem = fc.constantFrom("potted_plant", "percolator", "cushion");
 // At most one placement per slot cell, as the drive keeps it (ADR 0107).
@@ -61,7 +67,7 @@ const cellOf = (slot: string) => {
   const cell = decorSlot(slot)?.cell;
   return cell && `${cell.x},${cell.z},${cell.layer}`;
 };
-// Where a slot's item goes: its cell, or its own end on a shelf board or the table (ADR 0108).
+// Where a slot's item goes: its cell, or its own end on the table or in a compartment (ADR 0108).
 const placeOf = (slot: string) => (decorSlot(slot)?.pair ? slot : cellOf(slot));
 const slotNamed = (id: string) =>
   defined(
@@ -287,13 +293,14 @@ it("departs on the stick press, undocks before properties, and boards deck rider
   expect(f.blockTypes).toHaveBeenLastCalledWith([
     ...cargoCells(f.pose),
     ...slotCells(f.pose),
+    ...insidePlates(f.pose),
     ...exitCells(f.pose),
   ]);
 });
 
 it("refuses cargo only on each press and requires a new press after cargo is cleared", () => {
   fc.assert(
-    fc.property(fc.integer({ min: 0, max: 48 }), (index) => {
+    fc.property(fc.integer({ min: 0, max: 46 }), (index) => {
       const f = fixture();
       f.park();
       const cell = defined(cargoCells(f.pose)[index], "cargo cell");
@@ -431,6 +438,7 @@ it("checks both exit cells before parking and leaves overflow standing when the 
         expect(f.blockTypes).toHaveBeenLastCalledWith([
           ...cargoCells(f.pose),
           ...slotCells(f.pose),
+          ...insidePlates(f.pose),
           ...exitCells(f.pose),
         ]);
         expect(f.blockTypes.mock.calls.at(-1)?.[0]).toHaveLength(63);
@@ -598,6 +606,7 @@ it("departs past its own decor blocks and refuses any other block in a slot cell
   expect(f.blockTypes.mock.calls.at(-1)?.[0]).toEqual([
     ...cargoCells(f.pose),
     ...slotCells(f.pose),
+    ...insidePlates(f.pose),
     ...exitCells(f.pose),
   ]);
   expect(f.blockTypes.mock.calls.at(-1)?.[0]).toHaveLength(63);
@@ -831,11 +840,11 @@ it("places the item in the pressed slot ahead of a nearer free slot (ADR 0097)",
   expect(
     f.drive.decorSlotFor(
       "potted_plant",
-      slotPoint(f.pose, slotNamed("shelf_low")),
-      decorSlotCell(f.pose, slotNamed("shelf_high")),
+      slotPoint(f.pose, slotNamed("dashboard_center")),
+      decorSlotCell(f.pose, slotNamed("dashboard_left")),
       false,
     ),
-  ).toBe("shelf_high");
+  ).toBe("dashboard_left");
 });
 
 it("puts the stove item on its one burner and takes no second item while it holds one (ADR 0107, 0112)", () => {
@@ -909,15 +918,11 @@ it("loads decor saved on a removed stove burner slot onto the stove (ADR 0112)",
   );
 });
 
-it("holds two items on each shelf board and the table: a press on its cell sends the next item to the free end, one pair block draws both, an empty-hand press takes back the end nearest the press, and the camper departs past the pair block (ADR 0108)", () => {
+it("holds two items on the table: a press on its cell sends the next item to the free end, one pair block draws both, an empty-hand press takes back the end nearest the press, and the camper departs past the pair block (ADR 0108)", () => {
   fc.assert(
     fc.property(
       fc.constantFrom(0, 90, 180, -90),
-      fc.constantFrom(
-        ["shelf_low", "shelf_low_front"],
-        ["shelf_high", "shelf_high_front"],
-        ["table", "table_aisle"],
-      ),
+      fc.constantFrom(["table", "table_aisle"]),
       fc.boolean(),
       (yaw, ends, swap) => {
         const f = fixture(undefined, yaw);

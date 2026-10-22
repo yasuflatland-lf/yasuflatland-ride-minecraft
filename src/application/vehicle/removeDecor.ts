@@ -9,7 +9,7 @@ export interface RemoveDecorCommand {
   vehicleId: VehicleId;
   /** The world cell of the decor block. */
   cell: Vec3;
-  /** Where the press hit the block and the player's eye, to tell the two items of a shelf board or the table apart (ADR 0108, 0110). */
+  /** Where the press hit the block and the player's eye, to tell the two items of the table apart (ADR 0108, 0110). */
   point?: Vec3;
   eye?: Vec3;
 }

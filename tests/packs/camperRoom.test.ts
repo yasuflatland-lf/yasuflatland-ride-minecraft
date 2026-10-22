@@ -6,10 +6,12 @@ import { CAMPER_SPEC } from "../../src/domain/vehicle/kinds/camper/spec";
 import {
   CAMPER_BED_BLOCK,
   CAMPER_BED_COMPONENT,
+  CAMPER_CABINET_COMPONENT,
   CAMPER_CEILING_BLOCK,
   CAMPER_DOOR_BLOCK,
   CAMPER_DOOR_COMPONENT,
   CAMPER_FLOOR_BLOCK,
+  CAMPER_FRIDGE_DOOR_BLOCK,
   CAMPER_FURNITURE_BLOCK,
   CAMPER_SHOWER_DOOR_BLOCK,
   CAMPER_SHOWER_TOILET_BLOCK,
@@ -17,6 +19,7 @@ import {
   CAMPER_WALL_BLOCK,
   DECOR_HEIGHT_STATE,
   ROOM_FACE_STATE,
+  ROOM_LIT_STATE,
   ROOM_OPEN_STATE,
 } from "../../src/infrastructure/vehicle/bedrock/identifiers";
 
@@ -38,6 +41,7 @@ const customComponents: Record<string, string[]> = {
   bed: [CAMPER_BED_COMPONENT],
   shower_toilet: [CAMPER_SHOWER_TOILET_COMPONENT],
   shower_door: [CAMPER_SHOWER_TOILET_COMPONENT],
+  fridge_door: [CAMPER_CABINET_COMPONENT],
 };
 
 describe("Camper room blocks (ADR 0068)", () => {
@@ -50,6 +54,7 @@ describe("Camper room blocks (ADR 0068)", () => {
     ["furniture", CAMPER_FURNITURE_BLOCK],
     ["shower_toilet", CAMPER_SHOWER_TOILET_BLOCK],
     ["shower_door", CAMPER_SHOWER_DOOR_BLOCK],
+    ["fridge_door", CAMPER_FRIDGE_DOOR_BLOCK],
   ])(
     "defines an invisible, indestructible %s with the script's identifier",
     (name, identifier) => {
@@ -95,6 +100,29 @@ describe("Camper room blocks (ADR 0068)", () => {
       expect(block.components["minecraft:selection_box"]).toEqual(box);
     },
   );
+
+  it("defines a collisionless fridge door plate selectable on its face's side of the cell, the full cell high, giving a light block's glow only while lit (ADR 0115, 0123)", () => {
+    const block = readBlock("fridge_door")["minecraft:block"];
+    expect(block.description.states).toEqual({
+      [ROOM_FACE_STATE]: [0, 1, 2, 3],
+      [ROOM_LIT_STATE]: [false, true],
+    });
+    expect(block.components["minecraft:collision_box"]).toBe(false);
+    expect(block.components).not.toHaveProperty("minecraft:selection_box");
+    expect(block.components).not.toHaveProperty("minecraft:light_emission");
+    expect(block.permutations).toEqual(
+      wallPlates.flatMap((plate, face) =>
+        [false, true].map((lit) => ({
+          condition: `q.block_state('${ROOM_FACE_STATE}') == ${face} && q.block_state('${ROOM_LIT_STATE}') == ${lit}`,
+          components: {
+            "minecraft:selection_box": plate,
+            // minecraft:light_block_15, the ceiling light it stands in for, gives 15.
+            "minecraft:light_emission": lit ? 15 : 0,
+          },
+        })),
+      ),
+    );
+  });
 
   it("defines a collisionless furniture block with one selection box per slot height (ADR 0097)", () => {
     const block = readBlock("furniture")["minecraft:block"];

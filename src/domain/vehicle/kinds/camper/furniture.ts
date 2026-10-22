@@ -13,7 +13,7 @@ type FurnitureKind =
   | "table"
   | "dinette_seat"
   | "bed"
-  | "shelf"
+  | "fridge"
   | "stove"
   | "counter"
   | "ceiling_hook"
@@ -36,18 +36,25 @@ type DecorPairKind =
   | StoragePairKind;
 
 /** The pair kind of a storage compartment, whose block compartmentCells lays (ADR 0114, 0121). */
-type StoragePairKind = "cabinet";
+type StoragePairKind = "cabinet" | "fridge";
 
 /** The blocks a storage compartment lays; a new unit adds its own here (ADR 0121). */
-export type StorageCompartmentBlock = Extract<DockBlock, { type: "cabinet" }>;
+export type StorageCompartmentBlock = Extract<
+  DockBlock,
+  { type: "cabinet" | "fridge" }
+>;
 /** The blocks an open storage door's plate lays; a new unit adds its own here (ADR 0121). */
-export type StoragePlateBlock = Extract<DockBlock, { type: "cabinetDoor" }>;
+export type StoragePlateBlock = Extract<
+  DockBlock,
+  { type: "cabinetDoor" | "fridgeDoor" }
+>;
 
 /**
  * A door of the camper's storage (ADR 0121): a wall cabinet door, named after what its
- * compartment hangs over (ADR 0114). Each needs an entity property (entity.ts STORAGE_DOOR_PROPERTY).
+ * compartment hangs over (ADR 0114), or a fridge door, the shorter top one or the taller
+ * bottom one (ADR 0123). Each needs an entity property (entity.ts STORAGE_DOOR_PROPERTY).
  */
-export type StorageDoorId = "sink" | "stove";
+export type StorageDoorId = "sink" | "stove" | "fridge_top" | "fridge_bottom";
 
 /** One end of a furniture that holds two items in one cell (ADR 0108). */
 interface DecorPairEnd {
@@ -210,12 +217,78 @@ export const WALL_CABINET: DooredStorage<StorageDoorId, StoragePairKind> = {
   plateBlockName: "camper_cabinet_door",
 };
 
+// The fridge stands where the two-board shelf stood, behind the driver, its two compartments
+// in the shelf's two cells (ADR 0123).
+const FRIDGE_BOTTOM_CELL = {
+  x: -1,
+  z: 1,
+  layer: 1,
+} as const satisfies LocalCell;
+const FRIDGE_TOP_CELL = { x: -1, z: 1, layer: 2 } as const satisfies LocalCell;
+// The compartment floors' tops above their cells' bottoms, in pixels: the bottom panel tops at
+// model y 19, over the front wheel arch, and the divider between the compartments at 36
+// (tools/gen_camper.py FRIDGE_FLOOR_Y and FRIDGE_DIVIDER_Y, ADR 0123).
+const FRIDGE_BOTTOM_HEIGHT = 3;
+const FRIDGE_TOP_HEIGHT = 4;
+
+// Both doors hang on the fridge's front end, toward the cab, so an open one stands across the
+// aisle cell beside the fridge, against the front seats' backs, and leaves the way from the
+// entry door to the compartments free. The top door's plate takes the front ceiling light's
+// cell and gives its light while the lights are on (tools/gen_camper.py, ADR 0115, 0123).
+export const FRIDGE: DooredStorage<StorageDoorId, StoragePairKind> = {
+  pairKind: "fridge",
+  doors: [
+    {
+      id: "fridge_bottom",
+      compartment: FRIDGE_BOTTOM_CELL,
+      plate: {
+        x: 0,
+        z: FRIDGE_BOTTOM_CELL.z,
+        layer: FRIDGE_BOTTOM_CELL.layer,
+      },
+      hinge: 1,
+      slots: compartmentSlots(
+        "fridge",
+        "fridge_bottom",
+        FRIDGE_BOTTOM_CELL,
+        FRIDGE_BOTTOM_HEIGHT,
+        ["fridge_bottom_rear", "fridge_bottom_front"],
+      ),
+    },
+    {
+      id: "fridge_top",
+      compartment: FRIDGE_TOP_CELL,
+      plate: { x: 0, z: FRIDGE_TOP_CELL.z, layer: FRIDGE_TOP_CELL.layer },
+      hinge: 1,
+      slots: compartmentSlots(
+        "fridge",
+        "fridge_top",
+        FRIDGE_TOP_CELL,
+        FRIDGE_TOP_HEIGHT,
+        ["fridge_top_rear", "fridge_top_front"],
+      ),
+    },
+  ],
+  // The compartment block's height state lifts it onto the compartment floor.
+  compartmentBlock: ({ face, open, height, end0, end1 }) => ({
+    type: "fridge",
+    face,
+    height,
+    open,
+    ...(end0 === undefined ? {} : { end0 }),
+    ...(end1 === undefined ? {} : { end1 }),
+  }),
+  plateBlock: ({ face, lit }) => ({ type: "fridgeDoor", face, lit }),
+  // The namespace-free name of yasu_ride:camper_fridge_door; identifiers.test.ts checks it.
+  plateBlockName: "camper_fridge_door",
+};
+
 // The units of storage with doors, in the order their doors swing and homeless saved decor
 // fills them (ADR 0121).
 export const CAMPER_STORAGE: readonly DooredStorage<
   StorageDoorId,
   StoragePairKind
->[] = [WALL_CABINET];
+>[] = [WALL_CABINET, FRIDGE];
 
 const STORAGE_PAIR_KINDS: ReadonlySet<DecorPairKind> = new Set(
   CAMPER_STORAGE.map(({ pairKind }) => pairKind),
@@ -235,15 +308,14 @@ export const STORAGE_DOORS: readonly StorageDoor<StorageDoorId>[] =
 // The two ceiling light panels hang over the aisle, one between the front seats and the
 // dinette and one in front of the shower-toilet door, clear of the open cabinet doors at
 // z -1 and -2 (tools/gen_camper.py CEILING_LIGHT_ZS). Each lights the cell under it, in
-// layer 2 below the ceiling layer, which no furniture, decor slot or plate fills (ADR 0115).
+// layer 2 below the ceiling layer, which no furniture or decor slot fills. The open fridge top
+// door's plate takes the front light's cell and gives its light (ADR 0115, 0123).
 export const CEILING_LIGHTS: readonly LocalCell[] = [
   { x: 0, z: 1, layer: 2 },
   { x: 0, z: -3, layer: 2 },
 ];
 
 const TABLE_CELL = { x: 1, z: 0, layer: 1 } as const satisfies LocalCell;
-const SHELF_LOW_CELL = { x: -1, z: 1, layer: 1 } as const satisfies LocalCell;
-const SHELF_HIGH_CELL = { x: -1, z: 1, layer: 2 } as const satisfies LocalCell;
 
 // Slot heights are the furniture's top at the slot's spot in tools/gen_camper.py, or, for
 // a hanging slot, 16 minus the hanging items' height; tests/packs/camper.test.ts checks them
@@ -305,42 +377,6 @@ export const CAMPER_FURNITURE: readonly Furniture[] = [
     slots: [],
     block: { type: "bed" },
   },
-  // Two items along each board, drawn by one pair block per board. The rear ends keep the
-  // boards' ids for saved decor (ADR 0108).
-  {
-    kind: "shelf",
-    cells: [SHELF_LOW_CELL, SHELF_HIGH_CELL],
-    slots: [
-      {
-        id: "shelf_low",
-        cell: SHELF_LOW_CELL,
-        height: 10,
-        spot: 5,
-        pair: { kind: "shelf", end: 0 },
-      },
-      {
-        id: "shelf_low_front",
-        cell: SHELF_LOW_CELL,
-        height: 10,
-        spot: 6,
-        pair: { kind: "shelf", end: 1 },
-      },
-      {
-        id: "shelf_high",
-        cell: SHELF_HIGH_CELL,
-        height: 4,
-        spot: 5,
-        pair: { kind: "shelf", end: 0 },
-      },
-      {
-        id: "shelf_high_front",
-        cell: SHELF_HIGH_CELL,
-        height: 4,
-        spot: 6,
-        pair: { kind: "shelf", end: 1 },
-      },
-    ],
-  },
   // The sink is in front of the stove, as on the real range (ADR 0100). The stove's one burner
   // is in the middle of its cell; height 15 stands the item on the burner grate, whose prongs
   // reach 14.95 px (ADR 0107, 0112).
@@ -376,5 +412,8 @@ export const CAMPER_FURNITURE: readonly Furniture[] = [
   // Two items along each compartment, at the shelf boards' end spots, behind the
   // compartment's door. Storage is listed last, in CAMPER_STORAGE order, so that saved decor
   // that loses its slot fills every open spot before a closed compartment (ADR 0103, 0114, 0121).
+  // Decor saved on the shelf boards the fridge replaced loads in the compartment in the same
+  // place (decor.ts savedSlotId, ADR 0123).
   { kind: "wall_cabinet", ...storageFurniture(WALL_CABINET) },
+  { kind: "fridge", ...storageFurniture(FRIDGE) },
 ];

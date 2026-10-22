@@ -48,7 +48,9 @@ export type DockBlock =
   /**
    * The two items of a shelf board or the table laid as yasu_ride:<pair>_decor_pair, one block
    * that draws both: `end0` and `end1` are the items at its two ends, at least one of them
-   * set; `face` and `height` are as on a decor block (ADR 0108).
+   * set; `face` and `height` are as on a decor block (ADR 0108). The camper lays no shelf pair
+   * since the fridge took the shelf's place; one an older build laid is still read from the
+   * saved cells, so the next lay replaces it (ADR 0123).
    */
   | {
       readonly type: "decorPair";
@@ -71,7 +73,25 @@ export type DockBlock =
       readonly end1?: string;
     }
   /** An open cabinet door, a plate on side `face` of its aisle cell under the ceiling (ADR 0114). */
-  | { readonly type: "cabinetDoor"; readonly face: Face };
+  | { readonly type: "cabinetDoor"; readonly face: Face }
+  /**
+   * One compartment of the camper's fridge, laid as yasu_ride:fridge_decor_pair whether or not
+   * it holds anything: as a cabinet compartment, lifted by `height` px, its compartment
+   * floor (ADR 0123).
+   */
+  | {
+      readonly type: "fridge";
+      readonly face: Face;
+      readonly height: number;
+      readonly open: boolean;
+      readonly end0?: string;
+      readonly end1?: string;
+    }
+  /**
+   * An open fridge door, a plate on side `face` of its aisle cell, without collision. `lit`
+   * while the ceiling light whose cell it takes is on, so it gives that light (ADR 0115, 0123).
+   */
+  | { readonly type: "fridgeDoor"; readonly face: Face; readonly lit: boolean };
 
 export interface DockCell extends Cell {
   readonly block: DockBlock;
@@ -93,6 +113,17 @@ export function sameBlock(a: DockBlock, b: DockBlock): boolean {
       return b.type === "cabinetDoor" && a.face === b.face;
     case "showerDoor":
       return b.type === "showerDoor" && a.face === b.face;
+    case "fridgeDoor":
+      return b.type === "fridgeDoor" && a.face === b.face && a.lit === b.lit;
+    case "fridge":
+      return (
+        b.type === "fridge" &&
+        a.face === b.face &&
+        a.height === b.height &&
+        a.open === b.open &&
+        a.end0 === b.end0 &&
+        a.end1 === b.end1
+      );
     case "cabinet":
       return (
         b.type === "cabinet" &&

@@ -31,7 +31,7 @@ import { defined } from "../../../../support/defined";
 
 const PUSH = { moveX: 0, moveY: 1, jump: false };
 const SWING = CAMPER_SPEC.doorSwingTicks;
-const DOORS: readonly StorageDoorId[] = ["sink", "stove"];
+const DOORS = ["sink", "stove"] as const satisfies readonly StorageDoorId[];
 const PROPERTY = {
   sink: "cabinet_sink_door",
   stove: "cabinet_stove_door",

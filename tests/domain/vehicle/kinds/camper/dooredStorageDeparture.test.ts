@@ -1,6 +1,5 @@
-// Departure of a camper whose storage adds a test-only unit shaped like the planned fridge,
-// with its plates in the room's inside layers: the drive reads those plate cells with
-// ownPlateBlock instead of as cargo (ADR 0121).
+// Departure of the camper with the fridge, whose plates stand in the room's inside layers: the
+// drive reads those plate cells with ownPlateBlock instead of as cargo (ADR 0121, 0123).
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import type { TickContext } from "../../../../../src/domain/vehicle/drive";
@@ -16,39 +15,6 @@ import {
 } from "../../../../../src/domain/vehicle/kinds/camper/room";
 import { cellKey } from "../../../../../src/domain/vehicle/lighting/headlights";
 import { DOCK } from "../../../../../src/domain/vehicle/motion/dock";
-
-vi.mock(
-  "../../../../../src/domain/vehicle/kinds/camper/furniture",
-  async (importOriginal) => {
-    const original =
-      await importOriginal<
-        typeof import("../../../../../src/domain/vehicle/kinds/camper/furniture")
-      >();
-    const { storageDoors } = await import(
-      "../../../../../src/domain/vehicle/kinds/camper/dooredStorage"
-    );
-    const door = (id: string, layer: number) => ({
-      id,
-      compartment: { x: -1, z: 1, layer },
-      plate: { x: 0, z: 1, layer },
-      hinge: 1 as const,
-      slots: [],
-    });
-    const fridgeLike = storageDoors<string>([
-      {
-        pairKind: "shelf",
-        doors: [door("fridge_top", 2), door("fridge_bottom", 1)],
-        compartmentBlock: ({ face, open }) => ({ type: "cabinet", face, open }),
-        plateBlock: ({ face }) => ({ type: "cabinetDoor", face }),
-        plateBlockName: "fridge_like_door",
-      },
-    ]);
-    return {
-      ...original,
-      STORAGE_DOORS: [...original.STORAGE_DOORS, ...fridgeLike],
-    };
-  },
-);
 
 const PUSH = { moveX: 0, moveY: 1, jump: false };
 const INSIDE_PLATES = storagePlateChecks(
@@ -79,10 +45,10 @@ function parked(yaw: number) {
   return { blocks, blockTypes, pose: parkPose(ctx.location, drive.yaw), step };
 }
 
-it("has the test-only unit's two plates in the inside layers", () => {
+it("has the fridge's two plates in the inside layers", () => {
   expect(INSIDE_PLATES.map(({ door }) => door.id)).toEqual([
-    "fridge_top",
     "fridge_bottom",
+    "fridge_top",
   ]);
 });
 
@@ -92,7 +58,7 @@ it("reads the inside plate cells between the slot and exit cells on departure, a
       fc.integer({ min: -180, max: 179 }),
       fc.nat({ max: INSIDE_PLATES.length - 1 }),
       fc.constantFrom(
-        "yasu_ride:fridge_like_door",
+        "yasu_ride:camper_fridge_door",
         "yasu_ride:camper_cabinet_door",
         "minecraft:stone",
         AIR,
@@ -110,7 +76,7 @@ it("reads the inside plate cells between the slot and exit cells on departure, a
           ...exitCells(f.pose),
         ]);
         const leaves =
-          typeId === AIR || typeId === "yasu_ride:fridge_like_door";
+          typeId === AIR || typeId === "yasu_ride:camper_fridge_door";
         expect(out.depart !== undefined).toBe(leaves);
         expect(out.message).toBe(leaves ? undefined : "clear_cargo");
       },

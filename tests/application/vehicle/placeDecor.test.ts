@@ -90,11 +90,11 @@ describe("PlaceDecor (ADR 0093, 0097)", () => {
       place.execute({
         ...cmd,
         item: "potted_plant",
-        point: slotPoint(pose, slot("shelf_low")),
-        cell: decorSlotCell(pose, slot("shelf_high")),
+        point: slotPoint(pose, slot("dashboard_center")),
+        cell: decorSlotCell(pose, slot("dashboard_left")),
       }),
     ).toBe(true);
-    expect(world.calls).toEqual(["saveDecor:car:shelf_high=potted_plant"]);
+    expect(world.calls).toEqual(["saveDecor:car:dashboard_left=potted_plant"]);
   });
 
   it("picks the slot along the line of sight from the player's eye (ADR 0110)", () => {

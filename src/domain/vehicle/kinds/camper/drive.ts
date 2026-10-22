@@ -330,7 +330,7 @@ export class CamperDrive extends TransformingDrive {
 
   /**
    * Takes back the item in the pressed cell, whichever of the cell's slots holds it (ADR 0107).
-   * A shelf board or the table may hold two, and the one nearest `point` is taken, measured
+   * The table may hold two, and the one nearest `point` is taken, measured
    * along the line of sight from `eye` as when placing (ADR 0108, 0110).
    */
   removeDecor(cell: Vec3, point?: Vec3, eye?: Vec3): string | undefined {

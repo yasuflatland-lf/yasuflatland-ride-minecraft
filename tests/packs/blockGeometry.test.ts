@@ -23,6 +23,7 @@ const INVISIBLE_BLOCKS = [
   "camper_ceiling",
   "camper_door",
   "camper_floor",
+  "camper_fridge_door",
   "camper_furniture",
   "camper_shower_door",
   "camper_shower_toilet",
@@ -124,7 +125,7 @@ describe("block geometries (ADR 0101)", () => {
       INVISIBLE_BLOCKS,
     );
     // Besides the hidden cube, only the pair blocks pick bones: the item at each end (ADR 0108),
-    // shown on the wall cabinet's only while its door is open (ADR 0114).
+    // shown on a storage compartment's only while its door is open (ADR 0114, 0123).
     const otherBoneVisibility = blocks.filter(
       ({ identifier, reference }) =>
         identifier !== HIDDEN_CUBE_GEOMETRY &&
@@ -150,6 +151,7 @@ const MIN_INSIDE_PX = 1;
 const MAX_REACH_PX = 30;
 const PAIR_BLOCKS = [
   "cabinet_decor_pair",
+  "fridge_decor_pair",
   "shelf_decor_pair",
   "table_decor_pair",
 ].map((name) => `blocks/yasu_ride/${name}.block.json`);
@@ -359,6 +361,23 @@ describe("block definitions BDS loads (ADR 0108)", () => {
       for (const [state, values] of Object.entries(description.states ?? {}))
         if (Array.isArray(values))
           expect(values.length, `${path} ${state}`).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  // A block state holds at most 16 values and a block fewer than 65,536 combinations of
+  // its states; the fridge's compartment block is the largest (ADR 0108, 0123).
+  it("lists at most 16 values in every enum state and keeps every block under 65,536 combinations of its states", () => {
+    for (const { path, block } of definitions) {
+      const description = block.description as {
+        states?: Record<string, unknown>;
+      };
+      let combinations = 1;
+      for (const [state, values] of Object.entries(description.states ?? {}))
+        if (Array.isArray(values)) {
+          expect(values.length, `${path} ${state}`).toBeLessThanOrEqual(16);
+          combinations *= values.length;
+        }
+      expect(combinations, path).toBeLessThan(65_536);
     }
   });
 

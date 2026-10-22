@@ -85,18 +85,18 @@ it("gives the shower-toilet its own block in both of its cells (ADR 0098)", () =
   ]);
 });
 
-it("lists the ten furniture kinds once each, in order, the wall cabinet last (ADR 0114)", () => {
+it("lists the ten furniture kinds once each, in order, the storage last: the wall cabinet, then the fridge (ADR 0114, 0121, 0123)", () => {
   expect(CAMPER_FURNITURE.map((f) => f.kind)).toEqual([
     "dashboard",
     "table",
     "dinette_seat",
     "bed",
-    "shelf",
     "stove",
     "counter",
     "ceiling_hook",
     "shower_toilet",
     "wall_cabinet",
+    "fridge",
   ]);
 });
 
@@ -112,10 +112,6 @@ it("keeps the saved slot ids, cells, and heights", () => {
     ["table_aisle", 1, 0, 1, 12],
     ["dinette_front", 1, 1, 1, 7],
     ["dinette_rear", 1, -1, 1, 7],
-    ["shelf_low", -1, 1, 1, 10],
-    ["shelf_low_front", -1, 1, 1, 10],
-    ["shelf_high", -1, 1, 2, 4],
-    ["shelf_high_front", -1, 1, 2, 4],
     ["stove", -1, -2, 1, 15],
     ["counter", -1, -1, 1, 14],
     ["ceiling_hook", 1, 0, 2, 6],
@@ -123,24 +119,28 @@ it("keeps the saved slot ids, cells, and heights", () => {
     ["cabinet_sink_front", -1, -1, 3, 3],
     ["cabinet_stove_rear", -1, -2, 3, 3],
     ["cabinet_stove_front", -1, -2, 3, 3],
+    ["fridge_bottom_rear", -1, 1, 1, 3],
+    ["fridge_bottom_front", -1, 1, 1, 3],
+    ["fridge_top_rear", -1, 1, 2, 4],
+    ["fridge_top_front", -1, 1, 2, 4],
   ]);
 });
 
-it("puts two slots behind each wall cabinet door, at the shelf boards' end spots, and no other slot behind a door (ADR 0114)", () => {
+it("puts two slots behind each storage door, at the shelf boards' end spots, and no other slot behind a door (ADR 0114, 0123)", () => {
   const slots = CAMPER_FURNITURE.flatMap((f) => f.slots);
-  for (const { id: door, compartment: cell } of STORAGE_DOORS) {
+  for (const { id: door, compartment: cell, unit } of STORAGE_DOORS) {
     const behind = slots.filter((s) => s.door === door);
     expect(behind.map((s) => s.spot)).toEqual([5, 6]);
     expect(behind.map((s) => s.pair)).toEqual([
-      { kind: "cabinet", end: 0 },
-      { kind: "cabinet", end: 1 },
+      { kind: unit.pairKind, end: 0 },
+      { kind: unit.pairKind, end: 1 },
     ]);
     for (const s of behind) expect(s.cell).toEqual(cell);
   }
-  expect(slots.filter((s) => s.door !== undefined)).toHaveLength(4);
+  expect(slots.filter((s) => s.door !== undefined)).toHaveLength(8);
 });
 
-it("swings each cabinet door into the aisle cell beside its compartment, hinged at the cabinet's outer ends (ADR 0114)", () => {
+it("swings each cabinet door into the aisle cell beside its compartment, hinged at the cabinet's outer ends, and both fridge doors into the aisle cell beside the fridge, hinged at its front end (ADR 0114, 0123)", () => {
   expect(
     STORAGE_DOORS.map(({ id, compartment, plate, hinge }) => ({
       id,
@@ -160,6 +160,18 @@ it("swings each cabinet door into the aisle cell beside its compartment, hinged 
       compartment: { x: -1, z: -2, layer: 3 },
       plate: { x: 0, z: -2, layer: 3 },
       hinge: -1,
+    },
+    {
+      id: "fridge_bottom",
+      compartment: { x: -1, z: 1, layer: 1 },
+      plate: { x: 0, z: 1, layer: 1 },
+      hinge: 1,
+    },
+    {
+      id: "fridge_top",
+      compartment: { x: -1, z: 1, layer: 2 },
+      plate: { x: 0, z: 1, layer: 2 },
+      hinge: 1,
     },
   ]);
 });

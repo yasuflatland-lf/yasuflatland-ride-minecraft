@@ -72,7 +72,7 @@ export function registerDecor(
           ev.block.location,
         );
         if (vehicleId === undefined) return;
-        // A shelf board's or the table's pair block draws two items, and the press takes
+        // The table's pair block draws two items, and the press takes
         // back the end nearest the pressed x and z (ADR 0108). Both ends stand at one
         // height, so y does not choose; and the eye is left out because this event's
         // faceLocation.y is unmeasured, while the placing event's comes inverted (ADR 0111).

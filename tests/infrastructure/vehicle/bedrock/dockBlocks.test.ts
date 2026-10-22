@@ -18,6 +18,7 @@ import {
   CAMPER_CEILING_BLOCK,
   CAMPER_DOOR_BLOCK,
   CAMPER_FLOOR_BLOCK,
+  CAMPER_FRIDGE_DOOR_BLOCK,
   CAMPER_FURNITURE_BLOCK,
   CAMPER_SHOWER_DOOR_BLOCK,
   CAMPER_SHOWER_TOILET_BLOCK,
@@ -33,6 +34,7 @@ import {
   pairDecorBlockId,
   pairEndStates,
   ROOM_FACE_STATE,
+  ROOM_LIT_STATE,
   ROOM_OPEN_STATE,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 import { defined } from "../../../support/defined";
@@ -359,6 +361,19 @@ const roomCells: DockCell[] = [
     z: 0,
     block: { type: "cabinet", face: 2, open: true, end1: "toaster" },
   },
+  { x: 11, y: 64, z: 0, block: { type: "fridgeDoor", face: 0, lit: true } },
+  {
+    x: 12,
+    y: 64,
+    z: 0,
+    block: {
+      type: "fridge",
+      face: 1,
+      height: 4,
+      open: false,
+      end0: "mug_pair",
+    },
+  },
 ];
 
 it("lays every block type with its states and changes only an opened door", () => {
@@ -393,6 +408,20 @@ it("lays every block type with its states and changes only an opened door", () =
         [ROOM_OPEN_STATE]: true,
         ...pairEndStates(0, undefined),
         ...pairEndStates(1, "toaster"),
+      },
+    },
+    {
+      typeId: CAMPER_FRIDGE_DOOR_BLOCK,
+      states: { [ROOM_FACE_STATE]: 0, [ROOM_LIT_STATE]: true },
+    },
+    {
+      typeId: pairDecorBlockId("fridge"),
+      states: {
+        [DECOR_FACE_STATE]: 1,
+        [DECOR_HEIGHT_STATE]: 4,
+        [ROOM_OPEN_STATE]: false,
+        ...pairEndStates(0, "mug_pair"),
+        ...pairEndStates(1, undefined),
       },
     },
   ]);
@@ -475,17 +504,17 @@ it("replaces a decor item in place and clears it", () => {
   expect(f.saved.get(DECK_CELLS_PROPERTY)).toBeUndefined();
 });
 
-it("lays both items of a shelf board in one pair block, each end's code split into page and item states, switches an end in place, and clears it (ADR 0108)", () => {
+it("lays both items of a fridge compartment in its one block, each end's code split into page and item states, switches an end in place, and clears it (ADR 0108, 0123)", () => {
   const f = fixture();
   const docks = new DockBlocks();
   const position = { x: 0, y: 64, z: 0 };
   const pairAt = (end0?: string, end1?: string): DockCell => ({
     ...position,
     block: {
-      type: "decorPair",
-      pair: "shelf",
+      type: "fridge",
       face: 3,
-      height: 10,
+      height: 3,
+      open: true,
       ...(end0 === undefined ? {} : { end0 }),
       ...(end1 === undefined ? {} : { end1 }),
     },
@@ -494,10 +523,11 @@ it("lays both items of a shelf board in one pair block, each end's code split in
   // potted_plant is standing item 0 (code 1); desk_fan is standing item 17 (code 18).
   docks.lay(asVehicleId(f.car.id), f.car, [pairAt("potted_plant", "desk_fan")]);
   expect(f.at(position)).toEqual({
-    typeId: pairDecorBlockId("shelf"),
+    typeId: pairDecorBlockId("fridge"),
     states: {
       [DECOR_FACE_STATE]: 3,
-      [DECOR_HEIGHT_STATE]: 10,
+      [DECOR_HEIGHT_STATE]: 3,
+      [ROOM_OPEN_STATE]: true,
       [end0.page]: 0,
       [end0.item]: 1,
       [end1.page]: 1,
@@ -1074,9 +1104,24 @@ describe("DockBlocks lost cells (ADR 0096)", () => {
   });
 });
 
-it("restores saved cabinet cells, empty ones too, and drops malformed ones (ADR 0114)", () => {
+it("restores saved storage cells, empty ones too, and a shelf pair block an older build laid, and drops malformed ones (ADR 0108, 0114, 0123)", () => {
   const cell = { x: 0, y: 64, z: 0 };
   for (const [block, typeId] of [
+    [
+      { type: "fridge", face: 1, height: 3, open: false },
+      pairDecorBlockId("fridge"),
+    ],
+    [{ type: "fridgeDoor", face: 2, lit: false }, CAMPER_FRIDGE_DOOR_BLOCK],
+    [
+      {
+        type: "decorPair",
+        pair: "shelf",
+        face: 0,
+        height: 10,
+        end0: "cushion",
+      },
+      pairDecorBlockId("shelf"),
+    ],
     [{ type: "cabinet", face: 3, open: false }, pairDecorBlockId("cabinet")],
     [
       { type: "cabinet", face: 0, open: true, end0: "cushion" },
@@ -1096,6 +1141,11 @@ it("restores saved cabinet cells, empty ones too, and drops malformed ones (ADR 
     { type: "cabinet", face: 0, open: "yes" },
     { type: "cabinet", face: 0, open: true, end0: "macrame_planter" },
     { type: "cabinetDoor", face: 5 },
+    { type: "fridge", face: 0, open: true },
+    { type: "fridge", face: 0, height: 3.5, open: true },
+    { type: "fridge", face: 0, height: 3, open: 1 },
+    { type: "fridgeDoor", face: 0 },
+    { type: "fridgeDoor", face: 0, lit: "on" },
   ]) {
     const g = fixture();
     const raw = JSON.stringify([{ ...cell, block }]);

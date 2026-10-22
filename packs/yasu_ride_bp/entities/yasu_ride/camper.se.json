@@ -40,6 +40,18 @@
           "default": 0.0,
           "client_sync": true
         },
+        "yasu_ride:fridge_top_door": {
+          "type": "float",
+          "range": [0.0, 1.0],
+          "default": 0.0,
+          "client_sync": true
+        },
+        "yasu_ride:fridge_bottom_door": {
+          "type": "float",
+          "range": [0.0, 1.0],
+          "default": 0.0,
+          "client_sync": true
+        },
         "yasu_ride:ceiling_lights": {
           "type": "bool",
           "default": false,

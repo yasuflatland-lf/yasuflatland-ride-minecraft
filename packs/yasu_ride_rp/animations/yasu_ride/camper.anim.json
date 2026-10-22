@@ -427,6 +427,22 @@
         }
       }
     },
+    "animation.yasu_ride.camper.fridge_top_door": {
+      "loop": true,
+      "bones": {
+        "fridge_top_door": {
+          "rotation": [0, "q.property('yasu_ride:fridge_top_door') * 90", 0]
+        }
+      }
+    },
+    "animation.yasu_ride.camper.fridge_bottom_door": {
+      "loop": true,
+      "bones": {
+        "fridge_bottom_door": {
+          "rotation": [0, "q.property('yasu_ride:fridge_bottom_door') * 90", 0]
+        }
+      }
+    },
     "animation.yasu_ride.camper.shower": {
       "loop": true,
       "animation_length": 0.1,

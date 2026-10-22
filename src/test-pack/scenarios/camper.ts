@@ -7,7 +7,11 @@ import type {
   HoldPose,
 } from "../../domain/vehicle/dock/floor";
 import { storageDoors } from "../../domain/vehicle/kinds/camper/dooredStorage";
-import { WALL_CABINET } from "../../domain/vehicle/kinds/camper/furniture";
+import {
+  type CAMPER_STORAGE,
+  FRIDGE,
+  WALL_CABINET,
+} from "../../domain/vehicle/kinds/camper/furniture";
 import { CAMPER_PROFILE } from "../../domain/vehicle/kinds/camper/profile";
 import {
   cargoCells,
@@ -23,11 +27,13 @@ import { CAMPER_SPEC } from "../../domain/vehicle/kinds/camper/spec";
 import { DOCK } from "../../domain/vehicle/motion/dock";
 import { DOCK_RECHECK_TICKS } from "../../infrastructure/vehicle/bedrock/dockBlocks";
 import {
+  AIR_BLOCK,
   CAMPER_BED_BLOCK,
   CAMPER_CABINET_DOOR_BLOCK,
   CAMPER_CEILING_BLOCK,
   CAMPER_DOOR_BLOCK,
   CAMPER_FLOOR_BLOCK,
+  CAMPER_FRIDGE_DOOR_BLOCK,
   CAMPER_FURNITURE_BLOCK,
   CAMPER_SHOWER_DOOR_BLOCK,
   CAMPER_SHOWER_TOILET_BLOCK,
@@ -43,6 +49,7 @@ import {
   pairEndStates,
   pairHeightStates,
   ROOM_FACE_STATE,
+  ROOM_LIT_STATE,
   ROOM_OPEN_STATE,
   STAND_IN_FAMILY,
   standInType,
@@ -96,11 +103,15 @@ const CAMPER_BUMPER_TEST = {
 // at most DOCK_RECHECK_TICKS lays later; twice that allows for a slow tick.
 const CAMPER_RELAY_TICKS = DOCK_RECHECK_TICKS * 2;
 // The room blocks a parked camper lays with its doors shut: the wall cabinet's two cells are
-// cabinet blocks, not room blocks, since ADR 0114.
+// cabinet blocks, not room blocks, since ADR 0114, and the fridge's are its compartment blocks
+// in cells the shelf left to its pair blocks (ADR 0123).
 const ROOM_CELL_COUNT = 105;
 
 const ROOM_BLOCK: Readonly<
-  Record<Exclude<DockBlock["type"], "decor" | "decorPair" | "cabinet">, string>
+  Record<
+    Exclude<DockBlock["type"], "decor" | "decorPair" | "cabinet" | "fridge">,
+    string
+  >
 > = {
   deck: DECK_FLOOR_BLOCK,
   floor: CAMPER_FLOOR_BLOCK,
@@ -111,6 +122,7 @@ const ROOM_BLOCK: Readonly<
   furniture: CAMPER_FURNITURE_BLOCK,
   showerToilet: CAMPER_SHOWER_TOILET_BLOCK,
   cabinetDoor: CAMPER_CABINET_DOOR_BLOCK,
+  fridgeDoor: CAMPER_FRIDGE_DOOR_BLOCK,
   showerDoor: CAMPER_SHOWER_DOOR_BLOCK,
   light: LIGHT_BLOCK,
 };
@@ -118,7 +130,8 @@ const ROOM_BLOCK: Readonly<
 function laidTypeOf(block: DockBlock): string {
   if (block.type === "decor") return decorBlockId(block.item);
   if (block.type === "decorPair") return pairDecorBlockId(block.pair);
-  if (block.type === "cabinet") return pairDecorBlockId("cabinet");
+  if (block.type === "cabinet" || block.type === "fridge")
+    return pairDecorBlockId(block.type);
   return ROOM_BLOCK[block.type];
 }
 
@@ -485,7 +498,7 @@ export function camperDecor(a: Arena): Promise<Outcome> {
     return {
       pass:
         laid === 3 &&
-        furniture === 7 &&
+        furniture === 5 &&
         kept === 2 &&
         emptied === CAMPER_FURNITURE_BLOCK &&
         remaining === 0 &&
@@ -496,12 +509,9 @@ export function camperDecor(a: Arena): Promise<Outcome> {
   });
 }
 
-// Both ends of the low shelf board and of the table, and the high board's front end only: each
-// furniture cell lays one pair block that draws its two items (ADR 0108).
+// Both ends of the table: its cell lays one pair block that draws its two items (ADR 0108).
+// The shelf boards' pair blocks left with the shelf (ADR 0123).
 const PAIRED_DECOR: readonly DecorPlacement[] = [
-  { slot: "shelf_low", item: "book_stack" },
-  { slot: "shelf_low_front", item: "cushion" },
-  { slot: "shelf_high_front", item: "photo_frame" },
   { slot: "table", item: "fruit_bowl" },
   { slot: "table_aisle", item: "mug_pair" },
 ];
@@ -527,9 +537,9 @@ export function camperDecorPairs(a: Arena): Promise<Outcome> {
     const moved = movedFrom(car, pose);
     return {
       pass:
-        blocks === 3 &&
-        laid === 3 &&
-        kept === 3 &&
+        blocks === 1 &&
+        laid === 1 &&
+        kept === 1 &&
         furniture === furnitureCells(pose, []).length &&
         moved >= 0.1,
       detail: `blocks=${blocks} laid=${laid} kept=${kept} furniture=${furniture} moved=${moved.toFixed(3)}`,
@@ -537,48 +547,63 @@ export function camperDecorPairs(a: Arena): Promise<Outcome> {
   });
 }
 
-// One item behind each wall cabinet door. The doors open only on a player's press, which a
-// test cannot make, so this checks the shut cabinet the room lays, then that BDS loaded the
-// open cabinet and the door plate (ADR 0114).
-const CABINET_DECOR: readonly DecorPlacement[] = [
-  { slot: "cabinet_sink_rear", item: "toaster" },
-  { slot: "cabinet_stove_front", item: "mug_pair" },
-];
+type StorageUnit = (typeof CAMPER_STORAGE)[number];
 
-export function camperCabinet(a: Arena): Promise<Outcome> {
+/** What a storage scenario checks beyond the shared shut-and-open round (ADR 0114, 0121). */
+interface StorageCase {
+  readonly unit: StorageUnit;
+  /** One item behind each door. */
+  readonly decor: readonly DecorPlacement[];
+  /** The block a shut door's plate cell holds. */
+  readonly shutPlate: string;
+  readonly plateBlock: string;
+  /** The plate block's states to resolve, beside each face. */
+  readonly plateStates: readonly Record<string, boolean>[];
+}
+
+// One item behind each door of a storage unit. The doors open only on a player's press, which
+// a test cannot make, so this checks the shut compartments the room lays and what the shut
+// doors' plate cells hold, then that BDS loaded the open compartment and the door plate in
+// every state (ADR 0114, 0121).
+function camperStorage(a: Arena, c: StorageCase): Promise<Outcome> {
   return atParkSpot(a, async (car) => {
     await wait(DOCK.ticks + 10);
     const pose = carPose(car);
-    for (const d of CABINET_DECOR) setDecor(car, d.slot, d.item);
+    for (const d of c.decor) setDecor(car, d.slot, d.item);
     await wait(3);
-    const cabinets = compartmentCells(
+    const compartmentId = pairDecorBlockId(c.unit.pairKind);
+    const compartments = compartmentCells(
       pose,
-      CABINET_DECOR,
+      c.decor,
       new Set(),
-      storageDoors([WALL_CABINET]),
+      storageDoors([c.unit]),
     );
-    const laid = cabinets.filter((c) => {
-      const block = a.dim.getBlock(c);
+    const heightOf = (block: (typeof compartments)[number]["block"]) =>
+      "height" in block ? pairHeightStates(c.unit.pairKind, block.height) : {};
+    const laid = compartments.filter((cell) => {
+      const block = a.dim.getBlock(cell);
       const states = block?.permutation.getAllStates();
       const want = {
-        [DECOR_FACE_STATE]: c.block.face,
+        [DECOR_FACE_STATE]: cell.block.face,
         [ROOM_OPEN_STATE]: false,
-        ...pairEndStates(0, c.block.end0),
-        ...pairEndStates(1, c.block.end1),
+        ...heightOf(cell.block),
+        ...pairEndStates(0, cell.block.end0),
+        ...pairEndStates(1, cell.block.end1),
       };
       return (
-        block?.typeId === pairDecorBlockId("cabinet") &&
+        block?.typeId === compartmentId &&
         Object.entries(want).every(([name, v]) => states?.[name] === v)
       );
     }).length;
-    const ceilings = WALL_CABINET.doors.filter(
+    const shutPlates = c.unit.doors.filter(
       ({ plate }) =>
-        a.dim.getBlock(localCellAt(pose, plate))?.typeId ===
-        CAMPER_CEILING_BLOCK,
+        a.dim.getBlock(localCellAt(pose, plate))?.typeId === c.shutPlate,
     ).length;
     drive(car, 0, 1);
     await wait(15);
-    const cleared = cabinets.filter((c) => a.dim.getBlock(c)?.isAir).length;
+    const cleared = compartments.filter(
+      (cell) => a.dim.getBlock(cell)?.isAir,
+    ).length;
     // Inside the park spot, which atParkSpot fills with air afterwards.
     const spot = { x: 108, y: a.gy + 2, z: 78 };
     const resolved: string[] = [];
@@ -598,26 +623,60 @@ export function camperCabinet(a: Arena): Promise<Outcome> {
       )
         resolved.push(typeId);
     };
+    const opened = compartments.map(({ block }) => heightOf(block));
     for (const face of [0, 1, 2, 3]) {
-      set(spot, CAMPER_CABINET_DOOR_BLOCK, { [ROOM_FACE_STATE]: face });
-      set({ ...spot, y: spot.y + 1 }, pairDecorBlockId("cabinet"), {
-        [DECOR_FACE_STATE]: face,
-        [ROOM_OPEN_STATE]: true,
-        ...pairEndStates(0, "cushion"),
-        ...pairEndStates(1, "desk_fan"),
-      });
+      for (const states of c.plateStates)
+        set(spot, c.plateBlock, { [ROOM_FACE_STATE]: face, ...states });
+      for (const height of opened)
+        set({ ...spot, y: spot.y + 1 }, compartmentId, {
+          [DECOR_FACE_STATE]: face,
+          [ROOM_OPEN_STATE]: true,
+          ...height,
+          ...pairEndStates(0, "cushion"),
+          ...pairEndStates(1, "desk_fan"),
+        });
     }
+    const doors = c.unit.doors.length;
     const moved = movedFrom(car, pose);
     return {
       pass:
-        cabinets.length === 2 &&
-        laid === 2 &&
-        ceilings === 2 &&
-        cleared === 2 &&
-        resolved.length === 8 &&
+        compartments.length === doors &&
+        laid === doors &&
+        shutPlates === doors &&
+        cleared === doors &&
+        resolved.length === 4 * (c.plateStates.length + doors) &&
         moved >= 0.1,
-      detail: `cabinets=${cabinets.length} laid=${laid} ceilings=${ceilings} cleared=${cleared} resolved=${resolved.length} moved=${moved.toFixed(3)}`,
+      detail: `compartments=${compartments.length} laid=${laid} shutPlates=${shutPlates} cleared=${cleared} resolved=${resolved.length} moved=${moved.toFixed(3)}`,
     };
+  });
+}
+
+// The wall cabinet's shut doors' plate cells hold the ceiling (ADR 0114).
+export function camperCabinet(a: Arena): Promise<Outcome> {
+  return camperStorage(a, {
+    unit: WALL_CABINET,
+    decor: [
+      { slot: "cabinet_sink_rear", item: "toaster" },
+      { slot: "cabinet_stove_front", item: "mug_pair" },
+    ],
+    shutPlate: CAMPER_CEILING_BLOCK,
+    plateBlock: CAMPER_CABINET_DOOR_BLOCK,
+    plateStates: [{}],
+  });
+}
+
+// The fridge's shut doors' plate cells in the aisle hold air with the lights off, and each
+// plate resolves lit and unlit (ADR 0115, 0123).
+export function camperFridge(a: Arena): Promise<Outcome> {
+  return camperStorage(a, {
+    unit: FRIDGE,
+    decor: [
+      { slot: "fridge_bottom_rear", item: "toaster" },
+      { slot: "fridge_top_front", item: "mug_pair" },
+    ],
+    shutPlate: AIR_BLOCK,
+    plateBlock: CAMPER_FRIDGE_DOOR_BLOCK,
+    plateStates: [{ [ROOM_LIT_STATE]: false }, { [ROOM_LIT_STATE]: true }],
   });
 }
 

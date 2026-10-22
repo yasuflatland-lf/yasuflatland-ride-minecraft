@@ -59,6 +59,8 @@
         "shower_door": "animation.yasu_ride.camper.shower_door",
         "cabinet_sink_door": "animation.yasu_ride.camper.cabinet_sink_door",
         "cabinet_stove_door": "animation.yasu_ride.camper.cabinet_stove_door",
+        "fridge_top_door": "animation.yasu_ride.camper.fridge_top_door",
+        "fridge_bottom_door": "animation.yasu_ride.camper.fridge_bottom_door",
         "shower": "animation.yasu_ride.camper.shower",
         "shower_sound": "animation.yasu_ride.camper.shower_sound"
       },
@@ -112,6 +114,8 @@
           "shower_door",
           "cabinet_sink_door",
           "cabinet_stove_door",
+          "fridge_top_door",
+          "fridge_bottom_door",
           { "shower": "q.property('yasu_ride:shower')" },
           { "shower_sound": "q.property('yasu_ride:shower')" }
         ]
