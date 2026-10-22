@@ -1,12 +1,12 @@
 import { expect, it } from "vitest";
 import {
   CAMPER_ENTITY,
-  cabinetDoorCommand,
   ceilingLightsCommand,
   doorCommand,
   SWITCH_CLICK,
   showerCommand,
   showerDoorCommand,
+  storageDoorCommand,
 } from "../../../../../src/domain/vehicle/kinds/camper/entity";
 
 it("restores the form, docked, door, and ceiling light properties and writes the doors, the shower, and the lights (ADR 0094, 0114, 0115)", () => {
@@ -25,12 +25,12 @@ it("restores the form, docked, door, and ceiling light properties and writes the
     value: true,
   });
   expect(SWITCH_CLICK).toEqual({ type: "playSound", name: "random.click" });
-  expect(cabinetDoorCommand("sink", 0.5)).toEqual({
+  expect(storageDoorCommand("sink", 0.5)).toEqual({
     type: "setProperty",
     name: "cabinet_sink_door",
     value: 0.5,
   });
-  expect(cabinetDoorCommand("stove", 1)).toEqual({
+  expect(storageDoorCommand("stove", 1)).toEqual({
     type: "setProperty",
     name: "cabinet_stove_door",
     value: 1,

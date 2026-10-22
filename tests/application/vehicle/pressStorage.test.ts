@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PressCabinet } from "../../../src/application/vehicle/pressCabinet";
+import { PressStorage } from "../../../src/application/vehicle/pressStorage";
 import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
 import { decorSlot } from "../../../src/domain/vehicle/kinds/camper/decor";
 import { slotPoint } from "../../../src/domain/vehicle/kinds/camper/decorPlacing";
@@ -14,7 +14,7 @@ function setup() {
   const clock = new FakeClock();
   const front = decorSlot("cabinet_sink_front");
   if (!front) throw new Error("no cabinet_sink_front slot");
-  const press = new PressCabinet(world, repo, clock);
+  const press = new PressStorage(world, repo, clock);
   const at = (tick: number) => {
     clock.tick = tick;
     return press.execute({
@@ -27,7 +27,7 @@ function setup() {
   return { car, pose, repo, world, clock, press, front, at };
 }
 
-describe("PressCabinet (ADR 0114)", () => {
+describe("PressStorage (ADR 0114)", () => {
   it("opens the door without saving, then takes the pressed item back to the player and saves the rest", () => {
     const { car, world, at } = setup();
     car.setDecor("cabinet_sink_front", "toaster");

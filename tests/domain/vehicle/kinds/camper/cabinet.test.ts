@@ -16,8 +16,8 @@ import { DECOR_SLOTS } from "../../../../../src/domain/vehicle/kinds/camper/deco
 import { slotPoint } from "../../../../../src/domain/vehicle/kinds/camper/decorPlacing";
 import { CamperDrive } from "../../../../../src/domain/vehicle/kinds/camper/drive";
 import {
-  CABINET_DOORS,
-  type CabinetDoor,
+  STORAGE_DOORS,
+  type StorageDoorId,
 } from "../../../../../src/domain/vehicle/kinds/camper/furniture";
 import {
   AIR,
@@ -31,7 +31,7 @@ import { defined } from "../../../../support/defined";
 
 const PUSH = { moveX: 0, moveY: 1, jump: false };
 const SWING = CAMPER_SPEC.doorSwingTicks;
-const DOORS: readonly CabinetDoor[] = ["sink", "stove"];
+const DOORS: readonly StorageDoorId[] = ["sink", "stove"];
 const PROPERTY = {
   sink: "cabinet_sink_door",
   stove: "cabinet_stove_door",
@@ -55,20 +55,20 @@ function fixture(yaw = 37, restored: Record<string, unknown> = {}) {
   const park = () => {
     for (let i = 0; i <= DOCK.ticks; i++) step();
   };
-  const placeOf = (door: CabinetDoor) =>
+  const placeOf = (door: StorageDoorId) =>
     defined(
-      CABINET_DOORS.find((d) => d.door === door),
+      STORAGE_DOORS.find((d) => d.id === door),
       door,
     );
-  const compartment = (door: CabinetDoor) =>
-    localCellAt(pose, placeOf(door).cell);
-  const aisle = (door: CabinetDoor) => localCellAt(pose, placeOf(door).aisle);
+  const compartment = (door: StorageDoorId) =>
+    localCellAt(pose, placeOf(door).compartment);
+  const aisle = (door: StorageDoorId) => localCellAt(pose, placeOf(door).plate);
   const press = (
-    door: CabinetDoor,
+    door: StorageDoorId,
     at: "compartment" | "aisle",
     point?: Vec3,
   ) =>
-    drive.pressCabinet(
+    drive.pressStorage(
       at === "compartment" ? compartment(door) : aisle(door),
       point,
       ctx.tick,
@@ -98,7 +98,7 @@ it("ignores presses on the cabinet until parked, and on cells that are not the c
   f.park();
   const c = f.compartment("sink");
   expect(
-    f.drive.pressCabinet({ ...c, y: c.y - 1 }, undefined, f.ctx.tick),
+    f.drive.pressStorage({ ...c, y: c.y - 1 }, undefined, f.ctx.tick),
   ).toBeUndefined();
 });
 

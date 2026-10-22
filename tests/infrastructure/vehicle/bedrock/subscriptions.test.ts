@@ -1409,14 +1409,16 @@ it("takes decor back on an empty-hand interaction with a decor block (ADR 0093)"
   expect(removeDecor.execute).not.toHaveBeenCalled();
 });
 
-it("sends an empty-hand press on the wall cabinet, with the pressed point, to the cabinet, and ignores a held item, no player, or no owner (ADR 0114)", () => {
+it("sends an empty-hand press on the wall cabinet, with the pressed point, to the storage use case, and ignores a held item, no player, or no owner (ADR 0114)", () => {
   const before = game.startup.mock.calls.length;
   const cabinet = { execute: vi.fn() };
   const owner = vi.fn<(dimensionId: string, cell: At) => VehicleId | undefined>(
     () => asVehicleId("car"),
   );
   registerSubscriptions(
-    { cabinet } as unknown as Parameters<typeof registerSubscriptions>[0],
+    { storage: cabinet } as unknown as Parameters<
+      typeof registerSubscriptions
+    >[0],
     new TestInputStore(),
     () => undefined,
     owner,

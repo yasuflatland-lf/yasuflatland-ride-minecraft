@@ -224,7 +224,10 @@ export const CAMPER_DOOR_COMPONENT = id("camper_door");
 export const CAMPER_BED_COMPONENT = id("camper_bed");
 /** Custom component handling presses on the camper shower-toilet block (ADR 0098). */
 export const CAMPER_SHOWER_TOILET_COMPONENT = id("camper_shower_toilet");
-/** Custom component handling presses on the wall cabinet's compartments and open doors (ADR 0114). */
+/**
+ * Custom component handling presses on storage compartments and open storage doors' plates.
+ * It keeps the wall cabinet's id, which the packs and saved worlds use (ADR 0114, 0121).
+ */
 export const CAMPER_CABINET_COMPONENT = id("camper_cabinet");
 /** A camper's decor, as JSON [{ slot, item }] (ADR 0093). */
 export const DECOR_PROPERTY = id("decor");
@@ -247,7 +250,8 @@ export function decorBlockId(item: string): string {
 
 /**
  * The block that draws both items of a shelf board or the table, `kind` "shelf" or "table"
- * (ADR 0108), or of a wall cabinet compartment, `kind` "cabinet" (ADR 0114).
+ * (ADR 0108), or of a storage compartment, `kind` its pair kind: "cabinet" for the wall
+ * cabinet (ADR 0114, 0121).
  */
 export function pairDecorBlockId(kind: string): string {
   return id(`${kind}_decor_pair`);
@@ -284,7 +288,7 @@ export function pairEndStates(
  * height; it gets no state here (ADR 0108).
  */
 export function pairHeightStates(
-  kind: "shelf" | "table" | "cabinet",
+  kind: (typeof PAIR_KINDS)[number],
   height: number,
 ): Record<string, number> {
   return pairHeights(kind).length > 1 ? { [DECOR_HEIGHT_STATE]: height } : {};

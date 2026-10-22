@@ -2,7 +2,7 @@ import type { PlayerId, VehicleId } from "../shared/ids";
 // Aggregate for one vehicle: wires its drive to its seating, cooldowns, and hit count.
 import { forward, type Vec2, type Vec3 } from "../shared/vec";
 import { RamCooldowns, SwitchCooldown } from "./cooldowns";
-import type { CabinetPress, DecorPlacement } from "./dock/decor";
+import type { DecorPlacement, StoragePress } from "./dock/decor";
 import type { ClearCell, Departure, Dock } from "./dock/dock";
 import type { Drive, EngineCommand, RiderState, TickContext } from "./drive";
 import type { RawInput } from "./driveInput";
@@ -249,13 +249,13 @@ export class Vehicle {
     return this.drive.removeDecor?.(cell, point, eye);
   }
 
-  /** A player pressed the wall cabinet at world `cell` at `tick`. Returns what the press did, if anything (ADR 0114). */
-  pressCabinet(
+  /** A player pressed storage with doors, such as the wall cabinet, at world `cell` at `tick`. Returns what the press did, if anything (ADR 0114, 0121). */
+  pressStorage(
     cell: Vec3,
     point: Vec3 | undefined,
     tick: number,
-  ): CabinetPress | undefined {
-    return this.drive.pressCabinet?.(cell, point, tick);
+  ): StoragePress | undefined {
+    return this.drive.pressStorage?.(cell, point, tick);
   }
 
   tick(input: VehicleTickInput): TickOutcome {

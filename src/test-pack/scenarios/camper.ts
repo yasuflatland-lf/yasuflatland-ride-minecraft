@@ -6,11 +6,12 @@ import type {
   DockCell,
   HoldPose,
 } from "../../domain/vehicle/dock/floor";
-import { CABINET_DOORS } from "../../domain/vehicle/kinds/camper/furniture";
+import { storageDoors } from "../../domain/vehicle/kinds/camper/dooredStorage";
+import { WALL_CABINET } from "../../domain/vehicle/kinds/camper/furniture";
 import { CAMPER_PROFILE } from "../../domain/vehicle/kinds/camper/profile";
 import {
-  cabinetCells,
   cargoCells,
+  compartmentCells,
   deckSeats,
   decorCells,
   furnitureCells,
@@ -550,7 +551,12 @@ export function camperCabinet(a: Arena): Promise<Outcome> {
     const pose = carPose(car);
     for (const d of CABINET_DECOR) setDecor(car, d.slot, d.item);
     await wait(3);
-    const cabinets = cabinetCells(pose, CABINET_DECOR, new Set());
+    const cabinets = compartmentCells(
+      pose,
+      CABINET_DECOR,
+      new Set(),
+      storageDoors([WALL_CABINET]),
+    );
     const laid = cabinets.filter((c) => {
       const block = a.dim.getBlock(c);
       const states = block?.permutation.getAllStates();
@@ -565,9 +571,9 @@ export function camperCabinet(a: Arena): Promise<Outcome> {
         Object.entries(want).every(([name, v]) => states?.[name] === v)
       );
     }).length;
-    const ceilings = CABINET_DOORS.filter(
-      ({ aisle }) =>
-        a.dim.getBlock(localCellAt(pose, aisle))?.typeId ===
+    const ceilings = WALL_CABINET.doors.filter(
+      ({ plate }) =>
+        a.dim.getBlock(localCellAt(pose, plate))?.typeId ===
         CAMPER_CEILING_BLOCK,
     ).length;
     drive(car, 0, 1);

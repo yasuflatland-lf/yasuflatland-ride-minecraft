@@ -7,8 +7,10 @@ import {
 } from "../../../../src/domain/vehicle/entityContract";
 import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
 import { DECOR_CELLS } from "../../../../src/domain/vehicle/kinds/camper/decor";
+import { WALL_CABINET } from "../../../../src/domain/vehicle/kinds/camper/furniture";
 import {
   decorBlockName,
+  ownPlateBlock,
   ownSlotBlock,
 } from "../../../../src/domain/vehicle/kinds/camper/room";
 import {
@@ -298,6 +300,19 @@ describe("identifiers (ADR 0047)", () => {
     expect(isDecorBlock(decorBlockId("percolator"))).toBe(true);
     expect(isDecorBlock(CAMPER_FURNITURE_BLOCK)).toBe(false);
     expect(isDecorBlock("yasu_ride:bed_decor_pair")).toBe(false);
+  });
+
+  it("names the wall cabinet's plate block the way the domain's plate check expects (ADR 0114, 0121)", () => {
+    expect(WALL_CABINET.plateBlockName).toBe(
+      CAMPER_CABINET_DOOR_BLOCK.slice(`${NAMESPACE}:`.length),
+    );
+    for (const door of WALL_CABINET.doors)
+      expect(
+        ownPlateBlock(CAMPER_CABINET_DOOR_BLOCK, {
+          ...door,
+          unit: WALL_CABINET,
+        }),
+      ).toBe(true);
   });
 
   it("names the furniture block the way the domain's slot check expects (ADR 0097)", () => {

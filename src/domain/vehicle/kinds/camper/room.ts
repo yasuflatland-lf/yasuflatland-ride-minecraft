@@ -19,14 +19,20 @@ import { cellKey } from "../../lighting/headlights";
 import { seatWorldPositions } from "../../seats";
 import { DECOR_CELLS, decorInCell, decorSlot } from "./decor";
 import {
-  CABINET_DOORS,
+  compartmentDoorAt,
+  openPlateAt,
+  type StorageDoor,
+} from "./dooredStorage";
+import {
   CAMPER_FURNITURE,
-  type CabinetDoor,
   CEILING_LIGHTS,
   DECOR_SPOTS,
   type DecorSlot,
   type FurnitureBlock,
+  isStoragePairKind,
   type LocalCell,
+  STORAGE_DOORS,
+  type StorageCompartmentBlock,
 } from "./furniture";
 import { CAMPER_PARKED_SEATS, CAMPER_PROFILE } from "./profile";
 
@@ -105,9 +111,7 @@ const FURNITURE_BLOCK_SUFFIX = ":camper_furniture";
 // yasu_ride:camper_furniture's height 0 is the hanging box under the hook,
 // whatever the hanging slot's own height (ADR 0097, 0102).
 const HANGING_FURNITURE_HEIGHT = 0;
-const NO_DOORS: ReadonlySet<CabinetDoor> = new Set();
-// The namespace-free name of yasu_ride:cabinet_decor_pair; identifiers.test.ts checks it (ADR 0114).
-const CABINET_BLOCK_NAME = "cabinet_decor_pair";
+const NO_DOORS: ReadonlySet<string> = new Set();
 
 /** Passable decorations that parking removes; anything else in a checked cell refuses (ADR 0068). */
 export const CLEARABLE_DECORATIONS: ReadonlySet<string> = new Set([
@@ -270,46 +274,58 @@ function interior(pose: HoldPose, layers: readonly number[]): Vec3[] {
   return localInterior(layers).map((cell) => localCellAt(pose, cell));
 }
 
-function sameLocal(a: LocalCell, b: LocalCell): boolean {
-  return a.x === b.x && a.z === b.z && a.layer === b.layer;
+// The side of a plate's cell where its door's hinge is, so the plate stands where the open door does.
+function plateFace(door: StorageDoor, f: Vec2): Face {
+  return faceToward({ x: door.hinge * f.x, z: door.hinge * f.z });
+}
+
+function isLightCell(cell: LocalCell): boolean {
+  return CEILING_LIGHTS.some(
+    (c) => c.x === cell.x && c.z === cell.z && c.layer === cell.layer,
+  );
+}
+
+/** The doors whose plates stand in the room's inside layers, where the ceiling does not lay them (ADR 0121). */
+function insidePlateDoors<Id extends string>(
+  doors: readonly StorageDoor<Id>[],
+): StorageDoor<Id>[] {
+  return doors.filter(({ plate }) => plate.layer !== CEILING_LAYER);
 }
 
 /**
- * The ceiling cell's block: none over a cabinet compartment, whose cabinet block also holds
- * the ceiling up (cabinetCells), and an open door's plate where that door swings into the
- * aisle (ADR 0068, 0114).
+ * The ceiling cell's block: none over a storage compartment, whose block also holds the
+ * ceiling up (compartmentCells), and an open door's plate where that door swings into the
+ * aisle (ADR 0068, 0114, 0121).
  */
 function ceilingBlock(
   cell: LocalCell,
   f: Vec2,
-  openCabinets: ReadonlySet<CabinetDoor>,
+  open: ReadonlySet<string>,
+  doors: readonly StorageDoor[],
 ): DockBlock | undefined {
-  if (CABINET_DOORS.some((d) => sameLocal(d.cell, cell))) return undefined;
-  const door = CABINET_DOORS.find(
-    (d) => openCabinets.has(d.door) && sameLocal(d.aisle, cell),
-  );
+  if (compartmentDoorAt(cell, doors)) return undefined;
+  const door = openPlateAt(cell, open, doors);
   if (!door) return { type: "ceiling" };
-  return {
-    type: "cabinetDoor",
-    face: faceToward({ x: door.hinge * f.x, z: door.hinge * f.z }),
-  };
+  // No ceiling light hangs in the ceiling layer: its light cells are the ones under it.
+  return door.unit.plateBlock({ face: plateFace(door, f), lit: false });
 }
 
 /**
  * The 105 cells of the parked room: its shell, the door step, and every furniture block. The
- * two wall cabinet cells under the ceiling are laid by cabinetCells, an open cabinet door's
- * aisle cell holds its plate instead of the ceiling, and the rear wall behind the open shower
- * door is selectable (ADR 0068, 0092, 0093, 0098, 0114, 0118).
+ * two wall cabinet cells under the ceiling are laid by compartmentCells, an open storage
+ * door's aisle cell under the ceiling holds its plate instead of the ceiling, and the rear wall
+ * behind the open shower door is selectable (ADR 0068, 0092, 0093, 0098, 0114, 0118, 0121).
  */
 export function roomCells(
   pose: HoldPose,
   doorOpen: boolean,
-  openCabinets: ReadonlySet<CabinetDoor> = NO_DOORS,
+  openStorage: ReadonlySet<string> = NO_DOORS,
   showerDoorOpen = false,
+  doors: readonly StorageDoor[] = STORAGE_DOORS,
 ): DockCell[] {
   const { f, l } = axes(pose.yaw);
   const ceiling = localInterior([CEILING_LAYER]).flatMap((cell) => {
-    const block = ceilingBlock(cell, f, openCabinets);
+    const block = ceilingBlock(cell, f, openStorage, doors);
     return block ? [{ ...localCellAt(pose, cell), block }] : [];
   });
   const cells: DockCell[] = [
@@ -363,9 +379,7 @@ type DecorCell = DockCell & {
   readonly block: Extract<DockBlock, { type: "decor" | "decorPair" }>;
 };
 
-type CabinetCell = DockCell & {
-  readonly block: Extract<DockBlock, { type: "cabinet" }>;
-};
+type CompartmentCell = DockCell & { readonly block: StorageCompartmentBlock };
 
 /** The item at each end of the pair cell that holds `slot`, by DecorPairEnd.end (ADR 0108). */
 function pairItems(
@@ -394,8 +408,8 @@ function pairItems(
  * One block per slot cell that holds a placement in a known slot, turned to the yaw quarter.
  * On a shelf board or the table it is the pair block with the item at each end (ADR 0108);
  * elsewhere a decor block at the slot's height and spot, and since a cell holds one block,
- * the first placement in a cell wins (ADR 0093, 0105). The wall cabinet's cells are laid by
- * cabinetCells, full or empty (ADR 0114).
+ * the first placement in a cell wins (ADR 0093, 0105). Storage compartments are laid by
+ * compartmentCells, full or empty (ADR 0114, 0121).
  */
 export function decorCells(
   pose: HoldPose,
@@ -406,7 +420,7 @@ export function decorCells(
   return decor.flatMap(({ slot, item }) => {
     const s = decorSlot(slot);
     const pair = s?.pair?.kind;
-    if (!s || pair === "cabinet") return [];
+    if (!s || (pair !== undefined && isStoragePairKind(pair))) return [];
     const at = decorSlotCell(pose, s);
     const key = cellKey(at);
     if (laid.has(key)) return [];
@@ -425,28 +439,94 @@ export function decorCells(
 }
 
 /**
- * The cabinet block in each wall cabinet compartment, with the item at each end, its items
- * drawn while its door is in `shown`: open or still swinging shut (ADR 0114).
+ * The block in each storage compartment, with the item at each end, its items drawn while its
+ * door is in `shown`: open or still swinging shut (ADR 0114, 0121).
  */
-export function cabinetCells(
+export function compartmentCells(
   pose: HoldPose,
   decor: readonly DecorPlacement[],
-  shown: ReadonlySet<CabinetDoor>,
-): CabinetCell[] {
+  shown: ReadonlySet<string>,
+  doors: readonly StorageDoor[] = STORAGE_DOORS,
+): CompartmentCell[] {
   const face = decorFace(pose.yaw);
-  return CABINET_DOORS.map(({ door, cell }) => ({
-    ...localCellAt(pose, cell),
-    block: {
-      type: "cabinet",
+  return doors.map((door) => ({
+    ...localCellAt(pose, door.compartment),
+    block: door.unit.compartmentBlock({
       face,
-      open: shown.has(door),
-      ...pairItems({ cell }, decor),
-    },
+      open: shown.has(door.id),
+      height: door.slots[0]?.height ?? 0,
+      ...pairItems({ cell: door.compartment }, decor),
+    }),
   }));
 }
 
-function isCabinetCell(cell: LocalCell): boolean {
-  return CABINET_DOORS.some((d) => sameLocal(d.cell, cell));
+/**
+ * The plate of each door in `open` whose plate stands in the room's inside layers, on the side
+ * of its cell where the door's hinge is. A plate in a ceiling light's cell is `lit` while
+ * `lightsOn`, and ceilingLightCells leaves that cell to it. The ceiling lays the plates in the
+ * ceiling layer (ADR 0115, 0121).
+ */
+export function storagePlateCells(
+  pose: HoldPose,
+  open: ReadonlySet<string>,
+  lightsOn: boolean,
+  doors: readonly StorageDoor[] = STORAGE_DOORS,
+): DockCell[] {
+  const { f } = axes(pose.yaw);
+  return insidePlateDoors(doors)
+    .filter(({ id }) => open.has(id))
+    .map((door) => ({
+      ...localCellAt(pose, door.plate),
+      block: door.unit.plateBlock({
+        face: plateFace(door, f),
+        lit: lightsOn && isLightCell(door.plate),
+      }),
+    }));
+}
+
+/**
+ * The doors whose plates stand in the room's inside layers, with their plate cells at `pose`.
+ * Parking checks those cells, and departure reads them with ownPlateBlock instead of as
+ * cargo (ADR 0121).
+ */
+export function storagePlateChecks<Id extends string>(
+  pose: HoldPose,
+  doors: readonly StorageDoor<Id>[],
+): { door: StorageDoor<Id>; cell: Vec3 }[] {
+  return insidePlateDoors(doors).map((door) => ({
+    door,
+    cell: localCellAt(pose, door.plate),
+  }));
+}
+
+/**
+ * An inside-layer plate cell lets the camper leave only while it holds air or `door`'s plate:
+ * the plate goes when departure shuts the door (ADR 0121).
+ */
+export function ownPlateBlock(
+  typeId: string | undefined,
+  door: StorageDoor,
+): boolean {
+  return (
+    typeId === AIR || typeId?.endsWith(`:${door.unit.plateBlockName}`) === true
+  );
+}
+
+/**
+ * The storage door a press on world `cell` reaches at `pose`: the door of the compartment
+ * there, or the door whose plate the cell holds while it is open (ADR 0114, 0121).
+ */
+export function storagePressTarget<Id extends string>(
+  pose: HoldPose,
+  cell: Vec3,
+  doors: readonly StorageDoor<Id>[],
+): { door: StorageDoor<Id>; onCompartment: boolean } | undefined {
+  const at = (local: LocalCell) => {
+    const c = localCellAt(pose, local);
+    return c.x === cell.x && c.y === cell.y && c.z === cell.z;
+  };
+  const door = doors.find((d) => at(d.compartment) || at(d.plate));
+  return door && { door, onCompartment: at(door.compartment) };
 }
 
 type FurnitureCell = DockCell & {
@@ -456,14 +536,15 @@ type FurnitureCell = DockCell & {
 /**
  * A furniture block in every slot cell that holds no decor, at the height of the cell's first
  * slot, or the hanging box for a hanging slot, in DECOR_CELLS order (ADR 0097, 0102, 0105).
- * The wall cabinet's cells always hold the cabinet block instead (ADR 0114).
+ * Storage compartments always hold their own block instead (ADR 0114, 0121).
  */
 export function furnitureCells(
   pose: HoldPose,
   decor: readonly DecorPlacement[],
 ): FurnitureCell[] {
   return DECOR_CELLS.filter(
-    ({ cell }) => !isCabinetCell(cell) && !decorInCell(cell, decor),
+    ({ cell }) =>
+      !compartmentDoorAt(cell, STORAGE_DOORS) && !decorInCell(cell, decor),
   ).map(({ cell, slots }) => {
     const first = slots[0];
     return {
@@ -489,13 +570,14 @@ export function slotCells(pose: HoldPose): Vec3[] {
 /**
  * The namespace-free name of the block the decor in `cell` lays: the pair block of a shelf
  * board or the table, or the decor block of the cell's item; undefined while the cell holds
- * no decor (ADR 0093, 0108). A wall cabinet cell always lays the cabinet block (ADR 0114).
+ * no decor (ADR 0093, 0108). A storage compartment always lays its unit's pair block (ADR 0114, 0121).
  */
 export function decorBlockName(
   cell: LocalCell,
   decor: readonly DecorPlacement[],
 ): string | undefined {
-  if (isCabinetCell(cell)) return CABINET_BLOCK_NAME;
+  const door = compartmentDoorAt(cell, STORAGE_DOORS);
+  if (door) return `${door.unit.pairKind}_decor_pair`;
   const placed = decorInCell(cell, decor);
   const slot = placed && decorSlot(placed.slot);
   if (!placed || !slot) return undefined;
@@ -523,12 +605,17 @@ export function ownSlotBlock(
 /**
  * The 168 parking checks include standing space and the exit because the long
  * body reaches past its collision box and can stop around a flower or low block.
+ * Storage plates in the inside layers add their cells; the wall cabinet has none (ADR 0121).
  */
-export function parkCheckCells(pose: HoldPose): Vec3[] {
+export function parkCheckCells(
+  pose: HoldPose,
+  doors: readonly StorageDoor[] = STORAGE_DOORS,
+): Vec3[] {
   return [
     ...roomCells(pose, false).map(({ x, y, z }) => ({ x, y, z })),
-    ...cargoCells(pose),
+    ...cargoCells(pose, doors),
     ...slotCells(pose),
+    ...storagePlateChecks(pose, doors).map(({ cell }) => cell),
     ...exitCells(pose),
   ];
 }
@@ -550,13 +637,22 @@ export function isPassable(typeId: string | undefined): boolean {
 
 /**
  * Cells where a player's block keeps the camper parked: the interior outside
- * furniture blocks and decor slots, then the roof top (ADR 0092, 0093, 0097).
- * Slot cells are read separately, with ownSlotBlock.
+ * furniture blocks, decor slots and storage plates, then the roof top (ADR 0092, 0093,
+ * 0097, 0121). Slot cells are read separately, with ownSlotBlock, and storage plate cells
+ * with ownPlateBlock.
  */
-export function cargoCells(pose: HoldPose): Vec3[] {
-  const slots = new Set(slotCells(pose).map(cellKey));
+export function cargoCells(
+  pose: HoldPose,
+  doors: readonly StorageDoor[] = STORAGE_DOORS,
+): Vec3[] {
+  const read = new Set(
+    [
+      ...slotCells(pose),
+      ...storagePlateChecks(pose, doors).map(({ cell }) => cell),
+    ].map(cellKey),
+  );
   return interior(pose, [...INSIDE_LAYERS, ROOF_LAYER]).filter(
-    (c) => !slots.has(cellKey(c)),
+    (c) => !read.has(cellKey(c)),
   );
 }
 
@@ -686,12 +782,21 @@ export function inShowerToilet(pose: HoldPose, feet: Vec3): boolean {
   });
 }
 
-/** A light block in the cell under each ceiling light (ADR 0115). */
-export function ceilingLightCells(pose: HoldPose): DockCell[] {
-  return CEILING_LIGHTS.map((cell) => ({
-    ...localCellAt(pose, cell),
-    block: { type: "light" } as const,
-  }));
+/**
+ * A light block in the cell under each ceiling light that no open storage door's plate takes
+ * (ADR 0115, 0121).
+ */
+export function ceilingLightCells(
+  pose: HoldPose,
+  open: ReadonlySet<string> = NO_DOORS,
+  doors: readonly StorageDoor[] = STORAGE_DOORS,
+): DockCell[] {
+  return CEILING_LIGHTS.filter((cell) => !openPlateAt(cell, open, doors)).map(
+    (cell) => ({
+      ...localCellAt(pose, cell),
+      block: { type: "light" } as const,
+    }),
+  );
 }
 
 export function departure(pose: HoldPose, exitClear = true): Departure {

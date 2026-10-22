@@ -32,6 +32,24 @@ const FULL = { kind: "room", bottom: 0, top: 1 } as const;
 // from the compartment floor to the top of the door (ADR 0114).
 const CABINET_BOX_PX = 10;
 
+type PairKind = NonNullable<ReturnType<typeof pairKindOfBlock>>;
+
+// A storage compartment's box is a room box, not a decor block's, so each storage pair kind
+// gives its own from the block's height state (ADR 0114, 0121).
+const COMPARTMENT_SHAPES: Partial<
+  Record<PairKind, (height: number | undefined) => PressedShape>
+> = {
+  // Lifted with its one height, which is no state (ADR 0114).
+  cabinet: () => {
+    const lift = Math.min(...pairHeights("cabinet"));
+    return {
+      kind: "room",
+      bottom: lift / PX_PER_BLOCK,
+      top: (lift + CABINET_BOX_PX) / PX_PER_BLOCK,
+    };
+  },
+};
+
 // Selection boxes of the room blocks in packs/yasu_ride_bp/blocks/yasu_ride; the wall
 // has none, so it is never pressed. tests/infrastructure/vehicle/bedrock/faceHeight.test.ts
 // checks these against the block files.
@@ -68,15 +86,8 @@ export function pressedShape(
   // A pair block is lifted like a decor block. The table's has no height state, since its
   // one height cannot be a state, and its permutations lift it by that height (ADR 0108).
   const pair = pairKindOfBlock(typeId);
-  // A cabinet compartment's box is a room box lifted with its one height (ADR 0114).
-  if (pair === "cabinet") {
-    const lift = Math.min(...pairHeights(pair));
-    return {
-      kind: "room",
-      bottom: lift / PX_PER_BLOCK,
-      top: (lift + CABINET_BOX_PX) / PX_PER_BLOCK,
-    };
-  }
+  const compartment = pair && COMPARTMENT_SHAPES[pair];
+  if (compartment) return compartment(height);
   if (pair !== undefined)
     return {
       kind: "decor",
