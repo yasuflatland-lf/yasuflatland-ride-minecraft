@@ -64,7 +64,7 @@ class FlightSim {
   /** Each landing gear change with the height it happened at. */
   readonly gearYs: [boolean, number][] = [];
   /** Riders by seat; the seat-0 rider gets the step's input, the others idle. */
-  riders: { id: string; seat: number }[] = [];
+  riders: { id: string; seat: number; offset?: Vec2 }[] = [];
 
   constructor(
     readonly vehicle: Vehicle = createVehicle("suv", asVehicleId("car"), 0),
@@ -89,7 +89,7 @@ class FlightSim {
     const seats = profileOf(this.vehicle.kind).seats.positions;
     const riders: RiderView[] = this.riders.map((r) => ({
       id: asPlayerId(r.id),
-      offset: seatOffset(seats, yaw, r.seat),
+      offset: r.offset ?? seatOffset(seats, yaw, r.seat),
       yaw,
       raw: r.seat === 0 ? (input ?? IDLE) : IDLE,
     }));
@@ -530,6 +530,27 @@ function riddenFlyingSim(
 }
 
 describe("Driver handover in flight (ADR 0078)", () => {
+  it("keeps the SUV hovering when the new driver's reading lags one tick of motion (ADR 0126)", () => {
+    const sim = riddenFlyingSim("suv");
+    sim.riders = [{ id: "Q", seat: 1 }];
+    sim.step(undefined);
+    const f = forward(sim.vehicle.yaw);
+    const seat = seatOffset(SUV_PROFILE.seats.positions, sim.vehicle.yaw, 0);
+    sim.riders = [
+      {
+        id: "Q",
+        seat: 0,
+        offset: { x: seat.x - 0.6 * f.x, z: seat.z - 0.6 * f.z },
+      },
+    ];
+    for (let i = 0; i < SPEC.driverHandoverTicks + 1; i++) {
+      sim.vel = { x: 0.6 * f.x, z: 0.6 * f.z };
+      const out = sim.step(IDLE);
+      expect(out.driverId).toBe("Q");
+    }
+    expect(sim.form).toBe("hover");
+  });
+
   for (const kind of ["suv", "camper"] as const) {
     it(`keeps hovering while a passenger moves up within the handover ticks, and the new driver climbs (${kind})`, () => {
       fc.assert(

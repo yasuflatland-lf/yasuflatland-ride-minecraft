@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { forward, leftOf, type Vec2 } from "../../../src/domain/shared/vec";
+import { CAMPER_PROFILE } from "../../../src/domain/vehicle/kinds/camper/profile";
 import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
 import { Seating } from "../../../src/domain/vehicle/seating";
 import {
@@ -38,10 +39,10 @@ const others = (at: fc.Arbitrary<number>) => specs(["a", "b", "c", "e"], at, 3);
 
 // Same math as worldOffset in seats.test.ts, which shows that a rider at this
 // offset reads as seat `i` for any heading.
-function worldOffset(yawDeg: number, i: number): Vec2 {
+function worldOffset(yawDeg: number, i: number, positions = P): Vec2 {
   const f = forward(yawDeg);
   const l = leftOf(f);
-  const s = defined(P[i], `seat ${i}`);
+  const s = defined(positions[i], `seat ${i}`);
   return { x: l.x * s.x + f.x * s.z, z: l.z * s.x + f.z * s.z };
 }
 
@@ -60,8 +61,8 @@ describe("Seating (ADR 0019, ADR 0025)", () => {
         const before = place(prev, y);
         const after = place(now, y);
         const s = new Seating(P);
-        s.update(before, f);
-        const { vacated } = s.update(after, f);
+        s.update(before, f, { x: 0, z: 0 });
+        const { vacated } = s.update(after, f, { x: 0, z: 0 });
         expect(vacated).toEqual(
           vacatedSeats(
             occupiedSeats(before, f, P),
@@ -87,7 +88,7 @@ describe("Seating (ADR 0019, ADR 0025)", () => {
           const f = forward(y);
           const s = new Seating(P);
           for (const [i, list] of [tick0, ...rest].entries()) {
-            const out = s.update(place(list, y), f);
+            const out = s.update(place(list, y), f, { x: 0, z: 0 });
             expect(out.driver?.id).toBe("d");
             expect(out.mounted).toBe(i === 0);
             expect(s.driver).toBe("d");
@@ -102,7 +103,7 @@ describe("Seating (ADR 0019, ADR 0025)", () => {
       fc.property(anyRiders, yaw, (list, y) => {
         const f = forward(y);
         const riders = place(list, y);
-        const out = new Seating(P).update(riders, f);
+        const out = new Seating(P).update(riders, f, { x: 0, z: 0 });
         const expected = riders.find(
           (r) => occupiedSeats(riders, f, P).get(r.id) === 0,
         )?.id;
@@ -118,8 +119,8 @@ describe("Seating (ADR 0019, ADR 0025)", () => {
       fc.property(first, others(backSeat), yaw, (tick0, tick1, y) => {
         const f = forward(y);
         const s = new Seating(P);
-        s.update(place(tick0, y), f);
-        const out = s.update(place(tick1, y), f);
+        s.update(place(tick0, y), f, { x: 0, z: 0 });
+        const out = s.update(place(tick1, y), f, { x: 0, z: 0 });
         expect(out.driver).toBeUndefined();
         expect(out.mounted).toBe(false);
         expect(out.vacated).toContain(0);
@@ -132,7 +133,7 @@ describe("Seating (ADR 0019, ADR 0025)", () => {
     fc.assert(
       fc.property(anyRiders, yaw, (list, y) => {
         const s = new Seating(P);
-        s.update(place(list, y), forward(y));
+        s.update(place(list, y), forward(y), { x: 0, z: 0 });
         const byNumber = (a: number, b: number) => a - b;
         expect([...s.taken()].sort(byNumber)).toEqual(
           [...new Set(list.map((r) => r.seat))].sort(byNumber),
@@ -148,7 +149,7 @@ describe("Seating (ADR 0019, ADR 0025)", () => {
         const f = forward(y);
         const riders = place(list, y);
         const s = Seating.restore(P, riders, f);
-        const out = s.update(riders, f);
+        const out = s.update(riders, f, { x: 0, z: 0 });
         expect(out.vacated).toEqual([]);
         expect(out.mounted).toBe(false);
         expect(out.driver?.id).toBe(list.find((r) => r.seat === 0)?.id);
@@ -175,8 +176,8 @@ describe("Seating read by rider-list slot (ADR 0120)", () => {
               slot: r.seat,
             }));
           const s = new Seating(P, "slot");
-          s.update(laid(prev), f);
-          const out = s.update(laid(now), f);
+          s.update(laid(prev), f, { x: 0, z: 0 });
+          const out = s.update(laid(now), f, { x: 0, z: 0 });
           expect([...s.taken()].sort()).toEqual(
             [...new Set(now.map((r) => r.seat))].sort(),
           );
@@ -196,10 +197,102 @@ describe("Seating read by rider-list slot (ADR 0120)", () => {
           slot: r.seat,
         }));
         const s = Seating.restore(P, riders, f, "slot");
-        const out = s.update(riders, f);
+        const out = s.update(riders, f, { x: 0, z: 0 });
         expect(out.mounted).toBe(false);
         expect(out.driver?.id).toBe(list.find((r) => r.seat === 0)?.id);
       }),
     );
+  });
+});
+
+describe("Choosing a driver with position lag (ADR 0126)", () => {
+  const passengers = fc.shuffledSubarray([1, 2, 3]);
+  for (const profile of [SUV_PROFILE, CAMPER_PROFILE]) {
+    const positions = profile.seats.positions;
+
+    for (const { direction, maxLag } of [
+      { direction: "forward", maxLag: 1.2 },
+      { direction: "reverse", maxLag: 0.2 },
+    ]) {
+      it(`chooses the seat-0 rider with shared ${direction} lag (${profile === SUV_PROFILE ? "suv" : "camper"})`, () => {
+        fc.assert(
+          fc.property(
+            yaw,
+            fc.double({ min: 0, max: maxLag, noNaN: true }),
+            passengers,
+            (y, lag, seats) => {
+              const f = forward(y);
+              const distance = direction === "forward" ? lag : -lag;
+              const step = { x: distance * f.x, z: distance * f.z };
+              const riders = [...seats, 0].map((seat) => {
+                const offset = worldOffset(y, seat, positions);
+                return {
+                  id: asPlayerId(seat === 0 ? "d" : `p${seat}`),
+                  offset: { x: offset.x - step.x, z: offset.z - step.z },
+                };
+              });
+              const out = new Seating(positions).update(riders, f, step);
+              expect(out.driver?.id).toBe("d");
+              expect(out.mounted).toBe(true);
+            },
+          ),
+        );
+      });
+    }
+
+    it(`matches raw seat-0 selection at rest (${profile === SUV_PROFILE ? "suv" : "camper"})`, () => {
+      fc.assert(
+        fc.property(anyRiders, yaw, (list, y) => {
+          const f = forward(y);
+          const riders = list.map((r) => ({
+            id: asPlayerId(r.id),
+            offset: worldOffset(y, r.seat, positions),
+          }));
+          const expected = riders.find(
+            (r) => occupiedSeats(riders, f, positions).get(r.id) === 0,
+          );
+          const out = new Seating(positions).update(riders, f, { x: 0, z: 0 });
+          expect(out.driver).toBe(expected);
+        }),
+      );
+    });
+
+    it(`leaves passengers without a driver at rest (${profile === SUV_PROFILE ? "suv" : "camper"})`, () => {
+      fc.assert(
+        fc.property(passengers, yaw, (seats, y) => {
+          const riders = seats.map((seat) => ({
+            id: asPlayerId(`p${seat}`),
+            offset: worldOffset(y, seat, positions),
+          }));
+          const out = new Seating(positions).update(riders, forward(y), {
+            x: 0,
+            z: 0,
+          });
+          expect(out.driver).toBeUndefined();
+          expect(out.mounted).toBe(false);
+        }),
+      );
+    });
+  }
+
+  it("chooses the SUV driver when both front riders lag 0.575 blocks", () => {
+    const f = forward(0);
+    const lag = 0.575;
+    const riders = place(
+      [
+        { id: "d", seat: 0 },
+        { id: "q", seat: 1 },
+      ],
+      0,
+    ).map((r) => ({
+      ...r,
+      offset: { x: r.offset.x - lag * f.x, z: r.offset.z - lag * f.z },
+    }));
+    const out = new Seating(P).update(riders, f, {
+      x: lag * f.x,
+      z: lag * f.z,
+    });
+    expect(out.driver?.id).toBe("d");
+    expect(out.mounted).toBe(true);
   });
 });

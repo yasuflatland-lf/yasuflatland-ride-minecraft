@@ -1,6 +1,6 @@
 import type { PlayerId } from "../shared/ids";
 // Which rider sits where and who drives (ADR 0019, ADR 0025).
-import type { Vec2 } from "../shared/vec";
+import { add, type Vec2 } from "../shared/vec";
 import type { SeatLayout } from "./profile";
 import {
   nearestSeat,
@@ -64,20 +64,54 @@ export class Seating {
     return seating;
   }
 
-  update<R extends RiderPos>(riders: readonly R[], f: Vec2): SeatingUpdate<R> {
+  private pickDriver<R extends RiderPos>(
+    riders: readonly R[],
+    f: Vec2,
+    step: Vec2,
+  ): R | undefined {
+    let candidate: R | undefined;
+    let bestDistance = Number.POSITIVE_INFINITY;
+    const seat = this.positions[0];
+    if (!seat) return undefined;
+    for (const rider of riders) {
+      const local = toLocal(rider.offset, f);
+      const distance = Math.hypot(local.x - seat.x, local.z - seat.z);
+      if (distance < bestDistance) {
+        candidate = rider;
+        bestDistance = distance;
+      }
+    }
+    if (
+      candidate &&
+      (nearestSeat(toLocal(candidate.offset, f), this.positions) === 0 ||
+        nearestSeat(toLocal(add(candidate.offset, step), f), this.positions) ===
+          0)
+    )
+      return candidate;
+    return undefined;
+  }
+
+  /** A rider's reading can lag by up to one tick of world-space horizontal motion `step`, in blocks (ADR 0025). */
+  update<R extends RiderPos>(
+    riders: readonly R[],
+    f: Vec2,
+    step: Vec2,
+  ): SeatingUpdate<R> {
     const seats = this.seatsOf(riders, f);
     const vacated = vacatedSeats(this.seats, seats).sort((a, b) => a - b);
     this.seats = seats;
-    // Driver = the rider in the driver's seat (seat 0) (ADR 0019). A driver
-    // stays the driver while they ride: a rider's position can lag the moving
-    // vehicle by a tick and read as another seat, which in flight would land
-    // the vehicle (ADR 0025). Read by slot, the seat never lags, so the driver is
-    // whoever sits in seat 0 (ADR 0120).
+    // A driver stays the driver while aboard despite position lag (ADR 0025).
+    // Otherwise choose the rider closest to seat 0 (ADR 0019, ADR 0025), accepted
+    // when their raw reading or that reading moved by one tick of the vehicle's
+    // motion falls in seat 0 (ADR 0126). Slot readings never lag (ADR 0120).
     const sticky =
       this.reading === "position"
         ? riders.find((r) => r.id === this.driverId)
         : undefined;
-    const driver = sticky ?? riders.find((r) => this.seats.get(r.id) === 0);
+    const driver =
+      this.reading === "position"
+        ? (sticky ?? this.pickDriver(riders, f, step))
+        : riders.find((r) => this.seats.get(r.id) === 0);
     const mounted = driver !== undefined && this.driverId !== driver.id;
     this.driverId = driver?.id;
     return { vacated, driver, mounted };

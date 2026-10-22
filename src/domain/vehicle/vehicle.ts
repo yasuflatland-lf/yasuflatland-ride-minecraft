@@ -309,7 +309,10 @@ export class Vehicle {
 
   tick(input: VehicleTickInput): TickOutcome {
     const { riders, testInput, deckSeatRiders, targets, ...sensors } = input;
-    const seated = this.seating.update(riders, forward(this.drive.yaw));
+    const seated = this.seating.update(riders, forward(this.drive.yaw), {
+      x: sensors.velocity.x,
+      z: sensors.velocity.z,
+    });
     const seatCommands = seated.vacated.flatMap((seat) =>
       this.drive.onSeatVacated(seat),
     );

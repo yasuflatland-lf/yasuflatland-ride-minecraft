@@ -2,6 +2,7 @@
 
 - Status: Superseded in part by [0120](0120-choose-a-sports-boat-seat-by-aiming-at-it.md) (Proposed; on the sports boat the driver is read from the rider list, so it is not sticky)
 - Date: 2026-10-11
+- Amended by: [0126](0126-choose-a-new-driver-with-one-tick-of-motion.md) (accept a new driver using one tick of horizontal motion)
 
 ## Context
 
