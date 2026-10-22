@@ -124,6 +124,33 @@ it("clears a plant in the bumper's row even without an upper half, and leaves ot
   );
 });
 
+it("skips unread wall feet, even in the bumper's row", () => {
+  fc.assert(
+    fc.property(pose, fc.nat(), (p, pick) => {
+      const cells = parkCheckCells(p);
+      const feet = wallFootCells(p);
+      const spots = parkGround(p);
+      const bumperFeet = feet.filter((c) => spots.bumper.has(cellKey(c)));
+      const foot = defined(bumperFeet[pick % bumperFeet.length], "bumper foot");
+      const plant = defined([...CLEARABLE_DECORATIONS][0], "plant");
+      // An unloaded block reads as undefined; it is never cleared, while a plant next to it is.
+      const others = feet.filter((c) => c !== foot);
+      const clear = planPark(
+        cells,
+        cells.map(() => AIR),
+        feet,
+        feet.map((c) => (c === foot ? undefined : plant)),
+        spots,
+      );
+      expect(clear).toEqual(
+        others
+          .filter((c) => spots.bumper.has(cellKey(c)))
+          .map((c) => ({ ...c, typeId: plant })),
+      );
+    }),
+  );
+});
+
 it.each([
   "minecraft:golden_dandelion",
   "minecraft:open_eyeblossom",

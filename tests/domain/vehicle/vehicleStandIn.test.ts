@@ -13,6 +13,7 @@ import {
 import { CAMPER_SPEC } from "../../../src/domain/vehicle/kinds/camper/spec";
 import { createVehicle } from "../../../src/domain/vehicle/kinds/index";
 import { DOCK } from "../../../src/domain/vehicle/motion/dock";
+import type { VehicleProfile } from "../../../src/domain/vehicle/profile";
 import { type StandInPose, yawGap } from "../../../src/domain/vehicle/standIn";
 import {
   Vehicle,
@@ -21,6 +22,15 @@ import {
 import { defined } from "../../support/defined";
 
 const RULE = defined(CAMPER_PROFILE.standIn, "camper stand-in");
+
+/** The camper with its stand-in rule's lift limits replaced by `lifts`. */
+function camperWithLifts(lifts: {
+  maxLift?: number;
+  parkedMaxLift?: number;
+}): VehicleProfile {
+  const { maxLift: _max, parkedMaxLift: _parked, ...rule } = RULE;
+  return { ...CAMPER_PROFILE, standIn: { ...rule, ...lifts } };
+}
 const yaw = fc.double({ min: -720, max: 720, noNaN: true });
 const cell = fc.integer({ min: -50, max: 50 });
 
@@ -53,7 +63,11 @@ function boxCenters(pose: StandInPose): Vec3[] {
 }
 
 /** A camper whose stub drive faces `yaws[tick]` and is held at `hold` when given. */
-function stubCamper(yaws: readonly number[], hold?: Vec3) {
+function stubCamper(
+  yaws: readonly number[],
+  hold?: Vec3,
+  profile: VehicleProfile = CAMPER_PROFILE,
+) {
   let tick = 0;
   const drive: Drive = {
     speed: 0,
@@ -72,7 +86,7 @@ function stubCamper(yaws: readonly number[], hold?: Vec3) {
       }),
     }),
   };
-  const vehicle = new Vehicle(asVehicleId("v"), CAMPER_PROFILE, drive);
+  const vehicle = new Vehicle(asVehicleId("v"), profile, drive);
   return {
     vehicle,
     next(location: Vec3, solidAt?: (offset: Vec3) => boolean) {
@@ -322,6 +336,55 @@ describe("vehicle stand-in (ADR 0116)", () => {
           expect(pose.y).toBe(cy + Math.min(ground ? 1 : 0, parkedMaxLift));
           expect(Math.floor(pose.x)).toBe(middle.x);
           expect(Math.floor(pose.z)).toBe(middle.z);
+        },
+      ),
+    );
+  });
+
+  it("never rises without a lift limit, driving or held, however much ground is in front", () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: -8, max: 8 }),
+        fc.record({ x: cell, y: cell, z: cell }),
+        fc.boolean(),
+        fc.option(fc.integer({ min: 0, max: 4 }), { nil: undefined }),
+        (quarter, at, held, parked) => {
+          const snapped = quarter * 90;
+          const profile = camperWithLifts(
+            parked === undefined ? {} : { parkedMaxLift: parked },
+          );
+          const camper = stubCamper([snapped], held ? at : undefined, profile);
+          const pose = defined(camper.next(at, () => true).standIn, "s");
+          expect(pose.y).toBe(at.y);
+        },
+      ),
+    );
+  });
+
+  it("rises up to maxLift while held when no parked limit is set", () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: -8, max: 8 }),
+        cell,
+        cell,
+        cell,
+        fc.integer({ min: 1, max: 4 }),
+        fc.integer({ min: 0, max: 6 }),
+        (quarter, cx, cy, cz, maxLift, rise) => {
+          const snapped = quarter * 90;
+          const hold = { x: cx + 0.5, y: cy, z: cz + 0.5 };
+          const { solidAt } = columnAt(
+            hold,
+            snapped,
+            (layer) => layer >= 0 && layer < rise,
+          );
+          const camper = stubCamper(
+            [snapped],
+            hold,
+            camperWithLifts({ maxLift }),
+          );
+          const pose = defined(camper.next(hold, solidAt).standIn, "s");
+          expect(pose.y).toBe(cy + Math.min(rise, maxLift));
         },
       ),
     );

@@ -584,9 +584,9 @@ export function parkGround(pose: HoldPose): ParkGround {
   const ground = roomCells(pose, false)
     .filter((c) => c.y === pose.y)
     .map(cellKey);
-  const exitFeet = exitCells(pose)[0];
+  const exitFeet = cellAt(pose, EXIT.x, EXIT.z, EXIT_LAYERS[0]);
   return {
-    ground: new Set(exitFeet ? [...ground, cellKey(exitFeet)] : ground),
+    ground: new Set([...ground, cellKey(exitFeet)]),
     bumper: new Set(bumperCells(pose).map(cellKey)),
   };
 }
