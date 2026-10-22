@@ -43,8 +43,6 @@ import {
   ROOM_FACE_STATE,
   ROOM_OPEN_STATE,
   STAND_IN_FAMILY,
-  STAND_IN_OF_PROPERTY,
-  STAND_IN_PROPERTY,
   standInType,
 } from "../../infrastructure/vehicle/bedrock/identifiers";
 import {
@@ -719,18 +717,14 @@ export function camperBumper(a: Arena): Promise<Outcome> {
     await wait(DOCK.ticks + 10);
     const parked = near();
     const [standIn] = parked;
-    // Facing -x, the bumper's row runs along z.
+    // Facing -x, the bumper's row runs along z. The id links between the two are
+    // dynamic properties of the main pack, which this pack cannot read.
     const parkedOk =
       parked.length === 1 &&
       standIn !== undefined &&
       CAMPER_PROFILE.standIn !== undefined &&
       standIn.typeId === standInType(CAMPER_PROFILE.standIn.name, "z") &&
-      standIn.getDynamicProperty(STAND_IN_OF_PROPERTY) === car.id &&
-      car.getDynamicProperty(STAND_IN_PROPERTY) === standIn.id &&
       offFront(standIn) <= CAMPER_BUMPER_TEST.parkedTolerance;
-    const parkedWhy = standIn
-      ? `type=${standIn.typeId} of=${standIn.getDynamicProperty(STAND_IN_OF_PROPERTY) === car.id} ref=${car.getDynamicProperty(STAND_IN_PROPERTY) === standIn.id} parkedOff=${offFront(standIn).toFixed(3)}`
-      : "none";
     drive(car, 0, 1);
     await wait(CAMPER_BUMPER_TEST.driveTicks);
     const driving = near();
@@ -744,7 +738,7 @@ export function camperBumper(a: Arena): Promise<Outcome> {
     const left = near().length;
     return {
       pass: parkedOk && drivingOk && left === 0,
-      detail: `parked=${parked.length} parkedOk=${parkedOk} ${parkedWhy} driving=${driving.length} off=${off} left=${left}`,
+      detail: `parked=${parked.length} parkedOk=${parkedOk} driving=${driving.length} off=${off} left=${left}`,
     };
   });
 }
