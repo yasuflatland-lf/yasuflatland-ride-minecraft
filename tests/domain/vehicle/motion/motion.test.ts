@@ -1698,4 +1698,53 @@ describe("targetVelocity (ADR 0002, 0081)", () => {
       }),
     );
   });
+
+  // Verbatim copies of the inline targets in stepMotion and stepMediumMotion
+  // before #474. Exact equality pins the operand order: a reordering changes
+  // the low bits of every target and slips past the 1e-9 properties above.
+  function preRefactorGroundTarget(
+    f: Vec2,
+    speed: number,
+    v: Vec2,
+    keepLat: number,
+    maxSpeed: number,
+  ): Vec2 {
+    const vLong = dot(v, f);
+    const lat = { x: v.x - f.x * vLong, z: v.z - f.z * vLong };
+    return clampLength(
+      { x: f.x * speed + lat.x * keepLat, z: f.z * speed + lat.z * keepLat },
+      maxSpeed,
+    );
+  }
+
+  function preRefactorMediumTarget(
+    f: Vec2,
+    speed: number,
+    v: Vec2,
+    keepLat: number,
+    maxSpeed: number,
+  ): Vec2 {
+    const vLong = dot(v, f);
+    return clampLength(
+      {
+        x: f.x * speed + (v.x - f.x * vLong) * keepLat,
+        z: f.z * speed + (v.z - f.z * vLong) * keepLat,
+      },
+      maxSpeed,
+    );
+  }
+
+  it("is bit-identical to both pre-refactor inline targets", () => {
+    fc.assert(
+      fc.property(args, ([f, speed, v, keepLat, maxSpeed]) => {
+        const result = targetVelocity(f, speed, v, keepLat, maxSpeed);
+        expect(result).toEqual(
+          preRefactorGroundTarget(f, speed, v, keepLat, maxSpeed),
+        );
+        expect(result).toEqual(
+          preRefactorMediumTarget(f, speed, v, keepLat, maxSpeed),
+        );
+      }),
+    );
+  });
 });
