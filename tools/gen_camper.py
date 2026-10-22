@@ -590,7 +590,7 @@ for sx in (1, -1):
     body += disc("z", sx * 19, 15, REAR + 0.2, 1.6, 0.4, "red")
 body.append(box(-19, 17.5, REAR, -16, 21, REAR + 0.3, "panel"))  # backup light box
 body.append(box(-20, 10.5, REAR, -15, 13.5, REAR + 0.3, "white"))  # plate
-body.append(box(-HW - 0.5, 3, REAR - 1, HW + 0.5, 7.5, REAR + 2.5, "black"))  # bumper with step slots
+body.append(box(-HW - 0.5, 3, REAR - 1, HW + 0.5, 7.5, REAR + 2.5, "steel"))  # bumper with step slots, as the front
 for x0 in (-17, -6, 5):
     body.append(box(x0, 6.5, REAR + 2.5, x0 + 10, 7.6, REAR + 2.6, "grille"))
 # Everything above was drawn on a flat rear at REAR; move it onto the profile, in slices.
@@ -895,8 +895,8 @@ for k in range(12):
     body.append(box(21.8, 30.35, z, 22.3, 30.38, z + 0.25, "black"))
 body.append(box(22.4, 30, STOVE_Z[0], 22.8, 31, STOVE_Z[1], "ivory"))  # ledge at the wall
 burner(16, 32, 0)
-# Control panel leaning back 20 degrees with five knobs toward the far end; the sink-side third
-# stays blank.
+# Control panel leaning back 20 degrees with one knob in its middle, in line with the one burner
+# (ADR 0112).
 # Every cube stays at x 8 or more before and after the lean, out of the aisle.
 LEAN = ([0, 0, -20], [8.5, 26.6, 31.75])  # about its lower front edge, top toward the wall
 body.append(box(8.5, 26.6, 24.2, 8.8, 29.2, 39.3, "harvest", *LEAN))
@@ -922,7 +922,7 @@ def knob_octagon(x0, x1, cz, half, color):
         body.append(box(x0 + dx, axis[1] - hy, cz - hz, x1 + dx, axis[1] + hy, cz + hz, color, [45, 0, rotation[2]], axis))
 
 
-for z in (29.9, 31.9, 33.9, 35.9, 37.9):
+for z in (LEAN[1][2],):
     knob_octagon(8.07, 8.5, z, 0.75, "black")
     knob_octagon(8.4, 8.5, z, 0.85, "chrome")  # skirt
     knob_octagon(8.02, 8.07, z, 0.5, "chrome")  # face cap
