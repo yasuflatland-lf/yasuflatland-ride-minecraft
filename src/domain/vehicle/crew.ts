@@ -6,18 +6,14 @@ import { Seating } from "./seating";
 import type { RiderPos } from "./seats";
 import { SPEC } from "./spec";
 
-/** A kind whose players choose their seat keeps each rider's list index equal to their seat (ADR 0120). */
-function seatReadingOf(profile: VehicleProfile): "position" | "slot" {
-  return profile.boarding.order === "chosen" ? "slot" : "position";
-}
-
 export class Crew {
   private seating: Seating;
   private readonly chosenSeats: ChosenSeats | undefined;
+  /** Infinite until the first driver: a rebuild cannot recover an earlier handover (ADR 0078). */
   private driverlessTicks = Number.POSITIVE_INFINITY;
 
   constructor(private readonly profile: VehicleProfile) {
-    this.seating = new Seating(profile.seats.positions, seatReadingOf(profile));
+    this.seating = new Seating(profile.seats.positions);
     this.chosenSeats =
       profile.boarding.order === "chosen"
         ? new ChosenSeats({
@@ -34,12 +30,7 @@ export class Crew {
     f: Vec2,
   ): Crew {
     const crew = new Crew(profile);
-    crew.seating = Seating.restore(
-      profile.seats.positions,
-      riders,
-      f,
-      seatReadingOf(profile),
-    );
+    crew.seating = Seating.restore(profile.seats.positions, riders, f);
     return crew;
   }
 

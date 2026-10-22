@@ -19,7 +19,14 @@ it("delegates seating and waits only within the driver handover window", () => {
   fc.assert(
     fc.property(
       fc.array(
-        fc.record({ riders, yaw: fc.integer({ min: -180, max: 180 }) }),
+        fc.record({
+          riders,
+          yaw: fc.integer({ min: -180, max: 180 }),
+          step: fc.record({
+            x: fc.double({ min: -1, max: 1, noNaN: true }),
+            z: fc.double({ min: -1, max: 1, noNaN: true }),
+          }),
+        }),
         { maxLength: 30 },
       ),
       (ticks) => {
@@ -40,7 +47,7 @@ it("delegates seating and waits only within the driver handover window", () => {
               },
             };
           });
-          const step = { x: 0, z: 0 };
+          const step = snapshot.step;
           const expected = seating.update(list, f, step);
           const actual = crew.update(list, f, step);
           if (expected.driver) lastDriver = tick;
