@@ -1,5 +1,5 @@
 // Implements PlacementWorld with @minecraft/server (ADR 0012).
-import { GameMode, world } from "@minecraft/server";
+import { world } from "@minecraft/server";
 import type { PlacementWorld } from "../../../application/vehicle/ports/placement";
 import {
   asVehicleId,
@@ -10,6 +10,7 @@ import {
 import type { Vec3 } from "../../../domain/shared/vec";
 import type { VehicleKind } from "../../../domain/vehicle/kind";
 import type { PlacementGift } from "../../../domain/vehicle/placement/gift";
+import { isCreative } from "../../shared/players";
 import type { BedrockInventory } from "./bedrockInventory";
 import type { EntityIndex } from "./entityIndex";
 import { isLightBlock } from "./headlightBlocks";
@@ -21,9 +22,7 @@ export function isCreativePlayer(
   index: EntityIndex,
   playerId: PlayerId,
 ): boolean {
-  const player = index.player(playerId);
-  // getGameMode throws on a handle whose player has left (isValid false).
-  return player?.isValid === true && player.getGameMode() === GameMode.Creative;
+  return isCreative(index.player(playerId));
 }
 
 export class BedrockPlacementWorld implements PlacementWorld {
