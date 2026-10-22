@@ -80,15 +80,21 @@ function offsetFrom(vehicle: Entity, offset: Vec3): Vec3 {
   };
 }
 
-// How far from a cell's middle a vehicle can stand and still have the cell inside its
-// placement clearance: the farthest corner of the largest clearance box (ADR 0121).
+// How far from a cell's middle a vehicle can stand and still reach into the cell: the
+// largest footprint plus the cell's half diagonal, and the tallest clearance (ADR 0122).
 const SPACE_QUERY_RADIUS = Math.max(
   ...VEHICLE_KINDS.map((kind) => {
-    const { halfX, halfZ, height } = profileOf(kind).placement.clearance;
-    const half = Math.max(halfX, halfZ) + 1;
-    return Math.hypot(half, height + 1, half);
+    const { footprint, placement } = profileOf(kind);
+    return Math.hypot(footprint + 1, placement.clearance.height + 1);
   }),
 );
+
+/** How far `cell`'s ground square lies from `point` across the ground. */
+function groundGap(cell: Vec3, point: Vec3): number {
+  const dx = Math.max(cell.x - point.x, 0, point.x - (cell.x + 1));
+  const dz = Math.max(cell.z - point.z, 0, point.z - (cell.z + 1));
+  return Math.hypot(dx, dz);
+}
 
 function distanceSq(a: Vec3, b: Vec3): number {
   return (a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2;
@@ -135,8 +141,8 @@ export class BedrockVehicleWorld implements DriveWorld {
 
   /**
    * Whether a vehicle laid a room block in `cell` or in the block under it, or a
-   * loaded vehicle stands so near that `cell` is inside its kind's placement
-   * clearance, turned to any heading (ADR 0121).
+   * loaded vehicle's footprint, turned to any heading, reaches into `cell` at a height
+   * within its kind's placement clearance (ADR 0122).
    */
   isVehicleSpace(dimensionId: DimensionId, cell: Vec3): boolean {
     const below = { x: cell.x, y: cell.y - 1, z: cell.z };
@@ -159,14 +165,12 @@ export class BedrockVehicleWorld implements DriveWorld {
     return near.some((vehicle) => {
       const kind = kindOfEntity(vehicle.typeId);
       if (kind === undefined) return false;
-      const { halfX, halfZ, height } = profileOf(kind).placement.clearance;
-      const half = Math.max(halfX, halfZ);
+      const { footprint, placement } = profileOf(kind);
       const dy = cell.y - Math.floor(vehicle.location.y);
       return (
-        Math.abs(cell.x - Math.floor(vehicle.location.x)) <= half &&
-        Math.abs(cell.z - Math.floor(vehicle.location.z)) <= half &&
         dy >= 0 &&
-        dy <= height
+        dy <= placement.clearance.height &&
+        groundGap(cell, vehicle.location) < footprint
       );
     });
   }

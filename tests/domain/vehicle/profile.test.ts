@@ -108,6 +108,7 @@ describe("vehicle profiles (ADR 0050)", () => {
       kind: "suv",
       fleetLimit: 10,
       ram: { front: SUV_SPEC.bodyFront, halfWidth: SUV_SPEC.bodyHalfWidth },
+      footprint: 2.35,
       seats: {
         positions: [
           { x: -0.38, z: 0.2 },
@@ -151,6 +152,7 @@ describe("vehicle profiles (ADR 0050)", () => {
       kind: "sportsboat",
       fleetLimit: 1,
       ram: { front: 3.0, halfWidth: 1.06 },
+      footprint: 3.5,
       seats: {
         positions: [
           { x: -0.38, z: 0.35 },

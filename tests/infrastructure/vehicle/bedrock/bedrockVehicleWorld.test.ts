@@ -1207,23 +1207,73 @@ describe("BedrockVehicleWorld dock owners (ADR 0068, 0093)", () => {
   });
 });
 
-describe("BedrockVehicleWorld.isVehicleSpace (ADR 0121)", () => {
+describe("BedrockVehicleWorld.isVehicleSpace (ADR 0122)", () => {
   beforeEach(() => vi.resetAllMocks());
   const OVERWORLD = asDimensionId("overworld");
 
-  // The car stands in cell (-2, 64, 2); the SUV's placement clearance reaches one
-  // block to each side and two blocks up.
+  // The car stands at (-1.25, 64.25, 2.75), in cell (-2, 64, 2). The SUV's footprint
+  // reaches 2.35 blocks at any heading, and its clearance two blocks up.
   it.each<[Vec3, boolean]>([
     [{ x: -2, y: 64, z: 2 }, true],
     [{ x: -1, y: 66, z: 3 }, true],
     [{ x: -3, y: 65, z: 1 }, true],
-    [{ x: 0, y: 64, z: 2 }, false],
-    [{ x: -2, y: 64, z: 4 }, false],
+    [{ x: 0, y: 64, z: 2 }, true],
+    [{ x: -2, y: 64, z: 4 }, true],
+    [{ x: -2, y: 64, z: 0 }, true],
+    [{ x: 2, y: 64, z: 2 }, false],
+    [{ x: -2, y: 64, z: 6 }, false],
     [{ x: -2, y: 67, z: 2 }, false],
     [{ x: -2, y: 63, z: 2 }, false],
   ])("treats %o as vehicle space: %s", (cell, expected) => {
     const { world } = fixture();
     expect(world.isVehicleSpace(OVERWORLD, cell)).toBe(expected);
+  });
+
+  // The SUV's body reaches 1.85 ahead and 2.22 behind its center (suv.geo.json), so a
+  // cell up to two cells ahead or behind, or to a side, overlaps it at some heading.
+  it("treats every cell up to two cells from an SUV's cell along an axis as vehicle space", () => {
+    fc.assert(
+      fc.property(
+        fc.double({ min: -100, max: 100, noNaN: true }),
+        fc.double({ min: -100, max: 100, noNaN: true }),
+        fc.integer({ min: -2, max: 2 }),
+        fc.boolean(),
+        (x, z, step, alongX) => {
+          const { world, car } = fixture();
+          car.location = { x, y: 64, z };
+          const cell = {
+            x: Math.floor(x) + (alongX ? step : 0),
+            y: 64,
+            z: Math.floor(z) + (alongX ? 0 : step),
+          };
+          expect(world.isVehicleSpace(OVERWORLD, cell)).toBe(true);
+        },
+      ),
+    );
+  });
+
+  it("leaves every cell four or more cells from an SUV's cell free", () => {
+    fc.assert(
+      fc.property(
+        fc.double({ min: -100, max: 100, noNaN: true }),
+        fc.double({ min: -100, max: 100, noNaN: true }),
+        fc.integer({ min: 4, max: 7 }),
+        fc.constantFrom(-1, 1),
+        fc.integer({ min: -6, max: 6 }),
+        fc.boolean(),
+        (x, z, gap, sign, across, alongX) => {
+          const { world, car } = fixture();
+          car.location = { x, y: 64, z };
+          const away = sign * gap;
+          const cell = {
+            x: Math.floor(x) + (alongX ? away : across),
+            y: 64,
+            z: Math.floor(z) + (alongX ? across : away),
+          };
+          expect(world.isVehicleSpace(OVERWORLD, cell)).toBe(false);
+        },
+      ),
+    );
   });
 
   it("treats a cell with a laid room block in it or under it as vehicle space", () => {
