@@ -192,7 +192,10 @@ describe("liftStandIn (ADR 0119)", () => {
           const open = solid.indexOf(false);
           const solidRun = open === -1 ? solid.length : open;
           const lift = Math.min(solidRun, maxLift);
-          expect(lifted).toEqual({ ...pose, y: at.y + lift });
+          // With no lift the pose comes back as is, so a y of -0 stays -0.
+          expect(lifted).toEqual(
+            lift === 0 ? pose : { ...pose, y: at.y + lift },
+          );
           expect(read).toEqual(
             Array.from({ length: Math.min(lift + 1, maxLift) }, (_, i) => i),
           );
