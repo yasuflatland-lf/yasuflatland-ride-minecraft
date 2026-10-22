@@ -199,6 +199,11 @@ export class SportsboatDrive implements Drive {
     return [];
   }
 
+  resync(): void {
+    this.trimSync.resync();
+    this.rollSync.resync();
+  }
+
   step(raw: RawInput | undefined, ctx: TickContext): DriveStep {
     if (this.restoredDocked && !this.docked) {
       this.docked = { ...ctx.location, yaw: this.motion.yaw };

@@ -2,6 +2,7 @@ import type { PlayerId, VehicleId } from "../../domain/shared/ids";
 // Use case: every tick, move all loaded vehicles.
 import { rebuildVehicle } from "../../domain/vehicle/kinds/index";
 import type { ChaseCamera } from "../../domain/vehicle/profile";
+import type { TickOutcome } from "../../domain/vehicle/vehicle";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
 import { forEachIsolated } from "./isolated";
 import type { DriveWorld, VehicleSnapshot } from "./ports/drive";
@@ -59,22 +60,28 @@ export class DriveVehicles {
       );
       this.repo.save(vehicle);
     }
-    const out = vehicle.tick({
-      tick,
-      riders: snap.riders,
-      deckSeatInputs: snap.deckSeatInputs,
-      deckSeatRiders: snap.deckSeatRiders,
-      testInput: snap.testInput,
-      location: snap.location,
-      velocity: snap.velocity,
-      onGround: snap.onGround,
-      waterAt: (offset) => this.world.waterAt(snap.id, offset),
-      solidAt: (offset) => this.world.solidAt(snap.id, offset),
-      blockTypes: (cells) => this.world.blockTypes(snap.id, cells),
-      targets: () => this.world.targetsNear(snap.id),
-    });
-    // Commands are sent on change, so send them before anything else that could throw.
-    this.world.run(snap.id, out.stepCommands);
+    let out: TickOutcome;
+    try {
+      out = vehicle.tick({
+        tick,
+        riders: snap.riders,
+        deckSeatInputs: snap.deckSeatInputs,
+        deckSeatRiders: snap.deckSeatRiders,
+        testInput: snap.testInput,
+        location: snap.location,
+        velocity: snap.velocity,
+        onGround: snap.onGround,
+        waterAt: (offset) => this.world.waterAt(snap.id, offset),
+        solidAt: (offset) => this.world.solidAt(snap.id, offset),
+        blockTypes: (cells) => this.world.blockTypes(snap.id, cells),
+        targets: () => this.world.targetsNear(snap.id),
+      });
+      // Latches advance while building commands; a failed tick or send must retry every value (ADR 0127).
+      this.world.run(snap.id, out.stepCommands);
+    } catch (error) {
+      vehicle.resync();
+      throw error;
+    }
     if (out.message && out.driverId)
       this.world.showMessage(out.driverId, out.message);
     this.world.holdAt(snap.id, out.dock?.hold);

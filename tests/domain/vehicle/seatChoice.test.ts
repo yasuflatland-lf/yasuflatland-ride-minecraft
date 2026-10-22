@@ -452,6 +452,7 @@ describe("Vehicle seat choice (ADR 0120)", () => {
           const drive: Drive = {
             speed: 0,
             yaw: 0,
+            resync() {},
             onDriverMounted: () => {},
             onSeatVacated: () => [],
             step: () => ({ ...NO_COMMANDS, boardDeckRiders: false }),
@@ -496,6 +497,7 @@ describe("Vehicle seat choice (ADR 0120)", () => {
           const drive: Drive = {
             speed: 0,
             yaw: 0,
+            resync() {},
             onDriverMounted: () => {},
             onSeatVacated: () => [],
             step: () => ({ ...NO_COMMANDS, boardDeckRiders: true }),

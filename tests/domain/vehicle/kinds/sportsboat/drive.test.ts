@@ -1699,3 +1699,36 @@ describe("sports boat control mapping (ADR 0089)", () => {
     );
   });
 });
+
+it("resync sends current trim and roll after any input sequence", () => {
+  fc.assert(
+    fc.property(
+      fc.array(rawInput, { minLength: 1, maxLength: 60 }),
+      fc.boolean(),
+      (inputs, docked) => {
+        const drive = new SportsboatDrive(0, { docked });
+        inputs.forEach((raw, tick) => {
+          drive.step(
+            docked ? undefined : raw,
+            context(tick, raw, { x: 0, z: 0 }, AFLOAT),
+          );
+        });
+        drive.resync();
+        const out = drive.step(
+          FULL_THROTTLE,
+          context(inputs.length, undefined, { x: 0, z: 0 }, AFLOAT),
+        );
+        expect(out.commands).toContainEqual({
+          type: "setProperty",
+          name: "trim",
+          value: drive.inspect().trim,
+        });
+        expect(out.commands).toContainEqual({
+          type: "setProperty",
+          name: "roll",
+          value: drive.inspect().roll,
+        });
+      },
+    ),
+  );
+});

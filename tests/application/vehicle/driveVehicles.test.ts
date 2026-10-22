@@ -74,6 +74,7 @@ describe("DriveVehicles", () => {
           const drive: Drive = {
             speed: 0,
             yaw: hold.yaw,
+            resync() {},
             onDriverMounted: () => {},
             onSeatVacated: () => [],
             step: () => step,
@@ -798,6 +799,7 @@ describe("DriveVehicles dock ports", () => {
     const drive: Drive = {
       speed: 0,
       yaw: 0,
+      resync() {},
       onDriverMounted: () => {},
       onSeatVacated: () => [],
       step: (_raw, ctx) => {
@@ -914,4 +916,141 @@ describe("DriveVehicles stand-ins (ADR 0116)", () => {
       ),
     );
   });
+});
+
+const retryTick = fc.record({
+  input: fc.record({
+    moveX: fc.integer({ min: -1, max: 1 }),
+    moveY: fc.integer({ min: -1, max: 1 }),
+    jump: fc.boolean(),
+  }),
+  failure: fc.option(
+    fc.record({
+      id: fc.constant("a"),
+      name: fc.constantFrom(
+        "form",
+        "bank",
+        "gear_down",
+        "gravity_on",
+        "gravity_off",
+      ),
+    }),
+    { nil: undefined },
+  ),
+});
+
+it("converges to the reference entity after every successful tick despite failed sends", () => {
+  fc.assert(
+    fc.property(
+      fc.array(retryTick, { minLength: 60, maxLength: 100 }),
+      (ticks) => {
+        const reference = new FakeWorld();
+        const failing = new FakeWorld();
+        // The restored entity already has car form; its primed latch need not send it.
+        reference.properties.set("a", { form: "car" });
+        failing.properties.set("a", { form: "car" });
+        const log = logger();
+        const good = new DriveVehicles(reference, new InMemoryRepo(), logger());
+        const retry = new DriveVehicles(failing, new InMemoryRepo(), log);
+        let throws = 0;
+        const forms = new Set<unknown>();
+        ticks.forEach(({ input, failure }, tick) => {
+          const snap = snapshot("a", {
+            testInput: input,
+            onGround: tick % 40 >= 30,
+          });
+          reference.snapshots = [snap];
+          failing.snapshots = [snap];
+          failing.failRunOn = failure;
+          const before = log.lines.length;
+          good.execute(tick);
+          retry.execute(tick);
+          forms.add(reference.properties.get("a")?.form);
+          if (log.lines.length > before) throws++;
+          else {
+            for (const name of ["form", "bank", "gear_down"]) {
+              expect(failing.properties.get("a")?.[name]).toEqual(
+                reference.properties.get("a")?.[name],
+              );
+            }
+          }
+        });
+        fc.pre(throws > 0 && forms.size > 1);
+        expect(throws).toBeGreaterThan(0);
+      },
+    ),
+  );
+});
+
+it("retries gravity_on after a failed landing send and logs the failure once", () => {
+  const world = new FakeWorld();
+  const repo = new InMemoryRepo();
+  repo.save(rebuildVehicle("suv", asVehicleId("a"), 0, [], { form: "hover" }));
+  const log = logger();
+  const uc = new DriveVehicles(world, repo, log);
+  const run = vi.spyOn(world, "run");
+  world.snapshots = [
+    snapshot("a", {
+      testInput: { moveX: 0, moveY: 0, jump: false },
+      onGround: true,
+    }),
+  ];
+  world.failRunOn = { id: "a", name: "gravity_on" };
+  uc.execute(0);
+  expect(run.mock.calls[0]?.[1][0]).toEqual({
+    type: "triggerEvent",
+    name: "gravity_on",
+  });
+  world.failRunOn = undefined;
+  run.mockClear();
+  uc.execute(1);
+  expect(run.mock.calls[0]?.[1][0]).toEqual({
+    type: "triggerEvent",
+    name: "gravity_on",
+  });
+  expect(log.lines).toEqual(["a: Error: command gravity_on"]);
+});
+
+it("resyncs after tick throws after building commands, preserving the thrown error", () => {
+  const world = new FakeWorld();
+  const repo = new InMemoryRepo();
+  const vehicle = createVehicle("suv", asVehicleId("a"), 0);
+  repo.save(vehicle);
+  const tick = vehicle.tick.bind(vehicle);
+  const error = new Error("after step");
+  vi.spyOn(vehicle, "tick").mockImplementationOnce((input) => {
+    tick(input);
+    throw error;
+  });
+  const resync = vi.spyOn(vehicle, "resync");
+  const log = logger();
+  const uc = new DriveVehicles(world, repo, log);
+  world.snapshots = [snapshot("a")];
+  uc.execute(0);
+  expect(resync).toHaveBeenCalledTimes(1);
+  expect(log.lines).toEqual([`a: ${error}`]);
+  uc.execute(1);
+  expect(world.properties.get("a")).toEqual({
+    form: "car",
+    bank: 0,
+    gear_down: true,
+  });
+});
+
+it("does not resync when a later world call throws after step commands succeeded", () => {
+  const world = new FakeWorld();
+  const repo = new InMemoryRepo();
+  const vehicle = createVehicle("suv", asVehicleId("a"), 0);
+  repo.save(vehicle);
+  const resync = vi.spyOn(vehicle, "resync");
+  const run = vi.spyOn(world, "run");
+  world.snapshots = [snapshot("a")];
+  world.failOn = "a";
+  const uc = new DriveVehicles(world, repo, logger());
+  uc.execute(0);
+  expect(resync).not.toHaveBeenCalled();
+  world.failOn = undefined;
+  run.mockClear();
+  uc.execute(1);
+  expect(run.mock.calls[0]?.[1]).toEqual([]);
 });
