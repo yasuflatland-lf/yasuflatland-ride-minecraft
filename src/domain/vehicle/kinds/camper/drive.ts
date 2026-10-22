@@ -53,6 +53,7 @@ import {
   inShowerToilet,
   insideRoom,
   isPassable,
+  ownPlateBlock,
   ownSlotBlock,
   PARK_MESSAGES,
   parkCheckCells,
@@ -62,6 +63,8 @@ import {
   planPark,
   roomCells,
   slotCells,
+  storagePlateCells,
+  storagePlateChecks,
   storagePressTarget,
   wallFootCells,
 } from "./room";
@@ -364,17 +367,29 @@ export class CamperDrive extends TransformingDrive {
       if (!pressed) return this.parkedStep(parked, ctx);
       const cargo = cargoCells(parked);
       const slots = slotCells(parked);
-      // The cargo cells, the slot cells, and the two exit cells share one departure
-      // batch; a slot cell is clear only with air, its furniture block, or its own decor (ADR 0093, 0097, 0105).
-      const types = ctx.blockTypes([...cargo, ...slots, ...exitCells(parked)]);
-      const slotTypes = types.slice(cargo.length, cargo.length + slots.length);
+      const plates = storagePlateChecks(parked, STORAGE_DOORS);
+      // The cargo cells, the slot cells, the inside storage plate cells, and the two exit
+      // cells share one departure batch; a slot cell is clear only with air, its furniture
+      // block, or its own decor, and a plate cell only with air or its door's plate
+      // (ADR 0093, 0097, 0105, 0120).
+      const types = ctx.blockTypes([
+        ...cargo,
+        ...slots,
+        ...plates.map(({ cell }) => cell),
+        ...exitCells(parked),
+      ]);
+      const slotsEnd = cargo.length + slots.length;
+      const slotTypes = types.slice(cargo.length, slotsEnd);
+      const platesEnd = slotsEnd + plates.length;
+      const plateTypes = types.slice(slotsEnd, platesEnd);
       const decor = this.placed();
       if (
         holdsCargo(types.slice(0, cargo.length)) ||
         DECOR_CELLS.some(
           ({ cell }, i) =>
             !ownSlotBlock(slotTypes[i], decorBlockName(cell, decor)),
-        )
+        ) ||
+        plates.some(({ door }, i) => !ownPlateBlock(plateTypes[i], door))
       )
         return {
           ...this.parkedStep(parked, ctx),
@@ -384,7 +399,7 @@ export class CamperDrive extends TransformingDrive {
         parked,
         raw,
         ctx,
-        types.slice(cargo.length + slots.length).every(isPassable),
+        types.slice(platesEnd).every(isPassable),
       );
     }
     const step = super.step(raw, ctx);
@@ -464,6 +479,11 @@ export class CamperDrive extends TransformingDrive {
             ...decorCells(pose, this.placed()),
             ...furnitureCells(pose, this.placed()),
             ...compartmentCells(pose, this.placed(), this.storage.shown()),
+            ...storagePlateCells(
+              pose,
+              this.storage.open(),
+              this.ceilingLightsOn,
+            ),
             ...(this.ceilingLightsOn
               ? ceilingLightCells(pose, this.storage.open())
               : []),

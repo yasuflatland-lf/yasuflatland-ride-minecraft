@@ -19,9 +19,7 @@ import { cellKey } from "../../lighting/headlights";
 import { seatWorldPositions } from "../../seats";
 import { DECOR_CELLS, decorInCell, decorSlot } from "./decor";
 import {
-  type CompartmentBlock,
   compartmentDoorAt,
-  isStoragePlateCell,
   openPlateAt,
   type StorageDoor,
 } from "./dooredStorage";
@@ -34,6 +32,7 @@ import {
   isStoragePairKind,
   type LocalCell,
   STORAGE_DOORS,
+  type StorageCompartmentBlock,
 } from "./furniture";
 import { CAMPER_PARKED_SEATS, CAMPER_PROFILE } from "./profile";
 
@@ -280,6 +279,19 @@ function plateFace(door: StorageDoor, f: Vec2): Face {
   return faceToward({ x: door.hinge * f.x, z: door.hinge * f.z });
 }
 
+function isLightCell(cell: LocalCell): boolean {
+  return CEILING_LIGHTS.some(
+    (c) => c.x === cell.x && c.z === cell.z && c.layer === cell.layer,
+  );
+}
+
+/** The doors whose plates stand in the room's inside layers, where the ceiling does not lay them (ADR 0120). */
+function insidePlateDoors<Id extends string>(
+  doors: readonly StorageDoor<Id>[],
+): StorageDoor<Id>[] {
+  return doors.filter(({ plate }) => plate.layer !== CEILING_LAYER);
+}
+
 /**
  * The ceiling cell's block: none over a storage compartment, whose block also holds the
  * ceiling up (compartmentCells), and an open door's plate where that door swings into the
@@ -294,7 +306,8 @@ function ceilingBlock(
   if (compartmentDoorAt(cell, doors)) return undefined;
   const door = openPlateAt(cell, open, doors);
   if (!door) return { type: "ceiling" };
-  return door.unit.plateBlock(plateFace(door, f));
+  // No ceiling light hangs in the ceiling layer: its light cells are the ones under it.
+  return door.unit.plateBlock({ face: plateFace(door, f), lit: false });
 }
 
 /**
@@ -366,7 +379,7 @@ type DecorCell = DockCell & {
   readonly block: Extract<DockBlock, { type: "decor" | "decorPair" }>;
 };
 
-type CompartmentCell = DockCell & { readonly block: CompartmentBlock };
+type CompartmentCell = DockCell & { readonly block: StorageCompartmentBlock };
 
 /** The item at each end of the pair cell that holds `slot`, by DecorPairEnd.end (ADR 0108). */
 function pairItems(
@@ -445,6 +458,58 @@ export function compartmentCells(
       ...pairItems({ cell: door.compartment }, decor),
     }),
   }));
+}
+
+/**
+ * The plate of each door in `open` whose plate stands in the room's inside layers, on the side
+ * of its cell where the door's hinge is. A plate in a ceiling light's cell is `lit` while
+ * `lightsOn`, and ceilingLightCells leaves that cell to it. The ceiling lays the plates in the
+ * ceiling layer (ADR 0115, 0120).
+ */
+export function storagePlateCells(
+  pose: HoldPose,
+  open: ReadonlySet<string>,
+  lightsOn: boolean,
+  doors: readonly StorageDoor[] = STORAGE_DOORS,
+): DockCell[] {
+  const { f } = axes(pose.yaw);
+  return insidePlateDoors(doors)
+    .filter(({ id }) => open.has(id))
+    .map((door) => ({
+      ...localCellAt(pose, door.plate),
+      block: door.unit.plateBlock({
+        face: plateFace(door, f),
+        lit: lightsOn && isLightCell(door.plate),
+      }),
+    }));
+}
+
+/**
+ * The doors whose plates stand in the room's inside layers, with their plate cells at `pose`.
+ * Parking checks those cells, and departure reads them with ownPlateBlock instead of as
+ * cargo (ADR 0120).
+ */
+export function storagePlateChecks<Id extends string>(
+  pose: HoldPose,
+  doors: readonly StorageDoor<Id>[],
+): { door: StorageDoor<Id>; cell: Vec3 }[] {
+  return insidePlateDoors(doors).map((door) => ({
+    door,
+    cell: localCellAt(pose, door.plate),
+  }));
+}
+
+/**
+ * An inside-layer plate cell lets the camper leave only while it holds air or `door`'s plate:
+ * the plate goes when departure shuts the door (ADR 0120).
+ */
+export function ownPlateBlock(
+  typeId: string | undefined,
+  door: StorageDoor,
+): boolean {
+  return (
+    typeId === AIR || typeId?.endsWith(`:${door.unit.plateBlockName}`) === true
+  );
 }
 
 /**
@@ -540,12 +605,17 @@ export function ownSlotBlock(
 /**
  * The 168 parking checks include standing space and the exit because the long
  * body reaches past its collision box and can stop around a flower or low block.
+ * Storage plates in the inside layers add their cells; the wall cabinet has none (ADR 0120).
  */
-export function parkCheckCells(pose: HoldPose): Vec3[] {
+export function parkCheckCells(
+  pose: HoldPose,
+  doors: readonly StorageDoor[] = STORAGE_DOORS,
+): Vec3[] {
   return [
     ...roomCells(pose, false).map(({ x, y, z }) => ({ x, y, z })),
-    ...cargoCells(pose),
+    ...cargoCells(pose, doors),
     ...slotCells(pose),
+    ...storagePlateChecks(pose, doors).map(({ cell }) => cell),
     ...exitCells(pose),
   ];
 }
@@ -567,18 +637,23 @@ export function isPassable(typeId: string | undefined): boolean {
 
 /**
  * Cells where a player's block keeps the camper parked: the interior outside
- * furniture blocks, decor slots and storage door plates, then the roof top (ADR 0092, 0093,
- * 0097, 0120). Slot cells are read separately, with ownSlotBlock.
+ * furniture blocks, decor slots and storage plates, then the roof top (ADR 0092, 0093,
+ * 0097, 0120). Slot cells are read separately, with ownSlotBlock, and storage plate cells
+ * with ownPlateBlock.
  */
 export function cargoCells(
   pose: HoldPose,
   doors: readonly StorageDoor[] = STORAGE_DOORS,
 ): Vec3[] {
-  const slots = new Set(slotCells(pose).map(cellKey));
-  return localInterior([...INSIDE_LAYERS, ROOF_LAYER])
-    .filter((cell) => !isStoragePlateCell(cell, doors))
-    .map((cell) => localCellAt(pose, cell))
-    .filter((c) => !slots.has(cellKey(c)));
+  const read = new Set(
+    [
+      ...slotCells(pose),
+      ...storagePlateChecks(pose, doors).map(({ cell }) => cell),
+    ].map(cellKey),
+  );
+  return interior(pose, [...INSIDE_LAYERS, ROOF_LAYER]).filter(
+    (c) => !read.has(cellKey(c)),
+  );
 }
 
 /** The ground-layer cells under the front end wall: the bumper's row (ADR 0116, 0119). */

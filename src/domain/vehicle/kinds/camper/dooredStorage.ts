@@ -2,12 +2,17 @@
 // only while their door is open. Each unit is a definition (furniture.ts); this module holds
 // the code every unit shares and no unit's data (ADR 0114, 0120).
 import type { StoragePress } from "../../dock/decor";
-import type { DockBlock, Face } from "../../dock/floor";
+import type { Face } from "../../dock/floor";
 import type { EngineCommand } from "../../drive";
 import { SyncedValue } from "../../syncedValue";
 import { DOOR_STEPS, restoredDoorStep, swing } from "./doorSwing";
 import { DoorToggle } from "./doorToggle";
-import type { DecorSlot, LocalCell } from "./furniture";
+import type {
+  DecorSlot,
+  LocalCell,
+  StorageCompartmentBlock,
+  StoragePlateBlock,
+} from "./furniture";
 
 /** A slot inside a compartment: an end of the compartment's pair block, behind door `door`. */
 export type StorageSlot<Id extends string = string> = Omit<
@@ -39,10 +44,12 @@ export interface CompartmentLook {
   readonly end1?: string;
 }
 
-/** The block a compartment lays; the fridge (#455) widens it with its own type. */
-export type CompartmentBlock = Extract<DockBlock, { type: "cabinet" }>;
-/** The block an open door's plate lays; the fridge (#455) widens it with its own type. */
-type PlateBlock = Extract<DockBlock, { type: "cabinetDoor" }>;
+/** How an open door's plate looks this tick. */
+export interface PlateLook {
+  readonly face: Face;
+  /** Whether the plate stands in a ceiling light's cell while the lights are on, so it gives that light (ADR 0115). */
+  readonly lit: boolean;
+}
 
 /** A storage unit: its doors, the pair kind of its slots, and the blocks it lays. */
 export interface DooredStorage<
@@ -52,8 +59,13 @@ export interface DooredStorage<
   /** DecorPairEnd.kind of every slot behind its doors; its compartments lay `<pairKind>_decor_pair`. */
   readonly pairKind: PairKind;
   readonly doors: readonly StorageDoorDef<Id>[];
-  readonly compartmentBlock: (look: CompartmentLook) => CompartmentBlock;
-  readonly plateBlock: (face: Face) => PlateBlock;
+  readonly compartmentBlock: (look: CompartmentLook) => StorageCompartmentBlock;
+  readonly plateBlock: (look: PlateLook) => StoragePlateBlock;
+  /**
+   * The namespace-free name of the block plateBlock lays: a plate in the room's inside layers
+   * lets the camper park and leave while its cell holds it (room.ts ownPlateBlock).
+   */
+  readonly plateBlockName: string;
 }
 
 /** A door with the unit it belongs to. */
@@ -99,56 +111,12 @@ export function openPlateAt<Id extends string>(
   return doors.find((d) => open.has(d.id) && sameLocal(d.plate, cell));
 }
 
-/** Whether a door's plate may stand in `cell`. */
-export function isStoragePlateCell(
-  cell: LocalCell,
-  doors: readonly StorageDoor[],
-): boolean {
-  return doors.some((d) => sameLocal(d.plate, cell));
-}
-
 /** Whether `slot` takes and gives items with the doors in `open`: it is behind none, or behind an open one. */
 export function usableBehindDoor<Id extends string>(
   slot: { readonly door?: Id },
   open: ReadonlySet<Id>,
 ): boolean {
   return slot.door === undefined || open.has(slot.door);
-}
-
-/**
- * What is wrong with `units` as the camper's storage, given the cells furniture blocks fill:
- * empty when door ids are unique, each compartment and plate has a cell of its own clear of
- * furniture blocks, and each compartment holds ends 0 and 1 once, behind its door, of its
- * unit's pair kind.
- */
-export function validateDooredStorage(
-  units: readonly DooredStorage[],
-  furnitureBlockCells: readonly LocalCell[],
-): string[] {
-  const problems: string[] = [];
-  const doors = storageDoors(units);
-  const ids = doors.map(({ id }) => id);
-  if (new Set(ids).size !== ids.length) problems.push("door ids repeat");
-  const cells = doors.flatMap(({ compartment, plate }) => [compartment, plate]);
-  cells.forEach((cell, i) => {
-    if (cells.findIndex((c) => sameLocal(c, cell)) !== i)
-      problems.push(`cell ${JSON.stringify(cell)} is used twice`);
-    if (furnitureBlockCells.some((c) => sameLocal(c, cell)))
-      problems.push(`cell ${JSON.stringify(cell)} holds a furniture block`);
-  });
-  for (const { id, compartment, slots, unit } of doors) {
-    const ends = slots.map((s) => s.pair?.end).sort();
-    if (JSON.stringify(ends) !== "[0,1]")
-      problems.push(`door ${id} does not hold ends 0 and 1 once`);
-    for (const s of slots)
-      if (
-        s.door !== id ||
-        s.pair?.kind !== unit.pairKind ||
-        !sameLocal(s.cell, compartment)
-      )
-        problems.push(`slot ${s.id} is not in door ${id}'s compartment`);
-  }
-  return problems;
 }
 
 /** One door's state: where it is heading, how far it has swung, and its tap window. */

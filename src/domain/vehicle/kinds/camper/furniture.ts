@@ -38,6 +38,11 @@ type DecorPairKind =
 /** The pair kind of a storage compartment, whose block compartmentCells lays (ADR 0114, 0120). */
 type StoragePairKind = "cabinet";
 
+/** The blocks a storage compartment lays; a new unit adds its own here (ADR 0120). */
+export type StorageCompartmentBlock = Extract<DockBlock, { type: "cabinet" }>;
+/** The blocks an open storage door's plate lays; a new unit adds its own here (ADR 0120). */
+export type StoragePlateBlock = Extract<DockBlock, { type: "cabinetDoor" }>;
+
 /**
  * A door of the camper's storage (ADR 0120): a wall cabinet door, named after what its
  * compartment hangs over (ADR 0114). Each needs an entity property (entity.ts STORAGE_DOOR_PROPERTY).
@@ -199,13 +204,18 @@ export const WALL_CABINET: DooredStorage<StorageDoorId, StoragePairKind> = {
     ...(end0 === undefined ? {} : { end0 }),
     ...(end1 === undefined ? {} : { end1 }),
   }),
-  plateBlock: (face) => ({ type: "cabinetDoor", face }),
+  // The plates stand under the ceiling, where no light hangs, so `lit` is always false.
+  plateBlock: ({ face }) => ({ type: "cabinetDoor", face }),
+  // The namespace-free name of yasu_ride:camper_cabinet_door; identifiers.test.ts checks it.
+  plateBlockName: "camper_cabinet_door",
 };
 
 // The units of storage with doors, in the order their doors swing and homeless saved decor
 // fills them (ADR 0120).
-const CAMPER_STORAGE: readonly DooredStorage<StorageDoorId, StoragePairKind>[] =
-  [WALL_CABINET];
+export const CAMPER_STORAGE: readonly DooredStorage<
+  StorageDoorId,
+  StoragePairKind
+>[] = [WALL_CABINET];
 
 const STORAGE_PAIR_KINDS: ReadonlySet<DecorPairKind> = new Set(
   CAMPER_STORAGE.map(({ pairKind }) => pairKind),

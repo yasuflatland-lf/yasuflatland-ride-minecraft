@@ -11,17 +11,17 @@ import {
   type CompartmentLook,
   compartmentDoorAt,
   type DooredStorage,
-  isStoragePlateCell,
   openPlateAt,
+  type PlateLook,
   StorageDoors,
   type StorageSlot,
   storageDoors,
   storageFurniture,
   usableBehindDoor,
-  validateDooredStorage,
 } from "../../../../../src/domain/vehicle/kinds/camper/dooredStorage";
 import {
   CAMPER_FURNITURE,
+  CAMPER_STORAGE,
   CEILING_LIGHTS,
   isStoragePairKind,
   type LocalCell,
@@ -29,11 +29,16 @@ import {
   WALL_CABINET,
 } from "../../../../../src/domain/vehicle/kinds/camper/furniture";
 import {
+  AIR,
   cargoCells,
   ceilingLightCells,
   compartmentCells,
   localCellAt,
+  ownPlateBlock,
+  parkCheckCells,
   roomCells,
+  storagePlateCells,
+  storagePlateChecks,
   storagePressTarget,
 } from "../../../../../src/domain/vehicle/kinds/camper/room";
 import { CAMPER_SPEC } from "../../../../../src/domain/vehicle/kinds/camper/spec";
@@ -42,6 +47,7 @@ import { cellKey } from "../../../../../src/domain/vehicle/lighting/headlights";
 const SWING = CAMPER_SPEC.doorSwingTicks;
 
 const looks: CompartmentLook[] = [];
+const plateLooks: PlateLook[] = [];
 const ends = (door: string, cell: LocalCell, height: number): StorageSlot[] =>
   ([0, 1] as const).map((end) => ({
     id: `${door}_${end}`,
@@ -74,12 +80,22 @@ const FRIDGE_LIKE: DooredStorage = {
     looks.push(look);
     return { type: "cabinet", face: look.face, open: look.open };
   },
-  plateBlock: (face) => ({ type: "cabinetDoor", face }),
+  plateBlock: (look) => {
+    plateLooks.push(look);
+    return { type: "cabinetDoor", face: look.face };
+  },
+  plateBlockName: "fridge_like_door",
 };
 const TWO_UNITS = storageDoors<string>([WALL_CABINET, FRIDGE_LIKE]);
 const FURNITURE_BLOCK_CELLS = CAMPER_FURNITURE.flatMap((f) =>
   f.block ? f.cells : [],
 );
+// The cells of every slot outside storage: a plate there would cover a slot's decor.
+const OPEN_SLOT_CELLS = DECOR_SLOTS.filter((s) => s.door === undefined).map(
+  ({ cell }) => cell,
+);
+// The room's inside layers and the ceiling layer: the layers a plate is laid and read in.
+const PLATE_LAYERS = [1, 2, 3];
 
 const pose = fc
   .record({
@@ -95,29 +111,68 @@ const ALL_IDS = TWO_UNITS.map(({ id }) => id);
 const sameLocal = (a: LocalCell, b: LocalCell) =>
   a.x === b.x && a.z === b.z && a.layer === b.layer;
 
+/**
+ * What is wrong with `units` as the camper's storage: empty when door ids are unique, each
+ * compartment and plate has a cell of its own clear of furniture blocks and open slots, each
+ * plate stands in a layer the room lays and reads plates in, and each compartment holds ends 0
+ * and 1 once, behind its door, of its unit's pair kind.
+ */
+function validateDooredStorage(units: readonly DooredStorage[]): string[] {
+  const problems: string[] = [];
+  const doors = storageDoors(units);
+  const ids = doors.map(({ id }) => id);
+  if (new Set(ids).size !== ids.length) problems.push("door ids repeat");
+  const cells = doors.flatMap(({ compartment, plate }) => [compartment, plate]);
+  cells.forEach((cell, i) => {
+    if (cells.findIndex((c) => sameLocal(c, cell)) !== i)
+      problems.push(`cell ${JSON.stringify(cell)} is used twice`);
+    if (FURNITURE_BLOCK_CELLS.some((c) => sameLocal(c, cell)))
+      problems.push(`cell ${JSON.stringify(cell)} holds a furniture block`);
+  });
+  for (const { id, compartment, plate, slots, unit } of doors) {
+    if (!PLATE_LAYERS.includes(plate.layer))
+      problems.push(`door ${id}'s plate is in layer ${plate.layer}`);
+    if (OPEN_SLOT_CELLS.some((c) => sameLocal(c, plate)))
+      problems.push(`door ${id}'s plate covers a slot`);
+    const ends = slots.map((s) => s.pair?.end).sort();
+    if (JSON.stringify(ends) !== "[0,1]")
+      problems.push(`door ${id} does not hold ends 0 and 1 once`);
+    for (const s of slots)
+      if (
+        s.door !== id ||
+        s.pair?.kind !== unit.pairKind ||
+        !sameLocal(s.cell, compartment)
+      )
+        problems.push(`slot ${s.id} is not in door ${id}'s compartment`);
+  }
+  return problems;
+}
+
 describe("definitions", () => {
   it("accepts the camper's storage and a second fridge-like unit beside it (ADR 0120)", () => {
-    expect(
-      validateDooredStorage([WALL_CABINET], FURNITURE_BLOCK_CELLS),
-    ).toEqual([]);
-    expect(
-      validateDooredStorage([WALL_CABINET, FRIDGE_LIKE], FURNITURE_BLOCK_CELLS),
-    ).toEqual([]);
+    expect(validateDooredStorage(CAMPER_STORAGE)).toEqual([]);
+    expect(validateDooredStorage([...CAMPER_STORAGE, FRIDGE_LIKE])).toEqual([]);
     expect(STORAGE_DOORS.map(({ id }) => id)).toEqual(["sink", "stove"]);
   });
 
-  it("rejects a unit whose door repeats an id, shares a cell, sits on a furniture block, or holds a stray slot", () => {
+  it("rejects a unit whose door repeats an id, shares a cell, sits on a furniture block, puts its plate in another layer or on a slot, or holds a stray slot", () => {
+    const slotCell = OPEN_SLOT_CELLS.find(
+      (c) => !FURNITURE_BLOCK_CELLS.some((f) => sameLocal(f, c)),
+    );
     fc.assert(
       fc.property(
         fc.constantFrom(...FRIDGE_LIKE.doors),
-        fc.constantFrom("id", "cell", "block", "slot"),
-        (door, fault) => {
+        fc.constantFrom("id", "cell", "block", "layer", "onSlot", "slot"),
+        fc.constantFrom(0, 4),
+        (door, fault, layer) => {
           const shower = { x: -1, z: -3, layer: 1 };
           const broken = {
             ...door,
             ...(fault === "id" ? { id: "sink" } : {}),
             ...(fault === "cell" ? { plate: { x: 0, z: -1, layer: 3 } } : {}),
             ...(fault === "block" ? { compartment: shower } : {}),
+            ...(fault === "layer" ? { plate: { ...door.plate, layer } } : {}),
+            ...(fault === "onSlot" ? { plate: slotCell } : {}),
             ...(fault === "slot"
               ? {
                   slots: door.slots.map((s) => ({ ...s, door: "elsewhere" })),
@@ -125,9 +180,7 @@ describe("definitions", () => {
               : {}),
           };
           const unit = { ...FRIDGE_LIKE, doors: [broken] };
-          expect(
-            validateDooredStorage([WALL_CABINET, unit], FURNITURE_BLOCK_CELLS),
-          ).not.toEqual([]);
+          expect(validateDooredStorage([WALL_CABINET, unit])).not.toEqual([]);
         },
       ),
     );
@@ -165,7 +218,6 @@ describe("definitions", () => {
           );
           const plate = TWO_UNITS.find((d) => sameLocal(d.plate, cell));
           expect(compartmentDoorAt(cell, TWO_UNITS)).toBe(compartment);
-          expect(isStoragePlateCell(cell, TWO_UNITS)).toBe(plate !== undefined);
           expect(openPlateAt(cell, open, TWO_UNITS)).toBe(
             plate && open.has(plate.id) ? plate : undefined,
           );
@@ -397,15 +449,18 @@ describe("cells", () => {
     );
   });
 
-  it("lays an open door's plate in its ceiling-layer cell, on its hinge side, and leaves no ceiling over any compartment (ADR 0114, 0120)", () => {
+  it("lays an open door's plate in its cell on its hinge side, in the ceiling or an inside layer, lit under a lit ceiling light, and leaves no ceiling over any compartment (ADR 0114, 0115, 0120)", () => {
     fc.assert(
-      fc.property(pose, openOf(ALL_IDS), (p, open) => {
+      fc.property(pose, openOf(ALL_IDS), fc.boolean(), (p, open, lightsOn) => {
         const byKey = new Map(
           roomCells(p, false, open, false, TWO_UNITS).map((c) => [
             cellKey(c),
             c.block,
           ]),
         );
+        plateLooks.length = 0;
+        const inside = storagePlateCells(p, open, lightsOn, TWO_UNITS);
+        const insideByKey = new Map(inside.map((c) => [cellKey(c), c.block]));
         const f = forward(p.yaw);
         const faceOf = (x: number, z: number) => {
           if (Math.round(z) !== 0) return Math.round(z) < 0 ? 0 : 1;
@@ -415,32 +470,72 @@ describe("cells", () => {
           expect(byKey.has(cellKey(localCellAt(p, door.compartment)))).toBe(
             false,
           );
-          const plate = byKey.get(cellKey(localCellAt(p, door.plate)));
-          if (door.plate.layer !== 3) expect(plate).toBeUndefined();
-          else
-            expect(plate).toEqual(
-              open.has(door.id)
-                ? {
-                    type: "cabinetDoor",
-                    face: faceOf(door.hinge * f.x, door.hinge * f.z),
-                  }
-                : { type: "ceiling" },
+          const key = cellKey(localCellAt(p, door.plate));
+          const plate = {
+            type: "cabinetDoor",
+            face: faceOf(door.hinge * f.x, door.hinge * f.z),
+          };
+          if (door.plate.layer === 3) {
+            expect(byKey.get(key)).toEqual(
+              open.has(door.id) ? plate : { type: "ceiling" },
             );
+            expect(insideByKey.has(key)).toBe(false);
+          } else {
+            expect(byKey.has(key)).toBe(false);
+            expect(insideByKey.get(key)).toEqual(
+              open.has(door.id) ? plate : undefined,
+            );
+          }
         }
+        expect(inside).toHaveLength(
+          TWO_UNITS.filter((d) => d.plate.layer !== 3 && open.has(d.id)).length,
+        );
+        const lit = (cell: LocalCell) =>
+          lightsOn && CEILING_LIGHTS.some((c) => sameLocal(c, cell));
+        expect(plateLooks).toEqual(
+          FRIDGE_LIKE.doors
+            .filter((d) => open.has(d.id))
+            .map((d) => ({
+              face: faceOf(d.hinge * f.x, d.hinge * f.z),
+              lit: lit(d.plate),
+            })),
+        );
       }),
     );
   });
 
-  it("keeps plate cells out of the cargo and lights, which leaves the wall cabinet's as before (ADR 0115, 0120)", () => {
+  it("lays no inside plate, checks no plate cell, and keeps the cargo and lights of the wall cabinet as before (ADR 0114, 0115, 0120)", () => {
+    fc.assert(
+      fc.property(pose, openOf(ALL_IDS), fc.boolean(), (p, open, lightsOn) => {
+        expect(storagePlateCells(p, open, lightsOn)).toEqual([]);
+        expect(storagePlateChecks(p, STORAGE_DOORS)).toEqual([]);
+        expect(cargoCells(p)).toEqual(cargoCells(p, []));
+        expect(parkCheckCells(p)).toEqual(parkCheckCells(p, []));
+        expect(ceilingLightCells(p, open)).toEqual(ceilingLightCells(p));
+      }),
+    );
+  });
+
+  it("reads inside plate cells on parking and departure instead of as cargo, and leaves lights to open plates (ADR 0115, 0120)", () => {
     fc.assert(
       fc.property(pose, openOf(ALL_IDS), (p, open) => {
-        expect(cargoCells(p)).toEqual(cargoCells(p, []));
-        expect(ceilingLightCells(p, open)).toEqual(ceilingLightCells(p));
-        const plates = new Set(
-          FRIDGE_LIKE.doors.map((d) => cellKey(localCellAt(p, d.plate))),
+        const plates = FRIDGE_LIKE.doors.map((d) =>
+          cellKey(localCellAt(p, d.plate)),
         );
+        expect(
+          storagePlateChecks(p, TWO_UNITS).map(({ door, cell }) => [
+            door.id,
+            cellKey(cell),
+          ]),
+        ).toEqual(FRIDGE_LIKE.doors.map((d, i) => [d.id, plates[i]]));
         expect(cargoCells(p, TWO_UNITS)).toEqual(
-          cargoCells(p, []).filter((c) => !plates.has(cellKey(c))),
+          cargoCells(p, []).filter((c) => !plates.includes(cellKey(c))),
+        );
+        const checked = parkCheckCells(p, TWO_UNITS).map(cellKey);
+        for (const key of plates)
+          expect(checked.filter((k) => k === key)).toHaveLength(1);
+        expect(new Set(checked)).toEqual(
+          new Set(parkCheckCells(p, []).map(cellKey)),
         );
         const covered = new Set(
           TWO_UNITS.filter((d) => open.has(d.id)).map((d) =>
@@ -453,6 +548,28 @@ describe("cells", () => {
           ),
         );
       }),
+    );
+  });
+
+  it("lets an inside plate cell leave only with air or its own unit's plate", () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom(...TWO_UNITS),
+        fc.constantFrom(
+          AIR,
+          "yasu_ride:fridge_like_door",
+          "yasu_ride:camper_cabinet_door",
+          "minecraft:stone",
+          "minecraft:short_grass",
+        ),
+        (door, typeId) => {
+          expect(ownPlateBlock(typeId, door)).toBe(
+            typeId === AIR ||
+              typeId === `yasu_ride:${door.unit.plateBlockName}`,
+          );
+          expect(ownPlateBlock(undefined, door)).toBe(false);
+        },
+      ),
     );
   });
 });
