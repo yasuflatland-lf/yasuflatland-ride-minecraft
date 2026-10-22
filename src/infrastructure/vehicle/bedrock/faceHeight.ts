@@ -60,7 +60,7 @@ export function pressedShape(
   if (pair !== undefined)
     return {
       kind: "decor",
-      lift: (height ?? pairHeights(pair)[0] ?? 0) / PX_PER_BLOCK,
+      lift: (height ?? Math.min(...pairHeights(pair))) / PX_PER_BLOCK,
     };
   return ROOM_BOXES[typeId];
 }

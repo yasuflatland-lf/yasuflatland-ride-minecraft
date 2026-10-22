@@ -16,6 +16,23 @@ const decorBlock = fc.record({
   height: fc.integer({ min: 0, max: 15 }),
   spot: fc.integer({ min: 0, max: 4 }),
 });
+const pairEnd = fc.option(fc.constantFrom("cushion", "toaster"), {
+  nil: undefined,
+});
+const decorPairBlock = fc
+  .record({
+    pair: fc.constantFrom("shelf" as const, "table" as const),
+    face: fc.constantFrom(0 as const, 1 as const, 2 as const, 3 as const),
+    height: fc.constantFrom(4, 10, 12),
+    end0: pairEnd,
+    end1: pairEnd,
+  })
+  .map(({ end0, end1, ...rest }) => ({
+    type: "decorPair" as const,
+    ...rest,
+    ...(end0 === undefined ? {} : { end0 }),
+    ...(end1 === undefined ? {} : { end1 }),
+  }));
 const furnitureHeight = fc.integer({ min: 0, max: 15 });
 const showerToiletFace = fc.constantFrom(0, 1, 2, 3);
 const block: fc.Arbitrary<DockBlock> = fc.oneof(
@@ -38,6 +55,7 @@ const block: fc.Arbitrary<DockBlock> = fc.oneof(
   }),
   showerToiletFace.map((face) => ({ type: "showerToilet" as const, face })),
   decorBlock,
+  decorPairBlock,
 );
 const cell = fc.record({
   x: fc.integer({ min: -3, max: 3 }),
@@ -196,6 +214,28 @@ describe("sameBlock", () => {
               a.height === b.height &&
               a.spot === b.spot,
           );
+        },
+      ),
+    );
+  });
+
+  it("tells pair blocks apart by furniture, face, height, and the item at each end (ADR 0108)", () => {
+    fc.assert(
+      fc.property(
+        fc.oneof(
+          fc.tuple(decorPairBlock, decorPairBlock),
+          decorPairBlock.map((a) => [a, { ...a }] as const),
+        ),
+        decorBlock,
+        ([a, b], decor) => {
+          expect(sameBlock(a, b)).toBe(
+            a.pair === b.pair &&
+              a.face === b.face &&
+              a.height === b.height &&
+              a.end0 === b.end0 &&
+              a.end1 === b.end1,
+          );
+          expect(sameBlock(a, decor)).toBe(false);
         },
       ),
     );
