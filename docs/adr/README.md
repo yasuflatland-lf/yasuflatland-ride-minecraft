@@ -23,11 +23,11 @@ This directory records design decisions and the reasons behind them. The format 
 | [0017](0017-repaint-vehicles-with-dye.md) | Repaint vehicles with dye | Superseded by 0031 |
 | [0018](0018-sideways-stick-creeps-forward.md) | Treat a sideways stick as a slow forward turn | Extended by 0074 and 0089 |
 | [0019](0019-passengers-move-up-to-the-driver-seat.md) | Passengers move up to the driver seat | Accepted |
-| [0020](0020-headlights.md) | Headlights that light up the road | Accepted |
+| [0020](0020-headlights.md) | Headlights that light up the road | Extended by 0115 |
 | [0021](0021-flight-mode.md) | Flight mode: toggle with a double tap, climb with the view pitch, and switch gravity with a component group | Superseded in part by 0032, 0034, 0039, and 0078 |
 | [0022](0022-fold-wheels-and-glow-in-flight.md) | Fold the wheels and light their undersides in flight | Superseded in part by 0033 and 0043 |
 | [0023](0023-starter-vehicle-on-first-join.md) | Give each player a vehicle item on their first join | Accepted |
-| [0024](0024-item-use-on-mobile-and-longer-headlights.md) | Make the vehicle item and the headlight switch work on mobile, and light the road three times farther | Accepted |
+| [0024](0024-item-use-on-mobile-and-longer-headlights.md) | Make the vehicle item and the headlight switch work on mobile, and light the road three times farther | Extended by 0115 |
 | [0025](0025-jump-on-touch-and-a-sticky-driver.md) | Keep a touch rider's Jump from dismounting them, and keep the driver while they ride | Accepted |
 | [0026](0026-bank-into-turns-in-flight.md) | Bank into turns in flight | Superseded in part by 0044 |
 | [0027](0027-readme-previews-in-three-poses.md) | Render the README previews in three poses | Superseded in part by 0045 |
@@ -71,7 +71,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0065](0065-check-import-rules-with-dependency-cruiser.md) | Check the import rules with dependency-cruiser | Extended by 0072 |
 | [0066](0066-limit-vehicles-per-player-and-kind.md) | Limit vehicles per player and per kind | Accepted |
 | [0067](0067-camper.md) | Camper | Superseded in part by 0068 and 0069; extended by 0091 and 0093 |
-| [0068](0068-park-the-camper-with-room-blocks.md) | Park the camper with room blocks | Superseded in part by 0070 and 0084; extended by 0086, 0092, 0093, 0094, 0095, 0096, 0097, 0098, 0101, 0105, 0109, and 0114 |
+| [0068](0068-park-the-camper-with-room-blocks.md) | Park the camper with room blocks | Superseded in part by 0070 and 0084; extended by 0086, 0092, 0093, 0094, 0095, 0096, 0097, 0098, 0101, 0105, 0109, 0114, and 0115 |
 | [0069](0069-camper-right-hand-drive.md) | Seat the camper's driver on the right like the SUV | Superseded in part by 0070 |
 | [0070](0070-raise-the-camper-front-seats.md) | Raise the camper's front seats | Accepted |
 | [0071](0071-pull-the-camper-chase-camera-back.md) | Pull the camper's chase camera back | Accepted |
@@ -99,7 +99,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0093](0093-decorate-the-parked-camper.md) | Decorate the parked camper | Superseded in part by 0097, 0098, 0099, 0100, 0102, 0103, 0106, and 0108; extended by 0094, 0095, 0096, 0101, and 0113 |
 | [0094](0094-the-camper-shower-toilet-door-and-shower.md) | The camper's shower-toilet door and shower | Superseded in part by 0098; extended by 0105 and 0114 |
 | [0095](0095-sit-on-the-camper-toilet-while-parked.md) | Sit on the camper toilet while parked | Extended by 0098 and 0109 |
-| [0096](0096-keep-the-dock-blocks-whole.md) | Keep a parked vehicle's dock blocks whole | Accepted |
+| [0096](0096-keep-the-dock-blocks-whole.md) | Keep a parked vehicle's dock blocks whole | Extended by 0115 |
 | [0097](0097-press-the-camper-furniture-to-place-decor.md) | Press the camper furniture to place decor | Superseded in part by 0103 and 0107; extended by 0104 |
 | [0098](0098-a-block-for-the-camper-shower-toilet.md) | A block for the camper's shower-toilet | Accepted |
 | [0099](0099-hang-the-camper-planter-inside-its-cell.md) | Hang the camper planter inside its cell | Superseded in part by 0102 |
@@ -118,6 +118,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0112](0112-one-burner-on-the-camper-stove.md) | One burner on the camper stove | Accepted |
 | [0113](0113-a-window-over-the-camper-counter.md) | A window over the camper counter | Extended by 0114 |
 | [0114](0114-open-the-camper-wall-cabinet.md) | Open the camper wall cabinet | Accepted |
+| [0115](0115-camper-ceiling-lights.md) | Ceiling lights in the parked camper | Accepted |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 

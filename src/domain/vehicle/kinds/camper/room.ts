@@ -7,7 +7,13 @@ import {
   type Vec3,
 } from "../../../shared/vec";
 import { type DecorPlacement, decorFace } from "../../dock/decor";
-import type { Box, ClearCell, DeckSeatSpot, Departure } from "../../dock/dock";
+import {
+  type Box,
+  type ClearCell,
+  type DeckSeatSpot,
+  type Departure,
+  inBox,
+} from "../../dock/dock";
 import type { DockBlock, DockCell, Face, HoldPose } from "../../dock/floor";
 import { cellKey } from "../../lighting/headlights";
 import { seatWorldPositions } from "../../seats";
@@ -16,6 +22,7 @@ import {
   CABINET_DOORS,
   CAMPER_FURNITURE,
   type CabinetDoor,
+  CEILING_LIGHTS,
   DECOR_SPOTS,
   type DecorSlot,
   type FurnitureBlock,
@@ -578,6 +585,19 @@ function standingBox(
     min: { x: pose.x - hx, y: pose.y + low, z: pose.z - hz },
     max: { x: pose.x + hx, y: pose.y + high, z: pose.z + hz },
   };
+}
+
+/** Whether a player with feet at `feet` is inside the parked room, standing or seated (ADR 0115). */
+export function insideRoom(pose: HoldPose, feet: Vec3): boolean {
+  return inBox(standingBox(pose, INSIDE_FEET), feet);
+}
+
+/** A light block in the cell under each ceiling light (ADR 0115). */
+export function ceilingLightCells(pose: HoldPose): DockCell[] {
+  return CEILING_LIGHTS.map((cell) => ({
+    ...localCellAt(pose, cell),
+    block: { type: "light" } as const,
+  }));
 }
 
 export function departure(pose: HoldPose, exitClear = true): Departure {

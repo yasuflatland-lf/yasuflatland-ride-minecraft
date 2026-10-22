@@ -36,6 +36,9 @@
           "headlights": "Array.lamps[query.property('yasu_ride:headlights') ? 1 : 0]"
         },
         {
+          "ceiling_lights": "Array.lamps[query.property('yasu_ride:ceiling_lights') ? 1 : 0]"
+        },
+        {
           "glass": "Material.glass"
         },
         {

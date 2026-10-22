@@ -154,6 +154,15 @@ export const CABINET_DOORS: readonly CabinetDoorPlace[] = [
   },
 ];
 
+// The two ceiling light panels hang over the aisle, one between the front seats and the
+// dinette and one in front of the shower-toilet door, clear of the open cabinet doors at
+// z -1 and -2 (tools/gen_camper.py CEILING_LIGHT_ZS). Each lights the cell under it, in
+// layer 2 below the ceiling layer, which no furniture, decor slot or plate fills (ADR 0115).
+export const CEILING_LIGHTS: readonly LocalCell[] = [
+  { x: 0, z: 1, layer: 2 },
+  { x: 0, z: -3, layer: 2 },
+];
+
 const TABLE_CELL = { x: 1, z: 0, layer: 1 } as const satisfies LocalCell;
 const SHELF_LOW_CELL = { x: -1, z: 1, layer: 1 } as const satisfies LocalCell;
 const SHELF_HIGH_CELL = { x: -1, z: 1, layer: 2 } as const satisfies LocalCell;

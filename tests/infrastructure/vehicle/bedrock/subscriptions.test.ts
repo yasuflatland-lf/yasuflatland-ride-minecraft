@@ -122,6 +122,9 @@ function fixture(
   const rayBlock = { dimension, location: { x: 2, y: 7, z: 3 } };
   const player = {
     id: "player",
+    isValid: true,
+    dimension,
+    location: { x: 2.5, y: 8, z: 3.5 },
     selectedSlotIndex: 2,
     getRotation: () => ({ y: -90 }),
     getBlockFromViewDirection: vi.fn<
@@ -157,9 +160,10 @@ function fixture(
     placesOnWater: placement.placesOnWater.bind(placement),
   };
   const headlights = { execute: vi.fn() };
+  const ceilingLights = { execute: vi.fn() };
   const usesBefore = game.use.mock.calls.length;
   registerSubscriptions(
-    { place, headlights } as unknown as Parameters<
+    { place, headlights, ceilingLights } as unknown as Parameters<
       typeof registerSubscriptions
     >[0],
     new TestInputStore(),
@@ -167,6 +171,7 @@ function fixture(
     () => undefined,
     () => undefined,
   );
+  // Placement subscribes to block interactions last.
   const before = game.before.mock.calls.at(-1)?.[0];
   const uses = game.use.mock.calls
     .slice(usesBefore)
@@ -186,6 +191,7 @@ function fixture(
     player,
     place,
     headlights,
+    ceilingLights,
     uses,
     waterDimensions,
     dimension,
@@ -512,6 +518,156 @@ it("switches the headlights of the ridden vehicle when its rider interacts with 
     playerId: "player",
     vehicleId: "vehicle",
   });
+});
+
+// A player at (2.5, 65, 3.5) whose feet stand on the floor cell (2, 64, 3) of the camper "room"
+// unless `owner` says otherwise, holding the switch (ADR 0115).
+function lightSwitchFixture(
+  mount?: { id: string; typeId: string },
+  owner = (cell: At) =>
+    cell.x === 2 && cell.y === 64 && cell.z === 3
+      ? asVehicleId("room")
+      : undefined,
+) {
+  const headlights = { execute: vi.fn(() => false) };
+  const ceilingLights = {
+    execute: vi.fn(() => true),
+    canSwitch: vi.fn(() => true),
+  };
+  const usesBefore = game.use.mock.calls.length;
+  registerSubscriptions(
+    { headlights, ceilingLights } as unknown as Parameters<
+      typeof registerSubscriptions
+    >[0],
+    new TestInputStore(),
+    () => undefined,
+    (_, cell) => owner(cell),
+    () => undefined,
+  );
+  // Decor, gifts, the switch, then placement subscribe to block presses.
+  const onBlock = defined(game.before.mock.calls.at(-2)?.[0], "block press");
+  const onEntity = defined(
+    vi
+      .mocked(world.beforeEvents.playerInteractWithEntity.subscribe)
+      .mock.calls.at(-1)?.[0],
+    "entity press",
+  );
+  const uses = game.use.mock.calls.slice(usesBefore).map(([h]) => h);
+  game.run.mockClear();
+  const player = {
+    id: "player",
+    isValid: true,
+    dimension: { id: "overworld" },
+    location: { x: 2.5, y: 65, z: 3.5 },
+    getComponent: (name: string) =>
+      name === "minecraft:riding" && mount
+        ? { entityRidingOn: mount }
+        : undefined,
+  };
+  const itemStack = { typeId: HEADLIGHT_SWITCH_TYPE };
+  return {
+    headlights,
+    ceilingLights,
+    use: () => {
+      for (const h of uses)
+        h({ itemStack, source: player } as unknown as ItemUseAfterEvent);
+    },
+    pressBlock: (isFirstEvent = true, typeId = HEADLIGHT_SWITCH_TYPE) => {
+      const ev = { player, itemStack: { typeId }, isFirstEvent, cancel: false };
+      onBlock(ev as unknown as PlayerInteractWithBlockBeforeEvent);
+      return ev.cancel;
+    },
+    pressEntity: (target: { id: string; typeId: string }) => {
+      const ev = { player, target, itemStack, cancel: false };
+      onEntity(ev as unknown as PlayerInteractWithEntityBeforeEvent);
+      return ev.cancel;
+    },
+    nextTick: () => {
+      for (const [callback] of game.run.mock.calls) callback();
+      game.run.mockClear();
+    },
+  };
+}
+
+const inRoom = {
+  playerId: "player",
+  vehicleId: "room",
+  feet: { x: 2.5, y: 65, z: 3.5 },
+};
+
+it("switches the ceiling lights of the room a player on foot stands in, and nothing outside a room (ADR 0115)", () => {
+  const f = lightSwitchFixture();
+  f.use();
+  expect(f.ceilingLights.execute).toHaveBeenCalledExactlyOnceWith(inRoom);
+  expect(f.headlights.execute).not.toHaveBeenCalled();
+  const outside = lightSwitchFixture(undefined, () => undefined);
+  outside.use();
+  expect(outside.ceilingLights.execute).not.toHaveBeenCalled();
+});
+
+it("finds the room from the cell of the feet when the cell under them is not laid (ADR 0115)", () => {
+  const f = lightSwitchFixture(undefined, (cell) =>
+    cell.y === 65 ? asVehicleId("room") : undefined,
+  );
+  f.use();
+  expect(f.ceilingLights.execute).toHaveBeenCalledExactlyOnceWith(inRoom);
+});
+
+it("gives a rider's switch to the headlights first, and to the ceiling lights only when the rider is not the driver (ADR 0020, 0115)", () => {
+  const camper = { id: "camper", typeId: ENTITY_TYPE.camper };
+  const f = lightSwitchFixture(camper);
+  f.headlights.execute.mockReturnValueOnce(true);
+  f.use();
+  expect(f.headlights.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId: "player",
+    vehicleId: "camper",
+  });
+  expect(f.ceilingLights.execute).not.toHaveBeenCalled();
+  f.use();
+  expect(f.ceilingLights.execute).toHaveBeenCalledExactlyOnceWith({
+    ...inRoom,
+    vehicleId: "camper",
+  });
+});
+
+it("takes a switch press on a block in a room on the next tick, cancelled, and leaves riders and other items alone (ADR 0115)", () => {
+  const f = lightSwitchFixture();
+  expect(f.pressBlock(true, "minecraft:stick")).toBe(false);
+  expect(f.pressBlock(false)).toBe(true);
+  expect(game.run).not.toHaveBeenCalled();
+  expect(f.pressBlock()).toBe(true);
+  expect(f.ceilingLights.execute).not.toHaveBeenCalled();
+  f.nextTick();
+  expect(f.ceilingLights.execute).toHaveBeenCalledExactlyOnceWith(inRoom);
+  const rider = lightSwitchFixture({
+    id: "camper",
+    typeId: ENTITY_TYPE.camper,
+  });
+  expect(rider.pressBlock()).toBe(false);
+  const outside = lightSwitchFixture(undefined, () => undefined);
+  expect(outside.pressBlock()).toBe(false);
+  expect(game.run).not.toHaveBeenCalled();
+});
+
+it("takes a switch press on the camper whose room the player stands in, and not on another vehicle (ADR 0115)", () => {
+  const f = lightSwitchFixture();
+  expect(f.pressEntity({ id: "other", typeId: ENTITY_TYPE.camper })).toBe(
+    false,
+  );
+  expect(f.pressEntity({ id: "room", typeId: ENTITY_TYPE.camper })).toBe(true);
+  f.nextTick();
+  expect(f.ceilingLights.execute).toHaveBeenCalledExactlyOnceWith(inRoom);
+});
+
+it("leaves block and vehicle presses alone on a dock cell from which the switch cannot reach ceiling lights, such as a boat deck or the camper roof (ADR 0115)", () => {
+  const f = lightSwitchFixture();
+  f.ceilingLights.canSwitch.mockReturnValue(false);
+  expect(f.pressBlock()).toBe(false);
+  expect(f.pressEntity({ id: "room", typeId: ENTITY_TYPE.sportsboat })).toBe(
+    false,
+  );
+  expect(f.ceilingLights.canSwitch).toHaveBeenCalledWith(inRoom);
+  expect(game.run).not.toHaveBeenCalled();
 });
 
 it("removes an orphan deck seat that loads with a chunk, but not one that is just spawned", () => {

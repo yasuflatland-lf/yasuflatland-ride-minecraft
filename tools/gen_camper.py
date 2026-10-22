@@ -52,6 +52,9 @@ PALETTE = {
     "hub": (196, 192, 176, 255),
     "harvest": (214, 160, 48, 255),
     "avocado": (120, 132, 54, 255),
+    # The ceiling light lenses: alpha 0, so the emissive material lights them fully while the
+    # lights are on, and the plain entity material, which ignores alpha, shows them unlit (ADR 0020, 0115).
+    "dome": (250, 244, 218, 0),
 }
 SLOTS = list(PALETTE)
 
@@ -995,6 +998,17 @@ HOOK_CELL_TOP = 3 * 16  # the top of layer 2
 body.append(box(-17, CEIL - 0.4, -1, -15, CEIL - 0.2, 1, "chrome"))  # base plate
 body.append(box(-16.2, HOOK_CELL_TOP + 1.5, -0.2, -15.8, CEIL - 0.4, 0.2, "ivory"))  # cord
 body.append(box(-16.5, HOOK_CELL_TOP, -0.5, -15.5, HOOK_CELL_TOP + 1.5, 0.5, "chrome"))  # hook
+# Two ceiling lights over the aisle (cell x = 0, layer 2 under them), at local cell z 1 and -3:
+# model z is -16 times the cell z. A chrome rim holds each lens to the ceiling liner. Both are
+# their own bone, so the render controller can light the lenses; the rim is opaque, so the
+# emissive material leaves it unlit (ADR 0115).
+CEILING_LIGHT_ZS = (-16, 48)
+CEILING_LIGHT_HALF = 4
+ceiling_lights = []
+for zc in CEILING_LIGHT_ZS:
+    h = CEILING_LIGHT_HALF
+    ceiling_lights.append(box(-h - 0.5, CEIL - 0.6, zc - h - 0.5, h + 0.5, CEIL - 0.2, zc + h + 0.5, "chrome"))
+    ceiling_lights.append(box(-h, CEIL - 1.4, zc - h, h, CEIL - 0.6, zc + h, "dome"))
 seat0 = bucket_seat(7, 18)
 seat1 = bucket_seat(-18, -7)
 
@@ -1118,6 +1132,7 @@ camper_bones = [
     {"name": "body", "parent": "root", "pivot": [0, 0, 0], "cubes": body,
      "locators": {**hover, "exhaust": [-12, 4, REAR - 4], "shower_head": SHOWER_HEAD}},
     {"name": "headlights", "parent": "body", "pivot": [0, 0, 0], "cubes": headlights},
+    {"name": "ceiling_lights", "parent": "body", "pivot": [0, 0, 0], "cubes": ceiling_lights},
     *wheels,
     *[{"name": f"seat_{i}", "parent": "body", "pivot": [0, FLOOR, 0], "cubes": cubes}
       for i, cubes in enumerate((seat0, seat1, seat2, seat3))],

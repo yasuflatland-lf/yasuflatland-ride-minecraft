@@ -13,6 +13,7 @@ import type { RunShower } from "../../../application/vehicle/runShower";
 import type { SetDecor } from "../../../application/vehicle/setDecor";
 import type { ShowVehicleHints } from "../../../application/vehicle/showVehicleHints";
 import type { SleepInBed } from "../../../application/vehicle/sleepInBed";
+import type { SwitchCeilingLights } from "../../../application/vehicle/switchCeilingLights";
 import type { SwitchHeadlights } from "../../../application/vehicle/switchHeadlights";
 import type { UseDockDoor } from "../../../application/vehicle/useDockDoor";
 import type { UseShowerDoor } from "../../../application/vehicle/useShowerDoor";
@@ -45,6 +46,7 @@ export function registerSubscriptions(
     limit: LimitVehicles;
     paint: PaintVehicle;
     headlights: SwitchHeadlights;
+    ceilingLights: SwitchCeilingLights;
     door: UseDockDoor;
     bed: SleepInBed;
     showerDoor: UseShowerDoor;
@@ -81,8 +83,14 @@ export function registerSubscriptions(
   registerTestDecor(useCases.decor);
   registerTestInput(testInputs);
   registerGifts(useCases.gift);
+  // Subscribed before placement, so placement's block press handler stays the last one
+  // subscribed; each handler ignores the other's items (ADR 0115).
+  registerHeadlights(
+    useCases.headlights,
+    useCases.ceilingLights,
+    dockCellOwner,
+  );
   registerPlacement(useCases.place);
   registerStarter(useCases.starter);
   registerHits(useCases.hit, useCases.paint);
-  registerHeadlights(useCases.headlights);
 }

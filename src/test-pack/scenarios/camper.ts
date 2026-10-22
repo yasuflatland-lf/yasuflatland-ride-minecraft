@@ -35,6 +35,7 @@ import {
   DECOR_HEIGHT_STATE,
   DECOR_SPOT_STATE,
   decorBlockId,
+  LIGHT_BLOCK,
   pairDecorBlockId,
   pairEndStates,
   pairHeightStates,
@@ -93,6 +94,7 @@ const ROOM_BLOCK: Readonly<
   furniture: CAMPER_FURNITURE_BLOCK,
   showerToilet: CAMPER_SHOWER_TOILET_BLOCK,
   cabinetDoor: CAMPER_CABINET_DOOR_BLOCK,
+  light: LIGHT_BLOCK,
 };
 
 function laidTypeOf(block: DockBlock): string {

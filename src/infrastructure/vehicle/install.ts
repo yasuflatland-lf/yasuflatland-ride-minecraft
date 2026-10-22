@@ -14,6 +14,7 @@ import { RunShower } from "../../application/vehicle/runShower";
 import { SetDecor } from "../../application/vehicle/setDecor";
 import { ShowVehicleHints } from "../../application/vehicle/showVehicleHints";
 import { SleepInBed } from "../../application/vehicle/sleepInBed";
+import { SwitchCeilingLights } from "../../application/vehicle/switchCeilingLights";
 import { SwitchHeadlights } from "../../application/vehicle/switchHeadlights";
 import { UseDockDoor } from "../../application/vehicle/useDockDoor";
 import { UseShowerDoor } from "../../application/vehicle/useShowerDoor";
@@ -65,6 +66,7 @@ export function installVehicles(): void {
         repo,
         systemClock,
       ),
+      ceilingLights: new SwitchCeilingLights(repo, systemClock),
       door: new UseDockDoor(repo, systemClock),
       bed: new SleepInBed(new BedrockBedWorld(index)),
       showerDoor: new UseShowerDoor(repo, systemClock),

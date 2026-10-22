@@ -17,6 +17,7 @@ export const CAMPER_ENTITY = {
     shower: { type: "bool" },
     cabinet_sink_door: { type: "float", range: [0, 1] },
     cabinet_stove_door: { type: "float", range: [0, 1] },
+    ceiling_lights: { type: "bool" },
   },
   events: [...TRANSFORMING_EVENTS, ...DOCK_EVENTS],
   animations: [],
@@ -27,6 +28,7 @@ export const CAMPER_ENTITY = {
     "shower_door",
     "cabinet_sink_door",
     "cabinet_stove_door",
+    "ceiling_lights",
   ],
 } as const satisfies EntityContract;
 
@@ -60,3 +62,14 @@ export function cabinetDoorCommand(
 ): EngineCommand {
   return property(CABINET_DOOR_PROPERTY[door], open);
 }
+
+/** Whether the ceiling lights glow (ADR 0115). */
+export function ceilingLightsCommand(on: boolean): EngineCommand {
+  return property("ceiling_lights", on);
+}
+
+/** The click of the light switch, as the headlight switch makes (ADR 0020, 0115). */
+export const SWITCH_CLICK: EngineCommand = Object.freeze({
+  type: "playSound",
+  name: "random.click",
+});

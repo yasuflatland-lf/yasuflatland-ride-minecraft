@@ -928,6 +928,31 @@ describe("DockBlocks lost cells (ADR 0096)", () => {
     );
   });
 
+  it("keeps a laid light, lays it again once lost, and clears only its own light (ADR 0115)", () => {
+    const light: DockCell = { x: 3, y: 66, z: 4, block: { type: "light" } };
+    const f = fixture();
+    const docks = new DockBlocks();
+    docks.lay(id, f.car, [light]);
+    expect(f.at(light).typeId).toBe("minecraft:light_block_15");
+    expect(f.savedCells()).toEqual([light]);
+    f.writes.length = 0;
+    for (let i = 0; i < 2 * DOCK_RECHECK_TICKS; i++)
+      docks.lay(id, f.car, [light]);
+    expect(f.writes).toEqual([]);
+    f.blocks.set(cellKey(light), { typeId: "minecraft:light_block_7" });
+    for (let i = 0; i < DOCK_RECHECK_TICKS; i++) docks.lay(id, f.car, [light]);
+    expect(f.at(light).typeId).toBe("minecraft:light_block_15");
+    f.blocks.delete(cellKey(light));
+    for (let i = 0; i < DOCK_RECHECK_TICKS; i++) docks.lay(id, f.car, [light]);
+    expect(f.at(light).typeId).toBe("minecraft:light_block_15");
+    docks.lay(id, f.car, []);
+    expect(f.at(light).typeId).toBe("minecraft:air");
+    docks.lay(id, f.car, [light]);
+    f.blocks.set(cellKey(light), { typeId: "minecraft:torch" });
+    docks.lay(id, f.car, []);
+    expect(f.at(light).typeId).toBe("minecraft:torch");
+  });
+
   it("reads no block between checks (ADR 0096)", () => {
     const f = fixture();
     const docks = new DockBlocks();

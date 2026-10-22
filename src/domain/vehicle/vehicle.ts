@@ -90,6 +90,8 @@ export class Vehicle {
   private seating: Seating;
   private readonly ramCooldowns = new RamCooldowns();
   private readonly switchCooldown = new SwitchCooldown();
+  // Its own cooldown, so a driver's headlight switch and a ceiling light switch in the room never block each other (ADR 0115).
+  private readonly ceilingLightCooldown = new SwitchCooldown();
   private hitCounter: HitCounter = EMPTY_COUNTER;
   /** Ticks since the last tick with a driver; infinite until the first driver (ADR 0078). */
   private driverlessTicks = Number.POSITIVE_INFINITY;
@@ -323,6 +325,30 @@ export class Vehicle {
   flipHeadlightSwitch(playerId: PlayerId, tick: number): boolean {
     if (playerId !== this.seating.driver) return false;
     return this.switchCooldown.tryUse(tick, SPEC.headlightSwitchCooldown);
+  }
+
+  /**
+   * A player who is not at the wheel uses the light switch with their feet at `feet`: inside a
+   * parked room, it turns the ceiling lights on or off. The driver's switch stays the
+   * headlights' (ADR 0020). It uses its own cooldown with the headlight switch's duration, so
+   * one touch flips once (ADR 0024, 0115). Returns whether it flipped.
+   */
+  switchCeilingLights(playerId: PlayerId, feet: Vec3, tick: number): boolean {
+    if (playerId === this.seating.driver || !this.drive.switchCeilingLights)
+      return false;
+    if (!this.ceilingLightCooldown.tryUse(tick, SPEC.headlightSwitchCooldown))
+      return false;
+    return this.drive.switchCeilingLights(feet);
+  }
+
+  /**
+   * Whether a use of the light switch by `playerId` with feet at `feet` is one for the ceiling
+   * lights: not the driver's, and from inside a room that has them. It ignores the cooldown
+   * and changes nothing, so a press is taken over only where the switch can work (ADR 0115).
+   */
+  canSwitchCeilingLights(playerId: PlayerId, feet: Vec3): boolean {
+    if (playerId === this.seating.driver) return false;
+    return this.drive.ceilingLightsReachable?.(feet) ?? false;
   }
 
   /** Hit by a player. Returns whether the vehicle breaks (ADR 0008). */

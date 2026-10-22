@@ -6,6 +6,7 @@ import { SLEEP_MESSAGES } from "../../src/domain/vehicle/dock/sleep";
 import { HINTS } from "../../src/domain/vehicle/hints";
 import {
   CAMPER_FURNITURE,
+  CEILING_LIGHTS,
   DECOR_SPOTS,
   type DecorSlot,
 } from "../../src/domain/vehicle/kinds/camper/furniture";
@@ -84,6 +85,7 @@ describe("camper model assets (ADR 0067)", () => {
         "root",
         "body",
         "headlights",
+        "ceiling_lights",
         "wheel_fl",
         "wheel_fr",
         "wheel_rl",
@@ -514,8 +516,10 @@ const camperMaterials: Record<string, string> = JSON.parse(
 
 describe("camper glass (ADR 0091)", () => {
   const glassBones = ["glass", "door_glass"];
-  // The PALETTE order in tools/gen_camper.py puts glass in slot 13.
+  // The PALETTE order in tools/gen_camper.py puts glass in slot 13 and the ceiling light
+  // lenses, whose alpha 0 lights them under the emissive material, last (ADR 0115).
   const glassSlot = 13;
+  const domeSlot = 33;
   const slotOf = (cube: Cube) => cube.uv.north?.uv[0];
 
   it("draws the model opaque and blends only the glass material", () => {
@@ -542,6 +546,7 @@ describe("camper glass (ADR 0091)", () => {
       for (let i = 0; i < width; i++) {
         const alpha = pixels[i * 4 + 3];
         if (i === glassSlot) expect(alpha, paint).toBeLessThan(255);
+        else if (i === domeSlot) expect(alpha, paint).toBe(0);
         else expect(alpha, `${paint} slot ${i}`).toBe(255);
       }
     }
@@ -1337,5 +1342,75 @@ describe("camper furniture model (ADR 0093)", () => {
           expect(oz, name).toBeLessThanOrEqual(cellZ[1]);
         }
     }
+  });
+});
+
+describe("camper ceiling lights (ADR 0115)", () => {
+  const PX = 16;
+  // The ceiling liner's underside (tools/gen_camper.py CEIL - 0.2) and the top of a standing
+  // player's head on the floor (16 px) at 1.8 blocks.
+  const LINER = 60.8;
+  const HEAD = 16 + 1.8 * PX;
+  const lights = bone("ceiling_lights");
+  const cubes = lights.cubes ?? [];
+  const center = (cube: Cube, axis: number) =>
+    (cube.origin[axis] ?? 0) + (cube.size[axis] ?? 0) / 2;
+
+  it("hangs one light from the liner over each light cell of the aisle, above every head", () => {
+    expect(lights.parent).toBe("body");
+    expect(cubes.length).toBeGreaterThan(0);
+    for (const cube of cubes) {
+      expect(cube.origin[1] ?? 0).toBeGreaterThan(HEAD);
+      expect((cube.origin[1] ?? 0) + (cube.size[1] ?? 0)).toBeLessThanOrEqual(
+        LINER + 1e-6,
+      );
+    }
+    // Each light's rim meets the liner, so it does not float under the ceiling.
+    expect(
+      cubes.filter((c) => (c.origin[1] ?? 0) + (c.size[1] ?? 0) > LINER - 1e-6),
+    ).toHaveLength(CEILING_LIGHTS.length);
+    // Model z is -16 times the local cell z, and the mirrored model x is minus the local x.
+    const centers = new Set(
+      cubes.map((c) => `${center(c, 0)},${center(c, 2)}`),
+    );
+    expect(centers).toEqual(
+      new Set(CEILING_LIGHTS.map((c) => `${-c.x * PX + 0},${-c.z * PX}`)),
+    );
+    for (const cell of CEILING_LIGHTS) expect(cell.layer).toBe(2);
+  });
+
+  it("stays inside the aisle cells of its lights", () => {
+    for (const cube of cubes) {
+      const cell = CEILING_LIGHTS.find(
+        (c) => -c.z * PX === center(cube, 2) && -c.x * PX === center(cube, 0),
+      );
+      expect(cell).toBeDefined();
+      for (const axis of [0, 2]) {
+        const mid = axis === 0 ? -(cell?.x ?? 0) * PX : -(cell?.z ?? 0) * PX;
+        expect(cube.origin[axis] ?? 0).toBeGreaterThanOrEqual(mid - PX / 2);
+        expect(
+          (cube.origin[axis] ?? 0) + (cube.size[axis] ?? 0),
+        ).toBeLessThanOrEqual(mid + PX / 2);
+      }
+    }
+  });
+
+  it("lights the lenses with the lamp material while the property is on", () => {
+    const entries: Record<string, string>[] = camperRender.materials;
+    expect(entries).toContainEqual({
+      ceiling_lights:
+        "Array.lamps[query.property('yasu_ride:ceiling_lights') ? 1 : 0]",
+    });
+    const property = JSON.parse(
+      readFileSync(
+        "packs/yasu_ride_bp/entities/yasu_ride/camper.se.json",
+        "utf8",
+      ),
+    )["minecraft:entity"].description.properties["yasu_ride:ceiling_lights"];
+    expect(property).toEqual({
+      type: "bool",
+      default: false,
+      client_sync: true,
+    });
   });
 });
