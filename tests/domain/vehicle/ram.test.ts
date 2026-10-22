@@ -18,16 +18,8 @@ const number = (min: number, max: number) =>
 // fc.double draws most values within a hair of 0, so it barely turns the
 // vehicle off the z axis. Whole hundredths of a degree cover every heading.
 const yaw = fc.integer({ min: -18_000, max: 18_000 }).map((c) => c / 100);
-const fastSpeed = fc.double({
-  min: SPEC.ramMinSpeed + 0.001,
-  max: SUV_SPEC.maxSpeed,
-  noNaN: true,
-});
-const fastReverse = fc.double({
-  min: -SUV_SPEC.maxReverse,
-  max: -SPEC.ramMinSpeed - 0.001,
-  noNaN: true,
-});
+const fastSpeed = number(SPEC.ramMinSpeed + 0.001, SUV_SPEC.maxSpeed);
+const fastReverse = number(-SUV_SPEC.maxReverse, -SPEC.ramMinSpeed - 0.001);
 
 function expectedPushMagnitude(speed: number): number {
   return SPEC.ramPushBase + Math.abs(speed) * SPEC.ramPushPerSpeed;
@@ -169,16 +161,12 @@ describe("selectHits (ADR 0006)", () => {
     const anySpeed = fc.oneof(
       fastSpeed,
       fastReverse,
-      fc.double({
-        min: -SUV_SPEC.maxReverse,
-        max: SUV_SPEC.maxSpeed,
-        noNaN: true,
-      }),
+      number(-SUV_SPEC.maxReverse, SUV_SPEC.maxSpeed),
     );
     const nearOffset = fc.record({
-      x: fc.double({ min: -5, max: 5, noNaN: true }),
-      y: fc.double({ min: -5, max: 5, noNaN: true }),
-      z: fc.double({ min: -5, max: 5, noNaN: true }),
+      x: number(-5, 5),
+      y: number(-5, 5),
+      z: number(-5, 5),
     });
     const lastHitTick = fc.option(fc.integer({ min: 0, max: 1000 }), {
       nil: undefined,
