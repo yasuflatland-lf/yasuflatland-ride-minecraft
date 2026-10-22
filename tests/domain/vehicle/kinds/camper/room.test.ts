@@ -91,14 +91,15 @@ const isCabinetCell = (cell: { x: number; z: number; layer: number }) =>
       d.cell.x === cell.x && d.cell.z === cell.z && d.cell.layer === cell.layer,
   );
 
-it("lays 105 distinct integer cells with the specified counts at any snapped pose, an open cabinet door's plate in place of a ceiling cell (ADR 0068, 0114)", () => {
+it("lays 105 distinct integer cells with the specified counts at any snapped pose, an open cabinet door's plate in place of a ceiling cell and the open shower door's wall in place of a wall (ADR 0068, 0114, 0118)", () => {
   fc.assert(
     fc.property(
       location,
       yaw,
       fc.boolean(),
       openDoors,
-      (at, angle, open, cabinets) => {
+      fc.boolean(),
+      (at, angle, open, cabinets, showerOpen) => {
         const p = parkPose(at, angle);
         expect(p).toEqual({
           x: Math.floor(at.x) + 0.5,
@@ -106,7 +107,7 @@ it("lays 105 distinct integer cells with the specified counts at any snapped pos
           z: Math.floor(at.z) + 0.5,
           yaw: snapYaw(angle),
         });
-        const cells = roomCells(p, open, cabinets);
+        const cells = roomCells(p, open, cabinets, showerOpen);
         expect(cells).toHaveLength(105);
         expect(new Set(cells.map(cellKey)).size).toBe(105);
         expect(
@@ -120,6 +121,7 @@ it("lays 105 distinct integer cells with the specified counts at any snapped pos
               "bed",
               "showerToilet",
               "cabinetDoor",
+              "showerDoor",
             ].map((type) => [
               type,
               cells.filter((c) => c.block.type === type).length,
@@ -128,17 +130,58 @@ it("lays 105 distinct integer cells with the specified counts at any snapped pos
         ).toEqual({
           floor: 21,
           ceiling: 19 - cabinets.size,
-          wall: 57,
+          wall: showerOpen ? 54 : 57,
           door: 3,
           deck: 1,
           bed: 2,
           showerToilet: 2,
           cabinetDoor: cabinets.size,
+          showerDoor: showerOpen ? 3 : 0,
         });
         for (const c of cells)
           expect([c.x, c.y, c.z].every(Number.isInteger)).toBe(true);
       },
     ),
+  );
+});
+
+it("makes the rear wall cells behind the aisle beside the shower-toilet selectable while its door is open, with the wall's face, and changes nothing else (ADR 0118)", () => {
+  fc.assert(
+    fc.property(pose, fc.boolean(), openDoors, (p, open, cabinets) => {
+      const shut = roomCells(p, open, cabinets, false);
+      const opened = roomCells(p, open, cabinets, true);
+      expect(opened.map(cellKey)).toEqual(shut.map(cellKey));
+      const f = forward(p.yaw);
+      const step = { x: Math.round(f.x) + 0, z: Math.round(f.z) + 0 };
+      const left = leftOf(step);
+      const showerToilet = shut.filter((c) => c.block.type === "showerToilet");
+      // From the shower-toilet one cell left into the aisle, then one back into the rear wall.
+      const behind = new Set(
+        [1, 2, 3].map((layer) => {
+          const st = defined(showerToilet[0], "shower-toilet cell");
+          return cellKey({
+            x: st.x + left.x - step.x,
+            y: p.y + layer,
+            z: st.z + left.z - step.z,
+          });
+        }),
+      );
+      shut.forEach((before, i) => {
+        const after = defined(opened[i], "opened cell");
+        if (!behind.has(cellKey(before))) {
+          expect(after).toEqual(before);
+          return;
+        }
+        expect(before.block.type).toBe("wall");
+        expect(after.block).toEqual({
+          type: "showerDoor",
+          face: (before.block as { face: number }).face,
+        });
+      });
+      expect(opened.filter((c) => c.block.type === "showerDoor")).toHaveLength(
+        3,
+      );
+    }),
   );
 });
 

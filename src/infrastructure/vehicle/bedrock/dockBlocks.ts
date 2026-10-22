@@ -24,6 +24,7 @@ import {
   CAMPER_DOOR_BLOCK,
   CAMPER_FLOOR_BLOCK,
   CAMPER_FURNITURE_BLOCK,
+  CAMPER_SHOWER_DOOR_BLOCK,
   CAMPER_SHOWER_TOILET_BLOCK,
   CAMPER_WALL_BLOCK,
   DECK_CELLS_PROPERTY,
@@ -125,6 +126,7 @@ function isDockCell(v: unknown): v is DockCell {
       return isFace(b.face) && typeof b.open === "boolean";
     case "showerToilet":
     case "cabinetDoor":
+    case "showerDoor":
       return isFace(b.face);
     case "cabinet":
       return (
@@ -175,6 +177,8 @@ function blockIdOf(block: DockBlock): string {
       return CAMPER_SHOWER_TOILET_BLOCK;
     case "cabinetDoor":
       return CAMPER_CABINET_DOOR_BLOCK;
+    case "showerDoor":
+      return CAMPER_SHOWER_DOOR_BLOCK;
     case "cabinet":
       return pairDecorBlockId("cabinet");
     case "furniture":
@@ -207,6 +211,10 @@ function permutationOf(block: DockBlock): BlockPermutation {
       });
     case "cabinetDoor":
       return BlockPermutation.resolve(CAMPER_CABINET_DOOR_BLOCK, {
+        [ROOM_FACE_STATE]: block.face,
+      });
+    case "showerDoor":
+      return BlockPermutation.resolve(CAMPER_SHOWER_DOOR_BLOCK, {
         [ROOM_FACE_STATE]: block.face,
       });
     case "cabinet":

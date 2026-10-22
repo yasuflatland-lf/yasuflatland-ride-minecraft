@@ -880,17 +880,14 @@ it("registers bed interactions during startup and passes the player, dimension, 
   expect(bed.execute).not.toHaveBeenCalled();
 });
 
-it("registers shower-toilet presses during startup and sends an empty hand to the door from outside and to the shower from inside (ADR 0098)", () => {
+it("registers shower-toilet presses during startup and sends an empty hand's press with the player's feet to the camper (ADR 0098, 0118)", () => {
   const before = game.startup.mock.calls.length;
-  const showerDoor = { execute: vi.fn() };
-  const shower = { execute: vi.fn() };
+  const showerToilet = { execute: vi.fn() };
   const owner = vi.fn<(dimensionId: string, cell: At) => VehicleId | undefined>(
     () => asVehicleId("camper"),
   );
   registerSubscriptions(
-    { showerDoor, shower } as unknown as Parameters<
-      typeof registerSubscriptions
-    >[0],
+    { showerToilet } as unknown as Parameters<typeof registerSubscriptions>[0],
     new TestInputStore(),
     () => undefined,
     owner,
@@ -916,12 +913,12 @@ it("registers shower-toilet presses during startup and sends an empty hand to th
       fc.boolean(),
       (dx, dz, held, owned, hasPlayer) => {
         owner.mockClear();
-        showerDoor.execute.mockClear();
-        shower.execute.mockClear();
+        showerToilet.execute.mockClear();
         owner.mockReturnValue(owned ? asVehicleId("camper") : undefined);
+        const feet = { x: 4.5 + dx, y: 65, z: -6.5 + dz };
         const player = {
           id: "p",
-          location: { x: 4.5 + dx, y: 65, z: -6.5 + dz },
+          location: feet,
           selectedSlotIndex: 0,
           getComponent: () => ({
             container: {
@@ -939,34 +936,21 @@ it("registers shower-toilet presses during startup and sends an empty hand to th
         );
         if (!hasPlayer || held) {
           expect(owner).not.toHaveBeenCalled();
-          expect(showerDoor.execute).not.toHaveBeenCalled();
-          expect(shower.execute).not.toHaveBeenCalled();
+          expect(showerToilet.execute).not.toHaveBeenCalled();
           return;
         }
         expect(owner).toHaveBeenCalledExactlyOnceWith("overworld", cell);
         if (!owned) {
-          expect(showerDoor.execute).not.toHaveBeenCalled();
-          expect(shower.execute).not.toHaveBeenCalled();
+          expect(showerToilet.execute).not.toHaveBeenCalled();
           return;
         }
-        const inside =
-          Math.floor(4.5 + dx) === 4 && Math.floor(-6.5 + dz) === -7;
-        const [used, idle] = inside
-          ? [shower, showerDoor]
-          : [showerDoor, shower];
-        expect(used.execute).toHaveBeenCalledExactlyOnceWith({
+        expect(showerToilet.execute).toHaveBeenCalledExactlyOnceWith({
           vehicleId: "camper",
+          feet,
         });
-        expect(idle.execute).not.toHaveBeenCalled();
       },
     ),
-    // Both outcomes on every run: Codecov saw a run with no press from outside.
-    {
-      examples: [
-        [0, 0, false, true, true],
-        [2, 2, false, true, true],
-      ],
-    },
+    { examples: [[0, 0, false, true, true]] },
   );
 });
 

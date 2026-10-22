@@ -71,7 +71,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0065](0065-check-import-rules-with-dependency-cruiser.md) | Check the import rules with dependency-cruiser | Extended by 0072 |
 | [0066](0066-limit-vehicles-per-player-and-kind.md) | Limit vehicles per player and per kind | Accepted |
 | [0067](0067-camper.md) | Camper | Superseded in part by 0068 and 0069; extended by 0091 and 0093 |
-| [0068](0068-park-the-camper-with-room-blocks.md) | Park the camper with room blocks | Superseded in part by 0070, 0084, and 0116 (Proposed); extended by 0086, 0092, 0093, 0094, 0095, 0096, 0097, 0098, 0101, 0105, 0109, 0114, and 0115 |
+| [0068](0068-park-the-camper-with-room-blocks.md) | Park the camper with room blocks | Superseded in part by 0070, 0084, and 0116 (Proposed); extended by 0086, 0092, 0093, 0094, 0095, 0096, 0097, 0098, 0101, 0105, 0109, 0114, 0115, and 0118 |
 | [0069](0069-camper-right-hand-drive.md) | Seat the camper's driver on the right like the SUV | Superseded in part by 0070 |
 | [0070](0070-raise-the-camper-front-seats.md) | Raise the camper's front seats | Accepted |
 | [0071](0071-pull-the-camper-chase-camera-back.md) | Pull the camper's chase camera back | Accepted |
@@ -97,18 +97,18 @@ This directory records design decisions and the reasons behind them. The format 
 | [0091](0091-alpha-blend-only-the-camper-glass.md) | Alpha-blend only the camper glass | Accepted |
 | [0092](0092-a-bed-in-the-parked-camper.md) | A bed in the parked camper | Extended by 0093 |
 | [0093](0093-decorate-the-parked-camper.md) | Decorate the parked camper | Superseded in part by 0097, 0098, 0099, 0100, 0102, 0103, 0106, and 0108; extended by 0094, 0095, 0096, 0101, and 0113 |
-| [0094](0094-the-camper-shower-toilet-door-and-shower.md) | The camper's shower-toilet door and shower | Superseded in part by 0098; extended by 0105 and 0114 |
+| [0094](0094-the-camper-shower-toilet-door-and-shower.md) | The camper's shower-toilet door and shower | Superseded in part by 0098; extended by 0105, 0114, and 0118 |
 | [0095](0095-sit-on-the-camper-toilet-while-parked.md) | Sit on the camper toilet while parked | Extended by 0098 and 0109 |
 | [0096](0096-keep-the-dock-blocks-whole.md) | Keep a parked vehicle's dock blocks whole | Extended by 0115 |
 | [0097](0097-press-the-camper-furniture-to-place-decor.md) | Press the camper furniture to place decor | Superseded in part by 0103 and 0107; extended by 0104 |
-| [0098](0098-a-block-for-the-camper-shower-toilet.md) | A block for the camper's shower-toilet | Accepted |
+| [0098](0098-a-block-for-the-camper-shower-toilet.md) | A block for the camper's shower-toilet | Superseded in part by 0118 |
 | [0099](0099-hang-the-camper-planter-inside-its-cell.md) | Hang the camper planter inside its cell | Superseded in part by 0102 |
 | [0100](0100-swap-the-camper-stove-and-sink.md) | Swap the camper stove and sink | Superseded in part by 0107 |
 | [0101](0101-give-invisible-blocks-a-hidden-cube.md) | Give invisible blocks a hidden cube | Accepted |
 | [0102](0102-lift-the-hanging-planter-from-its-cell-bottom.md) | Lift the hanging planter from its cell bottom | Accepted |
 | [0103](0103-raise-the-camper-wall-cabinet-to-the-ceiling.md) | Raise the camper wall cabinet to the ceiling | Superseded in part by 0114; extended by 0113 |
 | [0104](0104-refuse-a-press-on-a-taken-seat.md) | Refuse a press on a taken seat | Accepted |
-| [0105](0105-toggle-a-camper-door-once-per-swing.md) | Toggle a camper door once per swing | Extended by 0114 |
+| [0105](0105-toggle-a-camper-door-once-per-swing.md) | Toggle a camper door once per swing | Extended by 0114 and 0118 |
 | [0106](0106-raise-the-camper-dashboard-to-the-windshield.md) | Raise the camper dashboard to the windshield | Accepted |
 | [0107](0107-stand-stove-gear-on-a-burner.md) | Stand stove gear on a burner, and widen the standing decor box | Superseded in part by 0108, 0110, and 0112 |
 | [0108](0108-two-items-on-each-shelf-board-and-the-table.md) | Two items on each shelf board and on the table | Extended by 0114 |
@@ -121,6 +121,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0115](0115-camper-ceiling-lights.md) | Ceiling lights in the parked camper | Accepted |
 | [0116](0116-a-bumper-stand-in-takes-the-camper-hits.md) | A bumper stand-in takes the camper's hits | Proposed |
 | [0117](0117-move-the-suv-front-seats-back.md) | Move the SUV's front seats back | Accepted |
+| [0118](0118-close-the-camper-shower-door-from-either-side.md) | Close the camper shower door from either side | Accepted |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 

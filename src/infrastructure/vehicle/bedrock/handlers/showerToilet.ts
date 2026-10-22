@@ -1,6 +1,5 @@
 import { system } from "@minecraft/server";
-import type { RunShower } from "../../../../application/vehicle/runShower";
-import type { UseShowerDoor } from "../../../../application/vehicle/useShowerDoor";
+import type { PressShowerToilet } from "../../../../application/vehicle/pressShowerToilet";
 import {
   asDimensionId,
   type DimensionId,
@@ -10,16 +9,16 @@ import type { Vec3 } from "../../../../domain/shared/vec";
 import { CAMPER_SHOWER_TOILET_COMPONENT } from "../identifiers";
 
 export function registerShowerToilet(
-  showerDoor: UseShowerDoor,
-  shower: RunShower,
+  showerToilet: PressShowerToilet,
   dockCellOwner: (
     dimensionId: DimensionId,
     cell: Vec3,
   ) => VehicleId | undefined,
 ): void {
-  // A press from outside the shower-toilet's column swings its door; one from inside
-  // runs the shower. Held items never get here: gear is cancelled by the decor
-  // handler, and anything else is ignored (ADR 0094, 0098).
+  // The doorway plate and the wall behind the open door both carry this component; the
+  // camper decides from its door and the player's feet whether the door swings or the
+  // shower runs. Held items never get here: gear is cancelled by the decor handler, and
+  // anything else is ignored (ADR 0094, 0098, 0118).
   system.beforeEvents.startup.subscribe(({ blockComponentRegistry }) => {
     blockComponentRegistry.registerCustomComponent(
       CAMPER_SHOWER_TOILET_COMPONENT,
@@ -31,14 +30,12 @@ export function registerShowerToilet(
             .getComponent("minecraft:inventory")
             ?.container?.getItem(player.selectedSlotIndex);
           if (held) return;
-          const cell = ev.block.location;
-          const vehicleId = dockCellOwner(asDimensionId(ev.dimension.id), cell);
+          const vehicleId = dockCellOwner(
+            asDimensionId(ev.dimension.id),
+            ev.block.location,
+          );
           if (vehicleId === undefined) return;
-          const inside =
-            Math.floor(player.location.x) === cell.x &&
-            Math.floor(player.location.z) === cell.z;
-          if (inside) shower.execute({ vehicleId });
-          else showerDoor.execute({ vehicleId });
+          showerToilet.execute({ vehicleId, feet: player.location });
         },
       },
     );

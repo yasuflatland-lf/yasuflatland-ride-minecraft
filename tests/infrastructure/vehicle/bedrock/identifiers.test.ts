@@ -24,6 +24,7 @@ import {
   CAMPER_DOOR_BLOCK,
   CAMPER_FLOOR_BLOCK,
   CAMPER_FURNITURE_BLOCK,
+  CAMPER_SHOWER_DOOR_BLOCK,
   CAMPER_SHOWER_TOILET_BLOCK,
   CAMPER_SHOWER_TOILET_COMPONENT,
   CAMPER_WALL_BLOCK,
@@ -244,6 +245,7 @@ describe("identifiers (ADR 0047)", () => {
       CAMPER_BED_BLOCK,
       CAMPER_FURNITURE_BLOCK,
       CAMPER_SHOWER_TOILET_BLOCK,
+      CAMPER_SHOWER_DOOR_BLOCK,
     ])
       expect(isCamperRoomBlock(typeId)).toBe(true);
     for (const typeId of [

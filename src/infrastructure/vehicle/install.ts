@@ -9,15 +9,14 @@ import { PaintVehicle } from "../../application/vehicle/paintVehicle";
 import { PlaceDecor } from "../../application/vehicle/placeDecor";
 import { PlaceVehicle } from "../../application/vehicle/placeVehicle";
 import { PressCabinet } from "../../application/vehicle/pressCabinet";
+import { PressShowerToilet } from "../../application/vehicle/pressShowerToilet";
 import { RemoveDecor } from "../../application/vehicle/removeDecor";
-import { RunShower } from "../../application/vehicle/runShower";
 import { SetDecor } from "../../application/vehicle/setDecor";
 import { ShowVehicleHints } from "../../application/vehicle/showVehicleHints";
 import { SleepInBed } from "../../application/vehicle/sleepInBed";
 import { SwitchCeilingLights } from "../../application/vehicle/switchCeilingLights";
 import { SwitchHeadlights } from "../../application/vehicle/switchHeadlights";
 import { UseDockDoor } from "../../application/vehicle/useDockDoor";
-import { UseShowerDoor } from "../../application/vehicle/useShowerDoor";
 import { fleetLimitOf } from "../../domain/vehicle/kinds/index";
 import { NAMESPACE } from "../shared/identifiers";
 import { BedrockBedWorld } from "./bedrock/bedrockBedWorld";
@@ -69,8 +68,7 @@ export function installVehicles(): void {
       ceilingLights: new SwitchCeilingLights(repo, systemClock),
       door: new UseDockDoor(repo, systemClock),
       bed: new SleepInBed(new BedrockBedWorld(index)),
-      showerDoor: new UseShowerDoor(repo, systemClock),
-      shower: new RunShower(repo),
+      showerToilet: new PressShowerToilet(repo, systemClock),
       decor: new SetDecor(decorWorld, repo),
       placeDecor: new PlaceDecor(decorWorld, repo),
       removeDecor: new RemoveDecor(decorWorld, repo),

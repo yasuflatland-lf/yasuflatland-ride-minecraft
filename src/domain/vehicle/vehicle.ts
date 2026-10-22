@@ -210,14 +210,9 @@ export class Vehicle {
     return this.drive.useDockDoor?.(tick) ?? false;
   }
 
-  /** A player tapped the shower door at `tick`. Returns whether it opened or closed (ADR 0094, 0105). */
-  useShowerDoor(tick: number): boolean {
-    return this.drive.useShowerDoor?.(tick) ?? false;
-  }
-
-  /** A player asked for the shower. Returns whether it runs (ADR 0094). */
-  runShower(): boolean {
-    return this.drive.runShower?.() ?? false;
+  /** A player with feet at `feet` pressed the shower-toilet at `tick`. Returns whether its door swung or its shower ran (ADR 0094, 0098, 0105, 0118). */
+  pressShowerToilet(feet: Vec3, tick: number): boolean {
+    return this.drive.pressShowerToilet?.(feet, tick) ?? false;
   }
 
   /** The decor of this vehicle's room, in slot order, then any stowed decor whose slot no longer exists (ADR 0093, 0103). */

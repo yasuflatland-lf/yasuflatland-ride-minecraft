@@ -79,14 +79,12 @@ export interface Drive {
   onSeatVacated(seat: number): readonly EngineCommand[];
   /** Opens or closes the door of a held vehicle's room at `tick`; false when it has none or the tap is ignored (ADR 0068, 0105). */
   useDockDoor?(tick: number): boolean;
-  /** Opens or closes the shower door of a held vehicle at `tick`; false when it has none or the tap is ignored (ADR 0094, 0105). */
-  useShowerDoor?(tick: number): boolean;
   /** Turns the ceiling lights of a held vehicle's room on or off for a player with feet at `feet`; false when it has none or the player is not inside (ADR 0115). */
   switchCeilingLights?(feet: Vec3): boolean;
   /** Whether `switchCeilingLights` would take a use from feet at `feet` now, without switching (ADR 0115). */
   ceilingLightsReachable?(feet: Vec3): boolean;
-  /** Runs the shower of a held vehicle for a fixed time; false when it has none (ADR 0094). */
-  runShower?(): boolean;
+  /** A press on the shower-toilet of a held vehicle by a player with feet at `feet`, at `tick`: swings its door or runs its shower; false when it has none or the press is ignored (ADR 0094, 0098, 0105, 0118). */
+  pressShowerToilet?(feet: Vec3, tick: number): boolean;
   /** The decor of the vehicle's room, in slot order, then any stowed decor whose slot no longer exists (ADR 0103); absent for kinds without decor (ADR 0093). */
   decor?(): readonly DecorPlacement[];
   /** Puts `item` in `slot`, or empties it when undefined. Returns whether the decor changed (ADR 0093). */

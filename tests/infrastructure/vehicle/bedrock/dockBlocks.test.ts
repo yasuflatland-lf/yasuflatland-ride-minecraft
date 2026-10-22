@@ -19,6 +19,7 @@ import {
   CAMPER_DOOR_BLOCK,
   CAMPER_FLOOR_BLOCK,
   CAMPER_FURNITURE_BLOCK,
+  CAMPER_SHOWER_DOOR_BLOCK,
   CAMPER_SHOWER_TOILET_BLOCK,
   CAMPER_WALL_BLOCK,
   DECK_CELLS_PROPERTY,
@@ -637,6 +638,43 @@ it("restores a saved shower-toilet cell with its face and drops one without a va
     expect(g.at(cell).typeId).toBe(CAMPER_SHOWER_TOILET_BLOCK);
     expect(g.saved.get(DECK_CELLS_PROPERTY)).toBe(raw);
   }
+});
+
+it("lays the wall behind the open shower door with its face, swaps it back to the wall, and restores a saved one (ADR 0118)", () => {
+  const cell = { x: 0, y: 64, z: 0 };
+  const f = fixture();
+  const docks = new DockBlocks();
+  docks.lay(asVehicleId(f.car.id), f.car, [
+    { ...cell, block: { type: "showerDoor", face: 1 } },
+  ]);
+  expect(f.at(cell)).toEqual({
+    typeId: CAMPER_SHOWER_DOOR_BLOCK,
+    states: { [ROOM_FACE_STATE]: 1 },
+  });
+  docks.lay(asVehicleId(f.car.id), f.car, [
+    { ...cell, block: { type: "wall", face: 1 } },
+  ]);
+  expect(f.at(cell)).toEqual({
+    typeId: CAMPER_WALL_BLOCK,
+    states: { [ROOM_FACE_STATE]: 1 },
+  });
+  const g = fixture();
+  g.saved.set(
+    DECK_CELLS_PROPERTY,
+    JSON.stringify([{ ...cell, block: { type: "showerDoor", face: 3 } }]),
+  );
+  g.blocks.set(cellKey(cell), { typeId: CAMPER_SHOWER_DOOR_BLOCK });
+  new DockBlocks().lay(asVehicleId(g.car.id), g.car, []);
+  expect(g.at(cell).typeId).toBe("minecraft:air");
+  const h = fixture();
+  const raw = JSON.stringify([
+    { ...cell, block: { type: "showerDoor", face: 4 } },
+  ]);
+  h.saved.set(DECK_CELLS_PROPERTY, raw);
+  h.blocks.set(cellKey(cell), { typeId: CAMPER_SHOWER_DOOR_BLOCK });
+  new DockBlocks().lay(asVehicleId(h.car.id), h.car, []);
+  expect(h.at(cell).typeId).toBe(CAMPER_SHOWER_DOOR_BLOCK);
+  expect(h.saved.get(DECK_CELLS_PROPERTY)).toBe(raw);
 });
 
 it("clears saved deck cells from the legacy height-only format", () => {
