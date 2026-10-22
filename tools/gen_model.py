@@ -385,14 +385,18 @@ body += pleated_seat(-11, -2, FRONT_SEAT_Z)
 body += pleated_seat(-11, 0, -18)
 body += pleated_seat(0, 11, -18)
 
-# Steering wheel (+x side; shown in game as right-hand drive), tilted 20° with its top toward the driver
-# (a positive x rotation tips +y toward -z in game, see WINDSHIELD_LEAN), and set back from the dashboard
-# far enough that the tilted rim clears it. Like the tires, the rim is a ring of thin blocks turned
-# around the column. Brown leather rim, gray spokes, and a black hub and column
+# Steering wheel (+x side; shown in game as right-hand drive), tilted 20° with its top away from the
+# driver, toward the dashboard (a negative x rotation tips +y toward +z in game, see WINDSHIELD_LEAN).
+# Its center sits at WHEEL_Z, 0.6 px farther back than when the top leaned toward the driver, so the
+# rim's top stays about 0.5 px off the speedometer's glass; the column runs forward and down into the
+# dashboard. Like the tires, the rim is a ring of thin blocks turned around the column. Brown leather
+# rim, gray spokes, and a black hub and column
 WHEEL_CENTER = (6.0, 16.5)  # (x, y)
-WHEEL_PIVOT = [WHEEL_CENTER[0], WHEEL_CENTER[1], 8.7]
+WHEEL_Z = 8.1
+WHEEL_PIVOT = [WHEEL_CENTER[0], WHEEL_CENTER[1], WHEEL_Z]
 WHEEL_RADIUS = 2.4
-WHEEL_TILT = 20
+WHEEL_TILT = -20
+COLUMN_END_Z = 11.0  # inside the dashboard
 
 
 def tilted_spin(spin):
@@ -411,14 +415,14 @@ def tilted_spin(spin):
     return [round(math.degrees(v), 3) for v in (a, b, c)]
 
 
-def steering_part(x0, y0, x1, y1, color, z0=8.2, z1=9.0, spin=0):
+def steering_part(x0, y0, x1, y1, color, z0=WHEEL_Z - 0.5, z1=WHEEL_Z + 0.3, spin=0):
     cube = box(x0, y0, z0, x1, y1, z1, color)
     cube["pivot"] = WHEEL_PIVOT
     cube["rotation"] = tilted_spin(spin)
     return cube
 
 
-def small(cx, cy, w, h, color, z0=8.2, z1=9.0):
+def small(cx, cy, w, h, color, z0=WHEEL_Z - 0.5, z1=WHEEL_Z + 0.3):
     return steering_part(cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2, color, z0, z1)
 
 
@@ -432,12 +436,13 @@ steering = [
     )
     for i in range(RIM_SEGMENTS)
 ]
-steering += [steering_part(cx - 0.7, cy - 0.7, cx + 0.7, cy + 0.7, "grille", 8.3, 9.1, spin) for spin in (0, 45)]  # hub
+steering += [steering_part(cx - 0.7, cy - 0.7, cx + 0.7, cy + 0.7, "grille", WHEEL_Z - 0.4, WHEEL_Z + 0.4, spin)
+             for spin in (0, 45)]  # hub
 steering += [
     small(cx - 1.2, cy, 1.2, 0.5, "spoke"),  # spoke (left)
     small(cx + 1.2, cy, 1.2, 0.5, "spoke"),  # spoke (right)
     small(cx, cy - 1.2, 0.5, 1.2, "spoke"),  # spoke (bottom)
-    small(cx, cy, 0.8, 0.8, "grille", 9.1, 11.0),  # column
+    small(cx, cy, 0.8, 0.8, "grille", WHEEL_Z + 0.4, COLUMN_END_Z),  # column
 ]
 body += steering
 
