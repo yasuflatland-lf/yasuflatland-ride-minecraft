@@ -16,6 +16,7 @@ const P = SUV_PROFILE.seats.positions;
 const yaw = fc.double({ min: -180, max: 180, noNaN: true });
 const seat = fc.integer({ min: 0, max: 3 });
 const backSeat = fc.integer({ min: 1, max: 3 });
+const AT_REST: Vec2 = { x: 0, z: 0 };
 
 interface Spec {
   id: string;
@@ -61,8 +62,8 @@ describe("Seating (ADR 0019, ADR 0025)", () => {
         const before = place(prev, y);
         const after = place(now, y);
         const s = new Seating(P);
-        s.update(before, f, { x: 0, z: 0 });
-        const { vacated } = s.update(after, f, { x: 0, z: 0 });
+        s.update(before, f, AT_REST);
+        const { vacated } = s.update(after, f, AT_REST);
         expect(vacated).toEqual(
           vacatedSeats(
             occupiedSeats(before, f, P),
@@ -88,7 +89,7 @@ describe("Seating (ADR 0019, ADR 0025)", () => {
           const f = forward(y);
           const s = new Seating(P);
           for (const [i, list] of [tick0, ...rest].entries()) {
-            const out = s.update(place(list, y), f, { x: 0, z: 0 });
+            const out = s.update(place(list, y), f, AT_REST);
             expect(out.driver?.id).toBe("d");
             expect(out.mounted).toBe(i === 0);
             expect(s.driver).toBe("d");
@@ -103,7 +104,7 @@ describe("Seating (ADR 0019, ADR 0025)", () => {
       fc.property(anyRiders, yaw, (list, y) => {
         const f = forward(y);
         const riders = place(list, y);
-        const out = new Seating(P).update(riders, f, { x: 0, z: 0 });
+        const out = new Seating(P).update(riders, f, AT_REST);
         const expected = riders.find(
           (r) => occupiedSeats(riders, f, P).get(r.id) === 0,
         )?.id;
@@ -119,8 +120,8 @@ describe("Seating (ADR 0019, ADR 0025)", () => {
       fc.property(first, others(backSeat), yaw, (tick0, tick1, y) => {
         const f = forward(y);
         const s = new Seating(P);
-        s.update(place(tick0, y), f, { x: 0, z: 0 });
-        const out = s.update(place(tick1, y), f, { x: 0, z: 0 });
+        s.update(place(tick0, y), f, AT_REST);
+        const out = s.update(place(tick1, y), f, AT_REST);
         expect(out.driver).toBeUndefined();
         expect(out.mounted).toBe(false);
         expect(out.vacated).toContain(0);
@@ -133,7 +134,7 @@ describe("Seating (ADR 0019, ADR 0025)", () => {
     fc.assert(
       fc.property(anyRiders, yaw, (list, y) => {
         const s = new Seating(P);
-        s.update(place(list, y), forward(y), { x: 0, z: 0 });
+        s.update(place(list, y), forward(y), AT_REST);
         const byNumber = (a: number, b: number) => a - b;
         expect([...s.taken()].sort(byNumber)).toEqual(
           [...new Set(list.map((r) => r.seat))].sort(byNumber),
@@ -149,7 +150,7 @@ describe("Seating (ADR 0019, ADR 0025)", () => {
         const f = forward(y);
         const riders = place(list, y);
         const s = Seating.restore(P, riders, f);
-        const out = s.update(riders, f, { x: 0, z: 0 });
+        const out = s.update(riders, f, AT_REST);
         expect(out.vacated).toEqual([]);
         expect(out.mounted).toBe(false);
         expect(out.driver?.id).toBe(list.find((r) => r.seat === 0)?.id);
@@ -176,8 +177,8 @@ describe("Seating read by rider-list slot (ADR 0120)", () => {
               slot: r.seat,
             }));
           const s = new Seating(P, "slot");
-          s.update(laid(prev), f, { x: 0, z: 0 });
-          const out = s.update(laid(now), f, { x: 0, z: 0 });
+          s.update(laid(prev), f, AT_REST);
+          const out = s.update(laid(now), f, AT_REST);
           expect([...s.taken()].sort()).toEqual(
             [...new Set(now.map((r) => r.seat))].sort(),
           );
@@ -197,7 +198,7 @@ describe("Seating read by rider-list slot (ADR 0120)", () => {
           slot: r.seat,
         }));
         const s = Seating.restore(P, riders, f, "slot");
-        const out = s.update(riders, f, { x: 0, z: 0 });
+        const out = s.update(riders, f, AT_REST);
         expect(out.mounted).toBe(false);
         expect(out.driver?.id).toBe(list.find((r) => r.seat === 0)?.id);
       }),
@@ -214,7 +215,7 @@ describe("Choosing a driver with position lag (ADR 0126)", () => {
       { direction: "forward", maxLag: 1.2 },
       { direction: "reverse", maxLag: 0.2 },
     ]) {
-      it(`chooses the seat-0 rider with shared ${direction} lag (${profile === SUV_PROFILE ? "suv" : "camper"})`, () => {
+      it(`chooses the seat-0 rider with shared ${direction} lag (${profile.kind})`, () => {
         fc.assert(
           fc.property(
             yaw,
@@ -240,7 +241,7 @@ describe("Choosing a driver with position lag (ADR 0126)", () => {
       });
     }
 
-    it(`matches raw seat-0 selection at rest (${profile === SUV_PROFILE ? "suv" : "camper"})`, () => {
+    it(`matches raw seat-0 selection at rest (${profile.kind})`, () => {
       fc.assert(
         fc.property(anyRiders, yaw, (list, y) => {
           const f = forward(y);
@@ -251,23 +252,24 @@ describe("Choosing a driver with position lag (ADR 0126)", () => {
           const expected = riders.find(
             (r) => occupiedSeats(riders, f, positions).get(r.id) === 0,
           );
-          const out = new Seating(positions).update(riders, f, { x: 0, z: 0 });
+          const out = new Seating(positions).update(riders, f, AT_REST);
           expect(out.driver).toBe(expected);
         }),
       );
     });
 
-    it(`leaves passengers without a driver at rest (${profile === SUV_PROFILE ? "suv" : "camper"})`, () => {
+    it(`leaves passengers without a driver at rest (${profile.kind})`, () => {
       fc.assert(
         fc.property(passengers, yaw, (seats, y) => {
           const riders = seats.map((seat) => ({
             id: asPlayerId(`p${seat}`),
             offset: worldOffset(y, seat, positions),
           }));
-          const out = new Seating(positions).update(riders, forward(y), {
-            x: 0,
-            z: 0,
-          });
+          const out = new Seating(positions).update(
+            riders,
+            forward(y),
+            AT_REST,
+          );
           expect(out.driver).toBeUndefined();
           expect(out.mounted).toBe(false);
         }),
