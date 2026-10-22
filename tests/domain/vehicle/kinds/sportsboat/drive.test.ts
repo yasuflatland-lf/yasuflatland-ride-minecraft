@@ -11,7 +11,10 @@ import {
   type Vec3,
 } from "../../../../../src/domain/shared/vec";
 import type { HoldPose } from "../../../../../src/domain/vehicle/dock/floor";
-import type { RestoredValues } from "../../../../../src/domain/vehicle/drive";
+import type {
+  EngineCommand,
+  RestoredValues,
+} from "../../../../../src/domain/vehicle/drive";
 import {
   type ControlInput,
   type RawInput,
@@ -1700,34 +1703,43 @@ describe("sports boat control mapping (ADR 0089)", () => {
   });
 });
 
-it("resync sends current trim and roll after any input sequence", () => {
+it("resync resends unchanged trim and roll after any input sequence", () => {
+  const attitudeCommands = (commands: readonly EngineCommand[]) =>
+    commands.filter(
+      (c) =>
+        c.type === "setProperty" && (c.name === "trim" || c.name === "roll"),
+    );
+  // An idle boat afloat levels out in at most maxTrim / trimSettleRate ticks;
+  // the cap only stops a regression from looping forever.
+  const maxSettleTicks = 1000;
   fc.assert(
     fc.property(
       fc.array(rawInput, { minLength: 1, maxLength: 60 }),
-      fc.boolean(),
-      (inputs, docked) => {
-        const drive = new SportsboatDrive(0, { docked });
-        inputs.forEach((raw, tick) => {
+      (inputs) => {
+        const drive = new SportsboatDrive(0, {});
+        let tick = 0;
+        const idleStep = () =>
           drive.step(
-            docked ? undefined : raw,
-            context(tick, raw, { x: 0, z: 0 }, AFLOAT),
+            undefined,
+            context(tick++, undefined, { x: 0, z: 0 }, AFLOAT),
           );
-        });
+        for (const raw of inputs) {
+          drive.step(raw, context(tick++, raw, { x: 0, z: 0 }, AFLOAT));
+        }
+        let settled = false;
+        for (let i = 0; i < maxSettleTicks && !settled; i++) {
+          settled = attitudeCommands(idleStep().commands).length === 0;
+        }
+        expect(settled).toBe(true);
+        // Without resync an unchanged attitude sends nothing, so the commands
+        // after resync can only come from the reset latches.
+        expect(attitudeCommands(idleStep().commands)).toEqual([]);
         drive.resync();
-        const out = drive.step(
-          FULL_THROTTLE,
-          context(inputs.length, undefined, { x: 0, z: 0 }, AFLOAT),
-        );
-        expect(out.commands).toContainEqual({
-          type: "setProperty",
-          name: "trim",
-          value: drive.inspect().trim,
-        });
-        expect(out.commands).toContainEqual({
-          type: "setProperty",
-          name: "roll",
-          value: drive.inspect().roll,
-        });
+        const { trim, roll } = drive.inspect();
+        expect(attitudeCommands(idleStep().commands)).toEqual([
+          { type: "setProperty", name: "trim", value: trim },
+          { type: "setProperty", name: "roll", value: roll },
+        ]);
       },
     ),
   );
