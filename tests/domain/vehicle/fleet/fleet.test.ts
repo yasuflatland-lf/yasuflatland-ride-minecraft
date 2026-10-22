@@ -11,6 +11,7 @@ import { SPEC } from "../../../../src/domain/vehicle/spec";
 
 const entry = (id: string) => ({ id: asVehicleId(id), kind: "suv" as const });
 const entries = (ids: string[]) => ids.map(entry);
+const evictedIds = (fleet: Fleet) => fleet.state().evicted.map((e) => e.id);
 
 const ids = (n: number, prefix = "v") =>
   Array.from({ length: n }, (_, i) => `${prefix}${i}`);
@@ -24,7 +25,7 @@ const ops = fc.array(
   { maxLength: 200 },
 );
 
-describe("Fleet (ADR 0038, ADR 0066)", () => {
+describe("Fleet (ADR 0038, ADR 0066, ADR 0124)", () => {
   it("evicts the oldest vehicle when the eleventh one arrives", () => {
     const fleet = Fleet.empty(fleetLimitOf);
     for (const id of ids(11)) fleet.admit(entry(id));
@@ -50,6 +51,45 @@ describe("Fleet (ADR 0038, ADR 0066)", () => {
     expect(fleet.state().order).toHaveLength(SPEC.maxUnownedVehicles);
   });
 
+  it("takes the latest eviction back into the slot a vehicle broken by hand frees", () => {
+    const fleet = Fleet.empty(fleetLimitOf);
+    for (const id of ids(12)) fleet.admit(entry(id));
+    fleet.forget(asVehicleId("v5"));
+    expect(evictedIds(fleet)).toEqual(["v0"]);
+    expect(fleet.state().order.map((e) => e.id)).toEqual([
+      "v1",
+      ...ids(12)
+        .slice(2)
+        .filter((id) => id !== "v5"),
+    ]);
+  });
+
+  it("takes back only an eviction of the freed group", () => {
+    const fleet = Fleet.empty(fleetLimitOf);
+    const boat = (id: string, owner: string) => ({
+      id: asVehicleId(id),
+      kind: "sportsboat" as const,
+      owner: asPlayerId(owner),
+    });
+    fleet.admit(boat("a1", "a"));
+    fleet.admit(boat("b1", "b"));
+    fleet.admit(boat("a2", "a"));
+    fleet.forget(asVehicleId("b1"));
+    expect(evictedIds(fleet)).toEqual(["a1"]);
+    fleet.forget(asVehicleId("a2"));
+    expect(fleet.state()).toEqual({ order: [boat("a1", "a")], evicted: [] });
+  });
+
+  it("never takes back an eviction stored with its id only", () => {
+    const fleet = Fleet.restore(
+      { order: entries(ids(10)), evicted: [{ id: asVehicleId("old") }] },
+      fleetLimitOf,
+    );
+    fleet.forget(asVehicleId("v0"));
+    expect(evictedIds(fleet)).toEqual(["old"]);
+    expect(fleet.state().order).toEqual(entries(ids(10).slice(1)));
+  });
+
   it("keeps at most the limit, evicts in arrival order, and bounds the evicted list", () => {
     fc.assert(
       fc.property(ops, (steps) => {
@@ -71,8 +111,11 @@ describe("Fleet (ADR 0038, ADR 0066)", () => {
             }
           } else {
             fleet.forget(asVehicleId(id));
+            const held = model.includes(id);
             model = model.filter((m) => m !== id);
             evicted = evicted.filter((m) => m !== id);
+            const back = held ? evicted.pop() : undefined;
+            if (back !== undefined) model.unshift(back);
           }
           const state = fleet.state();
           expect(state.order.length).toBeLessThanOrEqual(
@@ -80,7 +123,7 @@ describe("Fleet (ADR 0038, ADR 0066)", () => {
           );
           expect(state.evicted.length).toBeLessThanOrEqual(SPEC.maxEvicted);
           expect(state.order).toEqual(entries(model));
-          expect(state.evicted).toEqual(evicted);
+          expect(state.evicted).toEqual(entries(evicted));
         }
       }),
     );
@@ -90,7 +133,7 @@ describe("Fleet (ADR 0038, ADR 0066)", () => {
     const fleet = Fleet.empty(fleetLimitOf);
     const all = ids(SPEC.maxUnownedVehicles + SPEC.maxEvicted + 5);
     for (const id of all) fleet.admit(entry(id));
-    expect(fleet.state().evicted).toEqual(all.slice(5, 5 + SPEC.maxEvicted));
+    expect(evictedIds(fleet)).toEqual(all.slice(5, 5 + SPEC.maxEvicted));
   });
 
   it("restores any stored state with no repeated id and within the limits", () => {
@@ -103,10 +146,10 @@ describe("Fleet (ADR 0038, ADR 0066)", () => {
     fc.assert(
       fc.property(idList, idList, (order, evicted) => {
         const state = Fleet.restore(
-          { order: entries(order), evicted },
+          { order: entries(order), evicted: entries(evicted) },
           fleetLimitOf,
         ).state();
-        const all = [...state.order.map((entry) => entry.id), ...state.evicted];
+        const all = [...state.order, ...state.evicted].map((e) => e.id);
         expect(new Set(all).size).toBe(all.length);
         expect(state.order.length).toBeLessThanOrEqual(SPEC.maxUnownedVehicles);
         expect(state.evicted.length).toBeLessThanOrEqual(SPEC.maxEvicted);
@@ -133,18 +176,13 @@ describe("Fleet (ADR 0038, ADR 0066)", () => {
     const fleet = Fleet.restore(
       {
         order: entries(["v0", "v1"]),
-        evicted: [
-          asVehicleId("old"),
-          asVehicleId("v1"),
-          asVehicleId("old"),
-          asVehicleId("older"),
-        ],
+        evicted: entries(["old", "v1", "old", "older"]),
       },
       fleetLimitOf,
     );
     expect(fleet.state()).toEqual({
       order: entries(["v0", "v1"]),
-      evicted: ["old", "older"],
+      evicted: entries(["old", "older"]),
     });
     expect(fleet.isEvicted(asVehicleId("old"))).toBe(true);
     expect(fleet.isEvicted(asVehicleId("v1"))).toBe(false);
@@ -156,7 +194,7 @@ describe("Fleet (ADR 0038, ADR 0066)", () => {
       fleetLimitOf,
     );
     expect(fleet.state().order).toEqual(entries(ids(12).slice(2)));
-    expect(fleet.state().evicted).toEqual(["v0", "v1"]);
+    expect(evictedIds(fleet)).toEqual(["v0", "v1"]);
   });
 
   it("matches a per-group model through random admissions, discoveries, and removals", () => {
@@ -190,7 +228,7 @@ describe("Fleet (ADR 0038, ADR 0066)", () => {
           const limitOf = (kind: FleetEntry["kind"]) => limits[kind];
           let fleet = Fleet.empty(limitOf);
           let order: FleetEntry[] = [];
-          let evicted: string[] = [];
+          let evicted: FleetEntry[] = [];
           const groupOf = (e: FleetEntry) =>
             e.owner === undefined ? "" : `${e.owner}\u0000${e.kind}`;
           const groupLimit = (e: FleetEntry) =>
@@ -204,13 +242,23 @@ describe("Fleet (ADR 0038, ADR 0066)", () => {
           operations.forEach(({ op, ...entry }, step) => {
             if (op === "forget") {
               fleet.forget(entry.id);
+              const held = order.find((e) => e.id === entry.id);
               order = order.filter((e) => e.id !== entry.id);
-              evicted = evicted.filter((id) => id !== entry.id);
+              evicted = evicted.filter((e) => e.id !== entry.id);
+              const back =
+                held &&
+                [...evicted]
+                  .reverse()
+                  .find((e) => groupOf(e) === groupOf(held));
+              if (back) {
+                evicted = evicted.filter((e) => e !== back);
+                order = [back, ...order];
+              }
             } else {
               fleet[op](entry);
               if (
                 !order.some((e) => e.id === entry.id) &&
-                !evicted.includes(entry.id)
+                !evicted.some((e) => e.id === entry.id)
               ) {
                 order = op === "admit" ? [...order, entry] : [entry, ...order];
                 const peers = order.filter(
@@ -220,9 +268,7 @@ describe("Fleet (ADR 0038, ADR 0066)", () => {
                   peers.slice(0, Math.max(0, peers.length - groupLimit(entry))),
                 );
                 order = order.filter((e) => !victims.has(e));
-                evicted = [...evicted, ...[...victims].map((e) => e.id)].slice(
-                  -SPEC.maxEvicted,
-                );
+                evicted = [...evicted, ...victims].slice(-SPEC.maxEvicted);
               }
             }
             expectModel(fleet);
@@ -247,7 +293,7 @@ describe("Fleet (ADR 0038, ADR 0066)", () => {
     const fleet = Fleet.empty(fleetLimitOf);
     for (const id of ids(11))
       fleet.admit({ ...entry(id), owner: asPlayerId("a") });
-    expect(fleet.state().evicted).toEqual(["v0"]);
+    expect(evictedIds(fleet)).toEqual(["v0"]);
     expect(fleet.state().order.map((e) => e.id)).toEqual(ids(11).slice(1));
   });
 
@@ -274,7 +320,7 @@ describe("Fleet (ADR 0038, ADR 0066)", () => {
       kind: "sportsboat",
       owner: asPlayerId("a"),
     });
-    expect(fleet.state().evicted).toEqual(["first"]);
+    expect(evictedIds(fleet)).toEqual(["first"]);
     expect(fleet.state().order).toEqual([
       ...suvs,
       otherBoat,
@@ -285,7 +331,7 @@ describe("Fleet (ADR 0038, ADR 0066)", () => {
       kind: "suv",
       owner: asPlayerId("b"),
     });
-    expect(fleet.state().evicted).toEqual(["first"]);
+    expect(evictedIds(fleet)).toEqual(["first"]);
     expect(fleet.state().order.slice(0, suvs.length)).toEqual(suvs);
   });
 
@@ -316,16 +362,11 @@ describe("Fleet (ADR 0038, ADR 0066)", () => {
             owner: asPlayerId("b"),
           },
         ],
-        evicted: [asVehicleId("previous")],
+        evicted: entries(["previous"]),
       },
       fleetLimitOf,
     );
-    expect(fleet.state().evicted).toEqual([
-      "previous",
-      "a-first",
-      "v0",
-      "b-first",
-    ]);
+    expect(evictedIds(fleet)).toEqual(["previous", "a-first", "v0", "b-first"]);
     expect(fleet.state().order.map((e) => e.id)).toEqual([
       ...ids(10).slice(1),
       "unowned-boat",
@@ -344,7 +385,7 @@ describe("Fleet (ADR 0038, ADR 0066)", () => {
           const fleet = Fleet.restore(
             {
               order: [first, entry(id)],
-              evicted: [id],
+              evicted: [entry(id)],
             },
             fleetLimitOf,
           );

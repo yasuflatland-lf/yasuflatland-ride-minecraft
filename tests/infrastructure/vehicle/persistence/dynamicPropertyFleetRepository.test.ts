@@ -38,11 +38,11 @@ describe("DynamicPropertyFleetRepository (ADR 0038)", () => {
         },
         { id: asVehicleId("b"), kind: "sportsboat" as const },
       ],
-      evicted: [asVehicleId("c")],
+      evicted: [{ id: asVehicleId("c"), kind: "suv" as const }],
     };
     repo.save(Fleet.restore(state, fleetLimitOf));
     expect(stored.get(FLEET_PROPERTY)).toBe(
-      JSON.stringify({ version: 2, ...state }),
+      JSON.stringify({ version: 3, ...state }),
     );
     expect(repo.load().state()).toEqual(state);
   });

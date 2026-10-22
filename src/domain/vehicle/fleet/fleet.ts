@@ -1,7 +1,8 @@
 import type { PlayerId, VehicleId } from "../../shared/ids";
 // The vehicles in a world in the order they appeared, and the ones evicted to
-// keep each owner and kind at its limit (ADR 0038, ADR 0066). A script cannot
-// remove an entity in an unloaded chunk, so it waits until its chunk loads.
+// keep each owner and kind at its limit (ADR 0038, ADR 0066, ADR 0124). A
+// script cannot remove an entity in an unloaded chunk, so it waits until its
+// chunk loads.
 import type { VehicleKind } from "../kind";
 import { SPEC } from "../spec";
 
@@ -14,17 +15,23 @@ export interface FleetEntry {
   readonly owner?: PlayerId;
 }
 
+/** An eviction saved before ADR 0124 has only its id, so it never comes back. */
+export type EvictedEntry = FleetEntry | { readonly id: VehicleId };
+
 export interface FleetState {
   /** Oldest first. */
   readonly order: readonly FleetEntry[];
   /** Oldest eviction first. */
-  readonly evicted: readonly VehicleId[];
+  readonly evicted: readonly EvictedEntry[];
 }
+
+const groupOf = (entry: FleetEntry): string =>
+  entry.owner === undefined ? "" : `${entry.owner}\u0000${entry.kind}`;
 
 export class Fleet {
   private constructor(
     private order: FleetEntry[],
-    private evicted: VehicleId[],
+    private evicted: EvictedEntry[],
     private readonly limitOf: FleetLimitOf,
   ) {}
 
@@ -44,9 +51,12 @@ export class Fleet {
       tracked.add(entry.id);
       order.push({ ...entry });
     }
-    const evicted = [...new Set(state.evicted)].filter(
-      (id) => !tracked.has(id),
-    );
+    const evicted: EvictedEntry[] = [];
+    for (const entry of state.evicted) {
+      if (tracked.has(entry.id)) continue;
+      tracked.add(entry.id);
+      evicted.push({ ...entry });
+    }
     const fleet = new Fleet(order, evicted, limitOf);
     fleet.trim();
     return fleet;
@@ -55,7 +65,7 @@ export class Fleet {
   state(): FleetState {
     return {
       order: this.order.map((entry) => ({ ...entry })),
-      evicted: [...this.evicted],
+      evicted: this.evicted.map((entry) => ({ ...entry })),
     };
   }
 
@@ -64,7 +74,7 @@ export class Fleet {
   }
 
   isEvicted(id: VehicleId): boolean {
-    return this.evicted.includes(id);
+    return this.evicted.some((entry) => entry.id === id);
   }
 
   knows(id: VehicleId): boolean {
@@ -91,17 +101,33 @@ export class Fleet {
     this.trim();
   }
 
-  /** Stops tracking a vehicle that is gone. */
+  /**
+   * Stops tracking a vehicle that is gone. When it held a slot, the latest
+   * vehicle evicted from its group takes the slot back and stays (ADR 0124).
+   */
   forget(id: VehicleId): void {
+    const freed = this.order.find((entry) => entry.id === id);
     this.order = this.order.filter((entry) => entry.id !== id);
-    this.evicted = this.evicted.filter((e) => e !== id);
+    this.evicted = this.evicted.filter((entry) => entry.id !== id);
+    if (freed) this.recall(groupOf(freed));
+  }
+
+  // Every vehicle in the group arrived after the one it evicted, so the
+  // recalled one goes back as the oldest.
+  private recall(group: string): void {
+    for (let at = this.evicted.length - 1; at >= 0; at--) {
+      const entry = this.evicted[at];
+      if (!entry || !("kind" in entry) || groupOf(entry) !== group) continue;
+      this.evicted.splice(at, 1);
+      this.order.unshift(entry);
+      return;
+    }
   }
 
   private trim(): void {
     const groups = new Map<string, FleetEntry[]>();
     for (const entry of this.order) {
-      const key =
-        entry.owner === undefined ? "" : `${entry.owner}\u0000${entry.kind}`;
+      const key = groupOf(entry);
       const group = groups.get(key) ?? [];
       group.push(entry);
       groups.set(key, group);
@@ -118,7 +144,7 @@ export class Fleet {
       if (excess <= 0) continue;
       for (const entry of group.slice(0, excess)) {
         removed.add(entry.id);
-        this.evicted.push(entry.id);
+        this.evicted.push(entry);
       }
     }
     this.order = this.order.filter((entry) => !removed.has(entry.id));
