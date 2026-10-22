@@ -28,7 +28,7 @@ import type { ChaseCamera, VehicleProfile } from "./profile";
 import { type RamHit, type RamTarget, selectHits } from "./ram";
 import { ChosenSeats, type SeatAssignment } from "./seatChoice";
 import { Seating } from "./seating";
-import { toLocal } from "./seats";
+import { DRIVER_SEAT, toLocal } from "./seats";
 import { SPEC } from "./spec";
 import {
   liftStandIn,
@@ -348,7 +348,8 @@ export class Vehicle {
       step.boardDeckRiders ?? false,
     );
     // A deck seat's input is defined only while a player sits in it.
-    this.driverSeatFree = !taken.has(0) && deckSeatInputs[0] === undefined;
+    this.driverSeatFree =
+      !taken.has(DRIVER_SEAT) && deckSeatInputs[DRIVER_SEAT] === undefined;
 
     return {
       dock: step.dock && {

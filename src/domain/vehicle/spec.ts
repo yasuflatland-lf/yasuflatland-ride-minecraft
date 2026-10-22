@@ -15,6 +15,7 @@ export const SPEC = Object.freeze({
   ramMinDy: -0.5,
   ramMaxDy: 1.8,
   // Placing and picking up vehicles (ADR 0008)
+  placementWaterClimb: 16, // cells a placement climbs a water column to find its surface (ADR 0051)
   hitsToBreak: 3,
   hitResetTicks: 100,
   headlightSwitchCooldown: 10, // ticks of idle switch; a held touch repeats the use every 4-6 ticks on mobile (ADR 0024)

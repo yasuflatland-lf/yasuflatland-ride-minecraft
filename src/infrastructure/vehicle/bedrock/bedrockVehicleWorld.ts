@@ -45,7 +45,11 @@ import type { TestInputStore } from "../testInput/testInputStore";
 import { savedDecor } from "./bedrockDecorWorld";
 import { DeckSeats } from "./deckSeats";
 import { DockBlocks, savedDock } from "./dockBlocks";
-import { DIMENSIONS, type EntityIndex, isPlayer } from "./entityIndex";
+import {
+  type EntityIndex,
+  isPlayer,
+  loadedVehicleEntities,
+} from "./entityIndex";
 import { HeadlightBlocks, isLightBlock } from "./headlightBlocks";
 import {
   AIR_BLOCK,
@@ -182,48 +186,44 @@ export class BedrockVehicleWorld implements DriveWorld {
   loadedVehicles(): VehicleSnapshot[] {
     this.index.clear();
     const snapshots: VehicleSnapshot[] = [];
-    for (const dimId of DIMENSIONS) {
-      for (const vehicle of world
-        .getDimension(dimId)
-        .getEntities({ families: [VEHICLE_FAMILY] })) {
-        const kind = kindOfEntity(vehicle.typeId);
-        if (kind === undefined) continue;
-        const id = asVehicleId(vehicle.id);
-        this.index.track(vehicle);
-        const v = vehicle.getVelocity();
-        const deckRiders = this.deckSeats.riders(vehicle);
-        snapshots.push({
-          id,
-          kind,
-          location: vehicle.location,
-          yaw: vehicle.getRotation().y,
-          velocity: v,
-          onGround: vehicle.isOnGround,
-          riders: this.riders(vehicle),
-          deckSeatInputs: deckRiders.map((player) =>
-            player ? rawInputOf(player) : undefined,
-          ),
-          deckSeatRiders: deckRiders.map((player) =>
-            player ? asPlayerId(player.id) : undefined,
-          ),
-          restored: () => {
-            const dock = savedDock(vehicle);
-            return {
-              [DOCK_RESTORED.laid]: dock.laid,
-              [DOCK_RESTORED.doorOpen]: dock.doorOpen,
-              [DOCK_RESTORED.decor]: savedDecor(vehicle),
-              ...Object.fromEntries(
-                entityContractOf(kind).restored.map((name) => [
-                  name,
-                  vehicle.getProperty(entityPropertyId(name)),
-                ]),
-              ),
-            };
-          },
-          headlights: vehicle.getProperty(HEADLIGHTS_PROPERTY) === true,
-          testInput: this.testInputs.get(id),
-        });
-      }
+    for (const vehicle of loadedVehicleEntities()) {
+      const kind = kindOfEntity(vehicle.typeId);
+      if (kind === undefined) continue;
+      const id = asVehicleId(vehicle.id);
+      this.index.track(vehicle);
+      const v = vehicle.getVelocity();
+      const deckRiders = this.deckSeats.riders(vehicle);
+      snapshots.push({
+        id,
+        kind,
+        location: vehicle.location,
+        yaw: vehicle.getRotation().y,
+        velocity: v,
+        onGround: vehicle.isOnGround,
+        riders: this.riders(vehicle),
+        deckSeatInputs: deckRiders.map((player) =>
+          player ? rawInputOf(player) : undefined,
+        ),
+        deckSeatRiders: deckRiders.map((player) =>
+          player ? asPlayerId(player.id) : undefined,
+        ),
+        restored: () => {
+          const dock = savedDock(vehicle);
+          return {
+            [DOCK_RESTORED.laid]: dock.laid,
+            [DOCK_RESTORED.doorOpen]: dock.doorOpen,
+            [DOCK_RESTORED.decor]: savedDecor(vehicle),
+            ...Object.fromEntries(
+              entityContractOf(kind).restored.map((name) => [
+                name,
+                vehicle.getProperty(entityPropertyId(name)),
+              ]),
+            ),
+          };
+        },
+        headlights: vehicle.getProperty(HEADLIGHTS_PROPERTY) === true,
+        testInput: this.testInputs.get(id),
+      });
     }
     const live = this.index.trackedIds();
     this.testInputs.retain(live);

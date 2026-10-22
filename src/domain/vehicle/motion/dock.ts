@@ -4,6 +4,7 @@ import { forward } from "../../shared/vec";
 import type { ClearCell, Dock } from "../dock/dock";
 import type { DriveStep, EngineCommand, TickContext } from "../drive";
 import type { RawInput } from "../driveInput";
+import { DRIVER_SEAT } from "../seats";
 
 export const DOCK = Object.freeze({
   /** ADR 0063: below 0.005 blocks/tick counts as stopped. */
@@ -40,7 +41,7 @@ export function heldStep(
 ): DriveStep {
   const step: DriveStep = {
     dock,
-    boardDeckRiders: pushesStick(deckSeatInputs[0]),
+    boardDeckRiders: pushesStick(deckSeatInputs[DRIVER_SEAT]),
     impulse: { x: 0, y: 0, z: 0 },
     forward: forward(yaw),
     commands: extras.commands ?? [],

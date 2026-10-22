@@ -3,6 +3,7 @@
 import type { PlayerId } from "../shared/ids";
 import type { Vec2, Vec3 } from "../shared/vec";
 import type { SeatLayout } from "./profile";
+import { DRIVER_SEAT } from "./seats";
 
 /**
  * Who sits in each seat, by seat index; undefined is a free seat. The engine seats riders
@@ -129,14 +130,18 @@ export function settleSeats(
     const id = previous.seats[seat];
     return id !== undefined && aboardIds.has(id) ? id : undefined;
   });
-  const driver = previous.seats[0];
+  const driver = previous.seats[DRIVER_SEAT];
   const driverLeft =
     driver !== undefined &&
     !aboardIds.has(driver) &&
     !previous.boarding.has(driver);
-  if (driverLeft && seats[0] === undefined && seats[1] !== undefined) {
-    seats[0] = seats[1];
-    seats[1] = undefined;
+  if (
+    driverLeft &&
+    seats[DRIVER_SEAT] === undefined &&
+    seats[DRIVER_SEAT + 1] !== undefined
+  ) {
+    seats[DRIVER_SEAT] = seats[DRIVER_SEAT + 1];
+    seats[DRIVER_SEAT + 1] = undefined;
   }
   const seated = new Set(seats.filter((id) => id !== undefined));
   const unseated = aboard

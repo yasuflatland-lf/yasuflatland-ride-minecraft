@@ -91,3 +91,25 @@ describe("BedrockPaintWorld", () => {
     expect(consumeHeld).toHaveBeenCalledExactlyOnceWith("player", dyeOf(color));
   });
 });
+
+it("indexes integer variants and rejects non-integers, defaulting a missing component to khaki", () => {
+  fc.assert(
+    fc.property(
+      fc.oneof(
+        fc.integer({ min: -5, max: PAINTS.length + 5 }),
+        fc.double().filter((value) => !Number.isInteger(value)),
+      ),
+      (variant) => {
+        const { vehicle, paint } = fixture();
+        vehicle.getComponent.mockReturnValue({ value: variant });
+        const expected =
+          Number.isInteger(variant) && variant >= 0 && variant < PAINTS.length
+            ? PAINTS[variant]
+            : undefined;
+        expect(paint.paintOf(asVehicleId(vehicle.id))).toBe(expected);
+        vehicle.getComponent.mockReturnValue(undefined);
+        expect(paint.paintOf(asVehicleId(vehicle.id))).toBe("khaki");
+      },
+    ),
+  );
+});

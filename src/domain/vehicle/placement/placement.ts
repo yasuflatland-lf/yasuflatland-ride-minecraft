@@ -1,6 +1,7 @@
 // Where a vehicle goes when its item is used on a block (ADR 0008, ADR 0051),
 // and whether there is room for it there.
 import type { Vec3 } from "../../shared/vec";
+import { SPEC } from "../spec";
 
 export type IsAir = (dx: number, dy: number, dz: number) => boolean;
 
@@ -37,7 +38,7 @@ export function canPlaceAt(isAir: IsAir, clearance: Clearance): boolean {
 export function surfaceCellY(
   startY: number,
   isWaterAt: (y: number) => boolean,
-  maxClimb = 16,
+  maxClimb: number = SPEC.placementWaterClimb,
 ): number {
   let y = startY;
   while (y - startY < maxClimb && isWaterAt(y + 1)) y++;
@@ -79,7 +80,7 @@ export function placementCell(
   clicked: Vec3,
   face: BlockFace,
   isWaterAt: (at: Vec3) => boolean,
-  maxClimb = 16,
+  maxClimb: number = SPEC.placementWaterClimb,
 ): Vec3 | undefined {
   for (const surface of rule.surfaces) {
     const cell = cellOnSurface(surface, clicked, face, isWaterAt, maxClimb);

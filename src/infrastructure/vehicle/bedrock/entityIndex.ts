@@ -7,9 +7,16 @@ import {
   type PlayerId,
   type VehicleId,
 } from "../../../domain/shared/ids";
-import { PLAYER_TYPE } from "./identifiers";
+import { PLAYER_TYPE, VEHICLE_FAMILY } from "./identifiers";
 
 export const DIMENSIONS = ["overworld", "nether", "the_end"] as const;
+
+/** Every loaded vehicle entity, dimension by dimension in DIMENSIONS order. */
+export function loadedVehicleEntities(): Entity[] {
+  return DIMENSIONS.flatMap((dimId) =>
+    world.getDimension(dimId).getEntities({ families: [VEHICLE_FAMILY] }),
+  );
+}
 
 export const isPlayer = (e: Entity): e is Player => e.typeId === PLAYER_TYPE;
 
