@@ -1009,8 +1009,9 @@ describe("camper furniture model (ADR 0093)", () => {
     });
 
   it("puts every standing decor slot on the model's top surface and runs the ceiling hook from the ceiling plate to the top of its cell (ADR 0093, 0099, 0102)", () => {
-    const slots = CAMPER_FURNITURE.flatMap((f) => f.slots).filter(
-      (slot) => (slot.spot ?? 0) === 0,
+    // The stove's slot stands on its burner's grate, checked in the next test.
+    const slots = CAMPER_FURNITURE.filter((f) => f.kind !== "stove").flatMap(
+      (f) => f.slots,
     );
     expect(slots).toHaveLength(9);
     const unrotatedCubes = bones
@@ -1107,17 +1108,11 @@ describe("camper furniture model (ADR 0093)", () => {
     expect(covering.some(([lo, hi]) => lo < 54 && hi > 32)).toBe(false);
   });
 
-  it("stands each stove burner slot on top of its burner's grate (ADR 0107)", () => {
+  it("stands the stove slot on top of the grate of its one burner in the cell middle (ADR 0107, 0112)", () => {
     const points = bodyPoints();
-    const burners = CAMPER_FURNITURE.flatMap((f) => f.slots).filter(
-      (slot) => (slot.spot ?? 0) !== 0,
-    );
-    expect(burners.map((s) => s.id)).toEqual([
-      "stove",
-      "stove_rear",
-      "stove_wall",
-      "stove_wall_rear",
-    ]);
+    const burners =
+      CAMPER_FURNITURE.find((f) => f.kind === "stove")?.slots ?? [];
+    expect(burners.map((s) => [s.id, s.spot ?? 0])).toEqual([["stove", 0]]);
     for (const slot of burners) {
       const { x, z } = slotXZ(slot);
       const bottom = 16 * slot.cell.layer;
@@ -1171,7 +1166,7 @@ describe("camper furniture model (ADR 0093)", () => {
     // Only the stove is held to this so far: the sink rim rises 0.15 px into the counter's
     // footprint and the dashboard's slanted cubes into the dashboard's.
     const standing = CAMPER_FURNITURE.find((f) => f.kind === "stove")?.slots;
-    expect(standing).toHaveLength(4);
+    expect(standing).toHaveLength(1);
     for (const slot of standing ?? [])
       for (const item of items) {
         const { x, z } = slotXZ(slot);

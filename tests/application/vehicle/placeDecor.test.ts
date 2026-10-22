@@ -100,23 +100,29 @@ describe("PlaceDecor (ADR 0093, 0097)", () => {
   it("picks the slot along the line of sight from the player's eye (ADR 0110)", () => {
     const { pose, world, place, cmd } = setup();
     world.creativePlayers.add("p");
-    const wall = slot("stove_wall");
-    const aim = slotPoint(pose, wall);
-    const eye = { x: aim.x + 0.6, y: aim.y + 1.2, z: aim.z + 0.4 };
-    expect(
-      place.execute({
-        ...cmd,
-        item: "saucepan",
-        point: {
-          x: 2 * aim.x - eye.x,
-          y: 2 * aim.y - eye.y,
-          z: 2 * aim.z - eye.z,
-        },
-        cell: decorSlotCell(pose, wall),
-        eye,
-      }),
-    ).toBe(true);
-    expect(world.calls).toEqual(["saveDecor:car:stove_wall=saucepan"]);
+    const counter = slot("counter");
+    const aim = slotPoint(pose, counter);
+    const beside = slotPoint(pose, slot("stove"));
+    // The eye leans over the counter from beyond it, so the press lands under the stove.
+    const eye = {
+      x: 2 * aim.x - beside.x,
+      y: aim.y + 1.2,
+      z: 2 * aim.z - beside.z,
+    };
+    const point = {
+      x: 2 * aim.x - eye.x,
+      y: 2 * aim.y - eye.y,
+      z: 2 * aim.z - eye.z,
+    };
+    const cell = {
+      x: Math.floor(point.x),
+      y: Math.floor(point.y),
+      z: Math.floor(point.z),
+    };
+    expect(place.execute({ ...cmd, item: "saucepan", point, cell, eye })).toBe(
+      true,
+    );
+    expect(world.calls).toEqual(["saveDecor:car:counter=saucepan"]);
   });
 
   it("refuses an exact press on a taken slot with the no-slot message, consuming and saving nothing (ADR 0104)", () => {

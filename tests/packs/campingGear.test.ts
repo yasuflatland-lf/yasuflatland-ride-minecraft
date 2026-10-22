@@ -336,15 +336,17 @@ const decorOf = (g: Gear) => readJson(decorPath(g)) as DecorBlock;
 const condition = (face: number, spot: number, height: number) =>
   `q.block_state('yasu_ride:face') == ${face} && q.block_state('yasu_ride:spot') == ${spot} && q.block_state('yasu_ride:height') == ${height}`;
 const SPOTS = DECOR_SPOTS.map((_, spot) => spot);
-// The middle spot takes every height; another spot only the heights of the slots on it (ADR 0107).
-const spotHeights = (spot: number) =>
-  spot === 0
-    ? HEIGHTS
-    : [
-        ...new Set(
-          DECOR_SLOTS.filter((s) => s.spot === spot).map((s) => s.height),
-        ),
-      ].sort((a, b) => a - b);
+// The burner height of ADR 0107's four stove spots, which no slot uses since ADR 0112.
+const RETIRED_BURNER_HEIGHTS = [15];
+// The middle spot takes every height; another spot only the heights of the slots on it, or
+// the burner height when no slot uses it (ADR 0107, 0112).
+const spotHeights = (spot: number) => {
+  if (spot === 0) return HEIGHTS;
+  const used = [
+    ...new Set(DECOR_SLOTS.filter((s) => s.spot === spot).map((s) => s.height)),
+  ].sort((a, b) => a - b);
+  return used.length > 0 ? used : RETIRED_BURNER_HEIGHTS;
+};
 const translation = (face: number, spot: number, height: number) => {
   const { x, z } = decorSpotOffset(90 * face, spot);
   return [x, height / 16, z];

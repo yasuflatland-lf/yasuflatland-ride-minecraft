@@ -10,6 +10,19 @@ export function decorSlot(id: string): DecorSlot | undefined {
   return DECOR_SLOTS.find((s) => s.id === id);
 }
 
+// The stove's burner slots of ADR 0107, removed when the stove got one burner; decor saved
+// in them loads onto "stove" (ADR 0112).
+const RENAMED_SLOTS: ReadonlyMap<string, string> = new Map([
+  ["stove_rear", "stove"],
+  ["stove_wall", "stove"],
+  ["stove_wall_rear", "stove"],
+]);
+
+/** The slot id that decor saved under `id` loads onto: `id` unless that slot was renamed. */
+export function savedSlotId(id: string): string {
+  return RENAMED_SLOTS.get(id) ?? id;
+}
+
 function sameCell(a: LocalCell, b: LocalCell): boolean {
   return a.x === b.x && a.z === b.z && a.layer === b.layer;
 }
@@ -27,7 +40,7 @@ export interface DecorCell {
 
 /**
  * Every cell that holds a slot, once, in the order of its first slot. A cell holds one
- * block, so the stove's four burner slots share one decor or furniture block (ADR 0107).
+ * block, so slots that share a cell share one decor or furniture block (ADR 0107).
  */
 export const DECOR_CELLS: readonly DecorCell[] = DECOR_SLOTS.filter(
   (slot, i) => DECOR_SLOTS.findIndex((s) => sameCell(s.cell, slot.cell)) === i,

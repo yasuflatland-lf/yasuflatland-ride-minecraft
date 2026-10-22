@@ -37,7 +37,6 @@ import { defined } from "../../../../support/defined";
 const SLOTS = CAMPER_FURNITURE.flatMap((f) =>
   f.slots.map((slot) => ({ kind: f.kind, slot })),
 );
-const STOVE_IDS = ["stove", "stove_rear", "stove_wall", "stove_wall_rear"];
 const location = fc.record({
   x: fc.double({ min: -1e4, max: 1e4, noNaN: true }),
   y: fc.integer({ min: -60, max: 300 }),
@@ -89,29 +88,24 @@ it("accepts a standing item on every slot but the ceiling hook and a hanging ite
   expect(ids(slotsFor("cushion"))).toEqual(
     ids(DECOR_SLOTS.filter((s) => s.id !== "ceiling_hook")),
   );
-  expect(slotsFor("percolator")).toHaveLength(12);
+  expect(slotsFor("percolator")).toHaveLength(9);
   expect(slotsFor("constructor")).toEqual([]);
   expect(slotsFor("stone")).toEqual([]);
 });
 
-it("gives the stove one slot per burner in one cell, keeping the stove id, and every other furniture one slot per cell (ADR 0107)", () => {
+it("gives the stove one slot in its cell middle and every furniture one slot per cell, keeping the burner spots (ADR 0107, 0112)", () => {
   expect(SLOTS.map((s) => s.slot)).toEqual(DECOR_SLOTS);
-  expect(SLOTS).toHaveLength(13);
+  expect(SLOTS).toHaveLength(10);
   const stove = SLOTS.filter(({ kind }) => kind === "stove").map(
     ({ slot }) => slot,
   );
-  expect(ids(stove)).toEqual(STOVE_IDS);
-  expect(stove.map((s) => s.spot)).toEqual([1, 2, 3, 4]);
-  expect(new Set(stove.map((s) => localKey(s.cell))).size).toBe(1);
-  const others = SLOTS.filter(({ kind }) => kind !== "stove").map(
-    ({ slot }) => slot,
+  expect(ids(stove)).toEqual(["stove"]);
+  expect(SLOTS.every(({ slot }) => slot.spot === undefined)).toBe(true);
+  expect(new Set(SLOTS.map(({ slot }) => localKey(slot.cell))).size).toBe(
+    SLOTS.length,
   );
-  expect(others.every((s) => s.spot === undefined)).toBe(true);
-  expect(
-    new Set([...others, ...stove.slice(0, 1)].map((s) => localKey(s.cell)))
-      .size,
-  ).toBe(others.length + 1);
   expect(DECOR_SPOTS[0]).toEqual({ left: 0, forward: 0 });
+  // ADR 0107's burner spots stay, so the decor blocks' spot values keep their meaning.
   expect(DECOR_SPOTS).toHaveLength(5);
 });
 
@@ -323,67 +317,64 @@ it("puts a potted plant on the high shelf when it is pressed, though the low she
   ).toBe(high);
 });
 
-it("puts an item pressed on the stove on the burner nearest the hit point, in every facing (ADR 0107)", () => {
+it("puts an item pressed anywhere on the stove top on its one burner in the middle, in every facing (ADR 0112)", () => {
   fc.assert(
     fc.property(
       fc.constantFrom(0, 90, 180, -90),
-      fc.constantFrom(...STOVE_IDS),
       fc.tuple(
-        fc.double({ min: -0.1, max: 0.1, noNaN: true }),
-        fc.double({ min: -0.1, max: 0.1, noNaN: true }),
+        fc.double({ min: -0.5, max: 0.5, noNaN: true }),
+        fc.double({ min: -0.5, max: 0.5, noNaN: true }),
       ),
-      (y, id, [dx, dz]) => {
+      (y, [dx, dz]) => {
         const p = parkPose({ x: 0, y: 64, z: 0 }, y);
-        const burner = slotNamed(id);
-        const at = slotPoint(p, burner);
+        const stove = slotNamed("stove");
+        const cell = decorSlotCell(p, stove);
+        const at = slotPoint(p, stove);
+        expect(at.x).toBe(cell.x + 0.5);
+        expect(at.z).toBe(cell.z + 0.5);
         expect(
           slotForPress(
             p,
             "saucepan",
             [],
-            decorSlotCell(p, burner),
+            cell,
             { x: at.x + dx, y: at.y, z: at.z + dz },
             false,
           ),
-        ).toBe(burner);
+        ).toBe(stove);
       },
     ),
   );
 });
 
-it("takes no second item on the stove while any burner holds one (ADR 0107)", () => {
+it("takes no second item on the stove while it holds one (ADR 0107, 0112)", () => {
   fc.assert(
-    fc.property(
-      fc.constantFrom(0, 90, 180, -90),
-      fc.constantFrom(...STOVE_IDS),
-      fc.constantFrom(...STOVE_IDS),
-      (y, held, pressedId) => {
-        const p = parkPose({ x: 0, y: 64, z: 0 }, y);
-        const decor = [{ slot: held, item: "percolator" }];
-        const pressed = slotNamed(pressedId);
-        const point = slotPoint(p, pressed);
-        const chosen = slotForPress(
+    fc.property(fc.constantFrom(0, 90, 180, -90), (y) => {
+      const p = parkPose({ x: 0, y: 64, z: 0 }, y);
+      const decor = [{ slot: "stove", item: "percolator" }];
+      const pressed = slotNamed("stove");
+      const point = slotPoint(p, pressed);
+      const chosen = slotForPress(
+        p,
+        "toaster",
+        decor,
+        decorSlotCell(p, pressed),
+        point,
+        false,
+      );
+      expect(chosen?.id).not.toBe("stove");
+      expect(chosen).toBe(nearestFreeSlot(p, "toaster", decor, point));
+      expect(
+        slotForPress(
           p,
           "toaster",
           decor,
           decorSlotCell(p, pressed),
           point,
-          false,
-        );
-        expect(STOVE_IDS).not.toContain(chosen?.id);
-        expect(chosen).toBe(nearestFreeSlot(p, "toaster", decor, point));
-        expect(
-          slotForPress(
-            p,
-            "toaster",
-            decor,
-            decorSlotCell(p, pressed),
-            point,
-            true,
-          ),
-        ).toBeUndefined();
-      },
-    ),
+          true,
+        ),
+      ).toBeUndefined();
+    }),
   );
 });
 
@@ -501,17 +492,16 @@ it("measures each slot where the descending line of sight crosses its height, an
   );
 });
 
-it("puts a saucepan on the near aisle-side burner for the side-face press logged in #431 (ADR 0110)", () => {
+it("puts a saucepan on the stove's one burner for the side-face press logged in #431, with or without the eye (ADR 0110, 0112)", () => {
   // The stove cell is (320, -59, -520). The line of sight entered the furniture block's
-  // west face 0.207 above the cell bottom, and the pressed point alone picked stove_rear.
+  // west face 0.207 above the cell bottom; with four burners the pressed point alone picked
+  // stove_rear (ADR 0110).
   const p = parkPose({ x: 319.5, y: -60, z: -521.5 }, 180);
   const cell = { x: 320, y: -59, z: -520 };
   const point = { x: 320, y: -59 + 0.207, z: -520 + 0.648 };
   const eye = { x: 319.67, y: -57.48, z: -520.19 };
   expect(decorSlotCell(p, slotNamed("stove"))).toEqual(cell);
-  expect(slotForPress(p, "saucepan", [], cell, point, false)?.id).toBe(
-    "stove_rear",
-  );
+  expect(slotForPress(p, "saucepan", [], cell, point, false)?.id).toBe("stove");
   expect(slotForPress(p, "saucepan", [], cell, point, false, eye)?.id).toBe(
     "stove",
   );
