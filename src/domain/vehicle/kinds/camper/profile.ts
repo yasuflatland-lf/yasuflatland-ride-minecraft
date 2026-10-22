@@ -16,6 +16,7 @@ export const CAMPER_PROFILE: VehicleProfile = Object.freeze({
     front: CAMPER_SPEC.bodyFront,
     halfWidth: CAMPER_SPEC.bodyHalfWidth,
   }),
+  footprint: CAMPER_SPEC.footprint,
   /**
    * x = left, z = forward. 0 = driver (front right, right-hand drive like the SUV),
    * 1 = front passenger, 2 = dinette facing the rear, 3 = dinette facing forward; the

@@ -9,8 +9,8 @@ import { OpenGift } from "../../application/vehicle/openGift";
 import { PaintVehicle } from "../../application/vehicle/paintVehicle";
 import { PlaceDecor } from "../../application/vehicle/placeDecor";
 import { PlaceVehicle } from "../../application/vehicle/placeVehicle";
-import { PressCabinet } from "../../application/vehicle/pressCabinet";
 import { PressShowerToilet } from "../../application/vehicle/pressShowerToilet";
+import { PressStorage } from "../../application/vehicle/pressStorage";
 import { RemoveDecor } from "../../application/vehicle/removeDecor";
 import { SetDecor } from "../../application/vehicle/setDecor";
 import { ShowVehicleHints } from "../../application/vehicle/showVehicleHints";
@@ -18,6 +18,8 @@ import { SleepInBed } from "../../application/vehicle/sleepInBed";
 import { SwitchCeilingLights } from "../../application/vehicle/switchCeilingLights";
 import { SwitchHeadlights } from "../../application/vehicle/switchHeadlights";
 import { UseDockDoor } from "../../application/vehicle/useDockDoor";
+import type { DimensionId } from "../../domain/shared/ids";
+import type { Vec3 } from "../../domain/shared/vec";
 import { fleetLimitOf } from "../../domain/vehicle/kinds/index";
 import { NAMESPACE } from "../shared/identifiers";
 import { BedrockBedWorld } from "./bedrock/bedrockBedWorld";
@@ -36,7 +38,13 @@ import { DynamicPropertyFleetRepository } from "./persistence/dynamicPropertyFle
 import { InMemoryVehicleRepository } from "./persistence/inMemoryVehicleRepository";
 import { TestInputStore } from "./testInput/testInputStore";
 
-export function installVehicles(): void {
+/**
+ * Installs the vehicle feature. The returned check lets bootstrap hand other
+ * features the vehicles' space without them importing this feature (ADR 0046, 0122).
+ */
+export function installVehicles(): {
+  isVehicleSpace(dimensionId: DimensionId, cell: Vec3): boolean;
+} {
   const repo = new InMemoryVehicleRepository();
   const store = new TestInputStore();
   const index = new EntityIndex();
@@ -73,7 +81,7 @@ export function installVehicles(): void {
       decor: new SetDecor(decorWorld, repo),
       placeDecor: new PlaceDecor(decorWorld, repo),
       removeDecor: new RemoveDecor(decorWorld, repo),
-      cabinet: new PressCabinet(decorWorld, repo, systemClock),
+      storage: new PressStorage(decorWorld, repo, systemClock),
       hints: new ShowVehicleHints(
         new BedrockHintWorld(index),
         repo,
@@ -87,4 +95,8 @@ export function installVehicles(): void {
     (dimensionId, cell, typeId) =>
       bedrock.dockBlockOwner(dimensionId, cell, typeId),
   );
+  return {
+    isVehicleSpace: (dimensionId, cell) =>
+      bedrock.isVehicleSpace(dimensionId, cell),
+  };
 }

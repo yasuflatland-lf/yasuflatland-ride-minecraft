@@ -1,6 +1,6 @@
 # 0008. Placing and picking up vehicles
 
-- Status: Superseded in part by 0036 (hits made while holding a dye)
+- Status: Superseded in part by 0036 (hits made while holding a dye); extended by [0122](0122-a-low-chair-to-sit-on-outside-the-vehicles.md), which is Proposed
 - Date: 2026-10-10
 
 ## Context

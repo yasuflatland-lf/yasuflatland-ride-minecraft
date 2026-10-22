@@ -1,11 +1,12 @@
 import type { PlayerId, VehicleId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
-// Use case: a player pressed a parked vehicle's wall cabinet with an empty hand (ADR 0114).
+// Use case: a player pressed a parked vehicle's storage with doors, such as the wall cabinet,
+// with an empty hand (ADR 0114, 0121).
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
 import type { DecorPlacingWorld } from "./ports/decor";
 import type { Clock } from "./ports/shared";
 
-export interface PressCabinetCommand {
+export interface PressStorageCommand {
   playerId: PlayerId;
   vehicleId: VehicleId;
   /** The world cell of the pressed block: a compartment or an open door's plate. */
@@ -14,7 +15,7 @@ export interface PressCabinetCommand {
   point?: Vec3;
 }
 
-export class PressCabinet {
+export class PressStorage {
   constructor(
     private readonly world: Pick<
       DecorPlacingWorld,
@@ -25,9 +26,9 @@ export class PressCabinet {
   ) {}
 
   /** Returns whether the press did anything; an item taken out is saved and given. */
-  execute(cmd: PressCabinetCommand): boolean {
+  execute(cmd: PressStorageCommand): boolean {
     const vehicle = this.repo.get(cmd.vehicleId);
-    const press = vehicle?.pressCabinet(cmd.cell, cmd.point, this.clock.now());
+    const press = vehicle?.pressStorage(cmd.cell, cmd.point, this.clock.now());
     if (!vehicle || !press) return false;
     if (press.kind === "item") {
       this.world.saveDecor(cmd.vehicleId, vehicle.decor());

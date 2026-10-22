@@ -1,4 +1,4 @@
-// Implements StarterWorld and GiftBoxWorld; consumeHeld is the one place that takes a held item.
+// Implements StarterWorld and GiftBoxWorld for the vehicle feature.
 import { ItemStack } from "@minecraft/server";
 import type {
   GiftBoxWorld,
@@ -7,6 +7,7 @@ import type {
 import type { PlayerId } from "../../../domain/shared/ids";
 import type { VehicleKind } from "../../../domain/vehicle/kind";
 import type { PlacementGift } from "../../../domain/vehicle/placement/gift";
+import { consumeHeld, giveOrDrop } from "../../shared/players";
 import type { EntityIndex } from "./entityIndex";
 import {
   GIFT_CONTENTS,
@@ -24,18 +25,7 @@ export class BedrockInventory implements StarterWorld, GiftBoxWorld {
   consumeHeld(playerId: PlayerId, typeId: string, slot?: number): boolean {
     const player = this.index.player(playerId);
     if (!player) return false;
-    const inv = player.getComponent("minecraft:inventory")?.container;
-    if (!inv) return false;
-    const at = slot ?? player.selectedSlotIndex;
-    const item = inv.getItem(at);
-    if (!item || item.typeId !== typeId) return false;
-    if (item.amount > 1) {
-      item.amount -= 1;
-      inv.setItem(at, item);
-    } else {
-      inv.setItem(at, undefined);
-    }
-    return true;
+    return consumeHeld(player, typeId, slot ?? player.selectedSlotIndex);
   }
 
   receivedStarter(playerId: PlayerId): boolean | undefined {
@@ -94,14 +84,8 @@ export class BedrockInventory implements StarterWorld, GiftBoxWorld {
     );
   }
 
-  /** Adds each item to the inventory and drops what does not fit at the player's feet. */
   private give(playerId: PlayerId, items: readonly ItemStack[]): void {
     const player = this.index.player(playerId);
-    if (!player) return;
-    const inv = player.getComponent("minecraft:inventory")?.container;
-    for (const item of items) {
-      const leftover = inv ? inv.addItem(item) : item;
-      if (leftover) player.dimension.spawnItem(leftover, player.location);
-    }
+    if (player) giveOrDrop(player, items);
   }
 }

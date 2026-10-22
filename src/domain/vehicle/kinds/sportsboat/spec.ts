@@ -17,6 +17,7 @@ export const SPORTSBOAT_SPEC = Object.freeze({
   height: 1.2,
   ramFront: 3.0, // ADR 0051
   ramHalfWidth: 1.06, // ADR 0051
+  footprint: 3.5, // the farthest hull corner, at the stern, is 3.48 from the center in sportsboat.geo.json (ADR 0122)
   // Water drag estimate (ADR 0053): boat_drag measured 0.833 at full speed,
   // 0.916-0.927 on the 3 ticks of every 14 at the top of the bob, and 0.815
   // the tick after; weight 0.1 keeps one bump to about +0.02 on the estimate.

@@ -1,5 +1,12 @@
 // The camper's furniture in local room cells: what it fills and where decor stands on it (ADR 0093).
 import type { DockBlock } from "../../dock/floor";
+import {
+  type DooredStorage,
+  type StorageDoor,
+  type StorageSlot,
+  storageDoors,
+  storageFurniture,
+} from "./dooredStorage";
 
 type FurnitureKind =
   | "dashboard"
@@ -22,14 +29,25 @@ export interface LocalCell {
 
 /**
  * A furniture whose one cell holds two items, each drawn by the cell's one pair block (ADR 0108),
- * or a wall cabinet compartment, whose cabinet block draws its two (ADR 0114).
+ * or a storage compartment, whose own block draws its two (ADR 0114, 0121).
  */
 type DecorPairKind =
   | Extract<DockBlock, { type: "decorPair" }>["pair"]
-  | "cabinet";
+  | StoragePairKind;
 
-/** A door of the wall cabinet, named after what its compartment hangs over (ADR 0114). */
-export type CabinetDoor = "sink" | "stove";
+/** The pair kind of a storage compartment, whose block compartmentCells lays (ADR 0114, 0121). */
+type StoragePairKind = "cabinet";
+
+/** The blocks a storage compartment lays; a new unit adds its own here (ADR 0121). */
+export type StorageCompartmentBlock = Extract<DockBlock, { type: "cabinet" }>;
+/** The blocks an open storage door's plate lays; a new unit adds its own here (ADR 0121). */
+export type StoragePlateBlock = Extract<DockBlock, { type: "cabinetDoor" }>;
+
+/**
+ * A door of the camper's storage (ADR 0121): a wall cabinet door, named after what its
+ * compartment hangs over (ADR 0114). Each needs an entity property (entity.ts STORAGE_DOOR_PROPERTY).
+ */
+export type StorageDoorId = "sink" | "stove";
 
 /** One end of a furniture that holds two items in one cell (ADR 0108). */
 interface DecorPairEnd {
@@ -55,8 +73,8 @@ export interface DecorSlot {
    * with the other end's, so the cell holds one item per end instead of one in all (ADR 0108).
    */
   readonly pair?: DecorPairEnd;
-  /** The cabinet door the slot is behind: it takes and gives items only while that door is open (ADR 0114). */
-  readonly door?: CabinetDoor;
+  /** The storage door the slot is behind: it takes and gives items only while that door is open (ADR 0114, 0121). */
+  readonly door?: StorageDoorId;
 }
 
 /** A point on a cell's top in pixels from the cell middle: `left` and `forward` as in LocalCell. */
@@ -128,31 +146,91 @@ const STOVE_CABINET_CELL = {
 // (tools/gen_camper.py CABINET_Y) in a cell from 48 (ADR 0114).
 const CABINET_SHELF_HEIGHT = 3;
 
-/** One wall cabinet door: its compartment's cell, the aisle cell it swings into, and the hinge's side along the camper. */
-export interface CabinetDoorPlace {
-  readonly door: CabinetDoor;
-  readonly cell: LocalCell;
-  readonly aisle: LocalCell;
-  /** 1 when the hinge is at the compartment's front end, -1 at its rear end. */
-  readonly hinge: 1 | -1;
+/**
+ * The two ends of a compartment of pair kind `kind` behind door `door`, at the shelf boards'
+ * end spots 5 and 6; the ids name the rear end, then the front end.
+ */
+function compartmentSlots<Id extends StorageDoorId>(
+  kind: StoragePairKind,
+  door: Id,
+  cell: LocalCell,
+  height: number,
+  [rear, front]: readonly [string, string],
+): StorageSlot<Id>[] {
+  return [
+    { id: rear, cell, height, spot: 5, pair: { kind, end: 0 }, door },
+    { id: front, cell, height, spot: 6, pair: { kind, end: 1 }, door },
+  ];
 }
 
 // Each door hangs on the compartment's outer end, so the open doors stand at the cabinet's two
-// ends and leave the middle free (tools/gen_camper.py, ADR 0114).
-export const CABINET_DOORS: readonly CabinetDoorPlace[] = [
-  {
-    door: "sink",
-    cell: SINK_CABINET_CELL,
-    aisle: { x: 0, z: SINK_CABINET_CELL.z, layer: CABINET_LAYER },
-    hinge: 1,
-  },
-  {
-    door: "stove",
-    cell: STOVE_CABINET_CELL,
-    aisle: { x: 0, z: STOVE_CABINET_CELL.z, layer: CABINET_LAYER },
-    hinge: -1,
-  },
-];
+// ends, in the aisle cells beside their compartments, and leave the middle free
+// (tools/gen_camper.py, ADR 0114).
+export const WALL_CABINET: DooredStorage<StorageDoorId, StoragePairKind> = {
+  pairKind: "cabinet",
+  doors: [
+    {
+      id: "sink",
+      compartment: SINK_CABINET_CELL,
+      plate: { x: 0, z: SINK_CABINET_CELL.z, layer: CABINET_LAYER },
+      hinge: 1,
+      slots: compartmentSlots(
+        "cabinet",
+        "sink",
+        SINK_CABINET_CELL,
+        CABINET_SHELF_HEIGHT,
+        ["cabinet_sink_rear", "cabinet_sink_front"],
+      ),
+    },
+    {
+      id: "stove",
+      compartment: STOVE_CABINET_CELL,
+      plate: { x: 0, z: STOVE_CABINET_CELL.z, layer: CABINET_LAYER },
+      hinge: -1,
+      slots: compartmentSlots(
+        "cabinet",
+        "stove",
+        STOVE_CABINET_CELL,
+        CABINET_SHELF_HEIGHT,
+        ["cabinet_stove_rear", "cabinet_stove_front"],
+      ),
+    },
+  ],
+  // The cabinet block has one height, set by its permutations, so the look's height is unused.
+  compartmentBlock: ({ face, open, end0, end1 }) => ({
+    type: "cabinet",
+    face,
+    open,
+    ...(end0 === undefined ? {} : { end0 }),
+    ...(end1 === undefined ? {} : { end1 }),
+  }),
+  // The plates stand under the ceiling, where no light hangs, so `lit` is always false.
+  plateBlock: ({ face }) => ({ type: "cabinetDoor", face }),
+  // The namespace-free name of yasu_ride:camper_cabinet_door; identifiers.test.ts checks it.
+  plateBlockName: "camper_cabinet_door",
+};
+
+// The units of storage with doors, in the order their doors swing and homeless saved decor
+// fills them (ADR 0121).
+export const CAMPER_STORAGE: readonly DooredStorage<
+  StorageDoorId,
+  StoragePairKind
+>[] = [WALL_CABINET];
+
+const STORAGE_PAIR_KINDS: ReadonlySet<DecorPairKind> = new Set(
+  CAMPER_STORAGE.map(({ pairKind }) => pairKind),
+);
+
+/** Whether `kind` is a storage compartment's, not a pair block's that decorCells lays (ADR 0108, 0121). */
+export function isStoragePairKind(
+  kind: DecorPairKind,
+): kind is StoragePairKind {
+  return STORAGE_PAIR_KINDS.has(kind);
+}
+
+/** Every storage door, unit by unit (ADR 0121). */
+export const STORAGE_DOORS: readonly StorageDoor<StorageDoorId>[] =
+  storageDoors(CAMPER_STORAGE);
 
 // The two ceiling light panels hang over the aisle, one between the front seats and the
 // dinette and one in front of the shower-toilet door, clear of the open cabinet doors at
@@ -296,44 +374,7 @@ export const CAMPER_FURNITURE: readonly Furniture[] = [
     block: { type: "showerToilet" },
   },
   // Two items along each compartment, at the shelf boards' end spots, behind the
-  // compartment's door. Listed last so that saved decor that loses its slot fills every
-  // open spot before a closed cabinet (ADR 0103, 0114).
-  {
-    kind: "wall_cabinet",
-    cells: [SINK_CABINET_CELL, STOVE_CABINET_CELL],
-    slots: [
-      {
-        id: "cabinet_sink_rear",
-        cell: SINK_CABINET_CELL,
-        height: CABINET_SHELF_HEIGHT,
-        spot: 5,
-        pair: { kind: "cabinet", end: 0 },
-        door: "sink",
-      },
-      {
-        id: "cabinet_sink_front",
-        cell: SINK_CABINET_CELL,
-        height: CABINET_SHELF_HEIGHT,
-        spot: 6,
-        pair: { kind: "cabinet", end: 1 },
-        door: "sink",
-      },
-      {
-        id: "cabinet_stove_rear",
-        cell: STOVE_CABINET_CELL,
-        height: CABINET_SHELF_HEIGHT,
-        spot: 5,
-        pair: { kind: "cabinet", end: 0 },
-        door: "stove",
-      },
-      {
-        id: "cabinet_stove_front",
-        cell: STOVE_CABINET_CELL,
-        height: CABINET_SHELF_HEIGHT,
-        spot: 6,
-        pair: { kind: "cabinet", end: 1 },
-        door: "stove",
-      },
-    ],
-  },
+  // compartment's door. Storage is listed last, in CAMPER_STORAGE order, so that saved decor
+  // that loses its slot fills every open spot before a closed compartment (ADR 0103, 0114, 0121).
+  { kind: "wall_cabinet", ...storageFurniture(WALL_CABINET) },
 ];

@@ -83,8 +83,8 @@ describe("render_preview.py bone rotations", () => {
   });
 });
 
-describe("camping gear previews (ADR 0093)", () => {
-  it("renders every item of the spec into its own 128 px square and keeps the vehicle frame for the rest", () => {
+describe("camping gear and low chair previews (ADR 0093, 0122)", () => {
+  it("renders every item of the spec and the low chair into their own 128 px squares and keeps the vehicle frame for the rest", () => {
     const script = [
       "import json, sys",
       "from pathlib import Path",
@@ -103,8 +103,11 @@ describe("camping gear previews (ADR 0093)", () => {
         id: string;
       }[]
     ).map((g) => g.id);
-    expect(out.names).toEqual(ids.map((id) => `items/camping-gear/${id}.png`));
+    const names = [...ids, "low_chair"];
+    expect(out.names).toEqual(
+      names.map((name) => `items/camping-gear/${name}.png`),
+    );
     expect(out.lengths).toEqual([128 * 128 * 4]);
-    expect(out.sizes).toEqual([...ids.map(() => [128, 128]), [800, 600]]);
+    expect(out.sizes).toEqual([...names.map(() => [128, 128]), [800, 600]]);
   });
 });

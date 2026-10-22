@@ -1,9 +1,9 @@
 import { expect, it } from "vitest";
 import {
-  CABINET_DOORS,
   CAMPER_FURNITURE,
   DECOR_SPOTS,
   type LocalCell,
+  STORAGE_DOORS,
 } from "../../../../../src/domain/vehicle/kinds/camper/furniture";
 
 const key = ({ x, z, layer }: LocalCell): string => `${x},${z},${layer}`;
@@ -128,7 +128,7 @@ it("keeps the saved slot ids, cells, and heights", () => {
 
 it("puts two slots behind each wall cabinet door, at the shelf boards' end spots, and no other slot behind a door (ADR 0114)", () => {
   const slots = CAMPER_FURNITURE.flatMap((f) => f.slots);
-  for (const { door, cell } of CABINET_DOORS) {
+  for (const { id: door, compartment: cell } of STORAGE_DOORS) {
     const behind = slots.filter((s) => s.door === door);
     expect(behind.map((s) => s.spot)).toEqual([5, 6]);
     expect(behind.map((s) => s.pair)).toEqual([
@@ -141,17 +141,24 @@ it("puts two slots behind each wall cabinet door, at the shelf boards' end spots
 });
 
 it("swings each cabinet door into the aisle cell beside its compartment, hinged at the cabinet's outer ends (ADR 0114)", () => {
-  expect(CABINET_DOORS).toEqual([
+  expect(
+    STORAGE_DOORS.map(({ id, compartment, plate, hinge }) => ({
+      id,
+      compartment,
+      plate,
+      hinge,
+    })),
+  ).toEqual([
     {
-      door: "sink",
-      cell: { x: -1, z: -1, layer: 3 },
-      aisle: { x: 0, z: -1, layer: 3 },
+      id: "sink",
+      compartment: { x: -1, z: -1, layer: 3 },
+      plate: { x: 0, z: -1, layer: 3 },
       hinge: 1,
     },
     {
-      door: "stove",
-      cell: { x: -1, z: -2, layer: 3 },
-      aisle: { x: 0, z: -2, layer: 3 },
+      id: "stove",
+      compartment: { x: -1, z: -2, layer: 3 },
+      plate: { x: 0, z: -2, layer: 3 },
       hinge: -1,
     },
   ]);

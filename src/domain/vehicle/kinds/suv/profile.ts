@@ -12,6 +12,7 @@ export const SUV_PROFILE: VehicleProfile = Object.freeze({
     front: SUV_SPEC.bodyFront,
     halfWidth: SUV_SPEC.bodyHalfWidth,
   }),
+  footprint: SUV_SPEC.footprint,
   /**
    * Coordinates aligned with the vehicle's facing (x = left, z = forward).
    * 0 = driver's seat (front right), 1 = front passenger, 2 = behind the driver,

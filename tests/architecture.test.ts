@@ -421,6 +421,23 @@ describe("dependency-cruiser rules (ADR 0065)", () => {
       [],
     ],
     [
+      "bootstrap wires two features",
+      {
+        "src/infrastructure/bootstrap.ts": `${importX("./vehicle/install")}\n${importX("./camp/install").replace("{ x }", "{ x as y }")}`,
+        "src/infrastructure/vehicle/install.ts": EXPORTS_X,
+        "src/infrastructure/camp/install.ts": EXPORTS_X,
+      },
+      [],
+    ],
+    [
+      "one feature's install importing another",
+      {
+        "src/infrastructure/camp/install.ts": importX("../vehicle/install"),
+        "src/infrastructure/vehicle/install.ts": EXPORTS_X,
+      },
+      ["feature-imports-other-feature"],
+    ],
+    [
       "normalized other feature",
       {
         "src/domain/vehicle/motion.ts": importX("./nested/../../building/wall"),

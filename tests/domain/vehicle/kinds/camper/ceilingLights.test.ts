@@ -14,9 +14,9 @@ import { SWITCH_CLICK } from "../../../../../src/domain/vehicle/kinds/camper/ent
 import { CEILING_LIGHTS } from "../../../../../src/domain/vehicle/kinds/camper/furniture";
 import {
   AIR,
-  cabinetCells,
   cargoCells,
   ceilingLightCells,
+  compartmentCells,
   deckSeats,
   exitCells,
   insideRoom,
@@ -52,7 +52,7 @@ describe("ceiling light cells (ADR 0115)", () => {
         const taken = new Set(
           [
             ...roomCells(p, true, new Set(["sink", "stove"])),
-            ...cabinetCells(p, [], new Set()),
+            ...compartmentCells(p, [], new Set()),
             ...slotCells(p),
           ].map(cellKey),
         );

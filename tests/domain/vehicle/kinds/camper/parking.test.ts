@@ -23,8 +23,8 @@ import { CamperDrive } from "../../../../../src/domain/vehicle/kinds/camper/driv
 import {
   AIR,
   CLEARABLE_DECORATIONS,
-  cabinetCells,
   cargoCells,
+  compartmentCells,
   decorCells,
   decorSlotCell,
   departure,
@@ -114,7 +114,7 @@ it("holds only the pose on tick 20, lays the room next tick, and scans once", ()
   expect(f.step().dock?.cells).toEqual([
     ...roomCells(f.pose, false),
     ...furnitureCells(f.pose, []),
-    ...cabinetCells(f.pose, [], new Set()),
+    ...compartmentCells(f.pose, [], new Set()),
   ]);
   expect(f.blockTypes).toHaveBeenCalledExactlyOnceWith([
     ...parkCheckCells(f.pose),
@@ -379,7 +379,7 @@ it("restores a laid open room immediately without a scan or dock event", () => {
   expect(out.dock?.cells).toEqual([
     ...roomCells(pose, true),
     ...furnitureCells(pose, []),
-    ...cabinetCells(pose, [], new Set()),
+    ...compartmentCells(pose, [], new Set()),
   ]);
   expect(out.commands).not.toContainEqual({
     type: "triggerEvent",
@@ -468,7 +468,7 @@ it("recovers an unlaid parked room once, clearing matching plants before laying 
         expect(out.dock?.cells).toEqual([
           ...roomCells(f.pose, false),
           ...furnitureCells(f.pose, []),
-          ...cabinetCells(f.pose, [], new Set()),
+          ...compartmentCells(f.pose, [], new Set()),
         ]);
         expect(f.blockTypes).toHaveBeenCalledExactlyOnceWith([
           ...parkCheckCells(f.pose),
@@ -556,7 +556,7 @@ it("lays the decor with the room on the tick after parking (ADR 0093)", () => {
         ...roomCells(f.pose, false),
         ...decorCells(f.pose, f.drive.decor()),
         ...furnitureCells(f.pose, f.drive.decor()),
-        ...cabinetCells(f.pose, f.drive.decor(), new Set()),
+        ...compartmentCells(f.pose, f.drive.decor(), new Set()),
       ]);
     }),
   );
