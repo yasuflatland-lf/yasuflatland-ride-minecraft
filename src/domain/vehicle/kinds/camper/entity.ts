@@ -5,7 +5,7 @@ import {
   TRANSFORMING_EVENTS,
   transformingProperties,
 } from "../../motion/transformingEntity";
-import type { CabinetDoor } from "./furniture";
+import type { StorageDoorId } from "./furniture";
 import { CAMPER_SPEC } from "./spec";
 
 export const CAMPER_ENTITY = {
@@ -49,18 +49,24 @@ export function showerCommand(on: boolean): EngineCommand {
   return property("shower", on);
 }
 
-/** The entity property that swings a wall cabinet door: 0 is shut, 1 is open into the aisle (ADR 0114). */
-export const CABINET_DOOR_PROPERTY = {
+/**
+ * The entity property that swings each storage door: 0 is shut, 1 is open into the aisle
+ * (ADR 0114, 0120). A new door fails to compile here until its property is declared.
+ */
+export const STORAGE_DOOR_PROPERTY = {
   sink: "cabinet_sink_door",
   stove: "cabinet_stove_door",
-} as const satisfies Record<CabinetDoor, keyof typeof CAMPER_ENTITY.properties>;
+} as const satisfies Record<
+  StorageDoorId,
+  keyof typeof CAMPER_ENTITY.properties
+>;
 
-/** 0 is shut, 1 is swung fully open into the aisle (ADR 0114). */
-export function cabinetDoorCommand(
-  door: CabinetDoor,
+/** 0 is shut, 1 is swung fully open into the aisle (ADR 0114, 0120). */
+export function storageDoorCommand(
+  door: StorageDoorId,
   open: number,
 ): EngineCommand {
-  return property(CABINET_DOOR_PROPERTY[door], open);
+  return property(STORAGE_DOOR_PROPERTY[door], open);
 }
 
 /** Whether the ceiling lights glow (ADR 0115). */

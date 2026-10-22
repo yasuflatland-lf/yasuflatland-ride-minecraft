@@ -4,27 +4,27 @@ import type { DecorPlacement } from "../../dock/decor";
 import type { HoldPose } from "../../dock/floor";
 import { CAMPING_GEAR_IDS, HANGING_GEAR_IDS } from "./campingGear";
 import { cellTaken, DECOR_SLOTS } from "./decor";
-import type { CabinetDoor, DecorSlot } from "./furniture";
+import { usableBehindDoor } from "./dooredStorage";
+import type { DecorSlot, StorageDoorId } from "./furniture";
 import { decorSlotCell, decorSpotOffset } from "./room";
 
 const PX_PER_BLOCK = 16;
-const NO_DOORS: ReadonlySet<CabinetDoor> = new Set();
+const NO_DOORS: ReadonlySet<StorageDoorId> = new Set();
 
 /**
  * The slots that accept `item`, in slot order; none for an unknown item. A standing
  * item fits every standing slot, and a hanging item only a hanging slot (ADR 0097, 0102).
- * A slot behind a wall cabinet door counts only while that door is in `open` (ADR 0114).
+ * A slot behind a storage door counts only while that door is in `open` (ADR 0114, 0120).
  */
 export function slotsFor(
   item: string,
-  open: ReadonlySet<CabinetDoor> = NO_DOORS,
+  open: ReadonlySet<StorageDoorId> = NO_DOORS,
 ): DecorSlot[] {
   if (!CAMPING_GEAR_IDS.includes(item)) return [];
   const hanging = HANGING_GEAR_IDS.has(item);
   return DECOR_SLOTS.filter(
     (slot) =>
-      (slot.hanging === true) === hanging &&
-      (slot.door === undefined || open.has(slot.door)),
+      (slot.hanging === true) === hanging && usableBehindDoor(slot, open),
   );
 }
 
@@ -96,7 +96,7 @@ export function nearestFreeSlot(
   decor: readonly DecorPlacement[],
   point: Vec3,
   eye?: Vec3,
-  open: ReadonlySet<CabinetDoor> = NO_DOORS,
+  open: ReadonlySet<StorageDoorId> = NO_DOORS,
 ): DecorSlot | undefined {
   return nearest(
     pose,
@@ -132,7 +132,7 @@ export function slotForPress(
   point: Vec3,
   exact: boolean,
   eye?: Vec3,
-  open: ReadonlySet<CabinetDoor> = NO_DOORS,
+  open: ReadonlySet<StorageDoorId> = NO_DOORS,
 ): DecorSlot | undefined {
   const accepting = new Set(slotsFor(item, open));
   const pressed = slotsAt(pose, cell).filter(
