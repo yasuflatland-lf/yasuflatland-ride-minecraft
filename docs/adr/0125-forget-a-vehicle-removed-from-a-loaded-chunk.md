@@ -25,7 +25,18 @@ Results of the first run (CI in-game shard 1/4, 75 ticks), which had only the de
 - `system.run` from a before event that the engine raises (kill and unload) runs later in the same tick, not one tick later. Only a remove started from script defers to the next tick. The deferred read is therefore a same-tick read for the cases that matter
 - The deferred block read separates `/kill` (loaded) from unload (unloaded)
 - `/kill` raises `entityDie` despite the damage sensor, 21 ticks before the remove events. Unload and script removal raise none. The death event also separates the cases
-- The next-tick read was added after this run and has no measurement yet. The scenario's pass condition uses only the deferred read
+- The scenario's pass condition uses only the deferred read
+
+A second run on the local dev BDS (75 ticks) added the next-tick read:
+
+| Case | Death event | Before remove | Deferred read | Next-tick read | Block at both reads |
+| --- | --- | --- | --- | --- | --- |
+| `/kill` | tick 3277 | tick 3298 | tick 3298 | tick 3299 | loaded |
+| `entity.remove()` | none | tick 3317 | tick 3318 | tick 3318 | loaded |
+| ticking area removed | none | tick 3346 | tick 3346 | tick 3347 | unloaded |
+
+- The next-tick read agrees with the deferred read in every case, so either read separates `/kill` from unload
+- `/kill` again raised `entityDie` 21 ticks before the remove events
 
 The runner entry uses the measured 75 ticks (0054). This change adds measurements only and changes no production behavior. The unloaded probe car remains in the dev world without a test tag; the fleet may evict it on a later load like any other unowned vehicle.
 
@@ -37,7 +48,7 @@ Proposed, until a follow-up picks a signal and implements it:
 - In that deferred read, read the block at the captured location. A defined block means the chunk remains loaded and the vehicle is gone: forget its id from the fleet, including the take-back of the latest eviction from its group under 0124 once merged
 - An undefined block or a thrown block lookup is treated as unloaded: keep the vehicle in the fleet with its existing age
 - Forgetting an unknown id changes nothing. Break-by-hand and eviction paths already forget the vehicle through `retireVehicle`, so a subsequent remove event has no further effect
-- `entityDie` for a vehicle also separates `/kill` from unload, and arrives before the remove events. The follow-up may forget on the death event instead, or use it to confirm the block read, and records which one it chose here before implementing it. Rely on the next-tick read only after the spike has measured it
+- `entityDie` for a vehicle also separates `/kill` from unload, and arrives before the remove events. The follow-up may forget on the death event instead, or use it to confirm the block read, and records which one it chose here before implementing it. The next-tick read gives the same answer, so the follow-up may use it when it needs the removal to have settled
 
 ## Consequences
 
