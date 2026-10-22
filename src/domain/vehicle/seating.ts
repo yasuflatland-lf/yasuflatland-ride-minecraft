@@ -1,5 +1,5 @@
 import type { PlayerId } from "../shared/ids";
-// Which rider sits where and who drives (ADR 0019, ADR 0025).
+// Which rider sits where and who drives (ADR 0019, ADR 0025, ADR 0128).
 import { add, type Vec2 } from "../shared/vec";
 import type { SeatLayout } from "./profile";
 import { DRIVER_SEAT, nearestSeat, type RiderPos, toLocal } from "./seats";
@@ -18,17 +18,26 @@ export class Seating {
 
   constructor(private readonly positions: SeatLayout["positions"]) {}
 
+  /**
+   * Gives every rider a unique seat (ADR 0128). Riders whose reading matches their previous
+   * seat go first, then ascending slot, then list order; each takes their reading, else their
+   * previous seat, else the free seat nearest them.
+   */
   private seatsOf(riders: readonly RiderPos[], f: Vec2): Map<PlayerId, number> {
-    const readings = riders.map((rider, order) => ({
-      rider,
-      order,
-      local: toLocal(rider.offset, f),
-      reading:
+    const readings = riders.map((rider, order) => {
+      const local = toLocal(rider.offset, f);
+      const reading =
         rider.slot !== undefined && rider.slot < this.positions.length
           ? rider.slot
-          : nearestSeat(toLocal(rider.offset, f), this.positions),
-      previous: this.seats.get(rider.id),
-    }));
+          : nearestSeat(local, this.positions);
+      return {
+        rider,
+        order,
+        local,
+        reading,
+        previous: this.seats.get(rider.id),
+      };
+    });
     readings.sort(
       (a, b) =>
         Number(b.reading === b.previous) - Number(a.reading === a.previous) ||
@@ -37,29 +46,37 @@ export class Seating {
         a.order - b.order,
     );
     const seats = new Map<PlayerId, number>();
-    const free = new Set(this.positions.map((_, seat) => seat));
+    const free = new Set(this.positions.keys());
     for (const { rider, local, reading, previous } of readings) {
       let seat: number | undefined;
       if (free.has(reading)) seat = reading;
       else if (previous !== undefined && free.has(previous)) seat = previous;
-      else {
-        let distance = Number.POSITIVE_INFINITY;
-        for (const index of free) {
-          const at = this.positions[index];
-          if (!at) continue;
-          const next = Math.hypot(local.x - at.x, local.z - at.z);
-          if (next < distance) {
-            seat = index;
-            distance = next;
-          }
-        }
-      }
+      else seat = this.nearestFreeSeat(local, free);
       if (seat !== undefined) {
         seats.set(rider.id, seat);
         free.delete(seat);
       }
     }
     return seats;
+  }
+
+  /** Ties go to the lower seat index, since `free` iterates seats in ascending order. */
+  private nearestFreeSeat(
+    local: Vec2,
+    free: ReadonlySet<number>,
+  ): number | undefined {
+    let nearest: number | undefined;
+    let bestDistance = Number.POSITIVE_INFINITY;
+    for (const seat of free) {
+      const at = this.positions[seat];
+      if (!at) continue;
+      const distance = Math.hypot(local.x - at.x, local.z - at.z);
+      if (distance < bestDistance) {
+        nearest = seat;
+        bestDistance = distance;
+      }
+    }
+    return nearest;
   }
 
   /**
