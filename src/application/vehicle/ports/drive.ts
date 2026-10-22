@@ -25,6 +25,7 @@ import type { VehicleKind } from "../../../domain/vehicle/kind";
 import type { Cell } from "../../../domain/vehicle/lighting/headlights";
 import type { ChaseCamera } from "../../../domain/vehicle/profile";
 import type { RamHit, RamTarget } from "../../../domain/vehicle/ram";
+import type { SeatAssignment } from "../../../domain/vehicle/seatChoice";
 import type { StandInPose } from "../../../domain/vehicle/standIn";
 import type { RiderView } from "../../../domain/vehicle/vehicle";
 
@@ -37,6 +38,8 @@ export interface VehicleSnapshot {
   onGround: boolean;
   riders: RiderView[];
   deckSeatInputs: (RawInput | undefined)[];
+  /** The player on each deck seat, in deck seat order. */
+  deckSeatRiders: (PlayerId | undefined)[];
   restored(): RestoredValues;
   headlights: boolean;
   testInput?: RawInput;
@@ -50,6 +53,12 @@ export interface DriveWorld {
     yaw: number,
   ): void;
   boardDeckRiders(vehicleId: VehicleId): void;
+  /**
+   * Makes the vehicle's rider list this one: each player at their index, taken off any
+   * other mount first, and an invisible seat filler at each undefined index. A player who
+   * cannot get in is replaced by a filler, and fillers past the list are removed (ADR 0120).
+   */
+  keepSeatLayout(vehicleId: VehicleId, layout: SeatAssignment): void;
   /**
    * Keeps exactly one stand-in entity for the vehicle at `pose`, of the type its name and
    * axis give, or removes it when undefined (ADR 0116).
@@ -93,7 +102,7 @@ export interface DriveWorld {
   shineHeadlights(vehicleId: VehicleId, cells: readonly Cell[]): void;
   /**
    * Releases everything the world keeps for a vehicle that is no longer loaded:
-   * its light blocks, dock cells, deck seats, stand-in and hold. Every part is attempted
+   * its light blocks, dock cells, deck seats, seat fillers, stand-in and hold. Every part is attempted
    * even when one fails; the first failure is then thrown.
    */
   releaseVehicle(vehicleId: VehicleId): void;

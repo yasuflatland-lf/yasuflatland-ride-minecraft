@@ -40,6 +40,11 @@ export const SPORTSBOAT_SPEC = Object.freeze({
   maxRoll: 20,
   /** Degrees per tick, so a full roll builds up in half a second (ADR 0061). */
   rollRate: 2,
+  // Boarding (ADR 0120)
+  /** Height of the seats above the feet, as minecraft:rideable seats the riders. */
+  seatAimHeight: 0.52,
+  /** Half the 0.76 between the left and right seats, so neighbouring seats never overlap. */
+  seatAimRadius: 0.38,
   // Deck (ADR 0063)
   /** Measured mean draft at rest, in blocks. */
   deckDraft: 0.45,

@@ -206,6 +206,12 @@ export class FakeWorld
     _positions: readonly (Vec3 | undefined)[],
     _yaw: number,
   ) {}
+  /** The rider list each vehicle was last told to keep (ADR 0120). */
+  readonly seatLayouts = new Map<string, readonly (string | undefined)[]>();
+  keepSeatLayout(vehicleId: string, layout: readonly (string | undefined)[]) {
+    this.calls.push("keepSeatLayout");
+    this.seatLayouts.set(vehicleId, layout);
+  }
   boardDeckRiders(_id: string) {
     this.calls.push("boardDeckRiders");
   }
@@ -392,6 +398,7 @@ export const snapshot = (
     onGround: true,
     riders: [],
     deckSeatInputs: [],
+    deckSeatRiders: [],
     restored: () => ({}),
     headlights: false,
     ...fields,

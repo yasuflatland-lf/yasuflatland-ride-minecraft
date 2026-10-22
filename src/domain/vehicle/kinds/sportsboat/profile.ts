@@ -21,6 +21,12 @@ export const SPORTSBOAT_PROFILE: VehicleProfile = Object.freeze({
       { x: 0.38, z: -0.8 },
     ]),
   }),
+  // A player picks a rear seat by aiming at it (ADR 0120).
+  boarding: Object.freeze({
+    order: "chosen",
+    aimHeight: SPORTSBOAT_SPEC.seatAimHeight,
+    aimRadius: SPORTSBOAT_SPEC.seatAimRadius,
+  }),
   // Every 4 blocks from 4 to 60 ahead, in two beams 3 blocks either side of the center line (ADR 0051).
   beams: Object.freeze({
     reach: Object.freeze([

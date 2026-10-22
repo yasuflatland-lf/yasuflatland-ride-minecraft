@@ -156,3 +156,50 @@ describe("Seating (ADR 0019, ADR 0025)", () => {
     );
   });
 });
+
+describe("Seating read by rider-list slot (ADR 0120)", () => {
+  it("seats each rider by their slot wherever they stand, and the driver is exactly the rider in slot 0", () => {
+    fc.assert(
+      fc.property(
+        anyRiders,
+        anyRiders,
+        fc.array(seat, { minLength: 5, maxLength: 5 }),
+        yaw,
+        (prev, now, stands, y) => {
+          const f = forward(y);
+          // A rider's position may lag anywhere, even at the driver's seat (stands).
+          const laid = (list: readonly Spec[]) =>
+            list.map((r, i) => ({
+              id: asPlayerId(r.id),
+              offset: worldOffset(y, stands[i] ?? 0),
+              slot: r.seat,
+            }));
+          const s = new Seating(P, "slot");
+          s.update(laid(prev), f);
+          const out = s.update(laid(now), f);
+          expect([...s.taken()].sort()).toEqual(
+            [...new Set(now.map((r) => r.seat))].sort(),
+          );
+          expect(out.driver?.id).toBe(now.find((r) => r.seat === 0)?.id);
+        },
+      ),
+    );
+  });
+
+  it("restores the riders by slot without reporting a new driver", () => {
+    fc.assert(
+      fc.property(anyRiders, yaw, (list, y) => {
+        const f = forward(y);
+        const riders = list.map((r) => ({
+          id: asPlayerId(r.id),
+          offset: { x: 0, z: 0 },
+          slot: r.seat,
+        }));
+        const s = Seating.restore(P, riders, f, "slot");
+        const out = s.update(riders, f);
+        expect(out.mounted).toBe(false);
+        expect(out.driver?.id).toBe(list.find((r) => r.seat === 0)?.id);
+      }),
+    );
+  });
+});

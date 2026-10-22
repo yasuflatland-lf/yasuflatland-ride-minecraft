@@ -117,6 +117,7 @@ describe("vehicle profiles (ADR 0050)", () => {
           { x: 0.38, z: -0.8 },
         ],
       },
+      boarding: { order: "engine" },
       beams: { reach: SUV_SPEC.headlightReach, lanes: [0] },
       placement: {
         surfaces: ["top"],
@@ -161,6 +162,7 @@ describe("vehicle profiles (ADR 0050)", () => {
           { x: 0.38, z: -0.8 },
         ],
       },
+      boarding: { order: "chosen", aimHeight: 0.52, aimRadius: 0.38 },
       beams: {
         reach: Array.from({ length: 15 }, (_, i) => 4 * (i + 1)),
         lanes: [-3, 3],
@@ -189,6 +191,7 @@ describe("vehicle profiles (ADR 0050)", () => {
         profile,
         profile.ram,
         profile.seats,
+        profile.boarding,
         profile.beams,
         profile.beams.reach,
         profile.beams.lanes,
@@ -604,6 +607,13 @@ describe("vehicle profiles (ADR 0050)", () => {
         },
       ),
     );
+  });
+
+  it("lets only the sports boat's players choose their seat; the others keep the engine's rider order (ADR 0019, 0050, 0120)", () => {
+    for (const kind of VEHICLE_KINDS)
+      expect(profileOf(kind).boarding.order).toBe(
+        kind === "sportsboat" ? "chosen" : "engine",
+      );
   });
 
   it("limits each player to one camper", () => {

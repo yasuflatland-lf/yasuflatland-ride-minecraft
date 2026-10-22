@@ -1,6 +1,6 @@
 # 0019. Passengers move up to the driver seat
 
-- Status: Accepted
+- Status: Superseded in part by [0120](0120-choose-a-sports-boat-seat-by-aiming-at-it.md) (Proposed; on the sports boat the script keeps riders in their seats)
 - Date: 2026-10-11
 - Amended by: [0025](0025-jump-on-touch-and-a-sticky-driver.md) (the driver stays the driver while riding)
 

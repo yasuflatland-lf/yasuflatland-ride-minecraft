@@ -11,6 +11,7 @@ entity.yasu_ride:camper_bumper_z.name=キャンピングカーのバンパー
 entity.yasu_ride:deck_seat.name=ボートの座席
 item.yasu_ride:low_chair_item.name=ローチェア
 entity.yasu_ride:low_chair.name=ローチェア
+entity.yasu_ride:seat_filler.name=ボートの座席
 tile.yasu_ride:deck_floor.name=ボートの甲板
 action.interact.yasu_ride.sit=座る
 yasu_ride.message.cannot_park=ここでは駐車できません

@@ -757,6 +757,27 @@ it("passes deck input through and boards before keeping deck seats", () => {
   expect(log.lines).toEqual([]);
 });
 
+it("lays a boat's chosen seats, with the deck seat's rider in its seat, before the deck riders board, and never an SUV's (ADR 0120)", () => {
+  const world = new FakeWorld();
+  world.snapshots = [
+    snapshot("boat", {
+      kind: "sportsboat",
+      restored: () => ({ docked: true }),
+      deckSeatInputs: [FULL_THROTTLE, undefined, undefined],
+      deckSeatRiders: [asPlayerId("driver"), undefined, asPlayerId("rear")],
+    }),
+    snapshot("suv"),
+  ];
+  new DriveVehicles(world, new InMemoryRepo(), logger()).execute(0);
+  expect([...world.seatLayouts]).toEqual([
+    ["boat", ["driver", undefined, "rear"]],
+  ]);
+  const order = world.calls.filter(
+    (c) => c === "keepSeatLayout" || c === "boardDeckRiders",
+  );
+  expect(order).toEqual(["keepSeatLayout", "boardDeckRiders"]);
+});
+
 it("clears deck seats without boarding for ordinary motion", () => {
   const world = new FakeWorld();
   world.snapshots = [snapshot("a")];

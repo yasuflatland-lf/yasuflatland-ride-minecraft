@@ -5,7 +5,7 @@ import { asVehicleId, type VehicleId } from "../../../../src/domain/shared/ids";
 import type { HoldPose } from "../../../../src/domain/vehicle/dock/floor";
 import { VehicleReleaser } from "../../../../src/infrastructure/vehicle/bedrock/vehicleReleaser";
 
-const STEPS = ["shine", "lay", "keep", "stand"] as const;
+const STEPS = ["shine", "lay", "keep", "stand", "fill"] as const;
 type Step = (typeof STEPS)[number];
 
 function stubs(throwing: readonly Step[] = []) {
@@ -17,6 +17,7 @@ function stubs(throwing: readonly Step[] = []) {
   const lay = step("lay");
   const keep = step("keep");
   const stand = step("stand");
+  const fill = step("fill");
   const holds = new Map<VehicleId, HoldPose>([
     [asVehicleId("v"), { x: 0, y: 64, z: 0, yaw: 0 }],
   ]);
@@ -26,15 +27,17 @@ function stubs(throwing: readonly Step[] = []) {
     { keep },
     { keep: stand },
     holds,
+    { release: fill },
   );
-  return { shine, lay, keep, stand, holds, releaser };
+  return { shine, lay, keep, stand, fill, holds, releaser };
 }
 
 describe("VehicleReleaser", () => {
   it("runs every release step in order and rethrows the first failure", () => {
     fc.assert(
       fc.property(fc.subarray([...STEPS]), (throwing) => {
-        const { shine, lay, keep, stand, holds, releaser } = stubs(throwing);
+        const { shine, lay, keep, stand, fill, holds, releaser } =
+          stubs(throwing);
         let thrown: unknown;
         try {
           releaser.release(asVehicleId("v"), undefined);
@@ -45,7 +48,8 @@ describe("VehicleReleaser", () => {
         expect(lay.mock.calls).toEqual([["v", undefined, []]]);
         expect(keep.mock.calls).toEqual([["v", undefined, [], 0]]);
         expect(stand.mock.calls).toEqual([["v", undefined, undefined]]);
-        const order = [shine, lay, keep, stand].map(
+        expect(fill.mock.calls).toEqual([["v"]]);
+        const order = [shine, lay, keep, stand, fill].map(
           (stub) => stub.mock.invocationCallOrder[0] ?? 0,
         );
         expect(order).toEqual([...order].sort((a, b) => a - b));

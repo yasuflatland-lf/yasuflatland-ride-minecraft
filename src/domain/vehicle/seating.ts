@@ -2,7 +2,21 @@ import type { PlayerId } from "../shared/ids";
 // Which rider sits where and who drives (ADR 0019, ADR 0025).
 import type { Vec2 } from "../shared/vec";
 import type { SeatLayout } from "./profile";
-import { occupiedSeats, type RiderPos, vacatedSeats } from "./seats";
+import {
+  nearestSeat,
+  occupiedSeats,
+  type RiderPos,
+  toLocal,
+  vacatedSeats,
+} from "./seats";
+
+/**
+ * How a rider's seat is read: from their position (ADR 0019), or from their index in the
+ * engine's rider list, which a kind whose players choose their seat keeps equal to the
+ * seat (ADR 0120). The index does not lag the way a position can while the engine moves a
+ * rider, so a rider laid into a rear seat never reads as the driver on the way.
+ */
+type SeatReading = "position" | "slot";
 
 interface SeatingUpdate<R extends RiderPos> {
   /** Seats whose rider left since the last update, ascending. */
@@ -16,7 +30,21 @@ export class Seating {
   private seats: ReadonlyMap<PlayerId, number> = new Map();
   private driverId: PlayerId | undefined;
 
-  constructor(private readonly positions: SeatLayout["positions"]) {}
+  constructor(
+    private readonly positions: SeatLayout["positions"],
+    private readonly reading: SeatReading = "position",
+  ) {}
+
+  private seatsOf(riders: readonly RiderPos[], f: Vec2): Map<PlayerId, number> {
+    if (this.reading === "position")
+      return occupiedSeats(riders, f, this.positions);
+    return new Map(
+      riders.map((r) => [
+        r.id,
+        r.slot ?? nearestSeat(toLocal(r.offset, f), this.positions),
+      ]),
+    );
+  }
 
   /**
    * Seats riders who were already aboard when the aggregate was lost (e.g.
@@ -28,24 +56,28 @@ export class Seating {
     positions: SeatLayout["positions"],
     riders: readonly RiderPos[],
     f: Vec2,
+    reading: SeatReading = "position",
   ): Seating {
-    const seating = new Seating(positions);
-    seating.seats = occupiedSeats(riders, f, positions);
+    const seating = new Seating(positions, reading);
+    seating.seats = seating.seatsOf(riders, f);
     seating.driverId = riders.find((r) => seating.seats.get(r.id) === 0)?.id;
     return seating;
   }
 
   update<R extends RiderPos>(riders: readonly R[], f: Vec2): SeatingUpdate<R> {
-    const seats = occupiedSeats(riders, f, this.positions);
+    const seats = this.seatsOf(riders, f);
     const vacated = vacatedSeats(this.seats, seats).sort((a, b) => a - b);
     this.seats = seats;
     // Driver = the rider in the driver's seat (seat 0) (ADR 0019). A driver
     // stays the driver while they ride: a rider's position can lag the moving
     // vehicle by a tick and read as another seat, which in flight would land
-    // the vehicle (ADR 0025).
-    const driver =
-      riders.find((r) => r.id === this.driverId) ??
-      riders.find((r) => this.seats.get(r.id) === 0);
+    // the vehicle (ADR 0025). Read by slot, the seat never lags, so the driver is
+    // whoever sits in seat 0 (ADR 0120).
+    const sticky =
+      this.reading === "position"
+        ? riders.find((r) => r.id === this.driverId)
+        : undefined;
+    const driver = sticky ?? riders.find((r) => this.seats.get(r.id) === 0);
     const mounted = driver !== undefined && this.driverId !== driver.id;
     this.driverId = driver?.id;
     return { vacated, driver, mounted };

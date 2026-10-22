@@ -27,6 +27,7 @@ export const SUV_PROFILE: VehicleProfile = Object.freeze({
       { x: 0.38, z: -0.8 },
     ]),
   }),
+  boarding: Object.freeze({ order: "engine" }),
   beams: Object.freeze({
     reach: SUV_SPEC.headlightReach,
     lanes: Object.freeze([0]),

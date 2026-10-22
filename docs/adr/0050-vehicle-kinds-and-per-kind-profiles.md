@@ -1,6 +1,6 @@
 # 0050. Vehicle kinds and per-kind profiles
 
-- Status: Superseded in part by 0055
+- Status: Superseded in part by 0055; extended by 0120
 - Date: 2026-10-12
 
 ## Context

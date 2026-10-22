@@ -63,6 +63,7 @@ export class DriveVehicles {
       tick,
       riders: snap.riders,
       deckSeatInputs: snap.deckSeatInputs,
+      deckSeatRiders: snap.deckSeatRiders,
       testInput: snap.testInput,
       location: snap.location,
       velocity: snap.velocity,
@@ -85,6 +86,7 @@ export class DriveVehicles {
     if (out.riders.underwater)
       for (const rider of snap.riders) underwater.add(rider.id);
     if (!out.dock) this.world.applyMotion(snap.id, out.impulse, out.yaw);
+    if (out.seatLayout) this.world.keepSeatLayout(snap.id, out.seatLayout);
     if (out.boardDeckRiders) this.world.boardDeckRiders(snap.id);
     if (out.depart) this.world.seatStandingPlayers(snap.id, out.depart);
     this.world.keepDeckSeats(snap.id, out.dock?.seats ?? [], out.yaw);
