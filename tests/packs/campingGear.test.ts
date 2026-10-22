@@ -859,12 +859,14 @@ describe("camping gear blocks and items (ADR 0093)", () => {
       ).toBe(ATLAS_KEY);
   });
 
-  it("lists the camping gear box, then every gear item in spec order, in the Camping Gear group of the Items tab", () => {
+  it("lists the camping gear box, then every gear item in spec order, then the low chair, in the Camping Gear group of the Items tab", () => {
     const items = [
       "yasu_ride:camping_gear_box",
       ...SPEC.map((g) => `yasu_ride:${g.id}`),
+      // Not in the box: it stands outside the vehicles (ADR 0121)
+      "yasu_ride:low_chair_item",
     ];
-    expect(items).toHaveLength(20);
+    expect(items).toHaveLength(21);
     expect(readJson(`${BP}/item_catalog/crafting_item_catalog.json`)).toEqual({
       format_version: "1.21.60",
       "minecraft:crafting_items_catalog": {

@@ -96,6 +96,9 @@ GROUP = "yasu_ride:camping_gear"
 # The box a player gets with their first camper (ADR 0093): the group's icon and first item.
 BOX = "camping_gear_box"
 GROUP_ICON = f"yasu_ride:{BOX}"
+# Camping items that stand outside the vehicles rather than decor, listed after the gear in the
+# creative group. Their item JSON and icon entry are written by hand (ADR 0121).
+OUTDOOR_ITEMS = ["low_chair_item"]
 ATLAS_SIZE = 16
 SWATCH = 4
 CELL_PX = 16
@@ -616,7 +619,9 @@ def catalog(spec):
                     "groups": [
                         {
                             "group_identifier": {"icon": GROUP_ICON, "name": GROUP},
-                            "items": [f"yasu_ride:{BOX}"] + [f"yasu_ride:{item['id']}" for item in spec],
+                            "items": [f"yasu_ride:{BOX}"]
+                            + [f"yasu_ride:{item['id']}" for item in spec]
+                            + [f"yasu_ride:{i}" for i in OUTDOOR_ITEMS],
                         }
                     ],
                 }
