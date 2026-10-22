@@ -316,9 +316,11 @@ export function stepMediumMotion(
   // Without the cap, speed keeps climbing toward limits.maxSpeed under water
   // while clampLength hides it, and a released throttle coasts at full water
   // speed until speed falls back below maxWaterSpeed.
+  // The cap applies to reverse speed too.
   const maxSpeed = Math.min(limits.maxSpeed, medium.maxSpeed);
-  let speed = Math.min(
+  let speed = clamp(
     updateSpeed(prev.speed, input.throttle, input.creep, limits, creepSpeed),
+    -maxSpeed,
     maxSpeed,
   );
   const yaw = steerYaw(prev.yaw, speed, input.steer, limits);

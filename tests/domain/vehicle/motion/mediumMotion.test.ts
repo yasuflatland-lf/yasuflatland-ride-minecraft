@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
+  clamp,
   dot,
   forward,
   length,
@@ -16,10 +17,12 @@ import {
 } from "../../../../src/domain/vehicle/kinds/suv/profile";
 import { AIR, SUV_SPEC } from "../../../../src/domain/vehicle/kinds/suv/spec";
 import { MOTION } from "../../../../src/domain/vehicle/motion/constants";
+import type { MotionLimits } from "../../../../src/domain/vehicle/motion/limits";
 import type { GroundInput } from "../../../../src/domain/vehicle/motion/motion";
 import {
   blockedAxes,
   initialMotion,
+  type Medium,
   type MotionResult,
   type MotionState,
   speedAfterWall,
@@ -89,6 +92,150 @@ const prevState = (s: {
 }): MotionState => ({ ...s, stepTicks: 0 });
 
 describe("stepMediumMotion (ADR 0021, 0075)", () => {
+  const positive = fc.double({ min: 0.01, max: 4, noNaN: true });
+  const unit = fc.double({ min: 0, max: 1, noNaN: true });
+  const limitsArb: fc.Arbitrary<MotionLimits> = fc.record({
+    maxSpeed: positive,
+    maxReverse: positive,
+    accel: positive,
+    reverseAccel: positive,
+    brake: positive,
+    drag: positive,
+    turnRate: positive,
+    steerFullSpeed: positive,
+    grip: unit,
+  });
+  const mediumArb: fc.Arbitrary<Medium> = fc.record({
+    drag: positive,
+    maxSpeed: positive,
+  });
+  const reverseRatio = fc.oneof(
+    fc.double({ min: 0.01, max: 1, noNaN: true }),
+    fc.double({ min: 1.01, max: 4, noNaN: true }),
+  );
+
+  it("caps internal speed in both directions after every medium tick", () => {
+    fc.assert(
+      fc.property(
+        limitsArb,
+        mediumArb,
+        reverseRatio,
+        component,
+        flyingState,
+        positive,
+        fc.array(fc.record({ input: driveInput, velocity: vec }), {
+          minLength: 1,
+          maxLength: 300,
+        }),
+        (base, medium, ratio, speedFraction, prev, creepSpeed, ticks) => {
+          const limits: MotionLimits = {
+            ...base,
+            maxReverse: medium.maxSpeed * ratio,
+          };
+          const cap = Math.min(limits.maxSpeed, medium.maxSpeed);
+          let state: MotionState = {
+            ...prevState(prev),
+            speed: (speedFraction / 2) * cap,
+          };
+          for (const { input, velocity } of ticks) {
+            state = stepMediumMotion(
+              state,
+              input,
+              velocity,
+              medium,
+              limits,
+              creepSpeed,
+            ).state;
+            expect(Math.abs(state.speed)).toBeLessThanOrEqual(cap + 1e-9);
+          }
+        },
+      ),
+    );
+  });
+
+  it("reaches exactly the medium cap when holding full reverse from rest", () => {
+    fc.assert(
+      fc.property(
+        limitsArb,
+        mediumArb,
+        fc.double({ min: 1.01, max: 4, noNaN: true }),
+        (base, medium, ratio) => {
+          const limits: MotionLimits = {
+            ...base,
+            maxSpeed: Math.max(base.maxSpeed, medium.maxSpeed),
+            maxReverse: medium.maxSpeed * ratio,
+          };
+          let state = initialMotion(0);
+          let velocity = { x: 0, z: 0 };
+          const ticks = Math.ceil(limits.maxReverse / limits.reverseAccel) + 1;
+          for (let tick = 0; tick < ticks; tick++) {
+            const result = stepMediumMotion(
+              state,
+              { throttle: -1, steer: 0, creep: false },
+              velocity,
+              medium,
+              limits,
+              0,
+            );
+            state = result.state;
+            velocity = {
+              x: (velocity.x + result.impulse.x) * medium.drag,
+              z: (velocity.z + result.impulse.z) * medium.drag,
+            };
+          }
+          expect(state.speed).toBe(-medium.maxSpeed);
+        },
+      ),
+    );
+  });
+
+  it("preserves reverse speed when the medium cap does not bind", () => {
+    fc.assert(
+      fc.property(
+        limitsArb,
+        mediumArb,
+        unit,
+        driveInput,
+        vec,
+        positive,
+        (base, medium, fraction, input, velocity, creepSpeed) => {
+          const cap = Math.min(base.maxSpeed, medium.maxSpeed);
+          const limits: MotionLimits = {
+            ...base,
+            maxReverse: Math.min(base.maxReverse, cap),
+          };
+          const prev: MotionState = {
+            ...initialMotion(0),
+            speed: -limits.maxReverse + fraction * (cap + limits.maxReverse),
+            mediumExpected: undefined,
+          };
+          const result = stepMediumMotion(
+            prev,
+            input,
+            velocity,
+            medium,
+            limits,
+            creepSpeed,
+          );
+          expect(result.blocked).toBe(false);
+          expect(result.state.speed).toBe(
+            clamp(
+              updateSpeed(
+                prev.speed,
+                input.throttle,
+                input.creep,
+                limits,
+                creepSpeed,
+              ),
+              -limits.maxReverse,
+              cap,
+            ),
+          );
+        },
+      ),
+    );
+  });
+
   it("keeps horizontal speed within max speed", () => {
     fc.assert(
       fc.property(inputs, (ins) => {
