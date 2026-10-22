@@ -68,7 +68,7 @@ function fixture(yaw = 37, restored: Record<string, unknown> = {}) {
     at: "compartment" | "aisle",
     point?: Vec3,
   ) =>
-    drive.pressCabinet(
+    drive.pressStorage(
       at === "compartment" ? compartment(door) : aisle(door),
       point,
       ctx.tick,
@@ -98,7 +98,7 @@ it("ignores presses on the cabinet until parked, and on cells that are not the c
   f.park();
   const c = f.compartment("sink");
   expect(
-    f.drive.pressCabinet({ ...c, y: c.y - 1 }, undefined, f.ctx.tick),
+    f.drive.pressStorage({ ...c, y: c.y - 1 }, undefined, f.ctx.tick),
   ).toBeUndefined();
 });
 

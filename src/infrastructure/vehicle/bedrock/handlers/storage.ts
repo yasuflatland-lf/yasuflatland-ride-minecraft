@@ -1,5 +1,5 @@
 import { system } from "@minecraft/server";
-import type { PressCabinet } from "../../../../application/vehicle/pressCabinet";
+import type { PressStorage } from "../../../../application/vehicle/pressStorage";
 import {
   asDimensionId,
   asPlayerId,
@@ -9,16 +9,16 @@ import {
 import type { Vec3 } from "../../../../domain/shared/vec";
 import { CAMPER_CABINET_COMPONENT } from "../identifiers";
 
-export function registerCabinet(
-  press: PressCabinet,
+export function registerStorage(
+  press: PressStorage,
   dockCellOwner: (
     dimensionId: DimensionId,
     cell: Vec3,
   ) => VehicleId | undefined,
 ): void {
-  // The compartments and the open doors' plates share one component. Held gear never gets
+  // Every storage unit's compartments and open doors' plates share one component. Held gear never gets
   // here: the decor handler cancels its press and places the gear (ADR 0093). Any other held
-  // item is ignored, like on the shower-toilet (ADR 0098, 0114).
+  // item is ignored, like on the shower-toilet (ADR 0098, 0114, 0120).
   system.beforeEvents.startup.subscribe(({ blockComponentRegistry }) => {
     blockComponentRegistry.registerCustomComponent(CAMPER_CABINET_COMPONENT, {
       onPlayerInteract: (ev) => {

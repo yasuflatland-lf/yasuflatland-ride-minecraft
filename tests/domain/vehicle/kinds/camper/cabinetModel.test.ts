@@ -135,7 +135,7 @@ it("matches a reference model of the cabinet doors over any press and tick seque
             const d = door(a.door);
             const ends = endsOf(a.door);
             const endSlot = a.end === undefined ? undefined : ends[a.end];
-            const got = drive.pressCabinet(
+            const got = drive.pressStorage(
               a.at === "compartment" ? compartment(a.door) : plate(a.door),
               endSlot && slotPoint(pose, endSlot),
               ctx.tick,

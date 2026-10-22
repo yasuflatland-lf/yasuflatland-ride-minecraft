@@ -1,9 +1,9 @@
 import type { Vec3 } from "../../../shared/vec";
 import {
-  type CabinetPress,
   type DecorPlacement,
   isDecorItem,
   parseDecor,
+  type StoragePress,
 } from "../../dock/decor";
 import { type ClearCell, DOCK_RESTORED } from "../../dock/dock";
 import type { HoldPose } from "../../dock/floor";
@@ -203,11 +203,11 @@ export class CamperDrive extends TransformingDrive {
    * may reach the block twice (ADR 0105), so a press within a swing of the door's last
    * action does nothing; otherwise the echo of an opening tap could take an item out.
    */
-  pressCabinet(
+  pressStorage(
     cell: Vec3,
     point: Vec3 | undefined,
     tick: number,
-  ): CabinetPress | undefined {
+  ): StoragePress | undefined {
     const pose = this.parked;
     const target = pose && storagePressTarget(pose, cell, STORAGE_DOORS);
     if (!pose || !target) return undefined;
@@ -332,7 +332,7 @@ export class CamperDrive extends TransformingDrive {
    */
   removeDecor(cell: Vec3, point?: Vec3, eye?: Vec3): string | undefined {
     if (!this.parked) return undefined;
-    // A storage compartment gives its items back only through pressCabinet (ADR 0114, 0120).
+    // A storage compartment gives its items back only through pressStorage (ADR 0114, 0120).
     const held = slotsAt(this.parked, cell).filter(
       ({ id, door }) => door === undefined && this.decorBySlot.has(id),
     );

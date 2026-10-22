@@ -7,8 +7,8 @@ import type { OpenGift } from "../../../application/vehicle/openGift";
 import type { PaintVehicle } from "../../../application/vehicle/paintVehicle";
 import type { PlaceDecor } from "../../../application/vehicle/placeDecor";
 import type { PlaceVehicle } from "../../../application/vehicle/placeVehicle";
-import type { PressCabinet } from "../../../application/vehicle/pressCabinet";
 import type { PressShowerToilet } from "../../../application/vehicle/pressShowerToilet";
+import type { PressStorage } from "../../../application/vehicle/pressStorage";
 import type { RemoveDecor } from "../../../application/vehicle/removeDecor";
 import type { SetDecor } from "../../../application/vehicle/setDecor";
 import type { ShowVehicleHints } from "../../../application/vehicle/showVehicleHints";
@@ -19,7 +19,6 @@ import type { UseDockDoor } from "../../../application/vehicle/useDockDoor";
 import type { DimensionId, VehicleId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import type { TestInputStore } from "../testInput/testInputStore";
-import { registerCabinet } from "./handlers/cabinet";
 import { registerDecor } from "./handlers/decor";
 import { registerDockBed } from "./handlers/dockBed";
 import { registerDockDoor } from "./handlers/dockDoor";
@@ -33,6 +32,7 @@ import { registerPlacement } from "./handlers/placement";
 import { registerShowerToilet } from "./handlers/showerToilet";
 import { registerStandIns } from "./handlers/standIn";
 import { registerStarter } from "./handlers/starter";
+import { registerStorage } from "./handlers/storage";
 import { registerTestDecor } from "./handlers/testDecor";
 import { registerTestInput } from "./handlers/testInput";
 
@@ -53,7 +53,7 @@ export function registerSubscriptions(
     decor: SetDecor;
     placeDecor: PlaceDecor;
     removeDecor: RemoveDecor;
-    cabinet: PressCabinet;
+    storage: PressStorage;
     hints: ShowVehicleHints;
   },
   testInputs: TestInputStore,
@@ -76,7 +76,7 @@ export function registerSubscriptions(
   registerDockDoor(useCases.door, dockDoorOwner);
   registerDockGuard(dockBlockOwner);
   registerShowerToilet(useCases.showerToilet, dockCellOwner);
-  registerCabinet(useCases.cabinet, dockCellOwner);
+  registerStorage(useCases.storage, dockCellOwner);
   registerDrive(useCases.drive, useCases.hints);
   registerFleet(useCases.limit);
   registerTestDecor(useCases.decor);
