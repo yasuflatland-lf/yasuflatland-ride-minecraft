@@ -30,6 +30,7 @@ The other limits stay as 0068 and the [camper spike](../spike-camper.md) found t
 
 - A parked camper takes taps on its front bumper whichever way it faces, and its rear bumper and the air beside it take none, if the client honors a stand-in's spawn-time boxes the way the spike found
 - Check on a phone before this ADR is Accepted: park the camper facing each of the four directions, and for each, tap the left, middle, and right of the front bumper (three taps break it into its item), paint it with a dye there, long-press it to get in, and tap the rear bumper and the body's sides (nothing happens). Inside the parked camper, tap the floor, the door, the bed, and the furniture as before. While driving, hit the bumper with a dye
+- Checked so far (iPad, dev BDS, 2026-10-22): with the camper parked facing north, three hits on the front bumper broke it into its item, and hits on the rear did nothing. The other headings, painting, getting in, and the room taps are still to check
 - While driving, the stand-in trails the body by one tick's move, up to about 1.3 blocks at full speed (0067), and at a diagonal its row covers the bumper only in part, as 0084's boxes did
 - Taps on the stand-in's middle box land half a block into the front row of the room, as with 0084; one block cannot be placed in the cell under the middle box
 - Each tick costs one query of the stand-in family per dimension and, while driving, a teleport
