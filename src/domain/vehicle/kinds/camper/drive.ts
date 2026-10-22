@@ -56,6 +56,7 @@ import {
   PARK_MESSAGES,
   parkCheckCells,
   parkDecorations,
+  parkGround,
   parkPose,
   planPark,
   roomCells,
@@ -485,6 +486,7 @@ export class CamperDrive extends TransformingDrive {
       types.slice(0, cells.length),
       feet,
       types.slice(cells.length),
+      parkGround(pose),
     );
   }
 

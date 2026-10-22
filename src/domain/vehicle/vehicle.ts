@@ -25,11 +25,14 @@ import { type RamHit, type RamTarget, selectHits } from "./ram";
 import { Seating } from "./seating";
 import { SPEC } from "./spec";
 import {
+  liftStandIn,
   type StandInAxis,
   type StandInPose,
   standInAxis,
   standInPose,
 } from "./standIn";
+
+const HALF_BLOCK = 0.5;
 
 export interface RiderView {
   readonly id: PlayerId;
@@ -296,7 +299,7 @@ export class Vehicle {
       boardDeckRiders: step.boardDeckRiders ?? false,
       impulse: step.impulse,
       yaw: this.drive.yaw,
-      standIn: this.standIn(step.dock?.hold ?? sensors.location),
+      standIn: this.standIn(step.dock?.hold ?? sensors.location, sensors),
       hits: this.ram(sensors.tick, targets, step.forward),
       driverId: driver?.id,
       stepCommands: step.commands,
@@ -310,12 +313,25 @@ export class Vehicle {
    * or its location before this tick's move while driving: the move is applied after this
    * tick's world calls, so a driving stand-in trails the body by one tick (ADR 0116).
    */
-  private standIn(location: Vec3): StandInPose | undefined {
+  private standIn(
+    location: Vec3,
+    sensors: Pick<TickContext, "location" | "solidAt">,
+  ): StandInPose | undefined {
     const rule = this.profile.standIn;
     if (!rule) return undefined;
     const yaw = this.drive.yaw;
     this.standInAxis = standInAxis(yaw, this.standInAxis, rule.turnMargin);
-    return standInPose(rule, location, yaw, this.standInAxis);
+    const pose = standInPose(rule, location, yaw, this.standInAxis);
+    if (!rule.maxLift) return pose;
+    // solidAt reads the block at an offset from the entity's location; the half block
+    // picks the middle of each layer above the stand-in's feet.
+    return liftStandIn(pose, rule.maxLift, (layer) =>
+      sensors.solidAt({
+        x: pose.x - sensors.location.x,
+        y: pose.y - sensors.location.y + layer + HALF_BLOCK,
+        z: pose.z - sensors.location.z,
+      }),
+    );
   }
 
   private ram(

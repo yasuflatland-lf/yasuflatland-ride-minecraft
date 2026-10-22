@@ -24,7 +24,11 @@ const RULE = defined(CAMPER_PROFILE.standIn, "camper stand-in");
 const yaw = fc.double({ min: -720, max: 720, noNaN: true });
 const cell = fc.integer({ min: -50, max: 50 });
 
-function input(tick: number, location: Vec3): VehicleTickInput {
+function input(
+  tick: number,
+  location: Vec3,
+  solidAt: (offset: Vec3) => boolean = () => false,
+): VehicleTickInput {
   return {
     tick,
     riders: [],
@@ -32,7 +36,7 @@ function input(tick: number, location: Vec3): VehicleTickInput {
     location,
     velocity: { x: 0, y: 0, z: 0 },
     onGround: true,
-    solidAt: () => false,
+    solidAt,
     waterAt: () => false,
     blockTypes: (cells) => cells.map(() => AIR),
     targets: () => [],
@@ -71,8 +75,8 @@ function stubCamper(yaws: readonly number[], hold?: Vec3) {
   const vehicle = new Vehicle(asVehicleId("v"), CAMPER_PROFILE, drive);
   return {
     vehicle,
-    next(location: Vec3) {
-      const out = vehicle.tick(input(tick, location));
+    next(location: Vec3, solidAt?: (offset: Vec3) => boolean) {
+      const out = vehicle.tick(input(tick, location, solidAt));
       tick++;
       return out;
     },
@@ -240,6 +244,56 @@ describe("vehicle stand-in (ADR 0116)", () => {
         expect(parkPose(at, y).yaw).toBe(parked.yaw);
       }),
       { numRuns: 30 },
+    );
+  });
+
+  it("rises out of solid ground in the bumper's middle cell, at most maxLift blocks, but not over plants (ADR 0119)", () => {
+    const maxLift = defined(RULE.maxLift, "max lift");
+    fc.assert(
+      fc.property(
+        fc.integer({ min: -8, max: 8 }),
+        cell,
+        cell,
+        cell,
+        fc.integer({ min: 0, max: 4 }),
+        (quarter, cx, cy, cz, rise) => {
+          const snapped = quarter * 90;
+          const hold = { x: cx + 0.5, y: cy, z: cz + 0.5 };
+          const parked = { ...hold, yaw: snapped };
+          const middle = localCellAt(parked, { x: 0, z: 4, layer: 0 });
+          // Solid ground fills the middle cell's column up to `rise` layers; the side
+          // cells hold only plants, which solidAt does not count.
+          const solidAt = (o: Vec3) => {
+            const at = {
+              x: Math.floor(hold.x + o.x),
+              y: Math.floor(hold.y + o.y),
+              z: Math.floor(hold.z + o.z),
+            };
+            return (
+              at.x === middle.x &&
+              at.z === middle.z &&
+              at.y >= cy &&
+              at.y < cy + rise
+            );
+          };
+          const pose = defined(
+            stubCamper([snapped], hold).next(hold, solidAt).standIn,
+            "stand-in",
+          );
+          expect(pose.y).toBe(cy + Math.min(rise, maxLift));
+          expect(Math.floor(pose.x)).toBe(middle.x);
+          expect(Math.floor(pose.z)).toBe(middle.z);
+        },
+      ),
+    );
+  });
+
+  it("stays at the feet with nothing solid in front, whatever the yaw", () => {
+    fc.assert(
+      fc.property(yaw, fc.record({ x: cell, y: cell, z: cell }), (y, at) => {
+        const pose = defined(stubCamper([y]).next(at).standIn, "stand-in");
+        expect(pose.y).toBe(at.y);
+      }),
     );
   });
 });

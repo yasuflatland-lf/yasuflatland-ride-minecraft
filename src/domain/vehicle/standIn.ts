@@ -19,6 +19,12 @@ export interface StandInRule {
    * other type, so steering along a diagonal does not respawn it every tick.
    */
   readonly turnMargin: number;
+  /**
+   * The most whole blocks the stand-in rises over solid ground under its middle box, so
+   * a vehicle stopped with its end over a rise keeps its boxes above the ground; none
+   * when absent (ADR 0119).
+   */
+  readonly maxLift?: number;
 }
 
 /** Where a vehicle's stand-in stands this tick: the feet of the middle box. */
@@ -85,4 +91,19 @@ export function standInPose(
     y: location.y,
     z: location.z + exact(f.z) * rule.ahead,
   };
+}
+
+/**
+ * The stand-in raised by the number of solid layers, up to `maxLift`, counted from its feet
+ * up in the cell of its middle box: `solidLayer(k)` tells whether layer k is solid. A plant
+ * has no collision, so it lifts nothing (ADR 0119).
+ */
+export function liftStandIn(
+  pose: StandInPose,
+  maxLift: number,
+  solidLayer: (layer: number) => boolean,
+): StandInPose {
+  let lift = 0;
+  while (lift < maxLift && solidLayer(lift)) lift++;
+  return lift === 0 ? pose : { ...pose, y: pose.y + lift };
 }

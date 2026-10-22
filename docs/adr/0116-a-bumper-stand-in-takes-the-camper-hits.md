@@ -4,6 +4,7 @@
 - Date: 2026-10-22
 - Supersedes in part: 0084 (the three boxes fixed at z 3.7 on the camper), 0068 (the bumper hitbox on the camper entity)
 - Extends: 0086 (the bumper hints)
+- Extended by: [0119](0119-park-the-camper-over-natural-ground.md) (Proposed; the stand-in rises out of the ground)
 
 ## Context
 

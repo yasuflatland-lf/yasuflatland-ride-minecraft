@@ -155,6 +155,54 @@ async function atParkSpot(
   }
 }
 
+// ADR 0119: on grassland a camper parks over a grass block rising into a floor cell outside
+// its collision box, clears the plants, and lifts its bumper stand-in out of a grass block
+// in front of the bumper.
+export async function camperParkGrass(a: Arena): Promise<Outcome> {
+  const ground = a.gy - 1;
+  a.dim.runCommand(`fill 103 ${ground} 73 114 ${ground} 84 grass_block`);
+  const pose = parkSpotPose(a);
+  const raised = localCellAt(pose, { x: 1, z: 3, layer: 0 });
+  const bumper = localCellAt(pose, { x: 0, z: 4, layer: 0 });
+  const plants = [
+    { at: localCellAt(pose, { x: 0, z: 2, layer: 0 }), type: "short_grass" },
+    { at: localCellAt(pose, { x: -1, z: -2, layer: 0 }), type: "red_mushroom" },
+    { at: localCellAt(pose, { x: 1, z: 4, layer: 0 }), type: "short_grass" },
+  ];
+  for (const c of [raised, bumper])
+    a.dim.runCommand(`setblock ${c.x} ${c.y} ${c.z} grass_block`);
+  for (const { at, type } of plants)
+    a.dim.runCommand(`setblock ${at.x} ${at.y} ${at.z} ${type}`);
+  try {
+    return await atParkSpot(a, async (car) => {
+      await wait(DOCK.ticks + 10);
+      const laid = laidRoomCells(a, car);
+      const kept = [raised, bumper].filter(
+        (c) => a.dim.getBlock(c)?.typeId === "minecraft:grass_block",
+      ).length;
+      const left = plants.filter(
+        ({ at, type }) => a.dim.getBlock(at)?.typeId === `minecraft:${type}`,
+      ).length;
+      const [standIn] = a.dim.getEntities({
+        families: [STAND_IN_FAMILY],
+        location: car.location,
+        maxDistance: CAMPER_BUMPER_TEST.radius,
+      });
+      const rise = standIn ? standIn.location.y - car.location.y : Number.NaN;
+      return {
+        pass:
+          laid === ROOM_CELL_COUNT - 1 &&
+          kept === 2 &&
+          left === 0 &&
+          Math.abs(rise - 1) <= CAMPER_BUMPER_TEST.parkedTolerance,
+        detail: `laid=${laid} kept=${kept} plantsLeft=${left} rise=${rise.toFixed(3)}`,
+      };
+    });
+  } finally {
+    a.dim.runCommand(`fill 103 ${ground} 73 114 ${ground} 84 stone`);
+  }
+}
+
 export function camperAccel(a: Arena): Promise<Outcome> {
   return withCamper(a, 5.5, 85.5, -90, async (car) => {
     drive(car, 0, 1);

@@ -30,6 +30,8 @@ import {
   departure,
   exitCells,
   furnitureCells,
+  localCellAt,
+  NATURAL_GROUND,
   parkCheckCells,
   parkPose,
   roomCells,
@@ -126,7 +128,14 @@ it("refuses any blocking cell once per stop, then retries after the stick resets
   fc.assert(
     fc.property(
       fc.integer({ min: 0, max: 167 }),
-      fc.string().filter((t) => t !== AIR && !CLEARABLE_DECORATIONS.has(t)),
+      fc
+        .string()
+        .filter(
+          (t) =>
+            t !== AIR &&
+            !CLEARABLE_DECORATIONS.has(t) &&
+            !NATURAL_GROUND.has(t),
+        ),
       (index, type) => {
         const f = fixture();
         f.blocks.set(
@@ -149,6 +158,37 @@ it("refuses any blocking cell once per stop, then retries after the stick resets
         expect(f.blockTypes).toHaveBeenCalledTimes(2);
       },
     ),
+  );
+});
+
+it("parks over a grass block rising into a front floor corner outside the collision box, clearing the grass around it (ADR 0119)", () => {
+  fc.assert(
+    fc.property(
+      fc.double({ min: -720, max: 720, noNaN: true }),
+      fc.constantFrom(-1, 1),
+      fc.constantFrom(-3, -2, 2, 3),
+      fc.boolean(),
+      (yaw, x, z, plantsOnTop) => {
+        const f = fixture(undefined, yaw);
+        const raised = localCellAt(f.pose, { x, z, layer: 0 });
+        f.blocks.set(cellKey(raised), "minecraft:grass_block");
+        const grass = localCellAt(f.pose, { x: 0, z: 1, layer: 0 });
+        f.blocks.set(cellKey(grass), "minecraft:short_grass");
+        const above = { ...raised, y: raised.y + 1 };
+        if (plantsOnTop) f.blocks.set(cellKey(above), "minecraft:short_grass");
+        const messages = Array.from(
+          { length: DOCK.ticks },
+          () => f.step().message,
+        );
+        expect(messages).not.toContain("cannot_park");
+        expect(f.drive.inspect().parked).toBe(true);
+        const clear = defined(f.step().clear, "clear list");
+        expect(new Set(clear.map(cellKey))).toEqual(
+          new Set([grass, ...(plantsOnTop ? [above] : [])].map(cellKey)),
+        );
+      },
+    ),
+    { numRuns: 40 },
   );
 });
 
