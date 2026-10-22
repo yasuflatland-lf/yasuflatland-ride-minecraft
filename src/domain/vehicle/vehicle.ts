@@ -7,6 +7,7 @@ import type { PlayerId, VehicleId } from "../shared/ids";
 // Aggregate for one vehicle: wires its drive to its seating, cooldowns, and hit count.
 import { forward, type Vec2, type Vec3 } from "../shared/vec";
 import { RamCooldowns, SwitchCooldown } from "./cooldowns";
+import { Crew } from "./crew";
 import type { DecorPlacement, StoragePress } from "./dock/decor";
 import type { ClearCell, Departure, Dock } from "./dock/dock";
 import type { Drive, EngineCommand, RiderState, TickContext } from "./drive";
@@ -26,8 +27,7 @@ import {
 } from "./lighting/headlights";
 import type { ChaseCamera, VehicleProfile } from "./profile";
 import { type RamHit, type RamTarget, selectHits } from "./ram";
-import { ChosenSeats, type SeatAssignment } from "./seatChoice";
-import { Seating } from "./seating";
+import type { SeatAssignment } from "./seatChoice";
 import { DRIVER_SEAT, toLocal } from "./seats";
 import { SPEC } from "./spec";
 import {
@@ -115,22 +115,13 @@ export interface TickOutcome {
   riders: RiderState;
 }
 
-/** A kind whose players choose their seat keeps each rider's list index equal to their seat (ADR 0120). */
-function seatReadingOf(profile: VehicleProfile): "position" | "slot" {
-  return profile.boarding.order === "chosen" ? "slot" : "position";
-}
-
 export class Vehicle {
-  private seating: Seating;
-  /** Defined only for a kind whose players choose their seat (ADR 0120). */
-  private readonly chosenSeats: ChosenSeats | undefined;
+  private crew: Crew;
   private readonly ramCooldowns = new RamCooldowns();
   private readonly switchCooldown = new SwitchCooldown();
   // Its own cooldown, so a driver's headlight switch and a ceiling light switch in the room never block each other (ADR 0115).
   private readonly ceilingLightCooldown = new SwitchCooldown();
   private hitCounter: HitCounter = EMPTY_COUNTER;
-  /** Ticks since the last tick with a driver; infinite until the first driver (ADR 0078). */
-  private driverlessTicks = Number.POSITIVE_INFINITY;
   /** As of the last tick: held in place (ADR 0063, 0068), and nobody in the driver's seat or its deck seat. */
   private docked = false;
   private driverSeatFree = true;
@@ -143,15 +134,7 @@ export class Vehicle {
     private readonly profile: VehicleProfile,
     private readonly drive: Drive,
   ) {
-    this.seating = new Seating(profile.seats.positions, seatReadingOf(profile));
-    this.chosenSeats =
-      profile.boarding.order === "chosen"
-        ? new ChosenSeats({
-            positions: profile.seats.positions,
-            height: profile.boarding.aimHeight,
-            radius: profile.boarding.aimRadius,
-          })
-        : undefined;
+    this.crew = new Crew(profile);
   }
 
   /**
@@ -169,12 +152,7 @@ export class Vehicle {
     yaw: number,
   ): Vehicle {
     const vehicle = new Vehicle(id, profile, drive);
-    vehicle.seating = Seating.restore(
-      profile.seats.positions,
-      riders,
-      forward(yaw),
-      seatReadingOf(profile),
-    );
+    vehicle.crew = Crew.restore(profile, riders, forward(yaw));
     return vehicle;
   }
 
@@ -223,7 +201,7 @@ export class Vehicle {
       yaw: this.drive.yaw,
       docked: this.docked,
       driverSeatFree: this.driverSeatFree,
-      hasRiders: this.seating.occupied,
+      hasRiders: this.crew.occupied,
       held,
       controls,
     };
@@ -248,14 +226,12 @@ export class Vehicle {
    * them (ADR 0120).
    */
   requestSeat(playerId: PlayerId, eye: Vec3, view?: Vec3): boolean {
-    if (!this.chosenSeats) return false;
     const f = forward(this.drive.yaw);
     const local = (v: Vec3): Vec3 => ({ ...toLocal(v, f), y: v.y });
-    this.chosenSeats.request(playerId, {
+    return this.crew.request(playerId, {
       eye: local(eye),
       view: view && local(view),
     });
-    return true;
   }
 
   /** A player tapped the door of this vehicle's room at `tick`. Returns whether it opened or closed (ADR 0068, 0105). */
@@ -315,7 +291,7 @@ export class Vehicle {
 
   tick(input: VehicleTickInput): TickOutcome {
     const { riders, testInput, deckSeatRiders, targets, ...sensors } = input;
-    const seated = this.seating.update(
+    const seated = this.crew.update(
       riders,
       forward(this.drive.yaw),
       sensors.velocity,
@@ -325,24 +301,19 @@ export class Vehicle {
     );
     const driver = seated.driver;
     if (seated.mounted && driver) this.drive.onDriverMounted(driver.yaw);
-    this.driverlessTicks = driver ? 0 : this.driverlessTicks + 1;
-    const awaitingDriver =
-      driver === undefined &&
-      riders.length > 0 &&
-      this.driverlessTicks <= SPEC.driverHandoverTicks;
 
     const raw = driver?.raw ?? testInput;
-    const taken = this.seating.taken();
+    const taken = this.crew.taken();
     const deckSeatInputs = sensors.deckSeatInputs.map((deckInput, seat) =>
       taken.has(seat) ? undefined : deckInput,
     );
     const step = this.drive.step(raw, {
       ...sensors,
-      awaitingDriver,
+      awaitingDriver: seated.awaitingDriver,
       deckSeatInputs,
     });
     this.docked = step.dock !== undefined;
-    const seatLayout = this.layRiders(
+    const seatLayout = this.crew.layout(
       riders,
       deckSeatRiders ?? [],
       step.boardDeckRiders ?? false,
@@ -372,31 +343,6 @@ export class Vehicle {
       finalCommands: seatCommands,
       riders: step.riders,
     };
-  }
-
-  /**
-   * The rider list for a kind whose players choose their seat. The seat of an occupied
-   * deck seat is held for its rider, since a player seated there would take the deck seat
-   * away under them (ADR 0063). Deck-seat riders who board this tick ask for that seat.
-   */
-  private layRiders(
-    riders: readonly RiderView[],
-    deckSeatRiders: readonly (PlayerId | undefined)[],
-    departing: boolean,
-  ): SeatAssignment | undefined {
-    const boarding = this.profile.boarding;
-    if (!this.chosenSeats || boarding.order !== "chosen") return undefined;
-    const positions = this.profile.seats.positions;
-    const held = deckSeatRiders.slice(0, positions.length);
-    if (departing)
-      for (const [seat, id] of held.entries()) {
-        const at = positions[seat];
-        if (id !== undefined && at)
-          this.chosenSeats.request(id, {
-            eye: { x: at.x, y: boarding.aimHeight, z: at.z },
-          });
-      }
-    return this.chosenSeats.settle(riders, held);
   }
 
   /**
@@ -463,7 +409,7 @@ export class Vehicle {
    * one touch flips it once (ADR 0024). Returns whether it flipped.
    */
   flipHeadlightSwitch(playerId: PlayerId, tick: number): boolean {
-    if (playerId !== this.seating.driver) return false;
+    if (playerId !== this.crew.driver) return false;
     return this.switchCooldown.tryUse(tick, SPEC.headlightSwitchCooldown);
   }
 
@@ -474,7 +420,7 @@ export class Vehicle {
    * one touch flips once (ADR 0024, 0115). Returns whether it flipped.
    */
   switchCeilingLights(playerId: PlayerId, feet: Vec3, tick: number): boolean {
-    if (playerId === this.seating.driver || !this.drive.switchCeilingLights)
+    if (playerId === this.crew.driver || !this.drive.switchCeilingLights)
       return false;
     if (!this.ceilingLightCooldown.tryUse(tick, SPEC.headlightSwitchCooldown))
       return false;
@@ -487,13 +433,13 @@ export class Vehicle {
    * and changes nothing, so a press is taken over only where the switch can work (ADR 0115).
    */
   canSwitchCeilingLights(playerId: PlayerId, feet: Vec3): boolean {
-    if (playerId === this.seating.driver) return false;
+    if (playerId === this.crew.driver) return false;
     return this.drive.ceilingLightsReachable?.(feet) ?? false;
   }
 
   /** Hit by a player. Returns whether the vehicle breaks (ADR 0008). */
   receiveHit(tick: number): boolean {
-    const r = registerHit(this.hitCounter, tick, this.seating.occupied, {
+    const r = registerHit(this.hitCounter, tick, this.crew.occupied, {
       hits: SPEC.hitsToBreak,
       resetTicks: SPEC.hitResetTicks,
     });
