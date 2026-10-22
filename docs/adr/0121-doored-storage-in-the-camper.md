@@ -1,6 +1,6 @@
 # 0121. Doored storage in the camper
 
-- Status: Accepted
+- Status: Accepted (extended by [0123](0123-a-fridge-in-place-of-the-camper-shelf.md): the fridge is the second unit)
 - Date: 2026-10-22
 - Extends: 0114 (the wall cabinet becomes the first unit of doored storage)
 - Applies: 0050 (per-unit parameters), 0055 (kind code), 0105 (one toggle per swing), 0108 (a pair block per furniture cell)

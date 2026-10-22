@@ -99,6 +99,8 @@ describe("camper model assets (ADR 0067)", () => {
         "shower_door",
         "cabinet_sink_door",
         "cabinet_stove_door",
+        "fridge_top_door",
+        "fridge_bottom_door",
         "glass",
         "door_glass",
       ].sort(),
@@ -701,13 +703,13 @@ describe("camper animation references", () => {
       ...Object.keys(camperAnimations),
       ...Object.keys(camperControllers),
     ]);
-    expect(Object.keys(camperClient.animations)).toHaveLength(29);
+    expect(Object.keys(camperClient.animations)).toHaveLength(31);
     for (const name of Object.values(camperClient.animations)) {
       expect(names.has(String(name)), String(name)).toBe(true);
     }
   });
 
-  it("animates only root, the wheels, the entry door, the shower door, and the cabinet doors present in the model", () => {
+  it("animates only root, the wheels, the entry door, the shower door, and the storage doors present in the model", () => {
     const allowed = [
       "root",
       "wheel_fl",
@@ -718,6 +720,8 @@ describe("camper animation references", () => {
       "shower_door",
       "cabinet_sink_door",
       "cabinet_stove_door",
+      "fridge_top_door",
+      "fridge_bottom_door",
     ];
     const modelBones = bones.map((b) => b.name);
     for (const animation of Object.values(camperAnimations)) {
@@ -782,6 +786,8 @@ describe("camper animation references", () => {
       "shower_door",
       "cabinet_sink_door",
       "cabinet_stove_door",
+      "fridge_top_door",
+      "fridge_bottom_door",
       { shower: "q.property('yasu_ride:shower')" },
       { shower_sound: "q.property('yasu_ride:shower')" },
     ]);
@@ -856,6 +862,18 @@ describe("camper animation references", () => {
         },
       },
     });
+  });
+
+  it("swings each fridge door by its own property into the aisle, both the way the sink cabinet door turns, since both are hinged at their front ends (ADR 0123)", () => {
+    for (const door of ["fridge_top_door", "fridge_bottom_door"])
+      expect(camperAnimation(door)).toEqual({
+        loop: true,
+        bones: {
+          [door]: {
+            rotation: [0, `q.property('yasu_ride:${door}') * 90`, 0],
+          },
+        },
+      });
   });
 
   it("matches wheel spin to the circumference derived from each wheel pivot", () => {
@@ -1095,7 +1113,7 @@ describe("camper furniture model (ADR 0093)", () => {
     });
 
   // The slots that share their furniture cell with another item (ADR 0108), and the stove's.
-  const SHARED_KINDS = ["stove", "shelf", "table", "wall_cabinet"];
+  const SHARED_KINDS = ["stove", "fridge", "table", "wall_cabinet"];
 
   it("puts every standing decor slot but the stove's on the model's top surface at its spot and runs the ceiling hook from the ceiling plate to the top of its cell (ADR 0093, 0099, 0102, 0108)", () => {
     // The stove's slot stands on its burner's grate, checked in the next test.
@@ -1233,7 +1251,7 @@ describe("camper furniture model (ADR 0093)", () => {
     }
   });
 
-  it("keeps every body cube, rotated ones included, out of every standing item on each stove, shelf, table, and wall cabinet slot, and the two items on a shelf board, the table, or a cabinet compartment apart (ADR 0100, 0105, 0108, 0114)", () => {
+  it("keeps every body cube, rotated ones included, out of every standing item on each stove, fridge, table, and wall cabinet slot, and the two items on the table or in a storage compartment apart (ADR 0100, 0105, 0108, 0114, 0123)", () => {
     const points = bodyPoints();
     // Each standing item's box from its block model: half its width along the camper's left
     // (model x), half its depth forward (model z), and its height. The decor block turns the
@@ -1268,11 +1286,11 @@ describe("camper furniture model (ADR 0093)", () => {
       SHARED_KINDS.includes(f.kind),
     ).flatMap((f) => f.slots);
     expect(standing).toHaveLength(11);
-    // A shelf board's, the table's, or a cabinet compartment's two items stand apart for any
-    // two items (ADR 0108, 0114).
+    // The table's or a storage compartment's two items stand apart for any two items (ADR
+    // 0108, 0114, 0123).
     for (const [a, b] of [
-      ["shelf_low", "shelf_low_front"],
-      ["shelf_high", "shelf_high_front"],
+      ["fridge_bottom_rear", "fridge_bottom_front"],
+      ["fridge_top_rear", "fridge_top_front"],
       ["table", "table_aisle"],
       ["cabinet_sink_rear", "cabinet_sink_front"],
       ["cabinet_stove_rear", "cabinet_stove_front"],
@@ -1360,6 +1378,48 @@ describe("camper furniture model (ADR 0093)", () => {
       expect(ox).toBeGreaterThanOrEqual(-9.2 - 1e-6);
       expect(ox + sx).toBeLessThanOrEqual(-7.4 + 1e-6);
     }
+  });
+
+  it("hinges both fridge doors at the fridge's front end on its aisle face, the shorter top door over the taller bottom one, and swings each open into the aisle cell beside the fridge (ADR 0123)", () => {
+    const heights: number[] = [];
+    for (const name of ["fridge_bottom_door", "fridge_top_door"]) {
+      const door = bone(name);
+      expect(door.pivot).toEqual([-8.3, 0, -23.3]);
+      expect(door.parent).toBe("body");
+      expect(door.rotation).toBeUndefined();
+      expect(door.cubes?.length).toBeGreaterThan(0);
+      const ys: number[] = [];
+      for (const cube of door.cubes ?? [])
+        for (const corner of [0, 1].flatMap((i) =>
+          [0, 1].flatMap((j) =>
+            [0, 1].map((k) =>
+              [i, j, k].map(
+                (n, axis) =>
+                  (cube.origin[axis] ?? 0) + n * (cube.size[axis] ?? 0),
+              ),
+            ),
+          ),
+        )) {
+          const [cx = 0, cy = 0, cz = 0] = corner;
+          ys.push(cy);
+          // Shut, the door covers the fridge's aisle face, in the fridge's cell row (z = 1).
+          expect(cx, name).toBeGreaterThanOrEqual(-9 - 1e-6);
+          expect(cx, name).toBeLessThanOrEqual(-7.5);
+          expect(cz, name).toBeGreaterThanOrEqual(-24);
+          expect(cz, name).toBeLessThanOrEqual(-8);
+          expect(cy, name).toBeGreaterThanOrEqual(16);
+          expect(cy, name).toBeLessThanOrEqual(49);
+          // Open, it stands in the aisle cell, local x 0, beside the fridge.
+          const [ox = 0, , oz = 0] = turn(corner, door.pivot, [0, 90, 0]);
+          expect(ox, name).toBeGreaterThanOrEqual(-9 - 1e-6);
+          expect(ox, name).toBeLessThanOrEqual(8);
+          expect(oz, name).toBeGreaterThanOrEqual(-24);
+          expect(oz, name).toBeLessThanOrEqual(-8);
+        }
+      heights.push(Math.max(...ys) - Math.min(...ys));
+    }
+    const [bottom = 0, top = 0] = heights;
+    expect(top).toBeLessThan(bottom);
   });
 
   it("hinges each wall cabinet door at the cabinet's outer end and swings it open into the aisle cell beside its compartment, under the ceiling (ADR 0114)", () => {

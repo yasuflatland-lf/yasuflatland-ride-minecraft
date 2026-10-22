@@ -9,7 +9,7 @@ import {
   storageDoorCommand,
 } from "../../../../../src/domain/vehicle/kinds/camper/entity";
 
-it("restores the form, docked, door, and ceiling light properties and writes the doors, the shower, and the lights (ADR 0094, 0114, 0115)", () => {
+it("restores the form, docked, door, and ceiling light properties and writes the doors, the shower, and the lights (ADR 0094, 0114, 0115, 0123)", () => {
   expect(CAMPER_ENTITY.restored).toEqual([
     "form",
     "docked",
@@ -17,6 +17,8 @@ it("restores the form, docked, door, and ceiling light properties and writes the
     "shower_door",
     "cabinet_sink_door",
     "cabinet_stove_door",
+    "fridge_top_door",
+    "fridge_bottom_door",
     "ceiling_lights",
   ]);
   expect(ceilingLightsCommand(true)).toEqual({
@@ -33,6 +35,16 @@ it("restores the form, docked, door, and ceiling light properties and writes the
   expect(storageDoorCommand("stove", 1)).toEqual({
     type: "setProperty",
     name: "cabinet_stove_door",
+    value: 1,
+  });
+  expect(storageDoorCommand("fridge_top", 0.3)).toEqual({
+    type: "setProperty",
+    name: "fridge_top_door",
+    value: 0.3,
+  });
+  expect(storageDoorCommand("fridge_bottom", 1)).toEqual({
+    type: "setProperty",
+    name: "fridge_bottom_door",
     value: 1,
   });
   expect(doorCommand(1)).toEqual({

@@ -86,8 +86,8 @@ export function nearest(
  * The free slot accepting `item` whose point is nearest `point`, or with `eye`, nearest
  * where the line of sight through `point` crosses its surface (ADR 0110); on a tie, the
  * slot listed first. A slot is free while no slot of its cell holds decor (ADR 0107), or on
- * a shelf board, the table, or a cabinet compartment, while its own end holds none (ADR
- * 0108). Slots behind a cabinet door not in `open` are left out (ADR 0114). Undefined when
+ * the table or a storage compartment, while its own end holds none (ADR 0108). Slots behind
+ * a storage door not in `open` are left out (ADR 0114, 0121). Undefined when
  * every accepting slot is taken.
  */
 export function nearestFreeSlot(
@@ -116,7 +116,7 @@ export function slotsAt(pose: HoldPose, cell: Vec3): DecorSlot[] {
 
 /**
  * The free slot of the pressed `cell` nearest `point` when the cell has free slots
- * accepting `item`, such as the free end of a shelf board or the table (ADR 0108);
+ * accepting `item`, such as the free end of the table or an open compartment (ADR 0108);
  * otherwise the free accepting slot nearest `point` (ADR 0093, 0097, 0105), or none when
  * `exact`: a press on a dinette seat names one slot, and filling
  * another one left the player unable to tell where the item went (ADR 0104). With the

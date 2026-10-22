@@ -12,9 +12,10 @@ Biome reformats the geometry and zlib builds do not all compress identically. It
 Behavior Pack decor blocks, the items, the creative catalog, and the gear part of
 item_texture.json; the decor block's face, height, and spot states are described next to
 FACE_ROTATION. It also writes the pair blocks and their geometry, which draw the two items of a
-shelf board or of the table in one block (PAIRS, ADR 0108), and the wall cabinet's compartment
+shelf board or of the table in one block (PAIRS, ADR 0108), the wall cabinet's compartment
 block, a pair block that also holds the ceiling up and shows its items only while its door is
-open (ADR 0114).
+open (ADR 0114), and the fridge's compartment block, which shows its items the same way (ADR
+0123).
 The camping gear box (BOX) is the creative group's icon and first item, and its icon entry comes
 first in the generated part of item_texture.json; its item JSON and icon are written elsewhere (ADR
 0093).
@@ -63,25 +64,39 @@ SPOT_HEIGHTS = [list(HEIGHTS)] + [[15]] * (len(SPOTS) - 1)
 # are each end's (left, forward) px from the cell middle in the camper's room frame, as
 # DECOR_SPOTS 5 to 8 in src/domain/vehicle/kinds/camper/furniture.ts; HEIGHTS are the heights of
 # its slots. tests/packs/campingGear.test.ts ties both to the domain slots.
+# A pair with a "door" is a compartment behind a storage door (ADR 0121): its "door" names how
+# its boxes are laid (DOOR_BOXES), and "inside_px" is its inside height, which no standing item
+# may pass.
 PAIRS = {
+    # No slot lays the shelf's pair block since the fridge took the shelf's place. It stays
+    # defined so a block an older build laid keeps its type, which lets the next lay replace it
+    # with the fridge's compartment block (ADR 0123).
     "shelf": {"ends": [(0, -3.5), (0, 3.5)], "heights": [4, 10]},
     "table": {"ends": [(3.3, 0), (-3.7, 0)], "heights": [12]},
     # A wall cabinet compartment under the ceiling, as long as a shelf board, so its ends are the
     # board's. Its items stand on the compartment floor, 3 px above the cell bottom (ADR 0114).
-    "cabinet": {"ends": [(0, -3.5), (0, 3.5)], "heights": [3], "door": True},
+    # Its inside runs from its floor's top at model y 51 to its top panel at 60
+    # (tools/gen_camper.py CABINET_Y).
+    "cabinet": {"ends": [(0, -3.5), (0, 3.5)], "heights": [3], "door": "ceiling", "inside_px": 9},
+    # A fridge compartment in a shelf cell, as long as a shelf board, so its ends are the board's.
+    # Its items stand on the bottom compartment's floor, 3 px above layer 1's bottom, or on the
+    # divider, 4 px above layer 2's bottom. The upper compartment is the lower one inside: from
+    # the divider's top at model y 36 to the top panel at 48 (tools/gen_camper.py FRIDGE_Y,
+    # ADR 0123).
+    "fridge": {"ends": [(0, -3.5), (0, 3.5)], "heights": [3, 4], "door": "cell", "inside_px": 12},
 }
-# The cabinet block's door state: its items show only while the door is open or still swinging
-# shut. Its box covers the compartment from its floor to the top of its door, 10 px, and it
-# keeps the ceiling plate's collision at the top 3 px of the cell. Both boxes are given before
-# the lift, which moves them with the items (ADR 0097, 0107); if the client left them in place,
-# both would still be inside the cell and over the cabinet (ADR 0114).
+# A compartment block's door state: its items show only while the door is open or still swinging
+# shut. The cabinet's box ("ceiling") covers the compartment from its floor to the top of its
+# door, 10 px, and it keeps the ceiling plate's collision at the top 3 px of the cell. Both
+# boxes are given before the lift, which moves them with the items (ADR 0097, 0107); if the
+# client left them in place, both would still be inside the cell and over the cabinet (ADR
+# 0114). The fridge's box ("cell") has no collision, as the shelf had none, and runs from the
+# compartment floor to the cell's top: given before the lift, it is the cell less the lift, so
+# each height's permutation sets its own (ADR 0123).
 OPEN_STATE = "yasu_ride:open"
 CABINET_COMPONENT = "yasu_ride:camper_cabinet"
 CABINET_BOX_PX = 10
 CEILING_PLATE_PX = 3
-# The compartment's inside height, from its floor's top at model y 51 to its top panel at 60
-# (tools/gen_camper.py CABINET_Y): a taller item would poke through the top panel.
-CABINET_INSIDE_PX = 9
 # A block state holds at most 16 values, and an end takes 19: empty, or one of the 18 standing
 # items. So an end's code, 0 for empty and 1 + the item's index among the standing items, is
 # split into end<n>_page (code // PAIR_PAGE_SIZE) and end<n>_item (code % PAIR_PAGE_SIZE), as
@@ -368,8 +383,9 @@ def validate(spec):
                 (x0, _, z0), (x1, _, z1) = bounds(SHAPES.get(item["id"], []) or [box(0, 0, 0, 0, 0, 0, "cream")])
                 if x0 - left < -8 or x1 - left > 8 or z0 - ahead < -8 or z1 - ahead > 8:
                     errors.append(f"{kind} end {end}: {item['id']} leaves the cell")
-    if any(item["height_px"] > CABINET_INSIDE_PX for item in standing(spec)):
-        errors.append("a standing item is taller than the wall cabinet's compartment")
+    for kind, pair in PAIRS.items():
+        if any(item["height_px"] > pair.get("inside_px", CELL_PX) for item in standing(spec)):
+            errors.append(f"a standing item is taller than the {kind} compartment")
     if pair_pages(spec) > MAX_STATE_VALUES or PAIR_PAGE_SIZE > MAX_STATE_VALUES:
         errors.append("a pair block state holds more than 16 values")
     if pair_pages(spec) < MIN_STATE_VALUES or PAIR_PAGE_SIZE < MIN_STATE_VALUES:
@@ -506,10 +522,11 @@ def pair_block(kind, spec):
     """Both items of a shelf board or the table in one block (PAIRS). Its permutations only turn
     it by the face and lift it by the height, so the items stay over its own cell. A pair with one
     height has no height state (MIN_STATE_VALUES). The selection box covers the whole cell up to
-    the tallest standing item, over both items (ADR 0108). A pair with a door, the wall cabinet,
-    shows its items only while open and takes its own boxes (cabinet_boxes, ADR 0114)."""
+    the tallest standing item, over both items (ADR 0108). A pair with a door, a storage
+    compartment, shows its items only while open and takes its door's boxes (DOOR_BOXES, ADR
+    0114, 0121, 0123)."""
     ids = [item["id"] for item in standing(spec)]
-    door = PAIRS[kind].get("door", False)
+    door = PAIRS[kind].get("door")
     visibility = {}
     for end in range(2):
         for code, item_id in enumerate(ids, start=1):
@@ -558,7 +575,7 @@ def pair_block(kind, spec):
                 "minecraft:light_dampening": 0,
                 "minecraft:destructible_by_mining": False,
                 "minecraft:destructible_by_explosion": False,
-                **(cabinet_boxes(heights[0]) if door else {
+                **(DOOR_BOXES[door][0](heights[0]) if door else {
                     "minecraft:custom_components": ["yasu_ride:camper_decor"],
                     "minecraft:collision_box": False,
                     "minecraft:selection_box": {"origin": [-half, 0, -half], "size": [CELL_PX, top, CELL_PX]},
@@ -571,7 +588,8 @@ def pair_block(kind, spec):
                         "minecraft:transformation": {
                             "rotation": [0, FACE_ROTATION[face], 0],
                             "translation": [0, num(height / 16), 0],
-                        }
+                        },
+                        **(DOOR_BOXES[door][1](height) if door else {}),
                     },
                 }
                 for face in FACES
@@ -581,8 +599,8 @@ def pair_block(kind, spec):
     }
 
 
-def cabinet_boxes(lift):
-    """The cabinet compartment's component and boxes, before its lift (OPEN_STATE)."""
+def ceiling_boxes(lift):
+    """A compartment under the ceiling: its component and boxes, before its lift (OPEN_STATE)."""
     half = CELL_PX // 2
     return {
         "minecraft:custom_components": [CABINET_COMPONENT],
@@ -592,6 +610,25 @@ def cabinet_boxes(lift):
         },
         "minecraft:selection_box": {"origin": [-half, 0, -half], "size": [CELL_PX, CABINET_BOX_PX, CELL_PX]},
     }
+
+
+def open_cell_component(_lift):
+    """A compartment without collision: its component; each permutation sets its box."""
+    return {"minecraft:custom_components": [CABINET_COMPONENT], "minecraft:collision_box": False}
+
+
+def floor_to_top_box(lift):
+    """The selection box from the compartment floor to the cell's top once lifted by `lift`."""
+    half = CELL_PX // 2
+    return {"minecraft:selection_box": {"origin": [-half, 0, -half], "size": [CELL_PX, CELL_PX - lift, CELL_PX]}}
+
+
+# A compartment's boxes by its PAIRS "door": the components every permutation shares, then those
+# of the permutation at each height.
+DOOR_BOXES = {
+    "ceiling": (ceiling_boxes, lambda _height: {}),
+    "cell": (open_cell_component, floor_to_top_box),
+}
 
 
 def gear_item(item):

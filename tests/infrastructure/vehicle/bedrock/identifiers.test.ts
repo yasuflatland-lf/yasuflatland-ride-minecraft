@@ -7,7 +7,10 @@ import {
 } from "../../../../src/domain/vehicle/entityContract";
 import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
 import { DECOR_CELLS } from "../../../../src/domain/vehicle/kinds/camper/decor";
-import { WALL_CABINET } from "../../../../src/domain/vehicle/kinds/camper/furniture";
+import {
+  FRIDGE,
+  WALL_CABINET,
+} from "../../../../src/domain/vehicle/kinds/camper/furniture";
 import {
   decorBlockName,
   ownPlateBlock,
@@ -25,6 +28,7 @@ import {
   CAMPER_CEILING_BLOCK,
   CAMPER_DOOR_BLOCK,
   CAMPER_FLOOR_BLOCK,
+  CAMPER_FRIDGE_DOOR_BLOCK,
   CAMPER_FURNITURE_BLOCK,
   CAMPER_SHOWER_DOOR_BLOCK,
   CAMPER_SHOWER_TOILET_BLOCK,
@@ -47,6 +51,7 @@ import {
   ITEM_TYPE,
   isCamperRoomBlock,
   isDecorBlock,
+  isStandableRoomBlock,
   isVehicleEntity,
   kindOfEntity,
   kindOfItem,
@@ -240,6 +245,7 @@ describe("identifiers (ADR 0047)", () => {
   it("recognizes only the camper's own room blocks", () => {
     for (const typeId of [
       CAMPER_CABINET_DOOR_BLOCK,
+      CAMPER_FRIDGE_DOOR_BLOCK,
       CAMPER_FLOOR_BLOCK,
       CAMPER_CEILING_BLOCK,
       CAMPER_WALL_BLOCK,
@@ -287,7 +293,7 @@ describe("identifiers (ADR 0047)", () => {
   });
 
   it("names the pair blocks, the wall cabinet's too, the way the domain's slot check expects and counts them as decor blocks (ADR 0108, 0114)", () => {
-    for (const kind of ["shelf", "table", "cabinet"]) {
+    for (const kind of ["shelf", "table", "cabinet", "fridge"]) {
       expect(pairDecorBlockId(kind)).toBe(`yasu_ride:${kind}_decor_pair`);
       expect(isDecorBlock(pairDecorBlockId(kind))).toBe(true);
     }
@@ -313,6 +319,24 @@ describe("identifiers (ADR 0047)", () => {
           unit: WALL_CABINET,
         }),
       ).toBe(true);
+  });
+
+  it("names the fridge's plate block the way the domain's plate check expects, and lets a player stand only in it among the room blocks (ADR 0121, 0123)", () => {
+    expect(FRIDGE.plateBlockName).toBe(
+      CAMPER_FRIDGE_DOOR_BLOCK.slice(`${NAMESPACE}:`.length),
+    );
+    for (const door of FRIDGE.doors)
+      expect(
+        ownPlateBlock(CAMPER_FRIDGE_DOOR_BLOCK, { ...door, unit: FRIDGE }),
+      ).toBe(true);
+    expect(isStandableRoomBlock(CAMPER_FRIDGE_DOOR_BLOCK)).toBe(true);
+    for (const typeId of [
+      CAMPER_CABINET_DOOR_BLOCK,
+      CAMPER_FLOOR_BLOCK,
+      CAMPER_FURNITURE_BLOCK,
+      "minecraft:stone",
+    ])
+      expect(isStandableRoomBlock(typeId)).toBe(false);
   });
 
   it("names the furniture block the way the domain's slot check expects (ADR 0097)", () => {

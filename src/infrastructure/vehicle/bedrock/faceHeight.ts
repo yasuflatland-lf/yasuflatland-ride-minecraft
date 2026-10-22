@@ -8,6 +8,7 @@ import {
   CAMPER_CEILING_BLOCK,
   CAMPER_DOOR_BLOCK,
   CAMPER_FLOOR_BLOCK,
+  CAMPER_FRIDGE_DOOR_BLOCK,
   CAMPER_FURNITURE_BLOCK,
   CAMPER_SHOWER_DOOR_BLOCK,
   CAMPER_SHOWER_TOILET_BLOCK,
@@ -48,6 +49,13 @@ const COMPARTMENT_SHAPES: Partial<
       top: (lift + CABINET_BOX_PX) / PX_PER_BLOCK,
     };
   },
+  // A fridge compartment's box runs from its floor, the height its state lifts it by, to the
+  // top of the cell, so a press anywhere on the door's height in that cell reaches it (ADR 0123).
+  fridge: (height) => ({
+    kind: "room",
+    bottom: (height ?? Math.min(...pairHeights("fridge"))) / PX_PER_BLOCK,
+    top: 1,
+  }),
 };
 
 // Selection boxes of the room blocks in packs/yasu_ride_bp/blocks/yasu_ride; the wall
@@ -65,6 +73,7 @@ const ROOM_BOXES: Readonly<Record<string, PressedShape>> = {
     bottom: 2 / PX_PER_BLOCK,
     top: 13 / PX_PER_BLOCK,
   },
+  [CAMPER_FRIDGE_DOOR_BLOCK]: FULL,
 };
 
 /**

@@ -15,6 +15,7 @@ import {
   DECK_SEAT_OF_PROPERTY,
   DECK_SEAT_TYPE,
   DECK_SEATS_PROPERTY,
+  isStandableRoomBlock,
   isVehicleEntity,
   PLAYER_TYPE,
 } from "./identifiers";
@@ -73,13 +74,19 @@ interface Seated {
 }
 
 // The feet and head cells must be open, so a block a player put in the aisle
-// leaves the engine's dismount spot instead of trapping the rider in it (ADR 0109).
+// leaves the engine's dismount spot instead of trapping the rider in it (ADR 0109). An open
+// fridge door's plate has no collision, so it leaves the cell open (ADR 0123).
 function standClear(dimension: Dimension, at: Vec3): boolean {
   const feet = { x: at.x, y: Math.floor(at.y), z: at.z };
   return [feet, { ...feet, y: feet.y + 1 }].every((cell) => {
     try {
       const block = dimension.getBlock(cell);
-      return block !== undefined && (block.isAir || isLightBlock(block));
+      return (
+        block !== undefined &&
+        (block.isAir ||
+          isLightBlock(block) ||
+          isStandableRoomBlock(block.typeId))
+      );
     } catch {
       return false; // Unloaded chunk or outside the world
     }

@@ -23,6 +23,7 @@ import {
   CAMPER_CEILING_BLOCK,
   CAMPER_DOOR_BLOCK,
   CAMPER_FLOOR_BLOCK,
+  CAMPER_FRIDGE_DOOR_BLOCK,
   CAMPER_FURNITURE_BLOCK,
   CAMPER_SHOWER_DOOR_BLOCK,
   CAMPER_SHOWER_TOILET_BLOCK,
@@ -39,6 +40,7 @@ import {
   pairEndStates,
   pairHeightStates,
   ROOM_FACE_STATE,
+  ROOM_LIT_STATE,
   ROOM_OPEN_STATE,
 } from "./identifiers";
 
@@ -128,6 +130,16 @@ function isDockCell(v: unknown): v is DockCell {
     case "cabinetDoor":
     case "showerDoor":
       return isFace(b.face);
+    case "fridgeDoor":
+      return isFace(b.face) && typeof b.lit === "boolean";
+    case "fridge":
+      return (
+        isFace(b.face) &&
+        isDecorHeight(b.height) &&
+        typeof b.open === "boolean" &&
+        isPairEnd(b.end0) &&
+        isPairEnd(b.end1)
+      );
     case "cabinet":
       return (
         isFace(b.face) &&
@@ -179,8 +191,12 @@ function blockIdOf(block: DockBlock): string {
       return CAMPER_CABINET_DOOR_BLOCK;
     case "showerDoor":
       return CAMPER_SHOWER_DOOR_BLOCK;
+    case "fridgeDoor":
+      return CAMPER_FRIDGE_DOOR_BLOCK;
     case "cabinet":
       return pairDecorBlockId("cabinet");
+    case "fridge":
+      return pairDecorBlockId("fridge");
     case "furniture":
       return CAMPER_FURNITURE_BLOCK;
     case "decor":
@@ -216,6 +232,19 @@ function permutationOf(block: DockBlock): BlockPermutation {
     case "showerDoor":
       return BlockPermutation.resolve(CAMPER_SHOWER_DOOR_BLOCK, {
         [ROOM_FACE_STATE]: block.face,
+      });
+    case "fridgeDoor":
+      return BlockPermutation.resolve(CAMPER_FRIDGE_DOOR_BLOCK, {
+        [ROOM_FACE_STATE]: block.face,
+        [ROOM_LIT_STATE]: block.lit,
+      });
+    case "fridge":
+      return BlockPermutation.resolve(pairDecorBlockId("fridge"), {
+        [DECOR_FACE_STATE]: block.face,
+        ...pairHeightStates("fridge", block.height),
+        [ROOM_OPEN_STATE]: block.open,
+        ...pairEndStates(0, block.end0),
+        ...pairEndStates(1, block.end1),
       });
     case "cabinet":
       return BlockPermutation.resolve(pairDecorBlockId("cabinet"), {

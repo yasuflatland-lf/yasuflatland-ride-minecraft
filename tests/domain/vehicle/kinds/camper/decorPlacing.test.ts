@@ -24,6 +24,7 @@ import {
   DECOR_SPOTS,
   type DecorSlot,
   type LocalCell,
+  STORAGE_DOORS,
   type StorageDoorId,
 } from "../../../../../src/domain/vehicle/kinds/camper/furniture";
 import {
@@ -61,20 +62,37 @@ const freeOf = (taken: readonly DecorSlot[]) => (s: DecorSlot) =>
 const PAIR_IDS = [
   "table",
   "table_aisle",
-  "shelf_low",
-  "shelf_low_front",
-  "shelf_high",
-  "shelf_high_front",
   "cabinet_sink_rear",
   "cabinet_sink_front",
   "cabinet_stove_rear",
   "cabinet_stove_front",
+  "fridge_bottom_rear",
+  "fridge_bottom_front",
+  "fridge_top_rear",
+  "fridge_top_front",
 ];
-const DOORS: readonly StorageDoorId[] = ["sink", "stove"];
+const DOORS: readonly StorageDoorId[] = STORAGE_DOORS.map(({ id }) => id);
+const unitOf = (door: StorageDoorId) =>
+  defined(
+    STORAGE_DOORS.find((d) => d.id === door),
+    door,
+  ).unit;
+// The block a compartment lays, written out per unit: the fridge's carries its floor's height
+// (ADR 0114, 0123).
+const compartmentBlock = (
+  door: StorageDoorId,
+  face: number,
+  open: boolean,
+  height: number,
+  ends: Record<string, string>,
+) =>
+  unitOf(door).pairKind === "fridge"
+    ? { type: "fridge", face, height, open, ...ends }
+    : { type: "cabinet", face, open, ...ends };
 const openDoors = fc
   .subarray([...DOORS])
   .map((doors) => new Set<StorageDoorId>(doors));
-// A slot behind a cabinet door takes items only while that door is open (ADR 0114).
+// A slot behind a storage door takes items only while that door is open (ADR 0114, 0121).
 const reachable = (open: ReadonlySet<StorageDoorId>) => (s: DecorSlot) =>
   s.door === undefined || open.has(s.door);
 // The nearest slot to `point`, the first one on a tie, written out separately from the code.
@@ -114,7 +132,7 @@ it("accepts a standing item on every slot but the ceiling hook and a hanging ite
   expect(ids(slotsFor("cushion"))).toEqual(
     ids(DECOR_SLOTS.filter((s) => s.id !== "ceiling_hook" && !s.door)),
   );
-  expect(slotsFor("percolator")).toHaveLength(12);
+  expect(slotsFor("percolator")).toHaveLength(8);
   expect(slotsFor("percolator", new Set(DOORS))).toHaveLength(16);
   expect(slotsFor("constructor")).toEqual([]);
   expect(slotsFor("stone")).toEqual([]);
@@ -142,7 +160,7 @@ it("takes standing items behind an open cabinet door and none behind a shut one,
   ]);
 });
 
-it("gives the stove one slot in its cell middle and every other furniture one slot per cell but a shelf board's, the table's, or a cabinet compartment's two ends, keeping the burner spots (ADR 0107, 0108, 0112, 0114)", () => {
+it("gives the stove one slot in its cell middle and every other furniture one slot per cell but the table's or a storage compartment's two ends, keeping the burner spots (ADR 0107, 0108, 0112, 0114, 0123)", () => {
   expect(SLOTS.map((s) => s.slot)).toEqual(DECOR_SLOTS);
   expect(SLOTS).toHaveLength(17);
   const stove = SLOTS.filter(({ kind }) => kind === "stove").map(
@@ -153,14 +171,14 @@ it("gives the stove one slot in its cell middle and every other furniture one sl
   expect(pairs.map((s) => [s.spot, s.pair])).toEqual([
     [7, { kind: "table", end: 0 }],
     [8, { kind: "table", end: 1 }],
-    [5, { kind: "shelf", end: 0 }],
-    [6, { kind: "shelf", end: 1 }],
-    [5, { kind: "shelf", end: 0 }],
-    [6, { kind: "shelf", end: 1 }],
     [5, { kind: "cabinet", end: 0 }],
     [6, { kind: "cabinet", end: 1 }],
     [5, { kind: "cabinet", end: 0 }],
     [6, { kind: "cabinet", end: 1 }],
+    [5, { kind: "fridge", end: 0 }],
+    [6, { kind: "fridge", end: 1 }],
+    [5, { kind: "fridge", end: 0 }],
+    [6, { kind: "fridge", end: 1 }],
   ]);
   for (let i = 0; i < pairs.length; i += 2)
     expect(
@@ -247,20 +265,19 @@ it("puts each slot's point at its spot on its surface and lays its decor in its 
         });
         const decor = [{ slot: slot.id, item: "potted_plant" }];
         if (slot.door !== undefined) {
-          // A cabinet compartment is laid by compartmentCells, not as decor (ADR 0114).
+          // A storage compartment is laid by compartmentCells, not as decor (ADR 0114, 0121).
           expect(decorCells(p, decor)).toEqual([]);
-          const cabinet = defined(
+          const compartment = defined(
             compartmentCells(p, decor, new Set()).find(
               (cell) => cellKey(cell) === cellKey(c),
             ),
-            "cabinet cell",
+            "compartment cell",
           );
-          expect(cabinet.block).toEqual({
-            type: "cabinet",
-            face: decorFace(p.yaw),
-            open: false,
-            [`end${slot.pair?.end}`]: "potted_plant",
-          });
+          expect(compartment.block).toEqual(
+            compartmentBlock(slot.door, decorFace(p.yaw), false, slot.height, {
+              [`end${slot.pair?.end}`]: "potted_plant",
+            }),
+          );
           continue;
         }
         const laid = defined(decorCells(p, decor)[0], "decor cell");
@@ -426,20 +443,22 @@ it("with an exact press returns the pressed slot when it accepts the item and is
   );
 });
 
-it("puts a potted plant on the high shelf when it is pressed, though the low shelf is nearer the hit point", () => {
+it("puts a potted plant in the open fridge's top compartment when it is pressed, though the bottom one is nearer the hit point (ADR 0123)", () => {
   const p = parkPose({ x: 0, y: 64, z: 0 }, 0);
-  const high = slotNamed("shelf_high");
-  const low = slotNamed("shelf_low");
+  const top = slotNamed("fridge_top_rear");
+  const bottom = slotNamed("fridge_bottom_rear");
   expect(
     slotForPress(
       p,
       "potted_plant",
       [],
-      decorSlotCell(p, high),
-      slotPoint(p, low),
+      decorSlotCell(p, top),
+      slotPoint(p, bottom),
       false,
+      undefined,
+      new Set<StorageDoorId>(["fridge_top", "fridge_bottom"]),
     ),
-  ).toBe(high);
+  ).toBe(top);
 });
 
 it("puts an item pressed anywhere on the stove top on its one burner in the middle, in every facing (ADR 0112)", () => {
@@ -632,7 +651,7 @@ it("puts a saucepan on the stove's one burner for the side-face press logged in 
   );
 });
 
-it("lays a cabinet block in both compartments, full or empty, with each end's item, showing them only behind the doors in `shown` (ADR 0114)", () => {
+it("lays a compartment block in every compartment, full or empty, with each end's item, showing them only behind the doors in `shown` (ADR 0114, 0123)", () => {
   const cabinetSlots = DECOR_SLOTS.filter((s) => s.door !== undefined);
   fc.assert(
     fc.property(
@@ -643,7 +662,7 @@ it("lays a cabinet block in both compartments, full or empty, with each end's it
       (p, taken, item, shown) => {
         const decor = taken.map((s) => ({ slot: s.id, item }));
         const laid = compartmentCells(p, decor, shown);
-        expect(laid).toHaveLength(2);
+        expect(laid).toHaveLength(DOORS.length);
         for (const door of DOORS) {
           const ends = cabinetSlots.filter((s) => s.door === door);
           const at = decorSlotCell(p, defined(ends[0], "end"));
@@ -651,16 +670,19 @@ it("lays a cabinet block in both compartments, full or empty, with each end's it
             laid.find((c) => cellKey(c) === cellKey(at)),
             door,
           );
-          expect(cell.block).toEqual({
-            type: "cabinet",
-            face: decorFace(p.yaw),
-            open: shown.has(door),
-            ...Object.fromEntries(
-              ends
-                .filter((s) => taken.includes(s))
-                .map((s) => [`end${s.pair?.end}`, item]),
+          expect(cell.block).toEqual(
+            compartmentBlock(
+              door,
+              decorFace(p.yaw),
+              shown.has(door),
+              defined(ends[0], "end").height,
+              Object.fromEntries(
+                ends
+                  .filter((s) => taken.includes(s))
+                  .map((s) => [`end${s.pair?.end}`, item]),
+              ),
             ),
-          });
+          );
         }
       },
     ),

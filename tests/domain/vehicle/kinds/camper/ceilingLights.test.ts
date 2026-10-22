@@ -11,7 +11,10 @@ import type {
 import type { RawInput } from "../../../../../src/domain/vehicle/driveInput";
 import { CamperDrive } from "../../../../../src/domain/vehicle/kinds/camper/drive";
 import { SWITCH_CLICK } from "../../../../../src/domain/vehicle/kinds/camper/entity";
-import { CEILING_LIGHTS } from "../../../../../src/domain/vehicle/kinds/camper/furniture";
+import {
+  CEILING_LIGHTS,
+  STORAGE_DOORS,
+} from "../../../../../src/domain/vehicle/kinds/camper/furniture";
 import {
   AIR,
   cargoCells,
@@ -23,6 +26,7 @@ import {
   parkPose,
   roomCells,
   slotCells,
+  storagePlateChecks,
 } from "../../../../../src/domain/vehicle/kinds/camper/room";
 import { cellKey } from "../../../../../src/domain/vehicle/lighting/headlights";
 import { DOCK } from "../../../../../src/domain/vehicle/motion/dock";
@@ -43,12 +47,17 @@ const middle = (c: Vec3, rise = 0): Vec3 => ({
 });
 
 describe("ceiling light cells (ADR 0115)", () => {
-  it("lights open room cells one under the ceiling layer, never a cell the room, a slot, or the cabinet lays", () => {
+  it("lights open room cells one under the ceiling layer, never a cell the room, a slot, or a compartment lays; the front one is the fridge top door's plate cell, which the open plate lights instead (ADR 0115, 0123)", () => {
     fc.assert(
       fc.property(pose, (p) => {
         const lights = ceilingLightCells(p);
         expect(lights).toHaveLength(CEILING_LIGHTS.length);
-        const cargo = new Set(cargoCells(p).map(cellKey));
+        const open = new Set(
+          [
+            ...cargoCells(p),
+            ...storagePlateChecks(p, STORAGE_DOORS).map(({ cell }) => cell),
+          ].map(cellKey),
+        );
         const taken = new Set(
           [
             ...roomCells(p, true, new Set(["sink", "stove"])),
@@ -59,7 +68,7 @@ describe("ceiling light cells (ADR 0115)", () => {
         for (const cell of lights) {
           expect(cell.block).toEqual({ type: "light" });
           expect(cell.y).toBe(p.y + 2);
-          expect(cargo.has(cellKey(cell))).toBe(true);
+          expect(open.has(cellKey(cell))).toBe(true);
           expect(taken.has(cellKey(cell))).toBe(false);
         }
         expect(new Set(lights.map(cellKey)).size).toBe(lights.length);

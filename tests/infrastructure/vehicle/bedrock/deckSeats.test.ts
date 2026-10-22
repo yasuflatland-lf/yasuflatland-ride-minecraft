@@ -547,6 +547,22 @@ it("leaves the engine's spot when the stand cells are blocked or the player is g
     seats.keep(vehicleId, f.car, [spot], 0);
     expect(player.teleport).toHaveBeenCalledOnce();
   }
+  // An open fridge door's plate has no collision, so the rider stands up through it (ADR 0123).
+  {
+    const { f, seats, player, vehicleId, spot, standUp } = seatedOnce();
+    f.blocks.set("4,1,2", "yasu_ride:camper_fridge_door");
+    f.blocks.set("4,2,2", "yasu_ride:camper_fridge_door");
+    standUp();
+    seats.keep(vehicleId, f.car, [spot], 0);
+    expect(player.teleport).toHaveBeenCalledOnce();
+  }
+  {
+    const { f, seats, player, vehicleId, spot, standUp } = seatedOnce();
+    f.blocks.set("4,1,2", "yasu_ride:camper_cabinet_door");
+    standUp();
+    seats.keep(vehicleId, f.car, [spot], 0);
+    expect(player.teleport).not.toHaveBeenCalled();
+  }
   {
     const { f, seats, player, vehicleId, spot, standUp } = seatedOnce();
     f.dimension.getBlock.mockImplementation(() => {

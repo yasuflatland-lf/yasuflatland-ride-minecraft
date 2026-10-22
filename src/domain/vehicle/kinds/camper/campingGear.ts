@@ -30,7 +30,7 @@ export const HANGING_GEAR_IDS: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * The gear that stands, in catalog order: what a shelf board's or the table's pair block can
+ * The gear that stands, in catalog order: what a pair block, the table's or a compartment's, can
  * draw at each end; its yasu_ride:end<n> code is 1 + the index here, 0 for an empty end (ADR 0108).
  */
 export const STANDING_GEAR_IDS: readonly string[] = Object.freeze(

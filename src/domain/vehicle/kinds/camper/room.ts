@@ -406,7 +406,7 @@ function pairItems(
 
 /**
  * One block per slot cell that holds a placement in a known slot, turned to the yaw quarter.
- * On a shelf board or the table it is the pair block with the item at each end (ADR 0108);
+ * On the table it is the pair block with the item at each end (ADR 0108);
  * elsewhere a decor block at the slot's height and spot, and since a cell holds one block,
  * the first placement in a cell wins (ADR 0093, 0105). Storage compartments are laid by
  * compartmentCells, full or empty (ADR 0114, 0121).
@@ -568,8 +568,8 @@ export function slotCells(pose: HoldPose): Vec3[] {
 }
 
 /**
- * The namespace-free name of the block the decor in `cell` lays: the pair block of a shelf
- * board or the table, or the decor block of the cell's item; undefined while the cell holds
+ * The namespace-free name of the block the decor in `cell` lays: the pair block of the
+ * table, or the decor block of the cell's item; undefined while the cell holds
  * no decor (ADR 0093, 0108). A storage compartment always lays its unit's pair block (ADR 0114, 0121).
  */
 export function decorBlockName(

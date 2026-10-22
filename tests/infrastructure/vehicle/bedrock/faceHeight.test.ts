@@ -19,6 +19,7 @@ import {
   CAMPER_CEILING_BLOCK,
   CAMPER_DOOR_BLOCK,
   CAMPER_FLOOR_BLOCK,
+  CAMPER_FRIDGE_DOOR_BLOCK,
   CAMPER_FURNITURE_BLOCK,
   CAMPER_SHOWER_DOOR_BLOCK,
   CAMPER_SHOWER_TOILET_BLOCK,
@@ -156,6 +157,7 @@ it("keeps each room block's box top and bottom in step with its block file (ADR 
     CAMPER_BED_BLOCK,
     CAMPER_CEILING_BLOCK,
     CAMPER_CABINET_DOOR_BLOCK,
+    CAMPER_FRIDGE_DOOR_BLOCK,
   ]) {
     const boxes = selectionBoxes(typeId);
     expect(boxes.length, typeId).toBeGreaterThan(0);
@@ -270,6 +272,28 @@ it("puts a saucepan on the stove's burner for any Up-face press on it, from any 
       },
     ),
   );
+});
+
+it("gives the fridge's compartment block, at each height, its box lifted onto the compartment floor and up to the top of the cell, as its block file and transformation put it (ADR 0123)", () => {
+  const fridge = pairDecorBlockId("fridge");
+  const boxes = selectionBoxes(fridge);
+  expect(boxes).toHaveLength(8);
+  for (const { condition, box } of boxes) {
+    const height = Number(/height'\) == (\d+)/.exec(condition)?.[1]);
+    expect([3, 4], condition).toContain(height);
+    const { bottom, top } = vertical(box);
+    expect(pressedShape(fridge, height)).toEqual({
+      kind: "room",
+      bottom: bottom + height / 16,
+      top: top + height / 16,
+    });
+    expect(top + height / 16).toBe(1);
+  }
+  expect(pressedShape(fridge, undefined)).toEqual({
+    kind: "room",
+    bottom: 3 / 16,
+    top: 1,
+  });
 });
 
 it("gives the wall cabinet's compartment block its box lifted onto the compartment floor, as its block file and transformation put it (ADR 0114)", () => {

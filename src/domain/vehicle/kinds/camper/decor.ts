@@ -21,11 +21,17 @@ export function pairHeights(
 }
 
 // The stove's burner slots of ADR 0107, removed when the stove got one burner; decor saved
-// in them loads onto "stove" (ADR 0112).
+// in them loads onto "stove" (ADR 0112). The shelf boards' ends, removed when the fridge took
+// the shelf's place; decor saved on a board loads at the same end of the compartment in that
+// board's cell (ADR 0123).
 const RENAMED_SLOTS: ReadonlyMap<string, string> = new Map([
   ["stove_rear", "stove"],
   ["stove_wall", "stove"],
   ["stove_wall_rear", "stove"],
+  ["shelf_low", "fridge_bottom_rear"],
+  ["shelf_low_front", "fridge_bottom_front"],
+  ["shelf_high", "fridge_top_rear"],
+  ["shelf_high_front", "fridge_top_front"],
 ]);
 
 /** The slot id that decor saved under `id` loads onto: `id` unless that slot was renamed. */
@@ -51,7 +57,7 @@ export interface DecorCell {
 /**
  * Every cell that holds a slot, once, in the order of its first slot. A cell holds one
  * block, so slots that share a cell share one decor or furniture block (ADR 0107), and both
- * ends of a shelf board or the table share one pair or furniture block (ADR 0108).
+ * ends of the table or a storage compartment share one pair block (ADR 0108, 0121).
  */
 export const DECOR_CELLS: readonly DecorCell[] = DECOR_SLOTS.filter(
   (slot, i) => DECOR_SLOTS.findIndex((s) => sameCell(s.cell, slot.cell)) === i,
@@ -69,8 +75,8 @@ export function decorInCell(
 }
 
 /**
- * The slots an item in `slot` keeps from taking another item: the slot alone on an end of a
- * shelf board or the table, whose pair block draws one item per end (ADR 0108), and every slot
+ * The slots an item in `slot` keeps from taking another item: the slot alone on an end of the
+ * table or a compartment, whose pair block draws one item per end (ADR 0108), and every slot
  * of its cell otherwise, since the cell's decor block draws one item (ADR 0107).
  */
 export function sharingSlots(slot: DecorSlot): DecorSlot[] {

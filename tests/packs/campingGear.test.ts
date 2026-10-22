@@ -182,6 +182,7 @@ describe("camping gear block models (ADR 0093)", () => {
       [
         "deck_floor",
         "cabinet_decor_pair",
+        "fridge_decor_pair",
         "shelf_decor_pair",
         "table_decor_pair",
         ...SPEC.map((g) => g.id),
@@ -347,6 +348,11 @@ interface DecorBlock {
 
 const readJson = (path: string) => JSON.parse(readFileSync(path, "utf8"));
 const PAIR_KINDS = ["shelf", "table"] as const;
+// No slot lays the shelf's pair block since the fridge took the shelf's place, but it keeps
+// its board heights, so a block an older build laid keeps its type (ADR 0108, 0123).
+const RETIRED_PAIR_HEIGHTS: Partial<
+  Record<(typeof PAIR_KINDS)[number], number[]>
+> = { shelf: [4, 10] };
 interface PairBlock {
   "minecraft:block": {
     description: { states: Record<string, number[]> };
@@ -595,9 +601,10 @@ describe("camping gear blocks and items (ADR 0093)", () => {
     for (const kind of PAIR_KINDS) {
       const block = pairOf(kind)["minecraft:block"];
       const slots = DECOR_SLOTS.filter((s) => s.pair?.kind === kind);
-      const heights = [...new Set(slots.map((s) => s.height))].sort(
-        (a, b) => a - b,
-      );
+      const heights =
+        RETIRED_PAIR_HEIGHTS[kind] ??
+        [...new Set(slots.map((s) => s.height))].sort((a, b) => a - b);
+      expect(slots.length === 0).toBe(kind in RETIRED_PAIR_HEIGHTS);
       const pages = Math.ceil((standing.length + 1) / PAIR_PAGE_SIZE);
       const range = (n: number) => Array.from({ length: n }, (_, i) => i);
       const [end0, end1] = PAIR_END_STATES;
@@ -617,7 +624,7 @@ describe("camping gear blocks and items (ADR 0093)", () => {
         },
       });
       // The scripts set the height state exactly when the block defines it.
-      for (const height of heights)
+      for (const height of slots.length > 0 ? heights : [])
         expect(pairHeightStates(kind, height)).toEqual(
           lifted ? { [DECOR_HEIGHT_STATE]: height } : {},
         );
@@ -662,7 +669,7 @@ describe("camping gear blocks and items (ADR 0093)", () => {
         .filter((f) => f.endsWith("_decor_pair.block.json"))
         .sort(),
     ).toEqual(
-      [...PAIR_KINDS, "cabinet"]
+      [...PAIR_KINDS, "cabinet", "fridge"]
         .map((k) => `${k}_decor_pair.block.json`)
         .sort(),
     );
@@ -726,6 +733,86 @@ describe("camping gear blocks and items (ADR 0093)", () => {
       })),
     );
     // Shut, it shows nothing; open, exactly the bone of each end's item (ADR 0114).
+    const geometry = c["minecraft:geometry"];
+    for (const open of [false, true])
+      for (const end of [0, 1] as const)
+        for (const item of [undefined, ...STANDING_GEAR_IDS]) {
+          const states = {
+            ...pairEndStates(end, item),
+            [ROOM_OPEN_STATE]: open,
+          };
+          const shown = Object.entries(geometry.bone_visibility).filter(
+            ([bone, expr]) =>
+              bone.startsWith(`end${end}_`) && molangTrue(expr, states),
+          );
+          expect(shown.map(([bone]) => bone)).toEqual(
+            !open || item === undefined ? [] : [`end${end}_${item}`],
+          );
+        }
+  });
+
+  it("defines the fridge's compartment block as a pair block with its slots' heights and a door state, the storage component, no collision, and a box from its floor to the top of the cell (ADR 0123)", () => {
+    const standing = SPEC.filter((g) => !g.hanging);
+    const block = pairOf("fridge")["minecraft:block"];
+    const pages = Math.ceil((standing.length + 1) / PAIR_PAGE_SIZE);
+    const range = (n: number) => Array.from({ length: n }, (_, i) => i);
+    const [end0, end1] = PAIR_END_STATES;
+    const heights = [
+      ...new Set(
+        DECOR_SLOTS.filter((s) => s.pair?.kind === "fridge").map(
+          (s) => s.height,
+        ),
+      ),
+    ].sort((a, b) => a - b);
+    expect(heights).toEqual([3, 4]);
+    for (const height of heights)
+      expect(pairHeightStates("fridge", height)).toEqual({
+        [DECOR_HEIGHT_STATE]: height,
+      });
+    expect(block.description).toEqual({
+      identifier: pairDecorBlockId("fridge"),
+      menu_category: { category: "none" },
+      states: {
+        [DECOR_FACE_STATE]: [0, 1, 2, 3],
+        [DECOR_HEIGHT_STATE]: heights,
+        [ROOM_OPEN_STATE]: [false, true],
+        [end0.item]: range(PAIR_PAGE_SIZE),
+        [end0.page]: range(pages),
+        [end1.item]: range(PAIR_PAGE_SIZE),
+        [end1.page]: range(pages),
+      },
+    });
+    const c = block.components;
+    expect(c["minecraft:custom_components"]).toEqual([
+      CAMPER_CABINET_COMPONENT,
+    ]);
+    expect(c["minecraft:collision_box"]).toBe(false);
+    expect(c).not.toHaveProperty(["minecraft:selection_box"]);
+    expect(c["minecraft:material_instances"]).toEqual({
+      "*": { texture: ATLAS_KEY, render_method: "opaque" },
+    });
+    // Lifted by its height, each box runs from the compartment floor to the top of the cell.
+    expect(block.permutations).toEqual(
+      [0, 1, 2, 3].flatMap((face) =>
+        heights.map((height) => ({
+          condition: `q.block_state('yasu_ride:face') == ${face} && q.block_state('yasu_ride:height') == ${height}`,
+          components: {
+            "minecraft:transformation": {
+              rotation: [0, FACE_ROTATION[face], 0],
+              translation: [0, height / 16, 0],
+            },
+            "minecraft:selection_box": {
+              origin: [-8, 0, -8],
+              size: [16, 16 - height, 16],
+            },
+          },
+        })),
+      ),
+    );
+    // The upper compartment, from the divider at model y 36 to the top panel at 48, holds the
+    // tallest item (tools/gen_camper.py).
+    expect(MAX_STANDING_HEIGHT).toBeLessThanOrEqual(12);
+    // Shut, it shows nothing; open, exactly the bone of each end's item.
     const geometry = c["minecraft:geometry"];
     for (const open of [false, true])
       for (const end of [0, 1] as const)
