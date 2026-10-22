@@ -39,6 +39,7 @@ import {
   steerYaw,
   stepMediumMotion,
   stepMotion,
+  targetVelocity,
   updateSpeed,
 } from "../../../../src/domain/vehicle/motion/motion";
 import { groundInputFor } from "../../../../src/domain/vehicle/motion/transformingDrive";
@@ -1623,4 +1624,128 @@ describe("per-kind control mapping, transforming kinds (ADR 0089)", () => {
       );
     },
   );
+});
+
+describe("targetVelocity (ADR 0002, 0081)", () => {
+  const component = fc.double({ min: -2, max: 2, noNaN: true });
+  const direction = fc
+    .double({ min: -180, max: 180, noNaN: true })
+    .map(forward);
+  const velocity = fc.record({ x: component, z: component });
+  const retained = fc.double({ min: 0, max: 1, noNaN: true });
+  const cap = fc.double({ min: 0, minExcluded: true, max: 2, noNaN: true });
+  const args = fc.tuple(direction, component, velocity, retained, cap);
+
+  it("caps the result at maxSpeed", () => {
+    fc.assert(
+      fc.property(args, ([f, speed, v, keepLat, maxSpeed]) => {
+        expect(
+          length(targetVelocity(f, speed, v, keepLat, maxSpeed)),
+        ).toBeLessThanOrEqual(maxSpeed + 1e-9);
+      }),
+    );
+  });
+
+  it("keeps no sideways velocity when keepLat is zero", () => {
+    fc.assert(
+      fc.property(
+        direction,
+        velocity,
+        cap,
+        retained,
+        fc.constantFrom(-1, 1),
+        (f, v, maxSpeed, fraction, sign) => {
+          const speed = maxSpeed * fraction * sign;
+          const result = targetVelocity(f, speed, v, 0, maxSpeed);
+          expect(Math.abs(result.x - f.x * speed)).toBeLessThanOrEqual(1e-9);
+          expect(Math.abs(result.z - f.z * speed)).toBeLessThanOrEqual(1e-9);
+        },
+      ),
+    );
+  });
+
+  it("sets the forward speed and keeps the chosen fraction of slide below the cap", () => {
+    fc.assert(
+      fc.property(args, ([f, speed, v, keepLat, maxSpeed]) => {
+        const vLong = dot(v, f);
+        const sideways = { x: v.x - f.x * vLong, z: v.z - f.z * vLong };
+        const uncapped = {
+          x: f.x * speed + sideways.x * keepLat,
+          z: f.z * speed + sideways.z * keepLat,
+        };
+        fc.pre(length(uncapped) < maxSpeed);
+        const result = targetVelocity(f, speed, v, keepLat, maxSpeed);
+        const resultLong = dot(result, f);
+        expect(Math.abs(resultLong - speed)).toBeLessThanOrEqual(1e-9);
+        expect(
+          Math.abs(result.x - f.x * resultLong - keepLat * sideways.x),
+        ).toBeLessThanOrEqual(1e-9);
+        expect(
+          Math.abs(result.z - f.z * resultLong - keepLat * sideways.z),
+        ).toBeLessThanOrEqual(1e-9);
+      }),
+    );
+  });
+
+  it("does not depend on the observed forward velocity", () => {
+    fc.assert(
+      fc.property(args, component, ([f, speed, v, keepLat, maxSpeed], t) => {
+        const result = targetVelocity(f, speed, v, keepLat, maxSpeed);
+        const shifted = targetVelocity(
+          f,
+          speed,
+          {
+            x: v.x + f.x * t,
+            z: v.z + f.z * t,
+          },
+          keepLat,
+          maxSpeed,
+        );
+        expect(Math.abs(result.x - shifted.x)).toBeLessThanOrEqual(1e-9);
+        expect(Math.abs(result.z - shifted.z)).toBeLessThanOrEqual(1e-9);
+      }),
+    );
+  });
+
+  function oldGroundTarget(
+    f: Vec2,
+    speed: number,
+    v: Vec2,
+    keepLat: number,
+    maxSpeed: number,
+  ): Vec2 {
+    const vLong = dot(v, f);
+    const lat = { x: v.x - f.x * vLong, z: v.z - f.z * vLong };
+    return clampLength(
+      { x: f.x * speed + lat.x * keepLat, z: f.z * speed + lat.z * keepLat },
+      maxSpeed,
+    );
+  }
+
+  function oldMediumTarget(
+    f: Vec2,
+    speed: number,
+    v: Vec2,
+    keepLat: number,
+    maxSpeed: number,
+  ): Vec2 {
+    const vLong = dot(v, f);
+    return clampLength(
+      {
+        x: f.x * speed + (v.x - f.x * vLong) * keepLat,
+        z: f.z * speed + (v.z - f.z * vLong) * keepLat,
+      },
+      maxSpeed,
+    );
+  }
+
+  it("matches both old inline targets exactly", () => {
+    fc.assert(
+      fc.property(args, ([f, speed, v, keepLat, maxSpeed]) => {
+        const result = targetVelocity(f, speed, v, keepLat, maxSpeed);
+        expect(result).toEqual(oldGroundTarget(f, speed, v, keepLat, maxSpeed));
+        expect(result).toEqual(oldMediumTarget(f, speed, v, keepLat, maxSpeed));
+      }),
+    );
+  });
 });
