@@ -197,23 +197,54 @@ def rear_z(y):
 
 STRIPE_FRONT = FRONT + 10
 # The W, measured on the side close-up: p runs from its rear edge (0) to its front edge (1).
-W_WIDTH, W_BOTTOM, W_STEP = 16.5, ARCH_TOP + 1.5, 0.5
+# It is mirrored about p = 0.5, every stroke W_STROKE wide along p (#459).
+W_WIDTH, W_BOTTOM, W_STROKE = 16.5, ARCH_TOP + 1.5, 0.17
 W_REAR = FRONT_AXLE + W_WIDTH / 2  # centered over the front wheel
 W_MID = STRIPE_Y[1] - 0.32 * (STRIPE_Y[1] - W_BOTTOM)  # top of the middle peak
-W_ARM_START, W_ARM_END = (0.0, 0.17), (0.83, 1.0)
+W_ARM_START, W_FOOT, W_PEAK = (0.0, W_STROKE), (0.24, round(0.24 + W_STROKE, 6)), (0.415, 0.585)
 
 
 def w_z(p):
     return W_REAR - W_WIDTH * p
 
 
-# Each stroke: its p span at the bottom, its p span at the top, and its bottom and top y.
-W_STROKES = [
-    ((0.24, 0.41), W_ARM_START, W_BOTTOM, STRIPE_Y[0]),
-    ((0.28, 0.45), (0.50, 0.63), W_BOTTOM, W_MID),
-    ((0.66, 0.82), (0.50, 0.63), W_BOTTOM, W_MID),
-    ((0.62, 0.79), W_ARM_END, W_BOTTOM, STRIPE_Y[0]),
-]
+def w_mirror(span):
+    return (round(1 - span[1], 6), round(1 - span[0], 6))  # rounded so mirrored spans compare equal
+
+
+W_ARM_END = w_mirror(W_ARM_START)
+# Each stroke: its p span at the bottom, its p span at the top, and its top y. Both strokes
+# meeting at a foot share its span.
+W_STROKES = [(W_FOOT, W_ARM_START, STRIPE_Y[0]), (W_FOOT, W_PEAK, W_MID)]
+W_STROKES += [(w_mirror(b), w_mirror(t), y) for b, t, y in W_STROKES]
+
+
+def w_stroke(x0, x1, bottom, top, y_top):
+    """One W stroke as a single cube turned about x, so its slanted edges stay straight; stair-
+    stepped rows looked jagged (#459). The cube's ends are square to the stroke, so each end
+    has one corner on the W's outline and the other inside it: past the top into the stripe
+    for an outer arm, and short of the outline at the feet and the peak, where w_fill covers
+    the gap. Returns the cube and that corner's height above the outline."""
+    h = y_top - W_BOTTOM
+    zb, zt = w_z(sum(bottom) / 2), w_z(sum(top) / 2)
+    length = math.hypot(zt - zb, h)
+    thick = W_WIDTH * (bottom[1] - bottom[0]) * h / length
+    drop = thick * abs(zt - zb) / length
+    yb = W_BOTTOM + drop / 2
+    yt = y_top + drop / 2 if y_top == STRIPE_Y[0] else y_top - drop / 2
+    yc = (yb + yt) / 2
+    zc = zb + (zt - zb) * (yc - W_BOTTOM) / h
+    half = (yt - yb) * length / h / 2
+    # In game a negative x rotation tips the cube's top toward +z, the rear (ADR 0051).
+    lean = -math.degrees(math.atan2(zt - zb, h))
+    cube = box(x0, yc - half, zc - thick / 2, x1, yc + half, zc + thick / 2, "stripe", [lean, 0, 0], [x0, yc, zc])
+    return cube, drop
+
+
+def w_fill(x0, x1, span, y0, y1):
+    return box(x0, y0, w_z(span[1]), x1, y1, w_z(span[0]), "stripe")
+
+
 CAB_WIN = (-50, -38, 35, 50)
 SIDE0 = FRONT + 3  # side walls start behind the chamfered front corners
 # Wheel arches: wide at the bottom with the top corners cut, as on the photos.
@@ -258,13 +289,18 @@ for x0, x1, windows in ((HW - 1, HW, right_windows), (-HW, -HW + 1, left_windows
         f = (y + 0.125 - STRIPE_Y[0]) / (STRIPE_Y[1] - STRIPE_Y[0])
         body.append(box(lo, y, STRIPE_FRONT - 3 * f, hi, y + 0.25, STRIPE_FRONT, "stripe"))
         y += 0.25
-    for (b0, b1), (t0, t1), y_bottom, y_top in W_STROKES:
-        y = y_bottom
-        while y < y_top - 1e-6:
-            f = min((y + W_STEP - y_bottom) / (y_top - y_bottom), 1.0)
-            p0, p1 = b0 + (t0 - b0) * f, b1 + (t1 - b1) * f
-            body.append(box(lo, y, w_z(p1), hi, min(y + W_STEP, y_top), w_z(p0), "stripe"))
-            y += W_STEP
+    drops = {}
+    for bottom, top, y_top in W_STROKES:
+        cube, drop = w_stroke(lo, hi, bottom, top, y_top)
+        body.append(cube)
+        for end in (bottom, top if y_top == W_MID else None):
+            if end:
+                drops[end] = max(drops.get(end, 0), drop)
+    for span, drop in drops.items():
+        if span == W_PEAK:
+            body.append(w_fill(lo, hi, span, W_MID - drop, W_MID))
+        else:
+            body.append(w_fill(lo, hi, span, W_BOTTOM, W_BOTTOM + drop))
     for z0, z1, y0, y1 in windows:
         frame = "black" if (z0, z1) == CAB_WIN[:2] else "chrome"
         for fz0, fz1, fy0, fy1 in ((z0 - 0.6, z1 + 0.6, y0 - 0.6, y0), (z0 - 0.6, z1 + 0.6, y1, y1 + 0.6),

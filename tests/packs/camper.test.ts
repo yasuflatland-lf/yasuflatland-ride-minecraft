@@ -175,6 +175,51 @@ describe("camper model assets (ADR 0067)", () => {
     }
   });
 
+  it("draws the side stripe's W as mirrored single-cube strokes on a flat bottom (#459)", () => {
+    // The PALETTE order in tools/gen_camper.py puts the stripe in slot 6.
+    const strokes = (bone("body").cubes ?? []).filter(
+      (cube) => cube.uv.north?.uv[0] === 6 && (cube.rotation?.[0] ?? 0) !== 0,
+    );
+    const frontAxle = -31.5;
+    const wBottom = 2 * 7.8 + 2 + 1.5;
+    for (const side of [1, -1]) {
+      const own = strokes.filter(
+        (cube) => Math.sign(cube.origin[0] ?? 0) === side,
+      );
+      expect(own, `side ${side}`).toHaveLength(4);
+      for (const cube of own) {
+        const twin = own.find(
+          (other) =>
+            Math.abs(
+              (other.pivot?.[2] ?? 0) + (cube.pivot?.[2] ?? 0) - 2 * frontAxle,
+            ) < 0.002 &&
+            Math.abs((other.pivot?.[1] ?? 0) - (cube.pivot?.[1] ?? 0)) <
+              0.002 &&
+            Math.abs((other.rotation?.[0] ?? 0) + (cube.rotation?.[0] ?? 0)) <
+              0.002,
+        );
+        expect(twin, JSON.stringify(cube.pivot)).toBeDefined();
+        expect(twin?.size).toEqual(cube.size);
+      }
+      const lowest = own.map((cube) => {
+        const angle = ((cube.rotation?.[0] ?? 0) * Math.PI) / 180;
+        const py = cube.pivot?.[1] ?? 0;
+        const pz = cube.pivot?.[2] ?? 0;
+        return Math.min(
+          ...[0, 1, 2, 3].map((corner) => {
+            const y =
+              (cube.origin[1] ?? 0) + (corner & 1) * (cube.size[1] ?? 0);
+            const z =
+              (cube.origin[2] ?? 0) + ((corner >> 1) & 1) * (cube.size[2] ?? 0);
+            return py + (y - py) * Math.cos(angle) - (z - pz) * Math.sin(angle);
+          }),
+        );
+      });
+      // Geometry coordinates are rounded to three decimal places by the generator.
+      for (const y of lowest) expect(y).toBeCloseTo(wBottom, 2);
+    }
+  });
+
   it("clears furniture and wall lining from all four wheel housings", () => {
     const interior = bones.filter(
       (b) => b.name === "body" || b.name.startsWith("seat_"),
