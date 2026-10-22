@@ -1,6 +1,6 @@
 # 0108. Two items on each shelf board and on the table
 
-- Status: Accepted
+- Status: Accepted (extended by [0114](0114-open-the-camper-wall-cabinet.md): the wall cabinet's compartments are pair blocks that show their items only while open)
 - Date: 2026-10-22
 - Supersedes in part: 0093 (one slot on each shelf board and on the table), 0107 (on the shelf boards and the table: a cell holding one item, an empty-hand press taking back whichever slot's item, one decor block per occupied slot cell, and a standing box that ends at the item's top)
 
