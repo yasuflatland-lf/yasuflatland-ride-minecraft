@@ -194,6 +194,44 @@ describe("SeatFillers (ADR 0120)", () => {
     expect(listOf(f.vehicle)).toEqual(["p0", "F", "p2"]);
   });
 
+  it("puts every player of the list back aboard, in order, when fillers cannot spawn or get in", () => {
+    fc.assert(
+      fc.property(
+        layoutArb,
+        fc.constantFrom("throws", "refused"),
+        (layout, failure) => {
+          const f = fixture();
+          // Seat the players in reverse, so every one of them is out of place.
+          for (const id of layout.filter((p) => p !== undefined).reverse()) {
+            const rider = f.players.get(id) as Fake;
+            f.vehicle.riders.push(rider);
+            rider.mount = f.vehicle;
+          }
+          if (failure === "throws")
+            f.dimension.spawnEntity.mockImplementation(() => {
+              throw new Error("unloaded chunk");
+            });
+          else
+            f.dimension.spawnEntity.mockImplementation((typeId: string) => {
+              const filler = f.make(`stuck${f.entities.size}`, typeId);
+              filler.mount = f.make(`other${f.entities.size}`, "x");
+              return filler;
+            });
+          new SeatFillers().lay(
+            asVehicleId("boat"),
+            asEntity(f.vehicle),
+            layout,
+            (id) => f.players.get(id) as unknown as Player,
+          );
+          expect(listOf(f.vehicle)).toEqual(layout.filter((p) => p));
+          // A filler that could not get in is not left in the world.
+          for (const entity of f.entities.values())
+            expect(entity.typeId === SEAT_FILLER_TYPE).toBe(false);
+        },
+      ),
+    );
+  });
+
   it("takes a boarding player off another mount, and puts them back when the vehicle refuses them", () => {
     const f = fixture();
     const deckSeat = f.make("deckSeat", "yasu_ride:deck_seat");

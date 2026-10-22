@@ -50,6 +50,25 @@ function board(
   return false;
 }
 
+/** Seats `spare`, or a new filler, in the vehicle's next seat; a filler that cannot get in is removed. */
+function holdSeat(
+  rideable: EntityRideableComponent,
+  vehicle: Entity,
+  spare: Entity | undefined,
+): void {
+  let filler = spare;
+  try {
+    filler ??= vehicle.dimension.spawnEntity(
+      SEAT_FILLER_TYPE,
+      vehicle.location,
+    );
+    if (rideable.addRider(filler)) return;
+  } catch {
+    // Spawning fails where the world refuses it, such as an unloaded chunk.
+  }
+  if (filler?.isValid) filler.remove();
+}
+
 /**
  * Removes a seat filler that loads without riding a vehicle, such as one left by a vehicle
  * that broke while unloaded. One whose vehicle loads later is replaced on its next tick.
@@ -75,6 +94,7 @@ export class SeatFillers {
    * Makes the vehicle's rider list `layout`. The riders from the first one out of place
    * get off and back on in order, since the engine only adds riders at the end; a player
    * who cannot get in is replaced by a filler, so the riders after them keep their seats.
+   * A filler that cannot get in is skipped, and the riders after it still get back on.
    */
   lay(
     vehicleId: VehicleId,
@@ -99,13 +119,9 @@ export class SeatFillers {
       for (const want of layout.slice(same)) {
         const player = want === undefined ? undefined : playerOf(want);
         if (player && board(rideable, vehicle, player)) continue;
-        const filler =
-          spare.pop() ??
-          vehicle.dimension.spawnEntity(SEAT_FILLER_TYPE, vehicle.location);
-        if (!rideable.addRider(filler)) {
-          filler.remove();
-          break;
-        }
+        // A filler that cannot spawn or get in is skipped, so the players after it still get
+        // back on, one seat lower until the next layout, instead of staying ejected.
+        holdSeat(rideable, vehicle, spare.pop());
       }
       for (const filler of spare) filler.remove();
     }
