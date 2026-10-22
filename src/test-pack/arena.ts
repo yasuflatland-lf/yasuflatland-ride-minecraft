@@ -1,6 +1,7 @@
 // The in-game test arena and the fixtures that spawn vehicles in it (ADR 0010).
 import { type Dimension, type Entity, system, world } from "@minecraft/server";
 import type { Vec2 } from "../domain/shared/vec";
+import { LOW_CHAIR_TYPE } from "../infrastructure/camp/identifiers";
 import {
   TEST_DECOR_EVENT as DECOR_EVENT,
   ENTITY_TYPE,
@@ -134,6 +135,7 @@ export async function setupArena(): Promise<Arena> {
   dim.runCommand(`kill @e[type=${ENTITY_TYPE.suv}]`);
   dim.runCommand(`kill @e[type=${ENTITY_TYPE.sportsboat}]`);
   dim.runCommand(`kill @e[type=${ENTITY_TYPE.camper}]`);
+  dim.runCommand(`kill @e[type=${LOW_CHAIR_TYPE}]`);
   dim.runCommand("kill @e[type=cow]");
   dim.runCommand(`kill @e[type=${SEAT_PROBE}]`);
   // The pool's water replaces the stone under passable_no_hop's carpets and
