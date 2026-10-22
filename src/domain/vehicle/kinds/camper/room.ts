@@ -219,15 +219,18 @@ function holdsFurnitureBlock(lx: number, lz: number, dy: number): boolean {
   );
 }
 
+/** The local interior cells at `layers` that no furniture block fills. */
+function localInterior(layers: readonly number[]): LocalCell[] {
+  const cells: LocalCell[] = [];
+  for (const layer of layers)
+    for (let x = -HALF_X; x <= HALF_X; x++)
+      for (let z = -HALF_Z; z <= HALF_Z; z++) cells.push({ x, z, layer });
+  return cells.filter(({ x, z, layer }) => !holdsFurnitureBlock(x, z, layer));
+}
+
 /** The interior cells at `layers` that no furniture block fills. */
 function interior(pose: HoldPose, layers: readonly number[]): Vec3[] {
-  const cells: Vec3[] = [];
-  for (const dy of layers)
-    for (let lx = -HALF_X; lx <= HALF_X; lx++)
-      for (let lz = -HALF_Z; lz <= HALF_Z; lz++)
-        if (!holdsFurnitureBlock(lx, lz, dy))
-          cells.push(cellAt(pose, lx, lz, dy));
-  return cells;
+  return localInterior(layers).map((cell) => localCellAt(pose, cell));
 }
 
 function sameLocal(a: LocalCell, b: LocalCell): boolean {
@@ -266,18 +269,10 @@ export function roomCells(
   openCabinets: ReadonlySet<CabinetDoor> = NO_DOORS,
 ): DockCell[] {
   const { f, l } = axes(pose.yaw);
-  const ceiling: DockCell[] = [];
-  for (let lx = -HALF_X; lx <= HALF_X; lx++)
-    for (let lz = -HALF_Z; lz <= HALF_Z; lz++) {
-      if (holdsFurnitureBlock(lx, lz, CEILING_LAYER)) continue;
-      const block = ceilingBlock(
-        { x: lx, z: lz, layer: CEILING_LAYER },
-        f,
-        openCabinets,
-      );
-      if (block)
-        ceiling.push({ ...cellAt(pose, lx, lz, CEILING_LAYER), block });
-    }
+  const ceiling = localInterior([CEILING_LAYER]).flatMap((cell) => {
+    const block = ceilingBlock(cell, f, openCabinets);
+    return block ? [{ ...localCellAt(pose, cell), block }] : [];
+  });
   const cells: DockCell[] = [
     ...interior(pose, [0]).map((at) => ({
       ...at,
@@ -330,7 +325,7 @@ type CabinetCell = DockCell & {
 
 /** The item at each end of the pair cell that holds `slot`, by DecorPairEnd.end (ADR 0108). */
 function pairItems(
-  slot: DecorSlot,
+  slot: Pick<DecorSlot, "cell">,
   decor: readonly DecorPlacement[],
 ): { end0?: string; end1?: string } {
   const itemAt = (end: 0 | 1) =>
@@ -395,21 +390,15 @@ export function cabinetCells(
   shown: ReadonlySet<CabinetDoor>,
 ): CabinetCell[] {
   const face = decorFace(pose.yaw);
-  return CABINET_DOORS.flatMap(({ door, cell }) => {
-    const slot = DECOR_CELLS.find((c) => sameLocal(c.cell, cell))?.slots[0];
-    if (!slot) return [];
-    return [
-      {
-        ...localCellAt(pose, cell),
-        block: {
-          type: "cabinet",
-          face,
-          open: shown.has(door),
-          ...pairItems(slot, decor),
-        },
-      },
-    ];
-  });
+  return CABINET_DOORS.map(({ door, cell }) => ({
+    ...localCellAt(pose, cell),
+    block: {
+      type: "cabinet",
+      face,
+      open: shown.has(door),
+      ...pairItems({ cell }, decor),
+    },
+  }));
 }
 
 function isCabinetCell(cell: LocalCell): boolean {
