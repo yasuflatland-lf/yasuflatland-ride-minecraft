@@ -40,6 +40,7 @@ import {
   ITEM_TYPE,
   OWNER_PROPERTY,
   PAINT_BY_DYE,
+  pairDecorBlockId,
   TEST_DECOR_EVENT,
   TEST_INPUT_EVENT,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
@@ -988,21 +989,24 @@ function decorFixture() {
   return { placeDecor, removeDecor, owner, startupsBefore, event, send };
 }
 
-it("places held camping gear on a camper room, furniture, or decor block on the next tick and cancels every repeat, falling back to another slot, with the player's eye and the corrected height (ADR 0093, 0097, 0104, 0110, 0111)", () => {
-  // Up face: the floor top, the height-12 furniture top, and the decor lift plus 1 - y.
-  // A side face: 1 - y on every block. The floor has no height state.
+it("places held camping gear on a camper room, furniture, decor, or pair block on the next tick and cancels every repeat, falling back to another slot, with the player's eye and the corrected height (ADR 0093, 0097, 0104, 0108, 0110, 0111)", () => {
+  // Up face: the floor top, the height-12 furniture top, and the decor or pair block's lift
+  // plus 1 - y. A side face: 1 - y on every block. The floor and the table's pair block have
+  // no height state; the table's pair block is lifted by the table's slot height, 12.
   for (const [typeId, blockFace, y] of [
     [CAMPER_FLOOR_BLOCK, "Up", 65],
     [CAMPER_FURNITURE_BLOCK, "Up", 64.75],
     [decorBlockId("percolator"), "Up", 65.5],
+    [pairDecorBlockId("table"), "Up", 65.5],
     [CAMPER_FLOOR_BLOCK, "West", 64.75],
     [CAMPER_FURNITURE_BLOCK, "West", 64.75],
     [decorBlockId("percolator"), "West", 64.75],
+    [pairDecorBlockId("table"), "West", 64.75],
   ] as const) {
     const { placeDecor, owner, event, send } = decorFixture();
     const ev = event({ blockFace });
     ev.block = { ...ev.block, typeId };
-    if (typeId === CAMPER_FLOOR_BLOCK)
+    if (typeId === CAMPER_FLOOR_BLOCK || typeId === pairDecorBlockId("table"))
       ev.block = { ...ev.block, permutation: { getAllStates: () => ({}) } };
     expect(send(ev).cancel).toBe(true);
     expect(owner).toHaveBeenCalledExactlyOnceWith("minecraft:overworld", {
@@ -1212,23 +1216,41 @@ it("takes decor back on an empty-hand interaction with a decor block (ADR 0093)"
   )?.[1].onPlayerInteract;
   if (!interact) throw new Error("decor interaction missing");
   const cell = { x: 1, y: 65, z: 2 };
-  const event = (held?: { typeId: string }, withPlayer = true) =>
+  const eye = { x: 0.4, y: 66.6, z: 2.2 };
+  const event = (
+    held?: { typeId: string },
+    withPlayer = true,
+    withFace = true,
+  ) =>
     ({
       dimension: { id: "minecraft:overworld" },
       block: { location: cell },
+      faceLocation: withFace ? { x: 0.25, y: 0.5, z: 0.75 } : undefined,
       player: withPlayer
         ? {
             id: "p",
             selectedSlotIndex: 0,
             getComponent: () => ({ container: { getItem: () => held } }),
+            getHeadLocation: () => eye,
           }
         : undefined,
     }) as unknown as Parameters<typeof interact>[0];
+  // The pressed x and z tell the two items of a pair block apart; the eye is not sent,
+  // since this event's faceLocation.y is unmeasured (ADR 0108, 0111).
   interact(event(), { params: undefined });
   expect(removeDecor.execute).toHaveBeenCalledExactlyOnceWith({
     playerId: "p",
     vehicleId: "car",
     cell,
+    point: { x: 1.25, y: 65.5, z: 2.75 },
+  });
+  removeDecor.execute.mockClear();
+  interact(event(undefined, true, false), { params: undefined });
+  expect(removeDecor.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId: "p",
+    vehicleId: "car",
+    cell,
+    point: undefined,
   });
   removeDecor.execute.mockClear();
   interact(event({ typeId: "minecraft:stone" }), { params: undefined });

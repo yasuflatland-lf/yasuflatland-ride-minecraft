@@ -27,6 +27,8 @@ import {
   DECOR_HEIGHT_STATE,
   DECOR_SPOT_STATE,
   decorBlockId,
+  PAIR_END_STATES,
+  pairDecorBlockId,
   ROOM_FACE_STATE,
   ROOM_OPEN_STATE,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
@@ -453,6 +455,90 @@ it("replaces a decor item in place and clears it", () => {
   expect(f.saved.get(DECK_CELLS_PROPERTY)).toBeUndefined();
 });
 
+it("lays both items of a shelf board in one pair block, each end's code split into page and item states, switches an end in place, and clears it (ADR 0108)", () => {
+  const f = fixture();
+  const docks = new DockBlocks();
+  const position = { x: 0, y: 64, z: 0 };
+  const pairAt = (end0?: string, end1?: string): DockCell => ({
+    ...position,
+    block: {
+      type: "decorPair",
+      pair: "shelf",
+      face: 3,
+      height: 10,
+      ...(end0 === undefined ? {} : { end0 }),
+      ...(end1 === undefined ? {} : { end1 }),
+    },
+  });
+  const [end0, end1] = PAIR_END_STATES;
+  // potted_plant is standing item 0 (code 1); desk_fan is standing item 17 (code 18).
+  docks.lay(asVehicleId(f.car.id), f.car, [pairAt("potted_plant", "desk_fan")]);
+  expect(f.at(position)).toEqual({
+    typeId: pairDecorBlockId("shelf"),
+    states: {
+      [DECOR_FACE_STATE]: 3,
+      [DECOR_HEIGHT_STATE]: 10,
+      [end0.page]: 0,
+      [end0.item]: 1,
+      [end1.page]: 1,
+      [end1.item]: 8,
+    },
+  });
+  docks.lay(asVehicleId(f.car.id), f.car, [pairAt(undefined, "desk_fan")]);
+  expect(f.at(position).states).toMatchObject({
+    [end0.page]: 0,
+    [end0.item]: 0,
+  });
+  expect(f.savedCells()).toEqual([pairAt(undefined, "desk_fan")]);
+  new DockBlocks().lay(asVehicleId(f.car.id), f.car, []);
+  expect(f.at(position).typeId).toBe("minecraft:air");
+});
+
+it("lays the table's pair block without a height state, since its one height cannot be a state (ADR 0108)", () => {
+  const f = fixture();
+  const position = { x: 0, y: 64, z: 0 };
+  const [end0, end1] = PAIR_END_STATES;
+  new DockBlocks().lay(asVehicleId(f.car.id), f.car, [
+    {
+      ...position,
+      block: {
+        type: "decorPair",
+        pair: "table",
+        face: 1,
+        height: 12,
+        end0: "potted_plant",
+      },
+    },
+  ]);
+  expect(f.at(position)).toEqual({
+    typeId: pairDecorBlockId("table"),
+    states: {
+      [DECOR_FACE_STATE]: 1,
+      [end0.page]: 0,
+      [end0.item]: 1,
+      [end1.page]: 0,
+      [end1.item]: 0,
+    },
+  });
+});
+
+it("clears a decor block that an early ADR 0108 build laid at spot 6 (ADR 0108)", () => {
+  const f = fixture();
+  const position = { x: 0, y: 64, z: 0 };
+  f.blocks.set(cellKey(position), { typeId: decorBlockId("toaster") });
+  f.saved.set(
+    DECK_CELLS_PROPERTY,
+    JSON.stringify([
+      {
+        ...position,
+        block: { type: "decor", item: "toaster", face: 3, height: 10, spot: 6 },
+      },
+    ]),
+  );
+  new DockBlocks().lay(asVehicleId(f.car.id), f.car, []);
+  expect(f.at(position).typeId).toBe("minecraft:air");
+});
+
 it("switches a slot between furniture and decor in place and clears it (ADR 0097)", () => {
   const f = fixture();
   const docks = new DockBlocks();
@@ -607,7 +693,7 @@ it.each([
     seed: decorBlockId("potted_plant"),
   },
   {
-    block: { type: "decor", item: "potted_plant", face: 0, height: 0, spot: 5 },
+    block: { type: "decor", item: "potted_plant", face: 0, height: 0, spot: 9 },
     seed: decorBlockId("potted_plant"),
   },
   {
@@ -629,6 +715,54 @@ it.each([
       spot: 0.5,
     },
     seed: decorBlockId("potted_plant"),
+  },
+  {
+    block: {
+      type: "decorPair",
+      pair: "bed",
+      face: 0,
+      height: 4,
+      end0: "cushion",
+    },
+    seed: pairDecorBlockId("shelf"),
+  },
+  {
+    block: {
+      type: "decorPair",
+      pair: "shelf",
+      face: 4,
+      height: 4,
+      end0: "cushion",
+    },
+    seed: pairDecorBlockId("shelf"),
+  },
+  {
+    block: {
+      type: "decorPair",
+      pair: "shelf",
+      face: 0,
+      height: 16,
+      end0: "cushion",
+    },
+    seed: pairDecorBlockId("shelf"),
+  },
+  {
+    block: { type: "decorPair", pair: "shelf", face: 0, height: 4 },
+    seed: pairDecorBlockId("shelf"),
+  },
+  {
+    block: {
+      type: "decorPair",
+      pair: "table",
+      face: 0,
+      height: 12,
+      end1: "macrame_planter",
+    },
+    seed: pairDecorBlockId("table"),
+  },
+  {
+    block: { type: "decorPair", pair: "table", face: 0, height: 12, end0: 3 },
+    seed: pairDecorBlockId("table"),
   },
   { block: { type: "furniture", height: 16 }, seed: CAMPER_FURNITURE_BLOCK },
   { block: { type: "furniture", height: -1 }, seed: CAMPER_FURNITURE_BLOCK },

@@ -22,6 +22,7 @@ import {
   CAMPER_SHOWER_TOILET_BLOCK,
   CAMPER_WALL_BLOCK,
   decorBlockId,
+  pairDecorBlockId,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 import { defined } from "../../../support/defined";
 
@@ -102,6 +103,17 @@ it("gives the furniture block its box per height and every decor block its lift 
   });
   expect(pressedShape(CAMPER_FURNITURE_BLOCK, undefined)).toBeUndefined();
   expect(pressedShape(CAMPER_WALL_BLOCK, undefined)).toBeUndefined();
+  // A pair block is lifted by its height state, or the table's, which has none, by the
+  // table's one slot height (ADR 0108).
+  for (const h of [4, 10])
+    expect(pressedShape(pairDecorBlockId("shelf"), h)).toEqual({
+      kind: "decor",
+      lift: h / 16,
+    });
+  expect(pressedShape(pairDecorBlockId("table"), undefined)).toEqual({
+    kind: "decor",
+    lift: 12 / 16,
+  });
   expect(pressedShape("minecraft:stone", undefined)).toBeUndefined();
 });
 

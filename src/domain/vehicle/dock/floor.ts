@@ -37,6 +37,19 @@ export type DockBlock =
       readonly face: Face;
       readonly height: number;
       readonly spot: number;
+    }
+  /**
+   * The two items of a shelf board or the table laid as yasu_ride:<pair>_decor_pair, one block
+   * that draws both: `end0` and `end1` are the items at its two ends, at least one of them
+   * set; `face` and `height` are as on a decor block (ADR 0108).
+   */
+  | {
+      readonly type: "decorPair";
+      readonly pair: "shelf" | "table";
+      readonly face: Face;
+      readonly height: number;
+      readonly end0?: string;
+      readonly end1?: string;
     };
 
 export interface DockCell extends Cell {
@@ -62,6 +75,15 @@ export function sameBlock(a: DockBlock, b: DockBlock): boolean {
         a.face === b.face &&
         a.height === b.height &&
         a.spot === b.spot
+      );
+    case "decorPair":
+      return (
+        b.type === "decorPair" &&
+        a.pair === b.pair &&
+        a.face === b.face &&
+        a.height === b.height &&
+        a.end0 === b.end0 &&
+        a.end1 === b.end1
       );
     default:
       return a.type === b.type;

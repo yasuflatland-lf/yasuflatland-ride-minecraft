@@ -6,13 +6,20 @@ import { forward } from "../../src/domain/shared/vec";
 import { DECOR_SLOTS } from "../../src/domain/vehicle/kinds/camper/decor";
 import { DECOR_SPOTS } from "../../src/domain/vehicle/kinds/camper/furniture";
 import { decorSpotOffset } from "../../src/domain/vehicle/kinds/camper/room";
+import { STANDING_GEAR_IDS } from "../../src/domain/vehicle/kinds/index";
 import {
   CAMPER_DECOR_COMPONENT,
   DECOR_FACE_STATE,
   DECOR_HEIGHT_STATE,
   DECOR_SPOT_STATE,
   decorBlockId,
+  PAIR_END_STATES,
+  PAIR_PAGE_SIZE,
+  pairDecorBlockId,
+  pairEndStates,
+  pairHeightStates,
 } from "../../src/infrastructure/vehicle/bedrock/identifiers";
+import { defined } from "../support/defined";
 
 // tools/camping_gear.json is the one list of camping gear; these tests tie
 // it to the generated block models, the atlas, the previews, and the docs
@@ -170,7 +177,12 @@ describe("camping gear spec (ADR 0093)", () => {
 describe("camping gear block models (ADR 0093)", () => {
   it("writes one model per item next to the deck floor and nothing else", () => {
     expect(readdirSync(MODELS).sort()).toEqual(
-      ["deck_floor", ...SPEC.map((g) => g.id)]
+      [
+        "deck_floor",
+        "shelf_decor_pair",
+        "table_decor_pair",
+        ...SPEC.map((g) => g.id),
+      ]
         .map((n) => `${n}.geo.json`)
         .sort(),
     );
@@ -330,12 +342,39 @@ interface DecorBlock {
 }
 
 const readJson = (path: string) => JSON.parse(readFileSync(path, "utf8"));
+const PAIR_KINDS = ["shelf", "table"] as const;
+interface PairBlock {
+  "minecraft:block": {
+    description: { states: Record<string, number[]> };
+    components: Record<string, unknown> & {
+      "minecraft:geometry": {
+        identifier: string;
+        bone_visibility: Record<string, string>;
+      };
+    };
+    permutations: unknown[];
+  };
+}
+const pairOf = (kind: string) =>
+  readJson(`${BP}/blocks/yasu_ride/${kind}_decor_pair.block.json`) as PairBlock;
+// Evaluates the generated bone_visibility form, "q.block_state('<state>') == <n>" joined by &&.
+function molangTrue(expr: string, states: Record<string, number>): boolean {
+  return expr.split(" && ").every((term) => {
+    const m = /^q\.block_state\('([^']+)'\) == (\d+)$/.exec(term);
+    if (!m) throw new Error(`unexpected bone_visibility term: ${term}`);
+    return states[m[1] ?? ""] === Number(m[2]);
+  });
+}
 const decorPath = (g: Gear) =>
   `${BP}/blocks/yasu_ride/${g.id}_decor.block.json`;
 const decorOf = (g: Gear) => readJson(decorPath(g)) as DecorBlock;
 const condition = (face: number, spot: number, height: number) =>
   `q.block_state('yasu_ride:face') == ${face} && q.block_state('yasu_ride:spot') == ${spot} && q.block_state('yasu_ride:height') == ${height}`;
-const SPOTS = DECOR_SPOTS.map((_, spot) => spot);
+// The spots of the slots a decor block stands on, and ADR 0107's burner spots; a shelf board's
+// or the table's ends are drawn by its pair block instead (ADR 0107, 0108, 0112).
+const SPOTS = DECOR_SPOTS.map((_, spot) => spot).filter(
+  (spot) => !DECOR_SLOTS.some((s) => s.pair && s.spot === spot),
+);
 // The burner height of ADR 0107's four stove spots, which no slot uses since ADR 0112.
 const RETIRED_BURNER_HEIGHTS = [15];
 // The middle spot takes every height; another spot only the heights of the slots on it, or
@@ -502,7 +541,8 @@ describe("camping gear blocks and items (ADR 0093)", () => {
 
   it("draws every slot's item at its spot for every face, moved by the domain's spot offset (ADR 0107)", () => {
     const blocks = SPEC.map(decorOf);
-    for (const slot of DECOR_SLOTS)
+    expect(SPOTS).toEqual([0, 1, 2, 3, 4]);
+    for (const slot of DECOR_SLOTS.filter((s) => !s.pair))
       for (const face of [0, 1, 2, 3])
         for (const block of blocks) {
           const spot = slot.spot ?? 0;
@@ -537,6 +577,140 @@ describe("camping gear blocks and items (ADR 0093)", () => {
         ]);
       } else {
         expect([x0, z0, sx, sz], g.id).toEqual([-8, -8, 16, 16]);
+      }
+    }
+  });
+
+  it("defines a pair block for each two-item furniture: face, the heights of its slots when there are two or more, and each end's item as a page and an item state, all within 2 to 16 values (ADR 0108)", () => {
+    const standing = SPEC.filter((g) => !g.hanging);
+    for (const kind of PAIR_KINDS) {
+      const block = pairOf(kind)["minecraft:block"];
+      const slots = DECOR_SLOTS.filter((s) => s.pair?.kind === kind);
+      const heights = [...new Set(slots.map((s) => s.height))].sort(
+        (a, b) => a - b,
+      );
+      const pages = Math.ceil((standing.length + 1) / PAIR_PAGE_SIZE);
+      const range = (n: number) => Array.from({ length: n }, (_, i) => i);
+      const [end0, end1] = PAIR_END_STATES;
+      // BDS rejects an enum state with one value, so the table's one height is not a state.
+      const lifted = heights.length > 1;
+      expect(lifted).toBe(kind === "shelf");
+      expect(block.description).toEqual({
+        identifier: pairDecorBlockId(kind),
+        menu_category: { category: "none" },
+        states: {
+          [DECOR_FACE_STATE]: [0, 1, 2, 3],
+          ...(lifted ? { [DECOR_HEIGHT_STATE]: heights } : {}),
+          [end0.item]: range(PAIR_PAGE_SIZE),
+          [end0.page]: range(pages),
+          [end1.item]: range(PAIR_PAGE_SIZE),
+          [end1.page]: range(pages),
+        },
+      });
+      // The scripts set the height state exactly when the block defines it.
+      for (const height of heights)
+        expect(pairHeightStates(kind, height)).toEqual(
+          lifted ? { [DECOR_HEIGHT_STATE]: height } : {},
+        );
+      for (const values of Object.values(block.description.states)) {
+        expect(values.length).toBeGreaterThanOrEqual(2);
+        expect(values.length).toBeLessThanOrEqual(16);
+      }
+      const c = block.components;
+      expect(c["minecraft:collision_box"]).toBe(false);
+      expect(c["minecraft:custom_components"]).toEqual([
+        CAMPER_DECOR_COMPONENT,
+      ]);
+      expect(c["minecraft:destructible_by_mining"]).toBe(false);
+      expect(c["minecraft:selection_box"]).toEqual({
+        origin: [-8, 0, -8],
+        size: [16, MAX_STANDING_HEIGHT, 16],
+      });
+      // BDS rejects a block that mixes opaque and blending material instances.
+      expect(c["minecraft:material_instances"]).toEqual({
+        "*": { texture: ATLAS_KEY, render_method: "opaque" },
+      });
+      expect(c).not.toHaveProperty(["minecraft:transformation"]);
+      // Only turned by the face and lifted by the height: the items stay over the cell.
+      expect(block.permutations).toEqual(
+        [0, 1, 2, 3].flatMap((face) =>
+          heights.map((height) => ({
+            condition: lifted
+              ? `q.block_state('yasu_ride:face') == ${face} && q.block_state('yasu_ride:height') == ${height}`
+              : `q.block_state('yasu_ride:face') == ${face}`,
+            components: {
+              "minecraft:transformation": {
+                rotation: [0, FACE_ROTATION[face], 0],
+                translation: [0, height / 16, 0],
+              },
+            },
+          })),
+        ),
+      );
+    }
+    expect(
+      readdirSync(`${BP}/blocks/yasu_ride`)
+        .filter((f) => f.endsWith("_decor_pair.block.json"))
+        .sort(),
+    ).toEqual(PAIR_KINDS.map((k) => `${k}_decor_pair.block.json`));
+  });
+
+  it("shows exactly the bone of the item that each end's states name, as the scripts set them (ADR 0108)", () => {
+    for (const kind of PAIR_KINDS) {
+      const geometry =
+        pairOf(kind)["minecraft:block"].components["minecraft:geometry"];
+      expect(geometry.identifier).toBe(`geometry.yasu_ride.${kind}_decor_pair`);
+      const bones = geometryOf(`${kind}_decor_pair`).bones.map((b) => b.name);
+      expect(Object.keys(geometry.bone_visibility).sort()).toEqual(
+        [...bones].sort(),
+      );
+      for (const end of [0, 1] as const)
+        for (const item of [undefined, ...STANDING_GEAR_IDS]) {
+          const states = pairEndStates(end, item);
+          const shown = Object.entries(geometry.bone_visibility).filter(
+            ([bone, expr]) =>
+              bone.startsWith(`end${end}_`) && molangTrue(expr, states),
+          );
+          expect(shown.map(([bone]) => bone)).toEqual(
+            item === undefined ? [] : [`end${end}_${item}`],
+          );
+        }
+    }
+  });
+
+  it("draws each end's item at its slot's spot, so the block's turn puts it where the domain measures the slot, with every face on the block's one opaque material (ADR 0108)", () => {
+    for (const slot of DECOR_SLOTS.filter((s) => s.pair)) {
+      const pair = defined(slot.pair, "pair");
+      const { left, forward: ahead } = defined(
+        DECOR_SPOTS[slot.spot ?? 0],
+        "spot",
+      );
+      const bones = new Map(
+        geometryOf(`${pair.kind}_decor_pair`).bones.map((b) => [
+          b.name,
+          b.cubes,
+        ]),
+      );
+      for (const g of SPEC.filter((item) => !item.hanging)) {
+        const cubes = defined(bones.get(`end${pair.end}_${g.id}`), g.id);
+        // The gear model's frame has the camper's left at -x and its forward at -z.
+        expect(cubes, `${slot.id} ${g.id}`).toEqual(
+          cubesOf(g.id).map((c) => ({
+            ...c,
+            // The generator writes pixels to three decimals.
+            origin: [c.origin[0] - left, c.origin[1], c.origin[2] - ahead].map(
+              (v) => Math.round(v * 1000) / 1000 + 0,
+            ),
+          })),
+        );
+      }
+      for (const face of [0, 1, 2, 3]) {
+        // Bedrock's block turn by r degrees takes (x, z) to (x cos r + z sin r, z cos r - x sin r).
+        const r = (FACE_ROTATION[face] ?? Number.NaN) * (Math.PI / 180);
+        const [x, z] = [-left, -ahead];
+        const offset = decorSpotOffset(90 * face, slot.spot ?? 0);
+        expect(x * Math.cos(r) + z * Math.sin(r)).toBeCloseTo(16 * offset.x, 9);
+        expect(z * Math.cos(r) - x * Math.sin(r)).toBeCloseTo(16 * offset.z, 9);
       }
     }
   });

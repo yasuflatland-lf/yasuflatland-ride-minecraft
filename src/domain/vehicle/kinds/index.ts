@@ -18,7 +18,8 @@ import { SuvDrive } from "./suv/drive";
 import { SUV_ENTITY } from "./suv/entity";
 import { SUV_PROFILE } from "./suv/profile";
 
-export { CAMPING_GEAR_IDS } from "./camper/campingGear";
+export { CAMPING_GEAR_IDS, STANDING_GEAR_IDS } from "./camper/campingGear";
+export { pairHeights } from "./camper/decor";
 export { SeatPresses, seatSlotCell } from "./camper/seatPress";
 
 export type { RestoredValues };

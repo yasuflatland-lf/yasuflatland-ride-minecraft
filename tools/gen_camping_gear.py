@@ -11,7 +11,8 @@ not bleed a neighbor's color into a face. --check compares parsed JSON and decod
 Biome reformats the geometry and zlib builds do not all compress identically. It also writes the
 Behavior Pack decor blocks, the items, the creative catalog, and the gear part of
 item_texture.json; the decor block's face, height, and spot states are described next to
-FACE_ROTATION.
+FACE_ROTATION. It also writes the pair blocks and their geometry, which draw the two items of a
+shelf board or of the table in one block (PAIRS, ADR 0108).
 The camping gear box (BOX) is the creative group's icon and first item, and its icon entry comes
 first in the generated part of item_texture.json; its item JSON and icon are written elsewhere (ADR
 0093).
@@ -52,6 +53,28 @@ HEIGHTS = range(16)  # HEIGHT_STATE, px above the cell bottom
 SPOT_STATE = "yasu_ride:spot"
 SPOTS = [(0, 0), (3.8, 5.4), (3.8, -5.35), (-3.3, 5.4), (-3.3, -5.35)]
 SPOT_HEIGHTS = [list(HEIGHTS)] + [[15]] * (len(SPOTS) - 1)
+# A shelf board or the table holds two items in its one cell, and a block's transformed geometry
+# must keep at least one pixel on each axis inside its own cell: a decor block moved a cell away
+# to draw the second item is rejected and renders as the fallback block (ADR 0108). So one pair
+# block per furniture draws both. Its geometry has one bone per standing item per end, the item
+# standing at that end, and bone_visibility shows the bone whose item the end's states name. ENDS
+# are each end's (left, forward) px from the cell middle in the camper's room frame, as
+# DECOR_SPOTS 5 to 8 in src/domain/vehicle/kinds/camper/furniture.ts; HEIGHTS are the heights of
+# its slots. tests/packs/campingGear.test.ts ties both to the domain slots.
+PAIRS = {
+    "shelf": {"ends": [(0, -3.5), (0, 3.5)], "heights": [4, 10]},
+    "table": {"ends": [(3.3, 0), (-3.7, 0)], "heights": [12]},
+}
+# A block state holds at most 16 values, and an end takes 19: empty, or one of the 18 standing
+# items. So an end's code, 0 for empty and 1 + the item's index among the standing items, is
+# split into end<n>_page (code // PAIR_PAGE_SIZE) and end<n>_item (code % PAIR_PAGE_SIZE), as
+# pairEndStates in src/infrastructure/vehicle/bedrock/identifiers.ts.
+PAIR_PAGE_SIZE = 10
+MAX_STATE_VALUES = 16
+# BDS rejects a block whose enum state lists one value ("Block State enum array must have more
+# than 1 value"), so a pair whose ends share one height, the table, has no HEIGHT_STATE and its
+# permutations lift it by that height (ADR 0108).
+MIN_STATE_VALUES = 2
 GROUP = "yasu_ride:camping_gear"
 # The box a player gets with their first camper (ADR 0093): the group's icon and first item.
 BOX = "camping_gear_box"
@@ -243,6 +266,45 @@ def geometry(item_id, cubes):
     })
 
 
+def pair_geometry(kind, spec):
+    """One bone per standing item per end, its cubes moved to the end's spot in the gear model's
+    frame, where the camper's left is -x and its forward -z (FACE_ROTATION). Every face is opaque,
+    the glass item's too: BDS rejects material instances that mix opaque and blending render
+    methods in one block ("MaterialInstances can't mix and match opaque and transparent
+    materials"), and blending every item would sort their faces wrongly (ADR 0108)."""
+    bones = []
+    for end, (left, ahead) in enumerate(PAIRS[kind]["ends"]):
+        for item in standing(spec):
+            cubes = [
+                {**c, "origin": [c["origin"][0] - left, c["origin"][1], c["origin"][2] - ahead]}
+                for c in SHAPES[item["id"]]
+            ]
+            bones.append({"name": pair_bone(end, item["id"]), "pivot": [0, 0, 0], "cubes": cubes})
+    return rounded({
+        "format_version": "1.12.0",
+        "minecraft:geometry": [{
+            "description": {
+                "identifier": f"geometry.yasu_ride.{kind}_decor_pair",
+                "texture_width": ATLAS_SIZE,
+                "texture_height": ATLAS_SIZE,
+            },
+            "bones": bones,
+        }],
+    })
+
+
+def standing(spec):
+    return [item for item in spec if not item["hanging"]]
+
+
+def pair_bone(end, item_id):
+    return f"end{end}_{item_id}"
+
+
+def pair_pages(spec):
+    return -(-(len(standing(spec)) + 1) // PAIR_PAGE_SIZE)
+
+
 def bounds(cubes):
     lo = [min(c["origin"][i] for c in cubes) for i in range(3)]
     hi = [max(c["origin"][i] + c["size"][i] for c in cubes) for i in range(3)]
@@ -280,6 +342,16 @@ def validate(spec):
         glass = any(c["uv"]["north"] == face("glass") for c in cubes)
         if glass != item["glass"]:
             errors.append(f"{item['id']}: glass is {item['glass']} but the glass swatch is {'used' if glass else 'unused'}")
+    for kind, pair in PAIRS.items():
+        for end, (left, ahead) in enumerate(pair["ends"]):
+            for item in standing(spec):
+                (x0, _, z0), (x1, _, z1) = bounds(SHAPES.get(item["id"], []) or [box(0, 0, 0, 0, 0, 0, "cream")])
+                if x0 - left < -8 or x1 - left > 8 or z0 - ahead < -8 or z1 - ahead > 8:
+                    errors.append(f"{kind} end {end}: {item['id']} leaves the cell")
+    if pair_pages(spec) > MAX_STATE_VALUES or PAIR_PAGE_SIZE > MAX_STATE_VALUES:
+        errors.append("a pair block state holds more than 16 values")
+    if pair_pages(spec) < MIN_STATE_VALUES or PAIR_PAGE_SIZE < MIN_STATE_VALUES:
+        errors.append("a pair block state holds fewer than 2 values")
     if errors:
         sys.exit("\n".join(errors))
 
@@ -408,6 +480,79 @@ def decor_block(item):
     }
 
 
+def pair_block(kind, spec):
+    """Both items of a shelf board or the table in one block (PAIRS). Its permutations only turn
+    it by the face and lift it by the height, so the items stay over its own cell. A pair with one
+    height has no height state (MIN_STATE_VALUES). The selection box covers the whole cell up to
+    the tallest standing item, over both items (ADR 0108)."""
+    ids = [item["id"] for item in standing(spec)]
+    visibility = {}
+    for end in range(2):
+        for code, item_id in enumerate(ids, start=1):
+            page, index = divmod(code, PAIR_PAGE_SIZE)
+            visibility[pair_bone(end, item_id)] = (
+                f"q.block_state('yasu_ride:end{end}_page') == {page}"
+                f" && q.block_state('yasu_ride:end{end}_item') == {index}"
+            )
+    top = max(item["height_px"] for item in standing(spec))
+    half = CELL_PX // 2
+    heights = PAIRS[kind]["heights"]
+    height_states = {HEIGHT_STATE: heights} if len(heights) >= MIN_STATE_VALUES else {}
+
+    def condition(face, height):
+        terms = [f"q.block_state('{FACE_STATE}') == {face}"]
+        if height_states:
+            terms.append(f"q.block_state('{HEIGHT_STATE}') == {height}")
+        return " && ".join(terms)
+
+    return {
+        "format_version": "1.21.80",
+        "minecraft:block": {
+            "description": {
+                "identifier": f"yasu_ride:{kind}_decor_pair",
+                "menu_category": {"category": "none"},
+                "states": {
+                    FACE_STATE: list(FACES),
+                    **height_states,
+                    **{
+                        f"yasu_ride:end{end}_{part}": list(range(size))
+                        for end in range(2)
+                        for part, size in (("item", PAIR_PAGE_SIZE), ("page", pair_pages(spec)))
+                    },
+                },
+            },
+            "components": {
+                "minecraft:geometry": {
+                    "identifier": f"geometry.yasu_ride.{kind}_decor_pair",
+                    "bone_visibility": visibility,
+                },
+                "minecraft:material_instances": {
+                    "*": {"texture": ATLAS_KEY, "render_method": "opaque"},
+                },
+                "minecraft:light_dampening": 0,
+                "minecraft:destructible_by_mining": False,
+                "minecraft:destructible_by_explosion": False,
+                "minecraft:custom_components": ["yasu_ride:camper_decor"],
+                "minecraft:collision_box": False,
+                "minecraft:selection_box": {"origin": [-half, 0, -half], "size": [CELL_PX, top, CELL_PX]},
+            },
+            "permutations": [
+                {
+                    "condition": condition(face, height),
+                    "components": {
+                        "minecraft:transformation": {
+                            "rotation": [0, FACE_ROTATION[face], 0],
+                            "translation": [0, num(height / 16), 0],
+                        }
+                    },
+                }
+                for face in FACES
+                for height in heights
+            ],
+        },
+    }
+
+
 def gear_item(item):
     gid = item["id"]
     return {
@@ -492,12 +637,16 @@ def main():
     validate(spec)
     rp = args.resource_pack
     documents = {rp / MODELS / f"{item_id}.geo.json": geometry(item_id, cubes) for item_id, cubes in SHAPES.items()}
+    for kind in PAIRS:
+        documents[rp / MODELS / f"{kind}_decor_pair.geo.json"] = pair_geometry(kind, spec)
     documents[rp / TERRAIN] = terrain()
     bp = args.behavior_pack
     for item in spec:
         gid = item["id"]
         documents[bp / BLOCKS / f"{gid}_decor.block.json"] = decor_block(item)
         documents[bp / ITEMS / f"{gid}.item.json"] = gear_item(item)
+    for kind in PAIRS:
+        documents[bp / BLOCKS / f"{kind}_decor_pair.block.json"] = pair_block(kind, spec)
     documents[bp / CATALOG] = catalog(spec)
     documents[rp / ITEM_TEXTURES] = item_textures(json.loads((rp / ITEM_TEXTURES).read_text()), spec)
     atlas = rp / ATLAS

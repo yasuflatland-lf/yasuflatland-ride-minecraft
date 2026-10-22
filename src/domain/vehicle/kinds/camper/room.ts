@@ -269,13 +269,37 @@ export function roomCells(pose: HoldPose, doorOpen: boolean): DockCell[] {
 }
 
 type DecorCell = DockCell & {
-  readonly block: Extract<DockBlock, { type: "decor" }>;
+  readonly block: Extract<DockBlock, { type: "decor" | "decorPair" }>;
 };
 
+/** The item at each end of the pair cell that holds `slot`, by DecorPairEnd.end (ADR 0108). */
+function pairItems(
+  slot: DecorSlot,
+  decor: readonly DecorPlacement[],
+): { end0?: string; end1?: string } {
+  const itemAt = (end: 0 | 1) =>
+    decor.find((d) => {
+      const s = decorSlot(d.slot);
+      return (
+        s?.pair?.end === end &&
+        s.cell.x === slot.cell.x &&
+        s.cell.z === slot.cell.z &&
+        s.cell.layer === slot.cell.layer
+      );
+    })?.item;
+  const end0 = itemAt(0);
+  const end1 = itemAt(1);
+  return {
+    ...(end0 === undefined ? {} : { end0 }),
+    ...(end1 === undefined ? {} : { end1 }),
+  };
+}
+
 /**
- * One decor block per slot cell that holds a placement in a known slot, at the slot's
- * height and spot, turned to the yaw quarter. A cell holds one block, so the first
- * placement in a cell wins (ADR 0093, 0105).
+ * One block per slot cell that holds a placement in a known slot, turned to the yaw quarter.
+ * On a shelf board or the table it is the pair block with the item at each end (ADR 0108);
+ * elsewhere a decor block at the slot's height and spot, and since a cell holds one block,
+ * the first placement in a cell wins (ADR 0093, 0105).
  */
 export function decorCells(
   pose: HoldPose,
@@ -290,18 +314,16 @@ export function decorCells(
     const key = cellKey(at);
     if (laid.has(key)) return [];
     laid.add(key);
-    return [
-      {
-        ...at,
-        block: {
-          type: "decor",
-          item,
+    const block: DecorCell["block"] = s.pair
+      ? {
+          type: "decorPair",
+          pair: s.pair.kind,
           face,
           height: s.height,
-          spot: s.spot ?? 0,
-        } as const,
-      },
-    ];
+          ...pairItems(s, decor),
+        }
+      : { type: "decor", item, face, height: s.height, spot: s.spot ?? 0 };
+    return [{ ...at, block }];
   });
 }
 
@@ -342,18 +364,36 @@ export function slotCells(pose: HoldPose): Vec3[] {
 }
 
 /**
+ * The namespace-free name of the block the decor in `cell` lays: the pair block of a shelf
+ * board or the table, or the decor block of the cell's item; undefined while the cell holds
+ * no decor (ADR 0093, 0108).
+ */
+export function decorBlockName(
+  cell: LocalCell,
+  decor: readonly DecorPlacement[],
+): string | undefined {
+  const placed = decorInCell(cell, decor);
+  const slot = placed && decorSlot(placed.slot);
+  if (!placed || !slot) return undefined;
+  return slot.pair ? `${slot.pair.kind}_decor_pair` : `${placed.item}_decor`;
+}
+
+/**
  * A slot cell lets the camper leave only while it holds air, the furniture block, or
- * the decor block of `item`, the item in that slot (undefined for an empty slot) (ADR 0093, 0097).
+ * `decorBlock`, the block its decor lays (decorBlockName; undefined for an empty cell)
+ * (ADR 0093, 0097, 0108).
  */
 export function ownSlotBlock(
   typeId: string | undefined,
-  item: string | undefined,
+  decorBlock: string | undefined,
 ): boolean {
   // An occupied slot may still hold its furniture block: decor placed this tick
   // is laid only on the next step.
   if (typeId === AIR || typeId?.endsWith(FURNITURE_BLOCK_SUFFIX) === true)
     return true;
-  return item !== undefined && typeId?.endsWith(`:${item}_decor`) === true;
+  return (
+    decorBlock !== undefined && typeId?.endsWith(`:${decorBlock}`) === true
+  );
 }
 
 /**

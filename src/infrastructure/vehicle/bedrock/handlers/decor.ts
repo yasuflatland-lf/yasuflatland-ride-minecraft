@@ -22,11 +22,11 @@ import { pressedHeight, pressedShape } from "../faceHeight";
 import {
   CAMPER_DECOR_COMPONENT,
   CAMPER_FURNITURE_BLOCK,
-  campingGearOfDecorBlock,
   campingGearOfItem,
   DECK_SEAT_TYPE,
   DECOR_HEIGHT_STATE,
   isCamperRoomBlock,
+  isDecorBlock,
 } from "../identifiers";
 
 type DockCellOwner = (
@@ -72,10 +72,20 @@ export function registerDecor(
           ev.block.location,
         );
         if (vehicleId === undefined) return;
+        // A shelf board's or the table's pair block draws two items, and the press takes
+        // back the end nearest the pressed x and z (ADR 0108). Both ends stand at one
+        // height, so y does not choose; and the eye is left out because this event's
+        // faceLocation.y is unmeasured, while the placing event's comes inverted (ADR 0111).
+        const at = ev.block.location;
+        const face = ev.faceLocation;
         remove.execute({
           playerId: asPlayerId(player.id),
           vehicleId,
-          cell: ev.block.location,
+          cell: at,
+          point:
+            face === undefined
+              ? undefined
+              : { x: at.x + face.x, y: at.y + face.y, z: at.z + face.z },
         });
       },
     });
@@ -90,8 +100,7 @@ function placeGear(
 ): void {
   const { block } = ev;
   const pressedRoom =
-    isCamperRoomBlock(block.typeId) ||
-    campingGearOfDecorBlock(block.typeId) !== undefined;
+    isCamperRoomBlock(block.typeId) || isDecorBlock(block.typeId);
   if (!pressedRoom) return;
   const vehicleId = dockCellOwner(
     asDimensionId(block.dimension.id),
@@ -174,11 +183,8 @@ function placeGearOnSeat(
   );
 }
 
-/** An empty slot's furniture block or a placed gear's decor block (ADR 0093, 0097). */
+/** An empty slot's furniture block or a placed gear's decor or pair block (ADR 0093, 0097, 0108). */
 function isSlotBlock(typeId: string | undefined): boolean {
   if (typeId === undefined) return false;
-  return (
-    typeId === CAMPER_FURNITURE_BLOCK ||
-    campingGearOfDecorBlock(typeId) !== undefined
-  );
+  return typeId === CAMPER_FURNITURE_BLOCK || isDecorBlock(typeId);
 }

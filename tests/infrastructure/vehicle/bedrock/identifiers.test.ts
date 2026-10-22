@@ -6,8 +6,15 @@ import {
   paintEventName,
 } from "../../../../src/domain/vehicle/entityContract";
 import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
-import { ownSlotBlock } from "../../../../src/domain/vehicle/kinds/camper/room";
-import { CAMPING_GEAR_IDS } from "../../../../src/domain/vehicle/kinds/index";
+import { DECOR_CELLS } from "../../../../src/domain/vehicle/kinds/camper/decor";
+import {
+  decorBlockName,
+  ownSlotBlock,
+} from "../../../../src/domain/vehicle/kinds/camper/room";
+import {
+  CAMPING_GEAR_IDS,
+  STANDING_GEAR_IDS,
+} from "../../../../src/domain/vehicle/kinds/index";
 import { PAINTS } from "../../../../src/domain/vehicle/paint/paint";
 import { NAMESPACE } from "../../../../src/infrastructure/shared/identifiers";
 import {
@@ -35,12 +42,17 @@ import {
   HEADLIGHTS_PROPERTY,
   ITEM_TYPE,
   isCamperRoomBlock,
+  isDecorBlock,
   isVehicleEntity,
   kindOfEntity,
   kindOfItem,
   LIT_CELLS_PROPERTY,
   OWNER_PROPERTY,
+  PAIR_END_STATES,
+  PAIR_PAGE_SIZE,
   paintEvent,
+  pairDecorBlockId,
+  pairEndStates,
   ramMountOf,
   STARTER_RECEIVED_PROPERTY,
   TEST_DECOR_EVENT,
@@ -238,6 +250,50 @@ describe("identifiers (ADR 0047)", () => {
       "minecraft:stone",
     ])
       expect(isCamperRoomBlock(typeId)).toBe(false);
+  });
+
+  it("gives every end item of a pair block its own page and item states, 0 for an empty end, each within a block state's 16 values (ADR 0108)", () => {
+    const codes = new Set<string>();
+    for (const end of [0, 1] as const) {
+      const states = PAIR_END_STATES[end];
+      expect(pairEndStates(end, undefined)).toEqual({
+        [states.page]: 0,
+        [states.item]: 0,
+      });
+      for (const item of [undefined, ...STANDING_GEAR_IDS]) {
+        const s = pairEndStates(end, item);
+        const page = s[states.page] ?? -1;
+        const index = s[states.item] ?? -1;
+        expect(index).toBeGreaterThanOrEqual(0);
+        expect(index).toBeLessThan(PAIR_PAGE_SIZE);
+        expect(page).toBeGreaterThanOrEqual(0);
+        expect(page * PAIR_PAGE_SIZE + index).toBe(
+          item === undefined ? 0 : STANDING_GEAR_IDS.indexOf(item) + 1,
+        );
+        codes.add(`${end}:${page}:${index}`);
+      }
+    }
+    expect(codes.size).toBe(2 * (STANDING_GEAR_IDS.length + 1));
+    expect(PAIR_PAGE_SIZE).toBeLessThanOrEqual(16);
+    expect(
+      Math.ceil((STANDING_GEAR_IDS.length + 1) / PAIR_PAGE_SIZE),
+    ).toBeLessThanOrEqual(16);
+  });
+
+  it("names the pair blocks the way the domain's slot check expects and counts them as decor blocks (ADR 0108)", () => {
+    for (const kind of ["shelf", "table"]) {
+      expect(pairDecorBlockId(kind)).toBe(`yasu_ride:${kind}_decor_pair`);
+      expect(isDecorBlock(pairDecorBlockId(kind))).toBe(true);
+    }
+    for (const { cell, slots } of DECOR_CELLS) {
+      const [first] = slots;
+      if (!first?.pair) continue;
+      const name = decorBlockName(cell, [{ slot: first.id, item: "cushion" }]);
+      expect(ownSlotBlock(pairDecorBlockId(first.pair.kind), name)).toBe(true);
+    }
+    expect(isDecorBlock(decorBlockId("percolator"))).toBe(true);
+    expect(isDecorBlock(CAMPER_FURNITURE_BLOCK)).toBe(false);
+    expect(isDecorBlock("yasu_ride:bed_decor_pair")).toBe(false);
   });
 
   it("names the furniture block the way the domain's slot check expects (ADR 0097)", () => {

@@ -232,9 +232,9 @@ export class Vehicle {
     return this.drive.placeDecor?.(slot, item) ?? false;
   }
 
-  /** A player takes the decor at world `cell` out. Returns its item, if any (ADR 0093). */
-  removeDecor(cell: Vec3): string | undefined {
-    return this.drive.removeDecor?.(cell);
+  /** A player takes the decor at world `cell` out, the one nearest the pressed `point` (seen from `eye`) when the cell holds two. Returns its item, if any (ADR 0093, 0108). */
+  removeDecor(cell: Vec3, point?: Vec3, eye?: Vec3): string | undefined {
+    return this.drive.removeDecor?.(cell, point, eye);
   }
 
   tick(input: VehicleTickInput): TickOutcome {

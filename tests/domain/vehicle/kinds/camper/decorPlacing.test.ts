@@ -5,6 +5,7 @@ import {
   leftOf,
   type Vec3,
 } from "../../../../../src/domain/shared/vec";
+import { decorFace } from "../../../../../src/domain/vehicle/dock/decor";
 import { HANGING_GEAR_IDS } from "../../../../../src/domain/vehicle/kinds/camper/campingGear";
 import {
   cellTaken,
@@ -51,9 +52,18 @@ const squared = (a: Vec3, b: Vec3) =>
 const localKey = (c: LocalCell) => `${c.x},${c.z},${c.layer}`;
 const sameCell = (a: DecorSlot, b: DecorSlot) =>
   localKey(a.cell) === localKey(b.cell);
-// A slot is free while no slot of its cell holds decor (ADR 0107).
+// A slot is free while no slot of its cell holds decor (ADR 0107), or on a shelf board or the
+// table, while its own end holds none (ADR 0108).
 const freeOf = (taken: readonly DecorSlot[]) => (s: DecorSlot) =>
-  !taken.some((t) => sameCell(t, s));
+  !taken.some((t) => (s.pair ? t.id === s.id : sameCell(t, s)));
+const PAIR_IDS = [
+  "table",
+  "table_aisle",
+  "shelf_low",
+  "shelf_low_front",
+  "shelf_high",
+  "shelf_high_front",
+];
 // The nearest slot to `point`, the first one on a tie, written out separately from the code.
 const nearestOf = (
   p: ReturnType<typeof parkPose>,
@@ -88,25 +98,46 @@ it("accepts a standing item on every slot but the ceiling hook and a hanging ite
   expect(ids(slotsFor("cushion"))).toEqual(
     ids(DECOR_SLOTS.filter((s) => s.id !== "ceiling_hook")),
   );
-  expect(slotsFor("percolator")).toHaveLength(9);
+  expect(slotsFor("percolator")).toHaveLength(12);
   expect(slotsFor("constructor")).toEqual([]);
   expect(slotsFor("stone")).toEqual([]);
 });
 
-it("gives the stove one slot in its cell middle and every furniture one slot per cell, keeping the burner spots (ADR 0107, 0112)", () => {
+it("gives the stove one slot in its cell middle and every other furniture one slot per cell but a shelf board's or the table's two ends, keeping the burner spots (ADR 0107, 0108, 0112)", () => {
   expect(SLOTS.map((s) => s.slot)).toEqual(DECOR_SLOTS);
-  expect(SLOTS).toHaveLength(10);
+  expect(SLOTS).toHaveLength(13);
   const stove = SLOTS.filter(({ kind }) => kind === "stove").map(
     ({ slot }) => slot,
   );
   expect(ids(stove)).toEqual(["stove"]);
-  expect(SLOTS.every(({ slot }) => slot.spot === undefined)).toBe(true);
-  expect(new Set(SLOTS.map(({ slot }) => localKey(slot.cell))).size).toBe(
-    SLOTS.length,
+  const pairs = PAIR_IDS.map(slotNamed);
+  expect(pairs.map((s) => [s.spot, s.pair])).toEqual([
+    [7, { kind: "table", end: 0 }],
+    [8, { kind: "table", end: 1 }],
+    [5, { kind: "shelf", end: 0 }],
+    [6, { kind: "shelf", end: 1 }],
+    [5, { kind: "shelf", end: 0 }],
+    [6, { kind: "shelf", end: 1 }],
+  ]);
+  for (let i = 0; i < pairs.length; i += 2)
+    expect(
+      sameCell(defined(pairs[i], "end 0"), defined(pairs[i + 1], "end 1")),
+    ).toBe(true);
+  const others = SLOTS.filter(({ slot }) => !PAIR_IDS.includes(slot.id)).map(
+    ({ slot }) => slot,
   );
+  expect(others.every((s) => s.spot === undefined && !s.pair)).toBe(true);
+  expect(
+    new Set(
+      [...others, ...pairs.filter((_, i) => i % 2 === 0)].map((s) =>
+        localKey(s.cell),
+      ),
+    ).size,
+  ).toBe(others.length + pairs.length / 2);
   expect(DECOR_SPOTS[0]).toEqual({ left: 0, forward: 0 });
-  // ADR 0107's burner spots stay, so the decor blocks' spot values keep their meaning.
-  expect(DECOR_SPOTS).toHaveLength(5);
+  // ADR 0107's burner spots stay, so the decor blocks' spot values and the pair ends' indexes
+  // after them keep their meaning (ADR 0108, 0112).
+  expect(DECOR_SPOTS).toHaveLength(9);
 });
 
 it("lists every slot cell once with its slots in slot order (ADR 0107)", () => {
@@ -119,7 +150,7 @@ it("lists every slot cell once with its slots in slot order (ADR 0107)", () => {
     for (const s of slots) expect(s.cell).toEqual(cell);
 });
 
-it("counts a slot taken when any slot of its cell holds decor, and ignores unknown slots (ADR 0107)", () => {
+it("counts a slot taken when any slot of its cell holds decor, or on a shelf board or the table its own end, and ignores unknown slots (ADR 0107, 0108)", () => {
   fc.assert(
     fc.property(
       fc.constantFrom(...DECOR_SLOTS),
@@ -176,14 +207,29 @@ it("puts each slot's point at its spot on its surface and lays its decor in its 
           "decor cell",
         );
         expect({ x: laid.x, y: laid.y, z: laid.z }).toEqual(c);
-        expect(laid.block.spot).toBe(slot.spot ?? 0);
-        expect(laid.block.height).toBe(slot.height);
+        expect(laid.block).toEqual(
+          slot.pair
+            ? {
+                type: "decorPair",
+                pair: slot.pair.kind,
+                face: laid.block.face,
+                height: slot.height,
+                [`end${slot.pair.end}`]: "potted_plant",
+              }
+            : {
+                type: "decor",
+                item: "potted_plant",
+                face: laid.block.face,
+                height: slot.height,
+                spot: slot.spot ?? 0,
+              },
+        );
       }
     }),
   );
 });
 
-it("lays one decor block per cell, the first placement in it (ADR 0107)", () => {
+it("lays one block per cell: the first placement in it, or the pair block with the item at each end of a shelf board or the table (ADR 0107, 0108)", () => {
   fc.assert(
     fc.property(
       pose,
@@ -198,8 +244,27 @@ it("lays one decor block per cell, the first placement in it (ADR 0107)", () => 
         const firsts = slots.filter(
           (s, i) => slots.findIndex((t) => sameCell(t, s)) === i,
         );
-        expect(laid.map((c) => c.block.spot)).toEqual(
-          firsts.map((s) => s.spot ?? 0),
+        expect(laid.map((c) => c.block)).toEqual(
+          firsts.map((s) => {
+            if (!s.pair)
+              return {
+                type: "decor",
+                item,
+                face: decorFace(p.yaw),
+                height: s.height,
+                spot: s.spot ?? 0,
+              };
+            const ends = slots.filter((t) => sameCell(t, s));
+            return {
+              type: "decorPair",
+              pair: s.pair.kind,
+              face: decorFace(p.yaw),
+              height: s.height,
+              ...Object.fromEntries(
+                ends.map((t) => [`end${t.pair?.end}`, item]),
+              ),
+            };
+          }),
         );
       },
     ),

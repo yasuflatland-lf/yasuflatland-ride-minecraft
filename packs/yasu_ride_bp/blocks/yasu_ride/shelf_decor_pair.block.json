@@ -1,0 +1,143 @@
+{
+  "format_version": "1.21.80",
+  "minecraft:block": {
+    "description": {
+      "identifier": "yasu_ride:shelf_decor_pair",
+      "menu_category": { "category": "none" },
+      "states": {
+        "yasu_ride:face": [0, 1, 2, 3],
+        "yasu_ride:height": [4, 10],
+        "yasu_ride:end0_item": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+        "yasu_ride:end0_page": [0, 1],
+        "yasu_ride:end1_item": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+        "yasu_ride:end1_page": [0, 1]
+      }
+    },
+    "components": {
+      "minecraft:geometry": {
+        "identifier": "geometry.yasu_ride.shelf_decor_pair",
+        "bone_visibility": {
+          "end0_potted_plant": "q.block_state('yasu_ride:end0_page') == 0 && q.block_state('yasu_ride:end0_item') == 1",
+          "end0_cactus_pot": "q.block_state('yasu_ride:end0_page') == 0 && q.block_state('yasu_ride:end0_item') == 2",
+          "end0_percolator": "q.block_state('yasu_ride:end0_page') == 0 && q.block_state('yasu_ride:end0_item') == 3",
+          "end0_enamel_kettle": "q.block_state('yasu_ride:end0_page') == 0 && q.block_state('yasu_ride:end0_item') == 4",
+          "end0_saucepan": "q.block_state('yasu_ride:end0_page') == 0 && q.block_state('yasu_ride:end0_item') == 5",
+          "end0_mug_pair": "q.block_state('yasu_ride:end0_page') == 0 && q.block_state('yasu_ride:end0_item') == 6",
+          "end0_sugar_pot": "q.block_state('yasu_ride:end0_page') == 0 && q.block_state('yasu_ride:end0_item') == 7",
+          "end0_fruit_bowl": "q.block_state('yasu_ride:end0_page') == 0 && q.block_state('yasu_ride:end0_item') == 8",
+          "end0_toaster": "q.block_state('yasu_ride:end0_page') == 0 && q.block_state('yasu_ride:end0_item') == 9",
+          "end0_oil_lamp": "q.block_state('yasu_ride:end0_page') == 1 && q.block_state('yasu_ride:end0_item') == 0",
+          "end0_lava_lamp": "q.block_state('yasu_ride:end0_page') == 1 && q.block_state('yasu_ride:end0_item') == 1",
+          "end0_transistor_radio": "q.block_state('yasu_ride:end0_page') == 1 && q.block_state('yasu_ride:end0_item') == 2",
+          "end0_book_stack": "q.block_state('yasu_ride:end0_page') == 1 && q.block_state('yasu_ride:end0_item') == 3",
+          "end0_road_map": "q.block_state('yasu_ride:end0_page') == 1 && q.block_state('yasu_ride:end0_item') == 4",
+          "end0_photo_frame": "q.block_state('yasu_ride:end0_page') == 1 && q.block_state('yasu_ride:end0_item') == 5",
+          "end0_cushion": "q.block_state('yasu_ride:end0_page') == 1 && q.block_state('yasu_ride:end0_item') == 6",
+          "end0_tissue_box": "q.block_state('yasu_ride:end0_page') == 1 && q.block_state('yasu_ride:end0_item') == 7",
+          "end0_desk_fan": "q.block_state('yasu_ride:end0_page') == 1 && q.block_state('yasu_ride:end0_item') == 8",
+          "end1_potted_plant": "q.block_state('yasu_ride:end1_page') == 0 && q.block_state('yasu_ride:end1_item') == 1",
+          "end1_cactus_pot": "q.block_state('yasu_ride:end1_page') == 0 && q.block_state('yasu_ride:end1_item') == 2",
+          "end1_percolator": "q.block_state('yasu_ride:end1_page') == 0 && q.block_state('yasu_ride:end1_item') == 3",
+          "end1_enamel_kettle": "q.block_state('yasu_ride:end1_page') == 0 && q.block_state('yasu_ride:end1_item') == 4",
+          "end1_saucepan": "q.block_state('yasu_ride:end1_page') == 0 && q.block_state('yasu_ride:end1_item') == 5",
+          "end1_mug_pair": "q.block_state('yasu_ride:end1_page') == 0 && q.block_state('yasu_ride:end1_item') == 6",
+          "end1_sugar_pot": "q.block_state('yasu_ride:end1_page') == 0 && q.block_state('yasu_ride:end1_item') == 7",
+          "end1_fruit_bowl": "q.block_state('yasu_ride:end1_page') == 0 && q.block_state('yasu_ride:end1_item') == 8",
+          "end1_toaster": "q.block_state('yasu_ride:end1_page') == 0 && q.block_state('yasu_ride:end1_item') == 9",
+          "end1_oil_lamp": "q.block_state('yasu_ride:end1_page') == 1 && q.block_state('yasu_ride:end1_item') == 0",
+          "end1_lava_lamp": "q.block_state('yasu_ride:end1_page') == 1 && q.block_state('yasu_ride:end1_item') == 1",
+          "end1_transistor_radio": "q.block_state('yasu_ride:end1_page') == 1 && q.block_state('yasu_ride:end1_item') == 2",
+          "end1_book_stack": "q.block_state('yasu_ride:end1_page') == 1 && q.block_state('yasu_ride:end1_item') == 3",
+          "end1_road_map": "q.block_state('yasu_ride:end1_page') == 1 && q.block_state('yasu_ride:end1_item') == 4",
+          "end1_photo_frame": "q.block_state('yasu_ride:end1_page') == 1 && q.block_state('yasu_ride:end1_item') == 5",
+          "end1_cushion": "q.block_state('yasu_ride:end1_page') == 1 && q.block_state('yasu_ride:end1_item') == 6",
+          "end1_tissue_box": "q.block_state('yasu_ride:end1_page') == 1 && q.block_state('yasu_ride:end1_item') == 7",
+          "end1_desk_fan": "q.block_state('yasu_ride:end1_page') == 1 && q.block_state('yasu_ride:end1_item') == 8"
+        }
+      },
+      "minecraft:material_instances": {
+        "*": { "texture": "yasu_ride_camping_gear", "render_method": "opaque" }
+      },
+      "minecraft:light_dampening": 0,
+      "minecraft:destructible_by_mining": false,
+      "minecraft:destructible_by_explosion": false,
+      "minecraft:custom_components": ["yasu_ride:camper_decor"],
+      "minecraft:collision_box": false,
+      "minecraft:selection_box": { "origin": [-8, 0, -8], "size": [16, 8, 16] }
+    },
+    "permutations": [
+      {
+        "condition": "q.block_state('yasu_ride:face') == 0 && q.block_state('yasu_ride:height') == 4",
+        "components": {
+          "minecraft:transformation": {
+            "rotation": [0, 180, 0],
+            "translation": [0, 0.25, 0]
+          }
+        }
+      },
+      {
+        "condition": "q.block_state('yasu_ride:face') == 0 && q.block_state('yasu_ride:height') == 10",
+        "components": {
+          "minecraft:transformation": {
+            "rotation": [0, 180, 0],
+            "translation": [0, 0.625, 0]
+          }
+        }
+      },
+      {
+        "condition": "q.block_state('yasu_ride:face') == 1 && q.block_state('yasu_ride:height') == 4",
+        "components": {
+          "minecraft:transformation": {
+            "rotation": [0, 90, 0],
+            "translation": [0, 0.25, 0]
+          }
+        }
+      },
+      {
+        "condition": "q.block_state('yasu_ride:face') == 1 && q.block_state('yasu_ride:height') == 10",
+        "components": {
+          "minecraft:transformation": {
+            "rotation": [0, 90, 0],
+            "translation": [0, 0.625, 0]
+          }
+        }
+      },
+      {
+        "condition": "q.block_state('yasu_ride:face') == 2 && q.block_state('yasu_ride:height') == 4",
+        "components": {
+          "minecraft:transformation": {
+            "rotation": [0, 0, 0],
+            "translation": [0, 0.25, 0]
+          }
+        }
+      },
+      {
+        "condition": "q.block_state('yasu_ride:face') == 2 && q.block_state('yasu_ride:height') == 10",
+        "components": {
+          "minecraft:transformation": {
+            "rotation": [0, 0, 0],
+            "translation": [0, 0.625, 0]
+          }
+        }
+      },
+      {
+        "condition": "q.block_state('yasu_ride:face') == 3 && q.block_state('yasu_ride:height') == 4",
+        "components": {
+          "minecraft:transformation": {
+            "rotation": [0, -90, 0],
+            "translation": [0, 0.25, 0]
+          }
+        }
+      },
+      {
+        "condition": "q.block_state('yasu_ride:face') == 3 && q.block_state('yasu_ride:height') == 10",
+        "components": {
+          "minecraft:transformation": {
+            "rotation": [0, -90, 0],
+            "translation": [0, 0.625, 0]
+          }
+        }
+      }
+    ]
+  }
+}

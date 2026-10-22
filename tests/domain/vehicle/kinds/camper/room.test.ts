@@ -19,6 +19,7 @@ import {
   CLEARABLE_DECORATIONS,
   cargoCells,
   deckSeats,
+  decorBlockName,
   decorCells,
   decorSlotCell,
   departure,
@@ -514,17 +515,20 @@ it("clears wall-foot decorations only below a cleared matching upper half, upper
   );
 });
 
-it("lists the ten decor slots with distinct ids (ADR 0093, 0103, 0105, 0112)", () => {
-  expect(DECOR_SLOTS).toHaveLength(10);
+it("lists the thirteen decor slots with distinct ids (ADR 0093, 0103, 0105, 0108, 0112)", () => {
+  expect(DECOR_SLOTS).toHaveLength(13);
   expect(new Set(DECOR_SLOTS.map((s) => s.id))).toEqual(
     new Set([
       "dashboard_center",
       "dashboard_left",
       "table",
+      "table_aisle",
       "dinette_front",
       "dinette_rear",
       "shelf_low",
+      "shelf_low_front",
       "shelf_high",
+      "shelf_high_front",
       "stove",
       "counter",
       "ceiling_hook",
@@ -532,7 +536,7 @@ it("lists the ten decor slots with distinct ids (ADR 0093, 0103, 0105, 0112)", (
   );
 });
 
-it("lays each decor at its slot's cell, the yaw quarter, the slot height, and the slot's spot (ADR 0093, 0105)", () => {
+it("lays each decor at its slot's cell, the yaw quarter, the slot height, and the slot's spot, or as its end of a pair block (ADR 0093, 0105, 0108)", () => {
   fc.assert(
     fc.property(pose, decor, (p, d) => {
       const cells = decorCells(p, d);
@@ -552,13 +556,23 @@ it("lays each decor at its slot's cell, the yaw quarter, the slot height, and th
         expect(dot(at, l) + 0).toBe(slot.cell.x);
         expect(dot(at, f) + 0).toBe(slot.cell.z);
         expect(c.y).toBe(p.y + slot.cell.layer);
-        expect(c.block).toEqual({
-          type: "decor",
-          item,
-          face: decorFace(p.yaw),
-          height: slot.height,
-          spot: slot.spot ?? 0,
-        });
+        expect(c.block).toEqual(
+          slot.pair
+            ? {
+                type: "decorPair",
+                pair: slot.pair.kind,
+                face: decorFace(p.yaw),
+                height: slot.height,
+                [`end${slot.pair.end}`]: item,
+              }
+            : {
+                type: "decor",
+                item,
+                face: decorFace(p.yaw),
+                height: slot.height,
+                spot: slot.spot ?? 0,
+              },
+        );
       }
       expect(decorCells(p, [{ slot: "nowhere", item: "mug_pair" }])).toEqual(
         [],
@@ -643,18 +657,36 @@ it("lays the stove's furniture block once, at its burner's height, while the sto
   );
 });
 
-it("lets a slot cell hold only air, the furniture block, or its own decor block (ADR 0097)", () => {
+it("lets a slot cell hold only air, the furniture block, or the block its decor lays (ADR 0097, 0108)", () => {
   fc.assert(
     fc.property(itemId, itemId, (item, other) => {
       fc.pre(item !== other);
-      for (const slotItem of [item, undefined]) {
-        expect(ownSlotBlock(AIR, slotItem)).toBe(true);
-        expect(ownSlotBlock("yasu_ride:camper_furniture", slotItem)).toBe(true);
-        expect(ownSlotBlock(undefined, slotItem)).toBe(false);
-        expect(ownSlotBlock("minecraft:stone", slotItem)).toBe(false);
-        expect(ownSlotBlock(`yasu_ride:${other}_decor`, slotItem)).toBe(false);
-        expect(ownSlotBlock(`yasu_ride:${item}_decor`, slotItem)).toBe(
-          slotItem === item,
+      for (const name of [`${item}_decor`, undefined]) {
+        expect(ownSlotBlock(AIR, name)).toBe(true);
+        expect(ownSlotBlock("yasu_ride:camper_furniture", name)).toBe(true);
+        expect(ownSlotBlock(undefined, name)).toBe(false);
+        expect(ownSlotBlock("minecraft:stone", name)).toBe(false);
+        expect(ownSlotBlock(`yasu_ride:${other}_decor`, name)).toBe(false);
+        expect(ownSlotBlock(`yasu_ride:${item}_decor`, name)).toBe(
+          name !== undefined,
+        );
+      }
+    }),
+  );
+});
+
+it("names the block a cell's decor lays: the pair block on a shelf board or the table, else the item's decor block (ADR 0093, 0108)", () => {
+  fc.assert(
+    fc.property(decor, (d) => {
+      for (const { cell, slots } of DECOR_CELLS) {
+        const placed = d.find((e) => slots.some((s) => s.id === e.slot));
+        const pair = slots[0]?.pair;
+        expect(decorBlockName(cell, d)).toBe(
+          placed === undefined
+            ? undefined
+            : pair
+              ? `${pair.kind}_decor_pair`
+              : `${placed.item}_decor`,
         );
       }
     }),

@@ -13,6 +13,7 @@ import {
   type Face,
   refloor,
 } from "../../../domain/vehicle/dock/floor";
+import { STANDING_GEAR_IDS } from "../../../domain/vehicle/kinds/index";
 import { cellKey } from "../../../domain/vehicle/lighting/headlights";
 import { isLightBlock } from "./headlightBlocks";
 import {
@@ -31,6 +32,9 @@ import {
   DECOR_HEIGHT_STATE,
   DECOR_SPOT_STATE,
   decorBlockId,
+  pairDecorBlockId,
+  pairEndStates,
+  pairHeightStates,
   ROOM_FACE_STATE,
   ROOM_OPEN_STATE,
 } from "./identifiers";
@@ -41,8 +45,9 @@ const MAX_HEIGHT = 16;
 // The decor and furniture blocks define one yasu_ride:height state per pixel (ADR 0093, 0097).
 const MIN_DECOR_HEIGHT = 0;
 const MAX_DECOR_HEIGHT = 15;
-// The decor blocks define yasu_ride:spot 0 to 4, one per DECOR_SPOTS entry (ADR 0107, 0112).
-const MAX_DECOR_SPOT = 4;
+// The decor blocks define yasu_ride:spot 0 to 4 (ADR 0107, 0112). An early build of ADR 0108 laid
+// spots up to 8; those saved cells are still read, so a lay clears their blocks.
+const MAX_DECOR_SPOT = 8;
 // Reading a laid cell costs one getBlock call, and a parked camper lays about 107
 // to 119 cells, so the cells are read once a second per vehicle, not every tick (ADR 0096).
 export const DOCK_RECHECK_TICKS = 20;
@@ -79,6 +84,12 @@ function isDecorSpot(v: unknown): v is number {
     Number.isInteger(v) &&
     v >= 0 &&
     v <= MAX_DECOR_SPOT
+  );
+}
+
+function isPairEnd(v: unknown): boolean {
+  return (
+    v === undefined || (typeof v === "string" && STANDING_GEAR_IDS.includes(v))
   );
 }
 
@@ -119,6 +130,15 @@ function isDockCell(v: unknown): v is DockCell {
         isDecorHeight(b.height) &&
         isDecorSpot(b.spot)
       );
+    case "decorPair":
+      return (
+        (b.pair === "shelf" || b.pair === "table") &&
+        isFace(b.face) &&
+        isDecorHeight(b.height) &&
+        isPairEnd(b.end0) &&
+        isPairEnd(b.end1) &&
+        (b.end0 !== undefined || b.end1 !== undefined)
+      );
     default:
       return false;
   }
@@ -144,6 +164,8 @@ function blockIdOf(block: DockBlock): string {
       return CAMPER_FURNITURE_BLOCK;
     case "decor":
       return decorBlockId(block.item);
+    case "decorPair":
+      return pairDecorBlockId(block.pair);
   }
 }
 
@@ -175,6 +197,13 @@ function permutationOf(block: DockBlock): BlockPermutation {
         [DECOR_FACE_STATE]: block.face,
         [DECOR_HEIGHT_STATE]: block.height,
         [DECOR_SPOT_STATE]: block.spot,
+      });
+    case "decorPair":
+      return BlockPermutation.resolve(pairDecorBlockId(block.pair), {
+        [DECOR_FACE_STATE]: block.face,
+        ...pairHeightStates(block.pair, block.height),
+        ...pairEndStates(0, block.end0),
+        ...pairEndStates(1, block.end1),
       });
     default:
       return BlockPermutation.resolve(blockIdOf(block));

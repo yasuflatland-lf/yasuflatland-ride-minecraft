@@ -1008,12 +1008,15 @@ describe("camper furniture model (ADR 0093)", () => {
       return out;
     });
 
-  it("puts every standing decor slot on the model's top surface and runs the ceiling hook from the ceiling plate to the top of its cell (ADR 0093, 0099, 0102)", () => {
+  // The slots that share their furniture cell with another item (ADR 0108), and the stove's.
+  const SHARED_KINDS = ["stove", "shelf", "table"];
+
+  it("puts every standing decor slot but the stove's on the model's top surface at its spot and runs the ceiling hook from the ceiling plate to the top of its cell (ADR 0093, 0099, 0102, 0108)", () => {
     // The stove's slot stands on its burner's grate, checked in the next test.
     const slots = CAMPER_FURNITURE.filter((f) => f.kind !== "stove").flatMap(
       (f) => f.slots,
     );
-    expect(slots).toHaveLength(9);
+    expect(slots).toHaveLength(12);
     const unrotatedCubes = bones
       .filter((b) => b.rotation === undefined)
       .flatMap((b) => b.cubes ?? [])
@@ -1135,7 +1138,7 @@ describe("camper furniture model (ADR 0093)", () => {
     }
   });
 
-  it("keeps every body cube, rotated ones included, out of every standing item on each stove slot (ADR 0100, 0105)", () => {
+  it("keeps every body cube, rotated ones included, out of every standing item on each stove, shelf, and table slot, and the two items on a shelf board or the table apart (ADR 0100, 0105, 0108)", () => {
     const points = bodyPoints();
     // Each standing item's box from its block model: half its width along the camper's left
     // (model x), half its depth forward (model z), and its height. The decor block turns the
@@ -1163,15 +1166,55 @@ describe("camper furniture model (ADR 0093)", () => {
       return { id, halfX: reach(0), halfZ: reach(2), height: reach(1) };
     });
     expect(items.length).toBeGreaterThan(0);
-    // Only the stove is held to this so far: the sink rim rises 0.15 px into the counter's
-    // footprint and the dashboard's slanted cubes into the dashboard's.
-    const standing = CAMPER_FURNITURE.find((f) => f.kind === "stove")?.slots;
-    expect(standing).toHaveLength(1);
-    for (const slot of standing ?? [])
+    // Only the stove and the furniture that holds two items are held to this so far: the sink
+    // rim rises 0.15 px into the counter's footprint and the dashboard's slanted cubes into the
+    // dashboard's.
+    const standing = CAMPER_FURNITURE.filter((f) =>
+      SHARED_KINDS.includes(f.kind),
+    ).flatMap((f) => f.slots);
+    expect(standing).toHaveLength(7);
+    // A shelf board's or the table's two items stand apart for any two items (ADR 0108).
+    for (const [a, b] of [
+      ["shelf_low", "shelf_low_front"],
+      ["shelf_high", "shelf_high_front"],
+      ["table", "table_aisle"],
+    ]) {
+      const one = standing.find((s) => s.id === a);
+      const two = standing.find((s) => s.id === b);
+      if (one === undefined || two === undefined) throw new Error(`${a} ${b}`);
+      const p = slotXZ(one);
+      const q = slotXZ(two);
+      expect(16 * one.cell.layer + one.height).toBe(
+        16 * two.cell.layer + two.height,
+      );
+      const touching = items.flatMap((i) =>
+        items
+          .filter(
+            (j) =>
+              Math.abs(p.x - q.x) < i.halfX + j.halfX - 1e-9 &&
+              Math.abs(p.z - q.z) < i.halfZ + j.halfZ - 1e-9,
+          )
+          .map((j) => `${a} ${i.id} and ${b} ${j.id}`),
+      );
+      expect(touching).toEqual([]);
+    }
+    const halfX = Math.max(...items.map((i) => i.halfX));
+    const halfZ = Math.max(...items.map((i) => i.halfZ));
+    const height = Math.max(...items.map((i) => i.height));
+    for (const slot of standing) {
+      const { x, z } = slotXZ(slot);
+      const top = 16 * slot.cell.layer + slot.height;
+      // Narrowing to the points near the slot once keeps the per-item scans short; the run
+      // with coverage in CI exceeded the 5 s test timeout scanning every point per item.
+      const near = points.filter(
+        ([px = 0, py = 0, pz = 0]) =>
+          Math.abs(px - x) < halfX &&
+          Math.abs(pz - z) < halfZ &&
+          py > top + 1e-6 &&
+          py < top + height,
+      );
       for (const item of items) {
-        const { x, z } = slotXZ(slot);
-        const top = 16 * slot.cell.layer + slot.height;
-        const intruding = points.filter(
+        const intruding = near.filter(
           ([px = 0, py = 0, pz = 0]) =>
             Math.abs(px - x) < item.halfX &&
             Math.abs(pz - z) < item.halfZ &&
@@ -1180,6 +1223,7 @@ describe("camper furniture model (ADR 0093)", () => {
         );
         expect(intruding, `${slot.id} ${item.id}`).toEqual([]);
       }
+    }
   });
 
   it("keeps the aisle and the cell inside the entry door clear of the body's furniture", () => {

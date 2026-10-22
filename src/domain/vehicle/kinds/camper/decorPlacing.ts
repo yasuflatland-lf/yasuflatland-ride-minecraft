@@ -52,7 +52,7 @@ function sightAt(eye: Vec3 | undefined, point: Vec3, y: number): Vec3 {
  * The slot among `slots` whose point is nearest where the line of sight from `eye`
  * through `pressed` crosses that slot's surface (ADR 0110); on a tie, the one listed first.
  */
-function nearest(
+export function nearest(
   pose: HoldPose,
   slots: readonly DecorSlot[],
   pressed: Vec3,
@@ -76,8 +76,9 @@ function nearest(
 /**
  * The free slot accepting `item` whose point is nearest `point`, or with `eye`, nearest
  * where the line of sight through `point` crosses its surface (ADR 0110); on a tie, the
- * slot listed first. A slot is free while no slot of its cell holds decor (ADR 0107).
- * Undefined when every accepting slot is taken.
+ * slot listed first. A slot is free while no slot of its cell holds decor (ADR 0107), or on
+ * a shelf board or the table, while its own end holds none (ADR 0108). Undefined when every
+ * accepting slot is taken.
  */
 export function nearestFreeSlot(
   pose: HoldPose,
@@ -103,9 +104,10 @@ export function slotsAt(pose: HoldPose, cell: Vec3): DecorSlot[] {
 }
 
 /**
- * The slot of the pressed `cell` nearest `point` when the cell is free and has slots
- * accepting `item`; otherwise the free accepting slot nearest `point` (ADR 0093, 0097,
- * 0105), or none when `exact`: a press on a dinette seat names one slot, and filling
+ * The free slot of the pressed `cell` nearest `point` when the cell has free slots
+ * accepting `item`, such as the free end of a shelf board or the table (ADR 0108);
+ * otherwise the free accepting slot nearest `point` (ADR 0093, 0097, 0105), or none when
+ * `exact`: a press on a dinette seat names one slot, and filling
  * another one left the player unable to tell where the item went (ADR 0104). With the
  * player's `eye`, nearness is measured where the line of sight crosses each slot's
  * surface (ADR 0110).

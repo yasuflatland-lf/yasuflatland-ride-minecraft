@@ -1,6 +1,7 @@
 // The engine reports PlayerInteractWithBlockBeforeEvent.faceLocation.y as 1 minus the real
 // height within the block, while x and z are right (measured on the dev BDS, ADR 0111).
 // Every correction of that report lives here, so it can be removed if the engine changes.
+import { pairHeights } from "../../../domain/vehicle/kinds/index";
 import {
   CAMPER_BED_BLOCK,
   CAMPER_CEILING_BLOCK,
@@ -9,6 +10,7 @@ import {
   CAMPER_FURNITURE_BLOCK,
   CAMPER_SHOWER_TOILET_BLOCK,
   campingGearOfDecorBlock,
+  pairKindOfBlock,
 } from "./identifiers";
 
 const PX_PER_BLOCK = 16;
@@ -52,6 +54,14 @@ export function pressedShape(
   }
   if (campingGearOfDecorBlock(typeId) !== undefined)
     return { kind: "decor", lift: (height ?? 0) / PX_PER_BLOCK };
+  // A pair block is lifted like a decor block. The table's has no height state, since its
+  // one height cannot be a state, and its permutations lift it by that height (ADR 0108).
+  const pair = pairKindOfBlock(typeId);
+  if (pair !== undefined)
+    return {
+      kind: "decor",
+      lift: (height ?? Math.min(...pairHeights(pair))) / PX_PER_BLOCK,
+    };
   return ROOM_BOXES[typeId];
 }
 
