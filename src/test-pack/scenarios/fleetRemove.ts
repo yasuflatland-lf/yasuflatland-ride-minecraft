@@ -1,8 +1,15 @@
-import { type Entity, system, world } from "@minecraft/server";
+import {
+  type Dimension,
+  type Entity,
+  system,
+  type Vector3,
+  world,
+} from "@minecraft/server";
 import { ENTITY_TYPE } from "../../infrastructure/vehicle/bedrock/identifiers";
 import { type Arena, type Outcome, spawnCar, wait } from "../arena";
 
-type Case = "kill" | "script" | "unload";
+const CASES = ["kill", "script", "unload"] as const;
+type Case = (typeof CASES)[number];
 interface Sample {
   case: Case;
   event: "beforeRemove" | "afterRemove" | "die";
@@ -10,10 +17,35 @@ interface Sample {
   id: string;
   typeId: string;
   dimension?: string;
-  location?: { x: number; y: number; z: number };
+  location?: Vector3;
   chunkLoadedNextTick?: boolean;
   entityNextTick?: boolean | "threw";
   probeTick?: number;
+}
+
+const UNLOAD_AREA = "yasu_ride_unload_spike";
+const UNLOAD_CENTER = { x: 2008, z: 8 } as const;
+
+// getBlock returns undefined in an unloaded chunk but can also throw
+// LocationInUnloadedChunkError, so a throw counts as unloaded.
+function blockLoaded(dimension: Dimension, location: Vector3): boolean {
+  try {
+    return dimension.getBlock(location) !== undefined;
+  } catch {
+    return false;
+  }
+}
+
+function entityExists(id: string): boolean | "threw" {
+  try {
+    return world.getEntity(id) !== undefined;
+  } catch {
+    return "threw";
+  }
+}
+
+function yesNo(seen: boolean): string {
+  return seen ? "yes" : "no";
 }
 
 export async function fleetRemoveSpike(a: Arena): Promise<Outcome> {
@@ -22,95 +54,80 @@ export async function fleetRemoveSpike(a: Arena): Promise<Outcome> {
   const cars: Entity[] = [];
   const probes = new Set<number>();
   const tag = `yasu_ride_fleet_remove_${system.currentTick}`;
-  const area = "yasu_ride_unload_spike";
-  let areaAdded = false;
   let error: string | undefined;
-  const before = world.beforeEvents.entityRemove.subscribe((ev) => {
-    const car = ev.removedEntity;
-    if (car.typeId !== ENTITY_TYPE.suv) return;
-    const testCase = cases.get(car.id);
-    if (!testCase) return;
-    const dimension = car.dimension;
-    const location = { ...car.location };
+
+  function track(car: Entity, testCase: Case): void {
+    cars.push(car);
+    cases.set(car.id, testCase);
+  }
+  function record(
+    event: Sample["event"],
+    id: string,
+    typeId: string,
+  ): Sample | undefined {
+    const testCase = cases.get(id);
+    if (typeId !== ENTITY_TYPE.suv || !testCase) return undefined;
     const sample: Sample = {
       case: testCase,
-      event: "beforeRemove",
+      event,
       tick: system.currentTick,
-      id: car.id,
-      typeId: car.typeId,
-      dimension: dimension.id,
-      location,
+      id,
+      typeId,
     };
     samples.push(sample);
+    return sample;
+  }
+  function seen(testCase: Case, matches: (s: Sample) => boolean): boolean {
+    return samples.some((s) => s.case === testCase && matches(s));
+  }
+
+  const before = world.beforeEvents.entityRemove.subscribe((ev) => {
+    const car = ev.removedEntity;
+    const sample = record("beforeRemove", car.id, car.typeId);
+    if (!sample) return;
+    // Before events are read-only, so the probes wait for the next tick.
+    const dimension = car.dimension;
+    const location = { ...car.location };
+    sample.dimension = dimension.id;
+    sample.location = location;
     const probe = system.run(() => {
       probes.delete(probe);
       sample.probeTick = system.currentTick;
-      try {
-        sample.chunkLoadedNextTick = dimension.getBlock(location) !== undefined;
-      } catch {
-        sample.chunkLoadedNextTick = false;
-      }
-      try {
-        sample.entityNextTick = world.getEntity(sample.id) !== undefined;
-      } catch {
-        sample.entityNextTick = "threw";
-      }
+      sample.chunkLoadedNextTick = blockLoaded(dimension, location);
+      sample.entityNextTick = entityExists(sample.id);
     });
     probes.add(probe);
   });
   const after = world.afterEvents.entityRemove.subscribe((ev) => {
-    if (ev.typeId !== ENTITY_TYPE.suv) return;
-    const testCase = cases.get(ev.removedEntityId);
-    if (testCase)
-      samples.push({
-        case: testCase,
-        event: "afterRemove",
-        tick: system.currentTick,
-        id: ev.removedEntityId,
-        typeId: ev.typeId,
-      });
+    record("afterRemove", ev.removedEntityId, ev.typeId);
   });
   const die = world.afterEvents.entityDie.subscribe((ev) => {
-    const car = ev.deadEntity;
-    if (car.typeId !== ENTITY_TYPE.suv) return;
-    const testCase = cases.get(car.id);
-    if (testCase)
-      samples.push({
-        case: testCase,
-        event: "die",
-        tick: system.currentTick,
-        id: car.id,
-        typeId: car.typeId,
-      });
+    record("die", ev.deadEntity.id, ev.deadEntity.typeId);
   });
   try {
     const killed = spawnCar(a, 5.5, 20.5, 0);
-    cars.push(killed);
-    cases.set(killed.id, "kill");
+    track(killed, "kill");
     killed.addTag(tag);
     await wait(5);
     a.dim.runCommand(`kill @e[type=${ENTITY_TYPE.suv},tag=${tag}]`);
     await wait(40);
 
     const removed = spawnCar(a, 5.5, 20.5, 0);
-    cars.push(removed);
-    cases.set(removed.id, "script");
+    track(removed, "script");
     removed.remove();
     await wait(20);
 
+    let areaAdded = false;
     try {
-      a.dim.runCommand(`tickingarea add 2000 -64 0 2015 0 15 ${area} true`);
+      a.dim.runCommand(
+        `tickingarea add 2000 -64 0 2015 0 15 ${UNLOAD_AREA} true`,
+      );
       areaAdded = true;
-      const center = { x: 2008, y: a.gy, z: 8 };
-      let loaded = false;
-      for (let tick = 0; tick < 100; tick++) {
-        try {
-          loaded = a.dim.getBlock(center) !== undefined;
-        } catch {
-          loaded = false;
-        }
-        if (loaded) break;
+      const center = { ...UNLOAD_CENTER, y: a.gy };
+      let loaded = blockLoaded(a.dim, center);
+      for (let tick = 1; tick < 100 && !loaded; tick++) {
         await wait(1);
+        loaded = blockLoaded(a.dim, center);
       }
       if (!loaded)
         throw new Error("unload spike chunk did not load in 100 ticks");
@@ -127,23 +144,20 @@ export async function fleetRemoveSpike(a: Arena): Promise<Outcome> {
         maxDistance: 1.5,
       })[0];
       if (!unloaded) throw new Error("unload spike car not found");
-      cars.push(unloaded);
-      cases.set(unloaded.id, "unload");
+      track(unloaded, "unload");
       await wait(5);
-      a.dim.runCommand(`tickingarea remove ${area}`);
+      a.dim.runCommand(`tickingarea remove ${UNLOAD_AREA}`);
       areaAdded = false;
       for (let tick = 0; tick < 200; tick++) {
         await wait(1);
         if (
-          samples.some(
-            (s) => s.case === "unload" && s.event === "afterRemove",
-          ) &&
-          samples.some((s) => s.case === "unload" && s.probeTick !== undefined)
+          seen("unload", (s) => s.event === "afterRemove") &&
+          seen("unload", (s) => s.probeTick !== undefined)
         )
           break;
       }
     } finally {
-      if (areaAdded) a.dim.runCommand(`tickingarea remove ${area}`);
+      if (areaAdded) a.dim.runCommand(`tickingarea remove ${UNLOAD_AREA}`);
     }
   } catch (e) {
     error = String(e);
@@ -162,22 +176,20 @@ export async function fleetRemoveSpike(a: Arena): Promise<Outcome> {
       }
     }
   }
-  const summary = (["kill", "script", "unload"] as const).map((testCase) => {
-    const seen = samples.filter((s) => s.case === testCase);
-    const loaded = seen
-      .filter((s) => s.event === "beforeRemove")
-      .map((s) => s.chunkLoadedNextTick ?? "pending");
-    return `${testCase}: remove=${seen.some((s) => s.event === "afterRemove") ? "yes" : "no"} die=${seen.some((s) => s.event === "die") ? "yes" : "no"} loadedNextTick=${loaded.join(",") || "unobserved"}`;
+  const summary = CASES.map((testCase) => {
+    const loadedNextTick = samples
+      .filter((s) => s.case === testCase && s.event === "beforeRemove")
+      .map((s) => s.chunkLoadedNextTick ?? "pending")
+      .join(",");
+    const remove = yesNo(seen(testCase, (s) => s.event === "afterRemove"));
+    const died = yesNo(seen(testCase, (s) => s.event === "die"));
+    return `${testCase}: remove=${remove} die=${died} loadedNextTick=${loadedNextTick || "unobserved"}`;
   });
   return {
     pass:
       error === undefined &&
-      samples.some(
-        (s) => s.case === "kill" && s.chunkLoadedNextTick === true,
-      ) &&
-      samples.some(
-        (s) => s.case === "unload" && s.chunkLoadedNextTick === false,
-      ),
+      seen("kill", (s) => s.chunkLoadedNextTick === true) &&
+      seen("unload", (s) => s.chunkLoadedNextTick === false),
     detail: summary.join("; ") + (error ? `; error=${error}` : ""),
     lines: samples.map((s) => JSON.stringify(s)),
   };
