@@ -182,6 +182,9 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | C121 | Put each of a saucepan, an enamel kettle, a percolator, a toaster, and a cushion on the stove in turn, in all four facings, taking each back with an empty hand | Each item stands centered on the burner, on the grate, not floating and not sunk into it, and none pokes through the wall or the vent band (ADR 0112) | | |
 | C122 | On a build before this change, park and put a saucepan on the wall-side burner toward the far end of the stove; update to this change, restart the server, and look inside | The saucepan stands on the stove's one burner in the middle; no item is left floating where the old burner was, and the empty-hand press takes it back (ADR 0112) | | |
 | C123 | On a build before this change, park and put a kettle on a stove burner; update, restart, and break the camper into its item | The kettle comes back to you (ADR 0103, 0112) | | |
+| C130 | Park the camper and walk around its right (door) side, on a phone and on PC | A window with a chrome frame sits between the door and the rear right window, as long and as high as the window ahead of the door, with the same wall width on both sides; the tan band is cut around it (ADR 0113) | | |
+| C131 | Inside the parked camper, stand in the aisle at the stove, then at the sink, and look at the wall behind them | You see outside through the window, between the counter top and the wall cabinet; curtains hang at both ends of the window and nothing else covers it (ADR 0113) | | |
+| C132 | Put a saucepan on the stove and a mug pair on the counter, then look at them from outside through the new window | Both items show through the glass; no wall or furniture face flickers in the window opening (ADR 0113) | | |
 
 ## Upgrading from MyCar 0.5.0 and earlier
 

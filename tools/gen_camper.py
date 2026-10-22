@@ -222,8 +222,9 @@ for a0, a1 in ARCHES:  # straight up to ARCH_SLOPE_Y, then sloping in by ARCH_IN
         inset = ARCH_INSET * (i + 0.5) / n
         y = ARCH_SLOPE_Y + i * ARCH_STEP
         arch_holes.append((a0 + inset, a1 - inset, y, y + ARCH_STEP))
-# No window between the door and the shower room, above the counter (ADR 0093, 0103).
-right_windows = [CAB_WIN, (-35, -10, *WIN_Y), (38, 50, *WIN_Y), (-31, -19, 56, 59)]
+# The window over the counter is as long as the one ahead of the door and centered between
+# the door and the rear window, so the stove and the sink look out (ADR 0113).
+right_windows = [CAB_WIN, (-35, -10, *WIN_Y), (10, 35, *WIN_Y), (38, 50, *WIN_Y), (-31, -19, 56, 59)]
 left_windows = [CAB_WIN, (-29, -5, *WIN_Y), (-19, -8, 56, 59), (16, 21, *WIN_Y), (40, 49, *WIN_Y)]
 for x0, x1, windows in ((HW - 1, HW, right_windows), (-HW, -HW + 1, left_windows)):
     right = x0 > 0
