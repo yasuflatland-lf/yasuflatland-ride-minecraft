@@ -109,9 +109,10 @@ describe("stepMediumMotion (ADR 0021, 0075)", () => {
     drag: positive,
     maxSpeed: positive,
   });
+  const ratioAboveOne = fc.double({ min: 1.01, max: 4, noNaN: true });
   const reverseRatio = fc.oneof(
     fc.double({ min: 0.01, max: 1, noNaN: true }),
-    fc.double({ min: 1.01, max: 4, noNaN: true }),
+    ratioAboveOne,
   );
 
   it("caps internal speed in both directions after every medium tick", () => {
@@ -158,7 +159,7 @@ describe("stepMediumMotion (ADR 0021, 0075)", () => {
       fc.property(
         limitsArb,
         mediumArb,
-        fc.double({ min: 1.01, max: 4, noNaN: true }),
+        ratioAboveOne,
         (base, medium, ratio) => {
           const limits: MotionLimits = {
             ...base,
