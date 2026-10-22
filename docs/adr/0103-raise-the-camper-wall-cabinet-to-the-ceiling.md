@@ -1,6 +1,6 @@
 # 0103. Raise the camper wall cabinet to the ceiling
 
-- Status: Accepted
+- Status: Accepted (extended by [0113](0113-a-window-over-the-camper-counter.md))
 - Date: 2026-10-21
 - Supersedes in part: 0093 (the wall cabinet slots, and dropping a saved entry with an unknown slot on load), 0097 (the wall cabinet halves among the standing slots)
 
