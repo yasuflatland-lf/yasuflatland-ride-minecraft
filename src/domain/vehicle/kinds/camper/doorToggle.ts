@@ -12,8 +12,13 @@ export class DoorToggle {
 
   /** Records a tap at `tick`; true when it toggles the door. */
   tryToggle(tick: number): boolean {
-    if (tick - this.lastToggleTick < CAMPER_SPEC.doorSwingTicks) return false;
+    if (this.withinSwing(tick)) return false;
     this.lastToggleTick = tick;
     return true;
+  }
+
+  /** Whether `tick` is within a swing of the last toggle, when `tryToggle` would ignore a tap. */
+  withinSwing(tick: number): boolean {
+    return tick - this.lastToggleTick < CAMPER_SPEC.doorSwingTicks;
   }
 }

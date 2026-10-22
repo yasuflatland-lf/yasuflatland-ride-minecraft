@@ -24,6 +24,7 @@ const INVISIBLE_BLOCKS = [
   "camper_door",
   "camper_floor",
   "camper_furniture",
+  "camper_shower_door",
   "camper_shower_toilet",
   "camper_wall",
   "deck_floor",

@@ -214,6 +214,8 @@ export const CAMPER_BED_BLOCK = id("camper_bed");
 export const CAMPER_SHOWER_TOILET_BLOCK = id("camper_shower_toilet");
 /** An open wall cabinet door's plate in the aisle cell under the ceiling (ADR 0114). */
 export const CAMPER_CABINET_DOOR_BLOCK = id("camper_cabinet_door");
+/** The rear wall behind the open shower door, selectable so a tap on that door reaches the shower-toilet (ADR 0118). */
+export const CAMPER_SHOWER_DOOR_BLOCK = id("camper_shower_door");
 /** Invisible, collisionless block over an empty decor slot's furniture top (ADR 0097). */
 export const CAMPER_FURNITURE_BLOCK = id("camper_furniture");
 /** Custom component handling taps on camper door blocks (ADR 0068). */
@@ -317,9 +319,10 @@ const CAMPER_ROOM_BLOCKS: ReadonlySet<string> = new Set([
   CAMPER_FURNITURE_BLOCK,
   CAMPER_SHOWER_TOILET_BLOCK,
   CAMPER_CABINET_DOOR_BLOCK,
+  CAMPER_SHOWER_DOOR_BLOCK,
 ]);
 
-/** A block the parked camper's room lays (ADR 0068, 0092, 0097, 0098, 0114); the door step is a shared deck floor and is left out. */
+/** A block the parked camper's room lays (ADR 0068, 0092, 0097, 0098, 0114, 0118); the door step is a shared deck floor and is left out. */
 export function isCamperRoomBlock(typeId: string): boolean {
   return CAMPER_ROOM_BLOCKS.has(typeId);
 }

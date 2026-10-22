@@ -53,6 +53,9 @@ const FURNITURE_BLOCKS: readonly {
   (f): f is typeof f & { readonly block: FurnitureBlock } =>
     f.block !== undefined,
 ).flatMap(({ cells, block }) => cells.map((cell) => ({ cell, block })));
+// The open shower door stands in the aisle cell (0, -3) just in front of this rear wall
+// cell, whose plate then takes the taps that pass through the door's model (ADR 0118).
+const SHOWER_DOOR_WALL = { x: 0, z: -WALL_Z } as const;
 // The ground cell just outside the door.
 const EXIT = { x: -WALL_X - 1, z: 0 } as const;
 const WALL_LAYERS = [1, 2, 3] as const;
@@ -267,13 +270,15 @@ function ceilingBlock(
 
 /**
  * The 105 cells of the parked room: its shell, the door step, and every furniture block. The
- * two wall cabinet cells under the ceiling are laid by cabinetCells, and an open cabinet
- * door's aisle cell holds its plate instead of the ceiling (ADR 0068, 0092, 0093, 0098, 0114).
+ * two wall cabinet cells under the ceiling are laid by cabinetCells, an open cabinet door's
+ * aisle cell holds its plate instead of the ceiling, and the rear wall behind the open shower
+ * door is selectable (ADR 0068, 0092, 0093, 0098, 0114, 0118).
  */
 export function roomCells(
   pose: HoldPose,
   doorOpen: boolean,
   openCabinets: ReadonlySet<CabinetDoor> = NO_DOORS,
+  showerDoorOpen = false,
 ): DockCell[] {
   const { f, l } = axes(pose.yaw);
   const ceiling = localInterior([CEILING_LAYER]).flatMap((cell) => {
@@ -304,11 +309,16 @@ export function roomCells(
   for (const end of [-1, 1]) {
     const face = faceToward({ x: -end * f.x, z: -end * f.z });
     for (let lx = -HALF_X; lx <= HALF_X; lx++)
-      for (const dy of WALL_LAYERS)
+      for (const dy of WALL_LAYERS) {
+        const behindShowerDoor =
+          showerDoorOpen &&
+          lx === SHOWER_DOOR_WALL.x &&
+          end * WALL_Z === SHOWER_DOOR_WALL.z;
         cells.push({
           ...cellAt(pose, lx, end * WALL_Z, dy),
-          block: { type: "wall", face },
+          block: { type: behindShowerDoor ? "showerDoor" : "wall", face },
         });
+      }
   }
   cells.push({
     ...cellAt(pose, DOOR.x, DOOR.z, 0),
@@ -590,6 +600,15 @@ function standingBox(
 /** Whether a player with feet at `feet` is inside the parked room, standing or seated (ADR 0115). */
 export function insideRoom(pose: HoldPose, feet: Vec3): boolean {
   return inBox(standingBox(pose, INSIDE_FEET), feet);
+}
+
+/** Whether a player with feet at `feet` stands in the shower-toilet's column (ADR 0098, 0118). */
+export function inShowerToilet(pose: HoldPose, feet: Vec3): boolean {
+  return FURNITURE_BLOCKS.some(({ cell, block }) => {
+    if (block.type !== "showerToilet") return false;
+    const at = localCellAt(pose, cell);
+    return Math.floor(feet.x) === at.x && Math.floor(feet.z) === at.z;
+  });
 }
 
 /** A light block in the cell under each ceiling light (ADR 0115). */

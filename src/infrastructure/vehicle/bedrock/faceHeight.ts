@@ -9,6 +9,7 @@ import {
   CAMPER_DOOR_BLOCK,
   CAMPER_FLOOR_BLOCK,
   CAMPER_FURNITURE_BLOCK,
+  CAMPER_SHOWER_DOOR_BLOCK,
   CAMPER_SHOWER_TOILET_BLOCK,
   campingGearOfDecorBlock,
   pairKindOfBlock,
@@ -38,6 +39,7 @@ const ROOM_BOXES: Readonly<Record<string, PressedShape>> = {
   [CAMPER_FLOOR_BLOCK]: FULL,
   [CAMPER_DOOR_BLOCK]: FULL,
   [CAMPER_SHOWER_TOILET_BLOCK]: FULL,
+  [CAMPER_SHOWER_DOOR_BLOCK]: FULL,
   [CAMPER_BED_BLOCK]: { kind: "room", bottom: 0, top: 9 / PX_PER_BLOCK },
   [CAMPER_CEILING_BLOCK]: { kind: "room", bottom: 13 / PX_PER_BLOCK, top: 1 },
   [CAMPER_CABINET_DOOR_BLOCK]: {

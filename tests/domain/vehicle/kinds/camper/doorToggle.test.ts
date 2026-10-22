@@ -38,3 +38,21 @@ it("measures the swing from the last toggle, so ignored taps do not delay the ne
     ),
   );
 });
+
+it("is within a swing exactly when a tap would be ignored, and checking does not toggle (ADR 0105, 0118)", () => {
+  fc.assert(
+    fc.property(
+      fc.integer({ min: -1_000_000, max: 1_000_000 }),
+      fc.integer({ min: 0, max: 3 * SWING }),
+      (first, gap) => {
+        const door = new DoorToggle();
+        expect(door.withinSwing(first)).toBe(false);
+        door.tryToggle(first);
+        const within = door.withinSwing(first + gap);
+        expect(within).toBe(gap < SWING);
+        expect(door.withinSwing(first + gap)).toBe(within);
+        expect(door.tryToggle(first + gap)).toBe(!within);
+      },
+    ),
+  );
+});

@@ -28,6 +28,7 @@ import {
   CAMPER_DOOR_BLOCK,
   CAMPER_FLOOR_BLOCK,
   CAMPER_FURNITURE_BLOCK,
+  CAMPER_SHOWER_DOOR_BLOCK,
   CAMPER_SHOWER_TOILET_BLOCK,
   CAMPER_WALL_BLOCK,
   DECK_FLOOR_BLOCK,
@@ -109,6 +110,7 @@ const ROOM_BLOCK: Readonly<
   furniture: CAMPER_FURNITURE_BLOCK,
   showerToilet: CAMPER_SHOWER_TOILET_BLOCK,
   cabinetDoor: CAMPER_CABINET_DOOR_BLOCK,
+  showerDoor: CAMPER_SHOWER_DOOR_BLOCK,
   light: LIGHT_BLOCK,
 };
 
@@ -301,7 +303,10 @@ function isShowerToiletCell(c: DockCell): c is ShowerToiletCell {
   return c.block.type === "showerToilet";
 }
 
-// The shower-toilet block counts only with its plate toward the aisle (ADR 0098).
+// The shower-toilet block counts only with its plate toward the aisle (ADR 0098). The shower
+// door opens only on a player's press, which a test cannot make, so this checks that the rear
+// wall behind it is plain wall while it is shut and that BDS loaded the block laid there while
+// it is open, on every face (ADR 0118).
 export function camperShowerToiletBlock(a: Arena): Promise<Outcome> {
   return atParkSpot(a, async (car) => {
     await wait(DOCK.ticks + 10);
@@ -314,14 +319,43 @@ export function camperShowerToiletBlock(a: Arena): Promise<Outcome> {
         block.permutation.getAllStates()[ROOM_FACE_STATE] === c.block.face
       );
     }).length;
+    const shut = roomCells(pose, false);
+    const behindDoor = roomCells(pose, false, undefined, true).filter(
+      (c, i) => c.block.type === "showerDoor" && shut[i]?.block.type === "wall",
+    );
+    const walls = behindDoor.filter(
+      (c) => a.dim.getBlock(c)?.typeId === CAMPER_WALL_BLOCK,
+    ).length;
     drive(car, 0, 1);
     await wait(15);
     const cleared = cells.filter(
       (c) => a.dim.getBlock(c)?.typeId === "minecraft:air",
     ).length;
+    // Inside the park spot, which atParkSpot fills with air afterwards.
+    const spot = { x: 108, y: a.gy + 2, z: 78 };
+    let resolved = 0;
+    for (const face of [0, 1, 2, 3]) {
+      a.dim.getBlock(spot)?.setPermutation(
+        BlockPermutation.resolve(CAMPER_SHOWER_DOOR_BLOCK, {
+          [ROOM_FACE_STATE]: face,
+        }),
+      );
+      const block = a.dim.getBlock(spot);
+      if (
+        block?.typeId === CAMPER_SHOWER_DOOR_BLOCK &&
+        block.permutation.getAllStates()[ROOM_FACE_STATE] === face
+      )
+        resolved++;
+    }
     return {
-      pass: cells.length === 2 && laid === 2 && cleared === 2,
-      detail: `cells=${cells.length} laid=${laid} cleared=${cleared}`,
+      pass:
+        cells.length === 2 &&
+        laid === 2 &&
+        cleared === 2 &&
+        behindDoor.length === 3 &&
+        walls === 3 &&
+        resolved === 4,
+      detail: `cells=${cells.length} laid=${laid} cleared=${cleared} behindDoor=${behindDoor.length} walls=${walls} resolved=${resolved}`,
     };
   });
 }

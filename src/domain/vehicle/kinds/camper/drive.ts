@@ -48,6 +48,7 @@ import {
   exitCells,
   furnitureCells,
   holdsCargo,
+  inShowerToilet,
   insideRoom,
   isPassable,
   localCellAt,
@@ -288,6 +289,22 @@ export class CamperDrive extends TransformingDrive {
     return true;
   }
 
+  /**
+   * A press on the shower-toilet by a player with feet at `feet` (ADR 0118). An open door, or
+   * one that moved within a swing, takes the press, so the door closes from either side and
+   * the echo of a tap that shut it does not start the shower (ADR 0105). A shut door opens
+   * from outside; from inside, the press runs the shower (ADR 0098).
+   */
+  pressShowerToilet(feet: Vec3, tick: number): boolean {
+    const pose = this.parked;
+    if (!pose) return false;
+    const doorTakesIt =
+      this.showerDoorOpen ||
+      this.showerDoorToggle.withinSwing(tick) ||
+      !inShowerToilet(pose, feet);
+    return doorTakesIt ? this.useShowerDoor(tick) : this.runShower();
+  }
+
   decor(): readonly DecorPlacement[] {
     return [...this.placed(), ...this.stowedDecor];
   }
@@ -492,7 +509,12 @@ export class CamperDrive extends TransformingDrive {
       hold: pose,
       cells: lay
         ? [
-            ...roomCells(pose, this.doorOpen, this.openCabinets()),
+            ...roomCells(
+              pose,
+              this.doorOpen,
+              this.openCabinets(),
+              this.showerDoorOpen,
+            ),
             ...decorCells(pose, this.placed()),
             ...furnitureCells(pose, this.placed()),
             ...cabinetCells(pose, this.placed(), this.shownCabinets()),
