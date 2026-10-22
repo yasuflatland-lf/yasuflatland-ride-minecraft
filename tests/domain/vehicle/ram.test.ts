@@ -141,8 +141,9 @@ describe("selectHits (ADR 0006)", () => {
           m !== "vehicle" &&
           (since === undefined || since >= SPEC.ramCooldown);
         expect(hits).toHaveLength(expected ? 1 : 0);
-        for (const { id, push, pushUp } of hits) {
+        for (const { id, damage, push, pushUp } of hits) {
           expect(id).toBe("t");
+          expect(damage).toBe(ramDamage(s));
           expect(dot(push, f) * Math.sign(s)).toBeGreaterThan(0);
           expect(Math.hypot(push.x, push.z)).toBeCloseTo(
             expectedPushMagnitude(s),

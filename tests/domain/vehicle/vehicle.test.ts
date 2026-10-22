@@ -215,7 +215,7 @@ describe("Vehicle (aggregate)", () => {
       (MOTION.mountAlignSpeed / SUV_SPEC.accel) * SPEC.throttleFullAt;
     const run = fc.oneof(
       fc.record({
-        throttle: fc.constantFrom(0, creep, creep * 0.99),
+        throttle: fc.constantFrom(0, creep, creep * 0.99, -creep),
         ticks: fc.constant(1),
       }),
       fc.record({
@@ -235,6 +235,7 @@ describe("Vehicle (aggregate)", () => {
         sim.testInput = { moveX: 0, moveY: throttle, jump: false };
         sim.run(v, ticks);
         const speed = v.speed;
+        if (throttle === creep) expect(speed).toBe(MOTION.mountAlignSpeed);
         const yaw = v.yaw;
         sim.riders = [{ id: "d", seat: 0, yaw: viewYaw, raw: IDLE }];
         sim.run(v, 1, ticks);
