@@ -117,7 +117,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0111](0111-correct-the-inverted-face-location-height.md) | Correct the inverted face location height | Accepted |
 | [0112](0112-one-burner-on-the-camper-stove.md) | One burner on the camper stove | Accepted |
 | [0113](0113-a-window-over-the-camper-counter.md) | A window over the camper counter | Extended by 0114 |
-| [0114](0114-open-the-camper-wall-cabinet.md) | Open the camper wall cabinet | Accepted |
+| [0114](0114-open-the-camper-wall-cabinet.md) | Open the camper wall cabinet | Extended by 0120 |
 | [0115](0115-camper-ceiling-lights.md) | Ceiling lights in the parked camper | Accepted |
 | [0116](0116-a-bumper-stand-in-takes-the-camper-hits.md) | A bumper stand-in takes the camper's hits | Proposed; extended by 0119 (Proposed) |
 | [0117](0117-move-the-suv-front-seats-back.md) | Move the SUV's front seats back | Accepted |
