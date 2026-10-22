@@ -55,6 +55,7 @@ const block: fc.Arbitrary<DockBlock> = fc.oneof(
     open: fc.boolean(),
   }),
   showerToiletFace.map((face) => ({ type: "showerToilet" as const, face })),
+  showerToiletFace.map((face) => ({ type: "showerDoor" as const, face })),
   decorBlock,
   decorPairBlock,
 );
@@ -251,6 +252,20 @@ describe("sameBlock", () => {
         );
         expect(sameBlock(showerToilet, other)).toBe(
           other.type === "showerToilet" && other.face === a,
+        );
+      }),
+    );
+  });
+
+  it("tells shower door plates apart by face only (ADR 0118)", () => {
+    fc.assert(
+      fc.property(showerToiletFace, showerToiletFace, block, (a, b, other) => {
+        const showerDoor = { type: "showerDoor", face: a } as const;
+        expect(sameBlock(showerDoor, { type: "showerDoor", face: b })).toBe(
+          a === b,
+        );
+        expect(sameBlock(showerDoor, other)).toBe(
+          other.type === "showerDoor" && other.face === a,
         );
       }),
     );
