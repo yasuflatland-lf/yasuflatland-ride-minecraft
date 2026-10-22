@@ -44,7 +44,8 @@ Because the seat is the list index, a player reaches seat k only if k riders are
   - A player seated by a request who did not get in is dropped. This does not count as a driver getting out.
 - **Rider list.** The list holds each seat's player up to the last taken seat, with an invisible `yasu_ride:seat_filler` in each free seat below it. Nothing follows the last player. On each tick, before the deck riders board:
   - `SeatFillers.lay` keeps the riders that are already in order.
-  - It ejects the riders from the first one out of order onwards and adds the list from there. A boarding player is first taken off any other mount, such as a deck seat, and is put back on it if the boat refuses them.
+  - It ejects the riders from the first one out of order onwards and adds the list from there. A boarding player is first taken off any other mount, such as a deck seat, and is put back on it if the boat refuses them. A full boat is not tried, since the other mount may not take the player back in the tick they got off it.
+  - The engine does not add back a rider in the tick they got off the same vehicle: in the first CI run of `boat_seat_fillers`, the rear cow ejected and added again in one tick was refused, and a filler took its seat (`fillersAfter=3`). So an ejected filler is removed and a new one spawned in its place. An ejected player waits instead: the layout stops at them, and the next tick adds them and the rest of the list. While they wait, the snapshot still counts them as riding the boat, at the list index they wait for (`SeatFillers.waitingRiders`), so they keep their seat. A player still refused after 5 ticks in a row, or one who can no longer get in, gets a filler like any other player who cannot get in.
   - A player who cannot get in (gone, dead, in another dimension, or more than 8 blocks away) is replaced by a filler, so the riders after them keep their seats.
   - A filler that cannot spawn or get in is skipped and removed, and the players after it still get back on. They sit one seat lower until the next tick lays them again, which is better than staying ejected and losing their seat.
   - Fillers that are not needed are removed.
@@ -59,7 +60,7 @@ Because the seat is the list index, a player reaches seat k only if k riders are
   - Fillers are removed when the boat is released (broken, removed by the vehicle limit, or no longer loaded). A filler that loads without riding a vehicle is also removed.
 - **In-game test.** `boat_seat_fillers` checks this on `yasu_ride_test:boat_seat_probe`, which has the boat's `minecraft:rideable` but seats cows and fillers:
   - With `SeatFillers` laying driver, filler, rear, the rear cow sits in seat 2.
-  - After the driver is ejected and the list is laid again, the rear cow is still in seat 2, with two fillers holding seats 0 and 1.
+  - After the driver is ejected and the list is laid again every tick, as the boat does, the rear cow waits a tick and gets back into seat 2, with two fillers holding seats 0 and 1 and no third one.
   - Laying an empty list leaves no fillers.
   
   A unit test keeps the probe's `minecraft:rideable` equal to the boat's apart from `family_types`.
@@ -69,13 +70,13 @@ Because the seat is the list index, a player reaches seat k only if k riders are
 - On PC, a player picks a boat seat by looking at it while pressing the boat. On touch, they pick it by where they stand when they press the boat. Two players can both sit in the rear, and a passenger can sit behind an empty driver's seat.
 - A touch player who uses the crosshair (split controls) still gets the seat nearest where they stand, because the input mode does not tell the two touch layouts apart.
 - A boat holds up to three extra entities, one for each free seat below the last taken seat. They exist only while someone sits behind them.
-- When a lower seat empties or fills, the riders behind it get off and back on within the same tick. Their camera may flicker for a moment. `DeckSeats.board` already ejects and adds riders in the same tick.
+- When a lower seat empties or fills, the riders behind it get off and back on a tick later. Their camera may flicker for a moment. `DeckSeats.board` ejects and adds riders in the same tick, which works because the rider gets off one entity and on another.
 - A rear passenger no longer moves up when the driver gets out. Only the front passenger takes the wheel (0019, 0078). A boat whose only riders sit in the rear has no driver until someone presses it aiming at seat 0.
 - The rows B13, B15 and B18 of the manual test change, and new rows check two players in the rear from the water and from the deck on PC (B19, B20) and on an iPad or phone (B21).
 - Unverified: this ADR relies on these points, and the in-game test and a playtest should confirm them:
   - Fillers ride the boat and keep their list index like any rider.
   - `getRiders()` returns the riders in list order.
-  - A player ejected and added again in the same tick is seated again.
+  - A player ejected in one tick is taken back on the next. CI showed that a cow is not taken back in the same tick. The in-game test reports how many ticks the cow waited (`waited`, `backAt`), and up to 5 are allowed.
   - The engine fires `playerInteractWithEntity` for a press on the boat from the water or the shore.
   
   If the press on the boat does not reach the server from the deck (0063), a player there still uses a deck seat. If players are not seated by list index as the cows were, revisit this decision.

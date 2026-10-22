@@ -186,11 +186,28 @@ export class BedrockVehicleWorld implements DriveWorld {
   private riders(vehicle: Entity): RiderView[] {
     // The engine seats riders by their index in this list (ADR 0019), seat fillers
     // included (ADR 0120), so the index is taken before the players are picked out.
-    return (vehicle.getComponent("minecraft:rideable")?.getRiders() ?? [])
+    const aboard = (
+      vehicle.getComponent("minecraft:rideable")?.getRiders() ?? []
+    )
       .map((rider, slot) => ({ rider, slot }))
       .filter((entry): entry is { rider: Player; slot: number } =>
         isPlayer(entry.rider),
+      );
+    // A player the seat layout took off a tick ago is still riding it, in the slot
+    // they wait for (ADR 0120), unless they got on something else meanwhile.
+    for (const [id, slot] of this.seatFillers.waitingRiders(
+      asVehicleId(vehicle.id),
+    )) {
+      const player = this.index.player(id);
+      if (
+        player?.isValid &&
+        !player.getComponent("minecraft:riding") &&
+        !aboard.some((entry) => entry.rider.id === id)
       )
+        aboard.push({ rider: player, slot });
+    }
+    return aboard
+      .sort((a, b) => a.slot - b.slot)
       .map(({ rider: p, slot }) => {
         return {
           slot,

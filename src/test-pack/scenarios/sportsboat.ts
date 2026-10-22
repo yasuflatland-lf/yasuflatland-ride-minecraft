@@ -507,8 +507,10 @@ function boatSeatOf(vehicle: Entity, rider: Entity): number {
 
 // Seat fillers hold the free seats below a chosen one, so the engine, which seats
 // riders by their index in its rider list, puts each rider in their seat; and after
-// the driver gets out, laying the list again in the same tick keeps the rear rider
-// in the rear (ADR 0120). Cows stand in for players on a probe with the boat's seats.
+// the driver gets out, laying the list again every tick, as the boat does, puts the
+// rear rider back in the rear. The engine does not take a rider back in the tick it got
+// off, so the rear rider waits a tick for it (ADR 0120). Cows stand in for players on a
+// probe with the boat's seats.
 export async function boatSeatFillers(a: Arena): Promise<Outcome> {
   a.dim.runCommand(`summon ${BOAT_SEAT_PROBE} 30.5 ${a.gy} 8.5`);
   const probe = a.dim.getEntities({
@@ -533,20 +535,35 @@ export async function boatSeatFillers(a: Arena): Promise<Outcome> {
         layout.map((cow) => (cow ? asPlayerId(cow.id) : undefined)),
         cowOf,
       );
-    const fillerCount = () =>
-      (probe.getComponent("minecraft:rideable")?.getRiders() ?? []).filter(
-        (rider) => rider.typeId === SEAT_FILLER_TYPE,
-      ).length;
+    // The probe's rider list: D the driver cow, R the rear cow, F a filler.
+    const riderList = () =>
+      (probe.getComponent("minecraft:rideable")?.getRiders() ?? [])
+        .map((rider) =>
+          rider.typeId === SEAT_FILLER_TYPE
+            ? "F"
+            : rider.id === driver.id
+              ? "D"
+              : rider.id === rear.id
+                ? "R"
+                : "?",
+        )
+        .join("");
     lay([driver, undefined, rear]);
     await wait(5);
     const seated = [boatSeatOf(probe, driver), boatSeatOf(probe, rear)];
-    const heldBefore = fillerCount();
+    const before = riderList();
     probe.getComponent("minecraft:rideable")?.ejectRider(driver);
     await wait(1);
-    lay([undefined, undefined, rear]);
-    await wait(5);
+    let waited = 0;
+    let backAt = -1;
+    for (let t = 0; t < 10; t++) {
+      lay([undefined, undefined, rear]);
+      if (fillers.waitingRiders(vehicleId).has(asPlayerId(rear.id))) waited++;
+      if (backAt < 0 && riderList().includes("R")) backAt = t;
+      await wait(1);
+    }
     const afterLeave = boatSeatOf(probe, rear);
-    const heldAfter = fillerCount();
+    const after = riderList();
     lay([]);
     await wait(2);
     const left = a.dim.getEntities({
@@ -557,11 +574,12 @@ export async function boatSeatFillers(a: Arena): Promise<Outcome> {
     return {
       pass:
         seated.join() === "0,2" &&
-        heldBefore === 1 &&
+        before === "DFR" &&
+        backAt >= 0 &&
         afterLeave === 2 &&
-        heldAfter === 2 &&
+        after === "FFR" &&
         left === 0,
-      detail: `seated=${seated} fillers=${heldBefore} afterLeave=${afterLeave} fillersAfter=${heldAfter} left=${left}`,
+      detail: `seated=${seated} before=${before} waited=${waited} backAt=${backAt} afterLeave=${afterLeave} after=${after} left=${left}`,
     };
   } finally {
     fillers.release(probe ? asVehicleId(probe.id) : asVehicleId(""));

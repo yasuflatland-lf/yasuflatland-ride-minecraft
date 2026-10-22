@@ -30,6 +30,7 @@ import {
   ITEM_TYPE,
   OWNER_PROPERTY,
   PLAYER_TYPE,
+  SEAT_FILLER_TYPE,
   VEHICLE_FAMILY,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 import { TestInputStore } from "../../../../src/infrastructure/vehicle/testInput/testInputStore";
@@ -421,6 +422,64 @@ describe("BedrockVehicleWorld snapshots", () => {
     ]);
     // The slot counts every rider, since the engine seats by list index (ADR 0019, 0120).
     expect(world.loadedVehicles()[0]?.riders.map((r) => r.slot)).toEqual([1]);
+  });
+
+  it("counts a player the seat layout took off as riding, in the slot they wait for (ADR 0120)", () => {
+    const { car, dimension, world } = fixture();
+    const filler = { id: "filler", typeId: SEAT_FILLER_TYPE, isValid: true };
+    const player = {
+      id: "player",
+      typeId: PLAYER_TYPE,
+      isValid: true,
+      dimension,
+      location: { x: 0, y: 64, z: 2 },
+      riding: true,
+      getComponent: (name: string) =>
+        name === "minecraft:riding" && player.riding
+          ? { entityRidingOn: car }
+          : undefined,
+      getRotation: () => ({ y: 0 }),
+      inputInfo: {
+        getMovementVector: () => ({ x: 0, y: 0 }),
+        getButtonState: () => "Released",
+      },
+    };
+    const riders: { id: string }[] = [filler, player];
+    car.getComponent.mockImplementation((name) =>
+      name === "minecraft:rideable"
+        ? {
+            seatCount: 4,
+            getRiders: () => [...riders],
+            ejectRider: (rider: { id: string }) => {
+              riders.splice(riders.indexOf(rider), 1);
+              if (rider === player) player.riding = false;
+            },
+            // The engine does not take back a rider in the tick they got off.
+            addRider: (rider: { id: string }) => {
+              if (rider === player) return false;
+              riders.push(rider);
+              return true;
+            },
+          }
+        : undefined,
+    );
+    dimension.spawnEntity.mockImplementation(() => ({
+      id: "filler2",
+      typeId: SEAT_FILLER_TYPE,
+      isValid: true,
+    }));
+    game.getEntity.mockImplementation((id: string) =>
+      id === car.id ? car : id === player.id ? player : undefined,
+    );
+    expect(world.loadedVehicles()[0]?.riders.map((r) => r.slot)).toEqual([1]);
+    world.keepSeatLayout(asVehicleId("car"), [
+      undefined,
+      undefined,
+      asPlayerId("player"),
+    ]);
+    expect(riders.map((r) => r.id)).toEqual(["filler", "filler2"]);
+    const snapshot = world.loadedVehicles()[0]?.riders;
+    expect(snapshot?.map((r) => [r.id, r.slot])).toEqual([["player", 2]]);
   });
 
   it("forgets the test input of a vehicle once it is no longer loaded (ADR 0010)", () => {

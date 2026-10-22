@@ -130,7 +130,7 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
     ["boat_cruise", 270, () => boatCruise(a)],
     ["boat_shore", 165, () => boatShore(a)],
     ["boat_ram", 77, () => boatRam(a)],
-    ["boat_seat_fillers", 15, () => boatSeatFillers(a)],
+    ["boat_seat_fillers", 19, () => boatSeatFillers(a)],
     ["suv_soul_sand", 78, () => suvSoulSand(a)],
     ["camping_gear_blocks", 0, () => campingGearBlocks(a)],
   ];

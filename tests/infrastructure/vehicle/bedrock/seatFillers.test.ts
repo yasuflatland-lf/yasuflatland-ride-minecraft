@@ -35,9 +35,14 @@ interface Fake {
   getComponent(name: string): unknown;
 }
 
-/** A vehicle whose rider list behaves as Bedrock's: riders are added at the end and seated by index (ADR 0019). */
+/**
+ * A vehicle whose rider list behaves as Bedrock's: riders are added at the end and seated
+ * by index (ADR 0019), and a rider that got off is not taken back by the same vehicle
+ * until the tick ends (in-game test boat_seat_fillers, ADR 0120).
+ */
 function fixture() {
   const entities = new Map<string, Fake>();
+  const gotOff = new Set<string>();
   let next = 0;
   const dimension = {
     id: "overworld",
@@ -66,9 +71,15 @@ function fixture() {
         if (name === "minecraft:health") return { currentValue: 20 };
         if (name === "minecraft:rideable" && fake.typeId !== SEAT_FILLER_TYPE)
           return {
+            seatCount: SEATS,
             getRiders: () => [...fake.riders],
             addRider: (rider: Fake) => {
-              if (rider.mount || fake.riders.length >= SEATS) return false;
+              if (
+                rider.mount ||
+                fake.riders.length >= SEATS ||
+                gotOff.has(`${fake.id}/${rider.id}`)
+              )
+                return false;
               fake.riders.push(rider);
               rider.mount = fake;
               return true;
@@ -78,6 +89,7 @@ function fixture() {
               if (at < 0) return;
               fake.riders.splice(at, 1);
               rider.mount = undefined;
+              gotOff.add(`${fake.id}/${rider.id}`);
             },
           };
         return undefined;
@@ -95,8 +107,38 @@ function fixture() {
     ]),
   );
   game.getEntity.mockImplementation((id: string) => entities.get(id));
-  return { vehicle, players, make, entities, dimension };
+  const endTick = () => gotOff.clear();
+  return { vehicle, players, make, entities, dimension, endTick };
 }
+
+type Fixture = ReturnType<typeof fixture>;
+
+function seat(f: Fixture, entries: readonly (string | undefined)[]): void {
+  for (const [i, entry] of entries.entries()) {
+    const rider = entry
+      ? (f.players.get(entry) as Fake)
+      : f.make(`old${i}`, SEAT_FILLER_TYPE);
+    f.vehicle.riders.push(rider);
+    rider.mount = f.vehicle;
+  }
+}
+
+function layOn(
+  f: Fixture,
+  fillers: SeatFillers,
+  layout: readonly (PlayerId | undefined)[],
+): void {
+  fillers.lay(
+    asVehicleId("boat"),
+    asEntity(f.vehicle),
+    layout,
+    (id) => f.players.get(id) as unknown as Player,
+  );
+}
+
+/** Every seat filler in the world, riding or not. */
+const fillersIn = (f: Fixture) =>
+  [...f.entities.values()].filter((e) => e.typeId === SEAT_FILLER_TYPE);
 
 const asEntity = (fake: Fake) => fake as unknown as Entity;
 
@@ -126,40 +168,113 @@ const layoutArb = fc
   );
 
 describe("SeatFillers (ADR 0120)", () => {
-  it("leaves the vehicle with exactly the laid rider list, whatever it held before", () => {
+  it("lays the list up to the first player who got off, keeps the rest waiting in their slots, and lays it all on the next tick", () => {
     fc.assert(
       fc.property(
-        fc.array(entryArb, { maxLength: SEATS }),
+        fc.uniqueArray(entryArb, {
+          maxLength: SEATS,
+          selector: (e) => e ?? Symbol(),
+        }),
         layoutArb,
         (before, layout) => {
           const f = fixture();
-          const seen = new Set<string>();
-          for (const entry of before) {
-            if (entry && seen.has(entry)) continue;
-            if (entry) seen.add(entry);
-            const rider = entry
-              ? (f.players.get(entry) as Fake)
-              : f.make(
-                  `old${seen.size}${f.vehicle.riders.length}`,
-                  SEAT_FILLER_TYPE,
-                );
-            f.vehicle.riders.push(rider);
-            rider.mount = f.vehicle;
-          }
+          seat(f, before);
           const fillers = new SeatFillers();
-          fillers.lay(
-            asVehicleId("boat"),
-            asEntity(f.vehicle),
-            layout,
-            (id) => f.players.get(id) as unknown as Player,
+          layOn(f, fillers, layout);
+          const laid = listOf(f.vehicle);
+          const waiting = fillers.waitingRiders(asVehicleId("boat"));
+          expect(laid).toEqual(
+            layout.slice(0, laid.length).map((id) => id ?? "F"),
           );
+          // Everyone the list could not hold yet waits for their own slot.
+          expect([...waiting]).toEqual(
+            layout
+              .map((id, slot) => [id, slot] as const)
+              .filter(([id, slot]) => id !== undefined && slot >= laid.length),
+          );
+          f.endTick();
+          layOn(f, fillers, layout);
           expect(listOf(f.vehicle)).toEqual(layout.map((id) => id ?? "F"));
+          expect(fillers.waitingRiders(asVehicleId("boat")).size).toBe(0);
           // No filler is left outside the vehicle.
-          for (const entity of f.entities.values())
-            if (entity.typeId === SEAT_FILLER_TYPE)
-              expect(entity.mount).toBe(f.vehicle);
+          for (const filler of fillersIn(f))
+            expect(filler.mount).toBe(f.vehicle);
         },
       ),
+    );
+  });
+
+  it("never holds more fillers than free seats below the last player, whatever the layouts tick after tick", () => {
+    fc.assert(
+      fc.property(
+        fc.array(layoutArb, { minLength: 1, maxLength: 8 }),
+        (layouts) => {
+          const f = fixture();
+          const fillers = new SeatFillers();
+          for (const layout of layouts) {
+            layOn(f, fillers, layout);
+            const riding = f.vehicle.riders.filter(
+              (r) => r.typeId === SEAT_FILLER_TYPE,
+            ).length;
+            expect(fillersIn(f)).toHaveLength(riding);
+            expect(riding).toBeLessThanOrEqual(
+              layout.filter((id) => id === undefined).length,
+            );
+            f.endTick();
+          }
+          const last = layouts.at(-1) ?? [];
+          layOn(f, fillers, last);
+          expect(listOf(f.vehicle)).toEqual(last.map((id) => id ?? "F"));
+        },
+      ),
+    );
+  });
+
+  it("keeps the rear rider in the rear and adds one filler when the driver gets out (in-game test boat_seat_fillers)", () => {
+    const f = fixture();
+    const fillers = new SeatFillers();
+    layOn(f, fillers, [asPlayerId("p0"), undefined, asPlayerId("p1")]);
+    expect(listOf(f.vehicle)).toEqual(["p0", "F", "p1"]);
+    f.endTick();
+    const driver = f.players.get("p0") as Fake;
+    f.vehicle.riders.splice(0, 1);
+    driver.mount = undefined;
+    f.endTick();
+    layOn(f, fillers, [undefined, undefined, asPlayerId("p1")]);
+    // The engine does not take p1 back in the tick they got off, so they wait in
+    // slot 2 instead of a filler taking their seat.
+    expect(listOf(f.vehicle)).toEqual(["F", "F"]);
+    expect([...fillers.waitingRiders(asVehicleId("boat"))]).toEqual([
+      ["p1", 2],
+    ]);
+    expect(fillersIn(f)).toHaveLength(2);
+    f.endTick();
+    layOn(f, fillers, [undefined, undefined, asPlayerId("p1")]);
+    expect(listOf(f.vehicle)).toEqual(["F", "F", "p1"]);
+    expect(fillersIn(f)).toHaveLength(2);
+    expect(fillers.waitingRiders(asVehicleId("boat")).size).toBe(0);
+  });
+
+  it("gives a waiting player's seat to a filler once they have waited too long or cannot get in", () => {
+    fc.assert(
+      fc.property(fc.constantFrom("refused", "far"), (failure) => {
+        const f = fixture();
+        const fillers = new SeatFillers();
+        seat(f, [undefined, "p1"]);
+        layOn(f, fillers, [undefined, undefined, asPlayerId("p1")]);
+        expect(
+          fillers.waitingRiders(asVehicleId("boat")).has(asPlayerId("p1")),
+        ).toBe(true);
+        if (failure === "far")
+          (f.players.get("p1") as Fake).location = { x: 50, y: 64, z: 0 };
+        for (let tick = 0; tick < 10; tick++) {
+          // A vehicle that keeps refusing p1, as if they had just got off it.
+          if (failure === "far") f.endTick();
+          layOn(f, fillers, [undefined, undefined, asPlayerId("p1")]);
+        }
+        expect(fillers.waitingRiders(asVehicleId("boat")).size).toBe(0);
+        expect(listOf(f.vehicle)).toEqual(["F", "F", "F"]);
+      }),
     );
   });
 
@@ -217,12 +332,15 @@ describe("SeatFillers (ADR 0120)", () => {
               filler.mount = f.make(`other${f.entities.size}`, "x");
               return filler;
             });
-          new SeatFillers().lay(
-            asVehicleId("boat"),
-            asEntity(f.vehicle),
-            layout,
-            (id) => f.players.get(id) as unknown as Player,
-          );
+          const fillers = new SeatFillers();
+          layOn(f, fillers, layout);
+          // The players who got off in this tick wait for the next one, in order.
+          expect([
+            ...listOf(f.vehicle),
+            ...fillers.waitingRiders(asVehicleId("boat")).keys(),
+          ]).toEqual(layout.filter((p) => p));
+          f.endTick();
+          layOn(f, fillers, layout);
           expect(listOf(f.vehicle)).toEqual(layout.filter((p) => p));
           // A filler that could not get in is not left in the world.
           for (const entity of f.entities.values())

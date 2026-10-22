@@ -15,6 +15,11 @@ import { isVehicleEntity, SEAT_FILLER_TYPE } from "./identifiers";
 // block a tick (ADR 0051). Farther means they left by other means and are not pulled in.
 const BOARD_REACH = 8;
 
+// How many layouts in a row a player taken off to lay the riders again may wait to get
+// back on before their seat goes to a filler. The engine refuses them in the tick they
+// got off (ADR 0120); the margin covers a slower release.
+const WAIT_TICKS = 5;
+
 const isFiller = (entity: Entity): boolean =>
   entity.typeId === SEAT_FILLER_TYPE;
 
@@ -35,13 +40,18 @@ function canBoard(player: Player, vehicle: Entity): boolean {
   );
 }
 
-/** Seats `player` in `vehicle`, taking them off any other mount first and back onto it when the vehicle refuses them. */
+/**
+ * Seats `player` in `vehicle`, taking them off any other mount first and back onto it when
+ * the vehicle refuses them. A full vehicle is not tried, since the other mount may not take
+ * them back in the tick they got off it.
+ */
 function board(
   rideable: EntityRideableComponent,
   vehicle: Entity,
   player: Player,
 ): boolean {
   if (!canBoard(player, vehicle)) return false;
+  if (rideable.getRiders().length >= rideable.seatCount) return false;
   const mount = player.getComponent("minecraft:riding")?.entityRidingOn;
   const other = mount && mount.id !== vehicle.id ? mount : undefined;
   other?.getComponent("minecraft:rideable")?.ejectRider(player);
@@ -50,18 +60,11 @@ function board(
   return false;
 }
 
-/** Seats `spare`, or a new filler, in the vehicle's next seat; a filler that cannot get in is removed. */
-function holdSeat(
-  rideable: EntityRideableComponent,
-  vehicle: Entity,
-  spare: Entity | undefined,
-): void {
-  let filler = spare;
+/** Seats a new filler in the vehicle's next seat; a filler that cannot get in is removed. */
+function holdSeat(rideable: EntityRideableComponent, vehicle: Entity): void {
+  let filler: Entity | undefined;
   try {
-    filler ??= vehicle.dimension.spawnEntity(
-      SEAT_FILLER_TYPE,
-      vehicle.location,
-    );
+    filler = vehicle.dimension.spawnEntity(SEAT_FILLER_TYPE, vehicle.location);
     if (rideable.addRider(filler)) return;
   } catch {
     // Spawning fails where the world refuses it, such as an unloaded chunk.
@@ -86,15 +89,32 @@ export function vehicleOfSeatFiller(entity: Entity): Entity | undefined {
   return mount?.isValid && isVehicleEntity(mount.typeId) ? mount : undefined;
 }
 
+/** A player taken off the vehicle to lay its riders again, and the rider-list index they wait for. */
+interface Waiting {
+  readonly slot: number;
+  /** The layouts in a row that this player has waited through, the first one included. */
+  readonly ticks: number;
+}
+
 export class SeatFillers {
   /** The filler ids each vehicle had after its last layout, to remove when it is gone. */
   private readonly kept = new Map<VehicleId, readonly string[]>();
+  /** The players each vehicle's last layout took off and could not put back yet. */
+  private readonly waiting = new Map<
+    VehicleId,
+    ReadonlyMap<PlayerId, Waiting>
+  >();
 
   /**
    * Makes the vehicle's rider list `layout`. The riders from the first one out of place
-   * get off and back on in order, since the engine only adds riders at the end; a player
-   * who cannot get in is replaced by a filler, so the riders after them keep their seats.
-   * A filler that cannot get in is skipped, and the riders after it still get back on.
+   * get off, since the engine only adds riders at the end, and the list is added again
+   * from there. The engine refuses to add back a rider in the same tick it got off the
+   * same vehicle (in-game test `boat_seat_fillers`), so a filler that got off is removed
+   * and a new one takes its place, and a player who got off waits: the laying stops at
+   * them, and the next layout puts them back on, for up to `WAIT_TICKS` layouts. A
+   * player who cannot get in, or waited too long, is replaced by a filler, so the riders
+   * after them keep their seats. A filler that cannot get in is skipped, and the riders
+   * after it still get back on.
    */
   lay(
     vehicleId: VehicleId,
@@ -103,6 +123,8 @@ export class SeatFillers {
     playerOf: (id: PlayerId) => Player | undefined,
   ): void {
     const rideable = vehicle?.getComponent("minecraft:rideable");
+    const before = this.waiting.get(vehicleId);
+    this.waiting.delete(vehicleId);
     if (!vehicle || !rideable) return;
     const riders = rideable.getRiders();
     let same = 0;
@@ -115,17 +137,53 @@ export class SeatFillers {
     if (same < riders.length || same < layout.length) {
       const moved = riders.slice(same);
       for (const rider of moved) rideable.ejectRider(rider);
-      const spare = moved.filter(isFiller);
-      for (const want of layout.slice(same)) {
+      const gotOff = new Set(moved.map((rider) => rider.id));
+      for (const rider of moved) if (isFiller(rider)) rider.remove();
+      const waiting = new Map<PlayerId, Waiting>();
+      for (let index = same; index < layout.length; index++) {
+        const want = layout[index];
         const player = want === undefined ? undefined : playerOf(want);
-        if (player && board(rideable, vehicle, player)) continue;
-        // A filler that cannot spawn or get in is skipped, so the players after it still get
-        // back on, one seat lower until the next layout, instead of staying ejected.
-        holdSeat(rideable, vehicle, spare.pop());
+        if (waiting.size === 0) {
+          if (!player) {
+            holdSeat(rideable, vehicle);
+            continue;
+          }
+          if (!gotOff.has(player.id) && board(rideable, vehicle, player))
+            continue;
+        }
+        // From the first player who waits, everyone after them in the list waits too,
+        // since the engine only adds riders at the end.
+        const ticks = (want === undefined ? undefined : before?.get(want))
+          ?.ticks;
+        if (
+          want !== undefined &&
+          player &&
+          (waiting.size > 0 || gotOff.has(player.id) || ticks !== undefined) &&
+          (ticks ?? 0) < WAIT_TICKS &&
+          canBoard(player, vehicle)
+        ) {
+          waiting.set(want, { slot: index, ticks: (ticks ?? 0) + 1 });
+          continue;
+        }
+        if (waiting.size === 0) holdSeat(rideable, vehicle);
       }
-      for (const filler of spare) filler.remove();
+      if (waiting.size > 0) this.waiting.set(vehicleId, waiting);
     }
     this.remember(vehicleId, rideable.getRiders());
+  }
+
+  /**
+   * The players the vehicle's last layout took off and is about to put back, by the
+   * rider-list index they wait for. They still count as riding it, so their seats are
+   * kept for them.
+   */
+  waitingRiders(vehicleId: VehicleId): ReadonlyMap<PlayerId, number> {
+    return new Map(
+      [...(this.waiting.get(vehicleId) ?? [])].map(([id, wait]) => [
+        id,
+        wait.slot,
+      ]),
+    );
   }
 
   private remember(vehicleId: VehicleId, riders: readonly Entity[]): void {
@@ -141,10 +199,12 @@ export class SeatFillers {
       if (filler?.isValid && isFiller(filler)) filler.remove();
     }
     this.kept.delete(vehicleId);
+    this.waiting.delete(vehicleId);
   }
 
   /** Removes the fillers of vehicles that were laid before and are not loaded now. */
   clearGone(live: ReadonlySet<VehicleId>): void {
-    for (const id of [...this.kept.keys()]) if (!live.has(id)) this.release(id);
+    for (const id of new Set([...this.kept.keys(), ...this.waiting.keys()]))
+      if (!live.has(id)) this.release(id);
   }
 }
