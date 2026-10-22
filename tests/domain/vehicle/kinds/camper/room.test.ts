@@ -514,8 +514,8 @@ it("clears wall-foot decorations only below a cleared matching upper half, upper
   );
 });
 
-it("lists the thirteen decor slots with distinct ids (ADR 0093, 0103, 0105)", () => {
-  expect(DECOR_SLOTS).toHaveLength(13);
+it("lists the ten decor slots with distinct ids (ADR 0093, 0103, 0105, 0112)", () => {
+  expect(DECOR_SLOTS).toHaveLength(10);
   expect(new Set(DECOR_SLOTS.map((s) => s.id))).toEqual(
     new Set([
       "dashboard_center",
@@ -526,9 +526,6 @@ it("lists the thirteen decor slots with distinct ids (ADR 0093, 0103, 0105)", ()
       "shelf_low",
       "shelf_high",
       "stove",
-      "stove_rear",
-      "stove_wall",
-      "stove_wall_rear",
       "counter",
       "ceiling_hook",
     ]),
@@ -626,27 +623,23 @@ it("lists each slot cell once, in the order of its first slot (ADR 0097, 0105)",
   );
 });
 
-it("lays the stove's furniture block once, at its burners' height, while no burner holds decor (ADR 0107)", () => {
+it("lays the stove's furniture block once, at its burner's height, while the stove holds no decor (ADR 0107, 0112)", () => {
   fc.assert(
-    fc.property(
-      pose,
-      fc.constantFrom("stove", "stove_rear", "stove_wall", "stove_wall_rear"),
-      (p, burner) => {
-        const stove = defined(
-          DECOR_SLOTS.find((s) => s.id === "stove"),
-          "stove",
-        );
-        const at = cellKey(decorSlotCell(p, stove));
-        const empty = furnitureCells(p, []).filter((c) => cellKey(c) === at);
-        expect(empty.map((c) => c.block)).toEqual([
-          { type: "furniture", height: 15 },
-        ]);
-        const held = [{ slot: burner, item: "saucepan" }];
-        expect(furnitureCells(p, held).some((c) => cellKey(c) === at)).toBe(
-          false,
-        );
-      },
-    ),
+    fc.property(pose, (p) => {
+      const stove = defined(
+        DECOR_SLOTS.find((s) => s.id === "stove"),
+        "stove",
+      );
+      const at = cellKey(decorSlotCell(p, stove));
+      const empty = furnitureCells(p, []).filter((c) => cellKey(c) === at);
+      expect(empty.map((c) => c.block)).toEqual([
+        { type: "furniture", height: 15 },
+      ]);
+      const held = [{ slot: "stove", item: "saucepan" }];
+      expect(furnitureCells(p, held).some((c) => cellKey(c) === at)).toBe(
+        false,
+      );
+    }),
   );
 });
 

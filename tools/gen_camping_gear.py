@@ -44,9 +44,11 @@ FACES = range(len(FACE_ROTATION))
 HEIGHTS = range(16)  # HEIGHT_STATE, px above the cell bottom
 # SPOT_STATE says where on its cell the item stands (ADR 0107): index = DECOR_SPOTS in
 # src/domain/vehicle/kinds/camper/furniture.ts, as (left, forward) px from the cell middle in the
-# camper's room frame. Spot 0 is the middle; 1 to 4 are the stove burners, which are 15 px high
-# (SPOT_HEIGHTS), so only those permutations are written. tests/packs/campingGear.test.ts ties
-# both to the domain slots.
+# camper's room frame. Spot 0 is the middle; 1 to 4 were the four stove burners of ADR 0107,
+# 15 px high (SPOT_HEIGHTS), so only those permutations are written. No slot uses them since the
+# stove got one burner in its middle (ADR 0112); they stay so a decor block an older build laid
+# on a burner still draws there until the next lay clears it. tests/packs/campingGear.test.ts
+# ties both to the domain.
 SPOT_STATE = "yasu_ride:spot"
 SPOTS = [(0, 0), (3.8, 5.4), (3.8, -5.35), (-3.3, 5.4), (-3.3, -5.35)]
 SPOT_HEIGHTS = [list(HEIGHTS)] + [[15]] * (len(SPOTS) - 1)

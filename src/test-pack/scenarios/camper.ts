@@ -296,12 +296,12 @@ export function camperShowerToiletBlock(a: Arena): Promise<Outcome> {
   });
 }
 
-// The table comes first: camperDecor empties it with DECOR.slice(0, 1). The far wall-side
-// burner shares the stove cell with the three other burner slots (ADR 0107).
+// The table comes first: camperDecor empties it with DECOR.slice(0, 1). The saucepan stands
+// on the stove's one burner (ADR 0112).
 const DECOR: readonly DecorPlacement[] = [
   { slot: "table", item: "potted_plant" },
   { slot: "dashboard_center", item: "transistor_radio" },
-  { slot: "stove_wall_rear", item: "saucepan" },
+  { slot: "stove", item: "saucepan" },
 ];
 
 // A decor block counts only with its item's block, the yaw quarter, the slot height, and the spot.
