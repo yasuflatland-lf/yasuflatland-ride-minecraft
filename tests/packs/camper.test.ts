@@ -201,6 +201,17 @@ describe("camper model assets (ADR 0067)", () => {
         expect(twin, JSON.stringify(cube.pivot)).toBeDefined();
         expect(twin?.size).toEqual(cube.size);
       }
+      // In game a negative x rotation tips a cube's top toward +z (ADR 0051), so
+      // the outer arms must lean away from the axle and the inner strokes toward it.
+      const armLength = Math.max(...own.map((cube) => cube.size[1] ?? 0));
+      for (const cube of own) {
+        const topLean = -Math.sign(cube.rotation?.[0] ?? 0);
+        const awayFromAxle = Math.sign((cube.pivot?.[2] ?? 0) - frontAxle);
+        const isArm = cube.size[1] === armLength;
+        expect(topLean, JSON.stringify(cube.pivot)).toBe(
+          isArm ? awayFromAxle : -awayFromAxle,
+        );
+      }
       const lowest = own.map((cube) => {
         const angle = ((cube.rotation?.[0] ?? 0) * Math.PI) / 180;
         const py = cube.pivot?.[1] ?? 0;
