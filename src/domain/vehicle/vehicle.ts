@@ -249,7 +249,7 @@ export class Vehicle {
     return this.drive.removeDecor?.(cell, point, eye);
   }
 
-  /** A player pressed storage with doors, such as the wall cabinet, at world `cell` at `tick`. Returns what the press did, if anything (ADR 0114, 0120). */
+  /** A player pressed storage with doors, such as the wall cabinet, at world `cell` at `tick`. Returns what the press did, if anything (ADR 0114, 0121). */
   pressStorage(
     cell: Vec3,
     point: Vec3 | undefined,

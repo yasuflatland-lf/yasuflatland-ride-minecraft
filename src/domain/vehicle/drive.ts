@@ -101,7 +101,7 @@ export interface Drive {
   placeDecor?(slot: string, item: string): boolean;
   /** A player takes the decor out of the slot at world `cell` while parked, the one nearest the pressed `point` (seen from `eye`) when the cell holds two; returns its item, or undefined when there is none (ADR 0093, 0108). */
   removeDecor?(cell: Vec3, point?: Vec3, eye?: Vec3): string | undefined;
-  /** A player pressed storage with doors, such as the wall cabinet, at world `cell`, at `point` when known, at `tick`: opens or shuts a door, or takes an item out of an open compartment; undefined when nothing happened (ADR 0114, 0120). */
+  /** A player pressed storage with doors, such as the wall cabinet, at world `cell`, at `point` when known, at `tick`: opens or shuts a door, or takes an item out of an open compartment; undefined when nothing happened (ADR 0114, 0121). */
   pressStorage?(
     cell: Vec3,
     point: Vec3 | undefined,

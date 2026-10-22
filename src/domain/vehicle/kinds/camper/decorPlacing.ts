@@ -14,7 +14,7 @@ const NO_DOORS: ReadonlySet<StorageDoorId> = new Set();
 /**
  * The slots that accept `item`, in slot order; none for an unknown item. A standing
  * item fits every standing slot, and a hanging item only a hanging slot (ADR 0097, 0102).
- * A slot behind a storage door counts only while that door is in `open` (ADR 0114, 0120).
+ * A slot behind a storage door counts only while that door is in `open` (ADR 0114, 0121).
  */
 export function slotsFor(
   item: string,

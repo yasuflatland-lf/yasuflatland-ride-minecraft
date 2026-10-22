@@ -285,7 +285,7 @@ function isLightCell(cell: LocalCell): boolean {
   );
 }
 
-/** The doors whose plates stand in the room's inside layers, where the ceiling does not lay them (ADR 0120). */
+/** The doors whose plates stand in the room's inside layers, where the ceiling does not lay them (ADR 0121). */
 function insidePlateDoors<Id extends string>(
   doors: readonly StorageDoor<Id>[],
 ): StorageDoor<Id>[] {
@@ -295,7 +295,7 @@ function insidePlateDoors<Id extends string>(
 /**
  * The ceiling cell's block: none over a storage compartment, whose block also holds the
  * ceiling up (compartmentCells), and an open door's plate where that door swings into the
- * aisle (ADR 0068, 0114, 0120).
+ * aisle (ADR 0068, 0114, 0121).
  */
 function ceilingBlock(
   cell: LocalCell,
@@ -314,7 +314,7 @@ function ceilingBlock(
  * The 105 cells of the parked room: its shell, the door step, and every furniture block. The
  * two wall cabinet cells under the ceiling are laid by compartmentCells, an open storage
  * door's aisle cell under the ceiling holds its plate instead of the ceiling, and the rear wall
- * behind the open shower door is selectable (ADR 0068, 0092, 0093, 0098, 0114, 0118, 0120).
+ * behind the open shower door is selectable (ADR 0068, 0092, 0093, 0098, 0114, 0118, 0121).
  */
 export function roomCells(
   pose: HoldPose,
@@ -409,7 +409,7 @@ function pairItems(
  * On a shelf board or the table it is the pair block with the item at each end (ADR 0108);
  * elsewhere a decor block at the slot's height and spot, and since a cell holds one block,
  * the first placement in a cell wins (ADR 0093, 0105). Storage compartments are laid by
- * compartmentCells, full or empty (ADR 0114, 0120).
+ * compartmentCells, full or empty (ADR 0114, 0121).
  */
 export function decorCells(
   pose: HoldPose,
@@ -440,7 +440,7 @@ export function decorCells(
 
 /**
  * The block in each storage compartment, with the item at each end, its items drawn while its
- * door is in `shown`: open or still swinging shut (ADR 0114, 0120).
+ * door is in `shown`: open or still swinging shut (ADR 0114, 0121).
  */
 export function compartmentCells(
   pose: HoldPose,
@@ -464,7 +464,7 @@ export function compartmentCells(
  * The plate of each door in `open` whose plate stands in the room's inside layers, on the side
  * of its cell where the door's hinge is. A plate in a ceiling light's cell is `lit` while
  * `lightsOn`, and ceilingLightCells leaves that cell to it. The ceiling lays the plates in the
- * ceiling layer (ADR 0115, 0120).
+ * ceiling layer (ADR 0115, 0121).
  */
 export function storagePlateCells(
   pose: HoldPose,
@@ -487,7 +487,7 @@ export function storagePlateCells(
 /**
  * The doors whose plates stand in the room's inside layers, with their plate cells at `pose`.
  * Parking checks those cells, and departure reads them with ownPlateBlock instead of as
- * cargo (ADR 0120).
+ * cargo (ADR 0121).
  */
 export function storagePlateChecks<Id extends string>(
   pose: HoldPose,
@@ -501,7 +501,7 @@ export function storagePlateChecks<Id extends string>(
 
 /**
  * An inside-layer plate cell lets the camper leave only while it holds air or `door`'s plate:
- * the plate goes when departure shuts the door (ADR 0120).
+ * the plate goes when departure shuts the door (ADR 0121).
  */
 export function ownPlateBlock(
   typeId: string | undefined,
@@ -514,7 +514,7 @@ export function ownPlateBlock(
 
 /**
  * The storage door a press on world `cell` reaches at `pose`: the door of the compartment
- * there, or the door whose plate the cell holds while it is open (ADR 0114, 0120).
+ * there, or the door whose plate the cell holds while it is open (ADR 0114, 0121).
  */
 export function storagePressTarget<Id extends string>(
   pose: HoldPose,
@@ -536,7 +536,7 @@ type FurnitureCell = DockCell & {
 /**
  * A furniture block in every slot cell that holds no decor, at the height of the cell's first
  * slot, or the hanging box for a hanging slot, in DECOR_CELLS order (ADR 0097, 0102, 0105).
- * Storage compartments always hold their own block instead (ADR 0114, 0120).
+ * Storage compartments always hold their own block instead (ADR 0114, 0121).
  */
 export function furnitureCells(
   pose: HoldPose,
@@ -570,7 +570,7 @@ export function slotCells(pose: HoldPose): Vec3[] {
 /**
  * The namespace-free name of the block the decor in `cell` lays: the pair block of a shelf
  * board or the table, or the decor block of the cell's item; undefined while the cell holds
- * no decor (ADR 0093, 0108). A storage compartment always lays its unit's pair block (ADR 0114, 0120).
+ * no decor (ADR 0093, 0108). A storage compartment always lays its unit's pair block (ADR 0114, 0121).
  */
 export function decorBlockName(
   cell: LocalCell,
@@ -605,7 +605,7 @@ export function ownSlotBlock(
 /**
  * The 168 parking checks include standing space and the exit because the long
  * body reaches past its collision box and can stop around a flower or low block.
- * Storage plates in the inside layers add their cells; the wall cabinet has none (ADR 0120).
+ * Storage plates in the inside layers add their cells; the wall cabinet has none (ADR 0121).
  */
 export function parkCheckCells(
   pose: HoldPose,
@@ -638,7 +638,7 @@ export function isPassable(typeId: string | undefined): boolean {
 /**
  * Cells where a player's block keeps the camper parked: the interior outside
  * furniture blocks, decor slots and storage plates, then the roof top (ADR 0092, 0093,
- * 0097, 0120). Slot cells are read separately, with ownSlotBlock, and storage plate cells
+ * 0097, 0121). Slot cells are read separately, with ownSlotBlock, and storage plate cells
  * with ownPlateBlock.
  */
 export function cargoCells(
@@ -784,7 +784,7 @@ export function inShowerToilet(pose: HoldPose, feet: Vec3): boolean {
 
 /**
  * A light block in the cell under each ceiling light that no open storage door's plate takes
- * (ADR 0115, 0120).
+ * (ADR 0115, 0121).
  */
 export function ceilingLightCells(
   pose: HoldPose,

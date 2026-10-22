@@ -226,7 +226,7 @@ export const CAMPER_BED_COMPONENT = id("camper_bed");
 export const CAMPER_SHOWER_TOILET_COMPONENT = id("camper_shower_toilet");
 /**
  * Custom component handling presses on storage compartments and open storage doors' plates.
- * It keeps the wall cabinet's id, which the packs and saved worlds use (ADR 0114, 0120).
+ * It keeps the wall cabinet's id, which the packs and saved worlds use (ADR 0114, 0121).
  */
 export const CAMPER_CABINET_COMPONENT = id("camper_cabinet");
 /** A camper's decor, as JSON [{ slot, item }] (ADR 0093). */
@@ -251,7 +251,7 @@ export function decorBlockId(item: string): string {
 /**
  * The block that draws both items of a shelf board or the table, `kind` "shelf" or "table"
  * (ADR 0108), or of a storage compartment, `kind` its pair kind: "cabinet" for the wall
- * cabinet (ADR 0114, 0120).
+ * cabinet (ADR 0114, 0121).
  */
 export function pairDecorBlockId(kind: string): string {
   return id(`${kind}_decor_pair`);

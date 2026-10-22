@@ -12,7 +12,7 @@ export interface DecorPlacement {
 
 /**
  * What a press on storage with doors did: opened or closed a door, or took an item out of an
- * open compartment (ADR 0114, 0120).
+ * open compartment (ADR 0114, 0121).
  */
 export type StoragePress =
   | { readonly kind: "door" }

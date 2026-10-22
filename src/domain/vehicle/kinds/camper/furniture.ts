@@ -29,22 +29,22 @@ export interface LocalCell {
 
 /**
  * A furniture whose one cell holds two items, each drawn by the cell's one pair block (ADR 0108),
- * or a storage compartment, whose own block draws its two (ADR 0114, 0120).
+ * or a storage compartment, whose own block draws its two (ADR 0114, 0121).
  */
 type DecorPairKind =
   | Extract<DockBlock, { type: "decorPair" }>["pair"]
   | StoragePairKind;
 
-/** The pair kind of a storage compartment, whose block compartmentCells lays (ADR 0114, 0120). */
+/** The pair kind of a storage compartment, whose block compartmentCells lays (ADR 0114, 0121). */
 type StoragePairKind = "cabinet";
 
-/** The blocks a storage compartment lays; a new unit adds its own here (ADR 0120). */
+/** The blocks a storage compartment lays; a new unit adds its own here (ADR 0121). */
 export type StorageCompartmentBlock = Extract<DockBlock, { type: "cabinet" }>;
-/** The blocks an open storage door's plate lays; a new unit adds its own here (ADR 0120). */
+/** The blocks an open storage door's plate lays; a new unit adds its own here (ADR 0121). */
 export type StoragePlateBlock = Extract<DockBlock, { type: "cabinetDoor" }>;
 
 /**
- * A door of the camper's storage (ADR 0120): a wall cabinet door, named after what its
+ * A door of the camper's storage (ADR 0121): a wall cabinet door, named after what its
  * compartment hangs over (ADR 0114). Each needs an entity property (entity.ts STORAGE_DOOR_PROPERTY).
  */
 export type StorageDoorId = "sink" | "stove";
@@ -73,7 +73,7 @@ export interface DecorSlot {
    * with the other end's, so the cell holds one item per end instead of one in all (ADR 0108).
    */
   readonly pair?: DecorPairEnd;
-  /** The storage door the slot is behind: it takes and gives items only while that door is open (ADR 0114, 0120). */
+  /** The storage door the slot is behind: it takes and gives items only while that door is open (ADR 0114, 0121). */
   readonly door?: StorageDoorId;
 }
 
@@ -211,7 +211,7 @@ export const WALL_CABINET: DooredStorage<StorageDoorId, StoragePairKind> = {
 };
 
 // The units of storage with doors, in the order their doors swing and homeless saved decor
-// fills them (ADR 0120).
+// fills them (ADR 0121).
 export const CAMPER_STORAGE: readonly DooredStorage<
   StorageDoorId,
   StoragePairKind
@@ -221,14 +221,14 @@ const STORAGE_PAIR_KINDS: ReadonlySet<DecorPairKind> = new Set(
   CAMPER_STORAGE.map(({ pairKind }) => pairKind),
 );
 
-/** Whether `kind` is a storage compartment's, not a pair block's that decorCells lays (ADR 0108, 0120). */
+/** Whether `kind` is a storage compartment's, not a pair block's that decorCells lays (ADR 0108, 0121). */
 export function isStoragePairKind(
   kind: DecorPairKind,
 ): kind is StoragePairKind {
   return STORAGE_PAIR_KINDS.has(kind);
 }
 
-/** Every storage door, unit by unit (ADR 0120). */
+/** Every storage door, unit by unit (ADR 0121). */
 export const STORAGE_DOORS: readonly StorageDoor<StorageDoorId>[] =
   storageDoors(CAMPER_STORAGE);
 
@@ -375,6 +375,6 @@ export const CAMPER_FURNITURE: readonly Furniture[] = [
   },
   // Two items along each compartment, at the shelf boards' end spots, behind the
   // compartment's door. Storage is listed last, in CAMPER_STORAGE order, so that saved decor
-  // that loses its slot fills every open spot before a closed compartment (ADR 0103, 0114, 0120).
+  // that loses its slot fills every open spot before a closed compartment (ADR 0103, 0114, 0121).
   { kind: "wall_cabinet", ...storageFurniture(WALL_CABINET) },
 ];

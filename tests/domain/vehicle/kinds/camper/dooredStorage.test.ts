@@ -1,6 +1,6 @@
 // Storage with doors, over the camper's definitions and a test-only second unit shaped like
 // the planned fridge: two doors hinged at the front, compartments in the shelf's cells, and
-// plates in the aisle in the room's inside layers (ADR 0120).
+// plates in the aisle in the room's inside layers (ADR 0121).
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { forward } from "../../../../../src/domain/shared/vec";
@@ -149,7 +149,7 @@ function validateDooredStorage(units: readonly DooredStorage[]): string[] {
 }
 
 describe("definitions", () => {
-  it("accepts the camper's storage and a second fridge-like unit beside it (ADR 0120)", () => {
+  it("accepts the camper's storage and a second fridge-like unit beside it (ADR 0121)", () => {
     expect(validateDooredStorage(CAMPER_STORAGE)).toEqual([]);
     expect(validateDooredStorage([...CAMPER_STORAGE, FRIDGE_LIKE])).toEqual([]);
     expect(STORAGE_DOORS.map(({ id }) => id)).toEqual(["sink", "stove"]);
@@ -186,7 +186,7 @@ describe("definitions", () => {
     );
   });
 
-  it("puts a door on a slot exactly when its pair is a storage compartment's, and lists those slots as the doors' ends (ADR 0114, 0120)", () => {
+  it("puts a door on a slot exactly when its pair is a storage compartment's, and lists those slots as the doors' ends (ADR 0114, 0121)", () => {
     for (const s of DECOR_SLOTS)
       expect(s.door !== undefined).toBe(
         s.pair !== undefined && isStoragePairKind(s.pair.kind),
@@ -394,7 +394,7 @@ describe("StorageDoors", () => {
 });
 
 describe("cells", () => {
-  it("routes a press on any compartment or plate cell to its own door at any snapped pose, and nothing else (ADR 0114, 0120)", () => {
+  it("routes a press on any compartment or plate cell to its own door at any snapped pose, and nothing else (ADR 0114, 0121)", () => {
     fc.assert(
       fc.property(
         pose,
@@ -449,7 +449,7 @@ describe("cells", () => {
     );
   });
 
-  it("lays an open door's plate in its cell on its hinge side, in the ceiling or an inside layer, lit under a lit ceiling light, and leaves no ceiling over any compartment (ADR 0114, 0115, 0120)", () => {
+  it("lays an open door's plate in its cell on its hinge side, in the ceiling or an inside layer, lit under a lit ceiling light, and leaves no ceiling over any compartment (ADR 0114, 0115, 0121)", () => {
     fc.assert(
       fc.property(pose, openOf(ALL_IDS), fc.boolean(), (p, open, lightsOn) => {
         const byKey = new Map(
@@ -504,7 +504,7 @@ describe("cells", () => {
     );
   });
 
-  it("lays no inside plate, checks no plate cell, and keeps the cargo and lights of the wall cabinet as before (ADR 0114, 0115, 0120)", () => {
+  it("lays no inside plate, checks no plate cell, and keeps the cargo and lights of the wall cabinet as before (ADR 0114, 0115, 0121)", () => {
     fc.assert(
       fc.property(pose, openOf(ALL_IDS), fc.boolean(), (p, open, lightsOn) => {
         expect(storagePlateCells(p, open, lightsOn)).toEqual([]);
@@ -516,7 +516,7 @@ describe("cells", () => {
     );
   });
 
-  it("reads inside plate cells on parking and departure instead of as cargo, and leaves lights to open plates (ADR 0115, 0120)", () => {
+  it("reads inside plate cells on parking and departure instead of as cargo, and leaves lights to open plates (ADR 0115, 0121)", () => {
     fc.assert(
       fc.property(pose, openOf(ALL_IDS), (p, open) => {
         const plates = FRIDGE_LIKE.doors.map((d) =>

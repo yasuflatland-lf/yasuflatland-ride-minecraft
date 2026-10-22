@@ -18,7 +18,7 @@ export function registerStorage(
 ): void {
   // Every storage unit's compartments and open doors' plates share one component. Held gear never gets
   // here: the decor handler cancels its press and places the gear (ADR 0093). Any other held
-  // item is ignored, like on the shower-toilet (ADR 0098, 0114, 0120).
+  // item is ignored, like on the shower-toilet (ADR 0098, 0114, 0121).
   system.beforeEvents.startup.subscribe(({ blockComponentRegistry }) => {
     blockComponentRegistry.registerCustomComponent(CAMPER_CABINET_COMPONENT, {
       onPlayerInteract: (ev) => {

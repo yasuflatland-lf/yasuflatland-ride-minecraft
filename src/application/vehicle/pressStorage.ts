@@ -1,7 +1,7 @@
 import type { PlayerId, VehicleId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
 // Use case: a player pressed a parked vehicle's storage with doors, such as the wall cabinet,
-// with an empty hand (ADR 0114, 0120).
+// with an empty hand (ADR 0114, 0121).
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
 import type { DecorPlacingWorld } from "./ports/decor";
 import type { Clock } from "./ports/shared";

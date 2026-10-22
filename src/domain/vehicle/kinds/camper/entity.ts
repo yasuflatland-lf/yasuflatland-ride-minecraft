@@ -51,7 +51,7 @@ export function showerCommand(on: boolean): EngineCommand {
 
 /**
  * The entity property that swings each storage door: 0 is shut, 1 is open into the aisle
- * (ADR 0114, 0120). A new door fails to compile here until its property is declared.
+ * (ADR 0114, 0121). A new door fails to compile here until its property is declared.
  */
 export const STORAGE_DOOR_PROPERTY = {
   sink: "cabinet_sink_door",
@@ -61,7 +61,7 @@ export const STORAGE_DOOR_PROPERTY = {
   keyof typeof CAMPER_ENTITY.properties
 >;
 
-/** 0 is shut, 1 is swung fully open into the aisle (ADR 0114, 0120). */
+/** 0 is shut, 1 is swung fully open into the aisle (ADR 0114, 0121). */
 export function storageDoorCommand(
   door: StorageDoorId,
   open: number,

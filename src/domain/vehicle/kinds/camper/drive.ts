@@ -106,7 +106,7 @@ export class CamperDrive extends TransformingDrive {
   private ceilingLightsOn: boolean;
   private readonly ceilingLightsSync = new SyncedValue<boolean>();
   private clickPending = false;
-  // The storage doors swing in the entry door's DOOR_STEPS, each on its own (ADR 0114, 0120).
+  // The storage doors swing in the entry door's DOOR_STEPS, each on its own (ADR 0114, 0121).
   private readonly storage: StorageDoors<StorageDoorId>;
   private readonly decorBySlot = new Map<string, string>();
   // Saved decor whose slot no longer exists and that no free slot could take; it is
@@ -146,7 +146,7 @@ export class CamperDrive extends TransformingDrive {
       else homeless.push(entry);
     }
     // A homeless entry may go into a shut compartment: it is kept there out of sight until the
-    // door opens, which beats stowing it out of reach (ADR 0114, 0120).
+    // door opens, which beats stowing it out of reach (ADR 0114, 0121).
     const everyDoor = new Set(STORAGE_DOORS.map(({ id }) => id));
     for (const entry of homeless) {
       const free = slotsFor(entry.item, everyDoor).find(
@@ -200,7 +200,7 @@ export class CamperDrive extends TransformingDrive {
   }
 
   /**
-   * A press on a storage unit at world `cell` (ADR 0114, 0120). On an open door's plate in the
+   * A press on a storage unit at world `cell` (ADR 0114, 0121). On an open door's plate in the
    * aisle it shuts that door. On a compartment it opens a shut door; on an open one it takes
    * back the item at the end nearest `point`, or shuts the door when that end is empty. A tap
    * may reach the block twice (ADR 0105), so a press within a swing of the door's last
@@ -335,7 +335,7 @@ export class CamperDrive extends TransformingDrive {
    */
   removeDecor(cell: Vec3, point?: Vec3, eye?: Vec3): string | undefined {
     if (!this.parked) return undefined;
-    // A storage compartment gives its items back only through pressStorage (ADR 0114, 0120).
+    // A storage compartment gives its items back only through pressStorage (ADR 0114, 0121).
     const held = slotsAt(this.parked, cell).filter(
       ({ id, door }) => door === undefined && this.decorBySlot.has(id),
     );
@@ -371,7 +371,7 @@ export class CamperDrive extends TransformingDrive {
       // The cargo cells, the slot cells, the inside storage plate cells, and the two exit
       // cells share one departure batch; a slot cell is clear only with air, its furniture
       // block, or its own decor, and a plate cell only with air or its door's plate
-      // (ADR 0093, 0097, 0105, 0120).
+      // (ADR 0093, 0097, 0105, 0121).
       const types = ctx.blockTypes([
         ...cargo,
         ...slots,
@@ -464,7 +464,7 @@ export class CamperDrive extends TransformingDrive {
     if (lay) this.pendingClear = [];
     this.roomLaid = true;
     // The doors swing first, so a compartment shows its items on the tick its door starts to
-    // open and hides them on the tick it is shut (ADR 0114, 0120).
+    // open and hides them on the tick it is shut (ADR 0114, 0121).
     const commands = this.propertyCommands();
     const dock = {
       hold: pose,

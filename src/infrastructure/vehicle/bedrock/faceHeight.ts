@@ -35,7 +35,7 @@ const CABINET_BOX_PX = 10;
 type PairKind = NonNullable<ReturnType<typeof pairKindOfBlock>>;
 
 // A storage compartment's box is a room box, not a decor block's, so each storage pair kind
-// gives its own from the block's height state (ADR 0114, 0120).
+// gives its own from the block's height state (ADR 0114, 0121).
 const COMPARTMENT_SHAPES: Partial<
   Record<PairKind, (height: number | undefined) => PressedShape>
 > = {

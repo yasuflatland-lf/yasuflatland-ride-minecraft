@@ -1,6 +1,6 @@
 // Storage with doors in the parked camper: compartments that show, take and give their items
 // only while their door is open. Each unit is a definition (furniture.ts); this module holds
-// the code every unit shares and no unit's data (ADR 0114, 0120).
+// the code every unit shares and no unit's data (ADR 0114, 0121).
 import type { StoragePress } from "../../dock/decor";
 import type { Face } from "../../dock/floor";
 import type { EngineCommand } from "../../drive";
