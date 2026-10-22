@@ -79,6 +79,9 @@ OPEN_STATE = "yasu_ride:open"
 CABINET_COMPONENT = "yasu_ride:camper_cabinet"
 CABINET_BOX_PX = 10
 CEILING_PLATE_PX = 3
+# The compartment's inside height, from its floor's top at model y 51 to its top panel at 60
+# (tools/gen_camper.py CABINET_Y): a taller item would poke through the top panel.
+CABINET_INSIDE_PX = 9
 # A block state holds at most 16 values, and an end takes 19: empty, or one of the 18 standing
 # items. So an end's code, 0 for empty and 1 + the item's index among the standing items, is
 # split into end<n>_page (code // PAIR_PAGE_SIZE) and end<n>_item (code % PAIR_PAGE_SIZE), as
@@ -362,7 +365,7 @@ def validate(spec):
                 (x0, _, z0), (x1, _, z1) = bounds(SHAPES.get(item["id"], []) or [box(0, 0, 0, 0, 0, 0, "cream")])
                 if x0 - left < -8 or x1 - left > 8 or z0 - ahead < -8 or z1 - ahead > 8:
                     errors.append(f"{kind} end {end}: {item['id']} leaves the cell")
-    if any(item["height_px"] > CABINET_BOX_PX for item in standing(spec)):
+    if any(item["height_px"] > CABINET_INSIDE_PX for item in standing(spec)):
         errors.append("a standing item is taller than the wall cabinet's compartment")
     if pair_pages(spec) > MAX_STATE_VALUES or PAIR_PAGE_SIZE > MAX_STATE_VALUES:
         errors.append("a pair block state holds more than 16 values")
