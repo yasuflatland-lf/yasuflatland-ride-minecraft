@@ -283,9 +283,10 @@ describe("camping gear block models (ADR 0093)", () => {
 });
 
 describe("camping gear docs (ADR 0093)", () => {
-  it("renders a 128 px RGBA preview for every item and no other", () => {
+  it("renders a 128 px RGBA preview for every item and the low chair, and no other", () => {
+    // The low chair shares the folder but is not decor (ADR 0121)
     expect(readdirSync(PREVIEWS).sort()).toEqual(
-      SPEC.map((g) => `${g.id}.png`).sort(),
+      [...SPEC.map((g) => `${g.id}.png`), "low_chair.png"].sort(),
     );
     for (const g of SPEC) {
       const { width, height } = readPng(`${PREVIEWS}/${g.id}.png`);

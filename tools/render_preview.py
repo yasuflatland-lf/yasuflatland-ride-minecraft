@@ -18,7 +18,7 @@ headlights at dusk, side, and rear, without water layers (ADR 0067).
 Each camping gear item in tools/camping_gear.json gets its own 128-pixel square preview in
 <output dir>/items/camping-gear/<id>.png, from the same angle as the vehicles, with no ground,
 its longer side filling 80 percent of the square, for its row in docs/items/camping-gear.md
-(ADR 0093).
+(ADR 0093). The low chair gets one the same way, low_chair.png, from its entity model (ADR 0121).
 
 Only the standard library is used, like gen_model.py. The arithmetic avoids math.sin/cos (their
 last bit can differ between platforms' libm) so the same model renders to the same pixels on a Mac
@@ -138,6 +138,12 @@ GEAR_FILL = 0.8
 GEAR_ICON_DIR = "textures/items/yasu_ride"
 GEAR_ICON_SIZE = 32
 GEAR_ICON_PACK = "yasu_ride_rp"  # the --icons pack that receives the gear item icons
+# The low chair stands outside the vehicles and has its own entity model, but its preview and icon
+# match the gear's (ADR 0121)
+CHAIR_GEOMETRY = "models/entity/yasu_ride/low_chair.geo.json"
+CHAIR_TEXTURE = "textures/entity/yasu_ride/low_chair.png"
+CHAIR_PREVIEW = "low_chair"
+CHAIR_ICON = "low_chair_item"
 
 POSES = {
     "suv-front-left.png": {"lamps": False, "dusk": False, "hover": False, "submarine": False},
@@ -772,21 +778,24 @@ def render_camper(rp):
     return {name: images[name] for name in CAMPER_POSES}
 
 
-def render_gear(rp, texture, gear_id, size):
-    """Draw one camping gear block model in a size-pixel square on transparency, seen like the vehicles."""
-    geo = json.loads((rp / GEAR_GEOMETRY.format(gear_id)).read_text())["minecraft:geometry"][0]
+def render_gear(geo_path, texture, size):
+    """Draw one small model in a size-pixel square on transparency, seen like the vehicles."""
+    geo = json.loads(geo_path.read_text())["minecraft:geometry"][0]
     polygons, glass = collect_boat(geo, texture, {"lamps": False, "dusk": False})
     quads = [quad for quad, _, _ in polygons + glass]
     camera = Camera([p for quad in quads for p in quad])
     return rasterize(polygons, [], fit_square(camera, quads, size), size, size, bloom={}, see_through=glass)
 
 
-def render_camping_gear(rp):
+def small_models(rp):
+    """(name, geometry path, texture) of each camping gear item, then the low chair."""
     texture = read_png(rp / GEAR_TEXTURE)
-    images = {}
-    for item in json.loads(GEAR_SPEC.read_text()):
-        images[f"{GEAR_DIR}/{item['id']}.png"] = render_gear(rp, texture, item["id"], GEAR_SIZE)
-    return images
+    models = [(item["id"], rp / GEAR_GEOMETRY.format(item["id"]), texture) for item in json.loads(GEAR_SPEC.read_text())]
+    return models + [(CHAIR_PREVIEW, rp / CHAIR_GEOMETRY, read_png(rp / CHAIR_TEXTURE))]
+
+
+def render_camping_gear(rp):
+    return {f"{GEAR_DIR}/{name}.png": render_gear(geo, texture, GEAR_SIZE) for name, geo, texture in small_models(rp)}
 
 
 def fit_square(camera, quads, size):
@@ -896,10 +905,10 @@ def main():
         targets.append((pack / "pack_icon.png", ICON_SIZE, ICON_SIZE, pixels, True))
     for pack in args.icons:
         if pack.name == GEAR_ICON_PACK:
-            texture = read_png(args.resource_pack / GEAR_TEXTURE)
-            for gear in json.loads(GEAR_SPEC.read_text()):
-                pixels = render_gear(args.resource_pack, texture, gear["id"], GEAR_ICON_SIZE)
-                targets.append((pack / GEAR_ICON_DIR / f"{gear['id']}.png", GEAR_ICON_SIZE, GEAR_ICON_SIZE, pixels, False))
+            for name, geo, texture in small_models(args.resource_pack):
+                icon_name = CHAIR_ICON if name == CHAIR_PREVIEW else name
+                pixels = render_gear(geo, texture, GEAR_ICON_SIZE)
+                targets.append((pack / GEAR_ICON_DIR / f"{icon_name}.png", GEAR_ICON_SIZE, GEAR_ICON_SIZE, pixels, False))
     stale = []
     for target, width, height, pixels, rgb in targets:
         if args.check:
