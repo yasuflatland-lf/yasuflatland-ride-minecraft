@@ -12,8 +12,15 @@ import {
   SUV_SPEC,
   SUV_TRANSFORMING,
 } from "../../../../src/domain/vehicle/kinds/suv/spec";
+import { bankSink } from "../../../../src/domain/vehicle/motion/bank";
 import { MOTION } from "../../../../src/domain/vehicle/motion/constants";
-import { FORMS, type Form } from "../../../../src/domain/vehicle/motion/forms";
+import {
+  climbInput,
+  FORMS,
+  type Form,
+  verticalImpulse,
+  verticalSpeed,
+} from "../../../../src/domain/vehicle/motion/forms";
 import {
   initialMotion,
   stepMotion,
@@ -297,3 +304,175 @@ it("keeps the restored form primed on its first unchanged tick", () => {
     }),
   );
 });
+
+const tickSample = fc.record({
+  raw: fc.record({
+    moveX: fc.double({ min: -1, max: 1, noNaN: true }),
+    moveY: fc.double({ min: -1, max: 1, noNaN: true }),
+    jump: fc.boolean(),
+  }),
+  velocity: fc.record({
+    x: fc.double({ min: -2, max: 2, noNaN: true }),
+    y: fc.double({ min: -2, max: 2, noNaN: true }),
+    z: fc.double({ min: -2, max: 2, noNaN: true }),
+  }),
+  onGround: fc.boolean(),
+  depth: fc.oneof(fc.constant(0), fc.double({ min: 0, max: 3, noNaN: true })),
+});
+const tickSequence = fc.array(tickSample, { minLength: 1, maxLength: 80 });
+
+for (const [name, create] of [
+  ["SUV", (form?: Form) => new SuvDrive(0, form ? { form } : {})],
+  [
+    "shared drive",
+    (form?: Form) =>
+      new TransformingDrive(
+        0,
+        form ? { form } : {},
+        SUV_TRANSFORMING,
+        SUV_MOTION,
+        SUV_TYRES,
+      ),
+  ],
+] as const) {
+  it(`${name} has no vertical car impulse without a step ahead`, () => {
+    fc.assert(
+      fc.property(tickSequence, (ticks) => {
+        const drive = create();
+        ticks.forEach(({ raw, depth, velocity, onGround }, tick) => {
+          const out = drive.step(raw, {
+            ...context(depth),
+            tick,
+            velocity,
+            onGround,
+            solidAt: (offset) => offset.y <= -1,
+          });
+          if (drive.form === "car") expect(out.impulse.y).toBe(0);
+        });
+      }),
+    );
+  });
+
+  it(`${name} uses the updated bank for every air impulse`, () => {
+    fc.assert(
+      fc.property(tickSequence, (ticks) => {
+        for (const initial of [
+          undefined,
+          "takeoff",
+          "hover",
+          "landing",
+        ] as const) {
+          const drive = create(initial);
+          ticks.forEach(({ raw, depth, velocity, onGround }, tick) => {
+            const ctx = { ...context(depth), tick, velocity, onGround };
+            const out = drive.step(raw, ctx);
+            const form = drive.form;
+            if (form === "car" || form === "submarine") return;
+            const spec = SUV_TRANSFORMING;
+            expect(out.impulse.y).toBe(
+              verticalImpulse(
+                clamp(
+                  verticalSpeed(form, climbInput(raw), spec) -
+                    bankSink(form, drive.inspect().bank, spec),
+                  -spec.maxClimb,
+                  spec.maxClimb,
+                ),
+                ctx.velocity.y,
+                spec.flightVerticalDrag,
+              ),
+            );
+          });
+        }
+      }),
+    );
+  });
+
+  it(`${name} needs forward throttle to probe a submarine shore step`, () => {
+    fc.assert(
+      fc.property(tickSequence, (ticks) => {
+        const floor = create("submarine");
+        const wall = create("submarine");
+        ticks.forEach(({ raw, depth, velocity, onGround }, tick) => {
+          const input = { ...raw, moveY: -Math.abs(raw.moveY) };
+          const ctx = {
+            ...context(SUV_TRANSFORMING.carHeight + depth),
+            tick,
+            velocity,
+            onGround,
+          };
+          let floorProbes = 0;
+          let wallProbes = 0;
+          const a = floor.step(input, {
+            ...ctx,
+            solidAt: (offset) => {
+              floorProbes++;
+              return offset.y < 0;
+            },
+          });
+          const b = wall.step(input, {
+            ...ctx,
+            solidAt: (offset) => {
+              wallProbes++;
+              return (
+                offset.y < 0 ||
+                offset.y >= -SUV_TRANSFORMING.submarineStepProbeDrop
+              );
+            },
+          });
+          expect(floor.form).toBe("submarine");
+          expect(wall.form).toBe("submarine");
+          expect(a.impulse.y).toBe(b.impulse.y);
+          expect(floorProbes).toBe(0);
+          expect(wallProbes).toBe(0);
+        });
+      }),
+    );
+  });
+
+  it(`${name} orders changed form commands before bank and gear`, () => {
+    fc.assert(
+      fc.property(tickSequence, (ticks) => {
+        const drive = create();
+        let sentBank: number | undefined;
+        let sentGear: boolean | undefined;
+        ticks.forEach(({ raw, depth, velocity, onGround }, tick) => {
+          const previousForm = drive.form;
+          const out = drive.step(raw, {
+            ...context(depth),
+            tick,
+            velocity,
+            onGround,
+          });
+          const { bank, wheelsDown } = drive.inspect();
+          expect(out.commands).toEqual([
+            ...(drive.form === previousForm ? [] : formCommands(drive.form)),
+            ...(bank === sentBank ? [] : [bankCommand(bank)]),
+            ...(wheelsDown === sentGear ? [] : [gearCommand(wheelsDown)]),
+          ]);
+          sentBank = bank;
+          sentGear = wheelsDown;
+        });
+      }),
+    );
+  });
+
+  it(`${name} sets rider flags from the resulting form on every tick`, () => {
+    fc.assert(
+      fc.property(tickSequence, (ticks) => {
+        const drive = create();
+        ticks.forEach(({ raw, depth, velocity, onGround }, tick) => {
+          const out = drive.step(raw, {
+            ...context(depth),
+            tick,
+            velocity,
+            onGround,
+          });
+          expect(out.riders).toEqual({
+            thirdPerson: drive.form !== "car",
+            underwater: drive.form === "submarine",
+          });
+        });
+      }),
+    );
+  });
+}
