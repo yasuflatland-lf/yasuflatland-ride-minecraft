@@ -77,6 +77,9 @@ const CAMPER_DECK_SEATS_TEST = {
 // Test bound, not an ADR value: a lost cell is laid again on the next check,
 // at most DOCK_RECHECK_TICKS lays later; twice that allows for a slow tick.
 const CAMPER_RELAY_TICKS = DOCK_RECHECK_TICKS * 2;
+// The room blocks a parked camper lays with its doors shut: the wall cabinet's two cells are
+// cabinet blocks, not room blocks, since ADR 0114.
+const ROOM_CELL_COUNT = 105;
 
 const ROOM_BLOCK: Readonly<
   Record<Exclude<DockBlock["type"], "decor" | "decorPair" | "cabinet">, string>
@@ -176,7 +179,7 @@ export function camperPark(a: Arena): Promise<Outcome> {
   return atParkSpot(a, async (car) => {
     await wait(DOCK.ticks + 10);
     const laid = laidRoomCells(a, car);
-    return { pass: laid === 107, detail: `laid=${laid}` };
+    return { pass: laid === ROOM_CELL_COUNT, detail: `laid=${laid}` };
   });
 }
 
@@ -213,7 +216,7 @@ export function camperParkSnow(a: Arena): Promise<Outcome> {
       (c) => a.dim.getBlock(c)?.typeId === CAMPER_FLOOR_BLOCK,
     ).length;
     return {
-      pass: laid === 107 && floors === 4,
+      pass: laid === ROOM_CELL_COUNT && floors === 4,
       detail: `laid=${laid} snowReplaced=${floors}`,
     };
   });
@@ -229,7 +232,7 @@ export async function camperParkPath(a: Arena): Promise<Outcome> {
       // A path under a full block turns into dirt, so the ground is only logged.
       const under = a.dim.getBlock({ x: 108, y: ground, z: 78 })?.typeId;
       return {
-        pass: laid === 107 && car.location.y === a.gy,
+        pass: laid === ROOM_CELL_COUNT && car.location.y === a.gy,
         detail: `laid=${laid} y=${car.location.y} ground=${under}`,
       };
     });
@@ -249,7 +252,7 @@ export function camperDepart(a: Arena): Promise<Outcome> {
     const remaining = countLaid(a, cells);
     const moved = movedFrom(car, pose);
     return {
-      pass: parked === 107 && remaining === 0 && moved >= 0.1,
+      pass: parked === ROOM_CELL_COUNT && remaining === 0 && moved >= 0.1,
       detail: `parked=${parked} remaining=${remaining} moved=${moved.toFixed(3)}`,
     };
   });
@@ -267,7 +270,7 @@ export function camperDepartCargo(a: Arena): Promise<Outcome> {
     const laid = laidRoomCells(a, car);
     const moved = movedFrom(car, pose);
     return {
-      pass: laid === 105 && moved < 0.01,
+      pass: laid === ROOM_CELL_COUNT && moved < 0.01,
       detail: `laid=${laid} moved=${moved.toFixed(3)}`,
     };
   });
