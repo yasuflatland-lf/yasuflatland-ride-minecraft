@@ -9,7 +9,7 @@
 
 Issue #452, from play on an iPad: once the shower-toilet door was open, only taps on the doorway closed it. Taps on the open door panel itself did nothing.
 
-The door is hinged on its rear edge at the aisle face (model x 8, z 54) and swings -90 degrees, like the stove cabinet door (0114). Open, the panel stands in the aisle cell, local (0, -3), from x -3.9 to 7.9 px and z 52.8 to 54 px. It spans from just above the floor to 51.9 px, which is 2 to 3 px in front of the rear wall plate (z 56 to 58). The side of the panel that faces the aisle is the side that faced into the shower-toilet while the door was shut. Nothing that a tap can hit stands where the open panel is drawn:
+The door is hinged on its rear edge at the aisle face (model x 8, z 54) and swings -90 degrees, like the stove cabinet door (0114). Open, the panel stands in the aisle cell, local (0, -3), from x -3.9 to 7.9 px and z 52.8 to 54 px, and its outside handle reaches about z 54.6 px. It spans from just above the floor to 51.9 px, which is 2 to 3 px in front of the rear wall plate (z 56 to 58). The side of the panel that faces the aisle is the side that faced into the shower-toilet while the door was shut. Nothing that a tap can hit stands where the open panel is drawn:
 
 - The aisle cell holds cargo air, or the ceiling lights' light block in layer 2 (0115). Neither one can be selected.
 - The rear wall block, `yasu_ride:camper_wall`, has no selection box (0068).
@@ -36,6 +36,8 @@ The entry door and the wall cabinet doors do not have this problem. The open ent
 - An open shower door closes from a tap on either side of its panel or on the doorway, whether the player is in the aisle or inside the shower-toilet
 - From inside, a shut door still cannot be opened by a tap, because that tap runs the shower. The door has no collision, so the player can walk out. To change this, the shower would need its own target
 - To start the shower from inside with the door open, the player first taps once to shut the door and then taps again after the swing
+- The new block's plate covers the whole rear wall cell in each of the three layers, which is more than the open panel covers. While the door is open, a tap on the bare rear wall beside the panel (x -8 to -3.9 px) or above it (from about 52 px up to the ceiling) also closes it. This is harmless, and keeping one plate per cell keeps the block the same as the wall
+- A tap on the lowest few pixels of the open panel can still miss. The panel starts 0.5 px above the floor and stands 2 to 3 px in front of the plate, so a ray from a player beside the panel looking steeply down at its foot reaches the floor of the aisle cell before the plate, and the floor does not take shower-door presses. Making that floor cell take them would also make every tap on that stretch of aisle floor swing the door, and the floor is a shared deck floor block, so this is accepted
 - The room still lays 105 cells. While the door is open, three of its wall cells are the new block. Parking checks, cargo, and the wall-foot cells use the shut room and do not change
 - The new block is in the Behavior Pack only, so the Resource Pack version does not change. A server restart is still needed to load the block (0015)
 - Check on a phone and on PC: open the door from the aisle, then close it by tapping the face of the open panel. Open it again and close it from inside the shower-toilet by tapping the panel or the doorway. Also check that a tap from inside with the door shut runs the shower, and that the tap that shuts the door does not start the shower
