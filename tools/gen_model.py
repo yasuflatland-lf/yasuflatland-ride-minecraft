@@ -442,7 +442,9 @@ steering += [
     small(cx - 1.2, cy, 1.2, 0.5, "spoke"),  # spoke (left)
     small(cx + 1.2, cy, 1.2, 0.5, "spoke"),  # spoke (right)
     small(cx, cy - 1.2, 0.5, 1.2, "spoke"),  # spoke (bottom)
-    small(cx, cy, 0.8, 0.8, "grille", WHEEL_Z + 0.4, COLUMN_END_Z),  # column
+    # 0.15 px below the hub's center, so the column's top edge runs under the speedometer bezel's
+    # bottom (y 16.15) on its way forward and down instead of poking through it
+    small(cx, cy - 0.15, 0.8, 0.8, "grille", WHEEL_Z + 0.4, COLUMN_END_Z),  # column
 ]
 body += steering
 
