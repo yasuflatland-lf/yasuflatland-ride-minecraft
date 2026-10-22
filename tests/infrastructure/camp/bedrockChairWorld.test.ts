@@ -200,6 +200,43 @@ describe("BedrockChairWorld (ADR 0122)", () => {
     expect(chairs.consumeChairItem(asPlayerId("nobody"), 4)).toBe(false);
   });
 
+  it("counts only an air block as air, and a cell outside the world as not", () => {
+    const { dimension, chairs } = fixture();
+    dimension.getBlock.mockReturnValueOnce({ isAir: true });
+    expect(chairs.isAir(DIM, { x: 0, y: 65, z: 0 })).toBe(true);
+    dimension.getBlock.mockReturnValueOnce({ isAir: false });
+    expect(chairs.isAir(DIM, { x: 0, y: 64, z: 0 })).toBe(false);
+    dimension.getBlock.mockReturnValueOnce(undefined);
+    expect(chairs.isAir(DIM, { x: 0, y: 999, z: 0 })).toBe(false);
+  });
+
+  it("finds no chair in an unknown dimension", () => {
+    const { chairs } = fixture();
+    game.getDimension.mockImplementation(() => {
+      throw new Error("unknown dimension");
+    });
+    expect(
+      chairs.hasChairAt(asDimensionId("nowhere"), { x: 0, y: 0, z: 0 }),
+    ).toBe(false);
+  });
+
+  it("is in Creative only for a present player in Creative", () => {
+    const { player, chairs } = fixture();
+    expect(chairs.isCreative(asPlayerId("player"))).toBe(false);
+    player.getGameMode.mockReturnValue("Creative");
+    expect(chairs.isCreative(asPlayerId("player"))).toBe(true);
+    player.isValid = false;
+    expect(chairs.isCreative(asPlayerId("player"))).toBe(false);
+    expect(chairs.isCreative(asPlayerId("chair"))).toBe(false);
+  });
+
+  it("counts a missing or removed chair as not occupied", () => {
+    const { chair, chairs } = fixture();
+    expect(chairs.isOccupied(asChairId("gone"))).toBe(false);
+    chair.isValid = false;
+    expect(chairs.isOccupied(asChairId("chair"))).toBe(false);
+  });
+
   it("shows how many hits are left", () => {
     const { player, chairs } = fixture();
     chairs.showHitsLeft(asPlayerId("player"), 2);

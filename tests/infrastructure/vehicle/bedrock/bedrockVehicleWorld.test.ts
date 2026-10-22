@@ -1302,4 +1302,11 @@ describe("BedrockVehicleWorld.isVehicleSpace (ADR 0122)", () => {
       world.isVehicleSpace(asDimensionId("nowhere"), { x: 0, y: 0, z: 0 }),
     ).toBe(false);
   });
+
+  it("ignores a vehicle-family entity of no known kind", () => {
+    const { world, entities, car } = fixture();
+    entities.length = 0;
+    entities.push({ ...car, id: "unknown", typeId: "yasu_ride:unknown" });
+    expect(world.isVehicleSpace(OVERWORLD, { x: -2, y: 64, z: 2 })).toBe(false);
+  });
 });
