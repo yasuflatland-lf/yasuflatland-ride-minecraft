@@ -50,7 +50,7 @@ describe("RAM_QUERY_RADIUS", () => {
             [{ id: "t", offset }],
             new Map(),
             0,
-            SUV_PROFILE.ram,
+            SUV_PROFILE.body,
           );
           fc.pre(hits.length === 1);
           expect(Math.hypot(offset.x, offset.y, offset.z)).toBeLessThanOrEqual(
@@ -71,7 +71,7 @@ describe("RAM_QUERY_RADIUS", () => {
         [{ id: "t", offset }],
         new Map(),
         0,
-        SUV_PROFILE.ram,
+        SUV_PROFILE.body,
       ),
     ).toHaveLength(1);
     expect(Math.hypot(offset.x, offset.y, offset.z)).toBeLessThanOrEqual(

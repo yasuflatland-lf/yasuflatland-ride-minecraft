@@ -440,7 +440,7 @@ export class Vehicle {
       targets(),
       this.ramCooldowns.recent,
       tick,
-      this.profile.ram,
+      this.profile.body,
     );
     this.ramCooldowns.record(hits, tick);
     return hits;

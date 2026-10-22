@@ -101,7 +101,7 @@ describe("selectHits (ADR 0006)", () => {
             [at(y, ahead, side, dy)],
             new Map(),
             0,
-            SUV_PROFILE.ram,
+            SUV_PROFILE.body,
           );
           const { push, pushUp } = onlyHit(hits);
           expect(dot(push, f)).toBeGreaterThan(0);
@@ -131,7 +131,7 @@ describe("selectHits (ADR 0006)", () => {
             [at(y, ahead, side)],
             new Map(),
             0,
-            SUV_PROFILE.ram,
+            SUV_PROFILE.body,
           ),
         ).toHaveLength(0);
       }),
@@ -158,7 +158,7 @@ describe("selectHits (ADR 0006)", () => {
               [at(y, ahead, side, dy)],
               new Map(),
               0,
-              SUV_PROFILE.ram,
+              SUV_PROFILE.body,
             ),
           ).toHaveLength(0);
         },
@@ -180,7 +180,7 @@ describe("selectHits (ADR 0006)", () => {
             [at(y, ahead, 0)],
             new Map(),
             0,
-            SUV_PROFILE.ram,
+            SUV_PROFILE.body,
           ),
         ).toHaveLength(0);
       }),
@@ -202,7 +202,7 @@ describe("selectHits (ADR 0006)", () => {
             [at(y, -behind, side)],
             new Map(),
             0,
-            SUV_PROFILE.ram,
+            SUV_PROFILE.body,
           );
           const { push, pushUp } = onlyHit(hits);
           expect(dot(push, f)).toBeLessThan(0);
@@ -230,7 +230,7 @@ describe("selectHits (ADR 0006)", () => {
               [at(y, ahead, 0, 0, "vehicle")],
               new Map(),
               0,
-              SUV_PROFILE.ram,
+              SUV_PROFILE.body,
             ),
           ).toHaveLength(0);
         },
@@ -248,7 +248,7 @@ describe("selectHits (ADR 0006)", () => {
             [at(0, 1, 0)],
             new Map([["t", 100]]),
             100 + dt,
-            SUV_PROFILE.ram,
+            SUV_PROFILE.body,
           ),
         ).toHaveLength(0);
       }),
@@ -260,7 +260,7 @@ describe("selectHits (ADR 0006)", () => {
         [at(0, 1, 0)],
         new Map([["t", 100]]),
         100 + SPEC.ramCooldown,
-        SUV_PROFILE.ram,
+        SUV_PROFILE.body,
       ),
     ).toHaveLength(1);
   });
@@ -277,7 +277,7 @@ describe("selectHits (ADR 0006)", () => {
     ];
     for (const target of edges)
       expect(
-        selectHits(f, 0.5, [target], new Map(), 0, SUV_PROFILE.ram),
+        selectHits(f, 0.5, [target], new Map(), 0, SUV_PROFILE.body),
         JSON.stringify(target),
       ).toHaveLength(1);
   });
@@ -290,7 +290,7 @@ describe("selectHits (ADR 0006)", () => {
         [at(0, 1, 0)],
         new Map(),
         0,
-        SUV_PROFILE.ram,
+        SUV_PROFILE.body,
       ),
     ).toHaveLength(0);
   });
@@ -357,7 +357,7 @@ describe("selectHits (ADR 0006)", () => {
                 [{ id: "t", offset, mount: "vehicle" }],
                 lastHitOf(last),
                 now,
-                SUV_PROFILE.ram,
+                SUV_PROFILE.body,
               ),
             ).toHaveLength(0);
           },
@@ -383,7 +383,7 @@ describe("selectHits (ADR 0006)", () => {
                 [{ id: "t", offset, mount: "deckSeat" }],
                 lastHit,
                 now,
-                SUV_PROFILE.ram,
+                SUV_PROFILE.body,
               ),
             ).toEqual(
               selectHits(
@@ -392,7 +392,7 @@ describe("selectHits (ADR 0006)", () => {
                 [{ id: "t", offset }],
                 lastHit,
                 now,
-                SUV_PROFILE.ram,
+                SUV_PROFILE.body,
               ),
             );
           },
@@ -415,7 +415,7 @@ describe("selectHits (ADR 0006)", () => {
                 [at(y, ahead, side, 0, "deckSeat")],
                 new Map(),
                 0,
-                SUV_PROFILE.ram,
+                SUV_PROFILE.body,
               ),
             );
           },
