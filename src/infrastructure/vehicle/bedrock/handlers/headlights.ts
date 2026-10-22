@@ -39,6 +39,16 @@ export function registerHeadlights(
       dockCellOwner(dimensionId, { x, y, z })
     );
   };
+  // Whether the player stands inside a room whose ceiling lights their switch reaches. Only
+  // then is a press on a block or on the vehicle taken over, so a player on a boat deck, on the
+  // camper roof or at its exit keeps their presses (ADR 0115).
+  const inSwitchableRoom = (player: Player, room: VehicleId | undefined) =>
+    room !== undefined &&
+    ceilingLights.canSwitch({
+      playerId: asPlayerId(player.id),
+      vehicleId: room,
+      feet: player.location,
+    });
   // The driver of the ridden vehicle switches its headlights as before (ADR 0020). Anyone
   // else, a passenger aboard or a player on foot or on a deck seat in the room, switches
   // the ceiling lights of the room they are in (ADR 0115).
@@ -71,9 +81,10 @@ export function registerHeadlights(
     if (ev.itemStack?.typeId !== HEADLIGHT_SWITCH_TYPE) return;
     // A rider aiming at their own vehicle, or a player aiming at the camper whose room they
     // stand in, interacts with it instead of using the item, so the switch is handled here too.
+    const room = roomOf(ev.player);
     if (
       ridden(ev.player)?.id === ev.target.id ||
-      roomOf(ev.player) === ev.target.id
+      (room === ev.target.id && inSwitchableRoom(ev.player, room))
     ) {
       ev.cancel = true;
       const { player } = ev;
@@ -87,8 +98,8 @@ export function registerHeadlights(
   // a door or the cabinet. Riders of a vehicle keep the events they had (ADR 0115).
   world.beforeEvents.playerInteractWithBlock.subscribe((ev) => {
     if (ev.itemStack?.typeId !== HEADLIGHT_SWITCH_TYPE) return;
-    if (ridden(ev.player) !== undefined || roomOf(ev.player) === undefined)
-      return;
+    if (ridden(ev.player) !== undefined) return;
+    if (!inSwitchableRoom(ev.player, roomOf(ev.player))) return;
     ev.cancel = true;
     if (!ev.isFirstEvent) return;
     const { player } = ev;

@@ -25,4 +25,13 @@ export class SwitchCeilingLights {
         ?.switchCeilingLights(cmd.playerId, cmd.feet, this.clock.now()) ?? false
     );
   }
+
+  /** Whether the player's use would reach the ceiling lights, without switching them. */
+  canSwitch(cmd: SwitchCeilingLightsCommand): boolean {
+    return (
+      this.repo
+        .get(cmd.vehicleId)
+        ?.canSwitchCeilingLights(cmd.playerId, cmd.feet) ?? false
+    );
+  }
 }

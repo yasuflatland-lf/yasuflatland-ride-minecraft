@@ -23,6 +23,21 @@ it("switches the lights of a parked camper for a player inside, once per touch (
   expect(use.execute({ ...cmd, feet: { ...FEET, y: FEET.y + 4 } })).toBe(false);
 });
 
+it("tells whether a use would reach the lights without switching them or starting the cooldown (ADR 0115)", () => {
+  const { car, repo } = parkedCamper();
+  const use = new SwitchCeilingLights(repo, new FakeClock());
+  const cmd = { playerId: player, vehicleId: car.id, feet: FEET };
+  expect(use.canSwitch(cmd)).toBe(true);
+  expect(use.canSwitch({ ...cmd, feet: { ...FEET, y: FEET.y + 4 } })).toBe(
+    false,
+  );
+  expect(use.canSwitch({ ...cmd, vehicleId: asVehicleId("unknown") })).toBe(
+    false,
+  );
+  expect(use.execute(cmd)).toBe(true);
+  expect(use.canSwitch(cmd)).toBe(true);
+});
+
 it("ignores unknown vehicles, SUVs, and a camper that is not parked (ADR 0115)", () => {
   const repo = new InMemoryRepo();
   const use = new SwitchCeilingLights(repo, new FakeClock());

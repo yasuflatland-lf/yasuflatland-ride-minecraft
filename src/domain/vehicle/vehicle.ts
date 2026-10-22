@@ -330,8 +330,8 @@ export class Vehicle {
   /**
    * A player who is not at the wheel uses the light switch with their feet at `feet`: inside a
    * parked room, it turns the ceiling lights on or off. The driver's switch stays the
-   * headlights' (ADR 0020). The cooldown is the headlight switch's, so one touch flips once
-   * (ADR 0024, 0115). Returns whether it flipped.
+   * headlights' (ADR 0020). It uses its own cooldown with the headlight switch's duration, so
+   * one touch flips once (ADR 0024, 0115). Returns whether it flipped.
    */
   switchCeilingLights(playerId: PlayerId, feet: Vec3, tick: number): boolean {
     if (playerId === this.seating.driver || !this.drive.switchCeilingLights)
@@ -339,6 +339,16 @@ export class Vehicle {
     if (!this.ceilingLightCooldown.tryUse(tick, SPEC.headlightSwitchCooldown))
       return false;
     return this.drive.switchCeilingLights(feet);
+  }
+
+  /**
+   * Whether a use of the light switch by `playerId` with feet at `feet` is one for the ceiling
+   * lights: not the driver's, and from inside a room that has them. It ignores the cooldown
+   * and changes nothing, so a press is taken over only where the switch can work (ADR 0115).
+   */
+  canSwitchCeilingLights(playerId: PlayerId, feet: Vec3): boolean {
+    if (playerId === this.seating.driver) return false;
+    return this.drive.ceilingLightsReachable?.(feet) ?? false;
   }
 
   /** Hit by a player. Returns whether the vehicle breaks (ADR 0008). */

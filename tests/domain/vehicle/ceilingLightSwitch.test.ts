@@ -17,7 +17,10 @@ const driver: RiderView = {
   raw: { moveX: 0, moveY: 0, jump: false },
 };
 
-function vehicle(switchCeilingLights?: (feet: Vec3) => boolean) {
+function vehicle(
+  switchCeilingLights?: (feet: Vec3) => boolean,
+  ceilingLightsReachable?: (feet: Vec3) => boolean,
+) {
   const drive: Drive = {
     speed: 0,
     yaw: 0,
@@ -27,6 +30,7 @@ function vehicle(switchCeilingLights?: (feet: Vec3) => boolean) {
       throw new Error("not stepped");
     },
     ...(switchCeilingLights && { switchCeilingLights }),
+    ...(ceilingLightsReachable && { ceilingLightsReachable }),
   };
   return Vehicle.withRidersAboard(
     asVehicleId("v"),
@@ -45,6 +49,25 @@ describe("Vehicle.switchCeilingLights (ADR 0115)", () => {
     expect(flip).not.toHaveBeenCalled();
     expect(v.switchCeilingLights(asPlayerId("p"), FEET, 0)).toBe(true);
     expect(flip).toHaveBeenCalledExactlyOnceWith(FEET);
+  });
+
+  it("tells whether a use reaches the lights only for anyone but the driver, from where the drive allows, without using the cooldown", () => {
+    fc.assert(
+      fc.property(
+        fc.boolean(),
+        fc.constantFrom("d", "p"),
+        (reachable, player) => {
+          const flip = vi.fn(() => true);
+          const v = vehicle(flip, () => reachable);
+          expect(v.canSwitchCeilingLights(asPlayerId(player), FEET)).toBe(
+            reachable && player !== "d",
+          );
+          expect(flip).not.toHaveBeenCalled();
+          expect(v.switchCeilingLights(asPlayerId("p"), FEET, 0)).toBe(true);
+        },
+      ),
+    );
+    expect(vehicle().canSwitchCeilingLights(asPlayerId("p"), FEET)).toBe(false);
   });
 
   it("does nothing for a kind without ceiling lights", () => {

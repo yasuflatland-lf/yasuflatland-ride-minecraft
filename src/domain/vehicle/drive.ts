@@ -83,6 +83,8 @@ export interface Drive {
   useShowerDoor?(tick: number): boolean;
   /** Turns the ceiling lights of a held vehicle's room on or off for a player with feet at `feet`; false when it has none or the player is not inside (ADR 0115). */
   switchCeilingLights?(feet: Vec3): boolean;
+  /** Whether `switchCeilingLights` would take a use from feet at `feet` now, without switching (ADR 0115). */
+  ceilingLightsReachable?(feet: Vec3): boolean;
   /** Runs the shower of a held vehicle for a fixed time; false when it has none (ADR 0094). */
   runShower?(): boolean;
   /** The decor of the vehicle's room, in slot order, then any stowed decor whose slot no longer exists (ADR 0103); absent for kinds without decor (ADR 0093). */

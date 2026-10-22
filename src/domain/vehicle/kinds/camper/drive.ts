@@ -272,10 +272,14 @@ export class CamperDrive extends TransformingDrive {
    * ceiling lights on or off (ADR 0115). The vehicle core applies the switch's cooldown.
    */
   switchCeilingLights(feet: Vec3): boolean {
-    if (!this.parked || !insideRoom(this.parked, feet)) return false;
+    if (!this.ceilingLightsReachable(feet)) return false;
     this.ceilingLightsOn = !this.ceilingLightsOn;
     this.clickPending = true;
     return true;
+  }
+
+  ceilingLightsReachable(feet: Vec3): boolean {
+    return this.parked !== undefined && insideRoom(this.parked, feet);
   }
 
   runShower(): boolean {

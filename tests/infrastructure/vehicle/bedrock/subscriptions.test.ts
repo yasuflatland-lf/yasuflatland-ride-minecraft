@@ -530,7 +530,10 @@ function lightSwitchFixture(
       : undefined,
 ) {
   const headlights = { execute: vi.fn(() => false) };
-  const ceilingLights = { execute: vi.fn(() => true) };
+  const ceilingLights = {
+    execute: vi.fn(() => true),
+    canSwitch: vi.fn(() => true),
+  };
   const usesBefore = game.use.mock.calls.length;
   registerSubscriptions(
     { headlights, ceilingLights } as unknown as Parameters<
@@ -654,6 +657,17 @@ it("takes a switch press on the camper whose room the player stands in, and not 
   expect(f.pressEntity({ id: "room", typeId: ENTITY_TYPE.camper })).toBe(true);
   f.nextTick();
   expect(f.ceilingLights.execute).toHaveBeenCalledExactlyOnceWith(inRoom);
+});
+
+it("leaves block and vehicle presses alone on a dock cell from which the switch cannot reach ceiling lights, such as a boat deck or the camper roof (ADR 0115)", () => {
+  const f = lightSwitchFixture();
+  f.ceilingLights.canSwitch.mockReturnValue(false);
+  expect(f.pressBlock()).toBe(false);
+  expect(f.pressEntity({ id: "room", typeId: ENTITY_TYPE.sportsboat })).toBe(
+    false,
+  );
+  expect(f.ceilingLights.canSwitch).toHaveBeenCalledWith(inRoom);
+  expect(game.run).not.toHaveBeenCalled();
 });
 
 it("removes an orphan deck seat that loads with a chunk, but not one that is just spawned", () => {

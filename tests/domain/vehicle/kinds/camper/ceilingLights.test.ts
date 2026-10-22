@@ -118,11 +118,13 @@ const clicks = (commands: readonly EngineCommand[]) =>
 describe("CamperDrive ceiling lights (ADR 0115)", () => {
   it("switches only while parked, and only for a player inside the room", () => {
     const f = fixture();
+    const roof = { ...f.inside, y: f.inside.y + 3 };
+    expect(f.drive.ceilingLightsReachable(f.inside)).toBe(false);
     expect(f.drive.switchCeilingLights(f.inside)).toBe(false);
     f.park();
-    expect(
-      f.drive.switchCeilingLights({ ...f.inside, y: f.inside.y + 3 }),
-    ).toBe(false);
+    expect(f.drive.ceilingLightsReachable(roof)).toBe(false);
+    expect(f.drive.switchCeilingLights(roof)).toBe(false);
+    expect(f.drive.ceilingLightsReachable(f.inside)).toBe(true);
     expect(f.drive.switchCeilingLights(f.inside)).toBe(true);
   });
 
