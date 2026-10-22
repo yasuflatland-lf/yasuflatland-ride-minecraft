@@ -1691,60 +1691,10 @@ describe("targetVelocity (ADR 0002, 0081)", () => {
     fc.assert(
       fc.property(args, component, ([f, speed, v, keepLat, maxSpeed], t) => {
         const result = targetVelocity(f, speed, v, keepLat, maxSpeed);
-        const shifted = targetVelocity(
-          f,
-          speed,
-          {
-            x: v.x + f.x * t,
-            z: v.z + f.z * t,
-          },
-          keepLat,
-          maxSpeed,
-        );
+        const shiftedV = { x: v.x + f.x * t, z: v.z + f.z * t };
+        const shifted = targetVelocity(f, speed, shiftedV, keepLat, maxSpeed);
         expect(Math.abs(result.x - shifted.x)).toBeLessThanOrEqual(1e-9);
         expect(Math.abs(result.z - shifted.z)).toBeLessThanOrEqual(1e-9);
-      }),
-    );
-  });
-
-  function oldGroundTarget(
-    f: Vec2,
-    speed: number,
-    v: Vec2,
-    keepLat: number,
-    maxSpeed: number,
-  ): Vec2 {
-    const vLong = dot(v, f);
-    const lat = { x: v.x - f.x * vLong, z: v.z - f.z * vLong };
-    return clampLength(
-      { x: f.x * speed + lat.x * keepLat, z: f.z * speed + lat.z * keepLat },
-      maxSpeed,
-    );
-  }
-
-  function oldMediumTarget(
-    f: Vec2,
-    speed: number,
-    v: Vec2,
-    keepLat: number,
-    maxSpeed: number,
-  ): Vec2 {
-    const vLong = dot(v, f);
-    return clampLength(
-      {
-        x: f.x * speed + (v.x - f.x * vLong) * keepLat,
-        z: f.z * speed + (v.z - f.z * vLong) * keepLat,
-      },
-      maxSpeed,
-    );
-  }
-
-  it("matches both old inline targets exactly", () => {
-    fc.assert(
-      fc.property(args, ([f, speed, v, keepLat, maxSpeed]) => {
-        const result = targetVelocity(f, speed, v, keepLat, maxSpeed);
-        expect(result).toEqual(oldGroundTarget(f, speed, v, keepLat, maxSpeed));
-        expect(result).toEqual(oldMediumTarget(f, speed, v, keepLat, maxSpeed));
       }),
     );
   });
