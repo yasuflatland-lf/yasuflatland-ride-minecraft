@@ -13,6 +13,7 @@ import {
   STAND_IN_PROPERTY,
   standInType,
 } from "./identifiers";
+import { vehicleOfSeatFiller } from "./seatFillers";
 
 // Under a pixel (1/16 block), as the deck seats: a parked vehicle's stand-in is not
 // teleported every tick for drift nobody can see.
@@ -41,11 +42,14 @@ function standInEntity(
 }
 
 /**
- * The vehicle an entity a player hit or used stands for: the vehicle itself, or the
- * loaded vehicle a stand-in belongs to; undefined for anything else (ADR 0116).
+ * The vehicle an entity a player hit or used stands for: the vehicle itself, the vehicle a
+ * seat filler rides (ADR 0120), or the loaded vehicle a stand-in belongs to; undefined for
+ * anything else (ADR 0116).
  */
 export function vehicleOfTarget(target: Entity): Entity | undefined {
   if (isVehicleEntity(target.typeId)) return target;
+  const filled = vehicleOfSeatFiller(target);
+  if (filled) return filled;
   if (!isStandInEntity(target.typeId)) return undefined;
   const owner = ownerOf(target);
   const vehicle = owner ? world.getEntity(owner) : undefined;

@@ -22,7 +22,9 @@ import {
 } from "./lighting/headlights";
 import type { ChaseCamera, VehicleProfile } from "./profile";
 import { type RamHit, type RamTarget, selectHits } from "./ram";
+import { aimPoint, ChosenSeats, type SeatAssignment } from "./seatChoice";
 import { Seating } from "./seating";
+import { toLocal } from "./seats";
 import { SPEC } from "./spec";
 import {
   liftStandIn,
@@ -39,12 +41,16 @@ export interface RiderView {
   readonly offset: Vec2;
   readonly yaw: number;
   readonly raw: RawInput;
+  /** The rider's index in the engine's rider list, which is the seat it puts them in (ADR 0019). */
+  readonly slot?: number;
 }
 
 export interface VehicleTickInput extends TickContext {
   riders: readonly RiderView[];
   /** Input used only when there is no driver (for in-game tests). */
   testInput?: RawInput;
+  /** The player on each deck seat, in deck seat order (ADR 0063, 0120). */
+  deckSeatRiders?: readonly (PlayerId | undefined)[];
   /** Nearby targets. Called only when the speed exceeds the ram threshold (ADR 0083). */
   targets(): readonly RamTarget[];
 }
@@ -52,7 +58,7 @@ export interface VehicleTickInput extends TickContext {
 /**
  * What one vehicle does this tick. The application's per-vehicle tick
  * applies it with these world calls, in this order, and a throw skips the
- * rest of that vehicle's tick (ADR 0055). Steps 3, 9, 10, 11 and 12 run
+ * rest of that vehicle's tick (ADR 0055). Steps 3, 10, 11, 12 and 13 run
  * every tick: with nothing to keep, they release what the vehicle held,
  * seated, stood in for it, laid or lit before.
  *
@@ -66,20 +72,23 @@ export interface VehicleTickInput extends TickContext {
  *    every `SPEC.waterBreathingInterval` ticks (ADR 0040).
  * 6. `impulse` and `yaw`, only when there is no `dock`: a docked vehicle is
  *    held instead of moved (ADR 0063).
- * 7. `boardDeckRiders`: the deck-seat riders move into the vehicle
+ * 7. `seatLayout`: for a kind whose players choose their seat, the
+ *    vehicle's riders are laid in this order, with a seat filler for each
+ *    undefined entry, so each player sits in their seat (ADR 0120).
+ * 8. `boardDeckRiders`: the deck-seat riders move into the vehicle
  *    (ADR 0063), before standing players are seated (ADR 0068).
- * 8. `depart`: take any deck-seat rider the vehicle refused off their deck
+ * 9. `depart`: take any deck-seat rider the vehicle refused off their deck
  *    seat, then seat them and the standing players, nearest first, and move
  *    those left without a seat to the exit (ADR 0068, 0095).
- * 9. `dock.seats` at `yaw`, after boarding and departure; with no `dock`,
+ * 10. `dock.seats` at `yaw`, after boarding and departure; with no `dock`,
  *    the deck seats are removed.
- * 10. `standIn`: the vehicle's one stand-in entity is kept at this pose, or
+ * 11. `standIn`: the vehicle's one stand-in entity is kept at this pose, or
  *     removed when there is none (ADR 0116).
- * 11. `dock.cells`; with no `dock`, the laid cells are cleared.
- * 12. Headlight cells along the vehicle's heading after this tick, or none
+ * 12. `dock.cells`; with no `dock`, the laid cells are cleared.
+ * 13. Headlight cells along the vehicle's heading after this tick, or none
  *     when its headlights are off (ADR 0020).
- * 13. `hits`, credited to `driverId`.
- * 14. `finalCommands`, last: the vacated seats' commands, such as the door
+ * 14. `hits`, credited to `driverId`.
+ * 15. `finalCommands`, last: the vacated seats' commands, such as the door
  *     animation (ADR 0007, 0055).
  */
 export interface TickOutcome {
@@ -87,6 +96,8 @@ export interface TickOutcome {
   clear: readonly ClearCell[];
   message?: string;
   depart?: Departure;
+  /** The rider list to keep, for a kind whose players choose their seat; undefined otherwise (ADR 0120). */
+  seatLayout?: SeatAssignment;
   boardDeckRiders: boolean;
   impulse: Vec3;
   yaw: number;
@@ -99,8 +110,15 @@ export interface TickOutcome {
   riders: RiderState;
 }
 
+/** A kind whose players choose their seat keeps each rider's list index equal to their seat (ADR 0120). */
+function seatReadingOf(profile: VehicleProfile): "position" | "slot" {
+  return profile.boarding.order === "chosen" ? "slot" : "position";
+}
+
 export class Vehicle {
   private seating: Seating;
+  /** Defined only for a kind whose players choose their seat (ADR 0120). */
+  private readonly chosenSeats: ChosenSeats | undefined;
   private readonly ramCooldowns = new RamCooldowns();
   private readonly switchCooldown = new SwitchCooldown();
   // Its own cooldown, so a driver's headlight switch and a ceiling light switch in the room never block each other (ADR 0115).
@@ -120,7 +138,11 @@ export class Vehicle {
     private readonly profile: VehicleProfile,
     private readonly drive: Drive,
   ) {
-    this.seating = new Seating(profile.seats.positions);
+    this.seating = new Seating(profile.seats.positions, seatReadingOf(profile));
+    this.chosenSeats =
+      profile.boarding.order === "chosen"
+        ? new ChosenSeats(profile.seats.positions)
+        : undefined;
   }
 
   /**
@@ -142,6 +164,7 @@ export class Vehicle {
       profile.seats.positions,
       riders,
       forward(yaw),
+      seatReadingOf(profile),
     );
     return vehicle;
   }
@@ -208,6 +231,20 @@ export class Vehicle {
     return kept?.name === current ? kept : undefined;
   }
 
+  /**
+   * A player on foot asks to get in, with their eye at `eye` from the vehicle's feet and
+   * looking along `view`. For a kind whose players choose their seat, the next tick seats
+   * them in the free seat nearest where they aim, and this returns true; otherwise it
+   * returns false and the engine seats them (ADR 0120).
+   */
+  requestSeat(playerId: PlayerId, eye: Vec3, view: Vec3): boolean {
+    const boarding = this.profile.boarding;
+    if (boarding.order !== "chosen" || !this.chosenSeats) return false;
+    const aim = aimPoint(eye, view, boarding.aimHeight);
+    this.chosenSeats.request(playerId, toLocal(aim, forward(this.drive.yaw)));
+    return true;
+  }
+
   /** A player tapped the door of this vehicle's room at `tick`. Returns whether it opened or closed (ADR 0068, 0105). */
   useDockDoor(tick: number): boolean {
     return this.drive.useDockDoor?.(tick) ?? false;
@@ -259,7 +296,7 @@ export class Vehicle {
   }
 
   tick(input: VehicleTickInput): TickOutcome {
-    const { riders, testInput, targets, ...sensors } = input;
+    const { riders, testInput, deckSeatRiders, targets, ...sensors } = input;
     const seated = this.seating.update(riders, forward(this.drive.yaw));
     const seatCommands = seated.vacated.flatMap((seat) =>
       this.drive.onSeatVacated(seat),
@@ -283,6 +320,10 @@ export class Vehicle {
       deckSeatInputs,
     });
     this.docked = step.dock !== undefined;
+    const seatLayout = this.layRiders(
+      riders,
+      step.boardDeckRiders ? deckSeatRiders : undefined,
+    );
     // A deck seat's input is defined only while a player sits in it.
     this.driverSeatFree = !taken.has(0) && deckSeatInputs[0] === undefined;
 
@@ -296,6 +337,7 @@ export class Vehicle {
       clear: step.clear ?? [],
       message: step.message,
       depart: step.depart,
+      seatLayout,
       boardDeckRiders: step.boardDeckRiders ?? false,
       impulse: step.impulse,
       yaw: this.drive.yaw,
@@ -306,6 +348,23 @@ export class Vehicle {
       finalCommands: seatCommands,
       riders: step.riders,
     };
+  }
+
+  /**
+   * The rider list for a kind whose players choose their seat. Deck-seat riders who board
+   * this tick ask for the seat of their deck seat, which is free while it stands (ADR 0063).
+   */
+  private layRiders(
+    riders: readonly RiderView[],
+    boarding: readonly (PlayerId | undefined)[] | undefined,
+  ): SeatAssignment | undefined {
+    if (!this.chosenSeats) return undefined;
+    const positions = this.profile.seats.positions;
+    for (const [seat, id] of (boarding ?? []).entries()) {
+      const at = positions[seat];
+      if (id !== undefined && at) this.chosenSeats.request(id, at);
+    }
+    return this.chosenSeats.settle(riders);
   }
 
   /**

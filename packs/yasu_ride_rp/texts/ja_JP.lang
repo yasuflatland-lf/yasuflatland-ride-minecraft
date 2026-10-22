@@ -9,6 +9,7 @@ entity.yasu_ride:camper.name=キャンピングカー
 entity.yasu_ride:camper_bumper_x.name=キャンピングカーのバンパー
 entity.yasu_ride:camper_bumper_z.name=キャンピングカーのバンパー
 entity.yasu_ride:deck_seat.name=ボートの座席
+entity.yasu_ride:seat_filler.name=ボートの座席
 tile.yasu_ride:deck_floor.name=ボートの甲板
 action.interact.yasu_ride.sit=座る
 yasu_ride.message.cannot_park=ここでは駐車できません

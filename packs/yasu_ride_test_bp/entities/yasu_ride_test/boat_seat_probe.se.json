@@ -1,0 +1,39 @@
+{
+  "format_version": "1.21.80",
+  "minecraft:entity": {
+    "description": {
+      "identifier": "yasu_ride_test:boat_seat_probe",
+      "is_spawnable": false,
+      "is_summonable": true
+    },
+    "components": {
+      "minecraft:collision_box": {
+        "width": 2.2,
+        "height": 1.2
+      },
+      "minecraft:physics": {},
+      "minecraft:rideable": {
+        "seat_count": 4,
+        "controlling_seat": 0,
+        "crouching_skip_interact": true,
+        "family_types": ["cow", "yasu_ride_seat_filler"],
+        "interact_text": "action.interact.ride.horse",
+        "seats": [
+          {
+            "position": [-0.38, 0.52, 0.35],
+            "lock_rider_rotation": 90
+          },
+          {
+            "position": [0.38, 0.52, 0.35]
+          },
+          {
+            "position": [-0.38, 0.52, -0.8]
+          },
+          {
+            "position": [0.38, 0.52, -0.8]
+          }
+        ]
+      }
+    }
+  }
+}

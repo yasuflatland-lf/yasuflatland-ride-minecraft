@@ -5,6 +5,7 @@ import {
   TEST_DECOR_EVENT as DECOR_EVENT,
   ENTITY_TYPE,
   TEST_INPUT_EVENT as INPUT_EVENT,
+  SEAT_FILLER_TYPE,
 } from "../infrastructure/vehicle/bedrock/identifiers";
 
 // setupArena clears and floors this x/z rectangle and keeps it ticking.
@@ -13,6 +14,7 @@ const ARENA = { minX: 0, maxX: 120, minZ: 0, maxZ: 90 } as const;
 // Mirrors the SUV's minecraft:rideable but seats cows, because only players
 // can ride the SUV and a test has no players (ADR 0010).
 export const SEAT_PROBE = "yasu_ride_test:seat_probe";
+export const BOAT_SEAT_PROBE = "yasu_ride_test:boat_seat_probe";
 
 export interface Outcome {
   pass: boolean;
@@ -136,6 +138,8 @@ export async function setupArena(): Promise<Arena> {
   dim.runCommand(`kill @e[type=${ENTITY_TYPE.camper}]`);
   dim.runCommand("kill @e[type=cow]");
   dim.runCommand(`kill @e[type=${SEAT_PROBE}]`);
+  dim.runCommand(`kill @e[type=${BOAT_SEAT_PROBE}]`);
+  dim.runCommand(`kill @e[type=${SEAT_FILLER_TYPE}]`);
   // The pool's water replaces the stone under passable_no_hop's carpets and
   // torches, which then drop as items.
   dim.runCommand("kill @e[type=item]");

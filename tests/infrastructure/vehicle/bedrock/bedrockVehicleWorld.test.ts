@@ -419,6 +419,8 @@ describe("BedrockVehicleWorld snapshots", () => {
     expect(world.loadedVehicles()[0]?.riders.map((r) => r.id)).toEqual([
       "player",
     ]);
+    // The slot counts every rider, since the engine seats by list index (ADR 0019, 0120).
+    expect(world.loadedVehicles()[0]?.riders.map((r) => r.slot)).toEqual([1]);
   });
 
   it("forgets the test input of a vehicle once it is no longer loaded (ADR 0010)", () => {

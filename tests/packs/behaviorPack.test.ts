@@ -4,6 +4,7 @@ import { SUV_PROFILE } from "../../src/domain/vehicle/kinds/suv/profile";
 import {
   entityEventId,
   entityPropertyId,
+  SEAT_FILLER_FAMILY,
 } from "../../src/infrastructure/vehicle/bedrock/identifiers";
 
 const read = (p: string) => JSON.parse(readFileSync(p, "utf8"));
@@ -117,6 +118,21 @@ describe("packs/yasu_ride_test_bp", () => {
     expect(probe).toEqual({
       ...c["minecraft:rideable"],
       family_types: ["cow"],
+    });
+  });
+
+  // The in-game seat filler test says something about the boat only while this
+  // probe seats riders as the boat does, fillers included (ADR 0120).
+  it("the boat seat probe copies the sports boat's rideable, but seats cows instead of players", () => {
+    const boat = read(
+      "packs/yasu_ride_bp/entities/yasu_ride/sportsboat.se.json",
+    )["minecraft:entity"].components["minecraft:rideable"];
+    const probe = read(
+      "packs/yasu_ride_test_bp/entities/yasu_ride_test/boat_seat_probe.se.json",
+    )["minecraft:entity"].components["minecraft:rideable"];
+    expect(probe).toEqual({
+      ...boat,
+      family_types: ["cow", SEAT_FILLER_FAMILY],
     });
   });
 });

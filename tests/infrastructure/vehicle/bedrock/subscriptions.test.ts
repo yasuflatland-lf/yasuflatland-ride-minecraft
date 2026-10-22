@@ -539,13 +539,15 @@ function lightSwitchFixture(
     execute: vi.fn(() => true),
     canSwitch: vi.fn(() => true),
   };
+  // The boat leaves boarding to the engine here, so only the switch acts (ADR 0120).
+  const board = { execute: vi.fn(() => false) };
   const usesBefore = game.use.mock.calls.length;
   const entityPresses = vi.mocked(
     world.beforeEvents.playerInteractWithEntity.subscribe,
   );
   const entityPressesBefore = entityPresses.mock.calls.length;
   registerSubscriptions(
-    { headlights, ceilingLights } as unknown as Parameters<
+    { headlights, ceilingLights, board } as unknown as Parameters<
       typeof registerSubscriptions
     >[0],
     new TestInputStore(),
@@ -566,6 +568,8 @@ function lightSwitchFixture(
     isValid: true,
     dimension: { id: "overworld" },
     location: { x: 2.5, y: 65, z: 3.5 },
+    getHeadLocation: () => ({ x: 2.5, y: 66.62, z: 3.5 }),
+    getViewDirection: () => ({ x: 0, y: -1, z: 0 }),
     getComponent: (name: string) =>
       name === "minecraft:riding" && mount
         ? { entityRidingOn: mount }
@@ -585,7 +589,12 @@ function lightSwitchFixture(
       return ev.cancel;
     },
     pressEntity: (target: { id: string; typeId: string }) => {
-      const ev = { player, target, itemStack, cancel: false };
+      const ev = {
+        player,
+        target: { location: { x: 2.5, y: 64, z: 3.5 }, ...target },
+        itemStack,
+        cancel: false,
+      };
       for (const h of onEntity)
         h(ev as unknown as PlayerInteractWithEntityBeforeEvent);
       return ev.cancel;

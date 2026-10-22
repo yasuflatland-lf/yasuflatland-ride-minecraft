@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-11
+- Superseded in part by: [0120](0120-choose-a-sports-boat-seat-by-aiming-at-it.md) (Proposed; on the sports boat the driver is read from the rider list, so it is not sticky)
 
 ## Context
 

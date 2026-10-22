@@ -45,6 +45,8 @@ export function nearestSeat(
 export interface RiderPos {
   id: PlayerId;
   offset: Vec2;
+  /** The rider's index in the engine's rider list, when known (ADR 0120). */
+  slot?: number;
 }
 
 export function occupiedSeats(

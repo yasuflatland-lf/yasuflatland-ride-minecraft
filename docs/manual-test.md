@@ -67,11 +67,14 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | B10 | Walk around the deck and jump into the water | You can walk across the deck and fall into the water at the edge | | |
 | B11 | Get back in from the water and drive off | The boat leaves and the invisible floor disappears | | |
 | B12 | On a docked boat's deck, tap (mobile) / left-click (PC) the boat three times with an empty hand; repeat while sneaking at the very edge of the deck; then do the same from the water | It does not break from the deck, including at the edge; it breaks and drops the item from the water | | |
-| B13 | On a docked boat's deck, long-press (mobile) / right-click (PC) the rear-left seat; have a second player use the driver seat, then push the driver's stick | Each player sits in the chosen seat; on the push both move into the boat, the driver stays in seat 0, and the boat leaves. With lower seats empty, a passenger may move to a lower seat on departure (ADR 0063) | | |
+| B13 | On a docked boat's deck, long-press (mobile) / right-click (PC) the rear-left seat; have a second player use the driver seat, then push the driver's stick | Each player sits in the chosen seat; on the push both move into the boat, the driver stays in seat 0, the other player stays in the rear-left seat, and the boat leaves (ADR 0120) | | |
 | B14 | Sit only in a rear deck seat and push the stick | Nothing happens; only the deck driver sets off | | |
-| B15 | On a docked boat, sit in the rear-left deck seat; have a second player get into the boat's rear-left seat from the water | The first player is left standing on the deck and the second sits in the boat; the boat stays docked | | |
+| B15 | On a docked boat, sit in the rear-left deck seat; have a second player get into the boat's rear-left seat from the water by aiming at it | The first player is left standing on the deck and the second sits in the boat's rear-left seat; the boat stays docked (ADR 0120) | | |
 | B16 | Dock the boat and, on a phone, aim at a deck seat | The interact button reads "Sit", not "Ride" | | |
 | B17 | Stop the sports boat until it lays its deck, walk on the deck, and look at the deck from above and from the water | The deck holds you as before, and nothing shows on it (ADR 0101) | | |
+| B18 | With one player driving, have a second player in the water long-press (mobile) / right-click (PC) the boat while aiming at a rear seat; then let the driver get out | The second player sits in the seat they aimed at, not the front passenger seat; when the driver gets out, the second player stays in that rear seat (ADR 0120) | | |
+| B19 | With an empty boat, have two players each press the boat from the water while aiming at a different rear seat, then have a third press it aiming at the driver's seat and drive off | Both rear players sit where they aimed; the third sits in the driver's seat and drives with both still in the rear (ADR 0120) | | |
+| B20 | Aim at the front passenger seat and press the boat; then aim at the driver's seat from the same spot and press it with another player | Each player sits in the seat they aimed at; nothing invisible can be hit or ridden in the empty seats, and breaking the boat with three hits still works (ADR 0120) | | |
 
 ## Camper
 

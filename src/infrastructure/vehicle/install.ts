@@ -1,5 +1,6 @@
 // Wires the vehicle feature's repositories, port implementations, and use cases
 // together.
+import { BoardVehicle } from "../../application/vehicle/boardVehicle";
 import { DriveVehicles } from "../../application/vehicle/driveVehicles";
 import { GiveStarterVehicle } from "../../application/vehicle/giveStarterVehicle";
 import { HitVehicle } from "../../application/vehicle/hitVehicle";
@@ -78,6 +79,7 @@ export function installVehicles(): void {
         repo,
         systemClock,
       ),
+      board: new BoardVehicle(repo),
     },
     store,
     (dimensionId, cell) => bedrock.dockDoorOwner(dimensionId, cell),

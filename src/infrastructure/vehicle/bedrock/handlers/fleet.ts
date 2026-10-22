@@ -2,6 +2,7 @@ import { EntityInitializationCause, system, world } from "@minecraft/server";
 import type { LimitVehicles } from "../../../../application/vehicle/limitVehicles";
 import { removeOrphanDeckSeat } from "../deckSeats";
 import { fleetEntryOf } from "../identifiers";
+import { removeOrphanSeatFiller } from "../seatFillers";
 import { removeOrphanStandIn } from "../standIns";
 
 export function registerFleet(limit: LimitVehicles): void {
@@ -14,6 +15,7 @@ export function registerFleet(limit: LimitVehicles): void {
   world.afterEvents.entityLoad.subscribe((ev) => {
     removeOrphanDeckSeat(ev.entity);
     removeOrphanStandIn(ev.entity);
+    removeOrphanSeatFiller(ev.entity);
     if (!ev.entity.isValid) return;
     const entry = fleetEntryOf(ev.entity);
     if (entry) limit.found([entry]);
@@ -22,6 +24,7 @@ export function registerFleet(limit: LimitVehicles): void {
     if (ev.cause === EntityInitializationCause.Loaded) {
       removeOrphanDeckSeat(ev.entity);
       removeOrphanStandIn(ev.entity);
+      removeOrphanSeatFiller(ev.entity);
     }
     if (!ev.entity.isValid) return;
     const entry = fleetEntryOf(ev.entity);

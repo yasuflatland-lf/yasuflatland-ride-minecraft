@@ -111,6 +111,14 @@ export const DECK_FLOOR_HEIGHT_STATE = id("height");
 export const DECK_CELLS_PROPERTY = id("deck_cells");
 /** Auxiliary seat entity spawned on a held vehicle (ADR 0063). */
 export const DECK_SEAT_TYPE = id("deck_seat");
+/**
+ * Invisible rider that holds a free seat below a taken one, so the engine, which seats
+ * riders by their place in its rider list, puts each player in the seat they chose (ADR
+ * 0120). Its entity file also lists "inanimate", so the ram query skips it.
+ */
+export const SEAT_FILLER_TYPE = id("seat_filler");
+/** The family a vehicle's minecraft:rideable lets ride besides players, for its seat fillers (ADR 0120). */
+export const SEAT_FILLER_FAMILY = "yasu_ride_seat_filler";
 /** Maps the type of the entity a ram target rides to the domain's mount (ADR 0006, 0063, 0068). */
 export function ramMountOf(typeId: string | undefined): RamMount | undefined {
   if (isVehicleEntity(typeId)) return "vehicle";

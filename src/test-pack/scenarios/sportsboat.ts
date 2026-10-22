@@ -1,18 +1,26 @@
-import type { Entity } from "@minecraft/server";
+import type { Entity, Player } from "@minecraft/server";
+import { asPlayerId, asVehicleId } from "../../domain/shared/ids";
 import { dot, forward, length, type Vec3 } from "../../domain/shared/vec";
 import { SportsboatDrive } from "../../domain/vehicle/kinds/sportsboat/drive";
 import {
   SPORTSBOAT_MOTION,
   SPORTSBOAT_PROFILE,
 } from "../../domain/vehicle/kinds/sportsboat/profile";
-import { seatWorldPositions } from "../../domain/vehicle/seats";
+import {
+  nearestSeat,
+  seatWorldPositions,
+  toLocal,
+} from "../../domain/vehicle/seats";
 import {
   DECK_FLOOR_BLOCK,
   DECK_SEAT_TYPE,
   entityPropertyId,
+  SEAT_FILLER_TYPE,
 } from "../../infrastructure/vehicle/bedrock/identifiers";
+import { SeatFillers } from "../../infrastructure/vehicle/bedrock/seatFillers";
 import {
   type Arena,
+  BOAT_SEAT_PROBE,
   clearInput,
   drive,
   type Outcome,
@@ -483,4 +491,81 @@ export function boatRam(a: Arena): Promise<Outcome> {
       }
     }),
   );
+}
+
+/** The boat seat a rider sits in, judged by position as the main pack judges it (ADR 0019). */
+function boatSeatOf(vehicle: Entity, rider: Entity): number {
+  const offset = {
+    x: rider.location.x - vehicle.location.x,
+    z: rider.location.z - vehicle.location.z,
+  };
+  return nearestSeat(
+    toLocal(offset, forward(vehicle.getRotation().y)),
+    SPORTSBOAT_PROFILE.seats.positions,
+  );
+}
+
+// Seat fillers hold the free seats below a chosen one, so the engine, which seats
+// riders by their index in its rider list, puts each rider in their seat; and after
+// the driver gets out, laying the list again in the same tick keeps the rear rider
+// in the rear (ADR 0120). Cows stand in for players on a probe with the boat's seats.
+export async function boatSeatFillers(a: Arena): Promise<Outcome> {
+  a.dim.runCommand(`summon ${BOAT_SEAT_PROBE} 30.5 ${a.gy} 8.5`);
+  const probe = a.dim.getEntities({
+    type: BOAT_SEAT_PROBE,
+    location: { x: 30.5, y: a.gy, z: 8.5 },
+    maxDistance: 1.5,
+  })[0];
+  const cows = [0, 1].map((i) => summonCow(a, 27.5 + i * 2, 4.5));
+  const fillers = new SeatFillers();
+  try {
+    const [driver, rear] = cows;
+    if (!probe || !driver || !rear)
+      return { pass: false, detail: "probe or cows missing" };
+    probe.setRotation({ x: 0, y: -90 });
+    const vehicleId = asVehicleId(probe.id);
+    const cowOf = (id: string) =>
+      cows.find((cow) => cow?.id === id) as unknown as Player | undefined;
+    const lay = (layout: (Entity | undefined)[]) =>
+      fillers.lay(
+        vehicleId,
+        probe,
+        layout.map((cow) => (cow ? asPlayerId(cow.id) : undefined)),
+        cowOf,
+      );
+    const fillerCount = () =>
+      (probe.getComponent("minecraft:rideable")?.getRiders() ?? []).filter(
+        (rider) => rider.typeId === SEAT_FILLER_TYPE,
+      ).length;
+    lay([driver, undefined, rear]);
+    await wait(5);
+    const seated = [boatSeatOf(probe, driver), boatSeatOf(probe, rear)];
+    const heldBefore = fillerCount();
+    probe.getComponent("minecraft:rideable")?.ejectRider(driver);
+    await wait(1);
+    lay([undefined, undefined, rear]);
+    await wait(5);
+    const afterLeave = boatSeatOf(probe, rear);
+    const heldAfter = fillerCount();
+    lay([]);
+    await wait(2);
+    const left = a.dim.getEntities({
+      type: SEAT_FILLER_TYPE,
+      location: probe.location,
+      maxDistance: 8,
+    }).length;
+    return {
+      pass:
+        seated.join() === "0,2" &&
+        heldBefore === 1 &&
+        afterLeave === 2 &&
+        heldAfter === 2 &&
+        left === 0,
+      detail: `seated=${seated} fillers=${heldBefore} afterLeave=${afterLeave} fillersAfter=${heldAfter} left=${left}`,
+    };
+  } finally {
+    fillers.release(probe ? asVehicleId(probe.id) : asVehicleId(""));
+    for (const cow of cows) if (cow?.isValid) cow.remove();
+    if (probe?.isValid) probe.remove();
+  }
 }
