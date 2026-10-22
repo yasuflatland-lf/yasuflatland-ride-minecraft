@@ -32,6 +32,7 @@ import { registerHeadlights } from "./handlers/headlights";
 import { registerHits } from "./handlers/hits";
 import { registerPlacement } from "./handlers/placement";
 import { registerShowerToilet } from "./handlers/showerToilet";
+import { registerStandIns } from "./handlers/standIn";
 import { registerStarter } from "./handlers/starter";
 import { registerTestDecor } from "./handlers/testDecor";
 import { registerTestInput } from "./handlers/testInput";
@@ -83,6 +84,7 @@ export function registerSubscriptions(
   registerTestDecor(useCases.decor);
   registerTestInput(testInputs);
   registerGifts(useCases.gift);
+  registerStandIns();
   // Subscribed before placement, so placement's block press handler stays the last one
   // subscribed; each handler ignores the other's items (ADR 0115).
   registerHeadlights(

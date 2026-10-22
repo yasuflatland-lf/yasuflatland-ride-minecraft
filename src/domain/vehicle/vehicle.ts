@@ -24,6 +24,12 @@ import type { ChaseCamera, VehicleProfile } from "./profile";
 import { type RamHit, type RamTarget, selectHits } from "./ram";
 import { Seating } from "./seating";
 import { SPEC } from "./spec";
+import {
+  type StandInAxis,
+  type StandInPose,
+  standInAxis,
+  standInPose,
+} from "./standIn";
 
 export interface RiderView {
   readonly id: PlayerId;
@@ -43,9 +49,9 @@ export interface VehicleTickInput extends TickContext {
 /**
  * What one vehicle does this tick. The application's per-vehicle tick
  * applies it with these world calls, in this order, and a throw skips the
- * rest of that vehicle's tick (ADR 0055). Steps 3, 9, 10 and 11 run every
- * tick: with nothing to keep, they release what the vehicle held, seated,
- * laid or lit before.
+ * rest of that vehicle's tick (ADR 0055). Steps 3, 9, 10, 11 and 12 run
+ * every tick: with nothing to keep, they release what the vehicle held,
+ * seated, stood in for it, laid or lit before.
  *
  * 1. `stepCommands`, in order, before anything else that could throw,
  *    because drives send them only on change (ADR 0055).
@@ -64,11 +70,13 @@ export interface VehicleTickInput extends TickContext {
  *    those left without a seat to the exit (ADR 0068, 0095).
  * 9. `dock.seats` at `yaw`, after boarding and departure; with no `dock`,
  *    the deck seats are removed.
- * 10. `dock.cells`; with no `dock`, the laid cells are cleared.
- * 11. Headlight cells along the vehicle's heading after this tick, or none
+ * 10. `standIn`: the vehicle's one stand-in entity is kept at this pose, or
+ *     removed when there is none (ADR 0116).
+ * 11. `dock.cells`; with no `dock`, the laid cells are cleared.
+ * 12. Headlight cells along the vehicle's heading after this tick, or none
  *     when its headlights are off (ADR 0020).
- * 12. `hits`, credited to `driverId`.
- * 13. `finalCommands`, last: the vacated seats' commands, such as the door
+ * 13. `hits`, credited to `driverId`.
+ * 14. `finalCommands`, last: the vacated seats' commands, such as the door
  *     animation (ADR 0007, 0055).
  */
 export interface TickOutcome {
@@ -79,6 +87,8 @@ export interface TickOutcome {
   boardDeckRiders: boolean;
   impulse: Vec3;
   yaw: number;
+  /** Where the kind's stand-in stands; undefined for a kind without one (ADR 0116). */
+  standIn?: StandInPose;
   hits: RamHit[];
   driverId?: PlayerId;
   stepCommands: readonly EngineCommand[];
@@ -98,6 +108,8 @@ export class Vehicle {
   /** As of the last tick: held in place (ADR 0063, 0068), and nobody in the driver's seat or its deck seat. */
   private docked = false;
   private driverSeatFree = true;
+  /** The row axis of the stand-in kept last tick; a rebuilt vehicle starts with none (ADR 0116). */
+  private standInAxis: StandInAxis | undefined;
 
   /** Called only by kinds/index.ts, which picks the drive for the kind. */
   constructor(
@@ -289,12 +301,26 @@ export class Vehicle {
       boardDeckRiders: step.boardDeckRiders ?? false,
       impulse: step.impulse,
       yaw: this.drive.yaw,
+      standIn: this.standIn(step.dock?.hold ?? sensors.location),
       hits: this.ram(sensors.tick, targets, step.forward),
       driverId: driver?.id,
       stepCommands: step.commands,
       finalCommands: seatCommands,
       riders: step.riders,
     };
+  }
+
+  /**
+   * The stand-in at the vehicle's heading after this step, from its hold pose while held
+   * or its location before this tick's move while driving: the move is applied after this
+   * tick's world calls, so a driving stand-in trails the body by one tick (ADR 0116).
+   */
+  private standIn(location: Vec3): StandInPose | undefined {
+    const rule = this.profile.standIn;
+    if (!rule) return undefined;
+    const yaw = this.drive.yaw;
+    this.standInAxis = standInAxis(yaw, this.standInAxis, rule.turnMargin);
+    return standInPose(rule, location, yaw, this.standInAxis);
   }
 
   private ram(

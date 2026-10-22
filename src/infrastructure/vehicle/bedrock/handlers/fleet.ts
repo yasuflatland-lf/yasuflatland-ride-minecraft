@@ -2,6 +2,7 @@ import { EntityInitializationCause, system, world } from "@minecraft/server";
 import type { LimitVehicles } from "../../../../application/vehicle/limitVehicles";
 import { removeOrphanDeckSeat } from "../deckSeats";
 import { fleetEntryOf } from "../identifiers";
+import { removeOrphanStandIn } from "../standIns";
 
 export function registerFleet(limit: LimitVehicles): void {
   // The fleet never sees a vehicle spawn while the script is not running, so it
@@ -12,13 +13,16 @@ export function registerFleet(limit: LimitVehicles): void {
   system.run(() => limit.start());
   world.afterEvents.entityLoad.subscribe((ev) => {
     removeOrphanDeckSeat(ev.entity);
+    removeOrphanStandIn(ev.entity);
     if (!ev.entity.isValid) return;
     const entry = fleetEntryOf(ev.entity);
     if (entry) limit.found([entry]);
   });
   world.afterEvents.entitySpawn.subscribe((ev) => {
-    if (ev.cause === EntityInitializationCause.Loaded)
+    if (ev.cause === EntityInitializationCause.Loaded) {
       removeOrphanDeckSeat(ev.entity);
+      removeOrphanStandIn(ev.entity);
+    }
     if (!ev.entity.isValid) return;
     const entry = fleetEntryOf(ev.entity);
     if (!entry) return;

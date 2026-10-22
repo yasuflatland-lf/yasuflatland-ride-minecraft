@@ -4,6 +4,7 @@ import type { VehicleKind } from "./kind";
 import type { Paint } from "./paint/paint";
 import type { PlacementGift } from "./placement/gift";
 import type { PlacementRule } from "./placement/placement";
+import type { StandInRule } from "./standIn";
 
 /** Body dimensions from the center, in blocks. */
 export interface RamBody {
@@ -50,6 +51,12 @@ export interface VehicleProfile {
    * SUV and the boat take hits on their whole body.
    */
   readonly hints?: HintZones;
+  /**
+   * A stand-in entity that takes the vehicle's hits and interactions at a spot its own
+   * hitboxes cannot follow as it turns (ADR 0116). Absent = none: the SUV and the boat take
+   * hits on their own boxes.
+   */
+  readonly standIn?: StandInRule;
   /** The gift a player gets the first time they place this kind (ADR 0093). Absent = no gift. */
   readonly placementGift?: PlacementGift;
 }

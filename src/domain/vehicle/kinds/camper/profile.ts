@@ -49,6 +49,13 @@ export const CAMPER_PROFILE: VehicleProfile = Object.freeze({
   chaseCamera: "far",
   defaultPaint: "khaki", // ADR 0067, 0076
   placementGift: "camping_gear_box", // ADR 0093
+  // The camper's own hitbox is hidden in its floor; its bumper boxes stand on a stand-in
+  // entity of their own, since an entity's boxes never turn with it (ADR 0116).
+  standIn: Object.freeze({
+    name: "camper_bumper",
+    ahead: CAMPER_SPEC.bodyFront,
+    turnMargin: CAMPER_SPEC.bumperTurnMargin,
+  }),
   // The camper takes hits only on its bumper boxes, so players need to be told where
   // to hit it and, once it is parked, how to take the wheel (ADR 0086).
   hints: Object.freeze({

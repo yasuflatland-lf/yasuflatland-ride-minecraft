@@ -36,6 +36,7 @@ import {
 import type { Cell } from "../../../domain/vehicle/lighting/headlights";
 import type { ChaseCamera } from "../../../domain/vehicle/profile";
 import type { RamHit, RamTarget } from "../../../domain/vehicle/ram";
+import type { StandInPose } from "../../../domain/vehicle/standIn";
 import type { RiderView } from "../../../domain/vehicle/vehicle";
 import type { TestInputStore } from "../testInput/testInputStore";
 import { savedDecor } from "./bedrockDecorWorld";
@@ -55,6 +56,7 @@ import {
   ramMountOf,
   VEHICLE_FAMILY,
 } from "./identifiers";
+import { StandIns } from "./standIns";
 import { VehicleReleaser } from "./vehicleReleaser";
 import { isWaterAt } from "./water";
 
@@ -83,13 +85,15 @@ function distanceSq(a: Vec3, b: Vec3): number {
 export class BedrockVehicleWorld implements DriveWorld {
   private readonly headlightBlocks = new HeadlightBlocks();
   private readonly deckSeats = new DeckSeats();
+  private readonly standIns = new StandIns();
   private readonly dockBlocks = new DockBlocks();
   private readonly holds = new Map<VehicleId, HoldPose>();
-  /** Shared with BedrockFleetWorld so a removed vehicle releases the same blocks, seats and hold. */
+  /** Shared with BedrockFleetWorld so a removed vehicle releases the same blocks, seats, stand-in and hold. */
   readonly releaser = new VehicleReleaser(
     this.headlightBlocks,
     this.dockBlocks,
     this.deckSeats,
+    this.standIns,
     this.holds,
   );
 
@@ -164,6 +168,7 @@ export class BedrockVehicleWorld implements DriveWorld {
     this.headlightBlocks.clearGone(live);
     this.dockBlocks.clearGone(live);
     this.deckSeats.clearGone(live);
+    this.standIns.clearGone(live);
     for (const id of this.holds.keys())
       if (!live.has(id)) this.holds.delete(id);
     return snapshots;
@@ -334,6 +339,10 @@ export class BedrockVehicleWorld implements DriveWorld {
       positions,
       yaw,
     );
+  }
+
+  keepStandIn(vehicleId: VehicleId, pose: StandInPose | undefined): void {
+    this.standIns.keep(vehicleId, this.index.entity(vehicleId), pose);
   }
 
   boardDeckRiders(vehicleId: VehicleId): void {

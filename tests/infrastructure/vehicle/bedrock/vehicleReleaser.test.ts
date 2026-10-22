@@ -5,7 +5,7 @@ import { asVehicleId, type VehicleId } from "../../../../src/domain/shared/ids";
 import type { HoldPose } from "../../../../src/domain/vehicle/dock/floor";
 import { VehicleReleaser } from "../../../../src/infrastructure/vehicle/bedrock/vehicleReleaser";
 
-const STEPS = ["shine", "lay", "keep"] as const;
+const STEPS = ["shine", "lay", "keep", "stand"] as const;
 type Step = (typeof STEPS)[number];
 
 function stubs(throwing: readonly Step[] = []) {
@@ -16,18 +16,25 @@ function stubs(throwing: readonly Step[] = []) {
   const shine = step("shine");
   const lay = step("lay");
   const keep = step("keep");
+  const stand = step("stand");
   const holds = new Map<VehicleId, HoldPose>([
     [asVehicleId("v"), { x: 0, y: 64, z: 0, yaw: 0 }],
   ]);
-  const releaser = new VehicleReleaser({ shine }, { lay }, { keep }, holds);
-  return { shine, lay, keep, holds, releaser };
+  const releaser = new VehicleReleaser(
+    { shine },
+    { lay },
+    { keep },
+    { keep: stand },
+    holds,
+  );
+  return { shine, lay, keep, stand, holds, releaser };
 }
 
 describe("VehicleReleaser", () => {
   it("runs every release step in order and rethrows the first failure", () => {
     fc.assert(
       fc.property(fc.subarray([...STEPS]), (throwing) => {
-        const { shine, lay, keep, holds, releaser } = stubs(throwing);
+        const { shine, lay, keep, stand, holds, releaser } = stubs(throwing);
         let thrown: unknown;
         try {
           releaser.release(asVehicleId("v"), undefined);
@@ -37,7 +44,8 @@ describe("VehicleReleaser", () => {
         expect(shine.mock.calls).toEqual([["v", undefined, []]]);
         expect(lay.mock.calls).toEqual([["v", undefined, []]]);
         expect(keep.mock.calls).toEqual([["v", undefined, [], 0]]);
-        const order = [shine, lay, keep].map(
+        expect(stand.mock.calls).toEqual([["v", undefined, undefined]]);
+        const order = [shine, lay, keep, stand].map(
           (stub) => stub.mock.invocationCallOrder[0] ?? 0,
         );
         expect(order).toEqual([...order].sort((a, b) => a - b));
@@ -50,11 +58,12 @@ describe("VehicleReleaser", () => {
   });
 
   it("passes the entity to every step", () => {
-    const { shine, lay, keep, releaser } = stubs();
+    const { shine, lay, keep, stand, releaser } = stubs();
     const vehicle = { id: "v" } as unknown as Entity;
     releaser.release(asVehicleId("v"), vehicle);
     expect(shine).toHaveBeenCalledWith("v", vehicle, []);
     expect(lay).toHaveBeenCalledWith("v", vehicle, []);
     expect(keep).toHaveBeenCalledWith("v", vehicle, [], 0);
+    expect(stand).toHaveBeenCalledWith("v", vehicle, undefined);
   });
 });

@@ -1,5 +1,6 @@
 // Switches the ridden vehicle's headlights with the headlight switch item,
-// whether its use reaches itemUse or an interaction with the vehicle (ADR 0020, 0024).
+// whether its use reaches itemUse or an interaction with the vehicle or its stand-in
+// (ADR 0020, 0024, 0116).
 // Anyone else inside a parked camper's room switches its ceiling lights with it (ADR 0115).
 import { type Entity, type Player, system, world } from "@minecraft/server";
 import type { SwitchCeilingLights } from "../../../../application/vehicle/switchCeilingLights";
@@ -13,6 +14,7 @@ import {
 } from "../../../../domain/shared/ids";
 import type { Vec3 } from "../../../../domain/shared/vec";
 import { HEADLIGHT_SWITCH_TYPE, isVehicleEntity } from "../identifiers";
+import { vehicleOfTarget } from "../standIns";
 
 export function registerHeadlights(
   headlights: SwitchHeadlights,
@@ -77,14 +79,15 @@ export function registerHeadlights(
   });
 
   world.beforeEvents.playerInteractWithEntity.subscribe((ev) => {
-    if (!isVehicleEntity(ev.target.typeId)) return;
     if (ev.itemStack?.typeId !== HEADLIGHT_SWITCH_TYPE) return;
+    const vehicle = vehicleOfTarget(ev.target);
+    if (!vehicle) return;
     // A rider aiming at their own vehicle, or a player aiming at the camper whose room they
     // stand in, interacts with it instead of using the item, so the switch is handled here too.
     const room = roomOf(ev.player);
     if (
-      ridden(ev.player)?.id === ev.target.id ||
-      (room === ev.target.id && inSwitchableRoom(ev.player, room))
+      ridden(ev.player)?.id === vehicle.id ||
+      (room === vehicle.id && inSwitchableRoom(ev.player, room))
     ) {
       ev.cancel = true;
       const { player } = ev;

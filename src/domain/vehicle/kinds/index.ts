@@ -67,6 +67,19 @@ export const DECK_SEAT_REACH = farthestSeatReach(
   ),
 );
 
+/** The names of the kinds' stand-in entities (ADR 0116). */
+export const STAND_IN_NAMES: readonly string[] = Object.freeze(
+  Object.values(KINDS).flatMap(({ profile }) =>
+    profile.standIn ? [profile.standIn.name] : [],
+  ),
+);
+
+/** How far any kind's stand-in stands from its vehicle (ADR 0116). */
+export const STAND_IN_REACH = Math.max(
+  0,
+  ...Object.values(KINDS).map(({ profile }) => profile.standIn?.ahead ?? 0),
+);
+
 export function createVehicle(
   kind: VehicleKind,
   id: VehicleId,

@@ -49,6 +49,7 @@ import type { Paint } from "../../../src/domain/vehicle/paint/paint";
 import type { PlacementGift } from "../../../src/domain/vehicle/placement/gift";
 import type { ChaseCamera } from "../../../src/domain/vehicle/profile";
 import type { RamHit, RamTarget } from "../../../src/domain/vehicle/ram";
+import type { StandInPose } from "../../../src/domain/vehicle/standIn";
 import type { Vehicle } from "../../../src/domain/vehicle/vehicle";
 import type { VehicleRepository } from "../../../src/domain/vehicle/vehicleRepository";
 import { waterSensors } from "../../support/waterDepth";
@@ -119,6 +120,8 @@ export class FakeWorld
   /** The cells each vehicle was last told to light. */
   readonly shone = new Map<string, readonly Cell[]>();
   readonly held = new Map<string, HoldPose | undefined>();
+  /** The stand-in pose each vehicle kept last (ADR 0116). */
+  readonly standIns = new Map<string, StandInPose | undefined>();
   readonly docks = new Map<string, readonly DockCell[]>();
   readonly typesAt = new Map<string, string>();
   readonly cleared: { vehicleId: string; cells: readonly ClearCell[] }[] = [];
@@ -205,6 +208,9 @@ export class FakeWorld
   ) {}
   boardDeckRiders(_id: string) {
     this.calls.push("boardDeckRiders");
+  }
+  keepStandIn(id: string, pose: StandInPose | undefined) {
+    this.standIns.set(id, pose);
   }
   layDock(id: string, cells: readonly DockCell[]) {
     this.calls.push("layDock");

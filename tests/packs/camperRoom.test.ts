@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { DECOR_SLOTS } from "../../src/domain/vehicle/kinds/camper/decor";
+import { roomCells } from "../../src/domain/vehicle/kinds/camper/room";
 import { CAMPER_SPEC } from "../../src/domain/vehicle/kinds/camper/spec";
 import {
   CAMPER_BED_BLOCK,
@@ -181,19 +182,30 @@ describe("Camper room blocks (ADR 0068)", () => {
   });
 });
 
-it("keeps only the bumper hitboxes from spawn and preserves the undocked camper's body collision", () => {
+it("hides the camper's own hitbox in the parked floor block under its center and preserves the undocked camper's body collision", () => {
   const entity = read(`${BP}/entities/yasu_ride/camper.se.json`)[
     "minecraft:entity"
   ];
-  // A hitbox is square in x and z, so three 1-block boxes cover the 3-block
-  // bumper without reaching more than half a block into the room (ADR 0084).
-  expect(entity.components["minecraft:custom_hit_test"].hitboxes).toEqual(
-    CAMPER_SPEC.bumperBoxXs.map((x) => ({
-      width: CAMPER_SPEC.bumperBoxSize,
-      height: CAMPER_SPEC.bumperBoxSize,
-      pivot: [x, CAMPER_SPEC.bumperBoxY, CAMPER_SPEC.bodyFront],
-    })),
-  );
+  // The bumper boxes stand on the bumper stand-in, since an entity's boxes never turn
+  // with it; the camper keeps one box set from spawn, where no tap reaches it (ADR 0116).
+  const size = CAMPER_SPEC.hiddenHitboxSize;
+  expect(entity.components["minecraft:custom_hit_test"]).toEqual({
+    hitboxes: [{ width: size, height: size, pivot: [0, size / 2, 0] }],
+  });
+  // A parked camper's feet are at the bottom of its center floor cell (ADR 0068), so the
+  // box lies inside that full block, below its top face.
+  const [box] = entity.components["minecraft:custom_hit_test"].hitboxes;
+  expect(box.pivot[1] + box.height / 2).toBeLessThan(1);
+  expect(box.width / 2).toBeLessThan(0.5);
+  const pose = { x: 10.5, y: 64, z: -3.5, yaw: 90 };
+  expect(
+    roomCells(pose, false).find((c) => c.x === 10 && c.y === 64 && c.z === -4)
+      ?.block.type,
+  ).toBe("floor");
+  expect(entity.component_groups).not.toHaveProperty([
+    "yasu_ride:docked",
+    "minecraft:custom_hit_test",
+  ]);
   expect(
     entity.component_groups["yasu_ride:undocked"]["minecraft:collision_box"],
   ).toEqual({

@@ -1,5 +1,5 @@
 import { BlockPermutation, type Entity } from "@minecraft/server";
-import { length, type Vec3 } from "../../domain/shared/vec";
+import { forward, length, type Vec3 } from "../../domain/shared/vec";
 import type { DecorPlacement } from "../../domain/vehicle/dock/decor";
 import type {
   DockBlock,
@@ -7,6 +7,7 @@ import type {
   HoldPose,
 } from "../../domain/vehicle/dock/floor";
 import { CABINET_DOORS } from "../../domain/vehicle/kinds/camper/furniture";
+import { CAMPER_PROFILE } from "../../domain/vehicle/kinds/camper/profile";
 import {
   cabinetCells,
   cargoCells,
@@ -41,6 +42,10 @@ import {
   pairHeightStates,
   ROOM_FACE_STATE,
   ROOM_OPEN_STATE,
+  STAND_IN_FAMILY,
+  STAND_IN_OF_PROPERTY,
+  STAND_IN_PROPERTY,
+  standInType,
 } from "../../infrastructure/vehicle/bedrock/identifiers";
 import {
   type Arena,
@@ -73,6 +78,18 @@ const CAMPER_DECK_SEATS_TEST = {
   tolerance: 0.1,
   clearRadius: 9,
   clearTicks: 10,
+} as const;
+
+// Test bounds, not ADR values: 8 blocks finds every stand-in of a camper whose bumper is
+// 3.7 blocks out; a parked one stands within a pixel of its spot (the teleport
+// tolerance), and a driving one trails the body by one tick's move, under 1.5 blocks at
+// the speeds a 15-tick start reaches.
+const CAMPER_BUMPER_TEST = {
+  radius: 8,
+  parkedTolerance: 0.1,
+  drivingTolerance: 1.5,
+  driveTicks: 15,
+  clearTicks: 3,
 } as const;
 
 // Test bound, not an ADR value: a lost cell is laid again on the next check,
@@ -676,6 +693,55 @@ export function camperStandSpots(a: Arena): Promise<Outcome> {
     return {
       pass: wrong === 0,
       detail: `wrong=${wrong}`,
+    };
+  });
+}
+
+// ADR 0116: one bumper stand-in follows the camper, its row of boxes across the heading,
+// and goes with it. Taps from a phone cannot be simulated, so the forwarding of hits and
+// interactions is left to the unit tests and the phone check.
+export function camperBumper(a: Arena): Promise<Outcome> {
+  return atParkSpot(a, async (car) => {
+    const near = () =>
+      a.dim.getEntities({
+        families: [STAND_IN_FAMILY],
+        location: car.isValid ? car.location : parkSpotPose(a),
+        maxDistance: CAMPER_BUMPER_TEST.radius,
+      });
+    const offFront = (standIn: Entity) => {
+      const f = forward(car.getRotation().y);
+      return Math.hypot(
+        standIn.location.x - (car.location.x + f.x * CAMPER_SPEC.bodyFront),
+        standIn.location.y - car.location.y,
+        standIn.location.z - (car.location.z + f.z * CAMPER_SPEC.bodyFront),
+      );
+    };
+    await wait(DOCK.ticks + 10);
+    const parked = near();
+    const [standIn] = parked;
+    // Facing -x, the bumper's row runs along z.
+    const parkedOk =
+      parked.length === 1 &&
+      standIn !== undefined &&
+      CAMPER_PROFILE.standIn !== undefined &&
+      standIn.typeId === standInType(CAMPER_PROFILE.standIn.name, "z") &&
+      standIn.getDynamicProperty(STAND_IN_OF_PROPERTY) === car.id &&
+      car.getDynamicProperty(STAND_IN_PROPERTY) === standIn.id &&
+      offFront(standIn) <= CAMPER_BUMPER_TEST.parkedTolerance;
+    drive(car, 0, 1);
+    await wait(CAMPER_BUMPER_TEST.driveTicks);
+    const driving = near();
+    const drivingOk =
+      driving.length === 1 &&
+      driving[0] !== undefined &&
+      offFront(driving[0]) <= CAMPER_BUMPER_TEST.drivingTolerance;
+    const off = driving[0] ? offFront(driving[0]).toFixed(3) : "none";
+    car.remove();
+    await wait(CAMPER_BUMPER_TEST.clearTicks);
+    const left = near().length;
+    return {
+      pass: parkedOk && drivingOk && left === 0,
+      detail: `parked=${parked.length} parkedOk=${parkedOk} driving=${driving.length} off=${off} left=${left}`,
     };
   });
 }

@@ -1,0 +1,18 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "yasu_ride:camper_bumper_z",
+      "materials": {
+        "default": "entity"
+      },
+      "textures": {
+        "default": "textures/entity/yasu_ride/camper"
+      },
+      "geometry": {
+        "default": "geometry.yasu_ride.stand_in"
+      },
+      "render_controllers": ["controller.render.default"]
+    }
+  }
+}
