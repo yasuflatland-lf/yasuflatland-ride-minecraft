@@ -247,7 +247,28 @@ describe("vehicle stand-in (ADR 0116)", () => {
     );
   });
 
-  it("rises out of solid ground in the bumper's middle cell, at most maxLift blocks, but not over plants (ADR 0119)", () => {
+  /** Solid layers in the bumper's middle cell, `solid(layer)` counted from the camper's feet. */
+  function columnAt(
+    at: Vec3,
+    snapped: number,
+    solid: (layer: number) => boolean,
+  ) {
+    const middle = localCellAt(
+      { ...at, yaw: snapped },
+      { x: 0, z: 4, layer: 0 },
+    );
+    return {
+      middle,
+      solidAt: (o: Vec3) => {
+        const x = Math.floor(at.x + o.x);
+        const y = Math.floor(at.y + o.y);
+        const z = Math.floor(at.z + o.z);
+        return x === middle.x && z === middle.z && solid(y - middle.y);
+      },
+    };
+  }
+
+  it("rises out of solid ground in the bumper's middle cell while driving, at most maxLift blocks, but not over plants (ADR 0119)", () => {
     const maxLift = defined(RULE.maxLift, "max lift");
     fc.assert(
       fc.property(
@@ -258,29 +279,47 @@ describe("vehicle stand-in (ADR 0116)", () => {
         fc.integer({ min: 0, max: 4 }),
         (quarter, cx, cy, cz, rise) => {
           const snapped = quarter * 90;
+          const at = { x: cx + 0.5, y: cy, z: cz + 0.5 };
+          // The side cells hold only plants, which solidAt does not count.
+          const { middle, solidAt } = columnAt(
+            at,
+            snapped,
+            (layer) => layer >= 0 && layer < rise,
+          );
+          const pose = defined(
+            stubCamper([snapped]).next(at, solidAt).standIn,
+            "stand-in",
+          );
+          expect(pose.y).toBe(cy + Math.min(rise, maxLift));
+          expect(Math.floor(pose.x)).toBe(middle.x);
+          expect(Math.floor(pose.z)).toBe(middle.z);
+        },
+      ),
+    );
+  });
+
+  it("rises out of ground in the wall foot while parked, but not into the front end wall above it (ADR 0119)", () => {
+    const parkedMaxLift = defined(RULE.parkedMaxLift, "parked max lift");
+    fc.assert(
+      fc.property(
+        fc.integer({ min: -8, max: 8 }),
+        cell,
+        cell,
+        cell,
+        fc.boolean(),
+        fc.integer({ min: 0, max: 4 }),
+        (quarter, cx, cy, cz, ground, wallTop) => {
+          const snapped = quarter * 90;
           const hold = { x: cx + 0.5, y: cy, z: cz + 0.5 };
-          const parked = { ...hold, yaw: snapped };
-          const middle = localCellAt(parked, { x: 0, z: 4, layer: 0 });
-          // Solid ground fills the middle cell's column up to `rise` layers; the side
-          // cells hold only plants, which solidAt does not count.
-          const solidAt = (o: Vec3) => {
-            const at = {
-              x: Math.floor(hold.x + o.x),
-              y: Math.floor(hold.y + o.y),
-              z: Math.floor(hold.z + o.z),
-            };
-            return (
-              at.x === middle.x &&
-              at.z === middle.z &&
-              at.y >= cy &&
-              at.y < cy + rise
-            );
-          };
+          // The dock's wall blocks fill layers 1 up to wallTop above the foot.
+          const { middle, solidAt } = columnAt(hold, snapped, (layer) =>
+            layer === 0 ? ground : layer >= 1 && layer <= wallTop,
+          );
           const pose = defined(
             stubCamper([snapped], hold).next(hold, solidAt).standIn,
             "stand-in",
           );
-          expect(pose.y).toBe(cy + Math.min(rise, maxLift));
+          expect(pose.y).toBe(cy + Math.min(ground ? 1 : 0, parkedMaxLift));
           expect(Math.floor(pose.x)).toBe(middle.x);
           expect(Math.floor(pose.z)).toBe(middle.z);
         },
