@@ -7,13 +7,20 @@ import {
   serializeFleetState,
 } from "../../../../src/infrastructure/vehicle/persistence/fleetJson";
 
-describe("parseFleetState (ADR 0038)", () => {
+describe("parseFleetState (ADR 0038, ADR 0124)", () => {
   it("drops the legacy order and keeps its evictions (ADR 0066)", () => {
     const state = { order: ["a", "b"], evicted: ["c"] };
     expect(parseFleetState(JSON.stringify(state))).toEqual({
       order: [],
-      evicted: state.evicted,
+      evicted: [{ id: "c" }],
     });
+  });
+
+  it("keeps a version 2 order and its evictions by id only", () => {
+    const order = [{ id: "a", kind: "suv" }];
+    expect(
+      parseFleetState(JSON.stringify({ version: 2, order, evicted: ["c"] })),
+    ).toEqual({ order, evicted: [{ id: "c" }] });
   });
 
   it.each([
@@ -60,7 +67,7 @@ describe("parseFleetState (ADR 0038)", () => {
       ),
     );
   });
-  it("round-trips every valid state with optional owners through version 2", () => {
+  it("round-trips every valid state with optional owners through version 3", () => {
     const entry = fc
       .record({
         id: fc.string(),
@@ -76,11 +83,16 @@ describe("parseFleetState (ADR 0038)", () => {
       fc.property(
         fc.record({
           order: fc.array(entry),
-          evicted: fc.array(fc.string().map(asVehicleId)),
+          evicted: fc.array(
+            fc.oneof(
+              entry,
+              fc.string().map((id) => ({ id: asVehicleId(id) })),
+            ),
+          ),
         }),
         (state) => {
           const raw = serializeFleetState(state);
-          expect(JSON.parse(raw)).toEqual({ version: 2, ...state });
+          expect(JSON.parse(raw)).toEqual({ version: 3, ...state });
           expect(parseFleetState(raw)).toEqual(state);
         },
       ),
@@ -88,7 +100,9 @@ describe("parseFleetState (ADR 0038)", () => {
   });
 
   it.each([
-    [{ version: 3, order: [], evicted: [] }, /unsupported fleet version/],
+    [{ version: 4, order: [], evicted: [] }, /unsupported fleet version/],
+    [{ version: 3, order: [], evicted: {} }, /not a list of entries/],
+    [{ version: 3, order: [], evicted: [{ id: 1 }] }, /id is not a string/],
     [{ version: null, order: [], evicted: [] }, /unsupported fleet version/],
     [{ version: 2, order: {}, evicted: [] }, /order is not a list/],
     [{ version: 2, order: [], evicted: [1] }, /evicted is not a list of ids/],
