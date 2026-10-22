@@ -1,4 +1,4 @@
-// The low chair's pack files (ADR 0121); tests/packs/layout.test.ts covers their paths and ids.
+// The low chair's pack files (ADR 0122); tests/packs/layout.test.ts covers their paths and ids.
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
@@ -60,7 +60,7 @@ const langValue = (locale: string, key: string): string | undefined =>
     .find((line) => line.startsWith(`${key}=`))
     ?.slice(key.length + 1);
 
-describe("low chair entity (ADR 0121)", () => {
+describe("low chair entity (ADR 0122)", () => {
   const entity = readJson(`${BP}/entities/yasu_ride/low_chair.se.json`)[
     "minecraft:entity"
   ];
@@ -90,9 +90,10 @@ describe("low chair entity (ADR 0121)", () => {
       CHAIR_FAMILY,
       "inanimate",
     ]);
+    // It settles through short grass, carpet, or a slab's empty half onto what holds it (ADR 0122).
     expect(c["minecraft:physics"]).toEqual({
-      has_collision: false,
-      has_gravity: false,
+      has_collision: true,
+      has_gravity: true,
     });
     expect(c["minecraft:pushable"]).toEqual({
       is_pushable: false,
@@ -119,7 +120,7 @@ describe("low chair entity (ADR 0121)", () => {
   });
 
   it("puts the seat about as far below the sling top as the camper's cushions sit above theirs", () => {
-    // The camper's front cushion top is about 0.24 above its rideable seat (ADR 0121).
+    // The camper's front cushion top is about 0.24 above its rideable seat (ADR 0122).
     const sling = cubes().find(
       (c) => !c.rotation && c.uv.north?.uv[0] === 0 && c.uv.north?.uv[1] === 0,
     );
@@ -136,7 +137,7 @@ describe("low chair entity (ADR 0121)", () => {
   });
 });
 
-describe("low chair model (ADR 0009, 0121)", () => {
+describe("low chair model (ADR 0009, 0122)", () => {
   it("draws the geometry and texture the client entity names", () => {
     const client = readJson(`${RP}/entity/yasu_ride/low_chair.ce.json`)[
       "minecraft:client_entity"
@@ -179,7 +180,7 @@ describe("low chair model (ADR 0009, 0121)", () => {
   });
 });
 
-describe("low chair item (ADR 0121)", () => {
+describe("low chair item (ADR 0122)", () => {
   it("defines a stackable item with its icon", () => {
     const item = readJson(`${BP}/items/yasu_ride/low_chair_item.item.json`)[
       "minecraft:item"

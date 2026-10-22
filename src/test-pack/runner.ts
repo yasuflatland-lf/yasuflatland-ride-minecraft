@@ -10,7 +10,10 @@ import {
   shardsOf,
   TEST_EVENT,
 } from "./protocol";
-import { lowChairSeatAndTakeBack } from "./scenarios/camp";
+import {
+  lowChairSeatAndTakeBack,
+  lowChairSettlesThroughGrass,
+} from "./scenarios/camp";
 import {
   camperAccel,
   camperBumper,
@@ -133,6 +136,11 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
     ["suv_soul_sand", 78, () => suvSoulSand(a)],
     ["camping_gear_blocks", 0, () => campingGearBlocks(a)],
     ["low_chair_seat_and_take_back", 6, () => lowChairSeatAndTakeBack(a)],
+    [
+      "low_chair_settles_through_grass",
+      20,
+      () => lowChairSettlesThroughGrass(a),
+    ],
   ];
   const shards = shardsOf(
     allTests.map(([, ticks]) => ticks),

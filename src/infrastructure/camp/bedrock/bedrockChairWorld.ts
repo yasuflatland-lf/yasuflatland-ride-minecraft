@@ -1,4 +1,4 @@
-// Implements ChairWorld with @minecraft/server (ADR 0012, 0121).
+// Implements ChairWorld with @minecraft/server (ADR 0012, 0122).
 import { ItemStack, type Player, world } from "@minecraft/server";
 import type { ChairWorld } from "../../../application/camp/ports/chair";
 import type { ChairId } from "../../../domain/camp/chair";
@@ -9,8 +9,10 @@ import { consumeHeld, isCreative } from "../../shared/players";
 import { HITS_LEFT_HINT, LOW_CHAIR_ITEM, LOW_CHAIR_TYPE } from "../identifiers";
 
 const PLAYER_TYPE = "minecraft:player";
-// From a cell's middle, a chair standing in it is within half a block and one
-// in a neighbor cell is a block away.
+// A chair spawns at the bottom of its cell and may settle up to a block lower,
+// through short grass or a slab's empty half (ADR 0122). From halfway down that
+// fall, a chair of the cell is within half a block and one of a neighbor cell, which
+// spawned at that cell's middle, is at least a block away.
 const SAME_CELL_DISTANCE = 0.75;
 
 function playerOf(playerId: PlayerId): Player | undefined {
@@ -59,7 +61,7 @@ export class BedrockChairWorld implements ChairWorld {
       return (
         world.getDimension(dimensionId).getEntities({
           type: LOW_CHAIR_TYPE,
-          location: { x: cell.x + 0.5, y: cell.y, z: cell.z + 0.5 },
+          location: { x: cell.x + 0.5, y: cell.y - 0.5, z: cell.z + 0.5 },
           maxDistance: SAME_CELL_DISTANCE,
         }).length > 0
       );

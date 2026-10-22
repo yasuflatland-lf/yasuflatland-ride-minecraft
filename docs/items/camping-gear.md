@@ -30,9 +30,9 @@ Each item stands in the middle of one slot on the camper's furniture, or at one 
 
 ![Low Chair](../images/items/camping-gear/low_chair.png)
 
-A low folding camp chair with a brown canvas sling seat and a reclined canvas back on a silver aluminium frame, with wooden armrests and X braces under the seat and across the back. It is not decor: it stands on the ground outside the vehicles (ADR 0121). It is about 12 × 16 pixels, and its seat is 6 pixels above the ground.
+A low folding camp chair with a brown canvas sling seat and a reclined canvas back on a silver aluminium frame, with wooden armrests and X braces under the seat and across the back. It is not decor: it stands on the ground outside the vehicles (ADR 0122). It is about 12 × 16 pixels, and its seat is 6 pixels above the ground.
 
-- **Place it:** use the Low Chair item on the top of a block outside the vehicles. The chair faces you, turned to the nearest eighth of a turn. It needs two free blocks above the block, and it does not go on a camper's room blocks, on a cell a vehicle stands on, or where another chair already stands. Outside Creative it uses up the item.
+- **Place it:** use the Low Chair item on the top of a block outside the vehicles. The chair faces you, turned to the nearest eighth of a turn. Clicked on short grass, a flower, or a carpet, it settles onto the ground under it. It needs two free blocks above the block, and it does not go on a camper's room blocks, within a vehicle's reach, or where another chair already stands. Outside Creative it uses up the item.
 - **Sit on it:** long-press it on touch screens, or right-click it with a mouse; the button reads **Sit**. Sneak or jump to get up.
 - **Take it back:** hit it three times in quick succession while nobody sits on it. It folds up and drops its item. Each hit before the third tells you how many more it takes.
 - **Get one:** in Creative, it is in the Camping Gear group at the end of the Items tab, after the gear. In Survival, craft it from two leather, two sticks, and two iron ingots (leather top-left and middle, sticks on either side of the middle, iron ingots in the bottom corners).

@@ -1,3 +1,4 @@
+import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { asChairId } from "../../../src/domain/camp/chair";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
@@ -67,7 +68,7 @@ function fixture() {
   };
 }
 
-describe("BedrockChairWorld (ADR 0121)", () => {
+describe("BedrockChairWorld (ADR 0122)", () => {
   beforeEach(() => vi.resetAllMocks());
 
   it("counts only this add-on's blocks as its own", () => {
@@ -91,15 +92,58 @@ describe("BedrockChairWorld (ADR 0121)", () => {
     expect(isVehicleSpace).toHaveBeenCalledWith(DIM, { x: 1, y: 2, z: 3 });
   });
 
-  it("looks for a chair around the middle of the cell", () => {
+  // The engine's distance query, over one chair at `at`.
+  function oneChairAt(at: { x: number; y: number; z: number }) {
     const { dimension, chair, chairs } = fixture();
-    dimension.getEntities.mockReturnValue([chair]);
-    expect(chairs.hasChairAt(DIM, { x: 1, y: 64, z: 2 })).toBe(true);
-    expect(dimension.getEntities).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: LOW_CHAIR_TYPE,
-        location: { x: 1.5, y: 64, z: 2.5 },
-      }),
+    chair.location = at;
+    dimension.getEntities.mockImplementation(((query: {
+      type: string;
+      location: { x: number; y: number; z: number };
+      maxDistance: number;
+    }) =>
+      query.type === LOW_CHAIR_TYPE &&
+      Math.hypot(
+        at.x - query.location.x,
+        at.y - query.location.y,
+        at.z - query.location.z,
+      ) <= query.maxDistance
+        ? [chair]
+        : []) as never);
+    return chairs;
+  }
+
+  it("finds a chair of the cell wherever it settled, up to a block down", () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: -1000, max: 1000 }),
+        fc.integer({ min: -60, max: 300 }),
+        fc.integer({ min: -1000, max: 1000 }),
+        fc.double({ min: 0, max: 1, noNaN: true }),
+        (x, y, z, fall) => {
+          const chairs = oneChairAt({ x: x + 0.5, y: y - fall, z: z + 0.5 });
+          expect(chairs.hasChairAt(DIM, { x, y, z })).toBe(true);
+        },
+      ),
+    );
+  });
+
+  it("ignores a chair of a cell beside it wherever that chair settled", () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: -1000, max: 1000 }),
+        fc.integer({ min: -60, max: 300 }),
+        fc.integer({ min: -1000, max: 1000 }),
+        fc.double({ min: 0, max: 1, noNaN: true }),
+        fc.constantFrom([1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1]),
+        (x, y, z, fall, [dx, dz]) => {
+          const chairs = oneChairAt({
+            x: x + dx + 0.5,
+            y: y - fall,
+            z: z + dz + 0.5,
+          });
+          expect(chairs.hasChairAt(DIM, { x, y, z })).toBe(false);
+        },
+      ),
     );
   });
 
