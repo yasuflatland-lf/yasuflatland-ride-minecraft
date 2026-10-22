@@ -134,7 +134,7 @@ STEPS_8 = tuple(i * 45.0 for i in range(4))
 
 def disc(axis, cx, cy, cz, r, depth, color, steps=STEPS_32):
     """A disc of 2 * len(steps) sides (32 with the default steps) from bars turned about its
-    normal: 'x' (wheels), 'y' (stove burners), or 'z' (lamps)."""
+    normal: 'x' (wheels), 'y' (the stove burner), or 'z' (lamps)."""
     n = 2 * len(steps)
     long, short = 2 * r, 2 * r * math.tan(math.pi / n)
     out = []
@@ -833,8 +833,8 @@ body.append(box(FURN_X[0], 48, SHELF_Z[0], FURN_X[1], 49, SHELF_Z[1], "wood"))  
 for y in (28, 38):  # fiddle rails along the aisle edge
     body.append(box(FURN_X[0], y, -23, FURN_X[0] + 0.4, y + 0.4, -9, "chrome"))
 # Counter behind the door: the sink in cell z = -1, the stove in cell z = -2 (ADR 0100), tops
-# at 30. Each cell's middle stays flat at 30 for its decor slot, so the sink and every burner
-# part keep off it.
+# at 30. The sink cell's middle stays flat at 30 for its decor slot, so the sink keeps off it;
+# the stove's slot stands on its one burner instead (ADR 0112).
 COUNTER_Z = (8.5, 39.5)
 STOVE_Z = (24, COUNTER_Z[1])
 body.append(box(FURN_X[0], FLOOR, COUNTER_Z[0], 22.8, 29, COUNTER_Z[1], "wood"))
@@ -847,10 +847,9 @@ body.append(box(20.5, 30, 19.5, 21.5, 34, 20.5, "chrome"))  # tap
 body.append(box(17.5, 33, 19.5, 21.5, 34, 20.5, "chrome"))  # spout
 
 
-# Every burner part stays outside the 7 px square around the cooktop middle (16, 32), the
-# footprint of the widest decor item (ADR 0100). Decor now stands on a burner grate instead
-# (ADR 0107), but the middle stays clear.
-BURNER_SCALE = 0.6  # burner reach 2.85 * 0.6 = 1.71 px, so it fits between that square and the flange
+# One burner in the middle of the cooktop (16, 32), the stove slot's point, with the size the
+# four burners of ADR 0107 had, so the decor item stands on its grate (ADR 0112).
+BURNER_SCALE = 0.6  # burner reach 2.85 * 0.6 = 1.71 px
 GRATE_R = 2.7 * BURNER_SCALE  # half the burner grate's outer width
 
 
@@ -891,10 +890,7 @@ for k in range(12):
     z = 24.7 + 0.55 * k
     body.append(box(21.8, 30.35, z, 22.3, 30.38, z + 0.25, "black"))
 body.append(box(22.4, 30, STOVE_Z[0], 22.8, 31, STOVE_Z[1], "ivory"))  # ledge at the wall
-# Centered on the slot point in x; in z each pair sits between that square and the trim or flange.
-for i, bx in enumerate((16 - 3.8, 16 + 3.8)):
-    for j, bz in enumerate((26.6, 37.35)):
-        burner(bx, bz, 30 * ((i + j) % 2))
+burner(16, 32, 0)
 # Control panel leaning back 20 degrees with five knobs toward the far end; the sink-side third
 # stays blank.
 # Every cube stays at x 8 or more before and after the lean, out of the aisle.

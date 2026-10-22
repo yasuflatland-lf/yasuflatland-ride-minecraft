@@ -56,10 +56,9 @@ export interface DecorSpot {
 
 // Indexes 0 to 4 are a decor block's yasu_ride:spot state; tools/gen_camping_gear.py lists the same
 // offsets and tests/packs/campingGear.test.ts ties its translations to them. 0 is the cell
-// middle; 1 to 4 are the stove burners, whose centers in tools/gen_camper.py are 3.8 px
-// either side of the cell middle across the aisle and 5.4 px toward the sink or 5.35 px
-// toward the far flange. The wall-side spots sit 0.5 px in from their burner centers so the
-// widest item (7 px) clears the wall at 22.8 px; they stay on the 3.2 px grate (ADR 0107).
+// middle. 1 to 4 were the four stove burners of ADR 0107; no slot uses them since the stove
+// got one burner in its middle (ADR 0112). They stay so every index keeps its meaning and a
+// decor block an older build laid on a burner still draws there until the next lay clears it.
 // 5 to 8 are the ends of a shelf board and of the table, where a pair block draws both items
 // at once, so they are not yasu_ride:spot values; tools/gen_camping_gear.py places the items
 // in the pair geometry at the same offsets (ADR 0108). Each 14 px board runs 7 px either side
@@ -200,18 +199,13 @@ export const CAMPER_FURNITURE: readonly Furniture[] = [
       },
     ],
   },
-  // The sink is in front of the stove, as on the real range (ADR 0100). One slot per burner,
-  // all in one cell, so the stove holds one item; "stove" keeps its id for saved decor. Height
-  // 15 stands the item on the burner grate, whose prongs reach 14.95 px (ADR 0107).
+  // The sink is in front of the stove, as on the real range (ADR 0100). The stove's one burner
+  // is in the middle of its cell; height 15 stands the item on the burner grate, whose prongs
+  // reach 14.95 px (ADR 0107, 0112).
   {
     kind: "stove",
     cells: [STOVE_CELL],
-    slots: [
-      { id: "stove", cell: STOVE_CELL, height: 15, spot: 1 },
-      { id: "stove_rear", cell: STOVE_CELL, height: 15, spot: 2 },
-      { id: "stove_wall", cell: STOVE_CELL, height: 15, spot: 3 },
-      { id: "stove_wall_rear", cell: STOVE_CELL, height: 15, spot: 4 },
-    ],
+    slots: [{ id: "stove", cell: STOVE_CELL, height: 15 }],
   },
   {
     kind: "counter",

@@ -793,59 +793,72 @@ it("places the item in the pressed slot ahead of a nearer free slot (ADR 0097)",
   ).toBe("shelf_high");
 });
 
-it("puts the stove item on the burner nearest the press and takes no second item while one burner holds one (ADR 0107)", () => {
+it("puts the stove item on its one burner and takes no second item while it holds one (ADR 0107, 0112)", () => {
+  fc.assert(
+    fc.property(fc.constantFrom(0, 90, 180, -90), (yaw) => {
+      const f = fixture(undefined, yaw);
+      f.park();
+      f.step();
+      const burner = stove;
+      const cell = decorSlotCell(f.pose, burner);
+      const point = slotPoint(f.pose, burner);
+      expect(f.drive.decorSlotFor("saucepan", point, cell, false)).toBe(
+        "stove",
+      );
+      expect(f.drive.placeDecor("stove", "saucepan")).toBe(true);
+      expect(f.drive.placeDecor("stove", "enamel_kettle")).toBe(false);
+      expect(
+        f.drive.decorSlotFor("enamel_kettle", point, cell, true),
+      ).toBeUndefined();
+      expect(
+        decorSlot(
+          defined(
+            f.drive.decorSlotFor("enamel_kettle", point, cell, false),
+            "fallback slot",
+          ),
+        )?.cell,
+      ).not.toEqual(burner.cell);
+      const laid = defined(f.step().dock, "laid dock").cells;
+      expect(
+        laid.filter((c) => c.x === cell.x && c.y === cell.y && c.z === cell.z),
+      ).toEqual([
+        {
+          ...cell,
+          block: {
+            type: "decor",
+            item: "saucepan",
+            face: decorFace(f.pose.yaw),
+            height: 15,
+            spot: 0,
+          },
+        },
+      ]);
+      expect(f.drive.removeDecor(cell)).toBe("saucepan");
+      expect(f.drive.decor()).toEqual([]);
+    }),
+  );
+});
+
+it("replaces the stove's item when a test sets it again, and refuses the removed burner slots (ADR 0107, 0112)", () => {
+  const f = fixture();
+  expect(f.drive.setDecor("stove", "saucepan")).toBe(true);
+  for (const old of ["stove_rear", "stove_wall", "stove_wall_rear"])
+    expect(f.drive.setDecor(old, "enamel_kettle")).toBe(false);
+  expect(f.drive.setDecor("stove", "enamel_kettle")).toBe(true);
+  expect(f.drive.decor()).toEqual([{ slot: "stove", item: "enamel_kettle" }]);
+});
+
+it("loads decor saved on a removed stove burner slot onto the stove (ADR 0112)", () => {
   fc.assert(
     fc.property(
-      fc.constantFrom(0, 90, 180, -90),
       fc.constantFrom("stove", "stove_rear", "stove_wall", "stove_wall_rear"),
-      fc.constantFrom("stove", "stove_rear", "stove_wall", "stove_wall_rear"),
-      (yaw, first, second) => {
-        const f = fixture(undefined, yaw);
-        f.park();
-        f.step();
-        const burner = slotNamed(first);
-        const cell = decorSlotCell(f.pose, burner);
-        expect(
-          f.drive.decorSlotFor(
-            "saucepan",
-            slotPoint(f.pose, burner),
-            cell,
-            false,
-          ),
-        ).toBe(first);
-        expect(f.drive.placeDecor(first, "saucepan")).toBe(true);
-        const point = slotPoint(f.pose, slotNamed(second));
-        expect(f.drive.placeDecor(second, "enamel_kettle")).toBe(false);
-        expect(
-          f.drive.decorSlotFor("enamel_kettle", point, cell, true),
-        ).toBeUndefined();
-        expect(
-          decorSlot(
-            defined(
-              f.drive.decorSlotFor("enamel_kettle", point, cell, false),
-              "fallback slot",
-            ),
-          )?.cell,
-        ).not.toEqual(burner.cell);
-        const laid = defined(f.step().dock, "laid dock").cells;
-        expect(
-          laid.filter(
-            (c) => c.x === cell.x && c.y === cell.y && c.z === cell.z,
-          ),
-        ).toEqual([
-          {
-            ...cell,
-            block: {
-              type: "decor",
-              item: "saucepan",
-              face: decorFace(f.pose.yaw),
-              height: 15,
-              spot: burner.spot,
-            },
-          },
+      fc.constantFrom(...CAMPING_GEAR_IDS),
+      (old, item) => {
+        fc.pre(slotsFor(item).some((s) => s.id === "stove"));
+        const saved = JSON.stringify([{ slot: old, item }]);
+        expect(new CamperDrive(0, { dockDecor: saved }).decor()).toEqual([
+          { slot: "stove", item },
         ]);
-        expect(f.drive.removeDecor(cell)).toBe("saucepan");
-        expect(f.drive.decor()).toEqual([]);
       },
     ),
   );
@@ -944,19 +957,9 @@ it("takes back the pair end the line of sight is aimed at, though the press land
   expect(f.drive.decor()).toEqual([{ slot: near.id, item: "mug_pair" }]);
 });
 
-it("replaces the item of a cell when a test sets another slot of it (ADR 0107)", () => {
-  const f = fixture();
-  expect(f.drive.setDecor("stove", "saucepan")).toBe(true);
-  expect(f.drive.setDecor("stove_wall_rear", "enamel_kettle")).toBe(true);
-  expect(f.drive.decor()).toEqual([
-    { slot: "stove_wall_rear", item: "enamel_kettle" },
-  ]);
-  expect(f.drive.setDecor("stove", undefined)).toBe(false);
-});
-
-it("restores saved decor in the old stove slot on its burner and moves a second entry of the stove cell to a free slot (ADR 0107)", () => {
+it("moves a second saved entry of the stove, under any of its old slot ids, to a free slot (ADR 0107, 0112)", () => {
   const saved = JSON.stringify([
-    { slot: "stove", item: "percolator" },
+    { slot: "stove_wall", item: "percolator" },
     { slot: "stove_rear", item: "saucepan" },
   ]);
   expect(new CamperDrive(0, { dockDecor: saved }).decor()).toEqual([
@@ -976,25 +979,35 @@ it("refuses an exact press on a taken slot instead of offering another one (ADR 
   expect(f.drive.decorSlotFor("toaster", point, cell, false)).toBeDefined();
 });
 
-it("picks the burner along the line of sight from the eye when one is given (ADR 0110)", () => {
+it("picks the free slot along the line of sight from the eye when one is given (ADR 0110)", () => {
   const f = fixture();
   f.park();
   f.step();
-  const wall = slotNamed("stove_wall");
-  const aim = slotPoint(f.pose, wall);
-  const eye = { x: aim.x + 0.6, y: aim.y + 1.2, z: aim.z + 0.4 };
-  // Twice as far from the eye as the burner: below the stove top, as on a side face.
+  const counter = slotNamed("counter");
+  const aim = slotPoint(f.pose, counter);
+  const beside = slotPoint(f.pose, stove);
+  // The eye leans over the counter from beyond it, so the press lands under the stove.
+  const eye = {
+    x: 2 * aim.x - beside.x,
+    y: aim.y + 1.2,
+    z: 2 * aim.z - beside.z,
+  };
+  // Twice as far from the eye as the counter top, in a cell that holds no slot.
   const point = {
     x: 2 * aim.x - eye.x,
     y: 2 * aim.y - eye.y,
     z: 2 * aim.z - eye.z,
   };
-  const cell = decorSlotCell(f.pose, wall);
+  const cell = {
+    x: Math.floor(point.x),
+    y: Math.floor(point.y),
+    z: Math.floor(point.z),
+  };
   expect(f.drive.decorSlotFor("saucepan", point, cell, false)).not.toBe(
-    "stove_wall",
+    "counter",
   );
   expect(f.drive.decorSlotFor("saucepan", point, cell, false, eye)).toBe(
-    "stove_wall",
+    "counter",
   );
 });
 

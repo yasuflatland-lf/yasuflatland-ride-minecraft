@@ -1008,13 +1008,13 @@ describe("camper furniture model (ADR 0093)", () => {
       return out;
     });
 
-  const STOVE_IDS = ["stove", "stove_rear", "stove_wall", "stove_wall_rear"];
-  // The slots that share their furniture cell with another item (ADR 0107, 0108).
+  // The slots that share their furniture cell with another item (ADR 0108), and the stove's.
   const SHARED_KINDS = ["stove", "shelf", "table"];
 
-  it("puts every standing decor slot but the burners on the model's top surface at its spot and runs the ceiling hook from the ceiling plate to the top of its cell (ADR 0093, 0099, 0102, 0108)", () => {
-    const slots = CAMPER_FURNITURE.flatMap((f) => f.slots).filter(
-      (slot) => !STOVE_IDS.includes(slot.id),
+  it("puts every standing decor slot but the stove's on the model's top surface at its spot and runs the ceiling hook from the ceiling plate to the top of its cell (ADR 0093, 0099, 0102, 0108)", () => {
+    // The stove's slot stands on its burner's grate, checked in the next test.
+    const slots = CAMPER_FURNITURE.filter((f) => f.kind !== "stove").flatMap(
+      (f) => f.slots,
     );
     expect(slots).toHaveLength(12);
     const unrotatedCubes = bones
@@ -1111,12 +1111,11 @@ describe("camper furniture model (ADR 0093)", () => {
     expect(covering.some(([lo, hi]) => lo < 54 && hi > 32)).toBe(false);
   });
 
-  it("stands each stove burner slot on top of its burner's grate (ADR 0107)", () => {
+  it("stands the stove slot on top of the grate of its one burner in the cell middle (ADR 0107, 0112)", () => {
     const points = bodyPoints();
-    const burners = CAMPER_FURNITURE.flatMap((f) => f.slots).filter((slot) =>
-      STOVE_IDS.includes(slot.id),
-    );
-    expect(burners.map((s) => s.id)).toEqual(STOVE_IDS);
+    const burners =
+      CAMPER_FURNITURE.find((f) => f.kind === "stove")?.slots ?? [];
+    expect(burners.map((s) => [s.id, s.spot ?? 0])).toEqual([["stove", 0]]);
     for (const slot of burners) {
       const { x, z } = slotXZ(slot);
       const bottom = 16 * slot.cell.layer;
@@ -1167,12 +1166,13 @@ describe("camper furniture model (ADR 0093)", () => {
       return { id, halfX: reach(0), halfZ: reach(2), height: reach(1) };
     });
     expect(items.length).toBeGreaterThan(0);
-    // Only the furniture that holds several items is held to this so far: the sink rim rises
-    // 0.15 px into the counter's footprint and the dashboard's slanted cubes into the dashboard's.
+    // Only the stove and the furniture that holds two items are held to this so far: the sink
+    // rim rises 0.15 px into the counter's footprint and the dashboard's slanted cubes into the
+    // dashboard's.
     const standing = CAMPER_FURNITURE.filter((f) =>
       SHARED_KINDS.includes(f.kind),
     ).flatMap((f) => f.slots);
-    expect(standing).toHaveLength(10);
+    expect(standing).toHaveLength(7);
     // A shelf board's or the table's two items stand apart for any two items (ADR 0108).
     for (const [a, b] of [
       ["shelf_low", "shelf_low_front"],

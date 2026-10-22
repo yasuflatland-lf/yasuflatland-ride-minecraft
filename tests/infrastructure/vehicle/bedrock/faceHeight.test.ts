@@ -2,10 +2,7 @@ import { readFileSync } from "node:fs";
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { DECOR_SLOTS } from "../../../../src/domain/vehicle/kinds/camper/decor";
-import {
-  slotForPress,
-  slotPoint,
-} from "../../../../src/domain/vehicle/kinds/camper/decorPlacing";
+import { slotForPress } from "../../../../src/domain/vehicle/kinds/camper/decorPlacing";
 import {
   decorSlotCell,
   parkPose,
@@ -180,7 +177,10 @@ const loggedEye = {
   y: -57.47998809814453,
   z: -520.3090209960938,
 };
-const STOVE = DECOR_SLOTS.filter((s) => s.id.startsWith("stove"));
+const stove = defined(
+  DECOR_SLOTS.find((s) => s.id === "stove"),
+  "stove",
+);
 const pressAt = (
   cell: { x: number; y: number; z: number },
   face: string,
@@ -192,23 +192,24 @@ const pressAt = (
   z: cell.z + at.z,
 });
 
-it("puts a saucepan on the burner under the logged Up-face press on the stove (#434, ADR 0111)", () => {
-  for (const s of STOVE) expect(decorSlotCell(pose, s)).toEqual(stoveCell);
+it("puts the logged Up-face press on the stove top and a saucepan on its burner, with or without the correction (#434, ADR 0111, 0112)", () => {
+  expect(decorSlotCell(pose, stove)).toEqual(stoveCell);
   const stoveTop = pressedShape(CAMPER_FURNITURE_BLOCK, 15);
   const face = { z: 0.1502685546875, y: 0.0625, x: 0.75244140625 };
   const point = pressAt(stoveCell, "Up", face, stoveTop);
   expect(point.y).toBe(-59 + 15 / 16);
   expect(
     slotForPress(pose, "saucepan", [], stoveCell, point, false, loggedEye)?.id,
-  ).toBe("stove_wall");
-  // The reported y alone put the point 0.875 below the top, and the aisle burner won.
+  ).toBe("stove");
+  // The reported y alone puts the point 0.875 below the top; with four burners that picked
+  // the wrong one (ADR 0111), and with one there is nothing else to pick.
   const raw = { x: point.x, y: -59 + face.y, z: point.z };
   expect(
     slotForPress(pose, "saucepan", [], stoveCell, raw, false, loggedEye)?.id,
   ).toBe("stove");
 });
 
-it("keeps the logged west-face press on the stove on the aisle-side burner (#434, ADR 0111)", () => {
+it("puts the logged west-face press on the stove on its burner (#434, ADR 0111, 0112)", () => {
   const face = { z: 0.3963623046875, y: 0.20313644409179688, x: 0 };
   const point = pressAt(
     stoveCell,
@@ -244,7 +245,7 @@ it("puts the logged Up-face presses on the table top and the floor top (#434, AD
   expect(onFloor.y).toBe(-59);
 });
 
-it("puts a saucepan on the burner nearest any Up-face press on the stove, from any eye above it (ADR 0110, 0111)", () => {
+it("puts a saucepan on the stove's burner for any Up-face press on it, from any eye above it (ADR 0110, 0111, 0112)", () => {
   const top = pressedShape(CAMPER_FURNITURE_BLOCK, 15);
   fc.assert(
     fc.property(
@@ -259,22 +260,9 @@ it("puts a saucepan on the burner nearest any Up-face press on the stove, from a
       (x, y, z, [ex, ey, ez]) => {
         const point = pressAt(stoveCell, "Up", { x, y, z }, top);
         const eye = { x: point.x + ex, y: point.y + ey, z: point.z + ez };
-        const gap = (id: string) => {
-          const p = slotPoint(
-            pose,
-            defined(
-              STOVE.find((s) => s.id === id),
-              id,
-            ),
-          );
-          return (p.x - point.x) ** 2 + (p.z - point.z) ** 2;
-        };
-        const picked = defined(
+        expect(
           slotForPress(pose, "saucepan", [], stoveCell, point, false, eye),
-          "picked slot",
-        );
-        for (const s of STOVE)
-          expect(gap(picked.id)).toBeLessThanOrEqual(gap(s.id));
+        ).toBe(stove);
       },
     ),
   );

@@ -15,6 +15,7 @@ import {
   DECOR_CELLS,
   DECOR_SLOTS,
   decorSlot,
+  savedSlotId,
   sharingSlots,
 } from "./decor";
 import { nearest, slotForPress, slotsAt, slotsFor } from "./decorPlacing";
@@ -118,8 +119,12 @@ export class CamperDrive extends TransformingDrive {
         : this.doorStep * 2 >= DOOR_STEPS;
     // Decor survives driving: it is restored whether or not the camper was docked (ADR 0093).
     // An entry whose slot no longer exists, or whose cell an earlier entry already holds,
-    // moves to the first free slot that takes its item, or is stowed (ADR 0103, 0105).
-    const saved = parseDecor(restored[DOCK_RESTORED.decor]);
+    // moves to the first free slot that takes its item, or is stowed (ADR 0103, 0105). Decor
+    // saved in a renamed slot loads as if saved in its new one (ADR 0112).
+    const saved = parseDecor(restored[DOCK_RESTORED.decor]).map((entry) => ({
+      ...entry,
+      slot: savedSlotId(entry.slot),
+    }));
     const homeless: DecorPlacement[] = [];
     for (const entry of saved) {
       const slot = decorSlot(entry.slot);
