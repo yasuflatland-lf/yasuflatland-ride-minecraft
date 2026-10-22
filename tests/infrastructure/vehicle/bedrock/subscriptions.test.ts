@@ -15,7 +15,7 @@ import {
   world,
 } from "@minecraft/server";
 import fc from "fast-check";
-import { beforeEach, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PlaceVehicle } from "../../../../src/application/vehicle/placeVehicle";
 import type { PlacementWorld } from "../../../../src/application/vehicle/ports/placement";
 import { asVehicleId, type VehicleId } from "../../../../src/domain/shared/ids";
@@ -42,6 +42,9 @@ import {
   OWNER_PROPERTY,
   PAINT_BY_DYE,
   pairDecorBlockId,
+  STAND_IN_OF_PROPERTY,
+  STAND_IN_PROPERTY,
+  standInType,
   TEST_DECOR_EVENT,
   TEST_INPUT_EVENT,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
@@ -60,6 +63,7 @@ const game = vi.hoisted(() => ({
   run: vi.fn<(callback: () => void) => void>(),
   startup: vi.fn<(handler: (ev: StartupEvent) => void) => void>(),
   currentTick: 10,
+  getEntity: vi.fn<(id: string) => unknown>(),
 }));
 vi.mock("@minecraft/server", () => {
   const signal = () => ({ subscribe: vi.fn() });
@@ -85,6 +89,7 @@ vi.mock("@minecraft/server", () => {
       afterEvents: { scriptEventReceive: signal() },
     },
     world: {
+      getEntity: game.getEntity,
       beforeEvents: {
         playerInteractWithBlock: { subscribe: game.before },
         playerInteractWithEntity: signal(),
@@ -535,6 +540,10 @@ function lightSwitchFixture(
     canSwitch: vi.fn(() => true),
   };
   const usesBefore = game.use.mock.calls.length;
+  const entityPresses = vi.mocked(
+    world.beforeEvents.playerInteractWithEntity.subscribe,
+  );
+  const entityPressesBefore = entityPresses.mock.calls.length;
   registerSubscriptions(
     { headlights, ceilingLights } as unknown as Parameters<
       typeof registerSubscriptions
@@ -546,12 +555,10 @@ function lightSwitchFixture(
   );
   // Decor, gifts, the switch, then placement subscribe to block presses.
   const onBlock = defined(game.before.mock.calls.at(-2)?.[0], "block press");
-  const onEntity = defined(
-    vi
-      .mocked(world.beforeEvents.playerInteractWithEntity.subscribe)
-      .mock.calls.at(-1)?.[0],
-    "entity press",
-  );
+  // The stand-ins, then the switch subscribe to entity presses (ADR 0115, 0116).
+  const onEntity = entityPresses.mock.calls
+    .slice(entityPressesBefore)
+    .map(([h]) => h);
   const uses = game.use.mock.calls.slice(usesBefore).map(([h]) => h);
   game.run.mockClear();
   const player = {
@@ -579,7 +586,8 @@ function lightSwitchFixture(
     },
     pressEntity: (target: { id: string; typeId: string }) => {
       const ev = { player, target, itemStack, cancel: false };
-      onEntity(ev as unknown as PlayerInteractWithEntityBeforeEvent);
+      for (const h of onEntity)
+        h(ev as unknown as PlayerInteractWithEntityBeforeEvent);
       return ev.cancel;
     },
     nextTick: () => {
@@ -1577,4 +1585,207 @@ it("opens a gift box used on a block on the next tick and cancels the interactio
     expect(game.run).not.toHaveBeenCalled();
     expect(gift.execute).not.toHaveBeenCalled();
   }
+});
+
+describe("camper bumper stand-in (ADR 0116)", () => {
+  const BUMPER = standInType("camper_bumper", "z");
+
+  function vehicleAndStandIn(owner = "camper") {
+    const rideable = { addRider: vi.fn(() => true) };
+    const camper = {
+      id: "camper",
+      typeId: ENTITY_TYPE.camper,
+      isValid: true,
+      getComponent: (name: string) =>
+        name === "minecraft:rideable" ? rideable : undefined,
+    };
+    const standIn = {
+      id: "bumper",
+      typeId: BUMPER,
+      isValid: true,
+      getDynamicProperty: (key: string) =>
+        key === STAND_IN_OF_PROPERTY ? owner : undefined,
+    };
+    game.getEntity.mockImplementation((id: string) =>
+      id === camper.id ? camper : undefined,
+    );
+    return { camper, standIn, rideable };
+  }
+
+  function subscribe(useCases: object) {
+    registerSubscriptions(
+      useCases as Parameters<typeof registerSubscriptions>[0],
+      new TestInputStore(),
+      () => undefined,
+      () => undefined,
+      () => undefined,
+    );
+  }
+
+  it("passes a hit or a dye on the stand-in to its camper, and drops one whose camper is gone", () => {
+    const hit = { execute: vi.fn() };
+    const paint = { execute: vi.fn() };
+    subscribe({ hit, paint });
+    const onHit = defined(
+      vi
+        .mocked(world.afterEvents.entityHitEntity.subscribe)
+        .mock.calls.at(-1)?.[0],
+      "entityHitEntity handler",
+    );
+    let held: string | undefined;
+    const player = Object.assign(Object.create(Player.prototype) as object, {
+      id: "player",
+      selectedSlotIndex: 0,
+      location: { x: 0.5, y: 64, z: 0.5 },
+      dimension: { getBlock: () => ({ typeId: "minecraft:stone" }) },
+      getComponent: () => ({
+        container: { getItem: () => (held ? { typeId: held } : undefined) },
+      }),
+    });
+    const { standIn } = vehicleAndStandIn();
+    const send = (hitEntity: unknown, damagingEntity: unknown = player) =>
+      onHit({ damagingEntity, hitEntity } as EntityHitEntityAfterEvent);
+    send(standIn, { id: "zombie" });
+    expect(hit.execute).not.toHaveBeenCalled();
+    send(standIn);
+    expect(hit.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId: "player",
+      vehicleId: "camper",
+      fromDeck: false,
+    });
+    const [dye, dyePaint] = defined(
+      Object.entries(PAINT_BY_DYE)[0],
+      "a dye paint",
+    );
+    held = dye;
+    send(standIn);
+    expect(paint.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId: "player",
+      vehicleId: "camper",
+      paint: dyePaint,
+    });
+    send(vehicleAndStandIn("gone").standIn);
+    expect(hit.execute).toHaveBeenCalledOnce();
+    expect(paint.execute).toHaveBeenCalledOnce();
+  });
+
+  it("never lets a player ride the stand-in, and boards them into its camper instead", () => {
+    fc.assert(
+      fc.property(
+        fc.boolean(),
+        fc.constantFrom("none", "camper", "other"),
+        fc.constantFrom(undefined, HEADLIGHT_SWITCH_TYPE, "minecraft:stick"),
+        (sneaking, riding, item) => {
+          const headlights = { execute: vi.fn(() => true) };
+          const ceilingLights = {
+            execute: vi.fn(() => true),
+            canSwitch: vi.fn(() => true),
+          };
+          subscribe({ headlights, ceilingLights });
+          // Only the callbacks the interaction schedules run below.
+          game.run.mockClear();
+          const handlers = vi
+            .mocked(world.beforeEvents.playerInteractWithEntity.subscribe)
+            .mock.calls.slice(-2)
+            .map(([handler]) => handler);
+          const { camper, standIn, rideable } = vehicleAndStandIn();
+          const player = {
+            id: "player",
+            isValid: true,
+            isSneaking: sneaking,
+            dimension: { id: "overworld" },
+            location: { x: 0.5, y: 64, z: 0.5 },
+            getComponent: (name: string) =>
+              name === "minecraft:riding" && riding !== "none"
+                ? {
+                    entityRidingOn:
+                      riding === "camper" ? camper : { id: "horse" },
+                  }
+                : undefined,
+          };
+          const ev = {
+            player,
+            target: standIn,
+            itemStack: item ? { typeId: item } : undefined,
+            cancel: false,
+          };
+          for (const handler of handlers)
+            handler(ev as unknown as PlayerInteractWithEntityBeforeEvent);
+          expect(ev.cancel).toBe(true);
+          for (const [callback] of game.run.mock.calls) callback();
+          // The switch never boards: headlights.ts takes it or leaves it (ADR 0115).
+          const boards =
+            !sneaking && riding !== "camper" && item !== HEADLIGHT_SWITCH_TYPE;
+          expect(rideable.addRider).toHaveBeenCalledTimes(boards ? 1 : 0);
+          const switches =
+            riding === "camper" && item === HEADLIGHT_SWITCH_TYPE;
+          expect(headlights.execute).toHaveBeenCalledTimes(switches ? 1 : 0);
+          if (switches)
+            expect(headlights.execute).toHaveBeenCalledWith({
+              playerId: "player",
+              vehicleId: "camper",
+            });
+        },
+      ),
+    );
+  });
+
+  it("gives a switch press on the stand-in by a player on foot in the camper's room to its ceiling lights, without boarding (ADR 0115)", () => {
+    const f = lightSwitchFixture();
+    const rideable = { addRider: vi.fn(() => true) };
+    const room = {
+      id: "room",
+      typeId: ENTITY_TYPE.camper,
+      isValid: true,
+      getComponent: (name: string) =>
+        name === "minecraft:rideable" ? rideable : undefined,
+    };
+    game.getEntity.mockImplementation((id: string) =>
+      id === room.id ? room : undefined,
+    );
+    const standIn = {
+      id: "bumper",
+      typeId: BUMPER,
+      isValid: true,
+      getDynamicProperty: (key: string) =>
+        key === STAND_IN_OF_PROPERTY ? room.id : undefined,
+    };
+    expect(f.pressEntity(standIn)).toBe(true);
+    f.nextTick();
+    expect(f.ceilingLights.execute).toHaveBeenCalledExactlyOnceWith(inRoom);
+    expect(f.headlights.execute).not.toHaveBeenCalled();
+    expect(rideable.addRider).not.toHaveBeenCalled();
+  });
+
+  it("removes a stand-in that loads without its camper, and keeps the one its camper names", () => {
+    subscribe({ limit: { start: vi.fn(), found: vi.fn(), spawned: vi.fn() } });
+    const load = defined(
+      vi.mocked(world.afterEvents.entityLoad.subscribe).mock.calls.at(-1)?.[0],
+      "entityLoad handler",
+    );
+    const camper = {
+      id: "camper",
+      typeId: ENTITY_TYPE.camper,
+      getDynamicProperty: (key: string) =>
+        key === STAND_IN_PROPERTY ? "kept" : undefined,
+    };
+    const standIn = (id: string, near: unknown[]) => ({
+      id,
+      typeId: BUMPER,
+      isValid: true,
+      location: { x: 0, y: 0, z: 0 },
+      dimension: { getEntities: () => near },
+      getDynamicProperty: (key: string) =>
+        key === STAND_IN_OF_PROPERTY ? "camper" : undefined,
+      remove: vi.fn(),
+    });
+    const kept = standIn("kept", [camper]);
+    const stray = standIn("stray", [camper]);
+    const orphan = standIn("kept", []);
+    for (const entity of [kept, stray, orphan])
+      load({ entity } as unknown as EntityLoadAfterEvent);
+    expect(kept.remove).not.toHaveBeenCalled();
+    expect(stray.remove).toHaveBeenCalledOnce();
+    expect(orphan.remove).toHaveBeenCalledOnce();
+  });
 });

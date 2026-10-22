@@ -860,3 +860,37 @@ describe("DriveVehicles dock ports", () => {
     expect(fixture({}).blockTypes).not.toHaveBeenCalled();
   });
 });
+
+describe("DriveVehicles stand-ins (ADR 0116)", () => {
+  it("keeps a camper's bumper stand-in in front of it and none for the SUV and the boat", () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: -180, max: 180 }),
+        fc.integer({ min: -100, max: 100 }),
+        fc.integer({ min: -100, max: 100 }),
+        (yaw, x, z) => {
+          const world = new FakeWorld();
+          const uc = new DriveVehicles(world, new InMemoryRepo(), logger());
+          const location = { x: x + 0.5, y: 64, z: z + 0.5 };
+          world.snapshots = [
+            snapshot("c", { kind: "camper", yaw, location }),
+            snapshot("s", { kind: "suv", yaw, location }),
+            snapshot("b", { kind: "sportsboat", yaw, location }),
+          ];
+          uc.execute(0);
+          const pose = defined(world.standIns.get("c"), "camper stand-in");
+          const f = forward(yaw);
+          expect(pose.name).toBe("camper_bumper");
+          expect(
+            Math.hypot(pose.x - location.x, pose.z - location.z),
+          ).toBeCloseTo(3.7, 6);
+          expect(pose.x - location.x).toBeCloseTo(f.x * 3.7, 6);
+          expect(pose.z - location.z).toBeCloseTo(f.z * 3.7, 6);
+          expect(world.standIns.has("s")).toBe(true);
+          expect(world.standIns.get("s")).toBeUndefined();
+          expect(world.standIns.get("b")).toBeUndefined();
+        },
+      ),
+    );
+  });
+});

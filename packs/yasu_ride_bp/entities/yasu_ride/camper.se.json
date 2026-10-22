@@ -490,11 +490,7 @@
       },
       "minecraft:collision_box": { "width": 3.0, "height": 4.0 },
       "minecraft:custom_hit_test": {
-        "hitboxes": [
-          { "width": 1.0, "height": 1.0, "pivot": [-1, 0.5, 3.7] },
-          { "width": 1.0, "height": 1.0, "pivot": [0, 0.5, 3.7] },
-          { "width": 1.0, "height": 1.0, "pivot": [1, 0.5, 3.7] }
-        ]
+        "hitboxes": [{ "width": 0.1, "height": 0.1, "pivot": [0, 0.05, 0] }]
       },
       "minecraft:health": { "value": 20, "max": 20 },
       "minecraft:physics": {},

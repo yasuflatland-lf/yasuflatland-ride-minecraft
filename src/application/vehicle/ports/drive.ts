@@ -25,6 +25,7 @@ import type { VehicleKind } from "../../../domain/vehicle/kind";
 import type { Cell } from "../../../domain/vehicle/lighting/headlights";
 import type { ChaseCamera } from "../../../domain/vehicle/profile";
 import type { RamHit, RamTarget } from "../../../domain/vehicle/ram";
+import type { StandInPose } from "../../../domain/vehicle/standIn";
 import type { RiderView } from "../../../domain/vehicle/vehicle";
 
 export interface VehicleSnapshot {
@@ -49,6 +50,11 @@ export interface DriveWorld {
     yaw: number,
   ): void;
   boardDeckRiders(vehicleId: VehicleId): void;
+  /**
+   * Keeps exactly one stand-in entity for the vehicle at `pose`, of the type its name and
+   * axis give, or removes it when undefined (ADR 0116).
+   */
+  keepStandIn(vehicleId: VehicleId, pose: StandInPose | undefined): void;
   waterAt(vehicleId: VehicleId, offset: Vec3): boolean;
   solidAt(vehicleId: VehicleId, offset: Vec3): boolean;
   targetsNear(vehicleId: VehicleId): RamTarget[];
@@ -87,7 +93,7 @@ export interface DriveWorld {
   shineHeadlights(vehicleId: VehicleId, cells: readonly Cell[]): void;
   /**
    * Releases everything the world keeps for a vehicle that is no longer loaded:
-   * its light blocks, dock cells, deck seats and hold. Every part is attempted
+   * its light blocks, dock cells, deck seats, stand-in and hold. Every part is attempted
    * even when one fails; the first failure is then thrown.
    */
   releaseVehicle(vehicleId: VehicleId): void;

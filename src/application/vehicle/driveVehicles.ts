@@ -88,6 +88,7 @@ export class DriveVehicles {
     if (out.boardDeckRiders) this.world.boardDeckRiders(snap.id);
     if (out.depart) this.world.seatStandingPlayers(snap.id, out.depart);
     this.world.keepDeckSeats(snap.id, out.dock?.seats ?? [], out.yaw);
+    this.world.keepStandIn(snap.id, out.standIn);
     this.world.layDock(snap.id, out.dock?.cells ?? []);
     this.world.shineHeadlights(
       snap.id,

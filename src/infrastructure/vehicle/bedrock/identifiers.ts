@@ -8,6 +8,7 @@ import { VEHICLE_KINDS, type VehicleKind } from "../../../domain/vehicle/kind";
 import {
   CAMPING_GEAR_IDS,
   pairHeights,
+  STAND_IN_NAMES,
   STANDING_GEAR_IDS,
 } from "../../../domain/vehicle/kinds/index";
 import { PAINTS, type Paint } from "../../../domain/vehicle/paint/paint";
@@ -17,6 +18,7 @@ import {
 } from "../../../domain/vehicle/placement/gift";
 import type { ChaseCamera } from "../../../domain/vehicle/profile";
 import type { RamMount } from "../../../domain/vehicle/ram";
+import type { StandInAxis } from "../../../domain/vehicle/standIn";
 import { id, NAMESPACE } from "../../shared/identifiers";
 
 /**
@@ -115,6 +117,29 @@ export function ramMountOf(typeId: string | undefined): RamMount | undefined {
   if (typeId === DECK_SEAT_TYPE) return "deckSeat";
   return undefined;
 }
+/**
+ * Family of every stand-in entity (ADR 0116). The entity files also list "inanimate", so
+ * the ram query skips them.
+ */
+export const STAND_IN_FAMILY = "yasu_ride_stand_in";
+/** The stand-in entity type named `name` whose row of boxes lies along `axis` (ADR 0116). */
+export function standInType(name: string, axis: StandInAxis): string {
+  return id(`${name}_${axis}`);
+}
+const STAND_IN_TYPES: ReadonlySet<string> = new Set(
+  STAND_IN_NAMES.flatMap((name) => [
+    standInType(name, "x"),
+    standInType(name, "z"),
+  ]),
+);
+/** Whether `typeId` is one of the kinds' stand-in entity types (ADR 0116). */
+export function isStandInEntity(typeId: string | undefined): boolean {
+  return typeId !== undefined && STAND_IN_TYPES.has(typeId);
+}
+/** Dynamic property on a vehicle holding its stand-in's entity id (ADR 0116). */
+export const STAND_IN_PROPERTY = id("stand_in");
+/** Dynamic property on a stand-in holding the id of its vehicle (ADR 0116). */
+export const STAND_IN_OF_PROPERTY = id("stand_in_of");
 /** Dynamic property on a vehicle holding its deck seat entity ids as JSON. */
 export const DECK_SEATS_PROPERTY = id("deck_seats");
 /** Dynamic property on a deck seat holding the id of its vehicle. */

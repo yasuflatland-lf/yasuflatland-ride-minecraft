@@ -23,10 +23,17 @@ export const CAMPER_SPEC = Object.freeze({
   bodyRear: 3.9, // the rear ladder
   bodyHalfWidth: 1.5, // the tires' outer faces
   headlightReach: Object.freeze([4, 9, 15, 21, 27] as const), // as the SUV (ADR 0020)
-  // Bumper hitboxes (ADR 0084): 1 x 1 x 1 boxes side by side at z = bodyFront
+  // Bumper hitboxes (ADR 0084, 0116): 1 x 1 x 1 boxes side by side across the heading at
+  // bodyFront, on the bumper stand-in entity, x from the row's middle
   bumperBoxXs: [-1, 0, 1],
   bumperBoxY: 0.5, // the box center; the boxes span the bottom block of the body
   bumperBoxSize: 1,
+  // Degrees past the 45-degree line before a turning camper's bumper stand-in swaps to the
+  // other row axis, so steering along a diagonal does not respawn it every tick (ADR 0116)
+  bumperTurnMargin: 5,
+  // The camper's own hitbox: a cube this wide and high on its feet, inside the parked floor
+  // block under its center, so no tap reaches the camper itself (ADR 0116)
+  hiddenHitboxSize: 0.1,
   // Hints (ADR 0086), in blocks
   bumperHintReach: 1.5,
   bumperHintFeet: [-1, 1.5], // from the ground in front of the bumper up to standing on a 1-block step

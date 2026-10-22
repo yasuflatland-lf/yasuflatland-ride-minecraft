@@ -71,7 +71,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0065](0065-check-import-rules-with-dependency-cruiser.md) | Check the import rules with dependency-cruiser | Extended by 0072 |
 | [0066](0066-limit-vehicles-per-player-and-kind.md) | Limit vehicles per player and per kind | Accepted |
 | [0067](0067-camper.md) | Camper | Superseded in part by 0068 and 0069; extended by 0091 and 0093 |
-| [0068](0068-park-the-camper-with-room-blocks.md) | Park the camper with room blocks | Superseded in part by 0070 and 0084; extended by 0086, 0092, 0093, 0094, 0095, 0096, 0097, 0098, 0101, 0105, 0109, 0114, and 0115 |
+| [0068](0068-park-the-camper-with-room-blocks.md) | Park the camper with room blocks | Superseded in part by 0070, 0084, and 0116 (Proposed); extended by 0086, 0092, 0093, 0094, 0095, 0096, 0097, 0098, 0101, 0105, 0109, 0114, and 0115 |
 | [0069](0069-camper-right-hand-drive.md) | Seat the camper's driver on the right like the SUV | Superseded in part by 0070 |
 | [0070](0070-raise-the-camper-front-seats.md) | Raise the camper's front seats | Accepted |
 | [0071](0071-pull-the-camper-chase-camera-back.md) | Pull the camper's chase camera back | Accepted |
@@ -87,9 +87,9 @@ This directory records design decisions and the reasons behind them. The format 
 | [0081](0081-slide-along-walls.md) | Slide along walls | Accepted |
 | [0082](0082-learn-strongly-slowing-surfaces.md) | Learn strongly slowing surfaces | Accepted |
 | [0083](0083-ram-targets-are-a-core-sensor.md) | Ram targets are a core-only sensor | Accepted |
-| [0084](0084-camper-hitbox-spans-the-bumper.md) | The camper hitbox spans the whole front bumper | Extended by 0086 |
+| [0084](0084-camper-hitbox-spans-the-bumper.md) | The camper hitbox spans the whole front bumper | Superseded in part by 0116 (Proposed); extended by 0086 |
 | [0085](0085-halve-the-sports-boat-bow-rise.md) | Halve the sports boat bow rise | Accepted |
-| [0086](0086-camper-hints-near-the-bumper-and-the-parked-driver-seat.md) | Show camper hints near the bumper and the parked driver's seat | Accepted |
+| [0086](0086-camper-hints-near-the-bumper-and-the-parked-driver-seat.md) | Show camper hints near the bumper and the parked driver's seat | Extended by 0116 |
 | [0087](0087-sports-boat-spec-table.md) | Keep the sports boat tuning in one spec table | Superseded in part by 0089 |
 | [0088](0088-keep-the-in-game-test-fixtures-out-of-mutation.md) | Keep the in-game test fixtures out of mutation testing | Accepted |
 | [0089](0089-per-kind-control-mapping.md) | Each kind maps the stick to handbrake and creep | Accepted |
@@ -119,6 +119,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0113](0113-a-window-over-the-camper-counter.md) | A window over the camper counter | Extended by 0114 |
 | [0114](0114-open-the-camper-wall-cabinet.md) | Open the camper wall cabinet | Accepted |
 | [0115](0115-camper-ceiling-lights.md) | Ceiling lights in the parked camper | Accepted |
+| [0116](0116-a-bumper-stand-in-takes-the-camper-hits.md) | A bumper stand-in takes the camper's hits | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 

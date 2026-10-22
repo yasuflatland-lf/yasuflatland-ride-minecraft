@@ -1,6 +1,6 @@
 # 0084. The camper hitbox spans the whole front bumper
 
-- Status: Extended by [0086](0086-camper-hints-near-the-bumper-and-the-parked-driver-seat.md)
+- Status: Superseded in part by [0116](0116-a-bumper-stand-in-takes-the-camper-hits.md) (the boxes fixed at z 3.7 on the camper; 0116 is Proposed until its phone check passes); extended by [0086](0086-camper-hints-near-the-bumper-and-the-parked-driver-seat.md)
 - Date: 2026-10-20
 - Supersedes in part: 0068 (the single 1 x 1 x 1 bumper hitbox)
 
