@@ -728,6 +728,9 @@ export function camperBumper(a: Arena): Promise<Outcome> {
       standIn.getDynamicProperty(STAND_IN_OF_PROPERTY) === car.id &&
       car.getDynamicProperty(STAND_IN_PROPERTY) === standIn.id &&
       offFront(standIn) <= CAMPER_BUMPER_TEST.parkedTolerance;
+    const parkedWhy = standIn
+      ? `type=${standIn.typeId} of=${standIn.getDynamicProperty(STAND_IN_OF_PROPERTY) === car.id} ref=${car.getDynamicProperty(STAND_IN_PROPERTY) === standIn.id} parkedOff=${offFront(standIn).toFixed(3)}`
+      : "none";
     drive(car, 0, 1);
     await wait(CAMPER_BUMPER_TEST.driveTicks);
     const driving = near();
@@ -741,7 +744,7 @@ export function camperBumper(a: Arena): Promise<Outcome> {
     const left = near().length;
     return {
       pass: parkedOk && drivingOk && left === 0,
-      detail: `parked=${parked.length} parkedOk=${parkedOk} driving=${driving.length} off=${off} left=${left}`,
+      detail: `parked=${parked.length} parkedOk=${parkedOk} ${parkedWhy} driving=${driving.length} off=${off} left=${left}`,
     };
   });
 }
