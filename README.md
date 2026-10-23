@@ -14,7 +14,7 @@
 | **Camper** | **Headlights on** | **From the side** | **From the rear** |
 | ![The camper seen from its front-left corner](docs/images/camper-front-left.png) | ![The camper with its headlights on at dusk](docs/images/camper-headlights.png) | ![The camper seen from the side](docs/images/camper-side.png) | ![The camper seen from the rear](docs/images/camper-rear.png) |
 
-A vehicle add-on for Minecraft Bedrock Edition. It is built as a Behavior Pack + Resource Pack driven by the stable Script API (`@minecraft/server` 2.x), with no experimental toggles required. The target setup is a Bedrock Dedicated Server on a home LAN, with players joining from PC (keyboard) and mobile (touch).
+A vehicle add-on for Minecraft Bedrock Edition. It is built as a Behavior Pack + Resource Pack driven by the stable Script API (`@minecraft/server` 2.x), with no experimental toggles required. The target setup is a Bedrock Dedicated Server on a home LAN or a Realm, with players joining from PC (keyboard) and mobile (touch).
 
 This add-on holds only rides. House-building parts will ship as a separate add-on with their own namespace. The `yasu_ride` namespace never changes once Yasuflatland Ride is first released ([ADR 0047](docs/adr/0047-rename-to-yasuflatland-ride.md)).
 
@@ -34,7 +34,7 @@ Items other than vehicles, such as the 19 pieces of camping gear made to decorat
 
 ## Installing
 
-Download `yasuflatland-ride-<version>.mcaddon` from the [latest release](https://github.com/yasuflatland-lf/yasuflatland-ride-minecraft/releases/latest) and open it on your device; on iPad, follow [these steps](docs/installing-on-ipad.md). Turn on **Yasuflatland Ride** under a world's Behavior Packs; no experiments are needed. Players who join a server that already has the packs do not need to install anything: the server sends the Resource Pack when they join, so accept the download prompt.
+Download `yasuflatland-ride-<version>.mcaddon` from the [latest release](https://github.com/yasuflatland-lf/yasuflatland-ride-minecraft/releases/latest) and open it on your device; on iPad, follow [these steps](docs/installing-on-ipad.md). Turn on **Yasuflatland Ride** under a world's Behavior Packs; no experiments are needed. Players who join a server that already has the packs do not need to install anything: the server sends the Resource Pack when they join, so accept the download prompt. To play on a Realm, upload a world that has the packs turned on, as described in [Installing on a Realm](docs/installing-on-a-realm.md).
 
 Upgrading from MyCar 0.5.0 or earlier? Read [the upgrade notes](docs/upgrading.md) first.
 
