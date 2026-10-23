@@ -49,6 +49,14 @@ CAMERA_DISTANCE = 6.0  # in multiples of the model's size; far enough to keep pe
 
 # Minecraft's fixed face shading: top faces full brightness, north/south 0.8, east/west 0.6, bottom 0.5.
 SHADE_UP, SHADE_DOWN, SHADE_Z, SHADE_X = 1.0, 0.5, 0.8, 0.6
+# A level side view shows almost only east/west faces, so the whole picture sits at 0.6. A pose can
+# set "brightness" to lift its faces back to the level of the other views.
+SIDE_BRIGHTNESS = 1.0 / SHADE_X
+# The sports boat hull is near black, which a multiplier barely changes, so its rear picture also adds
+# a flat "lift" (0 to 255) to every lit face.
+BOAT_LIFT = 36
+# The main pictures of each vehicle (SUV, boat, camper, bulldozer) are lifted a little too.
+MAIN_BRIGHTNESS = 1.3
 
 SHADOW_LAYERS = 12
 SHADOW_ALPHA = 0.025  # per layer, so the center of the shadow is 0.3
@@ -116,18 +124,18 @@ BOAT_REAR_VIEW = (-1.0, 0.65, 1.0)
 BOAT_TOP_VIEW = (0.0, 1.0, 0.0)
 BOAT_TOP_SCREEN_UP = (-1.0, 0.0, 0.0)
 BOAT_POSES = {
-    "sportsboat-afloat.png": {"lamps": False, "dusk": False, "view": VIEW_DIRECTION, "screen_up": None},
+    "sportsboat-afloat.png": {"lamps": False, "dusk": False, "view": VIEW_DIRECTION, "screen_up": None, "brightness": MAIN_BRIGHTNESS, "lift": BOAT_LIFT},
     "sportsboat-headlights.png": {"lamps": True, "dusk": True, "view": VIEW_DIRECTION, "screen_up": None},
-    "sportsboat-rear.png": {"lamps": False, "dusk": False, "view": BOAT_REAR_VIEW, "screen_up": None},
+    "sportsboat-rear.png": {"lamps": False, "dusk": False, "view": BOAT_REAR_VIEW, "screen_up": None, "brightness": MAIN_BRIGHTNESS, "lift": BOAT_LIFT},
     "sportsboat-top.png": {"lamps": False, "dusk": False, "view": BOAT_TOP_VIEW, "screen_up": BOAT_TOP_SCREEN_UP},
 }
 
 CAMPER_GEOMETRY = "models/entity/yasu_ride/camper.geo.json"
 CAMPER_TEXTURE = "textures/entity/yasu_ride/camper.png"
 CAMPER_POSES = {
-    "camper-front-left.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.65, -1.0), "screen_up": None},
+    "camper-front-left.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.65, -1.0), "screen_up": None, "brightness": MAIN_BRIGHTNESS},
     "camper-headlights.png": {"lamps": True, "dusk": True, "view": (-1.0, 0.65, -1.0), "screen_up": None},
-    "camper-side.png": {"lamps": False, "dusk": False, "view": (1.0, 0.15, 0.0001), "screen_up": None},
+    "camper-side.png": {"lamps": False, "dusk": False, "view": (1.0, 0.15, 0.0001), "screen_up": None, "brightness": SIDE_BRIGHTNESS},
     "camper-rear.png": {"lamps": False, "dusk": False, "view": (1.0, 0.6, 1.0), "screen_up": None},
 }
 
@@ -136,9 +144,9 @@ BULLDOZER_TEXTURE = "textures/entity/yasu_ride/bulldozer.png"
 # Only the first grouser phase is drawn, and the propeller only shows under water (ADR 0136)
 BULLDOZER_HIDDEN = ("track_r_1", "track_r_2", "track_l_1", "track_l_2", "propeller")
 BULLDOZER_POSES = {
-    "bulldozer-front-left.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.65, -1.0), "screen_up": None},
+    "bulldozer-front-left.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.65, -1.0), "screen_up": None, "brightness": MAIN_BRIGHTNESS},
     "bulldozer-headlights.png": {"lamps": True, "dusk": True, "view": (-1.0, 0.65, -1.0), "screen_up": None},
-    "bulldozer-side.png": {"lamps": False, "dusk": False, "view": (1.0, 0.15, 0.0001), "screen_up": None},
+    "bulldozer-side.png": {"lamps": False, "dusk": False, "view": (1.0, 0.15, 0.0001), "screen_up": None, "brightness": SIDE_BRIGHTNESS},
     "bulldozer-rear.png": {"lamps": False, "dusk": False, "view": (1.0, 0.6, 1.0), "screen_up": None},
 }
 
@@ -166,9 +174,9 @@ TENT_ICON = "tent_item"
 ICON_NAMES = {CHAIR_PREVIEW: CHAIR_ICON, TENT_PREVIEW: TENT_ICON}
 
 POSES = {
-    "suv-front-left.png": {"lamps": False, "dusk": False, "hover": False, "submarine": False},
+    "suv-front-left.png": {"lamps": False, "dusk": False, "hover": False, "submarine": False, "brightness": MAIN_BRIGHTNESS},
     "suv-headlights.png": {"lamps": True, "dusk": True, "hover": False, "submarine": False},
-    "suv-flying.png": {"lamps": False, "dusk": False, "hover": True, "submarine": False},
+    "suv-flying.png": {"lamps": False, "dusk": False, "hover": True, "submarine": False, "brightness": MAIN_BRIGHTNESS},
     "suv-submarine.png": {"lamps": False, "dusk": False, "hover": False, "submarine": True},
 }
 
@@ -390,8 +398,9 @@ def collect(geo, texture, folds, turns, pose):
                     rgb = LAMP_LIT if emissive == "lamp" else GLOW_LIT
                 else:
                     r, g, b, _ = face_color(texture, cube["uv"][face], desc["texture_width"], desc["texture_height"])
-                    k = shade(normalize(normal))
-                    rgb = (r * k * tint[0], g * k * tint[1], b * k * tint[2])
+                    k = shade(normalize(normal)) * pose.get("brightness", 1.0)
+                    face_lift = pose.get("lift", 0)
+                    rgb = (r * k * tint[0] + face_lift, g * k * tint[1] + face_lift, b * k * tint[2] + face_lift)
                 polygons.append((quad, rgb, emissive))
     return polygons
 
@@ -479,8 +488,9 @@ def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT):
                     polygons.append((quad, color, "lamp"))
                     continue
                 r, g, b, a = face_color(texture, cube["uv"][face], desc["texture_width"], desc["texture_height"])
-                k = shade(normalize(normal))
-                rgb = (r * k * tint[0], g * k * tint[1], b * k * tint[2])
+                k = shade(normalize(normal)) * pose.get("brightness", 1.0)
+                face_lift = pose.get("lift", 0)
+                rgb = (r * k * tint[0] + face_lift, g * k * tint[1] + face_lift, b * k * tint[2] + face_lift)
                 if a < 255:
                     glass.append((quad, rgb, a / 255))
                 else:
@@ -716,7 +726,7 @@ def render(rp, icons=False):
     icon = None
     if icons:
         # Lamps lit without the dusk tint, so the body keeps its daylight colors
-        pose = {**POSES["suv-flying.png"], "lamps": True}
+        pose = {**POSES["suv-flying.png"], "lamps": True, "brightness": 1.0}
         polygons = collect(geo, texture, folds, turns, pose)
         icon = render_icon(geo, polygons, camera)
     return images, icon
