@@ -157,6 +157,20 @@ it("glows from the thruster only in flight and shows the spinning propeller only
     "propeller",
     { submarine_sound: "query.has_rider" },
   ]);
+  const form = (...forms: string[]) =>
+    forms.map((f) => `query.property('yasu_ride:form') == '${f}'`).join(" || ");
+  const flying = form("takeoff", "hover", "landing");
+  expect(controller.states.ground.transitions).toEqual([
+    { hover: flying },
+    { submarine: form("submarine") },
+  ]);
+  expect(controller.states.hover.transitions).toEqual([
+    { ground: form("car") },
+  ]);
+  expect(controller.states.submarine.transitions).toEqual([
+    { ground: form("car") },
+    { hover: flying },
+  ]);
   expect(JSON.stringify(controller)).not.toContain("gear_down");
   expect(client.particle_effects).toEqual({
     hover_glow: "yasu_ride:hover_glow",

@@ -39,8 +39,7 @@ it("declares a bank range of plus or minus maxBank (ADR 0026)", () => {
 });
 
 // BDS 1.26.52.3 rejects [0.0, 0.0]: "range max is less than range min" (ADR 0136).
-it("declares a bank range of [0, 1] with no negative zero when the kind has no bank", () => {
-  // toStrictEqual tells -0 from +0.
+it("declares a nonzero [0, 1] bank range when the kind has no bank", () => {
   expect(transformingProperties(0).bank.range).toStrictEqual([0, 1]);
   const properties = transformingProperties(0);
   expect(JSON.parse(JSON.stringify(properties))).toStrictEqual(properties);
