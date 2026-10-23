@@ -2,12 +2,19 @@
 import { existsSync, readFileSync } from "node:fs";
 import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
+import { TENT_SPEC } from "../../src/domain/camp/spec";
 import {
+  PITCH_REFUSAL_MESSAGE,
+  TENT_CEILING_BLOCK,
+  TENT_FACE_STATE,
   TENT_FAMILY,
   TENT_FLAP_PROPERTY,
+  TENT_HITS_LEFT_HINT,
   TENT_ITEM,
   TENT_LANTERN_PROPERTY,
+  TENT_OCCUPIED_HINT,
   TENT_TYPE,
+  TENT_WALL_BLOCK,
 } from "../../src/infrastructure/camp/identifiers";
 
 const BP = "packs/yasu_ride_bp";
@@ -429,4 +436,113 @@ describe("tent item", () => {
       if (locale === "en_US") expect(value).toBe("Tent");
     }
   });
+});
+
+describe("tent shelter blocks (ADR 0131)", () => {
+  const blockOf = (name: string) =>
+    readJson(`${BP}/blocks/yasu_ride/${name}.block.json`)["minecraft:block"];
+
+  it("plates each wall face as the camper's wall does, selectable from outside", () => {
+    const wall = blockOf("tent_wall");
+    expect(wall.description.identifier).toBe(TENT_WALL_BLOCK);
+    expect(wall.description.states).toEqual({
+      [TENT_FACE_STATE]: [0, 1, 2, 3],
+    });
+    expect(wall.components).not.toHaveProperty(["minecraft:selection_box"]);
+    const plates = [
+      [
+        [-8, 0, -8],
+        [16, 16, 2],
+      ],
+      [
+        [-8, 0, 6],
+        [16, 16, 2],
+      ],
+      [
+        [6, 0, -8],
+        [2, 16, 16],
+      ],
+      [
+        [-8, 0, -8],
+        [2, 16, 16],
+      ],
+    ];
+    expect(wall.permutations).toHaveLength(4);
+    plates.forEach(([origin, size], face) => {
+      const p = wall.permutations[face];
+      expect(p.condition).toBe(
+        `q.block_state('${TENT_FACE_STATE}') == ${face}`,
+      );
+      expect(p.components["minecraft:collision_box"]).toEqual({ origin, size });
+      expect(p.components["minecraft:selection_box"]).toEqual(
+        p.components["minecraft:collision_box"],
+      );
+    });
+  });
+
+  it("puts the ceiling plate at the bottom of its cell, faintly lit", () => {
+    const ceiling = blockOf("tent_ceiling");
+    expect(ceiling.description.identifier).toBe(TENT_CEILING_BLOCK);
+    expect(ceiling.description).not.toHaveProperty("states");
+    const plate = { origin: [-8, 0, -8], size: [16, 3, 16] };
+    expect(ceiling.components["minecraft:collision_box"]).toEqual(plate);
+    expect(ceiling.components["minecraft:selection_box"]).toEqual(plate);
+    expect(ceiling.components["minecraft:light_emission"]).toBe(
+      TENT_SPEC.ceilingLight,
+    );
+  });
+
+  it.each(["tent_wall", "tent_ceiling"])(
+    "makes %s indestructible and see-through",
+    (name) => {
+      const c = blockOf(name).components;
+      expect(c["minecraft:destructible_by_mining"]).toBe(false);
+      expect(c["minecraft:destructible_by_explosion"]).toBe(false);
+      expect(c["minecraft:light_dampening"]).toBe(0);
+    },
+  );
+
+  it("keeps the entity's hidden box and hit test in its base components", () => {
+    const e = readJson(`${BP}/entities/yasu_ride/tent.se.json`)[
+      "minecraft:entity"
+    ];
+    expect(e.components["minecraft:collision_box"]).toEqual({
+      width: 0.2,
+      height: 0.2,
+    });
+    expect(e.components["minecraft:custom_hit_test"]).toEqual({
+      hitboxes: [{ width: 0.1, height: 0.1, pivot: [0, 0.05, 0] }],
+    });
+    expect(e.component_groups ?? {}).toEqual({});
+  });
+
+  it("keeps every model cube within the footprint, x -56..56 and z -184..8 px", () => {
+    for (const bone of geometry().bones as Bone[])
+      for (const cube of bone.cubes ?? []) {
+        const b = bounds(cube);
+        expect(b[0]).toBeGreaterThanOrEqual(-56.002);
+        expect(b[3]).toBeLessThanOrEqual(56.002);
+        expect(b[2]).toBeGreaterThanOrEqual(-184.002);
+        expect(b[5]).toBeLessThanOrEqual(8.002);
+      }
+  });
+
+  it.each(["en_US", "ja_JP"])(
+    "has every pitch and hit message in %s",
+    (locale) => {
+      const lines = readFileSync(`${RP}/texts/${locale}.lang`, "utf8").split(
+        /\r?\n/,
+      );
+      const valueFor = (key: string) =>
+        lines.find((l) => l.startsWith(`${key}=`))?.slice(key.length + 1);
+      for (const key of [
+        ...Object.values(PITCH_REFUSAL_MESSAGE),
+        TENT_HITS_LEFT_HINT,
+        TENT_OCCUPIED_HINT,
+      ])
+        expect(valueFor(key), key).toBeTruthy();
+      expect(valueFor(TENT_HITS_LEFT_HINT)).toContain("%s");
+      expect(valueFor(PITCH_REFUSAL_MESSAGE.limit)).toContain("%s");
+    },
+  );
 });

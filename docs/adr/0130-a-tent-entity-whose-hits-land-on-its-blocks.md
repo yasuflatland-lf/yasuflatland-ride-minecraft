@@ -3,6 +3,7 @@
 - Status: Proposed
 - Date: 2026-10-23
 - Extends: [0122](0122-a-low-chair-to-sit-on-outside-the-vehicles.md) (camp and the Camping Gear group), [0009](0009-vehicle-model-conventions.md) (front at -z)
+- Extended by: [0131](0131-pitch-a-tent-in-the-camp.md) (pitching, the shelter cells, and taking the tent down)
 
 ## Context
 
