@@ -20,6 +20,10 @@ import type { SwitchHeadlights } from "../../../application/vehicle/switchHeadli
 import type { UseDockDoor } from "../../../application/vehicle/useDockDoor";
 import type { DimensionId, VehicleId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
+import {
+  registerSwitchRouter,
+  type SwitchTarget,
+} from "../../shared/switchRouter";
 import type { TestInputStore } from "../testInput/testInputStore";
 import { registerBoarding } from "./handlers/boarding";
 import { registerDecor } from "./handlers/decor";
@@ -29,7 +33,7 @@ import { registerDockGuard } from "./handlers/dockGuard";
 import { registerDrive } from "./handlers/drive";
 import { registerFleet } from "./handlers/fleet";
 import { registerGifts } from "./handlers/gift";
-import { registerHeadlights } from "./handlers/headlights";
+import { vehicleSwitchTarget } from "./handlers/headlights";
 import { registerHits } from "./handlers/hits";
 import { registerPlacement } from "./handlers/placement";
 import { registerShowerToilet } from "./handlers/showerToilet";
@@ -88,13 +92,16 @@ export function registerSubscriptions(
   registerGifts(useCases.gift);
   registerBoarding(useCases.board);
   registerStandIns();
-  // Subscribed before placement, so placement's block press handler stays the last one
-  // subscribed; each handler ignores the other's items (ADR 0115).
-  registerHeadlights(
-    useCases.headlights,
-    useCases.ceilingLights,
-    dockCellOwner,
-  );
+  // The switch router subscribes before placement so placement's block press handler stays
+  // the last one subscribed; each handler ignores the other's items (ADR 0115).
+  const switchTargets: readonly SwitchTarget[] = [
+    vehicleSwitchTarget(
+      useCases.headlights,
+      useCases.ceilingLights,
+      dockCellOwner,
+    ),
+  ];
+  registerSwitchRouter(() => switchTargets);
   registerPlacement(useCases.place);
   registerStarter(useCases.starter);
   registerHits(useCases.hit, useCases.paint);

@@ -24,6 +24,7 @@ import { asVehicleId, type VehicleId } from "../../../../src/domain/shared/ids";
 import { SPEC } from "../../../../src/domain/vehicle/spec";
 import type { VehicleRepository } from "../../../../src/domain/vehicle/vehicleRepository";
 import { PAINT_BY_DYE } from "../../../../src/infrastructure/shared/dyes";
+import { HEADLIGHT_SWITCH_TYPE } from "../../../../src/infrastructure/shared/identifiers";
 import {
   CAMPER_BED_COMPONENT,
   CAMPER_CABINET_COMPONENT,
@@ -40,7 +41,6 @@ import {
   decorBlockId,
   ENTITY_TYPE,
   GIFT_ITEM,
-  HEADLIGHT_SWITCH_TYPE,
   ITEM_TYPE,
   OWNER_PROPERTY,
   pairDecorBlockId,
@@ -613,6 +613,72 @@ function lightSwitchFixture(
     },
   };
 }
+
+it("preserves switch routing, cancellation and use-case arguments across rider and room states", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom("none", "room", "vehicle"),
+      fc.boolean(),
+      fc.boolean(),
+      fc.boolean(),
+      fc.boolean(),
+      (mountId, owner, canSwitch, headlightsSwitch, isFirstEvent) => {
+        const mount =
+          mountId === "none"
+            ? undefined
+            : {
+                id: mountId,
+                typeId:
+                  mountId === "room" ? ENTITY_TYPE.camper : ENTITY_TYPE.suv,
+              };
+        const f = lightSwitchFixture(mount, () =>
+          owner ? asVehicleId("room") : undefined,
+        );
+        f.ceilingLights.canSwitch.mockReturnValue(canSwitch);
+        f.headlights.execute.mockReturnValue(headlightsSwitch);
+        const headlightCalls: unknown[][] = [];
+        const ceilingCalls: unknown[][] = [];
+        // Transcribe the existing use rule: the mount gets headlights first, then ceiling
+        // lights on refusal; on foot only the room gets ceiling lights (ADR 0115).
+        const use = () => {
+          if (mount) {
+            headlightCalls.push([{ playerId: "player", vehicleId: mount.id }]);
+            if (!headlightsSwitch)
+              ceilingCalls.push([{ ...inRoom, vehicleId: mount.id }]);
+          } else if (owner) ceilingCalls.push([inRoom]);
+        };
+        const check = () => {
+          expect(f.headlights.execute.mock.calls).toEqual(headlightCalls);
+          expect(f.ceilingLights.execute.mock.calls).toEqual(ceilingCalls);
+        };
+        f.use();
+        use();
+        check();
+        f.nextTick();
+        check();
+
+        const blockClaim = !mount && owner && canSwitch;
+        expect(f.pressBlock(isFirstEvent)).toBe(blockClaim);
+        check();
+        f.nextTick();
+        if (blockClaim && isFirstEvent) use();
+        check();
+
+        for (const id of ["room", "other"]) {
+          const entityClaim =
+            mount?.id === id || (owner && id === "room" && canSwitch);
+          expect(f.pressEntity({ id, typeId: ENTITY_TYPE.camper })).toBe(
+            entityClaim,
+          );
+          check();
+          f.nextTick();
+          if (entityClaim) use();
+          check();
+        }
+      },
+    ),
+  );
+});
 
 it("aims a boarding press along the view on mouse, and from where a touch player stands (ADR 0120)", () => {
   const boat = { id: "boat", typeId: ENTITY_TYPE.sportsboat };
@@ -1779,7 +1845,8 @@ describe("camper bumper stand-in (ADR 0116)", () => {
             handler(ev as unknown as PlayerInteractWithEntityBeforeEvent);
           expect(ev.cancel).toBe(true);
           for (const [callback] of game.run.mock.calls) callback();
-          // The switch never boards: headlights.ts takes it or leaves it (ADR 0115).
+          // The switch never boards: the switch router and the vehicle's switch target
+          // take it or leave it (ADR 0115).
           const boards =
             !sneaking && riding !== "camper" && item !== HEADLIGHT_SWITCH_TYPE;
           expect(rideable.addRider).toHaveBeenCalledTimes(boards ? 1 : 0);

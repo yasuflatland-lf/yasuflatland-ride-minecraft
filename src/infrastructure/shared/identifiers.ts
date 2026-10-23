@@ -10,3 +10,6 @@ export const AIR_BLOCK = "minecraft:air";
 export function messageKey(name: string): string {
   return `${NAMESPACE}.message.${name}`;
 }
+
+/** Item a rider uses to switch the headlights (ADR 0020). */
+export const HEADLIGHT_SWITCH_TYPE = id("headlight_switch");

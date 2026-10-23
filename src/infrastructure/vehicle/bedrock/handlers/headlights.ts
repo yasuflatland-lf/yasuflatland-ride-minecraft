@@ -1,8 +1,5 @@
-// Switches the ridden vehicle's headlights with the headlight switch item,
-// whether its use reaches itemUse or an interaction with the vehicle or its stand-in
-// (ADR 0020, 0024, 0116).
-// Anyone else inside a parked camper's room switches its ceiling lights with it (ADR 0115).
-import { type Entity, type Player, system, world } from "@minecraft/server";
+// The vehicle's target for the shared switch router (ADR 0020, 0024, 0115, 0116).
+import type { Entity, Player } from "@minecraft/server";
 import type { SwitchCeilingLights } from "../../../../application/vehicle/switchCeilingLights";
 import type { SwitchHeadlights } from "../../../../application/vehicle/switchHeadlights";
 import {
@@ -13,17 +10,18 @@ import {
   type VehicleId,
 } from "../../../../domain/shared/ids";
 import type { Vec3 } from "../../../../domain/shared/vec";
-import { HEADLIGHT_SWITCH_TYPE, isVehicleEntity } from "../identifiers";
+import type { SwitchTarget } from "../../../shared/switchRouter";
+import { isVehicleEntity } from "../identifiers";
 import { vehicleOfTarget } from "../standIns";
 
-export function registerHeadlights(
+export function vehicleSwitchTarget(
   headlights: SwitchHeadlights,
   ceilingLights: SwitchCeilingLights,
   dockCellOwner: (
     dimensionId: DimensionId,
     cell: Vec3,
   ) => VehicleId | undefined,
-): void {
+): SwitchTarget {
   const ridden = (player: Entity) => {
     const mount = player.getComponent("minecraft:riding")?.entityRidingOn;
     return isVehicleEntity(mount?.typeId) ? mount : undefined;
@@ -54,8 +52,7 @@ export function registerHeadlights(
   // The driver of the ridden vehicle switches its headlights as before (ADR 0020). Anyone
   // else, a passenger aboard or a player on foot or on a deck seat in the room, switches
   // the ceiling lights of the room they are in (ADR 0115).
-  const useSwitch = (player: Player) => {
-    if (!player.isValid) return;
+  const switchFor = (player: Player) => {
     const playerId = asPlayerId(player.id);
     const vehicle = ridden(player);
     if (vehicle) {
@@ -73,39 +70,26 @@ export function registerHeadlights(
       });
   };
 
-  world.afterEvents.itemUse.subscribe((ev) => {
-    if (ev.itemStack.typeId !== HEADLIGHT_SWITCH_TYPE) return;
-    useSwitch(ev.source);
-  });
-
-  world.beforeEvents.playerInteractWithEntity.subscribe((ev) => {
-    if (ev.itemStack?.typeId !== HEADLIGHT_SWITCH_TYPE) return;
-    const vehicle = vehicleOfTarget(ev.target);
-    if (!vehicle) return;
-    // A rider aiming at their own vehicle, or a player aiming at the camper whose room they
-    // stand in, interacts with it instead of using the item, so the switch is handled here too.
-    const room = roomOf(ev.player);
-    if (
-      ridden(ev.player)?.id === vehicle.id ||
-      (room === vehicle.id && inSwitchableRoom(ev.player, room))
-    ) {
-      ev.cancel = true;
-      const { player } = ev;
-      system.run(() => useSwitch(player));
-    }
-  });
-
-  // Inside the small room a tap or right-click mostly lands on a wall, the floor or the
-  // ceiling, which does not reach itemUse, so a press on a block by a player on foot or on a
-  // deck seat in a room counts as a use too. It is cancelled, so the switch never also opens
-  // a door or the cabinet. Riders of a vehicle keep the events they had (ADR 0115).
-  world.beforeEvents.playerInteractWithBlock.subscribe((ev) => {
-    if (ev.itemStack?.typeId !== HEADLIGHT_SWITCH_TYPE) return;
-    if (ridden(ev.player) !== undefined) return;
-    if (!inSwitchableRoom(ev.player, roomOf(ev.player))) return;
-    ev.cancel = true;
-    if (!ev.isFirstEvent) return;
-    const { player } = ev;
-    system.run(() => useSwitch(player));
-  });
+  return {
+    claimsItemUse: (player) =>
+      ridden(player) !== undefined || roomOf(player) !== undefined,
+    claimsEntityPress: (player, target) => {
+      const vehicle = vehicleOfTarget(target);
+      if (!vehicle) return false;
+      // A rider aiming at their own vehicle, or a player aiming at the camper whose room they
+      // stand in, interacts with it instead of using the item, so the switch is handled here too.
+      const room = roomOf(player);
+      return (
+        ridden(player)?.id === vehicle.id ||
+        (room === vehicle.id && inSwitchableRoom(player, room))
+      );
+    },
+    // Inside the small room a tap or right-click mostly lands on a wall, the floor or the
+    // ceiling, which does not reach itemUse, so a press on a block by a player on foot or on a
+    // deck seat in a room counts as a use too. The router cancels it, so the switch never also
+    // opens a door or the cabinet. Riders of a vehicle keep the events they had (ADR 0115).
+    claimsBlockPress: (player) =>
+      ridden(player) === undefined && inSwitchableRoom(player, roomOf(player)),
+    switchFor,
+  };
 }

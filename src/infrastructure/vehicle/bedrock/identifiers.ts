@@ -91,8 +91,6 @@ export function giftOfItem(
 export const FLEET_PROPERTY = id("fleet");
 /** Entity dynamic property on a vehicle placed from its item: the placing player's id (ADR 0066). */
 export const OWNER_PROPERTY = id("owner");
-/** Item a rider uses to switch the headlights (ADR 0020). */
-export const HEADLIGHT_SWITCH_TYPE = id("headlight_switch");
 /**
  * Entity property declared in every vehicle entity file (suv, sportsboat and
  * camper .se.json); the render controller makes the lamps glow by it.
