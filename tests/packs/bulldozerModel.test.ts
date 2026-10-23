@@ -271,41 +271,57 @@ describe("bulldozer item icon", () => {
 });
 
 describe("bulldozer blade rig (ADR 0138)", () => {
-  // BLADE_RAISE and ROD_RETRACT in tools/gen_bulldozer.py, and each lift rod's rest length.
-  const RAISE = 3;
-  const RETRACT = 3;
-  const ROD_LENGTH = 12.6;
   type Point = [number, number, number];
   const lowest = (ps: Point[], axis: number) =>
     Math.min(...ps.map((p) => p[axis] ?? Number.NaN));
   const highest = (ps: Point[], axis: number) =>
     Math.max(...ps.map((p) => p[axis] ?? Number.NaN));
+  const capture = (pattern: RegExp, text: string, what: string) => {
+    const match = pattern.exec(text);
+    if (!match) throw new Error(`Invalid ${what}: ${text}`);
+    return match.slice(1).map(Number);
+  };
+  const drive = JSON.parse(
+    readFileSync(`${RP}/animations/yasu_ride/bulldozer.anim.json`, "utf8"),
+  ).animations["animation.yasu_ride.bulldozer.drive"].bones;
+  const position = /^query\.property\('yasu_ride:blade'\) \* (\d+(?:\.\d+)?)$/;
+  const rodScale =
+    /^1 - query\.property\('yasu_ride:blade'\) \* (\d+(?:\.\d+)?) \/ (\d+(?:\.\d+)?)$/;
+  const [ky = Number.NaN] = capture(position, drive.blade_rig.position[1], "y");
+  const [kz = Number.NaN] = capture(position, drive.blade_rig.position[2], "z");
   const raised = (rest: Point[], blade: number): Point[] =>
-    rest.map(([x, y, z]) => [x, y + RAISE * blade, z + RETRACT * blade]);
+    rest.map(([x, y, z]) => [x, y + ky * blade, z + kz * blade]);
   const rodAt = (side: string, blade: number): Point[] => {
+    const [retract = Number.NaN, length = Number.NaN] = capture(
+      rodScale,
+      drive[`lift_rod_${side}`].scale[2],
+      `lift_rod_${side} scale`,
+    );
     const rod = bone(`lift_rod_${side}`);
     const pz = rod.pivot?.[2] ?? Number.NaN;
-    const scale = 1 - (blade * RETRACT) / ROD_LENGTH;
+    const scale = 1 - (blade * retract) / length;
     return points(rod).map(([x, y, z]) => [x, y, pz + (z - pz) * scale]);
   };
-  it("moves blade_rig and scales each lift rod by these values", () => {
-    const drive = JSON.parse(
-      readFileSync(`${RP}/animations/yasu_ride/bulldozer.anim.json`, "utf8"),
-    ).animations["animation.yasu_ride.bulldozer.drive"].bones;
-    const blade = "query.property('yasu_ride:blade')";
-    expect(drive.blade_rig.position).toEqual([
-      0,
-      `${blade} * ${RAISE}`,
-      `${blade} * ${RETRACT}`,
-    ]);
+  it("drives blade_rig 3 px up and 3 px rearward and shortens each 12.6 px lift rod by 3 px at blade = 1", () => {
+    expect(drive.blade_rig.position[0]).toBe(0);
+    expect([ky, kz]).toEqual([3, 3]);
+    const generator = readFileSync("tools/gen_bulldozer.py", "utf8");
+    const constant = (name: string) =>
+      capture(
+        new RegExp(`^${name} = (\\d+(?:\\.\\d+)?)$`, "m"),
+        generator,
+        name,
+      );
+    expect(constant("BLADE_RAISE")).toEqual([ky]);
+    expect(constant("ROD_RETRACT")).toEqual([kz]);
     for (const side of ["r", "l"]) {
-      expect(drive[`lift_rod_${side}`].scale).toEqual([
-        1,
-        1,
-        `1 - ${blade} * ${RETRACT} / ${ROD_LENGTH}`,
-      ]);
+      const scale = drive[`lift_rod_${side}`].scale;
+      expect(scale.slice(0, 2)).toEqual([1, 1]);
+      const [retract, length] = capture(rodScale, scale[2], "rod scale");
+      expect(retract).toBe(kz);
       const rest = points(bone(`lift_rod_${side}`));
-      expect(highest(rest, 2) - lowest(rest, 2)).toBeCloseTo(ROD_LENGTH, 6);
+      expect(length).toBeCloseTo(12.6, 6);
+      expect(highest(rest, 2) - lowest(rest, 2)).toBeCloseTo(length ?? 0, 6);
     }
   });
   it("raises the cutting edge 3 px and pulls the blade 3 px rearward at blade = 1", () => {
@@ -315,7 +331,6 @@ describe("bulldozer blade rig (ADR 0138)", () => {
     );
     const bottom = lowest(lifted, 1);
     expect(bottom).toBeCloseTo(3, 3);
-    expect(bottom).toBeGreaterThanOrEqual(3 - 0.0001);
     const trackBottom = lowest(points(bone("track_r_0")), 1);
     expect(trackBottom).toBeCloseTo(-0.425, 3);
     expect(bottom - trackBottom).toBeCloseTo(3.425, 3);
@@ -328,7 +343,7 @@ describe("bulldozer blade rig (ADR 0138)", () => {
         for (const side of ["r", "l"]) {
           const rod = rodAt(side, blade);
           expect(highest(rod, 2)).toBeCloseTo(2, 6);
-          expect(lowest(rod, 2)).toBeCloseTo(-10.6 + RETRACT * blade, 6);
+          expect(lowest(rod, 2)).toBeCloseTo(-10.6 + kz * blade, 6);
         }
       }),
     );

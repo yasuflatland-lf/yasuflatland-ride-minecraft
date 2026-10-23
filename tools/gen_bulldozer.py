@@ -597,7 +597,8 @@ ARM_FRONT, ARM_REAR = (C_CENTER, 8.0), (2.0, 12.0)  # (z, y) centerline, low beh
 # The raised pose, drawn by the drive animation from yasu_ride:blade (ADR 0138): blade_rig moves
 # BLADE_RAISE px up and ROD_RETRACT px rearward, and each lift rod shortens by ROD_RETRACT
 # about the barrel mouth. The owner chose this visible retraction over strict kinematics.
-# bulldozer.anim.json repeats these values; bulldozerModel.test.ts pins them against the geometry.
+# The generator writes neither value: bulldozer.anim.json and tests/packs/bulldozer.test.ts repeat
+# them by hand, and bulldozerModel.test.ts fails when they differ from the animation's Molang.
 BLADE_RAISE = 3.0
 ROD_RETRACT = 3.0
 LIFT_ROD_FRONT, LIFT_ROD_REAR = -10.6, 2.0  # z of the rod's end in its bracket, and of the barrel mouth
@@ -616,9 +617,9 @@ for zb in (-17.0, -6.0, 3.6):  # yellow clamp brackets along the cylinders
 arms += [box(ARM_IN + 0.4, 10.4, -27.6, ARM_IN + 0.6, 12.2, -26.2, "steel"),  # lifting eye
          box(ARM_OUT - 0.6, 10.4, -27.6, ARM_OUT - 0.4, 12.2, -26.2, "steel"),
          box(ARM_IN + 0.4, 12.0, -27.6, ARM_OUT - 0.4, 12.2, -26.2, "steel")]
-lift_barrel = box(ARM_IN - 0.2, 22.0 - 1.4, LIFT_ROD_REAR, ARM_OUT + 0.2, 22.0 + 1.6, 7.6, "black")
+lift_barrel = box(ARM_IN - 0.2, 22.0 - 1.4, LIFT_ROD_REAR, ARM_OUT + 0.2, 22.0 + 1.6, 7.6, "black")  # lift cylinder
 lift_rod = box(LIFT_ROD_X - 0.5, LIFT_ROD_Y - 0.6, LIFT_ROD_FRONT, LIFT_ROD_X + 0.5, LIFT_ROD_Y + 0.6, LIFT_ROD_REAR,
-               "chrome")
+               "chrome")  # lift cylinder rod
 body += both([lift_barrel])
 blade_rig = both(arms)
 # The C-frame's front half circle, closed at the back by the arms
