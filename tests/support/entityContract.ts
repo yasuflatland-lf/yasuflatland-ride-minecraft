@@ -46,3 +46,20 @@ export function expectDeclaredCommand(
       break;
   }
 }
+
+/** Fails unless a BP property definition's default fits its spec's range, and, for int, the bounds and default are integers. */
+export function expectPackProperty(
+  definition: { default?: unknown },
+  spec: PropertySpec,
+): void {
+  if (spec.type !== "float" && spec.type !== "int") return;
+  expect(spec.range[0]).toBeLessThanOrEqual(spec.range[1]);
+  expect(typeof definition.default).toBe("number");
+  expect(definition.default).toBeGreaterThanOrEqual(spec.range[0]);
+  expect(definition.default).toBeLessThanOrEqual(spec.range[1]);
+  if (spec.type === "int") {
+    expect(Number.isInteger(spec.range[0])).toBe(true);
+    expect(Number.isInteger(spec.range[1])).toBe(true);
+    expect(Number.isInteger(definition.default)).toBe(true);
+  }
+}

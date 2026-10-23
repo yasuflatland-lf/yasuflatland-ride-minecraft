@@ -12,6 +12,7 @@ import {
   entityEventId,
   entityPropertyId,
 } from "../../src/infrastructure/vehicle/bedrock/identifiers";
+import { expectPackProperty } from "../support/entityContract";
 import { jsonFiles } from "../support/packFiles";
 
 const MAX_ENTITY_PROPERTIES = 32;
@@ -45,6 +46,7 @@ it.each(VEHICLE_KINDS)(
       expect(Object.keys(definition).sort()).toEqual(
         [...Object.keys(spec), "default", "client_sync"].sort(),
       );
+      expectPackProperty(definition, spec);
       expectNotReserved(name);
     }
     for (const name of contract.events) {
