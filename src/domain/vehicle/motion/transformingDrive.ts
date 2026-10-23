@@ -1,4 +1,4 @@
-// Shared transforming drivetrain: forms, landing gear, bank, and vertical motion (ADR 0050).
+// Shared transforming drivetrain: forms, landing gear, bank, and vertical motion, with a per-kind control mapping, horizontal step, and step-up switch (ADR 0050, 0089).
 
 import { SyncedValue } from "../../shared/syncedValue";
 import { clamp, localOffset, type Vec2 } from "../../shared/vec";
@@ -39,6 +39,8 @@ import { submarineVerticalSpeed } from "./submarine";
 import type { TransformingSpec } from "./transforming";
 import { bankCommand, formCommands, gearCommand } from "./transformingEntity";
 import { waterDepthAt } from "./water";
+
+const NO_STEP: StepProbe = () => 0;
 
 function stepProbe(
   ctx: TickContext,
@@ -160,6 +162,8 @@ export interface TransformingOptions {
   readonly inputFor?: InputMapping;
   /** Defaults to transformingHorizontalStep. */
   readonly horizontal?: HorizontalStep;
+  /** Whether car form climbs one- and two-block steps and a submarine rises at a shore step (ADR 0004, 0035); default true. False turns off both probes. */
+  readonly stepUp?: boolean;
   readonly guard?: StepGuard;
 }
 
@@ -173,6 +177,7 @@ export class TransformingDrive implements Drive {
   private readonly gearDownSync = new SyncedValue<boolean>();
   private readonly inputFor: InputMapping;
   private readonly horizontal: HorizontalStep;
+  private readonly stepUp: boolean;
   private readonly guard: StepGuard | undefined;
 
   constructor(
@@ -185,6 +190,7 @@ export class TransformingDrive implements Drive {
   ) {
     this.inputFor = options.inputFor ?? groundInputFor;
     this.horizontal = options.horizontal ?? transformingHorizontalStep;
+    this.stepUp = options.stepUp ?? true;
     this.guard = options.guard;
     const form = isForm(restored.form) ? restored.form : "car";
     this.motion = initialMotion(yaw);
@@ -314,7 +320,7 @@ export class TransformingDrive implements Drive {
       ctx,
       form,
       jumpTapped,
-      probe: stepProbe(ctx, this.spec),
+      probe: this.stepUp ? stepProbe(ctx, this.spec) : NO_STEP,
       spec: this.spec,
       limits: this.limits,
       tyres: this.tyres,
@@ -358,6 +364,7 @@ export class TransformingDrive implements Drive {
     // and the bare look-ahead margin would miss a step face just beyond it
     // (ADR 0035).
     const rising =
+      this.stepUp &&
       input.throttle > 0 &&
       step.state.speed >= 0 &&
       stepProbe(

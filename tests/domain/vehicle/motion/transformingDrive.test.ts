@@ -3,6 +3,11 @@ import { expect, it } from "vitest";
 import { clamp } from "../../../../src/domain/shared/vec";
 import type { TickContext } from "../../../../src/domain/vehicle/drive";
 import type { RawInput } from "../../../../src/domain/vehicle/driveInput";
+import {
+  CAMPER_MOTION,
+  CAMPER_TYRES,
+} from "../../../../src/domain/vehicle/kinds/camper/profile";
+import { CAMPER_TRANSFORMING } from "../../../../src/domain/vehicle/kinds/camper/spec";
 import { SuvDrive } from "../../../../src/domain/vehicle/kinds/suv/drive";
 import {
   SUV_MOTION,
@@ -26,6 +31,7 @@ import {
   type MotionResult,
   stepMotion,
 } from "../../../../src/domain/vehicle/motion/motion";
+import { submarineVerticalSpeed } from "../../../../src/domain/vehicle/motion/submarine";
 import {
   groundInputFor,
   type HorizontalStep,
@@ -40,6 +46,7 @@ import {
   formCommands,
   gearCommand,
 } from "../../../../src/domain/vehicle/motion/transformingEntity";
+import { waterDepthAt } from "../../../../src/domain/vehicle/motion/water";
 import { SPEC } from "../../../../src/domain/vehicle/spec";
 import { type Body, engineStep } from "../../../support/engineModel";
 import { waterSensors } from "../../../support/waterDepth";
@@ -739,5 +746,100 @@ it("carries the horizontal step's state into the next tick", () => {
         });
       },
     ),
+  );
+});
+
+it.each([
+  ["SUV", SUV_TRANSFORMING, SUV_MOTION, SUV_TYRES],
+  ["camper", CAMPER_TRANSFORMING, CAMPER_MOTION, CAMPER_TYRES],
+] as const)(
+  "%s with step-up off drives into a one-block step without hopping",
+  (_name, spec, limits, tyres) => {
+    const ctx: TickContext = {
+      ...context(),
+      onGround: true,
+      velocity: { x: 0, y: 0, z: 0 },
+      solidAt: (o) => o.y < 0 || (o.z >= spec.hitboxFront + 0.1 && o.y < 1),
+    };
+    const hopping = new TransformingDrive(0, {}, spec, limits, tyres);
+    const flat = new TransformingDrive(0, {}, spec, limits, tyres, {
+      stepUp: false,
+    });
+    let hops = 0;
+    for (let tick = 0; tick < 40; tick++) {
+      if (
+        hopping.step(FORWARD, { ...ctx, tick }).impulse.y ===
+        MOTION.oneStepVelocity
+      )
+        hops++;
+      expect(flat.step(FORWARD, { ...ctx, tick }).impulse.y).toBe(0);
+    }
+    expect(hops).toBeGreaterThan(0);
+  },
+);
+
+it("with step-up off only the landing gear reads solidAt", () => {
+  fc.assert(
+    fc.property(stepTerrain, tickSequence, (ground, ticks) => {
+      const drive = suvDrive({ stepUp: false });
+      ticks.forEach((sample, tick) => {
+        const terrain = terrainContext(ground, sample, tick);
+        let calls = 0;
+        const out = drive.step(sample.raw, {
+          ...terrain,
+          solidAt: (o) => {
+            calls++;
+            return terrain.solidAt(o);
+          },
+        });
+        if (drive.form !== "landing") expect(calls).toBe(0);
+        if (drive.form === "car") expect(out.impulse.y).toBe(0);
+      });
+    }),
+  );
+});
+
+it("with step-up off a submarine rises only by climb and buoyancy", () => {
+  fc.assert(
+    fc.property(tickSequence, (ticks) => {
+      const drive = suvDrive({ stepUp: false }, { form: "submarine" });
+      ticks.forEach(({ raw, depth, velocity, onGround }, tick) => {
+        const input = { ...raw, moveY: Math.abs(raw.moveY) };
+        const ctx: TickContext = {
+          ...context(SUV_TRANSFORMING.carHeight + depth),
+          tick,
+          velocity,
+          onGround,
+          // A one-block shore step ahead of the bow, where the probe dropped by
+          // submarineStepProbeDrop finds it (ADR 0035).
+          solidAt: (o) =>
+            o.z >= SUV_TRANSFORMING.hitboxFront + 0.1 &&
+            o.y >= -SUV_TRANSFORMING.submarineStepProbeDrop &&
+            o.y < 1 - SUV_TRANSFORMING.submarineStepProbeDrop,
+        };
+        const out = drive.step(input, ctx);
+        if (drive.form !== "submarine") return;
+        const waterDepth = waterDepthAt(
+          ctx.location,
+          ctx.waterAt,
+          SUV_TRANSFORMING.carHeight,
+        );
+        expect(out.impulse.y).toBe(
+          verticalImpulse(
+            submarineVerticalSpeed(
+              {
+                climb: climbInput(input),
+                controlled: true,
+                rising: false,
+                waterDepth,
+              },
+              SUV_TRANSFORMING,
+            ),
+            ctx.velocity.y,
+            SUV_TRANSFORMING.waterVerticalDrag,
+          ),
+        );
+      });
+    }),
   );
 });
