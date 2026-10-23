@@ -43,8 +43,8 @@ function expectedParent(name: string): string | undefined {
   }
 }
 
-const GLASS_SLOT = 32;
-const LENS_SLOTS = [15, 17];
+const GLASS_SLOT = 31;
+const LENS_SLOTS = [14, 16];
 
 function expectedAlpha(slot: number): number {
   if (slot === GLASS_SLOT) return 96;
@@ -58,7 +58,7 @@ describe("bulldozer model (ADR 0009, 0136)", () => {
       "geometry.yasu_ride.bulldozer",
     );
     expect(geometryText()).not.toContain("yasu_ride_test");
-    expect(geometry().description.texture_width).toBe(33);
+    expect(geometry().description.texture_width).toBe(32);
     expect(geometry().description.texture_height).toBe(1);
   });
   it("has exactly the bone contract, each bone parented to body except root, body, and door_glass", () => {
@@ -158,10 +158,10 @@ describe("bulldozer model (ADR 0009, 0136)", () => {
     for (const b of bones())
       for (const c of b.cubes ?? []) {
         const slots = Object.values(c.uv).map((face) => face.uv[0]);
-        if (slots.includes(32))
+        if (slots.includes(GLASS_SLOT))
           expect(["glass", "door_glass"]).toContain(b.name);
         if (["glass", "door_glass"].includes(b.name))
-          expect(slots.every((slot) => slot === 32)).toBe(true);
+          expect(slots.every((slot) => slot === GLASS_SLOT)).toBe(true);
       }
   });
   it("has a thruster locator on body", () => {
@@ -209,7 +209,7 @@ describe("bulldozer paints (ADR 0031, 0076)", () => {
       ].sort(),
     );
     for (const paint of PAINTS) {
-      expect(texture(paint).width).toBe(33);
+      expect(texture(paint).width).toBe(32);
       expect(texture(paint).height).toBe(1);
     }
   });
@@ -243,7 +243,7 @@ describe("bulldozer paints (ADR 0031, 0076)", () => {
   });
   it("keeps glass see-through, lens and amber at alpha 0, and every other swatch opaque in every paint", () => {
     for (const paint of PAINTS)
-      for (let slot = 0; slot < 33; slot++)
+      for (let slot = 0; slot < 32; slot++)
         expect(swatch(paint, slot)[3]).toBe(expectedAlpha(slot));
   });
 });
