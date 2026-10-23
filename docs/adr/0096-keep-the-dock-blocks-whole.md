@@ -28,3 +28,7 @@ The v0.12.0 play test (#393) found two gaps:
 - A parked camper reads about 105 to 117 blocks once a second, not every tick
 - A laid cell that ends up holding water or a block placed by a player stays that way until departure, as before
 - Check in Creative on PC and on a phone that a cancelled break leaves the block in place. If the client hides the block until the chunk is resent, revisit this decision
+
+## Notes
+
+`DockBlocks` is now the shared laid-cell layer in `src/infrastructure/shared/laidCells.ts`, and `refloor` is now `relayCells` in `src/domain/shared/laidCells.ts` (#498).

@@ -211,7 +211,6 @@ export function fleetEntryOf(entity: {
   };
 }
 
-export const AIR_BLOCK = "minecraft:air";
 /** Invisible room blocks of a parked camper (ADR 0063, 0068). */
 export const CAMPER_FLOOR_BLOCK = id("camper_floor");
 export const CAMPER_CEILING_BLOCK = id("camper_ceiling");
