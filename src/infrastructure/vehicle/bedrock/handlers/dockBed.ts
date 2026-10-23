@@ -1,5 +1,5 @@
 import { system } from "@minecraft/server";
-import type { SleepInBed } from "../../../../application/vehicle/sleepInBed";
+import type { SleepInBed } from "../../../../application/shared/sleepInBed";
 import { asDimensionId, asPlayerId } from "../../../../domain/shared/ids";
 import { CAMPER_BED_COMPONENT } from "../identifiers";
 
