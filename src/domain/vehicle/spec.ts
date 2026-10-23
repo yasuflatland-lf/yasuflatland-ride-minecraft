@@ -1,4 +1,6 @@
 // Tuning values the vehicle core reads (ADR 0055). See docs/adr/0002-0008 for the rationale.
+import { LIGHT_SWITCH_COOLDOWN_TICKS } from "../shared/switchCooldown";
+
 export const SPEC = Object.freeze({
   // Input (ADR 0018)
   throttleDeadzone: 0.1,
@@ -18,7 +20,7 @@ export const SPEC = Object.freeze({
   placementWaterClimb: 16, // cells a placement climbs a water column to find its surface (ADR 0051)
   hitsToBreak: 3,
   hitResetTicks: 100,
-  headlightSwitchCooldown: 10, // ticks of idle switch; a held touch repeats the use every 4-6 ticks on mobile (ADR 0024)
+  headlightSwitchCooldown: LIGHT_SWITCH_COOLDOWN_TICKS,
   waterBreathingInterval: 20, // ticks
   waterBreathingTicks: 60, // ticks
   // Driver handover in flight (ADR 0078)

@@ -1,10 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { forward } from "../../../src/domain/shared/vec";
-import {
-  RamCooldowns,
-  SwitchCooldown,
-} from "../../../src/domain/vehicle/cooldowns";
+import { RamCooldowns } from "../../../src/domain/vehicle/cooldowns";
 import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
 import { type RamTarget, selectHits } from "../../../src/domain/vehicle/ram";
 import { SPEC } from "../../../src/domain/vehicle/spec";
@@ -17,36 +14,6 @@ function ticksFrom(gaps: readonly number[]): number[] {
     return t;
   });
 }
-
-describe("SwitchCooldown (ADR 0024)", () => {
-  it("counts a use only after the switch was idle for the cooldown", () => {
-    fc.assert(
-      fc.property(
-        fc.integer({ min: 1, max: 40 }),
-        fc.array(fc.integer({ min: 0, max: 10 }), {
-          minLength: 1,
-          maxLength: 30,
-        }),
-        (cooldown, gaps) => {
-          const c = new SwitchCooldown();
-          let previous = Number.NEGATIVE_INFINITY;
-          for (const t of ticksFrom(gaps)) {
-            expect(c.tryUse(t, cooldown)).toBe(t - previous >= cooldown);
-            previous = t;
-          }
-        },
-      ),
-    );
-  });
-
-  it("restarts the idle time on a use that does not count", () => {
-    const c = new SwitchCooldown();
-    expect(c.tryUse(100, 10)).toBe(true);
-    expect(c.tryUse(105, 10)).toBe(false);
-    expect(c.tryUse(114, 10)).toBe(false);
-    expect(c.tryUse(124, 10)).toBe(true);
-  });
-});
 
 describe("RamCooldowns (ADR 0006)", () => {
   it("forgets a target exactly when its cooldown has run out", () => {

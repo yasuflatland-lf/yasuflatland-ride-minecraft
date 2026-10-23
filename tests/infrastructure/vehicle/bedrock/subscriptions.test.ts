@@ -24,6 +24,7 @@ import { asVehicleId, type VehicleId } from "../../../../src/domain/shared/ids";
 import { SPEC } from "../../../../src/domain/vehicle/spec";
 import type { VehicleRepository } from "../../../../src/domain/vehicle/vehicleRepository";
 import { PAINT_BY_DYE } from "../../../../src/infrastructure/shared/dyes";
+import { HEADLIGHT_SWITCH_TYPE } from "../../../../src/infrastructure/shared/identifiers";
 import {
   CAMPER_BED_COMPONENT,
   CAMPER_CABINET_COMPONENT,
@@ -40,7 +41,6 @@ import {
   decorBlockId,
   ENTITY_TYPE,
   GIFT_ITEM,
-  HEADLIGHT_SWITCH_TYPE,
   ITEM_TYPE,
   OWNER_PROPERTY,
   pairDecorBlockId,

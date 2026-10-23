@@ -1,5 +1,5 @@
+import { SwitchCooldown } from "../../../shared/switchCooldown";
 import type { Vec3 } from "../../../shared/vec";
-import { SwitchCooldown } from "../../cooldowns";
 import { CAMPER_SPEC } from "./spec";
 
 // A dinette deck seat stands on the floor layer, under its slot cell; the cells from the
