@@ -3,7 +3,6 @@ import {
   type Dimension,
   type Entity,
   ItemStack,
-  type Player,
   world,
 } from "@minecraft/server";
 import type { TentWorld } from "../../../application/camp/ports/tent";
@@ -39,7 +38,12 @@ import type { Vec3 } from "../../../domain/shared/vec";
 import { AIR_BLOCK, NAMESPACE } from "../../shared/identifiers";
 import type { CellLayer } from "../../shared/laidCells";
 import { isLightBlock } from "../../shared/lightBlocks";
-import { consumeHeld, giveOrDrop, isCreative } from "../../shared/players";
+import {
+  consumeHeld,
+  giveOrDrop,
+  isCreative,
+  playerById,
+} from "../../shared/players";
 import {
   FLAP_BLOCKED_HINT,
   PITCH_REFUSAL_MESSAGE,
@@ -56,11 +60,6 @@ import type { TentFlapStore } from "./tentFlapStore";
 const PLAYER_TYPE = "minecraft:player";
 // Dropped items and xp orbs never stand in the way of a tent.
 const NOT_OCCUPANTS = ["minecraft:item", "minecraft:xp_orb"];
-
-function playerOf(playerId: PlayerId): Player | undefined {
-  const entity = world.getEntity(playerId);
-  return entity?.typeId === PLAYER_TYPE ? (entity as Player) : undefined;
-}
 
 function tentOf(tentId: TentId): Entity | undefined {
   const entity = world.getEntity(tentId);
@@ -170,7 +169,7 @@ export class BedrockTentWorld implements TentWorld, TentFlapWorld {
   }
 
   showFlapBlocked(playerId: PlayerId): void {
-    playerOf(playerId)?.onScreenDisplay.setActionBar({
+    playerById(playerId)?.onScreenDisplay.setActionBar({
       translate: FLAP_BLOCKED_HINT,
     });
   }
@@ -211,16 +210,16 @@ export class BedrockTentWorld implements TentWorld, TentFlapWorld {
   }
 
   isCreative(playerId: PlayerId): boolean {
-    return isCreative(playerOf(playerId));
+    return isCreative(playerById(playerId));
   }
 
   consumeTentItem(playerId: PlayerId, slot: number): boolean {
-    const player = playerOf(playerId);
+    const player = playerById(playerId);
     return player !== undefined && consumeHeld(player, TENT_ITEM, slot);
   }
 
   giveTentItem(playerId: PlayerId): void {
-    const player = playerOf(playerId);
+    const player = playerById(playerId);
     if (player) giveOrDrop(player, [new ItemStack(TENT_ITEM, 1)]);
   }
 
@@ -279,7 +278,7 @@ export class BedrockTentWorld implements TentWorld, TentFlapWorld {
 
   showPitchRefusal(playerId: PlayerId, reason: PitchRefusal): void {
     const translate = PITCH_REFUSAL_MESSAGE[reason];
-    playerOf(playerId)?.onScreenDisplay.setActionBar(
+    playerById(playerId)?.onScreenDisplay.setActionBar(
       reason === "limit"
         ? { translate, with: [String(TENT_SPEC.maxTents)] }
         : { translate },
@@ -297,7 +296,7 @@ export class BedrockTentWorld implements TentWorld, TentFlapWorld {
   }
 
   returnTentItem(tentId: TentId, playerId: PlayerId | undefined): void {
-    const player = playerId === undefined ? undefined : playerOf(playerId);
+    const player = playerId === undefined ? undefined : playerById(playerId);
     const item = new ItemStack(TENT_ITEM, 1);
     if (player) {
       giveOrDrop(player, [item]);
@@ -347,14 +346,14 @@ export class BedrockTentWorld implements TentWorld, TentFlapWorld {
   }
 
   showHitsLeft(playerId: PlayerId, hitsLeft: number): void {
-    playerOf(playerId)?.onScreenDisplay.setActionBar({
+    playerById(playerId)?.onScreenDisplay.setActionBar({
       translate: TENT_HITS_LEFT_HINT,
       with: [String(hitsLeft)],
     });
   }
 
   showOccupied(playerId: PlayerId): void {
-    playerOf(playerId)?.onScreenDisplay.setActionBar({
+    playerById(playerId)?.onScreenDisplay.setActionBar({
       translate: TENT_OCCUPIED_HINT,
     });
   }

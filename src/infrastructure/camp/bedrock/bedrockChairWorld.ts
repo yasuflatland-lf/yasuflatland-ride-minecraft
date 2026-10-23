@@ -1,24 +1,18 @@
 // Implements ChairWorld with @minecraft/server (ADR 0012, 0122).
-import { ItemStack, type Player, world } from "@minecraft/server";
+import { ItemStack, world } from "@minecraft/server";
 import type { ChairWorld } from "../../../application/camp/ports/chair";
 import type { ChairId } from "../../../domain/camp/chair";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { NAMESPACE } from "../../shared/identifiers";
-import { consumeHeld, isCreative } from "../../shared/players";
+import { consumeHeld, isCreative, playerById } from "../../shared/players";
 import { HITS_LEFT_HINT, LOW_CHAIR_ITEM, LOW_CHAIR_TYPE } from "../identifiers";
 
-const PLAYER_TYPE = "minecraft:player";
 // A chair spawns at the bottom of its cell and may settle up to a block lower,
 // through short grass or a slab's empty half (ADR 0122). From halfway down that
 // fall, a chair of the cell is within half a block and one of a neighbor cell, which
 // spawned at that cell's middle, is at least a block away.
 const SAME_CELL_DISTANCE = 0.75;
-
-function playerOf(playerId: PlayerId): Player | undefined {
-  const entity = world.getEntity(playerId);
-  return entity?.typeId === PLAYER_TYPE ? (entity as Player) : undefined;
-}
 
 function chairOf(chairId: ChairId) {
   const entity = world.getEntity(chairId);
@@ -71,11 +65,11 @@ export class BedrockChairWorld implements ChairWorld {
   }
 
   isCreative(playerId: PlayerId): boolean {
-    return isCreative(playerOf(playerId));
+    return isCreative(playerById(playerId));
   }
 
   consumeChairItem(playerId: PlayerId, slot: number): boolean {
-    const player = playerOf(playerId);
+    const player = playerById(playerId);
     return player !== undefined && consumeHeld(player, LOW_CHAIR_ITEM, slot);
   }
 
@@ -106,7 +100,7 @@ export class BedrockChairWorld implements ChairWorld {
   }
 
   showHitsLeft(playerId: PlayerId, hitsLeft: number): void {
-    playerOf(playerId)?.onScreenDisplay.setActionBar({
+    playerById(playerId)?.onScreenDisplay.setActionBar({
       translate: HITS_LEFT_HINT,
       with: [String(hitsLeft)],
     });

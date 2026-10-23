@@ -1,15 +1,32 @@
-import { BlockPermutation } from "@minecraft/server";
+import { BlockPermutation, type Dimension } from "@minecraft/server";
+import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
-import type { TentBlock } from "../../../src/domain/camp/tent";
-import { TENT_CELL_CODEC } from "../../../src/infrastructure/camp/bedrock/tentBlocks";
+import {
+  asTentId,
+  PITCHED_STATE,
+  type TentBlock,
+  type TentPose,
+  tentCells,
+} from "../../../src/domain/camp/tent";
+import { type Cell, cellKey } from "../../../src/domain/shared/cells";
+import type { LaidCell } from "../../../src/domain/shared/laidCells";
+import {
+  createTentBlocks,
+  TENT_CELL_CODEC,
+} from "../../../src/infrastructure/camp/bedrock/tentBlocks";
 import {
   TENT_CEILING_BLOCK,
   TENT_FACE_STATE,
   TENT_FLAP_BLOCK,
+  TENT_MATTRESS_BLOCK,
   TENT_OPEN_STATE,
   TENT_WALL_BLOCK,
 } from "../../../src/infrastructure/camp/identifiers";
-import { savedLaidCells } from "../../../src/infrastructure/shared/laidCells";
+import {
+  type CellHolder,
+  savedLaidCells,
+} from "../../../src/infrastructure/shared/laidCells";
+import { defined } from "../../support/defined";
 
 vi.mock("@minecraft/server", () => ({
   BlockPermutation: {
@@ -132,5 +149,146 @@ describe("TENT_CELL_CODEC (ADR 0131)", () => {
         false,
       );
     });
+  });
+});
+
+describe("tent mattress cells (ADR 0092, 0133)", () => {
+  const mattress = (index: 0 | 1): TentBlock => ({ type: "mattress", index });
+  const others: TentBlock[] = [
+    { type: "ceiling" },
+    { type: "wall", face: 0 },
+    { type: "wall", face: 3 },
+  ];
+
+  it("names both mattresses TENT_MATTRESS_BLOCK", () => {
+    expect(TENT_CELL_CODEC.blockIdOf(mattress(0))).toBe(TENT_MATTRESS_BLOCK);
+    expect(TENT_CELL_CODEC.blockIdOf(mattress(1))).toBe(TENT_MATTRESS_BLOCK);
+  });
+
+  it("is the same mattress exactly when the indexes match, and never another type", () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom<0 | 1>(0, 1),
+        fc.constantFrom<0 | 1>(0, 1),
+        fc.constantFrom(...others),
+        (a, b, other) => {
+          expect(TENT_CELL_CODEC.same(mattress(a), mattress(b))).toBe(a === b);
+          expect(TENT_CELL_CODEC.same(mattress(a), other)).toBe(false);
+          expect(TENT_CELL_CODEC.same(other, mattress(a))).toBe(false);
+        },
+      ),
+    );
+  });
+
+  it("accepts both indexes and rejects any other", () => {
+    fc.assert(
+      fc.property(
+        fc.integer(),
+        fc.integer(),
+        fc.integer(),
+        fc.constantFrom<0 | 1>(0, 1),
+        (x, y, z, index) => {
+          expect(
+            TENT_CELL_CODEC.isCell({ x, y, z, block: mattress(index) }),
+          ).toBe(true);
+        },
+      ),
+    );
+    for (const block of [
+      { type: "mattress", index: 2 },
+      { type: "mattress", index: -1 },
+      { type: "mattress", index: 0.5 },
+      { type: "mattress" },
+      { type: "mattress", index: "0" },
+    ])
+      expect(TENT_CELL_CODEC.isCell({ x: 0, y: 64, z: 0, block })).toBe(false);
+  });
+
+  it("reads a saved mattress cell back unchanged", () => {
+    const saved = JSON.parse(
+      '[{"x":3,"y":65,"z":-4,"block":{"type":"mattress","index":1}}]',
+    );
+    for (const cell of saved) {
+      expect(TENT_CELL_CODEC.isCell(cell)).toBe(true);
+      expect(TENT_CELL_CODEC.upgrade(cell)).toBe(cell);
+    }
+  });
+
+  it("resolves a mattress with no states", () => {
+    TENT_CELL_CODEC.permutationOf(mattress(0));
+    expect(BlockPermutation.resolve).toHaveBeenLastCalledWith(
+      TENT_MATTRESS_BLOCK,
+    );
+  });
+
+  const pose: TentPose = { x: 0, y: 64, z: 0, yaw: 0 };
+  const id = asTentId("tent-1");
+  const mattressCells = tentCells(pose, PITCHED_STATE).filter(
+    (c) => c.block.type === "mattress",
+  );
+
+  function fixture(savedCells: readonly LaidCell<TentBlock>[]) {
+    const blocks = new Map<string, string>();
+    const at = (c: Cell) => blocks.get(cellKey(c)) ?? "minecraft:air";
+    const dimension = {
+      id: "minecraft:overworld",
+      getBlock: (c: Cell) => ({
+        get typeId() {
+          return at(c);
+        },
+        get isAir() {
+          return at(c) === "minecraft:air";
+        },
+        setType: (typeId: string) => blocks.set(cellKey(c), typeId),
+        setPermutation: (p: { id: string }) => blocks.set(cellKey(c), p.id),
+      }),
+    } as unknown as Dimension;
+    const saved = new Map<string, unknown>([
+      [TENT_CELL_CODEC.property, JSON.stringify(savedCells)],
+    ]);
+    const holder: CellHolder = {
+      dimension,
+      isValid: true,
+      getDynamicProperty: (key) => saved.get(key) as string | undefined,
+      setDynamicProperty: (key, value) => saved.set(key, value),
+    };
+    for (const c of savedCells)
+      blocks.set(cellKey(c), TENT_CELL_CODEC.blockIdOf(c.block));
+    const savedNow = () =>
+      JSON.parse(
+        String(saved.get(TENT_CELL_CODEC.property) ?? "[]"),
+      ) as LaidCell<TentBlock>[];
+    return { blocks, at, holder, savedNow, layer: createTentBlocks() };
+  }
+
+  it("places the mattresses of a tent saved without them on the next lay, around a player's block", () => {
+    const before = tentCells(pose, PITCHED_STATE).filter(
+      (c) => c.block.type !== "mattress",
+    );
+    const f = fixture(before);
+    const [chest, ...free] = mattressCells;
+    const taken = defined(chest, "mattress cell");
+    f.blocks.set(cellKey(taken), "minecraft:chest");
+    f.layer.lay(id, f.holder, tentCells(pose, PITCHED_STATE));
+    for (const c of free) expect(f.at(c)).toBe(TENT_MATTRESS_BLOCK);
+    expect(f.at(taken)).toBe("minecraft:chest");
+    const savedMattresses = f
+      .savedNow()
+      .filter((c) => c.block.type === "mattress");
+    expect(savedMattresses).toHaveLength(3);
+    expect(savedMattresses.some((c) => cellKey(c) === cellKey(taken))).toBe(
+      false,
+    );
+  });
+
+  it("clears on take-down a mattress that is still its own, and keeps another block", () => {
+    const f = fixture([]);
+    f.layer.lay(id, f.holder, tentCells(pose, PITCHED_STATE));
+    const [kept, ...cleared] = mattressCells;
+    const replaced = defined(kept, "mattress cell");
+    f.blocks.set(cellKey(replaced), "minecraft:stone");
+    f.layer.lay(id, f.holder, []);
+    for (const c of cleared) expect(f.at(c)).toBe("minecraft:air");
+    expect(f.at(replaced)).toBe("minecraft:stone");
   });
 });

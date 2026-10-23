@@ -1,4 +1,4 @@
-// The tent's laid wall, flap, and ceiling cells, saved on its entity (ADR 0131, 0132).
+// The tent's laid wall, flap, ceiling, and mattress cells, saved on its entity (ADR 0131, 0132, 0133).
 import { BlockPermutation } from "@minecraft/server";
 import { isFlapId } from "../../../domain/camp/flaps";
 import { TENT_SPEC } from "../../../domain/camp/spec";
@@ -10,6 +10,7 @@ import {
   TENT_CELLS_PROPERTY,
   TENT_FACE_STATE,
   TENT_FLAP_BLOCK,
+  TENT_MATTRESS_BLOCK,
   TENT_OPEN_STATE,
   TENT_WALL_BLOCK,
 } from "../identifiers";
@@ -21,6 +22,7 @@ function isTentBlock(v: unknown): v is TentBlock {
   if (!isRecord(v)) return false;
   if (v.type === "ceiling") return true;
   if (v.type === "flap") return isFlapId(v.id) && typeof v.open === "boolean";
+  if (v.type === "mattress") return v.index === 0 || v.index === 1;
   return (
     v.type === "wall" &&
     typeof v.face === "number" &&
@@ -39,10 +41,16 @@ export const TENT_CELL_CODEC: CellCodec<TentBlock> = {
     Number.isInteger(v.z) &&
     isTentBlock(v.block),
   same: (a, b) => {
-    if (a.type === "wall") return b.type === "wall" && a.face === b.face;
-    if (a.type === "flap")
-      return b.type === "flap" && a.id === b.id && a.open === b.open;
-    return a.type === b.type;
+    switch (a.type) {
+      case "wall":
+        return b.type === "wall" && a.face === b.face;
+      case "flap":
+        return b.type === "flap" && a.id === b.id && a.open === b.open;
+      case "mattress":
+        return b.type === "mattress" && a.index === b.index;
+      case "ceiling":
+        return b.type === "ceiling";
+    }
   },
   blockIdOf: (block) => {
     switch (block.type) {
@@ -52,6 +60,8 @@ export const TENT_CELL_CODEC: CellCodec<TentBlock> = {
         return TENT_FLAP_BLOCK;
       case "ceiling":
         return TENT_CEILING_BLOCK;
+      case "mattress":
+        return TENT_MATTRESS_BLOCK;
     }
   },
   permutationOf: (block) => {
@@ -66,6 +76,8 @@ export const TENT_CELL_CODEC: CellCodec<TentBlock> = {
         });
       case "ceiling":
         return BlockPermutation.resolve(TENT_CEILING_BLOCK);
+      case "mattress":
+        return BlockPermutation.resolve(TENT_MATTRESS_BLOCK);
     }
   },
 };

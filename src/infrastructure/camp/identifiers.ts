@@ -1,4 +1,4 @@
-// Camping entity, item, and block ids (ADR 0047, 0122, 0130, 0131, 0132).
+// Camping entity, item, and block ids (ADR 0047, 0122, 0130, 0131, 0132, 0133).
 import type { PitchRefusal } from "../../domain/camp/tent";
 import { id } from "../shared/identifiers";
 
@@ -31,6 +31,10 @@ export const TENT_FLAP_BLOCK = id("tent_flap");
 export const TENT_FLAP_COMPONENT = id("tent_flap");
 /** The same state name as the camper's ROOM_OPEN_STATE; declared again because camp cannot import vehicle. */
 export const TENT_OPEN_STATE = id("open");
+/** The invisible 9 px bed block laid in each mattress cell of a pitched tent (ADR 0092). */
+export const TENT_MATTRESS_BLOCK = id("tent_mattress");
+/** The custom component on tent_mattress.block.json that sleeps the player (ADR 0092). */
+export const TENT_MATTRESS_COMPONENT = id("tent_mattress");
 /** Block state of tent_wall: the TentFace its plate sits on. */
 export const TENT_FACE_STATE = id("face");
 /** Entity dynamic property: the tent's laid cells as JSON (LaidCell<TentBlock>[]). */

@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 import { TENT_SPEC } from "../../src/domain/camp/spec";
+import { TENT_MATTRESSES } from "../../src/domain/camp/tent";
 import {
   FLAP_BLOCKED_HINT,
   PITCH_REFUSAL_MESSAGE,
@@ -15,6 +16,8 @@ import {
   TENT_HITS_LEFT_HINT,
   TENT_ITEM,
   TENT_LANTERN_PROPERTY,
+  TENT_MATTRESS_BLOCK,
+  TENT_MATTRESS_COMPONENT,
   TENT_OCCUPIED_HINT,
   TENT_OPEN_STATE,
   TENT_TYPE,
@@ -578,4 +581,58 @@ describe("tent shelter blocks (ADR 0131)", () => {
       expect(valueFor(PITCH_REFUSAL_MESSAGE.limit)).toContain("%s");
     },
   );
+});
+
+describe("tent mattresses (ADR 0092, 0133)", () => {
+  it("copies the camper bed block with only its identifier and component changed", () => {
+    const read = (name: string) =>
+      readJson(`${BP}/blocks/yasu_ride/${name}.block.json`);
+    const bed = read("camper_bed");
+    const mattress = read("tent_mattress");
+    const block = mattress["minecraft:block"];
+    expect(block.description.identifier).toBe(TENT_MATTRESS_BLOCK);
+    expect(block.components["minecraft:custom_components"]).toEqual([
+      TENT_MATTRESS_COMPONENT,
+    ]);
+    for (const box of ["minecraft:collision_box", "minecraft:selection_box"])
+      expect(block.components[box]).toEqual({
+        origin: [-8, 0, -8],
+        size: [16, 9, 16],
+      });
+    bed["minecraft:block"].description.identifier = TENT_MATTRESS_BLOCK;
+    bed["minecraft:block"].components["minecraft:custom_components"] = [
+      TENT_MATTRESS_COMPONENT,
+    ];
+    expect(mattress).toEqual(bed);
+    expect(
+      readFileSync(`${BP}/blocks/yasu_ride/tent_mattress.block.json`, "utf8"),
+    ).toBe(
+      readFileSync(
+        `${BP}/blocks/yasu_ride/camper_bed.block.json`,
+        "utf8",
+      ).replaceAll("yasu_ride:camper_bed", TENT_MATTRESS_COMPONENT),
+    );
+  });
+
+  it("draws each mattress 9 px high inside its TENT_MATTRESSES cells", () => {
+    const bones: Bone[] = geometry().bones;
+    for (const index of [0, 1] as const) {
+      const bone = bones.find((b) => b.name === `mattress_${index}`);
+      const cubes = bone?.cubes ?? [];
+      expect(cubes.length).toBeGreaterThan(0);
+      expect(Math.max(...cubes.map((c) => bounds(c)[4]))).toBe(9);
+      const cells = TENT_MATTRESSES[index];
+      const xs = cells.map((c) => 16 * c.x);
+      const zs = cells.map((c) => -16 * (11 - c.depth));
+      const outer: Bounds = [
+        Math.min(...xs) - 8,
+        0,
+        Math.min(...zs) - 8,
+        Math.max(...xs) + 8,
+        16,
+        Math.max(...zs) + 8,
+      ];
+      for (const cube of cubes) inside(bounds(cube), outer);
+    }
+  });
 });

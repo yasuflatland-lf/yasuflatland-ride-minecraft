@@ -98,11 +98,11 @@ describe("tentPose (ADR 0131)", () => {
 });
 
 describe("tentCells (ADR 0130, 0131)", () => {
-  it("lays 137 unique cells in the footprint: 79 walls, 8 flap cells, 35 room and 15 tarp ceiling cells", () => {
+  it("lays 141 unique cells in the footprint: 79 walls, 8 flap cells, 35 room and 15 tarp ceiling cells, and 4 mattress cells", () => {
     fc.assert(
       fc.property(arbPose, (pose) => {
         const cells = tentCells(pose, PITCHED_STATE);
-        expect(cells).toHaveLength(137);
+        expect(cells).toHaveLength(141);
         const walls = cells.filter((c) => c.block.type === "wall");
         const flaps = cells.filter((c) => c.block.type === "flap");
         const ceilings = cells.filter((c) => c.block.type === "ceiling");
@@ -117,7 +117,10 @@ describe("tentCells (ADR 0130, 0131)", () => {
         expect(ceilings).toHaveLength(50);
         expect(ceilings.filter((c) => c.y === pose.y + 3)).toHaveLength(35);
         expect(ceilings.filter((c) => c.y === pose.y + 2)).toHaveLength(15);
-        expect(new Set(cells.map(cellKey)).size).toBe(137);
+        expect(cells.filter((c) => c.block.type === "mattress")).toHaveLength(
+          4,
+        );
+        expect(new Set(cells.map(cellKey)).size).toBe(141);
         for (const c of cells) expect(inTentFootprint(pose, c)).toBe(true);
       }),
     );
@@ -142,6 +145,11 @@ describe("tentCells (ADR 0130, 0131)", () => {
           if (there?.type === "wall") {
             const l = defined(local.get(cellKey(n)), "neighbor");
             expect([Math.abs(l.x), l.depth]).toEqual([2, 8]);
+          }
+          // The rear wall's plates at x ±1 face the mattresses' depth-10 cells.
+          if (there?.type === "mattress") {
+            const l = defined(local.get(cellKey(n)), "neighbor");
+            expect([Math.abs(l.x), l.depth, l.layer]).toEqual([1, 10, 0]);
           }
         }
       }),
@@ -361,14 +369,15 @@ describe("flaps and mattresses (ADR 0130)", () => {
     );
   });
 
-  it("leaves each two-cell mattress inside and unlaid", () => {
+  it("lays each two-cell mattress as a tent cell inside the tent", () => {
     fc.assert(
       fc.property(arbPose, (pose) => {
-        for (const mattress of TENT_MATTRESSES) {
+        for (const index of [0, 1] as const) {
+          const mattress = TENT_MATTRESSES[index];
           expect(mattress).toHaveLength(2);
           for (const local of mattress) {
             const c = tentCellAt(pose, local);
-            expect(tentBlockAt(pose, c)).toBeUndefined();
+            expect(tentBlockAt(pose, c)).toEqual({ type: "mattress", index });
             expect(
               insideTent(pose, { x: c.x + 0.5, y: c.y, z: c.z + 0.5 }),
             ).toBe(true);
@@ -416,6 +425,93 @@ describe("tent flap cells (ADR 0132)", () => {
         }
         for (const c of tentCells(pose, PITCHED_STATE))
           if (!seen.has(cellKey(c))) expect(flapAt(pose, c)).toBeUndefined();
+      }),
+    );
+  });
+});
+
+describe("mattresses (ADR 0092, 0133)", () => {
+  const mattressCells = (pose: TentPose) =>
+    tentCells(pose, PITCHED_STATE).filter((c) => c.block.type === "mattress");
+
+  it("lays the mattress cells last, index 0 then index 1, through tentCellAt", () => {
+    fc.assert(
+      fc.property(arbPose, (pose) => {
+        const cells = tentCells(pose, PITCHED_STATE);
+        const expected = ([0, 1] as const).flatMap((index) =>
+          TENT_MATTRESSES[index].map((local) => ({
+            ...tentCellAt(pose, local),
+            block: { type: "mattress", index },
+          })),
+        );
+        expect(cells.slice(-4)).toEqual(expected);
+        expect(mattressCells(pose)).toEqual(expected);
+      }),
+    );
+  });
+
+  it("lays the same mattress cells whichever flaps are open", () => {
+    fc.assert(
+      fc.property(arbPose, fc.subarray([...FLAP_IDS]), (pose, open) => {
+        const mattresses = tentCells(pose, { openFlaps: new Set(open) }).filter(
+          (c) => c.block.type === "mattress",
+        );
+        expect(mattresses).toEqual(mattressCells(pose));
+      }),
+    );
+  });
+
+  it("puts each mattress's two cells next to each other along the depth at one height", () => {
+    fc.assert(
+      fc.property(arbPose, (pose) => {
+        for (const mattress of TENT_MATTRESSES) {
+          const [a, b] = mattress.map((l) => tentCellAt(pose, l));
+          const [la, lb] = mattress;
+          const ca = defined(a, "depth 9");
+          const cb = defined(b, "depth 10");
+          expect(ca.y).toBe(cb.y);
+          expect(Math.abs(ca.x - cb.x) + Math.abs(ca.z - cb.z)).toBe(1);
+          expect(defined(la, "depth 9").x).toBe(defined(lb, "depth 10").x);
+          expect(
+            Math.abs(
+              defined(la, "depth 9").depth - defined(lb, "depth 10").depth,
+            ),
+          ).toBe(1);
+        }
+      }),
+    );
+  });
+
+  it("shares no cell with any other tent cell", () => {
+    fc.assert(
+      fc.property(arbPose, (pose) => {
+        const others = new Set(
+          tentCells(pose, PITCHED_STATE)
+            .filter((c) => c.block.type !== "mattress")
+            .map(cellKey),
+        );
+        for (const c of mattressCells(pose))
+          expect(others.has(cellKey(c))).toBe(false);
+      }),
+    );
+  });
+
+  it("counts a player standing on a mattress as inside the tent", () => {
+    fc.assert(
+      fc.property(arbPose, (pose) => {
+        for (const c of mattressCells(pose))
+          expect(
+            insideTent(pose, { x: c.x + 0.5, y: c.y + 9 / 16, z: c.z + 0.5 }),
+          ).toBe(true);
+      }),
+    );
+  });
+
+  it("answers the mattress of the right index from tentBlockAt", () => {
+    fc.assert(
+      fc.property(arbPose, (pose) => {
+        for (const c of mattressCells(pose))
+          expect(tentBlockAt(pose, c)).toEqual(c.block);
       }),
     );
   });
