@@ -12,7 +12,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0006](0006-ram-damage-and-occupant-protection.md) | Ram damage detection, and always protecting occupants | Accepted |
 | [0007](0007-seats-and-driver.md) | Seats and choosing the driver | Superseded by 0019 |
 | [0008](0008-vehicle-item-and-breaking.md) | Placing and picking up vehicles | Superseded in part by 0036; extended by 0122 (Proposed) |
-| [0009](0009-vehicle-model-conventions.md) | Vehicle model conventions, and accepting a square collision box | Extended by 0091 and 0093 |
+| [0009](0009-vehicle-model-conventions.md) | Vehicle model conventions, and accepting a square collision box | Extended by 0091, 0093, and 0136 (Proposed) |
 | [0010](0010-testing-strategy.md) | Testing strategy | Accepted |
 | [0011](0011-dev-server-docker-raknet.md) | Run the development server as BDS in Docker with raknet | Superseded by 0015 |
 | [0012](0012-ddd-layered-architecture.md) | Split the code into domain, application, and infrastructure layers | Extended by 0065 |
@@ -23,22 +23,22 @@ This directory records design decisions and the reasons behind them. The format 
 | [0017](0017-repaint-vehicles-with-dye.md) | Repaint vehicles with dye | Superseded by 0031 |
 | [0018](0018-sideways-stick-creeps-forward.md) | Treat a sideways stick as a slow forward turn | Extended by 0074 and 0089 |
 | [0019](0019-passengers-move-up-to-the-driver-seat.md) | Passengers move up to the driver seat | Superseded in part by 0120 (Proposed); amended by 0126; superseded in part by 0128 |
-| [0020](0020-headlights.md) | Headlights that light up the road | Extended by 0115 |
+| [0020](0020-headlights.md) | Headlights that light up the road | Extended by 0115 and 0136 (Proposed) |
 | [0021](0021-flight-mode.md) | Flight mode: toggle with a double tap, climb with the view pitch, and switch gravity with a component group | Superseded in part by 0032, 0034, 0039, and 0078 |
 | [0022](0022-fold-wheels-and-glow-in-flight.md) | Fold the wheels and light their undersides in flight | Superseded in part by 0033 and 0043 |
-| [0023](0023-starter-vehicle-on-first-join.md) | Give each player a vehicle item on their first join | Accepted |
+| [0023](0023-starter-vehicle-on-first-join.md) | Give each player a vehicle item on their first join | Extended by 0136 (Proposed) |
 | [0024](0024-item-use-on-mobile-and-longer-headlights.md) | Make the vehicle item and the headlight switch work on mobile, and light the road three times farther | Extended by 0115, 0129, and [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md) (Proposed) |
-| [0025](0025-jump-on-touch-and-a-sticky-driver.md) | Keep a touch rider's Jump from dismounting them, and keep the driver while they ride | Superseded in part by 0120 (Proposed); amended by 0126; superseded in part by 0128 |
+| [0025](0025-jump-on-touch-and-a-sticky-driver.md) | Keep a touch rider's Jump from dismounting them, and keep the driver while they ride | Superseded in part by 0120 (Proposed); amended by 0126; superseded in part by 0128; extended by 0136 (Proposed) |
 | [0026](0026-bank-into-turns-in-flight.md) | Bank into turns in flight | Superseded in part by 0044 |
-| [0027](0027-readme-previews-in-three-poses.md) | Render the README previews in three poses | Superseded in part by 0045 |
+| [0027](0027-readme-previews-in-three-poses.md) | Render the README previews in three poses | Superseded in part by 0045; extended by 0136 (Proposed) |
 | [0028](0028-third-person-camera-in-flight.md) | Switch riders to the third-person camera in flight | Superseded in part by 0052 and 0071 |
 | [0029](0029-raise-the-seats.md) | Raise the seats so riders' legs stay inside the body | Accepted |
 | [0030](0030-engine-and-hover-sounds.md) | Engine and hover sounds from client animations, stepped by speed | Extended by 0073 |
-| [0031](0031-repaint-with-all-sixteen-dyes.md) | Repaint vehicles with all sixteen dyes | Superseded in part by 0036; extended by 0076 and [0135](0135-repaint-the-tent-with-dyes.md) |
+| [0031](0031-repaint-with-all-sixteen-dyes.md) | Repaint vehicles with all sixteen dyes | Superseded in part by 0036; extended by 0076, [0135](0135-repaint-the-tent-with-dyes.md), and 0136 (Proposed) |
 | [0032](0032-climb-with-jump-and-sink-with-the-stick.md) | Climb with held Jump and sink with the stick pulled back | Accepted |
 | [0033](0033-lower-the-wheels-before-touchdown.md) | Lower the wheels before touchdown | Accepted |
 | [0034](0034-touch-down-from-flight.md) | Return to the ground when a flying vehicle sinks onto it | Accepted |
-| [0035](0035-jump-one-block-steps-in-the-script.md) | Jump one-block steps in the script, and skip blocks without a collision box | Accepted |
+| [0035](0035-jump-one-block-steps-in-the-script.md) | Jump one-block steps in the script, and skip blocks without a collision box | Extended by 0136 (Proposed) |
 | [0036](0036-paint-by-hitting-with-a-dye.md) | Paint by hitting with a dye, and get in by interacting | Accepted |
 | [0037](0037-one-dye-per-repaint-within-a-tick.md) | Use one dye per repaint within a tick | Accepted |
 | [0038](0038-keep-at-most-ten-vehicles-in-a-world.md) | Keep at most ten vehicles in a world | Superseded by 0066 |
@@ -48,17 +48,17 @@ This directory records design decisions and the reasons behind them. The format 
 | [0042](0042-bronze-four-blade-propellers.md) | Bronze four-blade propellers | Accepted |
 | [0043](0043-wheel-arms.md) | Wheel arms in flight and under water | Accepted |
 | [0044](0044-bank-under-water.md) | Bank into turns under water | Accepted |
-| [0045](0045-submarine-preview.md) | Add a submarine pose to the README previews | Accepted |
+| [0045](0045-submarine-preview.md) | Add a submarine pose to the README previews | Extended by 0136 (Proposed) |
 | [0046](0046-organize-each-layer-by-feature.md) | Organize each layer by feature | Extended by 0050, 0055, 0065, 0122 (Proposed), and 0129 |
 | [0047](0047-rename-to-yasuflatland-ride.md) | Rename to Yasuflatland Ride | Accepted |
 | [0048](0048-mutation-testing-and-unused-code-checks.md) | Mutation testing with Stryker, and unused code checks with knip | Extended by 0088 |
 | [0049](0049-pack-icons-rendered-from-model.md) | Render pack icons from the hovering SUV model | Accepted |
-| [0050](0050-vehicle-kinds-and-per-kind-profiles.md) | Vehicle kinds and per-kind profiles | Superseded in part by 0055; extended by 0120 |
+| [0050](0050-vehicle-kinds-and-per-kind-profiles.md) | Vehicle kinds and per-kind profiles | Superseded in part by 0055; extended by 0120 and 0136 (Proposed) |
 | [0051](0051-sports-boat.md) | Sports boat | Superseded in part by 0066 and 0080; extended by 0058, 0063, 0089, and 0120 |
 | [0052](0052-retry-camera-switches-and-break-seat-ties-low.md) | Retry camera switches in both directions, and break seat ties toward the lower index | Superseded in part by 0117 |
 | [0053](0053-estimate-buoyant-boat-water-drag.md) | Estimate the buoyant boat's water drag | Accepted |
 | [0054](0054-shard-in-game-tests-in-ci.md) | Shard the in-game tests across four CI jobs and run model:check beside the unit tests | Accepted |
-| [0055](0055-kind-neutral-vehicle-core.md) | Kind-neutral vehicle core | Superseded in part by 0083 and 0087; extended by 0064, 0065, 0072, 0089, 0090, 0127, and 0137 (Proposed) |
+| [0055](0055-kind-neutral-vehicle-core.md) | Kind-neutral vehicle core | Superseded in part by 0083 and 0087; extended by 0064, 0065, 0072, 0089, 0090, 0127,, 0137 (Proposed), and 0136 (Proposed) |
 | [0056](0056-sports-boat-previews.md) | Render README previews of the sports boat | Accepted |
 | [0057](0057-skip-model-check-when-inputs-unchanged.md) | Skip model:check on pull requests that leave the renderer's files alone | Accepted |
 | [0058](0058-refine-the-sports-boat-interior.md) | Refine the sports boat interior from reference photos | Accepted |
@@ -69,7 +69,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0063](0063-walk-on-a-stopped-sports-boat.md) | Walk on a stopped sports boat | Superseded in part by 0120 (Proposed); extended by 0064, 0093, 0095, 0096, 0101, and 0109 |
 | [0064](0064-dock-step.md) | Group the hold, floor, and deck seats into an optional dock | Accepted |
 | [0065](0065-check-import-rules-with-dependency-cruiser.md) | Check the import rules with dependency-cruiser | Extended by 0072 |
-| [0066](0066-limit-vehicles-per-player-and-kind.md) | Limit vehicles per player and per kind | Extended by 0124 and 0125 |
+| [0066](0066-limit-vehicles-per-player-and-kind.md) | Limit vehicles per player and per kind | Extended by 0124, 0125, and 0136 (Proposed) |
 | [0067](0067-camper.md) | Camper | Superseded in part by 0068 and 0069; extended by 0091 and 0093 |
 | [0068](0068-park-the-camper-with-room-blocks.md) | Park the camper with room blocks | Superseded in part by 0070, 0084, and 0116 (Proposed); extended by 0086, 0092, 0093, 0094, 0095, 0096, 0097, 0098, 0101, 0105, 0109, 0114, 0115, 0118, and 0119 (Proposed) |
 | [0069](0069-camper-right-hand-drive.md) | Seat the camper's driver on the right like the SUV | Superseded in part by 0070 |
@@ -79,7 +79,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0073](0073-hover-sound-on-a-riderless-vehicle.md) | Keep the hover sound on a riderless vehicle until its wheels come down | Accepted |
 | [0074](0074-light-braking-at-least-coasting.md) | Light braking is never weaker than coasting | Accepted |
 | [0075](0075-name-the-medium-step-after-the-medium.md) | Name the shared medium step after the medium | Accepted |
-| [0076](0076-per-kind-default-paint.md) | Each kind names its default paint; a dye matching it does nothing | Accepted; extended by [0135](0135-repaint-the-tent-with-dyes.md) |
+| [0076](0076-per-kind-default-paint.md) | Each kind names its default paint; a dye matching it does nothing | Accepted; extended by [0135](0135-repaint-the-tent-with-dyes.md) and 0136 (Proposed) |
 | [0077](0077-never-reverse-the-internal-speed-on-a-wall-hit.md) | Never reverse the internal speed on a wall hit | Superseded in part by 0081 |
 | [0078](0078-wait-for-a-passenger-before-landing.md) | Wait for a passenger to move up before landing a driverless flying vehicle | Accepted |
 | [0079](0079-roll-by-signed-speed.md) | Roll the sports boat by its signed speed | Accepted |
@@ -92,7 +92,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0086](0086-camper-hints-near-the-bumper-and-the-parked-driver-seat.md) | Show camper hints near the bumper and the parked driver's seat | Extended by 0116 |
 | [0087](0087-sports-boat-spec-table.md) | Keep the sports boat tuning in one spec table | Superseded in part by 0089 |
 | [0088](0088-keep-the-in-game-test-fixtures-out-of-mutation.md) | Keep the in-game test fixtures out of mutation testing | Accepted |
-| [0089](0089-per-kind-control-mapping.md) | Each kind maps the stick to handbrake and creep | Accepted |
+| [0089](0089-per-kind-control-mapping.md) | Each kind maps the stick to handbrake and creep | Extended by 0136 (Proposed) |
 | [0090](0090-group-the-vehicle-core-by-subcontext.md) | Group the vehicle core by subcontext | Extended by 0129 |
 | [0091](0091-alpha-blend-only-the-camper-glass.md) | Alpha-blend only the camper glass | Accepted |
 | [0092](0092-a-bed-in-the-parked-camper.md) | A bed in the parked camper | Extended by 0093, 0129, and [0133](0133-sleep-on-the-tent-mattresses.md) |
@@ -139,6 +139,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0133](0133-sleep-on-the-tent-mattresses.md) | Sleep on the tent mattresses | Proposed |
 | [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md) | Switch the tent lantern with the headlight switch | Proposed |
 | [0135](0135-repaint-the-tent-with-dyes.md) | Repaint the tent with dyes | Proposed |
+| [0136](0136-bulldozer.md) | Add the bulldozer kind | Proposed |
 | [0137](0137-clear-block-columns-with-the-blade.md) | Clear block columns with the blade, keeping liquids, containers, and laid blocks | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).

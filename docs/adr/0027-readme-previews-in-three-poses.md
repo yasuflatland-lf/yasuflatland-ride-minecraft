@@ -1,6 +1,6 @@
 # 0027. Render the README previews in three poses
 
-- Status: Superseded in part by 0045 (a fourth, submarine pose)
+- Status: Superseded in part by 0045; extended by 0136 (Proposed)
 - Date: 2026-10-11
 
 ## Context

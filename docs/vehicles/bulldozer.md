@@ -1,0 +1,29 @@
+# Bulldozer
+
+## Getting one
+
+Every player receives one bulldozer item on joining, including players who already received their SUV. At a crafting table, combine an SUV item, an iron block, and an iron shovel, or use `/give @s yasu_ride:bulldozer_item`. Place it on top of a block with a clear 9 by 9 area, three blocks high. One driver rides it. Each player can keep one bulldozer; placing another replaces that player's oldest bulldozer. Hit an empty vehicle three times with an empty hand to take its item back.
+
+## Controls
+
+Push forward or back to drive straight. A sideways stick past 0.35 (A/D on PC) pivots on the spot, braking to a stop while turning. This works on land, in flight, and under water; takeoff ignores the stick. There is no handbrake or creep.
+
+Tap Jump to hop one block on the ground. Double-tap within 8 ticks to take off or land. In flight and under water, hold Jump to climb and pull the stick back to sink. Sneak gets out. The left door opens for two seconds when boarding or leaving.
+
+## How it moves
+
+Ground top speed is 9 blocks/s, half the SUV's, with half its acceleration. Flight and water also cap at 9 blocks/s. The bulldozer never banks, drives straight without steering, and does not hop steps automatically. Tracks move only in car form. A single rear propeller spins under water; blue glow comes from the thruster in flight.
+
+## Clearing
+
+While moving forward above 0.02 blocks/tick, the blade clears the columns it touches ahead. On the ground, cutting starts at the feet and continues upward until the first air gap, leaving an overhang above a gap. In flight it cuts a tunnel up to the top of the 2.9-block body, including at fractional heights. Hopping, falling off a ledge, pivoting, reversing, standing, and diving do not cut.
+
+Water, lava, containers with their contents, and the add-on's own blocks are kept. Bedrock, barriers, command blocks, structure blocks, reinforced deepslate, end portal frames, and light blocks are cut. The cut works in every game mode, Adventure included. Neighbor updates may drop unsupported blocks; nearby new item drops from the cut are removed as described in [ADR 0137](../adr/0137-clear-block-columns-with-the-blade.md).
+
+## Headlights
+
+Use the headlight switch while driving. The headlights and rear beacon glow, and five road beams reach 6, 10, 15, 21, and 27 blocks ahead. The first two are dimmer (levels 8 and 12), keeping the cab dark; the others use level 15.
+
+## Paint
+
+Yellow is the default. Hit with any of the sixteen dyes to recolor the yellow panels; trim, glass, tracks, and lamps stay the same. Brown restores the default yellow. Brown or yellow on an already yellow bulldozer keeps the dye. Breaking the vehicle returns the plain item.

@@ -1,6 +1,6 @@
 # 0045. Add a submarine pose to the README previews
 
-- Status: Accepted
+- Status: Extended by 0136 (Proposed)
 - Date: 2026-10-11
 
 ## Context

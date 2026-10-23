@@ -1,0 +1,29 @@
+# 0136. Add the bulldozer kind
+
+- Status: Proposed
+- Date: 2026-10-24
+- Extends: 0009, 0020, 0023, 0025, 0027, 0031, 0035, 0045, 0050, 0055, 0066, 0076, 0089
+
+## Context
+
+The owner approved the [bulldozer spike](../spike-bulldozer.md). The eight preparatory changes supply per-kind controls and horizontal motion, safe zero bank, seat-taken hooks, per-beam levels, integer properties, per-kind starters, [column cuts](0137-clear-block-columns-with-the-blade.md), and the model pipeline. This fourth kind consumes them without changing the SUV, sports boat, or camper. Manual PC and mobile checks remain pending in the Bulldozer section of [the checklist](../manual-test.md); accept this ADR only after they pass.
+
+## Decision
+
+- Implement `BulldozerDrive` on `TransformingDrive`, with its own control mapping and horizontal step supplied through `TransformingOptions` (0089). Keep every tuning value in `BULLDOZER_SPEC` or `BULLDOZER_TRANSFORMING`; the flight and water values repeat the SUV's at the owner's request and are not shared constants (0050, 0055).
+- Drive at half the SUV's top speed and acceleration: 0.45 and 0.01125 blocks/tick. In water and flight, `stepMediumMotion` caps speed at 0.45. Keep the water medium's nominal 0.5 cap to match the SUV.
+- A sideways stick with `|moveX| > 0.35` pivots at 3 degrees/tick, braking by 0.02 each tick toward zero without reversing. It works in every form except takeoff. Forward and back never steer. There is no creep or handbrake.
+- A Jump tap on the ground hops at 0.45. It has air control on that tick and 9 more ticks, matching `stepMotion`'s counting of a step. A second tap within 8 ticks still takes off. Set `stepUp: false`: neither automatic script step-up nor the submarine rising probe applies (0035). `maxBank` is zero and relies on the shared zero-bank guards.
+- One driver sits at `[0, 1.4, -1.35]`. The left door opens for 40 ticks, moving by 0.1 per tick. Both seat-taken and seat-vacated hooks start or restart its timer. Five separate `SyncedValue`s send the door and each track phase/spin only when changed and resend them after a failed send.
+- Tracks run in car form only. Right travel advances by `speed - degToRad(yawDelta) * halfGauge`, left by `speed + degToRad(yawDelta) * halfGauge`. `halfGauge` is 14.3/16 blocks. Phase is positive modulo 3 of `floor(travel / (1.5/16/3))`; spin is rounded whole degrees of `travel / (6.7/16)`, positive modulo 360.
+- Extend the model bone contract (0009) with `blade`, `beacon`, `track_r_0..2`, `track_l_0..2`, `idler_front_r`, `idler_rear_r`, `sprocket_r`, `idler_front_l`, `idler_rear_l`, `sprocket_l`, `propeller`, `door_l`, `glass`, and `door_glass`. Use `minecraft:body_rotation_always_follows_head`. The blade reaches 2.4 blocks forward and 2.32 sideways; the ram box includes it. The placement footprint is 3.35.
+- Yellow is the default paint at variant 0 (0031, 0076). All sixteen dyes recolor only the `yellow`, `yellow_dark`, `louver`, and `yellow_light` swatches. Brown restores variant 0; brown or yellow on an already yellow vehicle consumes no dye.
+- Show four README previews (0027, 0045). Draw lens swatches opaque, one grouser phase, and no propeller. Only the headlights are lit: the beacon faces backward on the cab roof, so the cab hides it in the front-left dusk view.
+- Use headlight reach 6, 10, 15, 21, 27 with levels 8, 12, 15, 15, 15 (0020). The cab stays dark. Blend only glass and door glass; headlights and beacon use emissive material while on. Reuse `hover_glow` at the thruster locator in takeoff, hover, and landing; show the spinning propeller only under water. Add no particle.
+- Halve the engine and hover sound bands: engine edges 0.5/2.25/4/5.75/7.5 and hover edges 1/3/5/7 blocks/s. Hover sound has no rider guard (0073); submarine sonar requires a rider.
+- Limit the bulldozer to one per player (0066). Give it as a second starter (0023), under its own `yasu_ride:bulldozer_starter_received` flag; preserve the SUV's original flag. Craft it shapeless from an SUV item, an iron block, and an iron shovel.
+- Cut the blade rectangle from 1.0 to 2.9 blocks ahead and 2.32 blocks sideways, selecting every unit square that touches it with a closed separating-axis test. Cut only with input, without a pivot, and at speed above 0.02. Car form cuts on the ground; takeoff, hover, and landing cut a tunnel; submarine and airborne car form do not cut. Use [0137](0137-clear-block-columns-with-the-blade.md)'s keep list and adapter unchanged: liquids, containers with contents, and laid add-on blocks survive; bedrock and the listed protected technical blocks are cut by the owner's decision. In flight the cells run from `floor(y + 0.01)` through `ceil(y + 2.9) - 1`, fitting a hovering body at fractional height. Cuts work in every game mode, Adventure included.
+
+## Consequences
+
+The bulldozer can clear terrain and technical blocks irreversibly. The blade never removes the floor below its feet; a ground cut stops at the first air gap, leaving overhangs above a gap. The wider ram box includes the blade while the engine collision box remains 2.4 by 2.9 blocks. Existing kinds keep their controls, packs, starters, saved values, lights, and behavior. Revisit these owner-selected values only through a new decision. ADR 0136 stays Proposed until manual PC and mobile checks pass; then update this status, the index row, and every extended ADR's Proposed marker together.

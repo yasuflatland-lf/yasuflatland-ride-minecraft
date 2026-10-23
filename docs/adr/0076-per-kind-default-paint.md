@@ -1,6 +1,6 @@
 # 0076. Each kind names its default paint; a dye matching it does nothing
 
-- Status: Accepted; extended by 0135
+- Status: Accepted; extended by [0135](0135-repaint-the-tent-with-dyes.md) and 0136 (Proposed)
 - Date: 2026-10-20
 - Extends: 0031
 
