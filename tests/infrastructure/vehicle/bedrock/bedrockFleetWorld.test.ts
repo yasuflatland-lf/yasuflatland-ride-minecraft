@@ -200,7 +200,7 @@ describe("BedrockFleetWorld drop and removal (ADR 0038, 0063)", () => {
     const { dimension, car, world, fleet } = fixture();
     const grid = blockGrid();
     dimension.getBlock.mockImplementation(grid.getBlock);
-    const cell = { x: 0, y: 65, z: 4 };
+    const cell = { x: 0, y: 65, z: 4, level: 15 };
     world.loadedVehicles();
     world.shineHeadlights(asVehicleId(car.id), [cell]);
     expect(grid.typeAt(cell)).toBe("minecraft:light_block_15");
