@@ -25,10 +25,10 @@ import {
 } from "../../domain/vehicle/kinds/camper/room";
 import { CAMPER_SPEC } from "../../domain/vehicle/kinds/camper/spec";
 import { DOCK } from "../../domain/vehicle/motion/dock";
+import { AIR_BLOCK } from "../../infrastructure/shared/identifiers";
 import { LIGHT_BLOCK } from "../../infrastructure/shared/lightBlocks";
 import { DOCK_RECHECK_TICKS } from "../../infrastructure/vehicle/bedrock/dockBlocks";
 import {
-  AIR_BLOCK,
   CAMPER_BED_BLOCK,
   CAMPER_CABINET_DOOR_BLOCK,
   CAMPER_CEILING_BLOCK,

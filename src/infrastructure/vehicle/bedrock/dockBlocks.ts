@@ -1,10 +1,5 @@
 // Persistent blocks that held vehicles lay: decks, and a parked camper's room (ADR 0063, 0068).
-import {
-  BlockPermutation,
-  type Dimension,
-  type Entity,
-} from "@minecraft/server";
-import { cellKey } from "../../../domain/shared/cells";
+import { BlockPermutation, type Entity } from "@minecraft/server";
 import type { DimensionId, VehicleId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { isDecorItem } from "../../../domain/vehicle/dock/decor";
@@ -12,12 +7,16 @@ import {
   type DockBlock,
   type DockCell,
   type Face,
-  refloor,
+  sameBlock,
 } from "../../../domain/vehicle/dock/floor";
 import { STANDING_GEAR_IDS } from "../../../domain/vehicle/kinds/index";
-import { isLightBlock, LIGHT_BLOCK } from "../../shared/lightBlocks";
 import {
-  AIR_BLOCK,
+  type CellCodec,
+  CellLayer,
+  savedLaidCells,
+} from "../../shared/laidCells";
+import { LIGHT_BLOCK } from "../../shared/lightBlocks";
+import {
   CAMPER_BED_BLOCK,
   CAMPER_CABINET_DOOR_BLOCK,
   CAMPER_CEILING_BLOCK,
@@ -55,14 +54,6 @@ const MAX_DECOR_SPOT = 8;
 // Reading a laid cell costs one getBlock call, and a parked camper lays about 107
 // to 121 cells, so the cells are read once a second per vehicle, not every tick (ADR 0096).
 export const DOCK_RECHECK_TICKS = 20;
-const NONE_LOST: ReadonlySet<string> = new Set();
-
-interface Laid {
-  dimension: Dimension;
-  cells: DockCell[];
-  /** Lays left until the laid cells are read again for blocks the world lost (ADR 0096). */
-  recheckIn: number;
-}
 
 function isHeight(v: unknown): v is number {
   return (
@@ -306,29 +297,22 @@ function upgradeSpotlessDecor(value: unknown): unknown {
   return { ...value, block: { ...block, spot: 0 } };
 }
 
-// The cells a vehicle laid are saved on the entity, so a /reload or a restart
-// can still clear them.
-function savedCells(vehicle: Entity): DockCell[] {
-  const raw = vehicle.getDynamicProperty(DECK_CELLS_PROPERTY);
-  if (typeof raw !== "string") return [];
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .map(upgradeHeightOnlyCell)
-      .map(upgradeSpotlessDecor)
-      .filter(isDockCell);
-  } catch {
-    return [];
-  }
-}
+const DOCK_CODEC: CellCodec<DockBlock> = {
+  property: DECK_CELLS_PROPERTY,
+  // Order matters: a height-only boat cell becomes a deck first (ADR 0063), then a spotless decor gets spot 0 (ADR 0107).
+  upgrade: (saved) => upgradeSpotlessDecor(upgradeHeightOnlyCell(saved)),
+  isCell: isDockCell,
+  same: sameBlock,
+  blockIdOf,
+  permutationOf,
+};
 
 /** State derived from the cells actually laid, with one saved-property read per rebuild. */
 export function savedDock(vehicle: Entity): {
   laid: boolean;
   doorOpen: boolean | undefined;
 } {
-  const cells = savedCells(vehicle);
+  const cells = savedLaidCells(vehicle, DOCK_CODEC);
   const door = cells.find((c) => c.block.type === "door");
   return {
     laid: cells.length > 0,
@@ -337,16 +321,23 @@ export function savedDock(vehicle: Entity): {
 }
 
 export class DockBlocks {
-  private readonly laid = new Map<VehicleId, Laid>();
+  private readonly layer = new CellLayer<VehicleId, DockBlock>(
+    DOCK_CODEC,
+    DOCK_RECHECK_TICKS,
+  );
 
   /** The vehicle whose laid door is at this cell, if any. */
   doorOwner(dimensionId: DimensionId, cell: Vec3): VehicleId | undefined {
-    return this.ownerOf(dimensionId, cell, (block) => block.type === "door");
+    return this.layer.ownerOf(
+      dimensionId,
+      cell,
+      (block) => block.type === "door",
+    );
   }
 
   /** The vehicle that laid any dock block at this cell, if any (ADR 0093). */
   cellOwner(dimensionId: DimensionId, cell: Vec3): VehicleId | undefined {
-    return this.ownerOf(dimensionId, cell, () => true);
+    return this.layer.ownerOf(dimensionId, cell);
   }
 
   /** The vehicle that laid this cell, while the world still holds the block it laid there (ADR 0096). */
@@ -355,148 +346,18 @@ export class DockBlocks {
     cell: Vec3,
     typeId: string,
   ): VehicleId | undefined {
-    return this.ownerOf(
-      dimensionId,
-      cell,
-      (block) => blockIdOf(block) === typeId,
-    );
+    return this.layer.laidBlockOwner(dimensionId, cell, typeId);
   }
 
-  private ownerOf(
-    dimensionId: DimensionId,
-    cell: Vec3,
-    accepts: (block: DockBlock) => boolean,
-  ): VehicleId | undefined {
-    const key = cellKey(cell);
-    for (const [vehicleId, entry] of this.laid)
-      if (
-        entry.dimension.id === dimensionId &&
-        entry.cells.some((c) => accepts(c.block) && cellKey(c) === key)
-      )
-        return vehicleId;
-    return undefined;
-  }
-
-  // Cells left in a dimension the vehicle has left because their chunk was
-  // unloaded at the time; the saved property only describes the current
-  // dimension, so they are kept here until a later tick clears them.
-  private stranded: Laid[] = [];
-
-  /** `vehicle` is undefined when the entity is gone; its cells are then only cleared. */
   lay(
     vehicleId: VehicleId,
     vehicle: Entity | undefined,
     wanted: readonly DockCell[],
-  ) {
-    let entry = this.laid.get(vehicleId);
-    if (!entry) {
-      if (!vehicle) return;
-      entry = {
-        dimension: vehicle.dimension,
-        cells: savedCells(vehicle),
-        recheckIn: 0,
-      };
-    }
-    const before = JSON.stringify(entry.cells);
-    if (vehicle && vehicle.dimension.id !== entry.dimension.id) {
-      this.update(entry, []);
-      if (entry.cells.length > 0) this.stranded.push(entry);
-      entry = { dimension: vehicle.dimension, cells: [], recheckIn: 0 };
-    }
-    const lost =
-      vehicle && wanted.length > 0 ? this.lostCells(entry) : NONE_LOST;
-    this.update(entry, vehicle ? wanted : [], lost);
-    if (entry.cells.length > 0) this.laid.set(vehicleId, entry);
-    else this.laid.delete(vehicleId);
-    if (vehicle?.isValid && JSON.stringify(entry.cells) !== before) {
-      vehicle.setDynamicProperty(
-        DECK_CELLS_PROPERTY,
-        entry.cells.length > 0 ? JSON.stringify(entry.cells) : undefined,
-      );
-    }
-  }
-
-  /**
-   * Clears the cells of vehicles that are gone, and retries the cells left in
-   * a dimension a vehicle has left. A vehicle removed as its chunk
-   * loads may have floor cells in chunks that are not loaded yet, and nothing
-   * else asks for its id again (ADR 0038).
-   */
-  clearGone(live: ReadonlySet<VehicleId>): void {
-    for (const [id, entry] of this.laid) {
-      if (live.has(id)) continue;
-      this.update(entry, []);
-      if (entry.cells.length === 0) this.laid.delete(id);
-    }
-    for (const entry of this.stranded) this.update(entry, []);
-    this.stranded = this.stranded.filter((entry) => entry.cells.length > 0);
-  }
-
-  /** Keys of the laid cells whose block the world lost, read once every DOCK_RECHECK_TICKS lays (ADR 0096). */
-  private lostCells(entry: Laid): ReadonlySet<string> {
-    if (entry.recheckIn > 0) {
-      entry.recheckIn--;
-      return NONE_LOST;
-    }
-    entry.recheckIn = DOCK_RECHECK_TICKS - 1;
-    const lost = new Set<string>();
-    for (const c of entry.cells) {
-      try {
-        const b = entry.dimension.getBlock(c);
-        // A light block counts as air, except in a cell where the dock laid that light (ADR 0115).
-        if (
-          b &&
-          (b.isAir || (isLightBlock(b) && b.typeId !== blockIdOf(c.block)))
-        )
-          lost.add(cellKey(c));
-      } catch {
-        // Unloaded chunk or outside the world: read it again on a later check.
-      }
-    }
-    return lost;
-  }
-
-  private update(
-    entry: Laid,
-    wanted: readonly DockCell[],
-    lost: ReadonlySet<string> = NONE_LOST,
   ): void {
-    const { clear, place } = refloor(entry.cells, wanted, (c) =>
-      lost.has(cellKey(c)),
-    );
-    const cleared = new Set<string>();
-    for (const c of clear) {
-      try {
-        const b = entry.dimension.getBlock(c);
-        // getBlock may also return undefined for an unloaded chunk; keep the
-        // cell then too.
-        if (!b) continue;
-        // A replacement block belongs to the player, not the vehicle.
-        if (b.typeId === blockIdOf(c.block)) b.setType(AIR_BLOCK);
-        cleared.add(cellKey(c));
-      } catch {
-        // Unloaded chunk: keep the cell and clear it on a later tick.
-      }
-    }
-    const cells = new Map(
-      entry.cells
-        .filter((c) => !cleared.has(cellKey(c)))
-        .map((c) => [cellKey(c), c]),
-    );
-    for (const c of place) {
-      try {
-        const b = entry.dimension.getBlock(c);
-        if (!b) continue;
-        const before = cells.get(cellKey(c));
-        const ownBlock =
-          before !== undefined && b.typeId === blockIdOf(before.block);
-        if (!b.isAir && !isLightBlock(b) && !ownBlock) continue;
-        b.setPermutation(permutationOf(c.block));
-        cells.set(cellKey(c), c);
-      } catch {
-        // Unloaded chunk or outside the world: retry placement on a later tick.
-      }
-    }
-    entry.cells = [...cells.values()];
+    this.layer.lay(vehicleId, vehicle, wanted);
+  }
+
+  clearGone(live: ReadonlySet<VehicleId>): void {
+    this.layer.clearGone(live);
   }
 }

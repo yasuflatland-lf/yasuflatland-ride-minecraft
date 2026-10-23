@@ -41,6 +41,7 @@ import type { RamHit, RamTarget } from "../../../domain/vehicle/ram";
 import type { SeatAssignment } from "../../../domain/vehicle/seatChoice";
 import type { StandInPose } from "../../../domain/vehicle/standIn";
 import type { RiderView } from "../../../domain/vehicle/vehicle";
+import { AIR_BLOCK } from "../../shared/identifiers";
 import { isLightBlock } from "../../shared/lightBlocks";
 import type { TestInputStore } from "../testInput/testInputStore";
 import { savedDecor } from "./bedrockDecorWorld";
@@ -53,7 +54,6 @@ import {
 } from "./entityIndex";
 import { HeadlightBlocks } from "./headlightBlocks";
 import {
-  AIR_BLOCK,
   CHASE_CAMERAS,
   entityAnimationId,
   entityEventId,

@@ -3,3 +3,5 @@ export const NAMESPACE = "yasu_ride";
 export function id(name: string): string {
   return `${NAMESPACE}:${name}`;
 }
+
+export const AIR_BLOCK = "minecraft:air";
