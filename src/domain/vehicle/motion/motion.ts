@@ -199,6 +199,29 @@ export function speedAfterWall(
   return sgn * Math.min(Math.abs(speed), kept);
 }
 
+/**
+ * The velocity a step aims for this tick: the forward component set to
+ * the internal speed, `keepLat` of the sideways component of `v` kept,
+ * and the length capped at `maxSpeed` (ADR 0002). A blocked tick passes
+ * `keepLat` 0 (ADR 0081).
+ */
+export function targetVelocity(
+  f: Vec2,
+  speed: number,
+  v: Vec2,
+  keepLat: number,
+  maxSpeed: number,
+): Vec2 {
+  const vLong = dot(v, f);
+  return clampLength(
+    {
+      x: f.x * speed + (v.x - f.x * vLong) * keepLat,
+      z: f.z * speed + (v.z - f.z * vLong) * keepLat,
+    },
+    maxSpeed,
+  );
+}
+
 export function stepMotion(
   prev: MotionState,
   input: GroundInput,
@@ -217,7 +240,6 @@ export function stepMotion(
   const yaw = steerYaw(prev.yaw, speed, input.steer, limits);
   const f = forward(yaw);
   const v = obs.velocity;
-  const vLong = dot(v, f);
 
   // Distinguish friction from wall collisions by how much of the previous
   // tick's given velocity remains (ADR 0003, 0082).
@@ -264,17 +286,11 @@ export function stepMotion(
   const stepping = stepTicks > 0;
   if (stepping) stepTicks--;
 
-  // Set the forward component to the internal speed, cancel a grip-sized
-  // fraction of the sideways component, and cap the result at max speed (ADR 0002).
-  const lat = { x: v.x - f.x * vLong, z: v.z - f.z * vLong };
   const grip = input.handbrake ? tyres.handbrakeGrip : limits.grip;
   // A blocked tick carries no sideways velocity, so the along-wall speed
   // stays at its impact value (ADR 0081).
   const keepLat = stepping || blocked ? 0 : 1 - grip;
-  const target = clampLength(
-    { x: f.x * speed + lat.x * keepLat, z: f.z * speed + lat.z * keepLat },
-    limits.maxSpeed,
-  );
+  const target = targetVelocity(f, speed, v, keepLat, limits.maxSpeed);
   // Pre-divide by friction so the velocity left after the engine applies
   // friction this tick is the target.
   const given = { x: target.x / applied, z: target.z / applied };
@@ -315,15 +331,16 @@ export function stepMediumMotion(
 ): MotionResult {
   // Without the cap, speed keeps climbing toward limits.maxSpeed under water
   // while clampLength hides it, and a released throttle coasts at full water
-  // speed until speed falls back below maxWaterSpeed.
+  // speed until speed falls back below maxWaterSpeed. Reverse is capped the
+  // same way, since limits.maxReverse can exceed the medium's maxSpeed.
   const maxSpeed = Math.min(limits.maxSpeed, medium.maxSpeed);
-  let speed = Math.min(
+  let speed = clamp(
     updateSpeed(prev.speed, input.throttle, input.creep, limits, creepSpeed),
+    -maxSpeed,
     maxSpeed,
   );
   const yaw = steerYaw(prev.yaw, speed, input.steer, limits);
   const f = forward(yaw);
-  const vLong = dot(v, f);
   const axes: BlockedAxes =
     prev.mediumExpected === undefined
       ? { x: false, z: false }
@@ -336,13 +353,7 @@ export function stepMediumMotion(
   if (blocked) speed = speedAfterWall(speed, v, f, axes);
   // A blocked tick carries no sideways velocity (ADR 0081).
   const keepLat = blocked ? 0 : 1 - limits.grip;
-  const target = clampLength(
-    {
-      x: f.x * speed + (v.x - f.x * vLong) * keepLat,
-      z: f.z * speed + (v.z - f.z * vLong) * keepLat,
-    },
-    maxSpeed,
-  );
+  const target = targetVelocity(f, speed, v, keepLat, maxSpeed);
   const given = {
     x: target.x / medium.drag,
     z: target.z / medium.drag,

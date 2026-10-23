@@ -199,6 +199,11 @@ export class SportsboatDrive implements Drive {
     return [];
   }
 
+  resync(): void {
+    this.trimSync.resync();
+    this.rollSync.resync();
+  }
+
   step(raw: RawInput | undefined, ctx: TickContext): DriveStep {
     if (this.restoredDocked && !this.docked) {
       this.docked = { ...ctx.location, yaw: this.motion.yaw };
@@ -223,10 +228,11 @@ export class SportsboatDrive implements Drive {
     const control = toDriveInput(raw);
     const motion = this.motion;
     let step: MotionResult;
+    // Body height bounds the query because the boat only tests whether depth is above zero.
     const depth = waterDepthAt(
       ctx.location,
       ctx.waterAt,
-      SPORTSBOAT_SPEC.height,
+      SPORTSBOAT_PROFILE.body.height,
     );
     const afloat = isAfloat(depth, () => waterBelowAt(ctx.waterAt));
     if (afloat) {

@@ -1,12 +1,18 @@
 import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
 import { DriveVehicles } from "../../../src/application/vehicle/driveVehicles";
-import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
+import {
+  asPlayerId,
+  asVehicleId,
+  type VehicleId,
+} from "../../../src/domain/shared/ids";
 import { forward } from "../../../src/domain/shared/vec";
 import type { Drive, DriveStep } from "../../../src/domain/vehicle/drive";
 import type { RawInput } from "../../../src/domain/vehicle/driveInput";
+import { VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
 import {
   createVehicle,
+  entityContractOf,
   rebuildVehicle,
 } from "../../../src/domain/vehicle/kinds/index";
 import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
@@ -15,6 +21,11 @@ import { headlightCells } from "../../../src/domain/vehicle/lighting/headlights"
 import { SPEC } from "../../../src/domain/vehicle/spec";
 import { Vehicle } from "../../../src/domain/vehicle/vehicle";
 import { defined } from "../../support/defined";
+import {
+  riderViews,
+  type TickSample,
+  tickSamples,
+} from "../../support/vehicleFuzz";
 import { FakeWorld, InMemoryRepo, snapshot } from "./fakes";
 
 const logger = () => {
@@ -74,6 +85,7 @@ describe("DriveVehicles", () => {
           const drive: Drive = {
             speed: 0,
             yaw: hold.yaw,
+            resync: () => {},
             onDriverMounted: () => {},
             onSeatVacated: () => [],
             step: () => step,
@@ -798,6 +810,7 @@ describe("DriveVehicles dock ports", () => {
     const drive: Drive = {
       speed: 0,
       yaw: 0,
+      resync: () => {},
       onDriverMounted: () => {},
       onSeatVacated: () => [],
       step: (_raw, ctx) => {
@@ -914,4 +927,237 @@ describe("DriveVehicles stand-ins (ADR 0116)", () => {
       ),
     );
   });
+});
+
+const retryTick = fc.record({
+  input: fc.record({
+    moveX: fc.integer({ min: -1, max: 1 }),
+    moveY: fc.integer({ min: -1, max: 1 }),
+    jump: fc.boolean(),
+  }),
+  failure: fc.option(
+    fc.record({
+      id: fc.constant("a"),
+      name: fc.constantFrom(
+        "form",
+        "bank",
+        "gear_down",
+        "gravity_on",
+        "gravity_off",
+      ),
+    }),
+    { nil: undefined },
+  ),
+});
+
+it("converges to the reference entity after every successful tick despite failed sends", () => {
+  fc.assert(
+    fc.property(
+      fc.array(retryTick, { minLength: 60, maxLength: 100 }),
+      (ticks) => {
+        const reference = new FakeWorld();
+        const failing = new FakeWorld();
+        // The restored entity already has car form; its primed latch need not send it.
+        reference.properties.set("a", { form: "car" });
+        failing.properties.set("a", { form: "car" });
+        const log = logger();
+        const good = new DriveVehicles(reference, new InMemoryRepo(), logger());
+        const retry = new DriveVehicles(failing, new InMemoryRepo(), log);
+        let throws = 0;
+        const forms = new Set<unknown>();
+        ticks.forEach(({ input, failure }, tick) => {
+          const snap = snapshot("a", {
+            testInput: input,
+            onGround: tick % 40 >= 30,
+          });
+          reference.snapshots = [snap];
+          failing.snapshots = [snap];
+          failing.failRunOn = failure;
+          const before = log.lines.length;
+          good.execute(tick);
+          retry.execute(tick);
+          forms.add(reference.properties.get("a")?.form);
+          if (log.lines.length > before) throws++;
+          else {
+            for (const name of ["form", "bank", "gear_down"]) {
+              expect(failing.properties.get("a")?.[name]).toEqual(
+                reference.properties.get("a")?.[name],
+              );
+            }
+          }
+        });
+        fc.pre(throws > 0 && forms.size > 1);
+      },
+    ),
+  );
+});
+
+it("retries gravity_on after a failed landing send and logs the failure once", () => {
+  const world = new FakeWorld();
+  const repo = new InMemoryRepo();
+  repo.save(rebuildVehicle("suv", asVehicleId("a"), 0, [], { form: "hover" }));
+  const log = logger();
+  const uc = new DriveVehicles(world, repo, log);
+  const run = vi.spyOn(world, "run");
+  world.snapshots = [
+    snapshot("a", {
+      testInput: { moveX: 0, moveY: 0, jump: false },
+      onGround: true,
+    }),
+  ];
+  world.failRunOn = { id: "a", name: "gravity_on" };
+  uc.execute(0);
+  expect(run.mock.calls[0]?.[1][0]).toEqual({
+    type: "triggerEvent",
+    name: "gravity_on",
+  });
+  world.failRunOn = undefined;
+  run.mockClear();
+  uc.execute(1);
+  expect(run.mock.calls[0]?.[1][0]).toEqual({
+    type: "triggerEvent",
+    name: "gravity_on",
+  });
+  expect(log.lines).toEqual(["a: Error: command gravity_on"]);
+});
+
+it("resyncs after tick throws after building commands, preserving the thrown error", () => {
+  const world = new FakeWorld();
+  const repo = new InMemoryRepo();
+  const vehicle = createVehicle("suv", asVehicleId("a"), 0);
+  repo.save(vehicle);
+  const tick = vehicle.tick.bind(vehicle);
+  const error = new Error("after step");
+  vi.spyOn(vehicle, "tick").mockImplementationOnce((input) => {
+    tick(input);
+    throw error;
+  });
+  const resync = vi.spyOn(vehicle, "resync");
+  const log = logger();
+  const uc = new DriveVehicles(world, repo, log);
+  world.snapshots = [snapshot("a")];
+  uc.execute(0);
+  expect(resync).toHaveBeenCalledTimes(1);
+  expect(log.lines).toEqual([`a: ${error}`]);
+  uc.execute(1);
+  expect(world.properties.get("a")).toEqual({
+    form: "car",
+    bank: 0,
+    gear_down: true,
+  });
+});
+
+it("does not resync when a later world call throws after step commands succeeded", () => {
+  const world = new FakeWorld();
+  const repo = new InMemoryRepo();
+  const vehicle = createVehicle("suv", asVehicleId("a"), 0);
+  repo.save(vehicle);
+  const resync = vi.spyOn(vehicle, "resync");
+  const run = vi.spyOn(world, "run");
+  world.snapshots = [snapshot("a")];
+  world.failOn = "a";
+  const uc = new DriveVehicles(world, repo, logger());
+  uc.execute(0);
+  expect(resync).not.toHaveBeenCalled();
+  world.failOn = undefined;
+  run.mockClear();
+  uc.execute(1);
+  expect(run.mock.calls[0]?.[1]).toEqual([]);
+});
+
+describe("entity mirror (ADR 0055)", () => {
+  const MAX_TICKS = 40;
+  // A failed step send resyncs the vehicle, so the next failure-free tick resends every
+  // value (ADR 0127). Final commands are not resent, but no kind puts a property in them.
+  const RESYNC_TICKS = 1;
+  const id: VehicleId = asVehicleId("v");
+  // Each tick makes at most two run calls, the step commands and then the final commands.
+  const faultPlan = fc.array(
+    fc.oneof(
+      { arbitrary: fc.constant(undefined), weight: 3 },
+      { arbitrary: fc.integer({ min: 0, max: 5 }), weight: 1 },
+    ),
+    { minLength: 2 * MAX_TICKS, maxLength: 2 * MAX_TICKS },
+  );
+
+  it.each(VEHICLE_KINDS)(
+    "keeps every entity property equal to the drive's last value once the world stops failing, for %s",
+    (kind) => {
+      const { properties } = entityContractOf(kind);
+      const declared = Object.keys(properties);
+      // A rebuilt drive trusts the form it reads back and does not send it
+      // again (ADR 0039, 0127), so both entities start out holding it.
+      const entityAtStart: fc.Arbitrary<Record<string, string>> =
+        properties.form?.type === "enum"
+          ? fc.constantFrom(...properties.form.values).map((form) => ({ form }))
+          : fc.constant({});
+      fc.assert(
+        fc.property(
+          fc.double({ min: -180, max: 180, noNaN: true }),
+          entityAtStart,
+          tickSamples(kind, MAX_TICKS),
+          faultPlan,
+          (yaw, start, samples, plan) => {
+            const reference = new FakeWorld();
+            const faulty = new FakeWorld();
+            reference.properties.set(id, { ...start });
+            faulty.properties.set(id, { ...start });
+            const referenceRepo = new InMemoryRepo();
+            const good = new DriveVehicles(reference, referenceRepo, logger());
+            const failing = new DriveVehicles(
+              faulty,
+              new InMemoryRepo(),
+              logger(),
+            );
+            // Both drives get the same snapshots and a failed send changes no vehicle
+            // state (ADR 0127), so the reference heading is the faulty drive's too.
+            const expectMirrored = () =>
+              expect(faulty.properties.get(id)).toEqual(
+                reference.properties.get(id),
+              );
+            const tickBoth = (s: TickSample, tick: number) => {
+              const heading = referenceRepo.get(id)?.yaw ?? yaw;
+              const snap = snapshot(id, {
+                kind,
+                yaw: heading,
+                riders: riderViews(kind, s.riders, heading),
+                testInput: s.testInput,
+                deckSeatInputs: [...s.deckSeatInputs],
+                velocity: s.velocity,
+                onGround: s.onGround,
+                waterDepth: s.depth,
+                waterBelow: s.below,
+                restored: () => start,
+              });
+              reference.snapshots = [snap];
+              faulty.snapshots = [snap];
+              good.execute(tick);
+              failing.execute(tick);
+            };
+            let faulted = false;
+            faulty.runFault = (_id, call) => {
+              const fault = plan[call];
+              if (fault !== undefined) faulted = true;
+              return fault;
+            };
+            samples.forEach((s, tick) => {
+              faulted = false;
+              tickBoth(s, tick);
+              if (!faulted) expectMirrored();
+            });
+            faulty.runFault = undefined;
+            const last = defined(samples.at(-1), "last sample");
+            for (let extra = 0; extra < RESYNC_TICKS; extra++)
+              tickBoth(last, samples.length + extra);
+
+            expectMirrored();
+            for (const world of [reference, faulty])
+              for (const name of Object.keys(world.properties.get(id) ?? {}))
+                expect(declared).toContain(name);
+          },
+        ),
+        { numRuns: 200 },
+      );
+    },
+  );
 });

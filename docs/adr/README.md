@@ -22,13 +22,13 @@ This directory records design decisions and the reasons behind them. The format 
 | [0016](0016-readme-preview-rendered-from-model.md) | Render the README preview from the model files | Superseded by 0027 |
 | [0017](0017-repaint-vehicles-with-dye.md) | Repaint vehicles with dye | Superseded by 0031 |
 | [0018](0018-sideways-stick-creeps-forward.md) | Treat a sideways stick as a slow forward turn | Extended by 0074 and 0089 |
-| [0019](0019-passengers-move-up-to-the-driver-seat.md) | Passengers move up to the driver seat | Superseded in part by 0120 (Proposed) |
+| [0019](0019-passengers-move-up-to-the-driver-seat.md) | Passengers move up to the driver seat | Superseded in part by 0120 (Proposed); amended by 0126; superseded in part by 0128 |
 | [0020](0020-headlights.md) | Headlights that light up the road | Extended by 0115 |
 | [0021](0021-flight-mode.md) | Flight mode: toggle with a double tap, climb with the view pitch, and switch gravity with a component group | Superseded in part by 0032, 0034, 0039, and 0078 |
 | [0022](0022-fold-wheels-and-glow-in-flight.md) | Fold the wheels and light their undersides in flight | Superseded in part by 0033 and 0043 |
 | [0023](0023-starter-vehicle-on-first-join.md) | Give each player a vehicle item on their first join | Accepted |
 | [0024](0024-item-use-on-mobile-and-longer-headlights.md) | Make the vehicle item and the headlight switch work on mobile, and light the road three times farther | Extended by 0115 |
-| [0025](0025-jump-on-touch-and-a-sticky-driver.md) | Keep a touch rider's Jump from dismounting them, and keep the driver while they ride | Superseded in part by 0120 (Proposed) |
+| [0025](0025-jump-on-touch-and-a-sticky-driver.md) | Keep a touch rider's Jump from dismounting them, and keep the driver while they ride | Superseded in part by 0120 (Proposed); amended by 0126; superseded in part by 0128 |
 | [0026](0026-bank-into-turns-in-flight.md) | Bank into turns in flight | Superseded in part by 0044 |
 | [0027](0027-readme-previews-in-three-poses.md) | Render the README previews in three poses | Superseded in part by 0045 |
 | [0028](0028-third-person-camera-in-flight.md) | Switch riders to the third-person camera in flight | Superseded in part by 0052 and 0071 |
@@ -58,7 +58,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0052](0052-retry-camera-switches-and-break-seat-ties-low.md) | Retry camera switches in both directions, and break seat ties toward the lower index | Superseded in part by 0117 |
 | [0053](0053-estimate-buoyant-boat-water-drag.md) | Estimate the buoyant boat's water drag | Accepted |
 | [0054](0054-shard-in-game-tests-in-ci.md) | Shard the in-game tests across four CI jobs and run model:check beside the unit tests | Accepted |
-| [0055](0055-kind-neutral-vehicle-core.md) | Kind-neutral vehicle core | Superseded in part by 0083 and 0087; extended by 0064, 0065, 0072, 0089, and 0090 |
+| [0055](0055-kind-neutral-vehicle-core.md) | Kind-neutral vehicle core | Superseded in part by 0083 and 0087; extended by 0064, 0065, 0072, 0089, 0090, and 0127 |
 | [0056](0056-sports-boat-previews.md) | Render README previews of the sports boat | Accepted |
 | [0057](0057-skip-model-check-when-inputs-unchanged.md) | Skip model:check on pull requests that leave the renderer's files alone | Accepted |
 | [0058](0058-refine-the-sports-boat-interior.md) | Refine the sports boat interior from reference photos | Accepted |
@@ -69,7 +69,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0063](0063-walk-on-a-stopped-sports-boat.md) | Walk on a stopped sports boat | Superseded in part by 0120 (Proposed); extended by 0064, 0093, 0095, 0096, 0101, and 0109 |
 | [0064](0064-dock-step.md) | Group the hold, floor, and deck seats into an optional dock | Accepted |
 | [0065](0065-check-import-rules-with-dependency-cruiser.md) | Check the import rules with dependency-cruiser | Extended by 0072 |
-| [0066](0066-limit-vehicles-per-player-and-kind.md) | Limit vehicles per player and per kind | Extended by 0125 (Proposed) |
+| [0066](0066-limit-vehicles-per-player-and-kind.md) | Limit vehicles per player and per kind | Extended by 0124 and 0125 (Proposed) |
 | [0067](0067-camper.md) | Camper | Superseded in part by 0068 and 0069; extended by 0091 and 0093 |
 | [0068](0068-park-the-camper-with-room-blocks.md) | Park the camper with room blocks | Superseded in part by 0070, 0084, and 0116 (Proposed); extended by 0086, 0092, 0093, 0094, 0095, 0096, 0097, 0098, 0101, 0105, 0109, 0114, 0115, 0118, and 0119 (Proposed) |
 | [0069](0069-camper-right-hand-drive.md) | Seat the camper's driver on the right like the SUV | Superseded in part by 0070 |
@@ -127,7 +127,11 @@ This directory records design decisions and the reasons behind them. The format 
 | [0121](0121-doored-storage-in-the-camper.md) | Doored storage in the camper | Extended by 0123 (Proposed) |
 | [0122](0122-a-low-chair-to-sit-on-outside-the-vehicles.md) | A low chair to sit on outside the vehicles | Proposed |
 | [0123](0123-a-fridge-in-place-of-the-camper-shelf.md) | A fridge in place of the camper shelf | Proposed |
+| [0124](0124-take-back-an-eviction-when-a-slot-frees.md) | Take back an eviction when a slot frees | Accepted |
 | [0125](0125-forget-a-vehicle-removed-from-a-loaded-chunk.md) | Forget a vehicle removed from a loaded chunk | Proposed |
+| [0126](0126-choose-a-new-driver-with-one-tick-of-motion.md) | Choose a new driver with one tick of motion | Accepted; superseded in part by 0128 |
+| [0127](0127-resend-every-synced-entity-value-after-a-failed-send.md) | Resend every synced entity value after a failed send | Accepted |
+| [0128](0128-settle-every-crews-seats-by-rider-list.md) | Settle every crew's seats by the rider list | Accepted |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 

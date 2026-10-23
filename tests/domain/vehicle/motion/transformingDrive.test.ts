@@ -12,13 +12,25 @@ import {
   SUV_SPEC,
   SUV_TRANSFORMING,
 } from "../../../../src/domain/vehicle/kinds/suv/spec";
+import { bankSink } from "../../../../src/domain/vehicle/motion/bank";
 import { MOTION } from "../../../../src/domain/vehicle/motion/constants";
-import type { Form } from "../../../../src/domain/vehicle/motion/forms";
+import {
+  climbInput,
+  FORMS,
+  type Form,
+  verticalImpulse,
+  verticalSpeed,
+} from "../../../../src/domain/vehicle/motion/forms";
 import {
   initialMotion,
   stepMotion,
 } from "../../../../src/domain/vehicle/motion/motion";
 import { TransformingDrive } from "../../../../src/domain/vehicle/motion/transformingDrive";
+import {
+  bankCommand,
+  formCommands,
+  gearCommand,
+} from "../../../../src/domain/vehicle/motion/transformingEntity";
 import { SPEC } from "../../../../src/domain/vehicle/spec";
 import { type Body, engineStep } from "../../../support/engineModel";
 import { waterSensors } from "../../../support/waterDepth";
@@ -216,3 +228,251 @@ it("an SUV in car form drives tick by tick as the old mapping did (ADR 0089)", (
     { numRuns: 100 },
   );
 });
+
+const resyncInput = fc.record({
+  raw: fc.record({
+    moveX: fc.integer({ min: -1, max: 1 }),
+    moveY: fc.integer({ min: -1, max: 1 }),
+    jump: fc.boolean(),
+  }),
+  onGround: fc.boolean(),
+  depth: fc.constantFrom(0, 1, 3),
+});
+
+it("resync sends gravity and form first, then the current bank and gear", () => {
+  fc.assert(
+    fc.property(
+      fc.array(resyncInput, { minLength: 1, maxLength: 80 }),
+      fc.nat(),
+      (inputs, index) => {
+        const drive = new SuvDrive(0, {});
+        const retry = index % inputs.length;
+        inputs.forEach(({ raw, depth, onGround }, tick) => {
+          if (tick === retry) drive.resync();
+          const out = drive.step(raw, { ...context(depth), onGround, tick });
+          if (tick === retry) {
+            expect(out.commands).toEqual([
+              ...formCommands(drive.form),
+              bankCommand(drive.inspect().bank),
+              gearCommand(drive.inspect().wheelsDown),
+            ]);
+          }
+        });
+      },
+    ),
+  );
+});
+
+it("without resync sends form commands exactly when form changes", () => {
+  fc.assert(
+    fc.property(
+      fc.array(resyncInput, { minLength: 1, maxLength: 80 }),
+      (inputs) => {
+        const drive = new SuvDrive(0, {});
+        inputs.forEach(({ raw, depth, onGround }, tick) => {
+          const before = drive.form;
+          const out = drive.step(raw, { ...context(depth), onGround, tick });
+          const form = out.commands.filter(
+            (c) => c.type === "triggerEvent" || c.name === "form",
+          );
+          expect(form).toEqual(
+            before === drive.form ? [] : formCommands(drive.form),
+          );
+        });
+      },
+    ),
+  );
+});
+
+it("keeps the restored form primed on its first unchanged tick", () => {
+  fc.assert(
+    fc.property(fc.constantFrom(...FORMS), fc.boolean(), (form, jump) => {
+      const drive = new SuvDrive(0, { form });
+      const out = drive.step(
+        { ...IDLE, jump },
+        {
+          ...context(form === "submarine" ? 3 : 0),
+          onGround: form === "car",
+        },
+      );
+      expect(drive.form).toBe(form);
+      expect(
+        out.commands.filter(
+          (c) => c.type === "triggerEvent" || c.name === "form",
+        ),
+      ).toEqual([]);
+    }),
+  );
+});
+
+const tickSample = fc.record({
+  raw: fc.record({
+    moveX: fc.double({ min: -1, max: 1, noNaN: true }),
+    moveY: fc.double({ min: -1, max: 1, noNaN: true }),
+    jump: fc.boolean(),
+  }),
+  velocity: fc.record({
+    x: fc.double({ min: -2, max: 2, noNaN: true }),
+    y: fc.double({ min: -2, max: 2, noNaN: true }),
+    z: fc.double({ min: -2, max: 2, noNaN: true }),
+  }),
+  onGround: fc.boolean(),
+  depth: fc.oneof(fc.constant(0), fc.double({ min: 0, max: 3, noNaN: true })),
+});
+const tickSequence = fc.array(tickSample, { minLength: 1, maxLength: 80 });
+
+for (const [name, create] of [
+  ["SUV", (form?: Form) => new SuvDrive(0, form ? { form } : {})],
+  [
+    "shared drive",
+    (form?: Form) =>
+      new TransformingDrive(
+        0,
+        form ? { form } : {},
+        SUV_TRANSFORMING,
+        SUV_MOTION,
+        SUV_TYRES,
+      ),
+  ],
+] as const) {
+  it(`${name} has no vertical car impulse without a step ahead`, () => {
+    fc.assert(
+      fc.property(tickSequence, (ticks) => {
+        const drive = create();
+        ticks.forEach(({ raw, depth, velocity, onGround }, tick) => {
+          const out = drive.step(raw, {
+            ...context(depth),
+            tick,
+            velocity,
+            onGround,
+            solidAt: (offset) => offset.y <= -1,
+          });
+          if (drive.form === "car") expect(out.impulse.y).toBe(0);
+        });
+      }),
+    );
+  });
+
+  it(`${name} uses the updated bank for every air impulse`, () => {
+    fc.assert(
+      fc.property(tickSequence, (ticks) => {
+        for (const initial of [
+          undefined,
+          "takeoff",
+          "hover",
+          "landing",
+        ] as const) {
+          const drive = create(initial);
+          ticks.forEach(({ raw, depth, velocity, onGround }, tick) => {
+            const ctx = { ...context(depth), tick, velocity, onGround };
+            const out = drive.step(raw, ctx);
+            const form = drive.form;
+            if (form === "car" || form === "submarine") return;
+            const spec = SUV_TRANSFORMING;
+            expect(out.impulse.y).toBe(
+              verticalImpulse(
+                clamp(
+                  verticalSpeed(form, climbInput(raw), spec) -
+                    bankSink(form, drive.inspect().bank, spec),
+                  -spec.maxClimb,
+                  spec.maxClimb,
+                ),
+                ctx.velocity.y,
+                spec.flightVerticalDrag,
+              ),
+            );
+          });
+        }
+      }),
+    );
+  });
+
+  it(`${name} needs forward throttle to probe a submarine shore step`, () => {
+    fc.assert(
+      fc.property(tickSequence, (ticks) => {
+        const floor = create("submarine");
+        const wall = create("submarine");
+        ticks.forEach(({ raw, depth, velocity, onGround }, tick) => {
+          const input = { ...raw, moveY: -Math.abs(raw.moveY) };
+          const ctx = {
+            ...context(SUV_TRANSFORMING.carHeight + depth),
+            tick,
+            velocity,
+            onGround,
+          };
+          let floorProbes = 0;
+          let wallProbes = 0;
+          const a = floor.step(input, {
+            ...ctx,
+            solidAt: (offset) => {
+              floorProbes++;
+              return offset.y < 0;
+            },
+          });
+          const b = wall.step(input, {
+            ...ctx,
+            solidAt: (offset) => {
+              wallProbes++;
+              return (
+                offset.y < 0 ||
+                offset.y >= -SUV_TRANSFORMING.submarineStepProbeDrop
+              );
+            },
+          });
+          expect(floor.form).toBe("submarine");
+          expect(wall.form).toBe("submarine");
+          expect(a.impulse.y).toBe(b.impulse.y);
+          expect(floorProbes).toBe(0);
+          expect(wallProbes).toBe(0);
+        });
+      }),
+    );
+  });
+
+  it(`${name} orders changed form commands before bank and gear`, () => {
+    fc.assert(
+      fc.property(tickSequence, (ticks) => {
+        const drive = create();
+        let sentBank: number | undefined;
+        let sentGear: boolean | undefined;
+        ticks.forEach(({ raw, depth, velocity, onGround }, tick) => {
+          const previousForm = drive.form;
+          const out = drive.step(raw, {
+            ...context(depth),
+            tick,
+            velocity,
+            onGround,
+          });
+          const { bank, wheelsDown } = drive.inspect();
+          expect(out.commands).toEqual([
+            ...(drive.form === previousForm ? [] : formCommands(drive.form)),
+            ...(bank === sentBank ? [] : [bankCommand(bank)]),
+            ...(wheelsDown === sentGear ? [] : [gearCommand(wheelsDown)]),
+          ]);
+          sentBank = bank;
+          sentGear = wheelsDown;
+        });
+      }),
+    );
+  });
+
+  it(`${name} sets rider flags from the resulting form on every tick`, () => {
+    fc.assert(
+      fc.property(tickSequence, (ticks) => {
+        const drive = create();
+        ticks.forEach(({ raw, depth, velocity, onGround }, tick) => {
+          const out = drive.step(raw, {
+            ...context(depth),
+            tick,
+            velocity,
+            onGround,
+          });
+          expect(out.riders).toEqual({
+            thirdPerson: drive.form !== "car",
+            underwater: drive.form === "submarine",
+          });
+        });
+      }),
+    );
+  });
+}

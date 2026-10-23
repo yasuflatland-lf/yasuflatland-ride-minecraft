@@ -146,6 +146,13 @@ export class FakeWorld
   failBreathingOn: string | undefined;
   failRemoveOn: string | undefined;
   failReleaseOn: string | undefined;
+  /**
+   * Fails the `call`-th `run` (counted from 0 over every vehicle's runs) when it returns
+   * an index: the commands before that index reach the entity, then `run` throws. An
+   * index past the last command sends them all, then throws.
+   */
+  runFault: ((id: string, call: number) => number | undefined) | undefined;
+  private runCalls = 0;
   readonly calls: string[] = [];
   private nextId = 1;
 
@@ -231,7 +238,10 @@ export class FakeWorld
     Record<string, string | number | boolean>
   >();
   run(id: string, commands: readonly EngineCommand[]) {
-    for (const command of commands) {
+    const call = this.runCalls++;
+    const fault = this.runFault?.(id, call);
+    for (const [index, command] of commands.entries()) {
+      if (index === fault) throw new Error("run fault");
       if (id === this.failRunOn?.id && command.name === this.failRunOn.name)
         throw new Error(`command ${command.name}`);
       if (command.type === "setProperty") {
@@ -248,6 +258,7 @@ export class FakeWorld
       if (command.type === "playAnimation")
         this.calls.push(`door:${id}:${command.name}`);
     }
+    if (fault !== undefined) throw new Error("run fault");
   }
   formOf(id: string) {
     return (

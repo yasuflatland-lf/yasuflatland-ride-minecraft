@@ -8,9 +8,13 @@ export interface Vec3 {
   readonly z: number;
 }
 
+export function degToRad(deg: number): number {
+  return (deg * Math.PI) / 180;
+}
+
 /** The direction a Minecraft yaw (in degrees) faces. yaw 0 = +z (south), yaw -90 = +x (east). */
 export function forward(yawDeg: number): Vec2 {
-  const r = (yawDeg * Math.PI) / 180;
+  const r = degToRad(yawDeg);
   return { x: -Math.sin(r), z: Math.cos(r) };
 }
 
@@ -47,6 +51,10 @@ export function localPoint(
     x: origin.x + f.x * ahead + r.x * right,
     z: origin.z + f.z * ahead + r.z * right,
   };
+}
+
+export function add(a: Vec2, b: Vec2): Vec2 {
+  return { x: a.x + b.x, z: a.z + b.z };
 }
 
 export function dot(a: Vec2, b: Vec2): number {

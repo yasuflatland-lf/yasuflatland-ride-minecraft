@@ -71,6 +71,8 @@ export interface DriveStep {
 }
 
 export interface Drive {
+  /** Forgets which entity values were sent, so the next step sends all of them again; called when a tick's commands may not have reached the entity. */
+  resync(): void;
   /** Internal forward/reverse speed in blocks/tick; negative means reverse. */
   readonly speed: number;
   readonly yaw: number;

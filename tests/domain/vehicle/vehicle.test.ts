@@ -5,7 +5,6 @@ import {
   dot,
   forward,
   leftOf,
-  normalizeYaw,
   rightOf,
   type Vec2,
   type Vec3,
@@ -210,12 +209,41 @@ describe("Vehicle (aggregate)", () => {
     expect(Math.hypot(sim.pos.x, sim.pos.z)).toBeLessThan(0.01);
   });
 
-  it("aligns the vehicle's heading with the driver's view when boarding while stopped", () => {
-    const sim = new Sim();
-    sim.riders = [{ id: "d", seat: 0, yaw: 120, raw: IDLE }];
-    const v = createVehicle("suv", asVehicleId("car"), 0);
-    sim.run(v, 1);
-    expect(v.yaw).toBeCloseTo(120);
+  it("turns to a boarding driver's view only below mountAlignSpeed, forward or reversing (ADR 0019)", () => {
+    // One tick of this throttle from a standstill gives exactly mountAlignSpeed.
+    const creep =
+      (MOTION.mountAlignSpeed / SUV_SPEC.accel) * SPEC.throttleFullAt;
+    const run = fc.oneof(
+      fc.record({
+        throttle: fc.constantFrom(0, creep, creep * 0.99, -creep),
+        ticks: fc.constant(1),
+      }),
+      fc.record({
+        throttle: fc.constantFrom(1, -1),
+        ticks: fc.integer({ min: 1, max: 40 }),
+      }),
+    );
+    // At least 10 degrees either way from the starting heading of 0, so a
+    // wrong alignment is visible.
+    const view = fc
+      .integer({ min: 1_000, max: 35_000 })
+      .map((c) => (c < 18_000 ? c : c - 36_000) / 100);
+    fc.assert(
+      fc.property(run, view, ({ throttle, ticks }, viewYaw) => {
+        const sim = new Sim();
+        const v = createVehicle("suv", asVehicleId("car"), 0);
+        sim.testInput = { moveX: 0, moveY: throttle, jump: false };
+        sim.run(v, ticks);
+        const speed = v.speed;
+        if (throttle === creep) expect(speed).toBe(MOTION.mountAlignSpeed);
+        const yaw = v.yaw;
+        sim.riders = [{ id: "d", seat: 0, yaw: viewYaw, raw: IDLE }];
+        sim.run(v, 1, ticks);
+        if (Math.abs(speed) < MOTION.mountAlignSpeed)
+          expect(yawDiff(v.yaw, viewYaw)).toBeCloseTo(0);
+        else expect(v.yaw).toBe(yaw);
+      }),
+    );
   });
 
   it("keeps the heading when a seated driver looks around while stopped", () => {
@@ -236,26 +264,6 @@ describe("Vehicle (aggregate)", () => {
             sim.run(v, 1, i + 1);
           });
           expect(yawDiff(v.yaw, boardYaw)).toBeCloseTo(0);
-        },
-      ),
-    );
-  });
-
-  it("does not snap a moving vehicle's heading to a new driver's view", () => {
-    fc.assert(
-      fc.property(
-        fc.double({ min: 10, max: 350, noNaN: true }),
-        (viewOffset) => {
-          const sim = new Sim();
-          const v = createVehicle("suv", asVehicleId("car"), 0);
-          sim.riders = [{ id: "d", seat: 0, yaw: 0, raw: FORWARD }];
-          sim.run(v, 20);
-          expect(Math.abs(v.speed)).toBeGreaterThan(MOTION.mountAlignSpeed);
-          sim.riders = [
-            { id: "e", seat: 0, yaw: normalizeYaw(viewOffset), raw: FORWARD },
-          ];
-          sim.run(v, 1, 20);
-          expect(yawDiff(v.yaw, 0)).toBeCloseTo(0);
         },
       ),
     );
@@ -370,44 +378,6 @@ describe("Vehicle (aggregate)", () => {
         },
       ),
     );
-  });
-
-  it("aligns the heading with a boarding driver's view only below mountAlignSpeed", () => {
-    // One tick of this throttle from a standstill gives exactly mountAlignSpeed.
-    const creep: RawInput = {
-      moveX: 0,
-      moveY: (MOTION.mountAlignSpeed / SUV_SPEC.accel) * SPEC.throttleFullAt,
-      jump: false,
-    };
-    const board = (raw: RawInput) => {
-      const sim = new Sim();
-      const v = createVehicle("suv", asVehicleId("car"), 0);
-      sim.testInput = raw;
-      sim.run(v, 1);
-      const speed = v.speed;
-      sim.riders = [{ id: "d", seat: 0, yaw: 90, raw: IDLE }];
-      sim.run(v, 1, 1);
-      return { speed, yaw: v.yaw };
-    };
-    expect(board(creep)).toEqual({ speed: MOTION.mountAlignSpeed, yaw: 0 });
-    const slower = board({ ...creep, moveY: creep.moveY * 0.99 });
-    expect(slower.speed).toBeLessThan(MOTION.mountAlignSpeed);
-    expect(slower.yaw).toBeCloseTo(90);
-  });
-
-  it("keeps the heading when a driver boards a vehicle reversing faster than mountAlignSpeed (ADR 0019)", () => {
-    const sim = new Sim();
-    const v = createVehicle("suv", asVehicleId("car"), 0);
-    sim.testInput = { moveX: 0, moveY: -1, jump: false };
-    let tick = 0;
-    for (; tick < 40 && v.speed >= -MOTION.mountAlignSpeed; tick++) {
-      sim.run(v, 1, tick);
-    }
-    expect(v.speed).toBeLessThan(-MOTION.mountAlignSpeed);
-    const yaw = v.yaw;
-    sim.riders = [{ id: "d", seat: 0, yaw: yaw + 90, raw: IDLE }];
-    sim.run(v, 1, tick);
-    expect(v.yaw).toBe(yaw);
   });
 
   it("does not query nearby targets at exactly ramMinSpeed, as when creeping up a step (ADR 0006)", () => {
@@ -840,6 +810,7 @@ it("blanks only the occupied dock seat in the outcome", () => {
   const drive: Drive = {
     speed: 0,
     yaw: 0,
+    resync() {},
     onDriverMounted() {},
     onSeatVacated: () => [],
     step: () => ({
@@ -885,6 +856,7 @@ describe("hints (ADR 0086)", () => {
     const drive: Drive = {
       speed: 0,
       yaw: YAW,
+      resync() {},
       onDriverMounted() {},
       onSeatVacated: () => [],
       step: () => ({
@@ -1026,4 +998,41 @@ it("has no hand-placed decor for a kind without decor (ADR 0093)", () => {
   expect(suv.placeDecor("stove", "percolator")).toBe(false);
   expect(suv.removeDecor({ x: 0, y: 0, z: 0 })).toBeUndefined();
   expect(suv.decor()).toEqual([]);
+});
+
+it("K5 plays the front-right door after a lagged driver leaves", () => {
+  const v = createVehicle("suv", asVehicleId("car"), 0);
+  const d = {
+    id: asPlayerId("d"),
+    offset: seatOffset(0, 0),
+    slot: 0,
+    yaw: 0,
+    raw: IDLE,
+  };
+  const p = {
+    id: asPlayerId("p"),
+    offset: seatOffset(0, 2),
+    slot: 2,
+    yaw: 0,
+    raw: IDLE,
+  };
+  const tick = (riders: readonly RiderView[], t: number) =>
+    v.tick({
+      tick: t,
+      riders,
+      deckSeatInputs: [],
+      velocity: { x: 0, y: 0, z: 0 },
+      onGround: true,
+      ...waterSensors(),
+      blockTypes: () => [],
+      solidAt: () => false,
+      targets: () => [],
+    });
+  tick([d, p], 0);
+  tick([{ ...d, offset: seatOffset(0, 2) }, p], 1);
+  const out = tick([p], 2);
+  expect(out.finalCommands).toContainEqual({
+    type: "playAnimation",
+    name: "door_fr",
+  });
 });

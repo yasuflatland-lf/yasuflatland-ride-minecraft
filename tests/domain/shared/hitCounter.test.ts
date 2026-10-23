@@ -21,7 +21,10 @@ const rules = fc.record({
 const hitsFor = (rule: HitRule) =>
   fc.array(
     fc.record({
-      gap: fc.integer({ min: 0, max: rule.resetTicks * 2 }),
+      gap: fc.oneof(
+        fc.constantFrom(0, rule.resetTicks, rule.resetTicks + 1),
+        fc.integer({ min: 0, max: rule.resetTicks * 2 }),
+      ),
       occupied: fc.boolean(),
     }),
     { maxLength: 60 },
@@ -41,7 +44,9 @@ describe("registerHit (ADR 0008, 0122)", () => {
   it("ignores occupied hits and breaks exactly on the n-th free hit within the reset window", () => {
     fc.assert(
       fc.property(
-        rules.chain((rule) => fc.tuple(fc.constant(rule), hitsFor(rule))),
+        fc
+          .oneof(fc.constant(VEHICLE_RULE), rules)
+          .chain((rule) => fc.tuple(fc.constant(rule), hitsFor(rule))),
         ([rule, events]) => {
           let c: HitCounter = EMPTY_COUNTER;
           let tick = 0;
@@ -88,20 +93,5 @@ describe("registerHit (ADR 0008, 0122)", () => {
         },
       ),
     );
-  });
-
-  it("keeps the count when the gap is exactly the reset window", () => {
-    let c = registerHit(EMPTY_COUNTER, 0, false, VEHICLE_RULE).counter;
-    c = registerHit(c, 10, false, VEHICLE_RULE).counter;
-    const r = registerHit(c, 10 + SPEC.hitResetTicks, false, VEHICLE_RULE);
-    expect(r.broken).toBe(true);
-  });
-
-  it("resets the count to 0 when not hit for more than the reset window", () => {
-    let c = registerHit(EMPTY_COUNTER, 0, false, VEHICLE_RULE).counter;
-    c = registerHit(c, 10, false, VEHICLE_RULE).counter;
-    const r = registerHit(c, 10 + SPEC.hitResetTicks + 1, false, VEHICLE_RULE);
-    expect(r.broken).toBe(false);
-    expect(r.counter.count).toBe(1);
   });
 });

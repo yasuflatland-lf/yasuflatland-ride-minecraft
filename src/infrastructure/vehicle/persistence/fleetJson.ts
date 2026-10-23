@@ -1,13 +1,15 @@
 import { asPlayerId, asVehicleId } from "../../../domain/shared/ids";
-// Reads and writes the fleet stored as JSON in a dynamic property (ADR 0038, ADR 0066).
+// Reads and writes the fleet stored as JSON in a dynamic property (ADR 0038, ADR 0066, ADR 0124).
 import type {
+  EvictedEntry,
   FleetEntry,
   FleetState,
 } from "../../../domain/vehicle/fleet/fleet";
 import { isVehicleKind } from "../../../domain/vehicle/kind";
 
-// Version 2 carries kind and owner; unversioned saves contain only ids (ADR 0066).
-const FLEET_VERSION = 2;
+// Version 3 carries kind and owner for evictions too (ADR 0124), version 2
+// only for the order, and unversioned saves contain only ids (ADR 0066).
+const FLEET_VERSION = 3;
 
 function isIdList(v: unknown): v is string[] {
   return Array.isArray(v) && v.every((id) => typeof id === "string");
@@ -25,6 +27,19 @@ function parseEntry(value: unknown): FleetEntry {
   return { id: asVehicleId(id), kind, owner: asPlayerId(owner) };
 }
 
+// An eviction kept from a version 2 save has only its id.
+function parseEvicted(value: unknown): EvictedEntry {
+  if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+    const { id, kind } = value as Record<string, unknown>;
+    if (kind === undefined && typeof id === "string")
+      return { id: asVehicleId(id) };
+  }
+  return parseEntry(value);
+}
+
+const legacyEvicted = (ids: readonly string[]): EvictedEntry[] =>
+  ids.map((id) => ({ id: asVehicleId(id) }));
+
 /** Throws with the reason when `raw` is not a stored fleet. */
 export function parseFleetState(raw: unknown): FleetState {
   if (typeof raw !== "string") throw new Error(`not a string: ${typeof raw}`);
@@ -33,16 +48,21 @@ export function parseFleetState(raw: unknown): FleetState {
     throw new Error("not an object");
   const { version, order, evicted } = v as Record<string, unknown>;
   if (version === FLEET_VERSION) {
+    if (!Array.isArray(order) || !Array.isArray(evicted))
+      throw new Error("order or evicted is not a list of entries");
+    return { order: order.map(parseEntry), evicted: evicted.map(parseEvicted) };
+  }
+  if (version === 2) {
     if (!Array.isArray(order))
       throw new Error("order is not a list of entries");
     if (!isIdList(evicted)) throw new Error("evicted is not a list of ids");
-    return { order: order.map(parseEntry), evicted: evicted.map(asVehicleId) };
+    return { order: order.map(parseEntry), evicted: legacyEvicted(evicted) };
   }
   if ("version" in v) throw new Error("unsupported fleet version");
   if (!isIdList(order) || !isIdList(evicted))
     throw new Error("order or evicted is not a list of ids");
   // Found vehicles rejoin as oldest with their real kind and owner (ADR 0066).
-  return { order: [], evicted: evicted.map(asVehicleId) };
+  return { order: [], evicted: legacyEvicted(evicted) };
 }
 
 export function serializeFleetState(state: FleetState): string {

@@ -11,7 +11,10 @@ import {
   type Vec3,
 } from "../../../../../src/domain/shared/vec";
 import type { HoldPose } from "../../../../../src/domain/vehicle/dock/floor";
-import type { RestoredValues } from "../../../../../src/domain/vehicle/drive";
+import type {
+  EngineCommand,
+  RestoredValues,
+} from "../../../../../src/domain/vehicle/drive";
 import {
   type ControlInput,
   type RawInput,
@@ -1698,4 +1701,46 @@ describe("sports boat control mapping (ADR 0089)", () => {
       { numRuns: 100 },
     );
   });
+});
+
+it("resync resends unchanged trim and roll after any input sequence", () => {
+  const attitudeCommands = (commands: readonly EngineCommand[]) =>
+    commands.filter(
+      (c) =>
+        c.type === "setProperty" && (c.name === "trim" || c.name === "roll"),
+    );
+  // An idle boat afloat levels out in at most maxTrim / trimSettleRate ticks;
+  // the cap only stops a regression from looping forever.
+  const maxSettleTicks = 1000;
+  fc.assert(
+    fc.property(
+      fc.array(rawInput, { minLength: 1, maxLength: 60 }),
+      (inputs) => {
+        const drive = new SportsboatDrive(0, {});
+        let tick = 0;
+        const idleStep = () =>
+          drive.step(
+            undefined,
+            context(tick++, undefined, { x: 0, z: 0 }, AFLOAT),
+          );
+        for (const raw of inputs) {
+          drive.step(raw, context(tick++, raw, { x: 0, z: 0 }, AFLOAT));
+        }
+        let settled = false;
+        for (let i = 0; i < maxSettleTicks && !settled; i++) {
+          settled = attitudeCommands(idleStep().commands).length === 0;
+        }
+        expect(settled).toBe(true);
+        // Without resync an unchanged attitude sends nothing, so the commands
+        // after resync can only come from the reset latches.
+        expect(attitudeCommands(idleStep().commands)).toEqual([]);
+        drive.resync();
+        const { trim, roll } = drive.inspect();
+        expect(attitudeCommands(idleStep().commands)).toEqual([
+          { type: "setProperty", name: "trim", value: trim },
+          { type: "setProperty", name: "roll", value: roll },
+        ]);
+      },
+    ),
+  );
 });

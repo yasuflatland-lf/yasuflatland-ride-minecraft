@@ -1,7 +1,7 @@
 // Action-bar hints for players on foot near a vehicle (ADR 0086).
 import { forward, type Vec2, type Vec3 } from "../shared/vec";
 import type { VehicleKind } from "./kind";
-import { toLocal } from "./seats";
+import { DRIVER_SEAT, toLocal } from "./seats";
 import { SPEC } from "./spec";
 
 /** The input a player last used; each gets its own wording for the interact gesture. */
@@ -99,18 +99,19 @@ export function hintAt(
   if (!zones) return undefined;
   const local = toLocal(view.offset, forward(view.yaw));
   const seat = zones.driverSeat;
-  const toSeat0 =
-    seats[0] && Math.hypot(local.x - seats[0].x, local.z - seats[0].z);
+  const toDriverSeat =
+    seats[DRIVER_SEAT] &&
+    Math.hypot(local.x - seats[DRIVER_SEAT].x, local.z - seats[DRIVER_SEAT].z);
   if (
     seat &&
-    toSeat0 !== undefined &&
+    toDriverSeat !== undefined &&
     view.docked &&
     view.driverSeatFree &&
     within(view.offset.y, seat.feet) &&
-    toSeat0 <= seat.reach + margin &&
+    toDriverSeat <= seat.reach + margin &&
     // Next to another seat a long-press takes that seat, which does not drive.
     seats.every(
-      (s) => toSeat0 <= Math.hypot(local.x - s.x, local.z - s.z) + margin,
+      (s) => toDriverSeat <= Math.hypot(local.x - s.x, local.z - s.z) + margin,
     )
   )
     return { name: DRIVE_HINT[view.controls] };

@@ -2,7 +2,7 @@
 
 - Status: Proposed
 - Date: 2026-10-23
-- Extends: 0066 (the per-owner and per-kind fleet limits), 0124 once PR #470 is merged (the take-back of an eviction)
+- Extends: 0066 (the per-owner and per-kind fleet limits), 0124 (the take-back of an eviction)
 
 ## Context
 
@@ -42,13 +42,13 @@ The runner entry uses the measured 75 ticks (0054). This change adds measurement
 
 ## Decision
 
-Proposed, until a follow-up picks a signal and implements it:
+Proposed, until the follow-up under #472 implements it. The signal is chosen: the block read below decides, and the death event confirms it.
 
 - When `world.beforeEvents.entityRemove` fires for a vehicle type, capture its id, dimension, and location while the entity is still readable. Before events are read-only; defer the probe and fleet write through `system.run`, which for an engine-raised removal still runs within the removal's tick
-- In that deferred read, read the block at the captured location. A defined block means the chunk remains loaded and the vehicle is gone: forget its id from the fleet, including the take-back of the latest eviction from its group under 0124 once merged
+- In that deferred read, read the block at the captured location. A defined block means the chunk remains loaded and the vehicle is gone: forget its id from the fleet, including the take-back of the latest eviction from its group under 0124
 - An undefined block or a thrown block lookup is treated as unloaded: keep the vehicle in the fleet with its existing age
 - Forgetting an unknown id changes nothing. Break-by-hand and eviction paths already forget the vehicle through `retireVehicle`, so a subsequent remove event has no further effect
-- `entityDie` for a vehicle also separates `/kill` from unload, and arrives before the remove events. The follow-up may forget on the death event instead, or use it to confirm the block read, and records which one it chose here before implementing it. The next-tick read gives the same answer, so the follow-up may use it when it needs the removal to have settled
+- `entityDie` for a vehicle also separates `/kill` from unload and arrives before the remove events, but a script `remove()` raises none. Use it only to confirm the block read: a vehicle that died before its removal is forgotten even if the block read fails. Do not forget on the death event alone, so a vehicle that dies and is then kept in the world by another add-on keeps its slot. The next-tick read gives the same answer, so the follow-up may use it when it needs the removal to have settled
 
 ## Consequences
 
@@ -57,4 +57,5 @@ Proposed, until a follow-up picks a signal and implements it:
 - A vehicle removed in the same tick its chunk unloads is still kept. This rare case ages out as it does today
 - The evicted-list cap of 64 stays for vehicles lost in unloaded chunks
 - The deferred read runs in the removal's tick for kill and unload, so there is no window for a chunk to reload before it. A remove started from script defers to the next tick, but those paths already forget the vehicle through `retireVehicle`
+- Not measured: a vehicle moving to another dimension, and a vehicle removed by another add-on. If either raises a remove event while the chunk stays loaded, the rule forgets that vehicle. Measure them if that turns out to matter
 - Revisit when a stable API can distinguish an unload from a removal directly
