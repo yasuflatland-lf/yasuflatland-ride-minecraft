@@ -157,8 +157,13 @@ async function pitchTestTent(
   throw new Error("tent not pitched");
 }
 
-/** Removes every tent and empties the strip above the ground. */
+/**
+ * Removes every tent, the tent items a take-down dropped, and empties the
+ * strip above the ground. A dropped item left behind would be counted by the
+ * next scenario in the same shard that takes a tent down.
+ */
 function clearTentStrip(a: Arena): void {
+  for (const item of tentItemsNear(a)) item.remove();
   for (const tent of a.dim.getEntities({ type: TENT_TYPE }))
     if (tent.isValid) tent.remove();
   a.dim.runCommand(
@@ -223,7 +228,6 @@ export async function tentPitchAndTakeDown(a: Arena): Promise<Outcome> {
       detail: `tents=${tents} yaw=${yaw} shelter=${shelter} flaps=${flaps} mattresses=${mattresses} lanterns=${lanterns} left=${left} after=${after} kept=${kept} items=${items}`,
     };
   } finally {
-    for (const item of tentItemsNear(a)) item.remove();
     clearTentStrip(a);
   }
 }
@@ -430,7 +434,6 @@ export async function tentLantern(a: Arena): Promise<Outcome> {
       detail: `pitched=${show(pitched)} on=${show(on)} held=${show(held)} off=${show(off)} again=${show(again)} gone=${gone}`,
     };
   } finally {
-    for (const item of tentItemsNear(a)) item.remove();
     clearTentStrip(a);
   }
 }
@@ -470,7 +473,6 @@ export async function tentPaintEvents(a: Arena): Promise<Outcome> {
       detail: `wrong=[${wrong.join(",")}] drops=[${types}]`,
     };
   } finally {
-    for (const item of tentItemsNear(a)) item.remove();
     clearTentStrip(a);
   }
 }
