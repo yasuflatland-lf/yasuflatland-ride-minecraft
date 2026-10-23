@@ -14,6 +14,17 @@ interface SeatingUpdate<R extends RiderPos> {
   readonly mounted: boolean;
 }
 
+/** The seats in `seats` whose rider `others` does not contain, ascending. */
+function seatsOfRidersNotIn(
+  seats: ReadonlyMap<PlayerId, number>,
+  others: { has(id: PlayerId): boolean },
+): number[] {
+  return [...seats]
+    .filter(([id]) => !others.has(id))
+    .map(([, seat]) => seat)
+    .sort((a, b) => a - b);
+}
+
 export class Seating {
   private seats: ReadonlyMap<PlayerId, number> = new Map();
   private driverId: PlayerId | undefined;
@@ -139,14 +150,8 @@ export class Seating {
   ): SeatingUpdate<R> {
     const seats = this.seatsOf(riders, f);
     const aboard = new Set(riders.map((r) => r.id));
-    const vacated = [...this.seats]
-      .filter(([id]) => !aboard.has(id))
-      .map(([, seat]) => seat)
-      .sort((a, b) => a - b);
-    const boarded = [...seats]
-      .filter(([id]) => !this.seats.has(id))
-      .map(([, seat]) => seat)
-      .sort((a, b) => a - b);
+    const vacated = seatsOfRidersNotIn(this.seats, aboard);
+    const boarded = seatsOfRidersNotIn(seats, this.seats);
     this.seats = seats;
     // Position-only riders retain the sticky driver and motion allowance (0025, 0126).
     const sticky = riders.find(

@@ -30,6 +30,7 @@ import type { RamTarget } from "../../../src/domain/vehicle/ram";
 import { SPEC } from "../../../src/domain/vehicle/spec";
 import {
   type RiderView,
+  type TickOutcome,
   Vehicle,
   type VehicleTickInput,
 } from "../../../src/domain/vehicle/vehicle";
@@ -878,6 +879,10 @@ describe("seat-taken hook", () => {
     };
   }
 
+  const newVehicle = (log: string[], withHook: boolean) =>
+    new Vehicle(asVehicleId("v"), SUV_PROFILE, recordingDrive(log, withHook));
+  const names = (outcome: TickOutcome) =>
+    outcome.finalCommands.map((command) => command.name);
   const at = (id: string, seat: number) => ({
     id: asPlayerId(id),
     offset: defined(SUV_PROFILE.seats.positions[seat], "seat"),
@@ -901,52 +906,28 @@ describe("seat-taken hook", () => {
 
   it("runs the taken seats' commands after the vacated seats' commands, ascending", () => {
     const log: string[] = [];
-    const vehicle = new Vehicle(
-      asVehicleId("v"),
-      SUV_PROFILE,
-      recordingDrive(log, true),
-    );
+    const vehicle = newVehicle(log, true);
     const first = vehicle.tick(input(0, [at("a", 0), at("b", 2)]));
-    expect(first.finalCommands.map((command) => command.name)).toEqual([
-      "taken_0",
-      "taken_2",
-    ]);
+    expect(names(first)).toEqual(["taken_0", "taken_2"]);
     const second = vehicle.tick(input(1, [at("a", 0), at("c", 1)]));
-    expect(second.finalCommands.map((command) => command.name)).toEqual([
-      "vacated_2",
-      "taken_1",
-    ]);
+    expect(names(second)).toEqual(["vacated_2", "taken_1"]);
   });
 
   it("calls the seat-taken hook before the mount hook and the step", () => {
     const log: string[] = [];
-    const vehicle = new Vehicle(
-      asVehicleId("v"),
-      SUV_PROFILE,
-      recordingDrive(log, true),
-    );
+    const vehicle = newVehicle(log, true);
     vehicle.tick(input(0, [at("a", 0)]));
     expect(log).toEqual(["taken:0", "mounted", "step"]);
   });
 
   it("does not call the seat-taken hook for riders who stay or move seats", () => {
     const log: string[] = [];
-    const vehicle = new Vehicle(
-      asVehicleId("v"),
-      SUV_PROFILE,
-      recordingDrive(log, true),
-    );
-    const first = vehicle.tick(input(0, [at("a", 0), at("b", 2)]));
-    expect(first.finalCommands.map((command) => command.name)).toEqual([
-      "taken_0",
-      "taken_2",
-    ]);
+    const vehicle = newVehicle(log, true);
+    vehicle.tick(input(0, [at("a", 0), at("b", 2)]));
     log.length = 0;
     const second = vehicle.tick(input(1, [at("b", 0)]));
     expect(log.some((entry) => entry.startsWith("taken:"))).toBe(false);
-    expect(second.finalCommands.map((command) => command.name)).toEqual([
-      "vacated_0",
-    ]);
+    expect(names(second)).toEqual(["vacated_0"]);
   });
 
   it("does not call the seat-taken hook for riders aboard when the vehicle is rebuilt", () => {
@@ -964,12 +945,7 @@ describe("seat-taken hook", () => {
   });
 
   it("emits no taken seat commands for a drive without the hook", () => {
-    const log: string[] = [];
-    const vehicle = new Vehicle(
-      asVehicleId("v"),
-      SUV_PROFILE,
-      recordingDrive(log, false),
-    );
+    const vehicle = newVehicle([], false);
     expect(vehicle.tick(input(0, [at("a", 0)])).finalCommands).toEqual([]);
   });
 });
