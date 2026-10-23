@@ -1,4 +1,5 @@
-// The vanilla dye for each paint, and the paint each dye gives.
+// The vanilla dye for each paint, the paint each dye gives, and the variant index
+// and entity event that apply a paint to every painted entity (ADR 0031, 0135).
 
 import type { Player } from "@minecraft/server";
 import { PAINTS, type Paint, paintEventName } from "../../domain/shared/paint";
@@ -35,4 +36,6 @@ export const PAINT_VARIANT: Readonly<Record<Paint, number>> =
  * Entity event, declared in every painted entity file (the vehicles' and the
  * tent's .se.json), that sets the variant for a paint (ADR 0031).
  */
-export const paintEvent = (paint: Paint): string => id(paintEventName(paint));
+export function paintEvent(paint: Paint): string {
+  return id(paintEventName(paint));
+}

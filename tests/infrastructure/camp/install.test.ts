@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
 import { HitChair } from "../../../src/application/camp/hitChair";
+import { PaintTent } from "../../../src/application/camp/paintTent";
 import { PitchTent } from "../../../src/application/camp/pitchTent";
 import { PlaceChair } from "../../../src/application/camp/placeChair";
 import { SwitchLantern } from "../../../src/application/camp/switchLantern";
@@ -168,8 +169,10 @@ it("wires the tent handlers with the same use cases, registry, and owner lookup 
   installCamp({ isVehicleSpace: () => false });
   const pitchTent = vi.mocked(registerTentPlacement).mock.calls[0]?.[0];
   expect(pitchTent).toBeInstanceOf(PitchTent);
-  const [takeDown, owner] = vi.mocked(registerTentHits).mock.calls[0] ?? [];
+  const [takeDown, paintTent, owner] =
+    vi.mocked(registerTentHits).mock.calls[0] ?? [];
   expect(takeDown).toBeInstanceOf(TakeDownTent);
+  expect(paintTent).toBeInstanceOf(PaintTent);
   expect(vi.mocked(registerTestTent).mock.calls[0]).toEqual([
     pitchTent,
     takeDown,

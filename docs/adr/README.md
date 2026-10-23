@@ -34,7 +34,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0028](0028-third-person-camera-in-flight.md) | Switch riders to the third-person camera in flight | Superseded in part by 0052 and 0071 |
 | [0029](0029-raise-the-seats.md) | Raise the seats so riders' legs stay inside the body | Accepted |
 | [0030](0030-engine-and-hover-sounds.md) | Engine and hover sounds from client animations, stepped by speed | Extended by 0073 |
-| [0031](0031-repaint-with-all-sixteen-dyes.md) | Repaint vehicles with all sixteen dyes | Superseded in part by 0036; extended by 0076 |
+| [0031](0031-repaint-with-all-sixteen-dyes.md) | Repaint vehicles with all sixteen dyes | Superseded in part by 0036; extended by 0076 and [0135](0135-repaint-the-tent-with-dyes.md) |
 | [0032](0032-climb-with-jump-and-sink-with-the-stick.md) | Climb with held Jump and sink with the stick pulled back | Accepted |
 | [0033](0033-lower-the-wheels-before-touchdown.md) | Lower the wheels before touchdown | Accepted |
 | [0034](0034-touch-down-from-flight.md) | Return to the ground when a flying vehicle sinks onto it | Accepted |
@@ -79,7 +79,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0073](0073-hover-sound-on-a-riderless-vehicle.md) | Keep the hover sound on a riderless vehicle until its wheels come down | Accepted |
 | [0074](0074-light-braking-at-least-coasting.md) | Light braking is never weaker than coasting | Accepted |
 | [0075](0075-name-the-medium-step-after-the-medium.md) | Name the shared medium step after the medium | Accepted |
-| [0076](0076-per-kind-default-paint.md) | Each kind names its default paint; a dye matching it does nothing | Accepted |
+| [0076](0076-per-kind-default-paint.md) | Each kind names its default paint; a dye matching it does nothing | Accepted; extended by [0135](0135-repaint-the-tent-with-dyes.md) |
 | [0077](0077-never-reverse-the-internal-speed-on-a-wall-hit.md) | Never reverse the internal speed on a wall hit | Superseded in part by 0081 |
 | [0078](0078-wait-for-a-passenger-before-landing.md) | Wait for a passenger to move up before landing a driverless flying vehicle | Accepted |
 | [0079](0079-roll-by-signed-speed.md) | Roll the sports boat by its signed speed | Accepted |
@@ -134,10 +134,11 @@ This directory records design decisions and the reasons behind them. The format 
 | [0128](0128-settle-every-crews-seats-by-rider-list.md) | Settle every crew's seats by the rider list | Accepted |
 | [0129](0129-share-room-primitives-between-features.md) | Share room primitives between features | Accepted; extended by [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md) (Proposed) |
 | [0130](0130-a-tent-entity-whose-hits-land-on-its-blocks.md) | A tent entity whose hits land on its blocks | Proposed; extended by [0131](0131-pitch-a-tent-in-the-camp.md) |
-| [0131](0131-pitch-a-tent-in-the-camp.md) | Pitch a tent in the camp | Proposed; extended by [0132](0132-open-and-close-each-tent-flap-alone.md), [0133](0133-sleep-on-the-tent-mattresses.md), and [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md) |
+| [0131](0131-pitch-a-tent-in-the-camp.md) | Pitch a tent in the camp | Proposed; extended by [0132](0132-open-and-close-each-tent-flap-alone.md), [0133](0133-sleep-on-the-tent-mattresses.md), [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md), and [0135](0135-repaint-the-tent-with-dyes.md) |
 | [0132](0132-open-and-close-each-tent-flap-alone.md) | Open and close each tent flap alone | Proposed |
 | [0133](0133-sleep-on-the-tent-mattresses.md) | Sleep on the tent mattresses | Proposed |
 | [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md) | Switch the tent lantern with the headlight switch | Proposed |
+| [0135](0135-repaint-the-tent-with-dyes.md) | Repaint the tent with dyes | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 

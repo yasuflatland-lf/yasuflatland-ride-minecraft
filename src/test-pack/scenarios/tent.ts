@@ -1,6 +1,7 @@
 // In-game checks of the tent entity contract (ADR 0130), of pitching and
 // taking down the tent (ADR 0131), of its flaps (ADR 0132), of its
-// mattresses (ADR 0133), and of switching its lantern (ADR 0134).
+// mattresses (ADR 0133), of switching its lantern (ADR 0134), and of its
+// paint events (ADR 0135).
 import { type Entity, ItemStack, system } from "@minecraft/server";
 import { FLAP_IDS } from "../../domain/camp/flaps";
 import { TENT_SPEC } from "../../domain/camp/spec";
@@ -12,6 +13,7 @@ import {
   tentCellAt,
   tentPose,
 } from "../../domain/camp/tent";
+import { PAINTS } from "../../domain/shared/paint";
 import { LIGHT_SWITCH_COOLDOWN_TICKS } from "../../domain/shared/switchCooldown";
 import {
   TENT_CEILING_BLOCK,
@@ -31,6 +33,7 @@ import {
   TEST_TENT_LANTERN_EVENT,
   TEST_TENT_PITCH_EVENT,
 } from "../../infrastructure/camp/identifiers";
+import { PAINT_VARIANT, paintEvent } from "../../infrastructure/shared/dyes";
 import { type Arena, type Outcome, spawnCar, wait } from "../arena";
 
 export async function tentEntityContract(a: Arena): Promise<Outcome> {
@@ -425,6 +428,46 @@ export async function tentLantern(a: Arena): Promise<Outcome> {
         isLantern(again, true) &&
         gone === "minecraft:air",
       detail: `pitched=${show(pitched)} on=${show(on)} held=${show(held)} off=${show(off)} again=${show(again)} gone=${gone}`,
+    };
+  } finally {
+    for (const item of tentItemsNear(a)) item.remove();
+    clearTentStrip(a);
+  }
+}
+
+/** Every paint event sets its variant, and the tent then takes down into one plain item (ADR 0135). */
+export async function tentPaintEvents(a: Arena): Promise<Outcome> {
+  try {
+    const tent = await pitchTestTent(a);
+    const variant = () => tent.getComponent("minecraft:variant")?.value;
+    const wrong: string[] = [];
+    for (const paint of [...PAINTS.slice(1), PAINTS[0]]) {
+      tent.triggerEvent(paintEvent(paint));
+      await wait(1);
+      if (variant() !== PAINT_VARIANT[paint])
+        wrong.push(`${paint}=${variant()}`);
+    }
+    const id = tent.id;
+    for (let i = 0; i < TENT_SPEC.hitsToTakeDown; i++) {
+      system.sendScriptEvent(TEST_TENT_HIT_EVENT, id);
+      await wait(2);
+    }
+    const drops = a.dim
+      .getEntities({
+        type: "minecraft:item",
+        location: tentEntityAt(a),
+        maxDistance: 3,
+      })
+      .map((e) => e.getComponent("minecraft:item")?.itemStack);
+    const types = drops.map((s) => `${s?.typeId}x${s?.amount}`).join(",");
+    return {
+      pass:
+        wrong.length === 0 &&
+        tentsInStrip(a).length === 0 &&
+        drops.length === 1 &&
+        drops[0]?.typeId === TENT_ITEM &&
+        drops[0]?.amount === 1,
+      detail: `wrong=[${wrong.join(",")}] drops=[${types}]`,
     };
   } finally {
     for (const item of tentItemsNear(a)) item.remove();

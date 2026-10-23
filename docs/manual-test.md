@@ -248,6 +248,17 @@ Walk in through an open flap: tap a flap to roll it up (ADR 0132).
 | T26 | Turn the lantern on, run `/reload`, then restart the server | The lantern is still on after each (ADR 0134) | | |
 | T27 | With the lantern off, stay inside through one night | The tent looks dark and no hostile mob spawns inside (ADR 0131, 0134) | | |
 
+### Tent paint
+
+| # | Steps | Pass condition | PC | Mobile |
+|---|---|---|---|---|
+| T28 | Pitch a tent at each of the 4 yaws and hit its outer wall from outside with a red dye | The fly and its three outer flaps turn red; the inner tent, the bedroom door, the poles, the strap, the lantern, and the mattresses do not. One dye is used (ADR 0135) | | |
+| T29 | Hit the red tent again with red dye, then with brown dye | Red does nothing and the dye is kept. Brown restores the tan | | |
+| T30 | With a player inside, hit the tent from outside with a dye, then with an empty hand | The dye paints. The plain hit shows "Someone is inside the tent" | | |
+| T31 | After painting, hit the tent three times with an empty hand | The tent comes down and one plain tent item returns | | |
+| T32 | Paint a pitched tent, then `/reload`, then restart the server | The color stays | | |
+| T33 | With the lantern switched on, paint the tent | The lantern glass still glows | | |
+
 ## Upgrading from MyCar 0.5.0 and earlier
 
 Setup: in a world that used MyCar 0.5.0, place two vehicles and switch the headlights of one of them off, then stop the server and replace the old pack folders with the new ones as described under "Upgrading from MyCar 0.5.0 and earlier" in the [README](../README.md).

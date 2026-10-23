@@ -2,6 +2,7 @@ import { Player } from "@minecraft/server";
 import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { HitChair } from "../../../src/application/camp/hitChair";
+import type { PaintTent } from "../../../src/application/camp/paintTent";
 import type { PitchTent } from "../../../src/application/camp/pitchTent";
 import type { PlaceChair } from "../../../src/application/camp/placeChair";
 import type { SwitchLantern } from "../../../src/application/camp/switchLantern";
@@ -17,6 +18,7 @@ import {
   type LaidCell,
   relayCells,
 } from "../../../src/domain/shared/laidCells";
+import { PAINTS } from "../../../src/domain/shared/paint";
 import { registerChairHits } from "../../../src/infrastructure/camp/bedrock/handlers/hits";
 import { registerChairPlacement } from "../../../src/infrastructure/camp/bedrock/handlers/placement";
 import { registerTentHits } from "../../../src/infrastructure/camp/bedrock/handlers/tentHits";
@@ -41,6 +43,7 @@ import {
   TEST_TENT_PITCH_EVENT,
 } from "../../../src/infrastructure/camp/identifiers";
 import type { DynamicPropertyTentRegistry } from "../../../src/infrastructure/camp/persistence/tentRegistry";
+import { dyeOf } from "../../../src/infrastructure/shared/dyes";
 import { NAMESPACE } from "../../../src/infrastructure/shared/identifiers";
 import type { CellLayer } from "../../../src/infrastructure/shared/laidCells";
 import { defined } from "../../support/defined";
@@ -103,8 +106,17 @@ function subscribed(signal: { mock: { calls: unknown[][] } }) {
   return defined(signal.mock.calls[0]?.[0], "handler") as (ev: unknown) => void;
 }
 
-const playerWithId = (id: string) =>
-  Object.assign(Object.create(Player.prototype) as object, { id });
+const playerWithId = (id: string, held?: string) =>
+  Object.assign(Object.create(Player.prototype) as object, {
+    id,
+    isValid: true,
+    selectedSlotIndex: 0,
+    getComponent: () => ({
+      container: {
+        getItem: () => (held === undefined ? undefined : { typeId: held }),
+      },
+    }),
+  });
 
 function fakeHitChair() {
   const execute = vi.fn(() => false);
@@ -361,13 +373,18 @@ describe("registerTentPlacement (ADR 0131)", () => {
 describe("registerTentHits (ADR 0130, 0131)", () => {
   function setup() {
     const execute = vi.fn(() => false);
+    const paint = vi.fn(() => true);
     const owner = vi.fn((_d: string, _c: unknown, typeId: string) =>
       typeId === "yasu_ride:tent_wall" || typeId === "yasu_ride:tent_flap"
         ? "tent"
         : undefined,
     );
-    registerTentHits({ execute } as unknown as TakeDownTent, owner as never);
-    return { execute, owner };
+    registerTentHits(
+      { execute } as unknown as TakeDownTent,
+      { execute: paint } as unknown as PaintTent,
+      owner as never,
+    );
+    return { execute, paint, owner };
   }
   const block = (typeId: string) => ({
     typeId,
@@ -491,6 +508,186 @@ describe("registerTentHits (ADR 0130, 0131)", () => {
       tick: 10,
       playerId: "p",
     });
+  });
+
+  const dyes = fc.constantFrom(...PAINTS);
+  const creativeWith = (held?: string) =>
+    Object.assign(playerWithId("p", held), { getGameMode: () => "Creative" });
+
+  it("repaints on a dye hit on a tent block, never taking it down (ADR 0036)", () => {
+    fc.assert(
+      fc.property(dyes, (paint) => {
+        vi.clearAllMocks();
+        const { execute, paint: paintTent } = setup();
+        subscribed(game.hitBlock)({
+          damagingEntity: playerWithId("p", dyeOf(paint)),
+          hitBlock: block("yasu_ride:tent_wall"),
+        });
+        expect(paintTent).toHaveBeenCalledExactlyOnceWith({
+          playerId: "p",
+          tentId: "tent",
+          paint,
+          tick: 10,
+        });
+        expect(execute).not.toHaveBeenCalled();
+      }),
+    );
+  });
+
+  it("repaints on a dye hit on the tent entity", () => {
+    fc.assert(
+      fc.property(dyes, (paint) => {
+        vi.clearAllMocks();
+        const { execute, paint: paintTent } = setup();
+        subscribed(game.hit)({
+          damagingEntity: playerWithId("p", dyeOf(paint)),
+          hitEntity: { id: "t", typeId: TENT_TYPE },
+        });
+        expect(paintTent).toHaveBeenCalledExactlyOnceWith({
+          playerId: "p",
+          tentId: "t",
+          paint,
+          tick: 10,
+        });
+        expect(execute).not.toHaveBeenCalled();
+      }),
+    );
+  });
+
+  it("repaints on a Creative dye break only inside the deferred callback", () => {
+    fc.assert(
+      fc.property(dyes, (paint) => {
+        vi.clearAllMocks();
+        const { execute, paint: paintTent } = setup();
+        subscribed(game.breakBlock)({
+          player: creativeWith(dyeOf(paint)),
+          block: block("yasu_ride:tent_wall"),
+          dimension: { id: "overworld" },
+        });
+        expect(paintTent).not.toHaveBeenCalled();
+        defined(game.run.mock.calls[0]?.[0], "deferred break")();
+        expect(paintTent).toHaveBeenCalledExactlyOnceWith({
+          playerId: "p",
+          tentId: "tent",
+          paint,
+          tick: 10,
+        });
+        expect(execute).not.toHaveBeenCalled();
+      }),
+    );
+  });
+
+  it("paints the dye swung at a Creative break, not the one held a tick later", () => {
+    const { paint } = setup();
+    const player = creativeWith(dyeOf("red"));
+    subscribed(game.breakBlock)({
+      player,
+      block: block("yasu_ride:tent_wall"),
+      dimension: { id: "overworld" },
+    });
+    Object.assign(player, { getComponent: () => undefined });
+    defined(game.run.mock.calls[0]?.[0], "deferred break")();
+    expect(paint).toHaveBeenCalledExactlyOnceWith({
+      playerId: "p",
+      tentId: "tent",
+      paint: "red",
+      tick: 10,
+    });
+  });
+
+  it("drops a Creative break when the player leaves before the deferred tick", () => {
+    for (const held of [undefined, dyeOf("red")]) {
+      vi.clearAllMocks();
+      const { execute, paint } = setup();
+      const player = creativeWith(held);
+      subscribed(game.breakBlock)({
+        player,
+        block: block("yasu_ride:tent_wall"),
+        dimension: { id: "overworld" },
+      });
+      Object.assign(player, {
+        isValid: false,
+        getComponent: () => {
+          throw new Error("InvalidEntityError");
+        },
+      });
+      expect(
+        defined(game.run.mock.calls[0]?.[0], "deferred break"),
+      ).not.toThrow();
+      expect(execute).not.toHaveBeenCalled();
+      expect(paint).not.toHaveBeenCalled();
+    }
+  });
+
+  it("takes down with an empty hand or a non-dye item, and never paints", () => {
+    for (const held of [undefined, "minecraft:stick", "minecraft:dirt"]) {
+      vi.clearAllMocks();
+      const { execute, paint } = setup();
+      subscribed(game.hitBlock)({
+        damagingEntity: playerWithId("p", held),
+        hitBlock: block("yasu_ride:tent_wall"),
+      });
+      subscribed(game.hit)({
+        damagingEntity: playerWithId("q", held),
+        hitEntity: { id: "t", typeId: TENT_TYPE },
+      });
+      expect(execute).toHaveBeenCalledTimes(2);
+      expect(paint).not.toHaveBeenCalled();
+    }
+  });
+
+  it("paints once for a Creative dye break and a block hit in the same tick", () => {
+    const { paint } = setup();
+    const player = creativeWith(dyeOf("red"));
+    subscribed(game.breakBlock)({
+      player,
+      block: block("yasu_ride:tent_wall"),
+      dimension: { id: "overworld" },
+    });
+    subscribed(game.hitBlock)({
+      damagingEntity: player,
+      hitBlock: block("yasu_ride:tent_wall"),
+    });
+    defined(game.run.mock.calls[0]?.[0], "deferred break")();
+    expect(paint).toHaveBeenCalledTimes(1);
+  });
+
+  it("counts only the plain hit after three dye hits in their own ticks", () => {
+    const { execute, paint } = setup();
+    for (const tick of [10, 11, 12]) {
+      game.currentTick = tick;
+      subscribed(game.hitBlock)({
+        damagingEntity: playerWithId("p", dyeOf("blue")),
+        hitBlock: block("yasu_ride:tent_wall"),
+      });
+    }
+    game.currentTick = 13;
+    subscribed(game.hitBlock)({
+      damagingEntity: playerWithId("p"),
+      hitBlock: block("yasu_ride:tent_wall"),
+    });
+    expect(paint).toHaveBeenCalledTimes(3);
+    expect(execute).toHaveBeenCalledExactlyOnceWith({
+      tentId: "tent",
+      tick: 13,
+      playerId: "p",
+    });
+  });
+
+  it("never paints from the test hit event, which has no player", () => {
+    const { paint } = setup();
+    const take = vi.fn(() => false);
+    registerTestTent(
+      { execute: vi.fn() } as unknown as PitchTent,
+      { execute: take } as unknown as TakeDownTent,
+    );
+    subscribed(game.script)({
+      id: TEST_TENT_HIT_EVENT,
+      sourceType: "Server",
+      message: "t",
+    });
+    expect(take).toHaveBeenCalledWith({ tentId: "t", tick: 10 });
+    expect(paint).not.toHaveBeenCalled();
   });
 });
 

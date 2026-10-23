@@ -80,6 +80,7 @@ import {
   tentFlapOpensAlone,
   tentLantern,
   tentMattresses,
+  tentPaintEvents,
   tentPitchAndTakeDown,
   tentPitchOnSnow,
   tentRefuseStep,
@@ -167,6 +168,7 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
     ["tent_flap_opens_alone", 19, () => tentFlapOpensAlone(a)],
     ["tent_mattresses", 9, () => tentMattresses(a)],
     ["tent_lantern", 37, () => tentLantern(a)],
+    ["tent_paint_events", 25, () => tentPaintEvents(a)],
   ];
   const shards = shardsOf(
     allTests.map(([, ticks]) => ticks),

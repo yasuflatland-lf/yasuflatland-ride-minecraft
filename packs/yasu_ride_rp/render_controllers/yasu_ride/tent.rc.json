@@ -5,6 +5,26 @@
       "arrays": {
         "materials": {
           "Array.lamps": ["Material.lamp", "Material.lamp_lit"]
+        },
+        "textures": {
+          "Array.paints": [
+            "Texture.default",
+            "Texture.green",
+            "Texture.red",
+            "Texture.white",
+            "Texture.light_gray",
+            "Texture.gray",
+            "Texture.black",
+            "Texture.orange",
+            "Texture.yellow",
+            "Texture.lime",
+            "Texture.cyan",
+            "Texture.light_blue",
+            "Texture.blue",
+            "Texture.purple",
+            "Texture.magenta",
+            "Texture.pink"
+          ]
         }
       },
       "geometry": "Geometry.default",
@@ -16,7 +36,7 @@
           "lantern_glass": "Array.lamps[query.property('yasu_ride:lantern') ? 1 : 0]"
         }
       ],
-      "textures": ["Texture.default"]
+      "textures": ["Array.paints[query.variant]"]
     }
   }
 }

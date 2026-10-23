@@ -1,7 +1,9 @@
 // Wires the camp feature: the low chair placed outside the vehicles (ADR 0122)
 // and the tent pitched from its item, with flaps that open alone (ADR 0131, 0132),
-// mattresses to sleep on (ADR 0133), and a lantern on the headlight switch (ADR 0134).
+// mattresses to sleep on (ADR 0133), a lantern on the headlight switch (ADR 0134),
+// and a fly repainted with dyes (ADR 0135).
 import { HitChair } from "../../application/camp/hitChair";
+import { PaintTent } from "../../application/camp/paintTent";
 import { PitchTent } from "../../application/camp/pitchTent";
 import { PlaceChair } from "../../application/camp/placeChair";
 import { SwitchLantern } from "../../application/camp/switchLantern";
@@ -16,6 +18,7 @@ import { playerById } from "../shared/players";
 import type { SwitchTarget } from "../shared/switchRouter";
 import { BedrockChairWorld } from "./bedrock/bedrockChairWorld";
 import { BedrockLanternWorld } from "./bedrock/bedrockLanternWorld";
+import { BedrockTentPaintWorld } from "./bedrock/bedrockTentPaintWorld";
 import { BedrockTentWorld } from "./bedrock/bedrockTentWorld";
 import { registerChairHits } from "./bedrock/handlers/hits";
 import { registerChairPlacement } from "./bedrock/handlers/placement";
@@ -66,9 +69,10 @@ export function installCamp(deps: { isVehicleSpace: SpaceCheck }): {
   });
   const pitchTent = new PitchTent(tents);
   const takeDownTent = new TakeDownTent(tents);
+  const paintTent = new PaintTent(new BedrockTentPaintWorld());
   const tentBlockOwner = tents.tentBlockOwner.bind(tents);
   registerTentPlacement(pitchTent);
-  registerTentHits(takeDownTent, tentBlockOwner);
+  registerTentHits(takeDownTent, paintTent, tentBlockOwner);
   registerLaidBlockGuard(tentBlockOwner);
   registerTentLoop(registry, blocks, flaps);
   registerTentLifecycle(registry, blocks);
