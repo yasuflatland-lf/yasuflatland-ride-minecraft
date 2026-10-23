@@ -76,6 +76,19 @@ function fixture(extraRouteId?: string) {
   };
 }
 
+type EventKind = "item" | "entity" | "block";
+
+function press(
+  f: ReturnType<typeof fixture>,
+  kind: EventKind,
+  ev: object,
+): void {
+  if (kind === "item") f.use(ev as ItemUseAfterEvent);
+  else if (kind === "entity")
+    f.entity(ev as PlayerInteractWithEntityBeforeEvent);
+  else f.block(ev as PlayerInteractWithBlockBeforeEvent);
+}
+
 function fakeTarget(claims: {
   item: boolean;
   entity: boolean;
@@ -135,10 +148,7 @@ it("routes each event to its first claim with the required timing and cancellati
             isFirstEvent,
             cancel: false,
           };
-          if (kind === "item") f.use(ev as unknown as ItemUseAfterEvent);
-          else if (kind === "entity")
-            f.entity(ev as unknown as PlayerInteractWithEntityBeforeEvent);
-          else f.block(ev as unknown as PlayerInteractWithBlockBeforeEvent);
+          press(f, kind, ev);
           const asks =
             item === HEADLIGHT_SWITCH_TYPE && (kind !== "item" || validAtPress);
           const winnerIndex = asks
@@ -196,18 +206,12 @@ it("asks a target added after registration on the next event", () => {
         isFirstEvent: true,
         cancel: false,
       };
-      const send = () => {
-        if (kind === "item") f.use(ev as unknown as ItemUseAfterEvent);
-        else if (kind === "entity")
-          f.entity(ev as unknown as PlayerInteractWithEntityBeforeEvent);
-        else f.block(ev as unknown as PlayerInteractWithBlockBeforeEvent);
-      };
-      send();
+      press(f, kind, ev);
       expect(ev.cancel).toBe(false);
       expect(game.run).not.toHaveBeenCalled();
       const target = fakeTarget({ item: true, entity: true, block: true });
       f.targets.push(target);
-      send();
+      press(f, kind, ev);
       for (const [callback] of game.run.mock.calls) callback();
       expect(target.switchFor).toHaveBeenCalledExactlyOnceWith(player);
       expect(f.getter).toHaveBeenCalledTimes(2);
@@ -249,10 +253,7 @@ it("ignores an item with no route in all three events", () => {
               isFirstEvent,
               cancel: false,
             };
-            if (kind === "item") f.use(ev as unknown as ItemUseAfterEvent);
-            else if (kind === "entity")
-              f.entity(ev as unknown as PlayerInteractWithEntityBeforeEvent);
-            else f.block(ev as unknown as PlayerInteractWithBlockBeforeEvent);
+            press(f, kind, ev);
             expect(f.getter).not.toHaveBeenCalled();
             expect(ev.cancel).toBe(false);
             expect(game.run).not.toHaveBeenCalled();
@@ -290,10 +291,7 @@ it("dispatches each item to its own route only", () => {
           isFirstEvent: true,
           cancel: false,
         };
-        if (kind === "item") f.use(ev as unknown as ItemUseAfterEvent);
-        else if (kind === "entity")
-          f.entity(ev as unknown as PlayerInteractWithEntityBeforeEvent);
-        else f.block(ev as unknown as PlayerInteractWithBlockBeforeEvent);
+        press(f, kind, ev);
         const [getter, otherGetter, target, otherTarget] =
           item === HEADLIGHT_SWITCH_TYPE
             ? [f.getter, f.extraGetter, headlight, extra]
