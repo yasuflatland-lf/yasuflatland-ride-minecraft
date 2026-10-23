@@ -1,17 +1,23 @@
 import type { MotionLimits, TyreLimits } from "../../motion/limits";
-import type { PlacementSurface } from "../../placement/placement";
+import {
+  clearanceHeight,
+  type PlacementSurface,
+} from "../../placement/placement";
 import type { VehicleProfile } from "../../profile";
 import { SUV_SPEC } from "./spec";
+
+const body = Object.freeze({
+  front: SUV_SPEC.bodyFront,
+  halfWidth: SUV_SPEC.bodyHalfWidth,
+  height: SUV_SPEC.carHeight,
+});
 
 // Frozen because this one object is shared by every SUV; a write would change
 // all of them at once and leave RAM_QUERY_RADIUS, computed at load, stale.
 export const SUV_PROFILE: VehicleProfile = Object.freeze({
   kind: "suv",
   fleetLimit: 10, // Per player (ADR 0066).
-  ram: Object.freeze({
-    front: SUV_SPEC.bodyFront,
-    halfWidth: SUV_SPEC.bodyHalfWidth,
-  }),
+  body,
   footprint: SUV_SPEC.footprint,
   /**
    * Coordinates aligned with the vehicle's facing (x = left, z = forward).
@@ -36,7 +42,11 @@ export const SUV_PROFILE: VehicleProfile = Object.freeze({
   placement: Object.freeze({
     surfaces: Object.freeze<PlacementSurface[]>(["top"]),
     // 3 × 2 × 3 cells fit the 1.8-wide, 1.6-high collision box (ADR 0009).
-    clearance: Object.freeze({ halfX: 1, halfZ: 1, height: 2 }),
+    clearance: Object.freeze({
+      halfX: 1,
+      halfZ: 1,
+      height: clearanceHeight(body),
+    }),
   }),
   chaseCamera: "near",
   defaultPaint: "khaki",
