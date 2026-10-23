@@ -1,4 +1,4 @@
-// Shared transforming drivetrain: forms, landing gear, bank, and vertical motion, with a per-kind control mapping, horizontal step, and step-up switch (ADR 0050, 0089).
+// Shared transforming drivetrain: forms, landing gear, bank, and vertical motion, with a per-kind control mapping, horizontal step, and per-tick step-up hook (ADR 0050, 0089).
 
 import { SyncedValue } from "../../shared/syncedValue";
 import { clamp, localOffset, type Vec2 } from "../../shared/vec";
@@ -118,7 +118,7 @@ export interface HorizontalStepInput {
   readonly form: Form;
   /** Jump went down this tick after being up the tick before. */
   readonly jumpTapped: boolean;
-  /** The car-form step probe; it never finds a step when the kind turns step-up off. */
+  /** The car-form step probe; it never finds a step on a tick when `stepUpEnabled()` is false. */
   readonly probe: StepProbe;
   readonly spec: TransformingSpec;
   readonly limits: MotionLimits;
@@ -163,7 +163,7 @@ export interface TransformingOptions {
   readonly inputFor?: InputMapping;
   /** Defaults to transformingHorizontalStep. */
   readonly horizontal?: HorizontalStep;
-  /** Whether car form climbs one- and two-block steps and a submarine rises at a shore step (ADR 0004, 0035); default true. False turns off both probes. */
+  /** What `stepUpEnabled()` returns unless a kind overrides it: whether car form climbs one- and two-block steps and a submarine rises at a shore step (ADR 0004, 0035); default true. False turns off both probes. */
   readonly stepUp?: boolean;
   readonly guard?: StepGuard;
 }
@@ -223,6 +223,19 @@ export class TransformingDrive implements Drive {
   /** Stops the drive at rest facing `yaw`, for a kind that holds its vehicle (ADR 0068). */
   protected restartAt(yaw: number): void {
     this.motion = initialMotion(yaw);
+  }
+
+  /**
+   * Whether this step's probes may find a step: the car-form step probe and the
+   * submarine rising probe (ADR 0004, 0035). It returns the `stepUp` option.
+   * A kind whose step-up depends on its own state overrides this, because a
+   * `super(...)` argument cannot close over `this` (TS 17009). It is read during
+   * `step`, never in the constructor, so an override may read fields the subclass
+   * sets after `super(...)`. An override must give the same answer for every read
+   * within one step.
+   */
+  protected stepUpEnabled(): boolean {
+    return this.stepUp;
   }
 
   onDriverMounted(driverYaw: number): void {
@@ -321,7 +334,7 @@ export class TransformingDrive implements Drive {
       ctx,
       form,
       jumpTapped,
-      probe: this.stepUp ? stepProbe(ctx, this.spec) : NO_STEP,
+      probe: this.stepUpEnabled() ? stepProbe(ctx, this.spec) : NO_STEP,
       spec: this.spec,
       limits: this.limits,
       tyres: this.tyres,
@@ -365,7 +378,7 @@ export class TransformingDrive implements Drive {
     // and the bare look-ahead margin would miss a step face just beyond it
     // (ADR 0035).
     const rising =
-      this.stepUp &&
+      this.stepUpEnabled() &&
       input.throttle > 0 &&
       step.state.speed >= 0 &&
       stepProbe(

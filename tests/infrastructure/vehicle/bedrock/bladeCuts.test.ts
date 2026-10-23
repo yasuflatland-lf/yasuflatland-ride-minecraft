@@ -229,6 +229,23 @@ it("removes only items that spawn next to a fill, within a tick of it (ADR 0137)
     ),
   );
 });
+it("removes an item that spawns inside a fill on the tick after it", () => {
+  const f = fixture();
+  f.set(64, "minecraft:stone");
+  f.cut();
+  f.time(101);
+  const remove = vi.fn();
+  expect(
+    f.cuts.sweepDrop({
+      isValid: true,
+      typeId: "minecraft:item",
+      dimension: { id: "overworld" },
+      location: { x: 0.5, y: 64.5, z: 0.5 },
+      remove,
+    } as unknown as Entity),
+  ).toBe(true);
+  expect(remove).toHaveBeenCalledTimes(1);
+});
 it("keeps nothing for a fill older than the window", () => {
   const f = fixture();
   f.set(64, "minecraft:stone");
