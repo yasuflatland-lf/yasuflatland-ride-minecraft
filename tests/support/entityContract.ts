@@ -22,6 +22,11 @@ export function expectDeclaredCommand(
         case "bool":
           expect(typeof command.value).toBe("boolean");
           break;
+        case "int":
+          expect(Number.isInteger(command.value)).toBe(true);
+          expect(command.value).toBeGreaterThanOrEqual(spec.range[0]);
+          expect(command.value).toBeLessThanOrEqual(spec.range[1]);
+          break;
         case "float":
           expect(typeof command.value).toBe("number");
           expect(command.value).toBeGreaterThanOrEqual(spec.range[0]);
