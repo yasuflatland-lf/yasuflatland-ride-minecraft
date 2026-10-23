@@ -1,6 +1,7 @@
 // Persistent blocks that held vehicles lay: decks, and a parked camper's room (ADR 0063, 0068).
 import { BlockPermutation, type Entity } from "@minecraft/server";
 import type { SpaceCheck } from "../../../application/shared/ports/space";
+import { cellKey } from "../../../domain/shared/cells";
 import {
   asDimensionId,
   type DimensionId,
@@ -362,25 +363,29 @@ export class DockBlocks {
     wanted: readonly DockCell[],
   ): void {
     const cells = vehicle
-      ? this.outsideCamp(vehicleId, asDimensionId(vehicle.dimension.id), wanted)
+      ? this.outsideCamp(vehicleId, vehicle, wanted)
       : wanted;
     this.layer.lay(vehicleId, vehicle, cells);
   }
 
   /**
    * A camp cell belongs to the other feature; a light there is its spawn guard,
-   * not air. Cells this vehicle already owns stay laid (ADR 0115, 0129).
+   * not air. Cells this vehicle already holds, saved ones included, stay laid
+   * (ADR 0115, 0129). Camp is asked first because it is a map lookup; the held
+   * cells are read only once camp claims a wanted cell.
    */
   private outsideCamp(
     vehicleId: VehicleId,
-    dimensionId: DimensionId,
+    vehicle: Entity,
     wanted: readonly DockCell[],
   ): DockCell[] {
-    return wanted.filter(
-      (c) =>
-        this.layer.ownerOf(dimensionId, c) === vehicleId ||
-        !this.campSpace(dimensionId, c),
-    );
+    const dimensionId = asDimensionId(vehicle.dimension.id);
+    let held: ReadonlySet<string> | undefined;
+    return wanted.filter((c) => {
+      if (!this.campSpace(dimensionId, c)) return true;
+      held ??= this.layer.heldKeys(vehicleId, vehicle);
+      return held.has(cellKey(c));
+    });
   }
 
   clearGone(live: ReadonlySet<VehicleId>): void {

@@ -91,6 +91,21 @@ export class CellLayer<Owner extends string, B> {
     return undefined;
   }
 
+  /**
+   * Keys of the cells `owner` holds in `holder`'s dimension. Before the first
+   * lay after a /reload they come from the saved property, which is what
+   * `lay` would load.
+   */
+  heldKeys(owner: Owner, holder: CellHolder): ReadonlySet<string> {
+    const entry = this.laid.get(owner);
+    const cells = entry
+      ? entry.dimension.id === holder.dimension.id
+        ? entry.cells
+        : []
+      : savedLaidCells(holder, this.codec);
+    return new Set(cells.map(cellKey));
+  }
+
   /** `holder` is undefined when the entity is gone; its cells are then only cleared. */
   lay(
     owner: Owner,

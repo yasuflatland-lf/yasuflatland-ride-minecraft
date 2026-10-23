@@ -1240,6 +1240,44 @@ describe("DockBlocks and camp space (ADR 0129)", () => {
     expect(f.writes).toEqual(wanted.map(cellKey));
   });
 
+  it("keeps saved cells after a reload when camp claims them", () => {
+    const f = fixture();
+    const wanted = [defined(roomCells[0], "room cell")];
+    new DockBlocks(noCampSpace).lay(asVehicleId(f.car.id), f.car, wanted);
+    const reloaded = new DockBlocks(() => true);
+    reloaded.lay(asVehicleId(f.car.id), f.car, wanted);
+    expect(f.at(defined(wanted[0], "room cell")).typeId).toBe(DECK_FLOOR_BLOCK);
+    expect(f.savedCells()).toEqual(wanted);
+    expect(f.writes).toEqual(wanted.map(cellKey));
+  });
+
+  it("drops only claimed cells the vehicle does not hold", () => {
+    fc.assert(
+      fc.property(
+        fc.subarray(roomCells),
+        fc.subarray(roomCells),
+        (held, claimed) => {
+          const f = fixture();
+          new DockBlocks(noCampSpace).lay(asVehicleId(f.car.id), f.car, held);
+          const keys = new Set(claimed.map(cellKey));
+          const heldKeys = new Set(held.map(cellKey));
+          const docks = new DockBlocks((_, at) => keys.has(cellKey(at)));
+          docks.lay(asVehicleId(f.car.id), f.car, roomCells);
+          const kept = roomCells.filter(
+            (c) => !keys.has(cellKey(c)) || heldKeys.has(cellKey(c)),
+          );
+          const saved =
+            f.saved.get(DECK_CELLS_PROPERTY) === undefined
+              ? []
+              : f.savedCells();
+          expect(new Set(saved.map(cellKey))).toEqual(
+            new Set(kept.map(cellKey)),
+          );
+        },
+      ),
+    );
+  });
+
   it("asks camp with the vehicle's dimension", () => {
     const f = fixture();
     const check = vi.fn(() => false);

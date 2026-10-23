@@ -27,7 +27,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0021](0021-flight-mode.md) | Flight mode: toggle with a double tap, climb with the view pitch, and switch gravity with a component group | Superseded in part by 0032, 0034, 0039, and 0078 |
 | [0022](0022-fold-wheels-and-glow-in-flight.md) | Fold the wheels and light their undersides in flight | Superseded in part by 0033 and 0043 |
 | [0023](0023-starter-vehicle-on-first-join.md) | Give each player a vehicle item on their first join | Accepted |
-| [0024](0024-item-use-on-mobile-and-longer-headlights.md) | Make the vehicle item and the headlight switch work on mobile, and light the road three times farther | Extended by 0115 |
+| [0024](0024-item-use-on-mobile-and-longer-headlights.md) | Make the vehicle item and the headlight switch work on mobile, and light the road three times farther | Extended by 0115 and 0129 |
 | [0025](0025-jump-on-touch-and-a-sticky-driver.md) | Keep a touch rider's Jump from dismounting them, and keep the driver while they ride | Superseded in part by 0120 (Proposed); amended by 0126; superseded in part by 0128 |
 | [0026](0026-bank-into-turns-in-flight.md) | Bank into turns in flight | Superseded in part by 0044 |
 | [0027](0027-readme-previews-in-three-poses.md) | Render the README previews in three poses | Superseded in part by 0045 |
@@ -49,7 +49,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0043](0043-wheel-arms.md) | Wheel arms in flight and under water | Accepted |
 | [0044](0044-bank-under-water.md) | Bank into turns under water | Accepted |
 | [0045](0045-submarine-preview.md) | Add a submarine pose to the README previews | Accepted |
-| [0046](0046-organize-each-layer-by-feature.md) | Organize each layer by feature | Extended by 0050, 0055, 0065, and 0122 (Proposed) |
+| [0046](0046-organize-each-layer-by-feature.md) | Organize each layer by feature | Extended by 0050, 0055, 0065, 0122 (Proposed), and 0129 |
 | [0047](0047-rename-to-yasuflatland-ride.md) | Rename to Yasuflatland Ride | Accepted |
 | [0048](0048-mutation-testing-and-unused-code-checks.md) | Mutation testing with Stryker, and unused code checks with knip | Extended by 0088 |
 | [0049](0049-pack-icons-rendered-from-model.md) | Render pack icons from the hovering SUV model | Accepted |
@@ -93,9 +93,9 @@ This directory records design decisions and the reasons behind them. The format 
 | [0087](0087-sports-boat-spec-table.md) | Keep the sports boat tuning in one spec table | Superseded in part by 0089 |
 | [0088](0088-keep-the-in-game-test-fixtures-out-of-mutation.md) | Keep the in-game test fixtures out of mutation testing | Accepted |
 | [0089](0089-per-kind-control-mapping.md) | Each kind maps the stick to handbrake and creep | Accepted |
-| [0090](0090-group-the-vehicle-core-by-subcontext.md) | Group the vehicle core by subcontext | Accepted |
+| [0090](0090-group-the-vehicle-core-by-subcontext.md) | Group the vehicle core by subcontext | Extended by 0129 |
 | [0091](0091-alpha-blend-only-the-camper-glass.md) | Alpha-blend only the camper glass | Accepted |
-| [0092](0092-a-bed-in-the-parked-camper.md) | A bed in the parked camper | Extended by 0093 |
+| [0092](0092-a-bed-in-the-parked-camper.md) | A bed in the parked camper | Extended by 0093 and 0129 |
 | [0093](0093-decorate-the-parked-camper.md) | Decorate the parked camper | Superseded in part by 0097, 0098, 0099, 0100, 0102, 0103, 0106, 0108, and 0123 (Proposed); extended by 0094, 0095, 0096, 0101, 0113, and 0122 (Proposed) |
 | [0094](0094-the-camper-shower-toilet-door-and-shower.md) | The camper's shower-toilet door and shower | Superseded in part by 0098; extended by 0105, 0114, and 0118 |
 | [0095](0095-sit-on-the-camper-toilet-while-parked.md) | Sit on the camper toilet while parked | Extended by 0098 and 0109 |
@@ -108,7 +108,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0102](0102-lift-the-hanging-planter-from-its-cell-bottom.md) | Lift the hanging planter from its cell bottom | Accepted |
 | [0103](0103-raise-the-camper-wall-cabinet-to-the-ceiling.md) | Raise the camper wall cabinet to the ceiling | Superseded in part by 0114; extended by 0113 |
 | [0104](0104-refuse-a-press-on-a-taken-seat.md) | Refuse a press on a taken seat | Accepted |
-| [0105](0105-toggle-a-camper-door-once-per-swing.md) | Toggle a camper door once per swing | Extended by 0114 and 0118 |
+| [0105](0105-toggle-a-camper-door-once-per-swing.md) | Toggle a camper door once per swing | Extended by 0114, 0118, and 0129 |
 | [0106](0106-raise-the-camper-dashboard-to-the-windshield.md) | Raise the camper dashboard to the windshield | Accepted |
 | [0107](0107-stand-stove-gear-on-a-burner.md) | Stand stove gear on a burner, and widen the standing decor box | Superseded in part by 0108, 0110, and 0112 |
 | [0108](0108-two-items-on-each-shelf-board-and-the-table.md) | Two items on each shelf board and on the table | Superseded in part by 0123 (Proposed); extended by 0114 |
@@ -125,7 +125,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0119](0119-park-the-camper-over-natural-ground.md) | Park the camper over natural ground, and lift its bumper stand-in out of it | Proposed |
 | [0120](0120-choose-a-sports-boat-seat-by-aiming-at-it.md) | Choose a sports boat seat by aiming at it | Proposed |
 | [0121](0121-doored-storage-in-the-camper.md) | Doored storage in the camper | Extended by 0123 (Proposed) |
-| [0122](0122-a-low-chair-to-sit-on-outside-the-vehicles.md) | A low chair to sit on outside the vehicles | Proposed |
+| [0122](0122-a-low-chair-to-sit-on-outside-the-vehicles.md) | A low chair to sit on outside the vehicles | Proposed; extended by 0129 |
 | [0123](0123-a-fridge-in-place-of-the-camper-shelf.md) | A fridge in place of the camper shelf | Proposed |
 | [0124](0124-take-back-an-eviction-when-a-slot-frees.md) | Take back an eviction when a slot frees | Extended by 0125 |
 | [0125](0125-forget-a-vehicle-removed-from-a-loaded-chunk.md) | Forget a vehicle removed from a loaded chunk | Accepted |

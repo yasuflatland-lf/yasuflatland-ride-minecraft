@@ -19,6 +19,6 @@ Two risks need explicit boundaries. A light block counts as air for vehicle plac
 
 ## Consequences
 
-There is one extra lookup per clearance cell when placing a vehicle and per new room or headlight cell. Before `installCamp` returns, the check answers false, which is safe because no event or tick runs until bootstrap returns. Camp claims no space until the tent is implemented, so existing vehicle and chair behavior stays the same.
+Camp space is asked once per clearance cell when placing a vehicle, and once per wanted room or headlight cell on every lay, which runs each tick. Room laying reads the cells the vehicle holds, from memory or from the saved property after a /reload, only when camp claims a wanted cell, so a held cell stays laid across a /reload too. Before `installCamp` returns, the check answers false, which is safe because no event or tick runs until bootstrap returns. Camp claims no space until the tent is implemented, so existing vehicle and chair behavior stays the same.
 
 A third feature adds one more edge in bootstrap. Revisit if a feature needs another feature's live objects rather than a yes/no space check.
