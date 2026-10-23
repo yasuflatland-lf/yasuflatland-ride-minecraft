@@ -5,3 +5,7 @@ export function id(name: string): string {
 }
 
 export const AIR_BLOCK = "minecraft:air";
+
+/** Lang key of an action bar message, yasu_ride.message.<name> (ADR 0063, 0068, 0092). */
+export const messageKey = (name: string): string =>
+  `${NAMESPACE}.message.${name}`;

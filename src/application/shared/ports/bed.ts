@@ -1,6 +1,6 @@
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
-// Ports for sleeping in a parked vehicle's bed; implemented in the infrastructure layer (ADR 0012).
+// Ports for sleeping in a bed block; implemented in the infrastructure layer (ADR 0012).
 
 export interface BedWorld {
   /** The time of day, 0 to 23999. */

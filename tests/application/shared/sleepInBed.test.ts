@@ -1,15 +1,15 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
-import type { BedWorld } from "../../../src/application/vehicle/ports/bed";
-import { SleepInBed } from "../../../src/application/vehicle/sleepInBed";
+import type { BedWorld } from "../../../src/application/shared/ports/bed";
+import { SleepInBed } from "../../../src/application/shared/sleepInBed";
 import {
   asDimensionId,
   asPlayerId,
   type DimensionId,
   type PlayerId,
 } from "../../../src/domain/shared/ids";
+import { canSleep } from "../../../src/domain/shared/sleep";
 import type { Vec3 } from "../../../src/domain/shared/vec";
-import { canSleep } from "../../../src/domain/vehicle/dock/sleep";
 
 class FakeBedWorld implements BedWorld {
   readonly calls: unknown[][] = [];

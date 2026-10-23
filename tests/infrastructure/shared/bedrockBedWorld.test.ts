@@ -1,12 +1,11 @@
+import type { Player } from "@minecraft/server";
 import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { asDimensionId, asPlayerId } from "../../../../src/domain/shared/ids";
-import { BedrockBedWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockBedWorld";
-import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
+import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
+import { BedrockBedWorld } from "../../../src/infrastructure/shared/bedrockBedWorld";
 
 const game = vi.hoisted(() => ({
   world: {
-    getEntity: vi.fn(),
     getTimeOfDay: vi.fn(),
     setTimeOfDay: vi.fn(),
     getDimension: vi.fn(),
@@ -26,10 +25,13 @@ function fixture() {
     camera: { fade: vi.fn() },
     onScreenDisplay: { setActionBar: vi.fn() },
   };
-  game.world.getEntity.mockImplementation((id: string) =>
-    id === player.id ? player : undefined,
-  );
-  return { player, bed: new BedrockBedWorld(new EntityIndex()) };
+  return {
+    player,
+    bed: new BedrockBedWorld({
+      player: (id) =>
+        id === player.id ? (player as unknown as Player) : undefined,
+    }),
+  };
 }
 
 describe("BedrockBedWorld (ADR 0092)", () => {
