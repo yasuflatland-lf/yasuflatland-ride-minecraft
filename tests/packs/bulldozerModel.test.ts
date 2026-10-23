@@ -30,6 +30,28 @@ const swatch = (paint: string, slot: number) => [
   ...texture(paint).pixels.subarray(slot * 4, slot * 4 + 4),
 ];
 
+function expectedParent(name: string): string | undefined {
+  switch (name) {
+    case "root":
+      return undefined;
+    case "body":
+      return "root";
+    case "door_glass":
+      return "door_l";
+    default:
+      return "body";
+  }
+}
+
+const GLASS_SLOT = 32;
+const LENS_SLOTS = [15, 17];
+
+function expectedAlpha(slot: number): number {
+  if (slot === GLASS_SLOT) return 96;
+  if (LENS_SLOTS.includes(slot)) return 0;
+  return 255;
+}
+
 describe("bulldozer model (ADR 0009, 0136)", () => {
   it("uses the production geometry identifier with no test namespace", () => {
     expect(geometry().description.identifier).toBe(
@@ -71,15 +93,7 @@ describe("bulldozer model (ADR 0009, 0136)", () => {
       ].sort(),
     );
     for (const b of bones()) {
-      expect(b.parent).toBe(
-        b.name === "root"
-          ? undefined
-          : b.name === "body"
-            ? "root"
-            : b.name === "door_glass"
-              ? "door_l"
-              : "body",
-      );
+      expect(b.parent).toBe(expectedParent(b.name));
       expect(b.rotation?.some((v) => v !== 0) ?? false).toBe(false);
     }
   });
@@ -129,8 +143,7 @@ describe("bulldozer model (ADR 0009, 0136)", () => {
     }
     for (const wheel of ["idler_front", "idler_rear", "sprocket"]) {
       const pivot = bone(`${wheel}_r`).pivot;
-      expect(pivot).toBeDefined();
-      if (!pivot) throw new Error("Missing wheel pivot");
+      if (!pivot) throw new Error(`Missing ${wheel}_r pivot`);
       expect(pivot[0]).toBeLessThan(0);
       expect(bone(`${wheel}_l`).pivot).toEqual([-pivot[0], pivot[1], pivot[2]]);
     }
@@ -231,9 +244,7 @@ describe("bulldozer paints (ADR 0031, 0076)", () => {
   it("keeps glass see-through, lens and amber at alpha 0, and every other swatch opaque in every paint", () => {
     for (const paint of PAINTS)
       for (let slot = 0; slot < 33; slot++)
-        expect(swatch(paint, slot)[3]).toBe(
-          slot === 32 ? 96 : [15, 17].includes(slot) ? 0 : 255,
-        );
+        expect(swatch(paint, slot)[3]).toBe(expectedAlpha(slot));
   });
 });
 

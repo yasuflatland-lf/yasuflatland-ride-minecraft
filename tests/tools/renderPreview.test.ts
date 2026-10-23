@@ -131,9 +131,17 @@ const previewPython = (body: string) =>
     ),
   );
 
+// An opaque face as [rgb, bloom group or null].
+type LitFace = [number[], string | null];
+
 describe("render_preview.py lit bones", () => {
   it("lights each bone named in lit in its own color only while the lamps are on", () => {
-    const result = previewPython(`
+    const result: {
+      on: LitFace[];
+      off: LitFace[];
+      default: LitFace[];
+      lamp: number[];
+    } = previewPython(`
 face = {"uv": [0, 0], "uv_size": [1, 1]}
 cube = {"origin": [0, 0, 0], "size": [1, 1, 1], "uv": {f: face for f in ("north", "south", "east", "west", "up", "down")}}
 geo = {"description": {"texture_width": 1, "texture_height": 1}, "bones": [{"name": name, "cubes": [cube]} for name in ("body", "headlights", "beacon")]}
@@ -145,35 +153,22 @@ def faces(lamps, default=False):
     return [[rgb, group] for _, rgb, group in polygons]
 print(json.dumps({"on": faces(True), "off": faces(False), "default": faces(True, True), "lamp": r.LAMP_LIT}))
 `);
-    const on: [number[], string | null][] = result.on;
-    expect(
-      on.filter(
-        ([rgb, group]) => group === "lamp" && JSON.stringify(rgb) === "[1,2,3]",
-      ),
-    ).toHaveLength(6);
-    expect(
-      on.filter(
-        ([rgb, group]) => group === "lamp" && JSON.stringify(rgb) === "[4,5,6]",
-      ),
-    ).toHaveLength(6);
-    expect(on.filter(([, group]) => group === null)).toHaveLength(6);
-    expect(result.off).toHaveLength(18);
-    for (const [, group] of result.off) expect(group).toBeNull();
-    expect(
-      result.default.filter(
-        ([, group]: [number[], string | null]) => group === "lamp",
-      ),
-    ).toEqual(Array.from({ length: 6 }, () => [result.lamp, "lamp"]));
-    expect(
-      result.default
-        .slice(0, 6)
-        .map(([, group]: [number[], string | null]) => group),
-    ).toEqual(Array(6).fill(null));
-    expect(
-      result.default
-        .slice(12)
-        .map(([, group]: [number[], string | null]) => group),
-    ).toEqual(Array(6).fill(null));
+    const lampFaces = (faces: LitFace[], rgb: number[]) =>
+      faces.filter(
+        ([color, group]) =>
+          group === "lamp" && JSON.stringify(color) === JSON.stringify(rgb),
+      );
+    const groups = (faces: LitFace[]) => faces.map(([, group]) => group);
+    expect(lampFaces(result.on, [1, 2, 3])).toHaveLength(6);
+    expect(lampFaces(result.on, [4, 5, 6])).toHaveLength(6);
+    expect(groups(result.on).filter((group) => group === null)).toHaveLength(6);
+    expect(groups(result.off)).toEqual(Array(18).fill(null));
+    expect(lampFaces(result.default, result.lamp)).toHaveLength(6);
+    expect(groups(result.default)).toEqual([
+      ...Array(6).fill(null),
+      ...Array(6).fill("lamp"),
+      ...Array(6).fill(null),
+    ]);
   });
 });
 

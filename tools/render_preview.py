@@ -806,7 +806,7 @@ def render_bulldozer(rp):
     )
 
 
-def render_poses(geo, texture, poses, lit=HEADLIGHTS_LIT) -> dict:
+def render_poses(geo, texture, poses, lit=HEADLIGHTS_LIT):
     scenes = {name: collect_boat(geo, texture, pose, lit) for name, pose in poses.items()}
     points = [p for polygons, _ in scenes.values() for quad, _, _ in polygons for p in quad]
     frames = {}

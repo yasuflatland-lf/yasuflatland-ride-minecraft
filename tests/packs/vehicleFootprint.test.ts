@@ -23,9 +23,8 @@ function modelReach(kind: VehicleKind): number {
   let reach = 0;
   for (const bone of bones(kind))
     for (const cube of bone.cubes ?? [])
-      for (const point of turnedCorners(bone, cube)) {
-        reach = Math.max(reach, Math.hypot(point[0], point[2]));
-      }
+      for (const [x, , z] of turnedCorners(bone, cube))
+        reach = Math.max(reach, Math.hypot(x, z));
   return reach / PIXELS_PER_BLOCK;
 }
 
