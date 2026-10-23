@@ -95,11 +95,13 @@ vi.mock("@minecraft/server", () => {
         playerInteractWithBlock: { subscribe: game.before },
         playerInteractWithEntity: signal(),
         playerBreakBlock: { subscribe: game.breakBlock },
+        entityRemove: signal(),
       },
       afterEvents: {
         itemUse: { subscribe: game.use },
         entityLoad: signal(),
         entitySpawn: signal(),
+        entityDie: signal(),
         playerSpawn: signal(),
         entityHitEntity: signal(),
       },
