@@ -63,6 +63,7 @@ const FOOTPRINT = { minX: 107, maxX: 113, minZ: 46, maxZ: 57 } as const;
 const PITCH_WAIT_TICKS = 20;
 
 const pitchMessage = (a: Arena) => `110 ${a.gy - 1} 46 0`;
+const tentEntityAt = (a: Arena) => ({ x: 110.5, y: a.gy, z: 57.5 });
 
 function tentsInStrip(a: Arena): Entity[] {
   return a.dim
@@ -90,7 +91,7 @@ function tentBlocksInFootprint(a: Arena): number {
 /** Pitches the test tent and returns its entity; throws when it is not there within 20 ticks. */
 async function pitchTestTent(a: Arena): Promise<Entity> {
   system.sendScriptEvent(TEST_TENT_PITCH_EVENT, pitchMessage(a));
-  const at = { x: 110.5, y: a.gy, z: 57.5 };
+  const at = tentEntityAt(a);
   for (let t = 0; t < PITCH_WAIT_TICKS; t++) {
     await wait(1);
     const tent = a.dim.getEntities({
@@ -117,7 +118,7 @@ function tentItemsNear(a: Arena): Entity[] {
   return a.dim
     .getEntities({
       type: "minecraft:item",
-      location: { x: 110.5, y: a.gy, z: 57.5 },
+      location: tentEntityAt(a),
       maxDistance: 3,
     })
     .filter(
@@ -134,7 +135,7 @@ export async function tentPitchAndTakeDown(a: Arena): Promise<Outcome> {
     const stone = { x: 110, y: a.gy, z: 50 };
     a.dim.runCommand(`setblock ${stone.x} ${stone.y} ${stone.z} cobblestone`);
     const id = tent.id;
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < TENT_SPEC.hitsToTakeDown; i++) {
       system.sendScriptEvent(TEST_TENT_HIT_EVENT, id);
       await wait(2);
     }

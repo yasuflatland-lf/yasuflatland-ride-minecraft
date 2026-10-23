@@ -191,13 +191,11 @@ export class BedrockTentWorld implements TentWorld {
   }
 
   showPitchRefusal(playerId: PlayerId, reason: PitchRefusal): void {
+    const translate = PITCH_REFUSAL_MESSAGE[reason];
     playerOf(playerId)?.onScreenDisplay.setActionBar(
       reason === "limit"
-        ? {
-            translate: PITCH_REFUSAL_MESSAGE[reason],
-            with: [String(TENT_SPEC.maxTents)],
-          }
-        : { translate: PITCH_REFUSAL_MESSAGE[reason] },
+        ? { translate, with: [String(TENT_SPEC.maxTents)] }
+        : { translate },
     );
   }
 

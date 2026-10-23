@@ -2,7 +2,6 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { asTentId, type TentYaw } from "../../../src/domain/camp/tent";
 import {
-  canPitchAnother,
   parseTents,
   serializeTents,
   type TentEntry,
@@ -80,14 +79,6 @@ describe("tent registry (ADR 0131)", () => {
           expect(removed).toHaveLength(added.length - 1);
         },
       ),
-    );
-  });
-
-  it("allows another tent only below four", () => {
-    fc.assert(
-      fc.property(fc.array(arbEntry, { maxLength: 8 }), (list) => {
-        expect(canPitchAnother(list)).toBe(list.length < 4);
-      }),
     );
   });
 });

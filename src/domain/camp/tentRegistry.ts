@@ -1,6 +1,5 @@
-// The world's pitched tents, saved as one JSON list, and their limit (ADR 0131).
+// The world's pitched tents, saved as one JSON list (ADR 0131).
 import type { DimensionId } from "../shared/ids";
-import { TENT_SPEC } from "./spec";
 import type { TentId, TentPose, TentYaw } from "./tent";
 
 export interface TentEntry {
@@ -64,10 +63,6 @@ export function serializeTents(list: readonly TentEntry[]): string {
       pose: { x: pose.x, y: pose.y, z: pose.z, yaw: pose.yaw },
     })),
   );
-}
-
-export function canPitchAnother(list: readonly TentEntry[]): boolean {
-  return list.length < TENT_SPEC.maxTents;
 }
 
 /** Adds `entry`, replacing an entry with the same id. */
