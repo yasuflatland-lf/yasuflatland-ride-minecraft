@@ -160,6 +160,19 @@ describe("Seating (ADR 0019, ADR 0025)", () => {
     );
   });
 
+  it("reports every seated rider as boarded on the first update and nobody on a repeat", () => {
+    fc.assert(
+      fc.property(anyRiders, yaw, (list, y) => {
+        const s = new Seating(P);
+        const riders = place(list, y);
+        const f = forward(y);
+        const out = s.update(riders, f, AT_REST);
+        expect(out.boarded).toEqual([...s.taken()].sort((a, b) => a - b));
+        expect(s.update(riders, f, AT_REST).boarded).toEqual([]);
+      }),
+    );
+  });
+
   it("restore seats the riders without reporting a new driver", () => {
     fc.assert(
       fc.property(anyRiders, yaw, (list, y) => {
@@ -169,6 +182,7 @@ describe("Seating (ADR 0019, ADR 0025)", () => {
         const out = s.update(riders, f, AT_REST);
         expect(out.vacated).toEqual([]);
         expect(out.mounted).toBe(false);
+        expect(out.boarded).toEqual([]);
         expect(out.driver?.id).toBe(list.find((r) => r.seat === 0)?.id);
       }),
     );
@@ -216,7 +230,31 @@ describe("Seating read by rider-list slot (ADR 0120)", () => {
         const s = Seating.restore(P, riders, f);
         const out = s.update(riders, f, AT_REST);
         expect(out.mounted).toBe(false);
+        expect(out.boarded).toEqual([]);
         expect(out.driver?.id).toBe(list.find((r) => r.seat === 0)?.id);
+      }),
+    );
+  });
+
+  it("reports as boarded exactly the slots of riders who were not aboard, ascending", () => {
+    fc.assert(
+      fc.property(distinctSlots, distinctSlots, yaw, (prev, now, y) => {
+        const laid = (list: readonly Spec[]) =>
+          list.map((r) => ({
+            id: asPlayerId(r.id),
+            offset: { x: 0, z: 0 },
+            slot: r.seat,
+          }));
+        const s = new Seating(P);
+        const f = forward(y);
+        s.update(laid(prev), f, AT_REST);
+        const out = s.update(laid(now), f, AT_REST);
+        expect(out.boarded).toEqual(
+          now
+            .filter((r) => !prev.some((p) => p.id === r.id))
+            .map((r) => r.seat)
+            .sort((a, b) => a - b),
+        );
       }),
     );
   });
