@@ -1,5 +1,5 @@
 import { type Entity, ItemStack, system, world } from "@minecraft/server";
-import { normalizeYaw } from "../../domain/shared/vec";
+import { normalizeYaw, type Vec3 } from "../../domain/shared/vec";
 import { bladeColumns } from "../../domain/vehicle/kinds/bulldozer/blade";
 import { BULLDOZER_SPEC } from "../../domain/vehicle/kinds/bulldozer/spec";
 import {
@@ -29,8 +29,18 @@ async function setBlade(car: Entity, raised: boolean): Promise<void> {
   );
   await wait(BULLDOZER_SPEC.bladeLiftTicks + 2);
   const lift = car.getProperty(entityPropertyId("blade"));
-  if (lift !== (raised ? 1 : 0))
-    throw new Error(`blade=${String(lift)} want ${raised ? 1 : 0}`);
+  const want = raised ? 1 : 0;
+  if (lift !== want) throw new Error(`blade=${String(lift)} want ${want}`);
+}
+/** The cells of the box from `min` to `max`, inclusive, that no longer hold stone. */
+function missingStone(a: Arena, min: Vec3, max: Vec3): string[] {
+  const missing: string[] = [];
+  for (let x = min.x; x <= max.x; x++)
+    for (let z = min.z; z <= max.z; z++)
+      for (let y = min.y; y <= max.y; y++)
+        if (a.dim.getBlock({ x, y, z })?.typeId !== "minecraft:stone")
+          missing.push(`${x},${y},${z}`);
+  return missing;
 }
 function cleanup(a: Arena): void {
   a.dim.runCommand(`fill 96 ${a.gy} 78 112 ${a.gy + 6} 89 air`);
@@ -320,12 +330,11 @@ export async function bulldozerStep2Raised(a: Arena): Promise<Outcome> {
       }
       drive(car, 0, 0);
       await wait(3);
-      const wrong: string[] = [];
-      for (let x = 100; x <= 108; x++)
-        for (let z = 79; z <= 88; z++)
-          for (let y = gy; y <= gy + 1; y++)
-            if (dim.getBlock({ x, y, z })?.typeId !== "minecraft:stone")
-              wrong.push(`${x},${y},${z}`);
+      const wrong = missingStone(
+        a,
+        { x: 100, y: gy, z: 79 },
+        { x: 108, y: gy + 1, z: 88 },
+      );
       return {
         pass: maxY >= gy + 1.9 && wrong.length === 0,
         detail: `maxY=${(maxY - gy).toFixed(2)} x=${car.location.x.toFixed(2)} wrong=${wrong.join(";")}`,
@@ -347,12 +356,11 @@ export async function bulldozerRaisedNoCut(a: Arena): Promise<Outcome> {
       await wait(60);
       drive(car, 0, 0);
       await wait(3);
-      const wrong: string[] = [];
-      for (let x = 100; x <= 104; x++)
-        for (let z = 81; z <= 85; z++)
-          for (let y = gy; y <= gy + 4; y++)
-            if (dim.getBlock({ x, y, z })?.typeId !== "minecraft:stone")
-              wrong.push(`${x},${y},${z}`);
+      const wrong = missingStone(
+        a,
+        { x: 100, y: gy, z: 81 },
+        { x: 104, y: gy + 4, z: 85 },
+      );
       const items = dim.getEntities({
         type: "minecraft:item",
         location: { x: 102, y: gy, z: 83 },

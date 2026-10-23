@@ -141,9 +141,7 @@ export class BulldozerDrive extends TransformingDrive {
       typeof saved === "number"
         ? saved >= 0.5
         : BULLDOZER_SPEC.bladeRaisedOnSpawn;
-    this.bladeSteps = this.bladeTargetRaised
-      ? BULLDOZER_SPEC.bladeLiftTicks
-      : 0;
+    this.bladeSteps = this.bladeTargetSteps();
     // Unlike the other kinds, a rebuilt bulldozer resends gravity and its restored
     // form on the first step instead of trusting ADR 0127's primed form (ADR 0136).
     this.resync();
@@ -157,6 +155,10 @@ export class BulldozerDrive extends TransformingDrive {
   /** Sets the blade's target; it then moves one step per tick (ADR 0138). */
   setBlade(raised: boolean): void {
     this.bladeTargetRaised = raised;
+  }
+
+  private bladeTargetSteps(): number {
+    return this.bladeTargetRaised ? BULLDOZER_SPEC.bladeLiftTicks : 0;
   }
 
   // Step-up follows the blade each tick: raised climbs like the SUV, lowered keeps ADR 0136's flat drive (ADR 0138).
@@ -187,10 +189,7 @@ export class BulldozerDrive extends TransformingDrive {
   override step(raw: RawInput | undefined, ctx: TickContext): DriveStep {
     const yawBefore = this.yaw;
     const out = super.step(raw, ctx);
-    const bladeTarget = this.bladeTargetRaised
-      ? BULLDOZER_SPEC.bladeLiftTicks
-      : 0;
-    this.bladeSteps += Math.sign(bladeTarget - this.bladeSteps);
+    this.bladeSteps += Math.sign(this.bladeTargetSteps() - this.bladeSteps);
     const cut = this.bladeCut(raw, ctx);
     if (this.form === "car")
       this.travel = advanceTracks(
