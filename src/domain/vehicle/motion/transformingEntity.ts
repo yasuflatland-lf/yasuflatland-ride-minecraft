@@ -8,7 +8,8 @@ import { FORMS, type Form } from "./forms";
 export function transformingProperties(maxBank: number) {
   return {
     form: { type: "enum", values: FORMS },
-    bank: { type: "float", range: [-maxBank, maxBank] },
+    // 0 - maxBank, not -maxBank: maxBank 0 must give +0, which is what a pack's JSON holds.
+    bank: { type: "float", range: [0 - maxBank, maxBank] },
     gear_down: { type: "bool" },
   } as const;
 }

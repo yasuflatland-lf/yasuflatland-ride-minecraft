@@ -476,3 +476,37 @@ for (const [name, create] of [
     );
   });
 }
+
+it("flies with a finite climb and a level bank when the kind has no bank", () => {
+  const spec = { ...SUV_TRANSFORMING, maxBank: 0 };
+  fc.assert(
+    fc.property(
+      fc.constantFrom<Form>("takeoff", "hover", "landing", "submarine"),
+      tickSequence,
+      (initial, ticks) => {
+        const drive = new TransformingDrive(
+          0,
+          { form: initial },
+          spec,
+          SUV_MOTION,
+          SUV_TYRES,
+        );
+        ticks.forEach(({ raw, depth, velocity, onGround }, tick) => {
+          const out = drive.step(raw, {
+            ...context(depth),
+            tick,
+            velocity,
+            onGround,
+          });
+          expect(Number.isFinite(out.impulse.y)).toBe(true);
+          expect(drive.inspect().bank).toBe(0);
+          for (const c of out.commands) {
+            if (c.type === "setProperty" && c.name === "bank") {
+              expect(c.value).toBe(0);
+            }
+          }
+        });
+      },
+    ),
+  );
+});
