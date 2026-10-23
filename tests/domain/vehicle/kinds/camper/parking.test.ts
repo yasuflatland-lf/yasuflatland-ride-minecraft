@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
 import { cellKey } from "../../../../../src/domain/shared/cells";
+import { CLEARABLE_DECORATIONS } from "../../../../../src/domain/shared/decorations";
 import {
   decorFace,
   parseDecor,
@@ -24,7 +25,6 @@ import { CamperDrive } from "../../../../../src/domain/vehicle/kinds/camper/driv
 import { STORAGE_DOORS } from "../../../../../src/domain/vehicle/kinds/camper/furniture";
 import {
   AIR,
-  CLEARABLE_DECORATIONS,
   cargoCells,
   compartmentCells,
   decorCells,
