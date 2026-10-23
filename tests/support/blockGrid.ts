@@ -1,7 +1,4 @@
-import {
-  type Cell,
-  cellKey,
-} from "../../src/domain/vehicle/lighting/headlights";
+import { type Cell, cellKey } from "../../src/domain/shared/cells";
 
 const AIR = "minecraft:air";
 

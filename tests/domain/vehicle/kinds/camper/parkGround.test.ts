@@ -1,6 +1,7 @@
 // Parking over natural ground and grassland plants (ADR 0119).
 import fc from "fast-check";
 import { expect, it } from "vitest";
+import { cellKey } from "../../../../../src/domain/shared/cells";
 import {
   AIR,
   CLEARABLE_DECORATIONS,
@@ -14,7 +15,6 @@ import {
   roomCells,
   wallFootCells,
 } from "../../../../../src/domain/vehicle/kinds/camper/room";
-import { cellKey } from "../../../../../src/domain/vehicle/lighting/headlights";
 import { defined } from "../../../../support/defined";
 
 const coordinate = fc.double({ min: -1000, max: 1000, noNaN: true });

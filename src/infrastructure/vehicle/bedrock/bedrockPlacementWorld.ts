@@ -10,10 +10,10 @@ import {
 import type { Vec3 } from "../../../domain/shared/vec";
 import type { VehicleKind } from "../../../domain/vehicle/kind";
 import type { PlacementGift } from "../../../domain/vehicle/placement/gift";
+import { isLightBlock } from "../../shared/lightBlocks";
 import { isCreative } from "../../shared/players";
 import type { BedrockInventory } from "./bedrockInventory";
 import type { EntityIndex } from "./entityIndex";
-import { isLightBlock } from "./headlightBlocks";
 import { ENTITY_TYPE, ITEM_TYPE, OWNER_PROPERTY } from "./identifiers";
 import { isWaterAt } from "./water";
 

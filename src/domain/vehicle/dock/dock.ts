@@ -1,6 +1,7 @@
 // What a held vehicle keeps around it while it stands still (ADR 0063, 0064, 0068).
+
+import type { Cell } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
-import type { Cell } from "../lighting/headlights";
 import type { DockCell, HoldPose } from "./floor";
 
 /** Values infrastructure reads from the vehicle's dynamic properties (laid cells, decor), not entity properties. */

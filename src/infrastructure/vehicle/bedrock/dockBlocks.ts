@@ -4,6 +4,7 @@ import {
   type Dimension,
   type Entity,
 } from "@minecraft/server";
+import { cellKey } from "../../../domain/shared/cells";
 import type { DimensionId, VehicleId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { isDecorItem } from "../../../domain/vehicle/dock/decor";
@@ -14,8 +15,7 @@ import {
   refloor,
 } from "../../../domain/vehicle/dock/floor";
 import { STANDING_GEAR_IDS } from "../../../domain/vehicle/kinds/index";
-import { cellKey } from "../../../domain/vehicle/lighting/headlights";
-import { isLightBlock } from "./headlightBlocks";
+import { isLightBlock, LIGHT_BLOCK } from "../../shared/lightBlocks";
 import {
   AIR_BLOCK,
   CAMPER_BED_BLOCK,
@@ -35,7 +35,6 @@ import {
   DECOR_HEIGHT_STATE,
   DECOR_SPOT_STATE,
   decorBlockId,
-  LIGHT_BLOCK,
   pairDecorBlockId,
   pairEndStates,
   pairHeightStates,

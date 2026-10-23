@@ -3,6 +3,7 @@
 // cells, and plates in the aisle in the room's inside layers (ADR 0121, 0123).
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { cellKey } from "../../../../../src/domain/shared/cells";
 import { forward } from "../../../../../src/domain/shared/vec";
 import { decorFace } from "../../../../../src/domain/vehicle/dock/decor";
 import type { EngineCommand } from "../../../../../src/domain/vehicle/drive";
@@ -42,7 +43,6 @@ import {
   storagePressTarget,
 } from "../../../../../src/domain/vehicle/kinds/camper/room";
 import { CAMPER_SPEC } from "../../../../../src/domain/vehicle/kinds/camper/spec";
-import { cellKey } from "../../../../../src/domain/vehicle/lighting/headlights";
 
 const SWING = CAMPER_SPEC.doorSwingTicks;
 

@@ -1,11 +1,7 @@
 // Where a vehicle with its headlights on puts light blocks (ADR 0020).
+import { type Cell, cellKey } from "../../shared/cells";
 import { forward, localPoint, type Vec3 } from "../../shared/vec";
 import type { BeamPattern } from "../profile";
-
-/** Block cell, as integer coordinates. */
-export type Cell = Vec3;
-
-export const cellKey = (c: Cell): string => `${c.x},${c.y},${c.z}`;
 
 /**
  * Cells ahead of a vehicle at `location` facing `yaw`: the distinct cells

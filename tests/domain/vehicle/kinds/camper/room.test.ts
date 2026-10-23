@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
+import { cellKey } from "../../../../../src/domain/shared/cells";
 import {
   dot,
   forward,
@@ -42,7 +43,6 @@ import {
   wallFootCells,
 } from "../../../../../src/domain/vehicle/kinds/camper/room";
 import { seatSlotCell } from "../../../../../src/domain/vehicle/kinds/camper/seatPress";
-import { cellKey } from "../../../../../src/domain/vehicle/lighting/headlights";
 import { seatWorldPositions } from "../../../../../src/domain/vehicle/seats";
 import { defined } from "../../../../support/defined";
 

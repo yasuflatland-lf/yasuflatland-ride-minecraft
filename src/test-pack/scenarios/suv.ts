@@ -7,9 +7,9 @@ import type { Form } from "../../domain/vehicle/motion/forms";
 import { PAINTS } from "../../domain/vehicle/paint/paint";
 import { nearestSeat, toLocal } from "../../domain/vehicle/seats";
 import { SPEC } from "../../domain/vehicle/spec";
+import { LIGHT_BLOCK } from "../../infrastructure/shared/lightBlocks";
 import {
   HEADLIGHTS_PROPERTY,
-  LIGHT_BLOCK,
   PAINT_VARIANT,
   paintEvent,
 } from "../../infrastructure/vehicle/bedrock/identifiers";

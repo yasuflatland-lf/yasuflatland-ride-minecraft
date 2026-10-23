@@ -2,6 +2,7 @@
 // drive reads those plate cells with ownPlateBlock instead of as cargo (ADR 0121, 0123).
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
+import { cellKey } from "../../../../../src/domain/shared/cells";
 import type { TickContext } from "../../../../../src/domain/vehicle/drive";
 import { CamperDrive } from "../../../../../src/domain/vehicle/kinds/camper/drive";
 import { STORAGE_DOORS } from "../../../../../src/domain/vehicle/kinds/camper/furniture";
@@ -13,7 +14,6 @@ import {
   slotCells,
   storagePlateChecks,
 } from "../../../../../src/domain/vehicle/kinds/camper/room";
-import { cellKey } from "../../../../../src/domain/vehicle/lighting/headlights";
 import { DOCK } from "../../../../../src/domain/vehicle/motion/dock";
 
 const PUSH = { moveX: 0, moveY: 1, jump: false };

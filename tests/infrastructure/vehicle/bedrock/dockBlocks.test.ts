@@ -1,12 +1,9 @@
 import type { Entity } from "@minecraft/server";
 import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
+import { type Cell, cellKey } from "../../../../src/domain/shared/cells";
 import { asDimensionId, asVehicleId } from "../../../../src/domain/shared/ids";
 import type { DockCell } from "../../../../src/domain/vehicle/dock/floor";
-import {
-  type Cell,
-  cellKey,
-} from "../../../../src/domain/vehicle/lighting/headlights";
 import {
   DOCK_RECHECK_TICKS,
   DockBlocks,

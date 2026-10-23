@@ -1,16 +1,10 @@
 // Light blocks in front of vehicles with their headlights on (ADR 0020).
-import type { Block, Dimension, Entity } from "@minecraft/server";
+import type { Dimension, Entity } from "@minecraft/server";
+import { type Cell, cellKey } from "../../../domain/shared/cells";
 import type { VehicleId } from "../../../domain/shared/ids";
-import {
-  type Cell,
-  cellKey,
-  relight,
-} from "../../../domain/vehicle/lighting/headlights";
-import { LIGHT_BLOCK, LIT_CELLS_PROPERTY } from "./identifiers";
-
-/** Light blocks are not solid and a player cannot see them, so the scripts treat them as air. */
-export const isLightBlock = (b: Block): boolean =>
-  b.typeId.startsWith("minecraft:light_block");
+import { relight } from "../../../domain/vehicle/lighting/headlights";
+import { isLightBlock, LIGHT_BLOCK } from "../../shared/lightBlocks";
+import { LIT_CELLS_PROPERTY } from "./identifiers";
 
 interface Lit {
   dimension: Dimension;

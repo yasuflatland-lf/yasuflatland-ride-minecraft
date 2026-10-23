@@ -9,7 +9,7 @@ import { asVehicleId, type VehicleId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import type { DeckSeatSpot } from "../../../domain/vehicle/dock/dock";
 import { DECK_SEAT_REACH } from "../../../domain/vehicle/kinds/index";
-import { isLightBlock } from "./headlightBlocks";
+import { isLightBlock } from "../../shared/lightBlocks";
 import {
   DECK_SEAT_COMPACT_EVENT,
   DECK_SEAT_OF_PROPERTY,

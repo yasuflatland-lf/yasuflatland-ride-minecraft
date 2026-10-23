@@ -11,6 +11,7 @@ import type {
   DriveWorld,
   VehicleSnapshot,
 } from "../../../application/vehicle/ports/drive";
+import type { Cell } from "../../../domain/shared/cells";
 import {
   asPlayerId,
   asVehicleId,
@@ -35,12 +36,12 @@ import {
   profileOf,
   RAM_QUERY_RADIUS,
 } from "../../../domain/vehicle/kinds/index";
-import type { Cell } from "../../../domain/vehicle/lighting/headlights";
 import type { ChaseCamera } from "../../../domain/vehicle/profile";
 import type { RamHit, RamTarget } from "../../../domain/vehicle/ram";
 import type { SeatAssignment } from "../../../domain/vehicle/seatChoice";
 import type { StandInPose } from "../../../domain/vehicle/standIn";
 import type { RiderView } from "../../../domain/vehicle/vehicle";
+import { isLightBlock } from "../../shared/lightBlocks";
 import type { TestInputStore } from "../testInput/testInputStore";
 import { savedDecor } from "./bedrockDecorWorld";
 import { DeckSeats } from "./deckSeats";
@@ -50,7 +51,7 @@ import {
   isPlayer,
   loadedVehicleEntities,
 } from "./entityIndex";
-import { HeadlightBlocks, isLightBlock } from "./headlightBlocks";
+import { HeadlightBlocks } from "./headlightBlocks";
 import {
   AIR_BLOCK,
   CHASE_CAMERAS,
