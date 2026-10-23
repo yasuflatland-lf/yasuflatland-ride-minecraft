@@ -1,16 +1,12 @@
 import fc from "fast-check";
-import { expect, it } from "vitest";
+import { it } from "vitest";
 import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
-import type { EngineCommand } from "../../../src/domain/vehicle/drive";
-import type {
-  EntityContract,
-  PropertySpec,
-} from "../../../src/domain/vehicle/entityContract";
 import { VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
 import {
   createVehicle,
   entityContractOf,
 } from "../../../src/domain/vehicle/kinds/index";
+import { expectDeclaredCommand } from "../../support/entityContract";
 import { waterSensors } from "../../support/waterDepth";
 
 const number = (min: number, max: number) =>
@@ -32,39 +28,6 @@ const sample = fc.record({
   mounted: fc.boolean(),
   driverYaw: number(-180, 180),
 });
-
-function check(command: EngineCommand, contract: EntityContract) {
-  switch (command.type) {
-    case "setProperty": {
-      const spec: PropertySpec | undefined = contract.properties[command.name];
-      expect(spec).toBeDefined();
-      if (!spec) throw new Error(`Undeclared property ${command.name}`);
-      switch (spec.type) {
-        case "enum":
-          expect(spec.values).toContain(command.value);
-          break;
-        case "bool":
-          expect(typeof command.value).toBe("boolean");
-          break;
-        case "float":
-          expect(typeof command.value).toBe("number");
-          expect(command.value).toBeGreaterThanOrEqual(spec.range[0]);
-          expect(command.value).toBeLessThanOrEqual(spec.range[1]);
-          break;
-      }
-      break;
-    }
-    case "triggerEvent":
-      expect(contract.events).toContain(command.name);
-      break;
-    case "playAnimation":
-      expect(contract.animations).toContain(command.name);
-      break;
-    case "playSound":
-      expect(typeof command.name).toBe("string");
-      break;
-  }
-}
 
 it.each(VEHICLE_KINDS)(
   "emits declared commands with valid values for %s over 200 random ticks",
@@ -99,7 +62,7 @@ it.each(VEHICLE_KINDS)(
               targets: () => [],
             });
             for (const command of [...out.stepCommands, ...out.finalCommands])
-              check(command, contract);
+              expectDeclaredCommand(command, contract);
           });
         },
       ),
