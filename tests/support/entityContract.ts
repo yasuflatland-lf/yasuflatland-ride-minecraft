@@ -38,6 +38,14 @@ export function expectDeclaredCommand(
           expect(typeof command.value).toBe("number");
           expectInRange(command.value, spec.range);
           break;
+        default: {
+          // A spec type with no case here would let every value pass, the bug
+          // behind #529; `never` makes tsc fail instead.
+          const unchecked: never = spec;
+          throw new Error(
+            `Unchecked property spec ${JSON.stringify(unchecked)}`,
+          );
+        }
       }
       break;
     }
