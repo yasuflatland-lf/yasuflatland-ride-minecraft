@@ -1,3 +1,5 @@
+import { SyncedValue } from "../../../shared/syncedValue";
+import { TapToggle } from "../../../shared/tapToggle";
 import type { Vec3 } from "../../../shared/vec";
 import {
   type DecorPlacement,
@@ -13,7 +15,6 @@ import type { RestoredOf } from "../../entityContract";
 import { DOCK, heldStep, pushesStick } from "../../motion/dock";
 import { dockCommands, undockCommands } from "../../motion/dockEntity";
 import { TransformingDrive } from "../../motion/transformingDrive";
-import { SyncedValue } from "../../syncedValue";
 import { type BodyEnds, guardEnds } from "./bodyGuard";
 import {
   cellTaken,
@@ -26,7 +27,6 @@ import {
 import { nearest, slotForPress, slotsAt, slotsFor } from "./decorPlacing";
 import { StorageDoors } from "./dooredStorage";
 import { DOOR_STEPS, restoredDoorStep, swing } from "./doorSwing";
-import { DoorToggle } from "./doorToggle";
 import {
   type CAMPER_ENTITY,
   ceilingLightsCommand,
@@ -92,12 +92,12 @@ export class CamperDrive extends TransformingDrive {
   private parkTried = false;
   private stickWasPushed = false;
   private doorOpen: boolean;
-  private readonly doorToggle = new DoorToggle();
+  private readonly doorToggle = new TapToggle(CAMPER_SPEC.doorSwingTicks);
   private doorStep: number;
   private readonly doorStepSync = new SyncedValue<number>();
   // The shower door swings in the entry door's DOOR_STEPS (ADR 0094).
   private showerDoorOpen: boolean;
-  private readonly showerDoorToggle = new DoorToggle();
+  private readonly showerDoorToggle = new TapToggle(CAMPER_SPEC.doorSwingTicks);
   private showerDoorStep: number;
   private readonly showerDoorStepSync = new SyncedValue<number>();
   private showerTicks = 0;
@@ -264,7 +264,7 @@ export class CamperDrive extends TransformingDrive {
     if (!pose) return false;
     const doorTakesIt =
       this.showerDoorOpen ||
-      this.showerDoorToggle.withinSwing(tick) ||
+      this.showerDoorToggle.withinWindow(tick) ||
       !inShowerToilet(pose, feet);
     return doorTakesIt ? this.useShowerDoor(tick) : this.runShower();
   }

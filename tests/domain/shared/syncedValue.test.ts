@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { SyncedValue } from "../../../src/domain/vehicle/syncedValue";
+import { SyncedValue } from "../../../src/domain/shared/syncedValue";
 
 function sends<T>(values: readonly T[]): (T | undefined)[] {
   const synced = new SyncedValue<T>();

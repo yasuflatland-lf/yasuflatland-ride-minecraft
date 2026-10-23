@@ -1,4 +1,6 @@
 // The sports boat's drive: the engine floats the hull and the script drives only x and z (ADR 0051).
+
+import { SyncedValue } from "../../../shared/syncedValue";
 import { clamp, dot, type Vec2 } from "../../../shared/vec";
 import type { Dock } from "../../dock/dock";
 import type { HoldPose } from "../../dock/floor";
@@ -27,7 +29,6 @@ import {
 } from "../../motion/motion";
 import { waterBelowAt, waterDepthAt } from "../../motion/water";
 import { seatWorldPositions } from "../../seats";
-import { SyncedValue } from "../../syncedValue";
 import { stepRoll, stepTrim } from "./attitude";
 import { floorCells, holdHeight } from "./deck";
 import { rollCommand, type SPORTSBOAT_ENTITY, trimCommand } from "./entity";
