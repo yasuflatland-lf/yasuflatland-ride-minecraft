@@ -148,7 +148,7 @@ describe("the switch router with the vehicle target first", () => {
       claimsEntityPress: vi.fn(() => vehicleClaims),
       switchFor: vi.fn(),
     } satisfies SwitchTarget;
-    registerSwitchRouter(() => [vehicle, target]);
+    registerSwitchRouter({ [HEADLIGHT_SWITCH_TYPE]: () => [vehicle, target] });
     return {
       vehicle,
       execute,

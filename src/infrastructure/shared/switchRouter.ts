@@ -5,9 +5,8 @@ import {
   system,
   world,
 } from "@minecraft/server";
-import { HEADLIGHT_SWITCH_TYPE } from "./identifiers";
 
-/** One thing the headlight switch item can switch. Targets are asked in order; the first that claims a press takes it. */
+/** One thing a switch item can switch. A route's targets are asked in order; the first that claims a press takes it. */
 export interface SwitchTarget {
   /** Whether this target takes a use of the switch in the air (itemUse). */
   claimsItemUse(player: Player): boolean;
@@ -26,21 +25,35 @@ function switchNextTick(target: SwitchTarget, player: Player): void {
   });
 }
 
-export function registerSwitchRouter(
-  targets: () => readonly SwitchTarget[],
-): void {
+/** Switch items by item type id. Each route lists, in order, the targets asked for a press with that item; it is read on every press, never at registration. */
+export type SwitchRoutes = Readonly<
+  Record<string, () => readonly SwitchTarget[]>
+>;
+
+function routeOf(
+  routes: SwitchRoutes,
+  typeId: string | undefined,
+): (() => readonly SwitchTarget[]) | undefined {
+  return typeId !== undefined && Object.hasOwn(routes, typeId)
+    ? routes[typeId]
+    : undefined;
+}
+
+export function registerSwitchRouter(routes: SwitchRoutes): void {
   world.afterEvents.itemUse.subscribe((ev) => {
-    if (ev.itemStack.typeId !== HEADLIGHT_SWITCH_TYPE) return;
+    const route = routeOf(routes, ev.itemStack.typeId);
+    if (!route) return;
     const player = ev.source;
     if (!player.isValid) return;
-    targets()
+    route()
       .find((candidate) => candidate.claimsItemUse(player))
       ?.switchFor(player);
   });
   world.beforeEvents.playerInteractWithEntity.subscribe((ev) => {
-    if (ev.itemStack?.typeId !== HEADLIGHT_SWITCH_TYPE) return;
+    const route = routeOf(routes, ev.itemStack?.typeId);
+    if (!route) return;
     const { player } = ev;
-    const target = targets().find((candidate) =>
+    const target = route().find((candidate) =>
       candidate.claimsEntityPress(player, ev.target),
     );
     if (!target) return;
@@ -48,9 +61,10 @@ export function registerSwitchRouter(
     switchNextTick(target, player);
   });
   world.beforeEvents.playerInteractWithBlock.subscribe((ev) => {
-    if (ev.itemStack?.typeId !== HEADLIGHT_SWITCH_TYPE) return;
+    const route = routeOf(routes, ev.itemStack?.typeId);
+    if (!route) return;
     const { player } = ev;
-    const target = targets().find((candidate) =>
+    const target = route().find((candidate) =>
       candidate.claimsBlockPress(player, ev.block),
     );
     if (!target) return;

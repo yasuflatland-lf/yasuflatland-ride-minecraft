@@ -53,7 +53,7 @@ function fixture() {
   });
   const targets: SwitchTarget[] = [];
   const getter = vi.fn(() => targets);
-  registerSwitchRouter(getter);
+  registerSwitchRouter({ [HEADLIGHT_SWITCH_TYPE]: getter });
   expect(game.order).toEqual(["itemUse", "entity", "block"]);
   expect(game.use).toHaveBeenCalledTimes(1);
   expect(game.entity).toHaveBeenCalledTimes(1);
