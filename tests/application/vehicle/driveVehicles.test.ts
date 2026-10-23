@@ -844,6 +844,16 @@ describe("DriveVehicles dock ports", () => {
     return { world, types, at, blockTypes };
   }
 
+  it("cuts the step's columns after clearing blocks and before moving the vehicle (ADR 0137)", () => {
+ const cut = [{x:9,z:9,bottom:64}];
+ const {world} = fixture({clear:[{x:8,y:64,z:9,typeId:"minecraft:stone"}],cut});
+ expect(world.cuts).toEqual([{vehicleId:"a",columns:cut}]);
+ expect(world.calls.filter(c=>["clearBlocks","cutColumns","motion:a:0"].includes(c))).toEqual(["clearBlocks","cutColumns","motion:a:0"]);
+ });
+ it.each([undefined, []])("makes no cut call when the step cuts nothing", cut => {
+ expect(fixture({cut}).world.cuts).toEqual([]);
+ });
+
   it("clears checked blocks before laying dock cells in the same tick", () => {
     const clear = [{ x: 8, y: 64, z: 9, typeId: "minecraft:short_grass" }];
     const { world } = fixture({
@@ -1160,4 +1170,14 @@ describe("entity mirror (ADR 0055)", () => {
       );
     },
   );
+});
+
+it("a failed cut skips the rest of that vehicle's tick but not the other vehicles' (ADR 0055, 0137)", () => {
+ const world = new FakeWorld(); const repo = new InMemoryRepo();
+ const cut = [{x:9,z:9,bottom:64}];
+ for (const id of ["a","b"]) repo.save(new Vehicle(asVehicleId(id), SUV_PROFILE, {speed:0,yaw:0,resync(){},onDriverMounted(){},onSeatVacated:()=>[],step:()=>({cut,impulse:{x:0,y:0,z:0},forward:{x:0,z:1},commands:[],riders:{thirdPerson:false,underwater:false}})}));
+ world.snapshots = [snapshot("a"),snapshot("b")]; world.failCutOn="a";
+ new DriveVehicles(world,repo,logger()).execute(0);
+ expect(world.calls).toContain("motion:b:0"); expect(world.calls).not.toContain("motion:a:0");
+ expect(world.cuts).toEqual([{vehicleId:"b",columns:cut}]);
 });
