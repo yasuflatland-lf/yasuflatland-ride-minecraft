@@ -1,4 +1,6 @@
 // Shared transforming drivetrain: forms, landing gear, bank, and vertical motion (ADR 0050).
+
+import { SyncedValue } from "../../shared/syncedValue";
 import { clamp, localOffset, type Vec2 } from "../../shared/vec";
 import type {
   Drive,
@@ -8,7 +10,6 @@ import type {
   TickContext,
 } from "../drive";
 import { NEUTRAL_CONTROL, type RawInput, toDriveInput } from "../driveInput";
-import { SyncedValue } from "../syncedValue";
 import { bankSink, stepBank } from "./bank";
 import { MOTION } from "./constants";
 import {
