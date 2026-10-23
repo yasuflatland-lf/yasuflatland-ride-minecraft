@@ -41,9 +41,18 @@ export type TentFace = 0 | 1 | 2 | 3;
 
 export type TentBlock =
   | { readonly type: "wall"; readonly face: TentFace }
-  | { readonly type: "ceiling" };
+  | { readonly type: "ceiling" }
+  | { readonly type: "flap"; readonly id: FlapId; readonly open: boolean };
 
 export type FlapId = "front" | "left" | "right" | "bedroom";
+
+/** What can change on a pitched tent; tentCells lays the blocks that follow it. */
+export interface TentState {
+  readonly openFlaps: ReadonlySet<FlapId>;
+}
+
+/** A tent as it is pitched: every flap closed. */
+export const PITCHED_STATE: TentState = { openFlaps: new Set() };
 
 const HALF_WIDTH = (TENT_SPEC.width - 1) / 2;
 const ROOM_HALF_WIDTH = HALF_WIDTH - 1;
@@ -121,11 +130,25 @@ function faceToward(v: Vec2): TentFace {
 
 const scaled = (v: Vec2, k: number): Vec2 => ({ x: v.x * k, z: v.z * k });
 
-export function tentCells(pose: TentPose): LaidCell<TentBlock>[] {
+const localKey = (c: TentLocalCell): string => `${c.x},${c.depth},${c.layer}`;
+
+export function tentCells(
+  pose: TentPose,
+  state: TentState,
+): LaidCell<TentBlock>[] {
   const { f, l } = axes(pose.yaw);
   const cells: LaidCell<TentBlock>[] = [];
-  const lay = (local: TentLocalCell, block: TentBlock) =>
-    cells.push({ ...tentCellAt(pose, local), block });
+  const lay = (local: TentLocalCell, block: TentBlock) => {
+    const flap =
+      block.type === "wall" ? FLAP_BY_LOCAL.get(localKey(local)) : undefined;
+    cells.push({
+      ...tentCellAt(pose, local),
+      block:
+        flap === undefined
+          ? block
+          : { type: "flap", id: flap, open: state.openFlaps.has(flap) },
+    });
+  };
   const wall = (toward: Vec2): TentBlock => ({
     type: "wall",
     face: faceToward(toward),
@@ -158,7 +181,20 @@ export function tentCells(pose: TentPose): LaidCell<TentBlock>[] {
 /** The block tentCells lays at `cell`, if any; answers owner lookups before any cell is laid. */
 export function tentBlockAt(pose: TentPose, cell: Cell): TentBlock | undefined {
   const key = cellKey(cell);
-  return tentCells(pose).find((c) => cellKey(c) === key)?.block;
+  return tentCells(pose, PITCHED_STATE).find((c) => cellKey(c) === key)?.block;
+}
+
+/** The flap whose cell `cell` is, at the pose's yaw; undefined for any other cell. */
+export function flapAt(pose: TentPose, cell: Cell): FlapId | undefined {
+  const block = tentBlockAt(pose, cell);
+  return block?.type === "flap" ? block.id : undefined;
+}
+
+/** Every cell of one flap, in tentCells order. */
+export function flapCells(pose: TentPose, flap: FlapId): Cell[] {
+  return tentCells(pose, PITCHED_STATE)
+    .filter((c) => c.block.type === "flap" && c.block.id === flap)
+    .map(({ x, y, z }) => ({ x, y, z }));
 }
 
 function footprintCells(pose: TentPose, layers: number[]): Cell[] {
@@ -248,7 +284,7 @@ export function tentEntityLocation(pose: TentPose): Vec3 {
   return { x: c.x + 0.5, y: c.y, z: c.z + 0.5 };
 }
 
-/** The wall cells each flap takes; laid closed as walls until the flaps open (10/13). */
+/** The wall cells each flap takes; tentCells lays them as flap cells (ADR 0132). */
 export const TENT_FLAPS: Readonly<Record<FlapId, readonly TentLocalCell[]>> =
   Object.freeze({
     front: [
@@ -268,6 +304,12 @@ export const TENT_FLAPS: Readonly<Record<FlapId, readonly TentLocalCell[]>> =
       { x: 0, depth: INNER_WALL_DEPTH, layer: 1 },
     ],
   });
+
+const FLAP_BY_LOCAL: ReadonlyMap<string, FlapId> = new Map(
+  (Object.keys(TENT_FLAPS) as FlapId[]).flatMap((id) =>
+    TENT_FLAPS[id].map((c) => [localKey(c), id] as const),
+  ),
+);
 
 /** The bedroom cells of each mattress; they stay air until the mattresses are laid (11/13). */
 export const TENT_MATTRESSES: readonly [

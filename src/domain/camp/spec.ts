@@ -32,4 +32,6 @@ export const TENT_SPEC = Object.freeze({
   ceilingLight: 4,
   /** A loaded tent re-lays the cells the world lost once every this many lays, as the dock does (ADR 0096). */
   cellRecheckTicks: 20,
+  /** Ticks a flap takes to roll up or drop, one step per tick; also each flap's tap window (ADR 0105). */
+  flapSwingTicks: 10,
 });

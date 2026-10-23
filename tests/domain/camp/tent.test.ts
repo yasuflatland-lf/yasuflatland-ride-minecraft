@@ -2,9 +2,13 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { TENT_SPEC } from "../../../src/domain/camp/spec";
 import {
+  type FlapId,
+  flapAt,
+  flapCells,
   type GroundReading,
   insideTent,
   inTentFootprint,
+  PITCHED_STATE,
   type PitchSurvey,
   planPitch,
   TENT_FLAPS,
@@ -94,14 +98,22 @@ describe("tentPose (ADR 0131)", () => {
 });
 
 describe("tentCells (ADR 0130, 0131)", () => {
-  it("lays 137 unique cells in the footprint: 87 walls, 35 room and 15 tarp ceiling cells", () => {
+  it("lays 137 unique cells in the footprint: 79 walls, 8 flap cells, 35 room and 15 tarp ceiling cells", () => {
     fc.assert(
       fc.property(arbPose, (pose) => {
-        const cells = tentCells(pose);
+        const cells = tentCells(pose, PITCHED_STATE);
         expect(cells).toHaveLength(137);
         const walls = cells.filter((c) => c.block.type === "wall");
+        const flaps = cells.filter((c) => c.block.type === "flap");
         const ceilings = cells.filter((c) => c.block.type === "ceiling");
-        expect(walls).toHaveLength(87);
+        expect(walls).toHaveLength(79);
+        expect(new Set(flaps.map(cellKey))).toEqual(
+          new Set(
+            Object.values(TENT_FLAPS)
+              .flat()
+              .map((c) => cellKey(tentCellAt(pose, c))),
+          ),
+        );
         expect(ceilings).toHaveLength(50);
         expect(ceilings.filter((c) => c.y === pose.y + 3)).toHaveLength(35);
         expect(ceilings.filter((c) => c.y === pose.y + 2)).toHaveLength(15);
@@ -114,7 +126,9 @@ describe("tentCells (ADR 0130, 0131)", () => {
   it("turns every wall plate toward an open room cell", () => {
     fc.assert(
       fc.property(arbPose, (pose) => {
-        const byKey = new Map(tentCells(pose).map((c) => [cellKey(c), c]));
+        const byKey = new Map(
+          tentCells(pose, PITCHED_STATE).map((c) => [cellKey(c), c]),
+        );
         const local = locals(pose);
         for (const c of byKey.values()) {
           if (c.block.type !== "wall") continue;
@@ -141,7 +155,7 @@ describe("tentCells (ADR 0130, 0131)", () => {
           ...pose,
           yaw: (normalizeYaw(pose.yaw + 90) + 0) as TentYaw,
         };
-        const mapped = tentCells(pose).map((c) => ({
+        const mapped = tentCells(pose, PITCHED_STATE).map((c) => ({
           ...turned(pose, c),
           block:
             c.block.type === "wall"
@@ -150,7 +164,7 @@ describe("tentCells (ADR 0130, 0131)", () => {
         }));
         const sort = (cs: { x: number; y: number; z: number }[]) =>
           [...cs].sort((a, b) => cellKey(a).localeCompare(cellKey(b)));
-        expect(sort(mapped)).toEqual(sort(tentCells(next)));
+        expect(sort(mapped)).toEqual(sort(tentCells(next, PITCHED_STATE)));
       }),
     );
   });
@@ -160,6 +174,11 @@ describe("tentCells (ADR 0130, 0131)", () => {
     expect(pose).toEqual({ x: 110, y: -60, z: 46, yaw: 180 });
     expect(tentEntityLocation(pose)).toEqual({ x: 110.5, y: -60, z: 57.5 });
     expect(tentBlockAt(pose, { x: 110, y: -60, z: 49 })).toEqual({
+      type: "flap",
+      id: "front",
+      open: false,
+    });
+    expect(tentBlockAt(pose, { x: 111, y: -60, z: 49 })).toEqual({
       type: "wall",
       face: 1,
     });
@@ -178,7 +197,7 @@ describe("tentBlockAt (ADR 0131)", () => {
           dz: fc.integer({ min: -14, max: 14 }),
         }),
         (pose, d) => {
-          const cells = tentCells(pose);
+          const cells = tentCells(pose, PITCHED_STATE);
           for (const c of cells) expect(tentBlockAt(pose, c)).toEqual(c.block);
           const probe = {
             x: pose.x + d.dx,
@@ -323,7 +342,7 @@ describe("tentEntityLocation (ADR 0130)", () => {
 });
 
 describe("flaps and mattresses (ADR 0130)", () => {
-  it("lays four disjoint two-cell flaps as walls", () => {
+  it("lays four disjoint two-cell flaps as closed flap cells", () => {
     fc.assert(
       fc.property(arbPose, (pose) => {
         const all = Object.values(TENT_FLAPS).flat();
@@ -331,8 +350,13 @@ describe("flaps and mattresses (ADR 0130)", () => {
           expect(flap).toHaveLength(2);
         const keys = all.map((c) => cellKey(tentCellAt(pose, c)));
         expect(new Set(keys).size).toBe(8);
-        for (const c of all)
-          expect(tentBlockAt(pose, tentCellAt(pose, c))?.type).toBe("wall");
+        for (const [id, flap] of Object.entries(TENT_FLAPS))
+          for (const c of flap)
+            expect(tentBlockAt(pose, tentCellAt(pose, c))).toEqual({
+              type: "flap",
+              id,
+              open: false,
+            });
       }),
     );
   });
@@ -350,6 +374,50 @@ describe("flaps and mattresses (ADR 0130)", () => {
             ).toBe(true);
           }
         }
+      }),
+    );
+  });
+});
+
+const FLAPS: readonly FlapId[] = ["front", "left", "right", "bedroom"];
+
+describe("tent flap cells (ADR 0132)", () => {
+  it("lays the same cells in the same order for any open flaps, a flap cell open iff its flap is", () => {
+    fc.assert(
+      fc.property(arbPose, fc.subarray([...FLAPS]), (pose, open) => {
+        const openFlaps = new Set(open);
+        const closed = tentCells(pose, PITCHED_STATE);
+        const cells = tentCells(pose, { openFlaps });
+        expect(cells.map(cellKey)).toEqual(closed.map(cellKey));
+        cells.forEach((c, i) => {
+          const before = defined(closed[i], "closed cell").block;
+          if (c.block.type !== "flap") {
+            expect(c.block).toEqual(before);
+            return;
+          }
+          expect(before).toEqual({ ...c.block, open: false });
+          expect(c.block.open).toBe(openFlaps.has(c.block.id));
+        });
+      }),
+    );
+  });
+
+  it("finds each flap's cells and nothing else, from TENT_FLAPS at the pose", () => {
+    fc.assert(
+      fc.property(arbPose, (pose) => {
+        const seen = new Set<string>();
+        for (const id of FLAPS) {
+          const cells = flapCells(pose, id);
+          expect(cells.length).toBeGreaterThan(0);
+          expect(cells).toEqual(TENT_FLAPS[id].map((c) => tentCellAt(pose, c)));
+          for (const c of cells) {
+            expect(flapAt(pose, c)).toBe(id);
+            expect(seen.has(cellKey(c))).toBe(false);
+            seen.add(cellKey(c));
+          }
+        }
+        for (const c of tentCells(pose, PITCHED_STATE))
+          if (!seen.has(cellKey(c))) expect(flapAt(pose, c)).toBeUndefined();
       }),
     );
   });
