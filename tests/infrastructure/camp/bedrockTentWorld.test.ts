@@ -69,13 +69,18 @@ function fixture(entries: TentEntry[] = []) {
     getProperty: vi.fn(() => 0),
     remove: vi.fn(() => order.push("remove")),
   };
-  const container = { addItem: vi.fn(() => undefined) };
+  const container = {
+    addItem: vi.fn(() => undefined),
+    getItem: vi.fn(() => undefined as unknown),
+    setItem: vi.fn(),
+  };
   const player = {
     id: "player",
     typeId: "minecraft:player",
     isValid: true,
     location: { x: 0, y: 0, z: 0 },
     dimension,
+    getGameMode: vi.fn(() => "Survival"),
     getComponent: vi.fn(() => ({ container })),
     onScreenDisplay: { setActionBar: vi.fn() },
   };
@@ -506,5 +511,123 @@ describe("BedrockTentWorld (ADR 0131)", () => {
     expect(player.onScreenDisplay.setActionBar).toHaveBeenLastCalledWith({
       translate: FLAP_BLOCKED_HINT,
     });
+  });
+
+  it("reads a block's type, and owns only the add-on's blocks", () => {
+    const { dimension, world } = fixture();
+    const at = { x: 1, y: 2, z: 3 };
+    dimension.getBlock.mockReturnValueOnce({ typeId: TENT_WALL_BLOCK });
+    expect(world.isOwnBlock(DIM, at)).toBe(true);
+    dimension.getBlock.mockReturnValueOnce({ typeId: "minecraft:stone" });
+    expect(world.isOwnBlock(DIM, at)).toBe(false);
+    dimension.getBlock.mockReturnValueOnce(undefined);
+    expect(world.isOwnBlock(DIM, at)).toBe(false);
+    dimension.getBlock.mockReturnValueOnce({ typeId: "minecraft:stone" });
+    expect(world.typeIdAt(DIM, at)).toBe("minecraft:stone");
+    expect(dimension.getBlock).toHaveBeenLastCalledWith(at);
+  });
+
+  it("reads nothing in an unknown dimension", () => {
+    const { dimension, world } = fixture();
+    game.getDimension.mockImplementation(() => {
+      throw new Error("unknown dimension");
+    });
+    const elsewhere = asDimensionId("yasu_ride:nowhere");
+    expect(world.typeIdAt(elsewhere, { x: 0, y: 0, z: 0 })).toBeUndefined();
+    expect(world.isOwnBlock(elsewhere, { x: 0, y: 0, z: 0 })).toBe(false);
+    const survey = world.survey(elsewhere, POSE);
+    expect(survey.clear.every((c) => c === undefined)).toBe(true);
+    expect(survey.ground.every((g) => g === undefined)).toBe(true);
+    expect(survey.occupants).toBe(0);
+    world.clearDecorations(elsewhere, [{ x: 0, y: 0, z: 0 }]);
+    expect(dimension.getBlock).not.toHaveBeenCalled();
+    expect(dimension.getEntities).not.toHaveBeenCalled();
+  });
+
+  it("reads unloaded ground as unreadable, and counts no occupants when the entity query throws", () => {
+    const { dimension, world } = fixture();
+    dimension.getBlock.mockReturnValue(undefined);
+    dimension.getEntities.mockImplementation(() => {
+      throw new Error("unloaded");
+    });
+    const survey = world.survey(DIM, POSE);
+    expect(survey.ground.every((g) => g === undefined)).toBe(true);
+    expect(survey.occupants).toBe(0);
+  });
+
+  it("answers a laid block's owner from the layer without the registry", () => {
+    const { blocks, registry, world } = fixture([ENTRY]);
+    const other = asTentId("other");
+    blocks.laidBlockOwner.mockReturnValueOnce(other as never);
+    const cell = { x: 1, y: 2, z: 3 };
+    expect(world.tentBlockOwner(DIM, cell, TENT_WALL_BLOCK)).toBe(other);
+    expect(registry.all).not.toHaveBeenCalled();
+  });
+
+  it("reads Creative, takes one held tent item, and gives one back, only for a player", () => {
+    const { container, player, world } = fixture();
+    const id = asPlayerId("player");
+    expect(world.isCreative(id)).toBe(false);
+    player.getGameMode.mockReturnValue("Creative");
+    expect(world.isCreative(id)).toBe(true);
+    container.getItem.mockReturnValueOnce({ typeId: TENT_ITEM, amount: 2 });
+    expect(world.consumeTentItem(id, 3)).toBe(true);
+    expect(container.getItem).toHaveBeenLastCalledWith(3);
+    expect(container.setItem).toHaveBeenLastCalledWith(3, {
+      typeId: TENT_ITEM,
+      amount: 1,
+    });
+    container.getItem.mockReturnValueOnce({
+      typeId: "minecraft:stone",
+      amount: 1,
+    });
+    expect(world.consumeTentItem(id, 3)).toBe(false);
+    world.giveTentItem(id);
+    expect(container.addItem).toHaveBeenCalledExactlyOnceWith({
+      typeId: TENT_ITEM,
+      amount: 1,
+    });
+    // The tent entity is no player, and a missing entity is none either.
+    for (const notPlayer of [asPlayerId(TENT), asPlayerId("gone")]) {
+      expect(world.isCreative(notPlayer)).toBe(false);
+      expect(world.consumeTentItem(notPlayer, 0)).toBe(false);
+      world.giveTentItem(notPlayer);
+    }
+    expect(container.addItem).toHaveBeenCalledTimes(1);
+    expect(container.getItem).toHaveBeenCalledTimes(2);
+  });
+
+  it("clears decorations to air, skipping an unloaded cell and one that refuses the change", () => {
+    const { dimension, world } = fixture();
+    const cells = [
+      { x: 0, y: 0, z: 0 },
+      { x: 1, y: 0, z: 0 },
+      { x: 2, y: 0, z: 0 },
+      { x: 3, y: 0, z: 0 },
+    ];
+    const setTypes = new Map<string, ReturnType<typeof vi.fn>>();
+    dimension.getBlock.mockImplementation(
+      (c: { x: number; y: number; z: number }) => {
+        if (c.x === 1) return undefined;
+        if (c.x === 2) throw new Error("unloaded");
+        const setType = vi.fn(() => {
+          if (c.x === 0) throw new Error("changed since the survey");
+        });
+        setTypes.set(cellKey(c), setType);
+        return { typeId: "minecraft:short_grass", setType };
+      },
+    );
+    world.clearDecorations(DIM, cells);
+    expect(dimension.getBlock).toHaveBeenCalledTimes(4);
+    for (const x of [0, 3])
+      expect(setTypes.get(cellKey({ x, y: 0, z: 0 }))).toHaveBeenCalledWith(
+        "minecraft:air",
+      );
+  });
+
+  it("drops no item for a tent with neither an entity nor an entry", () => {
+    const { dimension, world } = fixture();
+    world.returnTentItem(asTentId("gone"), undefined);
+    expect(dimension.spawnItem).not.toHaveBeenCalled();
   });
 });

@@ -434,6 +434,24 @@ describe("registerTentHits (ADR 0130, 0131)", () => {
     expect(execute).toHaveBeenCalledTimes(2);
   });
 
+  it("ignores a Creative break on a block no tent owns", () => {
+    const { execute, owner } = setup();
+    subscribed(game.breakBlock)({
+      player: Object.assign(playerWithId("p"), {
+        getGameMode: () => "Creative",
+      }),
+      block: block("minecraft:stone"),
+      dimension: { id: "overworld" },
+    });
+    expect(owner).toHaveBeenCalledWith(
+      "overworld",
+      { x: 1, y: 2, z: 3 },
+      "minecraft:stone",
+    );
+    expect(game.run).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
+  });
+
   it("ignores a Survival break", () => {
     setup();
     subscribed(game.breakBlock)({
@@ -672,5 +690,16 @@ describe("registerTestTent (ADR 0010, 0131)", () => {
     expect(take).not.toHaveBeenCalled();
     expect(warn).toHaveBeenCalledTimes(6);
     warn.mockRestore();
+  });
+
+  it("ignores another event id in the namespace", () => {
+    const { pitch, take, handler } = setup();
+    handler({
+      id: `${NAMESPACE}:test_other`,
+      sourceType: "Server",
+      message: "110 -61 46 0",
+    });
+    expect(pitch).not.toHaveBeenCalled();
+    expect(take).not.toHaveBeenCalled();
   });
 });
