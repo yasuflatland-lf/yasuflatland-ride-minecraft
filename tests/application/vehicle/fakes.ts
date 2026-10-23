@@ -147,8 +147,9 @@ export class FakeWorld
   failRemoveOn: string | undefined;
   failReleaseOn: string | undefined;
   /**
-   * Fails the `call`-th `run` (counted from 0 over every vehicle) when it returns an
-   * index: the commands before that index reach the entity, then `run` throws.
+   * Fails the `call`-th `run` (counted from 0 over every vehicle's runs) when it returns
+   * an index: the commands before that index reach the entity, then `run` throws. An
+   * index past the last command sends them all, then throws.
    */
   runFault: ((id: string, call: number) => number | undefined) | undefined;
   private runCalls = 0;
@@ -237,7 +238,8 @@ export class FakeWorld
     Record<string, string | number | boolean>
   >();
   run(id: string, commands: readonly EngineCommand[]) {
-    const fault = this.runFault?.(id, this.runCalls++);
+    const call = this.runCalls++;
+    const fault = this.runFault?.(id, call);
     for (const [index, command] of commands.entries()) {
       if (index === fault) throw new Error("run fault");
       if (id === this.failRunOn?.id && command.name === this.failRunOn.name)

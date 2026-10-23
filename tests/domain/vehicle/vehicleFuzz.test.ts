@@ -75,7 +75,7 @@ it.each(VEHICLE_KINDS)(
             if (ids.size === 0) expect(out.driverId).toBeUndefined();
             if (out.driverId !== undefined)
               expect(ids.has(out.driverId)).toBe(true);
-            // The sticky driver (ADR 0025) and the seat-0 driver of a kind whose players choose their seat (ADR 0120).
+            // Position-only riders keep the sticky driver (ADR 0025, 0128); riders with a slot follow seat 0 (ADR 0120, 0128).
             if (chosen)
               expect(out.driverId).toBe(
                 ids.has(riderId(0)) ? riderId(0) : undefined,
@@ -83,7 +83,7 @@ it.each(VEHICLE_KINDS)(
             else if (lastDriver !== undefined && ids.has(lastDriver))
               expect(out.driverId).toBe(lastDriver);
 
-            // Riders never change seats here, so only a departure vacates one.
+            // Only a departing rider vacates a seat (ADR 0128).
             if ([...lastRiders].every((id) => ids.has(id)))
               expect(out.finalCommands).toEqual([]);
 

@@ -1067,10 +1067,11 @@ it("does not resync when a later world call throws after step commands succeeded
 
 describe("entity mirror (ADR 0055)", () => {
   const MAX_TICKS = 40;
-  // DriveVehicles resyncs after a failed send, so one failure-free tick resends every value (ADR 0127).
+  // A failed step send resyncs the vehicle, so the next failure-free tick resends every
+  // value (ADR 0127). Final commands are not resent, but no kind puts a property in them.
   const RESYNC_TICKS = 1;
   const id: VehicleId = asVehicleId("v");
-  // Each tick makes two run calls: the step commands, then the final commands.
+  // Each tick makes at most two run calls, the step commands and then the final commands.
   const faultPlan = fc.array(
     fc.oneof(
       { arbitrary: fc.constant(undefined), weight: 3 },
@@ -1085,7 +1086,7 @@ describe("entity mirror (ADR 0055)", () => {
       const { properties } = entityContractOf(kind);
       const declared = Object.keys(properties);
       // A rebuilt drive trusts the form it reads back and does not send it
-      // again (ADR 0021), so both entities start out holding it.
+      // again (ADR 0039, 0127), so both entities start out holding it.
       const entityAtStart: fc.Arbitrary<Record<string, string>> =
         properties.form?.type === "enum"
           ? fc.constantFrom(...properties.form.values).map((form) => ({ form }))
@@ -1108,7 +1109,12 @@ describe("entity mirror (ADR 0055)", () => {
               new InMemoryRepo(),
               logger(),
             );
-            // Vehicle state never reads the world back, so both drives see the same heading.
+            // Both drives get the same snapshots and a failed send changes no vehicle
+            // state (ADR 0127), so the reference heading is the faulty drive's too.
+            const expectMirrored = () =>
+              expect(faulty.properties.get(id)).toEqual(
+                reference.properties.get(id),
+              );
             const tickBoth = (s: TickSample, tick: number) => {
               const heading = referenceRepo.get(id)?.yaw ?? yaw;
               const snap = snapshot(id, {
@@ -1128,16 +1134,23 @@ describe("entity mirror (ADR 0055)", () => {
               good.execute(tick);
               failing.execute(tick);
             };
-            faulty.runFault = (_id, call) => plan[call];
-            samples.forEach(tickBoth);
+            let faulted = false;
+            faulty.runFault = (_id, call) => {
+              const fault = plan[call];
+              if (fault !== undefined) faulted = true;
+              return fault;
+            };
+            samples.forEach((s, tick) => {
+              faulted = false;
+              tickBoth(s, tick);
+              if (!faulted) expectMirrored();
+            });
             faulty.runFault = undefined;
             const last = defined(samples.at(-1), "last sample");
             for (let extra = 0; extra < RESYNC_TICKS; extra++)
               tickBoth(last, samples.length + extra);
 
-            expect(faulty.properties.get(id)).toEqual(
-              reference.properties.get(id),
-            );
+            expectMirrored();
             for (const world of [reference, faulty])
               for (const name of Object.keys(world.properties.get(id) ?? {}))
                 expect(declared).toContain(name);

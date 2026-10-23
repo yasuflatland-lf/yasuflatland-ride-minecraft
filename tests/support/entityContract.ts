@@ -5,7 +5,7 @@ import type {
   PropertySpec,
 } from "../../src/domain/vehicle/entityContract";
 
-/** Fails unless the contract declares `command` and its value fits the declared type. */
+/** Fails unless the contract declares `command` and its value fits the declared type and range. Contracts declare no sounds, so only a sound's name is checked. */
 export function expectDeclaredCommand(
   command: EngineCommand,
   contract: EntityContract,

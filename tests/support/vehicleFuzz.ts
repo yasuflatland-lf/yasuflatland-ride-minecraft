@@ -31,7 +31,7 @@ type Draw<T> = { readonly keep: true } | { readonly keep: false; value: T };
 
 const KEEP: Draw<never> = { keep: true };
 
-/** Last tick's value three times out of four, so a stick stays held over several ticks and Jump double taps land (ADR 0021, 0039). */
+/** Last tick's value three times out of four, so a stick or Jump stays held over several ticks (ADR 0021, 0039). */
 function held<T>(arbitrary: fc.Arbitrary<T>): fc.Arbitrary<Draw<T>> {
   return fc.oneof(
     { arbitrary: fc.constant(KEEP), weight: 3 },
@@ -135,9 +135,10 @@ export function tickSamples(
 }
 
 /**
- * Each rider sits exactly on their seat for a vehicle heading `yaw`, as the
- * engine reports them. A kind whose players choose their seat also gets the
- * rider's slot, which is the seat it puts them in (ADR 0120).
+ * Each rider sits exactly on their seat for a vehicle heading `yaw`. Only a kind
+ * whose players choose their seat gets the rider's slot (ADR 0120). The engine
+ * reports a slot for every kind, but leaving it out keeps the other kinds on the
+ * position reading, where the sticky driver applies (ADR 0025, 0128).
  */
 export function riderViews(
   kind: VehicleKind,
