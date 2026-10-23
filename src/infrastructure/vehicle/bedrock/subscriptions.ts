@@ -24,6 +24,7 @@ import { registerBedBlock } from "../../shared/bedBlock";
 import { HEADLIGHT_SWITCH_TYPE } from "../../shared/identifiers";
 import {
   registerSwitchRouter,
+  type SwitchRoutes,
   type SwitchTarget,
 } from "../../shared/switchRouter";
 import type { TestInputStore } from "../testInput/testInputStore";
@@ -103,9 +104,10 @@ export function registerSubscriptions(
     useCases.ceilingLights,
     dockCellOwner,
   );
-  registerSwitchRouter({
+  const switchRoutes: SwitchRoutes = {
     [HEADLIGHT_SWITCH_TYPE]: () => [vehicle, ...laterSwitchTargets()],
-  });
+  };
+  registerSwitchRouter(switchRoutes);
   registerPlacement(useCases.place);
   registerStarter(useCases.starter);
   registerHits(useCases.hit, useCases.paint);

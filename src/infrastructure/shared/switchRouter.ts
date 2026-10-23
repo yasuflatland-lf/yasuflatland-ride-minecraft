@@ -25,16 +25,15 @@ function switchNextTick(target: SwitchTarget, player: Player): void {
   });
 }
 
-/** The targets asked, in order, for a press with one switch item. It is read on every press, never at registration. */
-type SwitchRoute = () => readonly SwitchTarget[];
-
-/** Switch routes keyed by the switch item's type id. */
-type SwitchRoutes = Readonly<Record<string, SwitchRoute>>;
+/** Switch items by item type id. Each route lists, in order, the targets asked for a press with that item; it is read on every press, never at registration. */
+export type SwitchRoutes = Readonly<
+  Record<string, () => readonly SwitchTarget[]>
+>;
 
 function routeOf(
   routes: SwitchRoutes,
   typeId: string | undefined,
-): SwitchRoute | undefined {
+): (() => readonly SwitchTarget[]) | undefined {
   if (typeId === undefined || !Object.hasOwn(routes, typeId)) return undefined;
   return routes[typeId];
 }
