@@ -84,8 +84,10 @@ export function vehicleSwitchTarget(
         (room === vehicle.id && inSwitchableRoom(player, room))
       );
     },
-    // Room block presses must not also open a door or cabinet; riders keep their block presses
-    // (ADR 0115).
+    // Inside the small room a tap or right-click mostly lands on a wall, the floor or the
+    // ceiling, which does not reach itemUse, so a press on a block by a player on foot or on a
+    // deck seat in a room counts as a use too. The router cancels it, so the switch never also
+    // opens a door or the cabinet. Riders of a vehicle keep the events they had (ADR 0115).
     claimsBlockPress: (player) =>
       ridden(player) === undefined && inSwitchableRoom(player, roomOf(player)),
     switchFor,

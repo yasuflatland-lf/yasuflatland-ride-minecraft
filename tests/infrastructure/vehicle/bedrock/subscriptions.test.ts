@@ -1845,7 +1845,8 @@ describe("camper bumper stand-in (ADR 0116)", () => {
             handler(ev as unknown as PlayerInteractWithEntityBeforeEvent);
           expect(ev.cancel).toBe(true);
           for (const [callback] of game.run.mock.calls) callback();
-          // The switch never boards: headlights.ts takes it or leaves it (ADR 0115).
+          // The switch never boards: the switch router and the vehicle's switch target
+          // take it or leave it (ADR 0115).
           const boards =
             !sneaking && riding !== "camper" && item !== HEADLIGHT_SWITCH_TYPE;
           expect(rideable.addRider).toHaveBeenCalledTimes(boards ? 1 : 0);
