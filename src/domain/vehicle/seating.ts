@@ -3,6 +3,7 @@ import type { PlayerId } from "../shared/ids";
 import { add, type Vec2 } from "../shared/vec";
 import type { SeatLayout } from "./profile";
 import {
+  DRIVER_SEAT,
   nearestSeat,
   occupiedSeats,
   type RiderPos,
@@ -60,7 +61,9 @@ export class Seating {
   ): Seating {
     const seating = new Seating(positions, reading);
     seating.seats = seating.seatsOf(riders, f);
-    seating.driverId = riders.find((r) => seating.seats.get(r.id) === 0)?.id;
+    seating.driverId = riders.find(
+      (r) => seating.seats.get(r.id) === DRIVER_SEAT,
+    )?.id;
     return seating;
   }
 
@@ -75,7 +78,7 @@ export class Seating {
     f: Vec2,
     step: Vec2,
   ): R | undefined {
-    const seat = this.positions[0];
+    const seat = this.positions[DRIVER_SEAT];
     if (!seat) return undefined;
     let candidate: R | undefined;
     let bestDistance = Number.POSITIVE_INFINITY;
@@ -93,7 +96,9 @@ export class Seating {
       toLocal(add(candidate.offset, step), f),
       this.positions,
     );
-    return raw === 0 || advanced === 0 ? candidate : undefined;
+    return raw === DRIVER_SEAT || advanced === DRIVER_SEAT
+      ? candidate
+      : undefined;
   }
 
   /** `step` is the vehicle's world-space horizontal motion this tick, in blocks. */
@@ -112,7 +117,7 @@ export class Seating {
       this.reading === "position"
         ? (riders.find((r) => r.id === this.driverId) ??
           this.pickDriver(riders, f, step))
-        : riders.find((r) => this.seats.get(r.id) === 0);
+        : riders.find((r) => this.seats.get(r.id) === DRIVER_SEAT);
     const mounted = driver !== undefined && this.driverId !== driver.id;
     this.driverId = driver?.id;
     return { vacated, driver, mounted };

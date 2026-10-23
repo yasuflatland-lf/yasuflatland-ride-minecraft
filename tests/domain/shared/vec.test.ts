@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   approach,
   clampLength,
+  degToRad,
   dot,
   forward,
   leftOf,
@@ -205,4 +206,16 @@ describe("approach", () => {
       }),
     );
   });
+});
+
+it("converts degrees and computes forward with exact arithmetic", () => {
+  fc.assert(
+    fc.property(yaw, (d) => {
+      expect(degToRad(d)).toBe((d * Math.PI) / 180);
+      expect(forward(d)).toEqual({
+        x: -Math.sin(degToRad(d)),
+        z: Math.cos(degToRad(d)),
+      });
+    }),
+  );
 });

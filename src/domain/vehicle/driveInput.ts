@@ -1,4 +1,4 @@
-import { clamp } from "../shared/vec";
+import { clamp, degToRad } from "../shared/vec";
 import { SPEC } from "./spec";
 
 export interface RawInput {
@@ -26,7 +26,7 @@ export const NEUTRAL_CONTROL: ControlInput = Object.freeze({
   sideways: false,
 });
 
-const SIDEWAYS_SLOPE = Math.tan((SPEC.sidewaysAngle * Math.PI) / 180);
+const SIDEWAYS_SLOPE = Math.tan(degToRad(SPEC.sidewaysAngle));
 
 /**
  * Converts the movement vector and Jump to a control input (ADR 0018, 0089).

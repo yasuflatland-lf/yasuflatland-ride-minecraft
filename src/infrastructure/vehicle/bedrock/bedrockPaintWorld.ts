@@ -6,7 +6,7 @@ import type { VehicleKind } from "../../../domain/vehicle/kind";
 import { PAINTS, type Paint } from "../../../domain/vehicle/paint/paint";
 import type { BedrockInventory } from "./bedrockInventory";
 import type { EntityIndex } from "./entityIndex";
-import { dyeOf, kindOfEntity, PAINT_VARIANT, paintEvent } from "./identifiers";
+import { dyeOf, kindOfEntity, paintEvent } from "./identifiers";
 
 export class BedrockPaintWorld implements PaintWorld {
   constructor(
@@ -18,7 +18,7 @@ export class BedrockPaintWorld implements PaintWorld {
     const vehicle = this.index.entity(vehicleId);
     if (!vehicle) return undefined;
     const variant = vehicle.getComponent("minecraft:variant")?.value ?? 0;
-    return PAINTS.find((p) => PAINT_VARIANT[p] === variant);
+    return PAINTS[variant];
   }
 
   kindOf(vehicleId: VehicleId): VehicleKind | undefined {

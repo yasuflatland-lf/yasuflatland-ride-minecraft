@@ -11,6 +11,9 @@ import {
 import type { HoldPose } from "./dock/floor";
 import type { SeatLayout } from "./profile";
 
+/** The driver's seat index in every kind's seat layout (ADR 0019). */
+export const DRIVER_SEAT = 0;
+
 /** The farthest any seat in these layouts sits from its vehicle's location, in blocks on the ground plane. Deck seats stand at these spots at the vehicle's own height (seatWorldPositions), so this bounds their distance to the vehicle. */
 export function farthestSeatReach(layouts: readonly SeatLayout[]): number {
   return Math.max(

@@ -1,5 +1,5 @@
 // Implements the fleet ports with @minecraft/server (ADR 0012, 0066).
-import { ItemStack, world } from "@minecraft/server";
+import { ItemStack } from "@minecraft/server";
 import type {
   BreakWorld,
   LimitWorld,
@@ -7,13 +7,12 @@ import type {
 import type { PlayerId, VehicleId } from "../../../domain/shared/ids";
 import type { FleetEntry } from "../../../domain/vehicle/fleet/fleet";
 import type { BedrockInventory } from "./bedrockInventory";
-import { DIMENSIONS, type EntityIndex } from "./entityIndex";
+import { type EntityIndex, loadedVehicleEntities } from "./entityIndex";
 import {
   campingGearItem,
   fleetEntryOf,
   ITEM_TYPE,
   kindOfEntity,
-  VEHICLE_FAMILY,
 } from "./identifiers";
 import type { VehicleReleaser } from "./vehicleReleaser";
 
@@ -25,13 +24,9 @@ export class BedrockFleetWorld implements LimitWorld, BreakWorld {
   ) {}
 
   loadedFleetEntries(): FleetEntry[] {
-    return DIMENSIONS.flatMap((dimId) =>
-      world
-        .getDimension(dimId)
-        .getEntities({ families: [VEHICLE_FAMILY] })
-        .map(fleetEntryOf)
-        .filter((entry) => entry !== undefined),
-    );
+    return loadedVehicleEntities()
+      .map(fleetEntryOf)
+      .filter((entry) => entry !== undefined);
   }
 
   dropVehicleItem(vehicleId: VehicleId): void {

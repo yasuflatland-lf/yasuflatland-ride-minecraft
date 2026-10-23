@@ -2,10 +2,17 @@ import type { Entity } from "@minecraft/server";
 import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { asPlayerId, asVehicleId } from "../../../../src/domain/shared/ids";
-import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
-import { PLAYER_TYPE } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
+import {
+  DIMENSIONS,
+  EntityIndex,
+  loadedVehicleEntities,
+} from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
+import {
+  PLAYER_TYPE,
+  VEHICLE_FAMILY,
+} from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 
-const game = vi.hoisted(() => ({ getEntity: vi.fn() }));
+const game = vi.hoisted(() => ({ getEntity: vi.fn(), getDimension: vi.fn() }));
 vi.mock("@minecraft/server", () => ({ world: game }));
 
 const stub = (id: string, isValid = true) =>
@@ -88,4 +95,39 @@ describe("EntityIndex", () => {
       ),
     );
   });
+});
+
+it("scans every dimension once in order and preserves entity order", () => {
+  fc.assert(
+    fc.property(
+      fc.tuple(
+        fc.array(fc.string()),
+        fc.array(fc.string()),
+        fc.array(fc.string()),
+      ),
+      (idsByDimension) => {
+        const entities = idsByDimension.map((ids) => ids.map((id) => stub(id)));
+        const dimensions = entities.map((list) => ({
+          getEntities: vi.fn(() => list),
+        }));
+        game.getDimension.mockReset();
+        game.getDimension.mockImplementation(
+          (id: (typeof DIMENSIONS)[number]) =>
+            dimensions[DIMENSIONS.indexOf(id)],
+        );
+        const result = loadedVehicleEntities();
+        const expected = entities.flat();
+        expect(result).toEqual(expected);
+        for (const [index, entity] of result.entries())
+          expect(entity).toBe(expected[index]);
+        expect(game.getDimension.mock.calls).toEqual(
+          DIMENSIONS.map((id) => [id]),
+        );
+        for (const dimension of dimensions)
+          expect(dimension.getEntities).toHaveBeenCalledExactlyOnceWith({
+            families: [VEHICLE_FAMILY],
+          });
+      },
+    ),
+  );
 });
