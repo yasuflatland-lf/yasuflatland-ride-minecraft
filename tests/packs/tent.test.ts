@@ -18,7 +18,7 @@ interface Cube {
   size: [number, number, number];
   pivot?: [number, number, number];
   rotation?: [number, number, number];
-  uv: Record<string, { uv: [number, number] }>;
+  uv: Record<string, { uv: [number, number]; uv_size: [number, number] }>;
 }
 
 // x and z turn the other way from a right-handed rotation in game, as in
@@ -31,6 +31,8 @@ function corners(cube: Cube): [number, number, number][] {
     for (const j of [0, 1])
       for (const k of [0, 1]) points.push([x0 + i * w, y0 + j * h, z0 + k * d]);
   if (!cube.rotation || !cube.pivot) return points;
+  // Only x and z turns are modeled, so a y turn must not slip past the bounds checks.
+  expect(cube.rotation[1]).toBe(0);
   const [px, py, pz] = cube.pivot;
   const [rx, , rz] = cube.rotation.map((a) => (a * Math.PI) / 180) as [
     number,
@@ -291,6 +293,7 @@ describe("tent geometry and texture", () => {
         if (bone.name === "mattress_0") inside(b, [9, 0, -39, 23, 9, -9]);
         if (bone.name === "mattress_1") inside(b, [-23, 0, -39, -9, 9, -9]);
         for (const face of Object.values(cube.uv)) {
+          expect(face.uv_size, bone.name).toEqual([4, 4]);
           const slot =
             Math.floor(face.uv[0] / 4) + 4 * Math.floor(face.uv[1] / 4);
           if (slot < 2)
@@ -298,12 +301,34 @@ describe("tent geometry and texture", () => {
               bone.name,
             );
           if (bone.name === "flap_bedroom") expect([2, 3]).toContain(slot);
+          // Slot 9 is the alpha-zero glass that the lantern material lights (ADR 0130).
+          expect(slot === 9, bone.name).toBe(bone.name === "lantern_glass");
         }
       }
       if (bone.name.startsWith("mattress_"))
         expect(Math.max(...(bone.cubes ?? []).map((c) => bounds(c)[4]))).toBe(
           9,
         );
+    }
+  });
+  it("closes both fly end panels up to the arch's inner surface", () => {
+    const fly = geometry().bones.find((b: Bone) => b.name === "fly");
+    for (const z of [7, -135]) {
+      const strips = (fly.cubes as Cube[]).filter(
+        (c) => c.origin[2] === z && c.size[0] === 1 && !c.rotation,
+      );
+      for (let x = -52; x < 52; x++) {
+        const strip = strips.find((c) => c.origin[0] === x);
+        const edge = Math.min(Math.abs(x), Math.abs(x + 1));
+        const inner = 32 + 39 * Math.sqrt(1 - (edge / 52) ** 2);
+        expect(strip, `x=${x} z=${z}`).toBeDefined();
+        expect((strip?.origin[1] ?? 0) + (strip?.size[1] ?? 0)).toBeCloseTo(
+          inner,
+          2,
+        );
+        // Over the front door the binding fills y 32..33 instead.
+        expect(strip?.origin[1]).toBe(z === -135 && x >= -8 && x < 8 ? 33 : 32);
+      }
     }
   });
   it("keeps the fixed twelve swatches, including alpha-zero emissive glass", () => {

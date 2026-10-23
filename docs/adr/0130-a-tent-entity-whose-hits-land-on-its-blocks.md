@@ -8,7 +8,7 @@
 
 This decision fixes the content contract for a two-room tunnel tent before pitching, shelter,
 flaps, sleep, lantern interaction, and paint arrive in 9/13 through 13/13. The camp feature
-uses the shared primitives and two-way space checks of 0129 on this branch. The tent is
+uses the shared primitives and two-way space checks of 0129. The tent is
 not a vehicle or camping decor, and the gear box continues to contain only its existing gear.
 
 Hit tests changed after spawn do not reach the client (0068), and their pivots do not
@@ -85,8 +85,9 @@ Outside hits on the entity use `world.afterEvents.entityHitEntity`. Hits on the 
 own `tent_wall`, `tent_ceiling`, and closed `tent_flap` blocks use stable
 `world.afterEvents.entityHitBlock` (the pack pins `@minecraft/server` 2.2.0).
 The camp's separate `CellLayer<TentId, TentBlock>` resolves the owner. Creative
-breaks must be cancelled in the before-break event using the branch's shared
-`laidBlockGuard.ts`, which the vehicle dock guard already uses. An after-event
+breaks must be cancelled in the before-break event with `registerLaidBlockGuard`
+in `src/infrastructure/shared/laidBlockGuard.ts`, which the vehicle dock guard
+(`src/infrastructure/vehicle/bedrock/handlers/dockGuard.ts`) already uses. An after-event
 cannot cancel a break. 9/13 implements these paths; 13/13 uses the block-hit path
 for dyes too. No stand-ins are needed at any of the four yaws, and taps inside
 continue to reach blocks.
@@ -158,10 +159,12 @@ entity model. English names read Tent; Japanese locale names use katakana.
 The always-unlocked crafting-table shaped recipe is `[" W ", "WSW", "T T"]`,
 with W the `minecraft:wool` tag, S a stick, and T string, producing one tent.
 This pattern consumes three wool, one stick, and two string. Any wool color fits
-through the tag, and the dev BDS content log accepts it.
+through the tag. The dev BDS content log showed no error for the recipe or the
+other tent files when this ADR was proposed (2026-10-23), so the
+`minecraft:white_wool` fallback was not needed.
 
 Resource Pack header and module versions and the Behavior Pack dependency move
-from 0.1.104 to 0.1.105 (0015). Entity and Resource Pack changes need a restart.
+from 0.1.104 to 0.1.106 (0015). Entity and Resource Pack changes need a restart.
 
 ## Consequences
 
@@ -174,7 +177,5 @@ assets remain unchanged.
 Pack tests cover the entity, client, geometry, material slots, item, catalog,
 recipe, and locales. The registered `tent_entity_contract` scenario checks no
 gravity, both families, default properties and variant, damage immunity, and item
-construction, removing the entity in finally. Before accepting this ADR, run it
-and existing chair/vehicle scenarios, inspect BDS content logs for the tent files
-and wool tag, and check the model orientation, item icon, and crafting recipe on
-a client.
+construction, removing the entity in finally. Before accepting this ADR, check
+the model orientation, item icon, and crafting recipe on a client.

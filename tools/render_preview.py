@@ -138,8 +138,8 @@ GEAR_FILL = 0.8
 GEAR_ICON_DIR = "textures/items/yasu_ride"
 GEAR_ICON_SIZE = 32
 GEAR_ICON_PACK = "yasu_ride_rp"  # the --icons pack that receives the gear item icons
-# The low chair stands outside the vehicles and has its own entity model, but its preview and icon
-# match the gear's (ADR 0122)
+# The low chair and tent stand outside the vehicles and have their own entity models, but their
+# previews and icons match the gear's (ADR 0122, 0130)
 CHAIR_GEOMETRY = "models/entity/yasu_ride/low_chair.geo.json"
 CHAIR_TEXTURE = "textures/entity/yasu_ride/low_chair.png"
 CHAIR_PREVIEW = "low_chair"

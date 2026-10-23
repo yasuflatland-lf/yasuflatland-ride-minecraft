@@ -43,7 +43,7 @@ A low folding camp chair with a brown canvas sling seat and a reclined canvas ba
 
 A tan-brown two-room tunnel tent with a tarp on two poles, a white inner bedroom with two blue mattresses, and a hanging milky lantern. It has no logo or product name (ADR 0130).
 
-- **Get one:** find it in the Camping Gear group after the Low Chair, or craft it with three wool, one stick, and two string. The recipe rows are ` W `, `WSW`, and `T T`.
+- **Get one:** find it in the Camping Gear group after the Low Chair, or craft it from three wool, one stick, and two string (wool in the top middle, wool on either side of a stick in the middle row, string in the bottom corners). Any wool color works.
 - Pitching comes with 9/13 of the tent work. Using the item does nothing yet; a summoned tent just stands there.
 
 ## In the game
