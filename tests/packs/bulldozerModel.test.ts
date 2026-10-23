@@ -236,3 +236,19 @@ describe("bulldozer paints (ADR 0031, 0076)", () => {
         );
   });
 });
+
+describe("bulldozer item icon", () => {
+  it("generates a 16 by 16 RGBA item icon on transparency, in the default yellow", () => {
+    const { width, height, pixels } = readRgbaPng(
+      `${RP}/textures/items/yasu_ride/bulldozer_item.png`,
+    );
+    expect([width, height]).toEqual([16, 16]);
+    expect(pixels.subarray(0, 64)).toEqual(Buffer.alloc(64));
+    const colors = Array.from({ length: 256 }, (_, i) => [
+      ...pixels.subarray(i * 4, i * 4 + 4),
+    ]);
+    expect(colors).toContainEqual([236, 178, 22, 255]);
+    for (const color of colors)
+      if ((color[3] ?? 0) > 0) expect(color[3]).toBe(255);
+  });
+});

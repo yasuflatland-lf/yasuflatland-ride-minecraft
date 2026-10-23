@@ -20,6 +20,7 @@ from pathlib import Path
 RP = Path(sys.argv[1])
 MODELS = RP / "models/entity/yasu_ride"
 ENTITY_TEXTURES = RP / "textures/entity/yasu_ride"
+ITEM_TEXTURES = RP / "textures/items/yasu_ride"
 
 PALETTE = {
     "yellow": (236, 178, 22, 255),
@@ -1266,5 +1267,34 @@ for paint, base in BODY_PAINTS.items():
         )
     name = "bulldozer" if paint == "khaki" else f"bulldozer_{paint}"
     png(ENTITY_TEXTURES / f"{name}.png", len(SLOTS), 1, lambda x, y: colors[SLOTS[x]])
+
+ICON = [
+    "................",
+    "................",
+    ".......YYYYYY...",
+    ".......YGGGGY...",
+    ".......YGGGGY...",
+    ".......YGGGGY...",
+    ".......YYYYYY...",
+    "....YYYYYYYYY...",
+    ".D..YYYYYYYYYY..",
+    ".D..YYYYYYYYYY..",
+    ".DYYYYDDDDDDDD..",
+    ".D..KKKKKKKKKK..",
+    ".D.KTTTTTTTTTTK.",
+    "...KTTTTTTTTTTK.",
+    "....KKKKKKKKKK..",
+    "................",
+]
+ICON_COLORS = {
+    "Y": PALETTE["yellow"],
+    "D": PALETTE["yellow_dark"],
+    "K": PALETTE["black"],
+    "T": PALETTE["shoe"],
+    "G": PALETTE["glass"][:3] + (255,),
+    ".": (0, 0, 0, 0),
+}
+ITEM_TEXTURES.mkdir(parents=True, exist_ok=True)
+png(ITEM_TEXTURES / "bulldozer_item.png", 16, 16, lambda x, y: ICON_COLORS[ICON[y][x]])
 
 print("cubes:", sum(len(b.get("cubes", [])) for b in bones))
