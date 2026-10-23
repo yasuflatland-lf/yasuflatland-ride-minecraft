@@ -42,4 +42,6 @@ it("declares a bank range of plus or minus maxBank (ADR 0026)", () => {
 it("declares a bank range of [0, 0] with no negative zero when the kind has no bank", () => {
   // toStrictEqual tells -0 from +0.
   expect(transformingProperties(0).bank.range).toStrictEqual([0, 0]);
+  const properties = transformingProperties(0);
+  expect(JSON.parse(JSON.stringify(properties))).toStrictEqual(properties);
 });
