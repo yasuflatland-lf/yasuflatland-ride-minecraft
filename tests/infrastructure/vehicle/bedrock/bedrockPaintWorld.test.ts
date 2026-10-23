@@ -2,14 +2,14 @@ import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { asPlayerId, asVehicleId } from "../../../../src/domain/shared/ids";
 import { PAINTS } from "../../../../src/domain/shared/paint";
-import { dyeOf } from "../../../../src/infrastructure/shared/dyes";
+import {
+  dyeOf,
+  PAINT_VARIANT,
+  paintEvent,
+} from "../../../../src/infrastructure/shared/dyes";
 import type { BedrockInventory } from "../../../../src/infrastructure/vehicle/bedrock/bedrockInventory";
 import { BedrockPaintWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockPaintWorld";
 import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
-import {
-  PAINT_VARIANT,
-  paintEvent,
-} from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 
 const game = vi.hoisted(() => ({ getEntity: vi.fn() }));
 vi.mock("@minecraft/server", () => ({ world: game }));

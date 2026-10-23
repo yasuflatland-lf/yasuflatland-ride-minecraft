@@ -3,11 +3,11 @@ import { describe, expect, it } from "vitest";
 import { PAINTS, type Paint } from "../../src/domain/shared/paint";
 import { VEHICLE_KINDS, type VehicleKind } from "../../src/domain/vehicle/kind";
 import { profileOf } from "../../src/domain/vehicle/kinds/index";
-import { PAINT_BY_DYE } from "../../src/infrastructure/shared/dyes";
 import {
+  PAINT_BY_DYE,
   PAINT_VARIANT,
   paintEvent,
-} from "../../src/infrastructure/vehicle/bedrock/identifiers";
+} from "../../src/infrastructure/shared/dyes";
 
 const read = (p: string) => JSON.parse(readFileSync(p, "utf8"));
 const entity = read("packs/yasu_ride_bp/entities/yasu_ride/suv.se.json")[

@@ -4,9 +4,11 @@ import { PAINTS } from "../../src/domain/shared/paint";
 import { SPORTSBOAT_PROFILE } from "../../src/domain/vehicle/kinds/sportsboat/profile";
 import { SPORTSBOAT_SPEC } from "../../src/domain/vehicle/kinds/sportsboat/spec";
 import {
-  HEADLIGHTS_PROPERTY,
   PAINT_VARIANT,
   paintEvent,
+} from "../../src/infrastructure/shared/dyes";
+import {
+  HEADLIGHTS_PROPERTY,
   SEAT_FILLER_FAMILY,
   VEHICLE_FAMILY,
 } from "../../src/infrastructure/vehicle/bedrock/identifiers";
