@@ -40,6 +40,15 @@ async function doubleTap(car: Entity): Promise<void> {
 export async function bulldozerClearHill(a: Arena): Promise<Outcome> {
   const { dim, gy } = a;
   const at = (x: number, y: number, z: number) => dim.getBlock({ x, y, z });
+  // BDS 1.26.52.3 reports moving water as minecraft:water with a nonzero liquid_depth.
+  const typeAt = (x: number, y: number, z: number) => {
+    const block = at(x, y, z);
+    return block?.typeId === "minecraft:water" &&
+      Number(block.permutation.getState("liquid_depth")) > 0
+      ? "minecraft:flowing_water"
+      : block?.typeId;
+  };
+  const dropLines: string[] = [];
   const kept = [
     { x: 100, z: 82, type: "minecraft:water" },
     { x: 101, z: 82, type: "minecraft:chest" },
@@ -49,10 +58,11 @@ export async function bulldozerClearHill(a: Arena): Promise<Outcome> {
   let farthest = 0,
     spawns = 0;
   let boxes: ReturnType<typeof bladeColumns> = [];
-  const listener = (ev: { entity: Entity }) => {
+  const observed = new Set<string>();
+  const recordDrop = (entity: Entity) => {
     try {
-      if (ev.entity.typeId !== "minecraft:item") return;
-      const p = ev.entity.location;
+      if (entity.typeId !== "minecraft:item" || observed.has(entity.id)) return;
+      const p = entity.location;
       if (p.x < 96 || p.x > 112 || p.z < 78 || p.z > 89) return;
       const distance = Math.min(
         ...boxes.map((c) =>
@@ -68,13 +78,21 @@ export async function bulldozerClearHill(a: Arena): Promise<Outcome> {
         ),
       );
       if (Number.isFinite(distance)) {
+        observed.add(entity.id);
         farthest = Math.max(farthest, distance);
         spawns++;
+        dropLines.push(
+          `drop=${entity.getComponent("minecraft:item")?.itemStack.typeId} at=${p.x.toFixed(3)},${p.y.toFixed(3)},${p.z.toFixed(3)} d=${distance.toFixed(3)} boxX=${boxes[0]?.x}`,
+        );
       }
     } catch {
       /* Another pack may already have swept this drop. */
     }
   };
+  const listener = (ev: { entity: Entity }) => recordDrop(ev.entity);
+  // The main pack sweeps a new drop before this pack's spawn callback; capture it while still valid.
+  const removing = (ev: { removedEntity: Entity }) =>
+    recordDrop(ev.removedEntity);
   try {
     cleanup(a);
     dim.runCommand(`fill 100 ${gy} 81 104 ${gy + 4} 85 stone`);
@@ -94,11 +112,13 @@ export async function bulldozerClearHill(a: Arena): Promise<Outcome> {
     chest.setItem(0, new ItemStack("minecraft:diamond"));
     dim.runCommand(`fill 102 ${gy} 80 102 ${gy + 2} 80 stone`);
     dim.runCommand(
-      `setblock 102 ${gy + 1} 86 torch ["torch_facing_direction"="south"]`,
+      `setblock 102 ${gy + 1} 86 torch ["torch_facing_direction"="north"]`,
     );
+    await wait(2);
     if (at(102, gy + 1, 86)?.typeId !== "minecraft:torch")
       return { pass: false, detail: "torch not placed" };
     world.afterEvents.entitySpawn.subscribe(listener);
+    world.beforeEvents.entityRemove.subscribe(removing);
     return await withBulldozer(a, 90.5, 83.5, -90, async (car) => {
       drive(car, 0, 1);
       for (let t = 0; t < 200; t++) {
@@ -121,7 +141,7 @@ export async function bulldozerClearHill(a: Arena): Promise<Outcome> {
               y === gy + 3
                 ? kept.find((p) => p.x === x && p.z === z)
                 : undefined;
-            const type = at(x, y, z)?.typeId;
+            const type = typeAt(x, y, z);
             if (
               keep
                 ? type !== keep.type
@@ -146,17 +166,22 @@ export async function bulldozerClearHill(a: Arena): Promise<Outcome> {
         pass:
           car.location.x >= 108 &&
           wrong.length === 0 &&
+          at(100, gy + 3, 82)?.permutation.getState("liquid_depth") === 0 &&
           floor &&
           marker &&
           items === 0 &&
           diamond?.typeId === "minecraft:diamond" &&
           diamond.amount === 1,
         detail: `x=${car.location.x.toFixed(2)} wrong=${wrong.join(";")} floor=${floor} marker=${marker} items=${items}`,
-        lines: [`dropRadius=${farthest.toFixed(3)} spawned=${spawns}`],
+        lines: [
+          `dropRadius=${farthest.toFixed(3)} spawned=${spawns}`,
+          ...dropLines,
+        ],
       };
     });
   } finally {
     world.afterEvents.entitySpawn.unsubscribe(listener);
+    world.beforeEvents.entityRemove.unsubscribe(removing);
     dim.runCommand(
       `fill 96 ${gy} 78 112 ${gy + 4} 89 air replace flowing_water`,
     );
