@@ -199,6 +199,19 @@ describe("vehicle profiles (ADR 0050)", () => {
     expect(profileOf("sportsboat")).toBe(SPORTSBOAT_PROFILE);
   });
 
+  it("gives a kind's beam levels one integer light level from 0 to 15 per reach", () => {
+    for (const kind of VEHICLE_KINDS) {
+      const { reach, levels } = profileOf(kind).beams;
+      if (levels === undefined) continue;
+      expect(levels).toHaveLength(reach.length);
+      for (const level of levels) {
+        expect(Number.isInteger(level)).toBe(true);
+        expect(level).toBeGreaterThanOrEqual(0);
+        expect(level).toBeLessThanOrEqual(15);
+      }
+    }
+  });
+
   it("freezes every profile and motion limit so a write cannot change all vehicles of a kind", () => {
     expect(Object.isFrozen(KINDS)).toBe(true);
     expect(Object.isFrozen(SUV_TYRES)).toBe(true);
@@ -217,6 +230,7 @@ describe("vehicle profiles (ADR 0050)", () => {
         profile.beams,
         profile.beams.reach,
         profile.beams.lanes,
+        ...(profile.beams.levels ? [profile.beams.levels] : []),
         profile.placement,
       ]) {
         expect(Object.isFrozen(part)).toBe(true);

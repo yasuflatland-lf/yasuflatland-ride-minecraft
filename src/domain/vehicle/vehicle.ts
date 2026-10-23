@@ -1,4 +1,3 @@
-import type { Cell } from "../shared/cells";
 import {
   EMPTY_COUNTER,
   type HitCounter,
@@ -24,7 +23,10 @@ import {
   zoneOf,
 } from "./hints";
 import type { VehicleKind } from "./kind";
-import { headlightCells as cellsLitFrom } from "./lighting/headlights";
+import {
+  headlightCells as cellsLitFrom,
+  type LitCell,
+} from "./lighting/headlights";
 import type { ChaseCamera, VehicleProfile } from "./profile";
 import { type RamHit, type RamTarget, selectHits } from "./ram";
 import type { SeatAssignment } from "./seatChoice";
@@ -96,7 +98,7 @@ export interface VehicleTickInput extends TickContext {
  *     when its headlights are off (ADR 0020).
  * 15. `hits`, credited to `driverId`.
  * 16. `finalCommands`, last: the vacated seats' commands, such as the door
- *     animation (ADR 0007, 0055).
+ *     animation, then the taken seats' commands (ADR 0007, 0055).
  */
 export interface TickOutcome {
   dock?: Dock;
@@ -172,7 +174,7 @@ export class Vehicle {
   }
 
   /** Cells the headlights light with the vehicle at `location`, along its current heading (ADR 0020). */
-  headlightCells(location: Vec3): Cell[] {
+  headlightCells(location: Vec3): LitCell[] {
     return cellsLitFrom(location, this.drive.yaw, this.profile.beams);
   }
 
@@ -299,8 +301,11 @@ export class Vehicle {
       forward(this.drive.yaw),
       sensors.velocity,
     );
-    const seatCommands = seated.vacated.flatMap((seat) =>
+    const vacatedCommands = seated.vacated.flatMap((seat) =>
       this.drive.onSeatVacated(seat),
+    );
+    const takenCommands = seated.boarded.flatMap(
+      (seat) => this.drive.onSeatTaken?.(seat) ?? [],
     );
     const driver = seated.driver;
     if (seated.mounted && driver) this.drive.onDriverMounted(driver.yaw);
@@ -344,7 +349,7 @@ export class Vehicle {
       hits: this.ram(sensors.tick, targets, step.forward),
       driverId: driver?.id,
       stepCommands: step.commands,
-      finalCommands: seatCommands,
+      finalCommands: [...vacatedCommands, ...takenCommands],
       riders: step.riders,
     };
   }

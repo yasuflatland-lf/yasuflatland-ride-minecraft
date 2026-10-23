@@ -18,7 +18,7 @@ import type {
   StarterWorld,
 } from "../../../src/application/vehicle/ports/placement";
 import type { Clock } from "../../../src/application/vehicle/ports/shared";
-import { type Cell, cellKey } from "../../../src/domain/shared/cells";
+import { cellKey } from "../../../src/domain/shared/cells";
 import { asVehicleId, type VehicleId } from "../../../src/domain/shared/ids";
 import type { Paint } from "../../../src/domain/shared/paint";
 import type { Vec3 } from "../../../src/domain/shared/vec";
@@ -44,7 +44,9 @@ import type { Hint } from "../../../src/domain/vehicle/hints";
 import type { VehicleKind } from "../../../src/domain/vehicle/kind";
 import { parkPose } from "../../../src/domain/vehicle/kinds/camper/room";
 import { createVehicle } from "../../../src/domain/vehicle/kinds/index";
+import type { LitCell } from "../../../src/domain/vehicle/lighting/headlights";
 import type { PlacementGift } from "../../../src/domain/vehicle/placement/gift";
+import type { StarterKind } from "../../../src/domain/vehicle/placement/starter";
 import type { ChaseCamera } from "../../../src/domain/vehicle/profile";
 import type { RamHit, RamTarget } from "../../../src/domain/vehicle/ram";
 import type { StandInPose } from "../../../src/domain/vehicle/standIn";
@@ -113,10 +115,10 @@ export class FakeWorld
   readonly kinds = new Map<string, VehicleKind>();
   readonly owners = new Map<string, string>();
   readonly headlights = new Map<string, boolean>();
-  /** Players in the world, and whether each has received the starter item. */
+  /** Players in the world, keyed `player:kind`, and whether each has received that kind's starter item. */
   readonly starters = new Map<string, boolean>();
   /** The cells each vehicle was last told to light. */
-  readonly shone = new Map<string, readonly Cell[]>();
+  readonly shone = new Map<string, readonly LitCell[]>();
   readonly held = new Map<string, HoldPose | undefined>();
   /** The stand-in pose each vehicle kept last (ADR 0116). */
   readonly standIns = new Map<string, StandInPose | undefined>();
@@ -284,7 +286,7 @@ export class FakeWorld
   damage(hit: RamHit, attackerId: string | undefined) {
     this.calls.push(`damage:${hit.id}:${attackerId ?? "-"}`);
   }
-  shineHeadlights(id: string, cells: readonly Cell[]) {
+  shineHeadlights(id: string, cells: readonly LitCell[]) {
     this.shone.set(id, cells);
   }
   releaseVehicle(id: string) {
@@ -326,15 +328,15 @@ export class FakeWorld
     this.calls.push(`consume:${playerId}:${slot}:${kind}`);
     return true;
   }
-  receivedStarter(playerId: string) {
-    return this.starters.get(playerId);
+  receivedStarter(playerId: string, kind: StarterKind) {
+    return this.starters.get(`${playerId}:${kind}`);
   }
   giveVehicleItem(playerId: string, kind: VehicleKind) {
     this.calls.push(`give:${playerId}:${kind}`);
   }
-  markStarterReceived(playerId: string) {
-    this.starters.set(playerId, true);
-    this.calls.push(`mark:${playerId}`);
+  markStarterReceived(playerId: string, kind: StarterKind) {
+    this.starters.set(`${playerId}:${kind}`, true);
+    this.calls.push(`mark:${playerId}:${kind}`);
   }
   receivedGift(playerId: string, gift: PlacementGift) {
     return this.absentPlayers.has(playerId)

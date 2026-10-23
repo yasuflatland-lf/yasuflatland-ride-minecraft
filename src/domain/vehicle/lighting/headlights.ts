@@ -3,24 +3,33 @@ import { type Cell, cellKey } from "../../shared/cells";
 import { forward, localPoint, type Vec3 } from "../../shared/vec";
 import type { BeamPattern } from "../profile";
 
+export const FULL_LIGHT_LEVEL = 15;
+export type LitCell = Cell & { readonly level: number };
+export const litCellKey = (c: LitCell): string => `${cellKey(c)}@${c.level}`;
+
 /**
  * Cells ahead of a vehicle at `location` facing `yaw`: the distinct cells
  * reached by each reach and lane in `beams` (pairs that floor to the same
- * block share one cell), one block above the ground the vehicle stands on.
+ * block share one cell, at the brighter level), one block above the ground
+ * the vehicle stands on.
  */
 export function headlightCells(
   location: Vec3,
   yaw: number,
   beams: BeamPattern,
-): Cell[] {
+): LitCell[] {
   const f = forward(yaw);
   const y = Math.floor(location.y) + 1;
-  const cells = new Map<string, Cell>();
-  for (const reach of beams.reach) {
+  const cells = new Map<string, LitCell>();
+  for (const [i, reach] of beams.reach.entries()) {
+    const level = beams.levels?.[i] ?? FULL_LIGHT_LEVEL;
     for (const lane of beams.lanes) {
       const p = localPoint(location, f, reach, lane);
       const c = { x: Math.floor(p.x), y, z: Math.floor(p.z) };
-      cells.set(cellKey(c), c);
+      const key = cellKey(c);
+      const previous = cells.get(key);
+      const brightest = previous ? Math.max(previous.level, level) : level;
+      cells.set(key, { ...c, level: brightest });
     }
   }
   return [...cells.values()];
@@ -28,13 +37,13 @@ export function headlightCells(
 
 /** Which lit cells to clear and which to light to go from `lit` to `wanted`. */
 export function relight(
-  lit: readonly Cell[],
-  wanted: readonly Cell[],
-): { clear: Cell[]; light: Cell[] } {
-  const litKeys = new Set(lit.map(cellKey));
-  const wantedKeys = new Set(wanted.map(cellKey));
+  lit: readonly LitCell[],
+  wanted: readonly LitCell[],
+): { clear: LitCell[]; light: LitCell[] } {
+  const litKeys = new Set(lit.map(litCellKey));
+  const wantedKeys = new Set(wanted.map(litCellKey));
   return {
-    clear: lit.filter((c) => !wantedKeys.has(cellKey(c))),
-    light: wanted.filter((c) => !litKeys.has(cellKey(c))),
+    clear: lit.filter((c) => !wantedKeys.has(litCellKey(c))),
+    light: wanted.filter((c) => !litKeys.has(litCellKey(c))),
   };
 }

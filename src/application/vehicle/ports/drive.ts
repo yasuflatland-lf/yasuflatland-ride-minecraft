@@ -1,4 +1,3 @@
-import type { Cell } from "../../../domain/shared/cells";
 import type {
   DimensionId,
   PlayerId,
@@ -24,6 +23,7 @@ import type {
   HintControls,
 } from "../../../domain/vehicle/hints";
 import type { VehicleKind } from "../../../domain/vehicle/kind";
+import type { LitCell } from "../../../domain/vehicle/lighting/headlights";
 import type { ChaseCamera } from "../../../domain/vehicle/profile";
 import type { RamHit, RamTarget } from "../../../domain/vehicle/ram";
 import type { SeatAssignment } from "../../../domain/vehicle/seatChoice";
@@ -102,7 +102,7 @@ export interface DriveWorld {
    * Keeps light blocks in exactly these cells for the vehicle and clears the
    * ones it lit before.
    */
-  shineHeadlights(vehicleId: VehicleId, cells: readonly Cell[]): void;
+  shineHeadlights(vehicleId: VehicleId, cells: readonly LitCell[]): void;
   /**
    * Releases everything the world keeps for a vehicle that is no longer loaded:
    * its light blocks, dock cells, deck seats, seat fillers, stand-in and hold. Every part is attempted

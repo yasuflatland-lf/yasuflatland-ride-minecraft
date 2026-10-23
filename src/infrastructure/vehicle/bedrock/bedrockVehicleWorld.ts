@@ -12,7 +12,6 @@ import type {
   DriveWorld,
   VehicleSnapshot,
 } from "../../../application/vehicle/ports/drive";
-import type { Cell } from "../../../domain/shared/cells";
 import {
   asPlayerId,
   asVehicleId,
@@ -38,6 +37,7 @@ import {
   profileOf,
   RAM_QUERY_RADIUS,
 } from "../../../domain/vehicle/kinds/index";
+import type { LitCell } from "../../../domain/vehicle/lighting/headlights";
 import type { ChaseCamera } from "../../../domain/vehicle/profile";
 import type { RamHit, RamTarget } from "../../../domain/vehicle/ram";
 import type { SeatAssignment } from "../../../domain/vehicle/seatChoice";
@@ -525,7 +525,7 @@ export class BedrockVehicleWorld implements DriveWorld {
     target.applyKnockback({ x: hit.push.x, z: hit.push.z }, hit.pushUp);
   }
 
-  shineHeadlights(vehicleId: VehicleId, cells: readonly Cell[]): void {
+  shineHeadlights(vehicleId: VehicleId, cells: readonly LitCell[]): void {
     this.headlightBlocks.shine(vehicleId, this.index.entity(vehicleId), cells);
   }
 
