@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { SpaceCheck } from "../../../../src/application/shared/ports/space";
 import { asPlayerId, asVehicleId } from "../../../../src/domain/shared/ids";
 import { BedrockFleetWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockFleetWorld";
 import { BedrockVehicleWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockVehicleWorld";
@@ -89,7 +90,7 @@ function fixture() {
   );
   const inputs = new TestInputStore();
   const index = new EntityIndex();
-  const world = new BedrockVehicleWorld(index, inputs);
+  const world = new BedrockVehicleWorld(index, inputs, noCampSpace);
   const inventory = { giveItems: vi.fn() };
   return {
     inventory,
@@ -231,3 +232,5 @@ describe("BedrockFleetWorld drop and removal (ADR 0038, 0063)", () => {
     ]);
   });
 });
+
+const noCampSpace: SpaceCheck = () => false;

@@ -9,6 +9,8 @@ import type { VehicleKind } from "../../../domain/vehicle/kind";
 import type { PlacementGift } from "../../../domain/vehicle/placement/gift";
 
 export interface PlacementWorld {
+  /** Whether another feature holds `at`, such as a pitched tent's cell (ADR 0129). */
+  isCampSpace(dimensionId: DimensionId, at: Vec3): boolean;
   isAir(dimensionId: DimensionId, at: Vec3): boolean;
   /** Whether the block cell at `at` holds water, including a waterlogged block. False for an unloaded cell or an unknown dimension. */
   isWaterAt(dimensionId: DimensionId, at: Vec3): boolean;

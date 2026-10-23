@@ -3,6 +3,7 @@
 - Status: Proposed (to be Accepted once the in-game checks under Consequences pass)
 - Date: 2026-10-22
 - Extends: 0008 (placing from an item and taking back with three hits), 0046 (feature folders), 0093 (the Camping Gear group)
+- Extended by: [0129](0129-share-room-primitives-between-features.md) (camp space checked by the vehicles)
 
 ## Context
 

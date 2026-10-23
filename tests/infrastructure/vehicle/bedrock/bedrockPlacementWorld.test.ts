@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { SpaceCheck } from "../../../../src/application/shared/ports/space";
 import { asDimensionId, asPlayerId } from "../../../../src/domain/shared/ids";
 import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
 import type { BedrockInventory } from "../../../../src/infrastructure/vehicle/bedrock/bedrockInventory";
@@ -9,7 +10,7 @@ import { ITEM_TYPE } from "../../../../src/infrastructure/vehicle/bedrock/identi
 const game = vi.hoisted(() => ({ getDimension: vi.fn() }));
 vi.mock("@minecraft/server", () => ({ world: game }));
 
-function fixture() {
+function fixture(campSpace: SpaceCheck = noCampSpace) {
   const dimension = { getBlock: vi.fn() };
   game.getDimension.mockImplementation((id: string) => {
     if (id !== "overworld") throw new Error(`unknown dimension ${id}`);
@@ -31,7 +32,11 @@ function fixture() {
     receivedGift,
     giveGift,
     markGiftReceived,
-    placement: new BedrockPlacementWorld(inventory, new EntityIndex()),
+    placement: new BedrockPlacementWorld(
+      inventory,
+      new EntityIndex(),
+      campSpace,
+    ),
   };
 }
 
@@ -97,3 +102,17 @@ describe("BedrockPlacementWorld vehicle item", () => {
       );
   });
 });
+
+const noCampSpace: SpaceCheck = () => false;
+
+it.each([true, false])(
+  "forwards the camp space query and its answer %s (ADR 0129)",
+  (answer) => {
+    const check = vi.fn(() => answer);
+    const { placement } = fixture(check);
+    const dim = asDimensionId("nether");
+    const at = { x: 3, y: 64, z: -7 };
+    expect(placement.isCampSpace(dim, at)).toBe(answer);
+    expect(check).toHaveBeenCalledExactlyOnceWith(dim, at);
+  },
+);

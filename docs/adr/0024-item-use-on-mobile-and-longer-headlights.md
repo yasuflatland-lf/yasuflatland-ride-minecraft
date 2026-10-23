@@ -1,6 +1,6 @@
 # 0024. Make the vehicle item and the headlight switch work on mobile, and light the road three times farther
 
-- Status: Accepted
+- Status: Accepted (extended by [0129](0129-share-room-primitives-between-features.md): the switch cooldown is shared)
 - Date: 2026-10-11
 
 ## Context

@@ -7,6 +7,7 @@ import {
   type Player,
   world,
 } from "@minecraft/server";
+import type { SpaceCheck } from "../../../application/shared/ports/space";
 import type {
   DriveWorld,
   VehicleSnapshot,
@@ -107,26 +108,31 @@ function distanceSq(a: Vec3, b: Vec3): number {
 }
 
 export class BedrockVehicleWorld implements DriveWorld {
-  private readonly headlightBlocks = new HeadlightBlocks();
+  private readonly headlightBlocks: HeadlightBlocks;
   private readonly deckSeats = new DeckSeats();
   private readonly standIns = new StandIns();
   private readonly seatFillers = new SeatFillers();
-  private readonly dockBlocks = new DockBlocks();
+  private readonly dockBlocks: DockBlocks;
   private readonly holds = new Map<VehicleId, HoldPose>();
   /** Shared with BedrockFleetWorld so a removed vehicle releases the same blocks, seats, stand-in and hold. */
-  readonly releaser = new VehicleReleaser(
-    this.headlightBlocks,
-    this.dockBlocks,
-    this.deckSeats,
-    this.standIns,
-    this.holds,
-    this.seatFillers,
-  );
+  readonly releaser: VehicleReleaser;
 
   constructor(
     private readonly index: EntityIndex,
     private readonly testInputs: TestInputStore,
-  ) {}
+    campSpace: SpaceCheck,
+  ) {
+    this.headlightBlocks = new HeadlightBlocks(campSpace);
+    this.dockBlocks = new DockBlocks(campSpace);
+    this.releaser = new VehicleReleaser(
+      this.headlightBlocks,
+      this.dockBlocks,
+      this.deckSeats,
+      this.standIns,
+      this.holds,
+      this.seatFillers,
+    );
+  }
 
   /** The vehicle whose laid room door is at this cell, if any (ADR 0068). */
   dockDoorOwner(dimensionId: DimensionId, cell: Vec3): VehicleId | undefined {

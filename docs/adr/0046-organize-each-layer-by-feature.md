@@ -1,6 +1,6 @@
 # 0046. Organize each layer by feature
 
-- Status: Extended by 0050, 0055, and 0122 (Proposed)
+- Status: Extended by 0050, 0055, 0122 (Proposed), and [0129](0129-share-room-primitives-between-features.md)
 - Date: 2026-10-11
 
 ## Context

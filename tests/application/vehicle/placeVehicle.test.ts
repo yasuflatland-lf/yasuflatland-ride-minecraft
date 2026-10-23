@@ -358,3 +358,95 @@ it("consumes the item unless the placing player is in creative mode", () => {
     ),
   );
 });
+
+const clearanceCell = fc.constantFrom(...VEHICLE_KINDS).chain((kind) => {
+  const { halfX, height, halfZ } = profileOf(kind).placement.clearance;
+  return fc.tuple(
+    fc.constant(kind),
+    fc.record({
+      x: fc.integer({ min: -halfX, max: halfX }),
+      y: fc.integer({ min: 1, max: height }),
+      z: fc.integer({ min: -halfZ, max: halfZ }),
+    }),
+  );
+});
+
+describe("PlaceVehicle and camp space (ADR 0129)", () => {
+  it("refuses any camp cell inside the clearance before reading its block or consuming or spawning", () => {
+    fc.assert(
+      fc.property(clearanceCell, fc.boolean(), ([kind, offset], creative) => {
+        const world = new FakeWorld();
+        const repo = new InMemoryRepo();
+        if (creative) world.creativePlayers.add(cmd.playerId);
+        const claimed = {
+          x: cmd.blockLocation.x + offset.x,
+          y: cmd.blockLocation.y + offset.y,
+          z: cmd.blockLocation.z + offset.z,
+        };
+        const matches = (at: typeof claimed) =>
+          at.x === claimed.x && at.y === claimed.y && at.z === claimed.z;
+        world.campSpace = (_, at) => matches(at);
+        world.air = (at) => {
+          expect(matches(at)).toBe(false);
+          return true;
+        };
+        expect(new PlaceVehicle(world, repo).execute({ ...cmd, kind })).toBe(
+          false,
+        );
+        expect(world.calls).toEqual([]);
+        expect(repo.ids()).toEqual([]);
+      }),
+    );
+  });
+
+  it("allows camp cells only outside the clearance box", () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom(...VEHICLE_KINDS).chain((kind) => {
+          const { halfX, height, halfZ } = profileOf(kind).placement.clearance;
+          const x = fc.integer({ min: -halfX, max: halfX });
+          const y = fc.integer({ min: 1, max: height });
+          const z = fc.integer({ min: -halfZ, max: halfZ });
+          return fc.tuple(
+            fc.constant(kind),
+            fc.array(
+              fc.oneof(
+                fc.record({ x, y: fc.constantFrom(0, height + 1), z }),
+                fc.record({ x: fc.constantFrom(-halfX - 1, halfX + 1), y, z }),
+                fc.record({ x, y, z: fc.constantFrom(-halfZ - 1, halfZ + 1) }),
+              ),
+              { minLength: 1 },
+            ),
+          );
+        }),
+        ([kind, outside]) => {
+          const world = new FakeWorld();
+          world.campSpace = (_, at) =>
+            outside.some(
+              (c) =>
+                at.x === cmd.blockLocation.x + c.x &&
+                at.y === cmd.blockLocation.y + c.y &&
+                at.z === cmd.blockLocation.z + c.z,
+            );
+          expect(
+            new PlaceVehicle(world, new InMemoryRepo()).execute({
+              ...cmd,
+              kind,
+            }),
+          ).toBe(true);
+        },
+      ),
+    );
+  });
+
+  it("asks camp with the command's dimension", () => {
+    const world = new FakeWorld();
+    const dimensions: string[] = [];
+    world.campSpace = (dim) => {
+      dimensions.push(dim);
+      return false;
+    };
+    new PlaceVehicle(world, new InMemoryRepo()).execute(cmd);
+    expect(new Set(dimensions)).toEqual(new Set([cmd.dimensionId]));
+  });
+});

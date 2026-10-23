@@ -1,6 +1,11 @@
 // Persistent blocks that held vehicles lay: decks, and a parked camper's room (ADR 0063, 0068).
 import { BlockPermutation, type Entity } from "@minecraft/server";
-import type { DimensionId, VehicleId } from "../../../domain/shared/ids";
+import type { SpaceCheck } from "../../../application/shared/ports/space";
+import {
+  asDimensionId,
+  type DimensionId,
+  type VehicleId,
+} from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { isDecorItem } from "../../../domain/vehicle/dock/decor";
 import {
@@ -321,6 +326,8 @@ export function savedDock(vehicle: Entity): {
 }
 
 export class DockBlocks {
+  constructor(private readonly campSpace: SpaceCheck) {}
+
   private readonly layer = new CellLayer<VehicleId, DockBlock>(
     DOCK_CODEC,
     DOCK_RECHECK_TICKS,
@@ -354,6 +361,15 @@ export class DockBlocks {
     vehicle: Entity | undefined,
     wanted: readonly DockCell[],
   ): void {
+    if (vehicle) {
+      const dimensionId = asDimensionId(vehicle.dimension.id);
+      // A camp cell belongs to the other feature; a light there is its spawn guard, not air (ADR 0115, 0129).
+      wanted = wanted.filter(
+        (c) =>
+          this.layer.ownerOf(dimensionId, c) === vehicleId ||
+          !this.campSpace(dimensionId, c),
+      );
+    }
     this.layer.lay(vehicleId, vehicle, wanted);
   }
 

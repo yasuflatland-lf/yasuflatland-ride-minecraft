@@ -1,6 +1,7 @@
 // Wires the vehicle feature's repositories, port implementations, and use cases
 // together.
 
+import type { SpaceCheck } from "../../application/shared/ports/space";
 import { SleepInBed } from "../../application/shared/sleepInBed";
 import { BoardVehicle } from "../../application/vehicle/boardVehicle";
 import { DriveVehicles } from "../../application/vehicle/driveVehicles";
@@ -19,8 +20,6 @@ import { ShowVehicleHints } from "../../application/vehicle/showVehicleHints";
 import { SwitchCeilingLights } from "../../application/vehicle/switchCeilingLights";
 import { SwitchHeadlights } from "../../application/vehicle/switchHeadlights";
 import { UseDockDoor } from "../../application/vehicle/useDockDoor";
-import type { DimensionId } from "../../domain/shared/ids";
-import type { Vec3 } from "../../domain/shared/vec";
 import { fleetLimitOf } from "../../domain/vehicle/kinds/index";
 import { BedrockBedWorld } from "../shared/bedrockBedWorld";
 import { NAMESPACE } from "../shared/identifiers";
@@ -41,17 +40,18 @@ import { TestInputStore } from "./testInput/testInputStore";
 
 /**
  * Installs the vehicle feature. The returned check lets bootstrap hand other
- * features the vehicles' space without them importing this feature (ADR 0046, 0122).
+ * features the vehicles' space without them importing this feature. Camp's check
+ * comes through bootstrap too (ADR 0046, 0122, 0129).
  */
-export function installVehicles(): {
-  isVehicleSpace(dimensionId: DimensionId, cell: Vec3): boolean;
+export function installVehicles(deps: { isCampSpace: SpaceCheck }): {
+  isVehicleSpace: SpaceCheck;
 } {
   const repo = new InMemoryVehicleRepository();
   const store = new TestInputStore();
   const index = new EntityIndex();
   const inventory = new BedrockInventory(index);
   const decorWorld = new BedrockDecorWorld(index, inventory);
-  const bedrock = new BedrockVehicleWorld(index, store);
+  const bedrock = new BedrockVehicleWorld(index, store, deps.isCampSpace);
   const fleetWorld = new BedrockFleetWorld(index, bedrock.releaser, inventory);
   const log = { warn: (m: string) => console.warn(`[${NAMESPACE}] ${m}`) };
   const fleets = new DynamicPropertyFleetRepository(log, fleetLimitOf);
@@ -59,7 +59,7 @@ export function installVehicles(): {
     {
       drive: new DriveVehicles(bedrock, repo, log),
       place: new PlaceVehicle(
-        new BedrockPlacementWorld(inventory, index),
+        new BedrockPlacementWorld(inventory, index, deps.isCampSpace),
         repo,
       ),
       starter: new GiveStarterVehicle(inventory),

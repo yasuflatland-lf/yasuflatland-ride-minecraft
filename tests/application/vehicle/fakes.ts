@@ -290,6 +290,10 @@ export class FakeWorld
     this.headlights.set(id, on);
     this.calls.push(`headlights:${id}:${on}`);
   }
+  campSpace: (dim: string, at: Vec3) => boolean = () => false;
+  isCampSpace(dim: string, at: Vec3) {
+    return this.campSpace(dim, at);
+  }
   isAir(_dim: string, at: Vec3) {
     return this.air(at);
   }

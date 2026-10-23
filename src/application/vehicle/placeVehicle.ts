@@ -61,14 +61,13 @@ export class PlaceVehicle {
 
   execute(cmd: PlaceVehicleCommand): boolean {
     const block = cmd.blockLocation;
-    const isAir = (dx: number, dy: number, dz: number) =>
-      this.world.isAir(cmd.dimensionId, {
-        x: block.x + dx,
-        y: block.y + dy,
-        z: block.z + dz,
-      });
+    const isFree = (dx: number, dy: number, dz: number) => {
+      const at = { x: block.x + dx, y: block.y + dy, z: block.z + dz };
+      if (this.world.isCampSpace(cmd.dimensionId, at)) return false;
+      return this.world.isAir(cmd.dimensionId, at);
+    };
     // Returning before the spawn also leaves the item unconsumed.
-    if (!canPlaceAt(isAir, profileOf(cmd.kind).placement.clearance))
+    if (!canPlaceAt(isFree, profileOf(cmd.kind).placement.clearance))
       return false;
     // Taking the item first means a player who moved or dropped it in the
     // meantime gets no vehicle, instead of a vehicle and the item (ADR 0024).

@@ -150,6 +150,7 @@ function fixture(
     throw new Error("not used by cellFor or placesOnWater");
   };
   const placementWorld: PlacementWorld = {
+    isCampSpace: notUsed,
     isAir: notUsed,
     isCreative: notUsed,
     isWaterAt: (dimensionId, at) => {
