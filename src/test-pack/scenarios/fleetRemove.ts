@@ -116,7 +116,7 @@ export async function fleetForget(a: Arena): Promise<Outcome> {
     const [c0, ...rest] = cars;
     const unloadKept = !c0?.isValid && rest.every((c) => c.isValid);
 
-    const killed = cars[n / 2];
+    const killed = cars[Math.floor(n / 2)];
     if (!killed) throw new Error("no car to kill");
     killed.addTag(killTag);
     a.dim.runCommand(`kill @e[type=${ENTITY_TYPE.suv},tag=${killTag}]`);

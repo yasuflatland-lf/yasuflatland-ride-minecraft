@@ -230,6 +230,29 @@ const withOrderEntry = history
     }),
   );
 
+const withTwoKnownIds = history
+  .filter((state) => new Set(knownIds(state)).size > 1)
+  .chain((state) =>
+    fc.record({
+      state: fc.constant(state),
+      pair: fc
+        .tuple(
+          fc.constantFrom(...knownIds(state)),
+          fc.constantFrom(...knownIds(state)),
+        )
+        .filter(([id, other]) => id !== other),
+    }),
+  );
+
+const withEvictionAndOrderEntry = history
+  .filter((state) => state.order.length > 0 && state.evicted.length > 0)
+  .chain((state) =>
+    fc.record({
+      state: fc.constant(state),
+      entry: fc.constantFrom(...state.order),
+    }),
+  );
+
 function setupWith(state: ReturnType<Fleet["state"]>) {
   const s = setup();
   s.fleets.state = state;
@@ -279,17 +302,35 @@ describe("LimitVehicles removal (ADR 0125)", () => {
     );
   });
 
-  it("changes nothing on a death alone, nor on the unloaded removal of another vehicle", () => {
+  it("changes nothing on a death alone, nor on the unloaded removal of another known vehicle", () => {
     fc.assert(
-      fc.property(withAnyId, freshId, ({ state, id }, other) => {
+      fc.property(withTwoKnownIds, ({ state, pair: [id, other] }) => {
         const { fleets, uc } = setupWith(state);
         uc.died(id);
         expect(fleets.state).toEqual(state);
         expect(fleets.saves).toBe(0);
-        fc.pre(other !== id);
         uc.removed(other, false);
         expect(fleets.state).toEqual(state);
         expect(fleets.saves).toBe(0);
+      }),
+    );
+  });
+
+  it("retries the loaded evicted vehicles when it forgets a removed one", () => {
+    fc.assert(
+      fc.property(withEvictionAndOrderEntry, ({ state, entry }) => {
+        const { world, fleets, uc } = setupWith(state);
+        world.loaded = state.evicted.map(({ id }) => ({ id, kind: "suv" }));
+        const fleet = Fleet.restore(state, fleetLimitOf);
+        fleet.forget(entry.id);
+        const retried = state.evicted
+          .map((e) => e.id)
+          .filter((id) => fleet.isEvicted(id));
+        for (const id of retried) fleet.forget(id);
+        uc.removed(entry.id, true);
+        expect(world.calls).toEqual(retried.map((id) => `remove:${id}`));
+        expect(fleets.state).toEqual(fleet.state());
+        expect(fleets.saves).toBe(1);
       }),
     );
   });
