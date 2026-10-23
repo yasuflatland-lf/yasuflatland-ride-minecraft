@@ -14,6 +14,9 @@ as a submarine (ADR 0045). Four sports boat pictures share another scale: afloat
 black and with the headlights on at night from the SUV's angle, from its rear-left corner, and from
 straight above (ADR 0056). Four camper pictures share a third scale: front-left,
 headlights at dusk, side, and rear, without water layers (ADR 0067).
+Four bulldozer pictures share a fourth scale: front-left, headlights at dusk, side, and rear,
+showing only the first grouser phase and no propeller (ADR 0136). The beacon stays unlit: it faces
+backward on the cab roof, so the cab hides it from the front-left dusk view.
 
 Each camping gear item in tools/camping_gear.json gets its own 128-pixel square preview in
 <output dir>/items/camping-gear/<id>.png, from the same angle as the vehicles, with no ground,
@@ -54,6 +57,7 @@ SHADOW_GROWTH = 0.5  # pixels (model units) added around the footprint per layer
 # Dusk: unlit surfaces are dimmed and tinted blue so the lamps stand out.
 NIGHT_TINT = (0.6, 0.64, 0.8)
 LAMP_LIT = (255, 246, 205)
+HEADLIGHTS_LIT = {"headlights": LAMP_LIT}
 # Light on the road ahead. In game it reaches 27 blocks (ADR 0024); the picture shows the first
 # few so the vehicle keeps its size.
 BEAM_LAYERS = 24
@@ -125,6 +129,17 @@ CAMPER_POSES = {
     "camper-headlights.png": {"lamps": True, "dusk": True, "view": (-1.0, 0.65, -1.0), "screen_up": None},
     "camper-side.png": {"lamps": False, "dusk": False, "view": (1.0, 0.15, 0.0001), "screen_up": None},
     "camper-rear.png": {"lamps": False, "dusk": False, "view": (1.0, 0.6, 1.0), "screen_up": None},
+}
+
+BULLDOZER_GEOMETRY = "models/entity/yasu_ride/bulldozer.geo.json"
+BULLDOZER_TEXTURE = "textures/entity/yasu_ride/bulldozer.png"
+# Only the first grouser phase is drawn, and the propeller only shows under water (ADR 0136)
+BULLDOZER_HIDDEN = ("track_r_1", "track_r_2", "track_l_1", "track_l_2", "propeller")
+BULLDOZER_POSES = {
+    "bulldozer-front-left.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.65, -1.0), "screen_up": None},
+    "bulldozer-headlights.png": {"lamps": True, "dusk": True, "view": (-1.0, 0.65, -1.0), "screen_up": None},
+    "bulldozer-side.png": {"lamps": False, "dusk": False, "view": (1.0, 0.15, 0.0001), "screen_up": None},
+    "bulldozer-rear.png": {"lamps": False, "dusk": False, "view": (1.0, 0.6, 1.0), "screen_up": None},
 }
 
 # Each camping gear item gets its own square preview for its row in docs/items/camping-gear.md,
@@ -443,15 +458,15 @@ def bone_turns(bones):
     return turns
 
 
-def collect_boat(geo, texture, pose):
+def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT):
     """Return the boat's opaque faces as (quad, rgb, bloom group or None) and its see-through faces as
-    (quad, rgb, alpha)."""
+    (quad, rgb, alpha). Bones named in lit glow in their color while the lamps are on."""
     desc = geo["description"]
     tint = NIGHT_TINT if pose["dusk"] else (1.0, 1.0, 1.0)
     polygons, glass = [], []
     turns = bone_turns(geo["bones"])
     for bone in geo["bones"]:
-        emissive = "lamp" if bone["name"] == "headlights" and pose["lamps"] else None
+        color = lit.get(bone["name"]) if pose["lamps"] else None
         for cube in bone.get("cubes", []):
             for face, quad in cube_faces({**cube, "rotation": game_turn(cube.get("rotation", [0, 0, 0]))}):
                 for pivot, rotation in turns[bone["name"]]:
@@ -460,8 +475,8 @@ def collect_boat(geo, texture, pose):
                 normal = cross(sub(quad[1], quad[0]), sub(quad[3], quad[0]))
                 if dot(normal, normal) == 0:
                     continue
-                if emissive:
-                    polygons.append((quad, LAMP_LIT, emissive))
+                if color is not None:
+                    polygons.append((quad, color, "lamp"))
                     continue
                 r, g, b, a = face_color(texture, cube["uv"][face], desc["texture_width"], desc["texture_height"])
                 k = shade(normalize(normal))
@@ -696,6 +711,7 @@ def render(rp, icons=False):
     images = {name: rasterize(scenes[name], layers[name], to_screen) for name in POSES}
     images.update(render_boat(rp))
     images.update(render_camper(rp))
+    images.update(render_bulldozer(rp))
     images.update(render_camping_gear(rp))
     icon = None
     if icons:
@@ -766,10 +782,33 @@ def render_boat(rp):
 def render_camper(rp):
     geo = json.loads((rp / CAMPER_GEOMETRY).read_text())["minecraft:geometry"][0]
     texture = read_png(rp / CAMPER_TEXTURE)
-    scenes = {name: collect_boat(geo, texture, pose) for name, pose in CAMPER_POSES.items()}
+    return render_poses(geo, texture, CAMPER_POSES)
+
+
+def bulldozer_bones(bones):
+    return [b for b in bones if b["name"] not in BULLDOZER_HIDDEN]
+
+
+def opaque_lenses(texture):
+    # The plain entity material ignores alpha (ADR 0020).
+    return [[(r, g, b, 255 if a == 0 else a) for r, g, b, a in row] for row in texture]
+
+
+def render_bulldozer(rp):
+    geo = json.loads((rp / BULLDOZER_GEOMETRY).read_text())["minecraft:geometry"][0]
+    texture = read_png(rp / BULLDOZER_TEXTURE)
+    return render_poses(
+        {**geo, "bones": bulldozer_bones(geo["bones"])},
+        opaque_lenses(texture),
+        BULLDOZER_POSES,
+    )
+
+
+def render_poses(geo, texture, poses, lit=HEADLIGHTS_LIT):
+    scenes = {name: collect_boat(geo, texture, pose, lit) for name, pose in poses.items()}
     points = [p for polygons, _ in scenes.values() for quad, _, _ in polygons for p in quad]
     frames = {}
-    for name, pose in CAMPER_POSES.items():
+    for name, pose in poses.items():
         frames.setdefault((pose["view"], pose["screen_up"]), []).append(name)
     views = [
         (Camera(points, view, screen_up), [q for name in names for q, _, _ in scenes[name][0]])
@@ -780,7 +819,7 @@ def render_camper(rp):
         for name in names:
             polygons, glass = scenes[name]
             images[name] = rasterize(polygons, [], to_screen, see_through=glass)
-    return {name: images[name] for name in CAMPER_POSES}
+    return {name: images[name] for name in poses}
 
 
 def render_gear(geo_path, texture, size):
