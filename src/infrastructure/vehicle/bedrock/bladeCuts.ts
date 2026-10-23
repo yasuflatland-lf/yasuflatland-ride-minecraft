@@ -1,4 +1,9 @@
-import { BlockVolume, type Dimension, type Entity } from "@minecraft/server";
+import {
+  type Block,
+  BlockVolume,
+  type Dimension,
+  type Entity,
+} from "@minecraft/server";
 import type { Clock } from "../../../application/vehicle/ports/shared";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { CUT_KEPT_BLOCKS, type CutColumn } from "../../../domain/vehicle/cut";
@@ -7,11 +12,41 @@ import { AIR_BLOCK, LAID_BLOCK_TAG } from "../../shared/identifiers";
 // ADR 0137 records the drop distance and delay measured in game.
 const DROP_MARGIN = 1;
 const DROP_WINDOW_TICKS = 1;
+
 interface FillRecord {
   dimensionId: string;
   min: Vec3;
   max: Vec3;
   tick: number;
+}
+
+/** The highest cell of the solid run that starts at `first`, or one below it when `first` is air. */
+function solidTop(
+  dimension: Dimension,
+  x: number,
+  z: number,
+  start: number,
+  first: Block,
+): number {
+  const last = dimension.heightRange.max - 1;
+  let top = start - 1;
+  for (let y = start; y <= last; y++) {
+    const block = y === start ? first : dimension.getBlock({ x, y, z });
+    if (!block || block.isAir) break;
+    top = y;
+  }
+  return top;
+}
+
+function isNearFill(p: Vec3, { min, max }: FillRecord): boolean {
+  return (
+    p.x >= min.x - DROP_MARGIN &&
+    p.x <= max.x + DROP_MARGIN &&
+    p.y >= min.y - DROP_MARGIN &&
+    p.y <= max.y + DROP_MARGIN &&
+    p.z >= min.z - DROP_MARGIN &&
+    p.z <= max.z + DROP_MARGIN
+  );
 }
 
 export class BladeCuts {
@@ -21,38 +56,9 @@ export class BladeCuts {
   /** Clears each column in `dimension` with one filtered fill (ADR 0137). */
   cut(dimension: Dimension, columns: readonly CutColumn[]): void {
     this.prune();
-    for (const { x, z, bottom, height } of columns) {
-      const start = Math.max(bottom, dimension.heightRange.min);
-      const last = dimension.heightRange.max - 1;
+    for (const column of columns) {
       try {
-        const first = dimension.getBlock({ x, y: start, z });
-        if (!first) continue;
-        let top = start - 1;
-        if (height === undefined) {
-          for (let y = start; y <= last; y++) {
-            const block = y === start ? first : dimension.getBlock({ x, y, z });
-            if (!block || block.isAir) break;
-            top = y;
-          }
-        } else top = Math.min(bottom + height - 1, last);
-        if (top < start) continue;
-        dimension.fillBlocks(
-          new BlockVolume({ x, y: start, z }, { x, y: top, z }),
-          AIR_BLOCK,
-          {
-            blockFilter: {
-              excludeTypes: [...CUT_KEPT_BLOCKS],
-              excludeTags: [LAID_BLOCK_TAG],
-            },
-            ignoreChunkBoundErrors: true,
-          },
-        );
-        this.fills.push({
-          dimensionId: dimension.id,
-          min: { x, y: start, z },
-          max: { x: x + 1, y: top + 1, z: z + 1 },
-          tick: this.clock.now(),
-        });
+        this.cutColumn(dimension, column);
       } catch {
         // An unloaded chunk or a failed fill is retried by the drive on a later tick (ADR 0125, 0137).
       }
@@ -63,24 +69,49 @@ export class BladeCuts {
     this.prune();
     if (!entity.isValid || entity.typeId !== "minecraft:item") return false;
     const now = this.clock.now();
-    const p = entity.location;
     const matches = this.fills.some((record) => {
       const dt = now - record.tick;
       return (
         entity.dimension.id === record.dimensionId &&
         dt >= 0 &&
         dt <= DROP_WINDOW_TICKS &&
-        p.x >= record.min.x - DROP_MARGIN &&
-        p.x <= record.max.x + DROP_MARGIN &&
-        p.y >= record.min.y - DROP_MARGIN &&
-        p.y <= record.max.y + DROP_MARGIN &&
-        p.z >= record.min.z - DROP_MARGIN &&
-        p.z <= record.max.z + DROP_MARGIN
+        isNearFill(entity.location, record)
       );
     });
     if (!matches) return false;
     entity.remove();
     return true;
+  }
+
+  private cutColumn(
+    dimension: Dimension,
+    { x, z, bottom, height }: CutColumn,
+  ): void {
+    const start = Math.max(bottom, dimension.heightRange.min);
+    const first = dimension.getBlock({ x, y: start, z });
+    if (!first) return;
+    const top =
+      height === undefined
+        ? solidTop(dimension, x, z, start, first)
+        : Math.min(bottom + height - 1, dimension.heightRange.max - 1);
+    if (top < start) return;
+    dimension.fillBlocks(
+      new BlockVolume({ x, y: start, z }, { x, y: top, z }),
+      AIR_BLOCK,
+      {
+        blockFilter: {
+          excludeTypes: [...CUT_KEPT_BLOCKS],
+          excludeTags: [LAID_BLOCK_TAG],
+        },
+        ignoreChunkBoundErrors: true,
+      },
+    );
+    this.fills.push({
+      dimensionId: dimension.id,
+      min: { x, y: start, z },
+      max: { x: x + 1, y: top + 1, z: z + 1 },
+      tick: this.clock.now(),
+    });
   }
 
   private prune(): void {

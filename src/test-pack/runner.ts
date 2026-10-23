@@ -160,7 +160,7 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
     ["camping_gear_blocks", 0, () => campingGearBlocks(a)],
     ["blade_cut_column", 0, () => bladeCutColumn(a)],
     ["blade_cut_drops", 6, () => bladeCutDrops(a)],
-    ["blade_cut_kept_ids", 0, () => bladeCutKeptIds(a)],
+    ["blade_cut_kept_ids", 0, () => bladeCutKeptIds()],
     ["low_chair_seat_and_take_back", 6, () => lowChairSeatAndTakeBack(a)],
     [
       "low_chair_settles_through_grass",

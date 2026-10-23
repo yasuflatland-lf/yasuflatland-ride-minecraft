@@ -14,21 +14,27 @@ interface GridOptions {
  */
 export function blockGrid(
   options: GridOptions & { unloaded: (c: Cell) => boolean },
-): ReturnType<typeof makeGrid>;
-export function blockGrid(options?: Omit<GridOptions, "unloaded">): Omit<
-  ReturnType<typeof makeGrid>,
-  "getBlock"
-> & {
-  getBlock(
-    c: Cell,
-  ): NonNullable<ReturnType<ReturnType<typeof makeGrid>["getBlock"]>>;
-};
+): Grid;
+export function blockGrid(options?: Omit<GridOptions, "unloaded">): LoadedGrid;
 export function blockGrid(options: GridOptions = {}) {
   return makeGrid(options);
 }
+type Grid = ReturnType<typeof makeGrid>;
+type LoadedGrid = Omit<Grid, "getBlock"> & {
+  getBlock(c: Cell): NonNullable<ReturnType<Grid["getBlock"]>>;
+};
 function makeGrid(options: GridOptions = {}) {
   const types = new Map<string, string>();
   const typeAt = (c: Cell): string => types.get(cellKey(c)) ?? AIR;
+  const isExcluded = (type: string, fillOptions?: BlockFillOptions) => {
+    const filter = fillOptions?.blockFilter;
+    return (
+      filter?.excludeTypes?.includes(type) === true ||
+      options.tags?.[type]?.some((tag) =>
+        filter?.excludeTags?.includes(tag),
+      ) === true
+    );
+  };
   const fills: {
     from: Cell;
     to: Cell;
@@ -48,16 +54,8 @@ function makeGrid(options: GridOptions = {}) {
         for (let y = volume.from.y; y <= volume.to.y; y++)
           for (let z = volume.from.z; z <= volume.to.z; z++) {
             const c = { x, y, z };
-            const type = typeAt(c);
-            if (fillOptions?.blockFilter?.excludeTypes?.includes(type))
-              continue;
-            if (
-              options.tags?.[type]?.some((tag) =>
-                fillOptions?.blockFilter?.excludeTags?.includes(tag),
-              )
-            )
-              continue;
-            types.set(cellKey(c), block);
+            if (!isExcluded(typeAt(c), fillOptions))
+              types.set(cellKey(c), block);
           }
     },
     typeAt,

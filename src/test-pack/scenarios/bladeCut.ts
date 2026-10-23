@@ -15,6 +15,7 @@ import { type Arena, type Outcome, wait } from "../arena";
 function cleanup(a: Arena): void {
   a.dim.runCommand(`fill 116 ${a.gy} 24 118 ${a.gy + 12} 30 air`);
 }
+
 export async function bladeCutColumn(a: Arena): Promise<Outcome> {
   const { dim, gy } = a;
   const cuts = new BladeCuts(systemClock);
@@ -87,6 +88,7 @@ export async function bladeCutColumn(a: Arena): Promise<Outcome> {
     cleanup(a);
   }
 }
+
 export async function bladeCutDrops(a: Arena): Promise<Outcome> {
   const { dim, gy } = a;
   const cuts = new BladeCuts(systemClock);
@@ -154,21 +156,18 @@ export async function bladeCutDrops(a: Arena): Promise<Outcome> {
     cleanup(a);
   }
 }
-export async function bladeCutKeptIds(a: Arena): Promise<Outcome> {
-  try {
-    const missing = CUT_KEPT_BLOCKS.filter((type) => !BlockTypes.get(type));
-    const untagged = [
-      id("camper_floor"),
-      id("deck_floor"),
-      id("camper_wall"),
-      id("tent_wall"),
-      decorBlockId("toaster"),
-    ].filter((type) => !BlockPermutation.resolve(type).hasTag(LAID_BLOCK_TAG));
-    return {
-      pass: missing.length === 0 && untagged.length === 0,
-      detail: `missing=${missing.join(",")} untagged=${untagged.join(",")}`,
-    };
-  } finally {
-    cleanup(a);
-  }
+
+export async function bladeCutKeptIds(): Promise<Outcome> {
+  const missing = CUT_KEPT_BLOCKS.filter((type) => !BlockTypes.get(type));
+  const untagged = [
+    id("camper_floor"),
+    id("deck_floor"),
+    id("camper_wall"),
+    id("tent_wall"),
+    decorBlockId("toaster"),
+  ].filter((type) => !BlockPermutation.resolve(type).hasTag(LAID_BLOCK_TAG));
+  return {
+    pass: missing.length === 0 && untagged.length === 0,
+    detail: `missing=${missing.join(",")} untagged=${untagged.join(",")}`,
+  };
 }
