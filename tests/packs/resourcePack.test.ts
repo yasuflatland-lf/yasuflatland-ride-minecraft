@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { defined } from "../support/defined";
+import { expectContiguous, speedRanges } from "../support/soundLevels";
 
 const read = (p: string) => JSON.parse(readFileSync(p, "utf8"));
 const RP = "packs/yasu_ride_rp";
@@ -13,6 +14,9 @@ const controller = read(`${RP}/animation_controllers/yasu_ride/suv.ac.json`)
 const camperController = read(
   `${RP}/animation_controllers/yasu_ride/camper.ac.json`,
 ).animation_controllers["controller.animation.yasu_ride.camper.form"];
+const bulldozerController = read(
+  `${RP}/animation_controllers/yasu_ride/bulldozer.ac.json`,
+).animation_controllers["controller.animation.yasu_ride.bulldozer.form"];
 const render = read(`${RP}/render_controllers/yasu_ride/suv.rc.json`)
   .render_controllers["controller.render.yasu_ride.suv"];
 const particle = read(
@@ -246,38 +250,6 @@ describe("Resource Pack sounds (ADR 0030)", () => {
 
   const GROUND = "query.has_rider && query.property('yasu_ride:form') == 'car'";
 
-  /** The [lo, hi) range of query.ground_speed each level plays in, in level order. */
-  function speedRanges(
-    entries: Record<string, string>[],
-    prefix: string,
-    guard: string,
-  ): [number, number][] {
-    return entries.map((entry, level) => {
-      const [name, condition] = defined(
-        Object.entries(entry)[0],
-        `level ${level}`,
-      );
-      expect(name).toBe(`${prefix}${level}`);
-      let rest = condition;
-      if (guard) {
-        expect(rest.startsWith(guard), name).toBe(true);
-        rest = rest.slice(guard.length).replace(/^ && /, "");
-      }
-      const lo = /query\.ground_speed >= ([\d.]+)/.exec(rest)?.[1];
-      const hi = /query\.ground_speed < ([\d.]+)/.exec(rest)?.[1];
-      return [lo ? Number(lo) : 0, hi ? Number(hi) : Number.POSITIVE_INFINITY];
-    });
-  }
-
-  function expectContiguous(ranges: [number, number][]): void {
-    expect(ranges[0]?.[0]).toBe(0);
-    expect(ranges.at(-1)?.[1]).toBe(Number.POSITIVE_INFINITY);
-    ranges.slice(1).forEach(([lo, hi], i) => {
-      expect(lo).toBe(ranges[i]?.[1]);
-      expect(lo).toBeLessThan(hi);
-    });
-  }
-
   it("rumbles the engine on the ground at a pitch that rises with the speed", () => {
     const levels = client.scripts.animate.filter(
       (a: unknown) =>
@@ -313,6 +285,7 @@ describe("Resource Pack sounds (ADR 0030)", () => {
   it.each([
     ["suv", controller],
     ["camper", camperController],
+    ["bulldozer", bulldozerController],
   ])(
     "%s keeps the hover sound on a riderless vehicle (ADR 0073)",
     (_kind, form) => {

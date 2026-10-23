@@ -12,3 +12,6 @@ describe("STARTER_KINDS (ADR 0023)", () => {
     expect(new Set(STARTER_KINDS).size).toBe(STARTER_KINDS.length);
   });
 });
+
+it("gives the bulldozer as the second starter (ADR 0023, 0136)", () =>
+  expect(STARTER_KINDS).toEqual(["suv", "bulldozer"]));

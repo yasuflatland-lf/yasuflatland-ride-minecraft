@@ -4,7 +4,7 @@ import { HEADLIGHT_SWITCH_TYPE } from "../../src/infrastructure/shared/identifie
 import { HEADLIGHTS_PROPERTY } from "../../src/infrastructure/vehicle/bedrock/identifiers";
 
 const read = (p: string) => JSON.parse(readFileSync(p, "utf8"));
-describe.each(["suv", "sportsboat", "camper"])(
+describe.each(["suv", "sportsboat", "camper", "bulldozer"])(
   "%s headlights (ADR 0020)",
   (vehicle) => {
     const entity = read(
