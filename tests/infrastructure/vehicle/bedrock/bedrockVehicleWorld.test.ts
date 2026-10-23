@@ -499,7 +499,7 @@ describe("BedrockVehicleWorld snapshots", () => {
     const { dimension, car, world } = fixture();
     const grid = blockGrid();
     dimension.getBlock.mockImplementation(grid.getBlock);
-    const cell = { x: 0, y: 65, z: 4 };
+    const cell = { x: 0, y: 65, z: 4, level: 15 };
     world.loadedVehicles();
     world.shineHeadlights(asVehicleId(car.id), [cell]);
     world.loadedVehicles();
@@ -767,7 +767,7 @@ describe("BedrockVehicleWorld holds (ADR 0063)", () => {
       z: 3,
       block: { type: "deck" as const, height: 9 },
     };
-    const light = { x: 0, y: 65, z: 4 };
+    const light = { x: 0, y: 65, z: 4, level: 15 };
     const pose = { x: 1, y: 64.5, z: -2, yaw: 30 };
     world.loadedVehicles();
     world.holdAt(asVehicleId(car.id), pose);
