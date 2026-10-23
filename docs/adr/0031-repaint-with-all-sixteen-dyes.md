@@ -1,6 +1,6 @@
 # 0031. Repaint vehicles with all sixteen dyes
 
-- Status: Superseded in part by 0036; extended by 0076, [0135](0135-repaint-the-tent-with-dyes.md), and 0136 (Proposed)
+- Status: Superseded in part by 0036 (painting by interacting); extended by 0076, 0135, and [0136](0136-bulldozer.md) (Proposed)
 - Date: 2026-10-11
 - Supersedes: 0017
 

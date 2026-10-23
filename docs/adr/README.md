@@ -58,7 +58,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0052](0052-retry-camera-switches-and-break-seat-ties-low.md) | Retry camera switches in both directions, and break seat ties toward the lower index | Superseded in part by 0117 |
 | [0053](0053-estimate-buoyant-boat-water-drag.md) | Estimate the buoyant boat's water drag | Accepted |
 | [0054](0054-shard-in-game-tests-in-ci.md) | Shard the in-game tests across four CI jobs and run model:check beside the unit tests | Accepted |
-| [0055](0055-kind-neutral-vehicle-core.md) | Kind-neutral vehicle core | Superseded in part by 0083 and 0087; extended by 0064, 0065, 0072, 0089, 0090, 0127, 0137 (Proposed), and 0136 (Proposed) |
+| [0055](0055-kind-neutral-vehicle-core.md) | Kind-neutral vehicle core | Superseded in part by 0083 and 0087; extended by 0064, 0065, 0072, 0089, 0090, 0127, 0136 (Proposed), and 0137 (Proposed) |
 | [0056](0056-sports-boat-previews.md) | Render README previews of the sports boat | Accepted |
 | [0057](0057-skip-model-check-when-inputs-unchanged.md) | Skip model:check on pull requests that leave the renderer's files alone | Accepted |
 | [0058](0058-refine-the-sports-boat-interior.md) | Refine the sports boat interior from reference photos | Accepted |
@@ -130,7 +130,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0124](0124-take-back-an-eviction-when-a-slot-frees.md) | Take back an eviction when a slot frees | Extended by 0125 |
 | [0125](0125-forget-a-vehicle-removed-from-a-loaded-chunk.md) | Forget a vehicle removed from a loaded chunk | Accepted |
 | [0126](0126-choose-a-new-driver-with-one-tick-of-motion.md) | Choose a new driver with one tick of motion | Accepted; superseded in part by 0128 |
-| [0127](0127-resend-every-synced-entity-value-after-a-failed-send.md) | Resend every synced entity value after a failed send | Accepted |
+| [0127](0127-resend-every-synced-entity-value-after-a-failed-send.md) | Resend every synced entity value after a failed send | Accepted; extended by 0136 (Proposed) |
 | [0128](0128-settle-every-crews-seats-by-rider-list.md) | Settle every crew's seats by the rider list | Accepted |
 | [0129](0129-share-room-primitives-between-features.md) | Share room primitives between features | Accepted; extended by [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md) (Proposed) |
 | [0130](0130-a-tent-entity-whose-hits-land-on-its-blocks.md) | A tent entity whose hits land on its blocks | Proposed; extended by [0131](0131-pitch-a-tent-in-the-camp.md) |

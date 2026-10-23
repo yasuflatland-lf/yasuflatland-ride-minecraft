@@ -1,6 +1,6 @@
 # 0035. Jump one-block steps in the script, and skip blocks without a collision box
 
-- Status: Extended by 0136 (Proposed)
+- Status: Accepted; extended by [0136](0136-bulldozer.md) (Proposed)
 - Date: 2026-10-11
 - Supersedes in part: 0004 (leaving one-block steps to the engine)
 
