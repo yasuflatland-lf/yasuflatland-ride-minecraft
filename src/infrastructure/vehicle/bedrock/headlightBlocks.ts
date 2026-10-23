@@ -115,10 +115,13 @@ export class HeadlightBlocks {
     const dimensionId = asDimensionId(entry.dimension.id);
     for (const c of light) {
       if (this.campSpace(dimensionId, c)) continue;
+      // Resolved outside the try so a bad profile level throws here instead of
+      // being swallowed as an engine error.
+      const type = lightBlockId(c.level);
       try {
         const b = entry.dimension.getBlock(c);
         if (!b?.isAir) continue;
-        b.setType(lightBlockId(c.level));
+        b.setType(type);
         cells.push(c);
       } catch {
         // Unloaded chunk or outside the world: no light there this tick.
