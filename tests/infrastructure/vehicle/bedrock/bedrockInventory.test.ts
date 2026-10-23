@@ -149,7 +149,7 @@ describe("BedrockInventory", () => {
   });
 
   it.each(STARTER_KINDS)(
-    "marks the starter as received on a present player",
+    "marks the %s starter as received on a present player",
     (kind) => {
       const { player, inventory } = fixture();
       inventory.markStarterReceived(asPlayerId("player"), kind);

@@ -5,7 +5,7 @@ import { asPlayerId } from "../../../src/domain/shared/ids";
 import { STARTER_KINDS } from "../../../src/domain/vehicle/placement/starter";
 import { FakeWorld } from "./fakes";
 
-function fresh(world: FakeWorld, id: string) {
+function joinWithoutStarters(world: FakeWorld, id: string) {
   for (const k of STARTER_KINDS) world.starters.set(`${id}:${k}`, false);
 }
 
@@ -16,7 +16,7 @@ describe("GiveStarterVehicle (ADR 0023)", () => {
         fc.array(fc.constantFrom("a", "b", "c"), { maxLength: 20 }),
         (joins) => {
           const world = new FakeWorld();
-          for (const id of joins) fresh(world, id);
+          for (const id of joins) joinWithoutStarters(world, id);
           const give = new GiveStarterVehicle(world);
           for (const id of joins) give.execute(asPlayerId(id));
           const players = [...new Set(joins)];
@@ -38,7 +38,7 @@ describe("GiveStarterVehicle (ADR 0023)", () => {
     fc.assert(
       fc.property(fc.subarray([...STARTER_KINDS]), (received) => {
         const world = new FakeWorld();
-        fresh(world, "p");
+        joinWithoutStarters(world, "p");
         for (const k of received) world.starters.set(`p:${k}`, true);
         expect(new GiveStarterVehicle(world).execute(asPlayerId("p"))).toBe(
           received.length < STARTER_KINDS.length,
@@ -54,7 +54,7 @@ describe("GiveStarterVehicle (ADR 0023)", () => {
 
   it("marks each kind only after giving its item", () => {
     const world = new FakeWorld();
-    fresh(world, "p");
+    joinWithoutStarters(world, "p");
     expect(new GiveStarterVehicle(world).execute(asPlayerId("p"))).toBe(true);
     expect(world.calls).toEqual(
       STARTER_KINDS.flatMap((k) => [`give:p:${k}`, `mark:p:${k}`]),
