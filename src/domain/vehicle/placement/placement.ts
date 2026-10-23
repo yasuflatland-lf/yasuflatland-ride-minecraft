@@ -1,20 +1,26 @@
 // Where a vehicle goes when its item is used on a block (ADR 0008, ADR 0051),
 // and whether there is room for it there.
 import type { Vec3 } from "../../shared/vec";
+import type { VehicleBody } from "../profile";
 import { SPEC } from "../spec";
 
 export type IsAir = (dx: number, dy: number, dz: number) => boolean;
 
 /**
  * The cells that must be air for a kind to be placed: -halfX..halfX,
- * -halfZ..halfZ, and 1..height above the block. It must cover the kind's
- * collision box (ADR 0055); tests/packs/placementClearance.test.ts checks
- * this against each entity file.
+ * -halfZ..halfZ, and 1..height above the block. Height is derived from the
+ * kind's body height; the half sizes are per kind and checked against the
+ * collision boxes by tests/packs/placementClearance.test.ts (ADR 0055).
  */
 export interface Clearance {
   readonly halfX: number;
   readonly halfZ: number;
   readonly height: number;
+}
+
+// The cells 1..height above the block must hold the whole collision box.
+export function clearanceHeight(body: Pick<VehicleBody, "height">): number {
+  return Math.ceil(body.height);
 }
 
 export function canPlaceAt(isAir: IsAir, clearance: Clearance): boolean {

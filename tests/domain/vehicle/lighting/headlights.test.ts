@@ -1,8 +1,10 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { dot, forward, rightOf } from "../../../../src/domain/shared/vec";
+import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
 import { CAMPER_PROFILE } from "../../../../src/domain/vehicle/kinds/camper/profile";
 import { CAMPER_SPEC } from "../../../../src/domain/vehicle/kinds/camper/spec";
+import { profileOf } from "../../../../src/domain/vehicle/kinds/index";
 import { SUV_PROFILE } from "../../../../src/domain/vehicle/kinds/suv/profile";
 import { SUV_SPEC } from "../../../../src/domain/vehicle/kinds/suv/spec";
 import {
@@ -12,6 +14,8 @@ import {
   relight,
 } from "../../../../src/domain/vehicle/lighting/headlights";
 
+const number = (min: number, max: number) =>
+  fc.double({ min, max, noNaN: true });
 const coord = fc.double({ min: -1e5, max: 1e5, noNaN: true });
 const location = fc.record({
   x: coord,
@@ -50,13 +54,51 @@ describe("headlightCells (ADR 0020)", () => {
     );
   });
 
-  it("returns integer cells without duplicates", () => {
+  it("places each beam lane sideways from its reach and deduplicates cells", () => {
+    const beams = fc.oneof(
+      fc.constantFrom(...VEHICLE_KINDS.map((k) => profileOf(k).beams)),
+      fc.record({
+        reach: fc.array(number(0, 40), { maxLength: 8 }),
+        lanes: fc.array(number(-8, 8), { maxLength: 6 }),
+      }),
+    );
+    const location = fc.record({
+      x: number(-100, 100),
+      y: number(-64, 300),
+      z: number(-100, 100),
+    });
     fc.assert(
-      fc.property(location, yaw, (at, y) => {
-        const out = headlightCells(at, y, SUV_PROFILE.beams);
+      fc.property(beams, location, yaw, (pattern, at, heading) => {
+        const out = headlightCells(at, heading, pattern);
+        expect(out.length).toBeLessThanOrEqual(
+          pattern.reach.length * pattern.lanes.length,
+        );
+        expect(new Set(out.map(cellKey)).size).toBe(out.length);
         for (const c of out)
           expect([c.x, c.y, c.z].every(Number.isInteger)).toBe(true);
-        expect(keys(out).size).toBe(out.length);
+        const f = forward(heading);
+        const right = rightOf(f);
+        const expected = new Set<string>();
+        for (const reach of pattern.reach) {
+          for (const lane of pattern.lanes) {
+            const origin = {
+              x: at.x + f.x * reach,
+              y: at.y,
+              z: at.z + f.z * reach,
+            };
+            const shifted = {
+              x: origin.x + right.x * lane,
+              y: origin.y,
+              z: origin.z + right.z * lane,
+            };
+            const single = headlightCells(shifted, heading, {
+              reach: [0],
+              lanes: [0],
+            });
+            for (const cell of single) expected.add(cellKey(cell));
+          }
+        }
+        expect(new Set(out.map(cellKey))).toEqual(expected);
       }),
     );
   });

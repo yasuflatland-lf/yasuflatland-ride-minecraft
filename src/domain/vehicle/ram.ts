@@ -1,6 +1,6 @@
 // Select targets in a rectangle in front of the vehicle (behind it when reversing) and decide the damage and push (ADR 0006).
 import { dot, rightOf, type Vec2, type Vec3 } from "../shared/vec";
-import type { RamBody } from "./profile";
+import type { VehicleBody } from "./profile";
 import { SPEC } from "./spec";
 
 /** What a ram target is riding, as far as ram protection cares (ADR 0006). */
@@ -38,7 +38,7 @@ export function selectHits(
   targets: readonly RamTarget[],
   lastHit: ReadonlyMap<string, number>,
   tick: number,
-  body: RamBody,
+  body: Pick<VehicleBody, "front" | "halfWidth">,
 ): RamHit[] {
   if (Math.abs(speed) <= SPEC.ramMinSpeed) return [];
   const dir = Math.sign(speed);
