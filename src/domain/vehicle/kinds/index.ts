@@ -37,11 +37,6 @@ interface KindDefinition {
 // every vehicle of that kind.
 export const KINDS: Readonly<Record<VehicleKind, Readonly<KindDefinition>>> =
   Object.freeze({
-    bulldozer: Object.freeze<KindDefinition>({
-      profile: BULLDOZER_PROFILE,
-      entity: BULLDOZER_ENTITY,
-      createDrive: (yaw, restored) => new BulldozerDrive(yaw, restored),
-    }),
     suv: Object.freeze<KindDefinition>({
       profile: SUV_PROFILE,
       entity: SUV_ENTITY,
@@ -56,6 +51,11 @@ export const KINDS: Readonly<Record<VehicleKind, Readonly<KindDefinition>>> =
       profile: SPORTSBOAT_PROFILE,
       entity: SPORTSBOAT_ENTITY,
       createDrive: (yaw, restored) => new SportsboatDrive(yaw, restored),
+    }),
+    bulldozer: Object.freeze<KindDefinition>({
+      profile: BULLDOZER_PROFILE,
+      entity: BULLDOZER_ENTITY,
+      createDrive: (yaw, restored) => new BulldozerDrive(yaw, restored),
     }),
   });
 

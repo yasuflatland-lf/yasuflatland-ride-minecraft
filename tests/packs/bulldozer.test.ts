@@ -96,6 +96,9 @@ it("crafts from an SUV item, an iron block, and an iron shovel", () => {
   const item = read(`${BP}/items/yasu_ride/bulldozer_item.item.json`)[
     "minecraft:item"
   ];
+  expect(item.components["minecraft:display_name"]).toEqual({
+    value: "item.yasu_ride:bulldozer_item.name",
+  });
   const icon = item.components["minecraft:icon"];
   const texture = read(`${RP}/textures/item_texture.json`).texture_data[icon]
     .textures;

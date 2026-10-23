@@ -3,9 +3,7 @@
   "minecraft:item": {
     "description": {
       "identifier": "yasu_ride:bulldozer_item",
-      "menu_category": {
-        "category": "items"
-      }
+      "menu_category": { "category": "items" }
     },
     "components": {
       "minecraft:icon": "yasu_ride_bulldozer_item",
@@ -15,7 +13,7 @@
         "movement_modifier": 1.0
       },
       "minecraft:display_name": {
-        "value": "item.yasu_ride:camper_item.name"
+        "value": "item.yasu_ride:bulldozer_item.name"
       }
     }
   }
