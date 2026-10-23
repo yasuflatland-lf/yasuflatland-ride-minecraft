@@ -130,7 +130,8 @@ export class BulldozerDrive extends TransformingDrive {
         stepUp: false,
       },
     );
-    // Reassert gravity as well as the restored form after a server restart (ADR 0136).
+    // Unlike the other kinds, a rebuilt bulldozer resends gravity and its restored
+    // form on the first step instead of trusting ADR 0127's primed form (ADR 0136).
     this.resync();
   }
 

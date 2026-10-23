@@ -6,7 +6,7 @@ Every player receives one bulldozer item on joining, including players who alrea
 
 ## Controls
 
-Push forward or back to drive straight. A sideways stick past 0.35 (A/D on PC) pivots on the spot, braking to a stop while turning. This works on land, in flight, and under water; takeoff ignores the stick. There is no handbrake or creep.
+Push forward or back to drive straight. A sideways stick past 0.35 (A/D on PC) pivots, braking by 0.02 blocks/tick every tick while turning. From rest it turns in place; from top speed it slides up to about 7 blocks over about 23 ticks before it stops, and the blade does not cut during that slide. This works on land, in flight, and under water; takeoff ignores the stick. There is no handbrake or creep.
 
 Tap Jump to hop one block on the ground. Double-tap within 8 ticks to take off or land. In flight and under water, hold Jump to climb and pull the stick back to sink. Sneak gets out. The left door opens for two seconds when boarding or leaving.
 
@@ -16,7 +16,7 @@ Ground top speed is 9 blocks/s, half the SUV's, with half its acceleration. Flig
 
 ## Clearing
 
-While moving forward above 0.02 blocks/tick, the blade clears the columns it touches ahead. On the ground, cutting starts at the feet and continues upward until the first air gap, leaving an overhang above a gap. In flight it cuts a tunnel up to the top of the 2.9-block body, including at fractional heights. Hopping, falling off a ledge, pivoting, reversing, standing, and diving do not cut.
+While moving forward above 0.02 blocks/tick, the blade clears the columns it touches ahead. On the ground, cutting starts in the row above the block under the tracks, even a block lower than a full cube such as a dirt path, farmland, mud, or a bottom slab, and continues upward until the first air gap, leaving an overhang above a gap. In flight it cuts a tunnel up to the top of the 2.9-block body, including at fractional heights. The tick a hop starts still cuts, because the bulldozer is still on the ground; the airborne ticks after a hop, falling off a ledge, pivoting, reversing, standing, and diving do not cut.
 
 Water, lava, containers with their contents, and the add-on's own blocks are kept. Bedrock, barriers, command blocks, structure blocks, reinforced deepslate, end portal frames, and light blocks are cut. The cut works in every game mode, Adventure included. Neighbor updates may drop unsupported blocks; nearby new item drops from the cut are removed as described in [ADR 0137](../adr/0137-clear-block-columns-with-the-blade.md).
 
