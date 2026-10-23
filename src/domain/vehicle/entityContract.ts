@@ -4,6 +4,7 @@ import type { EngineCommand, RestoredValues } from "./drive";
 export type PropertySpec =
   | { type: "enum"; values: readonly string[] }
   | { type: "float"; range: readonly [number, number] }
+  | { type: "int"; range: readonly [number, number] }
   | { type: "bool" };
 
 export interface EntityContract {
@@ -15,7 +16,9 @@ export interface EntityContract {
 }
 
 /** The TypeScript type a property spec accepts. */
-export type PropertyValue<S extends PropertySpec> = S extends { type: "float" }
+export type PropertyValue<S extends PropertySpec> = S extends
+  | { type: "float" }
+  | { type: "int" }
   ? number
   : S extends { type: "bool" }
     ? boolean
