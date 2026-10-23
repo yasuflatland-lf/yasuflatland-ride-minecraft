@@ -3,6 +3,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { HitChair } from "../../../src/application/camp/hitChair";
 import { PitchTent } from "../../../src/application/camp/pitchTent";
 import { PlaceChair } from "../../../src/application/camp/placeChair";
+import { SwitchLantern } from "../../../src/application/camp/switchLantern";
 import { TakeDownTent } from "../../../src/application/camp/takeDownTent";
 import { UseTentFlap } from "../../../src/application/camp/useTentFlap";
 import { SleepInBed } from "../../../src/application/shared/sleepInBed";
@@ -23,6 +24,8 @@ import { registerTentPlacement } from "../../../src/infrastructure/camp/bedrock/
 import { registerTestChairHit } from "../../../src/infrastructure/camp/bedrock/handlers/testHit";
 import { registerTestTent } from "../../../src/infrastructure/camp/bedrock/handlers/testTent";
 import { registerTestTentFlap } from "../../../src/infrastructure/camp/bedrock/handlers/testTentFlap";
+import { registerTestTentLantern } from "../../../src/infrastructure/camp/bedrock/handlers/testTentLantern";
+import { lanternSwitchTarget } from "../../../src/infrastructure/camp/bedrock/lanternSwitch";
 import { TentFlapStore } from "../../../src/infrastructure/camp/bedrock/tentFlapStore";
 import {
   TENT_FLAP_PROPERTY,
@@ -47,6 +50,16 @@ vi.mock("@minecraft/server", () => ({
   },
   system: {},
 }));
+const lanternTarget = vi.hoisted(() => ({ fake: "lantern target" }));
+vi.mock("../../../src/infrastructure/camp/bedrock/lanternSwitch", () => ({
+  lanternSwitchTarget: vi.fn(() => lanternTarget),
+}));
+vi.mock(
+  "../../../src/infrastructure/camp/bedrock/handlers/testTentLantern",
+  () => ({
+    registerTestTentLantern: vi.fn(),
+  }),
+);
 vi.mock("../../../src/infrastructure/camp/bedrock/handlers/tentHits", () => ({
   registerTentHits: vi.fn(),
 }));
@@ -208,6 +221,25 @@ it("shares one flap store between the tent world and the loop, and one flap use 
   ).toBe(true);
   expect(built.isOpen("front")).toBe(true);
   expect(built.isOpen("left")).toBe(true);
+  game.getDynamicProperty.mockReset();
+  game.getEntity.mockReset();
+});
+
+it("returns one switch target, the lantern's, built on the same SwitchLantern as the test hook", () => {
+  game.getDynamicProperty.mockReturnValue(SAVED);
+  game.getEntity.mockImplementation((id: string) =>
+    id === "t" ? { isValid: true, typeId: TENT_TYPE } : undefined,
+  );
+  const { switchTargets } = installCamp({ isVehicleSpace: () => false });
+  expect(switchTargets).toEqual([lanternTarget]);
+  expect(switchTargets[0]).toBe(lanternTarget);
+  const [lantern, tentContaining] =
+    vi.mocked(lanternSwitchTarget).mock.calls[0] ?? [];
+  expect(lantern).toBeInstanceOf(SwitchLantern);
+  expect(vi.mocked(registerTestTentLantern).mock.calls[0]?.[0]).toBe(lantern);
+  const here = asDimensionId("minecraft:overworld");
+  expect(tentContaining?.(here, { x: 110.5, y: -60, z: 52.5 })).toBe("t");
+  expect(tentContaining?.(here, { x: 110.5, y: -60, z: 47.5 })).toBeUndefined();
   game.getDynamicProperty.mockReset();
   game.getEntity.mockReset();
 });

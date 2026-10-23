@@ -1,4 +1,4 @@
-// Camping entity, item, and block ids (ADR 0047, 0122, 0130, 0131, 0132, 0133).
+// Camping entity, item, and block ids (ADR 0047, 0122, 0130, 0131, 0132, 0133, 0134).
 import type { PitchRefusal } from "../../domain/camp/tent";
 import { id } from "../shared/identifiers";
 
@@ -35,6 +35,9 @@ export const TENT_OPEN_STATE = id("open");
 export const TENT_MATTRESS_BLOCK = id("tent_mattress");
 /** The custom component on tent_mattress.block.json that sleeps the player (ADR 0092). */
 export const TENT_MATTRESS_COMPONENT = id("tent_mattress");
+export const TENT_LANTERN_BLOCK = id("tent_lantern");
+/** Block state of tent_lantern: whether it gives the lantern's full light. */
+export const TENT_LIT_STATE = id("lit");
 /** Block state of tent_wall: the TentFace its plate sits on. */
 export const TENT_FACE_STATE = id("face");
 /** Entity dynamic property: the tent's laid cells as JSON (LaidCell<TentBlock>[]). */
@@ -49,6 +52,10 @@ export const TEST_TENT_PITCH_EVENT = id("test_tent_pitch");
 export const TEST_TENT_FLAP_EVENT = id("test_tent_flap");
 /** Action bar hint when a flap cannot close on someone. */
 export const FLAP_BLOCKED_HINT = "yasu_ride.hint.tent_flap_blocked";
+/** Lets in-game tests switch a tent's lantern without a player: the message is the tent's entity id. */
+export const TEST_TENT_LANTERN_EVENT = id("test_tent_lantern");
+/** The camper's switch click; camp cannot import the vehicle's constant (ADR 0046). */
+export const SWITCH_CLICK_SOUND = "random.click";
 export const TENT_HITS_LEFT_HINT = "yasu_ride.hint.tent_hits";
 export const TENT_OCCUPIED_HINT = "yasu_ride.hint.tent_occupied";
 export const PITCH_REFUSAL_MESSAGE: Readonly<Record<PitchRefusal, string>> = {

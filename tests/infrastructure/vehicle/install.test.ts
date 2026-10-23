@@ -16,7 +16,7 @@ vi.mock("../../../src/infrastructure/vehicle/bedrock/subscriptions", () => ({
 }));
 
 it("wires the decor use cases and the dock owner lookups into the subscriptions (ADR 0093, 0096)", () => {
-  installVehicles({ isCampSpace: () => false });
+  installVehicles({ isCampSpace: () => false, laterSwitchTargets: () => [] });
   const [useCases, , dockDoorOwner, dockCellOwner, dockBlockOwner] = vi.mocked(
     registerSubscriptions,
   ).mock.calls[0] ?? [undefined, undefined, undefined, undefined, undefined];
@@ -34,7 +34,10 @@ it("wires the decor use cases and the dock owner lookups into the subscriptions 
 });
 
 it("returns the vehicles' space check for other features (ADR 0122)", () => {
-  const { isVehicleSpace } = installVehicles({ isCampSpace: () => false });
+  const { isVehicleSpace } = installVehicles({
+    isCampSpace: () => false,
+    laterSwitchTargets: () => [],
+  });
   // No vehicle is loaded and no room block is laid, so no cell is vehicle space.
   expect(
     isVehicleSpace(asDimensionId("overworld"), { x: 0, y: 64, z: 0 }),
@@ -43,7 +46,7 @@ it("returns the vehicles' space check for other features (ADR 0122)", () => {
 
 it("hands the camp's space check to vehicle placement (ADR 0129)", () => {
   const isCampSpace = vi.fn(() => true);
-  installVehicles({ isCampSpace });
+  installVehicles({ isCampSpace, laterSwitchTargets: () => [] });
   const useCases = vi.mocked(registerSubscriptions).mock.lastCall?.[0];
   expect(
     useCases?.place.execute({
@@ -58,5 +61,13 @@ it("hands the camp's space check to vehicle placement (ADR 0129)", () => {
   expect(isCampSpace).toHaveBeenCalledWith(
     asDimensionId("overworld"),
     expect.objectContaining({ y: 65 }),
+  );
+});
+
+it("hands the later switch targets to the subscriptions (ADR 0134)", () => {
+  const laterSwitchTargets = () => [];
+  installVehicles({ isCampSpace: () => false, laterSwitchTargets });
+  expect(vi.mocked(registerSubscriptions).mock.lastCall?.[5]).toBe(
+    laterSwitchTargets,
   );
 });

@@ -1,6 +1,6 @@
 # 0129. Share room primitives between features
 
-- Status: Accepted
+- Status: Accepted (extended by [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md): the tent lantern is a second target of the switch router)
 - Date: 2026-10-23
 - Extends: [0046](0046-organize-each-layer-by-feature.md), [0122](0122-a-low-chair-to-sit-on-outside-the-vehicles.md)
 

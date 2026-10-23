@@ -237,6 +237,17 @@ Walk in through an open flap: tap a flap to roll it up (ADR 0132).
 | T20 | Step onto a mattress | It stops you like a low block, and you can stand on it | | |
 | T21 | In Creative, try to break a mattress | The block stays | | |
 
+### Tent lantern
+
+| # | Steps | Pass condition | PC | Mobile |
+|---|---|---|---|---|
+| T22 | Standing in the front room, use the headlight switch by tapping the ground, a wall, the ceiling, and the tent model itself | Each use turns the lantern on or off with a click, and its glass glows while on (ADR 0134) | | |
+| T23 | With the switch, press a closed flap, then a mattress, at night | The lantern switches; the flap does not open and no sleep starts (ADR 0132, 0133, 0134) | | |
+| T24 | Sit on a Low Chair in the front room and use the switch | The lantern switches (ADR 0134) | | |
+| T25 | Use the switch outside the tent, then drive an SUV next to the tent and use it at the wheel | Outside, the lantern does not change; the driver switches the SUV's headlights (ADR 0134) | | |
+| T26 | Turn the lantern on, run `/reload`, then restart the server | The lantern is still on after each (ADR 0134) | | |
+| T27 | With the lantern off, stay inside through one night | The tent looks dark and no hostile mob spawns inside (ADR 0131, 0134) | | |
+
 ## Upgrading from MyCar 0.5.0 and earlier
 
 Setup: in a world that used MyCar 0.5.0, place two vehicles and switch the headlights of one of them off, then stop the server and replace the old pack folders with the new ones as described under "Upgrading from MyCar 0.5.0 and earlier" in the [README](../README.md).
