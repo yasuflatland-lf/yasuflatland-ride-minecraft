@@ -2,7 +2,7 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { asVehicleId } from "../../../../../src/domain/shared/ids";
 import { forward, localPoint } from "../../../../../src/domain/shared/vec";
-import { createVehicle } from "../../../../../src/domain/vehicle/kinds";
+import { rebuildVehicle } from "../../../../../src/domain/vehicle/kinds";
 import { BulldozerDrive } from "../../../../../src/domain/vehicle/kinds/bulldozer/drive";
 import { type Body, engineStep } from "../../../../support/engineModel";
 
@@ -10,7 +10,7 @@ const FORWARD = { moveX: 0, moveY: 1, jump: false };
 it("covers everything the blade swept while driving forward", () =>
   fc.assert(
     fc.property(fc.double({ min: -180, max: 180, noNaN: true }), (yaw) => {
-      const d = new BulldozerDrive(yaw, {});
+      const d = new BulldozerDrive(yaw, { blade: 0 });
       let b: Body = { pos: { x: 0.5, z: 0.5 }, vel: { x: 0, z: 0 } };
       let previous: ReturnType<typeof d.step> | undefined;
       let prev = b.pos;
@@ -50,7 +50,7 @@ it("covers everything the blade swept while driving forward", () =>
         prev = b.pos;
         b = engineStep(b, out.impulse, { mu: 0.69 }).body;
       }
-      const reverse = new BulldozerDrive(yaw, {});
+      const reverse = new BulldozerDrive(yaw, { blade: 0 });
       b = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
       for (let tick = 0; tick < 80; tick++) {
         const out = reverse.step(
@@ -72,7 +72,9 @@ it("covers everything the blade swept while driving forward", () =>
     }),
   ));
 it("cuts under server test input with no driver", () => {
-  const v = createVehicle("bulldozer", asVehicleId("b"), 0);
+  const v = rebuildVehicle("bulldozer", asVehicleId("b"), 0, [], {
+    blade: 0,
+  });
   let b: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
   for (let tick = 0; tick < 30; tick++) {
     const out = v.tick({

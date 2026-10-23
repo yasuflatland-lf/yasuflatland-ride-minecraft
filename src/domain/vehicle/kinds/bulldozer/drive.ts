@@ -15,6 +15,7 @@ import {
 import { bladeColumns } from "./blade";
 import {
   type BULLDOZER_ENTITY,
+  bladeCommand,
   doorCommand,
   trackPhaseCommand,
   trackSpinCommand,
@@ -82,9 +83,10 @@ export function bulldozerHorizontalStep(h: HorizontalStepInput): MotionResult {
   const result = pivotOrDriveStep(h);
   if (!h.jumpTapped || h.form !== "car" || !h.ctx.onGround) return result;
   // stepMotion counts the step tick itself after setting MOTION.stepTicks, leaving 9 ticks (ADR 0136).
+  // A step found on the same tick keeps its higher jump (ADR 0138).
   return {
     ...result,
-    jumpVelocity: BULLDOZER_SPEC.hopVelocity,
+    jumpVelocity: Math.max(result.jumpVelocity, BULLDOZER_SPEC.hopVelocity),
     state: { ...result.state, stepTicks: BULLDOZER_SPEC.hopTicks - 1 },
   };
 }
@@ -108,6 +110,11 @@ export class BulldozerDrive extends TransformingDrive {
   private doorTimer = 0;
   private doorSteps = 0;
   private readonly doorSync = new SyncedValue<number>();
+  /** The state the driver last chose; the blade travels toward it (ADR 0138). */
+  private bladeTargetRaised: boolean;
+  /** 0 (down) to BULLDOZER_SPEC.bladeLiftTicks (up), one step per tick. */
+  private bladeSteps: number;
+  private readonly bladeSync = new SyncedValue<number>();
   private readonly phaseSync = {
     r: new SyncedValue<0 | 1 | 2>(),
     l: new SyncedValue<0 | 1 | 2>(),
@@ -127,12 +134,34 @@ export class BulldozerDrive extends TransformingDrive {
       {
         inputFor: bulldozerInput,
         horizontal: bulldozerHorizontalStep,
-        stepUp: false,
       },
     );
+    const saved = restored.blade;
+    this.bladeTargetRaised =
+      typeof saved === "number"
+        ? saved >= 0.5
+        : BULLDOZER_SPEC.bladeRaisedOnSpawn;
+    this.bladeSteps = this.bladeTargetRaised
+      ? BULLDOZER_SPEC.bladeLiftTicks
+      : 0;
     // Unlike the other kinds, a rebuilt bulldozer resends gravity and its restored
     // form on the first step instead of trusting ADR 0127's primed form (ADR 0136).
     this.resync();
+  }
+
+  /** Whether the blade is raised or rising: the target, not the current height (ADR 0138). */
+  bladeRaised(): boolean {
+    return this.bladeTargetRaised;
+  }
+
+  /** Sets the blade's target; it then moves one step per tick (ADR 0138). */
+  setBlade(raised: boolean): void {
+    this.bladeTargetRaised = raised;
+  }
+
+  // Step-up follows the blade each tick: raised climbs like the SUV, lowered keeps ADR 0136's flat drive (ADR 0138).
+  protected override stepUpEnabled(): boolean {
+    return this.bladeTargetRaised;
   }
 
   onSeatTaken(_seat: number): readonly EngineCommand[] {
@@ -148,6 +177,7 @@ export class BulldozerDrive extends TransformingDrive {
   override resync(): void {
     super.resync();
     this.doorSync.resync();
+    this.bladeSync.resync();
     for (const side of TRACK_SIDES) {
       this.phaseSync[side].resync();
       this.spinSync[side].resync();
@@ -157,6 +187,10 @@ export class BulldozerDrive extends TransformingDrive {
   override step(raw: RawInput | undefined, ctx: TickContext): DriveStep {
     const yawBefore = this.yaw;
     const out = super.step(raw, ctx);
+    const bladeTarget = this.bladeTargetRaised
+      ? BULLDOZER_SPEC.bladeLiftTicks
+      : 0;
+    this.bladeSteps += Math.sign(bladeTarget - this.bladeSteps);
     const cut = this.bladeCut(raw, ctx);
     if (this.form === "car")
       this.travel = advanceTracks(
@@ -176,6 +210,7 @@ export class BulldozerDrive extends TransformingDrive {
     raw: RawInput | undefined,
     ctx: TickContext,
   ): CutColumn[] | undefined {
+    if (this.bladeTargetRaised || this.bladeSteps !== 0) return undefined;
     const reach = cutReach(this.form, ctx.onGround);
     if (
       raw !== undefined &&
@@ -197,6 +232,10 @@ export class BulldozerDrive extends TransformingDrive {
     const commands: EngineCommand[] = [];
     const door = this.doorSync.next(this.doorSteps / BULLDOZER_SPEC.doorSteps);
     if (door !== undefined) commands.push(doorCommand(door));
+    const blade = this.bladeSync.next(
+      this.bladeSteps / BULLDOZER_SPEC.bladeLiftTicks,
+    );
+    if (blade !== undefined) commands.push(bladeCommand(blade));
     for (const side of TRACK_SIDES) {
       const phase = this.phaseSync[side].next(
         trackPhase(this.travel[side], phaseStep),
