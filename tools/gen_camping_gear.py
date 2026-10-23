@@ -9,16 +9,16 @@ stands on y 0; a hanging item also starts on y 0, and its slot's height lifts it
 0102). The atlas is 16 x 16 with one 4 x 4 swatch per color, so mipmapping in the block atlas does
 not bleed a neighbor's color into a face. --check compares parsed JSON and decoded pixels, because
 Biome reformats the geometry and zlib builds do not all compress identically. It also writes the
-Behavior Pack decor blocks, the items, the creative catalog, and the gear part of
+Behavior Pack decor blocks, the items, and the gear part of
 item_texture.json; the decor block's face, height, and spot states are described next to
 FACE_ROTATION. It also writes the pair blocks and their geometry, which draw the two items of a
 shelf board or of the table in one block (PAIRS, ADR 0108), the wall cabinet's compartment
 block, a pair block that also holds the ceiling up and shows its items only while its door is
 open (ADR 0114), and the fridge's compartment block, which shows its items the same way (ADR
 0123).
-The camping gear box (BOX) is the creative group's icon and first item, and its icon entry comes
-first in the generated part of item_texture.json; its item JSON and icon are written elsewhere (ADR
-0093).
+The icon entry of the camping gear box (BOX) comes first in the generated part of
+item_texture.json; its item JSON and icon are written elsewhere (ADR 0093), and
+tools/gen_item_catalog.py lists it in the creative group.
 """
 
 import argparse
@@ -37,7 +37,6 @@ ATLAS = "textures/blocks/yasu_ride/camping_gear.png"
 TERRAIN = "textures/terrain_texture.json"
 BLOCKS = "blocks/yasu_ride"
 ITEMS = "items/yasu_ride"
-CATALOG = "item_catalog/crafting_item_catalog.json"
 ITEM_TEXTURES = "textures/item_texture.json"
 ATLAS_KEY = "yasu_ride_camping_gear"
 # Decor block states (ADR 0093). The rotation turns the gear model into the camper model's frame:
@@ -109,13 +108,10 @@ MAX_STATE_VALUES = 16
 # than 1 value"), so a pair whose ends share one height, the table, has no HEIGHT_STATE and its
 # permutations lift it by that height (ADR 0108).
 MIN_STATE_VALUES = 2
-GROUP = "yasu_ride:camping_gear"
-# The box a player gets with their first camper (ADR 0093): the group's icon and first item.
+# The box a player gets with their first camper (ADR 0093). Its icon entry comes first in the
+# generated part of item_texture.json; tools/gen_item_catalog.py makes it the creative group's
+# icon and first item.
 BOX = "camping_gear_box"
-GROUP_ICON = f"yasu_ride:{BOX}"
-# Camping items that stand outside the vehicles rather than decor, listed after the gear in the
-# creative group. Their item JSON and icon entry are written by hand (ADR 0122, 0130).
-OUTDOOR_ITEMS = ["low_chair_item", "tent_item"]
 ATLAS_SIZE = 16
 SWATCH = 4
 CELL_PX = 16
@@ -650,27 +646,6 @@ def gear_item(item):
     }
 
 
-def catalog(spec):
-    return {
-        "format_version": "1.21.60",
-        "minecraft:crafting_items_catalog": {
-            "categories": [
-                {
-                    "category_name": "items",
-                    "groups": [
-                        {
-                            "group_identifier": {"icon": GROUP_ICON, "name": GROUP},
-                            "items": [f"yasu_ride:{BOX}"]
-                            + [f"yasu_ride:{item['id']}" for item in spec]
-                            + [f"yasu_ride:{i}" for i in OUTDOOR_ITEMS],
-                        }
-                    ],
-                }
-            ]
-        },
-    }
-
-
 def item_textures(current, spec):
     """Keep every other entry in its order, then the box and each gear item, in spec order (ADR 0093)."""
     owned = [BOX] + [item["id"] for item in spec]
@@ -731,7 +706,6 @@ def main():
         documents[bp / ITEMS / f"{gid}.item.json"] = gear_item(item)
     for kind in PAIRS:
         documents[bp / BLOCKS / f"{kind}_decor_pair.block.json"] = pair_block(kind, spec)
-    documents[bp / CATALOG] = catalog(spec)
     documents[rp / ITEM_TEXTURES] = item_textures(json.loads((rp / ITEM_TEXTURES).read_text()), spec)
     atlas = rp / ATLAS
     if not args.check:
@@ -740,7 +714,7 @@ def main():
     stale = stale_files(documents, atlas)
     if stale:
         sys.exit(f"{', '.join(stale)} out of date with tools/gen_camping_gear.py and tools/camping_gear.json. Run `pnpm model` and commit the result.")
-    print("camping gear models, atlas, blocks, items, and catalog are up to date")
+    print("camping gear models, atlas, blocks, and items are up to date")
 
 
 if __name__ == "__main__":
