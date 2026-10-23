@@ -149,7 +149,17 @@ export function transformingHorizontalStep(
       );
 }
 
+/** A kind's meaning for the stick and Jump in each form (ADR 0089). */
+export type InputMapping = (
+  raw: RawInput | undefined,
+  form: Form,
+) => GroundInput;
+
 export interface TransformingOptions {
+  /** Defaults to groundInputFor. */
+  readonly inputFor?: InputMapping;
+  /** Defaults to transformingHorizontalStep. */
+  readonly horizontal?: HorizontalStep;
   readonly guard?: StepGuard;
 }
 
@@ -161,6 +171,8 @@ export class TransformingDrive implements Drive {
   private readonly bankSync = new SyncedValue<number>();
   private gearDown: boolean;
   private readonly gearDownSync = new SyncedValue<boolean>();
+  private readonly inputFor: InputMapping;
+  private readonly horizontal: HorizontalStep;
   private readonly guard: StepGuard | undefined;
 
   constructor(
@@ -171,6 +183,8 @@ export class TransformingDrive implements Drive {
     protected readonly tyres: TyreLimits,
     options: TransformingOptions = {},
   ) {
+    this.inputFor = options.inputFor ?? groundInputFor;
+    this.horizontal = options.horizontal ?? transformingHorizontalStep;
     this.guard = options.guard;
     const form = isForm(restored.form) ? restored.form : "car";
     this.motion = initialMotion(yaw);
@@ -230,10 +244,11 @@ export class TransformingDrive implements Drive {
       ctx.waterAt,
       this.spec.carHeight,
     );
+    const jumpTapped = (raw?.jump ?? false) && !this.formState.jumpHeld;
     const form = this.advanceForm(raw, ctx, controlled, waterDepth);
-    const input = groundInputFor(raw, form);
+    const input = this.inputFor(raw, form);
     const yawBefore = this.motion.yaw;
-    const step = this.moveHorizontally(input, ctx, form);
+    const step = this.moveHorizontally(input, ctx, form, jumpTapped);
     this.bank = stepBank(
       this.bank,
       form,
@@ -291,13 +306,14 @@ export class TransformingDrive implements Drive {
     input: GroundInput,
     ctx: TickContext,
     form: Form,
+    jumpTapped: boolean,
   ): MotionResult {
-    const moved = transformingHorizontalStep({
+    const moved = this.horizontal({
       state: this.motion,
       input,
       ctx,
       form,
-      jumpTapped: false,
+      jumpTapped,
       probe: stepProbe(ctx, this.spec),
       spec: this.spec,
       limits: this.limits,

@@ -23,11 +23,17 @@ import {
 } from "../../../../src/domain/vehicle/motion/forms";
 import {
   initialMotion,
+  type MotionResult,
   stepMotion,
 } from "../../../../src/domain/vehicle/motion/motion";
 import {
+  groundInputFor,
+  type HorizontalStep,
+  type HorizontalStepInput,
+  type InputMapping,
   TransformingDrive,
   type TransformingOptions,
+  transformingHorizontalStep,
 } from "../../../../src/domain/vehicle/motion/transformingDrive";
 import {
   bankCommand,
@@ -538,7 +544,10 @@ function terrainContext(
 }
 
 it("a drive given transformingHorizontalStep explicitly steps like one given no options", () => {
-  const options: TransformingOptions = { guard: undefined };
+  const options: TransformingOptions = {
+    inputFor: groundInputFor,
+    horizontal: transformingHorizontalStep,
+  };
   fc.assert(
     fc.property(stepTerrain, tickSequence, (ground, ticks) => {
       const a = new TransformingDrive(
@@ -561,5 +570,174 @@ it("a drive given transformingHorizontalStep explicitly steps like one given no 
         expect(b.step(sample.raw, ctx)).toStrictEqual(a.step(sample.raw, ctx));
       });
     }),
+  );
+});
+
+function suvDrive(
+  options: TransformingOptions,
+  restored: { form?: Form } = {},
+): TransformingDrive {
+  return new TransformingDrive(
+    0,
+    restored,
+    SUV_TRANSFORMING,
+    SUV_MOTION,
+    SUV_TYRES,
+    options,
+  );
+}
+
+/** A horizontal step that records what it was handed and steps as the default does. */
+function spyStep(): { step: HorizontalStep; seen: () => HorizontalStepInput } {
+  let last: HorizontalStepInput | undefined;
+  return {
+    step: (h) => {
+      last = h;
+      return transformingHorizontalStep(h);
+    },
+    seen: () => {
+      if (last === undefined) throw new Error("the step was not called");
+      return last;
+    },
+  };
+}
+
+it("hands the kind's mapping of this tick's input and resulting form to the horizontal step", () => {
+  const inputFor: InputMapping = (raw, form) => ({
+    throttle: form === "car" ? 0.5 : 0.25,
+    steer: raw?.moveX ?? 0,
+    handbrake: false,
+    creep: false,
+  });
+  fc.assert(
+    fc.property(stepTerrain, tickSequence, (ground, ticks) => {
+      const spy = spyStep();
+      const drive = suvDrive({ inputFor, horizontal: spy.step });
+      ticks.forEach((sample, tick) => {
+        drive.step(sample.raw, terrainContext(ground, sample, tick));
+        expect(spy.seen().form).toBe(drive.form);
+        expect(spy.seen().input).toStrictEqual(
+          inputFor(sample.raw, drive.form),
+        );
+      });
+    }),
+  );
+});
+
+const unit = fc.double({ min: -1, max: 1, noNaN: true });
+const fixedResult: fc.Arbitrary<MotionResult> = fc.record({
+  state: fc.record({
+    speed: unit,
+    yaw: fc.double({ min: -180, max: 180, maxExcluded: true, noNaN: true }),
+    stepTicks: fc.constant(0),
+  }),
+  forward: fc.record({ x: unit, z: unit }),
+  impulse: fc.record({ x: unit, z: unit }),
+  jumpVelocity: fc.double({ min: 0, max: 1, noNaN: true }),
+  blocked: fc.boolean(),
+});
+
+it("moves by the horizontal step's result", () => {
+  fc.assert(
+    fc.property(
+      fixedResult,
+      stepTerrain,
+      tickSequence,
+      (result, ground, ticks) => {
+        const drive = suvDrive({ horizontal: () => result });
+        ticks.forEach((sample, tick) => {
+          const out = drive.step(
+            sample.raw,
+            terrainContext(ground, sample, tick),
+          );
+          expect(drive.speed).toBe(result.state.speed);
+          expect(drive.yaw).toBe(result.state.yaw);
+          expect(out.forward).toStrictEqual(result.forward);
+          expect(out.impulse.x).toBe(result.impulse.x);
+          expect(out.impulse.z).toBe(result.impulse.z);
+          if (drive.form === "car")
+            expect(out.impulse.y).toBe(result.jumpVelocity);
+        });
+      },
+    ),
+  );
+});
+
+it("applies the guard to a kind's horizontal step", () => {
+  fc.assert(
+    fc.property(stepTerrain, tickSequence, (ground, ticks) => {
+      const spy = spyStep();
+      const drive = suvDrive({
+        horizontal: spy.step,
+        guard: (s) => ({ ...s, impulse: { x: 7, z: -7 } }),
+      });
+      ticks.forEach((sample, tick) => {
+        const out = drive.step(
+          sample.raw,
+          terrainContext(ground, sample, tick),
+        );
+        expect(out.impulse.x).toBe(7);
+        expect(out.impulse.z).toBe(-7);
+      });
+    }),
+  );
+});
+
+it("reports a Jump tap only on the tick Jump goes down", () => {
+  const axis = fc.double({ min: -1, max: 1, noNaN: true });
+  fc.assert(
+    fc.property(
+      fc.array(
+        fc.option(fc.record({ moveX: axis, moveY: axis, jump: fc.boolean() }), {
+          nil: undefined,
+        }),
+      ),
+      (raws) => {
+        for (const restored of [{}, { form: "hover" as const }]) {
+          const spy = spyStep();
+          const drive = suvDrive({ horizontal: spy.step }, restored);
+          raws.forEach((raw, i) => {
+            drive.step(raw, { ...context(), tick: i });
+            expect(spy.seen().jumpTapped).toBe(
+              (raw?.jump ?? false) && !(raws[i - 1]?.jump ?? false),
+            );
+          });
+        }
+      },
+    ),
+  );
+});
+
+it("carries the horizontal step's state into the next tick", () => {
+  fc.assert(
+    fc.property(
+      stepTerrain,
+      tickSequence,
+      fc.array(fc.integer({ min: 0, max: 5 }), {
+        minLength: 80,
+        maxLength: 80,
+      }),
+      (ground, ticks, stepTicks) => {
+        let seen: HorizontalStepInput | undefined;
+        let returned: MotionResult | undefined;
+        const drive = suvDrive({
+          horizontal: (h) => {
+            seen = h;
+            const moved = transformingHorizontalStep(h);
+            returned = {
+              ...moved,
+              state: { ...moved.state, stepTicks: stepTicks[h.ctx.tick] ?? 0 },
+            };
+            return returned;
+          },
+        });
+        ticks.forEach((sample, tick) => {
+          const previous = returned;
+          drive.step(sample.raw, terrainContext(ground, sample, tick));
+          if (previous !== undefined)
+            expect(seen?.state).toStrictEqual(previous.state);
+        });
+      },
+    ),
   );
 });
