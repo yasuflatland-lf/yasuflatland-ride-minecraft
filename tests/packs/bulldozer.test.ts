@@ -50,8 +50,9 @@ it("declares the transforming properties with a zero bank range", () => {
       `${BP}/entities/yasu_ride/bulldozer.se.json`,
       "utf8",
     );
-    expect(text).toMatch(
-      new RegExp(`"yasu_ride:${key}"[\\s\\S]*?"range": [\\s*\\d+\\.0`),
+    const definition = text.slice(text.indexOf(`"yasu_ride:${key}"`));
+    expect(definition.slice(0, definition.indexOf('"default"'))).toMatch(
+      /"range": \[\s*\d+\.0/,
     );
   }
 });

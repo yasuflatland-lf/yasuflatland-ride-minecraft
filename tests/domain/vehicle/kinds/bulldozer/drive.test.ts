@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { clamp, normalizeYaw } from "../../../../../src/domain/shared/vec";
 import type { TickContext } from "../../../../../src/domain/vehicle/drive";
+import type { RawInput } from "../../../../../src/domain/vehicle/driveInput";
 import { toDriveInput } from "../../../../../src/domain/vehicle/driveInput";
 import { bladeColumns } from "../../../../../src/domain/vehicle/kinds/bulldozer/blade";
 import {
@@ -18,6 +19,11 @@ import {
   BULLDOZER_SPEC as S,
   BULLDOZER_TRANSFORMING as spec,
 } from "../../../../../src/domain/vehicle/kinds/bulldozer/spec";
+import {
+  advanceTracks,
+  trackPhase,
+  trackSpin,
+} from "../../../../../src/domain/vehicle/kinds/bulldozer/tracks";
 import { SuvDrive } from "../../../../../src/domain/vehicle/kinds/suv/drive";
 import { FORMS } from "../../../../../src/domain/vehicle/motion/forms";
 import { initialMotion } from "../../../../../src/domain/vehicle/motion/motion";
@@ -280,41 +286,83 @@ it("cuts from the feet to the sky in car form on the ground while moving forward
   }
 });
 it("cuts the body's height in takeoff, hover and landing", () => {
-  for (const form of ["takeoff", "hover", "landing"] as const) {
-    const d = new BulldozerDrive(0, { form });
-    let b: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
-    for (let tick = 0; tick < 30; tick++) {
-      const out = d.step(FORWARD, {
-        ...context(),
-        tick,
-        location: { ...b.pos, y: 64.5 },
-        onGround: false,
-        solidAt: () => false,
-        velocity: { ...b.vel, y: 0 },
-      });
-      b = engineStep(b, out.impulse, { mu: 0.69, drag: 0.91 }, false).body;
+  const d = new BulldozerDrive(0, {});
+  let b: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
+  const seen = new Set<string>();
+  for (let tick = 0; tick < 100; tick++) {
+    const jump = tick === 50 || tick === 54 || tick === 80 || tick === 84;
+    const ground = tick < 51;
+    const ctx = {
+      ...context(),
+      tick,
+      location: { ...b.pos, y: 64.5 },
+      onGround: ground,
+      solidAt: () => false,
+      velocity: { ...b.vel, y: 0 },
+    };
+    const out = d.step({ ...FORWARD, jump }, ctx);
+    b = engineStep(
+      b,
+      out.impulse,
+      { mu: 0.69, drag: ground ? 0.69 : 0.91 },
+      ground,
+    ).body;
+    if (["takeoff", "hover", "landing"].includes(d.form)) {
+      seen.add(d.form);
+      expect(out.cut?.length).toBeGreaterThan(0);
       for (const c of out.cut ?? [])
         expect(c.bottom + (c.height ?? 0)).toBe(68);
     }
-    expect(d.speed).toBeGreaterThan(0.02);
   }
+  expect([...seen].sort()).toEqual(["hover", "landing", "takeoff"]);
 });
-it("cuts nothing in a hop, off a ledge, under water, reversing, standing, pivoting, at 0.02 or below, or without input", () =>
+it("cuts nothing in a hop, off a ledge, under water, reversing, standing, pivoting, at 0.02 or below, or without input", () => {
   fc.assert(
     fc.property(
-      fc.constantFrom(...FORMS),
-      fc.boolean(),
-      unit,
-      (form, onGround, moveY) => {
-        const d = new BulldozerDrive(0, { form });
-        const out = d.step(
-          { ...IDLE, moveY },
-          { ...context(form === "submarine" ? 3 : 0), onGround },
+      fc.constantFrom(
+        "hop",
+        "ledge",
+        "submarine",
+        "reverse",
+        "standing",
+        "pivot",
+        "slow",
+        "no input",
+      ),
+      yaw,
+      (condition, heading) => {
+        const d = new BulldozerDrive(
+          heading,
+          condition === "submarine" ? { form: "submarine" } : {},
         );
-        expect(out.cut ?? []).toEqual([]);
+        let b: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
+        for (let tick = 0; tick < 60; tick++) {
+          const checking = tick >= 50;
+          let raw: RawInput | undefined = FORWARD;
+          let onGround = true;
+          if (condition === "reverse") raw = { ...IDLE, moveY: -1 };
+          if (condition === "standing" || condition === "slow") raw = IDLE;
+          if (checking) {
+            if (condition === "hop" || condition === "ledge") onGround = false;
+            if (condition === "pivot") raw = { ...IDLE, moveX: 1 };
+            if (condition === "no input") raw = undefined;
+          }
+          const ctx = {
+            ...context(condition === "submarine" ? 3 : 0),
+            tick,
+            onGround,
+            velocity: { ...b.vel, y: 0 },
+          };
+          const out = d.step(raw, ctx);
+          b = engineStep(b, out.impulse, { mu: 0.69 }, onGround).body;
+          if (checking) expect(out.cut ?? []).toEqual([]);
+        }
       },
     ),
-  ));
+  );
+  const d = new BulldozerDrive(0, {});
+  expect(d.step(FORWARD, context()).cut ?? []).toEqual([]);
+});
 it("maps forms to the cut reach", () => {
   for (const f of FORMS)
     for (const ground of [true, false])
@@ -331,15 +379,24 @@ it("maps forms to the cut reach", () => {
 it("runs the tracks opposite ways on a pivot", () => {
   const d = new BulldozerDrive(0, {});
   const values: Record<string, unknown> = {};
-  for (let tick = 0; tick < 10; tick++)
+  let travel = { r: 0, l: 0 };
+  for (let tick = 0; tick < 10; tick++) {
+    travel = advanceTracks(travel, 0, -3, S.tracks);
     for (const c of d.step({ ...IDLE, moveX: 1 }, { ...context(), tick })
       .commands)
       if (c.type === "setProperty") values[c.name] = c.value;
+  }
   expect(values).toMatchObject({
     spin_r: 64,
     spin_l: 296,
     track_r: 2,
     track_l: 0,
+  });
+  expect(values).toMatchObject({
+    spin_r: trackSpin(travel.r, S.tracks.radius),
+    spin_l: trackSpin(travel.l, S.tracks.radius),
+    track_r: trackPhase(travel.r, S.tracks.phaseStep),
+    track_l: trackPhase(travel.l, S.tracks.phaseStep),
   });
 });
 it("stops the tracks out of car form", () => {
@@ -355,20 +412,31 @@ it("stops the tracks out of car form", () => {
 it("sends each track value only when it changes, and all again after resync", () => {
   const d = new BulldozerDrive(0, {});
   let b: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
-  let found = false;
-  for (let tick = 0; tick < 60; tick++) {
-    const out = d.step(
-      { ...IDLE, moveX: 0.36 },
-      { ...context(), tick, velocity: { ...b.vel, y: 0 } },
-    );
+  const last: Record<string, unknown> = {};
+  let onlyRight = false;
+  for (let tick = 0; tick < 200; tick++) {
+    const raw =
+      tick % 37 < 3
+        ? { ...IDLE, moveX: 0.371 }
+        : tick % 37 < 9
+          ? { ...IDLE, moveY: 0.11 }
+          : IDLE;
+    const before = { ...last };
+    const out = d.step(raw, {
+      ...context(),
+      tick,
+      velocity: { ...b.vel, y: 0 },
+    });
     b = engineStep(b, out.impulse, { mu: 0.69 }).body;
-    const names = out.commands.map((c) => c.name);
-    if (names.includes("spin_r") && !names.includes("track_r")) {
-      found = true;
-      expect(names).not.toContain("track_r");
-    }
+    const tracks = out.commands.filter((c) => /^(track|spin)_/.test(c.name));
+    for (const c of tracks)
+      if (c.type === "setProperty") {
+        if (tick > 0) expect(c.value).not.toBe(before[c.name]);
+        last[c.name] = c.value;
+      }
+    if (tracks.length === 1 && tracks[0]?.name === "spin_r") onlyRight = true;
   }
-  expect(found).toBe(true);
+  expect(onlyRight).toBe(true);
   d.resync();
   const out = d.step(IDLE, context());
   for (const key of ["door", "track_r", "track_l", "spin_r", "spin_l"])
@@ -405,4 +473,24 @@ it("keeps flying after a restart and resends its state", () => {
   const out = d.step(IDLE, { ...context(), tick: 1, onGround: false });
   for (const key of ["door", "track_r", "track_l", "spin_r", "spin_l"])
     expect(propertyValue(out.commands, key)).toBeDefined();
+});
+
+it("cuts a full body tunnel while moving after a restart", () => {
+  const d = new BulldozerDrive(0, { form: "hover" });
+  let b: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
+  for (let tick = 0; tick < 20; tick++) {
+    const out = d.step(FORWARD, {
+      ...context(),
+      tick,
+      location: { ...b.pos, y: 64.5 },
+      onGround: false,
+      velocity: { ...b.vel, y: 0 },
+    });
+    b = engineStep(b, out.impulse, { mu: 0.69, drag: 0.91 }, false).body;
+    if (tick >= 9) {
+      expect(out.cut?.length).toBeGreaterThan(0);
+      for (const c of out.cut ?? [])
+        expect(c.bottom + (c.height ?? 0)).toBe(68);
+    }
+  }
 });

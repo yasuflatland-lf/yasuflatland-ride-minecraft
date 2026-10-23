@@ -1,0 +1,96 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "yasu_ride:bulldozer",
+      "materials": {
+        "default": "entity",
+        "glass": "entity_alphablend",
+        "lamp": "entity",
+        "lamp_lit": "entity_emissive"
+      },
+      "textures": {
+        "default": "textures/entity/yasu_ride/bulldozer",
+        "green": "textures/entity/yasu_ride/bulldozer_green",
+        "red": "textures/entity/yasu_ride/bulldozer_red",
+        "white": "textures/entity/yasu_ride/bulldozer_white",
+        "light_gray": "textures/entity/yasu_ride/bulldozer_light_gray",
+        "gray": "textures/entity/yasu_ride/bulldozer_gray",
+        "black": "textures/entity/yasu_ride/bulldozer_black",
+        "orange": "textures/entity/yasu_ride/bulldozer_orange",
+        "yellow": "textures/entity/yasu_ride/bulldozer_yellow",
+        "lime": "textures/entity/yasu_ride/bulldozer_lime",
+        "cyan": "textures/entity/yasu_ride/bulldozer_cyan",
+        "light_blue": "textures/entity/yasu_ride/bulldozer_light_blue",
+        "blue": "textures/entity/yasu_ride/bulldozer_blue",
+        "purple": "textures/entity/yasu_ride/bulldozer_purple",
+        "magenta": "textures/entity/yasu_ride/bulldozer_magenta",
+        "pink": "textures/entity/yasu_ride/bulldozer_pink"
+      },
+      "geometry": {
+        "default": "geometry.yasu_ride.bulldozer"
+      },
+      "particle_effects": {
+        "hover_glow": "yasu_ride:hover_glow"
+      },
+      "animations": {
+        "form": "controller.animation.yasu_ride.bulldozer.form",
+        "drive": "animation.yasu_ride.bulldozer.drive",
+        "hover_glow": "animation.yasu_ride.bulldozer.hover_glow",
+        "propeller": "animation.yasu_ride.bulldozer.propeller",
+        "propeller_stowed": "animation.yasu_ride.bulldozer.propeller_stowed",
+        "engine_sound_0": "animation.yasu_ride.bulldozer.engine_sound_0",
+        "engine_sound_1": "animation.yasu_ride.bulldozer.engine_sound_1",
+        "engine_sound_2": "animation.yasu_ride.bulldozer.engine_sound_2",
+        "engine_sound_3": "animation.yasu_ride.bulldozer.engine_sound_3",
+        "engine_sound_4": "animation.yasu_ride.bulldozer.engine_sound_4",
+        "engine_sound_5": "animation.yasu_ride.bulldozer.engine_sound_5",
+        "hover_sound_0": "animation.yasu_ride.bulldozer.hover_sound_0",
+        "hover_sound_1": "animation.yasu_ride.bulldozer.hover_sound_1",
+        "hover_sound_2": "animation.yasu_ride.bulldozer.hover_sound_2",
+        "hover_sound_3": "animation.yasu_ride.bulldozer.hover_sound_3",
+        "hover_sound_4": "animation.yasu_ride.bulldozer.hover_sound_4",
+        "submarine_sound": "animation.yasu_ride.bulldozer.submarine_sound"
+      },
+      "sound_effects": {
+        "engine_0": "yasu_ride.engine_0",
+        "engine_1": "yasu_ride.engine_1",
+        "engine_2": "yasu_ride.engine_2",
+        "engine_3": "yasu_ride.engine_3",
+        "engine_4": "yasu_ride.engine_4",
+        "engine_5": "yasu_ride.engine_5",
+        "hover_0": "yasu_ride.hover_0",
+        "hover_1": "yasu_ride.hover_1",
+        "hover_2": "yasu_ride.hover_2",
+        "hover_3": "yasu_ride.hover_3",
+        "hover_4": "yasu_ride.hover_4",
+        "sonar": "yasu_ride.sonar"
+      },
+      "render_controllers": ["controller.render.yasu_ride.bulldozer"],
+      "scripts": {
+        "animate": [
+          "form",
+          "drive",
+          {
+            "engine_sound_0": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.ground_speed < 0.5"
+          },
+          {
+            "engine_sound_1": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.ground_speed >= 0.5 && query.ground_speed < 2.25"
+          },
+          {
+            "engine_sound_2": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.ground_speed >= 2.25 && query.ground_speed < 4"
+          },
+          {
+            "engine_sound_3": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.ground_speed >= 4 && query.ground_speed < 5.75"
+          },
+          {
+            "engine_sound_4": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.ground_speed >= 5.75 && query.ground_speed < 7.5"
+          },
+          {
+            "engine_sound_5": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.ground_speed >= 7.5"
+          }
+        ]
+      }
+    }
+  }
+}

@@ -29,12 +29,14 @@ export const ENTITY_TYPE: Readonly<Record<VehicleKind, string>> = Object.freeze(
     suv: id("suv"),
     sportsboat: id("sportsboat"),
     camper: id("camper"),
+    bulldozer: id("bulldozer"),
   },
 );
 export const ITEM_TYPE: Readonly<Record<VehicleKind, string>> = Object.freeze({
   suv: id("suv_item"),
   sportsboat: id("sportsboat_item"),
   camper: id("camper_item"),
+  bulldozer: id("bulldozer_item"),
 });
 export function kindOfEntity(
   typeId: string | undefined,
@@ -52,7 +54,10 @@ export function kindOfItem(
 export const PLAYER_TYPE = "minecraft:player";
 /** Player dynamic property set after they have been given each starter kind's item (ADR 0023). The SUV keeps the original key, so nobody gets a second SUV. */
 export const STARTER_RECEIVED_PROPERTY: Readonly<Record<StarterKind, string>> =
-  Object.freeze({ suv: id("starter_received") });
+  Object.freeze({
+    suv: id("starter_received"),
+    bulldozer: id("bulldozer_starter_received"),
+  });
 
 /** The item of each placement gift (ADR 0093). */
 export const GIFT_ITEM: Readonly<Record<PlacementGift, string>> = Object.freeze(

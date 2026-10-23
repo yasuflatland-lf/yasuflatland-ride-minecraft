@@ -137,6 +137,7 @@ export async function setupArena(): Promise<Arena> {
   dim.runCommand(`kill @e[type=${ENTITY_TYPE.suv}]`);
   dim.runCommand(`kill @e[type=${ENTITY_TYPE.sportsboat}]`);
   dim.runCommand(`kill @e[type=${ENTITY_TYPE.camper}]`);
+  dim.runCommand(`kill @e[type=${ENTITY_TYPE.bulldozer}]`);
   dim.runCommand(`kill @e[type=${LOW_CHAIR_TYPE}]`);
   dim.runCommand(`kill @e[type=${TENT_TYPE}]`);
   dim.runCommand("kill @e[type=cow]");

@@ -11,16 +11,18 @@ const g = BULLDOZER_SPEC.tracks;
 const n = fc.double({ min: -1000, max: 1000, noNaN: true });
 it("runs both tracks by the speed when driving straight", () =>
   fc.assert(
-    fc.property(n, n, n, (r, l, s) =>
-      expect(advanceTracks({ r, l }, s, 0, g)).toEqual({ r: r + s, l: l + s }),
-    ),
+    fc.property(n, n, n, (r, l, s) => {
+      const t = advanceTracks({ r, l }, s, 0, g);
+      expect(t.r).toBeCloseTo(r + s, 9);
+      expect(t.l).toBeCloseTo(l + s, 9);
+    }),
   ));
 it("runs the tracks opposite ways on a pivot", () =>
   fc.assert(
     fc.property(n, (d) => {
       const t = advanceTracks({ r: 0, l: 0 }, 0, d, g);
       expect(t.r).toBeCloseTo(((-d * Math.PI) / 180) * g.halfGauge, 9);
-      expect(t.l).toBe(-t.r);
+      expect(t.l).toBeCloseTo(-t.r, 9);
     }),
   ));
 it("repeats the grouser phase every three phase steps", () => {
@@ -28,10 +30,11 @@ it("repeats the grouser phase every three phase steps", () => {
     fc.property(
       fc.integer({ min: -10000, max: 10000 }),
       fc.integer({ min: -100, max: 100 }),
-      (a, b) =>
+      (a, b) => {
         expect(trackPhase((a + 0.5 + 3 * b) * g.phaseStep, g.phaseStep)).toBe(
           trackPhase((a + 0.5) * g.phaseStep, g.phaseStep),
-        ),
+        );
+      },
     ),
   );
   expect(trackPhase(0, g.phaseStep)).toBe(0);

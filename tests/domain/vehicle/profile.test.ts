@@ -5,6 +5,7 @@ import { asVehicleId } from "../../../src/domain/shared/ids";
 import { dot, forward, rightOf } from "../../../src/domain/shared/vec";
 import { NEUTRAL_CONTROL } from "../../../src/domain/vehicle/driveInput";
 import { isVehicleKind, VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
+import { BULLDOZER_PROFILE } from "../../../src/domain/vehicle/kinds/bulldozer/profile";
 import {
   CAMPER_MOTION,
   CAMPER_PROFILE,
@@ -280,6 +281,7 @@ describe("vehicle profiles (ADR 0050)", () => {
             suv: SUV_PROFILE,
             sportsboat: SPORTSBOAT_PROFILE,
             camper: CAMPER_PROFILE,
+            bulldozer: BULLDOZER_PROFILE,
           }[kind],
         );
         expect(createVehicle(kind, asVehicleId("v"), heading).kind).toBe(kind);
