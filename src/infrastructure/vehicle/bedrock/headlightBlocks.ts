@@ -17,26 +17,22 @@ interface Lit {
   cells: LitCell[];
 }
 
+function isInteger(v: unknown): v is number {
+  return Number.isInteger(v);
+}
+
 function litCellFrom(v: unknown): LitCell | undefined {
   if (typeof v !== "object" || v === null) return undefined;
-  const c = v as Record<string, unknown>;
-  const { x, y, z } = c;
-  if (
-    typeof x !== "number" ||
-    typeof y !== "number" ||
-    typeof z !== "number" ||
-    ![x, y, z].every(Number.isInteger)
-  )
+  const { x, y, z, level = FULL_LIGHT_LEVEL } = v as Record<string, unknown>;
+  if (!isInteger(x) || !isInteger(y) || !isInteger(z)) return undefined;
+  if (!isInteger(level) || level < 0 || level > FULL_LIGHT_LEVEL) {
     return undefined;
-  const level = c.level === undefined ? FULL_LIGHT_LEVEL : c.level;
-  if (
-    typeof level !== "number" ||
-    !Number.isInteger(level) ||
-    level < 0 ||
-    level > FULL_LIGHT_LEVEL
-  )
-    return undefined;
+  }
   return { x, y, z, level };
+}
+
+function litKeysOf(cells: readonly LitCell[]): string {
+  return cells.map(litCellKey).join(";");
 }
 
 // The cells a vehicle lit are saved on the entity, so a /reload or a restart
@@ -47,7 +43,7 @@ function savedCells(vehicle: Entity): LitCell[] {
   try {
     const parsed: unknown = JSON.parse(raw);
     return Array.isArray(parsed)
-      ? parsed.map(litCellFrom).filter((c): c is LitCell => c !== undefined)
+      ? parsed.flatMap((v) => litCellFrom(v) ?? [])
       : [];
   } catch {
     return [];
@@ -74,11 +70,11 @@ export class HeadlightBlocks {
       this.update(entry, []);
       entry = { dimension: vehicle.dimension, cells: [] };
     }
-    const before = entry.cells.map(litCellKey).join(";");
+    const before = litKeysOf(entry.cells);
     this.update(entry, vehicle ? wanted : []);
     if (entry.cells.length > 0) this.lit.set(vehicleId, entry);
     else this.lit.delete(vehicleId);
-    if (vehicle?.isValid && entry.cells.map(litCellKey).join(";") !== before) {
+    if (vehicle?.isValid && litKeysOf(entry.cells) !== before) {
       vehicle.setDynamicProperty(
         LIT_CELLS_PROPERTY,
         entry.cells.length > 0 ? JSON.stringify(entry.cells) : undefined,

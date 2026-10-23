@@ -10,7 +10,8 @@ export const litCellKey = (c: LitCell): string => `${cellKey(c)}@${c.level}`;
 /**
  * Cells ahead of a vehicle at `location` facing `yaw`: the distinct cells
  * reached by each reach and lane in `beams` (pairs that floor to the same
- * block share one cell, at the brighter level), one block above the ground the vehicle stands on.
+ * block share one cell, at the brighter level), one block above the ground
+ * the vehicle stands on.
  */
 export function headlightCells(
   location: Vec3,
@@ -21,17 +22,14 @@ export function headlightCells(
   const y = Math.floor(location.y) + 1;
   const cells = new Map<string, LitCell>();
   for (const [i, reach] of beams.reach.entries()) {
+    const level = beams.levels?.[i] ?? FULL_LIGHT_LEVEL;
     for (const lane of beams.lanes) {
       const p = localPoint(location, f, reach, lane);
-      const c = {
-        x: Math.floor(p.x),
-        y,
-        z: Math.floor(p.z),
-        level: beams.levels?.[i] ?? FULL_LIGHT_LEVEL,
-      };
-      const previous = cells.get(cellKey(c));
-      if (previous) c.level = Math.max(previous.level, c.level);
-      cells.set(cellKey(c), c);
+      const c = { x: Math.floor(p.x), y, z: Math.floor(p.z) };
+      const key = cellKey(c);
+      const previous = cells.get(key);
+      const brightest = previous ? Math.max(previous.level, level) : level;
+      cells.set(key, { ...c, level: brightest });
     }
   }
   return [...cells.values()];
