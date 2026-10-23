@@ -1,6 +1,7 @@
 import type { Entity } from "@minecraft/server";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import type { SpaceCheck } from "../../../../src/application/shared/ports/space";
 import { cellKey } from "../../../../src/domain/shared/cells";
 import { asVehicleId } from "../../../../src/domain/shared/ids";
 import { LIGHT_BLOCK } from "../../../../src/infrastructure/shared/lightBlocks";
@@ -8,6 +9,8 @@ import { HeadlightBlocks } from "../../../../src/infrastructure/vehicle/bedrock/
 import { LIT_CELLS_PROPERTY } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 import { blockGrid } from "../../../support/blockGrid";
 import { defined } from "../../../support/defined";
+
+const noCampSpace: SpaceCheck = () => false;
 
 const cell = fc.record({
   x: fc.integer({ min: -3, max: 3 }),
@@ -37,7 +40,7 @@ describe("HeadlightBlocks (ADR 0020)", () => {
       fc.property(cells, (wanted) => {
         const grid = blockGrid();
         const car = vehicleIn(grid);
-        const lights = new HeadlightBlocks();
+        const lights = new HeadlightBlocks(noCampSpace);
         lights.shine(asVehicleId(car.id), car, wanted);
         expect(wanted.map(grid.typeAt)).toEqual(
           wanted.map(() => "minecraft:light_block_15"),
@@ -55,7 +58,7 @@ describe("HeadlightBlocks (ADR 0020)", () => {
       fc.property(cells, (wanted) => {
         const grid = blockGrid();
         const car = vehicleIn(grid);
-        const lights = new HeadlightBlocks();
+        const lights = new HeadlightBlocks(noCampSpace);
         lights.shine(asVehicleId(car.id), car, wanted);
         const [first, ...others] = wanted;
         const placed = defined(first, "first wanted cell");
@@ -78,7 +81,7 @@ describe("HeadlightBlocks (ADR 0020)", () => {
       fc.property(cells, (wanted) => {
         const grid = blockGrid();
         const car = vehicleIn(grid);
-        const lights = new HeadlightBlocks();
+        const lights = new HeadlightBlocks(noCampSpace);
         lights.shine(asVehicleId(car.id), car, wanted);
         lights.clearGone(new Set([asVehicleId(car.id)]));
         expect(wanted.map(grid.typeAt)).toEqual(wanted.map(() => LIGHT_BLOCK));
@@ -96,7 +99,7 @@ describe("HeadlightBlocks (ADR 0020)", () => {
         const overworld = blockGrid();
         const nether = blockGrid();
         const car = vehicleIn(overworld);
-        const lights = new HeadlightBlocks();
+        const lights = new HeadlightBlocks(noCampSpace);
         lights.shine(asVehicleId(car.id), car, wanted);
         Object.assign(car, {
           dimension: { id: "nether", getBlock: nether.getBlock },
@@ -113,9 +116,24 @@ describe("HeadlightBlocks (ADR 0020)", () => {
   });
 
   it("does nothing for a gone vehicle it has not lit", () => {
-    const lights = new HeadlightBlocks();
+    const lights = new HeadlightBlocks(noCampSpace);
     expect(() =>
       lights.shine(asVehicleId("gone"), undefined, []),
     ).not.toThrow();
   });
+});
+
+it("skips a wanted camp cell and lights the others (ADR 0129)", () => {
+  const grid = blockGrid();
+  const car = vehicleIn(grid);
+  const wanted = [
+    { x: 0, y: 65, z: 0 },
+    { x: 1, y: 65, z: 0 },
+  ];
+  new HeadlightBlocks((_, at) => at.x === 0).shine(
+    asVehicleId(car.id),
+    car,
+    wanted,
+  );
+  expect(wanted.map(grid.typeAt)).toEqual(["minecraft:air", LIGHT_BLOCK]);
 });

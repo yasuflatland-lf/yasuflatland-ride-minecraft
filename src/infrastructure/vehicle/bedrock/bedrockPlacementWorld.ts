@@ -1,5 +1,6 @@
 // Implements PlacementWorld with @minecraft/server (ADR 0012).
 import { world } from "@minecraft/server";
+import type { SpaceCheck } from "../../../application/shared/ports/space";
 import type { PlacementWorld } from "../../../application/vehicle/ports/placement";
 import {
   asVehicleId,
@@ -29,7 +30,12 @@ export class BedrockPlacementWorld implements PlacementWorld {
   constructor(
     private readonly inventory: BedrockInventory,
     private readonly index: EntityIndex,
+    private readonly campSpace: SpaceCheck,
   ) {}
+
+  isCampSpace(dimensionId: DimensionId, at: Vec3): boolean {
+    return this.campSpace(dimensionId, at);
+  }
 
   isAir(dimensionId: DimensionId, at: Vec3): boolean {
     try {

@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { SpaceCheck } from "../../../../src/application/shared/ports/space";
 import {
   asDimensionId,
   asPlayerId,
@@ -114,13 +115,13 @@ function fixture() {
   return {
     index,
     inventory,
-    placement: new BedrockPlacementWorld(inventory, index),
+    placement: new BedrockPlacementWorld(inventory, index, noCampSpace),
     paint: new BedrockPaintWorld(index, inventory),
     inputs,
     entities,
     dimension,
     car,
-    world: new BedrockVehicleWorld(index, inputs),
+    world: new BedrockVehicleWorld(index, inputs, noCampSpace),
   };
 }
 
@@ -1371,3 +1372,5 @@ describe("BedrockVehicleWorld.isVehicleSpace (ADR 0122)", () => {
     expect(world.isVehicleSpace(OVERWORLD, { x: -2, y: 64, z: 2 })).toBe(false);
   });
 });
+
+const noCampSpace: SpaceCheck = () => false;

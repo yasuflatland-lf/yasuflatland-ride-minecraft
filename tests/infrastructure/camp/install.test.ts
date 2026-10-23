@@ -1,3 +1,4 @@
+import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import { HitChair } from "../../../src/application/camp/hitChair";
 import { PlaceChair } from "../../../src/application/camp/placeChair";
@@ -32,4 +33,17 @@ it("wires one hit use case into both hit handlers and asks the vehicles for thei
     placeChair?.cellFor(here, { x: 0, y: 64, z: 0 }, "up"),
   ).toBeUndefined();
   expect(isVehicleSpace).toHaveBeenCalledWith(here, { x: 0, y: 65, z: 0 });
+});
+
+it("claims no camp space for any dimension and integer cell (ADR 0129)", () => {
+  const { isCampSpace } = installCamp({ isVehicleSpace: () => false });
+  fc.assert(
+    fc.property(
+      fc.string(),
+      fc.record({ x: fc.integer(), y: fc.integer(), z: fc.integer() }),
+      (dim, at) => {
+        expect(isCampSpace(asDimensionId(dim), at)).toBe(false);
+      },
+    ),
+  );
 });

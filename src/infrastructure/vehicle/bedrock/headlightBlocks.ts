@@ -1,7 +1,8 @@
 // Light blocks in front of vehicles with their headlights on (ADR 0020).
 import type { Dimension, Entity } from "@minecraft/server";
+import type { SpaceCheck } from "../../../application/shared/ports/space";
 import { type Cell, cellKey } from "../../../domain/shared/cells";
-import type { VehicleId } from "../../../domain/shared/ids";
+import { asDimensionId, type VehicleId } from "../../../domain/shared/ids";
 import { relight } from "../../../domain/vehicle/lighting/headlights";
 import { isLightBlock, LIGHT_BLOCK } from "../../shared/lightBlocks";
 import { LIT_CELLS_PROPERTY } from "./identifiers";
@@ -32,6 +33,8 @@ function savedCells(vehicle: Entity): Cell[] {
 
 export class HeadlightBlocks {
   private readonly lit = new Map<VehicleId, Lit>();
+
+  constructor(private readonly campSpace: SpaceCheck) {}
 
   /** `vehicle` is undefined when the entity is gone; its cells are then only cleared. */
   shine(
@@ -90,7 +93,9 @@ export class HeadlightBlocks {
       }
     }
     const cells = entry.cells.filter((c) => !cleared.has(cellKey(c)));
+    const dimensionId = asDimensionId(entry.dimension.id);
     for (const c of light) {
+      if (this.campSpace(dimensionId, c)) continue;
       try {
         const b = entry.dimension.getBlock(c);
         if (!b?.isAir) continue;
