@@ -550,7 +550,7 @@ function terrainContext(
   };
 }
 
-it("a drive given the default mapping and horizontal step explicitly steps like one given no options", () => {
+it("a drive given transformingHorizontalStep explicitly steps like one given no options", () => {
   const options: TransformingOptions = {
     inputFor: groundInputFor,
     horizontal: transformingHorizontalStep,
@@ -798,6 +798,30 @@ it("with step-up off only the landing gear reads solidAt", () => {
   );
 });
 
+// A one-block shore step ahead of the bow, where the probe dropped by
+// submarineStepProbeDrop finds it (ADR 0035). Terrain solid everywhere above
+// the drop leaves no headroom, so stepHeight would never find a step there.
+const shoreStep: TickContext["solidAt"] = (o) =>
+  o.z >= SUV_TRANSFORMING.hitboxFront + 0.1 &&
+  o.y >= -SUV_TRANSFORMING.submarineStepProbeDrop &&
+  o.y < 1 - SUV_TRANSFORMING.submarineStepProbeDrop;
+
+function submarineImpulseWithoutRise(raw: RawInput, ctx: TickContext): number {
+  const waterDepth = waterDepthAt(
+    ctx.location,
+    ctx.waterAt,
+    SUV_TRANSFORMING.carHeight,
+  );
+  return verticalImpulse(
+    submarineVerticalSpeed(
+      { climb: climbInput(raw), controlled: true, rising: false, waterDepth },
+      SUV_TRANSFORMING,
+    ),
+    ctx.velocity.y,
+    SUV_TRANSFORMING.waterVerticalDrag,
+  );
+}
+
 it("with step-up off a submarine rises only by climb and buoyancy", () => {
   fc.assert(
     fc.property(tickSequence, (ticks) => {
@@ -809,36 +833,31 @@ it("with step-up off a submarine rises only by climb and buoyancy", () => {
           tick,
           velocity,
           onGround,
-          // A one-block shore step ahead of the bow, where the probe dropped by
-          // submarineStepProbeDrop finds it (ADR 0035).
-          solidAt: (o) =>
-            o.z >= SUV_TRANSFORMING.hitboxFront + 0.1 &&
-            o.y >= -SUV_TRANSFORMING.submarineStepProbeDrop &&
-            o.y < 1 - SUV_TRANSFORMING.submarineStepProbeDrop,
+          solidAt: shoreStep,
         };
         const out = drive.step(input, ctx);
         if (drive.form !== "submarine") return;
-        const waterDepth = waterDepthAt(
-          ctx.location,
-          ctx.waterAt,
-          SUV_TRANSFORMING.carHeight,
-        );
-        expect(out.impulse.y).toBe(
-          verticalImpulse(
-            submarineVerticalSpeed(
-              {
-                climb: climbInput(input),
-                controlled: true,
-                rising: false,
-                waterDepth,
-              },
-              SUV_TRANSFORMING,
-            ),
-            ctx.velocity.y,
-            SUV_TRANSFORMING.waterVerticalDrag,
-          ),
-        );
+        expect(out.impulse.y).toBe(submarineImpulseWithoutRise(input, ctx));
       });
     }),
   );
+});
+
+it("with step-up on a submarine rises at the same shore step", () => {
+  const drive = suvDrive({}, { form: "submarine" });
+  let rises = 0;
+  for (let tick = 0; tick < 40; tick++) {
+    const ctx: TickContext = {
+      ...context(SUV_TRANSFORMING.carHeight + 1),
+      tick,
+      solidAt: shoreStep,
+    };
+    const out = drive.step(FORWARD, ctx);
+    if (
+      drive.form === "submarine" &&
+      out.impulse.y !== submarineImpulseWithoutRise(FORWARD, ctx)
+    )
+      rises++;
+  }
+  expect(rises).toBeGreaterThan(0);
 });

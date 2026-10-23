@@ -269,8 +269,10 @@ const camperGuard: StepGuard = (s, ctx, form) =>
     form,
   );
 
-// The bare drivetrain keeps CamperDrive's parking hold out of the comparison;
-// tests/domain/vehicle/kinds/camper covers parking.
+// The bare drivetrain keeps CamperDrive's parking hold out of the comparison,
+// so CamperDrive's own super(...) wiring is not pinned here. camperGuard
+// mirrors CAMPER_ENDS in kinds/camper/drive.ts, and
+// tests/domain/vehicle/kinds/camper covers parking and the real guard.
 function camperDrivetrain(yaw: number): TransformingDrive {
   return new TransformingDrive(
     yaw,

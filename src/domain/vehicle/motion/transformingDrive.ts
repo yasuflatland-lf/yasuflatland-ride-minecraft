@@ -1,5 +1,4 @@
-// Shared transforming drivetrain: forms, landing gear, bank, and vertical motion,
-// with a per-kind control mapping, horizontal step, and step-up switch (ADR 0050, 0089).
+// Shared transforming drivetrain: forms, landing gear, bank, and vertical motion, with a per-kind control mapping, horizontal step, and step-up switch (ADR 0050, 0089).
 
 import { SyncedValue } from "../../shared/syncedValue";
 import { clamp, localOffset, type Vec2 } from "../../shared/vec";
@@ -128,7 +127,7 @@ export interface HorizontalStepInput {
 
 export type HorizontalStep = (h: HorizontalStepInput) => MotionResult;
 
-/** The default horizontal step: tyres on the ground in car form, the water or air medium otherwise. */
+/** Today's step: stepMotion in car form, stepMediumMotion (spec.water as a submarine, else spec.air) otherwise. */
 export function transformingHorizontalStep(
   h: HorizontalStepInput,
 ): MotionResult {
@@ -164,10 +163,7 @@ export interface TransformingOptions {
   readonly inputFor?: InputMapping;
   /** Defaults to transformingHorizontalStep. */
   readonly horizontal?: HorizontalStep;
-  /**
-   * Whether car form climbs one- and two-block steps and a submarine rises at
-   * a shore step (ADR 0004, 0035). Defaults to true; false turns off both probes.
-   */
+  /** Whether car form climbs one- and two-block steps and a submarine rises at a shore step (ADR 0004, 0035); default true. False turns off both probes. */
   readonly stepUp?: boolean;
   readonly guard?: StepGuard;
 }
