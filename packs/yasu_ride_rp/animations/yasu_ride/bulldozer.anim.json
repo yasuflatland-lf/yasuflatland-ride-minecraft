@@ -42,6 +42,19 @@
         },
         "door_l": {
           "rotation": [0, "query.property('yasu_ride:door') * 70", 0]
+        },
+        "blade_rig": {
+          "position": [
+            0,
+            "query.property('yasu_ride:blade') * 3",
+            "query.property('yasu_ride:blade') * 3"
+          ]
+        },
+        "lift_rod_r": {
+          "scale": [1, 1, "1 - query.property('yasu_ride:blade') * 3 / 12.6"]
+        },
+        "lift_rod_l": {
+          "scale": [1, 1, "1 - query.property('yasu_ride:blade') * 3 / 12.6"]
         }
       }
     },
