@@ -5,6 +5,8 @@ export function id(name: string): string {
 }
 
 export const AIR_BLOCK = "minecraft:air";
+/** Block tag on every block the add-on lays; a blade cut keeps blocks with it (ADR 0137). */
+export const LAID_BLOCK_TAG = id("laid");
 
 /** Lang key of an action bar message, yasu_ride.message.<name> (ADR 0063, 0068, 0092). */
 export function messageKey(name: string): string {

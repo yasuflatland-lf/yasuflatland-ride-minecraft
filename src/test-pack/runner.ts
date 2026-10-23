@@ -11,6 +11,11 @@ import {
   TEST_EVENT,
 } from "./protocol";
 import {
+  bladeCutColumn,
+  bladeCutDrops,
+  bladeCutKeptIds,
+} from "./scenarios/bladeCut";
+import {
   lowChairSeatAndTakeBack,
   lowChairSettlesThroughGrass,
 } from "./scenarios/camp";
@@ -37,7 +42,6 @@ import {
   camperToiletSeat,
   camperWall,
 } from "./scenarios/camper";
-import { bladeCutColumn, bladeCutDrops, bladeCutKeptIds } from "./scenarios/bladeCut";
 import { campingGearBlocks } from "./scenarios/campingGear";
 import { fleetForget } from "./scenarios/fleetRemove";
 import {

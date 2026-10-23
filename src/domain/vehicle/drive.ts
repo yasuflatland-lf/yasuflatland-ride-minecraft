@@ -1,5 +1,6 @@
 // How one vehicle kind moves each tick, under the shared core in vehicle.ts (ADR 0050, 0055).
 import type { Vec2, Vec3 } from "../shared/vec";
+import type { CutColumn } from "./cut";
 import type { DecorPlacement, StoragePress } from "./dock/decor";
 import type { ClearCell, Departure, Dock, DockRestoredKey } from "./dock/dock";
 import type { RawInput } from "./driveInput";
@@ -57,6 +58,8 @@ export interface DriveStep {
   dock?: Dock;
   /** Blocks to remove this tick before the dock's cells are laid (ADR 0063, 0068). */
   clear?: readonly ClearCell[];
+  /** Block columns to clear this tick, right after `clear` (ADR 0137). */
+  cut?: readonly CutColumn[];
   /** Shown on the driver's action bar as the lang key yasu_ride.message.<name> (ADR 0063, 0068). */
   message?: string;
   /** Seats the players standing in these boxes this tick, or moves them to the exit (ADR 0063, 0068). */

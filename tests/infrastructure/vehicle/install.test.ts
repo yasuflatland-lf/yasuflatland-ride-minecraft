@@ -8,8 +8,8 @@ import { registerSubscriptions } from "../../../src/infrastructure/vehicle/bedro
 import { installVehicles } from "../../../src/infrastructure/vehicle/install";
 
 vi.mock("@minecraft/server", () => ({
-  world: {afterEvents:{entitySpawn:{subscribe:vi.fn()}}},
-  EntityInitializationCause:{Loaded:"Loaded"},
+  world: { afterEvents: { entitySpawn: { subscribe: vi.fn() } } },
+  EntityInitializationCause: { Loaded: "Loaded" },
   BlockVolume: class {},
   system: {},
   InputMode: { Touch: "Touch", KeyboardAndMouse: "KeyboardAndMouse" },
@@ -75,8 +75,8 @@ it("hands the later switch targets to the subscriptions (ADR 0134)", () => {
   );
 });
 
-it("subscribes the blade-cut drop sweep once (ADR 0137)",()=>{
- vi.mocked(world.afterEvents.entitySpawn.subscribe).mockClear();
- installVehicles({isCampSpace:()=>false,laterSwitchTargets:()=>[]});
- expect(world.afterEvents.entitySpawn.subscribe).toHaveBeenCalledTimes(1);
+it("subscribes the blade-cut drop sweep once (ADR 0137)", () => {
+  vi.mocked(world.afterEvents.entitySpawn.subscribe).mockClear();
+  installVehicles({ isCampSpace: () => false, laterSwitchTargets: () => [] });
+  expect(world.afterEvents.entitySpawn.subscribe).toHaveBeenCalledTimes(1);
 });

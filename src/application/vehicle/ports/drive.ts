@@ -6,6 +6,7 @@ import type {
 } from "../../../domain/shared/ids";
 // Ports the per-tick drive requires from the game; implemented in the infrastructure layer (ADR 0012).
 import type { Vec3 } from "../../../domain/shared/vec";
+import type { CutColumn } from "../../../domain/vehicle/cut";
 import type {
   ClearCell,
   DeckSeatSpot,
@@ -80,6 +81,8 @@ export interface DriveWorld {
   ): (string | undefined)[];
   /** Sets each cell to air if it still holds the type it had at the check. */
   clearBlocks(vehicleId: VehicleId, cells: readonly ClearCell[]): void;
+  /** Clears each column in the vehicle's dimension, keeping `CUT_KEPT_BLOCKS` and laid blocks; skips columns in unloaded chunks (ADR 0137). */
+  cutColumns(vehicleId: VehicleId, columns: readonly CutColumn[]): void;
   /** Shows the lang key yasu_ride.message.<name> on a player's action bar; does nothing for a missing player. */
   showMessage(playerId: PlayerId, name: string): void;
   /**

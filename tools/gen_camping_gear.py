@@ -29,6 +29,8 @@ import sys
 import zlib
 from pathlib import Path
 
+LAID_TAG = "tag:yasu_ride:laid"
+
 SPEC = Path(__file__).resolve().parent / "camping_gear.json"
 MODELS = "models/blocks/yasu_ride"
 ATLAS = "textures/blocks/yasu_ride/camping_gear.png"
@@ -492,6 +494,7 @@ def decor_block(item):
                 "minecraft:light_dampening": 0,
                 "minecraft:destructible_by_mining": False,
                 "minecraft:destructible_by_explosion": False,
+                LAID_TAG: {},
                 "minecraft:custom_components": ["yasu_ride:camper_decor"],
                 "minecraft:collision_box": False,
                 "minecraft:selection_box": selection_box(item),
@@ -575,6 +578,7 @@ def pair_block(kind, spec):
                 "minecraft:light_dampening": 0,
                 "minecraft:destructible_by_mining": False,
                 "minecraft:destructible_by_explosion": False,
+                LAID_TAG: {},
                 **(DOOR_BOXES[door][0](heights[0]) if door else {
                     "minecraft:custom_components": ["yasu_ride:camper_decor"],
                     "minecraft:collision_box": False,

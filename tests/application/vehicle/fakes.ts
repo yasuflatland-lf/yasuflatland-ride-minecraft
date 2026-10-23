@@ -1,4 +1,3 @@
-import type { CutColumn } from "../../../src/domain/vehicle/cut";
 import type { DecorPlacingWorld } from "../../../src/application/vehicle/ports/decor";
 import type {
   DriveWorld,
@@ -23,6 +22,7 @@ import { type Cell, cellKey } from "../../../src/domain/shared/cells";
 import { asVehicleId, type VehicleId } from "../../../src/domain/shared/ids";
 import type { Paint } from "../../../src/domain/shared/paint";
 import type { Vec3 } from "../../../src/domain/shared/vec";
+import type { CutColumn } from "../../../src/domain/vehicle/cut";
 import type { DecorPlacement } from "../../../src/domain/vehicle/dock/decor";
 import type {
   ClearCell,
@@ -139,7 +139,7 @@ export class FakeWorld
   /** Whether the slot a gift box was used from still holds one. */
   giftInSlot = true;
   failCutOn: string | undefined;
-  readonly cuts: {vehicleId: string; columns: readonly CutColumn[]}[] = [];
+  readonly cuts: { vehicleId: string; columns: readonly CutColumn[] }[] = [];
   failOn: string | undefined;
   failRunOn: { id: string; name: string } | undefined;
   failCameraOn: string | undefined;
@@ -170,7 +170,7 @@ export class FakeWorld
   cutColumns(vehicleId: string, columns: readonly CutColumn[]) {
     if (vehicleId === this.failCutOn) throw new Error("boom");
     this.calls.push("cutColumns");
-    this.cuts.push({vehicleId, columns});
+    this.cuts.push({ vehicleId, columns });
   }
   showMessage(playerId: string, name: string) {
     this.calls.push("showMessage");
