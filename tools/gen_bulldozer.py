@@ -1,4 +1,4 @@
-"""Generate the bulldozer geometry, 16 yellow-part paint textures, and item icon.
+"""Generate the bulldozer geometry, 16 yellow-part paint textures, and the item icons of the bulldozer and the blade switch.
 
 Shaped after the owner's three-view drawing and cab photos of a mid-size crawler dozer, with no
 maker name, model name, or logo. The photos show the wide-track (LGP) machine, so the shapes are
@@ -1304,5 +1304,32 @@ ICON_COLORS = {
 }
 ITEM_TEXTURES.mkdir(parents=True, exist_ok=True)
 png(ITEM_TEXTURES / "bulldozer_item.png", 16, 16, lambda x, y: ICON_COLORS[ICON[y][x]])
+
+# Blade Up/Down switch icon: the yellow blade between an up and a down arrow (ADR 0138).
+BLADE_SWITCH_ICON = [
+    "................",
+    ".......KK.......",
+    "......KKKK......",
+    ".....KKKKKK.....",
+    ".......KK.......",
+    "..DYYYYYYYYYYD..",
+    "..DYYYYYYYYYYD..",
+    "..DYYYYYYYYYYD..",
+    "..DDDDDDDDDDDD..",
+    "................",
+    ".......KK.......",
+    ".....KKKKKK.....",
+    "......KKKK......",
+    ".......KK.......",
+    "................",
+    "................",
+]
+png(
+    ITEM_TEXTURES / "blade_switch.png",
+    16,
+    16,
+    lambda x, y: ICON_COLORS[BLADE_SWITCH_ICON[y][x]],
+)
+
 
 print("cubes:", sum(len(b.get("cubes", [])) for b in bones))

@@ -27,6 +27,8 @@ GROUPS = [
         "icon": "camping_gear_box",
         "items": ["camping_gear_box", *GEAR_IDS, "low_chair_item", "tent_item"],
     },
+    # The bulldozer's switches; the Blade Up/Down item raises and lowers its blade (ADR 0138).
+    {"name": "bulldozer_switches", "icon": "blade_switch", "items": ["blade_switch"]},
 ]
 
 
