@@ -1,11 +1,23 @@
-// Wires the camp feature: the low chair placed outside the vehicles (ADR 0122).
+// Wires the camp feature: the low chair placed outside the vehicles (ADR 0122)
+// and the tent pitched from its item (ADR 0131).
 import { HitChair } from "../../application/camp/hitChair";
+import { PitchTent } from "../../application/camp/pitchTent";
 import { PlaceChair } from "../../application/camp/placeChair";
+import { TakeDownTent } from "../../application/camp/takeDownTent";
 import type { SpaceCheck } from "../../application/shared/ports/space";
+import { registerLaidBlockGuard } from "../shared/laidBlockGuard";
 import { BedrockChairWorld } from "./bedrock/bedrockChairWorld";
+import { BedrockTentWorld } from "./bedrock/bedrockTentWorld";
 import { registerChairHits } from "./bedrock/handlers/hits";
 import { registerChairPlacement } from "./bedrock/handlers/placement";
+import { registerTentHits } from "./bedrock/handlers/tentHits";
+import { registerTentLifecycle } from "./bedrock/handlers/tentLifecycle";
+import { registerTentLoop } from "./bedrock/handlers/tentLoop";
+import { registerTentPlacement } from "./bedrock/handlers/tentPlacement";
 import { registerTestChairHit } from "./bedrock/handlers/testHit";
+import { registerTestTent } from "./bedrock/handlers/testTent";
+import { createTentBlocks } from "./bedrock/tentBlocks";
+import { DynamicPropertyTentRegistry } from "./persistence/tentRegistry";
 
 /** `isVehicleSpace` comes from the vehicle feature through bootstrap, since camp cannot import it (ADR 0046). */
 export function installCamp(deps: { isVehicleSpace: SpaceCheck }): {
@@ -16,6 +28,23 @@ export function installCamp(deps: { isVehicleSpace: SpaceCheck }): {
   registerChairPlacement(new PlaceChair(chairs));
   registerChairHits(hitChair);
   registerTestChairHit(hitChair);
-  // The low chair claims no space; the tent's cells will (ADR 0129).
-  return { isCampSpace: () => false };
+
+  const registry = new DynamicPropertyTentRegistry();
+  const blocks = createTentBlocks();
+  const tents = new BedrockTentWorld({
+    isVehicleSpace: deps.isVehicleSpace,
+    registry,
+    blocks,
+  });
+  const pitchTent = new PitchTent(tents);
+  const takeDownTent = new TakeDownTent(tents);
+  const tentBlockOwner = tents.tentBlockOwner.bind(tents);
+  registerTentPlacement(pitchTent);
+  registerTentHits(takeDownTent, tentBlockOwner);
+  registerLaidBlockGuard(tentBlockOwner);
+  registerTentLoop(registry, blocks);
+  registerTentLifecycle(registry, blocks);
+  registerTestTent(pitchTent, takeDownTent);
+  // The chair claims no space; the tents claim their footprints (ADR 0129).
+  return { isCampSpace: (d, c) => tents.isCampSpace(d, c) };
 }

@@ -2,9 +2,9 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { cellKey } from "../../../../../src/domain/shared/cells";
+import { CLEARABLE_DECORATIONS } from "../../../../../src/domain/shared/decorations";
 import {
   AIR,
-  CLEARABLE_DECORATIONS,
   exitCells,
   isPassable,
   NATURAL_GROUND,

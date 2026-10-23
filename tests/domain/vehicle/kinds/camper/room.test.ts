@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { cellKey } from "../../../../../src/domain/shared/cells";
+import { CLEARABLE_DECORATIONS } from "../../../../../src/domain/shared/decorations";
 import {
   dot,
   forward,
@@ -21,7 +22,6 @@ import {
 import { CAMPER_PROFILE } from "../../../../../src/domain/vehicle/kinds/camper/profile";
 import {
   AIR,
-  CLEARABLE_DECORATIONS,
   cargoCells,
   compartmentCells,
   deckSeats,

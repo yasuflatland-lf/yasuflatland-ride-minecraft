@@ -209,6 +209,23 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | C157 | On a build before this change, park and put an item on each end of both shelf boards; update to this change, restart the server, and open both fridge doors | The low board's items are in the bottom compartment and the high board's in the top one, each at the same end as on the board; nothing is lost and no shelf block is left (ADR 0123) | | |
 | C158 | With a fridge door open, aim at the open door and at the compartment; put a block in the aisle cell beside the fridge with the doors shut and try to drive off; run `/reload` with one door open | The open door's outline is a thin plate where the door stands and the compartment's runs from its floor up; with the block there you see "Clear the blocks inside first"; after `/reload` the open door stays open (ADR 0121, 0123) | | |
 
+## Tent
+
+Until the flaps open (10/13), get inside a pitched tent with `/tp`.
+
+| # | Steps | Pass condition | PC | Mobile |
+|---|---|---|---|---|
+| T1 | Pitch the tent facing each of the 4 directions | The tent opens toward you, with its front edge on the clicked column | | |
+| T2 | Try to pitch on a step, over a hole, beside a parked camper, with a cow in the footprint, overlapping another tent's empty corner, and as a fifth tent | Each shows its message and keeps the item | | |
+| T3 | From outside, at each yaw, hit a wall and the roof three times (click on PC, hold on mobile) | The hints count down and the item returns. Record how many swings a single held press counts | | |
+| T4 | Inside, tap the ground, place a chest, and place and sit on a Low Chair. Then hit a wall from inside | Taps reach the blocks, never the tent. The wall hit shows "Someone is inside the tent" and does not count | | |
+| T5 | With a second player inside, hit the tent three times from outside | The tent stays and the message shows | | |
+| T6 | Wait for rain or snow | It stops at the ceiling, under the tarp and over both rooms | | |
+| T7 | Stay through one night with no torch inside | No hostile mob spawns inside. If one does, tune `ceilingLight` (keep the block JSON and `TENT_SPEC` equal) and record the value | | |
+| T8 | After `/reload` and after a server restart, look at the tent, hit it right after joining, and try to place an SUV under the tarp | The cells are back, the hit counts, and the SUV cannot be placed | | |
+| T9 | In Creative, break a wall block | It counts one hit and the block stays | | |
+| T10 | Pitch on snow layers in a snowy biome, then on leaf litter or moss carpet, then aiming at a tuft of short grass | The tent rests on the ground under them and they are cleared from the footprint | | |
+
 ## Upgrading from MyCar 0.5.0 and earlier
 
 Setup: in a world that used MyCar 0.5.0, place two vehicles and switch the headlights of one of them off, then stop the server and replace the old pack folders with the new ones as described under "Upgrading from MyCar 0.5.0 and earlier" in the [README](../README.md).
