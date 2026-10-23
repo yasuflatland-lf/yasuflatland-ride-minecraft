@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { BLADE_SWITCH_TYPE as TYPE } from "../../src/infrastructure/vehicle/bedrock/identifiers";
 import { readRgbaPng } from "../support/png";
@@ -86,5 +86,11 @@ describe("Blade Up/Down switch (ADR 0138)", () => {
       group_identifier: { icon: TYPE, name: "yasu_ride:bulldozer_switches" },
       items: [TYPE],
     });
+  });
+  it("counts the group on the item groups page", () => {
+    expect(readFileSync("docs/items/README.md", "utf8")).toContain(
+      "| **Bulldozer Switches** | 1 | [Blade Up/Down](bulldozer-switches.md) |",
+    );
+    expect(existsSync("docs/items/bulldozer-switches.md")).toBe(true);
   });
 });
