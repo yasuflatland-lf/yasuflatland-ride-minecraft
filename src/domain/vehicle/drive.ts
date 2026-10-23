@@ -79,6 +79,8 @@ export interface Drive {
   /** Called when a new driver takes seat 0. */
   onDriverMounted(driverYaw: number): void;
   onSeatVacated(seat: number): readonly EngineCommand[];
+  /** Called before `step` for each seat a newly boarded rider takes this tick, ascending; its commands go into `finalCommands` after the vacated seats' commands. Absent means none. */
+  onSeatTaken?(seat: number): readonly EngineCommand[];
   /** Opens or closes the door of a held vehicle's room at `tick`; false when it has none or the tap is ignored (ADR 0068, 0105). */
   useDockDoor?(tick: number): boolean;
   /** Turns the ceiling lights of a held vehicle's room on or off for a player with feet at `feet`; false when it has none or the player is not inside (ADR 0115). */
