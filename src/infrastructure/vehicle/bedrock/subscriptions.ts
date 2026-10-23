@@ -20,6 +20,7 @@ import type { SwitchHeadlights } from "../../../application/vehicle/switchHeadli
 import type { UseDockDoor } from "../../../application/vehicle/useDockDoor";
 import type { DimensionId, VehicleId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
+import { registerBedBlock } from "../../shared/bedBlock";
 import {
   registerSwitchRouter,
   type SwitchTarget,
@@ -27,7 +28,6 @@ import {
 import type { TestInputStore } from "../testInput/testInputStore";
 import { registerBoarding } from "./handlers/boarding";
 import { registerDecor } from "./handlers/decor";
-import { registerDockBed } from "./handlers/dockBed";
 import { registerDockDoor } from "./handlers/dockDoor";
 import { registerDockGuard } from "./handlers/dockGuard";
 import { registerDrive } from "./handlers/drive";
@@ -42,6 +42,7 @@ import { registerStarter } from "./handlers/starter";
 import { registerStorage } from "./handlers/storage";
 import { registerTestDecor } from "./handlers/testDecor";
 import { registerTestInput } from "./handlers/testInput";
+import { CAMPER_BED_COMPONENT } from "./identifiers";
 
 export function registerSubscriptions(
   useCases: {
@@ -80,7 +81,7 @@ export function registerSubscriptions(
   ) => VehicleId | undefined,
 ): void {
   registerDecor(useCases.placeDecor, useCases.removeDecor, dockCellOwner);
-  registerDockBed(useCases.bed);
+  registerBedBlock(CAMPER_BED_COMPONENT, useCases.bed);
   registerDockDoor(useCases.door, dockDoorOwner);
   registerDockGuard(dockBlockOwner);
   registerShowerToilet(useCases.showerToilet, dockCellOwner);

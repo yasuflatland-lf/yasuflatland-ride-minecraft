@@ -1,5 +1,13 @@
 // Inventory and game mode helpers for any feature that hands items to players or takes them back.
-import { GameMode, type ItemStack, type Player } from "@minecraft/server";
+import {
+  GameMode,
+  type ItemStack,
+  type Player,
+  world,
+} from "@minecraft/server";
+import type { PlayerId } from "../../domain/shared/ids";
+
+const PLAYER_TYPE = "minecraft:player";
 
 /** Takes one item from `slot`, but only if it still holds `typeId` (ADR 0024). */
 export function consumeHeld(
@@ -33,4 +41,10 @@ export function giveOrDrop(player: Player, items: readonly ItemStack[]): void {
 export function isCreative(player: Player | undefined): boolean {
   // getGameMode throws on a handle whose player has left (isValid false).
   return player?.isValid === true && player.getGameMode() === GameMode.Creative;
+}
+
+/** The player with `playerId`, or undefined when that entity is gone or is not a player. */
+export function playerById(playerId: PlayerId): Player | undefined {
+  const entity = world.getEntity(playerId);
+  return entity?.typeId === PLAYER_TYPE ? (entity as Player) : undefined;
 }
