@@ -138,6 +138,54 @@ function fixture() {
 }
 
 describe("DockBlocks (ADR 0063)", () => {
+  it("restores and rewrites the exact saved deck_cells of a build before the shared layer", () => {
+    const f = fixture();
+    const raw =
+      '[{"x":0,"y":64,"z":0,"height":5},{"x":1,"y":64,"z":0,"block":{"type":"decor","item":"potted_plant","face":2,"height":3}},{"x":2,"y":64,"z":0,"block":{"type":"door","face":1,"open":true}},{"x":3,"y":65,"z":0,"block":{"type":"light"}},{"x":4,"y":64,"z":0,"block":{"type":"wall","face":7}},"junk"]';
+    f.saved.set(DECK_CELLS_PROPERTY, raw);
+    const wanted: DockCell[] = [
+      { x: 0, y: 64, z: 0, block: { type: "deck", height: 5 } },
+      {
+        x: 1,
+        y: 64,
+        z: 0,
+        block: {
+          type: "decor",
+          item: "potted_plant",
+          face: 2,
+          height: 3,
+          spot: 0,
+        },
+      },
+      { x: 2, y: 64, z: 0, block: { type: "door", face: 1, open: true } },
+      { x: 3, y: 65, z: 0, block: { type: "light" } },
+    ];
+    const ids = [
+      DECK_FLOOR_BLOCK,
+      decorBlockId("potted_plant"),
+      CAMPER_DOOR_BLOCK,
+      "minecraft:light_block_15",
+    ];
+    wanted.forEach((c, i) => {
+      f.blocks.set(cellKey(c), { typeId: defined(ids[i], "block id") });
+    });
+    expect(savedDock(f.car)).toEqual({ laid: true, doorOpen: true });
+    const floors = new DockBlocks();
+    floors.lay(asVehicleId(f.car.id), f.car, wanted);
+    expect(f.writes).toEqual([]);
+    expect(f.saved.get(DECK_CELLS_PROPERTY)).toBe(raw);
+    const closed = wanted.map((c) =>
+      c.block.type === "door"
+        ? { ...c, block: { ...c.block, open: false } }
+        : c,
+    );
+    floors.lay(asVehicleId(f.car.id), f.car, closed);
+    expect(f.writes).toEqual(["2,64,0"]);
+    expect(f.saved.get(DECK_CELLS_PROPERTY)).toBe(
+      '[{"x":0,"y":64,"z":0,"block":{"type":"deck","height":5}},{"x":1,"y":64,"z":0,"block":{"type":"decor","item":"potted_plant","face":2,"height":3,"spot":0}},{"x":2,"y":64,"z":0,"block":{"type":"door","face":1,"open":false}},{"x":3,"y":65,"z":0,"block":{"type":"light"}}]',
+    );
+  });
+
   it("persists placed cells, restores them after reload, resizes owned cells and clears them", () => {
     fc.assert(
       fc.property(cells, (wanted) => {
