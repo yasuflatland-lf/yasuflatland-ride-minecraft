@@ -26,7 +26,7 @@ export function registerTentLoop(
         try {
           entity.setProperty(TENT_FLAP_PROPERTY[s.flap], s.open);
         } catch {
-          // The entity became invalid mid-send; send every flap again (ADR 0127).
+          // A property write failed; resend every flap on the next tick (ADR 0127).
           tentFlaps.resync();
           break;
         }

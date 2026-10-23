@@ -15,6 +15,7 @@ import {
 import type { TentEntry } from "../../../src/domain/camp/tentRegistry";
 import { cellKey } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
+import type { Vec3 } from "../../../src/domain/shared/vec";
 import { BedrockTentWorld } from "../../../src/infrastructure/camp/bedrock/bedrockTentWorld";
 import { TENT_CELL_CODEC } from "../../../src/infrastructure/camp/bedrock/tentBlocks";
 import { TentFlapStore } from "../../../src/infrastructure/camp/bedrock/tentFlapStore";
@@ -29,6 +30,7 @@ import {
 } from "../../../src/infrastructure/camp/identifiers";
 import type { DynamicPropertyTentRegistry } from "../../../src/infrastructure/camp/persistence/tentRegistry";
 import type { CellLayer } from "../../../src/infrastructure/shared/laidCells";
+import { defined } from "../../support/defined";
 
 const game = vi.hoisted(() => ({ getDimension: vi.fn(), getEntity: vi.fn() }));
 vi.mock("@minecraft/server", () => ({
@@ -433,12 +435,40 @@ describe("BedrockTentWorld (ADR 0131)", () => {
     );
   });
 
+  it("finds the flap through the laid owner, and nothing once that tent has left the registry (ADR 0132)", () => {
+    const { world, blocks } = fixture([ENTRY]);
+    const cell = defined(flapCells(POSE, "bedroom")[0], "bedroom flap cell");
+    blocks.laidBlockOwner.mockReturnValue(TENT as never);
+    expect(world.flapAt(DIM, cell)).toEqual({ tentId: TENT, flap: "bedroom" });
+    blocks.laidBlockOwner.mockReturnValue(asTentId("gone") as never);
+    expect(world.flapAt(DIM, cell)).toBeUndefined();
+  });
+
+  it("is blocked by a body that leans into a flap cell from the next cell (ADR 0132)", () => {
+    const { dimension, world } = fixture([ENTRY]);
+    const cell = defined(flapCells(POSE, "left")[0], "left flap cell");
+    // Feet 0.25 past the cell's west edge: a 0.6-wide hitbox still reaches 0.05 into it.
+    const feet = { x: cell.x - 0.25, y: cell.y, z: cell.z + 0.5 };
+    const contains = (q: { location: Vec3; volume: Vec3 }) =>
+      (["x", "y", "z"] as const).every(
+        (k) =>
+          feet[k] >= q.location[k] && feet[k] <= q.location[k] + q.volume[k],
+      );
+    dimension.getPlayers.mockImplementation((q) =>
+      contains(q as { location: Vec3; volume: Vec3 }) ? [{}] : [],
+    );
+    expect(world.isFlapBlocked(TENT, "left")).toBe(true);
+  });
+
   it("is blocked by a player or a mob in one flap cell, not by an item (ADR 0132)", () => {
     const { dimension, world } = fixture([ENTRY]);
-    const cell = flapCells(POSE, "left")[1];
-    const box = { location: cell, volume: { x: 1, y: 1, z: 1 } };
+    const cell = defined(flapCells(POSE, "left")[1], "left flap cell");
+    const box = {
+      location: { x: cell.x - 0.3, y: cell.y, z: cell.z - 0.3 },
+      volume: { x: 1.6, y: 1, z: 1.6 },
+    };
     const at = (q: { location: unknown }) =>
-      JSON.stringify(q.location) === JSON.stringify(cell);
+      JSON.stringify(q.location) === JSON.stringify(box.location);
     expect(world.isFlapBlocked(TENT, "left")).toBe(false);
     dimension.getPlayers.mockImplementation((q) =>
       at(q as { location: unknown }) ? [{}] : [],

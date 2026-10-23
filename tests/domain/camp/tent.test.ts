@@ -1,8 +1,8 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { FLAP_IDS } from "../../../src/domain/camp/flaps";
 import { TENT_SPEC } from "../../../src/domain/camp/spec";
 import {
-  type FlapId,
   flapAt,
   flapCells,
   type GroundReading,
@@ -379,12 +379,10 @@ describe("flaps and mattresses (ADR 0130)", () => {
   });
 });
 
-const FLAPS: readonly FlapId[] = ["front", "left", "right", "bedroom"];
-
 describe("tent flap cells (ADR 0132)", () => {
   it("lays the same cells in the same order for any open flaps, a flap cell open iff its flap is", () => {
     fc.assert(
-      fc.property(arbPose, fc.subarray([...FLAPS]), (pose, open) => {
+      fc.property(arbPose, fc.subarray([...FLAP_IDS]), (pose, open) => {
         const openFlaps = new Set(open);
         const closed = tentCells(pose, PITCHED_STATE);
         const cells = tentCells(pose, { openFlaps });
@@ -406,7 +404,7 @@ describe("tent flap cells (ADR 0132)", () => {
     fc.assert(
       fc.property(arbPose, (pose) => {
         const seen = new Set<string>();
-        for (const id of FLAPS) {
+        for (const id of FLAP_IDS) {
           const cells = flapCells(pose, id);
           expect(cells.length).toBeGreaterThan(0);
           expect(cells).toEqual(TENT_FLAPS[id].map((c) => tentCellAt(pose, c)));

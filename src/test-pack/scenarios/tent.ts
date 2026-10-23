@@ -8,6 +8,7 @@ import {
   TENT_FLAPS,
   type TentPose,
   tentCellAt,
+  tentPose,
 } from "../../domain/camp/tent";
 import {
   TENT_CEILING_BLOCK,
@@ -72,7 +73,13 @@ const STRIP = { minX: 106, maxX: 114, minZ: 45, maxZ: 58 } as const;
 const FOOTPRINT = { minX: 107, maxX: 113, minZ: 46, maxZ: 57 } as const;
 const PITCH_WAIT_TICKS = 20;
 
-const pitchMessage = (a: Arena) => `110 ${a.gy - 1} 46 0`;
+const pitchClick = (a: Arena) => ({ x: 110, y: a.gy - 1, z: 46 });
+const PITCH_YAW = 0;
+const pitchMessage = (a: Arena) => {
+  const c = pitchClick(a);
+  return `${c.x} ${c.y} ${c.z} ${PITCH_YAW}`;
+};
+const pitchedPose = (a: Arena): TentPose => tentPose(pitchClick(a), PITCH_YAW);
 const tentEntityAt = (a: Arena) => ({ x: 110.5, y: a.gy, z: 57.5 });
 
 function tentsInStrip(a: Arena): Entity[] {
@@ -265,7 +272,7 @@ export async function tentPitchOnSnow(a: Arena): Promise<Outcome> {
 
 /** Each flap's laid open state, "missing" when a cell does not hold a tent_flap. */
 function flapStates(a: Arena): Map<FlapId, (boolean | "missing")[]> {
-  const pose: TentPose = { x: 110, y: a.gy, z: 46, yaw: 180 };
+  const pose = pitchedPose(a);
   return new Map(
     FLAP_IDS.map((id) => [
       id,

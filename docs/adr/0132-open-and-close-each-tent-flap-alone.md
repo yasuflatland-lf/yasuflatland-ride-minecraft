@@ -53,6 +53,13 @@ openings are separate doors of one shelter.
   wall does, since the owner lookup goes through the block id.
 - A closed flap is a full block a player cannot stand in, so the flap cell is either a
   door or a passage, never a place to stand while closed.
+- The blocker check asks for players and mobs whose feet are within 0.3 of a flap cell,
+  so a body that leans into the opening from the next cell also keeps the flap open. A
+  player standing right beside a flap cell can therefore keep it from closing.
+- The reload rule does not check for blockers. A flap tapped open less than half a swing
+  (under 5 ticks) before a restart comes back closed and can close on someone who has
+  just stepped into the opening, who is then pushed out. The window is short enough to
+  accept.
 - The four flaps make four property writes on the first tick after a rebuild, then only
   while a flap swings.
 - Revisit the full-cell closed box if mobs still walk in through a closed flap, or if a

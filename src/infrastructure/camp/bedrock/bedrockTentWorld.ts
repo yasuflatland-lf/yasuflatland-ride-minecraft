@@ -83,7 +83,29 @@ function blockAt(dimension: Dimension | undefined, at: Vec3) {
   }
 }
 
-const ONE_CELL = { x: 1, y: 1, z: 1 };
+// A volume query matches an entity by its location (the feet), but a closed flap fills
+// its whole cell, so the box reaches out by half a player's or a zombie's 0.6 width to
+// catch a body that leans into the cell from the next one (ADR 0132).
+const FLAP_BLOCKER_REACH = 0.3;
+
+/** The query box for the entities whose body can overlap `cell`. */
+function flapBlockerBox(cell: Vec3): {
+  location: Vec3;
+  volume: Vec3;
+} {
+  return {
+    location: {
+      x: cell.x - FLAP_BLOCKER_REACH,
+      y: cell.y,
+      z: cell.z - FLAP_BLOCKER_REACH,
+    },
+    volume: {
+      x: 1 + 2 * FLAP_BLOCKER_REACH,
+      y: 1,
+      z: 1 + 2 * FLAP_BLOCKER_REACH,
+    },
+  };
+}
 
 export class BedrockTentWorld implements TentWorld, TentFlapWorld {
   constructor(
@@ -139,7 +161,7 @@ export class BedrockTentWorld implements TentWorld, TentFlapWorld {
     const dimension = dimensionOf(entry.dimensionId);
     if (!dimension) return false;
     return flapCells(entry.pose, flap).some((cell) => {
-      const box = { location: cell, volume: ONE_CELL };
+      const box = flapBlockerBox(cell);
       return (
         dimension.getPlayers(box).length > 0 ||
         dimension.getEntities({ ...box, families: ["mob"] }).length > 0
