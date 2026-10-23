@@ -1,4 +1,5 @@
-// Shared transforming drivetrain: forms, landing gear, bank, and vertical motion, with a per-kind control mapping, horizontal step, and step-up switch (ADR 0050, 0089).
+// Shared transforming drivetrain: forms, landing gear, bank, and vertical motion,
+// with a per-kind control mapping, horizontal step, and step-up switch (ADR 0050, 0089).
 
 import { SyncedValue } from "../../shared/syncedValue";
 import { clamp, localOffset, type Vec2 } from "../../shared/vec";
@@ -127,28 +128,29 @@ export interface HorizontalStepInput {
 
 export type HorizontalStep = (h: HorizontalStepInput) => MotionResult;
 
-/** Today's step: stepMotion in car form, stepMediumMotion (spec.water as a submarine, else spec.air) otherwise. */
+/** The default horizontal step: tyres on the ground in car form, the water or air medium otherwise. */
 export function transformingHorizontalStep(
   h: HorizontalStepInput,
 ): MotionResult {
   const velocity = { x: h.ctx.velocity.x, z: h.ctx.velocity.z };
-  return h.form === "car"
-    ? stepMotion(
-        h.state,
-        h.input,
-        { velocity, onGround: h.ctx.onGround },
-        h.probe,
-        h.limits,
-        h.tyres,
-      )
-    : stepMediumMotion(
-        h.state,
-        h.input,
-        velocity,
-        h.form === "submarine" ? h.spec.water : h.spec.air,
-        h.limits,
-        h.tyres.creepSpeed,
-      );
+  if (h.form === "car")
+    return stepMotion(
+      h.state,
+      h.input,
+      { velocity, onGround: h.ctx.onGround },
+      h.probe,
+      h.limits,
+      h.tyres,
+    );
+  const medium = h.form === "submarine" ? h.spec.water : h.spec.air;
+  return stepMediumMotion(
+    h.state,
+    h.input,
+    velocity,
+    medium,
+    h.limits,
+    h.tyres.creepSpeed,
+  );
 }
 
 /** A kind's meaning for the stick and Jump in each form (ADR 0089). */
@@ -162,7 +164,10 @@ export interface TransformingOptions {
   readonly inputFor?: InputMapping;
   /** Defaults to transformingHorizontalStep. */
   readonly horizontal?: HorizontalStep;
-  /** Whether car form climbs one- and two-block steps and a submarine rises at a shore step (ADR 0004, 0035); default true. False turns off both probes. */
+  /**
+   * Whether car form climbs one- and two-block steps and a submarine rises at
+   * a shore step (ADR 0004, 0035). Defaults to true; false turns off both probes.
+   */
   readonly stepUp?: boolean;
   readonly guard?: StepGuard;
 }

@@ -550,7 +550,7 @@ function terrainContext(
   };
 }
 
-it("a drive given transformingHorizontalStep explicitly steps like one given no options", () => {
+it("a drive given the default mapping and horizontal step explicitly steps like one given no options", () => {
   const options: TransformingOptions = {
     inputFor: groundInputFor,
     horizontal: transformingHorizontalStep,
@@ -673,9 +673,8 @@ it("moves by the horizontal step's result", () => {
 it("applies the guard to a kind's horizontal step", () => {
   fc.assert(
     fc.property(stepTerrain, tickSequence, (ground, ticks) => {
-      const spy = spyStep();
       const drive = suvDrive({
-        horizontal: spy.step,
+        horizontal: transformingHorizontalStep,
         guard: (s) => ({ ...s, impulse: { x: 7, z: -7 } }),
       });
       ticks.forEach((sample, tick) => {
