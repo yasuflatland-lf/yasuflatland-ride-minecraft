@@ -1,8 +1,12 @@
-import { type Entity, ItemStack, world } from "@minecraft/server";
+import { type Entity, ItemStack, system, world } from "@minecraft/server";
 import { normalizeYaw } from "../../domain/shared/vec";
 import { bladeColumns } from "../../domain/vehicle/kinds/bulldozer/blade";
 import { BULLDOZER_SPEC } from "../../domain/vehicle/kinds/bulldozer/spec";
-import { ENTITY_TYPE } from "../../infrastructure/vehicle/bedrock/identifiers";
+import {
+  ENTITY_TYPE,
+  entityPropertyId,
+  TEST_BLADE_EVENT,
+} from "../../infrastructure/vehicle/bedrock/identifiers";
 import { type Arena, drive, type Outcome, wait, withCar } from "../arena";
 import { hitTick, judgeRam, PUSH_WINDOW, type RamSample } from "../ramJudge";
 import { summonCow, ticksUntilForm, vehicleForm } from "./shared";
@@ -15,6 +19,18 @@ function withBulldozer<T>(
   run: (car: Entity) => Promise<T>,
 ): Promise<T> {
   return withCar(a, x, z, yaw, run, ENTITY_TYPE.bulldozer);
+}
+/** Sets the blade through the server-only test hook and waits until it has finished moving (ADR 0138). */
+async function setBlade(car: Entity, raised: boolean): Promise<void> {
+  await wait(2); // the main pack builds the aggregate of a freshly summoned bulldozer first
+  system.sendScriptEvent(
+    TEST_BLADE_EVENT,
+    `${car.id},${raised ? "raised" : "lowered"}`,
+  );
+  await wait(BULLDOZER_SPEC.bladeLiftTicks + 2);
+  const lift = car.getProperty(entityPropertyId("blade"));
+  if (lift !== (raised ? 1 : 0))
+    throw new Error(`blade=${String(lift)} want ${raised ? 1 : 0}`);
 }
 function cleanup(a: Arena): void {
   a.dim.runCommand(`fill 96 ${a.gy} 78 112 ${a.gy + 6} 89 air`);
@@ -135,6 +151,7 @@ export async function bulldozerClearHill(a: Arena): Promise<Outcome> {
     world.afterEvents.entitySpawn.subscribe(listener);
     world.beforeEvents.entityRemove.subscribe(removing);
     return await withBulldozer(a, 90.5, 83.5, -90, async (car) => {
+      await setBlade(car, false);
       await throughHill(car, () => {
         boxes = bladeColumns(
           car.location,
@@ -207,6 +224,7 @@ export async function bulldozerOverhang(a: Arena): Promise<Outcome> {
     a.dim.runCommand(`fill 100 ${a.gy} 81 104 ${a.gy + 1} 85 stone`);
     a.dim.runCommand(`fill 100 ${a.gy + 3} 81 104 ${a.gy + 4} 85 stone`);
     return await withBulldozer(a, 90.5, 83.5, -90, async (car) => {
+      await setBlade(car, false);
       await throughHill(car);
       let pass = car.location.x >= 108;
       for (let x = 100; x <= 104; x++)
@@ -231,6 +249,7 @@ export async function bulldozerDirtPath(a: Arena): Promise<Outcome> {
     // the tracks stand inside its row.
     a.dim.runCommand(`fill 88 ${floor} 80 110 ${floor} 87 grass_path`);
     return await withBulldozer(a, 90.5, 83.5, -90, async (car) => {
+      await setBlade(car, false);
       await throughHill(car);
       const missing: string[] = [];
       for (let x = 92; x <= 106; x++)
@@ -252,6 +271,7 @@ export async function bulldozerFlightTunnel(a: Arena): Promise<Outcome> {
     cleanup(a);
     a.dim.runCommand(`fill 100 ${a.gy} 81 101 ${a.gy + 6} 85 stone`);
     return await withBulldozer(a, 90.5, 83.5, -90, async (car) => {
+      await setBlade(car, false);
       await doubleTap(car);
       const hoverAt = await ticksUntilForm(
         car,
@@ -277,6 +297,70 @@ export async function bulldozerFlightTunnel(a: Arena): Promise<Outcome> {
       return {
         pass,
         detail: `hoverAt=${hoverAt} y=${y.toFixed(3)} bottom=${bottom} top=${top} wrong=${wrong.join(";")}`,
+      };
+    });
+  } finally {
+    cleanup(a);
+  }
+}
+export async function bulldozerStep2Raised(a: Arena): Promise<Outcome> {
+  const { dim, gy } = a;
+  try {
+    cleanup(a);
+    // A 2-high step wider than the 4.64-block blade.
+    dim.runCommand(`fill 100 ${gy} 79 108 ${gy + 1} 88 stone`);
+    return await withBulldozer(a, 90.5, 83.5, -90, async (car) => {
+      await setBlade(car, true);
+      drive(car, 0, 1);
+      let maxY = gy;
+      for (let t = 0; t < 120; t++) {
+        await wait(1);
+        maxY = Math.max(maxY, car.location.y);
+        if (car.location.x > 103) break;
+      }
+      drive(car, 0, 0);
+      await wait(3);
+      const wrong: string[] = [];
+      for (let x = 100; x <= 108; x++)
+        for (let z = 79; z <= 88; z++)
+          for (let y = gy; y <= gy + 1; y++)
+            if (dim.getBlock({ x, y, z })?.typeId !== "minecraft:stone")
+              wrong.push(`${x},${y},${z}`);
+      return {
+        pass: maxY >= gy + 1.9 && wrong.length === 0,
+        detail: `maxY=${(maxY - gy).toFixed(2)} x=${car.location.x.toFixed(2)} wrong=${wrong.join(";")}`,
+      };
+    });
+  } finally {
+    cleanup(a);
+  }
+}
+export async function bulldozerRaisedNoCut(a: Arena): Promise<Outcome> {
+  const { dim, gy } = a;
+  try {
+    cleanup(a);
+    // The clear-hill block, 5 high, so it cannot be climbed.
+    dim.runCommand(`fill 100 ${gy} 81 104 ${gy + 4} 85 stone`);
+    return await withBulldozer(a, 90.5, 83.5, -90, async (car) => {
+      await setBlade(car, true);
+      drive(car, 0, 1);
+      await wait(60);
+      drive(car, 0, 0);
+      await wait(3);
+      const wrong: string[] = [];
+      for (let x = 100; x <= 104; x++)
+        for (let z = 81; z <= 85; z++)
+          for (let y = gy; y <= gy + 4; y++)
+            if (dim.getBlock({ x, y, z })?.typeId !== "minecraft:stone")
+              wrong.push(`${x},${y},${z}`);
+      const items = dim.getEntities({
+        type: "minecraft:item",
+        location: { x: 102, y: gy, z: 83 },
+        maxDistance: 8,
+      }).length;
+      return {
+        pass: wrong.length === 0 && car.location.x < 100 && items === 0,
+        detail: `x=${car.location.x.toFixed(2)} wrong=${wrong.join(";")} items=${items}`,
       };
     });
   } finally {
