@@ -1,0 +1,28 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "yasu_ride:tent_item"
+    },
+    "tags": ["crafting_table"],
+    "unlock": {
+      "context": "AlwaysUnlocked"
+    },
+    "pattern": [" W ", "WSW", "T T"],
+    "key": {
+      "W": {
+        "tag": "minecraft:wool"
+      },
+      "S": {
+        "item": "minecraft:stick"
+      },
+      "T": {
+        "item": "minecraft:string"
+      }
+    },
+    "result": {
+      "item": "yasu_ride:tent_item",
+      "count": 1
+    }
+  }
+}

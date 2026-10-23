@@ -37,6 +37,15 @@ A low folding camp chair with a brown canvas sling seat and a reclined canvas ba
 - **Take it back:** hit it three times in quick succession while nobody sits on it. It folds up and drops its item. Each hit before the third tells you how many more it takes.
 - **Get one:** in Creative, it is in the Camping Gear group at the end of the Items tab, after the gear. In Survival, craft it from two leather, two sticks, and two iron ingots (leather top-left and middle, sticks on either side of the middle, iron ingots in the bottom corners).
 
+## Tent (outside the vehicles)
+
+![Tent](../images/items/camping-gear/tent.png)
+
+A tan-brown two-room tunnel tent with a tarp on two poles, a white inner bedroom with two blue mattresses, and a hanging milky lantern. It has no logo or product name (ADR 0130).
+
+- **Get one:** find it in the Camping Gear group after the Low Chair, or craft it with three wool, one stick, and two string. The recipe rows are ` W `, `WSW`, and `T T`.
+- Pitching comes with 9/13 of the tent work. Using the item does nothing yet; a summoned tent just stands there.
+
 ## In the game
 
 Creative players find every item above in the **Camping Gear** group at the end of the Items tab. Each item has a decor block, `yasu_ride:<id>_decor`, that the parked camper lays on a furniture slot. The block has no collision and cannot be broken. Its `yasu_ride:height` state (0 to 15) lifts the gear by that many pixels to the slot's top. On the ceiling hook it lifts the hanging planter so that its top meets the hook. Its `yasu_ride:face` state is the parked camper's facing in quarter turns (0 south, 1 west, 2 north, 3 east). The block turns the gear so that the side shown at the front of its preview faces the camper's front. Its `yasu_ride:spot` state (0 to 4) moves the gear from the middle of its cell to one of the four stove burner spots of ADR 0107, which no slot uses since the stove got one burner in its middle (ADR 0112). A shelf board and the table hold two items, drawn by one block in the furniture's cell, `yasu_ride:shelf_decor_pair` or `yasu_ride:table_decor_pair`, whose states name the item at each end (ADR 0108).

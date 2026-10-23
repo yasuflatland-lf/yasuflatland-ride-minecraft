@@ -1,0 +1,84 @@
+{
+  "format_version": "1.21.80",
+  "minecraft:entity": {
+    "description": {
+      "identifier": "yasu_ride:tent",
+      "is_spawnable": false,
+      "is_summonable": true,
+      "properties": {
+        "yasu_ride:flap_front": {
+          "type": "float",
+          "range": [0, 1],
+          "default": 0,
+          "client_sync": true
+        },
+        "yasu_ride:flap_left": {
+          "type": "float",
+          "range": [0, 1],
+          "default": 0,
+          "client_sync": true
+        },
+        "yasu_ride:flap_right": {
+          "type": "float",
+          "range": [0, 1],
+          "default": 0,
+          "client_sync": true
+        },
+        "yasu_ride:flap_bedroom": {
+          "type": "float",
+          "range": [0, 1],
+          "default": 0,
+          "client_sync": true
+        },
+        "yasu_ride:lantern": {
+          "type": "bool",
+          "default": false,
+          "client_sync": true
+        }
+      }
+    },
+    "components": {
+      "minecraft:type_family": {
+        "family": ["yasu_ride_tent", "inanimate"]
+      },
+      "minecraft:variant": {
+        "value": 0
+      },
+      "minecraft:collision_box": {
+        "width": 0.2,
+        "height": 0.2
+      },
+      "minecraft:custom_hit_test": {
+        "hitboxes": [
+          {
+            "width": 0.1,
+            "height": 0.1,
+            "pivot": [0, 0.05, 0]
+          }
+        ]
+      },
+      "minecraft:physics": {
+        "has_collision": false,
+        "has_gravity": false
+      },
+      "minecraft:pushable": {
+        "is_pushable": false,
+        "is_pushable_by_piston": false
+      },
+      "minecraft:knockback_resistance": {
+        "value": 1
+      },
+      "minecraft:health": {
+        "value": 20,
+        "max": 20
+      },
+      "minecraft:damage_sensor": {
+        "triggers": {
+          "cause": "all",
+          "deals_damage": "no"
+        }
+      },
+      "minecraft:persistent": {}
+    }
+  }
+}
