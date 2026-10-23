@@ -192,6 +192,40 @@ describe("HeadlightBlocks (ADR 0020)", () => {
     expect(invalid.map(grid.typeAt)).toEqual(invalid.map(() => LIGHT_BLOCK));
   });
 
+  it("drops saved entries that are not cells and clears the valid ones", () => {
+    const grid = blockGrid();
+    const car = vehicleIn(grid);
+    const valid = { x: 0, y: 65, z: 0, level: 9 };
+    const notCells = [
+      { x: 1, y: 65.5, z: 0, level: 9 },
+      { x: 2, y: 65, z: "0", level: 9 },
+    ];
+    for (const c of [valid, ...notCells]) {
+      grid.getBlock({ x: c.x, y: Math.floor(c.y), z: 0 }).setType(LIGHT_BLOCK);
+    }
+    car.setDynamicProperty(
+      LIT_CELLS_PROPERTY,
+      JSON.stringify([null, "cell", 7, valid, ...notCells]),
+    );
+    new HeadlightBlocks(noCampSpace).shine(asVehicleId(car.id), car, []);
+    expect(grid.typeAt(valid)).toBe("minecraft:air");
+    expect(grid.typeAt({ x: 1, y: 65, z: 0 })).toBe(LIGHT_BLOCK);
+    expect(grid.typeAt({ x: 2, y: 65, z: 0 })).toBe(LIGHT_BLOCK);
+    expect(car.getDynamicProperty(LIT_CELLS_PROPERTY)).toBeUndefined();
+  });
+
+  it("ignores a saved value that is not a list of cells", () => {
+    const lit = { x: 0, y: 65, z: 0, level: 15 };
+    for (const saved of [JSON.stringify(lit), "not json"]) {
+      const grid = blockGrid();
+      const car = vehicleIn(grid);
+      grid.getBlock(lit).setType(LIGHT_BLOCK);
+      car.setDynamicProperty(LIT_CELLS_PROPERTY, saved);
+      new HeadlightBlocks(noCampSpace).shine(asVehicleId(car.id), car, []);
+      expect(grid.typeAt(lit)).toBe(LIGHT_BLOCK);
+    }
+  });
+
   it("does nothing for a gone vehicle it has not lit", () => {
     const lights = new HeadlightBlocks(noCampSpace);
     expect(() =>
