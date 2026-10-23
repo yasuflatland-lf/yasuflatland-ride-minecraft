@@ -1,6 +1,6 @@
 # 0024. Make the vehicle item and the headlight switch work on mobile, and light the road three times farther
 
-- Status: Accepted (extended by [0129](0129-share-room-primitives-between-features.md): the switch cooldown is shared; and by [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md): each tent's lantern has one such cooldown)
+- Status: Accepted (extended by [0129](0129-share-room-primitives-between-features.md): the switch cooldown is shared; and by [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md): each tent's lantern has one such cooldown; and by [0138](0138-raise-and-lower-the-bulldozer-blade.md): the blade switch has its own cooldown of the same length)
 - Date: 2026-10-11
 
 ## Context
