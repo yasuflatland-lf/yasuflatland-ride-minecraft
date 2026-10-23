@@ -168,6 +168,26 @@ describe("bankSink (ADR 0026)", () => {
   });
 });
 
+describe("a kind without a bank (maxBank 0)", () => {
+  const level = { ...SUV_TRANSFORMING, maxBank: 0 };
+
+  it("never sinks in any form at any bank angle", () => {
+    fc.assert(
+      fc.property(form, angle, (m, a) => {
+        expect(bankSink(m, a, level)).toBe(0);
+      }),
+    );
+  });
+
+  it("stays exactly level through any turn in any form", () => {
+    fc.assert(
+      fc.property(form, yaw, turn, (m, y, d) => {
+        expect(stepBank(0, m, y, y + d, SUV_SPEC.turnRate, level)).toBe(0);
+      }),
+    );
+  });
+});
+
 describe("per-kind bank limits", () => {
   it("respects the supplied maxBank and bankRate from an angle within bounds", () => {
     fc.assert(

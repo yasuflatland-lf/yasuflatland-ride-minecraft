@@ -1,3 +1,4 @@
+import type { Entity } from "@minecraft/server";
 import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SpaceCheck } from "../../../../src/application/shared/ports/space";
@@ -16,6 +17,7 @@ import { BedrockInventory } from "../../../../src/infrastructure/vehicle/bedrock
 import { BedrockPaintWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockPaintWorld";
 import { BedrockPlacementWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockPlacementWorld";
 import { BedrockVehicleWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockVehicleWorld";
+import { BladeCuts } from "../../../../src/infrastructure/vehicle/bedrock/bladeCuts";
 import { DockBlocks } from "../../../../src/infrastructure/vehicle/bedrock/dockBlocks";
 import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
 import {
@@ -43,6 +45,8 @@ const game = vi.hoisted(() => ({
 }));
 vi.mock("@minecraft/server", () => ({
   world: game,
+  system: {},
+  BlockVolume: class {},
   GameMode: { Creative: "Creative", Survival: "Survival" },
   ButtonState: {},
   InputButton: {},
@@ -499,7 +503,7 @@ describe("BedrockVehicleWorld snapshots", () => {
     const { dimension, car, world } = fixture();
     const grid = blockGrid();
     dimension.getBlock.mockImplementation(grid.getBlock);
-    const cell = { x: 0, y: 65, z: 4 };
+    const cell = { x: 0, y: 65, z: 4, level: 15 };
     world.loadedVehicles();
     world.shineHeadlights(asVehicleId(car.id), [cell]);
     world.loadedVehicles();
@@ -767,7 +771,7 @@ describe("BedrockVehicleWorld holds (ADR 0063)", () => {
       z: 3,
       block: { type: "deck" as const, height: 9 },
     };
-    const light = { x: 0, y: 65, z: 4 };
+    const light = { x: 0, y: 65, z: 4, level: 15 };
     const pose = { x: 1, y: 64.5, z: -2, yaw: 30 };
     world.loadedVehicles();
     world.holdAt(asVehicleId(car.id), pose);
@@ -1374,3 +1378,27 @@ describe("BedrockVehicleWorld.isVehicleSpace (ADR 0122)", () => {
 });
 
 const noCampSpace: SpaceCheck = () => false;
+
+it("cuts a vehicle's columns in its own dimension, and nothing for a missing vehicle (ADR 0137)", () => {
+  const { world, dimension } = fixture();
+  const cut = vi.spyOn(BladeCuts.prototype, "cut").mockImplementation(() => {});
+  const columns = [{ x: 9, z: 9, bottom: 64 }];
+  world.cutColumns(asVehicleId("missing"), columns);
+  expect(cut).not.toHaveBeenCalled();
+  world.cutColumns(asVehicleId("car"), columns);
+  expect(cut).toHaveBeenCalledExactlyOnceWith(dimension, columns);
+  cut.mockRestore();
+});
+it.each([false, true])(
+  "returns the blade cut drop sweep result: %s",
+  (result) => {
+    const { world } = fixture();
+    const entity = {} as Entity;
+    const sweep = vi
+      .spyOn(BladeCuts.prototype, "sweepDrop")
+      .mockReturnValue(result);
+    expect(world.sweepCutDrop(entity)).toBe(result);
+    expect(sweep).toHaveBeenCalledWith(entity);
+    sweep.mockRestore();
+  },
+);

@@ -12,7 +12,6 @@ import type {
   DriveWorld,
   VehicleSnapshot,
 } from "../../../application/vehicle/ports/drive";
-import type { Cell } from "../../../domain/shared/cells";
 import {
   asPlayerId,
   asVehicleId,
@@ -21,6 +20,7 @@ import {
   type VehicleId,
 } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
+import type { CutColumn } from "../../../domain/vehicle/cut";
 import {
   type ClearCell,
   type DeckSeatSpot,
@@ -37,6 +37,7 @@ import {
   profileOf,
   RAM_QUERY_RADIUS,
 } from "../../../domain/vehicle/kinds/index";
+import type { LitCell } from "../../../domain/vehicle/lighting/headlights";
 import type { ChaseCamera } from "../../../domain/vehicle/profile";
 import type { RamHit, RamTarget } from "../../../domain/vehicle/ram";
 import type { SeatAssignment } from "../../../domain/vehicle/seatChoice";
@@ -46,6 +47,7 @@ import { AIR_BLOCK, messageKey } from "../../shared/identifiers";
 import { isLightBlock } from "../../shared/lightBlocks";
 import type { TestInputStore } from "../testInput/testInputStore";
 import { savedDecor } from "./bedrockDecorWorld";
+import { BladeCuts } from "./bladeCuts";
 import { DeckSeats } from "./deckSeats";
 import { DockBlocks, savedDock } from "./dockBlocks";
 import {
@@ -66,6 +68,7 @@ import {
 } from "./identifiers";
 import { SeatFillers } from "./seatFillers";
 import { StandIns } from "./standIns";
+import { systemClock } from "./systemClock";
 import { VehicleReleaser } from "./vehicleReleaser";
 import { isWaterAt } from "./water";
 
@@ -109,6 +112,7 @@ function distanceSq(a: Vec3, b: Vec3): number {
 
 export class BedrockVehicleWorld implements DriveWorld {
   private readonly headlightBlocks: HeadlightBlocks;
+  private readonly bladeCuts = new BladeCuts(systemClock);
   private readonly deckSeats = new DeckSeats();
   private readonly standIns = new StandIns();
   private readonly seatFillers = new SeatFillers();
@@ -347,6 +351,15 @@ export class BedrockVehicleWorld implements DriveWorld {
     }
   }
 
+  cutColumns(vehicleId: VehicleId, columns: readonly CutColumn[]): void {
+    const vehicle = this.index.entity(vehicleId);
+    if (vehicle) this.bladeCuts.cut(vehicle.dimension, columns);
+  }
+
+  sweepCutDrop(entity: Entity): boolean {
+    return this.bladeCuts.sweepDrop(entity);
+  }
+
   showMessage(playerId: PlayerId, name: string): void {
     this.index.player(playerId)?.onScreenDisplay.setActionBar({
       translate: messageKey(name),
@@ -512,7 +525,7 @@ export class BedrockVehicleWorld implements DriveWorld {
     target.applyKnockback({ x: hit.push.x, z: hit.push.z }, hit.pushUp);
   }
 
-  shineHeadlights(vehicleId: VehicleId, cells: readonly Cell[]): void {
+  shineHeadlights(vehicleId: VehicleId, cells: readonly LitCell[]): void {
     this.headlightBlocks.shine(vehicleId, this.index.entity(vehicleId), cells);
   }
 

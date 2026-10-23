@@ -1,4 +1,3 @@
-import type { Cell } from "../shared/cells";
 import {
   EMPTY_COUNTER,
   type HitCounter,
@@ -10,6 +9,7 @@ import { SwitchCooldown } from "../shared/switchCooldown";
 import { forward, type Vec2, type Vec3 } from "../shared/vec";
 import { RamCooldowns } from "./cooldowns";
 import { Crew } from "./crew";
+import type { CutColumn } from "./cut";
 import type { DecorPlacement, StoragePress } from "./dock/decor";
 import type { ClearCell, Departure, Dock } from "./dock/dock";
 import type { Drive, EngineCommand, RiderState, TickContext } from "./drive";
@@ -23,7 +23,10 @@ import {
   zoneOf,
 } from "./hints";
 import type { VehicleKind } from "./kind";
-import { headlightCells as cellsLitFrom } from "./lighting/headlights";
+import {
+  headlightCells as cellsLitFrom,
+  type LitCell,
+} from "./lighting/headlights";
 import type { ChaseCamera, VehicleProfile } from "./profile";
 import { type RamHit, type RamTarget, selectHits } from "./ram";
 import type { SeatAssignment } from "./seatChoice";
@@ -61,7 +64,7 @@ export interface VehicleTickInput extends TickContext {
 /**
  * What one vehicle does this tick. The application's per-vehicle tick
  * applies it with these world calls, in this order, and a throw skips the
- * rest of that vehicle's tick (ADR 0055). Steps 3, 10, 11, 12 and 13 run
+ * rest of that vehicle's tick (ADR 0055). Steps 3, 11, 12, 13 and 14 run
  * every tick: with nothing to keep, they release what the vehicle held,
  * seated, stood in for it, laid or lit before.
  *
@@ -71,33 +74,36 @@ export interface VehicleTickInput extends TickContext {
  * 2. `message` on the action bar of `driverId`, only when there is one.
  * 3. `dock.hold`; with no `dock`, the hold is released (ADR 0063, 0064).
  * 4. `clear`, when not empty, before the dock's cells are laid (ADR 0068).
- * 5. `riders` is collected. After every vehicle has ticked, the chase
+ * 5. `cut`, when not empty, right after `clear` and before the move, so the
+ *    body moves into the cleared strip on the same tick (ADR 0137).
+ * 6. `riders` is collected. After every vehicle has ticked, the chase
  *    cameras are synced (ADR 0028, 0071), and water breathing is refreshed
  *    every `SPEC.waterBreathingInterval` ticks (ADR 0040).
- * 6. `impulse` and `yaw`, only when there is no `dock`: a docked vehicle is
+ * 7. `impulse` and `yaw`, only when there is no `dock`: a docked vehicle is
  *    held instead of moved (ADR 0063).
- * 7. `seatLayout`: for a kind whose players choose their seat, the
+ * 8. `seatLayout`: for a kind whose players choose their seat, the
  *    vehicle's riders are laid in this order, with a seat filler for each
  *    undefined entry, so each player sits in their seat (ADR 0120).
- * 8. `boardDeckRiders`: the deck-seat riders move into the vehicle
+ * 9. `boardDeckRiders`: the deck-seat riders move into the vehicle
  *    (ADR 0063), before standing players are seated (ADR 0068).
- * 9. `depart`: take any deck-seat rider the vehicle refused off their deck
+ * 10. `depart`: take any deck-seat rider the vehicle refused off their deck
  *    seat, then seat them and the standing players, nearest first, and move
  *    those left without a seat to the exit (ADR 0068, 0095).
- * 10. `dock.seats` at `yaw`, after boarding and departure; with no `dock`,
+ * 11. `dock.seats` at `yaw`, after boarding and departure; with no `dock`,
  *    the deck seats are removed.
- * 11. `standIn`: the vehicle's one stand-in entity is kept at this pose, or
+ * 12. `standIn`: the vehicle's one stand-in entity is kept at this pose, or
  *     removed when there is none (ADR 0116).
- * 12. `dock.cells`; with no `dock`, the laid cells are cleared.
- * 13. Headlight cells along the vehicle's heading after this tick, or none
+ * 13. `dock.cells`; with no `dock`, the laid cells are cleared.
+ * 14. Headlight cells along the vehicle's heading after this tick, or none
  *     when its headlights are off (ADR 0020).
- * 14. `hits`, credited to `driverId`.
- * 15. `finalCommands`, last: the vacated seats' commands, such as the door
- *     animation (ADR 0007, 0055).
+ * 15. `hits`, credited to `driverId`.
+ * 16. `finalCommands`, last: the vacated seats' commands, such as the door
+ *     animation, then the taken seats' commands (ADR 0007, 0055).
  */
 export interface TickOutcome {
   dock?: Dock;
   clear: readonly ClearCell[];
+  cut: readonly CutColumn[];
   message?: string;
   depart?: Departure;
   /** The rider list to keep, for a kind whose players choose their seat; undefined otherwise (ADR 0120). */
@@ -168,7 +174,7 @@ export class Vehicle {
   }
 
   /** Cells the headlights light with the vehicle at `location`, along its current heading (ADR 0020). */
-  headlightCells(location: Vec3): Cell[] {
+  headlightCells(location: Vec3): LitCell[] {
     return cellsLitFrom(location, this.drive.yaw, this.profile.beams);
   }
 
@@ -295,8 +301,11 @@ export class Vehicle {
       forward(this.drive.yaw),
       sensors.velocity,
     );
-    const seatCommands = seated.vacated.flatMap((seat) =>
+    const vacatedCommands = seated.vacated.flatMap((seat) =>
       this.drive.onSeatVacated(seat),
+    );
+    const takenCommands = seated.boarded.flatMap(
+      (seat) => this.drive.onSeatTaken?.(seat) ?? [],
     );
     const driver = seated.driver;
     if (seated.mounted && driver) this.drive.onDriverMounted(driver.yaw);
@@ -329,6 +338,7 @@ export class Vehicle {
         ),
       },
       clear: step.clear ?? [],
+      cut: step.cut ?? [],
       message: step.message,
       depart: step.depart,
       seatLayout,
@@ -339,7 +349,7 @@ export class Vehicle {
       hits: this.ram(sensors.tick, targets, step.forward),
       driverId: driver?.id,
       stepCommands: step.commands,
-      finalCommands: seatCommands,
+      finalCommands: [...vacatedCommands, ...takenCommands],
       riders: step.riders,
     };
   }

@@ -1,20 +1,21 @@
 import type { PlayerId } from "../../domain/shared/ids";
-// Use case: give each player one vehicle item the first time they join the world (ADR 0023).
-import type { VehicleKind } from "../../domain/vehicle/kind";
+// Use case: give each player one item of each starter kind the first time they join the world (ADR 0023).
+import { STARTER_KINDS } from "../../domain/vehicle/placement/starter";
 import type { StarterWorld } from "./ports/placement";
-
-// The SUV drives on land, where every new player starts (ADR 0023).
-const STARTER_KIND: VehicleKind = "suv";
 
 export class GiveStarterVehicle {
   constructor(private readonly world: StarterWorld) {}
 
   execute(playerId: PlayerId): boolean {
-    if (this.world.receivedStarter(playerId) !== false) return false;
-    // Marking only after giving means a give that throws is retried on the
-    // next join instead of leaving the player without a vehicle.
-    this.world.giveVehicleItem(playerId, STARTER_KIND);
-    this.world.markStarterReceived(playerId);
-    return true;
+    let gave = false;
+    for (const kind of STARTER_KINDS) {
+      if (this.world.receivedStarter(playerId, kind) !== false) continue;
+      // Marking only after giving leaves this kind and every later kind unmarked
+      // when a give throws, so the next join retries them.
+      this.world.giveVehicleItem(playerId, kind);
+      this.world.markStarterReceived(playerId, kind);
+      gave = true;
+    }
+    return gave;
   }
 }

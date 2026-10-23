@@ -33,6 +33,7 @@ import { BedrockPaintWorld } from "./bedrock/bedrockPaintWorld";
 import { BedrockPlacementWorld } from "./bedrock/bedrockPlacementWorld";
 import { BedrockVehicleWorld } from "./bedrock/bedrockVehicleWorld";
 import { EntityIndex } from "./bedrock/entityIndex";
+import { registerCutDrops } from "./bedrock/handlers/cutDrops";
 import { registerSubscriptions } from "./bedrock/subscriptions";
 import { systemClock } from "./bedrock/systemClock";
 import { DynamicPropertyFleetRepository } from "./persistence/dynamicPropertyFleetRepository";
@@ -102,6 +103,7 @@ export function installVehicles(deps: {
       bedrock.dockBlockOwner(dimensionId, cell, typeId),
     deps.laterSwitchTargets,
   );
+  registerCutDrops((entity) => bedrock.sweepCutDrop(entity));
   return {
     isVehicleSpace: (dimensionId, cell) =>
       bedrock.isVehicleSpace(dimensionId, cell),

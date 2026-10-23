@@ -1,5 +1,6 @@
 // How one vehicle kind moves each tick, under the shared core in vehicle.ts (ADR 0050, 0055).
 import type { Vec2, Vec3 } from "../shared/vec";
+import type { CutColumn } from "./cut";
 import type { DecorPlacement, StoragePress } from "./dock/decor";
 import type { ClearCell, Departure, Dock, DockRestoredKey } from "./dock/dock";
 import type { RawInput } from "./driveInput";
@@ -57,6 +58,8 @@ export interface DriveStep {
   dock?: Dock;
   /** Blocks to remove this tick before the dock's cells are laid (ADR 0063, 0068). */
   clear?: readonly ClearCell[];
+  /** Block columns to clear this tick, right after `clear` (ADR 0137). */
+  cut?: readonly CutColumn[];
   /** Shown on the driver's action bar as the lang key yasu_ride.message.<name> (ADR 0063, 0068). */
   message?: string;
   /** Seats the players standing in these boxes this tick, or moves them to the exit (ADR 0063, 0068). */
@@ -79,6 +82,8 @@ export interface Drive {
   /** Called when a new driver takes seat 0. */
   onDriverMounted(driverYaw: number): void;
   onSeatVacated(seat: number): readonly EngineCommand[];
+  /** Called before `step` for each seat a newly boarded rider takes this tick, ascending; its commands go into `finalCommands` after the vacated seats' commands. Absent means none. */
+  onSeatTaken?(seat: number): readonly EngineCommand[];
   /** Opens or closes the door of a held vehicle's room at `tick`; false when it has none or the tap is ignored (ADR 0068, 0105). */
   useDockDoor?(tick: number): boolean;
   /** Turns the ceiling lights of a held vehicle's room on or off for a player with feet at `feet`; false when it has none or the player is not inside (ADR 0115). */

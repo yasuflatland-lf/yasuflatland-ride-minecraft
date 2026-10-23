@@ -5,6 +5,14 @@ import type {
   PropertySpec,
 } from "../../src/domain/vehicle/entityContract";
 
+function expectInRange(
+  value: unknown,
+  [min, max]: readonly [number, number],
+): void {
+  expect(value).toBeGreaterThanOrEqual(min);
+  expect(value).toBeLessThanOrEqual(max);
+}
+
 /** Fails unless the contract declares `command` and its value fits the declared type and range. Contracts declare no sounds, so only a sound's name is checked. */
 export function expectDeclaredCommand(
   command: EngineCommand,
@@ -22,11 +30,22 @@ export function expectDeclaredCommand(
         case "bool":
           expect(typeof command.value).toBe("boolean");
           break;
+        case "int":
+          expect(Number.isInteger(command.value)).toBe(true);
+          expectInRange(command.value, spec.range);
+          break;
         case "float":
           expect(typeof command.value).toBe("number");
-          expect(command.value).toBeGreaterThanOrEqual(spec.range[0]);
-          expect(command.value).toBeLessThanOrEqual(spec.range[1]);
+          expectInRange(command.value, spec.range);
           break;
+        default: {
+          // A spec type with no case here would let every value pass, the bug
+          // behind #529; `never` makes tsc fail instead.
+          const unchecked: never = spec;
+          throw new Error(
+            `Unchecked property spec ${JSON.stringify(unchecked)}`,
+          );
+        }
       }
       break;
     }
@@ -39,5 +58,21 @@ export function expectDeclaredCommand(
     case "playSound":
       expect(typeof command.name).toBe("string");
       break;
+  }
+}
+
+/** Fails unless a BP property definition's default fits its spec's range, and, for int, the bounds and default are integers. */
+export function expectPackProperty(
+  definition: { default?: unknown },
+  spec: PropertySpec,
+): void {
+  if (spec.type !== "float" && spec.type !== "int") return;
+  expect(spec.range[0]).toBeLessThanOrEqual(spec.range[1]);
+  expect(typeof definition.default).toBe("number");
+  expectInRange(definition.default, spec.range);
+  if (spec.type === "int") {
+    expect(Number.isInteger(spec.range[0])).toBe(true);
+    expect(Number.isInteger(spec.range[1])).toBe(true);
+    expect(Number.isInteger(definition.default)).toBe(true);
   }
 }

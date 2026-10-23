@@ -1,31 +1,50 @@
 // Light blocks in front of vehicles with their headlights on (ADR 0020).
 import type { Dimension, Entity } from "@minecraft/server";
 import type { SpaceCheck } from "../../../application/shared/ports/space";
-import { type Cell, cellKey } from "../../../domain/shared/cells";
+import { cellKey } from "../../../domain/shared/cells";
 import { asDimensionId, type VehicleId } from "../../../domain/shared/ids";
-import { relight } from "../../../domain/vehicle/lighting/headlights";
-import { isLightBlock, LIGHT_BLOCK } from "../../shared/lightBlocks";
+import {
+  FULL_LIGHT_LEVEL,
+  type LitCell,
+  litCellKey,
+  relight,
+} from "../../../domain/vehicle/lighting/headlights";
+import { isLightBlock, lightBlockId } from "../../shared/lightBlocks";
 import { LIT_CELLS_PROPERTY } from "./identifiers";
 
 interface Lit {
   dimension: Dimension;
-  cells: Cell[];
+  cells: LitCell[];
 }
 
-function isCell(v: unknown): v is Cell {
-  if (typeof v !== "object" || v === null) return false;
-  const c = v as Record<string, unknown>;
-  return [c.x, c.y, c.z].every((n) => Number.isInteger(n));
+function isInteger(v: unknown): v is number {
+  return Number.isInteger(v);
+}
+
+function litCellFrom(v: unknown): LitCell | undefined {
+  if (typeof v !== "object" || v === null) return undefined;
+  const { x, y, z, level = FULL_LIGHT_LEVEL } = v as Record<string, unknown>;
+  if (!isInteger(x) || !isInteger(y) || !isInteger(z)) return undefined;
+  if (!isInteger(level) || level < 0 || level > FULL_LIGHT_LEVEL) {
+    return undefined;
+  }
+  return { x, y, z, level };
+}
+
+function litKeysOf(cells: readonly LitCell[]): string {
+  return cells.map(litCellKey).join(";");
 }
 
 // The cells a vehicle lit are saved on the entity, so a /reload or a restart
 // can still clear them.
-function savedCells(vehicle: Entity): Cell[] {
+function savedCells(vehicle: Entity): LitCell[] {
   const raw = vehicle.getDynamicProperty(LIT_CELLS_PROPERTY);
   if (typeof raw !== "string") return [];
   try {
     const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter(isCell) : [];
+    return Array.isArray(parsed)
+      ? parsed.flatMap((v) => litCellFrom(v) ?? [])
+      : [];
   } catch {
     return [];
   }
@@ -40,7 +59,7 @@ export class HeadlightBlocks {
   shine(
     vehicleId: VehicleId,
     vehicle: Entity | undefined,
-    wanted: readonly Cell[],
+    wanted: readonly LitCell[],
   ) {
     let entry = this.lit.get(vehicleId);
     if (!entry) {
@@ -51,11 +70,11 @@ export class HeadlightBlocks {
       this.update(entry, []);
       entry = { dimension: vehicle.dimension, cells: [] };
     }
-    const before = entry.cells.map(cellKey).join(";");
+    const before = litKeysOf(entry.cells);
     this.update(entry, vehicle ? wanted : []);
     if (entry.cells.length > 0) this.lit.set(vehicleId, entry);
     else this.lit.delete(vehicleId);
-    if (vehicle?.isValid && entry.cells.map(cellKey).join(";") !== before) {
+    if (vehicle?.isValid && litKeysOf(entry.cells) !== before) {
       vehicle.setDynamicProperty(
         LIT_CELLS_PROPERTY,
         entry.cells.length > 0 ? JSON.stringify(entry.cells) : undefined,
@@ -76,7 +95,7 @@ export class HeadlightBlocks {
     }
   }
 
-  private update(entry: Lit, wanted: readonly Cell[]): void {
+  private update(entry: Lit, wanted: readonly LitCell[]): void {
     const { clear, light } = relight(entry.cells, wanted);
     const cleared = new Set<string>();
     for (const c of clear) {
@@ -96,10 +115,13 @@ export class HeadlightBlocks {
     const dimensionId = asDimensionId(entry.dimension.id);
     for (const c of light) {
       if (this.campSpace(dimensionId, c)) continue;
+      // Resolved outside the try so a bad profile level throws here instead of
+      // being swallowed as an engine error.
+      const type = lightBlockId(c.level);
       try {
         const b = entry.dimension.getBlock(c);
         if (!b?.isAir) continue;
-        b.setType(LIGHT_BLOCK);
+        b.setType(type);
         cells.push(c);
       } catch {
         // Unloaded chunk or outside the world: no light there this tick.

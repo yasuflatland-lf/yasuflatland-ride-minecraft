@@ -177,6 +177,9 @@ importers:
       '@minecraft/server':
         specifier: 2.10.0
         version: 2.10.0(@minecraft/common@1.3.0)(@minecraft/vanilla-data@1.26.52)
+      '@minecraft/vanilla-data':
+        specifier: 1.26.52
+        version: 1.26.52
       '@stryker-mutator/core':
         specifier: 10.0.0
         version: 10.0.0(@types/node@24.19.2)

@@ -86,6 +86,7 @@ export class DriveVehicles {
       this.world.showMessage(out.driverId, out.message);
     this.world.holdAt(snap.id, out.dock?.hold);
     if (out.clear.length > 0) this.world.clearBlocks(snap.id, out.clear);
+    if (out.cut.length > 0) this.world.cutColumns(snap.id, out.cut);
     if (out.riders.thirdPerson) {
       const camera = vehicle.chaseCamera;
       for (const rider of snap.riders) thirdPersonRiders.set(rider.id, camera);

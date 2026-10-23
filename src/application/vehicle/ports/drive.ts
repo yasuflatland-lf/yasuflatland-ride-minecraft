@@ -1,4 +1,3 @@
-import type { Cell } from "../../../domain/shared/cells";
 import type {
   DimensionId,
   PlayerId,
@@ -6,6 +5,7 @@ import type {
 } from "../../../domain/shared/ids";
 // Ports the per-tick drive requires from the game; implemented in the infrastructure layer (ADR 0012).
 import type { Vec3 } from "../../../domain/shared/vec";
+import type { CutColumn } from "../../../domain/vehicle/cut";
 import type {
   ClearCell,
   DeckSeatSpot,
@@ -23,6 +23,7 @@ import type {
   HintControls,
 } from "../../../domain/vehicle/hints";
 import type { VehicleKind } from "../../../domain/vehicle/kind";
+import type { LitCell } from "../../../domain/vehicle/lighting/headlights";
 import type { ChaseCamera } from "../../../domain/vehicle/profile";
 import type { RamHit, RamTarget } from "../../../domain/vehicle/ram";
 import type { SeatAssignment } from "../../../domain/vehicle/seatChoice";
@@ -80,6 +81,8 @@ export interface DriveWorld {
   ): (string | undefined)[];
   /** Sets each cell to air if it still holds the type it had at the check. */
   clearBlocks(vehicleId: VehicleId, cells: readonly ClearCell[]): void;
+  /** Clears each column in the vehicle's dimension, keeping `CUT_KEPT_BLOCKS` and laid blocks; skips columns in unloaded chunks (ADR 0137). */
+  cutColumns(vehicleId: VehicleId, columns: readonly CutColumn[]): void;
   /** Shows the lang key yasu_ride.message.<name> on a player's action bar; does nothing for a missing player. */
   showMessage(playerId: PlayerId, name: string): void;
   /**
@@ -99,7 +102,7 @@ export interface DriveWorld {
    * Keeps light blocks in exactly these cells for the vehicle and clears the
    * ones it lit before.
    */
-  shineHeadlights(vehicleId: VehicleId, cells: readonly Cell[]): void;
+  shineHeadlights(vehicleId: VehicleId, cells: readonly LitCell[]): void;
   /**
    * Releases everything the world keeps for a vehicle that is no longer loaded:
    * its light blocks, dock cells, deck seats, seat fillers, stand-in and hold. Every part is attempted
