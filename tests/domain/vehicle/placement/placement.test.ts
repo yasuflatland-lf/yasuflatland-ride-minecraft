@@ -1,12 +1,15 @@
 import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
 import type { Vec3 } from "../../../../src/domain/shared/vec";
+import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
 import { CAMPER_PROFILE } from "../../../../src/domain/vehicle/kinds/camper/profile";
+import { profileOf } from "../../../../src/domain/vehicle/kinds/index";
 import { SPORTSBOAT_PROFILE } from "../../../../src/domain/vehicle/kinds/sportsboat/profile";
 import { SUV_PROFILE } from "../../../../src/domain/vehicle/kinds/suv/profile";
 import {
   type BlockFace,
   canPlaceAt,
+  clearanceHeight,
   FACE_OFFSET,
   placementCell,
   surfaceCellY,
@@ -33,6 +36,34 @@ const onlyBlocked =
   (b: { dx: number; dy: number; dz: number }) =>
   (dx: number, dy: number, dz: number) =>
     !(dx === b.dx && dy === b.dy && dz === b.dz);
+
+describe("clearanceHeight", () => {
+  it("rounds any positive finite body height up to the nearest whole cell", () => {
+    fc.assert(
+      fc.property(
+        fc.double({ min: 0, minExcluded: true, max: 64, noNaN: true }),
+        (height) => {
+          const clearance = clearanceHeight({ height });
+          expect(Number.isInteger(clearance)).toBe(true);
+          expect(clearance).toBeGreaterThanOrEqual(height);
+          // Equivalent to clearance < height + 1 without rounding tiny heights away.
+          expect(clearance - 1).toBeLessThan(height);
+        },
+      ),
+    );
+  });
+
+  it("derives every kind's clearance height from its body", () => {
+    fc.assert(
+      fc.property(fc.constantFrom(...VEHICLE_KINDS), (kind) => {
+        const profile = profileOf(kind);
+        expect(profile.placement.clearance.height).toBe(
+          clearanceHeight(profile.body),
+        );
+      }),
+    );
+  });
+});
 
 describe("canPlaceAt (ADR 0008, collision box from ADR 0009)", () => {
   it("can place when a 3-wide × 2-high space is clear", () => {

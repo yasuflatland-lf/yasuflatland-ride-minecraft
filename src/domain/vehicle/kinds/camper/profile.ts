@@ -1,5 +1,8 @@
 import type { MotionLimits, TyreLimits } from "../../motion/limits";
-import type { PlacementSurface } from "../../placement/placement";
+import {
+  clearanceHeight,
+  type PlacementSurface,
+} from "../../placement/placement";
 import type { SeatLayout, VehicleProfile } from "../../profile";
 import { CAMPER_SPEC } from "./spec";
 
@@ -9,13 +12,16 @@ export const CAMPER_PARKED_SEATS: SeatLayout = Object.freeze({
   positions: Object.freeze([{ x: -1.031, z: -3.0 }]),
 });
 
+const body = Object.freeze({
+  front: CAMPER_SPEC.bodyFront,
+  halfWidth: CAMPER_SPEC.bodyHalfWidth,
+  height: CAMPER_SPEC.carHeight,
+});
+
 export const CAMPER_PROFILE: VehicleProfile = Object.freeze({
   kind: "camper",
   fleetLimit: 1, // Per player (ADR 0066, 0067).
-  ram: Object.freeze({
-    front: CAMPER_SPEC.bodyFront,
-    halfWidth: CAMPER_SPEC.bodyHalfWidth,
-  }),
+  body,
   footprint: CAMPER_SPEC.footprint,
   /**
    * x = left, z = forward. 0 = driver (front right, right-hand drive like the SUV),
@@ -44,7 +50,11 @@ export const CAMPER_PROFILE: VehicleProfile = Object.freeze({
   // each way) covers the whole body in every facing (ADR 0067).
   placement: Object.freeze({
     surfaces: Object.freeze<PlacementSurface[]>(["top"]),
-    clearance: Object.freeze({ halfX: 4, halfZ: 4, height: 4 }),
+    clearance: Object.freeze({
+      halfX: 4,
+      halfZ: 4,
+      height: clearanceHeight(body),
+    }),
   }),
   // The vanilla view from behind stays inside the 7.6-block body, which hides the camper
   // in flight (ADR 0071).
