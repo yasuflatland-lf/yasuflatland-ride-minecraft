@@ -1,4 +1,3 @@
-import type { Cell } from "../shared/cells";
 import {
   EMPTY_COUNTER,
   type HitCounter,
@@ -23,7 +22,10 @@ import {
   zoneOf,
 } from "./hints";
 import type { VehicleKind } from "./kind";
-import { headlightCells as cellsLitFrom } from "./lighting/headlights";
+import {
+  headlightCells as cellsLitFrom,
+  type LitCell,
+} from "./lighting/headlights";
 import type { ChaseCamera, VehicleProfile } from "./profile";
 import { type RamHit, type RamTarget, selectHits } from "./ram";
 import type { SeatAssignment } from "./seatChoice";
@@ -168,7 +170,7 @@ export class Vehicle {
   }
 
   /** Cells the headlights light with the vehicle at `location`, along its current heading (ADR 0020). */
-  headlightCells(location: Vec3): Cell[] {
+  headlightCells(location: Vec3): LitCell[] {
     return cellsLitFrom(location, this.drive.yaw, this.profile.beams);
   }
 

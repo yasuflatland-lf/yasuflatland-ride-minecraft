@@ -34,6 +34,8 @@ type SeatBoarding =
     };
 
 export interface BeamPattern {
+  /** Light level (0 to 15) of the light block at each reach, by index. Absent = 15 for every reach (ADR 0020). */
+  readonly levels?: readonly number[];
   /** Blocks ahead of the center. */
   readonly reach: readonly number[];
   /** Sideways offsets in blocks. */
