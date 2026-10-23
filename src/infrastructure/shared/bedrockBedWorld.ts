@@ -6,12 +6,12 @@ import { SLEEP } from "../../domain/shared/sleep";
 import type { Vec3 } from "../../domain/shared/vec";
 import { messageKey } from "./identifiers";
 
+interface PlayerLookup {
+  player(playerId: PlayerId): Player | undefined;
+}
+
 export class BedrockBedWorld implements BedWorld {
-  constructor(
-    private readonly players: {
-      player(playerId: PlayerId): Player | undefined;
-    },
-  ) {}
+  constructor(private readonly players: PlayerLookup) {}
 
   timeOfDay(): number {
     return world.getTimeOfDay();
