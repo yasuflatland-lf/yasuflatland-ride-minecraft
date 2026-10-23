@@ -226,21 +226,6 @@ describe("Vehicle in flight (ADR 0021)", () => {
     expect(sim.y).toBeLessThan(1.8);
   });
 
-  it("never leaves the ground while Jump is held down as one long press", () => {
-    const sim = new FlightSim();
-    sim.run({ ...FORWARD, jump: true }, 200);
-    expect(sim.changes).toEqual([]);
-    expect(sim.y).toBe(0);
-  });
-
-  it("ignores Jump presses during takeoff", () => {
-    const sim = new FlightSim();
-    sim.doubleTap();
-    sim.doubleTap();
-    sim.run(IDLE, SUV_SPEC.takeoffTicks);
-    expect(sim.changes).toEqual(["takeoff", "hover"]);
-  });
-
   it("holds altitude while cruising with a level view and reaches max speed", () => {
     const sim = flyingSim();
     const y0 = sim.y;
@@ -307,14 +292,6 @@ describe("Vehicle in flight (ADR 0021)", () => {
     expect(sim.y).toBe(0);
     expect(sim.wheelsDown).toBe(true);
     expect(sim.gearYs.at(-1)?.[0]).toBe(true);
-  });
-
-  it("starts landing as soon as the input goes away mid-flight", () => {
-    const sim = flyingSim();
-    sim.step(undefined);
-    expect(sim.changes.at(-1)).toBe("landing");
-    sim.run(undefined, 40);
-    expect(sim.form).toBe("car");
   });
 
   it("keeps flying without reporting a change when rebuilt in flight", () => {

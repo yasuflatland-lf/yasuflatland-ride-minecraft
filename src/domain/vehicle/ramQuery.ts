@@ -12,10 +12,10 @@ const RAM_HEIGHT_REACH = Math.max(
  */
 export function ramQueryRadius(profiles: readonly VehicleProfile[]): number {
   return Math.max(
-    ...profiles.map(({ ram }) =>
+    ...profiles.map(({ body }) =>
       Math.hypot(
-        ram.front + SPEC.targetHalfWidth,
-        ram.halfWidth + SPEC.targetHalfWidth,
+        body.front + SPEC.targetHalfWidth,
+        body.halfWidth + SPEC.targetHalfWidth,
         RAM_HEIGHT_REACH,
       ),
     ),

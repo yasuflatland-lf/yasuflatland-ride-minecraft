@@ -6,10 +6,11 @@ import type { PlacementGift } from "./placement/gift";
 import type { PlacementRule } from "./placement/placement";
 import type { StandInRule } from "./standIn";
 
-/** Body dimensions from the center, in blocks. */
-export interface RamBody {
+/** Front and half width from the center, height from the feet to the collision box top, in blocks. */
+export interface VehicleBody {
   readonly front: number;
   readonly halfWidth: number;
+  readonly height: number;
 }
 
 export interface SeatLayout {
@@ -49,7 +50,7 @@ export interface VehicleProfile {
   readonly kind: VehicleKind;
   /** Most vehicles of this kind one player keeps; one more removes their oldest (ADR 0066). */
   readonly fleetLimit: number;
-  readonly ram: RamBody;
+  readonly body: VehicleBody;
   /**
    * The farthest any part of the body, or a stand-in box, reaches from the center
    * across the ground, in blocks: a circle the vehicle covers at any heading. Things
