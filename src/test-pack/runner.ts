@@ -1,6 +1,5 @@
 // In-game tests (ADR 0010). They run in a script environment separate from the
 // main Behavior Pack, so they drive the vehicle through script events.
-
 import { system } from "@minecraft/server";
 import { type Outcome, setupArena } from "./arena";
 import {

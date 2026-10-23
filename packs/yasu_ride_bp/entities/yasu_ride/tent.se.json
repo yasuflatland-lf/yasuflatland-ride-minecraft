@@ -8,26 +8,26 @@
       "properties": {
         "yasu_ride:flap_front": {
           "type": "float",
-          "range": [0, 1],
-          "default": 0,
+          "range": [0.0, 1.0],
+          "default": 0.0,
           "client_sync": true
         },
         "yasu_ride:flap_left": {
           "type": "float",
-          "range": [0, 1],
-          "default": 0,
+          "range": [0.0, 1.0],
+          "default": 0.0,
           "client_sync": true
         },
         "yasu_ride:flap_right": {
           "type": "float",
-          "range": [0, 1],
-          "default": 0,
+          "range": [0.0, 1.0],
+          "default": 0.0,
           "client_sync": true
         },
         "yasu_ride:flap_bedroom": {
           "type": "float",
-          "range": [0, 1],
-          "default": 0,
+          "range": [0.0, 1.0],
+          "default": 0.0,
           "client_sync": true
         },
         "yasu_ride:lantern": {
@@ -66,7 +66,7 @@
         "is_pushable_by_piston": false
       },
       "minecraft:knockback_resistance": {
-        "value": 1
+        "value": 1.0
       },
       "minecraft:health": {
         "value": 20,

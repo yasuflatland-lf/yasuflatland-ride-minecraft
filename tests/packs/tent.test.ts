@@ -156,6 +156,22 @@ describe("tent entity and client", () => {
     expect(e.component_groups).toBeUndefined();
     expect(e.events).toBeUndefined();
   });
+  it("writes float property values with a decimal point", () => {
+    // The engine rejects a float property whose default is written as 0
+    // ("'default' value does not match the specified type 'float'") and then
+    // drops every property of the entity, so JSON.parse alone cannot catch it.
+    const text = readFileSync(`${BP}/entities/yasu_ride/tent.se.json`, "utf8");
+    const floats = [
+      ...text.matchAll(
+        /"type": "float",\s*"range": \[(.*?)\],\s*"default": (.*?),/g,
+      ),
+    ];
+    expect(floats).toHaveLength(4);
+    for (const [, range, def] of floats) {
+      expect(range).toBe("0.0, 1.0");
+      expect(def).toBe("0.0");
+    }
+  });
   it("draws the tent, switches only the shade material, and rolls each flap about its top", () => {
     const doc = readJson(`${RP}/entity/yasu_ride/tent.ce.json`);
     expect(doc.format_version).toBe("1.10.0");
