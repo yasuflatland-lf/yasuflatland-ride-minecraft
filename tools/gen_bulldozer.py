@@ -1226,5 +1226,45 @@ def png(path, width, height, pixel):
 
 
 ENTITY_TEXTURES.mkdir(parents=True, exist_ok=True)
-png(ENTITY_TEXTURES / "bulldozer.png", len(SLOTS), 1, lambda x, y: PALETTE[SLOTS[x]])
+# Variant 0, khaki on the SUV, is yellow here, so a new bulldozer is yellow (ADR 0076); khaki writes bulldozer.png, the others bulldozer_<paint>.png.
+BODY_PAINTS: dict[str, tuple[int, int, int]] = {
+    "khaki": PALETTE["yellow"][:3],
+    "green": (62, 96, 56),
+    "red": (128, 22, 26),
+    "white": (222, 222, 216),
+    "light_gray": (156, 156, 152),
+    "gray": (92, 94, 98),
+    "black": (34, 34, 36),
+    "orange": (190, 92, 28),
+    "yellow": PALETTE["yellow"][:3],
+    "lime": (112, 160, 42),
+    "cyan": (30, 118, 124),
+    "light_blue": (92, 150, 204),
+    "blue": (40, 58, 128),
+    "purple": (94, 46, 128),
+    "magenta": (160, 52, 140),
+    "pink": (214, 132, 162),
+}
+
+
+def scale(color, factor):
+    return tuple(max(0, min(255, math.floor(c * factor + 0.5))) for c in color)
+
+
+def lighten(color, t):
+    return tuple(math.floor(c + (255 - c) * t + 0.5) for c in color)
+
+
+for paint, base in BODY_PAINTS.items():
+    colors = dict(PALETTE)
+    if base != PALETTE["yellow"][:3]:
+        colors.update(
+            yellow=(*base, 255),
+            yellow_dark=(*scale(base, 0.86), 255),
+            louver=(*scale(base, 0.71), 255),
+            yellow_light=(*lighten(base, 0.25), 255),
+        )
+    name = "bulldozer" if paint == "khaki" else f"bulldozer_{paint}"
+    png(ENTITY_TEXTURES / f"{name}.png", len(SLOTS), 1, lambda x, y: colors[SLOTS[x]])
+
 print("cubes:", sum(len(b.get("cubes", [])) for b in bones))

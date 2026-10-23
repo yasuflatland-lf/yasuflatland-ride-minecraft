@@ -1,5 +1,6 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { PAINTS } from "../../src/domain/shared/paint";
 import { type Bone, turnedCorners } from "../support/geometry";
 import { readRgbaPng } from "../support/png";
 
@@ -21,6 +22,14 @@ const bone = (name: string): ModelBone => {
   return found as ModelBone;
 };
 const points = (b: Bone) => (b.cubes ?? []).flatMap((c) => turnedCorners(b, c));
+const textureDir = `${RP}/textures/entity/yasu_ride`;
+const texturePath = (paint: string) =>
+  `${textureDir}/bulldozer${paint === "khaki" ? "" : `_${paint}`}.png`;
+const texture = (paint = "khaki") => readRgbaPng(texturePath(paint));
+const swatch = (paint: string, slot: number) => [
+  ...texture(paint).pixels.subarray(slot * 4, slot * 4 + 4),
+];
+
 describe("bulldozer model (ADR 0009, 0136)", () => {
   it("uses the production geometry identifier with no test namespace", () => {
     expect(geometry().description.identifier).toBe(
@@ -29,10 +38,6 @@ describe("bulldozer model (ADR 0009, 0136)", () => {
     expect(geometryText()).not.toContain("yasu_ride_test");
     expect(geometry().description.texture_width).toBe(33);
     expect(geometry().description.texture_height).toBe(1);
-    const texture = readRgbaPng(
-      `${RP}/textures/entity/yasu_ride/bulldozer.png`,
-    );
-    expect([texture.width, texture.height]).toEqual([33, 1]);
   });
   it("has exactly the bone contract, each bone parented to body except root, body, and door_glass", () => {
     expect(
@@ -175,5 +180,59 @@ describe("bulldozer model (ADR 0009, 0136)", () => {
     );
     expect(reach).toBeCloseTo(3.335, 3);
     expect(reach).toBeLessThanOrEqual(3.35);
+  });
+});
+
+describe("bulldozer paints (ADR 0031, 0076)", () => {
+  it("generates one equally sized texture per paint", () => {
+    expect(
+      readdirSync(textureDir)
+        .filter((f) => /^bulldozer(?:_\w+)?\.png$/.test(f))
+        .sort(),
+    ).toEqual(
+      [
+        "bulldozer.png",
+        ...PAINTS.slice(1).map((p) => `bulldozer_${p}.png`),
+      ].sort(),
+    );
+    for (const paint of PAINTS) {
+      expect(texture(paint).width).toBe(33);
+      expect(texture(paint).height).toBe(1);
+    }
+  });
+  it("shows the approved yellow at variant 0 and in the yellow paint only", () => {
+    expect([0, 1, 2, 3].map((slot) => swatch("khaki", slot))).toEqual([
+      [236, 178, 22, 255],
+      [204, 150, 14, 255],
+      [168, 120, 10, 255],
+      [246, 204, 70, 255],
+    ]);
+    expect(texture("yellow").pixels).toEqual(texture().pixels);
+    expect(readFileSync(texturePath("yellow"))).toEqual(
+      readFileSync(texturePath("khaki")),
+    );
+    for (const paint of PAINTS.slice(1).filter((p) => p !== "yellow"))
+      expect(texture(paint).pixels).not.toEqual(texture().pixels);
+  });
+  it("changes only the yellow, yellow_dark, louver, and yellow_light swatches", () => {
+    for (const paint of PAINTS)
+      expect(texture(paint).pixels.subarray(16)).toEqual(
+        texture().pixels.subarray(16),
+      );
+  });
+  it("derives the dark, louver, and light shades from the paint's base", () => {
+    expect([0, 1, 2, 3].map((slot) => swatch("red", slot))).toEqual([
+      [128, 22, 26, 255],
+      [110, 19, 22, 255],
+      [91, 16, 18, 255],
+      [160, 80, 83, 255],
+    ]);
+  });
+  it("keeps glass see-through, lens and amber at alpha 0, and every other swatch opaque in every paint", () => {
+    for (const paint of PAINTS)
+      for (let slot = 0; slot < 33; slot++)
+        expect(swatch(paint, slot)[3]).toBe(
+          slot === 32 ? 96 : [15, 17].includes(slot) ? 0 : 255,
+        );
   });
 });
