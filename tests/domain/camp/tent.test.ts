@@ -19,6 +19,7 @@ import {
   tentClearCells,
   tentEntityLocation,
   tentFootprintBox,
+  tentGround,
   tentGroundCells,
   tentPose,
 } from "../../../src/domain/camp/tent";
@@ -232,7 +233,7 @@ describe("clear and ground cells (ADR 0131)", () => {
 describe("insideTent (ADR 0131)", () => {
   const frac = fc.double({ min: 0, max: 0.999, noNaN: true });
 
-  it("holds in both rooms with their walls, and not under the tarp, on the roof, or outside", () => {
+  it("holds in both rooms and the inner wall, and not in the outer walls, under the tarp, on the roof, or outside", () => {
     fc.assert(
       fc.property(
         arbPose,
@@ -246,15 +247,59 @@ describe("insideTent (ADR 0131)", () => {
           const c = tentCellAt(pose, { x, depth, layer });
           const feet = { x: c.x + fx, y: c.y + fy, z: c.z + fz };
           const inside =
-            Math.abs(x) <= 3 &&
-            depth >= 3 &&
-            depth <= 11 &&
+            Math.abs(x) <= 2 &&
+            depth >= 4 &&
+            depth <= 10 &&
             layer >= 0 &&
             layer <= 2;
           expect(insideTent(pose, feet)).toBe(inside);
         },
       ),
     );
+  });
+});
+
+describe("tentGround (ADR 0131)", () => {
+  const decorations = [...CLEARABLE_DECORATIONS];
+  const arbCell = fc.record({
+    x: fc.integer({ min: -1000, max: 1000 }),
+    y: fc.integer({ min: -60, max: 300 }),
+    z: fc.integer({ min: -1000, max: 1000 }),
+  });
+
+  it("steps down through the decorations on top of the ground, and keeps any other clicked block", () => {
+    fc.assert(
+      fc.property(
+        arbCell,
+        fc.array(fc.constantFrom(...decorations), { maxLength: 3 }),
+        fc.constantFrom("minecraft:stone", "minecraft:grass_block", AIR),
+        (clicked, layers, groundType) => {
+          const typeIdAt = (at: { y: number }) => {
+            const above = clicked.y - at.y;
+            return above < layers.length ? layers[above] : groundType;
+          };
+          expect(tentGround(clicked, typeIdAt)).toEqual({
+            ...clicked,
+            y: clicked.y - layers.length,
+          });
+        },
+      ),
+    );
+  });
+
+  it("rests a tent clicked on a snow layer on the block under it, with the snow in its clear cells", () => {
+    const clicked = { x: 4, y: 70, z: -2 };
+    const ground = tentGround(clicked, (at) =>
+      at.y === 70 ? "minecraft:snow_layer" : "minecraft:dirt",
+    );
+    const pose = tentPose(ground, 0);
+    expect(pose.y).toBe(70);
+    expect(tentClearCells(pose).map(cellKey)).toContain(cellKey(clicked));
+  });
+
+  it("stops when the column cannot be read", () => {
+    const clicked = { x: 0, y: 64, z: 0 };
+    expect(tentGround(clicked, () => undefined)).toEqual(clicked);
   });
 });
 
@@ -317,6 +362,7 @@ describe("planPitch (ADR 0131)", () => {
     clear: tentClearCells(pose).map(() => AIR),
     ground: tentGroundCells(pose).map(() => STONE),
     vehicleSpace: false,
+    campSpace: false,
     occupants: 0,
     tents: 0,
   });
@@ -353,6 +399,7 @@ describe("planPitch (ADR 0131)", () => {
       clear: edits(clearType, 336),
       ground: edits(groundReading, 84),
       vehicleSpace: fc.boolean(),
+      campSpace: fc.boolean(),
       occupants: fc.oneof(fc.constant(0), fc.integer({ min: 1, max: 3 })),
       tents: fc.integer({ min: 0, max: TENT_SPEC.maxTents + 1 }),
     })
@@ -381,7 +428,7 @@ describe("planPitch (ADR 0131)", () => {
               ? "vehicle"
               : survey.occupants > 0
                 ? "crowded"
-                : !survey.clear.every(isClear)
+                : survey.campSpace || !survey.clear.every(isClear)
                   ? "blocked"
                   : !survey.ground.every(isGround)
                     ? "ground"
@@ -421,6 +468,13 @@ describe("planPitch (ADR 0131)", () => {
     expect(planPitch(pose, { ...fine(), vehicleSpace: true })).toEqual({
       ok: false,
       reason: "vehicle",
+    });
+  });
+
+  it("refuses another tent's camp space, even where it reads as air", () => {
+    expect(planPitch(pose, { ...fine(), campSpace: true })).toEqual({
+      ok: false,
+      reason: "blocked",
     });
   });
 

@@ -12,6 +12,8 @@ import type { Vec3 } from "../../../domain/shared/vec";
 export interface TentWorld {
   /** Whether the block at `at` is one of this add-on's blocks (yasu_ride:*). */
   isOwnBlock(dimensionId: DimensionId, at: Vec3): boolean;
+  /** The block type at `at`; undefined when unreadable (unloaded, outside the world). */
+  typeIdAt(dimensionId: DimensionId, at: Vec3): string | undefined;
   /** Reads everything planPitch needs in one batch, in this tick. */
   survey(dimensionId: DimensionId, pose: TentPose): PitchSurvey;
   isCreative(playerId: PlayerId): boolean;

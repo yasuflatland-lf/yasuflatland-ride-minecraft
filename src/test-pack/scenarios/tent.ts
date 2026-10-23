@@ -89,8 +89,11 @@ function tentBlocksInFootprint(a: Arena): number {
 }
 
 /** Pitches the test tent and returns its entity; throws when it is not there within 20 ticks. */
-async function pitchTestTent(a: Arena): Promise<Entity> {
-  system.sendScriptEvent(TEST_TENT_PITCH_EVENT, pitchMessage(a));
+async function pitchTestTent(
+  a: Arena,
+  message = pitchMessage(a),
+): Promise<Entity> {
+  system.sendScriptEvent(TEST_TENT_PITCH_EVENT, message);
   const at = tentEntityAt(a);
   for (let t = 0; t < PITCH_WAIT_TICKS; t++) {
     await wait(1);
@@ -212,6 +215,24 @@ export async function tentRelayLostCell(a: Arena): Promise<Outcome> {
         lost === "minecraft:air" &&
         after === TENT_WALL_BLOCK,
       detail: `before=${before} lost=${lost} after=${after}`,
+    };
+  } finally {
+    clearTentStrip(a);
+  }
+}
+
+export async function tentPitchOnSnow(a: Arena): Promise<Outcome> {
+  try {
+    a.dim.runCommand(
+      `fill ${FOOTPRINT.minX} ${a.gy} ${FOOTPRINT.minZ} ${FOOTPRINT.maxX} ${a.gy} ${FOOTPRINT.maxZ} snow_layer`,
+    );
+    // The click lands on the snow layer itself, one cell above the ground.
+    await pitchTestTent(a, `110 ${a.gy} 46 0`);
+    const laid = tentBlocksInFootprint(a);
+    const tarp = a.dim.getBlock({ x: 110, y: a.gy, z: 46 })?.typeId;
+    return {
+      pass: laid === 137 && tarp === "minecraft:air",
+      detail: `laid=${laid} tarp=${tarp}`,
     };
   } finally {
     clearTentStrip(a);

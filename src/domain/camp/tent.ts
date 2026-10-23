@@ -68,6 +68,24 @@ function axes(yaw: TentYaw): { f: Vec2; l: Vec2 } {
   return { f, l: rounded(leftOf(f)) };
 }
 
+/**
+ * The block the tent rests on when `clicked` is pressed: a snow layer, a carpet,
+ * or a plant covers the ground and takes the click, so the pitch steps down
+ * through them and clears them with the rest of the footprint.
+ */
+export function tentGround(
+  clicked: Vec3,
+  typeIdAt: (at: Vec3) => string | undefined,
+): Vec3 {
+  let ground = clicked;
+  for (let i = 0; i < CLEAR_LAYERS; i++) {
+    const typeId = typeIdAt(ground);
+    if (typeId === undefined || !CLEARABLE_DECORATIONS.has(typeId)) break;
+    ground = { x: ground.x, y: ground.y - 1, z: ground.z };
+  }
+  return ground;
+}
+
 /** The tent faces the player who pitches it, with its front edge on the clicked column. */
 export function tentPose(clicked: Vec3, playerYaw: number): TentPose {
   const step = TENT_SPEC.yawStep;
@@ -164,17 +182,25 @@ export function tentGroundCells(pose: TentPose): Cell[] {
 
 const inLocalBox = (
   c: TentLocalCell,
+  halfWidth: number,
   depthFrom: number,
+  depthTo: number,
   layerTo: number,
 ): boolean =>
-  Math.abs(c.x) <= HALF_WIDTH &&
+  Math.abs(c.x) <= halfWidth &&
   c.depth >= depthFrom &&
-  c.depth <= TENT_SPEC.depth - 1 &&
+  c.depth <= depthTo &&
   c.layer >= 0 &&
   c.layer <= layerTo;
 
 export function inTentFootprint(pose: TentPose, cell: Cell): boolean {
-  return inLocalBox(toLocal(pose, cell), 0, CLEAR_LAYERS - 1);
+  return inLocalBox(
+    toLocal(pose, cell),
+    HALF_WIDTH,
+    0,
+    TENT_SPEC.depth - 1,
+    CLEAR_LAYERS - 1,
+  );
 }
 
 /** The world box of tentClearCells in blocks, from its lowest corner. */
@@ -192,14 +218,25 @@ export function tentFootprintBox(pose: TentPose): { min: Vec3; size: Vec3 } {
   };
 }
 
-/** Whether feet stand in either room, walls and mattresses included; the tarp area and the roof are outside. */
+/**
+ * Whether feet stand in either room, the inner wall and the mattresses
+ * included. The outer wall cells are outside: their plates sit on the room
+ * side, so only a player outside can stand in one. The tarp area and the roof
+ * are outside too.
+ */
 export function insideTent(pose: TentPose, feet: Vec3): boolean {
   const cell = {
     x: Math.floor(feet.x),
     y: Math.floor(feet.y),
     z: Math.floor(feet.z),
   };
-  return inLocalBox(toLocal(pose, cell), FRONT_WALL_DEPTH, WALL_LAYERS - 1);
+  return inLocalBox(
+    toLocal(pose, cell),
+    ROOM_HALF_WIDTH,
+    FRONT_WALL_DEPTH + 1,
+    REAR_WALL_DEPTH - 1,
+    WALL_LAYERS - 1,
+  );
 }
 
 /**
@@ -259,6 +296,8 @@ export interface PitchSurvey {
   readonly ground: readonly (GroundReading | undefined)[];
   /** Whether any tentClearCells(pose) cell is vehicle space (isVehicleSpace from bootstrap). */
   readonly vehicleSpace: boolean;
+  /** Whether any tentClearCells(pose) cell is another pitched tent's camp space. */
+  readonly campSpace: boolean;
   /** Players, mobs, Low Chairs and other entities with health whose boxes meet tentFootprintBox. */
   readonly occupants: number;
   /** Tents in the registry, all dimensions. */
@@ -291,6 +330,9 @@ export function planPitch(pose: TentPose, survey: PitchSurvey): PitchPlan {
   if (survey.tents >= TENT_SPEC.maxTents) return { ok: false, reason: "limit" };
   if (survey.vehicleSpace) return { ok: false, reason: "vehicle" };
   if (survey.occupants > 0) return { ok: false, reason: "crowded" };
+  // Another tent's corner columns and the air above its tarp read as air, so
+  // the clear rule alone would let two tents overlap there.
+  if (survey.campSpace) return { ok: false, reason: "blocked" };
   const cells = tentClearCells(pose);
   if (cells.some((_, i) => !isClear(survey.clear[i])))
     return { ok: false, reason: "blocked" };

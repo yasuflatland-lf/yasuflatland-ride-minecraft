@@ -23,7 +23,10 @@ and a tiny box inside a full block cannot be tapped. The stable API (0001) has n
 
 The tent faces the player who pitches it. `tentPose(clicked, playerYaw)` puts local
 `(0, 0, layer 0)` on the cell above the clicked block and snaps the yaw to
-`normalizeYaw(round((playerYaw + 180) / 90) * 90)`. Local cells are `{ x, depth, layer }`:
+`normalizeYaw(round((playerYaw + 180) / 90) * 90)`. A snow layer, a carpet, leaf
+litter, or a plant covers the ground and takes the click itself, so `tentGround` first
+steps down through passable decorations of the shared list to the block they rest on;
+the decorations then fall in the clear cells and are cleared with the rest. Local cells are `{ x, depth, layer }`:
 `x` toward the tent's left, as `leftOf(forward(yaw))`; `depth` behind the tarp's
 front edge, 0..11 (`depth = 11 - z` in 0130's frame); `layer` 0 resting on the ground.
 The entity stands at the bottom middle of local `(0, 11, 0)`, the rear wall's middle cell.
@@ -58,7 +61,8 @@ in this order, and the item is kept:
    space. Every layer is asked, because the clear rule reads a camper's light-block
    cells as air and would miss a dock cell above the ground.
 3. `crowded`: a player or another entity with health (a mob, a Low Chair) meets the footprint box.
-4. `blocked`: a clear cell is unreadable, or neither air (a light block reads as air)
+4. `blocked`: a clear cell is another tent's camp space (its corner columns and the air
+   above its tarp read as air, so tents could overlap there), or is unreadable, or neither air (a light block reads as air)
    nor a passable decoration from the shared list of 0068 and 0119. This catches a step.
 5. `ground`: a ground cell under the 84 columns is unreadable, air, liquid, or a passable
    decoration. This catches a hole. A slab or another block that is not full still
@@ -66,7 +70,10 @@ in this order, and the item is kept:
 
 On success the item is taken (not in Creative), the decorations are cleared top first
 without drops, and the entity is spawned, registered, and its cells laid. A failed
-spawn gives the item back.
+spawn gives the item back. A failure after the spawn is logged and undone step by
+step, the registry entry first, so one failed step cannot leave an entry that holds a
+tent slot and its camp space for good. The registry writes the property before it
+updates its cache.
 
 ### Registry and camp space
 
@@ -85,7 +92,13 @@ The loop lays every registered tent whose entity is loaded, and its live set for
 `clearGone` is the registry, not the loaded entities: a tent whose entity chunk unloads
 keeps its cells in a neighbor chunk that stays loaded. Only tents taken down or killed
 in a loaded chunk (0125) leave the registry, and a tent entity the registry does not
-know is removed as an orphan when it loads.
+know is removed as an orphan when it loads, after its saved cells are cleared; the
+cells still in unloaded chunks stay in the layer for `clearGone`.
+
+A take-down can come before the entity loads, because hits count from the registry.
+The layer then holds nothing for the tent, so the take-down clears the loaded cells of
+`tentCells(pose)` that still hold the tent's blocks, and the orphan removal clears the
+rest from the saved cells once the entity loads.
 
 ### Hits
 
@@ -93,7 +106,9 @@ Hits count on the tent's own blocks, which are world-aligned at all four yaws, a
 the entity's 0.1 hidden box at the bottom of the rear wall's middle cell. No stand-in
 entity is needed, unlike the camper (0116). From inside, the rear wall's plate is in
 front of the box, so taps inside reach blocks. No hit counts while a player's feet are
-inside the tent (both rooms with their walls; not the tarp area or the roof); the hitter
+inside the tent (both rooms and the inner wall, x -2..2, depth 4..10, layers 0..2; not
+the outer wall cells, whose plates sit on the room side so only a player outside can
+stand in them, nor the tarp area or the roof); the hitter
 sees "Someone is inside the tent" instead.
 
 `entityHitBlock`, a Creative `playerBreakBlock` (whose break the shared guard of 0096

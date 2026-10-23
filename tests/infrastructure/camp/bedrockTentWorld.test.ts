@@ -14,6 +14,7 @@ import type { TentEntry } from "../../../src/domain/camp/tentRegistry";
 import { cellKey } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockTentWorld } from "../../../src/infrastructure/camp/bedrock/bedrockTentWorld";
+import { TENT_CELL_CODEC } from "../../../src/infrastructure/camp/bedrock/tentBlocks";
 import {
   PITCH_REFUSAL_MESSAGE,
   TENT_CEILING_BLOCK,
@@ -166,6 +167,26 @@ describe("BedrockTentWorld (ADR 0131)", () => {
     );
   });
 
+  it("finds another tent's camp space where it overlaps, though its corner strip reads as air", () => {
+    const { dimension, world } = fixture([ENTRY]);
+    dimension.getBlock.mockReturnValue({
+      typeId: "minecraft:air",
+      isLiquid: false,
+    });
+    // Six cells to the side, the new tent's x -3 column is the first one's x 3
+    // corner column, which no tent cell takes at depth 0..2.
+    const beside = {
+      ...tentCellAt(POSE, { x: 6, depth: 0, layer: 0 }),
+      yaw: 180 as const,
+    };
+    expect(world.survey(DIM, beside).campSpace).toBe(true);
+    const apart = {
+      ...tentCellAt(POSE, { x: 7, depth: 0, layer: 0 }),
+      yaw: 180 as const,
+    };
+    expect(world.survey(DIM, apart).campSpace).toBe(false);
+  });
+
   it("counts players and entities with health in the footprint box, never items or xp orbs", () => {
     const { dimension, world, registry } = fixture([ENTRY]);
     dimension.getBlock.mockReturnValue({
@@ -221,6 +242,14 @@ describe("BedrockTentWorld (ADR 0131)", () => {
     const room = tentCellAt(POSE, { x: 0, depth: 6, layer: 0 });
     player.location = { x: room.x + 0.5, y: room.y, z: room.z + 0.5 };
     expect(world.isOccupied(TENT)).toBe(true);
+    // Feet in a side wall cell are outside its room-side plate.
+    const sideWall = tentCellAt(POSE, { x: 3, depth: 6, layer: 0 });
+    player.location = {
+      x: sideWall.x + 0.5,
+      y: sideWall.y,
+      z: sideWall.z + 0.5,
+    };
+    expect(world.isOccupied(TENT)).toBe(false);
     const tarp = tentCellAt(POSE, { x: 0, depth: 1, layer: 0 });
     player.location = { x: tarp.x + 0.5, y: tarp.y, z: tarp.z + 0.5 };
     expect(world.isOccupied(TENT)).toBe(false);
@@ -256,6 +285,45 @@ describe("BedrockTentWorld (ADR 0131)", () => {
     expect(order).toEqual(["lay", "forget", "remove"]);
   });
 
+  it("clears a tent's loaded cells by pose when its entity has not loaded yet, sparing a player's block", () => {
+    const { blocks, dimension, registry, world } = fixture([ENTRY]);
+    game.getEntity.mockReturnValue(undefined);
+    const cells = tentCells(POSE);
+    const replaced = cellKey(cells[0] ?? POSE);
+    const unloaded = cellKey(cells[1] ?? POSE);
+    const set = new Map<string, ReturnType<typeof vi.fn>>();
+    dimension.getBlock.mockImplementation(
+      (c: { x: number; y: number; z: number }) => {
+        const k = cellKey(c);
+        if (k === unloaded) throw new Error("unloaded");
+        const laid = cells.find((l) => cellKey(l) === k);
+        const setType = vi.fn();
+        set.set(k, setType);
+        return {
+          typeId:
+            k === replaced || !laid
+              ? "minecraft:stone"
+              : TENT_CELL_CODEC.blockIdOf(laid.block),
+          setType,
+        };
+      },
+    );
+    world.takeDown(TENT);
+    expect(blocks.lay).toHaveBeenCalledWith(TENT, undefined, []);
+    expect(registry.remove).toHaveBeenCalledWith(TENT);
+    const cleared = [...set].filter(([, f]) => f.mock.calls.length > 0);
+    expect(cleared).toHaveLength(cells.length - 2);
+    for (const [, f] of cleared)
+      expect(f).toHaveBeenCalledWith("minecraft:air");
+    expect(set.get(replaced)).not.toHaveBeenCalled();
+  });
+
+  it("does not read the world by pose when the entity is loaded", () => {
+    const { dimension, world } = fixture([ENTRY]);
+    world.takeDown(TENT);
+    expect(dimension.getBlock).not.toHaveBeenCalled();
+  });
+
   it("pitches by spawning, registering, and laying, in one call", () => {
     const { blocks, dimension, registry, tent, world } = fixture();
     dimension.spawnEntity.mockReturnValue(tent);
@@ -271,6 +339,38 @@ describe("BedrockTentWorld (ADR 0131)", () => {
       throw new Error("no spawn");
     });
     expect(world.pitch(DIM, POSE)).toBeUndefined();
+  });
+
+  it("undoes a pitch that fails after the spawn, every step on its own, and logs it", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const failures = ["add", "lay", "add and undo"] as const;
+    for (const failure of failures) {
+      const { blocks, dimension, registry, tent, world } = fixture();
+      dimension.spawnEntity.mockReturnValue(tent);
+      if (failure !== "lay")
+        registry.add.mockImplementationOnce(() => {
+          throw new Error("write failed");
+        });
+      if (failure === "lay")
+        blocks.lay.mockImplementationOnce(() => {
+          throw new Error("lay failed");
+        });
+      if (failure === "add and undo")
+        registry.remove.mockImplementationOnce(() => {
+          throw new Error("write failed");
+        });
+      expect(world.pitch(DIM, POSE)).toBeUndefined();
+      expect(registry.remove).toHaveBeenCalledWith(TENT);
+      expect(blocks.lay).toHaveBeenLastCalledWith(TENT, tent, []);
+      expect(tent.remove).toHaveBeenCalledTimes(1);
+    }
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("tent pitch failed"),
+    );
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("tent pitch undo (registry) failed"),
+    );
+    warn.mockRestore();
   });
 
   it("shows the refusal with the limit, the hits left, and the occupied hint", () => {

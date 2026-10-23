@@ -105,11 +105,11 @@ export class BedrockTentWorld implements TentWorld {
   }
 
   isOwnBlock(dimensionId: DimensionId, at: Vec3): boolean {
-    return (
-      blockAt(dimensionOf(dimensionId), at)?.typeId.startsWith(
-        `${NAMESPACE}:`,
-      ) === true
-    );
+    return this.typeIdAt(dimensionId, at)?.startsWith(`${NAMESPACE}:`) === true;
+  }
+
+  typeIdAt(dimensionId: DimensionId, at: Vec3): string | undefined {
+    return blockAt(dimensionOf(dimensionId), at)?.typeId;
   }
 
   survey(dimensionId: DimensionId, pose: TentPose): PitchSurvey {
@@ -133,6 +133,7 @@ export class BedrockTentWorld implements TentWorld {
       clear,
       ground,
       vehicleSpace,
+      campSpace: clearCells.some((c) => this.isCampSpace(dimensionId, c)),
       occupants: this.occupants(dimension, pose),
       tents: this.deps.registry.all().length,
     };
@@ -175,19 +176,34 @@ export class BedrockTentWorld implements TentWorld {
       this.deps.registry.add({ id, dimensionId, pose });
       this.deps.blocks.lay(id, entity, tentCells(pose));
       return id;
-    } catch {
-      // Undo what was done, so a failed pitch leaves no tent behind.
-      try {
-        if (id !== undefined) {
-          this.deps.blocks.lay(id, entity, []);
-          this.deps.registry.remove(id);
-        }
-        if (entity?.isValid) entity.remove();
-      } catch {
-        // Nothing more to undo.
-      }
+    } catch (e) {
+      console.warn(
+        `[${NAMESPACE}] tent pitch failed at ${dimensionId} ${JSON.stringify(pose)}: ${e}`,
+      );
+      this.undoPitch(id, entity);
       return undefined;
     }
+  }
+
+  // Each step is tried on its own, so one failure cannot strand the rest. The
+  // registry entry goes first: a leftover entry would hold a tent slot and its
+  // camp space for good, while a leftover entity is removed as an orphan.
+  private undoPitch(id: TentId | undefined, entity: Entity | undefined): void {
+    const undo = (step: string, run: () => void) => {
+      try {
+        run();
+      } catch (e) {
+        console.warn(`[${NAMESPACE}] tent pitch undo (${step}) failed: ${e}`);
+      }
+    };
+    if (id !== undefined) {
+      const tentId = id;
+      undo("registry", () => this.deps.registry.remove(tentId));
+      undo("cells", () => this.deps.blocks.lay(tentId, entity, []));
+    }
+    undo("entity", () => {
+      if (entity?.isValid) entity.remove();
+    });
   }
 
   showPitchRefusal(playerId: PlayerId, reason: PitchRefusal): void {
@@ -230,10 +246,31 @@ export class BedrockTentWorld implements TentWorld {
   }
 
   takeDown(tentId: TentId): void {
-    // Cells in unloaded chunks are left to the loop's clearGone.
-    this.deps.blocks.lay(tentId, tentOf(tentId), []);
+    const tent = tentOf(tentId);
+    const entry = this.entryOf(tentId);
+    // Cells the layer holds in unloaded chunks are left to the loop's clearGone.
+    this.deps.blocks.lay(tentId, tent, []);
+    // Hits count from the registry before the entity loads after /reload or a
+    // restart, and the layer then holds nothing for the tent: clear its loaded
+    // cells by pose. Cells in chunks still unloaded are cleared from the
+    // entity's saved cells when it loads as an orphan.
+    if (!tent && entry) this.clearByPose(entry);
     this.deps.registry.remove(tentId);
-    tentOf(tentId)?.remove();
+    tent?.remove();
+  }
+
+  private clearByPose(entry: TentEntry): void {
+    const dimension = dimensionOf(entry.dimensionId);
+    for (const c of tentCells(entry.pose)) {
+      try {
+        const b = blockAt(dimension, c);
+        // A replacement block belongs to the player, not the tent.
+        if (b?.typeId === TENT_CELL_CODEC.blockIdOf(c.block))
+          b.setType(AIR_BLOCK);
+      } catch {
+        // The chunk unloaded; the orphan removal clears this cell later.
+      }
+    }
   }
 
   showHitsLeft(playerId: PlayerId, hitsLeft: number): void {

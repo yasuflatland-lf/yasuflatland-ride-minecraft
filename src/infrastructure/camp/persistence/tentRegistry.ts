@@ -30,8 +30,10 @@ export class DynamicPropertyTentRegistry {
     this.save(withoutTent(this.all(), id));
   }
 
+  // The cache follows the property only after the write lands, so a failed
+  // write leaves the two in step.
   private save(list: TentEntry[]): void {
-    this.list = list;
     world.setDynamicProperty(TENTS_PROPERTY, serializeTents(list));
+    this.list = list;
   }
 }

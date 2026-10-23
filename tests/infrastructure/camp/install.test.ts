@@ -121,7 +121,10 @@ it("wires the tent handlers with the same use cases, registry, and owner lookup 
     takeDown,
   ]);
   const registry = vi.mocked(registerTentLoop).mock.calls[0]?.[0];
-  expect(vi.mocked(registerTentLifecycle).mock.calls[0]?.[0]).toBe(registry);
+  expect(vi.mocked(registerTentLifecycle).mock.calls[0]).toEqual([
+    registry,
+    vi.mocked(registerTentLoop).mock.calls[0]?.[1],
+  ]);
   const guard = vi.mocked(registerLaidBlockGuard).mock.calls[0]?.[0];
   const wall = tentCells(POSE).find((c) => c.block.type === "wall");
   if (!wall || !owner || !guard) throw new Error("not wired");

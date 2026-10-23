@@ -468,6 +468,15 @@ describe("registerTentLoop (ADR 0131)", () => {
 });
 
 describe("registerTentLifecycle (ADR 0125, 0131)", () => {
+  const layer = () => ({ lay: vi.fn() });
+  const register = (
+    registry: ReturnType<typeof fakeRegistry>,
+    blocks = layer(),
+  ) =>
+    registerTentLifecycle(
+      registry,
+      blocks as unknown as Parameters<typeof registerTentLifecycle>[1],
+    );
   const removal = (loaded: boolean | "throws") => ({
     removedEntity: {
       id: "a",
@@ -486,7 +495,7 @@ describe("registerTentLifecycle (ADR 0125, 0131)", () => {
     for (const loaded of [true, false, "throws"] as const) {
       vi.clearAllMocks();
       const registry = fakeRegistry(["a"]);
-      registerTentLifecycle(registry);
+      register(registry);
       subscribed(game.remove)(removal(loaded));
       defined(game.run.mock.calls[0]?.[0], "next tick")();
       expect(registry.remove).toHaveBeenCalledTimes(loaded === true ? 1 : 0);
@@ -494,15 +503,16 @@ describe("registerTentLifecycle (ADR 0125, 0131)", () => {
   });
 
   it("ignores the removal of other entities", () => {
-    registerTentLifecycle(fakeRegistry(["a"]));
+    register(fakeRegistry(["a"]));
     subscribed(game.remove)({
       removedEntity: { id: "c", typeId: "minecraft:cow" },
     });
     expect(game.run).not.toHaveBeenCalled();
   });
 
-  it("removes a loaded tent entity the registry does not know", () => {
-    registerTentLifecycle(fakeRegistry(["a"]));
+  it("removes a loaded tent entity the registry does not know, clearing its saved cells first", () => {
+    const blocks = layer();
+    register(fakeRegistry(["a"]), blocks);
     const entity = (id: string, typeId = TENT_TYPE) => ({
       id,
       typeId,
@@ -515,6 +525,10 @@ describe("registerTentLifecycle (ADR 0125, 0131)", () => {
     for (const e of [known, orphan, cow]) subscribed(game.load)({ entity: e });
     expect([known, orphan, cow].map((e) => e.remove.mock.calls.length)).toEqual(
       [0, 1, 0],
+    );
+    expect(blocks.lay).toHaveBeenCalledExactlyOnceWith("b", orphan, []);
+    expect(blocks.lay.mock.invocationCallOrder[0]).toBeLessThan(
+      defined(orphan.remove.mock.invocationCallOrder[0], "remove"),
     );
     const spawned = entity("d");
     const loaded = entity("e");

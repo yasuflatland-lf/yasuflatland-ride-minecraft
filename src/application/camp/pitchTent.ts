@@ -1,5 +1,5 @@
 // Use case: pitch a tent from its item on the top of a block (ADR 0131).
-import { planPitch, tentPose } from "../../domain/camp/tent";
+import { planPitch, tentGround, tentPose } from "../../domain/camp/tent";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
 import type { TentWorld } from "./ports/tent";
@@ -8,7 +8,7 @@ export interface PitchTentCommand {
   /** Undefined for the test event: nothing is consumed and no message is shown. */
   playerId?: PlayerId;
   dimensionId: DimensionId;
-  /** The block whose top face was clicked (integer coordinates). */
+  /** The block whose top face was clicked (integer coordinates); a decoration on the ground is stepped through. */
   clicked: Vec3;
   /** The player's yaw; the tent opens toward them. */
   yaw: number;
@@ -27,7 +27,10 @@ export class PitchTent {
   execute(cmd: PitchTentCommand): boolean {
     // The survey, the check, and the lay run in one call, so nothing in the
     // world can change between them.
-    const pose = tentPose(cmd.clicked, cmd.yaw);
+    const ground = tentGround(cmd.clicked, (at) =>
+      this.world.typeIdAt(cmd.dimensionId, at),
+    );
+    const pose = tentPose(ground, cmd.yaw);
     const plan = planPitch(pose, this.world.survey(cmd.dimensionId, pose));
     const { playerId } = cmd;
     if (!plan.ok) {

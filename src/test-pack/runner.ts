@@ -78,6 +78,7 @@ import {
 import {
   tentEntityContract,
   tentPitchAndTakeDown,
+  tentPitchOnSnow,
   tentRefuseStep,
   tentRefuseVehicleSpace,
   tentRelayLostCell,
@@ -156,6 +157,7 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
     ],
     ["tent_entity_contract", 12, () => tentEntityContract(a)],
     ["tent_pitch_and_take_down", 7, () => tentPitchAndTakeDown(a)],
+    ["tent_pitch_on_snow", 6, () => tentPitchOnSnow(a)],
     ["tent_refuse_step", 5, () => tentRefuseStep(a)],
     ["tent_refuse_vehicle_space", 7, () => tentRefuseVehicleSpace(a)],
     ["tent_relay_lost_cell", 23, () => tentRelayLostCell(a)],

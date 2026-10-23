@@ -21,6 +21,7 @@ export function fineSurvey(pose: TentPose): PitchSurvey {
       liquid: false,
     })),
     vehicleSpace: false,
+    campSpace: false,
     occupants: 0,
     tents: 0,
   };
@@ -29,6 +30,8 @@ export function fineSurvey(pose: TentPose): PitchSurvey {
 /** An in-memory TentWorld that records every call in `calls`, in order. */
 export class FakeTentWorld implements TentWorld {
   ownBlocks = new Set<string>();
+  /** Block types by "x,y,z"; unlisted cells read as stone. */
+  types = new Map<string, string>();
   surveyOf: (pose: TentPose) => PitchSurvey = fineSurvey;
   creative = false;
   consumeResult = true;
@@ -38,6 +41,9 @@ export class FakeTentWorld implements TentWorld {
 
   isOwnBlock(_d: DimensionId, at: Vec3): boolean {
     return this.ownBlocks.has(`${at.x},${at.y},${at.z}`);
+  }
+  typeIdAt(_d: DimensionId, at: Vec3): string | undefined {
+    return this.types.get(`${at.x},${at.y},${at.z}`) ?? "minecraft:stone";
   }
   survey(_d: DimensionId, pose: TentPose): PitchSurvey {
     return this.surveyOf(pose);

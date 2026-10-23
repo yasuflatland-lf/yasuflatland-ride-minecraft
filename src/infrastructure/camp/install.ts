@@ -43,7 +43,7 @@ export function installCamp(deps: { isVehicleSpace: SpaceCheck }): {
   registerTentHits(takeDownTent, tentBlockOwner);
   registerLaidBlockGuard(tentBlockOwner);
   registerTentLoop(registry, blocks);
-  registerTentLifecycle(registry);
+  registerTentLifecycle(registry, blocks);
   registerTestTent(pitchTent, takeDownTent);
   // The chair claims no space; the tents claim their footprints (ADR 0129).
   return { isCampSpace: (d, c) => tents.isCampSpace(d, c) };

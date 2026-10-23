@@ -29,6 +29,7 @@ const REFUSALS: [
   ["limit", (p) => ({ ...fineSurvey(p), tents: 4 })],
   ["vehicle", (p) => ({ ...fineSurvey(p), vehicleSpace: true })],
   ["crowded", (p) => ({ ...fineSurvey(p), occupants: 1 })],
+  ["blocked", (p) => ({ ...fineSurvey(p), campSpace: true })],
   [
     "blocked",
     (p) => ({
@@ -63,6 +64,21 @@ describe("PitchTent (ADR 0131)", () => {
       ["clearDecorations", [cells[3], cells[0]]],
       ["pitch", POSE],
     ]);
+  });
+
+  it("rests the tent under a snow layer or a tuft of grass that took the click", () => {
+    for (const decoration of [
+      "minecraft:snow_layer",
+      "minecraft:short_grass",
+    ]) {
+      const world = new FakeTentWorld();
+      world.types.set("10,63,-4", decoration);
+      expect(new PitchTent(world).execute(cmd)).toBe(true);
+      expect(world.calls.at(-1)).toEqual([
+        "pitch",
+        tentPose({ ...CLICKED, y: 62 }, 30),
+      ]);
+    }
   });
 
   it("takes nothing in Creative", () => {

@@ -1,4 +1,4 @@
-// Forgets a killed tent, and removes a tent entity the registry does not know (ADR 0125, 0131).
+// Forgets a killed tent, and removes a tent entity the registry does not know with its cells (ADR 0125, 0131).
 import {
   type Dimension,
   type Entity,
@@ -7,12 +7,18 @@ import {
   type Vector3,
   world,
 } from "@minecraft/server";
-import { asTentId } from "../../../../domain/camp/tent";
+import {
+  asTentId,
+  type TentBlock,
+  type TentId,
+} from "../../../../domain/camp/tent";
+import type { CellLayer } from "../../../shared/laidCells";
 import { TENT_TYPE } from "../../identifiers";
 import type { DynamicPropertyTentRegistry } from "../../persistence/tentRegistry";
 
 export function registerTentLifecycle(
   registry: DynamicPropertyTentRegistry,
+  blocks: CellLayer<TentId, TentBlock>,
 ): void {
   world.beforeEvents.entityRemove.subscribe((ev) => {
     const tent = ev.removedEntity;
@@ -31,8 +37,13 @@ export function registerTentLifecycle(
       entity.isValid &&
       entity.typeId === TENT_TYPE &&
       !registry.all().some((e) => e.id === entity.id)
-    )
+    ) {
+      // A tent taken down before its entity loaded may still have cells laid
+      // in the world. Clearing from its saved cells keeps a layer entry for the
+      // ones still unloaded, which clearGone clears later (it is not live).
+      blocks.lay(asTentId(entity.id), entity, []);
       entity.remove();
+    }
   };
   world.afterEvents.entityLoad.subscribe((ev) => removeOrphan(ev.entity));
   world.afterEvents.entitySpawn.subscribe((ev) => {
