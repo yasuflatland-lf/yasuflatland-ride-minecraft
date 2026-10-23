@@ -21,7 +21,7 @@ describe("SPORTSBOAT_SPEC (ADR 0087)", () => {
     for (const table of [
       SPORTSBOAT_SPEC,
       SPORTSBOAT_MOTION,
-      SPORTSBOAT_PROFILE.ram,
+      SPORTSBOAT_PROFILE.body,
       SPORTSBOAT_DRAG,
       SPORTSBOAT_WATER,
       SPORTSBOAT_ATTITUDE,
@@ -44,9 +44,10 @@ describe("SPORTSBOAT_SPEC (ADR 0087)", () => {
   });
 
   it("reads the ram reach, water drag, attitude and deck from the spec", () => {
-    expect(SPORTSBOAT_PROFILE.ram).toStrictEqual({
+    expect(SPORTSBOAT_PROFILE.body).toStrictEqual({
       front: SPORTSBOAT_SPEC.ramFront,
       halfWidth: SPORTSBOAT_SPEC.ramHalfWidth,
+      height: SPORTSBOAT_SPEC.height,
     });
     expect(SPORTSBOAT_DRAG).toStrictEqual({
       initial: SPORTSBOAT_SPEC.waterDragInitial,

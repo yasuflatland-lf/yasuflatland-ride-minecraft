@@ -293,6 +293,13 @@ describe("Choosing a driver with position lag (ADR 0126)", () => {
     });
   }
 
+  it("chooses no driver for a layout without seats", () => {
+    const riders = place([{ id: "d", seat: 0 }], 0);
+    const out = new Seating([]).update(riders, forward(0), AT_REST);
+    expect(out.driver).toBeUndefined();
+    expect(out.mounted).toBe(false);
+  });
+
   it("chooses the SUV driver when both front riders lag 0.575 blocks", () => {
     const f = forward(0);
     const lag = 0.575;

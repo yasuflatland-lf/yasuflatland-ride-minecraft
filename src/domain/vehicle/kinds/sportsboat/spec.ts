@@ -12,8 +12,7 @@ export const SPORTSBOAT_SPEC = Object.freeze({
   grip: 0.6,
   creepSpeed: 0.12, // Below SPEC.ramMinSpeed, so creeping never rams (ADR 0006)
   // Body
-  // The height of the sportsboat collision box, which bounds the water depth
-  // query; the boat only tests whether the depth is above zero.
+  // Collision box height in sportsboat.se.json.
   height: 1.2,
   ramFront: 3.0, // ADR 0051
   ramHalfWidth: 1.06, // ADR 0051
