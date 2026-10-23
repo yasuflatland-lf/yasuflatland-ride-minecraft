@@ -1,7 +1,9 @@
 import {
   type BlockCustomComponent,
+  type EntityDieAfterEvent,
   type EntityHitEntityAfterEvent,
   type EntityLoadAfterEvent,
+  type EntityRemoveBeforeEvent,
   type EntitySpawnAfterEvent,
   type ItemUseAfterEvent,
   Player,
@@ -95,11 +97,13 @@ vi.mock("@minecraft/server", () => {
         playerInteractWithBlock: { subscribe: game.before },
         playerInteractWithEntity: signal(),
         playerBreakBlock: { subscribe: game.breakBlock },
+        entityRemove: signal(),
       },
       afterEvents: {
         itemUse: { subscribe: game.use },
         entityLoad: signal(),
         entitySpawn: signal(),
+        entityDie: signal(),
         playerSpawn: signal(),
         entityHitEntity: signal(),
       },
@@ -787,6 +791,52 @@ it("passes fleet metadata on spawn and load and skips invalid or unrelated entit
   }
   expect(limit.spawned).toHaveBeenCalledTimes(1);
   expect(limit.found).toHaveBeenCalledTimes(2);
+});
+
+it("forgets a removed vehicle by the chunk at its location, and passes vehicle deaths (ADR 0125)", () => {
+  const limit = { start: vi.fn(), removed: vi.fn(), died: vi.fn() };
+  registerSubscriptions(
+    { limit } as unknown as Parameters<typeof registerSubscriptions>[0],
+    new TestInputStore(),
+    () => undefined,
+    () => undefined,
+    () => undefined,
+  );
+  const remove = vi
+    .mocked(world.beforeEvents.entityRemove.subscribe)
+    .mock.calls.at(-1)?.[0];
+  const die = vi
+    .mocked(world.afterEvents.entityDie.subscribe)
+    .mock.calls.at(-1);
+  if (!remove || !die) throw new Error("removal events not subscribed");
+  const removing = (id: string, typeId: string, getBlock: () => unknown) =>
+    remove({
+      removedEntity: {
+        id,
+        typeId,
+        dimension: { getBlock },
+        location: { x: 1, y: 2, z: 3 },
+      },
+    } as unknown as EntityRemoveBeforeEvent);
+  game.run.mockClear();
+  removing("loaded", ENTITY_TYPE.suv, () => ({}));
+  removing("unloaded", ENTITY_TYPE.suv, () => undefined);
+  removing("thrown", ENTITY_TYPE.camper, () => {
+    throw new Error("LocationInUnloadedChunkError");
+  });
+  removing("cow", "minecraft:cow", () => ({}));
+  expect(limit.removed).not.toHaveBeenCalled();
+  for (const [callback] of game.run.mock.calls) callback();
+  expect(limit.removed.mock.calls).toEqual([
+    ["loaded", true],
+    ["unloaded", false],
+    ["thrown", false],
+  ]);
+
+  const [onDeath, options] = die;
+  expect(options?.entityTypes).toEqual(Object.values(ENTITY_TYPE));
+  onDeath({ deadEntity: { id: "loaded" } } as unknown as EntityDieAfterEvent);
+  expect(limit.died).toHaveBeenCalledExactlyOnceWith("loaded");
 });
 
 it("cancels a player's break only of a block a held vehicle laid (ADR 0096)", () => {

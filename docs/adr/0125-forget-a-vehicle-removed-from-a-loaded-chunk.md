@@ -1,6 +1,6 @@
 # 0125. Forget a vehicle removed from a loaded chunk
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-10-23
 - Extends: 0066 (the per-owner and per-kind fleet limits), 0124 (the take-back of an eviction)
 
@@ -38,21 +38,21 @@ A second run on the local dev BDS (75 ticks) added the next-tick read:
 - The next-tick read agrees with the deferred read in every case, so either read separates `/kill` from unload
 - `/kill` again raised `entityDie` 21 ticks before the remove events
 
-The runner entry uses the measured 75 ticks (0054). This change adds measurements only and changes no production behavior. The unloaded probe car remains in the dev world without a test tag; the fleet may evict it on a later load like any other unowned vehicle.
+The runner entry used the measured 75 ticks (0054). The spike added measurements only and changed no production behavior. The `fleet_forget` in-game test has since replaced the `fleet_remove_spike` scenario. The unloaded probe car remains in the dev world without a test tag; the fleet may evict it on a later load like any other unowned vehicle.
 
 ## Decision
 
-Proposed, until the follow-up under #472 implements it. The signal is chosen: the block read below decides, and the death event confirms it.
+`registerFleet` adapts the remove and death events, and `LimitVehicles.removed` and `LimitVehicles.died` apply the rule below: the block read decides, and the death event confirms it.
 
 - When `world.beforeEvents.entityRemove` fires for a vehicle type, capture its id, dimension, and location while the entity is still readable. Before events are read-only; defer the probe and fleet write through `system.run`, which for an engine-raised removal still runs within the removal's tick
 - In that deferred read, read the block at the captured location. A defined block means the chunk remains loaded and the vehicle is gone: forget its id from the fleet, including the take-back of the latest eviction from its group under 0124
 - An undefined block or a thrown block lookup is treated as unloaded: keep the vehicle in the fleet with its existing age
 - Forgetting an unknown id changes nothing. Break-by-hand and eviction paths already forget the vehicle through `retireVehicle`, so a subsequent remove event has no further effect
-- `entityDie` for a vehicle also separates `/kill` from unload and arrives before the remove events, but a script `remove()` raises none. Use it only to confirm the block read: a vehicle that died before its removal is forgotten even if the block read fails. Do not forget on the death event alone, so a vehicle that dies and is then kept in the world by another add-on keeps its slot. The next-tick read gives the same answer, so the follow-up may use it when it needs the removal to have settled
+- `entityDie` for a vehicle also separates `/kill` from unload and arrives before the remove events, but a script `remove()` raises none. Use it only to confirm the block read: a vehicle that died before its removal is forgotten even if the block read fails. Do not forget on the death event alone, so a vehicle that dies and is then kept in the world by another add-on keeps its slot. The deferred `system.run` read is the one used, not the next-tick read
 
 ## Consequences
 
-- Once implemented in a follow-up, a killed vehicle frees its slot in the tick it is removed instead of causing a later placement to evict a live vehicle too early
+- A killed vehicle frees its slot in the tick it is removed instead of causing a later placement to evict a live vehicle too early
 - Unloading a parked vehicle preserves its fleet age and does not take back an eviction
 - A vehicle removed in the same tick its chunk unloads is still kept. This rare case ages out as it does today
 - The evicted-list cap of 64 stays for vehicles lost in unloaded chunks

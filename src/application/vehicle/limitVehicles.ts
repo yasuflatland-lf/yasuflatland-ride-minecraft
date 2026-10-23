@@ -1,4 +1,6 @@
-// Use case: remove the oldest vehicles over each owner and kind limit (ADR 0066).
+// Use case: remove the oldest vehicles over each owner and kind limit (ADR 0066),
+// and forget the ones removed from the world (ADR 0125).
+import type { VehicleId } from "../../domain/shared/ids";
 import type { Fleet, FleetEntry } from "../../domain/vehicle/fleet/fleet";
 import type { FleetRepository } from "../../domain/vehicle/fleet/fleetRepository";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
@@ -8,6 +10,11 @@ import type { Logger } from "./ports/shared";
 import { retireVehicle } from "./retireVehicle";
 
 export class LimitVehicles {
+  // Ids of known vehicles whose death event arrived and whose removal has not
+  // (ADR 0125). Kept in memory only: a /reload in the 21 ticks between death
+  // and removal leaves the block read to decide.
+  private readonly dying = new Set<VehicleId>();
+
   constructor(
     private readonly world: LimitWorld,
     private readonly repo: VehicleRepository,
@@ -45,6 +52,25 @@ export class LimitVehicles {
       changed = true;
     }
     if (this.removeLoadedEvicted(fleet) || changed) this.fleets.save(fleet);
+  }
+
+  /** A vehicle's death event arrived. It counts only for its later removal. */
+  died(id: VehicleId): void {
+    if (this.fleets.load().knows(id)) this.dying.add(id);
+  }
+
+  /**
+   * A vehicle entity left the world. `chunkLoaded` is the deferred block read
+   * at its last location: true when the block was defined (ADR 0125).
+   */
+  removed(id: VehicleId, chunkLoaded: boolean): void {
+    const diedBefore = this.dying.delete(id);
+    if (!chunkLoaded && !diedBefore) return;
+    const fleet = this.fleets.load();
+    if (!fleet.knows(id)) return;
+    fleet.forget(id);
+    this.removeLoadedEvicted(fleet);
+    this.fleets.save(fleet);
   }
 
   private removeLoadedEvicted(fleet: Fleet): boolean {
