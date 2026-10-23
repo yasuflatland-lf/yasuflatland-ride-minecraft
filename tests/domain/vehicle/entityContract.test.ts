@@ -15,6 +15,11 @@ import {
   transformingProperties,
 } from "../../../src/domain/vehicle/motion/transformingEntity";
 
+const TRACKS = {
+  properties: { phase: { type: "int", range: [0, 2] } },
+  events: [],
+} as const;
+
 const TRANSFORMING = {
   properties: transformingProperties(10),
   events: TRANSFORMING_EVENTS,
@@ -25,6 +30,9 @@ describe("entity contract types (ADR 0055)", () => {
     expectTypeOf<
       PropertyValue<{ type: "float"; range: readonly [0, 1] }>
     >().toEqualTypeOf<number>();
+    expectTypeOf<
+      PropertyValue<{ type: "int"; range: readonly [0, 2] }>
+    >().toEqualTypeOf<number>();
     expectTypeOf<PropertyValue<{ type: "bool" }>>().toEqualTypeOf<boolean>();
     expectTypeOf<
       PropertyValue<{ type: "enum"; values: readonly ["a", "b"] }>
@@ -32,6 +40,11 @@ describe("entity contract types (ADR 0055)", () => {
   });
 
   it("rejects a value that does not match the property spec", () => {
+    const k = commandsFor<typeof TRACKS>();
+    // @ts-expect-error phase is an int
+    k.property("phase", true);
+    // @ts-expect-error phase is an int
+    k.property("phase", "0");
     const t = commandsFor<typeof TRANSFORMING>();
     // @ts-expect-error bank is a float
     t.property("bank", true);
@@ -66,6 +79,11 @@ describe("entity contract types (ADR 0055)", () => {
   });
 
   it("builds the commands a contract declares", () => {
+    expect(commandsFor<typeof TRACKS>().property("phase", 2)).toEqual({
+      type: "setProperty",
+      name: "phase",
+      value: 2,
+    });
     const camper = commandsFor<typeof CAMPER_ENTITY>();
     expect(camper.property("door", 0.5)).toEqual({
       type: "setProperty",
