@@ -176,3 +176,59 @@ print(json.dumps({"on": faces(True), "off": faces(False), "default": faces(True,
     ).toEqual(Array(6).fill(null));
   });
 });
+
+describe("bulldozer previews (ADR 0136)", () => {
+  it("draws only the first grouser phase and no propeller", () => {
+    const result = previewPython(`
+geo = json.loads(Path("packs/yasu_ride_rp/models/entity/yasu_ride/bulldozer.geo.json").read_text())["minecraft:geometry"][0]
+print(json.dumps({"all": [b["name"] for b in geo["bones"]], "kept": [b["name"] for b in r.bulldozer_bones(geo["bones"])]}))
+`);
+    const hidden = [
+      "track_r_1",
+      "track_r_2",
+      "track_l_1",
+      "track_l_2",
+      "propeller",
+    ];
+    expect(result.kept).toEqual(
+      result.all.filter((name: string) => !hidden.includes(name)),
+    );
+    expect(result.kept).toContain("track_r_0");
+    expect(result.kept).toContain("track_l_0");
+  });
+  it("draws alpha-0 lens swatches opaque and keeps the glass see-through", () => {
+    expect(
+      previewPython(
+        "print(json.dumps(r.opaque_lenses([[(1,2,3,0),(4,5,6,96),(7,8,9,255)]])))",
+      ),
+    ).toEqual([
+      [
+        [1, 2, 3, 255],
+        [4, 5, 6, 96],
+        [7, 8, 9, 255],
+      ],
+    ]);
+  });
+  it("lights the beacon amber beside the headlights", () => {
+    const result = previewPython(
+      "print(json.dumps({'lit': r.BULLDOZER_LIT, 'lamp': r.LAMP_LIT}))",
+    );
+    expect(result.lit).toEqual({
+      headlights: result.lamp,
+      beacon: [255, 170, 40],
+    });
+  });
+  it("renders four previews from the camper's angles in the vehicle frame", () => {
+    const result = previewPython(
+      "print(json.dumps({'names': list(r.BULLDOZER_POSES), 'views': [p['view'] for p in r.BULLDOZER_POSES.values()], 'camper': [p['view'] for p in r.CAMPER_POSES.values()], 'size': r.image_size('bulldozer-side.png')}))",
+    );
+    expect(result.names).toEqual([
+      "bulldozer-front-left.png",
+      "bulldozer-headlights.png",
+      "bulldozer-side.png",
+      "bulldozer-rear.png",
+    ]);
+    expect(result.views).toEqual(result.camper);
+    expect(result.size).toEqual([800, 600]);
+  });
+});
