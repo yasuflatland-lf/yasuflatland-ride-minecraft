@@ -290,6 +290,9 @@ const describeFlaps = (states: Map<FlapId, (boolean | "missing")[]>) =>
 
 export async function tentFlapOpensAlone(a: Arena): Promise<Outcome> {
   try {
+    // A tent the previous test removed leaves the registry on the next tick
+    // (tentLifecycle), and until then its camp space refuses this pitch.
+    await wait(2);
     const tent = await pitchTestTent(a);
     const pitched = flapStates(a);
     const tap = `${tent.id} front`;
