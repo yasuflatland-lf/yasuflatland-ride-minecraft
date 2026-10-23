@@ -108,7 +108,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0102](0102-lift-the-hanging-planter-from-its-cell-bottom.md) | Lift the hanging planter from its cell bottom | Accepted |
 | [0103](0103-raise-the-camper-wall-cabinet-to-the-ceiling.md) | Raise the camper wall cabinet to the ceiling | Superseded in part by 0114; extended by 0113 |
 | [0104](0104-refuse-a-press-on-a-taken-seat.md) | Refuse a press on a taken seat | Accepted |
-| [0105](0105-toggle-a-camper-door-once-per-swing.md) | Toggle a camper door once per swing | Extended by 0114, 0118, and 0129 |
+| [0105](0105-toggle-a-camper-door-once-per-swing.md) | Toggle a camper door once per swing | Extended by 0114, 0118, 0129, and [0132](0132-open-and-close-each-tent-flap-alone.md) |
 | [0106](0106-raise-the-camper-dashboard-to-the-windshield.md) | Raise the camper dashboard to the windshield | Accepted |
 | [0107](0107-stand-stove-gear-on-a-burner.md) | Stand stove gear on a burner, and widen the standing decor box | Superseded in part by 0108, 0110, and 0112 |
 | [0108](0108-two-items-on-each-shelf-board-and-the-table.md) | Two items on each shelf board and on the table | Superseded in part by 0123 (Proposed); extended by 0114 |
@@ -134,7 +134,8 @@ This directory records design decisions and the reasons behind them. The format 
 | [0128](0128-settle-every-crews-seats-by-rider-list.md) | Settle every crew's seats by the rider list | Accepted |
 | [0129](0129-share-room-primitives-between-features.md) | Share room primitives between features | Accepted |
 | [0130](0130-a-tent-entity-whose-hits-land-on-its-blocks.md) | A tent entity whose hits land on its blocks | Proposed; extended by [0131](0131-pitch-a-tent-in-the-camp.md) |
-| [0131](0131-pitch-a-tent-in-the-camp.md) | Pitch a tent in the camp | Proposed |
+| [0131](0131-pitch-a-tent-in-the-camp.md) | Pitch a tent in the camp | Proposed; extended by [0132](0132-open-and-close-each-tent-flap-alone.md) |
+| [0132](0132-open-and-close-each-tent-flap-alone.md) | Open and close each tent flap alone | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 

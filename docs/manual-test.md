@@ -211,7 +211,7 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 
 ## Tent
 
-Until the flaps open (10/13), get inside a pitched tent with `/tp`.
+Walk in through an open flap: tap a flap to roll it up (ADR 0132).
 
 | # | Steps | Pass condition | PC | Mobile |
 |---|---|---|---|---|
@@ -225,6 +225,10 @@ Until the flaps open (10/13), get inside a pitched tent with `/tp`.
 | T8 | After `/reload` and after a server restart, look at the tent, hit it right after joining, and try to place an SUV under the tarp | The cells are back, the hit counts, and the SUV cannot be placed | | |
 | T9 | In Creative, break a wall block | It counts one hit and the block stays | | |
 | T10 | Pitch on snow layers in a snowy biome, then on leaf litter or moss carpet, then aiming at a tuft of short grass | The tent rests on the ground under them and they are cleared from the footprint | | |
+| T11 | At each of the 4 yaws, tap each flap (front, left, right, bedroom) from outside and from inside | Only the tapped flap rolls up or drops; the flap block takes the tap, not the tent entity; an open flap can be walked through (ADR 0132) | | |
+| T12 | Close every flap and stay near the tent through a night | No zombie walks in through a closed flap | | |
+| T13 | Stand in an open flap while a second player taps it | It stays open and the tapper sees "Someone is in the way of the flap"; after you step out, the next tap closes it | | |
+| T14 | Open one flap, then run `/reload`, and again after a server restart | The flap is still open: its block lets you through and its bone is still rolled up | | |
 
 ## Upgrading from MyCar 0.5.0 and earlier
 
