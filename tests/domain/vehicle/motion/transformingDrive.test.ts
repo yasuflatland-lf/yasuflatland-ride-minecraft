@@ -25,7 +25,10 @@ import {
   initialMotion,
   stepMotion,
 } from "../../../../src/domain/vehicle/motion/motion";
-import { TransformingDrive } from "../../../../src/domain/vehicle/motion/transformingDrive";
+import {
+  TransformingDrive,
+  type TransformingOptions,
+} from "../../../../src/domain/vehicle/motion/transformingDrive";
 import {
   bankCommand,
   formCommands,
@@ -508,5 +511,55 @@ it("flies with a finite climb and a level bank when the kind has no bank", () =>
         });
       },
     ),
+  );
+});
+
+const stepTerrain = fc.record({
+  stepAt: fc.double({ min: 0.5, max: 4, noNaN: true }),
+  stepRise: fc.integer({ min: 0, max: 3 }),
+});
+
+function terrainContext(
+  { stepAt, stepRise }: { stepAt: number; stepRise: number },
+  {
+    depth,
+    velocity,
+    onGround,
+  }: typeof tickSample extends fc.Arbitrary<infer T> ? T : never,
+  tick: number,
+): TickContext {
+  return {
+    ...context(depth),
+    tick,
+    velocity,
+    onGround,
+    solidAt: (o) => o.y < 0 || (o.x >= stepAt && o.y < stepRise),
+  };
+}
+
+it("a drive given transformingHorizontalStep explicitly steps like one given no options", () => {
+  const options: TransformingOptions = { guard: undefined };
+  fc.assert(
+    fc.property(stepTerrain, tickSequence, (ground, ticks) => {
+      const a = new TransformingDrive(
+        0,
+        {},
+        SUV_TRANSFORMING,
+        SUV_MOTION,
+        SUV_TYRES,
+      );
+      const b = new TransformingDrive(
+        0,
+        {},
+        SUV_TRANSFORMING,
+        SUV_MOTION,
+        SUV_TYRES,
+        options,
+      );
+      ticks.forEach((sample, tick) => {
+        const ctx = terrainContext(ground, sample, tick);
+        expect(b.step(sample.raw, ctx)).toStrictEqual(a.step(sample.raw, ctx));
+      });
+    }),
   );
 });

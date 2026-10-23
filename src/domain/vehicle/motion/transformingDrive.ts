@@ -108,6 +108,51 @@ export type StepGuard = (
   form: Form,
 ) => MotionResult;
 
+/** What a kind's horizontal step reads each tick. */
+export interface HorizontalStepInput {
+  readonly state: MotionState;
+  readonly input: GroundInput;
+  readonly ctx: TickContext;
+  readonly form: Form;
+  /** Jump went down this tick after being up the tick before. */
+  readonly jumpTapped: boolean;
+  /** The car-form step probe; it never finds a step when the kind turns step-up off. */
+  readonly probe: StepProbe;
+  readonly spec: TransformingSpec;
+  readonly limits: MotionLimits;
+  readonly tyres: TyreLimits;
+}
+
+export type HorizontalStep = (h: HorizontalStepInput) => MotionResult;
+
+/** Today's step: stepMotion in car form, stepMediumMotion (spec.water as a submarine, else spec.air) otherwise. */
+export function transformingHorizontalStep(
+  h: HorizontalStepInput,
+): MotionResult {
+  const velocity = { x: h.ctx.velocity.x, z: h.ctx.velocity.z };
+  return h.form === "car"
+    ? stepMotion(
+        h.state,
+        h.input,
+        { velocity, onGround: h.ctx.onGround },
+        h.probe,
+        h.limits,
+        h.tyres,
+      )
+    : stepMediumMotion(
+        h.state,
+        h.input,
+        velocity,
+        h.form === "submarine" ? h.spec.water : h.spec.air,
+        h.limits,
+        h.tyres.creepSpeed,
+      );
+}
+
+export interface TransformingOptions {
+  readonly guard?: StepGuard;
+}
+
 export class TransformingDrive implements Drive {
   private motion: MotionState;
   private formState: FormState;
@@ -116,6 +161,7 @@ export class TransformingDrive implements Drive {
   private readonly bankSync = new SyncedValue<number>();
   private gearDown: boolean;
   private readonly gearDownSync = new SyncedValue<boolean>();
+  private readonly guard: StepGuard | undefined;
 
   constructor(
     yaw: number,
@@ -123,8 +169,9 @@ export class TransformingDrive implements Drive {
     protected readonly spec: TransformingSpec,
     protected readonly limits: MotionLimits,
     protected readonly tyres: TyreLimits,
-    private readonly guard?: StepGuard,
+    options: TransformingOptions = {},
   ) {
+    this.guard = options.guard;
     const form = isForm(restored.form) ? restored.form : "car";
     this.motion = initialMotion(yaw);
     this.formState = initialForm(form);
@@ -245,25 +292,17 @@ export class TransformingDrive implements Drive {
     ctx: TickContext,
     form: Form,
   ): MotionResult {
-    const velocity = { x: ctx.velocity.x, z: ctx.velocity.z };
-    const moved: MotionResult =
-      form === "car"
-        ? stepMotion(
-            this.motion,
-            input,
-            { velocity, onGround: ctx.onGround },
-            stepProbe(ctx, this.spec),
-            this.limits,
-            this.tyres,
-          )
-        : stepMediumMotion(
-            this.motion,
-            input,
-            velocity,
-            form === "submarine" ? this.spec.water : this.spec.air,
-            this.limits,
-            this.tyres.creepSpeed,
-          );
+    const moved = transformingHorizontalStep({
+      state: this.motion,
+      input,
+      ctx,
+      form,
+      jumpTapped: false,
+      probe: stepProbe(ctx, this.spec),
+      spec: this.spec,
+      limits: this.limits,
+      tyres: this.tyres,
+    });
     return this.guard ? this.guard(moved, ctx, form) : moved;
   }
 

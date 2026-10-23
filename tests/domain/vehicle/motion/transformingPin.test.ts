@@ -278,7 +278,7 @@ function camperDrivetrain(yaw: number): TransformingDrive {
     CAMPER_TRANSFORMING,
     CAMPER_MOTION,
     CAMPER_TYRES,
-    camperGuard,
+    { guard: camperGuard },
   );
 }
 
