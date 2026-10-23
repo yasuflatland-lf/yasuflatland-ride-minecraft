@@ -1,5 +1,6 @@
 // In-game checks of the tent entity contract (ADR 0130), of pitching and
-// taking down the tent (ADR 0131), and of its flaps (ADR 0132).
+// taking down the tent (ADR 0131), of its flaps (ADR 0132), and of its
+// mattresses (ADR 0133).
 import { type Entity, ItemStack, system } from "@minecraft/server";
 import { FLAP_IDS } from "../../domain/camp/flaps";
 import { TENT_SPEC } from "../../domain/camp/spec";
@@ -17,6 +18,7 @@ import {
   TENT_FLAP_PROPERTY,
   TENT_ITEM,
   TENT_LANTERN_PROPERTY,
+  TENT_MATTRESS_BLOCK,
   TENT_OPEN_STATE,
   TENT_TYPE,
   TENT_WALL_BLOCK,
@@ -94,7 +96,12 @@ function tentsInStrip(a: Arena): Entity[] {
     );
 }
 
-const TENT_BLOCKS = [TENT_WALL_BLOCK, TENT_CEILING_BLOCK, TENT_FLAP_BLOCK];
+const TENT_BLOCKS = [
+  TENT_WALL_BLOCK,
+  TENT_CEILING_BLOCK,
+  TENT_FLAP_BLOCK,
+  TENT_MATTRESS_BLOCK,
+];
 
 /** How many of the footprint's cells hold each tent block, by type id. */
 function tentBlockCounts(a: Arena): Map<string, number> {
@@ -143,6 +150,14 @@ function clearTentStrip(a: Arena): void {
   );
 }
 
+/** Sends the TENT_SPEC.hitsToTakeDown test hits that take the tent down, two ticks apart. */
+async function takeDownTestTent(tentId: string): Promise<void> {
+  for (let i = 0; i < TENT_SPEC.hitsToTakeDown; i++) {
+    system.sendScriptEvent(TEST_TENT_HIT_EVENT, tentId);
+    await wait(2);
+  }
+}
+
 function tentItemsNear(a: Arena): Entity[] {
   return a.dim
     .getEntities({
@@ -165,13 +180,10 @@ export async function tentPitchAndTakeDown(a: Arena): Promise<Outcome> {
       (counts.get(TENT_WALL_BLOCK) ?? 0) +
       (counts.get(TENT_CEILING_BLOCK) ?? 0);
     const flaps = counts.get(TENT_FLAP_BLOCK) ?? 0;
+    const mattresses = counts.get(TENT_MATTRESS_BLOCK) ?? 0;
     const stone = { x: 110, y: a.gy, z: 50 };
     a.dim.runCommand(`setblock ${stone.x} ${stone.y} ${stone.z} cobblestone`);
-    const id = tent.id;
-    for (let i = 0; i < TENT_SPEC.hitsToTakeDown; i++) {
-      system.sendScriptEvent(TEST_TENT_HIT_EVENT, id);
-      await wait(2);
-    }
+    await takeDownTestTent(tent.id);
     const left = tentsInStrip(a).length;
     const after = tentBlocksInFootprint(a);
     const kept = a.dim.getBlock(stone)?.typeId;
@@ -185,11 +197,12 @@ export async function tentPitchAndTakeDown(a: Arena): Promise<Outcome> {
         yaw === 180 &&
         shelter === 129 &&
         flaps === 8 &&
+        mattresses === 4 &&
         left === 0 &&
         after === 0 &&
         kept === "minecraft:cobblestone" &&
         items === 1,
-      detail: `tents=${tents} yaw=${yaw} shelter=${shelter} flaps=${flaps} left=${left} after=${after} kept=${kept} items=${items}`,
+      detail: `tents=${tents} yaw=${yaw} shelter=${shelter} flaps=${flaps} mattresses=${mattresses} left=${left} after=${after} kept=${kept} items=${items}`,
     };
   } finally {
     for (const item of tentItemsNear(a)) item.remove();
@@ -262,7 +275,7 @@ export async function tentPitchOnSnow(a: Arena): Promise<Outcome> {
     const laid = tentBlocksInFootprint(a);
     const tarp = a.dim.getBlock({ x: 110, y: a.gy, z: 46 })?.typeId;
     return {
-      pass: laid === 137 && tarp === "minecraft:air",
+      pass: laid === 141 && tarp === "minecraft:air",
       detail: `laid=${laid} tarp=${tarp}`,
     };
   } finally {
@@ -326,6 +339,38 @@ export async function tentFlapOpensAlone(a: Arena): Promise<Outcome> {
         swung.join() === "1,0,0,0" &&
         flapsOpen(closed, []),
       detail: `pitched=${describeFlaps(pitched)} opened=${describeFlaps(opened)} echoed=${describeFlaps(echoed)} swung=${swung} closed=${describeFlaps(closed)}`,
+    };
+  } finally {
+    clearTentStrip(a);
+  }
+}
+
+export async function tentMattresses(a: Arena): Promise<Outcome> {
+  try {
+    // A tent the previous test removed leaves the registry on the next tick
+    // (tentLifecycle), and until then its camp space refuses this pitch.
+    await wait(2);
+    const tent = await pitchTestTent(a);
+    // Index 0 is at local x 1 and index 1 at x -1; the 180-yaw tent turns them to x 109 and 111.
+    const cells = [109, 111].flatMap((x) =>
+      [55, 56].map((z) => ({ x, y: a.gy, z })),
+    );
+    const typeAt = (c: { x: number; y: number; z: number }) =>
+      a.dim.getBlock(c)?.typeId;
+    const laid = cells.map(typeAt);
+    const above = cells.map((c) => typeAt({ ...c, y: c.y + 1 }));
+    const stone = { x: 109, y: a.gy + 1, z: 55 };
+    a.dim.runCommand(`setblock ${stone.x} ${stone.y} ${stone.z} stone`);
+    await takeDownTestTent(tent.id);
+    const after = cells.map(typeAt);
+    const kept = typeAt(stone);
+    return {
+      pass:
+        laid.every((t) => t === TENT_MATTRESS_BLOCK) &&
+        above.every((t) => t === "minecraft:air") &&
+        after.every((t) => t === "minecraft:air") &&
+        kept === "minecraft:stone",
+      detail: `laid=${laid.join(",")} above=${above.join(",")} after=${after.join(",")} kept=${kept}`,
     };
   } finally {
     clearTentStrip(a);

@@ -1,12 +1,17 @@
 // Wires the camp feature: the low chair placed outside the vehicles (ADR 0122)
-// and the tent pitched from its item with flaps that open alone (ADR 0131, 0132).
+// and the tent pitched from its item, with flaps that open alone (ADR 0131, 0132)
+// and mattresses to sleep on (ADR 0133).
 import { HitChair } from "../../application/camp/hitChair";
 import { PitchTent } from "../../application/camp/pitchTent";
 import { PlaceChair } from "../../application/camp/placeChair";
 import { TakeDownTent } from "../../application/camp/takeDownTent";
 import { UseTentFlap } from "../../application/camp/useTentFlap";
 import type { SpaceCheck } from "../../application/shared/ports/space";
+import { SleepInBed } from "../../application/shared/sleepInBed";
+import { registerBedBlock } from "../shared/bedBlock";
+import { BedrockBedWorld } from "../shared/bedrockBedWorld";
 import { registerLaidBlockGuard } from "../shared/laidBlockGuard";
+import { playerById } from "../shared/players";
 import { BedrockChairWorld } from "./bedrock/bedrockChairWorld";
 import { BedrockTentWorld } from "./bedrock/bedrockTentWorld";
 import { registerChairHits } from "./bedrock/handlers/hits";
@@ -21,6 +26,7 @@ import { registerTestTent } from "./bedrock/handlers/testTent";
 import { registerTestTentFlap } from "./bedrock/handlers/testTentFlap";
 import { createTentBlocks } from "./bedrock/tentBlocks";
 import { TentFlapStore } from "./bedrock/tentFlapStore";
+import { TENT_MATTRESS_COMPONENT } from "./identifiers";
 import { DynamicPropertyTentRegistry } from "./persistence/tentRegistry";
 
 /** `isVehicleSpace` comes from the vehicle feature through bootstrap, since camp cannot import it (ADR 0046). */
@@ -32,6 +38,12 @@ export function installCamp(deps: { isVehicleSpace: SpaceCheck }): {
   registerChairPlacement(new PlaceChair(chairs));
   registerChairHits(hitChair);
   registerTestChairHit(hitChair);
+
+  // SleepInBed is stateless, so camp builds its own instead of sharing the vehicle's.
+  registerBedBlock(
+    TENT_MATTRESS_COMPONENT,
+    new SleepInBed(new BedrockBedWorld({ player: playerById })),
+  );
 
   const registry = new DynamicPropertyTentRegistry();
   const blocks = createTentBlocks();

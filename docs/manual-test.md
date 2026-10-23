@@ -229,6 +229,13 @@ Walk in through an open flap: tap a flap to roll it up (ADR 0132).
 | T12 | Close every flap and stay near the tent through a night | No zombie walks in through a closed flap | | |
 | T13 | Stand in an open flap while a second player taps it | It stays open and the tapper sees "Someone is in the way of the flap"; after you step out, the next tap closes it | | |
 | T14 | Open one flap, then run `/reload`, and again after a server restart | The flap is still open: its block lets you through and its bone is still rolled up | | |
+| T15 | Pitch a tent at night (`/time set 13000`), walk into the bedroom through its flap, and long-press (mobile) or right-click (PC) either mattress | The screen fades to black and back, and it is morning for both players (ADR 0133) | | |
+| T16 | Long-press a mattress during the day (`/time set 1000`) | "You can sleep only at night" shows, and the time does not change | | |
+| T17 | Long-press a mattress, then `/kill` yourself | You respawn standing on the mattress, not stuck inside its 9 px box | | |
+| T18 | While player A stands on a mattress, player B hits the tent's wall three times from outside | The tent stays, and B sees "Someone is inside the tent" | | |
+| T19 | Holding a Low Chair, tap a mattress | No chair appears | | |
+| T20 | Step onto a mattress | It stops you like a low block, and you can stand on it | | |
+| T21 | In Creative, try to break a mattress | The block stays | | |
 
 ## Upgrading from MyCar 0.5.0 and earlier
 

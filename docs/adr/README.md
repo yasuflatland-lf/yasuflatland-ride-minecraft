@@ -95,7 +95,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0089](0089-per-kind-control-mapping.md) | Each kind maps the stick to handbrake and creep | Accepted |
 | [0090](0090-group-the-vehicle-core-by-subcontext.md) | Group the vehicle core by subcontext | Extended by 0129 |
 | [0091](0091-alpha-blend-only-the-camper-glass.md) | Alpha-blend only the camper glass | Accepted |
-| [0092](0092-a-bed-in-the-parked-camper.md) | A bed in the parked camper | Extended by 0093 and 0129 |
+| [0092](0092-a-bed-in-the-parked-camper.md) | A bed in the parked camper | Extended by 0093, 0129, and [0133](0133-sleep-on-the-tent-mattresses.md) |
 | [0093](0093-decorate-the-parked-camper.md) | Decorate the parked camper | Superseded in part by 0097, 0098, 0099, 0100, 0102, 0103, 0106, 0108, and 0123 (Proposed); extended by 0094, 0095, 0096, 0101, 0113, and 0122 (Proposed) |
 | [0094](0094-the-camper-shower-toilet-door-and-shower.md) | The camper's shower-toilet door and shower | Superseded in part by 0098; extended by 0105, 0114, and 0118 |
 | [0095](0095-sit-on-the-camper-toilet-while-parked.md) | Sit on the camper toilet while parked | Extended by 0098 and 0109 |
@@ -134,8 +134,9 @@ This directory records design decisions and the reasons behind them. The format 
 | [0128](0128-settle-every-crews-seats-by-rider-list.md) | Settle every crew's seats by the rider list | Accepted |
 | [0129](0129-share-room-primitives-between-features.md) | Share room primitives between features | Accepted |
 | [0130](0130-a-tent-entity-whose-hits-land-on-its-blocks.md) | A tent entity whose hits land on its blocks | Proposed; extended by [0131](0131-pitch-a-tent-in-the-camp.md) |
-| [0131](0131-pitch-a-tent-in-the-camp.md) | Pitch a tent in the camp | Proposed; extended by [0132](0132-open-and-close-each-tent-flap-alone.md) |
+| [0131](0131-pitch-a-tent-in-the-camp.md) | Pitch a tent in the camp | Proposed; extended by [0132](0132-open-and-close-each-tent-flap-alone.md) and [0133](0133-sleep-on-the-tent-mattresses.md) |
 | [0132](0132-open-and-close-each-tent-flap-alone.md) | Open and close each tent flap alone | Proposed |
+| [0133](0133-sleep-on-the-tent-mattresses.md) | Sleep on the tent mattresses | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 

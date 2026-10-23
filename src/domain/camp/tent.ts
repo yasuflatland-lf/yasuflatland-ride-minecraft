@@ -42,7 +42,8 @@ export type TentFace = 0 | 1 | 2 | 3;
 export type TentBlock =
   | { readonly type: "wall"; readonly face: TentFace }
   | { readonly type: "ceiling" }
-  | { readonly type: "flap"; readonly id: FlapId; readonly open: boolean };
+  | { readonly type: "flap"; readonly id: FlapId; readonly open: boolean }
+  | { readonly type: "mattress"; readonly index: 0 | 1 };
 
 export type FlapId = "front" | "left" | "right" | "bedroom";
 
@@ -175,6 +176,9 @@ export function tentCells(
     TENT_SPEC.frontRoomHeadroom,
   );
   ceiling(range(0, FRONT_WALL_DEPTH - 1), TENT_SPEC.tarpHeadroom);
+  for (const index of [0, 1] as const)
+    for (const local of TENT_MATTRESSES[index])
+      lay(local, { type: "mattress", index });
   return cells;
 }
 
@@ -311,7 +315,7 @@ const FLAP_BY_LOCAL: ReadonlyMap<string, FlapId> = new Map(
   ),
 );
 
-/** The bedroom cells of each mattress; they stay air until the mattresses are laid (11/13). */
+/** The bedroom cells of each mattress, laid last by tentCells whatever the state; x 0 stays free as the walkway from the bedroom flap. */
 export const TENT_MATTRESSES: readonly [
   readonly TentLocalCell[],
   readonly TentLocalCell[],

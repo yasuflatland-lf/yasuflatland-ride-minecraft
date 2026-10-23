@@ -5,6 +5,7 @@ import { PitchTent } from "../../../src/application/camp/pitchTent";
 import { PlaceChair } from "../../../src/application/camp/placeChair";
 import { TakeDownTent } from "../../../src/application/camp/takeDownTent";
 import { UseTentFlap } from "../../../src/application/camp/useTentFlap";
+import { SleepInBed } from "../../../src/application/shared/sleepInBed";
 import {
   asTentId,
   flapCells,
@@ -25,11 +26,13 @@ import { registerTestTentFlap } from "../../../src/infrastructure/camp/bedrock/h
 import { TentFlapStore } from "../../../src/infrastructure/camp/bedrock/tentFlapStore";
 import {
   TENT_FLAP_PROPERTY,
+  TENT_MATTRESS_COMPONENT,
   TENT_TYPE,
   TENT_WALL_BLOCK,
   TENTS_PROPERTY,
 } from "../../../src/infrastructure/camp/identifiers";
 import { installCamp } from "../../../src/infrastructure/camp/install";
+import { registerBedBlock } from "../../../src/infrastructure/shared/bedBlock";
 import { registerLaidBlockGuard } from "../../../src/infrastructure/shared/laidBlockGuard";
 import { defined } from "../../support/defined";
 
@@ -74,6 +77,9 @@ vi.mock(
     registerTestTentFlap: vi.fn(),
   }),
 );
+vi.mock("../../../src/infrastructure/shared/bedBlock", () => ({
+  registerBedBlock: vi.fn(),
+}));
 vi.mock("../../../src/infrastructure/shared/laidBlockGuard", () => ({
   registerLaidBlockGuard: vi.fn(),
 }));
@@ -101,6 +107,14 @@ it("wires one hit use case into both hit handlers and asks the vehicles for thei
     placeChair?.cellFor(here, { x: 0, y: 64, z: 0 }, "up"),
   ).toBeUndefined();
   expect(isVehicleSpace).toHaveBeenCalledWith(here, { x: 0, y: 65, z: 0 });
+});
+
+it("registers the tent mattress as a bed with its own SleepInBed (ADR 0092, 0133)", () => {
+  installCamp({ isVehicleSpace: () => false });
+  expect(registerBedBlock).toHaveBeenCalledTimes(1);
+  const [componentId, bed] = vi.mocked(registerBedBlock).mock.calls[0] ?? [];
+  expect(componentId).toBe(TENT_MATTRESS_COMPONENT);
+  expect(bed).toBeInstanceOf(SleepInBed);
 });
 
 it("claims no camp space for any dimension and integer cell without a tent (ADR 0129)", () => {
