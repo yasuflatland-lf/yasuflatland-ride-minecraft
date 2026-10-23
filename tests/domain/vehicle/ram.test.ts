@@ -60,7 +60,7 @@ describe("selectHits (ADR 0006)", () => {
         .map((v) => ({ v, exact: false })),
     );
   const body = fc.oneof(
-    fc.constantFrom(...VEHICLE_KINDS.map((k) => profileOf(k).ram)),
+    fc.constantFrom(...VEHICLE_KINDS.map((k) => profileOf(k).body)),
     fc.record({ front: number(0.5, 10), halfWidth: number(0.1, 3) }),
   );
   const target = body.chain((b) => {
@@ -216,7 +216,7 @@ describe("selectHits (ADR 0006)", () => {
                 [{ id: "t", offset, mount: "deckSeat" }],
                 lastHit,
                 now,
-                SUV_PROFILE.ram,
+                SUV_PROFILE.body,
               ),
             ).toEqual(
               selectHits(
@@ -225,7 +225,7 @@ describe("selectHits (ADR 0006)", () => {
                 [{ id: "t", offset }],
                 lastHit,
                 now,
-                SUV_PROFILE.ram,
+                SUV_PROFILE.body,
               ),
             );
           },

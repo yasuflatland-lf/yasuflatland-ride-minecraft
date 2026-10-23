@@ -1,16 +1,22 @@
 import type { MotionLimits } from "../../motion/limits";
-import type { PlacementSurface } from "../../placement/placement";
+import {
+  clearanceHeight,
+  type PlacementSurface,
+} from "../../placement/placement";
 import type { VehicleProfile } from "../../profile";
 import { SPORTSBOAT_SPEC } from "./spec";
+
+const body = Object.freeze({
+  front: SPORTSBOAT_SPEC.ramFront,
+  halfWidth: SPORTSBOAT_SPEC.ramHalfWidth,
+  height: SPORTSBOAT_SPEC.height,
+});
 
 /** The sports boat's own values (ADR 0051), written out even where they equal the SUV's today. */
 export const SPORTSBOAT_PROFILE: VehicleProfile = Object.freeze({
   kind: "sportsboat",
   fleetLimit: 1, // Per player (ADR 0066).
-  ram: Object.freeze({
-    front: SPORTSBOAT_SPEC.ramFront,
-    halfWidth: SPORTSBOAT_SPEC.ramHalfWidth,
-  }),
+  body,
   footprint: SPORTSBOAT_SPEC.footprint,
   // Must match minecraft:rideable in packs/yasu_ride_bp/entities/yasu_ride/sportsboat.se.json; the SUV's first x/z, no doors (ADR 0051), kept when the SUV's front seats moved back (ADR 0117).
   seats: Object.freeze({
@@ -38,7 +44,11 @@ export const SPORTSBOAT_PROFILE: VehicleProfile = Object.freeze({
   placement: Object.freeze({
     surfaces: Object.freeze<PlacementSurface[]>(["water", "top"]),
     // 3 × 2 × 3 cells fit the 2.2-wide, 1.2-high collision box (ADR 0051).
-    clearance: Object.freeze({ halfX: 1, halfZ: 1, height: 2 }),
+    clearance: Object.freeze({
+      halfX: 1,
+      halfZ: 1,
+      height: clearanceHeight(body),
+    }),
   }),
   chaseCamera: "near",
   defaultPaint: "black", // ADR 0051, 0076

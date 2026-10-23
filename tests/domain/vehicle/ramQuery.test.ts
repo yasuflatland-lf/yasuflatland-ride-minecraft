@@ -28,7 +28,7 @@ function offsetAt(yawDeg: number, ahead: number, side: number, dy: number) {
 }
 
 const kindTarget = fc.constantFrom(...VEHICLE_KINDS).chain((kind) => {
-  const body = profileOf(kind).ram;
+  const body = profileOf(kind).body;
   const reach = body.front + SPEC.targetHalfWidth;
   const halfWidth = body.halfWidth + SPEC.targetHalfWidth;
   return fc.record({

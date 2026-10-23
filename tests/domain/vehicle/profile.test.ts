@@ -82,6 +82,30 @@ const input = fc.record({
 const velocity = fc.record({ x: number(-5, 5), z: number(-5, 5) });
 
 describe("vehicle profiles (ADR 0050)", () => {
+  it.each([
+    {
+      kind: "suv",
+      body: { front: 1.85, halfWidth: 1.1, height: 1.6 },
+      clearance: { halfX: 1, halfZ: 1, height: 2 },
+    },
+    {
+      kind: "camper",
+      body: { front: 3.7, halfWidth: 1.5, height: 4.0 },
+      clearance: { halfX: 4, halfZ: 4, height: 4 },
+    },
+    {
+      kind: "sportsboat",
+      body: { front: 3.0, halfWidth: 1.06, height: 1.2 },
+      clearance: { halfX: 1, halfZ: 1, height: 2 },
+    },
+  ] as const)(
+    "preserves $kind body dimensions and placement clearance",
+    ({ kind, body, clearance }) => {
+      expect(profileOf(kind).body).toEqual(body);
+      expect(profileOf(kind).placement.clearance).toEqual(clearance);
+    },
+  );
+
   it("builds the SUV profile from the existing tuning and seat data", () => {
     expect(SUV_MOTION).toEqual({
       maxSpeed: SUV_SPEC.maxSpeed,
@@ -101,7 +125,11 @@ describe("vehicle profiles (ADR 0050)", () => {
     expect(SUV_PROFILE).toEqual({
       kind: "suv",
       fleetLimit: 10,
-      ram: { front: SUV_SPEC.bodyFront, halfWidth: SUV_SPEC.bodyHalfWidth },
+      body: {
+        front: SUV_SPEC.bodyFront,
+        halfWidth: SUV_SPEC.bodyHalfWidth,
+        height: SUV_SPEC.carHeight,
+      },
       footprint: 2.35,
       seats: {
         positions: [
@@ -146,7 +174,7 @@ describe("vehicle profiles (ADR 0050)", () => {
     expect(SPORTSBOAT_PROFILE).toStrictEqual({
       kind: "sportsboat",
       fleetLimit: 1,
-      ram: { front: 3.0, halfWidth: 1.06 },
+      body: { front: 3.0, halfWidth: 1.06, height: 1.2 },
       footprint: 3.5,
       seats: {
         positions: [
@@ -183,7 +211,7 @@ describe("vehicle profiles (ADR 0050)", () => {
       const profile = profileOf(kind);
       for (const part of [
         profile,
-        profile.ram,
+        profile.body,
         profile.seats,
         profile.boarding,
         profile.beams,
