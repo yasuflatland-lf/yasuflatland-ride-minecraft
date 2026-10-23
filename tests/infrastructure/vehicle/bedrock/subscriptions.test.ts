@@ -614,6 +614,72 @@ function lightSwitchFixture(
   };
 }
 
+it("preserves switch routing, cancellation and use-case arguments across rider and room states", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom("none", "room", "vehicle"),
+      fc.boolean(),
+      fc.boolean(),
+      fc.boolean(),
+      fc.boolean(),
+      (mountId, owner, canSwitch, headlightsSwitch, isFirstEvent) => {
+        const mount =
+          mountId === "none"
+            ? undefined
+            : {
+                id: mountId,
+                typeId:
+                  mountId === "room" ? ENTITY_TYPE.camper : ENTITY_TYPE.suv,
+              };
+        const f = lightSwitchFixture(mount, () =>
+          owner ? asVehicleId("room") : undefined,
+        );
+        f.ceilingLights.canSwitch.mockReturnValue(canSwitch);
+        f.headlights.execute.mockReturnValue(headlightsSwitch);
+        const headlightCalls: unknown[][] = [];
+        const ceilingCalls: unknown[][] = [];
+        // Transcribe the existing use rule: the mount gets headlights first, then ceiling
+        // lights on refusal; on foot only the room gets ceiling lights (ADR 0115).
+        const use = () => {
+          if (mount) {
+            headlightCalls.push([{ playerId: "player", vehicleId: mount.id }]);
+            if (!headlightsSwitch)
+              ceilingCalls.push([{ ...inRoom, vehicleId: mount.id }]);
+          } else if (owner) ceilingCalls.push([inRoom]);
+        };
+        const check = () => {
+          expect(f.headlights.execute.mock.calls).toEqual(headlightCalls);
+          expect(f.ceilingLights.execute.mock.calls).toEqual(ceilingCalls);
+        };
+        f.use();
+        use();
+        check();
+        f.nextTick();
+        check();
+
+        const blockClaim = !mount && owner && canSwitch;
+        expect(f.pressBlock(isFirstEvent)).toBe(blockClaim);
+        check();
+        f.nextTick();
+        if (blockClaim && isFirstEvent) use();
+        check();
+
+        for (const id of ["room", "other"]) {
+          const entityClaim =
+            mount?.id === id || (owner && id === "room" && canSwitch);
+          expect(f.pressEntity({ id, typeId: ENTITY_TYPE.camper })).toBe(
+            entityClaim,
+          );
+          check();
+          f.nextTick();
+          if (entityClaim) use();
+          check();
+        }
+      },
+    ),
+  );
+});
+
 it("aims a boarding press along the view on mouse, and from where a touch player stands (ADR 0120)", () => {
   const boat = { id: "boat", typeId: ENTITY_TYPE.sportsboat };
   for (const [mode, view] of [
