@@ -38,10 +38,10 @@ it("declares a bank range of plus or minus maxBank (ADR 0026)", () => {
   );
 });
 
-// -0 does not survive JSON, so a pack written as [0, 0] would never match the contract.
-it("declares a bank range of [0, 0] with no negative zero when the kind has no bank", () => {
+// BDS 1.26.52.3 rejects [0.0, 0.0]: "range max is less than range min" (ADR 0136).
+it("declares a bank range of [0, 1] with no negative zero when the kind has no bank", () => {
   // toStrictEqual tells -0 from +0.
-  expect(transformingProperties(0).bank.range).toStrictEqual([0, 0]);
+  expect(transformingProperties(0).bank.range).toStrictEqual([0, 1]);
   const properties = transformingProperties(0);
   expect(JSON.parse(JSON.stringify(properties))).toStrictEqual(properties);
 });

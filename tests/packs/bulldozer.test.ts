@@ -35,12 +35,13 @@ it("is a vehicle entity with the touch Jump components and a body that follows t
   expect(c["minecraft:collision_box"]).toEqual({ width: 2.4, height: 2.9 });
   expect(c["minecraft:variable_max_auto_step"].base_value).toBe(1.0625);
 });
-it("declares the transforming properties with a zero bank range", () => {
+it("declares the transforming properties with a nonzero range for its zero bank", () => {
   const p = entity.description.properties;
   expect(p["yasu_ride:form"].values).toEqual(FORMS);
+  // BDS 1.26.52.3 rejects [0.0, 0.0]: "range max is less than range min" (ADR 0136).
   expect(p["yasu_ride:bank"]).toEqual({
     type: "float",
-    range: [0, 0],
+    range: [0, 1],
     default: 0,
     client_sync: true,
   });

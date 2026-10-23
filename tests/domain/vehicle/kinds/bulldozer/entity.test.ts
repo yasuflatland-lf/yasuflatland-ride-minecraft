@@ -19,7 +19,8 @@ it("declares the tracks, the door, and the transforming properties, and restores
     "track_l",
     "track_r",
   ]);
-  expect(E.properties.bank.range).toStrictEqual([0, 0]);
+  // BDS 1.26.52.3 rejects [0.0, 0.0]: "range max is less than range min" (ADR 0136).
+  expect(E.properties.bank.range).toStrictEqual([0, 1]);
   expect(E.restored).toEqual(["form"]);
 });
 it("builds only declared commands", () => {
