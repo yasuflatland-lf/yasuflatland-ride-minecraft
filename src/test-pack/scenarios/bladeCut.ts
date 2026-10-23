@@ -136,14 +136,16 @@ export async function bladeCutDrops(a: Arena): Promise<Outcome> {
       z: 30.5,
     });
     await wait(3);
-    // The column box grown by DROP_MARGIN on every axis.
+    // The column box grown by DROP_MARGIN on every axis. Both controls are
+    // checked by isValid instead: the first one spawns outside the box but
+    // can roll into it before this query.
     const nearby = dim
       .getEntities({
         type: "minecraft:item",
         location: { x: 116, y: gy - 1, z: 29 },
         volume: { x: 3, y: 3, z: 3 },
       })
-      .filter((e) => e.id !== second?.id);
+      .filter((e) => e.id !== first?.id && e.id !== second?.id);
     return {
       pass:
         dim.getBlock({ x: 118, y: gy, z: 30 })?.isAir === true &&
@@ -151,7 +153,7 @@ export async function bladeCutDrops(a: Arena): Promise<Outcome> {
         nearby.length === 0 &&
         first.isValid &&
         second.isValid,
-      detail: `removed=${lines.length} nearby=${nearby.length} controls=${first.isValid},${second.isValid}`,
+      detail: `removed=${lines.length} nearby=${nearby.length}${nearby.map((e) => ` ${e.getComponent("minecraft:item")?.itemStack.typeId}@${e.location.x.toFixed(2)},${e.location.y.toFixed(2)},${e.location.z.toFixed(2)}`).join("")} controls=${first.isValid},${second.isValid}`,
       lines,
     };
   } finally {

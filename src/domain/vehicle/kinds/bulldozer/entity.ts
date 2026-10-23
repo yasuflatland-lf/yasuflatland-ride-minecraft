@@ -14,6 +14,8 @@ export const BULLDOZER_ENTITY = {
     spin_r: { type: "float", range: [0, 360] },
     spin_l: { type: "float", range: [0, 360] },
     door: { type: "float", range: [0, 1] },
+    /** 0 lowered, 1 raised; the drive animation lifts blade_rig and shortens the lift rods from it (ADR 0138). */
+    blade: { type: "float", range: [0, 1] },
   },
   events: TRANSFORMING_EVENTS,
   animations: [],
