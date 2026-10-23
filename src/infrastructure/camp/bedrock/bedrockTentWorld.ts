@@ -7,13 +7,19 @@ import {
   world,
 } from "@minecraft/server";
 import type { TentWorld } from "../../../application/camp/ports/tent";
+import type { TentFlapWorld } from "../../../application/camp/ports/tentFlap";
 import type { SpaceCheck } from "../../../application/shared/ports/space";
+import type { TentFlaps } from "../../../domain/camp/flaps";
 import { TENT_SPEC } from "../../../domain/camp/spec";
 import {
   asTentId,
+  type FlapId,
+  flapAt,
+  flapCells,
   type GroundReading,
   insideTent,
   inTentFootprint,
+  PITCHED_STATE,
   type PitchRefusal,
   type PitchSurvey,
   type TentBlock,
@@ -35,7 +41,9 @@ import type { CellLayer } from "../../shared/laidCells";
 import { isLightBlock } from "../../shared/lightBlocks";
 import { consumeHeld, giveOrDrop, isCreative } from "../../shared/players";
 import {
+  FLAP_BLOCKED_HINT,
   PITCH_REFUSAL_MESSAGE,
+  TENT_FLAP_BLOCK,
   TENT_HITS_LEFT_HINT,
   TENT_ITEM,
   TENT_OCCUPIED_HINT,
@@ -43,6 +51,7 @@ import {
 } from "../identifiers";
 import type { DynamicPropertyTentRegistry } from "../persistence/tentRegistry";
 import { TENT_CELL_CODEC } from "./tentBlocks";
+import type { TentFlapStore } from "./tentFlapStore";
 
 const PLAYER_TYPE = "minecraft:player";
 // Dropped items and xp orbs never stand in the way of a tent.
@@ -74,12 +83,37 @@ function blockAt(dimension: Dimension | undefined, at: Vec3) {
   }
 }
 
-export class BedrockTentWorld implements TentWorld {
+// A volume query matches an entity by its location (the feet), but a closed flap fills
+// its whole cell, so the box reaches out by half a player's or a zombie's 0.6 width to
+// catch a body that leans into the cell from the next one (ADR 0132).
+const FLAP_BLOCKER_REACH = 0.3;
+
+/** The query box for the entities whose body can overlap `cell`. */
+function flapBlockerBox(cell: Vec3): {
+  location: Vec3;
+  volume: Vec3;
+} {
+  return {
+    location: {
+      x: cell.x - FLAP_BLOCKER_REACH,
+      y: cell.y,
+      z: cell.z - FLAP_BLOCKER_REACH,
+    },
+    volume: {
+      x: 1 + 2 * FLAP_BLOCKER_REACH,
+      y: 1,
+      z: 1 + 2 * FLAP_BLOCKER_REACH,
+    },
+  };
+}
+
+export class BedrockTentWorld implements TentWorld, TentFlapWorld {
   constructor(
     private readonly deps: {
       isVehicleSpace: SpaceCheck;
       registry: DynamicPropertyTentRegistry;
       blocks: CellLayer<TentId, TentBlock>;
+      flaps: TentFlapStore;
     },
   ) {}
 
@@ -102,6 +136,43 @@ export class BedrockTentWorld implements TentWorld {
       const block = tentBlockAt(e.pose, cell);
       return block !== undefined && TENT_CELL_CODEC.blockIdOf(block) === typeId;
     })?.id;
+  }
+
+  /** The tent and flap whose tent_flap block is at `cell`; before the first lay after /reload, from the registry. */
+  flapAt(
+    dimensionId: DimensionId,
+    cell: Vec3,
+  ): { tentId: TentId; flap: FlapId } | undefined {
+    const tentId = this.tentBlockOwner(dimensionId, cell, TENT_FLAP_BLOCK);
+    if (tentId === undefined) return undefined;
+    const entry = this.entryOf(tentId);
+    const flap = entry && flapAt(entry.pose, cell);
+    return flap === undefined ? undefined : { tentId, flap };
+  }
+
+  flapsOf(tentId: TentId): TentFlaps | undefined {
+    const tent = tentOf(tentId);
+    return tent ? this.deps.flaps.flapsOf(tent) : undefined;
+  }
+
+  isFlapBlocked(tentId: TentId, flap: FlapId): boolean {
+    const entry = this.entryOf(tentId);
+    if (!entry) return false;
+    const dimension = dimensionOf(entry.dimensionId);
+    if (!dimension) return false;
+    return flapCells(entry.pose, flap).some((cell) => {
+      const box = flapBlockerBox(cell);
+      return (
+        dimension.getPlayers(box).length > 0 ||
+        dimension.getEntities({ ...box, families: ["mob"] }).length > 0
+      );
+    });
+  }
+
+  showFlapBlocked(playerId: PlayerId): void {
+    playerOf(playerId)?.onScreenDisplay.setActionBar({
+      translate: FLAP_BLOCKED_HINT,
+    });
   }
 
   isOwnBlock(dimensionId: DimensionId, at: Vec3): boolean {
@@ -174,7 +245,7 @@ export class BedrockTentWorld implements TentWorld {
       entity.setRotation({ x: 0, y: pose.yaw });
       id = asTentId(entity.id);
       this.deps.registry.add({ id, dimensionId, pose });
-      this.deps.blocks.lay(id, entity, tentCells(pose));
+      this.deps.blocks.lay(id, entity, tentCells(pose, PITCHED_STATE));
       return id;
     } catch (e) {
       console.warn(
@@ -256,12 +327,14 @@ export class BedrockTentWorld implements TentWorld {
     // entity's saved cells when it loads as an orphan.
     if (!tent && entry) this.clearByPose(entry);
     this.deps.registry.remove(tentId);
+    this.deps.flaps.forget(tentId);
     tent?.remove();
   }
 
   private clearByPose(entry: TentEntry): void {
     const dimension = dimensionOf(entry.dimensionId);
-    for (const c of tentCells(entry.pose)) {
+    // Open or closed, a flap cell holds the same block id, so the pitched state finds it.
+    for (const c of tentCells(entry.pose, PITCHED_STATE)) {
       try {
         const b = blockAt(dimension, c);
         // A replacement block belongs to the player, not the tent.

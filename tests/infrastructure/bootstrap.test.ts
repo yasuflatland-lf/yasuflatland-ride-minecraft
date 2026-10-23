@@ -26,7 +26,12 @@ const game = vi.hoisted(() => {
     getBlock: vi.fn(),
     getDynamicProperty: vi.fn(),
     world: { beforeEvents: events(), afterEvents: events() },
-    system: { afterEvents: events(), run: vi.fn(), runInterval: vi.fn() },
+    system: {
+      afterEvents: events(),
+      beforeEvents: events(),
+      run: vi.fn(),
+      runInterval: vi.fn(),
+    },
   };
 });
 vi.mock("@minecraft/server", () => ({

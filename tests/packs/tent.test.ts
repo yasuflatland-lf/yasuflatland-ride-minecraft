@@ -4,15 +4,19 @@ import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 import { TENT_SPEC } from "../../src/domain/camp/spec";
 import {
+  FLAP_BLOCKED_HINT,
   PITCH_REFUSAL_MESSAGE,
   TENT_CEILING_BLOCK,
   TENT_FACE_STATE,
   TENT_FAMILY,
+  TENT_FLAP_BLOCK,
+  TENT_FLAP_COMPONENT,
   TENT_FLAP_PROPERTY,
   TENT_HITS_LEFT_HINT,
   TENT_ITEM,
   TENT_LANTERN_PROPERTY,
   TENT_OCCUPIED_HINT,
+  TENT_OPEN_STATE,
   TENT_TYPE,
   TENT_WALL_BLOCK,
 } from "../../src/infrastructure/camp/identifiers";
@@ -492,7 +496,35 @@ describe("tent shelter blocks (ADR 0131)", () => {
     );
   });
 
-  it.each(["tent_wall", "tent_ceiling"])(
+  it("fills a closed flap's cell to keep mobs out, and lets an open one through while a tap still lands (ADR 0132)", () => {
+    const flap = blockOf("tent_flap");
+    expect(flap.description.identifier).toBe(TENT_FLAP_BLOCK);
+    expect(flap.description.states).toEqual({
+      [TENT_OPEN_STATE]: [false, true],
+    });
+    expect(flap.components["minecraft:custom_components"]).toEqual([
+      TENT_FLAP_COMPONENT,
+    ]);
+    const cell = { origin: [-8, 0, -8], size: [16, 16, 16] };
+    expect(flap.permutations).toEqual([
+      {
+        condition: `q.block_state('${TENT_OPEN_STATE}') == false`,
+        components: {
+          "minecraft:selection_box": cell,
+          "minecraft:collision_box": cell,
+        },
+      },
+      {
+        condition: `q.block_state('${TENT_OPEN_STATE}') == true`,
+        components: {
+          "minecraft:selection_box": cell,
+          "minecraft:collision_box": false,
+        },
+      },
+    ]);
+  });
+
+  it.each(["tent_wall", "tent_ceiling", "tent_flap"])(
     "makes %s indestructible and see-through",
     (name) => {
       const c = blockOf(name).components;
@@ -539,6 +571,7 @@ describe("tent shelter blocks (ADR 0131)", () => {
         ...Object.values(PITCH_REFUSAL_MESSAGE),
         TENT_HITS_LEFT_HINT,
         TENT_OCCUPIED_HINT,
+        FLAP_BLOCKED_HINT,
       ])
         expect(valueFor(key), key).toBeTruthy();
       expect(valueFor(TENT_HITS_LEFT_HINT)).toContain("%s");

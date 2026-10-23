@@ -1,15 +1,26 @@
-// In-game checks of the tent entity contract (ADR 0130), and of pitching and
-// taking down the tent (ADR 0131).
+// In-game checks of the tent entity contract (ADR 0130), of pitching and
+// taking down the tent (ADR 0131), and of its flaps (ADR 0132).
 import { type Entity, ItemStack, system } from "@minecraft/server";
+import { FLAP_IDS } from "../../domain/camp/flaps";
 import { TENT_SPEC } from "../../domain/camp/spec";
+import {
+  type FlapId,
+  TENT_FLAPS,
+  type TentPose,
+  tentCellAt,
+  tentPose,
+} from "../../domain/camp/tent";
 import {
   TENT_CEILING_BLOCK,
   TENT_FAMILY,
+  TENT_FLAP_BLOCK,
   TENT_FLAP_PROPERTY,
   TENT_ITEM,
   TENT_LANTERN_PROPERTY,
+  TENT_OPEN_STATE,
   TENT_TYPE,
   TENT_WALL_BLOCK,
+  TEST_TENT_FLAP_EVENT,
   TEST_TENT_HIT_EVENT,
   TEST_TENT_PITCH_EVENT,
 } from "../../infrastructure/camp/identifiers";
@@ -62,7 +73,13 @@ const STRIP = { minX: 106, maxX: 114, minZ: 45, maxZ: 58 } as const;
 const FOOTPRINT = { minX: 107, maxX: 113, minZ: 46, maxZ: 57 } as const;
 const PITCH_WAIT_TICKS = 20;
 
-const pitchMessage = (a: Arena) => `110 ${a.gy - 1} 46 0`;
+const pitchClick = (a: Arena) => ({ x: 110, y: a.gy - 1, z: 46 });
+const PITCH_YAW = 0;
+const pitchMessage = (a: Arena) => {
+  const c = pitchClick(a);
+  return `${c.x} ${c.y} ${c.z} ${PITCH_YAW}`;
+};
+const pitchedPose = (a: Arena): TentPose => tentPose(pitchClick(a), PITCH_YAW);
 const tentEntityAt = (a: Arena) => ({ x: 110.5, y: a.gy, z: 57.5 });
 
 function tentsInStrip(a: Arena): Entity[] {
@@ -77,15 +94,24 @@ function tentsInStrip(a: Arena): Entity[] {
     );
 }
 
-function tentBlocksInFootprint(a: Arena): number {
-  let n = 0;
+const TENT_BLOCKS = [TENT_WALL_BLOCK, TENT_CEILING_BLOCK, TENT_FLAP_BLOCK];
+
+/** How many of the footprint's cells hold each tent block, by type id. */
+function tentBlockCounts(a: Arena): Map<string, number> {
+  const counts = new Map<string, number>(TENT_BLOCKS.map((t) => [t, 0]));
   for (let x = FOOTPRINT.minX; x <= FOOTPRINT.maxX; x++)
     for (let y = a.gy; y <= a.gy + 3; y++)
       for (let z = FOOTPRINT.minZ; z <= FOOTPRINT.maxZ; z++) {
         const t = a.dim.getBlock({ x, y, z })?.typeId;
-        if (t === TENT_WALL_BLOCK || t === TENT_CEILING_BLOCK) n++;
+        if (t === undefined) continue;
+        const n = counts.get(t);
+        if (n !== undefined) counts.set(t, n + 1);
       }
-  return n;
+  return counts;
+}
+
+function tentBlocksInFootprint(a: Arena): number {
+  return [...tentBlockCounts(a).values()].reduce((n, c) => n + c, 0);
 }
 
 /** Pitches the test tent and returns its entity; throws when it is not there within 20 ticks. */
@@ -102,8 +128,8 @@ async function pitchTestTent(
       location: at,
       maxDistance: 0.5,
     })[0];
-    const wall = a.dim.getBlock({ x: 110, y: a.gy, z: 49 })?.typeId;
-    if (tent && wall === TENT_WALL_BLOCK) return tent;
+    const front = a.dim.getBlock({ x: 110, y: a.gy, z: 49 })?.typeId;
+    if (tent && front === TENT_FLAP_BLOCK) return tent;
   }
   throw new Error("tent not pitched");
 }
@@ -134,7 +160,11 @@ export async function tentPitchAndTakeDown(a: Arena): Promise<Outcome> {
     const tent = await pitchTestTent(a);
     const tents = tentsInStrip(a).length;
     const yaw = Math.abs(tent.getRotation().y);
-    const laid = tentBlocksInFootprint(a);
+    const counts = tentBlockCounts(a);
+    const shelter =
+      (counts.get(TENT_WALL_BLOCK) ?? 0) +
+      (counts.get(TENT_CEILING_BLOCK) ?? 0);
+    const flaps = counts.get(TENT_FLAP_BLOCK) ?? 0;
     const stone = { x: 110, y: a.gy, z: 50 };
     a.dim.runCommand(`setblock ${stone.x} ${stone.y} ${stone.z} cobblestone`);
     const id = tent.id;
@@ -153,12 +183,13 @@ export async function tentPitchAndTakeDown(a: Arena): Promise<Outcome> {
       pass:
         tents === 1 &&
         yaw === 180 &&
-        laid === 137 &&
+        shelter === 129 &&
+        flaps === 8 &&
         left === 0 &&
         after === 0 &&
         kept === "minecraft:cobblestone" &&
         items === 1,
-      detail: `tents=${tents} yaw=${yaw} laid=${laid} left=${left} after=${after} kept=${kept} items=${items}`,
+      detail: `tents=${tents} yaw=${yaw} shelter=${shelter} flaps=${flaps} left=${left} after=${after} kept=${kept} items=${items}`,
     };
   } finally {
     for (const item of tentItemsNear(a)) item.remove();
@@ -233,6 +264,68 @@ export async function tentPitchOnSnow(a: Arena): Promise<Outcome> {
     return {
       pass: laid === 137 && tarp === "minecraft:air",
       detail: `laid=${laid} tarp=${tarp}`,
+    };
+  } finally {
+    clearTentStrip(a);
+  }
+}
+
+/** Each flap's laid open state, "missing" when a cell does not hold a tent_flap. */
+function flapStates(a: Arena): Map<FlapId, (boolean | "missing")[]> {
+  const pose = pitchedPose(a);
+  return new Map(
+    FLAP_IDS.map((id) => [
+      id,
+      TENT_FLAPS[id].map((local) => {
+        const block = a.dim.getBlock(tentCellAt(pose, local));
+        if (block?.typeId !== TENT_FLAP_BLOCK) return "missing";
+        return block.permutation.getAllStates()[TENT_OPEN_STATE] === true;
+      }),
+    ]),
+  );
+}
+
+const flapsOpen = (
+  states: Map<FlapId, (boolean | "missing")[]>,
+  open: readonly FlapId[],
+): boolean =>
+  FLAP_IDS.every((id) =>
+    (states.get(id) ?? []).every((s) => s === open.includes(id)),
+  );
+
+const describeFlaps = (states: Map<FlapId, (boolean | "missing")[]>) =>
+  FLAP_IDS.map((id) => `${id}:${states.get(id)}`).join(",");
+
+export async function tentFlapOpensAlone(a: Arena): Promise<Outcome> {
+  try {
+    // A tent the previous test removed leaves the registry on the next tick
+    // (tentLifecycle), and until then its camp space refuses this pitch.
+    await wait(2);
+    const tent = await pitchTestTent(a);
+    const pitched = flapStates(a);
+    const tap = `${tent.id} front`;
+    system.sendScriptEvent(TEST_TENT_FLAP_EVENT, tap);
+    await wait(2);
+    const opened = flapStates(a);
+    // The echo of a tap lands within the window and must not close the flap.
+    system.sendScriptEvent(TEST_TENT_FLAP_EVENT, tap);
+    await wait(2);
+    const echoed = flapStates(a);
+    await wait(TENT_SPEC.flapSwingTicks);
+    const swung = FLAP_IDS.map((id) =>
+      tent.getProperty(TENT_FLAP_PROPERTY[id]),
+    );
+    system.sendScriptEvent(TEST_TENT_FLAP_EVENT, tap);
+    await wait(2);
+    const closed = flapStates(a);
+    return {
+      pass:
+        flapsOpen(pitched, []) &&
+        flapsOpen(opened, ["front"]) &&
+        flapsOpen(echoed, ["front"]) &&
+        swung.join() === "1,0,0,0" &&
+        flapsOpen(closed, []),
+      detail: `pitched=${describeFlaps(pitched)} opened=${describeFlaps(opened)} echoed=${describeFlaps(echoed)} swung=${swung} closed=${describeFlaps(closed)}`,
     };
   } finally {
     clearTentStrip(a);

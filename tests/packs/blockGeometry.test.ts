@@ -30,6 +30,7 @@ const INVISIBLE_BLOCKS = [
   "camper_wall",
   "deck_floor",
   "tent_ceiling",
+  "tent_flap",
   "tent_wall",
 ].map((name) => `blocks/yasu_ride/${name}.block.json`);
 

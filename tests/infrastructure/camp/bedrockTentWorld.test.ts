@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SpaceCheck } from "../../../src/application/shared/ports/space";
 import {
   asTentId,
+  flapCells,
+  PITCHED_STATE,
   type TentPose,
   tentCellAt,
   tentCells,
@@ -13,17 +15,22 @@ import {
 import type { TentEntry } from "../../../src/domain/camp/tentRegistry";
 import { cellKey } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
+import type { Vec3 } from "../../../src/domain/shared/vec";
 import { BedrockTentWorld } from "../../../src/infrastructure/camp/bedrock/bedrockTentWorld";
 import { TENT_CELL_CODEC } from "../../../src/infrastructure/camp/bedrock/tentBlocks";
+import { TentFlapStore } from "../../../src/infrastructure/camp/bedrock/tentFlapStore";
 import {
+  FLAP_BLOCKED_HINT,
   PITCH_REFUSAL_MESSAGE,
   TENT_CEILING_BLOCK,
+  TENT_FLAP_BLOCK,
   TENT_ITEM,
   TENT_TYPE,
   TENT_WALL_BLOCK,
 } from "../../../src/infrastructure/camp/identifiers";
 import type { DynamicPropertyTentRegistry } from "../../../src/infrastructure/camp/persistence/tentRegistry";
 import type { CellLayer } from "../../../src/infrastructure/shared/laidCells";
+import { defined } from "../../support/defined";
 
 const game = vi.hoisted(() => ({ getDimension: vi.fn(), getEntity: vi.fn() }));
 vi.mock("@minecraft/server", () => ({
@@ -47,8 +54,8 @@ function fixture(entries: TentEntry[] = []) {
   const dimension = {
     id: DIM,
     getBlock: vi.fn(),
-    getEntities: vi.fn(() => [] as unknown[]),
-    getPlayers: vi.fn(() => [] as unknown[]),
+    getEntities: vi.fn((_q?: unknown) => [] as unknown[]),
+    getPlayers: vi.fn((_q?: unknown) => [] as unknown[]),
     spawnEntity: vi.fn(),
     spawnItem: vi.fn(),
   };
@@ -59,6 +66,7 @@ function fixture(entries: TentEntry[] = []) {
     location: tentEntityLocation(POSE),
     dimension,
     setRotation: vi.fn(),
+    getProperty: vi.fn(() => 0),
     remove: vi.fn(() => order.push("remove")),
   };
   const container = {
@@ -96,10 +104,12 @@ function fixture(entries: TentEntry[] = []) {
     laidBlockOwner: vi.fn(() => undefined),
   };
   const isVehicleSpace = vi.fn<SpaceCheck>(() => false);
+  const flaps = new TentFlapStore();
   const world = new BedrockTentWorld({
     isVehicleSpace,
     registry: registry as unknown as DynamicPropertyTentRegistry,
     blocks: blocks as unknown as CellLayer<never, never>,
+    flaps,
   });
   return {
     dimension,
@@ -109,6 +119,7 @@ function fixture(entries: TentEntry[] = []) {
     registry,
     blocks,
     isVehicleSpace,
+    flaps,
     world,
     order,
   };
@@ -222,8 +233,12 @@ describe("BedrockTentWorld (ADR 0131)", () => {
 
   it("answers camp space and block owners from the registry before any lay", () => {
     const { world, blocks } = fixture([ENTRY]);
-    const wall = tentCells(POSE).find((c) => c.block.type === "wall");
-    const ceiling = tentCells(POSE).find((c) => c.block.type === "ceiling");
+    const wall = tentCells(POSE, PITCHED_STATE).find(
+      (c) => c.block.type === "wall",
+    );
+    const ceiling = tentCells(POSE, PITCHED_STATE).find(
+      (c) => c.block.type === "ceiling",
+    );
     if (!wall || !ceiling) throw new Error("no cells");
     expect(world.isCampSpace(DIM, wall)).toBe(true);
     expect(world.isCampSpace(DIM, { x: 0, y: 0, z: 0 })).toBe(false);
@@ -293,7 +308,7 @@ describe("BedrockTentWorld (ADR 0131)", () => {
   it("clears a tent's loaded cells by pose when its entity has not loaded yet, sparing a player's block", () => {
     const { blocks, dimension, registry, world } = fixture([ENTRY]);
     game.getEntity.mockReturnValue(undefined);
-    const cells = tentCells(POSE);
+    const cells = tentCells(POSE, PITCHED_STATE);
     const replaced = cellKey(cells[0] ?? POSE);
     const unloaded = cellKey(cells[1] ?? POSE);
     const set = new Map<string, ReturnType<typeof vi.fn>>();
@@ -339,7 +354,11 @@ describe("BedrockTentWorld (ADR 0131)", () => {
     );
     expect(tent.setRotation).toHaveBeenCalledWith({ x: 0, y: 180 });
     expect(registry.add).toHaveBeenCalledWith(ENTRY);
-    expect(blocks.lay).toHaveBeenCalledWith(TENT, tent, tentCells(POSE));
+    expect(blocks.lay).toHaveBeenCalledWith(
+      TENT,
+      tent,
+      tentCells(POSE, PITCHED_STATE),
+    );
     dimension.spawnEntity.mockImplementation(() => {
       throw new Error("no spawn");
     });
@@ -398,6 +417,99 @@ describe("BedrockTentWorld (ADR 0131)", () => {
     world.showOccupied(id);
     expect(player.onScreenDisplay.setActionBar).toHaveBeenLastCalledWith({
       translate: "yasu_ride.hint.tent_occupied",
+    });
+  });
+
+  it("finds the tent and the flap for a flap cell before any lay, and nothing for a wall (ADR 0132)", () => {
+    const { world, blocks } = fixture([ENTRY]);
+    for (const flap of ["front", "left", "right", "bedroom"] as const)
+      for (const cell of flapCells(POSE, flap))
+        expect(world.flapAt(DIM, cell)).toEqual({ tentId: TENT, flap });
+    const wall = tentCells(POSE, PITCHED_STATE).find(
+      (c) => c.block.type === "wall",
+    );
+    if (!wall) throw new Error("no wall");
+    expect(world.flapAt(DIM, wall)).toBeUndefined();
+    expect(
+      world.flapAt(asDimensionId("minecraft:nether"), wall),
+    ).toBeUndefined();
+    expect(blocks.laidBlockOwner).toHaveBeenCalledWith(
+      DIM,
+      wall,
+      TENT_FLAP_BLOCK,
+    );
+  });
+
+  it("finds the flap through the laid owner, and nothing once that tent has left the registry (ADR 0132)", () => {
+    const { world, blocks } = fixture([ENTRY]);
+    const cell = defined(flapCells(POSE, "bedroom")[0], "bedroom flap cell");
+    blocks.laidBlockOwner.mockReturnValue(TENT as never);
+    expect(world.flapAt(DIM, cell)).toEqual({ tentId: TENT, flap: "bedroom" });
+    blocks.laidBlockOwner.mockReturnValue(asTentId("gone") as never);
+    expect(world.flapAt(DIM, cell)).toBeUndefined();
+  });
+
+  it("is blocked by a body that leans into a flap cell from the next cell (ADR 0132)", () => {
+    const { dimension, world } = fixture([ENTRY]);
+    const cell = defined(flapCells(POSE, "left")[0], "left flap cell");
+    // Feet 0.25 past the cell's west edge: a 0.6-wide hitbox still reaches 0.05 into it.
+    const feet = { x: cell.x - 0.25, y: cell.y, z: cell.z + 0.5 };
+    const contains = (q: { location: Vec3; volume: Vec3 }) =>
+      (["x", "y", "z"] as const).every(
+        (k) =>
+          feet[k] >= q.location[k] && feet[k] <= q.location[k] + q.volume[k],
+      );
+    dimension.getPlayers.mockImplementation((q) =>
+      contains(q as { location: Vec3; volume: Vec3 }) ? [{}] : [],
+    );
+    expect(world.isFlapBlocked(TENT, "left")).toBe(true);
+  });
+
+  it("is blocked by a player or a mob in one flap cell, not by an item (ADR 0132)", () => {
+    const { dimension, world } = fixture([ENTRY]);
+    const cell = defined(flapCells(POSE, "left")[1], "left flap cell");
+    const box = {
+      location: { x: cell.x - 0.3, y: cell.y, z: cell.z - 0.3 },
+      volume: { x: 1.6, y: 1, z: 1.6 },
+    };
+    const at = (q: { location: unknown }) =>
+      JSON.stringify(q.location) === JSON.stringify(box.location);
+    expect(world.isFlapBlocked(TENT, "left")).toBe(false);
+    dimension.getPlayers.mockImplementation((q) =>
+      at(q as { location: unknown }) ? [{}] : [],
+    );
+    expect(world.isFlapBlocked(TENT, "left")).toBe(true);
+    expect(world.isFlapBlocked(TENT, "right")).toBe(false);
+    expect(dimension.getPlayers).toHaveBeenCalledWith(box);
+    dimension.getPlayers.mockReturnValue([]);
+    // The query asks for mobs only, so an item standing there never matches.
+    dimension.getEntities.mockImplementation((q) => {
+      const query = q as { location: unknown; families?: string[] };
+      return at(query) && query.families?.includes("mob") ? [{}] : [];
+    });
+    expect(world.isFlapBlocked(TENT, "left")).toBe(true);
+    expect(dimension.getEntities).toHaveBeenCalledWith({
+      ...box,
+      families: ["mob"],
+    });
+    dimension.getEntities.mockReturnValue([]);
+    expect(world.isFlapBlocked(TENT, "left")).toBe(false);
+    expect(world.isFlapBlocked(asTentId("other"), "left")).toBe(false);
+  });
+
+  it("builds the loaded tent's flaps once, shows the blocked hint, and forgets them on take-down (ADR 0132)", () => {
+    const { flaps, player, tent, world } = fixture([ENTRY]);
+    const built = world.flapsOf(TENT);
+    expect(built).toBeDefined();
+    expect(world.flapsOf(TENT)).toBe(built);
+    expect(world.flapsOf(asTentId("other"))).toBeUndefined();
+    const forget = vi.spyOn(flaps, "forget");
+    world.takeDown(TENT);
+    expect(forget).toHaveBeenCalledWith(TENT);
+    expect(flaps.flapsOf(tent as never)).not.toBe(built);
+    world.showFlapBlocked(asPlayerId("player"));
+    expect(player.onScreenDisplay.setActionBar).toHaveBeenLastCalledWith({
+      translate: FLAP_BLOCKED_HINT,
     });
   });
 

@@ -4,26 +4,44 @@ import { HitChair } from "../../../src/application/camp/hitChair";
 import { PitchTent } from "../../../src/application/camp/pitchTent";
 import { PlaceChair } from "../../../src/application/camp/placeChair";
 import { TakeDownTent } from "../../../src/application/camp/takeDownTent";
-import { tentCells } from "../../../src/domain/camp/tent";
+import { UseTentFlap } from "../../../src/application/camp/useTentFlap";
+import {
+  asTentId,
+  flapCells,
+  PITCHED_STATE,
+  tentCells,
+} from "../../../src/domain/camp/tent";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import { registerChairHits } from "../../../src/infrastructure/camp/bedrock/handlers/hits";
 import { registerChairPlacement } from "../../../src/infrastructure/camp/bedrock/handlers/placement";
+import { registerTentFlap } from "../../../src/infrastructure/camp/bedrock/handlers/tentFlap";
 import { registerTentHits } from "../../../src/infrastructure/camp/bedrock/handlers/tentHits";
 import { registerTentLifecycle } from "../../../src/infrastructure/camp/bedrock/handlers/tentLifecycle";
 import { registerTentLoop } from "../../../src/infrastructure/camp/bedrock/handlers/tentLoop";
 import { registerTentPlacement } from "../../../src/infrastructure/camp/bedrock/handlers/tentPlacement";
 import { registerTestChairHit } from "../../../src/infrastructure/camp/bedrock/handlers/testHit";
 import { registerTestTent } from "../../../src/infrastructure/camp/bedrock/handlers/testTent";
+import { registerTestTentFlap } from "../../../src/infrastructure/camp/bedrock/handlers/testTentFlap";
+import { TentFlapStore } from "../../../src/infrastructure/camp/bedrock/tentFlapStore";
 import {
+  TENT_FLAP_PROPERTY,
+  TENT_TYPE,
   TENT_WALL_BLOCK,
   TENTS_PROPERTY,
 } from "../../../src/infrastructure/camp/identifiers";
 import { installCamp } from "../../../src/infrastructure/camp/install";
 import { registerLaidBlockGuard } from "../../../src/infrastructure/shared/laidBlockGuard";
+import { defined } from "../../support/defined";
 
-const game = vi.hoisted(() => ({ getDynamicProperty: vi.fn() }));
+const game = vi.hoisted(() => ({
+  getDynamicProperty: vi.fn(),
+  getEntity: vi.fn(),
+}));
 vi.mock("@minecraft/server", () => ({
-  world: { getDynamicProperty: game.getDynamicProperty },
+  world: {
+    getDynamicProperty: game.getDynamicProperty,
+    getEntity: game.getEntity,
+  },
   system: {},
 }));
 vi.mock("../../../src/infrastructure/camp/bedrock/handlers/tentHits", () => ({
@@ -47,6 +65,15 @@ vi.mock(
 vi.mock("../../../src/infrastructure/camp/bedrock/handlers/testTent", () => ({
   registerTestTent: vi.fn(),
 }));
+vi.mock("../../../src/infrastructure/camp/bedrock/handlers/tentFlap", () => ({
+  registerTentFlap: vi.fn(),
+}));
+vi.mock(
+  "../../../src/infrastructure/camp/bedrock/handlers/testTentFlap",
+  () => ({
+    registerTestTentFlap: vi.fn(),
+  }),
+);
 vi.mock("../../../src/infrastructure/shared/laidBlockGuard", () => ({
   registerLaidBlockGuard: vi.fn(),
 }));
@@ -126,11 +153,47 @@ it("wires the tent handlers with the same use cases, registry, and owner lookup 
     vi.mocked(registerTentLoop).mock.calls[0]?.[1],
   ]);
   const guard = vi.mocked(registerLaidBlockGuard).mock.calls[0]?.[0];
-  const wall = tentCells(POSE).find((c) => c.block.type === "wall");
+  const wall = tentCells(POSE, PITCHED_STATE).find(
+    (c) => c.block.type === "wall",
+  );
   if (!wall || !owner || !guard) throw new Error("not wired");
   const here = asDimensionId("minecraft:overworld");
   expect(owner(here, wall, TENT_WALL_BLOCK)).toBe("t");
   expect(guard(here, wall, TENT_WALL_BLOCK)).toBe("t");
   expect(guard(here, wall, "minecraft:stone")).toBeUndefined();
   game.getDynamicProperty.mockReset();
+});
+
+it("shares one flap store between the tent world and the loop, and one flap use case between both flap handlers (ADR 0132)", () => {
+  game.getDynamicProperty.mockReturnValue(SAVED);
+  installCamp({ isVehicleSpace: () => false });
+  const store = vi.mocked(registerTentLoop).mock.calls[0]?.[2];
+  expect(store).toBeInstanceOf(TentFlapStore);
+  const [useFlap, flapAt] = vi.mocked(registerTentFlap).mock.calls[0] ?? [];
+  expect(useFlap).toBeInstanceOf(UseTentFlap);
+  expect(vi.mocked(registerTestTentFlap).mock.calls[0]?.[0]).toBe(useFlap);
+  const tent = {
+    id: "t",
+    isValid: true,
+    typeId: TENT_TYPE,
+    getProperty: vi.fn((name: string) =>
+      name === TENT_FLAP_PROPERTY.left ? 1 : 0,
+    ),
+  };
+  game.getEntity.mockImplementation((id: string) =>
+    id === "t" ? tent : undefined,
+  );
+  // The world built the flaps into the loop's store, so the loop sees the same ones.
+  const built = defined(store, "store").flapsOf(tent as never);
+  const front = flapCells(POSE, "front")[0];
+  if (!flapAt || !front) throw new Error("not wired");
+  const here = asDimensionId("minecraft:overworld");
+  expect(flapAt(here, front)).toEqual({ tentId: "t", flap: "front" });
+  expect(
+    useFlap?.execute({ tentId: asTentId("t"), flap: "front", tick: 0 }),
+  ).toBe(true);
+  expect(built.isOpen("front")).toBe(true);
+  expect(built.isOpen("left")).toBe(true);
+  game.getDynamicProperty.mockReset();
+  game.getEntity.mockReset();
 });
