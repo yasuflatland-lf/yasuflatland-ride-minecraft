@@ -54,6 +54,7 @@ SHADOW_GROWTH = 0.5  # pixels (model units) added around the footprint per layer
 # Dusk: unlit surfaces are dimmed and tinted blue so the lamps stand out.
 NIGHT_TINT = (0.6, 0.64, 0.8)
 LAMP_LIT = (255, 246, 205)
+HEADLIGHTS_LIT = {"headlights": LAMP_LIT}
 # Light on the road ahead. In game it reaches 27 blocks (ADR 0024); the picture shows the first
 # few so the vehicle keeps its size.
 BEAM_LAYERS = 24
@@ -443,15 +444,15 @@ def bone_turns(bones):
     return turns
 
 
-def collect_boat(geo, texture, pose):
+def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT):
     """Return the boat's opaque faces as (quad, rgb, bloom group or None) and its see-through faces as
-    (quad, rgb, alpha)."""
+    (quad, rgb, alpha). Bones named in lit glow in their color while the lamps are on."""
     desc = geo["description"]
     tint = NIGHT_TINT if pose["dusk"] else (1.0, 1.0, 1.0)
     polygons, glass = [], []
     turns = bone_turns(geo["bones"])
     for bone in geo["bones"]:
-        emissive = "lamp" if bone["name"] == "headlights" and pose["lamps"] else None
+        color = lit.get(bone["name"]) if pose["lamps"] else None
         for cube in bone.get("cubes", []):
             for face, quad in cube_faces({**cube, "rotation": game_turn(cube.get("rotation", [0, 0, 0]))}):
                 for pivot, rotation in turns[bone["name"]]:
@@ -460,8 +461,8 @@ def collect_boat(geo, texture, pose):
                 normal = cross(sub(quad[1], quad[0]), sub(quad[3], quad[0]))
                 if dot(normal, normal) == 0:
                     continue
-                if emissive:
-                    polygons.append((quad, LAMP_LIT, emissive))
+                if color is not None:
+                    polygons.append((quad, color, "lamp"))
                     continue
                 r, g, b, a = face_color(texture, cube["uv"][face], desc["texture_width"], desc["texture_height"])
                 k = shade(normalize(normal))
@@ -766,10 +767,14 @@ def render_boat(rp):
 def render_camper(rp):
     geo = json.loads((rp / CAMPER_GEOMETRY).read_text())["minecraft:geometry"][0]
     texture = read_png(rp / CAMPER_TEXTURE)
-    scenes = {name: collect_boat(geo, texture, pose) for name, pose in CAMPER_POSES.items()}
+    return render_poses(geo, texture, CAMPER_POSES)
+
+
+def render_poses(geo, texture, poses, lit=HEADLIGHTS_LIT) -> dict:
+    scenes = {name: collect_boat(geo, texture, pose, lit) for name, pose in poses.items()}
     points = [p for polygons, _ in scenes.values() for quad, _, _ in polygons for p in quad]
     frames = {}
-    for name, pose in CAMPER_POSES.items():
+    for name, pose in poses.items():
         frames.setdefault((pose["view"], pose["screen_up"]), []).append(name)
     views = [
         (Camera(points, view, screen_up), [q for name in names for q, _, _ in scenes[name][0]])
@@ -780,7 +785,7 @@ def render_camper(rp):
         for name in names:
             polygons, glass = scenes[name]
             images[name] = rasterize(polygons, [], to_screen, see_through=glass)
-    return {name: images[name] for name in CAMPER_POSES}
+    return {name: images[name] for name in poses}
 
 
 def render_gear(geo_path, texture, size):

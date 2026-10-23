@@ -111,3 +111,68 @@ describe("camping gear, low chair, and tent previews (ADR 0093, 0122, 0130)", ()
     expect(out.sizes).toEqual([...names.map(() => [128, 128]), [800, 600]]);
   });
 });
+
+const previewPython = (body: string) =>
+  JSON.parse(
+    execFileSync(
+      "python3",
+      [
+        "-I",
+        "-c",
+        [
+          "import json, sys",
+          "from pathlib import Path",
+          "sys.path.insert(0, 'tools')",
+          "import render_preview as r",
+          body,
+        ].join("\n"),
+      ],
+      { encoding: "utf8" },
+    ),
+  );
+
+describe("render_preview.py lit bones", () => {
+  it("lights each bone named in lit in its own color only while the lamps are on", () => {
+    const result = previewPython(`
+face = {"uv": [0, 0], "uv_size": [1, 1]}
+cube = {"origin": [0, 0, 0], "size": [1, 1, 1], "uv": {f: face for f in ("north", "south", "east", "west", "up", "down")}}
+geo = {"description": {"texture_width": 1, "texture_height": 1}, "bones": [{"name": name, "cubes": [cube]} for name in ("body", "headlights", "beacon")]}
+texture = [[(255, 255, 255, 255)]]
+lit = {"headlights": (1, 2, 3), "beacon": (4, 5, 6)}
+def faces(lamps, default=False):
+    args = () if default else (lit,)
+    polygons, _ = r.collect_boat(geo, texture, {"lamps": lamps, "dusk": False}, *args)
+    return [[rgb, group] for _, rgb, group in polygons]
+print(json.dumps({"on": faces(True), "off": faces(False), "default": faces(True, True), "lamp": r.LAMP_LIT}))
+`);
+    const on: [number[], string | null][] = result.on;
+    expect(
+      on.filter(
+        ([rgb, group]) => group === "lamp" && JSON.stringify(rgb) === "[1,2,3]",
+      ),
+    ).toHaveLength(6);
+    expect(
+      on.filter(
+        ([rgb, group]) => group === "lamp" && JSON.stringify(rgb) === "[4,5,6]",
+      ),
+    ).toHaveLength(6);
+    expect(on.filter(([, group]) => group === null)).toHaveLength(6);
+    expect(result.off).toHaveLength(18);
+    for (const [, group] of result.off) expect(group).toBeNull();
+    expect(
+      result.default.filter(
+        ([, group]: [number[], string | null]) => group === "lamp",
+      ),
+    ).toEqual(Array.from({ length: 6 }, () => [result.lamp, "lamp"]));
+    expect(
+      result.default
+        .slice(0, 6)
+        .map(([, group]: [number[], string | null]) => group),
+    ).toEqual(Array(6).fill(null));
+    expect(
+      result.default
+        .slice(12)
+        .map(([, group]: [number[], string | null]) => group),
+    ).toEqual(Array(6).fill(null));
+  });
+});
