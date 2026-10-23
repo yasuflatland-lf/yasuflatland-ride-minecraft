@@ -1,5 +1,6 @@
 // In-game tests (ADR 0010). They run in a script environment separate from the
 // main Behavior Pack, so they drive the vehicle through script events.
+
 import { system } from "@minecraft/server";
 import { type Outcome, setupArena } from "./arena";
 import {
@@ -75,6 +76,7 @@ import {
   vehicleLimit,
   wallDiagonal,
 } from "./scenarios/suv";
+import { tentEntityContract } from "./scenarios/tent";
 
 function log(runId: string, msg: string): void {
   console.warn(`${linePrefix(runId)}${msg}`);
@@ -147,6 +149,7 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
       20,
       () => lowChairSettlesThroughGrass(a),
     ],
+    ["tent_entity_contract", 12, () => tentEntityContract(a)],
   ];
   const shards = shardsOf(
     allTests.map(([, ticks]) => ticks),
