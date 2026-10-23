@@ -5,6 +5,8 @@ import { TENT_CELL_CODEC } from "../../../src/infrastructure/camp/bedrock/tentBl
 import {
   TENT_CEILING_BLOCK,
   TENT_FACE_STATE,
+  TENT_FLAP_BLOCK,
+  TENT_OPEN_STATE,
   TENT_WALL_BLOCK,
 } from "../../../src/infrastructure/camp/identifiers";
 import { savedLaidCells } from "../../../src/infrastructure/shared/laidCells";
@@ -74,5 +76,61 @@ describe("TENT_CELL_CODEC (ADR 0131)", () => {
     expect(BlockPermutation.resolve).toHaveBeenLastCalledWith(
       TENT_CEILING_BLOCK,
     );
+  });
+
+  describe("flap cells (ADR 0132)", () => {
+    const FLAP_SAVED =
+      '{"x":110,"y":-60,"z":48,"block":{"type":"flap","id":"front","open":false}}';
+    const flap = (
+      open: boolean,
+      id: "front" | "left" = "front",
+    ): TentBlock => ({
+      type: "flap",
+      id,
+      open,
+    });
+
+    it("maps a flap to tent_flap with its open state", () => {
+      for (const open of [false, true]) {
+        expect(TENT_CELL_CODEC.blockIdOf(flap(open))).toBe(TENT_FLAP_BLOCK);
+        TENT_CELL_CODEC.permutationOf(flap(open));
+        expect(BlockPermutation.resolve).toHaveBeenLastCalledWith(
+          TENT_FLAP_BLOCK,
+          { [TENT_OPEN_STATE]: open },
+        );
+      }
+      expect(TENT_FLAP_BLOCK).toBe("yasu_ride:tent_flap");
+      expect(TENT_OPEN_STATE).toBe("yasu_ride:open");
+    });
+
+    it("accepts the saved flap shape and rejects an unknown flap or a non-boolean open", () => {
+      expect(TENT_CELL_CODEC.isCell(JSON.parse(FLAP_SAVED))).toBe(true);
+      const cell = (block: unknown) => ({ x: 1, y: 2, z: 3, block });
+      for (const bad of [
+        { type: "flap", id: "door", open: false },
+        { type: "flap", id: "front", open: 0 },
+        { type: "flap", id: "front" },
+        { type: "flap", open: true },
+      ])
+        expect(TENT_CELL_CODEC.isCell(cell(bad))).toBe(false);
+      // The walls and ceilings saved before this change still load.
+      for (const saved of JSON.parse(SAVED))
+        expect(TENT_CELL_CODEC.isCell(saved)).toBe(true);
+    });
+
+    it("tells open from closed, one flap from another, and a flap from a wall", () => {
+      expect(TENT_CELL_CODEC.same(flap(true), flap(true))).toBe(true);
+      expect(TENT_CELL_CODEC.same(flap(true), flap(false))).toBe(false);
+      expect(TENT_CELL_CODEC.same(flap(true), flap(true, "left"))).toBe(false);
+      expect(TENT_CELL_CODEC.same(flap(false), { type: "wall", face: 1 })).toBe(
+        false,
+      );
+      expect(TENT_CELL_CODEC.same({ type: "wall", face: 1 }, flap(false))).toBe(
+        false,
+      );
+      expect(TENT_CELL_CODEC.same({ type: "ceiling" }, flap(false))).toBe(
+        false,
+      );
+    });
   });
 });

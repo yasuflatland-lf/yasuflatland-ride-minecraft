@@ -36,6 +36,7 @@ yasu_ride.message.tent_blocked=Something is in the way of the tent
 yasu_ride.message.tent_ground=The tent needs flat, solid ground
 yasu_ride.hint.tent_hits=Hit %s more to take down the tent
 yasu_ride.hint.tent_occupied=Someone is inside the tent
+yasu_ride.hint.tent_flap_blocked=Someone is in the way of the flap
 yasu_ride:camping_gear=Camping Gear
 item.yasu_ride:potted_plant.name=Potted Plant
 item.yasu_ride:macrame_planter.name=Macrame Hanging Planter

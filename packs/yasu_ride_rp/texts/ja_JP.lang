@@ -36,6 +36,7 @@ yasu_ride.message.tent_blocked=テントを張る場所に障害物がありま�
 yasu_ride.message.tent_ground=テントには平らで固い地面が必要です
 yasu_ride.hint.tent_hits=あと%s回叩くとテントを片付けます
 yasu_ride.hint.tent_occupied=テントの中に誰かがいます
+yasu_ride.hint.tent_flap_blocked=入口に誰かがいて閉じられません
 yasu_ride:camping_gear=キャンピング用品
 item.yasu_ride:potted_plant.name=観葉植物の鉢植え
 item.yasu_ride:macrame_planter.name=マクラメの吊り下げプランター

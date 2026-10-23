@@ -5,7 +5,11 @@ import type { HitChair } from "../../../src/application/camp/hitChair";
 import type { PitchTent } from "../../../src/application/camp/pitchTent";
 import type { PlaceChair } from "../../../src/application/camp/placeChair";
 import type { TakeDownTent } from "../../../src/application/camp/takeDownTent";
-import { type TentPose, tentCells } from "../../../src/domain/camp/tent";
+import {
+  PITCHED_STATE,
+  type TentPose,
+  tentCells,
+} from "../../../src/domain/camp/tent";
 import { registerChairHits } from "../../../src/infrastructure/camp/bedrock/handlers/hits";
 import { registerChairPlacement } from "../../../src/infrastructure/camp/bedrock/handlers/placement";
 import { registerTentHits } from "../../../src/infrastructure/camp/bedrock/handlers/tentHits";
@@ -14,9 +18,11 @@ import { registerTentLoop } from "../../../src/infrastructure/camp/bedrock/handl
 import { registerTentPlacement } from "../../../src/infrastructure/camp/bedrock/handlers/tentPlacement";
 import { registerTestChairHit } from "../../../src/infrastructure/camp/bedrock/handlers/testHit";
 import { registerTestTent } from "../../../src/infrastructure/camp/bedrock/handlers/testTent";
+import { TentFlapStore } from "../../../src/infrastructure/camp/bedrock/tentFlapStore";
 import {
   LOW_CHAIR_ITEM,
   LOW_CHAIR_TYPE,
+  TENT_FLAP_PROPERTY,
   TENT_ITEM,
   TENT_TYPE,
   TEST_CHAIR_HIT_EVENT,
@@ -345,7 +351,9 @@ describe("registerTentHits (ADR 0130, 0131)", () => {
   function setup() {
     const execute = vi.fn(() => false);
     const owner = vi.fn((_d: string, _c: unknown, typeId: string) =>
-      typeId === "yasu_ride:tent_wall" ? "tent" : undefined,
+      typeId === "yasu_ride:tent_wall" || typeId === "yasu_ride:tent_flap"
+        ? "tent"
+        : undefined,
     );
     registerTentHits({ execute } as unknown as TakeDownTent, owner as never);
     return { execute, owner };
@@ -376,6 +384,24 @@ describe("registerTentHits (ADR 0130, 0131)", () => {
       "overworld",
       { x: 1, y: 2, z: 3 },
       "yasu_ride:tent_wall",
+    );
+    expect(execute).toHaveBeenCalledExactlyOnceWith({
+      tentId: "tent",
+      tick: 10,
+      playerId: "p",
+    });
+  });
+
+  it("counts a player's hit on a laid tent flap, open or closed, as on a wall (ADR 0132)", () => {
+    const { execute, owner } = setup();
+    subscribed(game.hitBlock)({
+      damagingEntity: playerWithId("p"),
+      hitBlock: block("yasu_ride:tent_flap"),
+    });
+    expect(owner).toHaveBeenLastCalledWith(
+      "overworld",
+      { x: 1, y: 2, z: 3 },
+      "yasu_ride:tent_flap",
     );
     expect(execute).toHaveBeenCalledExactlyOnceWith({
       tentId: "tent",
@@ -448,22 +474,78 @@ const fakeRegistry = (ids: string[]) =>
     remove: ReturnType<typeof vi.fn>;
   };
 
-describe("registerTentLoop (ADR 0131)", () => {
-  it("lays registered, loaded tents with the entity as the holder and clears by the registry", () => {
+describe("registerTentLoop (ADR 0131, 0132)", () => {
+  const tentEntity = (props: Record<string, unknown> = {}) => ({
+    id: "a",
+    isValid: true,
+    typeId: TENT_TYPE,
+    getProperty: vi.fn((name: string) => props[name]),
+    setProperty: vi.fn(),
+  });
+  function run(entity: ReturnType<typeof tentEntity>, ids = ["a", "b", "c"]) {
     const blocks = { lay: vi.fn(), clearGone: vi.fn() };
+    const flaps = new TentFlapStore();
+    const forgetGone = vi.spyOn(flaps, "forgetGone");
     registerTentLoop(
-      fakeRegistry(["a", "b", "c"]),
+      fakeRegistry(ids),
       blocks as unknown as CellLayer<never, never>,
+      flaps,
     );
-    expect(game.runInterval.mock.calls[0]?.[1]).toBe(1);
-    const a = { isValid: true, typeId: TENT_TYPE };
     const c = { isValid: true, typeId: "minecraft:cow" };
     game.getEntity.mockImplementation((id: string) =>
-      id === "a" ? a : id === "c" ? c : undefined,
+      id === "a" ? entity : id === "c" ? c : undefined,
     );
-    defined(game.runInterval.mock.calls[0]?.[0], "loop")();
-    expect(blocks.lay).toHaveBeenCalledExactlyOnceWith("a", a, tentCells(POSE));
-    expect(blocks.clearGone).toHaveBeenCalledWith(new Set(["a", "b", "c"]));
+    const tick = defined(game.runInterval.mock.calls[0]?.[0], "loop");
+    return { blocks, flaps, forgetGone, tick };
+  }
+
+  it("lays registered, loaded tents with the entity as the holder and clears by the registry", () => {
+    const a = tentEntity();
+    const { blocks, forgetGone, tick } = run(a);
+    expect(game.runInterval.mock.calls[0]?.[1]).toBe(1);
+    tick();
+    expect(blocks.lay).toHaveBeenCalledExactlyOnceWith(
+      "a",
+      a,
+      tentCells(POSE, PITCHED_STATE),
+    );
+    const live = new Set(["a", "b", "c"]);
+    expect(blocks.clearGone).toHaveBeenCalledWith(live);
+    expect(forgetGone).toHaveBeenCalledWith(live);
+  });
+
+  it("sends every flap on the first tick, then only changes, and lays a restored open flap open", () => {
+    const a = tentEntity({ [TENT_FLAP_PROPERTY.front]: 1 });
+    const { blocks, tick } = run(a);
+    tick();
+    expect(a.setProperty.mock.calls).toEqual([
+      [TENT_FLAP_PROPERTY.front, 1],
+      [TENT_FLAP_PROPERTY.left, 0],
+      [TENT_FLAP_PROPERTY.right, 0],
+      [TENT_FLAP_PROPERTY.bedroom, 0],
+    ]);
+    expect(blocks.lay).toHaveBeenLastCalledWith(
+      "a",
+      a,
+      tentCells(POSE, { openFlaps: new Set(["front"]) }),
+    );
+    a.setProperty.mockClear();
+    tick();
+    expect(a.setProperty).not.toHaveBeenCalled();
+  });
+
+  it("resends every flap after a send that throws, and still lays the cells (ADR 0127)", () => {
+    const a = tentEntity();
+    const { blocks, tick } = run(a);
+    a.setProperty.mockImplementationOnce(() => {
+      throw new Error("invalid");
+    });
+    tick();
+    expect(a.setProperty).toHaveBeenCalledTimes(1);
+    expect(blocks.lay).toHaveBeenCalledTimes(1);
+    a.setProperty.mockClear();
+    tick();
+    expect(a.setProperty).toHaveBeenCalledTimes(4);
   });
 });
 
