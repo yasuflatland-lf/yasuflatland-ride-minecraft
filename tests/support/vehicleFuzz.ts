@@ -72,7 +72,7 @@ export function tickSamples(
 ): fc.Arbitrary<TickSample[]> {
   const profile = profileOf(kind);
   const seats = [...profile.seats.positions.keys()];
-  const deckSeats =
+  const deckSeatCount =
     profile.seats.positions.length +
     (profile.parkedSeats?.positions.length ?? 0);
   const perSeat = <T>(arbitrary: fc.Arbitrary<T>) =>
@@ -84,7 +84,7 @@ export function tickSamples(
     testInput: held(fc.option(rawInput, { nil: undefined })),
     deckSeatInputs: held(
       fc.array(fc.option(rawInput, { nil: undefined }), {
-        maxLength: deckSeats,
+        maxLength: deckSeatCount,
       }),
     ),
     depth: waterDepth,
