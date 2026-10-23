@@ -128,6 +128,22 @@ it("keeps the higher of a hop and a step jump (ADR 0138)", () =>
       },
     ),
   ));
+it("keeps the two-block step jump when Jump is tapped against the step", () => {
+  const out = bulldozerHorizontalStep({
+    state: { ...initialMotion(0), speed: S.maxSpeed },
+    input: bulldozerInput(FORWARD, "car"),
+    ctx: context(),
+    form: "car",
+    jumpTapped: true,
+    probe: () => 2,
+    spec,
+    limits,
+    tyres,
+  });
+  expect(MOTION.stepVelocity).toBeGreaterThan(S.hopVelocity);
+  expect(out.jumpVelocity).toBe(MOTION.stepVelocity);
+  expect(out.state.stepTicks).toBe(S.hopTicks - 1);
+});
 it("pivots with steer and drives straight otherwise, in every form", () =>
   fc.assert(
     fc.property(unit, yaw, fc.constantFrom(...FORMS), (steer, yaw, form) => {
@@ -556,6 +572,15 @@ it("starts at its saved blade, raised from 0.5 up, without moving it (ADR 0138)"
     ),
   ));
 
+it("reads a saved blade of exactly 0.5 as raised and a non-number as missing (ADR 0138)", () => {
+  expect(new BulldozerDrive(0, { blade: 0.5 }).bladeRaised()).toBe(true);
+  expect(new BulldozerDrive(0, { blade: 0.4999 }).bladeRaised()).toBe(false);
+  for (const blade of [true, "1"] as unknown as number[])
+    expect(new BulldozerDrive(0, { blade }).bladeRaised()).toBe(
+      S.bladeRaisedOnSpawn,
+    );
+});
+
 const switchSchedule = fc.array(fc.option(fc.boolean(), { nil: undefined }), {
   maxLength: 40,
 });
@@ -698,7 +723,6 @@ it("switches step-up on the tick the blade's target changes (ADR 0138)", () => {
     b = engineStep(b, out.impulse, { mu: 0.69 }).body;
     rises.push(out.impulse.y > 0);
   }
-  expect(rises.slice(0, 10)).not.toContain(true);
-  expect(rises.slice(10, 40)).toContain(true);
+  expect(rises.indexOf(true)).toBe(10);
   expect(rises.slice(40)).not.toContain(true);
 });

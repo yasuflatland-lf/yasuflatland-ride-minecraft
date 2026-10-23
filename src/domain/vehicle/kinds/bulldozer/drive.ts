@@ -110,7 +110,7 @@ export class BulldozerDrive extends TransformingDrive {
   private doorTimer = 0;
   private doorSteps = 0;
   private readonly doorSync = new SyncedValue<number>();
-  /** The state the driver last chose; the blade travels toward it (ADR 0138). */
+  /** The blade's target: the saved property or the spawn default, then whatever setBlade last set. The shown height travels toward it (ADR 0138). */
   private bladeTargetRaised: boolean;
   /** 0 (down) to BULLDOZER_SPEC.bladeLiftTicks (up), one step per tick. */
   private bladeSteps: number;
