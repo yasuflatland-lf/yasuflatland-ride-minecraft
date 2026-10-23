@@ -2,8 +2,8 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { PaintVehicle } from "../../../src/application/vehicle/paintVehicle";
 import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
+import { PAINTS, type Paint } from "../../../src/domain/shared/paint";
 import { VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
-import { PAINTS, type Paint } from "../../../src/domain/vehicle/paint/paint";
 import { FakeClock, FakeWorld } from "./fakes";
 
 const paint = fc.constantFrom(...PAINTS);
@@ -281,4 +281,31 @@ it("asks the world about creative mode for the painting player only", () => {
       expect(world.calls).toEqual([`paint:a:${to}`, `dye:p:${to}`]);
     }),
   );
+});
+
+it("reads paint before kind, and only kind after painting in the same tick", () => {
+  class ReadOrderWorld extends FakeWorld {
+    readonly reads: string[] = [];
+    override paintOf(id: string) {
+      this.reads.push("paintOf");
+      return super.paintOf(id);
+    }
+    override kindOf(id: string) {
+      this.reads.push("kindOf");
+      return super.kindOf(id);
+    }
+  }
+  const world = new ReadOrderWorld();
+  world.paints.set("a", "khaki");
+  const useCase = new PaintVehicle(world, new FakeClock());
+  const cmd = {
+    playerId: asPlayerId("p"),
+    vehicleId: asVehicleId("a"),
+    paint: "red" as const,
+  };
+  expect(useCase.execute(cmd)).toBe(true);
+  expect(world.reads).toEqual(["paintOf", "kindOf"]);
+  world.reads.length = 0;
+  expect(useCase.execute(cmd)).toBe(false);
+  expect(world.reads).toEqual(["kindOf"]);
 });

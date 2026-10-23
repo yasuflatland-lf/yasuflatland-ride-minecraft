@@ -1,9 +1,9 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { PAINTS, paintEventName } from "../../../../src/domain/shared/paint";
 import {
   CORE_PROPERTY_NAMES,
   HEADLIGHTS_PROPERTY_NAME,
-  paintEventName,
 } from "../../../../src/domain/vehicle/entityContract";
 import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
 import { DECOR_CELLS } from "../../../../src/domain/vehicle/kinds/camper/decor";
@@ -20,7 +20,6 @@ import {
   CAMPING_GEAR_IDS,
   STANDING_GEAR_IDS,
 } from "../../../../src/domain/vehicle/kinds/index";
-import { PAINTS } from "../../../../src/domain/vehicle/paint/paint";
 import { NAMESPACE } from "../../../../src/infrastructure/shared/identifiers";
 import {
   CAMPER_BED_BLOCK,

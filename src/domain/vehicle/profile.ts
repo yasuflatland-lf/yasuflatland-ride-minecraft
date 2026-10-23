@@ -1,7 +1,7 @@
+import type { Paint } from "../shared/paint";
 import type { Vec2 } from "../shared/vec";
 import type { HintZones } from "./hints";
 import type { VehicleKind } from "./kind";
-import type { Paint } from "./paint/paint";
 import type { PlacementGift } from "./placement/gift";
 import type { PlacementRule } from "./placement/placement";
 import type { StandInRule } from "./standIn";
