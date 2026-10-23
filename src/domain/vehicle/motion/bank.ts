@@ -33,6 +33,7 @@ export function bankSink(
   bank: number,
   spec: Pick<TransformingSpec, "maxBank" | "bankSink">,
 ): number {
-  if (form !== "hover") return 0;
+  // A kind that never banks (maxBank 0) never sinks; the ratio below would be 0/0.
+  if (form !== "hover" || spec.maxBank === 0) return 0;
   return (Math.abs(bank) / spec.maxBank) * spec.bankSink;
 }
