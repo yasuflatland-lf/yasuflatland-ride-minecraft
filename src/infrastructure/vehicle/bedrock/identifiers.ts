@@ -369,8 +369,5 @@ export function campingGearOfItem(
 export function campingGearOfDecorBlock(typeId: string): string | undefined {
   return CAMPING_GEAR_IDS.find((gear) => decorBlockId(gear) === typeId);
 }
-/** Action bar messages a drive shows its driver (ADR 0063, 0068). */
-export const messageKey = (name: string): string =>
-  `${NAMESPACE}.message.${name}`;
 /** Action bar hints for players on foot near a vehicle (ADR 0086). */
 export const hintKey = (name: string): string => `${NAMESPACE}.hint.${name}`;

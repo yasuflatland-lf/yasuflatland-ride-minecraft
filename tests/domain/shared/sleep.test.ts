@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { canSleep, SLEEP } from "../../../../src/domain/vehicle/dock/sleep";
+import { canSleep, SLEEP } from "../../../src/domain/shared/sleep";
 
 describe("canSleep (ADR 0092)", () => {
   it("allows sleeping exactly from 12542 to 23459", () => {

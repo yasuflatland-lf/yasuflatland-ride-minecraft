@@ -1,11 +1,8 @@
+// Use case: a player long-pressed or used a bed block (ADR 0092).
+
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
+import { canSleep, SLEEP, SLEEP_MESSAGES } from "../../domain/shared/sleep";
 import type { Vec3 } from "../../domain/shared/vec";
-// Use case: a player long-pressed or used the bed of a parked vehicle (ADR 0092).
-import {
-  canSleep,
-  SLEEP,
-  SLEEP_MESSAGES,
-} from "../../domain/vehicle/dock/sleep";
 import type { BedWorld } from "./ports/bed";
 
 export interface SleepInBedCommand {

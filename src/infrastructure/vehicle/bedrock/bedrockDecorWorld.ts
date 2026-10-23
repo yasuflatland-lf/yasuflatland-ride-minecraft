@@ -6,10 +6,11 @@ import {
   type DecorPlacement,
   serializeDecor,
 } from "../../../domain/vehicle/dock/decor";
+import { messageKey } from "../../shared/identifiers";
 import type { BedrockInventory } from "./bedrockInventory";
 import { isCreativePlayer } from "./bedrockPlacementWorld";
 import type { EntityIndex } from "./entityIndex";
-import { campingGearItem, DECOR_PROPERTY, messageKey } from "./identifiers";
+import { campingGearItem, DECOR_PROPERTY } from "./identifiers";
 
 /** The decor JSON saved on a vehicle, read when its aggregate is rebuilt. */
 export function savedDecor(

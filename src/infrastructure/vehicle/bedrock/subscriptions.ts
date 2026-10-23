@@ -1,4 +1,6 @@
 // Connects game events to the use cases.
+
+import type { SleepInBed } from "../../../application/shared/sleepInBed";
 import type { BoardVehicle } from "../../../application/vehicle/boardVehicle";
 import type { DriveVehicles } from "../../../application/vehicle/driveVehicles";
 import type { GiveStarterVehicle } from "../../../application/vehicle/giveStarterVehicle";
@@ -13,7 +15,6 @@ import type { PressStorage } from "../../../application/vehicle/pressStorage";
 import type { RemoveDecor } from "../../../application/vehicle/removeDecor";
 import type { SetDecor } from "../../../application/vehicle/setDecor";
 import type { ShowVehicleHints } from "../../../application/vehicle/showVehicleHints";
-import type { SleepInBed } from "../../../application/vehicle/sleepInBed";
 import type { SwitchCeilingLights } from "../../../application/vehicle/switchCeilingLights";
 import type { SwitchHeadlights } from "../../../application/vehicle/switchHeadlights";
 import type { UseDockDoor } from "../../../application/vehicle/useDockDoor";

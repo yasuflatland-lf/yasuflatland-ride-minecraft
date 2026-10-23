@@ -1,8 +1,8 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
+import { SLEEP_MESSAGES } from "../../src/domain/shared/sleep";
 import { DECOR_MESSAGES } from "../../src/domain/vehicle/dock/decorMessages";
-import { SLEEP_MESSAGES } from "../../src/domain/vehicle/dock/sleep";
 import { HINTS } from "../../src/domain/vehicle/hints";
 import {
   CAMPER_FURNITURE,
