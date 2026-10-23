@@ -96,8 +96,9 @@ function tentBlockCounts(a: Arena): Map<string, number> {
     for (let y = a.gy; y <= a.gy + 3; y++)
       for (let z = FOOTPRINT.minZ; z <= FOOTPRINT.maxZ; z++) {
         const t = a.dim.getBlock({ x, y, z })?.typeId;
-        const n = t === undefined ? undefined : counts.get(t);
-        if (t !== undefined && n !== undefined) counts.set(t, n + 1);
+        if (t === undefined) continue;
+        const n = counts.get(t);
+        if (n !== undefined) counts.set(t, n + 1);
       }
   return counts;
 }

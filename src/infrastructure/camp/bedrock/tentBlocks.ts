@@ -1,6 +1,6 @@
 // The tent's laid wall, flap, and ceiling cells, saved on its entity (ADR 0131, 0132).
 import { BlockPermutation } from "@minecraft/server";
-import { FLAP_IDS } from "../../../domain/camp/flaps";
+import { isFlapId } from "../../../domain/camp/flaps";
 import { TENT_SPEC } from "../../../domain/camp/spec";
 import type { TentBlock, TentId } from "../../../domain/camp/tent";
 import type { LaidCell } from "../../../domain/shared/laidCells";
@@ -20,12 +20,7 @@ const isRecord = (v: unknown): v is Record<string, unknown> =>
 function isTentBlock(v: unknown): v is TentBlock {
   if (!isRecord(v)) return false;
   if (v.type === "ceiling") return true;
-  if (v.type === "flap")
-    return (
-      typeof v.id === "string" &&
-      (FLAP_IDS as readonly string[]).includes(v.id) &&
-      typeof v.open === "boolean"
-    );
+  if (v.type === "flap") return isFlapId(v.id) && typeof v.open === "boolean";
   return (
     v.type === "wall" &&
     typeof v.face === "number" &&

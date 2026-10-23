@@ -122,11 +122,10 @@ export class BedrockTentWorld implements TentWorld, TentFlapWorld {
     cell: Vec3,
   ): { tentId: TentId; flap: FlapId } | undefined {
     const tentId = this.tentBlockOwner(dimensionId, cell, TENT_FLAP_BLOCK);
-    const entry = tentId === undefined ? undefined : this.entryOf(tentId);
-    const flap = entry ? flapAt(entry.pose, cell) : undefined;
-    return tentId !== undefined && flap !== undefined
-      ? { tentId, flap }
-      : undefined;
+    if (tentId === undefined) return undefined;
+    const entry = this.entryOf(tentId);
+    const flap = entry && flapAt(entry.pose, cell);
+    return flap === undefined ? undefined : { tentId, flap };
   }
 
   flapsOf(tentId: TentId): TentFlaps | undefined {

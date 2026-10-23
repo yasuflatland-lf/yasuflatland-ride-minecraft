@@ -13,6 +13,10 @@ export const FLAP_IDS: readonly FlapId[] = [
   "bedroom",
 ];
 
+export function isFlapId(v: unknown): v is FlapId {
+  return (FLAP_IDS as readonly unknown[]).includes(v);
+}
+
 /** One flap's swing to send to the tent entity: 0 closed, 1 open. */
 export interface FlapSwing {
   readonly flap: FlapId;
@@ -57,27 +61,23 @@ export class TentFlaps {
     ) as Record<FlapId, Flap>;
   }
 
-  private flap(id: FlapId): Flap {
-    return this.flaps[id];
-  }
-
   isOpen(flap: FlapId): boolean {
-    return this.flap(flap).open;
+    return this.flaps[flap].open;
   }
 
   /** The flaps whose target is open. The laid blocks follow this, not the swing. */
   open(): ReadonlySet<FlapId> {
-    return new Set(FLAP_IDS.filter((id) => this.flap(id).open));
+    return new Set(FLAP_IDS.filter((id) => this.flaps[id].open));
   }
 
   /** Whether a tap at `tick` is within the window of this flap's last toggle. */
   withinWindow(flap: FlapId, tick: number): boolean {
-    return this.flap(flap).toggle.withinWindow(tick);
+    return this.flaps[flap].toggle.withinWindow(tick);
   }
 
   /** Flips this flap's target unless the tap is within its window. True when it flipped. */
   toggle(flap: FlapId, tick: number): boolean {
-    const f = this.flap(flap);
+    const f = this.flaps[flap];
     if (!f.toggle.tryToggle(tick)) return false;
     f.open = !f.open;
     return true;
@@ -87,7 +87,7 @@ export class TentFlaps {
   swing(): FlapSwing[] {
     const changed: FlapSwing[] = [];
     for (const id of FLAP_IDS) {
-      const f = this.flap(id);
+      const f = this.flaps[id];
       f.step += Math.sign((f.open ? STEPS : 0) - f.step);
       const open = f.sent.next(f.step / STEPS);
       if (open !== undefined) changed.push({ flap: id, open });
@@ -97,6 +97,6 @@ export class TentFlaps {
 
   /** After a failed send, makes the next swing() resend every flap (ADR 0127). */
   resync(): void {
-    for (const id of FLAP_IDS) this.flap(id).sent.resync();
+    for (const id of FLAP_IDS) this.flaps[id].sent.resync();
   }
 }
