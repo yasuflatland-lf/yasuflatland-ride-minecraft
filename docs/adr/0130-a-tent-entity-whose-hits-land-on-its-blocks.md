@@ -6,7 +6,7 @@
 
 ## Context
 
-Issue #504 adds the content contract for a two-room tunnel tent before pitching, shelter,
+This decision fixes the content contract for a two-room tunnel tent before pitching, shelter,
 flaps, sleep, lantern interaction, and paint arrive in 9/13 through 13/13. The camp feature
 uses the shared primitives and two-way space checks of 0129 on this branch. The tent is
 not a vehicle or camping decor, and the gear box continues to contain only its existing gear.
@@ -157,9 +157,8 @@ entity model. English names read Tent; Japanese locale names use katakana.
 
 The always-unlocked crafting-table shaped recipe is `[" W ", "WSW", "T T"]`,
 with W the `minecraft:wool` tag, S a stick, and T string, producing one tent.
-This pattern consumes three wool, one stick, and two string. The issue's prose
-says four wool, but its explicit pattern has three; the pattern is authoritative.
-The wool tag remains as specified pending the user's BDS content-log check.
+This pattern consumes three wool, one stick, and two string. Any wool color fits
+through the tag, and the dev BDS content log accepts it.
 
 Resource Pack header and module versions and the Behavior Pack dependency move
 from 0.1.104 to 0.1.105 (0015). Entity and Resource Pack changes need a restart.
@@ -178,4 +177,4 @@ gravity, both families, default properties and variant, damage immunity, and ite
 construction, removing the entity in finally. Before accepting this ADR, run it
 and existing chair/vehicle scenarios, inspect BDS content logs for the tent files
 and wool tag, and check the model orientation, item icon, and crafting recipe on
-a client. The implementation deliberately leaves those in-game checks to the user.
+a client.
