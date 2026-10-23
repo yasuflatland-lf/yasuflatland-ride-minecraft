@@ -32,6 +32,7 @@ import {
   stepMotion,
 } from "../../../../src/domain/vehicle/motion/motion";
 import { submarineVerticalSpeed } from "../../../../src/domain/vehicle/motion/submarine";
+import type { TransformingSpec } from "../../../../src/domain/vehicle/motion/transforming";
 import {
   groundInputFor,
   type HorizontalStep,
@@ -748,6 +749,11 @@ it("carries the horizontal step's state into the next tick", () => {
   );
 });
 
+/** Flat ground with a one-block step just ahead of the front of the hitbox. */
+function oneBlockStepAhead(spec: TransformingSpec): TickContext["solidAt"] {
+  return (o) => o.y < 0 || (o.z >= spec.hitboxFront + 0.1 && o.y < 1);
+}
+
 it.each([
   ["SUV", SUV_TRANSFORMING, SUV_MOTION, SUV_TYRES],
   ["camper", CAMPER_TRANSFORMING, CAMPER_MOTION, CAMPER_TYRES],
@@ -758,7 +764,7 @@ it.each([
       ...context(),
       onGround: true,
       velocity: { x: 0, y: 0, z: 0 },
-      solidAt: (o) => o.y < 0 || (o.z >= spec.hitboxFront + 0.1 && o.y < 1),
+      solidAt: oneBlockStepAhead(spec),
     };
     const hopping = new TransformingDrive(0, {}, spec, limits, tyres);
     const flat = new TransformingDrive(0, {}, spec, limits, tyres, {
@@ -871,7 +877,7 @@ class SwitchedStepUp extends TransformingDrive {
 }
 
 function switched(
-  options: TransformingOptions,
+  options: TransformingOptions = {},
   restored: { form?: Form } = {},
 ): SwitchedStepUp {
   return new SwitchedStepUp(
@@ -933,7 +939,7 @@ it("on a tick with the hook off, only the landing gear reads solidAt", () => {
       }),
       stepTerrain,
       (ticks, ground) => {
-        const drive = switched({});
+        const drive = switched();
         ticks.forEach(({ sample, on }, tick) => {
           drive.stepUpOn = on;
           const terrain = terrainContext(ground, sample, tick);
@@ -956,11 +962,10 @@ it("on a tick with the hook off, only the landing gear reads solidAt", () => {
 });
 
 it("switching the hook on mid-drive starts hopping a one-block step, and switching it off stops it", () => {
-  const drive = switched({});
+  const drive = switched();
   const ctx: TickContext = {
     ...context(),
-    solidAt: (o) =>
-      o.y < 0 || (o.z >= SUV_TRANSFORMING.hitboxFront + 0.1 && o.y < 1),
+    solidAt: oneBlockStepAhead(SUV_TRANSFORMING),
   };
   let hops = 0;
   for (let tick = 0; tick < 100; tick++) {
@@ -999,9 +1004,8 @@ it("never reads the hook during construction", () => {
       return true;
     }
   }
-  let drive: ReadyStepUp | undefined;
-  expect(() => {
-    drive = new ReadyStepUp(0, {}, SUV_TRANSFORMING, SUV_MOTION, SUV_TYRES);
-  }).not.toThrow();
-  expect(() => drive?.step(FORWARD, context())).not.toThrow();
+  const build = () =>
+    new ReadyStepUp(0, {}, SUV_TRANSFORMING, SUV_MOTION, SUV_TYRES);
+  expect(build).not.toThrow();
+  expect(() => build().step(FORWARD, context())).not.toThrow();
 });
