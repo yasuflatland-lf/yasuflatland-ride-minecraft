@@ -8,7 +8,7 @@ export interface CutColumn {
   readonly height?: number;
 }
 
-// Fluids stay so a cut never floods or drains, and containers are kept with their contents (ADR 0137).
+// Fluids stay so a cut never floods or drains, and every block that holds items, including item frames and campfires, is kept with its contents (ADR 0137).
 export const CUT_KEPT_BLOCKS: readonly string[] = [
   "minecraft:air",
   "minecraft:water",
@@ -71,4 +71,13 @@ export const CUT_KEPT_BLOCKS: readonly string[] = [
   "minecraft:bamboo_shelf",
   "minecraft:crimson_shelf",
   "minecraft:warped_shelf",
+  "minecraft:frame",
+  "minecraft:glow_frame",
+  "minecraft:campfire",
+  "minecraft:soul_campfire",
+  "minecraft:flower_pot",
+  "minecraft:suspicious_sand",
+  "minecraft:suspicious_gravel",
+  "minecraft:beehive",
+  "minecraft:bee_nest",
 ];

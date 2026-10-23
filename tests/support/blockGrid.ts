@@ -11,6 +11,10 @@ interface GridOptions {
 /**
  * A dimension stand-in that remembers the type of every block set in it, so a
  * test can read back what the scripts left in the world. Unset cells are air.
+ * `fillBlocks` records each call in `fills` and overwrites every cell in the
+ * box except those whose type is in `blockFilter.excludeTypes` or whose
+ * `tags[type]` meets `excludeTags`, as the engine does. `getBlock` returns
+ * undefined where `unloaded` is true (an unloaded chunk, ADR 0125).
  */
 export function blockGrid(
   options: GridOptions & { unloaded: (c: Cell) => boolean },

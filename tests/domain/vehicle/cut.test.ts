@@ -8,7 +8,7 @@ it("lists each kept block once, as a real vanilla block id (ADR 0137)", () => {
   for (const id of CUT_KEPT_BLOCKS) expect(vanilla.has(id), id).toBe(true);
 });
 it("keeps air, the liquids, and every block that holds items (ADR 0137)", () => {
-  expect(CUT_KEPT_BLOCKS).toHaveLength(61);
+  expect(CUT_KEPT_BLOCKS).toHaveLength(70);
   expect(CUT_KEPT_BLOCKS).toEqual(
     expect.arrayContaining(
       [
@@ -43,6 +43,15 @@ it("keeps air, the liquids, and every block that holds items (ADR 0137)", () => 
         "waxed_oxidized_copper_chest",
         "oak_shelf",
         "warped_shelf",
+        "frame",
+        "glow_frame",
+        "campfire",
+        "soul_campfire",
+        "flower_pot",
+        "suspicious_sand",
+        "suspicious_gravel",
+        "beehive",
+        "bee_nest",
       ].map((id) => `minecraft:${id}`),
     ),
   );

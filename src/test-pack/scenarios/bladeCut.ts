@@ -57,6 +57,7 @@ export async function bladeCutColumn(a: Arena): Promise<Outcome> {
     set(117, gy, 27, "minecraft:water");
     set(117, gy + 1, 27, "minecraft:stone");
     for (const y of [gy, gy + 2, gy + 3]) set(117, y, 29, "minecraft:stone");
+    set(117, gy + 1, 29, "minecraft:campfire");
     set(118, gy, 25, "minecraft:stone");
     const floor = at(117, gy - 1, 25);
     cuts.cut(dim, [
@@ -75,7 +76,9 @@ export async function bladeCutColumn(a: Arena): Promise<Outcome> {
       at(117, gy, 27) === "minecraft:water",
       ...walls.map((p) => at(p.x, gy, p.z) === "minecraft:stone"),
       at(117, gy + 1, 27) === "minecraft:air",
-      ...[0, 1, 2].map((i) => at(117, gy + i, 29) === "minecraft:air"),
+      at(117, gy, 29) === "minecraft:air",
+      at(117, gy + 1, 29) === "minecraft:campfire",
+      at(117, gy + 2, 29) === "minecraft:air",
       at(117, gy + 3, 29) === "minecraft:stone",
       at(118, gy, 25) === "minecraft:stone",
       at(117, gy - 1, 25) === floor,
@@ -133,20 +136,22 @@ export async function bladeCutDrops(a: Arena): Promise<Outcome> {
       z: 30.5,
     });
     await wait(3);
+    // The column box grown by DROP_MARGIN on every axis.
     const nearby = dim
       .getEntities({
         type: "minecraft:item",
-        location: { x: 118, y: gy, z: 30 },
-        maxDistance: 1.5,
+        location: { x: 116, y: gy - 1, z: 29 },
+        volume: { x: 3, y: 3, z: 3 },
       })
       .filter((e) => e.id !== second?.id);
     return {
       pass:
         dim.getBlock({ x: 118, y: gy, z: 30 })?.isAir === true &&
+        lines.length === 1 &&
         nearby.length === 0 &&
         first.isValid &&
         second.isValid,
-      detail: `nearby=${nearby.length} controls=${first.isValid},${second.isValid}`,
+      detail: `removed=${lines.length} nearby=${nearby.length} controls=${first.isValid},${second.isValid}`,
       lines,
     };
   } finally {

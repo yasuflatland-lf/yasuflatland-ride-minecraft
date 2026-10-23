@@ -20,8 +20,12 @@ interface FillRecord {
   tick: number;
 }
 
-/** The highest cell of the solid run that starts at `first`, or one below it when `first` is air. */
-function solidTop(
+/**
+ * The highest cell of the unbroken non-air run from `start` up, or `start - 1`
+ * when `first` is air. Only air or an unloaded cell ends the run, so liquids,
+ * kept blocks, and light blocks extend it (ADR 0137).
+ */
+function nonAirTop(
   dimension: Dimension,
   x: number,
   z: number,
@@ -65,6 +69,12 @@ export class BladeCuts {
     }
   }
 
+  /**
+   * Removes `entity` and returns true when it is an item that spawned in the
+   * same dimension within DROP_MARGIN blocks of a fill and within
+   * DROP_WINDOW_TICKS ticks after it, such as a torch the fill knocked off
+   * (ADR 0137).
+   */
   sweepDrop(entity: Entity): boolean {
     this.prune();
     if (!entity.isValid || entity.typeId !== "minecraft:item") return false;
@@ -92,7 +102,7 @@ export class BladeCuts {
     if (!first) return;
     const top =
       height === undefined
-        ? solidTop(dimension, x, z, start, first)
+        ? nonAirTop(dimension, x, z, start, first)
         : Math.min(bottom + height - 1, dimension.heightRange.max - 1);
     if (top < start) return;
     dimension.fillBlocks(
