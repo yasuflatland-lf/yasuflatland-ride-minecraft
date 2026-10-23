@@ -19,6 +19,13 @@ export interface SwitchTarget {
   switchFor(player: Player): void;
 }
 
+// Before-events run in read-only mode, so a claimed press switches on the next tick.
+function switchNextTick(target: SwitchTarget, player: Player): void {
+  system.run(() => {
+    if (player.isValid) target.switchFor(player);
+  });
+}
+
 export function registerSwitchRouter(
   targets: () => readonly SwitchTarget[],
 ): void {
@@ -26,32 +33,30 @@ export function registerSwitchRouter(
     if (ev.itemStack.typeId !== HEADLIGHT_SWITCH_TYPE) return;
     const player = ev.source;
     if (!player.isValid) return;
-    const target = targets().find((target) => target.claimsItemUse(player));
-    target?.switchFor(player);
+    targets()
+      .find((candidate) => candidate.claimsItemUse(player))
+      ?.switchFor(player);
   });
   world.beforeEvents.playerInteractWithEntity.subscribe((ev) => {
     if (ev.itemStack?.typeId !== HEADLIGHT_SWITCH_TYPE) return;
     const { player } = ev;
-    const target = targets().find((target) =>
-      target.claimsEntityPress(player, ev.target),
+    const target = targets().find((candidate) =>
+      candidate.claimsEntityPress(player, ev.target),
     );
     if (!target) return;
     ev.cancel = true;
-    system.run(() => {
-      if (player.isValid) target.switchFor(player);
-    });
+    switchNextTick(target, player);
   });
   world.beforeEvents.playerInteractWithBlock.subscribe((ev) => {
     if (ev.itemStack?.typeId !== HEADLIGHT_SWITCH_TYPE) return;
     const { player } = ev;
-    const target = targets().find((target) =>
-      target.claimsBlockPress(player, ev.block),
+    const target = targets().find((candidate) =>
+      candidate.claimsBlockPress(player, ev.block),
     );
     if (!target) return;
     ev.cancel = true;
+    // A held press repeats the block event; only its first one switches.
     if (!ev.isFirstEvent) return;
-    system.run(() => {
-      if (player.isValid) target.switchFor(player);
-    });
+    switchNextTick(target, player);
   });
 }

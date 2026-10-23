@@ -33,13 +33,13 @@ import { registerDockGuard } from "./handlers/dockGuard";
 import { registerDrive } from "./handlers/drive";
 import { registerFleet } from "./handlers/fleet";
 import { registerGifts } from "./handlers/gift";
-import { vehicleSwitchTarget } from "./handlers/headlights";
 import { registerHits } from "./handlers/hits";
 import { registerPlacement } from "./handlers/placement";
 import { registerShowerToilet } from "./handlers/showerToilet";
 import { registerStandIns } from "./handlers/standIn";
 import { registerStarter } from "./handlers/starter";
 import { registerStorage } from "./handlers/storage";
+import { vehicleSwitchTarget } from "./handlers/switchTarget";
 import { registerTestDecor } from "./handlers/testDecor";
 import { registerTestInput } from "./handlers/testInput";
 

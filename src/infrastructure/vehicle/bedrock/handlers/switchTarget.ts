@@ -52,7 +52,7 @@ export function vehicleSwitchTarget(
   // The driver of the ridden vehicle switches its headlights as before (ADR 0020). Anyone
   // else, a passenger aboard or a player on foot or on a deck seat in the room, switches
   // the ceiling lights of the room they are in (ADR 0115).
-  const useSwitch = (player: Player) => {
+  const switchFor = (player: Player) => {
     const playerId = asPlayerId(player.id);
     const vehicle = ridden(player);
     if (vehicle) {
@@ -86,8 +86,8 @@ export function vehicleSwitchTarget(
     },
     // Room block presses must not also open a door or cabinet; riders keep their block presses
     // (ADR 0115).
-    claimsBlockPress: (player, _block) =>
+    claimsBlockPress: (player) =>
       ridden(player) === undefined && inSwitchableRoom(player, roomOf(player)),
-    switchFor: useSwitch,
+    switchFor,
   };
 }
