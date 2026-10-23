@@ -1,0 +1,37 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.yasu_ride.tent.flap_front": {
+      "loop": true,
+      "bones": {
+        "flap_front": {
+          "scale": [1, "1 - 0.875 * q.property('yasu_ride:flap_front')", 1]
+        }
+      }
+    },
+    "animation.yasu_ride.tent.flap_left": {
+      "loop": true,
+      "bones": {
+        "flap_left": {
+          "scale": [1, "1 - 0.875 * q.property('yasu_ride:flap_left')", 1]
+        }
+      }
+    },
+    "animation.yasu_ride.tent.flap_right": {
+      "loop": true,
+      "bones": {
+        "flap_right": {
+          "scale": [1, "1 - 0.875 * q.property('yasu_ride:flap_right')", 1]
+        }
+      }
+    },
+    "animation.yasu_ride.tent.flap_bedroom": {
+      "loop": true,
+      "bones": {
+        "flap_bedroom": {
+          "scale": [1, "1 - 0.875 * q.property('yasu_ride:flap_bedroom')", 1]
+        }
+      }
+    }
+  }
+}

@@ -284,10 +284,10 @@ describe("camping gear block models (ADR 0093)", () => {
 });
 
 describe("camping gear docs (ADR 0093)", () => {
-  it("renders a 128 px RGBA preview for every item and the low chair, and no other", () => {
-    // The low chair shares the folder but is not decor (ADR 0122)
+  it("renders a 128 px RGBA preview for every item and the low chair and tent, and no other", () => {
+    // The low chair and tent share the folder but are not decor (ADR 0122, 0130)
     expect(readdirSync(PREVIEWS).sort()).toEqual(
-      [...SPEC.map((g) => `${g.id}.png`), "low_chair.png"].sort(),
+      [...SPEC.map((g) => `${g.id}.png`), "low_chair.png", "tent.png"].sort(),
     );
     for (const g of SPEC) {
       const { width, height } = readPng(`${PREVIEWS}/${g.id}.png`);
@@ -946,14 +946,15 @@ describe("camping gear blocks and items (ADR 0093)", () => {
       ).toBe(ATLAS_KEY);
   });
 
-  it("lists the camping gear box, then every gear item in spec order, then the low chair, in the Camping Gear group of the Items tab", () => {
+  it("lists the camping gear box, then every gear item in spec order, then the low chair and tent, in the Camping Gear group of the Items tab", () => {
     const items = [
       "yasu_ride:camping_gear_box",
       ...SPEC.map((g) => `yasu_ride:${g.id}`),
-      // Not in the box: it stands outside the vehicles (ADR 0122)
+      // Not in the box: they stand outside the vehicles (ADR 0122, 0130)
       "yasu_ride:low_chair_item",
+      "yasu_ride:tent_item",
     ];
-    expect(items).toHaveLength(21);
+    expect(items).toHaveLength(22);
     expect(readJson(`${BP}/item_catalog/crafting_item_catalog.json`)).toEqual({
       format_version: "1.21.60",
       "minecraft:crafting_items_catalog": {

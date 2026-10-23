@@ -112,8 +112,8 @@ GROUP = "yasu_ride:camping_gear"
 BOX = "camping_gear_box"
 GROUP_ICON = f"yasu_ride:{BOX}"
 # Camping items that stand outside the vehicles rather than decor, listed after the gear in the
-# creative group. Their item JSON and icon entry are written by hand (ADR 0122).
-OUTDOOR_ITEMS = ["low_chair_item"]
+# creative group. Their item JSON and icon entry are written by hand (ADR 0122, 0130).
+OUTDOOR_ITEMS = ["low_chair_item", "tent_item"]
 ATLAS_SIZE = 16
 SWATCH = 4
 CELL_PX = 16
