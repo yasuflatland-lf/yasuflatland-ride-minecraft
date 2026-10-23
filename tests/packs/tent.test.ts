@@ -15,7 +15,9 @@ import {
   TENT_FLAP_PROPERTY,
   TENT_HITS_LEFT_HINT,
   TENT_ITEM,
+  TENT_LANTERN_BLOCK,
   TENT_LANTERN_PROPERTY,
+  TENT_LIT_STATE,
   TENT_MATTRESS_BLOCK,
   TENT_MATTRESS_COMPONENT,
   TENT_OCCUPIED_HINT,
@@ -527,7 +529,29 @@ describe("tent shelter blocks (ADR 0131)", () => {
     ]);
   });
 
-  it.each(["tent_wall", "tent_ceiling", "tent_flap"])(
+  it("gives the lantern the ceiling's components, with the faint light off and the full light on", () => {
+    const lantern = blockOf("tent_lantern");
+    const ceiling = blockOf("tent_ceiling");
+    expect(lantern.description).toEqual({
+      ...ceiling.description,
+      identifier: TENT_LANTERN_BLOCK,
+      states: { [TENT_LIT_STATE]: [false, true] },
+    });
+    const { "minecraft:light_emission": _, ...unlit } = ceiling.components;
+    expect(lantern.components).toEqual(unlit);
+    expect(lantern.permutations).toEqual([
+      {
+        condition: `q.block_state('${TENT_LIT_STATE}') == false`,
+        components: { "minecraft:light_emission": TENT_SPEC.ceilingLight },
+      },
+      {
+        condition: `q.block_state('${TENT_LIT_STATE}') == true`,
+        components: { "minecraft:light_emission": TENT_SPEC.lanternLight },
+      },
+    ]);
+  });
+
+  it.each(["tent_wall", "tent_ceiling", "tent_flap", "tent_lantern"])(
     "makes %s indestructible and see-through",
     (name) => {
       const c = blockOf(name).components;

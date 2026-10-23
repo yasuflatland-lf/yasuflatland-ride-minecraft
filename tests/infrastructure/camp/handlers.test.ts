@@ -4,12 +4,19 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { HitChair } from "../../../src/application/camp/hitChair";
 import type { PitchTent } from "../../../src/application/camp/pitchTent";
 import type { PlaceChair } from "../../../src/application/camp/placeChair";
+import type { SwitchLantern } from "../../../src/application/camp/switchLantern";
 import type { TakeDownTent } from "../../../src/application/camp/takeDownTent";
 import {
+  lanternCell,
   PITCHED_STATE,
+  type TentBlock,
   type TentPose,
   tentCells,
 } from "../../../src/domain/camp/tent";
+import {
+  type LaidCell,
+  relayCells,
+} from "../../../src/domain/shared/laidCells";
 import { registerChairHits } from "../../../src/infrastructure/camp/bedrock/handlers/hits";
 import { registerChairPlacement } from "../../../src/infrastructure/camp/bedrock/handlers/placement";
 import { registerTentHits } from "../../../src/infrastructure/camp/bedrock/handlers/tentHits";
@@ -18,15 +25,19 @@ import { registerTentLoop } from "../../../src/infrastructure/camp/bedrock/handl
 import { registerTentPlacement } from "../../../src/infrastructure/camp/bedrock/handlers/tentPlacement";
 import { registerTestChairHit } from "../../../src/infrastructure/camp/bedrock/handlers/testHit";
 import { registerTestTent } from "../../../src/infrastructure/camp/bedrock/handlers/testTent";
+import { registerTestTentLantern } from "../../../src/infrastructure/camp/bedrock/handlers/testTentLantern";
+import { TENT_CELL_CODEC } from "../../../src/infrastructure/camp/bedrock/tentBlocks";
 import { TentFlapStore } from "../../../src/infrastructure/camp/bedrock/tentFlapStore";
 import {
   LOW_CHAIR_ITEM,
   LOW_CHAIR_TYPE,
   TENT_FLAP_PROPERTY,
   TENT_ITEM,
+  TENT_LANTERN_PROPERTY,
   TENT_TYPE,
   TEST_CHAIR_HIT_EVENT,
   TEST_TENT_HIT_EVENT,
+  TEST_TENT_LANTERN_EVENT,
   TEST_TENT_PITCH_EVENT,
 } from "../../../src/infrastructure/camp/identifiers";
 import type { DynamicPropertyTentRegistry } from "../../../src/infrastructure/camp/persistence/tentRegistry";
@@ -492,7 +503,7 @@ const fakeRegistry = (ids: string[]) =>
     remove: ReturnType<typeof vi.fn>;
   };
 
-describe("registerTentLoop (ADR 0131, 0132)", () => {
+describe("registerTentLoop (ADR 0131, 0132, 0134)", () => {
   const tentEntity = (props: Record<string, unknown> = {}) => ({
     id: "a",
     isValid: true,
@@ -545,7 +556,7 @@ describe("registerTentLoop (ADR 0131, 0132)", () => {
     expect(blocks.lay).toHaveBeenLastCalledWith(
       "a",
       a,
-      tentCells(POSE, { openFlaps: new Set(["front"]) }),
+      tentCells(POSE, { ...PITCHED_STATE, openFlaps: new Set(["front"]) }),
     );
     a.setProperty.mockClear();
     tick();
@@ -564,6 +575,77 @@ describe("registerTentLoop (ADR 0131, 0132)", () => {
     a.setProperty.mockClear();
     tick();
     expect(a.setProperty).toHaveBeenCalledTimes(4);
+  });
+
+  it("lays the lantern from the entity property on the first tick next to the flaps, and relays only that cell after a flip (ADR 0134)", () => {
+    const props: Record<string, unknown> = {
+      [TENT_FLAP_PROPERTY.left]: 1,
+      [TENT_LANTERN_PROPERTY]: true,
+    };
+    const { blocks, tick } = run(tentEntity(props), ["a"]);
+    tick();
+    props[TENT_LANTERN_PROPERTY] = false;
+    tick();
+    const [first, second] = blocks.lay.mock.calls.map(
+      (call) => call[2] as LaidCell<TentBlock>[],
+    );
+    expect(first).toEqual(
+      tentCells(POSE, { openFlaps: new Set(["left"]), lanternOn: true }),
+    );
+    const { clear, place } = relayCells(
+      defined(first, "first lay"),
+      defined(second, "second lay"),
+      TENT_CELL_CODEC.same,
+    );
+    expect(clear).toEqual([]);
+    expect(place).toEqual([
+      { ...lanternCell(POSE), block: { type: "lantern", lit: false } },
+    ]);
+  });
+});
+
+describe("registerTestTentLantern (ADR 0010)", () => {
+  const fakeLantern = () => {
+    const execute = vi.fn(() => true);
+    return { execute, lantern: { execute } as unknown as SwitchLantern };
+  };
+
+  it("switches the lantern of the tent whose id the server sent", () => {
+    const { execute, lantern } = fakeLantern();
+    registerTestTentLantern(lantern);
+    expect(game.script.mock.calls[0]?.[1]).toEqual({ namespaces: [NAMESPACE] });
+    subscribed(game.script)({
+      id: TEST_TENT_LANTERN_EVENT,
+      sourceType: "Server",
+      message: " -12 ",
+    });
+    expect(execute).toHaveBeenCalledExactlyOnceWith({
+      tentId: "-12",
+      tick: 10,
+    });
+  });
+
+  it("ignores other events, other sources, and a message with no id", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { execute, lantern } = fakeLantern();
+    registerTestTentLantern(lantern);
+    const handler = subscribed(game.script);
+    handler({ id: TEST_TENT_HIT_EVENT, sourceType: "Server", message: "t" });
+    handler({
+      id: TEST_TENT_LANTERN_EVENT,
+      sourceType: "Entity",
+      message: "t",
+    });
+    handler({
+      id: TEST_TENT_LANTERN_EVENT,
+      sourceType: "Server",
+      message: " ",
+    });
+    expect(execute).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledExactlyOnceWith(
+      "[yasu_ride] ignored test tent lantern switch: no entity id",
+    );
+    warn.mockRestore();
   });
 });
 

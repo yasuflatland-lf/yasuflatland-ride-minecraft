@@ -55,16 +55,12 @@ import {
 } from "../identifiers";
 import type { DynamicPropertyTentRegistry } from "../persistence/tentRegistry";
 import { TENT_CELL_CODEC } from "./tentBlocks";
+import { tentEntityOf } from "./tentEntity";
 import type { TentFlapStore } from "./tentFlapStore";
 
 const PLAYER_TYPE = "minecraft:player";
 // Dropped items and xp orbs never stand in the way of a tent.
 const NOT_OCCUPANTS = ["minecraft:item", "minecraft:xp_orb"];
-
-function tentOf(tentId: TentId): Entity | undefined {
-  const entity = world.getEntity(tentId);
-  return entity?.isValid && entity.typeId === TENT_TYPE ? entity : undefined;
-}
 
 function dimensionOf(dimensionId: DimensionId): Dimension | undefined {
   try {
@@ -150,7 +146,7 @@ export class BedrockTentWorld implements TentWorld, TentFlapWorld {
   }
 
   flapsOf(tentId: TentId): TentFlaps | undefined {
-    const tent = tentOf(tentId);
+    const tent = tentEntityOf(tentId);
     return tent ? this.deps.flaps.flapsOf(tent) : undefined;
   }
 
@@ -285,6 +281,13 @@ export class BedrockTentWorld implements TentWorld, TentFlapWorld {
     );
   }
 
+  /** The loaded tent in that dimension whose rooms hold `feet`. */
+  tentContaining(dimensionId: DimensionId, feet: Vec3): TentId | undefined {
+    return this.entriesIn(dimensionId).find(
+      (e) => insideTent(e.pose, feet) && tentEntityOf(e.id) !== undefined,
+    )?.id;
+  }
+
   isOccupied(tentId: TentId): boolean {
     const entry = this.entryOf(tentId);
     if (!entry) return false;
@@ -302,7 +305,7 @@ export class BedrockTentWorld implements TentWorld, TentFlapWorld {
       giveOrDrop(player, [item]);
       return;
     }
-    const tent = tentOf(tentId);
+    const tent = tentEntityOf(tentId);
     if (tent) {
       tent.dimension.spawnItem(item, tent.location);
       return;
@@ -316,7 +319,7 @@ export class BedrockTentWorld implements TentWorld, TentFlapWorld {
   }
 
   takeDown(tentId: TentId): void {
-    const tent = tentOf(tentId);
+    const tent = tentEntityOf(tentId);
     const entry = this.entryOf(tentId);
     // Cells the layer holds in unloaded chunks are left to the loop's clearGone.
     this.deps.blocks.lay(tentId, tent, []);
@@ -332,7 +335,8 @@ export class BedrockTentWorld implements TentWorld, TentFlapWorld {
 
   private clearByPose(entry: TentEntry): void {
     const dimension = dimensionOf(entry.dimensionId);
-    // Open or closed, a flap cell holds the same block id, so the pitched state finds it.
+    // Open or closed, lit or not, a flap or lantern cell holds the same block
+    // id, so the pitched state finds it.
     for (const c of tentCells(entry.pose, PITCHED_STATE)) {
       try {
         const b = blockAt(dimension, c);

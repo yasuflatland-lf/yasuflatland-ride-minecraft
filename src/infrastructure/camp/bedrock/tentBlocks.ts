@@ -1,4 +1,5 @@
-// The tent's laid wall, flap, ceiling, and mattress cells, saved on its entity (ADR 0131, 0132, 0133).
+// The tent's laid wall, flap, ceiling, mattress, and lantern cells, saved on
+// its entity (ADR 0131, 0132, 0133, 0134).
 import { BlockPermutation } from "@minecraft/server";
 import { isFlapId } from "../../../domain/camp/flaps";
 import { TENT_SPEC } from "../../../domain/camp/spec";
@@ -10,6 +11,8 @@ import {
   TENT_CELLS_PROPERTY,
   TENT_FACE_STATE,
   TENT_FLAP_BLOCK,
+  TENT_LANTERN_BLOCK,
+  TENT_LIT_STATE,
   TENT_MATTRESS_BLOCK,
   TENT_OPEN_STATE,
   TENT_WALL_BLOCK,
@@ -23,6 +26,7 @@ function isTentBlock(v: unknown): v is TentBlock {
   if (v.type === "ceiling") return true;
   if (v.type === "flap") return isFlapId(v.id) && typeof v.open === "boolean";
   if (v.type === "mattress") return v.index === 0 || v.index === 1;
+  if (v.type === "lantern") return typeof v.lit === "boolean";
   return (
     v.type === "wall" &&
     typeof v.face === "number" &&
@@ -48,6 +52,8 @@ export const TENT_CELL_CODEC: CellCodec<TentBlock> = {
         return b.type === "flap" && a.id === b.id && a.open === b.open;
       case "mattress":
         return b.type === "mattress" && a.index === b.index;
+      case "lantern":
+        return b.type === "lantern" && a.lit === b.lit;
       case "ceiling":
         return b.type === "ceiling";
     }
@@ -62,6 +68,8 @@ export const TENT_CELL_CODEC: CellCodec<TentBlock> = {
         return TENT_CEILING_BLOCK;
       case "mattress":
         return TENT_MATTRESS_BLOCK;
+      case "lantern":
+        return TENT_LANTERN_BLOCK;
     }
   },
   permutationOf: (block) => {
@@ -78,6 +86,10 @@ export const TENT_CELL_CODEC: CellCodec<TentBlock> = {
         return BlockPermutation.resolve(TENT_CEILING_BLOCK);
       case "mattress":
         return BlockPermutation.resolve(TENT_MATTRESS_BLOCK);
+      case "lantern":
+        return BlockPermutation.resolve(TENT_LANTERN_BLOCK, {
+          [TENT_LIT_STATE]: block.lit,
+        });
     }
   },
 };

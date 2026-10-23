@@ -3,6 +3,7 @@ import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
 import {
   asTentId,
+  lanternCell,
   PITCHED_STATE,
   type TentBlock,
   type TentPose,
@@ -18,6 +19,8 @@ import {
   TENT_CEILING_BLOCK,
   TENT_FACE_STATE,
   TENT_FLAP_BLOCK,
+  TENT_LANTERN_BLOCK,
+  TENT_LIT_STATE,
   TENT_MATTRESS_BLOCK,
   TENT_OPEN_STATE,
   TENT_WALL_BLOCK,
@@ -290,5 +293,75 @@ describe("tent mattress cells (ADR 0092, 0133)", () => {
     f.layer.lay(id, f.holder, []);
     for (const c of cleared) expect(f.at(c)).toBe("minecraft:air");
     expect(f.at(replaced)).toBe("minecraft:stone");
+  });
+});
+
+describe("tent lantern cells (ADR 0134)", () => {
+  it("names, resolves, and compares the lantern by lit", () => {
+    expect(TENT_CELL_CODEC.blockIdOf({ type: "lantern", lit: true })).toBe(
+      TENT_LANTERN_BLOCK,
+    );
+    expect(TENT_LANTERN_BLOCK).toBe("yasu_ride:tent_lantern");
+    for (const lit of [false, true]) {
+      TENT_CELL_CODEC.permutationOf({ type: "lantern", lit });
+      expect(BlockPermutation.resolve).toHaveBeenLastCalledWith(
+        TENT_LANTERN_BLOCK,
+        { [TENT_LIT_STATE]: lit },
+      );
+    }
+    const on: TentBlock = { type: "lantern", lit: true };
+    const off: TentBlock = { type: "lantern", lit: false };
+    expect(TENT_CELL_CODEC.same(on, { type: "lantern", lit: true })).toBe(true);
+    expect(TENT_CELL_CODEC.same(on, off)).toBe(false);
+    expect(TENT_CELL_CODEC.same(on, { type: "ceiling" })).toBe(false);
+    expect(TENT_CELL_CODEC.same({ type: "ceiling" }, off)).toBe(false);
+  });
+
+  it("accepts a lantern cell only with a boolean lit, and reads it back", () => {
+    const cell = { x: 1, y: 2, z: 3, block: { type: "lantern", lit: true } };
+    expect(TENT_CELL_CODEC.isCell(cell)).toBe(true);
+    for (const lit of [undefined, 1, "true", null])
+      expect(
+        TENT_CELL_CODEC.isCell({ ...cell, block: { type: "lantern", lit } }),
+      ).toBe(false);
+    const saved = JSON.stringify([...JSON.parse(SAVED), cell]);
+    expect(
+      savedLaidCells({ getDynamicProperty: () => saved }, TENT_CELL_CODEC),
+    ).toEqual(JSON.parse(saved));
+  });
+
+  it("relays a tent saved before the lantern: its ceiling cell there becomes the lantern", () => {
+    const pose: TentPose = { x: 110, y: -60, z: 46, yaw: 180 };
+    const wanted = tentCells(pose, PITCHED_STATE);
+    const key = cellKey(lanternCell(pose));
+    const saved = wanted.map((c) =>
+      cellKey(c) === key ? { ...c, block: { type: "ceiling" } } : c,
+    );
+    const set = new Map<string, unknown>();
+    const holder = {
+      isValid: true,
+      dimension: {
+        id: "overworld",
+        getBlock: (c: Cell) => ({
+          typeId: cellKey(c) === key ? TENT_CEILING_BLOCK : TENT_WALL_BLOCK,
+          isAir: false,
+          setPermutation: (p: unknown) => set.set(cellKey(c), p),
+          setType: vi.fn(),
+        }),
+      },
+      getDynamicProperty: () => JSON.stringify(saved),
+      setDynamicProperty: vi.fn(),
+    };
+    createTentBlocks().lay(
+      asTentId("t"),
+      holder as unknown as CellHolder,
+      wanted,
+    );
+    // The recheck reads every block once; only the lantern cell is replaced.
+    expect([...set.keys()]).toEqual([key]);
+    expect(set.get(key)).toEqual({
+      id: TENT_LANTERN_BLOCK,
+      states: { [TENT_LIT_STATE]: false },
+    });
   });
 });

@@ -79,6 +79,8 @@ export function registerSubscriptions(
     cell: Vec3,
     typeId: string,
   ) => VehicleId | undefined,
+  /** Other features' switch targets, asked after the vehicle's; read on every press. */
+  laterSwitchTargets: () => readonly SwitchTarget[],
 ): void {
   registerDecor(useCases.placeDecor, useCases.removeDecor, dockCellOwner);
   registerBedBlock(CAMPER_BED_COMPONENT, useCases.bed);
@@ -95,14 +97,12 @@ export function registerSubscriptions(
   registerStandIns();
   // The switch router subscribes before placement so placement's block press handler stays
   // the last one subscribed; each handler ignores the other's items (ADR 0115).
-  const switchTargets: readonly SwitchTarget[] = [
-    vehicleSwitchTarget(
-      useCases.headlights,
-      useCases.ceilingLights,
-      dockCellOwner,
-    ),
-  ];
-  registerSwitchRouter(() => switchTargets);
+  const vehicle = vehicleSwitchTarget(
+    useCases.headlights,
+    useCases.ceilingLights,
+    dockCellOwner,
+  );
+  registerSwitchRouter(() => [vehicle, ...laterSwitchTargets()]);
   registerPlacement(useCases.place);
   registerStarter(useCases.starter);
   registerHits(useCases.hit, useCases.paint);

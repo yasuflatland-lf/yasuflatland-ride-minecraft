@@ -5,6 +5,7 @@ import { asDimensionId } from "../../src/domain/shared/ids";
 import { bootstrap } from "../../src/infrastructure/bootstrap";
 import { LOW_CHAIR_ITEM } from "../../src/infrastructure/camp/identifiers";
 import { installCamp } from "../../src/infrastructure/camp/install";
+import type { SwitchTarget } from "../../src/infrastructure/shared/switchRouter";
 import { installVehicles } from "../../src/infrastructure/vehicle/install";
 
 const game = vi.hoisted(() => {
@@ -61,7 +62,7 @@ it("wires space both ways through a late-bound camp reference (ADR 0129)", () =>
     expect(deps.isCampSpace(dim, at)).toBe(false);
     return { isVehicleSpace };
   });
-  vi.mocked(installCamp).mockReturnValue({ isCampSpace });
+  vi.mocked(installCamp).mockReturnValue({ isCampSpace, switchTargets: [] });
   bootstrap();
   expect(installVehicles).toHaveBeenCalledTimes(1);
   expect(installCamp).toHaveBeenCalledExactlyOnceWith({ isVehicleSpace });
@@ -119,4 +120,23 @@ it("lets the vehicles see a registered tent, and the chair stand on its floor bu
   press(-60, 49, "yasu_ride:tent_wall");
   expect(cellFor).toHaveLastReturnedWith(undefined);
   game.getDynamicProperty.mockReset();
+});
+
+it("hands the vehicles the camp's switch targets once camp is installed", () => {
+  vi.spyOn(console, "warn").mockImplementation(() => {});
+  const switchTargets = [{} as SwitchTarget];
+  let before: readonly SwitchTarget[] | undefined;
+  vi.mocked(installVehicles).mockImplementation((deps) => {
+    before = deps.laterSwitchTargets();
+    return { isVehicleSpace: () => false };
+  });
+  vi.mocked(installCamp).mockReturnValue({
+    isCampSpace: () => false,
+    switchTargets,
+  });
+  bootstrap();
+  expect(before).toEqual([]);
+  const later =
+    vi.mocked(installVehicles).mock.lastCall?.[0].laterSwitchTargets;
+  expect(later?.()).toBe(switchTargets);
 });

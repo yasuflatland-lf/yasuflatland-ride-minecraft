@@ -23,6 +23,7 @@ import { UseDockDoor } from "../../application/vehicle/useDockDoor";
 import { fleetLimitOf } from "../../domain/vehicle/kinds/index";
 import { BedrockBedWorld } from "../shared/bedrockBedWorld";
 import { NAMESPACE } from "../shared/identifiers";
+import type { SwitchTarget } from "../shared/switchRouter";
 import { BedrockDecorWorld } from "./bedrock/bedrockDecorWorld";
 import { BedrockFleetWorld } from "./bedrock/bedrockFleetWorld";
 import { BedrockHeadlightWorld } from "./bedrock/bedrockHeadlightWorld";
@@ -41,9 +42,13 @@ import { TestInputStore } from "./testInput/testInputStore";
 /**
  * Installs the vehicle feature. The returned check lets bootstrap hand other
  * features the vehicles' space without them importing this feature. Camp's check
- * comes through bootstrap too (ADR 0046, 0122, 0129).
+ * comes through bootstrap too, and so do the switch targets of other features,
+ * which the switch router asks after the vehicle's (ADR 0046, 0122, 0129).
  */
-export function installVehicles(deps: { isCampSpace: SpaceCheck }): {
+export function installVehicles(deps: {
+  isCampSpace: SpaceCheck;
+  laterSwitchTargets: () => readonly SwitchTarget[];
+}): {
   isVehicleSpace: SpaceCheck;
 } {
   const repo = new InMemoryVehicleRepository();
@@ -95,6 +100,7 @@ export function installVehicles(deps: { isCampSpace: SpaceCheck }): {
     (dimensionId, cell) => bedrock.dockCellOwner(dimensionId, cell),
     (dimensionId, cell, typeId) =>
       bedrock.dockBlockOwner(dimensionId, cell, typeId),
+    deps.laterSwitchTargets,
   );
   return {
     isVehicleSpace: (dimensionId, cell) =>

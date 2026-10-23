@@ -43,17 +43,22 @@ export type TentBlock =
   | { readonly type: "wall"; readonly face: TentFace }
   | { readonly type: "ceiling" }
   | { readonly type: "flap"; readonly id: FlapId; readonly open: boolean }
-  | { readonly type: "mattress"; readonly index: 0 | 1 };
+  | { readonly type: "mattress"; readonly index: 0 | 1 }
+  | { readonly type: "lantern"; readonly lit: boolean };
 
 export type FlapId = "front" | "left" | "right" | "bedroom";
 
 /** What can change on a pitched tent; tentCells lays the blocks that follow it. */
 export interface TentState {
   readonly openFlaps: ReadonlySet<FlapId>;
+  readonly lanternOn: boolean;
 }
 
-/** A tent as it is pitched: every flap closed. */
-export const PITCHED_STATE: TentState = { openFlaps: new Set() };
+/** A tent as it is pitched: every flap closed and the lantern off. */
+export const PITCHED_STATE: TentState = {
+  openFlaps: new Set(),
+  lanternOn: false,
+};
 
 const HALF_WIDTH = (TENT_SPEC.width - 1) / 2;
 const ROOM_HALF_WIDTH = HALF_WIDTH - 1;
@@ -64,6 +69,13 @@ const WALL_LAYERS = TENT_SPEC.frontRoomHeadroom;
 // The clear space reaches the room ceiling's layer, the highest laid cell.
 const CLEAR_LAYERS = TENT_SPEC.frontRoomHeadroom + 1;
 const AIR = "minecraft:air";
+// The front room's ceiling cell in front of the bedroom door, over the
+// lantern bone; a ceiling cell, so it takes no interior cell.
+const LANTERN_CELL: TentLocalCell = {
+  x: 0,
+  depth: INNER_WALL_DEPTH - 1,
+  layer: TENT_SPEC.frontRoomHeadroom,
+};
 
 const range = (from: number, to: number): number[] =>
   Array.from({ length: to - from + 1 }, (_, i) => from + i);
@@ -133,6 +145,10 @@ const scaled = (v: Vec2, k: number): Vec2 => ({ x: v.x * k, z: v.z * k });
 
 const localKey = (c: TentLocalCell): string => `${c.x},${c.depth},${c.layer}`;
 
+export function lanternCell(pose: TentPose): Cell {
+  return tentCellAt(pose, LANTERN_CELL);
+}
+
 export function tentCells(
   pose: TentPose,
   state: TentState,
@@ -167,9 +183,17 @@ export function tentCells(
         lay({ x, depth, layer }, wall(scaled(l, x > 0 ? -1 : 1)));
   crossWall(INNER_WALL_DEPTH, f);
   crossWall(REAR_WALL_DEPTH, f);
+  const lantern: TentBlock = { type: "lantern", lit: state.lanternOn };
+  const lanternKey = localKey(LANTERN_CELL);
   const ceiling = (depths: number[], layer: number) => {
     for (const x of roomXs)
-      for (const depth of depths) lay({ x, depth, layer }, { type: "ceiling" });
+      for (const depth of depths) {
+        const local = { x, depth, layer };
+        lay(
+          local,
+          localKey(local) === lanternKey ? lantern : { type: "ceiling" },
+        );
+      }
   };
   ceiling(
     range(FRONT_WALL_DEPTH + 1, REAR_WALL_DEPTH - 1),

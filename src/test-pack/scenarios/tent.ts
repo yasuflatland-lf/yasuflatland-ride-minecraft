@@ -1,29 +1,34 @@
 // In-game checks of the tent entity contract (ADR 0130), of pitching and
-// taking down the tent (ADR 0131), of its flaps (ADR 0132), and of its
-// mattresses (ADR 0133).
+// taking down the tent (ADR 0131), of its flaps (ADR 0132), of its
+// mattresses (ADR 0133), and of switching its lantern (ADR 0134).
 import { type Entity, ItemStack, system } from "@minecraft/server";
 import { FLAP_IDS } from "../../domain/camp/flaps";
 import { TENT_SPEC } from "../../domain/camp/spec";
 import {
   type FlapId,
+  lanternCell,
   TENT_FLAPS,
   type TentPose,
   tentCellAt,
   tentPose,
 } from "../../domain/camp/tent";
+import { LIGHT_SWITCH_COOLDOWN_TICKS } from "../../domain/shared/switchCooldown";
 import {
   TENT_CEILING_BLOCK,
   TENT_FAMILY,
   TENT_FLAP_BLOCK,
   TENT_FLAP_PROPERTY,
   TENT_ITEM,
+  TENT_LANTERN_BLOCK,
   TENT_LANTERN_PROPERTY,
+  TENT_LIT_STATE,
   TENT_MATTRESS_BLOCK,
   TENT_OPEN_STATE,
   TENT_TYPE,
   TENT_WALL_BLOCK,
   TEST_TENT_FLAP_EVENT,
   TEST_TENT_HIT_EVENT,
+  TEST_TENT_LANTERN_EVENT,
   TEST_TENT_PITCH_EVENT,
 } from "../../infrastructure/camp/identifiers";
 import { type Arena, type Outcome, spawnCar, wait } from "../arena";
@@ -75,6 +80,8 @@ const STRIP = { minX: 106, maxX: 114, minZ: 45, maxZ: 58 } as const;
 const FOOTPRINT = { minX: 107, maxX: 113, minZ: 46, maxZ: 57 } as const;
 const PITCH_WAIT_TICKS = 20;
 
+// The pitch message clicks the ground at (110, gy - 1, 46) with the player
+// facing south (yaw 0), so the tent faces north.
 const pitchClick = (a: Arena) => ({ x: 110, y: a.gy - 1, z: 46 });
 const PITCH_YAW = 0;
 const pitchMessage = (a: Arena) => {
@@ -101,6 +108,7 @@ const TENT_BLOCKS = [
   TENT_CEILING_BLOCK,
   TENT_FLAP_BLOCK,
   TENT_MATTRESS_BLOCK,
+  TENT_LANTERN_BLOCK,
 ];
 
 /** How many of the footprint's cells hold each tent block, by type id. */
@@ -121,14 +129,19 @@ function tentBlocksInFootprint(a: Arena): number {
   return [...tentBlockCounts(a).values()].reduce((n, c) => n + c, 0);
 }
 
-/** Pitches the test tent and returns its entity; throws when it is not there within 20 ticks. */
+/**
+ * Pitches the test tent and returns its entity; throws when it is not there
+ * within 20 ticks. A tent the previous test removed leaves the registry on a
+ * later tick (tentLifecycle), and until then its camp space refuses the
+ * pitch, so the message is sent again each tick until the tent stands.
+ */
 async function pitchTestTent(
   a: Arena,
   message = pitchMessage(a),
 ): Promise<Entity> {
-  system.sendScriptEvent(TEST_TENT_PITCH_EVENT, message);
   const at = tentEntityAt(a);
   for (let t = 0; t < PITCH_WAIT_TICKS; t++) {
+    system.sendScriptEvent(TEST_TENT_PITCH_EVENT, message);
     await wait(1);
     const tent = a.dim.getEntities({
       type: TENT_TYPE,
@@ -181,6 +194,7 @@ export async function tentPitchAndTakeDown(a: Arena): Promise<Outcome> {
       (counts.get(TENT_CEILING_BLOCK) ?? 0);
     const flaps = counts.get(TENT_FLAP_BLOCK) ?? 0;
     const mattresses = counts.get(TENT_MATTRESS_BLOCK) ?? 0;
+    const lanterns = counts.get(TENT_LANTERN_BLOCK) ?? 0;
     const stone = { x: 110, y: a.gy, z: 50 };
     a.dim.runCommand(`setblock ${stone.x} ${stone.y} ${stone.z} cobblestone`);
     await takeDownTestTent(tent.id);
@@ -195,14 +209,15 @@ export async function tentPitchAndTakeDown(a: Arena): Promise<Outcome> {
       pass:
         tents === 1 &&
         yaw === 180 &&
-        shelter === 129 &&
+        shelter === 128 &&
         flaps === 8 &&
         mattresses === 4 &&
+        lanterns === 1 &&
         left === 0 &&
         after === 0 &&
         kept === "minecraft:cobblestone" &&
         items === 1,
-      detail: `tents=${tents} yaw=${yaw} shelter=${shelter} flaps=${flaps} mattresses=${mattresses} left=${left} after=${after} kept=${kept} items=${items}`,
+      detail: `tents=${tents} yaw=${yaw} shelter=${shelter} flaps=${flaps} mattresses=${mattresses} lanterns=${lanterns} left=${left} after=${after} kept=${kept} items=${items}`,
     };
   } finally {
     for (const item of tentItemsNear(a)) item.remove();
@@ -311,9 +326,6 @@ const describeFlaps = (states: Map<FlapId, (boolean | "missing")[]>) =>
 
 export async function tentFlapOpensAlone(a: Arena): Promise<Outcome> {
   try {
-    // A tent the previous test removed leaves the registry on the next tick
-    // (tentLifecycle), and until then its camp space refuses this pitch.
-    await wait(2);
     const tent = await pitchTestTent(a);
     const pitched = flapStates(a);
     const tap = `${tent.id} front`;
@@ -347,9 +359,6 @@ export async function tentFlapOpensAlone(a: Arena): Promise<Outcome> {
 
 export async function tentMattresses(a: Arena): Promise<Outcome> {
   try {
-    // A tent the previous test removed leaves the registry on the next tick
-    // (tentLifecycle), and until then its camp space refuses this pitch.
-    await wait(2);
     const tent = await pitchTestTent(a);
     // Index 0 is at local x 1 and index 1 at x -1; the 180-yaw tent turns them to x 109 and 111.
     const cells = [109, 111].flatMap((x) =>
@@ -373,6 +382,52 @@ export async function tentMattresses(a: Arena): Promise<Outcome> {
       detail: `laid=${laid.join(",")} above=${above.join(",")} after=${after.join(",")} kept=${kept}`,
     };
   } finally {
+    clearTentStrip(a);
+  }
+}
+
+export async function tentLantern(a: Arena): Promise<Outcome> {
+  try {
+    const tent = await pitchTestTent(a);
+    const at = lanternCell(pitchedPose(a));
+    const read = () => {
+      const block = a.dim.getBlock(at);
+      return {
+        type: block?.typeId,
+        lit: block?.permutation.getAllStates()[TENT_LIT_STATE],
+        on: tent.getProperty(TENT_LANTERN_PROPERTY),
+      };
+    };
+    const show = (r: ReturnType<typeof read>) => `${r.type}/${r.lit}/${r.on}`;
+    const isLantern = (r: ReturnType<typeof read>, on: boolean) =>
+      r.type === TENT_LANTERN_BLOCK && r.lit === on && r.on === on;
+    const press = async () => {
+      system.sendScriptEvent(TEST_TENT_LANTERN_EVENT, tent.id);
+      await wait(2);
+      return read();
+    };
+    const pitched = read();
+    const on = await press();
+    // At once again: the cooldown keeps it on.
+    const held = await press();
+    await wait(LIGHT_SWITCH_COOLDOWN_TICKS);
+    const off = await press();
+    await wait(LIGHT_SWITCH_COOLDOWN_TICKS);
+    const again = await press();
+    await takeDownTestTent(tent.id);
+    const gone = a.dim.getBlock(at)?.typeId;
+    return {
+      pass:
+        isLantern(pitched, false) &&
+        isLantern(on, true) &&
+        isLantern(held, true) &&
+        isLantern(off, false) &&
+        isLantern(again, true) &&
+        gone === "minecraft:air",
+      detail: `pitched=${show(pitched)} on=${show(on)} held=${show(held)} off=${show(off)} again=${show(again)} gone=${gone}`,
+    };
+  } finally {
+    for (const item of tentItemsNear(a)) item.remove();
     clearTentStrip(a);
   }
 }

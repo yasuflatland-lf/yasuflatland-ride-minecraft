@@ -25,6 +25,7 @@ import { SPEC } from "../../../../src/domain/vehicle/spec";
 import type { VehicleRepository } from "../../../../src/domain/vehicle/vehicleRepository";
 import { PAINT_BY_DYE } from "../../../../src/infrastructure/shared/dyes";
 import { HEADLIGHT_SWITCH_TYPE } from "../../../../src/infrastructure/shared/identifiers";
+import type { SwitchTarget } from "../../../../src/infrastructure/shared/switchRouter";
 import {
   CAMPER_BED_COMPONENT,
   CAMPER_CABINET_COMPONENT,
@@ -181,6 +182,7 @@ function fixture(
     () => undefined,
     () => undefined,
     () => undefined,
+    () => [],
   );
   // Placement subscribes to block interactions last.
   const before = game.before.mock.calls.at(-1)?.[0];
@@ -447,6 +449,7 @@ it("paints a hit vehicle with a held dye and otherwise damages it, ignoring othe
     () => undefined,
     () => undefined,
     () => undefined,
+    () => [],
   );
   const onHit = vi
     .mocked(world.afterEvents.entityHitEntity.subscribe)
@@ -540,6 +543,7 @@ function lightSwitchFixture(
       ? asVehicleId("room")
       : undefined,
   inputMode = "KeyboardAndMouse",
+  laterSwitchTargets: () => readonly SwitchTarget[] = () => [],
 ) {
   const headlights = { execute: vi.fn(() => false) };
   const ceilingLights = {
@@ -561,6 +565,7 @@ function lightSwitchFixture(
     () => undefined,
     (_, cell) => owner(cell),
     () => undefined,
+    laterSwitchTargets,
   );
   // Decor, gifts, the switch, then placement subscribe to block presses.
   const onBlock = defined(game.before.mock.calls.at(-2)?.[0], "block press");
@@ -614,6 +619,38 @@ function lightSwitchFixture(
     },
   };
 }
+
+it("asks the later switch targets after the vehicle's, on every use", () => {
+  const later = {
+    claimsItemUse: vi.fn(() => true),
+    claimsBlockPress: vi.fn(() => true),
+    claimsEntityPress: vi.fn(() => false),
+    switchFor: vi.fn(),
+  } satisfies SwitchTarget;
+  const laterSwitchTargets = vi.fn(() => [later]);
+  // On foot outside every camper room, the vehicle target refuses.
+  const outside = lightSwitchFixture(
+    undefined,
+    () => undefined,
+    "KeyboardAndMouse",
+    laterSwitchTargets,
+  );
+  expect(laterSwitchTargets).not.toHaveBeenCalled();
+  outside.use();
+  expect(later.switchFor).toHaveBeenCalledTimes(1);
+  expect(outside.ceilingLights.execute).not.toHaveBeenCalled();
+  // In a camper room, the vehicle target claims first.
+  later.switchFor.mockClear();
+  const room = lightSwitchFixture(
+    undefined,
+    undefined,
+    "KeyboardAndMouse",
+    () => [later],
+  );
+  room.use();
+  expect(room.ceilingLights.execute).toHaveBeenCalledTimes(1);
+  expect(later.switchFor).not.toHaveBeenCalled();
+});
 
 it("preserves switch routing, cancellation and use-case arguments across rider and room states", () => {
   fc.assert(
@@ -787,6 +824,7 @@ it("removes an orphan deck seat that loads with a chunk, but not one that is jus
     () => undefined,
     () => undefined,
     () => undefined,
+    () => [],
   );
   const spawn = vi
     .mocked(world.afterEvents.entitySpawn.subscribe)
@@ -825,6 +863,7 @@ it("passes fleet metadata on spawn and load and skips invalid or unrelated entit
     () => undefined,
     () => undefined,
     () => undefined,
+    () => [],
   );
   const spawn = vi
     .mocked(world.afterEvents.entitySpawn.subscribe)
@@ -868,6 +907,7 @@ it("forgets a removed vehicle by the chunk at its location, and passes vehicle d
     () => undefined,
     () => undefined,
     () => undefined,
+    () => [],
   );
   const remove = vi
     .mocked(world.beforeEvents.entityRemove.subscribe)
@@ -917,6 +957,7 @@ it("cancels a player's break only of a block a held vehicle laid (ADR 0096)", ()
     () => undefined,
     () => undefined,
     owner,
+    () => [],
   );
   const handler = game.breakBlock.mock.calls.at(-1)?.[0];
   if (!handler) throw new Error("playerBreakBlock not subscribed");
@@ -954,6 +995,7 @@ it("registers door interactions during startup and dispatches only owned doors",
     owner,
     () => undefined,
     () => undefined,
+    () => [],
   );
   const startups = game.startup.mock.calls.slice(before);
   if (startups.length === 0)
@@ -990,6 +1032,7 @@ it("registers bed interactions during startup and passes the player, dimension, 
     vi.fn(),
     () => undefined,
     () => undefined,
+    () => [],
   );
   const registerCustomComponent =
     vi.fn<(name: string, component: BlockCustomComponent) => void>();
@@ -1039,6 +1082,7 @@ it("registers shower-toilet presses during startup and sends an empty hand's pre
     () => undefined,
     owner,
     () => undefined,
+    () => [],
   );
   const registerCustomComponent =
     vi.fn<(name: string, component: BlockCustomComponent) => void>();
@@ -1110,6 +1154,7 @@ it("checks the hints every hint interval, after the drive on the same tick (ADR 
     () => undefined,
     () => undefined,
     () => undefined,
+    () => [],
   );
   const intervals = vi.mocked(system.runInterval).mock.calls;
   expect(intervals.map(([, ticks]) => ticks)).toEqual([
@@ -1132,6 +1177,7 @@ it("gives the starter vehicle only on a player's initial spawn", () => {
     () => undefined,
     () => undefined,
     () => undefined,
+    () => [],
   );
   const spawn = vi
     .mocked(world.afterEvents.playerSpawn.subscribe)
@@ -1152,6 +1198,7 @@ it("stores and clears test input only from server script events", () => {
     () => undefined,
     () => undefined,
     () => undefined,
+    () => [],
   );
   const receive = vi
     .mocked(system.afterEvents.scriptEventReceive.subscribe)
@@ -1197,6 +1244,7 @@ it("sets decor only from server test decor script events (ADR 0093)", () => {
     () => undefined,
     () => undefined,
     () => undefined,
+    () => [],
   );
   const receive = vi
     .mocked(system.afterEvents.scriptEventReceive.subscribe)
@@ -1249,6 +1297,7 @@ function decorFixture() {
     () => undefined,
     owner,
     () => undefined,
+    () => [],
   );
   // registerDecor subscribes first.
   const handler = defined(game.before.mock.calls[before], "decor handler")[0];
@@ -1570,6 +1619,7 @@ it("sends an empty-hand press on the wall cabinet, with the pressed point, to th
     () => undefined,
     owner,
     () => undefined,
+    () => [],
   );
   const registerCustomComponent =
     vi.fn<(name: string, component: BlockCustomComponent) => void>();
@@ -1634,6 +1684,7 @@ function registerGiftFixture() {
     () => undefined,
     () => undefined,
     () => undefined,
+    () => [],
   );
   return gift;
 }
@@ -1752,6 +1803,7 @@ describe("camper bumper stand-in (ADR 0116)", () => {
       () => undefined,
       () => undefined,
       () => undefined,
+      () => [],
     );
   }
 

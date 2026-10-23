@@ -27,7 +27,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0021](0021-flight-mode.md) | Flight mode: toggle with a double tap, climb with the view pitch, and switch gravity with a component group | Superseded in part by 0032, 0034, 0039, and 0078 |
 | [0022](0022-fold-wheels-and-glow-in-flight.md) | Fold the wheels and light their undersides in flight | Superseded in part by 0033 and 0043 |
 | [0023](0023-starter-vehicle-on-first-join.md) | Give each player a vehicle item on their first join | Accepted |
-| [0024](0024-item-use-on-mobile-and-longer-headlights.md) | Make the vehicle item and the headlight switch work on mobile, and light the road three times farther | Extended by 0115 and 0129 |
+| [0024](0024-item-use-on-mobile-and-longer-headlights.md) | Make the vehicle item and the headlight switch work on mobile, and light the road three times farther | Extended by 0115, 0129, and [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md) (Proposed) |
 | [0025](0025-jump-on-touch-and-a-sticky-driver.md) | Keep a touch rider's Jump from dismounting them, and keep the driver while they ride | Superseded in part by 0120 (Proposed); amended by 0126; superseded in part by 0128 |
 | [0026](0026-bank-into-turns-in-flight.md) | Bank into turns in flight | Superseded in part by 0044 |
 | [0027](0027-readme-previews-in-three-poses.md) | Render the README previews in three poses | Superseded in part by 0045 |
@@ -118,7 +118,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0112](0112-one-burner-on-the-camper-stove.md) | One burner on the camper stove | Accepted |
 | [0113](0113-a-window-over-the-camper-counter.md) | A window over the camper counter | Extended by 0114 |
 | [0114](0114-open-the-camper-wall-cabinet.md) | Open the camper wall cabinet | Extended by 0121 |
-| [0115](0115-camper-ceiling-lights.md) | Ceiling lights in the parked camper | Extended by 0123 (Proposed) |
+| [0115](0115-camper-ceiling-lights.md) | Ceiling lights in the parked camper | Extended by 0123 (Proposed) and [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md) (Proposed) |
 | [0116](0116-a-bumper-stand-in-takes-the-camper-hits.md) | A bumper stand-in takes the camper's hits | Proposed; extended by 0119 (Proposed) |
 | [0117](0117-move-the-suv-front-seats-back.md) | Move the SUV's front seats back | Accepted |
 | [0118](0118-close-the-camper-shower-door-from-either-side.md) | Close the camper shower door from either side | Accepted |
@@ -132,11 +132,12 @@ This directory records design decisions and the reasons behind them. The format 
 | [0126](0126-choose-a-new-driver-with-one-tick-of-motion.md) | Choose a new driver with one tick of motion | Accepted; superseded in part by 0128 |
 | [0127](0127-resend-every-synced-entity-value-after-a-failed-send.md) | Resend every synced entity value after a failed send | Accepted |
 | [0128](0128-settle-every-crews-seats-by-rider-list.md) | Settle every crew's seats by the rider list | Accepted |
-| [0129](0129-share-room-primitives-between-features.md) | Share room primitives between features | Accepted |
+| [0129](0129-share-room-primitives-between-features.md) | Share room primitives between features | Accepted; extended by [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md) (Proposed) |
 | [0130](0130-a-tent-entity-whose-hits-land-on-its-blocks.md) | A tent entity whose hits land on its blocks | Proposed; extended by [0131](0131-pitch-a-tent-in-the-camp.md) |
-| [0131](0131-pitch-a-tent-in-the-camp.md) | Pitch a tent in the camp | Proposed; extended by [0132](0132-open-and-close-each-tent-flap-alone.md) and [0133](0133-sleep-on-the-tent-mattresses.md) |
+| [0131](0131-pitch-a-tent-in-the-camp.md) | Pitch a tent in the camp | Proposed; extended by [0132](0132-open-and-close-each-tent-flap-alone.md), [0133](0133-sleep-on-the-tent-mattresses.md), and [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md) |
 | [0132](0132-open-and-close-each-tent-flap-alone.md) | Open and close each tent flap alone | Proposed |
 | [0133](0133-sleep-on-the-tent-mattresses.md) | Sleep on the tent mattresses | Proposed |
+| [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md) | Switch the tent lantern with the headlight switch | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 

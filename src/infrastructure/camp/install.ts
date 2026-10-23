@@ -1,9 +1,10 @@
 // Wires the camp feature: the low chair placed outside the vehicles (ADR 0122)
-// and the tent pitched from its item, with flaps that open alone (ADR 0131, 0132)
-// and mattresses to sleep on (ADR 0133).
+// and the tent pitched from its item, with flaps that open alone (ADR 0131, 0132),
+// mattresses to sleep on (ADR 0133), and a lantern on the headlight switch (ADR 0134).
 import { HitChair } from "../../application/camp/hitChair";
 import { PitchTent } from "../../application/camp/pitchTent";
 import { PlaceChair } from "../../application/camp/placeChair";
+import { SwitchLantern } from "../../application/camp/switchLantern";
 import { TakeDownTent } from "../../application/camp/takeDownTent";
 import { UseTentFlap } from "../../application/camp/useTentFlap";
 import type { SpaceCheck } from "../../application/shared/ports/space";
@@ -12,7 +13,9 @@ import { registerBedBlock } from "../shared/bedBlock";
 import { BedrockBedWorld } from "../shared/bedrockBedWorld";
 import { registerLaidBlockGuard } from "../shared/laidBlockGuard";
 import { playerById } from "../shared/players";
+import type { SwitchTarget } from "../shared/switchRouter";
 import { BedrockChairWorld } from "./bedrock/bedrockChairWorld";
+import { BedrockLanternWorld } from "./bedrock/bedrockLanternWorld";
 import { BedrockTentWorld } from "./bedrock/bedrockTentWorld";
 import { registerChairHits } from "./bedrock/handlers/hits";
 import { registerChairPlacement } from "./bedrock/handlers/placement";
@@ -24,14 +27,21 @@ import { registerTentPlacement } from "./bedrock/handlers/tentPlacement";
 import { registerTestChairHit } from "./bedrock/handlers/testHit";
 import { registerTestTent } from "./bedrock/handlers/testTent";
 import { registerTestTentFlap } from "./bedrock/handlers/testTentFlap";
+import { registerTestTentLantern } from "./bedrock/handlers/testTentLantern";
+import { lanternSwitchTarget } from "./bedrock/lanternSwitch";
 import { createTentBlocks } from "./bedrock/tentBlocks";
 import { TentFlapStore } from "./bedrock/tentFlapStore";
 import { TENT_MATTRESS_COMPONENT } from "./identifiers";
 import { DynamicPropertyTentRegistry } from "./persistence/tentRegistry";
 
-/** `isVehicleSpace` comes from the vehicle feature through bootstrap, since camp cannot import it (ADR 0046). */
+/**
+ * `isVehicleSpace` comes from the vehicle feature through bootstrap, since camp
+ * cannot import it, and `switchTargets` goes back through it to the vehicles'
+ * switch router (ADR 0046).
+ */
 export function installCamp(deps: { isVehicleSpace: SpaceCheck }): {
   isCampSpace: SpaceCheck;
+  switchTargets: readonly SwitchTarget[];
 } {
   const chairs = new BedrockChairWorld(deps);
   const hitChair = new HitChair(chairs);
@@ -66,6 +76,13 @@ export function installCamp(deps: { isVehicleSpace: SpaceCheck }): {
   const useFlap = new UseTentFlap(tents);
   registerTentFlap(useFlap, (d, c) => tents.flapAt(d, c));
   registerTestTentFlap(useFlap);
-  // The chair claims no space; the tents claim their footprints (ADR 0129).
-  return { isCampSpace: (d, c) => tents.isCampSpace(d, c) };
+  const lantern = new SwitchLantern(new BedrockLanternWorld());
+  registerTestTentLantern(lantern);
+  return {
+    // The chair claims no space; the tents claim their footprints (ADR 0129).
+    isCampSpace: (d, c) => tents.isCampSpace(d, c),
+    switchTargets: [
+      lanternSwitchTarget(lantern, (d, feet) => tents.tentContaining(d, feet)),
+    ],
+  };
 }

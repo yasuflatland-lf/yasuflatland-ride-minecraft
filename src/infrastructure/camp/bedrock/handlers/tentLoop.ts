@@ -1,14 +1,15 @@
 // Lays every loaded tent's cells each tick, sends its flaps' swing, and clears
-// those of tents taken down (ADR 0096, 0131, 0132).
-import { system, world } from "@minecraft/server";
+// those of tents taken down (ADR 0096, 0131, 0132, 0134).
+import { system } from "@minecraft/server";
 import {
   type TentBlock,
   type TentId,
   tentCells,
 } from "../../../../domain/camp/tent";
 import type { CellLayer } from "../../../shared/laidCells";
-import { TENT_FLAP_PROPERTY, TENT_TYPE } from "../../identifiers";
+import { TENT_FLAP_PROPERTY } from "../../identifiers";
 import type { DynamicPropertyTentRegistry } from "../../persistence/tentRegistry";
+import { isLanternOn, tentEntityOf } from "../tentEntity";
 import type { TentFlapStore } from "../tentFlapStore";
 
 export function registerTentLoop(
@@ -19,8 +20,8 @@ export function registerTentLoop(
   system.runInterval(() => {
     const entries = registry.all();
     for (const entry of entries) {
-      const entity = world.getEntity(entry.id);
-      if (!entity?.isValid || entity.typeId !== TENT_TYPE) continue;
+      const entity = tentEntityOf(entry.id);
+      if (!entity) continue;
       const tentFlaps = flaps.flapsOf(entity);
       for (const s of tentFlaps.swing()) {
         try {
@@ -31,11 +32,15 @@ export function registerTentLoop(
           break;
         }
       }
-      // The blocks follow the target, so an opening is passable from the next lay.
+      // The blocks follow the target, so an opening is passable from the next
+      // lay; a restored tent lays its lantern as it was on its first tick.
       blocks.lay(
         entry.id,
         entity,
-        tentCells(entry.pose, { openFlaps: tentFlaps.open() }),
+        tentCells(entry.pose, {
+          openFlaps: tentFlaps.open(),
+          lanternOn: isLanternOn(entity),
+        }),
       );
     }
     // The live set is the registry, not the loaded entities: a tent whose

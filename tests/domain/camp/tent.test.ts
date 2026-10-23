@@ -8,6 +8,7 @@ import {
   type GroundReading,
   insideTent,
   inTentFootprint,
+  lanternCell,
   PITCHED_STATE,
   type PitchSurvey,
   planPitch,
@@ -16,6 +17,7 @@ import {
   type TentFace,
   type TentLocalCell,
   type TentPose,
+  type TentState,
   type TentYaw,
   tentBlockAt,
   tentCellAt,
@@ -98,7 +100,7 @@ describe("tentPose (ADR 0131)", () => {
 });
 
 describe("tentCells (ADR 0130, 0131)", () => {
-  it("lays 141 unique cells in the footprint: 79 walls, 8 flap cells, 35 room and 15 tarp ceiling cells, and 4 mattress cells", () => {
+  it("lays 141 unique cells in the footprint: 79 walls, 8 flap cells, 34 room and 15 tarp ceiling cells, the lantern, and 4 mattress cells", () => {
     fc.assert(
       fc.property(arbPose, (pose) => {
         const cells = tentCells(pose, PITCHED_STATE);
@@ -114,8 +116,9 @@ describe("tentCells (ADR 0130, 0131)", () => {
               .map((c) => cellKey(tentCellAt(pose, c))),
           ),
         );
-        expect(ceilings).toHaveLength(50);
-        expect(ceilings.filter((c) => c.y === pose.y + 3)).toHaveLength(35);
+        expect(ceilings).toHaveLength(49);
+        expect(cells.filter((c) => c.block.type === "lantern")).toHaveLength(1);
+        expect(ceilings.filter((c) => c.y === pose.y + 3)).toHaveLength(34);
         expect(ceilings.filter((c) => c.y === pose.y + 2)).toHaveLength(15);
         expect(cells.filter((c) => c.block.type === "mattress")).toHaveLength(
           4,
@@ -191,6 +194,93 @@ describe("tentCells (ADR 0130, 0131)", () => {
       face: 1,
     });
     expect(tentBlockAt(pose, { x: 113, y: -60, z: 50 })?.type).toBe("wall");
+  });
+});
+
+const arbState: fc.Arbitrary<TentState> = fc.record({
+  openFlaps: fc.subarray([...FLAP_IDS]).map((ids) => new Set(ids)),
+  lanternOn: fc.boolean(),
+});
+
+describe("the lantern cell", () => {
+  it("lays exactly one lantern, at lanternCell, lit as the state says", () => {
+    fc.assert(
+      fc.property(arbPose, arbState, (pose, state) => {
+        const lanterns = tentCells(pose, state).filter(
+          (c) => c.block.type === "lantern",
+        );
+        expect(lanterns).toEqual([
+          {
+            ...lanternCell(pose),
+            block: { type: "lantern", lit: state.lanternOn },
+          },
+        ]);
+      }),
+    );
+  });
+
+  it("never takes a flap or a mattress cell", () => {
+    fc.assert(
+      fc.property(arbPose, arbState, (pose, state) => {
+        const key = cellKey(lanternCell(pose));
+        const taken = tentCells(pose, state).filter((c) => cellKey(c) === key);
+        expect(taken.map((c) => c.block.type)).toEqual(["lantern"]);
+        expect(flapAt(pose, lanternCell(pose))).toBeUndefined();
+      }),
+    );
+  });
+
+  it("sits at local x 0, depth 7, layer 3", () => {
+    fc.assert(
+      fc.property(arbPose, (pose) => {
+        expect(lanternCell(pose)).toEqual(
+          tentCellAt(pose, { x: 0, depth: 7, layer: 3 }),
+        );
+      }),
+    );
+  });
+
+  it("changes only the lantern's lit between off and on", () => {
+    fc.assert(
+      fc.property(arbPose, arbState, (pose, state) => {
+        const on = tentCells(pose, { ...state, lanternOn: true });
+        const off = tentCells(pose, { ...state, lanternOn: false });
+        expect(on.map(cellKey)).toEqual(off.map(cellKey));
+        const key = cellKey(lanternCell(pose));
+        on.forEach((c, i) => {
+          const o = defined(off[i], "off cell");
+          if (cellKey(c) === key) {
+            expect(c.block).toEqual({ type: "lantern", lit: true });
+            expect(o.block).toEqual({ type: "lantern", lit: false });
+          } else expect(c.block).toEqual(o.block);
+        });
+      }),
+    );
+  });
+
+  it("takes no interior cell: the cell below it is not laid", () => {
+    fc.assert(
+      fc.property(arbPose, arbState, (pose, state) => {
+        const l = lanternCell(pose);
+        const below = cellKey({ x: l.x, y: l.y - 1, z: l.z });
+        expect(tentCells(pose, state).map(cellKey)).not.toContain(below);
+        expect(
+          insideTent(pose, { x: l.x + 0.5, y: l.y - 1, z: l.z + 0.5 }),
+        ).toBe(true);
+      }),
+    );
+  });
+
+  it("turns with the yaw about the pose", () => {
+    fc.assert(
+      fc.property(arbPose, (pose) => {
+        const next: TentPose = {
+          ...pose,
+          yaw: (normalizeYaw(pose.yaw + 90) + 0) as TentYaw,
+        };
+        expect(turned(pose, lanternCell(pose))).toEqual(lanternCell(next));
+      }),
+    );
   });
 });
 
@@ -394,7 +484,7 @@ describe("tent flap cells (ADR 0132)", () => {
       fc.property(arbPose, fc.subarray([...FLAP_IDS]), (pose, open) => {
         const openFlaps = new Set(open);
         const closed = tentCells(pose, PITCHED_STATE);
-        const cells = tentCells(pose, { openFlaps });
+        const cells = tentCells(pose, { ...PITCHED_STATE, openFlaps });
         expect(cells.map(cellKey)).toEqual(closed.map(cellKey));
         cells.forEach((c, i) => {
           const before = defined(closed[i], "closed cell").block;
@@ -450,10 +540,10 @@ describe("mattresses (ADR 0092, 0133)", () => {
     );
   });
 
-  it("lays the same mattress cells whichever flaps are open", () => {
+  it("lays the same mattress cells whichever flaps are open and whether the lantern is on", () => {
     fc.assert(
-      fc.property(arbPose, fc.subarray([...FLAP_IDS]), (pose, open) => {
-        const mattresses = tentCells(pose, { openFlaps: new Set(open) }).filter(
+      fc.property(arbPose, arbState, (pose, state) => {
+        const mattresses = tentCells(pose, state).filter(
           (c) => c.block.type === "mattress",
         );
         expect(mattresses).toEqual(mattressCells(pose));

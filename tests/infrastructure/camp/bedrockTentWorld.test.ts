@@ -276,6 +276,26 @@ describe("BedrockTentWorld (ADR 0131)", () => {
     expect(world.isOccupied(asTentId("other"))).toBe(false);
   });
 
+  it("finds the loaded tent whose rooms hold the feet", () => {
+    const { world } = fixture([ENTRY]);
+    const room = tentCellAt(POSE, { x: 1, depth: 5, layer: 1 });
+    const feet = { x: room.x + 0.5, y: room.y, z: room.z + 0.5 };
+    expect(world.tentContaining(DIM, feet)).toBe(TENT);
+    const tarp = tentCellAt(POSE, { x: 0, depth: 1, layer: 0 });
+    expect(
+      world.tentContaining(DIM, {
+        x: tarp.x + 0.5,
+        y: tarp.y,
+        z: tarp.z + 0.5,
+      }),
+    ).toBeUndefined();
+    expect(
+      world.tentContaining(asDimensionId("minecraft:nether"), feet),
+    ).toBeUndefined();
+    game.getEntity.mockReturnValue(undefined);
+    expect(world.tentContaining(DIM, feet)).toBeUndefined();
+  });
+
   it("gives the item to the hitter, or drops it at the tent", () => {
     const { container, dimension, tent, world, registry } = fixture([ENTRY]);
     world.returnTentItem(TENT, asPlayerId("player"));
