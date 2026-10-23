@@ -1,9 +1,10 @@
 # Written by tools/gen_camping_gear.py; collapsed in pull request diffs.
 packs/yasu_ride_bp/blocks/yasu_ride/*_decor.block.json linguist-generated=true
 packs/yasu_ride_bp/blocks/yasu_ride/*_decor_pair.block.json linguist-generated=true
-packs/yasu_ride_bp/item_catalog/crafting_item_catalog.json linguist-generated=true
 packs/yasu_ride_rp/models/blocks/yasu_ride/*.geo.json linguist-generated=true
 packs/yasu_ride_rp/textures/terrain_texture.json linguist-generated=true
+# Written by tools/gen_item_catalog.py; collapsed in pull request diffs.
+packs/yasu_ride_bp/item_catalog/crafting_item_catalog.json linguist-generated=true
 # Hand-written; the only block model the generator does not write.
 packs/yasu_ride_rp/models/blocks/yasu_ride/deck_floor.geo.json -linguist-generated
 
