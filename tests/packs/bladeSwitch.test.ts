@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { BLADE_SWITCH_TYPE as TYPE } from "../../src/infrastructure/vehicle/bedrock/identifiers";
 import { readRgbaPng } from "../support/png";
 
-const TYPE = "yasu_ride:blade_switch";
 const read = (p: string) => JSON.parse(readFileSync(p, "utf8"));
 // Keep Japanese names escaped so only the translation file contains CJK text.
 const JA_ITEM_NAME = "\u30d6\u30ec\u30fc\u30c9\u4e0a\u4e0b";

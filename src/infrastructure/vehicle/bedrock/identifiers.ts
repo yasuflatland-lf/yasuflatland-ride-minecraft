@@ -163,6 +163,9 @@ export const TEST_INPUT_EVENT = id("test_input");
 export const TEST_DECOR_EVENT = id("test_decor");
 /** Test blade messages have the form "<vehicleId>,raised" or "<vehicleId>,lowered" (ADR 0138). */
 export const TEST_BLADE_EVENT = id("test_blade");
+
+/** Item the bulldozer's driver uses to raise or lower its blade (ADR 0138). */
+export const BLADE_SWITCH_TYPE = id("blade_switch");
 /**
  * Camera presets for each chase camera: the vanilla preset that views the player from
  * behind, as F5 does (ADR 0028), and the pack's preset pulled back from it (ADR 0071).
