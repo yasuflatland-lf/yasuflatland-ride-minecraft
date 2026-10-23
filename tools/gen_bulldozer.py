@@ -601,6 +601,7 @@ ARM_FRONT, ARM_REAR = (C_CENTER, 8.0), (2.0, 12.0)  # (z, y) centerline, low beh
 BLADE_RAISE = 3.0
 ROD_RETRACT = 3.0
 LIFT_ROD_FRONT, LIFT_ROD_REAR = -10.6, 2.0  # z of the rod's end in its bracket, and of the barrel mouth
+LIFT_ROD_X, LIFT_ROD_Y = (ARM_IN + ARM_OUT) / 2, 21.4  # the rod's axis
 assert BLADE_RAISE > 0 and 0 < ROD_RETRACT < LIFT_ROD_REAR - LIFT_ROD_FRONT
 arms = [bar(ARM_FRONT, ARM_REAR, ARM_IN, ARM_OUT, 4.2, "yellow"),
         bar(ARM_FRONT, ARM_REAR, ARM_IN - 0.2, ARM_OUT + 0.2, 0.6, "yellow_dark", offset=1.6),
@@ -615,9 +616,10 @@ for zb in (-17.0, -6.0, 3.6):  # yellow clamp brackets along the cylinders
 arms += [box(ARM_IN + 0.4, 10.4, -27.6, ARM_IN + 0.6, 12.2, -26.2, "steel"),  # lifting eye
          box(ARM_OUT - 0.6, 10.4, -27.6, ARM_OUT - 0.4, 12.2, -26.2, "steel"),
          box(ARM_IN + 0.4, 12.0, -27.6, ARM_OUT - 0.4, 12.2, -26.2, "steel")]
-lift_barrel = box(ARM_IN - 0.2, 22.0 - 1.4, 2.0, ARM_OUT + 0.2, 22.0 + 1.6, 7.6, "black")  # lift cylinder
-lift_rod = box(ARM_IN + 0.5, 21.4 - 0.6, LIFT_ROD_FRONT, ARM_OUT - 0.5, 21.4 + 0.6, LIFT_ROD_REAR, "chrome")
-body += both([lift_barrel])  # the barrels stay on the frame
+lift_barrel = box(ARM_IN - 0.2, 22.0 - 1.4, LIFT_ROD_REAR, ARM_OUT + 0.2, 22.0 + 1.6, 7.6, "black")
+lift_rod = box(LIFT_ROD_X - 0.5, LIFT_ROD_Y - 0.6, LIFT_ROD_FRONT, LIFT_ROD_X + 0.5, LIFT_ROD_Y + 0.6, LIFT_ROD_REAR,
+               "chrome")
+body += both([lift_barrel])
 blade_rig = both(arms)
 # The C-frame's front half circle, closed at the back by the arms
 ring = 16
@@ -631,7 +633,7 @@ for i in range(ring):
     cx, cz = (p[0] + q[0]) / 2, (p[1] + q[1]) / 2
     angle = math.degrees(math.atan2(dx, dz))
     blade_rig.append(box(cx - (C_OUTER - C_INNER) / 2, 5.8, cz - length / 2, cx + (C_OUTER - C_INNER) / 2, 10.2,
-                    cz + length / 2, "yellow", [0, round(angle, 3), 0], [round(cx, 3), 8.0, round(cz, 3)]))
+                         cz + length / 2, "yellow", [0, round(angle, 3), 0], [round(cx, 3), 8.0, round(cz, 3)]))
 blade_rig.append(box(-3.4, 5.4, BACK - 0.4, 3.4, 11.0, C_CENTER - C_INNER + 0.6, "yellow"))  # pivot block
 blade_rig += disc("y", 0.0, 11.0, C_CENTER - C_INNER - 1.2, 1.6, 0.6, "yellow_dark", STEPS_8)
 # Tilt cylinder on the right, from the C-frame to the top of the blade
@@ -1187,8 +1189,9 @@ bones = mirror_x([
     {"name": "body", "parent": "root", "pivot": [0, 0, 0], "cubes": body, "locators": {"thruster": THRUSTER}},
     {"name": "blade_rig", "parent": "body", "pivot": [0, ARM_REAR[1], ARM_REAR[0]], "cubes": blade_rig},
     {"name": "blade", "parent": "blade_rig", "pivot": [0, 0, BLADE_FRONT], "cubes": blade},
-    {"name": "lift_rod_r", "parent": "body", "pivot": [ARM_IN + 1.0, 21.4, LIFT_ROD_REAR], "cubes": [lift_rod]},
-    {"name": "lift_rod_l", "parent": "body", "pivot": [-(ARM_IN + 1.0), 21.4, LIFT_ROD_REAR], "cubes": [mirrored(lift_rod)]},
+    {"name": "lift_rod_r", "parent": "body", "pivot": [LIFT_ROD_X, LIFT_ROD_Y, LIFT_ROD_REAR], "cubes": [lift_rod]},
+    {"name": "lift_rod_l", "parent": "body", "pivot": [-LIFT_ROD_X, LIFT_ROD_Y, LIFT_ROD_REAR],
+     "cubes": [mirrored(lift_rod)]},
     {"name": "headlights", "parent": "body", "pivot": [0, 0, 0], "cubes": lamps},
     {"name": "beacon", "parent": "body", "pivot": [0, 0, 0], "cubes": beacon},
     {"name": "seat_0", "parent": "body", "pivot": [0, 28.6, 22.0], "cubes": seat},

@@ -271,91 +271,74 @@ describe("bulldozer item icon", () => {
 });
 
 describe("bulldozer blade rig (ADR 0138)", () => {
-  const drive = () =>
-    JSON.parse(
+  // BLADE_RAISE and ROD_RETRACT in tools/gen_bulldozer.py, and each lift rod's rest length.
+  const RAISE = 3;
+  const RETRACT = 3;
+  const ROD_LENGTH = 12.6;
+  type Point = [number, number, number];
+  const lowest = (ps: Point[], axis: number) =>
+    Math.min(...ps.map((p) => p[axis] ?? Number.NaN));
+  const highest = (ps: Point[], axis: number) =>
+    Math.max(...ps.map((p) => p[axis] ?? Number.NaN));
+  const raised = (rest: Point[], blade: number): Point[] =>
+    rest.map(([x, y, z]) => [x, y + RAISE * blade, z + RETRACT * blade]);
+  const rodAt = (side: string, blade: number): Point[] => {
+    const rod = bone(`lift_rod_${side}`);
+    const pz = rod.pivot?.[2] ?? Number.NaN;
+    const scale = 1 - (blade * RETRACT) / ROD_LENGTH;
+    return points(rod).map(([x, y, z]) => [x, y, pz + (z - pz) * scale]);
+  };
+  it("moves blade_rig and scales each lift rod by these values", () => {
+    const drive = JSON.parse(
       readFileSync(`${RP}/animations/yasu_ride/bulldozer.anim.json`, "utf8"),
     ).animations["animation.yasu_ride.bulldozer.drive"].bones;
-  const coefficients = () => {
-    const position = drive().blade_rig.position;
-    expect(position[0]).toBe(0);
-    const parse = (expression: string) => {
-      const match =
-        /^query\.property\('yasu_ride:blade'\) \* (\d+(?:\.\d+)?)$/.exec(
-          expression,
-        );
-      if (!match) throw new Error(`Invalid blade position: ${expression}`);
-      return Number(match[1]);
-    };
-    return { ky: parse(position[1]), kz: parse(position[2]) };
-  };
-  const raised = (rest: ReturnType<typeof points>, blade: number) => {
-    const { ky, kz } = coefficients();
-    return rest.map(([x, y, z]) => [x, y + ky * blade, z + kz * blade]);
-  };
-  const rodAt = (side: string, blade: number) => {
-    const scale = drive()[`lift_rod_${side}`].scale;
-    expect(scale.slice(0, 2)).toEqual([1, 1]);
-    const match =
-      /^1 - query\.property\('yasu_ride:blade'\) \* (\d+(?:\.\d+)?) \/ (\d+(?:\.\d+)?)$/.exec(
-        scale[2],
-      );
-    if (!match) throw new Error(`Invalid lift rod scale: ${scale[2]}`);
-    const rod = bone(`lift_rod_${side}`);
-    const pz = rod.pivot?.[2];
-    if (pz === undefined) throw new Error("Missing rod pivot");
-    const rest = points(rod);
-    expect(Number(match[1])).toBe(3);
-    expect(Number(match[2])).toBeCloseTo(
-      Math.max(...rest.map((p) => p[2])) - Math.min(...rest.map((p) => p[2])),
-      6,
-    );
-    const s = 1 - (blade * Number(match[1])) / Number(match[2]);
-    return rest.map(([x, y, z]) => [x, y, pz + (z - pz) * s]);
-  };
+    const blade = "query.property('yasu_ride:blade')";
+    expect(drive.blade_rig.position).toEqual([
+      0,
+      `${blade} * ${RAISE}`,
+      `${blade} * ${RETRACT}`,
+    ]);
+    for (const side of ["r", "l"]) {
+      expect(drive[`lift_rod_${side}`].scale).toEqual([
+        1,
+        1,
+        `1 - ${blade} * ${RETRACT} / ${ROD_LENGTH}`,
+      ]);
+      const rest = points(bone(`lift_rod_${side}`));
+      expect(highest(rest, 2) - lowest(rest, 2)).toBeCloseTo(ROD_LENGTH, 6);
+    }
+  });
   it("raises the cutting edge 3 px and pulls the blade 3 px rearward at blade = 1", () => {
-    expect(coefficients()).toEqual({ ky: 3, kz: 3 });
     const lifted = raised(
       [...points(bone("blade_rig")), ...points(bone("blade"))],
       1,
     );
-    const bottom = Math.min(...lifted.map((p) => p[1] ?? Number.NaN));
+    const bottom = lowest(lifted, 1);
     expect(bottom).toBeCloseTo(3, 3);
-    expect(lifted.every((p) => (p[1] ?? Number.NaN) >= 3 - 0.0001)).toBe(true);
-    const trackBottom = Math.min(...points(bone("track_r_0")).map((p) => p[1]));
+    expect(bottom).toBeGreaterThanOrEqual(3 - 0.0001);
+    const trackBottom = lowest(points(bone("track_r_0")), 1);
     expect(trackBottom).toBeCloseTo(-0.425, 3);
     expect(bottom - trackBottom).toBeCloseTo(3.425, 3);
-    expect(Math.min(...points(bone("blade")).map((p) => p[2]))).toBeCloseTo(
-      -38.4,
-      3,
-    );
-    expect(
-      Math.min(
-        ...raised(points(bone("blade")), 1).map((p) => p[2] ?? Number.NaN),
-      ),
-    ).toBeCloseTo(-35.4, 3);
+    expect(lowest(points(bone("blade")), 2)).toBeCloseTo(-38.4, 3);
+    expect(lowest(raised(points(bone("blade")), 1), 2)).toBeCloseTo(-35.4, 3);
   });
   it("keeps each rod between the barrel mouth and its moved bracket at every blade value", () => {
     fc.assert(
       fc.property(fc.double({ min: 0, max: 1, noNaN: true }), (blade) => {
         for (const side of ["r", "l"]) {
-          const zs = rodAt(side, blade).map((p) => p[2] ?? Number.NaN);
-          expect(Math.max(...zs)).toBeCloseTo(2, 6);
-          expect(Math.min(...zs)).toBeCloseTo(
-            -10.6 + coefficients().kz * blade,
-            6,
-          );
+          const rod = rodAt(side, blade);
+          expect(highest(rod, 2)).toBeCloseTo(2, 6);
+          expect(lowest(rod, 2)).toBeCloseTo(-10.6 + RETRACT * blade, 6);
         }
       }),
     );
     for (const side of ["r", "l"])
-      expect(
-        Math.min(...rodAt(side, 1).map((p) => p[2] ?? Number.NaN)),
-      ).toBeCloseTo(-7.6, 6);
+      expect(lowest(rodAt(side, 1), 2)).toBeCloseTo(-7.6, 6);
   });
-  const bounds = (c: ModelCube) => [
-    c.origin,
-    c.origin.map((v, i) => v + (c.size[i] ?? 0)),
-  ];
+  const near = (actual: number[], expected: number[]) =>
+    actual.every(
+      (v, axis) => Math.abs(v - (expected[axis] ?? Number.NaN)) < 0.0001,
+    );
   const expectCube = (
     b: ModelBone,
     slot: number,
@@ -365,11 +348,10 @@ describe("bulldozer blade rig (ADR 0138)", () => {
     const matches = (b.cubes ?? []).filter(
       (c) =>
         Object.values(c.uv).every((face) => face.uv[0] === slot) &&
-        bounds(c).every((point, end) =>
-          point.every(
-            (v, axis) =>
-              Math.abs(v - ([min, max][end]?.[axis] ?? Number.NaN)) < 0.0001,
-          ),
+        near(c.origin, min) &&
+        near(
+          c.origin.map((v, axis) => v + (c.size[axis] ?? 0)),
+          max,
         ),
     );
     expect(matches).toHaveLength(1);
