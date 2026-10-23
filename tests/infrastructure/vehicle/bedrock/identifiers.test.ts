@@ -20,7 +20,10 @@ import {
   CAMPING_GEAR_IDS,
   STANDING_GEAR_IDS,
 } from "../../../../src/domain/vehicle/kinds/index";
-import { NAMESPACE } from "../../../../src/infrastructure/shared/identifiers";
+import {
+  HEADLIGHT_SWITCH_TYPE,
+  NAMESPACE,
+} from "../../../../src/infrastructure/shared/identifiers";
 import {
   CAMPER_BED_BLOCK,
   CAMPER_CABINET_DOOR_BLOCK,
@@ -45,7 +48,6 @@ import {
   entityPropertyId,
   FLEET_PROPERTY,
   fleetEntryOf,
-  HEADLIGHT_SWITCH_TYPE,
   HEADLIGHTS_PROPERTY,
   ITEM_TYPE,
   isCamperRoomBlock,

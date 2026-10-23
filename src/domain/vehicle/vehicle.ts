@@ -5,9 +5,10 @@ import {
   registerHit,
 } from "../shared/hitCounter";
 import type { PlayerId, VehicleId } from "../shared/ids";
+import { SwitchCooldown } from "../shared/switchCooldown";
 // Aggregate for one vehicle: wires its drive to its seating, cooldowns, and hit count.
 import { forward, type Vec2, type Vec3 } from "../shared/vec";
-import { RamCooldowns, SwitchCooldown } from "./cooldowns";
+import { RamCooldowns } from "./cooldowns";
 import { Crew } from "./crew";
 import type { DecorPlacement, StoragePress } from "./dock/decor";
 import type { ClearCell, Departure, Dock } from "./dock/dock";
