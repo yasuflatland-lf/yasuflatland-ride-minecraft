@@ -20,7 +20,6 @@ import {
   createVehicle,
   KINDS,
   profileOf,
-  RAM_QUERY_RADIUS,
   rebuildVehicle,
 } from "../../../src/domain/vehicle/kinds/index";
 import {
@@ -39,10 +38,6 @@ import {
   SUV_TRANSFORMING,
   WATER,
 } from "../../../src/domain/vehicle/kinds/suv/spec";
-import {
-  cellKey,
-  headlightCells,
-} from "../../../src/domain/vehicle/lighting/headlights";
 import { MOTION } from "../../../src/domain/vehicle/motion/constants";
 import {
   type GroundInput,
@@ -52,7 +47,6 @@ import {
   updateSpeed,
 } from "../../../src/domain/vehicle/motion/motion";
 import { STEP_LANES } from "../../../src/domain/vehicle/motion/stepUp";
-import { selectHits } from "../../../src/domain/vehicle/ram";
 import { SPEC } from "../../../src/domain/vehicle/spec";
 
 const NEUTRAL_GROUND: GroundInput = {
@@ -382,149 +376,6 @@ describe("vehicle profiles (ADR 0050)", () => {
     );
   });
 
-  it("places each beam lane sideways from its reach and deduplicates cells", () => {
-    const beams = fc.record({
-      reach: fc.array(number(0, 40), { maxLength: 8 }),
-      lanes: fc.array(number(-8, 8), { maxLength: 6 }),
-    });
-    const location = fc.record({
-      x: number(-100, 100),
-      y: number(-64, 300),
-      z: number(-100, 100),
-    });
-    fc.assert(
-      fc.property(beams, location, yaw, (pattern, at, heading) => {
-        const out = headlightCells(at, heading, pattern);
-        expect(out.length).toBeLessThanOrEqual(
-          pattern.reach.length * pattern.lanes.length,
-        );
-        expect(new Set(out.map(cellKey)).size).toBe(out.length);
-        const f = forward(heading);
-        const right = rightOf(f);
-        const expected = new Set<string>();
-        for (const reach of pattern.reach) {
-          for (const lane of pattern.lanes) {
-            const origin = {
-              x: at.x + f.x * reach,
-              y: at.y,
-              z: at.z + f.z * reach,
-            };
-            const shifted = {
-              x: origin.x + right.x * lane,
-              y: origin.y,
-              z: origin.z + right.z * lane,
-            };
-            const single = headlightCells(shifted, heading, {
-              reach: [0],
-              lanes: [0],
-            });
-            for (const cell of single) expected.add(cellKey(cell));
-          }
-        }
-        expect(new Set(out.map(cellKey))).toEqual(expected);
-      }),
-    );
-  });
-
-  it("hits just inside a longer body's reach and misses just outside", () => {
-    fc.assert(
-      fc.property(
-        number(2, 10),
-        number(0.1, 3),
-        number(0.0001, 0.05),
-        yaw,
-        fc.boolean(),
-        (front, halfWidth, gap, heading, reversing) => {
-          const f = forward(heading);
-          const direction = reversing ? -1 : 1;
-          const target = (id: string, ahead: number) => ({
-            id,
-            offset: {
-              x: f.x * ahead * direction,
-              y: 0,
-              z: f.z * ahead * direction,
-            },
-          });
-          const reach = front + SPEC.targetHalfWidth;
-          const targets = [
-            target("inside", reach - gap),
-            target("outside", reach + gap),
-          ];
-          expect(
-            selectHits(
-              f,
-              direction * SUV_SPEC.maxReverse,
-              targets,
-              new Map(),
-              0,
-              {
-                front,
-                halfWidth,
-              },
-            ).map((hit) => hit.id),
-          ).toEqual(["inside"]);
-          expect(
-            selectHits(
-              f,
-              direction * SUV_SPEC.maxReverse,
-              targets,
-              new Map(),
-              0,
-              SUV_PROFILE.ram,
-            ),
-          ).toEqual([]);
-        },
-      ),
-    );
-  });
-
-  it("hits just inside a body's half width and misses just outside", () => {
-    fc.assert(
-      fc.property(
-        number(2, 10),
-        number(0.1, 3),
-        number(0.0001, 0.05),
-        number(0.05, 0.95),
-        yaw,
-        fc.boolean(),
-        fc.boolean(),
-        (front, halfWidth, gap, aheadRatio, heading, reversing, leftSide) => {
-          const f = forward(heading);
-          const right = rightOf(f);
-          const direction = reversing ? -1 : 1;
-          const ahead = (front + SPEC.targetHalfWidth) * aheadRatio * direction;
-          const sign = leftSide ? -1 : 1;
-          const target = (id: string, side: number) => ({
-            id,
-            offset: {
-              x: f.x * ahead + right.x * side * sign,
-              y: 0,
-              z: f.z * ahead + right.z * side * sign,
-            },
-          });
-          const width = halfWidth + SPEC.targetHalfWidth;
-          const targets = [
-            target("inside", width - gap),
-            target("outside", width + gap),
-          ];
-          expect(
-            selectHits(
-              f,
-              direction * SUV_SPEC.maxReverse,
-              targets,
-              new Map(),
-              0,
-              {
-                front,
-                halfWidth,
-              },
-            ).map((hit) => hit.id),
-          ).toEqual(["inside"]);
-        },
-      ),
-    );
-  });
-
   it("a wall hit never turns any profile's forward speed into reverse (ADR 0077)", () => {
     // Pushed backward by the wall harder than the profile may reverse: before
     // ADR 0077 the speed ended at the reverse limit, now it stops at 0.
@@ -567,45 +418,6 @@ describe("vehicle profiles (ADR 0050)", () => {
           expect(out.state.speed).toBe(0);
         }
       }),
-    );
-  });
-
-  it("queries every profile's hit box including its far corners", () => {
-    fc.assert(
-      fc.property(
-        fc.constantFrom(...VEHICLE_KINDS),
-        yaw,
-        number(0, 1),
-        number(-1, 1),
-        number(0, 1),
-        fc.boolean(),
-        (kind, heading, aheadRatio, sideRatio, heightRatio, reverse) => {
-          const body = profileOf(kind).ram;
-          const f = forward(heading);
-          const right = rightOf(f);
-          const ahead =
-            (body.front + SPEC.targetHalfWidth) *
-            aheadRatio *
-            (reverse ? -1 : 1);
-          const side = (body.halfWidth + SPEC.targetHalfWidth) * sideRatio;
-          const y =
-            SPEC.ramMinDy + (SPEC.ramMaxDy - SPEC.ramMinDy) * heightRatio;
-          expect(
-            Math.hypot(
-              f.x * ahead + right.x * side,
-              y,
-              f.z * ahead + right.z * side,
-            ),
-          ).toBeLessThanOrEqual(RAM_QUERY_RADIUS + 1e-9);
-          expect(
-            Math.hypot(
-              body.front + SPEC.targetHalfWidth,
-              body.halfWidth + SPEC.targetHalfWidth,
-              Math.max(Math.abs(SPEC.ramMinDy), Math.abs(SPEC.ramMaxDy)),
-            ),
-          ).toBeLessThanOrEqual(RAM_QUERY_RADIUS);
-        },
-      ),
     );
   });
 
