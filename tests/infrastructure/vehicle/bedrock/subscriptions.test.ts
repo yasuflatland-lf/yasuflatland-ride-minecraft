@@ -48,6 +48,7 @@ import {
   STAND_IN_OF_PROPERTY,
   STAND_IN_PROPERTY,
   standInType,
+  TEST_BLADE_EVENT,
   TEST_DECOR_EVENT,
   TEST_INPUT_EVENT,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
@@ -1234,6 +1235,49 @@ it("stores and clears test input only from server script events", () => {
   });
   send("suv,clear");
   expect(inputs.get(asVehicleId("suv"))).toBeUndefined();
+});
+
+it("sets the blade only from server test blade script events (ADR 0138)", () => {
+  const blade = { force: vi.fn() };
+  registerSubscriptions(
+    { blade } as unknown as Parameters<typeof registerSubscriptions>[0],
+    new TestInputStore(),
+    () => undefined,
+    () => undefined,
+    () => undefined,
+    () => [],
+  );
+  const receive = vi
+    .mocked(system.afterEvents.scriptEventReceive.subscribe)
+    .mock.calls.at(-3)?.[0];
+  if (!receive) throw new Error("scriptEventReceive not subscribed");
+  const send = (
+    message: string,
+    sourceType = "Server",
+    id = TEST_BLADE_EVENT,
+  ) =>
+    receive({
+      id,
+      message,
+      sourceType,
+    } as unknown as ScriptEventCommandMessageAfterEvent);
+  send("car,raised", "Entity");
+  send("car,raised", "Server", "minecraft:other");
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+  send("car,bad");
+  expect(warn).toHaveBeenCalledOnce();
+  warn.mockRestore();
+  expect(blade.force).not.toHaveBeenCalled();
+  send("car,raised");
+  expect(blade.force).toHaveBeenCalledExactlyOnceWith({
+    vehicleId: "car",
+    raised: true,
+  });
+  send("car,lowered");
+  expect(blade.force).toHaveBeenLastCalledWith({
+    vehicleId: "car",
+    raised: false,
+  });
 });
 
 it("sets decor only from server test decor script events (ADR 0093)", () => {
