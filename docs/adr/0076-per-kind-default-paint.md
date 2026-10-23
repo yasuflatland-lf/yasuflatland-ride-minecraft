@@ -1,6 +1,6 @@
 # 0076. Each kind names its default paint; a dye matching it does nothing
 
-- Status: Accepted
+- Status: Accepted; extended by 0135
 - Date: 2026-10-20
 - Extends: 0031
 

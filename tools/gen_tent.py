@@ -14,6 +14,8 @@ Ceilings: x -2..2, z 1..7, layer 3, and z 9..11, layer 2 over the open tarp.
 The lantern cell (0,4,3) is above its hanging shade; tarp poles have no cells.
 There are 87 wall cells (8 flap), 50 ceiling cells, 137 laid cells, 336 clear cells,
 and 84 ground cells. This generator adds no cell-laying behavior.
+Each paint writes its own texture: tent.png for khaki (variant 0), tent_<paint>.png for the
+others, recoloring only the fly slots 0 and 1 (ADR 0031, 0076).
 --check compares parsed JSON and decoded pixels, independent of formatting and compression.
 """
 import argparse
@@ -38,6 +40,29 @@ PALETTE = {
     "mattress": (64, 86, 120, 255), "mattress_edge": (44, 60, 86, 255),
 }
 SLOTS = list(PALETTE)
+# The fly color of each paint, in PAINTS order (src/domain/shared/paint.ts). khaki is the
+# tan-brown fly above; the others copy ACCENT_BASES in tools/gen_camper.py, since tools
+# run with python3 -I and cannot import each other.
+FLY_PAINTS = {
+    "khaki": (176, 140, 98),
+    "green": (62, 96, 56),
+    "red": (128, 22, 26),
+    "white": (222, 222, 216),
+    "light_gray": (156, 156, 152),
+    "gray": (92, 94, 98),
+    "black": (34, 34, 36),
+    "orange": (190, 92, 28),
+    "yellow": (214, 178, 44),
+    "lime": (112, 160, 42),
+    "cyan": (30, 118, 124),
+    "light_blue": (92, 150, 204),
+    "blue": (40, 58, 128),
+    "purple": (94, 46, 128),
+    "magenta": (160, 52, 140),
+    "pink": (214, 132, 162),
+}
+# Brightness of each fly slot relative to the khaki base, so seams stay darker in every paint.
+FLY_SHADES = {"fly": 1.0, "fly_dark": 136 / 176}
 # Each flap's opening (the bounds its cubes must stay within), roll pivot, parent bone, and
 # paint. The bedroom D-door has no single paint; parts() builds it from inner and inner_shade.
 FLAPS = {
@@ -266,13 +291,31 @@ def validate(parts):
         sys.exit("\n".join(errors))
 
 
-def texture_pixels():
+def scale(color, factor):
+    return tuple(max(0, min(255, math.floor(c * factor + 0.5))) for c in color)
+
+
+def paint_palette(paint):
+    """The palette for a paint: khaki keeps PALETTE, so tent.png stays as it was."""
+    colors = dict(PALETTE)
+    if paint != "khaki":
+        for slot, shade in FLY_SHADES.items():
+            colors[slot] = scale(FLY_PAINTS[paint], shade) + (255,)
+    return colors
+
+
+def texture_path(paint):
+    return TEXTURE if paint == "khaki" else TEXTURE.replace("tent.png", f"tent_{paint}.png")
+
+
+def texture_pixels(paint="khaki"):
+    colors = paint_palette(paint)
     slot = lambda x, y: (y // SWATCH) * SWATCH + x // SWATCH  # noqa: E731
     return bytes(
         c
         for y in range(ATLAS_SIZE)
         for x in range(ATLAS_SIZE)
-        for c in (PALETTE[SLOTS[slot(x, y)]] if slot(x, y) < len(SLOTS) else (0, 0, 0, 0))
+        for c in (colors[SLOTS[slot(x, y)]] if slot(x, y) < len(SLOTS) else (0, 0, 0, 0))
     )
 
 
@@ -312,16 +355,18 @@ def main():
     parser.add_argument("resource_pack", type=Path)
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
-    geo_path, texture_path = args.resource_pack / GEOMETRY, args.resource_pack / TEXTURE
+    geo_path = args.resource_pack / GEOMETRY
+    textures = {paint: args.resource_pack / texture_path(paint) for paint in FLY_PAINTS}
     document = geometry()
     validate(document["minecraft:geometry"][0]["bones"])
     if not args.check:
         geo_path.parent.mkdir(parents=True, exist_ok=True)
         geo_path.write_text(json.dumps(document, separators=(",", ":")) + "\n")
         print(f"wrote {geo_path}")
-        texture_path.parent.mkdir(parents=True, exist_ok=True)
-        write_png(texture_path, ATLAS_SIZE, texture_pixels())
-        print(f"wrote {texture_path}")
+        for paint, path in textures.items():
+            path.parent.mkdir(parents=True, exist_ok=True)
+            write_png(path, ATLAS_SIZE, texture_pixels(paint))
+            print(f"wrote {path}")
         return
     stale = []
     try:
@@ -329,14 +374,15 @@ def main():
             stale.append(str(geo_path))
     except (OSError, ValueError) as e:
         stale.append(f"{geo_path} ({e})")
-    try:
-        if read_png(texture_path, ATLAS_SIZE) != texture_pixels():
-            stale.append(str(texture_path))
-    except (OSError, ValueError, struct.error, zlib.error) as e:
-        stale.append(f"{texture_path} ({e})")
+    for paint, path in textures.items():
+        try:
+            if read_png(path, ATLAS_SIZE) != texture_pixels(paint):
+                stale.append(str(path))
+        except (OSError, ValueError, struct.error, zlib.error) as e:
+            stale.append(f"{path} ({e})")
     if stale:
         sys.exit(f"{', '.join(stale)} out of date with tools/gen_tent.py. Run `pnpm model` and commit the result.")
-    print("tent model and texture are up to date")
+    print("tent model and textures are up to date")
 
 
 if __name__ == "__main__":

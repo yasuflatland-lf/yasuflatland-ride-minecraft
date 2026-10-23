@@ -1,9 +1,11 @@
-// The tent content contract (ADR 0130), before pitching adds any behavior.
-import { existsSync, readFileSync } from "node:fs";
+// The tent content contract: entity and client (ADR 0130), shelter blocks
+// (ADR 0131), and paint textures (ADR 0135).
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 import { TENT_SPEC } from "../../src/domain/camp/spec";
 import { TENT_MATTRESSES } from "../../src/domain/camp/tent";
+import { PAINTS } from "../../src/domain/shared/paint";
 import {
   FLAP_BLOCKED_HINT,
   PITCH_REFUSAL_MESSAGE,
@@ -25,6 +27,7 @@ import {
   TENT_TYPE,
   TENT_WALL_BLOCK,
 } from "../../src/infrastructure/camp/identifiers";
+import { paintEvent } from "../../src/infrastructure/shared/dyes";
 
 const BP = "packs/yasu_ride_bp";
 const RP = "packs/yasu_ride_rp";
@@ -175,8 +178,13 @@ describe("tent entity and client", () => {
       ],
       [-0.5, 0, -0.5, 0.5, 1, 0.5],
     );
-    expect(e.component_groups).toBeUndefined();
-    expect(e.events).toBeUndefined();
+    // Painting adds only the 16 paint groups and events (ADR 0135).
+    expect(Object.keys(e.component_groups)).toEqual(
+      PAINTS.map((paint) => `yasu_ride:paint_${paint}`),
+    );
+    for (const group of Object.values(e.component_groups))
+      expect(Object.keys(group as object)).toEqual(["minecraft:variant"]);
+    expect(Object.keys(e.events)).toEqual(PAINTS.map(paintEvent));
   });
   it("writes float property values with a decimal point", () => {
     // The engine rejects a float property whose default is written as 0
@@ -200,7 +208,15 @@ describe("tent entity and client", () => {
     const c = doc["minecraft:client_entity"].description;
     expect(c.identifier).toBe(TENT_TYPE);
     expect(c.geometry).toEqual({ default: "geometry.yasu_ride.tent" });
-    expect(c.textures).toEqual({ default: "textures/entity/yasu_ride/tent" });
+    expect(c.textures).toEqual({
+      default: "textures/entity/yasu_ride/tent",
+      ...Object.fromEntries(
+        PAINTS.slice(1).map((paint) => [
+          paint,
+          `textures/entity/yasu_ride/tent_${paint}`,
+        ]),
+      ),
+    });
     expect(existsSync(`${RP}/${c.textures.default}.png`)).toBe(true);
     expect(c.materials).toEqual({
       default: "entity",
@@ -213,6 +229,11 @@ describe("tent entity and client", () => {
     expect(rc.render_controllers["controller.render.yasu_ride.tent"]).toEqual({
       arrays: {
         materials: { "Array.lamps": ["Material.lamp", "Material.lamp_lit"] },
+        textures: {
+          "Array.paints": PAINTS.map(
+            (p) => `Texture.${p === "khaki" ? "default" : p}`,
+          ),
+        },
       },
       geometry: "Geometry.default",
       materials: [
@@ -222,7 +243,7 @@ describe("tent entity and client", () => {
             "Array.lamps[query.property('yasu_ride:lantern') ? 1 : 0]",
         },
       ],
-      textures: ["Texture.default"],
+      textures: ["Array.paints[query.variant]"],
     });
     const anim = readJson(`${RP}/animations/yasu_ride/tent.anim.json`);
     expect(anim.format_version).toBe("1.8.0");
@@ -348,21 +369,10 @@ describe("tent geometry and texture", () => {
     }
   });
   it("keeps the fixed twelve swatches, including alpha-zero emissive glass", () => {
-    const png = readFileSync(`${RP}/textures/entity/yasu_ride/tent.png`);
-    expect([
-      png.readUInt32BE(16),
-      png.readUInt32BE(20),
-      png[24],
-      png[25],
-    ]).toEqual([16, 16, 8, 6]);
-    const chunks: Buffer[] = [];
-    for (let at = 8; at < png.length; ) {
-      const size = png.readUInt32BE(at);
-      if (png.toString("ascii", at + 4, at + 8) === "IDAT")
-        chunks.push(png.subarray(at + 8, at + 8 + size));
-      at += size + 12;
-    }
-    const raw = inflateSync(Buffer.concat(chunks));
+    const { width, height, pixels } = readPng(
+      `${RP}/textures/entity/yasu_ride/tent.png`,
+    );
+    expect([width, height]).toEqual([16, 16]);
     const palette = [
       [176, 140, 98, 255],
       [136, 104, 68, 255],
@@ -378,10 +388,9 @@ describe("tent geometry and texture", () => {
       [44, 60, 86, 255],
     ];
     for (let y = 0; y < 16; y++) {
-      expect(raw[y * 65]).toBe(0);
       for (let x = 0; x < 16; x++)
         expect([
-          ...raw.subarray(y * 65 + 1 + x * 4, y * 65 + 5 + x * 4),
+          ...pixels.subarray(y * 64 + x * 4, y * 64 + x * 4 + 4),
         ]).toEqual(
           palette[Math.floor(y / 4) * 4 + Math.floor(x / 4)] ?? [0, 0, 0, 0],
         );
@@ -572,7 +581,8 @@ describe("tent shelter blocks (ADR 0131)", () => {
     expect(e.components["minecraft:custom_hit_test"]).toEqual({
       hitboxes: [{ width: 0.1, height: 0.1, pivot: [0, 0.05, 0] }],
     });
-    expect(e.component_groups ?? {}).toEqual({});
+    for (const group of Object.values(e.component_groups ?? {}))
+      expect(Object.keys(group as object)).toEqual(["minecraft:variant"]);
   });
 
   it("keeps every model cube within the footprint, x -56..56 and z -184..8 px", () => {
@@ -658,5 +668,88 @@ describe("tent mattresses (ADR 0092, 0133)", () => {
       ];
       for (const cube of cubes) inside(bounds(cube), outer);
     }
+  });
+});
+
+// The decoded RGBA pixels of a PNG the tent generator wrote (unfiltered rows).
+function readPng(path: string) {
+  const png = readFileSync(path);
+  const width = png.readUInt32BE(16);
+  const height = png.readUInt32BE(20);
+  expect([png[24], png[25]]).toEqual([8, 6]);
+  const idat: Buffer[] = [];
+  for (let at = 8; at < png.length; ) {
+    const size = png.readUInt32BE(at);
+    if (png.toString("ascii", at + 4, at + 8) === "IDAT")
+      idat.push(png.subarray(at + 8, at + 8 + size));
+    at += size + 12;
+  }
+  const raw = inflateSync(Buffer.concat(idat));
+  const stride = width * 4;
+  const pixels = Buffer.concat(
+    Array.from({ length: height }, (_, y) => {
+      expect(raw[y * (stride + 1)]).toBe(0);
+      return raw.subarray(y * (stride + 1) + 1, (y + 1) * (stride + 1));
+    }),
+  );
+  return { width, height, pixels };
+}
+
+describe("tent paint textures (ADR 0135)", () => {
+  const TEXTURES = `${RP}/textures/entity/yasu_ride`;
+  const FLY_GROUP = ["fly", "flap_front", "flap_left", "flap_right"];
+  const slotOf = (x: number, y: number) =>
+    Math.floor(y / 4) * 4 + Math.floor(x / 4);
+
+  it("ships exactly 16 tent textures at the geometry's size", () => {
+    const files = readdirSync(TEXTURES).filter((f) =>
+      /^tent(?:_\w+)?\.png$/.test(f),
+    );
+    expect(files.sort()).toEqual(
+      ["tent.png", ...PAINTS.slice(1).map((p) => `tent_${p}.png`)].sort(),
+    );
+    const g = geometry().description;
+    for (const file of files) {
+      const { width, height } = readPng(`${TEXTURES}/${file}`);
+      expect([width, height], file).toEqual([
+        g.texture_width,
+        g.texture_height,
+      ]);
+    }
+  });
+
+  it("uses the fly slots 0 and 1 only in the fly group", () => {
+    for (const bone of geometry().bones as Bone[]) {
+      if (FLY_GROUP.includes(bone.name)) continue;
+      for (const cube of bone.cubes ?? [])
+        for (const face of Object.values(cube.uv))
+          expect(slotOf(face.uv[0], face.uv[1]), bone.name).toBeGreaterThan(1);
+    }
+  });
+
+  it("recolors only slots 0 and 1 for each paint after khaki", () => {
+    const base = readPng(`${TEXTURES}/tent.png`).pixels;
+    for (const paint of PAINTS.slice(1)) {
+      const pixels = readPng(`${TEXTURES}/tent_${paint}.png`).pixels;
+      for (let y = 0; y < 16; y++)
+        for (let x = 0; x < 16; x++) {
+          const at = (y * 16 + x) * 4;
+          const a = [...base.subarray(at, at + 4)];
+          const b = [...pixels.subarray(at, at + 4)];
+          // Slot 9 (glass) keeps alpha 0, which the lantern switch relies on.
+          if (slotOf(x, y) <= 1) expect(b, `${paint} ${x},${y}`).not.toEqual(a);
+          else expect(b, `${paint} ${x},${y}`).toEqual(a);
+        }
+    }
+  });
+
+  it("keeps the item single-color: no variant and one item file", () => {
+    const item = readJson(`${BP}/items/yasu_ride/tent_item.item.json`)[
+      "minecraft:item"
+    ];
+    expect(JSON.stringify(item)).not.toMatch(/variant/);
+    expect(
+      readdirSync(`${BP}/items/yasu_ride`).filter((f) => f.startsWith("tent")),
+    ).toEqual(["tent_item.item.json"]);
   });
 });

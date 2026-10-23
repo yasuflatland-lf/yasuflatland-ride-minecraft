@@ -4,10 +4,10 @@ import type { PaintWorld } from "../../../application/vehicle/ports/paint";
 import type { PlayerId, VehicleId } from "../../../domain/shared/ids";
 import { PAINTS, type Paint } from "../../../domain/shared/paint";
 import type { VehicleKind } from "../../../domain/vehicle/kind";
-import { dyeOf } from "../../shared/dyes";
+import { dyeOf, paintEvent } from "../../shared/dyes";
 import type { BedrockInventory } from "./bedrockInventory";
 import type { EntityIndex } from "./entityIndex";
-import { kindOfEntity, paintEvent } from "./identifiers";
+import { kindOfEntity } from "./identifiers";
 
 export class BedrockPaintWorld implements PaintWorld {
   constructor(

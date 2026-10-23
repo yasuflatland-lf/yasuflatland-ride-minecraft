@@ -20,6 +20,7 @@ import {
   CAMPING_GEAR_IDS,
   STANDING_GEAR_IDS,
 } from "../../../../src/domain/vehicle/kinds/index";
+import { paintEvent } from "../../../../src/infrastructure/shared/dyes";
 import {
   HEADLIGHT_SWITCH_TYPE,
   NAMESPACE,
@@ -60,7 +61,6 @@ import {
   OWNER_PROPERTY,
   PAIR_END_STATES,
   PAIR_PAGE_SIZE,
-  paintEvent,
   pairDecorBlockId,
   pairEndStates,
   ramMountOf,

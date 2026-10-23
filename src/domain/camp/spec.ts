@@ -1,3 +1,5 @@
+import type { Paint } from "../shared/paint";
+
 // Every tuning value of the low chair (ADR 0122).
 export const CHAIR_SPEC = Object.freeze({
   /** The chair turns to face the player in steps of this many degrees. */
@@ -36,4 +38,6 @@ export const TENT_SPEC = Object.freeze({
   cellRecheckTicks: 20,
   /** Ticks a flap takes to roll up or drop, one step per tick; also each flap's tap window (ADR 0105). */
   flapSwingTicks: 10,
+  /** The paint the variant-0 slot shows: the tan-brown fly, restored by brown dye (ADR 0076). */
+  defaultPaint: "khaki" satisfies Paint,
 });

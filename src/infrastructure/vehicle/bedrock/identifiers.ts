@@ -1,9 +1,4 @@
 import { asPlayerId, asVehicleId } from "../../../domain/shared/ids";
-import {
-  PAINTS,
-  type Paint,
-  paintEventName,
-} from "../../../domain/shared/paint";
 import { HEADLIGHTS_PROPERTY_NAME } from "../../../domain/vehicle/entityContract";
 import type { FleetEntry } from "../../../domain/vehicle/fleet/fleet";
 import { VEHICLE_KINDS, type VehicleKind } from "../../../domain/vehicle/kind";
@@ -168,18 +163,6 @@ export const CHASE_CAMERAS: Readonly<Record<ChaseCamera, string>> =
     near: "minecraft:third_person",
     far: id("far_chase"),
   });
-
-/** minecraft:variant value for each paint. The render controller picks the texture by this index. */
-export const PAINT_VARIANT: Readonly<Record<Paint, number>> =
-  Object.fromEntries(PAINTS.map((paint, i) => [paint, i])) as Record<
-    Paint,
-    number
-  >;
-/**
- * Entity event declared in every vehicle entity file (suv, sportsboat and
- * camper .se.json) that sets the variant for a paint.
- */
-export const paintEvent = (paint: Paint): string => id(paintEventName(paint));
 
 export function fleetEntryOf(entity: {
   id: string;
