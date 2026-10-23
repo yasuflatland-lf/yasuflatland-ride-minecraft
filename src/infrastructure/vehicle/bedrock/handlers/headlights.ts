@@ -1,5 +1,5 @@
 // The vehicle's target for the shared switch router (ADR 0020, 0024, 0115, 0116).
-import type { Entity, Player } from "@minecraft/server";
+import type { Player } from "@minecraft/server";
 import type { SwitchCeilingLights } from "../../../../application/vehicle/switchCeilingLights";
 import type { SwitchHeadlights } from "../../../../application/vehicle/switchHeadlights";
 import {
@@ -11,7 +11,7 @@ import {
 } from "../../../../domain/shared/ids";
 import type { Vec3 } from "../../../../domain/shared/vec";
 import type { SwitchTarget } from "../../../shared/switchRouter";
-import { isVehicleEntity } from "../identifiers";
+import { riddenVehicle } from "../riddenVehicle";
 import { vehicleOfTarget } from "../standIns";
 
 export function vehicleSwitchTarget(
@@ -22,10 +22,6 @@ export function vehicleSwitchTarget(
     cell: Vec3,
   ) => VehicleId | undefined,
 ): SwitchTarget {
-  const ridden = (player: Entity) => {
-    const mount = player.getComponent("minecraft:riding")?.entityRidingOn;
-    return isVehicleEntity(mount?.typeId) ? mount : undefined;
-  };
   // The room a player is in: the vehicle that laid the block under their feet, the floor or
   // whatever furniture they stand or sit on, or the cell of their feet itself. The drive then
   // checks that the feet are inside the room (ADR 0115).
@@ -54,7 +50,7 @@ export function vehicleSwitchTarget(
   // the ceiling lights of the room they are in (ADR 0115).
   const switchFor = (player: Player) => {
     const playerId = asPlayerId(player.id);
-    const vehicle = ridden(player);
+    const vehicle = riddenVehicle(player);
     if (vehicle) {
       const vehicleId = asVehicleId(vehicle.id);
       if (headlights.execute({ playerId, vehicleId })) return;
@@ -72,7 +68,7 @@ export function vehicleSwitchTarget(
 
   return {
     claimsItemUse: (player) =>
-      ridden(player) !== undefined || roomOf(player) !== undefined,
+      riddenVehicle(player) !== undefined || roomOf(player) !== undefined,
     claimsEntityPress: (player, target) => {
       const vehicle = vehicleOfTarget(target);
       if (!vehicle) return false;
@@ -80,7 +76,7 @@ export function vehicleSwitchTarget(
       // stand in, interacts with it instead of using the item, so the switch is handled here too.
       const room = roomOf(player);
       return (
-        ridden(player)?.id === vehicle.id ||
+        riddenVehicle(player)?.id === vehicle.id ||
         (room === vehicle.id && inSwitchableRoom(player, room))
       );
     },
@@ -89,7 +85,8 @@ export function vehicleSwitchTarget(
     // deck seat in a room counts as a use too. The router cancels it, so the switch never also
     // opens a door or the cabinet. Riders of a vehicle keep the events they had (ADR 0115).
     claimsBlockPress: (player) =>
-      ridden(player) === undefined && inSwitchableRoom(player, roomOf(player)),
+      riddenVehicle(player) === undefined &&
+      inSwitchableRoom(player, roomOf(player)),
     switchFor,
   };
 }
