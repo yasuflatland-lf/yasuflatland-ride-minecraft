@@ -1,18 +1,20 @@
 // Storage with doors in the parked camper: compartments that show, take and give their items
 // only while their door is open. Each unit is a definition (furniture.ts); this module holds
 // the code every unit shares and no unit's data (ADR 0114, 0121).
+
+import { SyncedValue } from "../../../shared/syncedValue";
+import { TapToggle } from "../../../shared/tapToggle";
 import type { StoragePress } from "../../dock/decor";
 import type { Face } from "../../dock/floor";
 import type { EngineCommand } from "../../drive";
-import { SyncedValue } from "../../syncedValue";
 import { DOOR_STEPS, restoredDoorStep, swing } from "./doorSwing";
-import { DoorToggle } from "./doorToggle";
 import type {
   DecorSlot,
   LocalCell,
   StorageCompartmentBlock,
   StoragePlateBlock,
 } from "./furniture";
+import { CAMPER_SPEC } from "./spec";
 
 /** A slot inside a compartment: an end of the compartment's pair block, behind door `door`. */
 export type StorageSlot<Id extends string = string> = Omit<
@@ -123,7 +125,7 @@ export function usableBehindDoor<Id extends string>(
 interface DoorState {
   open: boolean;
   step: number;
-  readonly toggle: DoorToggle;
+  readonly toggle: TapToggle;
   readonly sync: SyncedValue<number>;
 }
 
@@ -148,7 +150,7 @@ export class StorageDoors<Id extends string> {
           {
             open: step * 2 >= DOOR_STEPS,
             step,
-            toggle: new DoorToggle(),
+            toggle: new TapToggle(CAMPER_SPEC.doorSwingTicks),
             sync: new SyncedValue<number>(),
           },
         ];
