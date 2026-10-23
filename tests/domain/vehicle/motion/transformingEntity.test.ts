@@ -40,10 +40,6 @@ it("declares a bank range of plus or minus maxBank (ADR 0026)", () => {
 
 // -0 does not survive JSON, so a pack written as [0, 0] would never match the contract.
 it("declares a bank range of [0, 0] with no negative zero when the kind has no bank", () => {
-  const [low, high] = transformingProperties(0).bank.range;
-  expect(Object.is(low, 0)).toBe(true);
-  expect(Object.is(high, 0)).toBe(true);
-  expect(JSON.parse(JSON.stringify(transformingProperties(0)))).toStrictEqual(
-    transformingProperties(0),
-  );
+  // toStrictEqual tells -0 from +0.
+  expect(transformingProperties(0).bank.range).toStrictEqual([0, 0]);
 });

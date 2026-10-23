@@ -500,9 +500,11 @@ it("flies with a finite climb and a level bank when the kind has no bank", () =>
           });
           expect(Number.isFinite(out.impulse.y)).toBe(true);
           expect(drive.inspect().bank).toBe(0);
-          for (const c of out.commands)
-            if (c.type === "setProperty" && c.name === "bank")
+          for (const c of out.commands) {
+            if (c.type === "setProperty" && c.name === "bank") {
               expect(c.value).toBe(0);
+            }
+          }
         });
       },
     ),
