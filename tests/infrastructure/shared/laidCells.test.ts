@@ -227,6 +227,36 @@ describe("CellLayer", () => {
     expect(next.at(cell(1))).toBe("minecraft:air");
   });
 
+  it("reports held keys from the save before the first lay, then from the laid cells in the holder's dimension only", () => {
+    fc.assert(
+      fc.property(
+        fc.uniqueArray(fc.integer({ min: -20, max: 20 }), { maxLength: 6 }),
+        fc.uniqueArray(fc.integer({ min: -20, max: 20 }), { maxLength: 6 }),
+        (savedXs, laidXs) => {
+          const f = fixture();
+          const keys = (xs: number[]) =>
+            new Set(xs.map((x) => cellKey(cell(x))));
+          f.saved.set(
+            codec.property,
+            JSON.stringify(savedXs.map((x) => cell(x))),
+          );
+          expect(f.layer.heldKeys("one", f.holder)).toEqual(keys(savedXs));
+          f.layer.lay(
+            "one",
+            f.holder,
+            laidXs.map((x) => cell(x)),
+          );
+          expect(f.layer.heldKeys("one", f.holder)).toEqual(keys(laidXs));
+          const away = {
+            ...f.holder,
+            dimension: fakeDimension("nether").dimension,
+          };
+          expect(f.layer.heldKeys("one", away)).toEqual(new Set());
+        },
+      ),
+    );
+  });
+
   it("looks up the first owner by dimension, predicate, and exact block id", () => {
     const f = fixture();
     f.layer.lay("one", f.holder, [cell()]);
