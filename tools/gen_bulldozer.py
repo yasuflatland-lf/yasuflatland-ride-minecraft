@@ -34,7 +34,6 @@ PALETTE = {
     "grouser": (92, 88, 78, 255),
     "link": (120, 116, 104, 255),
     "steel": (158, 158, 152, 255),
-    "edge": (122, 124, 124, 255),
     "bolt": (60, 60, 58, 255),
     "chrome": (214, 216, 218, 255),
     "rubber": (20, 20, 20, 255),
@@ -554,12 +553,11 @@ while y < BLADE_TOP + 1.9 - 1e-6:
         x_half = GUARD + (BLADE_TOP + 1.9 - y1) / 1.9 * 3.8
         blade.append(box(-x_half, y, zf, x_half, y1, zf + 1.0, "yellow"))
     y = y1
-# Cutting edge in five bolted segments, end bits at the corners
+# Cutting edge in five bolted segments, end bits at the corners, painted like the moldboard
 EDGE_CUTS = [f * BLADE_HALF for f in (-1.0, -0.794, -0.393, 0.393, 0.794, 1.0)]
 for i, (x0, x1) in enumerate(zip(EDGE_CUTS, EDGE_CUTS[1:])):
     x0, x1 = x0 + (0.1 if i else 0.0), x1 - (0.1 if i < 4 else 0.0)
-    color = "steel" if i in (0, 4) else "edge"
-    blade.append(box(x0, 0.0, BLADE_FRONT, x1, 3.0, BLADE_FRONT + 1.4, color))
+    blade.append(box(x0, 0.0, BLADE_FRONT, x1, 3.0, BLADE_FRONT + 1.4, "yellow"))
     blade.append(box(x0, 0.6, BLADE_FRONT + 1.4, x1, 3.0, BLADE_FRONT + 4.6, "yellow_dark"))
     n = max(2, round((x1 - x0) / 2.2))
     for k in range(n):
@@ -1146,14 +1144,6 @@ for kx in (-2.5, -1.7, -0.9):
     inside += disc("z", kx, HEADLINER - 0.9, CAB_FRONT + 3.4, 0.3, 0.15, "steel", STEPS_8)
 inside.append(box(-0.3, HEADLINER - 1.15, CAB_FRONT + 3.4, 2.8, HEADLINER - 0.65, CAB_FRONT + 3.45, "screen"))
 body += inside
-# Wipers parked upright on the front side panes and the door glass, outside
-WIPER_X = CHAMFER_X + 3.0
-WIPER_Z = CAB_FRONT + (CHAMFER_Z - CAB_FRONT) * 3.0 / (CAB_HALF - CHAMFER_X) - 0.2
-# The wiper sits on the door's angled pane, so the left one swings with the door.
-wiper = [box(WIPER_X - 0.15, WIN_SIDE_BOTTOM + 1.2, WIPER_Z - 0.15, WIPER_X + 0.15, 40.0, WIPER_Z + 0.15, "black"),
-         box(WIPER_X - 0.35, WIN_SIDE_BOTTOM + 0.4, WIPER_Z - 0.3, WIPER_X + 0.35, WIN_SIDE_BOTTOM + 1.2, WIPER_Z + 0.1, "frame")]
-body += wiper
-door_left += [mirrored(c) for c in wiper]
 
 
 def mirror_x(bones):
