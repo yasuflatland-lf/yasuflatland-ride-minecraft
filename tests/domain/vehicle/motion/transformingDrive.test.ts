@@ -749,11 +749,6 @@ it("carries the horizontal step's state into the next tick", () => {
   );
 });
 
-/** Flat ground with a one-block step just ahead of the front of the hitbox. */
-function oneBlockStepAhead(spec: TransformingSpec): TickContext["solidAt"] {
-  return (o) => o.y < 0 || (o.z >= spec.hitboxFront + 0.1 && o.y < 1);
-}
-
 it.each([
   ["SUV", SUV_TRANSFORMING, SUV_MOTION, SUV_TYRES],
   ["camper", CAMPER_TRANSFORMING, CAMPER_MOTION, CAMPER_TYRES],
@@ -764,7 +759,7 @@ it.each([
       ...context(),
       onGround: true,
       velocity: { x: 0, y: 0, z: 0 },
-      solidAt: oneBlockStepAhead(spec),
+      solidAt: (o) => o.y < 0 || (o.z >= spec.hitboxFront + 0.1 && o.y < 1),
     };
     const hopping = new TransformingDrive(0, {}, spec, limits, tyres);
     const flat = new TransformingDrive(0, {}, spec, limits, tyres, {
@@ -868,6 +863,11 @@ it("with step-up on a submarine rises at the same shore step", () => {
   expect(rises).toBeGreaterThan(0);
 });
 
+/** Flat ground with a one-block step just ahead of the front of the hitbox. */
+function oneBlockStepAhead(spec: TransformingSpec): TickContext["solidAt"] {
+  return (o) => o.y < 0 || (o.z >= spec.hitboxFront + 0.1 && o.y < 1);
+}
+
 /** A drive whose step-up follows a switch the test flips between ticks. */
 class SwitchedStepUp extends TransformingDrive {
   stepUpOn = true;
@@ -877,7 +877,7 @@ class SwitchedStepUp extends TransformingDrive {
 }
 
 function switched(
-  options: TransformingOptions = {},
+  options: TransformingOptions,
   restored: { form?: Form } = {},
 ): SwitchedStepUp {
   return new SwitchedStepUp(
@@ -930,6 +930,31 @@ it("a hook that returns a fixed value steps exactly like the matching stepUp opt
   );
 });
 
+// Starting in submarine form at a shore step is what reaches the submarine
+// rising probe; the car-form run above never finds a step there.
+it("a hook that returns a fixed value rises at a shore step exactly like the matching stepUp option", () => {
+  fc.assert(
+    fc.property(fc.boolean(), tickSequence, (on, ticks) => {
+      const drive = switched({ stepUp: !on }, { form: "submarine" });
+      drive.stepUpOn = on;
+      const reference = suvDrive({ stepUp: on }, { form: "submarine" });
+      ticks.forEach(({ raw, depth, velocity, onGround }, tick) => {
+        const input = { ...raw, moveY: Math.abs(raw.moveY) };
+        const ctx: TickContext = {
+          ...context(SUV_TRANSFORMING.carHeight + depth),
+          tick,
+          velocity,
+          onGround,
+          solidAt: shoreStep,
+        };
+        expect(drive.step(input, ctx)).toStrictEqual(
+          reference.step(input, ctx),
+        );
+      });
+    }),
+  );
+});
+
 it("on a tick with the hook off, only the landing gear reads solidAt", () => {
   fc.assert(
     fc.property(
@@ -939,7 +964,7 @@ it("on a tick with the hook off, only the landing gear reads solidAt", () => {
       }),
       stepTerrain,
       (ticks, ground) => {
-        const drive = switched();
+        const drive = switched({});
         ticks.forEach(({ sample, on }, tick) => {
           drive.stepUpOn = on;
           const terrain = terrainContext(ground, sample, tick);
@@ -962,7 +987,7 @@ it("on a tick with the hook off, only the landing gear reads solidAt", () => {
 });
 
 it("switching the hook on mid-drive starts hopping a one-block step, and switching it off stops it", () => {
-  const drive = switched();
+  const drive = switched({});
   const ctx: TickContext = {
     ...context(),
     solidAt: oneBlockStepAhead(SUV_TRANSFORMING),
