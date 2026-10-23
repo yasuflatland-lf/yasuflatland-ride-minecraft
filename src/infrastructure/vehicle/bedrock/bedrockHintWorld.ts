@@ -23,8 +23,8 @@ import type {
   HintArg,
   HintControls,
 } from "../../../domain/vehicle/hints";
+import { heldDye } from "../../shared/dyes";
 import type { EntityIndex } from "./entityIndex";
-import { heldDye } from "./heldDye";
 import { ENTITY_TYPE, hintKey } from "./identifiers";
 
 const CONTROLS: Readonly<Partial<Record<InputMode, HintControls>>> = {

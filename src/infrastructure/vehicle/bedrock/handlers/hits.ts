@@ -4,8 +4,8 @@ import { Player, world } from "@minecraft/server";
 import type { HitVehicle } from "../../../../application/vehicle/hitVehicle";
 import type { PaintVehicle } from "../../../../application/vehicle/paintVehicle";
 import { asPlayerId, asVehicleId } from "../../../../domain/shared/ids";
+import { heldDye } from "../../../shared/dyes";
 import { standsOnDeck } from "../deck";
-import { heldDye } from "../heldDye";
 import { vehicleOfTarget } from "../standIns";
 
 export function registerHits(

@@ -1,8 +1,10 @@
 import { asPlayerId, asVehicleId } from "../../../domain/shared/ids";
 import {
-  HEADLIGHTS_PROPERTY_NAME,
+  PAINTS,
+  type Paint,
   paintEventName,
-} from "../../../domain/vehicle/entityContract";
+} from "../../../domain/shared/paint";
+import { HEADLIGHTS_PROPERTY_NAME } from "../../../domain/vehicle/entityContract";
 import type { FleetEntry } from "../../../domain/vehicle/fleet/fleet";
 import { VEHICLE_KINDS, type VehicleKind } from "../../../domain/vehicle/kind";
 import {
@@ -11,7 +13,6 @@ import {
   STAND_IN_NAMES,
   STANDING_GEAR_IDS,
 } from "../../../domain/vehicle/kinds/index";
-import { PAINTS, type Paint } from "../../../domain/vehicle/paint/paint";
 import {
   PLACEMENT_GIFTS,
   type PlacementGift,
@@ -170,17 +171,6 @@ export const CHASE_CAMERAS: Readonly<Record<ChaseCamera, string>> =
     far: id("far_chase"),
   });
 
-/**
- * The vanilla dye that repaints a vehicle with a paint (ADR 0031). Brown dye
- * turns it back to variant 0, which shows the kind's default paint (ADR 0076).
- */
-export function dyeOf(paint: Paint): string {
-  const color = paint === "khaki" ? "brown" : paint;
-  return `minecraft:${color}_dye`;
-}
-export const PAINT_BY_DYE: Readonly<Record<string, Paint>> = Object.fromEntries(
-  PAINTS.map((paint) => [dyeOf(paint), paint]),
-);
 /** minecraft:variant value for each paint. The render controller picks the texture by this index. */
 export const PAINT_VARIANT: Readonly<Record<Paint, number>> =
   Object.fromEntries(PAINTS.map((paint, i) => [paint, i])) as Record<

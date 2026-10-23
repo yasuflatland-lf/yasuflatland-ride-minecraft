@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
+import { PAINTS } from "../../src/domain/shared/paint";
 import { SLEEP_MESSAGES } from "../../src/domain/shared/sleep";
 import { DECOR_MESSAGES } from "../../src/domain/vehicle/dock/decorMessages";
 import { HINTS } from "../../src/domain/vehicle/hints";
@@ -11,7 +12,6 @@ import {
   type DecorSlot,
 } from "../../src/domain/vehicle/kinds/camper/furniture";
 import { CAMPER_PROFILE } from "../../src/domain/vehicle/kinds/camper/profile";
-import { PAINTS } from "../../src/domain/vehicle/paint/paint";
 import { CAMPER_DOOR_COMPONENT } from "../../src/infrastructure/vehicle/bedrock/identifiers";
 
 const RP = "packs/yasu_ride_rp";
