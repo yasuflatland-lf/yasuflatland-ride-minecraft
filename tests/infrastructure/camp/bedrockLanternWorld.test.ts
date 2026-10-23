@@ -65,4 +65,16 @@ describe("BedrockLanternWorld", () => {
       entity.location,
     );
   });
+
+  it("leaves a missing or invalid tent alone and stays silent", () => {
+    const world = new BedrockLanternWorld();
+    const loaded = tentEntity();
+    world.setLantern(asTentId("other"), true);
+    expect(loaded.setProperty).not.toHaveBeenCalled();
+    expect(loaded.dimension.playSound).not.toHaveBeenCalled();
+    const invalid = tentEntity({ isValid: false });
+    world.setLantern(TENT, true);
+    expect(invalid.setProperty).not.toHaveBeenCalled();
+    expect(invalid.dimension.playSound).not.toHaveBeenCalled();
+  });
 });
