@@ -33,7 +33,7 @@ function litCellFrom(v: unknown): LitCell | undefined {
     typeof level !== "number" ||
     !Number.isInteger(level) ||
     level < 0 ||
-    level > 15
+    level > FULL_LIGHT_LEVEL
   )
     return undefined;
   return { x, y, z, level };
