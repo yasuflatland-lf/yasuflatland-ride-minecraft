@@ -1,11 +1,11 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
+import { cellKey } from "../../../../../src/domain/shared/cells";
 import {
   SeatPresses,
   seatSlotCell,
 } from "../../../../../src/domain/vehicle/kinds/camper/seatPress";
 import { CAMPER_SPEC } from "../../../../../src/domain/vehicle/kinds/camper/spec";
-import { cellKey } from "../../../../../src/domain/vehicle/lighting/headlights";
 
 // Adding 0 turns -0 into +0: Math.floor(-0) is -0, which toEqual tells apart from the
 // +0 the expected cell gets from bottom + lowest.

@@ -1,3 +1,4 @@
+import type { Cell } from "../../../domain/shared/cells";
 import type {
   DimensionId,
   PlayerId,
@@ -22,7 +23,6 @@ import type {
   HintControls,
 } from "../../../domain/vehicle/hints";
 import type { VehicleKind } from "../../../domain/vehicle/kind";
-import type { Cell } from "../../../domain/vehicle/lighting/headlights";
 import type { ChaseCamera } from "../../../domain/vehicle/profile";
 import type { RamHit, RamTarget } from "../../../domain/vehicle/ram";
 import type { SeatAssignment } from "../../../domain/vehicle/seatChoice";

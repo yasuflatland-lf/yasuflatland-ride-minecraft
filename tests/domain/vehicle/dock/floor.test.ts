@@ -1,12 +1,12 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { cellKey } from "../../../../src/domain/shared/cells";
 import {
   type DockBlock,
   type DockCell,
   refloor,
   sameBlock,
 } from "../../../../src/domain/vehicle/dock/floor";
-import { cellKey } from "../../../../src/domain/vehicle/lighting/headlights";
 import { defined } from "../../../support/defined";
 
 const decorBlock = fc.record({

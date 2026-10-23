@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
+import { cellKey } from "../../../../../src/domain/shared/cells";
 import {
   decorFace,
   parseDecor,
@@ -41,7 +42,6 @@ import {
   wallFootCells,
 } from "../../../../../src/domain/vehicle/kinds/camper/room";
 import { CAMPER_SPEC } from "../../../../../src/domain/vehicle/kinds/camper/spec";
-import { cellKey } from "../../../../../src/domain/vehicle/lighting/headlights";
 import { DOCK } from "../../../../../src/domain/vehicle/motion/dock";
 import { defined } from "../../../../support/defined";
 

@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
+import { cellKey } from "../../../../../src/domain/shared/cells";
 import {
   forward,
   leftOf,
@@ -35,7 +36,6 @@ import {
   parkPose,
 } from "../../../../../src/domain/vehicle/kinds/camper/room";
 import { CAMPING_GEAR_IDS } from "../../../../../src/domain/vehicle/kinds/index";
-import { cellKey } from "../../../../../src/domain/vehicle/lighting/headlights";
 import { defined } from "../../../../support/defined";
 
 const SLOTS = CAMPER_FURNITURE.flatMap((f) =>

@@ -1,4 +1,5 @@
 // The parked camper's room: its pose, its cells, and what may stand in them (ADR 0068).
+import { cellKey } from "../../../shared/cells";
 import {
   forward,
   leftOf,
@@ -15,7 +16,6 @@ import {
   inBox,
 } from "../../dock/dock";
 import type { DockBlock, DockCell, Face, HoldPose } from "../../dock/floor";
-import { cellKey } from "../../lighting/headlights";
 import { seatWorldPositions } from "../../seats";
 import { DECOR_CELLS, decorInCell, decorSlot } from "./decor";
 import {

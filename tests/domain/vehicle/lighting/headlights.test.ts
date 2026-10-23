@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { type Cell, cellKey } from "../../../../src/domain/shared/cells";
 import { dot, forward, rightOf } from "../../../../src/domain/shared/vec";
 import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
 import { CAMPER_PROFILE } from "../../../../src/domain/vehicle/kinds/camper/profile";
@@ -8,8 +9,6 @@ import { profileOf } from "../../../../src/domain/vehicle/kinds/index";
 import { SUV_PROFILE } from "../../../../src/domain/vehicle/kinds/suv/profile";
 import { SUV_SPEC } from "../../../../src/domain/vehicle/kinds/suv/spec";
 import {
-  type Cell,
-  cellKey,
   headlightCells,
   relight,
 } from "../../../../src/domain/vehicle/lighting/headlights";

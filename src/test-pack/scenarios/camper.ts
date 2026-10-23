@@ -25,6 +25,7 @@ import {
 } from "../../domain/vehicle/kinds/camper/room";
 import { CAMPER_SPEC } from "../../domain/vehicle/kinds/camper/spec";
 import { DOCK } from "../../domain/vehicle/motion/dock";
+import { LIGHT_BLOCK } from "../../infrastructure/shared/lightBlocks";
 import { DOCK_RECHECK_TICKS } from "../../infrastructure/vehicle/bedrock/dockBlocks";
 import {
   AIR_BLOCK,
@@ -44,7 +45,6 @@ import {
   DECOR_HEIGHT_STATE,
   DECOR_SPOT_STATE,
   decorBlockId,
-  LIGHT_BLOCK,
   pairDecorBlockId,
   pairEndStates,
   pairHeightStates,

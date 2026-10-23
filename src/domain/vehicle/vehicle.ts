@@ -1,3 +1,4 @@
+import type { Cell } from "../shared/cells";
 import {
   EMPTY_COUNTER,
   type HitCounter,
@@ -21,10 +22,7 @@ import {
   zoneOf,
 } from "./hints";
 import type { VehicleKind } from "./kind";
-import {
-  type Cell,
-  headlightCells as cellsLitFrom,
-} from "./lighting/headlights";
+import { headlightCells as cellsLitFrom } from "./lighting/headlights";
 import type { ChaseCamera, VehicleProfile } from "./profile";
 import { type RamHit, type RamTarget, selectHits } from "./ram";
 import type { SeatAssignment } from "./seatChoice";

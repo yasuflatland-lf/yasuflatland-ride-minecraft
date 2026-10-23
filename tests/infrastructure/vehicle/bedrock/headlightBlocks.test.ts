@@ -1,13 +1,11 @@
 import type { Entity } from "@minecraft/server";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { cellKey } from "../../../../src/domain/shared/cells";
 import { asVehicleId } from "../../../../src/domain/shared/ids";
-import { cellKey } from "../../../../src/domain/vehicle/lighting/headlights";
+import { LIGHT_BLOCK } from "../../../../src/infrastructure/shared/lightBlocks";
 import { HeadlightBlocks } from "../../../../src/infrastructure/vehicle/bedrock/headlightBlocks";
-import {
-  LIGHT_BLOCK,
-  LIT_CELLS_PROPERTY,
-} from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
+import { LIT_CELLS_PROPERTY } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 import { blockGrid } from "../../../support/blockGrid";
 import { defined } from "../../../support/defined";
 

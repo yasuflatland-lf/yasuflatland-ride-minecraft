@@ -154,7 +154,6 @@ export const DECK_SEATS_PROPERTY = id("deck_seats");
 export const DECK_SEAT_OF_PROPERTY = id("deck_seat_of");
 /** Event and component group that shrink a deck seat's hit box to the toilet (ADR 0095). */
 export const DECK_SEAT_COMPACT_EVENT = entityEventId("compact");
-export const LIGHT_BLOCK = "minecraft:light_block_15";
 /**
  * Test input messages have the form "<vehicleId>,<moveX>,<moveY>,<jump>"
  * (jump is 0 / 1). "<vehicleId>,clear" clears the input.
