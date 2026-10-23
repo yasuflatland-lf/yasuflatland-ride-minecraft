@@ -114,14 +114,9 @@ export class CamperDrive extends TransformingDrive {
   private readonly stowedDecor: DecorPlacement[] = [];
 
   constructor(yaw: number, restored: RestoredOf<typeof CAMPER_ENTITY>) {
-    super(
-      yaw,
-      restored,
-      CAMPER_TRANSFORMING,
-      CAMPER_MOTION,
-      CAMPER_TYRES,
-      (step, ctx, form) => guardEnds(step, ctx, CAMPER_ENDS, form),
-    );
+    super(yaw, restored, CAMPER_TRANSFORMING, CAMPER_MOTION, CAMPER_TYRES, {
+      guard: (step, ctx, form) => guardEnds(step, ctx, CAMPER_ENDS, form),
+    });
     this.restoredDocked = restored.docked === true;
     this.restoredLaid = restored[DOCK_RESTORED.laid] === true;
     this.doorStep = restoredDoorStep(restored.door, this.restoredDocked);
