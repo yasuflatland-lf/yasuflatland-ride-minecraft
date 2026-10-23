@@ -12,6 +12,7 @@ import {
   PLACEMENT_GIFTS,
   type PlacementGift,
 } from "../../../domain/vehicle/placement/gift";
+import type { StarterKind } from "../../../domain/vehicle/placement/starter";
 import type { ChaseCamera } from "../../../domain/vehicle/profile";
 import type { RamMount } from "../../../domain/vehicle/ram";
 import type { StandInAxis } from "../../../domain/vehicle/standIn";
@@ -49,8 +50,9 @@ export function kindOfItem(
   return VEHICLE_KINDS.find((kind) => ITEM_TYPE[kind] === typeId);
 }
 export const PLAYER_TYPE = "minecraft:player";
-/** Dynamic property on a player, set after they have been given their starter vehicle item (ADR 0023). */
-export const STARTER_RECEIVED_PROPERTY = id("starter_received");
+/** Player dynamic property set after they have been given each starter kind's item (ADR 0023). The SUV keeps the original key, so nobody gets a second SUV. */
+export const STARTER_RECEIVED_PROPERTY: Readonly<Record<StarterKind, string>> =
+  Object.freeze({ suv: id("starter_received") });
 
 /** The item of each placement gift (ADR 0093). */
 export const GIFT_ITEM: Readonly<Record<PlacementGift, string>> = Object.freeze(

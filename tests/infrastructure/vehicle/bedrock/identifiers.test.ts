@@ -20,6 +20,7 @@ import {
   CAMPING_GEAR_IDS,
   STANDING_GEAR_IDS,
 } from "../../../../src/domain/vehicle/kinds/index";
+import { STARTER_KINDS } from "../../../../src/domain/vehicle/placement/starter";
 import { paintEvent } from "../../../../src/infrastructure/shared/dyes";
 import {
   HEADLIGHT_SWITCH_TYPE,
@@ -164,7 +165,7 @@ describe("identifiers (ADR 0047)", () => {
     const ids = [
       ...Object.values(ENTITY_TYPE),
       ...Object.values(ITEM_TYPE),
-      STARTER_RECEIVED_PROPERTY,
+      ...STARTER_KINDS.map((kind) => STARTER_RECEIVED_PROPERTY[kind]),
       FLEET_PROPERTY,
       OWNER_PROPERTY,
       HEADLIGHT_SWITCH_TYPE,
@@ -223,7 +224,12 @@ describe("identifiers (ADR 0047)", () => {
     ).toBeUndefined();
   });
 
+  it("keeps the SUV's original starter flag, so nobody gets a second SUV (ADR 0023)", () => {
+    expect(STARTER_RECEIVED_PROPERTY.suv).toBe("yasu_ride:starter_received");
+  });
+
   it("freezes the entity and item type tables", () => {
+    expect(Object.isFrozen(STARTER_RECEIVED_PROPERTY)).toBe(true);
     expect(Object.isFrozen(ENTITY_TYPE)).toBe(true);
     expect(Object.isFrozen(ITEM_TYPE)).toBe(true);
   });

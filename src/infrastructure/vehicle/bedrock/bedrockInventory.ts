@@ -7,6 +7,7 @@ import type {
 import type { PlayerId } from "../../../domain/shared/ids";
 import type { VehicleKind } from "../../../domain/vehicle/kind";
 import type { PlacementGift } from "../../../domain/vehicle/placement/gift";
+import type { StarterKind } from "../../../domain/vehicle/placement/starter";
 import { consumeHeld, giveOrDrop } from "../../shared/players";
 import type { EntityIndex } from "./entityIndex";
 import {
@@ -28,10 +29,10 @@ export class BedrockInventory implements StarterWorld, GiftBoxWorld {
     return consumeHeld(player, typeId, slot ?? player.selectedSlotIndex);
   }
 
-  receivedStarter(playerId: PlayerId): boolean | undefined {
+  receivedStarter(playerId: PlayerId, kind: StarterKind): boolean | undefined {
     const player = this.index.player(playerId);
     if (!player) return undefined;
-    return player.getDynamicProperty(STARTER_RECEIVED_PROPERTY) === true;
+    return player.getDynamicProperty(STARTER_RECEIVED_PROPERTY[kind]) === true;
   }
 
   /** Puts one of each item type into the player's inventory and drops what does not fit at the player's feet. */
@@ -46,10 +47,10 @@ export class BedrockInventory implements StarterWorld, GiftBoxWorld {
     this.give(playerId, [new ItemStack(ITEM_TYPE[kind], 1)]);
   }
 
-  markStarterReceived(playerId: PlayerId): void {
+  markStarterReceived(playerId: PlayerId, kind: StarterKind): void {
     this.index
       .player(playerId)
-      ?.setDynamicProperty(STARTER_RECEIVED_PROPERTY, true);
+      ?.setDynamicProperty(STARTER_RECEIVED_PROPERTY[kind], true);
   }
 
   receivedGift(playerId: PlayerId, gift: PlacementGift): boolean | undefined {
