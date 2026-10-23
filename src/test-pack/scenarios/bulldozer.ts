@@ -472,3 +472,27 @@ export async function bulldozerDive(a: Arena): Promise<Outcome> {
     dim.runCommand(`fill 100 ${gy} 61 118 ${gy + 4} 69 air`);
   }
 }
+
+export async function bulldozerSpawnsRaised(a: Arena): Promise<Outcome> {
+  const { dim, gy } = a;
+  try {
+    cleanup(a);
+    dim.runCommand(`fill 100 ${gy} 81 104 ${gy} 85 stone`);
+    return await withBulldozer(a, 90.5, 83.5, -90, async (car) => {
+      await wait(2);
+      const blade = car.getProperty(entityPropertyId("blade"));
+      await throughHill(car);
+      const removed = missingStone(
+        a,
+        { x: 100, y: gy, z: 81 },
+        { x: 104, y: gy, z: 85 },
+      ).length;
+      return {
+        pass: blade === 1 && car.location.x >= 108 && removed === 0,
+        detail: `blade=${String(blade)} x=${car.location.x.toFixed(2)} removed=${removed}`,
+      };
+    });
+  } finally {
+    cleanup(a);
+  }
+}

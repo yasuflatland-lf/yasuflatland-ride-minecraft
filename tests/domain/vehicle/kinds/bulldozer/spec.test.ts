@@ -88,7 +88,7 @@ it("sizes the tracks and the door from the model", () => {
     hopTicks: MOTION.stepTicks,
   });
 });
-it("lifts the blade in half a second and spawns it lowered until the switch item exists (ADR 0138)", () => {
+it("lifts the blade in half a second and starts a placed bulldozer with its blade raised (ADR 0138)", () => {
   expect(S.bladeLiftTicks).toBe(10);
-  expect(S.bladeRaisedOnSpawn).toBe(false);
+  expect(S.bladeRaisedOnSpawn).toBe(true);
 });

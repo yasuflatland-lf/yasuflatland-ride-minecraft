@@ -2,6 +2,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { expect, it } from "vitest";
 import { PAINTS } from "../../src/domain/shared/paint";
 import { BULLDOZER_PROFILE } from "../../src/domain/vehicle/kinds/bulldozer/profile";
+import { BULLDOZER_SPEC } from "../../src/domain/vehicle/kinds/bulldozer/spec";
 import { FORMS } from "../../src/domain/vehicle/motion/forms";
 import { expectContiguous, speedRanges } from "../support/soundLevels";
 
@@ -48,9 +49,12 @@ it("declares the transforming properties with a nonzero range for its zero bank"
   expect(p["yasu_ride:blade"]).toEqual({
     type: "float",
     range: [0, 1],
-    default: 0,
+    default: 1,
     client_sync: true,
   });
+  expect(p["yasu_ride:blade"].default).toBe(
+    BULLDOZER_SPEC.bladeRaisedOnSpawn ? 1 : 0,
+  );
   expect(p["yasu_ride:gear_down"].default).toBe(true);
   for (const key of ["bank", "spin_r", "spin_l", "door", "blade"]) {
     const text = readFileSync(

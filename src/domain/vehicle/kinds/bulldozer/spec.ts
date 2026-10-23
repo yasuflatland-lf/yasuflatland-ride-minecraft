@@ -60,8 +60,8 @@ export const BULLDOZER_SPEC = Object.freeze({
   doorSteps: 10,
   // Ticks the blade takes to travel fully up or down; the rig animation follows the property (ADR 0138).
   bladeLiftTicks: 10,
-  // Lowered until the Blade Up/Down item exists (6/6 sets this to true).
-  bladeRaisedOnSpawn: false,
+  // The owner wants placement raised: climb steps and cut nothing until lowered (ADR 0138).
+  bladeRaisedOnSpawn: true,
   headlightReach: Object.freeze([6, 10, 15, 21, 27] as const),
   headlightLevels: Object.freeze([8, 12, 15, 15, 15] as const),
   blade: Object.freeze({
