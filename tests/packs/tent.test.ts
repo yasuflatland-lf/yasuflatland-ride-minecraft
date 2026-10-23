@@ -32,17 +32,21 @@ function corners(cube: Cube): [number, number, number][] {
       for (const k of [0, 1]) points.push([x0 + i * w, y0 + j * h, z0 + k * d]);
   if (!cube.rotation || !cube.pivot) return points;
   const [px, py, pz] = cube.pivot;
-  const [rx, , rz] = cube.rotation.map((a) => (a * Math.PI) / 180);
+  const [rx, , rz] = cube.rotation.map((a) => (a * Math.PI) / 180) as [
+    number,
+    number,
+    number,
+  ];
+  const [cx, sx, cz, sz] = [
+    Math.cos(rx),
+    Math.sin(rx),
+    Math.cos(rz),
+    Math.sin(rz),
+  ];
   return points.map(([x, y, z]) => {
     let [dx, dy, dz] = [x - px, y - py, z - pz];
-    [dy, dz] = [
-      dy * Math.cos(rx ?? 0) + dz * Math.sin(rx ?? 0),
-      -dy * Math.sin(rx ?? 0) + dz * Math.cos(rx ?? 0),
-    ];
-    [dx, dy] = [
-      dx * Math.cos(rz ?? 0) + dy * Math.sin(rz ?? 0),
-      -dx * Math.sin(rz ?? 0) + dy * Math.cos(rz ?? 0),
-    ];
+    [dy, dz] = [dy * cx + dz * sx, -dy * sx + dz * cx];
+    [dx, dy] = [dx * cz + dy * sz, -dx * sz + dy * cz];
     return [dx + px, dy + py, dz + pz];
   });
 }
