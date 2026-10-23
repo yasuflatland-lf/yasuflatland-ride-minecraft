@@ -1,6 +1,6 @@
 # 0134. Switch the tent lantern with the headlight switch
 
-- Status: Proposed (to be Accepted once the manual checks under Tent lantern in [manual-test.md](../manual-test.md) pass)
+- Status: Proposed (to be Accepted once the manual checks under Tent lantern in [manual-test.md](../manual-test.md) pass); extended by [0138](0138-raise-and-lower-the-bulldozer-blade.md) (Proposed): the router routes each switch item to its own targets
 - Date: 2026-10-23
 - Extends: [0024](0024-item-use-on-mobile-and-longer-headlights.md) (the switch cooldown), [0115](0115-camper-ceiling-lights.md) (ceiling lights switched from inside a room), [0131](0131-pitch-a-tent-in-the-camp.md) (the tent's cells and shelter), [0129](0129-share-room-primitives-between-features.md) (the shared switch router)
 

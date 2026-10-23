@@ -45,8 +45,14 @@ it("declares the transforming properties with a nonzero range for its zero bank"
     default: 0,
     client_sync: true,
   });
+  expect(p["yasu_ride:blade"]).toEqual({
+    type: "float",
+    range: [0, 1],
+    default: 0,
+    client_sync: true,
+  });
   expect(p["yasu_ride:gear_down"].default).toBe(true);
-  for (const key of ["bank", "spin_r", "spin_l", "door"]) {
+  for (const key of ["bank", "spin_r", "spin_l", "door", "blade"]) {
     const text = readFileSync(
       `${BP}/entities/yasu_ride/bulldozer.se.json`,
       "utf8",
@@ -113,7 +119,7 @@ it("names the bulldozer and its item in every locale", () => {
     expect(text).toContain("item.yasu_ride:bulldozer_item.name=");
   }
 });
-it("runs the tracks and the door from their properties", () => {
+it("runs the tracks, the door, and the blade rig from their properties", () => {
   const bones: Record<string, unknown> = {};
   for (const s of ["r", "l"]) {
     for (let n = 0; n < 3; n++)
@@ -126,6 +132,17 @@ it("runs the tracks and the door from their properties", () => {
       };
   }
   bones.door_l = { rotation: [0, "query.property('yasu_ride:door') * 70", 0] };
+  bones.blade_rig = {
+    position: [
+      0,
+      "query.property('yasu_ride:blade') * 3",
+      "query.property('yasu_ride:blade') * 3",
+    ],
+  };
+  for (const side of ["r", "l"])
+    bones[`lift_rod_${side}`] = {
+      scale: [1, 1, "1 - query.property('yasu_ride:blade') * 3 / 12.6"],
+    };
   expect(anim["animation.yasu_ride.bulldozer.drive"].bones).toEqual(bones);
   const names = read(`${RP}/models/entity/yasu_ride/bulldozer.geo.json`)[
     "minecraft:geometry"
