@@ -861,3 +861,147 @@ it("with step-up on a submarine rises at the same shore step", () => {
   }
   expect(rises).toBeGreaterThan(0);
 });
+
+/** A drive whose step-up follows a switch the test flips between ticks. */
+class SwitchedStepUp extends TransformingDrive {
+  stepUpOn = true;
+  protected override stepUpEnabled(): boolean {
+    return this.stepUpOn;
+  }
+}
+
+function switched(
+  options: TransformingOptions,
+  restored: { form?: Form } = {},
+): SwitchedStepUp {
+  return new SwitchedStepUp(
+    0,
+    restored,
+    SUV_TRANSFORMING,
+    SUV_MOTION,
+    SUV_TYRES,
+    options,
+  );
+}
+
+it("the default hook returns the stepUp option", () => {
+  class ExposedStepUp extends TransformingDrive {
+    enabled(): boolean {
+      return this.stepUpEnabled();
+    }
+  }
+  for (const options of [{}, { stepUp: true }, { stepUp: false }]) {
+    const drive = new ExposedStepUp(
+      0,
+      {},
+      SUV_TRANSFORMING,
+      SUV_MOTION,
+      SUV_TYRES,
+      options,
+    );
+    expect(drive.enabled()).toBe(options.stepUp ?? true);
+  }
+});
+
+it("a hook that returns a fixed value steps exactly like the matching stepUp option", () => {
+  fc.assert(
+    fc.property(
+      fc.boolean(),
+      stepTerrain,
+      tickSequence,
+      (on, ground, ticks) => {
+        const drive = switched({ stepUp: !on });
+        drive.stepUpOn = on;
+        const reference = suvDrive({ stepUp: on });
+        ticks.forEach((sample, tick) => {
+          const ctx = terrainContext(ground, sample, tick);
+          expect(drive.step(sample.raw, ctx)).toStrictEqual(
+            reference.step(sample.raw, ctx),
+          );
+        });
+      },
+    ),
+  );
+});
+
+it("on a tick with the hook off, only the landing gear reads solidAt", () => {
+  fc.assert(
+    fc.property(
+      fc.array(fc.record({ sample: tickSample, on: fc.boolean() }), {
+        minLength: 1,
+        maxLength: 80,
+      }),
+      stepTerrain,
+      (ticks, ground) => {
+        const drive = switched({});
+        ticks.forEach(({ sample, on }, tick) => {
+          drive.stepUpOn = on;
+          const terrain = terrainContext(ground, sample, tick);
+          let calls = 0;
+          const out = drive.step(sample.raw, {
+            ...terrain,
+            solidAt: (o) => {
+              calls++;
+              return terrain.solidAt(o);
+            },
+          });
+          if (!on) {
+            if (drive.form !== "landing") expect(calls).toBe(0);
+            if (drive.form === "car") expect(out.impulse.y).toBe(0);
+          }
+        });
+      },
+    ),
+  );
+});
+
+it("switching the hook on mid-drive starts hopping a one-block step, and switching it off stops it", () => {
+  const drive = switched({});
+  const ctx: TickContext = {
+    ...context(),
+    solidAt: (o) =>
+      o.y < 0 || (o.z >= SUV_TRANSFORMING.hitboxFront + 0.1 && o.y < 1),
+  };
+  let hops = 0;
+  for (let tick = 0; tick < 100; tick++) {
+    drive.stepUpOn = tick >= 40 && tick < 80;
+    const out = drive.step(FORWARD, { ...ctx, tick });
+    if (!drive.stepUpOn) expect(out.impulse.y).toBe(0);
+    else if (out.impulse.y === MOTION.oneStepVelocity) hops++;
+  }
+  expect(hops).toBeGreaterThan(0);
+});
+
+it("switching the hook per tick turns the submarine rising probe on and off", () => {
+  const drive = switched({}, { form: "submarine" });
+  let rises = 0;
+  for (let tick = 0; tick < 80; tick++) {
+    drive.stepUpOn = tick % 2 === 1;
+    const ctx: TickContext = {
+      ...context(SUV_TRANSFORMING.carHeight + 1),
+      tick,
+      solidAt: shoreStep,
+    };
+    const out = drive.step(FORWARD, ctx);
+    const withoutRise = submarineImpulseWithoutRise(FORWARD, ctx);
+    if (!drive.stepUpOn) expect(out.impulse.y).toBe(withoutRise);
+    else if (drive.form === "submarine" && out.impulse.y !== withoutRise)
+      rises++;
+  }
+  expect(rises).toBeGreaterThan(0);
+});
+
+it("never reads the hook during construction", () => {
+  class ReadyStepUp extends TransformingDrive {
+    private readonly ready = true;
+    protected override stepUpEnabled(): boolean {
+      if (this.ready !== true) throw new Error("read before step");
+      return true;
+    }
+  }
+  let drive: ReadyStepUp | undefined;
+  expect(() => {
+    drive = new ReadyStepUp(0, {}, SUV_TRANSFORMING, SUV_MOTION, SUV_TYRES);
+  }).not.toThrow();
+  expect(() => drive?.step(FORWARD, context())).not.toThrow();
+});
