@@ -87,6 +87,9 @@ describe("expectPackProperty", () => {
     expect(() =>
       expectPackProperty({ default: 0 }, { type: "int", range: [0, 2.5] }),
     ).toThrow();
+    expect(() =>
+      expectPackProperty({ default: 1 }, { type: "int", range: [0.5, 2] }),
+    ).toThrow();
   });
 
   it("rejects a float definition whose default is out of range", () => {
