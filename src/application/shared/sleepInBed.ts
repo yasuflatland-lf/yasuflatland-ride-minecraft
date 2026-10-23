@@ -1,5 +1,6 @@
-import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 // Use case: a player long-pressed or used a bed block (ADR 0092).
+
+import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import { canSleep, SLEEP, SLEEP_MESSAGES } from "../../domain/shared/sleep";
 import type { Vec3 } from "../../domain/shared/vec";
 import type { BedWorld } from "./ports/bed";
