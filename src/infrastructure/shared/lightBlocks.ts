@@ -3,7 +3,9 @@
 /** Block id of a light block emitting `level` (an integer from 0 to 15). */
 export function lightBlockId(level: number): string {
   if (!Number.isInteger(level) || level < 0 || level > 15) {
-    throw new RangeError("Light block level must be an integer from 0 to 15");
+    throw new RangeError(
+      `Light block level must be an integer from 0 to 15, got ${level}`,
+    );
   }
   return `minecraft:light_block_${level}`;
 }

@@ -1,5 +1,4 @@
 // The parked camper's room: its pose, its cells, and what may stand in them (ADR 0068).
-
 import { cellKey } from "../../../shared/cells";
 import {
   forward,

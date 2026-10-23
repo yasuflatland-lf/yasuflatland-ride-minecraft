@@ -68,4 +68,18 @@ describe("light blocks", () => {
       ),
     );
   });
+
+  it("rejects strings that hold the light block prefix anywhere but the start", () => {
+    fc.assert(
+      fc.property(
+        fc
+          .tuple(fc.string({ minLength: 1 }), fc.string())
+          .map(([pre, post]) => `${pre}minecraft:light_block${post}`)
+          .filter((s) => !s.startsWith("minecraft:light_block")),
+        (typeId) => {
+          expect(isLightBlock({ typeId })).toBe(false);
+        },
+      ),
+    );
+  });
 });
