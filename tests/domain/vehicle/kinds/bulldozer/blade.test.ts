@@ -66,7 +66,7 @@ it("covers every point of the blade rectangle", () =>
         expect(bladeColumns(p, y, rule, false)).toContainEqual({
           x: Math.floor(q.x),
           z: Math.floor(q.z),
-          bottom: Math.floor(p.y + 0.01),
+          bottom: Math.ceil(p.y - 0.01),
         });
       },
     ),
@@ -85,9 +85,32 @@ it("returns each column once", () =>
       expect(new Set(c.map((c) => `${c.x},${c.z}`)).size).toBe(c.length);
     }),
   ));
-it("starts every column at floor(y + 0.01)", () => {
+it("starts a ground cut above the floor block, full or partial", () => {
+  for (const [y, bottom] of [
+    [63.995, 64],
+    [64, 64],
+    [64.005, 64],
+    [63.9375, 64],
+    [63.875, 64],
+    [63.5, 64],
+    [64.5, 65],
+  ])
+    for (const c of bladeColumns({ x: 0, y: y ?? 0, z: 0 }, 0, rule, false))
+      expect(c.bottom).toBe(bottom);
+});
+it("never cuts the row of the block the feet stand on", () =>
+  fc.assert(
+    fc.property(pose, yaw, (p, y) => {
+      // The floor block's top is within 0.01 of the feet, or the feet are inside its row.
+      const floorRow =
+        p.y - Math.floor(p.y) < 0.01 ? Math.floor(p.y) - 1 : Math.floor(p.y);
+      for (const c of bladeColumns(p, y, rule, false))
+        expect(c.bottom).toBeGreaterThan(floorRow);
+    }),
+  ));
+it("starts a flight cut in the row the body sits in", () => {
   for (const y of [63.995, 64.5])
-    for (const c of bladeColumns({ x: 0, y, z: 0 }, 0, rule, false))
+    for (const c of bladeColumns({ x: 0, y, z: 0 }, 0, rule, true))
       expect(c.bottom).toBe(64);
 });
 it("cuts to the sky on the ground and up to the top of the body in flight", () => {

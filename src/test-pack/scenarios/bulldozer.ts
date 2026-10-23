@@ -64,34 +64,45 @@ export async function bulldozerClearHill(a: Arena): Promise<Outcome> {
   let boxes: ReturnType<typeof bladeColumns> = [];
   const observed = new Set<string>();
   const recordDrop = (entity: Entity) => {
+    // Another pack may already have swept this drop.
+    if (!entity.isValid) return;
+    let typeId: string;
+    let p: Entity["location"];
     try {
-      if (entity.typeId !== "minecraft:item" || observed.has(entity.id)) return;
-      const p = entity.location;
-      if (p.x < 96 || p.x > 112 || p.z < 78 || p.z > 89) return;
-      const distance = Math.min(
-        ...boxes.map((c) =>
-          Math.max(
-            c.x - p.x,
-            0,
-            p.x - c.x - 1,
-            c.bottom - p.y,
-            p.y - (gy + 5),
-            c.z - p.z,
-            p.z - c.z - 1,
-          ),
-        ),
-      );
-      if (Number.isFinite(distance)) {
-        observed.add(entity.id);
-        farthest = Math.max(farthest, distance);
-        spawns++;
-        dropLines.push(
-          `drop=${entity.getComponent("minecraft:item")?.itemStack.typeId} at=${p.x.toFixed(3)},${p.y.toFixed(3)},${p.z.toFixed(3)} d=${distance.toFixed(3)} boxX=${boxes[0]?.x}`,
-        );
-      }
-    } catch {
-      /* Another pack may already have swept this drop. */
+      typeId = entity.typeId;
+      p = entity.location;
+    } catch (e) {
+      dropLines.push(`dropReadError=${String(e)}`);
+      return;
     }
+    if (typeId !== "minecraft:item" || observed.has(entity.id)) return;
+    if (p.x < 96 || p.x > 112 || p.z < 78 || p.z > 89) return;
+    const distance = Math.min(
+      ...boxes.map((c) =>
+        Math.max(
+          c.x - p.x,
+          0,
+          p.x - c.x - 1,
+          c.bottom - p.y,
+          p.y - (gy + 5),
+          c.z - p.z,
+          p.z - c.z - 1,
+        ),
+      ),
+    );
+    if (!Number.isFinite(distance)) return;
+    observed.add(entity.id);
+    farthest = Math.max(farthest, distance);
+    spawns++;
+    let item: string | undefined;
+    try {
+      item = entity.getComponent("minecraft:item")?.itemStack.typeId;
+    } catch (e) {
+      item = `error:${String(e)}`;
+    }
+    dropLines.push(
+      `drop=${item} at=${p.x.toFixed(3)},${p.y.toFixed(3)},${p.z.toFixed(3)} d=${distance.toFixed(3)} boxX=${boxes[0]?.x}`,
+    );
   };
   const listener = (ev: { entity: Entity }) => recordDrop(ev.entity);
   // The main pack sweeps a new drop before this pack's spawn callback; capture it while still valid.
@@ -169,9 +180,11 @@ export async function bulldozerClearHill(a: Arena): Promise<Outcome> {
           floor &&
           marker &&
           items === 0 &&
+          // The scenario measures the drop radius (ADR 0137), so it needs a drop.
+          spawns > 0 &&
           diamond?.typeId === "minecraft:diamond" &&
           diamond.amount === 1,
-        detail: `x=${car.location.x.toFixed(2)} wrong=${wrong.join(";")} floor=${floor} marker=${marker} items=${items}`,
+        detail: `x=${car.location.x.toFixed(2)} wrong=${wrong.join(";")} floor=${floor} marker=${marker} items=${items} spawned=${spawns}`,
         lines: [
           `dropRadius=${farthest.toFixed(3)} spawned=${spawns}`,
           ...dropLines,
@@ -205,6 +218,32 @@ export async function bulldozerOverhang(a: Arena): Promise<Outcome> {
       return { pass, detail: `x=${car.location.x.toFixed(2)}` };
     });
   } finally {
+    cleanup(a);
+  }
+}
+export async function bulldozerDirtPath(a: Arena): Promise<Outcome> {
+  const floor = `${a.gy - 1}`;
+  const pathAt = (x: number, z: number) =>
+    a.dim.getBlock({ x, y: a.gy - 1, z })?.typeId;
+  try {
+    cleanup(a);
+    // Bedrock names the dirt path grass_path. Its top is 1/16 below a full block, so
+    // the tracks stand inside its row.
+    a.dim.runCommand(`fill 88 ${floor} 80 110 ${floor} 87 grass_path`);
+    return await withBulldozer(a, 90.5, 83.5, -90, async (car) => {
+      await throughHill(car);
+      const missing: string[] = [];
+      for (let x = 92; x <= 106; x++)
+        for (let z = 81; z <= 86; z++)
+          if (pathAt(x, z) !== "minecraft:grass_path")
+            missing.push(`${x},${z}:${pathAt(x, z)}`);
+      return {
+        pass: car.location.x >= 108 && missing.length === 0,
+        detail: `x=${car.location.x.toFixed(2)} y=${car.location.y.toFixed(4)} missing=${missing.join(";")}`,
+      };
+    });
+  } finally {
+    a.dim.runCommand(`fill 88 ${floor} 80 110 ${floor} 87 stone`);
     cleanup(a);
   }
 }

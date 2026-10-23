@@ -26,7 +26,12 @@ export function bladeColumns(
   // A unit cell's half extent projected on the blade's forward and side axes.
   const forwardRadius = (Math.abs(f.x) + Math.abs(f.z)) / 2;
   const sideRadius = (Math.abs(r.x) + Math.abs(r.z)) / 2;
-  const bottom = Math.floor(location.y + 0.01);
+  // Feet on a partial block (dirt path, farmland, mud, a bottom slab) stand inside
+  // that block's row, so a ground cut starts one row up to keep the floor. A
+  // hovering body at fractional height still needs the row it sits in (ADR 0136).
+  const bottom = flying
+    ? Math.floor(location.y + 0.01)
+    : Math.ceil(location.y - 0.01);
   const height = flying
     ? Math.ceil(location.y + rule.bodyHeight) - bottom
     : undefined;
