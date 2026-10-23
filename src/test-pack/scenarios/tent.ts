@@ -1,5 +1,5 @@
 // In-game checks of the tent entity contract (ADR 0130).
-import { ItemStack, system } from "@minecraft/server";
+import { ItemStack } from "@minecraft/server";
 import {
   TENT_FAMILY,
   TENT_FLAP_PROPERTY,
@@ -19,7 +19,6 @@ export async function tentEntityContract(a: Arena): Promise<Outcome> {
   })[0];
   if (!tent) return { pass: false, detail: "tent not spawned" };
   try {
-    const start = system.currentTick;
     await wait(10);
     const y = tent.location.y;
     const family = tent.matches({ families: [TENT_FAMILY] });
@@ -42,7 +41,7 @@ export async function tentEntityContract(a: Arena): Promise<Outcome> {
         variant === 0 &&
         health === 20 &&
         item.typeId === TENT_ITEM,
-      detail: `ticks=${system.currentTick - start} y=${y} family=${family} inanimate=${inanimate} flaps=${flaps} lantern=${lantern} variant=${variant} health=${health} item=${item.typeId}`,
+      detail: `y=${y} family=${family} inanimate=${inanimate} flaps=${flaps} lantern=${lantern} variant=${variant} health=${health} item=${item.typeId}`,
     };
   } finally {
     if (tent.isValid) tent.remove();

@@ -38,12 +38,13 @@ PALETTE = {
     "mattress": (64, 86, 120, 255), "mattress_edge": (44, 60, 86, 255),
 }
 SLOTS = list(PALETTE)
-# Each flap's opening (the bounds its cubes must stay within), roll pivot, parent bone, and paint.
+# Each flap's opening (the bounds its cubes must stay within), roll pivot, parent bone, and
+# paint. The bedroom D-door has no single paint; parts() builds it from inner and inner_shade.
 FLAPS = {
     "flap_front": ((-8, 0, -136, 8, 32, -135), (0, 32, -135.5), "fly", "fly"),
     "flap_left": ((53, 0, -88, 54, 32, -72), (53.5, 32, -80), "fly", "fly"),
     "flap_right": ((-54, 0, -88, -53, 32, -72), (-53.5, 32, -80), "fly", "fly"),
-    "flap_bedroom": ((-8, 0, -56, 8, 32, -55), (0, 32, -55.5), "inner", "inner_shade"),
+    "flap_bedroom": ((-8, 0, -56, 8, 32, -55), (0, 32, -55.5), "inner", None),
 }
 
 
@@ -90,6 +91,8 @@ def corners(cube):
     (x, y, z), (w, h, d) = cube["origin"], cube["size"]
     pts = [(x + i * w, y + j * h, z + k * d) for i in (0, 1) for j in (0, 1) for k in (0, 1)]
     if "rotation" in cube:
+        # Only x and z turns are modeled; a y turn would make every bounds check silently wrong.
+        assert cube["rotation"][1] == 0, cube
         pts = [game_rotate(p, cube["pivot"], cube["rotation"]) for p in pts]
     return pts
 
@@ -117,12 +120,13 @@ def end_panel(z0, z1, door):
                    box(8, 0, z0, 52, 32, z1, "fly")]
     else:
         result.append(box(-52, 0, z0, 52, 32, z1, "fly"))
-    # Narrow vertical strips follow the elliptical end without extending past the fly.
+    # Each 1 px strip reaches the arch's inner surface at its inner edge, so no slit stays open
+    # under the shell; its outer corner still ends inside the 1 px shell. Over the door the
+    # strips start above the binding, which would otherwise share their faces.
     for x in range(-52, 52):
-        edge = max(abs(x), abs(x + 1))
-        top = 32 + 39 * math.sqrt(1 - (edge / 52) ** 2)
-        if top > 32:
-            result.append(box(x, 32, z0, x + 1, top, z1, "fly"))
+        top = 32 + 39 * math.sqrt(1 - (min(abs(x), abs(x + 1)) / 52) ** 2)
+        bottom = 33 if door and -8 <= x < 8 else 32
+        result.append(box(x, bottom, z0, x + 1, top, z1, "fly"))
     return result
 
 
@@ -136,10 +140,11 @@ def parts():
     length = math.hypot(49, 20)
     fly.append(box(-41, 59, -135-length, 41, 60, -135, "fly",
                    pivot=(0, 60, -135), rotation=(math.degrees(math.atan2(20, 49)), 0, 0)))
-    # Bindings remain in the fly's two paint slots.
+    # Bindings remain in the fly's two paint slots. The side ones stand 0.1 px proud of the
+    # lowest arch segments so their outer faces do not share a plane.
     fly += [box(-8, 32, -135, 8, 33, -134, "fly_dark"),
-            box(52, 32, -88, 53, 33, -72, "fly_dark"),
-            box(-53, 32, -88, -52, 33, -72, "fly_dark")]
+            box(52, 32, -88, 53.1, 33, -72, "fly_dark"),
+            box(-53.1, 32, -88, -52, 33, -72, "fly_dark")]
     inner = [
         box(40, 0, -55, 41, 48, -7, "inner"),
         box(-41, 0, -55, -40, 48, -7, "inner"),
@@ -149,15 +154,19 @@ def parts():
         box(8, 0, -55, 41, 48, -54, "inner"),
         box(-8, 32, -55, 8, 48, -54, "inner"),
     ]
-    # The D-door has a straight left edge and a rounded right edge. Its corner
-    # infill belongs to the fixed inner panel, not to the rolling flap.
+    # The D-door has a straight edge at -x and a rounded edge at +x (the tent's left; the
+    # right side seen from the front room). Its corner infill belongs to the fixed inner
+    # panel, not to the rolling flap. The shaded rim takes over the row's last 0.5 px, so
+    # the two paints never share a face.
     bedroom_flap = [box(-8, 0, -56, 0, 32, -55, "inner")]
     for y in range(32):
         edge = max(abs(y - 16), abs(y + 1 - 16))
         width = 8 * math.sqrt(1 - (edge / 16) ** 2)
         if width:
-            bedroom_flap.append(box(0, y, -56, width, y+1, -55, "inner"))
-            bedroom_flap.append(box(max(0, width-0.5), y, -56, width, y+1, -55.75, "inner_shade"))
+            rim = max(0, width - 0.5)
+            if rim:
+                bedroom_flap.append(box(0, y, -56, rim, y+1, -55, "inner"))
+            bedroom_flap.append(box(rim, y, -56, width, y+1, -55, "inner_shade"))
         if width < 8:
             inner.append(box(width, y, -55, 8, y+1, -54, "inner"))
     poles = []
@@ -170,8 +179,9 @@ def parts():
     strap = [box(-1, 69, -134, 1, 70, 4, "strap")]
     for z in range(-132, 5, 24):
         # Four strips leave the center of each 2 px silver ring open.
-        strap += [box(-1, 68.75, z-1, -0.6, 69.25, z+1, "ring"),
-                  box(0.6, 68.75, z-1, 1, 69.25, z+1, "ring"),
+        # The side strips stand 0.05 px outside the strap so their faces do not share its plane.
+        strap += [box(-1.05, 68.75, z-1, -0.6, 69.25, z+1, "ring"),
+                  box(0.6, 68.75, z-1, 1.05, 69.25, z+1, "ring"),
                   box(-0.6, 68.75, z-1, 0.6, 69.25, z-0.6, "ring"),
                   box(-0.6, 68.75, z+0.6, 0.6, 69.25, z+1, "ring")]
     lantern = [box(-0.5, 44, -64.5, 0.5, 69, -63.5, "hook"),
@@ -242,12 +252,16 @@ def validate(parts):
             if name == "lantern_glass" and not inside(b, (-8, 32, -72, 8, 48, -56)):
                 errors.append("lantern_glass leaves its column")
             for face_uv in cube["uv"].values():
+                if face_uv["uv_size"] != [SWATCH, SWATCH]:
+                    errors.append(f"{name} has a face wider than one swatch")
                 u, v = face_uv["uv"]
                 slot = int(u // 4 + 4 * (v // 4))
                 if slot in (0, 1) and name not in ("fly", "flap_front", "flap_left", "flap_right"):
                     errors.append(f"{name} uses a fly paint slot")
                 if name == "flap_bedroom" and slot not in (2, 3):
                     errors.append("bedroom flap uses a non-inner slot")
+                if (name == "lantern_glass") != (slot == SLOTS.index("glass")):
+                    errors.append(f"{name} breaks the lantern glass slot")
     if errors:
         sys.exit("\n".join(errors))
 
