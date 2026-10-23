@@ -1331,5 +1331,4 @@ png(
     lambda x, y: ICON_COLORS[BLADE_SWITCH_ICON[y][x]],
 )
 
-
 print("cubes:", sum(len(b.get("cubes", [])) for b in bones))

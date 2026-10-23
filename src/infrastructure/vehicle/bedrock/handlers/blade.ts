@@ -1,5 +1,4 @@
 // The bulldozer blade's target for the shared switch router (ADR 0024, 0134, 0138).
-import type { Player } from "@minecraft/server";
 import type { SwitchBlade } from "../../../../application/vehicle/switchBlade";
 import { asPlayerId, asVehicleId } from "../../../../domain/shared/ids";
 import type { SwitchTarget } from "../../../shared/switchRouter";
@@ -17,15 +16,14 @@ export function bladeSwitchTarget(blade: SwitchBlade): SwitchTarget {
       return vehicle !== undefined && vehicle.id === riddenVehicle(player)?.id;
     },
     claimsBlockPress: () => false,
-    switchFor: (player: Player) => {
+    switchFor: (player) => {
       const vehicle = riddenVehicle(player);
       if (!vehicle) return;
-      if (
-        blade.execute({
-          playerId: asPlayerId(player.id),
-          vehicleId: asVehicleId(vehicle.id),
-        })
-      )
+      const switched = blade.execute({
+        playerId: asPlayerId(player.id),
+        vehicleId: asVehicleId(vehicle.id),
+      });
+      if (switched)
         vehicle.dimension.playSound(BLADE_SWITCH_SOUND, vehicle.location);
     },
   };
