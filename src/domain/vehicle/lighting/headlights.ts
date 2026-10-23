@@ -39,13 +39,13 @@ export function headlightCells(
 
 /** Which lit cells to clear and which to light to go from `lit` to `wanted`. */
 export function relight(
-  lit: readonly Cell[],
-  wanted: readonly Cell[],
-): { clear: Cell[]; light: Cell[] } {
-  const litKeys = new Set(lit.map(cellKey));
-  const wantedKeys = new Set(wanted.map(cellKey));
+  lit: readonly LitCell[],
+  wanted: readonly LitCell[],
+): { clear: LitCell[]; light: LitCell[] } {
+  const litKeys = new Set(lit.map(litCellKey));
+  const wantedKeys = new Set(wanted.map(litCellKey));
   return {
-    clear: lit.filter((c) => !wantedKeys.has(cellKey(c))),
-    light: wanted.filter((c) => !litKeys.has(cellKey(c))),
+    clear: lit.filter((c) => !wantedKeys.has(litCellKey(c))),
+    light: wanted.filter((c) => !litKeys.has(litCellKey(c))),
   };
 }
