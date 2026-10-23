@@ -1,7 +1,8 @@
-import type { PlayerId, VehicleId } from "../../../domain/shared/ids";
 // Ports for painting a vehicle; implemented in the infrastructure layer (ADR 0012).
+
+import type { PlayerId, VehicleId } from "../../../domain/shared/ids";
+import type { Paint } from "../../../domain/shared/paint";
 import type { VehicleKind } from "../../../domain/vehicle/kind";
-import type { Paint } from "../../../domain/vehicle/paint/paint";
 
 export interface PaintWorld {
   /** undefined when the vehicle no longer exists. */

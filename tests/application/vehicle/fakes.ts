@@ -20,6 +20,7 @@ import type {
 import type { Clock } from "../../../src/application/vehicle/ports/shared";
 import { type Cell, cellKey } from "../../../src/domain/shared/cells";
 import { asVehicleId, type VehicleId } from "../../../src/domain/shared/ids";
+import type { Paint } from "../../../src/domain/shared/paint";
 import type { Vec3 } from "../../../src/domain/shared/vec";
 import type { DecorPlacement } from "../../../src/domain/vehicle/dock/decor";
 import type {
@@ -42,7 +43,6 @@ import type { Hint } from "../../../src/domain/vehicle/hints";
 import type { VehicleKind } from "../../../src/domain/vehicle/kind";
 import { parkPose } from "../../../src/domain/vehicle/kinds/camper/room";
 import { createVehicle } from "../../../src/domain/vehicle/kinds/index";
-import type { Paint } from "../../../src/domain/vehicle/paint/paint";
 import type { PlacementGift } from "../../../src/domain/vehicle/placement/gift";
 import type { ChaseCamera } from "../../../src/domain/vehicle/profile";
 import type { RamHit, RamTarget } from "../../../src/domain/vehicle/ram";

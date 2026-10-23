@@ -1,5 +1,5 @@
+import { PAINT_EVENT_PREFIX } from "../shared/paint";
 import type { EngineCommand, RestoredValues } from "./drive";
-import type { Paint } from "./paint/paint";
 
 export type PropertySpec =
   | { type: "enum"; values: readonly string[] }
@@ -46,13 +46,6 @@ export type RestoredOf<C extends EntityContract> = RestoredValues<
 
 /** The property the core writes to light the lamps. */
 export const HEADLIGHTS_PROPERTY_NAME = "headlights";
-const PAINT_EVENT_PREFIX = "paint_";
-
-/** The entity event that sets the variant for a paint (ADR 0031). */
-export function paintEventName(paint: Paint): string {
-  return `${PAINT_EVENT_PREFIX}${paint}`;
-}
-
 /** Names the core writes; no kind may declare them. */
 export const CORE_PROPERTY_NAMES: readonly string[] = [
   HEADLIGHTS_PROPERTY_NAME,

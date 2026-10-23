@@ -2,11 +2,12 @@
 import { GameMode } from "@minecraft/server";
 import type { PaintWorld } from "../../../application/vehicle/ports/paint";
 import type { PlayerId, VehicleId } from "../../../domain/shared/ids";
+import { PAINTS, type Paint } from "../../../domain/shared/paint";
 import type { VehicleKind } from "../../../domain/vehicle/kind";
-import { PAINTS, type Paint } from "../../../domain/vehicle/paint/paint";
+import { dyeOf } from "../../shared/dyes";
 import type { BedrockInventory } from "./bedrockInventory";
 import type { EntityIndex } from "./entityIndex";
-import { dyeOf, kindOfEntity, paintEvent } from "./identifiers";
+import { kindOfEntity, paintEvent } from "./identifiers";
 
 export class BedrockPaintWorld implements PaintWorld {
   constructor(

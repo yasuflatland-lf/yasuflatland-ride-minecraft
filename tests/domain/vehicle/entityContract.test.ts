@@ -1,11 +1,11 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
+import { PAINTS, paintEventName } from "../../../src/domain/shared/paint";
 import {
   CORE_EVENT_PREFIXES,
   CORE_PROPERTY_NAMES,
   commandsFor,
   HEADLIGHTS_PROPERTY_NAME,
   type PropertyValue,
-  paintEventName,
   type RestoredOf,
 } from "../../../src/domain/vehicle/entityContract";
 import type { CAMPER_ENTITY } from "../../../src/domain/vehicle/kinds/camper/entity";
@@ -14,7 +14,6 @@ import {
   TRANSFORMING_EVENTS,
   transformingProperties,
 } from "../../../src/domain/vehicle/motion/transformingEntity";
-import { PAINTS } from "../../../src/domain/vehicle/paint/paint";
 
 const TRANSFORMING = {
   properties: transformingProperties(10),
