@@ -801,6 +801,56 @@ it("concatenates seat commands in seat order when multiple riders leave", () => 
   );
 });
 
+it("passes the drive's cut columns through unchanged, and none when it cuts nothing (ADR 0137)", () => {
+  fc.assert(
+    fc.property(
+      fc.option(
+        fc.array(
+          fc.record(
+            {
+              x: fc.integer({ min: -100, max: 100 }),
+              z: fc.integer({ min: -100, max: 100 }),
+              bottom: fc.integer({ min: -64, max: 319 }),
+              height: fc.integer({ min: 1, max: 3 }),
+            },
+            { requiredKeys: ["x", "z", "bottom"] },
+          ),
+          { maxLength: 20 },
+        ),
+        { nil: undefined },
+      ),
+      (cut) => {
+        const drive: Drive = {
+          speed: 0,
+          yaw: 0,
+          resync() {},
+          onDriverMounted() {},
+          onSeatVacated: () => [],
+          step: () => ({
+            cut,
+            impulse: { x: 0, y: 0, z: 0 },
+            forward: { x: 0, z: 1 },
+            commands: [],
+            riders: { thirdPerson: false, underwater: false },
+          }),
+        };
+        const outcome = new Vehicle(asVehicleId("v"), SUV_PROFILE, drive).tick({
+          tick: 0,
+          riders: [],
+          deckSeatInputs: [],
+          velocity: { x: 0, y: 0, z: 0 },
+          onGround: true,
+          ...waterSensors(),
+          blockTypes: () => [],
+          solidAt: () => false,
+          targets: () => [],
+        });
+        expect(outcome.cut).toEqual(cut ?? []);
+      },
+    ),
+  );
+});
+
 it("blanks only the occupied dock seat in the outcome", () => {
   const seats = [
     { x: 1, y: 2, z: 3 },

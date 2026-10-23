@@ -20,6 +20,7 @@ import {
   type VehicleId,
 } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
+import type { CutColumn } from "../../../domain/vehicle/cut";
 import {
   type ClearCell,
   type DeckSeatSpot,
@@ -46,6 +47,7 @@ import { AIR_BLOCK, messageKey } from "../../shared/identifiers";
 import { isLightBlock } from "../../shared/lightBlocks";
 import type { TestInputStore } from "../testInput/testInputStore";
 import { savedDecor } from "./bedrockDecorWorld";
+import { BladeCuts } from "./bladeCuts";
 import { DeckSeats } from "./deckSeats";
 import { DockBlocks, savedDock } from "./dockBlocks";
 import {
@@ -66,6 +68,7 @@ import {
 } from "./identifiers";
 import { SeatFillers } from "./seatFillers";
 import { StandIns } from "./standIns";
+import { systemClock } from "./systemClock";
 import { VehicleReleaser } from "./vehicleReleaser";
 import { isWaterAt } from "./water";
 
@@ -109,6 +112,7 @@ function distanceSq(a: Vec3, b: Vec3): number {
 
 export class BedrockVehicleWorld implements DriveWorld {
   private readonly headlightBlocks: HeadlightBlocks;
+  private readonly bladeCuts = new BladeCuts(systemClock);
   private readonly deckSeats = new DeckSeats();
   private readonly standIns = new StandIns();
   private readonly seatFillers = new SeatFillers();
@@ -345,6 +349,15 @@ export class BedrockVehicleWorld implements DriveWorld {
         // Unloaded chunk: the dock then skips the cell, as it skips any non-air cell.
       }
     }
+  }
+
+  cutColumns(vehicleId: VehicleId, columns: readonly CutColumn[]): void {
+    const vehicle = this.index.entity(vehicleId);
+    if (vehicle) this.bladeCuts.cut(vehicle.dimension, columns);
+  }
+
+  sweepCutDrop(entity: Entity): boolean {
+    return this.bladeCuts.sweepDrop(entity);
   }
 
   showMessage(playerId: PlayerId, name: string): void {

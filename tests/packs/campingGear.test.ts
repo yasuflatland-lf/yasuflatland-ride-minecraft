@@ -441,6 +441,7 @@ function expectedDecor(g: Gear) {
         "minecraft:light_dampening": 0,
         "minecraft:destructible_by_mining": false,
         "minecraft:destructible_by_explosion": false,
+        "tag:yasu_ride:laid": {},
         "minecraft:custom_components": [CAMPER_DECOR_COMPONENT],
         "minecraft:collision_box": false,
         "minecraft:selection_box": selectionBox(g),
