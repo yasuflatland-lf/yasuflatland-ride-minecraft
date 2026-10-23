@@ -39,7 +39,7 @@ vi.mock("@minecraft/server", () => ({
   system: { run: game.run },
 }));
 
-function fixture() {
+function fixture(extraRouteId?: string) {
   vi.clearAllMocks();
   game.order.length = 0;
   game.use.mockImplementation(() => {
@@ -53,15 +53,23 @@ function fixture() {
   });
   const targets: SwitchTarget[] = [];
   const getter = vi.fn(() => targets);
-  registerSwitchRouter({ [HEADLIGHT_SWITCH_TYPE]: getter });
+  const extraTargets: SwitchTarget[] = [];
+  const extraGetter = vi.fn(() => extraTargets);
+  registerSwitchRouter({
+    [HEADLIGHT_SWITCH_TYPE]: getter,
+    ...(extraRouteId === undefined ? {} : { [extraRouteId]: extraGetter }),
+  });
   expect(game.order).toEqual(["itemUse", "entity", "block"]);
   expect(game.use).toHaveBeenCalledTimes(1);
   expect(game.entity).toHaveBeenCalledTimes(1);
   expect(game.block).toHaveBeenCalledTimes(1);
   expect(getter).not.toHaveBeenCalled();
+  expect(extraGetter).not.toHaveBeenCalled();
   return {
     targets,
     getter,
+    extraTargets,
+    extraGetter,
     use: defined(game.use.mock.calls[0]?.[0], "itemUse"),
     entity: defined(game.entity.mock.calls[0]?.[0], "entity"),
     block: defined(game.block.mock.calls[0]?.[0], "block"),
@@ -204,5 +212,105 @@ it("asks a target added after registration on the next event", () => {
       expect(target.switchFor).toHaveBeenCalledExactlyOnceWith(player);
       expect(f.getter).toHaveBeenCalledTimes(2);
     }),
+  );
+});
+
+it("ignores an item with no route in all three events", () => {
+  fc.assert(
+    fc.property(
+      fc
+        .oneof(
+          fc.constantFrom(
+            "minecraft:stick",
+            "constructor",
+            "toString",
+            "__proto__",
+            "hasOwnProperty",
+          ),
+          fc.string(),
+        )
+        .filter((item) => item !== HEADLIGHT_SWITCH_TYPE),
+      fc.array(fc.constant({ item: true, entity: true, block: true })),
+      fc.boolean(),
+      fc.boolean(),
+      (item, claims, isFirstEvent, isValid) => {
+        const f = fixture();
+        const targets = claims.map(fakeTarget);
+        f.targets.push(...targets);
+        const player = { isValid } as Player;
+        for (const kind of ["item", "entity", "block"] as const) {
+          for (const typeId of kind === "item" ? [item] : [item, undefined]) {
+            const ev = {
+              source: player,
+              player,
+              target: {} as Entity,
+              block: {} as Block,
+              itemStack: typeId === undefined ? undefined : { typeId },
+              isFirstEvent,
+              cancel: false,
+            };
+            if (kind === "item") f.use(ev as unknown as ItemUseAfterEvent);
+            else if (kind === "entity")
+              f.entity(ev as unknown as PlayerInteractWithEntityBeforeEvent);
+            else f.block(ev as unknown as PlayerInteractWithBlockBeforeEvent);
+            expect(f.getter).not.toHaveBeenCalled();
+            expect(ev.cancel).toBe(false);
+            expect(game.run).not.toHaveBeenCalled();
+            for (const target of targets) {
+              expect(target.claimsItemUse).not.toHaveBeenCalled();
+              expect(target.claimsEntityPress).not.toHaveBeenCalled();
+              expect(target.claimsBlockPress).not.toHaveBeenCalled();
+              expect(target.switchFor).not.toHaveBeenCalled();
+            }
+          }
+        }
+      },
+    ),
+  );
+});
+
+it("dispatches each item to its own route only", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom(HEADLIGHT_SWITCH_TYPE, "yasu_ride:test_switch"),
+      fc.constantFrom("item", "entity", "block"),
+      (item, kind) => {
+        const f = fixture("yasu_ride:test_switch");
+        const headlight = fakeTarget({ item: true, entity: true, block: true });
+        const extra = fakeTarget({ item: true, entity: true, block: true });
+        f.targets.push(headlight);
+        f.extraTargets.push(extra);
+        const player = { isValid: true } as Player;
+        const ev = {
+          source: player,
+          player,
+          target: {} as Entity,
+          block: {} as Block,
+          itemStack: { typeId: item },
+          isFirstEvent: true,
+          cancel: false,
+        };
+        if (kind === "item") f.use(ev as unknown as ItemUseAfterEvent);
+        else if (kind === "entity")
+          f.entity(ev as unknown as PlayerInteractWithEntityBeforeEvent);
+        else f.block(ev as unknown as PlayerInteractWithBlockBeforeEvent);
+        const [getter, otherGetter, target, otherTarget] =
+          item === HEADLIGHT_SWITCH_TYPE
+            ? [f.getter, f.extraGetter, headlight, extra]
+            : [f.extraGetter, f.getter, extra, headlight];
+        expect(getter).toHaveBeenCalledTimes(1);
+        expect(otherGetter).not.toHaveBeenCalled();
+        expect(target.switchFor.mock.calls).toEqual(
+          kind === "item" ? [[player]] : [],
+        );
+        expect(game.run).toHaveBeenCalledTimes(kind === "item" ? 0 : 1);
+        for (const [callback] of game.run.mock.calls) callback();
+        expect(target.switchFor).toHaveBeenCalledExactlyOnceWith(player);
+        expect(otherTarget.claimsItemUse).not.toHaveBeenCalled();
+        expect(otherTarget.claimsEntityPress).not.toHaveBeenCalled();
+        expect(otherTarget.claimsBlockPress).not.toHaveBeenCalled();
+        expect(otherTarget.switchFor).not.toHaveBeenCalled();
+      },
+    ),
   );
 });
