@@ -38,11 +38,19 @@ PALETTE = {
     "mattress": (64, 86, 120, 255), "mattress_edge": (44, 60, 86, 255),
 }
 SLOTS = list(PALETTE)
+# Each flap's opening (the bounds its cubes must stay within), roll pivot, parent bone, and paint.
+FLAPS = {
+    "flap_front": ((-8, 0, -136, 8, 32, -135), (0, 32, -135.5), "fly", "fly"),
+    "flap_left": ((53, 0, -88, 54, 32, -72), (53.5, 32, -80), "fly", "fly"),
+    "flap_right": ((-54, 0, -88, -53, 32, -72), (-53.5, 32, -80), "fly", "fly"),
+    "flap_bedroom": ((-8, 0, -56, 8, 32, -55), (0, 32, -55.5), "inner", "inner_shade"),
+}
 
 
 def face(color):
     i = SLOTS.index(color)
     return {"uv": [SWATCH * (i % SWATCH), SWATCH * (i // SWATCH)], "uv_size": [SWATCH, SWATCH]}
+
 
 def box(x0, y0, z0, x1, y1, z1, color, pivot=None, rotation=None):
     cube = {
@@ -55,6 +63,7 @@ def box(x0, y0, z0, x1, y1, z1, color, pivot=None, rotation=None):
         cube["rotation"] = list(rotation)
     return cube
 
+
 def rounded(value):
     """Drop floating-point noise and normalize negative zero before writing."""
     if isinstance(value, float):
@@ -66,6 +75,7 @@ def rounded(value):
         return {k: rounded(v) for k, v in value.items()}
     return value
 
+
 def game_rotate(point, pivot, rotation):
     """Turn a point the way the game turns a cube: x and z the other way from render_preview.py's
     rotate(), as its game_turn() does (ADR 0051, 0058)."""
@@ -74,6 +84,7 @@ def game_rotate(point, pivot, rotation):
     y, z = y * math.cos(rx) + z * math.sin(rx), -y * math.sin(rx) + z * math.cos(rx)
     x, y = x * math.cos(rz) + y * math.sin(rz), -x * math.sin(rz) + y * math.cos(rz)
     return (x + pivot[0], y + pivot[1], z + pivot[2])
+
 
 def corners(cube):
     (x, y, z), (w, h, d) = cube["origin"], cube["size"]
@@ -176,13 +187,9 @@ def parts():
     result = [{"name": "root", "pivot": [0, 0, 0]},
               bone("fly", fly), bone("inner", inner), bone("poles", poles), bone("strap", strap),
               bone("lantern", lantern, (0, 69, -64))]
-    for name, bounds, pivot, parent, color in (
-        ("flap_front", (-8, 0, -136, 8, 32, -135), (0, 32, -135.5), "fly", "fly"),
-        ("flap_left", (53, 0, -88, 54, 32, -72), (53.5, 32, -80), "fly", "fly"),
-        ("flap_right", (-54, 0, -88, -53, 32, -72), (-53.5, 32, -80), "fly", "fly"),
-        ("flap_bedroom", (-8, 0, -56, 8, 32, -55), (0, 32, -55.5), "inner", "inner_shade"),
-    ):
-        result.append(bone(name, bedroom_flap if name == "flap_bedroom" else [box(*bounds, color)], pivot, parent))
+    for name, (bounds, pivot, parent, color) in FLAPS.items():
+        cubes = bedroom_flap if name == "flap_bedroom" else [box(*bounds, color)]
+        result.append(bone(name, cubes, pivot, parent))
     for i, x in enumerate((16, -16)):
         result.append(bone(f"mattress_{i}", [
             box(x-7, 0, -39, x+7, 8, -9, "mattress_edge"),
@@ -211,12 +218,6 @@ def validate(parts):
     errors = []
     rooms = [(-40, 0, -120, 40, 48, -56), (-40, 0, -40, 40, 48, -8),
              (-40, 0, -184, 40, 32, -136)]
-    openings = {
-        "flap_front": (-8, 0, -136, 8, 32, -135),
-        "flap_left": (53, 0, -88, 54, 32, -72),
-        "flap_right": (-54, 0, -88, -53, 32, -72),
-        "flap_bedroom": (-8, 0, -56, 8, 32, -55),
-    }
     def inside(b, outer):
         return all(b[i] >= outer[i] - 0.002 and b[i+3] <= outer[i+3] + 0.002 for i in range(3))
     def overlaps(b, room):
@@ -236,7 +237,7 @@ def validate(parts):
                 if i == 0 and name in ("lantern", "lantern_glass") and inside(b, (-8, 32, -72, 8, 69, -56)):
                     continue
                 errors.append(f"{name} intersects interior {i}: {b}")
-            if name in openings and not inside(b, openings[name]):
+            if name in FLAPS and not inside(b, FLAPS[name][0]):
                 errors.append(f"{name} leaves its opening")
             if name == "lantern_glass" and not inside(b, (-8, 32, -72, 8, 48, -56)):
                 errors.append("lantern_glass leaves its column")
@@ -260,6 +261,7 @@ def texture_pixels():
         for c in (PALETTE[SLOTS[slot(x, y)]] if slot(x, y) < len(SLOTS) else (0, 0, 0, 0))
     )
 
+
 def write_png(path, size, pixels):
     stride = size * 4
     raw = b"".join(b"\x00" + pixels[y * stride : (y + 1) * stride] for y in range(size))
@@ -269,6 +271,7 @@ def write_png(path, size, pixels):
 
     head = struct.pack(">IIBBBBB", size, size, 8, 6, 0, 0, 0)
     path.write_bytes(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", head) + chunk(b"IDAT", zlib.compress(raw, 9)) + chunk(b"IEND", b""))
+
 
 def read_png(path, size):
     """Decode a PNG this script wrote: 8-bit RGBA, size x size, every row unfiltered."""
@@ -288,6 +291,7 @@ def read_png(path, size):
     if any(len(row) != stride + 1 or row[0] != 0 for row in rows):
         raise ValueError("rows are not unfiltered")
     return b"".join(row[1:] for row in rows)
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -319,6 +323,7 @@ def main():
     if stale:
         sys.exit(f"{', '.join(stale)} out of date with tools/gen_tent.py. Run `pnpm model` and commit the result.")
     print("tent model and texture are up to date")
+
 
 if __name__ == "__main__":
     main()
