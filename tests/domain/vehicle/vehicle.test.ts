@@ -999,3 +999,40 @@ it("has no hand-placed decor for a kind without decor (ADR 0093)", () => {
   expect(suv.removeDecor({ x: 0, y: 0, z: 0 })).toBeUndefined();
   expect(suv.decor()).toEqual([]);
 });
+
+it("K5 plays the front-right door after a lagged driver leaves", () => {
+  const v = createVehicle("suv", asVehicleId("car"), 0);
+  const d = {
+    id: asPlayerId("d"),
+    offset: seatOffset(0, 0),
+    slot: 0,
+    yaw: 0,
+    raw: IDLE,
+  };
+  const p = {
+    id: asPlayerId("p"),
+    offset: seatOffset(0, 2),
+    slot: 2,
+    yaw: 0,
+    raw: IDLE,
+  };
+  const tick = (riders: readonly RiderView[], t: number) =>
+    v.tick({
+      tick: t,
+      riders,
+      deckSeatInputs: [],
+      velocity: { x: 0, y: 0, z: 0 },
+      onGround: true,
+      ...waterSensors(),
+      blockTypes: () => [],
+      solidAt: () => false,
+      targets: () => [],
+    });
+  tick([d, p], 0);
+  tick([{ ...d, offset: seatOffset(0, 2) }, p], 1);
+  const out = tick([p], 2);
+  expect(out.finalCommands).toContainEqual({
+    type: "playAnimation",
+    name: "door_fr",
+  });
+});

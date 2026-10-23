@@ -1,6 +1,6 @@
 # 0126. Choose a new driver with one tick of motion
 
-- Status: Accepted
+- Status: Accepted; Superseded in part by [0128](0128-settle-every-crews-seats-by-rider-list.md) (occupancy and restore use unique settled seats; motion-based driver selection remains for position readings)
 - Date: 2026-10-23
 - Amends: [0019](0019-passengers-move-up-to-the-driver-seat.md), [0025](0025-jump-on-touch-and-a-sticky-driver.md) (choosing a driver when no sticky driver remains)
 

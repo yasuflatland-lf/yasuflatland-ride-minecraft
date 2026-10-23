@@ -1,6 +1,6 @@
 # 0019. Passengers move up to the driver seat
 
-- Status: Superseded in part by [0120](0120-choose-a-sports-boat-seat-by-aiming-at-it.md) (Proposed; on the sports boat the script keeps riders in their seats)
+- Status: Superseded in part by [0120](0120-choose-a-sports-boat-seat-by-aiming-at-it.md) (Proposed; on the sports boat the script keeps riders in their seats); Superseded in part by [0128](0128-settle-every-crews-seats-by-rider-list.md) (all kinds use indexed, unique settled seats; sticky drivers apply only without an index)
 - Date: 2026-10-11
 - Amended by: [0025](0025-jump-on-touch-and-a-sticky-driver.md) (the driver stays the driver while riding)
 - Amended by: [0126](0126-choose-a-new-driver-with-one-tick-of-motion.md) (accept a new driver using one tick of horizontal motion)

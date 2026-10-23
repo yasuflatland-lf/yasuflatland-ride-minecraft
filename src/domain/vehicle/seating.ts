@@ -1,23 +1,8 @@
 import type { PlayerId } from "../shared/ids";
-// Which rider sits where and who drives (ADR 0019, ADR 0025).
+// Which rider sits where and who drives (ADR 0019, ADR 0025, ADR 0128).
 import { add, type Vec2 } from "../shared/vec";
 import type { SeatLayout } from "./profile";
-import {
-  DRIVER_SEAT,
-  nearestSeat,
-  occupiedSeats,
-  type RiderPos,
-  toLocal,
-  vacatedSeats,
-} from "./seats";
-
-/**
- * How a rider's seat is read: from their position (ADR 0019), or from their index in the
- * engine's rider list, which a kind whose players choose their seat keeps equal to the
- * seat (ADR 0120). The index does not lag the way a position can while the engine moves a
- * rider, so a rider laid into a rear seat never reads as the driver on the way.
- */
-type SeatReading = "position" | "slot";
+import { DRIVER_SEAT, nearestSeat, type RiderPos, toLocal } from "./seats";
 
 interface SeatingUpdate<R extends RiderPos> {
   /** Seats whose rider left since the last update, ascending. */
@@ -31,20 +16,67 @@ export class Seating {
   private seats: ReadonlyMap<PlayerId, number> = new Map();
   private driverId: PlayerId | undefined;
 
-  constructor(
-    private readonly positions: SeatLayout["positions"],
-    private readonly reading: SeatReading = "position",
-  ) {}
+  constructor(private readonly positions: SeatLayout["positions"]) {}
 
+  /**
+   * Gives every rider a unique seat (ADR 0128). Riders whose reading matches their previous
+   * seat go first, then ascending slot, then list order; each takes their reading, else their
+   * previous seat, else the free seat nearest them.
+   */
   private seatsOf(riders: readonly RiderPos[], f: Vec2): Map<PlayerId, number> {
-    if (this.reading === "position")
-      return occupiedSeats(riders, f, this.positions);
-    return new Map(
-      riders.map((r) => [
-        r.id,
-        r.slot ?? nearestSeat(toLocal(r.offset, f), this.positions),
-      ]),
+    const readings = riders.map((rider, order) => {
+      const local = toLocal(rider.offset, f);
+      const reading =
+        rider.slot !== undefined && rider.slot < this.positions.length
+          ? rider.slot
+          : nearestSeat(local, this.positions);
+      return {
+        rider,
+        order,
+        local,
+        reading,
+        previous: this.seats.get(rider.id),
+      };
+    });
+    readings.sort(
+      (a, b) =>
+        Number(b.reading === b.previous) - Number(a.reading === a.previous) ||
+        (a.rider.slot ?? Number.MAX_SAFE_INTEGER) -
+          (b.rider.slot ?? Number.MAX_SAFE_INTEGER) ||
+        a.order - b.order,
     );
+    const seats = new Map<PlayerId, number>();
+    const free = new Set(this.positions.keys());
+    for (const { rider, local, reading, previous } of readings) {
+      let seat: number | undefined;
+      if (free.has(reading)) seat = reading;
+      else if (previous !== undefined && free.has(previous)) seat = previous;
+      else seat = this.nearestFreeSeat(local, free);
+      if (seat !== undefined) {
+        seats.set(rider.id, seat);
+        free.delete(seat);
+      }
+    }
+    return seats;
+  }
+
+  /** Ties go to the lower seat index, since `free` iterates seats in ascending order. */
+  private nearestFreeSeat(
+    local: Vec2,
+    free: ReadonlySet<number>,
+  ): number | undefined {
+    let nearest: number | undefined;
+    let bestDistance = Number.POSITIVE_INFINITY;
+    for (const seat of free) {
+      const at = this.positions[seat];
+      if (!at) continue;
+      const distance = Math.hypot(local.x - at.x, local.z - at.z);
+      if (distance < bestDistance) {
+        nearest = seat;
+        bestDistance = distance;
+      }
+    }
+    return nearest;
   }
 
   /**
@@ -57,13 +89,9 @@ export class Seating {
     positions: SeatLayout["positions"],
     riders: readonly RiderPos[],
     f: Vec2,
-    reading: SeatReading = "position",
   ): Seating {
-    const seating = new Seating(positions, reading);
-    seating.seats = seating.seatsOf(riders, f);
-    seating.driverId = riders.find(
-      (r) => seating.seats.get(r.id) === DRIVER_SEAT,
-    )?.id;
+    const seating = new Seating(positions);
+    seating.update(riders, f, { x: 0, z: 0 });
     return seating;
   }
 
@@ -108,16 +136,27 @@ export class Seating {
     step: Vec2,
   ): SeatingUpdate<R> {
     const seats = this.seatsOf(riders, f);
-    const vacated = vacatedSeats(this.seats, seats).sort((a, b) => a - b);
+    const aboard = new Set(riders.map((r) => r.id));
+    const vacated = [...this.seats]
+      .filter(([id]) => !aboard.has(id))
+      .map(([, seat]) => seat)
+      .sort((a, b) => a - b);
     this.seats = seats;
-    // A driver stays the driver while aboard despite position lag (ADR 0025);
-    // otherwise the rider closest to seat 0 takes over (ADR 0019, ADR 0126).
-    // Slot readings never lag, so the driver is whoever sits in seat 0 (ADR 0120).
+    // Position-only riders retain the sticky driver and motion allowance (0025, 0126).
+    const sticky = riders.find(
+      (r) => r.id === this.driverId && r.slot === undefined,
+    );
+    const indexed = riders.find(
+      (r) => r.slot !== undefined && seats.get(r.id) === DRIVER_SEAT,
+    );
     const driver =
-      this.reading === "position"
-        ? (riders.find((r) => r.id === this.driverId) ??
-          this.pickDriver(riders, f, step))
-        : riders.find((r) => this.seats.get(r.id) === DRIVER_SEAT);
+      sticky ??
+      indexed ??
+      this.pickDriver(
+        riders.filter((r) => r.slot === undefined),
+        f,
+        step,
+      );
     const mounted = driver !== undefined && this.driverId !== driver.id;
     this.driverId = driver?.id;
     return { vacated, driver, mounted };
