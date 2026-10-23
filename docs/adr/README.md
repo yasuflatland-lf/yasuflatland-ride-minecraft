@@ -4,7 +4,7 @@ This directory records design decisions and the reasons behind them. The format 
 
 | No. | Decision | Status |
 |---|---|---|
-| [0001](0001-bedrock-addon-with-stable-script-api.md) | Build a Bedrock add-on and use only the stable Script API | Accepted |
+| [0001](0001-bedrock-addon-with-stable-script-api.md) | Build a Bedrock add-on and use only the stable Script API | Extended by 0129 (Proposed) |
 | [0002](0002-script-driven-vehicle-movement.md) | Drive vehicles by setting their velocity from the script | Extended by 0074 |
 | [0003](0003-friction-compensation-and-axis-wall-detection.md) | Estimate and compensate for ground friction, and detect wall collisions per axis | Superseded in part by 0077, 0081, and 0082 |
 | [0004](0004-two-block-step-up-by-look-ahead.md) | Climb two-block steps by looking ahead in the script | Superseded in part by 0035 |
@@ -129,6 +129,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0123](0123-a-fridge-in-place-of-the-camper-shelf.md) | A fridge in place of the camper shelf | Proposed |
 | [0124](0124-take-back-an-eviction-when-a-slot-frees.md) | Take back an eviction when a slot frees | Accepted |
 | [0126](0126-choose-a-new-driver-with-one-tick-of-motion.md) | Choose a new driver with one tick of motion | Accepted |
+| [0129](0129-support-realms-as-a-second-play-environment.md) | Support Realms as a second play environment | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 
