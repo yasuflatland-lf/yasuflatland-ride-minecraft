@@ -7,9 +7,22 @@ import { DRIVER_SEAT, nearestSeat, type RiderPos, toLocal } from "./seats";
 interface SeatingUpdate<R extends RiderPos> {
   /** Seats whose rider left since the last update, ascending. */
   readonly vacated: readonly number[];
+  /** Settled seats of riders who had no settled seat at the last update, ascending. */
+  readonly boarded: readonly number[];
   readonly driver: R | undefined;
   /** True when `driver` is defined and was not the driver before this update. */
   readonly mounted: boolean;
+}
+
+/** The seats in `seats` whose rider `others` does not contain, ascending. */
+function seatsOfRidersNotIn(
+  seats: ReadonlyMap<PlayerId, number>,
+  others: { has(id: PlayerId): boolean },
+): number[] {
+  return [...seats]
+    .filter(([id]) => !others.has(id))
+    .map(([, seat]) => seat)
+    .sort((a, b) => a - b);
 }
 
 export class Seating {
@@ -137,10 +150,8 @@ export class Seating {
   ): SeatingUpdate<R> {
     const seats = this.seatsOf(riders, f);
     const aboard = new Set(riders.map((r) => r.id));
-    const vacated = [...this.seats]
-      .filter(([id]) => !aboard.has(id))
-      .map(([, seat]) => seat)
-      .sort((a, b) => a - b);
+    const vacated = seatsOfRidersNotIn(this.seats, aboard);
+    const boarded = seatsOfRidersNotIn(seats, this.seats);
     this.seats = seats;
     // Position-only riders retain the sticky driver and motion allowance (0025, 0126).
     const sticky = riders.find(
@@ -159,7 +170,7 @@ export class Seating {
       );
     const mounted = driver !== undefined && this.driverId !== driver.id;
     this.driverId = driver?.id;
-    return { vacated, driver, mounted };
+    return { vacated, boarded, driver, mounted };
   }
 
   /** The id of the current driver, if any. */
