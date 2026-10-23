@@ -2,7 +2,8 @@ import { readFileSync } from "node:fs";
 import { inflateSync } from "node:zlib";
 import { expect } from "vitest";
 
-// The generator writes unfiltered 8-bit RGBA rows, as the preview generator does for icons.
+// Decodes the unfiltered 8-bit RGBA PNGs that tools/gen_*.py and render_preview.py write; any
+// other encoding fails the calling test.
 export function readRgbaPng(path: string) {
   const png = readFileSync(path);
   expect(png.subarray(0, 8)).toEqual(

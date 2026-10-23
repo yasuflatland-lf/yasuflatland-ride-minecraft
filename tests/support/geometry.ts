@@ -56,7 +56,11 @@ function turn(point: Triple, pivot: Triple, rotation: Triple): Triple {
   return [x + pivot[0], y + pivot[1], z + pivot[2]];
 }
 
-/** The 8 corners of a cube (inflate included), turned by the cube's rotation, then the bone's. */
+/**
+ * The 8 corners of a cube (inflate included), turned by the cube's rotation, then its own bone's.
+ * Ancestor bone rotations are not applied, so this is only right for models that nest no rotated
+ * bone inside another.
+ */
 export function turnedCorners(bone: Bone, cube: Cube): Triple[] {
   return corners(cube).map((point) => {
     if (cube.rotation && cube.pivot)

@@ -18,7 +18,6 @@ function bones(kind: VehicleKind): Bone[] {
   )["minecraft:geometry"][0].bones;
 }
 
-// The vehicle models nest no rotated bone inside another, which the turns below assume.
 function modelReach(kind: VehicleKind): number {
   let reach = 0;
   for (const bone of bones(kind))

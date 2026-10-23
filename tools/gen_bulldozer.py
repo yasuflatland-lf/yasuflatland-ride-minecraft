@@ -145,7 +145,7 @@ def corner_bar(x0, z0, x1, z1, y0, y1, thick, color, offset=0.0):
     nx, nz = dz / length, -dx / length
     cx, cz = (x0 + x1) / 2 + nx * offset, (z0 + z1) / 2 + nz * offset
     # mirror_x negates y turns along with x, so a turn written here carries +z toward +x in this
-    # build frame, as the renders show.
+    # build frame.
     angle = math.degrees(math.atan2(dx, dz))
     return box(cx - thick / 2, y0, cz - length / 2, cx + thick / 2, y1, cz + length / 2, color,
                [0, round(angle, 3), 0], [round(cx, 3), round((y0 + y1) / 2, 3), round(cz, 3)])
