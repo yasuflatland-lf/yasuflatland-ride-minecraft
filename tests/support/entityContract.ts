@@ -5,6 +5,14 @@ import type {
   PropertySpec,
 } from "../../src/domain/vehicle/entityContract";
 
+function expectInRange(
+  value: unknown,
+  [min, max]: readonly [number, number],
+): void {
+  expect(value).toBeGreaterThanOrEqual(min);
+  expect(value).toBeLessThanOrEqual(max);
+}
+
 /** Fails unless the contract declares `command` and its value fits the declared type and range. Contracts declare no sounds, so only a sound's name is checked. */
 export function expectDeclaredCommand(
   command: EngineCommand,
@@ -24,13 +32,11 @@ export function expectDeclaredCommand(
           break;
         case "int":
           expect(Number.isInteger(command.value)).toBe(true);
-          expect(command.value).toBeGreaterThanOrEqual(spec.range[0]);
-          expect(command.value).toBeLessThanOrEqual(spec.range[1]);
+          expectInRange(command.value, spec.range);
           break;
         case "float":
           expect(typeof command.value).toBe("number");
-          expect(command.value).toBeGreaterThanOrEqual(spec.range[0]);
-          expect(command.value).toBeLessThanOrEqual(spec.range[1]);
+          expectInRange(command.value, spec.range);
           break;
       }
       break;
@@ -55,8 +61,7 @@ export function expectPackProperty(
   if (spec.type !== "float" && spec.type !== "int") return;
   expect(spec.range[0]).toBeLessThanOrEqual(spec.range[1]);
   expect(typeof definition.default).toBe("number");
-  expect(definition.default).toBeGreaterThanOrEqual(spec.range[0]);
-  expect(definition.default).toBeLessThanOrEqual(spec.range[1]);
+  expectInRange(definition.default, spec.range);
   if (spec.type === "int") {
     expect(Number.isInteger(spec.range[0])).toBe(true);
     expect(Number.isInteger(spec.range[1])).toBe(true);

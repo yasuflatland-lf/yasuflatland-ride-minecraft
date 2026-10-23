@@ -10,16 +10,18 @@ const CONTRACT: EntityContract = {
   restored: [],
 };
 
+function checkPhaseCommand(value: number | boolean): void {
+  expectDeclaredCommand(
+    { type: "setProperty", name: "phase", value },
+    CONTRACT,
+  );
+}
+
 describe("expectDeclaredCommand", () => {
   it("accepts every integer inside an int property's range", () => {
     fc.assert(
       fc.property(fc.integer({ min: 0, max: 2 }), (v) => {
-        expect(() =>
-          expectDeclaredCommand(
-            { type: "setProperty", name: "phase", value: v },
-            CONTRACT,
-          ),
-        ).not.toThrow();
+        expect(() => checkPhaseCommand(v)).not.toThrow();
       }),
     );
   });
@@ -29,12 +31,7 @@ describe("expectDeclaredCommand", () => {
       fc.property(
         fc.integer().filter((v) => v < 0 || v > 2),
         (v) => {
-          expect(() =>
-            expectDeclaredCommand(
-              { type: "setProperty", name: "phase", value: v },
-              CONTRACT,
-            ),
-          ).toThrow();
+          expect(() => checkPhaseCommand(v)).toThrow();
         },
       ),
     );
@@ -47,24 +44,14 @@ describe("expectDeclaredCommand", () => {
           .double({ min: 0, max: 2, noNaN: true })
           .filter((v) => !Number.isInteger(v)),
         (v) => {
-          expect(() =>
-            expectDeclaredCommand(
-              { type: "setProperty", name: "phase", value: v },
-              CONTRACT,
-            ),
-          ).toThrow();
+          expect(() => checkPhaseCommand(v)).toThrow();
         },
       ),
     );
   });
 
   it("rejects a boolean for an int property", () => {
-    expect(() =>
-      expectDeclaredCommand(
-        { type: "setProperty", name: "phase", value: true },
-        CONTRACT,
-      ),
-    ).toThrow();
+    expect(() => checkPhaseCommand(true)).toThrow();
   });
 });
 

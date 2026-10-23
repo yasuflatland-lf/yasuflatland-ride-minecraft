@@ -16,9 +16,9 @@ export interface EntityContract {
 }
 
 /** The TypeScript type a property spec accepts. */
-export type PropertyValue<S extends PropertySpec> = S extends
-  | { type: "float" }
-  | { type: "int" }
+export type PropertyValue<S extends PropertySpec> = S extends {
+  type: "float" | "int";
+}
   ? number
   : S extends { type: "bool" }
     ? boolean
