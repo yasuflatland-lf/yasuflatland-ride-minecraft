@@ -134,6 +134,20 @@ describe("BedrockTentPaintWorld (ADR 0031)", () => {
     expect(container.setItem).not.toHaveBeenCalled();
   });
 
+  it("takes no dye when the player is missing or not a player", () => {
+    fc.assert(
+      fc.property(fc.constantFrom(...PAINTS), (paint) => {
+        const world = new BedrockTentPaintWorld();
+        game.getEntity.mockReturnValue(undefined);
+        expect(() => world.consumeDye(PLAYER, paint)).not.toThrow();
+        const other = fakeTent();
+        game.getEntity.mockReturnValue(other);
+        world.consumeDye(PLAYER, paint);
+        expect(other.getComponent).not.toHaveBeenCalled();
+      }),
+    );
+  });
+
   it("is Creative only for a present player in Creative", () => {
     const world = new BedrockTentPaintWorld();
     game.getEntity.mockReturnValue(undefined);
