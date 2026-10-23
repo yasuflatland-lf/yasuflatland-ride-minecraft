@@ -14,8 +14,9 @@ as a submarine (ADR 0045). Four sports boat pictures share another scale: afloat
 black and with the headlights on at night from the SUV's angle, from its rear-left corner, and from
 straight above (ADR 0056). Four camper pictures share a third scale: front-left,
 headlights at dusk, side, and rear, without water layers (ADR 0067).
-Four bulldozer pictures share a fourth scale: front-left, headlights at dusk with the amber beacon lit,
-side, and rear, showing only the first grouser phase and no propeller (ADR 0136).
+Four bulldozer pictures share a fourth scale: front-left, headlights at dusk, side, and rear,
+showing only the first grouser phase and no propeller (ADR 0136). The beacon stays unlit: it faces
+backward on the cab roof, so the cab hides it from the front-left dusk view.
 
 Each camping gear item in tools/camping_gear.json gets its own 128-pixel square preview in
 <output dir>/items/camping-gear/<id>.png, from the same angle as the vehicles, with no ground,
@@ -132,8 +133,6 @@ CAMPER_POSES = {
 
 BULLDOZER_GEOMETRY = "models/entity/yasu_ride/bulldozer.geo.json"
 BULLDOZER_TEXTURE = "textures/entity/yasu_ride/bulldozer.png"
-BEACON_LIT = (255, 170, 40)
-BULLDOZER_LIT = {"headlights": LAMP_LIT, "beacon": BEACON_LIT}
 # Only the first grouser phase is drawn, and the propeller only shows under water (ADR 0136)
 BULLDOZER_HIDDEN = ("track_r_1", "track_r_2", "track_l_1", "track_l_2", "propeller")
 BULLDOZER_POSES = {
@@ -802,7 +801,6 @@ def render_bulldozer(rp):
         {**geo, "bones": bulldozer_bones(geo["bones"])},
         opaque_lenses(texture),
         BULLDOZER_POSES,
-        BULLDOZER_LIT,
     )
 
 

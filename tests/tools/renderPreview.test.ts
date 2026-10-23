@@ -204,15 +204,6 @@ print(json.dumps({"all": [b["name"] for b in geo["bones"]], "kept": [b["name"] f
       ],
     ]);
   });
-  it("lights the beacon amber beside the headlights", () => {
-    const result = previewPython(
-      "print(json.dumps({'lit': r.BULLDOZER_LIT, 'lamp': r.LAMP_LIT}))",
-    );
-    expect(result.lit).toEqual({
-      headlights: result.lamp,
-      beacon: [255, 170, 40],
-    });
-  });
   it("renders four previews from the camper's angles in the vehicle frame", () => {
     const result = previewPython(
       "print(json.dumps({'names': list(r.BULLDOZER_POSES), 'views': [p['view'] for p in r.BULLDOZER_POSES.values()], 'camper': [p['view'] for p in r.CAMPER_POSES.values()], 'size': r.image_size('bulldozer-side.png')}))",
