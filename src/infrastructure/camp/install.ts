@@ -16,6 +16,6 @@ export function installCamp(deps: { isVehicleSpace: SpaceCheck }): {
   registerChairPlacement(new PlaceChair(chairs));
   registerChairHits(hitChair);
   registerTestChairHit(hitChair);
-  // The low chair claims no space, as before; the tent's cells will (ADR 0129).
+  // The low chair claims no space; the tent's cells will (ADR 0129).
   return { isCampSpace: () => false };
 }

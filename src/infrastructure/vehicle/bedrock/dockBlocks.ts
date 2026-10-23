@@ -326,12 +326,12 @@ export function savedDock(vehicle: Entity): {
 }
 
 export class DockBlocks {
-  constructor(private readonly campSpace: SpaceCheck) {}
-
   private readonly layer = new CellLayer<VehicleId, DockBlock>(
     DOCK_CODEC,
     DOCK_RECHECK_TICKS,
   );
+
+  constructor(private readonly campSpace: SpaceCheck) {}
 
   /** The vehicle whose laid door is at this cell, if any. */
   doorOwner(dimensionId: DimensionId, cell: Vec3): VehicleId | undefined {
@@ -361,16 +361,26 @@ export class DockBlocks {
     vehicle: Entity | undefined,
     wanted: readonly DockCell[],
   ): void {
-    if (vehicle) {
-      const dimensionId = asDimensionId(vehicle.dimension.id);
-      // A camp cell belongs to the other feature; a light there is its spawn guard, not air (ADR 0115, 0129).
-      wanted = wanted.filter(
-        (c) =>
-          this.layer.ownerOf(dimensionId, c) === vehicleId ||
-          !this.campSpace(dimensionId, c),
-      );
-    }
-    this.layer.lay(vehicleId, vehicle, wanted);
+    const cells = vehicle
+      ? this.outsideCamp(vehicleId, asDimensionId(vehicle.dimension.id), wanted)
+      : wanted;
+    this.layer.lay(vehicleId, vehicle, cells);
+  }
+
+  /**
+   * A camp cell belongs to the other feature; a light there is its spawn guard,
+   * not air. Cells this vehicle already owns stay laid (ADR 0115, 0129).
+   */
+  private outsideCamp(
+    vehicleId: VehicleId,
+    dimensionId: DimensionId,
+    wanted: readonly DockCell[],
+  ): DockCell[] {
+    return wanted.filter(
+      (c) =>
+        this.layer.ownerOf(dimensionId, c) === vehicleId ||
+        !this.campSpace(dimensionId, c),
+    );
   }
 
   clearGone(live: ReadonlySet<VehicleId>): void {

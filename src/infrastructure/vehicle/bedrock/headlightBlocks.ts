@@ -32,9 +32,9 @@ function savedCells(vehicle: Entity): Cell[] {
 }
 
 export class HeadlightBlocks {
-  constructor(private readonly campSpace: SpaceCheck) {}
-
   private readonly lit = new Map<VehicleId, Lit>();
+
+  constructor(private readonly campSpace: SpaceCheck) {}
 
   /** `vehicle` is undefined when the entity is gone; its cells are then only cleared. */
   shine(
@@ -93,8 +93,9 @@ export class HeadlightBlocks {
       }
     }
     const cells = entry.cells.filter((c) => !cleared.has(cellKey(c)));
+    const dimensionId = asDimensionId(entry.dimension.id);
     for (const c of light) {
-      if (this.campSpace(asDimensionId(entry.dimension.id), c)) continue;
+      if (this.campSpace(dimensionId, c)) continue;
       try {
         const b = entry.dimension.getBlock(c);
         if (!b?.isAir) continue;
