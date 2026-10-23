@@ -1,12 +1,18 @@
 import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
 import { DriveVehicles } from "../../../src/application/vehicle/driveVehicles";
-import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
+import {
+  asPlayerId,
+  asVehicleId,
+  type VehicleId,
+} from "../../../src/domain/shared/ids";
 import { forward } from "../../../src/domain/shared/vec";
 import type { Drive, DriveStep } from "../../../src/domain/vehicle/drive";
 import type { RawInput } from "../../../src/domain/vehicle/driveInput";
+import { VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
 import {
   createVehicle,
+  entityContractOf,
   rebuildVehicle,
 } from "../../../src/domain/vehicle/kinds/index";
 import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
@@ -15,6 +21,11 @@ import { headlightCells } from "../../../src/domain/vehicle/lighting/headlights"
 import { SPEC } from "../../../src/domain/vehicle/spec";
 import { Vehicle } from "../../../src/domain/vehicle/vehicle";
 import { defined } from "../../support/defined";
+import {
+  riderViews,
+  type TickSample,
+  tickSamples,
+} from "../../support/vehicleFuzz";
 import { FakeWorld, InMemoryRepo, snapshot } from "./fakes";
 
 const logger = () => {
@@ -1052,4 +1063,88 @@ it("does not resync when a later world call throws after step commands succeeded
   run.mockClear();
   uc.execute(1);
   expect(run.mock.calls[0]?.[1]).toEqual([]);
+});
+
+describe("entity mirror (ADR 0055)", () => {
+  const MAX_TICKS = 40;
+  // DriveVehicles resyncs after a failed send, so one failure-free tick resends every value (ADR 0127).
+  const RESYNC_TICKS = 1;
+  const id: VehicleId = asVehicleId("v");
+  // Each tick makes two run calls: the step commands, then the final commands.
+  const faultPlan = fc.array(
+    fc.oneof(
+      { arbitrary: fc.constant(undefined), weight: 3 },
+      { arbitrary: fc.integer({ min: 0, max: 5 }), weight: 1 },
+    ),
+    { minLength: 2 * MAX_TICKS, maxLength: 2 * MAX_TICKS },
+  );
+
+  it.each(VEHICLE_KINDS)(
+    "keeps every entity property equal to the drive's last value once the world stops failing, for %s",
+    (kind) => {
+      const { properties } = entityContractOf(kind);
+      const declared = Object.keys(properties);
+      // A rebuilt drive trusts the form it reads back and does not send it
+      // again (ADR 0021), so both entities start out holding it.
+      const entityAtStart: fc.Arbitrary<Record<string, string>> =
+        properties.form?.type === "enum"
+          ? fc.constantFrom(...properties.form.values).map((form) => ({ form }))
+          : fc.constant({});
+      fc.assert(
+        fc.property(
+          fc.double({ min: -180, max: 180, noNaN: true }),
+          entityAtStart,
+          tickSamples(kind, MAX_TICKS),
+          faultPlan,
+          (yaw, start, samples, plan) => {
+            const reference = new FakeWorld();
+            const faulty = new FakeWorld();
+            reference.properties.set(id, { ...start });
+            faulty.properties.set(id, { ...start });
+            const referenceRepo = new InMemoryRepo();
+            const good = new DriveVehicles(reference, referenceRepo, logger());
+            const failing = new DriveVehicles(
+              faulty,
+              new InMemoryRepo(),
+              logger(),
+            );
+            // Vehicle state never reads the world back, so both drives see the same heading.
+            const tickBoth = (s: TickSample, tick: number) => {
+              const heading = referenceRepo.get(id)?.yaw ?? yaw;
+              const snap = snapshot(id, {
+                kind,
+                yaw: heading,
+                riders: riderViews(kind, s.riders, heading),
+                testInput: s.testInput,
+                deckSeatInputs: [...s.deckSeatInputs],
+                velocity: s.velocity,
+                onGround: s.onGround,
+                waterDepth: s.depth,
+                waterBelow: s.below,
+                restored: () => start,
+              });
+              reference.snapshots = [snap];
+              faulty.snapshots = [snap];
+              good.execute(tick);
+              failing.execute(tick);
+            };
+            faulty.runFault = (_id, call) => plan[call];
+            samples.forEach(tickBoth);
+            faulty.runFault = undefined;
+            const last = defined(samples.at(-1), "last sample");
+            for (let extra = 0; extra < RESYNC_TICKS; extra++)
+              tickBoth(last, samples.length + extra);
+
+            expect(faulty.properties.get(id)).toEqual(
+              reference.properties.get(id),
+            );
+            for (const world of [reference, faulty])
+              for (const name of Object.keys(world.properties.get(id) ?? {}))
+                expect(declared).toContain(name);
+          },
+        ),
+        { numRuns: 200 },
+      );
+    },
+  );
 });
