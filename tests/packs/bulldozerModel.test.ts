@@ -8,7 +8,7 @@ const RP = "packs/yasu_ride_rp";
 type ModelCube = NonNullable<Bone["cubes"]>[number] & {
   uv: Record<string, { uv: [number, number]; uv_size: [number, number] }>;
 };
-type ModelBone = Bone & {
+type ModelBone = Omit<Bone, "cubes"> & {
   cubes?: ModelCube[];
   locators?: Record<string, number[]>;
 };
@@ -36,6 +36,8 @@ function expectedParent(name: string): string | undefined {
       return undefined;
     case "body":
       return "root";
+    case "blade":
+      return "blade_rig";
     case "door_glass":
       return "door_l";
     default:
@@ -61,7 +63,7 @@ describe("bulldozer model (ADR 0009, 0136)", () => {
     expect(geometry().description.texture_width).toBe(32);
     expect(geometry().description.texture_height).toBe(1);
   });
-  it("has exactly the bone contract, each bone parented to body except root, body, and door_glass", () => {
+  it("has exactly the bone contract, each bone parented to body except root, body, blade, and door_glass", () => {
     expect(
       bones()
         .map((b) => b.name)
@@ -70,7 +72,10 @@ describe("bulldozer model (ADR 0009, 0136)", () => {
       [
         "root",
         "body",
+        "blade_rig",
         "blade",
+        "lift_rod_r",
+        "lift_rod_l",
         "headlights",
         "beacon",
         "seat_0",
@@ -261,5 +266,61 @@ describe("bulldozer item icon", () => {
     expect(colors).toContainEqual([236, 178, 22, 255]);
     for (const color of colors)
       if ((color[3] ?? 0) > 0) expect(color[3]).toBe(255);
+  });
+});
+
+describe("bulldozer blade rig (ADR 0138)", () => {
+  const bounds = (c: ModelCube) => [
+    c.origin,
+    c.origin.map((v, i) => v + (c.size[i] ?? 0)),
+  ];
+  const expectCube = (
+    b: ModelBone,
+    slot: number,
+    min: number[],
+    max: number[],
+  ) => {
+    const matches = (b.cubes ?? []).filter(
+      (c) =>
+        Object.values(c.uv).every((face) => face.uv[0] === slot) &&
+        bounds(c).every((point, end) =>
+          point.every(
+            (v, axis) =>
+              Math.abs(v - ([min, max][end]?.[axis] ?? Number.NaN)) < 0.0001,
+          ),
+        ),
+    );
+    expect(matches).toHaveLength(1);
+  };
+  it("keeps the lowered rest pose: pivots, rods, and cube counts", () => {
+    expect(bone("blade_rig").pivot).toEqual([0, 12, 2]);
+    expect(bone("blade").pivot).toEqual([0, 0, -37.8]);
+    for (const [side, x] of [
+      ["r", -8.5],
+      ["l", 8.5],
+    ] as const) {
+      const rod = bone(`lift_rod_${side}`);
+      expect(rod.pivot).toEqual([x, 21.4, 2]);
+      expect(rod.cubes).toHaveLength(1);
+      expectCube(rod, 12, [x - 0.5, 20.8, -10.6], [x + 0.5, 22, 2]);
+    }
+    expect(bone("blade_rig").cubes).toHaveLength(60);
+    expect(bone("blade").cubes).toHaveLength(134);
+    expect(bones().flatMap((b) => b.cubes ?? [])).toHaveLength(3301);
+    expect(Math.min(...points(bone("blade")).map((p) => p[1]))).toBeCloseTo(
+      0,
+      3,
+    );
+  });
+  it("keeps the lift-cylinder barrels on body", () => {
+    for (const x of [-8.5, 8.5]) {
+      expectCube(bone("body"), 4, [x - 1.2, 20.6, 2], [x + 1.2, 23.6, 7.6]);
+      expectCube(
+        bone("blade_rig"),
+        0,
+        [x - 1, 11.6, -11.8],
+        [x + 1, 22.2, -10.6],
+      );
+    }
   });
 });

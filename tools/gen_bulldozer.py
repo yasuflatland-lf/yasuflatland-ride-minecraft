@@ -589,15 +589,23 @@ blade += disc("y", 0.0, 13.0, BACK + 1.2, 1.4, 1.0, "yellow_dark", STEPS_8)
 # between the hood and the tracks and sloping down to the C-frame, a ring in front of the hood
 # that carries the blade's center pivot. Lift cylinders ride on the arms' rear halves and angle
 # cylinders on their front halves, all black with chrome rods.
+# The barrels stay in body; the rest of the push frame is blade_rig and each rod is its own
+# bone, so the drive animation can raise the blade (ADR 0138).
 ARM_IN, ARM_OUT = 7.5, 9.5
 C_CENTER, C_OUTER, C_INNER = HOOD_FRONT - 9.6, 9.5, 6.9
 ARM_FRONT, ARM_REAR = (C_CENTER, 8.0), (2.0, 12.0)  # (z, y) centerline, low behind the track
+# The raised pose, drawn by the drive animation from yasu_ride:blade (ADR 0138): blade_rig moves
+# BLADE_RAISE px up and ROD_RETRACT px rearward, and each lift rod shortens by ROD_RETRACT
+# about the barrel mouth. The owner chose this visible retraction over strict kinematics.
+# bulldozer.anim.json repeats these values; bulldozerModel.test.ts pins them against the geometry.
+BLADE_RAISE = 3.0
+ROD_RETRACT = 3.0
+LIFT_ROD_FRONT, LIFT_ROD_REAR = -10.6, 2.0  # z of the rod's end in its bracket, and of the barrel mouth
+assert BLADE_RAISE > 0 and 0 < ROD_RETRACT < LIFT_ROD_REAR - LIFT_ROD_FRONT
 arms = [bar(ARM_FRONT, ARM_REAR, ARM_IN, ARM_OUT, 4.2, "yellow"),
         bar(ARM_FRONT, ARM_REAR, ARM_IN - 0.2, ARM_OUT + 0.2, 0.6, "yellow_dark", offset=1.6),
         *disc("x", ARM_OUT, ARM_REAR[1], ARM_REAR[0], 2.0, 0.5, "yellow_dark", STEPS_8),
         *disc("x", ARM_OUT + 0.5, ARM_REAR[1], ARM_REAR[0], 0.8, 0.3, "bolt", STEPS_8),
-        box(ARM_IN - 0.2, 22.0 - 1.4, 2.0, ARM_OUT + 0.2, 22.0 + 1.6, 7.6, "black"),  # lift cylinder
-        box(ARM_IN + 0.5, 21.4 - 0.6, -10.6, ARM_OUT - 0.5, 21.4 + 0.6, 2.0, "chrome"),
         box(ARM_IN, 11.6, -11.8, ARM_OUT, 22.2, -10.6, "yellow"),  # rod end bracket on the arm
         box(ARM_IN - 0.2, 12.6, -25.4, ARM_OUT + 0.2, 15.0, -15.6, "black"),  # angle cylinder
         box(ARM_IN + 0.4, 13.2, -30.2, ARM_OUT - 0.4, 14.4, -25.4, "chrome")]
@@ -607,7 +615,10 @@ for zb in (-17.0, -6.0, 3.6):  # yellow clamp brackets along the cylinders
 arms += [box(ARM_IN + 0.4, 10.4, -27.6, ARM_IN + 0.6, 12.2, -26.2, "steel"),  # lifting eye
          box(ARM_OUT - 0.6, 10.4, -27.6, ARM_OUT - 0.4, 12.2, -26.2, "steel"),
          box(ARM_IN + 0.4, 12.0, -27.6, ARM_OUT - 0.4, 12.2, -26.2, "steel")]
-body += both(arms)
+lift_barrel = box(ARM_IN - 0.2, 22.0 - 1.4, 2.0, ARM_OUT + 0.2, 22.0 + 1.6, 7.6, "black")  # lift cylinder
+lift_rod = box(ARM_IN + 0.5, 21.4 - 0.6, LIFT_ROD_FRONT, ARM_OUT - 0.5, 21.4 + 0.6, LIFT_ROD_REAR, "chrome")
+body += both([lift_barrel])  # the barrels stay on the frame
+blade_rig = both(arms)
 # The C-frame's front half circle, closed at the back by the arms
 ring = 16
 for i in range(ring):
@@ -619,12 +630,12 @@ for i in range(ring):
     length = math.hypot(dx, dz) + 0.3
     cx, cz = (p[0] + q[0]) / 2, (p[1] + q[1]) / 2
     angle = math.degrees(math.atan2(dx, dz))
-    body.append(box(cx - (C_OUTER - C_INNER) / 2, 5.8, cz - length / 2, cx + (C_OUTER - C_INNER) / 2, 10.2,
+    blade_rig.append(box(cx - (C_OUTER - C_INNER) / 2, 5.8, cz - length / 2, cx + (C_OUTER - C_INNER) / 2, 10.2,
                     cz + length / 2, "yellow", [0, round(angle, 3), 0], [round(cx, 3), 8.0, round(cz, 3)]))
-body.append(box(-3.4, 5.4, BACK - 0.4, 3.4, 11.0, C_CENTER - C_INNER + 0.6, "yellow"))  # pivot block
-body += disc("y", 0.0, 11.0, C_CENTER - C_INNER - 1.2, 1.6, 0.6, "yellow_dark", STEPS_8)
+blade_rig.append(box(-3.4, 5.4, BACK - 0.4, 3.4, 11.0, C_CENTER - C_INNER + 0.6, "yellow"))  # pivot block
+blade_rig += disc("y", 0.0, 11.0, C_CENTER - C_INNER - 1.2, 1.6, 0.6, "yellow_dark", STEPS_8)
 # Tilt cylinder on the right, from the C-frame to the top of the blade
-body.append(bar((C_CENTER - C_OUTER + 1.0, 10.2), (BACK + 0.4, 15.6), 3.0, 4.6, 1.8, "black"))
+blade_rig.append(bar((C_CENTER - C_OUTER + 1.0, 10.2), (BACK + 0.4, 15.6), 3.0, 4.6, 1.8, "black"))
 
 # --- Cab ---------------------------------------------------------------------
 WIN_FRONT_BOTTOM, WIN_SIDE_BOTTOM, WIN_TOP = 27.6, 25.8, 44.7
@@ -1174,7 +1185,10 @@ def rounded(value):
 bones = mirror_x([
     {"name": "root", "pivot": [0, 0, 0]},
     {"name": "body", "parent": "root", "pivot": [0, 0, 0], "cubes": body, "locators": {"thruster": THRUSTER}},
-    {"name": "blade", "parent": "body", "pivot": [0, 0, BLADE_FRONT], "cubes": blade},
+    {"name": "blade_rig", "parent": "body", "pivot": [0, ARM_REAR[1], ARM_REAR[0]], "cubes": blade_rig},
+    {"name": "blade", "parent": "blade_rig", "pivot": [0, 0, BLADE_FRONT], "cubes": blade},
+    {"name": "lift_rod_r", "parent": "body", "pivot": [ARM_IN + 1.0, 21.4, LIFT_ROD_REAR], "cubes": [lift_rod]},
+    {"name": "lift_rod_l", "parent": "body", "pivot": [-(ARM_IN + 1.0), 21.4, LIFT_ROD_REAR], "cubes": [mirrored(lift_rod)]},
     {"name": "headlights", "parent": "body", "pivot": [0, 0, 0], "cubes": lamps},
     {"name": "beacon", "parent": "body", "pivot": [0, 0, 0], "cubes": beacon},
     {"name": "seat_0", "parent": "body", "pivot": [0, 28.6, 22.0], "cubes": seat},
