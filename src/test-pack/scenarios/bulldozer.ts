@@ -19,9 +19,13 @@ function withBulldozer<T>(
 function cleanup(a: Arena): void {
   a.dim.runCommand(`fill 96 ${a.gy} 78 112 ${a.gy + 6} 89 air`);
 }
-async function throughHill(car: Entity): Promise<void> {
+async function throughHill(
+  car: Entity,
+  beforeTick: () => void = () => {},
+): Promise<void> {
   drive(car, 0, 1);
   for (let t = 0; t < 200; t++) {
+    beforeTick();
     await wait(1);
     if (car.location.x >= 108) break;
   }
@@ -120,19 +124,14 @@ export async function bulldozerClearHill(a: Arena): Promise<Outcome> {
     world.afterEvents.entitySpawn.subscribe(listener);
     world.beforeEvents.entityRemove.subscribe(removing);
     return await withBulldozer(a, 90.5, 83.5, -90, async (car) => {
-      drive(car, 0, 1);
-      for (let t = 0; t < 200; t++) {
+      await throughHill(car, () => {
         boxes = bladeColumns(
           car.location,
           car.getRotation().y,
           BULLDOZER_SPEC.blade,
           false,
         );
-        await wait(1);
-        if (car.location.x >= 108) break;
-      }
-      drive(car, 0, 0);
-      await wait(3);
+      });
       const wrong: string[] = [];
       for (let x = 100; x <= 104; x++)
         for (let z = 81; z <= 85; z++)
@@ -222,7 +221,7 @@ export async function bulldozerFlightTunnel(a: Arena): Promise<Outcome> {
       );
       const y = car.location.y,
         bottom = Math.floor(y + 0.01),
-        top = Math.ceil(y + 2.9);
+        top = Math.ceil(y + BULLDOZER_SPEC.blade.bodyHeight);
       await throughHill(car);
       let pass = hoverAt >= 0 && car.location.x >= 108;
       const wrong: string[] = [];

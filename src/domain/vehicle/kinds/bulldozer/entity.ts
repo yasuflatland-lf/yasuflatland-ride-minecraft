@@ -5,6 +5,7 @@ import {
   transformingProperties,
 } from "../../motion/transformingEntity";
 import { BULLDOZER_TRANSFORMING } from "./spec";
+
 export const BULLDOZER_ENTITY = {
   properties: {
     ...transformingProperties(BULLDOZER_TRANSFORMING.maxBank),
@@ -18,16 +19,20 @@ export const BULLDOZER_ENTITY = {
   animations: [],
   restored: ["form"],
 } as const satisfies EntityContract;
+
 const { property } = commandsFor<typeof BULLDOZER_ENTITY>();
+
 export function trackPhaseCommand(
   side: "r" | "l",
   phase: 0 | 1 | 2,
 ): EngineCommand {
   return property(`track_${side}`, phase);
 }
+
 export function trackSpinCommand(side: "r" | "l", spin: number): EngineCommand {
   return property(`spin_${side}`, spin);
 }
+
 export function doorCommand(open: number): EngineCommand {
   return property("door", open);
 }

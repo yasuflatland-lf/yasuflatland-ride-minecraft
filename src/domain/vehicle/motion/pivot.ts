@@ -10,13 +10,24 @@ import {
   stepMotion,
 } from "./motion";
 
-function pivotYaw(yaw: number, steer: number, turnRate: number): number {
-  return normalizeYaw(yaw - steer * turnRate);
-}
+const NEUTRAL = { throttle: 0, steer: 0, handbrake: false, creep: false };
+
 export function pivotSpeed(speed: number, brake: number): number {
   return Math.sign(speed) * Math.max(0, Math.abs(speed) - brake);
 }
-const NEUTRAL = { throttle: 0, steer: 0, handbrake: false, creep: false };
+
+function pivoted(
+  prev: MotionState,
+  steer: number,
+  limits: MotionLimits,
+): MotionState {
+  return {
+    ...prev,
+    speed: pivotSpeed(prev.speed, limits.brake),
+    yaw: normalizeYaw(prev.yaw - steer * limits.turnRate),
+  };
+}
+
 export function pivotGroundStep(
   prev: MotionState,
   steer: number,
@@ -26,11 +37,7 @@ export function pivotGroundStep(
   tyres: TyreLimits,
 ): MotionResult {
   return stepMotion(
-    {
-      ...prev,
-      speed: pivotSpeed(prev.speed, limits.brake),
-      yaw: pivotYaw(prev.yaw, steer, limits.turnRate),
-    },
+    pivoted(prev, steer, limits),
     NEUTRAL,
     obs,
     probe,
@@ -38,6 +45,7 @@ export function pivotGroundStep(
     tyres,
   );
 }
+
 export function pivotMediumStep(
   prev: MotionState,
   steer: number,
@@ -46,11 +54,7 @@ export function pivotMediumStep(
   limits: MotionLimits,
 ): MotionResult {
   return stepMediumMotion(
-    {
-      ...prev,
-      speed: pivotSpeed(prev.speed, limits.brake),
-      yaw: pivotYaw(prev.yaw, steer, limits.turnRate),
-    },
+    pivoted(prev, steer, limits),
     NEUTRAL,
     v,
     medium,
