@@ -16,6 +16,16 @@ import {
   bladeCutKeptIds,
 } from "./scenarios/bladeCut";
 import {
+  bulldozerClearHill,
+  bulldozerDirtPath,
+  bulldozerDive,
+  bulldozerFlightTunnel,
+  bulldozerHopAndTakeoff,
+  bulldozerOverhang,
+  bulldozerPivot,
+  bulldozerRamCow,
+} from "./scenarios/bulldozer";
+import {
   lowChairSeatAndTakeBack,
   lowChairSettlesThroughGrass,
 } from "./scenarios/camp";
@@ -102,6 +112,14 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
   // The middle number is the test's ticks as last logged in CI; shardsOf packs
   // by it, so update it when a test gets much slower or faster (ADR 0054).
   const allTests: [string, number, () => Promise<Outcome>][] = [
+    ["bulldozer_clear_hill", 65, () => bulldozerClearHill(a)],
+    ["bulldozer_overhang", 63, () => bulldozerOverhang(a)],
+    ["bulldozer_dirt_path", 63, () => bulldozerDirtPath(a)],
+    ["bulldozer_flight_tunnel", 88, () => bulldozerFlightTunnel(a)],
+    ["bulldozer_pivot", 30, () => bulldozerPivot(a)],
+    ["bulldozer_ram_cow", 62, () => bulldozerRamCow(a)],
+    ["bulldozer_hop_and_takeoff", 47, () => bulldozerHopAndTakeoff(a)],
+    ["bulldozer_dive", 18, () => bulldozerDive(a)],
     ["camper_accel", 144, () => camperAccel(a)],
     ["camper_wall", 150, () => camperWall(a)],
     ["camper_takeoff", 33, () => camperTakeoff(a)],

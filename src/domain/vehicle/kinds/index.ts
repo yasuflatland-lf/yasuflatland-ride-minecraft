@@ -8,6 +8,9 @@ import type { VehicleProfile } from "../profile";
 import { ramQueryRadius } from "../ramQuery";
 import { farthestSeatReach } from "../seats";
 import { type RiderView, Vehicle } from "../vehicle";
+import { BulldozerDrive } from "./bulldozer/drive";
+import { BULLDOZER_ENTITY } from "./bulldozer/entity";
+import { BULLDOZER_PROFILE } from "./bulldozer/profile";
 import { CamperDrive } from "./camper/drive";
 import { CAMPER_ENTITY } from "./camper/entity";
 import { CAMPER_PROFILE } from "./camper/profile";
@@ -48,6 +51,11 @@ export const KINDS: Readonly<Record<VehicleKind, Readonly<KindDefinition>>> =
       profile: SPORTSBOAT_PROFILE,
       entity: SPORTSBOAT_ENTITY,
       createDrive: (yaw, restored) => new SportsboatDrive(yaw, restored),
+    }),
+    bulldozer: Object.freeze<KindDefinition>({
+      profile: BULLDOZER_PROFILE,
+      entity: BULLDOZER_ENTITY,
+      createDrive: (yaw, restored) => new BulldozerDrive(yaw, restored),
     }),
   });
 

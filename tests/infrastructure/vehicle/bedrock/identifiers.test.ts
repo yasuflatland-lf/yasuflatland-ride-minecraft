@@ -358,3 +358,9 @@ describe("identifiers (ADR 0047)", () => {
     );
   });
 });
+
+it("gives the bulldozer its own starter flag and keeps the SUV's", () =>
+  expect(STARTER_RECEIVED_PROPERTY).toEqual({
+    suv: "yasu_ride:starter_received",
+    bulldozer: "yasu_ride:bulldozer_starter_received",
+  }));

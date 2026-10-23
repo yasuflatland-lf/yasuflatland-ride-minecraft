@@ -1,6 +1,6 @@
 # 0127. Resend every synced entity value after a failed send
 
-- Status: Accepted
+- Status: Accepted; extended by [0136](0136-bulldozer.md) (Proposed)
 - Date: 2026-10-23
 - Extends: [0055](0055-kind-neutral-vehicle-core.md) (step command delivery)
 

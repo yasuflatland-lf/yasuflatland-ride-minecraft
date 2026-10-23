@@ -70,3 +70,11 @@ describe("GiveStarterVehicle (ADR 0023)", () => {
     expect(world.calls).toEqual([]);
   });
 });
+
+it("gives a player who already got their SUV only the bulldozer", () => {
+  const world = new FakeWorld();
+  world.starters.set("p:suv", true);
+  world.starters.set("p:bulldozer", false);
+  new GiveStarterVehicle(world).execute(asPlayerId("p"));
+  expect(world.calls).toEqual(["give:p:bulldozer", "mark:p:bulldozer"]);
+});

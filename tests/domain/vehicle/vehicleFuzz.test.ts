@@ -5,6 +5,7 @@ import {
   VEHICLE_KINDS,
   type VehicleKind,
 } from "../../../src/domain/vehicle/kind";
+import { BULLDOZER_MOTION } from "../../../src/domain/vehicle/kinds/bulldozer/profile";
 import { CAMPER_MOTION } from "../../../src/domain/vehicle/kinds/camper/profile";
 import {
   createVehicle,
@@ -21,6 +22,7 @@ import { waterSensors } from "../../support/waterDepth";
 const LIMITS: Record<VehicleKind, MotionLimits> = {
   suv: SUV_MOTION,
   camper: CAMPER_MOTION,
+  bulldozer: BULLDOZER_MOTION,
   sportsboat: SPORTSBOAT_MOTION,
 };
 

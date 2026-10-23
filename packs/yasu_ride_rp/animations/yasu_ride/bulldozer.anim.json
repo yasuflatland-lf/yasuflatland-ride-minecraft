@@ -1,0 +1,186 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.yasu_ride.bulldozer.drive": {
+      "loop": true,
+      "bones": {
+        "track_r_0": {
+          "scale": "query.property('yasu_ride:track_r') == 0 ? 1 : 0"
+        },
+        "track_r_1": {
+          "scale": "query.property('yasu_ride:track_r') == 1 ? 1 : 0"
+        },
+        "track_r_2": {
+          "scale": "query.property('yasu_ride:track_r') == 2 ? 1 : 0"
+        },
+        "idler_front_r": {
+          "rotation": ["query.property('yasu_ride:spin_r')", 0, 0]
+        },
+        "idler_rear_r": {
+          "rotation": ["query.property('yasu_ride:spin_r')", 0, 0]
+        },
+        "sprocket_r": {
+          "rotation": ["query.property('yasu_ride:spin_r')", 0, 0]
+        },
+        "track_l_0": {
+          "scale": "query.property('yasu_ride:track_l') == 0 ? 1 : 0"
+        },
+        "track_l_1": {
+          "scale": "query.property('yasu_ride:track_l') == 1 ? 1 : 0"
+        },
+        "track_l_2": {
+          "scale": "query.property('yasu_ride:track_l') == 2 ? 1 : 0"
+        },
+        "idler_front_l": {
+          "rotation": ["query.property('yasu_ride:spin_l')", 0, 0]
+        },
+        "idler_rear_l": {
+          "rotation": ["query.property('yasu_ride:spin_l')", 0, 0]
+        },
+        "sprocket_l": {
+          "rotation": ["query.property('yasu_ride:spin_l')", 0, 0]
+        },
+        "door_l": {
+          "rotation": [0, "query.property('yasu_ride:door') * 70", 0]
+        }
+      }
+    },
+    "animation.yasu_ride.bulldozer.propeller": {
+      "loop": true,
+      "bones": {
+        "propeller": {
+          "scale": 1,
+          "rotation": [0, 0, "query.life_time * 720"]
+        }
+      }
+    },
+    "animation.yasu_ride.bulldozer.propeller_stowed": {
+      "loop": true,
+      "bones": {
+        "propeller": {
+          "scale": 0
+        }
+      }
+    },
+    "animation.yasu_ride.bulldozer.hover_glow": {
+      "loop": true,
+      "animation_length": 0.1,
+      "particle_effects": {
+        "0.0": [
+          {
+            "effect": "hover_glow",
+            "locator": "thruster"
+          }
+        ]
+      }
+    },
+    "animation.yasu_ride.bulldozer.engine_sound_0": {
+      "loop": true,
+      "animation_length": 1.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "engine_0"
+        }
+      }
+    },
+    "animation.yasu_ride.bulldozer.engine_sound_1": {
+      "loop": true,
+      "animation_length": 1.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "engine_1"
+        }
+      }
+    },
+    "animation.yasu_ride.bulldozer.engine_sound_2": {
+      "loop": true,
+      "animation_length": 1.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "engine_2"
+        }
+      }
+    },
+    "animation.yasu_ride.bulldozer.engine_sound_3": {
+      "loop": true,
+      "animation_length": 1.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "engine_3"
+        }
+      }
+    },
+    "animation.yasu_ride.bulldozer.engine_sound_4": {
+      "loop": true,
+      "animation_length": 1.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "engine_4"
+        }
+      }
+    },
+    "animation.yasu_ride.bulldozer.engine_sound_5": {
+      "loop": true,
+      "animation_length": 1.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "engine_5"
+        }
+      }
+    },
+    "animation.yasu_ride.bulldozer.hover_sound_0": {
+      "loop": true,
+      "animation_length": 1.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "hover_0"
+        }
+      }
+    },
+    "animation.yasu_ride.bulldozer.hover_sound_1": {
+      "loop": true,
+      "animation_length": 1.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "hover_1"
+        }
+      }
+    },
+    "animation.yasu_ride.bulldozer.hover_sound_2": {
+      "loop": true,
+      "animation_length": 1.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "hover_2"
+        }
+      }
+    },
+    "animation.yasu_ride.bulldozer.hover_sound_3": {
+      "loop": true,
+      "animation_length": 1.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "hover_3"
+        }
+      }
+    },
+    "animation.yasu_ride.bulldozer.hover_sound_4": {
+      "loop": true,
+      "animation_length": 1.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "hover_4"
+        }
+      }
+    },
+    "animation.yasu_ride.bulldozer.submarine_sound": {
+      "loop": true,
+      "animation_length": 4.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "sonar"
+        }
+      }
+    }
+  }
+}

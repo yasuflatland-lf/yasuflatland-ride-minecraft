@@ -209,6 +209,23 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | C157 | On a build before this change, park and put an item on each end of both shelf boards; update to this change, restart the server, and open both fridge doors | The low board's items are in the bottom compartment and the high board's in the top one, each at the same end as on the board; nothing is lost and no shelf block is left (ADR 0123) | | |
 | C158 | With a fridge door open, aim at the open door and at the compartment; put a block in the aisle cell beside the fridge with the doors shut and try to drive off; run `/reload` with one door open | The open door's outline is a thin plate where the door stands and the compartment's runs from its floor up; with the block there you see "Clear the blocks inside first"; after `/reload` the open door stays open (ADR 0121, 0123) | | |
 
+## Bulldozer
+
+Setup: use `/give @s yasu_ride:bulldozer_item` or craft from an SUV item, an iron block, and an iron shovel.
+
+| # | Check | Pass condition | PC | Mobile |
+|---|---|---|---|---|
+| B1 | Place and replace (one per player) | Place one, then another; only the newest stays and other kinds stay | | |
+| B2 | The starter item in Survival | Join with an existing SUV starter flag; receive only the bulldozer, and none on rejoin | | |
+| B3 | Pivot and driving feel | Forward and back stay straight; sideways pivots and stops; Jump tap hops; no automatic step-up | | |
+| B4 | Flight speeds | Double tap takes off; flight and water cap at 9 blocks/s and never bank | | |
+| B5 | Door | Board and leave; the left door opens over 10 ticks, waits, and closes after 40 ticks | | |
+| B6 | Cab view | PC and touch riders see out of the cab and turn with the body | | |
+| B7 | Headlights at night (the cab stays dark) | Headlights and rear beacon glow; the road lights up and the cab stays dark | | |
+| B8 | Glow and propeller | Thruster glows only in flight; the propeller spins only under water | | |
+| B9 | Cutting bedrock, barriers, command blocks and light blocks | Forward cutting removes them; liquids, containers and laid add-on blocks stay | | |
+| B10 | Cutting in Adventure mode | The blade clears the same terrain in Adventure | | |
+
 ## Tent
 
 Walk in through an open flap: tap a flap to roll it up (ADR 0132).

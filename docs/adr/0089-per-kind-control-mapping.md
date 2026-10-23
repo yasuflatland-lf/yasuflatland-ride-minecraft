@@ -1,6 +1,6 @@
 # 0089. Each kind maps the stick to handbrake and creep
 
-- Status: Accepted
+- Status: Accepted; extended by [0136](0136-bulldozer.md) (Proposed)
 - Date: 2026-10-21
 - Extends: 0018, 0051, 0055
 - Supersedes in part: 0087 (the boat's handbrakeGrip)
