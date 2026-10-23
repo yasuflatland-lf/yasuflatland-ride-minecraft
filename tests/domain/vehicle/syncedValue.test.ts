@@ -65,3 +65,36 @@ describe("SyncedValue (ADR 0026, 0033, 0059)", () => {
     );
   });
 });
+
+it("resends after any generated resync and otherwise sends only changes", () => {
+  fc.assert(
+    fc.property(
+      fc.array(smallOrUndefined, { minLength: 1, maxLength: 80 }),
+      fc.uniqueArray(fc.nat({ max: 79 })),
+      (values, indices) => {
+        const synced = new SyncedValue<number | undefined>();
+        values.forEach((value, i) => {
+          if (indices.includes(i)) synced.resync();
+          expect(synced.next(value)).toBe(
+            i === 0 || indices.includes(i) || value !== values[i - 1]
+              ? value
+              : undefined,
+          );
+        });
+      },
+    ),
+  );
+});
+
+it("can start primed with any value, including undefined, and forget it", () => {
+  fc.assert(
+    fc.property(smallOrUndefined, smallOrUndefined, (v, w) => {
+      fc.pre(w !== v);
+      const synced = new SyncedValue<number | undefined>({ value: v });
+      expect(synced.next(v)).toBeUndefined();
+      synced.resync();
+      expect(synced.next(v)).toBe(v);
+      expect(synced.next(w)).toBe(w);
+    }),
+  );
+});

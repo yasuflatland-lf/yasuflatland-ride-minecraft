@@ -156,6 +156,10 @@ export class StorageDoors<Id extends string> {
     );
   }
 
+  resync(): void {
+    for (const door of this.states.values()) door.sync.resync();
+  }
+
   /** The doors open or opening: their compartments take and give items. */
   open(): ReadonlySet<Id> {
     return new Set(

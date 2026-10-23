@@ -67,7 +67,8 @@ export interface VehicleTickInput extends TickContext {
  * seated, stood in for it, laid or lit before.
  *
  * 1. `stepCommands`, in order, before anything else that could throw,
- *    because drives send them only on change (ADR 0055).
+ *    because drives send them only on change (ADR 0055); if they fail, the vehicle
+ *    resyncs and sends every value again next tick (ADR 0127).
  * 2. `message` on the action bar of `driverId`, only when there is one.
  * 3. `dock.hold`; with no `dock`, the hold is released (ADR 0063, 0064).
  * 4. `clear`, when not empty, before the dock's cells are laid (ADR 0068).
@@ -305,6 +306,11 @@ export class Vehicle {
     tick: number,
   ): StoragePress | undefined {
     return this.drive.pressStorage?.(cell, point, tick);
+  }
+
+  /** Called by the application when this tick's step commands may not have reached the entity (ADR 0055, 0127). */
+  resync(): void {
+    this.drive.resync();
   }
 
   tick(input: VehicleTickInput): TickOutcome {

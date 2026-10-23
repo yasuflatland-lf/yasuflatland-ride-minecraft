@@ -347,6 +347,15 @@ export class CamperDrive extends TransformingDrive {
     return item;
   }
 
+  override resync(): void {
+    super.resync();
+    this.doorStepSync.resync();
+    this.showerDoorStepSync.resync();
+    this.showerSync.resync();
+    this.ceilingLightsSync.resync();
+    this.storage.resync();
+  }
+
   override step(raw: RawInput | undefined, ctx: TickContext): DriveStep {
     if (this.restoredDocked) {
       this.restoredDocked = false;

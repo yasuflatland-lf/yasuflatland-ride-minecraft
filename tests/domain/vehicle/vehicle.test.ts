@@ -810,6 +810,7 @@ it("blanks only the occupied dock seat in the outcome", () => {
   const drive: Drive = {
     speed: 0,
     yaw: 0,
+    resync() {},
     onDriverMounted() {},
     onSeatVacated: () => [],
     step: () => ({
@@ -855,6 +856,7 @@ describe("hints (ADR 0086)", () => {
     const drive: Drive = {
       speed: 0,
       yaw: YAW,
+      resync() {},
       onDriverMounted() {},
       onSeatVacated: () => [],
       step: () => ({

@@ -13,12 +13,17 @@ import {
   SUV_TRANSFORMING,
 } from "../../../../src/domain/vehicle/kinds/suv/spec";
 import { MOTION } from "../../../../src/domain/vehicle/motion/constants";
-import type { Form } from "../../../../src/domain/vehicle/motion/forms";
+import { FORMS, type Form } from "../../../../src/domain/vehicle/motion/forms";
 import {
   initialMotion,
   stepMotion,
 } from "../../../../src/domain/vehicle/motion/motion";
 import { TransformingDrive } from "../../../../src/domain/vehicle/motion/transformingDrive";
+import {
+  bankCommand,
+  formCommands,
+  gearCommand,
+} from "../../../../src/domain/vehicle/motion/transformingEntity";
 import { SPEC } from "../../../../src/domain/vehicle/spec";
 import { type Body, engineStep } from "../../../support/engineModel";
 import { waterSensors } from "../../../support/waterDepth";
@@ -214,5 +219,81 @@ it("an SUV in car form drives tick by tick as the old mapping did (ADR 0089)", (
       },
     ),
     { numRuns: 100 },
+  );
+});
+
+const resyncInput = fc.record({
+  raw: fc.record({
+    moveX: fc.integer({ min: -1, max: 1 }),
+    moveY: fc.integer({ min: -1, max: 1 }),
+    jump: fc.boolean(),
+  }),
+  onGround: fc.boolean(),
+  depth: fc.constantFrom(0, 1, 3),
+});
+
+it("resync sends gravity and form first, then the current bank and gear", () => {
+  fc.assert(
+    fc.property(
+      fc.array(resyncInput, { minLength: 1, maxLength: 80 }),
+      fc.nat(),
+      (inputs, index) => {
+        const drive = new SuvDrive(0, {});
+        const retry = index % inputs.length;
+        inputs.forEach(({ raw, depth, onGround }, tick) => {
+          if (tick === retry) drive.resync();
+          const out = drive.step(raw, { ...context(depth), onGround, tick });
+          if (tick === retry) {
+            expect(out.commands).toEqual([
+              ...formCommands(drive.form),
+              bankCommand(drive.inspect().bank),
+              gearCommand(drive.inspect().wheelsDown),
+            ]);
+          }
+        });
+      },
+    ),
+  );
+});
+
+it("without resync sends form commands exactly when form changes", () => {
+  fc.assert(
+    fc.property(
+      fc.array(resyncInput, { minLength: 1, maxLength: 80 }),
+      (inputs) => {
+        const drive = new SuvDrive(0, {});
+        inputs.forEach(({ raw, depth, onGround }, tick) => {
+          const before = drive.form;
+          const out = drive.step(raw, { ...context(depth), onGround, tick });
+          const form = out.commands.filter(
+            (c) => c.type === "triggerEvent" || c.name === "form",
+          );
+          expect(form).toEqual(
+            before === drive.form ? [] : formCommands(drive.form),
+          );
+        });
+      },
+    ),
+  );
+});
+
+it("keeps the restored form primed on its first unchanged tick", () => {
+  fc.assert(
+    fc.property(fc.constantFrom(...FORMS), fc.boolean(), (form, jump) => {
+      const drive = new SuvDrive(0, { form });
+      const out = drive.step(
+        { ...IDLE, jump },
+        {
+          ...context(form === "submarine" ? 3 : 0),
+          onGround: form === "car",
+        },
+      );
+      expect(drive.form).toBe(form);
+      expect(
+        out.commands.filter(
+          (c) => c.type === "triggerEvent" || c.name === "form",
+        ),
+      ).toEqual([]);
+    }),
   );
 });

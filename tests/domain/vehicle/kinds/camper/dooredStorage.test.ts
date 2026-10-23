@@ -598,3 +598,36 @@ describe("cells", () => {
     );
   });
 });
+
+it("resync resends every storage door's current swing while driving or parked", () => {
+  fc.assert(
+    fc.property(
+      fc.boolean(),
+      fc.array(fc.boolean(), {
+        minLength: STORAGE_DOORS.length,
+        maxLength: STORAGE_DOORS.length,
+      }),
+      (docked, opened) => {
+        const doors = new StorageDoors(
+          STORAGE_DOORS,
+          (id) => (opened[STORAGE_DOORS.findIndex((d) => d.id === id)] ? 1 : 0),
+          docked,
+        );
+        const command = (name: string, value: number): EngineCommand => ({
+          type: "setProperty",
+          name,
+          value,
+        });
+        let settled: EngineCommand[] = [];
+        for (let tick = 0; tick <= SWING; tick++) {
+          const out = doors.swingCommands(command);
+          if (tick === 0) settled = out;
+        }
+        expect(doors.swingCommands(command)).toEqual([]);
+        doors.resync();
+        expect(doors.swingCommands(command)).toEqual(settled);
+        expect(settled).toHaveLength(STORAGE_DOORS.length);
+      },
+    ),
+  );
+});

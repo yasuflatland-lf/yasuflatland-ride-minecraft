@@ -74,6 +74,7 @@ function stubCamper(
     get yaw() {
       return yaws[Math.min(tick, yaws.length - 1)] ?? 0;
     },
+    resync() {},
     onDriverMounted() {},
     onSeatVacated: () => [],
     step: () => ({

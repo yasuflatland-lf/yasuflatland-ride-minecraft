@@ -110,6 +110,7 @@ export type StepGuard = (
 export class TransformingDrive implements Drive {
   private motion: MotionState;
   private formState: FormState;
+  private readonly formSync: SyncedValue<Form>;
   private bank = 0;
   private readonly bankSync = new SyncedValue<number>();
   private gearDown: boolean;
@@ -126,6 +127,7 @@ export class TransformingDrive implements Drive {
     const form = isForm(restored.form) ? restored.form : "car";
     this.motion = initialMotion(yaw);
     this.formState = initialForm(form);
+    this.formSync = new SyncedValue<Form>({ value: form });
     this.gearDown = form === "car";
   }
 
@@ -166,6 +168,12 @@ export class TransformingDrive implements Drive {
     return [];
   }
 
+  resync(): void {
+    this.formSync.resync();
+    this.bankSync.resync();
+    this.gearDownSync.resync();
+  }
+
   step(raw: RawInput | undefined, ctx: TickContext): DriveStep {
     const motion = this.motion;
     // A passenger may be moving up to the driver seat (ADR 0078).
@@ -176,7 +184,6 @@ export class TransformingDrive implements Drive {
       this.spec.carHeight,
     );
     const velocity = { x: ctx.velocity.x, z: ctx.velocity.z };
-    const before = this.formState.form;
     this.formState = stepForm(
       this.formState,
       {
@@ -262,6 +269,7 @@ export class TransformingDrive implements Drive {
         this.spec.flightVerticalDrag,
       );
     }
+    const sentForm = this.formSync.next(form);
     const bank = this.bankSync.next(this.bank);
     this.gearDown = nextGearDown(this.gearDown, form, () =>
       groundNear(ctx, step.forward, this.spec),
@@ -273,7 +281,7 @@ export class TransformingDrive implements Drive {
       impulse: { x: step.impulse.x, y: impulseY, z: step.impulse.z },
       forward: step.forward,
       commands: [
-        ...(form === before ? [] : formCommands(form)),
+        ...(sentForm === undefined ? [] : formCommands(sentForm)),
         ...(bank === undefined ? [] : [bankCommand(bank)]),
         ...(gearDown === undefined ? [] : [gearCommand(gearDown)]),
       ],

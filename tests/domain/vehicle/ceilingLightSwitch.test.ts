@@ -24,6 +24,7 @@ function vehicle(
   const drive: Drive = {
     speed: 0,
     yaw: 0,
+    resync() {},
     onDriverMounted() {},
     onSeatVacated: () => [],
     step: () => {
