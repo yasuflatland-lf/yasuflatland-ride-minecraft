@@ -49,6 +49,9 @@ CAMERA_DISTANCE = 6.0  # in multiples of the model's size; far enough to keep pe
 
 # Minecraft's fixed face shading: top faces full brightness, north/south 0.8, east/west 0.6, bottom 0.5.
 SHADE_UP, SHADE_DOWN, SHADE_Z, SHADE_X = 1.0, 0.5, 0.8, 0.6
+# A level side view shows almost only east/west faces, so the whole picture sits at 0.6. A pose can
+# set "brightness" to lift its faces back to the level of the other views.
+SIDE_BRIGHTNESS = 1.0 / SHADE_X
 
 SHADOW_LAYERS = 12
 SHADOW_ALPHA = 0.025  # per layer, so the center of the shadow is 0.3
@@ -127,7 +130,7 @@ CAMPER_TEXTURE = "textures/entity/yasu_ride/camper.png"
 CAMPER_POSES = {
     "camper-front-left.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.65, -1.0), "screen_up": None},
     "camper-headlights.png": {"lamps": True, "dusk": True, "view": (-1.0, 0.65, -1.0), "screen_up": None},
-    "camper-side.png": {"lamps": False, "dusk": False, "view": (1.0, 0.15, 0.0001), "screen_up": None},
+    "camper-side.png": {"lamps": False, "dusk": False, "view": (1.0, 0.15, 0.0001), "screen_up": None, "brightness": SIDE_BRIGHTNESS},
     "camper-rear.png": {"lamps": False, "dusk": False, "view": (1.0, 0.6, 1.0), "screen_up": None},
 }
 
@@ -138,7 +141,7 @@ BULLDOZER_HIDDEN = ("track_r_1", "track_r_2", "track_l_1", "track_l_2", "propell
 BULLDOZER_POSES = {
     "bulldozer-front-left.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.65, -1.0), "screen_up": None},
     "bulldozer-headlights.png": {"lamps": True, "dusk": True, "view": (-1.0, 0.65, -1.0), "screen_up": None},
-    "bulldozer-side.png": {"lamps": False, "dusk": False, "view": (1.0, 0.15, 0.0001), "screen_up": None},
+    "bulldozer-side.png": {"lamps": False, "dusk": False, "view": (1.0, 0.15, 0.0001), "screen_up": None, "brightness": SIDE_BRIGHTNESS},
     "bulldozer-rear.png": {"lamps": False, "dusk": False, "view": (1.0, 0.6, 1.0), "screen_up": None},
 }
 
@@ -390,7 +393,7 @@ def collect(geo, texture, folds, turns, pose):
                     rgb = LAMP_LIT if emissive == "lamp" else GLOW_LIT
                 else:
                     r, g, b, _ = face_color(texture, cube["uv"][face], desc["texture_width"], desc["texture_height"])
-                    k = shade(normalize(normal))
+                    k = shade(normalize(normal)) * pose.get("brightness", 1.0)
                     rgb = (r * k * tint[0], g * k * tint[1], b * k * tint[2])
                 polygons.append((quad, rgb, emissive))
     return polygons
@@ -479,7 +482,7 @@ def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT):
                     polygons.append((quad, color, "lamp"))
                     continue
                 r, g, b, a = face_color(texture, cube["uv"][face], desc["texture_width"], desc["texture_height"])
-                k = shade(normalize(normal))
+                k = shade(normalize(normal)) * pose.get("brightness", 1.0)
                 rgb = (r * k * tint[0], g * k * tint[1], b * k * tint[2])
                 if a < 255:
                     glass.append((quad, rgb, a / 255))
