@@ -212,7 +212,11 @@ describe("bulldozer paints (ADR 0031, 0076)", () => {
   it("generates one equally sized texture per paint", () => {
     expect(
       readdirSync(textureDir)
-        .filter((f) => /^bulldozer(?:_\w+)?\.png$/.test(f))
+        .filter(
+          (f) =>
+            f === "bulldozer.png" ||
+            PAINTS.slice(1).some((p) => f === `bulldozer_${p}.png`),
+        )
         .sort(),
     ).toEqual(
       [

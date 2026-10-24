@@ -1,0 +1,14 @@
+{
+  "bulldozer": [
+    {
+      "item": "blade_switch",
+      "state": "down",
+      "label": "DOWN"
+    },
+    {
+      "item": "blade_switch",
+      "state": "up",
+      "label": "UP"
+    }
+  ]
+}

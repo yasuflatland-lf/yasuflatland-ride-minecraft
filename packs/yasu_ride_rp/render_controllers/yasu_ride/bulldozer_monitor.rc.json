@@ -1,0 +1,17 @@
+{
+  "format_version": "1.8.0",
+  "render_controllers": {
+    "controller.render.yasu_ride.bulldozer.monitor": {
+      "geometry": "Geometry.monitor",
+      "materials": [{ "*": "Material.lamp_lit" }],
+      "textures": ["Texture.monitor"],
+      "part_visibility": [
+        { "*": false },
+        {
+          "screen_blade_switch_down": "query.property('yasu_ride:monitor') == 1"
+        },
+        { "screen_blade_switch_up": "query.property('yasu_ride:monitor') == 2" }
+      ]
+    }
+  }
+}

@@ -25,10 +25,12 @@
         "blue": "textures/entity/yasu_ride/bulldozer_blue",
         "purple": "textures/entity/yasu_ride/bulldozer_purple",
         "magenta": "textures/entity/yasu_ride/bulldozer_magenta",
-        "pink": "textures/entity/yasu_ride/bulldozer_pink"
+        "pink": "textures/entity/yasu_ride/bulldozer_pink",
+        "monitor": "textures/entity/yasu_ride/bulldozer_monitor"
       },
       "geometry": {
-        "default": "geometry.yasu_ride.bulldozer"
+        "default": "geometry.yasu_ride.bulldozer",
+        "monitor": "geometry.yasu_ride.bulldozer_monitor"
       },
       "particle_effects": {
         "hover_glow": "yasu_ride:hover_glow"
@@ -66,7 +68,12 @@
         "hover_4": "yasu_ride.hover_4",
         "sonar": "yasu_ride.sonar"
       },
-      "render_controllers": ["controller.render.yasu_ride.bulldozer"],
+      "render_controllers": [
+        {
+          "controller.render.yasu_ride.bulldozer.monitor": "query.property('yasu_ride:monitor') > 0"
+        },
+        "controller.render.yasu_ride.bulldozer"
+      ],
       "scripts": {
         "animate": [
           "form",
