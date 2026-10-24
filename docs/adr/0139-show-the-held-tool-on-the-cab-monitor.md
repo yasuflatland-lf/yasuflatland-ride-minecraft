@@ -21,9 +21,9 @@ The Behavior Pack pins `@minecraft/server` at 2.2.0, while `package.json` pins i
 5. **Tool state.** The state comes from the kind's optional `Drive.toolState?(item)`, which looks the item up in a per-drive `toolStates` table. The bulldozer blade shows its target (`bladeRaised()`), not its current height (0138), so a switch press changes the displayed state immediately.
 6. **Tick and delivery.** Compute the value every drive tick and send it only on change through a `SyncedValue` (`src/domain/shared/syncedValue.ts`) on the `Vehicle`. Append its command to `stepCommands`. Include the value in `Vehicle.resync()` after a failed send (0127). Do not restore it: after `/reload`, the unprimed `SyncedValue` sends the current screen on the first tick.
 7. **Held item read.** Infrastructure reads the selected-slot item only for kinds whose profile has a rule, using `profileOf(kind).monitor !== undefined`. Use the inventory read and `Player.selectedSlotIndex` already used under the 2.2.0 pin. Pass the item as a bare id when its namespace is `yasu_ride`, and undefined otherwise.
-8. **Rendering (0009, 0020).** Generate a second geometry, `geometry.yasu_ride.<kind>_monitor`, and a second render controller, `controller.render.yasu_ride.<kind>_monitor`, from the new data file `tools/monitor_screens.json` in `tools/gen_bulldozer.py`.
+8. **Rendering (0009, 0020).** Generate a second geometry, `geometry.yasu_ride.<kind>_monitor`, and a second render controller, `controller.render.yasu_ride.<kind>.monitor` (0047), from the new data file `tools/monitor_screens.json` in `tools/gen_bulldozer.py`.
    - Use one atlas texture, `<kind>_monitor.png`, and one bone, `screen_<item>_<state>`, per screen.
-   - Each bone's single cube is textured only on the face whose outward normal points at seat 0 (`down` for the bulldozer plate). Under the game's rotation sign, a positive x rotation tips +y toward -z (0051).
+   - Each bone's single cube is textured only on the face whose outward normal points at seat 0 (`down` for the bulldozer plate). In model space, before the model is turned 180 degrees, a positive x rotation tips +y toward -z in game; `tools/render_preview.py` draws x rotations with the opposite sign (0051).
    - Key `part_visibility` on the property.
    - Use `Material.lamp_lit` (`entity_emissive`). Glyph and icon texels have alpha 0 so they glow (0020); the background is opaque.
    - In the client entity, list the monitor controller before the controller that holds blended materials, and only when `query.property('yasu_ride:monitor') > 0`. Draw the opaque overlay first, then blend the glass over it.
@@ -41,7 +41,7 @@ The Behavior Pack pins `@minecraft/server` at 2.2.0, while `package.json` pins i
 | 5. Map the item to its icon grid in the generator | A generator error |
 | 6. Widen the `yasu_ride:monitor` range in `<kind>.se.json` to the new screen count | The kind-generic pack test |
 | 7. Run `pnpm model` | `pnpm model:check` |
-| 8. Bump the RP manifest version and the BP dependency on it (0015) | `scripts/check-rp-version.mjs` at release |
+| 8. Bump the RP manifest version and the BP dependency on it (0015) | `scripts/check-rp-version.mjs` at release (the RP header version), and `tests/packs/resourcePack.test.ts` (the RP module version and the BP dependency match it) |
 
 ## Consequences
 
