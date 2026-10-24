@@ -20,17 +20,7 @@ interface SeatingUpdate<R extends RiderPos> {
   readonly mounted: boolean;
 }
 
-/** The seats in `seats` whose rider `others` does not contain, ascending. */
-function seatsOfRidersNotIn(
-  seats: ReadonlyMap<PlayerId, number>,
-  others: { has(id: PlayerId): boolean },
-): number[] {
-  return [...seats]
-    .filter(([id]) => !others.has(id))
-    .map(([, seat]) => seat)
-    .sort((a, b) => a - b);
-}
-
+/** The riders in `seats` that `others` does not contain, ascending by seat. */
 function ridersNotIn(
   seats: ReadonlyMap<PlayerId, number>,
   others: { has(id: PlayerId): boolean },
@@ -39,6 +29,14 @@ function ridersNotIn(
     .filter(([id]) => !others.has(id))
     .map(([id, seat]) => ({ id, seat }))
     .sort((a, b) => a.seat - b.seat);
+}
+
+/** The seats in `seats` whose rider `others` does not contain, ascending. */
+function seatsOfRidersNotIn(
+  seats: ReadonlyMap<PlayerId, number>,
+  others: { has(id: PlayerId): boolean },
+): number[] {
+  return ridersNotIn(seats, others).map(({ seat }) => seat);
 }
 
 export class Seating {
