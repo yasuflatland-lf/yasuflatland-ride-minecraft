@@ -91,7 +91,12 @@ function fixture() {
   );
   const inputs = new VehicleTestStore<RawInput>();
   const index = new EntityIndex();
-  const world = new BedrockVehicleWorld(index, inputs, noCampSpace);
+  const world = new BedrockVehicleWorld(
+    index,
+    inputs,
+    new VehicleTestStore<string>(),
+    noCampSpace,
+  );
   const inventory = { giveItems: vi.fn() };
   return {
     inventory,

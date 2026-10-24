@@ -44,6 +44,7 @@ export interface VehicleSnapshot {
   restored(): RestoredValues;
   headlights: boolean;
   testInput?: RawInput;
+  testHeldTool?: string;
 }
 
 export interface DriveWorld {

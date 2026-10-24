@@ -126,7 +126,12 @@ function fixture() {
     entities,
     dimension,
     car,
-    world: new BedrockVehicleWorld(index, inputs, noCampSpace),
+    world: new BedrockVehicleWorld(
+      index,
+      inputs,
+      new VehicleTestStore<string>(),
+      noCampSpace,
+    ),
   };
 }
 
@@ -405,6 +410,33 @@ describe("BedrockVehicleWorld snapshots", () => {
       }),
     );
   });
+
+  it.each(VEHICLE_KINDS)(
+    "does not read rider inventory for %s without a monitor rule",
+    (kind) => {
+      const { car, world } = fixture();
+      car.typeId = ENTITY_TYPE[kind];
+      const inventory = vi.fn();
+      const player = {
+        id: "player",
+        typeId: "minecraft:player",
+        location: car.location,
+        getRotation: () => ({ y: 0 }),
+        getComponent: inventory,
+        inputInfo: {
+          getMovementVector: () => ({ x: 0, y: 0 }),
+          getButtonState: () => "Released",
+        },
+      };
+      car.getComponent.mockImplementation((name) =>
+        name === "minecraft:rideable"
+          ? { getRiders: () => [player] }
+          : undefined,
+      );
+      expect(world.loadedVehicles()[0]?.riders[0]?.heldTool).toBeUndefined();
+      expect(inventory).not.toHaveBeenCalled();
+    },
+  );
 
   it("counts only players in the seats as riders (ADR 0019)", () => {
     const { car, world } = fixture();

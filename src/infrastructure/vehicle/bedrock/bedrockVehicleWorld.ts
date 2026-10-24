@@ -43,7 +43,8 @@ import type { RamHit, RamTarget } from "../../../domain/vehicle/ram";
 import type { SeatAssignment } from "../../../domain/vehicle/seatChoice";
 import type { StandInPose } from "../../../domain/vehicle/standIn";
 import type { RiderView } from "../../../domain/vehicle/vehicle";
-import { AIR_BLOCK, messageKey } from "../../shared/identifiers";
+import { heldTypeId } from "../../shared/heldItem";
+import { AIR_BLOCK, bareId, messageKey } from "../../shared/identifiers";
 import { isLightBlock } from "../../shared/lightBlocks";
 import type { VehicleTestStore } from "../testInput/vehicleTestStore";
 import { savedDecor } from "./bedrockDecorWorld";
@@ -124,6 +125,7 @@ export class BedrockVehicleWorld implements DriveWorld {
   constructor(
     private readonly index: EntityIndex,
     private readonly testInputs: VehicleTestStore<RawInput>,
+    private readonly testTools: VehicleTestStore<string>,
     campSpace: SpaceCheck,
   ) {
     this.headlightBlocks = new HeadlightBlocks(campSpace);
@@ -210,7 +212,7 @@ export class BedrockVehicleWorld implements DriveWorld {
         yaw: vehicle.getRotation().y,
         velocity: v,
         onGround: vehicle.isOnGround,
-        riders: this.riders(vehicle),
+        riders: this.riders(vehicle, profileOf(kind).monitor !== undefined),
         deckSeatInputs: deckRiders.map((player) =>
           player ? rawInputOf(player) : undefined,
         ),
@@ -233,10 +235,12 @@ export class BedrockVehicleWorld implements DriveWorld {
         },
         headlights: vehicle.getProperty(HEADLIGHTS_PROPERTY) === true,
         testInput: this.testInputs.get(id),
+        testHeldTool: this.testTools.get(id),
       });
     }
     const live = this.index.trackedIds();
     this.testInputs.retain(live);
+    this.testTools.retain(live);
     this.headlightBlocks.clearGone(live);
     this.dockBlocks.clearGone(live);
     this.deckSeats.clearGone(live);
@@ -247,7 +251,7 @@ export class BedrockVehicleWorld implements DriveWorld {
     return snapshots;
   }
 
-  private riders(vehicle: Entity): RiderView[] {
+  private riders(vehicle: Entity, readHeld: boolean): RiderView[] {
     // The engine seats riders by their index in this list (ADR 0019), seat fillers
     // included (ADR 0120), so the index is taken before the players are picked out.
     const aboard = (
@@ -282,6 +286,7 @@ export class BedrockVehicleWorld implements DriveWorld {
           },
           yaw: p.getRotation().y,
           raw: rawInputOf(p),
+          heldTool: readHeld ? bareId(heldTypeId(p) ?? "") : undefined,
         };
       });
   }
