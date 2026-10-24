@@ -8,7 +8,11 @@ packs/yasu_ride_bp/item_catalog/crafting_item_catalog.json linguist-generated=tr
 # Hand-written; the only block model the generator does not write.
 packs/yasu_ride_rp/models/blocks/yasu_ride/deck_floor.geo.json -linguist-generated
 
-# Written by tools/gen_model.py, tools/gen_sportsboat.py, and tools/gen_camper.py; deck_seat.geo.json is hand-written.
+# Written by tools/gen_model.py, gen_sportsboat.py, gen_camper.py, gen_bulldozer.py, gen_low_chair.py, and gen_tent.py;
+# deck_seat.geo.json and stand_in.geo.json are hand-written.
 packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json linguist-generated=true
 packs/yasu_ride_rp/models/entity/yasu_ride/sportsboat.geo.json linguist-generated=true
 packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json linguist-generated=true
+packs/yasu_ride_rp/models/entity/yasu_ride/bulldozer.geo.json linguist-generated=true
+packs/yasu_ride_rp/models/entity/yasu_ride/low_chair.geo.json linguist-generated=true
+packs/yasu_ride_rp/models/entity/yasu_ride/tent.geo.json linguist-generated=true
