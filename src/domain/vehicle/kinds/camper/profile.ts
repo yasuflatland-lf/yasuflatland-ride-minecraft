@@ -44,15 +44,14 @@ export const CAMPER_PROFILE: VehicleProfile = Object.freeze({
     reach: CAMPER_SPEC.headlightReach,
     lanes: Object.freeze([0]),
   }),
-  // The clearance is axis-aligned and the camper can face any way. With the bumper and
-  // ladder the body is 7.6 blocks long, and at 45 degrees a rear corner reaches
-  // (3.9 + 1.5) / sqrt(2) = 3.82 blocks from the center, so a 9 x 9 square (4.5 blocks
-  // each way) covers the whole body in every facing (ADR 0067).
+  // The 3-wide collision box fits the same 3 x 3 cells as the SUV's. The 7.6-block body reaches
+  // past them, so its ends can stand inside nearby blocks until the drive's end check
+  // stops it (ADR 0143, superseding the 9 x 9 of ADR 0067).
   placement: Object.freeze({
     surfaces: Object.freeze<PlacementSurface[]>(["top"]),
     clearance: Object.freeze({
-      halfX: 4,
-      halfZ: 4,
+      halfX: 1,
+      halfZ: 1,
       height: clearanceHeight(body),
     }),
   }),
