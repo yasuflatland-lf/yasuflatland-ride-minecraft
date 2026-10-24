@@ -1,4 +1,5 @@
-"""Generate the bulldozer geometry, 16 yellow-part paint textures, and the item icons of the bulldozer and the blade switch.
+"""Generate the bulldozer geometry, 16 yellow-part paint textures, the item icons of the bulldozer and the blade switch,
+and the cab monitor geometry, atlas, and render controller (ADR 0139).
 
 Shaped after the owner's three-view drawing and cab photos of a mid-size crawler dozer, with no
 maker name, model name, or logo. The photos show the wide-track (LGP) machine, so the shapes are
@@ -7,7 +8,8 @@ a 3.272 m by 1.261 m blade, 600 mm shoes on a 1.89 m gauge. A creeper (1.7 block
 1.8 m, so 1 m is 0.944 blocks or 15.1 px.
 Units are pixels (16 per block) with the front at -z. Build with +x on the right; mirror_x turns
 it into Bedrock's frame just before writing.
-Run: python3 -I tools/gen_bulldozer.py packs/yasu_ride_rp
+Run: python3 -I tools/gen_bulldozer.py packs/yasu_ride_rp [--check]
+--check writes nothing and exits 1 listing every stale output.
 """
 
 import json
@@ -1146,7 +1148,8 @@ def on_face(y0, y1, half, thick, color, lift):
 
 
 inside.append(on_face(31.3, 33.9, 2.6, 0.5, "frame", 0.0))  # lower, larger display
-inside.append(on_face(31.6, 33.6, 2.2, 0.08, "screen", 0.5))
+SCREEN_SPAN = (31.6, 33.6, 2.2)  # bottom y, top y, half-width; the cab monitor covers it too
+inside.append(on_face(*SCREEN_SPAN, 0.08, "screen", 0.5))
 for k in range(5):  # key row on the lower part
     kx = -1.6 + k * 0.8
     inside.append(bar((console_face(29.2), 29.2), (console_face(29.8), 29.8), kx, kx + 0.5, 0.15,
@@ -1423,7 +1426,11 @@ MONITOR_FACE = "down"
 # Bedrock's down face starts with v reversed; visual confirmation is deferred (ADR 0139).
 MONITOR_UV_FLIP = (False, True)
 MONITOR_BG = PALETTE["screen"]
+# Alpha 0 texels glow under lamp_lit, which is entity_emissive (ADR 0020).
 MONITOR_FG = (200, 236, 248, 0)
+MONITOR_ICON_AT = (2, 8)
+MONITOR_LABEL_X, MONITOR_LABEL_Y, MONITOR_LABEL_WIDTH = 21, 12, 25
+GLYPH_ADVANCE = 6  # a 5 px glyph and 1 px of letter spacing
 FONT_5X7 = {
     "A": ["01110", "10001", "10001", "11111", "10001", "10001", "10001"],
     "B": ["11110", "10001", "10001", "11110", "10001", "10001", "11110"],
@@ -1464,49 +1471,77 @@ FONT_5X7 = {
     " ": ["00000"] * 7,
 }
 MONITOR_ICONS = {"blade_switch": BLADE_SWITCH_ICON}
-screens = json.loads(Path(__file__).with_name("monitor_screens.json").read_text())["bulldozer"]
-monitor_bones, cells = [], []
-for k, screen in enumerate(screens):
-    label = screen["label"]
-    label_width = len(label) * 6 - 1
-    if label_width > 25:
-        raise ValueError(f"Monitor label exceeds 25 px: {label}")
+
+
+def monitor_icon_color(code):
+    if code == ".":
+        return MONITOR_BG
+    if code == "K":  # black arrows would vanish on the dark screen
+        return MONITOR_FG
+    return ICON_COLORS[code][:3] + (0,)
+
+
+def monitor_cell(screen):
+    """One screen of the atlas: the tool's icon on the left and its label centered on the right."""
+    label, item = screen["label"], screen["item"]
+    label_width = len(label) * GLYPH_ADVANCE - 1
+    if label_width > MONITOR_LABEL_WIDTH:
+        raise ValueError(f"Monitor label exceeds {MONITOR_LABEL_WIDTH} px: {label}")
     if any(char not in FONT_5X7 for char in label):
         raise ValueError(f"Missing monitor glyph: {label}")
-    if screen["item"] not in MONITOR_ICONS:
-        raise ValueError(f"Missing monitor icon: {screen['item']}")
+    if item not in MONITOR_ICONS:
+        raise ValueError(f"Missing monitor icon: {item}")
     cell = [[MONITOR_BG for _ in range(MONITOR_CELL[0])] for _ in range(MONITOR_CELL[1])]
-    for y, row in enumerate(MONITOR_ICONS[screen["item"]]):
-        for x, color in enumerate(row):
-            cell[y + 8][x + 2] = (MONITOR_BG if color == "." else MONITOR_FG if color == "K"
-                                   else ICON_COLORS[color][:3] + (0,))
-    label_x = 21 + (25 - label_width) // 2
+    icon_x, icon_y = MONITOR_ICON_AT
+    for y, row in enumerate(MONITOR_ICONS[item]):
+        for x, code in enumerate(row):
+            cell[icon_y + y][icon_x + x] = monitor_icon_color(code)
+    label_x = MONITOR_LABEL_X + (MONITOR_LABEL_WIDTH - label_width) // 2
     for letter, char in enumerate(label):
         for y, row in enumerate(FONT_5X7[char]):
             for x, pixel in enumerate(row):
                 if pixel == "1":
-                    cell[y + 12][label_x + letter * 6 + x] = MONITOR_FG
-    cells.append(cell)
-    cube = on_face(31.6, 33.6, 2.2, MONITOR_THICK, "screen", MONITOR_LIFT)
-    # bar maps +y to the console's inward normal under Bedrock's x rotation sign (ADR 0051).
-    dy = 33.6 - 31.6
-    dz = console_face(33.6) - console_face(31.6)
-    length = math.hypot(dy, dz)
-    inward = (0, dz / length, -dy / length)
-    face_sign = {"up": 1, "down": -1}[MONITOR_FACE]
-    outward = tuple(face_sign * v for v in inward)
-    seat_pivot = next(b["pivot"] for b in bones if b["name"] == "seat_0")
-    if sum(n * (s - p) for n, s, p in zip(outward, seat_pivot, cube["pivot"])) <= 0:
-        raise ValueError("Monitor face must point toward seat_0")
+                    cell[MONITOR_LABEL_Y + y][label_x + letter * GLYPH_ADVANCE + x] = MONITOR_FG
+    return cell
+
+
+def monitor_plate():
+    return on_face(*SCREEN_SPAN, MONITOR_THICK, "screen", MONITOR_LIFT)
+
+
+def monitor_uv(k):
+    """The UV of cell k on MONITOR_FACE only, so the other faces are not drawn."""
     uv = [0, MONITOR_CELL[1] * k]
     uv_size = list(MONITOR_CELL)
     for axis, flip in enumerate(MONITOR_UV_FLIP):
         if flip:
             uv[axis] += uv_size[axis]
             uv_size[axis] *= -1
-    cube["uv"] = {MONITOR_FACE: {"uv": uv, "uv_size": uv_size}}
-    monitor_bones.append({"name": f"screen_{screen['item']}_{screen['state']}",
-                          "pivot": [0, 0, 0], "cubes": [cube]})
+    return {MONITOR_FACE: {"uv": uv, "uv_size": uv_size}}
+
+
+def check_monitor_faces_seat():
+    # bar maps +y to the console's inward normal under Bedrock's x rotation sign (ADR 0051).
+    bottom, top, _ = SCREEN_SPAN
+    dy, dz = top - bottom, console_face(top) - console_face(bottom)
+    length = math.hypot(dy, dz)
+    inward = (0, dz / length, -dy / length)
+    face_sign = {"up": 1, "down": -1}[MONITOR_FACE]
+    outward = tuple(face_sign * v for v in inward)
+    seat_pivot = next(b["pivot"] for b in bones if b["name"] == "seat_0")
+    plate_pivot = monitor_plate()["pivot"]
+    if sum(n * (s - p) for n, s, p in zip(outward, seat_pivot, plate_pivot)) <= 0:
+        raise ValueError("Monitor face must point toward seat_0")
+
+
+check_monitor_faces_seat()
+screens = json.loads(Path(__file__).with_name("monitor_screens.json").read_text())["bulldozer"]
+cells = [monitor_cell(screen) for screen in screens]
+monitor_bones = [
+    {"name": f"screen_{screen['item']}_{screen['state']}", "pivot": [0, 0, 0],
+     "cubes": [{**monitor_plate(), "uv": monitor_uv(k)}]}
+    for k, screen in enumerate(screens)
+]
 
 monitor_geo = {
     "format_version": geo["format_version"],

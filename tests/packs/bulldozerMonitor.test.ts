@@ -17,29 +17,19 @@ type MonitorBone = Bone & { cubes: Cube[] };
 const main = read(`${RP}/models/entity/yasu_ride/bulldozer.geo.json`)[
   "minecraft:geometry"
 ][0];
-const monitor = () =>
-  read(`${RP}/models/entity/yasu_ride/bulldozer_monitor.geo.json`)[
-    "minecraft:geometry"
-  ][0];
-const names = () => screens.map((s) => `screen_${s.item}_${s.state}`);
+const monitor = read(
+  `${RP}/models/entity/yasu_ride/bulldozer_monitor.geo.json`,
+)["minecraft:geometry"][0];
+const monitorBones: MonitorBone[] = monitor.bones;
+const boneNames = screens.map((s) => `screen_${s.item}_${s.state}`);
 const controllerName = "controller.render.yasu_ride.bulldozer.monitor";
 
 // turnedCorners applies the game's x rotation sign, unlike the preview's rotate (ADR 0051).
-function normal(cube: Cube, face: string): [number, number, number] {
-  const normals: Record<string, [number, number, number]> = {
-    down: [0, -1, 0],
-    up: [0, 1, 0],
-    north: [0, 0, -1],
-    south: [0, 0, 1],
-    east: [1, 0, 0],
-    west: [-1, 0, 0],
-  };
-  const vector = normals[face];
-  if (!vector) throw new Error(`Unknown face ${face}`);
+function downNormal(cube: Cube): [number, number, number] {
   const [result] = turnedCorners(
     { name: "normal" },
     {
-      origin: vector,
+      origin: [0, -1, 0],
       size: [0, 0, 0],
       pivot: [0, 0, 0],
       rotation: cube.rotation,
@@ -55,7 +45,7 @@ const visibleFace = (cube: Cube, n: number[]) =>
 
 describe("bulldozer cab monitor (ADR 0139)", () => {
   it("uses ordered top-level screen bones and the main model's visible bounds", () => {
-    const { description, bones } = monitor();
+    const { description } = monitor;
     expect(description.identifier).toBe("geometry.yasu_ride.bulldozer_monitor");
     expect([description.texture_width, description.texture_height]).toEqual([
       48,
@@ -67,14 +57,14 @@ describe("bulldozer cab monitor (ADR 0139)", () => {
       "visible_bounds_offset",
     ])
       expect(description[key]).toEqual(main.description[key]);
-    expect(bones.map((b: MonitorBone) => b.name)).toEqual(names());
-    for (const b of bones) {
+    expect(monitorBones.map((b) => b.name)).toEqual(boneNames);
+    for (const b of monitorBones) {
       expect(b.parent).toBeUndefined();
       expect(b.pivot).toEqual([0, 0, 0]);
     }
   });
   it("maps exactly one face of each single cube to its atlas cell", () => {
-    monitor().bones.forEach((b: MonitorBone, k: number) => {
+    monitorBones.forEach((b, k) => {
       expect(b.cubes).toHaveLength(1);
       const cube = b.cubes[0] as Cube;
       expect(Object.keys(cube.uv)).toEqual(["down"]);
@@ -98,13 +88,13 @@ describe("bulldozer cab monitor (ADR 0139)", () => {
     expect(screen).toBeDefined();
     const seat = main.bones.find((b: Bone) => b.name === "seat_0")
       .pivot as number[];
-    for (const b of monitor().bones as MonitorBone[]) {
+    for (const b of monitorBones) {
       const cube = b.cubes[0] as Cube;
       expect(cube.rotation).toEqual(screen.rotation);
       expect(cube.size[0]).toBe(4.4);
       expect(cube.size[1]).toBe(0.02);
       expect(cube.size[2]).toBe(screen.size[2]);
-      const n = normal(cube, Object.keys(cube.uv)[0] ?? "");
+      const n = downNormal(cube);
       expect(n[1]).toBeGreaterThan(0);
       expect(n[2]).toBeGreaterThan(0);
       expect(
@@ -139,7 +129,7 @@ describe("bulldozer cab monitor (ADR 0139)", () => {
           textures: ["Texture.monitor"],
           part_visibility: [
             { "*": false },
-            ...names().map((name, k) => ({
+            ...boneNames.map((name, k) => ({
               [name]: `query.property('yasu_ride:monitor') == ${k + 1}`,
             })),
           ],
