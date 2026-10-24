@@ -477,6 +477,39 @@ for sx in (1, -1):
     body.append(bar(TOP_FRONT, TOP_REAR, min(sx * skin_x, sx * (skin_x - 0.3)), max(sx * skin_x, sx * (skin_x - 0.3)),
                     2.0, "yellow", offset=-1.0))
 FRONT_TOP = hood_top(HOOD_FRONT)
+# The access door's outline on each hood side, from the owner's photo: a seam down its front edge
+# with two hinge plates of two bolts each, a seam along its bottom and up its rear edge by the cab,
+# and a recessed latch handle near the rear edge.
+ACCESS_FRONT, ACCESS_REAR, ACCESS_BOTTOM = -8.0, CAB_FRONT - 0.5, 22.6
+
+
+def on_hood_side(y0, y1, z0, z1, color, rise=0.06):
+    """A thin plate on the right hood side from y0 to y1, following its lean, in 0.5 px rows."""
+    out, y = [], y0
+    while y < y1 - 1e-6:
+        y2 = min(y + 0.5, y1)
+        x = hood_half((y + y2) / 2, 0.0)
+        out.append(box(x - 0.05, y, z0, x + rise, y2, z1, color))
+        y = y2
+    return out
+
+
+access = []
+for z in (ACCESS_FRONT, ACCESS_REAR):
+    access += on_hood_side(ACCESS_BOTTOM, hood_shoulder(z) - 0.4, z - 0.08, z + 0.08, "yellow_dark")
+access.append(box(HOOD_HALF - 0.05, ACCESS_BOTTOM, ACCESS_FRONT, HOOD_HALF + 0.06, ACCESS_BOTTOM + 0.16,
+                  ACCESS_REAR, "yellow_dark"))
+for hy in (23.4, 27.2):  # hinge plates
+    access += on_hood_side(hy, hy + 1.6, ACCESS_FRONT - 0.35, ACCESS_FRONT + 0.25, "yellow_dark", 0.12)
+    for by in (hy + 0.35, hy + 1.05):
+        x = hood_half(by, 0.0)
+        access.append(box(x, by, ACCESS_FRONT - 0.25, x + 0.2, by + 0.3, ACCESS_FRONT + 0.05, "bolt"))
+LATCH_Z, LATCH_Y = 3.4, 25.6  # the latch recess's front lower corner
+access += on_hood_side(LATCH_Y, LATCH_Y + 1.6, LATCH_Z, LATCH_Z + 1.6, "yellow_dark")
+access += on_hood_side(LATCH_Y + 0.2, LATCH_Y + 1.4, LATCH_Z + 0.2, LATCH_Z + 0.55, "black", 0.2)
+x = hood_half(LATCH_Y + 0.7, 0.0)
+access.append(box(x, LATCH_Y + 0.6, LATCH_Z + 1.0, x + 0.12, LATCH_Y + 0.9, LATCH_Z + 1.3, "bolt"))  # lock
+body += both(access)
 
 # Radiator guard: a black grille with bars, two square work lamps, side grab handles.
 body.append(box(-6.6, HOOD_BOTTOM, HOOD_FRONT - 1.1, 6.6, FRONT_TOP - 0.6, HOOD_FRONT, "black"))
@@ -800,14 +833,16 @@ side_frame = [
 ]
 cab += both(side_frame)
 # The doors. The right one stays shut; the left one, the driver's way in, swings out on a hinge at
-# its front edge (the owner's request), so it lives in its own bones.
-# The door, after the owner's photo from the right front: a matte black frame with a broad border
-# round a tall pane that reaches down near the floor and narrows below the handle, the rear edge
-# stepping in. It is built in rows along the angled side, u measured from the center post.
+# its rear edge (the owner's request), so it lives in its own bones.
+# The door, after the owner's photos: a matte black frame with a narrow border round a tall pane
+# that reaches down near the floor. Halfway up, the border by the front edge bulges round an upright
+# grab handle, so the pane's front edge steps back there. It is built in rows along the angled side,
+# u measured from the center post.
 DOOR_A, DOOR_B = (CHAMFER_X, CAB_FRONT + 0.5), (CAB_HALF - 0.5, CHAMFER_Z)
 DOOR_LEN = math.dist(DOOR_A, DOOR_B)
-DOOR_BORDER, DOOR_STEP_Y = 0.9, (31.2, 33.0)  # the rear edge steps in over this height
-DOOR_NARROW = 0.62  # the lower pane's share of the door's length
+DOOR_BORDER = 0.9
+HANDLE_Y, HANDLE_BULGE = (29.6, 34.4), 1.1  # the handle's height, and how far the border bulges there
+HANDLE_EASE = 0.8  # the height over which the bulge eases in and out
 
 
 def along(u0, u1, y0, y1, depth, color, lift=0.0):
@@ -822,10 +857,9 @@ def pane_span(y):
     """The pane's (u0, u1) at height y, or None in the border."""
     if y < CAB_FLOOR + 1.0 or y > WIN_TOP - DOOR_BORDER:
         return None
-    low, high = DOOR_NARROW * DOOR_LEN, DOOR_LEN - DOOR_BORDER
-    s0, s1 = DOOR_STEP_Y
-    rear = low if y <= s0 else high if y >= s1 else low + (high - low) * (y - s0) / (s1 - s0)
-    return DOOR_BORDER, rear
+    h0, h1 = HANDLE_Y
+    bulge = min(max(min(y - (h0 - HANDLE_EASE), (h1 + HANDLE_EASE) - y) / HANDLE_EASE, 0.0), 1.0)
+    return DOOR_BORDER + HANDLE_BULGE * bulge, DOOR_LEN - DOOR_BORDER
 
 
 door, door_glass = [], []
@@ -849,16 +883,16 @@ for y0, y1, span in rows:
         door.append(along(g1, DOOR_LEN, y0, y1, 1.0, "black"))
         door_glass.append(along(g0, g1, y0, y1, 0.2, "glass"))
 door += [
-    # Handle at the step on the rear border, hinges on the front edge
-    along(DOOR_NARROW * DOOR_LEN + 0.6, DOOR_NARROW * DOOR_LEN + 1.2, 30.4, 33.8, 0.4, "black", 0.6),
-    *[along(DOOR_NARROW * DOOR_LEN + 0.7, DOOR_NARROW * DOOR_LEN + 1.1, yy, yy + 0.15, 0.1, "frame", 0.85)
-      for yy in (31.0, 31.6, 32.2, 32.8)],
-    along(0.2, 0.6, 29.0, 30.2, 0.3, "frame", 0.6),
-    along(0.2, 0.6, 40.0, 41.2, 0.3, "frame", 0.6),
+    # The upright grab handle in the bulge by the front edge, with its lock at the top; hinges on
+    # the rear edge
+    along(0.6, 1.3, HANDLE_Y[0] + 0.4, HANDLE_Y[1] - 0.4, 0.4, "black", 0.6),
+    along(0.75, 1.15, HANDLE_Y[1] - 1.0, HANDLE_Y[1] - 0.7, 0.1, "steel", 0.85),
+    along(DOOR_LEN - 0.6, DOOR_LEN - 0.2, 29.0, 30.2, 0.3, "frame", 0.6),
+    along(DOOR_LEN - 0.6, DOOR_LEN - 0.2, 40.0, 41.2, 0.3, "frame", 0.6),
 ]
 cab += door
 door_left = [mirrored(c) for c in door]
-DOOR_HINGE = [-CHAMFER_X, 0.0, CAB_FRONT + 0.3]  # the door's front edge, by the center post
+DOOR_HINGE = [-DOOR_B[0], 0.0, DOOR_B[1]]  # the door's rear edge
 cab.append(box(-CHAMFER_X, CAB_FLOOR, CAB_FRONT, CHAMFER_X, WIN_FRONT_BOTTOM, CAB_FRONT + 1.0, "black"))
 cab.append(box(-CHAMFER_X, WIN_TOP, CAB_FRONT, CHAMFER_X, CAB_ROOF, CAB_FRONT + 1.0, "black"))
 cab.append(box(-CAB_HALF + 1.2, CAB_FLOOR, CAB_REAR - 1.0, CAB_HALF - 1.2, BELT_LINE, CAB_REAR, "black"))

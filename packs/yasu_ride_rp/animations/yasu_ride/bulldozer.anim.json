@@ -41,7 +41,7 @@
           "rotation": ["query.property('yasu_ride:spin_l')", 0, 0]
         },
         "door_l": {
-          "rotation": [0, "query.property('yasu_ride:door') * 70", 0]
+          "rotation": [0, "query.property('yasu_ride:door') * -70", 0]
         },
         "blade_rig": {
           "position": [

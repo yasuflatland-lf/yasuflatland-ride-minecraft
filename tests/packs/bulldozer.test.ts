@@ -145,7 +145,7 @@ it("runs the tracks, the door, and the blade rig from their properties", () => {
         rotation: [`query.property('yasu_ride:spin_${s}')`, 0, 0],
       };
   }
-  bones.door_l = { rotation: [0, "query.property('yasu_ride:door') * 70", 0] };
+  bones.door_l = { rotation: [0, "query.property('yasu_ride:door') * -70", 0] };
   bones.blade_rig = {
     position: [
       0,
