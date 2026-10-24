@@ -17,6 +17,10 @@ const seat = fc.integer({ min: 0, max: 3 });
 const backSeat = fc.integer({ min: 1, max: 3 });
 const AT_REST: Vec2 = { x: 0, z: 0 };
 
+function seatsOf(leavers: readonly SeatLeaver[]): number[] {
+  return leavers.map(({ seat }) => seat);
+}
+
 interface Spec {
   id: string;
   seat: number;
@@ -90,9 +94,7 @@ describe("Seating (ADR 0019, ADR 0025)", () => {
           })
           .sort((a, b) => a.seat - b.seat);
         expect(left).toEqual(expected);
-        expect(left.map(({ seat }) => seat)).toEqual(
-          left.map(({ seat }) => seat).sort((a, b) => a - b),
-        );
+        expect(seatsOf(left)).toEqual(seatsOf(left).sort((a, b) => a - b));
       }),
     );
   });
@@ -148,7 +150,7 @@ describe("Seating (ADR 0019, ADR 0025)", () => {
         const out = s.update(place(tick1, y), f, AT_REST);
         expect(out.driver).toBeUndefined();
         expect(out.mounted).toBe(false);
-        expect(out.left.map(({ seat }) => seat)).toContain(0);
+        expect(seatsOf(out.left)).toContain(0);
         expect(s.driver).toBeUndefined();
       }),
     );
@@ -189,7 +191,7 @@ describe("Seating (ADR 0019, ADR 0025)", () => {
         const riders = place(list, y);
         const s = Seating.restore(P, riders, f);
         const out = s.update(riders, f, AT_REST);
-        expect(out.left.map(({ seat }) => seat)).toEqual([]);
+        expect(out.left).toEqual([]);
         expect(out.mounted).toBe(false);
         expect(out.boarded).toEqual([]);
         expect(out.driver?.id).toBe(list.find((r) => r.seat === 0)?.id);
@@ -376,9 +378,7 @@ it("K5 keeps the lagged driver's seat taken and vacates the front seat", () => {
   s.update([d, p], forward(0), AT_REST);
   s.update([{ ...d, offset: worldOffset(0, 2) }, p], forward(0), AT_REST);
   expect(s.taken()).toEqual(new Set([0, 2]));
-  expect(
-    s.update([p], forward(0), AT_REST).left.map(({ seat }) => seat),
-  ).toEqual([0]);
+  expect(seatsOf(s.update([p], forward(0), AT_REST).left)).toEqual([0]);
 });
 
 for (const profile of [SUV_PROFILE, CAMPER_PROFILE]) {
@@ -409,13 +409,13 @@ for (const profile of [SUV_PROFILE, CAMPER_PROFILE]) {
               const probe = new Seating(positions);
               for (const list of ticks.slice(0, tick + 1))
                 probe.update(list, f, AT_REST);
-              return probe
-                .update(
+              return seatsOf(
+                probe.update(
                   riders.filter((r) => r.id !== rider.id),
                   f,
                   AT_REST,
-                )
-                .left.map(({ seat }) => seat);
+                ).left,
+              );
             });
             expect(settled.length).toBe(
               Math.min(riders.length, positions.length),
@@ -461,14 +461,14 @@ for (const profile of [SUV_PROFILE, CAMPER_PROFILE]) {
             });
           for (const [tick, lagged] of lagTicks.entries()) {
             const out = seating.update(makeRiders(aboard, lagged), f, AT_REST);
-            expect(out.left.map(({ seat }) => seat)).toEqual([]);
+            expect(out.left).toEqual([]);
             expect(out.driver?.id).toBe(aboard.includes(0) ? "r0" : undefined);
             expect(out.mounted).toBe(tick === 0 && aboard.includes(0));
             expect(seating.taken()).toEqual(new Set(aboard));
           }
           const remaining = aboard.filter((slot) => !leaving.includes(slot));
           const out = seating.update(makeRiders(remaining, true), f, AT_REST);
-          expect(out.left.map(({ seat }) => seat)).toEqual(
+          expect(seatsOf(out.left)).toEqual(
             aboard
               .filter((slot) => leaving.includes(slot))
               .sort((a, b) => a - b),
@@ -505,9 +505,9 @@ for (const profile of [SUV_PROFILE, CAMPER_PROFILE]) {
         seating.update([resident], f, AT_REST);
         seating.update([newcomer, resident], f, AT_REST);
         expect(seating.taken().size).toBe(2);
-        expect(
-          seating.update([newcomer], f, AT_REST).left.map(({ seat }) => seat),
-        ).toEqual([seat]);
+        expect(seatsOf(seating.update([newcomer], f, AT_REST).left)).toEqual([
+          seat,
+        ]);
       }),
     );
   });
