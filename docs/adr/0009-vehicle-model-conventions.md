@@ -1,6 +1,6 @@
 # 0009. Vehicle model conventions, and accepting a square collision box
 
-- Status: Accepted (extended by [0091](0091-alpha-blend-only-the-camper-glass.md), [0093](0093-decorate-the-parked-camper.md), and [0136](0136-bulldozer.md) (Proposed))
+- Status: Accepted (extended by [0091](0091-alpha-blend-only-the-camper-glass.md), [0093](0093-decorate-the-parked-camper.md), and [0136](0136-bulldozer.md) (Proposed)); extended by [0139](0139-show-the-held-tool-on-the-cab-monitor.md) (Proposed)
 - Date: 2026-10-10
 
 ## Context
