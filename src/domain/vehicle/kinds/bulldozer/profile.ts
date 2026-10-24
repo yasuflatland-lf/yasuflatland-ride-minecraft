@@ -4,6 +4,7 @@ import {
   type PlacementSurface,
 } from "../../placement/placement";
 import type { VehicleProfile } from "../../profile";
+import { BULLDOZER_MONITOR } from "./monitor";
 import { BULLDOZER_SPEC } from "./spec";
 
 const body = Object.freeze({
@@ -33,6 +34,7 @@ export const BULLDOZER_PROFILE: VehicleProfile = Object.freeze({
   }),
   chaseCamera: "far",
   defaultPaint: "yellow",
+  monitor: BULLDOZER_MONITOR,
 });
 export const BULLDOZER_MOTION: MotionLimits = Object.freeze({
   maxSpeed: BULLDOZER_SPEC.maxSpeed,
