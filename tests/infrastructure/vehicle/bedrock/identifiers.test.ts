@@ -189,7 +189,7 @@ describe("identifiers (ADR 0047)", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("derives the blade switch item id from the bulldozer's monitor tool", () => {
+  it("pins the blade switch item id", () => {
     expect(BLADE_SWITCH_TYPE).toBe("yasu_ride:blade_switch");
   });
 
