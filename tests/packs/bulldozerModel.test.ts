@@ -298,15 +298,11 @@ describe("bulldozer blade rig (ADR 0138)", () => {
   const [kz = Number.NaN] = capture(position, drive.blade_rig.position[2], "z");
   const raised = (rest: Point[], blade: number): Point[] =>
     rest.map(([x, y, z]) => [x, y + ky * blade, z + kz * blade]);
-  // The rod's front end on its axis, at rest.
-  const restEnd = (side: string): Point => {
-    const rod = points(bone(`lift_rod_${side}`));
-    const mid = (axis: number) => (lowest(rod, axis) + highest(rod, axis)) / 2;
-    return [mid(0), mid(1), lowest(rod, 2)];
-  };
-  // Where the drive animation puts that end: the rod scales along z about its pivot, then the
-  // cylinder turns about its rear pin, as the game composes a child bone inside its parent.
-  const rodEndAt = (side: string, blade: number): Point => {
+  // The rod's front end on its axis at rest, and where the drive animation puts it: the rod
+  // scales along z about its pivot, then the cylinder turns about its rear pin, as the game
+  // composes a child bone inside its parent. The geometry is read once per side, because the
+  // property test below calls rodEnd.at hundreds of times.
+  const rodEnd = (side: string) => {
     const [turn = Number.NaN] = capture(
       swing,
       drive[`lift_cylinder_${side}`].rotation[0],
@@ -317,19 +313,26 @@ describe("bulldozer blade rig (ADR 0138)", () => {
       drive[`lift_rod_${side}`].scale[2],
       `lift_rod_${side} scale`,
     );
-    const [x, y, z] = restEnd(side);
-    const pz = bone(`lift_rod_${side}`).pivot?.[2] ?? Number.NaN;
-    const scaled: Point = [
-      x,
-      y,
-      pz + (z - pz) * (1 - (blade * shorten) / length),
-    ];
-    const cylinder = bone(`lift_cylinder_${side}`);
-    const [end] = turnedCorners(
-      { name: "end", pivot: cylinder.pivot, rotation: [-turn * blade, 0, 0] },
-      { origin: scaled, size: [0, 0, 0] },
-    );
-    return end as Point;
+    const rodBone = bone(`lift_rod_${side}`);
+    const rod = points(rodBone);
+    const mid = (axis: number) => (lowest(rod, axis) + highest(rod, axis)) / 2;
+    const rest: Point = [mid(0), mid(1), lowest(rod, 2)];
+    const pz = rodBone.pivot?.[2] ?? Number.NaN;
+    const pin = bone(`lift_cylinder_${side}`).pivot;
+    const at = (blade: number): Point => {
+      const [x, y, z] = rest;
+      const scaled: Point = [
+        x,
+        y,
+        pz + (z - pz) * (1 - (blade * shorten) / length),
+      ];
+      const [end] = turnedCorners(
+        { name: "end", pivot: pin, rotation: [-turn * blade, 0, 0] },
+        { origin: scaled, size: [0, 0, 0] },
+      );
+      return end as Point;
+    };
+    return { rest, at };
   };
   it("drives blade_rig 3 px up and 3 px rearward at blade = 1, as the generator says", () => {
     expect(drive.blade_rig.position[0]).toBe(0);
@@ -366,11 +369,12 @@ describe("bulldozer blade rig (ADR 0138)", () => {
     expect(lowest(raised(points(bone("blade")), 1), 2)).toBeCloseTo(-35.4, 3);
   });
   it("keeps each rod's end on its gusset top while the blade moves", () => {
+    const ends = ["r", "l"].map(rodEnd);
     fc.assert(
       fc.property(fc.double({ min: 0, max: 1, noNaN: true }), (blade) => {
-        for (const side of ["r", "l"]) {
-          const [target] = raised([restEnd(side)], blade);
-          const end = rodEndAt(side, blade);
+        for (const { rest, at } of ends) {
+          const [target] = raised([rest], blade);
+          const end = at(blade);
           // Swing and shortening are linear in the property, so between the end poses the end
           // drifts off the arc by a fraction of a pixel.
           for (const axis of [0, 1, 2])
@@ -380,9 +384,9 @@ describe("bulldozer blade rig (ADR 0138)", () => {
         }
       }),
     );
-    for (const side of ["r", "l"]) {
-      const [target] = raised([restEnd(side)], 1);
-      const end = rodEndAt(side, 1);
+    for (const { rest, at } of ends) {
+      const [target] = raised([rest], 1);
+      const end = at(1);
       for (const axis of [0, 1, 2])
         expect(end[axis]).toBeCloseTo(target?.[axis] ?? Number.NaN, 1);
     }
