@@ -5,6 +5,7 @@ import { BULLDOZER_PROFILE } from "../../src/domain/vehicle/kinds/bulldozer/prof
 import { BULLDOZER_SPEC } from "../../src/domain/vehicle/kinds/bulldozer/spec";
 import { FORMS } from "../../src/domain/vehicle/motion/forms";
 import { expectContiguous, speedRanges } from "../support/soundLevels";
+import { bandPower } from "../support/spectrum";
 
 const RP = "packs/yasu_ride_rp",
   BP = "packs/yasu_ride_bp";
@@ -231,14 +232,16 @@ it("glows from the thruster only in flight and shows the spinning propeller only
   ).toBe(false);
 });
 it("rumbles the engine at levels rescaled to a 9 blocks/s top speed", () => {
-  const entries = client.scripts.animate.filter(
-    (e: unknown) => typeof e === "object",
-  );
-  const engine = speedRanges(
-    entries,
-    "engine_sound_",
-    "query.has_rider && query.property('yasu_ride:form') == 'car'",
-  );
+  const guard = "query.has_rider && query.property('yasu_ride:form') == 'car'";
+  const entriesFor = (prefix: string): Record<string, string>[] =>
+    client.scripts.animate.filter(
+      (e: unknown) =>
+        typeof e === "object" &&
+        e !== null &&
+        Object.keys(e)[0]?.startsWith(prefix),
+    );
+  const entries = entriesFor("engine_sound_");
+  const engine = speedRanges(entries, "engine_sound_", guard);
   expect(engine).toEqual([
     [0, 0.5],
     [0.5, 2.25],
@@ -248,6 +251,40 @@ it("rumbles the engine at levels rescaled to a 9 blocks/s top speed", () => {
     [7.5, Infinity],
   ]);
   expectContiguous(engine);
+  expect(entries[0]?.engine_sound_0).not.toContain("yasu_ride:blade");
+  for (const entry of entries.slice(1))
+    expect(Object.values(entry)[0]).toMatch(
+      /^query.has_rider && query.property\('yasu_ride:form'\) == 'car' && query.property\('yasu_ride:blade'\) >= 0.05 && /,
+    );
+  for (const family of ["push", "track"]) {
+    const prefix = `${family}_sound_`;
+    const familyGuard =
+      guard +
+      (family === "push" ? " && query.property('yasu_ride:blade') < 0.05" : "");
+    // speedRanges numbers levels from zero, but these start at 1 (the animate order below
+    // checks the real keys), so rename them before comparing with the five moving levels.
+    expect(
+      speedRanges(
+        entriesFor(prefix).map((entry, i) => ({
+          [`${prefix}${i}`]: Object.values(entry)[0] ?? "",
+        })),
+        prefix,
+        familyGuard,
+      ),
+    ).toEqual(engine.slice(1));
+  }
+  expect(
+    client.scripts.animate.map((entry: string | Record<string, string>) =>
+      typeof entry === "string" ? entry : Object.keys(entry)[0],
+    ),
+  ).toEqual([
+    "form",
+    "drive",
+    "hydraulics",
+    ...[0, 1, 2, 3, 4, 5].map((n) => `engine_sound_${n}`),
+    ...[1, 2, 3, 4, 5].map((n) => `push_sound_${n}`),
+    ...[1, 2, 3, 4, 5].map((n) => `track_sound_${n}`),
+  ]);
   const hover = speedRanges(
     controller.states.hover.animations.slice(2),
     "hover_sound_",
@@ -277,5 +314,154 @@ it("lights the lamps and the beacon, and draws the glass blended", () => {
     glass: "entity_alphablend",
     lamp: "entity",
     lamp_lit: "entity_emissive",
+  });
+});
+
+const soundDefs = read(`${RP}/sounds/sound_definitions.json`).sound_definitions;
+it("maps bulldozer sounds to dedicated clips while preserving hover and sonar", () => {
+  const expected: Record<string, string> = {
+    hydraulics: "yasu_ride.bulldozer_hydraulics",
+    sonar: "yasu_ride.sonar",
+  };
+  for (const family of ["engine", "push", "track"]) {
+    for (let level = family === "engine" ? 0 : 1; level <= 5; level++)
+      expected[`${family}_${level}`] = `yasu_ride.bulldozer_${family}_${level}`;
+  }
+  for (let level = 0; level < 5; level++)
+    expected[`hover_${level}`] = `yasu_ride.hover_${level}`;
+  expect(client.sound_effects).toEqual(expected);
+  for (const event of Object.values(expected)) {
+    expect(soundDefs[event], event).toBeDefined();
+    for (const sound of soundDefs[event].sounds)
+      expect(existsSync(`${RP}/${sound.name}.wav`), sound.name).toBe(true);
+  }
+});
+it("matches sound animation lengths to their clips", () => {
+  for (const [short, id] of Object.entries<string>(client.animations)) {
+    const animation = anim[id];
+    if (!animation?.sound_effects) continue;
+    for (const { effect } of Object.values<{ effect: string }>(
+      animation.sound_effects,
+    )) {
+      const sound = soundDefs[client.sound_effects[effect]].sounds[0];
+      const wav = readFileSync(`${RP}/${sound.name}.wav`);
+      expect(animation.animation_length, short).toBe(
+        wav.readUInt32LE(40) / wav.readUInt32LE(28),
+      );
+      expect(animation.loop, short).toBe(short !== "hydraulics_sound");
+    }
+  }
+  for (const family of ["engine", "push", "track"]) {
+    for (let level = family === "engine" ? 0 : 1; level <= 5; level++) {
+      const short = `${family}_sound_${level}`;
+      expect(client.animations[short]).toBe(
+        `animation.yasu_ride.bulldozer.${short}`,
+      );
+      expect(anim[client.animations[short]]).toEqual({
+        loop: true,
+        animation_length: family === "track" ? 1 : 4,
+        sound_effects: { "0.0": { effect: `${family}_${level}` } },
+      });
+    }
+  }
+  expect(client.animations.hydraulics_sound).toBe(
+    "animation.yasu_ride.bulldozer.hydraulics_sound",
+  );
+  // The clip covers the blade's travel and then its stop clunk and relief hiss.
+  const hydraulics = anim[client.animations.hydraulics_sound];
+  expect(hydraulics).toEqual({
+    loop: false,
+    animation_length: 0.9,
+    sound_effects: { "0.0": { effect: "hydraulics" } },
+  });
+  expect(hydraulics.animation_length).toBeGreaterThan(
+    BULLDOZER_SPEC.bladeLiftTicks / 20,
+  );
+});
+it("keeps the engine low and its exhaust tone at twice the firing rate (ADR 0140)", () => {
+  // BULLDOZER_IDLE_CYCLES, _TRAVEL_CYCLES, and _PUSH_CYCLES per 4 s loop in
+  // tools/gen_sounds.py.
+  const cycles: Record<string, number> = { engine_0: 32 };
+  [36, 40, 42, 44, 48].forEach((c, i) => {
+    cycles[`engine_${i + 1}`] = c;
+  });
+  [34, 38, 40, 42, 46].forEach((c, i) => {
+    cycles[`push_${i + 1}`] = c;
+  });
+  for (const [name, perLoop] of Object.entries(cycles)) {
+    const band = bandPower(`${RP}/sounds/yasu_ride/bulldozer_${name}.wav`);
+    // The approved clips keep about 1 % of the 100-300 Hz energy in 3-5 kHz;
+    // dropping the low-pass gives about 6 % and the first version's whistles
+    // 14-28 %.
+    expect(band(3000, 5000) / band(100, 300), name).toBeLessThan(0.025);
+    // A four-stroke six fires 6 times per cycle and its exhaust tone sits at
+    // twice that, so it must beat both the firing rate and its own harmonic.
+    const firing = (6 * perLoop) / 4;
+    const peak = (hz: number) => band(hz - 1, hz + 1);
+    expect(peak(2 * firing), name).toBeGreaterThan(peak(firing));
+    expect(peak(2 * firing), name).toBeGreaterThan(peak(4 * firing));
+  }
+});
+it("increases volumes by speed and makes pushing louder than travel", () => {
+  const volumes = {
+    engine: [0.5, 0.54, 0.58, 0.62, 0.66, 0.7],
+    push: [0.6, 0.65, 0.7, 0.75, 0.8],
+    track: [0.25, 0.3, 0.35, 0.4, 0.45],
+  };
+  for (const [family, values] of Object.entries(volumes)) {
+    const actual = values.map((_, i) => {
+      const level = i + (family === "engine" ? 0 : 1);
+      const def = soundDefs[`yasu_ride.bulldozer_${family}_${level}`];
+      expect(def).toMatchObject({
+        category: "neutral",
+        min_distance: 4,
+        max_distance: family === "track" ? 24 : 32,
+      });
+      return def.sounds[0].volume;
+    });
+    expect(actual).toEqual(values);
+    for (let i = 1; i < actual.length; i++)
+      expect(actual[i]).toBeGreaterThan(actual[i - 1]);
+  }
+  for (let level = 1; level <= 5; level++)
+    expect(
+      soundDefs[`yasu_ride.bulldozer_push_${level}`].sounds[0].volume,
+    ).toBeGreaterThan(
+      soundDefs[`yasu_ride.bulldozer_engine_${level}`].sounds[0].volume,
+    );
+  expect(soundDefs["yasu_ride.bulldozer_hydraulics"]).toEqual({
+    category: "neutral",
+    min_distance: 2,
+    max_distance: 16,
+    sounds: [{ name: "sounds/yasu_ride/bulldozer_hydraulics", volume: 0.35 }],
+  });
+});
+it("plays hydraulics once when the blade leaves an endpoint", () => {
+  expect(client.animations.hydraulics).toBe(
+    "controller.animation.yasu_ride.bulldozer.hydraulics",
+  );
+  const controllers = read(
+    `${RP}/animation_controllers/yasu_ride/bulldozer.ac.json`,
+  ).animation_controllers;
+  expect(controllers[client.animations.hydraulics]).toEqual({
+    initial_state: "rest",
+    states: {
+      rest: {
+        transitions: [
+          {
+            moving:
+              "query.property('yasu_ride:blade') >= 0.05 && query.property('yasu_ride:blade') <= 0.95",
+          },
+        ],
+      },
+      moving: {
+        animations: ["hydraulics_sound"],
+        transitions: [
+          {
+            rest: "query.property('yasu_ride:blade') < 0.05 || query.property('yasu_ride:blade') > 0.95",
+          },
+        ],
+      },
+    },
   });
 });

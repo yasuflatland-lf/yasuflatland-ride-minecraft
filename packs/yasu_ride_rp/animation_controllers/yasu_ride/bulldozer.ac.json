@@ -58,6 +58,26 @@
           ]
         }
       }
+    },
+    "controller.animation.yasu_ride.bulldozer.hydraulics": {
+      "initial_state": "rest",
+      "states": {
+        "rest": {
+          "transitions": [
+            {
+              "moving": "query.property('yasu_ride:blade') >= 0.05 && query.property('yasu_ride:blade') <= 0.95"
+            }
+          ]
+        },
+        "moving": {
+          "animations": ["hydraulics_sound"],
+          "transitions": [
+            {
+              "rest": "query.property('yasu_ride:blade') < 0.05 || query.property('yasu_ride:blade') > 0.95"
+            }
+          ]
+        }
+      }
     }
   }
 }

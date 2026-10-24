@@ -52,21 +52,44 @@
         "hover_sound_2": "animation.yasu_ride.bulldozer.hover_sound_2",
         "hover_sound_3": "animation.yasu_ride.bulldozer.hover_sound_3",
         "hover_sound_4": "animation.yasu_ride.bulldozer.hover_sound_4",
-        "submarine_sound": "animation.yasu_ride.bulldozer.submarine_sound"
+        "submarine_sound": "animation.yasu_ride.bulldozer.submarine_sound",
+        "push_sound_1": "animation.yasu_ride.bulldozer.push_sound_1",
+        "push_sound_2": "animation.yasu_ride.bulldozer.push_sound_2",
+        "push_sound_3": "animation.yasu_ride.bulldozer.push_sound_3",
+        "push_sound_4": "animation.yasu_ride.bulldozer.push_sound_4",
+        "push_sound_5": "animation.yasu_ride.bulldozer.push_sound_5",
+        "track_sound_1": "animation.yasu_ride.bulldozer.track_sound_1",
+        "track_sound_2": "animation.yasu_ride.bulldozer.track_sound_2",
+        "track_sound_3": "animation.yasu_ride.bulldozer.track_sound_3",
+        "track_sound_4": "animation.yasu_ride.bulldozer.track_sound_4",
+        "track_sound_5": "animation.yasu_ride.bulldozer.track_sound_5",
+        "hydraulics": "controller.animation.yasu_ride.bulldozer.hydraulics",
+        "hydraulics_sound": "animation.yasu_ride.bulldozer.hydraulics_sound"
       },
       "sound_effects": {
-        "engine_0": "yasu_ride.engine_0",
-        "engine_1": "yasu_ride.engine_1",
-        "engine_2": "yasu_ride.engine_2",
-        "engine_3": "yasu_ride.engine_3",
-        "engine_4": "yasu_ride.engine_4",
-        "engine_5": "yasu_ride.engine_5",
+        "engine_0": "yasu_ride.bulldozer_engine_0",
+        "engine_1": "yasu_ride.bulldozer_engine_1",
+        "engine_2": "yasu_ride.bulldozer_engine_2",
+        "engine_3": "yasu_ride.bulldozer_engine_3",
+        "engine_4": "yasu_ride.bulldozer_engine_4",
+        "engine_5": "yasu_ride.bulldozer_engine_5",
         "hover_0": "yasu_ride.hover_0",
         "hover_1": "yasu_ride.hover_1",
         "hover_2": "yasu_ride.hover_2",
         "hover_3": "yasu_ride.hover_3",
         "hover_4": "yasu_ride.hover_4",
-        "sonar": "yasu_ride.sonar"
+        "sonar": "yasu_ride.sonar",
+        "push_1": "yasu_ride.bulldozer_push_1",
+        "push_2": "yasu_ride.bulldozer_push_2",
+        "push_3": "yasu_ride.bulldozer_push_3",
+        "push_4": "yasu_ride.bulldozer_push_4",
+        "push_5": "yasu_ride.bulldozer_push_5",
+        "track_1": "yasu_ride.bulldozer_track_1",
+        "track_2": "yasu_ride.bulldozer_track_2",
+        "track_3": "yasu_ride.bulldozer_track_3",
+        "track_4": "yasu_ride.bulldozer_track_4",
+        "track_5": "yasu_ride.bulldozer_track_5",
+        "hydraulics": "yasu_ride.bulldozer_hydraulics"
       },
       "render_controllers": [
         {
@@ -78,23 +101,54 @@
         "animate": [
           "form",
           "drive",
+          "hydraulics",
           {
             "engine_sound_0": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.ground_speed < 0.5"
           },
           {
-            "engine_sound_1": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.ground_speed >= 0.5 && query.ground_speed < 2.25"
+            "engine_sound_1": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.property('yasu_ride:blade') >= 0.05 && query.ground_speed >= 0.5 && query.ground_speed < 2.25"
           },
           {
-            "engine_sound_2": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.ground_speed >= 2.25 && query.ground_speed < 4"
+            "engine_sound_2": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.property('yasu_ride:blade') >= 0.05 && query.ground_speed >= 2.25 && query.ground_speed < 4"
           },
           {
-            "engine_sound_3": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.ground_speed >= 4 && query.ground_speed < 5.75"
+            "engine_sound_3": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.property('yasu_ride:blade') >= 0.05 && query.ground_speed >= 4 && query.ground_speed < 5.75"
           },
           {
-            "engine_sound_4": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.ground_speed >= 5.75 && query.ground_speed < 7.5"
+            "engine_sound_4": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.property('yasu_ride:blade') >= 0.05 && query.ground_speed >= 5.75 && query.ground_speed < 7.5"
           },
           {
-            "engine_sound_5": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.ground_speed >= 7.5"
+            "engine_sound_5": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.property('yasu_ride:blade') >= 0.05 && query.ground_speed >= 7.5"
+          },
+          {
+            "push_sound_1": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.property('yasu_ride:blade') < 0.05 && query.ground_speed >= 0.5 && query.ground_speed < 2.25"
+          },
+          {
+            "push_sound_2": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.property('yasu_ride:blade') < 0.05 && query.ground_speed >= 2.25 && query.ground_speed < 4"
+          },
+          {
+            "push_sound_3": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.property('yasu_ride:blade') < 0.05 && query.ground_speed >= 4 && query.ground_speed < 5.75"
+          },
+          {
+            "push_sound_4": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.property('yasu_ride:blade') < 0.05 && query.ground_speed >= 5.75 && query.ground_speed < 7.5"
+          },
+          {
+            "push_sound_5": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.property('yasu_ride:blade') < 0.05 && query.ground_speed >= 7.5"
+          },
+          {
+            "track_sound_1": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.ground_speed >= 0.5 && query.ground_speed < 2.25"
+          },
+          {
+            "track_sound_2": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.ground_speed >= 2.25 && query.ground_speed < 4"
+          },
+          {
+            "track_sound_3": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.ground_speed >= 4 && query.ground_speed < 5.75"
+          },
+          {
+            "track_sound_4": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.ground_speed >= 5.75 && query.ground_speed < 7.5"
+          },
+          {
+            "track_sound_5": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.ground_speed >= 7.5"
           }
         ]
       }
