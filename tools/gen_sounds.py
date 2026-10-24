@@ -88,26 +88,19 @@ BULLDOZER_FIRING_ORDER = [1, 5, 3, 6, 2, 4]
 # rates below are whole cycles per loop, so changing these breaks the seams.
 BULLDOZER_ENGINE_LOOP_S = 4.0
 BULLDOZER_TRACK_LOOP_S = 1.0
-# Engine cycles per 4 s loop (rpm / 30). The owner heard the spec speeds (7 to 16 cycles/s,
-# 840 to 1920 rpm) as too fast and asked three times for slower revs, ending with a
-# distinct thud per firing (ADR 0140).
-BULLDOZER_IDLE_CYCLES = 3                    # 90 rpm, 4.5 thuds a second.
-BULLDOZER_TRAVEL_CYCLES = [3, 4, 5, 6, 7]    # 90-210 rpm.
-BULLDOZER_PUSH_CYCLES = [3, 4, 4, 5, 6]      # 90-180 rpm, lower than travel under load.
-# Resonances (Hz, Q, gain) chosen by ear, not measured, against the owner's D5
-# references, then lowered after the owner asked for a lower sound (ADR 0140).
-BULLDOZER_EXHAUST = [(27, 4.0, 1.0), (53, 5.0, 0.85), (88, 4.0, 0.45), (168, 3.0, 0.2)]
-# Diesel injection clatter in the low mids and the combustion roar under the pulses,
-# chosen by ear; both stay below the cutoff (ADR 0140).
-BULLDOZER_CLATTER = [(480, 8.0, 1.0), (760, 10.0, 0.6)]
-BULLDOZER_ROAR_BAND = (40, 260)
-BULLDOZER_ROAR_GAIN = 0.35
-BULLDOZER_ENGINE_CUTOFF_HZ = 900
-# Each firing's thud for the owner's "do-do-do-do" (start and end Hz, length s, gain),
-# chosen by ear (ADR 0140).
-BULLDOZER_THUD_HZ = (90, 42)
-BULLDOZER_THUD_S = 0.18
-BULLDOZER_THUD_GAIN = 1.2
+# Engine cycles per 4 s loop (rpm / 30), matched to the owner's own recording of a dozer
+# (scratch analysis, not committed): its exhaust tone sits at 97-143 Hz, twice the firing
+# rate, and its "do-do-do" thumps come once per engine cycle at 8-12 a second (ADR 0140).
+BULLDOZER_IDLE_CYCLES = 32                       # 8 cycles/s, 480 rpm, 48 Hz firing.
+BULLDOZER_TRAVEL_CYCLES = [36, 40, 42, 44, 48]   # 9-12 cycles/s, 540-720 rpm.
+BULLDOZER_PUSH_CYCLES = [34, 38, 40, 42, 46]     # Lower than travel under load.
+# Exhaust resonances (Hz, Q, gain) placing the energy where the recording has it: most
+# between 120 and 500 Hz, some up to 2 kHz, almost none above (ADR 0140).
+BULLDOZER_EXHAUST = [(65, 3.0, 0.5), (130, 3.0, 1.2), (260, 4.0, 0.65), (420, 4.0, 0.55), (800, 5.0, 0.35), (1400, 6.0, 0.25)]
+# One cylinder per cycle fires harder than the rest, which the ear hears as the
+# once-per-cycle thump of the recording; the share is chosen by ear (ADR 0140).
+BULLDOZER_LEAD_SHARE = 2.2
+BULLDOZER_ENGINE_CUTOFF_HZ = 2500
 # Links/s per track: 14.3 * representative game speed / 9, rounded; D5 pitch estimate in ADR 0140.
 BULLDOZER_TRACK_LINKS = [2, 5, 8, 11, 13]
 # Track resonances, noise bands, and gains chosen by ear, not measured (ADR 0140).
@@ -325,45 +318,24 @@ def loop_lowpass(signal, cutoff_hz):
 
 def bulldozer_engine(rng, cycles, load, t):
     n = round(RATE * BULLDOZER_ENGINE_LOOP_S)
-    trims = [rng.uniform(0.75, 1.0) for _ in BULLDOZER_FIRING_ORDER]
-    exhaust, clatter, envelope, thud = ([0.0] * n for _ in range(4))
+    trims = [rng.uniform(0.8, 1.0) for _ in BULLDOZER_FIRING_ORDER]
+    trims[0] *= BULLDOZER_LEAD_SHARE
+    pulses = [0.0] * n
     gap = n / (cycles * 6)
-    # Pulse widths, timing variation, clatter share, roar, drive, and swell are character
-    # values chosen by ear against the D5 references, not measurements (ADR 0140). Long,
-    # overlapping exhaust pulses blur into one growl, and each firing's injection clatter
-    # rings in the low mids, so the engine reads as a diesel rather than a two-stroke pop.
+    # Timing variation, pulse length, drive, and swell are character values chosen by ear
+    # against the owner's recording, not measurements (ADR 0140).
     jitter_share = 0.04 if load == "idle" else 0.02 - 0.01 * t
     drive = {"idle": 1.6, "travel": 1.8, "push": 2.4}[load]
-    pulse_s = 0.09 if load == "push" else 0.07
-    clatter_share = {"idle": 0.25, "travel": 0.2, "push": 0.15}[load]
-
-    def burst(train, at, gain, length_s):
-        length = round(length_s * RATE)
-        for j in range(length):
-            noise = 1.0 if j < 2 else rng.uniform(-1, 1)
-            train[(at + j) % n] += gain * noise * math.exp(-j / (length / 3))
-
+    pulse_s = 0.006 if load == "push" else 0.004
     for k in range(cycles * 6):
         cylinder = BULLDOZER_FIRING_ORDER[k % 6]
         at = round(k * gap + rng.uniform(-1, 1) * jitter_share * gap)
         strength = trims[cylinder - 1] * rng.uniform(0.85, 1.0)
-        burst(exhaust, at, strength, pulse_s)
-        burst(clatter, at, strength * clatter_share, 0.004)
-        # The thud: a low sine that drops in pitch and dies away before the next firing.
-        phase = 0.0
-        for j in range(round(min(BULLDOZER_THUD_S, 0.9 * gap / RATE) * RATE)):
-            drop = BULLDOZER_THUD_HZ[1] + (BULLDOZER_THUD_HZ[0] - BULLDOZER_THUD_HZ[1]) * math.exp(-j / (0.02 * RATE))
-            phase += 2 * math.pi * drop / RATE
-            thud[(at + j) % n] += strength * math.sin(phase) * math.exp(-j / (0.05 * RATE))
-        for j in range(round(gap)):
-            envelope[(at + j) % n] += strength * math.exp(-j / (gap / 2))
-    roar = periodic_noise(rng, BULLDOZER_ENGINE_LOOP_S, *BULLDOZER_ROAR_BAND, 300)
-    peak_env = max(envelope) or 1.0
-    exhaust = ring(exhaust, BULLDOZER_EXHAUST)
-    peak_ex = max(abs(x) for x in exhaust) or 1.0
-    mixed = [0.6 * exhaust[i] / peak_ex + b + BULLDOZER_THUD_GAIN * thud[i]
-             + BULLDOZER_ROAR_GAIN * envelope[i] / peak_env * roar[i]
-             for i, b in enumerate(ring(clatter, BULLDOZER_CLATTER))]
+        length = round(pulse_s * RATE)
+        for j in range(length):
+            noise = 1.0 if j < 2 else rng.uniform(-1, 1)
+            pulses[(at + j) % n] += strength * noise * math.exp(-j / (length / 3))
+    mixed = ring(pulses, BULLDOZER_EXHAUST)
     peak = max(abs(x) for x in mixed) or 1.0
     mixed = [math.tanh(drive * x / peak) for x in mixed]
     if load == "push":
