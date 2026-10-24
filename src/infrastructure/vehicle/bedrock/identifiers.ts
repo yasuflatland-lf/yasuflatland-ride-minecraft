@@ -3,6 +3,7 @@ import { HEADLIGHTS_PROPERTY_NAME } from "../../../domain/vehicle/entityContract
 import type { FleetEntry } from "../../../domain/vehicle/fleet/fleet";
 import { VEHICLE_KINDS, type VehicleKind } from "../../../domain/vehicle/kind";
 import {
+  BLADE_SWITCH_ITEM,
   CAMPING_GEAR_IDS,
   pairHeights,
   STAND_IN_NAMES,
@@ -167,7 +168,7 @@ export const TEST_BLADE_EVENT = id("test_blade");
 export const TEST_HELD_TOOL_EVENT = id("test_held_tool");
 
 /** Item the bulldozer's driver uses to raise or lower its blade (ADR 0138). */
-export const BLADE_SWITCH_TYPE = id("blade_switch");
+export const BLADE_SWITCH_TYPE = id(BLADE_SWITCH_ITEM);
 /**
  * Camera presets for each chase camera: the vanilla preset that views the player from
  * behind, as F5 does (ADR 0028), and the pack's preset pulled back from it (ADR 0071).

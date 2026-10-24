@@ -189,6 +189,10 @@ describe("identifiers (ADR 0047)", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
+  it("derives the blade switch item id from the bulldozer's monitor tool", () => {
+    expect(BLADE_SWITCH_TYPE).toBe("yasu_ride:blade_switch");
+  });
+
   it("names an item's decor block", () => {
     fc.assert(
       fc.property(fc.stringMatching(/^[a-z][a-z0-9_]{0,20}$/), (item) => {

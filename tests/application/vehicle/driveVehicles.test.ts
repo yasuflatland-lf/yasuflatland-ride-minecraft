@@ -9,10 +9,12 @@ import {
 import { forward } from "../../../src/domain/shared/vec";
 import type { Drive, DriveStep } from "../../../src/domain/vehicle/drive";
 import type { RawInput } from "../../../src/domain/vehicle/driveInput";
+import { MONITOR_PROPERTY_NAME } from "../../../src/domain/vehicle/entityContract";
 import { VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
 import {
   createVehicle,
   entityContractOf,
+  profileOf,
   rebuildVehicle,
 } from "../../../src/domain/vehicle/kinds/index";
 import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
@@ -1104,7 +1106,11 @@ describe("entity mirror (ADR 0055)", () => {
     "keeps every entity property equal to the drive's last value once the world stops failing, for %s",
     (kind) => {
       const { properties } = entityContractOf(kind);
-      const declared = Object.keys(properties);
+      // The core writes the monitor for a kind with a rule; no kind contract declares it (ADR 0139).
+      const declared = [
+        ...Object.keys(properties),
+        ...(profileOf(kind).monitor ? [MONITOR_PROPERTY_NAME] : []),
+      ];
       // A rebuilt drive trusts the form it reads back and does not send it
       // again (ADR 0039, 0127), so both entities start out holding it.
       const entityAtStart: fc.Arbitrary<Record<string, string>> =

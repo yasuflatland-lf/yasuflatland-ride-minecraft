@@ -6,7 +6,10 @@ import type {
   EngineCommand,
 } from "../../../../src/domain/vehicle/drive";
 import { MONITOR_PROPERTY_NAME } from "../../../../src/domain/vehicle/entityContract";
-import { profileOf } from "../../../../src/domain/vehicle/kinds/index";
+import {
+  createVehicle,
+  profileOf,
+} from "../../../../src/domain/vehicle/kinds/index";
 import type { VehicleProfile } from "../../../../src/domain/vehicle/profile";
 import {
   type RiderView,
@@ -166,5 +169,51 @@ describe("vehicle cab monitor", () => {
         },
       ),
     );
+  });
+});
+
+describe("bulldozer cab monitor", () => {
+  function bulldozer() {
+    const vehicle = createVehicle("bulldozer", asVehicleId("b"), 0);
+    const seat = defined(profileOf("bulldozer").seats.positions[0], "seat");
+    let tick = 0;
+    const driver = (heldTool?: string): RiderView => ({
+      id: asPlayerId("d"),
+      offset: { x: seat.x, z: -seat.z },
+      yaw: 0,
+      raw: { moveX: 0, moveY: 0, jump: false },
+      slot: 0,
+      heldTool,
+    });
+    return {
+      vehicle,
+      monitor: (heldTool?: string) =>
+        vehicle
+          .tick({
+            tick: tick++,
+            riders: [driver(heldTool)],
+            deckSeatInputs: [],
+            velocity: { x: 0, y: 0, z: 0 },
+            onGround: true,
+            ...waterSensors(),
+            blockTypes: () => [],
+            solidAt: () => false,
+            targets: () => [],
+          })
+          .stepCommands.filter(
+            (c) => c.type === "setProperty" && c.name === MONITOR_PROPERTY_NAME,
+          ),
+    };
+  }
+
+  it("shows the blade switch's target and switches at once", () => {
+    const sim = bulldozer();
+    expect(sim.monitor("blade_switch")).toEqual([command(2)]);
+    expect(sim.vehicle.switchBlade(asPlayerId("d"), 100)).toBe(true);
+    expect(sim.monitor("blade_switch")).toEqual([command(1)]);
+  });
+
+  it("blanks for a driver holding nothing", () => {
+    expect(bulldozer().monitor()).toEqual([command(0)]);
   });
 });
