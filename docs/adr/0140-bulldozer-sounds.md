@@ -91,7 +91,7 @@ Synthesis character values below are chosen by ear against the owner's requests 
 4. "Thicker, do-do-do-do, revs half of now", like 53 s to about 1:10 of the M0yyrtj3rmE video. The engine loop became 4 s with the same cycle counts, halving the revs, with a thud per firing.
 5. The owner then supplied their recording of that section. Its analysis showed the "do" is one thump per engine cycle at 8-12 a second, far faster than the per-firing thuds of step 4, so the revs went back up to the table above, the clatter, roar, and thud gave way to the lead-cylinder thump and the recording-shaped resonances, and the cutoff rose to 2500 Hz.
 
-The owner accepted the result ("the sound is OK with this") on 2026-10-24.
+The owner accepted the result ("the sound is OK with this") on 2026-10-24. Shortening the engine loops to 2 s was then tried and rejected: the owner heard it as a different sound, and heard a click at every seam. The click comes from the client restarting the clip each animation loop on top of the old copy while the loop began on a firing, so every engine, push, and track loop is now rotated to start at its quietest zero crossing (`quiet_seam`). A rotation keeps every sample, so the approved sound is unchanged.
 
 Bump the Resource Pack header and module and the Behavior Pack dependency to the next patch above `main` at merge time (0015). No beta API or script changes are needed.
 

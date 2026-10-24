@@ -322,6 +322,24 @@ def loop_lowpass(signal, cutoff_hz):
     return out
 
 
+def quiet_seam(loop):
+    """Rotate a loop to start at its quietest zero crossing, so the copy the client restarts
+    at each animation loop does not cut in on a thump. The owner heard a click at every seam
+    when a loop started on a firing (ADR 0140); a rotation keeps every sample."""
+    n = len(loop)
+    window = round(0.01 * RATE)
+    energy = sum(x * x for x in loop[:window])
+    best, best_at = energy, 0
+    for i in range(1, n):
+        energy += loop[(i + window - 1) % n] ** 2 - loop[i - 1] ** 2
+        if energy < best:
+            best, best_at = energy, i
+    centre = best_at + window // 2
+    start = min(range(centre - window // 2, centre + window // 2),
+                key=lambda i: abs(loop[i % n]) + abs(loop[(i - 1) % n]))
+    return loop[start % n:] + loop[:start % n]
+
+
 def bulldozer_engine(rng, cycles, load, t):
     n = round(RATE * BULLDOZER_ENGINE_LOOP_S)
     trims = [rng.uniform(0.8, 1.0) for _ in BULLDOZER_FIRING_ORDER]
@@ -351,7 +369,7 @@ def bulldozer_engine(rng, cycles, load, t):
     # roll off what the drive adds above the recording's range (ADR 0140).
     mixed = loop_lowpass(loop_lowpass(mixed, BULLDOZER_ENGINE_CUTOFF_HZ), BULLDOZER_ENGINE_CUTOFF_HZ)
     peak = max(abs(x) for x in mixed) or 1.0
-    return [x / peak for x in mixed]
+    return quiet_seam([x / peak for x in mixed])
 
 
 def bulldozer_track(rng, level):
@@ -374,12 +392,12 @@ def bulldozer_track(rng, level):
     peak = max(abs(x) for x in mixed) or 1.0
     squeal = periodic_noise(rng, BULLDOZER_TRACK_LOOP_S, *BULLDOZER_SQUEAL_BAND, 40)
     roller = periodic_noise(rng, BULLDOZER_TRACK_LOOP_S, *BULLDOZER_ROLLER_BAND, 120)
-    return [
+    return quiet_seam([
         mixed[i] / peak
         + BULLDOZER_SQUEAL_GAIN[level] * (1 + 0.3 * math.sin(2 * math.pi * i / n)) * squeal[i]
         + BULLDOZER_ROLLER_GAIN[level] * roller[i]
         for i in range(n)
-    ]
+    ])
 
 
 def bulldozer_hydraulics(rng):
