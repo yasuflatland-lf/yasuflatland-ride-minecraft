@@ -1423,7 +1423,8 @@ MONITOR_CELL = (48, 32)
 MONITOR_LIFT = 0.66
 MONITOR_THICK = 0.02
 MONITOR_FACE = "down"
-# Bedrock's down face starts with v reversed; visual confirmation is deferred (ADR 0139).
+# Assumed: Bedrock runs v on the down face opposite to the up face. Only viewing
+# the screen in game from seat 0 confirms the orientation (ADR 0139).
 MONITOR_UV_FLIP = (False, True)
 MONITOR_BG = PALETTE["screen"]
 # Alpha 0 texels glow under lamp_lit, which is entity_emissive (ADR 0020).
