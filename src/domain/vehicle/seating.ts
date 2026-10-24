@@ -4,9 +4,15 @@ import { add, type Vec2 } from "../shared/vec";
 import type { SeatLayout } from "./profile";
 import { DRIVER_SEAT, nearestSeat, type RiderPos, toLocal } from "./seats";
 
+/** A rider who left their seat since the last update. */
+export interface SeatLeaver {
+  readonly id: PlayerId;
+  readonly seat: number;
+}
+
 interface SeatingUpdate<R extends RiderPos> {
-  /** Seats whose rider left since the last update, ascending. */
-  readonly vacated: readonly number[];
+  /** Riders who left since the last update, with the seat each had, ascending by seat. */
+  readonly left: readonly SeatLeaver[];
   /** Settled seats of riders who had no settled seat at the last update, ascending. */
   readonly boarded: readonly number[];
   readonly driver: R | undefined;
@@ -23,6 +29,16 @@ function seatsOfRidersNotIn(
     .filter(([id]) => !others.has(id))
     .map(([, seat]) => seat)
     .sort((a, b) => a - b);
+}
+
+function ridersNotIn(
+  seats: ReadonlyMap<PlayerId, number>,
+  others: { has(id: PlayerId): boolean },
+): SeatLeaver[] {
+  return [...seats]
+    .filter(([id]) => !others.has(id))
+    .map(([id, seat]) => ({ id, seat }))
+    .sort((a, b) => a.seat - b.seat);
 }
 
 export class Seating {
@@ -150,7 +166,7 @@ export class Seating {
   ): SeatingUpdate<R> {
     const seats = this.seatsOf(riders, f);
     const aboard = new Set(riders.map((r) => r.id));
-    const vacated = seatsOfRidersNotIn(this.seats, aboard);
+    const left = ridersNotIn(this.seats, aboard);
     const boarded = seatsOfRidersNotIn(seats, this.seats);
     this.seats = seats;
     // Position-only riders retain the sticky driver and motion allowance (0025, 0126).
@@ -170,7 +186,7 @@ export class Seating {
       );
     const mounted = driver !== undefined && this.driverId !== driver.id;
     this.driverId = driver?.id;
-    return { vacated, boarded, driver, mounted };
+    return { left, boarded, driver, mounted };
   }
 
   /** The id of the current driver, if any. */
