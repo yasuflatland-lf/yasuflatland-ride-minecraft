@@ -28,8 +28,8 @@ export async function bulldozerExitSpot(a: Arena): Promise<Outcome> {
             );
             if (!at) return { pass: false, detail: `yaw=${yaw} exit missing` };
             const f = car.getViewDirection();
-            const dx = at.x - location.x,
-              dz = at.z - location.z;
+            const dx = at.x - location.x;
+            const dz = at.z - location.z;
             const left = dx * f.z - dz * f.x;
             const forward = dx * f.x + dz * f.z;
             const feet = {
@@ -37,7 +37,7 @@ export async function bulldozerExitSpot(a: Arena): Promise<Outcome> {
               y: Math.floor(at.y),
               z: Math.floor(at.z),
             };
-            const cells = [0, 1, -1].map(
+            const [feetBlock, headBlock, belowBlock] = [0, 1, -1].map(
               (dy) => dim.getBlock({ ...feet, y: feet.y + dy })?.typeId,
             );
             return {
@@ -46,10 +46,10 @@ export async function bulldozerExitSpot(a: Arena): Promise<Outcome> {
                 forward >= -1.1 &&
                 forward <= -0.3 &&
                 Math.abs(at.y - location.y) < 0.01 &&
-                cells[0] === "minecraft:air" &&
-                cells[1] === "minecraft:air" &&
-                cells[2] === "minecraft:stone",
-              detail: `yaw=${yaw} left=${left.toFixed(3)} forward=${forward.toFixed(3)} feet=${cells[0]} head=${cells[1]} below=${cells[2]}`,
+                feetBlock === "minecraft:air" &&
+                headBlock === "minecraft:air" &&
+                belowBlock === "minecraft:stone",
+              detail: `yaw=${yaw} left=${left.toFixed(3)} forward=${forward.toFixed(3)} feet=${feetBlock} head=${headBlock} below=${belowBlock}`,
             };
           },
           ENTITY_TYPE.bulldozer,

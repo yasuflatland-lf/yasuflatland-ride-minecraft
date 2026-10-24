@@ -33,6 +33,7 @@ import { monitorScreen } from "./monitor/monitor";
 import type { ChaseCamera, VehicleProfile } from "./profile";
 import { type RamHit, type RamTarget, selectHits } from "./ram";
 import type { SeatAssignment } from "./seatChoice";
+import type { SeatLeaver } from "./seating";
 import { DRIVER_SEAT, seatWorldPositions, toLocal } from "./seats";
 import { SPEC } from "./spec";
 import {
@@ -361,15 +362,6 @@ export class Vehicle {
     this.driverSeatFree =
       !taken.has(DRIVER_SEAT) && deckSeatInputs[DRIVER_SEAT] === undefined;
 
-    const { x, y, z } = step.dock?.hold ?? sensors.location;
-    const exits: SeatExit[] = [];
-    for (const { id, seat } of seated.left) {
-      const exit = this.profile.seatExits?.[seat];
-      if (exit === undefined) continue;
-      const [at] = seatWorldPositions({ x, y, z, yaw: this.drive.yaw }, [exit]);
-      if (at) exits.push({ playerId: id, at });
-    }
-
     return {
       dock: step.dock && {
         ...step.dock,
@@ -391,7 +383,7 @@ export class Vehicle {
       stepCommands:
         monitor.length === 0 ? step.commands : [...step.commands, ...monitor],
       finalCommands: [...vacatedCommands, ...takenCommands],
-      exits,
+      exits: this.seatExits(seated.left, step.dock?.hold ?? sensors.location),
       riders: step.riders,
     };
   }
@@ -405,6 +397,23 @@ export class Vehicle {
     return value === undefined
       ? []
       : [{ type: "setProperty", name: MONITOR_PROPERTY_NAME, value }];
+  }
+
+  /**
+   * The exit of each leaver whose seat has one, around the hold pose while held or the
+   * location before this tick's move while driving, at the heading after this step (ADR 0140).
+   */
+  private seatExits(leavers: readonly SeatLeaver[], origin: Vec3): SeatExit[] {
+    const { x, y, z } = origin;
+    const pose = { x, y, z, yaw: this.drive.yaw };
+    const exits: SeatExit[] = [];
+    for (const { id, seat } of leavers) {
+      const exit = this.profile.seatExits?.[seat];
+      if (exit === undefined) continue;
+      const [at] = seatWorldPositions(pose, [exit]);
+      if (at) exits.push({ playerId: id, at });
+    }
+    return exits;
   }
 
   /**
