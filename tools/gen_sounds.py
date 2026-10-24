@@ -1,4 +1,4 @@
-"""Synthesize the SUV's sounds as 16-bit mono WAV files (ADR 0030).
+"""Synthesize vehicle sounds as 16-bit mono WAV files (ADR 0030).
 
 engine_0 to engine_5: the slow, heavy "dok-dok-dok" of an old single-cylinder diesel (think of a
 walk-behind tiller), with its combustion knock and the clank of the crank and connecting rod, at rising
@@ -13,6 +13,9 @@ boat_engine_0 to boat_engine_7: the sports boat's engine (ADR 0060): the deep, l
 cross-plane V8, its wet exhaust bubbling out under the water, and the hiss of the hull cutting the water,
 at rising engine speeds. The client picks one by the boat's speed.
 shower: the loop of running water played while the camper's shower runs (ADR 0094).
+bulldozer_engine_0 to _5 and bulldozer_push_1 to _5: Cat D5 six-cylinder diesel travel and load (ADR 0140).
+bulldozer_track_1 to _5: steel track clank, squeal, and roller rumble following ground speed (ADR 0140).
+bulldozer_hydraulics: a half-second blade pump whine, played once per movement (ADR 0140).
 
 Only the standard library is used, and the random generator is seeded, so the output is reproducible.
 The loops repeat without a click: the hover loops are sums of sines with whole cycles in the loop, and
@@ -73,6 +76,36 @@ WATER_BAND = (400, 3800)
 WATER_GAIN = (0.04, 0.55)
 # Running water from the camper's shower head (ADR 0094): a bright hiss band (Hz).
 SHOWER_BAND = (1200, 6000)
+
+
+# Cat C7.1 inline six (D5 Technical Specifications, CGT); the usual inline-six order,
+# not checked against Cat's manual. Source: https://www.cgt.it/sites/default/files/d5_technical_specifications_en.pdf
+BULLDOZER_FIRING_ORDER = [1, 5, 3, 6, 2, 4]
+# Engine cycles per second (rpm / 120); derivation and spec sources in ADR 0140.
+BULLDOZER_IDLE_CYCLES = 7                      # 840 rpm, low idle about 800 (assumed).
+BULLDOZER_TRAVEL_CYCLES = [9, 11, 13, 14, 16]  # 1080-1920 rpm, high idle about 1880 (assumed).
+BULLDOZER_PUSH_CYCLES = [8, 10, 12, 13, 15]    # 13 approximates spec 1600 rpm, 15 spec 1770.
+# Resonances (Hz, Q, gain), whistle (Hz, gain), and hiss band (Hz) chosen by ear,
+# not measured, against the owner's D5 references (ADR 0140).
+BULLDOZER_EXHAUST = [(38, 4.0, 1.0), (75, 5.0, 0.85), (125, 4.0, 0.45), (240, 3.0, 0.2)]
+BULLDOZER_KNOCK = [(1700, 5.0, 0.22), (2900, 6.0, 0.14)]
+BULLDOZER_IDLE_WHISTLE = (2100, 0.03)
+BULLDOZER_TRAVEL_WHISTLE = [(2600, 0.04), (3100, 0.05), (3600, 0.06), (3900, 0.07), (4400, 0.08)]
+BULLDOZER_PUSH_WHISTLE = [(3000, 0.08), (3700, 0.10), (4400, 0.12), (4800, 0.13), (5400, 0.15)]
+BULLDOZER_HISS_BAND = (1500, 6000)
+# Links/s per track: 14.3 * representative game speed / 9, rounded; D5 pitch estimate in ADR 0140.
+BULLDOZER_TRACK_LINKS = [2, 5, 8, 11, 13]
+# Track resonances, noise bands, and gains chosen by ear, not measured (ADR 0140).
+BULLDOZER_TRACK_RING = [(520, 12.0, 0.6), (1150, 18.0, 0.5), (2300, 22.0, 0.3), (3700, 25.0, 0.15)]
+BULLDOZER_TRACK_THUD = [(90, 3.0, 0.5)]
+BULLDOZER_SQUEAL_BAND = (1450, 1650)
+BULLDOZER_SQUEAL_GAIN = [0.0, 0.03, 0.06, 0.09, 0.12]
+BULLDOZER_ROLLER_BAND = (40, 200)
+BULLDOZER_ROLLER_GAIN = [0.1, 0.15, 0.2, 0.25, 0.3]
+# Blade lift: 10 ticks (BULLDOZER_SPEC.bladeLiftTicks, ADR 0138) = 0.5 s.
+BULLDOZER_HYDRAULICS_S = 0.5
+# Pump pitch chosen by ear, not measured (ADR 0140).
+BULLDOZER_PUMP_HZ = 380
 
 
 def write(name, samples):
@@ -259,6 +292,88 @@ def boat_engine(rng, cycles_hz):
     ]
 
 
+def bulldozer_engine(rng, cycles, load, t, whistle):
+    n = RATE
+    trims = [rng.uniform(0.88, 1.0) for _ in BULLDOZER_FIRING_ORDER]
+    exhaust, knock = ([0.0] * n for _ in range(2))
+    gap = n / (cycles * 6)
+    # Pulse widths, timing variation, knock shares, drive, swell, and hiss gains are
+    # character values chosen by ear against the D5 references, not measurements (ADR 0140).
+    jitter_share = 0.04 if load == "idle" else 0.02 - 0.01 * t
+    knock_share = 1.0 if load == "idle" else 0.8 - 0.3 * t if load == "travel" else 0.6 - 0.2 * t
+
+    def burst(train, at, gain, length_s):
+        length = round(length_s * RATE)
+        for j in range(length):
+            noise = 1.0 if j < 2 else rng.uniform(-1, 1)
+            train[(at + j) % n] += gain * noise * math.exp(-j / (length / 3))
+
+    for k in range(cycles * 6):
+        cylinder = BULLDOZER_FIRING_ORDER[k % 6]
+        at = round(k * gap + rng.uniform(-1, 1) * jitter_share * gap)
+        strength = trims[cylinder - 1] * rng.uniform(0.85, 1.0)
+        burst(exhaust, at, strength, 0.014 if load == "push" else 0.010)
+        burst(knock, at + round(0.001 * RATE), strength * knock_share, 0.003)
+    mixed = [a + b for a, b in zip(ring(exhaust, BULLDOZER_EXHAUST), ring(knock, BULLDOZER_KNOCK))]
+    peak = max(abs(x) for x in mixed) or 1.0
+    drive = 1.4 if load == "idle" else 1.6 if load == "travel" else 2.2
+    mixed = [math.tanh(drive * x / peak) for x in mixed]
+    if load == "push":
+        mixed = [x * (1 + 0.08 * math.sin(2 * math.pi * 2 * i / n)) for i, x in enumerate(mixed)]
+    f, gain = whistle
+    hiss = periodic_noise(rng, 1.0, *BULLDOZER_HISS_BAND, 200)
+    hiss_gain = 0.02 if load == "idle" else 0.03 + 0.03 * t if load == "travel" else 0.06 + 0.06 * t
+    # Integer whistle frequency and 3 Hz wobble hold whole cycles across the seam (ADR 0140).
+    return [
+        mixed[i] + gain * math.sin(2 * math.pi * f * i / n
+                                  + 0.004 * f / 3 * math.sin(2 * math.pi * 3 * i / n))
+        + hiss_gain * hiss[i]
+        for i in range(n)
+    ]
+
+
+def bulldozer_track(rng, level):
+    n = RATE
+    clank, thud = ([0.0] * n for _ in range(2))
+    links = BULLDOZER_TRACK_LINKS[level]
+    gap = n / links
+    # Offset, jitter, strength, burst length, and modulation chosen by ear, not measured (ADR 0140).
+    for offset in [0.0, 0.37]:
+        for k in range(links):
+            at = round((k + offset + rng.uniform(-0.05, 0.05)) * gap)
+            strength = rng.uniform(0.6, 1.0)
+            length = round(0.004 * RATE)
+            for j in range(length):
+                noise = 1.0 if j < 2 else rng.uniform(-1, 1)
+                sample = strength * noise * math.exp(-j / (length / 3))
+                clank[(at + j) % n] += sample
+                thud[(at + j) % n] += 0.5 * sample
+    mixed = [a + b for a, b in zip(ring(clank, BULLDOZER_TRACK_RING), ring(thud, BULLDOZER_TRACK_THUD))]
+    peak = max(abs(x) for x in mixed) or 1.0
+    squeal = periodic_noise(rng, 1.0, *BULLDOZER_SQUEAL_BAND, 40)
+    roller = periodic_noise(rng, 1.0, *BULLDOZER_ROLLER_BAND, 120)
+    return [
+        mixed[i] / peak
+        + BULLDOZER_SQUEAL_GAIN[level] * (1 + 0.3 * math.sin(2 * math.pi * i / n)) * squeal[i]
+        + BULLDOZER_ROLLER_GAIN[level] * roller[i]
+        for i in range(n)
+    ]
+
+
+def bulldozer_hydraulics(rng):
+    n = round(RATE * BULLDOZER_HYDRAULICS_S)
+    # Rise, harmonics, oil hiss, and envelope chosen by ear, not measured (ADR 0140).
+    hiss = bandpass([rng.uniform(-1, 1) for _ in range(n)], 3000, 1.0)
+    phase = 0.0
+    out = []
+    for i in range(n):
+        phase += 2 * math.pi * BULLDOZER_PUMP_HZ * (1 + 0.05 * i / n) / RATE
+        pump = math.sin(phase) + 0.5 * math.sin(2 * phase) + 0.25 * math.sin(3 * phase)
+        envelope = min(1.0, i / (0.03 * RATE), (n - 1 - i) / (0.08 * RATE))
+        out.append(envelope * (pump + 0.15 * hiss[i]))
+    return out
+
+
 rng = random.Random(29)
 for level, rate in enumerate(ENGINE_FIRING_RATES):
     write(f"engine_{level}", engine(rng, rate))
@@ -273,4 +388,15 @@ for level, rate in enumerate(BOAT_CYCLE_RATES):
     write(f"boat_engine_{level}", boat_engine(rng, rate))
 rng = random.Random(70)
 write("shower", shower(rng))
+rng = random.Random(140)
+write("bulldozer_engine_0", bulldozer_engine(rng, BULLDOZER_IDLE_CYCLES, "idle", 0.0, BULLDOZER_IDLE_WHISTLE))
+for level, cycles in enumerate(BULLDOZER_TRAVEL_CYCLES):
+    write(f"bulldozer_engine_{level + 1}", bulldozer_engine(rng, cycles, "travel", level / 4, BULLDOZER_TRAVEL_WHISTLE[level]))
+for level, cycles in enumerate(BULLDOZER_PUSH_CYCLES):
+    write(f"bulldozer_push_{level + 1}", bulldozer_engine(rng, cycles, "push", level / 4, BULLDOZER_PUSH_WHISTLE[level]))
+rng = random.Random(141)
+for level in range(len(BULLDOZER_TRACK_LINKS)):
+    write(f"bulldozer_track_{level + 1}", bulldozer_track(rng, level))
+rng = random.Random(142)
+write("bulldozer_hydraulics", bulldozer_hydraulics(rng))
 print("wrote", ", ".join(sorted(p.name for p in OUT.glob("*.wav"))))

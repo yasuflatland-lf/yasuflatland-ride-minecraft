@@ -200,6 +200,105 @@
           "effect": "sonar"
         }
       }
+    },
+    "animation.yasu_ride.bulldozer.push_sound_1": {
+      "loop": true,
+      "animation_length": 1.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "push_1"
+        }
+      }
+    },
+    "animation.yasu_ride.bulldozer.push_sound_2": {
+      "loop": true,
+      "animation_length": 1.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "push_2"
+        }
+      }
+    },
+    "animation.yasu_ride.bulldozer.push_sound_3": {
+      "loop": true,
+      "animation_length": 1.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "push_3"
+        }
+      }
+    },
+    "animation.yasu_ride.bulldozer.push_sound_4": {
+      "loop": true,
+      "animation_length": 1.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "push_4"
+        }
+      }
+    },
+    "animation.yasu_ride.bulldozer.push_sound_5": {
+      "loop": true,
+      "animation_length": 1.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "push_5"
+        }
+      }
+    },
+    "animation.yasu_ride.bulldozer.track_sound_1": {
+      "loop": true,
+      "animation_length": 1.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "track_1"
+        }
+      }
+    },
+    "animation.yasu_ride.bulldozer.track_sound_2": {
+      "loop": true,
+      "animation_length": 1.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "track_2"
+        }
+      }
+    },
+    "animation.yasu_ride.bulldozer.track_sound_3": {
+      "loop": true,
+      "animation_length": 1.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "track_3"
+        }
+      }
+    },
+    "animation.yasu_ride.bulldozer.track_sound_4": {
+      "loop": true,
+      "animation_length": 1.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "track_4"
+        }
+      }
+    },
+    "animation.yasu_ride.bulldozer.track_sound_5": {
+      "loop": true,
+      "animation_length": 1.0,
+      "sound_effects": {
+        "0.0": {
+          "effect": "track_5"
+        }
+      }
+    },
+    "animation.yasu_ride.bulldozer.hydraulics_sound": {
+      "loop": false,
+      "animation_length": 0.5,
+      "sound_effects": {
+        "0.0": {
+          "effect": "hydraulics"
+        }
+      }
     }
   }
 }

@@ -132,6 +132,193 @@
       "min_distance": 2.0,
       "max_distance": 12.0,
       "sounds": [{ "name": "sounds/yasu_ride/shower", "volume": 0.4 }]
+    },
+    "yasu_ride.bulldozer_engine_0": {
+      "category": "neutral",
+      "min_distance": 4.0,
+      "max_distance": 32.0,
+      "sounds": [
+        {
+          "name": "sounds/yasu_ride/bulldozer_engine_0",
+          "volume": 0.5
+        }
+      ]
+    },
+    "yasu_ride.bulldozer_engine_1": {
+      "category": "neutral",
+      "min_distance": 4.0,
+      "max_distance": 32.0,
+      "sounds": [
+        {
+          "name": "sounds/yasu_ride/bulldozer_engine_1",
+          "volume": 0.54
+        }
+      ]
+    },
+    "yasu_ride.bulldozer_engine_2": {
+      "category": "neutral",
+      "min_distance": 4.0,
+      "max_distance": 32.0,
+      "sounds": [
+        {
+          "name": "sounds/yasu_ride/bulldozer_engine_2",
+          "volume": 0.58
+        }
+      ]
+    },
+    "yasu_ride.bulldozer_engine_3": {
+      "category": "neutral",
+      "min_distance": 4.0,
+      "max_distance": 32.0,
+      "sounds": [
+        {
+          "name": "sounds/yasu_ride/bulldozer_engine_3",
+          "volume": 0.62
+        }
+      ]
+    },
+    "yasu_ride.bulldozer_engine_4": {
+      "category": "neutral",
+      "min_distance": 4.0,
+      "max_distance": 32.0,
+      "sounds": [
+        {
+          "name": "sounds/yasu_ride/bulldozer_engine_4",
+          "volume": 0.66
+        }
+      ]
+    },
+    "yasu_ride.bulldozer_engine_5": {
+      "category": "neutral",
+      "min_distance": 4.0,
+      "max_distance": 32.0,
+      "sounds": [
+        {
+          "name": "sounds/yasu_ride/bulldozer_engine_5",
+          "volume": 0.7
+        }
+      ]
+    },
+    "yasu_ride.bulldozer_push_1": {
+      "category": "neutral",
+      "min_distance": 4.0,
+      "max_distance": 32.0,
+      "sounds": [
+        {
+          "name": "sounds/yasu_ride/bulldozer_push_1",
+          "volume": 0.6
+        }
+      ]
+    },
+    "yasu_ride.bulldozer_push_2": {
+      "category": "neutral",
+      "min_distance": 4.0,
+      "max_distance": 32.0,
+      "sounds": [
+        {
+          "name": "sounds/yasu_ride/bulldozer_push_2",
+          "volume": 0.65
+        }
+      ]
+    },
+    "yasu_ride.bulldozer_push_3": {
+      "category": "neutral",
+      "min_distance": 4.0,
+      "max_distance": 32.0,
+      "sounds": [
+        {
+          "name": "sounds/yasu_ride/bulldozer_push_3",
+          "volume": 0.7
+        }
+      ]
+    },
+    "yasu_ride.bulldozer_push_4": {
+      "category": "neutral",
+      "min_distance": 4.0,
+      "max_distance": 32.0,
+      "sounds": [
+        {
+          "name": "sounds/yasu_ride/bulldozer_push_4",
+          "volume": 0.75
+        }
+      ]
+    },
+    "yasu_ride.bulldozer_push_5": {
+      "category": "neutral",
+      "min_distance": 4.0,
+      "max_distance": 32.0,
+      "sounds": [
+        {
+          "name": "sounds/yasu_ride/bulldozer_push_5",
+          "volume": 0.8
+        }
+      ]
+    },
+    "yasu_ride.bulldozer_track_1": {
+      "category": "neutral",
+      "min_distance": 4.0,
+      "max_distance": 24.0,
+      "sounds": [
+        {
+          "name": "sounds/yasu_ride/bulldozer_track_1",
+          "volume": 0.25
+        }
+      ]
+    },
+    "yasu_ride.bulldozer_track_2": {
+      "category": "neutral",
+      "min_distance": 4.0,
+      "max_distance": 24.0,
+      "sounds": [
+        {
+          "name": "sounds/yasu_ride/bulldozer_track_2",
+          "volume": 0.3
+        }
+      ]
+    },
+    "yasu_ride.bulldozer_track_3": {
+      "category": "neutral",
+      "min_distance": 4.0,
+      "max_distance": 24.0,
+      "sounds": [
+        {
+          "name": "sounds/yasu_ride/bulldozer_track_3",
+          "volume": 0.35
+        }
+      ]
+    },
+    "yasu_ride.bulldozer_track_4": {
+      "category": "neutral",
+      "min_distance": 4.0,
+      "max_distance": 24.0,
+      "sounds": [
+        {
+          "name": "sounds/yasu_ride/bulldozer_track_4",
+          "volume": 0.4
+        }
+      ]
+    },
+    "yasu_ride.bulldozer_track_5": {
+      "category": "neutral",
+      "min_distance": 4.0,
+      "max_distance": 24.0,
+      "sounds": [
+        {
+          "name": "sounds/yasu_ride/bulldozer_track_5",
+          "volume": 0.45
+        }
+      ]
+    },
+    "yasu_ride.bulldozer_hydraulics": {
+      "category": "neutral",
+      "min_distance": 2.0,
+      "max_distance": 16.0,
+      "sounds": [
+        {
+          "name": "sounds/yasu_ride/bulldozer_hydraulics",
+          "volume": 0.35
+        }
+      ]
     }
   }
 }

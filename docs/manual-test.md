@@ -232,6 +232,11 @@ Setup: use `/give @s yasu_ride:bulldozer_item` or craft from an SUV item, an iro
 | B15 | Raised and lowered movement | Raised, drive at a 1-block and a 2-block step, then into a hill. It climbs both steps and removes no block. Lowered, it cuts the hill as in B9 | | |
 | B16 | Outside the bulldozer | On foot next to the bulldozer, use the switch aimed at the ground (not at the bulldozer, which boards it), and use it while driving an SUV. The blade does not move and no click plays | | |
 | B17 | Saved blade | Lower the blade, run `pnpm server:restart`, and rejoin. The bulldozer is still lowered and still cuts | | |
+| B18 | Board the bulldozer and wait without input | A deep, even six-cylinder rumble with a faint high turbo whistle, close to the idling reference (`BNgsi4zvP5I`); no click once a second | | |
+| B19 | With the blade raised, drive from rest to full speed and back | The revs climb in five steps; the track clank starts slow (about 2 a second per side) and quickens to a fast rattle with a squeal at full speed; both stop below walking pace | | |
+| B20 | Lower the blade and drive into a hill, then raise it while moving | With the blade down and moving, the engine drops in pitch, gets louder and more strained, and the turbo whistles higher, like the working reference (`uU2OLi5t4dw`); raising it returns to the travel sound within a second | | |
+| B21 | Raise and lower the blade with the switch while parked | Each change plays one short hydraulic whine over about half a second, with the click | | |
+| B22 | Drive an SUV, a camper, and the sports boat | Their engine sounds are as before | | |
 
 ## Tent
 

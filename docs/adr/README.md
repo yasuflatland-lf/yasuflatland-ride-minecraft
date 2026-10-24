@@ -33,7 +33,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0027](0027-readme-previews-in-three-poses.md) | Render the README previews in three poses | Superseded in part by 0045; extended by 0136 (Proposed) |
 | [0028](0028-third-person-camera-in-flight.md) | Switch riders to the third-person camera in flight | Superseded in part by 0052 and 0071 |
 | [0029](0029-raise-the-seats.md) | Raise the seats so riders' legs stay inside the body | Accepted |
-| [0030](0030-engine-and-hover-sounds.md) | Engine and hover sounds from client animations, stepped by speed | Extended by 0073 |
+| [0030](0030-engine-and-hover-sounds.md) | Engine and hover sounds from client animations, stepped by speed | Extended by 0073 and 0140 (Proposed) |
 | [0031](0031-repaint-with-all-sixteen-dyes.md) | Repaint vehicles with all sixteen dyes | Superseded in part by 0036; extended by 0076, [0135](0135-repaint-the-tent-with-dyes.md), and 0136 (Proposed) |
 | [0032](0032-climb-with-jump-and-sink-with-the-stick.md) | Climb with held Jump and sink with the stick pulled back | Accepted |
 | [0033](0033-lower-the-wheels-before-touchdown.md) | Lower the wheels before touchdown | Accepted |
@@ -139,10 +139,11 @@ This directory records design decisions and the reasons behind them. The format 
 | [0133](0133-sleep-on-the-tent-mattresses.md) | Sleep on the tent mattresses | Proposed |
 | [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md) | Switch the tent lantern with the headlight switch | Proposed; extended by 0138 (Proposed) |
 | [0135](0135-repaint-the-tent-with-dyes.md) | Repaint the tent with dyes | Proposed |
-| [0136](0136-bulldozer.md) | Add the bulldozer kind | Proposed; superseded in part and extended by 0138 (Proposed) |
+| [0136](0136-bulldozer.md) | Add the bulldozer kind | Proposed; superseded in part and extended by 0138 (Proposed) and 0140 (Proposed) |
 | [0137](0137-clear-block-columns-with-the-blade.md) | Clear block columns with the blade, keeping liquids, containers, and laid blocks | Proposed; extended by 0138 (Proposed) |
-| [0138](0138-raise-and-lower-the-bulldozer-blade.md) | Raise and lower the bulldozer blade with a switch item | Proposed; extended by 0139 (Proposed) |
+| [0138](0138-raise-and-lower-the-bulldozer-blade.md) | Raise and lower the bulldozer blade with a switch item | Proposed; extended by 0139 (Proposed) and 0140 (Proposed) |
 | [0139](0139-show-the-held-tool-on-the-cab-monitor.md) | Show the driver's held tool on the cab monitor | Proposed |
+| [0140](0140-bulldozer-sounds.md) | Give the bulldozer its own engine, track, and blade hydraulic sounds | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 

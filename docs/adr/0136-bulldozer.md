@@ -1,6 +1,6 @@
 # 0136. Add the bulldozer kind
 
-- Status: Proposed; superseded in part (`stepUp: false`) and extended by [0138](0138-raise-and-lower-the-bulldozer-blade.md) (Proposed)
+- Status: Proposed; superseded in part (`stepUp: false`) and extended by [0138](0138-raise-and-lower-the-bulldozer-blade.md) (Proposed) and [0140](0140-bulldozer-sounds.md) (Proposed)
 - Date: 2026-10-24
 - Extends: 0009, 0020, 0023, 0025, 0027, 0031, 0035, 0045, 0050, 0055, 0066, 0076, 0089, 0127
 
