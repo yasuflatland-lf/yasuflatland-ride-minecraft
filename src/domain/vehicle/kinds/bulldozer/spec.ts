@@ -60,7 +60,8 @@ export const BULLDOZER_SPEC = Object.freeze({
   doorSteps: 10,
   // Ticks the blade takes to travel fully up or down; the rig animation follows the property (ADR 0138).
   bladeLiftTicks: 10,
-  // The owner wants placement raised: climb steps and cut nothing until lowered (ADR 0138).
+  // A placed bulldozer starts raised, so it climbs steps and cuts nothing until the driver lowers it (ADR 0138).
+  // Keep in step with the yasu_ride:blade default (1.0) in bulldozer.se.json.
   bladeRaisedOnSpawn: true,
   headlightReach: Object.freeze([6, 10, 15, 21, 27] as const),
   headlightLevels: Object.freeze([8, 12, 15, 15, 15] as const),
