@@ -76,7 +76,7 @@ Synthesis character values below are chosen by ear against the references, not m
 - Two track trains have a 0.37-link offset, 5% jitter, strengths 0.6-1.0, and 4 ms bursts shared at half strength with the thud. Clank resonances are [(520, 12, 0.6), (1150, 18, 0.5), (2300, 22, 0.3), (3700, 25, 0.15)], thud [(90, 3, 0.5)]. Peak-normalize their sum. Squeal uses 40 sines at 1450-1650 Hz, gains [0, 0.03, 0.06, 0.09, 0.12], and 30% 1 Hz modulation. Roller rumble uses 120 sines at 40-200 Hz with gains [0.1, 0.15, 0.2, 0.25, 0.3].
 - The pump starts at 380 Hz, rises 5% with integrated phase, and adds 2x and 3x harmonics at 0.5 and 0.25. Oil hiss is band-passed at 3000 Hz, Q 1, gain 0.15. Linear 30 ms attack and 80 ms release make both endpoints zero.
 
-Bump the Resource Pack header and module and the Behavior Pack dependency to [0, 1, 121] (0015). No beta API or script changes are needed.
+Bump the Resource Pack header and module and the Behavior Pack dependency to the next patch above `main` at merge time (0015). No beta API or script changes are needed.
 
 ## Consequences
 
