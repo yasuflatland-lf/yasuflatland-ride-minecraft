@@ -25,11 +25,13 @@ export const BULLDOZER_PROFILE: VehicleProfile = Object.freeze({
     levels: BULLDOZER_SPEC.headlightLevels,
     lanes: Object.freeze([0]),
   }),
+  // The 2.4-wide collision box fits the same 3 x 3 cells as the SUV's; the blade and tracks
+  // are model only. 3 cells high hold the 2.9-high box (ADR 0142).
   placement: Object.freeze({
     surfaces: Object.freeze<PlacementSurface[]>(["top"]),
     clearance: Object.freeze({
-      halfX: 4,
-      halfZ: 4,
+      halfX: 1,
+      halfZ: 1,
       height: clearanceHeight(body),
     }),
   }),
