@@ -4,7 +4,9 @@ import { parseTestHeldToolMessage } from "../../testInput/testHeldToolMessage";
 import type { VehicleTestStore } from "../../testInput/vehicleTestStore";
 import { TEST_HELD_TOOL_EVENT } from "../identifiers";
 
-export function registerTestHeldTool(store: VehicleTestStore<string>): void {
+export function registerTestHeldTool(
+  testTools: VehicleTestStore<string>,
+): void {
   system.afterEvents.scriptEventReceive.subscribe(
     (ev) => {
       if (
@@ -18,9 +20,9 @@ export function registerTestHeldTool(store: VehicleTestStore<string>): void {
         return;
       }
       if (parsed.item !== undefined) {
-        store.set(parsed.vehicleId, parsed.item);
+        testTools.set(parsed.vehicleId, parsed.item);
       } else {
-        store.clear(parsed.vehicleId);
+        testTools.clear(parsed.vehicleId);
       }
     },
     { namespaces: [NAMESPACE] },

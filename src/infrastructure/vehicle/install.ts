@@ -55,14 +55,14 @@ export function installVehicles(deps: {
   isVehicleSpace: SpaceCheck;
 } {
   const repo = new InMemoryVehicleRepository();
-  const store = new VehicleTestStore<RawInput>();
+  const testInputs = new VehicleTestStore<RawInput>();
   const testTools = new VehicleTestStore<string>();
   const index = new EntityIndex();
   const inventory = new BedrockInventory(index);
   const decorWorld = new BedrockDecorWorld(index, inventory);
   const bedrock = new BedrockVehicleWorld(
     index,
-    store,
+    testInputs,
     testTools,
     deps.isCampSpace,
   );
@@ -105,7 +105,7 @@ export function installVehicles(deps: {
       ),
       board: new BoardVehicle(repo),
     },
-    store,
+    testInputs,
     testTools,
     (dimensionId, cell) => bedrock.dockDoorOwner(dimensionId, cell),
     (dimensionId, cell) => bedrock.dockCellOwner(dimensionId, cell),
