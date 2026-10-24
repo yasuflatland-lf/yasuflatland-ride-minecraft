@@ -195,10 +195,8 @@ export class FakeWorld
     this.calls.push("seatStandingPlayers");
     this.departures.push({ vehicleId, departure });
   }
-  readonly stood: { vehicleId: string; playerId: string; at: Vec3 }[] = [];
-  standRiderAt(vehicleId: string, playerId: string, at: Vec3) {
+  standRiderAt() {
     this.calls.push("standRiderAt");
-    this.stood.push({ vehicleId, playerId, at });
   }
   loadedVehicles() {
     return this.snapshots;
