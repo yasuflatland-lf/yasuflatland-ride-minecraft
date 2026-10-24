@@ -115,6 +115,7 @@ function fixture() {
     id === car.id ? car : undefined,
   );
   const inputs = new VehicleTestStore<RawInput>();
+  const tools = new VehicleTestStore<string>();
   const index = new EntityIndex();
   const inventory = new BedrockInventory(index);
   return {
@@ -123,15 +124,11 @@ function fixture() {
     placement: new BedrockPlacementWorld(inventory, index, noCampSpace),
     paint: new BedrockPaintWorld(index, inventory),
     inputs,
+    tools,
     entities,
     dimension,
     car,
-    world: new BedrockVehicleWorld(
-      index,
-      inputs,
-      new VehicleTestStore<string>(),
-      noCampSpace,
-    ),
+    world: new BedrockVehicleWorld(index, inputs, tools, noCampSpace),
   };
 }
 
@@ -433,7 +430,9 @@ describe("BedrockVehicleWorld snapshots", () => {
           ? { getRiders: () => [player] }
           : undefined,
       );
-      expect(world.loadedVehicles()[0]?.riders[0]?.heldTool).toBeUndefined();
+      const riders = world.loadedVehicles()[0]?.riders;
+      expect(riders?.map((r) => r.id)).toEqual(["player"]);
+      expect(riders?.[0]?.heldTool).toBeUndefined();
       expect(inventory).not.toHaveBeenCalled();
     },
   );
@@ -530,6 +529,16 @@ describe("BedrockVehicleWorld snapshots", () => {
     world.loadedVehicles();
     dimension.getEntities.mockReturnValue([car]);
     expect(world.loadedVehicles()[0]?.testInput).toBeUndefined();
+  });
+
+  it("forgets the test held tool of a vehicle once it is no longer loaded (ADR 0139)", () => {
+    const { tools, dimension, car, world } = fixture();
+    const id = asVehicleId(car.id);
+    tools.set(id, "blade_switch");
+    expect(world.loadedVehicles()[0]?.testHeldTool).toBe("blade_switch");
+    dimension.getEntities.mockReturnValue([]);
+    world.loadedVehicles();
+    expect(tools.get(id)).toBeUndefined();
   });
 
   it("clears the headlight blocks of a vehicle once it is no longer loaded (ADR 0020, 0038)", () => {
