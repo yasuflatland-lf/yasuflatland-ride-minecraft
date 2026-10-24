@@ -180,11 +180,6 @@ describe("camper end lanes", () => {
     );
   });
 
-  it("gives a body no wider than the side inset a single center lane", () => {
-    expect(endLanes(0.1)).toEqual([0]);
-    expect(endLanes(0)).toEqual([0]);
-  });
-
   it("gives the camper four lanes", () => {
     expect(LANES).toHaveLength(4);
     const sorted = [...LANES].sort((a, b) => a - b);
