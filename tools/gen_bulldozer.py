@@ -302,7 +302,9 @@ body.append(box(-REAR_FRAME_HALF, 18.4, REAR_FRAME_Z, REAR_FRAME_HALF, CAB_SILL,
 DECK, BELT_LINE = 24.5, 32.5
 SIDE_IN, SIDE_OUT = TRACK_IN, TRACK_OUT - 1.2
 DOOR_REAR, DOOR_DIAGONAL = 16.2, ((13.2, DECK), (16.2, BELT_LINE))  # (z, y) from the side view
-SIDE_FRONT, SIDE_REAR = 1.0, 37.1
+# The side bodies start at the cab front: the owner had the step ahead of it cut away, so the lift
+# cylinders reach back to the cab front.
+SIDE_FRONT, SIDE_REAR = CAB_FRONT, 37.1
 BEVEL = 3.0  # the rear side panels' top outer edge is beveled in toward the cab, as seen from behind
 
 
@@ -357,7 +359,7 @@ for bz, by in ((18.0, 28.8), (22.6, 28.8), (25.0, 28.8), (35.6, 28.8), (25.0, 25
     side.append(box(SIDE_OUT, by - 0.25, bz - 0.25, SIDE_OUT + 0.15, by + 0.25, bz + 0.25, "bolt"))
 side.append(box(CAB_HALF + 0.2, DECK, SIDE_FRONT, SIDE_OUT - 0.3, DECK + 0.1, 11.6, "orange"))
 for gx in range(4):
-    for gz in range(9):
+    for gz in range(int((11.6 - SIDE_FRONT - 1.2) / 1.15) + 1):
         x, zz = CAB_HALF + 0.8 + gx * 1.05, SIDE_FRONT + 0.6 + gz * 1.15
         side.append(box(x, DECK + 0.1, zz, x + 0.45, DECK + 0.12, zz + 0.45, "hole"))
 side.append(box(CAB_HALF, BELT_LINE, 17.2, CAB_HALF + 0.8, BELT_LINE + 0.3, 36.4, "yellow_dark"))  # ledge
@@ -595,7 +597,7 @@ blade += disc("y", 0.0, 13.0, BACK + 1.2, 1.4, 1.0, "yellow_dark", STEPS_8)
 # Push arms: long beams from trunnions on the main frame beside the cab front, running forward
 # between the hood and the tracks and sloping down to the C-frame, a ring in front of the hood
 # that carries the blade's center pivot. Angle cylinders ride on the arms' front halves. Each lift
-# cylinder lies along the hood side under the deck front, pinned at its rear end, and its chrome rod
+# cylinder lies along the hood side from the cab front, pinned at its rear end, and its chrome rod
 # reaches forward to the top of a triangular gusset that rises from the arm, as in the owner's
 # reference photos.
 # The rest of the push frame is blade_rig, and each lift cylinder and rod is its own bone, so the
@@ -612,7 +614,7 @@ ARM_FRONT, ARM_REAR = (C_CENTER, 8.0), (2.0, 12.0)  # (z, y) centerline, low beh
 BLADE_RAISE = 3.0
 ROD_RETRACT = 3.0
 LIFT_X, LIFT_Y = (ARM_IN + ARM_OUT) / 2, 21.4  # the cylinder's axis
-LIFT_PIN, LIFT_MOUTH, LIFT_ROD_END = 0.2, -6.0, -13.0  # z of the rear pin, the barrel mouth, and the rod's end
+LIFT_PIN, LIFT_MOUTH, LIFT_ROD_END = SIDE_FRONT - 0.6, -6.0, -13.0  # z of the rear pin, the barrel mouth, and the rod's end
 ROD_LENGTH = LIFT_MOUTH - LIFT_ROD_END
 _raised_end = (LIFT_ROD_END + ROD_RETRACT - LIFT_PIN, BLADE_RAISE)  # the rod's end seen from the pin, raised
 LIFT_SWING = round(math.degrees(math.atan2(_raised_end[1], -_raised_end[0])), 2)
@@ -641,12 +643,12 @@ for zb in (-17.0, -6.0, 3.6):  # yellow clamp brackets along the arms
 arms += [box(ARM_IN + 0.4, 10.4, -27.6, ARM_IN + 0.6, 12.2, -26.2, "steel"),  # lifting eye
          box(ARM_OUT - 0.6, 10.4, -27.6, ARM_OUT - 0.4, 12.2, -26.2, "steel"),
          box(ARM_IN + 0.4, 12.0, -27.6, ARM_OUT - 0.4, 12.2, -26.2, "steel")]
-lift_cylinder = [box(LIFT_X - 1.2, LIFT_Y - 1.5, LIFT_MOUTH, LIFT_X + 1.2, LIFT_Y + 1.5, 0.8, "black"),  # barrel
+lift_cylinder = [box(LIFT_X - 1.2, LIFT_Y - 1.5, LIFT_MOUTH, LIFT_X + 1.2, LIFT_Y + 1.5, SIDE_FRONT, "black"),  # barrel
                  box(LIFT_X - 1.3, LIFT_Y - 1.6, LIFT_MOUTH - 0.4, LIFT_X + 1.3, LIFT_Y + 1.6, LIFT_MOUTH, "frame"),
                  *disc("x", LIFT_X + 1.2, LIFT_Y, LIFT_PIN, 0.7, 0.3, "steel", STEPS_8)]  # rear pin
 lift_rod = box(LIFT_X - 0.5, LIFT_Y - 0.6, LIFT_ROD_END, LIFT_X + 0.5, LIFT_Y + 0.6, LIFT_MOUTH, "chrome")
-# The mount over the rear pin, hanging from the deck front
-body += both([box(LIFT_X - 1.1, LIFT_Y + 1.5, -1.0, LIFT_X + 1.1, DECK, 1.0, "black")])
+# The mount over the rear pin, on the cab front at deck height
+body += both([box(LIFT_X - 1.1, LIFT_Y + 1.5, LIFT_PIN - 1.0, LIFT_X + 1.1, DECK, SIDE_FRONT, "black")])
 blade_rig = both(arms)
 # The C-frame's front half circle, closed at the back by the arms
 ring = 16
