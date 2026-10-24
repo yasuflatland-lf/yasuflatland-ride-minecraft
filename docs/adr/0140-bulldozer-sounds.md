@@ -10,7 +10,7 @@ The bulldozer uses the SUV's single-cylinder diesel clips. Its client entity alr
 
 The owner chose the D5 [working reference](https://www.youtube.com/watch?v=uU2OLi5t4dw) and [idling reference, "CAT D5 Engine sound"](https://www.youtube.com/watch?v=BNgsi4zvP5I). Their audio is neither copied nor downloaded. They set the character: a deep six-cylinder rumble, turbo whistle, labor under load, and steel track clank and squeal.
 
-The client reads ground speed, form, and the synced blade float. The blade moves in 0.1 steps over 10 ticks, resting at 0 or 1 (0138). Cutting requires a fully lowered blade and speed above 0.02 blocks/tick; moving sound bands begin at 0.5 blocks/s = 0.025 blocks/tick. The bulldozer tops out at 9 blocks/s (0136). Client animations have no pitch control (0030); whole-cycle loops and ring() filtering two copies preserve their seams.
+The client reads ground speed, form, and the synced blade float. The blade moves in 0.1 steps over 10 ticks, resting at 0 or 1 (0138). In car form the blade cuts only while it is fully lowered, the bulldozer is on the ground, the driver is not steering, and the signed speed is above 0.02 blocks/tick, so reversing never cuts (`BulldozerDrive.bladeCut`). The client cannot read the steering input or the drive direction, because `query.ground_speed` is unsigned. Moving sound bands begin at 0.5 blocks/s = 0.025 blocks/tick. The bulldozer tops out at 9 blocks/s (0136). Client animations have no pitch control (0030); whole-cycle loops and ring() filtering two copies preserve their seams.
 
 | Item | Value | Source |
 |---|---|---|
@@ -82,7 +82,7 @@ Bump the Resource Pack header and module and the Behavior Pack dependency to the
 
 - The Resource Pack gains 17 WAVs, about 720 KB (16 one-second files of 44.1 KB and one half-second file).
 - The engine steps between levels and follows speed, not throttle (0030, 0060): holding forward against a wall reads as idle.
-- Push plays whenever the fully lowered blade moves, even over air where nothing is cut; the client cannot tell whether a block was cut.
+- Push plays whenever the fully lowered blade moves, including cases where the blade cuts nothing: over air, while reversing, and while turning. The client cannot tell whether a block was cut, and `query.ground_speed` carries neither direction nor steering. Matching push to cutting exactly would need a synced cutting flag set by the script.
 - A pivot in place has ground speed near zero, so tracks are silent even though their animation runs.
 - Low and high idle are assumptions. Revisit them if a D5 service manual provides other values.
 - Accept with 0136 after the owner's listening check, B18-B22 on PC and mobile in [the manual checklist](../manual-test.md). Record any owner-requested retuning here; none has been requested yet.
