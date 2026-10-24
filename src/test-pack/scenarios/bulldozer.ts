@@ -7,11 +7,13 @@ import {
 } from "@minecraft/server";
 import { normalizeYaw, type Vec3 } from "../../domain/shared/vec";
 import { bladeColumns } from "../../domain/vehicle/kinds/bulldozer/blade";
+import { BLADE_SWITCH_ITEM } from "../../domain/vehicle/kinds/bulldozer/monitor";
 import { BULLDOZER_SPEC } from "../../domain/vehicle/kinds/bulldozer/spec";
 import {
   ENTITY_TYPE,
   entityPropertyId,
   TEST_BLADE_EVENT,
+  TEST_HELD_TOOL_EVENT,
 } from "../../infrastructure/vehicle/bedrock/identifiers";
 import { type Arena, drive, type Outcome, wait, withCar } from "../arena";
 import { hitTick, judgeRam, PUSH_WINDOW, type RamSample } from "../ramJudge";
@@ -501,6 +503,32 @@ export async function bulldozerSpawnsRaised(a: Arena): Promise<Outcome> {
   } finally {
     cleanup(a);
   }
+}
+
+/** The cab monitor shows the held blade switch's state and blanks for any other item or none (ADR 0139). */
+export async function bulldozerMonitor(a: Arena): Promise<Outcome> {
+  return withBulldozer(a, 20.5, 20.5, 0, async (car) => {
+    const screen = (): number =>
+      Number(car.getProperty(entityPropertyId("monitor")));
+    const hold = (item: string): void =>
+      system.sendScriptEvent(TEST_HELD_TOOL_EVENT, `${car.id},${item}`);
+    const holdAndRead = async (item: string): Promise<number> => {
+      hold(item);
+      await wait(2);
+      return screen();
+    };
+    await wait(2);
+    const up = await holdAndRead(BLADE_SWITCH_ITEM);
+    await setBlade(car, false);
+    const down = screen();
+    const other = await holdAndRead("stone");
+    hold(BLADE_SWITCH_ITEM);
+    const cleared = await holdAndRead("clear");
+    return {
+      pass: up === 2 && down === 1 && other === 0 && cleared === 0,
+      detail: `up=${up} down=${down} other=${other} cleared=${cleared}`,
+    };
+  });
 }
 
 /** A bulldozer dropped from 40 blocks takes no damage, like the other vehicles (ADR 0006). */

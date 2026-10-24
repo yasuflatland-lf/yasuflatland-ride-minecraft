@@ -20,6 +20,7 @@ import {
   trackPhaseCommand,
   trackSpinCommand,
 } from "./entity";
+import { BLADE_SWITCH_ITEM } from "./monitor";
 import { BULLDOZER_MOTION, BULLDOZER_TYRES } from "./profile";
 import { BULLDOZER_SPEC, BULLDOZER_TRANSFORMING } from "./spec";
 import {
@@ -123,6 +124,10 @@ export class BulldozerDrive extends TransformingDrive {
     r: new SyncedValue<number>(),
     l: new SyncedValue<number>(),
   };
+  private readonly toolStates: Readonly<Record<string, () => string>> =
+    Object.freeze({
+      [BLADE_SWITCH_ITEM]: () => (this.bladeTargetRaised ? "up" : "down"),
+    });
 
   constructor(yaw: number, restored: RestoredOf<typeof BULLDOZER_ENTITY>) {
     super(
@@ -155,6 +160,13 @@ export class BulldozerDrive extends TransformingDrive {
   /** Sets the blade's target; it then moves one step per tick (ADR 0138). */
   setBlade(raised: boolean): void {
     this.bladeTargetRaised = raised;
+  }
+
+  /** The monitor state of a held tool; the blade shows its target, so a switch shows at once (ADR 0139). */
+  toolState(item: string): string | undefined {
+    return Object.hasOwn(this.toolStates, item)
+      ? this.toolStates[item]?.()
+      : undefined;
   }
 
   private bladeTargetSteps(): number {
