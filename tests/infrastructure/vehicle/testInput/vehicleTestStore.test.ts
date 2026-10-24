@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { asVehicleId } from "../../../../src/domain/shared/ids";
+import { asVehicleId, type VehicleId } from "../../../../src/domain/shared/ids";
 import { VehicleTestStore } from "../../../../src/infrastructure/vehicle/testInput/vehicleTestStore";
 
 const vehicleId = fc.string().map(asVehicleId);
@@ -72,15 +72,15 @@ describe("VehicleTestStore", () => {
   it("agrees with a Map after arbitrary set, clear, and retain sequences", () => {
     const ids = [asVehicleId("a"), asVehicleId("b"), asVehicleId("c")];
     const id = fc.constantFrom(...ids);
-    const operation = fc.oneof(
+    const anyOperation = fc.oneof(
       fc.record({ kind: fc.constant("set"), id, value }),
       fc.record({ kind: fc.constant("clear"), id }),
       fc.record({ kind: fc.constant("retain"), ids: fc.subarray(ids) }),
     );
     fc.assert(
-      fc.property(fc.array(operation), (operations) => {
+      fc.property(fc.array(anyOperation), (operations) => {
         const store = new VehicleTestStore<string>();
-        const model = new Map<(typeof ids)[number], string>();
+        const model = new Map<VehicleId, string>();
         for (const operation of operations) {
           switch (operation.kind) {
             case "set":

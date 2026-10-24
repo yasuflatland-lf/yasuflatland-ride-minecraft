@@ -35,9 +35,6 @@ it("returns the type id from the selected slot", () => {
 });
 
 it("returns undefined for an empty slot or missing inventory", () => {
-  for (const player of [
-    playerWith(undefined, 3),
-    playerWith("minecraft:stick", 3, false),
-  ])
-    expect(heldTypeId(player)).toBeUndefined();
+  expect(heldTypeId(playerWith(undefined, 3))).toBeUndefined();
+  expect(heldTypeId(playerWith("minecraft:stick", 3, false))).toBeUndefined();
 });
