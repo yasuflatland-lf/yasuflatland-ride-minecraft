@@ -587,40 +587,59 @@ blade += disc("y", 0.0, 13.0, BACK + 1.2, 1.4, 1.0, "yellow_dark", STEPS_8)
 
 # Push arms: long beams from trunnions on the main frame beside the cab front, running forward
 # between the hood and the tracks and sloping down to the C-frame, a ring in front of the hood
-# that carries the blade's center pivot. Lift cylinders ride on the arms' rear halves and angle
-# cylinders on their front halves, all black with chrome rods.
-# The barrels stay in body; the rest of the push frame is blade_rig and each rod is its own
-# bone, so the drive animation can raise the blade (ADR 0138).
+# that carries the blade's center pivot. Angle cylinders ride on the arms' front halves. Each lift
+# cylinder lies along the hood side under the deck front, pinned at its rear end, and its chrome rod
+# reaches forward to the top of a triangular gusset that rises from the arm, as in the owner's
+# reference photos.
+# The rest of the push frame is blade_rig, and each lift cylinder and rod is its own bone, so the
+# drive animation can raise the blade (ADR 0138).
 ARM_IN, ARM_OUT = 7.5, 9.5
 C_CENTER, C_OUTER, C_INNER = HOOD_FRONT - 9.6, 9.5, 6.9
 ARM_FRONT, ARM_REAR = (C_CENTER, 8.0), (2.0, 12.0)  # (z, y) centerline, low behind the track
 # The raised pose, drawn by the drive animation from yasu_ride:blade (ADR 0138): blade_rig moves
-# BLADE_RAISE px up and ROD_RETRACT px rearward, and each lift rod shortens by ROD_RETRACT
-# about the barrel mouth. The owner chose this visible retraction over strict kinematics.
-# The generator writes neither value: bulldozer.anim.json and tests/packs/bulldozer.test.ts repeat
-# them by hand, and bulldozerModel.test.ts fails when they differ from the animation's Molang.
+# BLADE_RAISE px up and ROD_RETRACT px rearward. Each lift cylinder swings up about its rear pin by
+# LIFT_SWING degrees and its rod shortens by ROD_SHORTEN px, so the rod's end follows the gusset top.
+# The owner chose this visible retraction over strict kinematics.
+# The generator writes none of these values: bulldozer.anim.json and tests/packs/bulldozer.test.ts
+# repeat them by hand, and bulldozerModel.test.ts fails when they differ from the animation's Molang.
 BLADE_RAISE = 3.0
 ROD_RETRACT = 3.0
-LIFT_ROD_FRONT, LIFT_ROD_REAR = -10.6, 2.0  # z of the rod's end in its bracket, and of the barrel mouth
-LIFT_ROD_X, LIFT_ROD_Y = (ARM_IN + ARM_OUT) / 2, 21.4  # the rod's axis
-assert BLADE_RAISE > 0 and 0 < ROD_RETRACT < LIFT_ROD_REAR - LIFT_ROD_FRONT
+LIFT_X, LIFT_Y = (ARM_IN + ARM_OUT) / 2, 21.4  # the cylinder's axis
+LIFT_PIN, LIFT_MOUTH, LIFT_ROD_END = 0.2, -6.0, -13.0  # z of the rear pin, the barrel mouth, and the rod's end
+ROD_LENGTH = LIFT_MOUTH - LIFT_ROD_END
+_raised_end = (LIFT_ROD_END + ROD_RETRACT - LIFT_PIN, BLADE_RAISE)  # the rod's end seen from the pin, raised
+LIFT_SWING = round(math.degrees(math.atan2(_raised_end[1], -_raised_end[0])), 2)
+ROD_SHORTEN = round(ROD_LENGTH - (math.hypot(*_raised_end) - (LIFT_PIN - LIFT_MOUTH)), 2)
+assert BLADE_RAISE > 0 and 0 < ROD_SHORTEN < ROD_LENGTH
+GUSSET_FRONT, GUSSET_REAR, GUSSET_TOP = (-19.5, -13.9), (-10.0, -12.1), 22.2  # (bottom z, top z) of each edge
 arms = [bar(ARM_FRONT, ARM_REAR, ARM_IN, ARM_OUT, 4.2, "yellow"),
         bar(ARM_FRONT, ARM_REAR, ARM_IN - 0.2, ARM_OUT + 0.2, 0.6, "yellow_dark", offset=1.6),
         *disc("x", ARM_OUT, ARM_REAR[1], ARM_REAR[0], 2.0, 0.5, "yellow_dark", STEPS_8),
         *disc("x", ARM_OUT + 0.5, ARM_REAR[1], ARM_REAR[0], 0.8, 0.3, "bolt", STEPS_8),
-        box(ARM_IN, 11.6, -11.8, ARM_OUT, 22.2, -10.6, "yellow"),  # rod end bracket on the arm
         box(ARM_IN - 0.2, 12.6, -25.4, ARM_OUT + 0.2, 15.0, -15.6, "black"),  # angle cylinder
         box(ARM_IN + 0.4, 13.2, -30.2, ARM_OUT - 0.4, 14.4, -25.4, "chrome")]
-for zb in (-17.0, -6.0, 3.6):  # yellow clamp brackets along the cylinders
+# The gusset under the rod's end, in rows whose front edge leans back up to the top
+y = 9.5
+while y < GUSSET_TOP - 1e-6:
+    y1 = min(y + 0.5, GUSSET_TOP)
+    t = ((y + y1) / 2 - 9.5) / (GUSSET_TOP - 9.5)
+    zf = GUSSET_FRONT[0] + (GUSSET_FRONT[1] - GUSSET_FRONT[0]) * t
+    zr = GUSSET_REAR[0] + (GUSSET_REAR[1] - GUSSET_REAR[0]) * t
+    arms.append(box(ARM_IN, y, zf, ARM_OUT, y1, zr, "yellow"))
+    y = y1
+arms += disc("x", ARM_OUT, LIFT_Y, LIFT_ROD_END, 1.1, 0.4, "steel", STEPS_8)  # the rod's end flange
+for zb in (-17.0, -6.0, 3.6):  # yellow clamp brackets along the arms
     yb = ARM_FRONT[1] + (ARM_REAR[1] - ARM_FRONT[1]) * (zb - ARM_FRONT[0]) / (ARM_REAR[0] - ARM_FRONT[0])
     arms.append(box(ARM_IN - 0.4, yb + 1.6, zb - 0.6, ARM_OUT + 0.4, yb + 2.6, zb + 0.6, "yellow_dark"))
 arms += [box(ARM_IN + 0.4, 10.4, -27.6, ARM_IN + 0.6, 12.2, -26.2, "steel"),  # lifting eye
          box(ARM_OUT - 0.6, 10.4, -27.6, ARM_OUT - 0.4, 12.2, -26.2, "steel"),
          box(ARM_IN + 0.4, 12.0, -27.6, ARM_OUT - 0.4, 12.2, -26.2, "steel")]
-lift_barrel = box(ARM_IN - 0.2, 22.0 - 1.4, LIFT_ROD_REAR, ARM_OUT + 0.2, 22.0 + 1.6, 7.6, "black")  # lift cylinder
-lift_rod = box(LIFT_ROD_X - 0.5, LIFT_ROD_Y - 0.6, LIFT_ROD_FRONT, LIFT_ROD_X + 0.5, LIFT_ROD_Y + 0.6, LIFT_ROD_REAR,
-               "chrome")  # lift cylinder rod
-body += both([lift_barrel])
+lift_cylinder = [box(LIFT_X - 1.2, LIFT_Y - 1.5, LIFT_MOUTH, LIFT_X + 1.2, LIFT_Y + 1.5, 0.8, "black"),  # barrel
+                 box(LIFT_X - 1.3, LIFT_Y - 1.6, LIFT_MOUTH - 0.4, LIFT_X + 1.3, LIFT_Y + 1.6, LIFT_MOUTH, "frame"),
+                 *disc("x", LIFT_X + 1.2, LIFT_Y, LIFT_PIN, 0.7, 0.3, "steel", STEPS_8)]  # rear pin
+lift_rod = box(LIFT_X - 0.5, LIFT_Y - 0.6, LIFT_ROD_END, LIFT_X + 0.5, LIFT_Y + 0.6, LIFT_MOUTH, "chrome")
+# The mount over the rear pin, hanging from the deck front
+body += both([box(LIFT_X - 1.1, LIFT_Y + 1.5, -1.0, LIFT_X + 1.1, DECK, 1.0, "black")])
 blade_rig = both(arms)
 # The C-frame's front half circle, closed at the back by the arms
 ring = 16
@@ -1190,8 +1209,11 @@ bones = mirror_x([
     {"name": "body", "parent": "root", "pivot": [0, 0, 0], "cubes": body, "locators": {"thruster": THRUSTER}},
     {"name": "blade_rig", "parent": "body", "pivot": [0, ARM_REAR[1], ARM_REAR[0]], "cubes": blade_rig},
     {"name": "blade", "parent": "blade_rig", "pivot": [0, 0, BLADE_FRONT], "cubes": blade},
-    {"name": "lift_rod_r", "parent": "body", "pivot": [LIFT_ROD_X, LIFT_ROD_Y, LIFT_ROD_REAR], "cubes": [lift_rod]},
-    {"name": "lift_rod_l", "parent": "body", "pivot": [-LIFT_ROD_X, LIFT_ROD_Y, LIFT_ROD_REAR],
+    {"name": "lift_cylinder_r", "parent": "body", "pivot": [LIFT_X, LIFT_Y, LIFT_PIN], "cubes": lift_cylinder},
+    {"name": "lift_cylinder_l", "parent": "body", "pivot": [-LIFT_X, LIFT_Y, LIFT_PIN],
+     "cubes": [mirrored(c) for c in lift_cylinder]},
+    {"name": "lift_rod_r", "parent": "lift_cylinder_r", "pivot": [LIFT_X, LIFT_Y, LIFT_MOUTH], "cubes": [lift_rod]},
+    {"name": "lift_rod_l", "parent": "lift_cylinder_l", "pivot": [-LIFT_X, LIFT_Y, LIFT_MOUTH],
      "cubes": [mirrored(lift_rod)]},
     {"name": "headlights", "parent": "body", "pivot": [0, 0, 0], "cubes": lamps},
     {"name": "beacon", "parent": "body", "pivot": [0, 0, 0], "cubes": beacon},
