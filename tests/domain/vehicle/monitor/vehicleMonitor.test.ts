@@ -7,6 +7,7 @@ import type {
 } from "../../../../src/domain/vehicle/drive";
 import { MONITOR_PROPERTY_NAME } from "../../../../src/domain/vehicle/entityContract";
 import {
+  BLADE_SWITCH_ITEM,
   createVehicle,
   profileOf,
 } from "../../../../src/domain/vehicle/kinds/index";
@@ -44,6 +45,25 @@ function rider(seat: number, heldTool?: string): RiderView {
   };
 }
 
+function tickInput(
+  tick: number,
+  riders: readonly RiderView[],
+  testHeldTool?: string,
+): VehicleTickInput {
+  return {
+    tick,
+    riders,
+    testHeldTool,
+    deckSeatInputs: [],
+    velocity: { x: 0, y: 0, z: 0 },
+    onGround: true,
+    ...waterSensors(),
+    blockTypes: () => [],
+    solidAt: () => false,
+    targets: () => [],
+  };
+}
+
 function setup() {
   let state: string | undefined = "down";
   const drive: Drive = {
@@ -70,21 +90,8 @@ function setup() {
     state: (value: string | undefined) => {
       state = value;
     },
-    tick: (riders: readonly RiderView[] = [], testHeldTool?: string) => {
-      const input: VehicleTickInput = {
-        tick: tick++,
-        riders,
-        testHeldTool,
-        deckSeatInputs: [],
-        velocity: { x: 0, y: 0, z: 0 },
-        onGround: true,
-        ...waterSensors(),
-        blockTypes: () => [],
-        solidAt: () => false,
-        targets: () => [],
-      };
-      return vehicle.tick(input).stepCommands;
-    },
+    tick: (riders: readonly RiderView[] = [], testHeldTool?: string) =>
+      vehicle.tick(tickInput(tick++, riders, testHeldTool)).stepCommands,
   };
 }
 function expectedScreen(
@@ -189,17 +196,7 @@ describe("bulldozer cab monitor", () => {
       vehicle,
       monitor: (heldTool?: string) =>
         vehicle
-          .tick({
-            tick: tick++,
-            riders: [driver(heldTool)],
-            deckSeatInputs: [],
-            velocity: { x: 0, y: 0, z: 0 },
-            onGround: true,
-            ...waterSensors(),
-            blockTypes: () => [],
-            solidAt: () => false,
-            targets: () => [],
-          })
+          .tick(tickInput(tick++, [driver(heldTool)]))
           .stepCommands.filter(
             (c) => c.type === "setProperty" && c.name === MONITOR_PROPERTY_NAME,
           ),
@@ -208,9 +205,9 @@ describe("bulldozer cab monitor", () => {
 
   it("shows the blade switch's target and switches at once", () => {
     const sim = bulldozer();
-    expect(sim.monitor("blade_switch")).toEqual([command(2)]);
+    expect(sim.monitor(BLADE_SWITCH_ITEM)).toEqual([command(2)]);
     expect(sim.vehicle.switchBlade(asPlayerId("d"), 100)).toBe(true);
-    expect(sim.monitor("blade_switch")).toEqual([command(1)]);
+    expect(sim.monitor(BLADE_SWITCH_ITEM)).toEqual([command(1)]);
   });
 
   it("blanks for a driver holding nothing", () => {
