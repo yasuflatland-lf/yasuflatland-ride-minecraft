@@ -320,7 +320,7 @@ export class Vehicle {
       forward(this.drive.yaw),
       sensors.velocity,
     );
-    const vacatedCommands = seated.vacated.flatMap((seat) =>
+    const vacatedCommands = seated.left.flatMap(({ seat }) =>
       this.drive.onSeatVacated(seat),
     );
     const takenCommands = seated.boarded.flatMap(
