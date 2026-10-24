@@ -1,6 +1,6 @@
 # 0020. Headlights that light up the road
 
-- Status: Accepted; extended by 0115 and [0136](0136-bulldozer.md) (Proposed)
+- Status: Accepted; extended by 0115, [0136](0136-bulldozer.md) (Proposed), and [0139](0139-show-the-held-tool-on-the-cab-monitor.md) (Proposed)
 - Date: 2026-10-11
 - Amended by: [0024](0024-item-use-on-mobile-and-longer-headlights.md) (switch cooldown and reach)
 

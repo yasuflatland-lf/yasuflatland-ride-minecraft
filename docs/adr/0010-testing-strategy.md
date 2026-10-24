@@ -1,6 +1,6 @@
 # 0010. Testing strategy
 
-- Status: Accepted
+- Status: Accepted; extended by [0139](0139-show-the-held-tool-on-the-cab-monitor.md) (Proposed)
 - Date: 2026-10-10
 
 ## Context
