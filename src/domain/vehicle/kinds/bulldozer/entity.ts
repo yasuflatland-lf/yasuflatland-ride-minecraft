@@ -19,7 +19,7 @@ export const BULLDOZER_ENTITY = {
   },
   events: TRANSFORMING_EVENTS,
   animations: [],
-  restored: ["form"],
+  restored: ["form", "blade"],
 } as const satisfies EntityContract;
 
 const { property } = commandsFor<typeof BULLDOZER_ENTITY>();
@@ -37,4 +37,9 @@ export function trackSpinCommand(side: "r" | "l", spin: number): EngineCommand {
 
 export function doorCommand(open: number): EngineCommand {
   return property("door", open);
+}
+
+/** The blade's height: 0 lowered (cutting position), 1 raised (ADR 0138). */
+export function bladeCommand(lift: number): EngineCommand {
+  return property("blade", lift);
 }

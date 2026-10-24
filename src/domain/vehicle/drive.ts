@@ -90,6 +90,10 @@ export interface Drive {
   switchCeilingLights?(feet: Vec3): boolean;
   /** Whether `switchCeilingLights` would take a use from feet at `feet` now, without switching (ADR 0115). */
   ceilingLightsReachable?(feet: Vec3): boolean;
+  /** Whether the blade is raised or rising; absent for kinds without a blade (ADR 0138). */
+  bladeRaised?(): boolean;
+  /** Raises or lowers the blade; it travels there over the kind's lift time (ADR 0138). */
+  setBlade?(raised: boolean): void;
   /** A press on the shower-toilet of a held vehicle by a player with feet at `feet`, at `tick`: swings its door or runs its shower; false when it has none or the press is ignored (ADR 0094, 0098, 0105, 0118). */
   pressShowerToilet?(feet: Vec3, tick: number): boolean;
   /** The decor of the vehicle's room, in slot order, then any stowed decor whose slot no longer exists (ADR 0103); absent for kinds without decor (ADR 0093). */

@@ -66,6 +66,7 @@ import {
   pairEndStates,
   ramMountOf,
   STARTER_RECEIVED_PROPERTY,
+  TEST_BLADE_EVENT,
   TEST_DECOR_EVENT,
   TEST_INPUT_EVENT,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
@@ -174,6 +175,7 @@ describe("identifiers (ADR 0047)", () => {
       TEST_INPUT_EVENT,
       DECOR_PROPERTY,
       TEST_DECOR_EVENT,
+      TEST_BLADE_EVENT,
       ...["form", "bank", "gear_down"].map(entityPropertyId),
       ...["gravity_on", "gravity_off"].map(entityEventId),
       ...PAINTS.map(paintEvent),

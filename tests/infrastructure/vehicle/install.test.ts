@@ -3,6 +3,7 @@ import { expect, it, vi } from "vitest";
 import { PlaceDecor } from "../../../src/application/vehicle/placeDecor";
 import { RemoveDecor } from "../../../src/application/vehicle/removeDecor";
 import { SetDecor } from "../../../src/application/vehicle/setDecor";
+import { SwitchBlade } from "../../../src/application/vehicle/switchBlade";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { registerSubscriptions } from "../../../src/infrastructure/vehicle/bedrock/subscriptions";
 import { installVehicles } from "../../../src/infrastructure/vehicle/install";
@@ -73,6 +74,13 @@ it("hands the later switch targets to the subscriptions (ADR 0134)", () => {
   expect(vi.mocked(registerSubscriptions).mock.lastCall?.[5]).toBe(
     laterSwitchTargets,
   );
+});
+
+it("hands the blade switch use case to the subscriptions (ADR 0138)", () => {
+  installVehicles({ isCampSpace: () => false, laterSwitchTargets: () => [] });
+  expect(
+    vi.mocked(registerSubscriptions).mock.lastCall?.[0].blade,
+  ).toBeInstanceOf(SwitchBlade);
 });
 
 it("subscribes the blade-cut drop sweep once (ADR 0137)", () => {
