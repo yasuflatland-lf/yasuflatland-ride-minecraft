@@ -50,8 +50,6 @@ export interface BeamPattern {
 export type ChaseCamera = "near" | "far";
 
 export interface VehicleProfile {
-  /** The tools the cab monitor shows for the driver (ADR 0139). Absent = the kind has no cab monitor. */
-  readonly monitor?: MonitorRule;
   readonly kind: VehicleKind;
   /** Most vehicles of this kind one player keeps; one more removes their oldest (ADR 0066). */
   readonly fleetLimit: number;
@@ -88,4 +86,6 @@ export interface VehicleProfile {
   readonly standIn?: StandInRule;
   /** The gift a player gets the first time they place this kind (ADR 0093). Absent = no gift. */
   readonly placementGift?: PlacementGift;
+  /** The tools the cab monitor shows for the driver (ADR 0139). Absent = the kind has no cab monitor. */
+  readonly monitor?: MonitorRule;
 }

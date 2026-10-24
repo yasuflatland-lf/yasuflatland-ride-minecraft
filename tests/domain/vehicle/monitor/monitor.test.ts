@@ -40,6 +40,10 @@ describe("cab monitor screens", () => {
     );
   });
 
+  it("uses 0 as the blank screen", () => {
+    expect(BLANK_SCREEN).toBe(0);
+  });
+
   it("blanks missing tools and unknown states, including prototype names", () => {
     fc.assert(
       fc.property(ruleArbitrary, fc.string(), (rule, arbitrary) => {
@@ -62,7 +66,6 @@ describe("cab monitor screens", () => {
             BLANK_SCREEN,
           );
         }
-        expect(BLANK_SCREEN).toBe(0);
       }),
     );
   });

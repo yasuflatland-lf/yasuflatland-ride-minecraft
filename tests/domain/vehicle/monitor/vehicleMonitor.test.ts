@@ -84,6 +84,16 @@ function setup() {
     },
   };
 }
+function expectedScreen(
+  held: string | undefined,
+  state: string | undefined,
+): number {
+  if (held !== "switch") return 0;
+  if (state === "down") return 1;
+  if (state === "up") return 2;
+  return 0;
+}
+
 const command = (value: number): EngineCommand => ({
   type: "setProperty",
   name: MONITOR_PROPERTY_NAME,
@@ -145,14 +155,7 @@ describe("vehicle cab monitor", () => {
           let last: number | undefined;
           for (const { held, state } of ticks) {
             sim.state(state);
-            const expected =
-              held === "switch"
-                ? state === "down"
-                  ? 1
-                  : state === "up"
-                    ? 2
-                    : 0
-                : 0;
+            const expected = expectedScreen(held, state);
             expect(sim.tick([rider(0, held)])).toEqual(
               expected === last
                 ? [driveCommand]

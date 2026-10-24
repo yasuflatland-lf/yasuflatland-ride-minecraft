@@ -16,7 +16,17 @@ function expectInRange(
   expect(value).toBeLessThanOrEqual(max);
 }
 
-/** Fails unless the contract declares `command` and its value fits the declared type and range. Contracts declare no sounds, so only a sound's name is checked. */
+/** The monitor's spec follows the profile's rule, since the core writes it and no kind contract may declare it (ADR 0139). */
+function declaredSpec(
+  name: string,
+  contract: EntityContract,
+  profile: VehicleProfile,
+): PropertySpec | undefined {
+  if (name !== MONITOR_PROPERTY_NAME) return contract.properties[name];
+  return profile.monitor && monitorPropertySpec(profile.monitor);
+}
+
+/** Fails unless the contract (or, for the monitor, the profile's rule) declares `command` and its value fits the declared type and range. Contracts declare no sounds, so only a sound's name is checked. */
 export function expectDeclaredCommand(
   command: EngineCommand,
   contract: EntityContract,
@@ -24,10 +34,7 @@ export function expectDeclaredCommand(
 ): void {
   switch (command.type) {
     case "setProperty": {
-      const spec: PropertySpec | undefined =
-        command.name === MONITOR_PROPERTY_NAME
-          ? profile.monitor && monitorPropertySpec(profile.monitor)
-          : contract.properties[command.name];
+      const spec = declaredSpec(command.name, contract, profile);
       if (!spec) throw new Error(`Undeclared property ${command.name}`);
       switch (spec.type) {
         case "enum":

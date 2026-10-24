@@ -31,12 +31,16 @@ describe("expectDeclaredCommand", () => {
       tools: [{ item: "switch", states: ["down", "up"] }],
     },
   };
-  const checkMonitor = (value: number | boolean, p = profile) =>
+  function checkMonitor(
+    value: number | boolean,
+    profileToCheck: VehicleProfile = profile,
+  ): void {
     expectDeclaredCommand(
       { type: "setProperty", name: MONITOR_PROPERTY_NAME, value },
       CONTRACT,
-      p,
+      profileToCheck,
     );
+  }
 
   it("accepts monitor integers within the profile rule's range", () => {
     fc.assert(

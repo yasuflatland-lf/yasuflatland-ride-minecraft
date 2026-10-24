@@ -46,14 +46,14 @@ import {
 const HALF_BLOCK = 0.5;
 
 export interface RiderView {
-  /** Bare id of the `yasu_ride` item in the rider's selected slot, read only for kinds with a cab monitor (ADR 0139). */
-  readonly heldTool?: string;
   readonly id: PlayerId;
   readonly offset: Vec2;
   readonly yaw: number;
   readonly raw: RawInput;
   /** The rider's index in the engine's rider list, which is the seat it puts them in (ADR 0019). */
   readonly slot?: number;
+  /** Bare id of the `yasu_ride` item in the rider's selected slot, read only for kinds with a cab monitor (ADR 0139). */
+  readonly heldTool?: string;
 }
 
 export interface VehicleTickInput extends TickContext {
@@ -339,8 +339,9 @@ export class Vehicle {
       awaitingDriver: seated.awaitingDriver,
       deckSeatInputs,
     });
-    const held = driver ? driver.heldTool : testHeldTool;
-    const monitor = this.monitorCommands(held);
+    const monitor = this.monitorCommands(
+      driver ? driver.heldTool : testHeldTool,
+    );
     this.docked = step.dock !== undefined;
     const seatLayout = this.crew.layout(
       riders,
