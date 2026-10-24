@@ -6,6 +6,7 @@ import {
   type VehicleId,
 } from "../../../../domain/shared/ids";
 import type { Vec3 } from "../../../../domain/shared/vec";
+import { heldTypeId } from "../../../shared/heldItem";
 import { CAMPER_SHOWER_TOILET_COMPONENT } from "../identifiers";
 
 export function registerShowerToilet(
@@ -26,10 +27,7 @@ export function registerShowerToilet(
         onPlayerInteract: (ev) => {
           const { player } = ev;
           if (!player) return;
-          const held = player
-            .getComponent("minecraft:inventory")
-            ?.container?.getItem(player.selectedSlotIndex);
-          if (held) return;
+          if (heldTypeId(player) !== undefined) return;
           const vehicleId = dockCellOwner(
             asDimensionId(ev.dimension.id),
             ev.block.location,

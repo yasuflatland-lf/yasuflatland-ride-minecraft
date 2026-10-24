@@ -21,6 +21,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PlaceVehicle } from "../../../../src/application/vehicle/placeVehicle";
 import type { PlacementWorld } from "../../../../src/application/vehicle/ports/placement";
 import { asVehicleId, type VehicleId } from "../../../../src/domain/shared/ids";
+import type { RawInput } from "../../../../src/domain/vehicle/driveInput";
 import { SPEC } from "../../../../src/domain/vehicle/spec";
 import type { VehicleRepository } from "../../../../src/domain/vehicle/vehicleRepository";
 import { PAINT_BY_DYE } from "../../../../src/infrastructure/shared/dyes";
@@ -54,7 +55,7 @@ import {
   TEST_INPUT_EVENT,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 import { registerSubscriptions } from "../../../../src/infrastructure/vehicle/bedrock/subscriptions";
-import { TestInputStore } from "../../../../src/infrastructure/vehicle/testInput/testInputStore";
+import { VehicleTestStore } from "../../../../src/infrastructure/vehicle/testInput/vehicleTestStore";
 import { defined } from "../../../support/defined";
 
 const game = vi.hoisted(() => ({
@@ -180,7 +181,7 @@ function fixture(
     { place, headlights, ceilingLights } as unknown as Parameters<
       typeof registerSubscriptions
     >[0],
-    new TestInputStore(),
+    new VehicleTestStore<RawInput>(),
     () => undefined,
     () => undefined,
     () => undefined,
@@ -447,7 +448,7 @@ it("paints a hit vehicle with a held dye and otherwise damages it, ignoring othe
   const paint = { execute: vi.fn() };
   registerSubscriptions(
     { hit, paint } as unknown as Parameters<typeof registerSubscriptions>[0],
-    new TestInputStore(),
+    new VehicleTestStore<RawInput>(),
     () => undefined,
     () => undefined,
     () => undefined,
@@ -563,7 +564,7 @@ function lightSwitchFixture(
     { headlights, ceilingLights, board } as unknown as Parameters<
       typeof registerSubscriptions
     >[0],
-    new TestInputStore(),
+    new VehicleTestStore<RawInput>(),
     () => undefined,
     (_, cell) => owner(cell),
     () => undefined,
@@ -822,7 +823,7 @@ it("removes an orphan deck seat that loads with a chunk, but not one that is jus
   const limit = { start: vi.fn(), found: vi.fn(), spawned: vi.fn() };
   registerSubscriptions(
     { limit } as unknown as Parameters<typeof registerSubscriptions>[0],
-    new TestInputStore(),
+    new VehicleTestStore<RawInput>(),
     () => undefined,
     () => undefined,
     () => undefined,
@@ -861,7 +862,7 @@ it("passes fleet metadata on spawn and load and skips invalid or unrelated entit
   const limit = { start: vi.fn(), found: vi.fn(), spawned: vi.fn() };
   registerSubscriptions(
     { limit } as unknown as Parameters<typeof registerSubscriptions>[0],
-    new TestInputStore(),
+    new VehicleTestStore<RawInput>(),
     () => undefined,
     () => undefined,
     () => undefined,
@@ -905,7 +906,7 @@ it("forgets a removed vehicle by the chunk at its location, and passes vehicle d
   const limit = { start: vi.fn(), removed: vi.fn(), died: vi.fn() };
   registerSubscriptions(
     { limit } as unknown as Parameters<typeof registerSubscriptions>[0],
-    new TestInputStore(),
+    new VehicleTestStore<RawInput>(),
     () => undefined,
     () => undefined,
     () => undefined,
@@ -955,7 +956,7 @@ it("cancels a player's break only of a block a held vehicle laid (ADR 0096)", ()
     >();
   registerSubscriptions(
     {} as unknown as Parameters<typeof registerSubscriptions>[0],
-    new TestInputStore(),
+    new VehicleTestStore<RawInput>(),
     () => undefined,
     () => undefined,
     owner,
@@ -993,7 +994,7 @@ it("registers door interactions during startup and dispatches only owned doors",
     vi.fn<(dimensionId: string, cell: At) => VehicleId | undefined>();
   registerSubscriptions(
     { door } as unknown as Parameters<typeof registerSubscriptions>[0],
-    new TestInputStore(),
+    new VehicleTestStore<RawInput>(),
     owner,
     () => undefined,
     () => undefined,
@@ -1030,7 +1031,7 @@ it("registers bed interactions during startup and passes the player, dimension, 
   const bed = { execute: vi.fn() };
   registerSubscriptions(
     { bed } as unknown as Parameters<typeof registerSubscriptions>[0],
-    new TestInputStore(),
+    new VehicleTestStore<RawInput>(),
     vi.fn(),
     () => undefined,
     () => undefined,
@@ -1080,7 +1081,7 @@ it("registers shower-toilet presses during startup and sends an empty hand's pre
   );
   registerSubscriptions(
     { showerToilet } as unknown as Parameters<typeof registerSubscriptions>[0],
-    new TestInputStore(),
+    new VehicleTestStore<RawInput>(),
     () => undefined,
     owner,
     () => undefined,
@@ -1152,7 +1153,7 @@ it("checks the hints every hint interval, after the drive on the same tick (ADR 
   const hints = { execute: vi.fn() };
   registerSubscriptions(
     { drive, hints } as unknown as Parameters<typeof registerSubscriptions>[0],
-    new TestInputStore(),
+    new VehicleTestStore<RawInput>(),
     () => undefined,
     () => undefined,
     () => undefined,
@@ -1175,7 +1176,7 @@ it("gives the starter vehicle only on a player's initial spawn", () => {
   const starter = { execute: vi.fn() };
   registerSubscriptions(
     { starter } as unknown as Parameters<typeof registerSubscriptions>[0],
-    new TestInputStore(),
+    new VehicleTestStore<RawInput>(),
     () => undefined,
     () => undefined,
     () => undefined,
@@ -1193,7 +1194,7 @@ it("gives the starter vehicle only on a player's initial spawn", () => {
 });
 
 it("stores and clears test input only from server script events", () => {
-  const inputs = new TestInputStore();
+  const inputs = new VehicleTestStore<RawInput>();
   registerSubscriptions(
     {} as unknown as Parameters<typeof registerSubscriptions>[0],
     inputs,
@@ -1242,7 +1243,7 @@ it("sets the blade only from server test blade script events (ADR 0138)", () => 
   const blade = { force: vi.fn() };
   registerSubscriptions(
     { blade } as unknown as Parameters<typeof registerSubscriptions>[0],
-    new TestInputStore(),
+    new VehicleTestStore<RawInput>(),
     () => undefined,
     () => undefined,
     () => undefined,
@@ -1285,7 +1286,7 @@ it("sets decor only from server test decor script events (ADR 0093)", () => {
   const decor = { execute: vi.fn() };
   registerSubscriptions(
     { decor } as unknown as Parameters<typeof registerSubscriptions>[0],
-    new TestInputStore(),
+    new VehicleTestStore<RawInput>(),
     () => undefined,
     () => undefined,
     () => undefined,
@@ -1338,7 +1339,7 @@ function decorFixture() {
     { placeDecor, removeDecor } as unknown as Parameters<
       typeof registerSubscriptions
     >[0],
-    new TestInputStore(),
+    new VehicleTestStore<RawInput>(),
     () => undefined,
     owner,
     () => undefined,
@@ -1660,7 +1661,7 @@ it("sends an empty-hand press on the wall cabinet, with the pressed point, to th
     { storage: cabinet } as unknown as Parameters<
       typeof registerSubscriptions
     >[0],
-    new TestInputStore(),
+    new VehicleTestStore<RawInput>(),
     () => undefined,
     owner,
     () => undefined,
@@ -1725,7 +1726,7 @@ function registerGiftFixture() {
     { gift, headlights } as unknown as Parameters<
       typeof registerSubscriptions
     >[0],
-    new TestInputStore(),
+    new VehicleTestStore<RawInput>(),
     () => undefined,
     () => undefined,
     () => undefined,
@@ -1844,7 +1845,7 @@ describe("camper bumper stand-in (ADR 0116)", () => {
   function subscribe(useCases: object) {
     registerSubscriptions(
       useCases as Parameters<typeof registerSubscriptions>[0],
-      new TestInputStore(),
+      new VehicleTestStore<RawInput>(),
       () => undefined,
       () => undefined,
       () => undefined,
@@ -2055,7 +2056,7 @@ describe("blade switch (ADR 0138)", () => {
         ceilingLights,
         board: { execute: vi.fn(() => false) },
       } as unknown as Parameters<typeof registerSubscriptions>[0],
-      new TestInputStore(),
+      new VehicleTestStore<RawInput>(),
       () => undefined,
       () => undefined,
       () => undefined,

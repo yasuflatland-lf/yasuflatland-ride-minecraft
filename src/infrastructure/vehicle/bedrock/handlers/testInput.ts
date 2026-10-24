@@ -1,10 +1,13 @@
 import { ScriptEventSource, system } from "@minecraft/server";
+import type { RawInput } from "../../../../domain/vehicle/driveInput";
 import { NAMESPACE } from "../../../shared/identifiers";
 import { parseTestInputMessage } from "../../testInput/testInputMessage";
-import type { TestInputStore } from "../../testInput/testInputStore";
+import type { VehicleTestStore } from "../../testInput/vehicleTestStore";
 import { TEST_INPUT_EVENT } from "../identifiers";
 
-export function registerTestInput(testInputs: TestInputStore): void {
+export function registerTestInput(
+  testInputs: VehicleTestStore<RawInput>,
+): void {
   system.afterEvents.scriptEventReceive.subscribe(
     (ev) => {
       if (

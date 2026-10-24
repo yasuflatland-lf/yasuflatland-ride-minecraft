@@ -21,6 +21,7 @@ import { SwitchBlade } from "../../application/vehicle/switchBlade";
 import { SwitchCeilingLights } from "../../application/vehicle/switchCeilingLights";
 import { SwitchHeadlights } from "../../application/vehicle/switchHeadlights";
 import { UseDockDoor } from "../../application/vehicle/useDockDoor";
+import type { RawInput } from "../../domain/vehicle/driveInput";
 import { fleetLimitOf } from "../../domain/vehicle/kinds/index";
 import { BedrockBedWorld } from "../shared/bedrockBedWorld";
 import { NAMESPACE } from "../shared/identifiers";
@@ -39,7 +40,7 @@ import { registerSubscriptions } from "./bedrock/subscriptions";
 import { systemClock } from "./bedrock/systemClock";
 import { DynamicPropertyFleetRepository } from "./persistence/dynamicPropertyFleetRepository";
 import { InMemoryVehicleRepository } from "./persistence/inMemoryVehicleRepository";
-import { TestInputStore } from "./testInput/testInputStore";
+import { VehicleTestStore } from "./testInput/vehicleTestStore";
 
 /**
  * Installs the vehicle feature. The returned check lets bootstrap hand other
@@ -54,7 +55,7 @@ export function installVehicles(deps: {
   isVehicleSpace: SpaceCheck;
 } {
   const repo = new InMemoryVehicleRepository();
-  const store = new TestInputStore();
+  const store = new VehicleTestStore<RawInput>();
   const index = new EntityIndex();
   const inventory = new BedrockInventory(index);
   const decorWorld = new BedrockDecorWorld(index, inventory);
