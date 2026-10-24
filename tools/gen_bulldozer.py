@@ -426,17 +426,24 @@ def hood_half(y, z):
     return HOOD_HALF if y <= 22.0 else max(HOOD_HALF - (y - 22.0) * HOOD_LEAN, HOOD_HALF_TOP)
 
 
+# The side panel's access door, from the owner's side photo: a recessed panel whose front edge
+# leans back, crossed corner to corner by a raised brace from its upper front to its lower rear.
+INSET_BOTTOM, INSET_TOP = 22.9, 29.1
+INSET_FRONT_BOTTOM, INSET_FRONT_TOP, INSET_REAR = -7.0, -5.3, 2.6
+BRACE = 0.9  # the brace's width along z
+
+
 def hood_color(y, z):
-    # A louvered inset in the side panel, its top edge parallel to the hood top.
-    if not (23.9 <= y <= hood_shoulder(z) - 0.9):
+    if not INSET_BOTTOM <= y <= min(INSET_TOP, hood_shoulder(z) - 0.9):
         return "yellow"
-    lo = -7.0 + (y - 23.9) * 0.27
-    if not (lo <= z <= 3.7) or y > hood_shoulder(z) - 0.9:
+    t = (y - INSET_BOTTOM) / (INSET_TOP - INSET_BOTTOM)
+    if not INSET_FRONT_BOTTOM + (INSET_FRONT_TOP - INSET_FRONT_BOTTOM) * t <= z <= INSET_REAR:
         return "yellow"
-    return "louver" if int(round((y - 23.9) / 0.5)) % 3 == 1 else "yellow_dark"
+    brace_z = INSET_REAR + (INSET_FRONT_TOP - INSET_REAR) * t
+    return "yellow" if abs(z - brace_z) <= BRACE / 2 else "yellow_dark"
 
 
-HOOD_SEGMENTS = [HOOD_FRONT + i * (HOOD_REAR - HOOD_FRONT) / 24 for i in range(25)]
+HOOD_SEGMENTS = [HOOD_FRONT + i * (HOOD_REAR - HOOD_FRONT) / 48 for i in range(49)]
 y = 22.0
 while y < hood_top(HOOD_REAR) - 1e-6:
     y1 = y + 0.5
@@ -484,37 +491,37 @@ body += both([box(2.1, LAMP_Y - 0.3, HOOD_FRONT - 1.4, 4.5, LAMP_Y + 1.9, HOOD_F
               box(7.0, FRONT_TOP - 1.2, HOOD_FRONT - 3.1, 7.6, FRONT_TOP - 0.6, HOOD_FRONT, "black"),
               box(7.0, 22.0, HOOD_FRONT - 3.1, 7.6, 22.6, HOOD_FRONT, "black")])
 
-# Intake precleaner, air cleaner can, and exhaust stack on the hood, and the handrail around them.
-# The air cleaner can, the exhaust stack and the intake precleaner stand where the driver's line of sight past the center
-# posts of the windshield falls on the hood, so from the seat each hides behind a post (the owner's
-# request). The eye is at z 21.6 px; the posts are centered at x +-(CENTER_GAP + POST / 2), z 7.9.
+# On the hood, front to rear as in the owner's side photo: a sensor box on a post near the front,
+# the air intake (a capped can on a stalk) at mid hood, and the tall exhaust stack, with a handrail
+# beside them. Each stands on the driver's line of sight past a windshield center post as far as
+# the narrow hood allows, so from the seat it hides behind the post or close to it (the owner's
+# earlier request). The eye is at z 21.6 px; the posts are centered at x +-(CENTER_GAP + POST / 2), z 7.9.
 DRIVER_EYE_Z, POST_Z = 21.6, CAB_FRONT + 0.5
 
 
-def behind_post(z):
-    return (CENTER_GAP + POST / 2) * (DRIVER_EYE_Z - z) / (DRIVER_EYE_Z - POST_Z)
+def behind_post(z, half_width):
+    sight = (CENTER_GAP + POST / 2) * (DRIVER_EYE_Z - z) / (DRIVER_EYE_Z - POST_Z)
+    return min(sight, HOOD_HALF_TOP - half_width - 0.3)
 
 
-CAN_Z, CAN_R = 1.5, 1.5
-CAN_X = behind_post(CAN_Z)
+CAN_Z, CAN_R = -5.5, 1.5
+CAN_X = behind_post(CAN_Z, CAN_R)
 CAN = hood_top(CAN_Z) - 0.3
-body += disc("y", CAN_X, CAN, CAN_Z, 0.8, 1.9, "frame", STEPS_8)
-body += disc("y", CAN_X, CAN + 1.9, CAN_Z, CAN_R, 4.0, "black", STEPS_8)
-body += disc("y", CAN_X, CAN + 5.9, CAN_Z, CAN_R * 0.8, 0.4, "frame", STEPS_8)
-# The intake precleaner: a box on a short stalk, set back toward the cab so that its place behind
-# the left post still lies on the narrow hood
-PRE_Z = 4.0
-PRE_X = -behind_post(PRE_Z)
-PRE = hood_top(PRE_Z) - 0.3
-body.append(box(PRE_X - 0.7, PRE, PRE_Z - 0.7, PRE_X + 0.7, PRE + 1.6, PRE_Z + 0.7, "frame"))
-body.append(box(PRE_X - 1.4, PRE + 1.6, PRE_Z - 1.3, PRE_X + 1.4, PRE + 3.8, PRE_Z + 1.3, "black"))
-STACK_Z = -0.9
-STACK_X = -behind_post(STACK_Z)
+body += disc("y", CAN_X, CAN, CAN_Z, 0.8, 2.8, "frame", STEPS_8)
+body += disc("y", CAN_X, CAN + 2.8, CAN_Z, CAN_R, 3.0, "black", STEPS_8)
+body += disc("y", CAN_X, CAN + 5.8, CAN_Z, CAN_R * 0.75, 0.5, "black", STEPS_8)
+SENSOR_Z = -11.1
+SENSOR_X = -behind_post(SENSOR_Z, 1.6)
+SENSOR = hood_top(SENSOR_Z) - 0.3
+body.append(box(SENSOR_X - 0.5, SENSOR, SENSOR_Z - 0.5, SENSOR_X + 0.5, SENSOR + 2.2, SENSOR_Z + 0.5, "frame"))
+body.append(box(SENSOR_X - 1.6, SENSOR + 2.2, SENSOR_Z - 1.4, SENSOR_X + 1.6, SENSOR + 5.0, SENSOR_Z + 1.4, "black"))
+STACK_Z = -0.7
+STACK_X = -behind_post(STACK_Z, 1.05)
 STACK = hood_top(STACK_Z) - 0.3
-body += disc("y", STACK_X, STACK, STACK_Z, 0.95, 45.4 - STACK, "black", STEPS_8)
-body += disc("y", STACK_X, 45.4, STACK_Z, 1.05, 0.3, "frame", STEPS_8)
-RAIL = 1.4  # handrail height over the hood top; the rails end ahead of the can and the stack
-RAIL_REAR = -3.0
+body += disc("y", STACK_X, STACK, STACK_Z, 0.85, 45.4 - STACK, "black", STEPS_8)
+body += disc("y", STACK_X, 45.4, STACK_Z, 0.95, 0.3, "frame", STEPS_8)
+RAIL = 1.4  # handrail height over the hood top; the rails run from the intake back past the stack
+RAIL_REAR = 2.0
 body += both([box(5.4, hood_top(-8.1) - 0.3, -8.1, 5.9, hood_top(-8.1) + RAIL, -7.6, "black"),
               box(5.4, hood_top(RAIL_REAR) - 0.3, RAIL_REAR - 0.5, 5.9, hood_top(RAIL_REAR) + RAIL, RAIL_REAR, "black"),
               bar((-8.1, hood_top(-8.1) + RAIL - 0.25), (RAIL_REAR, hood_top(RAIL_REAR) + RAIL - 0.25), 5.4, 5.9, 0.5, "black")])
