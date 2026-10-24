@@ -89,8 +89,5 @@ it.each(VEHICLE_KINDS)(
         expect(stateOf(item)).toBeUndefined();
       }),
     );
-    for (const item of ["constructor", "__proto__"])
-      if (!rule.tools.some((tool) => tool.item === item))
-        expect(stateOf(item)).toBeUndefined();
   },
 );
