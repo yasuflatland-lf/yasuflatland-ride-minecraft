@@ -240,11 +240,7 @@ it("rumbles the engine at levels rescaled to a 9 blocks/s top speed", () => {
         Object.keys(e)[0]?.startsWith(prefix),
     );
   const entries = entriesFor("engine_sound_");
-  const engine = speedRanges(
-    entries,
-    "engine_sound_",
-    "query.has_rider && query.property('yasu_ride:form') == 'car'",
-  );
+  const engine = speedRanges(entries, "engine_sound_", guard);
   expect(engine).toEqual([
     [0, 0.5],
     [0.5, 2.25],
@@ -261,17 +257,14 @@ it("rumbles the engine at levels rescaled to a 9 blocks/s top speed", () => {
     );
   for (const family of ["push", "track"]) {
     const prefix = `${family}_sound_`;
-    const levels = entriesFor(prefix);
-    expect(levels.map((entry) => Object.keys(entry)[0])).toEqual(
-      [1, 2, 3, 4, 5].map((level) => `${prefix}${level}`),
-    );
     const familyGuard =
       guard +
       (family === "push" ? " && query.property('yasu_ride:blade') < 0.05" : "");
-    // speedRanges numbers from zero; preserve the real keys above, then rebase the five moving levels.
+    // speedRanges numbers levels from zero, but these start at 1 (the animate order below
+    // checks the real keys), so rename them before comparing with the five moving levels.
     expect(
       speedRanges(
-        levels.map((entry, i) => ({
+        entriesFor(prefix).map((entry, i) => ({
           [`${prefix}${i}`]: Object.values(entry)[0] ?? "",
         })),
         prefix,

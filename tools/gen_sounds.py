@@ -299,8 +299,13 @@ def bulldozer_engine(rng, cycles, load, t, whistle):
     gap = n / (cycles * 6)
     # Pulse widths, timing variation, knock shares, drive, swell, and hiss gains are
     # character values chosen by ear against the D5 references, not measurements (ADR 0140).
-    jitter_share = 0.04 if load == "idle" else 0.02 - 0.01 * t
-    knock_share = 1.0 if load == "idle" else 0.8 - 0.3 * t if load == "travel" else 0.6 - 0.2 * t
+    if load == "idle":
+        jitter_share, knock_share, drive, hiss_gain = 0.04, 1.0, 1.4, 0.02
+    elif load == "travel":
+        jitter_share, knock_share, drive, hiss_gain = 0.02 - 0.01 * t, 0.8 - 0.3 * t, 1.6, 0.03 + 0.03 * t
+    else:
+        jitter_share, knock_share, drive, hiss_gain = 0.02 - 0.01 * t, 0.6 - 0.2 * t, 2.2, 0.06 + 0.06 * t
+    pulse_s = 0.014 if load == "push" else 0.010
 
     def burst(train, at, gain, length_s):
         length = round(length_s * RATE)
@@ -312,17 +317,15 @@ def bulldozer_engine(rng, cycles, load, t, whistle):
         cylinder = BULLDOZER_FIRING_ORDER[k % 6]
         at = round(k * gap + rng.uniform(-1, 1) * jitter_share * gap)
         strength = trims[cylinder - 1] * rng.uniform(0.85, 1.0)
-        burst(exhaust, at, strength, 0.014 if load == "push" else 0.010)
+        burst(exhaust, at, strength, pulse_s)
         burst(knock, at + round(0.001 * RATE), strength * knock_share, 0.003)
     mixed = [a + b for a, b in zip(ring(exhaust, BULLDOZER_EXHAUST), ring(knock, BULLDOZER_KNOCK))]
     peak = max(abs(x) for x in mixed) or 1.0
-    drive = 1.4 if load == "idle" else 1.6 if load == "travel" else 2.2
     mixed = [math.tanh(drive * x / peak) for x in mixed]
     if load == "push":
         mixed = [x * (1 + 0.08 * math.sin(2 * math.pi * 2 * i / n)) for i, x in enumerate(mixed)]
     f, gain = whistle
     hiss = periodic_noise(rng, 1.0, *BULLDOZER_HISS_BAND, 200)
-    hiss_gain = 0.02 if load == "idle" else 0.03 + 0.03 * t if load == "travel" else 0.06 + 0.06 * t
     # Integer whistle frequency and 3 Hz wobble hold whole cycles across the seam (ADR 0140).
     return [
         mixed[i] + gain * math.sin(2 * math.pi * f * i / n
