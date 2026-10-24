@@ -51,16 +51,16 @@
           ]
         },
         "lift_cylinder_r": {
-          "rotation": ["-query.property('yasu_ride:blade') * 16.39", 0, 0]
+          "rotation": ["-query.property('yasu_ride:blade') * 10.12", 0, 0]
         },
         "lift_cylinder_l": {
-          "rotation": ["-query.property('yasu_ride:blade') * 16.39", 0, 0]
+          "rotation": ["-query.property('yasu_ride:blade') * 10.12", 0, 0]
         },
         "lift_rod_r": {
-          "scale": [1, 1, "1 - query.property('yasu_ride:blade') * 2.57 / 7"]
+          "scale": [1, 1, "1 - query.property('yasu_ride:blade') * 2.73 / 7"]
         },
         "lift_rod_l": {
-          "scale": [1, 1, "1 - query.property('yasu_ride:blade') * 2.57 / 7"]
+          "scale": [1, 1, "1 - query.property('yasu_ride:blade') * 2.73 / 7"]
         }
       }
     },

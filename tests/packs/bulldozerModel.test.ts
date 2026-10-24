@@ -419,7 +419,7 @@ describe("bulldozer blade rig (ADR 0138)", () => {
       ["r", -8.5],
       ["l", 8.5],
     ] as const) {
-      expect(bone(`lift_cylinder_${side}`).pivot).toEqual([x, 21.4, 0.2]);
+      expect(bone(`lift_cylinder_${side}`).pivot).toEqual([x, 21.4, 6.8]);
       const rod = bone(`lift_rod_${side}`);
       expect(rod.pivot).toEqual([x, 21.4, -6]);
       expect(rod.cubes).toHaveLength(1);
@@ -427,13 +427,13 @@ describe("bulldozer blade rig (ADR 0138)", () => {
     }
     expect(bone("blade_rig").cubes).toHaveLength(118);
     expect(bone("blade").cubes).toHaveLength(134);
-    expect(bones().flatMap((b) => b.cubes ?? [])).toHaveLength(3387);
+    expect(bones().flatMap((b) => b.cubes ?? [])).toHaveLength(3209);
     expect(Math.min(...points(bone("blade")).map((p) => p[1]))).toBeCloseTo(
       0,
       3,
     );
   });
-  it("hangs each lift-cylinder barrel from a mount on body", () => {
+  it("pins each lift-cylinder barrel to a mount on body at the cab front", () => {
     for (const [side, x] of [
       ["r", -8.5],
       ["l", 8.5],
@@ -442,9 +442,9 @@ describe("bulldozer blade rig (ADR 0138)", () => {
         bone(`lift_cylinder_${side}`),
         4,
         [x - 1.2, 19.9, -6],
-        [x + 1.2, 22.9, 0.8],
+        [x + 1.2, 22.9, 7.4],
       );
-      expectCube(bone("body"), 4, [x - 1.1, 22.9, -1], [x + 1.1, 24.5, 1]);
+      expectCube(bone("body"), 4, [x - 1.1, 22.9, 5.8], [x + 1.1, 24.5, 7.4]);
     }
   });
 });
