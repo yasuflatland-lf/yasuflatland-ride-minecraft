@@ -69,7 +69,7 @@ export interface VehicleTickInput extends TickContext {
   targets(): readonly RamTarget[];
 }
 
-/** A player who left a seat with an exit this tick, and the world point to put them (ADR 0140). */
+/** A player who left a seat with an exit this tick, and the world point to put them (ADR 0141). */
 export interface SeatExit {
   readonly playerId: PlayerId;
   readonly at: Vec3;
@@ -115,7 +115,7 @@ export interface SeatExit {
  * 16. `finalCommands`: the vacated seats' commands, such as the door
  *     animation, then the taken seats' commands (ADR 0007, 0055).
  * 17. `exits`, after `finalCommands`: each player who left a seat with an exit this tick
- *     is moved there, unless the world's guard keeps the engine's dismount spot (ADR 0109, 0140).
+ *     is moved there, unless the world's guard keeps the engine's dismount spot (ADR 0109, 0141).
  */
 export interface TickOutcome {
   dock?: Dock;
@@ -401,7 +401,7 @@ export class Vehicle {
 
   /**
    * The exit of each leaver whose seat has one, around the hold pose while held or the
-   * location before this tick's move while driving, at the heading after this step (ADR 0140).
+   * location before this tick's move while driving, at the heading after this step (ADR 0141).
    */
   private seatExits(leavers: readonly SeatLeaver[], origin: Vec3): SeatExit[] {
     const { x, y, z } = origin;

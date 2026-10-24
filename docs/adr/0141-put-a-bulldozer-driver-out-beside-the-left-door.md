@@ -1,6 +1,6 @@
-# 0140. Put a bulldozer driver out beside the left door
+# 0141. Put a bulldozer driver out beside the left door
 
-- Status: Accepted
+- Status: Proposed
 - Date: 2026-10-24
 - Extends: [0109](0109-stand-up-inside-the-parked-camper.md), [0136](0136-bulldozer.md)
 
@@ -26,4 +26,4 @@ The engine still places the player first, so for one tick they may stand behind 
 
 The outdoor check searches no farther than one row up and one row down. On a step or a slope beside the door, or with only the edge of the player's box over ground, the player keeps the engine's spot behind the bulldozer, which is safe but is the spot the owner reported. A block outside the passable list that has no collision, such as a torch or a sapling, also keeps that spot.
 
-Property tests check the exit transform, rider transitions, and the outdoor check; adapter and application tests check guarded delegation and command order. The in-game `bulldozer_exit_spot` scenario checks the point against the real entity's forward and left at four headings, and `bulldozer_exit_ground` runs the outdoor check on real stone, short grass, snow layers, a dirt path, a ledge, and water. There is no simulated player to dismount, so the stand-up itself is checked by hand on PC and touch (B18).
+Property tests check the exit transform, rider transitions, and the outdoor check; adapter and application tests check guarded delegation and command order. The in-game `bulldozer_exit_spot` scenario checks the point against the real entity's forward and left at four headings, and `bulldozer_exit_ground` runs the outdoor check on real stone, short grass, snow layers, a dirt path, a ledge, and water. There is no simulated player to dismount, so the stand-up itself is checked by hand on PC and touch (B23).

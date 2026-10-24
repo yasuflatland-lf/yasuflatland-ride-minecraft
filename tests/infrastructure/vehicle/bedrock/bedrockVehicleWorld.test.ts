@@ -12,6 +12,7 @@ import type { Departure } from "../../../../src/domain/vehicle/dock/dock";
 import type { EngineCommand } from "../../../../src/domain/vehicle/drive";
 import type { RawInput } from "../../../../src/domain/vehicle/driveInput";
 import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
+import { profileOf } from "../../../../src/domain/vehicle/kinds/index";
 import { SPEC } from "../../../../src/domain/vehicle/spec";
 import { NAMESPACE } from "../../../../src/infrastructure/shared/identifiers";
 import { BedrockInventory } from "../../../../src/infrastructure/vehicle/bedrock/bedrockInventory";
@@ -65,6 +66,28 @@ vi.mock("@minecraft/server", () => ({
     ) {}
   },
 }));
+
+/** Seats one idle player, holding hotbar slot 3, on `car`; the player's components come from `getComponent`. */
+function seatIdlePlayer(
+  car: ReturnType<typeof fixture>["car"],
+  getComponent: (name: string) => unknown,
+): void {
+  const player = {
+    id: "player",
+    typeId: "minecraft:player",
+    location: car.location,
+    selectedSlotIndex: 3,
+    getRotation: () => ({ y: 0 }),
+    getComponent,
+    inputInfo: {
+      getMovementVector: () => ({ x: 0, y: 0 }),
+      getButtonState: () => "Released",
+    },
+  };
+  car.getComponent.mockImplementation((name) =>
+    name === "minecraft:rideable" ? { getRiders: () => [player] } : undefined,
+  );
+}
 
 function fixture() {
   const dimension = {
@@ -408,32 +431,35 @@ describe("BedrockVehicleWorld snapshots", () => {
     );
   });
 
-  it.each(VEHICLE_KINDS)(
+  it.each(VEHICLE_KINDS.filter((kind) => !profileOf(kind).monitor))(
     "does not read rider inventory for %s without a monitor rule",
     (kind) => {
       const { car, world } = fixture();
       car.typeId = ENTITY_TYPE[kind];
       const inventory = vi.fn();
-      const player = {
-        id: "player",
-        typeId: "minecraft:player",
-        location: car.location,
-        getRotation: () => ({ y: 0 }),
-        getComponent: inventory,
-        inputInfo: {
-          getMovementVector: () => ({ x: 0, y: 0 }),
-          getButtonState: () => "Released",
-        },
-      };
-      car.getComponent.mockImplementation((name) =>
-        name === "minecraft:rideable"
-          ? { getRiders: () => [player] }
-          : undefined,
-      );
+      seatIdlePlayer(car, inventory);
       const riders = world.loadedVehicles()[0]?.riders;
       expect(riders?.map((r) => r.id)).toEqual(["player"]);
       expect(riders?.[0]?.heldTool).toBeUndefined();
       expect(inventory).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    ["yasu_ride:blade_switch", "blade_switch"],
+    ["minecraft:stone", undefined],
+    [undefined, undefined],
+  ])(
+    "reads the bulldozer driver's held %s as %s for its monitor rule (ADR 0139)",
+    (typeId, heldTool) => {
+      const { car, world } = fixture();
+      car.typeId = ENTITY_TYPE.bulldozer;
+      const getItem = vi.fn(() => (typeId ? { typeId } : undefined));
+      seatIdlePlayer(car, (name) =>
+        name === "minecraft:inventory" ? { container: { getItem } } : undefined,
+      );
+      expect(world.loadedVehicles()[0]?.riders[0]?.heldTool).toBe(heldTool);
+      expect(getItem).toHaveBeenCalledWith(3);
     },
   );
 

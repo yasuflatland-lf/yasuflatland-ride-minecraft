@@ -1,6 +1,6 @@
 # 0109. Stand up inside the parked camper
 
-- Status: Extended by [0140](0140-put-a-bulldozer-driver-out-beside-the-left-door.md)
+- Status: Extended by [0141](0141-put-a-bulldozer-driver-out-beside-the-left-door.md) (Proposed)
 - Date: 2026-10-22
 - Extends: 0063, 0068, 0095
 

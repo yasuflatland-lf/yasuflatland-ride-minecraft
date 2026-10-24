@@ -4,11 +4,11 @@ import type { Vec3 } from "../../../domain/shared/vec";
 import { isLightBlock } from "../../shared/lightBlocks";
 
 // A player's box is 0.6 wide; the margin keeps a box that only touches a cell
-// boundary from counting the next column (ADR 0140).
+// boundary from counting the next column (ADR 0141).
 const HALF_WIDTH = 0.299;
 
 // A snow layer of height state 3 (four layers) reaches half a block, the most the
-// engine steps a player up out of (ADR 0140).
+// engine steps a player up out of (ADR 0141).
 const MAX_SNOW_HEIGHT = 3;
 
 // Tracks on a block lower than a full one (a dirt path, farmland, mud, soul sand or a
@@ -62,7 +62,7 @@ function bodyOpen(dimension: Dimension, at: Vec3, feet: number): boolean {
 
 /**
  * Where a rider getting out at `at` (a seat exit at the vehicle's feet height) can
- * stand, or undefined to keep the engine's spot (ADR 0140). Every cell the player's
+ * stand, or undefined to keep the engine's spot (ADR 0141). Every cell the player's
  * box overlaps in the feet and head rows must be air, a light block, ground cover a
  * player walks through or a low snow layer, and the cell under the middle of the feet
  * must be ground, not air, cover or a liquid. On ground lower than a full block, the

@@ -67,7 +67,7 @@ export async function bulldozerExitSpot(a: Arena): Promise<Outcome> {
 
 /**
  * Runs the seat exit's ground check on real blocks, so the block ids and the snow
- * layer's height state it reads are the engine's (ADR 0140).
+ * layer's height state it reads are the engine's (ADR 0141).
  */
 export async function bulldozerExitGround(a: Arena): Promise<Outcome> {
   const { dim, gy } = a;

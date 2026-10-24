@@ -59,7 +59,7 @@ export const BULLDOZER_SPEC = Object.freeze({
   doorOpenTicks: 40,
   doorSteps: 10,
   // Beside the left door, outside the track (outer edge 18.8/16) by a player's half width
-  // (0.3) and a margin, clear of the open door's edge (about x 1.01) and behind the blade (ADR 0140).
+  // (0.3) and a margin, clear of the open door's edge (about x 1.01) and behind the blade (ADR 0141).
   doorExit: Object.freeze({ x: 1.75, z: -0.7 }),
   // Ticks the blade takes to travel fully up or down; the rig animation follows the property (ADR 0138).
   bladeLiftTicks: 10,
