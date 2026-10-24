@@ -508,21 +508,22 @@ export async function bulldozerSpawnsRaised(a: Arena): Promise<Outcome> {
 /** The cab monitor shows the held blade switch's state and blanks for any other item or none (ADR 0139). */
 export async function bulldozerMonitor(a: Arena): Promise<Outcome> {
   return withBulldozer(a, 20.5, 20.5, 0, async (car) => {
-    const hold = async (item: string): Promise<number> => {
+    const screen = (): number =>
+      Number(car.getProperty(entityPropertyId("monitor")));
+    const hold = (item: string): void =>
       system.sendScriptEvent(TEST_HELD_TOOL_EVENT, `${car.id},${item}`);
+    const holdAndRead = async (item: string): Promise<number> => {
+      hold(item);
       await wait(2);
-      return Number(car.getProperty(entityPropertyId("monitor")));
+      return screen();
     };
     await wait(2);
-    const up = await hold(BLADE_SWITCH_ITEM);
+    const up = await holdAndRead(BLADE_SWITCH_ITEM);
     await setBlade(car, false);
-    const down = Number(car.getProperty(entityPropertyId("monitor")));
-    const other = await hold("stone");
-    system.sendScriptEvent(
-      TEST_HELD_TOOL_EVENT,
-      `${car.id},${BLADE_SWITCH_ITEM}`,
-    );
-    const cleared = await hold("clear");
+    const down = screen();
+    const other = await holdAndRead("stone");
+    hold(BLADE_SWITCH_ITEM);
+    const cleared = await holdAndRead("clear");
     return {
       pass: up === 2 && down === 1 && other === 0 && cleared === 0,
       detail: `up=${up} down=${down} other=${other} cleared=${cleared}`,
