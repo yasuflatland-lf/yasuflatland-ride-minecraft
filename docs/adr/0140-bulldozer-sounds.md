@@ -28,7 +28,7 @@ The D5 specification below is background. It set the first engine speeds and sti
 
 ## Decision
 
-Synthesize 11 four-second engine and push loops, 5 one-second track loops, and one 0.9 s hydraulics one-shot at 22050 Hz, mono 16-bit PCM, in `tools/gen_sounds.py`. Append the new writes after the shower, with independent seeds 140 (engine and push), 141 (tracks), and 142 (hydraulics). Existing generator code and seeds stay unchanged.
+Synthesize 11 two-second engine and push loops, 5 one-second track loops, and one 0.9 s hydraulics one-shot at 22050 Hz, mono 16-bit PCM, in `tools/gen_sounds.py`. Append the new writes after the shower, with independent seeds 140 (engine and push), 141 (tracks), and 142 (hydraulics). Existing generator code and seeds stay unchanged.
 
 Engine and track layers use `G = query.has_rider && query.property('yasu_ride:form') == 'car'`. Exactly one engine level plays: idle below 0.5 blocks/s, otherwise one of five travel levels when blade >= 0.05, or five push levels when blade < 0.05. This threshold distinguishes fully lowered from the 0.1 steps without exact float equality after sync. Lowering plays travel until it finishes. Push runs slower but sounds heavier and louder. Exactly one track level plays in each moving speed band, independently of the blade.
 
@@ -40,13 +40,13 @@ Hydraulics runs through an unconditional controller entry: initial `rest` enters
 - an exhaust tone at 97-143 Hz, twice the firing rate of a four-stroke six at those cycle rates (6 firings per cycle), with its own second harmonic;
 - energy mostly between 120 and 500 Hz, some up to 2 kHz and almost none above, with a spectral centroid of about 400-800 Hz.
 
-A four-stroke engine completes one cycle (all six firings) every two turns, so `rpm = 120 x cycles/s`, firings/s = `6 x cycles/s`, and a 4 s loop holds `rpm / 30` cycles. Every count below is even, so a 2 s loop would also hold whole cycles at the half-cycle-per-second steps used here (8.5, 9.5, 10.5, 11.5), and the 2 Hz push swell fits 2 s too. The loops stay 4 s because that is the length the owner tuned and approved (it carried over from retuning step 4); it also makes the jitter pattern repeat less often, at twice the file size of 2 s loops. Each level puts its thump rate inside the recording's 8-12 a second; travel level 3 matches the recording's 8-12 s section at 10.5 thumps/s with its tone at 126 Hz and the harmonic at 252 Hz:
+A four-stroke engine completes one cycle (all six firings) every two turns, so `rpm = 120 x cycles/s`, firings/s = `6 x cycles/s`, and a 2 s loop holds `rpm / 60` cycles, which also fits the half-cycle-per-second steps used here (8.5, 9.5, 10.5, 11.5) and the 2 Hz push swell. The owner approved the sound with 4 s loops, then chose 2 s so an old clip lingers at most 2 s after a level change (see Consequences); the halves differ only in their random jitter. Each level puts its thump rate inside the recording's 8-12 a second; travel level 3 matches the recording's 8-12 s section at 10.5 thumps/s with its tone at 126 Hz and the harmonic at 252 Hz:
 
-| Level | Cycles per 4 s loop | Thumps/s (cycles/s) | rpm | Firings/s | Exhaust tone (2 x firings) |
+| Level | Cycles per 2 s loop | Thumps/s (cycles/s) | rpm | Firings/s | Exhaust tone (2 x firings) |
 |---|---|---|---|---|---|
-| Idle | 32 | 8 | 960 | 48 | 96 Hz |
-| Travel 1-5 | 36, 40, 42, 44, 48 | 9, 10, 10.5, 11, 12 | 1,080-1,440 | 54-72 | 108-144 Hz |
-| Push 1-5 | 34, 38, 40, 42, 46 | 8.5, 9.5, 10, 10.5, 11.5 | 1,020-1,380 | 51-69 | 102-138 Hz |
+| Idle | 16 | 8 | 960 | 48 | 96 Hz |
+| Travel 1-5 | 18, 20, 21, 22, 24 | 9, 10, 10.5, 11, 12 | 1,080-1,440 | 54-72 | 108-144 Hz |
+| Push 1-5 | 17, 19, 20, 21, 23 | 8.5, 9.5, 10, 10.5, 11.5 | 1,020-1,380 | 51-69 | 102-138 Hz |
 
 Idle sits 20 % above the assumed 800 rpm and full travel well below the assumed 1,880 rpm high idle. The owner's ear and recording override the spec here; intermediate levels are character choices, not measured engine operating points.
 
@@ -73,7 +73,7 @@ Idle sits 20 % above the assumed 800 rpm and full travel well below the assumed 
 
 All WAVs go to `packs/yasu_ride_rp/sounds/yasu_ride/`. Every definition uses `"category": "neutral"`. Engine and push: `min_distance` 4.0, `max_distance` 32.0 (a 17 t machine is heard farther than the SUV's 24). Tracks: 4.0 and 24.0. Hydraulics: 2.0 and 16.0. Append the new definitions after `yasu_ride.shower` in `sound_definitions.json`; leave every existing entry unchanged.
 
-The client animate order is form, drive, hydraulics, engine_sound_0 through _5, push_sound_1 through _5, then track_sound_1 through _5. Conditions put G first, then the blade clause when applicable, then speed. Each sound animation fires its matching effect at 0.0; engine and push animations loop for 4.0 s and track animations for 1.0 s, matching their clips; the hydraulics animation runs once for 0.9 s.
+The client animate order is form, drive, hydraulics, engine_sound_0 through _5, push_sound_1 through _5, then track_sound_1 through _5. Conditions put G first, then the blade clause when applicable, then speed. Each sound animation fires its matching effect at 0.0; engine and push animations loop for 2.0 s and track animations for 1.0 s, matching their clips; the hydraulics animation runs once for 0.9 s.
 
 Synthesis character values below are chosen by ear against the owner's requests and recording, not measured:
 
@@ -91,16 +91,16 @@ Synthesis character values below are chosen by ear against the owner's requests 
 4. "Thicker, do-do-do-do, revs half of now", like 53 s to about 1:10 of the M0yyrtj3rmE video. The engine loop became 4 s with the same cycle counts, halving the revs, with a thud per firing.
 5. The owner then supplied their recording of that section. Its analysis showed the "do" is one thump per engine cycle at 8-12 a second, far faster than the per-firing thuds of step 4, so the revs went back up to the table above, the clatter, roar, and thud gave way to the lead-cylinder thump and the recording-shaped resonances, and the cutoff rose to 2500 Hz.
 
-The owner accepted the result ("the sound is OK with this") on 2026-10-24.
+The owner accepted the result ("the sound is OK with this") on 2026-10-24. They then chose 2 s engine and push loops over 4 s, with the same rates, so a replaced clip lingers for less time.
 
 Bump the Resource Pack header and module and the Behavior Pack dependency to the next patch above `main` at merge time (0015). No beta API or script changes are needed.
 
 ## Consequences
 
-- The Resource Pack gains 17 WAVs, 2,201,338 bytes (about 2.1 MiB) in all: 11 four-second engine and push files of 176,444 bytes, 5 one-second track files of 44,144 bytes, and the 0.9 s hydraulics file of 39,734 bytes.
+- The Resource Pack gains 17 WAVs, 1,231,138 bytes (about 1.2 MiB) in all: 11 two-second engine and push files of 88,244 bytes, 5 one-second track files of 44,144 bytes, and the 0.9 s hydraulics file of 39,734 bytes.
 - The engine steps between levels and follows speed, not throttle (0030, 0060): holding forward against a wall reads as idle.
 - Push plays whenever the fully lowered blade moves, including cases where the blade cuts nothing: over air, while reversing, and while turning. The client cannot tell whether a block was cut, and `query.ground_speed` carries neither direction nor steering. Matching push to cutting exactly would need a synced cutting flag set by the script.
-- The 4 s engine and push clips lengthen the overlap 0030 describes: Bedrock does not stop a playing clip when its animation stops, so after a speed level change, a blade change, a dismount, or a form change the old clip can play on under the new one for up to 4 s, and speed jitter at a band edge can stack several 4 s copies.
+- The 2 s engine and push clips lengthen the overlap 0030 describes: Bedrock does not stop a playing clip when its animation stops, so after a speed level change, a blade change, a dismount, or a form change the old clip can play on under the new one for up to 2 s, and speed jitter at a band edge can stack copies. The owner chose 2 s over the 4 s the sound was first approved with to halve this.
 - A pivot in place has ground speed near zero, so tracks are silent even though their animation runs.
 - The engine speeds no longer follow the D5's rated or idle rpm. Revisit them against the owner's ear, not the spec, if a later reference replaces the recording.
 - The owner's listening check passed on 2026-10-24 on the dev BDS. This ADR stays Proposed because it is accepted together with 0136, and 0136's own manual PC and mobile checks in the Bulldozer section of [the manual checklist](../manual-test.md) are still pending; B18-B22 there describe the final sound.

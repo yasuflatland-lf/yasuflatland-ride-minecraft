@@ -85,18 +85,18 @@ SHOWER_BAND = (1200, 6000)
 # Cat C7.1 inline six (D5 Technical Specifications, CGT); the usual inline-six order,
 # not checked against Cat's manual. Source: https://www.cgt.it/sites/default/files/d5_technical_specifications_en.pdf
 BULLDOZER_FIRING_ORDER = [1, 5, 3, 6, 2, 4]
-# Match animation_length in bulldozer.anim.json (4.0 for the engine_sound and push_sound
+# Match animation_length in bulldozer.anim.json (2.0 for the engine_sound and push_sound
 # clips, 1.0 for track_sound). Cycle counts, links, and the push swell rate below are
 # whole cycles per loop, so changing these breaks the seams.
-BULLDOZER_ENGINE_LOOP_S = 4.0
+BULLDOZER_ENGINE_LOOP_S = 2.0
 BULLDOZER_TRACK_LOOP_S = 1.0
-# Four-stroke engine cycles per 4 s loop (rpm / 30), matched to the owner's own recording
+# Four-stroke engine cycles per 2 s loop (rpm / 60), matched to the owner's own recording
 # of a dozer (analyzed locally, not committed): its exhaust tone sits at 97-143 Hz, twice
 # the firing rate, and its "do-do-do" thumps come once per engine cycle at 8-12 a second
 # (ADR 0140).
-BULLDOZER_IDLE_CYCLES = 32                       # 8 cycles/s, 960 rpm, 48 Hz firing.
-BULLDOZER_TRAVEL_CYCLES = [36, 40, 42, 44, 48]   # 9-12 cycles/s, 1080-1440 rpm.
-BULLDOZER_PUSH_CYCLES = [34, 38, 40, 42, 46]     # 8.5-11.5 cycles/s, lower than travel under load.
+BULLDOZER_IDLE_CYCLES = 16                       # 8 cycles/s, 960 rpm, 48 Hz firing.
+BULLDOZER_TRAVEL_CYCLES = [18, 20, 21, 22, 24]   # 9-12 cycles/s, 1080-1440 rpm.
+BULLDOZER_PUSH_CYCLES = [17, 19, 20, 21, 23]     # 8.5-11.5 cycles/s, lower than travel under load.
 # Exhaust resonances (Hz, Q, gain) placing the energy where the recording has it: most
 # between 120 and 500 Hz, some up to 2 kHz, almost none above (ADR 0140).
 BULLDOZER_EXHAUST = [(65, 3.0, 0.5), (130, 3.0, 1.2), (260, 4.0, 0.65), (420, 4.0, 0.55), (800, 5.0, 0.35), (1400, 6.0, 0.25)]

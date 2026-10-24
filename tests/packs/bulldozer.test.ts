@@ -359,7 +359,7 @@ it("matches sound animation lengths to their clips", () => {
       );
       expect(anim[client.animations[short]]).toEqual({
         loop: true,
-        animation_length: family === "track" ? 1 : 4,
+        animation_length: family === "track" ? 1 : 2,
         sound_effects: { "0.0": { effect: `${family}_${level}` } },
       });
     }
@@ -379,13 +379,13 @@ it("matches sound animation lengths to their clips", () => {
   );
 });
 it("keeps the engine low and its exhaust tone at twice the firing rate (ADR 0140)", () => {
-  // BULLDOZER_IDLE_CYCLES, _TRAVEL_CYCLES, and _PUSH_CYCLES per 4 s loop in
+  // BULLDOZER_IDLE_CYCLES, _TRAVEL_CYCLES, and _PUSH_CYCLES per 2 s loop in
   // tools/gen_sounds.py.
-  const cycles: Record<string, number> = { engine_0: 32 };
-  [36, 40, 42, 44, 48].forEach((c, i) => {
+  const cycles: Record<string, number> = { engine_0: 16 };
+  [18, 20, 21, 22, 24].forEach((c, i) => {
     cycles[`engine_${i + 1}`] = c;
   });
-  [34, 38, 40, 42, 46].forEach((c, i) => {
+  [17, 19, 20, 21, 23].forEach((c, i) => {
     cycles[`push_${i + 1}`] = c;
   });
   for (const [name, perLoop] of Object.entries(cycles)) {
@@ -396,7 +396,7 @@ it("keeps the engine low and its exhaust tone at twice the firing rate (ADR 0140
     expect(band(3000, 5000) / band(100, 300), name).toBeLessThan(0.025);
     // A four-stroke six fires 6 times per cycle and its exhaust tone sits at
     // twice that, so it must beat both the firing rate and its own harmonic.
-    const firing = (6 * perLoop) / 4;
+    const firing = (6 * perLoop) / 2;
     const peak = (hz: number) => band(hz - 1, hz + 1);
     expect(peak(2 * firing), name).toBeGreaterThan(peak(firing));
     expect(peak(2 * firing), name).toBeGreaterThan(peak(4 * firing));
