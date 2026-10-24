@@ -28,6 +28,7 @@ it("wires the decor use cases and the dock owner lookups into the subscriptions 
       undefined,
       undefined,
       undefined,
+      undefined,
     ];
   expect(useCases?.decor).toBeInstanceOf(SetDecor);
   expect(useCases?.placeDecor).toBeInstanceOf(PlaceDecor);
