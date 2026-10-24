@@ -45,7 +45,7 @@ import type { StandInPose } from "../../../domain/vehicle/standIn";
 import type { RiderView } from "../../../domain/vehicle/vehicle";
 import { AIR_BLOCK, messageKey } from "../../shared/identifiers";
 import { isLightBlock } from "../../shared/lightBlocks";
-import type { TestInputStore } from "../testInput/testInputStore";
+import type { VehicleTestStore } from "../testInput/vehicleTestStore";
 import { savedDecor } from "./bedrockDecorWorld";
 import { BladeCuts } from "./bladeCuts";
 import { DeckSeats } from "./deckSeats";
@@ -123,7 +123,7 @@ export class BedrockVehicleWorld implements DriveWorld {
 
   constructor(
     private readonly index: EntityIndex,
-    private readonly testInputs: TestInputStore,
+    private readonly testInputs: VehicleTestStore<RawInput>,
     campSpace: SpaceCheck,
   ) {
     this.headlightBlocks = new HeadlightBlocks(campSpace);

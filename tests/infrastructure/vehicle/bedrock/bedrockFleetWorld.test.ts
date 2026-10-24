@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SpaceCheck } from "../../../../src/application/shared/ports/space";
 import { asPlayerId, asVehicleId } from "../../../../src/domain/shared/ids";
+import type { RawInput } from "../../../../src/domain/vehicle/driveInput";
 import { BedrockFleetWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockFleetWorld";
 import { BedrockVehicleWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockVehicleWorld";
 import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
@@ -14,7 +15,7 @@ import {
   VEHICLE_FAMILY,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 import type { VehicleReleaser } from "../../../../src/infrastructure/vehicle/bedrock/vehicleReleaser";
-import { TestInputStore } from "../../../../src/infrastructure/vehicle/testInput/testInputStore";
+import { VehicleTestStore } from "../../../../src/infrastructure/vehicle/testInput/vehicleTestStore";
 import { blockGrid } from "../../../support/blockGrid";
 
 const game = vi.hoisted(() => ({
@@ -88,7 +89,7 @@ function fixture() {
   game.getEntity.mockImplementation((id: string) =>
     id === car.id ? car : undefined,
   );
-  const inputs = new TestInputStore();
+  const inputs = new VehicleTestStore<RawInput>();
   const index = new EntityIndex();
   const world = new BedrockVehicleWorld(index, inputs, noCampSpace);
   const inventory = { giveItems: vi.fn() };

@@ -18,6 +18,7 @@ import {
   SeatPresses,
   seatSlotCell,
 } from "../../../../domain/vehicle/kinds/index";
+import { heldTypeId } from "../../../shared/heldItem";
 import { pressedHeight, pressedShape } from "../faceHeight";
 import {
   CAMPER_DECOR_COMPONENT,
@@ -63,10 +64,7 @@ export function registerDecor(
       onPlayerInteract: (ev) => {
         const player = ev.player;
         if (!player) return;
-        const held = player
-          .getComponent("minecraft:inventory")
-          ?.container?.getItem(player.selectedSlotIndex);
-        if (held) return;
+        if (heldTypeId(player) !== undefined) return;
         const vehicleId = dockCellOwner(
           asDimensionId(ev.dimension.id),
           ev.block.location,

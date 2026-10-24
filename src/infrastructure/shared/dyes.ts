@@ -3,6 +3,7 @@
 
 import type { Player } from "@minecraft/server";
 import { PAINTS, type Paint, paintEventName } from "../../domain/shared/paint";
+import { heldTypeId } from "./heldItem";
 import { id } from "./identifiers";
 
 /** The vanilla dye that paints an entity with a paint (ADR 0031); brown dye restores variant 0 (ADR 0076). */
@@ -20,10 +21,7 @@ export const PAINT_BY_DYE: Readonly<Record<string, Paint>> = Object.fromEntries(
  * read of a held dye, so painting and its hint cannot disagree.
  */
 export function heldDye(player: Player): Paint | undefined {
-  const held = player
-    .getComponent("minecraft:inventory")
-    ?.container?.getItem(player.selectedSlotIndex);
-  return PAINT_BY_DYE[held?.typeId ?? ""];
+  return PAINT_BY_DYE[heldTypeId(player) ?? ""];
 }
 
 /** minecraft:variant value for each paint. The render controller of each painted entity picks the texture by this index. */

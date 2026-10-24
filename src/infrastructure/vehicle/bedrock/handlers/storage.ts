@@ -7,6 +7,7 @@ import {
   type VehicleId,
 } from "../../../../domain/shared/ids";
 import type { Vec3 } from "../../../../domain/shared/vec";
+import { heldTypeId } from "../../../shared/heldItem";
 import { CAMPER_CABINET_COMPONENT } from "../identifiers";
 
 export function registerStorage(
@@ -24,10 +25,7 @@ export function registerStorage(
       onPlayerInteract: (ev) => {
         const { player } = ev;
         if (!player) return;
-        const held = player
-          .getComponent("minecraft:inventory")
-          ?.container?.getItem(player.selectedSlotIndex);
-        if (held) return;
+        if (heldTypeId(player) !== undefined) return;
         const at = ev.block.location;
         const vehicleId = dockCellOwner(asDimensionId(ev.dimension.id), at);
         if (vehicleId === undefined) return;

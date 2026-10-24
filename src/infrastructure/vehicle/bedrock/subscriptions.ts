@@ -21,6 +21,7 @@ import type { SwitchHeadlights } from "../../../application/vehicle/switchHeadli
 import type { UseDockDoor } from "../../../application/vehicle/useDockDoor";
 import type { DimensionId, VehicleId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
+import type { RawInput } from "../../../domain/vehicle/driveInput";
 import { registerBedBlock } from "../../shared/bedBlock";
 import { HEADLIGHT_SWITCH_TYPE } from "../../shared/identifiers";
 import {
@@ -28,7 +29,7 @@ import {
   type SwitchRoutes,
   type SwitchTarget,
 } from "../../shared/switchRouter";
-import type { TestInputStore } from "../testInput/testInputStore";
+import type { VehicleTestStore } from "../testInput/vehicleTestStore";
 import { bladeSwitchTarget } from "./handlers/blade";
 import { registerBoarding } from "./handlers/boarding";
 import { registerDecor } from "./handlers/decor";
@@ -71,7 +72,7 @@ export function registerSubscriptions(
     hints: ShowVehicleHints;
     board: BoardVehicle;
   },
-  testInputs: TestInputStore,
+  testInputs: VehicleTestStore<RawInput>,
   dockDoorOwner: (
     dimensionId: DimensionId,
     cell: Vec3,

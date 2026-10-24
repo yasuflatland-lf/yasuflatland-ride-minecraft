@@ -10,6 +10,7 @@ import {
 import type { Vec3 } from "../../../../src/domain/shared/vec";
 import type { Departure } from "../../../../src/domain/vehicle/dock/dock";
 import type { EngineCommand } from "../../../../src/domain/vehicle/drive";
+import type { RawInput } from "../../../../src/domain/vehicle/driveInput";
 import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
 import { SPEC } from "../../../../src/domain/vehicle/spec";
 import { NAMESPACE } from "../../../../src/infrastructure/shared/identifiers";
@@ -36,7 +37,7 @@ import {
   SEAT_FILLER_TYPE,
   VEHICLE_FAMILY,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
-import { TestInputStore } from "../../../../src/infrastructure/vehicle/testInput/testInputStore";
+import { VehicleTestStore } from "../../../../src/infrastructure/vehicle/testInput/vehicleTestStore";
 import { blockGrid } from "../../../support/blockGrid";
 
 const game = vi.hoisted(() => ({
@@ -113,7 +114,7 @@ function fixture() {
   game.getEntity.mockImplementation((id: string) =>
     id === car.id ? car : undefined,
   );
-  const inputs = new TestInputStore();
+  const inputs = new VehicleTestStore<RawInput>();
   const index = new EntityIndex();
   const inventory = new BedrockInventory(index);
   return {
