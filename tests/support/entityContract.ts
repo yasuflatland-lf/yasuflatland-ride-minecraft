@@ -1,9 +1,12 @@
 import { expect } from "vitest";
 import type { EngineCommand } from "../../src/domain/vehicle/drive";
-import type {
-  EntityContract,
-  PropertySpec,
+import {
+  type EntityContract,
+  MONITOR_PROPERTY_NAME,
+  type PropertySpec,
 } from "../../src/domain/vehicle/entityContract";
+import { monitorPropertySpec } from "../../src/domain/vehicle/monitor/monitor";
+import type { VehicleProfile } from "../../src/domain/vehicle/profile";
 
 function expectInRange(
   value: unknown,
@@ -13,15 +16,25 @@ function expectInRange(
   expect(value).toBeLessThanOrEqual(max);
 }
 
-/** Fails unless the contract declares `command` and its value fits the declared type and range. Contracts declare no sounds, so only a sound's name is checked. */
+/** The monitor's spec follows the profile's rule, since the core writes it and no kind contract may declare it (ADR 0139). */
+function declaredSpec(
+  name: string,
+  contract: EntityContract,
+  profile: VehicleProfile,
+): PropertySpec | undefined {
+  if (name !== MONITOR_PROPERTY_NAME) return contract.properties[name];
+  return profile.monitor && monitorPropertySpec(profile.monitor);
+}
+
+/** Fails unless the contract (or, for the monitor, the profile's rule) declares `command` and its value fits the declared type and range. Contracts declare no sounds, so only a sound's name is checked. */
 export function expectDeclaredCommand(
   command: EngineCommand,
   contract: EntityContract,
+  profile: VehicleProfile,
 ): void {
   switch (command.type) {
     case "setProperty": {
-      const spec: PropertySpec | undefined = contract.properties[command.name];
-      expect(spec).toBeDefined();
+      const spec = declaredSpec(command.name, contract, profile);
       if (!spec) throw new Error(`Undeclared property ${command.name}`);
       switch (spec.type) {
         case "enum":

@@ -78,7 +78,7 @@ describe("identifiers (ADR 0047)", () => {
       entityPropertyId(HEADLIGHTS_PROPERTY_NAME),
     );
     for (const name of CORE_PROPERTY_NAMES)
-      expect(entityPropertyId(name)).toBe(HEADLIGHTS_PROPERTY);
+      expect(entityPropertyId(name)).toBe(`yasu_ride:${name}`);
   });
 
   it.each(PAINTS)(

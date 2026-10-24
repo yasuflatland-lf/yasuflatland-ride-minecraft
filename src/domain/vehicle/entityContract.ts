@@ -49,8 +49,11 @@ export type RestoredOf<C extends EntityContract> = RestoredValues<
 
 /** The property the core writes to light the lamps. */
 export const HEADLIGHTS_PROPERTY_NAME = "headlights";
+/** The int property the core writes to pick the cab monitor's screen (ADR 0139). */
+export const MONITOR_PROPERTY_NAME = "monitor";
 /** Names the core writes; no kind may declare them. */
 export const CORE_PROPERTY_NAMES: readonly string[] = [
   HEADLIGHTS_PROPERTY_NAME,
+  MONITOR_PROPERTY_NAME,
 ];
 export const CORE_EVENT_PREFIXES: readonly string[] = [PAINT_EVENT_PREFIX];

@@ -90,7 +90,7 @@ it.each(VEHICLE_KINDS)(
               expect(out.finalCommands).toEqual([]);
 
             for (const command of [...out.stepCommands, ...out.finalCommands])
-              expectDeclaredCommand(command, contract);
+              expectDeclaredCommand(command, contract, profileOf(kind));
 
             expect(typeof out.riders.thirdPerson).toBe("boolean");
             expect(typeof out.riders.underwater).toBe("boolean");

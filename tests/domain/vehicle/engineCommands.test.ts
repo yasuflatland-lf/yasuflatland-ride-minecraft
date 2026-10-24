@@ -5,6 +5,7 @@ import { VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
 import {
   createVehicle,
   entityContractOf,
+  profileOf,
 } from "../../../src/domain/vehicle/kinds/index";
 import { expectDeclaredCommand } from "../../support/entityContract";
 import { waterSensors } from "../../support/waterDepth";
@@ -62,7 +63,7 @@ it.each(VEHICLE_KINDS)(
               targets: () => [],
             });
             for (const command of [...out.stepCommands, ...out.finalCommands])
-              expectDeclaredCommand(command, contract);
+              expectDeclaredCommand(command, contract, profileOf(kind));
           });
         },
       ),
