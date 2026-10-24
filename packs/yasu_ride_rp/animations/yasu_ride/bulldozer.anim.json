@@ -95,7 +95,7 @@
     },
     "animation.yasu_ride.bulldozer.engine_sound_0": {
       "loop": true,
-      "animation_length": 1.0,
+      "animation_length": 2.0,
       "sound_effects": {
         "0.0": {
           "effect": "engine_0"
@@ -104,7 +104,7 @@
     },
     "animation.yasu_ride.bulldozer.engine_sound_1": {
       "loop": true,
-      "animation_length": 1.0,
+      "animation_length": 2.0,
       "sound_effects": {
         "0.0": {
           "effect": "engine_1"
@@ -113,7 +113,7 @@
     },
     "animation.yasu_ride.bulldozer.engine_sound_2": {
       "loop": true,
-      "animation_length": 1.0,
+      "animation_length": 2.0,
       "sound_effects": {
         "0.0": {
           "effect": "engine_2"
@@ -122,7 +122,7 @@
     },
     "animation.yasu_ride.bulldozer.engine_sound_3": {
       "loop": true,
-      "animation_length": 1.0,
+      "animation_length": 2.0,
       "sound_effects": {
         "0.0": {
           "effect": "engine_3"
@@ -131,7 +131,7 @@
     },
     "animation.yasu_ride.bulldozer.engine_sound_4": {
       "loop": true,
-      "animation_length": 1.0,
+      "animation_length": 2.0,
       "sound_effects": {
         "0.0": {
           "effect": "engine_4"
@@ -140,7 +140,7 @@
     },
     "animation.yasu_ride.bulldozer.engine_sound_5": {
       "loop": true,
-      "animation_length": 1.0,
+      "animation_length": 2.0,
       "sound_effects": {
         "0.0": {
           "effect": "engine_5"
@@ -203,7 +203,7 @@
     },
     "animation.yasu_ride.bulldozer.push_sound_1": {
       "loop": true,
-      "animation_length": 1.0,
+      "animation_length": 2.0,
       "sound_effects": {
         "0.0": {
           "effect": "push_1"
@@ -212,7 +212,7 @@
     },
     "animation.yasu_ride.bulldozer.push_sound_2": {
       "loop": true,
-      "animation_length": 1.0,
+      "animation_length": 2.0,
       "sound_effects": {
         "0.0": {
           "effect": "push_2"
@@ -221,7 +221,7 @@
     },
     "animation.yasu_ride.bulldozer.push_sound_3": {
       "loop": true,
-      "animation_length": 1.0,
+      "animation_length": 2.0,
       "sound_effects": {
         "0.0": {
           "effect": "push_3"
@@ -230,7 +230,7 @@
     },
     "animation.yasu_ride.bulldozer.push_sound_4": {
       "loop": true,
-      "animation_length": 1.0,
+      "animation_length": 2.0,
       "sound_effects": {
         "0.0": {
           "effect": "push_4"
@@ -239,7 +239,7 @@
     },
     "animation.yasu_ride.bulldozer.push_sound_5": {
       "loop": true,
-      "animation_length": 1.0,
+      "animation_length": 2.0,
       "sound_effects": {
         "0.0": {
           "effect": "push_5"
@@ -293,7 +293,7 @@
     },
     "animation.yasu_ride.bulldozer.hydraulics_sound": {
       "loop": false,
-      "animation_length": 0.5,
+      "animation_length": 0.9,
       "sound_effects": {
         "0.0": {
           "effect": "hydraulics"

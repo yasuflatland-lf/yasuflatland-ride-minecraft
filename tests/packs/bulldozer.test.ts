@@ -335,7 +335,7 @@ it("maps bulldozer sounds to dedicated clips while preserving hover and sonar", 
       expect(existsSync(`${RP}/${sound.name}.wav`), sound.name).toBe(true);
   }
 });
-it("matches sound animation lengths to their clips and the blade travel time", () => {
+it("matches sound animation lengths to their clips", () => {
   for (const [short, id] of Object.entries<string>(client.animations)) {
     const animation = anim[id];
     if (!animation?.sound_effects) continue;
@@ -358,7 +358,7 @@ it("matches sound animation lengths to their clips and the blade travel time", (
       );
       expect(anim[client.animations[short]]).toEqual({
         loop: true,
-        animation_length: 1,
+        animation_length: family === "track" ? 1 : 2,
         sound_effects: { "0.0": { effect: `${family}_${level}` } },
       });
     }
@@ -366,12 +366,16 @@ it("matches sound animation lengths to their clips and the blade travel time", (
   expect(client.animations.hydraulics_sound).toBe(
     "animation.yasu_ride.bulldozer.hydraulics_sound",
   );
-  expect(anim[client.animations.hydraulics_sound]).toEqual({
+  // The clip covers the blade's travel and then its stop clunk and relief hiss.
+  const hydraulics = anim[client.animations.hydraulics_sound];
+  expect(hydraulics).toEqual({
     loop: false,
-    animation_length: BULLDOZER_SPEC.bladeLiftTicks / 20,
+    animation_length: 0.9,
     sound_effects: { "0.0": { effect: "hydraulics" } },
   });
-  expect(anim[client.animations.hydraulics_sound].animation_length).toBe(0.5);
+  expect(hydraulics.animation_length).toBeGreaterThan(
+    BULLDOZER_SPEC.bladeLiftTicks / 20,
+  );
 });
 it("increases volumes by speed and makes pushing louder than travel", () => {
   const volumes = {
@@ -453,9 +457,9 @@ it("keeps the full-push turbo whistle stronger than neighboring bands", () => {
     }
     return sum;
   };
-  // BULLDOZER_PUSH_WHISTLE in tools/gen_sounds.py: 5400 Hz with 0.4% (21.6 Hz) wobble;
-  // whole-Hz bins within 25 Hz capture it, compared with bands 150 Hz either side.
-  const whistle = energy(5375, 5425);
-  expect(whistle).toBeGreaterThanOrEqual(4 * energy(5225, 5275));
-  expect(whistle).toBeGreaterThanOrEqual(4 * energy(5525, 5575));
+  // BULLDOZER_PUSH_WHISTLE in tools/gen_sounds.py: 3780 Hz with 0.4% (15.1 Hz) wobble;
+  // whole-Hz bins within 20 Hz capture it, compared with bands 150 Hz either side.
+  const whistle = energy(3760, 3800);
+  expect(whistle).toBeGreaterThanOrEqual(4 * energy(3610, 3650));
+  expect(whistle).toBeGreaterThanOrEqual(4 * energy(3910, 3950));
 });
