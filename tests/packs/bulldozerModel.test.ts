@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { PAINTS } from "../../src/domain/shared/paint";
+import { BULLDOZER_SPEC } from "../../src/domain/vehicle/kinds/bulldozer/spec";
 import { type Bone, turnedCorners } from "../support/geometry";
 import { readRgbaPng } from "../support/png";
 
@@ -451,4 +452,20 @@ describe("bulldozer blade rig (ADR 0138)", () => {
       expectCube(bone("body"), 4, [x - 1.1, 22.9, 5.8], [x + 1.1, 24.5, 7.4]);
     }
   });
+});
+
+it("keeps the exit beside the positive-x left door in the Bedrock frame", () => {
+  const door = bone("door_l");
+  const exit = BULLDOZER_SPEC.doorExit;
+  expect(door.pivot?.[0]).toBeGreaterThan(0);
+  expect(Math.sign(exit.x)).toBe(Math.sign(door.pivot?.[0] ?? 0));
+  const cubes = door.cubes ?? [];
+  expect(cubes.length).toBeGreaterThan(0);
+  for (const cube of cubes) expect(cube.origin[0]).toBeGreaterThan(0);
+  const zs = cubes.flatMap((cube) => [
+    cube.origin[2],
+    cube.origin[2] + cube.size[2],
+  ]);
+  expect(exit.z).toBeGreaterThanOrEqual(-Math.max(...zs) / 16);
+  expect(exit.z).toBeLessThanOrEqual(-Math.min(...zs) / 16);
 });

@@ -33,7 +33,8 @@ import { monitorScreen } from "./monitor/monitor";
 import type { ChaseCamera, VehicleProfile } from "./profile";
 import { type RamHit, type RamTarget, selectHits } from "./ram";
 import type { SeatAssignment } from "./seatChoice";
-import { DRIVER_SEAT, toLocal } from "./seats";
+import type { SeatLeaver } from "./seating";
+import { DRIVER_SEAT, seatWorldPositions, toLocal } from "./seats";
 import { SPEC } from "./spec";
 import {
   liftStandIn,
@@ -66,6 +67,12 @@ export interface VehicleTickInput extends TickContext {
   deckSeatRiders?: readonly (PlayerId | undefined)[];
   /** Nearby targets. Called only when the speed exceeds the ram threshold (ADR 0083). */
   targets(): readonly RamTarget[];
+}
+
+/** A player who left a seat with an exit this tick, and the world point to put them (ADR 0141). */
+export interface SeatExit {
+  readonly playerId: PlayerId;
+  readonly at: Vec3;
 }
 
 /**
@@ -105,8 +112,10 @@ export interface VehicleTickInput extends TickContext {
  * 14. Headlight cells along the vehicle's heading after this tick, or none
  *     when its headlights are off (ADR 0020).
  * 15. `hits`, credited to `driverId`.
- * 16. `finalCommands`, last: the vacated seats' commands, such as the door
+ * 16. `finalCommands`: the vacated seats' commands, such as the door
  *     animation, then the taken seats' commands (ADR 0007, 0055).
+ * 17. `exits`, after `finalCommands`: each player who left a seat with an exit this tick
+ *     is moved there, unless the world's guard keeps the engine's dismount spot (ADR 0109, 0141).
  */
 export interface TickOutcome {
   dock?: Dock;
@@ -125,6 +134,7 @@ export interface TickOutcome {
   driverId?: PlayerId;
   stepCommands: readonly EngineCommand[];
   finalCommands: readonly EngineCommand[];
+  exits: readonly SeatExit[];
   riders: RiderState;
 }
 
@@ -373,6 +383,7 @@ export class Vehicle {
       stepCommands:
         monitor.length === 0 ? step.commands : [...step.commands, ...monitor],
       finalCommands: [...vacatedCommands, ...takenCommands],
+      exits: this.seatExits(seated.left, step.dock?.hold ?? sensors.location),
       riders: step.riders,
     };
   }
@@ -386,6 +397,23 @@ export class Vehicle {
     return value === undefined
       ? []
       : [{ type: "setProperty", name: MONITOR_PROPERTY_NAME, value }];
+  }
+
+  /**
+   * The exit of each leaver whose seat has one, around the hold pose while held or the
+   * location before this tick's move while driving, at the heading after this step (ADR 0141).
+   */
+  private seatExits(leavers: readonly SeatLeaver[], origin: Vec3): SeatExit[] {
+    const { x, y, z } = origin;
+    const pose = { x, y, z, yaw: this.drive.yaw };
+    const exits: SeatExit[] = [];
+    for (const { id, seat } of leavers) {
+      const exit = this.profile.seatExits?.[seat];
+      if (exit === undefined) continue;
+      const [at] = seatWorldPositions(pose, [exit]);
+      if (at) exits.push({ playerId: id, at });
+    }
+    return exits;
   }
 
   /**

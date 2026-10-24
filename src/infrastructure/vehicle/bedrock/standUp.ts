@@ -30,14 +30,23 @@ function standClear(dimension: Dimension, at: Vec3): boolean {
   });
 }
 
+const openCellSpot = (dimension: Dimension, at: Vec3): Vec3 | undefined =>
+  standClear(dimension, at) ? at : undefined;
+
 /**
- * Moves `player` to `at`, keeping their view (ADR 0109). It leaves the player where
- * the engine put them if they ride something again (they boarded the vehicle or
- * another seat), are no longer valid or are dead, are in another dimension than
- * `from` or more than STAND_UP_REACH blocks from it, or if the feet or head cell at
- * `at` is not open. Returns whether the player was moved.
+ * Moves `player` to the spot `place` finds for `at`, keeping their view (ADR 0109).
+ * It leaves the player where the engine put them if they ride something again (they
+ * boarded the vehicle or another seat), are no longer valid or are dead, are in
+ * another dimension than `from` or more than STAND_UP_REACH blocks from it, or if
+ * `place` finds no spot. The default `place` keeps `at` when its feet and head cells
+ * are open. Returns whether the player was moved.
  */
-export function standUp(player: Player, from: Entity, at: Vec3): boolean {
+export function standUp(
+  player: Player,
+  from: Entity,
+  at: Vec3,
+  place: (dimension: Dimension, at: Vec3) => Vec3 | undefined = openCellSpot,
+): boolean {
   if (
     !player.isValid ||
     player.dimension.id !== from.dimension.id ||
@@ -47,10 +56,11 @@ export function standUp(player: Player, from: Entity, at: Vec3): boolean {
       player.location.x - from.location.x,
       player.location.y - from.location.y,
       player.location.z - from.location.z,
-    ) > STAND_UP_REACH ||
-    !standClear(from.dimension, at)
+    ) > STAND_UP_REACH
   )
     return false;
-  player.teleport(at, { rotation: player.getRotation() });
+  const spot = place(from.dimension, at);
+  if (!spot) return false;
+  player.teleport(spot, { rotation: player.getRotation() });
   return true;
 }

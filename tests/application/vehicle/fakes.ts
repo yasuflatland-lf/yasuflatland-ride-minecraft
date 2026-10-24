@@ -195,6 +195,9 @@ export class FakeWorld
     this.calls.push("seatStandingPlayers");
     this.departures.push({ vehicleId, departure });
   }
+  standRiderAt() {
+    this.calls.push("standRiderAt");
+  }
   loadedVehicles() {
     return this.snapshots;
   }

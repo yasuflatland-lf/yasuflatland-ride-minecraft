@@ -237,6 +237,7 @@ Setup: use `/give @s yasu_ride:bulldozer_item` or craft from an SUV item, an iro
 | B20 | Lower the blade and drive into a hill, then raise it while moving | With the blade down and moving, the thumps slow slightly and the engine gets louder, rougher, and swells as if laboring, still with no whistle; raising it brings in the travel sound, though the push sound can linger under it for up to about 4 s (ADR 0140) | | |
 | B21 | Raise and lower the blade with the switch while parked | Each change plays, once and with the click, a pump groan that rises slightly while the blade moves (about half a second), a dull clunk as it stops, and a short relief hiss | | |
 | B22 | Drive an SUV, a camper, and the sports boat | Their engine sounds are as before | | |
+| B23 | Getting out beside the door | Park on flat ground, get out (sneak on PC, the dismount button on touch). You stand outside the left track, beside the open left door, facing the way you looked. Repeat on grass with flowers, on a thin snow layer, and on a dirt path: you stand beside the door each time. Park with the left side against a wall and get out: you land where the engine puts you, not inside the wall. Park with the left track at the edge of a pit or a shore and get out: you land where the engine puts you, not in the pit or the water. Get out in flight: you also land where the engine puts you. | | |
 
 ## Tent
 
