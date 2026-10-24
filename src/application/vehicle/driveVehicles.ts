@@ -68,6 +68,7 @@ export class DriveVehicles {
         deckSeatInputs: snap.deckSeatInputs,
         deckSeatRiders: snap.deckSeatRiders,
         testInput: snap.testInput,
+        testHeldTool: snap.testHeldTool,
         location: snap.location,
         velocity: snap.velocity,
         onGround: snap.onGround,

@@ -52,6 +52,7 @@ import {
   standInType,
   TEST_BLADE_EVENT,
   TEST_DECOR_EVENT,
+  TEST_HELD_TOOL_EVENT,
   TEST_INPUT_EVENT,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 import { registerSubscriptions } from "../../../../src/infrastructure/vehicle/bedrock/subscriptions";
@@ -182,6 +183,7 @@ function fixture(
       typeof registerSubscriptions
     >[0],
     new VehicleTestStore<RawInput>(),
+    new VehicleTestStore<string>(),
     () => undefined,
     () => undefined,
     () => undefined,
@@ -449,6 +451,7 @@ it("paints a hit vehicle with a held dye and otherwise damages it, ignoring othe
   registerSubscriptions(
     { hit, paint } as unknown as Parameters<typeof registerSubscriptions>[0],
     new VehicleTestStore<RawInput>(),
+    new VehicleTestStore<string>(),
     () => undefined,
     () => undefined,
     () => undefined,
@@ -565,6 +568,7 @@ function lightSwitchFixture(
       typeof registerSubscriptions
     >[0],
     new VehicleTestStore<RawInput>(),
+    new VehicleTestStore<string>(),
     () => undefined,
     (_, cell) => owner(cell),
     () => undefined,
@@ -824,6 +828,7 @@ it("removes an orphan deck seat that loads with a chunk, but not one that is jus
   registerSubscriptions(
     { limit } as unknown as Parameters<typeof registerSubscriptions>[0],
     new VehicleTestStore<RawInput>(),
+    new VehicleTestStore<string>(),
     () => undefined,
     () => undefined,
     () => undefined,
@@ -863,6 +868,7 @@ it("passes fleet metadata on spawn and load and skips invalid or unrelated entit
   registerSubscriptions(
     { limit } as unknown as Parameters<typeof registerSubscriptions>[0],
     new VehicleTestStore<RawInput>(),
+    new VehicleTestStore<string>(),
     () => undefined,
     () => undefined,
     () => undefined,
@@ -907,6 +913,7 @@ it("forgets a removed vehicle by the chunk at its location, and passes vehicle d
   registerSubscriptions(
     { limit } as unknown as Parameters<typeof registerSubscriptions>[0],
     new VehicleTestStore<RawInput>(),
+    new VehicleTestStore<string>(),
     () => undefined,
     () => undefined,
     () => undefined,
@@ -957,6 +964,7 @@ it("cancels a player's break only of a block a held vehicle laid (ADR 0096)", ()
   registerSubscriptions(
     {} as unknown as Parameters<typeof registerSubscriptions>[0],
     new VehicleTestStore<RawInput>(),
+    new VehicleTestStore<string>(),
     () => undefined,
     () => undefined,
     owner,
@@ -995,6 +1003,7 @@ it("registers door interactions during startup and dispatches only owned doors",
   registerSubscriptions(
     { door } as unknown as Parameters<typeof registerSubscriptions>[0],
     new VehicleTestStore<RawInput>(),
+    new VehicleTestStore<string>(),
     owner,
     () => undefined,
     () => undefined,
@@ -1032,6 +1041,7 @@ it("registers bed interactions during startup and passes the player, dimension, 
   registerSubscriptions(
     { bed } as unknown as Parameters<typeof registerSubscriptions>[0],
     new VehicleTestStore<RawInput>(),
+    new VehicleTestStore<string>(),
     vi.fn(),
     () => undefined,
     () => undefined,
@@ -1082,6 +1092,7 @@ it("registers shower-toilet presses during startup and sends an empty hand's pre
   registerSubscriptions(
     { showerToilet } as unknown as Parameters<typeof registerSubscriptions>[0],
     new VehicleTestStore<RawInput>(),
+    new VehicleTestStore<string>(),
     () => undefined,
     owner,
     () => undefined,
@@ -1154,6 +1165,7 @@ it("checks the hints every hint interval, after the drive on the same tick (ADR 
   registerSubscriptions(
     { drive, hints } as unknown as Parameters<typeof registerSubscriptions>[0],
     new VehicleTestStore<RawInput>(),
+    new VehicleTestStore<string>(),
     () => undefined,
     () => undefined,
     () => undefined,
@@ -1177,6 +1189,7 @@ it("gives the starter vehicle only on a player's initial spawn", () => {
   registerSubscriptions(
     { starter } as unknown as Parameters<typeof registerSubscriptions>[0],
     new VehicleTestStore<RawInput>(),
+    new VehicleTestStore<string>(),
     () => undefined,
     () => undefined,
     () => undefined,
@@ -1198,6 +1211,7 @@ it("stores and clears test input only from server script events", () => {
   registerSubscriptions(
     {} as unknown as Parameters<typeof registerSubscriptions>[0],
     inputs,
+    new VehicleTestStore<string>(),
     () => undefined,
     () => undefined,
     () => undefined,
@@ -1205,7 +1219,7 @@ it("stores and clears test input only from server script events", () => {
   );
   const receive = vi
     .mocked(system.afterEvents.scriptEventReceive.subscribe)
-    .mock.calls.at(-1)?.[0];
+    .mock.calls.at(-2)?.[0];
   if (!receive) throw new Error("scriptEventReceive not subscribed");
   const send = (
     message: string,
@@ -1244,6 +1258,7 @@ it("sets the blade only from server test blade script events (ADR 0138)", () => 
   registerSubscriptions(
     { blade } as unknown as Parameters<typeof registerSubscriptions>[0],
     new VehicleTestStore<RawInput>(),
+    new VehicleTestStore<string>(),
     () => undefined,
     () => undefined,
     () => undefined,
@@ -1251,7 +1266,7 @@ it("sets the blade only from server test blade script events (ADR 0138)", () => 
   );
   const receive = vi
     .mocked(system.afterEvents.scriptEventReceive.subscribe)
-    .mock.calls.at(-3)?.[0];
+    .mock.calls.at(-4)?.[0];
   if (!receive) throw new Error("scriptEventReceive not subscribed");
   const send = (
     message: string,
@@ -1287,6 +1302,7 @@ it("sets decor only from server test decor script events (ADR 0093)", () => {
   registerSubscriptions(
     { decor } as unknown as Parameters<typeof registerSubscriptions>[0],
     new VehicleTestStore<RawInput>(),
+    new VehicleTestStore<string>(),
     () => undefined,
     () => undefined,
     () => undefined,
@@ -1294,7 +1310,7 @@ it("sets decor only from server test decor script events (ADR 0093)", () => {
   );
   const receive = vi
     .mocked(system.afterEvents.scriptEventReceive.subscribe)
-    .mock.calls.at(-2)?.[0];
+    .mock.calls.at(-3)?.[0];
   if (!receive) throw new Error("scriptEventReceive not subscribed");
   const send = (
     message: string,
@@ -1340,6 +1356,7 @@ function decorFixture() {
       typeof registerSubscriptions
     >[0],
     new VehicleTestStore<RawInput>(),
+    new VehicleTestStore<string>(),
     () => undefined,
     owner,
     () => undefined,
@@ -1662,6 +1679,7 @@ it("sends an empty-hand press on the wall cabinet, with the pressed point, to th
       typeof registerSubscriptions
     >[0],
     new VehicleTestStore<RawInput>(),
+    new VehicleTestStore<string>(),
     () => undefined,
     owner,
     () => undefined,
@@ -1727,6 +1745,7 @@ function registerGiftFixture() {
       typeof registerSubscriptions
     >[0],
     new VehicleTestStore<RawInput>(),
+    new VehicleTestStore<string>(),
     () => undefined,
     () => undefined,
     () => undefined,
@@ -1846,6 +1865,7 @@ describe("camper bumper stand-in (ADR 0116)", () => {
     registerSubscriptions(
       useCases as Parameters<typeof registerSubscriptions>[0],
       new VehicleTestStore<RawInput>(),
+      new VehicleTestStore<string>(),
       () => undefined,
       () => undefined,
       () => undefined,
@@ -2057,6 +2077,7 @@ describe("blade switch (ADR 0138)", () => {
         board: { execute: vi.fn(() => false) },
       } as unknown as Parameters<typeof registerSubscriptions>[0],
       new VehicleTestStore<RawInput>(),
+      new VehicleTestStore<string>(),
       () => undefined,
       () => undefined,
       () => undefined,
@@ -2211,4 +2232,45 @@ describe("blade switch (ADR 0138)", () => {
       }),
     );
   });
+});
+
+it("stores and clears held tools only from server script events", () => {
+  const tools = new VehicleTestStore<string>();
+  registerSubscriptions(
+    {} as unknown as Parameters<typeof registerSubscriptions>[0],
+    new VehicleTestStore<RawInput>(),
+    tools,
+    () => undefined,
+    () => undefined,
+    () => undefined,
+    () => [],
+  );
+  const subscription = vi
+    .mocked(system.afterEvents.scriptEventReceive.subscribe)
+    .mock.calls.at(-1);
+  if (!subscription) throw new Error("scriptEventReceive not subscribed");
+  const [receive, options] = subscription;
+  expect(options).toEqual({ namespaces: ["yasu_ride"] });
+  const send = (
+    message: string,
+    sourceType = "Server",
+    id = TEST_HELD_TOOL_EVENT,
+  ) =>
+    receive({
+      id,
+      message,
+      sourceType,
+    } as unknown as ScriptEventCommandMessageAfterEvent);
+  send("car,blade_switch", "Entity");
+  send("car,blade_switch", "Server", "minecraft:other");
+  expect(tools.get(asVehicleId("car"))).toBeUndefined();
+  send("car,blade_switch");
+  expect(tools.get(asVehicleId("car"))).toBe("blade_switch");
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+  send("car,");
+  expect(warn).toHaveBeenCalledOnce();
+  warn.mockRestore();
+  expect(tools.get(asVehicleId("car"))).toBe("blade_switch");
+  send("car,clear");
+  expect(tools.get(asVehicleId("car"))).toBeUndefined();
 });

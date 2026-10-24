@@ -21,9 +21,15 @@ vi.mock("../../../src/infrastructure/vehicle/bedrock/subscriptions", () => ({
 
 it("wires the decor use cases and the dock owner lookups into the subscriptions (ADR 0093, 0096)", () => {
   installVehicles({ isCampSpace: () => false, laterSwitchTargets: () => [] });
-  const [useCases, , dockDoorOwner, dockCellOwner, dockBlockOwner] = vi.mocked(
-    registerSubscriptions,
-  ).mock.calls[0] ?? [undefined, undefined, undefined, undefined, undefined];
+  const [useCases, , , dockDoorOwner, dockCellOwner, dockBlockOwner] =
+    vi.mocked(registerSubscriptions).mock.calls[0] ?? [
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    ];
   expect(useCases?.decor).toBeInstanceOf(SetDecor);
   expect(useCases?.placeDecor).toBeInstanceOf(PlaceDecor);
   expect(useCases?.removeDecor).toBeInstanceOf(RemoveDecor);
@@ -71,7 +77,7 @@ it("hands the camp's space check to vehicle placement (ADR 0129)", () => {
 it("hands the later switch targets to the subscriptions (ADR 0134)", () => {
   const laterSwitchTargets = () => [];
   installVehicles({ isCampSpace: () => false, laterSwitchTargets });
-  expect(vi.mocked(registerSubscriptions).mock.lastCall?.[5]).toBe(
+  expect(vi.mocked(registerSubscriptions).mock.lastCall?.[6]).toBe(
     laterSwitchTargets,
   );
 });

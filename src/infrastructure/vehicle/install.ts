@@ -55,11 +55,17 @@ export function installVehicles(deps: {
   isVehicleSpace: SpaceCheck;
 } {
   const repo = new InMemoryVehicleRepository();
-  const store = new VehicleTestStore<RawInput>();
+  const testInputs = new VehicleTestStore<RawInput>();
+  const testTools = new VehicleTestStore<string>();
   const index = new EntityIndex();
   const inventory = new BedrockInventory(index);
   const decorWorld = new BedrockDecorWorld(index, inventory);
-  const bedrock = new BedrockVehicleWorld(index, store, deps.isCampSpace);
+  const bedrock = new BedrockVehicleWorld(
+    index,
+    testInputs,
+    testTools,
+    deps.isCampSpace,
+  );
   const fleetWorld = new BedrockFleetWorld(index, bedrock.releaser, inventory);
   const log = { warn: (m: string) => console.warn(`[${NAMESPACE}] ${m}`) };
   const fleets = new DynamicPropertyFleetRepository(log, fleetLimitOf);
@@ -99,7 +105,8 @@ export function installVehicles(deps: {
       ),
       board: new BoardVehicle(repo),
     },
-    store,
+    testInputs,
+    testTools,
     (dimensionId, cell) => bedrock.dockDoorOwner(dimensionId, cell),
     (dimensionId, cell) => bedrock.dockCellOwner(dimensionId, cell),
     (dimensionId, cell, typeId) =>

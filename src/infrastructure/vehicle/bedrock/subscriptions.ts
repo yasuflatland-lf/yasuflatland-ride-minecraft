@@ -47,6 +47,7 @@ import { registerStarter } from "./handlers/starter";
 import { registerStorage } from "./handlers/storage";
 import { registerTestBlade } from "./handlers/testBlade";
 import { registerTestDecor } from "./handlers/testDecor";
+import { registerTestHeldTool } from "./handlers/testHeldTool";
 import { registerTestInput } from "./handlers/testInput";
 import { BLADE_SWITCH_TYPE, CAMPER_BED_COMPONENT } from "./identifiers";
 
@@ -73,6 +74,7 @@ export function registerSubscriptions(
     board: BoardVehicle;
   },
   testInputs: VehicleTestStore<RawInput>,
+  testTools: VehicleTestStore<string>,
   dockDoorOwner: (
     dimensionId: DimensionId,
     cell: Vec3,
@@ -100,6 +102,7 @@ export function registerSubscriptions(
   registerTestBlade(useCases.blade);
   registerTestDecor(useCases.decor);
   registerTestInput(testInputs);
+  registerTestHeldTool(testTools);
   registerGifts(useCases.gift);
   registerBoarding(useCases.board);
   registerStandIns();
