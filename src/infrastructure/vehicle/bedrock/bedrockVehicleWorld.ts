@@ -69,6 +69,7 @@ import {
 } from "./identifiers";
 import { SeatFillers } from "./seatFillers";
 import { StandIns } from "./standIns";
+import { standUp } from "./standUp";
 import { systemClock } from "./systemClock";
 import { VehicleReleaser } from "./vehicleReleaser";
 import { isWaterAt } from "./water";
@@ -449,6 +450,13 @@ export class BedrockVehicleWorld implements DriveWorld {
       positions,
       yaw,
     );
+  }
+
+  standRiderAt(vehicleId: VehicleId, playerId: PlayerId, at: Vec3): void {
+    const vehicle = this.index.entity(vehicleId);
+    const player = this.index.player(playerId);
+    if (!vehicle || !player) return;
+    standUp(player, vehicle, at);
   }
 
   keepStandIn(vehicleId: VehicleId, pose: StandInPose | undefined): void {

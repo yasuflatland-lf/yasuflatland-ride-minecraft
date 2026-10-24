@@ -33,7 +33,7 @@ import { monitorScreen } from "./monitor/monitor";
 import type { ChaseCamera, VehicleProfile } from "./profile";
 import { type RamHit, type RamTarget, selectHits } from "./ram";
 import type { SeatAssignment } from "./seatChoice";
-import { DRIVER_SEAT, toLocal } from "./seats";
+import { DRIVER_SEAT, seatWorldPositions, toLocal } from "./seats";
 import { SPEC } from "./spec";
 import {
   liftStandIn,
@@ -66,6 +66,12 @@ export interface VehicleTickInput extends TickContext {
   deckSeatRiders?: readonly (PlayerId | undefined)[];
   /** Nearby targets. Called only when the speed exceeds the ram threshold (ADR 0083). */
   targets(): readonly RamTarget[];
+}
+
+/** A player who left a seat with an exit this tick, and the world point to put them (ADR 0140). */
+export interface SeatExit {
+  readonly playerId: PlayerId;
+  readonly at: Vec3;
 }
 
 /**
@@ -105,8 +111,10 @@ export interface VehicleTickInput extends TickContext {
  * 14. Headlight cells along the vehicle's heading after this tick, or none
  *     when its headlights are off (ADR 0020).
  * 15. `hits`, credited to `driverId`.
- * 16. `finalCommands`, last: the vacated seats' commands, such as the door
+ * 16. `finalCommands`: the vacated seats' commands, such as the door
  *     animation, then the taken seats' commands (ADR 0007, 0055).
+ * 17. `exits`, after `finalCommands`: each player who left a seat with an exit this tick
+ *     is moved there, unless the world's guard keeps the engine's dismount spot (ADR 0109, 0140).
  */
 export interface TickOutcome {
   dock?: Dock;
@@ -125,6 +133,7 @@ export interface TickOutcome {
   driverId?: PlayerId;
   stepCommands: readonly EngineCommand[];
   finalCommands: readonly EngineCommand[];
+  exits: readonly SeatExit[];
   riders: RiderState;
 }
 
@@ -352,6 +361,15 @@ export class Vehicle {
     this.driverSeatFree =
       !taken.has(DRIVER_SEAT) && deckSeatInputs[DRIVER_SEAT] === undefined;
 
+    const { x, y, z } = step.dock?.hold ?? sensors.location;
+    const exits: SeatExit[] = [];
+    for (const { id, seat } of seated.left) {
+      const exit = this.profile.seatExits?.[seat];
+      if (exit === undefined) continue;
+      const [at] = seatWorldPositions({ x, y, z, yaw: this.drive.yaw }, [exit]);
+      if (at) exits.push({ playerId: id, at });
+    }
+
     return {
       dock: step.dock && {
         ...step.dock,
@@ -373,6 +391,7 @@ export class Vehicle {
       stepCommands:
         monitor.length === 0 ? step.commands : [...step.commands, ...monitor],
       finalCommands: [...vacatedCommands, ...takenCommands],
+      exits,
       riders: step.riders,
     };
   }

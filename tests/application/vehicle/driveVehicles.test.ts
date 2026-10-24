@@ -19,7 +19,7 @@ import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
 import { SUV_SPEC } from "../../../src/domain/vehicle/kinds/suv/spec";
 import { headlightCells } from "../../../src/domain/vehicle/lighting/headlights";
 import { SPEC } from "../../../src/domain/vehicle/spec";
-import { Vehicle } from "../../../src/domain/vehicle/vehicle";
+import { type SeatExit, Vehicle } from "../../../src/domain/vehicle/vehicle";
 import { defined } from "../../support/defined";
 import {
   riderViews,
@@ -1209,4 +1209,35 @@ it("a failed cut skips the rest of that vehicle's tick but not the other vehicle
   expect(world.calls).toContain("motion:b:0");
   expect(world.calls).not.toContain("motion:a:0");
   expect(world.cuts).toEqual([{ vehicleId: "b", columns: cut }]);
+});
+
+it("stands each leaving rider at their exit after the final commands", () => {
+  const world = new FakeWorld();
+  const repo = new InMemoryRepo();
+  const vehicle = createVehicle("suv", asVehicleId("car"), 0);
+  repo.save(vehicle);
+  world.snapshots = [snapshot("car")];
+  const outcome = vehicle.tick({
+    ...snapshot("car"),
+    tick: 0,
+    waterAt: () => false,
+    solidAt: () => false,
+    blockTypes: () => [],
+    targets: () => [],
+  });
+  const exits: readonly SeatExit[] = [
+    { playerId: asPlayerId("a"), at: { x: 1, y: 64, z: 2 } },
+    { playerId: asPlayerId("b"), at: { x: -1, y: 64, z: 2 } },
+  ];
+  vi.spyOn(vehicle, "tick").mockReturnValue({ ...outcome, exits });
+  const run = vi.spyOn(world, "run");
+  const stand = vi.spyOn(world, "standRiderAt");
+  new DriveVehicles(world, repo, logger()).execute(1);
+  expect(stand.mock.calls).toEqual(
+    exits.map((exit) => [vehicle.id, exit.playerId, exit.at]),
+  );
+  expect(run).toHaveBeenLastCalledWith(vehicle.id, outcome.finalCommands);
+  expect(stand.mock.invocationCallOrder[0]).toBeGreaterThan(
+    defined(run.mock.invocationCallOrder.at(-1), "final run"),
+  );
 });

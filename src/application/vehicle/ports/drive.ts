@@ -48,6 +48,14 @@ export interface VehicleSnapshot {
 }
 
 export interface DriveWorld {
+  /**
+   * Moves a player who rides nothing to `at`, keeping their view. Leaves them where the
+   * engine put them when they or the vehicle are gone, they are dead, in another
+   * dimension, more than 6 blocks from the vehicle, or the feet or head cell at `at`
+   * is not open (ADR 0109, 0140).
+   */
+  standRiderAt(vehicleId: VehicleId, playerId: PlayerId, at: Vec3): void;
+
   loadedVehicles(): VehicleSnapshot[];
   keepDeckSeats(
     vehicleId: VehicleId,

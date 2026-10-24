@@ -107,6 +107,8 @@ export class DriveVehicles {
     );
     for (const hit of out.hits) this.world.damage(hit, out.driverId);
     this.world.run(snap.id, out.finalCommands);
+    for (const exit of out.exits)
+      this.world.standRiderAt(snap.id, exit.playerId, exit.at);
   }
 
   private releaseGone(seen: ReadonlySet<VehicleId>): void {

@@ -1444,3 +1444,36 @@ it.each([false, true])(
     sweep.mockRestore();
   },
 );
+
+describe("standRiderAt", () => {
+  it.each(["vehicle", "player", "neither"])(
+    "handles missing %s and preserves a present rider's view",
+    (missing) => {
+      const { world, car, dimension } = fixture();
+      const rotation = { x: 23, y: -72 };
+      const player = {
+        ...car,
+        id: "rider",
+        typeId: PLAYER_TYPE,
+        getRotation: () => rotation,
+        teleport: vi.fn(),
+      };
+      game.getEntity.mockImplementation((id: string) => {
+        if (id === car.id && missing !== "vehicle") return car;
+        if (id === player.id && missing !== "player") return player;
+        return undefined;
+      });
+      dimension.getBlock.mockReturnValue({
+        isAir: true,
+        typeId: "minecraft:air",
+      });
+      const at = { x: 0.5, y: 64.25, z: 2 };
+      world.standRiderAt(asVehicleId(car.id), asPlayerId(player.id), at);
+      if (missing === "neither")
+        expect(player.teleport).toHaveBeenCalledExactlyOnceWith(at, {
+          rotation,
+        });
+      else expect(player.teleport).not.toHaveBeenCalled();
+    },
+  );
+});

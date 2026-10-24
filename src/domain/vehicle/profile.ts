@@ -64,6 +64,12 @@ export interface VehicleProfile {
   /** How a boarding player gets a seat, set per kind (ADR 0050). */
   readonly boarding: SeatBoarding;
   /**
+   * Where a rider who leaves seat i is put, x = left and z = forward from the vehicle's
+   * center, at its feet height, in place of the engine's dismount spot. Absent, or
+   * undefined at a seat, keeps the engine's spot (ADR 0140).
+   */
+  readonly seatExits?: readonly (Vec2 | undefined)[];
+  /**
    * Seats that exist only while the vehicle is parked, as deck seats after the deck
    * seats of its own seats (x = left, z = forward). Absent = none (ADR 0095).
    */
