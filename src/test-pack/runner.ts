@@ -29,7 +29,10 @@ import {
   bulldozerSpawnsRaised,
   bulldozerStep2Raised,
 } from "./scenarios/bulldozer";
-import { bulldozerExitSpot } from "./scenarios/bulldozerExit";
+import {
+  bulldozerExitGround,
+  bulldozerExitSpot,
+} from "./scenarios/bulldozerExit";
 import {
   lowChairSeatAndTakeBack,
   lowChairSettlesThroughGrass,
@@ -118,6 +121,7 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
   // by it, so update it when a test gets much slower or faster (ADR 0054).
   const allTests: [string, number, () => Promise<Outcome>][] = [
     ["bulldozer_exit_spot", 8, () => bulldozerExitSpot(a)],
+    ["bulldozer_exit_ground", 2, () => bulldozerExitGround(a)],
     ["bulldozer_clear_hill", 79, () => bulldozerClearHill(a)],
     ["bulldozer_overhang", 77, () => bulldozerOverhang(a)],
     ["bulldozer_dirt_path", 77, () => bulldozerDirtPath(a)],

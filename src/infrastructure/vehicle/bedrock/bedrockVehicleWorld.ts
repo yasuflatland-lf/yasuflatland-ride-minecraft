@@ -67,6 +67,7 @@ import {
   ramMountOf,
   VEHICLE_FAMILY,
 } from "./identifiers";
+import { seatExitSpot } from "./seatExitSpot";
 import { SeatFillers } from "./seatFillers";
 import { StandIns } from "./standIns";
 import { standUp } from "./standUp";
@@ -456,7 +457,7 @@ export class BedrockVehicleWorld implements DriveWorld {
     const vehicle = this.index.entity(vehicleId);
     const player = this.index.player(playerId);
     if (!vehicle || !player) return;
-    standUp(player, vehicle, at);
+    standUp(player, vehicle, at, seatExitSpot);
   }
 
   keepStandIn(vehicleId: VehicleId, pose: StandInPose | undefined): void {

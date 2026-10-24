@@ -1446,34 +1446,40 @@ it.each([false, true])(
 );
 
 describe("standRiderAt", () => {
-  it.each(["vehicle", "player", "neither"])(
-    "handles missing %s and preserves a present rider's view",
+  const rotation = { x: 23, y: -72 };
+  const standing = (missing?: "vehicle" | "player") => {
+    const { world, car, dimension } = fixture();
+    const player = {
+      ...car,
+      id: "rider",
+      typeId: PLAYER_TYPE,
+      getRotation: () => rotation,
+      teleport: vi.fn(),
+    };
+    game.getEntity.mockImplementation((id: string) => {
+      if (id === car.id && missing !== "vehicle") return car;
+      if (id === player.id && missing !== "player") return player;
+      return undefined;
+    });
+    dimension.getBlock.mockImplementation(({ y }: Vec3) =>
+      y < 64
+        ? { isAir: false, isLiquid: false, typeId: "minecraft:stone" }
+        : { isAir: true, isLiquid: false, typeId: "minecraft:air" },
+    );
+    const at = { x: 0.5, y: 64.25, z: 2 };
+    world.standRiderAt(asVehicleId(car.id), asPlayerId(player.id), at);
+    return { player, at };
+  };
+
+  it("teleports a present rider to the exit on open ground, keeping their view", () => {
+    const { player, at } = standing();
+    expect(player.teleport).toHaveBeenCalledExactlyOnceWith(at, { rotation });
+  });
+
+  it.each(["vehicle", "player"] as const)(
+    "leaves the rider where they are when the %s is missing",
     (missing) => {
-      const { world, car, dimension } = fixture();
-      const rotation = { x: 23, y: -72 };
-      const player = {
-        ...car,
-        id: "rider",
-        typeId: PLAYER_TYPE,
-        getRotation: () => rotation,
-        teleport: vi.fn(),
-      };
-      game.getEntity.mockImplementation((id: string) => {
-        if (id === car.id && missing !== "vehicle") return car;
-        if (id === player.id && missing !== "player") return player;
-        return undefined;
-      });
-      dimension.getBlock.mockReturnValue({
-        isAir: true,
-        typeId: "minecraft:air",
-      });
-      const at = { x: 0.5, y: 64.25, z: 2 };
-      world.standRiderAt(asVehicleId(car.id), asPlayerId(player.id), at);
-      if (missing === "neither")
-        expect(player.teleport).toHaveBeenCalledExactlyOnceWith(at, {
-          rotation,
-        });
-      else expect(player.teleport).not.toHaveBeenCalled();
+      expect(standing(missing).player.teleport).not.toHaveBeenCalled();
     },
   );
 });

@@ -232,7 +232,7 @@ Setup: use `/give @s yasu_ride:bulldozer_item` or craft from an SUV item, an iro
 | B15 | Raised and lowered movement | Raised, drive at a 1-block and a 2-block step, then into a hill. It climbs both steps and removes no block. Lowered, it cuts the hill as in B9 | | |
 | B16 | Outside the bulldozer | On foot next to the bulldozer, use the switch aimed at the ground (not at the bulldozer, which boards it), and use it while driving an SUV. The blade does not move and no click plays | | |
 | B17 | Saved blade | Lower the blade, run `pnpm server:restart`, and rejoin. The bulldozer is still lowered and still cuts | | |
-| B18 | Getting out beside the door | Park on flat ground, get out (sneak on PC, the dismount button on touch). You stand outside the left track, beside the open left door, facing the way you looked. Park with the left side against a wall and get out: you land where the engine puts you, not inside the wall. Get out in flight: you fall from beside the bulldozer. | | |
+| B18 | Getting out beside the door | Park on flat ground, get out (sneak on PC, the dismount button on touch). You stand outside the left track, beside the open left door, facing the way you looked. Repeat on grass with flowers, on a thin snow layer, and on a dirt path: you stand beside the door each time. Park with the left side against a wall and get out: you land where the engine puts you, not inside the wall. Park with the left track at the edge of a pit or a shore and get out: you land where the engine puts you, not in the pit or the water. Get out in flight: you also land where the engine puts you. | | |
 
 ## Tent
 
