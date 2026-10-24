@@ -74,6 +74,8 @@ export interface DriveStep {
 }
 
 export interface Drive {
+  /** The state name of one of the kind's monitor tools; undefined when `item` is not one of them (ADR 0139). */
+  toolState?(item: string): string | undefined;
   /** Forgets which entity values were sent, so the next step sends all of them again; called when a tick's commands may not have reached the entity. */
   resync(): void;
   /** Internal forward/reverse speed in blocks/tick; negative means reverse. */

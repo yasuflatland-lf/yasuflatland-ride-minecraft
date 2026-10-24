@@ -2,6 +2,7 @@ import type { Paint } from "../shared/paint";
 import type { Vec2 } from "../shared/vec";
 import type { HintZones } from "./hints";
 import type { VehicleKind } from "./kind";
+import type { MonitorRule } from "./monitor/monitor";
 import type { PlacementGift } from "./placement/gift";
 import type { PlacementRule } from "./placement/placement";
 import type { StandInRule } from "./standIn";
@@ -49,6 +50,8 @@ export interface BeamPattern {
 export type ChaseCamera = "near" | "far";
 
 export interface VehicleProfile {
+  /** The tools the cab monitor shows for the driver (ADR 0139). Absent = the kind has no cab monitor. */
+  readonly monitor?: MonitorRule;
   readonly kind: VehicleKind;
   /** Most vehicles of this kind one player keeps; one more removes their oldest (ADR 0066). */
   readonly fleetLimit: number;

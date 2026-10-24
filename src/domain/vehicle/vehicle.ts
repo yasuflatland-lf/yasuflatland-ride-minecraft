@@ -5,6 +5,7 @@ import {
 } from "../shared/hitCounter";
 import type { PlayerId, VehicleId } from "../shared/ids";
 import { SwitchCooldown } from "../shared/switchCooldown";
+import { SyncedValue } from "../shared/syncedValue";
 // Aggregate for one vehicle: wires its drive to its seating, cooldowns, and hit count.
 import { forward, type Vec2, type Vec3 } from "../shared/vec";
 import { RamCooldowns } from "./cooldowns";
@@ -14,6 +15,7 @@ import type { DecorPlacement, StoragePress } from "./dock/decor";
 import type { ClearCell, Departure, Dock } from "./dock/dock";
 import type { Drive, EngineCommand, RiderState, TickContext } from "./drive";
 import type { RawInput } from "./driveInput";
+import { MONITOR_PROPERTY_NAME } from "./entityContract";
 import {
   type HeldItem,
   type Hint,
@@ -27,6 +29,7 @@ import {
   headlightCells as cellsLitFrom,
   type LitCell,
 } from "./lighting/headlights";
+import { monitorScreen } from "./monitor/monitor";
 import type { ChaseCamera, VehicleProfile } from "./profile";
 import { type RamHit, type RamTarget, selectHits } from "./ram";
 import type { SeatAssignment } from "./seatChoice";
@@ -43,6 +46,8 @@ import {
 const HALF_BLOCK = 0.5;
 
 export interface RiderView {
+  /** Bare id of the `yasu_ride` item in the rider's selected slot, read only for kinds with a cab monitor (ADR 0139). */
+  readonly heldTool?: string;
   readonly id: PlayerId;
   readonly offset: Vec2;
   readonly yaw: number;
@@ -55,6 +60,8 @@ export interface VehicleTickInput extends TickContext {
   riders: readonly RiderView[];
   /** Input used only when there is no driver (for in-game tests). */
   testInput?: RawInput;
+  /** Held tool used only when there is no driver (for in-game tests, ADR 0139). */
+  testHeldTool?: string;
   /** The player on each deck seat, in deck seat order (ADR 0063, 0120). */
   deckSeatRiders?: readonly (PlayerId | undefined)[];
   /** Nearby targets. Called only when the speed exceeds the ram threshold (ADR 0083). */
@@ -68,7 +75,8 @@ export interface VehicleTickInput extends TickContext {
  * every tick: with nothing to keep, they release what the vehicle held,
  * seated, stood in for it, laid or lit before.
  *
- * 1. `stepCommands`, in order, before anything else that could throw,
+ * 1. `stepCommands`: the drive's commands, then the cab monitor's screen (ADR 0139),
+ *    in order, before anything else that could throw,
  *    because drives send them only on change (ADR 0055); if they fail, the vehicle
  *    resyncs and sends every value again next tick (ADR 0127).
  * 2. `message` on the action bar of `driverId`, only when there is one.
@@ -122,6 +130,7 @@ export interface TickOutcome {
 
 export class Vehicle {
   private crew: Crew;
+  private readonly monitorSync = new SyncedValue<number>();
   private readonly ramCooldowns = new RamCooldowns();
   private readonly switchCooldown = new SwitchCooldown();
   // Its own cooldown, so a driver's headlight switch and a ceiling light switch in the room never block each other (ADR 0115).
@@ -294,10 +303,18 @@ export class Vehicle {
   /** Called by the application when this tick's step commands may not have reached the entity (ADR 0055, 0127). */
   resync(): void {
     this.drive.resync();
+    this.monitorSync.resync();
   }
 
   tick(input: VehicleTickInput): TickOutcome {
-    const { riders, testInput, deckSeatRiders, targets, ...sensors } = input;
+    const {
+      riders,
+      testInput,
+      testHeldTool,
+      deckSeatRiders,
+      targets,
+      ...sensors
+    } = input;
     const seated = this.crew.update(
       riders,
       forward(this.drive.yaw),
@@ -322,6 +339,8 @@ export class Vehicle {
       awaitingDriver: seated.awaitingDriver,
       deckSeatInputs,
     });
+    const held = driver ? driver.heldTool : testHeldTool;
+    const monitor = this.monitorCommands(held);
     this.docked = step.dock !== undefined;
     const seatLayout = this.crew.layout(
       riders,
@@ -350,10 +369,22 @@ export class Vehicle {
       standIn: this.standIn(step.dock?.hold, sensors),
       hits: this.ram(sensors.tick, targets, step.forward),
       driverId: driver?.id,
-      stepCommands: step.commands,
+      stepCommands:
+        monitor.length === 0 ? step.commands : [...step.commands, ...monitor],
       finalCommands: [...vacatedCommands, ...takenCommands],
       riders: step.riders,
     };
+  }
+
+  private monitorCommands(held: string | undefined): readonly EngineCommand[] {
+    const rule = this.profile.monitor;
+    if (!rule) return [];
+    const value = this.monitorSync.next(
+      monitorScreen(rule, held, (item) => this.drive.toolState?.(item)),
+    );
+    return value === undefined
+      ? []
+      : [{ type: "setProperty", name: MONITOR_PROPERTY_NAME, value }];
   }
 
   /**

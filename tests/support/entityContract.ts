@@ -1,9 +1,12 @@
 import { expect } from "vitest";
 import type { EngineCommand } from "../../src/domain/vehicle/drive";
-import type {
-  EntityContract,
-  PropertySpec,
+import {
+  type EntityContract,
+  MONITOR_PROPERTY_NAME,
+  type PropertySpec,
 } from "../../src/domain/vehicle/entityContract";
+import { monitorPropertySpec } from "../../src/domain/vehicle/monitor/monitor";
+import type { VehicleProfile } from "../../src/domain/vehicle/profile";
 
 function expectInRange(
   value: unknown,
@@ -17,11 +20,14 @@ function expectInRange(
 export function expectDeclaredCommand(
   command: EngineCommand,
   contract: EntityContract,
+  profile: VehicleProfile,
 ): void {
   switch (command.type) {
     case "setProperty": {
-      const spec: PropertySpec | undefined = contract.properties[command.name];
-      expect(spec).toBeDefined();
+      const spec: PropertySpec | undefined =
+        command.name === MONITOR_PROPERTY_NAME
+          ? profile.monitor && monitorPropertySpec(profile.monitor)
+          : contract.properties[command.name];
       if (!spec) throw new Error(`Undeclared property ${command.name}`);
       switch (spec.type) {
         case "enum":

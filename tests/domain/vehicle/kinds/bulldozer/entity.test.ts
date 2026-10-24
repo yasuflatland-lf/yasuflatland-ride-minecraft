@@ -6,6 +6,7 @@ import {
   trackPhaseCommand,
   trackSpinCommand,
 } from "../../../../../src/domain/vehicle/kinds/bulldozer/entity";
+import { profileOf } from "../../../../../src/domain/vehicle/kinds/index";
 import { formCommands } from "../../../../../src/domain/vehicle/motion/transformingEntity";
 import { expectDeclaredCommand } from "../../../../support/entityContract";
 
@@ -38,5 +39,5 @@ it("builds only declared commands", () => {
     bladeCommand(1),
     ...formCommands("hover"),
   ])
-    expectDeclaredCommand(c, E);
+    expectDeclaredCommand(c, E, profileOf("bulldozer"));
 });

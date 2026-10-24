@@ -5,6 +5,7 @@ import {
   CORE_PROPERTY_NAMES,
   commandsFor,
   HEADLIGHTS_PROPERTY_NAME,
+  MONITOR_PROPERTY_NAME,
   type PropertyValue,
   type RestoredOf,
 } from "../../../src/domain/vehicle/entityContract";
@@ -98,8 +99,11 @@ describe("entity contract types (ADR 0055)", () => {
 });
 
 describe("reserved core names (ADR 0055)", () => {
-  it("reserves the headlights property", () => {
-    expect(CORE_PROPERTY_NAMES).toEqual([HEADLIGHTS_PROPERTY_NAME]);
+  it("reserves the headlights and monitor properties", () => {
+    expect(CORE_PROPERTY_NAMES).toEqual([
+      HEADLIGHTS_PROPERTY_NAME,
+      MONITOR_PROPERTY_NAME,
+    ]);
   });
 
   it.each(PAINTS)(
