@@ -13,7 +13,9 @@ boat_engine_0 to boat_engine_7: the sports boat's engine (ADR 0060): the deep, l
 cross-plane V8, its wet exhaust bubbling out under the water, and the hiss of the hull cutting the water,
 at rising engine speeds. The client picks one by the boat's speed.
 shower: the loop of running water played while the camper's shower runs (ADR 0094).
-bulldozer_engine_0 to _5 and bulldozer_push_1 to _5: Cat D5 six-cylinder diesel travel and load (ADR 0140).
+bulldozer_engine_0 to _5 and bulldozer_push_1 to _5: the Cat D5 six-cylinder diesel at idle (engine_0),
+in travel with the blade raised (engine_1 to _5), and pushing with the blade fully lowered (push_1 to
+_5). The client picks one by speed and blade (ADR 0140).
 bulldozer_track_1 to _5: steel track clank, squeal, and roller rumble following ground speed (ADR 0140).
 bulldozer_hydraulics: a half-second blade pump whine, played once per movement (ADR 0140).
 
@@ -81,6 +83,9 @@ SHOWER_BAND = (1200, 6000)
 # Cat C7.1 inline six (D5 Technical Specifications, CGT); the usual inline-six order,
 # not checked against Cat's manual. Source: https://www.cgt.it/sites/default/files/d5_technical_specifications_en.pdf
 BULLDOZER_FIRING_ORDER = [1, 5, 3, 6, 2, 4]
+# Matches animation_length 1.0 in bulldozer.anim.json. Cycle counts, links, whistle Hz, and the
+# swell and wobble rates below are whole cycles per loop, so changing this breaks the seams.
+BULLDOZER_LOOP_S = 1.0
 # Engine cycles per second (rpm / 120); derivation and spec sources in ADR 0140.
 BULLDOZER_IDLE_CYCLES = 7                      # 840 rpm, low idle about 800 (assumed).
 BULLDOZER_TRAVEL_CYCLES = [9, 11, 13, 14, 16]  # 1080-1920 rpm, high idle about 1880 (assumed).
@@ -293,7 +298,7 @@ def boat_engine(rng, cycles_hz):
 
 
 def bulldozer_engine(rng, cycles, load, t, whistle):
-    n = RATE
+    n = round(RATE * BULLDOZER_LOOP_S)
     trims = [rng.uniform(0.88, 1.0) for _ in BULLDOZER_FIRING_ORDER]
     exhaust, knock = ([0.0] * n for _ in range(2))
     gap = n / (cycles * 6)
@@ -325,7 +330,7 @@ def bulldozer_engine(rng, cycles, load, t, whistle):
     if load == "push":
         mixed = [x * (1 + 0.08 * math.sin(2 * math.pi * 2 * i / n)) for i, x in enumerate(mixed)]
     f, gain = whistle
-    hiss = periodic_noise(rng, 1.0, *BULLDOZER_HISS_BAND, 200)
+    hiss = periodic_noise(rng, BULLDOZER_LOOP_S, *BULLDOZER_HISS_BAND, 200)
     # Integer whistle frequency and 3 Hz wobble hold whole cycles across the seam (ADR 0140).
     return [
         mixed[i] + gain * math.sin(2 * math.pi * f * i / n
@@ -336,7 +341,7 @@ def bulldozer_engine(rng, cycles, load, t, whistle):
 
 
 def bulldozer_track(rng, level):
-    n = RATE
+    n = round(RATE * BULLDOZER_LOOP_S)
     clank, thud = ([0.0] * n for _ in range(2))
     links = BULLDOZER_TRACK_LINKS[level]
     gap = n / links
@@ -353,8 +358,8 @@ def bulldozer_track(rng, level):
                 thud[(at + j) % n] += 0.5 * sample
     mixed = [a + b for a, b in zip(ring(clank, BULLDOZER_TRACK_RING), ring(thud, BULLDOZER_TRACK_THUD))]
     peak = max(abs(x) for x in mixed) or 1.0
-    squeal = periodic_noise(rng, 1.0, *BULLDOZER_SQUEAL_BAND, 40)
-    roller = periodic_noise(rng, 1.0, *BULLDOZER_ROLLER_BAND, 120)
+    squeal = periodic_noise(rng, BULLDOZER_LOOP_S, *BULLDOZER_SQUEAL_BAND, 40)
+    roller = periodic_noise(rng, BULLDOZER_LOOP_S, *BULLDOZER_ROLLER_BAND, 120)
     return [
         mixed[i] / peak
         + BULLDOZER_SQUEAL_GAIN[level] * (1 + 0.3 * math.sin(2 * math.pi * i / n)) * squeal[i]
