@@ -1,4 +1,10 @@
-import { type Entity, ItemStack, system, world } from "@minecraft/server";
+import {
+  type Entity,
+  EntityDamageCause,
+  ItemStack,
+  system,
+  world,
+} from "@minecraft/server";
 import { normalizeYaw, type Vec3 } from "../../domain/shared/vec";
 import { bladeColumns } from "../../domain/vehicle/kinds/bulldozer/blade";
 import { BULLDOZER_SPEC } from "../../domain/vehicle/kinds/bulldozer/spec";
@@ -495,4 +501,29 @@ export async function bulldozerSpawnsRaised(a: Arena): Promise<Outcome> {
   } finally {
     cleanup(a);
   }
+}
+
+/** A bulldozer dropped from 40 blocks takes no damage, like the other vehicles (ADR 0006). */
+export async function bulldozerFallSurvives(a: Arena): Promise<Outcome> {
+  const { gy } = a;
+  return withBulldozer(a, 20.5, 20.5, 0, async (car) => {
+    await wait(2);
+    car.teleport({ x: 20.5, y: gy + 40, z: 20.5 });
+    let ticks = 0;
+    // isOnGround still reads true for a few ticks after the teleport, so wait on the height
+    while (ticks < 200 && car.isValid && car.location.y > gy + 0.5) {
+      await wait(1);
+      ticks++;
+    }
+    await wait(5);
+    if (!car.isValid)
+      return { pass: false, detail: `gone after ${ticks} ticks` };
+    const health = car.getComponent("minecraft:health")?.currentValue;
+    // The damage sensor also has to refuse a lethal fall hit at rest
+    const hurt = car.applyDamage(100, { cause: EntityDamageCause.fall });
+    return {
+      pass: health === 20 && !hurt && car.isValid,
+      detail: `ticks=${ticks} y=${car.location.y.toFixed(2)} health=${health} hurt=${hurt}`,
+    };
+  });
 }
