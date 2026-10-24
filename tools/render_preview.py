@@ -127,7 +127,7 @@ BOAT_POSES = {
     "sportsboat-afloat.png": {"lamps": False, "dusk": False, "view": VIEW_DIRECTION, "screen_up": None, "brightness": MAIN_BRIGHTNESS, "lift": BOAT_LIFT},
     "sportsboat-headlights.png": {"lamps": True, "dusk": True, "view": VIEW_DIRECTION, "screen_up": None},
     "sportsboat-rear.png": {"lamps": False, "dusk": False, "view": BOAT_REAR_VIEW, "screen_up": None, "brightness": MAIN_BRIGHTNESS, "lift": BOAT_LIFT},
-    "sportsboat-top.png": {"lamps": False, "dusk": False, "view": BOAT_TOP_VIEW, "screen_up": BOAT_TOP_SCREEN_UP},
+    "sportsboat-top.png": {"lamps": False, "dusk": False, "view": BOAT_TOP_VIEW, "screen_up": BOAT_TOP_SCREEN_UP, "brightness": MAIN_BRIGHTNESS, "lift": BOAT_LIFT},
 }
 
 CAMPER_GEOMETRY = "models/entity/yasu_ride/camper.geo.json"
@@ -136,7 +136,7 @@ CAMPER_POSES = {
     "camper-front-left.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.65, -1.0), "screen_up": None, "brightness": MAIN_BRIGHTNESS},
     "camper-headlights.png": {"lamps": True, "dusk": True, "view": (-1.0, 0.65, -1.0), "screen_up": None},
     "camper-side.png": {"lamps": False, "dusk": False, "view": (1.0, 0.15, 0.0001), "screen_up": None, "brightness": SIDE_BRIGHTNESS},
-    "camper-rear.png": {"lamps": False, "dusk": False, "view": (1.0, 0.6, 1.0), "screen_up": None},
+    "camper-rear.png": {"lamps": False, "dusk": False, "view": (1.0, 0.6, 1.0), "screen_up": None, "brightness": MAIN_BRIGHTNESS},
 }
 
 BULLDOZER_GEOMETRY = "models/entity/yasu_ride/bulldozer.geo.json"
@@ -147,7 +147,7 @@ BULLDOZER_POSES = {
     "bulldozer-front-left.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.65, -1.0), "screen_up": None, "brightness": MAIN_BRIGHTNESS},
     "bulldozer-headlights.png": {"lamps": True, "dusk": True, "view": (-1.0, 0.65, -1.0), "screen_up": None},
     "bulldozer-side.png": {"lamps": False, "dusk": False, "view": (1.0, 0.15, 0.0001), "screen_up": None, "brightness": SIDE_BRIGHTNESS},
-    "bulldozer-rear.png": {"lamps": False, "dusk": False, "view": (1.0, 0.6, 1.0), "screen_up": None},
+    "bulldozer-rear.png": {"lamps": False, "dusk": False, "view": (1.0, 0.6, 1.0), "screen_up": None, "brightness": MAIN_BRIGHTNESS},
 }
 
 # Each camping gear item gets its own square preview for its row in docs/items/camping-gear.md,
