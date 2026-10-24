@@ -1423,9 +1423,9 @@ MONITOR_CELL = (48, 32)
 MONITOR_LIFT = 0.66
 MONITOR_THICK = 0.02
 MONITOR_FACE = "down"
-# Assumed: Bedrock runs v on the down face opposite to the up face. Only viewing
-# the screen in game from seat 0 confirms the orientation (ADR 0139).
-MONITOR_UV_FLIP = (False, True)
+# Seen in game from seat 0: the down face needs both u and v reversed, or the
+# label reads mirrored with the icon on the right (ADR 0139).
+MONITOR_UV_FLIP = (True, True)
 MONITOR_BG = PALETTE["screen"]
 # Alpha 0 texels glow under lamp_lit, which is entity_emissive (ADR 0020).
 MONITOR_FG = (200, 236, 248, 0)
