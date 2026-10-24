@@ -49,3 +49,10 @@ it("caps water and flight speed at the ground top speed", () => {
   expect(Math.min(M.maxSpeed, BULLDOZER_WATER.maxSpeed)).toBe(0.45);
   expect(Math.min(M.maxSpeed, BULLDOZER_AIR.maxSpeed)).toBe(0.45);
 });
+
+it("puts one exit beside the left track and behind the blade", () => {
+  expect(P.seatExits).toEqual([S.doorExit]);
+  expect(P.seatExits).toHaveLength(P.seats.positions.length);
+  expect(S.doorExit.x - 0.3).toBeGreaterThan(18.8 / 16);
+  expect(S.doorExit.z).toBeLessThan(S.blade.near);
+});

@@ -18,6 +18,7 @@ export const BULLDOZER_PROFILE: VehicleProfile = Object.freeze({
   footprint: BULLDOZER_SPEC.footprint,
   seats: Object.freeze({ positions: Object.freeze([{ x: 0, z: -1.35 }]) }),
   boarding: Object.freeze({ order: "engine" }),
+  seatExits: Object.freeze([BULLDOZER_SPEC.doorExit]),
   beams: Object.freeze({
     reach: BULLDOZER_SPEC.headlightReach,
     levels: BULLDOZER_SPEC.headlightLevels,

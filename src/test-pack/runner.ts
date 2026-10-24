@@ -29,6 +29,7 @@ import {
   bulldozerSpawnsRaised,
   bulldozerStep2Raised,
 } from "./scenarios/bulldozer";
+import { bulldozerExitSpot } from "./scenarios/bulldozerExit";
 import {
   lowChairSeatAndTakeBack,
   lowChairSettlesThroughGrass,
@@ -116,6 +117,7 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
   // The middle number is the test's ticks as last logged in CI; shardsOf packs
   // by it, so update it when a test gets much slower or faster (ADR 0054).
   const allTests: [string, number, () => Promise<Outcome>][] = [
+    ["bulldozer_exit_spot", 8, () => bulldozerExitSpot(a)],
     ["bulldozer_clear_hill", 79, () => bulldozerClearHill(a)],
     ["bulldozer_overhang", 77, () => bulldozerOverhang(a)],
     ["bulldozer_dirt_path", 77, () => bulldozerDirtPath(a)],

@@ -112,7 +112,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0106](0106-raise-the-camper-dashboard-to-the-windshield.md) | Raise the camper dashboard to the windshield | Accepted |
 | [0107](0107-stand-stove-gear-on-a-burner.md) | Stand stove gear on a burner, and widen the standing decor box | Superseded in part by 0108, 0110, and 0112 |
 | [0108](0108-two-items-on-each-shelf-board-and-the-table.md) | Two items on each shelf board and on the table | Superseded in part by 0123 (Proposed); extended by 0114 |
-| [0109](0109-stand-up-inside-the-parked-camper.md) | Stand up inside the parked camper | Accepted |
+| [0109](0109-stand-up-inside-the-parked-camper.md) | Stand up inside the parked camper | Extended by 0140 |
 | [0110](0110-pick-decor-slots-along-the-line-of-sight.md) | Pick decor slots along the line of sight | Extended by 0111 |
 | [0111](0111-correct-the-inverted-face-location-height.md) | Correct the inverted face location height | Accepted |
 | [0112](0112-one-burner-on-the-camper-stove.md) | One burner on the camper stove | Accepted |
@@ -139,10 +139,11 @@ This directory records design decisions and the reasons behind them. The format 
 | [0133](0133-sleep-on-the-tent-mattresses.md) | Sleep on the tent mattresses | Proposed |
 | [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md) | Switch the tent lantern with the headlight switch | Proposed; extended by 0138 (Proposed) |
 | [0135](0135-repaint-the-tent-with-dyes.md) | Repaint the tent with dyes | Proposed |
-| [0136](0136-bulldozer.md) | Add the bulldozer kind | Proposed; superseded in part and extended by 0138 (Proposed) |
+| [0136](0136-bulldozer.md) | Add the bulldozer kind | Proposed; superseded in part and extended by 0138 (Proposed); extended by 0140 |
 | [0137](0137-clear-block-columns-with-the-blade.md) | Clear block columns with the blade, keeping liquids, containers, and laid blocks | Proposed; extended by 0138 (Proposed) |
 | [0138](0138-raise-and-lower-the-bulldozer-blade.md) | Raise and lower the bulldozer blade with a switch item | Proposed; extended by 0139 (Proposed) |
 | [0139](0139-show-the-held-tool-on-the-cab-monitor.md) | Show the driver's held tool on the cab monitor | Proposed |
+| [0140](0140-put-a-bulldozer-driver-out-beside-the-left-door.md) | Put a bulldozer driver out beside the left door | Accepted |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 
