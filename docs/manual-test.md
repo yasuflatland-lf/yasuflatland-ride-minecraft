@@ -234,7 +234,7 @@ Setup: use `/give @s yasu_ride:bulldozer_item` or craft from an SUV item, an iro
 | B17 | Saved blade | Lower the blade, run `pnpm server:restart`, and rejoin. The bulldozer is still lowered and still cuts | | |
 | B18 | Board the bulldozer and wait without input | A slow, thick diesel "do-do-do" with about 8 thumps a second over a low exhaust tone; no turbo whistle, hiss, or other high-pitched sound; no click every 4 seconds where the loop repeats | | |
 | B19 | With the blade raised, drive from rest to full speed and back | The thumps quicken in five steps, from about 9 to 12 a second, with the exhaust tone rising with them; the track clank starts slow (about 2 a second per side) and quickens to a fast rattle with a squeal at full speed; both stop below walking pace | | |
-| B20 | Lower the blade and drive into a hill, then raise it while moving | With the blade down and moving, the thumps slow slightly and the engine gets louder, rougher, and swells as if laboring, still with no whistle; raising it returns to the travel sound within a second | | |
+| B20 | Lower the blade and drive into a hill, then raise it while moving | With the blade down and moving, the thumps slow slightly and the engine gets louder, rougher, and swells as if laboring, still with no whistle; raising it brings in the travel sound, though the push sound can linger under it for up to about 4 s (ADR 0140) | | |
 | B21 | Raise and lower the blade with the switch while parked | Each change plays, once and with the click, a pump groan that rises slightly while the blade moves (about half a second), a dull clunk as it stops, and a short relief hiss | | |
 | B22 | Drive an SUV, a camper, and the sports boat | Their engine sounds are as before | | |
 

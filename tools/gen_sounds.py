@@ -113,12 +113,15 @@ BULLDOZER_SQUEAL_BAND = (1450, 1650)
 BULLDOZER_SQUEAL_GAIN = [0.0, 0.03, 0.06, 0.09, 0.12]
 BULLDOZER_ROLLER_BAND = (40, 200)
 BULLDOZER_ROLLER_GAIN = [0.1, 0.15, 0.2, 0.25, 0.3]
-# Blade lift: 10 ticks (BULLDOZER_SPEC.bladeLiftTicks, ADR 0138) = 0.5 s.
-BULLDOZER_HYDRAULICS_S = 0.5
-# The clip runs past the lift for the stop clunk and the relief valve's hiss.
-BULLDOZER_HYDRAULICS_TAIL_S = 0.9
-# Pump pitch chosen by ear, not measured: the owner heard 380 Hz as too thin and
-# 95 Hz as too low (ADR 0140).
+# Blade lift: 10 ticks (BULLDOZER_SPEC.bladeLiftTicks, ADR 0138) = 0.5 s; the stop
+# clunk lands here.
+BULLDOZER_BLADE_LIFT_S = 0.5
+# Total clip length, matching the hydraulics animation_length of 0.9: the lift, then
+# the stop clunk and the relief valve's hiss.
+BULLDOZER_HYDRAULICS_CLIP_S = 0.9
+# Pump pitch chosen by ear, not measured: lowered from 380 Hz to 95 Hz with the
+# owner's first retune, then raised to 190 Hz when they asked for the blade to sound
+# a bit higher (ADR 0140).
 BULLDOZER_PUMP_HZ = 190
 
 
@@ -343,8 +346,9 @@ def bulldozer_engine(rng, cycles, load, t):
     mixed = [math.tanh(drive * x / peak) for x in mixed]
     if load == "push":
         mixed = [x * (1 + 0.08 * math.sin(2 * math.pi * 2 * BULLDOZER_ENGINE_LOOP_S * i / n)) for i, x in enumerate(mixed)]
-    # The owner asked for no high-pitched sound: no turbo whistle or hiss, and everything
-    # above BULLDOZER_ENGINE_CUTOFF_HZ is cut (ADR 0140).
+    # The owner asked for no high-pitched sound: no turbo whistle or hiss, and two
+    # one-pole stages at BULLDOZER_ENGINE_CUTOFF_HZ (-6 dB there, 12 dB/octave above)
+    # roll off what the drive adds above the recording's range (ADR 0140).
     mixed = loop_lowpass(loop_lowpass(mixed, BULLDOZER_ENGINE_CUTOFF_HZ), BULLDOZER_ENGINE_CUTOFF_HZ)
     peak = max(abs(x) for x in mixed) or 1.0
     return [x / peak for x in mixed]
@@ -379,8 +383,8 @@ def bulldozer_track(rng, level):
 
 
 def bulldozer_hydraulics(rng):
-    n = round(RATE * BULLDOZER_HYDRAULICS_TAIL_S)
-    lift = round(RATE * BULLDOZER_HYDRAULICS_S)
+    n = round(RATE * BULLDOZER_HYDRAULICS_CLIP_S)
+    lift = round(RATE * BULLDOZER_BLADE_LIFT_S)
     # Groan, oil rush, clunk, and envelope chosen by ear, not measured (ADR 0140): the
     # pump strains and the oil rushes while the blade moves, then the blade stops with a
     # dull clunk and the relief valve hisses out.
