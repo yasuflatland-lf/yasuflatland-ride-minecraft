@@ -89,19 +89,14 @@ BULLDOZER_FIRING_ORDER = [1, 5, 3, 6, 2, 4]
 BULLDOZER_ENGINE_LOOP_S = 2.0
 BULLDOZER_TRACK_LOOP_S = 1.0
 # Engine cycles per 2 s loop (rpm / 60). The owner heard the spec speeds (7 to 16 cycles/s,
-# 840 to 1920 rpm) as too fast and asked for about 0.3 times the revs (ADR 0140).
-BULLDOZER_IDLE_CYCLES = 4                    # 240 rpm, 0.3 x the 840 rpm idle.
-BULLDOZER_TRAVEL_CYCLES = [5, 7, 8, 9, 10]   # 300-600 rpm, about 0.3 x 1080-1920 rpm.
-BULLDOZER_PUSH_CYCLES = [5, 6, 7, 8, 9]      # 300-540 rpm, about 0.3 x 960-1800 rpm.
-# Resonances (Hz, Q, gain), whistle (Hz, gain), and hiss band (Hz) chosen by ear,
-# not measured, against the owner's D5 references; all 0.7 times the first draft after the
-# owner asked for a lower sound (ADR 0140).
+# 840 to 1920 rpm) as too fast and asked twice for slower revs (ADR 0140).
+BULLDOZER_IDLE_CYCLES = 3                    # 180 rpm.
+BULLDOZER_TRAVEL_CYCLES = [3, 4, 5, 6, 7]    # 180-420 rpm.
+BULLDOZER_PUSH_CYCLES = [3, 4, 4, 5, 6]      # 180-360 rpm, lower than travel under load.
+# Resonances (Hz, Q, gain) chosen by ear, not measured, against the owner's D5
+# references, then lowered after the owner asked for a lower sound (ADR 0140).
 BULLDOZER_EXHAUST = [(27, 4.0, 1.0), (53, 5.0, 0.85), (88, 4.0, 0.45), (168, 3.0, 0.2)]
-BULLDOZER_KNOCK = [(1190, 5.0, 0.22), (2030, 6.0, 0.14)]
-BULLDOZER_IDLE_WHISTLE = (1470, 0.03)
-BULLDOZER_TRAVEL_WHISTLE = [(1820, 0.04), (2170, 0.05), (2520, 0.06), (2730, 0.07), (3080, 0.08)]
-BULLDOZER_PUSH_WHISTLE = [(2100, 0.08), (2590, 0.10), (3080, 0.12), (3360, 0.13), (3780, 0.15)]
-BULLDOZER_HISS_BAND = (1050, 4200)
+BULLDOZER_ENGINE_CUTOFF_HZ = 400
 # Links/s per track: 14.3 * representative game speed / 9, rounded; D5 pitch estimate in ADR 0140.
 BULLDOZER_TRACK_LINKS = [2, 5, 8, 11, 13]
 # Track resonances, noise bands, and gains chosen by ear, not measured (ADR 0140).
@@ -115,9 +110,9 @@ BULLDOZER_ROLLER_GAIN = [0.1, 0.15, 0.2, 0.25, 0.3]
 BULLDOZER_HYDRAULICS_S = 0.5
 # The clip runs past the lift for the stop clunk and the relief valve's hiss.
 BULLDOZER_HYDRAULICS_TAIL_S = 0.9
-# Pump pitch chosen by ear, not measured; lowered from 380 Hz after the owner's
-# blade lift reference (ADR 0140).
-BULLDOZER_PUMP_HZ = 95
+# Pump pitch chosen by ear, not measured: the owner heard 380 Hz as too thin and
+# 95 Hz as too low (ADR 0140).
+BULLDOZER_PUMP_HZ = 190
 
 
 def write(name, samples):
@@ -304,48 +299,48 @@ def boat_engine(rng, cycles_hz):
     ]
 
 
-def bulldozer_engine(rng, cycles, load, t, whistle):
+def loop_lowpass(signal, cutoff_hz):
+    """One-pole low-pass run over the loop twice, so the filter state at the seam matches."""
+    a = 1 - math.exp(-2 * math.pi * cutoff_hz / RATE)
+    y = 0.0
+    for x in signal:
+        y += a * (x - y)
+    out = []
+    for x in signal:
+        y += a * (x - y)
+        out.append(y)
+    return out
+
+
+def bulldozer_engine(rng, cycles, load, t):
     n = round(RATE * BULLDOZER_ENGINE_LOOP_S)
     trims = [rng.uniform(0.88, 1.0) for _ in BULLDOZER_FIRING_ORDER]
-    exhaust, knock = ([0.0] * n for _ in range(2))
+    exhaust = [0.0] * n
     gap = n / (cycles * 6)
-    # Pulse widths, timing variation, knock shares, drive, swell, and hiss gains are
-    # character values chosen by ear against the D5 references, not measurements (ADR 0140).
-    if load == "idle":
-        jitter_share, knock_share, drive, hiss_gain = 0.04, 1.0, 1.4, 0.02
-    elif load == "travel":
-        jitter_share, knock_share, drive, hiss_gain = 0.02 - 0.01 * t, 0.8 - 0.3 * t, 1.6, 0.03 + 0.03 * t
-    else:
-        jitter_share, knock_share, drive, hiss_gain = 0.02 - 0.01 * t, 0.6 - 0.2 * t, 2.2, 0.06 + 0.06 * t
-    pulse_s = 0.024 if load == "push" else 0.018
-
-    def burst(train, at, gain, length_s):
-        length = round(length_s * RATE)
-        for j in range(length):
-            noise = 1.0 if j < 2 else rng.uniform(-1, 1)
-            train[(at + j) % n] += gain * noise * math.exp(-j / (length / 3))
+    # Pulse widths, timing variation, drive, and swell are character values chosen by ear
+    # against the D5 references, not measurements (ADR 0140).
+    jitter_share = 0.04 if load == "idle" else 0.02 - 0.01 * t
+    drive = {"idle": 1.4, "travel": 1.6, "push": 2.2}[load]
+    pulse_s = 0.030 if load == "push" else 0.024
 
     for k in range(cycles * 6):
         cylinder = BULLDOZER_FIRING_ORDER[k % 6]
         at = round(k * gap + rng.uniform(-1, 1) * jitter_share * gap)
         strength = trims[cylinder - 1] * rng.uniform(0.85, 1.0)
-        burst(exhaust, at, strength, pulse_s)
-        burst(knock, at + round(0.001 * RATE), strength * knock_share, 0.003)
-    mixed = [a + b for a, b in zip(ring(exhaust, BULLDOZER_EXHAUST), ring(knock, BULLDOZER_KNOCK))]
+        length = round(pulse_s * RATE)
+        for j in range(length):
+            noise = 1.0 if j < 2 else rng.uniform(-1, 1)
+            exhaust[(at + j) % n] += strength * noise * math.exp(-j / (length / 3))
+    mixed = ring(exhaust, BULLDOZER_EXHAUST)
     peak = max(abs(x) for x in mixed) or 1.0
     mixed = [math.tanh(drive * x / peak) for x in mixed]
     if load == "push":
         mixed = [x * (1 + 0.08 * math.sin(2 * math.pi * 2 * BULLDOZER_ENGINE_LOOP_S * i / n)) for i, x in enumerate(mixed)]
-    f, gain = whistle
-    hiss = periodic_noise(rng, BULLDOZER_ENGINE_LOOP_S, *BULLDOZER_HISS_BAND, 400)
-    # Integer whistle frequency and 3 Hz wobble hold whole cycles across the seam (ADR 0140).
-    turns, wobble = f * BULLDOZER_ENGINE_LOOP_S, 3 * BULLDOZER_ENGINE_LOOP_S
-    return [
-        mixed[i] + gain * math.sin(2 * math.pi * turns * i / n
-                                  + 0.004 * f / 3 * math.sin(2 * math.pi * wobble * i / n))
-        + hiss_gain * hiss[i]
-        for i in range(n)
-    ]
+    # The owner asked for no high-pitched sound: no turbo whistle, knock, or hiss, and the
+    # overtones the drive adds are cut above BULLDOZER_ENGINE_CUTOFF_HZ (ADR 0140).
+    mixed = loop_lowpass(loop_lowpass(mixed, BULLDOZER_ENGINE_CUTOFF_HZ), BULLDOZER_ENGINE_CUTOFF_HZ)
+    peak = max(abs(x) for x in mixed) or 1.0
+    return [x / peak for x in mixed]
 
 
 def bulldozer_track(rng, level):
@@ -382,11 +377,11 @@ def bulldozer_hydraulics(rng):
     # Groan, oil rush, clunk, and envelope chosen by ear, not measured (ADR 0140): the
     # pump strains and the oil rushes while the blade moves, then the blade stops with a
     # dull clunk and the relief valve hisses out.
-    rush = bandpass([rng.uniform(-1, 1) for _ in range(n)], 1400, 0.8)
+    rush = bandpass([rng.uniform(-1, 1) for _ in range(n)], 1000, 0.8)
     clunk = [0.0] * n
     for j in range(round(0.006 * RATE)):
         clunk[lift + j] = (1.0 if j < 2 else rng.uniform(-1, 1)) * math.exp(-j / (0.002 * RATE))
-    clunk = ring(clunk, [(140, 6.0, 1.0), (620, 12.0, 0.5), (1900, 20.0, 0.25)])
+    clunk = ring(clunk, [(150, 6.0, 1.0), (620, 12.0, 0.5)])
     peak = max(abs(x) for x in clunk) or 1.0
     phase = 0.0
     out = []
@@ -415,11 +410,11 @@ for level, rate in enumerate(BOAT_CYCLE_RATES):
 rng = random.Random(70)
 write("shower", shower(rng))
 rng = random.Random(140)
-write("bulldozer_engine_0", bulldozer_engine(rng, BULLDOZER_IDLE_CYCLES, "idle", 0.0, BULLDOZER_IDLE_WHISTLE))
+write("bulldozer_engine_0", bulldozer_engine(rng, BULLDOZER_IDLE_CYCLES, "idle", 0.0))
 for level, cycles in enumerate(BULLDOZER_TRAVEL_CYCLES):
-    write(f"bulldozer_engine_{level + 1}", bulldozer_engine(rng, cycles, "travel", level / 4, BULLDOZER_TRAVEL_WHISTLE[level]))
+    write(f"bulldozer_engine_{level + 1}", bulldozer_engine(rng, cycles, "travel", level / 4))
 for level, cycles in enumerate(BULLDOZER_PUSH_CYCLES):
-    write(f"bulldozer_push_{level + 1}", bulldozer_engine(rng, cycles, "push", level / 4, BULLDOZER_PUSH_WHISTLE[level]))
+    write(f"bulldozer_push_{level + 1}", bulldozer_engine(rng, cycles, "push", level / 4))
 rng = random.Random(141)
 for level in range(len(BULLDOZER_TRACK_LINKS)):
     write(f"bulldozer_track_{level + 1}", bulldozer_track(rng, level))

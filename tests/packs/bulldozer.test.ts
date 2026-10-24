@@ -440,26 +440,3 @@ it("plays hydraulics once when the blade leaves an endpoint", () => {
     },
   });
 });
-it("keeps the full-push turbo whistle stronger than neighboring bands", () => {
-  const wav = readFileSync(`${RP}/sounds/yasu_ride/bulldozer_push_5.wav`);
-  const rate = wav.readUInt32LE(24);
-  const samples = new Int16Array(
-    wav.buffer.slice(wav.byteOffset + 44, wav.byteOffset + wav.length),
-  );
-  const energy = (lo: number, hi: number) => {
-    let sum = 0;
-    for (let hz = lo; hz <= hi; hz++) {
-      const k = 2 * Math.cos((2 * Math.PI * hz) / rate);
-      let a = 0,
-        b = 0;
-      for (const x of samples) [a, b] = [x + k * a - b, a];
-      sum += a * a + b * b - k * a * b;
-    }
-    return sum;
-  };
-  // BULLDOZER_PUSH_WHISTLE in tools/gen_sounds.py: 3780 Hz with 0.4% (15.1 Hz) wobble;
-  // whole-Hz bins within 20 Hz capture it, compared with bands 150 Hz either side.
-  const whistle = energy(3760, 3800);
-  expect(whistle).toBeGreaterThanOrEqual(4 * energy(3610, 3650));
-  expect(whistle).toBeGreaterThanOrEqual(4 * energy(3910, 3950));
-});
