@@ -51,22 +51,20 @@ Hydraulics runs through an unconditional controller entry: initial `rest` enters
 | 4 | 5.75-7.5 | 6.625 | 10.5 | 11 |
 | 5 | >= 7.5 | 8.25 (midpoint of 7.5-9) | 13.1 | 13 |
 
-
 Travel cycles/s are [9, 11, 13, 14, 16] (1080, 1320, 1560, 1680, 1920 rpm); push cycles/s are [8, 10, 12, 13, 15] (960, 1200, 1440, 1560, 1800 rpm). Idle is 7 cycles/s. Intermediate levels are character choices, not measured engine operating points.
 
 | Short animation name (ce) | Animation id | Effect name | Sound id | WAV | Condition | Volume |
 |---|---|---|---|---|---|---|
-| `engine_sound_0` | `animation.yasu_ride.bulldozer.engine_sound_0`  | `engine_0` | `yasu_ride.bulldozer_engine_0` | `bulldozer_engine_0.wav` | `G && query.ground_speed < 0.5` (unchanged) | 0.5 |
-| `engine_sound_1`..`_5` | `...engine_sound_1`..`_5`  | `engine_1`..`_5` | `yasu_ride.bulldozer_engine_1`..`_5` | `bulldozer_engine_1`..`_5.wav` | `G && query.property('yasu_ride:blade') >= 0.05 && <band>` | 0.54, 0.58, 0.62, 0.66, 0.7 |
-| `push_sound_1`..`_5` | `animation.yasu_ride.bulldozer.push_sound_1`..`_5`  | `push_1`..`_5` | `yasu_ride.bulldozer_push_1`..`_5` | `bulldozer_push_1`..`_5.wav` | `G && query.property('yasu_ride:blade') < 0.05 && <band>` | 0.6, 0.65, 0.7, 0.75, 0.8 |
-| `track_sound_1`..`_5` | `animation.yasu_ride.bulldozer.track_sound_1`..`_5`  | `track_1`..`_5` | `yasu_ride.bulldozer_track_1`..`_5` | `bulldozer_track_1`..`_5.wav` | `G && <band>` | 0.25, 0.3, 0.35, 0.4, 0.45 |
-| `hydraulics` | `controller.animation.yasu_ride.bulldozer.hydraulics`  | - | - | - | always (an unconditional `animate` entry) | - |
-| `hydraulics_sound` | `animation.yasu_ride.bulldozer.hydraulics_sound`  | `hydraulics` | `yasu_ride.bulldozer_hydraulics` | `bulldozer_hydraulics.wav` | played by the controller | 0.35 |
+| `engine_sound_0` | `animation.yasu_ride.bulldozer.engine_sound_0` | `engine_0` | `yasu_ride.bulldozer_engine_0` | `bulldozer_engine_0.wav` | `G && query.ground_speed < 0.5` (unchanged) | 0.5 |
+| `engine_sound_1`..`_5` | `...engine_sound_1`..`_5` | `engine_1`..`_5` | `yasu_ride.bulldozer_engine_1`..`_5` | `bulldozer_engine_1`..`_5.wav` | `G && query.property('yasu_ride:blade') >= 0.05 && <band>` | 0.54, 0.58, 0.62, 0.66, 0.7 |
+| `push_sound_1`..`_5` | `animation.yasu_ride.bulldozer.push_sound_1`..`_5` | `push_1`..`_5` | `yasu_ride.bulldozer_push_1`..`_5` | `bulldozer_push_1`..`_5.wav` | `G && query.property('yasu_ride:blade') < 0.05 && <band>` | 0.6, 0.65, 0.7, 0.75, 0.8 |
+| `track_sound_1`..`_5` | `animation.yasu_ride.bulldozer.track_sound_1`..`_5` | `track_1`..`_5` | `yasu_ride.bulldozer_track_1`..`_5` | `bulldozer_track_1`..`_5.wav` | `G && <band>` | 0.25, 0.3, 0.35, 0.4, 0.45 |
+| `hydraulics` | `controller.animation.yasu_ride.bulldozer.hydraulics` | - | - | - | always (an unconditional `animate` entry) | - |
+| `hydraulics_sound` | `animation.yasu_ride.bulldozer.hydraulics_sound` | `hydraulics` | `yasu_ride.bulldozer_hydraulics` | `bulldozer_hydraulics.wav` | played by the controller | 0.35 |
 
 `<band>` for level 1 to 5, written exactly as the existing entries do: `query.ground_speed >= 0.5 && query.ground_speed < 2.25`, `>= 2.25 && < 4`, `>= 4 && < 5.75`, `>= 5.75 && < 7.5`, `>= 7.5` (no upper bound). The condition string puts `G` first, then the blade clause, then the speed clause, so `tests/support/soundLevels.ts` `speedRanges` keeps parsing it.
 
 All WAVs go to `packs/yasu_ride_rp/sounds/yasu_ride/`. Every definition uses `"category": "neutral"`. Engine and push: `min_distance` 4.0, `max_distance` 32.0 (a 17 t machine is heard farther than the SUV's 24). Tracks: 4.0 and 24.0. Hydraulics: 2.0 and 16.0. Append the new definitions after `yasu_ride.shower` in `sound_definitions.json`; leave every existing entry unchanged.
-
 
 The client animate order is form, drive, hydraulics, engine_sound_0 through _5, push_sound_1 through _5, then track_sound_1 through _5. Conditions put G first, then the blade clause when applicable, then speed. Each sound animation fires its matching effect at 0.0; engine, push, and track animations loop for 1.0 s.
 
