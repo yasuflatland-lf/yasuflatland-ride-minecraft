@@ -14,7 +14,7 @@ The Behavior Pack pins `@minecraft/server` at 2.2.0, while `package.json` pins i
 
 ## Decision
 
-1. **Opt-in profile.** A kind opts in with `VehicleProfile.monitor?: MonitorRule`. A rule lists the tools of one creative group, each as a `MonitorTool` with an ordered list of named states. Without a rule, the kind has no monitor (0050). Only the bulldozer gets a rule initially. Keep the shared monitor logic in the flat driving core under `src/domain/vehicle/` (0090).
+1. **Opt-in profile.** A kind opts in with `VehicleProfile.monitor?: MonitorRule`. A rule lists the tools of one creative group, each as a `MonitorTool` with an ordered list of named states. Without a rule, the kind has no monitor (0050). Only the bulldozer gets a rule initially. Keep the shared monitor logic in a new core subfolder, `src/domain/vehicle/monitor/` (0090).
 2. **Core property.** Reserve `monitor` (`yasu_ride:monitor`) in `CORE_PROPERTY_NAMES`, so no kind contract may use that name (0055). Its spec is `monitorPropertySpec(rule)`: int, range `[0, N]`, where N is `monitorScreens(rule).length`. In the pack it has default 0 and `client_sync: true`. Only kinds with a rule declare it.
 3. **Screen order.** Value 0 is blank. Value `k + 1` is `monitorScreens(rule)[k]`, which lists tools in rule order and, within a tool, states in its `states` order. `monitorScreen` maps the held tool and its state name to this index. Holding nothing or an item outside the rule gives 0.
 4. **Driver.** Only the Crew driver's held tool (`RiderView.heldTool`, from `seated.driver`) counts. With no driver, or while waiting for a driver, the screen is blank, except for the server-only test input below. Passengers never count.

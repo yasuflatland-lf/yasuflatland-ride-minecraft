@@ -1,6 +1,6 @@
 # 0055. Kind-neutral vehicle core
 
-- Status: Superseded in part by 0083 (targets() in TickContext) and 0087 (the boat's tuning table); extended by 0064, 0065, 0072, 0089, 0090, 0127, [0136](0136-bulldozer.md) (Proposed), and 0137 (Proposed); extended by [0139](0139-show-the-held-tool-on-the-cab-monitor.md) (Proposed)
+- Status: Superseded in part by 0083 (targets() in TickContext) and 0087 (the boat's tuning table); extended by 0064, 0065, 0072, 0089, 0090, 0127, [0136](0136-bulldozer.md) (Proposed), 0137 (Proposed), and [0139](0139-show-the-held-tool-on-the-cab-monitor.md) (Proposed)
 - Date: 2026-10-12
 
 ## Context
