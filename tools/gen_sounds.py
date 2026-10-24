@@ -96,7 +96,12 @@ BULLDOZER_PUSH_CYCLES = [3, 4, 4, 5, 6]      # 180-360 rpm, lower than travel un
 # Resonances (Hz, Q, gain) chosen by ear, not measured, against the owner's D5
 # references, then lowered after the owner asked for a lower sound (ADR 0140).
 BULLDOZER_EXHAUST = [(27, 4.0, 1.0), (53, 5.0, 0.85), (88, 4.0, 0.45), (168, 3.0, 0.2)]
-BULLDOZER_ENGINE_CUTOFF_HZ = 400
+# Diesel injection clatter in the low mids and the combustion roar under the pulses,
+# chosen by ear; both stay below the cutoff (ADR 0140).
+BULLDOZER_CLATTER = [(480, 8.0, 1.0), (760, 10.0, 0.6)]
+BULLDOZER_ROAR_BAND = (40, 260)
+BULLDOZER_ROAR_GAIN = 0.35
+BULLDOZER_ENGINE_CUTOFF_HZ = 900
 # Links/s per track: 14.3 * representative game speed / 9, rounded; D5 pitch estimate in ADR 0140.
 BULLDOZER_TRACK_LINKS = [2, 5, 8, 11, 13]
 # Track resonances, noise bands, and gains chosen by ear, not measured (ADR 0140).
@@ -314,30 +319,42 @@ def loop_lowpass(signal, cutoff_hz):
 
 def bulldozer_engine(rng, cycles, load, t):
     n = round(RATE * BULLDOZER_ENGINE_LOOP_S)
-    trims = [rng.uniform(0.88, 1.0) for _ in BULLDOZER_FIRING_ORDER]
-    exhaust = [0.0] * n
+    trims = [rng.uniform(0.75, 1.0) for _ in BULLDOZER_FIRING_ORDER]
+    exhaust, clatter, envelope = ([0.0] * n for _ in range(3))
     gap = n / (cycles * 6)
-    # Pulse widths, timing variation, drive, and swell are character values chosen by ear
-    # against the D5 references, not measurements (ADR 0140).
+    # Pulse widths, timing variation, clatter share, roar, drive, and swell are character
+    # values chosen by ear against the D5 references, not measurements (ADR 0140). Long,
+    # overlapping exhaust pulses blur into one growl, and each firing's injection clatter
+    # rings in the low mids, so the engine reads as a diesel rather than a two-stroke pop.
     jitter_share = 0.04 if load == "idle" else 0.02 - 0.01 * t
-    drive = {"idle": 1.4, "travel": 1.6, "push": 2.2}[load]
-    pulse_s = 0.030 if load == "push" else 0.024
+    drive = {"idle": 1.6, "travel": 1.8, "push": 2.4}[load]
+    pulse_s = 0.09 if load == "push" else 0.07
+    clatter_share = {"idle": 0.5, "travel": 0.4, "push": 0.3}[load]
+
+    def burst(train, at, gain, length_s):
+        length = round(length_s * RATE)
+        for j in range(length):
+            noise = 1.0 if j < 2 else rng.uniform(-1, 1)
+            train[(at + j) % n] += gain * noise * math.exp(-j / (length / 3))
 
     for k in range(cycles * 6):
         cylinder = BULLDOZER_FIRING_ORDER[k % 6]
         at = round(k * gap + rng.uniform(-1, 1) * jitter_share * gap)
         strength = trims[cylinder - 1] * rng.uniform(0.85, 1.0)
-        length = round(pulse_s * RATE)
-        for j in range(length):
-            noise = 1.0 if j < 2 else rng.uniform(-1, 1)
-            exhaust[(at + j) % n] += strength * noise * math.exp(-j / (length / 3))
-    mixed = ring(exhaust, BULLDOZER_EXHAUST)
+        burst(exhaust, at, strength, pulse_s)
+        burst(clatter, at, strength * clatter_share, 0.004)
+        for j in range(round(gap)):
+            envelope[(at + j) % n] += strength * math.exp(-j / (gap / 2))
+    roar = periodic_noise(rng, BULLDOZER_ENGINE_LOOP_S, *BULLDOZER_ROAR_BAND, 300)
+    peak_env = max(envelope) or 1.0
+    mixed = [a + b + BULLDOZER_ROAR_GAIN * envelope[i] / peak_env * roar[i]
+             for i, (a, b) in enumerate(zip(ring(exhaust, BULLDOZER_EXHAUST), ring(clatter, BULLDOZER_CLATTER)))]
     peak = max(abs(x) for x in mixed) or 1.0
     mixed = [math.tanh(drive * x / peak) for x in mixed]
     if load == "push":
         mixed = [x * (1 + 0.08 * math.sin(2 * math.pi * 2 * BULLDOZER_ENGINE_LOOP_S * i / n)) for i, x in enumerate(mixed)]
-    # The owner asked for no high-pitched sound: no turbo whistle, knock, or hiss, and the
-    # overtones the drive adds are cut above BULLDOZER_ENGINE_CUTOFF_HZ (ADR 0140).
+    # The owner asked for no high-pitched sound: no turbo whistle or hiss, and everything
+    # above BULLDOZER_ENGINE_CUTOFF_HZ is cut (ADR 0140).
     mixed = loop_lowpass(loop_lowpass(mixed, BULLDOZER_ENGINE_CUTOFF_HZ), BULLDOZER_ENGINE_CUTOFF_HZ)
     peak = max(abs(x) for x in mixed) or 1.0
     return [x / peak for x in mixed]
