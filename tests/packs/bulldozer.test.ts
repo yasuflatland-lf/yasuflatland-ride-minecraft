@@ -5,6 +5,7 @@ import { BULLDOZER_PROFILE } from "../../src/domain/vehicle/kinds/bulldozer/prof
 import { BULLDOZER_SPEC } from "../../src/domain/vehicle/kinds/bulldozer/spec";
 import { FORMS } from "../../src/domain/vehicle/motion/forms";
 import { expectContiguous, speedRanges } from "../support/soundLevels";
+import { bandPower } from "../support/spectrum";
 
 const RP = "packs/yasu_ride_rp",
   BP = "packs/yasu_ride_bp";
@@ -376,6 +377,30 @@ it("matches sound animation lengths to their clips", () => {
   expect(hydraulics.animation_length).toBeGreaterThan(
     BULLDOZER_SPEC.bladeLiftTicks / 20,
   );
+});
+it("keeps the engine low and its exhaust tone at twice the firing rate (ADR 0140)", () => {
+  // BULLDOZER_IDLE_CYCLES, _TRAVEL_CYCLES, and _PUSH_CYCLES per 4 s loop in
+  // tools/gen_sounds.py.
+  const cycles: Record<string, number> = { engine_0: 32 };
+  [36, 40, 42, 44, 48].forEach((c, i) => {
+    cycles[`engine_${i + 1}`] = c;
+  });
+  [34, 38, 40, 42, 46].forEach((c, i) => {
+    cycles[`push_${i + 1}`] = c;
+  });
+  for (const [name, perLoop] of Object.entries(cycles)) {
+    const band = bandPower(`${RP}/sounds/yasu_ride/bulldozer_${name}.wav`);
+    // The approved clips keep about 1 % of the 100-300 Hz energy in 3-5 kHz;
+    // dropping the low-pass gives about 6 % and the first version's whistles
+    // 14-28 %.
+    expect(band(3000, 5000) / band(100, 300), name).toBeLessThan(0.025);
+    // A four-stroke six fires 6 times per cycle and its exhaust tone sits at
+    // twice that, so it must beat both the firing rate and its own harmonic.
+    const firing = (6 * perLoop) / 4;
+    const peak = (hz: number) => band(hz - 1, hz + 1);
+    expect(peak(2 * firing), name).toBeGreaterThan(peak(firing));
+    expect(peak(2 * firing), name).toBeGreaterThan(peak(4 * firing));
+  }
 });
 it("increases volumes by speed and makes pushing louder than travel", () => {
   const volumes = {
