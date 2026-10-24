@@ -214,8 +214,8 @@ describe("bulldozer paints (ADR 0031, 0076)", () => {
       readdirSync(textureDir)
         .filter(
           (f) =>
-            f === "bulldozer.png" ||
-            PAINTS.slice(1).some((p) => f === `bulldozer_${p}.png`),
+            /^bulldozer(?:_\w+)?\.png$/.test(f) &&
+            f !== "bulldozer_monitor.png",
         )
         .sort(),
     ).toEqual(

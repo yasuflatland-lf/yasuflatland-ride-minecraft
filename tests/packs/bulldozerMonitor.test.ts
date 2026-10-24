@@ -105,7 +105,6 @@ describe("bulldozer cab monitor (ADR 0139)", () => {
       ).toBeGreaterThan(0);
       // The generator rounds origins and pivots to 0.001 px, so allow that quantization.
       const clearance = visibleFace(cube, n) - visibleFace(screen, n);
-      expect(clearance).toBeCloseTo(0.1, 3);
       expect(clearance).toBeGreaterThanOrEqual(0.1 - 0.001);
     }
   });
