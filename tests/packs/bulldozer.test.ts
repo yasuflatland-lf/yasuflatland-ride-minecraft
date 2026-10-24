@@ -358,7 +358,7 @@ it("matches sound animation lengths to their clips", () => {
       );
       expect(anim[client.animations[short]]).toEqual({
         loop: true,
-        animation_length: family === "track" ? 1 : 2,
+        animation_length: family === "track" ? 1 : 4,
         sound_effects: { "0.0": { effect: `${family}_${level}` } },
       });
     }
