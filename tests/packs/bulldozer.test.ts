@@ -154,8 +154,12 @@ it("runs the tracks, the door, and the blade rig from their properties", () => {
     ],
   };
   for (const side of ["r", "l"])
+    bones[`lift_cylinder_${side}`] = {
+      rotation: ["-query.property('yasu_ride:blade') * 16.39", 0, 0],
+    };
+  for (const side of ["r", "l"])
     bones[`lift_rod_${side}`] = {
-      scale: [1, 1, "1 - query.property('yasu_ride:blade') * 3 / 12.6"],
+      scale: [1, 1, "1 - query.property('yasu_ride:blade') * 2.57 / 7"],
     };
   expect(anim["animation.yasu_ride.bulldozer.drive"].bones).toEqual(bones);
   const names = read(`${RP}/models/entity/yasu_ride/bulldozer.geo.json`)[

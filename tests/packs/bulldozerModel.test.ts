@@ -39,6 +39,10 @@ function expectedParent(name: string): string | undefined {
       return "root";
     case "blade":
       return "blade_rig";
+    case "lift_rod_r":
+      return "lift_cylinder_r";
+    case "lift_rod_l":
+      return "lift_cylinder_l";
     case "door_glass":
       return "door_l";
     default:
@@ -64,7 +68,7 @@ describe("bulldozer model (ADR 0009, 0136)", () => {
     expect(geometry().description.texture_width).toBe(32);
     expect(geometry().description.texture_height).toBe(1);
   });
-  it("has exactly the bone contract, each bone parented to body except root, body, blade, and door_glass", () => {
+  it("has exactly the bone contract, each bone parented to body except root, body, blade, the lift rods, and door_glass", () => {
     expect(
       bones()
         .map((b) => b.name)
@@ -75,6 +79,8 @@ describe("bulldozer model (ADR 0009, 0136)", () => {
         "body",
         "blade_rig",
         "blade",
+        "lift_cylinder_r",
+        "lift_cylinder_l",
         "lift_rod_r",
         "lift_rod_l",
         "headlights",
@@ -285,24 +291,50 @@ describe("bulldozer blade rig (ADR 0138)", () => {
     readFileSync(`${RP}/animations/yasu_ride/bulldozer.anim.json`, "utf8"),
   ).animations["animation.yasu_ride.bulldozer.drive"].bones;
   const position = /^query\.property\('yasu_ride:blade'\) \* (\d+(?:\.\d+)?)$/;
+  const swing = /^-query\.property\('yasu_ride:blade'\) \* (\d+(?:\.\d+)?)$/;
   const rodScale =
     /^1 - query\.property\('yasu_ride:blade'\) \* (\d+(?:\.\d+)?) \/ (\d+(?:\.\d+)?)$/;
   const [ky = Number.NaN] = capture(position, drive.blade_rig.position[1], "y");
   const [kz = Number.NaN] = capture(position, drive.blade_rig.position[2], "z");
   const raised = (rest: Point[], blade: number): Point[] =>
     rest.map(([x, y, z]) => [x, y + ky * blade, z + kz * blade]);
-  const rodAt = (side: string, blade: number): Point[] => {
-    const [retract = Number.NaN, length = Number.NaN] = capture(
+  // The rod's front end on its axis at rest, and where the drive animation puts it: the rod
+  // scales along z about its pivot, then the cylinder turns about its rear pin, as the game
+  // composes a child bone inside its parent. The geometry is read once per side, because the
+  // property test below calls rodEnd.at hundreds of times.
+  const rodEnd = (side: string) => {
+    const [turn = Number.NaN] = capture(
+      swing,
+      drive[`lift_cylinder_${side}`].rotation[0],
+      `lift_cylinder_${side} rotation`,
+    );
+    const [shorten = Number.NaN, length = Number.NaN] = capture(
       rodScale,
       drive[`lift_rod_${side}`].scale[2],
       `lift_rod_${side} scale`,
     );
-    const rod = bone(`lift_rod_${side}`);
-    const pz = rod.pivot?.[2] ?? Number.NaN;
-    const scale = 1 - (blade * retract) / length;
-    return points(rod).map(([x, y, z]) => [x, y, pz + (z - pz) * scale]);
+    const rodBone = bone(`lift_rod_${side}`);
+    const rod = points(rodBone);
+    const mid = (axis: number) => (lowest(rod, axis) + highest(rod, axis)) / 2;
+    const rest: Point = [mid(0), mid(1), lowest(rod, 2)];
+    const pz = rodBone.pivot?.[2] ?? Number.NaN;
+    const pin = bone(`lift_cylinder_${side}`).pivot;
+    const at = (blade: number): Point => {
+      const [x, y, z] = rest;
+      const scaled: Point = [
+        x,
+        y,
+        pz + (z - pz) * (1 - (blade * shorten) / length),
+      ];
+      const [end] = turnedCorners(
+        { name: "end", pivot: pin, rotation: [-turn * blade, 0, 0] },
+        { origin: scaled, size: [0, 0, 0] },
+      );
+      return end as Point;
+    };
+    return { rest, at };
   };
-  it("drives blade_rig 3 px up and 3 px rearward and shortens each 12.6 px lift rod by 3 px at blade = 1", () => {
+  it("drives blade_rig 3 px up and 3 px rearward at blade = 1, as the generator says", () => {
     expect(drive.blade_rig.position[0]).toBe(0);
     expect([ky, kz]).toEqual([3, 3]);
     const generator = readFileSync("tools/gen_bulldozer.py", "utf8");
@@ -315,12 +347,11 @@ describe("bulldozer blade rig (ADR 0138)", () => {
     expect(constant("BLADE_RAISE")).toEqual([ky]);
     expect(constant("ROD_RETRACT")).toEqual([kz]);
     for (const side of ["r", "l"]) {
+      expect(drive[`lift_cylinder_${side}`].rotation.slice(1)).toEqual([0, 0]);
       const scale = drive[`lift_rod_${side}`].scale;
       expect(scale.slice(0, 2)).toEqual([1, 1]);
-      const [retract, length] = capture(rodScale, scale[2], "rod scale");
-      expect(retract).toBe(kz);
+      const [, length] = capture(rodScale, scale[2], "rod scale");
       const rest = points(bone(`lift_rod_${side}`));
-      expect(length).toBeCloseTo(12.6, 6);
       expect(highest(rest, 2) - lowest(rest, 2)).toBeCloseTo(length ?? 0, 6);
     }
   });
@@ -337,18 +368,28 @@ describe("bulldozer blade rig (ADR 0138)", () => {
     expect(lowest(points(bone("blade")), 2)).toBeCloseTo(-38.4, 3);
     expect(lowest(raised(points(bone("blade")), 1), 2)).toBeCloseTo(-35.4, 3);
   });
-  it("keeps each rod between the barrel mouth and its moved bracket at every blade value", () => {
+  it("keeps each rod's end on its gusset top while the blade moves", () => {
+    const ends = ["r", "l"].map(rodEnd);
     fc.assert(
       fc.property(fc.double({ min: 0, max: 1, noNaN: true }), (blade) => {
-        for (const side of ["r", "l"]) {
-          const rod = rodAt(side, blade);
-          expect(highest(rod, 2)).toBeCloseTo(2, 6);
-          expect(lowest(rod, 2)).toBeCloseTo(-10.6 + kz * blade, 6);
+        for (const { rest, at } of ends) {
+          const [target] = raised([rest], blade);
+          const end = at(blade);
+          // Swing and shortening are linear in the property, so between the end poses the end
+          // drifts off the arc by a fraction of a pixel.
+          for (const axis of [0, 1, 2])
+            expect(
+              Math.abs((end[axis] ?? 0) - (target?.[axis] ?? 0)),
+            ).toBeLessThan(0.3);
         }
       }),
     );
-    for (const side of ["r", "l"])
-      expect(lowest(rodAt(side, 1), 2)).toBeCloseTo(-7.6, 6);
+    for (const { rest, at } of ends) {
+      const [target] = raised([rest], 1);
+      const end = at(1);
+      for (const axis of [0, 1, 2])
+        expect(end[axis]).toBeCloseTo(target?.[axis] ?? Number.NaN, 1);
+    }
   });
   const near = (actual: number[], expected: number[]) =>
     actual.every(
@@ -378,28 +419,32 @@ describe("bulldozer blade rig (ADR 0138)", () => {
       ["r", -8.5],
       ["l", 8.5],
     ] as const) {
+      expect(bone(`lift_cylinder_${side}`).pivot).toEqual([x, 21.4, 0.2]);
       const rod = bone(`lift_rod_${side}`);
-      expect(rod.pivot).toEqual([x, 21.4, 2]);
+      expect(rod.pivot).toEqual([x, 21.4, -6]);
       expect(rod.cubes).toHaveLength(1);
-      expectCube(rod, 12, [x - 0.5, 20.8, -10.6], [x + 0.5, 22, 2]);
+      expectCube(rod, 12, [x - 0.5, 20.8, -13], [x + 0.5, 22, -6]);
     }
-    expect(bone("blade_rig").cubes).toHaveLength(60);
+    expect(bone("blade_rig").cubes).toHaveLength(118);
     expect(bone("blade").cubes).toHaveLength(134);
-    expect(bones().flatMap((b) => b.cubes ?? [])).toHaveLength(3301);
+    expect(bones().flatMap((b) => b.cubes ?? [])).toHaveLength(3387);
     expect(Math.min(...points(bone("blade")).map((p) => p[1]))).toBeCloseTo(
       0,
       3,
     );
   });
-  it("keeps the lift-cylinder barrels on body", () => {
-    for (const x of [-8.5, 8.5]) {
-      expectCube(bone("body"), 4, [x - 1.2, 20.6, 2], [x + 1.2, 23.6, 7.6]);
+  it("hangs each lift-cylinder barrel from a mount on body", () => {
+    for (const [side, x] of [
+      ["r", -8.5],
+      ["l", 8.5],
+    ] as const) {
       expectCube(
-        bone("blade_rig"),
-        0,
-        [x - 1, 11.6, -11.8],
-        [x + 1, 22.2, -10.6],
+        bone(`lift_cylinder_${side}`),
+        4,
+        [x - 1.2, 19.9, -6],
+        [x + 1.2, 22.9, 0.8],
       );
+      expectCube(bone("body"), 4, [x - 1.1, 22.9, -1], [x + 1.1, 24.5, 1]);
     }
   });
 });

@@ -426,17 +426,24 @@ def hood_half(y, z):
     return HOOD_HALF if y <= 22.0 else max(HOOD_HALF - (y - 22.0) * HOOD_LEAN, HOOD_HALF_TOP)
 
 
+# The side panel's access door, from the owner's side photo: a recessed panel whose front edge
+# leans back, crossed corner to corner by a raised brace from its upper front to its lower rear.
+INSET_BOTTOM, INSET_TOP = 22.9, 29.1
+INSET_FRONT_BOTTOM, INSET_FRONT_TOP, INSET_REAR = -7.0, -5.3, 2.6
+BRACE = 0.9  # the brace's width along z
+
+
 def hood_color(y, z):
-    # A louvered inset in the side panel, its top edge parallel to the hood top.
-    if not (23.9 <= y <= hood_shoulder(z) - 0.9):
+    if not INSET_BOTTOM <= y <= min(INSET_TOP, hood_shoulder(z) - 0.9):
         return "yellow"
-    lo = -7.0 + (y - 23.9) * 0.27
-    if not (lo <= z <= 3.7) or y > hood_shoulder(z) - 0.9:
+    t = (y - INSET_BOTTOM) / (INSET_TOP - INSET_BOTTOM)
+    if not INSET_FRONT_BOTTOM + (INSET_FRONT_TOP - INSET_FRONT_BOTTOM) * t <= z <= INSET_REAR:
         return "yellow"
-    return "louver" if int(round((y - 23.9) / 0.5)) % 3 == 1 else "yellow_dark"
+    brace_z = INSET_REAR + (INSET_FRONT_TOP - INSET_REAR) * t
+    return "yellow" if abs(z - brace_z) <= BRACE / 2 else "yellow_dark"
 
 
-HOOD_SEGMENTS = [HOOD_FRONT + i * (HOOD_REAR - HOOD_FRONT) / 24 for i in range(25)]
+HOOD_SEGMENTS = [HOOD_FRONT + i * (HOOD_REAR - HOOD_FRONT) / 48 for i in range(49)]
 y = 22.0
 while y < hood_top(HOOD_REAR) - 1e-6:
     y1 = y + 0.5
@@ -484,37 +491,37 @@ body += both([box(2.1, LAMP_Y - 0.3, HOOD_FRONT - 1.4, 4.5, LAMP_Y + 1.9, HOOD_F
               box(7.0, FRONT_TOP - 1.2, HOOD_FRONT - 3.1, 7.6, FRONT_TOP - 0.6, HOOD_FRONT, "black"),
               box(7.0, 22.0, HOOD_FRONT - 3.1, 7.6, 22.6, HOOD_FRONT, "black")])
 
-# Intake precleaner, air cleaner can, and exhaust stack on the hood, and the handrail around them.
-# The air cleaner can, the exhaust stack and the intake precleaner stand where the driver's line of sight past the center
-# posts of the windshield falls on the hood, so from the seat each hides behind a post (the owner's
-# request). The eye is at z 21.6 px; the posts are centered at x +-(CENTER_GAP + POST / 2), z 7.9.
+# On the hood, front to rear as in the owner's side photo: a sensor box on a post near the front,
+# the air intake (a capped can on a stalk) at mid hood, and the tall exhaust stack, with a handrail
+# beside them. Each stands on the driver's line of sight past a windshield center post as far as
+# the narrow hood allows, so from the seat it hides behind the post or close to it (the owner's
+# earlier request). The eye is at z 21.6 px; the posts are centered at x +-(CENTER_GAP + POST / 2), z 7.9.
 DRIVER_EYE_Z, POST_Z = 21.6, CAB_FRONT + 0.5
 
 
-def behind_post(z):
-    return (CENTER_GAP + POST / 2) * (DRIVER_EYE_Z - z) / (DRIVER_EYE_Z - POST_Z)
+def behind_post(z, half_width):
+    sight = (CENTER_GAP + POST / 2) * (DRIVER_EYE_Z - z) / (DRIVER_EYE_Z - POST_Z)
+    return min(sight, HOOD_HALF_TOP - half_width - 0.3)
 
 
-CAN_Z, CAN_R = 1.5, 1.5
-CAN_X = behind_post(CAN_Z)
+CAN_Z, CAN_R = -5.5, 1.5
+CAN_X = behind_post(CAN_Z, CAN_R)
 CAN = hood_top(CAN_Z) - 0.3
-body += disc("y", CAN_X, CAN, CAN_Z, 0.8, 1.9, "frame", STEPS_8)
-body += disc("y", CAN_X, CAN + 1.9, CAN_Z, CAN_R, 4.0, "black", STEPS_8)
-body += disc("y", CAN_X, CAN + 5.9, CAN_Z, CAN_R * 0.8, 0.4, "frame", STEPS_8)
-# The intake precleaner: a box on a short stalk, set back toward the cab so that its place behind
-# the left post still lies on the narrow hood
-PRE_Z = 4.0
-PRE_X = -behind_post(PRE_Z)
-PRE = hood_top(PRE_Z) - 0.3
-body.append(box(PRE_X - 0.7, PRE, PRE_Z - 0.7, PRE_X + 0.7, PRE + 1.6, PRE_Z + 0.7, "frame"))
-body.append(box(PRE_X - 1.4, PRE + 1.6, PRE_Z - 1.3, PRE_X + 1.4, PRE + 3.8, PRE_Z + 1.3, "black"))
-STACK_Z = -0.9
-STACK_X = -behind_post(STACK_Z)
+body += disc("y", CAN_X, CAN, CAN_Z, 0.8, 2.8, "frame", STEPS_8)
+body += disc("y", CAN_X, CAN + 2.8, CAN_Z, CAN_R, 3.0, "black", STEPS_8)
+body += disc("y", CAN_X, CAN + 5.8, CAN_Z, CAN_R * 0.75, 0.5, "black", STEPS_8)
+SENSOR_Z = -11.1
+SENSOR_X = -behind_post(SENSOR_Z, 1.6)
+SENSOR = hood_top(SENSOR_Z) - 0.3
+body.append(box(SENSOR_X - 0.5, SENSOR, SENSOR_Z - 0.5, SENSOR_X + 0.5, SENSOR + 2.2, SENSOR_Z + 0.5, "frame"))
+body.append(box(SENSOR_X - 1.6, SENSOR + 2.2, SENSOR_Z - 1.4, SENSOR_X + 1.6, SENSOR + 5.0, SENSOR_Z + 1.4, "black"))
+STACK_Z = -0.7
+STACK_X = -behind_post(STACK_Z, 1.05)
 STACK = hood_top(STACK_Z) - 0.3
-body += disc("y", STACK_X, STACK, STACK_Z, 0.95, 45.4 - STACK, "black", STEPS_8)
-body += disc("y", STACK_X, 45.4, STACK_Z, 1.05, 0.3, "frame", STEPS_8)
-RAIL = 1.4  # handrail height over the hood top; the rails end ahead of the can and the stack
-RAIL_REAR = -3.0
+body += disc("y", STACK_X, STACK, STACK_Z, 0.85, 45.4 - STACK, "black", STEPS_8)
+body += disc("y", STACK_X, 45.4, STACK_Z, 0.95, 0.3, "frame", STEPS_8)
+RAIL = 1.4  # handrail height over the hood top; the rails run from the intake back past the stack
+RAIL_REAR = 2.0
 body += both([box(5.4, hood_top(-8.1) - 0.3, -8.1, 5.9, hood_top(-8.1) + RAIL, -7.6, "black"),
               box(5.4, hood_top(RAIL_REAR) - 0.3, RAIL_REAR - 0.5, 5.9, hood_top(RAIL_REAR) + RAIL, RAIL_REAR, "black"),
               bar((-8.1, hood_top(-8.1) + RAIL - 0.25), (RAIL_REAR, hood_top(RAIL_REAR) + RAIL - 0.25), 5.4, 5.9, 0.5, "black")])
@@ -587,40 +594,59 @@ blade += disc("y", 0.0, 13.0, BACK + 1.2, 1.4, 1.0, "yellow_dark", STEPS_8)
 
 # Push arms: long beams from trunnions on the main frame beside the cab front, running forward
 # between the hood and the tracks and sloping down to the C-frame, a ring in front of the hood
-# that carries the blade's center pivot. Lift cylinders ride on the arms' rear halves and angle
-# cylinders on their front halves, all black with chrome rods.
-# The barrels stay in body; the rest of the push frame is blade_rig and each rod is its own
-# bone, so the drive animation can raise the blade (ADR 0138).
+# that carries the blade's center pivot. Angle cylinders ride on the arms' front halves. Each lift
+# cylinder lies along the hood side under the deck front, pinned at its rear end, and its chrome rod
+# reaches forward to the top of a triangular gusset that rises from the arm, as in the owner's
+# reference photos.
+# The rest of the push frame is blade_rig, and each lift cylinder and rod is its own bone, so the
+# drive animation can raise the blade (ADR 0138).
 ARM_IN, ARM_OUT = 7.5, 9.5
 C_CENTER, C_OUTER, C_INNER = HOOD_FRONT - 9.6, 9.5, 6.9
 ARM_FRONT, ARM_REAR = (C_CENTER, 8.0), (2.0, 12.0)  # (z, y) centerline, low behind the track
 # The raised pose, drawn by the drive animation from yasu_ride:blade (ADR 0138): blade_rig moves
-# BLADE_RAISE px up and ROD_RETRACT px rearward, and each lift rod shortens by ROD_RETRACT
-# about the barrel mouth. The owner chose this visible retraction over strict kinematics.
-# The generator writes neither value: bulldozer.anim.json and tests/packs/bulldozer.test.ts repeat
-# them by hand, and bulldozerModel.test.ts fails when they differ from the animation's Molang.
+# BLADE_RAISE px up and ROD_RETRACT px rearward. Each lift cylinder swings up about its rear pin by
+# LIFT_SWING degrees and its rod shortens by ROD_SHORTEN px, so the rod's end follows the gusset top.
+# The owner chose this visible retraction over strict kinematics.
+# The generator writes none of these values: bulldozer.anim.json and tests/packs/bulldozer.test.ts
+# repeat them by hand, and bulldozerModel.test.ts fails when they differ from the animation's Molang.
 BLADE_RAISE = 3.0
 ROD_RETRACT = 3.0
-LIFT_ROD_FRONT, LIFT_ROD_REAR = -10.6, 2.0  # z of the rod's end in its bracket, and of the barrel mouth
-LIFT_ROD_X, LIFT_ROD_Y = (ARM_IN + ARM_OUT) / 2, 21.4  # the rod's axis
-assert BLADE_RAISE > 0 and 0 < ROD_RETRACT < LIFT_ROD_REAR - LIFT_ROD_FRONT
+LIFT_X, LIFT_Y = (ARM_IN + ARM_OUT) / 2, 21.4  # the cylinder's axis
+LIFT_PIN, LIFT_MOUTH, LIFT_ROD_END = 0.2, -6.0, -13.0  # z of the rear pin, the barrel mouth, and the rod's end
+ROD_LENGTH = LIFT_MOUTH - LIFT_ROD_END
+_raised_end = (LIFT_ROD_END + ROD_RETRACT - LIFT_PIN, BLADE_RAISE)  # the rod's end seen from the pin, raised
+LIFT_SWING = round(math.degrees(math.atan2(_raised_end[1], -_raised_end[0])), 2)
+ROD_SHORTEN = round(ROD_LENGTH - (math.hypot(*_raised_end) - (LIFT_PIN - LIFT_MOUTH)), 2)
+assert BLADE_RAISE > 0 and 0 < ROD_SHORTEN < ROD_LENGTH
+GUSSET_FRONT, GUSSET_REAR, GUSSET_TOP = (-19.5, -13.9), (-10.0, -12.1), 22.2  # (bottom z, top z) of each edge
 arms = [bar(ARM_FRONT, ARM_REAR, ARM_IN, ARM_OUT, 4.2, "yellow"),
         bar(ARM_FRONT, ARM_REAR, ARM_IN - 0.2, ARM_OUT + 0.2, 0.6, "yellow_dark", offset=1.6),
         *disc("x", ARM_OUT, ARM_REAR[1], ARM_REAR[0], 2.0, 0.5, "yellow_dark", STEPS_8),
         *disc("x", ARM_OUT + 0.5, ARM_REAR[1], ARM_REAR[0], 0.8, 0.3, "bolt", STEPS_8),
-        box(ARM_IN, 11.6, -11.8, ARM_OUT, 22.2, -10.6, "yellow"),  # rod end bracket on the arm
         box(ARM_IN - 0.2, 12.6, -25.4, ARM_OUT + 0.2, 15.0, -15.6, "black"),  # angle cylinder
         box(ARM_IN + 0.4, 13.2, -30.2, ARM_OUT - 0.4, 14.4, -25.4, "chrome")]
-for zb in (-17.0, -6.0, 3.6):  # yellow clamp brackets along the cylinders
+# The gusset under the rod's end, in rows whose front edge leans back up to the top
+y = 9.5
+while y < GUSSET_TOP - 1e-6:
+    y1 = min(y + 0.5, GUSSET_TOP)
+    t = ((y + y1) / 2 - 9.5) / (GUSSET_TOP - 9.5)
+    zf = GUSSET_FRONT[0] + (GUSSET_FRONT[1] - GUSSET_FRONT[0]) * t
+    zr = GUSSET_REAR[0] + (GUSSET_REAR[1] - GUSSET_REAR[0]) * t
+    arms.append(box(ARM_IN, y, zf, ARM_OUT, y1, zr, "yellow"))
+    y = y1
+arms += disc("x", ARM_OUT, LIFT_Y, LIFT_ROD_END, 1.1, 0.4, "steel", STEPS_8)  # the rod's end flange
+for zb in (-17.0, -6.0, 3.6):  # yellow clamp brackets along the arms
     yb = ARM_FRONT[1] + (ARM_REAR[1] - ARM_FRONT[1]) * (zb - ARM_FRONT[0]) / (ARM_REAR[0] - ARM_FRONT[0])
     arms.append(box(ARM_IN - 0.4, yb + 1.6, zb - 0.6, ARM_OUT + 0.4, yb + 2.6, zb + 0.6, "yellow_dark"))
 arms += [box(ARM_IN + 0.4, 10.4, -27.6, ARM_IN + 0.6, 12.2, -26.2, "steel"),  # lifting eye
          box(ARM_OUT - 0.6, 10.4, -27.6, ARM_OUT - 0.4, 12.2, -26.2, "steel"),
          box(ARM_IN + 0.4, 12.0, -27.6, ARM_OUT - 0.4, 12.2, -26.2, "steel")]
-lift_barrel = box(ARM_IN - 0.2, 22.0 - 1.4, LIFT_ROD_REAR, ARM_OUT + 0.2, 22.0 + 1.6, 7.6, "black")  # lift cylinder
-lift_rod = box(LIFT_ROD_X - 0.5, LIFT_ROD_Y - 0.6, LIFT_ROD_FRONT, LIFT_ROD_X + 0.5, LIFT_ROD_Y + 0.6, LIFT_ROD_REAR,
-               "chrome")  # lift cylinder rod
-body += both([lift_barrel])
+lift_cylinder = [box(LIFT_X - 1.2, LIFT_Y - 1.5, LIFT_MOUTH, LIFT_X + 1.2, LIFT_Y + 1.5, 0.8, "black"),  # barrel
+                 box(LIFT_X - 1.3, LIFT_Y - 1.6, LIFT_MOUTH - 0.4, LIFT_X + 1.3, LIFT_Y + 1.6, LIFT_MOUTH, "frame"),
+                 *disc("x", LIFT_X + 1.2, LIFT_Y, LIFT_PIN, 0.7, 0.3, "steel", STEPS_8)]  # rear pin
+lift_rod = box(LIFT_X - 0.5, LIFT_Y - 0.6, LIFT_ROD_END, LIFT_X + 0.5, LIFT_Y + 0.6, LIFT_MOUTH, "chrome")
+# The mount over the rear pin, hanging from the deck front
+body += both([box(LIFT_X - 1.1, LIFT_Y + 1.5, -1.0, LIFT_X + 1.1, DECK, 1.0, "black")])
 blade_rig = both(arms)
 # The C-frame's front half circle, closed at the back by the arms
 ring = 16
@@ -1190,8 +1216,11 @@ bones = mirror_x([
     {"name": "body", "parent": "root", "pivot": [0, 0, 0], "cubes": body, "locators": {"thruster": THRUSTER}},
     {"name": "blade_rig", "parent": "body", "pivot": [0, ARM_REAR[1], ARM_REAR[0]], "cubes": blade_rig},
     {"name": "blade", "parent": "blade_rig", "pivot": [0, 0, BLADE_FRONT], "cubes": blade},
-    {"name": "lift_rod_r", "parent": "body", "pivot": [LIFT_ROD_X, LIFT_ROD_Y, LIFT_ROD_REAR], "cubes": [lift_rod]},
-    {"name": "lift_rod_l", "parent": "body", "pivot": [-LIFT_ROD_X, LIFT_ROD_Y, LIFT_ROD_REAR],
+    {"name": "lift_cylinder_r", "parent": "body", "pivot": [LIFT_X, LIFT_Y, LIFT_PIN], "cubes": lift_cylinder},
+    {"name": "lift_cylinder_l", "parent": "body", "pivot": [-LIFT_X, LIFT_Y, LIFT_PIN],
+     "cubes": [mirrored(c) for c in lift_cylinder]},
+    {"name": "lift_rod_r", "parent": "lift_cylinder_r", "pivot": [LIFT_X, LIFT_Y, LIFT_MOUTH], "cubes": [lift_rod]},
+    {"name": "lift_rod_l", "parent": "lift_cylinder_l", "pivot": [-LIFT_X, LIFT_Y, LIFT_MOUTH],
      "cubes": [mirrored(lift_rod)]},
     {"name": "headlights", "parent": "body", "pivot": [0, 0, 0], "cubes": lamps},
     {"name": "beacon", "parent": "body", "pivot": [0, 0, 0], "cubes": beacon},
