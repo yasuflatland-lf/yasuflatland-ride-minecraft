@@ -163,6 +163,8 @@ export const TEST_INPUT_EVENT = id("test_input");
 export const TEST_DECOR_EVENT = id("test_decor");
 /** Test blade messages have the form "<vehicleId>,raised" or "<vehicleId>,lowered" (ADR 0138). */
 export const TEST_BLADE_EVENT = id("test_blade");
+/** Test held-tool messages have the form "<vehicleId>,<bare item id>" or "<vehicleId>,clear" (ADR 0139). */
+export const TEST_HELD_TOOL_EVENT = id("test_held_tool");
 
 /** Item the bulldozer's driver uses to raise or lower its blade (ADR 0138). */
 export const BLADE_SWITCH_TYPE = id("blade_switch");
@@ -354,6 +356,3 @@ export function campingGearOfDecorBlock(typeId: string): string | undefined {
 }
 /** Action bar hints for players on foot near a vehicle (ADR 0086). */
 export const hintKey = (name: string): string => `${NAMESPACE}.hint.${name}`;
-
-/** Test held-tool messages have the form "<vehicleId>,<bare item id>" or "<vehicleId>,clear" (ADR 0139). */
-export const TEST_HELD_TOOL_EVENT = id("test_held_tool");
