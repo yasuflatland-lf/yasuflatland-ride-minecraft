@@ -510,7 +510,8 @@ export async function bulldozerFallSurvives(a: Arena): Promise<Outcome> {
     await wait(2);
     car.teleport({ x: 20.5, y: gy + 40, z: 20.5 });
     let ticks = 0;
-    while (ticks < 120 && car.isValid && !car.isOnGround) {
+    // isOnGround still reads true for a few ticks after the teleport, so wait on the height
+    while (ticks < 200 && car.isValid && car.location.y > gy + 0.5) {
       await wait(1);
       ticks++;
     }
