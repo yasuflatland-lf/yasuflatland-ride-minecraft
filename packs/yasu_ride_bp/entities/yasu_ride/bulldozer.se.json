@@ -64,6 +64,12 @@
           "range": [0.0, 1.0],
           "default": 1.0,
           "client_sync": true
+        },
+        "yasu_ride:monitor": {
+          "type": "int",
+          "range": [0, 2],
+          "default": 0,
+          "client_sync": true
         }
       }
     },

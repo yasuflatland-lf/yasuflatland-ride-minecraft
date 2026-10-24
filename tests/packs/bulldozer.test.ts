@@ -168,8 +168,12 @@ it("runs the tracks, the door, and the blade rig from their properties", () => {
   for (const a of Object.values(anim) as { bones?: Record<string, unknown> }[])
     for (const b of Object.keys(a.bones ?? {})) expect(names).toContain(b);
 });
-it("maps each paint to its texture", () => {
-  expect(Object.keys(client.textures)).toEqual(["default", ...PAINTS.slice(1)]);
+it("maps each paint and the cab monitor to its texture", () => {
+  expect(Object.keys(client.textures)).toEqual([
+    "default",
+    ...PAINTS.slice(1),
+    "monitor",
+  ]);
   for (const t of Object.values(client.textures))
     expect(existsSync(`${RP}/${t}.png`)).toBe(true);
   expect(render.arrays.textures["Array.paints"]).toEqual(
