@@ -13,11 +13,13 @@ boat_engine_0 to boat_engine_7: the sports boat's engine (ADR 0060): the deep, l
 cross-plane V8, its wet exhaust bubbling out under the water, and the hiss of the hull cutting the water,
 at rising engine speeds. The client picks one by the boat's speed.
 shower: the loop of running water played while the camper's shower runs (ADR 0094).
-bulldozer_engine_0 to _5 and bulldozer_push_1 to _5: the Cat D5 six-cylinder diesel at idle (engine_0),
-in travel with the blade raised (engine_1 to _5), and pushing with the blade fully lowered (push_1 to
-_5). The client picks one by speed and blade (ADR 0140).
+bulldozer_engine_0 to _5 and bulldozer_push_1 to _5: a slow, thick six-cylinder diesel "do-do-do" with
+a thump once per engine cycle, matched to the owner's recording, at idle (engine_0), in travel with the
+blade raised (engine_1 to _5), and pushing with the blade fully lowered (push_1 to _5). The client picks
+one by speed and blade (ADR 0140).
 bulldozer_track_1 to _5: steel track clank, squeal, and roller rumble following ground speed (ADR 0140).
-bulldozer_hydraulics: a half-second blade pump whine, played once per movement (ADR 0140).
+bulldozer_hydraulics: the blade pump's groan and oil rush while the blade moves, a stop clunk, and a
+relief hiss, played once per movement (ADR 0140).
 
 Only the standard library is used, and the random generator is seeded, so the output is reproducible.
 The loops repeat without a click: the hover loops are sums of sines with whole cycles in the loop, and
@@ -84,16 +86,17 @@ SHOWER_BAND = (1200, 6000)
 # not checked against Cat's manual. Source: https://www.cgt.it/sites/default/files/d5_technical_specifications_en.pdf
 BULLDOZER_FIRING_ORDER = [1, 5, 3, 6, 2, 4]
 # Match animation_length in bulldozer.anim.json (4.0 for the engine_sound and push_sound
-# clips, 1.0 for track_sound). Cycle counts, links, whistle Hz, and the swell and wobble
-# rates below are whole cycles per loop, so changing these breaks the seams.
+# clips, 1.0 for track_sound). Cycle counts, links, and the push swell rate below are
+# whole cycles per loop, so changing these breaks the seams.
 BULLDOZER_ENGINE_LOOP_S = 4.0
 BULLDOZER_TRACK_LOOP_S = 1.0
-# Engine cycles per 4 s loop (rpm / 30), matched to the owner's own recording of a dozer
-# (scratch analysis, not committed): its exhaust tone sits at 97-143 Hz, twice the firing
-# rate, and its "do-do-do" thumps come once per engine cycle at 8-12 a second (ADR 0140).
-BULLDOZER_IDLE_CYCLES = 32                       # 8 cycles/s, 480 rpm, 48 Hz firing.
-BULLDOZER_TRAVEL_CYCLES = [36, 40, 42, 44, 48]   # 9-12 cycles/s, 540-720 rpm.
-BULLDOZER_PUSH_CYCLES = [34, 38, 40, 42, 46]     # Lower than travel under load.
+# Four-stroke engine cycles per 4 s loop (rpm / 30), matched to the owner's own recording
+# of a dozer (analyzed locally, not committed): its exhaust tone sits at 97-143 Hz, twice
+# the firing rate, and its "do-do-do" thumps come once per engine cycle at 8-12 a second
+# (ADR 0140).
+BULLDOZER_IDLE_CYCLES = 32                       # 8 cycles/s, 960 rpm, 48 Hz firing.
+BULLDOZER_TRAVEL_CYCLES = [36, 40, 42, 44, 48]   # 9-12 cycles/s, 1080-1440 rpm.
+BULLDOZER_PUSH_CYCLES = [34, 38, 40, 42, 46]     # 8.5-11.5 cycles/s, lower than travel under load.
 # Exhaust resonances (Hz, Q, gain) placing the energy where the recording has it: most
 # between 120 and 500 Hz, some up to 2 kHz, almost none above (ADR 0140).
 BULLDOZER_EXHAUST = [(65, 3.0, 0.5), (130, 3.0, 1.2), (260, 4.0, 0.65), (420, 4.0, 0.55), (800, 5.0, 0.35), (1400, 6.0, 0.25)]
