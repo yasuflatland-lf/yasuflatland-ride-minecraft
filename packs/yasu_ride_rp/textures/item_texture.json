@@ -15,6 +15,9 @@
     "yasu_ride_bulldozer_item": {
       "textures": "textures/items/yasu_ride/bulldozer_item"
     },
+    "yasu_ride_blade_switch": {
+      "textures": "textures/items/yasu_ride/blade_switch"
+    },
     "yasu_ride_low_chair_item": {
       "textures": "textures/items/yasu_ride/low_chair_item"
     },

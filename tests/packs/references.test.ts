@@ -9,6 +9,7 @@ import { describe, expect, it } from "vitest";
 import { VEHICLE_KINDS } from "../../src/domain/vehicle/kind";
 import { HEADLIGHT_SWITCH_TYPE } from "../../src/infrastructure/shared/identifiers";
 import {
+  BLADE_SWITCH_TYPE,
   DECK_SEAT_TYPE,
   ENTITY_TYPE,
   ITEM_TYPE,
@@ -177,6 +178,7 @@ describe("Resource Pack and Behavior Pack references", () => {
       expect.arrayContaining([
         ...Object.values(ITEM_TYPE),
         HEADLIGHT_SWITCH_TYPE,
+        BLADE_SWITCH_TYPE,
       ]),
     );
   });

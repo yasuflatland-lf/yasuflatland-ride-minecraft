@@ -947,7 +947,7 @@ describe("camping gear blocks and items (ADR 0093)", () => {
       ).toBe(ATLAS_KEY);
   });
 
-  it("lists the camping gear box, then every gear item in spec order, then the low chair and tent, in the Camping Gear group of the Items tab", () => {
+  it("lists the camping gear box, then every gear item in spec order, then the low chair and tent, in the Camping Gear group, followed by the Bulldozer Switches group", () => {
     const items = [
       "yasu_ride:camping_gear_box",
       ...SPEC.map((g) => `yasu_ride:${g.id}`),
@@ -969,6 +969,13 @@ describe("camping gear blocks and items (ADR 0093)", () => {
                   name: "yasu_ride:camping_gear",
                 },
                 items,
+              },
+              {
+                group_identifier: {
+                  icon: "yasu_ride:blade_switch",
+                  name: "yasu_ride:bulldozer_switches",
+                },
+                items: ["yasu_ride:blade_switch"],
               },
             ],
           },

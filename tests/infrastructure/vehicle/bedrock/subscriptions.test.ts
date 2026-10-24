@@ -27,6 +27,7 @@ import { PAINT_BY_DYE } from "../../../../src/infrastructure/shared/dyes";
 import { HEADLIGHT_SWITCH_TYPE } from "../../../../src/infrastructure/shared/identifiers";
 import type { SwitchTarget } from "../../../../src/infrastructure/shared/switchRouter";
 import {
+  BLADE_SWITCH_TYPE,
   CAMPER_BED_COMPONENT,
   CAMPER_CABINET_COMPONENT,
   CAMPER_DECOR_COMPONENT,
@@ -2017,5 +2018,196 @@ describe("camper bumper stand-in (ADR 0116)", () => {
     expect(kept.remove).not.toHaveBeenCalled();
     expect(stray.remove).toHaveBeenCalledOnce();
     expect(orphan.remove).toHaveBeenCalledOnce();
+  });
+});
+
+describe("blade switch (ADR 0138)", () => {
+  const location = { x: 2.5, y: 64, z: 3.5 };
+  function fixture(
+    mount: { id: string; typeId: string } | null = {
+      id: "dozer",
+      typeId: ENTITY_TYPE.bulldozer,
+    },
+    result = true,
+  ) {
+    const playSound = vi.fn();
+    const vehicle = mount
+      ? { ...mount, dimension: { playSound }, location }
+      : undefined;
+    const blade = { execute: vi.fn(() => result), force: vi.fn() };
+    const headlights = { execute: vi.fn(() => false) };
+    const ceilingLights = { execute: vi.fn(), canSwitch: vi.fn(() => false) };
+    const later = {
+      claimsItemUse: () => true,
+      claimsEntityPress: () => true,
+      claimsBlockPress: () => true,
+      switchFor: vi.fn(),
+    };
+    const usesBefore = game.use.mock.calls.length;
+    const entities = vi.mocked(
+      world.beforeEvents.playerInteractWithEntity.subscribe,
+    );
+    const entitiesBefore = entities.mock.calls.length;
+    registerSubscriptions(
+      {
+        blade,
+        headlights,
+        ceilingLights,
+        board: { execute: vi.fn(() => false) },
+      } as unknown as Parameters<typeof registerSubscriptions>[0],
+      new TestInputStore(),
+      () => undefined,
+      () => undefined,
+      () => undefined,
+      () => [later],
+    );
+    const onBlock = defined(game.before.mock.calls.at(-2)?.[0], "block press");
+    const onEntity = entities.mock.calls.slice(entitiesBefore).map(([h]) => h);
+    const uses = game.use.mock.calls.slice(usesBefore).map(([h]) => h);
+    game.run.mockClear();
+    const player = {
+      id: "player",
+      isValid: true,
+      dimension: { id: "overworld" },
+      location,
+      getHeadLocation: () => location,
+      getViewDirection: () => ({ x: 0, y: 0, z: 1 }),
+      inputInfo: { lastInputModeUsed: "KeyboardAndMouse" },
+      getComponent: (name: string) =>
+        name === "minecraft:riding" && vehicle
+          ? { entityRidingOn: vehicle }
+          : undefined,
+    };
+    return {
+      blade,
+      headlights,
+      ceilingLights,
+      later,
+      playSound,
+      send(
+        kind: "item" | "entity" | "block",
+        typeId: string | undefined,
+        target = { id: "dozer", typeId: ENTITY_TYPE.bulldozer },
+        isFirstEvent = true,
+      ) {
+        const itemStack = typeId === undefined ? undefined : { typeId };
+        const ev = {
+          player,
+          source: player,
+          itemStack,
+          target: { ...target, location },
+          isFirstEvent,
+          cancel: false,
+        };
+        if (kind === "item")
+          for (const h of uses) h(ev as unknown as ItemUseAfterEvent);
+        if (kind === "entity")
+          for (const h of onEntity)
+            h(ev as unknown as PlayerInteractWithEntityBeforeEvent);
+        if (kind === "block")
+          onBlock(ev as unknown as PlayerInteractWithBlockBeforeEvent);
+        return ev;
+      },
+      nextTick() {
+        for (const [callback] of game.run.mock.calls) callback();
+        game.run.mockClear();
+      },
+    };
+  }
+  it("routes each switch item to its own targets only", () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom(
+          HEADLIGHT_SWITCH_TYPE,
+          BLADE_SWITCH_TYPE,
+          "minecraft:stick",
+          undefined,
+        ),
+        fc.constantFrom("item", "entity", "block"),
+        (type, kind) => {
+          fc.pre(type !== undefined || kind !== "item");
+          const f = fixture();
+          const ev = f.send(kind, type);
+          if (kind === "entity") expect(f.blade.execute).not.toHaveBeenCalled();
+          f.nextTick();
+          expect(f.blade.execute).toHaveBeenCalledTimes(
+            type === BLADE_SWITCH_TYPE && kind !== "block" ? 1 : 0,
+          );
+          if (type === BLADE_SWITCH_TYPE) {
+            expect(f.headlights.execute).not.toHaveBeenCalled();
+            expect(f.ceilingLights.execute).not.toHaveBeenCalled();
+            expect(f.later.switchFor).not.toHaveBeenCalled();
+          }
+          if (type === undefined) expect(ev.cancel).toBe(false);
+        },
+      ),
+    );
+  });
+  it("switches the ridden bulldozer's blade on item use and clicks only when it switched", () => {
+    for (const result of [true, false]) {
+      const f = fixture({ id: "dozer", typeId: ENTITY_TYPE.bulldozer }, result);
+      f.send("item", BLADE_SWITCH_TYPE);
+      expect(f.blade.execute).toHaveBeenCalledExactlyOnceWith({
+        playerId: "player",
+        vehicleId: "dozer",
+      });
+      expect(f.playSound).toHaveBeenCalledTimes(result ? 1 : 0);
+      if (result)
+        expect(f.playSound).toHaveBeenCalledWith("random.click", location);
+    }
+  });
+  it("ignores the blade switch on foot or on another mount", () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom(undefined, { id: "pig", typeId: "minecraft:pig" }),
+        fc.constantFrom("item", "entity", "block"),
+        fc.constantFrom(
+          { id: "cow", typeId: "minecraft:cow" },
+          { id: "dozer", typeId: ENTITY_TYPE.bulldozer },
+        ),
+        (mount, kind, target) => {
+          const f = fixture(mount ?? null);
+          expect(f.send(kind, BLADE_SWITCH_TYPE, target).cancel).toBe(false);
+          expect(game.run).not.toHaveBeenCalled();
+          expect(f.blade.execute).not.toHaveBeenCalled();
+          expect(f.playSound).not.toHaveBeenCalled();
+        },
+      ),
+    );
+  });
+  it("takes a rider's press on their own vehicle, and nothing else", () => {
+    for (const [target, item, claimed] of [
+      [{ id: "dozer", typeId: ENTITY_TYPE.bulldozer }, BLADE_SWITCH_TYPE, true],
+      [{ id: "cow", typeId: "minecraft:cow" }, BLADE_SWITCH_TYPE, false],
+      [
+        { id: "other", typeId: ENTITY_TYPE.bulldozer },
+        BLADE_SWITCH_TYPE,
+        false,
+      ],
+      [
+        { id: "dozer", typeId: ENTITY_TYPE.bulldozer },
+        "minecraft:stick",
+        false,
+      ],
+    ] as const) {
+      const f = fixture();
+      expect(f.send("entity", item, target).cancel).toBe(claimed);
+      expect(f.blade.execute).not.toHaveBeenCalled();
+      f.nextTick();
+      expect(f.blade.execute).toHaveBeenCalledTimes(claimed ? 1 : 0);
+    }
+  });
+  it("never takes a block press", () => {
+    fc.assert(
+      fc.property(fc.boolean(), fc.boolean(), (isFirst, riding) => {
+        const f = fixture(
+          riding ? { id: "dozer", typeId: ENTITY_TYPE.bulldozer } : null,
+        );
+        expect(
+          f.send("block", BLADE_SWITCH_TYPE, undefined, isFirst).cancel,
+        ).toBe(false);
+        expect(f.blade.execute).not.toHaveBeenCalled();
+      }),
+    );
   });
 });

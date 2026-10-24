@@ -34,6 +34,13 @@
               "yasu_ride:low_chair_item",
               "yasu_ride:tent_item"
             ]
+          },
+          {
+            "group_identifier": {
+              "icon": "yasu_ride:blade_switch",
+              "name": "yasu_ride:bulldozer_switches"
+            },
+            "items": ["yasu_ride:blade_switch"]
           }
         ]
       }

@@ -211,20 +211,27 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 
 ## Bulldozer
 
-Setup: use `/give @s yasu_ride:bulldozer_item` or craft from an SUV item, an iron block, and an iron shovel.
+Setup: use `/give @s yasu_ride:bulldozer_item` or craft from an SUV item, an iron block, and an iron shovel. Craft the Blade Up/Down switch from a lever and an iron ingot, or use `/give @s yasu_ride:blade_switch`.
 
 | # | Check | Pass condition | PC | Mobile |
 |---|---|---|---|---|
 | B1 | Place and replace (one per player) | Place one, then another; only the newest stays and other kinds stay | | |
 | B2 | The starter item in Survival | Join with an existing SUV starter flag; receive only the bulldozer, and none on rejoin | | |
-| B3 | Pivot and driving feel | Forward and back stay straight; sideways pivots and stops; Jump tap hops; no automatic step-up | | |
+| B3 | Pivot and driving feel | Forward and back stay straight; sideways pivots and stops; Jump tap hops; with the blade raised it climbs 1- and 2-block steps automatically, and with it lowered there is no automatic step-up | | |
 | B4 | Flight speeds | Double tap takes off; flight and water cap at 9 blocks/s and never bank | | |
 | B5 | Door | Board and leave; the left door opens over 10 ticks, waits, and closes after 40 ticks | | |
 | B6 | Cab view | PC and touch riders see out of the cab and turn with the body | | |
 | B7 | Headlights at night (the cab stays dark) | Headlights and rear beacon glow; the road lights up and the cab stays dark | | |
 | B8 | Glow and propeller | Thruster glows only in flight; the propeller spins only under water | | |
-| B9 | Cutting bedrock, barriers, command blocks and light blocks | Forward cutting removes them; liquids, containers and laid add-on blocks stay | | |
-| B10 | Cutting in Adventure mode | The blade clears the same terrain in Adventure | | |
+| B9 | Cutting bedrock, barriers, command blocks and light blocks with the blade lowered | Forward cutting removes them; liquids, containers and laid add-on blocks stay | | |
+| B10 | Cutting in Adventure mode with the blade lowered | The blade clears the same terrain in Adventure | | |
+| B11 | Creative group | The creative Items tab shows a "Bulldozer Switches" group after "Camping Gear". Its icon is the switch, and it holds only "Blade Up/Down", named in your language | | |
+| B12 | Spawn pose | Place a bulldozer: the blade is up and the lift rods are short | | |
+| B13 | PC switch | Drive and right-click with the switch, then hold the button. The blade lowers over half a second, the rods lengthen, and a click plays. The held button switches only once. A second click raises the blade again | | |
+| B14 | Mobile switch | Drive and long press with the switch, then hold. The blade lowers over half a second, the rods lengthen, and a click plays. The held press switches only once. A second long press raises the blade again | | |
+| B15 | Raised and lowered movement | Raised, drive at a 1-block and a 2-block step, then into a hill. It climbs both steps and removes no block. Lowered, it cuts the hill as in B9 | | |
+| B16 | Outside the bulldozer | On foot next to the bulldozer, use the switch aimed at the ground (not at the bulldozer, which boards it), and use it while driving an SUV. The blade does not move and no click plays | | |
+| B17 | Saved blade | Lower the blade, run `pnpm server:restart`, and rejoin. The bulldozer is still lowered and still cuts | | |
 
 ## Tent
 

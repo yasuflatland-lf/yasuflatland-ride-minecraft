@@ -29,6 +29,7 @@ import {
   type SwitchTarget,
 } from "../../shared/switchRouter";
 import type { TestInputStore } from "../testInput/testInputStore";
+import { bladeSwitchTarget } from "./handlers/blade";
 import { registerBoarding } from "./handlers/boarding";
 import { registerDecor } from "./handlers/decor";
 import { registerDockDoor } from "./handlers/dockDoor";
@@ -46,7 +47,7 @@ import { registerStorage } from "./handlers/storage";
 import { registerTestBlade } from "./handlers/testBlade";
 import { registerTestDecor } from "./handlers/testDecor";
 import { registerTestInput } from "./handlers/testInput";
-import { CAMPER_BED_COMPONENT } from "./identifiers";
+import { BLADE_SWITCH_TYPE, CAMPER_BED_COMPONENT } from "./identifiers";
 
 export function registerSubscriptions(
   useCases: {
@@ -108,8 +109,10 @@ export function registerSubscriptions(
     useCases.ceilingLights,
     dockCellOwner,
   );
+  const blade = bladeSwitchTarget(useCases.blade);
   const switchRoutes: SwitchRoutes = {
     [HEADLIGHT_SWITCH_TYPE]: () => [vehicle, ...laterSwitchTargets()],
+    [BLADE_SWITCH_TYPE]: () => [blade],
   };
   registerSwitchRouter(switchRoutes);
   registerPlacement(useCases.place);

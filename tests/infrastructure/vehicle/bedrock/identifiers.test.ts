@@ -27,6 +27,7 @@ import {
   NAMESPACE,
 } from "../../../../src/infrastructure/shared/identifiers";
 import {
+  BLADE_SWITCH_TYPE,
   CAMPER_BED_BLOCK,
   CAMPER_CABINET_DOOR_BLOCK,
   CAMPER_CEILING_BLOCK,
@@ -102,6 +103,7 @@ describe("identifiers (ADR 0047)", () => {
     "yasu_ride:unknown",
     "toString",
     HEADLIGHT_SWITCH_TYPE,
+    BLADE_SWITCH_TYPE,
   ])("does not recognize an unrelated type %s", (typeId) => {
     expect(kindOfEntity(typeId)).toBeUndefined();
     expect(isVehicleEntity(typeId)).toBe(false);
@@ -170,6 +172,7 @@ describe("identifiers (ADR 0047)", () => {
       FLEET_PROPERTY,
       OWNER_PROPERTY,
       HEADLIGHT_SWITCH_TYPE,
+      BLADE_SWITCH_TYPE,
       HEADLIGHTS_PROPERTY,
       LIT_CELLS_PROPERTY,
       TEST_INPUT_EVENT,

@@ -726,3 +726,35 @@ it("switches step-up on the tick the blade's target changes (ADR 0138)", () => {
   expect(rises.indexOf(true)).toBe(10);
   expect(rises.slice(40)).not.toContain(true);
 });
+
+it("a placed bulldozer starts raised: it steps up and never cuts", () => {
+  fc.assert(
+    fc.property(yaw, (heading) => {
+      const d = new BulldozerDrive(heading, {});
+      expect(d.bladeRaised()).toBe(true);
+      let rises = false;
+      let b: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
+      for (let tick = 0; tick < 30; tick++) {
+        const out = d.step(FORWARD, {
+          ...context(),
+          tick,
+          solidAt: (o) => o.y < 1,
+          velocity: { ...b.vel, y: 0 },
+        });
+        b = engineStep(b, out.impulse, { mu: 0.69 }).body;
+        expect(out.cut).toBeUndefined();
+        rises ||= out.impulse.y === MOTION.oneStepVelocity;
+      }
+      expect(rises).toBe(true);
+    }),
+  );
+});
+it("restores a saved lowered blade", () => {
+  const d = new BulldozerDrive(0, { blade: 0 });
+  expect(d.bladeRaised()).toBe(false);
+  let out = d.step(FORWARD, context());
+  for (let tick = 1; tick < 30 && d.speed <= S.blade.minSpeed; tick++)
+    out = d.step(FORWARD, { ...context(), tick });
+  expect(d.speed).toBeGreaterThan(S.blade.minSpeed);
+  expect(out.cut).toBeDefined();
+});

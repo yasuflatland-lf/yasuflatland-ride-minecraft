@@ -25,6 +25,7 @@ import {
   bulldozerPivot,
   bulldozerRaisedNoCut,
   bulldozerRamCow,
+  bulldozerSpawnsRaised,
   bulldozerStep2Raised,
 } from "./scenarios/bulldozer";
 import {
@@ -124,6 +125,7 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
     ["bulldozer_dive", 18, () => bulldozerDive(a)],
     ["bulldozer_step2_raised", 67, () => bulldozerStep2Raised(a)],
     ["bulldozer_raised_no_cut", 77, () => bulldozerRaisedNoCut(a)],
+    ["bulldozer_spawns_raised", 65, () => bulldozerSpawnsRaised(a)],
     ["camper_accel", 144, () => camperAccel(a)],
     ["camper_wall", 150, () => camperWall(a)],
     ["camper_takeoff", 33, () => camperTakeoff(a)],
