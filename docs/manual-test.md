@@ -82,7 +82,7 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | # | Steps | Pass condition | PC | Mobile |
 |---|---|---|---|---|
 | C1 | Use the camper item on the ground | The camper faces forward and consumes the item, except in Creative | | |
-| C2 | Place it with a block 4 cells from the target block (inside the 9 x 9 x 4 clear cells it needs) | No camper is placed | | |
+| C2 | Place it beside a wall or a rock, with a block one cell from the target block (inside the 3 x 3 x 4 clear cells it needs) and again with one 2 cells away | The first is refused; the second is placed, as the SUV is (ADR 0143) | | |
 | C3 | Craft with an SUV item, a bed, a chest, and an oak door; repeat with different bed colors | The recipe works with every bed color | | |
 | C4 | Have four players get in by long-pressing the front bumper | Seat 0 is the front-right driver, with the steering wheel in front of them; seats 2 and 3 face each other on the left | | |
 | C5 | Drive forward and backward toward walls, a one-block-thick wall at top speed, and a one-block pillar off the center line, then over a one-block step, then at a one-block curb right in front of a wall | Both ends stop without entering or passing the walls or the pillar; the camper climbs the step; at the curb it stops without hopping | | |
