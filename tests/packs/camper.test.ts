@@ -177,6 +177,15 @@ describe("camper model assets (ADR 0067)", () => {
     }
   });
 
+  // Slot 6 is the stripe in the PALETTE order of tools/gen_camper.py.
+  const flatStripeCubes = (side: number) =>
+    (bone("body").cubes ?? []).filter(
+      (c) =>
+        c.uv.north?.uv[0] === 6 &&
+        !c.rotation &&
+        Math.sign(c.origin[0] ?? 0) === side,
+    );
+
   it("draws the side stripe's W as mirrored single-cube strokes on a flat bottom (#459)", () => {
     // The PALETTE order in tools/gen_camper.py puts the stripe in slot 6.
     const strokes = (bone("body").cubes ?? []).filter(
@@ -230,12 +239,7 @@ describe("camper model assets (ADR 0067)", () => {
       });
       // Geometry coordinates are rounded to three decimal places by the generator.
       for (const y of lowest) expect(y).toBeGreaterThanOrEqual(wBottom + 0.4);
-      const rows = (bone("body").cubes ?? []).filter(
-        (c) =>
-          c.uv.north?.uv[0] === 6 &&
-          !c.rotation &&
-          Math.sign(c.origin[0] ?? 0) === side,
-      );
+      const rows = flatStripeCubes(side);
       expect(
         Math.min(...lowest, ...rows.map((c) => c.origin[1] ?? 0)),
       ).toBeCloseTo(wBottom, 2);
@@ -244,12 +248,7 @@ describe("camper model assets (ADR 0067)", () => {
 
   it("chamfers both feet and the middle peak on each side (#596)", () => {
     for (const side of [1, -1]) {
-      const rows = (bone("body").cubes ?? []).filter(
-        (c) =>
-          c.uv.north?.uv[0] === 6 &&
-          !c.rotation &&
-          Math.sign(c.origin[0] ?? 0) === side,
-      );
+      const rows = flatStripeCubes(side);
       const feet = rows.filter(
         (c) => Math.abs((c.origin[1] ?? 0) - 19.1) < 0.001,
       );
@@ -426,13 +425,7 @@ describe("camper model assets (ADR 0067)", () => {
   });
 
   it("keeps the wheel's spokes level (owner decision in #410)", () => {
-    const palette = readFileSync("tools/gen_camper.py", "utf8").match(
-      /^PALETTE = \{\n([\s\S]*?)^\}/m,
-    )?.[1];
-    const slots = [...(palette ?? "").matchAll(/^\s+"(\w+)":/gm)].map(
-      (m) => m[1],
-    );
-    const ivory = slots.indexOf("ivory");
+    const ivory = paletteSlots.indexOf("ivory");
     expect(ivory).toBeGreaterThanOrEqual(0);
     const spokes = (bone("steering").cubes ?? []).filter(
       (cube) => cube.uv.north?.uv[0] === ivory && Math.max(...cube.size) >= 3,

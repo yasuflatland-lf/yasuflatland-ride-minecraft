@@ -199,9 +199,7 @@ STRIPE_FRONT = FRONT + 10
 # The W, measured on the side close-up: p runs from its rear edge (0) to its front edge (1).
 # It is mirrored about p = 0.5, every stroke W_STROKE wide along p (#459).
 W_WIDTH, W_BOTTOM, W_STROKE = 16.5, ARCH_TOP + 1.5, 0.17
-W_TIP_CUT = 0.8
-W_ROW = 0.25
-DOOR_HANDLE_Y = (STRIPE_Y[0] - 1.5, STRIPE_Y[0] - 0.5)
+W_TIP_CUT, W_ROW = 0.8, 0.25  # chamfer leg at each tip, and the height of each filler row (ADR 0145)
 W_REAR = FRONT_AXLE + W_WIDTH / 2  # centered over the front wheel
 W_MID = STRIPE_Y[1] - 0.32 * (STRIPE_Y[1] - W_BOTTOM)  # top of the middle peak
 W_ARM_START, W_FOOT, W_PEAK = (0.0, W_STROKE), (0.24, round(0.24 + W_STROKE, 6)), (0.415, 0.585)
@@ -222,7 +220,7 @@ W_STROKES = [(W_FOOT, W_ARM_START, STRIPE_Y[0]), (W_FOOT, W_PEAK, W_MID)]
 W_STROKES += [(w_mirror(b), w_mirror(t), y) for b, t, y in W_STROKES]
 
 
-def w_stroke(x0, x1, bottom, top, y_top, trim):
+def w_stroke(x0, x1, bottom, top, y_top):
     """Keep each slanted edge straight with one rotated cube. Shorten its foot and
     inner peak ends for the chamfers; rows cover the remaining square-end gaps."""
     h = y_top - W_BOTTOM
@@ -230,27 +228,29 @@ def w_stroke(x0, x1, bottom, top, y_top, trim):
     length = math.hypot(zt - zb, h)
     thick = W_WIDTH * (bottom[1] - bottom[0]) * h / length
     drop = thick * abs(zt - zb) / length
-    yb = W_BOTTOM + drop / 2 + trim
-    yt = y_top + drop / 2 if y_top == STRIPE_Y[0] else y_top - drop / 2 - trim
+    yb = W_BOTTOM + drop / 2 + W_TIP_CUT
+    yt = y_top + drop / 2 if y_top == STRIPE_Y[0] else y_top - drop / 2 - W_TIP_CUT
     yc = (yb + yt) / 2
     zc = zb + (zt - zb) * (yc - W_BOTTOM) / h
     half = (yt - yb) * length / h / 2
     # In game a negative x rotation tips the cube's top toward +z, the rear (ADR 0051).
     lean = -math.degrees(math.atan2(zt - zb, h))
     cube = box(x0, yc - half, zc - thick / 2, x1, yc + half, zc + thick / 2, "stripe", [lean, 0, 0], [x0, yc, zc])
-    return cube, drop + trim
+    return cube, drop + W_TIP_CUT
 
 
-def w_fill_rows(x0, x1, span, y0, y1, chamfer):
-    """Intersect the outline at both row edges so no row protrudes past a slant.
+def w_fill_rows(x0, x1, span, drop):
+    """Fill the drop below the peak or above a foot left by the square stroke ends.
+    Intersect the outline at both row edges so no row protrudes past a slant.
     The tip inset follows a 45-degree cut, conservatively sampled at the tipward edge."""
-    strokes = [(b, t, y) for b, t, y in W_STROKES
-               if (t if chamfer == "peak" else b) == span]
+    peak = span == W_PEAK
+    y0, y1 = (W_MID - drop, W_MID) if peak else (W_BOTTOM, W_BOTTOM + drop)
+    strokes = [(b, t, y) for b, t, y in W_STROKES if (t if peak else b) == span]
 
     def interval(y):
         edges = [w_z(b[i] + (t[i] - b[i]) * (y - W_BOTTOM) / (top - W_BOTTOM))
                  for b, t, top in strokes for i in (0, 1)]
-        distance = W_MID - y if chamfer == "peak" else y - W_BOTTOM
+        distance = W_MID - y if peak else y - W_BOTTOM
         inset = max(0, W_TIP_CUT - distance)
         return min(edges) + inset, max(edges) - inset
 
@@ -311,16 +311,13 @@ for x0, x1, windows in ((HW - 1, HW, right_windows), (-HW, -HW + 1, left_windows
         y += 0.25
     drops = {}
     for bottom, top, y_top in W_STROKES:
-        cube, drop = w_stroke(lo, hi, bottom, top, y_top, W_TIP_CUT)
+        cube, drop = w_stroke(lo, hi, bottom, top, y_top)
         body.append(cube)
         for end in (bottom, top if y_top == W_MID else None):
             if end:
                 drops[end] = max(drops.get(end, 0), drop)
     for span, drop in drops.items():
-        if span == W_PEAK:
-            body += w_fill_rows(lo, hi, span, W_MID - drop, W_MID, "peak")
-        else:
-            body += w_fill_rows(lo, hi, span, W_BOTTOM, W_BOTTOM + drop, "foot")
+        body += w_fill_rows(lo, hi, span, drop)
     for z0, z1, y0, y1 in windows:
         frame = "black" if (z0, z1) == CAB_WIN[:2] else "chrome"
         for fz0, fz1, fy0, fy1 in ((z0 - 0.6, z1 + 0.6, y0 - 0.6, y0), (z0 - 0.6, z1 + 0.6, y1, y1 + 0.6),
@@ -353,6 +350,7 @@ body.append(box(-HW - 0.4, 19, 14, -HW - 0.3, 20, 15.5, "chrome"))
 
 # Entry door stays closed until the later parking work; a fold-out step stays below it.
 DZ0, DZ1, DY0, DY1 = DOOR
+DOOR_HANDLE_Y = (STRIPE_Y[0] - 1.5, STRIPE_Y[0] - 0.5)  # half a pixel below the stripe (ADR 0145)
 door = [box(HW - 1, DY0, DZ0 + 0.1, HW, DY1, DZ1 - 0.1, "white")]
 # The door window lines up with the side windows, as on the close-up photo.
 DW0, DW1 = DZ0 + 3, DZ1 - 3
@@ -621,10 +619,9 @@ for sx in (1, -1):
     body.append(box(x0, MY0 + 0.4, mz + 1.2, x1, MY1 - 0.4, mz + 1.3, "glass"))
 
 # --- Rear -------------------------------------------------------------------
-REAR_SIGNAL_X = 22.9
-REAR_SIGNAL_Y = 15.0
-REAR_SIGNAL_BEZEL_R = 0.9
-REAR_SIGNAL_LENS_R = 0.65
+# Static amber turn signals outside the tail lights, clear of the ladder (ADR 0145).
+REAR_SIGNAL_X, REAR_SIGNAL_Y = 22.9, 15.0
+REAR_SIGNAL_BEZEL_R, REAR_SIGNAL_LENS_R = 0.9, 0.65
 REAR_START = len(body)
 REAR_WIN = (-17, 17, 38, 50)
 body.append(box(-17, 38, REAR - 0.6, 17, 50, REAR - 0.4, "glass"))
