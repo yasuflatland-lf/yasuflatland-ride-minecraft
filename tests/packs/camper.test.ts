@@ -1701,6 +1701,27 @@ describe("camper rear-right vent cover (ADR 0146)", () => {
       ).toBe(true);
     }
   });
+  it("centers the slats so the edge cells match", () => {
+    const slats = (bone("body").cubes ?? []).filter(
+      (c) =>
+        c.uv.north?.uv[0] === SLAT_SLOT &&
+        end(c, 0) <= -24.0999 &&
+        (c.origin[1] ?? 0) >= 38 &&
+        (c.origin[2] ?? 0) >= 41.5,
+    );
+    for (const [axis, lo, hi] of [
+      [2, 42.3, 48.7],
+      [1, 38.8, 45.2],
+    ] as const) {
+      const bars = slats
+        .filter((c) => Math.abs((c.size[axis] ?? 0) - 0.4) < 0.0001)
+        .sort((a, b) => (a.origin[axis] ?? 0) - (b.origin[axis] ?? 0));
+      expect(bars.length).toBeGreaterThanOrEqual(3);
+      const first = (bars[0]?.origin[axis] ?? 0) - lo;
+      const last = hi - ((bars.at(-1)?.origin[axis] ?? 0) + 0.4);
+      expect(Math.abs(first - last)).toBeLessThan(0.05);
+    }
+  });
   it("draws an exterior chrome bezel and crossed slat layers over black backing", () => {
     const cover = (bone("body").cubes ?? []).filter(
       (c) =>

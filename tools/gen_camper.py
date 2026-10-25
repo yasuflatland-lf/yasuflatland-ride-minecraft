@@ -171,10 +171,11 @@ def vent_cover(z0, z1, y0, y1):
     band = HW + 0.1  # the khaki band's outer face
 
     def bar_centers(lo, hi):
-        c = lo + VENT_MESH_PITCH / 2
-        while c + half <= hi:
-            yield c
-            c += VENT_MESH_PITCH
+        # Center the run of bars so the first and last cells match.
+        n = int((hi - lo - VENT_MESH_BAR) // VENT_MESH_PITCH) + 1
+        start = lo + (hi - lo - (n - 1) * VENT_MESH_PITCH) / 2
+        for i in range(n):
+            yield start + i * VENT_MESH_PITCH
 
     return [
         box(band, y0, z0, band + 0.4, iy0, z1, "chrome"),

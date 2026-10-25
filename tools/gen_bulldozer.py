@@ -342,19 +342,20 @@ def step_mesh(x0, z0, x1, z1):
     half = STEP_MESH_BAR / 2
 
     def bar_centers(lo, hi):
-        c = lo + STEP_MESH_PITCH / 2
-        while c + half <= hi:
-            yield c
-            c += STEP_MESH_PITCH
+        # Center the run of bars so the first and last cells match.
+        n = int((hi - lo - STEP_MESH_BAR) // STEP_MESH_PITCH) + 1
+        start = lo + (hi - lo - (n - 1) * STEP_MESH_PITCH) / 2
+        for i in range(n):
+            yield start + i * STEP_MESH_PITCH
 
     return [
-        box(x0, DECK, z0, x1, top, iz0, "steel"),
-        box(x0, DECK, iz1, x1, top, z1, "steel"),
-        box(x0, DECK, iz0, ix0, top, iz1, "steel"),
-        box(ix1, DECK, iz0, x1, top, iz1, "steel"),
+        box(x0, DECK, z0, x1, top, iz0, "yellow"),
+        box(x0, DECK, iz1, x1, top, z1, "yellow"),
+        box(x0, DECK, iz0, ix0, top, iz1, "yellow"),
+        box(ix1, DECK, iz0, x1, top, iz1, "yellow"),
         box(ix0, DECK, iz0, ix1, backing_top, iz1, "hole"),
-        *(box(x - half, backing_top, iz0, x + half, lower_top, iz1, "steel") for x in bar_centers(ix0, ix1)),
-        *(box(ix0, lower_top, z - half, ix1, top, z + half, "steel") for z in bar_centers(iz0, iz1)),
+        *(box(x - half, backing_top, iz0, x + half, lower_top, iz1, "yellow") for x in bar_centers(ix0, ix1)),
+        *(box(ix0, lower_top, z - half, ix1, top, z + half, "yellow") for z in bar_centers(iz0, iz1)),
     ]
 
 

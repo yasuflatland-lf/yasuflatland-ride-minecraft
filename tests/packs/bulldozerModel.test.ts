@@ -432,7 +432,7 @@ describe("bulldozer blade rig (ADR 0138)", () => {
     }
     expect(bone("blade_rig").cubes).toHaveLength(118);
     expect(bone("blade").cubes).toHaveLength(134);
-    expect(bones().flatMap((b) => b.cubes ?? [])).toHaveLength(3307);
+    expect(bones().flatMap((b) => b.cubes ?? [])).toHaveLength(3311);
     expect(Math.min(...points(bone("blade")).map((p) => p[1]))).toBeCloseTo(
       0,
       3,
@@ -471,8 +471,8 @@ it("keeps the exit beside the positive-x left door in the Bedrock frame", () => 
 });
 
 describe("bulldozer step mesh (ADR 0146)", () => {
-  // The PALETTE order in tools/gen_bulldozer.py puts steel in slot 10 and hole in slot 18.
-  const STEEL_SLOT = 10;
+  // The PALETTE order in tools/gen_bulldozer.py puts yellow in slot 0 and hole in slot 18.
+  const YELLOW_SLOT = 0;
   const HOLE_SLOT = 18;
   const mesh = () =>
     (bone("body").cubes ?? []).filter((c) => {
@@ -485,12 +485,12 @@ describe("bulldozer step mesh (ADR 0146)", () => {
         c.origin[2] + c.size[2] <= 13.0001
       );
     });
-  it("keeps both dark-backed steel steps inside the deck and below the door", () => {
+  it("keeps both dark-backed yellow steps inside the deck and below the door", () => {
     const cubes = mesh();
     expect(cubes.length).toBeGreaterThan(10);
     for (const c of cubes) {
       for (const face of Object.values(c.uv))
-        expect([STEEL_SLOT, HOLE_SLOT]).toContain(face.uv[0]);
+        expect([YELLOW_SLOT, HOLE_SLOT]).toContain(face.uv[0]);
       expect(c.origin[1] + c.size[1]).toBeLessThanOrEqual(24.7501);
       for (const x of [c.origin[0], c.origin[0] + c.size[0]]) {
         expect(Math.abs(x)).toBeGreaterThanOrEqual(12.7999);
@@ -527,6 +527,19 @@ describe("bulldozer step mesh (ADR 0146)", () => {
       1,
     );
   });
+  it("centers the bars so the edge cells match", () => {
+    for (const [y, axis, lo, hi] of [
+      [24.55, 0, 13.3, 16.8],
+      [24.65, 2, 7.9, 12.5],
+    ] as const) {
+      const bars = mesh()
+        .filter((c) => c.origin[0] > 0 && Math.abs(c.origin[1] - y) < 0.0001)
+        .sort((a, b) => a.origin[axis] - b.origin[axis]);
+      const first = (bars[0]?.origin[axis] ?? 0) - lo;
+      const last = hi - ((bars.at(-1)?.origin[axis] ?? 0) + 0.4);
+      expect(Math.abs(first - last)).toBeLessThan(0.05);
+    }
+  });
   it("leaves open cells between several bars in each crossed layer", () => {
     for (const [y, axis] of [
       [24.55, 0],
@@ -539,7 +552,7 @@ describe("bulldozer step mesh (ADR 0146)", () => {
       for (const [i, c] of bars.entries()) {
         expect(c.size[axis]).toBeCloseTo(0.4, 4);
         expect(c.size[1]).toBeCloseTo(0.1, 4);
-        expect(c.uv.north?.uv[0]).toBe(STEEL_SLOT);
+        expect(c.uv.north?.uv[0]).toBe(YELLOW_SLOT);
         const next = bars[i + 1];
         if (next)
           expect(
