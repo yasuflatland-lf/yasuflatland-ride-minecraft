@@ -222,7 +222,9 @@ W_STROKES += [(w_mirror(b), w_mirror(t), y) for b, t, y in W_STROKES]
 
 def w_stroke(x0, x1, bottom, top, y_top):
     """Keep each slanted edge straight with one rotated cube. Shorten its foot and
-    inner peak ends for the chamfers; rows cover the remaining square-end gaps."""
+    inner peak ends for the chamfers; rows cover the remaining square-end gaps.
+    Returns the cube and the height the filler rows must cover, which is the
+    corner drop plus W_TIP_CUT."""
     h = y_top - W_BOTTOM
     zb, zt = w_z(sum(bottom) / 2), w_z(sum(top) / 2)
     length = math.hypot(zt - zb, h)
