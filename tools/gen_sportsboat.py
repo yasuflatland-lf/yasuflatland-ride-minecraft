@@ -47,6 +47,10 @@ PALETTE = {
 # The windshield renders with entity_alphablend, so its swatch is see-through
 ALPHA = {"glass": 80}
 NAMES = list(PALETTE)
+EMISSIVE_LIT = 255
+MER_LIT = (0, EMISSIVE_LIT, 255)
+MER_OFF = (0, 0, 255)
+LIT_SLOTS = tuple(NAMES.index(name) for name in ("light",))
 TEXTURE_WIDTH = 128
 TEXTURE_HEIGHT = 32
 assert len(NAMES) * 4 <= TEXTURE_WIDTH, "the palette no longer fits in the texture"
@@ -627,6 +631,27 @@ def png(path, w, h, pixel):
     path.write_bytes(data)
 
 
+def lit_textures(kind, width, height, pixel):
+    def is_lit(x, y):
+        return y < 4 and x // 4 in LIT_SLOTS
+
+    def color(x, y):
+        rgba = (*pixel(x, y), 255)[:4]
+        return (*rgba[:3], 0) if is_lit(x, y) else rgba
+
+    png(ENTITY_TEXTURES / f"{kind}_lit.png", width, height, color)
+    png(ENTITY_TEXTURES / f"{kind}_lit_mer.png", width, height,
+        lambda x, y: (*(MER_LIT if is_lit(x, y) else MER_OFF), 255))
+    texture_set = {
+        "format_version": "1.16.100",
+        "minecraft:texture_set": {
+            "color": f"{kind}_lit",
+            "metalness_emissive_roughness": f"{kind}_lit_mer",
+        },
+    }
+    (ENTITY_TEXTURES / f"{kind}_lit.texture_set.json").write_text(json.dumps(texture_set))
+
+
 def swatches(hull_color):
     colors = {**PALETTE, "hull": hull_color}
 
@@ -646,6 +671,8 @@ ENTITY_TEXTURES.mkdir(parents=True, exist_ok=True)
 for paint, hull_color in HULL_PAINTS.items():
     name = "sportsboat" if paint == "khaki" else f"sportsboat_{paint}"
     png(ENTITY_TEXTURES / f"{name}.png", TEXTURE_WIDTH, TEXTURE_HEIGHT, swatches(hull_color))
+
+lit_textures("sportsboat", TEXTURE_WIDTH, TEXTURE_HEIGHT, swatches(HULL_PAINTS["khaki"]))
 
 # Item icon: a 16-pixel side view, bow to the right, tower leaning forward, on transparency.
 ICON = [

@@ -57,6 +57,10 @@ describe("vehicle paints (ADR 0031)", () => {
   it("the render controller picks each paint's texture by its variant, and the texture exists", () => {
     expect(client.render_controllers).toEqual([
       "controller.render.yasu_ride.suv",
+      {
+        "controller.render.yasu_ride.suv.lit":
+          "query.property('yasu_ride:headlights')",
+      },
     ]);
     expect(controller.textures).toEqual(["Array.paints[query.variant]"]);
     const slots: string[] = controller.arrays.textures["Array.paints"];

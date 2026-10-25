@@ -1,5 +1,7 @@
 # Upgrading from MyCar 0.5.0 and earlier
 
+Minecraft Bedrock Edition 1.21.120 or newer is required; older clients refuse the Resource Pack.
+
 Switch the headlights off before upgrading. Old vehicles and items disappear because their IDs are not migrated. Light blocks from a vehicle whose headlights are on remain in the world: the record of lit cells lives on the vanished entity.
 
 The fleet record starts empty, and every player receives the starter vehicle again on their next join. Get additional vehicles with `/give @s yasu_ride:suv_item` or the recipe. Pack UUIDs stay the same, so worlds that already list the packs load the new versions.

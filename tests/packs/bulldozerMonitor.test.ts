@@ -149,6 +149,10 @@ describe("bulldozer cab monitor (ADR 0139)", () => {
     expect(client.render_controllers).toEqual([
       { [controllerName]: "query.property('yasu_ride:monitor') > 0" },
       "controller.render.yasu_ride.bulldozer",
+      {
+        "controller.render.yasu_ride.bulldozer.lit":
+          "query.property('yasu_ride:headlights')",
+      },
     ]);
     expect(screens.length).toBeGreaterThanOrEqual(1);
     expect(
