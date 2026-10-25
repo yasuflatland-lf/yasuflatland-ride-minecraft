@@ -1669,6 +1669,13 @@ describe("camper ceiling lights (ADR 0115)", () => {
 });
 
 describe("camper rear-right vent cover (ADR 0146)", () => {
+  // Slots in the PALETTE order of tools/gen_camper.py.
+  const WHITE_SLOT = 0;
+  const KHAKI_SLOT = 4;
+  const BLACK_SLOT = 7;
+  const CHROME_SLOT = 10;
+  const SLAT_SLOT = 11;
+  const WALL_IN_SLOT = 22;
   const end = (c: Cube, axis: number) =>
     (c.origin[axis] ?? 0) + (c.size[axis] ?? 0);
   it("removes the rear-right pane and closes the outer wall, lining, and band", () => {
@@ -1679,9 +1686,9 @@ describe("camper rear-right vent cover (ADR 0146)", () => {
       ),
     ).toEqual([]);
     for (const [slot, x] of [
-      [0, -23.5],
-      [22, -22.9],
-      [4, -24.05],
+      [WHITE_SLOT, -23.5],
+      [WALL_IN_SLOT, -22.9],
+      [KHAKI_SLOT, -24.05],
     ] as const) {
       expect(
         (bone("body").cubes ?? []).some(
@@ -1707,9 +1714,11 @@ describe("camper rear-right vent cover (ADR 0146)", () => {
     for (const c of cover) {
       expect(c.origin[0]).toBeGreaterThanOrEqual(-24.5001);
       for (const face of Object.values(c.uv))
-        expect([7, 10, 11]).toContain(face.uv[0]);
+        expect([BLACK_SLOT, CHROME_SLOT, SLAT_SLOT]).toContain(face.uv[0]);
     }
-    expect(cover.filter((c) => c.uv.north?.uv[0] === 10)).toHaveLength(4);
+    expect(cover.filter((c) => c.uv.north?.uv[0] === CHROME_SLOT)).toHaveLength(
+      4,
+    );
     for (const [axis, low, high] of [
       [0, -24.5, -24.1],
       [1, 38, 46],
@@ -1721,7 +1730,7 @@ describe("camper rear-right vent cover (ADR 0146)", () => {
       );
       expect(Math.max(...cover.map((c) => end(c, axis)))).toBeCloseTo(high, 4);
     }
-    const backing = cover.filter((c) => c.uv.north?.uv[0] === 7);
+    const backing = cover.filter((c) => c.uv.north?.uv[0] === BLACK_SLOT);
     expect(backing).toHaveLength(1);
     expect(backing[0]?.origin).toEqual([-24.2, 38.8, 42.3]);
     expect(backing[0]?.size).toEqual([0.1, 6.4, 6.4]);
@@ -1732,7 +1741,7 @@ describe("camper rear-right vent cover (ADR 0146)", () => {
       const bars = cover
         .filter(
           (c) =>
-            c.uv.north?.uv[0] === 11 &&
+            c.uv.north?.uv[0] === SLAT_SLOT &&
             Math.abs((c.origin[0] ?? 0) - x) < 0.0001,
         )
         .sort((a, b) => (a.origin[axis] ?? 0) - (b.origin[axis] ?? 0));

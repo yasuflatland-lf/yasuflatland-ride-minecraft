@@ -166,26 +166,26 @@ def shift_in_slices(cube, cuts, dz_at):
 
 
 def vent_cover(z0, z1, y0, y1):
-    iz0, iz1, iy0, iy1 = z0 + 0.8, z1 - 0.8, y0 + 0.8, y1 - 0.8
-    cubes = [
-        box(HW + 0.1, y0, z0, HW + 0.5, iy0, z1, "chrome"),
-        box(HW + 0.1, iy1, z0, HW + 0.5, y1, z1, "chrome"),
-        box(HW + 0.1, iy0, z0, HW + 0.5, iy1, iz0, "chrome"),
-        box(HW + 0.1, iy0, iz1, HW + 0.5, iy1, z1, "chrome"),
-        box(HW + 0.1, iy0, iz0, HW + 0.2, iy1, iz1, "black"),
+    bezel, half = 0.8, VENT_MESH_BAR / 2
+    iz0, iz1, iy0, iy1 = z0 + bezel, z1 - bezel, y0 + bezel, y1 - bezel
+    band = HW + 0.1  # the khaki band's outer face
+
+    def bar_centers(lo, hi):
+        c = lo + VENT_MESH_PITCH / 2
+        while c + half <= hi:
+            yield c
+            c += VENT_MESH_PITCH
+
+    return [
+        box(band, y0, z0, band + 0.4, iy0, z1, "chrome"),
+        box(band, iy1, z0, band + 0.4, y1, z1, "chrome"),
+        box(band, iy0, z0, band + 0.4, iy1, iz0, "chrome"),
+        box(band, iy0, iz1, band + 0.4, iy1, z1, "chrome"),
+        # Opaque backing avoids the unsorted alpha-blended faces described in ADR 0091.
+        box(band, iy0, iz0, band + 0.1, iy1, iz1, "black"),
+        *(box(band + 0.1, iy0, z - half, band + 0.2, iy1, z + half, "slat") for z in bar_centers(iz0, iz1)),
+        *(box(band + 0.2, y - half, iz0, band + 0.3, y + half, iz1, "slat") for y in bar_centers(iy0, iy1)),
     ]
-    # Opaque backing avoids the unsorted alpha-blended faces described in ADR 0091.
-    z = iz0 + VENT_MESH_PITCH / 2
-    while z + VENT_MESH_BAR / 2 <= iz1:
-        cubes.append(box(HW + 0.2, iy0, z - VENT_MESH_BAR / 2,
-                         HW + 0.3, iy1, z + VENT_MESH_BAR / 2, "slat"))
-        z += VENT_MESH_PITCH
-    y = iy0 + VENT_MESH_PITCH / 2
-    while y + VENT_MESH_BAR / 2 <= iy1:
-        cubes.append(box(HW + 0.3, y - VENT_MESH_BAR / 2, iz0,
-                         HW + 0.4, y + VENT_MESH_BAR / 2, iz1, "slat"))
-        y += VENT_MESH_PITCH
-    return cubes
 
 
 body = []

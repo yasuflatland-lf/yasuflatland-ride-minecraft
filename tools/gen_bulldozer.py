@@ -337,25 +337,25 @@ BEVEL = 3.0  # the rear side panels' top outer edge is beveled in toward the cab
 def step_mesh(x0, z0, x1, z1):
     ix0, ix1 = x0 + STEP_MESH_FRAME, x1 - STEP_MESH_FRAME
     iz0, iz1 = z0 + STEP_MESH_FRAME, z1 - STEP_MESH_FRAME
-    cubes = [
-        box(x0, DECK, z0, x1, DECK + 0.25, iz0, "steel"),
-        box(x0, DECK, iz1, x1, DECK + 0.25, z1, "steel"),
-        box(x0, DECK, iz0, ix0, DECK + 0.25, iz1, "steel"),
-        box(ix1, DECK, iz0, x1, DECK + 0.25, iz1, "steel"),
-        box(ix0, DECK, iz0, ix1, DECK + 0.05, iz1, "hole"),
+    # Each layer has its own height so the crossed bars share no visible coplanar faces.
+    backing_top, lower_top, top = DECK + 0.05, DECK + 0.15, DECK + 0.25
+    half = STEP_MESH_BAR / 2
+
+    def bar_centers(lo, hi):
+        c = lo + STEP_MESH_PITCH / 2
+        while c + half <= hi:
+            yield c
+            c += STEP_MESH_PITCH
+
+    return [
+        box(x0, DECK, z0, x1, top, iz0, "steel"),
+        box(x0, DECK, iz1, x1, top, z1, "steel"),
+        box(x0, DECK, iz0, ix0, top, iz1, "steel"),
+        box(ix1, DECK, iz0, x1, top, iz1, "steel"),
+        box(ix0, DECK, iz0, ix1, backing_top, iz1, "hole"),
+        *(box(x - half, backing_top, iz0, x + half, lower_top, iz1, "steel") for x in bar_centers(ix0, ix1)),
+        *(box(ix0, lower_top, z - half, ix1, top, z + half, "steel") for z in bar_centers(iz0, iz1)),
     ]
-    # Separate heights keep the crossed bars from sharing visible coplanar faces.
-    x = ix0 + STEP_MESH_PITCH / 2
-    while x + STEP_MESH_BAR / 2 <= ix1:
-        cubes.append(box(x - STEP_MESH_BAR / 2, DECK + 0.05, iz0,
-                         x + STEP_MESH_BAR / 2, DECK + 0.15, iz1, "steel"))
-        x += STEP_MESH_PITCH
-    z = iz0 + STEP_MESH_PITCH / 2
-    while z + STEP_MESH_BAR / 2 <= iz1:
-        cubes.append(box(ix0, DECK + 0.15, z - STEP_MESH_BAR / 2,
-                         ix1, DECK + 0.25, z + STEP_MESH_BAR / 2, "steel"))
-        z += STEP_MESH_PITCH
-    return cubes
 
 
 def side_top(z):

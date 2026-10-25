@@ -471,21 +471,26 @@ it("keeps the exit beside the positive-x left door in the Bedrock frame", () => 
 });
 
 describe("bulldozer step mesh (ADR 0146)", () => {
+  // The PALETTE order in tools/gen_bulldozer.py puts steel in slot 10 and hole in slot 18.
+  const STEEL_SLOT = 10;
+  const HOLE_SLOT = 18;
   const mesh = () =>
-    (bone("body").cubes ?? []).filter(
-      (c) =>
-        Math.abs(c.origin[0] + c.size[0] / 2) >= 12.8 &&
-        Math.abs(c.origin[0] + c.size[0] / 2) <= 17.3 &&
+    (bone("body").cubes ?? []).filter((c) => {
+      const centerX = Math.abs(c.origin[0] + c.size[0] / 2);
+      return (
+        centerX >= 12.8 &&
+        centerX <= 17.3 &&
         c.origin[1] >= 24.5 &&
         c.origin[2] >= 7.4 &&
-        c.origin[2] + c.size[2] <= 13.0001,
-    );
+        c.origin[2] + c.size[2] <= 13.0001
+      );
+    });
   it("keeps both dark-backed steel steps inside the deck and below the door", () => {
     const cubes = mesh();
     expect(cubes.length).toBeGreaterThan(10);
     for (const c of cubes) {
       for (const face of Object.values(c.uv))
-        expect([10, 18]).toContain(face.uv[0]);
+        expect([STEEL_SLOT, HOLE_SLOT]).toContain(face.uv[0]);
       expect(c.origin[1] + c.size[1]).toBeLessThanOrEqual(24.7501);
       for (const x of [c.origin[0], c.origin[0] + c.size[0]]) {
         expect(Math.abs(x)).toBeGreaterThanOrEqual(12.7999);
@@ -518,7 +523,9 @@ describe("bulldozer step mesh (ADR 0146)", () => {
         ),
       ).toBe(true);
     }
-    expect(right.filter((c) => c.uv.north?.uv[0] === 18)).toHaveLength(1);
+    expect(right.filter((c) => c.uv.north?.uv[0] === HOLE_SLOT)).toHaveLength(
+      1,
+    );
   });
   it("leaves open cells between several bars in each crossed layer", () => {
     for (const [y, axis] of [
@@ -532,7 +539,7 @@ describe("bulldozer step mesh (ADR 0146)", () => {
       for (const [i, c] of bars.entries()) {
         expect(c.size[axis]).toBeCloseTo(0.4, 4);
         expect(c.size[1]).toBeCloseTo(0.1, 4);
-        expect(c.uv.north?.uv[0]).toBe(10);
+        expect(c.uv.north?.uv[0]).toBe(STEEL_SLOT);
         const next = bars[i + 1];
         if (next)
           expect(
