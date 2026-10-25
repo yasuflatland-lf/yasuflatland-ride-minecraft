@@ -733,7 +733,7 @@ LIFT_SWING = round(math.degrees(math.atan2(_raised_end[1], -_raised_end[0])), 2)
 ROD_SHORTEN = round(ROD_LENGTH - (math.hypot(*_raised_end) - (LIFT_PIN - LIFT_MOUTH)), 2)
 assert BLADE_RAISE > 0 and 0 < ROD_SHORTEN < ROD_LENGTH
 GUSSET_BOTTOM, GUSSET_TOP = (-19.5, 9.5), (-13.9, 22.2)  # (z, y) of the sloped front face
-GUSSET_REAR = (2.0, 12.0)
+GUSSET_REAR = (-10.0, 9.5)
 GUSSET_THICKNESS = 0.4
 arms = [bar(ARM_FRONT, ARM_REAR, ARM_IN, ARM_OUT, 4.2, "yellow"),
         bar(ARM_FRONT, ARM_REAR, ARM_IN - 0.2, ARM_OUT + 0.2, 0.6, "yellow_dark", offset=1.6),
