@@ -122,12 +122,8 @@
           "cabinet_stove_door",
           "fridge_top_door",
           "fridge_bottom_door",
-          {
-            "shower": "q.property('yasu_ride:shower')"
-          },
-          {
-            "shower_sound": "q.property('yasu_ride:shower')"
-          }
+          { "shower": "q.property('yasu_ride:shower')" },
+          { "shower_sound": "q.property('yasu_ride:shower')" }
         ]
       }
     }

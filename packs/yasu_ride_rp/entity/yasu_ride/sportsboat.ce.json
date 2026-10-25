@@ -28,9 +28,7 @@
         "pink": "textures/entity/yasu_ride/sportsboat_pink",
         "lit": "textures/entity/yasu_ride/sportsboat_lit"
       },
-      "geometry": {
-        "default": "geometry.yasu_ride.sportsboat"
-      },
+      "geometry": { "default": "geometry.yasu_ride.sportsboat" },
       "animations": {
         "attitude": "animation.yasu_ride.sportsboat.attitude",
         "wake": "animation.yasu_ride.sportsboat.wake",
@@ -60,9 +58,7 @@
       "scripts": {
         "animate": [
           "attitude",
-          {
-            "wake": "query.has_rider && query.ground_speed > 2"
-          },
+          { "wake": "query.has_rider && query.ground_speed > 2" },
           {
             "engine_sound_0": "query.has_rider && query.ground_speed < 1"
           },
