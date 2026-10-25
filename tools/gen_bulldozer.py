@@ -1357,9 +1357,11 @@ def lit_textures(kind, width, height, pixel):
         rgba = (*pixel(x, y), 255)[:4]
         return (*rgba[:3], 0) if is_lit(x, y) else rgba
 
+    def mer(x, y):
+        return (*(MER_LIT if is_lit(x, y) else MER_OFF), 255)
+
     png(ENTITY_TEXTURES / f"{kind}_lit.png", width, height, color)
-    png(ENTITY_TEXTURES / f"{kind}_lit_mer.png", width, height,
-        lambda x, y: (*(MER_LIT if is_lit(x, y) else MER_OFF), 255))
+    png(ENTITY_TEXTURES / f"{kind}_lit_mer.png", width, height, mer)
     texture_set = {
         "format_version": "1.16.100",
         "minecraft:texture_set": {
@@ -1368,6 +1370,7 @@ def lit_textures(kind, width, height, pixel):
         },
     }
     emit(ENTITY_TEXTURES / f"{kind}_lit.texture_set.json", json.dumps(texture_set))
+
 
 # Variant 0, khaki on the SUV, is yellow here, so a new bulldozer is yellow (ADR 0076); khaki writes bulldozer.png, the others bulldozer_<paint>.png.
 BODY_PAINTS: dict[str, tuple[int, int, int]] = {
@@ -1388,7 +1391,6 @@ BODY_PAINTS: dict[str, tuple[int, int, int]] = {
     "magenta": (160, 52, 140),
     "pink": (214, 132, 162),
 }
-
 
 
 def scale(color, factor):
