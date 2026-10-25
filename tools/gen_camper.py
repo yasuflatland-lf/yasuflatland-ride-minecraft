@@ -165,6 +165,29 @@ def shift_in_slices(cube, cuts, dz_at):
     return pieces
 
 
+def vent_cover(z0, z1, y0, y1):
+    iz0, iz1, iy0, iy1 = z0 + 0.8, z1 - 0.8, y0 + 0.8, y1 - 0.8
+    cubes = [
+        box(HW + 0.1, y0, z0, HW + 0.5, iy0, z1, "chrome"),
+        box(HW + 0.1, iy1, z0, HW + 0.5, y1, z1, "chrome"),
+        box(HW + 0.1, iy0, z0, HW + 0.5, iy1, iz0, "chrome"),
+        box(HW + 0.1, iy0, iz1, HW + 0.5, iy1, z1, "chrome"),
+        box(HW + 0.1, iy0, iz0, HW + 0.2, iy1, iz1, "black"),
+    ]
+    # Opaque backing avoids the unsorted alpha-blended faces described in ADR 0091.
+    z = iz0 + VENT_MESH_PITCH / 2
+    while z + VENT_MESH_BAR / 2 <= iz1:
+        cubes.append(box(HW + 0.2, iy0, z - VENT_MESH_BAR / 2,
+                         HW + 0.3, iy1, z + VENT_MESH_BAR / 2, "slat"))
+        z += VENT_MESH_PITCH
+    y = iy0 + VENT_MESH_PITCH / 2
+    while y + VENT_MESH_BAR / 2 <= iy1:
+        cubes.append(box(HW + 0.3, y - VENT_MESH_BAR / 2, iz0,
+                         HW + 0.4, y + VENT_MESH_BAR / 2, iz1, "slat"))
+        y += VENT_MESH_PITCH
+    return cubes
+
+
 body = []
 
 # --- Floor, roof and walls -------------------------------------------------
@@ -173,6 +196,9 @@ body.append(box(-HW, CEIL, FRONT + 8.5, HW, ROOF, REAR_INNER, "white"))  # the c
 body.append(box(-HW + 1, CEIL - 0.2, FRONT + 1, HW - 1, CEIL, REAR_INNER, "panel"))
 
 WIN_Y = (36, 49)
+VENT_COVER = (41.5, 49.5, 38.0, 46.0)
+VENT_MESH_PITCH = 1.0
+VENT_MESH_BAR = 0.4
 BAND_Y = (34.5, 50.5)
 STRIPE_Y = (29.5, 31.5)
 # The rear seen from the side, from the rear-corner photo: the top leans out to the roof
@@ -280,7 +306,7 @@ for a0, a1 in ARCHES:  # straight up to ARCH_SLOPE_Y, then sloping in by ARCH_IN
         arch_holes.append((a0 + inset, a1 - inset, y, y + ARCH_STEP))
 # The window over the counter is as long as the one ahead of the door and centered between
 # the door and the rear window, so the stove and the sink look out (ADR 0113).
-right_windows = [CAB_WIN, (-35, -10, *WIN_Y), (10, 35, *WIN_Y), (38, 50, *WIN_Y), (-31, -19, 56, 59)]
+right_windows = [CAB_WIN, (-35, -10, *WIN_Y), (10, 35, *WIN_Y), (-31, -19, 56, 59)]
 left_windows = [CAB_WIN, (-29, -5, *WIN_Y), (-19, -8, 56, 59), (16, 21, *WIN_Y), (40, 49, *WIN_Y)]
 for x0, x1, windows in ((HW - 1, HW, right_windows), (-HW, -HW + 1, left_windows)):
     right = x0 > 0
@@ -341,6 +367,7 @@ for x0, x1, windows in ((HW - 1, HW, right_windows), (-HW, -HW + 1, left_windows
 body.append(box(HW, WIN_Y[0], -22.8, HW + 0.2, WIN_Y[1], -22.2, "chrome"))  # double window dividers
 body.append(box(-HW - 0.2, WIN_Y[0], -17.3, -HW, WIN_Y[1], -16.7, "chrome"))
 body.append(box(HW, 13, 10, HW + 0.3, 19, 17, "slat"))  # small louvered vent
+body += vent_cover(*VENT_COVER)
 # Louvered hatch low at the rear corner of both sides, small utility boxes.
 for sx in (HW, -HW):
     o = 0.3 if sx > 0 else -0.3

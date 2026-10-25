@@ -116,7 +116,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0110](0110-pick-decor-slots-along-the-line-of-sight.md) | Pick decor slots along the line of sight | Extended by 0111 |
 | [0111](0111-correct-the-inverted-face-location-height.md) | Correct the inverted face location height | Accepted |
 | [0112](0112-one-burner-on-the-camper-stove.md) | One burner on the camper stove | Accepted |
-| [0113](0113-a-window-over-the-camper-counter.md) | A window over the camper counter | Extended by 0114 |
+| [0113](0113-a-window-over-the-camper-counter.md) | A window over the camper counter | Extended by 0114; extended by 0146 (Proposed) |
 | [0114](0114-open-the-camper-wall-cabinet.md) | Open the camper wall cabinet | Extended by 0121 |
 | [0115](0115-camper-ceiling-lights.md) | Ceiling lights in the parked camper | Extended by 0123 (Proposed) and [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md) (Proposed) |
 | [0116](0116-a-bumper-stand-in-takes-the-camper-hits.md) | A bumper stand-in takes the camper's hits | Proposed; extended by 0119 (Proposed) |
@@ -139,7 +139,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0133](0133-sleep-on-the-tent-mattresses.md) | Sleep on the tent mattresses | Proposed |
 | [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md) | Switch the tent lantern with the headlight switch | Proposed; extended by 0138 (Proposed) |
 | [0135](0135-repaint-the-tent-with-dyes.md) | Repaint the tent with dyes | Proposed |
-| [0136](0136-bulldozer.md) | Add the bulldozer kind | Proposed; superseded in part and extended by 0138 (Proposed), 0140 (Proposed), and 0141 (Proposed) |
+| [0136](0136-bulldozer.md) | Add the bulldozer kind | Proposed; superseded in part and extended by 0138 (Proposed), 0140 (Proposed), and 0141 (Proposed); extended by 0146 (Proposed) |
 | [0137](0137-clear-block-columns-with-the-blade.md) | Clear block columns with the blade, keeping liquids, containers, and laid blocks | Proposed; extended by 0138 (Proposed) |
 | [0138](0138-raise-and-lower-the-bulldozer-blade.md) | Raise and lower the bulldozer blade with a switch item | Proposed; extended by 0139 (Proposed) and 0140 (Proposed) |
 | [0139](0139-show-the-held-tool-on-the-cab-monitor.md) | Show the driver's held tool on the cab monitor | Proposed |
@@ -147,6 +147,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0141](0141-put-a-bulldozer-driver-out-beside-the-left-door.md) | Put a bulldozer driver out beside the left door | Proposed |
 | [0144](0144-split-camping-gear-into-inside-and-outside-groups.md) | Split camping gear into inside and outside groups | Proposed |
 | [0145](0145-trim-camper-exterior-details.md) | Trim camper exterior details | Proposed |
+| [0146](0146-wire-mesh-bulldozer-steps-and-a-camper-vent-cover.md) | Wire mesh bulldozer steps and a camper vent cover | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 

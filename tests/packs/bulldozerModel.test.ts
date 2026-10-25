@@ -432,7 +432,7 @@ describe("bulldozer blade rig (ADR 0138)", () => {
     }
     expect(bone("blade_rig").cubes).toHaveLength(118);
     expect(bone("blade").cubes).toHaveLength(134);
-    expect(bones().flatMap((b) => b.cubes ?? [])).toHaveLength(3309);
+    expect(bones().flatMap((b) => b.cubes ?? [])).toHaveLength(3307);
     expect(Math.min(...points(bone("blade")).map((p) => p[1]))).toBeCloseTo(
       0,
       3,
@@ -468,4 +468,77 @@ it("keeps the exit beside the positive-x left door in the Bedrock frame", () => 
   ]);
   expect(exit.z).toBeGreaterThanOrEqual(-Math.max(...zs) / 16);
   expect(exit.z).toBeLessThanOrEqual(-Math.min(...zs) / 16);
+});
+
+describe("bulldozer step mesh (ADR 0146)", () => {
+  const mesh = () =>
+    (bone("body").cubes ?? []).filter(
+      (c) =>
+        Math.abs(c.origin[0] + c.size[0] / 2) >= 12.8 &&
+        Math.abs(c.origin[0] + c.size[0] / 2) <= 17.3 &&
+        c.origin[1] >= 24.5 &&
+        c.origin[2] >= 7.4 &&
+        c.origin[2] + c.size[2] <= 13.0001,
+    );
+  it("keeps both dark-backed steel steps inside the deck and below the door", () => {
+    const cubes = mesh();
+    expect(cubes.length).toBeGreaterThan(10);
+    for (const c of cubes) {
+      for (const face of Object.values(c.uv))
+        expect([10, 18]).toContain(face.uv[0]);
+      expect(c.origin[1] + c.size[1]).toBeLessThanOrEqual(24.7501);
+      for (const x of [c.origin[0], c.origin[0] + c.size[0]]) {
+        expect(Math.abs(x)).toBeGreaterThanOrEqual(12.7999);
+        expect(Math.abs(x)).toBeLessThanOrEqual(17.3001);
+        expect(Math.abs(x)).toBeLessThan(17.6);
+      }
+    }
+    const right = cubes.filter((c) => c.origin[0] < 0);
+    const left = cubes.filter((c) => c.origin[0] > 0);
+    expect(left).toHaveLength(right.length);
+    for (const [axis, low, high] of [
+      [0, 12.8, 17.3],
+      [1, 24.5, 24.75],
+      [2, 7.4, 13],
+    ] as const) {
+      expect(Math.min(...left.map((c) => c.origin[axis]))).toBeCloseTo(low, 4);
+      expect(
+        Math.max(...left.map((c) => c.origin[axis] + c.size[axis])),
+      ).toBeCloseTo(high, 4);
+    }
+    for (const c of right) {
+      expect(
+        left.some(
+          (other) =>
+            Math.abs(other.origin[0] + c.origin[0] + c.size[0]) < 0.0001 &&
+            other.origin[1] === c.origin[1] &&
+            other.origin[2] === c.origin[2] &&
+            JSON.stringify(other.size) === JSON.stringify(c.size) &&
+            JSON.stringify(other.uv) === JSON.stringify(c.uv),
+        ),
+      ).toBe(true);
+    }
+    expect(right.filter((c) => c.uv.north?.uv[0] === 18)).toHaveLength(1);
+  });
+  it("leaves open cells between several bars in each crossed layer", () => {
+    for (const [y, axis] of [
+      [24.55, 0],
+      [24.65, 2],
+    ] as const) {
+      const bars = mesh()
+        .filter((c) => c.origin[0] > 0 && Math.abs(c.origin[1] - y) < 0.0001)
+        .sort((a, b) => a.origin[axis] - b.origin[axis]);
+      expect(bars.length).toBeGreaterThanOrEqual(3);
+      for (const [i, c] of bars.entries()) {
+        expect(c.size[axis]).toBeCloseTo(0.4, 4);
+        expect(c.size[1]).toBeCloseTo(0.1, 4);
+        expect(c.uv.north?.uv[0]).toBe(10);
+        const next = bars[i + 1];
+        if (next)
+          expect(
+            next.origin[axis] - c.origin[axis] - c.size[axis],
+          ).toBeGreaterThanOrEqual(0.3999);
+      }
+    }
+  });
 });

@@ -1667,3 +1667,85 @@ describe("camper ceiling lights (ADR 0115)", () => {
     });
   });
 });
+
+describe("camper rear-right vent cover (ADR 0146)", () => {
+  const end = (c: Cube, axis: number) =>
+    (c.origin[axis] ?? 0) + (c.size[axis] ?? 0);
+  it("removes the rear-right pane and closes the outer wall, lining, and band", () => {
+    expect(
+      (bone("glass").cubes ?? []).filter(
+        (c) =>
+          (c.origin[0] ?? 0) < -23 && (c.origin[2] ?? 0) < 50 && end(c, 2) > 38,
+      ),
+    ).toEqual([]);
+    for (const [slot, x] of [
+      [0, -23.5],
+      [22, -22.9],
+      [4, -24.05],
+    ] as const) {
+      expect(
+        (bone("body").cubes ?? []).some(
+          (c) =>
+            c.uv.north?.uv[0] === slot &&
+            [x, 42, 45].every(
+              (v, axis) => v >= (c.origin[axis] ?? 0) && v <= end(c, axis),
+            ),
+        ),
+      ).toBe(true);
+    }
+  });
+  it("draws an exterior chrome bezel and crossed slat layers over black backing", () => {
+    const cover = (bone("body").cubes ?? []).filter(
+      (c) =>
+        end(c, 0) <= -24.0999 &&
+        (c.origin[1] ?? 0) >= 38 &&
+        end(c, 1) <= 46.0001 &&
+        (c.origin[2] ?? 0) >= 41.5 &&
+        end(c, 2) <= 49.5001,
+    );
+    expect(cover.length).toBeGreaterThan(10);
+    for (const c of cover) {
+      expect(c.origin[0]).toBeGreaterThanOrEqual(-24.5001);
+      for (const face of Object.values(c.uv))
+        expect([7, 10, 11]).toContain(face.uv[0]);
+    }
+    expect(cover.filter((c) => c.uv.north?.uv[0] === 10)).toHaveLength(4);
+    for (const [axis, low, high] of [
+      [0, -24.5, -24.1],
+      [1, 38, 46],
+      [2, 41.5, 49.5],
+    ] as const) {
+      expect(Math.min(...cover.map((c) => c.origin[axis] ?? 0))).toBeCloseTo(
+        low,
+        4,
+      );
+      expect(Math.max(...cover.map((c) => end(c, axis)))).toBeCloseTo(high, 4);
+    }
+    const backing = cover.filter((c) => c.uv.north?.uv[0] === 7);
+    expect(backing).toHaveLength(1);
+    expect(backing[0]?.origin).toEqual([-24.2, 38.8, 42.3]);
+    expect(backing[0]?.size).toEqual([0.1, 6.4, 6.4]);
+    for (const [x, axis] of [
+      [-24.3, 2],
+      [-24.4, 1],
+    ] as const) {
+      const bars = cover
+        .filter(
+          (c) =>
+            c.uv.north?.uv[0] === 11 &&
+            Math.abs((c.origin[0] ?? 0) - x) < 0.0001,
+        )
+        .sort((a, b) => (a.origin[axis] ?? 0) - (b.origin[axis] ?? 0));
+      expect(bars.length).toBeGreaterThanOrEqual(3);
+      for (const [i, c] of bars.entries()) {
+        expect(c.size[axis]).toBeCloseTo(0.4, 4);
+        expect(c.size[0]).toBeCloseTo(0.1, 4);
+        const next = bars[i + 1];
+        if (next)
+          expect(
+            (next.origin[axis] ?? 0) - end(c, axis),
+          ).toBeGreaterThanOrEqual(0.3999);
+      }
+    }
+  });
+});
