@@ -4,6 +4,8 @@
 - Date: 2026-10-22
 - Extends: 0020 (the headlight switch and light blocks), 0024 (the switch cooldown), 0068 (the parked room's cells), 0096 (lost cells are laid again)
 
+The wheel deck seat behavior below records the original decision. The current rule is in [0149](0149-route-the-parked-camper-wheel-seat-to-headlights.md): its rider switches the headlights.
+
 ## Context
 
 The parked camper's room is dark at night. The owner wants two ceiling lights over the aisle, one toward the front and one toward the rear of the room, like the dome lights of a real camper (#445). Agreed with the owner:

@@ -19,6 +19,8 @@ A four-seat camper with a facing dinette that drives, flies, and dives. Back to 
 
 Use the same controls as the SUV: see the [SUV controls table](suv.md#controls). Seat 0 is the front-right driver, as in the SUV; seats 2 and 3 face each other at the dinette on the left.
 
+The Headlight Switch turns the headlights on or off from the camper's driver seat (seat 0), including while parked. The front-right deck seat at the wheel also operates the headlights while parked. In the parked camper, the switch turns the two ceiling lights on or off from any other seat or on foot inside the room. The ceiling lights turn off when the camper drives away.
+
 ## How it moves
 
 The camper has the SUV's ground top speed of 0.9 blocks per tick, with gentler acceleration (about 3.75 s to top speed) and slower turns for its long body. It flies and dives with the same controls as the SUV. Its long body stops at a wall at both the front and the rear bumper, even a one-block pillar or a one-block-thick wall at top speed, and it still climbs one-block steps without hopping in place at a wall. Flying or diving, it stops before the nose enters any block, low ones included.
