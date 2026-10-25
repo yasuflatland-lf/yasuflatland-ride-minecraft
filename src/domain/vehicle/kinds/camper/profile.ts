@@ -39,6 +39,7 @@ export const CAMPER_PROFILE: VehicleProfile = Object.freeze({
     ]),
   }),
   parkedSeats: CAMPER_PARKED_SEATS,
+  deckSeatDriverHeadlights: true,
   boarding: Object.freeze({ order: "engine" }),
   beams: Object.freeze({
     reach: CAMPER_SPEC.headlightReach,

@@ -4,7 +4,13 @@ import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
 import { rebuildVehicle } from "../../../src/domain/vehicle/kinds/index";
 import { SPEC } from "../../../src/domain/vehicle/spec";
 import type { RiderView } from "../../../src/domain/vehicle/vehicle";
-import { FakeClock, FakeWorld, InMemoryRepo } from "./fakes";
+import {
+  FakeClock,
+  FakeWorld,
+  InMemoryRepo,
+  parkedCamper,
+  stillTick,
+} from "./fakes";
 
 // Seat positions of the driver (0) and front passenger (1) with the vehicle heading +z.
 const SEAT_OFFSETS = [
@@ -57,6 +63,22 @@ describe("SwitchHeadlights (ADR 0020)", () => {
       uc.execute({ playerId: asPlayerId("p"), vehicleId: asVehicleId("a") }),
     ).toBe(false);
     expect(world.calls).toEqual([]);
+  });
+
+  it("the parked camper's deck seat at the wheel switches the headlights", () => {
+    const { car, repo } = parkedCamper();
+    expect(stillTick(car, 21, "d").dock).toBeDefined();
+    const world = new FakeWorld();
+    world.headlights.set("car", false);
+    const clock = new FakeClock();
+    const use = new SwitchHeadlights(world, repo, clock);
+    const cmd = { playerId: asPlayerId("d"), vehicleId: car.id };
+    expect(use.execute(cmd)).toBe(true);
+    expect(world.headlights.get("car")).toBe(true);
+    clock.tick = SPEC.headlightSwitchCooldown;
+    expect(use.execute(cmd)).toBe(true);
+    expect(world.headlights.get("car")).toBe(false);
+    expect(use.execute({ ...cmd, playerId: asPlayerId("p") })).toBe(false);
   });
 
   it("one tap that arrives twice switches only once", () => {

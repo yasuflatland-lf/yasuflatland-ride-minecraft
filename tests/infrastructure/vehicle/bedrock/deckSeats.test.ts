@@ -7,6 +7,7 @@ import type { DeckSeatSpot } from "../../../../src/domain/vehicle/dock/dock";
 import { DECK_SEAT_REACH } from "../../../../src/domain/vehicle/kinds/index";
 import {
   DeckSeats,
+  deckSeatRide,
   removeOrphanDeckSeat,
 } from "../../../../src/infrastructure/vehicle/bedrock/deckSeats";
 import {
@@ -15,6 +16,19 @@ import {
   DECK_SEAT_TYPE,
   DECK_SEATS_PROPERTY,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
+
+it("resolves a rider's deck seat to its vehicle and seat index", () => {
+  const { car, dimension } = fixture();
+  const seat = dimension.spawnEntity(DECK_SEAT_TYPE, { x: 0, y: 0, z: 0 });
+  seat.setDynamicProperty(DECK_SEAT_OF_PROPERTY, car.id);
+  car.setDynamicProperty(DECK_SEATS_PROPERTY, JSON.stringify([seat.id]));
+  const player = {
+    getComponent: () => ({ entityRidingOn: seat }),
+  } as unknown as import("@minecraft/server").Player;
+  expect(deckSeatRide(player)).toEqual({ vehicle: car, seat: 0 });
+  car.setDynamicProperty(DECK_SEATS_PROPERTY, JSON.stringify([]));
+  expect(deckSeatRide(player)).toBeUndefined();
+});
 
 const game = vi.hoisted(() => ({ getEntity: vi.fn() }));
 vi.mock("@minecraft/server", () => ({ world: game }));

@@ -19,7 +19,11 @@ import type {
 } from "../../../src/application/vehicle/ports/placement";
 import type { Clock } from "../../../src/application/vehicle/ports/shared";
 import { cellKey } from "../../../src/domain/shared/cells";
-import { asVehicleId, type VehicleId } from "../../../src/domain/shared/ids";
+import {
+  asPlayerId,
+  asVehicleId,
+  type VehicleId,
+} from "../../../src/domain/shared/ids";
 import type { Paint } from "../../../src/domain/shared/paint";
 import type { Vec3 } from "../../../src/domain/shared/vec";
 import type { CutColumn } from "../../../src/domain/vehicle/cut";
@@ -433,12 +437,13 @@ export const snapshot = (
 };
 
 /** A camper parked at (0.5, 64, 0.5) with its room laid; the next tick a test runs is tick(21). */
-/** Ticks a riderless vehicle standing still on open ground at (0.5, 64, 0.5). */
-export function stillTick(vehicle: Vehicle, time: number) {
+/** Ticks a vehicle standing still on open ground at (0.5, 64, 0.5), optionally with its wheel deck seat occupied. */
+export function stillTick(vehicle: Vehicle, time: number, deckDriver?: string) {
   return vehicle.tick({
     tick: time,
     riders: [],
-    deckSeatInputs: [],
+    deckSeatInputs: deckDriver ? [{ moveX: 0, moveY: 0, jump: false }] : [],
+    deckSeatRiders: deckDriver ? [asPlayerId(deckDriver)] : [],
     location: { x: 0.5, y: 64, z: 0.5 },
     velocity: { x: 0, y: 0, z: 0 },
     onGround: true,

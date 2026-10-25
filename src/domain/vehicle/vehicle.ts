@@ -151,6 +151,8 @@ export class Vehicle {
   /** As of the last tick: held in place (ADR 0063, 0068), and nobody in the driver's seat or its deck seat. */
   private docked = false;
   private driverSeatFree = true;
+  /** The parked camper's wheel deck seat rider, who operates its headlights (ADR 0149). */
+  private deckDriverId: PlayerId | undefined;
   /** The row axis of the stand-in kept last tick; a rebuilt vehicle starts with none (ADR 0116). */
   private standInAxis: StandInAxis | undefined;
 
@@ -353,6 +355,10 @@ export class Vehicle {
       driver ? driver.heldTool : testHeldTool,
     );
     this.docked = step.dock !== undefined;
+    this.deckDriverId =
+      this.docked && this.profile.deckSeatDriverHeadlights
+        ? deckSeatRiders?.[DRIVER_SEAT]
+        : undefined;
     const seatLayout = this.crew.layout(
       riders,
       deckSeatRiders ?? [],
@@ -475,23 +481,29 @@ export class Vehicle {
   }
 
   /**
-   * A player uses the headlight switch. Only the driver may flip it, and only
+   * A player uses the headlight switch. Only the driver or the rider of the parked
+   * camper's wheel deck seat may flip it (ADR 0149), and only
    * after the switch has been idle for the cooldown, so a burst of uses from
    * one touch flips it once (ADR 0024). Returns whether it flipped.
    */
   flipHeadlightSwitch(playerId: PlayerId, tick: number): boolean {
-    if (playerId !== this.crew.driver) return false;
+    if (playerId !== this.crew.driver && playerId !== this.deckDriverId)
+      return false;
     return this.switchCooldown.tryUse(tick, SPEC.headlightSwitchCooldown);
   }
 
   /**
    * A player who is not at the wheel uses the light switch with their feet at `feet`: inside a
-   * parked room, it turns the ceiling lights on or off. The driver's switch stays the
+   * parked room, it turns the ceiling lights on or off. The wheel seat rider's switch stays the
    * headlights' (ADR 0020). It uses its own cooldown with the headlight switch's duration, so
    * one touch flips once (ADR 0024, 0115). Returns whether it flipped.
    */
   switchCeilingLights(playerId: PlayerId, feet: Vec3, tick: number): boolean {
-    if (playerId === this.crew.driver || !this.drive.switchCeilingLights)
+    if (
+      playerId === this.crew.driver ||
+      playerId === this.deckDriverId ||
+      !this.drive.switchCeilingLights
+    )
       return false;
     if (!this.ceilingLightCooldown.tryUse(tick, SPEC.headlightSwitchCooldown))
       return false;
@@ -504,7 +516,8 @@ export class Vehicle {
    * and changes nothing, so a press is taken over only where the switch can work (ADR 0115).
    */
   canSwitchCeilingLights(playerId: PlayerId, feet: Vec3): boolean {
-    if (playerId === this.crew.driver) return false;
+    if (playerId === this.crew.driver || playerId === this.deckDriverId)
+      return false;
     return this.drive.ceilingLightsReachable?.(feet) ?? false;
   }
 

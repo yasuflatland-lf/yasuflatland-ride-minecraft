@@ -70,6 +70,20 @@ export function removeOrphanDeckSeat(seat: Entity): void {
   if (!found) seat.remove();
 }
 
+/** The vehicle and seat index of a player riding one of its parked deck seats. */
+export function deckSeatRide(
+  player: Player,
+): { vehicle: Entity; seat: number } | undefined {
+  const mount = player.getComponent("minecraft:riding")?.entityRidingOn;
+  if (!mount?.isValid || mount.typeId !== DECK_SEAT_TYPE) return undefined;
+  const owner = mount.getDynamicProperty(DECK_SEAT_OF_PROPERTY);
+  if (typeof owner !== "string") return undefined;
+  const vehicle = world.getEntity(owner);
+  if (!vehicle?.isValid || !isVehicleEntity(vehicle.typeId)) return undefined;
+  const seat = savedIds(vehicle).indexOf(mount.id);
+  return seat < 0 ? undefined : { vehicle, seat };
+}
+
 export class DeckSeats {
   private readonly kept = new Map<VehicleId, (string | null)[]>();
   // Script memory only: after a /reload nobody is known to have been seated, so
