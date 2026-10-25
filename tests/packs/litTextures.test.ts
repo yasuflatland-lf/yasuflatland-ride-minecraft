@@ -1,65 +1,64 @@
 import { readFileSync } from "node:fs";
-import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
+import { readRgbaPng } from "../support/png";
 
 const RP = "packs/yasu_ride_rp";
 const read = (path: string) =>
   JSON.parse(readFileSync(`${RP}/${path}`, "utf8"));
 
-// The generators write RGBA8 PNGs with unfiltered scanlines.
-function png(name: string) {
-  const data = readFileSync(`${RP}/textures/entity/yasu_ride/${name}.png`);
-  expect(data.subarray(0, 8)).toEqual(
-    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+function texels(name: string) {
+  const { width, height, pixels } = readRgbaPng(
+    `${RP}/textures/entity/yasu_ride/${name}.png`,
   );
-  expect([data[24], data[25]]).toEqual([8, 6]);
-  const width = data.readUInt32BE(16);
-  const height = data.readUInt32BE(20);
-  const chunks: Buffer[] = [];
-  for (let pos = 8; pos < data.length; ) {
-    const length = data.readUInt32BE(pos);
-    if (data.toString("ascii", pos + 4, pos + 8) === "IDAT")
-      chunks.push(data.subarray(pos + 8, pos + 8 + length));
-    pos += length + 12;
-  }
-  const raw = inflateSync(Buffer.concat(chunks));
-  const pixels: number[][] = [];
-  for (let y = 0; y < height; y++) {
-    expect(raw[y * (width * 4 + 1)]).toBe(0);
-    for (let x = 0; x < width; x++) {
-      const start = y * (width * 4 + 1) + 1 + x * 4;
-      pixels.push([...raw.subarray(start, start + 4)]);
-    }
-  }
-  return { width, height, pixels };
+  return {
+    width,
+    height,
+    pixels: Array.from({ length: width * height }, (_, i) => [
+      ...pixels.subarray(i * 4, i * 4 + 4),
+    ]),
+  };
 }
 
 const headlights = "query.property('yasu_ride:headlights')";
 const ceiling = "query.property('yasu_ride:ceiling_lights')";
 const kinds = [
-  { kind: "suv", slots: [7], cell: 4, bones: { headlights } },
-  { kind: "sportsboat", slots: [14], cell: 4, bones: { headlights } },
+  {
+    kind: "suv",
+    slots: [7],
+    cell: 4,
+    bones: { headlights },
+    condition: headlights,
+  },
+  {
+    kind: "sportsboat",
+    slots: [14],
+    cell: 4,
+    bones: { headlights },
+    condition: headlights,
+  },
   {
     kind: "camper",
     slots: [14, 33],
     cell: 1,
     bones: { headlights, ceiling_lights: ceiling },
+    condition: `${headlights} || ${ceiling}`,
   },
   {
     kind: "bulldozer",
     slots: [14, 16],
     cell: 1,
     bones: { headlights, beacon: headlights },
+    condition: headlights,
   },
 ];
 
 describe.each(kinds)(
   "$kind lit textures (ADR 0147)",
-  ({ kind, slots, cell, bones }) => {
+  ({ kind, slots, cell, bones, condition }) => {
     it("generates a matching color atlas, maximum-emissive MER mask, and exact texture set", () => {
-      const base = png(kind);
-      const lit = png(`${kind}_lit`);
-      const mer = png(`${kind}_lit_mer`);
+      const base = texels(kind);
+      const lit = texels(`${kind}_lit`);
+      const mer = texels(`${kind}_lit_mer`);
       for (const image of [lit, mer])
         expect([image.width, image.height]).toEqual([base.width, base.height]);
       expect(
@@ -95,8 +94,6 @@ describe.each(kinds)(
       const controllers = read(
         `render_controllers/yasu_ride/${kind}.rc.json`,
       ).render_controllers;
-      const condition =
-        kind === "camper" ? `${headlights} || ${ceiling}` : headlights;
       expect(client.textures.lit).toBe(`textures/entity/yasu_ride/${kind}_lit`);
       expect(client.materials.lamp).toBe("entity");
       expect(client.materials.lamp_lit).toBe("entity_emissive");

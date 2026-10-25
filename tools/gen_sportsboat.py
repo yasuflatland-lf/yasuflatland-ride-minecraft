@@ -639,9 +639,11 @@ def lit_textures(kind, width, height, pixel):
         rgba = (*pixel(x, y), 255)[:4]
         return (*rgba[:3], 0) if is_lit(x, y) else rgba
 
+    def mer(x, y):
+        return (*(MER_LIT if is_lit(x, y) else MER_OFF), 255)
+
     png(ENTITY_TEXTURES / f"{kind}_lit.png", width, height, color)
-    png(ENTITY_TEXTURES / f"{kind}_lit_mer.png", width, height,
-        lambda x, y: (*(MER_LIT if is_lit(x, y) else MER_OFF), 255))
+    png(ENTITY_TEXTURES / f"{kind}_lit_mer.png", width, height, mer)
     texture_set = {
         "format_version": "1.16.100",
         "minecraft:texture_set": {
