@@ -733,6 +733,7 @@ LIFT_SWING = round(math.degrees(math.atan2(_raised_end[1], -_raised_end[0])), 2)
 ROD_SHORTEN = round(ROD_LENGTH - (math.hypot(*_raised_end) - (LIFT_PIN - LIFT_MOUTH)), 2)
 assert BLADE_RAISE > 0 and 0 < ROD_SHORTEN < ROD_LENGTH
 GUSSET_BOTTOM, GUSSET_TOP = (-19.5, 9.5), (-13.9, 22.2)  # (z, y) of the sloped front face
+GUSSET_REAR = (2.0, 12.0)
 GUSSET_THICKNESS = 0.4
 arms = [bar(ARM_FRONT, ARM_REAR, ARM_IN, ARM_OUT, 4.2, "yellow"),
         bar(ARM_FRONT, ARM_REAR, ARM_IN - 0.2, ARM_OUT + 0.2, 0.6, "yellow_dark", offset=1.6),
@@ -743,6 +744,22 @@ arms = [bar(ARM_FRONT, ARM_REAR, ARM_IN, ARM_OUT, 4.2, "yellow"),
 # Keep the former stepped front face as one thin plate, with its thickness behind that face.
 arms.append(bar(GUSSET_BOTTOM, GUSSET_TOP, ARM_IN, ARM_OUT,
                 GUSSET_THICKNESS, "yellow", offset=-GUSSET_THICKNESS / 2))
+# The side skins close the triangular space below the lift rod. Short strips keep the
+# two sloping edges within 0.2 px of their straight lines while presenting flat sides.
+for side_x0, side_x1 in ((ARM_IN - 0.4, ARM_IN), (ARM_OUT, ARM_OUT + 0.4)):
+    z = GUSSET_BOTTOM[0]
+    while z < GUSSET_REAR[0] - 1e-6:
+        z1 = min(z + 0.4, GUSSET_REAR[0])
+        mid = (z + z1) / 2
+        lower = GUSSET_BOTTOM[1] + (GUSSET_REAR[1] - GUSSET_BOTTOM[1]) * (mid - GUSSET_BOTTOM[0]) / (GUSSET_REAR[0] - GUSSET_BOTTOM[0])
+        edge0, edge1 = ((GUSSET_BOTTOM, GUSSET_TOP) if mid < GUSSET_TOP[0]
+                        else (GUSSET_TOP, GUSSET_REAR))
+        upper = edge0[1] + (edge1[1] - edge0[1]) * (mid - edge0[0]) / (edge1[0] - edge0[0])
+        arms.append(box(side_x0, lower, z, side_x1, upper, z1, "yellow"))
+        z = z1
+# These two rectangular plates close the rear slope and underside across the arm.
+arms.append(bar(GUSSET_TOP, GUSSET_REAR, ARM_IN, ARM_OUT, GUSSET_THICKNESS, "yellow"))
+arms.append(bar(GUSSET_REAR, GUSSET_BOTTOM, ARM_IN, ARM_OUT, GUSSET_THICKNESS, "yellow"))
 arms += disc("x", ARM_OUT, LIFT_Y, LIFT_ROD_END, 1.1, 0.4, "steel", STEPS_8)  # the rod's end flange
 for zb in (-17.0, -6.0, 3.6):  # yellow clamp brackets along the arms
     yb = ARM_FRONT[1] + (ARM_REAR[1] - ARM_FRONT[1]) * (zb - ARM_FRONT[0]) / (ARM_REAR[0] - ARM_FRONT[0])
