@@ -38,7 +38,11 @@
               "icon": "yasu_ride:low_chair_item",
               "name": "yasu_ride:camping_gear_outside"
             },
-            "items": ["yasu_ride:low_chair_item", "yasu_ride:tent_item"]
+            "items": [
+              "yasu_ride:low_chair_item",
+              "yasu_ride:tent_item",
+              "yasu_ride:camp_table_item"
+            ]
           },
           {
             "group_identifier": {

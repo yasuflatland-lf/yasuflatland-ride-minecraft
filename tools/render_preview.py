@@ -171,7 +171,11 @@ TENT_GEOMETRY = "models/entity/yasu_ride/tent.geo.json"
 TENT_TEXTURE = "textures/entity/yasu_ride/tent.png"
 TENT_PREVIEW = "tent"
 TENT_ICON = "tent_item"
-ICON_NAMES = {CHAIR_PREVIEW: CHAIR_ICON, TENT_PREVIEW: TENT_ICON}
+TABLE_GEOMETRY = "models/entity/yasu_ride/camp_table.geo.json"
+TABLE_TEXTURE = "textures/entity/yasu_ride/camp_table.png"
+TABLE_PREVIEW = "camp_table"
+TABLE_ICON = "camp_table_item"
+ICON_NAMES = {CHAIR_PREVIEW: CHAIR_ICON, TENT_PREVIEW: TENT_ICON, TABLE_PREVIEW: TABLE_ICON}
 
 POSES = {
     "suv-front-left.png": {"lamps": False, "dusk": False, "hover": False, "submarine": False, "brightness": MAIN_BRIGHTNESS},
@@ -842,12 +846,13 @@ def render_gear(geo_path, texture, size):
 
 
 def small_models(rp):
-    """(name, geometry path, texture) of each camping gear item, then the low chair and tent."""
+    """(name, geometry path, texture) of the decor and outside camping gear."""
     texture = read_png(rp / GEAR_TEXTURE)
     models = [(item["id"], rp / GEAR_GEOMETRY.format(item["id"]), texture) for item in json.loads(GEAR_SPEC.read_text())]
     return models + [
         (CHAIR_PREVIEW, rp / CHAIR_GEOMETRY, read_png(rp / CHAIR_TEXTURE)),
         (TENT_PREVIEW, rp / TENT_GEOMETRY, read_png(rp / TENT_TEXTURE)),
+        (TABLE_PREVIEW, rp / TABLE_GEOMETRY, read_png(rp / TABLE_TEXTURE)),
     ]
 
 

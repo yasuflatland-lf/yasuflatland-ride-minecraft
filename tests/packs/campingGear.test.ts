@@ -290,7 +290,12 @@ describe("camping gear docs (ADR 0093)", () => {
   it("renders a 128 px RGBA preview for every item and the low chair and tent, and no other", () => {
     // The low chair and tent share the folder but are not decor (ADR 0122, 0130)
     expect(readdirSync(PREVIEWS).sort()).toEqual(
-      [...SPEC.map((g) => `${g.id}.png`), "low_chair.png", "tent.png"].sort(),
+      [
+        ...SPEC.map((g) => `${g.id}.png`),
+        "low_chair.png",
+        "tent.png",
+        "camp_table.png",
+      ].sort(),
     );
     for (const g of SPEC) {
       const { width, height } = readPng(`${PREVIEWS}/${g.id}.png`);
@@ -981,7 +986,11 @@ describe("camping gear blocks and items (ADR 0093)", () => {
                   icon: "yasu_ride:low_chair_item",
                   name: "yasu_ride:camping_gear_outside",
                 },
-                items: ["yasu_ride:low_chair_item", "yasu_ride:tent_item"],
+                items: [
+                  "yasu_ride:low_chair_item",
+                  "yasu_ride:tent_item",
+                  "yasu_ride:camp_table_item",
+                ],
               },
               {
                 group_identifier: {

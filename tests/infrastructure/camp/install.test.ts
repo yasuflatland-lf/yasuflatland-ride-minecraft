@@ -1,9 +1,11 @@
 import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
 import { HitChair } from "../../../src/application/camp/hitChair";
+import { HitTable } from "../../../src/application/camp/hitTable";
 import { PaintTent } from "../../../src/application/camp/paintTent";
 import { PitchTent } from "../../../src/application/camp/pitchTent";
 import { PlaceChair } from "../../../src/application/camp/placeChair";
+import { PlaceTable } from "../../../src/application/camp/placeTable";
 import { SwitchLantern } from "../../../src/application/camp/switchLantern";
 import { TakeDownTent } from "../../../src/application/camp/takeDownTent";
 import { UseTentFlap } from "../../../src/application/camp/useTentFlap";
@@ -17,6 +19,7 @@ import {
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import { registerChairHits } from "../../../src/infrastructure/camp/bedrock/handlers/hits";
 import { registerChairPlacement } from "../../../src/infrastructure/camp/bedrock/handlers/placement";
+import { registerTable } from "../../../src/infrastructure/camp/bedrock/handlers/table";
 import { registerTentFlap } from "../../../src/infrastructure/camp/bedrock/handlers/tentFlap";
 import { registerTentHits } from "../../../src/infrastructure/camp/bedrock/handlers/tentHits";
 import { registerTentLifecycle } from "../../../src/infrastructure/camp/bedrock/handlers/tentLifecycle";
@@ -106,6 +109,9 @@ vi.mock("../../../src/infrastructure/camp/bedrock/handlers/placement", () => ({
 vi.mock("../../../src/infrastructure/camp/bedrock/handlers/testHit", () => ({
   registerTestChairHit: vi.fn(),
 }));
+vi.mock("../../../src/infrastructure/camp/bedrock/handlers/table", () => ({
+  registerTable: vi.fn(),
+}));
 
 it("wires one hit use case into both hit handlers and asks the vehicles for their space (ADR 0122)", () => {
   const isVehicleSpace = vi.fn(() => true);
@@ -121,6 +127,9 @@ it("wires one hit use case into both hit handlers and asks the vehicles for thei
     placeChair?.cellFor(here, { x: 0, y: 64, z: 0 }, "up"),
   ).toBeUndefined();
   expect(isVehicleSpace).toHaveBeenCalledWith(here, { x: 0, y: 65, z: 0 });
+  const [placeTable, hitTable] = vi.mocked(registerTable).mock.calls[0] ?? [];
+  expect(placeTable).toBeInstanceOf(PlaceTable);
+  expect(hitTable).toBeInstanceOf(HitTable);
 });
 
 it("registers the tent mattress as a bed with its own SleepInBed (ADR 0092, 0133)", () => {

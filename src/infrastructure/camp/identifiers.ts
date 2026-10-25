@@ -11,6 +11,10 @@ export const TEST_CHAIR_HIT_EVENT = id("test_chair_hit");
 /** Action bar hint after a hit that does not take the chair back yet. */
 export const HITS_LEFT_HINT = "yasu_ride.hint.low_chair_hits";
 
+export const CAMP_TABLE_TYPE = id("camp_table");
+export const CAMP_TABLE_ITEM = id("camp_table_item");
+export const TABLE_HITS_LEFT_HINT = "yasu_ride.hint.camp_table_hits";
+
 export const TENT_TYPE = id("tent");
 export const TENT_ITEM = id("tent_item");
 /** Listed in tent.se.json's minecraft:type_family. */

@@ -46,11 +46,17 @@ A tan-brown two-room tunnel tent with a tarp on two poles, a white inner bedroom
 - **Get one:** find it in the Camping Gear (Outside) group after the Low Chair, or craft it from three wool, one stick, and two string (wool in the top middle, wool on either side of a stick in the middle row, string in the bottom corners). Any wool color works.
 - Pitching comes with 9/13 of the tent work. Using the item does nothing yet; a summoned tent just stands there.
 
+## Camp Table (outside the vehicles)
+
+![Camp Table](../images/items/camping-gear/camp_table.png)
+
+A 30 px long bamboo-colored wooden top on black folding X legs, based on the supplied front, side, top, and grain references. It is long enough for two Low Chairs side by side. Place it from its item on a block top outside vehicle space. Two people can use **Sit** to sit side by side along one long edge; Low Chairs are separate items. The tabletop does not hold placed items or blocks. Hit the table three times in quick succession while nobody is seated to fold it back into its item. In Survival, craft it from three bamboo planks, a stick, and two iron ingots.
+
 ## In the game
 
 Inside gear is vehicle-linked and cannot be crafted: each item is only a carrier that works when held and pressed on a parked camper's furniture slot, where the vehicle feature turns it into decor; it does nothing on the ground.
 
-Outside gear consists of plain camp-feature items that anyone can take from Creative or craft in Survival and place on the ground as their own Low Chair or Tent entity without a camper or any other vehicle present; they are never decor or box contents, and still refuse placement inside a vehicle's space (ADR 0122, 0129).
+Outside gear consists of plain camp-feature items that anyone can take from Creative or craft in Survival and place on the ground as their own Low Chair, Tent, or Camp Table entity without a camper or any other vehicle present; they are never decor or box contents, and still refuse placement inside a vehicle's space (ADR 0122, 0129, 0152).
 
 Creative players find the 19 decor items above in the **Camping Gear (Inside)** group near the end of the Items tab. Each item has a decor block, `yasu_ride:<id>_decor`, that the parked camper lays on a furniture slot. The block has no collision and cannot be broken. Its `yasu_ride:height` state (0 to 15) lifts the gear by that many pixels to the slot's top. On the ceiling hook it lifts the hanging planter so that its top meets the hook. Its `yasu_ride:face` state is the parked camper's facing in quarter turns (0 south, 1 west, 2 north, 3 east). The block turns the gear so that the side shown at the front of its preview faces the camper's front. Its `yasu_ride:spot` state (0 to 4) moves the gear from the middle of its cell to one of the four stove burner spots of ADR 0107, which no slot uses since the stove got one burner in its middle (ADR 0112). A shelf board and the table hold two items, drawn by one block in the furniture's cell, `yasu_ride:shelf_decor_pair` or `yasu_ride:table_decor_pair`, whose states name the item at each end (ADR 0108).
 

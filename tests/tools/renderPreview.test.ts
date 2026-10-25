@@ -103,7 +103,7 @@ describe("camping gear, low chair, and tent previews (ADR 0093, 0122, 0130)", ()
         id: string;
       }[]
     ).map((g) => g.id);
-    const names = [...ids, "low_chair", "tent"];
+    const names = [...ids, "low_chair", "tent", "camp_table"];
     expect(out.names).toEqual(
       names.map((name) => `items/camping-gear/${name}.png`),
     );

@@ -153,6 +153,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0149](0149-route-the-parked-camper-wheel-seat-to-headlights.md) | Route the parked camper's wheel seat to the headlights | Accepted |
 | [0150](0150-run-the-sports-boat-on-lava.md) | Run the sports boat on lava | Proposed |
 | [0151](0151-enclose-the-bulldozer-blade-supports.md) | Enclose the bulldozer blade supports | Proposed |
+| [0152](0152-a-two-seat-folding-camp-table.md) | A two-seat folding camp table | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 
