@@ -398,7 +398,7 @@ describe("tent geometry and texture", () => {
   });
 });
 describe("tent item", () => {
-  it("has a single-stack icon and closes the Camping Gear group", () => {
+  it("has a single-stack icon and closes the Camping Gear (Outside) group", () => {
     const item = readJson(`${BP}/items/yasu_ride/tent_item.item.json`)[
       "minecraft:item"
     ];
@@ -420,7 +420,10 @@ describe("tent item", () => {
     ].categories.flatMap((c: { groups: { items: string[] }[] }) => c.groups);
     expect(
       groups
-        .find((g: { items: string[] }) => g.items.includes(TENT_ITEM))
+        .find(
+          (g: { group_identifier: { name: string } }) =>
+            g.group_identifier.name === "yasu_ride:camping_gear_outside",
+        )
         .items.at(-1),
     ).toBe(TENT_ITEM);
   });

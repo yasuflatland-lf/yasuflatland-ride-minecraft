@@ -6,7 +6,10 @@ import { forward } from "../../src/domain/shared/vec";
 import { DECOR_SLOTS } from "../../src/domain/vehicle/kinds/camper/decor";
 import { DECOR_SPOTS } from "../../src/domain/vehicle/kinds/camper/furniture";
 import { decorSpotOffset } from "../../src/domain/vehicle/kinds/camper/room";
-import { STANDING_GEAR_IDS } from "../../src/domain/vehicle/kinds/index";
+import {
+  CAMPING_GEAR_IDS,
+  STANDING_GEAR_IDS,
+} from "../../src/domain/vehicle/kinds/index";
 import {
   CAMPER_CABINET_COMPONENT,
   CAMPER_DECOR_COMPONENT,
@@ -305,7 +308,13 @@ describe("camping gear docs (ADR 0093)", () => {
   it("counts the camping gear on the item groups page", () => {
     const lines = readFileSync("docs/items/README.md", "utf8").split("\n");
     expect(lines).toContain(
-      `| **Camping Gear** | ${SPEC.length} | [Previews and placement](camping-gear.md) |`,
+      `| **Camping Gear (Inside)** | ${SPEC.length} | [Previews and placement](camping-gear.md) |`,
+    );
+  });
+
+  it("counts the outside gear on the item groups page", () => {
+    expect(readFileSync("docs/items/README.md", "utf8")).toContain(
+      "| **Camping Gear (Outside)** | 2 | [Low Chair and Tent](camping-gear.md#low-chair-outside-the-vehicles) |",
     );
   });
 
@@ -947,15 +956,12 @@ describe("camping gear blocks and items (ADR 0093)", () => {
       ).toBe(ATLAS_KEY);
   });
 
-  it("lists the camping gear box, then every gear item in spec order, then the low chair and tent, in the Camping Gear group, followed by the Bulldozer Switches group", () => {
+  it("lists the exact inside, outside, and bulldozer groups in order", () => {
     const items = [
       "yasu_ride:camping_gear_box",
       ...SPEC.map((g) => `yasu_ride:${g.id}`),
-      // Not in the box: they stand outside the vehicles (ADR 0122, 0130)
-      "yasu_ride:low_chair_item",
-      "yasu_ride:tent_item",
     ];
-    expect(items).toHaveLength(22);
+    expect(items).toHaveLength(20);
     expect(readJson(`${BP}/item_catalog/crafting_item_catalog.json`)).toEqual({
       format_version: "1.21.60",
       "minecraft:crafting_items_catalog": {
@@ -966,9 +972,16 @@ describe("camping gear blocks and items (ADR 0093)", () => {
               {
                 group_identifier: {
                   icon: "yasu_ride:camping_gear_box",
-                  name: "yasu_ride:camping_gear",
+                  name: "yasu_ride:camping_gear_inside",
                 },
                 items,
+              },
+              {
+                group_identifier: {
+                  icon: "yasu_ride:low_chair_item",
+                  name: "yasu_ride:camping_gear_outside",
+                },
+                items: ["yasu_ride:low_chair_item", "yasu_ride:tent_item"],
               },
               {
                 group_identifier: {
@@ -984,6 +997,31 @@ describe("camping gear blocks and items (ADR 0093)", () => {
     });
   });
 
+  it("keeps outside items separate from decor and each catalog item unique", () => {
+    const groups = readJson(`${BP}/item_catalog/crafting_item_catalog.json`)[
+      "minecraft:crafting_items_catalog"
+    ].categories[0].groups as {
+      group_identifier: { name: string };
+      items: string[];
+    }[];
+    const itemsOf = (name: string) =>
+      defined(
+        groups.find((g) => g.group_identifier.name === `yasu_ride:${name}`),
+        name,
+      ).items.map((item) => item.slice("yasu_ride:".length));
+    const specIds = SPEC.map((g) => g.id);
+    expect(itemsOf("camping_gear_inside").slice(1)).toEqual(CAMPING_GEAR_IDS);
+    for (const id of itemsOf("camping_gear_outside")) {
+      expect(specIds).not.toContain(id);
+      expect(CAMPING_GEAR_IDS).not.toContain(id);
+    }
+    const items = groups.flatMap((g) => g.items);
+    expect(new Set(items).size).toBe(items.length);
+    expect(groups.map((g) => g.group_identifier.name)).not.toContain(
+      "yasu_ride:camping_gear",
+    );
+  });
+
   it.each(["en_US", "ja_JP"])(
     "names the group, every gear item, and every decor block in %s",
     (locale) => {
@@ -991,8 +1029,16 @@ describe("camping gear blocks and items (ADR 0093)", () => {
       const name = (g: Gear) => (locale === "en_US" ? g.name_en : g.name_ja);
       const expected = new Map<string, string>([
         [
-          "yasu_ride:camping_gear",
-          locale === "en_US" ? "Camping Gear" : JA_GROUP_NAME,
+          "yasu_ride:camping_gear_inside",
+          locale === "en_US"
+            ? "Camping Gear (Inside)"
+            : `${JA_GROUP_NAME}\uff08\u8eca\u5185\u7528\uff09`,
+        ],
+        [
+          "yasu_ride:camping_gear_outside",
+          locale === "en_US"
+            ? "Camping Gear (Outside)"
+            : `${JA_GROUP_NAME}\uff08\u8eca\u5916\u7528\uff09`,
         ],
         ...SPEC.map((g): [string, string] => [
           `item.yasu_ride:${g.id}.name`,
@@ -1003,7 +1049,8 @@ describe("camping gear blocks and items (ADR 0093)", () => {
           name(g),
         ]),
       ]);
-      expect(expected.size).toBe(1 + 2 * SPEC.length);
+      expect(expected.size).toBe(2 + 2 * SPEC.length);
+      expect(values.has("yasu_ride:camping_gear")).toBe(false);
       for (const [key, value] of expected)
         expect(values.get(key), key).toEqual([value]);
     },

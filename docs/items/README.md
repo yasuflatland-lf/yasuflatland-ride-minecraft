@@ -4,5 +4,6 @@ Items other than vehicles, one page per group. Back to the [README](../../README
 
 | Group | Items | Page |
 |---|---|---|
-| **Camping Gear** | 19 | [Previews and placement](camping-gear.md) |
+| **Camping Gear (Inside)** | 19 | [Previews and placement](camping-gear.md) |
+| **Camping Gear (Outside)** | 2 | [Low Chair and Tent](camping-gear.md#low-chair-outside-the-vehicles) |
 | **Bulldozer Switches** | 1 | [Blade Up/Down](bulldozer-switches.md) |
