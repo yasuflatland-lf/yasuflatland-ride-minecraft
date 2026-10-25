@@ -393,24 +393,53 @@ while z < SIDE_REAR - 1e-6:
     side.append(box(SIDE_IN, bottom + 2.0, z, SIDE_OUT, min(top, CAB_SILL), z1, "yellow"))
     side.append(box(SIDE_IN, bottom + 1.0, z, SIDE_OUT - 1.0, bottom + 2.0, z1, "yellow_dark"))
     if top > CAB_SILL:  # beside the cab the body stays outside its wall
-        side.append(box(CAB_HALF, CAB_SILL, z, SIDE_OUT, min(top, BELT_LINE - BEVEL), z1, "yellow"))
+        side.append(box(CAB_HALF, CAB_SILL, z, SIDE_OUT,
+                        min(max(CAB_SILL, side_top(z) - 0.5), BELT_LINE - BEVEL), z1, "yellow"))
     side.append(box(SIDE_IN, bottom, z, SIDE_OUT - 2.0, bottom + 1.0, z1, "yellow_dark"))  # undercut lip
     if zm < REAR_FRAME_Z:  # recess; behind the sprocket the space stays open and deep
         side.append(box(SIDE_IN, loop_top(min(zm, 35.0)) - 0.2, z, SIDE_IN + 1.2, bottom, z1, "under"))
     z = z1
-# The bevel along the top of the rear side panels, in rows narrowing toward the cab wall; in front
-# of the door's upright edge the side top is lower than the bevel, so the rows start there.
-for i in range(6):
-    y0 = BELT_LINE - BEVEL + i * BEVEL / 6
-    x1 = SIDE_OUT - (i + 1) * (SIDE_OUT - CAB_HALF - 1.0) / 6
-    z0 = DOOR_DIAGONAL[0][0] + (y0 + BEVEL / 12 - DECK) / (BELT_LINE - DECK) * (DOOR_DIAGONAL[1][0] - DOOR_DIAGONAL[0][0])
-    side.append(box(CAB_HALF, y0, z0, x1, y0 + BEVEL / 6, SIDE_REAR, "yellow"))
+# The upper skin overlaps the tapered front closure, hiding its clipped upper edge.
+bevel_front = DOOR_DIAGONAL[0][0] + (BELT_LINE - BEVEL - DECK) / (BELT_LINE - DECK) * (DOOR_REAR - DOOR_DIAGONAL[0][0])
+bevel_run = SIDE_OUT - CAB_HALF - 1.0
+bevel_length = math.hypot(bevel_run, BEVEL)
+bevel_thickness = 0.4
+bevel_angle = math.degrees(math.atan2(BEVEL, bevel_run))
+# Offset the center inward so the outer face meets the original upper and lower edges.
+bevel_x = SIDE_OUT - bevel_run / 2 - bevel_thickness / 2 * BEVEL / bevel_length
+bevel_y = BELT_LINE - BEVEL / 2 - bevel_thickness / 2 * bevel_run / bevel_length
+side.append(box(bevel_x - bevel_length / 2, bevel_y - bevel_thickness / 2, bevel_front,
+                bevel_x + bevel_length / 2, bevel_y + bevel_thickness / 2, SIDE_REAR, "yellow",
+                [0, 0, -round(bevel_angle, 3)], [bevel_x, bevel_y, (bevel_front + SIDE_REAR) / 2]))
+side.append(box(CAB_HALF, BELT_LINE - bevel_thickness, DOOR_REAR,
+                CAB_HALF + 1.0, BELT_LINE, SIDE_REAR, "yellow"))
+# Coplanar strips clip the panel to the bevel without introducing steps on its face.
+# Their upper ends sit inside the upper skin; Bedrock cubes cannot form a trapezoid.
+front_panel_pitch = 0.1
+front_panel_thickness = 0.4
+front_panel_count = round((SIDE_OUT - CAB_HALF) / front_panel_pitch)
+for i in range(front_panel_count):
+    x0 = CAB_HALF + i * front_panel_pitch
+    x1 = CAB_HALF + (i + 1) * front_panel_pitch
+    top = BELT_LINE - max(0.0, (x0 + x1) / 2 - CAB_HALF - 1.0) * BEVEL / bevel_run - 0.1
+    top_z = DOOR_DIAGONAL[0][0] + (top - DECK) / (BELT_LINE - DECK) * (DOOR_REAR - DOOR_DIAGONAL[0][0])
+    side.append(bar(DOOR_DIAGONAL[0], (top_z, top), x0, x1,
+                    front_panel_thickness, "yellow", offset=-front_panel_thickness / 2))
 # Panel seams and bolt heads on the rear side panel; dark-backed steel mesh beside the cab front.
 side += [box(SIDE_OUT, 24.4, 23.6, SIDE_OUT + 0.1, BELT_LINE - BEVEL, 23.9, "yellow_dark"),
          box(SIDE_OUT, 27.0, 16.8, SIDE_OUT + 0.1, 27.3, 36.6, "yellow_dark"),
          box(SIDE_IN, DECK - 0.4, SIDE_FRONT - 0.6, SIDE_OUT + 0.3, DECK, CAB_FRONT, "yellow_dark")]
 for bz, by in ((18.0, 28.8), (22.6, 28.8), (25.0, 28.8), (35.6, 28.8), (25.0, 25.6), (35.6, 25.6), (30.0, 22.4)):
     side.append(box(SIDE_OUT, by - 0.25, bz - 0.25, SIDE_OUT + 0.15, by + 0.25, bz + 0.25, "bolt"))
+# A flat rear closure follows the bevel's top edge and covers the exposed stepped end.
+# Adjacent strips form one plane; their small height changes are hidden by the upper skin.
+rear_panel_pitch = 0.1
+rear_panel_count = round((SIDE_OUT - CAB_HALF) / rear_panel_pitch)
+for i in range(rear_panel_count):
+    x0 = CAB_HALF + i * rear_panel_pitch
+    x1 = CAB_HALF + (i + 1) * rear_panel_pitch
+    top = BELT_LINE - max(0.0, (x0 + x1) / 2 - CAB_HALF - 1.0) * BEVEL / bevel_run - 0.1
+    side.append(box(x0, DECK, SIDE_REAR, x1, top, SIDE_REAR + 0.4, "yellow"))
 side += step_mesh(CAB_HALF + 0.2, SIDE_FRONT, SIDE_OUT - 0.3, DOOR_DIAGONAL[0][0] - 0.2)
 side.append(box(CAB_HALF, BELT_LINE, 17.2, CAB_HALF + 0.8, BELT_LINE + 0.3, 36.4, "yellow_dark"))  # ledge
 body += both(side)
@@ -703,22 +732,17 @@ _raised_end = (LIFT_ROD_END + ROD_RETRACT - LIFT_PIN, BLADE_RAISE)  # the rod's 
 LIFT_SWING = round(math.degrees(math.atan2(_raised_end[1], -_raised_end[0])), 2)
 ROD_SHORTEN = round(ROD_LENGTH - (math.hypot(*_raised_end) - (LIFT_PIN - LIFT_MOUTH)), 2)
 assert BLADE_RAISE > 0 and 0 < ROD_SHORTEN < ROD_LENGTH
-GUSSET_FRONT, GUSSET_REAR, GUSSET_TOP = (-19.5, -13.9), (-10.0, -12.1), 22.2  # (bottom z, top z) of each edge
+GUSSET_BOTTOM, GUSSET_TOP = (-19.5, 9.5), (-13.9, 22.2)  # (z, y) of the sloped front face
+GUSSET_THICKNESS = 0.4
 arms = [bar(ARM_FRONT, ARM_REAR, ARM_IN, ARM_OUT, 4.2, "yellow"),
         bar(ARM_FRONT, ARM_REAR, ARM_IN - 0.2, ARM_OUT + 0.2, 0.6, "yellow_dark", offset=1.6),
         *disc("x", ARM_OUT, ARM_REAR[1], ARM_REAR[0], 2.0, 0.5, "yellow_dark", STEPS_8),
         *disc("x", ARM_OUT + 0.5, ARM_REAR[1], ARM_REAR[0], 0.8, 0.3, "bolt", STEPS_8),
         box(ARM_IN - 0.2, 12.6, -25.4, ARM_OUT + 0.2, 15.0, -15.6, "black"),  # angle cylinder
         box(ARM_IN + 0.4, 13.2, -30.2, ARM_OUT - 0.4, 14.4, -25.4, "chrome")]
-# The gusset under the rod's end, in rows whose front edge leans back up to the top
-y = 9.5
-while y < GUSSET_TOP - 1e-6:
-    y1 = min(y + 0.5, GUSSET_TOP)
-    t = ((y + y1) / 2 - 9.5) / (GUSSET_TOP - 9.5)
-    zf = GUSSET_FRONT[0] + (GUSSET_FRONT[1] - GUSSET_FRONT[0]) * t
-    zr = GUSSET_REAR[0] + (GUSSET_REAR[1] - GUSSET_REAR[0]) * t
-    arms.append(box(ARM_IN, y, zf, ARM_OUT, y1, zr, "yellow"))
-    y = y1
+# Keep the former stepped front face as one thin plate, with its thickness behind that face.
+arms.append(bar(GUSSET_BOTTOM, GUSSET_TOP, ARM_IN, ARM_OUT,
+                GUSSET_THICKNESS, "yellow", offset=-GUSSET_THICKNESS / 2))
 arms += disc("x", ARM_OUT, LIFT_Y, LIFT_ROD_END, 1.1, 0.4, "steel", STEPS_8)  # the rod's end flange
 for zb in (-17.0, -6.0, 3.6):  # yellow clamp brackets along the arms
     yb = ARM_FRONT[1] + (ARM_REAR[1] - ARM_FRONT[1]) * (zb - ARM_FRONT[0]) / (ARM_REAR[0] - ARM_FRONT[0])
