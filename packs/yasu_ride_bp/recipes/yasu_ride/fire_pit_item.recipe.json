@@ -1,0 +1,13 @@
+{
+  "format_version": "1.21.80",
+  "minecraft:recipe_shaped": {
+    "description": { "identifier": "yasu_ride:fire_pit_item" },
+    "tags": ["crafting_table"],
+    "pattern": ["I I", " I ", "B B"],
+    "key": {
+      "I": { "item": "minecraft:iron_ingot" },
+      "B": { "item": "minecraft:iron_bars" }
+    },
+    "result": { "item": "yasu_ride:fire_pit_item", "count": 1 }
+  }
+}

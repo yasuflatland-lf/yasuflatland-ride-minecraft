@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
+import { FirePitActions } from "../../../src/application/camp/firePit";
 import { HitChair } from "../../../src/application/camp/hitChair";
 import { HitTable } from "../../../src/application/camp/hitTable";
 import { PaintTent } from "../../../src/application/camp/paintTent";
@@ -17,6 +18,7 @@ import {
   tentCells,
 } from "../../../src/domain/camp/tent";
 import { asDimensionId } from "../../../src/domain/shared/ids";
+import { registerFirePit } from "../../../src/infrastructure/camp/bedrock/handlers/firePit";
 import { registerChairHits } from "../../../src/infrastructure/camp/bedrock/handlers/hits";
 import { registerChairPlacement } from "../../../src/infrastructure/camp/bedrock/handlers/placement";
 import { registerTable } from "../../../src/infrastructure/camp/bedrock/handlers/table";
@@ -112,6 +114,9 @@ vi.mock("../../../src/infrastructure/camp/bedrock/handlers/testHit", () => ({
 vi.mock("../../../src/infrastructure/camp/bedrock/handlers/table", () => ({
   registerTable: vi.fn(),
 }));
+vi.mock("../../../src/infrastructure/camp/bedrock/handlers/firePit", () => ({
+  registerFirePit: vi.fn(),
+}));
 
 it("wires one hit use case into both hit handlers and asks the vehicles for their space (ADR 0122)", () => {
   const isVehicleSpace = vi.fn(() => true);
@@ -130,6 +135,9 @@ it("wires one hit use case into both hit handlers and asks the vehicles for thei
   const [placeTable, hitTable] = vi.mocked(registerTable).mock.calls[0] ?? [];
   expect(placeTable).toBeInstanceOf(PlaceTable);
   expect(hitTable).toBeInstanceOf(HitTable);
+  expect(vi.mocked(registerFirePit).mock.calls[0]?.[0]).toBeInstanceOf(
+    FirePitActions,
+  );
 });
 
 it("registers the tent mattress as a bed with its own SleepInBed (ADR 0092, 0133)", () => {

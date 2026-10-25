@@ -18,6 +18,12 @@ export const TABLE_SPEC = Object.freeze({
   hitResetTicks: 100,
 });
 
+export const FIRE_PIT_SPEC = Object.freeze({
+  clearance: 2,
+  hitsToTakeBack: 3,
+  hitResetTicks: 100,
+});
+
 // Every tuning value of the tent.
 export const TENT_SPEC = Object.freeze({
   /** Footprint across, walls included, in cells (local x -3..3). */

@@ -15,6 +15,12 @@ export const CAMP_TABLE_TYPE = id("camp_table");
 export const CAMP_TABLE_ITEM = id("camp_table_item");
 export const TABLE_HITS_LEFT_HINT = "yasu_ride.hint.camp_table_hits";
 
+export const FIRE_PIT_TYPE = id("fire_pit");
+export const FIRE_PIT_ITEM = id("fire_pit_item");
+export const FIRE_PIT_LIT_PROPERTY = id("lit");
+export const FIRE_PIT_HITS_LEFT_HINT = "yasu_ride.hint.fire_pit_hits";
+export const TEST_FIRE_PIT_EVENT = id("test_fire_pit");
+
 export const TENT_TYPE = id("tent");
 export const TENT_ITEM = id("tent_item");
 /** Listed in tent.se.json's minecraft:type_family. */

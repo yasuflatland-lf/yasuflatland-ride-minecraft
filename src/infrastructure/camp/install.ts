@@ -1,7 +1,4 @@
-// Wires the camp feature: the low chair placed outside the vehicles (ADR 0122)
-// and the tent pitched from its item, with flaps that open alone (ADR 0131, 0132),
-// mattresses to sleep on (ADR 0133), a lantern on the headlight switch (ADR 0134),
-// and a fly repainted with dyes (ADR 0135).
+import { FirePitActions } from "../../application/camp/firePit";
 import { HitChair } from "../../application/camp/hitChair";
 import { HitTable } from "../../application/camp/hitTable";
 import { PaintTent } from "../../application/camp/paintTent";
@@ -19,10 +16,12 @@ import { registerLaidBlockGuard } from "../shared/laidBlockGuard";
 import { playerById } from "../shared/players";
 import type { SwitchTarget } from "../shared/switchRouter";
 import { BedrockChairWorld } from "./bedrock/bedrockChairWorld";
+import { BedrockFirePitWorld } from "./bedrock/bedrockFirePitWorld";
 import { BedrockLanternWorld } from "./bedrock/bedrockLanternWorld";
 import { BedrockTableWorld } from "./bedrock/bedrockTableWorld";
 import { BedrockTentPaintWorld } from "./bedrock/bedrockTentPaintWorld";
 import { BedrockTentWorld } from "./bedrock/bedrockTentWorld";
+import { registerFirePit } from "./bedrock/handlers/firePit";
 import { registerChairHits } from "./bedrock/handlers/hits";
 import { registerChairPlacement } from "./bedrock/handlers/placement";
 import { registerTable } from "./bedrock/handlers/table";
@@ -57,6 +56,7 @@ export function installCamp(deps: { isVehicleSpace: SpaceCheck }): {
   registerTestChairHit(hitChair);
   const tables = new BedrockTableWorld(deps);
   registerTable(new PlaceTable(tables), new HitTable(tables));
+  registerFirePit(new FirePitActions(new BedrockFirePitWorld(deps)));
 
   // SleepInBed is stateless, so camp builds its own instead of sharing the vehicle's.
   registerBedBlock(

@@ -175,7 +175,11 @@ TABLE_GEOMETRY = "models/entity/yasu_ride/camp_table.geo.json"
 TABLE_TEXTURE = "textures/entity/yasu_ride/camp_table.png"
 TABLE_PREVIEW = "camp_table"
 TABLE_ICON = "camp_table_item"
-ICON_NAMES = {CHAIR_PREVIEW: CHAIR_ICON, TENT_PREVIEW: TENT_ICON, TABLE_PREVIEW: TABLE_ICON}
+FIRE_PIT_GEOMETRY = "models/entity/yasu_ride/fire_pit.geo.json"
+FIRE_PIT_TEXTURE = "textures/entity/yasu_ride/fire_pit.png"
+FIRE_PIT_PREVIEW = "fire_pit"
+FIRE_PIT_ICON = "fire_pit_item"
+ICON_NAMES = {CHAIR_PREVIEW: CHAIR_ICON, TENT_PREVIEW: TENT_ICON, TABLE_PREVIEW: TABLE_ICON, FIRE_PIT_PREVIEW: FIRE_PIT_ICON}
 
 POSES = {
     "suv-front-left.png": {"lamps": False, "dusk": False, "hover": False, "submarine": False, "brightness": MAIN_BRIGHTNESS},
@@ -853,6 +857,7 @@ def small_models(rp):
         (CHAIR_PREVIEW, rp / CHAIR_GEOMETRY, read_png(rp / CHAIR_TEXTURE)),
         (TENT_PREVIEW, rp / TENT_GEOMETRY, read_png(rp / TENT_TEXTURE)),
         (TABLE_PREVIEW, rp / TABLE_GEOMETRY, read_png(rp / TABLE_TEXTURE)),
+        (FIRE_PIT_PREVIEW, rp / FIRE_PIT_GEOMETRY, read_png(rp / FIRE_PIT_TEXTURE)),
     ]
 
 
