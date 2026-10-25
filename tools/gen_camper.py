@@ -241,6 +241,12 @@ def w_stroke(x0, x1, bottom, top, y_top):
     return cube, drop
 
 
+def w_arm_inner(y):
+    """The p of an outer arm's inner edge at height y, a straight line through the arm's top
+    corner on the stripe's lower edge and its foot, extended up through the stripe."""
+    return W_ARM_START[1] + (W_FOOT[1] - W_ARM_START[1]) * (STRIPE_Y[0] - y) / (STRIPE_Y[0] - W_BOTTOM)
+
+
 def w_fill(x0, x1, span, y0, y1):
     return box(x0, y0, w_z(span[1]), x1, y1, w_z(span[0]), "stripe")
 
@@ -282,12 +288,23 @@ for x0, x1, windows in ((HW - 1, HW, right_windows), (-HW, -HW + 1, left_windows
     lo, hi = (out, out + 0.12) if right else (out - 0.12, out)
     # The stripe dips into a large W ahead of the door; the W's top stays open between
     # its outer arms. The owner chose to keep this logo, an exception recorded in ADR 0067.
-    w_open = (w_z(W_ARM_END[0]), w_z(W_ARM_START[1]))  # only between the outer arms
+    # Its ends follow the arms' inner edges up through the stripe, so the outline has no step
+    # where the stripe meets an arm: the panel is open at the widest, and quarter-pixel rows
+    # stay inside the edge line (ADR 0145).
+    w_wide = w_arm_inner(STRIPE_Y[1])
+    w_open = (w_z(1 - w_wide), w_z(w_wide))
     body += panel("x", lo, hi, STRIPE_FRONT, REAR_INNER, *STRIPE_Y, door_cut + [(*w_open, *STRIPE_Y)], "stripe")
     y = STRIPE_Y[0]
     while y < STRIPE_Y[1] - 1e-6:  # the front end is cut on a slant, its top reaching further
         f = (y + 0.125 - STRIPE_Y[0]) / (STRIPE_Y[1] - STRIPE_Y[0])
         body.append(box(lo, y, STRIPE_FRONT - 3 * f, hi, y + 0.25, STRIPE_FRONT, "stripe"))
+        y += 0.25
+    y = STRIPE_Y[0]
+    while y < STRIPE_Y[1] - 1e-6:
+        p_row = w_arm_inner(y + 0.25)
+        if p_row < w_wide - 1e-6:  # the top row would be flush with the panel's end
+            body.append(box(lo, y, w_z(p_row), hi, y + 0.25, w_z(w_wide), "stripe"))
+            body.append(box(lo, y, w_z(1 - w_wide), hi, y + 0.25, w_z(1 - p_row), "stripe"))
         y += 0.25
     drops = {}
     for bottom, top, y_top in W_STROKES:
