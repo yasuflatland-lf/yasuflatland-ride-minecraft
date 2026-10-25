@@ -295,6 +295,7 @@ describe("camping gear docs (ADR 0093)", () => {
         "low_chair.png",
         "tent.png",
         "camp_table.png",
+        "fire_pit.png",
       ].sort(),
     );
     for (const g of SPEC) {
@@ -319,7 +320,7 @@ describe("camping gear docs (ADR 0093)", () => {
 
   it("counts the outside gear on the item groups page", () => {
     expect(readFileSync("docs/items/README.md", "utf8")).toContain(
-      "| **Camping Gear (Outside)** | 2 | [Low Chair and Tent](camping-gear.md#low-chair-outside-the-vehicles) |",
+      "| **Camping Gear (Outside)** | 4 | [Low Chair, Tent, Camp Table, and Fire Pit](camping-gear.md#low-chair-outside-the-vehicles) |",
     );
   });
 
@@ -990,6 +991,7 @@ describe("camping gear blocks and items (ADR 0093)", () => {
                   "yasu_ride:low_chair_item",
                   "yasu_ride:tent_item",
                   "yasu_ride:camp_table_item",
+                  "yasu_ride:fire_pit_item",
                 ],
               },
               {

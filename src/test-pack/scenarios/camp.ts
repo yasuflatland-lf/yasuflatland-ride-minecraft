@@ -3,9 +3,12 @@ import { type Entity, system } from "@minecraft/server";
 import {
   CAMP_TABLE_TYPE,
   CHAIR_FAMILY,
+  FIRE_PIT_LIT_PROPERTY,
+  FIRE_PIT_TYPE,
   LOW_CHAIR_ITEM,
   LOW_CHAIR_TYPE,
   TEST_CHAIR_HIT_EVENT,
+  TEST_FIRE_PIT_EVENT,
 } from "../../infrastructure/camp/identifiers";
 import { type Arena, type Outcome, wait } from "../arena";
 
@@ -112,5 +115,37 @@ export function campTableTwoSeats(a: Arena): Promise<Outcome> {
     });
   } finally {
     if (table?.isValid) table.remove();
+  }
+}
+
+/** Checks the fire pit's initial state and both directions of the ignition toggle. */
+export async function firePitIgnition(a: Arena): Promise<Outcome> {
+  const at = { x: CELL.x + 0.5, y: a.gy, z: CELL.z + 11.5 };
+  a.dim.runCommand(`summon ${FIRE_PIT_TYPE} ${at.x} ${at.y} ${at.z}`);
+  const pit = a.dim.getEntities({
+    type: FIRE_PIT_TYPE,
+    location: at,
+    maxDistance: 1.5,
+  })[0];
+  if (!pit) return { pass: false, detail: "fire pit not spawned" };
+  try {
+    const initial = pit.getProperty(FIRE_PIT_LIT_PROPERTY);
+    system.sendScriptEvent(TEST_FIRE_PIT_EVENT, pit.id);
+    await wait(2);
+    const burning = pit.getProperty(FIRE_PIT_LIT_PROPERTY);
+    system.sendScriptEvent(TEST_FIRE_PIT_EVENT, pit.id);
+    await wait(2);
+    const extinguished = pit.getProperty(FIRE_PIT_LIT_PROPERTY);
+    const family = pit.matches({ families: ["yasu_ride_fire_pit"] });
+    return {
+      pass:
+        initial === false &&
+        burning === true &&
+        extinguished === false &&
+        family,
+      detail: `initial=${initial} burning=${burning} extinguished=${extinguished} family=${family}`,
+    };
+  } finally {
+    if (pit.isValid) pit.remove();
   }
 }

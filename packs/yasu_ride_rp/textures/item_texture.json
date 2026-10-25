@@ -24,6 +24,9 @@
     "yasu_ride_camp_table_item": {
       "textures": "textures/items/yasu_ride/camp_table_item"
     },
+    "yasu_ride_fire_pit_item": {
+      "textures": "textures/items/yasu_ride/fire_pit_item"
+    },
     "yasu_ride_tent_item": { "textures": "textures/items/yasu_ride/tent_item" },
     "yasu_ride_camping_gear_box": {
       "textures": "textures/items/yasu_ride/camping_gear_box"

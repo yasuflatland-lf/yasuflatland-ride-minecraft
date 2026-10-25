@@ -36,6 +36,7 @@ import {
 } from "./scenarios/bulldozerExit";
 import {
   campTableTwoSeats,
+  firePitIgnition,
   lowChairSeatAndTakeBack,
   lowChairSettlesThroughGrass,
 } from "./scenarios/camp";
@@ -200,6 +201,7 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
     ["blade_cut_kept_ids", 0, () => bladeCutKeptIds()],
     ["low_chair_seat_and_take_back", 6, () => lowChairSeatAndTakeBack(a)],
     ["camp_table_two_seats", 2, () => campTableTwoSeats(a)],
+    ["fire_pit_ignition", 6, () => firePitIgnition(a)],
     [
       "low_chair_settles_through_grass",
       20,
