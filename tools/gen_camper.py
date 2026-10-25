@@ -241,6 +241,12 @@ def w_stroke(x0, x1, bottom, top, y_top):
     return cube, drop
 
 
+def w_arm_inner(y):
+    """The p of an outer arm's inner edge at height y, a straight line through the arm's top
+    corner on the stripe's lower edge and its foot, extended up through the stripe."""
+    return W_ARM_START[1] + (W_FOOT[1] - W_ARM_START[1]) * (STRIPE_Y[0] - y) / (STRIPE_Y[0] - W_BOTTOM)
+
+
 def w_fill(x0, x1, span, y0, y1):
     return box(x0, y0, w_z(span[1]), x1, y1, w_z(span[0]), "stripe")
 
@@ -282,12 +288,23 @@ for x0, x1, windows in ((HW - 1, HW, right_windows), (-HW, -HW + 1, left_windows
     lo, hi = (out, out + 0.12) if right else (out - 0.12, out)
     # The stripe dips into a large W ahead of the door; the W's top stays open between
     # its outer arms. The owner chose to keep this logo, an exception recorded in ADR 0067.
-    w_open = (w_z(W_ARM_END[0]), w_z(W_ARM_START[1]))  # only between the outer arms
+    # Its ends follow the arms' inner edges up through the stripe, so the outline has no step
+    # where the stripe meets an arm: the panel is open at the widest, and quarter-pixel rows
+    # stay inside the edge line (ADR 0145).
+    w_wide = w_arm_inner(STRIPE_Y[1])
+    w_open = (w_z(1 - w_wide), w_z(w_wide))
     body += panel("x", lo, hi, STRIPE_FRONT, REAR_INNER, *STRIPE_Y, door_cut + [(*w_open, *STRIPE_Y)], "stripe")
     y = STRIPE_Y[0]
     while y < STRIPE_Y[1] - 1e-6:  # the front end is cut on a slant, its top reaching further
         f = (y + 0.125 - STRIPE_Y[0]) / (STRIPE_Y[1] - STRIPE_Y[0])
         body.append(box(lo, y, STRIPE_FRONT - 3 * f, hi, y + 0.25, STRIPE_FRONT, "stripe"))
+        y += 0.25
+    y = STRIPE_Y[0]
+    while y < STRIPE_Y[1] - 1e-6:
+        p_row = w_arm_inner(y + 0.25)
+        if p_row < w_wide - 1e-6:  # the top row would be flush with the panel's end
+            body.append(box(lo, y, w_z(p_row), hi, y + 0.25, w_z(w_wide), "stripe"))
+            body.append(box(lo, y, w_z(1 - w_wide), hi, y + 0.25, w_z(1 - p_row), "stripe"))
         y += 0.25
     drops = {}
     for bottom, top, y_top in W_STROKES:
@@ -321,7 +338,6 @@ for x0, x1, windows in ((HW - 1, HW, right_windows), (-HW, -HW + 1, left_windows
 
 body.append(box(HW, WIN_Y[0], -22.8, HW + 0.2, WIN_Y[1], -22.2, "chrome"))  # double window dividers
 body.append(box(-HW - 0.2, WIN_Y[0], -17.3, -HW, WIN_Y[1], -16.7, "chrome"))
-body.append(box(HW, 56, DOOR[1] + 0.8, HW + 0.5, 58, DOOR[1] + 2.6, "amber"))  # porch light
 body.append(box(HW, 13, 10, HW + 0.3, 19, 17, "slat"))  # small louvered vent
 # Louvered hatch low at the rear corner of both sides, small utility boxes.
 for sx in (HW, -HW):
@@ -334,6 +350,7 @@ body.append(box(-HW - 0.4, 19, 14, -HW - 0.3, 20, 15.5, "chrome"))
 
 # Entry door stays closed until the later parking work; a fold-out step stays below it.
 DZ0, DZ1, DY0, DY1 = DOOR
+DOOR_HANDLE_Y = (STRIPE_Y[0] - 1.5, STRIPE_Y[0] - 0.5)  # half a pixel below the stripe (ADR 0145)
 door = [box(HW - 1, DY0, DZ0 + 0.1, HW, DY1, DZ1 - 0.1, "white")]
 # The door window lines up with the side windows, as on the close-up photo.
 DW0, DW1 = DZ0 + 3, DZ1 - 3
@@ -344,8 +361,8 @@ for fz0, fz1, fy0, fy1 in ((DW0 - 0.6, DW1 + 0.6, WIN_Y[0] - 0.6, WIN_Y[0]), (DW
 door.append(box(HW, STRIPE_Y[0], DZ0 + 0.1, HW + 0.12, STRIPE_Y[1], DZ1 - 0.1, "stripe"))
 door.append(box(HW, BAND_Y[0], DZ0 + 0.1, HW + 0.1, BAND_Y[1], DZ1 - 0.1, "khaki"))
 door.append(box(HW, DY0, DZ0 + 0.1, HW + 0.12, 15, DZ1 - 0.1, "tan"))
-door.append(box(HW, 26, DZ1 - 2.5, HW + 0.6, 27, DZ1 - 1, "chrome"))  # handle outside
-door.append(box(HW - 1.6, 26, DZ1 - 2.5, HW - 1, 27, DZ1 - 1, "chrome"))  # handle inside
+door.append(box(HW, DOOR_HANDLE_Y[0], DZ1 - 2.5, HW + 0.6, DOOR_HANDLE_Y[1], DZ1 - 1, "chrome"))  # handle outside
+door.append(box(HW - 1.6, DOOR_HANDLE_Y[0], DZ1 - 2.5, HW - 1, DOOR_HANDLE_Y[1], DZ1 - 1, "chrome"))  # handle inside
 DOOR_HINGE = [HW, 0, DZ0]
 body.append(box(HW, 7, DZ0 + 1, HW + 6, 8, DZ1 - 1, "black"))
 body.append(box(HW, 3.5, DZ0 + 1, HW + 6, 4.5, DZ1 - 1, "black"))
@@ -602,6 +619,9 @@ for sx in (1, -1):
     body.append(box(x0, MY0 + 0.4, mz + 1.2, x1, MY1 - 0.4, mz + 1.3, "glass"))
 
 # --- Rear -------------------------------------------------------------------
+# Static amber turn signals outside the tail lights, clear of the ladder (ADR 0145).
+REAR_SIGNAL_X, REAR_SIGNAL_Y = 22.9, 15.0
+REAR_SIGNAL_BEZEL_R, REAR_SIGNAL_LENS_R = 0.9, 0.65
 REAR_START = len(body)
 REAR_WIN = (-17, 17, 38, 50)
 body.append(box(-17, 38, REAR - 0.6, 17, 50, REAR - 0.4, "glass"))
@@ -624,6 +644,8 @@ body.append(box(-15, 10, REAR, 15, 11, REAR + 0.35, "tan"))
 body.append(box(-HW, BOTTOM, REAR, HW, 10, REAR + 0.15, "tan"))
 for sx in (1, -1):
     body += disc("z", sx * 19, 15, REAR + 0.2, 1.6, 0.4, "red")
+    body += disc("z", sx * REAR_SIGNAL_X, REAR_SIGNAL_Y, REAR + 0.2, REAR_SIGNAL_BEZEL_R, 0.4, "chrome", steps=STEPS_16)
+    body += disc("z", sx * REAR_SIGNAL_X, REAR_SIGNAL_Y, REAR + 0.5, REAR_SIGNAL_LENS_R, 0.3, "amber", steps=STEPS_16)
 body.append(box(-19, 17.5, REAR, -16, 21, REAR + 0.3, "panel"))  # backup light box
 body.append(box(-20, 10.5, REAR, -15, 13.5, REAR + 0.3, "white"))  # plate
 body.append(box(-HW - 0.5, 3, REAR - 1, HW + 0.5, 7.5, REAR + 2.5, "steel"))  # bumper with step slots, as the front
