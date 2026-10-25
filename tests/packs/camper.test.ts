@@ -177,15 +177,6 @@ describe("camper model assets (ADR 0067)", () => {
     }
   });
 
-  // Slot 6 is the stripe in the PALETTE order of tools/gen_camper.py.
-  const flatStripeCubes = (side: number) =>
-    (bone("body").cubes ?? []).filter(
-      (c) =>
-        c.uv.north?.uv[0] === 6 &&
-        !c.rotation &&
-        Math.sign(c.origin[0] ?? 0) === side,
-    );
-
   it("draws the side stripe's W as mirrored single-cube strokes on a flat bottom (#459)", () => {
     // The PALETTE order in tools/gen_camper.py puts the stripe in slot 6.
     const strokes = (bone("body").cubes ?? []).filter(
@@ -238,29 +229,90 @@ describe("camper model assets (ADR 0067)", () => {
         );
       });
       // Geometry coordinates are rounded to three decimal places by the generator.
-      for (const y of lowest) expect(y).toBeGreaterThanOrEqual(wBottom + 0.4);
-      const rows = flatStripeCubes(side);
-      expect(
-        Math.min(...lowest, ...rows.map((c) => c.origin[1] ?? 0)),
-      ).toBeCloseTo(wBottom, 2);
+      for (const y of lowest) expect(y).toBeCloseTo(wBottom, 2);
     }
   });
 
-  it("chamfers both feet and the middle peak on each side (#596)", () => {
-    for (const side of [1, -1]) {
-      const rows = flatStripeCubes(side);
-      const feet = rows.filter(
-        (c) => Math.abs((c.origin[1] ?? 0) - 19.1) < 0.001,
-      );
-      const peak = rows.filter(
-        (c) => Math.abs((c.origin[1] ?? 0) + (c.size[1] ?? 0) - 27.532) < 0.002,
-      );
-      expect(feet).toHaveLength(2);
-      expect(peak).toHaveLength(1);
-      for (const row of [...feet, ...peak]) {
-        expect(row.size[2]).toBeLessThanOrEqual(2.805 - 2 * 0.8 * 0.8);
-        expect(row.size[1]).toBeLessThanOrEqual(0.25);
-        expect(row.size[0]).toBeCloseTo(0.12, 3);
+  it("ends the stripe on the W's outer arm inner edges, with no step at their tops (ADR 0145)", () => {
+    const frontAxle = -31.5;
+    const stripeBand: [number, number] = [29.5, 31.5];
+    const cubes = (bone("body").cubes ?? []).filter(
+      (cube) => cube.uv.north?.uv[0] === 6,
+    );
+    const arms = cubes.filter((cube) => (cube.rotation?.[0] ?? 0) !== 0);
+    const armLength = Math.max(...arms.map((cube) => cube.size[1] ?? 0));
+    for (const xSide of [1, -1]) {
+      for (const zSide of [1, -1]) {
+        const arm = arms.find(
+          (cube) =>
+            cube.size[1] === armLength &&
+            Math.sign(cube.origin[0] ?? 0) === xSide &&
+            Math.sign((cube.pivot?.[2] ?? 0) - frontAxle) === zSide,
+        );
+        expect(arm, `side ${xSide} ${zSide}`).toBeDefined();
+        const cube = arm as Cube;
+        const angle = ((cube.rotation?.[0] ?? 0) * Math.PI) / 180;
+        const py = cube.pivot?.[1] ?? 0;
+        const pz = cube.pivot?.[2] ?? 0;
+        // The arm's edge on the axle side, as the (z, y) corners of its rotated end faces; in game
+        // a negative x rotation tips the top toward +z (ADR 0051).
+        const edges = [0, 1].map((faceZ) =>
+          [0, 1].map((faceY) => {
+            const y = (cube.origin[1] ?? 0) + faceY * (cube.size[1] ?? 0);
+            const z = (cube.origin[2] ?? 0) + faceZ * (cube.size[2] ?? 0);
+            return [
+              pz - (y - py) * Math.sin(angle) + (z - pz) * Math.cos(angle),
+              py + (y - py) * Math.cos(angle) + (z - pz) * Math.sin(angle),
+            ];
+          }),
+        );
+        const mean = (edge: number[][]) =>
+          ((edge[0]?.[0] ?? 0) + (edge[1]?.[0] ?? 0)) / 2;
+        const inner = [...edges].sort(
+          (a, b) =>
+            Math.abs(mean(a) - frontAxle) - Math.abs(mean(b) - frontAxle),
+        )[0] as number[][];
+        const [a, b] = inner as [number[], number[]];
+        const edgeZ = (y: number) =>
+          (a[0] ?? 0) +
+          (((b[0] ?? 0) - (a[0] ?? 0)) * (y - (a[1] ?? 0))) /
+            ((b[1] ?? 0) - (a[1] ?? 0));
+        const inBand = cubes.filter(
+          (other) =>
+            (other.rotation?.[0] ?? 0) === 0 &&
+            Math.sign(other.origin[0] ?? 0) === xSide &&
+            Math.sign(cubeCenter(other, 2) - frontAxle) === zSide &&
+            (other.origin[1] ?? 0) >= stripeBand[0] - 0.001 &&
+            (other.origin[1] ?? 0) + (other.size[1] ?? 0) <=
+              (stripeBand[1] ?? 0) + 0.001,
+        );
+        expect(inBand.length).toBeGreaterThan(0);
+        for (const other of inBand) {
+          for (const y of [
+            other.origin[1] ?? 0,
+            (other.origin[1] ?? 0) + (other.size[1] ?? 0),
+          ]) {
+            for (const z of [
+              other.origin[2] ?? 0,
+              (other.origin[2] ?? 0) + (other.size[2] ?? 0),
+            ]) {
+              // Nothing of the stripe lies on the axle side of the arm's edge line.
+              expect(zSide * (z - edgeZ(y))).toBeGreaterThan(-0.005);
+            }
+          }
+        }
+        // The arm's edge itself meets the stripe's lower edge, and the stripe's top meets that line.
+        expect(
+          inBand.some(
+            (other) =>
+              Math.abs(
+                (zSide > 0
+                  ? (other.origin[2] ?? 0)
+                  : (other.origin[2] ?? 0) + (other.size[2] ?? 0)) -
+                  edgeZ(stripeBand[1] ?? 0),
+              ) < 0.01,
+          ),
+        ).toBe(true);
       }
     }
   });
