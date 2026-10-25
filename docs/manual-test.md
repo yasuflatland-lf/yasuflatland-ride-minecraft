@@ -51,7 +51,7 @@ To use commands, run `docker exec yasuflatland-ride-bds send-command op <player 
 
 ## Sports boat
 
-Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `/give @s yasu_ride:sportsboat_item`. Use a pool or lake at least 3 blocks deep.
+Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `/give @s yasu_ride:sportsboat_item`. Use a pool or lake at least 3 blocks deep for water checks and a Nether lava sea for lava checks.
 
 | # | Steps | Pass condition | PC | Mobile |
 |---|---|---|---|---|
@@ -76,6 +76,9 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | B19 | With an empty boat, have two players each press the boat from the water while aiming at a different rear seat, then have a third press it aiming at the driver's seat and drive off | Both rear players sit where they aimed; the third sits in the driver's seat and drives with both still in the rear (ADR 0120) | | |
 | B20 | Aim at the front passenger seat and press the boat; then aim at the driver's seat from the same spot and press it with another player | Each player sits in the seat they aimed at; nothing invisible can be hit or ridden in the empty seats, and breaking the boat with three hits still works (ADR 0120) | | |
 | B21 | On an iPad or phone, with one player driving, swim to the stern beside a rear seat and long-press the boat anywhere on the screen, including its bow; then repeat with a second phone player at the other rear seat | Each phone player sits in the rear seat nearest where they stand, not a front seat, whichever part of the boat they pressed (ADR 0120) | | |
+| B22 | In the Nether, use the boat item on lava by tapping the bed below a shallow patch, the lava surface within 12 blocks, and the side of a shore block with lava next to it | One boat appears at the top lava cell for each tap; each successful Survival placement uses one item (ADR 0150) | | |
+| B23 | Drive across a Nether lava sea with a driver and passengers in all four seats; stop until the boat docks, then drive away | The boat stays afloat, steers, docks, and sets off again; its hull and seated players take no heat damage and show no flames (ADR 0150) | | |
+| B24 | While docked on lava, have a passenger sit in a deck seat for 10 seconds, then get out onto the deck | The seated passenger takes no heat damage and shows no flames. After leaving the seat, protection ends within a few ticks; the deck does not protect a standing player from lava (ADR 0150) | | |
 
 ## Camper
 

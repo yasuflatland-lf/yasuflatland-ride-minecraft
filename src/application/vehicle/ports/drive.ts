@@ -75,6 +75,7 @@ export interface DriveWorld {
    */
   keepStandIn(vehicleId: VehicleId, pose: StandInPose | undefined): void;
   waterAt(vehicleId: VehicleId, offset: Vec3): boolean;
+  lavaAt(vehicleId: VehicleId, offset: Vec3): boolean;
   solidAt(vehicleId: VehicleId, offset: Vec3): boolean;
   targetsNear(vehicleId: VehicleId): RamTarget[];
   /** While a pose is set, teleports the vehicle there and clears its velocity every tick instead of applying the impulse. */
@@ -106,6 +107,7 @@ export interface DriveWorld {
   setChaseCamera(playerId: PlayerId, camera: ChaseCamera | undefined): void;
   /** Refreshes water breathing; does nothing for a missing player (ADR 0040). */
   giveWaterBreathing(playerId: PlayerId, ticks: number): void;
+  protectFromFire(playerId: PlayerId): void;
   damage(hit: RamHit, attackerId: PlayerId | undefined): void;
   /**
    * Keeps light blocks in exactly these cells for the vehicle and clears the

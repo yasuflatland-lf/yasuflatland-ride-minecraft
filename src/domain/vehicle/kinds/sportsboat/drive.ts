@@ -230,12 +230,14 @@ export class SportsboatDrive implements Drive {
     const motion = this.motion;
     let step: MotionResult;
     // Body height bounds the query because the boat only tests whether depth is above zero.
+    const liquidAt = (offset: import("../../../shared/vec").Vec3) =>
+      ctx.waterAt(offset) || (ctx.lavaAt?.(offset) ?? false);
     const depth = waterDepthAt(
       ctx.location,
-      ctx.waterAt,
+      liquidAt,
       SPORTSBOAT_PROFILE.body.height,
     );
-    const afloat = isAfloat(depth, () => waterBelowAt(ctx.waterAt));
+    const afloat = isAfloat(depth, () => waterBelowAt(liquidAt));
     if (afloat) {
       const waterDrag = estimateWaterDrag(
         this.dragEstimate,
@@ -277,7 +279,7 @@ export class SportsboatDrive implements Drive {
         : 0;
     if (this.stillTicks >= DOCK.ticks) {
       const holdY = holdHeight(ctx.location.y, (dy) =>
-        ctx.waterAt({ x: 0, y: dy, z: 0 }),
+        liquidAt({ x: 0, y: dy, z: 0 }),
       );
       if (holdY !== undefined) {
         this.docked = { ...ctx.location, y: holdY, yaw: step.state.yaw };

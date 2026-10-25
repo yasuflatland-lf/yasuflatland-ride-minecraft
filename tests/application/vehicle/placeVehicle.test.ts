@@ -322,21 +322,44 @@ describe("PlaceVehicle placement cell (ADR 0050, ADR 0051)", () => {
     ).toBeUndefined();
   });
 
-  it("places on water only the sports boat", () => {
+  it("places on water or lava only the sports boat", () => {
     const world = new FakeWorld();
     const placement = new PlaceVehicle(world, new InMemoryRepo());
-    expect(placement.placesOnWater("suv")).toBe(false);
-    expect(placement.placesOnWater("sportsboat")).toBe(true);
-    expect(placement.placesOnWater("camper")).toBe(false);
+    expect(placement.placesOnLiquid("suv")).toBe(false);
+    expect(placement.placesOnLiquid("sportsboat")).toBe(true);
+    expect(placement.placesOnLiquid("camper")).toBe(false);
     fc.assert(
       fc.property(fc.constantFrom(...VEHICLE_KINDS), (kind) => {
         const world = new FakeWorld();
         const placement = new PlaceVehicle(world, new InMemoryRepo());
-        expect(placement.placesOnWater(kind)).toBe(
-          profileOf(kind).placement.surfaces.includes("water"),
+        expect(placement.placesOnLiquid(kind)).toBe(
+          profileOf(kind).placement.surfaces.includes("water") ||
+            profileOf(kind).placement.surfaces.includes("lava"),
         );
       }),
     );
+  });
+
+  it("places the sports boat on the top lava cell without allowing other kinds there", () => {
+    const world = new FakeWorld();
+    const placement = new PlaceVehicle(world, new InMemoryRepo());
+    world.lava = (at) => at.x === 3 && at.z === 4 && at.y >= 5 && at.y <= 7;
+    expect(
+      placement.cellFor(
+        "sportsboat",
+        asDimensionId("nether"),
+        { x: 3, y: 4, z: 4 },
+        "up",
+      ),
+    ).toEqual({ x: 3, y: 7, z: 4 });
+    expect(
+      placement.cellFor(
+        "suv",
+        asDimensionId("nether"),
+        { x: 3, y: 6, z: 4 },
+        "east",
+      ),
+    ).toBeUndefined();
   });
 });
 

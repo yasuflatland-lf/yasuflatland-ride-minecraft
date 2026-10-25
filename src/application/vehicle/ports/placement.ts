@@ -15,6 +15,7 @@ export interface PlacementWorld {
   isAir(dimensionId: DimensionId, at: Vec3): boolean;
   /** Whether the block cell at `at` holds water, including a waterlogged block. False for an unloaded cell or an unknown dimension. */
   isWaterAt(dimensionId: DimensionId, at: Vec3): boolean;
+  isLavaAt(dimensionId: DimensionId, at: Vec3): boolean;
   spawnVehicle(
     dimensionId: DimensionId,
     at: Vec3,

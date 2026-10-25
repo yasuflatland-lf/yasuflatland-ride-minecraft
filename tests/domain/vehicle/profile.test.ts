@@ -191,7 +191,7 @@ describe("vehicle profiles (ADR 0050)", () => {
         lanes: [-3, 3],
       },
       placement: {
-        surfaces: ["water", "top"],
+        surfaces: ["water", "lava", "top"],
         clearance: { halfX: 1, halfZ: 1, height: 2 },
       },
       chaseCamera: "near",

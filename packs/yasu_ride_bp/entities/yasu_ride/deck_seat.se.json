@@ -43,6 +43,7 @@
           "deals_damage": "no"
         }
       },
+      "minecraft:fire_immune": {},
       "minecraft:rideable": {
         "seat_count": 1,
         "family_types": ["player"],

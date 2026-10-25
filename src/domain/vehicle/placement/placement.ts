@@ -36,7 +36,7 @@ export function canPlaceAt(isAir: IsAir, clearance: Clearance): boolean {
 }
 
 /**
- * The top water cell of the contiguous column above `startY`, or `startY` when
+ * The top liquid cell of the contiguous column above `startY`, or `startY` when
  * the cell above is dry (ADR 0051). It climbs at most `maxClimb` cells: a deeper
  * column returns `startY + maxClimb`, a submerged cell where placement fails
  * because the cells above it are water, not air.
@@ -64,10 +64,10 @@ export const FACE_OFFSET: Readonly<Record<BlockFace, Vec3>> = Object.freeze({
 });
 
 /**
- * "top": a click on the top face places on the clicked block. "water": the
- * clicked or the adjacent cell holds water; place on its column's top water cell.
+ * "top": a click on the top face places on the clicked block. A liquid surface
+ * uses the clicked or adjacent cell and climbs to the top of its column.
  */
-export type PlacementSurface = "top" | "water";
+export type PlacementSurface = "top" | "water" | "lava";
 
 /** How a kind of vehicle is placed from its item (ADR 0050, ADR 0055). */
 export interface PlacementRule {
@@ -78,18 +78,18 @@ export interface PlacementRule {
 
 /**
  * The cell the vehicle is placed on top of, or undefined when no surface
- * matches. "water" accepts any face but "top" only the top face, so a click on
- * the side of a shore with no water next to it never lifts a vehicle onto it.
+ * matches. Liquids accept any face but "top" only the top face, so a click on
+ * the side of a shore with no liquid next to it never lifts a vehicle onto it.
  */
 export function placementCell(
   rule: PlacementRule,
   clicked: Vec3,
   face: BlockFace,
-  isWaterAt: (at: Vec3) => boolean,
+  isLiquidAt: (at: Vec3, liquid: "water" | "lava") => boolean,
   maxClimb: number = SPEC.placementWaterClimb,
 ): Vec3 | undefined {
   for (const surface of rule.surfaces) {
-    const cell = cellOnSurface(surface, clicked, face, isWaterAt, maxClimb);
+    const cell = cellOnSurface(surface, clicked, face, isLiquidAt, maxClimb);
     if (cell !== undefined) return cell;
   }
   return undefined;
@@ -99,18 +99,24 @@ function cellOnSurface(
   surface: PlacementSurface,
   clicked: Vec3,
   face: BlockFace,
-  isWaterAt: (at: Vec3) => boolean,
+  isLiquidAt: (at: Vec3, liquid: "water" | "lava") => boolean,
   maxClimb: number,
 ): Vec3 | undefined {
   switch (surface) {
     case "top":
       return face === "up" ? clicked : undefined;
     case "water":
-      return waterSurfaceCell(clicked, face, isWaterAt, maxClimb);
+    case "lava":
+      return liquidSurfaceCell(
+        clicked,
+        face,
+        (at) => isLiquidAt(at, surface),
+        maxClimb,
+      );
   }
 }
 
-function waterSurfaceCell(
+function liquidSurfaceCell(
   clicked: Vec3,
   face: BlockFace,
   isWaterAt: (at: Vec3) => boolean,

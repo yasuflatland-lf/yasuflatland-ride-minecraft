@@ -56,6 +56,47 @@ function ramAhead(over: Parameters<typeof snapshot>[1]): string[] {
 }
 
 describe("DriveVehicles", () => {
+  it("protects sports boat riders and occupied deck seats from fire each tick", () => {
+    const world = new FakeWorld();
+    const uc = new DriveVehicles(world, new InMemoryRepo(), logger());
+    world.snapshots = [
+      snapshot("boat", {
+        kind: "sportsboat",
+        riders: [
+          {
+            id: asPlayerId("driver"),
+            slot: 0,
+            offset: { x: -0.38, z: 0.35 },
+            yaw: 0,
+            raw: FULL_THROTTLE,
+          },
+          {
+            id: asPlayerId("passenger"),
+            slot: 1,
+            offset: { x: 0.38, z: 0.35 },
+            yaw: 0,
+            raw: FULL_THROTTLE,
+          },
+        ],
+        deckSeatRiders: [undefined, undefined, asPlayerId("deck")],
+      }),
+    ];
+    uc.execute(0);
+    uc.execute(1);
+    expect(world.calls.filter((call) => call.startsWith("fire:"))).toEqual([
+      "fire:driver",
+      "fire:passenger",
+      "fire:deck",
+      "fire:driver",
+      "fire:passenger",
+      "fire:deck",
+    ]);
+    world.snapshots = [];
+    uc.execute(2);
+    expect(world.calls.filter((call) => call.startsWith("fire:"))).toHaveLength(
+      6,
+    );
+  });
   it("holds a vehicle and lays its requested floor instead of applying motion", () => {
     fc.assert(
       fc.property(

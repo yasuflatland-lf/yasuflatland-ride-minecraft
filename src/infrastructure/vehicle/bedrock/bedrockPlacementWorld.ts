@@ -16,7 +16,7 @@ import { isCreative } from "../../shared/players";
 import type { BedrockInventory } from "./bedrockInventory";
 import type { EntityIndex } from "./entityIndex";
 import { ENTITY_TYPE, ITEM_TYPE, OWNER_PROPERTY } from "./identifiers";
-import { isWaterAt } from "./water";
+import { isLavaAt, isWaterAt } from "./water";
 
 /** Whether the player is in Creative; false for a missing player. */
 export function isCreativePlayer(
@@ -51,6 +51,14 @@ export class BedrockPlacementWorld implements PlacementWorld {
       return isWaterAt(world.getDimension(dimensionId), at);
     } catch {
       return false; // Unknown dimension id
+    }
+  }
+
+  isLavaAt(dimensionId: DimensionId, at: Vec3): boolean {
+    try {
+      return isLavaAt(world.getDimension(dimensionId), at);
+    } catch {
+      return false;
     }
   }
 

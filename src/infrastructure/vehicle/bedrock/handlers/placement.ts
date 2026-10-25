@@ -1,5 +1,5 @@
 // Places a vehicle from its item: the block interaction for land and for the
-// bed or shore of water, and the itemUse view ray for open water (ADR 0024, 0051).
+// bed or shore of a liquid, and the itemUse view ray for open liquids (ADR 0024, 0051, 0149).
 import {
   type Block,
   type Dimension,
@@ -22,7 +22,7 @@ import type { Vec3 } from "../../../../domain/shared/vec";
 import type { VehicleKind } from "../../../../domain/vehicle/kind";
 import type { BlockFace } from "../../../../domain/vehicle/placement/placement";
 import { kindOfItem } from "../identifiers";
-import { isWaterAt } from "../water";
+import { isLavaAt, isWaterAt } from "../water";
 
 const BLOCK_FACE: Readonly<Record<Direction, BlockFace>> = {
   [Direction.Up]: "up",
@@ -33,7 +33,7 @@ const BLOCK_FACE: Readonly<Record<Direction, BlockFace>> = {
   [Direction.West]: "west",
 };
 
-// How far the itemUse ray looks for water, in blocks. It reaches open water a
+// How far the itemUse ray looks for liquids, in blocks. It reaches open water a
 // little past the block interaction; a land hit never places (see itemUse below).
 const WATER_RAY_DISTANCE = 12;
 
@@ -59,8 +59,8 @@ export function registerPlacement(placeVehicle: PlaceVehicle): void {
     yaw: player.getRotation().y,
     slot: player.selectedSlotIndex,
   });
-  // The interaction ray skips liquids and reports the bed under the water or
-  // the shore beside it, so a water kind climbs to the top water cell of the
+  // The interaction ray skips liquids and reports the bed under the liquid or
+  // the shore beside it, so a liquid kind climbs to the top liquid cell of the
   // clicked or the adjacent cell (docs/spike-sportsboat.md).
   const cellFor = (kind: VehicleKind, block: Block, face: Direction) =>
     placeVehicle.cellFor(
@@ -86,20 +86,28 @@ export function registerPlacement(placeVehicle: PlaceVehicle): void {
     system.run(() => place(cmd));
   });
 
-  // A tap on open water past the interaction reach fires only itemUse. This ray
-  // sees liquids, but only a water hit places a vehicle: land placement goes
+  // A tap on an open liquid past the interaction reach fires only itemUse. This ray
+  // sees liquids, but only a supported liquid hit places a vehicle: land placement goes
   // through the block interaction above, which keeps the normal reach.
   // The headlight switch and the gift boxes have their own itemUse subscribers; no item passes two.
   world.afterEvents.itemUse.subscribe((ev) => {
     const kind = kindOfItem(ev.itemStack.typeId);
-    if (kind === undefined || !placeVehicle.placesOnWater(kind)) return;
+    if (kind === undefined || !placeVehicle.placesOnLiquid(kind)) return;
     const player = ev.source;
     const hit = player.getBlockFromViewDirection({
       includeLiquidBlocks: true,
       includePassableBlocks: true,
       maxDistance: WATER_RAY_DISTANCE,
     });
-    if (!hit || !isWaterAt(hit.block.dimension, hit.block.location)) return;
+    if (
+      !hit ||
+      !(
+        isWaterAt(hit.block.dimension, hit.block.location) ||
+        (kind === "sportsboat" &&
+          isLavaAt(hit.block.dimension, hit.block.location))
+      )
+    )
+      return;
     const cell = cellFor(kind, hit.block, hit.face);
     if (cell && requested(asPlayerId(player.id)))
       place(placeCommand(player, kind, hit.block.dimension, cell));
