@@ -229,8 +229,119 @@ describe("camper model assets (ADR 0067)", () => {
         );
       });
       // Geometry coordinates are rounded to three decimal places by the generator.
-      for (const y of lowest) expect(y).toBeCloseTo(wBottom, 2);
+      for (const y of lowest) expect(y).toBeGreaterThanOrEqual(wBottom + 0.4);
+      const rows = (bone("body").cubes ?? []).filter(
+        (c) =>
+          c.uv.north?.uv[0] === 6 &&
+          !c.rotation &&
+          Math.sign(c.origin[0] ?? 0) === side,
+      );
+      expect(
+        Math.min(...lowest, ...rows.map((c) => c.origin[1] ?? 0)),
+      ).toBeCloseTo(wBottom, 2);
     }
+  });
+
+  it("chamfers both feet and the middle peak on each side (#596)", () => {
+    for (const side of [1, -1]) {
+      const rows = (bone("body").cubes ?? []).filter(
+        (c) =>
+          c.uv.north?.uv[0] === 6 &&
+          !c.rotation &&
+          Math.sign(c.origin[0] ?? 0) === side,
+      );
+      const feet = rows.filter(
+        (c) => Math.abs((c.origin[1] ?? 0) - 19.1) < 0.001,
+      );
+      const peak = rows.filter(
+        (c) => Math.abs((c.origin[1] ?? 0) + (c.size[1] ?? 0) - 27.532) < 0.002,
+      );
+      expect(feet).toHaveLength(2);
+      expect(peak).toHaveLength(1);
+      for (const row of [...feet, ...peak]) {
+        expect(row.size[2]).toBeLessThanOrEqual(2.805 - 2 * 0.8 * 0.8);
+        expect(row.size[1]).toBeLessThanOrEqual(0.25);
+        expect(row.size[0]).toBeCloseTo(0.12, 3);
+      }
+    }
+  });
+
+  const paletteBlock =
+    readFileSync("tools/gen_camper.py", "utf8").match(
+      /^PALETTE = \{\n([\s\S]*?)^\}/m,
+    )?.[1] ?? "";
+  const paletteSlots = [...paletteBlock.matchAll(/^\s+"(\w+)":/gm)].map(
+    (m) => m[1],
+  );
+  const swatch = (c: Cube, name: string) => {
+    const slot = paletteSlots.indexOf(name);
+    expect(slot).toBeGreaterThanOrEqual(0);
+    return c.uv.north?.uv[0] === slot;
+  };
+  const cubeCenter = (c: Cube, axis: number) =>
+    (c.origin[axis] ?? 0) + (c.size[axis] ?? 0) / 2;
+
+  it("replaces the mid-body amber box with symmetric static rear signals (#596)", () => {
+    const body = bone("body").cubes ?? [];
+    const amber = bones
+      .flatMap((b) => b.cubes ?? [])
+      .filter((c) => swatch(c, "amber"));
+    expect(
+      amber.filter(
+        (c) =>
+          Math.abs(cubeCenter(c, 0)) >= 23.5 &&
+          cubeCenter(c, 1) >= 50 &&
+          cubeCenter(c, 1) < 60,
+      ),
+    ).toEqual([]);
+    expect(
+      amber.filter(
+        (c) => Math.abs(cubeCenter(c, 2)) <= 40 && (c.origin[1] ?? 0) < 60.4,
+      ),
+    ).toEqual([]);
+    for (const material of ["chrome", "amber"]) {
+      const signals = body.filter(
+        (c) =>
+          swatch(c, material) &&
+          Math.abs(Math.abs(cubeCenter(c, 0)) - 22.9) < 0.05 &&
+          Math.abs(cubeCenter(c, 1) - 15) < 0.05 &&
+          cubeCenter(c, 2) > 50,
+      );
+      const left = signals.filter((c) => cubeCenter(c, 0) < 0);
+      const right = signals.filter((c) => cubeCenter(c, 0) > 0);
+      expect(left.length).toBeGreaterThan(0);
+      expect(left.map((c) => c.size)).toEqual(right.map((c) => c.size));
+      for (const c of left)
+        expect(
+          right.some(
+            (r) =>
+              Math.abs(cubeCenter(c, 0) + cubeCenter(r, 0)) < 0.002 &&
+              cubeCenter(c, 2) === cubeCenter(r, 2),
+          ),
+        ).toBe(true);
+    }
+    expect(
+      (bone("headlights").cubes ?? []).filter((c) => swatch(c, "amber")),
+    ).toEqual([]);
+  });
+
+  it("aligns both entry handles half a pixel below the stripe (#596)", () => {
+    const door = bone("door_entry");
+    expect(door.pivot).toEqual([-24, 0, -7]);
+    const handles = (door.cubes ?? []).filter(
+      (c) => swatch(c, "chrome") && c.origin[2] === 4.5 && c.size[2] === 1.5,
+    );
+    expect(handles).toHaveLength(2);
+    expect(handles.map((c) => c.origin[0] ?? 0).sort((a, b) => a - b)).toEqual([
+      -24.6, -23,
+    ]);
+    for (const c of handles) {
+      expect(c.origin[1]).toBe(28);
+      expect(c.size).toEqual([0.6, 1, 1.5]);
+    }
+    const stripe = (door.cubes ?? []).filter((c) => swatch(c, "stripe"));
+    expect(stripe).toHaveLength(1);
+    expect(stripe[0]?.origin[1]).toBe(29.5);
   });
 
   it("clears furniture and wall lining from all four wheel housings", () => {

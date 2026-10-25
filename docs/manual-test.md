@@ -210,6 +210,9 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | C158 | With a fridge door open, aim at the open door and at the compartment; put a block in the aisle cell beside the fridge with the doors shut and try to drive off; run `/reload` with one door open | The open door's outline is a thin plate where the door stands and the compartment's runs from its floor up; with the block there you see "Clear the blocks inside first"; after `/reload` the open door stays open (ADR 0121, 0123) | | |
 | C159 | Open the Creative Items tab in both English and Japanese | Camping Gear (Outside) appears directly after Camping Gear (Inside), with the Low Chair as icon and the Low Chair then the Tent as its only items; both group names match the inside and outside translations in packs/yasu_ride_rp/texts/ja_JP.lang when Japanese is selected (ADR 0144) | | |
 | C160 | In a new Creative world with no vehicle, take a Low Chair from the Outside group, place it and sit on it on PC and mobile; then take a Percolator from the Inside group and use it on the ground | The chair places and can be sat on without a vehicle; the Percolator places nothing (ADR 0144) | | |
+| C161 | Look at the camper right side from outside at 3 to 4 blocks on a phone and PC, then at the left side | The W feet and peak have no sharp spikes; the W stays over the front wheel; no amber box is above and behind the door (ADR 0145) | | |
+| C162 | Look at the camper rear from 3 to 4 blocks on a phone and PC | One amber lamp in a chrome ring sits on each rear corner, outside the red tail lights, at the same height, symmetric and not hidden behind the ladder (ADR 0145) | | |
+| C163 | Aim at the entry door from outside, then open it and look from inside | The chrome handle sits just under the stripe on both faces and swings with the door (ADR 0145) | | |
 
 ## Bulldozer
 
