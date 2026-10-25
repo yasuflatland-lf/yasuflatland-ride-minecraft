@@ -252,6 +252,10 @@ describe("sports boat Resource Pack (ADR 0051)", () => {
     });
     expect(client.render_controllers).toEqual([
       "controller.render.yasu_ride.sportsboat",
+      {
+        "controller.render.yasu_ride.sportsboat.lit":
+          "query.property('yasu_ride:headlights')",
+      },
     ]);
   });
 

@@ -16,7 +16,7 @@
 | **Bulldozer** | **Headlights on** | **From the side** | **From the rear** |
 | ![The bulldozer seen from its front-left corner](docs/images/bulldozer-front-left.png) | ![The bulldozer with headlights on at dusk](docs/images/bulldozer-headlights.png) | ![The bulldozer seen from the side](docs/images/bulldozer-side.png) | ![The bulldozer seen from the rear](docs/images/bulldozer-rear.png) |
 
-A vehicle add-on for Minecraft Bedrock Edition. It is built as a Behavior Pack + Resource Pack driven by the stable Script API (`@minecraft/server` 2.x), with no experimental toggles required. The target setup is a Bedrock Dedicated Server on a home LAN, with players joining from PC (keyboard) and mobile (touch).
+A vehicle add-on for Minecraft Bedrock Edition 1.21.120 or newer. It is built as a Behavior Pack + Resource Pack driven by the stable Script API (`@minecraft/server` 2.x), with no experimental toggles required. The target setup is a Bedrock Dedicated Server on a home LAN, with players joining from PC (keyboard) and mobile (touch).
 
 This add-on holds only rides. House-building parts will ship as a separate add-on with their own namespace. The `yasu_ride` namespace never changes once Yasuflatland Ride is first released ([ADR 0047](docs/adr/0047-rename-to-yasuflatland-ride.md)).
 

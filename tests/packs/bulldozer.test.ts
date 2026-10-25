@@ -174,6 +174,7 @@ it("maps each paint and the cab monitor to its texture", () => {
     "default",
     ...PAINTS.slice(1),
     "monitor",
+    "lit",
   ]);
   for (const t of Object.values(client.textures))
     expect(existsSync(`${RP}/${t}.png`)).toBe(true);
@@ -305,7 +306,7 @@ it("rumbles the engine at levels rescaled to a 9 blocks/s top speed", () => {
 it("lights the lamps and the beacon, and draws the glass blended", () => {
   for (const b of ["headlights", "beacon"])
     expect(render.materials).toContainEqual({
-      [b]: "Array.lamps[query.property('yasu_ride:headlights') ? 1 : 0]",
+      [b]: "Material.lamp",
     });
   for (const b of ["glass", "door_glass"])
     expect(render.materials).toContainEqual({ [b]: "Material.glass" });

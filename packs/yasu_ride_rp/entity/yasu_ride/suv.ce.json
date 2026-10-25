@@ -24,9 +24,12 @@
         "blue": "textures/entity/yasu_ride/suv_blue",
         "purple": "textures/entity/yasu_ride/suv_purple",
         "magenta": "textures/entity/yasu_ride/suv_magenta",
-        "pink": "textures/entity/yasu_ride/suv_pink"
+        "pink": "textures/entity/yasu_ride/suv_pink",
+        "lit": "textures/entity/yasu_ride/suv_lit"
       },
-      "geometry": { "default": "geometry.yasu_ride.suv" },
+      "geometry": {
+        "default": "geometry.yasu_ride.suv"
+      },
       "animations": {
         "dive": "animation.yasu_ride.suv.dive",
         "submerged": "animation.yasu_ride.suv.submerged",
@@ -75,7 +78,9 @@
         "animate": [
           "form",
           "bank",
-          { "exhaust": "query.has_rider" },
+          {
+            "exhaust": "query.has_rider"
+          },
           {
             "engine_sound_0": "query.has_rider && query.property('yasu_ride:form') == 'car' && query.ground_speed < 1"
           },
@@ -96,7 +101,12 @@
           }
         ]
       },
-      "render_controllers": ["controller.render.yasu_ride.suv"]
+      "render_controllers": [
+        "controller.render.yasu_ride.suv",
+        {
+          "controller.render.yasu_ride.suv.lit": "query.property('yasu_ride:headlights')"
+        }
+      ]
     }
   }
 }
