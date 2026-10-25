@@ -26,47 +26,27 @@
       },
       "geometry": "Geometry.default",
       "materials": [
-        {
-          "*": "Material.default"
-        },
-        {
-          "headlights": "Material.lamp"
-        }
+        { "*": "Material.default" },
+        { "headlights": "Material.lamp" }
       ],
       "textures": ["Array.paints[query.variant]"],
       "part_visibility": [
-        {
-          "*": true
-        },
-        {
-          "glow_*": "!query.property('yasu_ride:gear_down')"
-        },
-        {
-          "rear_glass": "query.property('yasu_ride:form') != 'car'"
-        },
+        { "*": true },
+        { "glow_*": "!query.property('yasu_ride:gear_down')" },
+        { "rear_glass": "query.property('yasu_ride:form') != 'car'" },
         {
           "windows_sealed": "query.property('yasu_ride:form') == 'submarine'"
         },
-        {
-          "headlights": "!query.property('yasu_ride:headlights')"
-        }
+        { "headlights": "!query.property('yasu_ride:headlights')" }
       ]
     },
     "controller.render.yasu_ride.suv.lit": {
       "geometry": "Geometry.default",
-      "materials": [
-        {
-          "*": "Material.lamp_lit"
-        }
-      ],
+      "materials": [{ "*": "Material.lamp_lit" }],
       "textures": ["Texture.lit"],
       "part_visibility": [
-        {
-          "*": false
-        },
-        {
-          "headlights": "query.property('yasu_ride:headlights')"
-        }
+        { "*": false },
+        { "headlights": "query.property('yasu_ride:headlights')" }
       ]
     }
   }

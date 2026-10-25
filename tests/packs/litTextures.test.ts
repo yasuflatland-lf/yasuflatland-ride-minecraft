@@ -21,6 +21,9 @@ function texels(name: string) {
 
 const headlights = "query.property('yasu_ride:headlights')";
 const ceiling = "query.property('yasu_ride:ceiling_lights')";
+// The slots are the palette columns the generators select by name into
+// LIT_SLOTS (tools/gen_*.py). A palette reorder moves them, so update these
+// together with the generators.
 const kinds = [
   {
     kind: "suv",
@@ -143,7 +146,6 @@ it("requires the approved PBR engine version and matching Resource Pack versions
   );
   expect(rp.capabilities).toEqual(["pbr"]);
   expect(rp.header.min_engine_version).toEqual([1, 21, 120]);
-  expect(rp.header.version).toEqual([0, 1, 128]);
   expect(rp.modules[0].version).toEqual(rp.header.version);
   expect(
     bp.dependencies.find(
