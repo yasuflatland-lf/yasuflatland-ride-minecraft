@@ -71,7 +71,7 @@ describe("Blade Up/Down switch (ADR 0138)", () => {
       );
     },
   );
-  it("is the only item of the Bulldozer Switches group, which comes after Camping Gear", () => {
+  it("is the only item of the Bulldozer Switches group, which comes after the camping gear groups", () => {
     const groups = read(
       "packs/yasu_ride_bp/item_catalog/crafting_item_catalog.json",
     )["minecraft:crafting_items_catalog"].categories.find(
@@ -81,8 +81,12 @@ describe("Blade Up/Down switch (ADR 0138)", () => {
       groups.map(
         (g: { group_identifier: { name: string } }) => g.group_identifier.name,
       ),
-    ).toEqual(["yasu_ride:camping_gear", "yasu_ride:bulldozer_switches"]);
-    expect(groups[1]).toEqual({
+    ).toEqual([
+      "yasu_ride:camping_gear_inside",
+      "yasu_ride:camping_gear_outside",
+      "yasu_ride:bulldozer_switches",
+    ]);
+    expect(groups[2]).toEqual({
       group_identifier: { icon: TYPE, name: "yasu_ride:bulldozer_switches" },
       items: [TYPE],
     });
