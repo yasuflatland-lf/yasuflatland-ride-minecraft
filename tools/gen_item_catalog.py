@@ -18,14 +18,21 @@ FORMAT_VERSION = "1.21.60"
 CATEGORY = "items"
 GEAR_IDS = [item["id"] for item in json.loads(SPEC.read_text())]
 
-# The box a player gets with their first camper (ADR 0093): the group's icon and first item.
-# The low chair and tent stand outside the vehicles, so they come after the gear. Their item
-# JSON and icon entries are written by hand (ADR 0122, 0130).
+# Plain camp-feature items, not decor in tools/camping_gear.json (ADR 0122, 0130).
+OUTSIDE_IDS = ["low_chair_item", "tent_item"]
+
+# Inside gear starts with its gift box; independent outdoor items follow in their own
+# group, before the bulldozer switches (ADR 0144).
 GROUPS = [
     {
-        "name": "camping_gear",
+        "name": "camping_gear_inside",
         "icon": "camping_gear_box",
-        "items": ["camping_gear_box", *GEAR_IDS, "low_chair_item", "tent_item"],
+        "items": ["camping_gear_box", *GEAR_IDS],
+    },
+    {
+        "name": "camping_gear_outside",
+        "icon": "low_chair_item",
+        "items": OUTSIDE_IDS,
     },
     # The bulldozer's switches; the Blade Up/Down item raises and lowers its blade (ADR 0138).
     {"name": "bulldozer_switches", "icon": "blade_switch", "items": ["blade_switch"]},
@@ -34,6 +41,9 @@ GROUPS = [
 
 def validate(groups):
     errors = []
+    for item in OUTSIDE_IDS:
+        if item in GEAR_IDS:
+            errors.append(f"{item} is both outside gear and camper decor")
     names = set()
     seen_items = set()
     for group in groups:
