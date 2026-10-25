@@ -177,15 +177,6 @@ describe("camper model assets (ADR 0067)", () => {
     }
   });
 
-  // Slot 6 is the stripe in the PALETTE order of tools/gen_camper.py.
-  const flatStripeCubes = (side: number) =>
-    (bone("body").cubes ?? []).filter(
-      (c) =>
-        c.uv.north?.uv[0] === 6 &&
-        !c.rotation &&
-        Math.sign(c.origin[0] ?? 0) === side,
-    );
-
   it("draws the side stripe's W as mirrored single-cube strokes on a flat bottom (#459)", () => {
     // The PALETTE order in tools/gen_camper.py puts the stripe in slot 6.
     const strokes = (bone("body").cubes ?? []).filter(
@@ -238,30 +229,7 @@ describe("camper model assets (ADR 0067)", () => {
         );
       });
       // Geometry coordinates are rounded to three decimal places by the generator.
-      for (const y of lowest) expect(y).toBeGreaterThanOrEqual(wBottom + 0.4);
-      const rows = flatStripeCubes(side);
-      expect(
-        Math.min(...lowest, ...rows.map((c) => c.origin[1] ?? 0)),
-      ).toBeCloseTo(wBottom, 2);
-    }
-  });
-
-  it("chamfers both feet and the middle peak on each side (#596)", () => {
-    for (const side of [1, -1]) {
-      const rows = flatStripeCubes(side);
-      const feet = rows.filter(
-        (c) => Math.abs((c.origin[1] ?? 0) - 19.1) < 0.001,
-      );
-      const peak = rows.filter(
-        (c) => Math.abs((c.origin[1] ?? 0) + (c.size[1] ?? 0) - 27.532) < 0.002,
-      );
-      expect(feet).toHaveLength(2);
-      expect(peak).toHaveLength(1);
-      for (const row of [...feet, ...peak]) {
-        expect(row.size[2]).toBeLessThanOrEqual(2.805 - 2 * 0.8 * 0.8);
-        expect(row.size[1]).toBeLessThanOrEqual(0.25);
-        expect(row.size[0]).toBeCloseTo(0.12, 3);
-      }
+      for (const y of lowest) expect(y).toBeCloseTo(wBottom, 2);
     }
   });
 

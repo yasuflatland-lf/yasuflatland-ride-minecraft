@@ -146,7 +146,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0140](0140-bulldozer-sounds.md) | Give the bulldozer its own engine, track, and blade hydraulic sounds | Proposed |
 | [0141](0141-put-a-bulldozer-driver-out-beside-the-left-door.md) | Put a bulldozer driver out beside the left door | Proposed |
 | [0144](0144-split-camping-gear-into-inside-and-outside-groups.md) | Split camping gear into inside and outside groups | Proposed |
-| [0145](0145-trim-camper-exterior-details.md) | Trim camper exterior details | Proposed |
+| [0145](0145-move-camper-side-lamp-and-door-handle.md) | Move the camper's side lamp and door handle | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 

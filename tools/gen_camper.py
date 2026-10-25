@@ -199,7 +199,6 @@ STRIPE_FRONT = FRONT + 10
 # The W, measured on the side close-up: p runs from its rear edge (0) to its front edge (1).
 # It is mirrored about p = 0.5, every stroke W_STROKE wide along p (#459).
 W_WIDTH, W_BOTTOM, W_STROKE = 16.5, ARCH_TOP + 1.5, 0.17
-W_TIP_CUT, W_ROW = 0.8, 0.25  # chamfer leg at each tip, and the height of each filler row (ADR 0145)
 W_REAR = FRONT_AXLE + W_WIDTH / 2  # centered over the front wheel
 W_MID = STRIPE_Y[1] - 0.32 * (STRIPE_Y[1] - W_BOTTOM)  # top of the middle peak
 W_ARM_START, W_FOOT, W_PEAK = (0.0, W_STROKE), (0.24, round(0.24 + W_STROKE, 6)), (0.415, 0.585)
@@ -221,50 +220,29 @@ W_STROKES += [(w_mirror(b), w_mirror(t), y) for b, t, y in W_STROKES]
 
 
 def w_stroke(x0, x1, bottom, top, y_top):
-    """Keep each slanted edge straight with one rotated cube. Shorten its foot and
-    inner peak ends for the chamfers; rows cover the remaining square-end gaps.
-    Returns the cube and the height the filler rows must cover, which is the
-    corner drop plus W_TIP_CUT."""
+    """One W stroke as a single cube turned about x, so its slanted edges stay straight; stair-
+    stepped rows looked jagged (#459). The cube's ends are square to the stroke, so each end
+    has one corner on the W's outline and the other inside it: past the top into the stripe
+    for an outer arm, and short of the outline at the feet and the peak, where w_fill covers
+    the gap. Returns the cube and that corner's height above the outline."""
     h = y_top - W_BOTTOM
     zb, zt = w_z(sum(bottom) / 2), w_z(sum(top) / 2)
     length = math.hypot(zt - zb, h)
     thick = W_WIDTH * (bottom[1] - bottom[0]) * h / length
     drop = thick * abs(zt - zb) / length
-    yb = W_BOTTOM + drop / 2 + W_TIP_CUT
-    yt = y_top + drop / 2 if y_top == STRIPE_Y[0] else y_top - drop / 2 - W_TIP_CUT
+    yb = W_BOTTOM + drop / 2
+    yt = y_top + drop / 2 if y_top == STRIPE_Y[0] else y_top - drop / 2
     yc = (yb + yt) / 2
     zc = zb + (zt - zb) * (yc - W_BOTTOM) / h
     half = (yt - yb) * length / h / 2
     # In game a negative x rotation tips the cube's top toward +z, the rear (ADR 0051).
     lean = -math.degrees(math.atan2(zt - zb, h))
     cube = box(x0, yc - half, zc - thick / 2, x1, yc + half, zc + thick / 2, "stripe", [lean, 0, 0], [x0, yc, zc])
-    return cube, drop + W_TIP_CUT
+    return cube, drop
 
 
-def w_fill_rows(x0, x1, span, drop):
-    """Fill the drop below the peak or above a foot left by the square stroke ends.
-    Intersect the outline at both row edges so no row protrudes past a slant.
-    The tip inset follows a 45-degree cut, conservatively sampled at the tipward edge."""
-    peak = span == W_PEAK
-    y0, y1 = (W_MID - drop, W_MID) if peak else (W_BOTTOM, W_BOTTOM + drop)
-    strokes = [(b, t, y) for b, t, y in W_STROKES if (t if peak else b) == span]
-
-    def interval(y):
-        edges = [w_z(b[i] + (t[i] - b[i]) * (y - W_BOTTOM) / (top - W_BOTTOM))
-                 for b, t, top in strokes for i in (0, 1)]
-        distance = W_MID - y if peak else y - W_BOTTOM
-        inset = max(0, W_TIP_CUT - distance)
-        return min(edges) + inset, max(edges) - inset
-
-    rows = []
-    y = y0
-    while y < y1 - 1e-6:
-        end = min(y + W_ROW, y1)
-        low, high = interval(y), interval(end)
-        rows.append(box(x0, y, max(low[0], high[0]), x1, end,
-                        min(low[1], high[1]), "stripe"))
-        y = end
-    return rows
+def w_fill(x0, x1, span, y0, y1):
+    return box(x0, y0, w_z(span[1]), x1, y1, w_z(span[0]), "stripe")
 
 
 CAB_WIN = (-50, -38, 35, 50)
@@ -319,7 +297,10 @@ for x0, x1, windows in ((HW - 1, HW, right_windows), (-HW, -HW + 1, left_windows
             if end:
                 drops[end] = max(drops.get(end, 0), drop)
     for span, drop in drops.items():
-        body += w_fill_rows(lo, hi, span, drop)
+        if span == W_PEAK:
+            body.append(w_fill(lo, hi, span, W_MID - drop, W_MID))
+        else:
+            body.append(w_fill(lo, hi, span, W_BOTTOM, W_BOTTOM + drop))
     for z0, z1, y0, y1 in windows:
         frame = "black" if (z0, z1) == CAB_WIN[:2] else "chrome"
         for fz0, fz1, fy0, fy1 in ((z0 - 0.6, z1 + 0.6, y0 - 0.6, y0), (z0 - 0.6, z1 + 0.6, y1, y1 + 0.6),
