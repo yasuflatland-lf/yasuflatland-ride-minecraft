@@ -431,6 +431,15 @@ side += [box(SIDE_OUT, 24.4, 23.6, SIDE_OUT + 0.1, BELT_LINE - BEVEL, 23.9, "yel
          box(SIDE_IN, DECK - 0.4, SIDE_FRONT - 0.6, SIDE_OUT + 0.3, DECK, CAB_FRONT, "yellow_dark")]
 for bz, by in ((18.0, 28.8), (22.6, 28.8), (25.0, 28.8), (35.6, 28.8), (25.0, 25.6), (35.6, 25.6), (30.0, 22.4)):
     side.append(box(SIDE_OUT, by - 0.25, bz - 0.25, SIDE_OUT + 0.15, by + 0.25, bz + 0.25, "bolt"))
+# A flat rear closure follows the bevel's top edge and covers the exposed stepped end.
+# Adjacent strips form one plane; their small height changes are hidden by the upper skin.
+rear_panel_pitch = 0.1
+rear_panel_count = round((SIDE_OUT - CAB_HALF) / rear_panel_pitch)
+for i in range(rear_panel_count):
+    x0 = CAB_HALF + i * rear_panel_pitch
+    x1 = CAB_HALF + (i + 1) * rear_panel_pitch
+    top = BELT_LINE - max(0.0, (x0 + x1) / 2 - CAB_HALF - 1.0) * BEVEL / bevel_run - 0.1
+    side.append(box(x0, DECK, SIDE_REAR, x1, top, SIDE_REAR + 0.4, "yellow"))
 side += step_mesh(CAB_HALF + 0.2, SIDE_FRONT, SIDE_OUT - 0.3, DOOR_DIAGONAL[0][0] - 0.2)
 side.append(box(CAB_HALF, BELT_LINE, 17.2, CAB_HALF + 0.8, BELT_LINE + 0.3, 36.4, "yellow_dark"))  # ledge
 body += both(side)

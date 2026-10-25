@@ -433,7 +433,7 @@ describe("bulldozer blade rig (ADR 0138)", () => {
     }
     expect(bone("blade_rig").cubes).toHaveLength(68);
     expect(bone("blade").cubes).toHaveLength(134);
-    expect(bones().flatMap((b) => b.cubes ?? [])).toHaveLength(3353);
+    expect(bones().flatMap((b) => b.cubes ?? [])).toHaveLength(3453);
     expect(Math.min(...points(bone("blade")).map((p) => p[1]))).toBeCloseTo(
       0,
       3,
