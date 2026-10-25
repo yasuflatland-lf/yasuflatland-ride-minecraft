@@ -1,0 +1,15 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": { "identifier": "yasu_ride:camp_table_item" },
+    "tags": ["crafting_table"],
+    "unlock": { "context": "AlwaysUnlocked" },
+    "pattern": ["PPP", " S ", "I I"],
+    "key": {
+      "P": { "item": "minecraft:bamboo_planks" },
+      "S": { "item": "minecraft:stick" },
+      "I": { "item": "minecraft:iron_ingot" }
+    },
+    "result": { "item": "yasu_ride:camp_table_item", "count": 1 }
+  }
+}

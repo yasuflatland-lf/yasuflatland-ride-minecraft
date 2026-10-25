@@ -3,9 +3,11 @@
 // mattresses to sleep on (ADR 0133), a lantern on the headlight switch (ADR 0134),
 // and a fly repainted with dyes (ADR 0135).
 import { HitChair } from "../../application/camp/hitChair";
+import { HitTable } from "../../application/camp/hitTable";
 import { PaintTent } from "../../application/camp/paintTent";
 import { PitchTent } from "../../application/camp/pitchTent";
 import { PlaceChair } from "../../application/camp/placeChair";
+import { PlaceTable } from "../../application/camp/placeTable";
 import { SwitchLantern } from "../../application/camp/switchLantern";
 import { TakeDownTent } from "../../application/camp/takeDownTent";
 import { UseTentFlap } from "../../application/camp/useTentFlap";
@@ -18,10 +20,12 @@ import { playerById } from "../shared/players";
 import type { SwitchTarget } from "../shared/switchRouter";
 import { BedrockChairWorld } from "./bedrock/bedrockChairWorld";
 import { BedrockLanternWorld } from "./bedrock/bedrockLanternWorld";
+import { BedrockTableWorld } from "./bedrock/bedrockTableWorld";
 import { BedrockTentPaintWorld } from "./bedrock/bedrockTentPaintWorld";
 import { BedrockTentWorld } from "./bedrock/bedrockTentWorld";
 import { registerChairHits } from "./bedrock/handlers/hits";
 import { registerChairPlacement } from "./bedrock/handlers/placement";
+import { registerTable } from "./bedrock/handlers/table";
 import { registerTentFlap } from "./bedrock/handlers/tentFlap";
 import { registerTentHits } from "./bedrock/handlers/tentHits";
 import { registerTentLifecycle } from "./bedrock/handlers/tentLifecycle";
@@ -51,6 +55,8 @@ export function installCamp(deps: { isVehicleSpace: SpaceCheck }): {
   registerChairPlacement(new PlaceChair(chairs));
   registerChairHits(hitChair);
   registerTestChairHit(hitChair);
+  const tables = new BedrockTableWorld(deps);
+  registerTable(new PlaceTable(tables), new HitTable(tables));
 
   // SleepInBed is stateless, so camp builds its own instead of sharing the vehicle's.
   registerBedBlock(

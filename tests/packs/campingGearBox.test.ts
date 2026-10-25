@@ -95,6 +95,7 @@ describe("camping gear box (ADR 0093)", () => {
     expect(items.filter((i) => i === BOX)).toHaveLength(1);
     expect(items).not.toContain("yasu_ride:low_chair_item");
     expect(items).not.toContain("yasu_ride:tent_item");
+    expect(items).not.toContain("yasu_ride:camp_table_item");
     expect(items.slice(1)).toEqual(GIFT_CONTENTS.camping_gear_box);
   });
 

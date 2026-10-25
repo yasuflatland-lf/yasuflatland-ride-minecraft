@@ -1,6 +1,7 @@
 // In-game checks of the camp feature's low chair (ADR 0122).
 import { type Entity, system } from "@minecraft/server";
 import {
+  CAMP_TABLE_TYPE,
   CHAIR_FAMILY,
   LOW_CHAIR_ITEM,
   LOW_CHAIR_TYPE,
@@ -90,5 +91,26 @@ export async function lowChairSettlesThroughGrass(a: Arena): Promise<Outcome> {
     if (chair?.isValid) chair.remove();
     a.dim.runCommand(`setblock ${plant.x} ${plant.y} ${plant.z} air`);
     a.dim.runCommand(`setblock ${ground.x} ${ground.y} ${ground.z} stone`);
+  }
+}
+
+/** Confirms that the outside table loads as a persistent two-seat entity. */
+export function campTableTwoSeats(a: Arena): Promise<Outcome> {
+  const at = { x: CELL.x + 0.5, y: a.gy, z: CELL.z + 8.5 };
+  a.dim.runCommand(`summon ${CAMP_TABLE_TYPE} ${at.x} ${at.y} ${at.z}`);
+  const table = a.dim.getEntities({
+    type: CAMP_TABLE_TYPE,
+    location: at,
+    maxDistance: 1.5,
+  })[0];
+  try {
+    const seats = table?.getComponent("minecraft:rideable")?.seatCount;
+    const family = table?.matches({ families: ["yasu_ride_camp_table"] });
+    return Promise.resolve({
+      pass: seats === 2 && family === true,
+      detail: `seats=${seats} family=${family}`,
+    });
+  } finally {
+    if (table?.isValid) table.remove();
   }
 }
