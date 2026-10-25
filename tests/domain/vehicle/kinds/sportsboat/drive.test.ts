@@ -1308,6 +1308,16 @@ it("queries below the boat only when its depth query is dry", () => {
   );
 });
 
+it("drives and docks on lava with the same surface sensing as water", () => {
+  const drive = new SportsboatDrive(0, {});
+  const ctx = context(0, FULL_THROTTLE, { x: 0, z: 0 }, BEACHED);
+  const step = drive.step(FULL_THROTTLE, {
+    ...ctx,
+    lavaAt: (offset) => offset.y <= 0.5,
+  });
+  expect(step.impulse.z).toBeGreaterThan(0);
+});
+
 /** The trim and roll a vehicle last sent, starting level. */
 class Attitude {
   trim = 0;

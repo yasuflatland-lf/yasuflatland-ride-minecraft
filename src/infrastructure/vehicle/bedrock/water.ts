@@ -20,3 +20,19 @@ export function isWaterAt(dimension: Dimension, at: Vec3): boolean {
     return false; // Unloaded chunk or outside the world
   }
 }
+
+export function isLavaAt(dimension: Dimension, at: Vec3): boolean {
+  try {
+    const block = dimension.getBlock({
+      x: Math.floor(at.x),
+      y: Math.floor(at.y),
+      z: Math.floor(at.z),
+    });
+    return (
+      block?.typeId === "minecraft:lava" ||
+      block?.typeId === "minecraft:flowing_lava"
+    );
+  } catch {
+    return false;
+  }
+}

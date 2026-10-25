@@ -162,6 +162,7 @@ function fixture(
       waterDimensions.push(dimensionId);
       return water(at);
     },
+    isLavaAt: () => false,
     spawnVehicle: notUsed,
     consumeVehicleItem: notUsed,
     receivedGift: notUsed,
@@ -173,7 +174,7 @@ function fixture(
   const place = {
     execute: vi.fn(),
     cellFor: placement.cellFor.bind(placement),
-    placesOnWater: placement.placesOnWater.bind(placement),
+    placesOnLiquid: placement.placesOnLiquid.bind(placement),
   };
   const headlights = { execute: vi.fn() };
   const ceilingLights = { execute: vi.fn() };

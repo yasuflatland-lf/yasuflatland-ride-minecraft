@@ -558,8 +558,14 @@
         "apply_gravity": true,
         "simulate_waves": false,
         "big_wave_probability": 0,
-        "liquid_blocks": ["minecraft:water", "minecraft:flowing_water"]
+        "liquid_blocks": [
+          "minecraft:water",
+          "minecraft:flowing_water",
+          "minecraft:lava",
+          "minecraft:flowing_lava"
+        ]
       },
+      "minecraft:fire_immune": {},
       "minecraft:health": {
         "value": 20,
         "max": 20

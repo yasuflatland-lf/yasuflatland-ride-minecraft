@@ -54,7 +54,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0048](0048-mutation-testing-and-unused-code-checks.md) | Mutation testing with Stryker, and unused code checks with knip | Extended by 0088 |
 | [0049](0049-pack-icons-rendered-from-model.md) | Render pack icons from the hovering SUV model | Accepted |
 | [0050](0050-vehicle-kinds-and-per-kind-profiles.md) | Vehicle kinds and per-kind profiles | Superseded in part by 0055; extended by 0120, 0136 (Proposed), and 0139 (Proposed) |
-| [0051](0051-sports-boat.md) | Sports boat | Superseded in part by 0066 and 0080; extended by 0058, 0063, 0089, and 0120 |
+| [0051](0051-sports-boat.md) | Sports boat | Superseded in part by 0066, 0080, and 0150 (Proposed); extended by 0058, 0063, 0089, and 0120 |
 | [0052](0052-retry-camera-switches-and-break-seat-ties-low.md) | Retry camera switches in both directions, and break seat ties toward the lower index | Superseded in part by 0117 |
 | [0053](0053-estimate-buoyant-boat-water-drag.md) | Estimate the buoyant boat's water drag | Accepted |
 | [0054](0054-shard-in-game-tests-in-ci.md) | Shard the in-game tests across four CI jobs and run model:check beside the unit tests | Accepted |
@@ -66,7 +66,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0060](0060-sports-boat-engine-sound.md) | Sports boat engine sound | Accepted; extended by 0140 (Proposed) |
 | [0061](0061-lift-the-bow-and-roll-further.md) | Lift the sports boat bow the right way and roll it further | Superseded in part by 0085 |
 | [0062](0062-fresh-dev-pack-version-on-every-start.md) | Serve the dev BDS's packs under a fresh dev-only version on every start | Accepted |
-| [0063](0063-walk-on-a-stopped-sports-boat.md) | Walk on a stopped sports boat | Superseded in part by 0120 (Proposed); extended by 0064, 0093, 0095, 0096, 0101, and 0109 |
+| [0063](0063-walk-on-a-stopped-sports-boat.md) | Walk on a stopped sports boat | Superseded in part by 0120 (Proposed); extended by 0064, 0093, 0095, 0096, 0101, 0109, and 0150 (Proposed) |
 | [0064](0064-dock-step.md) | Group the hold, floor, and deck seats into an optional dock | Accepted |
 | [0065](0065-check-import-rules-with-dependency-cruiser.md) | Check the import rules with dependency-cruiser | Extended by 0072 |
 | [0066](0066-limit-vehicles-per-player-and-kind.md) | Limit vehicles per player and per kind | Extended by 0124, 0125, and 0136 (Proposed) |
@@ -83,7 +83,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0077](0077-never-reverse-the-internal-speed-on-a-wall-hit.md) | Never reverse the internal speed on a wall hit | Superseded in part by 0081 |
 | [0078](0078-wait-for-a-passenger-before-landing.md) | Wait for a passenger to move up before landing a driverless flying vehicle | Accepted |
 | [0079](0079-roll-by-signed-speed.md) | Roll the sports boat by its signed speed | Accepted |
-| [0080](0080-beached-sports-boat-can-reverse.md) | A beached sports boat can only reverse | Accepted |
+| [0080](0080-beached-sports-boat-can-reverse.md) | A beached sports boat can only reverse | Superseded in part by 0150 (Proposed) |
 | [0081](0081-slide-along-walls.md) | Slide along walls | Accepted |
 | [0082](0082-learn-strongly-slowing-surfaces.md) | Learn strongly slowing surfaces | Accepted |
 | [0083](0083-ram-targets-are-a-core-sensor.md) | Ram targets are a core-only sensor | Accepted |
@@ -151,6 +151,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0147](0147-light-the-lamps-with-a-pbr-emissive-layer.md) | Light the lamps with a PBR emissive layer | Proposed |
 | [0148](0148-smooth-bulldozer-side-bevel.md) | Smooth the bulldozer side bevel | Proposed |
 | [0149](0149-route-the-parked-camper-wheel-seat-to-headlights.md) | Route the parked camper's wheel seat to the headlights | Accepted |
+| [0150](0150-run-the-sports-boat-on-lava.md) | Run the sports boat on lava | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 

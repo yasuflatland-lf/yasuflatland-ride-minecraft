@@ -25,7 +25,7 @@ This add-on holds only rides. House-building parts will ship as a separate add-o
 | Vehicle | What it does | Details |
 |---|---|---|
 | **SUV** | Drives on land, flies, and dives as a submarine. Every player gets one on their first join | [Controls and details](docs/vehicles/suv.md) |
-| **Sports boat** | Drives on water; shores stop it, and on land it can only reverse | [Controls and details](docs/vehicles/sportsboat.md) |
+| **Sports boat** | Drives on water and lava, including Nether lava seas; seated riders are protected from fire. Shores stop it, and on land it can only reverse | [Controls and details](docs/vehicles/sportsboat.md) |
 | **Camper** | Drives, flies, and dives like the SUV, with a long body and a facing dinette | [Controls and details](docs/vehicles/camper.md) |
 | **Bulldozer** | Pivots, hops, flies, and dives; with its blade lowered it clears hills and flight tunnels, and raised it climbs steps; its cab monitor shows whether the blade is up or down while the driver holds the Blade Up/Down switch. Every player gets one on their first join | [Controls and details](docs/vehicles/bulldozer.md) |
 

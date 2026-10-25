@@ -159,6 +159,7 @@ export async function withPool<T>(
   a: Arena,
   depth: number,
   run: () => Promise<T>,
+  liquid: "water" | "lava" = "water",
 ): Promise<T> {
   const { minX, maxX, minZ, maxZ } = POOL;
   const bottom = a.gy - depth;
@@ -187,7 +188,7 @@ export async function withPool<T>(
   // of throwing. Seen in game with an arena ticking area kept from a smaller
   // arena under the same name: every submarine test then failed with
   // enteredAt=-1.
-  if (fillPool("water").successCount === 0)
+  if (fillPool(liquid).successCount === 0)
     throw new Error(
       `the pool was not filled: check that "tickingarea list" shows yasu_ride_arena covering x ${ARENA.minX}-${ARENA.maxX}, z ${ARENA.minZ}-${ARENA.maxZ}`,
     );

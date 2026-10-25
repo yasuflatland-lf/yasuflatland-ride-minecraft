@@ -1,6 +1,6 @@
 # 0080. A beached sports boat can only reverse
 
-- Status: Accepted
+- Status: Superseded in part by 0150 (lava also counts as afloat)
 - Date: 2026-10-20
 - Supersedes in part: 0051 (a beached boat coasting to a stop, and the boat never leaving the water by itself)
 

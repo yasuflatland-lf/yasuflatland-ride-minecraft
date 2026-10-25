@@ -18,6 +18,8 @@ export interface TickContext {
   solidAt(offset: Vec3): boolean;
   /** Water, flowing water, bubble columns, or waterlogged blocks at floor(location + offset). */
   waterAt(offset: Vec3): boolean;
+  /** Lava or flowing lava at floor(location + offset). */
+  lavaAt?(offset: Vec3): boolean;
   /**
    * Block type IDs at these world cells, in order. Air and light blocks read as
    * "minecraft:air"; a cell in an unloaded chunk reads as undefined. Drives call it

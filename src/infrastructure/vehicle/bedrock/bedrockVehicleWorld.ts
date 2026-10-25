@@ -73,7 +73,7 @@ import { StandIns } from "./standIns";
 import { standUp } from "./standUp";
 import { systemClock } from "./systemClock";
 import { VehicleReleaser } from "./vehicleReleaser";
-import { isWaterAt } from "./water";
+import { isLavaAt, isWaterAt } from "./water";
 
 function rawInputOf(player: Player): RawInput {
   const movement = player.inputInfo.getMovementVector();
@@ -297,6 +297,12 @@ export class BedrockVehicleWorld implements DriveWorld {
     const vehicle = this.index.entity(vehicleId);
     if (!vehicle) return false;
     return isWaterAt(vehicle.dimension, offsetFrom(vehicle, offset));
+  }
+
+  lavaAt(vehicleId: VehicleId, offset: Vec3): boolean {
+    const vehicle = this.index.entity(vehicleId);
+    if (!vehicle) return false;
+    return isLavaAt(vehicle.dimension, offsetFrom(vehicle, offset));
   }
 
   solidAt(vehicleId: VehicleId, offset: Vec3): boolean {
@@ -526,6 +532,13 @@ export class BedrockVehicleWorld implements DriveWorld {
     this.index.player(playerId)?.addEffect("water_breathing", ticks, {
       showParticles: false,
     });
+  }
+
+  protectFromFire(playerId: PlayerId): void {
+    const player = this.index.player(playerId);
+    if (!player) return;
+    player.addEffect("fire_resistance", 2, { showParticles: false });
+    player.extinguishFire(false);
   }
 
   damage(hit: RamHit, attackerId: PlayerId | undefined): void {

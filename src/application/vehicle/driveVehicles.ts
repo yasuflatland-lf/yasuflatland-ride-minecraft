@@ -24,12 +24,19 @@ export class DriveVehicles {
     const seen = new Set<VehicleId>();
     const thirdPersonRiders = new Map<PlayerId, ChaseCamera>();
     const underwater = new Set<PlayerId>();
+    const fireProtected = new Set<PlayerId>();
     // A failure in one vehicle must not stop the others.
     forEachIsolated(
       this.world.loadedVehicles(),
       (snap) => {
         seen.add(snap.id);
-        this.tickVehicle(snap, tick, thirdPersonRiders, underwater);
+        this.tickVehicle(
+          snap,
+          tick,
+          thirdPersonRiders,
+          underwater,
+          fireProtected,
+        );
       },
       this.log,
       (snap) => snap.id,
@@ -37,6 +44,7 @@ export class DriveVehicles {
     this.releaseGone(seen);
     this.riders.syncCameras(thirdPersonRiders);
     this.riders.refreshWaterBreathing(underwater, tick);
+    this.riders.protectFromFire(fireProtected);
   }
 
   private tickVehicle(
@@ -44,6 +52,7 @@ export class DriveVehicles {
     tick: number,
     thirdPersonRiders: Map<PlayerId, ChaseCamera>,
     underwater: Set<PlayerId>,
+    fireProtected: Set<PlayerId>,
   ): void {
     let vehicle = this.repo.get(snap.id);
     if (!vehicle) {
@@ -73,6 +82,7 @@ export class DriveVehicles {
         velocity: snap.velocity,
         onGround: snap.onGround,
         waterAt: (offset) => this.world.waterAt(snap.id, offset),
+        lavaAt: (offset) => this.world.lavaAt(snap.id, offset),
         solidAt: (offset) => this.world.solidAt(snap.id, offset),
         blockTypes: (cells) => this.world.blockTypes(snap.id, cells),
         targets: () => this.world.targetsNear(snap.id),
@@ -94,6 +104,11 @@ export class DriveVehicles {
     }
     if (out.riders.underwater)
       for (const rider of snap.riders) underwater.add(rider.id);
+    if (snap.kind === "sportsboat") {
+      for (const rider of snap.riders) fireProtected.add(rider.id);
+      for (const rider of snap.deckSeatRiders)
+        if (rider !== undefined) fireProtected.add(rider);
+    }
     if (!out.dock) this.world.applyMotion(snap.id, out.impulse, out.yaw);
     if (out.seatLayout) this.world.keepSeatLayout(snap.id, out.seatLayout);
     if (out.boardDeckRiders) this.world.boardDeckRiders(snap.id);

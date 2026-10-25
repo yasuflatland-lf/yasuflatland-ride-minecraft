@@ -49,8 +49,14 @@ describe("sports boat Behavior Pack entity (ADR 0051)", () => {
       apply_gravity: true,
       simulate_waves: false,
       big_wave_probability: 0,
-      liquid_blocks: ["minecraft:water", "minecraft:flowing_water"],
+      liquid_blocks: [
+        "minecraft:water",
+        "minecraft:flowing_water",
+        "minecraft:lava",
+        "minecraft:flowing_lava",
+      ],
     });
+    expect(c["minecraft:fire_immune"]).toEqual({});
   });
 
   it("seat x and z and their order match SPORTSBOAT_PROFILE.seats.positions, every seat 0.52 up, with the driver in seat 0", () => {

@@ -134,6 +134,7 @@ export class FakeWorld
   air = (_at: Vec3) => true;
   /** Which cells hold water; dry everywhere unless a test says otherwise. */
   water = (_at: Vec3) => false;
+  lava = (_at: Vec3) => false;
   /** The dimension of every water query, in order. */
   readonly waterDimensions: string[] = [];
   /** Whether the slot a vehicle item was used from still holds one. */
@@ -216,6 +217,16 @@ export class FakeWorld
     const waterAt = snap && waterQueries.get(snap);
     return waterAt ? waterAt(offset) : false;
   }
+  lavaAt(id: string, offset: Vec3) {
+    const snap = this.snapshots.find((s) => s.id === id);
+    return snap
+      ? this.lava({
+          x: snap.location.x + offset.x,
+          y: snap.location.y + offset.y,
+          z: snap.location.z + offset.z,
+        })
+      : false;
+  }
   targetsNear() {
     return this.targets;
   }
@@ -290,6 +301,9 @@ export class FakeWorld
     if (id === this.failBreathingOn) throw new Error("breathing");
     this.calls.push(`breathing:${id}:${ticks}`);
   }
+  protectFromFire(id: string) {
+    this.calls.push(`fire:${id}`);
+  }
   damage(hit: RamHit, attackerId: string | undefined) {
     this.calls.push(`damage:${hit.id}:${attackerId ?? "-"}`);
   }
@@ -317,6 +331,9 @@ export class FakeWorld
   isWaterAt(dim: string, at: Vec3) {
     this.waterDimensions.push(dim);
     return this.water(at);
+  }
+  isLavaAt(_dim: string, at: Vec3) {
+    return this.lava(at);
   }
   spawnVehicle(
     dim: string,

@@ -71,6 +71,31 @@ export function boatFloat(a: Arena): Promise<Outcome> {
   );
 }
 
+export function boatLava(a: Arena): Promise<Outcome> {
+  return withPool(
+    a,
+    3,
+    () =>
+      withBoat(
+        a,
+        async (boat) => {
+          drive(boat, 0, 1);
+          const start = boat.location;
+          await wait(60);
+          const moved = boat.location.z - start.z;
+          const draft = a.gy - boat.location.y;
+          return {
+            pass: boat.isValid && moved > 5 && draft >= 0 && draft < 1,
+            detail: `moved=${moved.toFixed(2)} draft=${draft.toFixed(2)} valid=${boat.isValid}`,
+          };
+        },
+        POOL_SOUTH_LANE,
+        20,
+      ),
+    "lava",
+  );
+}
+
 // Acceptance bounds from issue #198, not ADR 0063 (which sets only when a boat
 // docks and undocks): a docked boat holds still for 2 s, undocks within 0.5 s
 // of input, and leaves within 2 s.
