@@ -48,6 +48,10 @@ PALETTE = {
     "hardtop_rib": (46, 47, 52),  # the lit tops of the roof ribs
 }
 NAMES = list(PALETTE)
+EMISSIVE_LIT = 255
+MER_LIT = (0, EMISSIVE_LIT, 255)
+MER_OFF = (0, 0, 255)
+LIT_SLOTS = tuple(NAMES.index(name) for name in ("light",))
 # A power of two wide enough for a 4 px cell per swatch (16 swatches filled 64 px before "prop")
 TEXTURE_WIDTH = 128
 assert len(NAMES) * 4 <= TEXTURE_WIDTH, "the palette no longer fits in the texture"
@@ -965,6 +969,29 @@ def png(path, w, h, pixel):
     path.write_bytes(data)
 
 
+def lit_textures(kind, width, height, pixel):
+    def is_lit(x, y):
+        return y < 4 and x // 4 in LIT_SLOTS
+
+    def color(x, y):
+        rgba = (*pixel(x, y), 255)[:4]
+        return (*rgba[:3], 0) if is_lit(x, y) else rgba
+
+    def mer(x, y):
+        return (*(MER_LIT if is_lit(x, y) else MER_OFF), 255)
+
+    png(ENTITY_TEXTURES / f"{kind}_lit.png", width, height, color)
+    png(ENTITY_TEXTURES / f"{kind}_lit_mer.png", width, height, mer)
+    texture_set = {
+        "format_version": "1.16.100",
+        "minecraft:texture_set": {
+            "color": f"{kind}_lit",
+            "metalness_emissive_roughness": f"{kind}_lit_mer",
+        },
+    }
+    (ENTITY_TEXTURES / f"{kind}_lit.texture_set.json").write_text(json.dumps(texture_set))
+
+
 def swatches(body_color):
     colors = {**PALETTE, "body": body_color}
 
@@ -983,6 +1010,8 @@ ITEM_TEXTURES.mkdir(parents=True, exist_ok=True)
 for paint, body_color in BODY_PAINTS.items():
     name = "suv" if paint == "khaki" else f"suv_{paint}"
     png(ENTITY_TEXTURES / f"{name}.png", TEXTURE_WIDTH, 16, swatches(body_color))
+
+lit_textures("suv", TEXTURE_WIDTH, 16, swatches(BODY_PAINTS["khaki"]))
 
 
 def icon(x, y):

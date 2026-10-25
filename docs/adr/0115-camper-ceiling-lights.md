@@ -1,6 +1,6 @@
 # 0115. Ceiling lights in the parked camper
 
-- Status: Accepted (extended by [0123](0123-a-fridge-in-place-of-the-camper-shelf.md): the open fridge top door's plate takes the front light's cell and gives its light; and by [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md): the same switch turns a tent's lantern on and off from inside the tent)
+- Status: Accepted (extended by [0123](0123-a-fridge-in-place-of-the-camper-shelf.md): the open fridge top door's plate takes the front light's cell and gives its light; and by [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md): the same switch turns a tent's lantern on and off from inside the tent); extended by [0147](0147-light-the-lamps-with-a-pbr-emissive-layer.md) (Proposed)
 - Date: 2026-10-22
 - Extends: 0020 (the headlight switch and light blocks), 0024 (the switch cooldown), 0068 (the parked room's cells), 0096 (lost cells are laid again)
 

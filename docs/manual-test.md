@@ -296,6 +296,21 @@ Walk in through an open flap: tap a flap to roll it up (ADR 0132).
 | T32 | Paint a pitched tent, then `/reload`, then restart the server | The color stays | | |
 | T33 | With the lantern switched on, paint the tent | The lantern glass still glows | | |
 
+## Light glow (Vibrant Visuals)
+
+Setup: use a Vibrant Visuals device at night, then repeat the legacy checks with Vibrant Visuals off and on an unsupported device. Device verification is pending (ADR 0147).
+
+| # | Check | PC | Mobile |
+|---|---|---|---|
+| L1 | Switch the SUV headlights on and off at night in Vibrant Visuals: headlights and fog lenses glow only while on. | [ ] | [ ] |
+| L2 | Repeat for the sports boat's bow flank headlights. | [ ] | [ ] |
+| L3 | Switch camper headlights and, while parked, ceiling lights independently: each glows only while its own switch is on. | [ ] | [ ] |
+| L4 | Switch bulldozer headlights and inspect the rear beacon from behind: both glow only while on. | [ ] | [ ] |
+| L5 | Repaint a vehicle with any dye: the lamps keep their glow while on. | [ ] | [ ] |
+| L6 | Repeat with Vibrant Visuals off: lit lenses are full-bright, unlit lenses look as before, with no flicker, double drawing, or holes. | [ ] | [ ] |
+| L7 | Join on a device without Vibrant Visuals support: vehicles and blocks look as before the change. | [ ] | [ ] |
+| L8 | Fly, bank, and open a door with lights on: the glow follows the parts. | [ ] | [ ] |
+
 ## Upgrading from MyCar 0.5.0 and earlier
 
 Setup: in a world that used MyCar 0.5.0, place two vehicles and switch the headlights of one of them off, then stop the server and replace the old pack folders with the new ones as described under "Upgrading from MyCar 0.5.0 and earlier" in the [README](../README.md).

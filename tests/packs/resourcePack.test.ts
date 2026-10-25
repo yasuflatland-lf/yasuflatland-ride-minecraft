@@ -53,6 +53,10 @@ describe("Resource Pack flight visuals (ADR 0022)", () => {
     );
     expect(client.render_controllers).toEqual([
       "controller.render.yasu_ride.suv",
+      {
+        "controller.render.yasu_ride.suv.lit":
+          "query.property('yasu_ride:headlights')",
+      },
     ]);
     expect(client.materials.default).toBe("entity_emissive_alpha");
     expect(client.particle_effects.hover_glow).toBe(
@@ -178,6 +182,7 @@ describe("Resource Pack flight visuals (ADR 0022)", () => {
       {
         windows_sealed: "query.property('yasu_ride:form') == 'submarine'",
       },
+      { headlights: "!query.property('yasu_ride:headlights')" },
     ]);
   });
 

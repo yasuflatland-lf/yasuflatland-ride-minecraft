@@ -82,6 +82,10 @@ PALETTE = {
     "glass": (120, 164, 174, 96),
 }
 SLOTS = list(PALETTE)
+EMISSIVE_LIT = 255
+MER_LIT = (0, EMISSIVE_LIT, 255)
+MER_OFF = (0, 0, 255)
+LIT_SLOTS = tuple(SLOTS.index(name) for name in ("lens", "amber"))
 
 # Overall extents (spec, converted at 15.1 px per meter)
 LENGTH_HALF = 37.8  # 5000 mm with the blade
@@ -1345,6 +1349,29 @@ def png(path, width, height, pixel):
     emit(path, b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", head) + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b""))
 
 
+def lit_textures(kind, width, height, pixel):
+    def is_lit(x, y):
+        return x in LIT_SLOTS
+
+    def color(x, y):
+        rgba = (*pixel(x, y), 255)[:4]
+        return (*rgba[:3], 0) if is_lit(x, y) else rgba
+
+    def mer(x, y):
+        return (*(MER_LIT if is_lit(x, y) else MER_OFF), 255)
+
+    png(ENTITY_TEXTURES / f"{kind}_lit.png", width, height, color)
+    png(ENTITY_TEXTURES / f"{kind}_lit_mer.png", width, height, mer)
+    texture_set = {
+        "format_version": "1.16.100",
+        "minecraft:texture_set": {
+            "color": f"{kind}_lit",
+            "metalness_emissive_roughness": f"{kind}_lit_mer",
+        },
+    }
+    emit(ENTITY_TEXTURES / f"{kind}_lit.texture_set.json", json.dumps(texture_set))
+
+
 # Variant 0, khaki on the SUV, is yellow here, so a new bulldozer is yellow (ADR 0076); khaki writes bulldozer.png, the others bulldozer_<paint>.png.
 BODY_PAINTS: dict[str, tuple[int, int, int]] = {
     "khaki": PALETTE["yellow"][:3],
@@ -1385,6 +1412,8 @@ for paint, base in BODY_PAINTS.items():
         )
     name = "bulldozer" if paint == "khaki" else f"bulldozer_{paint}"
     png(ENTITY_TEXTURES / f"{name}.png", len(SLOTS), 1, lambda x, y: colors[SLOTS[x]])
+
+lit_textures("bulldozer", len(SLOTS), 1, lambda x, y: PALETTE[SLOTS[x]])
 
 ICON = [
     "................",

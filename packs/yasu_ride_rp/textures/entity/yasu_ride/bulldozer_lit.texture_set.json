@@ -1,0 +1,7 @@
+{
+  "format_version": "1.16.100",
+  "minecraft:texture_set": {
+    "color": "bulldozer_lit",
+    "metalness_emissive_roughness": "bulldozer_lit_mer"
+  }
+}

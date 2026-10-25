@@ -650,7 +650,8 @@ describe("camper model assets (ADR 0067)", () => {
 
   it("generates all 16 equally sized paints, changing only the three accent swatches", () => {
     const files = readdirSync(`${RP}/textures/entity/yasu_ride`).filter(
-      (name) => /^camper(?:_\w+)?\.png$/.test(name),
+      (name) =>
+        /^camper(?:_\w+)?\.png$/.test(name) && !name.startsWith("camper_lit"),
     );
     expect(files).toHaveLength(PAINTS.length);
     const khaki = readPng("textures/entity/yasu_ride/camper");
@@ -1700,11 +1701,10 @@ describe("camper ceiling lights (ADR 0115)", () => {
     }
   });
 
-  it("lights the lenses with the lamp material while the property is on", () => {
+  it("keeps the ceiling lenses on the unlit material in the base pass", () => {
     const entries: Record<string, string>[] = camperRender.materials;
     expect(entries).toContainEqual({
-      ceiling_lights:
-        "Array.lamps[query.property('yasu_ride:ceiling_lights') ? 1 : 0]",
+      ceiling_lights: "Material.lamp",
     });
     const property = JSON.parse(
       readFileSync(

@@ -26,7 +26,8 @@
         "purple": "textures/entity/yasu_ride/bulldozer_purple",
         "magenta": "textures/entity/yasu_ride/bulldozer_magenta",
         "pink": "textures/entity/yasu_ride/bulldozer_pink",
-        "monitor": "textures/entity/yasu_ride/bulldozer_monitor"
+        "monitor": "textures/entity/yasu_ride/bulldozer_monitor",
+        "lit": "textures/entity/yasu_ride/bulldozer_lit"
       },
       "geometry": {
         "default": "geometry.yasu_ride.bulldozer",
@@ -95,7 +96,10 @@
         {
           "controller.render.yasu_ride.bulldozer.monitor": "query.property('yasu_ride:monitor') > 0"
         },
-        "controller.render.yasu_ride.bulldozer"
+        "controller.render.yasu_ride.bulldozer",
+        {
+          "controller.render.yasu_ride.bulldozer.lit": "query.property('yasu_ride:headlights')"
+        }
       ],
       "scripts": {
         "animate": [

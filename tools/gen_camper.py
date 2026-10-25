@@ -57,6 +57,10 @@ PALETTE = {
     "dome": (250, 244, 218, 0),
 }
 SLOTS = list(PALETTE)
+EMISSIVE_LIT = 255
+MER_LIT = (0, EMISSIVE_LIT, 255)
+MER_OFF = (0, 0, 255)
+LIT_SLOTS = tuple(SLOTS.index(name) for name in ("lens", "dome"))
 
 # Accent bases follow the SUV paints (ADR 0031); the white shell never changes.
 ACCENT_BASES = {
@@ -1342,6 +1346,29 @@ def png(path, width, height, pixel):
     path.write_bytes(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", head) + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b""))
 
 
+def lit_textures(kind, width, height, pixel):
+    def is_lit(x, y):
+        return x in LIT_SLOTS
+
+    def color(x, y):
+        rgba = (*pixel(x, y), 255)[:4]
+        return (*rgba[:3], 0) if is_lit(x, y) else rgba
+
+    def mer(x, y):
+        return (*(MER_LIT if is_lit(x, y) else MER_OFF), 255)
+
+    png(ENTITY_TEXTURES / f"{kind}_lit.png", width, height, color)
+    png(ENTITY_TEXTURES / f"{kind}_lit_mer.png", width, height, mer)
+    texture_set = {
+        "format_version": "1.16.100",
+        "minecraft:texture_set": {
+            "color": f"{kind}_lit",
+            "metalness_emissive_roughness": f"{kind}_lit_mer",
+        },
+    }
+    (ENTITY_TEXTURES / f"{kind}_lit.texture_set.json").write_text(json.dumps(texture_set))
+
+
 def scale(color, factor):
     return tuple(max(0, min(255, math.floor(c * factor + 0.5))) for c in color)
 
@@ -1353,6 +1380,8 @@ for paint, base in ACCENT_BASES.items():
         colors.update(khaki=(*scale(base, 0.85), 255), stripe=(*scale(base, 0.65), 255), tan=(*base, 255))
     name = "camper" if paint == "khaki" else f"camper_{paint}"
     png(ENTITY_TEXTURES / f"{name}.png", len(SLOTS), 1, lambda x, y: colors[SLOTS[x]])
+
+lit_textures("camper", len(SLOTS), 1, lambda x, y: PALETTE[SLOTS[x]])
 
 ICON = [
     "................",

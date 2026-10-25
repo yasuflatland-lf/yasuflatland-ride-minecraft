@@ -216,7 +216,8 @@ describe("bulldozer paints (ADR 0031, 0076)", () => {
         .filter(
           (f) =>
             /^bulldozer(?:_\w+)?\.png$/.test(f) &&
-            f !== "bulldozer_monitor.png",
+            f !== "bulldozer_monitor.png" &&
+            !f.startsWith("bulldozer_lit"),
         )
         .sort(),
     ).toEqual(
