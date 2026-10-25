@@ -23,6 +23,16 @@ it("switches the lights of a parked camper for a player inside, once per touch (
   expect(use.execute({ ...cmd, feet: { ...FEET, y: FEET.y + 4 } })).toBe(false);
 });
 
+it("keeps the parked camper's deck driver on the headlights instead of the room lights", () => {
+  const { car, repo } = parkedCamper();
+  stillTick(car, 21, "d");
+  const use = new SwitchCeilingLights(repo, new FakeClock());
+  const cmd = { playerId: asPlayerId("d"), vehicleId: car.id, feet: FEET };
+  expect(use.canSwitch(cmd)).toBe(false);
+  expect(use.execute(cmd)).toBe(false);
+  expect(use.canSwitch({ ...cmd, playerId: player })).toBe(true);
+});
+
 it("tells whether a use would reach the lights without switching them or starting the cooldown (ADR 0115)", () => {
   const { car, repo } = parkedCamper();
   const use = new SwitchCeilingLights(repo, new FakeClock());

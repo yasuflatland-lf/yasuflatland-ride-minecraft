@@ -74,6 +74,8 @@ export interface VehicleProfile {
    * seats of its own seats (x = left, z = forward). Absent = none (ADR 0095).
    */
   readonly parkedSeats?: SeatLayout;
+  /** A rider in the wheel deck seat operates the headlights while parked (ADR 0149). */
+  readonly deckSeatDriverHeadlights?: boolean;
   readonly beams: BeamPattern;
   readonly placement: PlacementRule;
   readonly chaseCamera: ChaseCamera;
