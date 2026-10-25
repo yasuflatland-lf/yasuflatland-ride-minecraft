@@ -1004,24 +1004,15 @@ describe("camping gear blocks and items (ADR 0093)", () => {
       group_identifier: { name: string };
       items: string[];
     }[];
-    const inside = defined(
-      groups.find(
-        (g) => g.group_identifier.name === "yasu_ride:camping_gear_inside",
-      ),
-      "inside group",
-    );
-    const outside = defined(
-      groups.find(
-        (g) => g.group_identifier.name === "yasu_ride:camping_gear_outside",
-      ),
-      "outside group",
-    );
-    expect(inside.items.slice(1)).toEqual(
-      CAMPING_GEAR_IDS.map((id) => `yasu_ride:${id}`),
-    );
-    for (const item of outside.items) {
-      const id = item.slice("yasu_ride:".length);
-      expect(SPEC.map((g) => g.id)).not.toContain(id);
+    const itemsOf = (name: string) =>
+      defined(
+        groups.find((g) => g.group_identifier.name === `yasu_ride:${name}`),
+        name,
+      ).items.map((item) => item.slice("yasu_ride:".length));
+    const specIds = SPEC.map((g) => g.id);
+    expect(itemsOf("camping_gear_inside").slice(1)).toEqual(CAMPING_GEAR_IDS);
+    for (const id of itemsOf("camping_gear_outside")) {
+      expect(specIds).not.toContain(id);
       expect(CAMPING_GEAR_IDS).not.toContain(id);
     }
     const items = groups.flatMap((g) => g.items);
