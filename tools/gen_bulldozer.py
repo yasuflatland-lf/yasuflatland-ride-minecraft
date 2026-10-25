@@ -323,12 +323,40 @@ body.append(box(-REAR_FRAME_HALF, 18.4, REAR_FRAME_Z, REAR_FRAME_HALF, CAB_SILL,
 # edge. In front of the door they stop at the deck; behind the door they rise to the window line,
 # with a front edge that leans back from the door's lower rear corner.
 DECK, BELT_LINE = 24.5, 32.5
+STEP_MESH_PITCH = 1.0
+STEP_MESH_BAR = 0.4
+STEP_MESH_FRAME = 0.5
 SIDE_IN, SIDE_OUT = TRACK_IN, TRACK_OUT - 1.2
 DOOR_REAR, DOOR_DIAGONAL = 16.2, ((13.2, DECK), (16.2, BELT_LINE))  # (z, y) from the side view
 # The side bodies start at the cab front: the owner had the step ahead of it cut away, so the lift
 # cylinders reach back to the cab front.
 SIDE_FRONT, SIDE_REAR = CAB_FRONT, 37.1
 BEVEL = 3.0  # the rear side panels' top outer edge is beveled in toward the cab, as seen from behind
+
+
+def step_mesh(x0, z0, x1, z1):
+    ix0, ix1 = x0 + STEP_MESH_FRAME, x1 - STEP_MESH_FRAME
+    iz0, iz1 = z0 + STEP_MESH_FRAME, z1 - STEP_MESH_FRAME
+    # Each layer has its own height so the crossed bars share no visible coplanar faces.
+    backing_top, lower_top, top = DECK + 0.05, DECK + 0.15, DECK + 0.25
+    half = STEP_MESH_BAR / 2
+
+    def bar_centers(lo, hi):
+        # Center the run of bars so the first and last cells match.
+        n = int((hi - lo - STEP_MESH_BAR) // STEP_MESH_PITCH) + 1
+        start = lo + (hi - lo - (n - 1) * STEP_MESH_PITCH) / 2
+        for i in range(n):
+            yield start + i * STEP_MESH_PITCH
+
+    return [
+        box(x0, DECK, z0, x1, top, iz0, "yellow"),
+        box(x0, DECK, iz1, x1, top, z1, "yellow"),
+        box(x0, DECK, iz0, ix0, top, iz1, "yellow"),
+        box(ix1, DECK, iz0, x1, top, iz1, "yellow"),
+        box(ix0, DECK, iz0, ix1, backing_top, iz1, "hole"),
+        *(box(x - half, backing_top, iz0, x + half, lower_top, iz1, "yellow") for x in bar_centers(ix0, ix1)),
+        *(box(ix0, lower_top, z - half, ix1, top, z + half, "yellow") for z in bar_centers(iz0, iz1)),
+    ]
 
 
 def side_top(z):
@@ -373,18 +401,13 @@ for i in range(6):
     x1 = SIDE_OUT - (i + 1) * (SIDE_OUT - CAB_HALF - 1.0) / 6
     z0 = DOOR_DIAGONAL[0][0] + (y0 + BEVEL / 12 - DECK) / (BELT_LINE - DECK) * (DOOR_DIAGONAL[1][0] - DOOR_DIAGONAL[0][0])
     side.append(box(CAB_HALF, y0, z0, x1, y0 + BEVEL / 6, SIDE_REAR, "yellow"))
-# Panel seams and bolt heads on the rear side panel, and the deck's top plate with its perforated
-# orange plates beside the cab front.
+# Panel seams and bolt heads on the rear side panel; dark-backed steel mesh beside the cab front.
 side += [box(SIDE_OUT, 24.4, 23.6, SIDE_OUT + 0.1, BELT_LINE - BEVEL, 23.9, "yellow_dark"),
          box(SIDE_OUT, 27.0, 16.8, SIDE_OUT + 0.1, 27.3, 36.6, "yellow_dark"),
          box(SIDE_IN, DECK - 0.4, SIDE_FRONT - 0.6, SIDE_OUT + 0.3, DECK, CAB_FRONT, "yellow_dark")]
 for bz, by in ((18.0, 28.8), (22.6, 28.8), (25.0, 28.8), (35.6, 28.8), (25.0, 25.6), (35.6, 25.6), (30.0, 22.4)):
     side.append(box(SIDE_OUT, by - 0.25, bz - 0.25, SIDE_OUT + 0.15, by + 0.25, bz + 0.25, "bolt"))
-side.append(box(CAB_HALF + 0.2, DECK, SIDE_FRONT, SIDE_OUT - 0.3, DECK + 0.1, 11.6, "orange"))
-for gx in range(4):
-    for gz in range(int((11.6 - SIDE_FRONT - 1.2) / 1.15) + 1):
-        x, zz = CAB_HALF + 0.8 + gx * 1.05, SIDE_FRONT + 0.6 + gz * 1.15
-        side.append(box(x, DECK + 0.1, zz, x + 0.45, DECK + 0.12, zz + 0.45, "hole"))
+side += step_mesh(CAB_HALF + 0.2, SIDE_FRONT, SIDE_OUT - 0.3, DOOR_DIAGONAL[0][0] - 0.2)
 side.append(box(CAB_HALF, BELT_LINE, 17.2, CAB_HALF + 0.8, BELT_LINE + 0.3, 36.4, "yellow_dark"))  # ledge
 body += both(side)
 # Rear housing under the back of the cab

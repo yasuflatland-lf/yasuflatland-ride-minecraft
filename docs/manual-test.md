@@ -213,6 +213,7 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | C161 | Look at the camper right side from outside at 3 to 4 blocks on a phone and PC | No amber box is above and behind the door, and the stripe has no step where it meets the W's outer arms; one clean diagonal runs from the stripe's top edge down to each foot (ADR 0145) | | |
 | C162 | Look at the camper rear from 3 to 4 blocks on a phone and PC | One amber lamp in a chrome ring sits on each rear corner, outside the red tail lights, at the same height, symmetric and not hidden behind the ladder (ADR 0145) | | |
 | C163 | Aim at the entry door from outside, then open it and look from inside | The chrome handle sits just under the stripe on both faces and swings with the door (ADR 0145) | | |
+| C164 | Rear-right vent cover (ADR 0146) | Look at the right rear of the camper from outside, and at the shower-toilet from inside with the door open; there is no window there, a square vent cover with a chrome frame and dark mesh sits in the band, the toilet, its seat, and the shower look and work as before, and the right side reads front window, door, counter window, wall with vent. | | |
 
 ## Bulldozer
 
@@ -243,6 +244,7 @@ Setup: use `/give @s yasu_ride:bulldozer_item` or craft from an SUV item, an iro
 | B21 | Raise and lower the blade with the switch while parked | Each change plays, once and with the click, a pump groan that rises slightly while the blade moves (about half a second), a dull clunk as it stops, and a short relief hiss | | |
 | B22 | Drive an SUV, a camper, and the sports boat | Their engine sounds are as before | | |
 | B23 | Getting out beside the door | Park on flat ground, get out (sneak on PC, the dismount button on touch). You stand outside the left track, beside the open left door, facing the way you looked. Repeat on grass with flowers, on a thin snow layer, and on a dirt path: you stand beside the door each time. Park with the left side against a wall and get out: you land where the engine puts you, not inside the wall. Park with the left track at the edge of a pit or a shore and get out: you land where the engine puts you, not in the pit or the water. Get out in flight: you also land where the engine puts you. | | |
+| B24 | Mesh steps (ADR 0146) | Look at the bulldozer from the front-left, the side, and at ground level in daylight on PC and on a phone; both steps beside the cab front read as dark-backed steel mesh, with no orange plate, and the open left door and the driver standing beside it (B5, B23) are unaffected. | | |
 
 ## Tent
 

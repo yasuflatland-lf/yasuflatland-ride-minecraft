@@ -1719,3 +1719,115 @@ describe("camper ceiling lights (ADR 0115)", () => {
     });
   });
 });
+
+describe("camper rear-right vent cover (ADR 0146)", () => {
+  // Slots in the PALETTE order of tools/gen_camper.py.
+  const WHITE_SLOT = 0;
+  const KHAKI_SLOT = 4;
+  const BLACK_SLOT = 7;
+  const CHROME_SLOT = 10;
+  const SLAT_SLOT = 11;
+  const WALL_IN_SLOT = 22;
+  const end = (c: Cube, axis: number) =>
+    (c.origin[axis] ?? 0) + (c.size[axis] ?? 0);
+  it("removes the rear-right pane and closes the outer wall, lining, and band", () => {
+    expect(
+      (bone("glass").cubes ?? []).filter(
+        (c) =>
+          (c.origin[0] ?? 0) < -23 && (c.origin[2] ?? 0) < 50 && end(c, 2) > 38,
+      ),
+    ).toEqual([]);
+    for (const [slot, x] of [
+      [WHITE_SLOT, -23.5],
+      [WALL_IN_SLOT, -22.9],
+      [KHAKI_SLOT, -24.05],
+    ] as const) {
+      expect(
+        (bone("body").cubes ?? []).some(
+          (c) =>
+            c.uv.north?.uv[0] === slot &&
+            [x, 42, 45].every(
+              (v, axis) => v >= (c.origin[axis] ?? 0) && v <= end(c, axis),
+            ),
+        ),
+      ).toBe(true);
+    }
+  });
+  it("centers the slats so the edge cells match", () => {
+    const slats = (bone("body").cubes ?? []).filter(
+      (c) =>
+        c.uv.north?.uv[0] === SLAT_SLOT &&
+        end(c, 0) <= -24.0999 &&
+        (c.origin[1] ?? 0) >= 38 &&
+        (c.origin[2] ?? 0) >= 41.5,
+    );
+    for (const [axis, lo, hi] of [
+      [2, 42.3, 48.7],
+      [1, 38.8, 45.2],
+    ] as const) {
+      const bars = slats
+        .filter((c) => Math.abs((c.size[axis] ?? 0) - 0.4) < 0.0001)
+        .sort((a, b) => (a.origin[axis] ?? 0) - (b.origin[axis] ?? 0));
+      expect(bars.length).toBeGreaterThanOrEqual(3);
+      const first = (bars[0]?.origin[axis] ?? 0) - lo;
+      const last = hi - ((bars.at(-1)?.origin[axis] ?? 0) + 0.4);
+      expect(Math.abs(first - last)).toBeLessThan(0.05);
+    }
+  });
+  it("draws an exterior chrome bezel and crossed slat layers over black backing", () => {
+    const cover = (bone("body").cubes ?? []).filter(
+      (c) =>
+        end(c, 0) <= -24.0999 &&
+        (c.origin[1] ?? 0) >= 38 &&
+        end(c, 1) <= 46.0001 &&
+        (c.origin[2] ?? 0) >= 41.5 &&
+        end(c, 2) <= 49.5001,
+    );
+    expect(cover.length).toBeGreaterThan(10);
+    for (const c of cover) {
+      expect(c.origin[0]).toBeGreaterThanOrEqual(-24.5001);
+      for (const face of Object.values(c.uv))
+        expect([BLACK_SLOT, CHROME_SLOT, SLAT_SLOT]).toContain(face.uv[0]);
+    }
+    expect(cover.filter((c) => c.uv.north?.uv[0] === CHROME_SLOT)).toHaveLength(
+      4,
+    );
+    for (const [axis, low, high] of [
+      [0, -24.5, -24.1],
+      [1, 38, 46],
+      [2, 41.5, 49.5],
+    ] as const) {
+      expect(Math.min(...cover.map((c) => c.origin[axis] ?? 0))).toBeCloseTo(
+        low,
+        4,
+      );
+      expect(Math.max(...cover.map((c) => end(c, axis)))).toBeCloseTo(high, 4);
+    }
+    const backing = cover.filter((c) => c.uv.north?.uv[0] === BLACK_SLOT);
+    expect(backing).toHaveLength(1);
+    expect(backing[0]?.origin).toEqual([-24.2, 38.8, 42.3]);
+    expect(backing[0]?.size).toEqual([0.1, 6.4, 6.4]);
+    for (const [x, axis] of [
+      [-24.3, 2],
+      [-24.4, 1],
+    ] as const) {
+      const bars = cover
+        .filter(
+          (c) =>
+            c.uv.north?.uv[0] === SLAT_SLOT &&
+            Math.abs((c.origin[0] ?? 0) - x) < 0.0001,
+        )
+        .sort((a, b) => (a.origin[axis] ?? 0) - (b.origin[axis] ?? 0));
+      expect(bars.length).toBeGreaterThanOrEqual(3);
+      for (const [i, c] of bars.entries()) {
+        expect(c.size[axis]).toBeCloseTo(0.4, 4);
+        expect(c.size[0]).toBeCloseTo(0.1, 4);
+        const next = bars[i + 1];
+        if (next)
+          expect(
+            (next.origin[axis] ?? 0) - end(c, axis),
+          ).toBeGreaterThanOrEqual(0.3999);
+      }
+    }
+  });
+});
