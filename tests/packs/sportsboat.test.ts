@@ -1418,12 +1418,11 @@ describe("sports boat painted tile registry (ADR 0166)", () => {
           "-I",
           "-c",
           `
-import contextlib, io, json, runpy, sys
-sys.argv = ["tools/gen_sportsboat.py", "packs/yasu_ride_rp", "--check"]
-with contextlib.redirect_stdout(io.StringIO()):
-    generator = runpy.run_path(sys.argv[0])
-print(json.dumps({name: {"uv": tile["uv"], "size": tile["size"]}
-                  for name, tile in generator["TILES"].items()}))
+import json, sys
+sys.path.insert(0, "tools")
+import tile_layout
+print(json.dumps({name: {"uv": list(uv), "size": list(size)}
+                  for name, (uv, size) in tile_layout.TILE_RECTS.items()}))
 `,
         ],
         { encoding: "utf8" },
@@ -1466,5 +1465,5 @@ print(json.dumps({name: {"uv": tile["uv"], "size": tile["size"]}
     expect(hashes.mirror).toBe(
       "64f9de190f4cb9d31792ec8c503eb799c65caee4fd38b3f22f00b9cf7082aab5",
     );
-  }, 30000);
+  });
 });

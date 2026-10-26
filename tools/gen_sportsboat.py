@@ -151,40 +151,33 @@ QUILT = [
 ]
 
 
+def tile_layout_module():
+    spec = importlib.util.spec_from_file_location("tile_layout", Path(__file__).with_name("tile_layout.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def paint_quilt(pixels):
-    (u, v), (w, h) = TILES["quilt"]["uv"], TILES["quilt"]["size"]
+    (u, v), (w, h) = tile_layout.TILE_RECTS["quilt"]
     for y in range(h):
         for x in range(w):
             pixels[v + y][u + x] = QUILT_LINE if QUILT[y][x] == "L" else PALETTE["seat"]
 
 
 def paint_mirror(pixels):
-    (u, v), (w, h) = TILES["mirror"]["uv"], TILES["mirror"]["size"]
+    (u, v), (w, h) = tile_layout.TILE_RECTS["mirror"]
     for y in range(v, v + h):
         for x in range(u, u + w):
             pixels[y][x] = mirror_tile(x, y)
 
 
-# Dict insertion order is the painting order; allocations must be disjoint (ADR 0166).
-TILES = {
-    "quilt": {"uv": [0, 16], "size": [8, 8], "paint": paint_quilt},
-    "mirror": {"uv": [16, 16], "size": [16, 8], "paint": paint_mirror},
-}
-
-
-def assert_tile_allocations():
-    occupied = set()
-    for name, tile in TILES.items():
-        (u, v), (w, h) = tile["uv"], tile["size"]
-        assert all(isinstance(n, int) for n in (u, v, w, h)), f"{name}: non-integer tile bounds"
-        assert 0 <= u and 4 <= v and w > 0 and h > 0, f"{name}: invalid bounds or swatch overlap"
-        assert u + w <= TEXTURE_WIDTH and v + h <= TEXTURE_HEIGHT, f"{name}: outside atlas"
-        cells = {(x, y) for y in range(v, v + h) for x in range(u, u + w)}
-        assert not occupied & cells, f"{name}: overlapping tiles"
-        occupied.update(cells)
-
-
-assert_tile_allocations()
+# The layout lives in tools/tile_layout.py so tests can read it without running this generator.
+tile_layout = tile_layout_module()
+TILE_PAINTERS = {"quilt": paint_quilt, "mirror": paint_mirror}
+TILES = {name: {"uv": list(uv_), "size": list(size), "paint": TILE_PAINTERS[name]}
+         for name, (uv_, size) in tile_layout.TILE_RECTS.items()}
+tile_layout.assert_tile_allocations(tile_layout.TILE_RECTS, TEXTURE_WIDTH, TEXTURE_HEIGHT)
 
 
 def tile_faces(name):
