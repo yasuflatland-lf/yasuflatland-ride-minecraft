@@ -627,7 +627,7 @@ describe("sports boat hull planking (ADR 0161)", () => {
     const rearSkirts = allSkirts.filter((cube) => cube.size[2] === 7);
 
     it("has no sliced canvas edges or underside ribs", () => {
-      expect(canvas).toHaveLength(13);
+      expect(canvas).toHaveLength(23);
       for (const cube of canvas) expect(cube.size[2]).not.toBe(2);
       expect(
         bone("body").filter((cube) => swatch(4)(cube) && cube.origin[1] > 33),
@@ -651,7 +651,7 @@ describe("sports boat hull planking (ADR 0161)", () => {
         }),
       );
     };
-    const caps = allSkirts.filter((cube) => cube.size[2] === 0.5);
+    const endPlates = canvas.filter((cube) => cube.size[2] === 0.5);
     const sidePieces = (sign: number) =>
       skirts
         .filter((cube) => Math.sign(cube.pivot?.[0] ?? 0) === sign)
@@ -736,60 +736,12 @@ describe("sports boat hull planking (ADR 0161)", () => {
           }
         }
       });
-
-      it("closes the rear wedge with two buried caps intersecting both skirt profiles", () => {
-        expect(caps).toHaveLength(2);
-        for (const cap of caps) {
-          const sign = Math.sign(cap.pivot?.[0] ?? 0);
-          const rear = rearSkirts.find(
-            (cube) => Math.sign(cube.pivot?.[0] ?? 0) === sign,
-          ) as Cube;
-          const mirror = caps.find(
-            (cube) => Math.sign(cube.pivot?.[0] ?? 0) === -sign,
-          ) as Cube;
-          expect(cap.rotation?.[2]).toBeCloseTo(
-            -(mirror.rotation?.[2] ?? 0),
-            3,
-          );
-          expect(cap.size).toEqual(mirror.size);
-          for (const [x] of corners(cap))
-            expect(Math.abs(x ?? 0)).toBeLessThanOrEqual(19.001);
-          expect(cap.origin[2]).toBe(2.75);
-          for (let x = 16.05; x < 18; x += 0.05) {
-            const ic = vertical(cap, -sign * x, -3);
-            const ir = vertical(rear, -sign * x, -3);
-            expect(ic).toBeDefined();
-            expect(ir).toBeDefined();
-            if (ic && ir)
-              expect(Math.min(ic[1] ?? 0, ir[1] ?? 0)).toBeGreaterThan(
-                Math.max(ic[0] ?? 0, ir[0] ?? 0),
-              );
-          }
-          for (let x = 16.05; x < 19; x += 0.05) {
-            const ic = vertical(cap, -sign * x, -3) as number[];
-            const hits = sidePieces(sign).flatMap((cube) => {
-              const hit = vertical(cube, -sign * x, -3);
-              return hit ? [hit] : [];
-            });
-            expect(
-              hits.some(
-                (hit) =>
-                  Math.min(hit[1] ?? 0, ic[1] ?? 0) >
-                  Math.max(hit[0] ?? 0, ic[0] ?? 0),
-              ),
-            ).toBe(true);
-            expect(ic[1] ?? 0).toBeLessThanOrEqual(
-              Math.max(...hits.map((hit) => hit[1] ?? 0)) + 0.005,
-            );
-          }
-        }
-      });
     });
 
     describe("rear corner skirts (ADR 0164, roof series 3/3)", () => {
       it("uses two mirrored 0.8 px sheets over z -10..-3 with a steeper z-only turn", () => {
         expect(rearSkirts).toHaveLength(2);
-        expect(allSkirts).toHaveLength(10);
+        expect(allSkirts).toHaveLength(8);
         const angle = (Math.atan2(3.6, 2) * 180) / Math.PI;
         const [left, right] = rearSkirts as [Cube, Cube];
         expect(left.rotation?.[2]).toBeCloseTo(-(right.rotation?.[2] ?? 0), 4);
@@ -828,7 +780,87 @@ describe("sports boat hull planking (ADR 0161)", () => {
       });
     });
 
-    it("builds the entire Bimini within fourteen cubes with at most one rotation axis each", () => {
+    it("closes the end triangles with overlapping transverse canvas steps inside the hems", () => {
+      expect(endPlates).toHaveLength(12);
+      for (const plate of endPlates) {
+        expect(plate.rotation ?? [0, 0, 0]).toEqual([0, 0, 0]);
+        const mirror = endPlates.find(
+          (other) =>
+            other !== plate &&
+            other.origin[2] === plate.origin[2] &&
+            other.origin[1] === plate.origin[1] &&
+            Math.abs(other.origin[0] + other.size[0] + plate.origin[0]) <
+              0.001 &&
+            other.size[1] === plate.size[1],
+        );
+        expect(mirror?.size).toEqual(plate.size);
+        expect(plate.origin[1]).toBeGreaterThan(31.59);
+        expect(
+          Math.max(
+            Math.abs(plate.origin[0]),
+            Math.abs(plate.origin[0] + plate.size[0]),
+          ),
+        ).toBeLessThan(19);
+      }
+    });
+
+    it("blocks sight lines through both sides of every exposed triangular end cross-section", () => {
+      for (const [z, reach, outerY, innerY] of [
+        [-10, 18, dome(-10) - 3.9, dome(-10) - 2],
+        [-3, 18, dome(-10) - 3.9, dome(-3) - 2],
+        [6, 19, dome(6) - 2.9, dome(6) - 2],
+      ] as const) {
+        for (const sign of [-1, 1]) {
+          // Cast through the triangular interior, rather than merely checking that panels exist.
+          for (let x = 16.01; x < reach; x += 0.025) {
+            const ceiling =
+              innerY + ((outerY - innerY) * (x - 16)) / (reach - 16);
+            for (let y = outerY + 0.01; y < ceiling; y += 0.025) {
+              const hits = canvas.flatMap((cube) => {
+                const hit = interval(cube, [-sign * x, y, -z], [0, 0, 1]);
+                return hit ? [hit] : [];
+              });
+              expect(
+                hits.some(
+                  ([lo, hi]) => (lo ?? 1) <= 0.001 && (hi ?? -1) >= -0.001,
+                ),
+                `Open end at ${sign * x}, ${y}, ${z}`,
+              ).toBe(true);
+            }
+          }
+          const plates = endPlates.filter(
+            (plate) =>
+              Math.sign(plate.origin[0]) === -sign &&
+              Math.abs(-z - plate.origin[2] - 0.25) <= 0.251,
+          );
+          expect(plates).toHaveLength(2);
+          // Both steps overlap in area and bury their outer top corners in the skirt sheets.
+          const [a, b] = plates as [Cube, Cube];
+          expect(
+            Math.min(a.origin[0] + a.size[0], b.origin[0] + b.size[0]),
+          ).toBeGreaterThan(Math.max(a.origin[0], b.origin[0]));
+          for (const plate of plates) {
+            const x = Math.max(
+              Math.abs(plate.origin[0]),
+              Math.abs(plate.origin[0] + plate.size[0]),
+            );
+            const y = plate.origin[1] + plate.size[1];
+            const sheets = z === -10 ? rearSkirts : skirts;
+            const spans = sheets.flatMap((cube) => {
+              const hit = vertical(cube, sign * x, z);
+              return hit ? [hit] : [];
+            });
+            expect(
+              spans.some(
+                ([lo, hi]) => (lo ?? Infinity) < y && (hi ?? -Infinity) > y,
+              ),
+            ).toBe(true);
+          }
+        }
+      }
+    });
+
+    it("builds the entire Bimini within twenty-four cubes with at most one rotation axis each", () => {
       const bimini = [
         ...canvas,
         ...hatches,
@@ -836,14 +868,14 @@ describe("sports boat hull planking (ADR 0161)", () => {
           (cube) => swatch(4)(cube) && cube.origin[1] > 33,
         ),
       ];
-      expect(bimini).toHaveLength(14);
-      expect(bimini.length).toBeLessThanOrEqual(14);
+      expect(bimini).toHaveLength(24);
+      expect(bimini.length).toBeLessThanOrEqual(24);
       for (const cube of bimini) {
         expect(
           (cube.rotation ?? []).filter((angle) => angle !== 0).length,
         ).toBeLessThanOrEqual(1);
       }
-      expect(cubes).toHaveLength(1105);
+      expect(cubes).toHaveLength(1115);
     });
   });
 
