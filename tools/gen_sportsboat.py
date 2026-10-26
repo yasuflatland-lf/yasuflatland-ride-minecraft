@@ -4,14 +4,53 @@ Ported from the spike's generator (docs/spike-sportsboat.md, appendix). Coordina
 (16 px = 1 block), forward +z and right +x, and the model is rotated 180 degrees around the Y axis
 just before writing, because in Bedrock the front of an entity is on the -z side of the model.
 Bones: root / body / headlights / windshield / mirror (ADR 0009, 0159). No logo or model name.
-Run: python3 -I tools/gen_sportsboat.py packs/yasu_ride_rp
+Run: python3 -I tools/gen_sportsboat.py packs/yasu_ride_rp [--check]
+--check writes nothing and exits 1 listing every stale output.
 """
+import functools
+import importlib.util
 import json
 import math
 import struct
 import sys
 import zlib
+from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
+
+CHECK = "--check" in sys.argv[2:]
+STALE = []
+
+
+@functools.cache
+def png_reader():
+    """render_preview.py's decoder, so --check compares pixels however zlib packed the bytes."""
+    spec = importlib.util.spec_from_file_location("render_preview", Path(__file__).with_name("render_preview.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.read_png
+
+
+def emit(path, data, pixels=None):
+    """Write `data` to `path`, or under --check record `path` as stale when it differs. JSON compares
+    parsed, because `pnpm model` reformats it with Biome; a PNG compares `pixels`, its RGBA rows."""
+    if not CHECK:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if isinstance(data, bytes):
+            path.write_bytes(data)
+        else:
+            path.write_text(data)
+        return
+    try:
+        if path.suffix == ".json":
+            matches = json.loads(path.read_text()) == json.loads(data)
+        else:
+            matches = png_reader()(path) == pixels
+    except (OSError, ValueError, struct.error, zlib.error):
+        matches = False
+    if not matches:
+        STALE.append(str(path))
+
 
 RP = Path(sys.argv[1])
 MODELS = RP / "models/entity/yasu_ride"
@@ -118,8 +157,15 @@ def box(x0, y0, z0, x1, y1, z1, color, faces=None, **extra):
 
 
 def pair(x0, y0, z0, x1, y1, z1, color, **extra):
-    """A box on the right (+x) and its mirror on the left."""
-    return [box(x0, y0, z0, x1, y1, z1, color, **extra), box(-x1, y0, z0, -x0, y1, z1, color, **extra)]
+    """A box on the right (+x) and its mirror through x = 0 on the left. A y or z turn mirrors to the
+    opposite turn about the mirrored pivot; an x turn is unchanged by the mirror."""
+    left = dict(extra)
+    rx, ry, rz = extra.get("rotation", (0, 0, 0))
+    if ry or rz:
+        px, py, pz = extra["pivot"]
+        left["pivot"] = [-px, py, pz]
+        left["rotation"] = [rx, -ry, -rz]
+    return [box(x0, y0, z0, x1, y1, z1, color, **extra), box(-x1, y0, z0, -x0, y1, z1, color, **left)]
 
 
 def disc(cx, cy, r, z0, z1, color):
@@ -152,57 +198,189 @@ LOUNGE_BASE = DECK_BOW + 2.2  # top of the bow lounge's charcoal base
 LOUNGE_CUSHION = DECK_BOW + 3.2  # top of its tan cushion
 SLICE = 2.0
 
-body, glass = [], []
+LOUNGE_DEPTH = 7.5  # how far the bow lounge reaches inboard from the hull's half-breadth
+
+glass = []
 
 
+# Hull profile: every hull caller reads the profiles through these, never through lerp() directly.
 def sheer(z):
     return lerp(SHEER, z)
+
+
+def keel(z):
+    return lerp(KEEL, z)
 
 
 def beam(z):
     return lerp(BEAM, z)
 
 
-# Hull: 2-pixel slices; inside each, the V bottom widens in steps up to the chine.
+def strake_y(z):
+    return lerp(STRAKE, z)
+
+
+def open_cockpit(zc):
+    return COCKPIT[0] <= zc <= COCKPIT[1]
+
+
+def open_bow(zc):
+    return BOW[0] <= zc <= BOW[1]
+
+
+def hull_top(zc, s):
+    """Top of the solid hull: the floor where the cockpit or the bow is open, the sheer elsewhere."""
+    return min(s, DECK) if open_cockpit(zc) else min(s, DECK_BOW) if open_bow(zc) else s
+
+
+@dataclass(frozen=True)
+class Inset:
+    """A horizontal edge at `max(b * scale - px, floor) + step`, for the hull's half-breadth b.
+
+    A negative `px` stands proud of the hull. `scale` gives the V bottom's fractions of the beam and,
+    at 0, a fixed half-width of `-px`; `floor` keeps an edge from crossing the centreline.
+    """
+
+    px: float = 0.0
+    scale: float = 1.0
+    floor: float | None = None
+    step: float = 0.0
+
+    def x(self, b):
+        x = b * self.scale - self.px
+        if self.floor is not None:
+            x = max(x, self.floor)
+        return x + self.step
+
+
+LOUNGE_EDGE = Inset(LOUNGE_DEPTH, floor=0.0)  # the lounge's inboard edge
+PIPING_EDGE = Inset(LOUNGE_DEPTH, floor=0.0, step=0.6)  # where the cushion meets its piping
+ACROSS = "across"  # an `inner` that makes the band one box across the centreline, `outer` wide each way
+
+
+@dataclass(frozen=True)
+class Band:
+    """One hull row built at a constant inset from the half-breadth, slice by slice.
+
+    `name` labels the row in the table. `y0`, `y1`, and `when` take the slice centre zc, the sheer s,
+    and the keel k there.
+    """
+
+    name: str
+    swatch: str
+    outer: Inset
+    inner: Inset | str
+    y0: Callable[[float, float, float], float]
+    y1: Callable[[float, float, float], float]
+    when: Callable[[float, float, float], bool] = lambda zc, s, k: True
+
+
+# The V bottom's steps across the centreline: (height over the keel, fraction of the beam)
 V_STEPS = [(0.0, 0.3), (1.5, 0.55), (3.0, 0.78), (4.5, 1.0)]
-z = -48.0
-while z < 48.0:
-    zc = z + SLICE / 2
-    s, k, b = sheer(zc), lerp(KEEL, zc), beam(zc)
-    open_cockpit = COCKPIT[0] <= zc <= COCKPIT[1]
-    open_bow = BOW[0] <= zc <= BOW[1]
-    top = min(s, DECK) if open_cockpit else min(s, DECK_BOW) if open_bow else s
-    for i, (off, frac) in enumerate(V_STEPS):
-        y0 = k + off
-        y1 = min(k + V_STEPS[i + 1][0], top) if i + 1 < len(V_STEPS) else top
-        if y1 > y0:
-            body.append(box(-b * frac, y0, z, b * frac, y1, z + SLICE, "hull"))
-    if open_cockpit and s > DECK:
-        body += pair(b - 1.6, DECK, z, b, s, z + SLICE, "hull")
-    if open_bow:
-        body += pair(b - 1.6, DECK_BOW, z, b, s, z + SLICE, "hull")
-        body.append(box(-b + 1.6, DECK_BOW, z, b - 1.6, DECK_BOW + 0.3, z + SLICE, "teak"))
+
+
+def in_bow(zc, s, k):
+    return open_bow(zc)
+
+
+def lounge_open(zc, s, k):
+    return open_bow(zc) and LOUNGE_EDGE.x(beam(zc)) > 0
+
+
+def filler_open(zc, s, k):
+    return zc > BOW_FILLER and lounge_open(zc, s, k)
+
+
+def v_bottom(i):
+    """The V bottom's i-th step: it widens in steps up to the chine, and stops at the hull's top."""
+    off, frac = V_STEPS[i]
+
+    def y1(zc, s, k):
+        top = hull_top(zc, s)
+        return min(k + V_STEPS[i + 1][0], top) if i + 1 < len(V_STEPS) else top
+
+    return Band("v_bottom", "hull", Inset(scale=frac), ACROSS, lambda zc, s, k: k + off, y1,
+                lambda zc, s, k: y1(zc, s, k) > k + off)
+
+
+# The table, in emission order within each 2-pixel slice, grouped by hull region. build_hull() returns
+# each region as a list of cube groups, one per slice, not as one flat list: hull_body() interleaves the
+# regions slice by slice, which is how today's body orders its cubes. A region built some other way
+# returns a single group, which hull_body() emits where slice 0 is.
+HULL_BANDS = {
+    "hull_shell": [v_bottom(i) for i in range(len(V_STEPS))],
+    "hull_interior": [
+        Band("gunwale_wall", "hull", Inset(0.0), Inset(1.6),
+             lambda zc, s, k: DECK if open_cockpit(zc) else DECK_BOW, lambda zc, s, k: s,
+             lambda zc, s, k: (open_cockpit(zc) and s > DECK) or open_bow(zc)),
+        Band("bow_floor", "teak", Inset(1.6), ACROSS,
+             lambda zc, s, k: DECK_BOW, lambda zc, s, k: DECK_BOW + 0.3, in_bow),
         # U-shaped bow lounge along the sides: charcoal base, tan cushion with charcoal piping on its
         # inboard edge, and a tan back capped in charcoal
-        inner = max(b - 7.5, 0.0)
-        body += pair(inner, DECK_BOW, z, b - 1.6, LOUNGE_BASE, z + SLICE, "seat_dark")
-        body += pair(inner + 0.6, LOUNGE_BASE, z, b - 1.6, LOUNGE_CUSHION, z + SLICE, "seat")
-        if inner > 0:
-            body += pair(inner, LOUNGE_BASE, z, inner + 0.6, LOUNGE_CUSHION + 0.1, z + SLICE, "seat_dark")
-        body += pair(b - 2.8, LOUNGE_CUSHION, z, b - 1.6, s - 0.9, z + SLICE, "seat")
-        body += pair(b - 3.0, s - 0.9, z, b - 1.6, s - 0.3, z + SLICE, "seat_dark")
+        Band("lounge_base", "seat_dark", Inset(1.6), LOUNGE_EDGE,
+             lambda zc, s, k: DECK_BOW, lambda zc, s, k: LOUNGE_BASE, in_bow),
+        Band("lounge_cushion", "seat", Inset(1.6), PIPING_EDGE,
+             lambda zc, s, k: LOUNGE_BASE, lambda zc, s, k: LOUNGE_CUSHION, in_bow),
+        Band("lounge_piping", "seat_dark", PIPING_EDGE, LOUNGE_EDGE,
+             lambda zc, s, k: LOUNGE_BASE, lambda zc, s, k: LOUNGE_CUSHION + 0.1, lounge_open),
+        Band("lounge_back", "seat", Inset(1.6), Inset(2.8),
+             lambda zc, s, k: LOUNGE_CUSHION, lambda zc, s, k: s - 0.9, in_bow),
+        Band("lounge_back_cap", "seat_dark", Inset(1.6), Inset(3.0),
+             lambda zc, s, k: s - 0.9, lambda zc, s, k: s - 0.3, in_bow),
         # Filler cushions close the aisle into one sun pad, leaving room to stand inside the
         # walk-through
-        if zc > BOW_FILLER and inner > 0:
-            body.append(box(-inner, DECK_BOW, z, inner, LOUNGE_BASE, z + SLICE, "seat_dark"))
-            body.append(box(-inner, LOUNGE_BASE, z, inner, LOUNGE_CUSHION, z + SLICE, "seat"))
-            body.append(box(-0.15, LOUNGE_CUSHION, z, 0.15, LOUNGE_CUSHION + 0.1, z + SLICE, "seam"))
+        Band("filler_base", "seat_dark", LOUNGE_EDGE, ACROSS,
+             lambda zc, s, k: DECK_BOW, lambda zc, s, k: LOUNGE_BASE,
+             filler_open),
+        Band("filler_cushion", "seat", LOUNGE_EDGE, ACROSS,
+             lambda zc, s, k: LOUNGE_BASE, lambda zc, s, k: LOUNGE_CUSHION,
+             filler_open),
+        Band("filler_seam", "seam", Inset(-0.15, scale=0.0), ACROSS,
+             lambda zc, s, k: LOUNGE_CUSHION, lambda zc, s, k: LOUNGE_CUSHION + 0.1,
+             filler_open),
+    ],
     # Rub rail just below the gunwale, and a faint strake lower down
-    body += pair(b, s - 1.1, z, b + 0.35, s - 0.4, z + SLICE, "stripe")
-    sy = lerp(STRAKE, zc)
-    if k + 4.5 < sy < s - 2 and zc < 44:
-        body += pair(b, sy, z, b + 0.2, sy + 0.4, z + SLICE, "strake")
-    z += SLICE
+    "rub_rail": [Band("rub_rail", "stripe", Inset(-0.35), Inset(0.0),
+                      lambda zc, s, k: s - 1.1, lambda zc, s, k: s - 0.4)],
+    "strake": [Band("strake", "strake", Inset(-0.2), Inset(0.0),
+                    lambda zc, s, k: strake_y(zc), lambda zc, s, k: strake_y(zc) + 0.4,
+                    lambda zc, s, k: k + 4.5 < strake_y(zc) < s - 2 and zc < 44)],
+}
+
+
+def slice_band(row, z0, z1):
+    """The cubes `row` adds to the hull slice z0..z1."""
+    zc = z0 + (z1 - z0) / 2
+    s, k, b = sheer(zc), keel(zc), beam(zc)
+    if not row.when(zc, s, k):
+        return []
+    y0, y1 = row.y0(zc, s, k), row.y1(zc, s, k)
+    if row.inner == ACROSS:
+        half = row.outer.x(b)
+        return [box(-half, y0, z0, half, y1, z1, row.swatch)]
+    return pair(row.inner.x(b), y0, z0, row.outer.x(b), y1, z1, row.swatch)
+
+
+def hull_slices():
+    z = -48.0
+    while z < 48.0:
+        yield z, z + SLICE
+        z += SLICE
+
+
+def build_hull():
+    """{region name: [[cubes of slice 0], [cubes of slice 1], ...]}, in HULL_BANDS order."""
+    return {region: [[cube for row in rows for cube in slice_band(row, z0, z1)] for z0, z1 in hull_slices()]
+            for region, rows in HULL_BANDS.items()}
+
+
+def hull_body(regions):
+    groups = list(regions.values())
+    return [cube for i in range(max(map(len, groups)))
+            for region in groups if i < len(region) for cube in region[i]]
+
+
+body = hull_body(build_hull())
 
 # Swim platform: gray mat with seams, a stainless edge, a ladder down into the water on the right,
 # and below it the drive and a black fin
@@ -653,46 +831,57 @@ def rounded(value):
     return value
 
 
-MODELS.mkdir(parents=True, exist_ok=True)
 turn_around(geo["minecraft:geometry"][0]["bones"])
-(MODELS / "sportsboat.geo.json").write_text(json.dumps(rounded(geo), separators=(",", ":")))
+emit(MODELS / "sportsboat.geo.json", json.dumps(rounded(geo), separators=(",", ":")))
 
 
 def png(path, w, h, pixel):
     # pixel returns (r, g, b) for an opaque texel or (r, g, b, a)
-    rows = b""
-    for y in range(h):
-        rows += b"\x00" + b"".join(bytes((*pixel(x, y), 255)[:4]) for x in range(w))
+    pixels = [[(*pixel(x, y), 255)[:4] for x in range(w)] for y in range(h)]
+    rows = b"".join(b"\x00" + b"".join(bytes(texel) for texel in row) for row in pixels)
 
     def chunk(t, d):
         return struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d) & 0xFFFFFFFF)
 
     data = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 6, 0, 0, 0))
     data += chunk(b"IDAT", zlib.compress(rows)) + chunk(b"IEND", b"")
-    path.write_bytes(data)
+    emit(path, data, pixels)
+
+
+def swatch_cell(x, y):
+    """The swatch cell (x 4i..4i+3, y 0..3) that holds texel (x, y), or None outside the swatch row."""
+    return x // 4 if y < 4 else None
+
+
+def cell_mer(cells, default=MER_OFF, extra=None):
+    """A MER texel function: swatch cell i (x 4i..4i+3, y 0..3) gets cells[i], `extra(x, y)` may claim
+    any other texel by returning its MER, and every other texel gets `default`."""
+
+    def mer(x, y):
+        value = cells.get(swatch_cell(x, y))
+        if value is None and extra is not None:
+            value = extra(x, y)
+        return (*(default if value is None else value), 255)
+
+    return mer
+
+
+def write_texture_set(color_name, mer_name):
+    texture_set = {
+        "format_version": "1.16.100",
+        "minecraft:texture_set": {"color": color_name, "metalness_emissive_roughness": mer_name},
+    }
+    emit(ENTITY_TEXTURES / f"{color_name}.texture_set.json", json.dumps(texture_set))
 
 
 def lit_textures(kind, width, height, pixel):
-    def is_lit(x, y):
-        return y < 4 and x // 4 in LIT_SLOTS
-
     def color(x, y):
         rgba = (*pixel(x, y), 255)[:4]
-        return (*rgba[:3], 0) if is_lit(x, y) else rgba
-
-    def mer(x, y):
-        return (*(MER_LIT if is_lit(x, y) else MER_OFF), 255)
+        return (*rgba[:3], 0) if swatch_cell(x, y) in LIT_SLOTS else rgba
 
     png(ENTITY_TEXTURES / f"{kind}_lit.png", width, height, color)
-    png(ENTITY_TEXTURES / f"{kind}_lit_mer.png", width, height, mer)
-    texture_set = {
-        "format_version": "1.16.100",
-        "minecraft:texture_set": {
-            "color": f"{kind}_lit",
-            "metalness_emissive_roughness": f"{kind}_lit_mer",
-        },
-    }
-    (ENTITY_TEXTURES / f"{kind}_lit.texture_set.json").write_text(json.dumps(texture_set))
+    png(ENTITY_TEXTURES / f"{kind}_lit_mer.png", width, height, cell_mer({slot: MER_LIT for slot in LIT_SLOTS}))
+    write_texture_set(f"{kind}_lit", f"{kind}_lit_mer")
 
 
 (MU, MV), (MW, MH) = MIRROR_UV["uv"], MIRROR_UV["uv_size"]
@@ -714,20 +903,13 @@ def mirror_tile(x, y):
 
 
 def mirror_textures(width, height, pixel):
-    def mer(x, y):
-        metal = (y < 4 and x // 4 == MIRROR_SLOT) or in_mirror_glass(x, y)
-        return (*(MER_MIRROR if metal else MER_OFF), 255)
+    def glass_mer(x, y):
+        return MER_MIRROR if in_mirror_glass(x, y) else None
 
     png(ENTITY_TEXTURES / "sportsboat_mirror.png", width, height, pixel)
-    png(ENTITY_TEXTURES / "sportsboat_mirror_mer.png", width, height, mer)
-    texture_set = {
-        "format_version": "1.16.100",
-        "minecraft:texture_set": {
-            "color": "sportsboat_mirror",
-            "metalness_emissive_roughness": "sportsboat_mirror_mer",
-        },
-    }
-    (ENTITY_TEXTURES / "sportsboat_mirror.texture_set.json").write_text(json.dumps(texture_set))
+    png(ENTITY_TEXTURES / "sportsboat_mirror_mer.png", width, height,
+        cell_mer({MIRROR_SLOT: MER_MIRROR}, extra=glass_mer))
+    write_texture_set("sportsboat_mirror", "sportsboat_mirror_mer")
 
 
 def swatches(hull_color):
@@ -738,8 +920,8 @@ def swatches(hull_color):
             return QUILT_LINE if QUILT[y - 16][x] == "L" else PALETTE["seat"]
         if in_mirror_tile(x, y):
             return mirror_tile(x, y)
-        i = x // 4
-        if y >= 4 or i >= len(NAMES):
+        i = swatch_cell(x, y)
+        if i is None or i >= len(NAMES):
             return (0, 0, 0)
         name = NAMES[i]
         return (*colors[name], ALPHA.get(name, 255))
@@ -747,7 +929,6 @@ def swatches(hull_color):
     return swatch
 
 
-ENTITY_TEXTURES.mkdir(parents=True, exist_ok=True)
 for paint, hull_color in HULL_PAINTS.items():
     name = "sportsboat" if paint == "khaki" else f"sportsboat_{paint}"
     png(ENTITY_TEXTURES / f"{name}.png", TEXTURE_WIDTH, TEXTURE_HEIGHT, swatches(hull_color))
@@ -782,6 +963,9 @@ def icon(x, y):
     return ICON_COLORS.get(ICON[y][x], (0, 0, 0, 0))
 
 
-ITEM_TEXTURES.mkdir(parents=True, exist_ok=True)
 png(ITEM_TEXTURES / "sportsboat_item.png", 16, 16, icon)
 print("cubes:", len(body) + len(headlights) + len(glass) + len(mirror))
+if STALE:
+    sys.exit("Stale sports boat outputs:\n" + "\n".join(STALE))
+if CHECK:
+    print("sports boat model and textures are up to date")
