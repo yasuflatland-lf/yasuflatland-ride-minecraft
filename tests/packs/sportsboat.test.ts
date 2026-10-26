@@ -883,7 +883,7 @@ describe("sports boat hull planking (ADR 0161)", () => {
           (cube.rotation ?? []).filter((angle) => angle !== 0).length,
         ).toBeLessThanOrEqual(1);
       }
-      expect(cubes).toHaveLength(1223);
+      expect(cubes).toHaveLength(1235);
     });
   });
 
@@ -1217,7 +1217,7 @@ describe("sports boat hull planking (ADR 0161)", () => {
     const F = 9.3;
     const pivot = [-7.6, F + 7.5, -7.4];
     const body = bone("body");
-    // The console anchors the existing 162-cube helm block, independent of hull cube counts.
+    // The console anchors the existing 174-cube helm block, independent of hull cube counts.
     const start = body.findIndex(
       (cube) =>
         cube.origin[0] === -15.4 &&
@@ -1225,9 +1225,9 @@ describe("sports boat hull planking (ADR 0161)", () => {
         cube.origin[2] === -16 &&
         cube.size[1] === 7,
     );
-    const helm = body.slice(start, start + 162);
-    const wheel = helm.slice(21, 155);
-    const supports = helm.slice(155, 158);
+    const helm = body.slice(start, start + 174);
+    const wheel = helm.slice(21, 167);
+    const supports = helm.slice(167, 170);
     const angles = [
       ...Array.from({ length: 120 }, (_, i) => (i % 40) * 9 + 90),
       20,
@@ -1239,10 +1239,9 @@ describe("sports boat hull planking (ADR 0161)", () => {
       160,
       160,
       270,
-      0,
-      45,
-      0,
-      45,
+      // Pad and cap: eight diametral panels each, then the LED
+      ...Array.from({ length: 8 }, (_, k) => k * 22.5),
+      ...Array.from({ length: 8 }, (_, k) => k * 22.5),
       0,
     ];
     const rotate = (v: number[], rotation: number[], inverse = false) => {
@@ -1285,7 +1284,7 @@ describe("sports boat hull planking (ADR 0161)", () => {
 
     it("composes every wheel cube rigidly and limits the rotation exception to exactly those cubes", () => {
       expect(start).toBeGreaterThanOrEqual(0);
-      expect(wheel).toHaveLength(134);
+      expect(wheel).toHaveLength(146);
       expect(supports).toHaveLength(3);
       wheel.forEach((cube, i) => {
         for (const basis of [
@@ -1304,7 +1303,7 @@ describe("sports boat hull planking (ADR 0161)", () => {
       const multipleAxes = (cube: Cube) =>
         (cube.rotation ?? []).filter((v) => Math.abs(v) > 1e-6).length > 1;
       expect(cubes.filter(multipleAxes)).toEqual(wheel.filter(multipleAxes));
-      expect(wheel.filter(multipleAxes)).toHaveLength(128);
+      expect(wheel.filter(multipleAxes)).toHaveLength(140);
       const centroid = (points: number[][]) =>
         [0, 1, 2].map(
           (i) =>
@@ -1313,7 +1312,7 @@ describe("sports boat hull planking (ADR 0161)", () => {
       near(centroid(wheel.slice(0, 120).flatMap(corners)), pivot, 0.01);
       // The LED and spoke details make the complete assembly slightly asymmetric before tilt.
       const before = [
-        -7.603358208955224, 16.796542058640497, -7.378171641791045,
+        -7.603081849315078, 16.796825535754635, -7.364555862421794,
       ];
       const expected = rotate(
         before.map((v, i) => v - (pivot[i] ?? 0)),
@@ -1409,15 +1408,15 @@ describe("sports boat hull planking (ADR 0161)", () => {
           Math.max(...points.map((point) => point[axis] ?? 0)),
         ]);
       };
-      expect(wheel).toHaveLength(134);
+      expect(wheel).toHaveLength(146);
       // Includes both phone cubes, the switch, pad and all three knob cubes, plus cupholders.
       const obstacles = [
         ...helm.slice(10, 21),
         ...wheel,
         ...supports,
-        ...helm.slice(158, 162),
+        ...helm.slice(170, 174),
       ];
-      expect(obstacles).toHaveLength(152);
+      expect(obstacles).toHaveLength(164);
       for (const display of helm.slice(8, 10)) {
         const screen = bounds(display);
         for (const cube of obstacles) {
@@ -1431,6 +1430,29 @@ describe("sports boat hull planking (ADR 0161)", () => {
             JSON.stringify(cube.origin),
           ).toBe(true);
         }
+      }
+    });
+
+    it("builds the hub pad and cap from solid diametral panels that stay round", () => {
+      const panels = wheel.slice(129, 145);
+      expect(panels).toHaveLength(16);
+      for (const [cubes, radius] of [
+        [panels.slice(0, 8), 1.3],
+        [panels.slice(8), 0.6],
+      ] as const) {
+        // A panel is a diametral box: a full diameter long, so no disc() square pair remains.
+        for (const cube of cubes) {
+          expect(Math.abs(cube.size[1] - 2 * radius)).toBeLessThan(0.0001);
+          expect(cube.size[0]).toBeLessThan(cube.size[1]);
+        }
+        const reach = cubes.flatMap((cube) =>
+          corners(cube).map((p) => {
+            const q = unTilt(p);
+            return Math.hypot(q[0] ?? 0, q[1] ?? 0);
+          }),
+        );
+        expect(Math.max(...reach)).toBeGreaterThan(radius - 0.05);
+        expect(Math.max(...reach)).toBeLessThan(radius + 0.05);
       }
     });
 
@@ -1753,8 +1775,8 @@ print(json.dumps({name: {"uv": uv, "size": size}
           cube.origin[2] === -16 &&
           cube.size[1] === 7,
       );
-      const wheel = body.slice(start + 21, start + 155);
-      expect(wheel).toHaveLength(134);
+      const wheel = body.slice(start + 21, start + 167);
+      expect(wheel).toHaveLength(146);
       const obstacles = body.filter(
         (cube) =>
           (cube.origin[0] === -12.4 && cube.origin[1] === F + 8) ||
@@ -1782,7 +1804,7 @@ print(json.dumps({name: {"uv": uv, "size": size}
       }
     });
 
-    it("keeps the final helm at 162 cubes and the new parts within the ADR cap of five", () => {
+    it("keeps the final helm at 174 cubes and the new parts within the ADR cap of five", () => {
       const start = body.findIndex(
         (cube) =>
           cube.origin[0] === -15.4 &&
@@ -1796,7 +1818,7 @@ print(json.dumps({name: {"uv": uv, "size": size}
           cube.origin[1] === F + 8.8 &&
           cube.origin[2] === -8.1,
       );
-      expect(end - start + 1).toBe(162);
+      expect(end - start + 1).toBe(174);
       const switches = body.filter(
         (cube) =>
           cube.uv.up?.uv[0] === tiles.switch_plate?.uv[0] &&
@@ -1886,8 +1908,8 @@ print(json.dumps({name: {"uv": uv, "size": size}
       }
     });
 
-    it("does not grow beyond 1223 cubes (regression guard)", () => {
-      expect(cubes.length).toBeLessThanOrEqual(1223);
+    it("does not grow beyond 1235 cubes (regression guard)", () => {
+      expect(cubes.length).toBeLessThanOrEqual(1235);
     });
   });
 });

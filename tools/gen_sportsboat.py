@@ -321,10 +321,13 @@ def disc(cx, cy, r, z0, z1, color):
             for rot in (0, 45)]
 
 
-def cylinder(cx, cy, r, z0, z1, color, sides=SPEAKER_SIDES, wall=SPEAKER_WALL, solid=False):
-    """Tangent walls, or diametral panels filling the same polygon (ADR 0165)."""
+def cylinder(cx, cy, r, z0, z1, color, sides=SPEAKER_SIDES, wall=SPEAKER_WALL, solid=False,
+             small_sides=8):
+    """Tangent walls, or diametral panels filling the same polygon (ADR 0165).
+
+    A solid section under 1 px radius is capped at `small_sides` (8 unless the caller raises it)."""
     if solid and r < 1.0:
-        sides = min(sides, 8)
+        sides = min(sides, small_sides)
     assert 8 <= sides <= 16 and sides % 2 == 0
     wall = min(wall, r)
     w = 2 * r * math.tan(math.pi / sides)
@@ -1280,8 +1283,9 @@ for ang in (20, 160, 270):
             bx, by = WX + r * ca - 0.15 * dx, WY + r * sa - 0.15 * dy
             wheel.append(box(bx - 0.2, by - 0.2, WZ + 0.05, bx + 0.2, by + 0.2, WZ + 0.15, "button",
                             pivot=[bx, by, WZ + 0.1], rotation=[0, 0, ang]))
-wheel += disc(WX, WY, 1.3, WZ + 0.1, WZ + 0.7, "gloss")  # pad center
-wheel += disc(WX, WY, 0.6, WZ - 0.05, WZ + 0.1, "steel")  # cap
+# Round hub from diametral panels (ADR 0166): 16 sides read as a circle, 8 panels each.
+wheel += cylinder(WX, WY, 1.3, WZ + 0.1, WZ + 0.7, "gloss", sides=16, solid=True)  # pad center
+wheel += cylinder(WX, WY, 0.6, WZ - 0.05, WZ + 0.1, "steel", sides=16, solid=True, small_sides=16)  # cap
 lx, ly = WX + 0.45, WY - 1.9
 wheel.append(box(lx - 0.15, ly - 0.15, WZ + 0.05, lx + 0.15, ly + 0.15, WZ + 0.15, "ring"))  # LED
 # Keep the composed y turn through turn_around's legacy z-turn convention (ADR 0058).

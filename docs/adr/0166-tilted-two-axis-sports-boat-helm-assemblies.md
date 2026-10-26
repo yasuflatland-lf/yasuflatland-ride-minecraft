@@ -38,7 +38,7 @@ This refactor preserves every generated geometry, texture, MER and preview byte.
 
 `WHEEL_TILT = -30` tips the top toward +z before `turn_around`, away from the driver at -z (0051). The rigid assembly uses `tilt_assembly(..., pivot=[WX, WY, WZ + 0.4], axis="x", degrees=WHEEL_TILT, assembly="wheel")`, with `WX = 7.6`, `WY = F + 7.5 = 16.8`, and `WZ = 7.0`. The pivot is `[7.6, 16.8, 7.4]`, or `[-7.6, 16.8, -7.4]` in the generated game frame. WZ moves by **0.0 px**: the current position already clears the floor and consoles, so no retreat toward the driver is needed. The lowest wheel corner is y 13.9470, above `F + 4.5 = 13.8`. Corners at z >= 9 in the generator frame are above the console boxes.
 
-All three 40-segment rim rings, spokes, strips, buttons, both `disc()` pad cubes, both plain silver cap cubes and the LED stay inside the 134-cube assembly. The complete assembly's centroid follows the rigid transform; the symmetric rim's centroid stays at the pivot. The wheel-local composed y angle is reversed before the existing `turn_around` runs: that function already reverses x but retains z under the legacy wheel convention (0058). Reversing y too preserves the shipped matrix `Rx(-30) * Rz(-rz)` rather than skewing different segments into different planes. No other assembly's transformation changes. `render_preview.py` already applies `Rz(-rz) * Ry(ry) * Rx(-rx)` through `game_turn` and `rotate`, including README and item previews, so it needs no change.
+All three 40-segment rim rings, spokes, strips, buttons, the pad, the silver cap and the LED stay inside the wheel assembly (134 cubes when 5/7 landed, 146 after the round hub below). The complete assembly's centroid follows the rigid transform; the symmetric rim's centroid stays at the pivot. The wheel-local composed y angle is reversed before the existing `turn_around` runs: that function already reverses x but retains z under the legacy wheel convention (0058). Reversing y too preserves the shipped matrix `Rx(-30) * Rz(-rz)` rather than skewing different segments into different planes. No other assembly's transformation changes. `render_preview.py` already applies `Rz(-rz) * Ry(ry) * Rx(-rx)` through `game_turn` and `rotate`, including README and item previews, so it needs no change.
 
 The cowl, chrome cap and column remain three cubes, each turned about x only through the same pivot. In the untilted local frame, the cowl spans `WX +- 1.0`, `WY - 0.9 .. WY + 0.3`, `WZ + 0.7 .. 9.0`; its chrome band spans `WX +- 1.05`, `WY - 0.95 .. WY + 0.35`, `WZ + 1.5 .. WZ + 1.7`. The column spans `WX +- 0.7`, `F + 3 .. WY - 0.9`, `WZ + 0.7 .. WZ + 1.5`. Both glossy parts start at the pad's rear face, `WZ + 0.7`. The column's upper front edge meets the lower pad rear face with no gap; all three support cubes stay behind the pad's rear plane.
 
@@ -47,6 +47,18 @@ Recounted from the generated geometry and the console-to-throttle block: **164 h
 The display-plate clearance check is skipped because 4/7 does not exist yet. Clearance uses the current display instead: the gloss box x 2.0..9.0, y `F + 8 .. F + 12.4`, z 13..14, and its screen face box, both rotated -20 about x on `SCREEN_PIVOT`. The display geometry is unchanged. The regenerated model and previews change; the regenerated color and MER atlases stay unchanged. Resource Pack header/module and Behavior Pack Resource Pack dependency versions advance from 0.1.157 to **0.1.158**.
 
 Open question for the owner (manual test B30): on PC and mobile, does the wheel look round and lean away by about 30 degrees from the driver's seat, without rim or spoke skew, with the column meeting the hub? Does the in-game rotation order match the preview? **Verdict: unverified, awaiting the owner's device check.** No BDS or in-game test is run for this step.
+
+### Round steering wheel hub (#680)
+
+`disc()` is a square plus the same square turned 45 degrees, so the wheel's centre pad and cap read as eight-pointed stars. Both are now `cylinder(..., solid=True)` diametral panels (0165) with 16 sides: eight panels each, so the outline is a 16-gon whose corner reach is `r / cos(pi / 16)`, 1.326 for the pad and 0.612 for the cap, within 0.05 of the radii 1.3 and 0.6. Radii, z ranges and the `gloss` and `steel` swatches are unchanged; spokes, chrome strips, buttons, LED, rim, cowl and column are untouched and still clear the pad.
+
+`cylinder()` caps a solid section under 1.0 px radius at 8 sides (0165). It gains `small_sides=8`; only the cap passes 16, so the speaker hubs and pod tip keep 8 sides and their geometry is unchanged. The cap's 8 panels cost 4 more cubes than the 8-sided form; the cube budget allows it.
+
+The panels stay in the `wheel` list, so `tilt_assembly(..., assembly="wheel")` and the following y-angle flip loop compose their rotation like every other wheel cube. The `ONE_AXIS_EXCEPTION` is unchanged.
+
+Cube counts: the wheel goes from 134 to 146 cubes (pad 2 to 8, cap 2 to 8), the helm block from 162 to 174 and the whole model from 1223 to 1235. Of the 146 wheel cubes, 140 carry several non-zero Euler axes and 6 reduce to one axis. Resource Pack header/module and Behavior Pack dependency versions advance from 0.1.161 to **0.1.162**. Generated geometry and previews change; the colour and MER atlases stay as they are.
+
+Open question for the owner (manual test B30): from the driver's seat, do the centre pad and the silver cap read as circles? **Verdict: unverified, awaiting the owner's device check.**
 
 ### Switch plate with six painted round buttons (6/7, #669)
 
