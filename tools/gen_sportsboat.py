@@ -23,7 +23,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tool_loader import load_tool
 
 assert_axes = load_tool("cube_tilt").assert_axes
-ASSEMBLIES = {"wheel": {"owner": "sportsboat", "cubes": 146}}
+ASSEMBLIES = {"wheel": {"owner": "sportsboat", "cubes": 146},
+              "throttle_lever": {"owner": "sportsboat", "cubes": 8}}
 
 CHECK = "--check" in sys.argv[2:]
 STALE = []
@@ -1333,8 +1334,7 @@ for bx0, bx1, bz0, bz1 in DIAL_BUTTONS:
     dial += dial_plate(bx0, bx1, bz0, bz1, DIAL_Y + 0.22, DIAL_Y + 0.32, 0.14, painted=True, wedge=bz0 < 6)
 
 
-def dial_ring(radius, bottom, top, color, solid=False, wall=0.08, ribs=False):
-    cx, cz = DIAL_CENTER
+def horizontal_ring(cx, cz, radius, bottom, top, color, solid=False, wall=0.08, ribs=False):
     panels = cylinder(0, 0, radius, bottom, top, color, sides=DIAL_SIDES,
                       wall=wall, solid=solid, small_sides=DIAL_SIDES)
     for panel in panels:
@@ -1351,12 +1351,58 @@ def dial_ring(radius, bottom, top, color, solid=False, wall=0.08, ribs=False):
     return panels
 
 
-dial += dial_ring(0.77, DIAL_Y + 0.22, DIAL_Y + 0.35, "button", solid=True)
-dial += dial_ring(0.69, DIAL_Y + 0.35, DIAL_Y + 0.85, "button", ribs=True)
-dial += dial_ring(0.76, DIAL_Y + 0.82, DIAL_Y + 0.88, "steel")
-dial += dial_ring(0.74, DIAL_Y + 0.88, DIAL_Y + 0.94, "steel")
-dial += dial_ring(0.66, DIAL_Y + 0.85, DIAL_Y + 0.94, "button", solid=True)
+dial += horizontal_ring(*DIAL_CENTER, 0.77, DIAL_Y + 0.22, DIAL_Y + 0.35, "button", solid=True)
+dial += horizontal_ring(*DIAL_CENTER, 0.69, DIAL_Y + 0.35, DIAL_Y + 0.85, "button", ribs=True)
+dial += horizontal_ring(*DIAL_CENTER, 0.76, DIAL_Y + 0.82, DIAL_Y + 0.88, "steel")
+dial += horizontal_ring(*DIAL_CENTER, 0.74, DIAL_Y + 0.88, DIAL_Y + 0.94, "steel")
+dial += horizontal_ring(*DIAL_CENTER, 0.66, DIAL_Y + 0.85, DIAL_Y + 0.94, "button", solid=True)
 body += dial
+
+EXT_X0, EXT_X1 = 11.4, 15.4
+EXT_FRONT, EXT_BACK = 4.8, 9.0
+EXT_TOP = F + 6.5
+EXT_CHAMFER = 1.0
+extension = [
+    box(EXT_X0, F, EXT_FRONT + EXT_CHAMFER, EXT_X1, EXT_TOP, EXT_BACK, "gloss"),
+    box(EXT_X0, F + EXT_CHAMFER, EXT_FRONT, EXT_X1, EXT_TOP,
+        EXT_FRONT + EXT_CHAMFER, "gloss"),
+    box(EXT_X0, F, EXT_FRONT + EXT_CHAMFER, EXT_X1, F + math.sqrt(2),
+        EXT_FRONT + EXT_CHAMFER + 0.7, "gloss",
+        pivot=[EXT_X0, F, EXT_FRONT + EXT_CHAMFER], rotation=[45, 0, 0]),
+]
+body += extension
+POD_X, POD_Z = 12.7, 3.6
+pod = []
+for radius, bottom, top, color in ((1.3, 3.4, 3.7, "button"),
+                                   (1.3, 3.7, 4.5, "gloss"),
+                                   (1.15, 4.5, 5.0, "gloss"),
+                                   (1.0, 5.0, 5.3, "gloss")):
+    pod += horizontal_ring(POD_X, POD_Z, radius, F + bottom, F + top, color, solid=True)
+body += pod
+LEVER_PIVOT = [12.3, F + 5.7, 3.3]
+LEVER_YAW, LEVER_PITCH = 6, 30
+lever = []
+
+
+def lever_box(x0, y0, z0, x1, y1, z1, color):
+    return box(x0, y0, z0, x1, y1, z1, color,
+               pivot=LEVER_PIVOT, rotation=[0, LEVER_YAW, 0])
+
+
+lever.append(lever_box(11.8, F + 5.2, 2.8, 12.8, F + 6.2, 3.8, "chrome"))
+for z0, z1, width, height, color in ((3.3, 8.3, 1.2, 0.8, "button"),
+                                    (7.0, 8.3, 1.6, 1.2, "button"),
+                                    (8.3, 8.9, 1.3, 0.9, "gloss")):
+    for w, h in ((width, height), (height, width)):
+        lever.append(lever_box(12.3 - w / 2, F + 6.5 - h / 2, z0,
+                               12.3 + w / 2, F + 6.5 + h / 2, z1, color))
+lever.append(lever_box(11.64, F + 6.2, 3.3, 11.76, F + 6.8, 7.0, "chrome"))
+lever = tilt_assembly(lever, pivot=LEVER_PIVOT, axis="x", degrees=LEVER_PITCH,
+                      assembly="throttle_lever", assemblies=ASSEMBLIES)
+body += lever
+# Preserve the composed y turn through the legacy turn_around convention, as for the wheel (0166).
+for cube in lever:
+    cube["rotation"][1] *= -1
 
 # Wraparound windshield: the front leans back toward the cockpit about 55 degrees and the side panes
 # follow the gunwale back to z -10. Every pane is one thin cube rotated to its slope (ADR 0158).
@@ -1747,7 +1793,7 @@ def rounded(value):
 
 turn_around(geo["minecraft:geometry"][0]["bones"])
 assert_axes([cube for bone in geo["minecraft:geometry"][0]["bones"]
-             for cube in bone.get("cubes", [])], {"wheel": wheel}, ASSEMBLIES)
+             for cube in bone.get("cubes", [])], {"wheel": wheel, "throttle_lever": lever}, ASSEMBLIES)
 emit(MODELS / "sportsboat.geo.json", json.dumps(rounded(geo), separators=(",", ":")))
 
 
