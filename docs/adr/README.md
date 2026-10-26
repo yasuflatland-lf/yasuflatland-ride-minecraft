@@ -54,7 +54,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0048](0048-mutation-testing-and-unused-code-checks.md) | Mutation testing with Stryker, and unused code checks with knip | Extended by 0088 |
 | [0049](0049-pack-icons-rendered-from-model.md) | Render pack icons from the hovering SUV model | Accepted |
 | [0050](0050-vehicle-kinds-and-per-kind-profiles.md) | Vehicle kinds and per-kind profiles | Superseded in part by 0055; extended by 0120, 0136 (Proposed), and 0139 (Proposed) |
-| [0051](0051-sports-boat.md) | Sports boat | Superseded in part by 0066, 0080, and 0150 (Proposed); extended by 0058, 0063, 0089, and 0120 |
+| [0051](0051-sports-boat.md) | Sports boat | Superseded in part by 0066, 0080, and 0150 (Proposed); extended by 0058, 0063, 0089, and 0120; extended by 0159 (Proposed) |
 | [0052](0052-retry-camera-switches-and-break-seat-ties-low.md) | Retry camera switches in both directions, and break seat ties toward the lower index | Superseded in part by 0117 |
 | [0053](0053-estimate-buoyant-boat-water-drag.md) | Estimate the buoyant boat's water drag | Accepted |
 | [0054](0054-shard-in-game-tests-in-ci.md) | Shard the in-game tests across four CI jobs and run model:check beside the unit tests | Accepted |
@@ -148,7 +148,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0144](0144-split-camping-gear-into-inside-and-outside-groups.md) | Split camping gear into inside and outside groups | Proposed |
 | [0145](0145-move-camper-side-lamp-and-door-handle.md) | Move the camper's side lamp and door handle | Proposed |
 | [0146](0146-wire-mesh-bulldozer-steps-and-a-camper-vent-cover.md) | Wire mesh bulldozer steps and a camper vent cover | Proposed; superseded in part by 0157 (Proposed) |
-| [0147](0147-light-the-lamps-with-a-pbr-emissive-layer.md) | Light the lamps with a PBR emissive layer | Accepted |
+| [0147](0147-light-the-lamps-with-a-pbr-emissive-layer.md) | Light the lamps with a PBR emissive layer | Accepted; extended by 0159 (Proposed) |
 | [0148](0148-smooth-bulldozer-side-bevel.md) | Smooth the bulldozer side bevel | Proposed; extended by 0151 (Proposed) |
 | [0149](0149-route-the-parked-camper-wheel-seat-to-headlights.md) | Route the parked camper's wheel seat to the headlights | Accepted |
 | [0150](0150-run-the-sports-boat-on-lava.md) | Run the sports boat on lava | Proposed |
@@ -159,6 +159,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0155](0155-cut-under-water-and-dig-a-shaft-when-rising.md) | Cut under water and dig a wide shaft when rising | Proposed |
 | [0156](0156-resend-the-docked-property-after-a-failed-send.md) | Resend the docked property after a failed send | Proposed |
 | [0157](0157-an-aluminium-rimmed-louvred-camper-vent-lid.md) | An aluminium-rimmed louvred camper vent lid | Proposed |
+| [0159](0159-a-pbr-rear-view-mirror-on-the-sports-boat.md) | A PBR rear-view mirror on the sports boat | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 

@@ -26,7 +26,8 @@
         "purple": "textures/entity/yasu_ride/sportsboat_purple",
         "magenta": "textures/entity/yasu_ride/sportsboat_magenta",
         "pink": "textures/entity/yasu_ride/sportsboat_pink",
-        "lit": "textures/entity/yasu_ride/sportsboat_lit"
+        "lit": "textures/entity/yasu_ride/sportsboat_lit",
+        "mirror": "textures/entity/yasu_ride/sportsboat_mirror"
       },
       "geometry": { "default": "geometry.yasu_ride.sportsboat" },
       "animations": {
@@ -87,6 +88,7 @@
       },
       "render_controllers": [
         "controller.render.yasu_ride.sportsboat",
+        "controller.render.yasu_ride.sportsboat.mirror",
         {
           "controller.render.yasu_ride.sportsboat.lit": "query.property('yasu_ride:headlights')"
         }
