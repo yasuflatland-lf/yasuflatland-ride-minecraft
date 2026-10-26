@@ -897,3 +897,71 @@ describe("sports boat engine sound (ADR 0060)", () => {
     });
   });
 });
+
+describe("sports boat gloss hull (ADR 0163)", () => {
+  const textures = `${RP}/textures/entity/yasu_ride`;
+
+  it.each(PAINTS)(
+    "gives %s paint a clear coat only on the hull swatch",
+    (paint) => {
+      const name = paint === "khaki" ? "sportsboat" : `sportsboat_${paint}`;
+      expect(read(`${textures}/${name}.texture_set.json`)).toEqual({
+        format_version: "1.16.100",
+        "minecraft:texture_set": {
+          color: name,
+          metalness_emissive_roughness: `${name}_mer`,
+        },
+      });
+      const color = readRgbaPng(`${textures}/${name}.png`);
+      const mer = readRgbaPng(`${textures}/${name}_mer.png`);
+      expect([mer.width, mer.height]).toEqual([color.width, color.height]);
+      for (let y = 0; y < mer.height; y++) {
+        for (let x = 0; x < mer.width; x++) {
+          const offset = (y * mer.width + x) * 4;
+          expect(
+            [...mer.pixels.subarray(offset, offset + 4)],
+            `${x},${y}`,
+          ).toEqual(x < 4 && y < 4 ? [0, 0, 16, 255] : [0, 0, 255, 255]);
+        }
+      }
+    },
+  );
+
+  it("keeps every face of each hull cube inside the glossy cell", () => {
+    type Face = { uv: [number, number]; uv_size: [number, number] };
+    type Cube = { uv: Record<string, Face> };
+    const cubes: Cube[] = geometry.bones.flatMap(
+      (bone: { cubes?: Cube[] }) => bone.cubes ?? [],
+    );
+    const bounds = ({ uv: [u, v], uv_size: [w, h] }: Face) => ({
+      left: Math.min(u, u + w),
+      right: Math.max(u, u + w),
+      top: Math.min(v, v + h),
+      bottom: Math.max(v, v + h),
+    });
+    const hull = cubes.filter((cube) =>
+      Object.values(cube.uv).some((face) => {
+        const b = bounds(face);
+        return b.left < 4 && b.right > 0 && b.top < 4 && b.bottom > 0;
+      }),
+    );
+    expect(hull.length).toBeGreaterThan(0);
+    for (const cube of hull) {
+      expect(Object.keys(cube.uv).sort()).toEqual([
+        "down",
+        "east",
+        "north",
+        "south",
+        "up",
+        "west",
+      ]);
+      for (const face of Object.values(cube.uv)) {
+        const b = bounds(face);
+        expect(b.left).toBeGreaterThanOrEqual(0);
+        expect(b.right).toBeLessThanOrEqual(4);
+        expect(b.top).toBeGreaterThanOrEqual(0);
+        expect(b.bottom).toBeLessThanOrEqual(4);
+      }
+    }
+  });
+});
