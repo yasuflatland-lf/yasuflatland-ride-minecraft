@@ -915,15 +915,16 @@ describe("sports boat gloss hull (ADR 0163)", () => {
       const color = readRgbaPng(`${textures}/${name}.png`);
       const mer = readRgbaPng(`${textures}/${name}_mer.png`);
       expect([mer.width, mer.height]).toEqual([color.width, color.height]);
+      const expected = Buffer.alloc(mer.width * mer.height * 4);
       for (let y = 0; y < mer.height; y++) {
         for (let x = 0; x < mer.width; x++) {
-          const offset = (y * mer.width + x) * 4;
-          expect(
-            [...mer.pixels.subarray(offset, offset + 4)],
-            `${x},${y}`,
-          ).toEqual(x < 4 && y < 4 ? [0, 0, 16, 255] : [0, 0, 255, 255]);
+          expected.set(
+            x < 4 && y < 4 ? [0, 0, 16, 255] : [0, 0, 255, 255],
+            (y * mer.width + x) * 4,
+          );
         }
       }
+      expect(Buffer.from(mer.pixels).equals(expected)).toBe(true);
     },
   );
 
