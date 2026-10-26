@@ -80,6 +80,17 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | B23 | Drive across a Nether lava sea with a driver and passengers in all four seats; stop until the boat docks, then drive away | The boat stays afloat, steers, docks, and sets off again; its hull and seated players take no heat damage and show no flames (ADR 0150) | | |
 | B24 | While docked on lava, have a passenger sit in a deck seat for 10 seconds, then get out onto the deck | The seated passenger takes no heat damage and shows no flames. After leaving the seat, protection ends within a few ticks; the deck does not protect a standing player from lava (ADR 0150) | | |
 
+## Sports boat hull (planking and gloss)
+
+Run H1-H4 on PC and mobile, with Vibrant Visuals on and off, after a Resource Pack restart (0015, 0062). Check the y-turned bow panels against the preview as part of H2 (0161). Known residual, not a failure: from the side the keel profile steps in 2 px plank ends where the keel rises, at the stem, along the bow keel, and along the stern keel rise (z -48 to -39 in build coordinates).
+
+| # | Steps | Pass condition | PC | Mobile |
+|---|---|---|---|---|
+| H1 | Inspect both hull sides at water level and from a raised view | The sides read as long horizontal panels, with no vertical seams every 2 px and no gaps | | |
+| H2 | Fly above the boat and follow the outer bow outline to its tip | The outline is a smooth curve with no stair steps or gaps; the panels turn inboard toward the bow as in the preview | | |
+| H3 | Dive underwater and look up at the hull | No holes or see-through surfaces | | |
+| H4 | Turn the headlights on at night, then walk the deck and board from the water | The lenses sit flush on the bow; deck walking and boarding work as before | | |
+
 ## Camper
 
 | # | Steps | Pass condition | PC | Mobile |
