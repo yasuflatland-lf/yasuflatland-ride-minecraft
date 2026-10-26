@@ -408,9 +408,9 @@ FRAME_PROUD = 0.3  # how far the posts stand out in front of the glass, to cover
 CORNER = (beam(FRONT_BASE) - 1.2, beam(FRONT_BASE))  # x of the corner posts
 
 
-def raked(x0, x1, color, front=0.0, depth=PANE):
+def raked(x0, x1, color, front=0.0, depth=PANE, length=RAKE_LENGTH):
     """A flat box lying on the front glass's slope, its front face `front` px ahead of the glass's."""
-    return box(x0, s0, FRONT_BASE + front - depth, x1, s0 + RAKE_LENGTH, FRONT_BASE + front, color,
+    return box(x0, s0, FRONT_BASE + front - depth, x1, s0 + length, FRONT_BASE + front, color,
                pivot=[(x0 + x1) / 2, s0, FRONT_BASE], rotation=[RAKE_ROTATION, 0, 0])
 
 
@@ -423,12 +423,11 @@ def raked_pair(x0, x1, color, **extra):
 glass += raked_pair(POST, CORNER[0], "glass")
 glass.append(raked(-WALK_HALF, WALK_HALF, "glass"))
 body += pair(POST - 0.2, RAIL_Y, FRONT_TOP - 1.0, beam(FRONT_TOP) - 1.0, RAIL_Y + 0.7, FRONT_TOP + 0.2, "frame")
-# Walk-through posts, a divider halfway across each front pane, and corner posts where the front
-# meets the sides. The hull flares from 14.0 to 15.1 px up the slope, which a flat pane cannot
-# follow, so the corner post is wide enough to cover the stepped side panes' cut edges.
+# Walk-through posts, and corner posts where the front meets the sides; each front half is one
+# undivided pane (ADR 0158). The hull flares from 14.0 to 15.1 px up the slope, which a flat pane
+# cannot follow, so the corner post is wide enough to cover the side panes' cut edges.
 POST_DEPTH = PANE + 2 * FRAME_PROUD
-mid = (POST + CORNER[0]) / 2
-for x0, x1 in ((WALK_HALF, POST), (mid - 0.25, mid + 0.25), CORNER):
+for x0, x1 in ((WALK_HALF, POST), CORNER):
     body += raked_pair(x0, x1, "frame", front=FRAME_PROUD, depth=POST_DEPTH)
 
 # Each side pane is one flat sheet from z -10, 1.8 px over the sheer, up to the front glass's top
@@ -456,15 +455,16 @@ glass += sided(*SIDE_X, -SIDE_DROP, 0.0, 0.0, SIDE_LENGTH, "glass")
 body += sided(SIDE_X[0] - 0.5, SIDE_X[1] + 0.2, 0.0, 0.7, 0.0, SIDE_LENGTH, "frame")  # side rail
 # Under the front glass's slope a flat corner pane fills the triangle down to the sheer: its front
 # edge lies on the slope, under the corner post, and it runs aft square to the slope far enough to
-# reach the side pane's front edge at the sheer.
+# reach the side pane's front edge at the sheer. A square-cut pane cannot meet that 48-degree corner
+# edge to edge, so its top end stops short of the corner: its aft edge then meets the side pane's
+# front edge just behind the corner post, which hides the sliver left uncovered above, and the
+# doubled glass below is smaller than when the pane reaches the corner (ADR 0158).
 CORNER_PANE_X = (CORNER[1] - PANE, CORNER[1])
 SIDE_FRONT_AT_SHEER = FRONT_TOP + (RAIL_Y - sheer(FRONT_TOP)) * math.tan(SIDE_SLOPE)
 CORNER_PANE_DEPTH = (FRONT_BASE - SIDE_FRONT_AT_SHEER) * WS_HEIGHT / RAKE_LENGTH + 0.1
-glass += raked_pair(*CORNER_PANE_X, "glass", depth=CORNER_PANE_DEPTH)
-# Where the corner pane and the side pane overlap, a pillar along the side pane's front edge hides
-# the doubled glass: the overlap is widest, about 2.3 px, where the corner pane's aft edge ends.
-PILLAR = 2.4
-body += sided(CORNER_PANE_X[0] - 0.1, SIDE_X[1] + 0.1, -SIDE_DROP, 0.0, SIDE_LENGTH - PILLAR, SIDE_LENGTH, "frame")
+CORNER_ANGLE = math.pi / 2 - SIDE_SLOPE - math.atan2(WS_HEIGHT, FRONT_BASE - FRONT_TOP)
+CORNER_PANE_TRIM = (POST_DEPTH - FRAME_PROUD) / math.tan(CORNER_ANGLE)
+glass += raked_pair(*CORNER_PANE_X, "glass", depth=CORNER_PANE_DEPTH, length=RAKE_LENGTH - CORNER_PANE_TRIM)
 body.append(box(-WALK_HALF, RAIL_Y, FRONT_TOP - 1.0, WALK_HALF, RAIL_Y + 0.7, FRONT_TOP + 0.2, "frame"))
 # Rear-view mirror on a stalk over the helm half of the windshield's top rail, its glass facing aft
 MX, MY, MZ = 8.5, RAIL_Y + 0.7, FRONT_TOP - 0.4
