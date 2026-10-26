@@ -130,7 +130,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0124](0124-take-back-an-eviction-when-a-slot-frees.md) | Take back an eviction when a slot frees | Extended by 0125 |
 | [0125](0125-forget-a-vehicle-removed-from-a-loaded-chunk.md) | Forget a vehicle removed from a loaded chunk | Accepted |
 | [0126](0126-choose-a-new-driver-with-one-tick-of-motion.md) | Choose a new driver with one tick of motion | Accepted; superseded in part by 0128 |
-| [0127](0127-resend-every-synced-entity-value-after-a-failed-send.md) | Resend every synced entity value after a failed send | Accepted; extended by 0136 (Proposed) |
+| [0127](0127-resend-every-synced-entity-value-after-a-failed-send.md) | Resend every synced entity value after a failed send | Accepted; extended by 0136 (Proposed) and 0156 (Proposed) |
 | [0128](0128-settle-every-crews-seats-by-rider-list.md) | Settle every crew's seats by the rider list | Accepted |
 | [0129](0129-share-room-primitives-between-features.md) | Share room primitives between features | Accepted; extended by [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md) (Proposed) |
 | [0130](0130-a-tent-entity-whose-hits-land-on-its-blocks.md) | A tent entity whose hits land on its blocks | Proposed; extended by [0131](0131-pitch-a-tent-in-the-camp.md) |
@@ -157,6 +157,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0153](0153-a-polished-folding-fire-pit.md) | A polished folding fire pit | Proposed |
 | [0154](0154-keep-camper-passengers-in-their-seats-on-departure.md) | Keep camper passengers in their seats on departure | Proposed |
 | [0155](0155-cut-under-water-and-dig-a-shaft-when-rising.md) | Cut under water and dig a wide shaft when rising | Proposed |
+| [0156](0156-resend-the-docked-property-after-a-failed-send.md) | Resend the docked property after a failed send | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 
