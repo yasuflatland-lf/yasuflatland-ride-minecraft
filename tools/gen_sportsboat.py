@@ -773,6 +773,19 @@ def interior_fits(cube, y):
                for a, b, lo, hi in zip(outline, outline[1:], limits, limits[1:]))
 
 
+def widest_fit(cube, y):
+    """Largest width, found by bisection, that keeps the cube's footprint inside the planks at height y."""
+    probe = dict(cube, size=list(cube["size"]))
+    lo, hi = 0.0, probe["size"][0]
+    for _ in range(24):
+        probe["size"][0] = (lo + hi) / 2
+        if interior_fits(probe, y):
+            lo = probe["size"][0]
+        else:
+            hi = probe["size"][0]
+    return lo
+
+
 def clip_interior(cube, wall=False):
     """Keep the inboard line fixed while removing the concealed outboard excess."""
     y0 = cube["origin"][1]
@@ -780,16 +793,8 @@ def clip_interior(cube, wall=False):
     if wall:
         # The rising keel leaves no room for the wall at DECK_BOW near the stem.
         # Keep its full height above the first level that can contain its footprint.
-        top = dict(cube, size=list(cube["size"]))
-        if not interior_fits(top, y1):
-            lo, hi = 0.0, top["size"][0]
-            for _ in range(24):
-                top["size"][0] = (lo + hi) / 2
-                if interior_fits(top, y1):
-                    lo = top["size"][0]
-                else:
-                    hi = top["size"][0]
-            cube["size"][0] = lo
+        if not interior_fits(cube, y1):
+            cube["size"][0] = widest_fit(cube, y1)
         if not interior_fits(cube, y0):
             lo, hi = y0, y1
             for _ in range(24):
@@ -801,14 +806,7 @@ def clip_interior(cube, wall=False):
             cube["origin"][1] = hi
             cube["size"][1] = y1 - hi
     elif not interior_fits(cube, y0):
-        lo, hi = 0.0, cube["size"][0]
-        for _ in range(24):
-            cube["size"][0] = (lo + hi) / 2
-            if interior_fits(cube, y0):
-                lo = cube["size"][0]
-            else:
-                hi = cube["size"][0]
-        cube["size"][0] = lo
+        cube["size"][0] = widest_fit(cube, y0)
     return cube
 
 
