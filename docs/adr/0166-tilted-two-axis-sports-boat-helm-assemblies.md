@@ -21,6 +21,14 @@ ADR 0009 allows one rotation axis per cube. That is enough for the display, whic
 - Helm cube count (the block "Helm console ... throttle", including the passenger console, the cupholders and the throttle): 164 before this step and 164 after. The whole model stays at 1109 cubes, and the generated `sportsboat.geo.json` does not change.
 - No Resource Pack change, so the manifest versions stay as they are.
 
+### Painted tile registry (1/7, #664)
+
+Use the insertion-ordered `TILES` dict in `tools/gen_sportsboat.py` for painted atlas rectangles. Each entry holds `uv`, `size`, and a `paint(pixels)` callable that draws into the atlas rows. Keep `quilt` at `[0, 16]`, size `[8, 8]`, and `mirror` at `[16, 16]`, size `[16, 8]`. Module-level validation rejects non-positive sizes, out-of-atlas rectangles, overlaps between tiles, and overlaps with the swatch row (y 0..3). The atlas remains 128 x 32.
+
+`tile_faces(name)` supplies one face's UV dict. `box(..., faces=None, tiles=None, **extra)` keeps `faces` as shorthand for quilted faces; explicit `tiles={face: name}` takes precedence. The atlas writer calls each registered painter, so later display, switch plate, wheel pad and controller tiles need no atlas-writer changes. The mirror gradient and MER glass bounds use the registry allocation. Tests read the registry and generated atlas to pin allocations and existing tile pixels.
+
+This refactor preserves every generated geometry, texture, MER and preview byte. Helm cubes remain 164 before and 164 after (1109 across the model). No rotation changes, new tiles, manifest bump or device check are needed; the existing negative x sign remains unchanged.
+
 ## Consequences
 
 - 5/7 can tilt the wheel by one call instead of hand-composing angles, and the exception stays limited to the wheel.

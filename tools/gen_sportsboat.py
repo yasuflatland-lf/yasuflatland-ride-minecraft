@@ -100,7 +100,6 @@ LIT_SLOTS = tuple(NAMES.index(name) for name in ("light",))
 # gradient for clients without PBR (ADR 0159).
 MER_MIRROR = (255, 0, 0)
 MIRROR_SLOT = NAMES.index("mirror")
-MIRROR_UV = {"uv": [16, 16], "uv_size": [16, 8]}
 MIRROR_RIM = (54, 58, 64)
 MIRROR_SKY = (150, 192, 232)
 MIRROR_HORIZON = (236, 242, 246)
@@ -139,7 +138,6 @@ def uv(color):
 
 # A quilted tile below the swatch row: tan with a darker honeycomb stitch, as on the reference boat's
 # cushions, stretched over a whole face.
-QUILT_UV = {"uv": [0, 16], "uv_size": [8, 8]}
 QUILT_LINE = (128, 80, 44)
 QUILT = [
     "........",
@@ -153,11 +151,52 @@ QUILT = [
 ]
 
 
-def box(x0, y0, z0, x1, y1, z1, color, faces=None, **extra):
-    """`faces` names the faces ("up", "south", ...) that get the quilted tile instead of the color."""
+def paint_quilt(pixels):
+    (u, v), (w, h) = TILES["quilt"]["uv"], TILES["quilt"]["size"]
+    for y in range(h):
+        for x in range(w):
+            pixels[v + y][u + x] = QUILT_LINE if QUILT[y][x] == "L" else PALETTE["seat"]
+
+
+def paint_mirror(pixels):
+    (u, v), (w, h) = TILES["mirror"]["uv"], TILES["mirror"]["size"]
+    for y in range(v, v + h):
+        for x in range(u, u + w):
+            pixels[y][x] = mirror_tile(x, y)
+
+
+# Dict insertion order is the painting order; allocations must be disjoint (ADR 0166).
+TILES = {
+    "quilt": {"uv": [0, 16], "size": [8, 8], "paint": paint_quilt},
+    "mirror": {"uv": [16, 16], "size": [16, 8], "paint": paint_mirror},
+}
+
+
+def assert_tile_allocations():
+    occupied = set()
+    for name, tile in TILES.items():
+        (u, v), (w, h) = tile["uv"], tile["size"]
+        assert all(isinstance(n, int) for n in (u, v, w, h)), f"{name}: non-integer tile bounds"
+        assert 0 <= u and 4 <= v and w > 0 and h > 0, f"{name}: invalid bounds or swatch overlap"
+        assert u + w <= TEXTURE_WIDTH and v + h <= TEXTURE_HEIGHT, f"{name}: outside atlas"
+        cells = {(x, y) for y in range(v, v + h) for x in range(u, u + w)}
+        assert not occupied & cells, f"{name}: overlapping tiles"
+        occupied.update(cells)
+
+
+assert_tile_allocations()
+
+
+def tile_faces(name):
+    tile = TILES[name]
+    return {"uv": list(tile["uv"]), "uv_size": list(tile["size"])}
+
+
+def box(x0, y0, z0, x1, y1, z1, color, faces=None, tiles=None, **extra):
+    """`faces` selects quilted faces; explicit `tiles` overrides them by registered tile name."""
     face_uv = uv(color)
-    for face in faces or ():
-        face_uv[face] = dict(QUILT_UV)
+    for face, name in {**dict.fromkeys(faces or (), "quilt"), **(tiles or {})}.items():
+        face_uv[face] = tile_faces(name)
     return {"origin": [x0, y0, z0], "size": [x1 - x0, y1 - y0, z1 - z0], "uv": face_uv, **extra}
 
 
@@ -1214,8 +1253,8 @@ body.append(box(MX - 0.3, MY, MZ - 0.3, MX + 0.3, MY + 1.0, MZ + 0.3, "frame"))
 body.append(box(MX - 3.4, MY + 0.8, MZ - 0.9, MX + 3.4, MY + 2.2, MZ - 0.3, "gloss"))
 # The glass gets its own bone so a separate pass can draw it with the PBR mirror texture set (ADR 0159).
 # Its aft face is "north" here; turn_around makes it the in-game south face.
-mirror = [box(MX - 3.1, MY + 1.0, MZ - 1.0, MX + 3.1, MY + 2.0, MZ - 0.9, "mirror")]
-mirror[0]["uv"]["north"] = dict(MIRROR_UV)
+mirror = [box(MX - 3.1, MY + 1.0, MZ - 1.0, MX + 3.1, MY + 2.0, MZ - 0.9, "mirror",
+              tiles={"north": "mirror"})]
 body += pair(beam(6) - 1.6, sheer(6), 5.6, beam(6) - 1.0, side_top(6) + 0.2, 6.4, "frame")
 
 # Wake tower: on each gunwale a raked rear and front strut with rungs and an X brace, then the top beam.
@@ -1574,11 +1613,7 @@ def lit_textures(kind, width, height, pixel):
     write_texture_set(f"{kind}_lit", f"{kind}_lit_mer")
 
 
-(MU, MV), (MW, MH) = MIRROR_UV["uv"], MIRROR_UV["uv_size"]
-
-
-def in_mirror_tile(x, y):
-    return MU <= x < MU + MW and MV <= y < MV + MH
+(MU, MV), (MW, MH) = TILES["mirror"]["uv"], TILES["mirror"]["size"]
 
 
 def in_mirror_glass(x, y):
@@ -1606,17 +1641,16 @@ def swatches(hull_color):
     colors = {**PALETTE, "hull": hull_color}
 
     def swatch(x, y):
-        if 16 <= y < 24 and x < 8:
-            return QUILT_LINE if QUILT[y - 16][x] == "L" else PALETTE["seat"]
-        if in_mirror_tile(x, y):
-            return mirror_tile(x, y)
         i = swatch_cell(x, y)
         if i is None or i >= len(NAMES):
             return (0, 0, 0)
         name = NAMES[i]
         return (*colors[name], ALPHA.get(name, 255))
 
-    return swatch
+    pixels = [[swatch(x, y) for x in range(TEXTURE_WIDTH)] for y in range(TEXTURE_HEIGHT)]
+    for tile in TILES.values():
+        tile["paint"](pixels)
+    return lambda x, y: pixels[y][x]
 
 
 for paint, hull_color in HULL_PAINTS.items():

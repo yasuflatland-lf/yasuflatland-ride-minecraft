@@ -1,3 +1,5 @@
+import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { PAINTS } from "../../src/domain/shared/paint";
@@ -1402,4 +1404,67 @@ describe("sports boat gloss hull (ADR 0163)", () => {
       }
     }
   });
+});
+
+describe("sports boat painted tile registry (ADR 0166)", () => {
+  it("keeps registered tiles disjoint, below swatches, and at their original pixels", () => {
+    const tiles: Record<
+      string,
+      { uv: [number, number]; size: [number, number] }
+    > = JSON.parse(
+      execFileSync(
+        "python3",
+        [
+          "-I",
+          "-c",
+          `
+import contextlib, io, json, runpy, sys
+sys.argv = ["tools/gen_sportsboat.py", "packs/yasu_ride_rp", "--check"]
+with contextlib.redirect_stdout(io.StringIO()):
+    generator = runpy.run_path(sys.argv[0])
+print(json.dumps({name: {"uv": tile["uv"], "size": tile["size"]}
+                  for name, tile in generator["TILES"].items()}))
+`,
+        ],
+        { encoding: "utf8" },
+      ),
+    );
+    expect(tiles.quilt).toEqual({ uv: [0, 16], size: [8, 8] });
+    expect(tiles.mirror).toEqual({ uv: [16, 16], size: [16, 8] });
+    const atlas = readRgbaPng(`${ENTITY_TEXTURES}/sportsboat.png`);
+    const occupied = new Set<number>();
+    const hashes: Record<string, string> = {};
+    for (const [
+      name,
+      {
+        uv: [u, v],
+        size: [w, h],
+      },
+    ] of Object.entries(tiles)) {
+      expect([u, v, w, h].every(Number.isInteger)).toBe(true);
+      expect(u).toBeGreaterThanOrEqual(0);
+      expect(v).toBeGreaterThanOrEqual(4);
+      expect(w).toBeGreaterThan(0);
+      expect(h).toBeGreaterThan(0);
+      expect(u + w).toBeLessThanOrEqual(atlas.width);
+      expect(v + h).toBeLessThanOrEqual(atlas.height);
+      const hash = createHash("sha256");
+      for (let y = v; y < v + h; y++) {
+        for (let x = u; x < u + w; x++) {
+          const index = y * atlas.width + x;
+          expect(occupied.has(index), name).toBe(false);
+          occupied.add(index);
+          hash.update(atlas.pixels.subarray(index * 4, (index + 1) * 4));
+        }
+      }
+      hashes[name] = hash.digest("hex");
+    }
+    // Hash decoded RGBA rectangles so PNG compression changes do not affect the pixel contract.
+    expect(hashes.quilt).toBe(
+      "2149d1ffbb0565f065e69265c270e62b9cb904ed6bc662bee2649e197fa04374",
+    );
+    expect(hashes.mirror).toBe(
+      "64f9de190f4cb9d31792ec8c503eb799c65caee4fd38b3f22f00b9cf7082aab5",
+    );
+  }, 30000);
 });
