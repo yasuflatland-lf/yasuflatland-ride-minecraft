@@ -169,6 +169,36 @@ def paint_quilt(pixels):
             pixels[v + y][u + x] = QUILT_LINE if QUILT[y][x] == "L" else PALETTE["seat"]
 
 
+# The switch plate's face (ADR 0166): a slightly lighter recessed panel with rounded corners inside the
+# black plate, and six round buttons in a zigzag of 1, 2, 2, 1 from top to bottom. Each button is a chrome
+# ring with a one-texel dark outline around a near-white lit centre. Top is the far end of the plate.
+SWITCH_BUTTON = [
+    ".OOO.",
+    "OLLLO",
+    "OLCLO",
+    "OLLLO",
+    ".OOO.",
+]
+SWITCH_BUTTON_COLORS = {"O": (24, 24, 28), "L": (176, 180, 186), "C": (246, 248, 250)}
+SWITCH_PANEL = (30, 30, 34)
+# Left texel column and top texel row of each button in the 20 x 24 tile
+SWITCH_BUTTONS = [(8, 2), (3, 7), (11, 7), (5, 12), (13, 12), (7, 17)]
+
+
+def paint_switch_plate(pixels):
+    (u, v), (w, h) = tile_layout.TILE_RECTS["switch_plate"]
+    for y in range(h):
+        for x in range(w):
+            inside = 1 <= x <= w - 2 and 1 <= y <= h - 2
+            corner = x in (1, w - 2) and y in (1, h - 2)
+            pixels[v + y][u + x] = SWITCH_PANEL if inside and not corner else PALETTE["gloss"]
+    for bx, by in SWITCH_BUTTONS:
+        for y, row in enumerate(SWITCH_BUTTON):
+            for x, ch in enumerate(row):
+                if ch != ".":
+                    pixels[v + by + y][u + bx + x] = SWITCH_BUTTON_COLORS[ch]
+
+
 def paint_mirror(pixels):
     (u, v), (w, h) = tile_layout.TILE_RECTS["mirror"]
     for y in range(v, v + h):
@@ -178,7 +208,7 @@ def paint_mirror(pixels):
 
 # The layout lives in tools/tile_layout.py so tests can read it without running this generator.
 tile_layout = tile_layout_module()
-TILE_PAINTERS = {"quilt": paint_quilt, "mirror": paint_mirror}
+TILE_PAINTERS = {"quilt": paint_quilt, "mirror": paint_mirror, "switch_plate": paint_switch_plate}
 TILES = {name: {"uv": list(uv_), "size": list(size), "paint": TILE_PAINTERS[name]}
          for name, (uv_, size) in tile_layout.TILE_RECTS.items()}
 tile_layout.assert_tile_allocations(tile_layout.TILE_RECTS, TEXTURE_WIDTH, TEXTURE_HEIGHT)
@@ -1134,10 +1164,11 @@ body.append(box(2.4, F + 8.4, 12.8, 8.6, F + 12.0, 13.1, "screen", pivot=SCREEN_
 # Phone holder standing on the dash, and a switch panel outboard of it
 body.append(box(11.0, F + 8, 12.4, 12.4, F + 10.6, 12.9, "gloss"))
 body.append(box(11.2, F + 8.3, 12.3, 12.2, F + 10.4, 12.4, "screen"))
-body.append(box(12.8, F + 8, 10.6, 15.0, F + 8.3, 13.4, "gloss"))
-for bx in (13.1, 13.8, 14.5):
-    for bz in (11.2, 12.4):
-        body.append(box(bx, F + 8.3, bz, bx + 0.4, F + 8.45, bz + 0.4, "metal"))
+# The plate leans like the display (top toward +z, so a negative x rotation, ADR 0051) and pivots at its
+# low edge, which rests on the dash. The six buttons are painted on its face (ADR 0166).
+SWITCH_TILT = -20
+body.append(box(12.8, F + 8, 10.6, 15.0, F + 8.4, 13.4, "gloss", tiles={"up": "switch_plate"},
+                pivot=[13.9, F + 8, 13.4], rotation=[SWITCH_TILT, 0, 0]))
 # Two chrome-rimmed cupholders: on the dash between the display and the wheel, and on the ledge below
 for x0, y0, z0, size in ((9.6, F + 8, 10.4, 1.3), (3.9, F + 7, 9.0, 1.0)):
     body.append(box(x0, y0, z0, x0 + size, y0 + 0.15, z0 + size, "chrome"))

@@ -10,6 +10,7 @@ SWATCH_ROWS = 4
 TILE_RECTS = {
     "quilt": ((0, 16), (8, 8)),
     "mirror": ((16, 16), (16, 8)),
+    "switch_plate": ((40, 4), (20, 24)),
 }
 
 

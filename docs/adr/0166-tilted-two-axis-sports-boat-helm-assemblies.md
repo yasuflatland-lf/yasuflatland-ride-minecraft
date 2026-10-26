@@ -48,6 +48,18 @@ The display-plate clearance check is skipped because 4/7 does not exist yet. Cle
 
 Open question for the owner (manual test B30): on PC and mobile, does the wheel look round and lean away by about 30 degrees from the driver's seat, without rim or spoke skew, with the column meeting the hub? Does the in-game rotation order match the preview? **Verdict: unverified, awaiting the owner's device check.** No BDS or in-game test is run for this step.
 
+### Switch plate with six painted round buttons (6/7, #669)
+
+The flat `gloss` plate and its six `metal` button cubes are replaced by one `gloss` plate, `SWITCH_TILT = -20` about x only (top leaning toward +z like the display, so the same negative sign, 0051). The plate keeps its footprint `x 12.8..15.0`, `z 10.6..13.4` along the slope, is 0.4 thick (was 0.3) and pivots at its low edge on the dash, `[13.9, F + 8, 13.4]`, so that edge stays on the dash and the other rises by about 1 px toward the driver. Only that one axis is rotated, so the one-axis rule of 0009 holds and `ONE_AXIS_EXCEPTION` is unchanged.
+
+The buttons are painted. The registry tile `switch_plate` (`tools/tile_layout.py`) is `[40, 4]`, size `[20, 24]`, in the free area right of the swatch row, so the atlas stays 128 x 32. It shows a slightly lighter recessed panel with rounded corners inside the black plate, and six round 5 x 5 buttons in a zigzag of 1, 2, 2, 1 from the top (the far end of the plate), the two-button rows offset to the left and then the right. Each button is a light grey ring with a one-texel dark outline around a near-white centre. There is no text, icon or sticker. Only the plate's `up` face uses the tile; its other faces use the `gloss` swatch. I chose no raised caps: the 5-texel buttons are about 0.55 px wide, and 0166's caps (radius 0.45) would hide the ring, so the count stays at one cube.
+
+Helm cube count: 164 before 6/7 and 158 after (the old 7 cubes, plate and 6 buttons, become 1). The whole model goes from 1225 to 1219 cubes. The generated geometry, the colour and lamp atlases and the mirror atlas change by the new tile's texels only; swatch cells and the MER images stay as they are. Resource Pack header/module and Behavior Pack Resource Pack dependency versions advance from 0.1.158 to **0.1.159**.
+
+Corner-transform tests check that the tilted plate stays on the dash and does not intersect the phone holder, its screen, the display and its screen face, or the throttle housing. The display-plate clearance check is skipped because 4/7 does not exist: the current display (gloss box with the -20 tilt) is used. They read the generated JSON and do not run the generator.
+
+Open question for the owner (manual test B32): from the driver's seat, does the plate read as a glossy slanted black plate with six round chrome-ring buttons in a zigzag? **Verdict: unverified, awaiting the owner's device check.** The previews cannot show the tile, since `render_preview.py` shades each face with one colour.
+
 ## Consequences
 
 - 5/7 tilts the wheel by one helper call instead of hand-composing angles, and the exception stays limited to the wheel.
