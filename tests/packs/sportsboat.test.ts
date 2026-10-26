@@ -883,7 +883,7 @@ describe("sports boat hull planking (ADR 0161)", () => {
           (cube.rotation ?? []).filter((angle) => angle !== 0).length,
         ).toBeLessThanOrEqual(1);
       }
-      expect(cubes).toHaveLength(1225);
+      expect(cubes).toHaveLength(1219);
     });
   });
 
@@ -1217,7 +1217,7 @@ describe("sports boat hull planking (ADR 0161)", () => {
     const F = 9.3;
     const pivot = [-7.6, F + 7.5, -7.4];
     const body = bone("body");
-    // The console anchors the existing 164-cube helm block, independent of hull cube counts.
+    // The console anchors the existing 158-cube helm block, independent of hull cube counts.
     const start = body.findIndex(
       (cube) =>
         cube.origin[0] === -15.4 &&
@@ -1225,9 +1225,9 @@ describe("sports boat hull planking (ADR 0161)", () => {
         cube.origin[2] === -16 &&
         cube.size[1] === 7,
     );
-    const helm = body.slice(start, start + 164);
-    const wheel = helm.slice(23, 157);
-    const supports = helm.slice(157, 160);
+    const helm = body.slice(start, start + 158);
+    const wheel = helm.slice(17, 151);
+    const supports = helm.slice(151, 154);
     const angles = [
       ...Array.from({ length: 120 }, (_, i) => (i % 40) * 9 + 90),
       20,
@@ -1387,6 +1387,109 @@ describe("sports boat hull planking (ADR 0161)", () => {
     });
   });
 
+  describe("switch plate (ADR 0166, #669)", () => {
+    const F = 9.3;
+    const body = bone("body");
+    const tile: { uv: [number, number]; size: [number, number] } = JSON.parse(
+      execFileSync(
+        "python3",
+        [
+          "-I",
+          "-c",
+          `
+import json, sys
+sys.path.insert(0, "tools")
+import tile_layout
+uv, size = tile_layout.TILE_RECTS["switch_plate"]
+print(json.dumps({"uv": list(uv), "size": list(size)}))
+`,
+        ],
+        { encoding: "utf8" },
+      ),
+    );
+    const plates = body.filter(
+      (cube) =>
+        cube.uv.up?.uv[0] === tile.uv[0] && cube.uv.up?.uv[1] === tile.uv[1],
+    );
+    const plate = plates[0] as Cube;
+    // The game frame is turned around, so x and z are negated and the tilt reads +20.
+    const corners = (cube: Cube) => {
+      const pivot = cube.pivot ?? [0, 0, 0];
+      const radians = (-(cube.rotation?.[0] ?? 0) * Math.PI) / 180;
+      return Array.from({ length: 8 }, (_, bits) => {
+        const [x = 0, y = 0, z = 0] = cube.origin.map(
+          (v, i) =>
+            v + ((bits >> i) & 1) * (cube.size[i] ?? 0) - (pivot[i] ?? 0),
+        );
+        return [
+          x + (pivot[0] ?? 0),
+          y * Math.cos(radians) - z * Math.sin(radians) + (pivot[1] ?? 0),
+          y * Math.sin(radians) + z * Math.cos(radians) + (pivot[2] ?? 0),
+        ];
+      });
+    };
+    const bounds = (cube: Cube) => {
+      const points = corners(cube);
+      return [0, 1, 2].map((i) => [
+        Math.min(...points.map((p) => p[i] ?? 0)),
+        Math.max(...points.map((p) => p[i] ?? 0)),
+      ]);
+    };
+
+    it("is one gloss plate turned about x only by the switch tilt, with the face tile on top", () => {
+      expect(plates).toHaveLength(1);
+      expect(plate.rotation).toEqual([20, 0, 0]);
+      expect(plate.size[0]).toBeCloseTo(2.2);
+      expect(plate.size[1]).toBeCloseTo(0.4);
+      expect(plate.size[2]).toBeCloseTo(2.8);
+      expect(plate.uv.up).toEqual({ uv: tile.uv, uv_size: tile.size });
+      expect(tile.size[0]).toBeLessThanOrEqual(20);
+      expect(tile.size[1]).toBeLessThanOrEqual(24);
+      for (const face of ["down", "north", "south", "east", "west"])
+        expect(plate.uv[face]?.uv[0], face).toBe(3 * 4 + 1);
+    });
+
+    it("keeps its low edge on the dash and clears the phone holder, display and throttle after tilting", () => {
+      expect(Math.min(...corners(plate).map((p) => p[1] ?? 0))).toBeCloseTo(
+        F + 8,
+      );
+      const [px, py, pz] = bounds(plate) as [number[], number[], number[]];
+      const obstacles = body.filter(
+        (cube) =>
+          // Phone holder, its screen, the display with its screen, and the throttle housing.
+          (cube.origin[0] === -12.4 && cube.origin[1] === F + 8) ||
+          (cube.origin[0] === -12.2 && cube.origin[1] === F + 8.3) ||
+          (cube.origin[0] === -9 && cube.origin[2] === -14) ||
+          (cube.origin[0] === -8.6 && cube.origin[2] === -13.1) ||
+          (cube.origin[0] === -15.4 &&
+            cube.origin[1] === F + 4.5 &&
+            cube.origin[2] === -9),
+      );
+      expect(obstacles).toHaveLength(5);
+      for (const cube of obstacles) {
+        const other = bounds(cube);
+        const apart = [px, py, pz].some(
+          (range, i) =>
+            (range?.[1] ?? 0) <= (other[i]?.[0] ?? 0) ||
+            (other[i]?.[1] ?? 0) <= (range?.[0] ?? 0),
+        );
+        expect(apart, JSON.stringify(cube.origin)).toBe(true);
+      }
+    });
+
+    it("leaves no raised metal button cube on the plate", () => {
+      const metal = body.filter(
+        (cube) =>
+          swatch(13)(cube) &&
+          cube.origin[0] >= -15 &&
+          cube.origin[0] <= -12.8 &&
+          cube.origin[1] >= F + 8 &&
+          cube.origin[1] <= F + 9,
+      );
+      expect(metal).toEqual([]);
+    });
+  });
+
   describe("bow inner outline (ADR 0162)", () => {
     const LOUNGE_BASE = 13.2;
 
@@ -1466,8 +1569,8 @@ describe("sports boat hull planking (ADR 0161)", () => {
       }
     });
 
-    it("does not grow beyond 1225 cubes (regression guard)", () => {
-      expect(cubes.length).toBeLessThanOrEqual(1225);
+    it("does not grow beyond 1219 cubes (regression guard)", () => {
+      expect(cubes.length).toBeLessThanOrEqual(1219);
     });
   });
 });
