@@ -170,27 +170,40 @@ def shift_in_slices(cube, cuts, dz_at):
 
 
 def vent_cover(z0, z1, y0, y1):
-    bezel, half = 0.8, VENT_MESH_BAR / 2
-    iz0, iz1, iy0, iy1 = z0 + bezel, z1 - bezel, y0 + bezel, y1 - bezel
+    """An aluminium-rimmed lid with two columns of louvre slits over a plain lower third (ADR 0157)."""
     band = HW + 0.1  # the khaki band's outer face
-
-    def bar_centers(lo, hi):
-        # Center the run of bars so the first and last cells match.
-        n = int((hi - lo - VENT_MESH_BAR) // VENT_MESH_PITCH) + 1
-        start = lo + (hi - lo - (n - 1) * VENT_MESH_PITCH) / 2
-        for i in range(n):
-            yield start + i * VENT_MESH_PITCH
-
-    return [
-        box(band, y0, z0, band + 0.4, iy0, z1, "chrome"),
-        box(band, iy1, z0, band + 0.4, y1, z1, "chrome"),
-        box(band, iy0, z0, band + 0.4, iy1, iz0, "chrome"),
-        box(band, iy0, iz1, band + 0.4, iy1, z1, "chrome"),
-        # Opaque backing avoids the unsorted alpha-blended faces described in ADR 0091.
-        box(band, iy0, iz0, band + 0.1, iy1, iz1, "black"),
-        *(box(band + 0.1, iy0, z - half, band + 0.2, iy1, z + half, "slat") for z in bar_centers(iz0, iz1)),
-        *(box(band + 0.2, y - half, iz0, band + 0.3, y + half, iz1, "slat") for y in bar_centers(iy0, iy1)),
+    w, r = VENT_RIM, VENT_CORNER
+    iz0, iz1, iy0, iy1 = z0 + w, z1 - w, y0 + w, y1 - w
+    rim_top = band + 0.4
+    cubes = [
+        # The rim ring, with each outer corner cut by r so the lid reads as a rounded rectangle.
+        box(band, y1 - w, z0 + w, rim_top, y1, z1 - w, "chrome"),
+        box(band, y0, z0 + w, rim_top, y0 + w, z1 - w, "chrome"),
+        box(band, y0 + w, z0, rim_top, y1 - w, z0 + w, "chrome"),
+        box(band, y0 + w, z1 - w, rim_top, y1 - w, z1, "chrome"),
     ]
+    for outer_z, inner_z in (((z0, z0 + r), (z0 + r, z0 + w)), ((z1 - r, z1), (z1 - w, z1 - r))):
+        for outer_y, inner_y in (((y0, y0 + r), (y0 + r, y0 + w)), ((y1 - r, y1), (y1 - w, y1 - r))):
+            cy0, cy1 = min(*outer_y, *inner_y), max(*outer_y, *inner_y)
+            cubes.append(box(band, cy0, inner_z[0], rim_top, cy1, inner_z[1], "chrome"))
+            cubes.append(box(band, inner_y[0], outer_z[0], rim_top, inner_y[1], outer_z[1], "chrome"))
+    # Louvre slits in the upper two thirds, in a left and a right column; the lower third stays plain.
+    mid = (iz0 + iz1) / 2
+    columns = ((iz0 + VENT_SLIT_MARGIN, mid - VENT_SLIT_GAP / 2), (mid + VENT_SLIT_GAP / 2, iz1 - VENT_SLIT_MARGIN))
+    top = iy1 - VENT_SLIT_MARGIN
+    slits = [
+        (sz0, sz1, top - i * VENT_SLIT_PITCH - VENT_SLIT, top - i * VENT_SLIT_PITCH)
+        for sz0, sz1 in columns
+        for i in range(VENT_SLITS)
+    ]
+    # The panel sits 0.2 px under the rim; each slit is a further 0.1 px recess onto black.
+    cubes += panel("x", band, band + 0.2, iz0, iz1, iy0, iy1, slits, "white")
+    cubes += [box(band, sy0, sz0, band + 0.1, sy1, sz1, "black") for sz0, sz1, sy0, sy1 in slits]
+    cubes.append(box(band + 0.2, iy0 + 0.4, mid - 0.6, band + 0.45, iy0 + 1.0, mid + 0.6, "steel"))  # latch
+    for sz in (z0 + w / 2, mid, z1 - w / 2):  # screw heads on the rim
+        for sy in (y0 + w / 2, y1 - w / 2):
+            cubes.append(box(rim_top, sy - 0.15, sz - 0.15, rim_top + 0.05, sy + 0.15, sz + 0.15, "steel"))
+    return cubes
 
 
 body = []
@@ -201,9 +214,10 @@ body.append(box(-HW, CEIL, FRONT + 8.5, HW, ROOF, REAR_INNER, "white"))  # the c
 body.append(box(-HW + 1, CEIL - 0.2, FRONT + 1, HW - 1, CEIL, REAR_INNER, "panel"))
 
 WIN_Y = (36, 49)
-VENT_COVER = (41.5, 49.5, 38.0, 46.0)
-VENT_MESH_PITCH = 1.0
-VENT_MESH_BAR = 0.4
+VENT_COVER = (40.5, 49.5, 36.5, 48.5)
+VENT_RIM, VENT_CORNER = 0.7, 0.35
+VENT_SLITS, VENT_SLIT, VENT_SLIT_PITCH = 12, 0.25, 0.6
+VENT_SLIT_MARGIN, VENT_SLIT_GAP = 0.5, 0.8
 BAND_Y = (34.5, 50.5)
 STRIPE_Y = (29.5, 31.5)
 # The rear seen from the side, from the rear-corner photo: the top leans out to the roof

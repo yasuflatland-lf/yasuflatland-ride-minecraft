@@ -147,7 +147,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0141](0141-put-a-bulldozer-driver-out-beside-the-left-door.md) | Put a bulldozer driver out beside the left door | Proposed |
 | [0144](0144-split-camping-gear-into-inside-and-outside-groups.md) | Split camping gear into inside and outside groups | Proposed |
 | [0145](0145-move-camper-side-lamp-and-door-handle.md) | Move the camper's side lamp and door handle | Proposed |
-| [0146](0146-wire-mesh-bulldozer-steps-and-a-camper-vent-cover.md) | Wire mesh bulldozer steps and a camper vent cover | Proposed |
+| [0146](0146-wire-mesh-bulldozer-steps-and-a-camper-vent-cover.md) | Wire mesh bulldozer steps and a camper vent cover | Proposed; superseded in part by 0157 (Proposed) |
 | [0147](0147-light-the-lamps-with-a-pbr-emissive-layer.md) | Light the lamps with a PBR emissive layer | Accepted |
 | [0148](0148-smooth-bulldozer-side-bevel.md) | Smooth the bulldozer side bevel | Proposed; extended by 0151 (Proposed) |
 | [0149](0149-route-the-parked-camper-wheel-seat-to-headlights.md) | Route the parked camper's wheel seat to the headlights | Accepted |
@@ -157,6 +157,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0153](0153-a-polished-folding-fire-pit.md) | A polished folding fire pit | Proposed |
 | [0154](0154-keep-camper-passengers-in-their-seats-on-departure.md) | Keep camper passengers in their seats on departure | Proposed |
 | [0156](0156-resend-the-docked-property-after-a-failed-send.md) | Resend the docked property after a failed send | Proposed |
+| [0157](0157-an-aluminium-rimmed-louvred-camper-vent-lid.md) | An aluminium-rimmed louvred camper vent lid | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 
