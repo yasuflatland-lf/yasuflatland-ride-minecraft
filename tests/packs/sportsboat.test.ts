@@ -288,6 +288,37 @@ describe("sports boat Resource Pack (ADR 0051)", () => {
     expect(client.materials.glass).toBe("entity_alphablend");
   });
 
+  describe("front windshield (ADR 0158)", () => {
+    type Cube = {
+      origin: [number, number, number];
+      size: [number, number, number];
+      rotation?: number[];
+    };
+    const cubes: Cube[] = geometry.bones.find(
+      (b: { name: string }) => b.name === "windshield",
+    ).cubes;
+    const raked = cubes.filter((cube) => (cube.rotation?.[0] ?? 0) !== 0);
+
+    it("is one thin pane per section, each lying on the 55-degree rake", () => {
+      expect(raked).toHaveLength(3);
+      for (const pane of raked) {
+        expect(Math.abs(pane.rotation?.[0] ?? 0)).toBeCloseTo(55.3, 1);
+        expect(pane.size[1]).toBeCloseTo(7.9, 1);
+        expect(pane.size[2]).toBeCloseTo(0.5);
+      }
+    });
+
+    it("has no unrotated glass across the walk-through, so the stepped rows cannot return", () => {
+      const across = cubes.filter(
+        (cube) =>
+          cube.rotation === undefined &&
+          cube.origin[0] < 4.1 &&
+          cube.origin[0] + cube.size[0] > -4.1,
+      );
+      expect(across).toEqual([]);
+    });
+  });
+
   it("names the bones root, body, headlights, and windshield (ADR 0009)", () => {
     expect(geometry.bones.map((b: { name: string }) => b.name)).toEqual([
       "root",

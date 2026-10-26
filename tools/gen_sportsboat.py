@@ -384,13 +384,12 @@ body.append(box(11.4, F + 7.4, 6.6, 12.8, F + 8.8, 8.4, "steel"))  # chrome hand
 body.append(box(11.6, F + 8.8, 6.9, 12.6, F + 9.2, 8.1, "steel"))
 
 # Wraparound windshield: side panes follow the gunwale back to z -10; the front leans back toward
-# the cockpit about 55 degrees, built from thin rows that each step aft, and the side panes are cut
-# along the same slope where they meet it.
+# the cockpit about 55 degrees as thin cubes rotated to the rake (ADR 0158), and the side panes are
+# cut along the same slope where they meet it.
 WS_TOP = [(-12, 0.0), (-10, 1.8), (0, 3.4), (12, 4.3), (16, 4.5)]  # glass height above the sheer
 WS_HEIGHT = 4.5
 FRONT_BASE, FRONT_TOP = 22.0, 15.5  # z of the front glass at the sheer and at its top edge
 RAKE = (FRONT_BASE - FRONT_TOP) / WS_HEIGHT  # blocks aft per block up
-WS_ROWS = 9
 
 
 def glass_height(z):
@@ -406,28 +405,38 @@ while z < FRONT_BASE:
         body += pair(b - 1.7, s + h, z, b - 0.8, s + h + 0.7, z + SLICE, "frame")  # top rail
     z += SLICE
 s0 = sheer(FRONT_BASE)
-ROW_HEIGHT = WS_HEIGHT / WS_ROWS
-# (bottom y, front z) of each row of the front glass
-ROWS = [(s0 + r * WS_HEIGHT / WS_ROWS, FRONT_BASE - r * (FRONT_BASE - FRONT_TOP) / WS_ROWS) for r in range(WS_ROWS)]
 POST = WALK_HALF + 0.6  # outer face of each walk-through post
 RAIL_Y = s0 + WS_HEIGHT  # bottom of the front glass's top rail
-for y0, zf in ROWS:
-    # The center section is the walk-through to the bow
-    glass += pair(POST, y0, zf - 0.9, beam(zf) - 1.0, y0 + ROW_HEIGHT, zf, "glass")
+RAKE_LENGTH = math.hypot(FRONT_BASE - FRONT_TOP, WS_HEIGHT)
+# Same convention as strut(): a negative x rotation leans toward +z, and this glass leans aft
+RAKE_ROTATION = -math.degrees(math.atan2(FRONT_TOP - FRONT_BASE, WS_HEIGHT))
+PANE = 0.5  # glass thickness
+FRAME_PROUD = 0.3  # how far the posts stand out in front of the glass, to cover the pane edges
+CORNER = (beam(FRONT_BASE) - 1.2, beam(FRONT_BASE))  # x of the corner posts
+
+
+def raked(x0, x1, color, front=0.0, depth=PANE):
+    """A flat box lying on the front glass's slope, its front face `front` px ahead of the glass's."""
+    return box(x0, s0, FRONT_BASE + front - depth, x1, s0 + RAKE_LENGTH, FRONT_BASE + front, color,
+               pivot=[(x0 + x1) / 2, s0, FRONT_BASE], rotation=[RAKE_ROTATION, 0, 0])
+
+
+def raked_pair(x0, x1, color, **extra):
+    return [raked(x0, x1, color, **extra), raked(-x1, -x0, color, **extra)]
+
+
+# One flat pane per section, so the glass reads as a single slanted sheet rather than stepped rows.
+# The center section is the walk-through to the bow; its door is closed, in line with the front panes.
+glass += raked_pair(POST, CORNER[0], "glass")
+glass.append(raked(-WALK_HALF, WALK_HALF, "glass"))
 body += pair(POST - 0.2, RAIL_Y, FRONT_TOP - 1.0, beam(FRONT_TOP) - 1.0, RAIL_Y + 0.7, FRONT_TOP + 0.2, "frame")
-# Walk-through posts lean back with the glass: one short block per row
-for y0, zf in ROWS:
-    body += pair(WALK_HALF, y0, zf - 0.9, POST, y0 + ROW_HEIGHT + 0.05, zf, "frame")
-# Corner posts where the front meets the sides, a divider halfway across each front pane, and a mid
-# post on each side pane
-for y0, zf in ROWS:
-    hw = beam(zf) - 1.0
-    body += pair(hw - 0.6, y0, zf - 0.9, hw, y0 + ROW_HEIGHT + 0.05, zf, "frame")
-    mid = (POST + hw) / 2
-    body += pair(mid - 0.25, y0, zf - 0.95, mid + 0.25, y0 + ROW_HEIGHT + 0.05, zf + 0.05, "frame")
-# The walk-through door is closed: its glass leans back in line with the front panes, under the top rail
-for y0, zf in ROWS:
-    glass.append(box(-WALK_HALF, y0, zf - 0.9, WALK_HALF, y0 + ROW_HEIGHT, zf, "glass"))
+# Walk-through posts, a divider halfway across each front pane, and corner posts where the front
+# meets the sides. The hull flares from 14.0 to 15.1 px up the slope, which a flat pane cannot
+# follow, so the corner post is wide enough to cover the stepped side panes' cut edges.
+POST_DEPTH = PANE + 2 * FRAME_PROUD
+mid = (POST + CORNER[0]) / 2
+for x0, x1 in ((WALK_HALF, POST), (mid - 0.25, mid + 0.25), CORNER):
+    body += raked_pair(x0, x1, "frame", front=FRAME_PROUD, depth=POST_DEPTH)
 body.append(box(-WALK_HALF, RAIL_Y, FRONT_TOP - 1.0, WALK_HALF, RAIL_Y + 0.7, FRONT_TOP + 0.2, "frame"))
 # Rear-view mirror on a stalk over the helm half of the windshield's top rail, its glass facing aft
 MX, MY, MZ = 8.5, RAIL_Y + 0.7, FRONT_TOP - 0.4
