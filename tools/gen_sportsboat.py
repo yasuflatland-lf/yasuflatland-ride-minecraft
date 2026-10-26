@@ -1289,20 +1289,29 @@ body.append(box(-9.0, y0, z0 + (-2.0 - z0) / main_cos,
                 9.0, y0 + 0.25, z0 + (5.0 - z0) / main_cos, "canvas_panel",
                 pivot=[0, y0, z0], rotation=[math.degrees(ROOF_ANGLES[1]), 0, 0]))
 
-# The main side skirt: one level sloping sheet per side over the main panel's span, flaring from the
-# roof's side edge outward and down. The panel falls under it, so the inner edge sits at the lower
-# end's surface minus 0.3 and stays hidden in the 2 px top at the higher end (ADR 0164).
+# Three chords soften the side fold while retaining the original reach and drop (ADR 0164).
 SKIRT_MAIN = (-3.0, 6.0)
 SKIRT_DROP = 2.6
 SKIRT_THICK = 0.8
 SKIRT_INNER = 16.0
 SKIRT_RUN = B_HALF - SKIRT_INNER
-SKIRT_ANGLE = math.atan2(SKIRT_DROP, SKIRT_RUN)
+SKIRT_ANGLES = [math.radians(a) for a in (15, 30, 45)]
+SHOULDER_RUN = 0.3
+MIDDLE_RUN = (SKIRT_RUN - SKIRT_DROP - SHOULDER_RUN * (1 - math.tan(SKIRT_ANGLES[0]))) / (1 - math.tan(SKIRT_ANGLES[1]))
+SKIRT_RUNS = [SHOULDER_RUN, MIDDLE_RUN, SKIRT_RUN - SHOULDER_RUN - MIDDLE_RUN]
+SKIRT_OVERLAPS = [max(0.25, SKIRT_THICK * math.tan(b - a) / 2 + 0.05)
+                  for a, b in zip(SKIRT_ANGLES, SKIRT_ANGLES[1:])]
 skirt_top = roof_top(SKIRT_MAIN[1]) - 0.3
-# A negative build-frame z turn lowers the outer (+x) end; pair() negates it for the left side.
-body += pair(SKIRT_INNER, skirt_top - SKIRT_THICK, SKIRT_MAIN[0],
-             SKIRT_INNER + math.hypot(SKIRT_RUN, SKIRT_DROP), skirt_top, SKIRT_MAIN[1], "canvas",
-             pivot=[SKIRT_INNER, skirt_top, sum(SKIRT_MAIN) / 2], rotation=[0, 0, -math.degrees(SKIRT_ANGLE)])
+x, y = SKIRT_INNER, skirt_top
+for i, (run, angle) in enumerate(zip(SKIRT_RUNS, SKIRT_ANGLES)):
+    inner_overlap = SKIRT_OVERLAPS[i - 1] if i else 0.0
+    outer_overlap = SKIRT_OVERLAPS[i] if i < len(SKIRT_OVERLAPS) else 0.0
+    # A negative build-frame z turn lowers +x; pair() mirrors the left turn.
+    body += pair(x - inner_overlap, y - SKIRT_THICK, SKIRT_MAIN[0],
+                 x + run / math.cos(angle) + outer_overlap, y, SKIRT_MAIN[1], "canvas",
+                 pivot=[x, y, sum(SKIRT_MAIN) / 2], rotation=[0, 0, -math.degrees(angle)])
+    x += run
+    y -= run * math.tan(angle)
 
 # The nearly level rear panel lets each corner remain one sheet, inset from the main skirt.
 SKIRT_REAR = (B_REAR, -3.0)
@@ -1313,6 +1322,19 @@ body += pair(SKIRT_INNER, rear_skirt_top - SKIRT_THICK, SKIRT_REAR[0],
              SKIRT_INNER + math.hypot(REAR_SKIRT_RUN, REAR_SKIRT_DROP), rear_skirt_top, SKIRT_REAR[1], "canvas",
              pivot=[SKIRT_INNER, rear_skirt_top, sum(SKIRT_REAR) / 2],
              rotation=[0, 0, -math.degrees(math.atan2(REAR_SKIRT_DROP, REAR_SKIRT_RUN))])
+
+# The folded sheets leave their transverse end triangles open. Two overlapping canvas steps
+# close each section; their tops bury into the sloping sheets, and their bottoms stay above
+# the existing outer hems. At -3 the main steps also close the rear skirt's end (ADR 0164).
+END_DEPTH = 0.5
+MAIN_END_STEPS = [(15.8, 16.95, 34.1), (16.7, 17.9, 33.2)]
+REAR_END_STEPS = [(15.8, 16.8, 34.1), (16.6, 17.5, 32.9)]
+for z0, z1, floor, steps in [
+        (-3.25, -2.75, skirt_top - SKIRT_DROP - 0.1, MAIN_END_STEPS),
+        (SKIRT_MAIN[1] - END_DEPTH, SKIRT_MAIN[1], skirt_top - SKIRT_DROP - 0.1, MAIN_END_STEPS),
+        (B_REAR, B_REAR + END_DEPTH, rear_skirt_top - REAR_SKIRT_DROP - 0.1, REAR_END_STEPS)]:
+    for x0, x1, top in steps:
+        body += pair(x0, floor, z0, x1, top, z1, "canvas")
 
 # Tower speakers set into the underside of the top near its rear edge, a quarter of the way in from
 # each side, facing aft as on the reference. Each is a bullet-shaped matte pod that narrows toward
