@@ -183,18 +183,17 @@ def disc(cx, cy, r, z0, z1, color):
             for rot in (0, 45)]
 
 
-def cylinder(cx, cy, r, z0, z1, color, sides=SPEAKER_SIDES, wall=SPEAKER_WALL, caps=(False, False)):
-    """A regular polygon of inradius r, with tangent walls and optional rear/front disc caps."""
-    assert 8 <= sides <= 16
+def cylinder(cx, cy, r, z0, z1, color, sides=SPEAKER_SIDES, wall=SPEAKER_WALL, solid=False):
+    """Tangent walls, or diametral panels filling the same polygon (ADR 0165)."""
+    if solid and r < 1.0:
+        sides = min(sides, 8)
+    assert 8 <= sides <= 16 and sides % 2 == 0
     wall = min(wall, r)
     w = 2 * r * math.tan(math.pi / sides)
-    cubes = [box(cx - w / 2, cy + r - wall, z0, cx + w / 2, cy + r, z1, color,
-                 pivot=[cx, cy, z0], rotation=[0, 0, 360 * k / sides])
-             for k in range(sides)]
-    for enabled, z in zip(caps, (z0, z1 - 0.1)):
-        if enabled:
-            cubes += disc(cx, cy, r - 0.05, z, z + 0.1, color)
-    return cubes
+    return [box(cx - w / 2, cy - r if solid else cy + r - wall, z0,
+                cx + w / 2, cy + r, z1, color,
+                pivot=[cx, cy, z0], rotation=[0, 0, 360 * k / sides])
+            for k in range(sides // 2 if solid else sides)]
 
 
 def lerp(table, z):
@@ -1375,11 +1374,8 @@ def speaker(sx):
     """Cubes of one speaker centred on x = sx. The spokes sit between the back disc and the hub."""
     cubes = []
     for k, (name, r, z0, z1, swatch) in enumerate(SPEAKER_SECTIONS):
-        if name in ("back", "hub"):
-            cubes += disc(sx, cy, r, G + z0, G + z1, swatch)
-        else:
-            cubes += cylinder(sx, cy, r, G + z0, G + z1, swatch,
-                              caps=(name == "bezel", name == "pod_3"))
+        cubes += cylinder(sx, cy, r, G + z0, G + z1, swatch,
+                          solid=name in ("back", "hub", "pod_3"))
         if k == 0:
             for ang in SPEAKER_SPOKES["angles"]:
                 ca, sa = math.cos(math.radians(ang)), math.sin(math.radians(ang))
