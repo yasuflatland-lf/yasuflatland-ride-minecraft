@@ -328,7 +328,25 @@ describe("sports boat Resource Pack (ADR 0051)", () => {
       ]);
       for (const pane of gunwale) expect(pane.size[2]).toBeGreaterThan(25);
       const corner = sides.filter((cube) => tilt(cube) > 10);
-      for (const pane of corner) expect(tilt(pane)).toBeCloseTo(55.3, 1);
+      for (const pane of corner) {
+        expect(tilt(pane)).toBeCloseTo(55.3, 1);
+        // Stops short of the top corner so its aft edge meets the side pane behind the corner post
+        expect(pane.size[1]).toBeCloseTo(7.19, 2);
+      }
+    });
+
+    it("frames the front glass with only the walk-through and corner posts, no dividers or corner pillars", () => {
+      const body: Cube[] = geometry.bones.find(
+        (b: { name: string }) => b.name === "body",
+      ).cubes;
+      const raked = body.filter((cube) => Math.abs(tilt(cube) - 55.3) < 0.1);
+      expect(raked.map((cube) => cube.size[0]).sort()).toEqual([
+        0.6, 0.6, 1.2, 1.2,
+      ]);
+      const alongSides = body.filter(
+        (cube) => Math.abs(tilt(cube) - 7.1) < 0.1,
+      );
+      expect(alongSides.map((cube) => cube.size[1])).toEqual([0.7, 0.7]);
     });
   });
 
