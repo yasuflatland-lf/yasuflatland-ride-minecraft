@@ -883,7 +883,7 @@ describe("sports boat hull planking (ADR 0161)", () => {
           (cube.rotation ?? []).filter((angle) => angle !== 0).length,
         ).toBeLessThanOrEqual(1);
       }
-      expect(cubes).toHaveLength(1219);
+      expect(cubes).toHaveLength(1223);
     });
   });
 
@@ -1217,7 +1217,7 @@ describe("sports boat hull planking (ADR 0161)", () => {
     const F = 9.3;
     const pivot = [-7.6, F + 7.5, -7.4];
     const body = bone("body");
-    // The console anchors the existing 158-cube helm block, independent of hull cube counts.
+    // The console anchors the existing 162-cube helm block, independent of hull cube counts.
     const start = body.findIndex(
       (cube) =>
         cube.origin[0] === -15.4 &&
@@ -1225,9 +1225,9 @@ describe("sports boat hull planking (ADR 0161)", () => {
         cube.origin[2] === -16 &&
         cube.size[1] === 7,
     );
-    const helm = body.slice(start, start + 158);
-    const wheel = helm.slice(17, 151);
-    const supports = helm.slice(151, 154);
+    const helm = body.slice(start, start + 162);
+    const wheel = helm.slice(21, 155);
+    const supports = helm.slice(155, 158);
     const angles = [
       ...Array.from({ length: 120 }, (_, i) => (i % 40) * 9 + 90),
       20,
@@ -1439,6 +1439,8 @@ print(json.dumps({"uv": list(uv), "size": list(size)}))
     it("is one gloss plate turned about x only by the switch tilt, with the face tile on top", () => {
       expect(plates).toHaveLength(1);
       expect(plate.rotation).toEqual([20, 0, 0]);
+      expect(plate.origin).toEqual([-15, F + 8, -14.6]);
+      expect(plate.pivot).toEqual([-13.9, F + 8, -14.6]);
       expect(plate.size[0]).toBeCloseTo(2.2);
       expect(plate.size[1]).toBeCloseTo(0.4);
       expect(plate.size[2]).toBeCloseTo(2.8);
@@ -1454,6 +1456,8 @@ print(json.dumps({"uv": list(uv), "size": list(size)}))
         F + 8,
       );
       const [px, py, pz] = bounds(plate) as [number[], number[], number[]];
+      expect(pz[0]).toBeGreaterThanOrEqual(-15.5);
+      expect(pz[1]).toBeLessThanOrEqual(-10);
       const obstacles = body.filter(
         (cube) =>
           // Phone holder, its screen, the display with its screen, and the throttle housing.
@@ -1487,6 +1491,209 @@ print(json.dumps({"uv": list(uv), "size": list(size)}))
           cube.origin[1] <= F + 9,
       );
       expect(metal).toEqual([]);
+    });
+  });
+
+  describe("controller pad (ADR 0166, #670)", () => {
+    const F = 9.3;
+    const body = bone("body");
+    const tiles: Record<
+      string,
+      { uv: [number, number]; size: [number, number] }
+    > = JSON.parse(
+      execFileSync(
+        "python3",
+        [
+          "-I",
+          "-c",
+          `
+import json, sys
+sys.path.insert(0, "tools")
+import tile_layout
+tile_layout.assert_tile_allocations(tile_layout.TILE_RECTS, 128, 32)
+print(json.dumps({name: {"uv": uv, "size": size}
+                  for name, (uv, size) in tile_layout.TILE_RECTS.items()}))
+`,
+        ],
+        { encoding: "utf8" },
+      ),
+    );
+    const tile = tiles.control_pad as {
+      uv: [number, number];
+      size: [number, number];
+    };
+    const plates = body.filter(
+      (cube) =>
+        cube.uv.up?.uv[0] === tile.uv[0] && cube.uv.up?.uv[1] === tile.uv[1],
+    );
+    const pad = plates[0] as Cube;
+    const controller = body.filter(
+      (cube) =>
+        cube.pivot?.[0] === -13.5 &&
+        cube.pivot?.[1] === F + 8 &&
+        cube.pivot?.[2] === -11.8,
+    );
+    const knobs = controller.filter((cube) => cube !== pad);
+    const rotate = (v: number[], rotation: number[], inverse = false) => {
+      let [x = 0, y = 0, z = 0] = v;
+      const axes = inverse ? [2, 1, 0] : [0, 1, 2];
+      for (const axis of axes) {
+        const degrees =
+          (rotation[axis] ?? 0) * (axis === 1 ? 1 : -1) * (inverse ? -1 : 1);
+        const sin = Math.sin((degrees * Math.PI) / 180);
+        const cos = Math.cos((degrees * Math.PI) / 180);
+        if (axis === 0) [y, z] = [y * cos - z * sin, y * sin + z * cos];
+        else if (axis === 1) [x, z] = [x * cos + z * sin, -x * sin + z * cos];
+        else [x, y] = [x * cos - y * sin, x * sin + y * cos];
+      }
+      return [x, y, z];
+    };
+    const corners = (cube: Cube) => {
+      const pivot = cube.pivot ?? [0, 0, 0];
+      return Array.from({ length: 8 }, (_, bits) => {
+        const offset = cube.origin.map(
+          (v, i) =>
+            v + ((bits >> i) & 1) * (cube.size[i] ?? 0) - (pivot[i] ?? 0),
+        );
+        return rotate(offset, cube.rotation ?? []).map(
+          (v, i) => v + (pivot[i] ?? 0),
+        );
+      });
+    };
+
+    const bounds = (parts: Cube[]) => {
+      const points = parts.flatMap(corners);
+      return [0, 1, 2].map((i) => [
+        Math.min(...points.map((p) => p[i] ?? 0)),
+        Math.max(...points.map((p) => p[i] ?? 0)),
+      ]);
+    };
+
+    it("uses one gloss pad with a bounded, disjoint top tile and the switch tilt", () => {
+      expect(plates).toHaveLength(1);
+      expect(pad.origin).toEqual([-15, F + 8, -11.8]);
+      expect(pad.size).toEqual([3, 0.4, 3]);
+      expect(pad.pivot).toEqual([-13.5, F + 8, -11.8]);
+      expect(pad.rotation).toEqual([20, 0, 0]);
+      expect(pad.uv.up).toEqual({ uv: tile.uv, uv_size: tile.size });
+      for (const face of ["down", "north", "south", "east", "west"])
+        expect(pad.uv[face]?.uv).toEqual([13, 1]);
+      expect(geometry.description.texture_width).toBe(128);
+      expect(geometry.description.texture_height).toBe(32);
+      for (const [i, limit] of [128, 32].entries()) {
+        expect(tile.size[i]).toBeGreaterThan(0);
+        expect(tile.size[i]).toBeLessThanOrEqual(16);
+        expect((tile.uv[i] ?? 0) + (tile.size[i] ?? 0)).toBeLessThanOrEqual(
+          limit,
+        );
+      }
+      expect(tile.uv[0]).toBeGreaterThanOrEqual(0);
+      expect(tile.uv[1]).toBeGreaterThanOrEqual(4);
+      for (const [name, other] of Object.entries(tiles)) {
+        if (name === "control_pad") continue;
+        expect(
+          [0, 1].some(
+            (i) =>
+              (tile.uv[i] ?? 0) + (tile.size[i] ?? 0) <= (other.uv[i] ?? 0) ||
+              (other.uv[i] ?? 0) + (other.size[i] ?? 0) <= (tile.uv[i] ?? 0),
+          ),
+          name,
+        ).toBe(true);
+      }
+    });
+
+    it("seats two dark crossing bars on the pad and the steel cap on the bars, with one axis only", () => {
+      expect(controller).toHaveLength(4);
+      expect(knobs).toHaveLength(3);
+      const bars = knobs.filter(swatch(22));
+      const caps = knobs.filter(swatch(16));
+      expect(bars).toHaveLength(2);
+      expect(caps).toHaveLength(1);
+      expect(bars.map((cube) => cube.size)).toEqual([
+        [1.8, 0.5, 1],
+        [1, 0.5, 1.8],
+      ]);
+      expect(caps[0]?.size).toEqual([0.6, 0.1, 0.6]);
+      for (const cube of knobs) {
+        expect(cube.rotation).toEqual(pad.rotation);
+        expect(cube.pivot).toEqual(pad.pivot);
+        for (const axis of [0, 2]) {
+          expect(cube.origin[axis]).toBeGreaterThanOrEqual(
+            pad.origin[axis] ?? 0,
+          );
+          expect(
+            (cube.origin[axis] ?? 0) + (cube.size[axis] ?? 0),
+          ).toBeLessThanOrEqual(
+            (pad.origin[axis] ?? 0) + (pad.size[axis] ?? 0),
+          );
+          expect(
+            (cube.origin[axis] ?? 0) + (cube.size[axis] ?? 0) / 2,
+          ).toBeCloseTo(axis === 0 ? -13.5 : -10.3);
+        }
+        const supportTop = F + (swatch(16)(cube) ? 8.9 : 8.4);
+        expect(Math.abs(cube.origin[1] - supportTop)).toBeLessThanOrEqual(0.1);
+      }
+    });
+
+    it("clears the current display, switch plate, phone, tilted wheel and throttle using transformed corners", () => {
+      const start = body.findIndex(
+        (cube) =>
+          cube.origin[0] === -15.4 &&
+          cube.origin[1] === F &&
+          cube.origin[2] === -16 &&
+          cube.size[1] === 7,
+      );
+      const wheel = body.slice(start + 21, start + 155);
+      expect(wheel).toHaveLength(134);
+      const obstacles = body.filter(
+        (cube) =>
+          (cube.origin[0] === -12.4 && cube.origin[1] === F + 8) ||
+          (cube.origin[0] === -12.2 && cube.origin[1] === F + 8.3) ||
+          (cube.origin[0] === -9 && cube.origin[2] === -14) ||
+          (cube.origin[0] === -8.6 && cube.origin[2] === -13.1) ||
+          (cube.origin[0] === -15.4 &&
+            cube.origin[1] === F + 4.5 &&
+            cube.origin[2] === -9) ||
+          (cube.uv.up?.uv[0] === tiles.switch_plate?.uv[0] &&
+            cube.uv.up?.uv[1] === tiles.switch_plate?.uv[1]),
+      );
+      expect(obstacles).toHaveLength(6);
+      const controllerBounds = bounds(controller);
+      for (const cube of [...obstacles, ...wheel]) {
+        const other = bounds([cube]);
+        expect(
+          controllerBounds.some(
+            (range, i) =>
+              (range[1] ?? 0) <= (other[i]?.[0] ?? 0) ||
+              (other[i]?.[1] ?? 0) <= (range[0] ?? 0),
+          ),
+          JSON.stringify(cube.origin),
+        ).toBe(true);
+      }
+    });
+
+    it("keeps the final helm at 162 cubes and the new parts within the ADR cap of five", () => {
+      const start = body.findIndex(
+        (cube) =>
+          cube.origin[0] === -15.4 &&
+          cube.origin[1] === F &&
+          cube.origin[2] === -16 &&
+          cube.size[1] === 7,
+      );
+      const end = body.findIndex(
+        (cube) =>
+          cube.origin[0] === -12.6 &&
+          cube.origin[1] === F + 8.8 &&
+          cube.origin[2] === -8.1,
+      );
+      expect(end - start + 1).toBe(162);
+      const switches = body.filter(
+        (cube) =>
+          cube.uv.up?.uv[0] === tiles.switch_plate?.uv[0] &&
+          cube.uv.up?.uv[1] === tiles.switch_plate?.uv[1],
+      );
+      expect(switches).toHaveLength(1);
+      expect(switches.length + controller.length).toBeLessThanOrEqual(5);
     });
   });
 
@@ -1569,8 +1776,8 @@ print(json.dumps({"uv": list(uv), "size": list(size)}))
       }
     });
 
-    it("does not grow beyond 1219 cubes (regression guard)", () => {
-      expect(cubes.length).toBeLessThanOrEqual(1219);
+    it("does not grow beyond 1223 cubes (regression guard)", () => {
+      expect(cubes.length).toBeLessThanOrEqual(1223);
     });
   });
 });
