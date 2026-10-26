@@ -1469,9 +1469,16 @@ describe("sports boat engine sound (ADR 0060)", () => {
   });
 });
 
-describe("sports boat gloss hull (ADR 0163)", () => {
+describe("sports boat gloss hull (ADR 0163) and dash (ADR 0166)", () => {
+  // Swatch cells are 4x4 texels in palette order: hull 0, gloss 3, frame 4.
+  const MER_BY_CELL: Record<number, number[]> = {
+    0: [0, 0, 16, 255],
+    3: [0, 0, 24, 255],
+    4: [0, 0, 24, 255],
+  };
+
   it.each(PAINTS)(
-    "gives %s paint a clear coat only on the hull swatch",
+    "gives %s paint a clear coat only on the hull, gloss and frame swatches",
     (paint) => {
       const name = paintAtlas(paint);
       expect(read(`${ENTITY_TEXTURES}/${name}.texture_set.json`)).toEqual({
@@ -1488,7 +1495,7 @@ describe("sports boat gloss hull (ADR 0163)", () => {
       for (let y = 0; y < mer.height; y++) {
         for (let x = 0; x < mer.width; x++) {
           expected.set(
-            x < 4 && y < 4 ? [0, 0, 16, 255] : [0, 0, 255, 255],
+            (y < 4 && MER_BY_CELL[x >> 2]) || [0, 0, 255, 255],
             (y * mer.width + x) * 4,
           );
         }

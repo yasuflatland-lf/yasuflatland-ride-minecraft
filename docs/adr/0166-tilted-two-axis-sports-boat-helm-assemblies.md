@@ -6,7 +6,7 @@
 
 ## Context
 
-The owner wants the sports boat's helm to look like a modern boat helm: the steering wheel tilted 30 degrees and the display tilted 45 degrees, both with the top leaning away from the driver, plus a painted switch plate and a controller block. The work runs as a series, one pull request per step, each branched on the previous one (1/7 to 7/7, issues #664 to #670): 1/7 adds a painted tile registry, 2/7 (this step) adds the helper and this ADR, 3/7 adds a clear coat to the dash swatch, 4/7 reworks the display, 5/7 tilts the wheel, 6/7 adds the switch plate and 7/7 the controller block.
+The owner wants the sports boat's helm to look like a modern boat helm: the steering wheel tilted 30 degrees and the display tilted 45 degrees, both with the top leaning away from the driver, plus a painted switch plate and a controller block. The work runs as a series, one pull request per step, each branched on the previous one (1/7 to 7/7, issues #664 to #670): 1/7 adds a painted tile registry, 2/7 adds the helper and this ADR, 3/7 (this step too) adds a PBR clear coat to the dash swatches, 4/7 reworks the display, 5/7 tilts the wheel, 6/7 adds the switch plate and 7/7 the controller block.
 
 ADR 0009 allows one rotation axis per cube. That is enough for the display, which is a single plate turned about x. The wheel is different: its 40 rim segments (three rings, so 120 cubes), spokes and chrome strips are each turned about z, the wheel's own axis. Tilting the wheel turns all of them about x as well, so a tilted wheel is an assembly of cubes that each carry two non-zero rotation axes.
 
@@ -19,7 +19,12 @@ ADR 0009 allows one rotation axis per cube. That is enough for the display, whic
 - In-game check: the order above is an assumption made from the preview and from earlier in-game pins, not a measurement of a two-axis cube. 5/7 is not done until a device check (a row in `docs/manual-test.md`) shows the tilted wheel with no skew of the rim. If the game composes the axes in another order, change the one function and regenerate.
 - Tests: property tests (fast-check) show that tilting by `a` and then `-a` returns the original cubes within 1e-9, that the distance between any two cube pivots is preserved, and that the composed matrix of a tilted cube equals `Rx(-a) * Rz(-rz)`.
 - Helm cube count (the block "Helm console ... throttle", including the passenger console, the cupholders and the throttle): 164 before this step and 164 after. The whole model stays at 1109 cubes, and the generated `sportsboat.geo.json` does not change.
-- No Resource Pack change, so the manifest versions stay as they are.
+- No Resource Pack change in 2/7, so the manifest versions stayed as they are there.
+- 3/7, dash clear coat (extends [0163](0163-a-glossy-clear-coat-sports-boat-hull.md)): `MER_GLOSS = (0, 0, 24)` (metalness 0, emissive 0, roughness 24/255) is written to the `gloss` and `frame` swatch cells (`GLOSS_SLOTS`, 16 texels each) of every paint atlas's MER image, next to `MER_HULL` on the hull cell. Roughness 24 is slightly softer than the hull's 16, so the large flat dash reflects the sky and light softly rather than mirroring like water. Every other texel stays `MER_OFF`, and the lamp and mirror atlases are unchanged. Colour atlases, UVs and `sportsboat.geo.json` do not change, so previews and item icons stay as they are. Tests pin all MER texels of the 16 paint atlases.
+- Cubes that use `gloss` or `frame`, and so all change look together (by region): the helm dash, the passenger console and their tops; the display and its side panel and the switch plate; the steering wheel's pad centre, cap-side parts, cowl and column; the throttle housing and lever arm; the cupholder inserts; the engine tunnel, centre housing, keel and bores and the dash rail; the cone; the rear-view mirror stem and bar; the speaker mount and each speaker's back disc; and the `frame` rails, posts and cross bars of the windshield, bimini side rail and tower rack. If the owner wants a region left flat, it needs its own swatch.
+- Helm cube count: 164 before 3/7 and 164 after; the model stays at its cube count because this step changes no geometry.
+- Resource Pack and Behavior Pack dependency manifests go to 0.1.157 for 3/7, because the MER images change.
+- Open question for the owner: on a Vibrant Visuals device the dash, consoles and display bezel should show soft sky and light reflections (manual test row B31). The verdict is recorded here once known.
 
 ### Painted tile registry (1/7, #664)
 

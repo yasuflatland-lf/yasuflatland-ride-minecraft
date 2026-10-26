@@ -94,6 +94,10 @@ MER_OFF = (0, 0, 255)
 # Dielectric clear coat: a near-black metal would reflect almost nothing (ADR 0163).
 MER_HULL = (0, 0, 16)
 HULL_SLOT = NAMES.index("hull")
+# The dash, consoles and frames: a smooth dielectric, slightly softer than the hull so the large flat dash
+# does not mirror like water (ADR 0166).
+MER_GLOSS = (0, 0, 24)
+GLOSS_SLOTS = tuple(NAMES.index(name) for name in ("gloss", "frame"))
 LIT_SLOTS = tuple(NAMES.index(name) for name in ("light",))
 # The mirror glass is metalness 255 and roughness 0 so Vibrant Visuals reflects the environment on it.
 # No renderer can show the live scene behind the boat, so the face tile also bakes a sky-to-horizon
@@ -1668,7 +1672,7 @@ for paint, hull_color in HULL_PAINTS.items():
     name = "sportsboat" if paint == "khaki" else f"sportsboat_{paint}"
     png(ENTITY_TEXTURES / f"{name}.png", TEXTURE_WIDTH, TEXTURE_HEIGHT, swatches(hull_color))
     png(ENTITY_TEXTURES / f"{name}_mer.png", TEXTURE_WIDTH, TEXTURE_HEIGHT,
-        cell_mer({HULL_SLOT: MER_HULL}))
+        cell_mer({HULL_SLOT: MER_HULL, **{slot: MER_GLOSS for slot in GLOSS_SLOTS}}))
     write_texture_set(name, f"{name}_mer")
 
 lit_textures("sportsboat", TEXTURE_WIDTH, TEXTURE_HEIGHT, swatches(HULL_PAINTS["khaki"]))
