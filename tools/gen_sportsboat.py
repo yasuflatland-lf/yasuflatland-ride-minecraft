@@ -91,6 +91,9 @@ NAMES = list(PALETTE)
 EMISSIVE_LIT = 255
 MER_LIT = (0, EMISSIVE_LIT, 255)
 MER_OFF = (0, 0, 255)
+# Dielectric clear coat: a near-black metal would reflect almost nothing (ADR 0163).
+MER_HULL = (0, 0, 16)
+HULL_SLOT = NAMES.index("hull")
 LIT_SLOTS = tuple(NAMES.index(name) for name in ("light",))
 # The mirror glass is metalness 255 and roughness 0 so Vibrant Visuals reflects the environment on it.
 # No renderer can show the live scene behind the boat, so the face tile also bakes a sky-to-horizon
@@ -107,6 +110,7 @@ assert len(NAMES) * 4 <= TEXTURE_WIDTH, "the palette no longer fits in the textu
 
 # Hull color of each paint, in variant order (ADR 0031). Variant 0, khaki on the SUV, is black here,
 # so a new boat is black (ADR 0051). Khaki writes sportsboat.png; the others write sportsboat_<paint>.png.
+# Each atlas <name>.png also gets <name>_mer.png and <name>.texture_set.json for the hull clear coat (ADR 0163).
 HULL_PAINTS = {
     "khaki": (20, 20, 22),
     "green": (62, 96, 56),
@@ -1526,6 +1530,9 @@ def swatches(hull_color):
 for paint, hull_color in HULL_PAINTS.items():
     name = "sportsboat" if paint == "khaki" else f"sportsboat_{paint}"
     png(ENTITY_TEXTURES / f"{name}.png", TEXTURE_WIDTH, TEXTURE_HEIGHT, swatches(hull_color))
+    png(ENTITY_TEXTURES / f"{name}_mer.png", TEXTURE_WIDTH, TEXTURE_HEIGHT,
+        cell_mer({HULL_SLOT: MER_HULL}))
+    write_texture_set(name, f"{name}_mer")
 
 lit_textures("sportsboat", TEXTURE_WIDTH, TEXTURE_HEIGHT, swatches(HULL_PAINTS["khaki"]))
 mirror_textures(TEXTURE_WIDTH, TEXTURE_HEIGHT, swatches(HULL_PAINTS["khaki"]))

@@ -16,6 +16,9 @@ import { readRgbaPng } from "../support/png";
 
 const read = (p: string) => JSON.parse(readFileSync(p, "utf8"));
 const RP = "packs/yasu_ride_rp";
+const ENTITY_TEXTURES = `${RP}/textures/entity/yasu_ride`;
+const paintAtlas = (paint: string) =>
+  paint === "khaki" ? "sportsboat" : `sportsboat_${paint}`;
 const entity = read("packs/yasu_ride_bp/entities/yasu_ride/sportsboat.se.json")[
   "minecraft:entity"
 ];
@@ -275,9 +278,7 @@ describe("sports boat Resource Pack (ADR 0051)", () => {
       const key = slots[PAINT_VARIANT[paint]]?.replace("Texture.", "") ?? "";
       const path = client.textures[key];
       expect(path, paint).toBe(
-        paint === "khaki"
-          ? "textures/entity/yasu_ride/sportsboat"
-          : `textures/entity/yasu_ride/sportsboat_${paint}`,
+        `textures/entity/yasu_ride/${paintAtlas(paint)}`,
       );
       expect(existsSync(`${RP}/${path}.png`), path).toBe(true);
     }
@@ -737,7 +738,6 @@ describe("sports boat hull planking (ADR 0161)", () => {
 });
 
 describe("sports boat PBR rear-view mirror (ADR 0159)", () => {
-  const ENTITY_TEXTURES = `${RP}/textures/entity/yasu_ride`;
   const texels = (name: string) => {
     const { width, height, pixels } = readRgbaPng(
       `${ENTITY_TEXTURES}/${name}.png`,
@@ -821,9 +821,7 @@ describe("sports boat PBR rear-view mirror (ADR 0159)", () => {
 
   it("bakes a dark-rimmed sky-to-horizon gradient into every paint for clients without PBR", () => {
     for (const paint of PAINTS) {
-      const { at } = texels(
-        paint === "khaki" ? "sportsboat" : `sportsboat_${paint}`,
-      );
+      const { at } = texels(paintAtlas(paint));
       const rows = Array.from({ length: TILE.h - 2 }, (_, i) =>
         at(TILE.u + 1, TILE.v + 1 + i),
       );
@@ -895,5 +893,72 @@ describe("sports boat engine sound (ADR 0060)", () => {
       expect(sound.volume).toBeGreaterThan(volume);
       volume = sound.volume;
     });
+  });
+});
+
+describe("sports boat gloss hull (ADR 0163)", () => {
+  it.each(PAINTS)(
+    "gives %s paint a clear coat only on the hull swatch",
+    (paint) => {
+      const name = paintAtlas(paint);
+      expect(read(`${ENTITY_TEXTURES}/${name}.texture_set.json`)).toEqual({
+        format_version: "1.16.100",
+        "minecraft:texture_set": {
+          color: name,
+          metalness_emissive_roughness: `${name}_mer`,
+        },
+      });
+      const color = readRgbaPng(`${ENTITY_TEXTURES}/${name}.png`);
+      const mer = readRgbaPng(`${ENTITY_TEXTURES}/${name}_mer.png`);
+      expect([mer.width, mer.height]).toEqual([color.width, color.height]);
+      const expected = Buffer.alloc(mer.width * mer.height * 4);
+      for (let y = 0; y < mer.height; y++) {
+        for (let x = 0; x < mer.width; x++) {
+          expected.set(
+            x < 4 && y < 4 ? [0, 0, 16, 255] : [0, 0, 255, 255],
+            (y * mer.width + x) * 4,
+          );
+        }
+      }
+      expect(Buffer.from(mer.pixels).equals(expected)).toBe(true);
+    },
+  );
+
+  it("keeps every face of each hull cube inside the glossy cell", () => {
+    type Face = { uv: [number, number]; uv_size: [number, number] };
+    type Cube = { uv: Record<string, Face> };
+    const cubes: Cube[] = geometry.bones.flatMap(
+      (bone: { cubes?: Cube[] }) => bone.cubes ?? [],
+    );
+    const bounds = ({ uv: [u, v], uv_size: [w, h] }: Face) => ({
+      left: Math.min(u, u + w),
+      right: Math.max(u, u + w),
+      top: Math.min(v, v + h),
+      bottom: Math.max(v, v + h),
+    });
+    const hull = cubes.filter((cube) =>
+      Object.values(cube.uv).some((face) => {
+        const b = bounds(face);
+        return b.left < 4 && b.right > 0 && b.top < 4 && b.bottom > 0;
+      }),
+    );
+    expect(hull.length).toBeGreaterThan(0);
+    for (const cube of hull) {
+      expect(Object.keys(cube.uv).sort()).toEqual([
+        "down",
+        "east",
+        "north",
+        "south",
+        "up",
+        "west",
+      ]);
+      for (const face of Object.values(cube.uv)) {
+        const b = bounds(face);
+        expect(b.left).toBeGreaterThanOrEqual(0);
+        expect(b.right).toBeLessThanOrEqual(4);
+        expect(b.top).toBeGreaterThanOrEqual(0);
+        expect(b.bottom).toBeLessThanOrEqual(4);
+      }
+    }
   });
 });

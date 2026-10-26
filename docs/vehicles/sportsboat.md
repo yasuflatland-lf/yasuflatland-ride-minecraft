@@ -39,4 +39,4 @@ The boat seats 4. Aim at a free seat to choose it; the front-right seat drives. 
 - **Shores.** It cannot drive forward onto land: shores stop it. On land, whether it was placed there, pushed there by a piston, or left there when the liquid drained, it can only reverse, slowly, so you can back it into the liquid. It cannot climb a block in either direction
 - **Ramming.** It damages mobs it hits at speed. The boat and its seated riders take no collision damage
 - **Headlights.** Two beams light the water up to about 60 blocks ahead
-- **Paint.** The hull starts black. Each of the 16 dyes repaints it in that dye's color, and brown dye turns it back to black; black or brown dye on a black hull does nothing and keeps the dye; each repaint uses one dye
+- **Paint.** The hull starts black and its paint has a glossy finish in Vibrant Visuals. Each of the 16 dyes repaints it in that dye's color, and brown dye turns it back to black; black or brown dye on a black hull does nothing and keeps the dye; each repaint uses one dye
