@@ -18,6 +18,10 @@ import { readRgbaPng } from "../support/png";
 import { assertOneAxis, multipleAxes } from "./oneAxis";
 
 const read = (p: string) => JSON.parse(readFileSync(p, "utf8"));
+const EXTENSION_CUBES = 3;
+const POD_CUBES = 32;
+const LEVER_CUBES = 8;
+const THROTTLE_CUBES = EXTENSION_CUBES + POD_CUBES + LEVER_CUBES;
 const RP = "packs/yasu_ride_rp";
 const ENTITY_TEXTURES = `${RP}/textures/entity/yasu_ride`;
 const paintAtlas = (paint: string) =>
@@ -884,7 +888,7 @@ describe("sports boat hull planking (ADR 0161)", () => {
           (cube.rotation ?? []).filter((angle) => angle !== 0).length,
         ).toBeLessThanOrEqual(1);
       }
-      expect(cubes).toHaveLength(1334);
+      expect(cubes).toHaveLength(1334 + THROTTLE_CUBES);
     });
   });
 
@@ -1301,7 +1305,13 @@ describe("sports boat hull planking (ADR 0161)", () => {
           near(rotate(basis, cube.rotation ?? []), expected, 0.00001);
         }
       });
-      const assemblies = { wheel };
+      const assemblies = {
+        wheel,
+        throttle_lever: body.slice(
+          start + 273 + EXTENSION_CUBES + POD_CUBES,
+          start + 273 + THROTTLE_CUBES,
+        ),
+      };
       expect(() => assertOneAxis(cubes, assemblies)).not.toThrow();
       expect(wheel.filter(multipleAxes)).toHaveLength(140);
       const centroid = (points: number[][]) =>
@@ -1660,6 +1670,195 @@ print(json.dumps({name: {"uv": uv, "size": size}
       ]);
     };
 
+    describe("sports boat throttle (ADR 0166, #684)", () => {
+      const throttle = body.slice(start + 273, start + 273 + THROTTLE_CUBES);
+      const extension = throttle.slice(0, EXTENSION_CUBES);
+      const pod = throttle.slice(EXTENSION_CUBES, EXTENSION_CUBES + POD_CUBES);
+      const lever = throttle.slice(EXTENSION_CUBES + POD_CUBES);
+      const gap = (a: Cube, b: Cube) => {
+        const other = bounds([b]);
+        return bounds([a]).map((range, axis) =>
+          Math.max(
+            0,
+            (range[0] ?? 0) - (other[axis]?.[1] ?? 0),
+            (other[axis]?.[0] ?? 0) - (range[1] ?? 0),
+          ),
+        );
+      };
+      const separated = (a: Cube, b: Cube) => {
+        const other = bounds([b]);
+        return bounds([a]).some(
+          (range, axis) =>
+            (range[1] ?? 0) <= (other[axis]?.[0] ?? 0) + 0.001 ||
+            (other[axis]?.[1] ?? 0) <= (range[0] ?? 0) + 0.001,
+        );
+      };
+
+      it("supports the old footprint under the dial and reaches 4.2 px toward the driver with a chamfer", () => {
+        expect(extension).toHaveLength(EXTENSION_CUBES);
+        const b = bounds(extension);
+        expect(b[0]?.[0]).toBeCloseTo(-15.4);
+        expect(b[0]?.[1]).toBeCloseTo(-11.4);
+        expect(b[2]?.[0]).toBeCloseTo(-9);
+        expect(b[2]?.[1]).toBeCloseTo(-4.8);
+        expect((b[2]?.[1] ?? 0) + 9).toBeCloseTo(4.2);
+        expect(b[1]?.[0]).toBeCloseTo(F);
+        expect(b[1]?.[1]).toBeCloseTo(bounds(controller)[1]?.[0] ?? 0);
+        for (const z of [-5, -7, -9]) {
+          expect(
+            extension.some((cube) => {
+              const box = bounds([cube]);
+              return (
+                (box[2]?.[0] ?? 0) <= z &&
+                (box[2]?.[1] ?? 0) >= z &&
+                Math.abs((box[1]?.[1] ?? 0) - F - 6.5) < 0.001
+              );
+            }),
+          ).toBe(true);
+        }
+        expect(extension[2]?.rotation).toEqual([-45, 0, 0]);
+        const diagonal = corners(extension[2] as Cube);
+        for (const [y, z] of [
+          [F, -5.8],
+          [F + 1, -4.8],
+        ]) {
+          expect(
+            diagonal.some(
+              (p) =>
+                Math.abs((p[1] ?? 0) - (y ?? 0)) < 0.001 &&
+                Math.abs((p[2] ?? 0) - (z ?? 0)) < 0.001,
+            ),
+          ).toBe(true);
+        }
+      });
+
+      it("builds the dome from four solid 16-sided rings", () => {
+        expect(pod).toHaveLength(POD_CUBES);
+        for (const [i, radius, bottom, top, slot] of [
+          [0, 1.3, 3.4, 3.7, 22],
+          [1, 1.3, 3.7, 4.5, 3],
+          [2, 1.15, 4.5, 5, 3],
+          [3, 1, 5, 5.3, 3],
+        ]) {
+          const ring = pod.slice((i ?? 0) * 8, (i ?? 0) * 8 + 8);
+          expect(ring).toHaveLength(8);
+          const b = bounds(ring);
+          expect(b[1]?.[0]).toBeCloseTo(F + (bottom ?? 0));
+          expect(b[1]?.[1]).toBeCloseTo(F + (top ?? 0));
+          ring.forEach((cube, k) => {
+            expect(swatch(slot ?? 0)(cube)).toBe(true);
+            expect(cube.rotation).toEqual([0, k * 22.5, 0]);
+            expect(cube.size[2]).toBeCloseTo(2 * (radius ?? 0));
+            expect(cube.pivot?.[0]).toBeCloseTo(-12.7);
+            expect(cube.pivot?.[1]).toBeCloseTo(F + (bottom ?? 0));
+            expect(cube.pivot?.[2]).toBeCloseTo(-3.6);
+          });
+        }
+      });
+
+      it("clears the wheel, dial, switch, display, seats and walk-through", () => {
+        const seats = body
+          .slice(0, start)
+          .filter((cube) => swatch(7)(cube) || swatch(8)(cube));
+        expect(seats.length).toBeGreaterThan(0);
+        const obstacles = [...helm.slice(8, 11), ...helm.slice(13), ...seats];
+        for (const part of throttle) {
+          expect(bounds([part])[0]?.[1]).toBeLessThanOrEqual(-3.5);
+          for (const obstacle of obstacles) {
+            expect(
+              separated(part, obstacle),
+              JSON.stringify({ part, obstacle }),
+            ).toBe(true);
+          }
+        }
+      });
+
+      it("connects every part to the console through contacts within 0.1 px", () => {
+        const connected = [helm[0] as Cube];
+        const remaining = new Set(throttle);
+        let changed = true;
+        while (changed) {
+          changed = false;
+          for (const part of remaining) {
+            if (
+              connected.some(
+                (other) => Math.hypot(...gap(part, other)) <= 0.101,
+              )
+            ) {
+              connected.push(part);
+              remaining.delete(part);
+              changed = true;
+            }
+          }
+        }
+        expect([...remaining]).toEqual([]);
+      });
+
+      it("registers exactly the yawed and pitched lever and raises its 5.6 px bow-facing grip", () => {
+        expect(lever).toHaveLength(LEVER_CUBES);
+        expect(swatch(21)(lever[0] as Cube)).toBe(true);
+        const assemblies = {
+          wheel: helm.slice(13, 159),
+          throttle_lever: lever,
+        };
+        expect(() => assertOneAxis(cubes, assemblies)).not.toThrow();
+        expect(lever.filter(multipleAxes)).toHaveLength(LEVER_CUBES);
+        expect(cubes.filter(multipleAxes)).toEqual(
+          expect.arrayContaining([
+            ...assemblies.wheel.filter(multipleAxes),
+            ...lever,
+          ]),
+        );
+        expect(cubes.filter(multipleAxes)).toHaveLength(140 + LEVER_CUBES);
+        const generator = readFileSync("tools/gen_sportsboat.py", "utf8");
+        expect(generator).toContain(
+          '"throttle_lever": {"owner": "sportsboat", "cubes": 8}',
+        );
+        const pivot: [number, number, number] = [-12.3, F + 5.7, -3.3];
+        const endpoint = (cube: Cube, z: number) =>
+          rotate(
+            [
+              (cube.origin[0] ?? 0) + (cube.size[0] ?? 0) / 2 - pivot[0],
+              (cube.origin[1] ?? 0) + (cube.size[1] ?? 0) / 2 - pivot[1],
+              z - (pivot[2] ?? 0),
+            ],
+            cube.rotation ?? [],
+          ).map((v, i) => v + (pivot[i] ?? 0));
+        const grip = lever[5] as Cube;
+        const bar = lever[1] as Cube;
+        const far = endpoint(grip, grip.origin[2] ?? 0);
+        const near = endpoint(bar, (bar.origin[2] ?? 0) + (bar.size[2] ?? 0));
+        expect(far[1]).toBeGreaterThan(pivot[1] ?? 0);
+        expect(far[2]).toBeLessThan(pivot[2] ?? 0);
+        const length = Math.hypot(...far.map((v, i) => v - (near[i] ?? 0)));
+        expect(length).toBeGreaterThanOrEqual(5);
+        expect(length).toBeLessThanOrEqual(6);
+        expect(length).toBeCloseTo(5.6, 3);
+        for (const basis of [
+          [1, 0, 0],
+          [0, 1, 0],
+          [0, 0, 1],
+        ]) {
+          const expected = rotate(rotate(basis, [0, -6, 0]), [-30, 0, 0]);
+          rotate(basis, bar.rotation ?? []).forEach((v, i) => {
+            expect(v).toBeCloseTo(expected[i] ?? 0, 4);
+          });
+        }
+      });
+
+      it("uses swatches on every face without a new painted tile", () => {
+        expect(Object.keys(tiles).sort()).toEqual(
+          ["dial_pad", "display", "mirror", "quilt", "switch_plate"].sort(),
+        );
+        for (const part of throttle) {
+          for (const face of Object.values(part.uv)) {
+            expect(face.uv[1]).toBe(1);
+            expect(face.uv_size).toEqual([2, 2]);
+          }
+        }
+      });
+    });
+
     it("uses a bounded, disjoint dial tile on the pad and five raised button plates", () => {
       expect(tiles).not.toHaveProperty("control_pad");
       expect(plates).toHaveLength(15);
@@ -1895,7 +2094,7 @@ print(json.dumps({name: {"uv": uv, "size": size}
 
     it("counts the console-through-dial helm at 273 cubes as recorded in ADR 0166", () => {
       expect(controller).toHaveLength(111);
-      const next = body[start + 273];
+      const next = body[start + 273 + THROTTLE_CUBES];
       expect(next).toBeDefined();
       expect(swatch(4)(next as Cube)).toBe(true);
       const adr = readFileSync(
@@ -1985,8 +2184,8 @@ print(json.dumps({name: {"uv": uv, "size": size}
       }
     });
 
-    it("does not grow beyond 1334 cubes (regression guard)", () => {
-      expect(cubes.length).toBeLessThanOrEqual(1334);
+    it("does not grow beyond the documented throttle budget (regression guard)", () => {
+      expect(cubes.length).toBeLessThanOrEqual(1334 + THROTTLE_CUBES);
     });
   });
 });

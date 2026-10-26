@@ -134,8 +134,22 @@ Helm cube count: **174 before and 273 after**. The console-through-throttle coun
 
 Open question for the owner (B33): on PC and mobile, are the flat shield, ribbed knob, bright silver rim, five distinct buttons and generic icons readable, with no floating throttle remnants or clipping? B34 now checks the display above the cleared dash, right of the wheel. **Verdict: unverified, awaiting the owner's device check.**
 
+### Throttle lever on an extended console (#684)
+
+Extend the black `gloss` right console to x 11.4..15.4, z 4.8..9.0, y F..F+6.5 in the build frame (+z bow, +x right). It reaches 4.2 px farther toward the driver and supports the dial from below, flush with its base. Two solid backing boxes and a 0.7 px thick panel rotated +45 degrees about x close the 1 px chamfered lower front edge, from (y F, z 5.8) to (y F+1, z 4.8). The seat, wheel, walk-through, display, switch plate and dial geometry stay unchanged.
+
+A dome pod on the driver-facing face has four solid 16-sided rings (eight diametral panels each), centred at x 12.7, z 3.6. The lighter `button` base spans F+3.4..F+3.7 at radius 1.3; the `gloss` body spans F+3.7..F+4.5 at radius 1.3, shoulder F+4.5..F+5.0 at radius 1.15 and cap F+5.0..F+5.3 at radius 1.0. The body overlaps the console face by 0.1 px. The shared horizontal-ring helper retains the dial's exact cylinder permutation and output.
+
+The eight-cube `throttle_lever` assembly uses yaw 6 then pitch 30 about x through P = [12.3, F+5.7, 3.3]. A chrome pivot block supports a matte black bar with overlapping boxes forming rounded edges, a bright inner chrome strip and a thick grip with a stepped glossy end. The bar and grip extend 5.6 px along their local axis; the grip rises toward the bow. This uses ADR 0167's existing composition order `Rz(-rz) * Ry(ry) * Rx(-rx)`, with the tilt multiplied on the left, and the same composed y-angle reversal before `turn_around` as the wheel. Confirmation on device is pending.
+
+The sports boat assembly table now holds two assemblies: `wheel` (146 cubes) and `throttle_lever` (8). Compound rotations are restricted to their declared members; all extension and pod panels retain one rotation axis at most. No new painted tile, atlas change, gate arc, lettering, logo or badge is added.
+
+Cube counts: 3 extension + 32 pod + 8 lever = **43 new cubes**. The helm goes from **273 to 316 (273 + 43)** and the whole model from **1334 to 1377 (1334 + 43)**. The throttle follows the dial so the original 273 helm indexes remain stable. Resource Pack header/module and Behavior Pack resource dependency advance from 0.1.164 to **0.1.165**. Regenerate the model and previews; textures remain unchanged.
+
+Open question for the owner (B35): from the driver's seat on PC and mobile, does the throttle sit on the extended black console right of the seat, with a dome pod, chrome pivot and grip raised toward the bow, no text or logos, no clipping into the wheel, dial or seat, and nothing floating? **Verdict: unverified, awaiting the owner's device check.**
+
 ## Consequences
 
-- 5/7 tilts the wheel by one helper call instead of hand-composing angles, and the exception stays limited to the wheel.
+- 5/7 tilts the wheel by one helper call instead of hand-composing angles. ADR 0167 replaces its historical one-assembly limit; #684 adds the registered throttle lever.
 - A cube with two rotation axes is harder to edit by hand and is only trusted after the device check; the helper is the only way the series adds one.
 - Later steps of the series edit this ADR in place while it stays Proposed.
