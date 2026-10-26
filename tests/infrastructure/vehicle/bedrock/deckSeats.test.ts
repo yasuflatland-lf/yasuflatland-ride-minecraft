@@ -30,6 +30,28 @@ it("resolves a rider's deck seat to its vehicle and seat index", () => {
   expect(deckSeatRide(player)).toBeUndefined();
 });
 
+it("resolves no vehicle for a rider of a deck seat that lost its owner", () => {
+  const { boat, car, dimension, entities, entity } = fixture();
+  const seat = dimension.spawnEntity(DECK_SEAT_TYPE, { x: 0, y: 0, z: 0 });
+  car.setDynamicProperty(DECK_SEATS_PROPERTY, JSON.stringify([seat.id]));
+  const player = {
+    getComponent: () => ({ entityRidingOn: seat }),
+  } as unknown as import("@minecraft/server").Player;
+  // A seat left over from a removed vehicle must not give its rider a vehicle's controls.
+  // The lookup would find the car for any id, so only the owner check can refuse.
+  game.getEntity.mockReturnValue(car);
+  expect(deckSeatRide(player)).toBeUndefined();
+  game.getEntity.mockImplementation((id: string) => entities.get(id));
+  const cow = entity("cow", "minecraft:cow");
+  cow.setDynamicProperty(DECK_SEATS_PROPERTY, JSON.stringify([seat.id]));
+  seat.setDynamicProperty(DECK_SEAT_OF_PROPERTY, cow.id);
+  expect(deckSeatRide(player)).toBeUndefined();
+  seat.setDynamicProperty(DECK_SEAT_OF_PROPERTY, car.id);
+  expect(deckSeatRide(player)).toEqual({ vehicle: car, seat: 0 });
+  boat.isValid = false;
+  expect(deckSeatRide(player)).toBeUndefined();
+});
+
 const game = vi.hoisted(() => ({ getEntity: vi.fn() }));
 vi.mock("@minecraft/server", () => ({ world: game }));
 
@@ -96,6 +118,7 @@ function fixture() {
     boat,
     car: boat as unknown as Entity,
     entities,
+    entity,
     dimension,
     boarded,
     blocks,
