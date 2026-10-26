@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { PlaceTable } from "../../../src/application/camp/placeTable";
 import type { TableWorld } from "../../../src/application/camp/ports/table";
+import { TABLE_SPEC } from "../../../src/domain/camp/spec";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 
 const dimensionId = asDimensionId("overworld");
@@ -77,14 +78,18 @@ describe("placing a camp table", () => {
 
   it("refuses when a vehicle occupies the space above either cell", () => {
     const world = fakeWorld();
-    vi.mocked(world.isVehicleSpace).mockImplementation((_d, at) => at.x === 5);
+    vi.mocked(world.isVehicleSpace).mockImplementation(
+      (_d, at) => at.x === 5 && at.y > cmd.blockLocation.y,
+    );
     expect(new PlaceTable(world).execute(cmd)).toBe(false);
     expect(world.spawnTable).not.toHaveBeenCalled();
   });
 
   it("refuses when either ground cell is already one of our blocks", () => {
     const world = fakeWorld();
-    vi.mocked(world.isOwnBlock).mockImplementation((_d, at) => at.x === 5);
+    vi.mocked(world.isOwnBlock).mockImplementation(
+      (_d, at) => at.x === 5 && at.y === cmd.blockLocation.y,
+    );
     expect(new PlaceTable(world).execute(cmd)).toBe(false);
     expect(world.consumeItem).not.toHaveBeenCalled();
   });
@@ -93,8 +98,27 @@ describe("placing a camp table", () => {
     const world = fakeWorld();
     vi.mocked(world.hasTableNear).mockReturnValue(true);
     expect(new PlaceTable(world).execute(cmd)).toBe(false);
+    expect(world.hasTableNear).toHaveBeenCalledWith(dimensionId, {
+      x: 5,
+      y: 8,
+      z: 2.5,
+    });
     expect(world.consumeItem).not.toHaveBeenCalled();
     expect(world.spawnTable).not.toHaveBeenCalled();
+  });
+
+  it("refuses when only the topmost cell of the clearance column is blocked", () => {
+    const world = fakeWorld();
+    const top = cmd.blockLocation.y + TABLE_SPEC.clearance;
+    vi.mocked(world.isAir).mockImplementation((_d, at) => at.y !== top);
+    expect(new PlaceTable(world).execute(cmd)).toBe(false);
+    expect(world.spawnTable).not.toHaveBeenCalled();
+  });
+
+  it("takes the item from the slot the player used", () => {
+    const world = fakeWorld();
+    new PlaceTable(world).execute({ ...cmd, slot: 3 });
+    expect(world.consumeItem).toHaveBeenCalledWith(playerId, 3);
   });
 
   it("spawns nothing when the item cannot be taken from the slot", () => {
