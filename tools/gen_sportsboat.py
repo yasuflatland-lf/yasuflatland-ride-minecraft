@@ -1337,20 +1337,43 @@ for x0, x1, top in [(15.8, 16.95, skirt_top - 0.65),
 G = B_REAR + 1.4  # z of the grille face
 under = roof_top(G + 3) - B_THICK
 cy = under - 1.6
+# Round sections of one speaker, back to front: (name, radius, z0, z1, swatch), z relative to G.
+SPEAKER_SECTIONS = (
+    ("back", 1.6, -0.05, 0.0, "gloss"),  # behind the grille
+    ("hub", 0.45, -0.25, -0.05, "jet"),
+    ("bezel", 1.9, 0.0, 0.5, "gunmetal"),
+    ("ring", 1.95, 0.5, 0.7, "ring"),  # blue LEDs
+    ("pod_0", 1.9, 0.7, 2.4, "gunmetal"),
+    ("pod_1", 1.6, 2.4, 3.6, "gunmetal"),
+    ("pod_2", 1.15, 3.6, 4.5, "gunmetal"),
+    ("pod_3", 0.6, 4.5, 5.0, "gunmetal"),
+)
+SPEAKER_SPOKES = {"angles": range(0, 360, 60), "offsets": (-0.2, 0.2), "radius": 1.05}
+# Mount box: x half-width, y from cy + 1.4 up to under, z from G + 1.5 to G + 3.0.
+SPEAKER_MOUNT = {"half_x": 0.5, "dy": 1.4, "z0": 1.5, "z1": 3.0, "swatch": "gloss"}
+
+
+def speaker(sx):
+    """Cubes of one speaker centred on x = sx. The spokes sit between the back disc and the hub."""
+    cubes = []
+    for k, (_, r, z0, z1, swatch) in enumerate(SPEAKER_SECTIONS):
+        cubes += disc(sx, cy, r, G + z0, G + z1, swatch)
+        if k == 0:
+            for ang in SPEAKER_SPOKES["angles"]:
+                ca, sa = math.cos(math.radians(ang)), math.sin(math.radians(ang))
+                for off in SPEAKER_SPOKES["offsets"]:
+                    px = sx + SPEAKER_SPOKES["radius"] * ca - off * sa
+                    py = cy + SPEAKER_SPOKES["radius"] * sa + off * ca
+                    cubes.append(box(px - 0.55, py - 0.08, G - 0.15, px + 0.55, py + 0.08, G - 0.05,
+                                     "jet", pivot=[px, py, G - 0.1], rotation=[0, 0, ang]))
+    m = SPEAKER_MOUNT
+    cubes.append(box(sx - m["half_x"], cy + m["dy"], G + m["z0"], sx + m["half_x"], under,
+                     G + m["z1"], m["swatch"]))
+    return cubes
+
+
 for sx in (-B_HALF / 2, B_HALF / 2):
-    body += disc(sx, cy, 1.6, G - 0.05, G, "gloss")  # behind the grille
-    for ang in range(0, 360, 60):
-        ca, sa = math.cos(math.radians(ang)), math.sin(math.radians(ang))
-        for off in (-0.2, 0.2):
-            px, py = sx + 1.05 * ca - off * sa, cy + 1.05 * sa + off * ca
-            body.append(box(px - 0.55, py - 0.08, G - 0.15, px + 0.55, py + 0.08, G - 0.05, "jet",
-                            pivot=[px, py, G - 0.1], rotation=[0, 0, ang]))
-    body += disc(sx, cy, 0.45, G - 0.25, G - 0.05, "jet")  # hub
-    body += disc(sx, cy, 1.9, G, G + 0.5, "gunmetal")  # bezel
-    body += disc(sx, cy, 1.95, G + 0.5, G + 0.7, "ring")  # LED ring
-    for r, z0, z1 in ((1.9, 0.7, 2.4), (1.6, 2.4, 3.6), (1.15, 3.6, 4.5), (0.6, 4.5, 5.0)):
-        body += disc(sx, cy, r, G + z0, G + z1, "gunmetal")
-    body.append(box(sx - 0.5, cy + 1.4, G + 1.5, sx + 0.5, under, G + 3.0, "gloss"))  # mount
+    body += speaker(sx)
 # Stainless bow rails on the foredeck
 for z0 in (34.0, 38.0, 42.0):
     body += pair(beam_plan(z0 + 0.4) - 1.6, sheer(z0), z0,
