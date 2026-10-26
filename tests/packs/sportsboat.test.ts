@@ -610,12 +610,17 @@ describe("sports boat hull planking (ADR 0161)", () => {
       }
     });
 
-    it("keeps only the 40 rolled-edge cubes plus three top panels and one hatch, without ribs", () => {
-      expect(canvas).toHaveLength(43);
-      const rolledEdges = canvas.filter((cube) => !panels.includes(cube));
-      expect(rolledEdges).toHaveLength(40);
-      for (const edge of rolledEdges) {
+    // The main skirts are the two 0.8 px canvas cubes turned about z.
+    const skirts = canvas.filter((cube) => cube.rotation?.[2]);
+    const rolled = canvas.filter(
+      (cube) => !panels.includes(cube) && !skirts.includes(cube),
+    );
+
+    it("keeps the 24 rolled-edge cubes outside the main skirt's span, without ribs", () => {
+      expect(rolled).toHaveLength(24);
+      for (const edge of rolled) {
         const z = -(edge.origin[2] + edge.size[2] / 2);
+        expect(z <= -3 || z > 6).toBe(true);
         const [z0, z1, y0, y1] =
           expected.find((panel) => z <= panel[1]) ?? expected[2];
         const surface = y0 + ((y1 - y0) * (z - z0)) / (z1 - z0);
@@ -627,8 +632,81 @@ describe("sports boat hull planking (ADR 0161)", () => {
       expect(
         bone("body").filter((cube) => swatch(4)(cube) && cube.origin[1] > 33),
       ).toHaveLength(0);
-      expect(canvas.length + hatches.length).toBe(44);
-      expect(cubes).toHaveLength(1135);
+    });
+
+    describe("main side skirts (ADR 0164, roof series 2/3)", () => {
+      const dx = 3;
+      const drop = 2.6;
+      const angle = (Math.atan2(drop, dx) * 180) / Math.PI;
+      // The game turns z the other way from the right-handed one (ADR 0058), and the shipped
+      // geometry is the build frame turned around, so the written rz is right-handed in the
+      // build frame; build x = -x, build z = -z.
+      const corners = (cube: Cube) => {
+        const pivot = cube.pivot ?? [0, 0, 0];
+        const t = (-(cube.rotation?.[2] ?? 0) * Math.PI) / 180;
+        return [0, 1].flatMap((i) =>
+          [0, 1].map((j) => {
+            const x = cube.origin[0] + i * cube.size[0] - pivot[0];
+            const y = cube.origin[1] + j * cube.size[1] - pivot[1];
+            return [
+              -(pivot[0] + x * Math.cos(t) - y * Math.sin(t)),
+              pivot[1] + x * Math.sin(t) + y * Math.cos(t),
+            ];
+          }),
+        );
+      };
+      const pieces = [...skirts].sort((a, b) => b.origin[0] - a.origin[0]);
+
+      it("is one 0.8 px piece per side, turned about z only, with opposite signs and mirrored pivots", () => {
+        expect(skirts).toHaveLength(2);
+        const [left, right] = pieces as [Cube, Cube];
+        for (const cube of skirts) {
+          expect(cube.rotation?.[0] ?? 0).toBe(0);
+          expect(cube.rotation?.[1] ?? 0).toBe(0);
+          expect(cube.size[1]).toBeCloseTo(0.8, 3);
+          expect(cube.size[2]).toBe(9);
+          expect(Math.abs(cube.rotation?.[2] ?? 0)).toBeCloseTo(angle, 3);
+        }
+        expect(left.rotation?.[2]).toBeCloseTo(-(right.rotation?.[2] ?? 0), 4);
+        expect(left.pivot?.[0]).toBeCloseTo(-(right.pivot?.[0] ?? 0), 4);
+        expect(left.pivot?.[1]).toBeCloseTo(right.pivot?.[1] ?? 0, 4);
+        expect(Math.abs(left.pivot?.[0] ?? 0)).toBe(16);
+        expect(left.pivot?.[2]).toBeCloseTo(-1.5, 4);
+      });
+
+      it("flares outward and down, the outer edge 2.6 px below the inner edge at x 19", () => {
+        for (const cube of skirts) {
+          const sign = Math.sign(cube.pivot?.[0] ?? 0);
+          const top = corners(cube).filter((_, i) => i % 2 === 1);
+          const inner = top.find(
+            (c) => Math.abs(Math.abs(c[0] ?? 0) - 16) < 1e-6,
+          );
+          const outer = top.find((c) => Math.abs(c[0] ?? 0) > 18);
+          expect(inner).toBeDefined();
+          expect(outer).toBeDefined();
+          expect(Math.sign(outer?.[0] ?? 0)).toBe(-sign);
+          expect(Math.abs(outer?.[0] ?? 0)).toBeCloseTo(16 + dx, 1);
+          expect((inner?.[1] ?? 0) - (outer?.[1] ?? 0)).toBeCloseTo(drop, 1);
+        }
+      });
+
+      it("hides the inner top edge inside the 2 px panel at both ends of the piece", () => {
+        for (const cube of skirts) {
+          const inner = (cube.pivot?.[1] ?? 0) - 0;
+          for (const z of [-3, 6]) {
+            const surface = dome(z);
+            expect(inner).toBeLessThanOrEqual(surface);
+            expect(inner).toBeGreaterThanOrEqual(surface - 1.6);
+          }
+        }
+      });
+    });
+
+    it("builds the Bimini block from at most 4 + 2 + the slice edges left outside z -3..6", () => {
+      expect(
+        skirts.length + rolled.length + panels.length + hatches.length,
+      ).toBe(30);
+      expect(cubes).toHaveLength(1121);
     });
   });
 
