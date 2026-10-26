@@ -173,6 +173,20 @@ def pair(x0, y0, z0, x1, y1, z1, color, **extra):
     return [box(x0, y0, z0, x1, y1, z1, color, **extra), box(-x1, y0, z0, -x0, y1, z1, color, **left)]
 
 
+@functools.cache
+def cube_tilt():
+    spec = importlib.util.spec_from_file_location("cube_tilt", Path(__file__).with_name("cube_tilt.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+# Assemblies that may carry a cube turned about two axes, and the helper that tilts a whole assembly
+# (ADR 0166). Everything else keeps one rotation axis per cube (ADR 0009).
+ONE_AXIS_EXCEPTION = cube_tilt().ONE_AXIS_EXCEPTION
+tilt_assembly = cube_tilt().tilt_assembly
+
+
 def disc(cx, cy, r, z0, z1, color):
     """A round section along z: a square and the same square turned 45 degrees."""
     return [box(cx - r, cy - r, z0, cx + r, cy + r, z1, color, pivot=[cx, cy, z0], rotation=[0, 0, rot])
