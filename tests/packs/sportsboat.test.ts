@@ -651,8 +651,88 @@ describe("sports boat hull planking (ADR 0161)", () => {
     ).toBe(5);
   });
 
-  it(`stays within the 1500-cube cap (${cubes.length} cubes)`, () => {
-    expect(cubes.length).toBeLessThanOrEqual(1500);
+  describe("bow inner outline (ADR 0162)", () => {
+    const LOUNGE_BASE = 13.2;
+
+    it("keeps the piping inner V within 0.15 px of the inset plan and never wider toward the bow", () => {
+      const piping = bone("body").filter(
+        (cube) =>
+          swatch(8)(cube) &&
+          Math.abs(cube.origin[1] - LOUNGE_BASE) < 1e-4 &&
+          Math.abs(cube.size[1] - 1.1) < 1e-4,
+      );
+      expect(piping).toHaveLength(18);
+      for (const side of [-1, 1]) {
+        let previous = Number.POSITIVE_INFINITY;
+        for (let z = 18.25; z <= 39.5; z += 0.25) {
+          const inner = Math.min(
+            ...piping.flatMap((cube) => {
+              const hit = interval(
+                cube,
+                [0, LOUNGE_BASE + 0.5, -z],
+                [side, 0, 0],
+              );
+              const near = hit?.[0];
+              return near !== undefined && near >= 0 ? [near] : [];
+            }),
+          );
+          expect(
+            Math.abs(inner - (lerp(STATIONS, z) - 7.5)),
+            `${side},${z}`,
+          ).toBeLessThanOrEqual(0.15);
+          expect(inner, `${side},${z}`).toBeLessThanOrEqual(previous + 1e-6);
+          previous = inner;
+        }
+      }
+    });
+
+    it("keeps every bow wall at DECK_BOW except the chord-limited stem segment", () => {
+      const starts = [18, 20, 23, 26, 29, 32, 34, 36, 38];
+      const walls = bone("body").filter((cube) => {
+        const pivot = cube.pivot;
+        return (
+          isHull(cube) &&
+          pivot !== undefined &&
+          pivot[1] === 11 &&
+          -pivot[2] >= 18 &&
+          -pivot[2] < 40 &&
+          cube.size[1] > 5
+        );
+      });
+      expect(walls).toHaveLength(18);
+      for (const start of starts) {
+        const segment = walls.filter(
+          (cube) => Math.round(-(cube.pivot?.[2] ?? 0)) === start,
+        );
+        expect(segment, `segment starting at ${start}`).toHaveLength(2);
+        for (const wall of segment) {
+          expect(wall.origin[1]).toBe(start === 38 ? 12 : 11);
+          expect(wall.size[0]).toBeGreaterThanOrEqual(0.05);
+        }
+      }
+    });
+
+    it("turns every open-bow interior and bow-rail cube about y only", () => {
+      // Glass and its frame retain their x rake under the windshield contract (ADR 0158).
+      const bow = bone("body").filter((cube) => {
+        const z = -(cube.pivot?.[2] ?? cube.origin[2] + cube.size[2] / 2);
+        return (
+          z >= 18 &&
+          z <= 43 &&
+          cube.origin[1] >= 11 &&
+          [0, 7, 8, 9, 10, 16].some((index) => swatch(index)(cube))
+        );
+      });
+      expect(bow.length).toBeGreaterThan(100);
+      for (const cube of bow) {
+        expect(cube.rotation?.[0] ?? 0).toBe(0);
+        expect(cube.rotation?.[2] ?? 0).toBe(0);
+      }
+    });
+
+    it("does not grow beyond 1166 cubes (regression guard)", () => {
+      expect(cubes.length).toBeLessThanOrEqual(1166);
+    });
   });
 });
 

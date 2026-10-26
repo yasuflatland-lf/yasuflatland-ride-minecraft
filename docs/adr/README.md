@@ -54,7 +54,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0048](0048-mutation-testing-and-unused-code-checks.md) | Mutation testing with Stryker, and unused code checks with knip | Extended by 0088 |
 | [0049](0049-pack-icons-rendered-from-model.md) | Render pack icons from the hovering SUV model | Accepted |
 | [0050](0050-vehicle-kinds-and-per-kind-profiles.md) | Vehicle kinds and per-kind profiles | Superseded in part by 0055; extended by 0120, 0136 (Proposed), and 0139 (Proposed) |
-| [0051](0051-sports-boat.md) | Sports boat | Superseded in part by 0066, 0080, and 0150 (Proposed); extended by 0058, 0063, 0089, 0120, 0158 (Proposed), 0159 (Proposed), and 0161 (Proposed) |
+| [0051](0051-sports-boat.md) | Sports boat | Superseded in part by 0066, 0080, and 0150 (Proposed); extended by 0058, 0063, 0089, 0120, 0158 (Proposed), 0159 (Proposed), 0161 (Proposed), and 0162 (Proposed) |
 | [0052](0052-retry-camera-switches-and-break-seat-ties-low.md) | Retry camera switches in both directions, and break seat ties toward the lower index | Superseded in part by 0117 |
 | [0053](0053-estimate-buoyant-boat-water-drag.md) | Estimate the buoyant boat's water drag | Accepted |
 | [0054](0054-shard-in-game-tests-in-ci.md) | Shard the in-game tests across four CI jobs and run model:check beside the unit tests | Accepted |
@@ -161,7 +161,8 @@ This directory records design decisions and the reasons behind them. The format 
 | [0157](0157-an-aluminium-rimmed-louvred-camper-vent-lid.md) | An aluminium-rimmed louvred camper vent lid | Proposed |
 | [0158](0158-a-slanted-pane-sports-boat-windshield.md) | A slanted-pane sports boat windshield | Proposed; extended by 0161 (Proposed) |
 | [0159](0159-a-pbr-rear-view-mirror-on-the-sports-boat.md) | A PBR rear-view mirror on the sports boat | Proposed |
-| [0161](0161-smooth-sports-boat-hull-planking.md) | Smooth sports boat hull planking | Proposed |
+| [0161](0161-smooth-sports-boat-hull-planking.md) | Smooth sports boat hull planking | Proposed; extended by 0162 (Proposed) |
+| [0162](0162-smooth-the-sports-boat-bows-inner-outline.md) | Smooth the sports boat bow's inner outline | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 

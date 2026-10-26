@@ -82,7 +82,7 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 
 ## Sports boat hull (planking and gloss)
 
-Run H1-H4 on PC and mobile, with Vibrant Visuals on and off, after a Resource Pack restart (0015, 0062). Check the y-turned bow panels against the preview as part of H2 (0161). Known residual, not a failure: from the side the keel profile steps in 2 px plank ends where the keel rises, at the stem, along the bow keel, and along the stern keel rise (z -48 to -39 in build coordinates).
+Run H1-H6 on PC and mobile, with Vibrant Visuals on and off, after a Resource Pack restart (0015, 0062). Check the y-turned bow panels against the preview as part of H2 (0161). Known residual, not a failure: from the side the keel profile steps in 2 px plank ends where the keel rises, at the stem, along the bow keel, and along the stern keel rise (z -48 to -39 in build coordinates).
 
 | # | Steps | Pass condition | PC | Mobile |
 |---|---|---|---|---|
@@ -90,6 +90,8 @@ Run H1-H4 on PC and mobile, with Vibrant Visuals on and off, after a Resource Pa
 | H2 | Fly above the boat and follow the outer bow outline to its tip | The outline is a smooth curve with no stair steps or gaps; the panels turn inboard toward the bow as in the preview | | |
 | H3 | Dive underwater and look up at the hull | No holes or see-through surfaces | | |
 | H4 | Turn the headlights on at night, then walk the deck and board from the water | The lenses sit flush on the bow; deck walking and boarding work as before | | |
+| H5 | Fly above the boat and follow the lounge's inner V, the gunwale inner edge, and the bow rails | All three curve smoothly toward the bow with no steps or gaps | | |
+| H6 | Sit in the bow lounge and walk through the windshield walk-through | Nothing pokes through the cushions; seat positions and sit heights are as before | | |
 
 ## Camper
 
