@@ -17,7 +17,7 @@ The constraints from 0146 still hold: the opaque `entity` material ignores alpha
 - Rim: chrome cubes from the band's outer face (x 24.1 in the build frame) to x 24.5, `VENT_RIM = 0.7` px wide, with each outer corner cut by `VENT_CORNER = 0.35` px so the lid reads as a rounded rectangle. Six steel screw heads, 0.3 px square and 0.05 px proud, sit on the top and bottom rim at both ends and the middle.
 - Panel: white, x 24.1 to 24.3, 0.2 px below the rim. Two columns of `VENT_SLITS = 12` slits each, `VENT_SLIT = 0.25` px tall at a `VENT_SLIT_PITCH = 0.6` px pitch from 0.5 px under the panel's top, with 0.5 px side margins and a 0.8 px middle gap (`VENT_SLIT_MARGIN`, `VENT_SLIT_GAP`). Each slit is a hole in the panel with black backing 0.1 px deep, so the slits are recessed, not painted. The lower part has no slits; a steel latch, 1.2 x 0.6 px and 0.25 px proud of the panel, sits near its bottom center.
 - Use existing swatches only (chrome, white, black, steel). Keep the palette, textures, materials, bones, locators, and render controllers unchanged; every cube stays in `body`. The generator mirrors the build-frame +x side to Bedrock -x as before.
-- Regenerate the geometry and previews and raise the Resource Pack to 0.1.138 (0015).
+- Regenerate the geometry and previews and raise the Resource Pack to 0.1.139 (0015).
 
 ## Consequences
 
