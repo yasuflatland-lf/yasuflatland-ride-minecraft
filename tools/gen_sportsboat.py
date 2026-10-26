@@ -226,28 +226,28 @@ def paint_display(pixels):
     (u, v), (w, h) = tile_layout.TILE_RECTS["display"]
     navy, blue, light = (8, 16, 30), (40, 126, 224), (150, 218, 255)
     red = (232, 66, 62)
-    # Tile top is the far edge. At 24 x 12, single texels carry the smallest UI marks.
+    # Tile top is the far edge; circular gauges retain equal radii on the 16:9 face.
     for y in range(h):
         for x in range(w):
             color = navy
-            for cx in (5, 18):
-                radius = math.hypot(x - cx, y - 6)
-                if radius < 2:
-                    glow = 1 - radius / 2
+            for cx in (7, 24):
+                radius = math.hypot(x - cx, y - 9)
+                if radius < 3:
+                    glow = 1 - radius / 3
                     color = (int(14 + 22 * glow), int(35 + 45 * glow), int(66 + 70 * glow))
-                elif 2 <= radius <= 3 and not (y > 6 and abs(x - cx) < 2):
+                elif 3 <= radius <= 4 and not (y > 9 and abs(x - cx) < 2):
                     color = blue
-            if x in (1, w - 2) and 3 <= y <= 8:
-                color = light if y >= 5 else (27, 59, 91)
-            if x in (10, 12, 14) and 4 <= y <= 8:
-                color = red if y == 6 else (62, 84, 108)
-            if y == 1 and x in (4, 7, 10, 13, 16, 19):
-                color = light if x == 13 else (53, 83, 114)
-            if y == 10 and x in (7, 9, 11, 13, 15, 17):
+            if x in (1, w - 2) and 5 <= y <= 12:
+                color = light if y >= 8 else (27, 59, 91)
+            if x in (13, 15, 17) and 6 <= y <= 12:
+                color = red if y == 9 else (62, 84, 108)
+            if y in (1, 2) and x in (5, 9, 13, 17, 21, 25):
+                color = light if x == 17 else (53, 83, 114)
+            if y == 15 and x in (9, 12, 15, 18, 21, 24):
                 color = (100, 140, 174)
-            if x + (h - 1 - y) <= 1:
+            if x + (h - 1 - y) <= 2:
                 color = (244, 194, 51)
-            if (w - 1 - x) + (h - 1 - y) <= 1:
+            if (w - 1 - x) + (h - 1 - y) <= 2:
                 color = red
             pixels[v + y][u + x] = color
 
@@ -1209,8 +1209,8 @@ DISPLAY_DX = 3.7  # Clears the switch plate at x 12.8 (ADR 0166).
 SCREEN_PIVOT = [5.5 + DISPLAY_DX, F + 8, 13.5]
 # A world-y lift of 0.3 / sqrt(2) keeps the rear bottom corner on the dash.
 # With the fixed pivot and -45 tilt, that is local y +0.15 and z -0.15.
-body.append(box(2.0 + DISPLAY_DX, F + 8.15, 13.05, 9.0 + DISPLAY_DX, F + 12.55, 13.65, "gloss", pivot=SCREEN_PIVOT, rotation=[SCREEN_TILT, 0, 0]))
-body.append(box(2.4 + DISPLAY_DX, F + 8.55, 12.95, 8.6 + DISPLAY_DX, F + 12.15, 13.05, "screen",
+body.append(box(2.0 + DISPLAY_DX, F + 8.15, 13.05, 9.0 + DISPLAY_DX, F + 12.35, 13.65, "gloss", pivot=SCREEN_PIVOT, rotation=[SCREEN_TILT, 0, 0]))
+body.append(box(2.3 + DISPLAY_DX, F + 8.45, 12.95, 8.7 + DISPLAY_DX, F + 12.05, 13.05, "screen",
                 tiles={"north": "display"},
                 pivot=SCREEN_PIVOT, rotation=[SCREEN_TILT, 0, 0]))
 # The plate leans like the display (top toward +z, so a negative x rotation, ADR 0051) and pivots at its
