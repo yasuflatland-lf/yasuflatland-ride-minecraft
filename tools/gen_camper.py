@@ -14,6 +14,14 @@ import sys
 import zlib
 from pathlib import Path
 
+# Isolated mode (-I) omits the script directory from the import path.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from tool_loader import load_tool
+
+cube_tilt = load_tool("cube_tilt")
+assert_axes, compound_cubes = cube_tilt.assert_axes, cube_tilt.compound_cubes
+ASSEMBLIES = {"slanted": {"owner": "camper", "cubes": 6}}
+
 RP = Path(sys.argv[1])
 MODELS = RP / "models/entity/yasu_ride"
 ENTITY_TEXTURES = RP / "textures/entity/yasu_ride"
@@ -1347,6 +1355,8 @@ geo = {
     }],
 }
 MODELS.mkdir(parents=True, exist_ok=True)
+model_cubes = [cube for bone in geo["minecraft:geometry"][0]["bones"] for cube in bone.get("cubes", [])]
+assert_axes(model_cubes, {"slanted": compound_cubes(model_cubes)}, ASSEMBLIES)
 (MODELS / "camper.geo.json").write_text(json.dumps(rounded(geo), separators=(",", ":")))
 
 

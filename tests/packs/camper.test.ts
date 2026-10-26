@@ -16,6 +16,7 @@ import {
   CAMPER_DOOR_COMPONENT,
   SEAT_FILLER_FAMILY,
 } from "../../src/infrastructure/vehicle/bedrock/identifiers";
+import { assertOneAxis, multipleAxes } from "./oneAxis";
 
 const RP = "packs/yasu_ride_rp";
 const geometryText = readFileSync(
@@ -77,6 +78,13 @@ function readPng(path: string) {
 }
 
 describe("camper model assets (ADR 0067)", () => {
+  it("allows compound rotations only in declared assemblies (ADR 0167)", () => {
+    const cubes = bones.flatMap((bone) => bone.cubes ?? []);
+    const assemblies = { slanted: cubes.filter(multipleAxes) };
+    expect(assemblies.slanted).toHaveLength(6);
+    expect(() => assertOneAxis(cubes, assemblies)).not.toThrow();
+  });
+
   it("uses the production geometry identifier with no test namespace", () => {
     expect(geometry.description.identifier).toBe("geometry.yasu_ride.camper");
     expect(geometryText).not.toContain("yasu_ride_test");

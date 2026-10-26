@@ -5,6 +5,7 @@ import { PAINTS } from "../../src/domain/shared/paint";
 import { BULLDOZER_SPEC } from "../../src/domain/vehicle/kinds/bulldozer/spec";
 import { type Bone, turnedCorners } from "../support/geometry";
 import { readRgbaPng } from "../support/png";
+import { assertOneAxis, multipleAxes } from "./oneAxis";
 
 const RP = "packs/yasu_ride_rp";
 type ModelCube = NonNullable<Bone["cubes"]>[number] & {
@@ -61,6 +62,34 @@ function expectedAlpha(slot: number): number {
 }
 
 describe("bulldozer model (ADR 0009, 0136)", () => {
+  it("allows compound rotations only in declared assemblies (ADR 0167)", () => {
+    const cubes = bones().flatMap((bone) => bone.cubes ?? []);
+    const compound = cubes.filter(multipleAxes);
+    const assemblies = {
+      blade_arms: compound.filter((c) => c.rotation?.[0] === 30),
+      yawed_pair: compound.filter((c) => c.rotation?.[0] === -15),
+      propeller: compound.filter((c) => c.rotation?.[1] === -18),
+    };
+    expect(Object.values(assemblies).map((a) => a.length)).toEqual([7, 2, 4]);
+    expect(() => assertOneAxis(cubes, assemblies)).not.toThrow();
+  });
+
+  it("checks the cab monitor's compound rotations (ADR 0167)", () => {
+    const monitor = JSON.parse(
+      readFileSync(
+        `${RP}/models/entity/yasu_ride/bulldozer_monitor.geo.json`,
+        "utf8",
+      ),
+    )["minecraft:geometry"][0];
+    const assemblies = {};
+    expect(() =>
+      assertOneAxis(
+        (monitor.bones as ModelBone[]).flatMap((bone) => bone.cubes ?? []),
+        assemblies,
+      ),
+    ).not.toThrow();
+  });
+
   it("uses the production geometry identifier with no test namespace", () => {
     expect(geometry().description.identifier).toBe(
       "geometry.yasu_ride.bulldozer",

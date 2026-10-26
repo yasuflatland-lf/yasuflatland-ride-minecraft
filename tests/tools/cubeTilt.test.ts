@@ -18,7 +18,7 @@ const tilt = (cubes: Cube[], pivot: Vec, degrees: number): Cube[] => {
     "sys.path.insert(0, 'tools')",
     "import cube_tilt",
     "args = json.loads(sys.stdin.read())",
-    "print(json.dumps(cube_tilt.tilt_assembly(args['cubes'], args['pivot'], 'x', args['degrees'], 'wheel')))",
+    "print(json.dumps(cube_tilt.tilt_assembly(args['cubes'], args['pivot'], 'x', args['degrees'], 'wheel', {'wheel': {'owner': 'test', 'cubes': len(args['cubes'])}})))",
   ].join("\n");
   const out = execFileSync("python3", ["-I", "-c", script], {
     input: JSON.stringify({ cubes, pivot, degrees }),
@@ -169,21 +169,46 @@ describe("tilt_assembly (ADR 0166)", () => {
     );
   });
 
-  it("rejects a two-axis result for an assembly outside ONE_AXIS_EXCEPTION", () => {
-    const script = [
-      "import sys",
-      "sys.path.insert(0, 'tools')",
-      "import cube_tilt",
-      "print(list(cube_tilt.ONE_AXIS_EXCEPTION))",
-      "cube = {'origin': [0, 0, 0], 'size': [1, 1, 1], 'uv': {}, 'pivot': [0, 0, 0], 'rotation': [0, 0, 30]}",
-      "try:",
-      "    cube_tilt.tilt_assembly([cube], [0, 0, 0], 'x', 10, 'hull')",
-      "except ValueError:",
-      "    print('rejected')",
-    ].join("\n");
-    const out = execFileSync("python3", ["-I", "-c", script], {
-      encoding: "utf8",
-    });
-    expect(out.trim().split("\n")).toEqual(["['wheel']", "rejected"]);
+  it("requires a declared assembly for compound tilt results", () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 5, max: 75 }),
+        fc.integer({ min: 5, max: 75 }),
+        (z, degrees) => {
+          const script = [
+            "import json, sys",
+            "sys.path.insert(0, 'tools')",
+            "from cube_tilt import tilt_assembly, assert_axes",
+            "z, degrees = json.loads(sys.stdin.read())",
+            "cube = {'origin': [0, 0, 0], 'size': [1, 1, 1], 'rotation': [0, 0, z]}",
+            "registry = {'test': {'owner': 'test', 'cubes': 1}}",
+            "moved = tilt_assembly([cube], [0, 0, 0], 'x', degrees, 'test', registry)",
+            "for name, table, angle in [('unknown', registry, degrees), (None, registry, degrees), ('test', {}, degrees), ('unknown', registry, 0)]:",
+            "    try:",
+            "        tilt_assembly(moved if angle == 0 else [cube], [0, 0, 0], 'x', angle, name, table)",
+            "    except ValueError:",
+            "        pass",
+            "    else:",
+            "        raise AssertionError('undeclared assembly accepted')",
+            "assert_axes(moved, {'test': json.loads(json.dumps(moved))})",
+            "try:",
+            "    assert_axes(moved, {'test': [cube]})",
+            "except ValueError:",
+            "    pass",
+            "else:",
+            "    raise AssertionError('unregistered cube accepted')",
+            "assert_axes([{}, {'rotation': [z, 1e-6, -1e-6]}], {})",
+            "print('ok')",
+          ].join("\n");
+          expect(
+            execFileSync("python3", ["-I", "-c", script], {
+              input: JSON.stringify([z, degrees]),
+              encoding: "utf8",
+            }).trim(),
+          ).toBe("ok");
+        },
+      ),
+      runs,
+    );
   });
 });
