@@ -397,6 +397,61 @@ describe("bulldozer blade rig (ADR 0138)", () => {
         expect(end[axis]).toBeCloseTo(target?.[axis] ?? Number.NaN, 1);
     }
   });
+  describe("seats each lift support on its push arm (ADR 0151)", () => {
+    // tools/gen_bulldozer.py's arm_top_y(): the arm runs between these (z, y) centerline
+    // points, 4.2 px thick across its slope.
+    const [frontZ, frontY, rearZ, rearY] = [-22.9, 8, 2, 12];
+    const slope = Math.atan2(rearY - frontY, rearZ - frontZ);
+    const armTop = (z: number) =>
+      frontY +
+      ((rearY - frontY) * (z - frontZ)) / (rearZ - frontZ) +
+      2.1 / Math.cos(slope);
+    const [spanFront, spanRear] = [-18.133, -10.952];
+    const rig = bone("blade_rig");
+    const arms = (rig.cubes ?? []).filter((c) => c.size[1] === 4.2);
+    const yellow = arms[0]?.uv.north?.uv[0];
+    const supports = (rig.cubes ?? [])
+      .filter((c) => c.uv.north?.uv[0] === yellow && c.size[1] !== 4.2)
+      .map((c) => turnedCorners(rig, c))
+      .filter((ps) => {
+        const ax = ps.map((p) => Math.abs(p[0]));
+        return (
+          lowest(ps, 2) > spanFront - 0.01 &&
+          highest(ps, 2) < spanRear + 0.01 &&
+          Math.min(...ax) > 7 &&
+          Math.max(...ax) < 10
+        );
+      });
+    it("finds both arms and their supports", () => {
+      expect(arms).toHaveLength(2);
+      expect(supports.length).toBeGreaterThan(0);
+    });
+    it("keeps every support cube above the arm's top", () => {
+      for (const ps of supports)
+        for (const [, y, z] of ps)
+          expect(y).toBeGreaterThanOrEqual(armTop(z) - 0.001);
+    });
+    it("leaves at most 0.1 px between the arm's top and the bottom plate", () => {
+      fc.assert(
+        fc.property(
+          fc.double({ min: spanFront, max: spanRear, noNaN: true }),
+          fc.constantFrom(-1, 1),
+          (z, side) => {
+            const feet = supports.filter(
+              (ps) =>
+                Math.sign(ps[0]?.[0] ?? 0) === side &&
+                lowest(ps, 2) <= z &&
+                highest(ps, 2) >= z &&
+                highest(ps, 1) >= 12.4,
+            );
+            const gap =
+              Math.min(...feet.map((ps) => lowest(ps, 1))) - armTop(z);
+            expect(gap).toBeLessThanOrEqual(0.1);
+          },
+        ),
+      );
+    });
+  });
   const near = (actual: number[], expected: number[]) =>
     actual.every(
       (v, axis) => Math.abs(v - (expected[axis] ?? Number.NaN)) < 0.0001,
@@ -431,9 +486,9 @@ describe("bulldozer blade rig (ADR 0138)", () => {
       expect(rod.cubes).toHaveLength(1);
       expectCube(rod, 12, [x - 0.5, 20.8, -13], [x + 0.5, 22, -6]);
     }
-    expect(bone("blade_rig").cubes).toHaveLength(144);
+    expect(bone("blade_rig").cubes).toHaveLength(180);
     expect(bone("blade").cubes).toHaveLength(134);
-    expect(bones().flatMap((b) => b.cubes ?? [])).toHaveLength(3529);
+    expect(bones().flatMap((b) => b.cubes ?? [])).toHaveLength(3565);
     expect(Math.min(...points(bone("blade")).map((p) => p[1]))).toBeCloseTo(
       0,
       3,
