@@ -487,6 +487,151 @@ describe("sports boat hull planking (ADR 0161)", () => {
     }
     return lo <= hi ? [lo, hi] : undefined;
   };
+  describe("bimini top panels (ADR 0164, roof series 1/3)", () => {
+    const canvas = bone("body").filter(swatch(5));
+    const panels = canvas.filter((cube) => cube.size[0] === 32);
+    const hatches = bone("body").filter(swatch(6));
+    const dome = (z: number) => {
+      const t = (z + 10) / 19;
+      return 36 - 1.5 * t + 0.6 * (1 - (2 * t - 1) ** 2);
+    };
+    const expected = [
+      [-10, -3, dome(-10), dome(-3)],
+      [-3, 6, dome(-3), dome(6)],
+      [6, 9, dome(6), dome(9) - 2.4],
+    ] as const;
+    // Evaluate the top plane, avoiding ray misses at rounded outer-end coordinates.
+    const top = (cube: Cube, z: number) => {
+      const pivot = cube.pivot ?? [0, 0, 0];
+      const angle = ((cube.rotation?.[0] ?? 0) * Math.PI) / 180;
+      return (
+        pivot[1] +
+        (cube.origin[1] + cube.size[1] - pivot[1]) / Math.cos(angle) +
+        Math.tan(angle) * (-z - pivot[2])
+      );
+    };
+    // Transform the top edge into the build frame using the same in-game sign as the hull rays.
+    const edge = (cube: Cube) => {
+      const pivot = cube.pivot ?? [0, 0, 0];
+      return [cube.origin[2], cube.origin[2] + cube.size[2]]
+        .map((z) => {
+          const local = [
+            0,
+            cube.origin[1] + cube.size[1] - pivot[1],
+            z - pivot[2],
+          ];
+          const turned = turn(local, "x", -(cube.rotation?.[0] ?? 0));
+          return -((turned[2] ?? 0) + pivot[2]);
+        })
+        .sort((a, b) => a - b);
+    };
+
+    it("uses three full-width 2 px panels meeting the roof profile with x turns only", () => {
+      expect(panels).toHaveLength(3);
+      for (const [i, panel] of panels.entries()) {
+        const [z0, z1, y0, y1] = expected[i] ?? expected[0];
+        expect(panel.origin[0]).toBe(-16);
+        expect(panel.size[1]).toBe(2);
+        expect(panel.rotation?.slice(1)).toEqual([0, 0]);
+        expect(panel.rotation?.[0] ?? 0).toBeCloseTo(
+          (-Math.atan2(y1 - y0, z1 - z0) * 180) / Math.PI,
+          3,
+        );
+        expect(panel.pivot).toEqual([0, expect.closeTo(y0, 3), -z0]);
+        for (const [z, y] of [
+          [z0, y0],
+          [z1, y1],
+        ]) {
+          expect(Math.abs(top(panel, z ?? 0) - (y ?? 0))).toBeLessThan(0.05);
+        }
+        if (i < 2) {
+          const middle = (z0 + z1) / 2;
+          expect(Math.abs(top(panel, middle) - dome(middle))).toBeLessThan(0.2);
+        }
+      }
+    });
+
+    it("overlaps joints by their angle allowance with no gap through the thickness", () => {
+      for (let i = 0; i < 2; i++) {
+        const a = panels[i];
+        const b = panels[i + 1];
+        if (!a || !b) throw new Error("Missing roof panel");
+        const angle = Math.abs((a.rotation?.[0] ?? 0) - (b.rotation?.[0] ?? 0));
+        const allowance = Math.max(
+          0.25,
+          Math.tan((angle * Math.PI) / 180) + 0.05,
+        );
+        const joint = expected[i]?.[1] ?? 0;
+        expect((edge(a)[1] ?? 0) - (edge(b)[0] ?? 0)).toBeGreaterThanOrEqual(
+          0.25,
+        );
+        for (const [panel, end, nominal, sign] of [
+          [a, 1, joint, 1],
+          [b, 0, joint, -1],
+        ] as const) {
+          const cosine = Math.cos(((panel.rotation?.[0] ?? 0) * Math.PI) / 180);
+          expect(sign * ((edge(panel)[end] ?? 0) - nominal)).toBeCloseTo(
+            allowance * cosine,
+            3,
+          );
+        }
+        for (const z of [joint - 0.1, joint, joint + 0.1]) {
+          const ia = interval(a, [0, 0, -z], [0, 1, 0]);
+          const ib = interval(b, [0, 0, -z], [0, 1, 0]);
+          expect(ia).toBeDefined();
+          expect(ib).toBeDefined();
+          if (ia && ib)
+            expect(Math.min(ia[1] ?? 0, ib[1] ?? 0)).toBeGreaterThan(
+              Math.max(ia[0] ?? 0, ib[0] ?? 0),
+            );
+        }
+      }
+      expect(edge(panels[0] as Cube)[0]).toBeCloseTo(-10, 3);
+      expect(edge(panels[2] as Cube)[1]).toBeCloseTo(9, 3);
+    });
+
+    it("lays one thin darker hatch on the main panel inside its footprint", () => {
+      expect(hatches).toHaveLength(1);
+      const hatch = hatches[0] as Cube;
+      const main = panels[1] as Cube;
+      expect(hatch.origin[0]).toBe(-9);
+      expect(hatch.size[0]).toBe(18);
+      expect(hatch.size[1]).toBe(0.25);
+      expect(hatch.rotation).toEqual(main.rotation);
+      expect(hatch.pivot).toEqual(main.pivot);
+      const footprint = edge(hatch);
+      expect(footprint[0]).toBeGreaterThan(-3);
+      expect(footprint[1]).toBeLessThan(6);
+      for (const z of [-1.9, 0, 4.9]) {
+        expect(top(hatch, z) - top(main, z)).toBeCloseTo(
+          0.25 / Math.cos(((main.rotation?.[0] ?? 0) * Math.PI) / 180),
+          3,
+        );
+      }
+    });
+
+    it("keeps only the 40 rolled-edge cubes plus three top panels and one hatch, without ribs", () => {
+      expect(canvas).toHaveLength(43);
+      const rolledEdges = canvas.filter((cube) => !panels.includes(cube));
+      expect(rolledEdges).toHaveLength(40);
+      for (const edge of rolledEdges) {
+        const z = -(edge.origin[2] + edge.size[2] / 2);
+        const [z0, z1, y0, y1] =
+          expected.find((panel) => z <= panel[1]) ?? expected[2];
+        const surface = y0 + ((y1 - y0) * (z - z0)) / (z1 - z0);
+        const drop = edge.size[0] === 2 ? 0.3 : 1;
+        expect(edge.origin[1] + edge.size[1]).toBeCloseTo(surface - drop, 3);
+        expect(edge.size[2]).toBe(2);
+        expect(edge.rotation).toBeUndefined();
+      }
+      expect(
+        bone("body").filter((cube) => swatch(4)(cube) && cube.origin[1] > 33),
+      ).toHaveLength(0);
+      expect(canvas.length + hatches.length).toBe(44);
+      expect(cubes).toHaveLength(1135);
+    });
+  });
+
   const reach = (cube: Cube, y: number, z: number) => {
     const hit = interval(cube, [0, y, z], [1, 0, 0]);
     return hit ? Math.max(...hit.map(Math.abs)) : 0;
