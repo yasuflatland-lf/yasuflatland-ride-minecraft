@@ -16,6 +16,9 @@ import { readRgbaPng } from "../support/png";
 
 const read = (p: string) => JSON.parse(readFileSync(p, "utf8"));
 const RP = "packs/yasu_ride_rp";
+const ENTITY_TEXTURES = `${RP}/textures/entity/yasu_ride`;
+const paintAtlas = (paint: string) =>
+  paint === "khaki" ? "sportsboat" : `sportsboat_${paint}`;
 const entity = read("packs/yasu_ride_bp/entities/yasu_ride/sportsboat.se.json")[
   "minecraft:entity"
 ];
@@ -275,9 +278,7 @@ describe("sports boat Resource Pack (ADR 0051)", () => {
       const key = slots[PAINT_VARIANT[paint]]?.replace("Texture.", "") ?? "";
       const path = client.textures[key];
       expect(path, paint).toBe(
-        paint === "khaki"
-          ? "textures/entity/yasu_ride/sportsboat"
-          : `textures/entity/yasu_ride/sportsboat_${paint}`,
+        `textures/entity/yasu_ride/${paintAtlas(paint)}`,
       );
       expect(existsSync(`${RP}/${path}.png`), path).toBe(true);
     }
@@ -737,7 +738,6 @@ describe("sports boat hull planking (ADR 0161)", () => {
 });
 
 describe("sports boat PBR rear-view mirror (ADR 0159)", () => {
-  const ENTITY_TEXTURES = `${RP}/textures/entity/yasu_ride`;
   const texels = (name: string) => {
     const { width, height, pixels } = readRgbaPng(
       `${ENTITY_TEXTURES}/${name}.png`,
@@ -821,9 +821,7 @@ describe("sports boat PBR rear-view mirror (ADR 0159)", () => {
 
   it("bakes a dark-rimmed sky-to-horizon gradient into every paint for clients without PBR", () => {
     for (const paint of PAINTS) {
-      const { at } = texels(
-        paint === "khaki" ? "sportsboat" : `sportsboat_${paint}`,
-      );
+      const { at } = texels(paintAtlas(paint));
       const rows = Array.from({ length: TILE.h - 2 }, (_, i) =>
         at(TILE.u + 1, TILE.v + 1 + i),
       );
@@ -899,21 +897,19 @@ describe("sports boat engine sound (ADR 0060)", () => {
 });
 
 describe("sports boat gloss hull (ADR 0163)", () => {
-  const textures = `${RP}/textures/entity/yasu_ride`;
-
   it.each(PAINTS)(
     "gives %s paint a clear coat only on the hull swatch",
     (paint) => {
-      const name = paint === "khaki" ? "sportsboat" : `sportsboat_${paint}`;
-      expect(read(`${textures}/${name}.texture_set.json`)).toEqual({
+      const name = paintAtlas(paint);
+      expect(read(`${ENTITY_TEXTURES}/${name}.texture_set.json`)).toEqual({
         format_version: "1.16.100",
         "minecraft:texture_set": {
           color: name,
           metalness_emissive_roughness: `${name}_mer`,
         },
       });
-      const color = readRgbaPng(`${textures}/${name}.png`);
-      const mer = readRgbaPng(`${textures}/${name}_mer.png`);
+      const color = readRgbaPng(`${ENTITY_TEXTURES}/${name}.png`);
+      const mer = readRgbaPng(`${ENTITY_TEXTURES}/${name}_mer.png`);
       expect([mer.width, mer.height]).toEqual([color.width, color.height]);
       const expected = Buffer.alloc(mer.width * mer.height * 4);
       for (let y = 0; y < mer.height; y++) {
