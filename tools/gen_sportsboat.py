@@ -1251,11 +1251,44 @@ B_TOP = TOWER_TOP + 3.5
 B_THICK = 2.0
 
 
-def bimini_top(zc):
-    front = B_FRONT - zc
-    t = (zc - B_REAR) / (B_FRONT - B_REAR)
-    drop = 2.4 if front < 1.5 else 1.2 if front < 3.5 else 0.0
-    return B_TOP - drop - 1.5 * t + 0.6 * (1 - (2 * t - 1) ** 2)
+def dome(z):
+    t = (z - B_REAR) / (B_FRONT - B_REAR)
+    return B_TOP - 1.5 * t + 0.6 * (1 - (2 * t - 1) ** 2)
+
+
+ROOF_REAR = ("rear", B_REAR, -3.0, dome(B_REAR), dome(-3.0))
+ROOF_MAIN = ("main", -3.0, 6.0, dome(-3.0), dome(6.0))
+ROOF_LIP = ("lip", 6.0, B_FRONT, dome(6.0), dome(B_FRONT) - 2.4)
+ROOF_PANELS = [ROOF_REAR, ROOF_MAIN, ROOF_LIP]
+
+
+def roof_top(z):
+    # The last rolled-edge slice samples z = 9; clamp outside the roof's nominal footprint.
+    z = max(B_REAR, min(B_FRONT, z))
+    for _, z0, z1, y0, y1 in ROOF_PANELS:
+        if z <= z1:
+            return y0 + (y1 - y0) * (z - z0) / (z1 - z0)
+
+
+# In-game x turns have the opposite sign to the preview's (0051): a falling +z surface needs
+# a negative turn, correcting #647's atan2(y0 - y1, dz) sign (0164).
+ROOF_ANGLES = [math.atan2(y1 - y0, z1 - z0) for _, z0, z1, y0, y1 in ROOF_PANELS]
+ROOF_OVERLAPS = [max(0.25, B_THICK * math.tan(abs(b - a)) / 2 + 0.05)
+                 for a, b in zip(ROOF_ANGLES, ROOF_ANGLES[1:])]
+for i, (_, z0, z1, y0, y1) in enumerate(ROOF_PANELS):
+    rear_overlap = ROOF_OVERLAPS[i - 1] if i else 0.0
+    front_overlap = ROOF_OVERLAPS[i] if i < len(ROOF_OVERLAPS) else 0.0
+    length = math.hypot(z1 - z0, y1 - y0)
+    body.append(box(-16.0, y0 - B_THICK, z0 - rear_overlap,
+                    16.0, y0, z0 + length + front_overlap, "canvas",
+                    pivot=[0, y0, z0], rotation=[math.degrees(ROOF_ANGLES[i]), 0, 0]))
+
+_, z0, _, y0, _ = ROOF_MAIN
+# Local distances along the main panel project onto the hatch's nominal z -2..5 footprint.
+main_cos = math.cos(ROOF_ANGLES[1])
+body.append(box(-9.0, y0, z0 + (-2.0 - z0) / main_cos,
+                9.0, y0 + 0.25, z0 + (5.0 - z0) / main_cos, "canvas_panel",
+                pivot=[0, y0, z0], rotation=[math.degrees(ROOF_ANGLES[1]), 0, 0]))
 
 
 z = B_REAR
@@ -1265,13 +1298,7 @@ while z < B_FRONT:
     rear = zc - B_REAR
     corner = 2.0 if min(front, rear) < 1.5 else 0.8 if min(front, rear) < 3.5 else 0.0
     hw = B_HALF - corner
-    top = bimini_top(zc)
-    body.append(box(-hw + 3, top - B_THICK, z, hw - 3, top, z + SLICE, "canvas"))
-    # Two ribs under the top run from near the middle of the front edge out toward the rear corners
-    rib = 3.0 + (B_HALF - 8.0 - 3.0) * front / (B_FRONT - B_REAR)
-    body += pair(rib - 0.4, top - B_THICK - 0.4, z, rib + 0.4, top - B_THICK, z + SLICE, "frame")
-    if B_REAR + 4 <= z and z + SLICE <= B_FRONT - 4:
-        body.append(box(-9, top, z, 9, top + 0.25, z + SLICE, "canvas_panel"))
+    top = roof_top(zc)
     body += pair(hw - 3, top - B_THICK - 0.8, z, hw - 1, top - 0.3, z + SLICE, "canvas")
     body += pair(hw - 1, top - B_THICK - 1.6, z, hw, top - 1.0, z + SLICE, "canvas")
     z += SLICE
@@ -1280,7 +1307,7 @@ while z < B_FRONT:
 # each side, facing aft as on the reference. Each is a bullet-shaped matte pod that narrows toward
 # the bow, with a blue LED ring behind the bezel and a grille of split spokes round a hub.
 G = B_REAR + 1.4  # z of the grille face
-under = bimini_top(G + 3) - B_THICK
+under = roof_top(G + 3) - B_THICK
 cy = under - 1.6
 for sx in (-B_HALF / 2, B_HALF / 2):
     body += disc(sx, cy, 1.6, G - 0.05, G, "gloss")  # behind the grille
