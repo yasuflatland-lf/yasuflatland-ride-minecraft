@@ -1745,7 +1745,7 @@ print(json.dumps({name: {"uv": uv, "size": size}
       ]);
     };
 
-    describe("sports boat throttle (ADR 0166, #684)", () => {
+    describe("sports boat throttle (ADR 0166, #692)", () => {
       const throttle = body.slice(start + 282, start + 282 + THROTTLE_CUBES);
       const extension = throttle.slice(0, EXTENSION_CUBES);
       const pod = throttle.slice(EXTENSION_CUBES, EXTENSION_CUBES + POD_CUBES);
@@ -1807,26 +1807,50 @@ print(json.dumps({name: {"uv": uv, "size": size}
         }
       });
 
-      it("builds the dome from four solid 16-sided rings", () => {
+      it("fits a compact unit against the inboard wall below the dial", () => {
+        const unit = bounds([...pod, ...lever]);
+        expect(POD_CUBES + LEVER_CUBES).toBeLessThanOrEqual(40);
+        expect(
+          Math.abs((unit[2]?.[1] ?? 0) - (unit[2]?.[0] ?? 0) - 3.1),
+        ).toBeLessThanOrEqual(0.3);
+        expect(
+          Math.abs((unit[1]?.[1] ?? 0) - (unit[1]?.[0] ?? 0) - 2.7),
+        ).toBeLessThanOrEqual(0.3);
+        // Negating build x puts the driver side above -11.4 in the shipped frame.
+        expect(unit[0]?.[0]).toBeGreaterThanOrEqual(-11.4 - 0.001);
+        expect(unit[0]?.[1]).toBeLessThanOrEqual(-10.1 + 0.001);
+        expect(unit[1]?.[0]).toBeGreaterThanOrEqual(F + 1.7);
+        expect(unit[1]?.[1]).toBeLessThanOrEqual(F + 5);
+        expect(unit[1]?.[1]).toBeLessThan(bounds(controller)[1]?.[0] ?? 0);
+        expect(unit[2]?.[0]).toBeGreaterThanOrEqual(-9.1);
+        expect(unit[2]?.[1]).toBeLessThanOrEqual(-5.4);
+      });
+
+      it("builds a wall-mounted dome from four solid 16-sided discs with a chrome cap", () => {
         expect(pod).toHaveLength(POD_CUBES);
-        for (const [i, radius, bottom, top, slot] of [
-          [0, 1.3, 3.4, 3.7, 22],
-          [1, 1.3, 3.7, 4.5, 3],
-          [2, 1.15, 4.5, 5, 3],
-          [3, 1, 5, 5.3, 3],
+        const dome = bounds(pod);
+        expect(dome[0]?.[0]).toBeCloseTo(-11.4);
+        const protrusion = (dome[0]?.[1] ?? 0) + 11.4;
+        expect(protrusion).toBeGreaterThanOrEqual(0.8);
+        expect(protrusion).toBeLessThanOrEqual(1.2);
+        for (const [i, radius, inner, outer, slot] of [
+          [0, 1.2, 11.25, 11.4, 17],
+          [1, 1, 10.95, 11.25, 3],
+          [2, 0.8, 10.75, 10.95, 3],
+          [3, 0.55, 10.6, 10.75, 21],
         ]) {
           const ring = pod.slice((i ?? 0) * 8, (i ?? 0) * 8 + 8);
           expect(ring).toHaveLength(8);
           const b = bounds(ring);
-          expect(b[1]?.[0]).toBeCloseTo(F + (bottom ?? 0));
-          expect(b[1]?.[1]).toBeCloseTo(F + (top ?? 0));
+          expect(b[0]?.[0]).toBeCloseTo(-(outer ?? 0));
+          expect(b[0]?.[1]).toBeCloseTo(-(inner ?? 0));
           ring.forEach((cube, k) => {
             expect(swatch(slot ?? 0)(cube)).toBe(true);
-            expect(cube.rotation).toEqual([0, k * 22.5, 0]);
+            expect(cube.rotation).toEqual([k === 0 ? 0 : -k * 22.5, 0, 0]);
             expect(cube.size[2]).toBeCloseTo(2 * (radius ?? 0));
-            expect(cube.pivot?.[0]).toBeCloseTo(-12.7);
-            expect(cube.pivot?.[1]).toBeCloseTo(F + (bottom ?? 0));
-            expect(cube.pivot?.[2]).toBeCloseTo(-3.6);
+            expect(cube.pivot?.[0]).toBeCloseTo(-(inner ?? 0));
+            expect(cube.pivot?.[1]).toBeCloseTo(F + 3.1);
+            expect(cube.pivot?.[2]).toBeCloseTo(-6.8);
           });
         }
       });
@@ -1869,7 +1893,7 @@ print(json.dumps({name: {"uv": uv, "size": size}
         expect([...remaining]).toEqual([]);
       });
 
-      it("registers exactly the yawed and pitched lever and raises its 5.6 px bow-facing grip", () => {
+      it("registers exactly the compact grey lever with a chrome pivot and gently raised stepped grip", () => {
         expect(lever).toHaveLength(LEVER_CUBES);
         expect(swatch(21)(lever[0] as Cube)).toBe(true);
         const assemblies = {
@@ -1889,7 +1913,7 @@ print(json.dumps({name: {"uv": uv, "size": size}
         expect(generator).toContain(
           '"throttle_lever": {"owner": "sportsboat", "cubes": 8}',
         );
-        const pivot: [number, number, number] = [-12.3, F + 5.7, -3.3];
+        const pivot: [number, number, number] = [-10.85, F + 3.95, -6.6];
         const endpoint = (cube: Cube, z: number) =>
           rotate(
             [
@@ -1906,15 +1930,24 @@ print(json.dumps({name: {"uv": uv, "size": size}
         expect(far[1]).toBeGreaterThan(pivot[1] ?? 0);
         expect(far[2]).toBeLessThan(pivot[2] ?? 0);
         const length = Math.hypot(...far.map((v, i) => v - (near[i] ?? 0)));
-        expect(length).toBeGreaterThanOrEqual(5);
-        expect(length).toBeLessThanOrEqual(6);
-        expect(length).toBeCloseTo(5.6, 3);
+        expect(length).toBeCloseTo(2.2, 3);
+        for (const part of lever.slice(1)) {
+          expect(swatch(20)(part)).toBe(true);
+          expect(bounds([part])[0]?.[1]).toBeLessThanOrEqual(-10.1);
+        }
+        expect(lever[3]?.size[0]).toBeGreaterThan(bar.size[0] ?? 0);
+        expect(lever[3]?.size[1]).toBeGreaterThan(bar.size[1] ?? 0);
+        expect(
+          lever.some((part) =>
+            pod.some((disc) => Math.hypot(...gap(part, disc)) <= 0.101),
+          ),
+        ).toBe(true);
         for (const basis of [
           [1, 0, 0],
           [0, 1, 0],
           [0, 0, 1],
         ]) {
-          const expected = rotate(rotate(basis, [0, -6, 0]), [-30, 0, 0]);
+          const expected = rotate(rotate(basis, [0, 6, 0]), [-5, 0, 0]);
           rotate(basis, bar.rotation ?? []).forEach((v, i) => {
             expect(v).toBeCloseTo(expected[i] ?? 0, 4);
           });

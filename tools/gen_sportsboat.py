@@ -1390,16 +1390,30 @@ extension = [
         pivot=[EXT_X0, F, EXT_FRONT + EXT_CHAMFER], rotation=[45, 0, 0]),
 ]
 body += extension
-POD_X, POD_Z = 12.7, 3.6
+def side_ring(cy, cz, radius, inner, outer, color):
+    panels = cylinder(0, 0, radius, inner, outer, color, sides=16,
+                      solid=True, small_sides=16)
+    for panel in panels:
+        x, y, z = panel["origin"]
+        dx, dy, dz = panel["size"]
+        # The cyclic permutation puts the cylinder axis on x without compound rotations.
+        panel["origin"] = [z, cy + x, cz + y]
+        panel["size"] = [dz, dx, dy]
+        panel["pivot"] = [inner, cy, cz]
+        panel["rotation"] = [panel["rotation"][2], 0, 0]
+    return panels
+
+
+POD_Y, POD_Z = F + 3.1, 6.8
 pod = []
-for radius, bottom, top, color in ((1.3, 3.4, 3.7, "button"),
-                                   (1.3, 3.7, 4.5, "gloss"),
-                                   (1.15, 4.5, 5.0, "gloss"),
-                                   (1.0, 5.0, 5.3, "gloss")):
-    pod += horizontal_ring(POD_X, POD_Z, radius, F + bottom, F + top, color, solid=True)
+for radius, inner, outer, color in ((1.2, 11.25, 11.4, "jet"),
+                                   (1.0, 10.95, 11.25, "gloss"),
+                                   (0.8, 10.75, 10.95, "gloss"),
+                                   (0.55, 10.6, 10.75, "chrome")):
+    pod += side_ring(POD_Y, POD_Z, radius, inner, outer, color)
 body += pod
-LEVER_PIVOT = [12.3, F + 5.7, 3.3]
-LEVER_YAW, LEVER_PITCH = 6, 30
+LEVER_PIVOT = [10.85, F + 3.95, 6.6]
+LEVER_YAW, LEVER_PITCH = -6, 5
 lever = []
 
 
@@ -1408,14 +1422,14 @@ def lever_box(x0, y0, z0, x1, y1, z1, color):
                pivot=LEVER_PIVOT, rotation=[0, LEVER_YAW, 0])
 
 
-lever.append(lever_box(11.8, F + 5.2, 2.8, 12.8, F + 6.2, 3.8, "chrome"))
-for z0, z1, width, height, color in ((3.3, 8.3, 1.2, 0.8, "button"),
-                                    (7.0, 8.3, 1.6, 1.2, "button"),
-                                    (8.3, 8.9, 1.3, 0.9, "gloss")):
-    for w, h in ((width, height), (height, width)):
-        lever.append(lever_box(12.3 - w / 2, F + 6.5 - h / 2, z0,
-                               12.3 + w / 2, F + 6.5 + h / 2, z1, color))
-lever.append(lever_box(11.64, F + 6.2, 3.3, 11.76, F + 6.8, 7.0, "chrome"))
+lever.append(lever_box(10.65, F + 3.6, 6.3, 11.05, F + 4.2, 6.9, "chrome"))
+for z0, z1, width, height in ((6.6, 8.3, 0.4, 0.35),
+                             (7.9, 8.55, 0.6, 0.5),
+                             (8.5, 8.8, 0.5, 0.4)):
+    for w, h in ((width, height), (width * 0.8, height + 0.1)):
+        lever.append(lever_box(10.85 - w / 2, F + 4.2 - h / 2, z0,
+                               10.85 + w / 2, F + 4.2 + h / 2, z1, "gunmetal"))
+lever.append(lever_box(10.65, F + 4.35, 8.0, 11.05, F + 4.5, 8.55, "gunmetal"))
 lever = tilt_assembly(lever, pivot=LEVER_PIVOT, axis="x", degrees=LEVER_PITCH,
                       assembly="throttle_lever", assemblies=ASSEMBLIES)
 body += lever
