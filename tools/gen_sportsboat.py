@@ -278,8 +278,16 @@ class Band:
 V_STEPS = [(0.0, 0.3), (1.5, 0.55), (3.0, 0.78), (4.5, 1.0)]
 
 
+def in_bow(zc, s, k):
+    return open_bow(zc)
+
+
 def lounge_open(zc, s, k):
     return open_bow(zc) and LOUNGE_EDGE.x(beam(zc)) > 0
+
+
+def filler_open(zc, s, k):
+    return zc > BOW_FILLER and lounge_open(zc, s, k)
 
 
 def v_bottom(i):
@@ -302,30 +310,30 @@ HULL_BANDS = {
              lambda zc, s, k: DECK if open_cockpit(zc) else DECK_BOW, lambda zc, s, k: s,
              lambda zc, s, k: (open_cockpit(zc) and s > DECK) or open_bow(zc)),
         Band("bow_floor", "teak", Inset(1.6), ACROSS,
-             lambda zc, s, k: DECK_BOW, lambda zc, s, k: DECK_BOW + 0.3, lambda zc, s, k: open_bow(zc)),
+             lambda zc, s, k: DECK_BOW, lambda zc, s, k: DECK_BOW + 0.3, in_bow),
         # U-shaped bow lounge along the sides: charcoal base, tan cushion with charcoal piping on its
         # inboard edge, and a tan back capped in charcoal
         Band("lounge_base", "seat_dark", Inset(1.6), LOUNGE_EDGE,
-             lambda zc, s, k: DECK_BOW, lambda zc, s, k: LOUNGE_BASE, lambda zc, s, k: open_bow(zc)),
+             lambda zc, s, k: DECK_BOW, lambda zc, s, k: LOUNGE_BASE, in_bow),
         Band("lounge_cushion", "seat", Inset(1.6), PIPING_EDGE,
-             lambda zc, s, k: LOUNGE_BASE, lambda zc, s, k: LOUNGE_CUSHION, lambda zc, s, k: open_bow(zc)),
+             lambda zc, s, k: LOUNGE_BASE, lambda zc, s, k: LOUNGE_CUSHION, in_bow),
         Band("lounge_piping", "seat_dark", PIPING_EDGE, LOUNGE_EDGE,
              lambda zc, s, k: LOUNGE_BASE, lambda zc, s, k: LOUNGE_CUSHION + 0.1, lounge_open),
         Band("lounge_back", "seat", Inset(1.6), Inset(2.8),
-             lambda zc, s, k: LOUNGE_CUSHION, lambda zc, s, k: s - 0.9, lambda zc, s, k: open_bow(zc)),
+             lambda zc, s, k: LOUNGE_CUSHION, lambda zc, s, k: s - 0.9, in_bow),
         Band("lounge_back_cap", "seat_dark", Inset(1.6), Inset(3.0),
-             lambda zc, s, k: s - 0.9, lambda zc, s, k: s - 0.3, lambda zc, s, k: open_bow(zc)),
+             lambda zc, s, k: s - 0.9, lambda zc, s, k: s - 0.3, in_bow),
         # Filler cushions close the aisle into one sun pad, leaving room to stand inside the
         # walk-through
         Band("filler_base", "seat_dark", LOUNGE_EDGE, ACROSS,
              lambda zc, s, k: DECK_BOW, lambda zc, s, k: LOUNGE_BASE,
-             lambda zc, s, k: zc > BOW_FILLER and lounge_open(zc, s, k)),
+             filler_open),
         Band("filler_cushion", "seat", LOUNGE_EDGE, ACROSS,
              lambda zc, s, k: LOUNGE_BASE, lambda zc, s, k: LOUNGE_CUSHION,
-             lambda zc, s, k: zc > BOW_FILLER and lounge_open(zc, s, k)),
+             filler_open),
         Band("filler_seam", "seam", Inset(-0.15, scale=0.0), ACROSS,
              lambda zc, s, k: LOUNGE_CUSHION, lambda zc, s, k: LOUNGE_CUSHION + 0.1,
-             lambda zc, s, k: zc > BOW_FILLER and lounge_open(zc, s, k)),
+             filler_open),
     ],
     # Rub rail just below the gunwale, and a faint strake lower down
     "rub_rail": [Band("rub_rail", "stripe", Inset(-0.35), Inset(0.0),
