@@ -535,7 +535,8 @@ export async function bulldozerSeaCut(a: Arena): Promise<Outcome> {
       const forms: string[] = [];
       for (let t = 0; t < 120 && car.location.x < 100; t++) {
         await wait(1);
-        // From here on the blade strip, 1.0 to 2.9 ahead, reaches the wall.
+        // A conservative start: the strip, 1.0 to 2.9 ahead, first touches the
+        // wall's west face at x = 96 once the body passes about x = 93.1.
         if (car.location.x < 92) continue;
         minY = Math.min(minY, car.location.y);
         maxY = Math.max(maxY, car.location.y);
@@ -547,9 +548,10 @@ export async function bulldozerSeaCut(a: Arena): Promise<Outcome> {
       await wait(20);
       const { bodyHeight } = BULLDOZER_SPEC.blade;
       // Rows cut wherever the body was while it crossed the wall, and rows
-      // no position could reach.
+      // no position could reach. Resting on the bed, the cut starts at
+      // ceil(y - 0.01), never below floor(y + 0.01) (ADR 0155).
       const surely = (y: number) =>
-        y >= Math.floor(maxY + 0.01) && y < Math.ceil(minY + bodyHeight);
+        y >= Math.ceil(maxY - 0.01) && y < Math.ceil(minY + bodyHeight);
       const never = (y: number) =>
         y < Math.floor(minY + 0.01) || y >= Math.ceil(maxY + bodyHeight);
       const wrong: string[] = [];
@@ -598,7 +600,7 @@ export async function bulldozerSeaCut(a: Arena): Promise<Outcome> {
       return {
         pass:
           enteredAt >= 0 &&
-          forms[0] === "submarine" &&
+          forms.join(">") === "submarine" &&
           car.location.x >= 100 &&
           Object.keys(cut).length > 0 &&
           wrong.length === 0 &&
