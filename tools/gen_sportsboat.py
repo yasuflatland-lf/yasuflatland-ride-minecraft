@@ -1145,6 +1145,8 @@ for x0, y0, z0, size in ((9.6, F + 8, 10.4, 1.3), (3.9, F + 7, 9.0, 1.0)):
 # Steering wheel as on the reference: a thick black rim and a broad black three-spoke pad with
 # chrome strips along the lower edges of the side spokes, small buttons, one blue
 # LED, and a plain silver cap with no emblem (ADR 0009). The column sits under a thick glossy cowl.
+WHEEL_TILT = -30  # Top toward +z, away from the driver at -z (ADR 0051, 0166).
+wheel = []
 WX, WY, WZ = 7.6, F + 7.5, 7.0  # wheel center; the driver faces its -z side
 # The rim is 40 short segments, so its outline reads as a circle rather than a polygon. A full-depth
 # core with thinner bands along its inner and outer edges rounds off the rim's cross-section.
@@ -1157,30 +1159,42 @@ for r, half, z0, z1 in ((2.7, 0.3, WZ, WZ + 0.8), (2.325, 0.075, WZ + 0.15, WZ +
         ang = i * 360 / RIM_SEGMENTS
         cx = WX + r * math.cos(math.radians(ang))
         cy = WY + r * math.sin(math.radians(ang))
-        body.append(box(cx - half_len, cy - half, z0, cx + half_len, cy + half, z1, "gloss",
+        wheel.append(box(cx - half_len, cy - half, z0, cx + half_len, cy + half, z1, "gloss",
                         pivot=[cx, cy, (z0 + z1) / 2], rotation=[0, 0, ang + 90]))
 for ang in (20, 160, 270):
     ca, sa = math.cos(math.radians(ang)), math.sin(math.radians(ang))
     cx, cy = WX + 1.3 * ca, WY + 1.3 * sa
-    body.append(box(cx - 1.2, cy - 0.75, WZ + 0.15, cx + 1.2, cy + 0.75, WZ + 0.6, "gloss",
+    wheel.append(box(cx - 1.2, cy - 0.75, WZ + 0.15, cx + 1.2, cy + 0.75, WZ + 0.6, "gloss",
                     pivot=[cx, cy, WZ + 0.4], rotation=[0, 0, ang]))
     if ang != 270:
         # Across the spoke, pointing down on either side
         dx, dy = (sa, -ca) if ca > 0 else (-sa, ca)
         lx, ly = cx + 0.7 * dx, cy + 0.7 * dy
-        body.append(box(lx - 1.1, ly - 0.12, WZ + 0.05, lx + 1.1, ly + 0.12, WZ + 0.15, "chrome",
+        wheel.append(box(lx - 1.1, ly - 0.12, WZ + 0.05, lx + 1.1, ly + 0.12, WZ + 0.15, "chrome",
                         pivot=[lx, ly, WZ + 0.1], rotation=[0, 0, ang]))
         for r in (0.9, 1.6):
             bx, by = WX + r * ca - 0.15 * dx, WY + r * sa - 0.15 * dy
-            body.append(box(bx - 0.2, by - 0.2, WZ + 0.05, bx + 0.2, by + 0.2, WZ + 0.15, "button",
+            wheel.append(box(bx - 0.2, by - 0.2, WZ + 0.05, bx + 0.2, by + 0.2, WZ + 0.15, "button",
                             pivot=[bx, by, WZ + 0.1], rotation=[0, 0, ang]))
-body += disc(WX, WY, 1.3, WZ + 0.1, WZ + 0.7, "gloss")  # pad center
-body += disc(WX, WY, 0.6, WZ - 0.05, WZ + 0.1, "steel")  # cap
+wheel += disc(WX, WY, 1.3, WZ + 0.1, WZ + 0.7, "gloss")  # pad center
+wheel += disc(WX, WY, 0.6, WZ - 0.05, WZ + 0.1, "steel")  # cap
 lx, ly = WX + 0.45, WY - 1.9
-body.append(box(lx - 0.15, ly - 0.15, WZ + 0.05, lx + 0.15, ly + 0.15, WZ + 0.15, "ring"))  # LED
-body.append(box(WX - 1.0, WY - 1.6, WZ + 0.6, WX + 1.0, WY + 0.6, 9.0, "gloss"))  # cowl
-body.append(box(WX - 1.05, WY - 1.65, WZ + 1.0, WX + 1.05, WY + 0.65, WZ + 1.2, "chrome"))
-body.append(box(WX - 0.7, F + 4, 8.2, WX + 0.7, WY - 1.6, 9.0, "gloss"))  # column
+wheel.append(box(lx - 0.15, ly - 0.15, WZ + 0.05, lx + 0.15, ly + 0.15, WZ + 0.15, "ring"))  # LED
+# Keep the composed y turn through turn_around's legacy z-turn convention (ADR 0058).
+# It already reverses x; the wheel's composed y must reverse too to keep one rigid plane.
+wheel_start = len(body)
+body += tilt_assembly(wheel, pivot=[WX, WY, WZ + 0.4], axis="x",
+                      degrees=WHEEL_TILT, assembly="wheel")
+for cube in body[wheel_start:]:
+    cube["rotation"][1] *= -1
+# In the wheel's local frame the cowl and column start at the pad's rear face, so their
+# front edges touch it without protruding. Their shared x tilt preserves that contact.
+column_cowl = [
+    box(WX - 1.0, WY - 0.9, WZ + 0.7, WX + 1.0, WY + 0.3, 9.0, "gloss"),
+    box(WX - 1.05, WY - 0.95, WZ + 1.5, WX + 1.05, WY + 0.35, WZ + 1.7, "chrome"),
+    box(WX - 0.7, F + 3, WZ + 0.7, WX + 0.7, WY - 0.9, WZ + 1.5, "gloss"),
+]
+body += tilt_assembly(column_cowl, pivot=[WX, WY, WZ + 0.4], axis="x", degrees=WHEEL_TILT)
 # Throttle on the right side wall beside the driver: a glossy black housing with a chrome
 # handle on a black lever arm, as in the photo
 body.append(box(13.4, F + 4.5, 5.0, 15.4, F + 7.4, 9.0, "gloss"))
