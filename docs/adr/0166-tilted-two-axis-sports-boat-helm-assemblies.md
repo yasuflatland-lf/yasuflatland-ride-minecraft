@@ -119,6 +119,20 @@ Clearance: the display still stays clear of the phone holder and its screen, the
 
 Open question for the owner (manual test B34): from the driver's seat, does the display sit above and behind the phone holder, right of the wheel? **Verdict: unverified, awaiting the owner's device check.**
 
+### Panel-built dial replacing the throttle and redundant helm accessories
+
+This replaces the 7/7 controller pad and knob described above. Remove the phone holder and blue screen (2 cubes), the dash cupholder at x 9.6 and its insert (2), the `CONTROL_PAD`/`CONTROL_KNOB` approximation (4), and the throttle housing (1). Its black lever arm at x 12.6..14.2 and both chrome handle cubes served only the housing, so remove all three too. No separate support or script-visible throttle bone exists. The ledge cupholder at x 3.9 remains, as do the wheel, display, switch plate, hull, roof and speakers.
+
+Keep the dial **flat**, rather than slanting it by `SWITCH_TILT`: the low horizontal surface beside the driver's right hand exposes the five button plates from the seat and permits a round knob without a new multi-axis exception. `cylinder()` produces the 16-sided collar, ribbed wall, silver rim and solid dark top; a coordinate permutation maps its axial z dimension onto y and its z turns onto y turns. Each resulting cube has at most one rotation axis. `ONE_AXIS_EXCEPTION`, the wheel's `tilt_assembly` call and its following y-flip loop stay unchanged. The button readability and chosen flat orientation still need the B33 device check.
+
+The shield base spans x 13.15..15.65, z 5.1..8.9, starting at y F+6.5; its outer edge meets the existing side wall. Its maximum width is 2.5 px, constrained by the former throttle footprint and the 0.3 px overhang limit, rather than the reference's requested 3..4 px width. A larger front chamfer narrows the driver-facing end, with a thin raised eight-panel edge. Five separate chamfered button plates surround the upper-middle knob, including a wide rear button partly hidden by the collar and two larger lower wedges narrowing toward the knob. Painted curved grooves separate the lower plates from the knob. Sixteen spaced tangent ribs stand on a solid dark collar; a slightly wider silver ring with two narrowing steps encloses a solid dark disc. The top is at F+7.44, close to the old housing's F+7.4.
+
+Replace `control_pad` with `dial_pad` at the same [64, 4], size [16, 16] allocation. Cropped top-face UVs keep the shield and raised plates aligned with its groove outlines, house, circle and triangle icons. There are no letters, numbers, warning stickers or logos. All other tiles and swatches retain their allocations and painters. The base and knob use the matte `button` family; the silver rim uses `steel`.
+
+Helm cube count: **174 before and 273 after**. The console-through-throttle count loses 12 cubes and gains 111 dial cubes: 7 shield panels, 8 edge panels, 32 button panels, 8 solid collar panels, 16 ribs, 32 silver rim panels in two steps approximating a chamfer and 8 solid top panels. The whole model goes from 1235 to 1334 cubes. This replaces the historical five-new-parts cap for 6/7 and 7/7 above with a detailed panel assembly. Tests read generated JSON, never run the generator, and check removals, the retained ledge cupholder, atlas bounds and non-overlap, the 16-sided panel sections, transformed footprint and neighbour clearances, and the helm count.
+
+Open question for the owner (B33): on PC and mobile, are the flat shield, ribbed knob, bright silver rim, five distinct buttons and generic icons readable, with no floating throttle remnants or clipping? B34 now checks the display above the cleared dash, right of the wheel. **Verdict: unverified, awaiting the owner's device check.**
+
 ## Consequences
 
 - 5/7 tilts the wheel by one helper call instead of hand-composing angles, and the exception stays limited to the wheel.
