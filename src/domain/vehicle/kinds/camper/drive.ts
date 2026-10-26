@@ -13,7 +13,11 @@ import type { DriveStep, EngineCommand, TickContext } from "../../drive";
 import type { RawInput } from "../../driveInput";
 import type { RestoredOf } from "../../entityContract";
 import { DOCK, heldStep, pushesStick } from "../../motion/dock";
-import { dockCommands, undockCommands } from "../../motion/dockEntity";
+import {
+  dockCommands,
+  dockedCommand,
+  undockCommands,
+} from "../../motion/dockEntity";
 import { TransformingDrive } from "../../motion/transformingDrive";
 import { type BodyEnds, guardEnds } from "./bodyGuard";
 import {
@@ -82,6 +86,9 @@ const CAMPER_ENDS: BodyEnds = {
 export class CamperDrive extends TransformingDrive {
   private parked: HoldPose | undefined;
   private restoredDocked: boolean;
+  private resendDocked = false;
+  // Until the drive first holds, the entity keeps its default docked value and needs no resend.
+  private heldOnce = false;
   private readonly restoredLaid: boolean;
   // False on the parking tick: its teleport and dock event take effect only at
   // the end of the tick, and a floor laid under a body that still collides would
@@ -344,6 +351,7 @@ export class CamperDrive extends TransformingDrive {
 
   override resync(): void {
     super.resync();
+    this.resendDocked = this.heldOnce;
     this.doorStepSync.resync();
     this.showerDoorStepSync.resync();
     this.showerSync.resync();
@@ -352,6 +360,20 @@ export class CamperDrive extends TransformingDrive {
   }
 
   override step(raw: RawInput | undefined, ctx: TickContext): DriveStep {
+    const wasParked = this.parked !== undefined || this.restoredDocked;
+    const step = this.stepCamper(raw, ctx);
+    const held = this.parked !== undefined;
+    this.heldOnce ||= held;
+    if (!this.resendDocked) return step;
+    this.resendDocked = false;
+    // The docked property goes out only when the camper parks or departs, so after a failed
+    // send it goes out again unless this step docks or departs and sends it anyway (ADR 0156).
+    return held === wasParked
+      ? { ...step, commands: [...step.commands, dockedCommand(held)] }
+      : step;
+  }
+
+  private stepCamper(raw: RawInput | undefined, ctx: TickContext): DriveStep {
     if (this.restoredDocked) {
       this.restoredDocked = false;
       const pose = parkPose(ctx.location, this.yaw);
