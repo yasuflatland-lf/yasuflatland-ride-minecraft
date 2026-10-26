@@ -173,10 +173,28 @@ def pair(x0, y0, z0, x1, y1, z1, color, **extra):
     return [box(x0, y0, z0, x1, y1, z1, color, **extra), box(-x1, y0, z0, -x0, y1, z1, color, **left)]
 
 
+SPEAKER_SIDES = 12
+SPEAKER_WALL = 0.5
+
+
 def disc(cx, cy, r, z0, z1, color):
     """A round section along z: a square and the same square turned 45 degrees."""
     return [box(cx - r, cy - r, z0, cx + r, cy + r, z1, color, pivot=[cx, cy, z0], rotation=[0, 0, rot])
             for rot in (0, 45)]
+
+
+def cylinder(cx, cy, r, z0, z1, color, sides=SPEAKER_SIDES, wall=SPEAKER_WALL, caps=(False, False)):
+    """A regular polygon of inradius r, with tangent walls and optional rear/front disc caps."""
+    assert 8 <= sides <= 16
+    wall = min(wall, r)
+    w = 2 * r * math.tan(math.pi / sides)
+    cubes = [box(cx - w / 2, cy + r - wall, z0, cx + w / 2, cy + r, z1, color,
+                 pivot=[cx, cy, z0], rotation=[0, 0, 360 * k / sides])
+             for k in range(sides)]
+    for enabled, z in zip(caps, (z0, z1 - 0.1)):
+        if enabled:
+            cubes += disc(cx, cy, r - 0.05, z, z + 0.1, color)
+    return cubes
 
 
 def lerp(table, z):
@@ -1356,8 +1374,12 @@ SPEAKER_MOUNT = {"half_x": 0.5, "dy": 1.4, "z0": 1.5, "z1": 3.0, "swatch": "glos
 def speaker(sx):
     """Cubes of one speaker centred on x = sx. The spokes sit between the back disc and the hub."""
     cubes = []
-    for k, (_, r, z0, z1, swatch) in enumerate(SPEAKER_SECTIONS):
-        cubes += disc(sx, cy, r, G + z0, G + z1, swatch)
+    for k, (name, r, z0, z1, swatch) in enumerate(SPEAKER_SECTIONS):
+        if name in ("back", "hub"):
+            cubes += disc(sx, cy, r, G + z0, G + z1, swatch)
+        else:
+            cubes += cylinder(sx, cy, r, G + z0, G + z1, swatch,
+                              caps=(name == "bezel", name == "pod_3"))
         if k == 0:
             for ang in SPEAKER_SPOKES["angles"]:
                 ca, sa = math.cos(math.radians(ang)), math.sin(math.radians(ang))
