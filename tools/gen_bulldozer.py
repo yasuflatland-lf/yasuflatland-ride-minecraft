@@ -741,12 +741,26 @@ def gusset_corner(far, y):
     return (GUSSET_TOP[0] + (far[0] - GUSSET_TOP[0]) * (y - GUSSET_TOP[1]) / (far[1] - GUSSET_TOP[1]), y)
 
 
+ARM_THICKNESS = 4.2
+
+
+def arm_center_y(z):
+    return ARM_FRONT[1] + (ARM_REAR[1] - ARM_FRONT[1]) * (z - ARM_FRONT[0]) / (ARM_REAR[0] - ARM_FRONT[0])
+
+
+def arm_top_y(z):
+    """The y of the push arm's top surface at depth z. bar() measures the thickness across the
+    sloped arm, so half of it reaches 1 / cos(slope) times as far along y."""
+    slope = math.atan2(ARM_REAR[1] - ARM_FRONT[1], ARM_REAR[0] - ARM_FRONT[0])
+    return arm_center_y(z) + ARM_THICKNESS / 2 / math.cos(slope)
+
+
 # The owner had the slopes cut off level with the angle cylinder's underside, so no yellow hangs
 # below it over the track (ADR 0151).
 GUSSET_BOTTOM = gusset_corner((-19.5, 9.5), ANGLE_CYLINDER_BOTTOM)  # lower end of the sloped front face
 GUSSET_REAR = gusset_corner((-10.0, 9.5), ANGLE_CYLINDER_BOTTOM)
 GUSSET_THICKNESS = 0.4
-arms = [bar(ARM_FRONT, ARM_REAR, ARM_IN, ARM_OUT, 4.2, "yellow"),
+arms = [bar(ARM_FRONT, ARM_REAR, ARM_IN, ARM_OUT, ARM_THICKNESS, "yellow"),
         bar(ARM_FRONT, ARM_REAR, ARM_IN - 0.2, ARM_OUT + 0.2, 0.6, "yellow_dark", offset=1.6),
         *disc("x", ARM_OUT, ARM_REAR[1], ARM_REAR[0], 2.0, 0.5, "yellow_dark", STEPS_8),
         *disc("x", ARM_OUT + 0.5, ARM_REAR[1], ARM_REAR[0], 0.8, 0.3, "bolt", STEPS_8),
@@ -771,9 +785,17 @@ for side_x0, side_x1 in ((ARM_IN - 0.4, ARM_IN), (ARM_OUT, ARM_OUT + 0.4)):
 # These two rectangular plates close the rear slope and underside across the arm.
 arms.append(bar(GUSSET_TOP, GUSSET_REAR, ARM_IN, ARM_OUT, GUSSET_THICKNESS, "yellow"))
 arms.append(bar(GUSSET_REAR, GUSSET_BOTTOM, ARM_IN, ARM_OUT, GUSSET_THICKNESS, "yellow"))
+# The arm slopes down under that flat underside, so a foot of short strips fills the gap: each
+# strip stands on the arm's top at its higher rear end and rises into the plate, leaving at most
+# 0.07 px of daylight at its front end and nothing below the arm's top line (ADR 0151).
+z = GUSSET_BOTTOM[0]
+while z < GUSSET_REAR[0] - 1e-6:
+    z1 = min(z + 0.4, GUSSET_REAR[0])
+    arms.append(box(ARM_IN, arm_top_y(z1), z, ARM_OUT, ANGLE_CYLINDER_BOTTOM, z1, "yellow"))
+    z = z1
 arms += disc("x", ARM_OUT, LIFT_Y, LIFT_ROD_END, 1.1, 0.4, "steel", STEPS_8)  # the rod's end flange
 for zb in (-17.0, -6.0, 3.6):  # yellow clamp brackets along the arms
-    yb = ARM_FRONT[1] + (ARM_REAR[1] - ARM_FRONT[1]) * (zb - ARM_FRONT[0]) / (ARM_REAR[0] - ARM_FRONT[0])
+    yb = arm_center_y(zb)
     arms.append(box(ARM_IN - 0.4, yb + 1.6, zb - 0.6, ARM_OUT + 0.4, yb + 2.6, zb + 0.6, "yellow_dark"))
 arms += [box(ARM_IN + 0.4, 10.4, -27.6, ARM_IN + 0.6, 12.2, -26.2, "steel"),  # lifting eye
          box(ARM_OUT - 0.6, 10.4, -27.6, ARM_OUT - 0.4, 12.2, -26.2, "steel"),
