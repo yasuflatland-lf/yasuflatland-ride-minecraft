@@ -1211,6 +1211,18 @@ describe("sports boat hull planking (ADR 0161)", () => {
     ).toBe(5);
   });
 
+  it("keeps one rotation axis on every cube until the wheel tilt uses the exception (ADR 0166)", () => {
+    const twoAxis = geometry.bones
+      .flatMap(
+        (bone: { cubes?: { rotation?: number[] }[] }) => bone.cubes ?? [],
+      )
+      .filter(
+        (cube: { rotation?: number[] }) =>
+          (cube.rotation ?? []).filter((angle) => angle !== 0).length > 1,
+      );
+    expect(twoAxis).toHaveLength(0);
+  });
+
   describe("bow inner outline (ADR 0162)", () => {
     const LOUNGE_BASE = 13.2;
 
