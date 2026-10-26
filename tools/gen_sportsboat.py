@@ -220,6 +220,39 @@ def strake_y(z):
     return lerp(STRAKE, z)
 
 
+def pchip_slopes(points):
+    """The tangents of a monotone cubic Hermite (PCHIP) through `points`: Fritsch-Butland's weighted
+    harmonic mean inside, zero at a local extremum or a flat run, the end secants at both ends."""
+    h = [b[0] - a[0] for a, b in zip(points, points[1:])]
+    m = [(b[1] - a[1]) / (b[0] - a[0]) for a, b in zip(points, points[1:])]
+    slopes = [m[0]]
+    for k in range(1, len(points) - 1):
+        if m[k - 1] * m[k] <= 0:
+            slopes.append(0.0)
+        else:
+            w1, w2 = 2 * h[k] + h[k - 1], h[k] + 2 * h[k - 1]
+            slopes.append((w1 + w2) / (w1 / m[k - 1] + w2 / m[k]))
+    return [*slopes, m[-1]]
+
+
+BEAM_SLOPES = pchip_slopes(BEAM)
+
+
+def beam_plan(z):
+    """The hull's half-breadth on a smooth plan curve through every BEAM point, for the outer planking
+    (ADR 0161). It strays at most 0.27 px from the polyline beam(), which the glass, mirror post, tower,
+    and bow rails keep using."""
+    if z <= BEAM[0][0]:
+        return BEAM[0][1]
+    for ((z0, v0), (z1, v1)), d0, d1 in zip(zip(BEAM, BEAM[1:]), BEAM_SLOPES, BEAM_SLOPES[1:]):
+        if z <= z1:
+            h = z1 - z0
+            t = (z - z0) / h
+            return ((2 * t ** 3 - 3 * t ** 2 + 1) * v0 + (t ** 3 - 2 * t ** 2 + t) * h * d0
+                    + (3 * t ** 2 - 2 * t ** 3) * v1 + (t ** 3 - t ** 2) * h * d1)
+    return BEAM[-1][1]
+
+
 def open_cockpit(zc):
     return COCKPIT[0] <= zc <= COCKPIT[1]
 
@@ -253,8 +286,8 @@ class Inset:
         return x + self.step
 
 
-LOUNGE_EDGE = Inset(LOUNGE_DEPTH, floor=0.0)  # the lounge's inboard edge
-PIPING_EDGE = Inset(LOUNGE_DEPTH, floor=0.0, step=0.6)  # where the cushion meets its piping
+LOUNGE_EDGE = Inset(LOUNGE_DEPTH)  # the lounge's inboard edge
+PIPING_EDGE = Inset(LOUNGE_DEPTH, step=0.6)  # where the cushion meets its piping
 ACROSS = "across"  # an `inner` that makes the band one box across the centreline, `outer` wide each way
 
 
@@ -291,24 +324,349 @@ def filler_open(zc, s, k):
     return zc > BOW_FILLER and lounge_open(zc, s, k)
 
 
-def v_bottom(i):
-    """The V bottom's i-th step: it widens in steps up to the chine, and stops at the hull's top."""
-    off, frac = V_STEPS[i]
+def vfrac(d):
+    """The V bottom's fraction of the beam at `d` px over the keel, 1.0 from the chine up."""
+    return lerp(V_STEPS, d)
 
-    def y1(zc, s, k):
-        top = hull_top(zc, s)
-        return min(k + V_STEPS[i + 1][0], top) if i + 1 < len(V_STEPS) else top
 
-    return Band("v_bottom", "hull", Inset(scale=frac), ACROSS, lambda zc, s, k: k + off, y1,
-                lambda zc, s, k: y1(zc, s, k) > k + off)
+def half_breadth(y, z):
+    """The outer hull's half-breadth at height y, or 0 below the keel."""
+    d = y - keel(z)
+    return beam_plan(z) * vfrac(d) if d >= 0 else 0.0
+
+
+# Outer planking (ADR 0161): long panels on waterline bands, each turned about y only to follow the
+# plan curve between these stations. The left side mirrors the right through pair().
+PLAN_STATIONS = [-48, -47, -46, -45, -44, 8, 12, 16, 18, 20, 23, 26, 29, 32, 34, 36, 38, 40, 42, 44, 45.5,
+                 47, 48.5]
+FLAT = (-44.0, 8.0)  # beam_plan is constant here, so the rails along the sheer tilt about x instead
+BAND = 2.0  # BAND 1.5 needs 1212 cubes, exceeding the 1103-cube target (ADR 0161)
+PLANK_DEPTH = 0.5
+MERGE_TOLERANCE = 0.1  # how far a merged plank's chord may stray from the curve at any sample
+STRAKE_HEIGHT = 2.0  # the sheer strake, at least BAND tall so it covers the planks' stepped tops
+STRAKE_PROUD = 0.1
+CAP_INSET = 1.6  # the gunwale cap reaches this far inboard of the half-breadth
+DECK_STEP = 1.0  # a core under a deck narrows at most this much along its length
+JOINT_PROJECTION = 0.03  # maximum outboard spur where square-ended panels turn inboard
+RAIL_RISE = 0.4  # a level rail piece is split until its line rises at most this much within it
+
+
+def joint_overlap(depth, turn):
+    """The seam allowance closes the wedge between adjacent panels (ADR 0161)."""
+    return max(0.25, depth * math.tan(abs(turn)) / 2 + 0.05)
+
+
+def chain_overlaps(segments, depth):
+    """(aft, fore) overlaps for each (z0, x0, z1, x1) of a run of segments, from the joint at each end."""
+    ends = []
+    for k, (z0, x0, z1, x1) in enumerate(segments):
+        here = yaw(z0, x0, z1, x1)
+        aft = segments[k - 1] if k and abs(segments[k - 1][2] - z0) < 1e-9 else None
+        fore = segments[k + 1] if k + 1 < len(segments) and abs(segments[k + 1][0] - z1) < 1e-9 else None
+        ends.append((joint_overlap(depth, here - yaw(*aft)) if aft else 0.25,
+                     joint_overlap(depth, yaw(*fore) - here) if fore else 0.25))
+    return ends
+
+
+def joint_setback(overlap, turn):
+    """At an inward bend the inner corners already meet. Set back the nominal end before adding
+    the seam allowance, so its square outer corner cannot project beyond the next face (ADR 0161)."""
+    return max(0.0, overlap - JOINT_PROJECTION / math.sin(-turn)) if turn < -1e-9 else 0.0
+
+
+def plank(z0, x0, z1, x1, y0, y1, swatch, depth, overlap):
+    """A flat panel on the right side whose outer face runs from (z0, x0) to (z1, x1) in plan, `depth`
+    thick inboard and longer by `overlap` (aft, fore) past its ends, turned about y on (x0, y0, z0).
+    A positive y turn carries +z toward +x in this frame, as rotate() in
+    render_preview.py draws it; device confirmation is pending (ADR 0161)."""
+    aft, fore = overlap if isinstance(overlap, tuple) else (overlap, overlap)
+    length = math.hypot(z1 - z0, x1 - x0)
+    extra = {} if x0 == x1 else {"pivot": [x0, y0, z0],
+                                 "rotation": [0, math.degrees(math.atan2(x1 - x0, z1 - z0)), 0]}
+    return box(x0 - depth, y0, z0 - aft, x0, y1, z0 + length + fore, swatch, **extra)
+
+
+def paired_plank(*args, setbacks=(0.0, 0.0)):
+    z0, x0, z1, x1, *rest = args
+    length = math.hypot(z1 - z0, x1 - x0)
+    dz, dx = (z1 - z0) / length, (x1 - x0) / length
+    aft, fore = setbacks
+    cube = plank(z0 + aft * dz, x0 + aft * dx, z1 - fore * dz, x1 - fore * dx, *rest)
+    x, y, z = cube["origin"]
+    dx, dy, dz = cube["size"]
+    extra = {key: cube[key] for key in ("pivot", "rotation") if key in cube}
+    return pair(x, y, z, x + dx, y + dy, z + dz, args[6], **extra)
+
+
+def proud(z0, x0, z1, x1, out):
+    """The segment (z0, x0)-(z1, x1) moved `out` px outboard, square to itself."""
+    length = math.hypot(z1 - z0, x1 - x0)
+    dx, dz = out * (z1 - z0) / length, -out * (x1 - x0) / length
+    return z0 + dz, x0 + dx, z1 + dz, x1 + dx
+
+
+def yaw(z0, x0, z1, x1):
+    return math.atan2(x1 - x0, z1 - z0)
+
+
+def crossing(f, lo, hi, rising):
+    """The z in lo..hi where the monotone f crosses 0, rising or falling."""
+    for _ in range(60):
+        mid = (lo + hi) / 2
+        if (f(mid) < 0) == rising:
+            lo = mid
+        else:
+            hi = mid
+    return (lo + hi) / 2
+
+
+KEEL_LOW = (-39.0, -10.0)  # the keel's flat run at y 0
+
+
+def band_extent(i):
+    """The band's (z0, z1, closes_aft): where the keel is at or under its middle and the sheer at or over
+    its top. closes_aft says the aft end is at the keel or the transom, not under the sheer."""
+    y0 = BAND * i
+    y_mid, y1 = y0 + BAND / 2, y0 + BAND
+    if y1 > sheer(48) or y_mid < 0:
+        return None
+    za = -48.0 if keel(-48) <= y_mid else crossing(lambda z: keel(z) - y_mid, -48, KEEL_LOW[0], False)
+    zs = -48.0 if sheer(-48) >= y1 else crossing(lambda z: sheer(z) - y1, -48, 48, True)
+    zb = 48.0 if keel(48) <= y_mid else crossing(lambda z: keel(z) - y_mid, KEEL_LOW[1], 48, True)
+    z0 = max(za, zs)
+    return (z0, zb, za >= zs) if z0 < zb else None
+
+
+def merged_segments(zs, xs):
+    """Greedily join neighbouring segments while the joined chord stays within MERGE_TOLERANCE of every
+    sample it spans. Returns index pairs into zs."""
+    segments, i = [], 0
+    while i < len(zs) - 1:
+        j = i + 1
+        while j + 1 < len(zs) and all(
+                abs(xs[i] + (xs[j + 1] - xs[i]) * (zs[k] - zs[i]) / (zs[j + 1] - zs[i]) - xs[k]) <= MERGE_TOLERANCE
+                for k in range(i + 1, j + 1)):
+            j += 1
+        segments.append((i, j))
+        i = j
+    return segments
+
+
+def band_segments(i):
+    """The band's plank segments on the right side as (z0, x0, z1, x1), aft to fore."""
+    z0, z1, _ = BANDS[i]
+    y_mid = BAND * i + BAND / 2
+    knots = {*PLAN_STATIONS, *(z for z, _ in KEEL), z0, z1}
+    zs = sorted(z for z in knots if z0 <= z <= z1)
+    xs = [half_breadth(y_mid, z) for z in zs]
+    return [(zs[a], xs[a], zs[b], xs[b]) for a, b in merged_segments(zs, xs)]
+
+
+BANDS = {i: extent for i in range(int(sheer(48) // BAND) + 1) if (extent := band_extent(i))}
+
+
+def regime_cuts(z0, z1):
+    """z0..z1 cut where the hull top changes between the cockpit floor, the bow floor, and the sheer."""
+    cuts = [z for z in (COCKPIT[0], COCKPIT[1], BOW[0], BOW[1]) if z0 < z < z1]
+    edges = [z0, *cuts, z1]
+    return list(zip(edges, edges[1:]))
+
+
+def core_top(i, z0, z1, y1):
+    """Top of band i's core over z0..z1: the band's top where the band above covers the whole run, else
+    the hull top (the floor where the cockpit or the bow is open, the sheer elsewhere)."""
+    top = hull_top((z0 + z1) / 2, sheer(z0))
+    above = BANDS.get(i + 1)
+    return min(top, y1) if above and above[0] <= z0 and z1 <= above[1] else top
+
+
+def strake_inner(z0, z1):
+    """How far out a box over z0..z1 may reach and stay inside the sheer strake's inner face."""
+    x0, x1 = beam_plan(z0), beam_plan(z1)
+    return min(x0, x1) + STRAKE_PROUD - PLANK_DEPTH * math.hypot(z1 - z0, x1 - x0) / (z1 - z0) - 0.05
+
+
+def joined(cubes):
+    """Join boxes stacked straight on top of one another into one taller box."""
+    out = []
+    for cube in cubes:
+        last = out[-1] if out else None
+        if (last and "rotation" not in cube and "rotation" not in last
+                and last["origin"][0] == cube["origin"][0] and last["origin"][2] == cube["origin"][2]
+                and last["size"][0] == cube["size"][0] and last["size"][2] == cube["size"][2]
+                and abs(last["origin"][1] + last["size"][1] - cube["origin"][1]) < 1e-9):
+            last["size"][1] += cube["size"][1]
+        else:
+            out.append(cube)
+    return out
+
+
+def hull_shell():
+    """The outer planking: yawed planks per band segment, an axis-aligned core between them, and end
+    caps where a band ends at the keel or the transom (ADR 0161)."""
+    planks, latest, cores, caps = [], {}, [], []
+    for i, (z0, z1, closes_aft) in BANDS.items():
+        y0, y1 = BAND * i, BAND * (i + 1)
+        segments = band_segments(i)
+        for segment, overlap in zip(segments, chain_overlaps(segments, PLANK_DEPTH)):
+            # A band whose segment matches the one under it, as everywhere above the chine, extends
+            # that plank upward instead of adding its own
+            key = tuple(round(v, 9) for v in segment)
+            below = latest.get(key)
+            if below and abs(below[1] - y0) < 1e-9:
+                below[1], below[2] = y1, tuple(map(max, below[2], overlap))
+            else:
+                latest[key] = [y0, y1, overlap, segment]
+                planks.append(latest[key])
+            sz0, sx0, sz1, sx1 = segment
+            sec = math.hypot(sz1 - sz0, sx1 - sx0) / (sz1 - sz0)
+
+            def chord(z, sz0=sz0, sx0=sx0, sz1=sz1, sx1=sx1):
+                return sx0 + (sx1 - sx0) * (z - sz0) / (sz1 - sz0)
+
+            for a, b in regime_cuts(sz0, sz1):
+                top = core_top(i, a, b, y1)
+                # Under a deck the core must reach the gunwale cap's inner edge, so where the plan
+                # narrows fast it is cut short enough that its narrow end still does
+                n = max(1, math.ceil(abs(chord(b) - chord(a)) / DECK_STEP)) if top > y1 else 1
+                for c, d in ((a + (b - a) * j / n, a + (b - a) * (j + 1) / n) for j in range(n)):
+                    inner = min(chord(c), chord(d)) - PLANK_DEPTH * sec
+                    if top > y0 and inner > 0:
+                        cores.append(box(-inner, y0, c, inner, top, d, "hull"))
+                    # Near the transom the hull is too shallow to reach the chine, so the top band
+                    # is narrower than the sheer strake over it; a deck from the band up to the hull
+                    # top closes the gap that would show between them under the cap
+                    if top > y1 and inner < min(beam_plan(c), beam_plan(d)) - CAP_INSET:
+                        deck = strake_inner(c, d)
+                        cores.append(box(-deck, y1, c, deck, top, d, "hull"))
+        for z, aft, hb in ((z1, False, half_breadth(BAND * i + BAND / 2, z1)),
+                           (z0, True, half_breadth(BAND * i + BAND / 2, z0))):
+            if aft and not closes_aft:
+                continue
+            top = min(y1, core_top(i, z - 0.5, z, y1) if not aft else core_top(i, z, z + 0.5, y1))
+            half = hb - 0.25
+            if half > 0 and top > y0:
+                caps.append(box(-half, y0, z if aft else z - 0.5, half, top, z + 0.5 if aft else z, "hull"))
+    cubes = []
+    for y0, y1, overlap, segment in planks:
+        z0, x0, z1, x1 = segment
+        here = yaw(*segment)
+        neighbours = [p[3] for p in planks if p[0] <= y0 < p[1]]
+        aft = next((p for p in neighbours if abs(p[2] - z0) < 1e-9 and abs(p[3] - x0) < 1e-9), None)
+        fore = next((p for p in neighbours if abs(p[0] - z1) < 1e-9 and abs(p[1] - x1) < 1e-9), None)
+        setbacks = (joint_setback(overlap[0], here - yaw(*aft)) if aft else 0.0,
+                    joint_setback(overlap[1], yaw(*fore) - here) if fore else 0.0)
+        cubes += paired_plank(*segment, y0, y1, "hull", PLANK_DEPTH, overlap, setbacks=setbacks)
+    cores.sort(key=lambda c: (c["origin"][2], c["size"][2], c["size"][0], c["origin"][1]))
+    return cubes + joined(cores) + caps
+
+
+def rail_pieces():
+    """The rails' run along the sheer as (z0, z1, station z0, station z1, tilted). Over FLAT a piece is
+    one SHEER segment, tilted about x to follow it; elsewhere each plan segment is split until the sheer
+    rises at most RAIL_RISE within a piece, which stays level."""
+    flat = sorted({FLAT[0], FLAT[1], *(z for z, _ in SHEER if FLAT[0] < z < FLAT[1])})
+    pieces = [(a, b, a, b, True) for a, b in zip(flat, flat[1:])]
+    for a, b in zip(PLAN_STATIONS, PLAN_STATIONS[1:]):
+        if FLAT[0] <= a and b <= FLAT[1]:
+            continue
+        n = max(1, math.ceil((sheer(b) - sheer(a)) / RAIL_RISE - 1e-9))
+        pieces += [(a + (b - a) * j / n, a + (b - a) * (j + 1) / n, a, b, False) for j in range(n)]
+    return sorted(pieces)
+
+
+RAIL_PIECES = rail_pieces()
+
+
+def rail(face_x, y_range, swatch, out, depth, when=lambda z0, z1: True):
+    """One rail along the sheer, `out` px proud of the face face_x(z) and `depth` deep. y_range(z0, z1)
+    gives a level piece's (y0, y1), and a tilted piece's at its aft end; a tilted piece's height is
+    measured upright."""
+    pieces = []
+    for z0, z1, sa, sb, tilted in RAIL_PIECES:
+        if when(z0, z1):
+            xa, xb = face_x(sa), face_x(sb)
+            # On the plan segment's chord, so the pieces of one segment line up
+            pieces.append((z0, xa + (xb - xa) * (z0 - sa) / (sb - sa), z1, xa + (xb - xa) * (z1 - sa) / (sb - sa),
+                           tilted))
+    cubes = []
+    for k, (z0, x0, z1, x1, tilted) in enumerate(pieces):
+        piece_depth = depth(yaw(z0, x0, z1, x1)) if callable(depth) else depth
+        if tilted:
+            (ya0, ya1), (yb0, _) = y_range(z0, z0), y_range(z1, z1)
+            slope = math.atan2(yb0 - ya0, z1 - z0)
+            length = math.hypot(z1 - z0, yb0 - ya0)
+            x = x0 + out
+            cubes += pair(x - piece_depth, ya0, z0 - 0.25, x, ya0 + (ya1 - ya0) * math.cos(slope), z0 + length + 0.25,
+                          swatch, pivot=[x, ya0, z0], rotation=[math.degrees(slope), 0, 0])
+            continue
+        neighbours = [p for p in pieces[max(k - 1, 0):k + 2]
+                      if not p[4] and (abs(p[2] - z0) < 1e-9 or abs(p[0] - z1) < 1e-9)]
+        turns = [abs(yaw(z0, x0, z1, x1) - yaw(*p[:4])) for p in neighbours]
+        y0, y1 = y_range(z0, z1)
+        overlap = max(joint_overlap(piece_depth, t) for t in [0.0, *turns])
+        here = yaw(z0, x0, z1, x1)
+        aft = next((p for p in neighbours if abs(p[2] - z0) < 1e-9), None)
+        fore = next((p for p in neighbours if abs(p[0] - z1) < 1e-9), None)
+        setbacks = (joint_setback(overlap, here - yaw(*aft[:4])) if aft else 0.0,
+                    joint_setback(overlap, yaw(*fore[:4]) - here) if fore else 0.0)
+        cubes += paired_plank(*proud(z0, x0, z1, x1, out), y0, y1, swatch, piece_depth,
+                              overlap, setbacks=setbacks)
+    return cubes
+
+
+def strake_line_x(z):
+    """The planks' face at the strake line's height: the band it falls in sets the V fraction."""
+    y = strake_y(z)
+    return half_breadth(BAND * (y // BAND) + BAND / 2, z)
+
+
+def rails():
+    """The sheer strake and gunwale cap (hull), the rub rail, and the strake line (ADR 0161)."""
+    def under_sheer(z0, z1):
+        s = sheer((z0 + z1) / 2)
+        return s - STRAKE_HEIGHT, s
+
+    def cap(z0, z1):
+        s = sheer((z0 + z1) / 2)
+        return s - 0.25, s + 0.05
+
+    def rub(z0, z1):
+        s = sheer((z0 + z1) / 2)
+        return s - 1.1, s - 0.4
+
+    def line(z0, z1):
+        y = strake_y((z0 + z1) / 2)
+        return y, y + 0.4
+
+    def strake_window(z0, z1):
+        zc = (z0 + z1) / 2
+        return keel(zc) + 4.5 < strake_y(zc) < sheer(zc) - 2 and zc < 44
+
+    shell = (rail(beam_plan, under_sheer, "hull", STRAKE_PROUD, PLANK_DEPTH)
+             + rail(beam_plan, cap, "hull", STRAKE_PROUD,
+                    lambda angle: CAP_INSET * math.cos(angle) + STRAKE_PROUD))
+    rub_rail = rail(beam_plan, rub, "stripe", STRAKE_PROUD + 0.35, STRAKE_PROUD + 0.35)
+    strake = rail(strake_line_x, line, "strake", 0.2, 0.45, strake_window)
+    return shell, rub_rail, strake
+
+
+def plank_inner(y, z):
+    """How far out a cube at height y may reach at z and stay inside the planks' inner faces."""
+    hb = half_breadth(y, z)
+    i = y // BAND
+    segments = band_segments(i) if i in BANDS else []
+    faces = [x0 + (x1 - x0) * (z - z0) / (z1 - z0)
+             - PLANK_DEPTH * math.hypot(z1 - z0, x1 - x0) / (z1 - z0)
+             for z0, x0, z1, x1 in segments if z0 <= z <= z1]
+    return min([hb - PLANK_DEPTH, *faces])
 
 
 # The table, in emission order within each 2-pixel slice, grouped by hull region. build_hull() returns
 # each region as a list of cube groups, one per slice, not as one flat list: hull_body() interleaves the
-# regions slice by slice, which is how today's body orders its cubes. A region built some other way
-# returns a single group, which hull_body() emits where slice 0 is.
+# regions slice by slice. The outer shell and the rails are built from long panels instead, and each
+# returns a single group, which hull_body() emits where slice 0 is (ADR 0161).
 HULL_BANDS = {
-    "hull_shell": [v_bottom(i) for i in range(len(V_STEPS))],
     "hull_interior": [
         Band("gunwale_wall", "hull", Inset(0.0), Inset(1.6),
              lambda zc, s, k: DECK if open_cockpit(zc) else DECK_BOW, lambda zc, s, k: s,
@@ -339,26 +697,23 @@ HULL_BANDS = {
              lambda zc, s, k: LOUNGE_CUSHION, lambda zc, s, k: LOUNGE_CUSHION + 0.1,
              filler_open),
     ],
-    # Rub rail just below the gunwale, and a faint strake lower down
-    "rub_rail": [Band("rub_rail", "stripe", Inset(-0.35), Inset(0.0),
-                      lambda zc, s, k: s - 1.1, lambda zc, s, k: s - 0.4)],
-    "strake": [Band("strake", "strake", Inset(-0.2), Inset(0.0),
-                    lambda zc, s, k: strake_y(zc), lambda zc, s, k: strake_y(zc) + 0.4,
-                    lambda zc, s, k: k + 4.5 < strake_y(zc) < s - 2 and zc < 44)],
 }
 
 
 def slice_band(row, z0, z1):
-    """The cubes `row` adds to the hull slice z0..z1."""
+    """The cubes `row` adds to the hull slice z0..z1, its outer edge kept inside the planks at both
+    slice ends (ADR 0161)."""
     zc = z0 + (z1 - z0) / 2
     s, k, b = sheer(zc), keel(zc), beam(zc)
     if not row.when(zc, s, k):
         return []
     y0, y1 = row.y0(zc, s, k), row.y1(zc, s, k)
+    limit = min(plank_inner(y0, z0), plank_inner(y0, z1))
+    outer = min(row.outer.x(b), limit)
     if row.inner == ACROSS:
-        half = row.outer.x(b)
-        return [box(-half, y0, z0, half, y1, z1, row.swatch)]
-    return pair(row.inner.x(b), y0, z0, row.outer.x(b), y1, z1, row.swatch)
+        return [box(-outer, y0, z0, outer, y1, z1, row.swatch)] if outer > 0 else []
+    inner = row.inner.x(b)
+    return pair(inner, y0, z0, outer, y1, z1, row.swatch) if outer > inner else []
 
 
 def hull_slices():
@@ -369,9 +724,13 @@ def hull_slices():
 
 
 def build_hull():
-    """{region name: [[cubes of slice 0], [cubes of slice 1], ...]}, in HULL_BANDS order."""
-    return {region: [[cube for row in rows for cube in slice_band(row, z0, z1)] for z0, z1 in hull_slices()]
-            for region, rows in HULL_BANDS.items()}
+    """{region name: [cube groups]}: the interior one group per slice in HULL_BANDS order, and the shell
+    and the rails one group each."""
+    shell, rub_rail, strake = rails()
+    interior = [[cube for row in rows for cube in slice_band(row, z0, z1)] for z0, z1 in hull_slices()
+                for rows in HULL_BANDS.values()]
+    return {"hull_shell": [hull_shell() + shell], "hull_interior": interior, "rub_rail": [rub_rail],
+            "strake": [strake]}
 
 
 def hull_body(regions):
@@ -754,22 +1113,24 @@ while z < 43.0:
     body += pair(beam(z + 1) - 1.6, sheer(z) + 1.6, z, beam(z + 1) - 1.1, sheer(z) + 2.1, z + 1.0, "steel")
     z += 1.0
 
-# Headlights: a slim teardrop lens set into each bow flank, flush with the hull slice it sits on
-# and following the sheer, widest at the rear and tapering to a point toward the stem.
+# Headlights: a slim teardrop lens set into each bow flank, widest at the rear and tapering to a point
+# toward the stem: one flat lens per plan segment, turned with it and following the sheer (ADR 0161).
 headlights = []
-LAMP = (32.0, 42.0)  # on hull slice boundaries, so each lens segment covers exactly one slice
-zl = LAMP[0]
-while zl < LAMP[1]:
-    hull_b = beam(zl + SLICE / 2)
-    t = (zl + SLICE / 2 - LAMP[0]) / (LAMP[1] - LAMP[0])
+LAMP = (32.0, 42.0)  # on plan stations
+LAMP_PROUD = 0.15
+lamp_segments = [(a, b) for a, b in zip(PLAN_STATIONS, PLAN_STATIONS[1:]) if LAMP[0] <= a and b <= LAMP[1]]
+lamp_yaws = [yaw(a, beam_plan(a), b, beam_plan(b)) for a, b in lamp_segments]
+for k, (za, zb) in enumerate(lamp_segments):
+    zm = (za + zb) / 2
+    t = (zm - LAMP[0]) / (LAMP[1] - LAMP[0])
     h = 1.5 * (1 - t) + 0.4 * t
-    yc = sheer(zl + SLICE / 2) - 3.2 + 1.2 * t
-    headlights += pair(hull_b - 0.05, yc - h / 2, zl, hull_b + 0.15, yc + h / 2, zl + SLICE, "light")
-    # The step to the next, narrower slice exposes this segment's front face; cap it with lens too
-    if zl + SLICE < LAMP[1]:
-        next_b = beam(zl + SLICE * 1.5)
-        headlights += pair(next_b, yc - h / 2, zl + SLICE - 0.15, hull_b + 0.15, yc + h / 2, zl + SLICE, "light")
-    zl += SLICE
+    yc = sheer(zm) - 3.2 + 1.2 * t
+    # Proud of the sheer strake where the lens reaches up onto it, else of the planks
+    out = LAMP_PROUD + (STRAKE_PROUD if yc + h / 2 > sheer(zm) - STRAKE_HEIGHT else 0.0)
+    depth = out + 0.05
+    turns = [abs(lamp_yaws[k] - lamp_yaws[j]) for j in (k - 1, k + 1) if 0 <= j < len(lamp_yaws)]
+    headlights += paired_plank(*proud(za, beam_plan(za), zb, beam_plan(zb), out), yc - h / 2, yc + h / 2, "light",
+                        depth, max(joint_overlap(depth, turn) for turn in turns))
 
 geo = {
     "format_version": "1.12.0",

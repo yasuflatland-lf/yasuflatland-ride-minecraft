@@ -361,6 +361,169 @@ describe("sports boat Resource Pack (ADR 0051)", () => {
   });
 });
 
+describe("sports boat hull planking (ADR 0161)", () => {
+  type Cube = {
+    origin: [number, number, number];
+    size: [number, number, number];
+    pivot?: [number, number, number];
+    rotation?: [number, number, number];
+    uv: Record<string, { uv: [number, number] }>;
+  };
+  const bone = (name: string): Cube[] =>
+    geometry.bones.find((b: { name: string }) => b.name === name).cubes;
+  const cubes = geometry.bones.flatMap(
+    (b: { cubes?: Cube[] }) => b.cubes ?? [],
+  ) as Cube[];
+  // Each swatch is a 4-texel cell in palette order (tools/gen_sportsboat.py): hull is the 1st,
+  // strake the 3rd, and stripe the 20th.
+  const swatch = (index: number) => (cube: Cube) =>
+    cube.uv.up?.uv[0] === index * 4 + 1;
+  const isHull = swatch(0);
+  const shell = cubes.filter(
+    (cube) => isHull(cube) || swatch(2)(cube) || swatch(19)(cube),
+  );
+  // The plan stations and the half-breadth there (issue #640's table), bow at +z as the generator
+  // builds it; the model is turned around, so the bow is at -z in the file.
+  const STATIONS: [number, number][] = [
+    [-48, 14.5],
+    [-47, 15.86],
+    [-46, 16.53],
+    [-45, 16.87],
+    [-44, 17.0],
+    [8, 17.0],
+    [12, 16.79],
+    [16, 16.27],
+    [18, 15.94],
+    [20, 15.6],
+    [23, 14.94],
+    [26, 14.04],
+    [29, 12.98],
+    [32, 11.76],
+    [34, 10.8],
+    [36, 9.73],
+    [38, 8.6],
+    [40, 7.39],
+    [42, 6.06],
+    [44, 4.6],
+    [45.5, 3.35],
+    [47, 2.0],
+    [48.5, 0.6],
+  ];
+  // SHEER in tools/gen_sportsboat.py
+  const SHEER: [number, number][] = [
+    [-48, 9.5],
+    [-44, 11.5],
+    [-40, 13],
+    [-32, 15.5],
+    [-21, 16.8],
+    [0, 17.4],
+    [22, 17.6],
+    [38, 17.8],
+    [48, 18.4],
+  ];
+  const lerp = (table: [number, number][], z: number) => {
+    const i = table.findIndex(([z1]) => z <= z1);
+    if (i <= 0) return (i === 0 ? table[0] : table.at(-1))?.[1] ?? 0;
+    const [z0, v0] = table[i - 1] ?? [0, 0];
+    const [z1, v1] = table[i] ?? [0, 0];
+    return v0 + ((v1 - v0) * (z - z0)) / (z1 - z0);
+  };
+  const STRAKE_PROUD = 0.1;
+
+  const turn = (v: number[], axis: "x" | "y", degrees: number) => {
+    const [x = 0, y = 0, z = 0] = v;
+    const s = Math.sin((degrees * Math.PI) / 180);
+    const c = Math.cos((degrees * Math.PI) / 180);
+    return axis === "x"
+      ? [x, y * c - z * s, y * s + z * c]
+      : [x * c + z * s, y, -x * s + z * c];
+  };
+  // How far out along x the line through (y, z) runs inside the cube, or 0 when it misses. The game
+  // Preview and bulldozer conventions negate x but preserve y (ADR 0051, 0161), so undoing
+  // the turn takes rx and -ry right-handed. Device confirmation is tracked in H2.
+  const reach = (cube: Cube, y: number, z: number) => {
+    const [rx = 0, ry = 0] = cube.rotation ?? [];
+    const pivot = cube.pivot ?? [0, 0, 0];
+    const undo = (v: number[]) =>
+      rx ? turn(v, "x", rx) : ry ? turn(v, "y", -ry) : v;
+    const p = undo([0 - pivot[0], y - pivot[1], z - pivot[2]]);
+    const d = undo([1, 0, 0]);
+    let lo = Number.NEGATIVE_INFINITY;
+    let hi = Number.POSITIVE_INFINITY;
+    for (const i of [0, 1, 2] as const) {
+      const a = cube.origin[i] - pivot[i];
+      const b = a + cube.size[i];
+      const pi = p[i] ?? 0;
+      const di = d[i] ?? 0;
+      if (Math.abs(di) < 1e-12) {
+        if (pi < a || pi > b) return 0;
+        continue;
+      }
+      const t0 = (a - pi) / di;
+      const t1 = (b - pi) / di;
+      lo = Math.max(lo, Math.min(t0, t1));
+      hi = Math.min(hi, Math.max(t0, t1));
+    }
+    return lo <= hi ? Math.max(Math.abs(lo), Math.abs(hi)) : 0;
+  };
+
+  it("turns every hull, stripe, and strake cube about one axis at most, never z", () => {
+    expect(shell.length).toBeGreaterThan(0);
+    for (const cube of shell) {
+      const [rx = 0, ry = 0, rz = 0] = cube.rotation ?? [];
+      expect(rz).toBe(0);
+      expect(rx !== 0 && ry !== 0).toBe(false);
+    }
+  });
+
+  it("keeps the outer plan outline at the rub rail on the half-breadth table and never wider toward the bow", () => {
+    const hull = cubes.filter(isHull);
+    let previous = Number.POSITIVE_INFINITY;
+    for (let z = -47.75; z <= 48.25; z += 0.25) {
+      const y = lerp(SHEER, z) - 0.75;
+      const outermost = Math.max(...hull.map((cube) => reach(cube, y, -z)));
+      expect(
+        Math.abs(outermost - lerp(STATIONS, z) - STRAKE_PROUD),
+        `z ${z}`,
+      ).toBeLessThanOrEqual(0.15);
+      if (z >= 8) {
+        expect(outermost, `z ${z}`).toBeLessThanOrEqual(previous + 1e-6);
+        previous = outermost;
+      }
+    }
+  });
+
+  it("sets one lens per plan segment from z 32 to 42 on each side, turned with its segment", () => {
+    const lenses = bone("headlights");
+    expect(lenses).toHaveLength(10);
+    const yaws = new Map(
+      STATIONS.slice(0, -1).map(([z0, x0], i) => {
+        const [z1 = 0, x1 = 0] = STATIONS[i + 1] ?? [];
+        return [z0, (Math.atan2(x0 - x1, z1 - z0) * 180) / Math.PI];
+      }),
+    );
+    const starts = [32, 34, 36, 38, 40];
+    for (const lens of lenses) {
+      // The lens pivots on its segment's aft end, moved a little outboard
+      const z = -(lens.pivot?.[2] ?? 0);
+      const start = starts.reduce((a, b) =>
+        Math.abs(b - z) < Math.abs(a - z) ? b : a,
+      );
+      expect(Math.abs(z - start)).toBeLessThan(0.5);
+      expect(
+        Math.abs(Math.abs(lens.rotation?.[1] ?? 0) - (yaws.get(start) ?? 0)),
+      ).toBeLessThanOrEqual(0.5);
+    }
+    expect(
+      new Set(lenses.map((lens) => Math.round(-(lens.pivot?.[2] ?? 0)))).size,
+    ).toBe(5);
+  });
+
+  it(`stays within the 1500-cube cap (${cubes.length} cubes)`, () => {
+    expect(cubes.length).toBeLessThanOrEqual(1500);
+  });
+});
+
 describe("sports boat PBR rear-view mirror (ADR 0159)", () => {
   const ENTITY_TEXTURES = `${RP}/textures/entity/yasu_ride`;
   const texels = (name: string) => {
