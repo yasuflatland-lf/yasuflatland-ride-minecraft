@@ -14,4 +14,6 @@ Keep the existing front slope from `(z, y) = (-19.5, 9.5)` to `(-13.9, 22.2)`. S
 
 ## Consequences
 
+The push arm slopes down toward the front under that level bottom, which left a gap of up to 1.5 px between the bottom plate and the arm's top. A yellow foot of 0.4 px strips across the arm's 7.5 to 9.5 px width fills it: each strip stands on the arm's top surface at its rear, higher end and rises to y 12.6 inside the bottom plate, so at most 0.07 px of the gap remains and nothing reaches below the arm's top line. The Resource Pack goes to 0.1.140 for it.
+
 Each support reads as an enclosed triangular housing from either side. The panels move with the blade and do not change its reach, collision, or control. Keep this decision Proposed until the owner checks the new shape in game.
