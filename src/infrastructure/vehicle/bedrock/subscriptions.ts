@@ -105,7 +105,7 @@ export function registerSubscriptions(
   registerTestHeldTool(testTools);
   registerGifts(useCases.gift);
   registerBoarding(useCases.board);
-  registerStandIns();
+  registerStandIns(useCases.board);
   // The switch router subscribes before placement so placement's block press handler stays
   // the last one subscribed; each handler ignores the other's items (ADR 0115).
   const vehicle = vehicleSwitchTarget(

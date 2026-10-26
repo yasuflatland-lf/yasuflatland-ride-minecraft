@@ -465,10 +465,10 @@ describe("vehicle profiles (ADR 0050)", () => {
     );
   });
 
-  it("lets only the sports boat's players choose their seat; the others keep the engine's rider order (ADR 0019, 0050, 0120)", () => {
+  it("lets sports boat and camper players choose seats while SUV and bulldozer keep engine order (ADR 0050, 0120, 0154)", () => {
     for (const kind of VEHICLE_KINDS)
       expect(profileOf(kind).boarding.order).toBe(
-        kind === "sportsboat" ? "chosen" : "engine",
+        kind === "sportsboat" || kind === "camper" ? "chosen" : "engine",
       );
   });
 

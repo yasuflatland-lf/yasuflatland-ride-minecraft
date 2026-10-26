@@ -123,7 +123,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0117](0117-move-the-suv-front-seats-back.md) | Move the SUV's front seats back | Accepted |
 | [0118](0118-close-the-camper-shower-door-from-either-side.md) | Close the camper shower door from either side | Accepted |
 | [0119](0119-park-the-camper-over-natural-ground.md) | Park the camper over natural ground, and lift its bumper stand-in out of it | Proposed |
-| [0120](0120-choose-a-sports-boat-seat-by-aiming-at-it.md) | Choose a sports boat seat by aiming at it | Proposed |
+| [0120](0120-choose-a-sports-boat-seat-by-aiming-at-it.md) | Choose a sports boat seat by aiming at it | Proposed; extended by 0154 (Proposed) |
 | [0121](0121-doored-storage-in-the-camper.md) | Doored storage in the camper | Extended by 0123 (Proposed) |
 | [0122](0122-a-low-chair-to-sit-on-outside-the-vehicles.md) | A low chair to sit on outside the vehicles | Proposed; extended by 0129, [0130](0130-a-tent-entity-whose-hits-land-on-its-blocks.md), [0131](0131-pitch-a-tent-in-the-camp.md), and 0144 (Proposed) |
 | [0123](0123-a-fridge-in-place-of-the-camper-shelf.md) | A fridge in place of the camper shelf | Proposed |
@@ -155,6 +155,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0151](0151-enclose-the-bulldozer-blade-supports.md) | Enclose the bulldozer blade supports | Proposed |
 | [0152](0152-a-two-seat-folding-camp-table.md) | A two-seat folding camp table | Proposed |
 | [0153](0153-a-polished-folding-fire-pit.md) | A polished folding fire pit | Proposed |
+| [0154](0154-keep-camper-passengers-in-their-seats-on-departure.md) | Keep camper passengers in their seats on departure | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 

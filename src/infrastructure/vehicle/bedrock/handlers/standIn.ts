@@ -2,11 +2,13 @@
 // into its vehicle, as the same interaction with the vehicle would (ADR 0116). The headlight
 // switch is handled by the switch router and the vehicle's switch target, and its hits in hits.ts.
 import { system, world } from "@minecraft/server";
+import type { BoardVehicle } from "../../../../application/vehicle/boardVehicle";
 import { HEADLIGHT_SWITCH_TYPE } from "../../../shared/identifiers";
 import { isStandInEntity } from "../identifiers";
 import { vehicleOfTarget } from "../standIns";
+import { requestBoarding } from "./boarding";
 
-export function registerStandIns(): void {
+export function registerStandIns(boardVehicle: BoardVehicle): void {
   world.beforeEvents.playerInteractWithEntity.subscribe((ev) => {
     if (!isStandInEntity(ev.target.typeId)) return;
     ev.cancel = true;
@@ -22,6 +24,8 @@ export function registerStandIns(): void {
       player.getComponent("minecraft:riding")?.entityRidingOn?.id === vehicle.id
     )
       return;
+    // A vehicle whose players choose their seat seats the player itself (ADR 0154).
+    if (requestBoarding(boardVehicle, player, vehicle)) return;
     // Before events cannot change the world, so the player boards on the next tick.
     system.run(() => {
       if (!player.isValid || !vehicle.isValid) return;

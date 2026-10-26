@@ -526,7 +526,7 @@
         "seat_count": 4,
         "controlling_seat": 0,
         "crouching_skip_interact": true,
-        "family_types": ["player"],
+        "family_types": ["player", "yasu_ride_seat_filler"],
         "interact_text": "action.interact.ride.horse",
         "seats": [
           { "position": [-0.75, 1.5, 2.1], "lock_rider_rotation": 90 },
