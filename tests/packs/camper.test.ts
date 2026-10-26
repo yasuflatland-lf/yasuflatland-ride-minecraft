@@ -1728,13 +1728,13 @@ describe("camper ceiling lights (ADR 0115)", () => {
   });
 });
 
-describe("camper rear-right vent cover (ADR 0146)", () => {
+describe("camper rear-right vent lid (ADR 0146, 0157)", () => {
   // Slots in the PALETTE order of tools/gen_camper.py.
   const WHITE_SLOT = 0;
   const KHAKI_SLOT = 4;
+  const STEEL_SLOT = 5;
   const BLACK_SLOT = 7;
   const CHROME_SLOT = 10;
-  const SLAT_SLOT = 11;
   const WALL_IN_SLOT = 22;
   const end = (c: Cube, axis: number) =>
     (c.origin[axis] ?? 0) + (c.size[axis] ?? 0);
@@ -1761,81 +1761,76 @@ describe("camper rear-right vent cover (ADR 0146)", () => {
       ).toBe(true);
     }
   });
-  it("centers the slats so the edge cells match", () => {
-    const slats = (bone("body").cubes ?? []).filter(
-      (c) =>
-        c.uv.north?.uv[0] === SLAT_SLOT &&
-        end(c, 0) <= -24.0999 &&
-        (c.origin[1] ?? 0) >= 38 &&
-        (c.origin[2] ?? 0) >= 41.5,
-    );
-    for (const [axis, lo, hi] of [
-      [2, 42.3, 48.7],
-      [1, 38.8, 45.2],
-    ] as const) {
-      const bars = slats
-        .filter((c) => Math.abs((c.size[axis] ?? 0) - 0.4) < 0.0001)
-        .sort((a, b) => (a.origin[axis] ?? 0) - (b.origin[axis] ?? 0));
-      expect(bars.length).toBeGreaterThanOrEqual(3);
-      const first = (bars[0]?.origin[axis] ?? 0) - lo;
-      const last = hi - ((bars.at(-1)?.origin[axis] ?? 0) + 0.4);
-      expect(Math.abs(first - last)).toBeLessThan(0.05);
-    }
-  });
-  it("draws an exterior chrome bezel and crossed slat layers over black backing", () => {
-    const cover = (bone("body").cubes ?? []).filter(
+  const lid = () =>
+    (bone("body").cubes ?? []).filter(
       (c) =>
         end(c, 0) <= -24.0999 &&
-        (c.origin[1] ?? 0) >= 38 &&
-        end(c, 1) <= 46.0001 &&
-        (c.origin[2] ?? 0) >= 41.5 &&
+        (c.origin[1] ?? 0) >= 36.5 &&
+        end(c, 1) <= 48.5001 &&
+        (c.origin[2] ?? 0) >= 40.5 &&
         end(c, 2) <= 49.5001,
     );
-    expect(cover.length).toBeGreaterThan(10);
-    for (const c of cover) {
-      expect(c.origin[0]).toBeGreaterThanOrEqual(-24.5001);
+  const covers = (c: Cube, y: number, z: number) =>
+    (c.origin[1] ?? 0) <= y &&
+    y <= end(c, 1) &&
+    (c.origin[2] ?? 0) <= z &&
+    z <= end(c, 2);
+  it("frames a white panel in a raised aluminium rim with cut corners", () => {
+    const cubes = lid();
+    for (const c of cubes)
       for (const face of Object.values(c.uv))
-        expect([BLACK_SLOT, CHROME_SLOT, SLAT_SLOT]).toContain(face.uv[0]);
+        expect([WHITE_SLOT, STEEL_SLOT, BLACK_SLOT, CHROME_SLOT]).toContain(
+          face.uv[0],
+        );
+    const rim = cubes.filter((c) => c.uv.north?.uv[0] === CHROME_SLOT);
+    for (const c of rim) {
+      expect(c.origin[0]).toBeCloseTo(-24.5, 4);
+      expect(end(c, 0)).toBeCloseTo(-24.1, 4);
     }
-    expect(cover.filter((c) => c.uv.north?.uv[0] === CHROME_SLOT)).toHaveLength(
-      4,
-    );
     for (const [axis, low, high] of [
-      [0, -24.5, -24.1],
-      [1, 38, 46],
-      [2, 41.5, 49.5],
+      [1, 36.5, 48.5],
+      [2, 40.5, 49.5],
     ] as const) {
-      expect(Math.min(...cover.map((c) => c.origin[axis] ?? 0))).toBeCloseTo(
+      expect(Math.min(...rim.map((c) => c.origin[axis] ?? 0))).toBeCloseTo(
         low,
         4,
       );
-      expect(Math.max(...cover.map((c) => end(c, axis)))).toBeCloseTo(high, 4);
+      expect(Math.max(...rim.map((c) => end(c, axis)))).toBeCloseTo(high, 4);
     }
-    const backing = cover.filter((c) => c.uv.north?.uv[0] === BLACK_SLOT);
-    expect(backing).toHaveLength(1);
-    expect(backing[0]?.origin).toEqual([-24.2, 38.8, 42.3]);
-    expect(backing[0]?.size).toEqual([0.1, 6.4, 6.4]);
-    for (const [x, axis] of [
-      [-24.3, 2],
-      [-24.4, 1],
-    ] as const) {
-      const bars = cover
-        .filter(
-          (c) =>
-            c.uv.north?.uv[0] === SLAT_SLOT &&
-            Math.abs((c.origin[0] ?? 0) - x) < 0.0001,
-        )
-        .sort((a, b) => (a.origin[axis] ?? 0) - (b.origin[axis] ?? 0));
-      expect(bars.length).toBeGreaterThanOrEqual(3);
-      for (const [i, c] of bars.entries()) {
-        expect(c.size[axis]).toBeCloseTo(0.4, 4);
-        expect(c.size[0]).toBeCloseTo(0.1, 4);
-        const next = bars[i + 1];
-        if (next)
-          expect(
-            (next.origin[axis] ?? 0) - end(c, axis),
-          ).toBeGreaterThanOrEqual(0.3999);
-      }
+    for (const [y, z] of [
+      [36.6, 40.6],
+      [36.6, 49.4],
+      [48.4, 40.6],
+      [48.4, 49.4],
+    ] as const)
+      expect(cubes.filter((c) => covers(c, y, z))).toEqual([]);
+    for (const c of cubes.filter((c) => c.uv.north?.uv[0] === WHITE_SLOT))
+      expect(c.origin[0]).toBeCloseTo(-24.3, 4);
+  });
+  it("cuts two columns of twelve recessed slits above a plain lower part", () => {
+    const slits = lid().filter((c) => c.uv.north?.uv[0] === BLACK_SLOT);
+    expect(slits).toHaveLength(24);
+    for (const c of slits) {
+      expect(c.origin[0]).toBeCloseTo(-24.2, 4);
+      expect(c.size[0]).toBeCloseTo(0.1, 4);
+      expect(c.origin[1]).toBeGreaterThan(40);
     }
+    const left = slits.filter((c) => end(c, 2) < 45);
+    const right = slits.filter((c) => (c.origin[2] ?? 0) > 45);
+    expect(left).toHaveLength(12);
+    expect(right).toHaveLength(12);
+    const panel = lid().filter((c) => c.uv.north?.uv[0] === WHITE_SLOT);
+    for (const c of slits)
+      expect(
+        panel.some((p) =>
+          covers(p, (c.origin[1] ?? 0) + 0.1, (c.origin[2] ?? 0) + 0.1),
+        ),
+      ).toBe(false);
+  });
+  it("adds a latch below the slits", () => {
+    const steel = lid().filter((c) => c.uv.north?.uv[0] === STEEL_SLOT);
+    const latch = steel.filter((c) => (c.size[2] ?? 0) > 1);
+    expect(latch).toHaveLength(1);
+    expect(end(latch[0] as Cube, 1)).toBeLessThan(40);
   });
 });
