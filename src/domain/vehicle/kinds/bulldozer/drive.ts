@@ -4,7 +4,7 @@ import type { CutColumn } from "../../cut";
 import type { DriveStep, EngineCommand, TickContext } from "../../drive";
 import { type RawInput, toDriveInput } from "../../driveInput";
 import type { RestoredOf } from "../../entityContract";
-import type { Form } from "../../motion/forms";
+import { climbInput, type Form } from "../../motion/forms";
 import type { GroundInput, MotionResult } from "../../motion/motion";
 import { pivotGroundStep, pivotMediumStep } from "../../motion/pivot";
 import {
@@ -12,7 +12,7 @@ import {
   TransformingDrive,
   transformingHorizontalStep,
 } from "../../motion/transformingDrive";
-import { bladeColumns } from "./blade";
+import { bladeColumns, shaftColumns } from "./blade";
 import {
   type BULLDOZER_ENTITY,
   bladeCommand,
@@ -215,10 +215,15 @@ export class BulldozerDrive extends TransformingDrive {
     raw: RawInput | undefined,
     ctx: TickContext,
   ): CutColumn[] | undefined {
-    if (this.bladeTargetRaised || this.bladeSteps !== 0) return undefined;
+    if (raw === undefined || this.bladeTargetRaised || this.bladeSteps !== 0)
+      return undefined;
+    const cut = [...this.forwardCut(raw, ctx), ...this.shaftCut(raw, ctx)];
+    return cut.length === 0 ? undefined : cut;
+  }
+
+  private forwardCut(raw: RawInput, ctx: TickContext): CutColumn[] {
     const reach = cutReach(this.form, ctx.onGround);
     if (
-      raw !== undefined &&
       bulldozerInput(raw, this.form).steer === 0 &&
       this.speed > BULLDOZER_SPEC.blade.minSpeed &&
       reach !== undefined
@@ -230,7 +235,40 @@ export class BulldozerDrive extends TransformingDrive {
         reach === "tunnel",
         ctx.onGround,
       );
-    return undefined;
+    return [];
+  }
+
+  /** While rising with something solid over the footprint, the wide hole above the body (ADR 0155). */
+  private shaftCut(raw: RawInput, ctx: TickContext): CutColumn[] {
+    const rising =
+      this.form === "takeoff" ||
+      ((this.form === "hover" || this.form === "submarine") &&
+        climbInput(raw) > 0);
+    if (!rising) return [];
+    const { margin, reach } = BULLDOZER_SPEC.shaft;
+    const half = BULLDOZER_SPEC.footprint / 2;
+    const shaft = (halfExtent: number) =>
+      shaftColumns(ctx.location, {
+        halfExtent,
+        bodyHeight: BULLDOZER_SPEC.carHeight,
+        reach,
+      });
+    return shaft(half).some((c) => this.solidOverhead(ctx, c))
+      ? shaft(half + margin)
+      : [];
+  }
+
+  private solidOverhead(ctx: TickContext, c: CutColumn): boolean {
+    for (let dy = 0; dy < (c.height ?? 0); dy++)
+      if (
+        ctx.solidAt({
+          x: c.x + 0.5 - ctx.location.x,
+          y: c.bottom + dy + 0.5 - ctx.location.y,
+          z: c.z + 0.5 - ctx.location.z,
+        })
+      )
+        return true;
+    return false;
   }
 
   private bodyCommands(): EngineCommand[] {

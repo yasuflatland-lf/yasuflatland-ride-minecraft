@@ -66,6 +66,10 @@ it("cuts the blade's strip and tunnels as high as the body (ADR 0137)", () => {
   expect(S.blade.halfWidth).toBe(S.bodyHalfWidth);
   expect(S.blade.far).toBeGreaterThan(S.bodyFront);
 });
+it("digs a shaft two blocks wider than the footprint, two cells at a time (ADR 0155)", () => {
+  expect(S.shaft).toEqual({ margin: 2, reach: 2 });
+  expect(Object.isFrozen(S.shaft)).toBe(true);
+});
 it("lights five beams, dimmer near the cab", () => {
   expect(S.headlightReach).toEqual([6, 10, 15, 21, 27]);
   expect(S.headlightLevels).toEqual([8, 12, 15, 15, 15]);
