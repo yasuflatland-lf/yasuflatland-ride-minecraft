@@ -87,7 +87,6 @@ async function doubleTap(car: Entity): Promise<void> {
 export async function bulldozerClearHill(a: Arena): Promise<Outcome> {
   const { dim, gy } = a;
   const at = (x: number, y: number, z: number) => dim.getBlock({ x, y, z });
-  const typeAt = (x: number, y: number, z: number) => cellType(a, x, y, z);
   const dropLines: string[] = [];
   const kept = [
     { x: 100, z: 82, type: "minecraft:water" },
@@ -188,7 +187,7 @@ export async function bulldozerClearHill(a: Arena): Promise<Outcome> {
               y === gy + 3
                 ? kept.find((p) => p.x === x && p.z === z)
                 : undefined;
-            const type = typeAt(x, y, z);
+            const type = cellType(a, x, y, z);
             if (
               keep
                 ? type !== keep.type
