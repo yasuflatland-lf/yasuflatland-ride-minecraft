@@ -1846,6 +1846,7 @@ describe("camper bumper stand-in (ADR 0116)", () => {
       id: "camper",
       typeId: ENTITY_TYPE.camper,
       isValid: true,
+      location: { x: 4, y: 63, z: -2 },
       getComponent: (name: string) =>
         name === "minecraft:rideable" ? rideable : undefined,
     };
@@ -1927,13 +1928,16 @@ describe("camper bumper stand-in (ADR 0116)", () => {
         fc.boolean(),
         fc.constantFrom("none", "camper", "other"),
         fc.constantFrom(undefined, HEADLIGHT_SWITCH_TYPE, "minecraft:stick"),
-        (sneaking, riding, item) => {
+        fc.boolean(),
+        fc.boolean(),
+        (sneaking, riding, item, chosen, touch) => {
           const headlights = { execute: vi.fn(() => true) };
           const ceilingLights = {
             execute: vi.fn(() => true),
             canSwitch: vi.fn(() => true),
           };
-          subscribe({ headlights, ceilingLights });
+          const board = { execute: vi.fn(() => chosen) };
+          subscribe({ headlights, ceilingLights, board });
           // Only the callbacks the interaction schedules run below.
           game.run.mockClear();
           const handlers = vi
@@ -1945,6 +1949,11 @@ describe("camper bumper stand-in (ADR 0116)", () => {
             id: "player",
             isValid: true,
             isSneaking: sneaking,
+            getHeadLocation: () => ({ x: 1, y: 65.62, z: 3 }),
+            getViewDirection: () => ({ x: 0, y: 0, z: -1 }),
+            inputInfo: {
+              lastInputModeUsed: touch ? "Touch" : "KeyboardAndMouse",
+            },
             dimension: { id: "overworld" },
             location: { x: 0.5, y: 64, z: 0.5 },
             getComponent: (name: string) =>
@@ -1964,12 +1973,23 @@ describe("camper bumper stand-in (ADR 0116)", () => {
           for (const handler of handlers)
             handler(ev as unknown as PlayerInteractWithEntityBeforeEvent);
           expect(ev.cancel).toBe(true);
+          expect(rideable.addRider).not.toHaveBeenCalled();
           for (const [callback] of game.run.mock.calls) callback();
           // The switch never boards: the switch router and the vehicle's switch target
           // take it or leave it (ADR 0115).
           const boards =
             !sneaking && riding !== "camper" && item !== HEADLIGHT_SWITCH_TYPE;
-          expect(rideable.addRider).toHaveBeenCalledTimes(boards ? 1 : 0);
+          expect(board.execute).toHaveBeenCalledTimes(boards ? 1 : 0);
+          if (boards)
+            expect(board.execute).toHaveBeenCalledWith({
+              playerId: "player",
+              vehicleId: "camper",
+              eye: { x: -3, y: 65.62 - 63, z: 5 },
+              view: touch ? undefined : { x: 0, y: 0, z: -1 },
+            });
+          expect(rideable.addRider).toHaveBeenCalledTimes(
+            boards && !chosen ? 1 : 0,
+          );
           const switches =
             riding === "camper" && item === HEADLIGHT_SWITCH_TYPE;
           expect(headlights.execute).toHaveBeenCalledTimes(switches ? 1 : 0);

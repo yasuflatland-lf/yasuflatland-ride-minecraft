@@ -12,7 +12,10 @@ import {
   type DecorSlot,
 } from "../../src/domain/vehicle/kinds/camper/furniture";
 import { CAMPER_PROFILE } from "../../src/domain/vehicle/kinds/camper/profile";
-import { CAMPER_DOOR_COMPONENT } from "../../src/infrastructure/vehicle/bedrock/identifiers";
+import {
+  CAMPER_DOOR_COMPONENT,
+  SEAT_FILLER_FAMILY,
+} from "../../src/infrastructure/vehicle/bedrock/identifiers";
 
 const RP = "packs/yasu_ride_rp";
 const geometryText = readFileSync(
@@ -705,6 +708,11 @@ const camperEntity = JSON.parse(
 it("matches the camper's four seat positions and collision box to its profile", () => {
   const components = camperEntity.components;
   const seats = components["minecraft:rideable"].seats;
+
+  expect(components["minecraft:rideable"].family_types).toEqual([
+    "player",
+    SEAT_FILLER_FAMILY,
+  ]);
   expect(seats).toHaveLength(4);
   expect(
     seats.map((seat: { position: number[] }) => ({

@@ -3,7 +3,7 @@
 // tick (ADR 0120). The before event gives no hit point, so a mouse or gamepad player aims
 // along their view direction. A touch player presses the vehicle wherever it shows on the
 // screen, not along the view direction, so they get the seat nearest where they stand.
-import { InputMode, world } from "@minecraft/server";
+import { type Entity, InputMode, type Player, world } from "@minecraft/server";
 import type { BoardVehicle } from "../../../../application/vehicle/boardVehicle";
 import { asPlayerId, asVehicleId } from "../../../../domain/shared/ids";
 import { isStandInEntity } from "../identifiers";
@@ -23,17 +23,25 @@ export function registerBoarding(boardVehicle: BoardVehicle): void {
       player.getComponent("minecraft:riding")?.entityRidingOn?.id === vehicle.id
     )
       return;
-    const head = player.getHeadLocation();
-    const at = vehicle.location;
-    const taken = boardVehicle.execute({
-      playerId: asPlayerId(player.id),
-      vehicleId: asVehicleId(vehicle.id),
-      eye: { x: head.x - at.x, y: head.y - at.y, z: head.z - at.z },
-      view:
-        player.inputInfo.lastInputModeUsed === InputMode.Touch
-          ? undefined
-          : player.getViewDirection(),
-    });
+    const taken = requestBoarding(boardVehicle, player, vehicle);
     if (taken) ev.cancel = true;
+  });
+}
+
+export function requestBoarding(
+  boardVehicle: BoardVehicle,
+  player: Player,
+  vehicle: Entity,
+): boolean {
+  const head = player.getHeadLocation();
+  const at = vehicle.location;
+  return boardVehicle.execute({
+    playerId: asPlayerId(player.id),
+    vehicleId: asVehicleId(vehicle.id),
+    eye: { x: head.x - at.x, y: head.y - at.y, z: head.z - at.z },
+    view:
+      player.inputInfo.lastInputModeUsed === InputMode.Touch
+        ? undefined
+        : player.getViewDirection(),
   });
 }
