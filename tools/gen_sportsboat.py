@@ -1195,10 +1195,10 @@ body.append(box(-15.4, F + 6.8, -44, 15.4, F + 7.4, -42, "seat_dark"))  # charco
 body.append(box(-15.4, F + 3.8, -44, 15.4, F + 4.4, -42.4, "seat_dark"))  # charcoal band
 
 # Helm consoles anchor the contiguous cube block counted in ADR 0166.
-body.append(box(WALK_HALF, F, 9, 15.4, F + 7, 16, "gloss"))
-body.append(box(WALK_HALF, F + 7, 10, 15.4, F + 8, 15.5, "gloss"))
-body.append(box(-15.4, F, 9, -WALK_HALF, F + 6.5, 16, "gloss"))
-body.append(box(-15.4, F + 6.5, 10, -WALK_HALF, F + 7.3, 15.5, "gloss"))
+body.append(box(WALK_HALF, F, 9, 15.4, F + 7, 12.5, "gloss"))
+body.append(box(WALK_HALF, F + 7, 10, 15.4, F + 8, 12.0, "gloss"))
+body.append(box(-15.4, F, 9, -WALK_HALF, F + 6.5, 12.5, "gloss"))
+body.append(box(-15.4, F + 6.5, 10, -WALK_HALF, F + 7.3, 12.0, "gloss"))
 # Tan leather panel on each side wall beside the front seats
 body += pair(15.0, F + 3.5, -1.0, 15.4, sheer(2) - 1.2, 4.8, "seat")
 body += pair(14.9, F + 3.0, -1.0, 15.4, F + 3.5, 4.8, "seat_dark")
@@ -1208,19 +1208,21 @@ body += pair(14.9, F + 3.0, -1.0, 15.4, F + 3.5, 4.8, "seat_dark")
 # render_preview.py draws it leaning the other way (ADR 0051).
 SCREEN_TILT = -45
 DISPLAY_DX = 3.7  # Clears the switch plate at x 12.8 (ADR 0166).
-SCREEN_PIVOT = [5.5 + DISPLAY_DX, F + 8, 13.5]
+# The lowest frame edge may overhang the shortened step by at most 1 px (#694).
+DISPLAY_DZ = -(0.5 + 0.3 / math.sqrt(2))
+SCREEN_PIVOT = [5.5 + DISPLAY_DX, F + 8, 13.5 + DISPLAY_DZ]
 # A world-y lift of 0.3 / sqrt(2) keeps the rear bottom corner on the dash.
 # With the fixed pivot and -45 tilt, that is local y +0.15 and z -0.15.
-body.append(box(2.0 + DISPLAY_DX, F + 8.15, 13.05, 9.0 + DISPLAY_DX, F + 12.35, 13.65, "gloss", pivot=SCREEN_PIVOT, rotation=[SCREEN_TILT, 0, 0]))
-body.append(box(2.3 + DISPLAY_DX, F + 8.45, 12.95, 8.7 + DISPLAY_DX, F + 12.05, 13.05, "screen",
+body.append(box(2.0 + DISPLAY_DX, F + 8.15, 13.05 + DISPLAY_DZ, 9.0 + DISPLAY_DX, F + 12.35, 13.65 + DISPLAY_DZ, "gloss", pivot=SCREEN_PIVOT, rotation=[SCREEN_TILT, 0, 0]))
+body.append(box(2.3 + DISPLAY_DX, F + 8.45, 12.95 + DISPLAY_DZ, 8.7 + DISPLAY_DX, F + 12.05, 13.05 + DISPLAY_DZ, "screen",
                 tiles={"north": "display"},
                 pivot=SCREEN_PIVOT, rotation=[SCREEN_TILT, 0, 0]))
 # One shared pivot makes the cropped strips a continuous face (ADR 0166, #691).
 # Negative x turns the face toward the driver's eyes in game (ADR 0051).
 SWITCH_TILT = -45
 SWITCH_STRIPS = 10
-SWITCH_BOUNDS = (12.8, 15.0, 10.6, 14.6)
-SWITCH_PIVOT = [13.9, F + 8, 14.6]
+SWITCH_BOUNDS = (12.8, 15.0, 9.0, 13.0)
+SWITCH_PIVOT = [13.9, F + 8, 13.0]
 for i in range(SWITCH_STRIPS):
     t = i / (SWITCH_STRIPS - 1)
     width = 0.4 + 1.8 * t
@@ -1436,6 +1438,11 @@ body += lever
 # Preserve the composed y turn through the legacy turn_around convention, as for the wheel (0166).
 for cube in lever:
     cube["rotation"][1] *= -1
+
+# Thin ledges close the exposed trough to the existing hull at z 14 (#694).
+# Keep the central 7 px walk-through open and the original helm part indices stable.
+body.append(box(WALK_HALF, F + 6.9, 12.5, 15.4, F + 7, 14, "gloss"))
+body.append(box(-15.4, F + 6.4, 12.5, -WALK_HALF, F + 6.5, 14, "gloss"))
 
 # Wraparound windshield: the front leans back toward the cockpit about 55 degrees and the side panes
 # follow the gunwale back to z -10. Every pane is one thin cube rotated to its slope (ADR 0158).

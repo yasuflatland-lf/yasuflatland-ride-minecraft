@@ -888,7 +888,7 @@ describe("sports boat hull planking (ADR 0161)", () => {
           (cube.rotation ?? []).filter((angle) => angle !== 0).length,
         ).toBeLessThanOrEqual(1);
       }
-      expect(cubes).toHaveLength(1343 + THROTTLE_CUBES);
+      expect(cubes).toHaveLength(1345 + THROTTLE_CUBES);
     });
   });
 
@@ -1227,7 +1227,7 @@ describe("sports boat hull planking (ADR 0161)", () => {
       (cube) =>
         cube.origin[0] === -15.4 &&
         cube.origin[1] === F &&
-        cube.origin[2] === -16 &&
+        cube.origin[2] === -12.5 &&
         cube.size[1] === 7,
     );
     const helm = body.slice(start, start + 282);
@@ -1286,6 +1286,128 @@ describe("sports boat hull planking (ADR 0161)", () => {
         [30, 0, 0],
         true,
       );
+
+    it("halves both console depths while retaining the driver faces, steps and walk-through", () => {
+      for (const [base, top] of [
+        [helm[0], helm[1]],
+        [helm[2], helm[3]],
+      ]) {
+        expect(base).toBeDefined();
+        expect(top).toBeDefined();
+        if (!base || !top) continue;
+        expect(Math.abs(base.size[2] - 3.5)).toBeLessThan(0.05);
+        expect(base.origin[2] + base.size[2]).toBeCloseTo(-9);
+        expect(top.origin[2] - base.origin[2]).toBeCloseTo(0.5);
+        expect(
+          base.origin[2] + base.size[2] - top.origin[2] - top.size[2],
+        ).toBeCloseTo(1);
+        near(base.size.slice(0, 2), [11.9, base === helm[0] ? 7 : 6.5]);
+        expect(top.origin[0]).toBe(base.origin[0]);
+        expect(top.size[0]).toBe(base.size[0]);
+        expect(top.origin[1]).toBeCloseTo(base.origin[1] + base.size[1]);
+        expect(top.size[1]).toBeCloseTo(base === helm[0] ? 1 : 0.8);
+      }
+      expect(
+        (helm[2]?.origin[0] ?? 0) -
+          ((helm[0]?.origin[0] ?? 0) + (helm[0]?.size[0] ?? 0)),
+      ).toBeCloseTo(7);
+    });
+
+    it("bridges each exposed trough to the existing hull with a thin gloss ledge", () => {
+      const fillers = body.slice(start + 325, start + 327);
+      expect(fillers).toHaveLength(2);
+      for (const [i, filler] of fillers.entries()) {
+        const base = helm[i * 2] as Cube;
+        expect(swatch(3)(filler)).toBe(true);
+        expect(filler.rotation ?? [0, 0, 0]).toEqual([0, 0, 0]);
+        expect(filler.origin[0]).toBe(base.origin[0]);
+        expect(filler.size[0]).toBe(base.size[0]);
+        expect(filler.size[1]).toBeCloseTo(0.1);
+        expect(filler.origin[1] + filler.size[1]).toBeCloseTo(
+          base.origin[1] + base.size[1],
+        );
+        expect(
+          Math.abs(filler.origin[2] + filler.size[2] - base.origin[2]),
+        ).toBeLessThanOrEqual(0.1);
+        // The original hull closes the bow end across the full ledge width and height.
+        expect(
+          body
+            .slice(0, start)
+            .some(
+              (solid) =>
+                !solid.rotation &&
+                Math.abs(solid.origin[2] + solid.size[2] - filler.origin[2]) <=
+                  0.1 &&
+                solid.origin[0] <= filler.origin[0] + 0.1 &&
+                solid.origin[0] + solid.size[0] >=
+                  filler.origin[0] + filler.size[0] - 0.1 &&
+                solid.origin[1] <= filler.origin[1] &&
+                solid.origin[1] + solid.size[1] >=
+                  filler.origin[1] + filler.size[1],
+            ),
+        ).toBe(true);
+      }
+      expect(cubes).toHaveLength(1388);
+      expect(body.slice(start, start + 327)).toHaveLength(327);
+    });
+
+    it("supports the helm parts through contacts or the documented one-pixel plate overhang", () => {
+      const bounds = (cube: Cube) =>
+        [0, 1, 2].map((axis) => {
+          const values = corners(cube).map((p) => p[axis] ?? 0);
+          return [Math.min(...values), Math.max(...values)];
+        });
+      const touching = (a: Cube, b: Cube) => {
+        const other = bounds(b);
+        return (
+          Math.hypot(
+            ...bounds(a).map((range, axis) =>
+              Math.max(
+                0,
+                (range[0] ?? 0) - (other[axis]?.[1] ?? 0),
+                (other[axis]?.[0] ?? 0) - (range[1] ?? 0),
+              ),
+            ),
+          ) <= 0.1001
+        );
+      };
+      const top = helm[1] as Cube;
+      const connected = helm.slice(0, 4);
+      // Only the two tilted assemblies may anchor up to 1 px beyond the top step.
+      for (const part of [helm[8], helm[19]]) {
+        expect(part).toBeDefined();
+        if (!part) continue;
+        const low = corners(part).filter(
+          (p) => Math.abs((p[1] ?? 0) - top.origin[1] - top.size[1]) <= 0.0001,
+        );
+        expect(low).toHaveLength(2);
+        for (const point of low) {
+          const overhang = top.origin[2] - (point[2] ?? 0);
+          expect(overhang).toBeGreaterThanOrEqual(0);
+          expect(overhang).toBeLessThanOrEqual(1.0001);
+          expect(point[0]).toBeGreaterThanOrEqual(top.origin[0]);
+          expect(point[0]).toBeLessThanOrEqual(top.origin[0] + top.size[0]);
+        }
+        connected.push(part);
+      }
+      // Includes every display, strip, dial, wheel, column and throttle cube.
+      const remaining = new Set(
+        body
+          .slice(start + 8, start + 327)
+          .filter((part) => !connected.includes(part)),
+      );
+      let changed = true;
+      while (changed) {
+        changed = false;
+        for (const part of remaining)
+          if (connected.some((other) => touching(part, other))) {
+            connected.push(part);
+            remaining.delete(part);
+            changed = true;
+          }
+      }
+      expect([...remaining]).toEqual([]);
+    });
 
     it("composes every wheel cube rigidly and limits the rotation exception to exactly those cubes", () => {
       expect(start).toBeGreaterThanOrEqual(0);
@@ -1380,7 +1502,7 @@ describe("sports boat hull planking (ADR 0161)", () => {
       const [frame, face] = display as [Cube, Cube];
       for (const cube of display) {
         expect(cube.rotation).toEqual([45, 0, 0]);
-        expect(cube.pivot).toEqual([-9.2, F + 8, -13.5]);
+        near(cube.pivot ?? [], [-9.2, F + 8, -(13 - 0.3 / Math.sqrt(2))]);
       }
       near(frame.size, [7, 4.2, 0.6]);
       // Moved 3.7 px toward the switch plate (turned frame: -x), so the centre sits at 9.2 (was 5.5).
@@ -1558,7 +1680,7 @@ print(json.dumps({"uv": list(uv), "size": list(size), "others": [
       const ordered = [...plates].sort((a, b) => a.origin[2] - b.origin[2]);
       for (const [i, plate] of ordered.entries()) {
         expect(plate.rotation).toEqual([45, 0, 0]);
-        expect(plate.pivot).toEqual([-13.9, F + 8, -14.6]);
+        expect(plate.pivot).toEqual([-13.9, F + 8, -13]);
         expect(plate.origin[1]).toBeCloseTo(F + 8);
         expect(plate.size[1]).toBeCloseTo(0.4);
         expect(plate.size[2]).toBeCloseTo(0.4);
@@ -1611,7 +1733,7 @@ print(json.dumps({"uv": list(uv), "size": list(size), "others": [
         const x = -plate.origin[0] - plate.size[0];
         const z = -plate.origin[2] - plate.size[2];
         expect(face.uv[0]).toBeCloseTo(40 + ((x - 12.8) / 2.2) * 24, 2);
-        expect(face.uv[1]).toBeCloseTo(4 + ((14.6 - z) / 4) * 28, 3);
+        expect(face.uv[1]).toBeCloseTo(4 + ((13 - z) / 4) * 28, 3);
         expect(face.uv_size[0]).toBeCloseTo((plate.size[0] / 2.2) * 24, 2);
         expect(face.uv_size[1]).toBeCloseTo(-2.8);
       }
@@ -1622,7 +1744,7 @@ print(json.dumps({"uv": list(uv), "size": list(size), "others": [
         (cube) =>
           cube.origin[0] === -15.4 &&
           cube.origin[1] === F &&
-          cube.origin[2] === -16 &&
+          cube.origin[2] === -12.5 &&
           cube.size[1] === 7,
       );
       const helm = body.slice(start, start + 325);
@@ -1699,7 +1821,7 @@ print(json.dumps({name: {"uv": uv, "size": size}
       (cube) =>
         cube.origin[0] === -15.4 &&
         cube.origin[1] === F &&
-        cube.origin[2] === -16 &&
+        cube.origin[2] === -12.5 &&
         cube.size[1] === 7,
     );
     const helm = body.slice(start, start + 282);
@@ -2204,7 +2326,7 @@ print(json.dumps({name: {"uv": uv, "size": size}
 
     it("counts the console-through-dial helm at 282 cubes as recorded in ADR 0166", () => {
       expect(controller).toHaveLength(111);
-      const next = body[start + 282 + THROTTLE_CUBES];
+      const next = body[start + 282 + THROTTLE_CUBES + 2];
       expect(next).toBeDefined();
       expect(swatch(4)(next as Cube)).toBe(true);
       const adr = readFileSync(
@@ -2294,8 +2416,8 @@ print(json.dumps({name: {"uv": uv, "size": size}
       }
     });
 
-    it("does not grow beyond the documented throttle and switch wedge budget (regression guard)", () => {
-      expect(cubes.length).toBeLessThanOrEqual(1343 + THROTTLE_CUBES);
+    it("does not grow beyond the documented throttle, switch wedge and filler budget (regression guard)", () => {
+      expect(cubes.length).toBeLessThanOrEqual(1345 + THROTTLE_CUBES);
     });
   });
 });

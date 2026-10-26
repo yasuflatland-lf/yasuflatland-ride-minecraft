@@ -174,6 +174,18 @@ Resource Pack header/module and Behavior Pack Resource Pack dependency advance f
 
 Open question for the owner (B32): from the driver's seat on PC and mobile, does the tall glossy wedge lean toward the driver's eyes, with a wide top, narrow rounded point and six readable chrome-ring buttons, without clipping? **Verdict: unverified, awaiting the owner's device check.** The preview renderer's x-rotation sign differs from the in-game sign (0051), and its flat face shading cannot show the painted inset or buttons.
 
+### Shallower helm consoles (2026-10-27, #694)
+
+Both main gloss boxes now span build-frame z 9..12.5, halving their depth from 7 to 3.5 px with the driver-side face fixed at z 9. The top steps span z 10..12, retaining the 1 px driver-side and 0.5 px bow-side insets. All four boxes retain their x/y extents and the walk-through stays 7 px wide.
+
+Translate the complete switch wedge by **-1.6 px in z toward the driver**: `SWITCH_BOUNDS` z becomes 9..13 and the shared pivot z becomes 13. Its low edge at y F+8 overhangs the top step by exactly 1 px. Cropped UVs move with the bounds, preserving the image, ten-strip design, size and -45 degree tilt. Translate both display cubes and their pivot by **-(0.5 + 0.3 / sqrt(2)) = -0.712132 px in z toward the driver**. The rotated frame's lowest edge was at z 13.712132, so this is the smallest shift that leaves it at z 13, exactly 1 px beyond the new step. Display size, 16:9 face, tilt and UVs are unchanged. The dial, throttle extension, wheel cowl and column move **0 px**. Existing transformed-corner tests retain display clearance below RAIL_Y and behind the glass, and switch clearance from the dial, throttle, display and wheel.
+
+Inspection of the generated geometry shows the existing hull block at z 14..18, x approximately -15.392..15.392, y 6..17.527 behind the old console faces. The cockpit floor already reaches z 14 at y F=9.3; the DECK_BOW floor beyond it is y 11 and the windshield base remains z 22. Shortening exposes a 1.5 px trough rather than a missing windshield support. Close each trough with one unrotated gloss ledge, z 12.5..14, x matching its console, just 0.1 px thick: right y F+6.9..F+7, left y F+6.4..F+6.5. Each ledge touches the console and the hull, closing the view into the trough from above or through the walk-through without widening its walls or changing the hull, under-dash, bow step or windshield. The ledges sit below the top steps and do not restore the removed full-height console volume.
+
+Cube counts: console boxes **4 before / 4 after** (two main blocks and two steps); with the new ledges the console assembly is **4 before / 6 after**. Complete helm **325 before / 327 after**; whole model **1386 before / 1388 after**. The console-through-dial block remains 282 cubes and the throttle remains 43; the two ledges follow the throttle to preserve existing assembly indices. ADR 0167's registry and compound-rotation membership remain unchanged; both fillers are unrotated.
+
+Regenerate model, colour textures, MER and previews with `pnpm model`; colour and MER output remains identical. Resource Pack header/module and Behavior Pack resource dependency advance from **0.1.168 to 0.1.169**. Generated-JSON tests check depths, insets, overhangs, contact paths, trough closure and unchanged walk-through width. Manual test B36 checks the half-depth appearance and absence of visible gaps or floating parts on PC and mobile; device verdict remains unverified.
+
 ## Consequences
 
 - 5/7 tilts the wheel by one helper call instead of hand-composing angles. ADR 0167 replaces its historical one-assembly limit; #684 adds the registered throttle lever.
