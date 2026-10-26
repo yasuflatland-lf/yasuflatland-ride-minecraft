@@ -1,6 +1,6 @@
 # 0136. Add the bulldozer kind
 
-- Status: Proposed; superseded in part (`stepUp: false`) and extended by [0138](0138-raise-and-lower-the-bulldozer-blade.md) (Proposed), [0140](0140-bulldozer-sounds.md) (Proposed), and [0141](0141-put-a-bulldozer-driver-out-beside-the-left-door.md) (Proposed); extended by [0146](0146-wire-mesh-bulldozer-steps-and-a-camper-vent-cover.md) (Proposed), [0147](0147-light-the-lamps-with-a-pbr-emissive-layer.md), [0148](0148-smooth-bulldozer-side-bevel.md) (Proposed), and [0151](0151-enclose-the-bulldozer-blade-supports.md) (Proposed)
+- Status: Proposed; superseded in part (`stepUp: false`) and extended by [0138](0138-raise-and-lower-the-bulldozer-blade.md) (Proposed), [0140](0140-bulldozer-sounds.md) (Proposed), and [0141](0141-put-a-bulldozer-driver-out-beside-the-left-door.md) (Proposed); extended by [0146](0146-wire-mesh-bulldozer-steps-and-a-camper-vent-cover.md) (Proposed), [0147](0147-light-the-lamps-with-a-pbr-emissive-layer.md), [0148](0148-smooth-bulldozer-side-bevel.md) (Proposed), and [0151](0151-enclose-the-bulldozer-blade-supports.md) (Proposed); its rule that the submarine form does not cut superseded by [0155](0155-cut-under-water-and-dig-a-shaft-when-rising.md) (Proposed)
 - Date: 2026-10-24
 - Extends: 0009, 0020, 0023, 0025, 0027, 0031, 0035, 0045, 0050, 0055, 0066, 0076, 0089, 0127
 

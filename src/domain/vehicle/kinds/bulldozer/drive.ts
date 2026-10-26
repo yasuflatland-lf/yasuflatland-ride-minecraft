@@ -99,8 +99,6 @@ export function cutReach(
   switch (form) {
     case "car":
       return onGround ? "sky" : undefined;
-    case "submarine":
-      return undefined;
     default:
       return "tunnel";
   }

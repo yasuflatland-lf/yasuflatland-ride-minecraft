@@ -1,6 +1,6 @@
 # 0138. Raise and lower the bulldozer blade with a switch item
 
-- Status: Proposed; extended by [0139](0139-show-the-held-tool-on-the-cab-monitor.md) (Proposed) and [0140](0140-bulldozer-sounds.md) (Proposed); extended by [0148](0148-smooth-bulldozer-side-bevel.md) (Proposed) and [0151](0151-enclose-the-bulldozer-blade-supports.md) (Proposed)
+- Status: Proposed; extended by [0139](0139-show-the-held-tool-on-the-cab-monitor.md) (Proposed) and [0140](0140-bulldozer-sounds.md) (Proposed); extended by [0148](0148-smooth-bulldozer-side-bevel.md) (Proposed) [0151](0151-enclose-the-bulldozer-blade-supports.md) (Proposed), and [0155](0155-cut-under-water-and-dig-a-shaft-when-rising.md) (Proposed)
 - Date: 2026-10-24
 - Extends: [0024](0024-item-use-on-mobile-and-longer-headlights.md) (switch items on mobile and their cooldown), [0035](0035-jump-one-block-steps-in-the-script.md) (script step-up), [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md) (the single switch router), [0136](0136-bulldozer.md) (the bulldozer kind and its bone contract), [0137](0137-clear-block-columns-with-the-blade.md) (when the blade cuts)
 - Supersedes in part: [0136](0136-bulldozer.md) (its `stepUp: false` rule: a raised blade climbs steps)

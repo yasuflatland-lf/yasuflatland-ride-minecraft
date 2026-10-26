@@ -1,7 +1,10 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { clamp, normalizeYaw } from "../../../../../src/domain/shared/vec";
-import type { TickContext } from "../../../../../src/domain/vehicle/drive";
+import type {
+  DriveStep,
+  TickContext,
+} from "../../../../../src/domain/vehicle/drive";
 import type { RawInput } from "../../../../../src/domain/vehicle/driveInput";
 import { toDriveInput } from "../../../../../src/domain/vehicle/driveInput";
 import { bladeColumns } from "../../../../../src/domain/vehicle/kinds/bulldozer/blade";
@@ -337,25 +340,13 @@ it("cuts the body's height in takeoff, hover and landing", () => {
   }
   expect([...seen].sort()).toEqual(["hover", "landing", "takeoff"]);
 });
-it("cuts nothing off a ledge, under water, reversing, standing, pivoting, or without input", () => {
+it("cuts nothing off a ledge, reversing, standing, pivoting, or without input", () => {
   fc.assert(
     fc.property(
-      fc.constantFrom(
-        "ledge",
-        "submarine",
-        "reverse",
-        "standing",
-        "pivot",
-        "no input",
-      ),
+      fc.constantFrom("ledge", "reverse", "standing", "pivot", "no input"),
       yaw,
       (condition, heading) => {
-        const d = new BulldozerDrive(
-          heading,
-          condition === "submarine"
-            ? { form: "submarine", blade: 0 }
-            : { blade: 0 },
-        );
+        const d = new BulldozerDrive(heading, { blade: 0 });
         let b: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
         for (let tick = 0; tick < 60; tick++) {
           const checking = tick >= 50;
@@ -369,7 +360,7 @@ it("cuts nothing off a ledge, under water, reversing, standing, pivoting, or wit
             if (condition === "no input") raw = undefined;
           }
           const ctx = {
-            ...context(condition === "submarine" ? 3 : 0),
+            ...context(),
             tick,
             onGround,
             velocity: { ...b.vel, y: 0 },
@@ -427,14 +418,27 @@ it("maps forms to the cut reach", () => {
   for (const f of FORMS)
     for (const ground of [true, false])
       expect(cutReach(f, ground)).toBe(
-        f === "car"
-          ? ground
-            ? "sky"
-            : undefined
-          : f === "submarine"
-            ? undefined
-            : "tunnel",
+        f === "car" ? (ground ? "sky" : undefined) : "tunnel",
       );
+});
+it("tunnels through rock under water (ADR 0155)", () => {
+  const d = new BulldozerDrive(0, { form: "submarine", blade: 0 });
+  let b: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
+  let last: DriveStep | undefined;
+  for (let tick = 0; tick < 10; tick++) {
+    const ctx = {
+      ...context(3),
+      tick,
+      location: { ...b.pos, y: 40 },
+      onGround: false,
+      velocity: { ...b.vel, y: 0 },
+    };
+    last = d.step(FORWARD, ctx);
+    b = engineStep(b, last.impulse, { mu: 0.69, drag: 0.83 }, false).body;
+  }
+  expect(last?.cut).toEqual(
+    bladeColumns({ ...b.pos, y: 40 }, d.yaw, S.blade, true),
+  );
 });
 it("runs the tracks opposite ways on a pivot", () => {
   const d = new BulldozerDrive(0, {});
