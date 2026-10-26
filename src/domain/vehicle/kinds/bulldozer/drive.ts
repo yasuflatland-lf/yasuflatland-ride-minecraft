@@ -228,6 +228,7 @@ export class BulldozerDrive extends TransformingDrive {
         this.yaw,
         BULLDOZER_SPEC.blade,
         reach === "tunnel",
+        ctx.onGround,
       );
     return undefined;
   }

@@ -421,24 +421,52 @@ it("maps forms to the cut reach", () => {
         f === "car" ? (ground ? "sky" : undefined) : "tunnel",
       );
 });
-it("tunnels through rock under water (ADR 0155)", () => {
+function driveSubmarine(
+  raw: (tick: number) => RawInput | undefined,
+  onGround: boolean,
+  y = 40,
+): { d: BulldozerDrive; steps: { ctx: TickContext; out: DriveStep }[] } {
   const d = new BulldozerDrive(0, { form: "submarine", blade: 0 });
   let b: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
-  let last: DriveStep | undefined;
+  const steps: { ctx: TickContext; out: DriveStep }[] = [];
   for (let tick = 0; tick < 10; tick++) {
     const ctx = {
       ...context(3),
       tick,
-      location: { ...b.pos, y: 40 },
-      onGround: false,
+      location: { ...b.pos, y },
+      onGround,
       velocity: { ...b.vel, y: 0 },
     };
-    last = d.step(FORWARD, ctx);
-    b = engineStep(b, last.impulse, { mu: 0.69, drag: 0.83 }, false).body;
+    const out = d.step(raw(tick), ctx);
+    steps.push({ ctx, out });
+    b = engineStep(b, out.impulse, { mu: 0.69, drag: 0.83 }, false).body;
   }
-  expect(last?.cut).toEqual(
-    bladeColumns({ ...b.pos, y: 40 }, d.yaw, S.blade, true),
-  );
+  return { d, steps };
+}
+it("tunnels through rock under water from the pre-step location (ADR 0155)", () => {
+  const { d, steps } = driveSubmarine(() => FORWARD, false);
+  for (const { ctx, out } of steps.slice(5))
+    expect(out.cut).toEqual(
+      bladeColumns(ctx.location, d.yaw, S.blade, true, false),
+    );
+});
+it("keeps the seabed floor row when the submarine rests on the bottom (ADR 0155)", () => {
+  const { steps } = driveSubmarine(() => FORWARD, true, 39.875);
+  const cut = steps.at(-1)?.out.cut ?? [];
+  expect(cut.length).toBeGreaterThan(0);
+  for (const c of cut) {
+    expect(c.bottom).toBe(40);
+    expect(c.bottom + (c.height ?? 0)).toBe(43);
+  }
+});
+it("cuts nothing under water while pivoting or without input", () => {
+  for (const raw of [{ ...IDLE, moveX: 1 }, undefined]) {
+    const { steps } = driveSubmarine(
+      (tick) => (tick < 5 ? FORWARD : raw),
+      false,
+    );
+    for (const { out } of steps.slice(5)) expect(out.cut ?? []).toEqual([]);
+  }
 });
 it("runs the tracks opposite ways on a pivot", () => {
   const d = new BulldozerDrive(0, {});
