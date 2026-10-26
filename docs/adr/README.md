@@ -139,9 +139,9 @@ This directory records design decisions and the reasons behind them. The format 
 | [0133](0133-sleep-on-the-tent-mattresses.md) | Sleep on the tent mattresses | Proposed |
 | [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md) | Switch the tent lantern with the headlight switch | Proposed; extended by 0138 (Proposed) |
 | [0135](0135-repaint-the-tent-with-dyes.md) | Repaint the tent with dyes | Proposed |
-| [0136](0136-bulldozer.md) | Add the bulldozer kind | Proposed; superseded in part and extended by 0138 (Proposed), 0140 (Proposed), and 0141 (Proposed); extended by 0146 (Proposed); extended by 0147, 0148, and 0151 (Proposed) |
-| [0137](0137-clear-block-columns-with-the-blade.md) | Clear block columns with the blade, keeping liquids, containers, and laid blocks | Proposed; extended by 0138 (Proposed) |
-| [0138](0138-raise-and-lower-the-bulldozer-blade.md) | Raise and lower the bulldozer blade with a switch item | Proposed; extended by 0139 (Proposed), 0140 (Proposed), 0148 (Proposed), and 0151 (Proposed) |
+| [0136](0136-bulldozer.md) | Add the bulldozer kind | Proposed; superseded in part and extended by 0138 (Proposed), 0140 (Proposed), and 0141 (Proposed); extended by 0146 (Proposed); extended by 0147, 0148, and 0151 (Proposed); submarine no-cut rule superseded by 0155 (Proposed) |
+| [0137](0137-clear-block-columns-with-the-blade.md) | Clear block columns with the blade, keeping liquids, containers, and laid blocks | Proposed; extended by 0138 (Proposed) and 0155 (Proposed) |
+| [0138](0138-raise-and-lower-the-bulldozer-blade.md) | Raise and lower the bulldozer blade with a switch item | Proposed; extended by 0139 (Proposed), 0140 (Proposed), 0148 (Proposed), 0151 (Proposed), and 0155 (Proposed) |
 | [0139](0139-show-the-held-tool-on-the-cab-monitor.md) | Show the driver's held tool on the cab monitor | Proposed |
 | [0140](0140-bulldozer-sounds.md) | Give the bulldozer its own engine, track, and blade hydraulic sounds | Proposed |
 | [0141](0141-put-a-bulldozer-driver-out-beside-the-left-door.md) | Put a bulldozer driver out beside the left door | Proposed |
@@ -156,6 +156,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0152](0152-a-two-seat-folding-camp-table.md) | A two-seat folding camp table | Proposed |
 | [0153](0153-a-polished-folding-fire-pit.md) | A polished folding fire pit | Proposed |
 | [0154](0154-keep-camper-passengers-in-their-seats-on-departure.md) | Keep camper passengers in their seats on departure | Proposed |
+| [0155](0155-cut-under-water-and-dig-a-shaft-when-rising.md) | Cut under water and dig a wide shaft when rising | Proposed |
 | [0156](0156-resend-the-docked-property-after-a-failed-send.md) | Resend the docked property after a failed send | Proposed |
 | [0157](0157-an-aluminium-rimmed-louvred-camper-vent-lid.md) | An aluminium-rimmed louvred camper vent lid | Proposed |
 
