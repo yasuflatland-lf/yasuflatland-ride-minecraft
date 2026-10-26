@@ -222,9 +222,25 @@ export class SportsboatDrive implements Drive {
     this.resendDocked = false;
     // The docked property goes out only when the hull docks or departs, so after a failed
     // send it goes out again unless this step docks or departs and sends it anyway (ADR 0156).
-    return held === wasDocked
-      ? { ...step, commands: [...step.commands, dockedCommand(held)] }
-      : step;
+    // A held step skips the attitude latches, so it resends trim and roll here too.
+    if (held !== wasDocked) return step;
+    return {
+      ...step,
+      commands: [
+        ...step.commands,
+        dockedCommand(held),
+        ...(held ? this.attitudeCommands() : []),
+      ],
+    };
+  }
+
+  private attitudeCommands(): EngineCommand[] {
+    const commands: EngineCommand[] = [];
+    const trim = this.trimSync.next(this.trim);
+    if (trim !== undefined) commands.push(trimCommand(trim));
+    const roll = this.rollSync.next(this.roll);
+    if (roll !== undefined) commands.push(rollCommand(roll));
+    return commands;
   }
 
   private stepHull(raw: RawInput | undefined, ctx: TickContext): DriveStep {
@@ -330,10 +346,7 @@ export class SportsboatDrive implements Drive {
         this.limits,
       );
     }
-    const trim = this.trimSync.next(this.trim);
-    if (trim !== undefined) commands.push(trimCommand(trim));
-    const roll = this.rollSync.next(this.roll);
-    if (roll !== undefined) commands.push(rollCommand(roll));
+    commands.push(...this.attitudeCommands());
     // Buoyancy and gravity belong to the engine, so the script never pushes vertically.
     return {
       impulse: { x: step.impulse.x, y: 0, z: step.impulse.z },

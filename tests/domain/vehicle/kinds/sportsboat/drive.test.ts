@@ -1726,7 +1726,8 @@ it("resync resends unchanged trim and roll after any input sequence", () => {
   fc.assert(
     fc.property(
       fc.array(rawInput, { minLength: 1, maxLength: 60 }),
-      (inputs) => {
+      fc.boolean(),
+      (inputs, hold) => {
         const drive = new SportsboatDrive(0, {});
         let tick = 0;
         const idleStep = () =>
@@ -1742,6 +1743,14 @@ it("resync resends unchanged trim and roll after any input sequence", () => {
           settled = attitudeCommands(idleStep().commands).length === 0;
         }
         expect(settled).toBe(true);
+        // A held hull skips the attitude latches, so resync must reach them there too (ADR 0156).
+        for (
+          let i = 0;
+          i < maxSettleTicks && hold && !drive.inspect().docked;
+          i++
+        )
+          idleStep();
+        if (hold) expect(drive.inspect().docked).toBe(true);
         // Without resync an unchanged attitude sends nothing, so the commands
         // after resync can only come from the reset latches.
         expect(attitudeCommands(idleStep().commands)).toEqual([]);
@@ -1751,6 +1760,7 @@ it("resync resends unchanged trim and roll after any input sequence", () => {
           { type: "setProperty", name: "trim", value: trim },
           { type: "setProperty", name: "roll", value: roll },
         ]);
+        expect(attitudeCommands(idleStep().commands)).toEqual([]);
       },
     ),
   );
@@ -1767,7 +1777,7 @@ it("resends the docked property once after a failed send while held or after dep
   expect(still().commands).toStrictEqual(dockCommands());
   // The application calls resync when the run carrying the dock commands fails (ADR 0127).
   drive.resync();
-  expect(still().commands).toStrictEqual([dockedCommand(true)]);
+  expect(still().commands).toStrictEqual([dockedCommand(true), ...LEVEL]);
   expect(still().commands).toStrictEqual([]);
   const departing = drive.step(
     FULL_THROTTLE,
@@ -1776,4 +1786,24 @@ it("resends the docked property once after a failed send while held or after dep
   expect(departing.commands.slice(0, 2)).toStrictEqual(undockCommands());
   drive.resync();
   expect(still().commands).toContainEqual(dockedCommand(false));
+});
+
+it("resends level trim and roll once after a failed send while a boat that had tilted is held", () => {
+  const drive = new SportsboatDrive(0, {});
+  let tick = 0;
+  const tickWith = (raw: RawInput | undefined) =>
+    drive.step(raw, context(tick++, raw, { x: 0, z: 0 }, AFLOAT));
+  for (let i = 0; i < 10; i++) tickWith(FULL_THROTTLE);
+  expect(drive.inspect().trim).not.toBe(0);
+  let docking: readonly EngineCommand[] = [];
+  for (let i = 0; i < 1000 && !drive.inspect().docked; i++)
+    docking = tickWith(undefined).commands;
+  expect(docking).toContainEqual(dockedCommand(true));
+  // The application calls resync when a run fails (ADR 0127).
+  drive.resync();
+  expect(tickWith(undefined).commands).toStrictEqual([
+    dockedCommand(true),
+    ...LEVEL,
+  ]);
+  expect(tickWith(undefined).commands).toStrictEqual([]);
 });
