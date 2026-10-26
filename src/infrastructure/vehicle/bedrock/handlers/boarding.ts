@@ -23,8 +23,7 @@ export function registerBoarding(boardVehicle: BoardVehicle): void {
       player.getComponent("minecraft:riding")?.entityRidingOn?.id === vehicle.id
     )
       return;
-    const taken = requestBoarding(boardVehicle, player, vehicle);
-    if (taken) ev.cancel = true;
+    if (requestBoarding(boardVehicle, player, vehicle)) ev.cancel = true;
   });
 }
 

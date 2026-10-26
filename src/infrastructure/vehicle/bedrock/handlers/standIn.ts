@@ -24,6 +24,7 @@ export function registerStandIns(boardVehicle: BoardVehicle): void {
       player.getComponent("minecraft:riding")?.entityRidingOn?.id === vehicle.id
     )
       return;
+    // A vehicle whose players choose their seat seats the player itself (ADR 0154).
     if (requestBoarding(boardVehicle, player, vehicle)) return;
     // Before events cannot change the world, so the player boards on the next tick.
     system.run(() => {
