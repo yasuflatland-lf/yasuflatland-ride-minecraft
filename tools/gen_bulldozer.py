@@ -732,14 +732,25 @@ _raised_end = (LIFT_ROD_END + ROD_RETRACT - LIFT_PIN, BLADE_RAISE)  # the rod's 
 LIFT_SWING = round(math.degrees(math.atan2(_raised_end[1], -_raised_end[0])), 2)
 ROD_SHORTEN = round(ROD_LENGTH - (math.hypot(*_raised_end) - (LIFT_PIN - LIFT_MOUTH)), 2)
 assert BLADE_RAISE > 0 and 0 < ROD_SHORTEN < ROD_LENGTH
-GUSSET_BOTTOM, GUSSET_TOP = (-19.5, 9.5), (-13.9, 22.2)  # (z, y) of the sloped front face
-GUSSET_REAR = (-10.0, 9.5)
+GUSSET_TOP = (-13.9, 22.2)  # (z, y) of the apex, where the rod's end sits
+ANGLE_CYLINDER_BOTTOM = 12.6
+
+
+def gusset_corner(far, y):
+    """The point at height y on the line from GUSSET_TOP to far, both (z, y)."""
+    return (GUSSET_TOP[0] + (far[0] - GUSSET_TOP[0]) * (y - GUSSET_TOP[1]) / (far[1] - GUSSET_TOP[1]), y)
+
+
+# The owner had the slopes cut off level with the angle cylinder's underside, so no yellow hangs
+# below it over the track (ADR 0151).
+GUSSET_BOTTOM = gusset_corner((-19.5, 9.5), ANGLE_CYLINDER_BOTTOM)  # lower end of the sloped front face
+GUSSET_REAR = gusset_corner((-10.0, 9.5), ANGLE_CYLINDER_BOTTOM)
 GUSSET_THICKNESS = 0.4
 arms = [bar(ARM_FRONT, ARM_REAR, ARM_IN, ARM_OUT, 4.2, "yellow"),
         bar(ARM_FRONT, ARM_REAR, ARM_IN - 0.2, ARM_OUT + 0.2, 0.6, "yellow_dark", offset=1.6),
         *disc("x", ARM_OUT, ARM_REAR[1], ARM_REAR[0], 2.0, 0.5, "yellow_dark", STEPS_8),
         *disc("x", ARM_OUT + 0.5, ARM_REAR[1], ARM_REAR[0], 0.8, 0.3, "bolt", STEPS_8),
-        box(ARM_IN - 0.2, 12.6, -25.4, ARM_OUT + 0.2, 15.0, -15.6, "black"),  # angle cylinder
+        box(ARM_IN - 0.2, ANGLE_CYLINDER_BOTTOM, -25.4, ARM_OUT + 0.2, 15.0, -15.6, "black"),  # angle cylinder
         box(ARM_IN + 0.4, 13.2, -30.2, ARM_OUT - 0.4, 14.4, -25.4, "chrome")]
 # Keep the former stepped front face as one thin plate, with its thickness behind that face.
 arms.append(bar(GUSSET_BOTTOM, GUSSET_TOP, ARM_IN, ARM_OUT,
