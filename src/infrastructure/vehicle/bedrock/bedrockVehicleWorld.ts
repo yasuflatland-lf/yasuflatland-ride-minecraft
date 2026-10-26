@@ -386,12 +386,17 @@ export class BedrockVehicleWorld implements DriveWorld {
     // Boarding already ran this tick, so a player still on a deck seat was refused
     // a seat; the deck seats go next, so they leave like a standing player (ADR 0095).
     const refused = this.deckSeats.eject(vehicle);
+    // A rider the seat layout took off this tick is seated again next tick; the
+    // engine refuses addRider in the tick of the ejection and the exit would
+    // throw them out of the camper (ADR 0154).
     const refusedIds = new Set(refused.map((p) => p.id));
+    const reseated = this.seatFillers.waitingRiders(vehicleId);
     const standing = vehicle.dimension
       .getPlayers()
       .filter(
         (p) =>
           !refusedIds.has(p.id) &&
+          !reseated.has(asPlayerId(p.id)) &&
           !p.getComponent("minecraft:riding") &&
           departure.boxes.some((box) => inBox(box, p.location)),
       )

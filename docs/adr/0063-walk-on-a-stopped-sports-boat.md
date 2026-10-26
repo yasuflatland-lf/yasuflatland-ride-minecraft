@@ -1,6 +1,6 @@
 # 0063. Walk on a stopped sports boat
 
-- Status: Accepted (superseded in part by [0120](0120-choose-a-sports-boat-seat-by-aiming-at-it.md), Proposed, which seats each deck-seat rider in the seat of their deck seat on departure; extended by [0064](0064-dock-step.md), [0093](0093-decorate-the-parked-camper.md), [0095](0095-sit-on-the-camper-toilet-while-parked.md), [0096](0096-keep-the-dock-blocks-whole.md), [0101](0101-give-invisible-blocks-a-hidden-cube.md), [0109](0109-stand-up-inside-the-parked-camper.md), and [0150](0150-run-the-sports-boat-on-lava.md))
+- Status: Accepted (superseded in part by [0120](0120-choose-a-sports-boat-seat-by-aiming-at-it.md), Proposed, which seats each deck-seat rider in the seat of their deck seat on departure; extended by [0154](0154-keep-camper-passengers-in-their-seats-on-departure.md), [0064](0064-dock-step.md), [0093](0093-decorate-the-parked-camper.md), [0095](0095-sit-on-the-camper-toilet-while-parked.md), [0096](0096-keep-the-dock-blocks-whole.md), [0101](0101-give-invisible-blocks-a-hidden-cube.md), [0109](0109-stand-up-inside-the-parked-camper.md), and [0150](0150-run-the-sports-boat-on-lava.md))
 - Date: 2026-10-13
 - Extends: 0051
 

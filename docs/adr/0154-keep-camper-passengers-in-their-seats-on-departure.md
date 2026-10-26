@@ -2,7 +2,8 @@
 
 - Status: Proposed
 - Date: 2026-10-26
-- Extends: 0120, 0063, 0068, 0095, 0050
+- Supersedes in part: 0120 (the statements that the SUV and the camper keep the engine's order and read positions; the camper now chooses seats), 0116 (the bumper stand-in boards the camper with `addRider` directly)
+- Extends: 0120, 0116, 0063, 0068, 0095, 0050
 
 ## Context
 
@@ -24,6 +25,7 @@ Letting the rider of a rear deck seat start the camper stays out of scope: depar
 ## Consequences
 
 - A rear rider no longer moves up to seat 0 when the driver gets out while driving; only the seat 1 rider does (0120). A camper with only rear riders has no driver until a player presses the bumper and takes seat 0.
+- A toilet rider or a player standing in the room can be refused while seats look free. When only a dinette seat is held, the rider list is `[filler, filler, filler, rider]`, so it is full and the camper refuses the next `addRider`; that player is moved to the exit. Before this change they took a free seat. Seating them in a filler-held seat would need a change in shared logic, so it is left as a known regression until the owner's check (manual test C173).
 - Standing players inside or on the roof (0068) are refused when riders and fillers fill all four rider-list slots, and are then handled like a player standing inside a full camper.
 - Up to three extra filler entities exist while rear seats are held. None remains after the camper is broken, removed or unloaded.
 - This is a Behavior Pack change only: existing worlds need a server restart, and no Resource Pack version bump is needed.

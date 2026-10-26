@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { asPlayerId, asVehicleId } from "../../../../../src/domain/shared/ids";
@@ -94,6 +95,14 @@ it("keeps camper aim balls disjoint with an aim height between both rideable hei
       expect(2 * CAMPER_SPEC.seatAimRadius).toBeLessThan(
         Math.hypot(a.x - b.x, a.z - b.z),
       );
-  expect(CAMPER_SPEC.seatAimHeight).toBeGreaterThan(1.2);
-  expect(CAMPER_SPEC.seatAimHeight).toBeLessThan(1.5);
+  const heights: number[] = JSON.parse(
+    readFileSync(
+      "packs/yasu_ride_bp/entities/yasu_ride/camper.se.json",
+      "utf8",
+    ),
+  )["minecraft:entity"].components["minecraft:rideable"].seats.map(
+    (seat: { position: number[] }) => seat.position[1],
+  );
+  expect(CAMPER_SPEC.seatAimHeight).toBeGreaterThan(Math.min(...heights));
+  expect(CAMPER_SPEC.seatAimHeight).toBeLessThan(Math.max(...heights));
 });

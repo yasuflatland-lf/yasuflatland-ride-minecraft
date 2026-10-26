@@ -224,6 +224,8 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | C169 | Depart with a toilet rider and a dinette rider while a seat is free, then again with all four seats taken | The dinette rider stays in both cases; the toilet rider takes a free seat or stands outside the door (ADR 0095, 0154) | | |
 | C170 | Depart with a player standing in the room, and again with one who just long-pressed the bed at night | The player gets a seat or is moved to the exit, with no error in the content log (ADR 0068, 0154) | | |
 | C171 | Board an empty camper by pressing the bumper with two players on PC and on a phone, then board with a rear seat taken | Seat 0 then seat 1 as before; with a rear seat taken the next free seat is used, including seat 0 (ADR 0154) | | |
+| C172 | Depart with a dinette rider in seat 2 and a filler under another seat, after another player sits on deck seat 1 while parked | The dinette rider stays in seat 2 and is not moved to the exit (ADR 0154) | | |
+| C173 | Park with only dinette seat 3 taken, put a toilet rider on the toilet, and set off | Known regression: the toilet rider is moved to the exit because the rider list is full (ADR 0154) | | |
 
 ## Bulldozer
 

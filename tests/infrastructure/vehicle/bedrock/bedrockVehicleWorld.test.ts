@@ -38,6 +38,7 @@ import {
   SEAT_FILLER_TYPE,
   VEHICLE_FAMILY,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
+import { SeatFillers } from "../../../../src/infrastructure/vehicle/bedrock/seatFillers";
 import { VehicleTestStore } from "../../../../src/infrastructure/vehicle/testInput/vehicleTestStore";
 import { blockGrid } from "../../../support/blockGrid";
 
@@ -1048,6 +1049,35 @@ describe("BedrockVehicleWorld dock ports", () => {
     const { toilet, near } = departWithRefusedDeckRider(undefined);
     expect(toilet.teleport).not.toHaveBeenCalled();
     expect(near.teleport).not.toHaveBeenCalled();
+  });
+
+  it("leaves a rider the seat layout is about to seat again out of the departure exit (ADR 0154)", () => {
+    const { world, car, dimension } = fixture();
+    car.location = { x: 0, y: 64, z: 0 };
+    const player = (id: string) => ({
+      id,
+      location: { x: 1, y: 64, z: 1 },
+      getComponent: vi.fn(() => undefined),
+      teleport: vi.fn(),
+    });
+    const dinette = player("dinette");
+    const bystander = player("bystander");
+    dimension.getPlayers.mockReturnValue([dinette, bystander]);
+    const waiting = vi
+      .spyOn(SeatFillers.prototype, "waitingRiders")
+      .mockReturnValue(new Map([[asPlayerId("dinette"), 2]]));
+    const addRider = vi.fn().mockReturnValue(false);
+    car.getComponent.mockImplementation((name: string) =>
+      name === "minecraft:rideable" ? { addRider } : undefined,
+    );
+    world.seatStandingPlayers(asVehicleId("car"), {
+      boxes: [{ min: { x: 0, y: 64, z: 0 }, max: { x: 3, y: 67, z: 3 } }],
+      exit: { x: 5, y: 64, z: 2, yaw: 90 },
+    });
+    expect(addRider.mock.calls).toEqual([[bystander]]);
+    expect(dinette.teleport).not.toHaveBeenCalled();
+    expect(bystander.teleport).toHaveBeenCalledOnce();
+    waiting.mockRestore();
   });
 
   it("seats only standing players inside any box nearest first and teleports overflow", () => {

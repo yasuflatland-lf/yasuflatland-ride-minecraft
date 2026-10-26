@@ -1,6 +1,6 @@
 # 0120. Choose a sports boat seat by aiming at it
 
-- Status: Proposed
+- Status: Proposed (extended by [0154](0154-keep-camper-passengers-in-their-seats-on-departure.md), which applies the same mechanism to the camper)
 - Date: 2026-10-22
 - Supersedes in part: 0019 (for the sports boat: the script now keeps riders in their seats), 0025 (for the sports boat: the driver is the player at rider-list index 0, without the sticky driver), 0063 (a deck-seat rider can land in a lower seat on departure)
 - Extends: 0050, 0051
