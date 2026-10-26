@@ -50,6 +50,15 @@ function missingStone(a: Arena, min: Vec3, max: Vec3): string[] {
           missing.push(`${x},${y},${z}`);
   return missing;
 }
+/** The block's type, with moving water as minecraft:flowing_water. */
+function cellType(a: Arena, x: number, y: number, z: number) {
+  const block = a.dim.getBlock({ x, y, z });
+  // BDS 1.26.52.3 reports moving water as minecraft:water with a nonzero liquid_depth.
+  return block?.typeId === "minecraft:water" &&
+    Number(block.permutation.getState("liquid_depth")) > 0
+    ? "minecraft:flowing_water"
+    : block?.typeId;
+}
 function cleanup(a: Arena): void {
   a.dim.runCommand(`fill 96 ${a.gy} 78 112 ${a.gy + 6} 89 air`);
 }
@@ -78,14 +87,6 @@ async function doubleTap(car: Entity): Promise<void> {
 export async function bulldozerClearHill(a: Arena): Promise<Outcome> {
   const { dim, gy } = a;
   const at = (x: number, y: number, z: number) => dim.getBlock({ x, y, z });
-  // BDS 1.26.52.3 reports moving water as minecraft:water with a nonzero liquid_depth.
-  const typeAt = (x: number, y: number, z: number) => {
-    const block = at(x, y, z);
-    return block?.typeId === "minecraft:water" &&
-      Number(block.permutation.getState("liquid_depth")) > 0
-      ? "minecraft:flowing_water"
-      : block?.typeId;
-  };
   const dropLines: string[] = [];
   const kept = [
     { x: 100, z: 82, type: "minecraft:water" },
@@ -186,7 +187,7 @@ export async function bulldozerClearHill(a: Arena): Promise<Outcome> {
               y === gy + 3
                 ? kept.find((p) => p.x === x && p.z === z)
                 : undefined;
-            const type = typeAt(x, y, z);
+            const type = cellType(a, x, y, z);
             if (
               keep
                 ? type !== keep.type
@@ -478,6 +479,195 @@ export async function bulldozerDive(a: Arena): Promise<Outcome> {
     });
   } finally {
     dim.runCommand(`fill 100 ${gy} 61 118 ${gy + 4} 69 air`);
+  }
+}
+
+/**
+ * A lowered submarine bulldozer tunnels through a stone and bedrock wall in a
+ * 4-deep water box; the water, a water cell in the wall, and a chest stay
+ * (ADR 0155). The detail records what the cut cells hold afterwards.
+ */
+export async function bulldozerSeaCut(a: Arena): Promise<Outcome> {
+  const { dim, gy } = a;
+  const at = (x: number, y: number, z: number) => dim.getBlock({ x, y, z });
+  // The body coasts about 7 blocks after the throttle is released, so the wall
+  // stands far enough from the box's glass end at x = 118 that the blade stops
+  // short of it.
+  const wallX = [96, 97];
+  // The 4.64-block blade strip around z = 65.5. Its edge rows, z 63 and 67,
+  // lie outside the 2.4-block collision box, so a kept block there does not
+  // stop the body.
+  const strip = { minZ: 63, maxZ: 67 };
+  const bedrock = [
+    { x: 96, dy: 1, z: 65 },
+    { x: 97, dy: 2, z: 65 },
+  ];
+  const isCell =
+    (x: number, y: number, z: number) =>
+    (p: { x: number; dy: number; z: number }) =>
+      p.x === x && gy + p.dy === y && p.z === z;
+  const kept = [
+    { x: 96, dy: 1, z: 63, type: "minecraft:chest" },
+    { x: 97, dy: 1, z: 67, type: "minecraft:water" },
+  ];
+  try {
+    dim.runCommand(`fill 84 ${gy} 61 118 ${gy + 4} 69 glass`);
+    dim.runCommand(`fill 85 ${gy} 62 117 ${gy + 3} 68 water`);
+    dim.runCommand(`fill 85 ${gy + 4} 62 117 ${gy + 4} 68 air`);
+    dim.runCommand(`fill 96 ${gy} 62 97 ${gy + 3} 68 stone`);
+    for (const p of bedrock)
+      at(p.x, gy + p.dy, p.z)?.setType("minecraft:bedrock");
+    for (const p of kept) at(p.x, gy + p.dy, p.z)?.setType(p.type);
+    const chest = at(96, gy + 1, 63)?.getComponent(
+      "minecraft:inventory",
+    )?.container;
+    if (!chest) throw new Error("chest inventory missing");
+    chest.setItem(0, new ItemStack("minecraft:diamond"));
+    return await withBulldozer(a, 87.5, 65.5, -90, async (car) => {
+      await setBlade(car, false);
+      const enteredAt = await ticksUntilForm(car, "submarine", 40);
+      // Sink onto the bed so the tunnel reaches the wall's bottom row.
+      drive(car, 0, -1);
+      await wait(20);
+      drive(car, 0, 1);
+      let minY = Number.POSITIVE_INFINITY,
+        maxY = Number.NEGATIVE_INFINITY;
+      const forms: string[] = [];
+      for (let t = 0; t < 120 && car.location.x < 100; t++) {
+        await wait(1);
+        // A conservative start: the strip, 1.0 to 2.9 ahead, first touches the
+        // wall's west face at x = 96 once the body passes about x = 93.1.
+        if (car.location.x < 92) continue;
+        minY = Math.min(minY, car.location.y);
+        maxY = Math.max(maxY, car.location.y);
+        const form = String(vehicleForm(car));
+        if (forms.at(-1) !== form) forms.push(form);
+      }
+      drive(car, 0, 0);
+      // Water spreads one block per 5 ticks; give it time to reach the cut cells.
+      await wait(20);
+      const { bodyHeight } = BULLDOZER_SPEC.blade;
+      // Rows cut wherever the body was while it crossed the wall, and rows
+      // no position could reach. Resting on the bed, the cut starts at
+      // ceil(y - 0.01), never below floor(y + 0.01) (ADR 0155).
+      const surely = (y: number) =>
+        y >= Math.ceil(maxY - 0.01) && y < Math.ceil(minY + bodyHeight);
+      const never = (y: number) =>
+        y < Math.floor(minY + 0.01) || y >= Math.ceil(maxY + bodyHeight);
+      const wrong: string[] = [];
+      const cut: Record<string, number> = {};
+      for (const x of wallX)
+        for (let z = 62; z <= 68; z++)
+          for (let y = gy; y <= gy + 3; y++) {
+            const type = cellType(a, x, y, z);
+            const keep = kept.find(isCell(x, y, z));
+            const inStrip = z >= strip.minZ && z <= strip.maxZ;
+            const original = bedrock.some(isCell(x, y, z))
+              ? "minecraft:bedrock"
+              : "minecraft:stone";
+            if (keep) {
+              if (type !== keep.type) wrong.push(`${x},${y},${z}:${type}`);
+            } else if (inStrip && surely(y)) {
+              const key = String(type);
+              cut[key] = (cut[key] ?? 0) + 1;
+              if (
+                type !== "minecraft:air" &&
+                type !== "minecraft:water" &&
+                type !== "minecraft:flowing_water"
+              )
+                wrong.push(`${x},${y},${z}:${type}`);
+            } else if ((!inStrip || never(y)) && type !== original)
+              wrong.push(`${x},${y},${z}:${type}`);
+          }
+      const dried: string[] = [];
+      for (let x = 85; x <= 117; x++)
+        for (let z = 62; z <= 68; z++)
+          for (let y = gy; y <= gy + 3; y++)
+            if (
+              !wallX.includes(x) &&
+              cellType(a, x, y, z) !== "minecraft:water"
+            )
+              dried.push(`${x},${y},${z}`);
+      // A blade that reached the glass end would let the water out.
+      for (let z = strip.minZ; z <= strip.maxZ; z++)
+        for (let y = gy; y <= gy + 3; y++)
+          if (at(118, y, z)?.typeId !== "minecraft:glass")
+            dried.push(`118,${y},${z}`);
+      const diamond = chest.getItem(0);
+      const cutCells = Object.entries(cut)
+        .map(([type, n]) => `${type.replace("minecraft:", "")}:${n}`)
+        .join(",");
+      return {
+        pass:
+          enteredAt >= 0 &&
+          forms.join(">") === "submarine" &&
+          car.location.x >= 100 &&
+          Object.keys(cut).length > 0 &&
+          wrong.length === 0 &&
+          dried.length === 0 &&
+          diamond?.typeId === "minecraft:diamond" &&
+          diamond.amount === 1,
+        detail: `enteredAt=${enteredAt} forms=${forms.join(">")} x=${car.location.x.toFixed(2)} y=${(minY - gy).toFixed(3)}..${(maxY - gy).toFixed(3)} cutCells=${cutCells} wrong=${wrong.join(";")} dried=${dried.join(";")}`,
+      };
+    });
+  } finally {
+    dim.runCommand(`fill 84 ${gy} 61 118 ${gy + 4} 69 air`);
+  }
+}
+
+/**
+ * A lowered bulldozer that takes off and climbs with Jump from a pocket under
+ * a stone roof digs a shaft over its footprint plus BULLDOZER_SPEC.shaft.margin
+ * on each side, from its top up through the roof (ADR 0155).
+ */
+export async function bulldozerRiseShaft(a: Arena): Promise<Outcome> {
+  const { dim, gy } = a;
+  const cx = 110.5,
+    cz = 42.5,
+    roofTop = gy + 6;
+  const clear = () => dim.runCommand(`fill 104 ${gy} 36 116 ${roofTop} 48 air`);
+  try {
+    dim.runCommand(`fill 104 ${gy} 36 116 ${roofTop} 48 stone`);
+    // The pocket fits the 2.4-block collision box and the 2.9-block body.
+    dim.runCommand(`fill 108 ${gy} 40 112 ${gy + 2} 44 air`);
+    return await withBulldozer(a, cx, cz, 0, async (car) => {
+      await setBlade(car, false);
+      await doubleTap(car);
+      const hoverAt = await ticksUntilForm(
+        car,
+        "hover",
+        BULLDOZER_SPEC.takeoffTicks + 15,
+      );
+      // Climb until the body's top is above the roof.
+      const clearY = roofTop + 1 - BULLDOZER_SPEC.carHeight;
+      drive(car, 0, 0, true);
+      for (let t = 0; t < 60 && car.location.y < clearY + 0.1; t++)
+        await wait(1);
+      drive(car, 0, 0);
+      await wait(3);
+      const rise = car.location.y - gy;
+      const half = BULLDOZER_SPEC.footprint / 2 + BULLDOZER_SPEC.shaft.margin;
+      const inShaft = (c: number, center: number) =>
+        c + 1 > center - half && c < center + half;
+      const shaftBottom = Math.floor(gy + BULLDOZER_SPEC.carHeight);
+      const wrong: string[] = [];
+      for (let x = 104; x <= 116; x++)
+        for (let z = 36; z <= 48; z++)
+          for (let y = gy; y <= roofTop; y++) {
+            const pocket =
+              x >= 108 && x <= 112 && z >= 40 && z <= 44 && y <= gy + 2;
+            const shaft = inShaft(x, cx) && inShaft(z, cz) && y >= shaftBottom;
+            const want = pocket || shaft ? "minecraft:air" : "minecraft:stone";
+            const type = dim.getBlock({ x, y, z })?.typeId;
+            if (type !== want) wrong.push(`${x},${y},${z}:${type}`);
+          }
+      return {
+        pass: hoverAt >= 0 && car.location.y >= clearY && wrong.length === 0,
+        detail: `hoverAt=${hoverAt} rise=${rise.toFixed(3)} wrong=${wrong.join(";")}`,
+      };
+    });
+  } finally {
+    clear();
   }
 }
 
