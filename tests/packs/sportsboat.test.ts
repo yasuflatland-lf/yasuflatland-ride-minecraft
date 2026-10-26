@@ -1370,9 +1370,12 @@ describe("sports boat hull planking (ADR 0161)", () => {
       const [frame, face] = display as [Cube, Cube];
       for (const cube of display) {
         expect(cube.rotation).toEqual([45, 0, 0]);
-        expect(cube.pivot).toEqual([-5.5, F + 8, -13.5]);
+        expect(cube.pivot).toEqual([-9.2, F + 8, -13.5]);
       }
       near(frame.size, [7, 4.4, 0.6]);
+      // Moved 3.7 px toward the switch plate (turned frame: -x), so the centre sits at 9.2 (was 5.5).
+      expect(frame.origin[0] + frame.size[0] / 2).toBeCloseTo(-9.2);
+      expect(face.origin[0] + face.size[0] / 2).toBeCloseTo(-9.2);
       near(face.size, [6.2, 3.6, 0.1]);
       // In the turned frame the driver is at +z; both plates share the same transform.
       const surface = frame.origin[2] + frame.size[2];
@@ -1554,8 +1557,8 @@ print(json.dumps({"uv": list(uv), "size": list(size)}))
           // Phone holder, its screen, the display with its screen, and the throttle housing.
           (cube.origin[0] === -12.4 && cube.origin[1] === F + 8) ||
           (cube.origin[0] === -12.2 && cube.origin[1] === F + 8.3) ||
-          (cube.origin[0] === -9 && cube.origin[2] === -13.65) ||
-          (cube.origin[0] === -8.6 && cube.origin[2] === -13.05) ||
+          (cube.origin[0] === -12.7 && cube.origin[2] === -13.65) ||
+          (cube.origin[0] === -12.3 && cube.origin[2] === -13.05) ||
           (cube.origin[0] === -15.4 &&
             cube.origin[1] === F + 4.5 &&
             cube.origin[2] === -9),
@@ -1781,8 +1784,8 @@ print(json.dumps({name: {"uv": uv, "size": size}
         (cube) =>
           (cube.origin[0] === -12.4 && cube.origin[1] === F + 8) ||
           (cube.origin[0] === -12.2 && cube.origin[1] === F + 8.3) ||
-          (cube.origin[0] === -9 && cube.origin[2] === -13.65) ||
-          (cube.origin[0] === -8.6 && cube.origin[2] === -13.05) ||
+          (cube.origin[0] === -12.7 && cube.origin[2] === -13.65) ||
+          (cube.origin[0] === -12.3 && cube.origin[2] === -13.05) ||
           (cube.origin[0] === -15.4 &&
             cube.origin[1] === F + 4.5 &&
             cube.origin[2] === -9) ||
