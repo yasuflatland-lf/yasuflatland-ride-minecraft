@@ -182,17 +182,19 @@ SWITCH_BUTTON = [
 ]
 SWITCH_BUTTON_COLORS = {"O": (24, 24, 28), "L": (176, 180, 186), "C": (246, 248, 250)}
 SWITCH_PANEL = (30, 30, 34)
-# Left texel column and top texel row of each button in the 20 x 24 tile
-SWITCH_BUTTONS = [(8, 2), (3, 7), (11, 7), (5, 12), (13, 12), (7, 17)]
+# Left texel column and top texel row in the 24 x 28 wedge tile.
+SWITCH_BUTTONS = [(10, 2), (5, 8), (14, 8), (10, 14), (17, 14), (15, 20)]
 
 
 def paint_switch_plate(pixels):
     (u, v), (w, h) = tile_layout.TILE_RECTS["switch_plate"]
     for y in range(h):
         for x in range(w):
-            inside = 1 <= x <= w - 2 and 1 <= y <= h - 2
-            corner = x in (1, w - 2) and y in (1, h - 2)
-            pixels[v + y][u + x] = SWITCH_PANEL if inside and not corner else PALETTE["gloss"]
+            t = (y + 0.5) / h
+            centre = w / 2 + t * (0.5 / 2.2 * w)
+            half = (2.2 - 1.8 * t) / 2.2 * w / 2 - 1
+            inside = 1 <= y < h - 2 and abs(x + 0.5 - centre) < half
+            pixels[v + y][u + x] = SWITCH_PANEL if inside else PALETTE["gloss"]
     for bx, by in SWITCH_BUTTONS:
         for y, row in enumerate(SWITCH_BUTTON):
             for x, ch in enumerate(row):
@@ -1213,11 +1215,28 @@ body.append(box(2.0 + DISPLAY_DX, F + 8.15, 13.05, 9.0 + DISPLAY_DX, F + 12.35, 
 body.append(box(2.3 + DISPLAY_DX, F + 8.45, 12.95, 8.7 + DISPLAY_DX, F + 12.05, 13.05, "screen",
                 tiles={"north": "display"},
                 pivot=SCREEN_PIVOT, rotation=[SCREEN_TILT, 0, 0]))
-# The plate leans like the display (top toward +z, so a negative x rotation, ADR 0051) and pivots at its
-# low edge, which rests on the dash. The six buttons are painted on its face (ADR 0166).
-SWITCH_TILT = -20
-body.append(box(12.8, F + 8, 11.8, 15.0, F + 8.4, 14.6, "gloss", tiles={"up": "switch_plate"},
-                pivot=[13.9, F + 8, 14.6], rotation=[SWITCH_TILT, 0, 0]))
+# One shared pivot makes the cropped strips a continuous face (ADR 0166, #691).
+# Negative x turns the face toward the driver's eyes in game (ADR 0051).
+SWITCH_TILT = -45
+SWITCH_STRIPS = 10
+SWITCH_BOUNDS = (12.8, 15.0, 10.6, 14.6)
+SWITCH_PIVOT = [13.9, F + 8, 14.6]
+for i in range(SWITCH_STRIPS):
+    t = i / (SWITCH_STRIPS - 1)
+    width = 0.4 + 1.8 * t
+    centre = 14.4 - 0.5 * t
+    z0 = SWITCH_BOUNDS[2] + i * 0.4
+    strip = box(centre - width / 2, F + 8, z0,
+                centre + width / 2, F + 8.4, z0 + 0.4, "gloss",
+                pivot=SWITCH_PIVOT, rotation=[SWITCH_TILT, 0, 0])
+    (u, v), (w, h) = tile_layout.TILE_RECTS["switch_plate"]
+    # Tile top is the wide bow edge; reverse v to keep the image continuous toward the driver.
+    strip["uv"]["up"] = {
+        "uv": [u + (centre - width / 2 - SWITCH_BOUNDS[0]) / 2.2 * w,
+               v + (SWITCH_BOUNDS[3] - z0) / 4 * h],
+        "uv_size": [width / 2.2 * w, -0.4 / 4 * h],
+    }
+    body.append(strip)
 for x0, y0, z0, size in ((3.9, F + 7, 9.0, 1.0),):
     body.append(box(x0, y0, z0, x0 + size, y0 + 0.15, z0 + size, "chrome"))
     body.append(box(x0 + 0.25, y0 + 0.15, z0 + 0.25, x0 + size - 0.25, y0 + 0.17, z0 + size - 0.25, "gloss"))

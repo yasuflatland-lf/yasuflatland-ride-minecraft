@@ -158,6 +158,20 @@ The display remains two cubes. The historical 162/162 helm and 1223/1223 whole-m
 
 Open question for the owner (B34): on PC and mobile, does the wide 16:9 panel read clearly from the driver's seat, with an even glossy bezel, circular gauges and no clipping? **Verdict: unverified, awaiting the owner's device check.**
 
+### Switch plate rebuilt as a tilted wedge (#691)
+
+This supersedes the rectangular switch plate and its -20 degree tilt in 6/7 and the later +1.2 px shift. Ten adjoining `gloss` strips replace the single box, below the twelve-strip budget. `SWITCH_TILT = -45` about x only turns the face toward the driver's eyes; the negative sign follows ADR 0051 (in game +y tips toward +z before `turn_around`, away from the driver). Generated game-frame rotations read `[45, 0, 0]`. ADR 0167's assembly registry is unchanged: these strips need no compound-rotation exception.
+
+In the generator frame, strip i = 0..9 spans z `10.6 + 0.4*i .. 11.0 + 0.4*i`, y `F+8 .. F+8.4`, with width `0.4 + 0.2*i` and centre x `14.4 - i/18`. All share pivot `[13.9, F+8, 14.6]`. The wide bow edge spans x 12.8..15.0, narrowing monotonically toward the driver's rounded 0.4 px point at x 14.2..14.6. The slightly off-centre point makes the display-side edge more diagonal. The length along the slope grows from 2.8 to 4.0 px; each strip is 0.4 px along the slope and 0.4 thick. Adjacent strips meet with no gap. The full -45 degree tilt clears neighbours without lowering the plate or reducing its height.
+
+The `switch_plate` tile remains at [40, 4], grows to 24 x 28 texels, and meets the unchanged `dial_pad` allocation at x 64 without overlap. The atlas remains 128 x 32; no other tile moves. A lighter inset follows the taper with a dark glossy border, and six painted chrome-ring round buttons retain the 1, 2, 2, 1 zigzag from bow to driver. Each strip's `up` face crops its own x/z region from this one image; negative v extent puts tile top at the wide bow edge. Other faces retain the gloss swatch. All marks are generic shapes, without lettering, icons with text, logos or stickers.
+
+Cube counts: **316 before and 325 after** for the complete helm, **1377 before and 1386 after** for the complete model (one old plate replaced by ten strips, net +9). The console-through-dial block grows from 273 to 282; the unchanged 43 throttle cubes follow it. Roof, speakers, hull, display (including its 16:9 face), dial, throttle and wheel retain their exact generated cubes. Generated-JSON tests check strip counts, one-axis tilt, thickness, monotonic taper, contacts, continuous cropped UVs, atlas bounds and non-overlap, and transformed corner clearances against the display, dial, wheel, throttle console and glass. No generator runs inside unit tests.
+
+Resource Pack header/module and Behavior Pack Resource Pack dependency advance from **0.1.166 to 0.1.167**. Regenerate geometry, colour textures and previews with `pnpm model`; MER regeneration leaves its images unchanged, preserving the existing gloss material swatches.
+
+Open question for the owner (B32): from the driver's seat on PC and mobile, does the tall glossy wedge lean toward the driver's eyes, with a wide top, narrow rounded point and six readable chrome-ring buttons, without clipping? **Verdict: unverified, awaiting the owner's device check.** The preview renderer's x-rotation sign differs from the in-game sign (0051), and its flat face shading cannot show the painted inset or buttons.
+
 ## Consequences
 
 - 5/7 tilts the wheel by one helper call instead of hand-composing angles. ADR 0167 replaces its historical one-assembly limit; #684 adds the registered throttle lever.
