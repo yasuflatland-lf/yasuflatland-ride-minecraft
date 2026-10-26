@@ -12,6 +12,7 @@ import {
   SEAT_FILLER_FAMILY,
   VEHICLE_FAMILY,
 } from "../../src/infrastructure/vehicle/bedrock/identifiers";
+import { readRgbaPng } from "../support/png";
 
 const read = (p: string) => JSON.parse(readFileSync(p, "utf8"));
 const RP = "packs/yasu_ride_rp";
@@ -258,6 +259,7 @@ describe("sports boat Resource Pack (ADR 0051)", () => {
     });
     expect(client.render_controllers).toEqual([
       "controller.render.yasu_ride.sportsboat",
+      "controller.render.yasu_ride.sportsboat.mirror",
       {
         "controller.render.yasu_ride.sportsboat.lit":
           "query.property('yasu_ride:headlights')",
@@ -330,13 +332,122 @@ describe("sports boat Resource Pack (ADR 0051)", () => {
     });
   });
 
-  it("names the bones root, body, headlights, and windshield (ADR 0009)", () => {
+  it("names the bones root, body, headlights, windshield, and mirror (ADR 0009, 0159)", () => {
     expect(geometry.bones.map((b: { name: string }) => b.name)).toEqual([
       "root",
       "body",
       "headlights",
       "windshield",
+      "mirror",
     ]);
+  });
+});
+
+describe("sports boat PBR rear-view mirror (ADR 0159)", () => {
+  const ENTITY_TEXTURES = `${RP}/textures/entity/yasu_ride`;
+  const texels = (name: string) => {
+    const { width, height, pixels } = readRgbaPng(
+      `${ENTITY_TEXTURES}/${name}.png`,
+    );
+    const at = (x: number, y: number) => [
+      ...pixels.subarray((y * width + x) * 4, (y * width + x) * 4 + 4),
+    ];
+    return { width, height, at };
+  };
+  // The tile the glass's aft face shows: a 1-texel rim around the glass.
+  const TILE = { u: 16, v: 16, w: 16, h: 8 };
+  // The mirror swatch is the palette's 24th 4-texel cell (tools/gen_sportsboat.py).
+  const MIRROR_SWATCH = 23;
+  const inGlass = (x: number, y: number) =>
+    x > TILE.u &&
+    x < TILE.u + TILE.w - 1 &&
+    y > TILE.v &&
+    y < TILE.v + TILE.h - 1;
+  const brightness = ([r = 0, g = 0, b = 0]: number[]) => r + g + b;
+
+  it("puts only the glass in the mirror bone, its aft (+z) face on the mirror tile", () => {
+    const mirror = geometry.bones.find(
+      (b: { name: string }) => b.name === "mirror",
+    );
+    expect(mirror.parent).toBe("body");
+    expect(mirror.cubes).toHaveLength(1);
+    expect(mirror.cubes[0].uv.south).toEqual({
+      uv: [TILE.u, TILE.v],
+      uv_size: [TILE.w, TILE.h],
+    });
+  });
+
+  it("draws the mirror bone only in an always-on pass with the mirror texture", () => {
+    const controllers = read(
+      `${RP}/render_controllers/yasu_ride/sportsboat.rc.json`,
+    ).render_controllers;
+    expect(controller.part_visibility).toContainEqual({ mirror: false });
+    expect(
+      controllers["controller.render.yasu_ride.sportsboat.mirror"],
+    ).toEqual({
+      geometry: "Geometry.default",
+      materials: [{ "*": "Material.default" }],
+      textures: ["Texture.mirror"],
+      part_visibility: [{ "*": false }, { mirror: true }],
+    });
+    expect(client.textures.mirror).toBe(
+      "textures/entity/yasu_ride/sportsboat_mirror",
+    );
+    expect(client.materials.default).toBe("entity");
+  });
+
+  it("gives the mirror atlas a texture set that is metal 255, emissive 0, roughness 0 only on the glass", () => {
+    expect(
+      read(`${ENTITY_TEXTURES}/sportsboat_mirror.texture_set.json`),
+    ).toEqual({
+      format_version: "1.16.100",
+      "minecraft:texture_set": {
+        color: "sportsboat_mirror",
+        metalness_emissive_roughness: "sportsboat_mirror_mer",
+      },
+    });
+    const base = texels("sportsboat");
+    const color = texels("sportsboat_mirror");
+    const mer = texels("sportsboat_mirror_mer");
+    expect([color.width, color.height, mer.width, mer.height]).toEqual([
+      base.width,
+      base.height,
+      base.width,
+      base.height,
+    ]);
+    for (let y = 0; y < base.height; y++)
+      for (let x = 0; x < base.width; x++) {
+        expect(color.at(x, y), `color ${x},${y}`).toEqual(base.at(x, y));
+        const metal =
+          (y < 4 && Math.floor(x / 4) === MIRROR_SWATCH) || inGlass(x, y);
+        expect(mer.at(x, y), `MER ${x},${y}`).toEqual(
+          metal ? [255, 0, 0, 255] : [0, 0, 255, 255],
+        );
+      }
+  });
+
+  it("bakes a dark-rimmed sky-to-horizon gradient into every paint for clients without PBR", () => {
+    for (const paint of PAINTS) {
+      const { at } = texels(
+        paint === "khaki" ? "sportsboat" : `sportsboat_${paint}`,
+      );
+      const rows = Array.from({ length: TILE.h - 2 }, (_, i) =>
+        at(TILE.u + 1, TILE.v + 1 + i),
+      );
+      for (const [i, row] of rows.entries()) {
+        for (let x = TILE.u + 1; x < TILE.u + TILE.w - 1; x++)
+          expect(at(x, TILE.v + 1 + i), paint).toEqual(row);
+        expect(brightness(at(TILE.u, TILE.v + 1 + i))).toBeLessThan(
+          brightness(row),
+        );
+      }
+      for (const [i, row] of rows.slice(1).entries())
+        expect(brightness(row), paint).toBeGreaterThan(
+          brightness(rows[i] ?? []),
+        );
+      const [r = 0, , b = 0] = rows[0] ?? [];
+      expect(b, "the sky row is bluish").toBeGreaterThan(r);
+    }
   });
 });
 

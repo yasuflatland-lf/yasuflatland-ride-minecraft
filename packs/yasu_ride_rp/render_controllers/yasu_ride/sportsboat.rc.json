@@ -33,8 +33,15 @@
       "textures": ["Array.paints[query.variant]"],
       "part_visibility": [
         { "*": true },
-        { "headlights": "!query.property('yasu_ride:headlights')" }
+        { "headlights": "!query.property('yasu_ride:headlights')" },
+        { "mirror": false }
       ]
+    },
+    "controller.render.yasu_ride.sportsboat.mirror": {
+      "geometry": "Geometry.default",
+      "materials": [{ "*": "Material.default" }],
+      "textures": ["Texture.mirror"],
+      "part_visibility": [{ "*": false }, { "mirror": true }]
     },
     "controller.render.yasu_ride.sportsboat.lit": {
       "geometry": "Geometry.default",

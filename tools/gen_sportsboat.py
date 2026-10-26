@@ -3,7 +3,7 @@
 Ported from the spike's generator (docs/spike-sportsboat.md, appendix). Coordinates are in pixels
 (16 px = 1 block), forward +z and right +x, and the model is rotated 180 degrees around the Y axis
 just before writing, because in Bedrock the front of an entity is on the -z side of the model.
-Bones: root / body / headlights / windshield (ADR 0009). No logo or model name.
+Bones: root / body / headlights / windshield / mirror (ADR 0009, 0159). No logo or model name.
 Run: python3 -I tools/gen_sportsboat.py packs/yasu_ride_rp
 """
 import json
@@ -43,6 +43,7 @@ PALETTE = {
     "gunmetal": (74, 76, 82),  # matte speaker pods
     "chrome": (226, 228, 232),
     "button": (60, 60, 64),
+    "mirror": (200, 214, 228),  # the rear-view mirror glass's thin edges (ADR 0159)
 }
 # The windshield renders with entity_alphablend, so its swatch is see-through
 ALPHA = {"glass": 80}
@@ -51,6 +52,15 @@ EMISSIVE_LIT = 255
 MER_LIT = (0, EMISSIVE_LIT, 255)
 MER_OFF = (0, 0, 255)
 LIT_SLOTS = tuple(NAMES.index(name) for name in ("light",))
+# The mirror glass is metalness 255 and roughness 0 so Vibrant Visuals reflects the environment on it.
+# No renderer can show the live scene behind the boat, so the face tile also bakes a sky-to-horizon
+# gradient for clients without PBR (ADR 0159).
+MER_MIRROR = (255, 0, 0)
+MIRROR_SLOT = NAMES.index("mirror")
+MIRROR_UV = {"uv": [16, 16], "uv_size": [16, 8]}
+MIRROR_RIM = (54, 58, 64)
+MIRROR_SKY = (150, 192, 232)
+MIRROR_HORIZON = (236, 242, 246)
 TEXTURE_WIDTH = 128
 TEXTURE_HEIGHT = 32
 assert len(NAMES) * 4 <= TEXTURE_WIDTH, "the palette no longer fits in the texture"
@@ -460,7 +470,10 @@ body.append(box(-WALK_HALF, RAIL_Y, FRONT_TOP - 1.0, WALK_HALF, RAIL_Y + 0.7, FR
 MX, MY, MZ = 8.5, RAIL_Y + 0.7, FRONT_TOP - 0.4
 body.append(box(MX - 0.3, MY, MZ - 0.3, MX + 0.3, MY + 1.0, MZ + 0.3, "frame"))
 body.append(box(MX - 3.4, MY + 0.8, MZ - 0.9, MX + 3.4, MY + 2.2, MZ - 0.3, "gloss"))
-body.append(box(MX - 3.1, MY + 1.0, MZ - 1.0, MX + 3.1, MY + 2.0, MZ - 0.9, "chrome"))
+# The glass gets its own bone so a separate pass can draw it with the PBR mirror texture set (ADR 0159).
+# Its aft face is "north" here; turn_around makes it the in-game south face.
+mirror = [box(MX - 3.1, MY + 1.0, MZ - 1.0, MX + 3.1, MY + 2.0, MZ - 0.9, "mirror")]
+mirror[0]["uv"]["north"] = dict(MIRROR_UV)
 body += pair(beam(6) - 1.6, sheer(6), 5.6, beam(6) - 1.0, side_top(6) + 0.2, 6.4, "frame")
 
 # Wake tower: on each gunwale a raked rear and front strut with rungs and an X brace, then the top beam.
@@ -597,6 +610,7 @@ geo = {
              "locators": {"jet_left": [-5.0, 3.0, -52.0], "jet_right": [5.0, 3.0, -52.0]}},
             {"name": "headlights", "parent": "body", "pivot": [0, 7, 0], "cubes": headlights},
             {"name": "windshield", "parent": "body", "pivot": [0, 7, 0], "cubes": glass},
+            {"name": "mirror", "parent": "body", "pivot": [0, 7, 0], "cubes": mirror},
         ],
     }],
 }
@@ -681,12 +695,49 @@ def lit_textures(kind, width, height, pixel):
     (ENTITY_TEXTURES / f"{kind}_lit.texture_set.json").write_text(json.dumps(texture_set))
 
 
+(MU, MV), (MW, MH) = MIRROR_UV["uv"], MIRROR_UV["uv_size"]
+
+
+def in_mirror_tile(x, y):
+    return MU <= x < MU + MW and MV <= y < MV + MH
+
+
+def in_mirror_glass(x, y):
+    return MU < x < MU + MW - 1 and MV < y < MV + MH - 1
+
+
+def mirror_tile(x, y):
+    if not in_mirror_glass(x, y):
+        return MIRROR_RIM
+    t = (y - MV - 1) / (MH - 3)
+    return tuple(round(a + (b - a) * t) for a, b in zip(MIRROR_SKY, MIRROR_HORIZON))
+
+
+def mirror_textures(width, height, pixel):
+    def mer(x, y):
+        metal = (y < 4 and x // 4 == MIRROR_SLOT) or in_mirror_glass(x, y)
+        return (*(MER_MIRROR if metal else MER_OFF), 255)
+
+    png(ENTITY_TEXTURES / "sportsboat_mirror.png", width, height, pixel)
+    png(ENTITY_TEXTURES / "sportsboat_mirror_mer.png", width, height, mer)
+    texture_set = {
+        "format_version": "1.16.100",
+        "minecraft:texture_set": {
+            "color": "sportsboat_mirror",
+            "metalness_emissive_roughness": "sportsboat_mirror_mer",
+        },
+    }
+    (ENTITY_TEXTURES / "sportsboat_mirror.texture_set.json").write_text(json.dumps(texture_set))
+
+
 def swatches(hull_color):
     colors = {**PALETTE, "hull": hull_color}
 
     def swatch(x, y):
         if 16 <= y < 24 and x < 8:
             return QUILT_LINE if QUILT[y - 16][x] == "L" else PALETTE["seat"]
+        if in_mirror_tile(x, y):
+            return mirror_tile(x, y)
         i = x // 4
         if y >= 4 or i >= len(NAMES):
             return (0, 0, 0)
@@ -702,6 +753,7 @@ for paint, hull_color in HULL_PAINTS.items():
     png(ENTITY_TEXTURES / f"{name}.png", TEXTURE_WIDTH, TEXTURE_HEIGHT, swatches(hull_color))
 
 lit_textures("sportsboat", TEXTURE_WIDTH, TEXTURE_HEIGHT, swatches(HULL_PAINTS["khaki"]))
+mirror_textures(TEXTURE_WIDTH, TEXTURE_HEIGHT, swatches(HULL_PAINTS["khaki"]))
 
 # Item icon: a 16-pixel side view, bow to the right, tower leaning forward, on transparency.
 ICON = [
@@ -732,4 +784,4 @@ def icon(x, y):
 
 ITEM_TEXTURES.mkdir(parents=True, exist_ok=True)
 png(ITEM_TEXTURES / "sportsboat_item.png", 16, 16, icon)
-print("cubes:", len(body) + len(headlights) + len(glass))
+print("cubes:", len(body) + len(headlights) + len(glass) + len(mirror))

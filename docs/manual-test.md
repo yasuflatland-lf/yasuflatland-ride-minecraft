@@ -325,6 +325,16 @@ Setup: use a Vibrant Visuals device at night, then repeat the legacy checks with
 | L7 | Join on a device without Vibrant Visuals support: vehicles and blocks look as before the change. | [ ] | [ ] |
 | L8 | Fly, bank, and open a door with lights on: the glow follows the parts. | [ ] | [ ] |
 
+## Sports boat mirror (Vibrant Visuals)
+
+Setup: restart the server with `pnpm server:restart`, place a sports boat on open water in daylight, and sit at the helm. A live rear view is not possible in Bedrock; the mirror reflects the environment the renderer provides (ADR 0159).
+
+| # | Check | PC | Mobile |
+|---|---|---|---|
+| M1 | In Vibrant Visuals, look at the rear-view mirror in daylight and at sunset while turning the boat: the glass shows a smooth metallic reflection of the sky and light that shifts as the boat turns, with no flicker, holes, or z-fighting. The housing and stalk look as before. | [ ] | [ ] |
+| M2 | With Vibrant Visuals off, and on a device without Vibrant Visuals: the glass shows a silvery blue sky-to-horizon gradient with a dark rim, with no holes or double drawing. | [ ] | [ ] |
+| M3 | Repaint the boat with any dye and switch the headlights on and off: the mirror does not change. | [ ] | [ ] |
+
 ## Upgrading from MyCar 0.5.0 and earlier
 
 Setup: in a world that used MyCar 0.5.0, place two vehicles and switch the headlights of one of them off, then stop the server and replace the old pack folders with the new ones as described under "Upgrading from MyCar 0.5.0 and earlier" in the [README](../README.md).
