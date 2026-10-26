@@ -240,8 +240,8 @@ BEAM_SLOPES = pchip_slopes(BEAM)
 
 def beam_plan(z):
     """The hull's half-breadth on a smooth plan curve through every BEAM point, for the outer planking
-    (ADR 0161). It strays at most 0.27 px from the polyline beam(), which the glass, mirror post, tower,
-    and bow rails keep using."""
+    (ADR 0161). It strays at most 0.27 px from the polyline beam(), which the glass, mirror post, and
+    tower keep using."""
     if z <= BEAM[0][0]:
         return BEAM[0][1]
     for ((z0, v0), (z1, v1)), d0, d1 in zip(zip(BEAM, BEAM[1:]), BEAM_SLOPES, BEAM_SLOPES[1:]):
@@ -733,6 +733,66 @@ def slice_band(row, z0, z1):
     return pair(inner, y0, z0, outer, y1, z1, row.swatch) if outer > inner else []
 
 
+def plan_chain(row, start, end):
+    """Horizontal inset lines need cosine-scaled local depth (ADR 0162)."""
+    stations = [start, *(z for z in PLAN_STATIONS if start < z < end), end]
+    outer = Inset(0.5) if row.name == "gunwale_wall" else row.outer
+    segments = [(a, outer.x(beam_plan(a)), b, outer.x(beam_plan(b)))
+                for a, b in zip(stations, stations[1:])]
+    depths = [(row.inner.px - row.inner.step - outer.px + outer.step) * math.cos(yaw(*segment))
+              for segment in segments]
+    cubes = []
+    for i, (segment, depth) in enumerate(zip(segments, depths)):
+        a, _, b, _ = segment
+        zc = (a + b) / 2
+        s, k = sheer(zc), keel(zc)
+        angle = yaw(*segment)
+        aft_turn = angle - yaw(*segments[i - 1]) if i else 0.0
+        fore_turn = yaw(*segments[i + 1]) - angle if i + 1 < len(segments) else 0.0
+        aft_depth = max(depth, depths[i - 1]) if i else depth
+        fore_depth = max(depth, depths[i + 1]) if i + 1 < len(depths) else depth
+        overlaps = (joint_overlap(aft_depth, aft_turn), joint_overlap(fore_depth, fore_turn))
+        setbacks = (joint_setback(overlaps[0], aft_turn), joint_setback(overlaps[1], fore_turn))
+        cubes += paired_plank(*segment, row.y0(zc, s, k), row.y1(zc, s, k), row.swatch,
+                              depth, overlaps, setbacks=setbacks)
+    return cubes
+
+
+def bow_interior():
+    end = crossing(lambda z: beam_plan(z) - LOUNGE_DEPTH, *BOW, False)
+    cubes = []
+    for row in HULL_BANDS["hull_interior"]:
+        spans = []
+        if row.inner != ACROSS:
+            stop = end if row.name in ("lounge_base", "lounge_cushion", "lounge_piping") else BOW[1]
+            cubes += plan_chain(row, BOW[0], stop)
+            continue
+        for a, b in hull_slices():
+            if not BOW[0] <= a < b <= BOW[1]:
+                continue
+            zc = (a + b) / 2
+            s, k = sheer(zc), keel(zc)
+            if not row.when(zc, s, k):
+                continue
+            # The windshield's walk-through floor is a fixed part of its contract.
+            if row.name == "bow_floor" and b <= 22:
+                spans += slice_band(row, a, b)
+                continue
+            half = max(row.outer.x(beam_plan(z)) for z in (a, b))
+            if half > 0:
+                span = box(-half, row.y0(zc, s, k), a, half, row.y1(zc, s, k), b, row.swatch)
+                previous = spans[-1] if spans else None
+                # Identical adjacent slices have no visible seam; merging saves six seam cubes.
+                if (previous and previous["origin"][:2] == span["origin"][:2]
+                        and previous["size"][:2] == span["size"][:2]
+                        and abs(previous["origin"][2] + previous["size"][2] - a) < 1e-9):
+                    previous["size"][2] += b - a
+                else:
+                    spans.append(span)
+        cubes += spans
+    return cubes
+
+
 def hull_slices():
     z = -48.0
     while z < 48.0:
@@ -745,7 +805,8 @@ def build_hull():
     and the rails one group each."""
     shell, rub_rail, strake = rails()
     interior = [[cube for row in rows for cube in slice_band(row, z0, z1)] for z0, z1 in hull_slices()
-                for rows in HULL_BANDS.values()]
+                for rows in HULL_BANDS.values() if not BOW[0] <= z0 < z1 <= BOW[1]]
+    interior.append(bow_interior())
     return {"hull_shell": [hull_shell() + shell], "hull_interior": interior, "rub_rail": [rub_rail],
             "strake": [strake]}
 
@@ -1124,11 +1185,10 @@ for sx in (-B_HALF / 2, B_HALF / 2):
     body.append(box(sx - 0.5, cy + 1.4, G + 1.5, sx + 0.5, under, G + 3.0, "gloss"))  # mount
 # Stainless bow rails on the foredeck
 for z0 in (34.0, 38.0, 42.0):
-    body += pair(beam(z0 + 0.4) - 1.6, sheer(z0), z0, beam(z0 + 0.4) - 1.1, sheer(z0) + 1.8, z0 + 0.5, "steel")
-z = 34.0
-while z < 43.0:
-    body += pair(beam(z + 1) - 1.6, sheer(z) + 1.6, z, beam(z + 1) - 1.1, sheer(z) + 2.1, z + 1.0, "steel")
-    z += 1.0
+    body += pair(beam_plan(z0 + 0.4) - 1.6, sheer(z0), z0,
+                 beam_plan(z0 + 0.4) - 1.1, sheer(z0) + 1.8, z0 + 0.5, "steel")
+body += plan_chain(Band("bow_rail", "steel", Inset(1.1), Inset(1.6),
+                        lambda zc, s, k: s + 1.6, lambda zc, s, k: s + 2.1), 34.0, 43.0)
 
 def hull_face(y, z):
     """Rightmost hull face met by a horizontal ray in the build frame."""
