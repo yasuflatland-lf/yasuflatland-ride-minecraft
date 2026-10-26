@@ -82,7 +82,7 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 
 ## Sports boat hull (planking and gloss)
 
-Run H1-H4 on PC and mobile, with Vibrant Visuals on and off, after a Resource Pack restart (0015, 0062). Check the y-turned bow panels against the preview as part of H2 (0161).
+Run H1-H4 on PC and mobile, with Vibrant Visuals on and off, after a Resource Pack restart (0015, 0062). Check the y-turned bow panels against the preview as part of H2 (0161). Known residual, not a failure: from the side the keel profile steps in 2 px plank ends where the keel rises, at the stem, along the bow keel, and along the stern keel rise (z -48 to -39 in build coordinates).
 
 | # | Steps | Pass condition | PC | Mobile |
 |---|---|---|---|---|

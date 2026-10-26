@@ -428,6 +428,28 @@ describe("sports boat hull planking (ADR 0161)", () => {
     const [z1, v1] = table[i] ?? [0, 0];
     return v0 + ((v1 - v0) * (z - z0)) / (z1 - z0);
   };
+  const KEEL: [number, number][] = [
+    [-48, 7],
+    [-44.5, 2.5],
+    [-39, 0],
+    [-10, 0],
+    [16, 0.7],
+    [28, 2.6],
+    [37, 5.9],
+    [43, 10.1],
+    [46.5, 14.4],
+    [48, 17.4],
+  ];
+  const vfrac = (height: number) =>
+    lerp(
+      [
+        [0, 0.3],
+        [1.5, 0.55],
+        [3, 0.78],
+        [4.5, 1],
+      ],
+      height,
+    );
   const STRAKE_PROUD = 0.1;
 
   const turn = (v: number[], axis: "x" | "y", degrees: number) => {
@@ -438,16 +460,14 @@ describe("sports boat hull planking (ADR 0161)", () => {
       ? [x, y * c - z * s, y * s + z * c]
       : [x * c + z * s, y, -x * s + z * c];
   };
-  // How far out along x the line through (y, z) runs inside the cube, or 0 when it misses. The game
-  // negates x but preserves y (ADR 0051, 0161), so undoing the turn takes rx and -ry right-handed.
-  // Device confirmation is pending.
-  const reach = (cube: Cube, y: number, z: number) => {
+  // The shipped SUV bumper chamfers anchor the y sign: +y turns +x toward -z.
+  const interval = (cube: Cube, point: number[], direction: number[]) => {
     const [rx = 0, ry = 0] = cube.rotation ?? [];
     const pivot = cube.pivot ?? [0, 0, 0];
     const undo = (v: number[]) =>
       rx ? turn(v, "x", rx) : ry ? turn(v, "y", -ry) : v;
-    const p = undo([0 - pivot[0], y - pivot[1], z - pivot[2]]);
-    const d = undo([1, 0, 0]);
+    const p = undo(point.map((v, i) => v - (pivot[i] ?? 0)));
+    const d = undo(direction);
     let lo = Number.NEGATIVE_INFINITY;
     let hi = Number.POSITIVE_INFINITY;
     for (const i of [0, 1, 2] as const) {
@@ -456,7 +476,7 @@ describe("sports boat hull planking (ADR 0161)", () => {
       const pi = p[i] ?? 0;
       const di = d[i] ?? 0;
       if (Math.abs(di) < 1e-12) {
-        if (pi < a || pi > b) return 0;
+        if (pi < a || pi > b) return undefined;
         continue;
       }
       const t0 = (a - pi) / di;
@@ -464,8 +484,117 @@ describe("sports boat hull planking (ADR 0161)", () => {
       lo = Math.max(lo, Math.min(t0, t1));
       hi = Math.min(hi, Math.max(t0, t1));
     }
-    return lo <= hi ? Math.max(Math.abs(lo), Math.abs(hi)) : 0;
+    return lo <= hi ? [lo, hi] : undefined;
   };
+  const reach = (cube: Cube, y: number, z: number) => {
+    const hit = interval(cube, [0, y, z], [1, 0, 0]);
+    return hit ? Math.max(...hit.map(Math.abs)) : 0;
+  };
+
+  it("uses the shipped SUV bumper's inward y-turned corners", () => {
+    const suv = read(`${RP}/models/entity/yasu_ride/suv.geo.json`)[
+      "minecraft:geometry"
+    ][0];
+    const corners: Cube[] = suv.bones
+      .flatMap((b: { cubes?: Cube[] }) => b.cubes ?? [])
+      .filter(
+        (cube: Cube) => cube.rotation?.[1] === 30 && cube.size[1] === 3.8,
+      );
+    expect(corners).toHaveLength(1);
+    const corner = corners[0];
+    expect(corner).toBeDefined();
+    if (!corner) return;
+    const z = corner.pivot?.[2] ?? 0;
+    expect(reach(corner, 5, z - 0.1)).toBeLessThan(13);
+    expect(reach(corner, 5, z + 1)).toBeGreaterThan(14);
+  });
+
+  it("intercepts vertical rays throughout the outer plan, including both stem gaps", () => {
+    const hull = cubes.filter(isHull);
+    const misses: string[] = [];
+    for (let z = -47.875; z < 48.5; z += 0.125) {
+      const width = lerp(STATIONS, z) - 0.15;
+      for (const fraction of [0, 0.2, 0.5, 0.8, 0.98]) {
+        for (const side of [-1, 1]) {
+          const x = side * width * fraction;
+          if (!hull.some((cube) => interval(cube, [x, 0, -z], [0, 1, 0])))
+            misses.push(`${x.toFixed(3)},${z}`);
+        }
+      }
+    }
+    expect(misses).toEqual([]);
+  });
+
+  it("keeps side rays on the V bands above the accepted stepped keel", () => {
+    const hull = cubes.filter(isHull);
+    for (let z = -47.875; z < 47; z += 0.25) {
+      for (let y = 3; y < lerp(SHEER, z) - 2.75; y += 2) {
+        if (y < lerp(KEEL, z) + 2) continue;
+        const expected = lerp(STATIONS, z) * vfrac(y - lerp(KEEL, z));
+        for (const side of [-1, 1]) {
+          const hits = hull.flatMap(
+            (cube) => interval(cube, [0, y, -z], [side, 0, 0])?.[1] ?? [],
+          );
+          const first = Math.max(...hits);
+          // Mid-band chords can fall 0.98 px inside the V curve near a keel crossing.
+          expect(first - expected, `${side},${y},${z}`).toBeGreaterThanOrEqual(
+            -1.05,
+          );
+          expect(first - expected, `${side},${y},${z}`).toBeLessThanOrEqual(
+            0.2,
+          );
+        }
+      }
+    }
+    // Just below the stern sheer strake: the old deck protruded 1.1 px here.
+    for (let z = -46.6; z <= -46.4; z += 0.05) {
+      const expected = lerp(STATIONS, z) * vfrac(9 - lerp(KEEL, z));
+      for (const y of [8.01, 8.05, 8.1]) {
+        expect(
+          Math.max(...hull.map((cube) => reach(cube, y, -z))) - expected,
+        ).toBeLessThanOrEqual(0.2);
+      }
+    }
+  });
+
+  it("embeds every lens back and limits normal standoff across the faces it spans", () => {
+    const hull = cubes.filter(isHull);
+    for (const lens of bone("headlights")) {
+      const [px, py, pz] = lens.pivot ?? [0, 0, 0];
+      const side = Math.sign(px);
+      const angle = ((lens.rotation?.[1] ?? 0) * Math.PI) / 180;
+      const cosine = Math.cos(angle);
+      for (let j = 0; j <= 80; j++) {
+        for (const fraction of [0.001, 0.25, 0.5, 0.75, 0.999]) {
+          for (const back of [false, true]) {
+            const x =
+              lens.origin[0] + lens.size[0] * (side > 0 !== back ? 1 : 0);
+            const point = turn(
+              [x - px, 0, lens.origin[2] + (lens.size[2] * j) / 80 - pz],
+              "y",
+              lens.rotation?.[1] ?? 0,
+            );
+            const worldX = px + (point[0] ?? 0);
+            const z = pz + (point[2] ?? 0);
+            const y = lens.origin[1] + lens.size[1] * fraction;
+            const face = Math.max(
+              ...hull.flatMap(
+                (cube) => interval(cube, [0, y, z], [side, 0, 0])?.[1] ?? [],
+              ),
+            );
+            // A flat lens at its segment's yaw over merged planks cannot sit 0.15 proud everywhere;
+            // the generator keeps it 0.03 to 0.2 px off the face (ADR 0161).
+            const clearance = (side * worldX - face) * cosine;
+            expect(
+              clearance,
+              `${px},${py},${pz},${j},${fraction},${back}`,
+            ).toBeLessThanOrEqual(back ? -0.02 : 0.21);
+            if (!back) expect(clearance).toBeGreaterThanOrEqual(0.025);
+          }
+        }
+      }
+    }
+  });
 
   it("turns every hull, stripe, and strake cube about one axis at most, never z", () => {
     expect(shell.length).toBeGreaterThan(0);
@@ -511,7 +640,10 @@ describe("sports boat hull planking (ADR 0161)", () => {
       );
       expect(Math.abs(z - start)).toBeLessThan(0.5);
       expect(
-        Math.abs(Math.abs(lens.rotation?.[1] ?? 0) - (yaws.get(start) ?? 0)),
+        Math.abs(
+          (lens.rotation?.[1] ?? 0) -
+            Math.sign(lens.pivot?.[0] ?? 0) * (yaws.get(start) ?? 0),
+        ),
       ).toBeLessThanOrEqual(0.5);
     }
     expect(

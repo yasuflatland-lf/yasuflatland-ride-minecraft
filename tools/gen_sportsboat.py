@@ -286,8 +286,8 @@ class Inset:
         return x + self.step
 
 
-LOUNGE_EDGE = Inset(LOUNGE_DEPTH)  # the lounge's inboard edge
-PIPING_EDGE = Inset(LOUNGE_DEPTH, step=0.6)  # where the cushion meets its piping
+LOUNGE_EDGE = Inset(LOUNGE_DEPTH, floor=0.0)  # the lounge's inboard edge
+PIPING_EDGE = Inset(LOUNGE_DEPTH, floor=0.0, step=0.6)  # where the cushion meets its piping
 ACROSS = "across"  # an `inner` that makes the band one box across the centreline, `outer` wide each way
 
 
@@ -340,7 +340,7 @@ def half_breadth(y, z):
 PLAN_STATIONS = [-48, -47, -46, -45, -44, 8, 12, 16, 18, 20, 23, 26, 29, 32, 34, 36, 38, 40, 42, 44, 45.5,
                  47, 48.5]
 FLAT = (-44.0, 8.0)  # beam_plan is constant here, so the rails along the sheer tilt about x instead
-BAND = 2.0  # BAND 1.5 needs 1212 cubes, exceeding the 1103-cube target (ADR 0161)
+BAND = 2.0  # BAND 1.5 needs 1263 cubes against 1202 here; neither meets the no-growth target (ADR 0161)
 PLANK_DEPTH = 0.5
 MERGE_TOLERANCE = 0.1  # how far a merged plank's chord may stray from the curve at any sample
 STRAKE_HEIGHT = 2.0  # the sheer strake, at least BAND tall so it covers the planks' stepped tops
@@ -533,12 +533,17 @@ def hull_shell():
                     inner = min(chord(c), chord(d)) - PLANK_DEPTH * sec
                     if top > y0 and inner > 0:
                         cores.append(box(-inner, y0, c, inner, top, d, "hull"))
-                    # Near the transom the hull is too shallow to reach the chine, so the top band
-                    # is narrower than the sheer strake over it; a deck from the band up to the hull
-                    # top closes the gap that would show between them under the cap
-                    if top > y1 and inner < min(beam_plan(c), beam_plan(d)) - CAP_INSET:
-                        deck = strake_inner(c, d)
-                        cores.append(box(-deck, y1, c, deck, top, d, "hull"))
+                    if top > y0 and (top < y1 and abs(chord(d) - chord(c)) > 0.5 or inner <= 0):
+                        # A yawed inner shelf covers the slots left by a rectangular core at its
+                        # narrow end, including the last bow core whose inner width crosses zero.
+                        depth = PLANK_DEPTH + abs(chord(d) - chord(c)) / sec
+                        caps += paired_plank(c, chord(c), d, chord(d), min(top, y1) - 0.2,
+                                             min(top, y1), "hull", depth, 0.0)
+                    if top > y1 and d < KEEL_LOW[0]:
+                        # Continue the top band's face to the sheer instead of exposing an
+                        # axis-aligned deck outside its inner face on the stern quarter.
+                        caps += paired_plank(c, chord(c), d, chord(d), y1, top,
+                                             "hull", PLANK_DEPTH, 0.0)
         for z, aft, hb in ((z1, False, half_breadth(BAND * i + BAND / 2, z1)),
                            (z0, True, half_breadth(BAND * i + BAND / 2, z0))):
             if aft and not closes_aft:
@@ -558,6 +563,18 @@ def hull_shell():
                     joint_setback(overlap[1], yaw(*fore) - here) if fore else 0.0)
         cubes += paired_plank(*segment, y0, y1, "hull", PLANK_DEPTH, overlap, setbacks=setbacks)
     cores.sort(key=lambda c: (c["origin"][2], c["size"][2], c["size"][0], c["origin"][1]))
+    # Full-width deck cores are hidden above the lowest sheer-strake edge, including
+    # its level-piece rise allowance; below that edge only yawed band faces may show.
+    for a, b, _, _, tilted in RAIL_PIECES:
+        if not tilted:
+            deck = strake_inner(a, b)
+            bottom = max(sheer(a), sheer(b)) - STRAKE_HEIGHT + RAIL_RISE
+            if deck > 0 and hull_top((a + b) / 2, sheer(a)) > bottom:
+                cores.append(box(-deck, bottom, a, deck, min(sheer(a), sheer(b)), b, "hull"))
+    # The stem strakes turn past each other inboard, leaving a centreline slit at their tips; a thin
+    # plate under the gunwale cap closes it from above and below.
+    stem = sheer(PLAN_STATIONS[-1]) - 0.3
+    caps.append(box(-0.45, stem, 48.0, 0.45, stem + 0.05, PLAN_STATIONS[-1], "hull"))
     return cubes + joined(cores) + caps
 
 
@@ -1113,11 +1130,43 @@ while z < 43.0:
     body += pair(beam(z + 1) - 1.6, sheer(z) + 1.6, z, beam(z + 1) - 1.1, sheer(z) + 2.1, z + 1.0, "steel")
     z += 1.0
 
+def hull_face(y, z):
+    """Rightmost hull face met by a horizontal ray in the build frame."""
+    outer = 0.0
+    for cube in body:
+        if cube["uv"]["up"] != uv("hull")["up"]:
+            continue
+        px, py, pz = cube.get("pivot", (0, 0, 0))
+        rx, ry, _ = cube.get("rotation", (0, 0, 0))
+        ax, ay = math.radians(rx), math.radians(ry)
+        p = [-px, y - py, z - pz]
+        d = [1.0, 0.0, 0.0]
+        if rx:
+            p = [p[0], p[1] * math.cos(ax) - p[2] * math.sin(ax), p[1] * math.sin(ax) + p[2] * math.cos(ax)]
+        if ry:
+            p = [p[0] * math.cos(ay) - p[2] * math.sin(ay), p[1], p[0] * math.sin(ay) + p[2] * math.cos(ay)]
+            d = [math.cos(ay), 0, math.sin(ay)]
+        lo, hi = -math.inf, math.inf
+        for q, v, a, size, pivot in zip(p, d, cube["origin"], cube["size"], (px, py, pz)):
+            a -= pivot
+            if abs(v) < 1e-12:
+                if not a <= q <= a + size:
+                    hi = -math.inf
+                    break
+            else:
+                ends = ((a - q) / v, (a + size - q) / v)
+                lo, hi = max(lo, min(ends)), min(hi, max(ends))
+        if lo <= hi:
+            outer = max(outer, hi)
+    return outer
+
+
 # Headlights: a slim teardrop lens set into each bow flank, widest at the rear and tapering to a point
 # toward the stem: one flat lens per plan segment, turned with it and following the sheer (ADR 0161).
 headlights = []
 LAMP = (32.0, 42.0)  # on plan stations
 LAMP_PROUD = 0.15
+LAMP_MIN_PROUD = 0.03  # a flat lens over faceted planks: kept clear of the face so it cannot z-fight
 lamp_segments = [(a, b) for a, b in zip(PLAN_STATIONS, PLAN_STATIONS[1:]) if LAMP[0] <= a and b <= LAMP[1]]
 lamp_yaws = [yaw(a, beam_plan(a), b, beam_plan(b)) for a, b in lamp_segments]
 for k, (za, zb) in enumerate(lamp_segments):
@@ -1125,12 +1174,27 @@ for k, (za, zb) in enumerate(lamp_segments):
     t = (zm - LAMP[0]) / (LAMP[1] - LAMP[0])
     h = 1.5 * (1 - t) + 0.4 * t
     yc = sheer(zm) - 3.2 + 1.2 * t
-    # Proud of the sheer strake where the lens reaches up onto it, else of the planks
-    out = LAMP_PROUD + (STRAKE_PROUD if yc + h / 2 > sheer(zm) - STRAKE_HEIGHT else 0.0)
-    depth = out + 0.05
-    turns = [abs(lamp_yaws[k] - lamp_yaws[j]) for j in (k - 1, k + 1) if 0 <= j < len(lamp_yaws)]
-    headlights += paired_plank(*proud(za, beam_plan(za), zb, beam_plan(zb), out), yc - h / 2, yc + h / 2, "light",
-                        depth, max(joint_overlap(depth, turn) for turn in turns))
+    angle = lamp_yaws[k]
+    cosine = math.cos(angle)
+    sine = math.sin(angle)
+    overlap = 0.25
+    length = math.hypot(zb - za, beam_plan(zb) - beam_plan(za))
+    out = LAMP_PROUD
+    # Keep the station yaw while fitting its plane to the actual merged faces. The
+    # maximum clearance limits standoff; the depth buries the back across sheer-strake joints.
+    for _ in range(3):
+        clearances = []
+        for j in range(81):
+            along = -overlap + (length + 2 * overlap) * j / 80
+            z = za + along * cosine - out * sine
+            x = beam_plan(za) + along * sine + out * cosine
+            for fraction in (0.001, 0.25, 0.5, 0.75, 0.999):
+                y = yc + h * (fraction - 0.5)
+                clearances.append((x - hull_face(y, z)) * cosine)
+        out += max(LAMP_PROUD - max(clearances), LAMP_MIN_PROUD - min(clearances))
+    depth = 0.4
+    headlights += paired_plank(*proud(za, beam_plan(za), zb, beam_plan(zb), out),
+                               yc - h / 2, yc + h / 2, "light", depth, overlap)
 
 geo = {
     "format_version": "1.12.0",
