@@ -288,6 +288,48 @@ describe("sports boat Resource Pack (ADR 0051)", () => {
     expect(client.materials.glass).toBe("entity_alphablend");
   });
 
+  describe("windshield glass (ADR 0158)", () => {
+    type Cube = {
+      origin: [number, number, number];
+      size: [number, number, number];
+      rotation?: [number, number, number];
+    };
+    const cubes: Cube[] = geometry.bones.find(
+      (b: { name: string }) => b.name === "windshield",
+    ).cubes;
+    const tilt = (cube: Cube) => Math.abs(cube.rotation?.[0] ?? 0);
+    const thickness = (cube: Cube) => Math.min(cube.size[0], cube.size[2]);
+
+    it("is seven flat panes, each 0.5 px thick and tilted to its slope, so no stepped blocks remain", () => {
+      expect(cubes).toHaveLength(7);
+      for (const pane of cubes) {
+        expect(tilt(pane)).toBeGreaterThan(5);
+        expect(thickness(pane)).toBeCloseTo(0.5);
+      }
+    });
+
+    it("lays the two front halves and the walk-through door on the 55-degree rake", () => {
+      const front = cubes.filter((cube) => cube.size[2] === 0.5);
+      expect(front).toHaveLength(3);
+      for (const pane of front) {
+        expect(tilt(pane)).toBeCloseTo(55.3, 1);
+        expect(pane.size[1]).toBeCloseTo(7.9, 1);
+      }
+    });
+
+    it("gives each side one pane along the gunwale and one corner pane under the rake", () => {
+      const sides = cubes.filter((cube) => cube.size[0] === 0.5);
+      expect(sides).toHaveLength(4);
+      const gunwale = sides.filter((cube) => tilt(cube) < 10);
+      expect(gunwale.map((cube) => Math.sign(cube.origin[0])).sort()).toEqual([
+        -1, 1,
+      ]);
+      for (const pane of gunwale) expect(pane.size[2]).toBeGreaterThan(25);
+      const corner = sides.filter((cube) => tilt(cube) > 10);
+      for (const pane of corner) expect(tilt(pane)).toBeCloseTo(55.3, 1);
+    });
+  });
+
   it("names the bones root, body, headlights, and windshield (ADR 0009)", () => {
     expect(geometry.bones.map((b: { name: string }) => b.name)).toEqual([
       "root",
