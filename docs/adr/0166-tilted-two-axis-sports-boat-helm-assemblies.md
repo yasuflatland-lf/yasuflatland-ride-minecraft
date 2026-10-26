@@ -26,6 +26,14 @@ ADR 0009 allows one rotation axis per cube. That is enough for the display, whic
 - Resource Pack and Behavior Pack dependency manifests go to 0.1.157 for 3/7, because the MER images change.
 - Open question for the owner: on a Vibrant Visuals device the dash, consoles and display bezel should show soft sky and light reflections (manual test row B31). The verdict is recorded here once known.
 
+### Painted tile registry (1/7, #664)
+
+Use the insertion-ordered `TILES` dict in `tools/gen_sportsboat.py` for painted atlas rectangles. Each entry holds `uv`, `size`, and a `paint(pixels)` callable that draws into the atlas rows. Keep `quilt` at `[0, 16]`, size `[8, 8]`, and `mirror` at `[16, 16]`, size `[16, 8]`. Module-level validation rejects non-positive sizes, out-of-atlas rectangles, overlaps between tiles, and overlaps with the swatch row (y 0..3). The atlas remains 128 x 32.
+
+`tile_faces(name)` supplies one face's UV dict. `box(..., faces=None, tiles=None, **extra)` keeps `faces` as shorthand for quilted faces; explicit `tiles={face: name}` takes precedence. The atlas writer calls each registered painter, so later display, switch plate, wheel pad and controller tiles need no atlas-writer changes. The mirror gradient and MER glass bounds use the registry allocation. Tests read the registry and generated atlas to pin allocations and existing tile pixels.
+
+This refactor preserves every generated geometry, texture, MER and preview byte. Helm cubes remain 164 before and 164 after (1109 across the model). No rotation changes, new tiles, manifest bump or device check are needed; the existing negative x sign remains unchanged.
+
 ## Consequences
 
 - 5/7 can tilt the wheel by one call instead of hand-composing angles, and the exception stays limited to the wheel.
