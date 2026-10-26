@@ -1220,11 +1220,13 @@ body += pair(14.9, F + 3.0, -1.0, 15.4, F + 3.5, 4.8, "seat_dark")
 # In game a negative x rotation tips +y toward +z before the 180-degree turn, so the angle is -45;
 # render_preview.py draws it leaning the other way (ADR 0051).
 SCREEN_TILT = -45
-SCREEN_PIVOT = [5.5, F + 8, 13.5]
+DISPLAY_DX = 3.7  # Moved toward the switch plate, above the phone holder (ADR 0166).
+SCREEN_PIVOT = [5.5 + DISPLAY_DX, F + 8, 13.5]
 # A world-y lift of 0.3 / sqrt(2) keeps the rear bottom corner on the dash.
 # With the fixed pivot and -45 tilt, that is local y +0.15 and z -0.15.
-body.append(box(2.0, F + 8.15, 13.05, 9.0, F + 12.55, 13.65, "gloss", pivot=SCREEN_PIVOT, rotation=[SCREEN_TILT, 0, 0]))
-body.append(box(2.4, F + 8.55, 12.95, 8.6, F + 12.15, 13.05, "screen", tiles={"north": "display"},
+body.append(box(2.0 + DISPLAY_DX, F + 8.15, 13.05, 9.0 + DISPLAY_DX, F + 12.55, 13.65, "gloss", pivot=SCREEN_PIVOT, rotation=[SCREEN_TILT, 0, 0]))
+body.append(box(2.4 + DISPLAY_DX, F + 8.55, 12.95, 8.6 + DISPLAY_DX, F + 12.15, 13.05, "screen",
+                tiles={"north": "display"},
                 pivot=SCREEN_PIVOT, rotation=[SCREEN_TILT, 0, 0]))
 # Phone holder standing on the dash, and a switch panel outboard of it
 body.append(box(11.0, F + 8, 12.4, 12.4, F + 10.6, 12.9, "gloss"))

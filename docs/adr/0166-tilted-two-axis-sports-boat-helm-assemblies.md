@@ -111,6 +111,14 @@ Helm cube count: 162 before 4/7 and 162 after (the display stays two cubes). The
 
 Open question for the owner (manual test B34): from the driver's seat, is the display a glossy slanted panel leaning away by about 45 degrees with the painted gauges and icons, and does it clip neither the dash nor the windshield? **Verdict: unverified, awaiting the owner's device check.** Previews shade each face with one colour and cannot show the tile.
 
+### Display moved toward the switch plate (#681)
+
+The owner marked the display's place in an in-game screenshot: above and behind the phone holder, in front of the right half of the dash. `DISPLAY_DX = 3.7` shifts the frame, the face and `SCREEN_PIVOT` together toward the switch plate: the frame is now x 5.7..12.7, the face x 6.1..12.3 and the pivot `[9.2, F + 8, 13.5]`. That is about 53 percent of the display width, not the 60 percent first asked for, because the frame's right edge has to stay clear of the switch plate (x 12.8): the first try of +4.0 px put the frame at x 13.0 and its tilted corners into the plate. The tilt (-45), the plate sizes and the `display` tile with its UV are unchanged.
+
+Clearance: the display still stays clear of the phone holder and its screen, the control pad and knob, the cupholders, the tilted wheel, the throttle housing and the switch plate, so no neighbour moved and the display did not shrink. The top edge stays below `RAIL_Y` and 0.3 px or more from the glass. The clearance tests now name the new x range and check that both plates keep their centre at the shifted x. Helm cube count: 162 before and 162 after, the whole model stays at 1223 cubes. Generated geometry and previews change; the colour atlas and MER images stay as they are. Resource Pack header/module and Behavior Pack dependency versions advance from 0.1.162 to **0.1.163**.
+
+Open question for the owner (manual test B34): from the driver's seat, does the display sit above and behind the phone holder, right of the wheel? **Verdict: unverified, awaiting the owner's device check.**
+
 ## Consequences
 
 - 5/7 tilts the wheel by one helper call instead of hand-composing angles, and the exception stays limited to the wheel.
