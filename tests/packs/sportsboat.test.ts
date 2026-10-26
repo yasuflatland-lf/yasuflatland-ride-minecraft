@@ -439,8 +439,8 @@ describe("sports boat hull planking (ADR 0161)", () => {
       : [x * c + z * s, y, -x * s + z * c];
   };
   // How far out along x the line through (y, z) runs inside the cube, or 0 when it misses. The game
-  // Preview and bulldozer conventions negate x but preserve y (ADR 0051, 0161), so undoing
-  // the turn takes rx and -ry right-handed. Device confirmation is tracked in H2.
+  // negates x but preserves y (ADR 0051, 0161), so undoing the turn takes rx and -ry right-handed.
+  // Device confirmation is pending.
   const reach = (cube: Cube, y: number, z: number) => {
     const [rx = 0, ry = 0] = cube.rotation ?? [];
     const pivot = cube.pivot ?? [0, 0, 0];

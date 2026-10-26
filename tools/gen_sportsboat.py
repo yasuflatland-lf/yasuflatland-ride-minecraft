@@ -389,13 +389,13 @@ def plank(z0, x0, z1, x1, y0, y1, swatch, depth, overlap):
 def paired_plank(*args, setbacks=(0.0, 0.0)):
     z0, x0, z1, x1, *rest = args
     length = math.hypot(z1 - z0, x1 - x0)
-    dz, dx = (z1 - z0) / length, (x1 - x0) / length
+    uz, ux = (z1 - z0) / length, (x1 - x0) / length
     aft, fore = setbacks
-    cube = plank(z0 + aft * dz, x0 + aft * dx, z1 - fore * dz, x1 - fore * dx, *rest)
+    cube = plank(z0 + aft * uz, x0 + aft * ux, z1 - fore * uz, x1 - fore * ux, *rest)
     x, y, z = cube["origin"]
-    dx, dy, dz = cube["size"]
+    sx, sy, sz = cube["size"]
     extra = {key: cube[key] for key in ("pivot", "rotation") if key in cube}
-    return pair(x, y, z, x + dx, y + dy, z + dz, args[6], **extra)
+    return pair(x, y, z, x + sx, y + sy, z + sz, args[6], **extra)
 
 
 def proud(z0, x0, z1, x1, out):
