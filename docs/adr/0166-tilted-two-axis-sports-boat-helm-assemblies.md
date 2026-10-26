@@ -85,6 +85,20 @@ Counting the generated geometry confirms 1219 -> 1223 whole-model cubes for this
 
 Open question for the owner (manual test B33): on PC and mobile, does the controller beside the switch plate read as a glossy chamfered pad with a large round knob, four small buttons and a tiny upper-right button, without clipping? Compare the regenerated sportsboat previews for placement; their flat face shading does not show painted button detail. **Verdict: unverified, awaiting the owner's device check.**
 
+### Display tilted 45 degrees with a glossy bezel and a painted UI (4/7, #667)
+
+`SCREEN_TILT = -45` about x only (top toward +z, away from the driver, the negative sign of 0051), on the unchanged `SCREEN_PIVOT = [5.5, F + 8, 13.5]`. The two display boxes are replaced in place: a `gloss` frame, x 2.0..9.0, 4.4 px along the slope and 0.6 thick (was 1.0), and a `screen` face, x 2.4..8.6, 3.6 px along the slope and 0.1 thick, on the frame's driver-side (-z) surface. The frame is 0.4 px wider than the face on every edge, which reads as the raised bezel, so no rim plates are added. The face's driver-side face uses the new registry tile `display`; its other five faces use the `screen` swatch.
+
+The tile `display` is `[84, 4]`, size `[24, 12]`, right of `control_pad`, so the atlas stays 128 x 32. It paints a dark navy screen with two blue-arc gauges around soft blue glows, three vertical sliders with red markers, a row of six tab marks along the top (the middle one light blue), bar meters at the far left and right, a row of small icons along the bottom and a yellow and a red corner triangle. It has no text, digits or logos. Tile top is the top of the screen.
+
+Placement. The thick plate tilted 45 degrees would drop its rear bottom corner 0.21 px below the dash (y F + 8), so both cubes are lifted by 0.2121 px along world y (local y +0.15, z -0.15 on the fixed pivot). This is the only adjustment; the tilt is unchanged and the plate height is not reduced. The tilted frame stays inside the cockpit: its lowest corner is at F + 8 and its top edge is 1.26 px below the windshield top rail (`RAIL_Y`) and 0.53 px from the front glass plane, so the plate does not cut the glass.
+
+Clearance against 5/7 to 7/7. These parts were built against the old 20 degree display. Tests now check the transformed corners of the new frame and face against all 134 wheel cubes, the switch plate, the phone holder and its screen, the controller pad and knob, and the throttle housing. None of them clips, so none moved. The earlier "4/7 does not exist" notes in 5/7 to 7/7 above refer to the 20 degree display and are superseded by this section.
+
+Helm cube count: 162 before 4/7 and 162 after (the display stays two cubes). The whole model stays at 1223 cubes. Generated geometry, colour atlases and previews change; the MER images stay as they are. Resource Pack header/module and Behavior Pack dependency versions advance from 0.1.160 to **0.1.161**.
+
+Open question for the owner (manual test B34): from the driver's seat, is the display a glossy slanted panel leaning away by about 45 degrees with the painted gauges and icons, and does it clip neither the dash nor the windshield? **Verdict: unverified, awaiting the owner's device check.** Previews shade each face with one colour and cannot show the tile.
+
 ## Consequences
 
 - 5/7 tilts the wheel by one helper call instead of hand-composing angles, and the exception stays limited to the wheel.
