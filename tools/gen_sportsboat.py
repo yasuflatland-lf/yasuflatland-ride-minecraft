@@ -1289,20 +1289,38 @@ body.append(box(-9.0, y0, z0 + (-2.0 - z0) / main_cos,
                 9.0, y0 + 0.25, z0 + (5.0 - z0) / main_cos, "canvas_panel",
                 pivot=[0, y0, z0], rotation=[math.degrees(ROOF_ANGLES[1]), 0, 0]))
 
-# The main side skirt: one level sloping sheet per side over the main panel's span, flaring from the
-# roof's side edge outward and down. The panel falls under it, so the inner edge sits at the lower
-# end's surface minus 0.3 and stays hidden in the 2 px top at the higher end (ADR 0164).
+# Three chords soften the side fold while retaining the original reach and drop (ADR 0164).
 SKIRT_MAIN = (-3.0, 6.0)
 SKIRT_DROP = 2.6
 SKIRT_THICK = 0.8
 SKIRT_INNER = 16.0
 SKIRT_RUN = B_HALF - SKIRT_INNER
-SKIRT_ANGLE = math.atan2(SKIRT_DROP, SKIRT_RUN)
+SKIRT_ANGLES = [math.radians(a) for a in (15, 30, 45)]
+SHOULDER_RUN = 0.3
+MIDDLE_RUN = (SKIRT_RUN - SKIRT_DROP - SHOULDER_RUN * (1 - math.tan(SKIRT_ANGLES[0]))) / (1 - math.tan(SKIRT_ANGLES[1]))
+SKIRT_RUNS = [SHOULDER_RUN, MIDDLE_RUN, SKIRT_RUN - SHOULDER_RUN - MIDDLE_RUN]
+SKIRT_OVERLAPS = [max(0.25, SKIRT_THICK * math.tan(b - a) / 2 + 0.05)
+                  for a, b in zip(SKIRT_ANGLES, SKIRT_ANGLES[1:])]
 skirt_top = roof_top(SKIRT_MAIN[1]) - 0.3
-# A negative build-frame z turn lowers the outer (+x) end; pair() negates it for the left side.
-body += pair(SKIRT_INNER, skirt_top - SKIRT_THICK, SKIRT_MAIN[0],
-             SKIRT_INNER + math.hypot(SKIRT_RUN, SKIRT_DROP), skirt_top, SKIRT_MAIN[1], "canvas",
-             pivot=[SKIRT_INNER, skirt_top, sum(SKIRT_MAIN) / 2], rotation=[0, 0, -math.degrees(SKIRT_ANGLE)])
+x, y = SKIRT_INNER, skirt_top
+for i, (run, angle) in enumerate(zip(SKIRT_RUNS, SKIRT_ANGLES)):
+    inner_overlap = SKIRT_OVERLAPS[i - 1] if i else 0.0
+    outer_overlap = SKIRT_OVERLAPS[i] if i < len(SKIRT_OVERLAPS) else 0.0
+    # A negative build-frame z turn lowers +x; pair() mirrors the left turn.
+    body += pair(x - inner_overlap, y - SKIRT_THICK, SKIRT_MAIN[0],
+                 x + run / math.cos(angle) + outer_overlap, y, SKIRT_MAIN[1], "canvas",
+                 pivot=[x, y, sum(SKIRT_MAIN) / 2], rotation=[0, 0, -math.degrees(angle)])
+    x += run
+    y -= run * math.tan(angle)
+
+# A thin transverse cap follows the old chord underneath the rounded roll. Its upper face stays
+# buried in the three sheets, and its lower face intersects the steeper rear skirt: no projecting beam.
+CAP_HALF_DEPTH = 0.25
+body += pair(SKIRT_INNER, skirt_top - SKIRT_THICK, SKIRT_MAIN[0] - CAP_HALF_DEPTH,
+             SKIRT_INNER + math.hypot(SKIRT_RUN, SKIRT_DROP), skirt_top,
+             SKIRT_MAIN[0] + CAP_HALF_DEPTH, "canvas",
+             pivot=[SKIRT_INNER, skirt_top, SKIRT_MAIN[0]],
+             rotation=[0, 0, -math.degrees(math.atan2(SKIRT_DROP, SKIRT_RUN))])
 
 # The nearly level rear panel lets each corner remain one sheet, inset from the main skirt.
 SKIRT_REAR = (B_REAR, -3.0)
