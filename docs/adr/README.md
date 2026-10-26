@@ -165,6 +165,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0162](0162-smooth-the-sports-boat-bows-inner-outline.md) | Smooth the sports boat bow's inner outline | Proposed |
 | [0163](0163-a-glossy-clear-coat-sports-boat-hull.md) | A glossy clear-coat sports boat hull | Proposed |
 | [0164](0164-long-sports-boat-bimini-panels.md) | Long sports boat bimini panels | Proposed |
+| [0165](0165-cylindrical-sports-boat-tower-speakers.md) | Cylindrical sports boat tower speakers | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 

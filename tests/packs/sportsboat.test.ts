@@ -885,6 +885,37 @@ describe("sports boat hull planking (ADR 0161)", () => {
     });
   });
 
+  describe("tower speakers (ADR 0165)", () => {
+    // Shipped frame: the build frame is turned around, so the speakers sit at z 3.5..8.9
+    // (build z G - 0.3 .. G + 5.1 with G = -8.6) and |x| = 9.5.
+    const speakers = bone("body").filter(
+      (cube) =>
+        Math.abs(cube.origin[0] + cube.size[0] / 2) >= 8 &&
+        Math.abs(cube.origin[0] + cube.size[0] / 2) <= 11 &&
+        cube.origin[2] >= 3.5 &&
+        cube.origin[2] + cube.size[2] <= 8.9,
+    );
+    const isSpoke = (cube: Cube) => swatch(17)(cube) && cube.size[2] < 0.2;
+    const isMount = (cube: Cube) => swatch(3)(cube) && cube.size[0] === 1;
+
+    it("builds each speaker from 16 disc cubes, 12 spokes and a mount", () => {
+      const spokes = speakers.filter(isSpoke);
+      const mounts = speakers.filter(isMount);
+      expect(spokes).toHaveLength(24);
+      expect(mounts).toHaveLength(2);
+      expect(speakers.length - spokes.length - mounts.length).toBe(32);
+      expect(speakers).toHaveLength(58);
+    });
+
+    it("splits the round sections by swatch", () => {
+      const count = (index: number) => speakers.filter(swatch(index)).length;
+      expect(count(3)).toBe(6);
+      expect(count(17)).toBe(28);
+      expect(count(18)).toBe(4);
+      expect(count(20)).toBe(20);
+    });
+  });
+
   const reach = (cube: Cube, y: number, z: number) => {
     const hit = interval(cube, [0, y, z], [1, 0, 0]);
     return hit ? Math.max(...hit.map(Math.abs)) : 0;
