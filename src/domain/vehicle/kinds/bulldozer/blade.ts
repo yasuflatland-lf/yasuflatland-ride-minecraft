@@ -13,6 +13,7 @@ export function bladeColumns(
   yaw: number,
   rule: BladeRule,
   flying: boolean,
+  grounded = !flying,
 ): CutColumn[] {
   const f = forward(yaw);
   const r = rightOf(f);
@@ -35,9 +36,11 @@ export function bladeColumns(
   // Feet on a partial block (dirt path, farmland, mud, a bottom slab) stand inside
   // that block's row, so a ground cut starts one row up to keep the floor. A
   // hovering body at fractional height still needs the row it sits in (ADR 0136).
-  const bottom = flying
-    ? Math.floor(location.y + 0.01)
-    : Math.ceil(location.y - 0.01);
+  // A fixed-height cut resting on the ground, such as a submarine on the seabed,
+  // keeps the floor too (ADR 0155).
+  const bottom = grounded
+    ? Math.ceil(location.y - 0.01)
+    : Math.floor(location.y + 0.01);
   const height = flying
     ? Math.ceil(location.y + rule.bodyHeight) - bottom
     : undefined;

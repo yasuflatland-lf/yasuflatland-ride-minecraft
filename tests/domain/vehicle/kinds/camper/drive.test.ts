@@ -8,6 +8,7 @@ import {
   CAMPER_WATER,
 } from "../../../../../src/domain/vehicle/kinds/camper/spec";
 import { MOTION } from "../../../../../src/domain/vehicle/motion/constants";
+import { dockedCommand } from "../../../../../src/domain/vehicle/motion/dockEntity";
 import { type Body, engineStep } from "../../../../support/engineModel";
 
 function context(): TickContext {
@@ -279,6 +280,12 @@ it("resync resends all room properties with current values while driving or park
             value: current.get(name),
           });
         }
+        // A camper that never parked keeps the entity's default docked value (ADR 0156).
+        expect(
+          out.commands.filter(
+            (c) => c.type === "setProperty" && c.name === "docked",
+          ),
+        ).toStrictEqual(parked ? [dockedCommand(true)] : []);
         expect(
           out.commands.every(
             (c) => c.type === "setProperty" || c.type === "triggerEvent",

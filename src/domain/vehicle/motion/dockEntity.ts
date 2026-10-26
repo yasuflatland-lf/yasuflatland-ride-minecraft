@@ -13,9 +13,14 @@ const { property, event } = commandsFor<{
 
 // The event goes first, so a failed event leaves the restored docked value as it was (ADR 0063).
 export function dockCommands(): EngineCommand[] {
-  return [event("dock"), property("docked", true)];
+  return [event("dock"), dockedCommand(true)];
 }
 
 export function undockCommands(): EngineCommand[] {
-  return [event("undock"), property("docked", false)];
+  return [event("undock"), dockedCommand(false)];
+}
+
+/** The docked property alone, which a kind resends after a failed send (ADR 0156). */
+export function dockedCommand(docked: boolean): EngineCommand {
+  return property("docked", docked);
 }
