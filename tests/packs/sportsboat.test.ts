@@ -15,6 +15,7 @@ import {
   VEHICLE_FAMILY,
 } from "../../src/infrastructure/vehicle/bedrock/identifiers";
 import { readRgbaPng } from "../support/png";
+import { assertOneAxis, multipleAxes } from "./oneAxis";
 
 const read = (p: string) => JSON.parse(readFileSync(p, "utf8"));
 const RP = "packs/yasu_ride_rp";
@@ -1300,9 +1301,8 @@ describe("sports boat hull planking (ADR 0161)", () => {
           near(rotate(basis, cube.rotation ?? []), expected, 0.00001);
         }
       });
-      const multipleAxes = (cube: Cube) =>
-        (cube.rotation ?? []).filter((v) => Math.abs(v) > 1e-6).length > 1;
-      expect(cubes.filter(multipleAxes)).toEqual(wheel.filter(multipleAxes));
+      const assemblies = { wheel };
+      expect(() => assertOneAxis(cubes, assemblies)).not.toThrow();
       expect(wheel.filter(multipleAxes)).toHaveLength(140);
       const centroid = (points: number[][]) =>
         [0, 1, 2].map(

@@ -8,7 +8,6 @@ Run: python3 -I tools/gen_sportsboat.py packs/yasu_ride_rp [--check]
 --check writes nothing and exits 1 listing every stale output.
 """
 import functools
-import importlib.util
 import json
 import math
 import struct
@@ -19,6 +18,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
+# Isolated mode (-I) omits the script directory from the import path.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from tool_loader import load_tool
+
+assert_axes = load_tool("cube_tilt").assert_axes
+ASSEMBLIES = {"wheel": {"owner": "sportsboat", "cubes": 146}}
+
 CHECK = "--check" in sys.argv[2:]
 STALE = []
 
@@ -26,10 +32,7 @@ STALE = []
 @functools.cache
 def png_reader():
     """render_preview.py's decoder, so --check compares pixels however zlib packed the bytes."""
-    spec = importlib.util.spec_from_file_location("render_preview", Path(__file__).with_name("render_preview.py"))
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module.read_png
+    return load_tool("render_preview").read_png
 
 
 def emit(path, data, pixels=None):
@@ -156,10 +159,7 @@ QUILT = [
 
 
 def tile_layout_module():
-    spec = importlib.util.spec_from_file_location("tile_layout", Path(__file__).with_name("tile_layout.py"))
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+    return load_tool("tile_layout")
 
 
 def paint_quilt(pixels):
@@ -296,18 +296,7 @@ SPEAKER_SIDES = 12
 SPEAKER_WALL = 0.5
 
 
-@functools.cache
-def cube_tilt():
-    spec = importlib.util.spec_from_file_location("cube_tilt", Path(__file__).with_name("cube_tilt.py"))
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-# Assemblies that may carry a cube turned about two axes, and the helper that tilts a whole assembly
-# (ADR 0166). Everything else keeps one rotation axis per cube (ADR 0009).
-ONE_AXIS_EXCEPTION = cube_tilt().ONE_AXIS_EXCEPTION
-tilt_assembly = cube_tilt().tilt_assembly
+tilt_assembly = load_tool("cube_tilt").tilt_assembly
 
 
 def disc(cx, cy, r, z0, z1, color):
@@ -1273,8 +1262,9 @@ wheel.append(box(lx - 0.15, ly - 0.15, WZ + 0.05, lx + 0.15, ly + 0.15, WZ + 0.1
 # Keep the composed y turn through turn_around's legacy z-turn convention (ADR 0058).
 # It already reverses x; the wheel's composed y must reverse too to keep one rigid plane.
 wheel_start = len(body)
-body += tilt_assembly(wheel, pivot=[WX, WY, WZ + 0.4], axis="x",
-                      degrees=WHEEL_TILT, assembly="wheel")
+wheel = tilt_assembly(wheel, pivot=[WX, WY, WZ + 0.4], axis="x",
+                      degrees=WHEEL_TILT, assembly="wheel", assemblies=ASSEMBLIES)
+body += wheel
 for cube in body[wheel_start:]:
     cube["rotation"][1] *= -1
 # In the wheel's local frame the cowl and column start at the pad's rear face, so their
@@ -1756,6 +1746,8 @@ def rounded(value):
 
 
 turn_around(geo["minecraft:geometry"][0]["bones"])
+assert_axes([cube for bone in geo["minecraft:geometry"][0]["bones"]
+             for cube in bone.get("cubes", [])], {"wheel": wheel}, ASSEMBLIES)
 emit(MODELS / "sportsboat.geo.json", json.dumps(rounded(geo), separators=(",", ":")))
 
 

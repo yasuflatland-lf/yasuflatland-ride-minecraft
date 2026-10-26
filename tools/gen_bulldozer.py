@@ -19,6 +19,18 @@ import sys
 import zlib
 from pathlib import Path
 
+# Isolated mode (-I) omits the script directory from the import path.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from tool_loader import load_tool
+
+cube_tilt = load_tool("cube_tilt")
+assert_axes, compound_cubes = cube_tilt.assert_axes, cube_tilt.compound_cubes
+ASSEMBLIES = {
+    "blade_arms": {"owner": "bulldozer", "cubes": 7},
+    "yawed_pair": {"owner": "bulldozer", "cubes": 2},
+    "propeller": {"owner": "bulldozer", "cubes": 4},
+}
+
 CHECK = "--check" in sys.argv[2:]
 STALE = []
 
@@ -1410,6 +1422,13 @@ geo = {
         "bones": bones,
     }],
 }
+model_cubes = [cube for bone in geo["minecraft:geometry"][0]["bones"] for cube in bone.get("cubes", [])]
+compound = compound_cubes(model_cubes)
+assert_axes(model_cubes, {
+    "blade_arms": [c for c in compound if c["rotation"][0] == 30],
+    "yawed_pair": [c for c in compound if c["rotation"][0] == -15],
+    "propeller": [c for c in compound if c["rotation"][1] == -18],
+}, ASSEMBLIES)
 emit(MODELS / "bulldozer.geo.json", json.dumps(rounded(geo), separators=(",", ":")))
 
 
@@ -1679,6 +1698,7 @@ monitor_geo = {
         "bones": mirror_x(monitor_bones),
     }],
 }
+assert_axes([cube for bone in monitor_geo["minecraft:geometry"][0]["bones"] for cube in bone.get("cubes", [])], {})
 emit(MODELS / "bulldozer_monitor.geo.json", json.dumps(rounded(monitor_geo), separators=(",", ":")))
 png(ENTITY_TEXTURES / "bulldozer_monitor.png", MONITOR_CELL[0], MONITOR_CELL[1] * len(screens),
     lambda x, y: cells[y // MONITOR_CELL[1]][y % MONITOR_CELL[1]][x])

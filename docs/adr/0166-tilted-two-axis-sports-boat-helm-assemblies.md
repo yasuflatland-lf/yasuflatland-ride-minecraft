@@ -3,6 +3,7 @@
 - Status: Proposed
 - Date: 2026-10-26
 - Extends: [0009](0009-vehicle-model-conventions.md) (one rotation axis per cube), [0051](0051-sports-boat.md) (x rotation sign)
+- Superseded in part by: [0167](0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md) (replaces the historical `ONE_AXIS_EXCEPTION` and one-assembly limit with per-generator registries)
 
 ## Context
 

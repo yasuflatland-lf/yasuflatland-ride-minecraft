@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { DOOR_BY_SEAT } from "../../src/domain/vehicle/kinds/suv/entity";
 import { SUV_PROFILE } from "../../src/domain/vehicle/kinds/suv/profile";
+import { assertOneAxis, multipleAxes } from "./oneAxis";
 
 type Vec3 = [number, number, number];
 
@@ -48,6 +49,13 @@ function pivot(name: string): Vec3 {
 }
 
 describe("SUV model (ADR 0009)", () => {
+  it("allows compound rotations only in declared assemblies (ADR 0167)", () => {
+    const cubes = [...bones.values()].flatMap((bone) => bone.cubes ?? []);
+    const assemblies = { arc: cubes.filter(multipleAxes) };
+    expect(assemblies.arc).toHaveLength(16);
+    expect(() => assertOneAxis(cubes, assemblies)).not.toThrow();
+  });
+
   it("has the geometry identifier", () => {
     expect(geometry.description.identifier).toBe("geometry.yasu_ride.suv");
   });

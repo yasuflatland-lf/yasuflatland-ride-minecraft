@@ -167,6 +167,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0164](0164-long-sports-boat-bimini-panels.md) | Long sports boat bimini panels | Proposed |
 | [0165](0165-cylindrical-sports-boat-tower-speakers.md) | Cylindrical sports boat tower speakers | Proposed |
 | [0166](0166-tilted-two-axis-sports-boat-helm-assemblies.md) | Tilted two-axis assemblies on the sports boat helm | Proposed |
+| [0167](0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md) | Compound-rotation assemblies as a vehicle-neutral rule | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 
