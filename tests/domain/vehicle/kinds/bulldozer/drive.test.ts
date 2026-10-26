@@ -421,7 +421,7 @@ it("maps forms to the cut reach", () => {
         f === "car" ? (ground ? "sky" : undefined) : "tunnel",
       );
 });
-it("tunnels through rock under water (ADR 0155)", () => {
+it("tunnels through rock under water without a shaft in open water (ADR 0155)", () => {
   const d = new BulldozerDrive(0, { form: "submarine", blade: 0 });
   let b: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
   let last: DriveStep | undefined;
@@ -431,6 +431,7 @@ it("tunnels through rock under water (ADR 0155)", () => {
       tick,
       location: { ...b.pos, y: 40 },
       onGround: false,
+      solidAt: () => false,
       velocity: { ...b.vel, y: 0 },
     };
     last = d.step(FORWARD, ctx);
@@ -439,6 +440,65 @@ it("tunnels through rock under water (ADR 0155)", () => {
   expect(last?.cut).toEqual(
     bladeColumns({ ...b.pos, y: 40 }, d.yaw, S.blade, true),
   );
+});
+it("digs the wide shaft over a blocked body while rising, and only then (ADR 0155)", () => {
+  const half = S.footprint / 2 + S.shaft.margin;
+  const cell = Math.floor(40 + S.carHeight);
+  fc.assert(
+    fc.property(
+      fc.constantFrom("takeoff", "hover", "submarine"),
+      fc.boolean(),
+      fc.boolean(),
+      (form, rising, blocked) => {
+        const d = new BulldozerDrive(0, { form, blade: 0 });
+        const ctx = {
+          ...context(form === "submarine" ? 3 : 0),
+          onGround: false,
+          location: { x: 10.5, y: 40, z: -3.5 },
+          solidAt: (o: { x: number; y: number; z: number }) =>
+            blocked && Math.floor(40 + o.y) === cell,
+        };
+        d.step({ ...IDLE, jump: rising }, ctx);
+        const out = d.step({ ...IDLE, jump: rising }, { ...ctx, tick: 1 });
+        const digs = form === "takeoff" || rising;
+        if (!(digs && blocked)) {
+          expect(out.cut ?? []).toEqual([]);
+          return;
+        }
+        const cut = out.cut ?? [];
+        expect(cut.length).toBeGreaterThan(0);
+        const xs = cut.map((c) => c.x);
+        const zs = cut.map((c) => c.z);
+        expect(Math.min(...xs)).toBe(Math.floor(10.5 - half));
+        expect(Math.max(...xs)).toBe(Math.ceil(10.5 + half) - 1);
+        expect(Math.min(...zs)).toBe(Math.floor(-3.5 - half));
+        expect(Math.max(...zs)).toBe(Math.ceil(-3.5 + half) - 1);
+        for (const c of cut) {
+          expect(c.bottom).toBe(cell);
+          expect(c.height).toBe(S.shaft.reach);
+        }
+      },
+    ),
+  );
+});
+it("digs no shaft with the blade raised, with no driver, or when the roof is out of reach (ADR 0155)", () => {
+  const ctx = {
+    ...context(3),
+    onGround: false,
+    location: { x: 0.5, y: 40, z: 0.5 },
+    solidAt: (o: { x: number; y: number; z: number }) => o.y >= 4,
+  };
+  const up = { ...IDLE, jump: true };
+  const raised = new BulldozerDrive(0, { form: "submarine", blade: 1 });
+  const idle = new BulldozerDrive(0, { form: "submarine", blade: 0 });
+  const far = new BulldozerDrive(0, { form: "submarine", blade: 0 });
+  for (let tick = 0; tick < 12; tick++) {
+    expect(raised.step(up, { ...ctx, tick }).cut ?? []).toEqual([]);
+    expect(idle.step(undefined, { ...ctx, tick }).cut ?? []).toEqual([]);
+    expect(
+      far.step(up, { ...ctx, tick, solidAt: (o) => o.y >= 5.5 }).cut ?? [],
+    ).toEqual([]);
+  }
 });
 it("runs the tracks opposite ways on a pivot", () => {
   const d = new BulldozerDrive(0, {});

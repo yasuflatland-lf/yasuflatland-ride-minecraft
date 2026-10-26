@@ -2,6 +2,12 @@ import { forward, localPoint, rightOf, type Vec3 } from "../../../shared/vec";
 import type { CutColumn } from "../../cut";
 import type { BladeRule } from "./spec";
 
+export interface ShaftBox {
+  readonly halfExtent: number;
+  readonly bodyHeight: number;
+  readonly reach: number;
+}
+
 export function bladeColumns(
   location: Vec3,
   yaw: number,
@@ -59,5 +65,30 @@ export function bladeColumns(
         ...(height === undefined ? {} : { height }),
       });
     }
+  return columns;
+}
+
+/**
+ * The columns of the square, axis-aligned box that reaches `halfExtent` blocks
+ * from `location` on x and z, over the `reach` cells starting at the cell that
+ * holds the body's top (ADR 0155). The box follows the compass, not the yaw.
+ */
+export function shaftColumns(
+  location: Vec3,
+  { halfExtent, bodyHeight, reach }: ShaftBox,
+): CutColumn[] {
+  const bottom = Math.floor(location.y + bodyHeight);
+  const columns: CutColumn[] = [];
+  for (
+    let x = Math.floor(location.x - halfExtent);
+    x < location.x + halfExtent;
+    x++
+  )
+    for (
+      let z = Math.floor(location.z - halfExtent);
+      z < location.z + halfExtent;
+      z++
+    )
+      columns.push({ x, z, bottom, height: reach });
   return columns;
 }

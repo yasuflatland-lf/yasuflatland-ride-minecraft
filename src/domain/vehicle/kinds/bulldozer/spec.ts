@@ -8,6 +8,12 @@ export interface BladeRule {
   readonly bodyHeight: number;
   readonly minSpeed: number;
 }
+interface ShaftRule {
+  /** Blocks the shaft reaches past the footprint on each of north, east, south, and west. */
+  readonly margin: number;
+  /** Cells cut above the body's top, and probed for an obstacle, each tick. */
+  readonly reach: number;
+}
 export interface TrackGeometry {
   readonly halfGauge: number;
   readonly phaseStep: number;
@@ -75,6 +81,8 @@ export const BULLDOZER_SPEC = Object.freeze({
     bodyHeight: 2.9,
     minSpeed: 0.02,
   }),
+  // Digs up through an overhead obstacle while rising: the footprint plus two blocks on each side, so the body never wedges in a one-block hole (ADR 0155).
+  shaft: Object.freeze({ margin: 2, reach: 2 }),
   tracks: Object.freeze({
     halfGauge: 14.3 / 16,
     phaseStep: 1.5 / 16 / 3,
