@@ -177,6 +177,10 @@ def pair(x0, y0, z0, x1, y1, z1, color, **extra):
     return [box(x0, y0, z0, x1, y1, z1, color, **extra), box(-x1, y0, z0, -x0, y1, z1, color, **left)]
 
 
+SPEAKER_SIDES = 12
+SPEAKER_WALL = 0.5
+
+
 @functools.cache
 def cube_tilt():
     spec = importlib.util.spec_from_file_location("cube_tilt", Path(__file__).with_name("cube_tilt.py"))
@@ -189,10 +193,6 @@ def cube_tilt():
 # (ADR 0166). Everything else keeps one rotation axis per cube (ADR 0009).
 ONE_AXIS_EXCEPTION = cube_tilt().ONE_AXIS_EXCEPTION
 tilt_assembly = cube_tilt().tilt_assembly
-
-
-SPEAKER_SIDES = 12
-SPEAKER_WALL = 0.5
 
 
 def disc(cx, cy, r, z0, z1, color):
