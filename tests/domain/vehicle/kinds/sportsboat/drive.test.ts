@@ -50,6 +50,7 @@ import { MOTION } from "../../../../../src/domain/vehicle/motion/constants";
 import { DOCK } from "../../../../../src/domain/vehicle/motion/dock";
 import {
   dockCommands,
+  dockedCommand,
   undockCommands,
 } from "../../../../../src/domain/vehicle/motion/dockEntity";
 import { FORMS } from "../../../../../src/domain/vehicle/motion/forms";
@@ -1753,4 +1754,26 @@ it("resync resends unchanged trim and roll after any input sequence", () => {
       },
     ),
   );
+});
+
+it("resends the docked property once after a failed send while held or after departing, and never before the first hold", () => {
+  const drive = new SportsboatDrive(0, {});
+  let tick = 0;
+  const still = () =>
+    drive.step(undefined, context(tick++, undefined, { x: 0, z: 0 }, AFLOAT));
+  drive.resync();
+  expect(still().commands).toStrictEqual(LEVEL);
+  for (let i = 2; i < DOCK.ticks; i++) still();
+  expect(still().commands).toStrictEqual(dockCommands());
+  // The application calls resync when the run carrying the dock commands fails (ADR 0127).
+  drive.resync();
+  expect(still().commands).toStrictEqual([dockedCommand(true)]);
+  expect(still().commands).toStrictEqual([]);
+  const departing = drive.step(
+    FULL_THROTTLE,
+    context(tick++, FULL_THROTTLE, { x: 0, z: 0 }, AFLOAT),
+  );
+  expect(departing.commands.slice(0, 2)).toStrictEqual(undockCommands());
+  drive.resync();
+  expect(still().commands).toContainEqual(dockedCommand(false));
 });
