@@ -27,6 +27,8 @@ import {
   bulldozerPivot,
   bulldozerRaisedNoCut,
   bulldozerRamCow,
+  bulldozerRiseShaft,
+  bulldozerSeaCut,
   bulldozerSpawnsRaised,
   bulldozerStep2Raised,
 } from "./scenarios/bulldozer";
@@ -134,6 +136,8 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
     ["bulldozer_ram_cow", 62, () => bulldozerRamCow(a)],
     ["bulldozer_hop_and_takeoff", 47, () => bulldozerHopAndTakeoff(a)],
     ["bulldozer_dive", 18, () => bulldozerDive(a)],
+    ["bulldozer_sea_cut", 104, () => bulldozerSeaCut(a)],
+    ["bulldozer_rise_shaft", 53, () => bulldozerRiseShaft(a)],
     ["bulldozer_fall_survives", 60, () => bulldozerFallSurvives(a)],
     ["bulldozer_step2_raised", 67, () => bulldozerStep2Raised(a)],
     ["bulldozer_raised_no_cut", 77, () => bulldozerRaisedNoCut(a)],
