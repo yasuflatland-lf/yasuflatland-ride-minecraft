@@ -1213,16 +1213,178 @@ describe("sports boat hull planking (ADR 0161)", () => {
     ).toBe(5);
   });
 
-  it("keeps one rotation axis on every cube until the wheel tilt uses the exception (ADR 0166)", () => {
-    const twoAxis = geometry.bones
-      .flatMap(
-        (bone: { cubes?: { rotation?: number[] }[] }) => bone.cubes ?? [],
-      )
-      .filter(
-        (cube: { rotation?: number[] }) =>
-          (cube.rotation ?? []).filter((angle) => angle !== 0).length > 1,
+  describe("steering wheel tilt (ADR 0166, #668)", () => {
+    const F = 9.3;
+    const pivot = [-7.6, F + 7.5, -7.4];
+    const body = bone("body");
+    // The console anchors the existing 164-cube helm block, independent of hull cube counts.
+    const start = body.findIndex(
+      (cube) =>
+        cube.origin[0] === -15.4 &&
+        cube.origin[1] === F &&
+        cube.origin[2] === -16 &&
+        cube.size[1] === 7,
+    );
+    const helm = body.slice(start, start + 164);
+    const wheel = helm.slice(23, 157);
+    const supports = helm.slice(157, 160);
+    const angles = [
+      ...Array.from({ length: 120 }, (_, i) => (i % 40) * 9 + 90),
+      20,
+      20,
+      20,
+      20,
+      160,
+      160,
+      160,
+      160,
+      270,
+      0,
+      45,
+      0,
+      45,
+      0,
+    ];
+    const rotate = (v: number[], rotation: number[], inverse = false) => {
+      let [x = 0, y = 0, z = 0] = v;
+      const axes = inverse ? [2, 1, 0] : [0, 1, 2];
+      for (const axis of axes) {
+        const degrees =
+          (rotation[axis] ?? 0) * (axis === 1 ? 1 : -1) * (inverse ? -1 : 1);
+        const sin = Math.sin((degrees * Math.PI) / 180);
+        const cos = Math.cos((degrees * Math.PI) / 180);
+        if (axis === 0) [y, z] = [y * cos - z * sin, y * sin + z * cos];
+        else if (axis === 1) [x, z] = [x * cos + z * sin, -x * sin + z * cos];
+        else [x, y] = [x * cos - y * sin, x * sin + y * cos];
+      }
+      return [x, y, z];
+    };
+    const corners = (cube: Cube) => {
+      const pivot = cube.pivot ?? [0, 0, 0];
+      return Array.from({ length: 8 }, (_, bits) => {
+        const offset = cube.origin.map(
+          (v, i) =>
+            v + ((bits >> i) & 1) * (cube.size[i] ?? 0) - (pivot[i] ?? 0),
+        );
+        return rotate(offset, cube.rotation ?? []).map(
+          (v, i) => v + (pivot[i] ?? 0),
+        );
+      });
+    };
+    const near = (actual: number[], expected: number[], tolerance = 0.0002) => {
+      actual.forEach((v, i) => {
+        expect(Math.abs(v - (expected[i] ?? 0))).toBeLessThan(tolerance);
+      });
+    };
+    const unTilt = (point: number[]) =>
+      rotate(
+        point.map((v, i) => v - (pivot[i] ?? 0)),
+        [30, 0, 0],
+        true,
       );
-    expect(twoAxis).toHaveLength(0);
+
+    it("composes every wheel cube rigidly and limits the rotation exception to exactly those cubes", () => {
+      expect(start).toBeGreaterThanOrEqual(0);
+      expect(wheel).toHaveLength(134);
+      expect(supports).toHaveLength(3);
+      wheel.forEach((cube, i) => {
+        for (const basis of [
+          [1, 0, 0],
+          [0, 1, 0],
+          [0, 0, 1],
+        ]) {
+          // turn_around flips x and z; the shipped assembly tilts by +30 in game angles.
+          const expected = rotate(
+            rotate(basis, [0, 0, angles[i] ?? 0]),
+            [30, 0, 0],
+          );
+          near(rotate(basis, cube.rotation ?? []), expected, 0.00001);
+        }
+      });
+      const multipleAxes = (cube: Cube) =>
+        (cube.rotation ?? []).filter((v) => Math.abs(v) > 1e-6).length > 1;
+      expect(cubes.filter(multipleAxes)).toEqual(wheel.filter(multipleAxes));
+      expect(wheel.filter(multipleAxes)).toHaveLength(128);
+      const centroid = (points: number[][]) =>
+        [0, 1, 2].map(
+          (i) =>
+            points.reduce((sum, p) => sum + (p[i] ?? 0), 0) / points.length,
+        );
+      near(centroid(wheel.slice(0, 120).flatMap(corners)), pivot, 0.01);
+      // The LED and spoke details make the complete assembly slightly asymmetric before tilt.
+      const before = [
+        -7.603358208955224, 16.796542058640497, -7.378171641791045,
+      ];
+      const expected = rotate(
+        before.map((v, i) => v - (pivot[i] ?? 0)),
+        [30, 0, 0],
+      ).map((v, i) => v + (pivot[i] ?? 0));
+      near(centroid(wheel.flatMap(corners)), expected, 0.01);
+    });
+
+    it("keeps every rim segment in a plane tilted 30 degrees away from the driver", () => {
+      for (const cube of wheel.slice(0, 120)) {
+        const normal = rotate([0, 0, -1], cube.rotation ?? []);
+        const angle = (Math.acos(-(normal[2] ?? 0)) * 180) / Math.PI;
+        expect(Math.abs(angle - 30)).toBeLessThanOrEqual(0.1);
+        near(normal, [0, -0.5, -Math.sqrt(3) / 2]);
+      }
+    });
+
+    it("clears the cockpit floor, consoles and current display without moving WZ", () => {
+      const obstacles = [...helm.slice(0, 4), ...helm.slice(8, 10)];
+      expect(obstacles.slice(4).map((cube) => cube.rotation)).toEqual([
+        [20, 0, 0],
+        [20, 0, 0],
+      ]);
+      for (const point of wheel.flatMap(corners)) {
+        expect(point[1]).toBeGreaterThanOrEqual(F + 4.5);
+        for (const cube of obstacles) {
+          const p = cube.pivot ?? [0, 0, 0];
+          const local = rotate(
+            point.map((v, i) => v - (p[i] ?? 0)),
+            cube.rotation ?? [],
+            true,
+          ).map((v, i) => v + (p[i] ?? 0));
+          expect(
+            local.every(
+              (v, i) =>
+                v > (cube.origin[i] ?? 0) &&
+                v < (cube.origin[i] ?? 0) + (cube.size[i] ?? 0),
+            ),
+          ).toBe(false);
+        }
+      }
+      const rimPivots = wheel.slice(0, 40).map((cube) => cube.pivot ?? []);
+      near(
+        [0, 1, 2].map(
+          (i) => rimPivots.reduce((sum, p) => sum + (p[i] ?? 0), 0) / 40,
+        ),
+        pivot,
+        0.0001,
+      );
+    });
+
+    it("joins the column top to the pad rear face without protruding through it", () => {
+      const pad = wheel[129];
+      const column = supports[2];
+      expect(pad).toBeDefined();
+      expect(column).toBeDefined();
+      if (!pad || !column) return;
+      const padRear = Math.min(...corners(pad).map((p) => unTilt(p)[2] ?? 0));
+      const top = corners(column)
+        .map(unTilt)
+        .filter((p) => Math.abs((p[1] ?? 0) + 0.9) < 0.001);
+      expect(top).toHaveLength(4);
+      const contact = top.filter((p) => Math.abs((p[2] ?? 0) - padRear) <= 0.1);
+      expect(contact).toHaveLength(2);
+      for (const p of contact) expect(Math.abs(p[0] ?? 0)).toBeLessThan(1.3);
+      for (const cube of supports) {
+        expect((cube.rotation ?? []).filter((v) => v !== 0)).toHaveLength(1);
+        for (const point of corners(cube))
+          expect(unTilt(point)[2]).toBeLessThanOrEqual(padRear + 0.0002);
+      }
+    });
   });
 
   describe("bow inner outline (ADR 0162)", () => {
