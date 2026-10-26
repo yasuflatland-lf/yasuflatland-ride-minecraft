@@ -151,6 +151,7 @@ export class FakeWorld
   failRunOn: { id: string; name: string } | undefined;
   failCameraOn: string | undefined;
   failBreathingOn: string | undefined;
+  failFireProtectionOn: string | undefined;
   failRemoveOn: string | undefined;
   failReleaseOn: string | undefined;
   /**
@@ -302,6 +303,7 @@ export class FakeWorld
     this.calls.push(`breathing:${id}:${ticks}`);
   }
   protectFromFire(id: string) {
+    if (id === this.failFireProtectionOn) throw new Error("fire");
     this.calls.push(`fire:${id}`);
   }
   damage(hit: RamHit, attackerId: string | undefined) {
