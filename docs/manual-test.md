@@ -80,6 +80,7 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | B23 | Drive across a Nether lava sea with a driver and passengers in all four seats; stop until the boat docks, then drive away | The boat stays afloat, steers, docks, and sets off again; its hull and seated players take no heat damage and show no flames (ADR 0150) | | |
 | B24 | While docked on lava, have a passenger sit in a deck seat for 10 seconds, then get out onto the deck | The seated passenger takes no heat damage and shows no flames. After leaving the seat, protection ends within a few ticks; the deck does not protect a standing player from lava (ADR 0150) | | |
 | B25 | Inspect the bimini from the side and above after a Resource Pack restart, on PC and mobile | The roof reads as a gently domed soft top with a rolled front lip and one darker hatch, with no stair steps (ADR 0164); side rolled edges remain slice-built in this first step | | |
+| B26 | Look at the bimini's main panel from the rear-left above after a Resource Pack restart, on PC and mobile | The panel's side drops away outward as one smooth sloping sheet with no steps along z, and the same on the right (ADR 0164) | | |
 
 ## Sports boat hull (planking and gloss)
 

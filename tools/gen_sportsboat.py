@@ -1290,6 +1290,20 @@ body.append(box(-9.0, y0, z0 + (-2.0 - z0) / main_cos,
                 9.0, y0 + 0.25, z0 + (5.0 - z0) / main_cos, "canvas_panel",
                 pivot=[0, y0, z0], rotation=[math.degrees(ROOF_ANGLES[1]), 0, 0]))
 
+# The main side skirt: one level sloping sheet per side over the main panel's span, flaring from the
+# roof's side edge outward and down. The panel falls under it, so the inner edge sits at the lower
+# end's surface minus 0.3 and stays hidden in the 2 px top at the higher end (ADR 0164).
+SKIRT_MAIN = (-3.0, 6.0)
+SKIRT_DROP = 2.6
+SKIRT_THICK = 0.8
+SKIRT_INNER = 16.0
+SKIRT_RUN = B_HALF - SKIRT_INNER
+SKIRT_ANGLE = math.atan2(SKIRT_DROP, SKIRT_RUN)
+skirt_top = roof_top(SKIRT_MAIN[1]) - 0.3
+# A negative build-frame z turn lowers the outer (+x) end; pair() negates it for the left side.
+body += pair(SKIRT_INNER, skirt_top - SKIRT_THICK, SKIRT_MAIN[0],
+             SKIRT_INNER + math.hypot(SKIRT_RUN, SKIRT_DROP), skirt_top, SKIRT_MAIN[1], "canvas",
+             pivot=[SKIRT_INNER, skirt_top, sum(SKIRT_MAIN) / 2], rotation=[0, 0, -math.degrees(SKIRT_ANGLE)])
 
 z = B_REAR
 while z < B_FRONT:
@@ -1299,6 +1313,9 @@ while z < B_FRONT:
     corner = 2.0 if min(front, rear) < 1.5 else 0.8 if min(front, rear) < 3.5 else 0.0
     hw = B_HALF - corner
     top = roof_top(zc)
+    if SKIRT_MAIN[0] <= z and z + SLICE <= SKIRT_MAIN[1]:
+        z += SLICE
+        continue
     body += pair(hw - 3, top - B_THICK - 0.8, z, hw - 1, top - 0.3, z + SLICE, "canvas")
     body += pair(hw - 1, top - B_THICK - 1.6, z, hw, top - 1.0, z + SLICE, "canvas")
     z += SLICE
