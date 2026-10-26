@@ -96,12 +96,8 @@ export function cutReach(
   form: Form,
   onGround: boolean,
 ): "sky" | "tunnel" | undefined {
-  switch (form) {
-    case "car":
-      return onGround ? "sky" : undefined;
-    default:
-      return "tunnel";
-  }
+  if (form !== "car") return "tunnel";
+  return onGround ? "sky" : undefined;
 }
 
 export class BulldozerDrive extends TransformingDrive {
