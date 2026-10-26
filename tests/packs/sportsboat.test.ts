@@ -1373,8 +1373,8 @@ describe("sports boat hull planking (ADR 0161)", () => {
       };
       const top = helm[1] as Cube;
       const connected = helm.slice(0, 4);
-      // Only the two tilted assemblies may anchor up to 1 px beyond the top step.
-      for (const part of [helm[8], helm[19]]) {
+      // The display may anchor up to 1 px beyond the bow edge of the top step.
+      for (const part of [helm[8]]) {
         expect(part).toBeDefined();
         if (!part) continue;
         const low = corners(part).filter(
@@ -1613,7 +1613,7 @@ describe("sports boat hull planking (ADR 0161)", () => {
     });
   });
 
-  describe("switch wedge (ADR 0166, #691)", () => {
+  describe("switch wedge (ADR 0166, #691, #696)", () => {
     const F = 9.3;
     const body = bone("body");
     const tile: {
@@ -1646,7 +1646,7 @@ print(json.dumps({"uv": list(uv), "size": list(size), "others": [
         (cube.uv.up?.uv[1] ?? 0) >= tile.uv[1] &&
         (cube.uv.up?.uv[1] ?? 0) <= tile.uv[1] + tile.size[1],
     );
-    // The game frame is turned around, so x and z are negated and the tilt reads +45.
+    // Final game-frame coordinates: driver at +z; Bedrock negates x angles.
     const corners = (cube: Cube) => {
       const pivot = cube.pivot ?? [0, 0, 0];
       return Array.from({ length: 8 }, (_, bits) => {
@@ -1679,9 +1679,10 @@ print(json.dumps({"uv": list(uv), "size": list(size), "others": [
       expect(plates).toHaveLength(10);
       const ordered = [...plates].sort((a, b) => a.origin[2] - b.origin[2]);
       for (const [i, plate] of ordered.entries()) {
-        expect(plate.rotation).toEqual([45, 0, 0]);
-        expect(plate.pivot).toEqual([-13.9, F + 8, -13]);
+        expect(plate.rotation).toEqual([-45, 0, 0]);
+        expect(plate.pivot).toEqual([-13.9, F + 8, -10.3]);
         expect(plate.origin[1]).toBeCloseTo(F + 8);
+        expect(plate.origin[2]).toBeCloseTo(-14.3 + i * 0.4);
         expect(plate.size[1]).toBeCloseTo(0.4);
         expect(plate.size[2]).toBeCloseTo(0.4);
         expect(plate.size[0]).toBeCloseTo(2.2 - i * 0.2);
@@ -1698,6 +1699,80 @@ print(json.dumps({"uv": list(uv), "size": list(size), "others": [
         for (const face of ["down", "north", "south", "east", "west"])
           expect(plate.uv[face]?.uv).toEqual([13, 1]);
       }
+    });
+
+    const faceNormal = (cube: Cube, face: "up" | "south") => {
+      const points = corners(cube);
+      const [base, first, second] = face === "up" ? [2, 6, 3] : [4, 5, 6];
+      const edge = (end: number) =>
+        (points[end] ?? []).map((v, axis) => v - (points[base]?.[axis] ?? 0));
+      const [ax = 0, ay = 0, az = 0] = edge(first);
+      const [bx = 0, by = 0, bz = 0] = edge(second);
+      const normal = [ay * bz - az * by, az * bx - ax * bz, ax * by - ay * bx];
+      const length = Math.hypot(...normal);
+      return normal.map((v) => v / length);
+    };
+
+    it("matches the display's driver-facing south normal in the final game frame", () => {
+      // The generator's tiles.north = display becomes south after turn_around.
+      const display = body.find((cube) =>
+        cube.uv.south?.uv.every((v, axis) => v === [84, 4][axis]),
+      );
+      expect(display).toBeDefined();
+      if (!display) return;
+      const screenNormal = faceNormal(display, "south");
+      expect(screenNormal[1]).toBeCloseTo(Math.SQRT1_2);
+      expect(screenNormal[2]).toBeCloseTo(Math.SQRT1_2);
+      for (const plate of plates) {
+        const normal = faceNormal(plate, "up");
+        const dot = normal.reduce(
+          (sum, v, axis) => sum + v * (screenNormal[axis] ?? 0),
+          0,
+        );
+        expect(dot).toBeGreaterThan(0);
+        expect(
+          (Math.acos(Math.min(1, Math.max(-1, dot))) * 180) / Math.PI,
+        ).toBeLessThanOrEqual(1);
+      }
+    });
+
+    it("narrows toward larger game z (driver) and rises toward smaller game z (bow)", () => {
+      const ordered = [...plates].sort((a, b) => a.size[0] - b.size[0]);
+      const centre = (cube: Cube, axis: number) =>
+        corners(cube).reduce((sum, p) => sum + (p[axis] ?? 0), 0) / 8;
+      for (const [i, plate] of ordered.entries()) {
+        const wider = ordered[i + 1];
+        if (!wider) continue;
+        expect(centre(plate, 2)).toBeGreaterThan(centre(wider, 2));
+        expect(centre(plate, 1)).toBeLessThan(centre(wider, 1));
+      }
+    });
+
+    it("puts tile bottom at the narrow driver end and tile top at the wide bow end", () => {
+      const ordered = [...plates].sort((a, b) => a.size[0] - b.size[0]);
+      expect(ordered).toHaveLength(10);
+      for (const [i, plate] of ordered.entries()) {
+        expect(plate.uv.up?.uv[1]).toBeCloseTo(32 - i * 2.8);
+        expect(plate.uv.up?.uv_size[1]).toBeCloseTo(-2.8);
+      }
+      const wide = ordered[9]?.uv.up;
+      expect((wide?.uv[1] ?? 0) + (wide?.uv_size[1] ?? 0)).toBeCloseTo(4);
+    });
+
+    it("rests its lowest edge on the dash top without crossing the driver-side edge at game z = -10", () => {
+      const points = plates.flatMap(corners);
+      const lowest = Math.min(...points.map((p) => p[1] ?? 0));
+      expect(lowest - (F + 8)).toBeGreaterThanOrEqual(-0.0001);
+      expect(lowest - (F + 8)).toBeLessThanOrEqual(0.1);
+      const contact = points.filter(
+        (p) => Math.abs((p[1] ?? 0) - lowest) < 0.0001,
+      );
+      expect(contact).toHaveLength(2);
+      for (const point of contact) {
+        expect(point[2]).toBeGreaterThanOrEqual(-12);
+        expect(point[2]).toBeLessThanOrEqual(-10);
+      }
+      for (const point of points) expect(point[2]).toBeLessThanOrEqual(-10);
     });
 
     it("crops one continuous wedge image into UV slices contained inside the atlas tile", () => {
@@ -1733,7 +1808,7 @@ print(json.dumps({"uv": list(uv), "size": list(size), "others": [
         const x = -plate.origin[0] - plate.size[0];
         const z = -plate.origin[2] - plate.size[2];
         expect(face.uv[0]).toBeCloseTo(40 + ((x - 12.8) / 2.2) * 24, 2);
-        expect(face.uv[1]).toBeCloseTo(4 + ((13 - z) / 4) * 28, 3);
+        expect(face.uv[1]).toBeCloseTo(4 + ((14.3 - z) / 4) * 28, 3);
         expect(face.uv_size[0]).toBeCloseTo((plate.size[0] / 2.2) * 24, 2);
         expect(face.uv_size[1]).toBeCloseTo(-2.8);
       }
@@ -1747,9 +1822,10 @@ print(json.dumps({"uv": list(uv), "size": list(size), "others": [
           cube.origin[2] === -12.5 &&
           cube.size[1] === 7,
       );
-      const helm = body.slice(start, start + 325);
-      const obstacles = [...helm.slice(8, 10), ...helm.slice(22)];
-      expect(obstacles).toHaveLength(305);
+      const helm = body.slice(start, start + 327);
+      expect(start).toBeGreaterThanOrEqual(0);
+      const obstacles = [...helm.slice(8, 10), ...helm.slice(20)];
+      expect(obstacles).toHaveLength(309);
       for (const plate of plates) {
         expect(
           Math.min(...corners(plate).map((p) => p[1] ?? 0)),
@@ -1760,6 +1836,8 @@ print(json.dumps({"uv": list(uv), "size": list(size), "others": [
             (glassZ + z) / Math.hypot(1, (22 - 15.5) / 4.5),
           ).toBeGreaterThan(0.3);
           expect(Math.abs(x)).toBeLessThan(15.5);
+          expect(y).toBeLessThan(22.1); // RAIL_Y
+          expect(z).toBeGreaterThan(-14); // Existing hull begins at game z = -14.
         }
         const box = bounds(plate);
         for (const cube of obstacles) {

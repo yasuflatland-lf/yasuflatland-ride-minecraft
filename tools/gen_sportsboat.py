@@ -1218,11 +1218,12 @@ body.append(box(2.3 + DISPLAY_DX, F + 8.45, 12.95 + DISPLAY_DZ, 8.7 + DISPLAY_DX
                 tiles={"north": "display"},
                 pivot=SCREEN_PIVOT, rotation=[SCREEN_TILT, 0, 0]))
 # One shared pivot makes the cropped strips a continuous face (ADR 0166, #691).
-# Negative x turns the face toward the driver's eyes in game (ADR 0051).
-SWITCH_TILT = -45
+# The slab's +y face needs the opposite sign from the standing display's -z face
+# to share its driver-facing normal (ADR 0051, #696).
+SWITCH_TILT = -SCREEN_TILT
 SWITCH_STRIPS = 10
-SWITCH_BOUNDS = (12.8, 15.0, 9.0, 13.0)
-SWITCH_PIVOT = [13.9, F + 8, 13.0]
+SWITCH_PIVOT = [13.9, F + 8, 10.3]
+SWITCH_BOUNDS = (12.8, 15.0, SWITCH_PIVOT[2], SWITCH_PIVOT[2] + 4.0)
 for i in range(SWITCH_STRIPS):
     t = i / (SWITCH_STRIPS - 1)
     width = 0.4 + 1.8 * t
