@@ -1,6 +1,6 @@
 # 0147. Light the lamps with a PBR emissive layer
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-10-25
 - Extends: 0020, 0115, 0136
 
@@ -27,12 +27,12 @@ Each texture set has format `1.16.100`, a `color` of `<kind>_lit`, and `metalnes
 
 ### Device verification
 
-No PC or mobile rendering device was checked during implementation. The following Vibrant Visuals checks are **not yet verified and must be done by the owner**: whether MER emissivity applies with `entity_emissive`; whether alpha-0 color texels remain visible; and the `pbr` capability's side effects on non-PBR entities, blocks, items, and devices without Vibrant Visuals. The camper and sports boat headlights' legacy appearance before and after also remains unobserved. Use L1–L8 in [the manual checklist](../manual-test.md). Acceptance of the visible PBR effect remains pending a Vibrant Visuals device.
+The owner confirmed the lamp glow on a Vibrant Visuals device on 2026-10-26 (#598), using the checks L1-L8 in [the manual checklist](../manual-test.md). The planned overlay was kept, and no fallback was applied. The device model, game build, and the result of each row are not recorded here.
 
-No fallback has been applied. If MER fails with `entity_emissive`, or alpha-0 lenses disappear, switch the overlay to `Material.lamp` and make the lit swatches alpha 255. Record the device result and the resulting loss of legacy full-bright lamps here before accepting the ADR. Automated in-game tests were skipped because rendering is client side and they cannot verify these conditions.
+The fallback stays defined for a device that behaves differently. If MER fails with `entity_emissive`, or alpha-0 lenses disappear, switch the overlay to `Material.lamp` and make the lit swatches alpha 255, which loses the legacy full-bright lamps. Automated in-game tests cannot cover this because rendering is client side.
 
 ## Consequences
 
-The PBR effect requires Vibrant Visuals or a compatible ray tracing renderer; some mobile devices will show no PBR change. Legacy devices are intended to keep the alpha-mask glow. The previously opaque camper and sports boat headlights now become full-bright when switched on there too. With lights off, the paint atlases and lens appearance stay unchanged. These visual expectations require the owner checks above.
+The PBR effect requires Vibrant Visuals or a compatible ray tracing renderer; some mobile devices will show no PBR change. Legacy devices are intended to keep the alpha-mask glow. The previously opaque camper and sports boat headlights now become full-bright when switched on there too. With lights off, the paint atlases and lens appearance stay unchanged. The owner's device check above confirmed the Vibrant Visuals result.
 
-Clients older than Minecraft 1.21.120 will refuse the Resource Pack. The Behavior Pack's `min_engine_version` stays unchanged on purpose: the Resource Pack is what needs the newer engine, and a world that includes both packs is refused on the Resource Pack alone. The compatibility change must be stated in the pull request, together with which devices were checked (currently none). The scripts, properties, light blocks, light reach, and levels do not change. Tail/brake lights, turn signals, hover glow discs, and the monitor remain outside this decision. The tent lantern is left for a later decision. Previews and icons retain the existing renderer's lamp colors.
+Clients older than Minecraft 1.21.120 will refuse the Resource Pack. The Behavior Pack's `min_engine_version` stays unchanged on purpose: the Resource Pack is what needs the newer engine, and a world that includes both packs is refused on the Resource Pack alone. The compatibility change was stated in the pull request. The scripts, properties, light blocks, light reach, and levels do not change. Tail/brake lights, turn signals, hover glow discs, and the monitor remain outside this decision. The tent lantern is left for a later decision. Previews and icons retain the existing renderer's lamp colors.
