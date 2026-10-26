@@ -13,7 +13,11 @@ import {
 import type { RestoredOf } from "../../entityContract";
 import { MOTION } from "../../motion/constants";
 import { DOCK, heldStep, pushesStick } from "../../motion/dock";
-import { dockCommands, undockCommands } from "../../motion/dockEntity";
+import {
+  dockCommands,
+  dockedCommand,
+  undockCommands,
+} from "../../motion/dockEntity";
 import type { MotionLimits, TyreLimits } from "../../motion/limits";
 import {
   alignOnMount,
@@ -124,6 +128,9 @@ export class SportsboatDrive implements Drive {
   private roll = 0;
   private docked: HoldPose | undefined;
   private stillTicks = 0;
+  private resendDocked = false;
+  // Until the drive first holds, the entity keeps its default docked value and needs no resend.
+  private heldOnce = false;
   private restoredDocked: boolean;
   private readonly trimSync = new SyncedValue<number>();
   private readonly rollSync = new SyncedValue<number>();
@@ -201,11 +208,26 @@ export class SportsboatDrive implements Drive {
   }
 
   resync(): void {
+    this.resendDocked = this.heldOnce;
     this.trimSync.resync();
     this.rollSync.resync();
   }
 
   step(raw: RawInput | undefined, ctx: TickContext): DriveStep {
+    const wasDocked = this.docked !== undefined || this.restoredDocked;
+    const step = this.stepHull(raw, ctx);
+    const held = this.docked !== undefined;
+    this.heldOnce ||= held;
+    if (!this.resendDocked) return step;
+    this.resendDocked = false;
+    // The docked property goes out only when the hull docks or departs, so after a failed
+    // send it goes out again unless this step docks or departs and sends it anyway (ADR 0156).
+    return held === wasDocked
+      ? { ...step, commands: [...step.commands, dockedCommand(held)] }
+      : step;
+  }
+
+  private stepHull(raw: RawInput | undefined, ctx: TickContext): DriveStep {
     if (this.restoredDocked && !this.docked) {
       this.docked = { ...ctx.location, yaw: this.motion.yaw };
       this.restoredDocked = false;

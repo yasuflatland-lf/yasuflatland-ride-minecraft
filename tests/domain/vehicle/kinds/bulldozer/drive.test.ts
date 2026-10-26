@@ -421,82 +421,144 @@ it("maps forms to the cut reach", () => {
         f === "car" ? (ground ? "sky" : undefined) : "tunnel",
       );
 });
-it("tunnels through rock under water without a shaft in open water (ADR 0155)", () => {
+function driveSubmarine(
+  raw: (tick: number) => RawInput | undefined,
+  onGround: boolean,
+  y = 40,
+): { d: BulldozerDrive; steps: { ctx: TickContext; out: DriveStep }[] } {
   const d = new BulldozerDrive(0, { form: "submarine", blade: 0 });
   let b: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
-  let last: DriveStep | undefined;
+  const steps: { ctx: TickContext; out: DriveStep }[] = [];
   for (let tick = 0; tick < 10; tick++) {
     const ctx = {
       ...context(3),
       tick,
-      location: { ...b.pos, y: 40 },
-      onGround: false,
+      location: { ...b.pos, y },
+      onGround,
       solidAt: () => false,
       velocity: { ...b.vel, y: 0 },
     };
-    last = d.step(FORWARD, ctx);
-    b = engineStep(b, last.impulse, { mu: 0.69, drag: 0.83 }, false).body;
+    const out = d.step(raw(tick), ctx);
+    steps.push({ ctx, out });
+    b = engineStep(b, out.impulse, { mu: 0.69, drag: 0.83 }, false).body;
   }
-  expect(last?.cut).toEqual(
-    bladeColumns({ ...b.pos, y: 40 }, d.yaw, S.blade, true),
-  );
+  return { d, steps };
+}
+it("tunnels through rock under water from the pre-step location, without a shaft in open water (ADR 0155)", () => {
+  const { d, steps } = driveSubmarine(() => FORWARD, false);
+  for (const { ctx, out } of steps.slice(5))
+    expect(out.cut).toEqual(
+      bladeColumns(ctx.location, d.yaw, S.blade, true, false),
+    );
 });
-it("digs the wide shaft over a blocked body while rising, and only then (ADR 0155)", () => {
-  const half = S.footprint / 2 + S.shaft.margin;
-  const cell = Math.floor(40 + S.carHeight);
+it("keeps the seabed floor row when the submarine rests on the bottom (ADR 0155)", () => {
+  const { steps } = driveSubmarine(() => FORWARD, true, 39.875);
+  const cut = steps.at(-1)?.out.cut ?? [];
+  expect(cut.length).toBeGreaterThan(0);
+  for (const c of cut) {
+    expect(c.bottom).toBe(40);
+    expect(c.bottom + (c.height ?? 0)).toBe(43);
+  }
+});
+it("cuts nothing under water while pivoting or without input", () => {
+  for (const raw of [{ ...IDLE, moveX: 1 }, undefined]) {
+    const { steps } = driveSubmarine(
+      (tick) => (tick < 5 ? FORWARD : raw),
+      false,
+    );
+    for (const { out } of steps.slice(5)) expect(out.cut ?? []).toEqual([]);
+  }
+});
+/** The cells of an axis-aligned square reaching `half` from `center`, counting every cell the open interval touches. */
+function cellsAcross(center: number, half: number): number[] {
+  const cells: number[] = [];
+  for (
+    let c = Math.floor(center - half);
+    c <= Math.ceil(center + half) - 1;
+    c++
+  )
+    cells.push(c);
+  return cells;
+}
+it("digs the wide shaft only while rising with a solid block in the two cells over the footprint (ADR 0155)", () => {
+  const wide = S.footprint / 2 + S.shaft.margin;
+  const fraction = fc.double({ min: 0, max: 0.999, noNaN: true });
   fc.assert(
     fc.property(
       fc.constantFrom("takeoff", "hover", "submarine"),
       fc.boolean(),
-      fc.boolean(),
-      (form, rising, blocked) => {
+      fraction,
+      fraction,
+      fraction,
+      fc.nat(8),
+      fc.nat(8),
+      fc.integer({ min: -1, max: 2 }),
+      (form, rising, fx, fy, fz, i, k, dy) => {
+        const location = { x: 10 + fx, y: 40 + fy, z: -3 + fz };
+        const top = Math.floor(location.y + S.carHeight);
+        const xs = cellsAcross(location.x, wide);
+        const zs = cellsAcross(location.z, wide);
+        const roof = {
+          x: xs[i % xs.length] ?? 0,
+          y: top + dy,
+          z: zs[k % zs.length] ?? 0,
+        };
         const d = new BulldozerDrive(0, { form, blade: 0 });
         const ctx = {
           ...context(form === "submarine" ? 3 : 0),
           onGround: false,
-          location: { x: 10.5, y: 40, z: -3.5 },
+          location,
           solidAt: (o: { x: number; y: number; z: number }) =>
-            blocked && Math.floor(40 + o.y) === cell,
+            Math.floor(location.x + o.x) === roof.x &&
+            Math.floor(location.y + o.y) === roof.y &&
+            Math.floor(location.z + o.z) === roof.z,
         };
         d.step({ ...IDLE, jump: rising }, ctx);
         const out = d.step({ ...IDLE, jump: rising }, { ...ctx, tick: 1 });
-        const digs = form === "takeoff" || rising;
-        if (!(digs && blocked)) {
+        const overFootprint =
+          cellsAcross(location.x, S.footprint / 2).includes(roof.x) &&
+          cellsAcross(location.z, S.footprint / 2).includes(roof.z) &&
+          dy >= 0 &&
+          dy < S.shaft.reach;
+        if (!((form === "takeoff" || rising) && overFootprint)) {
           expect(out.cut ?? []).toEqual([]);
           return;
         }
+        const expected = xs.flatMap((x) =>
+          zs.map((z) => ({ x, z, bottom: top, height: S.shaft.reach })),
+        );
+        const key = (c: { x: number; z: number }) => `${c.x},${c.z}`;
         const cut = out.cut ?? [];
-        expect(cut.length).toBeGreaterThan(0);
-        const xs = cut.map((c) => c.x);
-        const zs = cut.map((c) => c.z);
-        expect(Math.min(...xs)).toBe(Math.floor(10.5 - half));
-        expect(Math.max(...xs)).toBe(Math.ceil(10.5 + half) - 1);
-        expect(Math.min(...zs)).toBe(Math.floor(-3.5 - half));
-        expect(Math.max(...zs)).toBe(Math.ceil(-3.5 + half) - 1);
-        for (const c of cut) {
-          expect(c.bottom).toBe(cell);
-          expect(c.height).toBe(S.shaft.reach);
-        }
+        expect(cut).toHaveLength(expected.length);
+        expect(new Set(cut.map(key)).size).toBe(expected.length);
+        expect([...cut].sort((a, b) => key(a).localeCompare(key(b)))).toEqual(
+          [...expected].sort((a, b) => key(a).localeCompare(key(b))),
+        );
       },
     ),
   );
 });
-it("digs no shaft with the blade raised, with no driver, or when the roof is out of reach (ADR 0155)", () => {
+it("digs no shaft with the blade raised or with no driver under a roof in reach, nor under a roof out of reach (ADR 0155)", () => {
   const ctx = {
     ...context(3),
     onGround: false,
     location: { x: 0.5, y: 40, z: 0.5 },
-    solidAt: (o: { x: number; y: number; z: number }) => o.y >= 4,
   };
+  // The body's top is in cell 42, so offsets 2.5 and 3.5 are the probed cells.
+  const inReach = (o: { y: number }) => o.y >= 2;
+  const outOfReach = (o: { y: number }) => o.y >= 4;
   const up = { ...IDLE, jump: true };
+  const lowered = new BulldozerDrive(0, { form: "submarine", blade: 0 });
   const raised = new BulldozerDrive(0, { form: "submarine", blade: 1 });
   const idle = new BulldozerDrive(0, { form: "submarine", blade: 0 });
   const far = new BulldozerDrive(0, { form: "submarine", blade: 0 });
   for (let tick = 0; tick < 12; tick++) {
-    expect(raised.step(up, { ...ctx, tick }).cut ?? []).toEqual([]);
-    expect(idle.step(undefined, { ...ctx, tick }).cut ?? []).toEqual([]);
+    const near = { ...ctx, tick, solidAt: inReach };
+    expect(lowered.step(up, near).cut?.length).toBeGreaterThan(0);
+    expect(raised.step(up, near).cut ?? []).toEqual([]);
+    expect(idle.step(undefined, near).cut ?? []).toEqual([]);
     expect(
-      far.step(up, { ...ctx, tick, solidAt: (o) => o.y >= 5.5 }).cut ?? [],
+      far.step(up, { ...ctx, tick, solidAt: outOfReach }).cut ?? [],
     ).toEqual([]);
   }
 });
