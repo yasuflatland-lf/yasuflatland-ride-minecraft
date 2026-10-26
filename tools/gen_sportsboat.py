@@ -226,6 +226,36 @@ def paint_control_pad(pixels):
                     pixels[v + by + y][u + bx + x] = CONTROL_COLORS[ch]
 
 
+def paint_display(pixels):
+    (u, v), (w, h) = tile_layout.TILE_RECTS["display"]
+    navy, blue, light = (8, 16, 30), (40, 126, 224), (150, 218, 255)
+    red = (232, 66, 62)
+    # Tile top is the far edge. At 24 x 12, single texels carry the smallest UI marks.
+    for y in range(h):
+        for x in range(w):
+            color = navy
+            for cx in (5, 18):
+                radius = math.hypot(x - cx, y - 6)
+                if radius < 2:
+                    glow = 1 - radius / 2
+                    color = (int(14 + 22 * glow), int(35 + 45 * glow), int(66 + 70 * glow))
+                elif 2 <= radius <= 3 and not (y > 6 and abs(x - cx) < 2):
+                    color = blue
+            if x in (1, w - 2) and 3 <= y <= 8:
+                color = light if y >= 5 else (27, 59, 91)
+            if x in (10, 12, 14) and 4 <= y <= 8:
+                color = red if y == 6 else (62, 84, 108)
+            if y == 1 and x in (4, 7, 10, 13, 16, 19):
+                color = light if x == 13 else (53, 83, 114)
+            if y == 10 and x in (7, 9, 11, 13, 15, 17):
+                color = (100, 140, 174)
+            if x + (h - 1 - y) <= 1:
+                color = (244, 194, 51)
+            if (w - 1 - x) + (h - 1 - y) <= 1:
+                color = red
+            pixels[v + y][u + x] = color
+
+
 def paint_mirror(pixels):
     (u, v), (w, h) = tile_layout.TILE_RECTS["mirror"]
     for y in range(v, v + h):
@@ -236,7 +266,7 @@ def paint_mirror(pixels):
 # The layout lives in tools/tile_layout.py so tests can read it without running this generator.
 tile_layout = tile_layout_module()
 TILE_PAINTERS = {"quilt": paint_quilt, "mirror": paint_mirror, "switch_plate": paint_switch_plate,
-                 "control_pad": paint_control_pad}
+                 "control_pad": paint_control_pad, "display": paint_display}
 TILES = {name: {"uv": list(uv_), "size": list(size), "paint": TILE_PAINTERS[name]}
          for name, (uv_, size) in tile_layout.TILE_RECTS.items()}
 tile_layout.assert_tile_allocations(tile_layout.TILE_RECTS, TEXTURE_WIDTH, TEXTURE_HEIGHT)
@@ -1184,11 +1214,15 @@ body += pair(15.0, F + 3.5, -1.0, 15.4, sheer(2) - 1.2, 4.8, "seat")
 body += pair(14.9, F + 3.0, -1.0, 15.4, F + 3.5, 4.8, "seat_dark")
 # A large display inboard of the wheel, as on the reference helm, overhanging the console toward the
 # aisle. It stands ahead of the driver (bow at +z), and its top leans away from the driver, toward +z.
-# In game a negative x rotation tips +y toward +z before the 180-degree turn, so the angle is -20;
+# In game a negative x rotation tips +y toward +z before the 180-degree turn, so the angle is -45;
 # render_preview.py draws it leaning the other way (ADR 0051).
+SCREEN_TILT = -45
 SCREEN_PIVOT = [5.5, F + 8, 13.5]
-body.append(box(2.0, F + 8, 13, 9.0, F + 12.4, 14, "gloss", pivot=SCREEN_PIVOT, rotation=[-20, 0, 0]))
-body.append(box(2.4, F + 8.4, 12.8, 8.6, F + 12.0, 13.1, "screen", pivot=SCREEN_PIVOT, rotation=[-20, 0, 0]))
+# A world-y lift of 0.3 / sqrt(2) keeps the rear bottom corner on the dash.
+# With the fixed pivot and -45 tilt, that is local y +0.15 and z -0.15.
+body.append(box(2.0, F + 8.15, 13.05, 9.0, F + 12.55, 13.65, "gloss", pivot=SCREEN_PIVOT, rotation=[SCREEN_TILT, 0, 0]))
+body.append(box(2.4, F + 8.55, 12.95, 8.6, F + 12.15, 13.05, "screen", tiles={"north": "display"},
+                pivot=SCREEN_PIVOT, rotation=[SCREEN_TILT, 0, 0]))
 # Phone holder standing on the dash, and a switch panel outboard of it
 body.append(box(11.0, F + 8, 12.4, 12.4, F + 10.6, 12.9, "gloss"))
 body.append(box(11.2, F + 8.3, 12.3, 12.2, F + 10.4, 12.4, "screen"))

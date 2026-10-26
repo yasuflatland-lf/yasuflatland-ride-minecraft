@@ -1331,11 +1331,11 @@ describe("sports boat hull planking (ADR 0161)", () => {
       }
     });
 
-    it("clears the cockpit floor, consoles and current display without moving WZ", () => {
+    it("clears the cockpit floor, consoles and 45-degree display without moving WZ", () => {
       const obstacles = [...helm.slice(0, 4), ...helm.slice(8, 10)];
       expect(obstacles.slice(4).map((cube) => cube.rotation)).toEqual([
-        [20, 0, 0],
-        [20, 0, 0],
+        [45, 0, 0],
+        [45, 0, 0],
       ]);
       for (const point of wheel.flatMap(corners)) {
         expect(point[1]).toBeGreaterThanOrEqual(F + 4.5);
@@ -1363,6 +1363,75 @@ describe("sports boat hull planking (ADR 0161)", () => {
         pivot,
         0.0001,
       );
+    });
+
+    it("keeps the two display plates at 45 degrees with a flush driver-side face", () => {
+      const display = helm.slice(8, 10);
+      expect(display).toHaveLength(2);
+      const [frame, face] = display as [Cube, Cube];
+      for (const cube of display) {
+        expect(cube.rotation).toEqual([45, 0, 0]);
+        expect(cube.pivot).toEqual([-5.5, F + 8, -13.5]);
+      }
+      near(frame.size, [7, 4.4, 0.6]);
+      near(face.size, [6.2, 3.6, 0.1]);
+      // In the turned frame the driver is at +z; both plates share the same transform.
+      const surface = frame.origin[2] + frame.size[2];
+      expect(face.origin[2]).toBeCloseTo(surface);
+      expect(face.origin[2] + face.size[2] - surface).toBeCloseTo(0.1);
+      for (const axis of [0, 1]) {
+        expect(face.origin[axis]).toBeGreaterThan(frame.origin[axis] ?? 0);
+        expect((face.origin[axis] ?? 0) + (face.size[axis] ?? 0)).toBeLessThan(
+          (frame.origin[axis] ?? 0) + (frame.size[axis] ?? 0),
+        );
+      }
+    });
+
+    it("keeps every display corner above the dash, below the rail and behind the front glass", () => {
+      const railY = 17.6 + 4.5;
+      const rake = (22 - 15.5) / 4.5;
+      for (const cube of helm.slice(8, 10)) {
+        for (const [, y = 0, z = 0] of corners(cube)) {
+          expect(y).toBeGreaterThanOrEqual(F + 8 - 1e-6);
+          expect(y).toBeLessThan(railY);
+          const glassZ = 22 - (y - 17.6) * rake;
+          // Signed perpendicular distance to the front glass plane in the build frame.
+          expect((glassZ + z) / Math.hypot(1, rake)).toBeGreaterThan(0.5);
+        }
+      }
+    });
+
+    it("separates the display from every wheel, support, phone, switch, controller and throttle cube", () => {
+      const bounds = (cube: Cube) => {
+        const points = corners(cube);
+        return [0, 1, 2].map((axis) => [
+          Math.min(...points.map((point) => point[axis] ?? 0)),
+          Math.max(...points.map((point) => point[axis] ?? 0)),
+        ]);
+      };
+      expect(wheel).toHaveLength(134);
+      // Includes both phone cubes, the switch, pad and all three knob cubes, plus cupholders.
+      const obstacles = [
+        ...helm.slice(10, 21),
+        ...wheel,
+        ...supports,
+        ...helm.slice(158, 162),
+      ];
+      expect(obstacles).toHaveLength(152);
+      for (const display of helm.slice(8, 10)) {
+        const screen = bounds(display);
+        for (const cube of obstacles) {
+          const other = bounds(cube);
+          expect(
+            screen.some(
+              (range, axis) =>
+                (range[1] ?? 0) <= (other[axis]?.[0] ?? 0) ||
+                (other[axis]?.[1] ?? 0) <= (range[0] ?? 0),
+            ),
+            JSON.stringify(cube.origin),
+          ).toBe(true);
+        }
+      }
     });
 
     it("joins the column top to the pad rear face without protruding through it", () => {
@@ -1463,8 +1532,8 @@ print(json.dumps({"uv": list(uv), "size": list(size)}))
           // Phone holder, its screen, the display with its screen, and the throttle housing.
           (cube.origin[0] === -12.4 && cube.origin[1] === F + 8) ||
           (cube.origin[0] === -12.2 && cube.origin[1] === F + 8.3) ||
-          (cube.origin[0] === -9 && cube.origin[2] === -14) ||
-          (cube.origin[0] === -8.6 && cube.origin[2] === -13.1) ||
+          (cube.origin[0] === -9 && cube.origin[2] === -13.65) ||
+          (cube.origin[0] === -8.6 && cube.origin[2] === -13.05) ||
           (cube.origin[0] === -15.4 &&
             cube.origin[1] === F + 4.5 &&
             cube.origin[2] === -9),
@@ -1602,6 +1671,47 @@ print(json.dumps({name: {"uv": uv, "size": size}
       }
     });
 
+    it("maps only the display's driver-facing surface to its bounded, disjoint UI tile", () => {
+      const display = tiles.display as {
+        uv: [number, number];
+        size: [number, number];
+      };
+      expect(display).toEqual({ uv: [84, 4], size: [24, 12] });
+      expect(geometry.description.texture_width).toBe(128);
+      expect(geometry.description.texture_height).toBe(32);
+      for (const [axis, limit] of [128, 32].entries()) {
+        expect(
+          (display.uv[axis] ?? 0) + (display.size[axis] ?? 0),
+        ).toBeLessThanOrEqual(limit);
+      }
+      for (const [name, other] of Object.entries(tiles)) {
+        if (name === "display") continue;
+        expect(
+          [0, 1].some(
+            (axis) =>
+              (display.uv[axis] ?? 0) + (display.size[axis] ?? 0) <=
+                (other.uv[axis] ?? 0) ||
+              (other.uv[axis] ?? 0) + (other.size[axis] ?? 0) <=
+                (display.uv[axis] ?? 0),
+          ),
+          name,
+        ).toBe(true);
+      }
+      const faces = body.filter(
+        (cube) => cube.uv.south?.uv[0] === 84 && cube.uv.south?.uv[1] === 4,
+      );
+      expect(faces).toHaveLength(1);
+      expect(faces[0]?.uv.south).toEqual({
+        uv: display.uv,
+        uv_size: display.size,
+      });
+      const screen = body.find(
+        (cube) => cube.origin[0] === -12.2 && cube.origin[1] === F + 8.3,
+      );
+      for (const side of ["north", "east", "west", "up", "down"])
+        expect(faces[0]?.uv[side]).toEqual(screen?.uv[side]);
+    });
+
     it("seats two dark crossing bars on the pad and the steel cap on the bars, with one axis only", () => {
       expect(controller).toHaveLength(4);
       expect(knobs).toHaveLength(3);
@@ -1635,7 +1745,7 @@ print(json.dumps({name: {"uv": uv, "size": size}
       }
     });
 
-    it("clears the current display, switch plate, phone, tilted wheel and throttle using transformed corners", () => {
+    it("clears the 45-degree display, switch plate, phone, tilted wheel and throttle using transformed corners", () => {
       const start = body.findIndex(
         (cube) =>
           cube.origin[0] === -15.4 &&
@@ -1649,8 +1759,8 @@ print(json.dumps({name: {"uv": uv, "size": size}
         (cube) =>
           (cube.origin[0] === -12.4 && cube.origin[1] === F + 8) ||
           (cube.origin[0] === -12.2 && cube.origin[1] === F + 8.3) ||
-          (cube.origin[0] === -9 && cube.origin[2] === -14) ||
-          (cube.origin[0] === -8.6 && cube.origin[2] === -13.1) ||
+          (cube.origin[0] === -9 && cube.origin[2] === -13.65) ||
+          (cube.origin[0] === -8.6 && cube.origin[2] === -13.05) ||
           (cube.origin[0] === -15.4 &&
             cube.origin[1] === F + 4.5 &&
             cube.origin[2] === -9) ||
