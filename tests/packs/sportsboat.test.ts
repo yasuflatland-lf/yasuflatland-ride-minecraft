@@ -686,6 +686,32 @@ describe("sports boat hull planking (ADR 0161)", () => {
       }
     });
 
+    it("keeps every bow wall at DECK_BOW except the chord-limited stem segment", () => {
+      const starts = [18, 20, 23, 26, 29, 32, 34, 36, 38];
+      const walls = bone("body").filter((cube) => {
+        const pivot = cube.pivot;
+        return (
+          isHull(cube) &&
+          pivot !== undefined &&
+          pivot[1] === 11 &&
+          -pivot[2] >= 18 &&
+          -pivot[2] < 40 &&
+          cube.size[1] > 5
+        );
+      });
+      expect(walls).toHaveLength(18);
+      for (const start of starts) {
+        const segment = walls.filter(
+          (cube) => Math.round(-(cube.pivot?.[2] ?? 0)) === start,
+        );
+        expect(segment, `segment starting at ${start}`).toHaveLength(2);
+        for (const wall of segment) {
+          expect(wall.origin[1]).toBe(start === 38 ? 12 : 11);
+          expect(wall.size[0]).toBeGreaterThanOrEqual(0.05);
+        }
+      }
+    });
+
     it("turns every open-bow interior and bow-rail cube about y only", () => {
       // Glass and its frame retain their x rake under the windshield contract (ADR 0158).
       const bow = bone("body").filter((cube) => {

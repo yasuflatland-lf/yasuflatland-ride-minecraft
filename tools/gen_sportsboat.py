@@ -17,6 +17,7 @@ import zlib
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 CHECK = "--check" in sys.argv[2:]
 STALE = []
@@ -293,10 +294,11 @@ ACROSS = "across"  # an `inner` that makes the band one box across the centrelin
 
 @dataclass(frozen=True)
 class Band:
-    """One hull row built at a constant inset from the half-breadth, slice by slice.
+    """One hull row sliced outside the open bow and chained along its plan curve inside it.
 
     `name` labels the row in the table. `y0`, `y1`, and `when` take the slice centre zc, the sheer s,
-    and the keel k there.
+    and the keel k there (the segment midpoint for chains). Bow-specific fields preserve
+    the cockpit slices while declaring chain edges, clipping, and termination in the table.
     """
 
     name: str
@@ -306,6 +308,11 @@ class Band:
     y0: Callable[[float, float, float], float]
     y1: Callable[[float, float, float], float]
     when: Callable[[float, float, float], bool] = lambda zc, s, k: True
+    bow_outer: Inset | None = None
+    clip: Literal["none", "trim", "wall"] = "trim"
+    bow_end: float = BOW[1]
+    bow_end_breadth: float | None = None
+    preserve_slices_through: float | None = None
 
 
 # The V bottom's steps across the centreline: (height over the keel, fraction of the beam)
@@ -679,25 +686,29 @@ def plank_inner(y, z):
     return min([hb - PLANK_DEPTH, *faces])
 
 
-# The table, in emission order within each 2-pixel slice, grouped by hull region. build_hull() returns
-# each region as a list of cube groups, one per slice, not as one flat list: hull_body() interleaves the
-# regions slice by slice. The outer shell and the rails are built from long panels instead, and each
-# returns a single group, which hull_body() emits where slice 0 is (ADR 0161).
+# Interior rows retain table order within each slice outside the open bow; the bow is one appended
+# bow_interior() group of chains and across spans. Shell and rail regions each have one long-panel
+# group, emitted by hull_body() at slice 0 (ADR 0161, 0162).
 HULL_BANDS = {
     "hull_interior": [
         Band("gunwale_wall", "hull", Inset(0.0), Inset(1.6),
              lambda zc, s, k: DECK if open_cockpit(zc) else DECK_BOW, lambda zc, s, k: s,
-             lambda zc, s, k: (open_cockpit(zc) and s > DECK) or open_bow(zc)),
+             lambda zc, s, k: (open_cockpit(zc) and s > DECK) or open_bow(zc),
+             bow_outer=Inset(PLANK_DEPTH), clip="wall"),
         Band("bow_floor", "teak", Inset(1.6), ACROSS,
-             lambda zc, s, k: DECK_BOW, lambda zc, s, k: DECK_BOW + 0.3, in_bow),
+             lambda zc, s, k: DECK_BOW, lambda zc, s, k: DECK_BOW + 0.3, in_bow,
+             preserve_slices_through=22),
         # U-shaped bow lounge along the sides: charcoal base, tan cushion with charcoal piping on its
         # inboard edge, and a tan back capped in charcoal
         Band("lounge_base", "seat_dark", Inset(1.6), LOUNGE_EDGE,
-             lambda zc, s, k: DECK_BOW, lambda zc, s, k: LOUNGE_BASE, in_bow),
+             lambda zc, s, k: DECK_BOW, lambda zc, s, k: LOUNGE_BASE, in_bow,
+             bow_end_breadth=LOUNGE_DEPTH),
         Band("lounge_cushion", "seat", Inset(1.6), PIPING_EDGE,
-             lambda zc, s, k: LOUNGE_BASE, lambda zc, s, k: LOUNGE_CUSHION, in_bow),
+             lambda zc, s, k: LOUNGE_BASE, lambda zc, s, k: LOUNGE_CUSHION, in_bow,
+             bow_end_breadth=LOUNGE_DEPTH),
         Band("lounge_piping", "seat_dark", PIPING_EDGE, LOUNGE_EDGE,
-             lambda zc, s, k: LOUNGE_BASE, lambda zc, s, k: LOUNGE_CUSHION + 0.1, lounge_open),
+             lambda zc, s, k: LOUNGE_BASE, lambda zc, s, k: LOUNGE_CUSHION + 0.1, lounge_open,
+             bow_end_breadth=LOUNGE_DEPTH),
         Band("lounge_back", "seat", Inset(1.6), Inset(2.8),
              lambda zc, s, k: LOUNGE_CUSHION, lambda zc, s, k: s - 0.9, in_bow),
         Band("lounge_back_cap", "seat_dark", Inset(1.6), Inset(3.0),
@@ -735,6 +746,7 @@ def slice_band(row, z0, z1):
 
 INTERIOR_CLEARANCE = 0.002  # covers the geo.json's four-decimal coordinate and angle rounding
 INTERIOR_STEP = 0.05  # conservative interval bounds, including every rotated footprint corner
+WALL_MIN_DEPTH = 0.05  # a nondegenerate local thickness, 25 times the coordinate-rounding clearance
 
 
 def interior_footprint(cube):
@@ -791,33 +803,41 @@ def clip_interior(cube, wall=False):
     y0 = cube["origin"][1]
     y1 = y0 + cube["size"][1]
     if wall:
-        # The rising keel leaves no room for the wall at DECK_BOW near the stem.
-        # Keep its full height above the first level that can contain its footprint.
-        if not interior_fits(cube, y1):
-            cube["size"][0] = widest_fit(cube, y1)
-        if not interior_fits(cube, y0):
+        # Plank chords can bind below the sheer even where the keel is well below the floor.
+        # Trim at every band's lowest spanned height before sacrificing any wall height.
+        # Only z 38..40 needs a raised bottom (y 12): band 5's inner chord binds below it,
+        # even after trimming to WALL_MIN_DEPTH. All earlier bow walls reach DECK_BOW.
+        def heights(bottom):
+            return [bottom, *(i * BAND for i in BANDS if bottom < i * BAND < y1), y1]
+
+        probe = dict(cube, size=[WALL_MIN_DEPTH, *cube["size"][1:]])
+        if not all(interior_fits(probe, y) for y in heights(y0)):
             lo, hi = y0, y1
             for _ in range(24):
                 mid = (lo + hi) / 2
-                if interior_fits(cube, mid):
+                if all(interior_fits(probe, y) for y in heights(mid)):
                     hi = mid
                 else:
                     lo = mid
-            cube["origin"][1] = hi
-            cube["size"][1] = y1 - hi
+            y0 = hi
+            cube["origin"][1] = y0
+            cube["size"][1] = y1 - y0
+        cube["size"][0] = min(widest_fit(cube, y) for y in heights(y0))
     elif not interior_fits(cube, y0):
         cube["size"][0] = widest_fit(cube, y0)
     return cube
 
 
 def plan_chain(row, start, end):
-    """Horizontal inset lines need cosine-scaled local depth (ADR 0162)."""
+    """Return mirrored pairs of y-turned panels per active segment, clipped inside the planks when
+    the row requests it. Cosine-scaled local depth preserves horizontal inset widths (ADR 0162)."""
     stations = [start, *(z for z in PLAN_STATIONS if start < z < end), end]
-    outer = Inset(0.5) if row.name == "gunwale_wall" else row.outer
+    outer = row.bow_outer or row.outer
     segments = [(a, outer.x(beam_plan(a)), b, outer.x(beam_plan(b)))
-                for a, b in zip(stations, stations[1:])]
-    depths = [(row.inner.px - row.inner.step - outer.px + outer.step) * math.cos(yaw(*segment))
-              for segment in segments]
+                for a, b in zip(stations, stations[1:])
+                if row.when((a + b) / 2, sheer((a + b) / 2), keel((a + b) / 2))]
+    depths = [(outer.x(beam_plan((a + b) / 2)) - row.inner.x(beam_plan((a + b) / 2)))
+              * math.cos(yaw(a, x0, b, x1)) for a, x0, b, x1 in segments]
     cubes = []
     for i, (segment, depth) in enumerate(zip(segments, depths)):
         a, _, b, _ = segment
@@ -832,8 +852,8 @@ def plan_chain(row, start, end):
         setbacks = (joint_setback(overlaps[0], aft_turn), joint_setback(overlaps[1], fore_turn))
         panels = paired_plank(*segment, row.y0(zc, s, k), row.y1(zc, s, k), row.swatch,
                               depth, overlaps, setbacks=setbacks)
-        if row.name != "bow_rail":
-            right = clip_interior(panels[0], row.name == "gunwale_wall")
+        if row.clip != "none":
+            right = clip_interior(panels[0], row.clip == "wall")
             x, y, z = right["origin"]
             w, h, d = right["size"]
             extra = {key: right[key] for key in ("pivot", "rotation") if key in right}
@@ -843,12 +863,12 @@ def plan_chain(row, start, end):
 
 
 def bow_interior():
-    end = crossing(lambda z: beam_plan(z) - LOUNGE_DEPTH, *BOW, False)
     cubes = []
     for row in HULL_BANDS["hull_interior"]:
         spans = []
         if row.inner != ACROSS:
-            stop = end if row.name in ("lounge_base", "lounge_cushion", "lounge_piping") else BOW[1]
+            stop = (crossing(lambda z: beam_plan(z) - row.bow_end_breadth, BOW[0], row.bow_end, False)
+                    if row.bow_end_breadth is not None else row.bow_end)
             cubes += plan_chain(row, BOW[0], stop)
             continue
         for a, b in hull_slices():
@@ -859,7 +879,7 @@ def bow_interior():
             if not row.when(zc, s, k):
                 continue
             # The windshield's walk-through floor is a fixed part of its contract.
-            if row.name == "bow_floor" and b <= 22:
+            if row.preserve_slices_through is not None and b <= row.preserve_slices_through:
                 spans += slice_band(row, a, b)
                 continue
             y0 = row.y0(zc, s, k)
@@ -890,8 +910,8 @@ def hull_slices():
 
 
 def build_hull():
-    """{region name: [cube groups]}: the interior one group per slice in HULL_BANDS order, and the shell
-    and the rails one group each."""
+    """Return {region name: [cube groups]}: interior slices in HULL_BANDS order outside the bow,
+    followed by one bow_interior() group; the shell and each rail region have one group each."""
     shell, rub_rail, strake = rails()
     interior = [[cube for row in rows for cube in slice_band(row, z0, z1)] for z0, z1 in hull_slices()
                 for rows in HULL_BANDS.values() if not BOW[0] <= z0 < z1 <= BOW[1]]
@@ -1277,7 +1297,7 @@ for z0 in (34.0, 38.0, 42.0):
     body += pair(beam_plan(z0 + 0.4) - 1.6, sheer(z0), z0,
                  beam_plan(z0 + 0.4) - 1.1, sheer(z0) + 1.8, z0 + 0.5, "steel")
 body += plan_chain(Band("bow_rail", "steel", Inset(1.1), Inset(1.6),
-                        lambda zc, s, k: s + 1.6, lambda zc, s, k: s + 2.1), 34.0, 43.0)
+                        lambda zc, s, k: s + 1.6, lambda zc, s, k: s + 2.1, clip="none"), 34.0, 43.0)
 
 def hull_face(y, z):
     """Rightmost hull face met by a horizontal ray in the build frame."""
