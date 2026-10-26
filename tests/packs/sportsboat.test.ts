@@ -623,11 +623,11 @@ describe("sports boat hull planking (ADR 0161)", () => {
     });
 
     const allSkirts = canvas.filter((cube) => cube.rotation?.[2]);
-    const skirts = allSkirts.filter((cube) => cube.size[2] === 9);
-    const rearSkirts = allSkirts.filter((cube) => cube.size[2] === 7);
+    const skirts = allSkirts;
+    const bridges = canvas.filter((cube) => cube.size[0] < 0.31);
 
     it("has no sliced canvas edges or underside ribs", () => {
-      expect(canvas).toHaveLength(23);
+      expect(canvas).toHaveLength(17);
       for (const cube of canvas) expect(cube.size[2]).not.toBe(2);
       expect(
         bone("body").filter((cube) => swatch(4)(cube) && cube.origin[1] > 33),
@@ -651,7 +651,9 @@ describe("sports boat hull planking (ADR 0161)", () => {
         }),
       );
     };
-    const endPlates = canvas.filter((cube) => cube.size[2] === 0.5);
+    const endPlates = canvas.filter(
+      (cube) => cube.size[2] === 19 && !cube.rotation?.[2],
+    );
     const sidePieces = (sign: number) =>
       skirts
         .filter((cube) => Math.sign(cube.pivot?.[0] ?? 0) === sign)
@@ -661,7 +663,7 @@ describe("sports boat hull planking (ADR 0161)", () => {
     const vertical = (cube: Cube, x: number, z: number) =>
       interval(cube, [-x, 0, -z], [0, 1, 0]);
 
-    describe("rounded main side skirts (ADR 0164)", () => {
+    describe("continuous rounded side skirts (ADR 0164)", () => {
       it("uses three outward-steepening 0.8 px z-only sheets per side with mirrored signs", () => {
         expect(skirts).toHaveLength(6);
         for (const sign of [-1, 1]) {
@@ -674,6 +676,8 @@ describe("sports boat hull planking (ADR 0161)", () => {
               expect.closeTo(sign * (15 + i * 15), 3),
             ]);
             expect(cube.size[1]).toBeCloseTo(0.8, 3);
+            expect(cube.origin[2]).toBe(-9);
+            expect(cube.size[2]).toBe(19);
             const mirror = sidePieces(-sign)[i] as Cube;
             expect(cube.pivot).toEqual([
               expect.closeTo(-(mirror.pivot?.[0] ?? 0), 3),
@@ -695,14 +699,11 @@ describe("sports boat hull planking (ADR 0161)", () => {
             2.6,
             3,
           );
-          for (const z of [-3, 6]) {
-            expect(first.pivot?.[1] ?? 0).toBeLessThan(dome(z));
-            expect(first.pivot?.[1] ?? 0).toBeGreaterThan(dome(z) - 1.6);
-          }
+          expect(first.pivot?.[1]).toBeCloseTo(dome(9) - 2.4, 3);
         }
       });
 
-      it("overlaps adjacent sheets through their shared edges along the full main span", () => {
+      it("overlaps adjacent sheets through their shared edges along the full rear-to-front span", () => {
         for (const sign of [-1, 1]) {
           const pieces = sidePieces(sign);
           for (let i = 0; i < 2; i++) {
@@ -722,7 +723,7 @@ describe("sports boat hull planking (ADR 0161)", () => {
               allowance * Math.cos(((15 + i * 15) * Math.PI) / 180),
               3,
             );
-            for (const z of [-3, 0, 6])
+            for (const z of [-10, -3, 0, 6, 9])
               for (const offset of [-0.1, 0, 0.1]) {
                 const ia = vertical(a, -sign * (joint + offset), z);
                 const ib = vertical(b, -sign * (joint + offset), z);
@@ -738,50 +739,33 @@ describe("sports boat hull planking (ADR 0161)", () => {
       });
     });
 
-    describe("rear corner skirts (ADR 0164, roof series 3/3)", () => {
-      it("uses two mirrored 0.8 px sheets over z -10..-3 with a steeper z-only turn", () => {
-        expect(rearSkirts).toHaveLength(2);
-        expect(allSkirts).toHaveLength(8);
-        const angle = (Math.atan2(3.6, 2) * 180) / Math.PI;
-        const [left, right] = rearSkirts as [Cube, Cube];
-        expect(left.rotation?.[2]).toBeCloseTo(-(right.rotation?.[2] ?? 0), 4);
-        expect(left.pivot?.[0]).toBeCloseTo(-(right.pivot?.[0] ?? 0), 4);
-        for (const cube of rearSkirts) {
-          expect(cube.rotation?.slice(0, 2)).toEqual([0, 0]);
-          expect(Math.abs(cube.rotation?.[2] ?? 0)).toBeCloseTo(angle, 1);
-          expect(Math.abs(cube.rotation?.[2] ?? 0)).toBeGreaterThan(
-            (Math.atan2(2.6, 3) * 180) / Math.PI,
-          );
-          expect(cube.size[1]).toBeCloseTo(0.8, 3);
-          expect(cube.origin[2]).toBe(3);
-          expect(cube.size[2]).toBe(7);
-          expect(cube.pivot).toEqual([
-            expect.closeTo(Math.sign(cube.pivot?.[0] ?? 0) * 16, 3),
-            expect.closeTo(dome(-10) - 0.3, 3),
-            6.5,
-          ]);
+    it("bridges the sloping top to the level roll without a side opening at any z", () => {
+      expect(bridges).toHaveLength(4);
+      const shoulder = dome(9) - 2.4;
+      for (let z = -9.99; z < 9; z += 0.1) {
+        const panel = panels[z < -3 ? 0 : z < 6 ? 1 : 2] as Cube;
+        for (let y = shoulder - 0.3; y < top(panel, z) - 0.01; y += 0.1) {
+          for (const sign of [-1, 1]) {
+            const hits = canvas.flatMap((cube) => {
+              const hit = interval(cube, [0, y, -z], [sign, 0, 0]);
+              return hit ? [hit] : [];
+            });
+            expect(
+              hits.some(([lo, hi]) => (lo ?? 20) <= 19 && (hi ?? 0) >= 15.9),
+              `Side opening at ${sign}, ${y}, ${z}`,
+            ).toBe(true);
+          }
         }
-      });
-
-      it("lowers the outer top edge by 3.6 px to x 18, one pixel inboard of the main skirt", () => {
-        for (const cube of rearSkirts) {
-          const topCorners = corners(cube).filter((_, i) => i % 2 === 1);
-          const ordered = topCorners.sort(
-            (a, b) => Math.abs(a[0] ?? 0) - Math.abs(b[0] ?? 0),
-          );
-          const [inner, outer] = ordered;
-          expect(Math.abs(inner?.[0] ?? 0)).toBeCloseTo(16, 3);
-          expect(Math.abs(outer?.[0] ?? 0)).toBeCloseTo(18, 3);
-          expect((inner?.[1] ?? 0) - (outer?.[1] ?? 0)).toBeCloseTo(3.6, 3);
-          expect(Math.sign(outer?.[0] ?? 0)).toBe(
-            -Math.sign(cube.pivot?.[0] ?? 0),
-          );
-        }
-      });
+      }
+      const lipBridges = bridges.filter((cube) => cube.rotation?.[0]);
+      expect(lipBridges).toHaveLength(2);
+      for (const bridge of lipBridges) {
+        expect(bridge.rotation).toEqual(panels[2]?.rotation);
+      }
     });
 
-    it("closes the end triangles with overlapping transverse canvas steps inside the hems", () => {
-      expect(endPlates).toHaveLength(12);
+    it("closes the end triangles with continuous backing plates inside the hems", () => {
+      expect(endPlates).toHaveLength(4);
       for (const plate of endPlates) {
         expect(plate.rotation ?? [0, 0, 0]).toEqual([0, 0, 0]);
         const mirror = endPlates.find(
@@ -794,7 +778,7 @@ describe("sports boat hull planking (ADR 0161)", () => {
             other.size[1] === plate.size[1],
         );
         expect(mirror?.size).toEqual(plate.size);
-        expect(plate.origin[1]).toBeGreaterThan(31.59);
+        expect(plate.origin[1]).toBeGreaterThan(28.63);
         expect(
           Math.max(
             Math.abs(plate.origin[0]),
@@ -806,9 +790,8 @@ describe("sports boat hull planking (ADR 0161)", () => {
 
     it("blocks sight lines through both sides of every exposed triangular end cross-section", () => {
       for (const [z, reach, outerY, innerY] of [
-        [-10, 18, dome(-10) - 3.9, dome(-10) - 2],
-        [-3, 18, dome(-10) - 3.9, dome(-3) - 2],
-        [6, 19, dome(6) - 2.9, dome(6) - 2],
+        [-10, 19, 29.5, 32.1],
+        [9, 19, 29.5, 32.1],
       ] as const) {
         for (const sign of [-1, 1]) {
           // Cast through the triangular interior, rather than merely checking that panels exist.
@@ -831,10 +814,11 @@ describe("sports boat hull planking (ADR 0161)", () => {
           const plates = endPlates.filter(
             (plate) =>
               Math.sign(plate.origin[0]) === -sign &&
-              Math.abs(-z - plate.origin[2] - 0.25) <= 0.251,
+              -z >= plate.origin[2] &&
+              -z <= plate.origin[2] + plate.size[2],
           );
           expect(plates).toHaveLength(2);
-          // Both steps overlap in area and bury their outer top corners in the skirt sheets.
+          // Both backing plates overlap in area and bury their outer top corners in the skirt sheets.
           const [a, b] = plates as [Cube, Cube];
           expect(
             Math.min(a.origin[0] + a.size[0], b.origin[0] + b.size[0]),
@@ -845,7 +829,7 @@ describe("sports boat hull planking (ADR 0161)", () => {
               Math.abs(plate.origin[0] + plate.size[0]),
             );
             const y = plate.origin[1] + plate.size[1];
-            const sheets = z === -10 ? rearSkirts : skirts;
+            const sheets = skirts;
             const spans = sheets.flatMap((cube) => {
               const hit = vertical(cube, sign * x, z);
               return hit ? [hit] : [];
@@ -860,7 +844,29 @@ describe("sports boat hull planking (ADR 0161)", () => {
       }
     });
 
-    it("builds the entire Bimini within twenty-four cubes with at most one rotation axis each", () => {
+    it("keeps every backing and bridge corner inside x 19 and above the physical outer hem", () => {
+      const hem = 29.5 - 0.8 * Math.cos(Math.PI / 4);
+      for (const cube of [...bridges, ...endPlates]) {
+        const pivot = cube.pivot ?? [0, 0, 0];
+        for (const i of [0, 1])
+          for (const j of [0, 1])
+            for (const k of [0, 1]) {
+              const local = [i, j, k].map(
+                (v, axis) =>
+                  (cube.origin[axis] ?? 0) +
+                  v * (cube.size[axis] ?? 0) -
+                  (pivot[axis] ?? 0),
+              );
+              const point = turn(local, "x", -(cube.rotation?.[0] ?? 0));
+              expect(Math.abs((point[0] ?? 0) + pivot[0])).toBeLessThanOrEqual(
+                19,
+              );
+              expect((point[1] ?? 0) + pivot[1]).toBeGreaterThanOrEqual(hem);
+            }
+      }
+    });
+
+    it("builds the entire Bimini within eighteen cubes with at most one rotation axis each", () => {
       const bimini = [
         ...canvas,
         ...hatches,
@@ -868,14 +874,14 @@ describe("sports boat hull planking (ADR 0161)", () => {
           (cube) => swatch(4)(cube) && cube.origin[1] > 33,
         ),
       ];
-      expect(bimini).toHaveLength(24);
-      expect(bimini.length).toBeLessThanOrEqual(24);
+      expect(bimini).toHaveLength(18);
+      expect(bimini.length).toBeLessThanOrEqual(18);
       for (const cube of bimini) {
         expect(
           (cube.rotation ?? []).filter((angle) => angle !== 0).length,
         ).toBeLessThanOrEqual(1);
       }
-      expect(cubes).toHaveLength(1115);
+      expect(cubes).toHaveLength(1109);
     });
   });
 
