@@ -250,7 +250,7 @@ class Inset:
         x = b * self.scale - self.px
         if self.floor is not None:
             x = max(x, self.floor)
-        return x + self.step if self.step else x
+        return x + self.step
 
 
 LOUNGE_EDGE = Inset(LOUNGE_DEPTH, floor=0.0)  # the lounge's inboard edge
@@ -260,9 +260,10 @@ ACROSS = "across"  # an `inner` that makes the band one box across the centrelin
 
 @dataclass(frozen=True)
 class Band:
-    """One hull region built at a constant inset from the half-breadth, slice by slice.
+    """One hull row built at a constant inset from the half-breadth, slice by slice.
 
-    `y0`, `y1`, and `when` take the slice centre zc, the sheer s, and the keel k there.
+    `name` labels the row in the table. `y0`, `y1`, and `when` take the slice centre zc, the sheer s,
+    and the keel k there.
     """
 
     name: str
@@ -302,7 +303,10 @@ def v_bottom(i):
                 lambda zc, s, k: y1(zc, s, k) > k + off)
 
 
-# The table, in emission order within each 2-pixel slice, grouped by hull region.
+# The table, in emission order within each 2-pixel slice, grouped by hull region. build_hull() returns
+# each region as a list of cube groups, one per slice, not as one flat list: hull_body() interleaves the
+# regions slice by slice, which is how today's body orders its cubes. A region built some other way
+# returns a single group, which hull_body() emits where slice 0 is.
 HULL_BANDS = {
     "hull_shell": [v_bottom(i) for i in range(len(V_STEPS))],
     "hull_interior": [
@@ -365,8 +369,7 @@ def hull_slices():
 
 
 def build_hull():
-    """{region name: [cubes of each 2-pixel slice]}. A region built some other way can return its cubes
-    as one group; hull_body() keeps the regions in table order within each slice."""
+    """{region name: [[cubes of slice 0], [cubes of slice 1], ...]}, in HULL_BANDS order."""
     return {region: [[cube for row in rows for cube in slice_band(row, z0, z1)] for z0, z1 in hull_slices()]
             for region, rows in HULL_BANDS.items()}
 
@@ -845,12 +848,17 @@ def png(path, w, h, pixel):
     emit(path, data, pixels)
 
 
+def swatch_cell(x, y):
+    """The swatch cell (x 4i..4i+3, y 0..3) that holds texel (x, y), or None outside the swatch row."""
+    return x // 4 if y < 4 else None
+
+
 def cell_mer(cells, default=MER_OFF, extra=None):
     """A MER texel function: swatch cell i (x 4i..4i+3, y 0..3) gets cells[i], `extra(x, y)` may claim
     any other texel by returning its MER, and every other texel gets `default`."""
 
     def mer(x, y):
-        value = cells.get(x // 4) if y < 4 else None
+        value = cells.get(swatch_cell(x, y))
         if value is None and extra is not None:
             value = extra(x, y)
         return (*(default if value is None else value), 255)
@@ -867,12 +875,9 @@ def write_texture_set(color_name, mer_name):
 
 
 def lit_textures(kind, width, height, pixel):
-    def is_lit(x, y):
-        return y < 4 and x // 4 in LIT_SLOTS
-
     def color(x, y):
         rgba = (*pixel(x, y), 255)[:4]
-        return (*rgba[:3], 0) if is_lit(x, y) else rgba
+        return (*rgba[:3], 0) if swatch_cell(x, y) in LIT_SLOTS else rgba
 
     png(ENTITY_TEXTURES / f"{kind}_lit.png", width, height, color)
     png(ENTITY_TEXTURES / f"{kind}_lit_mer.png", width, height, cell_mer({slot: MER_LIT for slot in LIT_SLOTS}))
@@ -915,8 +920,8 @@ def swatches(hull_color):
             return QUILT_LINE if QUILT[y - 16][x] == "L" else PALETTE["seat"]
         if in_mirror_tile(x, y):
             return mirror_tile(x, y)
-        i = x // 4
-        if y >= 4 or i >= len(NAMES):
+        i = swatch_cell(x, y)
+        if i is None or i >= len(NAMES):
             return (0, 0, 0)
         name = NAMES[i]
         return (*colors[name], ALPHA.get(name, 255))
