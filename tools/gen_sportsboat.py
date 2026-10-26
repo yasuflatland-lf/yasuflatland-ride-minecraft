@@ -199,31 +199,26 @@ def paint_switch_plate(pixels):
                     pixels[v + by + y][u + bx + x] = SWITCH_BUTTON_COLORS[ch]
 
 
-# Top is the far end, matching switch_plate. Cut corners leave a dark chamfer around the dial.
-CONTROL_BUTTON = [".LLL.", "LDDDL", "LSSSL", "LDDDL", ".LLL."]
-CONTROL_WIDE_BUTTON = [".LLLLL.", "LDDDDDL", "LDSSSDL", ".LLLLL."]
-CONTROL_TINY_BUTTON = [".LLL.", "LDDDL", "LSSSL", ".LLL."]
-CONTROL_COLORS = {"L": (124, 128, 134), "D": PALETTE["button"], "S": (210, 214, 220)}
-CONTROL_BUTTONS = [(0, 1, CONTROL_BUTTON), (5, 0, CONTROL_WIDE_BUTTON),
-                   (0, 11, CONTROL_BUTTON), (11, 11, CONTROL_BUTTON),
-                   (11, 1, CONTROL_TINY_BUTTON)]
-
-
-def paint_control_pad(pixels):
-    (u, v), (w, h) = tile_layout.TILE_RECTS["control_pad"]
+# Cropped panel UVs share the base coordinates so icons stay aligned across overlapping panels.
+def paint_dial_pad(pixels):
+    (u, v), (w, h) = tile_layout.TILE_RECTS["dial_pad"]
     for y in range(h):
         for x in range(w):
-            chamfer = min(x, w - 1 - x) + min(y, h - 1 - y) < 2
-            radius = math.hypot(x - (w - 1) / 2, y - (h - 1) / 2)
-            color = (30, 30, 34) if not chamfer else PALETTE["gloss"]
-            if 4.0 <= radius <= 5.2:
-                color = (112, 116, 122)
+            radius = math.hypot(x - 7.5, y - 9.3)
+            color = (42, 44, 48)
+            if 4.5 <= radius <= 5.5 or x in (1, 14) or y in (1, 14):
+                color = (16, 18, 20)
             pixels[v + y][u + x] = color
-    for bx, by, pattern in CONTROL_BUTTONS:
-        for y, row in enumerate(pattern):
-            for x, ch in enumerate(row):
-                if ch != ".":
-                    pixels[v + by + y][u + bx + x] = CONTROL_COLORS[ch]
+    icons = [(2, 11, [".#.", "###", "#.#"]),
+             (7, 13, [".#.", "#.#", ".#."]),
+             (11, 11, [".#.", "###"]),
+             (2, 2, ["###", ".#."]),
+             (11, 2, [".#.", "#.#", ".#."])]
+    for bx, by, rows in icons:
+        for y, row in enumerate(rows):
+            for x, mark in enumerate(row):
+                if mark == "#":
+                    pixels[v + by + y][u + bx + x] = (184, 188, 194)
 
 
 def paint_display(pixels):
@@ -266,7 +261,7 @@ def paint_mirror(pixels):
 # The layout lives in tools/tile_layout.py so tests can read it without running this generator.
 tile_layout = tile_layout_module()
 TILE_PAINTERS = {"quilt": paint_quilt, "mirror": paint_mirror, "switch_plate": paint_switch_plate,
-                 "control_pad": paint_control_pad, "display": paint_display}
+                 "dial_pad": paint_dial_pad, "display": paint_display}
 TILES = {name: {"uv": list(uv_), "size": list(size), "paint": TILE_PAINTERS[name]}
          for name, (uv_, size) in tile_layout.TILE_RECTS.items()}
 tile_layout.assert_tile_allocations(tile_layout.TILE_RECTS, TEXTURE_WIDTH, TEXTURE_HEIGHT)
@@ -1207,7 +1202,7 @@ body += striped(-15.4, 15.4, F + 3.8, F + 6.8, -44, -42, "south")
 body.append(box(-15.4, F + 6.8, -44, 15.4, F + 7.4, -42, "seat_dark"))  # charcoal cap
 body.append(box(-15.4, F + 3.8, -44, 15.4, F + 4.4, -42.4, "seat_dark"))  # charcoal band
 
-# Helm console with a glossy dash, a big display, a wheel, and the throttle; passenger console
+# Helm consoles anchor the contiguous cube block counted in ADR 0166.
 body.append(box(WALK_HALF, F, 9, 15.4, F + 7, 16, "gloss"))
 body.append(box(WALK_HALF, F + 7, 10, 15.4, F + 8, 15.5, "gloss"))
 body.append(box(-15.4, F, 9, -WALK_HALF, F + 6.5, 16, "gloss"))
@@ -1220,7 +1215,7 @@ body += pair(14.9, F + 3.0, -1.0, 15.4, F + 3.5, 4.8, "seat_dark")
 # In game a negative x rotation tips +y toward +z before the 180-degree turn, so the angle is -45;
 # render_preview.py draws it leaning the other way (ADR 0051).
 SCREEN_TILT = -45
-DISPLAY_DX = 3.7  # Moved toward the switch plate, above the phone holder (ADR 0166).
+DISPLAY_DX = 3.7  # Clears the switch plate at x 12.8 (ADR 0166).
 SCREEN_PIVOT = [5.5 + DISPLAY_DX, F + 8, 13.5]
 # A world-y lift of 0.3 / sqrt(2) keeps the rear bottom corner on the dash.
 # With the fixed pivot and -45 tilt, that is local y +0.15 and z -0.15.
@@ -1228,27 +1223,12 @@ body.append(box(2.0 + DISPLAY_DX, F + 8.15, 13.05, 9.0 + DISPLAY_DX, F + 12.55, 
 body.append(box(2.4 + DISPLAY_DX, F + 8.55, 12.95, 8.6 + DISPLAY_DX, F + 12.15, 13.05, "screen",
                 tiles={"north": "display"},
                 pivot=SCREEN_PIVOT, rotation=[SCREEN_TILT, 0, 0]))
-# Phone holder standing on the dash, and a switch panel outboard of it
-body.append(box(11.0, F + 8, 12.4, 12.4, F + 10.6, 12.9, "gloss"))
-body.append(box(11.2, F + 8.3, 12.3, 12.2, F + 10.4, 12.4, "screen"))
 # The plate leans like the display (top toward +z, so a negative x rotation, ADR 0051) and pivots at its
 # low edge, which rests on the dash. The six buttons are painted on its face (ADR 0166).
 SWITCH_TILT = -20
 body.append(box(12.8, F + 8, 11.8, 15.0, F + 8.4, 14.6, "gloss", tiles={"up": "switch_plate"},
                 pivot=[13.9, F + 8, 14.6], rotation=[SWITCH_TILT, 0, 0]))
-# The raised near end overhangs the ledge; the low edge rests on the dash (ADR 0166).
-CONTROL_PIVOT = [13.5, F + 8, 11.8]
-body.append(box(12.0, F + 8, 8.8, 15.0, F + 8.4, 11.8, "gloss", tiles={"up": "control_pad"},
-                pivot=CONTROL_PIVOT, rotation=[SWITCH_TILT, 0, 0]))
-# Crossing bars approximate the dial without disc()'s second rotation axis (0009).
-for half_x, half_z in ((0.9, 0.5), (0.5, 0.9)):
-    body.append(box(13.5 - half_x, F + 8.4, 10.3 - half_z,
-                    13.5 + half_x, F + 8.9, 10.3 + half_z, "button",
-                    pivot=CONTROL_PIVOT, rotation=[SWITCH_TILT, 0, 0]))
-body.append(box(13.2, F + 8.9, 10.0, 13.8, F + 9.0, 10.6, "steel",
-                pivot=CONTROL_PIVOT, rotation=[SWITCH_TILT, 0, 0]))
-# Two chrome-rimmed cupholders: on the dash between the display and the wheel, and on the ledge below
-for x0, y0, z0, size in ((9.6, F + 8, 10.4, 1.3), (3.9, F + 7, 9.0, 1.0)):
+for x0, y0, z0, size in ((3.9, F + 7, 9.0, 1.0),):
     body.append(box(x0, y0, z0, x0 + size, y0 + 0.15, z0 + size, "chrome"))
     body.append(box(x0 + 0.25, y0 + 0.15, z0 + 0.25, x0 + size - 0.25, y0 + 0.17, z0 + size - 0.25, "gloss"))
 # Steering wheel as on the reference: a thick black rim and a broad black three-spoke pad with
@@ -1305,12 +1285,88 @@ column_cowl = [
     box(WX - 0.7, F + 3, WZ + 0.7, WX + 0.7, WY - 0.9, WZ + 1.5, "gloss"),
 ]
 body += tilt_assembly(column_cowl, pivot=[WX, WY, WZ + 0.4], axis="x", degrees=WHEEL_TILT)
-# Throttle on the right side wall beside the driver: a glossy black housing with a chrome
-# handle on a black lever arm, as in the photo
-body.append(box(13.4, F + 4.5, 5.0, 15.4, F + 7.4, 9.0, "gloss"))
-body.append(box(12.6, F + 7.0, 6.2, 14.2, F + 7.8, 8.6, "gloss"))  # lever arm
-body.append(box(11.4, F + 7.4, 6.6, 12.8, F + 8.8, 8.4, "steel"))  # chrome handle
-body.append(box(11.6, F + 8.8, 6.9, 12.6, F + 9.2, 8.1, "steel"))
+DIAL_BOUNDS = (13.15, 15.65, 5.1, 8.9)
+DIAL_Y = F + 6.5
+DIAL_SIDES = 16
+DIAL_CENTER = (14.4, 7.3)
+dial = []
+
+
+def dial_face(cube):
+    (u, v), (w, h) = tile_layout.TILE_RECTS["dial_pad"]
+    x0, x1, z0, z1 = DIAL_BOUNDS
+    x, _, z = cube["origin"]
+    dx, _, dz = cube["size"]
+    cube["uv"]["up"] = {"uv": [u + (x - x0) / (x1 - x0) * w,
+                                  v + (z - z0) / (z1 - z0) * h],
+                         "uv_size": [dx / (x1 - x0) * w, dz / (z1 - z0) * h]}
+    return cube
+
+
+def dial_plate(x0, x1, z0, z1, y0, y1, chamfer, painted=False, wedge=False):
+    rear = 0.35 if wedge else chamfer
+    parts = [box(x0 + rear, y0, z0, x1 - rear, y1, z1, "button"),
+             box(x0, y0, z0 + chamfer, x1, y1, z1 - rear, "button")]
+    if wedge:
+        parts.append(box(x0 + chamfer, y0, z0, x1 - chamfer, y1, z0 + chamfer, "button"))
+    for z, cut in ((z0 + chamfer, chamfer), (z1 - rear, rear)):
+        for x in (x0 + cut, x1 - cut):
+            half = cut / math.sqrt(2)
+            parts.append(box(x - half, y0, z - half, x + half, y1, z + half, "button",
+                             pivot=[x, y0, z], rotation=[0, 45, 0]))
+    return [dial_face(c) if painted and "rotation" not in c else c for c in parts]
+
+
+# A larger front chamfer narrows the shield toward the driver while retaining a wide bow edge.
+x0, x1, z0, z1 = DIAL_BOUNDS
+front, rear = 0.5, 0.18
+dial += [dial_face(box(x0 + front, DIAL_Y, z0, x1 - front, DIAL_Y + 0.22, z1, "button")),
+         dial_face(box(x0, DIAL_Y, z0 + front, x1, DIAL_Y + 0.22, z1 - rear, "button")),
+         dial_face(box(x0 + rear, DIAL_Y, z1 - rear, x1 - rear, DIAL_Y + 0.22, z1, "button"))]
+for z, cut in ((z0 + front, front), (z1 - rear, rear)):
+    for x in (x0 + cut, x1 - cut):
+        half = cut / math.sqrt(2)
+        dial.append(box(x - half, DIAL_Y, z - half, x + half, DIAL_Y + 0.22, z + half,
+                        "button", pivot=[x, DIAL_Y, z], rotation=[0, 45, 0]))
+outline = [(x0 + front, z0), (x1 - front, z0), (x1, z0 + front), (x1, z1 - rear),
+           (x1 - rear, z1), (x0 + rear, z1), (x0, z1 - rear), (x0, z0 + front)]
+for (ax, az), (bx, bz) in zip(outline, outline[1:] + outline[:1]):
+    length = math.hypot(bx - ax, bz - az)
+    x, z = (ax + bx) / 2, (az + bz) / 2
+    dial.append(box(x - length / 2, DIAL_Y + 0.22, z - 0.025,
+                    x + length / 2, DIAL_Y + 0.28, z + 0.025, "button",
+                    pivot=[x, DIAL_Y, z], rotation=[0, -math.degrees(math.atan2(bz - az, bx - ax)), 0]))
+DIAL_BUTTONS = [(13.35, 13.95, 7.65, 8.45), (14.0, 14.8, 7.9, 8.78),
+                (14.85, 15.45, 7.65, 8.45), (13.4, 14.3, 5.4, 6.55),
+                (14.5, 15.4, 5.4, 6.55)]
+for bx0, bx1, bz0, bz1 in DIAL_BUTTONS:
+    dial += dial_plate(bx0, bx1, bz0, bz1, DIAL_Y + 0.22, DIAL_Y + 0.32, 0.14, painted=True, wedge=bz0 < 6)
+
+
+def dial_ring(radius, bottom, top, color, solid=False, wall=0.08, ribs=False):
+    cx, cz = DIAL_CENTER
+    panels = cylinder(0, 0, radius, bottom, top, color, sides=DIAL_SIDES,
+                      wall=wall, solid=solid, small_sides=DIAL_SIDES)
+    for panel in panels:
+        x, y, z = panel["origin"]
+        dx, dy, dz = panel["size"]
+        # Permuting the cylinder axis from z to y keeps every panel on one rotation axis (0009).
+        panel["origin"] = [cx + x, z, cz - y - dy]
+        panel["size"] = [dx, dz, dy]
+        panel["pivot"] = [cx, bottom, cz]
+        panel["rotation"] = [0, panel["rotation"][2], 0]
+        if ribs:
+            panel["origin"][0] += dx * 0.08
+            panel["size"][0] *= 0.84
+    return panels
+
+
+dial += dial_ring(0.77, DIAL_Y + 0.22, DIAL_Y + 0.35, "button", solid=True)
+dial += dial_ring(0.69, DIAL_Y + 0.35, DIAL_Y + 0.85, "button", ribs=True)
+dial += dial_ring(0.76, DIAL_Y + 0.82, DIAL_Y + 0.88, "steel")
+dial += dial_ring(0.74, DIAL_Y + 0.88, DIAL_Y + 0.94, "steel")
+dial += dial_ring(0.66, DIAL_Y + 0.85, DIAL_Y + 0.94, "button", solid=True)
+body += dial
 
 # Wraparound windshield: the front leans back toward the cockpit about 55 degrees and the side panes
 # follow the gunwale back to z -10. Every pane is one thin cube rotated to its slope (ADR 0158).
