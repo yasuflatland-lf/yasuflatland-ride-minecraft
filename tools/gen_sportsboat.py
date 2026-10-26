@@ -733,6 +733,85 @@ def slice_band(row, z0, z1):
     return pair(inner, y0, z0, outer, y1, z1, row.swatch) if outer > inner else []
 
 
+INTERIOR_CLEARANCE = 0.002  # covers the geo.json's four-decimal coordinate and angle rounding
+INTERIOR_STEP = 0.05  # conservative interval bounds, including every rotated footprint corner
+
+
+def interior_footprint(cube):
+    """Right-side cube outline, including the square ends extended by the seam allowance."""
+    x, _, z = cube["origin"]
+    w, _, d = cube["size"]
+    px, _, pz = cube.get("pivot", (0, 0, 0))
+    angle = math.radians(cube.get("rotation", (0, 0, 0))[1])
+    c, s = math.cos(angle), math.sin(angle)
+    corners = [(pz - (a - px) * s + (b - pz) * c,
+                px + (a - px) * c + (b - pz) * s)
+               for a, b in ((x, z), (x + w, z), (x + w, z + d), (x, z + d))]
+    zs = sorted({a for a, _ in corners})
+    # plank_inner can change slope or jump at a band segment's end.
+    zs = sorted({*zs, *(a for i in BANDS for segment in band_segments(i)
+                       for a in (segment[0], segment[2]) if zs[0] < a < zs[-1])})
+    samples = sorted({a + (b - a) * j / max(1, math.ceil((b - a) / INTERIOR_STEP))
+                      for a, b in zip(zs, zs[1:])
+                      for j in range(max(1, math.ceil((b - a) / INTERIOR_STEP)) + 1)})
+    outline = []
+    for at in samples:
+        xs = []
+        for (za, xa), (zb, xb) in zip(corners, corners[1:] + corners[:1]):
+            if min(za, zb) - 1e-9 <= at <= max(za, zb) + 1e-9:
+                xs.append(xa + (xb - xa) * (at - za) / (zb - za) if abs(zb - za) > 1e-9 else max(abs(xa), abs(xb)))
+        outline.append((at, max(map(abs, xs))))
+    return outline
+
+
+def interior_fits(cube, y):
+    outline = interior_footprint(cube)
+    limits = [plank_inner(y, z) - INTERIOR_CLEARANCE for z, _ in outline]
+    # In the bow, half_breadth and every plank chord decrease toward the stem. Between
+    # footprint and plank corners their endpoint minima bound the whole interval.
+    return all(max(a[1], b[1]) <= min(lo, hi)
+               for a, b, lo, hi in zip(outline, outline[1:], limits, limits[1:]))
+
+
+def clip_interior(cube, wall=False):
+    """Keep the inboard line fixed while removing the concealed outboard excess."""
+    y0 = cube["origin"][1]
+    y1 = y0 + cube["size"][1]
+    if wall:
+        # The rising keel leaves no room for the wall at DECK_BOW near the stem.
+        # Keep its full height above the first level that can contain its footprint.
+        top = dict(cube, size=list(cube["size"]))
+        if not interior_fits(top, y1):
+            lo, hi = 0.0, top["size"][0]
+            for _ in range(24):
+                top["size"][0] = (lo + hi) / 2
+                if interior_fits(top, y1):
+                    lo = top["size"][0]
+                else:
+                    hi = top["size"][0]
+            cube["size"][0] = lo
+        if not interior_fits(cube, y0):
+            lo, hi = y0, y1
+            for _ in range(24):
+                mid = (lo + hi) / 2
+                if interior_fits(cube, mid):
+                    hi = mid
+                else:
+                    lo = mid
+            cube["origin"][1] = hi
+            cube["size"][1] = y1 - hi
+    elif not interior_fits(cube, y0):
+        lo, hi = 0.0, cube["size"][0]
+        for _ in range(24):
+            cube["size"][0] = (lo + hi) / 2
+            if interior_fits(cube, y0):
+                lo = cube["size"][0]
+            else:
+                hi = cube["size"][0]
+        cube["size"][0] = lo
+    return cube
+
+
 def plan_chain(row, start, end):
     """Horizontal inset lines need cosine-scaled local depth (ADR 0162)."""
     stations = [start, *(z for z in PLAN_STATIONS if start < z < end), end]
@@ -753,8 +832,15 @@ def plan_chain(row, start, end):
         fore_depth = max(depth, depths[i + 1]) if i + 1 < len(depths) else depth
         overlaps = (joint_overlap(aft_depth, aft_turn), joint_overlap(fore_depth, fore_turn))
         setbacks = (joint_setback(overlaps[0], aft_turn), joint_setback(overlaps[1], fore_turn))
-        cubes += paired_plank(*segment, row.y0(zc, s, k), row.y1(zc, s, k), row.swatch,
+        panels = paired_plank(*segment, row.y0(zc, s, k), row.y1(zc, s, k), row.swatch,
                               depth, overlaps, setbacks=setbacks)
+        if row.name != "bow_rail":
+            right = clip_interior(panels[0], row.name == "gunwale_wall")
+            x, y, z = right["origin"]
+            w, h, d = right["size"]
+            extra = {key: right[key] for key in ("pivot", "rotation") if key in right}
+            panels = pair(x, y, z, x + w, y + h, z + d, row.swatch, **extra)
+        cubes += panels
     return cubes
 
 
@@ -778,7 +864,12 @@ def bow_interior():
             if row.name == "bow_floor" and b <= 22:
                 spans += slice_band(row, a, b)
                 continue
-            half = max(row.outer.x(beam_plan(z)) for z in (a, b))
+            y0 = row.y0(zc, s, k)
+            band = y0 // BAND
+            samples = {a, b, *(z for segment in band_segments(band)
+                               for z in (segment[0], segment[2]) if a < z < b)}
+            half = min(max(row.outer.x(beam_plan(z)) for z in (a, b)),
+                       *(plank_inner(y0, z) - INTERIOR_CLEARANCE for z in samples))
             if half > 0:
                 span = box(-half, row.y0(zc, s, k), a, half, row.y1(zc, s, k), b, row.swatch)
                 previous = spans[-1] if spans else None

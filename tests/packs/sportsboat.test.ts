@@ -526,10 +526,7 @@ describe("sports boat hull planking (ADR 0161)", () => {
   });
 
   it("keeps side rays on the V bands above the accepted stepped keel", () => {
-    // The bow walls follow the full beam above DECK_BOW, rather than the V-band breadth (0162).
-    const hull = cubes.filter(
-      (cube) => isHull(cube) && !(cube.origin[1] === 11 && cube.size[1] > 6),
-    );
+    const hull = cubes.filter(isHull);
     for (let z = -47.875; z < 47; z += 0.25) {
       for (let y = 3; y < lerp(SHEER, z) - 2.75; y += 2) {
         if (y < lerp(KEEL, z) + 2) continue;
@@ -707,7 +704,7 @@ describe("sports boat hull planking (ADR 0161)", () => {
       }
     });
 
-    it(`stays within the 1166-cube budget (${cubes.length} cubes)`, () => {
+    it("does not grow beyond 1166 cubes (regression guard)", () => {
       expect(cubes.length).toBeLessThanOrEqual(1166);
     });
   });
