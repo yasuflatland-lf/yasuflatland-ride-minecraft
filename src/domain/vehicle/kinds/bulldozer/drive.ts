@@ -249,14 +249,15 @@ export class BulldozerDrive extends TransformingDrive {
         climbInput(raw) > 0);
     if (!rising) return [];
     const { margin, reach } = BULLDOZER_SPEC.shaft;
-    const box = { bodyHeight: BULLDOZER_SPEC.carHeight, reach };
     const half = BULLDOZER_SPEC.footprint / 2;
-    const blocked = shaftColumns(ctx.location, {
-      ...box,
-      halfExtent: half,
-    }).some((c) => this.solidOverhead(ctx, c));
-    return blocked
-      ? shaftColumns(ctx.location, { ...box, halfExtent: half + margin })
+    const shaft = (halfExtent: number) =>
+      shaftColumns(ctx.location, {
+        halfExtent,
+        bodyHeight: BULLDOZER_SPEC.carHeight,
+        reach,
+      });
+    return shaft(half).some((c) => this.solidOverhead(ctx, c))
+      ? shaft(half + margin)
       : [];
   }
 
