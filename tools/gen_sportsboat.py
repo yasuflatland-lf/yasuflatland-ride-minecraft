@@ -1263,7 +1263,6 @@ ROOF_PANELS = [ROOF_REAR, ROOF_MAIN, ROOF_LIP]
 
 
 def roof_top(z):
-    # The last rolled-edge slice samples z = 9; clamp outside the roof's nominal footprint.
     z = max(B_REAR, min(B_FRONT, z))
     for _, z0, z1, y0, y1 in ROOF_PANELS:
         if z <= z1:
@@ -1305,20 +1304,15 @@ body += pair(SKIRT_INNER, skirt_top - SKIRT_THICK, SKIRT_MAIN[0],
              SKIRT_INNER + math.hypot(SKIRT_RUN, SKIRT_DROP), skirt_top, SKIRT_MAIN[1], "canvas",
              pivot=[SKIRT_INNER, skirt_top, sum(SKIRT_MAIN) / 2], rotation=[0, 0, -math.degrees(SKIRT_ANGLE)])
 
-z = B_REAR
-while z < B_FRONT:
-    zc = z + SLICE / 2
-    front = B_FRONT - zc
-    rear = zc - B_REAR
-    corner = 2.0 if min(front, rear) < 1.5 else 0.8 if min(front, rear) < 3.5 else 0.0
-    hw = B_HALF - corner
-    top = roof_top(zc)
-    if SKIRT_MAIN[0] <= z and z + SLICE <= SKIRT_MAIN[1]:
-        z += SLICE
-        continue
-    body += pair(hw - 3, top - B_THICK - 0.8, z, hw - 1, top - 0.3, z + SLICE, "canvas")
-    body += pair(hw - 1, top - B_THICK - 1.6, z, hw, top - 1.0, z + SLICE, "canvas")
-    z += SLICE
+# The nearly level rear panel lets each corner remain one sheet, inset from the main skirt.
+SKIRT_REAR = (B_REAR, -3.0)
+REAR_SKIRT_RUN = 2.0
+REAR_SKIRT_DROP = 3.6
+rear_skirt_top = roof_top(SKIRT_REAR[0]) - 0.3
+body += pair(SKIRT_INNER, rear_skirt_top - SKIRT_THICK, SKIRT_REAR[0],
+             SKIRT_INNER + math.hypot(REAR_SKIRT_RUN, REAR_SKIRT_DROP), rear_skirt_top, SKIRT_REAR[1], "canvas",
+             pivot=[SKIRT_INNER, rear_skirt_top, sum(SKIRT_REAR) / 2],
+             rotation=[0, 0, -math.degrees(math.atan2(REAR_SKIRT_DROP, REAR_SKIRT_RUN))])
 
 # Tower speakers set into the underside of the top near its rear edge, a quarter of the way in from
 # each side, facing aft as on the reference. Each is a bullet-shaped matte pod that narrows toward

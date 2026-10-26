@@ -487,7 +487,7 @@ describe("sports boat hull planking (ADR 0161)", () => {
     }
     return lo <= hi ? [lo, hi] : undefined;
   };
-  describe("bimini top panels (ADR 0164, roof series 1/3)", () => {
+  describe("bimini top panels (ADR 0164, roof series 3/3)", () => {
     const canvas = bone("body").filter(swatch(5));
     const panels = canvas.filter((cube) => cube.size[0] === 32);
     const hatches = bone("body").filter(swatch(6));
@@ -610,51 +610,39 @@ describe("sports boat hull planking (ADR 0161)", () => {
       }
     });
 
-    // The main skirts are the two 0.8 px canvas cubes turned about z.
-    const skirts = canvas.filter((cube) => cube.rotation?.[2]);
-    const rolled = canvas.filter(
-      (cube) => !panels.includes(cube) && !skirts.includes(cube),
-    );
+    const allSkirts = canvas.filter((cube) => cube.rotation?.[2]);
+    const skirts = allSkirts.filter((cube) => cube.size[2] === 9);
+    const rearSkirts = allSkirts.filter((cube) => cube.size[2] === 7);
 
-    it("keeps the 24 rolled-edge cubes outside the main skirt's span, without ribs", () => {
-      expect(rolled).toHaveLength(24);
-      for (const edge of rolled) {
-        const z = -(edge.origin[2] + edge.size[2] / 2);
-        expect(z <= -3 || z > 6).toBe(true);
-        const [z0, z1, y0, y1] =
-          expected.find((panel) => z <= panel[1]) ?? expected[2];
-        const surface = y0 + ((y1 - y0) * (z - z0)) / (z1 - z0);
-        const drop = edge.size[0] === 2 ? 0.3 : 1;
-        expect(edge.origin[1] + edge.size[1]).toBeCloseTo(surface - drop, 3);
-        expect(edge.size[2]).toBe(2);
-        expect(edge.rotation).toBeUndefined();
-      }
+    it("has no sliced canvas edges or underside ribs", () => {
+      expect(canvas).toHaveLength(7);
+      for (const cube of canvas) expect(cube.size[2]).toBeGreaterThan(2);
       expect(
         bone("body").filter((cube) => swatch(4)(cube) && cube.origin[1] > 33),
       ).toHaveLength(0);
     });
 
+    // The game turns z the other way from the right-handed one (ADR 0058), and the shipped
+    // geometry is the build frame turned around, so the written rz is right-handed in the
+    // build frame; build x = -x, build z = -z.
+    const corners = (cube: Cube) => {
+      const pivot = cube.pivot ?? [0, 0, 0];
+      const t = (-(cube.rotation?.[2] ?? 0) * Math.PI) / 180;
+      return [0, 1].flatMap((i) =>
+        [0, 1].map((j) => {
+          const x = cube.origin[0] + i * cube.size[0] - pivot[0];
+          const y = cube.origin[1] + j * cube.size[1] - pivot[1];
+          return [
+            -(pivot[0] + x * Math.cos(t) - y * Math.sin(t)),
+            pivot[1] + x * Math.sin(t) + y * Math.cos(t),
+          ];
+        }),
+      );
+    };
     describe("main side skirts (ADR 0164, roof series 2/3)", () => {
       const dx = 3;
       const drop = 2.6;
       const angle = (Math.atan2(drop, dx) * 180) / Math.PI;
-      // The game turns z the other way from the right-handed one (ADR 0058), and the shipped
-      // geometry is the build frame turned around, so the written rz is right-handed in the
-      // build frame; build x = -x, build z = -z.
-      const corners = (cube: Cube) => {
-        const pivot = cube.pivot ?? [0, 0, 0];
-        const t = (-(cube.rotation?.[2] ?? 0) * Math.PI) / 180;
-        return [0, 1].flatMap((i) =>
-          [0, 1].map((j) => {
-            const x = cube.origin[0] + i * cube.size[0] - pivot[0];
-            const y = cube.origin[1] + j * cube.size[1] - pivot[1];
-            return [
-              -(pivot[0] + x * Math.cos(t) - y * Math.sin(t)),
-              pivot[1] + x * Math.sin(t) + y * Math.cos(t),
-            ];
-          }),
-        );
-      };
       const pieces = [...skirts].sort((a, b) => b.origin[0] - a.origin[0]);
 
       it("is one 0.8 px piece per side, turned about z only, with opposite signs and mirrored pivots", () => {
@@ -702,11 +690,63 @@ describe("sports boat hull planking (ADR 0161)", () => {
       });
     });
 
-    it("builds the Bimini block from at most 4 + 2 + the slice edges left outside z -3..6", () => {
-      expect(
-        skirts.length + rolled.length + panels.length + hatches.length,
-      ).toBe(30);
-      expect(cubes).toHaveLength(1121);
+    describe("rear corner skirts (ADR 0164, roof series 3/3)", () => {
+      it("uses two mirrored 0.8 px sheets over z -10..-3 with a steeper z-only turn", () => {
+        expect(rearSkirts).toHaveLength(2);
+        expect(allSkirts).toHaveLength(4);
+        const angle = (Math.atan2(3.6, 2) * 180) / Math.PI;
+        const [left, right] = rearSkirts as [Cube, Cube];
+        expect(left.rotation?.[2]).toBeCloseTo(-(right.rotation?.[2] ?? 0), 4);
+        expect(left.pivot?.[0]).toBeCloseTo(-(right.pivot?.[0] ?? 0), 4);
+        for (const cube of rearSkirts) {
+          expect(cube.rotation?.slice(0, 2)).toEqual([0, 0]);
+          expect(Math.abs(cube.rotation?.[2] ?? 0)).toBeCloseTo(angle, 1);
+          expect(Math.abs(cube.rotation?.[2] ?? 0)).toBeGreaterThan(
+            (Math.atan2(2.6, 3) * 180) / Math.PI,
+          );
+          expect(cube.size[1]).toBeCloseTo(0.8, 3);
+          expect(cube.origin[2]).toBe(3);
+          expect(cube.size[2]).toBe(7);
+          expect(cube.pivot).toEqual([
+            expect.closeTo(Math.sign(cube.pivot?.[0] ?? 0) * 16, 3),
+            expect.closeTo(dome(-10) - 0.3, 3),
+            6.5,
+          ]);
+        }
+      });
+
+      it("lowers the outer top edge by 3.6 px to x 18, one pixel inboard of the main skirt", () => {
+        for (const cube of rearSkirts) {
+          const topCorners = corners(cube).filter((_, i) => i % 2 === 1);
+          const ordered = topCorners.sort(
+            (a, b) => Math.abs(a[0] ?? 0) - Math.abs(b[0] ?? 0),
+          );
+          const [inner, outer] = ordered;
+          expect(Math.abs(inner?.[0] ?? 0)).toBeCloseTo(16, 3);
+          expect(Math.abs(outer?.[0] ?? 0)).toBeCloseTo(18, 3);
+          expect((inner?.[1] ?? 0) - (outer?.[1] ?? 0)).toBeCloseTo(3.6, 3);
+          expect(Math.sign(outer?.[0] ?? 0)).toBe(
+            -Math.sign(cube.pivot?.[0] ?? 0),
+          );
+        }
+      });
+    });
+
+    it("builds the entire Bimini from eight cubes with at most one rotation axis each", () => {
+      const bimini = [
+        ...canvas,
+        ...hatches,
+        ...bone("body").filter(
+          (cube) => swatch(4)(cube) && cube.origin[1] > 33,
+        ),
+      ];
+      expect(bimini).toHaveLength(8);
+      for (const cube of bimini) {
+        expect(
+          (cube.rotation ?? []).filter((angle) => angle !== 0).length,
+        ).toBeLessThanOrEqual(1);
+      }
+      expect(cubes).toHaveLength(1099);
     });
   });
 
