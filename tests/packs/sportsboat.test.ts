@@ -1382,20 +1382,26 @@ describe("sports boat hull planking (ADR 0161)", () => {
         expect(cube.rotation).toEqual([45, 0, 0]);
         expect(cube.pivot).toEqual([-9.2, F + 8, -13.5]);
       }
-      near(frame.size, [7, 4.4, 0.6]);
+      near(frame.size, [7, 4.2, 0.6]);
       // Moved 3.7 px toward the switch plate (turned frame: -x), so the centre sits at 9.2 (was 5.5).
       expect(frame.origin[0] + frame.size[0] / 2).toBeCloseTo(-9.2);
       expect(face.origin[0] + face.size[0] / 2).toBeCloseTo(-9.2);
-      near(face.size, [6.2, 3.6, 0.1]);
+      near(face.size, [6.4, 3.6, 0.1]);
+      expect(Math.abs(face.size[0] / face.size[1] - 16 / 9)).toBeLessThan(0.01);
+      expect(frame.origin[1]).toBeCloseTo(F + 8.15);
       // In the turned frame the driver is at +z; both plates share the same transform.
       const surface = frame.origin[2] + frame.size[2];
       expect(face.origin[2]).toBeCloseTo(surface);
       expect(face.origin[2] + face.size[2] - surface).toBeCloseTo(0.1);
       for (const axis of [0, 1]) {
-        expect(face.origin[axis]).toBeGreaterThan(frame.origin[axis] ?? 0);
-        expect((face.origin[axis] ?? 0) + (face.size[axis] ?? 0)).toBeLessThan(
-          (frame.origin[axis] ?? 0) + (frame.size[axis] ?? 0),
-        );
+        expect(
+          (face.origin[axis] ?? 0) - (frame.origin[axis] ?? 0),
+        ).toBeCloseTo(0.3);
+        expect(
+          (frame.origin[axis] ?? 0) +
+            (frame.size[axis] ?? 0) -
+            ((face.origin[axis] ?? 0) + (face.size[axis] ?? 0)),
+        ).toBeCloseTo(0.3);
       }
     });
 
@@ -1559,7 +1565,7 @@ print(json.dumps({"uv": list(uv), "size": list(size)}))
       const obstacles = body.filter(
         (cube) =>
           (cube.origin[0] === -12.7 && cube.origin[2] === -13.65) ||
-          (cube.origin[0] === -12.3 && cube.origin[2] === -13.05) ||
+          (cube.origin[0] === -12.4 && cube.origin[2] === -13.05) ||
           (cube.origin[0] >= -15.7 &&
             cube.origin[0] <= -13.1 &&
             cube.origin[1] >= F + 6.5 &&
@@ -1903,7 +1909,8 @@ print(json.dumps({name: {"uv": uv, "size": size}
         uv: [number, number];
         size: [number, number];
       };
-      expect(display).toEqual({ uv: [84, 4], size: [24, 12] });
+      expect(display).toEqual({ uv: [84, 4], size: [32, 18] });
+      expect(display.size[0] / display.size[1]).toBeCloseTo(16 / 9);
       expect(geometry.description.texture_width).toBe(128);
       expect(geometry.description.texture_height).toBe(32);
       for (const [axis, limit] of [128, 32].entries()) {
@@ -1928,6 +1935,7 @@ print(json.dumps({name: {"uv": uv, "size": size}
         (cube) => cube.uv.south?.uv[0] === 84 && cube.uv.south?.uv[1] === 4,
       );
       expect(faces).toHaveLength(1);
+      expect(faces[0]).toEqual(helm[9]);
       expect(faces[0]?.uv.south).toEqual({
         uv: display.uv,
         uv_size: display.size,

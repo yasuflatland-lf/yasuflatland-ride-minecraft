@@ -148,6 +148,16 @@ Cube counts: 3 extension + 32 pod + 8 lever = **43 new cubes**. The helm goes fr
 
 Open question for the owner (B35): from the driver's seat on PC and mobile, does the throttle sit on the extended black console right of the seat, with a dome pod, chrome pivot and grip raised toward the bow, no text or logos, no clipping into the wheel, dial or seat, and nothing floating? **Verdict: unverified, awaiting the owner's device check.**
 
+### Display widened to 16:9 (#690)
+
+The `screen` face is 6.4 x 3.6 px in the plate plane (exactly 16:9), 0.1 thick, inside a 7.0 x 4.2 px `gloss` frame, 0.6 thick. Both retain their centre x = 5.5 + DISPLAY_DX = 9.2: the face spans x 6.0..12.4 and the frame x 5.7..12.7. The bezel is an even 0.3 px on all four sides, rather than 0.4, because the switch plate at x 12.8 caps the frame width. The frame bottom stays at F+8.15 and its top is F+12.35; the face spans F+8.45..F+12.05. The z coordinates, pivot, DISPLAY_DX and SCREEN_TILT = -45 about x only stay unchanged. The face remains flush with the frame's driver-side surface, with no added rim plates.
+
+The `display` tile remains at [84, 4] and grows to 32 x 18 texels in the unchanged 128 x 32 atlas. Other tiles do not move. The dark navy UI keeps two circular blue-arc gauges with soft glows, three vertical sliders with red markers, top tabs with the middle tab lit, outer bar meters, bottom icons and bottom-left yellow and bottom-right red triangles. All marks are generic shapes, with no letters, digits or branding; tile top is the far edge.
+
+The display remains two cubes. The historical 162/162 helm and 1223/1223 whole-model counts predate the detailed dial and throttle: the current counts are **316/316 helm cubes and 1377/1377 whole-model cubes**, unchanged by this widening. Roof, speakers, hull, wheel, dial, switch plate and throttle geometry are unchanged. Generated-JSON tests check the plate and tile aspect ratios, face UV, even bezel, x-only tilt, driver-side contact and existing neighbour, rail and glass clearances. Resource Pack header/module and Behavior Pack Resource Pack dependency versions advance from **0.1.165 to 0.1.166**. Regenerate the model, textures and previews.
+
+Open question for the owner (B34): on PC and mobile, does the wide 16:9 panel read clearly from the driver's seat, with an even glossy bezel, circular gauges and no clipping? **Verdict: unverified, awaiting the owner's device check.**
+
 ## Consequences
 
 - 5/7 tilts the wheel by one helper call instead of hand-composing angles. ADR 0167 replaces its historical one-assembly limit; #684 adds the registered throttle lever.
