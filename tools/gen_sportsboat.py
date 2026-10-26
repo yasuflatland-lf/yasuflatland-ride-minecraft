@@ -199,6 +199,33 @@ def paint_switch_plate(pixels):
                     pixels[v + by + y][u + bx + x] = SWITCH_BUTTON_COLORS[ch]
 
 
+# Top is the far end, matching switch_plate. Cut corners leave a dark chamfer around the dial.
+CONTROL_BUTTON = [".LLL.", "LDDDL", "LSSSL", "LDDDL", ".LLL."]
+CONTROL_WIDE_BUTTON = [".LLLLL.", "LDDDDDL", "LDSSSDL", ".LLLLL."]
+CONTROL_TINY_BUTTON = [".LLL.", "LDDDL", "LSSSL", ".LLL."]
+CONTROL_COLORS = {"L": (124, 128, 134), "D": PALETTE["button"], "S": (210, 214, 220)}
+CONTROL_BUTTONS = [(0, 1, CONTROL_BUTTON), (5, 0, CONTROL_WIDE_BUTTON),
+                   (0, 11, CONTROL_BUTTON), (11, 11, CONTROL_BUTTON),
+                   (11, 1, CONTROL_TINY_BUTTON)]
+
+
+def paint_control_pad(pixels):
+    (u, v), (w, h) = tile_layout.TILE_RECTS["control_pad"]
+    for y in range(h):
+        for x in range(w):
+            chamfer = min(x, w - 1 - x) + min(y, h - 1 - y) < 2
+            radius = math.hypot(x - (w - 1) / 2, y - (h - 1) / 2)
+            color = (30, 30, 34) if not chamfer else PALETTE["gloss"]
+            if 4.0 <= radius <= 5.2:
+                color = (112, 116, 122)
+            pixels[v + y][u + x] = color
+    for bx, by, pattern in CONTROL_BUTTONS:
+        for y, row in enumerate(pattern):
+            for x, ch in enumerate(row):
+                if ch != ".":
+                    pixels[v + by + y][u + bx + x] = CONTROL_COLORS[ch]
+
+
 def paint_mirror(pixels):
     (u, v), (w, h) = tile_layout.TILE_RECTS["mirror"]
     for y in range(v, v + h):
@@ -208,7 +235,8 @@ def paint_mirror(pixels):
 
 # The layout lives in tools/tile_layout.py so tests can read it without running this generator.
 tile_layout = tile_layout_module()
-TILE_PAINTERS = {"quilt": paint_quilt, "mirror": paint_mirror, "switch_plate": paint_switch_plate}
+TILE_PAINTERS = {"quilt": paint_quilt, "mirror": paint_mirror, "switch_plate": paint_switch_plate,
+                 "control_pad": paint_control_pad}
 TILES = {name: {"uv": list(uv_), "size": list(size), "paint": TILE_PAINTERS[name]}
          for name, (uv_, size) in tile_layout.TILE_RECTS.items()}
 tile_layout.assert_tile_allocations(tile_layout.TILE_RECTS, TEXTURE_WIDTH, TEXTURE_HEIGHT)
@@ -1167,8 +1195,19 @@ body.append(box(11.2, F + 8.3, 12.3, 12.2, F + 10.4, 12.4, "screen"))
 # The plate leans like the display (top toward +z, so a negative x rotation, ADR 0051) and pivots at its
 # low edge, which rests on the dash. The six buttons are painted on its face (ADR 0166).
 SWITCH_TILT = -20
-body.append(box(12.8, F + 8, 10.6, 15.0, F + 8.4, 13.4, "gloss", tiles={"up": "switch_plate"},
-                pivot=[13.9, F + 8, 13.4], rotation=[SWITCH_TILT, 0, 0]))
+body.append(box(12.8, F + 8, 11.8, 15.0, F + 8.4, 14.6, "gloss", tiles={"up": "switch_plate"},
+                pivot=[13.9, F + 8, 14.6], rotation=[SWITCH_TILT, 0, 0]))
+# The raised near end overhangs the ledge; the low edge rests on the dash (ADR 0166).
+CONTROL_PIVOT = [13.5, F + 8, 11.8]
+body.append(box(12.0, F + 8, 8.8, 15.0, F + 8.4, 11.8, "gloss", tiles={"up": "control_pad"},
+                pivot=CONTROL_PIVOT, rotation=[SWITCH_TILT, 0, 0]))
+# Crossing bars approximate the dial without disc()'s second rotation axis (0009).
+for half_x, half_z in ((0.9, 0.5), (0.5, 0.9)):
+    body.append(box(13.5 - half_x, F + 8.4, 10.3 - half_z,
+                    13.5 + half_x, F + 8.9, 10.3 + half_z, "button",
+                    pivot=CONTROL_PIVOT, rotation=[SWITCH_TILT, 0, 0]))
+body.append(box(13.2, F + 8.9, 10.0, 13.8, F + 9.0, 10.6, "steel",
+                pivot=CONTROL_PIVOT, rotation=[SWITCH_TILT, 0, 0]))
 # Two chrome-rimmed cupholders: on the dash between the display and the wheel, and on the ledge below
 for x0, y0, z0, size in ((9.6, F + 8, 10.4, 1.3), (3.9, F + 7, 9.0, 1.0)):
     body.append(box(x0, y0, z0, x0 + size, y0 + 0.15, z0 + size, "chrome"))
