@@ -881,7 +881,7 @@ describe("sports boat hull planking (ADR 0161)", () => {
           (cube.rotation ?? []).filter((angle) => angle !== 0).length,
         ).toBeLessThanOrEqual(1);
       }
-      expect(cubes).toHaveLength(1109);
+      expect(cubes).toHaveLength(1225);
     });
   });
 
@@ -898,21 +898,151 @@ describe("sports boat hull planking (ADR 0161)", () => {
     const isSpoke = (cube: Cube) => swatch(17)(cube) && cube.size[2] < 0.2;
     const isMount = (cube: Cube) => swatch(3)(cube) && cube.size[0] === 1;
 
-    it("builds each speaker from 16 disc cubes, 12 spokes and a mount", () => {
+    it("builds each speaker from 74 panels, 12 spokes and a mount", () => {
       const spokes = speakers.filter(isSpoke);
       const mounts = speakers.filter(isMount);
       expect(spokes).toHaveLength(24);
       expect(mounts).toHaveLength(2);
-      expect(speakers.length - spokes.length - mounts.length).toBe(32);
-      expect(speakers).toHaveLength(58);
+      expect(speakers.length - spokes.length - mounts.length).toBe(148);
+      expect(speakers).toHaveLength(174);
+      expect(speakers.length).toBeLessThanOrEqual(186);
+    });
+
+    const sections = [
+      { name: "back", r: 1.6, z0: -0.05, z1: 0, swatch: 3 },
+      { name: "hub", r: 0.45, z0: -0.25, z1: -0.05, swatch: 17 },
+      { name: "bezel", r: 1.9, z0: 0, z1: 0.5, swatch: 20 },
+      { name: "ring", r: 1.95, z0: 0.5, z1: 0.7, swatch: 18 },
+      { name: "pod_0", r: 1.9, z0: 0.7, z1: 2.4, swatch: 20 },
+      { name: "pod_1", r: 1.6, z0: 2.4, z1: 3.6, swatch: 20 },
+      { name: "pod_2", r: 1.15, z0: 3.6, z1: 4.5, swatch: 20 },
+      { name: "pod_3", r: 0.6, z0: 4.5, z1: 5, swatch: 20 },
+    ];
+    const close = (a: number, b: number) => Math.abs(a - b) < 0.01;
+    const atSpeaker = (cube: Cube, sx: number) =>
+      close(cube.pivot?.[0] ?? 0, sx);
+    // Bedrock turns z clockwise in the shipped frame (ADR 0058).
+    const corner = (cube: Cube, x: number, y: number) => {
+      const [px = 0, py = 0] = cube.pivot ?? [];
+      const angle = -((cube.rotation?.[2] ?? 0) * Math.PI) / 180;
+      const dx = x - px;
+      const dy = y - py;
+      return [
+        dx * Math.cos(angle) - dy * Math.sin(angle),
+        dx * Math.sin(angle) + dy * Math.cos(angle),
+      ] as const;
+    };
+    const distance = (a: readonly number[], b: readonly number[]) =>
+      Math.hypot((a[0] ?? 0) - (b[0] ?? 0), (a[1] ?? 0) - (b[1] ?? 0));
+
+    for (const sx of [-9.5, 9.5]) {
+      for (const section of sections) {
+        const solid = ["back", "hub", "pod_3"].includes(section.name);
+        const sides = solid && section.r < 1 ? 8 : 12;
+        const panelCount = solid ? sides / 2 : sides;
+        it(`makes ${section.name} at x ${sx} from tangent panels meeting at shared vertices`, () => {
+          const panels = speakers
+            .filter(
+              (cube) =>
+                swatch(section.swatch)(cube) &&
+                atSpeaker(cube, sx) &&
+                close(cube.origin[2], 8.6 - section.z1) &&
+                close(cube.size[2], section.z1 - section.z0) &&
+                close(
+                  cube.origin[1] + cube.size[1] - (cube.pivot?.[1] ?? 0),
+                  section.r,
+                ),
+            )
+            .sort((a, b) => (a.rotation?.[2] ?? 0) - (b.rotation?.[2] ?? 0));
+          expect(panels).toHaveLength(panelCount);
+          for (const [k, panel] of panels.entries()) {
+            expect(panel.rotation?.slice(0, 2)).toEqual([0, 0]);
+            expect(panel.rotation?.[2]).toBeCloseTo((360 * k) / sides, 4);
+            expect(panel.size[1]).toBeCloseTo(solid ? 2 * section.r : 0.5, 4);
+            expect(panel.size[0]).toBeCloseTo(
+              2 * section.r * Math.tan(Math.PI / sides),
+              4,
+            );
+            expect(panel.pivot?.[2]).toBeCloseTo(8.6 - section.z0, 4);
+            const [x, y] = panel.origin;
+            const w = panel.size[0];
+            const top = y + panel.size[1];
+            const left = corner(panel, x, top);
+            const right = corner(panel, x + w, top);
+            const faceDistance =
+              Math.abs(left[0] * right[1] - left[1] * right[0]) /
+              distance(left, right);
+            expect(Math.abs(faceDistance - section.r)).toBeLessThan(0.01);
+            const next = panels[(k + 1) % panelCount];
+            expect(next).toBeDefined();
+            if (next) {
+              const nextLeft = corner(
+                next,
+                next.origin[0] +
+                  (solid && k === panelCount - 1 ? next.size[0] : 0),
+                next.origin[1] +
+                  (solid && k === panelCount - 1 ? 0 : next.size[1]),
+              );
+              expect(distance(right, nextLeft)).toBeLessThan(0.01);
+            }
+            for (const cx of [x, x + w]) {
+              for (const cy of [y, top]) {
+                expect(
+                  Math.hypot(...corner(panel, cx, cy)),
+                ).toBeLessThanOrEqual(
+                  section.r / Math.cos(Math.PI / sides) + 0.01,
+                );
+              }
+            }
+          }
+        });
+      }
+    }
+
+    it("contains only section panels, spokes and mounts within the existing bounds", () => {
+      for (const cube of speakers) {
+        const sx = Math.sign(cube.origin[0] + cube.size[0] / 2) * 9.5;
+        const axis = speakers.find((panel) => atSpeaker(panel, sx))?.pivot;
+        expect(axis).toBeDefined();
+        const section = sections.find(
+          (section) =>
+            atSpeaker(cube, sx) &&
+            swatch(section.swatch)(cube) &&
+            close(cube.origin[2], 8.6 - section.z1) &&
+            close(cube.size[2], section.z1 - section.z0),
+        );
+        expect(Boolean(section) || isSpoke(cube) || isMount(cube)).toBe(true);
+        expect((cube.rotation ?? [0, 0, 0]).slice(0, 2)).toEqual([0, 0]);
+        for (const x of [cube.origin[0], cube.origin[0] + cube.size[0]]) {
+          for (const y of [cube.origin[1], cube.origin[1] + cube.size[1]]) {
+            const [dx, dy] = corner(cube, x, y);
+            const worldX = dx + (cube.pivot?.[0] ?? 0);
+            const worldY = dy + (cube.pivot?.[1] ?? 0);
+            expect(Math.abs(worldX - sx)).toBeLessThanOrEqual(
+              1.85 * Math.SQRT2 + 0.01,
+            );
+            expect(Math.abs(worldY - (axis?.[1] ?? 0))).toBeLessThanOrEqual(
+              1.85 * Math.SQRT2 + 0.01,
+            );
+            if (isSpoke(cube) || isMount(cube)) {
+              expect(
+                Math.hypot(worldX - sx, worldY - (axis?.[1] ?? 0)),
+              ).toBeLessThan(1.9 * Math.cos(Math.PI / 12));
+            }
+          }
+        }
+        expect(cube.origin[2]).toBeGreaterThanOrEqual(3.5);
+        expect(cube.origin[2] + cube.size[2]).toBeLessThanOrEqual(8.9);
+      }
+      expect(1.05 + 0.55).toBeLessThan(1.9 * Math.cos(Math.PI / 12));
     });
 
     it("splits the round sections by swatch", () => {
       const count = (index: number) => speakers.filter(swatch(index)).length;
-      expect(count(3)).toBe(6);
-      expect(count(17)).toBe(28);
-      expect(count(18)).toBe(4);
-      expect(count(20)).toBe(20);
+      expect(count(3)).toBe(14);
+      expect(count(17)).toBe(32);
+      expect(count(18)).toBe(24);
+      expect(count(20)).toBe(104);
     });
   });
 
@@ -1172,8 +1302,8 @@ describe("sports boat hull planking (ADR 0161)", () => {
       }
     });
 
-    it("does not grow beyond 1166 cubes (regression guard)", () => {
-      expect(cubes.length).toBeLessThanOrEqual(1166);
+    it("does not grow beyond 1225 cubes (regression guard)", () => {
+      expect(cubes.length).toBeLessThanOrEqual(1225);
     });
   });
 });
