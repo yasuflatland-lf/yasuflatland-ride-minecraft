@@ -1,7 +1,9 @@
 import { readFileSync } from "node:fs";
+import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { DOOR_BY_SEAT } from "../../src/domain/vehicle/kinds/suv/entity";
 import { SUV_PROFILE } from "../../src/domain/vehicle/kinds/suv/profile";
+import { turnedCorners } from "../support/geometry";
 import { assertOneAxis, multipleAxes } from "./oneAxis";
 
 type Vec3 = [number, number, number];
@@ -48,7 +50,97 @@ function pivot(name: string): Vec3 {
   return p;
 }
 
+function minus(p: Vec3, q: Vec3): Vec3 {
+  return [p[0] - q[0], p[1] - q[1], p[2] - q[2]];
+}
+
+function dot(p: Vec3, q: Vec3): number {
+  return p[0] * q[0] + p[1] * q[1] + p[2] * q[2];
+}
+
+function cross(p: Vec3, q: Vec3): Vec3 {
+  return [
+    p[1] * q[2] - p[2] * q[1],
+    p[2] * q[0] - p[0] * q[2],
+    p[0] * q[1] - p[1] * q[0],
+  ];
+}
+
+// Separating axes of two oriented boxes: their edges and each pair's cross product.
+// Testing turned corners catches a sloping flare even when its AABB overlaps a tire.
+function separated(a: Vec3[], b: Vec3[]): boolean {
+  const edges = (points: Vec3[]) =>
+    [1, 2, 4].map((i) => minus(points[i] as Vec3, points[0] as Vec3));
+  const edgesA = edges(a);
+  const edgesB = edges(b);
+  const axes = [
+    ...edgesA,
+    ...edgesB,
+    ...edgesA.flatMap((u) => edgesB.map((v) => cross(u, v))),
+  ];
+  return axes.some((axis) => {
+    const length = Math.hypot(...axis);
+    if (length < 1e-9) return false;
+    const unit = axis.map((v) => v / length) as Vec3;
+    const projectedA = a.map((p) => dot(p, unit));
+    const projectedB = b.map((p) => dot(p, unit));
+    return (
+      Math.max(...projectedA) <= Math.min(...projectedB) + 1e-8 ||
+      Math.max(...projectedB) <= Math.min(...projectedA) + 1e-8
+    );
+  });
+}
+
+function spun(points: Vec3[], hub: Vec3, radians: number): Vec3[] {
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  return points.map(([x, y, z]) => [
+    x,
+    hub[1] + (y - hub[1]) * cos - (z - hub[2]) * sin,
+    hub[2] + (y - hub[1]) * sin + (z - hub[2]) * cos,
+  ]);
+}
+
 describe("SUV model (ADR 0009)", () => {
+  it("keeps spinning road tires clear of flares, steps and bumpers", () => {
+    const bounds = (points: number[][]) =>
+      [0, 1, 2].map((axis) => {
+        const values = points.map((p) => p[axis] as number);
+        return [Math.min(...values), Math.max(...values)] as const;
+      });
+    const obstacles = [...bones.values()]
+      .filter((b) => b.name === "body" || b.name.startsWith("door_"))
+      .flatMap((b) => (b.cubes ?? []).map((c) => turnedCorners(b, c)))
+      .map((corners) => ({ corners, box: bounds(corners) }));
+    fc.assert(
+      fc.property(fc.double({ min: 0, max: 360, noNaN: true }), (angle) => {
+        const radians = (angle * Math.PI) / 180;
+        for (const name of ["wheel_fl", "wheel_fr", "wheel_rl", "wheel_rr"]) {
+          const wheel = bones.get(name) as Bone;
+          const hub = pivot(name);
+          for (const cube of wheel.cubes ?? []) {
+            const tire = spun(turnedCorners(wheel, cube), hub, radians);
+            const tireBox = bounds(tire);
+            for (const { corners: obstacle, box } of obstacles) {
+              // Most body cubes are inboard or above the wheels.
+              const apart = tireBox.some(
+                ([min, max], axis) =>
+                  max <= (box[axis] as readonly [number, number])[0] ||
+                  (box[axis] as readonly [number, number])[1] <= min,
+              );
+              if (!apart)
+                expect(
+                  separated(tire, obstacle),
+                  `${name} at ${angle} degrees`,
+                ).toBe(true);
+            }
+          }
+        }
+      }),
+      { numRuns: 12 },
+    );
+  });
+
   it("allows compound rotations only in declared assemblies (ADR 0167)", () => {
     const cubes = [...bones.values()].flatMap((bone) => bone.cubes ?? []);
     const assemblies = { arc: cubes.filter(multipleAxes) };

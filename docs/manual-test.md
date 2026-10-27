@@ -48,6 +48,9 @@ To use commands, run `docker exec yasuflatland-ride-bds send-command op <player 
 | 39 | Get out of a submarine in deep water and watch it for at least 10 seconds | The empty submarine rises to its float line and stays at the surface without becoming the hover car | | |
 | 40 | Drive into water deep enough for the submarine form, then get out while it floats | Under water a sonar ping, with a fainter echo about 1.6 seconds later, repeats every 4 seconds over a low rumble. After you get out no new ping starts, though the current one may finish (ADR 0041) | | |
 | 41 | While submerged, turn hard left and right | The body banks into the turn as in flight and keeps its depth (ADR 0044) | | |
+| 42 | Drive forward and reverse, then steer in both directions; inspect both sides while stopped (ADR 0170, 3/7) | The longer wheelbase and shorter overhangs match the side reference; spinning tires stay inside their arches and clear of the steps and bumpers | unverified | unverified |
+| 43 | Fold the wheels, fly forward and turn, then land and let the wheels unfold | Wheels, arms and glow discs stay aligned with the moved axles; folding clears the flares and bumpers, and wheels return to their arches | unverified | unverified |
+| 44 | Submerge, drive and turn underwater, then drive onto shore | Rear wheels, propellers and submarine arms stay attached at the moved axles without clipping; road wheels return to their arches on shore | unverified | unverified |
 
 ## Sports boat
 
