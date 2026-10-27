@@ -308,12 +308,16 @@ export async function dutchOvenOnPit(a: Arena): Promise<Outcome> {
     a.dim.runCommand(
       `kill @e[type=${FIRE_PIT_TYPE},x=${at.x},y=${at.y},z=${at.z},r=2]`,
     );
-    await wait(40);
+    const settled = () =>
+      oven?.getProperty(DUTCH_OVEN_SIMMERING_PROPERTY) === false &&
+      Math.abs(oven.location.y - a.gy) < 0.05;
+    // The host check runs every hostCheckTicks and a busy server stretches it.
+    for (let i = 0; i < 120 && !settled(); i++) await wait(1);
     const lidded = oven.getProperty(DUTCH_OVEN_SIMMERING_PROPERTY) === false;
     const fallen = Math.abs(oven.location.y - a.gy) < 0.05;
     return {
       pass: covered && simmering && standing && lidded && fallen,
-      detail: `fold=${folded.pass} covered=${covered} simmering=${simmering} standing=${standing} lidded=${lidded} fallen=${fallen}`,
+      detail: `fold=${folded.pass} covered=${covered} simmering=${simmering} standing=${standing} lidded=${lidded} fallen=${fallen} y=${oven.location.y.toFixed(2)}`,
     };
   } finally {
     if (oven?.isValid) oven.remove();
