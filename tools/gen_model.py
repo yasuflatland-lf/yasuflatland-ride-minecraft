@@ -245,8 +245,8 @@ body = [
     windshield_part(-CABIN_HALF_WIDTH, BELT_Y, WINDSHIELD_FOOT_Z, CABIN_HALF_WIDTH, BELT_Y + 1, HOOD_REAR_Z, "trim"),
     *both_sides([windshield_part(CABIN_HALF_WIDTH, BELT_Y, HOOD_REAR_Z - 1, BODY_HALF_WIDTH, BELT_Y + (ROOF_Y + 0.8 - BELT_Y) / _LEAN_COS, HOOD_REAR_Z, "body")]),
     # Rearview mirror (center of the windshield's top edge, behind the leaning glass)
-    box(-0.5, 26.5, ROOF_FRONT - 0.8, 0.5, ROOF_Y, ROOF_FRONT - 0.3, "trim"),
-    box(-2.5, 25, ROOF_FRONT - 1.3, 2.5, 26.5, ROOF_FRONT - 0.8, "rim"),
+    box(-0.5, ROOF_Y - 2.5, ROOF_FRONT - 0.8, 0.5, ROOF_Y, ROOF_FRONT - 0.3, "trim"),
+    box(-2.5, ROOF_Y - 4, ROOF_FRONT - 1.3, 2.5, ROOF_Y - 2.5, ROOF_FRONT - 0.8, "rim"),
     # Black hardtop roof
     box(-BODY_HALF_WIDTH, ROOF_Y, REAR, BODY_HALF_WIDTH, ROOF_TOP, ROOF_FRONT, "hardtop"),
     # B-pillars, down to the floor so they close the gap between the front and rear doors
@@ -264,7 +264,7 @@ body = [
     # other forms (ADR 0026).
     box(-BODY_HALF_WIDTH, FLOOR_Y, REAR, BODY_HALF_WIDTH, BELT_Y, REAR + 1, "body"),
     box(-BODY_HALF_WIDTH, WINDOW_TOP_Y, REAR, BODY_HALF_WIDTH, ROOF_Y, REAR + 1, "hardtop"),
-    box(-1.5, 26.3, REAR - 0.2, 1.5, WINDOW_TOP_Y, REAR, "tail"),
+    box(-1.5, WINDOW_TOP_Y - 0.7, REAR - 0.2, 1.5, WINDOW_TOP_Y, REAR, "tail"),
     # Tall tail lights at the rear corners, and the tailgate hinges on the right
     *both_sides([box(9.6, 10, REAR - 0.3, 12.8, 16, REAR, "tail")]),
     box(6.2, 14.2, REAR - 0.3, 9.0, 15.2, REAR, "body"),
