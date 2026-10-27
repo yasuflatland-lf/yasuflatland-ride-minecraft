@@ -182,14 +182,14 @@ def windshield_part(x0, y0, z0, x1, y1, z1, color):
     return turned(box(x0, y0, z0, x1, y1, z1, color), WINDSHIELD_PIVOT, (WINDSHIELD_LEAN, 0, 0))
 
 
-# Distance of the wheel hubs from the center line. The tires stand 1.5 px out from the body's side
-# (x 13), under over-fenders.
+# Distance of the wheel hubs from the center line. The tires stand out from the body's side, under
+# over-fenders.
 HUB_X = BODY_HALF_WIDTH + 2.5
 ROAD_WHEEL_RADIUS = 6
 HUB_Y = ROAD_WHEEL_RADIUS
 TIRE_HALF_WIDTH = 2
 FRONT_AXLE_Z, REAR_AXLE_Z = 17, -21
-# Outer face of the flares: 2.75 px out from the body's side, over the inner half of the tires
+# Outer face of the flares, over the inner half of the tires
 FLARE_X = BODY_HALF_WIDTH + 2.75
 FLARE_THICKNESS = 2
 # Wheel arch: the inside of each flare. Its flat top's underside, the top's half length, and the inner
@@ -873,7 +873,7 @@ def arm(name, x_out, z_center):
     overlapping cubes along the diagonal so it needs no rotation. Hidden by scale outside flight."""
     s = x_out
     ax, ay = ARM_ROOT_X, ARM_ROOT_Y  # inside the wheel arch
-    # The hub on top of the folded wheel, whose top face is at y 4: the last cube rests on it
+    # The hub on top of the folded wheel: the last cube rests on its top face
     hx, hy = HUB_X + FOLD_OUT, FOLDED_WHEEL_TOP_Y + ARM_THICK / 2
     steps = 8
     cubes = []

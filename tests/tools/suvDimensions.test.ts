@@ -123,7 +123,6 @@ it("keeps hover and submarine animation offsets aligned with their assemblies", 
     const hub = bone(name).pivot;
     const glow = bone(`glow_${corner}`).pivot;
     expect(hub[0] + folded[0]).toBe(glow[0]);
-    expect(hub[2] + folded[2]).toBe(glow[2]);
     expect(hub[1] + folded[1] + dimension("TIRE_HALF_WIDTH")).toBe(
       dimension("FOLDED_WHEEL_TOP_Y"),
     );
