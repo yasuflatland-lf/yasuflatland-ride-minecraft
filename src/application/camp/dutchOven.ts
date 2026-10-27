@@ -3,6 +3,7 @@ import {
   decodeHost,
   encodeHost,
   isSimmering,
+  nearestFreeSpot,
   type OvenHost,
 } from "../../domain/camp/dutchOven";
 import { asFirePitId, type FirePitId } from "../../domain/camp/firePit";
@@ -10,6 +11,8 @@ import {
   DUTCH_OVEN_SPEC,
   FIRE_PIT_SPOTS,
   FIRE_PIT_TOP_PX,
+  TABLE_SPOTS,
+  TABLE_TOP_PX,
 } from "../../domain/camp/spec";
 import {
   EMPTY_COUNTER,
@@ -91,6 +94,55 @@ export class DutchOvenActions {
     const host: OvenHost = { kind: "fire_pit", id: cmd.pit, spot: 0 };
     this.world.setHost(oven, encodeHost(host), isSimmering(host));
     this.world.setCovered(cmd.pit, true);
+    return true;
+  }
+
+  placeOnTable(cmd: {
+    /** Omitted only by the server test hook (ADR 0010). */
+    player?: PlayerId;
+    table: string;
+    slot: number;
+    aim?: { x: number; z: number };
+  }): boolean {
+    const table = this.world.table(cmd.table);
+    if (!table) return false;
+    const index = nearestFreeSpot(
+      TABLE_SPOTS,
+      this.world.takenTableSpots(cmd.table),
+      cmd.aim ?? { x: 0, z: 0 },
+    );
+    if (index === undefined) return false;
+    const spot = TABLE_SPOTS[index];
+    if (!spot) return false;
+    const angle = degToRad(table.yaw);
+    const at = {
+      x:
+        table.at.x + (spot.x * Math.cos(angle) - spot.z * Math.sin(angle)) / 16,
+      y: table.at.y + TABLE_TOP_PX / 16,
+      z:
+        table.at.z + (spot.x * Math.sin(angle) + spot.z * Math.cos(angle)) / 16,
+    };
+    for (let dy = 0; dy < DUTCH_OVEN_SPEC.clearance; dy++) {
+      const cell = {
+        x: Math.floor(at.x),
+        y: Math.floor(table.at.y) + dy,
+        z: Math.floor(at.z),
+      };
+      if (
+        !this.world.isAir(table.dimension, cell) ||
+        this.world.isVehicleSpace(table.dimension, cell)
+      )
+        return false;
+    }
+    if (
+      cmd.player &&
+      !this.world.isCreative(cmd.player) &&
+      !this.world.consumeItem(cmd.player, cmd.slot)
+    )
+      return false;
+    const oven = this.world.spawnDutchOven(table.dimension, at, table.yaw);
+    const host: OvenHost = { kind: "camp_table", id: cmd.table, spot: index };
+    this.world.setHost(oven, encodeHost(host), isSimmering(host));
     return true;
   }
 

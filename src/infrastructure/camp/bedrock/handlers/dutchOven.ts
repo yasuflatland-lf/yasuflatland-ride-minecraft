@@ -6,22 +6,29 @@ import {
   world,
 } from "@minecraft/server";
 import type { DutchOvenActions } from "../../../../application/camp/dutchOven";
-import { asDutchOvenId } from "../../../../domain/camp/dutchOven";
+import { aimOnPlane, asDutchOvenId } from "../../../../domain/camp/dutchOven";
 import { asFirePitId } from "../../../../domain/camp/firePit";
-import { DUTCH_OVEN_SPEC } from "../../../../domain/camp/spec";
+import {
+  DUTCH_OVEN_SPEC,
+  TABLE_SPOTS,
+  TABLE_TOP_PX,
+} from "../../../../domain/camp/spec";
 import {
   asDimensionId,
   asPlayerId,
   type PlayerId,
 } from "../../../../domain/shared/ids";
 import { TickScopedSet } from "../../../../domain/shared/tickScoped";
+import { degToRad } from "../../../../domain/shared/vec";
 import {
+  CAMP_TABLE_TYPE,
   DUTCH_OVEN_ITEM,
   DUTCH_OVEN_SIMMERING_PROPERTY,
   DUTCH_OVEN_TYPE,
   FIRE_PIT_TYPE,
   TEST_DUTCH_OVEN_HIT_EVENT,
   TEST_DUTCH_OVEN_ON_PIT_EVENT,
+  TEST_DUTCH_OVEN_ON_TABLE_EVENT,
   TEST_DUTCH_OVEN_SIMMER_EVENT,
 } from "../../identifiers";
 
@@ -48,15 +55,40 @@ export function registerDutchOven(actions: DutchOvenActions): void {
   });
   world.beforeEvents.playerInteractWithEntity.subscribe((ev) => {
     if (
-      ev.target.typeId === FIRE_PIT_TYPE &&
+      (ev.target.typeId === FIRE_PIT_TYPE ||
+        ev.target.typeId === CAMP_TABLE_TYPE) &&
       ev.itemStack?.typeId === DUTCH_OVEN_ITEM
     ) {
       ev.cancel = true;
       const player = asPlayerId(ev.player.id);
       if (!placements.add(system.currentTick, player)) return;
-      const pit = asFirePitId(ev.target.id);
       const slot = ev.player.selectedSlotIndex;
-      system.run(() => actions.placeOnFirePit({ player, pit, slot }));
+      if (ev.target.typeId === FIRE_PIT_TYPE) {
+        const pit = asFirePitId(ev.target.id);
+        system.run(() => actions.placeOnFirePit({ player, pit, slot }));
+      } else {
+        const table = ev.target.id;
+        const at = ev.target.location;
+        const point = aimOnPlane(
+          ev.player.getHeadLocation(),
+          ev.player.getViewDirection(),
+          at.y + TABLE_TOP_PX / 16,
+        );
+        const angle = degToRad(ev.target.getRotation().y);
+        const aim = point
+          ? {
+              x:
+                ((point.x - at.x) * Math.cos(angle) +
+                  (point.z - at.z) * Math.sin(angle)) *
+                16,
+              z:
+                (-(point.x - at.x) * Math.sin(angle) +
+                  (point.z - at.z) * Math.cos(angle)) *
+                16,
+            }
+          : undefined;
+        system.run(() => actions.placeOnTable({ player, table, slot, aim }));
+      }
       return;
     }
     if (ev.target.typeId !== DUTCH_OVEN_TYPE) return;
@@ -75,6 +107,15 @@ export function registerDutchOven(actions: DutchOvenActions): void {
     );
   });
   system.afterEvents.scriptEventReceive.subscribe((ev) => {
+    if (ev.id === TEST_DUTCH_OVEN_ON_TABLE_EVENT) {
+      if (ev.sourceType !== ScriptEventSource.Server) return;
+      const parts = ev.message.trim().split(/\s+/);
+      const [table, rawSpot] = parts;
+      if (parts.length !== 2 || !table || !/^[01]$/.test(rawSpot ?? "")) return;
+      const aim = TABLE_SPOTS[Number(rawSpot)];
+      if (aim) actions.placeOnTable({ table, slot: 0, aim });
+      return;
+    }
     if (ev.id === TEST_DUTCH_OVEN_ON_PIT_EVENT) {
       if (ev.sourceType !== ScriptEventSource.Server) return;
       const pit = ev.message.trim();

@@ -23,6 +23,10 @@ export class HitTable {
     tick: number;
     playerId: PlayerId;
   }): boolean {
+    if (this.world.ovensOnTable(cmd.tableId) > 0) {
+      this.world.showOvenOnTop(cmd.playerId);
+      return false;
+    }
     const occupied = this.world.isOccupied(cmd.tableId);
     const result = registerHit(
       this.counters.get(cmd.tableId) ?? EMPTY_COUNTER,

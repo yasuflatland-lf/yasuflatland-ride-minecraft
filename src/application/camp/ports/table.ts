@@ -3,6 +3,8 @@ import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 
 export interface TableWorld {
+  ovensOnTable(id: TableId): number;
+  showOvenOnTop(player: PlayerId): void;
   isAir(dimensionId: DimensionId, at: Vec3): boolean;
   isOwnBlock(dimensionId: DimensionId, at: Vec3): boolean;
   isVehicleSpace(dimensionId: DimensionId, at: Vec3): boolean;

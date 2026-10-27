@@ -8,8 +8,11 @@ import { consumeHeld, isCreative, playerById } from "../../shared/players";
 import {
   CAMP_TABLE_ITEM,
   CAMP_TABLE_TYPE,
+  DUTCH_OVEN_ON_TOP_HINT,
   TABLE_HITS_LEFT_HINT,
 } from "../identifiers";
+
+import { takenTableSpots } from "./tableOvens";
 
 function tableOf(id: TableId) {
   const entity = world.getEntity(id);
@@ -71,6 +74,16 @@ export class BedrockTableWorld implements TableWorld {
       .getDimension(dimensionId)
       .spawnEntity(CAMP_TABLE_TYPE, at);
     table.setRotation({ x: 0, y: yaw });
+  }
+
+  ovensOnTable(id: TableId): number {
+    return takenTableSpots(id).size;
+  }
+
+  showOvenOnTop(player: PlayerId): void {
+    playerById(player)?.onScreenDisplay.setActionBar({
+      translate: DUTCH_OVEN_ON_TOP_HINT,
+    });
   }
 
   isOccupied(tableId: TableId): boolean {

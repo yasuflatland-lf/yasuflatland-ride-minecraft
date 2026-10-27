@@ -4,6 +4,10 @@ import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 
 export interface DutchOvenWorld {
+  table(
+    id: string,
+  ): { dimension: DimensionId; at: Vec3; yaw: number } | undefined;
+  takenTableSpots(id: string): ReadonlySet<number>;
   isAir(dimension: DimensionId, at: Vec3): boolean;
   isOwnBlock(dimension: DimensionId, at: Vec3): boolean;
   isVehicleSpace(dimension: DimensionId, at: Vec3): boolean;

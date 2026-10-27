@@ -1,3 +1,5 @@
+import type { Vec3 } from "../shared/vec";
+
 export type DutchOvenId = string & { readonly __brand: "DutchOvenId" };
 
 export function asDutchOvenId(value: string): DutchOvenId {
@@ -30,4 +32,33 @@ export function decodeHost(text: string): OvenHost {
   )
     return { kind: "ground" };
   return { kind, id, spot };
+}
+
+export function nearestFreeSpot(
+  spots: readonly { x: number; z: number }[],
+  taken: ReadonlySet<number>,
+  point: { x: number; z: number },
+): number | undefined {
+  let nearest: number | undefined;
+  let distance = Infinity;
+  spots.forEach((spot, index) => {
+    if (taken.has(index)) return;
+    const squared = (spot.x - point.x) ** 2 + (spot.z - point.z) ** 2;
+    if (squared < distance) {
+      nearest = index;
+      distance = squared;
+    }
+  });
+  return nearest;
+}
+
+export function aimOnPlane(
+  head: Vec3,
+  dir: Vec3,
+  planeY: number,
+): Vec3 | undefined {
+  if (dir.y === 0) return undefined;
+  const t = (planeY - head.y) / dir.y;
+  if (t < 0) return undefined;
+  return { x: head.x + dir.x * t, y: planeY, z: head.z + dir.z * t };
 }

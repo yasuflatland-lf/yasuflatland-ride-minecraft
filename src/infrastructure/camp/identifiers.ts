@@ -13,6 +13,10 @@ export const HITS_LEFT_HINT = "yasu_ride.hint.low_chair_hits";
 
 export const CAMP_TABLE_TYPE = id("camp_table");
 export const CAMP_TABLE_ITEM = id("camp_table_item");
+export const TEST_TABLE_HIT_EVENT = "yasu_ride_test:test_table_hit";
+/** Server test hook: message is the table entity id followed by spot 0 or 1. */
+export const TEST_DUTCH_OVEN_ON_TABLE_EVENT =
+  "yasu_ride_test:test_dutch_oven_on_table";
 export const TABLE_HITS_LEFT_HINT = "yasu_ride.hint.camp_table_hits";
 
 export const DUTCH_OVEN_HOST_PROPERTY = id("host");

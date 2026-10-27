@@ -1,4 +1,10 @@
-import { Direction, Player, system, world } from "@minecraft/server";
+import {
+  Direction,
+  Player,
+  ScriptEventSource,
+  system,
+  world,
+} from "@minecraft/server";
 import type { HitTable } from "../../../../application/camp/hitTable";
 import type { PlaceTable } from "../../../../application/camp/placeTable";
 import { asTableId } from "../../../../domain/camp/table";
@@ -8,7 +14,11 @@ import {
   type PlayerId,
 } from "../../../../domain/shared/ids";
 import { TickScopedSet } from "../../../../domain/shared/tickScoped";
-import { CAMP_TABLE_ITEM, CAMP_TABLE_TYPE } from "../../identifiers";
+import {
+  CAMP_TABLE_ITEM,
+  CAMP_TABLE_TYPE,
+  TEST_TABLE_HIT_EVENT,
+} from "../../identifiers";
 
 export function registerTable(place: PlaceTable, hit: HitTable): void {
   const requested = new TickScopedSet<PlayerId>();
@@ -32,6 +42,20 @@ export function registerTable(place: PlaceTable, hit: HitTable): void {
     system.run(() =>
       place.execute({ playerId, dimensionId, blockLocation: block, yaw, slot }),
     );
+  });
+  system.afterEvents.scriptEventReceive.subscribe((ev) => {
+    if (
+      ev.id !== TEST_TABLE_HIT_EVENT ||
+      ev.sourceType !== ScriptEventSource.Server
+    )
+      return;
+    const table = world.getEntity(ev.message);
+    if (table?.typeId !== CAMP_TABLE_TYPE) return;
+    hit.execute({
+      tableId: asTableId(table.id),
+      playerId: asPlayerId("test"),
+      tick: system.currentTick,
+    });
   });
   world.afterEvents.entityHitEntity.subscribe((ev) => {
     if (

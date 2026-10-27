@@ -1,7 +1,8 @@
 // In-game checks of the camp feature's low chair (ADR 0122).
 import { type Entity, system, type Vector3 } from "@minecraft/server";
-import { FIRE_PIT_TOP_PX } from "../../domain/camp/spec";
+import { FIRE_PIT_TOP_PX, TABLE_TOP_PX } from "../../domain/camp/spec";
 import {
+  CAMP_TABLE_ITEM,
   CAMP_TABLE_TYPE,
   CHAIR_FAMILY,
   DUTCH_OVEN_ITEM,
@@ -16,9 +17,11 @@ import {
   TEST_CHAIR_HIT_EVENT,
   TEST_DUTCH_OVEN_HIT_EVENT,
   TEST_DUTCH_OVEN_ON_PIT_EVENT,
+  TEST_DUTCH_OVEN_ON_TABLE_EVENT,
   TEST_DUTCH_OVEN_SIMMER_EVENT,
   TEST_FIRE_PIT_EVENT,
   TEST_FIRE_PIT_HIT_EVENT,
+  TEST_TABLE_HIT_EVENT,
 } from "../../infrastructure/camp/identifiers";
 import { type Arena, type Outcome, wait } from "../arena";
 
@@ -146,6 +149,70 @@ export function campTableTwoSeats(a: Arena): Promise<Outcome> {
     });
   } finally {
     if (table?.isValid) table.remove();
+  }
+}
+
+/** Checks both tabletop spots and the fold guard through production actions. */
+export async function dutchOvenOnTable(a: Arena): Promise<Outcome> {
+  const at = { x: CELL.x, y: a.gy, z: CELL.z + 8.5 };
+  a.dim.runCommand(`summon ${CAMP_TABLE_TYPE} ${at.x} ${at.y} ${at.z}`);
+  const table = a.dim.getEntities({
+    type: CAMP_TABLE_TYPE,
+    location: at,
+    maxDistance: 1.5,
+  })[0];
+  if (!table) return { pass: false, detail: "table not spawned" };
+  const hitThree = async (event: string, id: string) => {
+    for (let i = 0; i < 3; i++) {
+      system.sendScriptEvent(event, id);
+      await wait(2);
+    }
+  };
+  try {
+    for (const spot of [0, 1, 0]) {
+      system.sendScriptEvent(
+        TEST_DUTCH_OVEN_ON_TABLE_EVENT,
+        `${table.id} ${spot}`,
+      );
+      await wait(2);
+    }
+    const ovens = ovensNear(a, at);
+    await wait(22);
+    const standing =
+      ovens.length === 2 &&
+      ovens.every(
+        (oven) =>
+          oven.getProperty(DUTCH_OVEN_SIMMERING_PROPERTY) === false &&
+          Math.abs(oven.location.y - (table.location.y + TABLE_TOP_PX / 16)) <
+            0.05,
+      );
+    await hitThree(TEST_TABLE_HIT_EVENT, table.id);
+    if (!table.isValid)
+      return { pass: false, detail: "table folded with ovens on top" };
+    const guarded = totalAmount(droppedItems(a, at, CAMP_TABLE_ITEM)) === 0;
+    for (const oven of ovens)
+      await hitThree(TEST_DUTCH_OVEN_HIT_EVENT, oven.id);
+    const returned =
+      totalAmount(droppedItems(a, at, DUTCH_OVEN_ITEM)) === 2 &&
+      ovensNear(a, at).length === 0;
+    for (let i = 0; i < 2; i++) {
+      system.sendScriptEvent(TEST_TABLE_HIT_EVENT, table.id);
+      await wait(2);
+    }
+    const afterTwo = table.isValid;
+    system.sendScriptEvent(TEST_TABLE_HIT_EVENT, table.id);
+    await wait(2);
+    const folded =
+      !table.isValid && totalAmount(droppedItems(a, at, CAMP_TABLE_ITEM)) === 1;
+    return {
+      pass: standing && guarded && returned && afterTwo && folded,
+      detail: `ovens=${ovens.length} standing=${standing} guarded=${guarded} returned=${returned} afterTwo=${afterTwo} folded=${folded}`,
+    };
+  } finally {
+    if (table.isValid) table.remove();
+    for (const oven of ovensNear(a, at)) oven.remove();
+    for (const type of [DUTCH_OVEN_ITEM, CAMP_TABLE_ITEM])
+      for (const item of droppedItems(a, at, type)) item.remove();
   }
 }
 
