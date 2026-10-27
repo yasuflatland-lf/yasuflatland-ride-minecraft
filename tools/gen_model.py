@@ -191,6 +191,12 @@ def windshield_part(x0, y0, z0, x1, y1, z1, color):
     return turned(box(x0, y0, z0, x1, y1, z1, color), WINDSHIELD_PIVOT, (WINDSHIELD_LEAN, 0, 0))
 
 
+def leaning_top(y):
+    """The unturned top of a windshield part whose face 0.5 px off the pivot should end at height y:
+    leaning shortens its rise and lifts that face by its depth."""
+    return HOOD_TOP_Y + (y - HOOD_TOP_Y - 0.5 * _LEAN_SIN) / _LEAN_COS
+
+
 # Distance of the wheel hubs from the center line. The tires stand out from the body's side, under
 # over-fenders.
 HUB_X = BODY_HALF_WIDTH + 2.5
@@ -258,7 +264,7 @@ body = [
     box(-CABIN_HALF_WIDTH, DASH_BOTTOM_Y, DASH_FACE_Z, CABIN_HALF_WIDTH, HOOD_TOP_Y, HOOD_REAR_Z, "trim"),
     # Windshield lower frame and A-pillars, leaning back
     windshield_part(-CABIN_HALF_WIDTH, HOOD_TOP_Y, WINDSHIELD_FOOT_Z, CABIN_HALF_WIDTH, HOOD_TOP_Y + 1, HOOD_REAR_Z, "trim"),
-    *both_sides([windshield_part(CABIN_HALF_WIDTH, HOOD_TOP_Y, HOOD_REAR_Z - 1, BODY_HALF_WIDTH, HOOD_TOP_Y + (ROOF_TOP - HOOD_TOP_Y - 0.5 * _LEAN_SIN) / _LEAN_COS, HOOD_REAR_Z, "body")]),
+    *both_sides([windshield_part(CABIN_HALF_WIDTH, HOOD_TOP_Y, HOOD_REAR_Z - 1, BODY_HALF_WIDTH, leaning_top(ROOF_TOP), HOOD_REAR_Z, "body")]),
     # Rearview mirror (center of the windshield's top edge, behind the leaning glass)
     box(-0.5, ROOF_Y - 2.5, ROOF_FRONT - 0.8, 0.5, ROOF_Y, ROOF_FRONT - 0.3, "trim"),
     box(-2.5, ROOF_Y - 4, ROOF_FRONT - 1.3, 2.5, ROOF_Y - 2.5, ROOF_FRONT - 0.8, "rim"),
@@ -871,15 +877,19 @@ def front_side_panes():
     panes = []
     y = WINDOW_BOTTOM_Y
     while y < WINDOW_TOP_Y - 1e-6:
-        top = min(y + 1, WINDOW_TOP_Y, HOOD_TOP_Y if y < HOOD_TOP_Y else WINDOW_TOP_Y)
-        front = FRONT_DOOR_HINGE_Z - 1 if y < HOOD_TOP_Y else front_post_back(y) + 0.2
+        if y < HOOD_TOP_Y:
+            top = min(y + 1, HOOD_TOP_Y)
+            front = FRONT_DOOR_HINGE_Z - 1
+        else:
+            top = min(y + 1, WINDOW_TOP_Y)
+            front = front_post_back(y) + 0.2
         panes.append(box(12.85, y, -4, 12.95, top, front, "rear_glass"))
         y = top
     return panes
 
 
 WINDOWS_SEALED = [
-    windshield_part(-CABIN_HALF_WIDTH, HOOD_TOP_Y + 1, HOOD_REAR_Z - 0.1, CABIN_HALF_WIDTH, HOOD_TOP_Y + (ROOF_Y - HOOD_TOP_Y - 0.5 * _LEAN_SIN) / _LEAN_COS, HOOD_REAR_Z, "rear_glass"),
+    windshield_part(-CABIN_HALF_WIDTH, HOOD_TOP_Y + 1, HOOD_REAR_Z - 0.1, CABIN_HALF_WIDTH, leaning_top(ROOF_Y), HOOD_REAR_Z, "rear_glass"),
     *both_sides([
         *front_side_panes(),
         box(12.9, WINDOW_BOTTOM_Y, CARGO_FRONT + 1, BODY_HALF_WIDTH, WINDOW_TOP_Y, -7, "rear_glass"),
