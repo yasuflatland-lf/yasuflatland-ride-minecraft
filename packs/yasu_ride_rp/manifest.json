@@ -16,7 +16,7 @@
     }
   ],
   "dependencies": [
-    { "uuid": "5ec4fadb-b148-4d62-8473-092b63e01270", "version": [0, 26, 0] }
+    { "uuid": "5ec4fadb-b148-4d62-8473-092b63e01270", "version": [0, 27, 0] }
   ],
   "capabilities": ["pbr"]
 }
