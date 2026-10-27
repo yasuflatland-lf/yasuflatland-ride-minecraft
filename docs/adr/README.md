@@ -153,7 +153,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0149](0149-route-the-parked-camper-wheel-seat-to-headlights.md) | Route the parked camper's wheel seat to the headlights | Accepted |
 | [0150](0150-run-the-sports-boat-on-lava.md) | Run the sports boat on lava | Proposed |
 | [0151](0151-enclose-the-bulldozer-blade-supports.md) | Enclose the bulldozer blade supports | Proposed |
-| [0152](0152-a-two-seat-folding-camp-table.md) | A two-seat folding camp table | Proposed; partly superseded by 0168 (Proposed) |
+| [0152](0152-a-two-seat-folding-camp-table.md) | A two-seat folding camp table | Proposed; superseded in part by 0168 (Proposed) |
 | [0153](0153-a-polished-folding-fire-pit.md) | A polished folding fire pit | Proposed |
 | [0154](0154-keep-camper-passengers-in-their-seats-on-departure.md) | Keep camper passengers in their seats on departure | Proposed |
 | [0155](0155-cut-under-water-and-dig-a-shaft-when-rising.md) | Cut under water and dig a wide shaft when rising | Proposed |

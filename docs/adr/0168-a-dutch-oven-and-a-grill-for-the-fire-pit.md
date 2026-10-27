@@ -12,7 +12,7 @@ The owner supplied reference photos, which are not committed: a matte black cast
 
 On a fire pit the food sits in the pot and simmers. On a table the pot is closed with its lid. The photos show a brand mark, lettering, and an emblem embossed on the lid. The model does not copy them and uses a plain lid, as the Camper grille rule does for logos (0009, 0130).
 
-This ADR fixes one contract so that the five pull requests of the series build on the same ids, states, and rules: the grill on the fire pit, the oven model and ground placement, standing on a fire pit, and standing on a camp table.
+This ADR fixes one contract of ids, states, and rules that the later pull requests of the series (see Series) build on.
 
 ## Decision
 
@@ -31,7 +31,7 @@ This ADR fixes one contract so that the five pull requests of the series build o
 ### Rules
 
 1. **Where it stands.** Three hosts: the ground (the top of a block outside vehicle space), a Fire Pit (1 spot, its center), and a Camp Table (2 spots, 7.5 px either side of the center along the long axis, one oven per spot).
-2. **Simmering.** `yasu_ride:simmering` is true exactly while the oven stands on a Fire Pit, whether or not the pit is lit. On the ground or a table it is false (lid on). This reading of "placed on the fire pit" follows the owner's wording and keeps the rule a pure function of the host kind. If the owner later wants "only while lit", it is a one-line change in the domain function.
+2. **Simmering.** `yasu_ride:simmering` is true exactly while the oven stands on a Fire Pit, whether or not the pit is lit. On the ground or a table it is false (lid on). This reading of "placed on the fire pit" follows the owner's wording and keeps the rule a pure function of the host kind.
 3. **Grill.** `yasu_ride:covered` on the Fire Pit is true exactly while an oven stands on it, and the `grill` bone shows. The grill is not a separate item or entity.
 4. **Taking it back.** Three quick hits on the oven fold it into its item (as 0122) and clear the host's state. The pit and the table refuse their own three-hit fold while any oven stands on them and show `dutch_oven_on_top`; the hit counter does not advance.
 5. **Host vanishes.** Every `hostCheckTicks`, an oven whose host entity no longer exists clears `host`, sets `simmering` false, and falls to the ground with gravity.
@@ -64,4 +64,4 @@ Cooking, food items, taking food out, the oven as inside decor, a paintable oven
 
 The oven is the one item a Camp Table and a Fire Pit can hold, so the "does not hold placed items" rule of 0152 is partly superseded for the Dutch oven only; the Decision of 0152 is not rewritten. The pit and the table gain a refusal path while an oven stands on them, and a periodic host check adds a small per-oven cost every `hostCheckTicks`.
 
-Because simmering depends only on the host kind, an oven on an unlit pit still shows a bubbling stew. Revisit this if the owner wants the stew to follow the fire. The model numbers may shift when `tools/gen_dutch_oven.py` is written, and the Resource Pack version advances in the PRs that change the pack, not in this one. Cooking and taking food out stay out of scope until the owner asks for them.
+Because simmering depends only on the host kind, an oven on an unlit pit still shows a bubbling stew. Revisit this if the owner wants the stew to follow the fire; that is a one-line change in the domain function. The model numbers may shift when `tools/gen_dutch_oven.py` is written, and the Resource Pack version advances in the PRs that change the pack, not in this one. Cooking and taking food out stay out of scope until the owner asks for them.
