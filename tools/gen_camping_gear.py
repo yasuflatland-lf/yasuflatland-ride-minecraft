@@ -19,6 +19,8 @@ open (ADR 0114), and the fridge's compartment block, which shows its items the s
 The icon entry of the camping gear box (BOX) comes first in the generated part of
 item_texture.json; its item JSON and icon are written elsewhere (ADR 0093), and
 tools/gen_item_catalog.py lists it in the creative group.
+A gear shape may use cubes turned about a single axis (a `pivot` and a `rotation` on the cube; ADR
+0169): bounds() and the pair blocks follow the turn. Compound rotations are not allowed in gear.
 """
 
 import argparse
@@ -28,6 +30,12 @@ import struct
 import sys
 import zlib
 from pathlib import Path
+
+# Isolated mode (-I) omits the script directory from the import path.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from tool_loader import load_tool
+
+cube_tilt = load_tool("cube_tilt")
 
 LAID_TAG = "tag:yasu_ride:laid"
 
@@ -292,6 +300,15 @@ def geometry(item_id, cubes):
     })
 
 
+def moved(cube, left, ahead):
+    """The cube shifted to a pair end's spot; a turned cube's pivot moves with it."""
+    shift = [left, 0, ahead]
+    result = {**cube, "origin": [cube["origin"][i] - shift[i] for i in range(3)]}
+    if "pivot" in cube:
+        result["pivot"] = [cube["pivot"][i] - shift[i] for i in range(3)]
+    return result
+
+
 def pair_geometry(kind, spec):
     """One bone per standing item per end, its cubes moved to the end's spot in the gear model's
     frame, where the camper's left is -x and its forward -z (FACE_ROTATION). Every face is opaque,
@@ -301,10 +318,7 @@ def pair_geometry(kind, spec):
     bones = []
     for end, (left, ahead) in enumerate(PAIRS[kind]["ends"]):
         for item in standing(spec):
-            cubes = [
-                {**c, "origin": [c["origin"][0] - left, c["origin"][1], c["origin"][2] - ahead]}
-                for c in SHAPES[item["id"]]
-            ]
+            cubes = [moved(c, left, ahead) for c in SHAPES[item["id"]]]
             bones.append({"name": pair_bone(end, item["id"]), "pivot": [0, 0, 0], "cubes": cubes})
     return rounded({
         "format_version": "1.12.0",
@@ -331,9 +345,22 @@ def pair_pages(spec):
     return -(-(len(standing(spec)) + 1) // PAIR_PAGE_SIZE)
 
 
+def corners(cube):
+    """The eight corners of a cube, turned about its pivot the way the game does (ADR 0051, 0166)."""
+    origin, size = cube["origin"], cube["size"]
+    points = [[origin[i] + size[i] * ((n >> i) & 1) for i in range(3)] for n in range(8)]
+    if not any(cube.get("rotation", [])):
+        return points
+    pivot = cube["pivot"]
+    matrix = cube_tilt.cube_matrix(cube["rotation"])
+    turned = [cube_tilt._apply(matrix, [p[i] - pivot[i] for i in range(3)]) for p in points]
+    return [[round(pivot[i] + offset[i], 6) for i in range(3)] for offset in turned]
+
+
 def bounds(cubes):
-    lo = [min(c["origin"][i] for c in cubes) for i in range(3)]
-    hi = [max(c["origin"][i] + c["size"][i] for c in cubes) for i in range(3)]
+    points = [p for c in cubes for p in corners(c)]
+    lo = [min(p[i] for p in points) for i in range(3)]
+    hi = [max(p[i] for p in points) for i in range(3)]
     return lo, hi
 
 
@@ -353,6 +380,11 @@ def validate(spec):
             errors.append(f"{item['id']}: hanging must be true or false")
         cubes = SHAPES.get(item["id"], [])
         if not cubes:
+            continue
+        try:
+            cube_tilt.assert_axes(cubes, {})
+        except ValueError as error:
+            errors.append(f"{item['id']}: {error}")
             continue
         (x0, y0, z0), (x1, y1, z1) = bounds(cubes)
         w = item["width_px"]
