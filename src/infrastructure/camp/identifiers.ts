@@ -17,6 +17,10 @@ export const TABLE_HITS_LEFT_HINT = "yasu_ride.hint.camp_table_hits";
 
 export const FIRE_PIT_TYPE = id("fire_pit");
 export const FIRE_PIT_ITEM = id("fire_pit_item");
+export const FIRE_PIT_COVERED_PROPERTY = id("covered");
+export const DUTCH_OVEN_ON_TOP_HINT = "yasu_ride.hint.dutch_oven_on_top";
+export const TEST_FIRE_PIT_COVER_EVENT = id("test_fire_pit_cover");
+export const TEST_FIRE_PIT_HIT_EVENT = id("test_fire_pit_hit");
 export const FIRE_PIT_LIT_PROPERTY = id("lit");
 export const FIRE_PIT_HITS_LEFT_HINT = "yasu_ride.hint.fire_pit_hits";
 export const TEST_FIRE_PIT_EVENT = id("test_fire_pit");

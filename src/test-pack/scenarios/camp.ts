@@ -3,12 +3,16 @@ import { type Entity, system } from "@minecraft/server";
 import {
   CAMP_TABLE_TYPE,
   CHAIR_FAMILY,
+  FIRE_PIT_COVERED_PROPERTY,
+  FIRE_PIT_ITEM,
   FIRE_PIT_LIT_PROPERTY,
   FIRE_PIT_TYPE,
   LOW_CHAIR_ITEM,
   LOW_CHAIR_TYPE,
   TEST_CHAIR_HIT_EVENT,
+  TEST_FIRE_PIT_COVER_EVENT,
   TEST_FIRE_PIT_EVENT,
+  TEST_FIRE_PIT_HIT_EVENT,
 } from "../../infrastructure/camp/identifiers";
 import { type Arena, type Outcome, wait } from "../arena";
 
@@ -147,5 +151,74 @@ export async function firePitIgnition(a: Arena): Promise<Outcome> {
     };
   } finally {
     if (pit.isValid) pit.remove();
+  }
+}
+
+/** Covered hits leave the pit intact and do not count toward folding it. */
+export async function firePitCoveredTakeBack(a: Arena): Promise<Outcome> {
+  const at = { x: CELL.x + 0.5, y: a.gy, z: CELL.z + 11.5 };
+  a.dim.runCommand(`summon ${FIRE_PIT_TYPE} ${at.x} ${at.y} ${at.z}`);
+  const pit = a.dim.getEntities({
+    type: FIRE_PIT_TYPE,
+    location: at,
+    maxDistance: 1.5,
+  })[0];
+  if (!pit) return { pass: false, detail: "fire pit not spawned" };
+  const items = () =>
+    a.dim
+      .getEntities({
+        type: "minecraft:item",
+        location: at,
+        maxDistance: 2,
+      })
+      .filter(
+        (entity) =>
+          entity.getComponent("minecraft:item")?.itemStack.typeId ===
+          FIRE_PIT_ITEM,
+      );
+  try {
+    const initial = pit.getProperty(FIRE_PIT_COVERED_PROPERTY);
+    system.sendScriptEvent(TEST_FIRE_PIT_COVER_EVENT, pit.id);
+    await wait(2);
+    const covered = pit.getProperty(FIRE_PIT_COVERED_PROPERTY);
+    for (let i = 0; i < 3; i++) {
+      system.sendScriptEvent(TEST_FIRE_PIT_HIT_EVENT, pit.id);
+      await wait(2);
+    }
+    if (!pit.isValid) return { pass: false, detail: "covered pit folded" };
+    const coveredDrops = items().length;
+    system.sendScriptEvent(TEST_FIRE_PIT_COVER_EVENT, pit.id);
+    await wait(2);
+    const uncovered = pit.getProperty(FIRE_PIT_COVERED_PROPERTY);
+    let survivedFirstTwo = true;
+    for (let i = 0; i < 3; i++) {
+      if (!pit.isValid)
+        return {
+          pass: false,
+          detail: "pit folded before three uncovered hits",
+        };
+      system.sendScriptEvent(TEST_FIRE_PIT_HIT_EVENT, pit.id);
+      await wait(2);
+      if (i < 2) survivedFirstTwo &&= pit.isValid;
+    }
+    const amount = items().reduce(
+      (sum, entity) =>
+        sum + (entity.getComponent("minecraft:item")?.itemStack.amount ?? 0),
+      0,
+    );
+    return {
+      pass:
+        initial === false &&
+        covered === true &&
+        coveredDrops === 0 &&
+        uncovered === false &&
+        survivedFirstTwo &&
+        !pit.isValid &&
+        amount === 1,
+      detail: `initial=${initial} covered=${covered} coveredDrops=${coveredDrops} uncovered=${uncovered} survivedFirstTwo=${survivedFirstTwo} folded=${!pit.isValid} items=${amount}`,
+    };
+  } finally {
+    if (pit.isValid) pit.remove();
+    for (const item of items()) item.remove();
   }
 }

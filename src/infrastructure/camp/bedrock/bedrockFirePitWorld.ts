@@ -6,6 +6,8 @@ import type { Vec3 } from "../../../domain/shared/vec";
 import { NAMESPACE } from "../../shared/identifiers";
 import { consumeHeld, isCreative, playerById } from "../../shared/players";
 import {
+  DUTCH_OVEN_ON_TOP_HINT,
+  FIRE_PIT_COVERED_PROPERTY,
   FIRE_PIT_HITS_LEFT_HINT,
   FIRE_PIT_ITEM,
   FIRE_PIT_LIT_PROPERTY,
@@ -74,6 +76,20 @@ export class BedrockFirePitWorld implements FirePitWorld {
       .getDimension(dimension)
       .spawnEntity(FIRE_PIT_TYPE, at)
       .setRotation({ x: 0, y: yaw });
+  }
+
+  isCovered(id: FirePitId): boolean {
+    return firePit(id)?.getProperty(FIRE_PIT_COVERED_PROPERTY) === true;
+  }
+
+  setCovered(id: FirePitId, covered: boolean): void {
+    firePit(id)?.setProperty(FIRE_PIT_COVERED_PROPERTY, covered);
+  }
+
+  showCoveredHint(player: PlayerId): void {
+    playerById(player)?.onScreenDisplay.setActionBar({
+      translate: DUTCH_OVEN_ON_TOP_HINT,
+    });
   }
 
   isLit(id: FirePitId): boolean {
