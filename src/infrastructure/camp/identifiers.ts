@@ -3,18 +3,19 @@ import type { ChairKindId } from "../../domain/camp/chair";
 import type { PitchRefusal } from "../../domain/camp/tent";
 import { id } from "../shared/identifiers";
 
-export const CHAIR_KINDS: Readonly<
-  Record<
-    ChairKindId,
-    {
-      readonly typeId: string;
-      readonly itemId: string;
-      readonly family: string;
-      readonly hitsHint: string;
-      readonly testHitEvent: string;
-    }
-  >
-> = {
+/** The ids that tell one chair kind from another; the rules are shared (ADR 0122). */
+export interface ChairProfile {
+  readonly typeId: string;
+  readonly itemId: string;
+  /** Listed in the chair's minecraft:type_family. */
+  readonly family: string;
+  /** Action bar hint after a hit that does not take the chair back yet. */
+  readonly hitsHint: string;
+  /** Lets in-game tests hit a chair without a player: the message is the chair's entity id. */
+  readonly testHitEvent: string;
+}
+
+export const CHAIR_KINDS: Readonly<Record<ChairKindId, ChairProfile>> = {
   low_chair: {
     typeId: id("low_chair"),
     itemId: id("low_chair_item"),
@@ -24,19 +25,20 @@ export const CHAIR_KINDS: Readonly<
   },
 };
 
-const chairEntries = Object.entries(CHAIR_KINDS) as [
-  ChairKindId,
-  (typeof CHAIR_KINDS)[ChairKindId],
-][];
-export const CHAIR_KIND_BY_TYPE = new Map(
-  chairEntries.map(([kind, profile]) => [profile.typeId, kind]),
-);
-export const CHAIR_KIND_BY_ITEM = new Map(
-  chairEntries.map(([kind, profile]) => [profile.itemId, kind]),
-);
-export const CHAIR_KIND_BY_TEST_EVENT = new Map(
-  chairEntries.map(([kind, profile]) => [profile.testHitEvent, kind]),
-);
+function chairKindsBy(
+  field: "typeId" | "itemId" | "testHitEvent",
+): ReadonlyMap<string, ChairKindId> {
+  return new Map(
+    (Object.keys(CHAIR_KINDS) as ChairKindId[]).map((kind) => [
+      CHAIR_KINDS[kind][field],
+      kind,
+    ]),
+  );
+}
+
+export const CHAIR_KIND_BY_TYPE = chairKindsBy("typeId");
+export const CHAIR_KIND_BY_ITEM = chairKindsBy("itemId");
+export const CHAIR_KIND_BY_TEST_EVENT = chairKindsBy("testHitEvent");
 
 export const LOW_CHAIR_TYPE = CHAIR_KINDS.low_chair.typeId;
 export const LOW_CHAIR_ITEM = CHAIR_KINDS.low_chair.itemId;

@@ -30,8 +30,7 @@ export class HitChair {
   /** Returns whether the chair was taken back. */
   execute(cmd: HitChairCommand): boolean {
     this.forgetStale(cmd.tick);
-    const kind = this.world.kindOf(cmd.chairId);
-    if (kind === undefined || kind !== cmd.kind) return false;
+    if (this.world.kindOf(cmd.chairId) !== cmd.kind) return false;
     const occupied = this.world.isOccupied(cmd.chairId);
     const r = registerHit(
       this.counters.get(cmd.chairId) ?? EMPTY_COUNTER,
@@ -48,7 +47,11 @@ export class HitChair {
     if (occupied) return false;
     this.counters.set(cmd.chairId, r.counter);
     if (cmd.playerId !== undefined)
-      this.world.showHitsLeft(kind, cmd.playerId, RULE.hits - r.counter.count);
+      this.world.showHitsLeft(
+        cmd.kind,
+        cmd.playerId,
+        RULE.hits - r.counter.count,
+      );
     return false;
   }
 

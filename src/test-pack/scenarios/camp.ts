@@ -5,6 +5,7 @@ import {
   CAMP_TABLE_ITEM,
   CAMP_TABLE_TYPE,
   CHAIR_KINDS,
+  type ChairProfile,
   DUTCH_OVEN_ITEM,
   DUTCH_OVEN_SIMMERING_PROPERTY,
   DUTCH_OVEN_TYPE,
@@ -57,20 +58,29 @@ const summonFirePit = (a: Arena, at: Vector3): Entity | undefined => {
 const ovensNear = (a: Arena, at: Vector3) =>
   a.dim.getEntities({ type: DUTCH_OVEN_TYPE, location: at, maxDistance: 2 });
 
-/** Summons a chair, checks its one seat, and folds it back with three hits into one dropped item. */
-export async function lowChairSeatAndTakeBack(a: Arena): Promise<Outcome> {
+/** Runs a scenario once per chair kind, passing only when every kind passes. */
+async function forEveryChairKind(
+  scenario: (profile: ChairProfile) => Promise<Outcome>,
+): Promise<Outcome> {
   const outcomes: Outcome[] = [];
   for (const profile of Object.values(CHAIR_KINDS))
-    outcomes.push(await lowChairSeatAndTakeBackForKind(a, profile));
+    outcomes.push(await scenario(profile));
   return {
     pass: outcomes.every((outcome) => outcome.pass),
     detail: outcomes.map((outcome) => outcome.detail).join("; "),
   };
 }
 
+/** Summons a chair, checks its one seat, and folds it back with three hits into one dropped item. */
+export async function lowChairSeatAndTakeBack(a: Arena): Promise<Outcome> {
+  return forEveryChairKind((profile) =>
+    lowChairSeatAndTakeBackForKind(a, profile),
+  );
+}
+
 async function lowChairSeatAndTakeBackForKind(
   a: Arena,
-  profile: (typeof CHAIR_KINDS)[keyof typeof CHAIR_KINDS],
+  profile: ChairProfile,
 ): Promise<Outcome> {
   const at = { x: CELL.x + 0.5, y: a.gy, z: CELL.z + 0.5 };
   a.dim.runCommand(`summon ${profile.typeId} ${at.x} ${at.y} ${at.z}`);
@@ -81,15 +91,16 @@ async function lowChairSeatAndTakeBackForKind(
   })[0];
   if (!chair) return { pass: false, detail: "chair not spawned" };
   const chairItems = () => droppedItems(a, at, profile.itemId);
+  const hit = () => system.sendScriptEvent(profile.testHitEvent, chair.id);
   try {
     const seats = chair.getComponent("minecraft:rideable")?.seatCount;
     const family = chair.matches({ families: [profile.family] });
-    system.sendScriptEvent(profile.testHitEvent, chair.id);
+    hit();
     await wait(2);
     const afterOne = chair.isValid;
-    system.sendScriptEvent(profile.testHitEvent, chair.id);
+    hit();
     await wait(2);
-    system.sendScriptEvent(profile.testHitEvent, chair.id);
+    hit();
     await wait(2);
     const afterThree = chair.isValid;
     const amount = totalAmount(chairItems());
@@ -111,18 +122,14 @@ const GRASS_CELL = { x: CELL.x, z: CELL.z + 3 } as const;
  * checks that it settles through the grass onto the ground under it (ADR 0122).
  */
 export async function lowChairSettlesThroughGrass(a: Arena): Promise<Outcome> {
-  const outcomes: Outcome[] = [];
-  for (const profile of Object.values(CHAIR_KINDS))
-    outcomes.push(await lowChairSettlesThroughGrassForKind(a, profile));
-  return {
-    pass: outcomes.every((outcome) => outcome.pass),
-    detail: outcomes.map((outcome) => outcome.detail).join("; "),
-  };
+  return forEveryChairKind((profile) =>
+    lowChairSettlesThroughGrassForKind(a, profile),
+  );
 }
 
 async function lowChairSettlesThroughGrassForKind(
   a: Arena,
-  profile: (typeof CHAIR_KINDS)[keyof typeof CHAIR_KINDS],
+  profile: ChairProfile,
 ): Promise<Outcome> {
   const ground = { x: GRASS_CELL.x, y: a.gy - 1, z: GRASS_CELL.z };
   const plant = { ...ground, y: a.gy };
