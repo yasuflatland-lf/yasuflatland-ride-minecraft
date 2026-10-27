@@ -1072,8 +1072,9 @@ describe("sports boat hull planking (ADR 0161)", () => {
     expect(corner).toBeDefined();
     if (!corner) return;
     const z = corner.pivot?.[2] ?? 0;
-    expect(reach(corner, 5, z - 0.1)).toBeLessThan(13);
-    expect(reach(corner, 5, z + 1)).toBeGreaterThan(14);
+    const innerX = Math.abs(corner.pivot?.[0] ?? 0);
+    expect(reach(corner, 5, z - 0.1)).toBeLessThan(innerX + 0.5);
+    expect(reach(corner, 5, z + 1)).toBeGreaterThan(innerX + 1.5);
   });
 
   it("intercepts vertical rays throughout the outer plan, including both stem gaps", () => {

@@ -1,7 +1,9 @@
 import { readFileSync } from "node:fs";
+import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { DOOR_BY_SEAT } from "../../src/domain/vehicle/kinds/suv/entity";
 import { SUV_PROFILE } from "../../src/domain/vehicle/kinds/suv/profile";
+import { turnedCorners } from "../support/geometry";
 import { assertOneAxis, multipleAxes } from "./oneAxis";
 
 type Vec3 = [number, number, number];
@@ -48,7 +50,84 @@ function pivot(name: string): Vec3 {
   return p;
 }
 
+// Separating axes of oriented boxes include their edges and each cross product.
+// Using turned corners catches a sloping flare even when its AABB overlaps a tire.
+function separated(a: Vec3[], b: Vec3[]): boolean {
+  const minus = (p: Vec3, q: Vec3): Vec3 => [
+    p[0] - q[0],
+    p[1] - q[1],
+    p[2] - q[2],
+  ];
+  const dot = (p: Vec3, q: Vec3) => p[0] * q[0] + p[1] * q[1] + p[2] * q[2];
+  const cross = (p: Vec3, q: Vec3): Vec3 => [
+    p[1] * q[2] - p[2] * q[1],
+    p[2] * q[0] - p[0] * q[2],
+    p[0] * q[1] - p[1] * q[0],
+  ];
+  const edges = (points: Vec3[]) =>
+    [1, 2, 4].map((i) => minus(points[i] as Vec3, points[0] as Vec3));
+  const ea = edges(a),
+    eb = edges(b);
+  return [...ea, ...eb, ...ea.flatMap((u) => eb.map((v) => cross(u, v)))].some(
+    (axis) => {
+      const length = Math.hypot(...axis);
+      if (length < 1e-9) return false;
+      const unit = axis.map((v) => v / length) as Vec3;
+      const pa = a.map((p) => dot(p, unit)),
+        pb = b.map((p) => dot(p, unit));
+      return (
+        Math.max(...pa) <= Math.min(...pb) + 1e-8 ||
+        Math.max(...pb) <= Math.min(...pa) + 1e-8
+      );
+    },
+  );
+}
+
 describe("SUV model (ADR 0009)", () => {
+  it("keeps spinning road tires clear of flares, steps and bumpers", () => {
+    const obstacles = [...bones.values()]
+      .filter((b) => b.name === "body" || b.name.startsWith("door_"))
+      .flatMap((b) => (b.cubes ?? []).map((c) => turnedCorners(b, c)));
+    fc.assert(
+      fc.property(fc.double({ min: 0, max: 360, noNaN: true }), (angle) => {
+        const radians = (angle * Math.PI) / 180;
+        for (const name of ["wheel_fl", "wheel_fr", "wheel_rl", "wheel_rr"]) {
+          const wheel = bones.get(name) as Bone;
+          const hub = pivot(name);
+          for (const cube of wheel.cubes ?? []) {
+            const tire = turnedCorners(wheel, cube).map(
+              ([x, y, z]): Vec3 => [
+                x,
+                hub[1] +
+                  (y - hub[1]) * Math.cos(radians) -
+                  (z - hub[2]) * Math.sin(radians),
+                hub[2] +
+                  (y - hub[1]) * Math.sin(radians) +
+                  (z - hub[2]) * Math.cos(radians),
+              ],
+            );
+            for (const obstacle of obstacles) {
+              // Most body cubes are inboard or above the wheels.
+              const apart = [0, 1, 2].some(
+                (axis) =>
+                  Math.max(...tire.map((p) => p[axis] as number)) <=
+                    Math.min(...obstacle.map((p) => p[axis] as number)) ||
+                  Math.max(...obstacle.map((p) => p[axis] as number)) <=
+                    Math.min(...tire.map((p) => p[axis] as number)),
+              );
+              if (!apart)
+                expect(
+                  separated(tire, obstacle),
+                  `${name} at ${angle} degrees`,
+                ).toBe(true);
+            }
+          }
+        }
+      }),
+      { numRuns: 12 },
+    );
+  });
+
   it("allows compound rotations only in declared assemblies (ADR 0167)", () => {
     const cubes = [...bones.values()].flatMap((bone) => bone.cubes ?? []);
     const assemblies = { arc: cubes.filter(multipleAxes) };
