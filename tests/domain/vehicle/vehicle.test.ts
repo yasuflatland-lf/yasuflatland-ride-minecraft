@@ -326,7 +326,7 @@ describe("Vehicle (aggregate)", () => {
         const step = stepAhead(yaw, stepDistance, 2);
         const sim = new Sim();
         sim.yaw = yaw;
-        // A ceiling 2 to 3 blocks up over the approach, ending where the step starts.
+        // The scaled SUV needs a third block above the approach; the ceiling blocks a jump.
         sim.solid = (p) => {
           const ahead = dot({ x: p.x, z: p.z }, f);
           const side = dot({ x: p.x, z: p.z }, leftOf(f));
@@ -334,8 +334,8 @@ describe("Vehicle (aggregate)", () => {
             ahead > -10 &&
             ahead < stepDistance &&
             Math.abs(side) <= 2 &&
-            p.y >= 2 &&
-            p.y < 3;
+            p.y >= 3 &&
+            p.y < 4;
           return ceiling || step(p);
         };
         sim.riders = [{ id: "d", seat: 0, yaw, raw: FORWARD }];

@@ -139,8 +139,11 @@ def both_sides(cubes):
     return [*cubes, *[mirrored(c) for c in cubes]]
 
 
-# The wheelbase and both overhangs follow the side-view reference, measured against the fixed wheel
-# diameter (ADR 0170).
+# The seated player replaces the wheel diameter as the size anchor (ADR 0170).
+# Keep construction coordinates unscaled until export so every length shares one transform.
+SIZE_SCALE = 1.3
+
+# The wheelbase and overhang ratios follow the side-view reference (ADR 0170).
 REAR = -31  # z of the tailgate's outer face
 CARGO_FRONT = -19  # z where the rear doors end and the cargo area's fixed panels begin
 # Chassis and ground clearance: the chassis runs from the sill (its underside, which also sets where
@@ -246,8 +249,8 @@ STEP_TOP_Y = FLOOR_Y  # flush with the doors' lower edge, so an opening door cle
 # The folded wheels hang out from the body on arms in flight, like a hovering DeLorean (ADR 0043): the
 # hover animation moves each wheel FOLD_OUT outward and FOLD_DROP down. The dive and submerged
 # animations move each rear wheel SUB_OUT out, which the submarine arms reach to (ADR 0040); it equals
-# FOLD_OUT but is set by a different animation. suv.anim.json is written by hand, so
-# tests/tools/suvDimensions.test.ts checks its offsets and the arm bones against these values.
+# FOLD_OUT but is set by a different animation. Timing and angles in suv.anim.json stay hand-authored;
+# export rebuilds its translations from these lengths to keep the assemblies attached.
 FOLD_OUT = 6
 FOLD_DROP = 4
 SUB_OUT = 6
@@ -1063,7 +1066,7 @@ def turn_around(bones):
     """Rotate 180° around the Y axis (negate x and z)."""
     for bone in bones:
         if "pivot" in bone:
-            bone["pivot"] = [-bone["pivot"][0], bone["pivot"][1], -bone["pivot"][2]]
+            bone["pivot"] = [-bone["pivot"][0] or 0, bone["pivot"][1], -bone["pivot"][2] or 0]
         for name, (lx, ly, lz) in bone.get("locators", {}).items():
             bone["locators"][name] = [-lx, ly, -lz]
         for cube in bone.get("cubes", []):
@@ -1077,7 +1080,43 @@ def turn_around(bones):
             # Face directions also swap (north <-> south, east <-> west). The faces are solid colors, so the UVs can stay as they are
 
 
+def scaled(vector):
+    return [round(value * SIZE_SCALE, 12) for value in vector]
+
+
+for bone in geo["minecraft:geometry"][0]["bones"]:
+    bone["pivot"] = scaled(bone["pivot"])
+    for name, locator in bone.get("locators", {}).items():
+        bone["locators"][name] = scaled(locator)
+    for cube in bone.get("cubes", []):
+        for key in ("origin", "size", "pivot"):
+            if key in cube:
+                cube[key] = scaled(cube[key])
+description = geo["minecraft:geometry"][0]["description"]
+for key in ("visible_bounds_width", "visible_bounds_height"):
+    description[key] *= SIZE_SCALE
+description["visible_bounds_offset"] = scaled(description["visible_bounds_offset"])
 turn_around(geo["minecraft:geometry"][0]["bones"])
+
+# Rebuild translations from construction lengths on every run, avoiding cumulative scaling.
+animation_path = RP / "animations/yasu_ride/suv.anim.json"
+if animation_path.exists():
+    animation = json.loads(animation_path.read_text())
+    for name, clip in animation["animations"].items():
+        for member, channels in clip.get("bones", {}).items():
+            if "position" not in channels:
+                continue
+            side = 1 if member.endswith("l") else -1
+            folded = "wheels_" in name
+            offset = scaled([side * (FOLD_OUT if folded else SUB_OUT),
+                             -FOLD_DROP if folded else 0, 0])
+            position = channels["position"]
+            if isinstance(position, list):
+                channels["position"] = offset
+            else:
+                channels["position"] = {t: offset if any(v) else [0, 0, 0]
+                                        for t, v in position.items()}
+    animation_path.write_text(json.dumps(animation, indent=2) + "\n")
 
 model_cubes = [cube for bone in geo["minecraft:geometry"][0]["bones"] for cube in bone.get("cubes", [])]
 assert_axes(model_cubes, {"arc": compound_cubes(model_cubes)}, ASSEMBLIES)

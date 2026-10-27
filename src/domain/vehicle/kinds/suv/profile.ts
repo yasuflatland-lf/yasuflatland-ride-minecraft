@@ -27,10 +27,10 @@ export const SUV_PROFILE: VehicleProfile = Object.freeze({
    */
   seats: Object.freeze({
     positions: Object.freeze([
-      { x: -0.38, z: 0.075 },
-      { x: 0.38, z: 0.075 },
-      { x: -0.38, z: -0.8 },
-      { x: 0.38, z: -0.8 },
+      { x: -0.494, z: 0.0975 },
+      { x: 0.494, z: 0.0975 },
+      { x: -0.494, z: -1.04 },
+      { x: 0.494, z: -1.04 },
     ]),
   }),
   boarding: Object.freeze({ order: "engine" }),
@@ -41,7 +41,7 @@ export const SUV_PROFILE: VehicleProfile = Object.freeze({
   // On the top face of a block only (ADR 0008).
   placement: Object.freeze({
     surfaces: Object.freeze<PlacementSurface[]>(["top"]),
-    // 3 × 2 × 3 cells fit the 1.8-wide, 1.6-high collision box (ADR 0009).
+    // 3 × 3 × 3 cells fit the 2.34-wide, 2.08-high collision box (ADR 0009).
     clearance: Object.freeze({
       halfX: 1,
       halfZ: 1,

@@ -76,8 +76,8 @@ it("uses the supplied car height to decide whether the roof is submerged", () =>
     SUV_TYRES,
   );
   const suv = new SuvDrive(0, {});
-  tall.step(IDLE, context(2));
-  suv.step(IDLE, context(2));
+  tall.step(IDLE, context(3));
+  suv.step(IDLE, context(3));
   expect(tall.form).toBe("car");
   expect(suv.form).toBe("submarine");
 });

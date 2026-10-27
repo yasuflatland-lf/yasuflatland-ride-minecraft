@@ -91,6 +91,28 @@ const scale = (cubes: Cubes, factors: Vec): Cubes =>
 const baseline = run(generated);
 
 describe("SUV proportions", () => {
+  it("preserves every completed 7/7 proportion within 0.005", () => {
+    const previous = {
+      wheelbase: 3.5264418956676304,
+      front_overhang: 0.705288379133526,
+      rear_overhang: 0.9127261377022102,
+      ground_clearance: 0.5726032154990395,
+      overall_height: 2.192692109920462,
+      belt_height: 1.528891282500673,
+      side_window_height: 0.5393381722785787,
+      hood_height: 1.5786763445571574,
+      hood_length: 1.795549102379232,
+      front_bumper_length: 0.3319004137098946,
+      rear_bumper_length: 0.41487551713736825,
+      bumper_height: 0.3484954343953894,
+    };
+    for (const [key, ratio] of Object.entries(previous)) {
+      expect(Math.abs(linear(baseline, key).ratio - ratio)).toBeLessThanOrEqual(
+        0.005,
+      );
+    }
+  });
+
   it("measures every row positively and deterministically without mutating cubes", () => {
     expect(Object.keys(baseline.measures).sort()).toEqual([...keys].sort());
     expect(Object.keys(baseline.targets).sort()).toEqual([...keys].sort());
@@ -225,7 +247,7 @@ describe("SUV proportions", () => {
     expect(
       Math.max(...points.map((p) => Math.abs(p[0]))) / 16,
     ).toBeLessThanOrEqual(SUV_SPEC.bodyHalfWidth);
-    // ADR 0170 allows 0.30 blocks above the 1.6-block collision box for the roof.
+    // ADR 0170 retains the maximum 0.30-block roof allowance after scaling.
     const heightMargin = 0.3;
     expect(linear(baseline, "overall_height").pixels / 16).toBeLessThanOrEqual(
       SUV_SPEC.carHeight + heightMargin,
