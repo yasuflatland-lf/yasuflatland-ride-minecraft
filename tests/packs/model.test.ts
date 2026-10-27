@@ -336,6 +336,24 @@ describe("SUV model (ADR 0009)", () => {
       }
     });
 
+    it("keeps the dashboard fittings and steering clear of the sealed windshield", () => {
+      const windshield = plates.find((c) => c.rotation);
+      const body = bones.get("body");
+      if (!windshield || !sealed || !body) throw new Error("Missing cabin");
+      const glass = turnedCorners(sealed, windshield);
+      const fittings = (body.cubes ?? [])
+        .map((c) => turnedCorners(body, c))
+        .filter((corners) =>
+          corners.every(
+            ([x, y, z]) =>
+              Math.abs(x) < 12 && y >= 13 && y <= 22 && z > -8 && z < 0,
+          ),
+        );
+      expect(fittings.length).toBeGreaterThan(20);
+      for (const fitting of fittings)
+        expect(separated(glass, fitting)).toBe(true);
+    });
+
     it("covers the window above each door", () => {
       for (const d of DOOR_BY_SEAT) {
         const panel = bones.get(d)?.cubes?.[0];

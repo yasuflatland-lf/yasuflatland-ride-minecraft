@@ -161,29 +161,31 @@ WINDOW_TOP_Y = 27
 ROOF_Y = WINDOW_TOP_Y + 2  # underside of the roof
 ROOF_TOP = ROOF_Y + 1
 
-# Hood. Its top equals the belt line today, but the target's hood stands above its belt line (ADR 0170),
-# so the two are set separately.
-HOOD_TOP_Y = 17
+# The target hood stands above the belt line, so its cowl has its own height (ADR 0170).
+HOOD_TOP_Y = 19
 FRONT = 25  # z of the hood's front face
-HOOD_REAR_Z = 13  # z of the cowl, where the hood meets the windshield frame
+HOOD_REAR_Z = 7.75  # z of the cowl, where the hood meets the windshield frame
 WINDSHIELD_FOOT_Z = HOOD_REAR_Z - 0.5  # the windshield's lower frame pivot, before it leans back
 
-# Cabin landmarks shared by the doors, pillars, seats and the hood's lower sides. The cabin stays put
-# when the axles move (ADR 0170).
+# The door hinges and dashboard follow the cowl; the pillars and seats keep their cabin positions
+# (ADR 0117, 0170).
 FRONT_DOOR_HINGE_Z = HOOD_REAR_Z - 1
 B_PILLAR_REAR_Z, B_PILLAR_FRONT_Z = -6, -5
 DASH_BOTTOM_Y = 13
+DASH_FACE_Z = HOOD_REAR_Z - 1.5
+DASH_GAUGE_DROP = 1.25
+DASH_SHIFT_Z = DASH_FACE_Z - 10
 REAR_SEAT_Z = CARGO_FRONT + 1
 
 # The windshield leans back: its frame turns around the lower frame's edge. Written here, a positive x
 # rotation tips +y toward the rear (-z) in game; a negative one leaned the frame out over the hood.
 # The roof starts where the A-pillars meet it.
-WINDSHIELD_LEAN = 25  # degrees back from vertical
-WINDSHIELD_PIVOT = (0, BELT_Y, WINDSHIELD_FOOT_Z)
+WINDSHIELD_LEAN = 35  # degrees back from vertical
+WINDSHIELD_PIVOT = (0, HOOD_TOP_Y, WINDSHIELD_FOOT_Z)
 _LEAN_SIN = math.sin(math.radians(WINDSHIELD_LEAN))
 _LEAN_COS = math.cos(math.radians(WINDSHIELD_LEAN))
 _LEAN_TAN = math.tan(math.radians(WINDSHIELD_LEAN))
-ROOF_FRONT = WINDSHIELD_FOOT_Z - (ROOF_TOP - BELT_Y) * _LEAN_TAN + 0.6
+ROOF_FRONT = WINDSHIELD_FOOT_Z - (ROOF_TOP - HOOD_TOP_Y) * _LEAN_TAN + 0.6
 
 
 def windshield_part(x0, y0, z0, x1, y1, z1, color):
@@ -254,10 +256,10 @@ body = [
     box(-BODY_HALF_WIDTH, ARCH_TOP_Y, HOOD_REAR_Z, BODY_HALF_WIDTH, HOOD_TOP_Y, FRONT, "body"),
     box(-ARCH_LINER_X, FLOOR_Y, HOOD_REAR_Z, ARCH_LINER_X, ARCH_TOP_Y, FRONT, "body"),
     # Dashboard
-    box(-CABIN_HALF_WIDTH, DASH_BOTTOM_Y, 10, CABIN_HALF_WIDTH, BELT_Y, HOOD_REAR_Z, "trim"),
+    box(-CABIN_HALF_WIDTH, DASH_BOTTOM_Y, DASH_FACE_Z, CABIN_HALF_WIDTH, HOOD_TOP_Y, HOOD_REAR_Z, "trim"),
     # Windshield lower frame and A-pillars, leaning back
-    windshield_part(-CABIN_HALF_WIDTH, BELT_Y, WINDSHIELD_FOOT_Z, CABIN_HALF_WIDTH, BELT_Y + 1, HOOD_REAR_Z, "trim"),
-    *both_sides([windshield_part(CABIN_HALF_WIDTH, BELT_Y, HOOD_REAR_Z - 1, BODY_HALF_WIDTH, BELT_Y + (ROOF_Y + 0.8 - BELT_Y) / _LEAN_COS, HOOD_REAR_Z, "body")]),
+    windshield_part(-CABIN_HALF_WIDTH, HOOD_TOP_Y, WINDSHIELD_FOOT_Z, CABIN_HALF_WIDTH, HOOD_TOP_Y + 1, HOOD_REAR_Z, "trim"),
+    *both_sides([windshield_part(CABIN_HALF_WIDTH, HOOD_TOP_Y, HOOD_REAR_Z - 1, BODY_HALF_WIDTH, HOOD_TOP_Y + (ROOF_Y + 0.8 - HOOD_TOP_Y) / _LEAN_COS, HOOD_REAR_Z, "body")]),
     # Rearview mirror (center of the windshield's top edge, behind the leaning glass)
     box(-0.5, ROOF_Y - 2.5, ROOF_FRONT - 0.8, 0.5, ROOF_Y, ROOF_FRONT - 0.3, "trim"),
     box(-2.5, ROOF_Y - 4, ROOF_FRONT - 1.3, 2.5, ROOF_Y - 2.5, ROOF_FRONT - 0.8, "rim"),
@@ -364,7 +366,7 @@ def arch_cut(x0, x1, y0, y1, z_back, z_front, z_center, color, step=0.5):
 # The hood's lower sides, cut along the front arch, outside the liners. They reach back to the front
 # door's hinge: with the front arch moved forward, its flare no longer hides the gap under the cowl.
 body += both_sides(arch_cut(ARCH_LINER_X, BODY_HALF_WIDTH, FLOOR_Y, ARCH_TOP_Y, FRONT_DOOR_HINGE_Z, FRONT, FRONT_AXLE_Z, "body"))
-body += both_sides([box(ARCH_LINER_X, ARCH_TOP_Y, FRONT_DOOR_HINGE_Z, BODY_HALF_WIDTH, DASH_BOTTOM_Y, HOOD_REAR_Z, "body")])
+body += both_sides([box(ARCH_LINER_X, ARCH_TOP_Y, FRONT_DOOR_HINGE_Z, BODY_HALF_WIDTH, HOOD_TOP_Y, HOOD_REAR_Z, "body")])
 # The cargo area's body-colored side below the belt line, cut along the rear arch
 body += both_sides(arch_cut(CABIN_HALF_WIDTH, BODY_HALF_WIDTH, FLOOR_Y, BELT_Y, REAR + 1, CARGO_FRONT, REAR_AXLE_Z, "body"))
 # Round fuel door on the left side of the cargo area, behind the rear flare and under the belt line
@@ -473,16 +475,15 @@ body += pleated_seat(0, 11, REAR_SEAT_Z)
 
 # Steering wheel (+x side; shown in game as right-hand drive), tilted 20° with its top away from the
 # driver, toward the dashboard (a negative x rotation tips +y toward +z in game, see WINDSHIELD_LEAN).
-# Its center sits at WHEEL_Z, 0.6 px farther back than when the top leaned toward the driver, so the
-# rim's top stays about 0.5 px off the speedometer's glass; the column runs forward and down into the
-# dashboard. Like the tires, the rim is a ring of thin blocks turned around the column. Brown leather
+# The wheel follows the dashboard face so its column stays inside the cabin as the cowl moves.
+# Like the tires, the rim is a ring of thin blocks turned around the column. Brown leather
 # rim, gray spokes, and a black hub and column
 WHEEL_CENTER = (6.0, 16.5)  # (x, y)
-WHEEL_Z = 8.1
+WHEEL_Z = 8.1 + DASH_SHIFT_Z
 WHEEL_PIVOT = [WHEEL_CENTER[0], WHEEL_CENTER[1], WHEEL_Z]
 WHEEL_RADIUS = 2.4
 WHEEL_TILT = -20
-COLUMN_END_Z = 11.0  # inside the dashboard
+COLUMN_END_Z = 11.0 + DASH_SHIFT_Z  # inside the dashboard
 
 
 def tilted_spin(spin):
@@ -611,6 +612,9 @@ body += [
 # 4x4: a black instrument panel with a large speedometer in the middle and two small gauges on each
 # side. Every dial has a black face, white ticks and a white needle, in a chrome bezel. No logo or
 # lettering (ADR 0009).
+dashboard_start = len(body)
+
+
 def dial(cx, cy, radius, ticks, needle_angle):
     center = (cx, cy, 10)
     cubes = round_face(center, radius + 0.25, 10, 10.5, "rim")  # bezel
@@ -634,6 +638,14 @@ for gx in (3.3, 8.7):
     body += dial(gx, 19.3, 0.85, 5, 30)
     body += dial(gx, 17.2, 0.85, 5, -30)
 
+# The raked glass crosses the old instrument panel height; lower the cluster to keep it inside
+# the cabin without bringing the steering wheel behind the rider (ADR 0170).
+for cube in body[dashboard_start:]:
+    cube["origin"][1] -= DASH_GAUGE_DROP
+    if "pivot" in cube:
+        cube["pivot"] = [cube["pivot"][0], cube["pivot"][1] - DASH_GAUGE_DROP, cube["pivot"][2]]
+
+
 # Passenger side of the dashboard, like an old utility 4x4: a flat body-colored panel under a black
 # pad along the top, a chrome windshield latch at the outer end of the pad, a black grab bar standing
 # off the panel on two posts, a black box under the bar, and a glovebox lid a little proud of the panel
@@ -648,6 +660,12 @@ body += [
     box(-11.7, 13.3, 9.75, -8.1, 14.9, 9.9, "body"),  # glovebox lid
     box(-9.05, 14.4, 9.65, -8.75, 14.7, 9.75, "rim"),  # glovebox knob
 ]
+
+for cube in body[dashboard_start:]:
+    cube["origin"][2] += DASH_SHIFT_Z
+    if "pivot" in cube:
+        cube["pivot"] = [*cube["pivot"][:2], cube["pivot"][2] + DASH_SHIFT_Z]
+
 
 # Floor shifters between the front seats, like an old utility 4x4: a tall shift lever in an
 # accordion rubber boot, and two shorter transfer levers behind it. Each lever leans back toward
@@ -706,7 +724,7 @@ DOORS = {
 }
 # The front door's window frame leans with the windshield, so its window is a trapezoid. The frame's
 # front post sits just behind the A-pillar, turned around the same pivot.
-FRONT_POST_LENGTH = (ROOF_Y - BELT_Y) / _LEAN_COS
+FRONT_POST_LENGTH = (ROOF_Y - HOOD_TOP_Y) / _LEAN_COS
 
 
 def window_frame_piece(y0, z0, y1, z1):
@@ -723,13 +741,14 @@ def door(name):
     panel = arch_cut(CABIN_HALF_WIDTH, BODY_HALF_WIDTH, FLOOR_Y, BELT_Y, z_back, z_front, axle, "body")
     card = arch_cut(11.8, CABIN_HALF_WIDTH, FLOOR_Y + 1, BELT_Y - 1, z_back + 0.6, z_front - 0.6, axle, "trim")
     if z_front > 0:
-        front_post = [windshield_part(x0, BELT_Y, HOOD_REAR_Z - 2, x0 + 0.5, BELT_Y + FRONT_POST_LENGTH, HOOD_REAR_Z - 1, color)
+        front_post = [windshield_part(x0, HOOD_TOP_Y, HOOD_REAR_Z - 2, x0 + 0.5, HOOD_TOP_Y + FRONT_POST_LENGTH, HOOD_REAR_Z - 1, color)
                       for x0, color in ((DOOR_FRAME_MID_X, "body"), (CABIN_HALF_WIDTH, "trim"))]
-        top_front = ROOF_FRONT - 0.4
+        front_post += window_frame_piece(BELT_Y, z_front - 1, HOOD_TOP_Y, z_front)
+        top_front = ROOF_FRONT + 0.1
         side_mirror = [
-            box(BODY_HALF_WIDTH, BELT_Y, 10, 14, BELT_Y + 1, 11, "body"),
-            box(14, BELT_Y - 0.5, 9.5, 16.5, BELT_Y + 2.5, 11, "body"),
-            box(14.2, BELT_Y, 9.3, 16.3, BELT_Y + 2, 9.5, "rim"),
+            box(BODY_HALF_WIDTH, BELT_Y, z_front - 2, 14, BELT_Y + 1, z_front - 1, "body"),
+            box(14, BELT_Y - 0.5, z_front - 2.5, 16.5, BELT_Y + 2.5, z_front - 1, "body"),
+            box(14.2, BELT_Y, z_front - 2.7, 16.3, BELT_Y + 2, z_front - 2.5, "rim"),
         ]
     else:
         front_post = window_frame_piece(BELT_Y, z_front - 1, ROOF_Y, z_front)
@@ -848,9 +867,9 @@ def front_post_back(y):
 
 
 WINDOWS_SEALED = [
-    windshield_part(-CABIN_HALF_WIDTH, BELT_Y + 1, HOOD_REAR_Z - 0.1, CABIN_HALF_WIDTH, BELT_Y + FRONT_POST_LENGTH, HOOD_REAR_Z, "rear_glass"),
+    windshield_part(-CABIN_HALF_WIDTH, HOOD_TOP_Y + 1, HOOD_REAR_Z - 0.1, CABIN_HALF_WIDTH, HOOD_TOP_Y + FRONT_POST_LENGTH, HOOD_REAR_Z, "rear_glass"),
     *both_sides([
-        *[box(12.85, y, -4, 12.95, y + 1, front_post_back(y) + 0.2, "rear_glass") for y in range(BELT_Y, ROOF_Y - 1)],
+        *[box(12.85, y, -4, 12.95, y + 1, (FRONT_DOOR_HINGE_Z - 1 if y < HOOD_TOP_Y else front_post_back(y) + 0.2), "rear_glass") for y in range(BELT_Y, ROOF_Y - 1)],
         box(12.9, BELT_Y, CARGO_FRONT + 1, BODY_HALF_WIDTH, ROOF_Y - 1, -7, "rear_glass"),
     ]),
 ]

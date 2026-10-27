@@ -2,6 +2,8 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { expect, it } from "vitest";
 
+import { SUV_PROFILE } from "../../src/domain/vehicle/kinds/suv/profile";
+
 type Vec = [number, number, number];
 type Bone = { name: string; pivot: Vec; locators?: Record<string, Vec> };
 type Position = Vec | Record<string, Vec>;
@@ -64,6 +66,14 @@ it("orders the SUV body heights and longitudinal landmarks consistently", () => 
       expect(ordered[i - 1]).toBeLessThan(ordered[i] as number);
     }
   }
+});
+
+it("keeps the steering center ahead of the front riders under the rearward cowl", () => {
+  for (const seat of SUV_PROFILE.seats.positions.slice(0, 2)) {
+    expect(dimension("WHEEL_Z")).toBeGreaterThan(seat.z * 16);
+  }
+  expect(dimension("WHEEL_Z")).toBeLessThan(dimension("DASH_FACE_Z"));
+  expect(dimension("DASH_FACE_Z")).toBeLessThan(dimension("WINDSHIELD_FOOT_Z"));
 });
 
 it("anchors wheel assemblies and hover locators to the exported axles", () => {
