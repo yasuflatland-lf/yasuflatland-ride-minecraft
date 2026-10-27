@@ -1,5 +1,5 @@
 // In-game checks of the camp feature's low chair (ADR 0122).
-import { type Entity, system } from "@minecraft/server";
+import { type Entity, system, type Vector3 } from "@minecraft/server";
 import {
   CAMP_TABLE_TYPE,
   CHAIR_FAMILY,
@@ -23,6 +23,19 @@ const CELL = { x: 119, z: 40 } as const;
 const hit = (chair: Entity) =>
   system.sendScriptEvent(TEST_CHAIR_HIT_EVENT, chair.id);
 
+const droppedItems = (a: Arena, at: Vector3, itemType: string) =>
+  a.dim
+    .getEntities({ type: "minecraft:item", location: at, maxDistance: 2 })
+    .filter(
+      (e) => e.getComponent("minecraft:item")?.itemStack.typeId === itemType,
+    );
+
+const totalAmount = (items: Entity[]) =>
+  items.reduce(
+    (n, e) => n + (e.getComponent("minecraft:item")?.itemStack.amount ?? 0),
+    0,
+  );
+
 /** Summons a chair, checks its one seat, and folds it back with three hits into one dropped item. */
 export async function lowChairSeatAndTakeBack(a: Arena): Promise<Outcome> {
   const at = { x: CELL.x + 0.5, y: a.gy, z: CELL.z + 0.5 };
@@ -33,13 +46,7 @@ export async function lowChairSeatAndTakeBack(a: Arena): Promise<Outcome> {
     maxDistance: 1.5,
   })[0];
   if (!chair) return { pass: false, detail: "chair not spawned" };
-  const chairItems = () =>
-    a.dim
-      .getEntities({ type: "minecraft:item", location: at, maxDistance: 2 })
-      .filter(
-        (e) =>
-          e.getComponent("minecraft:item")?.itemStack.typeId === LOW_CHAIR_ITEM,
-      );
+  const chairItems = () => droppedItems(a, at, LOW_CHAIR_ITEM);
   try {
     const seats = chair.getComponent("minecraft:rideable")?.seatCount;
     const family = chair.matches({ families: [CHAIR_FAMILY] });
@@ -51,11 +58,7 @@ export async function lowChairSeatAndTakeBack(a: Arena): Promise<Outcome> {
     hit(chair);
     await wait(2);
     const afterThree = chair.isValid;
-    const items = chairItems();
-    const amount = items.reduce(
-      (n, e) => n + (e.getComponent("minecraft:item")?.itemStack.amount ?? 0),
-      0,
-    );
+    const amount = totalAmount(chairItems());
     return {
       pass: seats === 1 && family && afterOne && !afterThree && amount === 1,
       detail: `seats=${seats} family=${family} afterOne=${afterOne} afterThree=${afterThree} items=${amount}`,
@@ -164,18 +167,7 @@ export async function firePitCoveredTakeBack(a: Arena): Promise<Outcome> {
     maxDistance: 1.5,
   })[0];
   if (!pit) return { pass: false, detail: "fire pit not spawned" };
-  const items = () =>
-    a.dim
-      .getEntities({
-        type: "minecraft:item",
-        location: at,
-        maxDistance: 2,
-      })
-      .filter(
-        (entity) =>
-          entity.getComponent("minecraft:item")?.itemStack.typeId ===
-          FIRE_PIT_ITEM,
-      );
+  const items = () => droppedItems(a, at, FIRE_PIT_ITEM);
   try {
     const initial = pit.getProperty(FIRE_PIT_COVERED_PROPERTY);
     system.sendScriptEvent(TEST_FIRE_PIT_COVER_EVENT, pit.id);
@@ -190,32 +182,24 @@ export async function firePitCoveredTakeBack(a: Arena): Promise<Outcome> {
     system.sendScriptEvent(TEST_FIRE_PIT_COVER_EVENT, pit.id);
     await wait(2);
     const uncovered = pit.getProperty(FIRE_PIT_COVERED_PROPERTY);
-    let survivedFirstTwo = true;
-    for (let i = 0; i < 3; i++) {
-      if (!pit.isValid)
-        return {
-          pass: false,
-          detail: "pit folded before three uncovered hits",
-        };
+    for (let i = 0; i < 2; i++) {
       system.sendScriptEvent(TEST_FIRE_PIT_HIT_EVENT, pit.id);
       await wait(2);
-      if (i < 2) survivedFirstTwo &&= pit.isValid;
     }
-    const amount = items().reduce(
-      (sum, entity) =>
-        sum + (entity.getComponent("minecraft:item")?.itemStack.amount ?? 0),
-      0,
-    );
+    const afterTwo = pit.isValid;
+    system.sendScriptEvent(TEST_FIRE_PIT_HIT_EVENT, pit.id);
+    await wait(2);
+    const amount = totalAmount(items());
     return {
       pass:
         initial === false &&
         covered === true &&
         coveredDrops === 0 &&
         uncovered === false &&
-        survivedFirstTwo &&
+        afterTwo &&
         !pit.isValid &&
         amount === 1,
-      detail: `initial=${initial} covered=${covered} coveredDrops=${coveredDrops} uncovered=${uncovered} survivedFirstTwo=${survivedFirstTwo} folded=${!pit.isValid} items=${amount}`,
+      detail: `initial=${initial} covered=${covered} coveredDrops=${coveredDrops} uncovered=${uncovered} afterTwo=${afterTwo} folded=${!pit.isValid} items=${amount}`,
     };
   } finally {
     if (pit.isValid) pit.remove();

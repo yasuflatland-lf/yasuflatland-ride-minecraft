@@ -86,13 +86,9 @@ export function registerFirePit(
     } else if (ev.id === TEST_FIRE_PIT_HIT_EVENT) {
       // The pit is a valid entity id but resolves to no player for action-bar hints.
       actions.hit(id, asPlayerId(entity.id), system.currentTick);
-    } else
-      actions.toggle(
-        asFirePitId(entity.id),
-        undefined,
-        "minecraft:flint_and_steel",
-        0,
-      );
+    } else {
+      actions.toggle(id, undefined, "minecraft:flint_and_steel", 0);
+    }
   });
   system.runInterval(() => {
     for (const dimensionId of ["overworld", "nether", "the_end"]) {
