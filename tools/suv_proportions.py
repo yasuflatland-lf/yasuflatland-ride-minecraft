@@ -26,8 +26,8 @@ def _bounds(cubes):
         for n in range(8):
             offset = [cube["origin"][i] + cube["size"][i] * ((n >> i) & 1) - pivot[i]
                       for i in range(3)]
-            points.append([pivot[i] + sum(matrix[i][j] * offset[j] for j in range(3))
-                           for i in range(3)])
+            turned = _cube_tilt._apply(matrix, offset)
+            points.append([pivot[i] + turned[i] for i in range(3)])
     if not points:
         raise ValueError("SUV measurement requires nonempty body and road wheel bones")
     return ([min(p[i] for p in points) for i in range(3)],
