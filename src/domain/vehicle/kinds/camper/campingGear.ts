@@ -13,7 +13,7 @@ export const CAMPING_GEAR_IDS: readonly string[] = Object.freeze([
   "sugar_pot",
   "fruit_bowl",
   "toaster",
-  "oil_lamp",
+  "lantern",
   "transistor_radio",
   "book_stack",
   "road_map",
@@ -39,7 +39,7 @@ export const STANDING_GEAR_IDS: readonly string[] = Object.freeze(
 /** Saved catalog ids: null drops removed gear without returning an item (ADR 0169). */
 export const LEGACY_GEAR_IDS: Readonly<Record<string, string | null>> = {
   lava_lamp: null,
-  oil_lamp: "oil_lamp",
+  oil_lamp: "lantern",
 };
 
 export function currentGearId(saved: string): string | undefined {

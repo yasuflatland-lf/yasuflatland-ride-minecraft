@@ -16,7 +16,7 @@ Each item stands in the middle of one slot on the camper's furniture, or at one 
 | ![Glass Sugar Pot](../images/items/camping-gear/sugar_pot.png) | Glass Sugar Pot | 3 × 4 | Stands | None |
 | ![Fruit Bowl](../images/items/camping-gear/fruit_bowl.png) | Fruit Bowl | 6 × 3 | Stands | None |
 | ![Chrome Toaster](../images/items/camping-gear/toaster.png) | Chrome Toaster | 6 × 5 | Stands | None |
-| ![Oil Lamp](../images/items/camping-gear/oil_lamp.png) | Oil Lamp | 4 × 7 | Stands | None |
+| ![Lantern](../images/items/camping-gear/lantern.png) | Lantern | 5 × 8 | Stands | None |
 | ![Transistor Radio](../images/items/camping-gear/transistor_radio.png) | Transistor Radio | 6 × 4 | Stands | None |
 | ![Stack of Books](../images/items/camping-gear/book_stack.png) | Stack of Books | 6 × 3 | Stands | None |
 | ![Folded Road Map](../images/items/camping-gear/road_map.png) | Folded Road Map | 6 × 1 | Stands | None |
@@ -24,6 +24,8 @@ Each item stands in the middle of one slot on the camper's furniture, or at one 
 | ![Cushion](../images/items/camping-gear/cushion.png) | Cushion | 7 × 3 | Stands | None |
 | ![Tissue Box](../images/items/camping-gear/tissue_box.png) | Tissue Box | 5 × 3 | Stands | None |
 | ![Desk Fan](../images/items/camping-gear/desk_fan.png) | Desk Fan | 4 × 6 | Stands | None |
+
+A camper saved with an Oil Lamp shows the Lantern when loaded (ADR 0169).
 
 ## Low Chair (outside the vehicles)
 

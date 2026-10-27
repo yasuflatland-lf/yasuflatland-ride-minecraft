@@ -2,7 +2,7 @@
   "format_version": "1.21.80",
   "minecraft:block": {
     "description": {
-      "identifier": "yasu_ride:oil_lamp_decor",
+      "identifier": "yasu_ride:lantern_decor",
       "menu_category": { "category": "none" },
       "states": {
         "yasu_ride:face": [0, 1, 2, 3],
@@ -13,9 +13,9 @@
       }
     },
     "components": {
-      "minecraft:geometry": "geometry.yasu_ride.oil_lamp",
+      "minecraft:geometry": "geometry.yasu_ride.lantern",
       "minecraft:material_instances": {
-        "*": { "texture": "yasu_ride_camping_gear", "render_method": "opaque" }
+        "*": { "texture": "yasu_ride_camping_gear", "render_method": "blend" }
       },
       "minecraft:light_dampening": 0,
       "minecraft:destructible_by_mining": false,
@@ -23,7 +23,7 @@
       "tag:yasu_ride:laid": {},
       "minecraft:custom_components": ["yasu_ride:camper_decor"],
       "minecraft:collision_box": false,
-      "minecraft:selection_box": { "origin": [-8, 0, -8], "size": [16, 7, 16] }
+      "minecraft:selection_box": { "origin": [-8, 0, -8], "size": [16, 8, 16] }
     },
     "permutations": [
       {

@@ -1290,7 +1290,7 @@ it("stands each leaving rider at their exit after the final commands", () => {
   );
 });
 
-it("silently restores only current decor and saves it after the next change", () => {
+it("silently migrates saved oil lamps, drops removed decor and saves it after the next change", () => {
   const world = new FakeWorld();
   const repo = new InMemoryRepo();
   const log = logger();
@@ -1300,7 +1300,7 @@ it("silently restores only current decor and saves it after the next change", ()
       restored: () => ({
         dockDecor: JSON.stringify([
           { slot: "stove", item: "lava_lamp" },
-          { slot: "table", item: "mug_pair" },
+          { slot: "table", item: "oil_lamp" },
         ]),
       }),
     }),
@@ -1308,7 +1308,7 @@ it("silently restores only current decor and saves it after the next change", ()
   expect(() => new DriveVehicles(world, repo, log).execute(0)).not.toThrow();
   const vehicleId = asVehicleId("car");
   expect(repo.get(vehicleId)?.decor()).toEqual([
-    { slot: "table", item: "mug_pair" },
+    { slot: "table", item: "lantern" },
   ]);
   expect(log.lines).toEqual([]);
   const saveDecor = vi.fn();
@@ -1322,7 +1322,7 @@ it("silently restores only current decor and saves it after the next change", ()
   expect(saveDecor).toHaveBeenCalledWith(
     vehicleId,
     expect.arrayContaining([
-      { slot: "table", item: "mug_pair" },
+      { slot: "table", item: "lantern" },
       { slot: "stove", item: "toaster" },
     ]),
   );

@@ -27,9 +27,10 @@ it("reads every current gear id unchanged", () => {
   );
 });
 
-it("drops removed gear and keeps the oil lamp until its rename", () => {
-  expect(LEGACY_GEAR_IDS).toEqual({ lava_lamp: null, oil_lamp: "oil_lamp" });
+it("drops removed gear and migrates the oil lamp to the lantern", () => {
+  expect(LEGACY_GEAR_IDS).toEqual({ lava_lamp: null, oil_lamp: "lantern" });
   expect(currentGearId("lava_lamp")).toBeUndefined();
+  expect(currentGearId("oil_lamp")).toBe("lantern");
 });
 
 it("drops unknown ids, including inherited object keys", () => {
