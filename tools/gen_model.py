@@ -1084,7 +1084,8 @@ def scaled(vector):
     return [round(value * SIZE_SCALE, 12) for value in vector]
 
 
-for bone in geo["minecraft:geometry"][0]["bones"]:
+geometry = geo["minecraft:geometry"][0]
+for bone in geometry["bones"]:
     bone["pivot"] = scaled(bone["pivot"])
     for name, locator in bone.get("locators", {}).items():
         bone["locators"][name] = scaled(locator)
@@ -1092,11 +1093,11 @@ for bone in geo["minecraft:geometry"][0]["bones"]:
         for key in ("origin", "size", "pivot"):
             if key in cube:
                 cube[key] = scaled(cube[key])
-description = geo["minecraft:geometry"][0]["description"]
+description = geometry["description"]
 for key in ("visible_bounds_width", "visible_bounds_height"):
     description[key] *= SIZE_SCALE
 description["visible_bounds_offset"] = scaled(description["visible_bounds_offset"])
-turn_around(geo["minecraft:geometry"][0]["bones"])
+turn_around(geometry["bones"])
 
 # Rebuild translations from construction lengths on every run, avoiding cumulative scaling.
 animation_path = RP / "animations/yasu_ride/suv.anim.json"
@@ -1118,7 +1119,7 @@ if animation_path.exists():
                                         for t, v in position.items()}
     animation_path.write_text(json.dumps(animation, indent=2) + "\n")
 
-model_cubes = [cube for bone in geo["minecraft:geometry"][0]["bones"] for cube in bone.get("cubes", [])]
+model_cubes = [cube for bone in geometry["bones"] for cube in bone.get("cubes", [])]
 assert_axes(model_cubes, {"arc": compound_cubes(model_cubes)}, ASSEMBLIES)
 (MODELS / "suv.geo.json").write_text(json.dumps(geo, indent=1))
 

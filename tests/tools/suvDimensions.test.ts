@@ -22,13 +22,14 @@ const script = [
 const d = JSON.parse(
   execFileSync("python3", ["-I", "-c", script], { encoding: "utf8" }),
 ) as Record<string, number>;
-const dimension = (name: string): number => {
+const constant = (name: string): number => {
   const value = d[name];
   if (value === undefined) throw new Error(`Missing dimension ${name}`);
-  return name === "WINDSHIELD_LEAN" || name === "SIZE_SCALE"
-    ? value
-    : Number((value * (d.SIZE_SCALE ?? 1)).toFixed(12));
+  return value;
 };
+// Construction lengths reach the exported model scaled by SIZE_SCALE (ADR 0170).
+const dimension = (name: string): number =>
+  Number((constant(name) * constant("SIZE_SCALE")).toFixed(12));
 const model = JSON.parse(
   readFileSync(
     "packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json",
@@ -74,8 +75,8 @@ it("joins the shortened A-pillars to the roof without protruding above it", () =
   const body = bone("body") as GeometryBone;
   const pillars = (body.cubes ?? []).filter(
     (c) =>
-      c.rotation?.[0] === -dimension("WINDSHIELD_LEAN") &&
-      Math.abs(c.size[0] - dimension("SIZE_SCALE")) < 1e-10,
+      c.rotation?.[0] === -constant("WINDSHIELD_LEAN") &&
+      Math.abs(c.size[0] - constant("SIZE_SCALE")) < 1e-10,
   );
   expect(pillars).toHaveLength(2);
   for (const pillar of pillars) {
@@ -115,7 +116,7 @@ it("anchors wheel assemblies and hover locators to the exported axles", () => {
     ]);
     expect(glow.locators?.[`hover_${corner}`]).toEqual([
       glow.pivot[0],
-      -0.5 * dimension("SIZE_SCALE"),
+      -0.5 * constant("SIZE_SCALE"),
       z,
     ]);
     if (corner.startsWith("r")) {
