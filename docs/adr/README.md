@@ -153,7 +153,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0149](0149-route-the-parked-camper-wheel-seat-to-headlights.md) | Route the parked camper's wheel seat to the headlights | Accepted |
 | [0150](0150-run-the-sports-boat-on-lava.md) | Run the sports boat on lava | Proposed |
 | [0151](0151-enclose-the-bulldozer-blade-supports.md) | Enclose the bulldozer blade supports | Proposed |
-| [0152](0152-a-two-seat-folding-camp-table.md) | A two-seat folding camp table | Proposed |
+| [0152](0152-a-two-seat-folding-camp-table.md) | A two-seat folding camp table | Proposed; partly superseded by 0168 (Proposed) |
 | [0153](0153-a-polished-folding-fire-pit.md) | A polished folding fire pit | Proposed |
 | [0154](0154-keep-camper-passengers-in-their-seats-on-departure.md) | Keep camper passengers in their seats on departure | Proposed |
 | [0155](0155-cut-under-water-and-dig-a-shaft-when-rising.md) | Cut under water and dig a wide shaft when rising | Proposed |
@@ -168,6 +168,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0165](0165-cylindrical-sports-boat-tower-speakers.md) | Cylindrical sports boat tower speakers | Proposed |
 | [0166](0166-tilted-two-axis-sports-boat-helm-assemblies.md) | Tilted two-axis assemblies on the sports boat helm | Proposed |
 | [0167](0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md) | Compound-rotation assemblies as a vehicle-neutral rule | Proposed |
+| [0168](0168-a-dutch-oven-and-a-grill-for-the-fire-pit.md) | A Dutch oven and a grill for the fire pit | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 
