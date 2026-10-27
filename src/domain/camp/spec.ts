@@ -18,6 +18,13 @@ export const TABLE_SPEC = Object.freeze({
   hitResetTicks: 100,
 });
 
+export const DUTCH_OVEN_SPEC = Object.freeze({
+  clearance: 2,
+  hitsToTakeBack: 3,
+  hitResetTicks: 100,
+  hostCheckTicks: 20,
+});
+
 export const FIRE_PIT_SPEC = Object.freeze({
   clearance: 2,
   hitsToTakeBack: 3,
