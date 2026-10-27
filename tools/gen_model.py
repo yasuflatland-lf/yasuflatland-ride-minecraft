@@ -704,9 +704,9 @@ def door(name):
                       for x0, color in ((DOOR_FRAME_MID_X, "body"), (CABIN_HALF_WIDTH, "trim"))]
         top_front = ROOF_FRONT - 0.4
         side_mirror = [
-            box(BODY_HALF_WIDTH, BELT_Y, 10, 14, 18, 11, "body"),
-            box(14, 16.5, 9.5, 16.5, 19.5, 11, "body"),
-            box(14.2, BELT_Y, 9.3, 16.3, 19, 9.5, "rim"),
+            box(BODY_HALF_WIDTH, BELT_Y, 10, 14, BELT_Y + 1, 11, "body"),
+            box(14, BELT_Y - 0.5, 9.5, 16.5, BELT_Y + 2.5, 11, "body"),
+            box(14.2, BELT_Y, 9.3, 16.3, BELT_Y + 2, 9.5, "rim"),
         ]
     else:
         front_post = window_frame_piece(BELT_Y, z_front - 1, ROOF_Y, z_front)
