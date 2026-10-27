@@ -1,15 +1,50 @@
 // Camping entity, item, and block ids (ADR 0047, 0122, 0130, 0131, 0132, 0133, 0134).
+import type { ChairKindId } from "../../domain/camp/chair";
 import type { PitchRefusal } from "../../domain/camp/tent";
 import { id } from "../shared/identifiers";
 
-export const LOW_CHAIR_TYPE = id("low_chair");
-export const LOW_CHAIR_ITEM = id("low_chair_item");
-/** Listed in low_chair.se.json's minecraft:type_family. */
-export const CHAIR_FAMILY = "yasu_ride_low_chair";
-/** Lets in-game tests hit a chair without a player: the message is the chair's entity id. */
-export const TEST_CHAIR_HIT_EVENT = id("test_chair_hit");
-/** Action bar hint after a hit that does not take the chair back yet. */
-export const HITS_LEFT_HINT = "yasu_ride.hint.low_chair_hits";
+/** The ids that tell one chair kind from another; the rules are shared (ADR 0122). */
+export interface ChairProfile {
+  readonly typeId: string;
+  readonly itemId: string;
+  /** Listed in the chair's minecraft:type_family. */
+  readonly family: string;
+  /** Action bar hint after a hit that does not take the chair back yet. */
+  readonly hitsHint: string;
+  /** Lets in-game tests hit a chair without a player: the message is the chair's entity id. */
+  readonly testHitEvent: string;
+}
+
+export const CHAIR_KINDS: Readonly<Record<ChairKindId, ChairProfile>> = {
+  low_chair: {
+    typeId: id("low_chair"),
+    itemId: id("low_chair_item"),
+    family: "yasu_ride_low_chair",
+    hitsHint: "yasu_ride.hint.low_chair_hits",
+    testHitEvent: id("test_chair_hit"),
+  },
+};
+
+function chairKindsBy(
+  field: "typeId" | "itemId" | "testHitEvent",
+): ReadonlyMap<string, ChairKindId> {
+  return new Map(
+    (Object.keys(CHAIR_KINDS) as ChairKindId[]).map((kind) => [
+      CHAIR_KINDS[kind][field],
+      kind,
+    ]),
+  );
+}
+
+export const CHAIR_KIND_BY_TYPE = chairKindsBy("typeId");
+export const CHAIR_KIND_BY_ITEM = chairKindsBy("itemId");
+export const CHAIR_KIND_BY_TEST_EVENT = chairKindsBy("testHitEvent");
+
+export const LOW_CHAIR_TYPE = CHAIR_KINDS.low_chair.typeId;
+export const LOW_CHAIR_ITEM = CHAIR_KINDS.low_chair.itemId;
+export const CHAIR_FAMILY = CHAIR_KINDS.low_chair.family;
+export const TEST_CHAIR_HIT_EVENT = CHAIR_KINDS.low_chair.testHitEvent;
+export const HITS_LEFT_HINT = CHAIR_KINDS.low_chair.hitsHint;
 
 export const CAMP_TABLE_TYPE = id("camp_table");
 export const CAMP_TABLE_ITEM = id("camp_table_item");
