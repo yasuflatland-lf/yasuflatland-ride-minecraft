@@ -295,11 +295,11 @@ it("stores saved decor of a removed slot in a shut cabinet once every open spot 
   const drive = new CamperDrive(0, {
     dockDecor: JSON.stringify([
       ...full,
-      { slot: "wall_cabinet_front", item: "lava_lamp" },
+      { slot: "wall_cabinet_front", item: "book_stack" },
     ]),
   });
   expect(drive.decor()).toEqual([
     ...full,
-    { slot: "cabinet_sink_rear", item: "lava_lamp" },
+    { slot: "cabinet_sink_rear", item: "book_stack" },
   ]);
 });

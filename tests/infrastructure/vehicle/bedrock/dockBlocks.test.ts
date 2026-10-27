@@ -569,7 +569,7 @@ it("lays both items of a fridge compartment in its one block, each end's code sp
     },
   });
   const [end0, end1] = PAIR_END_STATES;
-  // potted_plant is standing item 0 (code 1); desk_fan is standing item 17 (code 18).
+  // potted_plant is standing item 0 (code 1); desk_fan is standing item 16 (code 17).
   docks.lay(asVehicleId(f.car.id), f.car, [pairAt("potted_plant", "desk_fan")]);
   expect(f.at(position)).toEqual({
     typeId: pairDecorBlockId("fridge"),
@@ -580,7 +580,7 @@ it("lays both items of a fridge compartment in its one block, each end's code sp
       [end0.page]: 0,
       [end0.item]: 1,
       [end1.page]: 1,
-      [end1.item]: 8,
+      [end1.item]: 7,
     },
   });
   docks.lay(asVehicleId(f.car.id), f.car, [pairAt(undefined, "desk_fan")]);

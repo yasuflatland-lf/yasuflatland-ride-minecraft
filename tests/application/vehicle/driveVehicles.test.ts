@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
 import { DriveVehicles } from "../../../src/application/vehicle/driveVehicles";
+import { SetDecor } from "../../../src/application/vehicle/setDecor";
 import {
   asPlayerId,
   asVehicleId,
@@ -1287,4 +1288,43 @@ it("stands each leaving rider at their exit after the final commands", () => {
   expect(stand.mock.invocationCallOrder[0]).toBeGreaterThan(
     defined(run.mock.invocationCallOrder.at(-1), "final run"),
   );
+});
+
+it("silently restores only current decor and saves it after the next change", () => {
+  const world = new FakeWorld();
+  const repo = new InMemoryRepo();
+  const log = logger();
+  world.snapshots = [
+    snapshot("car", {
+      kind: "camper",
+      restored: () => ({
+        dockDecor: JSON.stringify([
+          { slot: "stove", item: "lava_lamp" },
+          { slot: "table", item: "mug_pair" },
+        ]),
+      }),
+    }),
+  ];
+  expect(() => new DriveVehicles(world, repo, log).execute(0)).not.toThrow();
+  const vehicleId = asVehicleId("car");
+  expect(repo.get(vehicleId)?.decor()).toEqual([
+    { slot: "table", item: "mug_pair" },
+  ]);
+  expect(log.lines).toEqual([]);
+  const saveDecor = vi.fn();
+  expect(
+    new SetDecor({ saveDecor }, repo).execute({
+      vehicleId,
+      slot: "stove",
+      item: "toaster",
+    }),
+  ).toBe(true);
+  expect(saveDecor).toHaveBeenCalledWith(
+    vehicleId,
+    expect.arrayContaining([
+      { slot: "table", item: "mug_pair" },
+      { slot: "stove", item: "toaster" },
+    ]),
+  );
+  expect(saveDecor.mock.calls[0]?.[1]).toHaveLength(2);
 });
