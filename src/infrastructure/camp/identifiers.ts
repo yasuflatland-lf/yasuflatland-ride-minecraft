@@ -15,6 +15,12 @@ export const CAMP_TABLE_TYPE = id("camp_table");
 export const CAMP_TABLE_ITEM = id("camp_table_item");
 export const TABLE_HITS_LEFT_HINT = "yasu_ride.hint.camp_table_hits";
 
+export const DUTCH_OVEN_HOST_PROPERTY = id("host");
+export const DUTCH_OVEN_HOSTED_EVENT = id("oven_hosted");
+export const DUTCH_OVEN_GROUND_EVENT = id("oven_ground");
+/** Server test hook: the message is the pit entity id; no player or item is needed. */
+export const TEST_DUTCH_OVEN_ON_PIT_EVENT =
+  "yasu_ride_test:test_dutch_oven_on_pit";
 export const DUTCH_OVEN_TYPE = id("dutch_oven");
 export const DUTCH_OVEN_ITEM = id("dutch_oven_item");
 export const DUTCH_OVEN_SIMMERING_PROPERTY = id("simmering");

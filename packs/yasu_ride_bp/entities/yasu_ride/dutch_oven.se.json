@@ -50,6 +50,38 @@
           }
         ]
       }
+    },
+    "component_groups": {
+      "yasu_ride:oven_hosted": {
+        "minecraft:physics": {
+          "has_collision": false,
+          "has_gravity": false
+        }
+      },
+      "yasu_ride:oven_ground": {
+        "minecraft:physics": {
+          "has_collision": true,
+          "has_gravity": true
+        }
+      }
+    },
+    "events": {
+      "yasu_ride:oven_hosted": {
+        "remove": {
+          "component_groups": ["yasu_ride:oven_ground"]
+        },
+        "add": {
+          "component_groups": ["yasu_ride:oven_hosted"]
+        }
+      },
+      "yasu_ride:oven_ground": {
+        "remove": {
+          "component_groups": ["yasu_ride:oven_hosted"]
+        },
+        "add": {
+          "component_groups": ["yasu_ride:oven_ground"]
+        }
+      }
     }
   }
 }

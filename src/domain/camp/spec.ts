@@ -60,3 +60,9 @@ export const TENT_SPEC = Object.freeze({
   /** The paint the variant-0 slot shows: the tan-brown fly, restored by brown dye (ADR 0076). */
   defaultPaint: "khaki" satisfies Paint,
 });
+
+export const FIRE_PIT_SPOTS = Object.freeze([
+  Object.freeze({ x: 0, z: 0 }),
+] as const);
+// Must match GRILL_TOP in tools/gen_fire_pit.py (ADR 0168).
+export const FIRE_PIT_TOP_PX = 12.5;
