@@ -18,13 +18,17 @@ function bones(kind: VehicleKind): Bone[] {
   )["minecraft:geometry"][0].bones;
 }
 
+function modelCorners(kind: VehicleKind): [number, number, number][] {
+  return bones(kind).flatMap((bone) =>
+    (bone.cubes ?? []).flatMap((cube) => turnedCorners(bone, cube)),
+  );
+}
+
 function modelReach(kind: VehicleKind): number {
-  let reach = 0;
-  for (const bone of bones(kind))
-    for (const cube of bone.cubes ?? [])
-      for (const [x, , z] of turnedCorners(bone, cube))
-        reach = Math.max(reach, Math.hypot(x, z));
-  return reach / PIXELS_PER_BLOCK;
+  return (
+    Math.max(...modelCorners(kind).map(([x, , z]) => Math.hypot(x, z))) /
+    PIXELS_PER_BLOCK
+  );
 }
 
 it.each(VEHICLE_KINDS)(
@@ -43,12 +47,7 @@ it.each(VEHICLE_KINDS)(
 );
 
 it("keeps the SUV bumper and fog lamps inside its forward collision probe", () => {
-  const front = Math.max(
-    ...bones("suv").flatMap((bone) =>
-      (bone.cubes ?? []).flatMap((cube) =>
-        turnedCorners(bone, cube).map(([, , z]) => -z / PIXELS_PER_BLOCK),
-      ),
-    ),
-  );
+  const front =
+    Math.max(...modelCorners("suv").map(([, , z]) => -z)) / PIXELS_PER_BLOCK;
   expect(front).toBeLessThanOrEqual(profileOf("suv").body.front);
 });
