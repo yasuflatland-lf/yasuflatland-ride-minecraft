@@ -28,7 +28,6 @@ import { PAINT_BY_DYE } from "../../../../src/infrastructure/shared/dyes";
 import { HEADLIGHT_SWITCH_TYPE } from "../../../../src/infrastructure/shared/identifiers";
 import type { SwitchTarget } from "../../../../src/infrastructure/shared/switchRouter";
 import {
-  BLADE_SWITCH_TYPE,
   CAMPER_BED_COMPONENT,
   CAMPER_CABINET_COMPONENT,
   CAMPER_DECOR_COMPONENT,
@@ -45,15 +44,16 @@ import {
   ENTITY_TYPE,
   GIFT_ITEM,
   ITEM_TYPE,
+  MONITOR_TOOL_TYPES,
   OWNER_PROPERTY,
   pairDecorBlockId,
   STAND_IN_OF_PROPERTY,
   STAND_IN_PROPERTY,
   standInType,
-  TEST_BLADE_EVENT,
   TEST_DECOR_EVENT,
   TEST_HELD_TOOL_EVENT,
   TEST_INPUT_EVENT,
+  TEST_TOOL_EVENT,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 import { registerSubscriptions } from "../../../../src/infrastructure/vehicle/bedrock/subscriptions";
 import { VehicleTestStore } from "../../../../src/infrastructure/vehicle/testInput/vehicleTestStore";
@@ -1254,10 +1254,10 @@ it("stores and clears test input only from server script events", () => {
   expect(inputs.get(asVehicleId("suv"))).toBeUndefined();
 });
 
-it("sets the blade only from server test blade script events (ADR 0138)", () => {
-  const blade = { force: vi.fn() };
+it("sets the tool only from server test tool script events (ADR 0138)", () => {
+  const tool = { force: vi.fn() };
   registerSubscriptions(
-    { blade } as unknown as Parameters<typeof registerSubscriptions>[0],
+    { tool } as unknown as Parameters<typeof registerSubscriptions>[0],
     new VehicleTestStore<RawInput>(),
     new VehicleTestStore<string>(),
     () => undefined,
@@ -1269,32 +1269,30 @@ it("sets the blade only from server test blade script events (ADR 0138)", () => 
     .mocked(system.afterEvents.scriptEventReceive.subscribe)
     .mock.calls.at(-4)?.[0];
   if (!receive) throw new Error("scriptEventReceive not subscribed");
-  const send = (
-    message: string,
-    sourceType = "Server",
-    id = TEST_BLADE_EVENT,
-  ) =>
+  const send = (message: string, sourceType = "Server", id = TEST_TOOL_EVENT) =>
     receive({
       id,
       message,
       sourceType,
     } as unknown as ScriptEventCommandMessageAfterEvent);
-  send("car,raised", "Entity");
-  send("car,raised", "Server", "minecraft:other");
+  send("car,blade_switch,up", "Entity");
+  send("car,blade_switch,up", "Server", "minecraft:other");
   const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
   send("car,bad");
   expect(warn).toHaveBeenCalledOnce();
   warn.mockRestore();
-  expect(blade.force).not.toHaveBeenCalled();
-  send("car,raised");
-  expect(blade.force).toHaveBeenCalledExactlyOnceWith({
+  expect(tool.force).not.toHaveBeenCalled();
+  send("car,blade_switch,up");
+  expect(tool.force).toHaveBeenCalledExactlyOnceWith({
     vehicleId: "car",
-    raised: true,
+    item: "blade_switch",
+    state: "up",
   });
-  send("car,lowered");
-  expect(blade.force).toHaveBeenLastCalledWith({
+  send("car,blade_switch,down");
+  expect(tool.force).toHaveBeenLastCalledWith({
     vehicleId: "car",
-    raised: false,
+    item: "blade_switch",
+    state: "down",
   });
 });
 
@@ -2063,7 +2061,8 @@ describe("camper bumper stand-in (ADR 0116)", () => {
   });
 });
 
-describe("blade switch (ADR 0138)", () => {
+describe("monitor tool switch (ADR 0171)", () => {
+  const bladeSwitchType = "yasu_ride:blade_switch";
   const location = { x: 2.5, y: 64, z: 3.5 };
   function fixture(
     mount: { id: string; typeId: string } | null = {
@@ -2076,7 +2075,7 @@ describe("blade switch (ADR 0138)", () => {
     const vehicle = mount
       ? { ...mount, dimension: { playSound }, location }
       : undefined;
-    const blade = { execute: vi.fn(() => result), force: vi.fn() };
+    const tool = { execute: vi.fn(() => result), force: vi.fn() };
     const headlights = { execute: vi.fn(() => false) };
     const ceilingLights = { execute: vi.fn(), canSwitch: vi.fn(() => false) };
     const later = {
@@ -2092,7 +2091,7 @@ describe("blade switch (ADR 0138)", () => {
     const entitiesBefore = entities.mock.calls.length;
     registerSubscriptions(
       {
-        blade,
+        tool,
         headlights,
         ceilingLights,
         board: { execute: vi.fn(() => false) },
@@ -2108,6 +2107,7 @@ describe("blade switch (ADR 0138)", () => {
     const onEntity = entities.mock.calls.slice(entitiesBefore).map(([h]) => h);
     const uses = game.use.mock.calls.slice(usesBefore).map(([h]) => h);
     game.run.mockClear();
+    let held: string | undefined;
     const player = {
       id: "player",
       isValid: true,
@@ -2117,12 +2117,18 @@ describe("blade switch (ADR 0138)", () => {
       getViewDirection: () => ({ x: 0, y: 0, z: 1 }),
       inputInfo: { lastInputModeUsed: "KeyboardAndMouse" },
       getComponent: (name: string) =>
-        name === "minecraft:riding" && vehicle
-          ? { entityRidingOn: vehicle }
-          : undefined,
+        name === "minecraft:inventory"
+          ? {
+              container: {
+                getItem: () => (held ? { typeId: held } : undefined),
+              },
+            }
+          : name === "minecraft:riding" && vehicle
+            ? { entityRidingOn: vehicle }
+            : undefined,
     };
     return {
-      blade,
+      tool,
       headlights,
       ceilingLights,
       later,
@@ -2133,6 +2139,7 @@ describe("blade switch (ADR 0138)", () => {
         target = { id: "dozer", typeId: ENTITY_TYPE.bulldozer },
         isFirstEvent = true,
       ) {
+        held = typeId;
         const itemStack = typeId === undefined ? undefined : { typeId };
         const ev = {
           player,
@@ -2162,7 +2169,7 @@ describe("blade switch (ADR 0138)", () => {
       fc.property(
         fc.constantFrom(
           HEADLIGHT_SWITCH_TYPE,
-          BLADE_SWITCH_TYPE,
+          ...MONITOR_TOOL_TYPES,
           "minecraft:stick",
           undefined,
         ),
@@ -2171,12 +2178,16 @@ describe("blade switch (ADR 0138)", () => {
           fc.pre(type !== undefined || kind !== "item");
           const f = fixture();
           const ev = f.send(kind, type);
-          if (kind === "entity") expect(f.blade.execute).not.toHaveBeenCalled();
+          if (kind === "entity") expect(f.tool.execute).not.toHaveBeenCalled();
           f.nextTick();
-          expect(f.blade.execute).toHaveBeenCalledTimes(
-            type === BLADE_SWITCH_TYPE && kind !== "block" ? 1 : 0,
+          expect(f.tool.execute).toHaveBeenCalledTimes(
+            type !== undefined &&
+              MONITOR_TOOL_TYPES.includes(type) &&
+              kind !== "block"
+              ? 1
+              : 0,
           );
-          if (type === BLADE_SWITCH_TYPE) {
+          if (type !== undefined && MONITOR_TOOL_TYPES.includes(type)) {
             expect(f.headlights.execute).not.toHaveBeenCalled();
             expect(f.ceilingLights.execute).not.toHaveBeenCalled();
             expect(f.later.switchFor).not.toHaveBeenCalled();
@@ -2186,20 +2197,21 @@ describe("blade switch (ADR 0138)", () => {
       ),
     );
   });
-  it("switches the ridden bulldozer's blade on item use and clicks only when it switched", () => {
+  it("switches the ridden bulldozer's tool on item use and clicks only when it switched", () => {
     for (const result of [true, false]) {
       const f = fixture({ id: "dozer", typeId: ENTITY_TYPE.bulldozer }, result);
-      f.send("item", BLADE_SWITCH_TYPE);
-      expect(f.blade.execute).toHaveBeenCalledExactlyOnceWith({
+      f.send("item", bladeSwitchType);
+      expect(f.tool.execute).toHaveBeenCalledExactlyOnceWith({
         playerId: "player",
         vehicleId: "dozer",
+        item: "blade_switch",
       });
       expect(f.playSound).toHaveBeenCalledTimes(result ? 1 : 0);
       if (result)
         expect(f.playSound).toHaveBeenCalledWith("random.click", location);
     }
   });
-  it("ignores the blade switch on foot or on another mount", () => {
+  it("ignores the tool switch on foot or on another mount", () => {
     fc.assert(
       fc.property(
         fc.constantFrom(undefined, { id: "pig", typeId: "minecraft:pig" }),
@@ -2210,9 +2222,9 @@ describe("blade switch (ADR 0138)", () => {
         ),
         (mount, kind, target) => {
           const f = fixture(mount ?? null);
-          expect(f.send(kind, BLADE_SWITCH_TYPE, target).cancel).toBe(false);
+          expect(f.send(kind, bladeSwitchType, target).cancel).toBe(false);
           expect(game.run).not.toHaveBeenCalled();
-          expect(f.blade.execute).not.toHaveBeenCalled();
+          expect(f.tool.execute).not.toHaveBeenCalled();
           expect(f.playSound).not.toHaveBeenCalled();
         },
       ),
@@ -2220,13 +2232,9 @@ describe("blade switch (ADR 0138)", () => {
   });
   it("takes a rider's press on their own vehicle, and nothing else", () => {
     for (const [target, item, claimed] of [
-      [{ id: "dozer", typeId: ENTITY_TYPE.bulldozer }, BLADE_SWITCH_TYPE, true],
-      [{ id: "cow", typeId: "minecraft:cow" }, BLADE_SWITCH_TYPE, false],
-      [
-        { id: "other", typeId: ENTITY_TYPE.bulldozer },
-        BLADE_SWITCH_TYPE,
-        false,
-      ],
+      [{ id: "dozer", typeId: ENTITY_TYPE.bulldozer }, bladeSwitchType, true],
+      [{ id: "cow", typeId: "minecraft:cow" }, bladeSwitchType, false],
+      [{ id: "other", typeId: ENTITY_TYPE.bulldozer }, bladeSwitchType, false],
       [
         { id: "dozer", typeId: ENTITY_TYPE.bulldozer },
         "minecraft:stick",
@@ -2235,9 +2243,9 @@ describe("blade switch (ADR 0138)", () => {
     ] as const) {
       const f = fixture();
       expect(f.send("entity", item, target).cancel).toBe(claimed);
-      expect(f.blade.execute).not.toHaveBeenCalled();
+      expect(f.tool.execute).not.toHaveBeenCalled();
       f.nextTick();
-      expect(f.blade.execute).toHaveBeenCalledTimes(claimed ? 1 : 0);
+      expect(f.tool.execute).toHaveBeenCalledTimes(claimed ? 1 : 0);
     }
   });
   it("never takes a block press", () => {
@@ -2247,9 +2255,9 @@ describe("blade switch (ADR 0138)", () => {
           riding ? { id: "dozer", typeId: ENTITY_TYPE.bulldozer } : null,
         );
         expect(
-          f.send("block", BLADE_SWITCH_TYPE, undefined, isFirst).cancel,
+          f.send("block", bladeSwitchType, undefined, isFirst).cancel,
         ).toBe(false);
-        expect(f.blade.execute).not.toHaveBeenCalled();
+        expect(f.tool.execute).not.toHaveBeenCalled();
       }),
     );
   });

@@ -27,7 +27,6 @@ import {
   NAMESPACE,
 } from "../../../../src/infrastructure/shared/identifiers";
 import {
-  BLADE_SWITCH_TYPE,
   CAMPER_BED_BLOCK,
   CAMPER_CABINET_DOOR_BLOCK,
   CAMPER_CEILING_BLOCK,
@@ -60,6 +59,7 @@ import {
   kindOfEntity,
   kindOfItem,
   LIT_CELLS_PROPERTY,
+  MONITOR_TOOL_TYPES,
   OWNER_PROPERTY,
   PAIR_END_STATES,
   PAIR_PAGE_SIZE,
@@ -67,9 +67,9 @@ import {
   pairEndStates,
   ramMountOf,
   STARTER_RECEIVED_PROPERTY,
-  TEST_BLADE_EVENT,
   TEST_DECOR_EVENT,
   TEST_INPUT_EVENT,
+  TEST_TOOL_EVENT,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 
 describe("identifiers (ADR 0047)", () => {
@@ -103,7 +103,7 @@ describe("identifiers (ADR 0047)", () => {
     "yasu_ride:unknown",
     "toString",
     HEADLIGHT_SWITCH_TYPE,
-    BLADE_SWITCH_TYPE,
+    ...MONITOR_TOOL_TYPES,
   ])("does not recognize an unrelated type %s", (typeId) => {
     expect(kindOfEntity(typeId)).toBeUndefined();
     expect(isVehicleEntity(typeId)).toBe(false);
@@ -172,13 +172,13 @@ describe("identifiers (ADR 0047)", () => {
       FLEET_PROPERTY,
       OWNER_PROPERTY,
       HEADLIGHT_SWITCH_TYPE,
-      BLADE_SWITCH_TYPE,
+      ...MONITOR_TOOL_TYPES,
       HEADLIGHTS_PROPERTY,
       LIT_CELLS_PROPERTY,
       TEST_INPUT_EVENT,
       DECOR_PROPERTY,
       TEST_DECOR_EVENT,
-      TEST_BLADE_EVENT,
+      TEST_TOOL_EVENT,
       ...["form", "bank", "gear_down"].map(entityPropertyId),
       ...["gravity_on", "gravity_off"].map(entityEventId),
       ...PAINTS.map(paintEvent),
@@ -190,7 +190,7 @@ describe("identifiers (ADR 0047)", () => {
   });
 
   it("pins the blade switch item id", () => {
-    expect(BLADE_SWITCH_TYPE).toBe("yasu_ride:blade_switch");
+    expect(MONITOR_TOOL_TYPES).toContain("yasu_ride:blade_switch");
   });
 
   it("names an item's decor block", () => {

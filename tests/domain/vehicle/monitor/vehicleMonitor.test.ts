@@ -6,8 +6,8 @@ import type {
   EngineCommand,
 } from "../../../../src/domain/vehicle/drive";
 import { MONITOR_PROPERTY_NAME } from "../../../../src/domain/vehicle/entityContract";
+import { BLADE_SWITCH_ITEM } from "../../../../src/domain/vehicle/kinds/bulldozer/monitor";
 import {
-  BLADE_SWITCH_ITEM,
   createVehicle,
   profileOf,
 } from "../../../../src/domain/vehicle/kinds/index";
@@ -206,7 +206,9 @@ describe("bulldozer cab monitor", () => {
   it("shows the blade switch's target and switches at once", () => {
     const sim = bulldozer();
     expect(sim.monitor(BLADE_SWITCH_ITEM)).toEqual([command(2)]);
-    expect(sim.vehicle.switchBlade(asPlayerId("d"), 100)).toBe(true);
+    expect(
+      sim.vehicle.switchTool(asPlayerId("d"), BLADE_SWITCH_ITEM, 100),
+    ).toBe(true);
     expect(sim.monitor(BLADE_SWITCH_ITEM)).toEqual([command(1)]);
   });
 
