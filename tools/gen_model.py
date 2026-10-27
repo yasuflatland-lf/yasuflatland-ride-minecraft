@@ -145,15 +145,16 @@ def both_sides(cubes):
 REAR = -32  # z of the tailgate's outer face
 CARGO_FRONT = -19  # z where the rear doors end and the cargo area's fixed panels begin
 # ADR 0170: greenhouse dimensions above BELT_Y are WINDOW_BOTTOM_Y, WINDOW_TOP_Y,
-# ROOF_Y and WINDSHIELD_FOOT_Z; REAR and CARGO_FRONT bound its fixed rear panels.
+# ROOF_Y, WINDSHIELD_FOOT_Z and GREENHOUSE_REAR; CARGO_FRONT bounds its fixed rear panels.
 # Lower-body dimensions are HOOD_TOP_Y, FLOOR_Y, SILL_Y, FRONT and HOOD_REAR_Z.
 # BELT_Y is their shared boundary; BODY_HALF_WIDTH, CABIN_HALF_WIDTH and
 # DOOR_FRAME_MID_X span both groups. Equal heights remain independently tunable.
 BELT_Y = 17
-WINDOW_BOTTOM_Y = 18.5
-WINDOW_TOP_Y = 27
-ROOF_Y = 29  # underside of the roof
-WINDSHIELD_FOOT_Z = 12.5  # unrotated lower frame pivot, before turn_around
+GREENHOUSE_REAR = -33.2
+WINDOW_BOTTOM_Y = 18
+WINDOW_TOP_Y = 26
+ROOF_Y = 27  # underside of the roof
+WINDSHIELD_FOOT_Z = 8.25  # unrotated lower frame pivot, before turn_around
 HOOD_TOP_Y = 17
 FLOOR_Y = 7
 SILL_Y = 4
@@ -166,7 +167,7 @@ DOOR_FRAME_MID_X = 12.5
 # The windshield leans back: its frame turns around the lower frame's edge. Written here, a positive x
 # rotation tips +y toward the rear (-z) in game; a negative one leaned the frame out over the hood.
 # The roof starts where the A-pillars meet it.
-WINDSHIELD_LEAN = 25  # degrees back from vertical
+WINDSHIELD_LEAN = 10  # degrees back from vertical
 WINDSHIELD_PIVOT = (0, BELT_Y, WINDSHIELD_FOOT_Z)
 _LEAN_SIN = math.sin(math.radians(WINDSHIELD_LEAN))
 _LEAN_COS = math.cos(math.radians(WINDSHIELD_LEAN))
@@ -200,20 +201,20 @@ body = [
     # Dashboard
     box(-CABIN_HALF_WIDTH, 13, 10, CABIN_HALF_WIDTH, BELT_Y, HOOD_REAR_Z, "trim"),
     # Windshield lower frame and A-pillars, leaning back
-    windshield_part(-CABIN_HALF_WIDTH, BELT_Y, WINDSHIELD_FOOT_Z, CABIN_HALF_WIDTH, BELT_Y + 1, 13, "trim"),
-    *both_sides([windshield_part(CABIN_HALF_WIDTH, BELT_Y, 12, BODY_HALF_WIDTH, BELT_Y + (ROOF_Y + 0.8 - BELT_Y) / _LEAN_COS, 13, "body")]),
+    windshield_part(-CABIN_HALF_WIDTH, BELT_Y, WINDSHIELD_FOOT_Z, CABIN_HALF_WIDTH, BELT_Y + 1, WINDSHIELD_FOOT_Z + 0.5, "trim"),
+    *both_sides([windshield_part(CABIN_HALF_WIDTH, BELT_Y, WINDSHIELD_FOOT_Z - 0.5, BODY_HALF_WIDTH, BELT_Y + (ROOF_Y + 0.8 - BELT_Y) / _LEAN_COS, WINDSHIELD_FOOT_Z + 0.5, "body")]),
     # Rearview mirror (center of the windshield's top edge, behind the leaning glass)
-    box(-0.5, 26.5, ROOF_FRONT - 0.8, 0.5, ROOF_Y, ROOF_FRONT - 0.3, "trim"),
-    box(-2.5, 25, ROOF_FRONT - 1.3, 2.5, 26.5, ROOF_FRONT - 0.8, "rim"),
+    box(-0.5, ROOF_Y - 2.5, ROOF_FRONT - 0.8, 0.5, ROOF_Y, ROOF_FRONT - 0.3, "trim"),
+    box(-2.5, ROOF_Y - 4, ROOF_FRONT - 1.3, 2.5, ROOF_Y - 2.5, ROOF_FRONT - 0.8, "rim"),
     # Black hardtop roof
-    box(-BODY_HALF_WIDTH, ROOF_Y, REAR, BODY_HALF_WIDTH, ROOF_Y + 1, ROOF_FRONT, "hardtop"),
+    box(-BODY_HALF_WIDTH, ROOF_Y, GREENHOUSE_REAR, BODY_HALF_WIDTH, ROOF_Y + 1, ROOF_FRONT, "hardtop"),
     # B-pillars, down to the floor so they close the gap between the front and rear doors
     *both_sides([box(CABIN_HALF_WIDTH, FLOOR_Y, -6, BODY_HALF_WIDTH, ROOF_Y, -5, "body")]),
     # Cargo area sides: body-colored below the belt line, the black hardtop above it with a closed,
     # tinted quarter window
     *both_sides([
-        box(CABIN_HALF_WIDTH, BELT_Y, REAR, BODY_HALF_WIDTH, ROOF_Y, CARGO_FRONT, "hardtop"),
-        box(BODY_HALF_WIDTH, WINDOW_BOTTOM_Y, REAR + 2.5, 13.1, WINDOW_TOP_Y, CARGO_FRONT - 1.5, "glass"),
+        box(CABIN_HALF_WIDTH, BELT_Y, GREENHOUSE_REAR, BODY_HALF_WIDTH, ROOF_Y, CARGO_FRONT, "hardtop"),
+        box(BODY_HALF_WIDTH, WINDOW_BOTTOM_Y, GREENHOUSE_REAR + 2.5, 13.1, WINDOW_TOP_Y, CARGO_FRONT - 1.5, "glass"),
     ]),
     # Cargo floor
     box(-CABIN_HALF_WIDTH, FLOOR_Y, REAR + 1, CABIN_HALF_WIDTH, FLOOR_Y + 0.3, CARGO_FRONT, "hardtop"),
@@ -221,8 +222,8 @@ body = [
     # light under it. On the ground the rear window stays open; the rear_glass bone closes it in the
     # other forms (ADR 0026).
     box(-BODY_HALF_WIDTH, FLOOR_Y, REAR, BODY_HALF_WIDTH, BELT_Y, REAR + 1, "body"),
-    box(-BODY_HALF_WIDTH, WINDOW_TOP_Y, REAR, BODY_HALF_WIDTH, ROOF_Y, REAR + 1, "hardtop"),
-    box(-1.5, 26.3, REAR - 0.2, 1.5, WINDOW_TOP_Y, REAR, "tail"),
+    box(-BODY_HALF_WIDTH, WINDOW_TOP_Y, GREENHOUSE_REAR, BODY_HALF_WIDTH, ROOF_Y, GREENHOUSE_REAR + 1, "hardtop"),
+    box(-1.5, WINDOW_TOP_Y - 0.7, GREENHOUSE_REAR - 0.2, 1.5, WINDOW_TOP_Y, GREENHOUSE_REAR, "tail"),
     # Tall tail lights at the rear corners, and the tailgate hinges on the right
     *both_sides([box(9.6, 10, REAR - 0.3, 12.8, 16, REAR, "tail")]),
     box(6.2, 14.2, REAR - 0.3, 9.0, 15.2, REAR, "body"),
@@ -539,13 +540,13 @@ body += both_sides([
 ROOF_TOP = ROOF_Y + 1
 ROOF_SEAM = -3
 # The hardtop's thick side edge stands a little proud of the doors and drops over their frames' top rails
-body += both_sides([box(BODY_HALF_WIDTH, ROOF_Y - 0.4, REAR, 13.4, ROOF_TOP + 0.2, ROOF_FRONT, "hardtop")])
+body += both_sides([box(BODY_HALF_WIDTH, ROOF_Y - 0.4, GREENHOUSE_REAR, 13.4, ROOF_TOP + 0.2, ROOF_FRONT, "hardtop")])
 body += [
     box(-0.15, ROOF_TOP, ROOF_SEAM, 0.15, ROOF_TOP + 0.05, ROOF_FRONT - 0.5, "grille"),
     box(-BODY_HALF_WIDTH, ROOF_TOP, ROOF_SEAM - 0.15, BODY_HALF_WIDTH, ROOF_TOP + 0.05, ROOF_SEAM + 0.15, "grille"),
     *both_sides([box(x - 0.4, ROOF_TOP, ROOF_SEAM + 1.5, x + 0.4, ROOF_TOP + 0.3, ROOF_FRONT - 1.5, "hardtop_rib")
                  for x in (3, 6.5, 10)]),
-    *[box(x - 0.4, ROOF_TOP, REAR + 2, x + 0.4, ROOF_TOP + 0.3, ROOF_SEAM - 1.5, "hardtop_rib")
+    *[box(x - 0.4, ROOF_TOP, GREENHOUSE_REAR + 2, x + 0.4, ROOF_TOP + 0.3, ROOF_SEAM - 1.5, "hardtop_rib")
       for x in (-10.5, -7, -3.5, 0, 3.5, 7, 10.5)],
 ]
 
@@ -664,7 +665,7 @@ def door(name):
     panel = arch_cut(CABIN_HALF_WIDTH, BODY_HALF_WIDTH, FLOOR_Y, BELT_Y, z_back, z_front, axle, "body")
     card = arch_cut(11.8, CABIN_HALF_WIDTH, FLOOR_Y + 1, BELT_Y - 1, z_back + 0.6, z_front - 0.6, axle, "trim")
     if z_front > 0:
-        front_post = [windshield_part(x0, BELT_Y, 11, x0 + 0.5, BELT_Y + FRONT_POST_LENGTH, 12, color)
+        front_post = [windshield_part(x0, BELT_Y, WINDSHIELD_FOOT_Z - 1.5, x0 + 0.5, BELT_Y + FRONT_POST_LENGTH, WINDSHIELD_FOOT_Z - 0.5, color)
                       for x0, color in ((DOOR_FRAME_MID_X, "body"), (CABIN_HALF_WIDTH, "trim"))]
         top_front = ROOF_FRONT - 0.4
         side_mirror = [
@@ -789,7 +790,7 @@ def front_post_back(y):
 
 
 WINDOWS_SEALED = [
-    windshield_part(-CABIN_HALF_WIDTH, BELT_Y + 1, 12.9, CABIN_HALF_WIDTH, BELT_Y + FRONT_POST_LENGTH, 13, "rear_glass"),
+    windshield_part(-CABIN_HALF_WIDTH, BELT_Y + 1, WINDSHIELD_FOOT_Z + 0.4, CABIN_HALF_WIDTH, BELT_Y + FRONT_POST_LENGTH, WINDSHIELD_FOOT_Z + 0.5, "rear_glass"),
     *both_sides([
         *[box(12.85, y, -4, 12.95, y + 1, front_post_back(y) + 0.2, "rear_glass") for y in range(BELT_Y, ROOF_Y - 1)],
         box(12.9, BELT_Y, CARGO_FRONT + 1, BODY_HALF_WIDTH, ROOF_Y - 1, -7, "rear_glass"),
@@ -925,7 +926,7 @@ geo = {
                 {"name": "headlights", "parent": "body", "pivot": [0, 7, 0], "cubes": headlights},
                 # Shown only in flight by the render controller (ADR 0026)
                 {"name": "rear_glass", "parent": "body", "pivot": [0, 7, 0],
-                 "cubes": [box(-CABIN_HALF_WIDTH, BELT_Y, REAR, CABIN_HALF_WIDTH, WINDOW_TOP_Y, REAR + 1, "rear_glass")]},
+                 "cubes": [box(-CABIN_HALF_WIDTH, BELT_Y, GREENHOUSE_REAR, CABIN_HALF_WIDTH, WINDOW_TOP_Y, GREENHOUSE_REAR + 1, "rear_glass")]},
                 wheel("wheel_fl", -1, FRONT_AXLE_Z),
                 wheel("wheel_fr", +1, FRONT_AXLE_Z),
                 wheel("wheel_rl", -1, REAR_AXLE_Z),

@@ -10,6 +10,7 @@ type Result = {
   measures: Record<string, number>;
   targets: Record<string, { ratio: number; tolerance: number }>;
   repeated: Record<string, number>;
+  bounds: [Vec, Vec];
   unchanged: boolean;
 };
 
@@ -22,7 +23,7 @@ const run = (cubes: Cubes): Result => {
     "cubes = json.load(sys.stdin)",
     "before = copy.deepcopy(cubes)",
     "first = m.measure(cubes)",
-    "print(json.dumps(dict(measures=first, targets=m.TARGETS, repeated=m.measure(cubes), unchanged=cubes == before)))",
+    "print(json.dumps(dict(measures=first, targets=m.TARGETS, repeated=m.measure(cubes), bounds=m._bounds([c for members in cubes.values() for c in members]), unchanged=cubes == before)))",
   ].join("\n");
   return JSON.parse(
     execFileSync("python3", ["-I", "-c", script], {
@@ -37,7 +38,18 @@ const model = JSON.parse(
     "packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json",
     "utf8",
   ),
-) as { "minecraft:geometry": [{ bones: { name: string; cubes?: Cube[] }[] }] };
+) as {
+  "minecraft:geometry": [
+    {
+      description: {
+        visible_bounds_width: number;
+        visible_bounds_height: number;
+        visible_bounds_offset: Vec;
+      };
+      bones: { name: string; cubes?: Cube[] }[];
+    },
+  ];
+};
 const generated: Cubes = Object.fromEntries(
   model["minecraft:geometry"][0].bones.map((b) => [b.name, b.cubes ?? []]),
 );
@@ -96,6 +108,42 @@ describe("SUV proportions", () => {
     }
     expect(result.repeated).toEqual(result.measures);
     expect(result.unchanged).toBe(true);
+  });
+
+  it.each(
+    keys.filter(
+      (key) => key.startsWith("greenhouse_") || key === "windshield_front_gap",
+    ),
+  )("matches the %s target within its tolerance", (key) => {
+    const { measures, targets } = run(generated);
+    const target = targets[key];
+    if (!target) throw new Error(`Missing target: ${key}`);
+    expect(
+      Math.abs((measures[key] ?? Number.NaN) - target.ratio),
+    ).toBeLessThanOrEqual(target.tolerance);
+  });
+
+  it("keeps every rotated cube inside the declared visible bounds", () => {
+    const { bounds } = run(generated);
+    const description = model["minecraft:geometry"][0].description;
+    const half = [
+      description.visible_bounds_width * 8,
+      description.visible_bounds_height * 8,
+      description.visible_bounds_width * 8,
+    ];
+    for (const axis of [0, 1, 2] as const) {
+      const center = description.visible_bounds_offset[axis] * 16;
+      expect(bounds[0][axis]).toBeGreaterThanOrEqual(
+        center - (half[axis] ?? 0),
+      );
+      expect(bounds[1][axis]).toBeLessThanOrEqual(center + (half[axis] ?? 0));
+    }
+  });
+
+  it("preserves belt height and road wheel diameter for the lower-body follow-up", () => {
+    const { measures } = run(generated);
+    expect(measures.belt_height).toBeCloseTo(0.26173564808417604, 10);
+    expect(measures.wheel_diameter).toBeCloseTo(0.18526991261723763, 10);
   });
 
   it("preserves all ratios under uniform scaling and reversed cube order", () => {

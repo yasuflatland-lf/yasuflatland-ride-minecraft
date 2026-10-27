@@ -386,3 +386,13 @@ Setup: in a world that used MyCar 0.5.0, place two vehicles and switch the headl
 | U1 | Start the server with the new packs and open the world | The world loads without content log errors and the old vehicles and items are gone | | |
 | U2 | Join with a player who had received the starter vehicle before | One "SUV" item is given again | | |
 | U3 | Look where the vehicle with its headlights off stood | No light blocks are left there | | |
+
+## SUV greenhouse proportions (issue #733)
+
+Setup: restart with `pnpm server:restart` and accept the new Resource Pack on a PC and a touch client. Keep the ADR 0117 seat positions and the ADR 0142/0143 placement spaces. Static checks preserve all seat and door pivots, the `SUV_PROFILE` seat table, and the rideable seat height (0.4 blocks). The roof underside is now 27 px above the entity origin, leaving 8 px above the drawn seat backs; this does not verify a player's seated eye or head height. Confirm those on both clients below.
+
+| # | Steps | Pass condition | PC | Mobile |
+|---|---|---|---|---|
+| G1 | Board each of the SUV's four seats; look up and forward in first person, then inspect every rider in third person | The seated eyes stay below the roof, heads clear its underside, the view is unobstructed, and boarding and doors still work | unverified | unverified |
+| G2 | Inspect the SUV from the side and front-left, open and close every door, then fly and dive | The roof is nearly flat, the windshield leans slightly, windows read as tall rectangles, and the frames and sealed glass have no exposed stair-steps or gaps | unverified | unverified |
+| G3 | Place the SUV, camper and bulldozer separately beside a wall or rock in a 3 x 3 footprint, with 2, 4 and 3 clear cells above respectively; board and drive away | Each vehicle retains its placement space and own clearance height; boarding and departure work | unverified | unverified |
