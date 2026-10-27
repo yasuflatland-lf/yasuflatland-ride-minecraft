@@ -453,10 +453,10 @@
         "family_types": ["player"],
         "interact_text": "action.interact.ride.horse",
         "seats": [
-          { "position": [-0.38, 0.4, 0.075], "lock_rider_rotation": 90 },
-          { "position": [0.38, 0.4, 0.075] },
-          { "position": [-0.38, 0.4, -0.8] },
-          { "position": [0.38, 0.4, -0.8] }
+          { "position": [-0.38, 0.3, 0.075], "lock_rider_rotation": 90 },
+          { "position": [0.38, 0.3, 0.075] },
+          { "position": [-0.38, 0.3, -0.8] },
+          { "position": [0.38, 0.3, -0.8] }
         ]
       }
     }
