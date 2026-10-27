@@ -402,17 +402,15 @@ def chamfered_bar(y0, y1, z_back, z_tip, z_end_back, half_width, chamfer, angle=
     shallow end piece from z_end_back, clear of the tire behind it. Each cut is a block turned back
     around the cut's inner front end (a positive y rotation turns +x toward -z), just deep enough to
     fill the triangle the cut leaves over the end piece, so its turned back corner stays ahead of
-    z_end_back."""
+    z_end_back. The cut must start outboard of the body's side."""
     cx = half_width - chamfer
+    assert cx > BODY_HALF_WIDTH
     radians = math.radians(angle)
-    inner = min(cx, BODY_HALF_WIDTH)
     corner = turned(box(cx, y0, z_tip - chamfer * math.sin(radians), cx + chamfer / math.cos(radians), y1, z_tip, "trim"),
                     (cx, y0, z_tip), (0, angle, 0))
-    side_back = z_end_back if half_width > BODY_HALF_WIDTH else z_back
-    sides = [corner, box(cx, y0, side_back, half_width, y1, z_tip - chamfer * math.tan(radians), "trim")]
-    if cx > inner:
-        sides.append(box(inner, y0, z_end_back, cx, y1, z_tip, "trim"))
-    return [box(-inner, y0, z_back, inner, y1, z_tip, "trim"), *both_sides(sides)]
+    side = box(cx, y0, z_end_back, half_width, y1, z_tip - chamfer * math.tan(radians), "trim")
+    end = box(BODY_HALF_WIDTH, y0, z_end_back, cx, y1, z_tip, "trim")
+    return [box(-BODY_HALF_WIDTH, y0, z_back, BODY_HALF_WIDTH, y1, z_tip, "trim"), *both_sides([corner, side, end])]
 
 
 # Front bumper: a low bar under the grille, between a tucked-in lower lip and a slightly set-back top
