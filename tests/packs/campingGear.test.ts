@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { inflateSync } from "node:zlib";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
@@ -59,7 +59,8 @@ const AXES = [0, 1, 2] as const;
 interface Cube {
   origin: [number, number, number];
   size: [number, number, number];
-  rotation?: unknown;
+  rotation?: [number, number, number];
+  pivot?: [number, number, number];
   uv: Record<
     (typeof FACES)[number],
     { uv: [number, number]; uv_size: number[] }
@@ -78,6 +79,26 @@ const geometryOf = (id: string) =>
   };
 
 const cubesOf = (id: string) => geometryOf(id).bones.flatMap((b) => b.cubes);
+
+function cubeCorners(cube: Cube): [number, number, number][] {
+  const pivot = cube.pivot ?? [0, 0, 0];
+  const [rx, ry, rz] = cube.rotation ?? [0, 0, 0];
+  return Array.from({ length: 8 }, (_, n) => {
+    let [x, y, z] = AXES.map(
+      (i) => cube.origin[i] + cube.size[i] * ((n >> i) & 1) - pivot[i],
+    ) as [number, number, number];
+    // Bedrock's X and Z turns have the opposite sign to mathematical rotations (ADR 0051).
+    for (const [axis, degrees] of [-rx, ry, -rz].entries()) {
+      const r = (degrees * Math.PI) / 180;
+      const c = Math.cos(r);
+      const s = Math.sin(r);
+      if (axis === 0) [y, z] = [y * c - z * s, y * s + z * c];
+      if (axis === 1) [x, z] = [x * c + z * s, -x * s + z * c];
+      if (axis === 2) [x, y] = [x * c - y * s, x * s + y * c];
+    }
+    return [x + pivot[0], y + pivot[1], z + pivot[2]];
+  });
+}
 
 const ySpan = (g: Gear): [number, number] => [0, g.height_px];
 
@@ -132,7 +153,7 @@ describe("camping gear spec (ADR 0093)", () => {
       "sugar_pot",
       "fruit_bowl",
       "toaster",
-      "oil_lamp",
+      "lantern",
       "transistor_radio",
       "book_stack",
       "road_map",
@@ -170,7 +191,7 @@ describe("camping gear spec (ADR 0093)", () => {
       ).toBe(true);
       expect(g).not.toHaveProperty("places");
       expect(g.hanging).toBe(g.id === "macrame_planter");
-      expect(g.glass).toBe(g.id === "sugar_pot");
+      expect(g.glass).toBe(g.id === "sugar_pot" || g.id === "lantern");
       expect(g.reference === null || /^https:\/\/\S+$/.test(g.reference)).toBe(
         true,
       );
@@ -208,16 +229,18 @@ describe("camping gear block models (ADR 0093)", () => {
       ]);
       const cubes = cubesOf(g.id);
       expect(cubes.length).toBeGreaterThan(0);
-      const lo = AXES.map((i) => Math.min(...cubes.map((c) => c.origin[i])));
-      const hi = AXES.map((i) =>
-        Math.max(...cubes.map((c) => c.origin[i] + c.size[i])),
-      );
-      expect([lo[0], hi[0]]).toEqual([-g.width_px / 2, g.width_px / 2]);
+      const points = cubes.flatMap(cubeCorners);
+      const lo = AXES.map((i) => Math.min(...points.map((p) => p[i])));
+      const hi = AXES.map((i) => Math.max(...points.map((p) => p[i])));
+      expect(lo[0]).toBeCloseTo(-g.width_px / 2, 3);
+      expect(hi[0]).toBeCloseTo(g.width_px / 2, 3);
       expect([lo[1], hi[1]]).toEqual(ySpan(g));
       expect(lo[2]).toBeGreaterThanOrEqual(-8);
       expect(hi[2]).toBeLessThanOrEqual(8);
       for (const c of cubes) {
-        expect(c.rotation).toBeUndefined();
+        expect(
+          (c.rotation ?? []).filter((v) => v !== 0).length,
+        ).toBeLessThanOrEqual(1);
         expect(c.size.every((s) => s > 0)).toBe(true);
         expect(Object.keys(c.uv).sort()).toEqual([...FACES].sort());
         for (const f of FACES) {
@@ -236,9 +259,13 @@ describe("camping gear block models (ADR 0093)", () => {
     "$id: stays inside its cell, 0 to 16 px high (ADR 0099)",
     (g) => {
       const cubes = cubesOf(g.id);
-      for (const c of cubes) {
-        expect(c.origin[1], g.id).toBeGreaterThanOrEqual(0);
-        expect(c.origin[1] + c.size[1], g.id).toBeLessThanOrEqual(16);
+      for (const point of cubes.flatMap(cubeCorners)) {
+        expect(point[0], g.id).toBeGreaterThanOrEqual(-8);
+        expect(point[0], g.id).toBeLessThanOrEqual(8);
+        expect(point[1], g.id).toBeGreaterThanOrEqual(0);
+        expect(point[1], g.id).toBeLessThanOrEqual(16);
+        expect(point[2], g.id).toBeGreaterThanOrEqual(-8);
+        expect(point[2], g.id).toBeLessThanOrEqual(8);
       }
     },
   );
@@ -252,6 +279,51 @@ describe("camping gear block models (ADR 0093)", () => {
       expect(usesGlass).toBe(g.glass);
     },
   );
+
+  it("keeps the lantern within its footprint and the pair geometry budget (ADR 0169)", () => {
+    const cubes = cubesOf("lantern");
+    expect(cubes.length).toBeLessThan(120);
+    expect(SPEC.find((g) => g.id === "lantern")).toMatchObject({
+      id: "lantern",
+      width_px: 5,
+      height_px: 8,
+      glass: true,
+    });
+    for (const p of cubes.flatMap(cubeCorners)) {
+      expect(Math.abs(p[0])).toBeLessThanOrEqual(2.501);
+      expect(Math.abs(p[2])).toBeLessThanOrEqual(2.501);
+    }
+    for (const kind of ["shelf", "table", "cabinet", "fridge"]) {
+      expect(
+        statSync(`${MODELS}/${kind}_decor_pair.geo.json`).size,
+      ).toBeLessThan(1_000_000);
+      for (const bone of geometryOf(`${kind}_decor_pair`).bones) {
+        for (const p of bone.cubes.flatMap(cubeCorners)) {
+          expect(Math.abs(p[0])).toBeLessThanOrEqual(8);
+          expect(Math.abs(p[2])).toBeLessThanOrEqual(8);
+        }
+      }
+    }
+  });
+
+  it("removes the oil lamp assets, atlas key, and names", () => {
+    for (const path of [
+      `${BP}/items/yasu_ride/oil_lamp.item.json`,
+      `${BP}/blocks/yasu_ride/oil_lamp_decor.block.json`,
+      `${MODELS}/oil_lamp.geo.json`,
+      `${RP}/textures/items/yasu_ride/oil_lamp.png`,
+      `${PREVIEWS}/oil_lamp.png`,
+    ])
+      expect(existsSync(path), path).toBe(false);
+    expect(
+      readFileSync(`${RP}/textures/item_texture.json`, "utf8"),
+    ).not.toContain("oil_lamp");
+    for (const locale of ["en_US", "ja_JP"]) {
+      expect(readFileSync(`${RP}/texts/${locale}.lang`, "utf8")).not.toContain(
+        "oil_lamp",
+      );
+    }
+  });
 
   it("paints the atlas as 16 distinct 4 by 4 swatches, opaque except the glass", () => {
     const { width, height, pixel } = readPng(ATLAS);
@@ -883,16 +955,17 @@ describe("camping gear blocks and items (ADR 0093)", () => {
           b.cubes,
         ]),
       );
+      // The gear model's frame has the camper's left at -x and its forward at -z,
+      // and the generator writes pixels to three decimals.
+      const atSpot = ([x, y, z]: [number, number, number]) =>
+        [x - left, y, z - ahead].map((v) => Math.round(v * 1000) / 1000 + 0);
       for (const g of SPEC.filter((item) => !item.hanging)) {
         const cubes = defined(bones.get(`end${pair.end}_${g.id}`), g.id);
-        // The gear model's frame has the camper's left at -x and its forward at -z.
         expect(cubes, `${slot.id} ${g.id}`).toEqual(
           cubesOf(g.id).map((c) => ({
             ...c,
-            // The generator writes pixels to three decimals.
-            origin: [c.origin[0] - left, c.origin[1], c.origin[2] - ahead].map(
-              (v) => Math.round(v * 1000) / 1000 + 0,
-            ),
+            ...(c.pivot ? { pivot: atSpot(c.pivot) } : {}),
+            origin: atSpot(c.origin),
           })),
         );
       }

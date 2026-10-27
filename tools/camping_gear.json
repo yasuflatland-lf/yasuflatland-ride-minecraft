@@ -100,12 +100,12 @@
     "reference": null
   },
   {
-    "id": "oil_lamp",
-    "name_en": "Oil Lamp",
-    "name_ja": "\u30aa\u30a4\u30eb\u30e9\u30f3\u30d7",
-    "width_px": 4,
-    "height_px": 7,
-    "glass": false,
+    "id": "lantern",
+    "name_en": "Lantern",
+    "name_ja": "\u30e9\u30f3\u30bf\u30f3",
+    "width_px": 5,
+    "height_px": 8,
+    "glass": true,
     "hanging": false,
     "reference": null
   },
