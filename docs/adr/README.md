@@ -169,6 +169,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0166](0166-tilted-two-axis-sports-boat-helm-assemblies.md) | Tilted two-axis assemblies on the sports boat helm | Proposed |
 | [0167](0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md) | Compound-rotation assemblies as a vehicle-neutral rule | Proposed |
 | [0168](0168-a-dutch-oven-and-a-grill-for-the-fire-pit.md) | A Dutch oven and a grill for the fire pit | Proposed |
+| [0169](0169-a-lantern-for-the-oil-lamp-and-a-noga-chair.md) | A Lantern for the Oil Lamp, no Lava Lamp, and a Noga Chair | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 
