@@ -171,11 +171,12 @@ export const TEST_HELD_TOOL_EVENT = id("test_held_tool");
 export const BLADE_SWITCH_TYPE = id(BLADE_SWITCH_ITEM);
 /**
  * Camera presets for each chase camera: the vanilla preset that views the player from
- * behind, as F5 does (ADR 0028), and the pack's preset pulled back from it (ADR 0071).
+ * behind, as F5 does (ADR 0028), and the pack's presets pulled back from it (ADR 0071, 0170).
  */
 export const CHASE_CAMERAS: Readonly<Record<ChaseCamera, string>> =
   Object.freeze({
     near: "minecraft:third_person",
+    mid: id("mid_chase"),
     far: id("far_chase"),
   });
 

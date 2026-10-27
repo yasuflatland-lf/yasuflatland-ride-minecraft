@@ -699,11 +699,11 @@ describe("Vehicle headlight cells and chase camera (ADR 0020, 0071)", () => {
     );
   });
 
-  it("pulls the camper's camera back and keeps the near view for the SUV and the sports boat", () => {
+  it("pulls the camper's camera back, gives the SUV the mid view, and keeps the near view for the sports boat", () => {
     expect(createVehicle("camper", asVehicleId("v"), 0).chaseCamera).toBe(
       "far",
     );
-    expect(createVehicle("suv", asVehicleId("v"), 0).chaseCamera).toBe("near");
+    expect(createVehicle("suv", asVehicleId("v"), 0).chaseCamera).toBe("mid");
     expect(createVehicle("sportsboat", asVehicleId("v"), 0).chaseCamera).toBe(
       "near",
     );

@@ -146,7 +146,7 @@ describe("vehicle profiles (ADR 0050)", () => {
         surfaces: ["top"],
         clearance: { halfX: 1, halfZ: 1, height: 3 },
       },
-      chaseCamera: "near",
+      chaseCamera: "mid",
       defaultPaint: "khaki",
     });
   });

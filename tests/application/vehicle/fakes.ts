@@ -295,7 +295,7 @@ export class FakeWorld
   }
   setChaseCamera(id: string, camera: ChaseCamera | undefined) {
     if (id === this.failCameraOn) throw new Error("camera");
-    const view = { near: "third", far: "far" }[camera ?? "near"];
+    const view = { near: "third", mid: "mid", far: "far" }[camera ?? "near"];
     this.calls.push(`camera:${id}:${camera ? view : "own"}`);
   }
   giveWaterBreathing(id: string, ticks: number) {

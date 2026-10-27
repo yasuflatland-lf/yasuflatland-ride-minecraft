@@ -48,7 +48,7 @@ export const SUV_PROFILE: VehicleProfile = Object.freeze({
       height: clearanceHeight(body),
     }),
   }),
-  chaseCamera: "near",
+  chaseCamera: "mid",
   defaultPaint: "khaki",
 });
 
