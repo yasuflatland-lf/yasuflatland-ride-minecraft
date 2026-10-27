@@ -80,7 +80,7 @@ const geometryOf = (id: string) =>
 
 const cubesOf = (id: string) => geometryOf(id).bones.flatMap((b) => b.cubes);
 
-function cubeCorners(cube: Cube): number[][] {
+function cubeCorners(cube: Cube): [number, number, number][] {
   const pivot = cube.pivot ?? [0, 0, 0];
   const [rx, ry, rz] = cube.rotation ?? [0, 0, 0];
   return Array.from({ length: 8 }, (_, n) => {
@@ -230,8 +230,8 @@ describe("camping gear block models (ADR 0093)", () => {
       const cubes = cubesOf(g.id);
       expect(cubes.length).toBeGreaterThan(0);
       const points = cubes.flatMap(cubeCorners);
-      const lo = AXES.map((i) => Math.min(...points.map((p) => p[i] ?? 0)));
-      const hi = AXES.map((i) => Math.max(...points.map((p) => p[i] ?? 0)));
+      const lo = AXES.map((i) => Math.min(...points.map((p) => p[i])));
+      const hi = AXES.map((i) => Math.max(...points.map((p) => p[i])));
       expect(lo[0]).toBeCloseTo(-g.width_px / 2, 3);
       expect(hi[0]).toBeCloseTo(g.width_px / 2, 3);
       expect([lo[1], hi[1]]).toEqual(ySpan(g));
@@ -283,15 +283,15 @@ describe("camping gear block models (ADR 0093)", () => {
   it("keeps the lantern within its footprint and the pair geometry budget (ADR 0169)", () => {
     const cubes = cubesOf("lantern");
     expect(cubes.length).toBeLessThan(120);
-    expect(SPEC[10]).toMatchObject({
+    expect(SPEC.find((g) => g.id === "lantern")).toMatchObject({
       id: "lantern",
       width_px: 5,
       height_px: 8,
       glass: true,
     });
     for (const p of cubes.flatMap(cubeCorners)) {
-      expect(Math.abs(p[0] ?? 0)).toBeLessThanOrEqual(2.501);
-      expect(Math.abs(p[2] ?? 0)).toBeLessThanOrEqual(2.501);
+      expect(Math.abs(p[0])).toBeLessThanOrEqual(2.501);
+      expect(Math.abs(p[2])).toBeLessThanOrEqual(2.501);
     }
     for (const kind of ["shelf", "table", "cabinet", "fridge"]) {
       expect(
@@ -299,8 +299,8 @@ describe("camping gear block models (ADR 0093)", () => {
       ).toBeLessThan(1_000_000);
       for (const bone of geometryOf(`${kind}_decor_pair`).bones) {
         for (const p of bone.cubes.flatMap(cubeCorners)) {
-          expect(Math.abs(p[0] ?? 0)).toBeLessThanOrEqual(8);
-          expect(Math.abs(p[2] ?? 0)).toBeLessThanOrEqual(8);
+          expect(Math.abs(p[0])).toBeLessThanOrEqual(8);
+          expect(Math.abs(p[2])).toBeLessThanOrEqual(8);
         }
       }
     }
@@ -955,25 +955,17 @@ describe("camping gear blocks and items (ADR 0093)", () => {
           b.cubes,
         ]),
       );
+      // The gear model's frame has the camper's left at -x and its forward at -z,
+      // and the generator writes pixels to three decimals.
+      const atSpot = ([x, y, z]: [number, number, number]) =>
+        [x - left, y, z - ahead].map((v) => Math.round(v * 1000) / 1000 + 0);
       for (const g of SPEC.filter((item) => !item.hanging)) {
         const cubes = defined(bones.get(`end${pair.end}_${g.id}`), g.id);
-        // The gear model's frame has the camper's left at -x and its forward at -z.
         expect(cubes, `${slot.id} ${g.id}`).toEqual(
           cubesOf(g.id).map((c) => ({
             ...c,
-            ...(c.pivot
-              ? {
-                  pivot: [
-                    c.pivot[0] - left,
-                    c.pivot[1],
-                    c.pivot[2] - ahead,
-                  ].map((v) => Math.round(v * 1000) / 1000 + 0),
-                }
-              : {}),
-            // The generator writes pixels to three decimals.
-            origin: [c.origin[0] - left, c.origin[1], c.origin[2] - ahead].map(
-              (v) => Math.round(v * 1000) / 1000 + 0,
-            ),
+            ...(c.pivot ? { pivot: atSpot(c.pivot) } : {}),
+            origin: atSpot(c.origin),
           })),
         );
       }
