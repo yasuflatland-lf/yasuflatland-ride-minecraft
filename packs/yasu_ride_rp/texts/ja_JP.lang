@@ -94,3 +94,7 @@ entity.yasu_ride:dutch_oven.name=Dutch Oven
 action.interact.yasu_ride.dutch_oven=Dutch Oven
 yasu_ride.hint.dutch_oven_hits=Hit %s more to take back the Dutch Oven
 yasu_ride.hint.dutch_oven_on_top=先にダッチオーブンを下ろしてください
+
+entity.yasu_ride:noga_chair.name=ノガチェア
+item.yasu_ride:noga_chair_item.name=ノガチェア
+yasu_ride.hint.noga_chair_hits=あと%s回たたくとノガチェアを折りたたみます

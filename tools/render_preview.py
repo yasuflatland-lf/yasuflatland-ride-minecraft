@@ -167,6 +167,10 @@ CHAIR_GEOMETRY = "models/entity/yasu_ride/low_chair.geo.json"
 CHAIR_TEXTURE = "textures/entity/yasu_ride/low_chair.png"
 CHAIR_PREVIEW = "low_chair"
 CHAIR_ICON = "low_chair_item"
+NOGA_CHAIR_GEOMETRY = "models/entity/yasu_ride/noga_chair.geo.json"
+NOGA_CHAIR_TEXTURE = "textures/entity/yasu_ride/noga_chair.png"
+NOGA_CHAIR_PREVIEW = "noga_chair"
+NOGA_CHAIR_ICON = "noga_chair_item"
 TENT_GEOMETRY = "models/entity/yasu_ride/tent.geo.json"
 TENT_TEXTURE = "textures/entity/yasu_ride/tent.png"
 TENT_PREVIEW = "tent"
@@ -183,7 +187,7 @@ DUTCH_OVEN_GEOMETRY = "models/entity/yasu_ride/dutch_oven.geo.json"
 DUTCH_OVEN_TEXTURE = "textures/entity/yasu_ride/dutch_oven.png"
 DUTCH_OVEN_PREVIEW = "dutch_oven"
 DUTCH_OVEN_ICON = "dutch_oven_item"
-ICON_NAMES = {CHAIR_PREVIEW: CHAIR_ICON, TENT_PREVIEW: TENT_ICON, TABLE_PREVIEW: TABLE_ICON, FIRE_PIT_PREVIEW: FIRE_PIT_ICON, DUTCH_OVEN_PREVIEW: DUTCH_OVEN_ICON}
+ICON_NAMES = {NOGA_CHAIR_PREVIEW: NOGA_CHAIR_ICON, CHAIR_PREVIEW: CHAIR_ICON, TENT_PREVIEW: TENT_ICON, TABLE_PREVIEW: TABLE_ICON, FIRE_PIT_PREVIEW: FIRE_PIT_ICON, DUTCH_OVEN_PREVIEW: DUTCH_OVEN_ICON}
 
 POSES = {
     "suv-front-left.png": {"lamps": False, "dusk": False, "hover": False, "submarine": False, "brightness": MAIN_BRIGHTNESS},
@@ -858,6 +862,7 @@ def small_models(rp):
     texture = read_png(rp / GEAR_TEXTURE)
     models = [(item["id"], rp / GEAR_GEOMETRY.format(item["id"]), texture) for item in json.loads(GEAR_SPEC.read_text())]
     return models + [
+        (NOGA_CHAIR_PREVIEW, rp / NOGA_CHAIR_GEOMETRY, read_png(rp / NOGA_CHAIR_TEXTURE)),
         (CHAIR_PREVIEW, rp / CHAIR_GEOMETRY, read_png(rp / CHAIR_TEXTURE)),
         (TENT_PREVIEW, rp / TENT_GEOMETRY, read_png(rp / TENT_TEXTURE)),
         (TABLE_PREVIEW, rp / TABLE_GEOMETRY, read_png(rp / TABLE_TEXTURE)),

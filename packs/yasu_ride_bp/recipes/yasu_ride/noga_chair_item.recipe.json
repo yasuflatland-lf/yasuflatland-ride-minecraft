@@ -1,0 +1,25 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "yasu_ride:noga_chair_item"
+    },
+    "tags": ["crafting_table"],
+    "unlock": {
+      "context": "AlwaysUnlocked"
+    },
+    "pattern": ["WW ", "WIW", "I I"],
+    "key": {
+      "W": {
+        "tag": "minecraft:wool"
+      },
+      "I": {
+        "item": "minecraft:iron_ingot"
+      }
+    },
+    "result": {
+      "item": "yasu_ride:noga_chair_item",
+      "count": 1
+    }
+  }
+}

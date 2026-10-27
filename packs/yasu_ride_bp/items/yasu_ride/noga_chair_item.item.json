@@ -1,0 +1,18 @@
+{
+  "format_version": "1.21.80",
+  "minecraft:item": {
+    "description": {
+      "identifier": "yasu_ride:noga_chair_item",
+      "menu_category": {
+        "category": "items"
+      }
+    },
+    "components": {
+      "minecraft:icon": "yasu_ride_noga_chair_item",
+      "minecraft:max_stack_size": 16,
+      "minecraft:display_name": {
+        "value": "item.yasu_ride:noga_chair_item.name"
+      }
+    }
+  }
+}

@@ -31,6 +31,9 @@
     "yasu_ride_dutch_oven_item": {
       "textures": "textures/items/yasu_ride/dutch_oven_item"
     },
+    "yasu_ride_noga_chair_item": {
+      "textures": "textures/items/yasu_ride/noga_chair_item"
+    },
     "yasu_ride_camping_gear_box": {
       "textures": "textures/items/yasu_ride/camping_gear_box"
     },
