@@ -110,11 +110,7 @@ describe("SUV proportions", () => {
     expect(result.unchanged).toBe(true);
   });
 
-  it.each(
-    keys.filter(
-      (key) => key.startsWith("greenhouse_") || key === "windshield_front_gap",
-    ),
-  )("matches the %s target within its tolerance", (key) => {
+  it.each(keys)("matches the %s target within its tolerance", (key) => {
     const { measures, targets } = run(generated);
     const target = targets[key];
     if (!target) throw new Error(`Missing target: ${key}`);
@@ -136,12 +132,6 @@ describe("SUV proportions", () => {
       expect(bounds[0][axis]).toBeGreaterThanOrEqual(center - half[axis]);
       expect(bounds[1][axis]).toBeLessThanOrEqual(center + half[axis]);
     }
-  });
-
-  it("preserves belt height and road wheel diameter for the lower-body follow-up", () => {
-    const { measures } = run(generated);
-    expect(measures.belt_height).toBeCloseTo(0.26173564808417604, 10);
-    expect(measures.wheel_diameter).toBeCloseTo(0.18526991261723763, 10);
   });
 
   it("preserves all ratios under uniform scaling and reversed cube order", () => {

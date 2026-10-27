@@ -396,3 +396,14 @@ Setup: restart with `pnpm server:restart` and accept the new Resource Pack on a 
 | G1 | Board each of the SUV's four seats; look up and forward in first person, then inspect every rider in third person | The seated eyes stay below the roof, heads clear its underside, the view is unobstructed, and boarding and doors still work | unverified | unverified |
 | G2 | Inspect the SUV from the side and front-left, open and close every door, then fly and dive | The roof is nearly flat, the windshield leans slightly, windows read as tall rectangles, and the frames and sealed glass have no exposed stair-steps or gaps | unverified | unverified |
 | G3 | Place the SUV, camper and bulldozer separately beside a wall or rock in a 3 x 3 footprint, with 2, 4 and 3 clear cells above respectively; board and drive away | Each vehicle retains its placement space and own clearance height; boarding and departure work | unverified | unverified |
+
+## SUV lower-body proportions (issue #734)
+
+Setup: restart with `pnpm server:restart` and accept Resource Pack 0.1.180 on PC and touch. The bumper extensions preserve the belt, greenhouse, road wheels, hub positions, doors, seats, collision box, animations, and ADR 0142/0143 placement clearances.
+
+| # | Action | Expected | PC | Touch |
+|---|---|---|---|---|
+| LBP1 | Drive the SUV forward and backward, steer, brake, and climb a one-block step on PC and touch | Keyboard and touch controls still work; the bumper clears the step and the body stays aligned with its wheels | unverified | unverified |
+| LBP2 | Inspect the parked SUV from both sides, front and rear, then drive over flat ground | All four tires meet the ground; arches remain clear; the sill, flares and slightly longer bumpers join smoothly; lights, grille, tow hooks and spare stay attached | unverified | unverified |
+| LBP3 | Take off, inspect the folded wheels from below and both sides, dive, then land | Wheels, arms and props fold and unfold without clipping the body or bumpers; tires return to ground contact | unverified | unverified |
+| LBP4 | Place the SUV, camper and bulldozer separately beside a wall or rock in a 3 x 3 footprint, with 2, 4 and 3 clear cells above respectively; board and drive away | Each vehicle fits its existing placement space and clearance height; the camper and bulldozer retain their fit and controls | unverified | unverified |
