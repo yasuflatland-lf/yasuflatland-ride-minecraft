@@ -364,9 +364,10 @@ body += both_sides([box(ARCH_LINER_X, ARCH_TOP_Y, FRONT_DOOR_HINGE_Z, BODY_HALF_
 body += both_sides(arch_cut(CABIN_HALF_WIDTH, BODY_HALF_WIDTH, FLOOR_Y, BELT_Y, REAR + 1, CARGO_FRONT, REAR_AXLE_Z, "body"))
 # Round fuel door on the left side of the cargo area, behind the rear flare and under the belt line
 body += disc("x", (-BODY_HALF_WIDTH, 14.8, REAR + 2.7), 1.2, -BODY_HALF_WIDTH - 0.25, -BODY_HALF_WIDTH, [i * 11.25 for i in range(8)], "grille")  # 32 sides
-# Black inner liners behind each arch, so the cabin does not show through it
+# Black inner liners behind each arch, so the cabin does not show through it. The front arch sits
+# close enough to the hood's front face that an unclipped liner would stick out ahead of the grille.
 body += both_sides([
-    box(ARCH_LINER_X, ARCH_FOOT_Y - 1, z - ARCH_FOOT_Z - 0.5, 11.6, ARCH_TOP_Y + 0.5, z + ARCH_FOOT_Z + 0.5, "grille")
+    box(ARCH_LINER_X, ARCH_FOOT_Y - 1, z - ARCH_FOOT_Z - 0.5, 11.6, ARCH_TOP_Y + 0.5, min(z + ARCH_FOOT_Z + 0.5, FRONT), "grille")
     for z in (FRONT_AXLE_Z, REAR_AXLE_Z)
 ])
 LAMP_Y0, LAMP_Y1 = 11.4, 12.2
