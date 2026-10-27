@@ -567,8 +567,8 @@ def round_face(center, radius, z0, z1, color, segments=12):
 
 # Round fog lamps in black pockets near the front bumper's ends
 body += both_sides([
-    box(8.8, 4.2, FRONT_BUMPER_TIP_Z, 11.8, 6.6, FRONT_BUMPER_TIP_Z + 0.05, "grille"),
-    *round_face((10.3, 5.4, 0), 0.9, FRONT_BUMPER_TIP_Z + 0.05, FRONT_BUMPER_TIP_Z + 0.12, "light"),
+    box(8.8, FRONT_BUMPER_BAND_BOTTOM_Y + 0.7, FRONT_BUMPER_TIP_Z, 11.8, FRONT_BUMPER_BAND_TOP_Y - 0.7, FRONT_BUMPER_TIP_Z + 0.05, "grille"),
+    *round_face((10.3, (FRONT_BUMPER_BAND_BOTTOM_Y + FRONT_BUMPER_BAND_TOP_Y) / 2, 0), 0.9, FRONT_BUMPER_TIP_Z + 0.05, FRONT_BUMPER_TIP_Z + 0.12, "light"),
 ])
 
 # Ribs on the hardtop: two front panels split down the middle over the front seats, a seam across,
