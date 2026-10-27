@@ -296,6 +296,7 @@ describe("camping gear docs (ADR 0093)", () => {
         "tent.png",
         "camp_table.png",
         "fire_pit.png",
+        "dutch_oven.png",
       ].sort(),
     );
     for (const g of SPEC) {
@@ -992,6 +993,7 @@ describe("camping gear blocks and items (ADR 0093)", () => {
                   "yasu_ride:tent_item",
                   "yasu_ride:camp_table_item",
                   "yasu_ride:fire_pit_item",
+                  "yasu_ride:dutch_oven_item",
                 ],
               },
               {
