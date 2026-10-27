@@ -62,7 +62,15 @@ def measure(cubes_by_bone):
     frames = [c for c in body if c.get("rotation", [0, 0, 0])[0] < 0
               and c["rotation"][1:] == [0, 0]]
     frame = max(frames, key=lambda c: c["size"][0])
-    foot = frame["pivot"][2]
+    # The target's foot is the outer (front) A-pillar edge extrapolated to the cowl,
+    # so follow the frame's tilted front face down to the pivot (hood) height.
+    pivot = frame["pivot"]
+    matrix = _cube_tilt.cube_matrix(frame["rotation"])
+    face = [_cube_tilt._apply(matrix, [0, frame["origin"][1] + h - pivot[1],
+                                       frame["origin"][2] - pivot[2]])
+            for h in (0, frame["size"][1])]
+    foot = pivot[2] + face[0][2] - face[0][1] * (
+        (face[1][2] - face[0][2]) / (face[1][1] - face[0][1]))
     roofs = [c for c in body if not any(c.get("rotation", []))
              and c["origin"][1] > frame["pivot"][1]
              and c["size"][1] < min(c["size"][0], c["size"][2])]
