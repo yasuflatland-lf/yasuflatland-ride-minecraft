@@ -210,9 +210,12 @@ ARCH_RUN_PER_RISE = (ARCH_FOOT_Z - ARCH_TOP_HALF) / (ARCH_TOP_Y - ARCH_FOOT_Y)
 # Bumpers. A length is the straight band's run along the car; its cut corners reach farther in. The
 # lips above and below the front band and the fog lamps on its face follow the band's tip and edges.
 FRONT_BUMPER_LENGTH = 5.5
-FRONT_BUMPER_BOTTOM_Y = SILL_Y - 1.5
+# The front bumper's top meets the grille's bottom frame rather than following the sill: the grille and
+# the headlights above it stay put, so a raised bumper would bury them.
+GRILLE_BOTTOM_Y = 8
 FRONT_BUMPER_HEIGHT = 5.5
-FRONT_BUMPER_TOP_Y = FRONT_BUMPER_BOTTOM_Y + FRONT_BUMPER_HEIGHT
+FRONT_BUMPER_TOP_Y = GRILLE_BOTTOM_Y
+FRONT_BUMPER_BOTTOM_Y = FRONT_BUMPER_TOP_Y - FRONT_BUMPER_HEIGHT
 FRONT_BUMPER_TIP_Z = FRONT + 4.5
 FRONT_BUMPER_BACK_Z = FRONT_BUMPER_TIP_Z - FRONT_BUMPER_LENGTH
 FRONT_BUMPER_BAND_BOTTOM_Y = FRONT_BUMPER_BOTTOM_Y + 1
@@ -556,13 +559,13 @@ SLOTS, SLOT_W, BAR_W = 8, 1.1, 0.6
 grille_w = SLOTS * SLOT_W + (SLOTS + 1) * BAR_W
 gx0 = -grille_w / 2
 body += [
-    box(gx0, 8.5, FRONT, -gx0, 16.5, FRONT + 0.2, "grille"),  # back panel
+    box(gx0, GRILLE_BOTTOM_Y + 0.5, FRONT, -gx0, 16.5, FRONT + 0.2, "grille"),  # back panel
     box(gx0 - 0.5, 16.5, FRONT, -gx0 + 0.5, HOOD_TOP_Y, FRONT + 0.6, "body"),  # top frame
-    box(gx0 - 0.5, 8, FRONT, -gx0 + 0.5, 8.5, FRONT + 0.6, "body"),  # bottom frame
+    box(gx0 - 0.5, GRILLE_BOTTOM_Y, FRONT, -gx0 + 0.5, GRILLE_BOTTOM_Y + 0.5, FRONT + 0.6, "body"),  # bottom frame
 ]
 for i in range(SLOTS + 1):
     x = gx0 + i * (SLOT_W + BAR_W)
-    body.append(box(x, 8.5, FRONT + 0.2, x + BAR_W, 16.5, FRONT + 0.6, "body"))
+    body.append(box(x, GRILLE_BOTTOM_Y + 0.5, FRONT + 0.2, x + BAR_W, 16.5, FRONT + 0.6, "body"))
 
 
 def round_face(center, radius, z0, z1, color, segments=12):
