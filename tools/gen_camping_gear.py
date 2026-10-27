@@ -98,7 +98,7 @@ OPEN_STATE = "yasu_ride:open"
 CABINET_COMPONENT = "yasu_ride:camper_cabinet"
 CABINET_BOX_PX = 10
 CEILING_PLATE_PX = 3
-# A block state holds at most 16 values, and an end takes 19: empty, or one of the 18 standing
+# A block state holds at most 16 values, and an end takes 18: empty, or one of the 17 standing
 # items. So an end's code, 0 for empty and 1 + the item's index among the standing items, is
 # split into end<n>_page (code // PAIR_PAGE_SIZE) and end<n>_item (code % PAIR_PAGE_SIZE), as
 # pairEndStates in src/infrastructure/vehicle/bedrock/identifiers.ts.
@@ -224,13 +224,6 @@ SHAPES = {
         box(-1, 3, -1, 1, 3.5, 1, "chrome"),
         box(-1, 3.5, -1, 1, 6.5, 1, "cream"),
         box(-0.75, 6.5, -0.75, 0.75, 7, 0.75, "chrome"),
-    ],
-    "lava_lamp": [
-        box(-1.5, 0, -1.5, 1.5, 2.5, 1.5, "harvest_gold"),
-        box(-1, 2.5, -1, 1, 6.5, 1, "red"),
-        box(-1.25, 3.5, -0.5, 1.25, 4.5, 0.5, "burnt_orange"),
-        box(-0.5, 5, -1.25, 0.5, 6, 1.25, "burnt_orange"),
-        box(-0.75, 6.5, -0.75, 0.75, 8, 0.75, "harvest_gold"),
     ],
     "transistor_radio": [
         box(-3, 0, -1, 3, 3.5, 1, "burnt_orange"),

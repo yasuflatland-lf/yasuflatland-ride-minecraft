@@ -120,7 +120,7 @@ function readPng(path: string) {
 }
 
 describe("camping gear spec (ADR 0093)", () => {
-  it("lists the 19 items in the contract's order", () => {
+  it("lists the 18 items in the contract's order", () => {
     expect(SPEC.map((g) => g.id)).toEqual([
       "potted_plant",
       "macrame_planter",
@@ -133,7 +133,6 @@ describe("camping gear spec (ADR 0093)", () => {
       "fruit_bowl",
       "toaster",
       "oil_lamp",
-      "lava_lamp",
       "transistor_radio",
       "book_stack",
       "road_map",
@@ -968,7 +967,7 @@ describe("camping gear blocks and items (ADR 0093)", () => {
       "yasu_ride:camping_gear_box",
       ...SPEC.map((g) => `yasu_ride:${g.id}`),
     ];
-    expect(items).toHaveLength(20);
+    expect(items).toHaveLength(19);
     expect(readJson(`${BP}/item_catalog/crafting_item_catalog.json`)).toEqual({
       format_version: "1.21.60",
       "minecraft:crafting_items_catalog": {
