@@ -1,8 +1,8 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { expect, it } from "vitest";
-
 import { SUV_PROFILE } from "../../src/domain/vehicle/kinds/suv/profile";
+import { type Bone as GeometryBone, turnedCorners } from "../support/geometry";
 
 type Vec = [number, number, number];
 type Bone = { name: string; pivot: Vec; locators?: Record<string, Vec> };
@@ -65,6 +65,19 @@ it("orders the SUV body heights and longitudinal landmarks consistently", () => 
     for (let i = 1; i < ordered.length; i++) {
       expect(ordered[i - 1]).toBeLessThan(ordered[i] as number);
     }
+  }
+});
+
+it("joins the shortened A-pillars to the roof without protruding above it", () => {
+  const body = bone("body") as GeometryBone;
+  const pillars = (body.cubes ?? []).filter(
+    (c) => c.rotation?.[0] === -dimension("WINDSHIELD_LEAN") && c.size[0] === 1,
+  );
+  expect(pillars).toHaveLength(2);
+  for (const pillar of pillars) {
+    const top = Math.max(...turnedCorners(body, pillar).map((p) => p[1]));
+    expect(top).toBeCloseTo(dimension("ROOF_TOP"), 10);
+    expect(top).toBeGreaterThan(dimension("ROOF_Y"));
   }
 });
 

@@ -32,7 +32,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0026](0026-bank-into-turns-in-flight.md) | Bank into turns in flight | Superseded in part by 0044 |
 | [0027](0027-readme-previews-in-three-poses.md) | Render the README previews in three poses | Superseded in part by 0045; extended by 0136 (Proposed) |
 | [0028](0028-third-person-camera-in-flight.md) | Switch riders to the third-person camera in flight | Superseded in part by 0052 and 0071 |
-| [0029](0029-raise-the-seats.md) | Raise the seats so riders' legs stay inside the body | Accepted |
+| [0029](0029-raise-the-seats.md) | Raise the seats so riders' legs stay inside the body | Superseded in part by 0170 |
 | [0030](0030-engine-and-hover-sounds.md) | Engine and hover sounds from client animations, stepped by speed | Extended by 0073 and 0140 (Proposed) |
 | [0031](0031-repaint-with-all-sixteen-dyes.md) | Repaint vehicles with all sixteen dyes | Superseded in part by 0036; extended by 0076, [0135](0135-repaint-the-tent-with-dyes.md), and 0136 (Proposed) |
 | [0032](0032-climb-with-jump-and-sink-with-the-stick.md) | Climb with held Jump and sink with the stick pulled back | Accepted |

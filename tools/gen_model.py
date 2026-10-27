@@ -146,20 +146,20 @@ CARGO_FRONT = -19  # z where the rear doors end and the cargo area's fixed panel
 # Chassis and ground clearance: the chassis runs from the sill (its underside, which also sets where
 # the side steps and bumpers hang) up to the cabin floor. The sill sits at the target's clearance
 # (ADR 0170, 4/7). The floor sits only as high as the side steps' thickness needs, and the seats do not
-# follow it: the roof stays, so higher seats would take the riders' head room.
+# follow it: higher seats would take the riders' head room under the lowered roof.
 SILL_Y = 6.875
 FLOOR_Y = 8
 BODY_HALF_WIDTH = 13
 CABIN_HALF_WIDTH = 12
 DOOR_FRAME_MID_X = (BODY_HALF_WIDTH + CABIN_HALF_WIDTH) / 2
 
-# Belt line, windows and roof. The glass sits inside the door frames, so it starts above the belt line
-# and the frames' top rails fill the gap up to the roof.
-BELT_Y = 17
-WINDOW_BOTTOM_Y = BELT_Y + 1.5
-WINDOW_TOP_Y = 27
-ROOF_Y = WINDOW_TOP_Y + 2  # underside of the roof
-ROOF_TOP = ROOF_Y + 1
+# The sealed rear pane supplies the measured belt and clear window height (ADR 0170, 6/7).
+# Roof ribs add 0.3 px above ROOF_TOP to the measured overall height.
+BELT_Y = 18.4
+WINDOW_BOTTOM_Y = BELT_Y
+WINDOW_TOP_Y = WINDOW_BOTTOM_Y + 6.5
+ROOF_Y = WINDOW_TOP_Y + 1  # underside of the roof
+ROOF_TOP = ROOF_Y + 0.2
 
 # The target hood stands above the belt line, so its cowl has its own height (ADR 0170).
 HOOD_TOP_Y = 19
@@ -189,6 +189,12 @@ ROOF_FRONT = WINDSHIELD_FOOT_Z - (ROOF_TOP - HOOD_TOP_Y) * _LEAN_TAN + 0.6
 
 def windshield_part(x0, y0, z0, x1, y1, z1, color):
     return turned(box(x0, y0, z0, x1, y1, z1, color), WINDSHIELD_PIVOT, (WINDSHIELD_LEAN, 0, 0))
+
+
+def leaning_top(y):
+    """The unturned top of a windshield part whose face 0.5 px off the pivot should end at height y:
+    leaning shortens its rise and lifts that face by its depth."""
+    return HOOD_TOP_Y + (y - HOOD_TOP_Y - 0.5 * _LEAN_SIN) / _LEAN_COS
 
 
 # Distance of the wheel hubs from the center line. The tires stand out from the body's side, under
@@ -258,7 +264,7 @@ body = [
     box(-CABIN_HALF_WIDTH, DASH_BOTTOM_Y, DASH_FACE_Z, CABIN_HALF_WIDTH, HOOD_TOP_Y, HOOD_REAR_Z, "trim"),
     # Windshield lower frame and A-pillars, leaning back
     windshield_part(-CABIN_HALF_WIDTH, HOOD_TOP_Y, WINDSHIELD_FOOT_Z, CABIN_HALF_WIDTH, HOOD_TOP_Y + 1, HOOD_REAR_Z, "trim"),
-    *both_sides([windshield_part(CABIN_HALF_WIDTH, HOOD_TOP_Y, HOOD_REAR_Z - 1, BODY_HALF_WIDTH, HOOD_TOP_Y + (ROOF_Y + 0.8 - HOOD_TOP_Y) / _LEAN_COS, HOOD_REAR_Z, "body")]),
+    *both_sides([windshield_part(CABIN_HALF_WIDTH, HOOD_TOP_Y, HOOD_REAR_Z - 1, BODY_HALF_WIDTH, leaning_top(ROOF_TOP), HOOD_REAR_Z, "body")]),
     # Rearview mirror (center of the windshield's top edge, behind the leaning glass)
     box(-0.5, ROOF_Y - 2.5, ROOF_FRONT - 0.8, 0.5, ROOF_Y, ROOF_FRONT - 0.3, "trim"),
     box(-2.5, ROOF_Y - 4, ROOF_FRONT - 1.3, 2.5, ROOF_Y - 2.5, ROOF_FRONT - 0.8, "rim"),
@@ -654,7 +660,7 @@ translate(gauges, 1, -DASH_GAUGE_DROP)
 # at the outer end with a chrome knob. The driver's side keeps its gauges and wheel.
 passenger_dash = [
     box(-CABIN_HALF_WIDTH, 13, 9.9, -1, 16.3, 10, "body"),  # panel
-    box(-CABIN_HALF_WIDTH, 16.3, 9.7, -1, BELT_Y, 10, "grille"),  # pad
+    box(-CABIN_HALF_WIDTH, 16.3, 9.7, -1, HOOD_TOP_Y - 2, 10, "grille"),  # pad
     box(-11.3, 16.1, 9.5, -10.5, 17.3, 9.7, "rim"),  # windshield latch
     box(-9.6, 15.3, 9.2, -3, 15.7, 9.5, "grille"),  # grab bar
     *[box(x - 0.2, 15.3, 9.5, x + 0.2, 15.7, 9.9, "trim") for x in (-9.3, -3.3)],  # bar posts
@@ -759,7 +765,7 @@ def door(name):
         *front_post,
         box(BODY_HALF_WIDTH, 14.4, z_back + 1.5, 13.35, 15.1, z_back + 4.5, "grille"),  # door handle, near the rear edge
         *window_frame_piece(BELT_Y, z_back, ROOF_Y, z_back + 1),  # rear post
-        *window_frame_piece(ROOF_Y - 1, z_back, ROOF_Y, top_front),  # top rail
+        *window_frame_piece(WINDOW_TOP_Y, z_back, ROOF_Y, top_front),  # top rail
         *side_mirror,
     ]
     return {
@@ -865,11 +871,28 @@ def front_post_back(y):
     return z0 - (y - y0) * _LEAN_TAN
 
 
+def front_side_panes():
+    # Split at the cowl height as well as each pixel: every strip end stays hidden in either
+    # the upright foot or the raked post, even when the belt and roof are fractional pixels.
+    panes = []
+    y = WINDOW_BOTTOM_Y
+    while y < WINDOW_TOP_Y - 1e-6:
+        if y < HOOD_TOP_Y:
+            top = min(y + 1, HOOD_TOP_Y)
+            front = FRONT_DOOR_HINGE_Z - 1
+        else:
+            top = min(y + 1, WINDOW_TOP_Y)
+            front = front_post_back(y) + 0.2
+        panes.append(box(12.85, y, -4, 12.95, top, front, "rear_glass"))
+        y = top
+    return panes
+
+
 WINDOWS_SEALED = [
-    windshield_part(-CABIN_HALF_WIDTH, HOOD_TOP_Y + 1, HOOD_REAR_Z - 0.1, CABIN_HALF_WIDTH, HOOD_TOP_Y + FRONT_POST_LENGTH, HOOD_REAR_Z, "rear_glass"),
+    windshield_part(-CABIN_HALF_WIDTH, HOOD_TOP_Y + 1, HOOD_REAR_Z - 0.1, CABIN_HALF_WIDTH, leaning_top(ROOF_Y), HOOD_REAR_Z, "rear_glass"),
     *both_sides([
-        *[box(12.85, y, -4, 12.95, y + 1, (FRONT_DOOR_HINGE_Z - 1 if y < HOOD_TOP_Y else front_post_back(y) + 0.2), "rear_glass") for y in range(BELT_Y, ROOF_Y - 1)],
-        box(12.9, BELT_Y, CARGO_FRONT + 1, BODY_HALF_WIDTH, ROOF_Y - 1, -7, "rear_glass"),
+        *front_side_panes(),
+        box(12.9, WINDOW_BOTTOM_Y, CARGO_FRONT + 1, BODY_HALF_WIDTH, WINDOW_TOP_Y, -7, "rear_glass"),
     ]),
 ]
 
@@ -992,7 +1015,7 @@ geo = {
                 {"name": "headlights", "parent": "body", "pivot": [0, FLOOR_Y, 0], "cubes": headlights},
                 # Shown only in flight by the render controller (ADR 0026)
                 {"name": "rear_glass", "parent": "body", "pivot": [0, FLOOR_Y, 0],
-                 "cubes": [box(-CABIN_HALF_WIDTH, BELT_Y, REAR, CABIN_HALF_WIDTH, WINDOW_TOP_Y, REAR + 1, "rear_glass")]},
+                 "cubes": [box(-CABIN_HALF_WIDTH, WINDOW_BOTTOM_Y, REAR, CABIN_HALF_WIDTH, WINDOW_TOP_Y, REAR + 1, "rear_glass")]},
                 wheel("wheel_fl", -1, FRONT_AXLE_Z),
                 wheel("wheel_fr", +1, FRONT_AXLE_Z),
                 wheel("wheel_rl", -1, REAR_AXLE_Z),

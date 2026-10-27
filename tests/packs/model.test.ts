@@ -325,7 +325,10 @@ describe("SUV model (ADR 0009)", () => {
       expect(leaning).toHaveLength(1);
       const [windshield] = leaning;
       const pillars = allBodyCubes.filter(
-        (c) => c.rotation && c.size[0] === 1 && c.size[1] > 10,
+        (c) =>
+          c.rotation?.[0] === windshield?.rotation?.[0] &&
+          c.size[0] === 1 &&
+          c.pivot?.[1] === windshield?.pivot?.[1],
       );
       expect(pillars).toHaveLength(2);
       // In game a negative x rotation leans the top back toward +z, the cabin
