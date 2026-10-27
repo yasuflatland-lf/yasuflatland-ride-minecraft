@@ -51,6 +51,9 @@ To use commands, run `docker exec yasuflatland-ride-bds send-command op <player 
 | 42 | Drive forward and reverse, then steer in both directions; inspect both sides while stopped (ADR 0170, 3/7) | The longer wheelbase and shorter overhangs match the side reference; spinning tires stay inside their arches and clear of the steps and bumpers | unverified | unverified |
 | 43 | Fold the wheels, fly forward and turn, then land and let the wheels unfold | Wheels, arms and glow discs stay aligned with the moved axles; folding clears the flares and bumpers, and wheels return to their arches | unverified | unverified |
 | 44 | Submerge, drive and turn underwater, then drive onto shore | Rear wheels, propellers and submarine arms stay attached at the moved axles without clipping; road wheels return to their arches on shore | unverified | unverified |
+| 45 | Board and leave each of the four SUV seats, using other players to fill earlier seats (ADR 0170, 4/7) | Boarding, seat order, door animations and leaving work with the raised sill and floor; an opening door slides over the side step without cutting through it | unverified | unverified |
+| 46 | Sit in each SUV seat and look forward, sideways and up; have another player inspect every rider from outside | The seated view stays below the roof, cushions support riders, and no head clips the unchanged roof underside | unverified | unverified |
+| 47 | Inspect the SUV from the side on flat ground, then fold the wheels and submerge | Tires remain on the ground with the higher sill; flares remain smooth, and rear_glass and windows_sealed still fill their openings | unverified | unverified |
 
 ## Sports boat
 
