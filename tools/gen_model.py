@@ -167,12 +167,11 @@ FRONT = 25  # z of the hood's front face
 HOOD_REAR_Z = 7.75  # z of the cowl, where the hood meets the windshield frame
 WINDSHIELD_FOOT_Z = HOOD_REAR_Z - 0.5  # the windshield's lower frame pivot, before it leans back
 
-# The door hinges and dashboard follow the cowl; the pillars and seats keep their cabin positions
-# (ADR 0117, 0170).
+# The door hinges and dashboard follow the cowl; the pillars keep their cabin positions (ADR 0170).
 FRONT_DOOR_HINGE_Z = HOOD_REAR_Z - 1
 B_PILLAR_REAR_Z, B_PILLAR_FRONT_Z = -6, -5
 DASH_BOTTOM_Y = 13
-DASH_FACE_Z = HOOD_REAR_Z - 1.5
+DASH_FACE_Z = HOOD_REAR_Z - 0.75
 DASH_GAUGE_DROP = 1.25
 DASH_SHIFT_Z = DASH_FACE_Z - 10
 REAR_SEAT_Z = CARGO_FRONT + 1
@@ -464,10 +463,11 @@ def pleated_seat(x0, x1, z_back):
     return cubes
 
 
-# Seats: 2 in front and a rear bench made of two halves. The front seats sit 2 px behind where they
-# first stood, and their riders 2.4 px (ADR 0117), so a front rider ends up 5.2 px ahead of the seat's
-# back, the same as on the rear bench.
-FRONT_SEAT_Z = -2
+# Seats: 2 in front and a rear bench made of two halves. A front rider sits 5.2 px ahead of the seat's
+# back, the same as on the rear bench (ADR 0117). The front seats and riders sit 2 px farther back
+# than ADR 0117 put them, so the rider's torso clears the steering wheel under the rearward cowl
+# (ADR 0170).
+FRONT_SEAT_Z = -4
 body += pleated_seat(2, 11, FRONT_SEAT_Z)
 body += pleated_seat(-11, -2, FRONT_SEAT_Z)
 body += pleated_seat(-11, 0, REAR_SEAT_Z)

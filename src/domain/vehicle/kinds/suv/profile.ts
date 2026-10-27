@@ -27,8 +27,8 @@ export const SUV_PROFILE: VehicleProfile = Object.freeze({
    */
   seats: Object.freeze({
     positions: Object.freeze([
-      { x: -0.38, z: 0.2 },
-      { x: 0.38, z: 0.2 },
+      { x: -0.38, z: 0.075 },
+      { x: 0.38, z: 0.075 },
       { x: -0.38, z: -0.8 },
       { x: 0.38, z: -0.8 },
     ]),

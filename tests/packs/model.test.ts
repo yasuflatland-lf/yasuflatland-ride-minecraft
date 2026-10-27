@@ -354,6 +354,21 @@ describe("SUV model (ADR 0009)", () => {
         expect(separated(glass, fitting)).toBe(true);
     });
 
+    it("keeps the whole steering wheel ahead of the seated driver's torso", () => {
+      const body = bones.get("body");
+      const driver = SUV_PROFILE.seats.positions[0];
+      if (!body || !driver) throw new Error("Missing cabin");
+      const steering = (body.cubes ?? []).filter(
+        (c) => c.rotation && c.pivot?.[1] === 16.5,
+      );
+      expect(steering.length).toBeGreaterThan(16);
+      // A player's torso is 4 px deep around the rider's position; the model's front is -z.
+      const torsoFront = -driver.z * 16 - 2;
+      for (const cube of steering)
+        for (const [, , z] of turnedCorners(body, cube))
+          expect(z).toBeLessThan(torsoFront);
+    });
+
     it("covers the window above each door", () => {
       for (const d of DOOR_BY_SEAT) {
         const panel = bones.get(d)?.cubes?.[0];
