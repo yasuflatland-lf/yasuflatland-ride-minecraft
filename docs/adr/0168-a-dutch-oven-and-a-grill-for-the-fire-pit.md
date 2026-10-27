@@ -34,7 +34,7 @@ This ADR fixes one contract of ids, states, and rules that the later pull reques
 2. **Simmering.** `yasu_ride:simmering` is true exactly while the oven stands on a Fire Pit, whether or not the pit is lit. On the ground or a table it is false (lid on). This reading of "placed on the fire pit" follows the owner's wording and keeps the rule a pure function of the host kind.
 3. **Grill.** `yasu_ride:covered` on the Fire Pit is true exactly while an oven stands on it, and the `grill` bone shows. The grill is not a separate item or entity.
 4. **Taking it back.** Three quick hits on the oven fold it into its item (as 0122) and clear the host's state. The pit and the table refuse their own three-hit fold while any oven stands on them and show `dutch_oven_on_top`; the hit counter does not advance.
-5. **Host vanishes.** Every `hostCheckTicks`, an oven whose host entity no longer exists clears `host`, sets `simmering` false, and falls to the ground with gravity.
+5. **Host vanishes.** Every `hostCheckTicks`, an oven whose host id does not resolve clears `host`, sets `simmering` false, and falls to the ground with gravity, but only when the chunk at the oven's own position is loaded and the host's block position is too. If either is unloaded, the host may only be out of reach, so the oven changes nothing and checks again on the next interval.
 6. **Lighting is independent.** Flint and steel still lights and puts out the pit with an oven on it (0153).
 7. **No cooking.** Like the fire (0153), simmering is visual: nothing is consumed and nothing burns.
 8. **Placement refuses** a spot inside vehicle space; a spot without `clearance` free blocks above; a spot within 0.5 block of another oven that is also on the ground; and a host spot that already holds an oven.
