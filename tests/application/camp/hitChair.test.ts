@@ -10,18 +10,41 @@ const CHAIR = asChairId("chair");
 const PLAYER = asPlayerId("player");
 
 describe("HitChair (ADR 0122)", () => {
+  it("ignores unknown entity kinds", () => {
+    const world = new FakeChairWorld();
+    world.kind = undefined;
+    const hit = new HitChair(world);
+    for (const tick of [0, 10, 20])
+      expect(
+        hit.execute({
+          kind: "low_chair",
+          chairId: CHAIR,
+          tick,
+          playerId: PLAYER,
+        }),
+      ).toBe(false);
+    expect(world.dropped).toEqual([]);
+    expect(world.removed).toEqual([]);
+    expect(world.hints).toEqual([]);
+  });
+
   it("takes the chair back on the third hit in a row and drops exactly one item", () => {
     const world = new FakeChairWorld();
     const hit = new HitChair(world);
     const results = [0, 10, 20].map((tick) =>
-      hit.execute({ chairId: CHAIR, tick, playerId: PLAYER }),
+      hit.execute({
+        kind: "low_chair",
+        chairId: CHAIR,
+        tick,
+        playerId: PLAYER,
+      }),
     );
     expect(results).toEqual([false, false, true]);
     expect(world.dropped).toEqual([CHAIR]);
     expect(world.removed).toEqual([CHAIR]);
     expect(world.hints).toEqual([
-      { playerId: PLAYER, hitsLeft: 2 },
-      { playerId: PLAYER, hitsLeft: 1 },
+      { kind: "low_chair", playerId: PLAYER, hitsLeft: 2 },
+      { kind: "low_chair", playerId: PLAYER, hitsLeft: 1 },
     ]);
   });
 
@@ -37,7 +60,12 @@ describe("HitChair (ADR 0122)", () => {
           for (const gap of gaps) {
             tick += gap;
             expect(
-              hit.execute({ chairId: CHAIR, tick, playerId: PLAYER }),
+              hit.execute({
+                kind: "low_chair",
+                chairId: CHAIR,
+                tick,
+                playerId: PLAYER,
+              }),
             ).toBe(false);
           }
           expect(world.removed).toEqual([]);
@@ -60,7 +88,12 @@ describe("HitChair (ADR 0122)", () => {
           let tick = 0;
           for (const gap of gaps) {
             tick += gap;
-            hit.execute({ chairId: CHAIR, tick, playerId: PLAYER });
+            hit.execute({
+              kind: "low_chair",
+              chairId: CHAIR,
+              tick,
+              playerId: PLAYER,
+            });
           }
           expect(world.removed).toEqual([]);
           expect(
@@ -93,7 +126,11 @@ describe("HitChair (ADR 0122)", () => {
             const s = streaks.get(chair);
             const n =
               s && tick - s.last <= CHAIR_SPEC.hitResetTicks ? s.n + 1 : 1;
-            const removed = hit.execute({ chairId: asChairId(chair), tick });
+            const removed = hit.execute({
+              kind: "low_chair",
+              chairId: asChairId(chair),
+              tick,
+            });
             expect(removed).toBe(n >= CHAIR_SPEC.hitsToTakeBack);
             if (removed) streaks.delete(chair);
             else streaks.set(chair, { n, last: tick });

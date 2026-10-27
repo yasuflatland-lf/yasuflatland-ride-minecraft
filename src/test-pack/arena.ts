@@ -2,8 +2,8 @@
 import { type Dimension, type Entity, system, world } from "@minecraft/server";
 import type { Vec2 } from "../domain/shared/vec";
 import {
+  CHAIR_KINDS,
   DUTCH_OVEN_TYPE,
-  LOW_CHAIR_TYPE,
   TENT_TYPE,
 } from "../infrastructure/camp/identifiers";
 import {
@@ -142,7 +142,8 @@ export async function setupArena(): Promise<Arena> {
   dim.runCommand(`kill @e[type=${ENTITY_TYPE.sportsboat}]`);
   dim.runCommand(`kill @e[type=${ENTITY_TYPE.camper}]`);
   dim.runCommand(`kill @e[type=${ENTITY_TYPE.bulldozer}]`);
-  dim.runCommand(`kill @e[type=${LOW_CHAIR_TYPE}]`);
+  for (const { typeId } of Object.values(CHAIR_KINDS))
+    dim.runCommand(`kill @e[type=${typeId}]`);
   dim.runCommand(`kill @e[type=${TENT_TYPE}]`);
   dim.runCommand(`kill @e[type=${DUTCH_OVEN_TYPE}]`);
   dim.runCommand("kill @e[type=cow]");

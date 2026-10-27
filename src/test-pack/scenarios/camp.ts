@@ -4,7 +4,8 @@ import { FIRE_PIT_TOP_PX, TABLE_TOP_PX } from "../../domain/camp/spec";
 import {
   CAMP_TABLE_ITEM,
   CAMP_TABLE_TYPE,
-  CHAIR_FAMILY,
+  CHAIR_KINDS,
+  type ChairProfile,
   DUTCH_OVEN_ITEM,
   DUTCH_OVEN_SIMMERING_PROPERTY,
   DUTCH_OVEN_TYPE,
@@ -12,9 +13,6 @@ import {
   FIRE_PIT_ITEM,
   FIRE_PIT_LIT_PROPERTY,
   FIRE_PIT_TYPE,
-  LOW_CHAIR_ITEM,
-  LOW_CHAIR_TYPE,
-  TEST_CHAIR_HIT_EVENT,
   TEST_DUTCH_OVEN_HIT_EVENT,
   TEST_DUTCH_OVEN_ON_PIT_EVENT,
   TEST_DUTCH_OVEN_ON_TABLE_EVENT,
@@ -28,9 +26,6 @@ import { type Arena, type Outcome, wait } from "../arena";
 // On the arena's east edge, past the camping gear row (z 1-19) and clear of the
 // camper park spot (x 103-114, z 73-84) and the camper tank (z 61-69).
 const CELL = { x: 119, z: 40 } as const;
-
-const hit = (chair: Entity) =>
-  system.sendScriptEvent(TEST_CHAIR_HIT_EVENT, chair.id);
 
 const droppedItems = (a: Arena, at: Vector3, itemType: string) =>
   a.dim
@@ -63,26 +58,49 @@ const summonFirePit = (a: Arena, at: Vector3): Entity | undefined => {
 const ovensNear = (a: Arena, at: Vector3) =>
   a.dim.getEntities({ type: DUTCH_OVEN_TYPE, location: at, maxDistance: 2 });
 
+/** Runs a scenario once per chair kind, passing only when every kind passes. */
+async function forEveryChairKind(
+  scenario: (profile: ChairProfile) => Promise<Outcome>,
+): Promise<Outcome> {
+  const outcomes: Outcome[] = [];
+  for (const profile of Object.values(CHAIR_KINDS))
+    outcomes.push(await scenario(profile));
+  return {
+    pass: outcomes.every((outcome) => outcome.pass),
+    detail: outcomes.map((outcome) => outcome.detail).join("; "),
+  };
+}
+
 /** Summons a chair, checks its one seat, and folds it back with three hits into one dropped item. */
 export async function lowChairSeatAndTakeBack(a: Arena): Promise<Outcome> {
+  return forEveryChairKind((profile) =>
+    lowChairSeatAndTakeBackForKind(a, profile),
+  );
+}
+
+async function lowChairSeatAndTakeBackForKind(
+  a: Arena,
+  profile: ChairProfile,
+): Promise<Outcome> {
   const at = { x: CELL.x + 0.5, y: a.gy, z: CELL.z + 0.5 };
-  a.dim.runCommand(`summon ${LOW_CHAIR_TYPE} ${at.x} ${at.y} ${at.z}`);
+  a.dim.runCommand(`summon ${profile.typeId} ${at.x} ${at.y} ${at.z}`);
   const chair = a.dim.getEntities({
-    type: LOW_CHAIR_TYPE,
+    type: profile.typeId,
     location: at,
     maxDistance: 1.5,
   })[0];
   if (!chair) return { pass: false, detail: "chair not spawned" };
-  const chairItems = () => droppedItems(a, at, LOW_CHAIR_ITEM);
+  const chairItems = () => droppedItems(a, at, profile.itemId);
+  const hit = () => system.sendScriptEvent(profile.testHitEvent, chair.id);
   try {
     const seats = chair.getComponent("minecraft:rideable")?.seatCount;
-    const family = chair.matches({ families: [CHAIR_FAMILY] });
-    hit(chair);
+    const family = chair.matches({ families: [profile.family] });
+    hit();
     await wait(2);
     const afterOne = chair.isValid;
-    hit(chair);
+    hit();
     await wait(2);
-    hit(chair);
+    hit();
     await wait(2);
     const afterThree = chair.isValid;
     const amount = totalAmount(chairItems());
@@ -104,14 +122,23 @@ const GRASS_CELL = { x: CELL.x, z: CELL.z + 3 } as const;
  * checks that it settles through the grass onto the ground under it (ADR 0122).
  */
 export async function lowChairSettlesThroughGrass(a: Arena): Promise<Outcome> {
+  return forEveryChairKind((profile) =>
+    lowChairSettlesThroughGrassForKind(a, profile),
+  );
+}
+
+async function lowChairSettlesThroughGrassForKind(
+  a: Arena,
+  profile: ChairProfile,
+): Promise<Outcome> {
   const ground = { x: GRASS_CELL.x, y: a.gy - 1, z: GRASS_CELL.z };
   const plant = { ...ground, y: a.gy };
   a.dim.runCommand(`setblock ${ground.x} ${ground.y} ${ground.z} grass_block`);
   a.dim.runCommand(`setblock ${plant.x} ${plant.y} ${plant.z} short_grass`);
   const at = { x: GRASS_CELL.x + 0.5, y: a.gy + 1, z: GRASS_CELL.z + 0.5 };
-  a.dim.runCommand(`summon ${LOW_CHAIR_TYPE} ${at.x} ${at.y} ${at.z}`);
+  a.dim.runCommand(`summon ${profile.typeId} ${at.x} ${at.y} ${at.z}`);
   const chair = a.dim.getEntities({
-    type: LOW_CHAIR_TYPE,
+    type: profile.typeId,
     location: at,
     maxDistance: 1.5,
   })[0];

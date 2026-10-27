@@ -1,6 +1,7 @@
-// Use case: place a low chair from its item on the top of a block outside the vehicles (ADR 0122).
+// Use case: place a chair from its item on the top of a block outside the vehicles (ADR 0122).
 import {
   type ChairFace,
+  type ChairKindId,
   canPlaceChair,
   chairCell,
   chairYaw,
@@ -10,6 +11,7 @@ import type { Vec3 } from "../../domain/shared/vec";
 import type { ChairWorld } from "./ports/chair";
 
 export interface PlaceChairCommand {
+  kind: ChairKindId;
   playerId: PlayerId;
   dimensionId: DimensionId;
   /** The block the chair stands on (integer coordinates); the chair appears one block above it. */
@@ -56,15 +58,17 @@ export class PlaceChair {
       )
     )
       return false;
-    if (this.world.hasChairAt(cmd.dimensionId, above(block, 1))) return false;
+    if (this.world.hasChairAt(cmd.kind, cmd.dimensionId, above(block, 1)))
+      return false;
     // Taking the item first means a player who moved or dropped it in the
     // meantime gets no chair, instead of a chair and the item (ADR 0024).
     if (
       !this.world.isCreative(cmd.playerId) &&
-      !this.world.consumeChairItem(cmd.playerId, cmd.slot)
+      !this.world.consumeChairItem(cmd.kind, cmd.playerId, cmd.slot)
     )
       return false;
     this.world.spawnChair(
+      cmd.kind,
       cmd.dimensionId,
       { x: block.x + 0.5, y: block.y + 1, z: block.z + 0.5 },
       chairYaw(cmd.yaw),
