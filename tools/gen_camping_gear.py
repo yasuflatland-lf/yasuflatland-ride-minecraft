@@ -36,6 +36,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tool_loader import load_tool
 
 cube_tilt = load_tool("cube_tilt")
+panels = load_tool("panels")
 
 LAID_TAG = "tag:yasu_ride:laid"
 
@@ -106,7 +107,7 @@ OPEN_STATE = "yasu_ride:open"
 CABINET_COMPONENT = "yasu_ride:camper_cabinet"
 CABINET_BOX_PX = 10
 CEILING_PLATE_PX = 3
-# A block state holds at most 16 values, and an end takes 19: empty, or one of the 18 standing
+# A block state holds at most 16 values, and an end takes 18: empty, or one of the 17 standing
 # items. So an end's code, 0 for empty and 1 + the item's index among the standing items, is
 # split into end<n>_page (code // PAIR_PAGE_SIZE) and end<n>_item (code % PAIR_PAGE_SIZE), as
 # pairEndStates in src/infrastructure/vehicle/bedrock/identifiers.ts.
@@ -156,6 +157,76 @@ def box(x0, y0, z0, x1, y1, z1, color):
         "size": [x1 - x0, y1 - y0, z1 - z0],
         "uv": {f: face(color) for f in ("north", "south", "east", "west", "up", "down")},
     }
+
+
+def corners(cube):
+    """The eight corners of a cube, turned about its pivot the way the game does (ADR 0051, 0166)."""
+    origin, size = cube["origin"], cube["size"]
+    points = [[origin[i] + size[i] * ((n >> i) & 1) for i in range(3)] for n in range(8)]
+    if not any(cube.get("rotation", [])):
+        return points
+    pivot = cube["pivot"]
+    matrix = cube_tilt.cube_matrix(cube["rotation"])
+    turned = [cube_tilt._apply(matrix, [p[i] - pivot[i] for i in range(3)]) for p in points]
+    return [[round(pivot[i] + offset[i], 6) for i in range(3)] for offset in turned]
+
+
+def bounds(cubes):
+    points = [p for c in cubes for p in corners(c)]
+    lo = [min(p[i] for p in points) for i in range(3)]
+    hi = [max(p[i] for p in points) for i in range(3)]
+    return lo, hi
+
+
+def rounded(value):
+    """Drop floating-point noise and normalize negative zero before writing."""
+    if isinstance(value, float):
+        value = round(value, 3) + 0.0
+        return int(value) if value.is_integer() else value
+    if isinstance(value, list):
+        return [rounded(v) for v in value]
+    if isinstance(value, dict):
+        return {k: rounded(v) for k, v in value.items()}
+    return value
+
+
+def lantern():
+    """Panel-built glass lantern, kept below 120 cubes for the pair blocks (ADR 0169)."""
+    body = []
+    for radius, y0, y1, thickness in ((2.4, 0, 0.4, 0.35),
+                                      (2.5, 0.4, 1.9, 0.4),
+                                      (2.3, 1.9, 2.6, 1.5)):
+        body += panels.panel_ring(radius, y0, y1, face("black"), sides=10, thickness=thickness)
+    # panel_ring's overlap extends beyond its apothem; fit the rotated silhouette, not origins.
+    _, hi = bounds(body)
+    for cube in body:
+        for key in ("origin", "size"):
+            for axis in (0, 2):
+                cube[key][axis] *= 2.5 / hi[0]
+    body += panels.disc(2.3, 0, 0.15, face("black"), bars=2)
+    body += panels.panel_ring(0.9, 2.6, 3.2, face("black"), sides=6, thickness=0.25)
+    for y in (2.64, 2.83, 3.02):
+        body += panels.disc(1.0, y, y + 0.08, face("steel"), bars=2)
+    body += panels.disc(1.9, 3.2, 3.4, face("chrome"), bars=3)
+    body += panels.panel_ring(1.2, 3.41, 6.6, face("paper"), sides=12, thickness=0.15)
+    for k in range(6):
+        body.append(panels.panel(-0.035, 3.42, -1.21, 0.035, 6.59, -1.19,
+                                 face("white"), (0, 0, 0), (0, k * 60, 0)))
+    body += panels.panel_ring(1.7, 3.4, 6.8, face("glass"), sides=16, thickness=0.2)
+    for k in range(8):
+        body.append(panels.panel(-0.075, 3.4, -1.85, 0.075, 6.81, -1.75,
+                                 face("chrome"), (0, 0, 0), (0, k * 45, 0)))
+    body += panels.panel_ring(1.8, 3.4, 3.55, face("chrome"), sides=8, thickness=0.15)
+    body += panels.disc(1.9, 6.8, 7.2, face("chrome"), bars=3)
+    body += panels.disc(1.3, 7.2, 7.4, face("chrome"), bars=3)
+    body += panels.panel_ring(0.5, 7.4, 8, face("chrome"), sides=6, thickness=0.5)
+    # Four sides leave the neck loop open; the cup stays inside the bottle's footprint.
+    body += [box(0.85, 2.75, -0.12, 1.65, 2.87, 0.12, "black"),
+             box(1.53, 2.75, -0.12, 1.65, 3.12, 0.12, "black"),
+             box(0.85, 3.0, -0.12, 1.65, 3.12, 0.12, "black"),
+             box(0.85, 2.75, -0.12, 0.97, 3.12, 0.12, "black")]
+    body += panels.panel_ring(0.7, 3.0, 3.5, face("black"), sides=6, thickness=0.18, center=(1.65, 0))
+    return rounded(body)
 
 
 SHAPES = {
@@ -226,20 +297,7 @@ SHAPES = {
         box(-1.5, 4.5, 0.5, 1.5, 5, 1, "harvest_gold"),
         box(2.75, 2, -0.5, 3, 3, 0.5, "steel"),
     ],
-    "oil_lamp": [
-        box(-2, 0, -2, 2, 1, 2, "dark_brown"),
-        box(-1.5, 1, -1.5, 1.5, 3, 1.5, "harvest_gold"),
-        box(-1, 3, -1, 1, 3.5, 1, "chrome"),
-        box(-1, 3.5, -1, 1, 6.5, 1, "cream"),
-        box(-0.75, 6.5, -0.75, 0.75, 7, 0.75, "chrome"),
-    ],
-    "lava_lamp": [
-        box(-1.5, 0, -1.5, 1.5, 2.5, 1.5, "harvest_gold"),
-        box(-1, 2.5, -1, 1, 6.5, 1, "red"),
-        box(-1.25, 3.5, -0.5, 1.25, 4.5, 0.5, "burnt_orange"),
-        box(-0.5, 5, -1.25, 0.5, 6, 1.25, "burnt_orange"),
-        box(-0.75, 6.5, -0.75, 0.75, 8, 0.75, "harvest_gold"),
-    ],
+    "lantern": lantern(),
     "transistor_radio": [
         box(-3, 0, -1, 3, 3.5, 1, "burnt_orange"),
         box(-2.5, 0.5, -1.25, 0.5, 3, -1, "cream"),
@@ -279,18 +337,6 @@ SHAPES = {
         box(-0.5, 3.5, -0.75, 0.5, 4.5, -0.5, "black"),
     ],
 }
-
-
-def rounded(value):
-    """Drop floating-point noise and normalize negative zero before writing."""
-    if isinstance(value, float):
-        value = round(value, 3) + 0.0
-        return int(value) if value.is_integer() else value
-    if isinstance(value, list):
-        return [rounded(v) for v in value]
-    if isinstance(value, dict):
-        return {k: rounded(v) for k, v in value.items()}
-    return value
 
 
 def geometry(item_id, cubes):
@@ -352,25 +398,6 @@ def pair_pages(spec):
     return -(-(len(standing(spec)) + 1) // PAIR_PAGE_SIZE)
 
 
-def corners(cube):
-    """The eight corners of a cube, turned about its pivot the way the game does (ADR 0051, 0166)."""
-    origin, size = cube["origin"], cube["size"]
-    points = [[origin[i] + size[i] * ((n >> i) & 1) for i in range(3)] for n in range(8)]
-    if not any(cube.get("rotation", [])):
-        return points
-    pivot = cube["pivot"]
-    matrix = cube_tilt.cube_matrix(cube["rotation"])
-    turned = [cube_tilt._apply(matrix, [p[i] - pivot[i] for i in range(3)]) for p in points]
-    return [[round(pivot[i] + offset[i], 6) for i in range(3)] for offset in turned]
-
-
-def bounds(cubes):
-    points = [p for c in cubes for p in corners(c)]
-    lo = [min(p[i] for p in points) for i in range(3)]
-    hi = [max(p[i] for p in points) for i in range(3)]
-    return lo, hi
-
-
 def y_span(item):
     """Every item's model starts on y 0; a hanging item is lifted to the hook by its slot's
     yasu_ride:height (ADR 0102)."""
@@ -395,7 +422,8 @@ def validate(spec):
             continue
         (x0, y0, z0), (x1, y1, z1) = bounds(cubes)
         w = item["width_px"]
-        if (x0, x1) != (-w / 2, w / 2):
+        # Written cube coordinates have three decimals; turning them adds sub-millipixel error.
+        if abs(x0 + w / 2) > 0.001 or abs(x1 - w / 2) > 0.001:
             errors.append(f"{item['id']}: x spans {x0}..{x1}, not {-w / 2}..{w / 2}")
         ylo, yhi = y_span(item)
         if (y0, y1) != (ylo, yhi):

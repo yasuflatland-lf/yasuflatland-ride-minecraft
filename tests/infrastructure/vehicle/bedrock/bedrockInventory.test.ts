@@ -320,7 +320,7 @@ describe("BedrockInventory", () => {
         },
       ]),
     );
-    expect(container.addItem).toHaveBeenCalledTimes(19);
+    expect(container.addItem).toHaveBeenCalledTimes(18);
     expect(dimension.spawnItem).not.toHaveBeenCalled();
   });
 
@@ -353,7 +353,7 @@ describe("BedrockInventory", () => {
     const { dimension, player, inventory } = fixture();
     player.getComponent.mockReturnValue(undefined);
     inventory.unpackGift(asPlayerId("player"), "camping_gear_box");
-    expect(dimension.spawnItem).toHaveBeenCalledTimes(19);
+    expect(dimension.spawnItem).toHaveBeenCalledTimes(18);
   });
 
   it("unpacks nothing for a missing player", () => {

@@ -20,6 +20,7 @@ import {
 } from "../../motion/dockEntity";
 import { TransformingDrive } from "../../motion/transformingDrive";
 import { type BodyEnds, guardEnds } from "./bodyGuard";
+import { currentGearId } from "./campingGear";
 import {
   cellTaken,
   DECOR_CELLS,
@@ -135,11 +136,14 @@ export class CamperDrive extends TransformingDrive {
     // Decor survives driving: it is restored whether or not the camper was docked (ADR 0093).
     // An entry whose slot no longer exists, or whose cell an earlier entry already holds,
     // moves to the first free slot that takes its item, or is stowed (ADR 0103, 0105). Decor
-    // saved in a renamed slot loads as if saved in its new one (ADR 0112).
-    const saved = parseDecor(restored[DOCK_RESTORED.decor]).map((entry) => ({
-      ...entry,
-      slot: savedSlotId(entry.slot),
-    }));
+    // saved in a renamed slot loads as if saved in its new one (ADR 0112), and an item that
+    // left the catalog is dropped without being handed back (ADR 0169).
+    const saved = parseDecor(restored[DOCK_RESTORED.decor]).flatMap((entry) => {
+      const item = currentGearId(entry.item);
+      return item === undefined
+        ? []
+        : [{ slot: savedSlotId(entry.slot), item }];
+    });
     const homeless: DecorPlacement[] = [];
     for (const entry of saved) {
       const slot = decorSlot(entry.slot);

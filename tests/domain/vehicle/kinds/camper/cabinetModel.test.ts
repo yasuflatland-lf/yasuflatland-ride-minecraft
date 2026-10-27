@@ -32,7 +32,7 @@ const DOORS = [
   { id: "stove", property: "cabinet_stove_door" },
 ] as const;
 type DoorId = (typeof DOORS)[number]["id"];
-const ITEMS = ["mug_pair", "toaster", "lava_lamp"] as const;
+const ITEMS = ["mug_pair", "toaster", "book_stack"] as const;
 
 const endsOf = (door: DoorId) => DECOR_SLOTS.filter((s) => s.door === door);
 

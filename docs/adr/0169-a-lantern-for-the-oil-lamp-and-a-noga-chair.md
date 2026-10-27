@@ -22,9 +22,9 @@ This ADR fixes one contract that the later pull requests of the series (see Seri
 
 ### 1. Lava Lamp removed
 
-- The id `lava_lamp` leaves the gear catalog: `tools/camping_gear.json`, `CAMPING_GEAR_IDS` in `src/domain/vehicle/kinds/camper/campingGear.ts`, and its model, item, decor block, texts, tests, and docs. The catalog drops from 19 to 18 items.
+- The Lava Lamp id leaves the gear catalog: `tools/camping_gear.json`, `CAMPING_GEAR_IDS` in `src/domain/vehicle/kinds/camper/campingGear.ts`, and its model, item, decor block, texts, tests, and docs. The catalog drops from 19 to 18 items.
 - The pair-block end codes are `1 + index in STANDING_GEAR_IDS`, so removing an item shifts the codes of the items after it. Rooms are re-laid by script when parked, so this is accepted.
-- Saved decor. A camper saved before this change may hold `lava_lamp` or `oil_lamp`. A table `LEGACY_GEAR_IDS` in `campingGear.ts` maps `oil_lamp` to `lantern` and `lava_lamp` to nothing. At the single place where saved decor ids are decoded, a mapped id is read as its new id, and an id mapped to nothing is dropped: the cell shows its empty furniture, and nothing is handed back because the item no longer exists.
+- Saved decor. A camper saved before this change may hold the Lava Lamp id or `oil_lamp`. A table `LEGACY_GEAR_IDS` in `campingGear.ts` maps `oil_lamp` to `lantern` and the Lava Lamp id to nothing. At the single place where saved decor ids are decoded, a mapped id is read as its new id, and an id mapped to nothing is dropped: the cell shows its empty furniture, and nothing is handed back because the item no longer exists.
 - Items of the removed ids that players already hold become unknown items (Bedrock shows them as unknown). This is accepted for a pre-release add-on.
 
 ### 2. Oil Lamp becomes a Lantern
