@@ -137,6 +137,7 @@ describe("registerChairHits (ADR 0122)", () => {
       hitEntity: { id: "chair", typeId: LOW_CHAIR_TYPE },
     });
     expect(execute).toHaveBeenCalledWith({
+      kind: "low_chair",
       chairId: "chair",
       tick: 10,
       playerId: "p",
@@ -222,6 +223,7 @@ describe("registerChairPlacement (ADR 0122)", () => {
     expect(execute).toHaveBeenCalledWith({
       playerId: "p",
       dimensionId: "overworld",
+      kind: "low_chair",
       blockLocation: cell,
       yaw: 45,
       slot: 4,
@@ -276,6 +278,7 @@ describe("registerTestChairHit (ADR 0010, 0122)", () => {
             message: `${pad}${id}${pad}`,
           });
           expect(execute).toHaveBeenCalledWith({
+            kind: "low_chair",
             chairId: id.trim(),
             tick: 10,
           });

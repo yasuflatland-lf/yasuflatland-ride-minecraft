@@ -4,7 +4,7 @@ import {
   PlaceChair,
   type PlaceChairCommand,
 } from "../../../src/application/camp/placeChair";
-import { chairYaw } from "../../../src/domain/camp/chair";
+import { type ChairKindId, chairYaw } from "../../../src/domain/camp/chair";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { cellKey, FakeChairWorld } from "./fakeChairWorld";
 
@@ -25,6 +25,7 @@ const cmdOf = (c: {
   slot: number;
 }): PlaceChairCommand => ({
   ...c,
+  kind: "low_chair",
   playerId: asPlayerId("player"),
   dimensionId: DIM,
 });
@@ -63,12 +64,27 @@ describe("PlaceChair (ADR 0122)", () => {
         const b = c.blockLocation;
         expect(world.spawned).toEqual([
           {
+            kind: "low_chair",
             at: { x: b.x + 0.5, y: b.y + 1, z: b.z + 0.5 },
             yaw: chairYaw(c.yaw),
           },
         ]);
         expect(world.consumed).toEqual([
-          { playerId: asPlayerId("player"), slot: c.slot },
+          { kind: "low_chair", playerId: asPlayerId("player"), slot: c.slot },
+        ]);
+      }),
+    );
+  });
+
+  it("passes a second test-only kind through to spawning and consumption", () => {
+    fc.assert(
+      fc.property(command, (c) => {
+        const world = new FakeChairWorld();
+        const kind = "test_chair" as ChairKindId;
+        expect(new PlaceChair(world).execute({ ...cmdOf(c), kind })).toBe(true);
+        expect(world.spawned[0]?.kind).toBe(kind);
+        expect(world.consumed).toEqual([
+          { kind, playerId: asPlayerId("player"), slot: c.slot },
         ]);
       }),
     );

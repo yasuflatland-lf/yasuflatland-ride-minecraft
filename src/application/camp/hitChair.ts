@@ -1,5 +1,5 @@
-// Use case: a hit on a low chair; the third in a row while nobody sits folds it back into its item (ADR 0122).
-import type { ChairId } from "../../domain/camp/chair";
+// Use case: a hit on a chair; the third in a row while nobody sits folds it back into its item (ADR 0122).
+import type { ChairId, ChairKindId } from "../../domain/camp/chair";
 import { CHAIR_SPEC } from "../../domain/camp/spec";
 import {
   EMPTY_COUNTER,
@@ -10,6 +10,7 @@ import type { PlayerId } from "../../domain/shared/ids";
 import type { ChairWorld } from "./ports/chair";
 
 export interface HitChairCommand {
+  kind: ChairKindId;
   chairId: ChairId;
   tick: number;
   /** The player who hit, who is told how many hits are left; none for a test event. */
@@ -29,6 +30,8 @@ export class HitChair {
   /** Returns whether the chair was taken back. */
   execute(cmd: HitChairCommand): boolean {
     this.forgetStale(cmd.tick);
+    const kind = this.world.kindOf(cmd.chairId);
+    if (kind === undefined || kind !== cmd.kind) return false;
     const occupied = this.world.isOccupied(cmd.chairId);
     const r = registerHit(
       this.counters.get(cmd.chairId) ?? EMPTY_COUNTER,
@@ -45,7 +48,7 @@ export class HitChair {
     if (occupied) return false;
     this.counters.set(cmd.chairId, r.counter);
     if (cmd.playerId !== undefined)
-      this.world.showHitsLeft(cmd.playerId, RULE.hits - r.counter.count);
+      this.world.showHitsLeft(kind, cmd.playerId, RULE.hits - r.counter.count);
     return false;
   }
 

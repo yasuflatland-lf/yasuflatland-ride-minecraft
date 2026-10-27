@@ -1,15 +1,48 @@
 // Camping entity, item, and block ids (ADR 0047, 0122, 0130, 0131, 0132, 0133, 0134).
+import type { ChairKindId } from "../../domain/camp/chair";
 import type { PitchRefusal } from "../../domain/camp/tent";
 import { id } from "../shared/identifiers";
 
-export const LOW_CHAIR_TYPE = id("low_chair");
-export const LOW_CHAIR_ITEM = id("low_chair_item");
-/** Listed in low_chair.se.json's minecraft:type_family. */
-export const CHAIR_FAMILY = "yasu_ride_low_chair";
-/** Lets in-game tests hit a chair without a player: the message is the chair's entity id. */
-export const TEST_CHAIR_HIT_EVENT = id("test_chair_hit");
-/** Action bar hint after a hit that does not take the chair back yet. */
-export const HITS_LEFT_HINT = "yasu_ride.hint.low_chair_hits";
+export const CHAIR_KINDS: Readonly<
+  Record<
+    ChairKindId,
+    {
+      readonly typeId: string;
+      readonly itemId: string;
+      readonly family: string;
+      readonly hitsHint: string;
+      readonly testHitEvent: string;
+    }
+  >
+> = {
+  low_chair: {
+    typeId: id("low_chair"),
+    itemId: id("low_chair_item"),
+    family: "yasu_ride_low_chair",
+    hitsHint: "yasu_ride.hint.low_chair_hits",
+    testHitEvent: id("test_chair_hit"),
+  },
+};
+
+const chairEntries = Object.entries(CHAIR_KINDS) as [
+  ChairKindId,
+  (typeof CHAIR_KINDS)[ChairKindId],
+][];
+export const CHAIR_KIND_BY_TYPE = new Map(
+  chairEntries.map(([kind, profile]) => [profile.typeId, kind]),
+);
+export const CHAIR_KIND_BY_ITEM = new Map(
+  chairEntries.map(([kind, profile]) => [profile.itemId, kind]),
+);
+export const CHAIR_KIND_BY_TEST_EVENT = new Map(
+  chairEntries.map(([kind, profile]) => [profile.testHitEvent, kind]),
+);
+
+export const LOW_CHAIR_TYPE = CHAIR_KINDS.low_chair.typeId;
+export const LOW_CHAIR_ITEM = CHAIR_KINDS.low_chair.itemId;
+export const CHAIR_FAMILY = CHAIR_KINDS.low_chair.family;
+export const TEST_CHAIR_HIT_EVENT = CHAIR_KINDS.low_chair.testHitEvent;
+export const HITS_LEFT_HINT = CHAIR_KINDS.low_chair.hitsHint;
 
 export const CAMP_TABLE_TYPE = id("camp_table");
 export const CAMP_TABLE_ITEM = id("camp_table_item");

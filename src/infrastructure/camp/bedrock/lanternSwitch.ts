@@ -5,7 +5,7 @@ import type { TentId } from "../../../domain/camp/tent";
 import { asDimensionId, type DimensionId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import type { SwitchTarget } from "../../shared/switchRouter";
-import { LOW_CHAIR_TYPE } from "../identifiers";
+import { CHAIR_KIND_BY_TYPE } from "../identifiers";
 
 export function lanternSwitchTarget(
   lantern: SwitchLantern,
@@ -18,7 +18,8 @@ export function lanternSwitchTarget(
   const claims = (player: Player): boolean => {
     if (!player.isValid) return false;
     const mount = player.getComponent("minecraft:riding")?.entityRidingOn;
-    if (mount !== undefined && mount.typeId !== LOW_CHAIR_TYPE) return false;
+    if (mount !== undefined && !CHAIR_KIND_BY_TYPE.has(mount.typeId))
+      return false;
     return tentOf(player) !== undefined;
   };
   return {

@@ -1,4 +1,4 @@
-// Places a low chair from its item, like a vehicle on land (ADR 0008, 0024, 0122).
+// Places a chair from its item, like a vehicle on land (ADR 0008, 0024, 0122).
 import { Direction, system, world } from "@minecraft/server";
 import type {
   PlaceChair,
@@ -11,7 +11,7 @@ import {
   type PlayerId,
 } from "../../../../domain/shared/ids";
 import { TickScopedSet } from "../../../../domain/shared/tickScoped";
-import { LOW_CHAIR_ITEM } from "../../identifiers";
+import { CHAIR_KIND_BY_ITEM } from "../../identifiers";
 
 const CHAIR_FACE: Readonly<Record<Direction, ChairFace>> = {
   [Direction.Up]: "up",
@@ -29,7 +29,8 @@ export function registerChairPlacement(placeChair: PlaceChair): void {
   // tick (ADR 0024). A cell the chair cannot take is left alone, so a press on
   // a camper door or another block still works with the chair in hand.
   world.beforeEvents.playerInteractWithBlock.subscribe((ev) => {
-    if (!ev.isFirstEvent || ev.itemStack?.typeId !== LOW_CHAIR_ITEM) return;
+    const kind = CHAIR_KIND_BY_ITEM.get(ev.itemStack?.typeId ?? "");
+    if (!ev.isFirstEvent || kind === undefined) return;
     const dimensionId = asDimensionId(ev.block.dimension.id);
     const cell = placeChair.cellFor(
       dimensionId,
@@ -42,6 +43,7 @@ export function registerChairPlacement(placeChair: PlaceChair): void {
     const playerId = asPlayerId(ev.player.id);
     if (!requested.add(system.currentTick, playerId)) return;
     const cmd: PlaceChairCommand = {
+      kind,
       playerId,
       dimensionId,
       blockLocation: cell,
