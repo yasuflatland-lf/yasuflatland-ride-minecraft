@@ -145,9 +145,11 @@ PALETTE = {
 }
 SLOTS = list(PALETTE)
 
+
 def face(color):
     i = SLOTS.index(color)
     return {"uv": [SWATCH * (i % SWATCH), SWATCH * (i // SWATCH)], "uv_size": [SWATCH, SWATCH]}
+
 
 def box(x0, y0, z0, x1, y1, z1, color):
     return {
@@ -155,6 +157,7 @@ def box(x0, y0, z0, x1, y1, z1, color):
         "size": [x1 - x0, y1 - y0, z1 - z0],
         "uv": {f: face(color) for f in ("north", "south", "east", "west", "up", "down")},
     }
+
 
 def corners(cube):
     """The eight corners of a cube, turned about its pivot the way the game does (ADR 0051, 0166)."""
@@ -166,6 +169,7 @@ def corners(cube):
     matrix = cube_tilt.cube_matrix(cube["rotation"])
     turned = [cube_tilt._apply(matrix, [p[i] - pivot[i] for i in range(3)]) for p in points]
     return [[round(pivot[i] + offset[i], 6) for i in range(3)] for offset in turned]
+
 
 def bounds(cubes):
     points = [p for c in cubes for p in corners(c)]
@@ -188,42 +192,40 @@ def rounded(value):
 
 def lantern():
     """Panel-built glass lantern, kept below 120 cubes for the pair blocks (ADR 0169)."""
-    ring = panels.panel_ring
-    disc = panels.disc
     body = []
     for radius, y0, y1, thickness in ((2.4, 0, 0.4, 0.35),
                                       (2.5, 0.4, 1.9, 0.4),
                                       (2.3, 1.9, 2.6, 1.5)):
-        body += ring(radius, y0, y1, face("black"), sides=10, thickness=thickness)
+        body += panels.panel_ring(radius, y0, y1, face("black"), sides=10, thickness=thickness)
     # panel_ring's overlap extends beyond its apothem; fit the rotated silhouette, not origins.
     _, hi = bounds(body)
     for cube in body:
         for key in ("origin", "size"):
             for axis in (0, 2):
                 cube[key][axis] *= 2.5 / hi[0]
-    body += disc(2.3, 0, 0.15, face("black"), bars=2)
-    body += ring(0.9, 2.6, 3.2, face("black"), sides=6, thickness=0.25)
+    body += panels.disc(2.3, 0, 0.15, face("black"), bars=2)
+    body += panels.panel_ring(0.9, 2.6, 3.2, face("black"), sides=6, thickness=0.25)
     for y in (2.64, 2.83, 3.02):
-        body += disc(1.0, y, y + 0.08, face("steel"), bars=2)
-    body += disc(1.9, 3.2, 3.4, face("chrome"), bars=3)
-    body += ring(1.2, 3.41, 6.6, face("paper"), sides=12, thickness=0.15)
+        body += panels.disc(1.0, y, y + 0.08, face("steel"), bars=2)
+    body += panels.disc(1.9, 3.2, 3.4, face("chrome"), bars=3)
+    body += panels.panel_ring(1.2, 3.41, 6.6, face("paper"), sides=12, thickness=0.15)
     for k in range(6):
         body.append(panels.panel(-0.035, 3.42, -1.21, 0.035, 6.59, -1.19,
                                  face("white"), (0, 0, 0), (0, k * 60, 0)))
-    body += ring(1.7, 3.4, 6.8, face("glass"), sides=16, thickness=0.2)
+    body += panels.panel_ring(1.7, 3.4, 6.8, face("glass"), sides=16, thickness=0.2)
     for k in range(8):
         body.append(panels.panel(-0.075, 3.4, -1.85, 0.075, 6.81, -1.75,
                                  face("chrome"), (0, 0, 0), (0, k * 45, 0)))
-    body += ring(1.8, 3.4, 3.55, face("chrome"), sides=8, thickness=0.15)
-    body += disc(1.9, 6.8, 7.2, face("chrome"), bars=3)
-    body += disc(1.3, 7.2, 7.4, face("chrome"), bars=3)
-    body += ring(0.5, 7.4, 8, face("chrome"), sides=6, thickness=0.5)
+    body += panels.panel_ring(1.8, 3.4, 3.55, face("chrome"), sides=8, thickness=0.15)
+    body += panels.disc(1.9, 6.8, 7.2, face("chrome"), bars=3)
+    body += panels.disc(1.3, 7.2, 7.4, face("chrome"), bars=3)
+    body += panels.panel_ring(0.5, 7.4, 8, face("chrome"), sides=6, thickness=0.5)
     # Four sides leave the neck loop open; the cup stays inside the bottle's footprint.
     body += [box(0.85, 2.75, -0.12, 1.65, 2.87, 0.12, "black"),
              box(1.53, 2.75, -0.12, 1.65, 3.12, 0.12, "black"),
              box(0.85, 3.0, -0.12, 1.65, 3.12, 0.12, "black"),
              box(0.85, 2.75, -0.12, 0.97, 3.12, 0.12, "black")]
-    body += ring(0.7, 3.0, 3.5, face("black"), sides=6, thickness=0.18, center=(1.65, 0))
+    body += panels.panel_ring(0.7, 3.0, 3.5, face("black"), sides=6, thickness=0.18, center=(1.65, 0))
     return rounded(body)
 
 
@@ -350,6 +352,7 @@ def geometry(item_id, cubes):
         }],
     })
 
+
 def moved(cube, left, ahead):
     """The cube shifted to a pair end's spot; a turned cube's pivot moves with it."""
     shift = [left, 0, ahead]
@@ -357,6 +360,7 @@ def moved(cube, left, ahead):
     if "pivot" in cube:
         result["pivot"] = [cube["pivot"][i] - shift[i] for i in range(3)]
     return result
+
 
 def pair_geometry(kind, spec):
     """One bone per standing item per end, its cubes moved to the end's spot in the gear model's
@@ -381,11 +385,14 @@ def pair_geometry(kind, spec):
         }],
     })
 
+
 def standing(spec):
     return [item for item in spec if not item["hanging"]]
 
+
 def pair_bone(end, item_id):
     return f"end{end}_{item_id}"
+
 
 def pair_pages(spec):
     return -(-(len(standing(spec)) + 1) // PAIR_PAGE_SIZE)
@@ -395,6 +402,7 @@ def y_span(item):
     """Every item's model starts on y 0; a hanging item is lifted to the hook by its slot's
     yasu_ride:height (ADR 0102)."""
     return (0, item["height_px"])
+
 
 def validate(spec):
     """Stop before writing anything when a shape disagrees with its spec row."""
@@ -443,6 +451,7 @@ def validate(spec):
     if errors:
         sys.exit("\n".join(errors))
 
+
 def atlas_pixels():
     return bytes(
         c
@@ -450,6 +459,7 @@ def atlas_pixels():
         for x in range(ATLAS_SIZE)
         for c in PALETTE[SLOTS[(y // SWATCH) * SWATCH + x // SWATCH]]
     )
+
 
 def write_png(path, size, pixels):
     stride = size * 4
@@ -460,6 +470,7 @@ def write_png(path, size, pixels):
 
     head = struct.pack(">IIBBBBB", size, size, 8, 6, 0, 0, 0)
     path.write_bytes(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", head) + chunk(b"IDAT", zlib.compress(raw, 9)) + chunk(b"IEND", b""))
+
 
 def read_png(path, size):
     """Decode a PNG this script wrote: 8-bit RGBA, size x size, every row unfiltered."""
@@ -480,6 +491,7 @@ def read_png(path, size):
         raise ValueError("rows are not unfiltered")
     return b"".join(row[1:] for row in rows)
 
+
 def terrain():
     return {
         "resource_pack_name": "yasu_ride",
@@ -487,8 +499,10 @@ def terrain():
         "texture_data": {ATLAS_KEY: {"textures": "textures/blocks/yasu_ride/camping_gear"}},
     }
 
+
 def num(v):
     return int(v) if float(v).is_integer() else v
+
 
 def spot_translation(face, spot):
     """The world offset in blocks of `spot` when the camper's yaw is face * 90 degrees: the
@@ -499,6 +513,7 @@ def spot_translation(face, spot):
     fx, fz = round(-math.sin(yaw)), round(math.cos(yaw))
     lx, lz = fz, -fx
     return ((left * lx + ahead * fx) / 16, (left * lz + ahead * fz) / 16)
+
 
 def selection_box(item):
     """A hanging item keeps its footprint, so the box under the hook does not catch presses
@@ -511,6 +526,7 @@ def selection_box(item):
         return {"origin": [num(-w / 2), num(y0), num(-w / 2)], "size": [w, num(y1 - y0), w]}
     half = CELL_PX // 2
     return {"origin": [-half, num(y0), -half], "size": [CELL_PX, num(max(1, y1 - y0)), CELL_PX]}
+
 
 def decor_block(item):
     gid = item["id"]
@@ -559,6 +575,7 @@ def decor_block(item):
             ],
         },
     }
+
 
 def pair_block(kind, spec):
     """Both items of a shelf board or the table in one block (PAIRS). Its permutations only turn
@@ -641,6 +658,7 @@ def pair_block(kind, spec):
         },
     }
 
+
 def ceiling_boxes(lift):
     """A compartment under the ceiling: its component and boxes, before its lift (OPEN_STATE)."""
     half = CELL_PX // 2
@@ -653,9 +671,11 @@ def ceiling_boxes(lift):
         "minecraft:selection_box": {"origin": [-half, 0, -half], "size": [CELL_PX, CABINET_BOX_PX, CELL_PX]},
     }
 
+
 def open_cell_component(_lift):
     """A compartment without collision: its component; each permutation sets its box."""
     return {"minecraft:custom_components": [CABINET_COMPONENT], "minecraft:collision_box": False}
+
 
 def floor_to_top_box(lift):
     """The selection box from the compartment floor to the cell's top once lifted by `lift`."""
@@ -669,6 +689,7 @@ DOOR_BOXES = {
     "ceiling": (ceiling_boxes, lambda _height: {}),
     "cell": (open_cell_component, floor_to_top_box),
 }
+
 
 def gear_item(item):
     gid = item["id"]
@@ -684,6 +705,7 @@ def gear_item(item):
         },
     }
 
+
 def item_textures(current, spec):
     """Keep every other entry in its order, then the box and each gear item, in spec order (ADR 0093)."""
     owned = [BOX] + [item["id"] for item in spec]
@@ -696,6 +718,7 @@ def item_textures(current, spec):
         "texture_name": current["texture_name"],
         "texture_data": data,
     }
+
 
 def stale_files(documents, atlas):
     stale = []
@@ -712,6 +735,7 @@ def stale_files(documents, atlas):
         stale.append(f"{atlas} ({e})")
     return stale
 
+
 def write_files(documents, atlas):
     for path, document in documents.items():
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -720,6 +744,7 @@ def write_files(documents, atlas):
     atlas.parent.mkdir(parents=True, exist_ok=True)
     write_png(atlas, ATLAS_SIZE, atlas_pixels())
     print(f"wrote {atlas}")
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
