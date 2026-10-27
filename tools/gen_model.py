@@ -416,9 +416,12 @@ def facing_back(cube):
     return copy
 
 
-body += [facing_back(c) for c in chamfered_band(REAR_BUMPER_BOTTOM_Y, REAR_BUMPER_TOP_Y, -REAR_BUMPER_TIP_Z - REAR_BUMPER_LENGTH, -REAR_BUMPER_TIP_Z, BUMPER_HALF_WIDTH, 2.5)]
+REAR_BUMPER_CHAMFER = 2.5
+# The reflectors end where the band's straight face meets its cut corners
+REFLECTOR_X1 = BUMPER_HALF_WIDTH - REAR_BUMPER_CHAMFER
+body += [facing_back(c) for c in chamfered_band(REAR_BUMPER_BOTTOM_Y, REAR_BUMPER_TOP_Y, -REAR_BUMPER_TIP_Z - REAR_BUMPER_LENGTH, -REAR_BUMPER_TIP_Z, BUMPER_HALF_WIDTH, REAR_BUMPER_CHAMFER)]
 body += both_sides([
-    box(10.5, REAR_BUMPER_BOTTOM_Y + 2, REAR_BUMPER_TIP_Z - 0.1, BODY_HALF_WIDTH, REAR_BUMPER_TOP_Y - 0.8, REAR_BUMPER_TIP_Z, "tail"),  # reflector
+    box(REFLECTOR_X1 - 2.5, REAR_BUMPER_BOTTOM_Y + 2, REAR_BUMPER_TIP_Z - 0.1, REFLECTOR_X1, REAR_BUMPER_TOP_Y - 0.8, REAR_BUMPER_TIP_Z, "tail"),  # reflector
     box(7.4, 1.8, REAR - 1.2, 8.4, REAR_BUMPER_BOTTOM_Y, REAR + 1, "tail"),  # tow hook
 ])
 
