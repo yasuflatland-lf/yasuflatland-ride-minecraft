@@ -2,11 +2,16 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
   type ChairFace,
+  type ChairKindId,
   canPlaceChair,
   chairCell,
   chairYaw,
 } from "../../../src/domain/camp/chair";
 import { CHAIR_SPEC } from "../../../src/domain/camp/spec";
+import {
+  EMPTY_COUNTER,
+  registerHit,
+} from "../../../src/domain/shared/hitCounter";
 
 const FACES: ChairFace[] = ["up", "down", "north", "south", "east", "west"];
 const cell = fc.record({
@@ -85,4 +90,33 @@ describe("canPlaceChair (ADR 0122)", () => {
   it("needs room for the chair and a seated player's head", () => {
     expect(CHAIR_SPEC.clearance).toBe(2);
   });
+});
+
+describe("chair folding rules", () => {
+  it.each(["low_chair", "noga_chair"] satisfies ChairKindId[])(
+    "%s folds after three free hits regardless of intervening seated hits",
+    () => {
+      fc.assert(
+        fc.property(fc.integer({ min: 0, max: 20 }), (seatedHits) => {
+          const rule = {
+            hits: CHAIR_SPEC.hitsToTakeBack,
+            resetTicks: CHAIR_SPEC.hitResetTicks,
+          };
+          let counter = EMPTY_COUNTER;
+          const results = [];
+          for (const tick of [0, 1, 2]) {
+            for (let i = 0; i < seatedHits; i++) {
+              const seated = registerHit(counter, tick, true, rule);
+              expect(seated.broken).toBe(false);
+              expect(seated.counter).toEqual(counter);
+            }
+            const free = registerHit(counter, tick, false, rule);
+            counter = free.counter;
+            results.push(free.broken);
+          }
+          expect(results).toEqual([false, false, true]);
+        }),
+      );
+    },
+  );
 });

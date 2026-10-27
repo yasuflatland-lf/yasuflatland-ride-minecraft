@@ -31,6 +31,7 @@ import { registerTestTentLantern } from "../../../src/infrastructure/camp/bedroc
 import { TENT_CELL_CODEC } from "../../../src/infrastructure/camp/bedrock/tentBlocks";
 import { TentFlapStore } from "../../../src/infrastructure/camp/bedrock/tentFlapStore";
 import {
+  CHAIR_KINDS,
   LOW_CHAIR_ITEM,
   LOW_CHAIR_TYPE,
   TENT_FLAP_PROPERTY,
@@ -258,9 +259,26 @@ describe("registerChairPlacement (ADR 0122)", () => {
 });
 
 describe("registerTestChairHit (ADR 0010, 0122)", () => {
-  it("listens only in the add-on's namespace", () => {
+  it("subscribes to each registered chair test namespace", () => {
     registerTestChairHit(fakeHitChair().hitChair);
-    expect(game.script.mock.calls[0]?.[1]).toEqual({ namespaces: [NAMESPACE] });
+    expect(game.script.mock.calls[0]?.[1]).toEqual({
+      namespaces: [NAMESPACE, "yasu_ride_test"],
+    });
+  });
+
+  it("routes the Noga Chair server event to its own kind", () => {
+    const { execute, hitChair } = fakeHitChair();
+    registerTestChairHit(hitChair);
+    subscribed(game.script)({
+      id: CHAIR_KINDS.noga_chair.testHitEvent,
+      sourceType: "Server",
+      message: " noga-id ",
+    });
+    expect(execute).toHaveBeenCalledExactlyOnceWith({
+      kind: "noga_chair",
+      chairId: "noga-id",
+      tick: 10,
+    });
   });
 
   it("hits the chair whose id the server sent, without a player", () => {

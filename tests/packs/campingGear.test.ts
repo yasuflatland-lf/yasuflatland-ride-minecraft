@@ -293,6 +293,7 @@ describe("camping gear docs (ADR 0093)", () => {
       [
         ...SPEC.map((g) => `${g.id}.png`),
         "low_chair.png",
+        "noga_chair.png",
         "tent.png",
         "camp_table.png",
         "fire_pit.png",
@@ -990,6 +991,7 @@ describe("camping gear blocks and items (ADR 0093)", () => {
                 },
                 items: [
                   "yasu_ride:low_chair_item",
+                  "yasu_ride:noga_chair_item",
                   "yasu_ride:tent_item",
                   "yasu_ride:camp_table_item",
                   "yasu_ride:fire_pit_item",
