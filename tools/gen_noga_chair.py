@@ -79,10 +79,15 @@ def cubes_and_assemblies():
         back.append(strip(13.8, 14.35, "binding", 0.65))
         if i == 5:
             back.append(box(cx-0.045, 5.1, cz+0.21, cx+0.045, 13.8, cz+0.24, "seam"))
-    # Endpoints keep the rear poles against the sling instead of crossing its inner face.
+    # Each rear pole rises from the hub under the seat centre; its foot is placed in world space
+    # and carried back through the sling tilt so it still ends against the sling.
     for side in (-1, 1):
-        start = (side*0.8, 3.2, 5.0)
-        dx, dy, dz = side*4.6, 10.9, -3.5
+        turn = math.radians(RECLINE_DEGREES)
+        rel_y, rel_z = 3.1 - BACK_PIVOT[1], 0 - BACK_PIVOT[2]
+        start = (side*0.8,
+                 BACK_PIVOT[1] + math.cos(turn)*rel_y - math.sin(turn)*rel_z,
+                 BACK_PIVOT[2] + math.sin(turn)*rel_y + math.cos(turn)*rel_z)
+        dx, dy, dz = side*4.6, 14.1 - start[1], 1.5 - start[2]
         length = math.sqrt(dx*dx + dy*dy + dz*dz)
         pole = box(start[0]-0.35, start[1], start[2]-0.35,
                    start[0]+0.35, start[1]+length, start[2]+0.35,
