@@ -30,6 +30,7 @@ PALETTE = [
     ((224, 208, 169), (0, 0, 100)),
 ] + [((0, 0, 0), (0, 0, 255))] * 4
 
+
 def face(slot):
     return {"uv": [SWATCH * (slot % 4), SWATCH * (slot // 4)], "uv_size": [SWATCH, SWATCH]}
 
@@ -57,12 +58,9 @@ def disc(radius, y0, y1, slot):
 
 
 def ring(radius, y0, y1, slot):
-    cubes = []
-    for i in range(8):
-        angle = i * 45
-        cubes.append(box(-radius * 0.42, y0, -radius, radius * 0.42, y1, -radius + 0.45,
-                         slot, (0, 0, 0), (0, angle, 0)))
-    return cubes
+    return [box(-radius * 0.42, y0, -radius, radius * 0.42, y1, -radius + 0.45,
+                slot, (0, 0, 0), (0, angle, 0))
+            for angle in range(0, 360, 45)]
 
 
 def geometry():

@@ -183,7 +183,7 @@ DUTCH_OVEN_GEOMETRY = "models/entity/yasu_ride/dutch_oven.geo.json"
 DUTCH_OVEN_TEXTURE = "textures/entity/yasu_ride/dutch_oven.png"
 DUTCH_OVEN_PREVIEW = "dutch_oven"
 DUTCH_OVEN_ICON = "dutch_oven_item"
-ICON_NAMES = {DUTCH_OVEN_PREVIEW: DUTCH_OVEN_ICON, CHAIR_PREVIEW: CHAIR_ICON, TENT_PREVIEW: TENT_ICON, TABLE_PREVIEW: TABLE_ICON, FIRE_PIT_PREVIEW: FIRE_PIT_ICON}
+ICON_NAMES = {CHAIR_PREVIEW: CHAIR_ICON, TENT_PREVIEW: TENT_ICON, TABLE_PREVIEW: TABLE_ICON, FIRE_PIT_PREVIEW: FIRE_PIT_ICON, DUTCH_OVEN_PREVIEW: DUTCH_OVEN_ICON}
 
 POSES = {
     "suv-front-left.png": {"lamps": False, "dusk": False, "hover": False, "submarine": False, "brightness": MAIN_BRIGHTNESS},
