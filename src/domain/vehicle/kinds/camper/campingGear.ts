@@ -47,7 +47,7 @@ export function currentGearId(saved: string): string | undefined {
   // hasOwn keeps inherited keys such as "constructor" from reading as legacy ids.
   if (!Object.hasOwn(LEGACY_GEAR_IDS, saved)) return undefined;
   const mapped = LEGACY_GEAR_IDS[saved];
-  if (typeof mapped !== "string" || !CAMPING_GEAR_IDS.includes(mapped))
-    return undefined;
-  return mapped;
+  return mapped != null && CAMPING_GEAR_IDS.includes(mapped)
+    ? mapped
+    : undefined;
 }
