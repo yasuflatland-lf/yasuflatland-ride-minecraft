@@ -18,6 +18,8 @@ const command = { player, dimension, block, yaw: 47, slot: 1 };
 
 function fixture(overrides: Partial<DutchOvenWorld> = {}) {
   const world = {
+    table: () => ({ dimension, at: { x: 4.5, y: 61, z: 5.5 }, yaw: 90 }),
+    takenTableSpots: () => new Set<number>(),
     isAir: vi.fn(() => true),
     isOwnBlock: () => false,
     isVehicleSpace: () => false,
@@ -247,4 +249,115 @@ it("leaves ground ovens alone and takes back ovens even if their host is gone", 
   for (let tick = 0; tick < 3; tick++) hosted.actions.hit(oven, player, tick);
   expect(hosted.world.removeDutchOven).toHaveBeenCalledOnce();
   expect(hosted.world.setCovered).not.toHaveBeenCalled();
+});
+
+const onTable = { player, table: "table", slot: 1 };
+it("places a lidded oven on the aimed free half with the table's yaw and consumes outside Creative", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom(0, 90, 180, 270),
+      fc.boolean(),
+      fc.constantFrom(-7.5, 7.5),
+      (yaw, creative, x) => {
+        const { actions, world } = fixture({
+          table: () => ({ dimension, at: { x: 4, y: 61, z: 5 }, yaw }),
+          isCreative: () => creative,
+        });
+        expect(actions.placeOnTable({ ...onTable, aim: { x, z: 0 } })).toBe(
+          true,
+        );
+        const angle = (yaw * Math.PI) / 180;
+        expect(world.spawnDutchOven).toHaveBeenCalledWith(
+          dimension,
+          {
+            x: 4 + (x * Math.cos(angle)) / 16,
+            y: 61 + 12.25 / 16,
+            z: 5 + (x * Math.sin(angle)) / 16,
+          },
+          yaw,
+        );
+        expect(world.setHost).toHaveBeenCalledWith(
+          oven,
+          `camp_table:table:${x < 0 ? 0 : 1}`,
+          false,
+        );
+        expect(world.consumeItem).toHaveBeenCalledTimes(creative ? 0 : 1);
+      },
+    ),
+  );
+});
+it("uses the first free half without aim and skips an aimed occupied half", () => {
+  for (const aim of [undefined, { x: -7.5, z: 0 }]) {
+    const { actions, world } = fixture({ takenTableSpots: () => new Set([0]) });
+    expect(actions.placeOnTable({ ...onTable, aim })).toBe(true);
+    expect(world.setHost).toHaveBeenCalledWith(
+      oven,
+      "camp_table:table:1",
+      false,
+    );
+  }
+  const { actions, world } = fixture();
+  actions.placeOnTable(onTable);
+  expect(world.setHost).toHaveBeenCalledWith(oven, "camp_table:table:0", false);
+});
+it("refuses a missing or full table and a changed inventory slot", () => {
+  for (const overrides of [
+    { table: () => undefined },
+    { takenTableSpots: () => new Set([0, 1]) },
+    { consumeItem: () => false },
+  ]) {
+    const { actions, world } = fixture(overrides);
+    expect(actions.placeOnTable(onTable)).toBe(false);
+    expect(world.spawnDutchOven).not.toHaveBeenCalled();
+  }
+});
+it("checks air and vehicle space in both cells over the selected half before consuming", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom(0, 1),
+      fc.boolean(),
+      fc.constantFrom(0, 1),
+      (dy, vehicle, spot) => {
+        const x = spot === 0 ? -7.5 : 7.5;
+        const blocked = (at: { x: number; y: number; z: number }) =>
+          at.x === (spot === 0 ? 3 : 4) && at.y === 61 + dy && at.z === 5;
+        const { actions, world } = fixture({
+          table: () => ({ dimension, at: { x: 4, y: 61, z: 5.5 }, yaw: 0 }),
+          ...(vehicle
+            ? { isVehicleSpace: (_d, at) => blocked(at) }
+            : { isAir: (_d, at) => !blocked(at) }),
+        });
+        expect(actions.placeOnTable({ ...onTable, aim: { x, z: 0 } })).toBe(
+          false,
+        );
+        expect(world.consumeItem).not.toHaveBeenCalled();
+      },
+    ),
+  );
+});
+it("taking back an oven frees its half for a replacement", () => {
+  const hosts = new Map<string, string>();
+  let serial = 0;
+  const { actions, world } = fixture({
+    spawnDutchOven: () => asDutchOvenId(`oven${serial++}`),
+    setHost: (id, host) => {
+      hosts.set(id, host);
+    },
+    host: (id) => hosts.get(id) ?? "",
+    takenTableSpots: () =>
+      new Set(
+        [...hosts.values()].map((host) => Number(host.split(":").at(-1))),
+      ),
+    removeDutchOven: (id) => {
+      hosts.delete(id);
+    },
+  });
+  expect(actions.placeOnTable(onTable)).toBe(true);
+  expect(actions.placeOnTable(onTable)).toBe(true);
+  expect(actions.placeOnTable(onTable)).toBe(false);
+  for (let tick = 0; tick < 3; tick++)
+    actions.hit(asDutchOvenId("oven0"), player, tick);
+  expect(world.dropItem).toHaveBeenCalledExactlyOnceWith("oven0");
+  expect(actions.placeOnTable(onTable)).toBe(true);
+  expect(hosts.get("oven2")).toBe("camp_table:table:0");
 });

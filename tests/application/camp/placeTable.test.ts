@@ -9,6 +9,8 @@ const playerId = asPlayerId("player");
 
 function fakeWorld(): TableWorld {
   return {
+    ovensOnTable: vi.fn(() => 0),
+    showOvenOnTop: vi.fn(),
     isAir: vi.fn(() => true),
     isOwnBlock: vi.fn(() => false),
     isVehicleSpace: vi.fn(() => false),

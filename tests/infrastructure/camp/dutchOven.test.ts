@@ -10,6 +10,7 @@ import { BedrockFirePitWorld } from "../../../src/infrastructure/camp/bedrock/be
 import { registerDutchOven } from "../../../src/infrastructure/camp/bedrock/handlers/dutchOven";
 import { registerFirePit } from "../../../src/infrastructure/camp/bedrock/handlers/firePit";
 import {
+  CAMP_TABLE_TYPE,
   DUTCH_OVEN_GROUND_EVENT,
   DUTCH_OVEN_HOST_PROPERTY,
   DUTCH_OVEN_HOSTED_EVENT,
@@ -19,6 +20,7 @@ import {
   FIRE_PIT_COVERED_PROPERTY,
   FIRE_PIT_TYPE,
   TEST_DUTCH_OVEN_ON_PIT_EVENT,
+  TEST_DUTCH_OVEN_ON_TABLE_EVENT,
 } from "../../../src/infrastructure/camp/identifiers";
 import { defined } from "../../support/defined";
 
@@ -62,10 +64,12 @@ beforeEach(() => {
 
 function handlers() {
   const placeOnFirePit = vi.fn();
+  const placeOnTable = vi.fn();
   const checkHosts = vi.fn();
   const toggle = vi.fn();
   registerDutchOven({
     placeOnFirePit,
+    placeOnTable,
     checkHosts,
   } as unknown as DutchOvenActions);
   registerFirePit({ toggle } as unknown as FirePitActions, {} as FirePitWorld);
@@ -83,7 +87,7 @@ function handlers() {
     for (const [callback] of game.run.mock.calls) callback();
     game.run.mockClear();
   };
-  return { placeOnFirePit, checkHosts, toggle, press, flush };
+  return { placeOnFirePit, placeOnTable, checkHosts, toggle, press, flush };
 }
 
 it("oven interactions win over pit interactions and dedupe before deferred placement", () => {
@@ -225,4 +229,124 @@ it("switches physics with the host and defers cleanup in unloaded blocks", () =>
     throw new Error("unloaded");
   });
   expect(ovens.isHostAreaLoaded(id)).toBe(false);
+});
+
+it("cancels oven-on-table Sit, converts the ray to local pixels, and dedupes", () => {
+  const { placeOnTable, flush } = handlers();
+  const interact = defined(game.interact.mock.calls[0], "oven interaction")[0];
+  const event = {
+    cancel: false,
+    target: {
+      id: "table",
+      typeId: CAMP_TABLE_TYPE,
+      location: { x: 4, y: 60, z: 5 },
+      getRotation: () => ({ y: 90 }),
+    },
+    itemStack: { typeId: DUTCH_OVEN_ITEM },
+    player: {
+      id: "p",
+      selectedSlotIndex: 2,
+      getHeadLocation: () => ({ x: 4, y: 62, z: 5 + 7.5 / 16 }),
+      getViewDirection: () => ({ x: 0, y: -1, z: 0 }),
+    },
+  };
+  interact(event);
+  interact(event);
+  expect(event.cancel).toBe(true);
+  expect(placeOnTable).not.toHaveBeenCalled();
+  flush();
+  expect(placeOnTable).toHaveBeenCalledOnce();
+  const command = defined(placeOnTable.mock.calls[0], "table placement")[0];
+  expect(command).toMatchObject({ player: "p", table: "table", slot: 2 });
+  expect(command.aim.x).toBeCloseTo(7.5);
+  expect(command.aim.z).toBeCloseTo(0);
+  game.tick++;
+  event.player.getViewDirection = () => ({ x: 0, y: 1, z: 0 });
+  interact(event);
+  flush();
+  expect(placeOnTable).toHaveBeenLastCalledWith({
+    player: "p",
+    table: "table",
+    slot: 2,
+    aim: undefined,
+  });
+});
+it("leaves table Sit alone for other items and empty hands", () => {
+  const { placeOnTable, flush } = handlers();
+  const interact = defined(game.interact.mock.calls[0], "oven interaction")[0];
+  for (const itemStack of [undefined, { typeId: "minecraft:stick" }]) {
+    const event = {
+      cancel: false,
+      target: { typeId: CAMP_TABLE_TYPE },
+      itemStack,
+    };
+    interact(event);
+    expect(event.cancel).toBe(false);
+  }
+  flush();
+  expect(placeOnTable).not.toHaveBeenCalled();
+});
+it("accepts only server table test requests with one valid spot", () => {
+  const { placeOnTable } = handlers();
+  const script = defined(game.script.mock.calls[0], "oven script")[0];
+  for (const message of [
+    "table",
+    "table -1",
+    "table 2",
+    "table 0 extra",
+    "table NaN",
+  ])
+    script({
+      id: TEST_DUTCH_OVEN_ON_TABLE_EVENT,
+      message,
+      sourceType: "Server",
+    });
+  script({
+    id: TEST_DUTCH_OVEN_ON_TABLE_EVENT,
+    message: "table 0",
+    sourceType: "Entity",
+  });
+  expect(placeOnTable).not.toHaveBeenCalled();
+  for (const spot of [0, 1])
+    script({
+      id: TEST_DUTCH_OVEN_ON_TABLE_EVENT,
+      message: `table ${spot}`,
+      sourceType: "Server",
+    });
+  expect(placeOnTable.mock.calls.map((call) => call[0])).toEqual([
+    { table: "table", slot: 0, aim: { x: -7.5, z: 0 } },
+    { table: "table", slot: 0, aim: { x: 7.5, z: 0 } },
+  ]);
+});
+it("reads table occupancy from matching live host links and releases removed ovens", () => {
+  const hosts = [
+    "camp_table:table:0",
+    "camp_table:table:1",
+    "camp_table:other:0",
+    "fire_pit:table:0",
+    "",
+  ];
+  const table = {
+    isValid: true,
+    typeId: CAMP_TABLE_TYPE,
+    location: { x: 1, y: 2, z: 3 },
+    getRotation: () => ({ y: 90 }),
+    dimension: {
+      id: "overworld",
+      getEntities: () =>
+        hosts.map((host) => ({ getDynamicProperty: () => host })),
+    },
+  };
+  game.entity.mockReturnValue(table);
+  const ovens = new BedrockDutchOvenWorld({ isVehicleSpace: () => false });
+  expect(ovens.table("table")).toEqual({
+    dimension: "overworld",
+    at: table.location,
+    yaw: 90,
+  });
+  expect(ovens.takenTableSpots("table")).toEqual(new Set([0, 1]));
+  hosts.shift();
+  expect(ovens.takenTableSpots("table")).toEqual(new Set([1]));
+  table.isValid = false;
+  expect(ovens.table("table")).toBeUndefined();
 });

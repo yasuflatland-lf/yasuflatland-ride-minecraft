@@ -254,6 +254,16 @@ Run H1-H6 on PC and mobile, with Vibrant Visuals on and off, after a Resource Pa
 | C172 | Depart with a dinette rider in seat 2 and a filler under another seat, after another player sits on deck seat 1 while parked | The dinette rider stays in seat 2 and is not moved to the exit (ADR 0154) | | |
 | C173 | Park with only dinette seat 3 taken, put a toilet rider on the toilet, and set off | Known regression: the toilet rider is moved to the exit because the rider list is full (ADR 0154) | | |
 
+### Outdoor Dutch oven (ADR 0168)
+
+| # | Steps | Pass condition | PC | Mobile |
+|---|---|---|---|---|
+| C174 | Place a Dutch Oven on clear ground outside vehicle space | The lid stays on and no steam rises | unverified | unverified |
+| C175 | Use a Dutch Oven on a Fire Pit, light the pit with flint and steel, then put it out with the oven still on it | The grill appears, the lid is off, stew and bubbles show, and steam rises. Lighting and extinguishing still work; the oven simmers in both states | unverified | unverified |
+| C176 | Hit the covered pit three times, then hit the oven three times; finally hit the pit three times | The pit initially stays and shows "Take the Dutch oven off first". The oven returns as one item to collect into inventory, the grill disappears, and the uncovered pit folds | unverified | unverified |
+| C177 | Use an oven on each half of a Camp Table, attempt a third, use Sit with an empty hand, and hit the empty-seat table three times | Two lidded ovens fit, a third is refused, Sit still works, and the table will not fold while an oven stands on it | unverified | unverified |
+| C178 | Inspect the oven and covered pit in Vibrant Visuals on PC and a touch client | The grill, lugs, and bail read as reflective metal; the iron is matte; the plain lid shows no logo or lettering | unverified | unverified |
+
 ## Bulldozer
 
 Setup: use `/give @s yasu_ride:bulldozer_item` or craft from an SUV item, an iron block, and an iron shovel. Craft the Blade Up/Down switch from a lever and an iron ingot, or use `/give @s yasu_ride:blade_switch`.
