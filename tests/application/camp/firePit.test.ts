@@ -10,6 +10,7 @@ const dimension = asDimensionId("overworld");
 
 function fixture() {
   let lit = false;
+  let covered = false;
   const wearFlintAndSteel = vi.fn();
   const world = {
     isAir: () => true,
@@ -19,6 +20,11 @@ function fixture() {
     isCreative: () => false,
     consumeItem: () => true,
     spawnFirePit: vi.fn(),
+    isCovered: () => covered,
+    setCovered: vi.fn((_id, value: boolean) => {
+      covered = value;
+    }),
+    showCoveredHint: vi.fn(),
     isLit: () => lit,
     setLit: vi.fn((_id, value: boolean) => {
       lit = value;
@@ -63,4 +69,26 @@ it("places on clear ground outside vehicle space and folds back after three hits
   expect(actions.hit(pit, player, 3)).toBe(true);
   expect(world.dropItem).toHaveBeenCalledOnce();
   expect(world.removeFirePit).toHaveBeenCalledOnce();
+});
+
+it("refuses covered hits without advancing or resetting the fold counter", () => {
+  for (const previousHits of [0, 1, 2]) {
+    const { actions, world } = fixture();
+    for (let tick = 1; tick <= previousHits; tick++)
+      expect(actions.hit(pit, player, tick)).toBe(false);
+    world.showHitsLeft.mockClear();
+    world.setCovered(pit, true);
+    for (let tick = 3; tick <= 5; tick++)
+      expect(actions.hit(pit, player, tick)).toBe(false);
+    expect(world.dropItem).not.toHaveBeenCalled();
+    expect(world.removeFirePit).not.toHaveBeenCalled();
+    expect(world.showHitsLeft).not.toHaveBeenCalled();
+    expect(world.showCoveredHint).toHaveBeenCalledTimes(3);
+    expect(world.showCoveredHint).toHaveBeenLastCalledWith(player);
+    world.setCovered(pit, false);
+    for (let hit = 1; hit <= 3 - previousHits; hit++)
+      expect(actions.hit(pit, player, 5 + hit)).toBe(hit === 3 - previousHits);
+    expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(pit);
+    expect(world.removeFirePit).toHaveBeenCalledExactlyOnceWith(pit);
+  }
 });
