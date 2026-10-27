@@ -4,6 +4,7 @@ Units are pixels; front is -z and ground is y=0. --check compares parsed geometr
 and decoded pixels so formatting and PNG compression do not affect freshness.
 """
 import argparse
+import itertools
 import json
 import math
 import struct
@@ -121,14 +122,19 @@ def cubes():
 
 
 def corners(cube):
-    matrix = tilt.cube_matrix(cube.get("rotation", [0, 0, 0]))
+    """The eight corners in (x, y, z) bit order, so indices 0, 1, 4, and 5 are the bottom ones."""
+    origin, size = cube["origin"], cube["size"]
     pivot = cube.get("pivot", [0, 0, 0])
-    return [tuple(pivot[a] + sum(matrix[a][b]*(cube["origin"][b] + bits[b]*cube["size"][b]-pivot[b]) for b in range(3)) for a in range(3))
-            for bits in ((i,j,k) for i in (0,1) for j in (0,1) for k in (0,1))]
+    matrix = tilt.cube_matrix(cube.get("rotation", [0, 0, 0]))
+    points = []
+    for bits in itertools.product((0, 1), repeat=3):
+        offset = [origin[a] + bits[a]*size[a] - pivot[a] for a in range(3)]
+        turned = [sum(matrix[a][b]*offset[b] for b in range(3)) for a in range(3)]
+        points.append(tuple(pivot[a] + turned[a] for a in range(3)))
+    return points
 
 
-def validate(parts):
-    _, members = cubes_and_assemblies()
+def validate(parts, members):
     tilt.assert_axes(parts, members, ASSEMBLIES)
     assert len(parts) < 250, "cube budget exceeded"
     for point in [p for cube in parts for p in corners(cube)]:
@@ -200,8 +206,7 @@ def main():
     parser.add_argument("resource_pack", type=Path)
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
-    parts = cubes()
-    validate(parts)
+    validate(*cubes_and_assemblies())
     geo_path, texture_path = args.resource_pack / GEOMETRY, args.resource_pack / TEXTURE
     document = geometry()
     if not args.check:
