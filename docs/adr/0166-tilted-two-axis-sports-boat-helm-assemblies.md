@@ -16,7 +16,7 @@ ADR 0009 allows one rotation axis per cube. That is enough for the display, whic
 - `tilt_assembly(cubes, pivot, axis, degrees)` in `tools/cube_tilt.py` (re-exported by `tools/gen_sportsboat.py` next to `pair()`) moves a list of cubes rigidly, as one body, about the world line through `pivot` along `axis`. Only `"x"` is supported. Each cube's `origin`, `pivot` and `rotation` are rewritten, and `degrees == 0` returns unchanged copies. A cube without a `pivot` gets its origin as pivot.
 - `degrees` has the sign of a cube's x rotation, so tilting a cube turned `[rx, 0, 0]` gives `[rx + degrees, 0, 0]`. A negative value tips +y toward +z before the 180-degree turn, which is a top leaning away from the driver (ADR 0051).
 - Composition order assumed: `tools/render_preview.py` negates the x and z turns (`game_turn`) and then applies x, then y, then z about the cube's pivot, so a cube with game rotation `[rx, ry, rz]` has the matrix `Rz(-rz) * Ry(ry) * Rx(-rx)` in the preview's math. This is the order Blockbench uses for Bedrock models (z outermost, x innermost) and the same convention the existing x and z rotations were pinned against in game (0051, 0058). The tilt multiplies the cube's matrix on the left by `Rx(-degrees)`, and the product is decomposed back into the same order, with gimbal lock (y at +-90 degrees) putting the whole turn on z. A cube turned `[0, 0, rz]` ends up with `Rx(-a) * Rz(-rz)` in that order.
-- `ONE_AXIS_EXCEPTION` lists the assemblies that may carry a two-axis rotation. Today it holds only `"wheel"`, used by 5/7. `tilt_assembly` takes an optional `assembly` name and raises if a result would have more than one non-zero axis and the name is not listed. The shipped-model test allows multiple non-zero axes only on the 134 wheel cubes and checks their composed matrices; every other cube still has at most one non-zero axis.
+- `ONE_AXIS_EXCEPTION` lists the assemblies that may carry a two-axis rotation. It held only `"wheel"` when 5/7 landed; ADR 0167 replaced it with a per-generator assembly registry (the sports boat now registers `wheel` and `throttle_lever`). `tilt_assembly` takes an optional `assembly` name and raises if a result would have more than one non-zero axis and the name is not listed. The shipped-model test allows multiple non-zero axes only on the 134 wheel cubes and checks their composed matrices; every other cube still has at most one non-zero axis.
 - In-game check: the order above is an assumption made from the preview and from earlier in-game pins, not a measurement of a two-axis cube. 5/7 is not done until a device check (a row in `docs/manual-test.md`) shows the tilted wheel with no skew of the rim. If the game composes the axes in another order, change the one function and regenerate.
 - Tests: property tests (fast-check) show that tilting by `a` and then `-a` returns the original cubes within 1e-9, that the distance between any two cube pivots is preserved, and that the composed matrix of a tilted cube equals `Rx(-a) * Rz(-rz)`.
 - Helm cube count (the block "Helm console ... throttle", including the passenger console, the cupholders and the throttle): 164 before this step and 164 after. The whole model stays at 1109 cubes, and the generated `sportsboat.geo.json` does not change.
@@ -47,7 +47,7 @@ Recounted from the generated geometry and the console-to-throttle block: **164 h
 
 The display-plate clearance check is skipped because 4/7 does not exist yet. Clearance uses the current display instead: the gloss box x 2.0..9.0, y `F + 8 .. F + 12.4`, z 13..14, and its screen face box, both rotated -20 about x on `SCREEN_PIVOT`. The display geometry is unchanged. The regenerated model and previews change; the regenerated color and MER atlases stay unchanged. Resource Pack header/module and Behavior Pack Resource Pack dependency versions advance from 0.1.157 to **0.1.158**.
 
-Open question for the owner (manual test B30): on PC and mobile, does the wheel look round and lean away by about 30 degrees from the driver's seat, without rim or spoke skew, with the column meeting the hub? Does the in-game rotation order match the preview? **Verdict: unverified, awaiting the owner's device check.** No BDS or in-game test is run for this step.
+Open question for the owner (manual test B30): on PC and mobile, does the wheel look round and lean away by about 30 degrees from the driver's seat, without rim or spoke skew, with the column meeting the hub? Does the in-game rotation order match the preview? **Verdict: verified by the owner on 2026-10-27; the two-axis rotation order matches the preview.** No BDS or in-game test is run for this step.
 
 ### Round steering wheel hub (#680)
 
@@ -59,9 +59,11 @@ The panels stay in the `wheel` list, so `tilt_assembly(..., assembly="wheel")` a
 
 Cube counts: the wheel goes from 134 to 146 cubes (pad 2 to 8, cap 2 to 8), the helm block from 162 to 174 and the whole model from 1223 to 1235. Of the 146 wheel cubes, 140 carry several non-zero Euler axes and 6 reduce to one axis. Resource Pack header/module and Behavior Pack dependency versions advance from 0.1.161 to **0.1.162**. Generated geometry and previews change; the colour and MER atlases stay as they are.
 
-Open question for the owner (manual test B30): from the driver's seat, do the centre pad and the silver cap read as circles? **Verdict: unverified, awaiting the owner's device check.**
+Open question for the owner (manual test B30): from the driver's seat, do the centre pad and the silver cap read as circles? **Verdict: verified by the owner on 2026-10-27, the hub reads as a circle.**
 
 ### Switch plate with six painted round buttons (6/7, #669)
+
+Superseded by the wedge (#691), which the final state below reshapes again. Kept as history.
 
 The flat `gloss` plate and its six `metal` button cubes are replaced by one `gloss` plate, `SWITCH_TILT = -20` about x only (top leaning toward +z like the display, so the same negative sign, 0051). The plate has footprint `x 12.8..15.0`, `z 11.8..14.6` (shifted +1.2 px by 7/7) along the slope, is 0.4 thick (was 0.3) and pivots at its low edge on the dash, `[13.9, F + 8, 14.6]`, so that edge stays on the dash and the other rises by about 1 px toward the driver. Only that one axis is rotated, so the one-axis rule of 0009 holds and `ONE_AXIS_EXCEPTION` is unchanged.
 
@@ -71,9 +73,11 @@ Helm cube count: 164 before 6/7 and 158 after (the old 7 cubes, plate and 6 butt
 
 Corner-transform tests check that the tilted plate stays on the dash and does not intersect the phone holder, its screen, the display and its screen face, or the throttle housing. The display-plate clearance check is skipped because 4/7 does not exist: the current display (gloss box with the -20 tilt) is used. They read the generated JSON and do not run the generator.
 
-Open question for the owner (manual test B32): from the driver's seat, does the plate read as a glossy slanted black plate with six round chrome-ring buttons in a zigzag? **Verdict: unverified, awaiting the owner's device check.** The previews cannot show the tile, since `render_preview.py` shades each face with one colour.
+Open question for the owner (manual test B32): from the driver's seat, does the plate read as a glossy slanted black plate with six round chrome-ring buttons in a zigzag? **Verdict: moot, the plate was reshaped three times (see the final state).** The previews cannot show the tile, since `render_preview.py` shades each face with one colour.
 
 ### Controller pad with a knob (7/7, #670)
+
+Superseded by the panel-built dial below. Kept as history.
 
 Use one 3.0 x 0.4 x 3.0 `gloss` pad at x 12.0..15.0, y F+8..F+8.4, z 8.8..11.8, pivot [13.5, F+8, 11.8]. Its x rotation is `SWITCH_TILT = -20`, the same negative sign as the switch plate (0051); no other axis rotates. The raised -z end intentionally overhangs the ledge at y F+7, while the low edge rests on the dash at F+8. The requested strip cannot contain a free 3 x 3 pad, so the switch plate moves exactly +1.2 px to z 11.8..14.6, pivot z 14.6. It remains inside the dash edge z 15.5 and clear of the phone holder at x 11.0..12.4.
 
@@ -96,7 +100,7 @@ Final helm counts (console-through-throttle block, including passenger console a
 
 Counting the generated geometry confirms 1219 -> 1223 whole-model cubes for this step. The historical pre-series model count was 1109; unrelated changes already present in the stack account for the difference. Generated geometry, color atlases and previews change; regeneration leaves MER images unchanged. Resource Pack header/module and Behavior Pack dependency versions advance from 0.1.159 to **0.1.160** because generated assets change.
 
-Open question for the owner (manual test B33): on PC and mobile, does the controller beside the switch plate read as a glossy chamfered pad with a large round knob, four small buttons and a tiny upper-right button, without clipping? Compare the regenerated sportsboat previews for placement; their flat face shading does not show painted button detail. **Verdict: unverified, awaiting the owner's device check.**
+Open question for the owner (manual test B33): on PC and mobile, does the controller beside the switch plate read as a glossy chamfered pad with a large round knob, four small buttons and a tiny upper-right button, without clipping? Compare the regenerated sportsboat previews for placement; their flat face shading does not show painted button detail. **Verdict: moot, the pad was replaced by the dial below.**
 
 ### Display tilted 45 degrees with a glossy bezel and a painted UI (4/7, #667)
 
@@ -110,7 +114,7 @@ Clearance against 5/7 to 7/7. These parts were built against the old 20 degree d
 
 Helm cube count: 162 before 4/7 and 162 after (the display stays two cubes). The whole model stays at 1223 cubes. Generated geometry, colour atlases and previews change; the MER images stay as they are. Resource Pack header/module and Behavior Pack dependency versions advance from 0.1.160 to **0.1.161**.
 
-Open question for the owner (manual test B34): from the driver's seat, is the display a glossy slanted panel leaning away by about 45 degrees with the painted gauges and icons, and does it clip neither the dash nor the windshield? **Verdict: unverified, awaiting the owner's device check.** Previews shade each face with one colour and cannot show the tile.
+Open question for the owner (manual test B34): from the driver's seat, is the display a glossy slanted panel leaning away by about 45 degrees with the painted gauges and icons, and does it clip neither the dash nor the windshield? **Verdict: verified by the owner on 2026-10-27; later sections change its size and place.** Previews shade each face with one colour and cannot show the tile.
 
 ### Display moved toward the switch plate (#681)
 
@@ -118,7 +122,7 @@ The owner marked the display's place in an in-game screenshot: above and behind 
 
 Clearance: the display still stays clear of the phone holder and its screen, the control pad and knob, the cupholders, the tilted wheel, the throttle housing and the switch plate, so no neighbour moved and the display did not shrink. The top edge stays below `RAIL_Y` and 0.3 px or more from the glass. The clearance tests now name the new x range and check that both plates keep their centre at the shifted x. Helm cube count: 162 before and 162 after, the whole model stays at 1223 cubes. Generated geometry and previews change; the colour atlas and MER images stay as they are. Resource Pack header/module and Behavior Pack dependency versions advance from 0.1.162 to **0.1.163**.
 
-Open question for the owner (manual test B34): from the driver's seat, does the display sit above and behind the phone holder, right of the wheel? **Verdict: unverified, awaiting the owner's device check.**
+Open question for the owner (manual test B34): from the driver's seat, does the display sit above and behind the phone holder, right of the wheel? **Verdict: verified by the owner on 2026-10-27.**
 
 ### Panel-built dial replacing the throttle and redundant helm accessories
 
@@ -132,7 +136,7 @@ Replace `control_pad` with `dial_pad` at the same [64, 4], size [16, 16] allocat
 
 Helm cube count: **174 before and 273 after**. The console-through-throttle count loses 12 cubes and gains 111 dial cubes: 7 shield panels, 8 edge panels, 32 button panels, 8 solid collar panels, 16 ribs, 32 silver rim panels in two steps approximating a chamfer and 8 solid top panels. The whole model goes from 1235 to 1334 cubes. This replaces the historical five-new-parts cap for 6/7 and 7/7 above with a detailed panel assembly. Tests read generated JSON, never run the generator, and check removals, the retained ledge cupholder, atlas bounds and non-overlap, the 16-sided panel sections, transformed footprint and neighbour clearances, and the helm count.
 
-Open question for the owner (B33): on PC and mobile, are the flat shield, ribbed knob, bright silver rim, five distinct buttons and generic icons readable, with no floating throttle remnants or clipping? B34 now checks the display above the cleared dash, right of the wheel. **Verdict: unverified, awaiting the owner's device check.**
+Open question for the owner (B33): on PC and mobile, are the flat shield, ribbed knob, bright silver rim, five distinct buttons and generic icons readable, with no floating throttle remnants or clipping? B34 now checks the display above the cleared dash, right of the wheel. **Verdict: verified by the owner on 2026-10-27.**
 
 ### Throttle lever on an extended console (#684)
 
@@ -158,9 +162,11 @@ The `display` tile remains at [84, 4] and grows to 32 x 18 texels in the unchang
 
 The display remains two cubes. The historical 162/162 helm and 1223/1223 whole-model counts predate the detailed dial and throttle: the current counts are **316/316 helm cubes and 1377/1377 whole-model cubes**, unchanged by this widening. Roof, speakers, hull, wheel, dial, switch plate and throttle geometry are unchanged. Generated-JSON tests check the plate and tile aspect ratios, face UV, even bezel, x-only tilt, driver-side contact and existing neighbour, rail and glass clearances. Resource Pack header/module and Behavior Pack Resource Pack dependency versions advance from **0.1.165 to 0.1.166**. Regenerate the model, textures and previews.
 
-Open question for the owner (B34): on PC and mobile, does the wide 16:9 panel read clearly from the driver's seat, with an even glossy bezel, circular gauges and no clipping? **Verdict: unverified, awaiting the owner's device check.**
+Open question for the owner (B34): on PC and mobile, does the wide 16:9 panel read clearly from the driver's seat, with an even glossy bezel, circular gauges and no clipping? **Verdict: verified by the owner on 2026-10-27.**
 
 ### Switch plate rebuilt as a tilted wedge (#691)
+
+Superseded by the wall triangle in the final state below (#696 flipped the tilt, #699 moved it, #701 reshaped it). Kept as history.
 
 This supersedes the rectangular switch plate and its -20 degree tilt in 6/7 and the later +1.2 px shift. Ten adjoining `gloss` strips replace the single box, below the twelve-strip budget. `SWITCH_TILT = -SCREEN_TILT = +45` about x only turns the painted up face toward the driver's eyes. Issue #696 corrects the original -45 sign: the flat slab uses local +y as its face normal, whereas the standing display uses local -z, so their x angles must have opposite signs to give the same normal (0051). Generated game-frame rotations read `[-45, 0, 0]`; both face normals are `(0, 0.707107, 0.707107)`, toward the driver at +z. ADR 0167's assembly registry is unchanged: these strips need no compound-rotation exception.
 
@@ -172,7 +178,7 @@ Cube counts: **316 before and 325 after** for the complete helm, **1377 before a
 
 Resource Pack header/module and Behavior Pack Resource Pack dependency advance from **0.1.166 to 0.1.167**. Regenerate geometry, colour textures and previews with `pnpm model`; MER regeneration leaves its images unchanged, preserving the existing gloss material swatches.
 
-Open question for the owner (B32): from the driver's seat on PC and mobile, does the tall glossy wedge lean toward the driver's eyes, with a wide raised bow end, a narrow rounded point at the driver-side front edge of the dash and six readable chrome-ring buttons, without clipping? **Verdict: unverified, awaiting the owner's device check.** The preview renderer's x-rotation sign differs from the in-game sign (0051), and its flat face shading cannot show the painted inset or buttons.
+Open question for the owner (B32): from the driver's seat on PC and mobile, does the tall glossy wedge lean toward the driver's eyes, with a wide raised bow end, a narrow rounded point at the driver-side front edge of the dash and six readable chrome-ring buttons, without clipping? **Verdict: moot, replaced by the wall triangle (#701).** The preview renderer's x-rotation sign differs from the in-game sign (0051), and its flat face shading cannot show the painted inset or buttons.
 
 ### Shallower helm consoles (2026-10-27, #694)
 
@@ -188,6 +194,8 @@ Regenerate model, colour textures, MER and previews with `pnpm model`; colour an
 
 ### Switch wedge flipped (#696)
 
+The tilt sign set here stays; the shape and position are superseded by the final state below.
+
 Reverse the slab's x tilt to `-SCREEN_TILT = +45` (game frame `[-45, 0, 0]`) so its painted up-face normal equals the display's painted south-face normal after `turn_around`. The wide bow edge is the higher end; the rounded point faces the driver at larger game z. Preserve the painted tile and its single-button, 1, 2, 2, 1 sequence from the wide end toward the point.
 
 The shared pivot is now `[13.9, F+8, 10.3]` in build coordinates, `[-13.9, 17.3, -10.3]` in game coordinates. Relative to #695's pivot z 14.6, this is **4.3 px toward the driver**, or **2.7 px** from #694's z 13.0 pivot. Reversing the tilt requires reanchoring the driver end rather than a pure 3 px translation. Strip 0's bottom front edge rests exactly at y F+8 = 17.3, build z 10.3, on the top step z 10..12. Its back-top corner projects to build z `10.3 - 0.4/sqrt(2) = 10.017157`, so no corner crosses the driver-side edge at build z 10 (game z -10). The wide end overhangs the step toward the bow in the air; that is intentional.
@@ -196,8 +204,21 @@ The transformed plate spans build z 10.017157..13.128427 and y 17.3..20.411270. 
 
 Cube counts are unchanged: **10 strips before / 10 after**, **327 helm cubes before / 327 after**, **1388 model cubes before / 1388 after**. Resource Pack header/module and Behavior Pack resource dependency are **0.1.170**. Generated-JSON tests compare transformed face normals (positive dot product, angle at most 1 degree), pin taper along game z and increasing height toward the bow, tile UV order, dash contact and neighbour clearances. The orchestrator regenerates assets and runs the generated-JSON checks; unit tests never run the generator. Manual B32 remains unverified pending the owner's PC and mobile checks.
 
+### Final state of the helm (#701)
+
+This section is the current design. Earlier sections record how it got here; where they differ, this section wins.
+
+- **Wheel.** `WHEEL_TILT = -30`, centre `WX, WY, WZ = 7.6, F + 7.5, 7.0`, a 40-segment rim and round 16-sided hub parts. The `wheel` assembly holds 146 cubes.
+- **Display.** 16:9 face 6.4 x 3.6 px in a 7.0 x 4.2 px `gloss` frame, `SCREEN_TILT = -45`, shifted by `DISPLAY_DX = 3.7`. The `display` tile is 32 x 18 texels at [84, 4].
+- **Switch plate.** A right triangle of ten `gloss` strips, `SWITCH_TILT = -SCREEN_TILT = +45`, so its painted face leans toward the driver like the display. All strips share `SWITCH_PIVOT = [13.9, F + 8, 10.3]`. The base is 2.5 px wide (x 13.15..15.65, the same width as the dial panel below it) at the driver end and narrows to a 0.4 px point toward the bow; the outboard edge lies on the console wall. The `switch_plate` tile is 24 x 28 texels at [40, 4]. The plate starts 1.4 px beyond the dial panel's bow end (z 10.3 against 8.9), because moving it would lift its lowest edge off the dash, and its outboard edge sits slightly inside the hull's inner face, like the dial base.
+- **Dial.** Flat, `DIAL_BOUNDS = (13.15, 15.65, 5.1, 8.9)`, with five button plates and a ribbed knob; the `dial_pad` tile is 16 x 16 at [64, 4]. It replaced the phone holder, dash cupholder, controller pad and knob, and throttle housing.
+- **Console and throttle.** The right console is extended to x 11.4..15.4, z 4.8..9.0. The throttle sits on its inboard wall (x 11.4): 32 pod cubes and the 8-cube `throttle_lever` assembly. The sports boat registers two compound-rotation assemblies, `wheel` and `throttle_lever` (0167).
+- **Dash depth.** Both main boxes span z 9..12.5 (half the original depth) with the driver-side face fixed at z 9; the top steps span z 10..12.0, and 0.1 px ledges reach z 14 to close the troughs.
+- **Counts.** 327 helm cubes and 1388 whole-model cubes. The Resource Pack manifest and the Behavior Pack dependency are at 0.1.171.
+- **Device checks.** Verified by the owner on 2026-10-27: wheel hub (B30), dial (B33), 16:9 display (B34). Still open: the wall-triangle switch plate (B32), the inboard throttle (B35) and the shallower consoles (B36); the owner saw them on a reload but has not given a verdict.
+
 ## Consequences
 
 - 5/7 tilts the wheel by one helper call instead of hand-composing angles. ADR 0167 replaces its historical one-assembly limit; #684 adds the registered throttle lever.
 - A cube with two rotation axes is harder to edit by hand and is only trusted after the device check; the helper is the only way the series adds one.
-- Later steps of the series edit this ADR in place while it stays Proposed.
+- Later steps of the series edit this ADR in place while it stays Proposed. It stays Proposed until B32, B35 and B36 pass.
