@@ -86,7 +86,7 @@ describe("vehicle profiles (ADR 0050)", () => {
   it.each([
     {
       kind: "suv",
-      body: { front: 1.85, halfWidth: 1.1, height: 1.6 },
+      body: { front: 1.9, halfWidth: 1.1, height: 1.6 },
       clearance: { halfX: 1, halfZ: 1, height: 2 },
     },
     {

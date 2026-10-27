@@ -41,3 +41,14 @@ it.each(VEHICLE_KINDS)(
     expect(modelReach(kind)).toBeLessThanOrEqual(profileOf(kind).footprint);
   },
 );
+
+it("keeps the SUV bumper and fog lamps inside its forward collision probe", () => {
+  const front = Math.max(
+    ...bones("suv").flatMap((bone) =>
+      (bone.cubes ?? []).flatMap((cube) =>
+        turnedCorners(bone, cube).map(([, , z]) => -z / PIXELS_PER_BLOCK),
+      ),
+    ),
+  );
+  expect(front).toBeLessThanOrEqual(profileOf("suv").body.front);
+});

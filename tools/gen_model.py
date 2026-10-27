@@ -142,7 +142,11 @@ def both_sides(cubes):
 # The rear end, 6 px behind where the first SUV ended, leaves room for a cargo area behind the rear
 # doors under a black hardtop, like a four-door Wrangler. The rear wheels sit 5 px further back than
 # the first SUV's, under the cargo area.
-REAR = -32  # z of the tailgate's outer face
+# ADR 0170: a longer silhouette reduces the fixed road wheels' ratio to overall length.
+# More than about 1 px total would put the unchanged greenhouse length below tolerance.
+FRONT_OVERHANG_EXTENSION = 0.6
+REAR_OVERHANG_EXTENSION = 0.3
+REAR = -32 - REAR_OVERHANG_EXTENSION  # z of the tailgate's outer face
 CARGO_FRONT = -19  # z where the rear doors end and the cargo area's fixed panels begin
 # ADR 0170: greenhouse dimensions above BELT_Y are WINDOW_BOTTOM_Y, WINDOW_TOP_Y,
 # ROOF_Y, WINDSHIELD_FOOT_Z and GREENHOUSE_REAR; CARGO_FRONT bounds its fixed rear panels.
@@ -158,7 +162,8 @@ WINDSHIELD_FOOT_Z = 8.25  # unrotated lower frame pivot, before turn_around
 HOOD_TOP_Y = 17
 FLOOR_Y = 7
 SILL_Y = 4
-FRONT = 25  # z of the hood's front face
+FRONT = 25 + FRONT_OVERHANG_EXTENSION  # z of the hood's front face
+FRONT_BUMPER_Z = 29.5 + FRONT_OVERHANG_EXTENSION
 HOOD_REAR_Z = 13
 BODY_HALF_WIDTH = 13
 CABIN_HALF_WIDTH = 12
@@ -194,7 +199,7 @@ ARCH_RUN_PER_RISE = (ARCH_FOOT_Z - ARCH_TOP_HALF) / (ARCH_TOP_Y - ARCH_FOOT_Y)
 
 body = [
     # Chassis and floor
-    box(-BODY_HALF_WIDTH, SILL_Y, REAR + 1, BODY_HALF_WIDTH, FLOOR_Y, 24, "trim"),
+    box(-BODY_HALF_WIDTH, SILL_Y, REAR + 1, BODY_HALF_WIDTH, FLOOR_Y, FRONT - 1, "trim"),
     # Hood (engine compartment) above the front arches; its lower sides follow the arches below
     box(-BODY_HALF_WIDTH, ARCH_TOP_Y, HOOD_REAR_Z, BODY_HALF_WIDTH, HOOD_TOP_Y, FRONT, "body"),
     box(-11.4, FLOOR_Y, HOOD_REAR_Z, 11.4, ARCH_TOP_Y, FRONT, "body"),
@@ -238,8 +243,8 @@ body = [
 # Hood: a raised power dome, a black mesh vent on each side of it, washer nozzles, the cowl's vent
 # strip with the wipers parked on it, and the latches at the rear corners
 body += [
-    box(-9.5, HOOD_TOP_Y, 15, 9.5, HOOD_TOP_Y + 0.4, 24.6, "body"),
-    box(-8.5, HOOD_TOP_Y + 0.4, 15.6, 8.5, HOOD_TOP_Y + 0.7, 24.1, "body"),
+    box(-9.5, HOOD_TOP_Y, 15, 9.5, HOOD_TOP_Y + 0.4, FRONT - 0.4, "body"),
+    box(-8.5, HOOD_TOP_Y + 0.4, 15.6, 8.5, HOOD_TOP_Y + 0.7, FRONT - 0.9, "body"),
     box(-BODY_HALF_WIDTH, HOOD_TOP_Y, HOOD_REAR_Z, BODY_HALF_WIDTH, HOOD_TOP_Y + 0.3, 14.6, "trim"),  # cowl
     box(-3, HOOD_TOP_Y + 0.3, 13.4, 3, HOOD_TOP_Y + 0.4, 14.3, "grille"),  # cowl vent
 ]
@@ -350,9 +355,9 @@ def chamfered_band(y0, y1, z_back, z_front, half_width, chamfer, angle=30):
 
 # Front bumper: a thick band whose corners are cut back toward the flares, between a tucked-in lower lip
 # and a slightly set-back top edge, so it reads as a trapezoid from above
-body += chamfered_band(2.5, 3.5, 25, 28.2, 14.7, 2.2)
-body += chamfered_band(3.5, 7.3, 24, 29.5, 16, 3.5)
-body += chamfered_band(7.3, 8, 25, 28.9, 15.4, 2.9)
+body += chamfered_band(2.5, 3.5, 25, FRONT_BUMPER_Z - 1.3, 14.7, 2.2)
+body += chamfered_band(3.5, 7.3, 24, FRONT_BUMPER_Z, 16, 3.5)
+body += chamfered_band(7.3, 8, 25, FRONT_BUMPER_Z - 0.6, 15.4, 2.9)
 
 # Rear bumper: the same kind of band facing backward, with red reflectors at its ends and red tow
 # hooks under it
@@ -531,8 +536,8 @@ def round_face(center, radius, z0, z1, color, segments=12):
 
 # Round fog lamps in black pockets near the front bumper's ends
 body += both_sides([
-    box(8.8, 4.2, 29.5, 11.8, 6.6, 29.55, "grille"),
-    *round_face((10.3, 5.4, 0), 0.9, 29.55, 29.62, "light"),
+    box(8.8, 4.2, FRONT_BUMPER_Z, 11.8, 6.6, FRONT_BUMPER_Z + 0.05, "grille"),
+    *round_face((10.3, 5.4, 0), 0.9, FRONT_BUMPER_Z + 0.05, FRONT_BUMPER_Z + 0.12, "light"),
 ])
 
 # Ribs on the hardtop: two front panels split down the middle over the front seats, a seam across,

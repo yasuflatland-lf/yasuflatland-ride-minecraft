@@ -19,7 +19,7 @@ export const SUV_SPEC = Object.freeze({
   hitboxFront: 0.9,
   carHeight: 1.6,
   // Collisions (ADR 0006)
-  bodyFront: 1.85, // the front bumper and fog lamps
+  bodyFront: 1.9, // the front bumper and fog lamps
   bodyHalfWidth: 1.1, // the tires' outer faces
   footprint: 2.35, // the farthest body corner, a rear one, is 2.32 from the center in suv.geo.json (ADR 0122)
   // Headlights (ADR 0020)

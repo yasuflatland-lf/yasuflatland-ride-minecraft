@@ -1393,7 +1393,7 @@ describe("BedrockVehicleWorld.isVehicleSpace (ADR 0122)", () => {
     expect(world.isVehicleSpace(OVERWORLD, cell)).toBe(expected);
   });
 
-  // The SUV's body reaches 1.85 ahead and 2.22 behind its center (suv.geo.json), so a
+  // The SUV's body reaches 1.89 ahead and 2.24 behind its center (suv.geo.json), so a
   // cell up to two cells ahead or behind, or to a side, overlaps it at some heading.
   it("treats every cell up to two cells from an SUV's cell along an axis as vehicle space", () => {
     fc.assert(
