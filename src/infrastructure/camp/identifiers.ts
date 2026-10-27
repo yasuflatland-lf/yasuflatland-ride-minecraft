@@ -15,6 +15,13 @@ export const CAMP_TABLE_TYPE = id("camp_table");
 export const CAMP_TABLE_ITEM = id("camp_table_item");
 export const TABLE_HITS_LEFT_HINT = "yasu_ride.hint.camp_table_hits";
 
+export const DUTCH_OVEN_TYPE = id("dutch_oven");
+export const DUTCH_OVEN_ITEM = id("dutch_oven_item");
+export const DUTCH_OVEN_SIMMERING_PROPERTY = id("simmering");
+export const DUTCH_OVEN_HITS_LEFT_HINT = "yasu_ride.hint.dutch_oven_hits";
+export const TEST_DUTCH_OVEN_SIMMER_EVENT = id("test_dutch_oven_simmer");
+export const TEST_DUTCH_OVEN_HIT_EVENT = id("test_dutch_oven_hit");
+
 export const FIRE_PIT_TYPE = id("fire_pit");
 export const FIRE_PIT_ITEM = id("fire_pit_item");
 export const FIRE_PIT_LIT_PROPERTY = id("lit");

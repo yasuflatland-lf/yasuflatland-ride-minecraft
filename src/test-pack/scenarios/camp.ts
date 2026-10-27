@@ -3,11 +3,16 @@ import { type Entity, system } from "@minecraft/server";
 import {
   CAMP_TABLE_TYPE,
   CHAIR_FAMILY,
+  DUTCH_OVEN_ITEM,
+  DUTCH_OVEN_SIMMERING_PROPERTY,
+  DUTCH_OVEN_TYPE,
   FIRE_PIT_LIT_PROPERTY,
   FIRE_PIT_TYPE,
   LOW_CHAIR_ITEM,
   LOW_CHAIR_TYPE,
   TEST_CHAIR_HIT_EVENT,
+  TEST_DUTCH_OVEN_HIT_EVENT,
+  TEST_DUTCH_OVEN_SIMMER_EVENT,
   TEST_FIRE_PIT_EVENT,
 } from "../../infrastructure/camp/identifiers";
 import { type Arena, type Outcome, wait } from "../arena";
@@ -147,5 +152,54 @@ export async function firePitIgnition(a: Arena): Promise<Outcome> {
     };
   } finally {
     if (pit.isValid) pit.remove();
+  }
+}
+
+/** Checks the ground oven's initial state, visual toggle, and three-hit take-back. */
+export async function dutchOvenSimmerAndTakeBack(a: Arena): Promise<Outcome> {
+  const at = { x: CELL.x + 0.5, y: a.gy, z: CELL.z + 14.5 };
+  a.dim.runCommand(`summon ${DUTCH_OVEN_TYPE} ${at.x} ${at.y} ${at.z}`);
+  const oven = a.dim.getEntities({
+    type: DUTCH_OVEN_TYPE,
+    location: at,
+    maxDistance: 1.5,
+  })[0];
+  if (!oven) return { pass: false, detail: "Dutch oven not spawned" };
+  const items = () =>
+    a.dim
+      .getEntities({ type: "minecraft:item", location: at, maxDistance: 2 })
+      .filter(
+        (e) =>
+          e.getComponent("minecraft:item")?.itemStack.typeId ===
+          DUTCH_OVEN_ITEM,
+      );
+  try {
+    const initial = oven.getProperty(DUTCH_OVEN_SIMMERING_PROPERTY);
+    system.sendScriptEvent(TEST_DUTCH_OVEN_SIMMER_EVENT, oven.id);
+    await wait(2);
+    const simmering = oven.getProperty(DUTCH_OVEN_SIMMERING_PROPERTY);
+    system.sendScriptEvent(TEST_DUTCH_OVEN_HIT_EVENT, oven.id);
+    await wait(2);
+    const afterOne = oven.isValid;
+    for (let i = 0; i < 2; i++) {
+      system.sendScriptEvent(TEST_DUTCH_OVEN_HIT_EVENT, oven.id);
+      await wait(2);
+    }
+    const amount = items().reduce(
+      (n, e) => n + (e.getComponent("minecraft:item")?.itemStack.amount ?? 0),
+      0,
+    );
+    return {
+      pass:
+        initial === false &&
+        simmering === true &&
+        afterOne &&
+        !oven.isValid &&
+        amount === 1,
+      detail: `initial=${initial} simmering=${simmering} afterOne=${afterOne} afterThree=${oven.isValid} items=${amount}`,
+    };
+  } finally {
+    if (oven.isValid) oven.remove();
+    for (const item of items()) item.remove();
   }
 }
