@@ -232,8 +232,8 @@ REAR_BUMPER_HEIGHT = 3
 REAR_BUMPER_TOP_Y = REAR_BUMPER_BOTTOM_Y + REAR_BUMPER_HEIGHT
 REAR_BUMPER_TIP_Z = REAR - 1.5
 # Both bars reach out over the tires like the reference's, but only as far back as the tire's
-# farthest spinning corner (6.03 px from the hub at D=12.05 px) allows: outboard of the body they are
-# shallow end pieces, and only the part between the tires runs back to the body.
+# farthest spinning corner (6.07 px from the hub at D=12.05 px, on its inner face) allows: outboard
+# of the body they are shallow end pieces, and only the part between the tires runs back to the body.
 BUMPER_HALF_WIDTH = HUB_X + 1
 BUMPER_END_CLEARANCE = ROAD_WHEEL_RADIUS + 0.2
 
