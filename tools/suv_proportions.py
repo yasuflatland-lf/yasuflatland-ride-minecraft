@@ -50,8 +50,6 @@ def _bounds(cubes):
 def measure(cubes_by_bone):
     """Return linear rows as {pixels, ratio}; rake as {degrees} (not a length).
 
-    Input is the exported, unanimated geometry: front at -z, closed doors.
-    Selection is geometric, independent of UVs, cube order and absolute scale.
     It deliberately fails if the generator no longer supplies these landmarks.
     """
     body = cubes_by_bone["body"]

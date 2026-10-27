@@ -210,11 +210,14 @@ describe("SUV proportions", () => {
 
   it("keeps the body shell inside game probes and the complete model inside its footprint", () => {
     const bones = model["minecraft:geometry"][0].bones as Bone[];
-    const shell = bones.filter(
-      (b) => b.name === "body" || b.name.startsWith("door_"),
-    );
-    const points = shell.flatMap((bone) =>
-      (bone.cubes ?? []).flatMap((cube) => turnedCorners(bone, cube)),
+    const cornersOf = (keep: (name: string) => boolean) =>
+      bones
+        .filter((bone) => keep(bone.name))
+        .flatMap((bone) =>
+          (bone.cubes ?? []).flatMap((cube) => turnedCorners(bone, cube)),
+        );
+    const points = cornersOf(
+      (name) => name === "body" || name.startsWith("door_"),
     );
     expect(Math.max(...points.map((p) => -p[2])) / 16).toBeLessThanOrEqual(
       SUV_SPEC.bodyFront,
@@ -227,16 +230,8 @@ describe("SUV proportions", () => {
     expect(linear(baseline, "overall_height").pixels / 16).toBeLessThanOrEqual(
       SUV_SPEC.carHeight + heightMargin,
     );
-    const lamps = bones
-      .filter((bone) => bone.name === "headlights")
-      .flatMap((bone) =>
-        (bone.cubes ?? []).flatMap((cube) => turnedCorners(bone, cube)),
-      );
-    const wheels = bones
-      .filter((bone) => bone.name.startsWith("wheel_"))
-      .flatMap((bone) =>
-        (bone.cubes ?? []).flatMap((cube) => turnedCorners(bone, cube)),
-      );
+    const lamps = cornersOf((name) => name === "headlights");
+    const wheels = cornersOf((name) => name.startsWith("wheel_"));
     // Bound main's existing decorative protrusions separately (ADR 0170).
     expect(Math.max(...lamps.map((p) => -p[2])) / 16).toBeLessThanOrEqual(
       SUV_SPEC.bodyFront + 0.00125 + 1e-12,
@@ -244,9 +239,7 @@ describe("SUV proportions", () => {
     expect(
       Math.max(...wheels.map((p) => Math.abs(p[0]))) / 16,
     ).toBeLessThanOrEqual(SUV_SPEC.bodyHalfWidth + 0.025);
-    const all = bones.flatMap((bone) =>
-      (bone.cubes ?? []).flatMap((cube) => turnedCorners(bone, cube)),
-    );
+    const all = cornersOf(() => true);
     expect(
       Math.max(...all.map((p) => Math.hypot(p[0], p[2]))) / 16,
     ).toBeLessThanOrEqual(SUV_SPEC.footprint);
