@@ -103,9 +103,15 @@ function spun(points: Vec3[], hub: Vec3, radians: number): Vec3[] {
 
 describe("SUV model (ADR 0009)", () => {
   it("keeps spinning road tires clear of flares, steps and bumpers", () => {
+    const bounds = (points: number[][]) =>
+      [0, 1, 2].map((axis) => {
+        const values = points.map((p) => p[axis] as number);
+        return [Math.min(...values), Math.max(...values)] as const;
+      });
     const obstacles = [...bones.values()]
       .filter((b) => b.name === "body" || b.name.startsWith("door_"))
-      .flatMap((b) => (b.cubes ?? []).map((c) => turnedCorners(b, c)));
+      .flatMap((b) => (b.cubes ?? []).map((c) => turnedCorners(b, c)))
+      .map((corners) => ({ corners, box: bounds(corners) }));
     fc.assert(
       fc.property(fc.double({ min: 0, max: 360, noNaN: true }), (angle) => {
         const radians = (angle * Math.PI) / 180;
@@ -114,14 +120,13 @@ describe("SUV model (ADR 0009)", () => {
           const hub = pivot(name);
           for (const cube of wheel.cubes ?? []) {
             const tire = spun(turnedCorners(wheel, cube), hub, radians);
-            for (const obstacle of obstacles) {
+            const tireBox = bounds(tire);
+            for (const { corners: obstacle, box } of obstacles) {
               // Most body cubes are inboard or above the wheels.
-              const apart = [0, 1, 2].some(
-                (axis) =>
-                  Math.max(...tire.map((p) => p[axis] as number)) <=
-                    Math.min(...obstacle.map((p) => p[axis] as number)) ||
-                  Math.max(...obstacle.map((p) => p[axis] as number)) <=
-                    Math.min(...tire.map((p) => p[axis] as number)),
+              const apart = tireBox.some(
+                ([min, max], axis) =>
+                  max <= (box[axis] as readonly [number, number])[0] ||
+                  (box[axis] as readonly [number, number])[1] <= min,
               );
               if (!apart)
                 expect(
