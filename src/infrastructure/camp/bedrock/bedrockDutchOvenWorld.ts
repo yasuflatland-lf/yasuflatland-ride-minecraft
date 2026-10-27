@@ -36,6 +36,15 @@ function dutchOven(id: DutchOvenId) {
     : undefined;
 }
 
+function loadedEntityIds(type: string): string[] {
+  return ["overworld", "nether", "the_end"].flatMap((dimension) =>
+    world
+      .getDimension(dimension)
+      .getEntities({ type })
+      .map((entity) => entity.id),
+  );
+}
+
 export class BedrockDutchOvenWorld implements DutchOvenWorld {
   constructor(
     private readonly vehicles: {
@@ -106,6 +115,7 @@ export class BedrockDutchOvenWorld implements DutchOvenWorld {
   isCovered(id: FirePitId): boolean {
     return isFirePitCovered(id);
   }
+
   setCovered(id: FirePitId, covered: boolean): void {
     setFirePitCovered(id, covered);
   }
@@ -128,21 +138,11 @@ export class BedrockDutchOvenWorld implements DutchOvenWorld {
   }
 
   loadedOvens(): readonly DutchOvenId[] {
-    return ["overworld", "nether", "the_end"].flatMap((d) =>
-      world
-        .getDimension(d)
-        .getEntities({ type: DUTCH_OVEN_TYPE })
-        .map((e) => asDutchOvenId(e.id)),
-    );
+    return loadedEntityIds(DUTCH_OVEN_TYPE).map(asDutchOvenId);
   }
 
   loadedFirePits(): readonly FirePitId[] {
-    return ["overworld", "nether", "the_end"].flatMap((d) =>
-      world
-        .getDimension(d)
-        .getEntities({ type: FIRE_PIT_TYPE })
-        .map((e) => asFirePitId(e.id)),
-    );
+    return loadedEntityIds(FIRE_PIT_TYPE).map(asFirePitId);
   }
 
   hostExists(id: string): boolean {

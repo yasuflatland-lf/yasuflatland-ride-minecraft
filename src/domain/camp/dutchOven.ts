@@ -20,7 +20,7 @@ export function encodeHost(host: OvenHost): string {
 
 export function decodeHost(text: string): OvenHost {
   const match = /^(fire_pit|camp_table):(.+):(0|[1-9][0-9]*)$/s.exec(text);
-  if (!match || match[0] !== text) return { kind: "ground" };
+  if (!match) return { kind: "ground" };
   const [, kind, id, rawSpot] = match;
   const spot = Number(rawSpot);
   if (

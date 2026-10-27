@@ -17,7 +17,7 @@ import {
   registerHit,
 } from "../../domain/shared/hitCounter";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
-import type { Vec3 } from "../../domain/shared/vec";
+import { degToRad, type Vec3 } from "../../domain/shared/vec";
 import type { DutchOvenWorld } from "./ports/dutchOven";
 
 export class DutchOvenActions {
@@ -81,7 +81,7 @@ export class DutchOvenActions {
     )
       return false;
     const [spot] = FIRE_PIT_SPOTS;
-    const angle = (pit.yaw * Math.PI) / 180;
+    const angle = degToRad(pit.yaw);
     const at = {
       x: pit.at.x + (spot.x * Math.cos(angle) - spot.z * Math.sin(angle)) / 16,
       y: pit.at.y + FIRE_PIT_TOP_PX / 16,
@@ -99,12 +99,14 @@ export class DutchOvenActions {
     for (const oven of this.world.loadedOvens()) {
       const host = decodeHost(this.world.host(oven));
       if (host.kind === "ground") continue;
-      if (!this.world.isHostAreaLoaded(oven)) {
-        if (host.kind === "fire_pit") occupiedPits.add(host.id);
+      if (
+        this.world.isHostAreaLoaded(oven) &&
+        !this.world.hostExists(host.id)
+      ) {
+        this.world.setHost(oven, "", false);
         continue;
       }
-      if (!this.world.hostExists(host.id)) this.world.setHost(oven, "", false);
-      else if (host.kind === "fire_pit") occupiedPits.add(host.id);
+      if (host.kind === "fire_pit") occupiedPits.add(host.id);
     }
     for (const pit of this.world.loadedFirePits()) {
       if (this.world.isCovered(pit) && !occupiedPits.has(pit))
