@@ -28,7 +28,7 @@ TARGETS = {
     }.items()
 }
 TARGETS["windshield_rake"] = {"degrees": 34.34609740006154, "tolerance": 3}
-PENDING = set(TARGETS) - {"wheelbase", "front_overhang", "rear_overhang"}
+PENDING = set(TARGETS) - {"wheelbase", "front_overhang", "rear_overhang", "ground_clearance"}
 
 
 def _bounds(cubes):
