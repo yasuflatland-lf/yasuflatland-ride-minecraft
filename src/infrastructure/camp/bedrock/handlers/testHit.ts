@@ -6,6 +6,13 @@ import { CHAIR_KIND_BY_TEST_EVENT } from "../../identifiers";
 
 // Lets in-game tests hit a chair, which a test has no player to do (ADR 0010, 0122).
 export function registerTestChairHit(hitChair: HitChair): void {
+  const namespaces = [
+    ...new Set(
+      [...CHAIR_KIND_BY_TEST_EVENT.keys()].map((event) =>
+        event.slice(0, event.indexOf(":")),
+      ),
+    ),
+  ].sort();
   system.afterEvents.scriptEventReceive.subscribe(
     (ev) => {
       const kind = CHAIR_KIND_BY_TEST_EVENT.get(ev.id);
@@ -22,6 +29,6 @@ export function registerTestChairHit(hitChair: HitChair): void {
         tick: system.currentTick,
       });
     },
-    { namespaces: [NAMESPACE] },
+    { namespaces },
   );
 }

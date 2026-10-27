@@ -4,7 +4,7 @@ import {
   PlaceChair,
   type PlaceChairCommand,
 } from "../../../src/application/camp/placeChair";
-import { type ChairKindId, chairYaw } from "../../../src/domain/camp/chair";
+import { chairYaw } from "../../../src/domain/camp/chair";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { cellKey, FakeChairWorld } from "./fakeChairWorld";
 
@@ -76,11 +76,11 @@ describe("PlaceChair (ADR 0122)", () => {
     );
   });
 
-  it("passes a second test-only kind through to spawning and consumption", () => {
+  it("passes the Noga Chair kind through to spawning and consumption", () => {
     fc.assert(
       fc.property(command, (c) => {
         const world = new FakeChairWorld();
-        const kind = "test_chair" as ChairKindId;
+        const kind = "noga_chair";
         expect(new PlaceChair(world).execute({ ...cmdOf(c), kind })).toBe(true);
         expect(world.spawned[0]?.kind).toBe(kind);
         expect(world.consumed).toEqual([

@@ -45,6 +45,7 @@ import {
   firePitIgnition,
   lowChairSeatAndTakeBack,
   lowChairSettlesThroughGrass,
+  nogaChairSeatAndTakeBack,
 } from "./scenarios/camp";
 import {
   camperAccel,
@@ -208,6 +209,7 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
     ["blade_cut_drops", 6, () => bladeCutDrops(a)],
     ["blade_cut_kept_ids", 0, () => bladeCutKeptIds()],
     ["low_chair_seat_and_take_back", 6, () => lowChairSeatAndTakeBack(a)],
+    ["noga_chair_seat_and_take_back", 6, () => nogaChairSeatAndTakeBack(a)],
     ["camp_table_two_seats", 2, () => campTableTwoSeats(a)],
     ["dutch_oven_on_table", 60, () => dutchOvenOnTable(a)],
     ["dutch_oven_on_pit", 90, () => dutchOvenOnPit(a)],

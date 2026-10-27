@@ -4,6 +4,7 @@ import { asChairId } from "../../../src/domain/camp/chair";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockChairWorld } from "../../../src/infrastructure/camp/bedrock/bedrockChairWorld";
 import {
+  CHAIR_KINDS,
   HITS_LEFT_HINT,
   LOW_CHAIR_ITEM,
   LOW_CHAIR_TYPE,
@@ -193,27 +194,28 @@ describe("BedrockChairWorld (ADR 0122)", () => {
     expect(dimension.spawnItem).not.toHaveBeenCalled();
   });
 
-  it("takes the chair item only from the slot that still holds it", () => {
-    const { container, chairs } = fixture();
-    container.getItem.mockReturnValueOnce({
-      typeId: LOW_CHAIR_ITEM,
-      amount: 1,
-    });
-    expect(chairs.consumeChairItem("low_chair", asPlayerId("player"), 4)).toBe(
-      true,
-    );
-    expect(container.setItem).toHaveBeenCalledWith(4, undefined);
-    container.getItem.mockReturnValueOnce({
-      typeId: "minecraft:dirt",
-      amount: 1,
-    });
-    expect(chairs.consumeChairItem("low_chair", asPlayerId("player"), 4)).toBe(
-      false,
-    );
-    expect(chairs.consumeChairItem("low_chair", asPlayerId("nobody"), 4)).toBe(
-      false,
-    );
-  });
+  it.each(["low_chair", "noga_chair"] as const)(
+    "takes only the matching %s item from the selected slot",
+    (kind) => {
+      const { container, chairs } = fixture();
+      container.getItem.mockReturnValueOnce({
+        typeId: CHAIR_KINDS[kind].itemId,
+        amount: 1,
+      });
+      expect(chairs.consumeChairItem(kind, asPlayerId("player"), 4)).toBe(true);
+      expect(container.setItem).toHaveBeenCalledWith(4, undefined);
+      container.getItem.mockReturnValueOnce({
+        typeId: "minecraft:dirt",
+        amount: 1,
+      });
+      expect(chairs.consumeChairItem(kind, asPlayerId("player"), 4)).toBe(
+        false,
+      );
+      expect(chairs.consumeChairItem(kind, asPlayerId("nobody"), 4)).toBe(
+        false,
+      );
+    },
+  );
 
   it("counts only an air block as air, and a cell outside the world as not", () => {
     const { dimension, chairs } = fixture();
