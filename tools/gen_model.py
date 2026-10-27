@@ -214,27 +214,28 @@ ARCH_TOP_Y, ARCH_TOP_HALF = 12.3, 3.5
 ARCH_FOOT_Y, ARCH_FOOT_Z = 8, 6.2
 ARCH_RUN_PER_RISE = (ARCH_FOOT_Z - ARCH_TOP_HALF) / (ARCH_TOP_Y - ARCH_FOOT_Y)
 
-# Bumpers. A length is the straight band's run along the car; its cut corners reach farther in. The
-# lips above and below the front band and the fog lamps on its face follow the band's tip and edges.
-FRONT_BUMPER_LENGTH = 5.5
-# The front bumper's top meets the grille's bottom frame rather than following the sill: the grille and
-# the headlights above it stay put, so a raised bumper would bury them.
-GRILLE_BOTTOM_Y = 8
-FRONT_BUMPER_HEIGHT = 5.5
+# Bumpers: low bars sized to the side-view reference (ADR 0170, 7/7). A length is the bar's run along
+# the car between the body and its tip. The front bar's top meets the grille's bottom frame, which sits
+# just under the round headlights; its lower lip, top edge and fog lamps follow the bar.
+FRONT_BUMPER_LENGTH = 4
+GRILLE_BOTTOM_Y = 9
+FRONT_BUMPER_HEIGHT = 4.2
 FRONT_BUMPER_TOP_Y = GRILLE_BOTTOM_Y
 FRONT_BUMPER_BOTTOM_Y = FRONT_BUMPER_TOP_Y - FRONT_BUMPER_HEIGHT
 FRONT_BUMPER_TIP_Z = FRONT + 4.5
 FRONT_BUMPER_BACK_Z = FRONT_BUMPER_TIP_Z - FRONT_BUMPER_LENGTH
-FRONT_BUMPER_BAND_BOTTOM_Y = FRONT_BUMPER_BOTTOM_Y + 1
-FRONT_BUMPER_BAND_TOP_Y = FRONT_BUMPER_TOP_Y - 0.7
-REAR_BUMPER_LENGTH = 6
-REAR_BUMPER_BOTTOM_Y = SILL_Y - 1
-REAR_BUMPER_HEIGHT = 4
+FRONT_BUMPER_BAND_BOTTOM_Y = FRONT_BUMPER_BOTTOM_Y + 0.7
+FRONT_BUMPER_BAND_TOP_Y = FRONT_BUMPER_TOP_Y - 0.6
+REAR_BUMPER_LENGTH = 5
+REAR_BUMPER_BOTTOM_Y = SILL_Y - 0.5
+REAR_BUMPER_HEIGHT = 3
 REAR_BUMPER_TOP_Y = REAR_BUMPER_BOTTOM_Y + REAR_BUMPER_HEIGHT
 REAR_BUMPER_TIP_Z = REAR - 1.5
-# The short overhang puts the long bumper bands beside the tread. Inboard ends keep the
-# tires clear and expose their shoulders; length and height remain for ADR 0170 part 7/7.
-BUMPER_HALF_WIDTH = BODY_HALF_WIDTH
+# Both bars reach out over the tires like the reference's, but only as far back as the tire's
+# farthest spinning corner (6.03 px from the hub at D=12.05 px) allows: outboard of the body they are
+# shallow end pieces, and only the part between the tires runs back to the body.
+BUMPER_HALF_WIDTH = HUB_X + 1
+BUMPER_END_CLEARANCE = ROAD_WHEEL_RADIUS + 0.2
 
 # The arch liners hide the cabin through the arches; the side steps stop short of the flares' legs.
 ARCH_LINER_X = 11.4
@@ -395,26 +396,39 @@ body += both_sides([
 ])
 
 
-def chamfered_band(y0, y1, z_back, z_front, half_width, chamfer, angle=30):
-    """A slab across the car whose front corners are cut back at `angle` degrees, so it reads as a
-    trapezoid from above: a straight middle, and at each corner a block turned back around the inner end
-    of the cut (a positive y rotation turns +x toward -z) over a side block that fills behind it."""
+def chamfered_bar(y0, y1, z_back, z_tip, z_end_back, half_width, chamfer, angle=30):
+    """A bar across the car whose front corners are cut back at `angle` degrees, so it reads as a
+    trapezoid from above. Between the body's sides it runs back to z_back; outboard of them it is a
+    shallow end piece from z_end_back, clear of the tire behind it. Each cut is a block turned back
+    around the cut's inner front end (a positive y rotation turns +x toward -z), just deep enough to
+    fill the triangle the cut leaves over the end piece, so its turned back corner stays ahead of
+    z_end_back."""
     cx = half_width - chamfer
     radians = math.radians(angle)
-    tan = math.tan(radians)
-    corner = turned(box(cx, y0, z_back, cx + chamfer / math.cos(radians), y1, z_front, "trim"),
-                    (cx, y0, z_front), (0, angle, 0))
-    side = box(cx, y0, z_back, half_width, y1, z_front - chamfer * tan, "trim")
-    return [box(-cx, y0, z_back, cx, y1, z_front, "trim"), *both_sides([corner, side])]
+    inner = min(cx, BODY_HALF_WIDTH)
+    corner = turned(box(cx, y0, z_tip - chamfer * math.sin(radians), cx + chamfer / math.cos(radians), y1, z_tip, "trim"),
+                    (cx, y0, z_tip), (0, angle, 0))
+    side_back = z_end_back if half_width > BODY_HALF_WIDTH else z_back
+    sides = [corner, box(cx, y0, side_back, half_width, y1, z_tip - chamfer * math.tan(radians), "trim")]
+    if cx > inner:
+        sides.append(box(inner, y0, z_end_back, cx, y1, z_tip, "trim"))
+    return [box(-inner, y0, z_back, inner, y1, z_tip, "trim"), *both_sides(sides)]
 
 
-# Front bumper: a thick band whose corners are cut back toward the flares, between a tucked-in lower lip
-# and a slightly set-back top edge, so it reads as a trapezoid from above
-body += chamfered_band(FRONT_BUMPER_BOTTOM_Y, FRONT_BUMPER_BAND_BOTTOM_Y, FRONT, FRONT_BUMPER_TIP_Z - 1.3, BUMPER_HALF_WIDTH - 1.3, 2.2)
-body += chamfered_band(FRONT_BUMPER_BAND_BOTTOM_Y, FRONT_BUMPER_BAND_TOP_Y, FRONT_BUMPER_BACK_Z, FRONT_BUMPER_TIP_Z, BUMPER_HALF_WIDTH, 3.5)
-body += chamfered_band(FRONT_BUMPER_BAND_TOP_Y, FRONT_BUMPER_TOP_Y, FRONT, FRONT_BUMPER_TIP_Z - 0.6, BUMPER_HALF_WIDTH - 0.6, 2.9)
+# Front bumper: a low bar under the grille, between a tucked-in lower lip and a slightly set-back top
+# edge, standing on two frame horns that reach forward from the chassis
+FRONT_BUMPER_END_BACK_Z = FRONT_AXLE_Z + BUMPER_END_CLEARANCE
+body += chamfered_bar(FRONT_BUMPER_BOTTOM_Y, FRONT_BUMPER_BAND_BOTTOM_Y, FRONT_BUMPER_BACK_Z, FRONT_BUMPER_TIP_Z - 1,
+                      FRONT_BUMPER_END_BACK_Z, BUMPER_HALF_WIDTH - 1, 1.2)
+body += chamfered_bar(FRONT_BUMPER_BAND_BOTTOM_Y, FRONT_BUMPER_BAND_TOP_Y, FRONT_BUMPER_BACK_Z, FRONT_BUMPER_TIP_Z,
+                      FRONT_BUMPER_END_BACK_Z, BUMPER_HALF_WIDTH, 2)
+body += chamfered_bar(FRONT_BUMPER_BAND_TOP_Y, FRONT_BUMPER_TOP_Y, FRONT_BUMPER_BACK_Z, FRONT_BUMPER_TIP_Z - 0.5,
+                      FRONT_BUMPER_END_BACK_Z, BUMPER_HALF_WIDTH - 0.5, 1.7)
+body += both_sides([box(5, SILL_Y, FRONT - 1.5, 7, FLOOR_Y, FRONT_BUMPER_BACK_Z + 0.5, "trim")])  # frame horn
+# Tow hooks standing on the bar's top, outboard of the grille's middle slots
+body += both_sides([box(5.2, FRONT_BUMPER_TOP_Y, FRONT_BUMPER_TIP_Z - 2, 5.9, FRONT_BUMPER_TOP_Y + 1, FRONT_BUMPER_TIP_Z - 0.8, "rim")])
 
-# Rear bumper: the same kind of band facing backward, with red reflectors at its ends and red tow
+# Rear bumper: the same kind of bar facing backward, with red reflectors at its ends and red tow
 # hooks under it
 def facing_back(cube):
     """The same cube mirrored front to back (z -> -z). The bumper's corners turn only around y."""
@@ -428,12 +442,13 @@ def facing_back(cube):
     return copy
 
 
-REAR_BUMPER_CHAMFER = 2.5
-# The reflectors end where the band's straight face meets its cut corners
+REAR_BUMPER_CHAMFER = 2
+# The reflectors end where the bar's straight face meets its cut corners
 REFLECTOR_X1 = BUMPER_HALF_WIDTH - REAR_BUMPER_CHAMFER
-body += [facing_back(c) for c in chamfered_band(REAR_BUMPER_BOTTOM_Y, REAR_BUMPER_TOP_Y, -REAR_BUMPER_TIP_Z - REAR_BUMPER_LENGTH, -REAR_BUMPER_TIP_Z, BUMPER_HALF_WIDTH, REAR_BUMPER_CHAMFER)]
+body += [facing_back(c) for c in chamfered_bar(REAR_BUMPER_BOTTOM_Y, REAR_BUMPER_TOP_Y, -REAR_BUMPER_TIP_Z - REAR_BUMPER_LENGTH, -REAR_BUMPER_TIP_Z,
+                                               -REAR_AXLE_Z + BUMPER_END_CLEARANCE, BUMPER_HALF_WIDTH, REAR_BUMPER_CHAMFER)]
 body += both_sides([
-    box(REFLECTOR_X1 - 2.5, REAR_BUMPER_BOTTOM_Y + 2, REAR_BUMPER_TIP_Z - 0.1, REFLECTOR_X1, REAR_BUMPER_TOP_Y - 0.8, REAR_BUMPER_TIP_Z, "tail"),  # reflector
+    box(REFLECTOR_X1 - 2.5, REAR_BUMPER_BOTTOM_Y + 0.8, REAR_BUMPER_TIP_Z - 0.1, REFLECTOR_X1, REAR_BUMPER_TOP_Y - 0.8, REAR_BUMPER_TIP_Z, "tail"),  # reflector
     box(7.4, SILL_Y - 2.2, REAR - 1.2, 8.4, REAR_BUMPER_BOTTOM_Y, REAR + 1, "tail"),  # tow hook
 ])
 
@@ -592,12 +607,13 @@ def round_face(center, radius, z0, z1, color, segments=12):
     return cubes
 
 
-# Round fog lamps in black pockets near the front bumper's ends, inboard of the band's cut corners so
+# Round fog lamps in black pockets near the front bumper's ends, inboard of the bar's cut corners so
 # they sit on its straight face
-FOG_POCKET_X1 = BUMPER_HALF_WIDTH - 3.5
+FOG_X = 10.5
+FOG_Y = (FRONT_BUMPER_BAND_BOTTOM_Y + FRONT_BUMPER_BAND_TOP_Y) / 2
 body += both_sides([
-    box(FOG_POCKET_X1 - 3, FRONT_BUMPER_BAND_BOTTOM_Y + 0.7, FRONT_BUMPER_TIP_Z, FOG_POCKET_X1, FRONT_BUMPER_BAND_TOP_Y - 0.7, FRONT_BUMPER_TIP_Z + 0.05, "grille"),
-    *round_face((FOG_POCKET_X1 - 1.5, (FRONT_BUMPER_BAND_BOTTOM_Y + FRONT_BUMPER_BAND_TOP_Y) / 2, 0), 0.9, FRONT_BUMPER_TIP_Z + 0.05, FRONT_BUMPER_TIP_Z + 0.12, "light"),
+    box(FOG_X - 1.3, FOG_Y - 1.05, FRONT_BUMPER_TIP_Z, FOG_X + 1.3, FOG_Y + 1.05, FRONT_BUMPER_TIP_Z + 0.05, "grille"),
+    *round_face((FOG_X, FOG_Y, 0), 0.8, FRONT_BUMPER_TIP_Z + 0.05, FRONT_BUMPER_TIP_Z + 0.12, "light"),
 ])
 
 # Ribs on the hardtop: two front panels split down the middle over the front seats, a seam across,

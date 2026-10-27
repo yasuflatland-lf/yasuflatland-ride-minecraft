@@ -1066,7 +1066,7 @@ describe("sports boat hull planking (ADR 0161)", () => {
       .flatMap((b: { cubes?: Cube[] }) => b.cubes ?? [])
       .filter(
         (cube: Cube) =>
-          cube.rotation?.[1] === 30 && Math.abs(cube.size[1] - 3.8) < 1e-6,
+          cube.rotation?.[1] === 30 && Math.abs(cube.size[1] - 2.9) < 1e-6,
       );
     expect(corners).toHaveLength(1);
     const corner = corners[0];
