@@ -166,6 +166,13 @@ FRONT = 25  # z of the hood's front face
 HOOD_REAR_Z = 13  # z of the cowl, where the hood meets the windshield frame
 WINDSHIELD_FOOT_Z = HOOD_REAR_Z - 0.5  # the windshield's lower frame pivot, before it leans back
 
+# Cabin landmarks shared by the doors, pillars, seats and the hood's lower sides. The cabin stays put
+# when the axles move (ADR 0170).
+FRONT_DOOR_HINGE_Z = HOOD_REAR_Z - 1
+B_PILLAR_REAR_Z, B_PILLAR_FRONT_Z = -6, -5
+DASH_BOTTOM_Y = 13
+REAR_SEAT_Z = CARGO_FRONT + 1
+
 # The windshield leans back: its frame turns around the lower frame's edge. Written here, a positive x
 # rotation tips +y toward the rear (-z) in game; a negative one leaned the frame out over the hood.
 # The roof starts where the A-pillars meet it.
@@ -193,7 +200,7 @@ FLARE_X = BODY_HALF_WIDTH + 2.75
 FLARE_THICKNESS = 1.5
 # Wheel arch: the inside of each flare. Its flat top's underside, the top's half length, and the inner
 # lower end of each slope, ahead of and behind the axle. The slope stays over 6.3 px from the
-# hub while the slimmer foot fits behind the 8.38 px front overhang (ADR 0170).
+# hub while the slimmer foot fits behind the target's 8.38 px front overhang (ADR 0170).
 ARCH_TOP_Y, ARCH_TOP_HALF = 12.3, 3.5
 ARCH_FOOT_Y, ARCH_FOOT_Z = 8, 6.2
 ARCH_RUN_PER_RISE = (ARCH_FOOT_Z - ARCH_TOP_HALF) / (ARCH_TOP_Y - ARCH_FOOT_Y)
@@ -216,10 +223,6 @@ REAR_BUMPER_TIP_Z = REAR - 1.5
 # The short overhang puts the long bumper bands beside the tread. Inboard ends keep the
 # tires clear and expose their shoulders; length and height remain for ADR 0170 part 7/7.
 BUMPER_HALF_WIDTH = BODY_HALF_WIDTH
-B_PILLAR_REAR_Z, B_PILLAR_FRONT_Z = -6, -5
-FRONT_DOOR_HINGE_Z = HOOD_REAR_Z - 1
-DASH_BOTTOM_Y = 13
-REAR_SEAT_Z = CARGO_FRONT + 1
 
 # The arch liners hide the cabin through the arches; the side steps stop short of the flares' legs.
 ARCH_LINER_X = 11.4
@@ -360,7 +363,7 @@ body += both_sides([box(ARCH_LINER_X, ARCH_TOP_Y, FRONT_DOOR_HINGE_Z, BODY_HALF_
 # The cargo area's body-colored side below the belt line, cut along the rear arch
 body += both_sides(arch_cut(CABIN_HALF_WIDTH, BODY_HALF_WIDTH, FLOOR_Y, BELT_Y, REAR + 1, CARGO_FRONT, REAR_AXLE_Z, "body"))
 # Round fuel door on the left side of the cargo area, behind the rear flare and under the belt line
-body += disc("x", (-BODY_HALF_WIDTH, 14.8, REAR + 2.7), 1.2, -13.25, -13, [i * 11.25 for i in range(8)], "grille")  # 32 sides
+body += disc("x", (-BODY_HALF_WIDTH, 14.8, REAR + 2.7), 1.2, -BODY_HALF_WIDTH - 0.25, -BODY_HALF_WIDTH, [i * 11.25 for i in range(8)], "grille")  # 32 sides
 # Black inner liners behind each arch, so the cabin does not show through it
 body += both_sides([
     box(ARCH_LINER_X, ARCH_FOOT_Y - 1, z - ARCH_FOOT_Z - 0.5, 11.6, ARCH_TOP_Y + 0.5, z + ARCH_FOOT_Z + 0.5, "grille")
