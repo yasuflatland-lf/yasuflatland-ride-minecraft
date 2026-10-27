@@ -19,7 +19,7 @@ CATEGORY = "items"
 GEAR_IDS = [item["id"] for item in json.loads(SPEC.read_text())]
 
 # Plain camp-feature items, not decor in tools/camping_gear.json (ADR 0122, 0130).
-OUTSIDE_IDS = ["low_chair_item", "tent_item", "camp_table_item", "fire_pit_item"]
+OUTSIDE_IDS = ["low_chair_item", "tent_item", "camp_table_item", "fire_pit_item", "dutch_oven_item"]
 
 # Inside gear starts with its gift box; independent outdoor items follow in their own
 # group, before the bulldozer switches (ADR 0144).

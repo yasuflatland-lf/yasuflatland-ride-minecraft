@@ -1,0 +1,28 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "yasu_ride:dutch_oven",
+      "materials": {
+        "default": "entity"
+      },
+      "textures": {
+        "default": "textures/entity/yasu_ride/dutch_oven"
+      },
+      "geometry": {
+        "default": "geometry.yasu_ride.dutch_oven"
+      },
+      "render_controllers": ["controller.render.yasu_ride.dutch_oven"],
+      "animations": {
+        "simmer": "animation.yasu_ride.dutch_oven.simmer"
+      },
+      "scripts": {
+        "animate": [
+          {
+            "simmer": "query.property('yasu_ride:simmering')"
+          }
+        ]
+      }
+    }
+  }
+}
