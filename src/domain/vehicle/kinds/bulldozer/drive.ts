@@ -120,7 +120,7 @@ export class BulldozerDrive extends TransformingDrive {
   };
   private readonly toolStates: Readonly<Record<string, () => string>> =
     Object.freeze({
-      [BLADE_SWITCH_ITEM]: () => (this.bladeTargetRaised ? "up" : "down"),
+      [BLADE_SWITCH_ITEM]: () => (this.bladeRaised() ? "up" : "down"),
     });
 
   constructor(yaw: number, restored: RestoredOf<typeof BULLDOZER_ENTITY>) {
@@ -147,12 +147,12 @@ export class BulldozerDrive extends TransformingDrive {
   }
 
   /** Whether the blade is raised or rising: the target, not the current height (ADR 0138). */
-  bladeRaised(): boolean {
+  private bladeRaised(): boolean {
     return this.bladeTargetRaised;
   }
 
   /** Sets the blade's target; it then moves one step per tick (ADR 0138). */
-  setBlade(raised: boolean): void {
+  private setBlade(raised: boolean): void {
     this.bladeTargetRaised = raised;
   }
 
@@ -161,6 +161,13 @@ export class BulldozerDrive extends TransformingDrive {
     return Object.hasOwn(this.toolStates, item)
       ? this.toolStates[item]?.()
       : undefined;
+  }
+
+  setToolState(item: string, state: string): boolean {
+    if (item !== BLADE_SWITCH_ITEM || (state !== "up" && state !== "down"))
+      return false;
+    this.setBlade(state === "up");
+    return true;
   }
 
   private bladeTargetSteps(): number {

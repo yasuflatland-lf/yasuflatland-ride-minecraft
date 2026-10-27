@@ -21,7 +21,7 @@ export const SPEC = Object.freeze({
   hitsToBreak: 3,
   hitResetTicks: 100,
   headlightSwitchCooldown: LIGHT_SWITCH_COOLDOWN_TICKS,
-  bladeSwitchCooldown: LIGHT_SWITCH_COOLDOWN_TICKS, // its own switch, same duration (ADR 0024, 0138)
+  toolSwitchCooldown: LIGHT_SWITCH_COOLDOWN_TICKS, // shared by monitor tools, separate from lights (ADR 0171)
   waterBreathingInterval: 20, // ticks
   waterBreathingTicks: 60, // ticks
   // Driver handover in flight (ADR 0078)

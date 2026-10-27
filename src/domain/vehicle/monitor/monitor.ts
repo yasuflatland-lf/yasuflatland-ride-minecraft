@@ -1,7 +1,7 @@
 import type { PropertySpec } from "../entityContract";
 
 /** A tool the cab monitor shows: its bare item id and its state names, in screen order (ADR 0139). */
-interface MonitorTool {
+export interface MonitorTool {
   readonly item: string;
   readonly states: readonly string[];
 }
@@ -52,4 +52,22 @@ export function monitorScreen(
     offset += tool.states.length;
   }
   return BLANK_SCREEN;
+}
+
+export function nextToolState(
+  tool: MonitorTool,
+  current: string | undefined,
+): string {
+  const index = current === undefined ? -1 : tool.states.indexOf(current);
+  const next = tool.states[(index + 1) % tool.states.length];
+  if (next === undefined)
+    throw new Error("A monitor tool must have at least one state");
+  return next;
+}
+
+export function monitorTool(
+  rule: MonitorRule | undefined,
+  item: string,
+): MonitorTool | undefined {
+  return rule?.tools.find((tool) => tool.item === item);
 }
