@@ -60,8 +60,8 @@ export function installCamp(deps: { isVehicleSpace: SpaceCheck }): {
   const tables = new BedrockTableWorld(deps);
   registerTable(new PlaceTable(tables), new HitTable(tables));
   const firePits = new BedrockFirePitWorld(deps);
-  registerDutchOven(new DutchOvenActions(new BedrockDutchOvenWorld(deps)));
   registerFirePit(new FirePitActions(firePits), firePits);
+  registerDutchOven(new DutchOvenActions(new BedrockDutchOvenWorld(deps)));
 
   // SleepInBed is stateless, so camp builds its own instead of sharing the vehicle's.
   registerBedBlock(
