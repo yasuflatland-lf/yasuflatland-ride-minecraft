@@ -9,6 +9,21 @@ import sys
 import zlib
 from pathlib import Path
 
+# Isolated mode (-I) omits the script directory from the import path.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from tool_loader import load_tool
+
+panels = load_tool("panels")
+r4 = panels.r4
+
+
+def panel_ring(radius, y0, y1, slot, **kwargs):
+    return panels.panel_ring(radius, y0, y1, face(slot), **kwargs)
+
+
+def disc(radius, y0, y1, slot):
+    return panels.disc(radius, y0, y1, face(slot))
+
 SIZE = 32
 SWATCH = 8
 GEOMETRY = "models/entity/yasu_ride/dutch_oven.geo.json"
@@ -47,28 +62,9 @@ def box(x0, y0, z0, x1, y1, z1, slot, pivot=None, rotation=None):
     return cube
 
 
-SIDES = 16
-DISC_BARS = 8
 FOOTPRINT = 6
 LUG_Y = (4.2, 4.5)
 LUG_HOLE_X = 5.0
-
-
-def r4(value):
-    return round(value, 4)
-
-
-def panel_ring(radius, y0, y1, slot, sides=SIDES, thickness=0.5, center=(0, 0)):
-    """Thin wall panels, each rotated about Y only, closing a round polygon.
-
-    The radius is the apothem; the panel is a little wider than one polygon
-    edge so neighbours overlap and leave no crack at the corners.
-    """
-    half = radius * math.tan(math.pi / sides) + 0.08
-    cx, cz = center
-    return [box(r4(cx - half), y0, r4(cz - radius), r4(cx + half), y1, r4(cz - radius + thickness),
-                slot, (cx, 0, cz), (0, r4(k * 360 / sides), 0))
-            for k in range(sides)]
 
 
 def strip(cx, cz, length, width, direction, y0, y1, slot):
@@ -126,7 +122,7 @@ def lug(side):
 
 
 def bail_ring(side):
-    return panel_ring(0.28, 4.5, 4.7, 2, 8, 0.1, (side * LUG_HOLE_X, 0))
+    return panel_ring(0.28, 4.5, 4.7, 2, sides=8, thickness=0.1, center=(side * LUG_HOLE_X, 0))
 
 
 def lid_handle():
@@ -145,18 +141,6 @@ def lid_handle():
     for sz in (1, -1):
         cubes.append(tilted(6.825, sz * 0.325, 0.22, 0.12, -45 * sz, -1.2, 1.2, 1))
     return cubes
-
-
-def disc(radius, y0, y1, slot, bars=DISC_BARS):
-    """A round plate from full-width bars turned about Y at k*180/bars.
-
-    Every bar sits 0.01 lower at the top and higher at the bottom than the
-    previous one so coplanar faces do not z-fight.
-    """
-    half_width = radius * math.sin(math.pi / (2 * bars))
-    return [box(-radius, r4(y0 + k * 0.01), r4(-half_width), radius, r4(y1 - k * 0.01),
-                r4(half_width), slot, (0, 0, 0), (0, r4(k * 180 / bars), 0))
-            for k in range(bars)]
 
 
 BODY_PROFILE = ((3.5, 0.5, 1.5), (4, 1.5, 2.8), (4.5, 2.8, 4.2))
