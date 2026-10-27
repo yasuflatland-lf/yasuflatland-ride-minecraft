@@ -144,10 +144,9 @@ def both_sides(cubes):
 REAR = -31  # z of the tailgate's outer face
 CARGO_FRONT = -19  # z where the rear doors end and the cargo area's fixed panels begin
 # Chassis and ground clearance: the chassis runs from the sill (its underside, which also sets where
-# the side steps and bumpers hang) up to the cabin floor.
-# The sill rises to the target's clearance (ADR 0170, 4/7). The floor rises only 1 px, which the side
-# steps' thickness needs, and the seats stay: the roof does not rise, so higher seats would take the
-# riders' head room.
+# the side steps and bumpers hang) up to the cabin floor. The sill sits at the target's clearance
+# (ADR 0170, 4/7). The floor sits only as high as the side steps' thickness needs, and the seats do not
+# follow it: the roof stays, so higher seats would take the riders' head room.
 SILL_Y = 6.875
 FLOOR_Y = 8
 BODY_HALF_WIDTH = 13
@@ -669,14 +668,15 @@ def floor_lever(x, z, height, knob, lean=15):
 
 
 SHIFT_X, SHIFT_Z = 0, 8.5
-body.append(box(-1.8, FLOOR_Y, 4, 1.8, FLOOR_Y + 0.6, 11, "trim"))  # transmission tunnel
+TUNNEL_TOP_Y = FLOOR_Y + 0.6
+body.append(box(-1.8, FLOOR_Y, 4, 1.8, TUNNEL_TOP_Y, 11, "trim"))  # transmission tunnel
 BOOT_RINGS = ((1.0, 0.5), (0.75, 0.4), (0.85, 0.4), (0.6, 0.4), (0.7, 0.35), (0.45, 0.4))  # (half width, height)
 for i, (half, height) in enumerate(BOOT_RINGS):
-    y = FLOOR_Y + 0.6 + sum(h for _, h in BOOT_RINGS[:i])
+    y = TUNNEL_TOP_Y + sum(h for _, h in BOOT_RINGS[:i])
     body.append(box(SHIFT_X - half, y, SHIFT_Z - half, SHIFT_X + half, y + height, SHIFT_Z + half, "tire"))  # boot
 body += floor_lever(SHIFT_X, SHIFT_Z, 7.2, 0.55)
 for x in (-1.1, 1.1):
-    body.append(box(x - 0.4, FLOOR_Y + 0.6, 6.1, x + 0.4, FLOOR_Y + 1.1, 6.9, "tire"))  # boot
+    body.append(box(x - 0.4, TUNNEL_TOP_Y, 6.1, x + 0.4, TUNNEL_TOP_Y + 0.5, 6.9, "tire"))  # boot
     body += floor_lever(x, 6.5, 4.6, 0.4)
 
 # Pedals in the driver's footwell (+x side): clutch and brake are square rubber pads with ribs on
