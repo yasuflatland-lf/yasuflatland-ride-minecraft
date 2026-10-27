@@ -144,9 +144,11 @@ def both_sides(cubes):
 REAR = -31  # z of the tailgate's outer face
 CARGO_FRONT = -19  # z where the rear doors end and the cargo area's fixed panels begin
 # Chassis and ground clearance: the chassis runs from the sill (its underside, which also sets where
-# the side steps and bumpers hang) up to the cabin floor.
-SILL_Y = 4
-FLOOR_Y = 7
+# the side steps and bumpers hang) up to the cabin floor. The sill sits at the target's clearance
+# (ADR 0170, 4/7). The floor sits only as high as the side steps' thickness needs, and the seats do not
+# follow it: the roof stays, so higher seats would take the riders' head room.
+SILL_Y = 6.875
+FLOOR_Y = 8
 BODY_HALF_WIDTH = 13
 CABIN_HALF_WIDTH = 12
 DOOR_FRAME_MID_X = (BODY_HALF_WIDTH + CABIN_HALF_WIDTH) / 2
@@ -208,9 +210,12 @@ ARCH_RUN_PER_RISE = (ARCH_FOOT_Z - ARCH_TOP_HALF) / (ARCH_TOP_Y - ARCH_FOOT_Y)
 # Bumpers. A length is the straight band's run along the car; its cut corners reach farther in. The
 # lips above and below the front band and the fog lamps on its face follow the band's tip and edges.
 FRONT_BUMPER_LENGTH = 5.5
-FRONT_BUMPER_BOTTOM_Y = SILL_Y - 1.5
+# The front bumper's top meets the grille's bottom frame rather than following the sill: the grille and
+# the headlights above it stay put, so a raised bumper would bury them.
+GRILLE_BOTTOM_Y = 8
 FRONT_BUMPER_HEIGHT = 5.5
-FRONT_BUMPER_TOP_Y = FRONT_BUMPER_BOTTOM_Y + FRONT_BUMPER_HEIGHT
+FRONT_BUMPER_TOP_Y = GRILLE_BOTTOM_Y
+FRONT_BUMPER_BOTTOM_Y = FRONT_BUMPER_TOP_Y - FRONT_BUMPER_HEIGHT
 FRONT_BUMPER_TIP_Z = FRONT + 4.5
 FRONT_BUMPER_BACK_Z = FRONT_BUMPER_TIP_Z - FRONT_BUMPER_LENGTH
 FRONT_BUMPER_BAND_BOTTOM_Y = FRONT_BUMPER_BOTTOM_Y + 1
@@ -228,7 +233,7 @@ BUMPER_HALF_WIDTH = BODY_HALF_WIDTH
 ARCH_LINER_X = 11.4
 STEP_REAR_Z = REAR_AXLE_Z + ARCH_FOOT_Z + 1
 STEP_FRONT_Z = FRONT_AXLE_Z - ARCH_FOOT_Z
-STEP_TOP_Y = FLOOR_Y - 1
+STEP_TOP_Y = FLOOR_Y  # flush with the doors' lower edge, so an opening door clears the step
 
 # The folded wheels hang out from the body on arms in flight, like a hovering DeLorean (ADR 0043): the
 # hover animation moves each wheel FOLD_OUT outward and FOLD_DROP down. The dive and submerged
@@ -279,8 +284,8 @@ body = [
     box(6.2, 14.2, REAR - 0.3, 9.0, 15.2, REAR, "body"),
     box(6.2, 10.4, REAR - 0.3, 9.0, 11.4, REAR, "body"),
     # Exhaust pipe (rear right = +x side, sticking out backward from under the rear bumper)
-    box(8, 1.8, REAR - 2, 10, 3.4, REAR_AXLE_Z - 1, "trim"),
-    box(7.75, 1.55, REAR - 2.5, 10.25, 3.65, REAR - 2, "rim"),
+    box(8, SILL_Y - 2.2, REAR - 2, 10, SILL_Y - 0.6, REAR_AXLE_Z - 1, "trim"),
+    box(7.75, SILL_Y - 2.45, REAR - 2.5, 10.25, SILL_Y - 0.35, REAR - 2, "rim"),
     # Side steps, running between the fender flares
     *both_sides([box(BODY_HALF_WIDTH, SILL_Y, STEP_REAR_Z, HUB_X, STEP_TOP_Y, STEP_FRONT_Z, "trim")]),
 ]
@@ -372,7 +377,7 @@ body += both_sides([
 ])
 LAMP_Y0, LAMP_Y1 = 11.4, 12.2
 body += both_sides([
-    *fender_flare(FRONT_AXLE_Z, 5, SILL_Y),
+    *fender_flare(FRONT_AXLE_Z, SILL_Y + 1, SILL_Y),
     *fender_flare(REAR_AXLE_Z, SILL_Y, SILL_Y),
     # Beside the headlights (center y 12.3): a light strip standing a little proud of the front flare's
     # sloping front face, and the turn signal on the flare's outer side
@@ -422,7 +427,7 @@ REFLECTOR_X1 = BUMPER_HALF_WIDTH - REAR_BUMPER_CHAMFER
 body += [facing_back(c) for c in chamfered_band(REAR_BUMPER_BOTTOM_Y, REAR_BUMPER_TOP_Y, -REAR_BUMPER_TIP_Z - REAR_BUMPER_LENGTH, -REAR_BUMPER_TIP_Z, BUMPER_HALF_WIDTH, REAR_BUMPER_CHAMFER)]
 body += both_sides([
     box(REFLECTOR_X1 - 2.5, REAR_BUMPER_BOTTOM_Y + 2, REAR_BUMPER_TIP_Z - 0.1, REFLECTOR_X1, REAR_BUMPER_TOP_Y - 0.8, REAR_BUMPER_TIP_Z, "tail"),  # reflector
-    box(7.4, 1.8, REAR - 1.2, 8.4, REAR_BUMPER_BOTTOM_Y, REAR + 1, "tail"),  # tow hook
+    box(7.4, SILL_Y - 2.2, REAR - 1.2, 8.4, REAR_BUMPER_BOTTOM_Y, REAR + 1, "tail"),  # tow hook
 ])
 
 
@@ -554,13 +559,13 @@ SLOTS, SLOT_W, BAR_W = 8, 1.1, 0.6
 grille_w = SLOTS * SLOT_W + (SLOTS + 1) * BAR_W
 gx0 = -grille_w / 2
 body += [
-    box(gx0, 8.5, FRONT, -gx0, 16.5, FRONT + 0.2, "grille"),  # back panel
+    box(gx0, GRILLE_BOTTOM_Y + 0.5, FRONT, -gx0, 16.5, FRONT + 0.2, "grille"),  # back panel
     box(gx0 - 0.5, 16.5, FRONT, -gx0 + 0.5, HOOD_TOP_Y, FRONT + 0.6, "body"),  # top frame
-    box(gx0 - 0.5, 8, FRONT, -gx0 + 0.5, 8.5, FRONT + 0.6, "body"),  # bottom frame
+    box(gx0 - 0.5, GRILLE_BOTTOM_Y, FRONT, -gx0 + 0.5, GRILLE_BOTTOM_Y + 0.5, FRONT + 0.6, "body"),  # bottom frame
 ]
 for i in range(SLOTS + 1):
     x = gx0 + i * (SLOT_W + BAR_W)
-    body.append(box(x, 8.5, FRONT + 0.2, x + BAR_W, 16.5, FRONT + 0.6, "body"))
+    body.append(box(x, GRILLE_BOTTOM_Y + 0.5, FRONT + 0.2, x + BAR_W, 16.5, FRONT + 0.6, "body"))
 
 
 def round_face(center, radius, z0, z1, color, segments=12):
@@ -666,14 +671,15 @@ def floor_lever(x, z, height, knob, lean=15):
 
 
 SHIFT_X, SHIFT_Z = 0, 8.5
-body.append(box(-1.8, FLOOR_Y, 4, 1.8, 7.6, 11, "trim"))  # transmission tunnel
+TUNNEL_TOP_Y = FLOOR_Y + 0.6
+body.append(box(-1.8, FLOOR_Y, 4, 1.8, TUNNEL_TOP_Y, 11, "trim"))  # transmission tunnel
 BOOT_RINGS = ((1.0, 0.5), (0.75, 0.4), (0.85, 0.4), (0.6, 0.4), (0.7, 0.35), (0.45, 0.4))  # (half width, height)
 for i, (half, height) in enumerate(BOOT_RINGS):
-    y = 7.6 + sum(h for _, h in BOOT_RINGS[:i])
+    y = TUNNEL_TOP_Y + sum(h for _, h in BOOT_RINGS[:i])
     body.append(box(SHIFT_X - half, y, SHIFT_Z - half, SHIFT_X + half, y + height, SHIFT_Z + half, "tire"))  # boot
 body += floor_lever(SHIFT_X, SHIFT_Z, 7.2, 0.55)
 for x in (-1.1, 1.1):
-    body.append(box(x - 0.4, 7.6, 6.1, x + 0.4, 8.1, 6.9, "tire"))  # boot
+    body.append(box(x - 0.4, TUNNEL_TOP_Y, 6.1, x + 0.4, TUNNEL_TOP_Y + 0.5, 6.9, "tire"))  # boot
     body += floor_lever(x, 6.5, 4.6, 0.4)
 
 # Pedals in the driver's footwell (+x side): clutch and brake are square rubber pads with ribs on
@@ -685,7 +691,7 @@ for px in (4.4, 6.6):  # clutch, brake
         box(px - 0.9, 8.2, 11.4, px + 0.9, 9.6, 11.7, "grille"),  # pad
     ]
     body += [box(px - 0.8, y, 11.3, px + 0.8, y + 0.2, 11.4, "trim") for y in (8.45, 8.8, 9.15)]  # ribs
-accelerator = box(8.3, FLOOR_Y, 10.2, 9.3, 7.3, 12.8, "grille")
+accelerator = box(8.3, FLOOR_Y, 10.2, 9.3, FLOOR_Y + 0.3, 12.8, "grille")
 accelerator["pivot"] = [8.8, FLOOR_Y, 12.8]
 accelerator["rotation"] = [-25, 0, 0]
 body.append(accelerator)
@@ -964,7 +970,7 @@ geo = {
             "bones": [
                 {"name": "root", "pivot": [0, 12, 0]},
                 {"name": "body", "parent": "root", "pivot": [0, FLOOR_Y, 0], "cubes": body,
-                 "locators": {"exhaust": [9, 2.6, REAR - 2.6]}},
+                 "locators": {"exhaust": [9, SILL_Y - 1.4, REAR - 2.6]}},
                 {"name": "headlights", "parent": "body", "pivot": [0, FLOOR_Y, 0], "cubes": headlights},
                 # Shown only in flight by the render controller (ADR 0026)
                 {"name": "rear_glass", "parent": "body", "pivot": [0, FLOOR_Y, 0],

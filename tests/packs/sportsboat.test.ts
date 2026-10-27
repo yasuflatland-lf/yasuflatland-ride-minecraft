@@ -1065,7 +1065,8 @@ describe("sports boat hull planking (ADR 0161)", () => {
     const corners: Cube[] = suv.bones
       .flatMap((b: { cubes?: Cube[] }) => b.cubes ?? [])
       .filter(
-        (cube: Cube) => cube.rotation?.[1] === 30 && cube.size[1] === 3.8,
+        (cube: Cube) =>
+          cube.rotation?.[1] === 30 && Math.abs(cube.size[1] - 3.8) < 1e-6,
       );
     expect(corners).toHaveLength(1);
     const corner = corners[0];
@@ -1073,8 +1074,9 @@ describe("sports boat hull planking (ADR 0161)", () => {
     if (!corner) return;
     const z = corner.pivot?.[2] ?? 0;
     const innerX = Math.abs(corner.pivot?.[0] ?? 0);
-    expect(reach(corner, 5, z - 0.1)).toBeLessThan(innerX + 0.5);
-    expect(reach(corner, 5, z + 1)).toBeGreaterThan(innerX + 1.5);
+    const y = corner.origin[1] + corner.size[1] / 2;
+    expect(reach(corner, y, z - 0.1)).toBeLessThan(innerX + 0.5);
+    expect(reach(corner, y, z + 1)).toBeGreaterThan(innerX + 1.5);
   });
 
   it("intercepts vertical rays throughout the outer plan, including both stem gaps", () => {
