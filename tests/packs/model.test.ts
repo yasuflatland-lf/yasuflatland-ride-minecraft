@@ -50,37 +50,55 @@ function pivot(name: string): Vec3 {
   return p;
 }
 
-// Separating axes of oriented boxes include their edges and each cross product.
-// Using turned corners catches a sloping flare even when its AABB overlaps a tire.
-function separated(a: Vec3[], b: Vec3[]): boolean {
-  const minus = (p: Vec3, q: Vec3): Vec3 => [
-    p[0] - q[0],
-    p[1] - q[1],
-    p[2] - q[2],
-  ];
-  const dot = (p: Vec3, q: Vec3) => p[0] * q[0] + p[1] * q[1] + p[2] * q[2];
-  const cross = (p: Vec3, q: Vec3): Vec3 => [
+function minus(p: Vec3, q: Vec3): Vec3 {
+  return [p[0] - q[0], p[1] - q[1], p[2] - q[2]];
+}
+
+function dot(p: Vec3, q: Vec3): number {
+  return p[0] * q[0] + p[1] * q[1] + p[2] * q[2];
+}
+
+function cross(p: Vec3, q: Vec3): Vec3 {
+  return [
     p[1] * q[2] - p[2] * q[1],
     p[2] * q[0] - p[0] * q[2],
     p[0] * q[1] - p[1] * q[0],
   ];
+}
+
+// Separating axes of two oriented boxes: their edges and each pair's cross product.
+// Testing turned corners catches a sloping flare even when its AABB overlaps a tire.
+function separated(a: Vec3[], b: Vec3[]): boolean {
   const edges = (points: Vec3[]) =>
     [1, 2, 4].map((i) => minus(points[i] as Vec3, points[0] as Vec3));
-  const ea = edges(a),
-    eb = edges(b);
-  return [...ea, ...eb, ...ea.flatMap((u) => eb.map((v) => cross(u, v)))].some(
-    (axis) => {
-      const length = Math.hypot(...axis);
-      if (length < 1e-9) return false;
-      const unit = axis.map((v) => v / length) as Vec3;
-      const pa = a.map((p) => dot(p, unit)),
-        pb = b.map((p) => dot(p, unit));
-      return (
-        Math.max(...pa) <= Math.min(...pb) + 1e-8 ||
-        Math.max(...pb) <= Math.min(...pa) + 1e-8
-      );
-    },
-  );
+  const edgesA = edges(a);
+  const edgesB = edges(b);
+  const axes = [
+    ...edgesA,
+    ...edgesB,
+    ...edgesA.flatMap((u) => edgesB.map((v) => cross(u, v))),
+  ];
+  return axes.some((axis) => {
+    const length = Math.hypot(...axis);
+    if (length < 1e-9) return false;
+    const unit = axis.map((v) => v / length) as Vec3;
+    const projectedA = a.map((p) => dot(p, unit));
+    const projectedB = b.map((p) => dot(p, unit));
+    return (
+      Math.max(...projectedA) <= Math.min(...projectedB) + 1e-8 ||
+      Math.max(...projectedB) <= Math.min(...projectedA) + 1e-8
+    );
+  });
+}
+
+function spun(points: Vec3[], hub: Vec3, radians: number): Vec3[] {
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  return points.map(([x, y, z]) => [
+    x,
+    hub[1] + (y - hub[1]) * cos - (z - hub[2]) * sin,
+    hub[2] + (y - hub[1]) * sin + (z - hub[2]) * cos,
+  ]);
 }
 
 describe("SUV model (ADR 0009)", () => {
@@ -95,17 +113,7 @@ describe("SUV model (ADR 0009)", () => {
           const wheel = bones.get(name) as Bone;
           const hub = pivot(name);
           for (const cube of wheel.cubes ?? []) {
-            const tire = turnedCorners(wheel, cube).map(
-              ([x, y, z]): Vec3 => [
-                x,
-                hub[1] +
-                  (y - hub[1]) * Math.cos(radians) -
-                  (z - hub[2]) * Math.sin(radians),
-                hub[2] +
-                  (y - hub[1]) * Math.sin(radians) +
-                  (z - hub[2]) * Math.cos(radians),
-              ],
-            );
+            const tire = spun(turnedCorners(wheel, cube), hub, radians);
             for (const obstacle of obstacles) {
               // Most body cubes are inboard or above the wheels.
               const apart = [0, 1, 2].some(
