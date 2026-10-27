@@ -28,9 +28,8 @@ TARGETS = {
     }.items()
 }
 TARGETS["windshield_rake"] = {"degrees": 34.34609740006154, "tolerance": 3}
-PENDING = set(TARGETS) - {"wheelbase", "front_overhang", "rear_overhang", "ground_clearance",
-                         "hood_length", "hood_height", "windshield_rake",
-                         "overall_height", "belt_height", "side_window_height"}
+# Every row meets its target since 7/7; a row added later starts here until the model meets it.
+PENDING = set()
 
 
 def _bounds(cubes):
