@@ -27,6 +27,9 @@ const tilt = (cubes: Cube[], pivot: Vec, degrees: number): Cube[] => {
   return JSON.parse(out);
 };
 
+// JSON turns -0 into 0, so compare against what the helper actually sent.
+const sent = <T>(value: T): T => JSON.parse(JSON.stringify(value));
+
 const rad = (degrees: number) => (degrees * Math.PI) / 180;
 type Matrix = number[][];
 const mul = (a: Matrix, b: Matrix): Matrix =>
@@ -162,11 +165,31 @@ describe("tilt_assembly (ADR 0166)", () => {
         fc.array(cube, { minLength: 1, maxLength: 3 }),
         vec,
         (cubes, pivot) => {
-          expect(tilt(cubes, pivot, 0)).toEqual(cubes);
+          expect(tilt(cubes, pivot, 0)).toEqual(sent(cubes));
         },
       ),
       runs,
     );
+  });
+
+  it("changes nothing for 0 degrees when a rotation component is negative zero", () => {
+    const cubes: Cube[] = [
+      {
+        origin: [0, 0, 0],
+        size: [0.1, 0.1, 0.1],
+        uv: {},
+        pivot: [0, 0, 0],
+        rotation: [0, 0, -0],
+      },
+      {
+        origin: [0, 0, 0],
+        size: [0.1, 0.1, 0.1],
+        uv: {},
+        pivot: [0, 0, 0],
+        rotation: [0, 0, 0],
+      },
+    ];
+    expect(tilt(cubes, [0, 0, 0], 0)).toEqual(sent(cubes));
   });
 
   it("requires a declared assembly for compound tilt results", () => {
