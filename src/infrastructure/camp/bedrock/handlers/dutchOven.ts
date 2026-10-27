@@ -6,7 +6,11 @@ import {
   world,
 } from "@minecraft/server";
 import type { DutchOvenActions } from "../../../../application/camp/dutchOven";
-import { aimOnPlane, asDutchOvenId } from "../../../../domain/camp/dutchOven";
+import {
+  aimOnPlane,
+  asDutchOvenId,
+  hostLocalPx,
+} from "../../../../domain/camp/dutchOven";
 import { asFirePitId } from "../../../../domain/camp/firePit";
 import {
   DUTCH_OVEN_SPEC,
@@ -19,7 +23,6 @@ import {
   type PlayerId,
 } from "../../../../domain/shared/ids";
 import { TickScopedSet } from "../../../../domain/shared/tickScoped";
-import { degToRad } from "../../../../domain/shared/vec";
 import {
   CAMP_TABLE_TYPE,
   DUTCH_OVEN_ITEM,
@@ -68,25 +71,16 @@ export function registerDutchOven(actions: DutchOvenActions): void {
         system.run(() => actions.placeOnFirePit({ player, pit, slot }));
       } else {
         const table = ev.target.id;
-        const at = ev.target.location;
+        const host = {
+          at: ev.target.location,
+          yaw: ev.target.getRotation().y,
+        };
         const point = aimOnPlane(
           ev.player.getHeadLocation(),
           ev.player.getViewDirection(),
-          at.y + TABLE_TOP_PX / 16,
+          host.at.y + TABLE_TOP_PX / 16,
         );
-        const angle = degToRad(ev.target.getRotation().y);
-        const aim = point
-          ? {
-              x:
-                ((point.x - at.x) * Math.cos(angle) +
-                  (point.z - at.z) * Math.sin(angle)) *
-                16,
-              z:
-                (-(point.x - at.x) * Math.sin(angle) +
-                  (point.z - at.z) * Math.cos(angle)) *
-                16,
-            }
-          : undefined;
+        const aim = point ? hostLocalPx(host, point) : undefined;
         system.run(() => actions.placeOnTable({ player, table, slot, aim }));
       }
       return;

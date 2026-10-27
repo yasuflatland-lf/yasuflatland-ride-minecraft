@@ -11,7 +11,6 @@ import {
   DUTCH_OVEN_ON_TOP_HINT,
   TABLE_HITS_LEFT_HINT,
 } from "../identifiers";
-
 import { takenTableSpots } from "./tableOvens";
 
 function tableOf(id: TableId) {

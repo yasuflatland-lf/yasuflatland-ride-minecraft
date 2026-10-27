@@ -29,7 +29,6 @@ import {
   isFirePitCovered,
   setFirePitCovered,
 } from "./firePitCovered";
-
 import { takenTableSpots } from "./tableOvens";
 
 function dutchOven(id: DutchOvenId) {
