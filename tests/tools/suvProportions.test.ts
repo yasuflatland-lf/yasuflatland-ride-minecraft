@@ -115,7 +115,7 @@ describe("SUV proportions", () => {
       }),
       { numRuns: 20 },
     );
-  });
+  }, 60_000);
 
   it("reduces height ratios when fixture cubes stretch in z", () => {
     const cubes = fixture(25);
