@@ -263,6 +263,10 @@ Run H1-H6 on PC and mobile, with Vibrant Visuals on and off, after a Resource Pa
 | C176 | Hit the covered pit three times, then hit the oven three times; finally hit the pit three times | The pit initially stays and shows "Take the Dutch oven off first". The oven returns as one item to collect into inventory, the grill disappears, and the uncovered pit folds | unverified | unverified |
 | C177 | Use an oven on each half of a Camp Table, attempt a third, use Sit with an empty hand, and hit the empty-seat table three times | Two lidded ovens fit, a third is refused, Sit still works, and the table will not fold while an oven stands on it | unverified | unverified |
 | C178 | Inspect the oven and covered pit in Vibrant Visuals on PC and a touch client | The grill, lugs, and bail read as reflective metal; the iron is matte; the plain lid shows no logo or lettering | unverified | unverified |
+| C179 | Take a Noga Chair from Camping Gear (Outside), directly after the Low Chair, and place it on a clear block top without a vehicle | One chair faces the player; Survival consumes one item; blocked or vehicle space refuses placement | unverified | unverified |
+| C180 | Sit on the Noga Chair on PC and a touch client (long-press for the Sit button) | One player sits low and reclined, with knees above the seat; the player does not clip the back sling; sneak or jump gets up | unverified | unverified |
+| C181 | Hit an empty Noga Chair three times quickly, then repeat while someone sits on it | The empty chair folds into one Noga Chair item on hit three; seated hits do not count | unverified | unverified |
+| C182 | Compare the Noga Chair from front, side, and behind against the five supplied photos | The smooth wrap-around back, wing cut-out, splayed legs, central hub, and zippered rear pocket read clearly; no label patch, lettering, or brand mark appears | unverified | unverified |
 
 ## Bulldozer
 

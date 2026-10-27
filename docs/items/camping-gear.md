@@ -37,6 +37,17 @@ A low folding camp chair with a brown canvas sling seat and a reclined canvas ba
 - **Take it back:** hit it three times in quick succession while nobody sits on it. It folds up and drops its item. Each hit before the third tells you how many more it takes.
 - **Get one:** in Creative, it is the first item in the Camping Gear (Outside) group near the end of the Items tab. In Survival, craft it from two leather, two sticks, and two iron ingots (leather top-left and middle, sticks on either side of the middle, iron ingots in the bottom corners).
 
+## Noga Chair (outside the vehicles)
+
+![Noga Chair](../images/items/camping-gear/noga_chair.png)
+
+A compact folding chair with a plain gray-olive sling, a high wrap-around back with bound edges and an open cut-out in the left wing, and a black aluminium frame. Four splayed legs meet at a hub under the seat; a zippered pocket hangs behind it. The chair is about 14 × 15 pixels, with its seat about 5 pixels above the ground and its back reclined by 20 degrees (ADR 0169).
+
+- **Place it:** use the Noga Chair item on a block top outside vehicle space, with two free blocks above. It faces you in eighth-turn steps and settles through short grass or carpet. It refuses the add-on's blocks and occupied chair spaces. Outside Creative, placing consumes one item.
+- **Sit on it:** right-click on PC or long-press on touch and use **Sit**. Sneak or jump to get up. Its low sling is intended for a reclined, knees-up posture; the seated fit still needs device verification.
+- **Take it back:** hit it three times in quick succession while nobody sits on it. It folds into one item; the first two hits show how many more are needed.
+- **Get one:** find it directly after the Low Chair in **Camping Gear (Outside)**. Craft it from four wool of any color and three iron ingots: wool in the top-left and top-middle, wool on either side of an iron ingot in the middle row, and iron ingots in both bottom corners (`WW ` / `WIW` / `I I`).
+
 ## Tent (outside the vehicles)
 
 ![Tent](../images/items/camping-gear/tent.png)
@@ -68,7 +79,7 @@ A shallow matte black cast-iron pot with a flat lid, rectangular loop handle, pi
 
 Inside gear is vehicle-linked and cannot be crafted: each item is only a carrier that works when held and pressed on a parked camper's furniture slot, where the vehicle feature turns it into decor; it does nothing on the ground.
 
-Outside gear consists of plain camp-feature items that anyone can take from Creative or craft in Survival and place on the ground as their own Low Chair, Tent, Camp Table, Fire Pit, or Dutch Oven entity without a camper or any other vehicle present; they are never decor or box contents, and still refuse placement inside a vehicle's space (ADR 0122, 0129, 0152, 0153, 0168).
+Outside gear consists of plain camp-feature items that anyone can take from Creative or craft in Survival and place on the ground as their own Low Chair, Noga Chair, Tent, Camp Table, Fire Pit, or Dutch Oven entity without a camper or any other vehicle present; they are never decor or box contents, and still refuse placement inside a vehicle's space (ADR 0122, 0129, 0152, 0153, 0168).
 
 Creative players find the 19 decor items above in the **Camping Gear (Inside)** group near the end of the Items tab. Each item has a decor block, `yasu_ride:<id>_decor`, that the parked camper lays on a furniture slot. The block has no collision and cannot be broken. Its `yasu_ride:height` state (0 to 15) lifts the gear by that many pixels to the slot's top. On the ceiling hook it lifts the hanging planter so that its top meets the hook. Its `yasu_ride:face` state is the parked camper's facing in quarter turns (0 south, 1 west, 2 north, 3 east). The block turns the gear so that the side shown at the front of its preview faces the camper's front. Its `yasu_ride:spot` state (0 to 4) moves the gear from the middle of its cell to one of the four stove burner spots of ADR 0107, which no slot uses since the stove got one burner in its middle (ADR 0112). A shelf board and the table hold two items, drawn by one block in the furniture's cell, `yasu_ride:shelf_decor_pair` or `yasu_ride:table_decor_pair`, whose states name the item at each end (ADR 0108).
 
