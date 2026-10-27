@@ -3,8 +3,8 @@ import { HEADLIGHTS_PROPERTY_NAME } from "../../../domain/vehicle/entityContract
 import type { FleetEntry } from "../../../domain/vehicle/fleet/fleet";
 import { VEHICLE_KINDS, type VehicleKind } from "../../../domain/vehicle/kind";
 import {
-  BLADE_SWITCH_ITEM,
   CAMPING_GEAR_IDS,
+  MONITOR_TOOL_ITEMS,
   pairHeights,
   STAND_IN_NAMES,
   STANDING_GEAR_IDS,
@@ -162,13 +162,13 @@ export const DECK_SEAT_COMPACT_EVENT = entityEventId("compact");
  */
 export const TEST_INPUT_EVENT = id("test_input");
 export const TEST_DECOR_EVENT = id("test_decor");
-/** Test blade messages have the form "<vehicleId>,raised" or "<vehicleId>,lowered" (ADR 0138). */
-export const TEST_BLADE_EVENT = id("test_blade");
+/** Server-only test tool messages use "<vehicleId>,<bare item id>,<state>" (ADR 0171). */
+export const TEST_TOOL_EVENT = id("test_tool");
 /** Test held-tool messages have the form "<vehicleId>,<bare item id>" or "<vehicleId>,clear" (ADR 0139). */
 export const TEST_HELD_TOOL_EVENT = id("test_held_tool");
 
-/** Item the bulldozer's driver uses to raise or lower its blade (ADR 0138). */
-export const BLADE_SWITCH_TYPE = id(BLADE_SWITCH_ITEM);
+/** Item routes for every kind's monitor tools (ADR 0171). */
+export const MONITOR_TOOL_TYPES = MONITOR_TOOL_ITEMS.map(id);
 /**
  * Camera presets for each chase camera: the vanilla preset that views the player from
  * behind, as F5 does (ADR 0028), and the pack's presets pulled back from it (ADR 0071, 0170).

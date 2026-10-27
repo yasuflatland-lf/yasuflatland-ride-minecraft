@@ -1,35 +1,37 @@
 import type { PlayerId, VehicleId } from "../../domain/shared/ids";
-// Use case: the driver raises or lowers the bulldozer's blade (ADR 0138).
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
 import type { Clock } from "./ports/shared";
 
-export interface SwitchBladeCommand {
+export interface SwitchToolCommand {
   playerId: PlayerId;
+  item: string;
   vehicleId: VehicleId;
 }
 
-export interface ForceBladeCommand {
+export interface ForceToolCommand {
   vehicleId: VehicleId;
-  raised: boolean;
+  item: string;
+  state: string;
 }
 
-export class SwitchBlade {
+export class SwitchTool {
   constructor(
     private readonly repo: VehicleRepository,
     private readonly clock: Clock,
   ) {}
 
-  /** Returns whether the blade's target changed. */
-  execute(cmd: SwitchBladeCommand): boolean {
+  execute(cmd: SwitchToolCommand): boolean {
     return (
       this.repo
         .get(cmd.vehicleId)
-        ?.switchBlade(cmd.playerId, this.clock.now()) ?? false
+        ?.switchTool(cmd.playerId, cmd.item, this.clock.now()) ?? false
     );
   }
 
   /** For the server-only test hook only. */
-  force(cmd: ForceBladeCommand): boolean {
-    return this.repo.get(cmd.vehicleId)?.forceBlade(cmd.raised) ?? false;
+  force(cmd: ForceToolCommand): boolean {
+    return (
+      this.repo.get(cmd.vehicleId)?.forceTool(cmd.item, cmd.state) ?? false
+    );
   }
 }

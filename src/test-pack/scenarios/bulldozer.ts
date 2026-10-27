@@ -12,8 +12,8 @@ import { BULLDOZER_SPEC } from "../../domain/vehicle/kinds/bulldozer/spec";
 import {
   ENTITY_TYPE,
   entityPropertyId,
-  TEST_BLADE_EVENT,
   TEST_HELD_TOOL_EVENT,
+  TEST_TOOL_EVENT,
 } from "../../infrastructure/vehicle/bedrock/identifiers";
 import { type Arena, drive, type Outcome, wait, withCar } from "../arena";
 import { hitTick, judgeRam, PUSH_WINDOW, type RamSample } from "../ramJudge";
@@ -32,8 +32,8 @@ function withBulldozer<T>(
 async function setBlade(car: Entity, raised: boolean): Promise<void> {
   await wait(2); // the main pack builds the aggregate of a freshly summoned bulldozer first
   system.sendScriptEvent(
-    TEST_BLADE_EVENT,
-    `${car.id},${raised ? "raised" : "lowered"}`,
+    TEST_TOOL_EVENT,
+    `${car.id},${BLADE_SWITCH_ITEM},${raised ? "up" : "down"}`,
   );
   await wait(BULLDOZER_SPEC.bladeLiftTicks + 2);
   const lift = car.getProperty(entityPropertyId("blade"));
