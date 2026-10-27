@@ -12,7 +12,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0006](0006-ram-damage-and-occupant-protection.md) | Ram damage detection, and always protecting occupants | Accepted |
 | [0007](0007-seats-and-driver.md) | Seats and choosing the driver | Superseded by 0019 |
 | [0008](0008-vehicle-item-and-breaking.md) | Placing and picking up vehicles | Superseded in part by 0036; extended by 0122 (Proposed) |
-| [0009](0009-vehicle-model-conventions.md) | Vehicle model conventions, and accepting a square collision box | Extended by 0091, 0093, 0136 (Proposed), and 0139 (Proposed) |
+| [0009](0009-vehicle-model-conventions.md) | Vehicle model conventions, and accepting a square collision box | Superseded in part by 0170 (SUV collision dimensions; Proposed); extended by 0091, 0093, 0136 (Proposed), and 0139 (Proposed) |
 | [0010](0010-testing-strategy.md) | Testing strategy | Accepted; extended by 0139 (Proposed) |
 | [0011](0011-dev-server-docker-raknet.md) | Run the development server as BDS in Docker with raknet | Superseded by 0015 |
 | [0012](0012-ddd-layered-architecture.md) | Split the code into domain, application, and infrastructure layers | Extended by 0065 |
