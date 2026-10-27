@@ -120,7 +120,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0114](0114-open-the-camper-wall-cabinet.md) | Open the camper wall cabinet | Extended by 0121 |
 | [0115](0115-camper-ceiling-lights.md) | Ceiling lights in the parked camper | Extended by 0123 (Proposed) and [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md) (Proposed); extended by 0147; superseded in part by 0149 |
 | [0116](0116-a-bumper-stand-in-takes-the-camper-hits.md) | A bumper stand-in takes the camper's hits | Proposed; extended by 0119 (Proposed) |
-| [0117](0117-move-the-suv-front-seats-back.md) | Move the SUV's front seats back | Accepted |
+| [0117](0117-move-the-suv-front-seats-back.md) | Move the SUV's front seats back | Superseded in part by 0170 |
 | [0118](0118-close-the-camper-shower-door-from-either-side.md) | Close the camper shower door from either side | Accepted |
 | [0119](0119-park-the-camper-over-natural-ground.md) | Park the camper over natural ground, and lift its bumper stand-in out of it | Proposed |
 | [0120](0120-choose-a-sports-boat-seat-by-aiming-at-it.md) | Choose a sports boat seat by aiming at it | Proposed; extended by 0154 (Proposed) |

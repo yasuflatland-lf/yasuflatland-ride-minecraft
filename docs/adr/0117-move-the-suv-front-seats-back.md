@@ -1,6 +1,6 @@
 # 0117. Move the SUV's front seats back
 
-- Status: Accepted
+- Status: Superseded in part by 0170
 - Date: 2026-10-22
 - Supersedes in part: 0052 (the front seats' z in its seat table)
 

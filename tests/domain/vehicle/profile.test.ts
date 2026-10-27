@@ -134,8 +134,8 @@ describe("vehicle profiles (ADR 0050)", () => {
       footprint: 2.35,
       seats: {
         positions: [
-          { x: -0.38, z: 0.2 },
-          { x: 0.38, z: 0.2 },
+          { x: -0.38, z: 0.075 },
+          { x: 0.38, z: 0.075 },
           { x: -0.38, z: -0.8 },
           { x: 0.38, z: -0.8 },
         ],

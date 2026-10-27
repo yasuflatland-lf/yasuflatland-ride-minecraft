@@ -54,6 +54,8 @@ To use commands, run `docker exec yasuflatland-ride-bds send-command op <player 
 | 45 | Board and leave each of the four SUV seats, using other players to fill earlier seats (ADR 0170, 4/7) | Boarding, seat order, door animations and leaving work with the raised sill and floor; an opening door slides over the side step without cutting through it | unverified | unverified |
 | 46 | Sit in each SUV seat and look forward, sideways and up; have another player inspect every rider from outside | The seated view stays below the roof, cushions support riders, and no head clips the unchanged roof underside | unverified | unverified |
 | 47 | Inspect the SUV from the side on flat ground, then fold the wheels and submerge | Tires remain on the ground with the higher sill; flares remain smooth, and rear_glass and windows_sealed still fill their openings | unverified | unverified |
+| 48 | On PC and a touch client, sit in each front SUV seat, switch between first- and third-person view, look forward and around, and drive over a slope | The longer hood and raked windshield read smoothly; the head clears the roof and windshield, the steering wheel and gauges remain usable, and the cowl does not hide the road | unverified | unverified |
+| 49 | On PC and a touch client, inspect the SUV windshield and front side windows in hover and submarine forms, from inside and outside; return to car form and open both front doors | The sealed panes meet the sloping frames and roof without gaps, exposed steps or flicker; rear glass still closes its opening, and front doors swing outward with their mirrors | unverified | unverified |
 
 ## Sports boat
 
