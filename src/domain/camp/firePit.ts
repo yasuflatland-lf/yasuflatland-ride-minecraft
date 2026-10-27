@@ -10,3 +10,7 @@ export function canToggleFirePit(
 ): boolean {
   return lit || heldItem === "minecraft:flint_and_steel";
 }
+
+export function canFoldFirePit(covered: boolean): boolean {
+  return !covered;
+}

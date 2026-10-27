@@ -1,4 +1,8 @@
-import { canToggleFirePit, type FirePitId } from "../../domain/camp/firePit";
+import {
+  canFoldFirePit,
+  canToggleFirePit,
+  type FirePitId,
+} from "../../domain/camp/firePit";
 import { FIRE_PIT_SPEC } from "../../domain/camp/spec";
 import {
   EMPTY_COUNTER,
@@ -57,6 +61,10 @@ export class FirePitActions {
   }
 
   hit(id: FirePitId, player: PlayerId, tick: number): boolean {
+    if (!canFoldFirePit(this.world.isCovered(id))) {
+      this.world.showCoveredHint(player);
+      return false;
+    }
     const result = registerHit(
       this.counters.get(id) ?? EMPTY_COUNTER,
       tick,
