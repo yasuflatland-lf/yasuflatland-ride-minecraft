@@ -18,7 +18,7 @@ import { SPEC } from "../../../../src/domain/vehicle/spec";
 
 const insideFootprint = fc.record({
   dx: fc.integer({ min: -1, max: 1 }),
-  dy: fc.integer({ min: 1, max: 2 }),
+  dy: fc.integer({ min: 1, max: 3 }),
   dz: fc.integer({ min: -1, max: 1 }),
 });
 
@@ -30,7 +30,7 @@ const outsideFootprint = fc
   })
   .filter(
     ({ dx, dy, dz }) =>
-      Math.abs(dx) > 1 || Math.abs(dz) > 1 || dy < 1 || dy > 2,
+      Math.abs(dx) > 1 || Math.abs(dz) > 1 || dy < 1 || dy > 3,
   );
 
 const onlyBlocked =
@@ -67,11 +67,11 @@ describe("clearanceHeight", () => {
 });
 
 describe("canPlaceAt (ADR 0008, collision box from ADR 0009)", () => {
-  it("can place when a 3-wide × 2-high space is clear", () => {
+  it("can place when a 3-wide × 3-high space is clear", () => {
     expect(canPlaceAt(() => true, SUV_PROFILE.placement.clearance)).toBe(true);
   });
 
-  it("cannot place when any single cell of the 3 × 2 × 3 footprint is blocked", () => {
+  it("cannot place when any single cell of the 3 × 3 × 3 footprint is blocked", () => {
     fc.assert(
       fc.property(insideFootprint, (b) => {
         expect(

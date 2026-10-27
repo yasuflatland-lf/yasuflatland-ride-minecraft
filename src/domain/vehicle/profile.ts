@@ -45,9 +45,10 @@ export interface BeamPattern {
 
 /**
  * The view riders get off the road (ADR 0028, 0071): `near` is the vanilla view from
- * behind, as F5 shows it, and `far` pulls back far enough to show a long body whole.
+ * behind, as F5 shows it, `mid` pulls back enough to frame the scaled SUV (ADR 0170),
+ * and `far` pulls back far enough to show a long body whole.
  */
-export type ChaseCamera = "near" | "far";
+export type ChaseCamera = "near" | "mid" | "far";
 
 export interface VehicleProfile {
   readonly kind: VehicleKind;

@@ -20,17 +20,17 @@
         "interact_text": "action.interact.ride.horse",
         "seats": [
           {
-            "position": [-0.38, 0.3, 0.075],
+            "position": [-0.494, 0.52, -0.0446875],
             "lock_rider_rotation": 90
           },
           {
-            "position": [0.38, 0.3, 0.075]
+            "position": [0.494, 0.52, -0.0446875]
           },
           {
-            "position": [-0.38, 0.3, -0.8]
+            "position": [-0.494, 0.52, -1.04]
           },
           {
-            "position": [0.38, 0.3, -0.8]
+            "position": [0.494, 0.52, -1.04]
           }
         ]
       }

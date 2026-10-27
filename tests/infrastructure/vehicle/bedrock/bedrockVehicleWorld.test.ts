@@ -1376,7 +1376,7 @@ describe("BedrockVehicleWorld.isVehicleSpace (ADR 0122)", () => {
   const OVERWORLD = asDimensionId("overworld");
 
   // The car stands at (-1.25, 64.25, 2.75), in cell (-2, 64, 2). The SUV's footprint
-  // reaches 2.35 blocks at any heading, and its clearance two blocks up.
+  // reaches 3.05 blocks at any heading, and its clearance three blocks up.
   it.each<[Vec3, boolean]>([
     [{ x: -2, y: 64, z: 2 }, true],
     [{ x: -1, y: 66, z: 3 }, true],
@@ -1386,14 +1386,15 @@ describe("BedrockVehicleWorld.isVehicleSpace (ADR 0122)", () => {
     [{ x: -2, y: 64, z: 0 }, true],
     [{ x: 2, y: 64, z: 2 }, false],
     [{ x: -2, y: 64, z: 6 }, false],
-    [{ x: -2, y: 67, z: 2 }, false],
+    [{ x: -2, y: 67, z: 2 }, true],
+    [{ x: -2, y: 68, z: 2 }, false],
     [{ x: -2, y: 63, z: 2 }, false],
   ])("treats %o as vehicle space: %s", (cell, expected) => {
     const { world } = fixture();
     expect(world.isVehicleSpace(OVERWORLD, cell)).toBe(expected);
   });
 
-  // The SUV's body reaches 1.85 ahead and 2.22 behind its center (suv.geo.json), so a
+  // The scaled SUV extends over two blocks ahead and behind its center, so a
   // cell up to two cells ahead or behind, or to a side, overlaps it at some heading.
   it("treats every cell up to two cells from an SUV's cell along an axis as vehicle space", () => {
     fc.assert(
@@ -1416,12 +1417,12 @@ describe("BedrockVehicleWorld.isVehicleSpace (ADR 0122)", () => {
     );
   });
 
-  it("leaves every cell four or more cells from an SUV's cell free", () => {
+  it("leaves every cell five or more cells from an SUV's cell free", () => {
     fc.assert(
       fc.property(
         fc.double({ min: -100, max: 100, noNaN: true }),
         fc.double({ min: -100, max: 100, noNaN: true }),
-        fc.integer({ min: 4, max: 7 }),
+        fc.integer({ min: 5, max: 8 }),
         fc.constantFrom(-1, 1),
         fc.integer({ min: -6, max: 6 }),
         fc.boolean(),

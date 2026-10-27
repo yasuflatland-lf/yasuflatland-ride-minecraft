@@ -22,11 +22,14 @@ const script = [
 const d = JSON.parse(
   execFileSync("python3", ["-I", "-c", script], { encoding: "utf8" }),
 ) as Record<string, number>;
-const dimension = (name: string): number => {
+const constant = (name: string): number => {
   const value = d[name];
   if (value === undefined) throw new Error(`Missing dimension ${name}`);
   return value;
 };
+// Construction lengths reach the exported model scaled by SIZE_SCALE (ADR 0170).
+const dimension = (name: string): number =>
+  Number((constant(name) * constant("SIZE_SCALE")).toFixed(12));
 const model = JSON.parse(
   readFileSync(
     "packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json",
@@ -71,7 +74,9 @@ it("orders the SUV body heights and longitudinal landmarks consistently", () => 
 it("joins the shortened A-pillars to the roof without protruding above it", () => {
   const body = bone("body") as GeometryBone;
   const pillars = (body.cubes ?? []).filter(
-    (c) => c.rotation?.[0] === -dimension("WINDSHIELD_LEAN") && c.size[0] === 1,
+    (c) =>
+      c.rotation?.[0] === -constant("WINDSHIELD_LEAN") &&
+      Math.abs(c.size[0] - constant("SIZE_SCALE")) < 1e-10,
   );
   expect(pillars).toHaveLength(2);
   for (const pillar of pillars) {
@@ -105,13 +110,13 @@ it("anchors wheel assemblies and hover locators to the exported axles", () => {
     ]);
     const glow = bone(`glow_${corner}`);
     expect(glow.pivot).toEqual([
-      side * (dimension("HUB_X") + dimension("FOLD_OUT")),
+      Number((side * (dimension("HUB_X") + dimension("FOLD_OUT"))).toFixed(12)),
       0,
       z,
     ]);
     expect(glow.locators?.[`hover_${corner}`]).toEqual([
       glow.pivot[0],
-      -0.5,
+      -0.5 * constant("SIZE_SCALE"),
       z,
     ]);
     if (corner.startsWith("r")) {
@@ -145,8 +150,8 @@ it("keeps hover and submarine animation offsets aligned with their assemblies", 
     });
     const hub = bone(name).pivot;
     const glow = bone(`glow_${corner}`).pivot;
-    expect(hub[0] + folded[0]).toBe(glow[0]);
-    expect(hub[1] + folded[1] + dimension("TIRE_HALF_WIDTH")).toBe(
+    expect(hub[0] + folded[0]).toBeCloseTo(glow[0], 10);
+    expect(hub[1] + folded[1] + dimension("TIRE_HALF_WIDTH")).toBeCloseTo(
       dimension("FOLDED_WHEEL_TOP_Y"),
     );
     if (corner.startsWith("r")) {

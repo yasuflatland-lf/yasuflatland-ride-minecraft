@@ -86,8 +86,8 @@ describe("vehicle profiles (ADR 0050)", () => {
   it.each([
     {
       kind: "suv",
-      body: { front: 1.85, halfWidth: 1.1, height: 1.6 },
-      clearance: { halfX: 1, halfZ: 1, height: 2 },
+      body: { front: 2.41, halfWidth: 1.47, height: 2.08 },
+      clearance: { halfX: 1, halfZ: 1, height: 3 },
     },
     {
       kind: "camper",
@@ -131,22 +131,22 @@ describe("vehicle profiles (ADR 0050)", () => {
         halfWidth: SUV_SPEC.bodyHalfWidth,
         height: SUV_SPEC.carHeight,
       },
-      footprint: 2.35,
+      footprint: 3.05,
       seats: {
         positions: [
-          { x: -0.38, z: 0.075 },
-          { x: 0.38, z: 0.075 },
-          { x: -0.38, z: -0.8 },
-          { x: 0.38, z: -0.8 },
+          { x: -0.494, z: -0.0446875 },
+          { x: 0.494, z: -0.0446875 },
+          { x: -0.494, z: -1.04 },
+          { x: 0.494, z: -1.04 },
         ],
       },
       boarding: { order: "engine" },
       beams: { reach: SUV_SPEC.headlightReach, lanes: [0] },
       placement: {
         surfaces: ["top"],
-        clearance: { halfX: 1, halfZ: 1, height: 2 },
+        clearance: { halfX: 1, halfZ: 1, height: 3 },
       },
-      chaseCamera: "near",
+      chaseCamera: "mid",
       defaultPaint: "khaki",
     });
   });

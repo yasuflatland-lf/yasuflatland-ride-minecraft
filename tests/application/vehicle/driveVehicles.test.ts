@@ -300,7 +300,7 @@ describe("DriveVehicles", () => {
       expect(world.shone.has("bad")).toBe(false);
       expect(log.lines).toEqual([`bad: Error: command ${name}`]);
       expect(world.calls).toContain("motion:good:0");
-      expect(world.calls).toContain("camera:other:third");
+      expect(world.calls).toContain("camera:other:mid");
       expect(world.calls).toContain(
         `breathing:other:${SPEC.waterBreathingTicks}`,
       );
@@ -476,7 +476,7 @@ describe("DriveVehicles third-person camera in flight (ADR 0028)", () => {
     world.snapshots = [snapshot("a", { ...flying, testInput: FULL_THROTTLE })];
     uc.execute(2);
     uc.execute(3);
-    expect(cameraCalls(world)).toEqual(["camera:p:third", "camera:p:own"]);
+    expect(cameraCalls(world)).toEqual(["camera:p:mid", "camera:p:own"]);
   });
 
   it("gives the view back when the vehicle lands", () => {
@@ -499,17 +499,17 @@ describe("DriveVehicles third-person camera in flight (ADR 0028)", () => {
     for (const input of tapTwice) drive(input, true);
     expect(world.formOf("a")).toBe("takeoff");
     // Takeoff and landing count as off the ground (ADR 0028).
-    expect(cameraCalls(world)).toEqual(["camera:p:third"]);
+    expect(cameraCalls(world)).toEqual(["camera:p:mid"]);
     while (world.formOf("a") !== "hover") drive(idle, false);
     for (const input of tapTwice) drive(input, false);
     expect(world.formOf("a")).toBe("landing");
-    expect(cameraCalls(world)).toEqual(["camera:p:third"]);
+    expect(cameraCalls(world)).toEqual(["camera:p:mid"]);
     drive(idle, true);
     expect(world.formOf("a")).toBe("car");
-    expect(cameraCalls(world)).toEqual(["camera:p:third", "camera:p:own"]);
+    expect(cameraCalls(world)).toEqual(["camera:p:mid", "camera:p:own"]);
   });
 
-  it("pulls the camera back for a flying camper, and keeps the near view for a flying SUV (ADR 0071)", () => {
+  it("pulls the camera back for a flying camper, and the mid view for a flying SUV (ADR 0071, 0170)", () => {
     const world = new FakeWorld();
     const uc = new DriveVehicles(world, new InMemoryRepo(), logger());
     const flying = {
@@ -522,7 +522,7 @@ describe("DriveVehicles third-person camera in flight (ADR 0028)", () => {
     ];
     uc.execute(0);
     uc.execute(1);
-    expect(cameraCalls(world)).toEqual(["camera:p:third", "camera:q:far"]);
+    expect(cameraCalls(world)).toEqual(["camera:p:mid", "camera:q:far"]);
   });
 
   it("switches a rider to the new vehicle's camera when they change vehicles in flight", () => {
@@ -540,7 +540,7 @@ describe("DriveVehicles third-person camera in flight (ADR 0028)", () => {
     ];
     uc.execute(1);
     uc.execute(2);
-    expect(cameraCalls(world)).toEqual(["camera:p:third", "camera:p:far"]);
+    expect(cameraCalls(world)).toEqual(["camera:p:mid", "camera:p:far"]);
   });
 
   it("leaves riders of a vehicle on the ground with their own view", () => {
@@ -568,7 +568,7 @@ describe("DriveVehicles third-person camera in flight (ADR 0028)", () => {
     expect(world.calls.some((c) => c.startsWith("motion:a"))).toBe(true);
     world.failCameraOn = undefined;
     uc.execute(1);
-    expect(cameraCalls(world)).toEqual(["camera:p:third"]);
+    expect(cameraCalls(world)).toEqual(["camera:p:mid"]);
   });
 
   it("logs a camera that keeps failing once, not every tick", () => {
@@ -606,7 +606,7 @@ describe("DriveVehicles third-person camera in flight (ADR 0028)", () => {
     world.snapshots = riding;
     world.failCameraOn = "p";
     uc.execute(3);
-    expect(cameraCalls(world)).toEqual(["camera:p:third", "camera:p:own"]);
+    expect(cameraCalls(world)).toEqual(["camera:p:mid", "camera:p:own"]);
     expect(log.lines.filter((l) => l.includes("camera p"))).toHaveLength(2);
   });
 
@@ -629,7 +629,7 @@ describe("DriveVehicles third-person camera in flight (ADR 0028)", () => {
     world.failCameraOn = undefined;
     uc.execute(2);
     uc.execute(3);
-    expect(cameraCalls(world)).toEqual(["camera:p:third", "camera:p:own"]);
+    expect(cameraCalls(world)).toEqual(["camera:p:mid", "camera:p:own"]);
   });
 });
 
@@ -725,7 +725,7 @@ describe("DriveVehicles submarine riders (ADR 0040)", () => {
     world.snapshots = [snapshot("a", { riders: [rider("p")] })];
     uc.execute(20);
     expect(world.calls.filter((c) => c.startsWith("camera:"))).toEqual([
-      "camera:p:third",
+      "camera:p:mid",
       "camera:p:own",
     ]);
     expect(world.calls).toContain("form:a:car");
