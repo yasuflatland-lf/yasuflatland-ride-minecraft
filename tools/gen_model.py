@@ -612,9 +612,6 @@ body += [
 # 4x4: a black instrument panel with a large speedometer in the middle and two small gauges on each
 # side. Every dial has a black face, white ticks and a white needle, in a chrome bezel. No logo or
 # lettering (ADR 0009).
-dashboard_start = len(body)
-
-
 def dial(cx, cy, radius, ticks, needle_angle):
     center = (cx, cy, 10)
     cubes = round_face(center, radius + 0.25, 10, 10.5, "rim")  # bezel
@@ -632,25 +629,30 @@ def dial(cx, cy, radius, ticks, needle_angle):
     return cubes
 
 
-body.append(box(1.6, 15.6, 10.5, 10.4, 20.9, 10.9, "grille"))  # instrument panel
-body += dial(6, 18.2, 1.8, 9, 40)  # speedometer
-for gx in (3.3, 8.7):
-    body += dial(gx, 19.3, 0.85, 5, 30)
-    body += dial(gx, 17.2, 0.85, 5, -30)
+def translate(cubes, axis, offset):
+    """Move cubes and their pivots by offset along axis (0 = x, 1 = y, 2 = z)."""
+    for cube in cubes:
+        cube["origin"][axis] += offset
+        if "pivot" in cube:
+            pivot = list(cube["pivot"])
+            pivot[axis] += offset
+            cube["pivot"] = pivot
 
+
+gauges = [box(1.6, 15.6, 10.5, 10.4, 20.9, 10.9, "grille")]  # instrument panel
+gauges += dial(6, 18.2, 1.8, 9, 40)  # speedometer
+for gx in (3.3, 8.7):
+    gauges += dial(gx, 19.3, 0.85, 5, 30)
+    gauges += dial(gx, 17.2, 0.85, 5, -30)
 # The raked glass crosses the old instrument panel height; lower the cluster to keep it inside
 # the cabin without bringing the steering wheel behind the rider (ADR 0170).
-for cube in body[dashboard_start:]:
-    cube["origin"][1] -= DASH_GAUGE_DROP
-    if "pivot" in cube:
-        cube["pivot"] = [cube["pivot"][0], cube["pivot"][1] - DASH_GAUGE_DROP, cube["pivot"][2]]
-
+translate(gauges, 1, -DASH_GAUGE_DROP)
 
 # Passenger side of the dashboard, like an old utility 4x4: a flat body-colored panel under a black
 # pad along the top, a chrome windshield latch at the outer end of the pad, a black grab bar standing
 # off the panel on two posts, a black box under the bar, and a glovebox lid a little proud of the panel
 # at the outer end with a chrome knob. The driver's side keeps its gauges and wheel.
-body += [
+passenger_dash = [
     box(-CABIN_HALF_WIDTH, 13, 9.9, -1, 16.3, 10, "body"),  # panel
     box(-CABIN_HALF_WIDTH, 16.3, 9.7, -1, BELT_Y, 10, "grille"),  # pad
     box(-11.3, 16.1, 9.5, -10.5, 17.3, 9.7, "rim"),  # windshield latch
@@ -660,11 +662,8 @@ body += [
     box(-11.7, 13.3, 9.75, -8.1, 14.9, 9.9, "body"),  # glovebox lid
     box(-9.05, 14.4, 9.65, -8.75, 14.7, 9.75, "rim"),  # glovebox knob
 ]
-
-for cube in body[dashboard_start:]:
-    cube["origin"][2] += DASH_SHIFT_Z
-    if "pivot" in cube:
-        cube["pivot"] = [*cube["pivot"][:2], cube["pivot"][2] + DASH_SHIFT_Z]
+translate(gauges + passenger_dash, 2, DASH_SHIFT_Z)
+body += gauges + passenger_dash
 
 
 # Floor shifters between the front seats, like an old utility 4x4: a tall shift lever in an
