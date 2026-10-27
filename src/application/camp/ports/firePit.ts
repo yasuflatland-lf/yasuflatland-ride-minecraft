@@ -10,6 +10,9 @@ export interface FirePitWorld {
   isCreative(player: PlayerId): boolean;
   consumeItem(player: PlayerId, slot: number): boolean;
   spawnFirePit(dimension: DimensionId, at: Vec3, yaw: number): void;
+  isCovered(id: FirePitId): boolean;
+  setCovered(id: FirePitId, covered: boolean): void;
+  showCoveredHint(player: PlayerId): void;
   isLit(id: FirePitId): boolean;
   setLit(id: FirePitId, lit: boolean): void;
   wearFlintAndSteel(player: PlayerId, slot: number): void;

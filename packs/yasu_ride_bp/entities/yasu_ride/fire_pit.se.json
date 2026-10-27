@@ -6,6 +6,11 @@
       "is_spawnable": false,
       "is_summonable": true,
       "properties": {
+        "yasu_ride:covered": {
+          "type": "bool",
+          "default": false,
+          "client_sync": true
+        },
         "yasu_ride:lit": {
           "type": "bool",
           "default": false,

@@ -56,7 +56,7 @@ A 30 px long bamboo-colored wooden top on black folding X legs, based on the sup
 
 ![Fire Pit](../images/items/camping-gear/fire_pit.png)
 
-A folding stainless frame with a shallow bowl, lower shelf, and handle. Place its item on a block top outside vehicle space. Tap it with ordinary flint and steel to light it; this uses one durability in Survival. Tap the lit pit again to extinguish it. Hit it three times in quick succession to fold it back into its item. Craft it from three iron ingots and two iron bars. Vibrant Visuals renders its PBR metal surface with mirror-like reflections; its flames and smoke appear in both rendering modes. The fire is visual and does not cook or spread.
+A folding stainless frame with a shallow bowl, lower shelf, and handle. Place its item on a block top outside vehicle space. Tap it with ordinary flint and steel to light it; this uses one durability in Survival. Tap the lit pit again to extinguish it. Hit it three times in quick succession to fold it back into its item. Craft it from three iron ingots and two iron bars. Vibrant Visuals renders its PBR metal surface with mirror-like reflections; its flames and smoke appear in both rendering modes. The fire is visual and does not cook or spread. A stainless grill is shown only while something stands on the pit; when the Dutch oven arrives in the remaining steps of ADR 0168, take it off before folding the pit.
 
 ## In the game
 

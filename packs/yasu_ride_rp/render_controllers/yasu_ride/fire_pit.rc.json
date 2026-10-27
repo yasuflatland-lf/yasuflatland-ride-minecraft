@@ -5,7 +5,10 @@
       "geometry": "Geometry.default",
       "materials": [{ "*": "Material.default" }],
       "textures": ["Texture.default"],
-      "part_visibility": [{ "embers": "query.property('yasu_ride:lit')" }]
+      "part_visibility": [
+        { "embers": "query.property('yasu_ride:lit')" },
+        { "grill": "query.property('yasu_ride:covered')" }
+      ]
     }
   }
 }

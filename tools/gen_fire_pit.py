@@ -8,6 +8,7 @@ import sys
 import zlib
 from pathlib import Path
 
+GRILL_TOP = 12.5
 SIZE = 32
 SWATCH = 8
 GEOMETRY = "models/entity/yasu_ride/fire_pit.geo.json"
@@ -85,6 +86,14 @@ def geometry():
     for x in (-3.3, -1.1, 1.1, 3.3):
         frame.append(box(x - 0.12, 9.55, -5.75, x + 0.12, 9.8, -5.15, 3))
     frame.append(box(-1.8, 11.3, 5.6, 1.8, 11.65, 6.3, 2))
+    grill = []
+    for edge in (-5.7, 5.2):
+        grill.append(box(-5.7, 11.9, edge, 5.7, 12.4, edge + 0.5, 0))
+        grill.append(box(edge, 11.9, -5.7, edge + 0.5, 12.4, 5.7, 2))
+    for i in range(9):
+        offset = round(-4.8 + i * 1.2, 2)
+        grill.append(box(offset - 0.15, 11.9, -5.4, offset + 0.15, 12.2, 5.4, 1))
+        grill.append(box(-5.4, 12.2, offset - 0.15, 5.4, GRILL_TOP, offset + 0.15, 2))
     embers = [
         box(-2.6, 8.1, -1.7, 2.6, 8.45, 1.7, 11),
         box(-1.7, 8.45, -0.7, 1.7, 8.75, 0.7, 9),
@@ -103,10 +112,24 @@ def geometry():
             },
             "bones": [
                 {"name": "root", "pivot": [0, 0, 0], "cubes": frame, "locators": {"flame": [0, 9, 0]}},
+                {"name": "grill", "parent": "root", "pivot": [0, 0, 0], "cubes": grill},
                 {"name": "embers", "parent": "root", "pivot": [0, 0, 0], "cubes": embers},
             ],
         }],
     }
+
+
+def validate(doc):
+    grill = next(b for b in doc["minecraft:geometry"][0]["bones"] if b["name"] == "grill")
+    assert grill["parent"] == "root" and grill["pivot"] == [0, 0, 0]
+    tops = []
+    for cube in grill["cubes"]:
+        origin, size = cube["origin"], cube["size"]
+        assert origin[1] >= 11.9
+        for axis in (0, 2):
+            assert origin[axis] >= -5.78 and origin[axis] + size[axis] <= 5.78
+        tops.append(origin[1] + size[1])
+    assert max(tops) == GRILL_TOP
 
 
 def pixels(mer=False):
@@ -157,6 +180,7 @@ def main():
     mer = root / MER
     texture_set = root / TEXTURE_SET
     doc = geometry()
+    validate(doc)
     set_doc = {"format_version": "1.16.100", "minecraft:texture_set": {"color": "fire_pit", "metalness_emissive_roughness": "fire_pit_mer"}}
     if args.check:
         if json.loads(geo.read_text()) != doc or json.loads(texture_set.read_text()) != set_doc or read_png(color) != pixels() or read_png(mer) != pixels(True):
