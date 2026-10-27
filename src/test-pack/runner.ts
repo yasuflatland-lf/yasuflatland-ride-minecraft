@@ -38,6 +38,7 @@ import {
 } from "./scenarios/bulldozerExit";
 import {
   campTableTwoSeats,
+  dutchOvenOnPit,
   dutchOvenSimmerAndTakeBack,
   firePitCoveredTakeBack,
   firePitIgnition,
@@ -207,9 +208,10 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
     ["blade_cut_kept_ids", 0, () => bladeCutKeptIds()],
     ["low_chair_seat_and_take_back", 6, () => lowChairSeatAndTakeBack(a)],
     ["camp_table_two_seats", 2, () => campTableTwoSeats(a)],
+    ["dutch_oven_on_pit", 90, () => dutchOvenOnPit(a)],
     ["fire_pit_ignition", 6, () => firePitIgnition(a)],
     ["dutch_oven_simmer_take_back", 8, () => dutchOvenSimmerAndTakeBack(a)],
-    ["fire_pit_covered_take_back", 6, () => firePitCoveredTakeBack(a)],
+    ["fire_pit_covered_take_back", 22, () => firePitCoveredTakeBack(a)],
     [
       "low_chair_settles_through_grass",
       20,

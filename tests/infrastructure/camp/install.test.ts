@@ -271,3 +271,10 @@ it("returns one switch target, the lantern's, built on the same SwitchLantern as
   game.getDynamicProperty.mockReset();
   game.getEntity.mockReset();
 });
+
+it("registers oven interactions before fire pit interactions", () => {
+  installCamp({ isVehicleSpace: () => false });
+  expect(vi.mocked(registerDutchOven).mock.invocationCallOrder[0]).toBeLessThan(
+    vi.mocked(registerFirePit).mock.invocationCallOrder[0] ?? 0,
+  );
+});

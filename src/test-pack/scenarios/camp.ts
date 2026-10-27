@@ -1,5 +1,6 @@
 // In-game checks of the camp feature's low chair (ADR 0122).
 import { type Entity, system, type Vector3 } from "@minecraft/server";
+import { FIRE_PIT_TOP_PX } from "../../domain/camp/spec";
 import {
   CAMP_TABLE_TYPE,
   CHAIR_FAMILY,
@@ -14,8 +15,8 @@ import {
   LOW_CHAIR_TYPE,
   TEST_CHAIR_HIT_EVENT,
   TEST_DUTCH_OVEN_HIT_EVENT,
+  TEST_DUTCH_OVEN_ON_PIT_EVENT,
   TEST_DUTCH_OVEN_SIMMER_EVENT,
-  TEST_FIRE_PIT_COVER_EVENT,
   TEST_FIRE_PIT_EVENT,
   TEST_FIRE_PIT_HIT_EVENT,
 } from "../../infrastructure/camp/identifiers";
@@ -224,7 +225,7 @@ export async function firePitCoveredTakeBack(a: Arena): Promise<Outcome> {
   const items = () => droppedItems(a, at, FIRE_PIT_ITEM);
   try {
     const initial = pit.getProperty(FIRE_PIT_COVERED_PROPERTY);
-    system.sendScriptEvent(TEST_FIRE_PIT_COVER_EVENT, pit.id);
+    system.sendScriptEvent(TEST_DUTCH_OVEN_ON_PIT_EVENT, pit.id);
     await wait(2);
     const covered = pit.getProperty(FIRE_PIT_COVERED_PROPERTY);
     for (let i = 0; i < 3; i++) {
@@ -233,8 +234,16 @@ export async function firePitCoveredTakeBack(a: Arena): Promise<Outcome> {
     }
     if (!pit.isValid) return { pass: false, detail: "covered pit folded" };
     const coveredDrops = items().length;
-    system.sendScriptEvent(TEST_FIRE_PIT_COVER_EVENT, pit.id);
-    await wait(2);
+    const oven = a.dim.getEntities({
+      type: DUTCH_OVEN_TYPE,
+      location: at,
+      maxDistance: 2,
+    })[0];
+    if (!oven) return { pass: false, detail: "hosted oven missing" };
+    for (let i = 0; i < 3; i++) {
+      system.sendScriptEvent(TEST_DUTCH_OVEN_HIT_EVENT, oven.id);
+      await wait(2);
+    }
     const uncovered = pit.getProperty(FIRE_PIT_COVERED_PROPERTY);
     for (let i = 0; i < 2; i++) {
       system.sendScriptEvent(TEST_FIRE_PIT_HIT_EVENT, pit.id);
@@ -258,5 +267,56 @@ export async function firePitCoveredTakeBack(a: Arena): Promise<Outcome> {
   } finally {
     if (pit.isValid) pit.remove();
     for (const item of items()) item.remove();
+    for (const oven of a.dim.getEntities({
+      type: DUTCH_OVEN_TYPE,
+      location: at,
+      maxDistance: 2,
+    }))
+      oven.remove();
+    for (const item of droppedItems(a, at, DUTCH_OVEN_ITEM)) item.remove();
+  }
+}
+
+/** Exercises the host lifecycle through the production placement use case without a player. */
+export async function dutchOvenOnPit(a: Arena): Promise<Outcome> {
+  const folded = await firePitCoveredTakeBack(a);
+  if (!folded.pass) return folded;
+  const at = { x: CELL.x + 0.5, y: a.gy, z: CELL.z + 11.5 };
+  a.dim.runCommand(`summon ${FIRE_PIT_TYPE} ${at.x} ${at.y} ${at.z}`);
+  const pit = a.dim.getEntities({
+    type: FIRE_PIT_TYPE,
+    location: at,
+    maxDistance: 1.5,
+  })[0];
+  if (!pit) return { pass: false, detail: "fire pit not spawned" };
+  let oven: Entity | undefined;
+  try {
+    system.sendScriptEvent(TEST_DUTCH_OVEN_ON_PIT_EVENT, pit.id);
+    await wait(4);
+    oven = a.dim.getEntities({
+      type: DUTCH_OVEN_TYPE,
+      location: at,
+      maxDistance: 2,
+    })[0];
+    if (!oven) return { pass: false, detail: "oven not placed" };
+    const covered = pit.getProperty(FIRE_PIT_COVERED_PROPERTY) === true;
+    const simmering = oven.getProperty(DUTCH_OVEN_SIMMERING_PROPERTY) === true;
+    await wait(22);
+    const standing =
+      Math.abs(oven.location.y - (pit.location.y + FIRE_PIT_TOP_PX / 16)) <
+      0.05;
+    a.dim.runCommand(
+      `kill @e[type=${FIRE_PIT_TYPE},x=${at.x},y=${at.y},z=${at.z},r=2]`,
+    );
+    await wait(40);
+    const lidded = oven.getProperty(DUTCH_OVEN_SIMMERING_PROPERTY) === false;
+    const fallen = Math.abs(oven.location.y - a.gy) < 0.05;
+    return {
+      pass: covered && simmering && standing && lidded && fallen,
+      detail: `fold=${folded.pass} covered=${covered} simmering=${simmering} standing=${standing} lidded=${lidded} fallen=${fallen}`,
+    };
+  } finally {
+    if (oven?.isValid) oven.remove();
+    if (pit.isValid) pit.remove();
   }
 }

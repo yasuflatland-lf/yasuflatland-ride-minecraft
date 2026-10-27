@@ -7,19 +7,16 @@ import { NAMESPACE } from "../../shared/identifiers";
 import { consumeHeld, isCreative, playerById } from "../../shared/players";
 import {
   DUTCH_OVEN_ON_TOP_HINT,
-  FIRE_PIT_COVERED_PROPERTY,
   FIRE_PIT_HITS_LEFT_HINT,
   FIRE_PIT_ITEM,
   FIRE_PIT_LIT_PROPERTY,
   FIRE_PIT_TYPE,
 } from "../identifiers";
-
-function firePit(id: FirePitId) {
-  const entity = world.getEntity(id);
-  return entity?.isValid && entity.typeId === FIRE_PIT_TYPE
-    ? entity
-    : undefined;
-}
+import {
+  firePitEntity as firePit,
+  isFirePitCovered,
+  setFirePitCovered,
+} from "./firePitCovered";
 
 export class BedrockFirePitWorld implements FirePitWorld {
   constructor(
@@ -79,11 +76,11 @@ export class BedrockFirePitWorld implements FirePitWorld {
   }
 
   isCovered(id: FirePitId): boolean {
-    return firePit(id)?.getProperty(FIRE_PIT_COVERED_PROPERTY) === true;
+    return isFirePitCovered(id);
   }
 
   setCovered(id: FirePitId, covered: boolean): void {
-    firePit(id)?.setProperty(FIRE_PIT_COVERED_PROPERTY, covered);
+    setFirePitCovered(id, covered);
   }
 
   showCoveredHint(player: PlayerId): void {

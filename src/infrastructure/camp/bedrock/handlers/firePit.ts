@@ -49,7 +49,7 @@ export function registerFirePit(
     system.run(() => actions.place({ player, dimension, block, yaw, slot }));
   });
   world.beforeEvents.playerInteractWithEntity.subscribe((ev) => {
-    if (ev.target.typeId !== FIRE_PIT_TYPE) return;
+    if (ev.cancel || ev.target.typeId !== FIRE_PIT_TYPE) return;
     ev.cancel = true;
     const player = asPlayerId(ev.player.id);
     if (!interactions.add(system.currentTick, player)) return;

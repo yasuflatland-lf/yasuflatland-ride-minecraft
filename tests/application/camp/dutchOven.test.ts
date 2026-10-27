@@ -3,7 +3,11 @@ import { expect, it, vi } from "vitest";
 import { DutchOvenActions } from "../../../src/application/camp/dutchOven";
 import type { DutchOvenWorld } from "../../../src/application/camp/ports/dutchOven";
 import { asDutchOvenId } from "../../../src/domain/camp/dutchOven";
-import { DUTCH_OVEN_SPEC } from "../../../src/domain/camp/spec";
+import { asFirePitId } from "../../../src/domain/camp/firePit";
+import {
+  DUTCH_OVEN_SPEC,
+  FIRE_PIT_TOP_PX,
+} from "../../../src/domain/camp/spec";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 
 const oven = asDutchOvenId("oven");
@@ -20,7 +24,16 @@ function fixture(overrides: Partial<DutchOvenWorld> = {}) {
     hasDutchOvenNear: () => false,
     isCreative: () => false,
     consumeItem: vi.fn(() => true),
-    spawnDutchOven: vi.fn(),
+    spawnDutchOven: vi.fn(() => oven),
+    firePit: () => ({ dimension, at: { x: 4.5, y: 61, z: 5.5 }, yaw: 90 }),
+    isCovered: () => false,
+    setCovered: vi.fn(),
+    host: () => "",
+    setHost: vi.fn(),
+    loadedOvens: () => [],
+    loadedFirePits: () => [],
+    hostExists: () => true,
+    isHostAreaLoaded: () => true,
     dropItem: vi.fn(),
     removeDutchOven: vi.fn(),
     showHitsLeft: vi.fn(),
@@ -114,4 +127,124 @@ it("returns exactly one item on the third quick hit and resets after a long gap"
       },
     ),
   );
+});
+
+const pit = asFirePitId("pit");
+const onPit = { player, pit, slot: 1 };
+
+it("places on the grill, consumes outside Creative, and covers the pit", () => {
+  for (const creative of [true, false]) {
+    const { actions, world } = fixture({ isCreative: () => creative });
+    expect(actions.placeOnFirePit(onPit)).toBe(true);
+    expect(world.spawnDutchOven).toHaveBeenCalledWith(
+      dimension,
+      { x: 4.5, y: 61 + FIRE_PIT_TOP_PX / 16, z: 5.5 },
+      90,
+    );
+    expect(world.setHost).toHaveBeenCalledWith(oven, "fire_pit:pit:0", true);
+    expect(world.setCovered).toHaveBeenCalledWith(pit, true);
+    expect(world.consumeItem).toHaveBeenCalledTimes(creative ? 0 : 1);
+  }
+});
+
+it("refuses missing or covered pits, blocked clearance, vehicle space, and a changed item", () => {
+  for (const overrides of [
+    { firePit: () => undefined },
+    { isCovered: () => true },
+    { isAir: () => false },
+    { isVehicleSpace: () => true },
+    { consumeItem: () => false },
+  ]) {
+    const { actions, world } = fixture(overrides);
+    expect(actions.placeOnFirePit(onPit)).toBe(false);
+    expect(world.spawnDutchOven).not.toHaveBeenCalled();
+    expect(world.setCovered).not.toHaveBeenCalled();
+  }
+});
+
+it("refuses a second oven after the first covers the pit", () => {
+  let covered = false;
+  const { actions, world } = fixture({
+    isCovered: () => covered,
+    setCovered: (_id, value) => {
+      covered = value;
+    },
+  });
+  expect(actions.placeOnFirePit(onPit)).toBe(true);
+  expect(actions.placeOnFirePit(onPit)).toBe(false);
+  expect(world.consumeItem).toHaveBeenCalledTimes(1);
+});
+
+it("uncovers an existing fire pit only on the oven's third hit", () => {
+  const { actions, world } = fixture({ host: () => "fire_pit:pit:0" });
+  actions.hit(oven, player, 1);
+  actions.hit(oven, player, 2);
+  expect(world.setCovered).not.toHaveBeenCalled();
+  actions.hit(oven, player, 3);
+  expect(world.setCovered).toHaveBeenCalledExactlyOnceWith(pit, false);
+});
+
+it("clears vanished hosts only in loaded space, for either host kind", () => {
+  for (const kind of ["fire_pit", "camp_table"]) {
+    for (const loaded of [true, false]) {
+      const { actions, world } = fixture({
+        loadedOvens: () => [oven],
+        host: () => `${kind}:pit:0`,
+        hostExists: () => false,
+        isHostAreaLoaded: () => loaded,
+      });
+      actions.checkHosts();
+      expect(world.setHost).toHaveBeenCalledTimes(loaded ? 1 : 0);
+      if (loaded) expect(world.setHost).toHaveBeenCalledWith(oven, "", false);
+    }
+  }
+});
+
+it("repairs an orphaned covered pit and preserves one with a hosted oven", () => {
+  for (const occupied of [true, false]) {
+    const { actions, world } = fixture({
+      loadedOvens: () => (occupied ? [oven] : []),
+      loadedFirePits: () => [pit],
+      isCovered: () => true,
+      host: () => "fire_pit:pit:0",
+    });
+    actions.checkHosts();
+    expect(world.setCovered).toHaveBeenCalledTimes(occupied ? 0 : 1);
+    expect(world.setHost).not.toHaveBeenCalled();
+  }
+});
+
+it("checks both clearance cells above the pit's ground and rejects before consuming", () => {
+  fc.assert(
+    fc.property(
+      fc.integer({ min: 0, max: DUTCH_OVEN_SPEC.clearance - 1 }),
+      fc.boolean(),
+      (dy, vehicle) => {
+        const y = 61 + dy;
+        const { actions, world } = fixture(
+          vehicle
+            ? { isVehicleSpace: (_d, at) => at.y === y }
+            : { isAir: (_d, at) => at.y !== y },
+        );
+        expect(actions.placeOnFirePit(onPit)).toBe(false);
+        expect(world.consumeItem).not.toHaveBeenCalled();
+      },
+    ),
+  );
+});
+
+it("leaves ground ovens alone and takes back ovens even if their host is gone", () => {
+  const { actions, world } = fixture({
+    loadedOvens: () => [oven],
+    hostExists: () => false,
+  });
+  actions.checkHosts();
+  expect(world.setHost).not.toHaveBeenCalled();
+  const hosted = fixture({
+    host: () => "fire_pit:pit:0",
+    hostExists: () => false,
+  });
+  for (let tick = 0; tick < 3; tick++) hosted.actions.hit(oven, player, tick);
+  expect(hosted.world.removeDutchOven).toHaveBeenCalledOnce();
+  expect(hosted.world.setCovered).not.toHaveBeenCalled();
 });
