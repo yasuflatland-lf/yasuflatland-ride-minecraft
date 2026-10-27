@@ -2,7 +2,7 @@
 import type { Vec3 } from "../shared/vec";
 import { CHAIR_SPEC } from "./spec";
 
-export type ChairKindId = "low_chair";
+export type ChairKindId = "low_chair" | "noga_chair";
 
 /** The Entity.id of a chair. */
 export type ChairId = string & { readonly __brand: "ChairId" };

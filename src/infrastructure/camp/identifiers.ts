@@ -16,6 +16,13 @@ export interface ChairProfile {
 }
 
 export const CHAIR_KINDS: Readonly<Record<ChairKindId, ChairProfile>> = {
+  noga_chair: {
+    typeId: id("noga_chair"),
+    itemId: id("noga_chair_item"),
+    family: "yasu_ride_noga_chair",
+    hitsHint: "yasu_ride.hint.noga_chair_hits",
+    testHitEvent: "yasu_ride_test:test_noga_chair_hit",
+  },
   low_chair: {
     typeId: id("low_chair"),
     itemId: id("low_chair_item"),

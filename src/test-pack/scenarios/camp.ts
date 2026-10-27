@@ -78,6 +78,11 @@ export async function lowChairSeatAndTakeBack(a: Arena): Promise<Outcome> {
   );
 }
 
+/** Reports the Noga Chair's seat and fold lifecycle as its own scenario. */
+export async function nogaChairSeatAndTakeBack(a: Arena): Promise<Outcome> {
+  return lowChairSeatAndTakeBackForKind(a, CHAIR_KINDS.noga_chair);
+}
+
 async function lowChairSeatAndTakeBackForKind(
   a: Arena,
   profile: ChairProfile,
@@ -106,7 +111,7 @@ async function lowChairSeatAndTakeBackForKind(
     const amount = totalAmount(chairItems());
     return {
       pass: seats === 1 && family && afterOne && !afterThree && amount === 1,
-      detail: `seats=${seats} family=${family} afterOne=${afterOne} afterThree=${afterThree} items=${amount}`,
+      detail: `${profile.typeId}: seats=${seats} family=${family} afterOne=${afterOne} afterThree=${afterThree} items=${amount}`,
     };
   } finally {
     if (chair.isValid) chair.remove();
