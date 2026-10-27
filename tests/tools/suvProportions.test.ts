@@ -126,17 +126,15 @@ describe("SUV proportions", () => {
   it("keeps every rotated cube inside the declared visible bounds", () => {
     const { bounds } = run(generated);
     const description = model["minecraft:geometry"][0].description;
-    const half = [
+    const half: Vec = [
       description.visible_bounds_width * 8,
       description.visible_bounds_height * 8,
       description.visible_bounds_width * 8,
     ];
     for (const axis of [0, 1, 2] as const) {
       const center = description.visible_bounds_offset[axis] * 16;
-      expect(bounds[0][axis]).toBeGreaterThanOrEqual(
-        center - (half[axis] ?? 0),
-      );
-      expect(bounds[1][axis]).toBeLessThanOrEqual(center + (half[axis] ?? 0));
+      expect(bounds[0][axis]).toBeGreaterThanOrEqual(center - half[axis]);
+      expect(bounds[1][axis]).toBeLessThanOrEqual(center + half[axis]);
     }
   });
 
