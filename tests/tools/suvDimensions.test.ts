@@ -1,24 +1,155 @@
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { expect, it } from "vitest";
 
+type Vec = [number, number, number];
+type Bone = { name: string; pivot: Vec; locators?: Record<string, Vec> };
+type Position = Vec | Record<string, Vec>;
+
+const script = [
+  "import contextlib, io, json, sys, tempfile",
+  "sys.path.insert(0, 'tools')",
+  "from tool_loader import load_tool",
+  // Loading the generator writes assets; keep them out of the repository.
+  "with tempfile.TemporaryDirectory() as output:",
+  "    sys.argv = ['gen_model.py', output]",
+  "    with contextlib.redirect_stdout(io.StringIO()):",
+  "        g = load_tool('gen_model')",
+  "    print(json.dumps({k: v for k, v in vars(g).items() if k.isupper() and isinstance(v, (int, float))}))",
+].join("\n");
+const d = JSON.parse(
+  execFileSync("python3", ["-I", "-c", script], { encoding: "utf8" }),
+) as Record<string, number>;
+const dimension = (name: string): number => {
+  const value = d[name];
+  if (value === undefined) throw new Error(`Missing dimension ${name}`);
+  return value;
+};
+const model = JSON.parse(
+  readFileSync(
+    "packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json",
+    "utf8",
+  ),
+) as { "minecraft:geometry": [{ bones: Bone[] }] };
+const bone = (name: string): Bone => {
+  const found = model["minecraft:geometry"][0].bones.find(
+    (b) => b.name === name,
+  );
+  if (!found) throw new Error(`Missing bone ${name}`);
+  return found;
+};
+const { animations } = JSON.parse(
+  readFileSync("packs/yasu_ride_rp/animations/yasu_ride/suv.anim.json", "utf8"),
+) as {
+  animations: Record<
+    string,
+    { bones?: Record<string, { position?: Position }> }
+  >;
+};
+const position = (animation: string, name: string): Position => {
+  const value =
+    animations[`animation.yasu_ride.suv.${animation}`]?.bones?.[name]?.position;
+  if (!value) throw new Error(`Missing position for ${animation}/${name}`);
+  return value;
+};
+
 it("orders the SUV body heights and longitudinal landmarks consistently", () => {
-  const script = [
-    "import contextlib, io, json, sys, tempfile",
-    "sys.path.insert(0, 'tools')",
-    "from tool_loader import load_tool",
-    // Loading the generator writes assets; keep them out of the repository.
-    "with tempfile.TemporaryDirectory() as output:",
-    "    sys.argv = ['gen_model.py', output]",
-    "    with contextlib.redirect_stdout(io.StringIO()):",
-    "        g = load_tool('gen_model')",
-    "    print(json.dumps([[g.SILL_Y, g.FLOOR_Y, g.BELT_Y, g.WINDOW_TOP_Y, g.ROOF_Y], [g.REAR, g.CARGO_FRONT, g.WINDSHIELD_FOOT_Z]]))",
-  ].join("\n");
-  const dimensions = JSON.parse(
-    execFileSync("python3", ["-I", "-c", script], { encoding: "utf8" }),
-  ) as number[][];
-  for (const ordered of dimensions) {
+  for (const names of [
+    ["SILL_Y", "FLOOR_Y", "BELT_Y", "WINDOW_TOP_Y", "ROOF_Y"],
+    ["REAR", "REAR_AXLE_Z", "FRONT_AXLE_Z", "FRONT_BUMPER_TIP_Z"],
+    ["REAR", "CARGO_FRONT", "WINDSHIELD_FOOT_Z"],
+  ]) {
+    const ordered = names.map(dimension);
     for (let i = 1; i < ordered.length; i++) {
       expect(ordered[i - 1]).toBeLessThan(ordered[i] as number);
+    }
+  }
+});
+
+it("anchors wheel assemblies and hover locators to the exported axles", () => {
+  for (const corner of ["fl", "fr", "rl", "rr"]) {
+    // Export turns the generator's x and z axes through 180 degrees (ADR 0009).
+    const side = corner.endsWith("l") ? 1 : -1;
+    const z = -dimension(
+      corner.startsWith("f") ? "FRONT_AXLE_Z" : "REAR_AXLE_Z",
+    );
+    const hub: Vec = [side * dimension("HUB_X"), dimension("HUB_Y"), z];
+    expect(bone(`wheel_${corner}`).pivot).toEqual(hub);
+    expect(bone(`arm_${corner}`).pivot).toEqual([
+      side * dimension("ARM_ROOT_X"),
+      dimension("ARM_ROOT_Y"),
+      z,
+    ]);
+    const glow = bone(`glow_${corner}`);
+    expect(glow.pivot).toEqual([
+      side * (dimension("HUB_X") + dimension("FOLD_OUT")),
+      0,
+      z,
+    ]);
+    expect(glow.locators?.[`hover_${corner}`]).toEqual([
+      glow.pivot[0],
+      -0.5,
+      z,
+    ]);
+    if (corner.startsWith("r")) {
+      expect(bone(`prop_${corner}`).pivot).toEqual(hub);
+      expect(bone(`sub_arm_${corner}`).pivot).toEqual([
+        side * dimension("BODY_HALF_WIDTH"),
+        dimension("HUB_Y"),
+        z,
+      ]);
+    }
+  }
+});
+
+it("keeps hover and submarine animation offsets aligned with their assemblies", () => {
+  for (const corner of ["fl", "fr", "rl", "rr"]) {
+    const name = `wheel_${corner}`;
+    const side = corner.endsWith("l") ? 1 : -1;
+    const folded: Vec = [
+      side * dimension("FOLD_OUT"),
+      -dimension("FOLD_DROP"),
+      0,
+    ];
+    expect(position("wheels_folded", name)).toEqual(folded);
+    expect(position("wheels_deploy", name)).toEqual({
+      "0.0": [0, 0, 0],
+      "1.0": folded,
+    });
+    expect(position("wheels_retract", name)).toEqual({
+      "0.0": folded,
+      "1.0": [0, 0, 0],
+    });
+    const hub = bone(name).pivot;
+    const glow = bone(`glow_${corner}`).pivot;
+    expect(hub[0] + folded[0]).toBe(glow[0]);
+    expect(hub[2] + folded[2]).toBe(glow[2]);
+    expect(hub[1] + folded[1] + dimension("TIRE_HALF_WIDTH")).toBe(
+      dimension("FOLDED_WHEEL_TOP_Y"),
+    );
+    if (corner.startsWith("r")) {
+      const submerged: Vec = [side * dimension("SUB_OUT"), 0, 0];
+      for (const member of [name, `prop_${corner}`]) {
+        expect(position("submerged", member)).toEqual(submerged);
+        expect(position("dive", member)).toEqual({
+          "0.0": [0, 0, 0],
+          "0.5": submerged,
+          "1.0": submerged,
+        });
+        expect(position("surface", member)).toEqual({
+          "0.0": submerged,
+          "0.5": submerged,
+          "1.0": [0, 0, 0],
+        });
+      }
+    }
+  }
+  // These bones use scale-only animation: translations would detach their axle pivots.
+  for (const animation of Object.values(animations)) {
+    for (const [name, channels] of Object.entries(animation.bones ?? {})) {
+      if (/^(arm_|sub_arm_|glow_)/.test(name)) {
+        expect(channels.position).toBeUndefined();
+      }
     }
   }
 });
