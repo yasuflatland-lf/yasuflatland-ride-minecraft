@@ -103,8 +103,9 @@ function spun(points: Vec3[], hub: Vec3, radians: number): Vec3[] {
 
 // Standard Bedrock head plus outer skin layer, client scale, and ADR 0029's rider drop.
 const RIDER_HEAD_PX = (24 + 8 + 0.5) * 0.9375 - 0.4 * 16;
+const RIDER_HEAD_HALF_PX = (4 + 0.5) * 0.9375;
 
-it("keeps every seated player's head beneath the SUV roof with half a pixel to spare", () => {
+it("keeps every seated player's head beneath the SUV roof and behind the raked windshield with half a pixel to spare", () => {
   const seats = JSON.parse(
     readFileSync("packs/yasu_ride_bp/entities/yasu_ride/suv.se.json", "utf8"),
   )["minecraft:entity"].components["minecraft:rideable"].seats as {
@@ -121,11 +122,28 @@ it("keeps every seated player's head beneath the SUV roof with half a pixel to s
     )
     .sort((a, b) => b.size[0] * b.size[2] - a.size[0] * a.size[2])[0];
   if (!roof) throw new Error("Missing SUV roof slab");
+  // The sealed glass and the frame parts that lean with it (ADR 0170).
+  const lean = bones.get("windows_sealed")?.cubes?.[0]?.rotation?.[0];
+  const windshield = ["body", "windows_sealed"].flatMap((name) => {
+    const bone = bones.get(name);
+    return (bone?.cubes ?? [])
+      .filter((cube) => cube.rotation?.[0] === lean)
+      .map((cube) => turnedCorners(bone as Bone, cube));
+  });
+  expect(lean).toBeDefined();
+  expect(windshield.length).toBeGreaterThanOrEqual(4);
   expect(seats).toHaveLength(4);
   for (const seat of seats) {
-    expect(seat.position[1] * 16 + RIDER_HEAD_PX + 0.5).toBeLessThanOrEqual(
-      roof.origin[1],
-    );
+    const top = seat.position[1] * 16 + RIDER_HEAD_PX;
+    expect(top + 0.5).toBeLessThanOrEqual(roof.origin[1]);
+    // The head box grown by the margin; the model's front is -z (ADR 0009).
+    const reach = RIDER_HEAD_HALF_PX + 0.5;
+    const [x, z] = [seat.position[0] * 16, -seat.position[2] * 16];
+    const head: Vec3[] = [];
+    for (const dx of [-reach, reach])
+      for (const y of [top - 2 * RIDER_HEAD_HALF_PX - 0.5, top + 0.5])
+        for (const dz of [-reach, reach]) head.push([x + dx, y, z + dz]);
+    for (const part of windshield) expect(separated(head, part)).toBe(true);
   }
 });
 

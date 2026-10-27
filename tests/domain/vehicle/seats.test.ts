@@ -26,7 +26,7 @@ function worldOffset(yawDeg: number, i: number): Vec2 {
 
 describe("seats (ADR 0019)", () => {
   it("seat 0 is front right (negative x = right, positive z = forward)", () => {
-    expect(SEATS[0]).toEqual({ x: -0.494, z: 0.0975 });
+    expect(SEATS[0]).toEqual({ x: -0.494, z: -0.0446875 });
   });
 
   it("assigns an occupant at a seat position to that seat for any facing", () => {

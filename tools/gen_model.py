@@ -486,10 +486,10 @@ def pleated_seat(x0, x1, z_back):
 
 
 # Seats: 2 in front and a rear bench made of two halves. A front rider sits 5.2 px ahead of the seat's
-# back, the same as on the rear bench (ADR 0117). The front seats and riders sit 2 px farther back
-# than ADR 0117 put them, so the rider's torso clears the steering wheel under the rearward cowl
-# (ADR 0170).
-FRONT_SEAT_Z = -4
+# back, the same as on the rear bench (ADR 0117). The front seats and riders sit 3.75 px farther back
+# than ADR 0117 put them: 2 px so the rider's torso clears the steering wheel under the rearward cowl,
+# and 1.75 px more so the scaled rider's head clears the raked windshield glass (ADR 0170).
+FRONT_SEAT_Z = -5.75
 body += pleated_seat(2, 11, FRONT_SEAT_Z)
 body += pleated_seat(-11, -2, FRONT_SEAT_Z)
 body += pleated_seat(-11, 0, REAR_SEAT_Z)
@@ -619,7 +619,7 @@ body += both_sides([
 
 # Ribs on the hardtop: two front panels split down the middle over the front seats, a seam across,
 # and long ribs running back over the rear panel
-ROOF_SEAM = FRONT_SEAT_Z - 1
+ROOF_SEAM = B_PILLAR_FRONT_Z
 # The hardtop's thick side edge stands a little proud of the doors and drops over their frames' top rails
 body += both_sides([box(BODY_HALF_WIDTH, ROOF_Y - 0.4, REAR, 13.4, ROOF_TOP + 0.2, ROOF_FRONT, "hardtop")])
 body += [
