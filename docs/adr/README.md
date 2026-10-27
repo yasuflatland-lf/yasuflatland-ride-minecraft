@@ -171,6 +171,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0168](0168-a-dutch-oven-and-a-grill-for-the-fire-pit.md) | A Dutch oven and a grill for the fire pit | Proposed |
 | [0169](0169-a-lantern-for-the-oil-lamp-and-a-noga-chair.md) | A Lantern for the Oil Lamp, no Lava Lamp, and a Noga Chair | Proposed |
 | [0170](0170-measure-suv-proportions-before-reshaping.md) | Measure SUV proportions before reshaping | Proposed |
+| [0171](0171-stretch-suv-overhangs-and-raise-its-front-probe.md) | Stretch the SUV overhangs and raise its front probe | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 
