@@ -58,8 +58,8 @@ def cubes_and_assemblies():
         parts.append(box(min(side*4, side*5.5), 4.65, -4.5,
                          max(side*4, side*5.5), 5, 3, "fabric",
                          (side*4, 5, 0), (0, 0, -side*15)))
-    parts += [box(-5.5, 4.65, -6, 5.5, 5, -4.5, "fabric", (0, 5, -4.5), (15, 0, 0)),
-              box(-5.5, 4.65, 3, 5.5, 5, 4, "fabric", (0, 5, 3), (-20, 0, 0)),
+    parts += [box(-5.5, 4.65, -6, 5.5, 5, -4.5, "fabric", (0, 5, -4.5), (-15, 0, 0)),
+              box(-5.5, 4.65, 3, 5.5, 5, 4, "fabric", (0, 5, 3), (20, 0, 0)),
               box(-5.5, 5.2, -6.05, 5.5, 5.5, -5.7, "binding")]
     back = []
     # Tangents to a 100-degree arc: the ends curve forward around the sitter.
