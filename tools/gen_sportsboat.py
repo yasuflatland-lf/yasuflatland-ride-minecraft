@@ -172,7 +172,7 @@ def paint_quilt(pixels):
 
 # The switch plate's face (ADR 0166): a slightly lighter recessed panel with rounded corners inside the
 # black plate, and six round buttons in a zigzag of 1, 2, 2, 1 from top to bottom. Each button is a chrome
-# ring with a one-texel dark outline around a near-white lit centre. Top is the far end of the plate.
+# ring with a one-texel dark outline around a near-white lit centre. Top is the bow point; the wall edge is the right side.
 SWITCH_BUTTON = [
     ".OOO.",
     "OLLLO",
@@ -183,17 +183,17 @@ SWITCH_BUTTON = [
 SWITCH_BUTTON_COLORS = {"O": (24, 24, 28), "L": (176, 180, 186), "C": (246, 248, 250)}
 SWITCH_PANEL = (30, 30, 34)
 # Left texel column and top texel row in the 24 x 28 wedge tile.
-SWITCH_BUTTONS = [(10, 2), (5, 8), (14, 8), (10, 14), (17, 14), (15, 20)]
+SWITCH_BUTTONS = [(18, 4), (14, 10), (18, 13), (11, 16), (18, 18), (14, 21)]
 
 
 def paint_switch_plate(pixels):
     (u, v), (w, h) = tile_layout.TILE_RECTS["switch_plate"]
     for y in range(h):
         for x in range(w):
+            # A right triangle: the vertical outboard edge is the tile's right side, the point is at the top.
             t = (y + 0.5) / h
-            centre = w / 2 + t * (0.5 / 2.2 * w)
-            half = (2.2 - 1.8 * t) / 2.2 * w / 2 - 1
-            inside = 1 <= y < h - 2 and abs(x + 0.5 - centre) < half
+            left = w - (0.4 + 2.1 * t) / 2.5 * w
+            inside = 1 <= y < h - 2 and left + 1 < x + 0.5 < w - 1
             pixels[v + y][u + x] = SWITCH_PANEL if inside else PALETTE["gloss"]
     for bx, by in SWITCH_BUTTONS:
         for y, row in enumerate(SWITCH_BUTTON):
@@ -1223,21 +1223,24 @@ body.append(box(2.3 + DISPLAY_DX, F + 8.45, 12.95 + DISPLAY_DZ, 8.7 + DISPLAY_DX
 SWITCH_TILT = -SCREEN_TILT
 SWITCH_STRIPS = 10
 SWITCH_PIVOT = [13.9, F + 8, 10.3]
-SWITCH_BOUNDS = (12.8, 15.0, SWITCH_PIVOT[2], SWITCH_PIVOT[2] + 4.0)
+# A right triangle: the outboard edge stays on the wall line, the base (the dial panel's width) is at the
+# driver end and the point is toward the bow; only the inboard edge moves (#700).
+SWITCH_BOUNDS = (13.15, 15.65, SWITCH_PIVOT[2], SWITCH_PIVOT[2] + 4.0)
+SWITCH_BASE_WIDTH = SWITCH_BOUNDS[1] - SWITCH_BOUNDS[0]
+SWITCH_POINT_WIDTH = 0.4
 for i in range(SWITCH_STRIPS):
     t = i / (SWITCH_STRIPS - 1)
-    width = 0.4 + 1.8 * t
-    centre = 14.4 - 0.5 * t
+    width = SWITCH_BASE_WIDTH - (SWITCH_BASE_WIDTH - SWITCH_POINT_WIDTH) * t
     z0 = SWITCH_BOUNDS[2] + i * 0.4
-    strip = box(centre - width / 2, F + 8, z0,
-                centre + width / 2, F + 8.4, z0 + 0.4, "gloss",
+    strip = box(SWITCH_BOUNDS[1] - width, F + 8, z0,
+                SWITCH_BOUNDS[1], F + 8.4, z0 + 0.4, "gloss",
                 pivot=SWITCH_PIVOT, rotation=[SWITCH_TILT, 0, 0])
     (u, v), (w, h) = tile_layout.TILE_RECTS["switch_plate"]
-    # Tile top is the wide bow edge; reverse v to keep the image continuous toward the driver.
+    # Tile top is the bow point; reverse v to keep the image continuous toward the driver base.
     strip["uv"]["up"] = {
-        "uv": [u + (centre - width / 2 - SWITCH_BOUNDS[0]) / 2.2 * w,
+        "uv": [u + (SWITCH_BOUNDS[1] - width - SWITCH_BOUNDS[0]) / SWITCH_BASE_WIDTH * w,
                v + (SWITCH_BOUNDS[3] - z0) / 4 * h],
-        "uv_size": [width / 2.2 * w, -0.4 / 4 * h],
+        "uv_size": [width / SWITCH_BASE_WIDTH * w, -0.4 / 4 * h],
     }
     body.append(strip)
 for x0, y0, z0, size in ((3.9, F + 7, 9.0, 1.0),):
