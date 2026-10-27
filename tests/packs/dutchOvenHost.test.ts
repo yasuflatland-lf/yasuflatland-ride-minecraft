@@ -1,6 +1,12 @@
 import { readFileSync } from "node:fs";
 import { expect, it } from "vitest";
-import { FIRE_PIT_SPOTS, FIRE_PIT_TOP_PX } from "../../src/domain/camp/spec";
+import {
+  FIRE_PIT_SPOTS,
+  FIRE_PIT_TOP_PX,
+  TABLE_SPOTS,
+  TABLE_TOP_PX,
+} from "../../src/domain/camp/spec";
+import { type Bone, turnedCorners } from "../support/geometry";
 
 it("stands the oven at the fire pit generator's grill top", () => {
   const generator = readFileSync("tools/gen_fire_pit.py", "utf8");
@@ -30,5 +36,37 @@ it("anchors hosted ovens and restores collision and gravity on host loss", () =>
     expect(entity.events[group].remove.component_groups).toEqual([
       `yasu_ride:oven_${state === "hosted" ? "ground" : "hosted"}`,
     ]);
+  }
+});
+
+it("matches the generated tabletop height and fits both oven footprints within its halves", () => {
+  const bones = (name: string): Bone[] =>
+    JSON.parse(
+      readFileSync(
+        `packs/yasu_ride_rp/models/entity/yasu_ride/${name}.geo.json`,
+        "utf8",
+      ),
+    )["minecraft:geometry"][0].bones;
+  const table = bones("camp_table");
+  const top = table
+    .flatMap((bone) => bone.cubes ?? [])
+    .find((cube) => cube.size[0] === 30 && cube.size[2] === 12);
+  expect(top).toBeDefined();
+  if (!top) return;
+  expect(TABLE_TOP_PX).toBe(top.origin[1] + top.size[1]);
+  expect(TABLE_SPOTS).toEqual([
+    { x: -7.5, z: 0 },
+    { x: 7.5, z: 0 },
+  ]);
+  for (const spot of TABLE_SPOTS) {
+    for (const bone of bones("dutch_oven")) {
+      for (const cube of bone.cubes ?? []) {
+        for (const [x, , z] of turnedCorners(bone, cube)) {
+          expect(Math.abs(spot.x + x)).toBeLessThanOrEqual(15);
+          expect(Math.abs(spot.z + z)).toBeLessThanOrEqual(6);
+          expect(Math.abs(x)).toBeLessThanOrEqual(7.5);
+        }
+      }
+    }
   }
 });

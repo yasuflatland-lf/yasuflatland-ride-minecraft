@@ -39,6 +39,7 @@ import {
 import {
   campTableTwoSeats,
   dutchOvenOnPit,
+  dutchOvenOnTable,
   dutchOvenSimmerAndTakeBack,
   firePitCoveredTakeBack,
   firePitIgnition,
@@ -208,6 +209,7 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
     ["blade_cut_kept_ids", 0, () => bladeCutKeptIds()],
     ["low_chair_seat_and_take_back", 6, () => lowChairSeatAndTakeBack(a)],
     ["camp_table_two_seats", 2, () => campTableTwoSeats(a)],
+    ["dutch_oven_on_table", 60, () => dutchOvenOnTable(a)],
     ["dutch_oven_on_pit", 90, () => dutchOvenOnPit(a)],
     ["fire_pit_ignition", 6, () => firePitIgnition(a)],
     ["dutch_oven_simmer_take_back", 8, () => dutchOvenSimmerAndTakeBack(a)],

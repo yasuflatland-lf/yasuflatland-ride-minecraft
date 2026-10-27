@@ -66,3 +66,10 @@ export const FIRE_PIT_SPOTS = Object.freeze([
 ] as const);
 // Must match GRILL_TOP in tools/gen_fire_pit.py (ADR 0168).
 export const FIRE_PIT_TOP_PX = 12.5;
+
+export const TABLE_SPOTS = Object.freeze([
+  Object.freeze({ x: -7.5, z: 0 }),
+  Object.freeze({ x: 7.5, z: 0 }),
+] as const);
+// Must match the tabletop origin plus thickness in tools/gen_camp_table.py (ADR 0168).
+export const TABLE_TOP_PX = 12.25;
