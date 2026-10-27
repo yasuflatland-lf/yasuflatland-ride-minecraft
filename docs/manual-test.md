@@ -267,7 +267,7 @@ Run H1-H6 on PC and mobile, with Vibrant Visuals on and off, after a Resource Pa
 | C179 | Take a Noga Chair from Camping Gear (Outside), directly after the Low Chair, and place it on a clear block top without a vehicle | One chair faces the player; Survival consumes one item; blocked or vehicle space refuses placement | unverified | unverified |
 | C180 | Sit on the Noga Chair on PC and a touch client (long-press for the Sit button) | One player sits low and reclined, with knees above the seat; the player does not clip the back sling; sneak or jump gets up | unverified | unverified |
 | C181 | Hit an empty Noga Chair three times quickly, then repeat while someone sits on it | The empty chair folds into one Noga Chair item on hit three; seated hits do not count | unverified | unverified |
-| C182 | Compare the Noga Chair from front, side, and behind against the five supplied photos | The smooth wrap-around back, wing cut-out, splayed legs, central hub, and zippered rear pocket read clearly; no label patch, lettering, or brand mark appears | unverified | unverified |
+| C182 | Compare the Noga Chair from front, side, and behind against the supplied photos | The seat slopes down toward the back like the photo, the wrap-around back reclines about 34 degrees, the side frame forms a tall triangle, and the legs cross under the seat in an X; the wide footprint, cross-shaped hub, wing cut-out, and broad rear pocket with a rounded bottom and a forward-opening flap read clearly; the two back poles stay behind the fabric and do not cross the inside of the back; no label patch, lettering, or brand mark appears | unverified | unverified |
 
 ## Bulldozer
 

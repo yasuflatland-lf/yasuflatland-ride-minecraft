@@ -24,7 +24,26 @@ const geo = read(`${RP}/models/entity/yasu_ride/noga_chair.geo.json`)[
   "minecraft:geometry"
 ][0];
 const cubes: Cube[] = geo.bones[0].cubes;
-const back = cubes.slice(6, 33);
+const color = (c: Cube, u: number, v: number) =>
+  c.uv.north?.uv[0] === u && c.uv.north?.uv[1] === v;
+const back = cubes.filter(
+  (c) =>
+    c.pivot &&
+    (Math.abs(c.size[0] - 1.16) < 1e-6 || color(c, 12, 4)) &&
+    (color(c, 0, 0) || color(c, 4, 0) || color(c, 12, 4)),
+);
+const seats = cubes.filter(
+  (c) => Math.abs(c.size[0] - 10.3) < 1e-6 && c.rotation?.[0],
+);
+const joint = cubes.filter((c) => Math.abs(c.size[0] - 10.28) < 1e-6);
+const poles = cubes.filter((c) => color(c, 12, 0));
+const feet = cubes.filter((c) => color(c, 4, 4));
+const topCenter = (c: Cube): Vec => {
+  const pts = corners(c);
+  return [0, 1, 2].map(
+    (a) => [2, 3, 6, 7].reduce((sum, i) => sum + (pts[i]?.[a] ?? 0), 0) / 4,
+  ) as Vec;
+};
 const entity = read(`${BP}/entities/yasu_ride/noga_chair.se.json`)[
   "minecraft:entity"
 ];
@@ -64,6 +83,59 @@ function corners(cube: Cube): Vec[] {
   return points;
 }
 
+function surfaceZ(cube: Cube, x: number, y: number): number | undefined {
+  const pts = corners(cube);
+  const origin = pts[0];
+  if (!origin) throw new Error("missing cube origin");
+  let low = -Infinity;
+  let high = Infinity;
+  for (const [axis, index] of [4, 2, 1].entries()) {
+    const end = pts[index];
+    const size = cube.size[axis];
+    if (!end || !size) throw new Error("degenerate sling strip");
+    const unit = end.map((v, a) => (v - (origin[a] ?? 0)) / size);
+    const base =
+      (x - origin[0]) * (unit[0] ?? 0) +
+      (y - origin[1]) * (unit[1] ?? 0) -
+      origin[2] * (unit[2] ?? 0);
+    const direction = unit[2] ?? 0;
+    if (Math.abs(direction) < 1e-9) {
+      if (base < -1e-9 || base > size + 1e-9) return undefined;
+    } else {
+      const a = -base / direction;
+      const b = (size - base) / direction;
+      low = Math.max(low, Math.min(a, b));
+      high = Math.min(high, Math.max(a, b));
+    }
+  }
+  return high >= low ? high : undefined;
+}
+
+function poleSamples(cube: Cube): { t: number; point: Vec }[] {
+  const pts = corners(cube);
+  const result: { t: number; point: Vec }[] = [];
+  for (let step = 0; step <= 40; step++) {
+    const t = step / 40;
+    for (const u of [0, 0.5, 1])
+      for (const v of [0, 0.5, 1]) {
+        const point = [0, 1, 2].map((a) => {
+          const weights = [(1 - u) * (1 - v), (1 - u) * v, u * (1 - v), u * v];
+          const bottom = [0, 1, 4, 5].reduce(
+            (sum, i, j) => sum + (pts[i]?.[a] ?? 0) * (weights[j] ?? 0),
+            0,
+          );
+          const top = [2, 3, 6, 7].reduce(
+            (sum, i, j) => sum + (pts[i]?.[a] ?? 0) * (weights[j] ?? 0),
+            0,
+          );
+          return bottom * (1 - t) + top * t;
+        }) as Vec;
+        result.push({ t, point });
+      }
+  }
+  return result;
+}
+
 describe("Noga Chair (ADR 0169)", () => {
   it("routes its item, entity, and test event through the chair profile", () => {
     expect(profile).toEqual({
@@ -97,7 +169,7 @@ describe("Noga Chair (ADR 0169)", () => {
       family_types: ["player"],
       interact_text: "action.interact.yasu_ride.sit",
       crouching_skip_interact: true,
-      seats: [{ position: [0, 0.1, 0.18] }],
+      seats: [{ position: [0, 0.04, 0.21] }],
     });
     expect(c["minecraft:collision_box"]).toEqual({ width: 0.8, height: 0.9 });
     expect(c["minecraft:physics"]).toEqual({
@@ -133,23 +205,19 @@ describe("Noga Chair (ADR 0169)", () => {
     expect(cubes.length).toBeLessThan(250);
   });
 
-  it("limits compound turns to the 27-cube back sling and four one-pole leg assemblies", () => {
-    const legs = cubes.filter(
-      (c) =>
-        Math.abs(c.size[0] - 0.8) < 1e-6 &&
-        Math.abs(c.size[2] - 0.8) < 1e-6 &&
-        c.origin[1] === 0.6,
+  it("limits compound turns to the back sling and eight registered poles", () => {
+    expect(back).toHaveLength(33);
+    expect(poles).toHaveLength(8);
+    const assemblies = Object.fromEntries(
+      poles.map((p, i) => [`pole_${i}`, [p]]),
     );
-    expect(legs).toHaveLength(4);
-    expect(back).toHaveLength(27);
-    expect(back.every((c) => c.rotation?.some((a) => a !== 0))).toBe(true);
     expect(() =>
-      assertOneAxis(cubes, { back_sling: back, legs }),
+      assertOneAxis(cubes, { back_sling: back, ...assemblies }),
     ).not.toThrow();
-    expect(() => assertOneAxis(cubes, { legs })).toThrow();
+    expect(() => assertOneAxis(cubes, assemblies)).toThrow();
   });
 
-  it("keeps every transformed corner inside the cell with a low seat and rearward recline", () => {
+  it("keeps transformed corners inside the cell and rubber feet on the ground", () => {
     for (const [x, y, z] of cubes.flatMap(corners)) {
       expect(x).toBeGreaterThanOrEqual(-7.5);
       expect(x).toBeLessThanOrEqual(7.5);
@@ -158,21 +226,138 @@ describe("Noga Chair (ADR 0169)", () => {
       expect(z).toBeGreaterThanOrEqual(-8);
       expect(z).toBeLessThanOrEqual(8);
     }
-    const seat = cubes[0];
-    if (!seat) throw new Error("missing seat");
-    expect(seat.origin[1] + seat.size[1]).toBe(5);
-    for (const cube of back) {
-      const pts = corners(cube);
-      const average = (indices: number[], axis: number) =>
-        indices.reduce((sum, i) => sum + (pts[i]?.[axis] ?? 0), 0) /
-        indices.length;
-      expect(average([2, 3, 6, 7], 2)).toBeGreaterThan(
-        average([0, 1, 4, 5], 2),
-      );
-      expect(average([2, 3, 6, 7], 1)).toBeGreaterThan(
-        average([0, 1, 4, 5], 1),
+    expect(feet).toHaveLength(4);
+    for (const foot of feet)
+      expect(Math.min(...corners(foot).map((p) => p[1]))).toBe(0);
+    expect(feet.filter((c) => topCenter(c)[2] < 0)).toHaveLength(2);
+    expect(feet.filter((c) => topCenter(c)[2] > 0)).toHaveLength(2);
+  });
+
+  it("keeps both back poles behind the sling surface, including their front edges", () => {
+    const rearPoles = poles.filter(
+      (c) => c.pivot?.[1] === 3.8 && (c.pivot?.[2] ?? 0) > 2,
+    );
+    const fabric = back.filter((c) => color(c, 0, 0));
+    expect(rearPoles).toHaveLength(2);
+    expect(fabric).toHaveLength(11);
+    for (const pole of rearPoles) {
+      let checks = 0;
+      for (const {
+        t,
+        point: [x, y, z],
+      } of poleSamples(pole)) {
+        const surfaces = fabric
+          .map((c) => surfaceZ(c, x, y))
+          .filter((z): z is number => z !== undefined);
+        if (surfaces.length && t < 0.95) {
+          expect(z - Math.max(...surfaces)).toBeGreaterThanOrEqual(0.3);
+          checks++;
+        }
+      }
+      expect(checks).toBeGreaterThanOrEqual(150);
+    }
+  });
+
+  it("spreads the straight legs to a wide footprint at 40 to 50 degrees in side view", () => {
+    const legs = poles.filter((c) => c.pivot?.[1] === 0.55);
+    expect(legs).toHaveLength(4);
+    for (const foot of feet) {
+      const [x, , z] = topCenter(foot);
+      expect(Math.abs(x)).toBeCloseTo(5);
+      expect(Math.abs(z)).toBeCloseTo(4.5);
+    }
+    for (const leg of legs) {
+      const start = leg.pivot;
+      const end = topCenter(leg);
+      if (!start) throw new Error("missing leg pivot");
+      const angle =
+        (Math.atan2(Math.abs(end[2] - start[2]), end[1] - start[1]) * 180) /
+        Math.PI;
+      expect(angle).toBeGreaterThanOrEqual(40);
+      expect(angle).toBeLessThanOrEqual(50);
+      expect(end[1]).toBeCloseTo(4.35);
+    }
+  });
+
+  it("builds a cross hub and a broad pocket with a rounded bottom and forward flap", () => {
+    const hub = cubes.filter((c) => color(c, 0, 4));
+    expect(hub).toHaveLength(2);
+    expect(hub.every((c) => !c.rotation)).toBe(true);
+    const pocket = cubes.filter(
+      (c) => color(c, 0, 0) && c.origin[1] < 2.1 && c.origin[2] > 2,
+    );
+    expect(pocket.length).toBeGreaterThanOrEqual(5);
+    expect(Math.max(...pocket.map((c) => c.size[0]))).toBeCloseTo(8.8);
+    expect(Math.min(...pocket.flatMap(corners).map((p) => p[1]))).toBeCloseTo(
+      1.3,
+    );
+    const flap = cubes.find((c) => color(c, 8, 0));
+    expect(flap?.size[0]).toBeCloseTo(8.9);
+    expect(flap?.rotation).toEqual([8, 0, 0]);
+  });
+
+  it("drops eight seat strips into the low rear joint and reclines the bound back", () => {
+    expect(seats).toHaveLength(8);
+    const points = seats.flatMap(corners);
+    const front = Math.max(
+      ...points.filter((p) => p[2] < -5.5).map((p) => p[1]),
+    );
+    expect(joint).toHaveLength(3);
+    const rear = Math.min(
+      ...[...seats, ...joint].flatMap((c) => {
+        const pts = corners(c);
+        return [2, 3, 6, 7].map((i) => pts[i]?.[1] ?? Infinity);
+      }),
+    );
+    expect(front).toBeGreaterThanOrEqual(6);
+    expect(front).toBeLessThanOrEqual(7.5);
+    expect(rear).toBeGreaterThanOrEqual(3.5);
+    expect(rear).toBeLessThanOrEqual(4.8);
+    expect(front - rear).toBeGreaterThanOrEqual(2.5);
+    for (const c of back) {
+      const pts = corners(c);
+      expect(
+        [2, 3, 6, 7].reduce((s, i) => s + (pts[i]?.[2] ?? 0), 0),
+      ).toBeGreaterThan(
+        [0, 1, 4, 5].reduce((s, i) => s + (pts[i]?.[2] ?? 0), 0),
       );
     }
+    const highest = (cs: Cube[]) =>
+      Math.max(...cs.flatMap(corners).map((p) => p[1]));
+    expect(highest(back.filter((c) => color(c, 4, 0)))).toBe(highest(back));
+  });
+
+  it("forms the measured A-B-C frame triangle above the crossed legs", () => {
+    const frame = poles.filter(
+      (c) => c.pivot?.[1] === 3.8 && (c.pivot?.[0] ?? 0) < 0,
+    );
+    const ends = frame.map(topCenter).sort((a, b) => a[2] - b[2]);
+    const a = ends[0];
+    const c = ends[1];
+    if (!a || !c) throw new Error("missing frame triangle");
+    const u = [a[1] - 3.8, a[2]];
+    const v = [c[1] - 3.8, c[2]];
+    const angle =
+      (Math.acos(
+        ((u[0] ?? 0) * (v[0] ?? 0) + (u[1] ?? 0) * (v[1] ?? 0)) /
+          (Math.hypot(...u) * Math.hypot(...v)),
+      ) *
+        180) /
+      Math.PI;
+    expect(angle).toBeGreaterThanOrEqual(95);
+    expect(angle).toBeLessThanOrEqual(115);
+    expect(
+      (Math.atan2(a[1] - 3.8, -a[2]) * 180) / Math.PI,
+    ).toBeGreaterThanOrEqual(25);
+    expect((Math.atan2(a[1] - 3.8, -a[2]) * 180) / Math.PI).toBeLessThanOrEqual(
+      40,
+    );
+    expect(
+      (Math.atan2(c[2], c[1] - 3.8) * 180) / Math.PI,
+    ).toBeGreaterThanOrEqual(25);
+    expect((Math.atan2(c[2], c[1] - 3.8) * 180) / Math.PI).toBeLessThanOrEqual(
+      40,
+    );
   });
 
   it("has a stackable item and its own icon, directly after the Low Chair", () => {

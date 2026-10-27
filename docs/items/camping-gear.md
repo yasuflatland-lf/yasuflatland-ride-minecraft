@@ -42,7 +42,7 @@ A low folding camp chair with a brown canvas sling seat and a reclined canvas ba
 
 ![Noga Chair](../images/items/camping-gear/noga_chair.png)
 
-A compact folding chair with a plain gray-olive sling, a high wrap-around back with bound edges and an open cut-out in the left wing, and a black aluminium frame. Four splayed legs meet at a hub under the seat; a zippered pocket hangs behind it. The chair is about 14 × 15 pixels, with its seat about 5 pixels above the ground and its back reclined by 20 degrees (ADR 0169).
+A compact folding chair with a plain gray-olive sling, a high wrap-around back with bound edges, and a black aluminium frame. Like the reference photo, its curved seat slopes down toward the back, from about 6.8 pixels at the front to 4 pixels at the rear joint. The back reclines about 34 degrees; the frame forms a tall side triangle and four legs cross under the seat in an X at the hub. A broad zippered pocket with a rounded bottom and a forward-opening flap hangs behind the cross-shaped hub; the back poles stay behind the fabric, one side wing has a cut-out near the seat, and the rubber feet spread to a wide footprint (ADR 0169).
 
 - **Place it:** use the Noga Chair item on a block top outside vehicle space, with two free blocks above. It faces you in eighth-turn steps and settles through short grass or carpet. It refuses the add-on's blocks and occupied chair spaces. Outside Creative, placing consumes one item.
 - **Sit on it:** right-click on PC or long-press on touch and use **Sit**. Sneak or jump to get up. Its low sling is intended for a reclined, knees-up posture; the seated fit still needs device verification.
