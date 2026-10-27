@@ -360,8 +360,8 @@ def corners(cube):
         return points
     pivot = cube["pivot"]
     matrix = cube_tilt.cube_matrix(cube["rotation"])
-    return [[round(pivot[i] + v, 6) for i, v in enumerate(cube_tilt._apply(matrix, [p[j] - pivot[j] for j in range(3)]))]
-            for p in points]
+    turned = [cube_tilt._apply(matrix, [p[i] - pivot[i] for i in range(3)]) for p in points]
+    return [[round(pivot[i] + offset[i], 6) for i in range(3)] for offset in turned]
 
 
 def bounds(cubes):

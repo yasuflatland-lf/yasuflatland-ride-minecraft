@@ -16,14 +16,6 @@ from tool_loader import load_tool
 panels = load_tool("panels")
 r4 = panels.r4
 
-
-def panel_ring(radius, y0, y1, slot, **kwargs):
-    return panels.panel_ring(radius, y0, y1, face(slot), **kwargs)
-
-
-def disc(radius, y0, y1, slot):
-    return panels.disc(radius, y0, y1, face(slot))
-
 SIZE = 32
 SWATCH = 8
 GEOMETRY = "models/entity/yasu_ride/dutch_oven.geo.json"
@@ -51,15 +43,15 @@ def face(slot):
 
 
 def box(x0, y0, z0, x1, y1, z1, slot, pivot=None, rotation=None):
-    cube = {
-        "origin": [x0, y0, z0],
-        "size": [x1 - x0, y1 - y0, z1 - z0],
-        "uv": {side: face(slot) for side in ("north", "south", "east", "west", "up", "down")},
-    }
-    if rotation is not None:
-        cube["pivot"] = list(pivot)
-        cube["rotation"] = list(rotation)
-    return cube
+    return panels.panel(x0, y0, z0, x1, y1, z1, face(slot), pivot, rotation)
+
+
+def panel_ring(radius, y0, y1, slot, **kwargs):
+    return panels.panel_ring(radius, y0, y1, face(slot), **kwargs)
+
+
+def disc(radius, y0, y1, slot):
+    return panels.disc(radius, y0, y1, face(slot))
 
 
 FOOTPRINT = 6

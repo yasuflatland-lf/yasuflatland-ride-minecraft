@@ -6,7 +6,7 @@ Pure math with no I/O and no swatch table: every function takes an already-built
 """
 import math
 
-SIDES = ("north", "south", "east", "west", "up", "down")
+CUBE_SIDES = ("north", "south", "east", "west", "up", "down")
 
 
 def r4(value):
@@ -17,7 +17,7 @@ def panel(x0, y0, z0, x1, y1, z1, face, pivot=None, rotation=None):
     cube = {
         "origin": [x0, y0, z0],
         "size": [x1 - x0, y1 - y0, z1 - z0],
-        "uv": {side: face for side in SIDES},
+        "uv": {side: face for side in CUBE_SIDES},
     }
     if rotation is not None:
         cube["pivot"] = list(pivot)
