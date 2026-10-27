@@ -1,0 +1,22 @@
+{
+  "format_version": "1.21.80",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "yasu_ride:dutch_oven_item"
+    },
+    "tags": ["crafting_table"],
+    "pattern": [" I ", "ICI", "III"],
+    "key": {
+      "I": {
+        "item": "minecraft:iron_ingot"
+      },
+      "C": {
+        "item": "minecraft:coal"
+      }
+    },
+    "result": {
+      "item": "yasu_ride:dutch_oven_item",
+      "count": 1
+    }
+  }
+}

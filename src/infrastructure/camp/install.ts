@@ -1,3 +1,4 @@
+import { DutchOvenActions } from "../../application/camp/dutchOven";
 import { FirePitActions } from "../../application/camp/firePit";
 import { HitChair } from "../../application/camp/hitChair";
 import { HitTable } from "../../application/camp/hitTable";
@@ -16,11 +17,13 @@ import { registerLaidBlockGuard } from "../shared/laidBlockGuard";
 import { playerById } from "../shared/players";
 import type { SwitchTarget } from "../shared/switchRouter";
 import { BedrockChairWorld } from "./bedrock/bedrockChairWorld";
+import { BedrockDutchOvenWorld } from "./bedrock/bedrockDutchOvenWorld";
 import { BedrockFirePitWorld } from "./bedrock/bedrockFirePitWorld";
 import { BedrockLanternWorld } from "./bedrock/bedrockLanternWorld";
 import { BedrockTableWorld } from "./bedrock/bedrockTableWorld";
 import { BedrockTentPaintWorld } from "./bedrock/bedrockTentPaintWorld";
 import { BedrockTentWorld } from "./bedrock/bedrockTentWorld";
+import { registerDutchOven } from "./bedrock/handlers/dutchOven";
 import { registerFirePit } from "./bedrock/handlers/firePit";
 import { registerChairHits } from "./bedrock/handlers/hits";
 import { registerChairPlacement } from "./bedrock/handlers/placement";
@@ -58,6 +61,7 @@ export function installCamp(deps: { isVehicleSpace: SpaceCheck }): {
   registerTable(new PlaceTable(tables), new HitTable(tables));
   const firePits = new BedrockFirePitWorld(deps);
   registerFirePit(new FirePitActions(firePits), firePits);
+  registerDutchOven(new DutchOvenActions(new BedrockDutchOvenWorld(deps)));
 
   // SleepInBed is stateless, so camp builds its own instead of sharing the vehicle's.
   registerBedBlock(

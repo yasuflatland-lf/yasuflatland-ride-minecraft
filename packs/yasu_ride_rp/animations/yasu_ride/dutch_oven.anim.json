@@ -1,0 +1,13 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.yasu_ride.dutch_oven.simmer": {
+      "loop": true,
+      "bones": {
+        "bubbles": {
+          "position": [0, "math.sin(query.life_time * 360) * 0.15", 0]
+        }
+      }
+    }
+  }
+}

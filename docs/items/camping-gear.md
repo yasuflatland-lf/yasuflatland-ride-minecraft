@@ -58,6 +58,12 @@ A 30 px long bamboo-colored wooden top on black folding X legs, based on the sup
 
 A folding stainless frame with a shallow bowl, lower shelf, and handle. Place its item on a block top outside vehicle space. Tap it with ordinary flint and steel to light it; this uses one durability in Survival. Tap the lit pit again to extinguish it. Hit it three times in quick succession to fold it back into its item. Craft it from three iron ingots and two iron bars. Vibrant Visuals renders its PBR metal surface with mirror-like reflections; its flames and smoke appear in both rendering modes. The fire is visual and does not cook or spread. A stainless grill is shown only while something stands on the pit; when the Dutch oven arrives in the remaining steps of ADR 0168, take it off before folding the pit.
 
+## Dutch Oven (outside the vehicles)
+
+![Dutch Oven](../images/items/camping-gear/dutch_oven.png)
+
+A shallow matte black cast-iron pot with a flat lid, rectangular loop handle, pierced side lugs, and a raised stainless wire bail. The lid is plain, with no lettering, emblem, or brand mark. Find it after the Fire Pit in **Camping Gear (Outside)**. Craft it from six iron ingots and one coal: one ingot in the top center, ingots around coal in the middle row, and three ingots along the bottom. Place its item on a clear block top outside vehicle space; it faces in quarter turns. Hit it three times in quick succession to take it back as one item. On the ground the lid stays on; the model also supports a simmering fish, clam, and tomato stew for future host placement. Cooking is visual only.
+
 ## In the game
 
 Inside gear is vehicle-linked and cannot be crafted: each item is only a carrier that works when held and pressed on a parked camper's furniture slot, where the vehicle feature turns it into decor; it does nothing on the ground.

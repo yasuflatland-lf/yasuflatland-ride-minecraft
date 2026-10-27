@@ -179,7 +179,11 @@ FIRE_PIT_GEOMETRY = "models/entity/yasu_ride/fire_pit.geo.json"
 FIRE_PIT_TEXTURE = "textures/entity/yasu_ride/fire_pit.png"
 FIRE_PIT_PREVIEW = "fire_pit"
 FIRE_PIT_ICON = "fire_pit_item"
-ICON_NAMES = {CHAIR_PREVIEW: CHAIR_ICON, TENT_PREVIEW: TENT_ICON, TABLE_PREVIEW: TABLE_ICON, FIRE_PIT_PREVIEW: FIRE_PIT_ICON}
+DUTCH_OVEN_GEOMETRY = "models/entity/yasu_ride/dutch_oven.geo.json"
+DUTCH_OVEN_TEXTURE = "textures/entity/yasu_ride/dutch_oven.png"
+DUTCH_OVEN_PREVIEW = "dutch_oven"
+DUTCH_OVEN_ICON = "dutch_oven_item"
+ICON_NAMES = {CHAIR_PREVIEW: CHAIR_ICON, TENT_PREVIEW: TENT_ICON, TABLE_PREVIEW: TABLE_ICON, FIRE_PIT_PREVIEW: FIRE_PIT_ICON, DUTCH_OVEN_PREVIEW: DUTCH_OVEN_ICON}
 
 POSES = {
     "suv-front-left.png": {"lamps": False, "dusk": False, "hover": False, "submarine": False, "brightness": MAIN_BRIGHTNESS},
@@ -858,6 +862,7 @@ def small_models(rp):
         (TENT_PREVIEW, rp / TENT_GEOMETRY, read_png(rp / TENT_TEXTURE)),
         (TABLE_PREVIEW, rp / TABLE_GEOMETRY, read_png(rp / TABLE_TEXTURE)),
         (FIRE_PIT_PREVIEW, rp / FIRE_PIT_GEOMETRY, read_png(rp / FIRE_PIT_TEXTURE)),
+        (DUTCH_OVEN_PREVIEW, rp / DUTCH_OVEN_GEOMETRY, read_png(rp / DUTCH_OVEN_TEXTURE)),
     ]
 
 

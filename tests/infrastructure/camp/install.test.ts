@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
+import { DutchOvenActions } from "../../../src/application/camp/dutchOven";
 import { FirePitActions } from "../../../src/application/camp/firePit";
 import { HitChair } from "../../../src/application/camp/hitChair";
 import { HitTable } from "../../../src/application/camp/hitTable";
@@ -18,6 +19,7 @@ import {
   tentCells,
 } from "../../../src/domain/camp/tent";
 import { asDimensionId } from "../../../src/domain/shared/ids";
+import { registerDutchOven } from "../../../src/infrastructure/camp/bedrock/handlers/dutchOven";
 import { registerFirePit } from "../../../src/infrastructure/camp/bedrock/handlers/firePit";
 import { registerChairHits } from "../../../src/infrastructure/camp/bedrock/handlers/hits";
 import { registerChairPlacement } from "../../../src/infrastructure/camp/bedrock/handlers/placement";
@@ -117,6 +119,9 @@ vi.mock("../../../src/infrastructure/camp/bedrock/handlers/table", () => ({
 vi.mock("../../../src/infrastructure/camp/bedrock/handlers/firePit", () => ({
   registerFirePit: vi.fn(),
 }));
+vi.mock("../../../src/infrastructure/camp/bedrock/handlers/dutchOven", () => ({
+  registerDutchOven: vi.fn(),
+}));
 
 it("wires one hit use case into both hit handlers and asks the vehicles for their space (ADR 0122)", () => {
   const isVehicleSpace = vi.fn(() => true);
@@ -137,6 +142,9 @@ it("wires one hit use case into both hit handlers and asks the vehicles for thei
   expect(hitTable).toBeInstanceOf(HitTable);
   expect(vi.mocked(registerFirePit).mock.calls[0]?.[0]).toBeInstanceOf(
     FirePitActions,
+  );
+  expect(vi.mocked(registerDutchOven).mock.calls[0]?.[0]).toBeInstanceOf(
+    DutchOvenActions,
   );
 });
 
