@@ -127,6 +127,7 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | B52 | Keep driving until the tunnel goes dry, then reverse | The boat stops at the dry end without sinking, and reverse brings it back to the water | unverified | unverified |
 | B53 | Repeat B51 with icebreaker OFF | The mountain stays intact, the boat stops at the shore and does not sink | unverified | unverified |
 | B54 | On a PC, dock the boat, right-click the driver deck seat | The prompt reads Drive; sitting there and pushing the stick still sets the boat off (ADR 0063) | unverified | unverified |
+| B55 | On a PC and a phone, aim at the SUV, the camper and the afloat sports boat | The interact button reads Drive on all three; the bulldozer keeps its own text and the chairs still read Sit | unverified | unverified |
 
 ## Sports boat hull (planking and gloss)
 
