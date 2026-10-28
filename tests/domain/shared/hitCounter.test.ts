@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   EMPTY_COUNTER,
   type HitCounter,
+  HitCounters,
   type HitRule,
   registerHit,
 } from "../../../src/domain/shared/hitCounter";
@@ -18,17 +19,16 @@ const rules = fc.record({
   resetTicks: fc.integer({ min: 1, max: 200 }),
 });
 
-const hitsFor = (rule: HitRule) =>
-  fc.array(
-    fc.record({
-      gap: fc.oneof(
-        fc.constantFrom(0, rule.resetTicks, rule.resetTicks + 1),
-        fc.integer({ min: 0, max: rule.resetTicks * 2 }),
-      ),
-      occupied: fc.boolean(),
-    }),
-    { maxLength: 60 },
+const gapFor = (rule: HitRule) =>
+  fc.oneof(
+    fc.constantFrom(0, rule.resetTicks, rule.resetTicks + 1),
+    fc.integer({ min: 0, max: rule.resetTicks * 2 }),
   );
+
+const hitsFor = (rule: HitRule) =>
+  fc.array(fc.record({ gap: gapFor(rule), occupied: fc.boolean() }), {
+    maxLength: 60,
+  });
 
 describe("registerHit (ADR 0008, 0122)", () => {
   it("breaks after 3 hits in quick succession with the vehicle rule", () => {
@@ -89,6 +89,76 @@ describe("registerHit (ADR 0008, 0122)", () => {
             expect(r.broken).toBe(false);
             expect(r.counter.count).toBe(1);
             c = r.counter;
+          }
+        },
+      ),
+    );
+  });
+});
+
+const stepsFor = (rule: HitRule) => {
+  const gap = gapFor(rule);
+  return fc.array(
+    fc.oneof(
+      fc.record({
+        kind: fc.constant("hit" as const),
+        key: fc.integer({ min: 0, max: 3 }),
+        gap,
+        occupied: fc.boolean(),
+      }),
+      fc.record({ kind: fc.constant("forget" as const), gap }),
+    ),
+    { minLength: 1, maxLength: 100 },
+  );
+};
+
+describe("HitCounters", () => {
+  it("matches independent hit chains with or without stale cleanup", () => {
+    fc.assert(
+      fc.property(
+        rules.chain((rule) => fc.tuple(fc.constant(rule), stepsFor(rule))),
+        ([rule, steps]) => {
+          const model = new Map<number, HitCounter>();
+          const hits = new HitCounters<number>(rule);
+          const unpruned = new HitCounters<number>(rule);
+          const isolated = Array.from(
+            { length: 4 },
+            () => new HitCounters<number>(rule),
+          );
+          let tick = 0;
+          for (const step of steps) {
+            tick += step.gap;
+            if (step.kind === "forget") {
+              hits.forgetStale(tick);
+              continue;
+            }
+            const { key, occupied } = step;
+            const expected = registerHit(
+              model.get(key) ?? EMPTY_COUNTER,
+              tick,
+              occupied,
+              rule,
+            );
+            if (!occupied)
+              model.set(
+                key,
+                expected.broken ? EMPTY_COUNTER : expected.counter,
+              );
+            const alone = isolated[key];
+            if (!alone) throw new Error("Missing isolated counter");
+            const results = [
+              hits.hit(key, tick, occupied),
+              unpruned.hit(key, tick, occupied),
+              alone.hit(key, tick, occupied),
+            ];
+            for (const result of results) {
+              expect(result.broken).toBe(expected.broken);
+              if (occupied) expect(result.broken).toBe(false);
+              else if (!result.broken)
+                expect(result.hitsLeft).toBe(
+                  rule.hits - expected.counter.count,
+                );
+            }
           }
         },
       ),

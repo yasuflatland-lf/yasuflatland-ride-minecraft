@@ -4,17 +4,18 @@ import {
   type FirePitId,
 } from "../../domain/camp/firePit";
 import { FIRE_PIT_SPEC } from "../../domain/camp/spec";
-import {
-  EMPTY_COUNTER,
-  type HitCounter,
-  registerHit,
-} from "../../domain/shared/hitCounter";
+import { HitCounters } from "../../domain/shared/hitCounter";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
 import type { FirePitWorld } from "./ports/firePit";
 
+const RULE = {
+  hits: FIRE_PIT_SPEC.hitsToTakeBack,
+  resetTicks: FIRE_PIT_SPEC.hitResetTicks,
+};
+
 export class FirePitActions {
-  private readonly counters = new Map<FirePitId, HitCounter>();
+  private readonly hits = new HitCounters<FirePitId>(RULE);
 
   constructor(private readonly world: FirePitWorld) {}
 
@@ -65,26 +66,13 @@ export class FirePitActions {
       this.world.showCoveredHint(player);
       return false;
     }
-    const result = registerHit(
-      this.counters.get(id) ?? EMPTY_COUNTER,
-      tick,
-      false,
-      {
-        hits: FIRE_PIT_SPEC.hitsToTakeBack,
-        resetTicks: FIRE_PIT_SPEC.hitResetTicks,
-      },
-    );
+    const result = this.hits.hit(id, tick, false);
     if (result.broken) {
-      this.counters.delete(id);
       this.world.dropItem(id);
       this.world.removeFirePit(id);
       return true;
     }
-    this.counters.set(id, result.counter);
-    this.world.showHitsLeft(
-      player,
-      FIRE_PIT_SPEC.hitsToTakeBack - result.counter.count,
-    );
+    this.world.showHitsLeft(player, result.hitsLeft);
     return false;
   }
 }
