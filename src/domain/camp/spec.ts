@@ -77,3 +77,14 @@ export const TABLE_SPOTS = Object.freeze([
 ] as const);
 // Must match the tabletop origin plus thickness in tools/gen_camp_table.py (ADR 0168).
 export const TABLE_TOP_PX = 12.25;
+
+export const GAS_LANTERN_SPEC = Object.freeze({
+  /** One air cell fits the 11.3 px lantern (ADR 0173). */
+  clearance: 1,
+  /** The item's yaw snaps to this many degrees. */
+  yawStep: 90,
+  /** Radius in blocks also finds lanterns settled onto partial blocks. */
+  spacing: 0.75,
+  hitsToTakeBack: 3,
+  hitResetTicks: 100,
+});

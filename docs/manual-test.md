@@ -304,6 +304,14 @@ Run H1-H6 on PC and mobile, with Vibrant Visuals on and off, after a Resource Pa
 | C181 | Hit an empty Noga Chair three times quickly, then repeat while someone sits on it | The empty chair folds into one Noga Chair item on hit three; seated hits do not count | unverified | unverified |
 | C182 | Compare the Noga Chair from front, side, and behind against the supplied photos | The seat slopes down toward the back like the photo, the wrap-around back reclines about 34 degrees, the side frame forms a tall triangle, and the legs cross under the seat in an X; the wide footprint, cross-shaped hub, wing cut-out, and broad rear pocket with a rounded bottom and a forward-opening flap read clearly; the two back poles stay behind the fabric and do not cross the inside of the back; no label patch, lettering, or brand mark appears | unverified | unverified |
 
+### Outdoor Gas Lantern (ADR 0173)
+
+| # | Steps | Pass condition | PC | Mobile |
+|---|---|---|---|---|
+| C183 | Place on grass and on a slab top; try water, a parked camper's space, and beside another Gas Lantern | It settles on the slab; water, vehicle space, and nearby Gas Lantern placement are refused | unverified | unverified |
+| C184 | Hit three times quickly; repeat with two hits, a 5 second pause, and one hit; hit while holding the Headlight Switch | Three quick hits drop one item; the paused sequence does not; switch hits never take it back | unverified | unverified |
+| C185 | Compare front, side, and top with the owner's photos | Clear glass cylinder with brass nozzle, stainless cap, dark gasket and silver ring, faceted metal burner with wire handle and brass knob, smooth dome with silver collar, olive cartridge with silver rim; no logo, lettering, or brand mark | unverified | unverified |
+
 ## Bulldozer
 
 Setup: use `/give @s yasu_ride:bulldozer_item` or craft from an SUV item, an iron block, and an iron shovel. Craft the Blade Up/Down switch from a lever and an iron ingot, or use `/give @s yasu_ride:blade_switch`.

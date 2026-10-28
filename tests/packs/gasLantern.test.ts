@@ -208,10 +208,119 @@ describe("Gas Lantern textures and pack files", () => {
       { flame: "query.property('yasu_ride:lit')" },
     ]);
     const rpManifest = readJson(`${rp}/manifest.json`);
-    expect(rpManifest.header.version).toEqual([0, 1, 189]);
+    expect(rpManifest.header.version).toEqual([0, 1, 190]);
     const dependency = readJson(`${bp}/manifest.json`).dependencies.find(
       (d: { uuid: string }) => d.uuid === rpManifest.header.uuid,
     );
     expect(dependency.version).toEqual(rpManifest.header.version);
+  });
+});
+
+describe("Gas Lantern item and ground entity", () => {
+  it("stands under gravity, stays off, and offers an inert interact button", () => {
+    const entity = readJson(`${bp}/entities/yasu_ride/gas_lantern.se.json`)[
+      "minecraft:entity"
+    ];
+    expect(entity.description).toEqual({
+      identifier: "yasu_ride:gas_lantern",
+      is_spawnable: false,
+      is_summonable: true,
+      properties: {
+        "yasu_ride:lit": { type: "bool", default: false, client_sync: true },
+      },
+    });
+    expect(entity.components).toEqual({
+      "minecraft:type_family": {
+        family: ["yasu_ride_gas_lantern", "inanimate"],
+      },
+      "minecraft:collision_box": { width: 0.5, height: 0.75 },
+      "minecraft:physics": { has_collision: true, has_gravity: true },
+      "minecraft:pushable": {
+        is_pushable: false,
+        is_pushable_by_piston: false,
+      },
+      "minecraft:knockback_resistance": { value: 1 },
+      "minecraft:health": { value: 20, max: 20 },
+      "minecraft:damage_sensor": {
+        triggers: { cause: "all", deals_damage: "no" },
+      },
+      "minecraft:persistent": {},
+      "minecraft:interact": {
+        interactions: [
+          { interact_text: "action.interact.yasu_ride.gas_lantern" },
+        ],
+      },
+    });
+  });
+
+  it("crafts glass panes around a torch above iron into one stackable item", () => {
+    const item = readJson(`${bp}/items/yasu_ride/gas_lantern_item.item.json`)[
+      "minecraft:item"
+    ];
+    expect(item.description).toEqual({
+      identifier: "yasu_ride:gas_lantern_item",
+      menu_category: { category: "items" },
+    });
+    expect(item.components).toEqual({
+      "minecraft:icon": "yasu_ride_gas_lantern_item",
+      "minecraft:max_stack_size": 16,
+      "minecraft:display_name": {
+        value: "item.yasu_ride:gas_lantern_item.name",
+      },
+    });
+    const recipe = readJson(
+      `${bp}/recipes/yasu_ride/gas_lantern_item.recipe.json`,
+    )["minecraft:recipe_shaped"];
+    expect(recipe).toEqual({
+      description: { identifier: "yasu_ride:gas_lantern_item" },
+      tags: ["crafting_table"],
+      pattern: [" G ", "GTG", " I "],
+      key: {
+        G: { item: "minecraft:glass_pane" },
+        T: { item: "minecraft:torch" },
+        I: { item: "minecraft:iron_ingot" },
+      },
+      result: { item: "yasu_ride:gas_lantern_item", count: 1 },
+    });
+  });
+
+  it("uses the outdoor icon size and atlas entry and translates all four UI keys", () => {
+    const icon = readRgbaPng(
+      `${rp}/textures/items/yasu_ride/gas_lantern_item.png`,
+    );
+    const firePitIcon = readRgbaPng(
+      `${rp}/textures/items/yasu_ride/fire_pit_item.png`,
+    );
+    expect([icon.width, icon.height]).toEqual([32, 32]);
+    expect([icon.width, icon.height]).toEqual([
+      firePitIcon.width,
+      firePitIcon.height,
+    ]);
+    expect(
+      readJson(`${rp}/textures/item_texture.json`).texture_data
+        .yasu_ride_gas_lantern_item,
+    ).toEqual({ textures: "textures/items/yasu_ride/gas_lantern_item" });
+    for (const locale of ["en_US", "ja_JP"]) {
+      const lang = readFileSync(`${rp}/texts/${locale}.lang`, "utf8");
+      for (const key of [
+        "item.yasu_ride:gas_lantern_item.name",
+        "entity.yasu_ride:gas_lantern.name",
+        "yasu_ride.hint.gas_lantern_hits",
+        "action.interact.yasu_ride.gas_lantern",
+      ]) {
+        expect(
+          lang.split("\n").filter((line) => line.startsWith(`${key}=`)),
+        ).toHaveLength(1);
+        expect(
+          lang
+            .split("\n")
+            .find((line) => line.startsWith(`${key}=`))
+            ?.split("=")[1]?.length,
+        ).toBeGreaterThan(0);
+      }
+    }
+    expect(readJson(`${rp}/manifest.json`).modules[0].version).toEqual([
+      0, 1, 190,
+    ]);
   });
 });
