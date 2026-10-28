@@ -1,6 +1,6 @@
 // In-game tests (ADR 0010). They run in a script environment separate from the
 // main Behavior Pack, so they drive the vehicle through script events.
-import { system } from "@minecraft/server";
+import { system, world } from "@minecraft/server";
 import { type Outcome, setupArena } from "./arena";
 import {
   LOG_TAG,
@@ -15,6 +15,10 @@ import {
   bladeCutDrops,
   bladeCutKeptIds,
 } from "./scenarios/bladeCut";
+import {
+  buildBlockStates,
+  buildSelectionAndMode,
+} from "./scenarios/buildTools";
 import {
   bulldozerClearHill,
   bulldozerDirtPath,
@@ -140,6 +144,7 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
   // The middle number is the test's ticks as last logged in CI; shardsOf packs
   // by it, so update it when a test gets much slower or faster (ADR 0054).
   const allTests: [string, number, () => Promise<Outcome>][] = [
+    ["build_block_states", 0, () => buildBlockStates(a)],
     ["bulldozer_exit_spot", 8, () => bulldozerExitSpot(a)],
     ["bulldozer_exit_ground", 2, () => bulldozerExitGround(a)],
     ["bulldozer_clear_hill", 79, () => bulldozerClearHill(a)],
@@ -250,6 +255,18 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
     ["tent_lantern", 37, () => tentLantern(a)],
     ["tent_paint_events", 25, () => tentPaintEvents(a)],
   ];
+  if (world.getAllPlayers().length > 0) {
+    allTests.push([
+      "build_selection_and_mode",
+      30,
+      () => buildSelectionAndMode(a),
+    ]);
+  } else {
+    log(
+      runId,
+      "SKIP build_selection_and_mode: a connected player is required; camera perspective needs visual verification",
+    );
+  }
   const shards = shardsOf(
     allTests.map(([, ticks]) => ticks),
     shard.total,
