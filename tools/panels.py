@@ -38,13 +38,35 @@ def panel_ring(radius, y0, y1, face, sides=16, thickness=0.5, center=(0, 0)):
             for k in range(sides)]
 
 
-def disc(radius, y0, y1, face, bars=8):
+def disc(radius, y0, y1, face, bars=8, center=(0, 0)):
     """A round plate from full-width bars turned about Y at k*180/bars.
 
     Every bar sits 0.01 lower at the top and higher at the bottom than the
-    previous one so coplanar faces do not z-fight.
+    previous one so coplanar faces do not z-fight. The plate must be thicker
+    than 0.02 * (bars - 1) to keep every bar's height positive.
     """
     half_width = radius * math.sin(math.pi / (2 * bars))
-    return [panel(-radius, r4(y0 + k * 0.01), r4(-half_width), radius, r4(y1 - k * 0.01),
-                  r4(half_width), face, (0, 0, 0), (0, r4(k * 180 / bars), 0))
+    cx, cz = center
+    return [panel(cx - radius, r4(y0 + k * 0.01), cz + r4(-half_width), cx + radius, r4(y1 - k * 0.01),
+                  cz + r4(half_width), face, (cx, 0, cz), (0, r4(k * 180 / bars), 0))
             for k in range(bars)]
+
+
+def dome(radius, height, y0, face, sides=16, bands=6, center=(0, 0)):
+    """A half spheroid with a base apothem of radius, using only Y-axis turns.
+
+    Equal-angle latitude sampling steps evenly along the arc. A cap at least
+    0.2 px thick keeps the disc's staggered bars positive even at shallow tops.
+    """
+    angles = [k * math.pi / (2 * bands) for k in range(bands)]
+    radii = [radius * math.cos(theta) for theta in angles]
+    levels = [y0 + height * math.sin(theta) for theta in angles]
+    cubes = []
+    for k in range(bands - 1):
+        thickness = max(0.3, radii[k] - radii[k + 1] + 0.1)
+        cubes.extend(panel_ring(r4(radii[k]), r4(levels[k]), r4(levels[k + 1]),
+                                face, sides, r4(thickness), center))
+    top = y0 + height
+    cap = max(top - levels[-1], 0.2)
+    cubes.extend(disc(r4(radii[-1]), r4(top - cap), r4(top), face, 8, center))
+    return cubes

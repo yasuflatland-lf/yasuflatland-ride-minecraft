@@ -104,6 +104,144 @@ describe("disc", () => {
   });
 });
 
+const domeDimensions = fc.integer({ min: 1, max: 12 }).chain((radius) =>
+  fc.record({
+    radius: fc.constant(radius),
+    height: fc.integer({ min: 2, max: radius * 4 }).map((v) => v / 4),
+    y0: fc.integer({ min: -40, max: 40 }).map((v) => v / 4),
+    sides: fc.integer({ min: 4, max: 24 }),
+    bands: fc.integer({ min: 2, max: 8 }),
+  }),
+);
+
+describe("dome", () => {
+  it("closes decreasing latitude rings with a positive cap using only Y turns", () => {
+    fc.assert(
+      fc.property(domeDimensions, ({ radius, height, y0, sides, bands }) => {
+        const cubes = run(
+          `panels.dome(${radius}, ${height}, ${y0}, face, ${sides}, ${bands})`,
+        );
+        expect(cubes).toHaveLength((bands - 1) * sides + 8);
+        for (const cube of cubes) {
+          expect(cube.rotation?.[0]).toBe(0);
+          expect(cube.rotation?.[2]).toBe(0);
+          expect(cube.pivot).toEqual([0, 0, 0]);
+          expect(cube.uv.north).toEqual(FACE);
+          for (const size of cube.size) expect(size).toBeGreaterThan(0);
+          // Y turns preserve horizontal distance, so local corners give the rotated reach.
+          for (const x of [0, 1]) {
+            for (const z of [0, 1]) {
+              expect(
+                Math.hypot(
+                  cube.origin[0] + x * cube.size[0],
+                  cube.origin[2] + z * cube.size[2],
+                ),
+              ).toBeLessThanOrEqual(radius / Math.cos(Math.PI / sides) + 0.08);
+            }
+          }
+        }
+        const cap = cubes.slice((bands - 1) * sides);
+        const firstCap = cap[0] as Cube;
+        const capRadius = firstCap.size[0] / 2;
+        let previousTop = y0;
+        let previousApothem = Number.POSITIVE_INFINITY;
+        for (let k = 0; k < bands - 1; k++) {
+          const ring = cubes.slice(k * sides, (k + 1) * sides);
+          const first = ring[0] as Cube;
+          const apothem = -first.origin[2];
+          const top = first.origin[1] + first.size[1];
+          expect(apothem).toBeLessThan(previousApothem);
+          expect(apothem).toBeCloseTo(
+            radius * Math.cos((k * Math.PI) / (2 * bands)),
+            4,
+          );
+          expect(top).toBeCloseTo(
+            y0 + height * Math.sin(((k + 1) * Math.PI) / (2 * bands)),
+            4,
+          );
+          for (const cube of ring) {
+            expect(cube.origin[1]).toBeCloseTo(previousTop, 10);
+            expect(cube.origin[1] + cube.size[1]).toBeCloseTo(top, 10);
+            expect(cube.origin[2]).toBe(first.origin[2]);
+            expect(cube.size[2]).toBe(first.size[2]);
+          }
+          const nextApothem =
+            k === bands - 2
+              ? capRadius
+              : -(cubes[(k + 1) * sides] as Cube).origin[2];
+          expect(apothem - first.size[2]).toBeLessThanOrEqual(nextApothem);
+          previousTop = top;
+          previousApothem = apothem;
+        }
+        expect(capRadius).toBeLessThan(previousApothem);
+        expect(capRadius).toBeCloseTo(
+          radius * Math.cos(((bands - 1) * Math.PI) / (2 * bands)),
+          4,
+        );
+        expect(
+          Math.min(...cap.map((cube) => cube.origin[1])),
+        ).toBeLessThanOrEqual(previousTop + 1e-10);
+        expect(
+          Math.max(...cap.map((cube) => cube.origin[1] + cube.size[1])),
+        ).toBeCloseTo(y0 + height, 10);
+        for (const cube of cap) {
+          expect(cube.size[1]).toBeGreaterThanOrEqual(0.06 - 1e-10);
+        }
+      }),
+    );
+  });
+});
+
+describe("panel centers", () => {
+  it("translates every dome and disc origin and pivot while preserving shape", () => {
+    fc.assert(
+      fc.property(
+        domeDimensions,
+        fc.tuple(
+          fc.integer({ min: -100, max: 100 }).map((v) => v / 4),
+          fc.integer({ min: -100, max: 100 }).map((v) => v / 4),
+        ),
+        fc.integer({ min: 2, max: 16 }),
+        ({ radius, height, y0, sides, bands }, [cx, cz], bars) => {
+          const calls = [
+            `panels.dome(${radius}, ${height}, ${y0}, face, ${sides}, ${bands}`,
+            `panels.disc(${radius}, ${y0}, ${y0 + height}, face, ${bars}`,
+          ];
+          const results = run(
+            calls
+              .flatMap((call) => [`${call})`, `${call}, (${cx}, ${cz}))`])
+              .join(" + "),
+          );
+          let offset = 0;
+          for (const count of [(bands - 1) * sides + 8, bars]) {
+            const original = results.slice(offset, offset + count);
+            const moved = results.slice(offset + count, offset + 2 * count);
+            offset += 2 * count;
+            expect(moved).toHaveLength(original.length);
+            original.forEach((cube, i) => {
+              const translated = moved[i] as Cube;
+              expect(translated.uv).toEqual(cube.uv);
+              expect(translated.rotation).toEqual(cube.rotation);
+              for (const axis of [0, 1, 2] as const) {
+                const shift = [cx, 0, cz][axis] as number;
+                expect(translated.origin[axis]).toBeCloseTo(
+                  cube.origin[axis] + shift,
+                  10,
+                );
+                expect((translated.pivot as Vec)[axis]).toBeCloseTo(
+                  (cube.pivot as Vec)[axis] + shift,
+                  10,
+                );
+                expect(translated.size[axis]).toBeCloseTo(cube.size[axis], 10);
+              }
+            });
+          }
+        },
+      ),
+    );
+  });
+});
+
 describe("camping gear generator with turned cubes", () => {
   const gear = (code: string) => {
     const script = [
