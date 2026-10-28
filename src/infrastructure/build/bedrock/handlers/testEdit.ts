@@ -18,10 +18,42 @@ import {
 } from "../../identifiers";
 import type { BuildToolActions } from "../editActions";
 
+export interface LastMessage {
+  message: BuildMessage;
+  count?: number;
+}
+
+/**
+ * Wraps `feedback` so the latest message per player can be read back. Edit
+ * jobs report editDone and undoDone from later ticks through the shared
+ * feedback, so the test hook has to observe that instance.
+ */
+export function recordMessages(feedback: BuildFeedback): {
+  feedback: BuildFeedback;
+  last(playerId: PlayerId): LastMessage | undefined;
+  forget(playerId: PlayerId): void;
+} {
+  const latest = new Map<PlayerId, LastMessage>();
+  return {
+    feedback: {
+      showMessage: (id, message, count) => {
+        latest.set(id, { message, count });
+        feedback.showMessage(id, message, count);
+      },
+      drawOutline: (id, dimension, box, style) =>
+        feedback.drawOutline(id, dimension, box, style),
+    },
+    last: (playerId) => latest.get(playerId),
+    forget: (playerId) => {
+      latest.delete(playerId);
+    },
+  };
+}
+
 export function registerTestEdit(
-  actions: (id: PlayerId, feedback: BuildFeedback) => BuildToolActions,
+  actions: (id: PlayerId) => BuildToolActions,
   repo: BuildSessionRepository,
-  feedback: BuildFeedback,
+  messages: Pick<ReturnType<typeof recordMessages>, "last" | "forget">,
 ): void {
   system.afterEvents.scriptEventReceive.subscribe(
     (ev) => {
@@ -34,17 +66,8 @@ export function registerTestEdit(
       const player = world.getAllPlayers().find((p) => p.id === id);
       if (!player?.isValid) return;
       const playerId = asPlayerId(player.id);
-      let message: BuildMessage | undefined;
-      let count: number | undefined;
-      const chosen = actions(playerId, {
-        showMessage: (id, name, value) => {
-          message = name;
-          count = value;
-          feedback.showMessage(id, name, value);
-        },
-        drawOutline: (id, dimension, box, style) =>
-          feedback.drawOutline(id, dimension, box, style),
-      });
+      const chosen = actions(playerId);
+      messages.forget(playerId);
       const resolve = (type: string) => {
         const permutation = BlockPermutation.resolve(type);
         return blockStateOf(permutation.type.id, permutation.getAllStates());
@@ -82,12 +105,13 @@ export function registerTestEdit(
           system.runTimeout(reply, 1);
           return;
         }
+        const last = messages.last(playerId);
         system.sendScriptEvent(
           TEST_RESULT_EVENT,
           JSON.stringify({
             player: player.name,
-            message,
-            count,
+            message: last?.message,
+            count: last?.count,
             ticks: system.currentTick - started,
           }),
         );
