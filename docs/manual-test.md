@@ -311,6 +311,13 @@ Run H1-H6 on PC and mobile, with Vibrant Visuals on and off, after a Resource Pa
 | C183 | Place on grass and on a slab top; try water, a parked camper's space, and beside another Gas Lantern | It settles on the slab; water, vehicle space, and nearby Gas Lantern placement are refused | unverified | unverified |
 | C184 | Hit three times quickly; repeat with two hits, a 5 second pause, and one hit; hit while holding the Headlight Switch | Three quick hits drop one item; the paused sequence does not; switch hits never take it back | unverified | unverified |
 | C185 | Compare front, side, and top with the owner's photos | Clear glass cylinder with brass nozzle, stainless cap, dark gasket and silver ring, faceted metal burner with wire handle and brass knob, smooth dome with silver collar, olive cartridge with silver rim; no logo, lettering, or brand mark | unverified | unverified |
+| C186 | On PC right-click and on touch use the interact button while holding the Headlight Switch | Each press flips the lantern with a click; the flame shows only while on | unverified | unverified |
+| C187 | Hold the switch press for 2 seconds | The lantern flips once | unverified | unverified |
+| C188 | At night, switch the lantern on and off and observe nearby ground and hostile mobs | The ground around it is lit while on and dark after off; no hostile mob spawns beside the lit lantern | unverified | unverified |
+| C189 | Switch on, run `/reload`, then restart the server | The lantern stays on and keeps lighting after both | unverified | unverified |
+| C190 | Take back a lit lantern; break the block under another lit lantern; light one on a slab | Take-back leaves no light; within a second the falling lantern light follows it down with none left behind; the slab lantern lights the area too | unverified | unverified |
+| C191 | Press with an empty hand, a stick, and flint and steel | Pressing does nothing | unverified | unverified |
+| C192 | On mobile tap three times with the switch; on PC left-click three times with the switch, pausing between taps | Each tap flips it once; it is never taken back | unverified | unverified |
 
 ## Bulldozer
 
@@ -409,6 +416,7 @@ Setup: use a Vibrant Visuals device at night, then repeat the legacy checks with
 | L6 | Repeat with Vibrant Visuals off: lit lenses are full-bright, unlit lenses look as before, with no flicker, double drawing, or holes. | [ ] | [ ] |
 | L7 | Join on a device without Vibrant Visuals support: vehicles and blocks look as before the change. | [ ] | [ ] |
 | L8 | Fly, bank, and open a door with lights on: the glow follows the parts. | [ ] | [ ] |
+| L9 | Switch the Gas Lantern on and off: with Vibrant Visuals on, the flame glows, glass stays see-through, and metal reflects; with it off, the flame is full-bright only while on. | unverified | unverified |
 
 ## Sports boat mirror (Vibrant Visuals)
 

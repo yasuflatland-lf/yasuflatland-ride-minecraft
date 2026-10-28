@@ -83,7 +83,9 @@ A clear glass cylinder surrounds a brass nozzle beneath a stainless cap. A dark 
 
 Find it last in **Camping Gear (Outside)**, after the Dutch Oven. Craft one from glass panes at top center and both middle sides, a torch at middle center, and an iron ingot at bottom center. Items stack to 16. Use it on a block top outside vehicle space with one clear air cell above and no Gas Lantern within 0.75 blocks. It spawns above the pressed block, faces in quarter turns, and falls onto slabs, carpets, and snow layers. Survival placement consumes one item.
 
-Three quick hits take it back as one item; a gap longer than five seconds resets the count. Hits holding the Headlight Switch do not count. In this step it stays off, and the interact button and switch hits do nothing yet (ADR 0173).
+Hold the Headlight Switch and press the lantern: right-click on PC or use the "Turn the Gas Lantern On / Off" button on touch. A tap on touch or left-click on PC with the switch also turns it on or off with a click. While on, it lights the area like a torch-bright lamp, and its flame glows with Vibrant Visuals on or off. Its on/off state survives a restart. Pressing with other items or an empty hand does nothing.
+
+Three quick hits with other items or an empty hand take it back as one item; a gap longer than five seconds resets the count. Switch hits never count toward take-back. Taking it back clears its light, and the light follows a falling lantern within a second. A lantern removed by a command right after a restart or `/reload`, before its first light refresh, may leave its light behind (ADR 0173).
 
 ## In the game
 

@@ -141,6 +141,8 @@ export const PITCH_REFUSAL_MESSAGE: Readonly<Record<PitchRefusal, string>> = {
 
 export const GAS_LANTERN_TYPE = id("gas_lantern");
 export const GAS_LANTERN_ITEM = id("gas_lantern_item");
+export const GAS_LANTERN_CELLS_PROPERTY = id("gas_lantern_cells");
+export const TEST_GAS_LANTERN_EVENT = id("test_gas_lantern");
 export const GAS_LANTERN_LIT_PROPERTY = id("lit");
 export const GAS_LANTERN_HITS_LEFT_HINT = "yasu_ride.hint.gas_lantern_hits";
 export const TEST_GAS_LANTERN_HIT_EVENT = id("test_gas_lantern_hit");

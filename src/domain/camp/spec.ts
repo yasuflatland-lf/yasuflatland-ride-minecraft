@@ -79,6 +79,14 @@ export const TABLE_SPOTS = Object.freeze([
 export const TABLE_TOP_PX = 12.25;
 
 export const GAS_LANTERN_SPEC = Object.freeze({
+  /** Matches the tent lantern's full-bright light (ADR 0173). */
+  light: 15,
+  /** Reaches the air above partial blocks while keeping full-block light in its own cell. */
+  lightLift: 0.95,
+  /** Follows falling lanterns and repairs lost light within one second. */
+  lightTicks: 20,
+  /** Re-reads the single light cell on every lay to repair lost or shared light promptly. */
+  cellRecheckTicks: 1,
   /** One air cell fits the 11.3 px lantern (ADR 0173). */
   clearance: 1,
   /** The item's yaw snaps to this many degrees. */

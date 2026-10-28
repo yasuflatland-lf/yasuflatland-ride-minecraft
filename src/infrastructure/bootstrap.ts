@@ -11,7 +11,7 @@ export function bootstrap(): void {
   const vehicles = installVehicles({
     isCampSpace: (dimensionId, cell) =>
       camp?.isCampSpace(dimensionId, cell) ?? false,
-    // The router asks the vehicle target first, then the tent lantern.
+    // The router asks the vehicle target first, then the tent lantern, then the Gas Lantern.
     laterSwitchTargets: () => camp?.switchTargets ?? [],
   });
   camp = installCamp({ isVehicleSpace: vehicles.isVehicleSpace });
