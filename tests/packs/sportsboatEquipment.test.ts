@@ -40,36 +40,39 @@ function icon(name: string) {
 
 describe("Sports Boat Equipment (ADR 0171)", () => {
   it.each([
-    ["sportsboat_equipment_box", BOX],
-    ["icebreaker_switch", SWITCH],
-  ])("ships %s as a single-stack item with a 16 x 16 icon", (name, type) => {
-    expect(read(`${BP}/items/yasu_ride/${name}.item.json`)).toEqual({
-      format_version: "1.21.80",
-      "minecraft:item": {
-        description: { identifier: type, menu_category: { category: "items" } },
-        components: {
-          "minecraft:icon": `yasu_ride_${name}`,
-          "minecraft:max_stack_size": 1,
-          "minecraft:use_modifiers": {
-            use_duration: 0.1,
-            movement_modifier: 1.0,
+    ["sportsboat_equipment_box", BOX, "none"],
+    ["icebreaker_switch", SWITCH, "items"],
+  ])(
+    "ships %s as a single-stack item with a 16 x 16 icon",
+    (name, type, category) => {
+      expect(read(`${BP}/items/yasu_ride/${name}.item.json`)).toEqual({
+        format_version: "1.21.80",
+        "minecraft:item": {
+          description: { identifier: type, menu_category: { category } },
+          components: {
+            "minecraft:icon": `yasu_ride_${name}`,
+            "minecraft:max_stack_size": 1,
+            "minecraft:use_modifiers": {
+              use_duration: 0.1,
+              movement_modifier: 1.0,
+            },
+            "minecraft:display_name": { value: `item.${type}.name` },
           },
-          "minecraft:display_name": { value: `item.${type}.name` },
         },
-      },
-    });
-    expect(
-      read(`${RP}/textures/item_texture.json`).texture_data[
-        `yasu_ride_${name}`
-      ],
-    ).toEqual({ textures: `textures/items/yasu_ride/${name}` });
-    const { width, height, pixels } = icon(name);
-    expect([width, height]).toEqual([16, 16]);
-    expect(pixels[3]).toBe(0);
-    expect(
-      Array.from(pixels).some((alpha, i) => i % 4 === 3 && alpha === 255),
-    ).toBe(true);
-  });
+      });
+      expect(
+        read(`${RP}/textures/item_texture.json`).texture_data[
+          `yasu_ride_${name}`
+        ],
+      ).toEqual({ textures: `textures/items/yasu_ride/${name}` });
+      const { width, height, pixels } = icon(name);
+      expect([width, height]).toEqual([16, 16]);
+      expect(pixels[3]).toBe(0);
+      expect(
+        Array.from(pixels).some((alpha, i) => i % 4 === 3 && alpha === 255),
+      ).toBe(true);
+    },
+  );
 
   it("opens the box into the icebreaker switch with its own lore line and received property", () => {
     expect(GIFT_ITEM.sportsboat_equipment_box).toBe(BOX);
@@ -97,10 +100,11 @@ describe("Sports Boat Equipment (ADR 0171)", () => {
     expect(bluish).toEqual([]);
   });
 
-  it("lists the box, then the switch, in a group after the bulldozer switches, with the box as its icon", () => {
-    const groups = read(`${BP}/item_catalog/crafting_item_catalog.json`)[
+  it("lists only the Icebreaker Switch in a group after the bulldozer switches, with the switch as its icon", () => {
+    const categories = read(`${BP}/item_catalog/crafting_item_catalog.json`)[
       "minecraft:crafting_items_catalog"
-    ].categories.find(
+    ].categories;
+    const groups = categories.find(
       (c: { category_name: string }) => c.category_name === "items",
     ).groups;
     const names = groups.map(
@@ -110,9 +114,12 @@ describe("Sports Boat Equipment (ADR 0171)", () => {
       names.indexOf(id("bulldozer_switches")) + 1,
     );
     expect(groups[names.indexOf(GROUP)]).toEqual({
-      group_identifier: { icon: BOX, name: GROUP },
-      items: [BOX, SWITCH],
+      group_identifier: { icon: SWITCH, name: GROUP },
+      items: [SWITCH],
     });
+    for (const category of categories)
+      for (const group of category.groups)
+        expect(group.items).not.toContain(BOX);
   });
 
   it("crafts the switch from a lever, an iron ingot, and packed ice, unlocked from the start, and gives the box no recipe", () => {
@@ -165,7 +172,7 @@ describe("Sports Boat Equipment (ADR 0171)", () => {
 
   it("counts the group on the item groups page", () => {
     expect(readFileSync("docs/items/README.md", "utf8")).toContain(
-      "| **Sports Boat Equipment** | 2 | [Sports Boat Equipment Box and Icebreaker Switch](sportsboat-equipment.md) |",
+      "| **Sports Boat Equipment** | 1 | [Icebreaker Switch](sportsboat-equipment.md) |",
     );
     expect(existsSync("docs/items/sportsboat-equipment.md")).toBe(true);
   });

@@ -1071,13 +1071,10 @@ describe("camping gear blocks and items (ADR 0093)", () => {
               },
               {
                 group_identifier: {
-                  icon: "yasu_ride:sportsboat_equipment_box",
+                  icon: "yasu_ride:icebreaker_switch",
                   name: "yasu_ride:sportsboat_equipment",
                 },
-                items: [
-                  "yasu_ride:sportsboat_equipment_box",
-                  "yasu_ride:icebreaker_switch",
-                ],
+                items: ["yasu_ride:icebreaker_switch"],
               },
             ],
           },

@@ -3,7 +3,7 @@
   "minecraft:item": {
     "description": {
       "identifier": "yasu_ride:sportsboat_equipment_box",
-      "menu_category": { "category": "items" }
+      "menu_category": { "category": "none" }
     },
     "components": {
       "minecraft:icon": "yasu_ride_sportsboat_equipment_box",
