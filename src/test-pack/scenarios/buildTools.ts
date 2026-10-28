@@ -142,12 +142,20 @@ export async function buildEdits(a: Arena): Promise<Outcome> {
         }
         const original = cells.map((b) => b.permutation);
         await select(50, y, 50, 3);
-        await edit("fill minecraft:stone");
+        const filledReply = await edit("fill minecraft:stone");
         check(
           cells.every((b) => b.typeId === "minecraft:stone"),
           "fill did not fill all 27 cells",
         );
-        await edit("undo");
+        check(
+          filledReply.message === "editDone" && filledReply.count === 27,
+          "fill did not report editDone with its block count",
+        );
+        const undoneReply = await edit("undo");
+        check(
+          undoneReply.message === "undoDone" && undoneReply.count === 27,
+          "undo did not report undoDone with its block count",
+        );
         check(
           cells.every((b, i) => {
             const before = original[i];
