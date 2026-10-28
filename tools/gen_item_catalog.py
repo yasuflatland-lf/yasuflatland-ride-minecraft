@@ -36,6 +36,9 @@ GROUPS = [
     },
     # The bulldozer's switches; the Blade Up/Down item raises and lowers its blade (ADR 0138).
     {"name": "bulldozer_switches", "icon": "blade_switch", "items": ["blade_switch"]},
+    # The sports boat's equipment; the box is its placement gift and the group's icon (ADR 0171).
+    {"name": "sportsboat_equipment", "icon": "sportsboat_equipment_box",
+     "items": ["sportsboat_equipment_box", "icebreaker_switch"]},
 ]
 
 
