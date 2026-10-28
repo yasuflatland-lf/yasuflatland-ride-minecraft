@@ -117,6 +117,26 @@ describe("EditJobs properties", () => {
     );
   });
 
+  it("never writes or records a cell the world cannot read", () => {
+    fc.assert(
+      fc.property(fc.array(fc.nat(24), { maxLength: 10 }), (unreadableIdx) => {
+        const env = setup();
+        const at = (i: number) => ({ x: i % 5, y: 64, z: Math.floor(i / 5) });
+        for (const i of unreadableIdx)
+          env.world.unreadableCells.add(cellKey(at(i)));
+        select(env, alex, 5);
+        env.fill.execute({ playerId: alex, pattern: { state: stone } });
+        runAll(env);
+        const unreadable = new Set(unreadableIdx);
+        expect(env.world.writes).toBe(25 - unreadable.size);
+        expect(env.feedback.messages.at(-1)).toEqual({
+          message: "editDone",
+          count: 25 - unreadable.size,
+        });
+      }),
+    );
+  });
+
   it("applies at most blocksPerTick changes per step", () => {
     const env = setup();
     const s = env.repo.getOrCreate(alex);
@@ -220,6 +240,24 @@ describe("edit use cases", () => {
       message: "editDone",
       count: 1,
     });
+  });
+
+  it("skips unreadable cells when copying and replacing", () => {
+    const env = setup();
+    env.world.put({ x: 0, y: 64, z: 0 }, dirt);
+    env.world.put({ x: 1, y: 64, z: 0 }, dirt);
+    env.world.unreadableCells.add(cellKey({ x: 1, y: 64, z: 0 }));
+    select(env, alex, 2);
+    env.copy.execute({ playerId: alex });
+    expect(env.repo.get(alex)?.clipboard?.cells.length).toBe(3);
+    env.replace.execute({
+      playerId: alex,
+      mask: { typeId: "minecraft:dirt" },
+      pattern: { state: stone },
+    });
+    runAll(env);
+    expect(env.world.writes).toBe(1);
+    expect(env.world.stateAt(overworld, { x: 0, y: 64, z: 0 })).toEqual(stone);
   });
 
   it("refuses a paste as a whole when one cell is protected", () => {
