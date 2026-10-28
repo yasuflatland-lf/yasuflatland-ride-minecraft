@@ -183,7 +183,11 @@ it("routes each event to its first claim with the required timing and cancellati
               target === winner &&
               (kind === "item" || (deferred && validNextTick));
             expect(target.switchFor.mock.calls).toEqual(
-              switched ? [[player]] : [],
+              !switched
+                ? []
+                : kind === "entity"
+                  ? [[player, entity]]
+                  : [[player]],
             );
           }
         }
@@ -213,7 +217,12 @@ it("asks a target added after registration on the next event", () => {
       f.targets.push(target);
       press(f, kind, ev);
       for (const [callback] of game.run.mock.calls) callback();
-      expect(target.switchFor).toHaveBeenCalledExactlyOnceWith(player);
+      if (kind === "entity")
+        expect(target.switchFor).toHaveBeenCalledExactlyOnceWith(
+          player,
+          ev.target,
+        );
+      else expect(target.switchFor).toHaveBeenCalledExactlyOnceWith(player);
       expect(f.getter).toHaveBeenCalledTimes(2);
     }),
   );
@@ -303,7 +312,12 @@ it("dispatches each item to its own route only", () => {
         );
         expect(game.run).toHaveBeenCalledTimes(kind === "item" ? 0 : 1);
         for (const [callback] of game.run.mock.calls) callback();
-        expect(target.switchFor).toHaveBeenCalledExactlyOnceWith(player);
+        if (kind === "entity")
+          expect(target.switchFor).toHaveBeenCalledExactlyOnceWith(
+            player,
+            ev.target,
+          );
+        else expect(target.switchFor).toHaveBeenCalledExactlyOnceWith(player);
         expect(otherTarget.claimsItemUse).not.toHaveBeenCalled();
         expect(otherTarget.claimsEntityPress).not.toHaveBeenCalled();
         expect(otherTarget.claimsBlockPress).not.toHaveBeenCalled();
@@ -311,4 +325,21 @@ it("dispatches each item to its own route only", () => {
       },
     ),
   );
+});
+
+it("passes the pressed entity even when it is invalid by the next tick", () => {
+  const f = fixture();
+  const target = fakeTarget({ item: false, entity: true, block: false });
+  f.targets.push(target);
+  const player = { isValid: true } as Player;
+  const pressed = { isValid: true } as Entity;
+  f.entity({
+    player,
+    target: pressed,
+    itemStack: { typeId: HEADLIGHT_SWITCH_TYPE },
+    cancel: false,
+  } as unknown as PlayerInteractWithEntityBeforeEvent);
+  (pressed as { isValid: boolean }).isValid = false;
+  for (const [callback] of game.run.mock.calls) callback();
+  expect(target.switchFor).toHaveBeenCalledExactlyOnceWith(player, pressed);
 });

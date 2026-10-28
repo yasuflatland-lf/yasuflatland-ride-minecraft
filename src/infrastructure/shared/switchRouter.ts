@@ -14,14 +14,20 @@ export interface SwitchTarget {
   claimsBlockPress(player: Player, block: Block): boolean;
   /** Whether this target takes a switch press on the entity `target`; a claimed press is cancelled. */
   claimsEntityPress(player: Player, target: Entity): boolean;
-  /** Switches for `player`. Called with a valid player, outside before-events. */
-  switchFor(player: Player): void;
+  /** Switches for `player`. Called with a valid player, outside before-events. `pressed` is the entity the press landed on, given only for an entity press, and may no longer be valid when this runs. */
+  switchFor(player: Player, pressed?: Entity): void;
 }
 
 // Before-events run in read-only mode, so a claimed press switches on the next tick.
-function switchNextTick(target: SwitchTarget, player: Player): void {
+function switchNextTick(
+  target: SwitchTarget,
+  player: Player,
+  pressed?: Entity,
+): void {
   system.run(() => {
-    if (player.isValid) target.switchFor(player);
+    if (!player.isValid) return;
+    if (pressed === undefined) target.switchFor(player);
+    else target.switchFor(player, pressed);
   });
 }
 
@@ -57,7 +63,7 @@ export function registerSwitchRouter(routes: SwitchRoutes): void {
     );
     if (!target) return;
     ev.cancel = true;
-    switchNextTick(target, player);
+    switchNextTick(target, player, ev.target);
   });
   world.beforeEvents.playerInteractWithBlock.subscribe((ev) => {
     const route = routeOf(routes, ev.itemStack?.typeId);
