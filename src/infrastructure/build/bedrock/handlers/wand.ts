@@ -12,7 +12,7 @@ export function registerWand(
   world.afterEvents.entityHitBlock.subscribe(({ damagingEntity, hitBlock }) => {
     if (damagingEntity.typeId !== "minecraft:player") return;
     const player = damagingEntity as Player;
-    if (!player?.isValid || heldTypeId(player) !== SELECTION_WAND_TYPE) return;
+    if (!player.isValid || heldTypeId(player) !== SELECTION_WAND_TYPE) return;
     setCorner.execute({
       playerId: asPlayerId(player.id),
       corner: "pos1",
