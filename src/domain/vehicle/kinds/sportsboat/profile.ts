@@ -50,6 +50,7 @@ export const SPORTSBOAT_PROFILE: VehicleProfile = Object.freeze({
       height: clearanceHeight(body),
     }),
   }),
+  placementGift: "sportsboat_equipment_box",
   chaseCamera: "near",
   defaultPaint: "black", // ADR 0051, 0076
 });

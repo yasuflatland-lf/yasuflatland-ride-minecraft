@@ -201,10 +201,12 @@ describe("PlaceVehicle placement gift (ADR 0093)", () => {
     ).toBe(false);
   });
 
-  it("gives the camping gear box only with the camper", () => {
+  it("gives the camping gear box with the camper and the equipment box with the sports boat", () => {
     expect(profileOf("camper").placementGift).toBe("camping_gear_box");
     expect(profileOf("suv").placementGift).toBeUndefined();
-    expect(profileOf("sportsboat").placementGift).toBeUndefined();
+    expect(profileOf("sportsboat").placementGift).toBe(
+      "sportsboat_equipment_box",
+    );
   });
 });
 
