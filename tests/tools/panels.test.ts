@@ -256,7 +256,7 @@ describe("camping gear generator with turned cubes", () => {
   it("bounds follows a Y turn about an off-center pivot", () => {
     // 30 degrees about pivot x=1 is not symmetric: a flipped sign or a turn about the origin gives other extents.
     const out = gear(
-      "cube = {'origin': [-2, 0, -1], 'size': [4, 1, 2], 'pivot': [1, 0, 0], 'rotation': [0, 30, 0], 'uv': {}}\nprint(json.dumps(g.bounds([cube])))",
+      "cube = {'origin': [-2, 0, -1], 'size': [4, 1, 2], 'pivot': [1, 0, 0], 'rotation': [0, 30, 0], 'uv': {}}\nprint(json.dumps(g.cube_tilt.bounds([cube])))",
     );
     const [lo, hi] = JSON.parse(out) as [number[], number[]];
     const expected = [-2.098076, 0, -1.366025, 2.366025, 1, 2.366025];

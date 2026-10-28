@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { turnedCorners } from "../support/geometry";
 
 type Vec = [number, number, number];
 type Cube = {
@@ -11,24 +12,37 @@ type Cube = {
   rotation?: Vec;
 };
 
-// Runs tilt_assembly from tools/cube_tilt.py. The module is pure, so it loads on its own.
-const tilt = (cubes: Cube[], pivot: Vec, degrees: number): Cube[] => {
+// Runs Python against tools/cube_tilt.py with the input on stdin as `args`. The module is pure, so it loads on its own.
+const runCubeTilt = <T>(expression: string, input: unknown): T => {
   const script = [
     "import json, sys",
     "sys.path.insert(0, 'tools')",
     "import cube_tilt",
     "args = json.loads(sys.stdin.read())",
-    "print(json.dumps(cube_tilt.tilt_assembly(args['cubes'], args['pivot'], 'x', args['degrees'], 'wheel', {'wheel': {'owner': 'test', 'cubes': len(args['cubes'])}})))",
+    `print(json.dumps(${expression}))`,
   ].join("\n");
-  const out = execFileSync("python3", ["-I", "-c", script], {
-    input: JSON.stringify({ cubes, pivot, degrees }),
-    encoding: "utf8",
-  });
-  return JSON.parse(out);
+  return JSON.parse(
+    execFileSync("python3", ["-I", "-c", script], {
+      input: JSON.stringify(input),
+      encoding: "utf8",
+    }),
+  );
 };
+
+const tilt = (cubes: Cube[], pivot: Vec, degrees: number): Cube[] =>
+  runCubeTilt(
+    "cube_tilt.tilt_assembly(args['cubes'], args['pivot'], 'x', args['degrees'], 'wheel', {'wheel': {'owner': 'test', 'cubes': len(args['cubes'])}})",
+    { cubes, pivot, degrees },
+  );
 
 // JSON turns -0 into 0, so compare against what the helper actually sent.
 const sent = <T>(value: T): T => JSON.parse(JSON.stringify(value));
+
+const measure = (cubes: Cube[]): { corners: Vec[][]; bounds: [Vec, Vec] } =>
+  runCubeTilt(
+    "{'corners': [cube_tilt.corners(c) for c in args], 'bounds': cube_tilt.bounds(args)}",
+    cubes,
+  );
 
 const rad = (degrees: number) => (degrees * Math.PI) / 180;
 type Matrix = number[][];
@@ -98,6 +112,71 @@ const close = (a: number[], b: number[], tolerance: number) => {
     expect(Math.abs((a[i] ?? 0) - (b[i] ?? 0))).toBeLessThan(tolerance);
   }
 };
+
+describe("cube corners and bounds (ADR 0173)", () => {
+  it("matches game corners for any single-axis turn about any pivot", () => {
+    fc.assert(
+      fc.property(cube, angle, (one, degrees) => {
+        for (const axis of [0, 1, 2]) {
+          const rotation: Vec = [0, 0, 0];
+          rotation[axis] = degrees;
+          const turned = { ...one, rotation };
+          const actual = at(measure([turned]).corners, 0);
+          const remaining = turnedCorners({ name: "root" }, turned);
+          expect(actual).toHaveLength(8);
+          for (const point of actual) {
+            const index = remaining.findIndex((candidate) =>
+              point.every(
+                (value, i) => Math.abs(value - at(candidate, i)) < 1e-6,
+              ),
+            );
+            expect(index).toBeGreaterThanOrEqual(0);
+            remaining.splice(index, 1);
+          }
+          expect(remaining).toHaveLength(0);
+        }
+      }),
+      runs,
+    );
+  });
+
+  it("returns unrotated corners in bit order x + 2y + 4z", () => {
+    fc.assert(
+      fc.property(cube, ({ origin, size }) => {
+        const one = { origin, size, uv: {} };
+        const expected = Array.from({ length: 8 }, (_, n) =>
+          origin.map(
+            (value, axis) => value + at(size, axis) * ((n >> axis) & 1),
+          ),
+        );
+        expect(at(measure([one]).corners, 0)).toEqual(sent(expected));
+      }),
+      runs,
+    );
+  });
+
+  it("bounds every corner with the per-axis minimum and maximum", () => {
+    fc.assert(
+      fc.property(fc.array(cube, { minLength: 1, maxLength: 5 }), (cubes) => {
+        const {
+          corners,
+          bounds: [lo, hi],
+        } = measure(cubes);
+        const points = corners.flat();
+        for (const axis of [0, 1, 2]) {
+          const values = points.map((point) => at(point, axis));
+          expect(at(lo, axis) + 0).toBe(Math.min(...values) + 0);
+          expect(at(hi, axis) + 0).toBe(Math.max(...values) + 0);
+          for (const value of values) {
+            expect(value).toBeGreaterThanOrEqual(at(lo, axis));
+            expect(value).toBeLessThanOrEqual(at(hi, axis));
+          }
+        }
+      }),
+      runs,
+    );
+  });
+});
 
 describe("tilt_assembly (ADR 0166)", () => {
   it("returns the original cubes after tilting by a and then by -a", () => {

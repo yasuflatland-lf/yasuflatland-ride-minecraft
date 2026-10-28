@@ -45,6 +45,30 @@ def cube_matrix(rotation):
     return _mul(_rz(-rz), _mul(_ry(ry), _rx(-rx)))
 
 
+def corners(cube):
+    """Return eight corners in bit order x + 2y + 4z (ADR 0051, 0166).
+
+    Corner n starts at origin + size * ((n >> axis) & 1) on each axis. Only a
+    non-zero rotation reads the pivot and rounds the turned coordinates to 6 places.
+    """
+    origin, size = cube["origin"], cube["size"]
+    points = [[origin[i] + size[i] * ((n >> i) & 1) for i in range(3)] for n in range(8)]
+    if not any(cube.get("rotation", [])):
+        return points
+    pivot = cube["pivot"]
+    matrix = cube_matrix(cube["rotation"])
+    turned = [_apply(matrix, [p[i] - pivot[i] for i in range(3)]) for p in points]
+    return [[round(pivot[i] + offset[i], 6) for i in range(3)] for offset in turned]
+
+
+def bounds(cubes):
+    """Return (lo, hi), each with one value per axis, over every cube corner."""
+    points = [p for c in cubes for p in corners(c)]
+    lo = [min(p[i] for p in points) for i in range(3)]
+    hi = [max(p[i] for p in points) for i in range(3)]
+    return lo, hi
+
+
 def _rotation_of(m):
     """The game's `rotation` whose cube_matrix is `m`."""
     sin_y = max(-1.0, min(1.0, -m[2][0]))

@@ -20,7 +20,7 @@ The icon entry of the camping gear box (BOX) comes first in the generated part o
 item_texture.json; its item JSON and icon are written elsewhere (ADR 0093), and
 tools/gen_item_catalog.py lists it in the creative group.
 A gear shape may use cubes turned about a single axis (a `pivot` and a `rotation` on the cube; ADR
-0169): bounds() and the pair blocks follow the turn. Compound rotations are not allowed in gear.
+0169): cube_tilt.bounds() and the pair blocks follow the turn. Compound rotations are not allowed in gear.
 """
 
 import argparse
@@ -159,25 +159,6 @@ def box(x0, y0, z0, x1, y1, z1, color):
     }
 
 
-def corners(cube):
-    """The eight corners of a cube, turned about its pivot the way the game does (ADR 0051, 0166)."""
-    origin, size = cube["origin"], cube["size"]
-    points = [[origin[i] + size[i] * ((n >> i) & 1) for i in range(3)] for n in range(8)]
-    if not any(cube.get("rotation", [])):
-        return points
-    pivot = cube["pivot"]
-    matrix = cube_tilt.cube_matrix(cube["rotation"])
-    turned = [cube_tilt._apply(matrix, [p[i] - pivot[i] for i in range(3)]) for p in points]
-    return [[round(pivot[i] + offset[i], 6) for i in range(3)] for offset in turned]
-
-
-def bounds(cubes):
-    points = [p for c in cubes for p in corners(c)]
-    lo = [min(p[i] for p in points) for i in range(3)]
-    hi = [max(p[i] for p in points) for i in range(3)]
-    return lo, hi
-
-
 def rounded(value):
     """Drop floating-point noise and normalize negative zero before writing."""
     if isinstance(value, float):
@@ -198,7 +179,7 @@ def lantern():
                                       (2.3, 1.9, 2.6, 1.5)):
         body += panels.panel_ring(radius, y0, y1, face("black"), sides=10, thickness=thickness)
     # panel_ring's overlap extends beyond its apothem; fit the rotated silhouette, not origins.
-    _, hi = bounds(body)
+    _, hi = cube_tilt.bounds(body)
     for cube in body:
         for key in ("origin", "size"):
             for axis in (0, 2):
@@ -420,7 +401,7 @@ def validate(spec):
         except ValueError as error:
             errors.append(f"{item['id']}: {error}")
             continue
-        (x0, y0, z0), (x1, y1, z1) = bounds(cubes)
+        (x0, y0, z0), (x1, y1, z1) = cube_tilt.bounds(cubes)
         w = item["width_px"]
         # Written cube coordinates have three decimals; turning them adds sub-millipixel error.
         if abs(x0 + w / 2) > 0.001 or abs(x1 - w / 2) > 0.001:
@@ -438,7 +419,7 @@ def validate(spec):
     for kind, pair in PAIRS.items():
         for end, (left, ahead) in enumerate(pair["ends"]):
             for item in standing(spec):
-                (x0, _, z0), (x1, _, z1) = bounds(SHAPES.get(item["id"], []) or [box(0, 0, 0, 0, 0, 0, "cream")])
+                (x0, _, z0), (x1, _, z1) = cube_tilt.bounds(SHAPES.get(item["id"], []) or [box(0, 0, 0, 0, 0, 0, "cream")])
                 if x0 - left < -8 or x1 - left > 8 or z0 - ahead < -8 or z1 - ahead > 8:
                     errors.append(f"{kind} end {end}: {item['id']} leaves the cell")
     for kind, pair in PAIRS.items():

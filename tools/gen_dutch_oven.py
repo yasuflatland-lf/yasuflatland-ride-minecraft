@@ -1,7 +1,6 @@
 """Generate the plain-lidded cast-iron Dutch oven and its PBR atlas."""
 
 import argparse
-import itertools
 import json
 import math
 import struct
@@ -13,6 +12,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tool_loader import load_tool
 
+cube_tilt = load_tool("cube_tilt")
 panels = load_tool("panels")
 r4 = panels.r4
 
@@ -204,16 +204,7 @@ def validate(doc):
             assert 0 < len(bone["cubes"]) <= 255
             for uv in cube["uv"].values():
                 assert all(0 <= v and v + size <= SIZE for v, size in zip(uv["uv"], uv["uv_size"]))
-            pivot = cube.get("pivot", [0, 0, 0])
-            for corner in itertools.product(*[(v, v + size) for v, size in zip(cube["origin"], cube["size"])]):
-                x, y, z = [v - p for v, p in zip(corner, pivot)]
-                # In game x and z rotations turn the other way from the usual maths (ADR 0051).
-                for axis, degrees in enumerate((-rotation[0], rotation[1], -rotation[2])):
-                    c, s = math.cos(math.radians(degrees)), math.sin(math.radians(degrees))
-                    if axis == 0: y, z = y * c - z * s, y * s + z * c
-                    if axis == 1: x, z = x * c + z * s, -x * s + z * c
-                    if axis == 2: x, y = x * c - y * s, x * s + y * c
-                point = [x + pivot[0], y + pivot[1], z + pivot[2]]
+            for point in cube_tilt.corners(cube):
                 assert -FOOTPRINT <= point[0] <= FOOTPRINT and -FOOTPRINT <= point[2] <= FOOTPRINT and 0 <= point[1] <= 10, point
                 points.append(point)
         if points: bounds[bone["name"]] = (min(p[1] for p in points), max(p[1] for p in points))
