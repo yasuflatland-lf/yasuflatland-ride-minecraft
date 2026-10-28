@@ -21,7 +21,7 @@ Issue #777 fixes this contract for 2/13 of the series. Later steps may only fill
 5. **Joints.** Sub-panels of one segment abut exactly: no gap, no overlap. Sub-panel 0 carries today's 0.25 px aft overlap and sub-panel 3 today's 0.25 px fore overlap (at the lens ends z 32 and z 42 too, as today).
 6. **Faces and bone.** Every face of every sub-panel is `uv("light")`; all sub-panels are in the `headlights` bone. 20 per side, 40 in all. The geometry total goes from 1388 to 1418 (measured in 2/13; if the generator gives another total, 2/13 corrects this number).
 7. **Unchanged.** Bone names, the render controllers, `sportsboat.ce.json` materials, the lit and MER textures, `LIT_SLOTS`, the `yasu_ride:headlights` property, every script, and every cube outside the `headlights` bone.
-8. **Result.** Neighbouring sub-panels in a segment differ in height by about 0.055 px instead of 0.22 px, and in centre by about 0.1 px instead of 0.375 to 0.47 px, so the edges read as smooth curves. Revisit if the owner still sees steps on a device.
+8. **Result.** Neighbouring sub-panels in a segment differ in height by about 0.055 px instead of 0.22 px, and in centre by about 0.1 px instead of 0.375 to 0.47 px, so the edges read as smooth curves.
 9. **Versions and checks.** 2/13 bumps the Resource Pack to the next free patch (0.1.187 if nothing lands first). The four boat previews regenerate. A new device row H11 checks that the lens edges read smooth with no stair steps and no flicker between neighbouring panels; H4, L2, L6, L8 are re-run.
 
 ## Consequences

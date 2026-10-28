@@ -10,7 +10,7 @@ The owner wants to remove the Lantern from Camping Gear (Inside) and add an outd
 
 The Fire Pit supplies the outdoor item's architecture. The switch router currently passes only the player to a target, the tent lantern and camper seat presses each keep a keyed cooldown, and five camp take-back use cases repeat keyed hit-counter bookkeeping. The Fire Pit and Dutch Oven also repeat their ground placement rule and atlas pipeline. Panel helpers lack a dome and a disc centre, while the camping gear and Dutch Oven generators duplicate transformed-corner calculations. Share these components in separate refactors before the Gas Lantern uses them, preserving behavior and pack output.
 
-Sharing was also considered and left out for the chair's placement and item consumption, the Camp Table's footprint and yaw-dependent spawn point, Bedrock probes and handler wiring, and face-the-player yaw for chairs, tables and tents. Those paths have distinct contracts: the Dutch Oven uses one `TickScopedSet` for block and entity presses, and its hit hook has no server-source check. A generic camp light-switch use case is unnecessary when the lantern's switch is four statements after the cooldown refactor. Older items' spacing radii remain literals in their Bedrock worlds. As detailed in Decision 17, the series either does not need these abstractions or would require special cases for most users.
+Sharing was also considered for the remaining camp paths and left out; Decision 17 lists them and why.
 
 The legacy-id mechanism of 0169 remains one explicit table read at the single saved-decor decode, and its panel helpers stay. Issue #777 fixes the decisions for 2/13 through 13/13; later steps may only fill in numbers explicitly marked as measured in their step.
 
