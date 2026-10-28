@@ -168,8 +168,11 @@ const LEVEL = [
   { type: "setProperty", name: "roll", value: 0 },
 ];
 
-const withoutDriver = (seats: readonly (DeckSeatSpot | undefined)[]) =>
-  seats.map((seat) => seat && { x: seat.x, y: seat.y, z: seat.z });
+function withoutDriver(
+  seats: readonly (DeckSeatSpot | undefined)[],
+): (Vec3 | undefined)[] {
+  return seats.map((seat) => seat && { x: seat.x, y: seat.y, z: seat.z });
+}
 
 function boat(heading: number): Vehicle {
   return createVehicle("sportsboat", asVehicleId("boat"), heading);
@@ -200,18 +203,14 @@ describe("sports boat docking (ADR 0063)", () => {
             const step = drive.step(raw, { ...ctx, tick });
             if (step.dock === undefined) return;
             expect(step.dock.cells).toStrictEqual(floorCells(step.dock.hold));
-            const seats = step.dock.seats.flatMap((seat) =>
-              seat ? [seat] : [],
-            );
-            expect(seats).toHaveLength(step.dock.seats.length);
-            expect(seats.map(({ x, y, z }) => ({ x, y, z }))).toStrictEqual(
+            expect(withoutDriver(step.dock.seats)).toStrictEqual(
               seatWorldPositions(
                 step.dock.hold,
                 SPORTSBOAT_PROFILE.seats.positions,
               ),
             );
-            seats.forEach((seat, i) => {
-              expect(seat.driver === true).toBe(i === DRIVER_SEAT);
+            step.dock.seats.forEach((seat, i) => {
+              expect(seat?.driver === true).toBe(i === DRIVER_SEAT);
             });
           });
         },
