@@ -161,7 +161,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0157](0157-an-aluminium-rimmed-louvred-camper-vent-lid.md) | An aluminium-rimmed louvred camper vent lid | Proposed |
 | [0158](0158-a-slanted-pane-sports-boat-windshield.md) | A slanted-pane sports boat windshield | Proposed; extended by 0161 (Proposed) |
 | [0159](0159-a-pbr-rear-view-mirror-on-the-sports-boat.md) | A PBR rear-view mirror on the sports boat | Proposed; extended by 0163 (Proposed) |
-| [0161](0161-smooth-sports-boat-hull-planking.md) | Smooth sports boat hull planking | Proposed; extended by 0162 (Proposed) |
+| [0161](0161-smooth-sports-boat-hull-planking.md) | Smooth sports boat hull planking | Proposed; extended by 0162 (Proposed); superseded in part by [0172](0172-smooth-sports-boat-headlight-lenses.md) (Proposed) |
 | [0162](0162-smooth-the-sports-boat-bows-inner-outline.md) | Smooth the sports boat bow's inner outline | Proposed |
 | [0163](0163-a-glossy-clear-coat-sports-boat-hull.md) | A glossy clear-coat sports boat hull | Proposed |
 | [0164](0164-long-sports-boat-bimini-panels.md) | Long sports boat bimini panels | Proposed |
@@ -169,9 +169,11 @@ This directory records design decisions and the reasons behind them. The format 
 | [0166](0166-tilted-two-axis-sports-boat-helm-assemblies.md) | Tilted two-axis assemblies on the sports boat helm | Proposed |
 | [0167](0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md) | Compound-rotation assemblies as a vehicle-neutral rule | Proposed |
 | [0168](0168-a-dutch-oven-and-a-grill-for-the-fire-pit.md) | A Dutch oven and a grill for the fire pit | Proposed |
-| [0169](0169-a-lantern-for-the-oil-lamp-and-a-noga-chair.md) | A Lantern for the Oil Lamp, no Lava Lamp, and a Noga Chair | Proposed |
+| [0169](0169-a-lantern-for-the-oil-lamp-and-a-noga-chair.md) | A Lantern for the Oil Lamp, no Lava Lamp, and a Noga Chair | Proposed; superseded in part by [0173](0173-remove-the-inside-lantern-and-add-the-gas-lantern.md) (Proposed) |
 | [0170](0170-measure-suv-side-view-proportions.md) | Measure SUV side-view proportions against a fixed wheel diameter | Proposed |
 | [0171](0171-sports-boat-equipment-and-icebreaker-mode.md) | Sports Boat Equipment and icebreaker mode | Proposed |
+| [0172](0172-smooth-sports-boat-headlight-lenses.md) | Smooth sports boat headlight lenses | Proposed |
+| [0173](0173-remove-the-inside-lantern-and-add-the-gas-lantern.md) | Remove the inside Lantern and add the Gas Lantern | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 
