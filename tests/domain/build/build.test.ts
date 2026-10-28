@@ -104,6 +104,7 @@ describe("Box", () => {
         fc.integer({ min: 0, max: 40 }),
         (box, maxPoints) => {
           const points = edgePoints(box, maxPoints);
+          expect(new Set(points.map(cellKey)).size).toBe(points.length);
           expect(points.length).toBeLessThanOrEqual(maxPoints);
           expect(points.every((p) => onEdge(box, p))).toBe(true);
         },
@@ -112,7 +113,50 @@ describe("Box", () => {
   });
 });
 
+describe("edgePoints coverage", () => {
+  it("returns every distinct edge cell when the limit is not reached", () => {
+    fc.assert(
+      fc.property(smallBox, (box) => {
+        const expected = [...cellsOf(box)].filter((c) => {
+          const extremes =
+            Number(c.x === box.min.x || c.x === box.max.x) +
+            Number(c.y === box.min.y || c.y === box.max.y) +
+            Number(c.z === box.min.z || c.z === box.max.z);
+          return extremes >= 2;
+        });
+        expect(keys(edgePoints(box, 10_000))).toEqual(keys(expected));
+      }),
+    );
+  });
+
+  it("samples a huge box without walking its edges", () => {
+    const box = boxOf({ x: 0, y: 0, z: 0 }, { x: 1_000_000_000, y: 5, z: 5 });
+    expect(edgePoints(box, 512).length).toBe(512);
+  });
+});
+
 describe("BlockState", () => {
+  it("sorts and freezes its state keys, including __proto__", () => {
+    fc.assert(
+      fc.property(
+        fc.dictionary(
+          fc.string({ minLength: 1, maxLength: 4 }).map((k) => `k${k}`),
+          fc.oneof(fc.string(), fc.integer(), fc.boolean()),
+        ),
+        (states) => {
+          const state = blockStateOf("a:b", states);
+          expect(Object.keys(state.states)).toEqual(Object.keys(states).sort());
+          expect(Object.isFrozen(state)).toBe(true);
+          expect(Object.isFrozen(state.states)).toBe(true);
+        },
+      ),
+    );
+    const parsed = JSON.parse('{"__proto__":1}');
+    expect(Object.keys(blockStateOf("a:b", parsed).states)).toEqual([
+      "__proto__",
+    ]);
+  });
+
   it("ignores the order of state keys", () => {
     fc.assert(
       fc.property(

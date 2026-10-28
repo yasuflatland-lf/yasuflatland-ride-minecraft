@@ -1,5 +1,5 @@
 // An axis-aligned box of block cells, both corners inclusive.
-import { type Cell, cellKey } from "../shared/cells";
+import type { Cell } from "../shared/cells";
 
 export interface Box {
   readonly min: Cell;
@@ -75,35 +75,57 @@ export function translate(box: Box, by: Cell): Box {
   };
 }
 
-/** Distinct cells along the 12 edges, evenly thinned to at most maxPoints. */
+/**
+ * Distinct cells along the 12 edges, evenly thinned to at most maxPoints.
+ * Cells are picked by index, so the cost follows maxPoints, not the edge length.
+ */
 export function edgePoints(box: Box, maxPoints: number): Cell[] {
   if (maxPoints <= 0) return [];
-  const seen = new Map<string, Cell>();
-  const add = (x: number, y: number, z: number) => {
-    const cell = { x, y, z };
-    seen.set(cellKey(cell), cell);
-  };
   const { min, max } = box;
-  for (const y of [min.y, max.y]) {
-    for (const z of [min.z, max.z]) {
-      for (let x = min.x; x <= max.x; x++) add(x, y, z);
+  const unique = (a: number, b: number) => (a === b ? [a] : [a, b]);
+  const xs = unique(min.x, max.x);
+  const ys = unique(min.y, max.y);
+  const zs = unique(min.z, max.z);
+  // Edges along x cover every cell with y and z extreme. Edges along y and z
+  // then add only the interior cells, so no cell is counted twice.
+  const alongX = sizeX(box) * ys.length * zs.length;
+  const interiorY = Math.max(sizeY(box) - 2, 0);
+  const alongY = interiorY * xs.length * zs.length;
+  const interiorZ = Math.max(sizeZ(box) - 2, 0);
+  const alongZ = interiorZ * xs.length * ys.length;
+  const total = alongX + alongY + alongZ;
+
+  const cellAt = (index: number): Cell => {
+    if (index < alongX) {
+      const rest = Math.floor(index / sizeX(box));
+      return {
+        x: min.x + (index % sizeX(box)),
+        y: ys[rest % ys.length] as number,
+        z: zs[Math.floor(rest / ys.length)] as number,
+      };
     }
-  }
-  for (const x of [min.x, max.x]) {
-    for (const z of [min.z, max.z]) {
-      for (let y = min.y; y <= max.y; y++) add(x, y, z);
+    const j = index - alongX;
+    if (j < alongY) {
+      const rest = Math.floor(j / interiorY);
+      return {
+        x: xs[rest % xs.length] as number,
+        y: min.y + 1 + (j % interiorY),
+        z: zs[Math.floor(rest / xs.length)] as number,
+      };
     }
-  }
-  for (const x of [min.x, max.x]) {
-    for (const y of [min.y, max.y]) {
-      for (let z = min.z; z <= max.z; z++) add(x, y, z);
-    }
-  }
-  const all = [...seen.values()];
-  if (all.length <= maxPoints) return all;
+    const k = j - alongY;
+    const rest = Math.floor(k / interiorZ);
+    return {
+      x: xs[rest % xs.length] as number,
+      y: ys[Math.floor(rest / xs.length)] as number,
+      z: min.z + 1 + (k % interiorZ),
+    };
+  };
+
+  const count = Math.min(total, maxPoints);
   const picked: Cell[] = [];
-  for (let i = 0; i < maxPoints; i++) {
-    picked.push(all[Math.floor((i * all.length) / maxPoints)] as Cell);
+  for (let i = 0; i < count; i++) {
+    picked.push(cellAt(count === total ? i : Math.floor((i * total) / count)));
   }
   return picked;
 }
