@@ -1742,18 +1742,20 @@ def hull_face(y, z):
 
 
 # Headlights: a slim teardrop lens set into each bow flank, widest at the rear and tapering to a point
-# toward the stem: one flat lens per plan segment, turned with it and following the sheer (ADR 0161).
+# toward the stem: four coplanar panels per plan segment follow the sheer (ADR 0172).
 headlights = []
 LAMP = (32.0, 42.0)  # on plan stations
+LAMP_SUBPANELS = 4  # finer one-axis lens edges (ADR 0172)
 LAMP_PROUD = 0.15
 LAMP_MIN_PROUD = 0.03  # a flat lens over faceted planks: kept clear of the face so it cannot z-fight
 lamp_segments = [(a, b) for a, b in zip(PLAN_STATIONS, PLAN_STATIONS[1:]) if LAMP[0] <= a and b <= LAMP[1]]
 lamp_yaws = [yaw(a, beam_plan(a), b, beam_plan(b)) for a, b in lamp_segments]
 for k, (za, zb) in enumerate(lamp_segments):
-    zm = (za + zb) / 2
-    t = (zm - LAMP[0]) / (LAMP[1] - LAMP[0])
-    h = 1.5 * (1 - t) + 0.4 * t
-    yc = sheer(zm) - 3.2 + 1.2 * t
+    panels = []
+    for i in range(LAMP_SUBPANELS):
+        zm = za + (zb - za) * (i + 0.5) / LAMP_SUBPANELS
+        t = (zm - LAMP[0]) / (LAMP[1] - LAMP[0])
+        panels.append((1.5 * (1 - t) + 0.4 * t, sheer(zm) - 3.2 + 1.2 * t))
     angle = lamp_yaws[k]
     cosine = math.cos(angle)
     sine = math.sin(angle)
@@ -1766,6 +1768,8 @@ for k, (za, zb) in enumerate(lamp_segments):
         clearances = []
         for j in range(81):
             along = -overlap + (length + 2 * overlap) * j / 80
+            i = max(0, min(LAMP_SUBPANELS - 1, math.floor(LAMP_SUBPANELS * along / length)))
+            h, yc = panels[i]
             z = za + along * cosine - out * sine
             x = beam_plan(za) + along * sine + out * cosine
             for fraction in (0.001, 0.25, 0.5, 0.75, 0.999):
@@ -1773,8 +1777,12 @@ for k, (za, zb) in enumerate(lamp_segments):
                 clearances.append((x - hull_face(y, z)) * cosine)
         out += max(LAMP_PROUD - max(clearances), LAMP_MIN_PROUD - min(clearances))
     depth = 0.4
-    headlights += paired_plank(*proud(za, beam_plan(za), zb, beam_plan(zb), out),
-                               yc - h / 2, yc + h / 2, "light", depth, overlap)
+    z0, x0, z1, x1 = proud(za, beam_plan(za), zb, beam_plan(zb), out)
+    joints = [(z0 + (z1 - z0) * f, x0 + (x1 - x0) * f) for f in (i / LAMP_SUBPANELS for i in range(LAMP_SUBPANELS + 1))]
+    for i, (h, yc) in enumerate(panels):
+        aft = overlap if i == 0 else 0
+        fore = overlap if i == LAMP_SUBPANELS - 1 else 0
+        headlights += paired_plank(*joints[i], *joints[i + 1], yc - h / 2, yc + h / 2, "light", depth, (aft, fore))
 
 geo = {
     "format_version": "1.12.0",

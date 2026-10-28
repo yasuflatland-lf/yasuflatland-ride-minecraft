@@ -140,6 +140,7 @@ Run H1-H6 on PC and mobile, with Vibrant Visuals on and off, after a Resource Pa
 | H8 | In Vibrant Visuals, repaint to white, then red | Each keeps the gloss in its own color | | |
 | H9 | In Vibrant Visuals, inspect every non-hull surface of the main-pass atlas: the seats, teak, bimini, consoles, tower, the windshield glass (alpha-blended), the unlit headlight lenses, and the trim, steel, chrome, strake, stripe, platform, and jet swatches | They look exactly as before the change, and the windshield keeps its transparency; if MER_OFF changes their appearance, raise the open question in ADR 0163 before merging | | |
 | H10 | Inspect with Vibrant Visuals off, and on a device without it | The hull looks as before; the lamps glow and the mirror reflects as before | | |
+| H11 | At night with the headlights on, look at each bow flank from the side and from 45 degrees ahead | The lens top and bottom edges read as smooth curves with no stair steps; no flicker or seams between neighbouring panels (ADR 0172) | Unverified | Unverified |
 
 ## Camper
 
