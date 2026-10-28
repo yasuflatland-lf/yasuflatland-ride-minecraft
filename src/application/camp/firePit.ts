@@ -7,6 +7,7 @@ import { FIRE_PIT_SPEC } from "../../domain/camp/spec";
 import { HitCounters } from "../../domain/shared/hitCounter";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
+import { canUseBlockTop, placeOnGround } from "./groundPlacement";
 import type { FirePitWorld } from "./ports/firePit";
 
 const RULE = {
@@ -20,7 +21,7 @@ export class FirePitActions {
   constructor(private readonly world: FirePitWorld) {}
 
   canUseBlock(dimension: DimensionId, block: Vec3, face: string): boolean {
-    return face === "up" && !this.world.isOwnBlock(dimension, block);
+    return canUseBlockTop(this.world, dimension, block, face);
   }
 
   place(cmd: {
@@ -30,21 +31,10 @@ export class FirePitActions {
     yaw: number;
     slot: number;
   }): boolean {
-    const { player, dimension, block, yaw, slot } = cmd;
-    for (let dy = 1; dy <= FIRE_PIT_SPEC.clearance; dy++) {
-      const at = { ...block, y: block.y + dy };
-      if (
-        !this.world.isAir(dimension, at) ||
-        this.world.isVehicleSpace(dimension, at)
-      )
-        return false;
-    }
-    const at = { x: block.x + 0.5, y: block.y + 1, z: block.z + 0.5 };
-    if (this.world.hasFirePitNear(dimension, at)) return false;
-    if (!this.world.isCreative(player) && !this.world.consumeItem(player, slot))
-      return false;
-    this.world.spawnFirePit(dimension, at, Math.round(yaw / 90) * 90);
-    return true;
+    return placeOnGround(this.world, FIRE_PIT_SPEC, cmd, {
+      isNear: this.world.hasFirePitNear.bind(this.world),
+      spawn: this.world.spawnFirePit.bind(this.world),
+    });
   }
 
   toggle(

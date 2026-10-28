@@ -2,13 +2,10 @@ import type { FirePitId } from "../../../domain/camp/firePit";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 
-export interface FirePitWorld {
-  isAir(dimension: DimensionId, at: Vec3): boolean;
-  isOwnBlock(dimension: DimensionId, at: Vec3): boolean;
-  isVehicleSpace(dimension: DimensionId, at: Vec3): boolean;
+import type { GroundCellsWorld } from "./groundCells";
+
+export interface FirePitWorld extends GroundCellsWorld {
   hasFirePitNear(dimension: DimensionId, at: Vec3): boolean;
-  isCreative(player: PlayerId): boolean;
-  consumeItem(player: PlayerId, slot: number): boolean;
   spawnFirePit(dimension: DimensionId, at: Vec3, yaw: number): void;
   isCovered(id: FirePitId): boolean;
   setCovered(id: FirePitId, covered: boolean): void;
