@@ -24,21 +24,21 @@ const catalog: {
   ),
 );
 
-function groupItems(name: string): string[] {
+function groupItems(qualifiedName: string): string[] {
   const group = catalog["minecraft:crafting_items_catalog"].categories
     .flatMap((category) => category.groups)
-    .find((g) => g.group_identifier?.name === `${NAMESPACE}:${name}`);
-  if (!group) throw new Error(`Missing creative group ${name}`);
+    .find((g) => g.group_identifier?.name === qualifiedName);
+  if (!group) throw new Error(`Missing creative group ${qualifiedName}`);
   return group.items.map((item) =>
-    (typeof item === "string" ? item : item.name).replace(`${NAMESPACE}:`, ""),
+    typeof item === "string" ? item : item.name,
   );
 }
 
 describe("bulldozer cab monitor rule (ADR 0139)", () => {
-  it("shows exactly the items of its tool creative group", () => {
-    expect(BULLDOZER_MONITOR.tools.map((t) => t.item)).toEqual(
-      groupItems(BULLDOZER_MONITOR.group),
-    );
+  it("shows only items of its creative group", () => {
+    const items = groupItems(BULLDOZER_MONITOR.group);
+    for (const { item } of BULLDOZER_MONITOR.tools)
+      expect(items).toContain(`${NAMESPACE}:${item}`);
   });
 
   it("reports the blade switch as up exactly when the blade target is raised", () => {

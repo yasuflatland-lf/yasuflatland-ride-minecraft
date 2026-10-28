@@ -77,6 +77,24 @@ describe("tools/gen_item_catalog.py (ADR 0093)", () => {
     ).toBe("");
   });
 
+  it("keeps the namespace of a fully qualified item and still checks icons and duplicates", () => {
+    const output = runWithModule(
+      'groups = [{"name": "a", "icon": "x", "items": ["x", "other:y"]}]',
+      "assert gen_item_catalog.validate(groups) is None",
+      'items = gen_item_catalog.catalog(groups)["minecraft:crafting_items_catalog"]["categories"][0]["groups"][0]["items"]',
+      "print(items)",
+      'groups[0]["icon"] = "other:y"',
+      "assert gen_item_catalog.validate(groups) is None",
+      'groups[0]["items"].append("yasu_ride:x")',
+      "try:",
+      "    gen_item_catalog.validate(groups)",
+      "except SystemExit as e:",
+      "    print(str(e.code))",
+    );
+    expect(output).toContain("['yasu_ride:x', 'other:y']");
+    expect(output).toContain("yasu_ride:x is listed more than once");
+  });
+
   it("rejects duplicate groups and items, an empty group, and an icon outside its group", () => {
     const output = runWithModule(
       "try:",
