@@ -218,11 +218,8 @@ export class SportsboatDrive implements Drive {
   }
 
   toolState(item: string): string | undefined {
-    return item === ICEBREAKER_SWITCH_ITEM
-      ? this.icebreakerOn
-        ? "on"
-        : "off"
-      : undefined;
+    if (item !== ICEBREAKER_SWITCH_ITEM) return undefined;
+    return this.icebreakerOn ? "on" : "off";
   }
 
   setToolState(item: string, state: string): boolean {
