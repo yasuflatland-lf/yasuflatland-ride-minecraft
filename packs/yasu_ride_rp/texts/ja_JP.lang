@@ -105,3 +105,6 @@ item.yasu_ride:gas_lantern_item.name=ガスランタン
 entity.yasu_ride:gas_lantern.name=ガスランタン
 yasu_ride.hint.gas_lantern_hits=あと%s回叩くとガスランタンを片付けます
 action.interact.yasu_ride.gas_lantern=ガスランタンを点灯・消灯
+item.yasu_build:selection_wand.name=範囲選択ワンド
+item.yasu_build:build_tool.name=建築ツール
+yasu_build:building_tools=建築ツール
