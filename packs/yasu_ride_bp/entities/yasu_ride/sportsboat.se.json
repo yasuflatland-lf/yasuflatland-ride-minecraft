@@ -27,6 +27,17 @@
           "range": [-20.0, 20.0],
           "default": 0.0,
           "client_sync": true
+        },
+        "yasu_ride:icebreaker": {
+          "type": "bool",
+          "default": false,
+          "client_sync": false
+        },
+        "yasu_ride:monitor": {
+          "type": "int",
+          "range": [0, 2],
+          "default": 0,
+          "client_sync": true
         }
       }
     },

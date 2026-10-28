@@ -30,6 +30,10 @@ class MonitorLayout:
     visible_bounds_width: float
     visible_bounds_height: float
     visible_bounds_offset: Vec
+    # A cubeless bone (name, pivot) to hang the screens from, so an animation on
+    # that bone of the main model, such as the boat's trim and roll on root,
+    # moves the plate with the screen it covers.
+    parent: tuple[str, Vec] | None = None
 
 
 GLYPH_ADVANCE = 6  # a 5 px glyph and 1 px of letter spacing
@@ -175,11 +179,13 @@ def write_monitor(kind: str, layout: MonitorLayout, icons: dict[str, PixelMap],
     check_monitor_faces_viewer(layout)
     screens = json.loads(Path(__file__).with_name("monitor_screens.json").read_text())[kind]
     cells = [monitor_cell(screen, layout, icons) for screen in screens]
-    monitor_bones = [
-        {"name": f"screen_{screen['item']}_{screen['state']}", "pivot": [0, 0, 0],
+    screen_bones = [
+        {"name": f"screen_{screen['item']}_{screen['state']}",
+         **({"parent": layout.parent[0]} if layout.parent else {}), "pivot": [0, 0, 0],
          "cubes": [monitor_plate(k, layout)]}
         for k, screen in enumerate(screens)
     ]
+    parent_bones = [{"name": layout.parent[0], "pivot": list(layout.parent[1])}] if layout.parent else []
 
     monitor_geo = {
         "format_version": "1.12.0",
@@ -189,10 +195,10 @@ def write_monitor(kind: str, layout: MonitorLayout, icons: dict[str, PixelMap],
                             "visible_bounds_width": layout.visible_bounds_width,
                             "visible_bounds_height": layout.visible_bounds_height,
                             "visible_bounds_offset": list(layout.visible_bounds_offset)},
-            "bones": monitor_bones,
+            "bones": parent_bones + screen_bones,
         }],
     }
-    assert_axes([cube for bone in monitor_bones for cube in bone["cubes"]], {})
+    assert_axes([cube for bone in screen_bones for cube in bone["cubes"]], {})
     emit(rp / f"models/entity/yasu_ride/{kind}_monitor.geo.json", json.dumps(rounded(monitor_geo), separators=(",", ":")))
     emit(rp / f"textures/entity/yasu_ride/{kind}_monitor.png", png_bytes(
         layout.cell_size[0], layout.cell_size[1] * len(screens),
@@ -204,7 +210,7 @@ def write_monitor(kind: str, layout: MonitorLayout, icons: dict[str, PixelMap],
             "textures": ["Texture.monitor"],
             "part_visibility": [{"*": False}, *[
                 {bone["name"]: f"query.property('yasu_ride:monitor') == {k + 1}"}
-                for k, bone in enumerate(monitor_bones)
+                for k, bone in enumerate(screen_bones)
             ]],
         }},
     }, separators=(",", ":")))
