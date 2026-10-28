@@ -12,40 +12,37 @@ type Cube = {
   rotation?: Vec;
 };
 
-// Runs tilt_assembly from tools/cube_tilt.py. The module is pure, so it loads on its own.
-const tilt = (cubes: Cube[], pivot: Vec, degrees: number): Cube[] => {
+// Runs Python against tools/cube_tilt.py with the input on stdin as `args`. The module is pure, so it loads on its own.
+const runCubeTilt = <T>(expression: string, input: unknown): T => {
   const script = [
     "import json, sys",
     "sys.path.insert(0, 'tools')",
     "import cube_tilt",
     "args = json.loads(sys.stdin.read())",
-    "print(json.dumps(cube_tilt.tilt_assembly(args['cubes'], args['pivot'], 'x', args['degrees'], 'wheel', {'wheel': {'owner': 'test', 'cubes': len(args['cubes'])}})))",
-  ].join("\n");
-  const out = execFileSync("python3", ["-I", "-c", script], {
-    input: JSON.stringify({ cubes, pivot, degrees }),
-    encoding: "utf8",
-  });
-  return JSON.parse(out);
-};
-
-// JSON turns -0 into 0, so compare against what the helper actually sent.
-const sent = <T>(value: T): T => JSON.parse(JSON.stringify(value));
-
-const measure = (cubes: Cube[]): { corners: Vec[][]; bounds: [Vec, Vec] } => {
-  const script = [
-    "import json, sys",
-    "sys.path.insert(0, 'tools')",
-    "import cube_tilt",
-    "cubes = json.loads(sys.stdin.read())",
-    "print(json.dumps({'corners': [cube_tilt.corners(c) for c in cubes], 'bounds': cube_tilt.bounds(cubes)}))",
+    `print(json.dumps(${expression}))`,
   ].join("\n");
   return JSON.parse(
     execFileSync("python3", ["-I", "-c", script], {
-      input: JSON.stringify(cubes),
+      input: JSON.stringify(input),
       encoding: "utf8",
     }),
   );
 };
+
+const tilt = (cubes: Cube[], pivot: Vec, degrees: number): Cube[] =>
+  runCubeTilt(
+    "cube_tilt.tilt_assembly(args['cubes'], args['pivot'], 'x', args['degrees'], 'wheel', {'wheel': {'owner': 'test', 'cubes': len(args['cubes'])}})",
+    { cubes, pivot, degrees },
+  );
+
+// JSON turns -0 into 0, so compare against what the helper actually sent.
+const sent = <T>(value: T): T => JSON.parse(JSON.stringify(value));
+
+const measure = (cubes: Cube[]): { corners: Vec[][]; bounds: [Vec, Vec] } =>
+  runCubeTilt(
+    "{'corners': [cube_tilt.corners(c) for c in args], 'bounds': cube_tilt.bounds(args)}",
+    cubes,
+  );
 
 const rad = (degrees: number) => (degrees * Math.PI) / 180;
 type Matrix = number[][];
