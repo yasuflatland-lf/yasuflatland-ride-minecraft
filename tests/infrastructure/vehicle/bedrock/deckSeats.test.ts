@@ -12,6 +12,7 @@ import {
 } from "../../../../src/infrastructure/vehicle/bedrock/deckSeats";
 import {
   DECK_SEAT_COMPACT_EVENT,
+  DECK_SEAT_DRIVER_EVENT,
   DECK_SEAT_OF_PROPERTY,
   DECK_SEAT_TYPE,
   DECK_SEATS_PROPERTY,
@@ -397,6 +398,48 @@ it("triggers the compact event once on each newly spawned compact seat only (ADR
                 DECK_SEAT_COMPACT_EVENT,
               );
             else expect(seat.triggerEvent).not.toHaveBeenCalled();
+          });
+        check();
+        seats.keep(asVehicleId(f.car.id), f.car, spots, 0);
+        check();
+      },
+    ),
+  );
+});
+
+it("triggers the driver event once on each newly spawned driver seat only (ADR 0177)", () => {
+  fc.assert(
+    fc.property(
+      fc.array(fc.record({ compact: fc.boolean(), driver: fc.boolean() }), {
+        minLength: 1,
+        maxLength: 6,
+      }),
+      (flags) => {
+        const f = fixture();
+        const seats = new DeckSeats();
+        const spots = flags.map(({ compact, driver }, x) => ({
+          x,
+          y: 0,
+          z: 0,
+          ...(compact && { compact }),
+          ...(driver && { driver }),
+        }));
+        seats.keep(asVehicleId(f.car.id), f.car, spots, 0);
+        const ids: string[] = JSON.parse(
+          String(f.boat.saved.get(DECK_SEATS_PROPERTY)),
+        );
+        const check = () =>
+          ids.forEach((id, i) => {
+            const seat = f.entities.get(id);
+            const flag = flags[i];
+            if (!seat || !flag) throw new Error("missing seat");
+            const events = [
+              ...(flag.compact ? [DECK_SEAT_COMPACT_EVENT] : []),
+              ...(flag.driver ? [DECK_SEAT_DRIVER_EVENT] : []),
+            ];
+            expect(seat.triggerEvent).toHaveBeenCalledTimes(events.length);
+            for (const event of events)
+              expect(seat.triggerEvent).toHaveBeenCalledWith(event);
           });
         check();
         seats.keep(asVehicleId(f.car.id), f.car, spots, 0);

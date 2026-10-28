@@ -5,6 +5,7 @@ import type { DeckSeatSpot } from "../../../domain/vehicle/dock/dock";
 import { DECK_SEAT_REACH } from "../../../domain/vehicle/kinds/index";
 import {
   DECK_SEAT_COMPACT_EVENT,
+  DECK_SEAT_DRIVER_EVENT,
   DECK_SEAT_OF_PROPERTY,
   DECK_SEAT_TYPE,
   DECK_SEATS_PROPERTY,
@@ -133,6 +134,7 @@ export class DeckSeats {
         seat.setDynamicProperty(DECK_SEAT_OF_PROPERTY, vehicleId);
         seat.setRotation({ x: 0, y: yaw });
         if (at.compact) seat.triggerEvent(DECK_SEAT_COMPACT_EVENT);
+        if (at.driver) seat.triggerEvent(DECK_SEAT_DRIVER_EVENT);
         ids[index] = seat.id;
       } else if (
         Math.hypot(

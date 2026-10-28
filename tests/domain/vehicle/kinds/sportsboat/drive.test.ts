@@ -10,6 +10,7 @@ import {
   type Vec2,
   type Vec3,
 } from "../../../../../src/domain/shared/vec";
+import type { DeckSeatSpot } from "../../../../../src/domain/vehicle/dock/dock";
 import type { HoldPose } from "../../../../../src/domain/vehicle/dock/floor";
 import type {
   EngineCommand,
@@ -62,7 +63,10 @@ import {
   stepMotion,
 } from "../../../../../src/domain/vehicle/motion/motion";
 import type { RamTarget } from "../../../../../src/domain/vehicle/ram";
-import { seatWorldPositions } from "../../../../../src/domain/vehicle/seats";
+import {
+  DRIVER_SEAT,
+  seatWorldPositions,
+} from "../../../../../src/domain/vehicle/seats";
 import { SPEC } from "../../../../../src/domain/vehicle/spec";
 import type {
   TickOutcome,
@@ -164,6 +168,9 @@ const LEVEL = [
   { type: "setProperty", name: "roll", value: 0 },
 ];
 
+const withoutDriver = (seats: readonly (DeckSeatSpot | undefined)[]) =>
+  seats.map((seat) => seat && { x: seat.x, y: seat.y, z: seat.z });
+
 function boat(heading: number): Vehicle {
   return createVehicle("sportsboat", asVehicleId("boat"), heading);
 }
@@ -193,12 +200,19 @@ describe("sports boat docking (ADR 0063)", () => {
             const step = drive.step(raw, { ...ctx, tick });
             if (step.dock === undefined) return;
             expect(step.dock.cells).toStrictEqual(floorCells(step.dock.hold));
-            expect(step.dock.seats).toStrictEqual(
+            const seats = step.dock.seats.flatMap((seat) =>
+              seat ? [seat] : [],
+            );
+            expect(seats).toHaveLength(step.dock.seats.length);
+            expect(seats.map(({ x, y, z }) => ({ x, y, z }))).toStrictEqual(
               seatWorldPositions(
                 step.dock.hold,
                 SPORTSBOAT_PROFILE.seats.positions,
               ),
             );
+            seats.forEach((seat, i) => {
+              expect(seat.driver === true).toBe(i === DRIVER_SEAT);
+            });
           });
         },
       ),
@@ -238,7 +252,7 @@ describe("sports boat docking (ADR 0063)", () => {
           expect(out.dock?.hold).toStrictEqual(hold);
           if (!out.dock) throw new Error("missing dock hold");
           expect(out.dock.cells).toStrictEqual(floorCells(out.dock.hold));
-          expect(out.dock.seats).toStrictEqual(
+          expect(withoutDriver(out.dock.seats)).toStrictEqual(
             seatWorldPositions(
               out.dock.hold,
               SPORTSBOAT_PROFILE.seats.positions,
@@ -395,7 +409,7 @@ describe("sports boat docking (ADR 0063)", () => {
           });
           if (!out.dock) throw new Error("missing dock hold");
           expect(out.dock.cells).toStrictEqual(floorCells(out.dock.hold));
-          expect(out.dock.seats).toStrictEqual(
+          expect(withoutDriver(out.dock.seats)).toStrictEqual(
             seatWorldPositions(
               out.dock.hold,
               SPORTSBOAT_PROFILE.seats.positions,

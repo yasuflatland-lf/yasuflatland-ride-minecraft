@@ -23,6 +23,7 @@ entity.yasu_ride:tent.name=Tent
 entity.yasu_ride:seat_filler.name=Boat Seat
 tile.yasu_ride:deck_floor.name=Boat Deck
 action.interact.yasu_ride.sit=Sit
+action.interact.yasu_ride.drive=Drive
 yasu_ride.message.cannot_park=Can't park here
 yasu_ride.message.clear_cargo=Clear the blocks inside first
 yasu_ride.message.sleep_at_night=You can sleep only at night

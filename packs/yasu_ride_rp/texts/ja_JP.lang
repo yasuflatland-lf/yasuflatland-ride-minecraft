@@ -23,6 +23,7 @@ entity.yasu_ride:tent.name=テント
 entity.yasu_ride:seat_filler.name=ボートの座席
 tile.yasu_ride:deck_floor.name=ボートの甲板
 action.interact.yasu_ride.sit=座る
+action.interact.yasu_ride.drive=運転する
 yasu_ride.message.cannot_park=ここでは駐車できません
 yasu_ride.message.clear_cargo=車内のブロックを片付けてください
 yasu_ride.message.sleep_at_night=夜にしか眠れません

@@ -1,7 +1,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-import { DECK_SEAT_COMPACT_EVENT } from "../../src/infrastructure/vehicle/bedrock/identifiers";
+import {
+  DECK_SEAT_COMPACT_EVENT,
+  DECK_SEAT_DRIVER_EVENT,
+} from "../../src/infrastructure/vehicle/bedrock/identifiers";
 
 const read = (p: string) => JSON.parse(readFileSync(p, "utf8"));
 
@@ -70,15 +73,39 @@ describe("Boat deck seat (ADR 0063)", () => {
   });
 
   it("shrinks only a compact seat's box to the toilet (ADR 0095)", () => {
-    expect(entity.component_groups).toEqual({
-      "yasu_ride:compact": {
-        "minecraft:collision_box": { width: 0.5, height: 0.8 },
-      },
+    expect(entity.component_groups["yasu_ride:compact"]).toEqual({
+      "minecraft:collision_box": { width: 0.5, height: 0.8 },
     });
-    expect(entity.events).toEqual({
-      "yasu_ride:compact": { add: { component_groups: ["yasu_ride:compact"] } },
+    expect(entity.events["yasu_ride:compact"]).toEqual({
+      add: { component_groups: ["yasu_ride:compact"] },
     });
     expect(DECK_SEAT_COMPACT_EVENT).toBe("yasu_ride:compact");
+  });
+
+  it("gives only the driver seat the Drive text through a group that replaces just interact_text (ADR 0177)", () => {
+    expect(Object.keys(entity.component_groups).sort()).toEqual([
+      "yasu_ride:compact",
+      "yasu_ride:driver",
+    ]);
+    expect(entity.component_groups["yasu_ride:driver"]).toEqual({
+      "minecraft:rideable": {
+        ...entity.components["minecraft:rideable"],
+        interact_text: "action.interact.yasu_ride.drive",
+      },
+    });
+    expect(entity.events["yasu_ride:driver"]).toEqual({
+      add: { component_groups: ["yasu_ride:driver"] },
+    });
+    expect(DECK_SEAT_DRIVER_EVENT).toBe("yasu_ride:driver");
+  });
+
+  it.each([
+    ["en_US", "Drive"],
+    ["ja_JP", "\u904b\u8ee2\u3059\u308b"],
+  ])("labels the driver seat's interact button in %s", (locale, label) => {
+    expect(langValues(locale, "action.interact.yasu_ride.drive")).toEqual([
+      label,
+    ]);
   });
 
   it("takes no damage from any cause", () => {
