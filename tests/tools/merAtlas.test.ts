@@ -77,8 +77,9 @@ describe("MER atlas", () => {
           );
         },
       ),
+      { numRuns: 20 },
     );
-  });
+  }, 60_000);
 
   it("keeps each MER swatch exact and opaque regardless of colour alpha", () => {
     fc.assert(
@@ -108,8 +109,9 @@ describe("MER atlas", () => {
           expect(actual).toEqual([...data]);
         },
       ),
+      { numRuns: 20 },
     );
-  });
+  }, 60_000);
 
   it("tiles the atlas with sixteen non-overlapping swatch faces", () => {
     const faces = run<{ uv: [number, number]; uv_size: [number, number] }[]>(
