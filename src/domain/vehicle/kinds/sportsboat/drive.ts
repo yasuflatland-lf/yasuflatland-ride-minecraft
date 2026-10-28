@@ -42,6 +42,7 @@ import {
   trimCommand,
 } from "./entity";
 import { ICEBREAKER_SWITCH_ITEM } from "./equipment";
+import { bowBlocked, icebreakerColumns } from "./icebreaker";
 import { SPORTSBOAT_MOTION, SPORTSBOAT_PROFILE } from "./profile";
 import { SPORTSBOAT_SPEC } from "./spec";
 
@@ -385,6 +386,13 @@ export class SportsboatDrive implements Drive {
       commands,
       riders: { thirdPerson: false, underwater: false },
       boardDeckRiders,
+      ...(this.icebreakerOn &&
+        raw !== undefined &&
+        afloat &&
+        control.throttle > 0 &&
+        bowBlocked(ctx.location, step.state.yaw, ctx.solidAt) && {
+          cut: icebreakerColumns(ctx.location, step.state.yaw),
+        }),
       ...(this.docked && { dock: dockAt(this.docked) }),
     };
   }
