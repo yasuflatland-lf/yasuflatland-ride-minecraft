@@ -108,3 +108,17 @@ action.interact.yasu_ride.gas_lantern=ガスランタンを点灯・消灯
 item.yasu_build:selection_wand.name=範囲選択ワンド
 item.yasu_build:build_tool.name=建築ツール
 yasu_build:building_tools=建築ツール
+
+yasu_build.message.pos1_set=始点を設定しました。
+yasu_build.message.pos2_set=終点を設定しました（%s ブロック）。
+yasu_build.message.selection_cleared=選択を解除しました。
+yasu_build.message.not_in_bulldozer=建築ツールはブルドーザーに乗って使ってください。
+yasu_build.message.no_selection=選択の両端を設定してください。
+yasu_build.message.too_large=選択範囲が大きすぎます。
+yasu_build.message.busy=編集中です。
+yasu_build.message.no_clipboard=先に選択範囲をコピーしてください。
+yasu_build.message.nothing_to_undo=元に戻す編集がありません。
+yasu_build.message.paste_blocked=貼り付け先に保護されたブロックがあります。
+yasu_build.message.copied=%s ブロックをコピーしました。
+yasu_build.message.edit_done=%s ブロックを変更しました。
+yasu_build.message.undo_done=%s ブロックを復元しました。
