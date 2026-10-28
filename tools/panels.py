@@ -47,7 +47,7 @@ def disc(radius, y0, y1, face, bars=8, center=(0, 0)):
     """
     half_width = radius * math.sin(math.pi / (2 * bars))
     cx, cz = center
-    return [panel(cx - radius, r4(y0 + k * 0.01), cz + r4(-half_width), cx + radius, r4(y1 - k * 0.01),
+    return [panel(cx - radius, r4(y0 + k * 0.01), cz - r4(half_width), cx + radius, r4(y1 - k * 0.01),
                   cz + r4(half_width), face, (cx, 0, cz), (0, r4(k * 180 / bars), 0))
             for k in range(bars)]
 
