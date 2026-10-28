@@ -118,6 +118,11 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | B43 | Hold the Sports Boat Equipment Box, then empty your hand | Both leave the dash's original display picture visible | unverified | unverified |
 | B44 | As a passenger, hold and use the Icebreaker Switch while the driver holds theirs | The passenger cannot change the driver's screen or the icebreaker state | unverified | unverified |
 | B45 | Turn icebreaker ON, restart the server, then sit as driver and hold the switch | The screen still shows ON; one use changes it to OFF | unverified | unverified |
+| B46 | On water, turn icebreaker ON and drive forward into packed ice, with stone three blocks to the side and above the boat | The ice and stone clear across the boat's box plus three blocks on each side, above, below and ahead; the boat moves through | unverified | unverified |
+| B47 | On lava, turn icebreaker ON and drive forward into a stone wall | The wall clears and the boat moves through | unverified | unverified |
+| B48 | Turn icebreaker OFF and drive forward into the same wall | The wall stays and stops the boat | unverified | unverified |
+| B49 | On dry land, turn icebreaker ON and push forward against a wall | No blocks clear | unverified | unverified |
+| B50 | Repeat the water and lava cuts and inspect the liquid around and below the hull | Water and flowing water, lava and flowing lava remain; the cuts do not drain the pool | unverified | unverified |
 
 ## Sports boat hull (planking and gloss)
 

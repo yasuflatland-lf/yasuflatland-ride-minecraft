@@ -666,3 +666,106 @@ export function boatMonitor(a: Arena): Promise<Outcome> {
     };
   });
 }
+
+// The deepest pool the arena fits: its floor is the world's bottom layer. The
+// icebreaker's downward margin reaches that floor, so the check covers the
+// liquid rows only.
+const POOL_DEPTH = 3;
+
+async function boatIcebreaker(
+  a: Arena,
+  liquid: "water" | "lava" | undefined,
+  enabled: boolean,
+): Promise<Outcome> {
+  const { dim, gy } = a;
+  const start = { x: 35.5, z: 35.5, yaw: -90 };
+  const wallX = 37;
+  const wallType =
+    liquid === "water" ? "minecraft:packed_ice" : "minecraft:stone";
+  const wall = { x: wallX, y: gy - (liquid ? 1 : 0), z: 35 };
+  const highSide = { x: wallX, y: gy + 3, z: 38 };
+  const run = () =>
+    withBoat(
+      a,
+      async (boat) => {
+        drive(boat, 0, 0);
+        await wait(2);
+        dim.runCommand(
+          `fill ${wallX} ${wall.y} 34 ${wallX} ${gy + 1} 36 ${wallType}`,
+        );
+        dim.getBlock(highSide)?.setType("minecraft:stone");
+        try {
+          system.sendScriptEvent(
+            TEST_TOOL_EVENT,
+            `${boat.id},icebreaker_switch,${enabled ? "on" : "off"}`,
+          );
+          await wait(2);
+          const switched =
+            boat.getProperty(entityPropertyId("icebreaker")) === enabled;
+          drive(boat, 0, 1);
+          let ticks = 0;
+          while (ticks < 60 && boat.location.x < wallX + 3) {
+            await wait(1);
+            ticks++;
+          }
+          drive(boat, 0, 0);
+          const wallAfter = dim.getBlock(wall)?.typeId;
+          const sideAfter = dim.getBlock(highSide)?.typeId;
+          const shouldCut = enabled && liquid !== undefined;
+          const cleared =
+            wallAfter !== undefined &&
+            wallAfter !== wallType &&
+            sideAfter === "minecraft:air";
+          const intact =
+            wallAfter === wallType && sideAfter === "minecraft:stone";
+          const moved = boat.location.x > wallX + 2;
+          const dried: string[] = [];
+          if (liquid) {
+            for (let x = 33; x <= 39; x++)
+              for (let z = 32; z <= 39; z++)
+                for (let y = gy - POOL_DEPTH; y < gy; y++) {
+                  if (x === wallX && y === wall.y && z >= 34 && z <= 36)
+                    continue;
+                  const type = dim.getBlock({ x, y, z })?.typeId;
+                  if (
+                    type !== `minecraft:${liquid}` &&
+                    type !== `minecraft:flowing_${liquid}`
+                  )
+                    dried.push(`${x},${y},${z}:${type}`);
+                }
+          }
+          return {
+            pass:
+              switched &&
+              (shouldCut ? cleared && moved : intact && !moved) &&
+              dried.length === 0,
+            detail: `switched=${switched} wall=${wallAfter} side=${sideAfter} x=${boat.location.x.toFixed(2)} ticks=${ticks} dried=${dried.length} ${dried.slice(0, 3).join(" ")}`,
+          };
+        } finally {
+          dim.runCommand(
+            `fill ${wallX} ${wall.y} 34 ${wallX} ${gy + 1} 36 air`,
+          );
+          dim.getBlock(highSide)?.setType("minecraft:air");
+        }
+      },
+      start,
+      liquid ? 20 : 0,
+    );
+  return liquid ? withPool(a, POOL_DEPTH, run, liquid) : run();
+}
+
+export function boatIcebreakerIce(a: Arena): Promise<Outcome> {
+  return boatIcebreaker(a, "water", true);
+}
+
+export function boatIcebreakerLava(a: Arena): Promise<Outcome> {
+  return boatIcebreaker(a, "lava", true);
+}
+
+export function boatIcebreakerOff(a: Arena): Promise<Outcome> {
+  return boatIcebreaker(a, "water", false);
+}
+
+export function boatIcebreakerBeached(a: Arena): Promise<Outcome> {
+  return boatIcebreaker(a, undefined, true);
+}

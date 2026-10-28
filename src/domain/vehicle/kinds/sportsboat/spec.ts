@@ -1,3 +1,5 @@
+const height = 1.2;
+
 // The sports boat's own tuning values (ADR 0051, ADR 0087), written out even where they equal the SUV's today.
 export const SPORTSBOAT_SPEC = Object.freeze({
   // Driving (ADR 0051)
@@ -13,10 +15,21 @@ export const SPORTSBOAT_SPEC = Object.freeze({
   creepSpeed: 0.12, // Below SPEC.ramMinSpeed, so creeping never rams (ADR 0006)
   // Body
   // Collision box height in sportsboat.se.json.
-  height: 1.2,
+  height,
   ramFront: 3.0, // ADR 0051
   ramHalfWidth: 1.06, // ADR 0051
   footprint: 3.5, // the farthest hull corner, at the stern, is 3.48 from the center in sportsboat.geo.json (ADR 0122)
+  icebreaker: Object.freeze({
+    margin: 3, // Added left, right, up, down and ahead of the bow (ADR 0171).
+    sternReach: 3.4, // Rearmost geometry vertex: 54.4 px / 16, rounded up to 0.01 blocks.
+    probeNear: 1.1, // Half the collision box: the engine stops here before ramFront reaches the wall.
+    probeAhead: 1, // Probe this far beyond ramFront (ADR 0171).
+    probeHeights: [0.1, height - 0.1], // Sample near the feet and the collision box top.
+    // A cut that leaves the bow blocked (a kept chest or laid block) repeats only after the
+    // boat moves this far or this many ticks pass, instead of every tick (ADR 0171).
+    recutDistance: 0.5,
+    recutTicks: 20,
+  }),
   // Water drag estimate (ADR 0053): boat_drag measured 0.833 at full speed,
   // 0.916-0.927 on the 3 ticks of every 14 at the top of the bob, and 0.815
   // the tick after; weight 0.1 keeps one bump to about +0.02 on the estimate.
