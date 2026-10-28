@@ -24,6 +24,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tool_loader import load_tool
 
 cube_tilt = load_tool("cube_tilt")
+monitor = load_tool("monitor")
 assert_axes, compound_cubes = cube_tilt.assert_axes, cube_tilt.compound_cubes
 ASSEMBLIES = {
     "blade_arms": {"owner": "bulldozer", "cubes": 7},
@@ -1564,154 +1565,37 @@ png(
 
 print("cubes:", sum(len(b.get("cubes", [])) for b in bones))
 
-MONITOR_CELL = (48, 32)
-MONITOR_LIFT = 0.66
-MONITOR_THICK = 0.02
-MONITOR_FACE = "down"
-# Seen in game from seat 0: the down face needs both u and v reversed, or the
-# label reads mirrored with the icon on the right (ADR 0139).
-MONITOR_UV_FLIP = (True, True)
-MONITOR_BG = PALETTE["screen"]
-# Alpha 0 texels glow under lamp_lit, which is entity_emissive (ADR 0020).
-MONITOR_FG = (200, 236, 248, 0)
-MONITOR_ICON_AT = (2, 8)
-MONITOR_LABEL_X, MONITOR_LABEL_Y, MONITOR_LABEL_WIDTH = 21, 12, 25
-GLYPH_ADVANCE = 6  # a 5 px glyph and 1 px of letter spacing
-FONT_5X7 = {
-    "A": ["01110", "10001", "10001", "11111", "10001", "10001", "10001"],
-    "B": ["11110", "10001", "10001", "11110", "10001", "10001", "11110"],
-    "C": ["01111", "10000", "10000", "10000", "10000", "10000", "01111"],
-    "D": ["11110", "10001", "10001", "10001", "10001", "10001", "11110"],
-    "E": ["11111", "10000", "10000", "11110", "10000", "10000", "11111"],
-    "F": ["11111", "10000", "10000", "11110", "10000", "10000", "10000"],
-    "G": ["01111", "10000", "10000", "10111", "10001", "10001", "01111"],
-    "H": ["10001", "10001", "10001", "11111", "10001", "10001", "10001"],
-    "I": ["11111", "00100", "00100", "00100", "00100", "00100", "11111"],
-    "J": ["00111", "00010", "00010", "00010", "10010", "10010", "01100"],
-    "K": ["10001", "10010", "10100", "11000", "10100", "10010", "10001"],
-    "L": ["10000", "10000", "10000", "10000", "10000", "10000", "11111"],
-    "M": ["10001", "11011", "10101", "10101", "10001", "10001", "10001"],
-    "N": ["10001", "11001", "10101", "10011", "10001", "10001", "10001"],
-    "O": ["01110", "10001", "10001", "10001", "10001", "10001", "01110"],
-    "P": ["11110", "10001", "10001", "11110", "10000", "10000", "10000"],
-    "Q": ["01110", "10001", "10001", "10001", "10101", "10010", "01101"],
-    "R": ["11110", "10001", "10001", "11110", "10100", "10010", "10001"],
-    "S": ["01111", "10000", "10000", "01110", "00001", "00001", "11110"],
-    "T": ["11111", "00100", "00100", "00100", "00100", "00100", "00100"],
-    "U": ["10001", "10001", "10001", "10001", "10001", "10001", "01110"],
-    "V": ["10001", "10001", "10001", "10001", "10001", "01010", "00100"],
-    "W": ["10001", "10001", "10001", "10101", "10101", "10101", "01010"],
-    "X": ["10001", "10001", "01010", "00100", "01010", "10001", "10001"],
-    "Y": ["10001", "10001", "01010", "00100", "00100", "00100", "00100"],
-    "Z": ["11111", "00001", "00010", "00100", "01000", "10000", "11111"],
-    "0": ["01110", "10001", "10011", "10101", "11001", "10001", "01110"],
-    "1": ["00100", "01100", "00100", "00100", "00100", "00100", "01110"],
-    "2": ["01110", "10001", "00001", "00010", "00100", "01000", "11111"],
-    "3": ["11110", "00001", "00001", "01110", "00001", "00001", "11110"],
-    "4": ["00010", "00110", "01010", "10010", "11111", "00010", "00010"],
-    "5": ["11111", "10000", "10000", "11110", "00001", "00001", "11110"],
-    "6": ["01110", "10000", "10000", "11110", "10001", "10001", "01110"],
-    "7": ["11111", "00001", "00010", "00100", "01000", "01000", "01000"],
-    "8": ["01110", "10001", "10001", "01110", "10001", "10001", "01110"],
-    "9": ["01110", "10001", "10001", "01111", "00001", "00001", "01110"],
-    " ": ["00000"] * 7,
-}
-MONITOR_ICONS = {"blade_switch": BLADE_SWITCH_ICON}
+MONITOR_PLATE = mirror_x([{"pivot": [0, 0, 0], "cubes": [
+    on_face(*SCREEN_SPAN, 0.02, "screen", 0.66),
+]}])[0]["cubes"][0]
+BULLDOZER_BOUNDS = geo["minecraft:geometry"][0]["description"]
+MONITOR_LAYOUT = monitor.MonitorLayout(
+    cell_size=(48, 32), label_width=25, face="down",
+    plate_origin=tuple(MONITOR_PLATE["origin"]),
+    plate_pivot=tuple(MONITOR_PLATE["pivot"]),
+    plate_rotation=tuple(MONITOR_PLATE["rotation"]),
+    plate_size=tuple(MONITOR_PLATE["size"]),
+    viewer_point=tuple(next(b["pivot"] for b in bones if b["name"] == "seat_0")),
+    # Seen from seat 0, both axes must reverse to keep the label readable (ADR 0139).
+    uv_flip=(True, True), background=PALETTE["screen"],
+    # Alpha 0 texels glow under lamp_lit, which is entity_emissive (ADR 0020).
+    foreground=(200, 236, 248, 0),
+    icon_at=(2, 8), label_at=(21, 12),
+    visible_bounds_width=BULLDOZER_BOUNDS["visible_bounds_width"],
+    visible_bounds_height=BULLDOZER_BOUNDS["visible_bounds_height"],
+    visible_bounds_offset=tuple(BULLDOZER_BOUNDS["visible_bounds_offset"]),
+)
 
 
 def monitor_icon_color(code):
     if code == ".":
-        return MONITOR_BG
+        return MONITOR_LAYOUT.background
     if code == "K":  # black arrows would vanish on the dark screen
-        return MONITOR_FG
+        return MONITOR_LAYOUT.foreground
     return ICON_COLORS[code][:3] + (0,)
 
 
-def monitor_cell(screen):
-    """One screen of the atlas: the tool's icon on the left and its label centered on the right."""
-    label, item = screen["label"], screen["item"]
-    label_width = len(label) * GLYPH_ADVANCE - 1
-    if label_width > MONITOR_LABEL_WIDTH:
-        raise ValueError(f"Monitor label exceeds {MONITOR_LABEL_WIDTH} px: {label}")
-    if any(char not in FONT_5X7 for char in label):
-        raise ValueError(f"Missing monitor glyph: {label}")
-    if item not in MONITOR_ICONS:
-        raise ValueError(f"Missing monitor icon: {item}")
-    cell = [[MONITOR_BG for _ in range(MONITOR_CELL[0])] for _ in range(MONITOR_CELL[1])]
-    icon_x, icon_y = MONITOR_ICON_AT
-    for y, row in enumerate(MONITOR_ICONS[item]):
-        for x, code in enumerate(row):
-            cell[icon_y + y][icon_x + x] = monitor_icon_color(code)
-    label_x = MONITOR_LABEL_X + (MONITOR_LABEL_WIDTH - label_width) // 2
-    for letter, char in enumerate(label):
-        for y, row in enumerate(FONT_5X7[char]):
-            for x, pixel in enumerate(row):
-                if pixel == "1":
-                    cell[MONITOR_LABEL_Y + y][label_x + letter * GLYPH_ADVANCE + x] = MONITOR_FG
-    return cell
-
-
-def monitor_plate():
-    return on_face(*SCREEN_SPAN, MONITOR_THICK, "screen", MONITOR_LIFT)
-
-
-def monitor_uv(k):
-    """The UV of cell k on MONITOR_FACE only, so the other faces are not drawn."""
-    uv = [0, MONITOR_CELL[1] * k]
-    uv_size = list(MONITOR_CELL)
-    for axis, flip in enumerate(MONITOR_UV_FLIP):
-        if flip:
-            uv[axis] += uv_size[axis]
-            uv_size[axis] *= -1
-    return {MONITOR_FACE: {"uv": uv, "uv_size": uv_size}}
-
-
-def check_monitor_faces_seat():
-    # bar maps +y to the console's inward normal under Bedrock's x rotation sign (ADR 0051).
-    bottom, top, _ = SCREEN_SPAN
-    dy, dz = top - bottom, console_face(top) - console_face(bottom)
-    length = math.hypot(dy, dz)
-    inward = (0, dz / length, -dy / length)
-    face_sign = {"up": 1, "down": -1}[MONITOR_FACE]
-    outward = tuple(face_sign * v for v in inward)
-    seat_pivot = next(b["pivot"] for b in bones if b["name"] == "seat_0")
-    plate_pivot = monitor_plate()["pivot"]
-    if sum(n * (s - p) for n, s, p in zip(outward, seat_pivot, plate_pivot)) <= 0:
-        raise ValueError("Monitor face must point toward seat_0")
-
-
-check_monitor_faces_seat()
-screens = json.loads(Path(__file__).with_name("monitor_screens.json").read_text())["bulldozer"]
-cells = [monitor_cell(screen) for screen in screens]
-monitor_bones = [
-    {"name": f"screen_{screen['item']}_{screen['state']}", "pivot": [0, 0, 0],
-     "cubes": [{**monitor_plate(), "uv": monitor_uv(k)}]}
-    for k, screen in enumerate(screens)
-]
-
-monitor_geo = {
-    "format_version": geo["format_version"],
-    "minecraft:geometry": [{
-        "description": {**geo["minecraft:geometry"][0]["description"],
-                        "identifier": "geometry.yasu_ride.bulldozer_monitor",
-                        "texture_width": MONITOR_CELL[0], "texture_height": MONITOR_CELL[1] * len(screens)},
-        "bones": mirror_x(monitor_bones),
-    }],
-}
-assert_axes([cube for bone in monitor_geo["minecraft:geometry"][0]["bones"] for cube in bone.get("cubes", [])], {})
-emit(MODELS / "bulldozer_monitor.geo.json", json.dumps(rounded(monitor_geo), separators=(",", ":")))
-png(ENTITY_TEXTURES / "bulldozer_monitor.png", MONITOR_CELL[0], MONITOR_CELL[1] * len(screens),
-    lambda x, y: cells[y // MONITOR_CELL[1]][y % MONITOR_CELL[1]][x])
-emit(RP / "render_controllers/yasu_ride/bulldozer_monitor.rc.json", json.dumps({
-    "format_version": "1.8.0",
-    "render_controllers": {"controller.render.yasu_ride.bulldozer.monitor": {
-        "geometry": "Geometry.monitor", "materials": [{"*": "Material.lamp_lit"}],
-        "textures": ["Texture.monitor"],
-        "part_visibility": [{"*": False}, *[
-            {bone["name"]: f"query.property('yasu_ride:monitor') == {k + 1}"}
-            for k, bone in enumerate(monitor_bones)
-        ]],
-    }},
-}, separators=(",", ":")))
+MONITOR_ICONS = {"blade_switch": [[monitor_icon_color(code) for code in row] for row in BLADE_SWITCH_ICON]}
+STALE.extend(monitor.write_monitor("bulldozer", MONITOR_LAYOUT, MONITOR_ICONS, CHECK, RP))
 if STALE:
     sys.exit("Stale bulldozer outputs:\n" + "\n".join(STALE))
