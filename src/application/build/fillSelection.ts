@@ -29,14 +29,14 @@ export class FillSelection {
       this.feedback.showMessage(playerId, box);
       return;
     }
+    // editableBox succeeded, so the selection exists.
+    const dimensionId = session.selection?.dimensionId;
+    if (!dimensionId) return;
     const busy = session.beginEdit();
     if (busy) {
       this.feedback.showMessage(playerId, busy);
       return;
     }
-    // editableBox succeeded, so the selection exists.
-    const dimensionId = session.selection?.dimensionId;
-    if (!dimensionId) return;
     this.jobs.start(playerId, dimensionId, planFill(box, cmd.pattern), false);
   }
 }
