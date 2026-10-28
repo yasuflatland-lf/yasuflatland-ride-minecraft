@@ -91,7 +91,7 @@ export interface DriveWorld {
   ): (string | undefined)[];
   /** Sets each cell to air if it still holds the type it had at the check. */
   clearBlocks(vehicleId: VehicleId, cells: readonly ClearCell[]): void;
-  /** Clears each column in the vehicle's dimension, keeping `CUT_KEPT_BLOCKS` and laid blocks; skips columns in unloaded chunks (ADR 0137). */
+  /** Clears each column in the vehicle's dimension, keeping `KEPT_BLOCKS` and laid blocks; skips columns in unloaded chunks (ADR 0137). */
   cutColumns(vehicleId: VehicleId, columns: readonly CutColumn[]): void;
   /** Shows the lang key yasu_ride.message.<name> on a player's action bar; does nothing for a missing player. */
   showMessage(playerId: PlayerId, name: string): void;
