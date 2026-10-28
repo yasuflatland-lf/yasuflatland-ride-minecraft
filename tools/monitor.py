@@ -98,11 +98,11 @@ def monitor_cell(screen, layout, icons):
     return cell
 
 
-def monitor_plate(layout):
+def monitor_plate(k, layout):
     return {
         "origin": list(layout.plate_origin),
         "size": list(layout.plate_size),
-        "uv": {},
+        "uv": monitor_uv(k, layout),
         "rotation": list(layout.plate_rotation),
         "pivot": list(layout.plate_pivot),
     }
@@ -141,6 +141,16 @@ def rounded(value):
     return value
 
 
+def png_bytes(width, height, pixel):
+    raw = b"".join(b"\x00" + b"".join(bytes(pixel(x, y)) for x in range(width)) for y in range(height))
+
+    def chunk(t, d):
+        return struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d) & 0xFFFFFFFF)
+
+    head = struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0)
+    return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", head) + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b"")
+
+
 def write_monitor(kind: str, layout: MonitorLayout, icons: dict[str, PixelMap],
                   check: bool, rp: Path):
     """Write the overlay assets, or return their stale paths without writing in check mode."""
@@ -162,21 +172,12 @@ def write_monitor(kind: str, layout: MonitorLayout, icons: dict[str, PixelMap],
             else:
                 path.write_text(data)
 
-    def png(path, width, height, pixel):
-        raw = b"".join(b"\x00" + b"".join(bytes(pixel(x, y)) for x in range(width)) for y in range(height))
-
-        def chunk(t, d):
-            return struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d) & 0xFFFFFFFF)
-
-        head = struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0)
-        emit(path, b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", head) + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b""))
-
     check_monitor_faces_viewer(layout)
     screens = json.loads(Path(__file__).with_name("monitor_screens.json").read_text())[kind]
     cells = [monitor_cell(screen, layout, icons) for screen in screens]
     monitor_bones = [
         {"name": f"screen_{screen['item']}_{screen['state']}", "pivot": [0, 0, 0],
-         "cubes": [{**monitor_plate(layout), "uv": monitor_uv(k, layout)}]}
+         "cubes": [monitor_plate(k, layout)]}
         for k, screen in enumerate(screens)
     ]
 
@@ -191,10 +192,11 @@ def write_monitor(kind: str, layout: MonitorLayout, icons: dict[str, PixelMap],
             "bones": monitor_bones,
         }],
     }
-    assert_axes([cube for bone in monitor_geo["minecraft:geometry"][0]["bones"] for cube in bone.get("cubes", [])], {})
+    assert_axes([cube for bone in monitor_bones for cube in bone["cubes"]], {})
     emit(rp / f"models/entity/yasu_ride/{kind}_monitor.geo.json", json.dumps(rounded(monitor_geo), separators=(",", ":")))
-    png(rp / f"textures/entity/yasu_ride/{kind}_monitor.png", layout.cell_size[0], layout.cell_size[1] * len(screens),
-        lambda x, y: cells[y // layout.cell_size[1]][y % layout.cell_size[1]][x])
+    emit(rp / f"textures/entity/yasu_ride/{kind}_monitor.png", png_bytes(
+        layout.cell_size[0], layout.cell_size[1] * len(screens),
+        lambda x, y: cells[y // layout.cell_size[1]][y % layout.cell_size[1]][x]))
     emit(rp / f"render_controllers/yasu_ride/{kind}_monitor.rc.json", json.dumps({
         "format_version": "1.8.0",
         "render_controllers": {f"controller.render.yasu_ride.{kind}.monitor": {

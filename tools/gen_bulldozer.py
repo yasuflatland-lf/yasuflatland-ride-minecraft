@@ -22,9 +22,9 @@ from pathlib import Path
 # Isolated mode (-I) omits the script directory from the import path.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tool_loader import load_tool
-from monitor import MonitorLayout, write_monitor
 
 cube_tilt = load_tool("cube_tilt")
+monitor = load_tool("monitor")
 assert_axes, compound_cubes = cube_tilt.assert_axes, cube_tilt.compound_cubes
 ASSEMBLIES = {
     "blade_arms": {"owner": "bulldozer", "cubes": 7},
@@ -1568,7 +1568,8 @@ print("cubes:", sum(len(b.get("cubes", [])) for b in bones))
 MONITOR_PLATE = mirror_x([{"pivot": [0, 0, 0], "cubes": [
     on_face(*SCREEN_SPAN, 0.02, "screen", 0.66),
 ]}])[0]["cubes"][0]
-MONITOR_LAYOUT = MonitorLayout(
+BULLDOZER_BOUNDS = geo["minecraft:geometry"][0]["description"]
+MONITOR_LAYOUT = monitor.MonitorLayout(
     cell_size=(48, 32), label_width=25, face="down",
     plate_origin=tuple(MONITOR_PLATE["origin"]),
     plate_pivot=tuple(MONITOR_PLATE["pivot"]),
@@ -1576,18 +1577,25 @@ MONITOR_LAYOUT = MonitorLayout(
     plate_size=tuple(MONITOR_PLATE["size"]),
     viewer_point=tuple(next(b["pivot"] for b in bones if b["name"] == "seat_0")),
     # Seen from seat 0, both axes must reverse to keep the label readable (ADR 0139).
-    uv_flip=(True, True), background=PALETTE["screen"], foreground=(200, 236, 248, 0),
+    uv_flip=(True, True), background=PALETTE["screen"],
+    # Alpha 0 texels glow under lamp_lit, which is entity_emissive (ADR 0020).
+    foreground=(200, 236, 248, 0),
     icon_at=(2, 8), label_at=(21, 12),
-    visible_bounds_width=geo["minecraft:geometry"][0]["description"]["visible_bounds_width"],
-    visible_bounds_height=geo["minecraft:geometry"][0]["description"]["visible_bounds_height"],
-    visible_bounds_offset=tuple(geo["minecraft:geometry"][0]["description"]["visible_bounds_offset"]),
+    visible_bounds_width=BULLDOZER_BOUNDS["visible_bounds_width"],
+    visible_bounds_height=BULLDOZER_BOUNDS["visible_bounds_height"],
+    visible_bounds_offset=tuple(BULLDOZER_BOUNDS["visible_bounds_offset"]),
 )
-# Black arrows need contrast; alpha 0 makes the icon glow under lamp_lit (ADR 0020).
-MONITOR_ICONS = {"blade_switch": [
-    [MONITOR_LAYOUT.background if code == "." else
-     MONITOR_LAYOUT.foreground if code == "K" else ICON_COLORS[code][:3] + (0,)
-     for code in row] for row in BLADE_SWITCH_ICON
-]}
-STALE.extend(write_monitor("bulldozer", MONITOR_LAYOUT, MONITOR_ICONS, CHECK, RP))
+
+
+def monitor_icon_color(code):
+    if code == ".":
+        return MONITOR_LAYOUT.background
+    if code == "K":  # black arrows would vanish on the dark screen
+        return MONITOR_LAYOUT.foreground
+    return ICON_COLORS[code][:3] + (0,)
+
+
+MONITOR_ICONS = {"blade_switch": [[monitor_icon_color(code) for code in row] for row in BLADE_SWITCH_ICON]}
+STALE.extend(monitor.write_monitor("bulldozer", MONITOR_LAYOUT, MONITOR_ICONS, CHECK, RP))
 if STALE:
     sys.exit("Stale bulldozer outputs:\n" + "\n".join(STALE))
