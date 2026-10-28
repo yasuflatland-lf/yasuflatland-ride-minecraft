@@ -1064,13 +1064,6 @@ describe("camping gear blocks and items (ADR 0093)", () => {
               },
               {
                 group_identifier: {
-                  icon: "yasu_ride:blade_switch",
-                  name: "yasu_ride:bulldozer_switches",
-                },
-                items: ["yasu_ride:blade_switch"],
-              },
-              {
-                group_identifier: {
                   icon: "yasu_ride:icebreaker_switch",
                   name: "yasu_ride:sportsboat_equipment",
                 },
@@ -1081,7 +1074,11 @@ describe("camping gear blocks and items (ADR 0093)", () => {
                   icon: "yasu_build:build_tool",
                   name: "yasu_build:building_tools",
                 },
-                items: ["yasu_build:build_tool", "yasu_build:selection_wand"],
+                items: [
+                  "yasu_build:build_tool",
+                  "yasu_build:selection_wand",
+                  "yasu_ride:blade_switch",
+                ],
               },
             ],
           },
