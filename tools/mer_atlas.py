@@ -16,6 +16,10 @@ def face(slot, swatch=8, columns=4):
             "uv_size": [swatch, swatch]}
 
 
+def swatch_entry(palette, x, y, size, swatch):
+    return palette[(y // swatch) * (size // swatch) + x // swatch]
+
+
 def atlas_pixels(palette, size=32, swatch=8, streak_rows=16):
     """Return RGBA bytes, preserving palette alpha (RGB entries default to 255).
 
@@ -25,7 +29,7 @@ def atlas_pixels(palette, size=32, swatch=8, streak_rows=16):
     out = bytearray()
     for y in range(size):
         for x in range(size):
-            color, _ = palette[(y // swatch) * (size // swatch) + x // swatch]
+            color, _ = swatch_entry(palette, x, y, size, swatch)
             streak = round(3 * math.sin(x * 1.5 + y * 0.2)) if y < streak_rows else 0
             out.extend((*(max(0, min(255, c + streak)) for c in color[:3]),
                         color[3] if len(color) == 4 else 255))
@@ -37,7 +41,7 @@ def mer_pixels(palette, size=32, swatch=8):
     out = bytearray()
     for y in range(size):
         for x in range(size):
-            _, material = palette[(y // swatch) * (size // swatch) + x // swatch]
+            _, material = swatch_entry(palette, x, y, size, swatch)
             out.extend((*material, 255))
     return bytes(out)
 
@@ -77,22 +81,21 @@ def write_or_check(root, check, files, stale_message):
     files maps geometry and texture_set to (relative path, JSON document),
     and color and mer to (relative path, size, RGBA bytes).
     """
-    for name in ("geometry", "texture_set", "color", "mer"):
-        relative, *content = files[name]
+    for name in ("geometry", "texture_set"):
+        relative, doc = files[name]
         path = root / relative
-        if name in ("geometry", "texture_set"):
-            doc, = content
-            if check:
-                if json.loads(path.read_text()) != doc:
-                    sys.exit(stale_message)
-            else:
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text(json.dumps(doc, separators=(",", ":")) + "\n")
+        if check:
+            if json.loads(path.read_text()) != doc:
+                sys.exit(stale_message)
         else:
-            size, data = content
-            if check:
-                if read_png(path, size) != data:
-                    sys.exit(stale_message)
-            else:
-                path.parent.mkdir(parents=True, exist_ok=True)
-                write_png(path, size, data)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(doc, separators=(",", ":")) + "\n")
+    for name in ("color", "mer"):
+        relative, size, data = files[name]
+        path = root / relative
+        if check:
+            if read_png(path, size) != data:
+                sys.exit(stale_message)
+        else:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            write_png(path, size, data)

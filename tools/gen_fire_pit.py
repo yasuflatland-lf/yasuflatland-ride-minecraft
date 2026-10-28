@@ -134,19 +134,6 @@ def validate(doc):
     assert max(tops) == GRILL_TOP
 
 
-def pixels(mer=False):
-    generate = mer_atlas.mer_pixels if mer else mer_atlas.atlas_pixels
-    return generate(PALETTE, SIZE, SWATCH)
-
-
-def write_png(path, data):
-    mer_atlas.write_png(path, SIZE, data)
-
-
-def read_png(path):
-    return mer_atlas.read_png(path, SIZE)
-
-
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("resource_pack", type=Path)
@@ -157,8 +144,8 @@ def main():
     mer_atlas.write_or_check(args.resource_pack, args.check, {
         "geometry": (GEOMETRY, doc),
         "texture_set": (TEXTURE_SET, mer_atlas.texture_set_doc("fire_pit")),
-        "color": (TEXTURE, SIZE, pixels()),
-        "mer": (MER, SIZE, pixels(True)),
+        "color": (TEXTURE, SIZE, mer_atlas.atlas_pixels(PALETTE, SIZE, SWATCH)),
+        "mer": (MER, SIZE, mer_atlas.mer_pixels(PALETTE, SIZE, SWATCH)),
     }, "fire pit model, PBR maps, or texture set is stale; run pnpm model")
 
 
