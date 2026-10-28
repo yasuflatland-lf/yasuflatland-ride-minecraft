@@ -7,22 +7,22 @@ const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const PACKS = [
   {
     folder: "yasu_ride_bp",
-    namespace: "yasu_ride",
+    namespaces: ["yasu_ride", "yasu_build"],
     resource: false,
   },
   {
     folder: "yasu_ride_rp",
-    namespace: "yasu_ride",
+    namespaces: ["yasu_ride", "yasu_build"],
     resource: true,
   },
   {
     folder: "yasu_ride_test_bp",
-    namespace: "yasu_ride_test",
+    namespaces: ["yasu_ride_test"],
     resource: false,
   },
 ];
 const MAX_PATH_LENGTH = 80;
-const NAMESPACES = new Set(PACKS.map((pack) => pack.namespace));
+const NAMESPACES = new Set(PACKS.flatMap((pack) => pack.namespaces));
 // Bedrock looks up these files at fixed paths rather than content paths (ADR 0047).
 const ENGINE_FIXED_FILES = new Set([
   "manifest.json",
@@ -91,13 +91,19 @@ function definitions(
 
 describe.each(PACKS)("$folder pack layout and identifiers", (pack) => {
   const root = join(REPO_ROOT, "packs", pack.folder);
+  // A definition's namespace is the one of the folder its file sits in (ADR 0178).
+  const namespaceOf = (path: string) =>
+    path.split("/").slice(0, -1).at(-1) ?? "";
   const collectDefinitions = () => {
     const files = jsonFileEntries(root);
     expect(files.length, `${pack.folder}: no JSON files found`).toBeGreaterThan(
       0,
     );
     return files.flatMap(({ path, json }) =>
-      definitions(path, json, pack.resource),
+      definitions(path, json, pack.resource).map((definition) => ({
+        ...definition,
+        namespace: namespaceOf(path),
+      })),
     );
   };
 
@@ -111,7 +117,7 @@ describe.each(PACKS)("$folder pack layout and identifiers", (pack) => {
       const folders = path.split("/").slice(0, -1);
       return (
         folders.length < 2 ||
-        folders.at(-1) !== pack.namespace ||
+        !pack.namespaces.includes(folders.at(-1) ?? "") ||
         folders.slice(0, -1).some((folder) => NAMESPACES.has(folder))
       );
     });
@@ -128,12 +134,14 @@ describe.each(PACKS)("$folder pack layout and identifiers", (pack) => {
   });
 
   it("namespaces every definition identifier", () => {
-    const offenders = collectDefinitions().filter(({ identifier, dotted }) => {
-      if (!dotted) return !identifier.startsWith(`${pack.namespace}:`);
-      const segments = identifier.split(".");
-      const namespaceIndex = identifier.startsWith("controller.") ? 2 : 1;
-      return segments[namespaceIndex] !== pack.namespace;
-    });
+    const offenders = collectDefinitions().filter(
+      ({ identifier, dotted, namespace }) => {
+        if (!dotted) return !identifier.startsWith(`${namespace}:`);
+        const segments = identifier.split(".");
+        const namespaceIndex = identifier.startsWith("controller.") ? 2 : 1;
+        return segments[namespaceIndex] !== namespace;
+      },
+    );
     expect(offenders).toEqual([]);
   });
 

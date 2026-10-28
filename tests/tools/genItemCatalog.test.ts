@@ -69,6 +69,14 @@ describe("tools/gen_item_catalog.py (ADR 0093)", () => {
     });
   });
 
+  it("keeps the same group and item names apart across namespaces", () => {
+    expect(
+      runWithModule(
+        'assert gen_item_catalog.validate([{"name": "a", "icon": "y", "items": ["y"]}, {"namespace": "other", "name": "a", "icon": "y", "items": ["y"]}]) is None',
+      ),
+    ).toBe("");
+  });
+
   it("rejects duplicate groups and items, an empty group, and an icon outside its group", () => {
     const output = runWithModule(
       "try:",
@@ -76,10 +84,10 @@ describe("tools/gen_item_catalog.py (ADR 0093)", () => {
       "except SystemExit as e:",
       "    print(str(e.code))",
     );
-    expect(output).toContain("group a is listed more than once");
+    expect(output).toContain("group yasu_ride:a is listed more than once");
     expect(output).toContain("a: has no items");
     expect(output).toContain("a: icon x is not one of its items");
-    expect(output).toContain("y is listed more than once");
+    expect(output).toContain("yasu_ride:y is listed more than once");
     expect(
       runWithModule(
         "assert gen_item_catalog.validate(gen_item_catalog.GROUPS) is None",
