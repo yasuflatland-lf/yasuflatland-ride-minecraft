@@ -81,12 +81,10 @@ export const TABLE_TOP_PX = 12.25;
 export const GAS_LANTERN_SPEC = Object.freeze({
   /** One air cell fits the 11.3 px lantern (ADR 0173). */
   clearance: 1,
-  /** Placement faces in quarter turns. */
+  /** The item's yaw snaps to this many degrees. */
   yawStep: 90,
   /** Radius in blocks also finds lanterns settled onto partial blocks. */
   spacing: 0.75,
-  /** Quick hits needed to return the lantern as an item. */
   hitsToTakeBack: 3,
-  /** A longer gap in ticks starts a new take-back count. */
   hitResetTicks: 100,
 });
