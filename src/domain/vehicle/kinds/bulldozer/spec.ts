@@ -1,10 +1,8 @@
+import type { CutRect } from "../../cutArea";
 import { MOTION } from "../../motion/constants";
 import type { Medium } from "../../motion/motion";
 import type { TransformingSpec } from "../../motion/transforming";
-export interface BladeRule {
-  readonly near: number;
-  readonly far: number;
-  readonly halfWidth: number;
+export interface BladeRule extends CutRect {
   readonly bodyHeight: number;
   readonly minSpeed: number;
 }

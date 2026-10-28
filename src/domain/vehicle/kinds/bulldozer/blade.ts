@@ -27,11 +27,7 @@ export function bladeColumns(
   const height = flying
     ? Math.ceil(location.y + rule.bodyHeight) - bottom
     : undefined;
-  return rectCells(location, yaw, {
-    near: rule.near,
-    far: rule.far,
-    halfWidth: rule.halfWidth,
-  }).map((cell) => ({
+  return rectCells(location, yaw, rule).map((cell) => ({
     ...cell,
     bottom,
     ...(height === undefined ? {} : { height }),
