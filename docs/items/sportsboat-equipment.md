@@ -5,4 +5,4 @@ Equipment for the sports boat, from the Sports Boat Equipment group of the Items
 | Item | Recipe | What it does |
 |---|---|---|
 | Sports Boat Equipment Box | None | Given once per player on their first sports boat placement, or dropped at their feet when the inventory is full ([ADR 0093](../adr/0093-decorate-the-parked-camper.md)). Use it to open it: it is used up and gives one Icebreaker Switch. |
-| Icebreaker Switch | Shapeless, a lever, an iron ingot, and packed ice | Switches the sports boat's icebreaker mode on and off. Holding or using it does nothing yet; a later step routes it to the boat. |
+| Icebreaker Switch | Shapeless, a lever, an iron ingot, and packed ice | Switches the sports boat's icebreaker mode on and off. While driving, hold it to show its icon and OFF or ON on the dash monitor, and use it to toggle the mode. Passengers cannot toggle it. Holding the box or another item restores the usual display. The state survives reloads and server restarts; clearing obstacles arrives in the next step. |
