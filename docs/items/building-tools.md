@@ -4,7 +4,7 @@ Tools the bulldozer's driver uses to select and edit blocks, from the Building T
 
 | Item | Recipe | What it does |
 |---|---|---|
-| Selection Wand | Shapeless, a stick and a copper ingot | Hold it while driving the bulldozer. Hit a block (left-click on PC, tap on mobile) to set the first corner, pos1; the block is not broken, even in Survival. Use it on a block (right-click on PC, long press on mobile) to set the second corner, pos2. Sneak and use it to clear the selection. |
+| Selection Wand | Shapeless, a stick and a copper ingot | Hold it while driving the bulldozer. Hit a block (left-click on PC, tap on mobile) to set the first corner, pos1; the block is not broken, even in Survival. Use it on a block (right-click on PC, long press on mobile) to set the second corner, pos2. Sneak and use it while aiming at no block (at the air) to clear the selection; using it on a block sets pos2 even while sneaking. |
 | Build Tool | Shapeless, an iron ingot and a chain | Hold it while driving the bulldozer and use it to open a form with Fill, Replace, Copy, Paste, Undo, and Clear selection. |
 
 The design is recorded in [ADR 0178](../adr/0178-bulldozer-build-tools-in-a-separate-namespace.md).
@@ -24,6 +24,8 @@ Copy remembers the selection relative to the bulldozer's feet. Paste puts it bac
 ## Air
 
 Air in a copied selection replaces the blocks it lands on, so a paste carves out the gaps. Turn on "Skip air" in the form to leave those blocks alone.
+
+Kept blocks inside a copied selection, such as a chest or a sign, are not copied. A paste leaves whatever is at that spot untouched, so a pasted house has no chest or sign where the original had one.
 
 ## What is never edited
 
