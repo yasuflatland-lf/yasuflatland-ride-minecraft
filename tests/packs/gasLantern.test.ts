@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
-import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 import { type Bone, turnedCorners } from "../support/geometry";
+import { readRgbaPng } from "../support/png";
 import { assertOneAxis } from "./oneAxis";
 
 const bp = "packs/yasu_ride_bp";
@@ -37,34 +37,17 @@ const swatchOf = (cube: Cube) =>
 const swatchesOf = (name: string) =>
   new Set((bone(name).cubes ?? []).flatMap((c) => [...swatchOf(c)]));
 
-function readPng(path: string) {
-  const png = readFileSync(path);
-  const width = png.readUInt32BE(16);
-  const height = png.readUInt32BE(20);
-  expect(png[24]).toBe(8);
-  expect(png[25]).toBe(6);
-  const idat: Buffer[] = [];
-  for (let pos = 8; pos < png.length; ) {
-    const length = png.readUInt32BE(pos);
-    if (png.toString("ascii", pos + 4, pos + 8) === "IDAT")
-      idat.push(png.subarray(pos + 8, pos + 8 + length));
-    pos += length + 12;
-  }
-  const raw = inflateSync(Buffer.concat(idat));
-  const stride = width * 4;
-  const pixel = (x: number, y: number) => {
-    const start = y * (stride + 1) + 1 + x * 4;
-    return [...raw.subarray(start, start + 4)];
-  };
-  return { width, height, pixel };
-}
-const swatchPixels = (png: ReturnType<typeof readPng>, slot: number) => {
+function swatchPixels(png: ReturnType<typeof readRgbaPng>, slot: number) {
   const out: number[][] = [];
   for (let y = 0; y < 8; y++)
-    for (let x = 0; x < 8; x++)
-      out.push(png.pixel((slot % 4) * 8 + x, Math.floor(slot / 4) * 8 + y));
+    for (let x = 0; x < 8; x++) {
+      const px = (slot % 4) * 8 + x;
+      const py = Math.floor(slot / 4) * 8 + y;
+      const start = (py * png.width + px) * 4;
+      out.push([...png.pixels.subarray(start, start + 4)]);
+    }
   return out;
-};
+}
 
 describe("Gas Lantern model", () => {
   it("has the four bones, their parents, and the shipped cube counts", () => {
@@ -166,16 +149,18 @@ describe("Gas Lantern model", () => {
 });
 
 describe("Gas Lantern textures and pack files", () => {
-  const color = readPng(`${rp}/textures/entity/yasu_ride/gas_lantern.png`);
-  const mer = readPng(`${rp}/textures/entity/yasu_ride/gas_lantern_mer.png`);
+  const color = readRgbaPng(`${rp}/textures/entity/yasu_ride/gas_lantern.png`);
+  const mer = readRgbaPng(
+    `${rp}/textures/entity/yasu_ride/gas_lantern_mer.png`,
+  );
 
   it("has a flat 32 x 32 RGBA atlas with glass alpha 96 and flame alpha 0", () => {
     expect([color.width, color.height]).toEqual([32, 32]);
     for (let slot = 0; slot < 16; slot++) {
       const texels = swatchPixels(color, slot);
       expect(new Set(texels.map((t) => t.join())).size).toBe(1);
-      const alpha = slot === 6 ? 96 : slot === 7 ? 0 : 255;
-      expect(texels[0]?.[3]).toBe(alpha);
+      const alpha: Record<number, number> = { 6: 96, 7: 0 };
+      expect(texels[0]?.[3]).toBe(alpha[slot] ?? 255);
     }
   });
 

@@ -73,7 +73,7 @@ def shoulder():
 
 def burner():
     """Blue frame: the faceted metallic burner body, its floor, then the green frame gasket, ring plate and nozzle."""
-    return (ring(1.6, 5.4, 7.0, STEEL, 6, 0.6) + panels.disc(1.6, 5.4, 5.6, face(STEEL), 6)
+    return (ring(1.6, 5.4, 7.0, STEEL, 6, 0.6) + plate(1.6, 5.4, 5.6, STEEL, 6)
             + ring(1.7, 7.0, 7.2, GASKET, 16, 0.4) + plate(1.9, 7.2, 7.4, SILVER, 8)
             + ring(0.35, 7.4, 8.2, BRASS, 8, 0.2))
 
