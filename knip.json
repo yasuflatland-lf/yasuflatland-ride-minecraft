@@ -1,6 +1,5 @@
 {
   "$schema": "https://unpkg.com/knip@6.41.0/schema.json",
-  "ignore": ["src/application/build/ports/blocks.ts"],
   "ignoreDependencies": ["@swc/core"],
   "entry": [
     "src/main.ts",
