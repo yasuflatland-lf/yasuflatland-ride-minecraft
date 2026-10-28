@@ -3,6 +3,7 @@ import type {
   GasLanternId,
   GasLanternLight,
 } from "../../../domain/camp/gasLantern";
+import { GAS_LANTERN_SPEC } from "../../../domain/camp/spec";
 import type { LaidCell } from "../../../domain/shared/laidCells";
 import { type CellCodec, CellLayer } from "../../shared/laidCells";
 import { lightBlockId } from "../../shared/lightBlocks";
@@ -34,9 +35,8 @@ export function createGasLanternLight(): CellLayer<
   GasLanternId,
   GasLanternLight
 > {
-  // Re-read the single cell on every lay to repair lost or shared light promptly.
   return new CellLayer<GasLanternId, GasLanternLight>(
     GAS_LANTERN_CELL_CODEC,
-    1,
+    GAS_LANTERN_SPEC.cellRecheckTicks,
   );
 }

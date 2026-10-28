@@ -85,6 +85,8 @@ export const GAS_LANTERN_SPEC = Object.freeze({
   lightLift: 0.95,
   /** Follows falling lanterns and repairs lost light within one second. */
   lightTicks: 20,
+  /** Re-reads the single light cell on every lay to repair lost or shared light promptly. */
+  cellRecheckTicks: 1,
   /** One air cell fits the 11.3 px lantern (ADR 0173). */
   clearance: 1,
   /** The item's yaw snaps to this many degrees. */

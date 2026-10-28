@@ -102,13 +102,11 @@ export class BedrockGasLanternWorld implements GasLanternWorld {
 
   // A property set this tick can still read back as the old value, so a
   // switch passes the state it just set instead of reading it again.
-  relayLight(
-    id: GasLanternId,
-    lit = gasLantern(id)?.getProperty(GAS_LANTERN_LIT_PROPERTY) === true,
-  ): void {
+  relayLight(id: GasLanternId, lit?: boolean): void {
     const entity = gasLantern(id);
-    if (entity)
-      this.light.lay(id, entity, gasLanternLightCells(lit, entity.location));
+    if (!entity) return;
+    const on = lit ?? entity.getProperty(GAS_LANTERN_LIT_PROPERTY) === true;
+    this.light.lay(id, entity, gasLanternLightCells(on, entity.location));
   }
 
   clearLight(id: GasLanternId): void {

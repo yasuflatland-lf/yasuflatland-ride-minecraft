@@ -463,20 +463,21 @@ export async function gasLanternSwitch(a: Arena): Promise<Outcome> {
   const lit = (entity: Entity) =>
     entity.getProperty(GAS_LANTERN_LIT_PROPERTY) === true &&
     a.dim.getBlock(cell)?.typeId === "minecraft:light_block_15";
+  const unlit = (entity: Entity) =>
+    entity.getProperty(GAS_LANTERN_LIT_PROPERTY) === false && air();
   try {
     a.dim.getBlock(support)?.setType("minecraft:stone");
     a.dim.getBlock(cell)?.setType("minecraft:air");
     const first = summon();
     if (!first) return { pass: false, detail: "Gas Lantern not spawned" };
-    const initial =
-      first.getProperty(GAS_LANTERN_LIT_PROPERTY) === false && air();
+    const initial = unlit(first);
     system.sendScriptEvent(TEST_GAS_LANTERN_EVENT, first.id);
     await wait(2);
     const on = lit(first);
     await wait(12);
     system.sendScriptEvent(TEST_GAS_LANTERN_EVENT, first.id);
     await wait(2);
-    const off = first.getProperty(GAS_LANTERN_LIT_PROPERTY) === false && air();
+    const off = unlit(first);
     await wait(12);
     system.sendScriptEvent(TEST_GAS_LANTERN_EVENT, first.id);
     await wait(2);
