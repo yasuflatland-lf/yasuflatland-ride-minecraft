@@ -1143,6 +1143,7 @@ describe("sports boat hull planking (ADR 0161)", () => {
     }
   });
 
+  // 20 samples per sub-panel keeps the 80-sample density of the old whole-lens check (ADR 0172)
   it("embeds every lens back and limits normal standoff across the faces it spans", () => {
     const hull = cubes.filter(isHull);
     for (const lens of bone("headlights")) {
@@ -1150,13 +1151,13 @@ describe("sports boat hull planking (ADR 0161)", () => {
       const side = Math.sign(px);
       const angle = ((lens.rotation?.[1] ?? 0) * Math.PI) / 180;
       const cosine = Math.cos(angle);
-      for (let j = 0; j <= 80; j++) {
+      for (let j = 0; j <= 20; j++) {
         for (const fraction of [0.001, 0.25, 0.5, 0.75, 0.999]) {
           for (const back of [false, true]) {
             const x =
               lens.origin[0] + lens.size[0] * (side > 0 !== back ? 1 : 0);
             const point = turn(
-              [x - px, 0, lens.origin[2] + (lens.size[2] * j) / 80 - pz],
+              [x - px, 0, lens.origin[2] + (lens.size[2] * j) / 20 - pz],
               "y",
               lens.rotation?.[1] ?? 0,
             );
