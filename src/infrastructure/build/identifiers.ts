@@ -33,3 +33,18 @@ export const TEST_CORNER_EVENT = buildId("test_corner");
 export const TEST_MODE_EVENT = buildId("test_mode");
 export const TEST_EDIT_EVENT = buildId("test_edit");
 export const TEST_RESULT_EVENT = buildId("test_result");
+
+export const BUILD_FORM = {
+  title: "yasu_build.form.title",
+  fill: "yasu_build.form.fill",
+  replace: "yasu_build.form.replace",
+  copy: "yasu_build.form.copy",
+  paste: "yasu_build.form.paste",
+  undo: "yasu_build.form.undo",
+  clearSelection: "yasu_build.form.clear_selection",
+  block: "yasu_build.form.block",
+  with: "yasu_build.form.with",
+  skipAir: "yasu_build.form.skip_air",
+  air: "yasu_build.form.air",
+  submit: "yasu_build.form.submit",
+} as const;
