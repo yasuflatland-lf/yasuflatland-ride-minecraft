@@ -1,17 +1,18 @@
 # Building tools
 
-Tools the bulldozer's driver uses to select and edit blocks, from the Building Tools group of the Items tab. Back to the [item groups](README.md).
+Tools the bulldozer's driver uses, from the single Building Tools group of the Items tab. The group holds three items: the Build Tool (its icon), the Selection Wand, and the Blade Up/Down switch. To find it, open the creative Items tab and scroll to the end; it is the last group. Back to the [item groups](README.md).
 
 | Item | Recipe | What it does |
 |---|---|---|
 | Selection Wand | Shapeless, a stick and a copper ingot | Hold it while driving the bulldozer. Hit a block (left-click on PC, tap on mobile) to set the first corner, pos1; the block is not broken, even in Survival. Use it on a block (right-click on PC, long press on mobile) to set the second corner, pos2. Sneak and use it while aiming at no block (at the air) to clear the selection; using it on a block sets pos2 even while sneaking. |
 | Build Tool | Shapeless, an iron ingot and a chain | Hold it while driving the bulldozer and use it to open a form with Fill, Replace, Copy, Paste, Undo, and Clear selection. |
+| Blade Up/Down | Shapeless, a lever and an iron ingot | Hold it while driving the bulldozer and use it (right-click on PC, long press on mobile) to raise or lower the blade; a held press switches once ([ADR 0138](../adr/0138-raise-and-lower-the-bulldozer-blade.md)). While you hold it, the cab monitor shows UP or DOWN for the blade ([ADR 0139](../adr/0139-show-the-held-tool-on-the-cab-monitor.md)). It keeps its `yasu_ride:blade_switch` ID. It does not turn on build mode. |
 
 The design is recorded in [ADR 0178](../adr/0178-bulldozer-build-tools-in-a-separate-namespace.md).
 
 ## Build mode
 
-Build mode is on while you ride a bulldozer and hold either tool. It turns on after you have held the tool for a moment and off a moment after you put it away, so flicking through the hotbar does not switch it. Getting off turns it off at once. In build mode the camera moves to the bulldozer's third-person view so you can see the whole selection.
+Build mode is on while you ride a bulldozer and hold the Build Tool or the Selection Wand. It turns on after you have held the tool for a moment and off a moment after you put it away, so flicking through the hotbar does not switch it. Getting off turns it off at once. In build mode the camera moves to the bulldozer's third-person view so you can see the whole selection.
 
 ## Selecting
 
