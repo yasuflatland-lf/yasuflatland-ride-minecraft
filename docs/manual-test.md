@@ -112,7 +112,12 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | B37 | Sports Boat Equipment group (ADR 0171): in creative, open the Items tab and scroll to the end | A "Sports Boat Equipment" group follows "Bulldozer Switches"; its icon is the eight-spoke ship's wheel of the equipment box, and it holds the Sports Boat Equipment Box, then the Icebreaker Switch, named in your language | unverified | unverified |
 | B38 | With a player who has never placed a sports boat, place one, then place another | The first placement adds one Sports Boat Equipment Box to the inventory, or drops it at your feet when it is full; the second placement gives nothing (ADR 0093, 0171) | unverified | unverified |
 | B39 | Use the Sports Boat Equipment Box, once in the air and once aimed at a block | The box is used up and one Icebreaker Switch appears, with the lore line "Sports Boat Equipment"; one tap opens one box | unverified | unverified |
-| B40 | Craft the Icebreaker Switch from a lever, an iron ingot, and packed ice in a crafting table, then look for a recipe for the box | One switch is made, and the recipe book shows it without unlocking; the box has no recipe. Holding or using the switch does nothing yet | unverified | unverified |
+| B40 | Craft the Icebreaker Switch from a lever, an iron ingot, and packed ice in a crafting table, then look for a recipe for the box | One switch is made, and the recipe book shows it without unlocking; the box has no recipe | unverified | unverified |
+| B41 | Sit in the sports boat driver's seat and hold the Icebreaker Switch | The dash shows the switch's bow-and-ice icon and OFF, with readable text and no flicker or clipping | unverified | unverified |
+| B42 | Use the Icebreaker Switch twice while driving, pausing between presses | The screen changes to ON, then OFF; no blocks are cleared in this step | unverified | unverified |
+| B43 | Hold the Sports Boat Equipment Box, then empty your hand | Both leave the dash's original display picture visible | unverified | unverified |
+| B44 | As a passenger, hold and use the Icebreaker Switch while the driver holds theirs | The passenger cannot change the driver's screen or the icebreaker state | unverified | unverified |
+| B45 | Turn icebreaker ON, restart the server, then sit as driver and hold the switch | The screen still shows ON; one use changes it to OFF | unverified | unverified |
 
 ## Sports boat hull (planking and gloss)
 

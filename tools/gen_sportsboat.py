@@ -22,6 +22,7 @@ from typing import Literal
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tool_loader import load_tool
 
+monitor = load_tool("monitor")
 assert_axes = load_tool("cube_tilt").assert_axes
 ASSEMBLIES = {"wheel": {"owner": "sportsboat", "cubes": 146},
               "throttle_lever": {"owner": "sportsboat", "cubes": 8}}
@@ -2024,6 +2025,40 @@ def pixel_map(rows, colors):
 
 png(ITEM_TEXTURES / "sportsboat_equipment_box.png", 16, 16, pixel_map(EQUIPMENT_BOX_ICON, EQUIPMENT_BOX_COLORS))
 png(ITEM_TEXTURES / "icebreaker_switch.png", 16, 16, pixel_map(ICEBREAKER_SWITCH_ICON, ICEBREAKER_SWITCH_COLORS))
+# The bulldozer overlay's visible face clears its screen by 0.10 px. Here the
+# screen is local -z; turn_around makes it south-facing in the final frame.
+monitor_plate = box(2.3 + DISPLAY_DX, F + 8.45, 12.85 + DISPLAY_DZ,
+                    8.7 + DISPLAY_DX, F + 12.05, 12.87 + DISPLAY_DZ, "screen",
+                    pivot=SCREEN_PIVOT, rotation=[SCREEN_TILT, 0, 0])
+turn_around([{"cubes": [monitor_plate]}])
+boat_entity = json.loads((RP.parent / "yasu_ride_bp/entities/yasu_ride/sportsboat.se.json").read_text())
+seat = boat_entity["minecraft:entity"]["components"]["minecraft:rideable"]["seats"][0]["position"]
+# Player standing eye height, in blocks; the seat position is relative to the boat.
+driver_eye = (seat[0] * 16, (seat[1] + 1.62) * 16, seat[2] * 16)
+bounds = geo["minecraft:geometry"][0]["description"]
+SPORTSBOAT_MONITOR_LAYOUT = monitor.MonitorLayout(
+    cell_size=(64, 36), label_width=33, face="south",
+    plate_origin=tuple(monitor_plate["origin"]),
+    plate_pivot=tuple(monitor_plate["pivot"]),
+    plate_rotation=tuple(monitor_plate["rotation"]),
+    plate_size=tuple(monitor_plate["size"]), viewer_point=driver_eye,
+    uv_flip=(False, False), background=(12, 22, 30, 255),
+    foreground=(200, 236, 248, 0), icon_at=(4, 10), label_at=(27, 14),
+    visible_bounds_width=bounds["visible_bounds_width"],
+    visible_bounds_height=bounds["visible_bounds_height"],
+    visible_bounds_offset=tuple(bounds["visible_bounds_offset"]),
+    # The attitude animation trims and rolls root (ADR 0059), so the plate hangs
+    # from a root with the same pivot to stay on the tilted screen.
+    parent=("root", tuple(next(b["pivot"] for b in geo["minecraft:geometry"][0]["bones"] if b["name"] == "root"))),
+)
+# The near-black deck and rail would vanish on the dark screen, so they glow in
+# the foreground and a mid grey that still sets off the portholes.
+MONITOR_ICON_COLORS = {**ICEBREAKER_SWITCH_COLORS, "K": SPORTSBOAT_MONITOR_LAYOUT.foreground, "H": (110, 122, 132)}
+monitor_icon = [[MONITOR_ICON_COLORS[code][:3] + (0,) if code != "."
+                 else SPORTSBOAT_MONITOR_LAYOUT.background for code in row]
+                for row in ICEBREAKER_SWITCH_ICON]
+STALE.extend(monitor.write_monitor("sportsboat", SPORTSBOAT_MONITOR_LAYOUT,
+                                   {"icebreaker_switch": monitor_icon}, CHECK, RP))
 print("cubes:", len(body) + len(headlights) + len(glass) + len(mirror))
 if STALE:
     sys.exit("Stale sports boat outputs:\n" + "\n".join(STALE))

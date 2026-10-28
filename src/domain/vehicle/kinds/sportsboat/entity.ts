@@ -10,10 +10,11 @@ export const SPORTSBOAT_ENTITY = {
     trim: { type: "float", range: [0, maxTrim] },
     roll: { type: "float", range: [-maxRoll, maxRoll] },
     ...DOCK_PROPERTIES,
+    icebreaker: { type: "bool" },
   },
   events: [...DOCK_EVENTS],
   animations: [],
-  restored: ["docked"],
+  restored: ["docked", "icebreaker"],
 } as const satisfies EntityContract;
 
 const { property } = commandsFor<typeof SPORTSBOAT_ENTITY>();
@@ -24,4 +25,8 @@ export function trimCommand(degrees: number): EngineCommand {
 
 export function rollCommand(degrees: number): EngineCommand {
   return property("roll", degrees);
+}
+
+export function icebreakerCommand(on: boolean): EngineCommand {
+  return property("icebreaker", on);
 }

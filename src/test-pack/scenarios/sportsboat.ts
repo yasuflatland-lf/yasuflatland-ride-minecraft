@@ -1,6 +1,7 @@
-import type { Entity, Player } from "@minecraft/server";
+import { type Entity, type Player, system } from "@minecraft/server";
 import { asPlayerId, asVehicleId } from "../../domain/shared/ids";
 import { dot, forward, length, type Vec3 } from "../../domain/shared/vec";
+import { rebuildVehicle } from "../../domain/vehicle/kinds/index";
 import { SportsboatDrive } from "../../domain/vehicle/kinds/sportsboat/drive";
 import {
   SPORTSBOAT_MOTION,
@@ -16,6 +17,8 @@ import {
   DECK_SEAT_TYPE,
   entityPropertyId,
   SEAT_FILLER_TYPE,
+  TEST_HELD_TOOL_EVENT,
+  TEST_TOOL_EVENT,
 } from "../../infrastructure/vehicle/bedrock/identifiers";
 import { SeatFillers } from "../../infrastructure/vehicle/bedrock/seatFillers";
 import {
@@ -611,4 +614,55 @@ export async function boatSeatFillers(a: Arena): Promise<Outcome> {
     for (const cow of cows) if (cow?.isValid) cow.remove();
     if (probe?.isValid) probe.remove();
   }
+}
+
+export function boatMonitor(a: Arena): Promise<Outcome> {
+  return withBoat(a, async (boat) => {
+    const hold = async (item: string): Promise<number> => {
+      system.sendScriptEvent(TEST_HELD_TOOL_EVENT, `${boat.id},${item}`);
+      await wait(2);
+      return Number(boat.getProperty(entityPropertyId("monitor")));
+    };
+    await wait(2);
+    const off = await hold("icebreaker_switch");
+    system.sendScriptEvent(TEST_TOOL_EVENT, `${boat.id},icebreaker_switch,on`);
+    await wait(2);
+    const on = boat.getProperty(entityPropertyId("monitor"));
+    const restored = boat.getProperty(entityPropertyId("icebreaker"));
+    const rebuilt = rebuildVehicle(
+      "sportsboat",
+      asVehicleId(boat.id),
+      boat.getRotation().y,
+      [],
+      { icebreaker: restored },
+    );
+    const commands = rebuilt.tick({
+      tick: 0,
+      riders: [],
+      deckSeatInputs: [],
+      location: boat.location,
+      velocity: boat.getVelocity(),
+      onGround: boat.isOnGround,
+      waterAt: () => true,
+      solidAt: () => false,
+      blockTypes: () => [],
+      targets: () => [],
+      testHeldTool: "icebreaker_switch",
+    }).stepCommands;
+    const restoredOn = commands.some(
+      (c) => c.type === "setProperty" && c.name === "monitor" && c.value === 2,
+    );
+    const box = await hold("sportsboat_equipment_box");
+    const cleared = await hold("clear");
+    return {
+      pass:
+        off === 1 &&
+        on === 2 &&
+        box === 0 &&
+        cleared === 0 &&
+        restored === true &&
+        restoredOn,
+      detail: `off=${off} on=${on} box=${box} cleared=${cleared} saved=${restored} rebuilt=${restoredOn}`,
+    };
+  });
 }

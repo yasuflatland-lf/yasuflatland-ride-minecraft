@@ -35,7 +35,13 @@ import { waterBelowAt, waterDepthAt } from "../../motion/water";
 import { seatWorldPositions } from "../../seats";
 import { stepRoll, stepTrim } from "./attitude";
 import { floorCells, holdHeight } from "./deck";
-import { rollCommand, type SPORTSBOAT_ENTITY, trimCommand } from "./entity";
+import {
+  icebreakerCommand,
+  rollCommand,
+  type SPORTSBOAT_ENTITY,
+  trimCommand,
+} from "./entity";
+import { ICEBREAKER_SWITCH_ITEM } from "./equipment";
 import { SPORTSBOAT_MOTION, SPORTSBOAT_PROFILE } from "./profile";
 import { SPORTSBOAT_SPEC } from "./spec";
 
@@ -121,6 +127,8 @@ export interface SportsboatDriveState {
 }
 
 export class SportsboatDrive implements Drive {
+  private icebreakerOn: boolean;
+  private readonly icebreakerSync: SyncedValue<boolean>;
   private motion: MotionState;
   private readonly beachedTyres: TyreLimits;
   private dragEstimate: number | undefined;
@@ -143,6 +151,8 @@ export class SportsboatDrive implements Drive {
     private readonly creepSpeed: number = SPORTSBOAT_SPEC.creepSpeed,
   ) {
     this.motion = initialMotion(yaw);
+    this.icebreakerOn = restored.icebreaker === true;
+    this.icebreakerSync = new SyncedValue({ value: this.icebreakerOn });
     this.restoredDocked = restored.docked === true;
     // A beached hull has no handbrake and does not creep (beachedInput), so
     // stepMotion never reads these; the grip stands in for the handbrake grip.
@@ -207,7 +217,20 @@ export class SportsboatDrive implements Drive {
     return [];
   }
 
+  toolState(item: string): string | undefined {
+    if (item !== ICEBREAKER_SWITCH_ITEM) return undefined;
+    return this.icebreakerOn ? "on" : "off";
+  }
+
+  setToolState(item: string, state: string): boolean {
+    if (item !== ICEBREAKER_SWITCH_ITEM || (state !== "on" && state !== "off"))
+      return false;
+    this.icebreakerOn = state === "on";
+    return true;
+  }
+
   resync(): void {
+    this.icebreakerSync.resync();
     this.resendDocked = this.heldOnce;
     this.trimSync.resync();
     this.rollSync.resync();
@@ -215,7 +238,15 @@ export class SportsboatDrive implements Drive {
 
   step(raw: RawInput | undefined, ctx: TickContext): DriveStep {
     const wasDocked = this.docked !== undefined || this.restoredDocked;
-    const step = this.stepHull(raw, ctx);
+    const hull = this.stepHull(raw, ctx);
+    const icebreaker = this.icebreakerSync.next(this.icebreakerOn);
+    const step =
+      icebreaker === undefined
+        ? hull
+        : {
+            ...hull,
+            commands: [...hull.commands, icebreakerCommand(icebreaker)],
+          };
     const held = this.docked !== undefined;
     this.heldOnce ||= held;
     if (!this.resendDocked) return step;

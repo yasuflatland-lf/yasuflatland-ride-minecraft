@@ -194,6 +194,10 @@ describe("vehicle profiles (ADR 0050)", () => {
         surfaces: ["water", "lava", "top"],
         clearance: { halfX: 1, halfZ: 1, height: 2 },
       },
+      monitor: {
+        group: "sportsboat_equipment",
+        tools: [{ item: "icebreaker_switch", states: ["off", "on"] }],
+      },
       placementGift: "sportsboat_equipment_box",
       chaseCamera: "near",
       defaultPaint: "black",

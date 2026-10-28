@@ -10,5 +10,17 @@
       "state": "up",
       "label": "UP"
     }
+  ],
+  "sportsboat": [
+    {
+      "item": "icebreaker_switch",
+      "state": "off",
+      "label": "OFF"
+    },
+    {
+      "item": "icebreaker_switch",
+      "state": "on",
+      "label": "ON"
+    }
   ]
 }

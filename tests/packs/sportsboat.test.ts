@@ -134,6 +134,17 @@ describe("sports boat Behavior Pack entity (ADR 0051)", () => {
 
   it("defaults to undocked with headlights off and level attitude, syncing only the visual properties", () => {
     expect(entity.description.properties).toEqual({
+      "yasu_ride:icebreaker": {
+        type: "bool",
+        default: false,
+        client_sync: false,
+      },
+      "yasu_ride:monitor": {
+        type: "int",
+        range: [0, 2],
+        default: 0,
+        client_sync: true,
+      },
       "yasu_ride:docked": {
         type: "bool",
         default: false,
@@ -266,8 +277,13 @@ describe("sports boat Resource Pack (ADR 0051)", () => {
     );
     expect(client.geometry).toEqual({
       default: "geometry.yasu_ride.sportsboat",
+      monitor: "geometry.yasu_ride.sportsboat_monitor",
     });
     expect(client.render_controllers).toEqual([
+      {
+        "controller.render.yasu_ride.sportsboat.monitor":
+          "query.property('yasu_ride:monitor') > 0",
+      },
       "controller.render.yasu_ride.sportsboat",
       "controller.render.yasu_ride.sportsboat.mirror",
       {
