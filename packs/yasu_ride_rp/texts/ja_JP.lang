@@ -96,3 +96,8 @@ yasu_ride.hint.dutch_oven_on_top=先にダッチオーブンを下ろしてく�
 entity.yasu_ride:noga_chair.name=ノガチェア
 item.yasu_ride:noga_chair_item.name=ノガチェア
 yasu_ride.hint.noga_chair_hits=あと%s回たたくとノガチェアを折りたたみます
+
+yasu_ride:sportsboat_equipment=船の装備
+item.yasu_ride:sportsboat_equipment_box.name=船の装備ボックス
+item.yasu_ride:icebreaker_switch.name=砕氷スイッチ
+yasu_ride.lore.sportsboat_equipment=船の装備

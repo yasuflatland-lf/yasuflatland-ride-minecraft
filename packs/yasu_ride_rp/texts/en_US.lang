@@ -96,3 +96,8 @@ yasu_ride.hint.dutch_oven_on_top=Take the Dutch oven off first
 entity.yasu_ride:noga_chair.name=Noga Chair
 item.yasu_ride:noga_chair_item.name=Noga Chair
 yasu_ride.hint.noga_chair_hits=Hit %s more to fold up the Noga Chair
+
+yasu_ride:sportsboat_equipment=Sports Boat Equipment
+item.yasu_ride:sportsboat_equipment_box.name=Sports Boat Equipment Box
+item.yasu_ride:icebreaker_switch.name=Icebreaker Switch
+yasu_ride.lore.sportsboat_equipment=Sports Boat Equipment
