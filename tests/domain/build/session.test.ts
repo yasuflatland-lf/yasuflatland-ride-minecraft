@@ -12,6 +12,7 @@ import {
 import {
   type BuildMode,
   MODE_OFF,
+  type ModeInput,
   stepMode,
 } from "../../../src/domain/build/mode";
 import { BuildSession, isEditRefusal } from "../../../src/domain/build/session";
@@ -21,17 +22,14 @@ import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 const dim = asDimensionId("minecraft:overworld");
 const stone = blockStateOf("minecraft:stone", {});
 
-const recordArb: fc.Arbitrary<EditRecord> = fc
-  .integer({ min: 1, max: 50 })
-  .map((n) => ({
-    dimensionId: dim,
-    changes: [{ cell: { x: n, y: 0, z: 0 }, before: AIR, after: stone }],
-  }));
+const recordAt = (x: number): EditRecord => ({
+  dimensionId: dim,
+  changes: [{ cell: { x, y: 0, z: 0 }, before: AIR, after: stone }],
+});
+const recordArb = fc.integer({ min: 1, max: 50 }).map(recordAt);
 const inputArb = fc.record({ riding: fc.boolean(), holding: fc.boolean() });
-const run = (
-  inputs: { riding: boolean; holding: boolean }[],
-  from = MODE_OFF,
-) => inputs.reduce<BuildMode>(stepMode, from);
+const run = (inputs: ModeInput[], from = MODE_OFF) =>
+  inputs.reduce<BuildMode>(stepMode, from);
 
 describe("undo history", () => {
   it("never exceeds depth and keeps the newest records in order", () => {
@@ -138,27 +136,23 @@ describe("build mode", () => {
 
 describe("BuildSession", () => {
   const session = () => new BuildSession(asPlayerId("p1"));
-  const record = (n: number): EditRecord => ({
-    dimensionId: dim,
-    changes: [{ cell: { x: n, y: 0, z: 0 }, before: AIR, after: stone }],
-  });
 
   it("refuses busy on a second beginEdit without finishEdit", () => {
     const s = session();
     expect(s.beginEdit()).toBeUndefined();
     expect(s.beginEdit()).toBe("busy");
     expect(s.takeUndo()).toBe("busy");
-    s.finishEdit(record(1), false);
+    s.finishEdit(recordAt(1), false);
     expect(s.beginEdit()).toBeUndefined();
   });
 
   it("leaves the history unchanged when finishing an undo", () => {
     const s = session();
     s.beginEdit();
-    s.finishEdit(record(1), false);
+    s.finishEdit(recordAt(1), false);
     s.beginEdit();
-    s.finishEdit(record(2), true);
-    expect(s.takeUndo()).toEqual(record(1));
+    s.finishEdit(recordAt(2), true);
+    expect(s.takeUndo()).toEqual(recordAt(1));
     expect(s.takeUndo()).toBe("nothingToUndo");
   });
 
