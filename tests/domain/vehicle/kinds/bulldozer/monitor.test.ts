@@ -45,9 +45,10 @@ describe("bulldozer cab monitor rule (ADR 0139)", () => {
     fc.assert(
       fc.property(fc.array(fc.boolean(), { maxLength: 20 }), (switches) => {
         const drive = new BulldozerDrive(0, {});
-        for (const raised of switches) drive.setBlade(raised);
+        for (const raised of switches)
+          drive.setToolState(BLADE_SWITCH_ITEM, raised ? "up" : "down");
         expect(drive.toolState(BLADE_SWITCH_ITEM)).toBe(
-          drive.bladeRaised() ? "up" : "down",
+          switches.at(-1) === false ? "down" : "up",
         );
       }),
     );
@@ -58,4 +59,23 @@ describe("bulldozer cab monitor rule (ADR 0139)", () => {
     for (const item of ["stone", "toString", "constructor", ""])
       expect(drive.toolState(item)).toBeUndefined();
   });
+});
+
+it("rejects unknown tools or states without changing the blade target", () => {
+  fc.assert(
+    fc.property(
+      fc.string(),
+      fc.string(),
+      fc.boolean(),
+      (item, state, raised) => {
+        const drive = new BulldozerDrive(0, { blade: raised ? 1 : 0 });
+        const valid =
+          item === BLADE_SWITCH_ITEM && (state === "up" || state === "down");
+        expect(drive.setToolState(item, state)).toBe(valid);
+        expect(drive.toolState(BLADE_SWITCH_ITEM)).toBe(
+          valid ? state : raised ? "up" : "down",
+        );
+      },
+    ),
+  );
 });

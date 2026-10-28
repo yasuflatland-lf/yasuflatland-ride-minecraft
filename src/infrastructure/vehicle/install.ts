@@ -17,9 +17,9 @@ import { PressStorage } from "../../application/vehicle/pressStorage";
 import { RemoveDecor } from "../../application/vehicle/removeDecor";
 import { SetDecor } from "../../application/vehicle/setDecor";
 import { ShowVehicleHints } from "../../application/vehicle/showVehicleHints";
-import { SwitchBlade } from "../../application/vehicle/switchBlade";
 import { SwitchCeilingLights } from "../../application/vehicle/switchCeilingLights";
 import { SwitchHeadlights } from "../../application/vehicle/switchHeadlights";
+import { SwitchTool } from "../../application/vehicle/switchTool";
 import { UseDockDoor } from "../../application/vehicle/useDockDoor";
 import type { RawInput } from "../../domain/vehicle/driveInput";
 import { fleetLimitOf } from "../../domain/vehicle/kinds/index";
@@ -90,7 +90,7 @@ export function installVehicles(deps: {
         systemClock,
       ),
       ceilingLights: new SwitchCeilingLights(repo, systemClock),
-      blade: new SwitchBlade(repo, systemClock),
+      tool: new SwitchTool(repo, systemClock),
       door: new UseDockDoor(repo, systemClock),
       bed: new SleepInBed(new BedrockBedWorld(index)),
       showerToilet: new PressShowerToilet(repo, systemClock),

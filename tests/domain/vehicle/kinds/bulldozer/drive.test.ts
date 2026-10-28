@@ -690,7 +690,7 @@ it("starts at its saved blade, raised from 0.5 up, without moving it (ADR 0138)"
         const d = new BulldozerDrive(0, { blade, form });
         const raised =
           blade === undefined ? S.bladeRaisedOnSpawn : blade >= 0.5;
-        expect(d.bladeRaised()).toBe(raised);
+        expect(d.toolState("blade_switch") === "up").toBe(raised);
         expect(propertyValue(d.step(IDLE, context()).commands, "blade")).toBe(
           raised ? 1 : 0,
         );
@@ -699,12 +699,16 @@ it("starts at its saved blade, raised from 0.5 up, without moving it (ADR 0138)"
   ));
 
 it("reads a saved blade of exactly 0.5 as raised and a non-number as missing (ADR 0138)", () => {
-  expect(new BulldozerDrive(0, { blade: 0.5 }).bladeRaised()).toBe(true);
-  expect(new BulldozerDrive(0, { blade: 0.4999 }).bladeRaised()).toBe(false);
+  expect(
+    new BulldozerDrive(0, { blade: 0.5 }).toolState("blade_switch") === "up",
+  ).toBe(true);
+  expect(
+    new BulldozerDrive(0, { blade: 0.4999 }).toolState("blade_switch") === "up",
+  ).toBe(false);
   for (const blade of [true, "1"] as unknown as number[])
-    expect(new BulldozerDrive(0, { blade }).bladeRaised()).toBe(
-      S.bladeRaisedOnSpawn,
-    );
+    expect(
+      new BulldozerDrive(0, { blade }).toolState("blade_switch") === "up",
+    ).toBe(S.bladeRaisedOnSpawn);
 });
 
 const switchSchedule = fc.array(fc.option(fc.boolean(), { nil: undefined }), {
@@ -720,7 +724,7 @@ it("moves the blade one step per tick toward the switched state and sends each h
       let sent: number | undefined;
       switches.forEach((set, tick) => {
         if (set !== undefined) {
-          d.setBlade(set);
+          d.setToolState("blade_switch", set ? "up" : "down");
           target = set;
         }
         steps += Math.sign((target ? S.bladeLiftTicks : 0) - steps);
@@ -733,7 +737,7 @@ it("moves the blade one step per tick toward the switched state and sends each h
           expect(value).toBe(height);
           sent = height;
         } else expect(value).toBeUndefined();
-        expect(d.bladeRaised()).toBe(target);
+        expect(d.toolState("blade_switch") === "up").toBe(target);
       });
     }),
   ));
@@ -764,7 +768,7 @@ it("cuts only with the blade fully lowered, in every form (ADR 0138)", () =>
         let b: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
         switches.forEach((set, tick) => {
           if (set !== undefined) {
-            d.setBlade(set);
+            d.setToolState("blade_switch", set ? "up" : "down");
             target = set;
           }
           steps += Math.sign((target ? S.bladeLiftTicks : 0) - steps);
@@ -786,7 +790,7 @@ it("starts cutting on the tick the lowering blade reaches the bottom (ADR 0138)"
   const d = new BulldozerDrive(0, { blade: 1 });
   let b: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
   for (let tick = 0; tick < 20 + S.bladeLiftTicks; tick++) {
-    if (tick === 20) d.setBlade(false);
+    if (tick === 20) d.setToolState("blade_switch", "down");
     const ctx = cutContext("car", tick, b);
     const out = d.step(FORWARD, ctx);
     b = engineStep(b, out.impulse, { mu: 0.69 }).body;
@@ -838,8 +842,8 @@ it("switches step-up on the tick the blade's target changes (ADR 0138)", () => {
   let b: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
   const rises: boolean[] = [];
   for (let tick = 0; tick < 60; tick++) {
-    if (tick === 10) d.setBlade(true);
-    if (tick === 40) d.setBlade(false);
+    if (tick === 10) d.setToolState("blade_switch", "up");
+    if (tick === 40) d.setToolState("blade_switch", "down");
     const out = d.step(FORWARD, {
       ...context(),
       tick,
@@ -857,7 +861,7 @@ it("a placed bulldozer starts raised: it steps up and never cuts", () => {
   fc.assert(
     fc.property(yaw, (heading) => {
       const d = new BulldozerDrive(heading, {});
-      expect(d.bladeRaised()).toBe(true);
+      expect(d.toolState("blade_switch") === "up").toBe(true);
       let rises = false;
       let b: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
       for (let tick = 0; tick < 30; tick++) {
@@ -877,7 +881,7 @@ it("a placed bulldozer starts raised: it steps up and never cuts", () => {
 });
 it("restores a saved lowered blade", () => {
   const d = new BulldozerDrive(0, { blade: 0 });
-  expect(d.bladeRaised()).toBe(false);
+  expect(d.toolState("blade_switch") === "up").toBe(false);
   let out = d.step(FORWARD, context());
   for (let tick = 1; tick < 30 && d.speed <= S.blade.minSpeed; tick++)
     out = d.step(FORWARD, { ...context(), tick });

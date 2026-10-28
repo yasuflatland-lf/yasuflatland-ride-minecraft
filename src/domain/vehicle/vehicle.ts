@@ -29,7 +29,7 @@ import {
   headlightCells as cellsLitFrom,
   type LitCell,
 } from "./lighting/headlights";
-import { monitorScreen } from "./monitor/monitor";
+import { monitorScreen, monitorTool, nextToolState } from "./monitor/monitor";
 import type { ChaseCamera, VehicleProfile } from "./profile";
 import { type RamHit, type RamTarget, selectHits } from "./ram";
 import type { SeatAssignment } from "./seatChoice";
@@ -145,8 +145,8 @@ export class Vehicle {
   private readonly switchCooldown = new SwitchCooldown();
   // Its own cooldown, so a driver's headlight switch and a ceiling light switch in the room never block each other (ADR 0115).
   private readonly ceilingLightCooldown = new SwitchCooldown();
-  // Its own cooldown, so the headlight switch and the blade switch never block each other (ADR 0138).
-  private readonly bladeCooldown = new SwitchCooldown();
+  // Its own cooldown, so monitor tools and light switches never block each other (ADR 0171).
+  private readonly toolCooldown = new SwitchCooldown();
   private hitCounter: HitCounter = EMPTY_COUNTER;
   /** As of the last tick: held in place (ADR 0063, 0068), and nobody in the driver's seat or its deck seat. */
   private docked = false;
@@ -521,29 +521,21 @@ export class Vehicle {
     return this.drive.ceilingLightsReachable?.(feet) ?? false;
   }
 
-  /**
-   * A player uses the blade switch. Only the driver of a vehicle with a blade may use it,
-   * and only after the switch has been idle for its cooldown, so one touch switches once
-   * (ADR 0024, 0138). Returns whether the blade's target changed.
-   */
-  switchBlade(playerId: PlayerId, tick: number): boolean {
-    if (
-      playerId !== this.crew.driver ||
-      !this.drive.bladeRaised ||
-      !this.drive.setBlade
-    )
+  /** Only the driver may advance a monitor tool; all tools share an idle cooldown (ADR 0024, 0171). */
+  switchTool(playerId: PlayerId, item: string, tick: number): boolean {
+    const tool = monitorTool(this.profile.monitor, item);
+    if (playerId !== this.crew.driver || !tool || !this.drive.setToolState)
       return false;
-    if (!this.bladeCooldown.tryUse(tick, SPEC.bladeSwitchCooldown))
-      return false;
-    this.drive.setBlade(!this.drive.bladeRaised());
-    return true;
+    if (!this.toolCooldown.tryUse(tick, SPEC.toolSwitchCooldown)) return false;
+    return this.drive.setToolState(
+      item,
+      nextToolState(tool, this.drive.toolState?.(item)),
+    );
   }
 
-  /** Sets the blade with no role or cooldown check, for the server-only test hook. False without a blade (ADR 0138). */
-  forceBlade(raised: boolean): boolean {
-    if (!this.drive.setBlade) return false;
-    this.drive.setBlade(raised);
-    return true;
+  /** Bypasses role and cooldown checks for the server-only test hook (ADR 0171). */
+  forceTool(item: string, state: string): boolean {
+    return this.drive.setToolState?.(item, state) ?? false;
   }
 
   /** Hit by a player. Returns whether the vehicle breaks (ADR 0008). */

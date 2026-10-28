@@ -1,7 +1,9 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { BLADE_SWITCH_TYPE as TYPE } from "../../src/infrastructure/vehicle/bedrock/identifiers";
+import { id } from "../../src/infrastructure/shared/identifiers";
 import { readRgbaPng } from "../support/png";
+
+const TYPE = id("blade_switch");
 
 const read = (p: string) => JSON.parse(readFileSync(p, "utf8"));
 // Keep Japanese names escaped so only the translation file contains CJK text.

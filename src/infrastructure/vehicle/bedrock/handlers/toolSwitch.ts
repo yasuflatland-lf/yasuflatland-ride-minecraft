@@ -1,14 +1,15 @@
-// The bulldozer blade's target for the shared switch router (ADR 0024, 0134, 0138).
-import type { SwitchBlade } from "../../../../application/vehicle/switchBlade";
+import type { SwitchTool } from "../../../../application/vehicle/switchTool";
 import { asPlayerId, asVehicleId } from "../../../../domain/shared/ids";
+import { heldTypeId } from "../../../shared/heldItem";
+import { bareId } from "../../../shared/identifiers";
 import type { SwitchTarget } from "../../../shared/switchRouter";
 import { riddenVehicle } from "../riddenVehicle";
 import { vehicleOfTarget } from "../standIns";
 
 // The headlight switch's click (bedrockHeadlightWorld.ts)
-const BLADE_SWITCH_SOUND = "random.click";
+const TOOL_SWITCH_SOUND = "random.click";
 
-export function bladeSwitchTarget(blade: SwitchBlade): SwitchTarget {
+export function toolSwitchTarget(switchTool: SwitchTool): SwitchTarget {
   return {
     claimsItemUse: (player) => riddenVehicle(player) !== undefined,
     claimsEntityPress: (player, target) => {
@@ -19,12 +20,16 @@ export function bladeSwitchTarget(blade: SwitchBlade): SwitchTarget {
     switchFor: (player) => {
       const vehicle = riddenVehicle(player);
       if (!vehicle) return;
-      const switched = blade.execute({
+      const typeId = heldTypeId(player);
+      const item = typeId === undefined ? undefined : bareId(typeId);
+      if (item === undefined) return;
+      const switched = switchTool.execute({
+        item,
         playerId: asPlayerId(player.id),
         vehicleId: asVehicleId(vehicle.id),
       });
       if (switched)
-        vehicle.dimension.playSound(BLADE_SWITCH_SOUND, vehicle.location);
+        vehicle.dimension.playSound(TOOL_SWITCH_SOUND, vehicle.location);
     },
   };
 }

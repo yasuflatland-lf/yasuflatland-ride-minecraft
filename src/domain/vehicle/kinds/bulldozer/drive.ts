@@ -105,7 +105,7 @@ export class BulldozerDrive extends TransformingDrive {
   private doorTimer = 0;
   private doorSteps = 0;
   private readonly doorSync = new SyncedValue<number>();
-  /** The blade's target: the saved property or the spawn default, then whatever setBlade last set. The shown height travels toward it (ADR 0138). */
+  /** The blade's target: the saved property or the spawn default, then whatever setToolState last set. The shown height travels toward it (ADR 0138). */
   private bladeTargetRaised: boolean;
   /** 0 (down) to BULLDOZER_SPEC.bladeLiftTicks (up), one step per tick. */
   private bladeSteps: number;
@@ -146,21 +146,18 @@ export class BulldozerDrive extends TransformingDrive {
     this.resync();
   }
 
-  /** Whether the blade is raised or rising: the target, not the current height (ADR 0138). */
-  bladeRaised(): boolean {
-    return this.bladeTargetRaised;
-  }
-
-  /** Sets the blade's target; it then moves one step per tick (ADR 0138). */
-  setBlade(raised: boolean): void {
-    this.bladeTargetRaised = raised;
-  }
-
   /** The monitor state of a held tool; the blade shows its target, so a switch shows at once (ADR 0139). */
   toolState(item: string): string | undefined {
     return Object.hasOwn(this.toolStates, item)
       ? this.toolStates[item]?.()
       : undefined;
+  }
+
+  setToolState(item: string, state: string): boolean {
+    if (item !== BLADE_SWITCH_ITEM || (state !== "up" && state !== "down"))
+      return false;
+    this.bladeTargetRaised = state === "up";
+    return true;
   }
 
   private bladeTargetSteps(): number {

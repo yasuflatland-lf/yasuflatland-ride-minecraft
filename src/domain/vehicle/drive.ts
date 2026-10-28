@@ -92,10 +92,8 @@ export interface Drive {
   switchCeilingLights?(feet: Vec3): boolean;
   /** Whether `switchCeilingLights` would take a use from feet at `feet` now, without switching (ADR 0115). */
   ceilingLightsReachable?(feet: Vec3): boolean;
-  /** Whether the blade is raised or rising; absent for kinds without a blade (ADR 0138). */
-  bladeRaised?(): boolean;
-  /** Raises or lowers the blade; it travels there over the kind's lift time (ADR 0138). */
-  setBlade?(raised: boolean): void;
+  /** Sets a monitor tool's state; false for an unknown item or state (ADR 0171). */
+  setToolState?(item: string, state: string): boolean;
   /** The state name of one of the kind's monitor tools; undefined when `item` is not one of them (ADR 0139). */
   toolState?(item: string): string | undefined;
   /** A press on the shower-toilet of a held vehicle by a player with feet at `feet`, at `tick`: swings its door or runs its shower; false when it has none or the press is ignored (ADR 0094, 0098, 0105, 0118). */

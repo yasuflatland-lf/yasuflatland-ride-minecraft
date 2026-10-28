@@ -3,7 +3,7 @@ import type { VehicleId } from "../../shared/ids";
 import type { Drive, RestoredValues } from "../drive";
 import type { EntityContract } from "../entityContract";
 import type { FleetLimitOf } from "../fleet/fleet";
-import type { VehicleKind } from "../kind";
+import { VEHICLE_KINDS, type VehicleKind } from "../kind";
 import type { VehicleProfile } from "../profile";
 import { ramQueryRadius } from "../ramQuery";
 import { farthestSeatReach } from "../seats";
@@ -21,7 +21,6 @@ import { SuvDrive } from "./suv/drive";
 import { SUV_ENTITY } from "./suv/entity";
 import { SUV_PROFILE } from "./suv/profile";
 
-export { BLADE_SWITCH_ITEM } from "./bulldozer/monitor";
 export { CAMPING_GEAR_IDS, STANDING_GEAR_IDS } from "./camper/campingGear";
 export { pairHeights } from "./camper/decor";
 export { SeatPresses, seatSlotCell } from "./camper/seatPress";
@@ -59,6 +58,15 @@ export const KINDS: Readonly<Record<VehicleKind, Readonly<KindDefinition>>> =
       createDrive: (yaw, restored) => new BulldozerDrive(yaw, restored),
     }),
   });
+
+export const MONITOR_TOOL_ITEMS: readonly string[] = Object.freeze([
+  ...new Set(
+    VEHICLE_KINDS.flatMap(
+      (kind) =>
+        KINDS[kind].profile.monitor?.tools.map((tool) => tool.item) ?? [],
+    ),
+  ),
+]);
 
 export const fleetLimitOf: FleetLimitOf = (kind) =>
   KINDS[kind].profile.fleetLimit;

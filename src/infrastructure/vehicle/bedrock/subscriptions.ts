@@ -15,9 +15,9 @@ import type { PressStorage } from "../../../application/vehicle/pressStorage";
 import type { RemoveDecor } from "../../../application/vehicle/removeDecor";
 import type { SetDecor } from "../../../application/vehicle/setDecor";
 import type { ShowVehicleHints } from "../../../application/vehicle/showVehicleHints";
-import type { SwitchBlade } from "../../../application/vehicle/switchBlade";
 import type { SwitchCeilingLights } from "../../../application/vehicle/switchCeilingLights";
 import type { SwitchHeadlights } from "../../../application/vehicle/switchHeadlights";
+import type { SwitchTool } from "../../../application/vehicle/switchTool";
 import type { UseDockDoor } from "../../../application/vehicle/useDockDoor";
 import type { DimensionId, VehicleId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
@@ -30,7 +30,6 @@ import {
   type SwitchTarget,
 } from "../../shared/switchRouter";
 import type { VehicleTestStore } from "../testInput/vehicleTestStore";
-import { bladeSwitchTarget } from "./handlers/blade";
 import { registerBoarding } from "./handlers/boarding";
 import { registerDecor } from "./handlers/decor";
 import { registerDockDoor } from "./handlers/dockDoor";
@@ -45,11 +44,12 @@ import { registerShowerToilet } from "./handlers/showerToilet";
 import { registerStandIns } from "./handlers/standIn";
 import { registerStarter } from "./handlers/starter";
 import { registerStorage } from "./handlers/storage";
-import { registerTestBlade } from "./handlers/testBlade";
 import { registerTestDecor } from "./handlers/testDecor";
 import { registerTestHeldTool } from "./handlers/testHeldTool";
 import { registerTestInput } from "./handlers/testInput";
-import { BLADE_SWITCH_TYPE, CAMPER_BED_COMPONENT } from "./identifiers";
+import { registerTestTool } from "./handlers/testTool";
+import { toolSwitchTarget } from "./handlers/toolSwitch";
+import { CAMPER_BED_COMPONENT, MONITOR_TOOL_TYPES } from "./identifiers";
 
 export function registerSubscriptions(
   useCases: {
@@ -62,7 +62,7 @@ export function registerSubscriptions(
     paint: PaintVehicle;
     headlights: SwitchHeadlights;
     ceilingLights: SwitchCeilingLights;
-    blade: SwitchBlade;
+    tool: SwitchTool;
     door: UseDockDoor;
     bed: SleepInBed;
     showerToilet: PressShowerToilet;
@@ -99,7 +99,7 @@ export function registerSubscriptions(
   registerStorage(useCases.storage, dockCellOwner);
   registerDrive(useCases.drive, useCases.hints);
   registerFleet(useCases.limit);
-  registerTestBlade(useCases.blade);
+  registerTestTool(useCases.tool);
   registerTestDecor(useCases.decor);
   registerTestInput(testInputs);
   registerTestHeldTool(testTools);
@@ -113,10 +113,12 @@ export function registerSubscriptions(
     useCases.ceilingLights,
     dockCellOwner,
   );
-  const blade = bladeSwitchTarget(useCases.blade);
+  const tool = toolSwitchTarget(useCases.tool);
   const switchRoutes: SwitchRoutes = {
     [HEADLIGHT_SWITCH_TYPE]: () => [vehicle, ...laterSwitchTargets()],
-    [BLADE_SWITCH_TYPE]: () => [blade],
+    ...Object.fromEntries(
+      MONITOR_TOOL_TYPES.map((type) => [type, () => [tool]]),
+    ),
   };
   registerSwitchRouter(switchRoutes);
   registerPlacement(useCases.place);

@@ -6,6 +6,8 @@ import {
   monitorPropertySpec,
   monitorScreen,
   monitorScreens,
+  monitorTool,
+  nextToolState,
 } from "../../../../src/domain/vehicle/monitor/monitor";
 
 const ruleArbitrary = fc
@@ -98,5 +100,51 @@ describe("cab monitor screens", () => {
     };
     expect(monitorScreen(rule, "blade_switch", () => "down")).toBe(1);
     expect(monitorScreen(rule, "blade_switch", () => "up")).toBe(2);
+  });
+});
+
+describe("monitor tool switching", () => {
+  it("always advances to a member, starts at the first for missing states, and cycles back", () => {
+    fc.assert(
+      fc.property(ruleArbitrary, fc.string(), (rule, arbitrary) => {
+        for (const tool of rule.tools) {
+          expect(tool.states).toContain(nextToolState(tool, arbitrary));
+          expect(nextToolState(tool, undefined)).toBe(tool.states[0]);
+          const unknown = `${tool.states.join("")}unknown`;
+          expect(nextToolState(tool, unknown)).toBe(tool.states[0]);
+          for (const start of tool.states) {
+            let state = start;
+            for (let i = 0; i < tool.states.length; i++)
+              state = nextToolState(tool, state);
+            expect(state).toBe(start);
+          }
+          tool.states.forEach((state, index) => {
+            expect(nextToolState(tool, state)).toBe(
+              tool.states[(index + 1) % tool.states.length],
+            );
+          });
+        }
+      }),
+    );
+  });
+
+  it("finds exactly the declared tool and ignores unknown items or a missing rule", () => {
+    fc.assert(
+      fc.property(ruleArbitrary, fc.string(), (rule, item) => {
+        for (const tool of rule.tools)
+          expect(monitorTool(rule, tool.item)).toBe(tool);
+        const found = monitorTool(rule, item);
+        expect(found !== undefined).toBe(
+          rule.tools.some((tool) => tool.item === item),
+        );
+        expect(
+          monitorTool(
+            rule,
+            `${rule.tools.map((tool) => tool.item).join("")}unknown`,
+          ),
+        ).toBeUndefined();
+        expect(monitorTool(undefined, item)).toBeUndefined();
+      }),
+    );
   });
 });
