@@ -4,20 +4,19 @@ import { readRgbaPng } from "../support/png";
 
 const WAND = "yasu_build:selection_wand";
 const TOOL = "yasu_build:build_tool";
+const GROUP = "yasu_build:building_tools";
 
 const read = (p: string) => JSON.parse(readFileSync(p, "utf8"));
 // Keep Japanese names escaped so only the translation file contains CJK text.
 const JA = {
   [WAND]: JSON.parse('"\\u7bc4\\u56f2\\u9078\\u629e\\u30ef\\u30f3\\u30c9"'),
   [TOOL]: JSON.parse('"\\u5efa\\u7bc9\\u30c4\\u30fc\\u30eb"'),
-  "yasu_build:building_tools": JSON.parse(
-    '"\\u5efa\\u7bc9\\u30c4\\u30fc\\u30eb"',
-  ),
+  [GROUP]: JSON.parse('"\\u5efa\\u7bc9\\u30c4\\u30fc\\u30eb"'),
 };
 const EN = {
   [WAND]: "Selection Wand",
   [TOOL]: "Build Tool",
-  "yasu_build:building_tools": "Building Tools",
+  [GROUP]: "Building Tools",
 };
 
 describe.each([
@@ -92,9 +91,7 @@ describe("Building Tools recipes and names", () => {
     );
     expect(values.get(`item.${WAND}.name`)).toBe(names[WAND]);
     expect(values.get(`item.${TOOL}.name`)).toBe(names[TOOL]);
-    expect(values.get("yasu_build:building_tools")).toBe(
-      names["yasu_build:building_tools"],
-    );
+    expect(values.get(GROUP)).toBe(names[GROUP]);
   });
 
   it("places the group after the sports boat equipment, with the crane as icon", () => {
@@ -106,10 +103,10 @@ describe("Building Tools recipes and names", () => {
     const names = groups.map(
       (g: { group_identifier: { name: string } }) => g.group_identifier.name,
     );
-    expect(names.at(-1)).toBe("yasu_build:building_tools");
+    expect(names.at(-1)).toBe(GROUP);
     expect(names.at(-2)).toBe("yasu_ride:sportsboat_equipment");
     expect(groups.at(-1)).toEqual({
-      group_identifier: { icon: TOOL, name: "yasu_build:building_tools" },
+      group_identifier: { icon: TOOL, name: GROUP },
       items: [TOOL, WAND],
     });
   });
