@@ -19,17 +19,16 @@ const rules = fc.record({
   resetTicks: fc.integer({ min: 1, max: 200 }),
 });
 
-const hitsFor = (rule: HitRule) =>
-  fc.array(
-    fc.record({
-      gap: fc.oneof(
-        fc.constantFrom(0, rule.resetTicks, rule.resetTicks + 1),
-        fc.integer({ min: 0, max: rule.resetTicks * 2 }),
-      ),
-      occupied: fc.boolean(),
-    }),
-    { maxLength: 60 },
+const gapFor = (rule: HitRule) =>
+  fc.oneof(
+    fc.constantFrom(0, rule.resetTicks, rule.resetTicks + 1),
+    fc.integer({ min: 0, max: rule.resetTicks * 2 }),
   );
+
+const hitsFor = (rule: HitRule) =>
+  fc.array(fc.record({ gap: gapFor(rule), occupied: fc.boolean() }), {
+    maxLength: 60,
+  });
 
 describe("registerHit (ADR 0008, 0122)", () => {
   it("breaks after 3 hits in quick succession with the vehicle rule", () => {
@@ -98,10 +97,7 @@ describe("registerHit (ADR 0008, 0122)", () => {
 });
 
 const stepsFor = (rule: HitRule) => {
-  const gap = fc.oneof(
-    fc.constantFrom(0, rule.resetTicks, rule.resetTicks + 1),
-    fc.integer({ min: 0, max: rule.resetTicks * 2 }),
-  );
+  const gap = gapFor(rule);
   return fc.array(
     fc.oneof(
       fc.record({

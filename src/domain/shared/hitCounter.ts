@@ -19,6 +19,10 @@ export const EMPTY_COUNTER: HitCounter = Object.freeze({
   lastTick: Number.NEGATIVE_INFINITY,
 });
 
+function isStale(counter: HitCounter, tick: number, rule: HitRule): boolean {
+  return tick - counter.lastTick > rule.resetTicks;
+}
+
 export function registerHit(
   counter: HitCounter,
   tick: number,
@@ -26,8 +30,7 @@ export function registerHit(
   rule: HitRule,
 ): { counter: HitCounter; broken: boolean } {
   if (occupied) return { counter, broken: false };
-  const isStale = tick - counter.lastTick > rule.resetTicks;
-  const count = (isStale ? 0 : counter.count) + 1;
+  const count = (isStale(counter, tick, rule) ? 0 : counter.count) + 1;
   if (count >= rule.hits) {
     return { counter: EMPTY_COUNTER, broken: true };
   }
@@ -40,8 +43,9 @@ export class HitCounters<K> {
   constructor(private readonly rule: HitRule) {}
 
   /**
-   * A broken result drops the key; occupied hits leave it unchanged.
-   * hitsLeft is meaningful only when neither broken nor occupied.
+   * Registers a hit on `key` at `tick`. A broken result drops the key.
+   * When `occupied`, nothing is stored or dropped and the result is never broken.
+   * `hitsLeft` is meaningful only when neither broken nor occupied.
    */
   hit(
     key: K,
@@ -64,12 +68,11 @@ export class HitCounters<K> {
     };
   }
 
+  /** Drops counters past their reset window at `tick`; a later hit on one counts exactly as before. */
   forgetStale(tick: number): void {
     // A counter past its reset window counts as empty, so dropping it changes
     // nothing but keeps keys hit once from piling up.
-    for (const [key, counter] of this.counters) {
-      if (tick - counter.lastTick > this.rule.resetTicks)
-        this.counters.delete(key);
-    }
+    for (const [key, counter] of this.counters)
+      if (isStale(counter, tick, this.rule)) this.counters.delete(key);
   }
 }
