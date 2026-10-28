@@ -50,6 +50,7 @@ import {
 } from "./icebreaker";
 import { SPORTSBOAT_MOTION, SPORTSBOAT_PROFILE } from "./profile";
 import { SPORTSBOAT_SPEC } from "./spec";
+import { surfaceLift } from "./surfacing";
 
 export const SPORTSBOAT_DRAG = Object.freeze({
   initial: SPORTSBOAT_SPEC.waterDragInitial,
@@ -385,9 +386,14 @@ export class SportsboatDrive implements Drive {
       );
     }
     commands.push(...this.attitudeCommands());
-    // Buoyancy and gravity belong to the engine, so the script never pushes vertically.
+    // Buoyancy and gravity belong to the engine. The script pushes vertically only while the
+    // water over the feet is deeper than surfacing.maxDepth (ADR 0175).
     return {
-      impulse: { x: step.impulse.x, y: 0, z: step.impulse.z },
+      impulse: {
+        x: step.impulse.x,
+        y: afloat ? surfaceLift(depth) : 0,
+        z: step.impulse.z,
+      },
       forward: step.forward,
       commands,
       riders: { thirdPerson: false, underwater: false },

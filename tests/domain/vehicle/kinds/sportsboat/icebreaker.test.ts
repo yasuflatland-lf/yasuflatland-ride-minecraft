@@ -6,6 +6,7 @@ import { rectCells } from "../../../../../src/domain/vehicle/cutArea";
 import { SportsboatDrive } from "../../../../../src/domain/vehicle/kinds/sportsboat/drive";
 import {
   bowBlocked,
+  hullFloorRow,
   icebreakerColumns,
   recutDue,
 } from "../../../../../src/domain/vehicle/kinds/sportsboat/icebreaker";
@@ -44,7 +45,7 @@ it("bounds the shipped stern including rotated and inflated geometry, rounded up
   expect(rule.sternReach - stern).toBeLessThan(0.01);
 });
 
-it("covers the hull rectangle with fixed vertical clearance and no extra stern margin", () => {
+it("covers the hull rectangle from the hull floor row up, with no extra stern margin", () => {
   fc.assert(
     fc.property(pose, yaw, (p, y) => {
       const columns = icebreakerColumns(p, y);
@@ -58,7 +59,8 @@ it("covers the hull rectangle with fixed vertical clearance and no extra stern m
       const f = forward(y);
       const radius = (Math.abs(f.x) + Math.abs(f.z)) / 2 + 1e-9;
       for (const c of columns) {
-        expect(c.bottom).toBe(Math.floor(p.y) - rule.margin);
+        expect(c.bottom).toBe(hullFloorRow(p.y));
+        expect(c.bottom).toBeLessThanOrEqual(Math.floor(p.y + 0.01));
         expect(c.height).toBe(
           Math.ceil(p.y + spec.height + rule.margin) - c.bottom,
         );
@@ -77,6 +79,27 @@ it("covers the hull rectangle with fixed vertical clearance and no extra stern m
           ).toBe(true);
         }
     }),
+  );
+});
+
+it("never lowers the surface under the hull", () => {
+  fc.assert(
+    fc.property(
+      pose,
+      yaw,
+      fc.array(fc.boolean(), { minLength: 1, maxLength: 8 }),
+      (p, y, solid) => {
+        const columns = icebreakerColumns(p, y);
+        const floor = hullFloorRow(p.y);
+        // solid[i] is the block in the row i + 1 below the hull floor row.
+        const highestSolid = (cut: boolean) =>
+          solid.findIndex((isSolid, i) => {
+            const row = floor - 1 - i;
+            return isSolid && !(cut && columns.some((c) => row >= c.bottom));
+          });
+        expect(highestSolid(true)).toBe(highestSolid(false));
+      },
+    ),
   );
 });
 
