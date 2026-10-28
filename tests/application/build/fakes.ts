@@ -71,8 +71,10 @@ export class FakeWorld implements BuildBlockWorld {
   private readonly blocks = new Map<string, BlockState>();
   readonly protectedCells = new Set<string>();
   readonly refusedCells = new Set<string>();
+  readonly unreadableCells = new Set<string>();
   writes = 0;
   stateAt(_d: DimensionId, cell: Cell) {
+    if (this.unreadableCells.has(cellKey(cell))) return undefined;
     return this.blocks.get(cellKey(cell)) ?? AIR;
   }
   setState(_d: DimensionId, cell: Cell, state: BlockState) {
