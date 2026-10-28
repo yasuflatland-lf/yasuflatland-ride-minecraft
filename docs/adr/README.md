@@ -177,6 +177,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0174](0174-show-only-the-icebreaker-switch-in-the-equipment-group.md) | Show only the Icebreaker Switch in the equipment group | Proposed |
 | [0175](0175-keep-the-icebreaker-cut-above-the-hull-floor.md) | Keep the icebreaker cut above the hull floor | Proposed |
 | [0176](0176-move-the-sports-boat-front-seats-back.md) | Move the sports boat's front seats back | Accepted |
+| [0177](0177-drive-text-on-the-sports-boat-driver-deck-seat.md) | Drive text on the sports boat driver deck seat | Accepted |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 

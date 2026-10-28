@@ -32,7 +32,7 @@ import {
   stepMotion,
 } from "../../motion/motion";
 import { waterBelowAt, waterDepthAt } from "../../motion/water";
-import { seatWorldPositions } from "../../seats";
+import { DRIVER_SEAT, seatWorldPositions } from "../../seats";
 import { stepRoll, stepTrim } from "./attitude";
 import { floorCells, holdHeight } from "./deck";
 import {
@@ -99,7 +99,9 @@ function dockAt(pose: HoldPose): Dock {
   return {
     hold: pose,
     cells: floorCells(pose),
-    seats: seatWorldPositions(pose, SPORTSBOAT_PROFILE.seats.positions),
+    seats: seatWorldPositions(pose, SPORTSBOAT_PROFILE.seats.positions).map(
+      (at, i) => (i === DRIVER_SEAT ? { ...at, driver: true } : at),
+    ),
   };
 }
 

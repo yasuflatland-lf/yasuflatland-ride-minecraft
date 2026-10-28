@@ -431,6 +431,7 @@ it("puts a deck seat at each profile seat with the measured rises, then the comp
       const seats = deckSeats(p);
       const world = seatWorldPositions(p, CAMPER_PROFILE.seats.positions);
       expect(seats).toHaveLength(5);
+      for (const s of seats) expect(s).not.toHaveProperty("driver");
       seats.slice(0, 4).forEach((s, i) => {
         expect(s).not.toHaveProperty("compact");
         expect(s.x).toBe(world[i]?.x);

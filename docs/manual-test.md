@@ -90,7 +90,7 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | B13 | On a docked boat's deck, long-press (mobile) / right-click (PC) the rear-left seat; have a second player use the driver seat, then push the driver's stick | Each player sits in the chosen seat; on the push both move into the boat, the driver stays in seat 0, the other player stays in the rear-left seat, and the boat leaves (ADR 0120) | | |
 | B14 | Sit only in a rear deck seat and push the stick | Nothing happens; only the deck driver sets off | | |
 | B15 | On a docked boat, sit in the rear-left deck seat; have a second player press the boat from the water while aiming at its rear-left seat (PC) or standing beside it (mobile) | The first player stays on the deck seat and the second sits in the free seat nearest it, never the rear-left seat; the boat stays docked (ADR 0120) | | |
-| B16 | Dock the boat and, on a phone, aim at a deck seat | The interact button reads "Sit", not "Ride" | | |
+| B16 | Dock the boat and, on a phone, aim at the driver deck seat and at a passenger deck seat; then set the game language to Japanese and repeat; the labels are translated | The passenger seat button reads "Sit" and the driver seat button reads "Drive", never "Ride"; the parked camper's driver seat still reads "Sit" (C71) | | |
 | B17 | Stop the sports boat until it lays its deck, walk on the deck, and look at the deck from above and from the water | The deck holds you as before, and nothing shows on it (ADR 0101) | | |
 | B18 | With one player driving, have a second player in the water right-click (PC) the boat while aiming at a rear seat, including from straight behind the stern with a level view; then let the driver get out | The second player sits in the seat they aimed at, not the front passenger seat; when the driver gets out, the second player stays in that rear seat (ADR 0120) | | |
 | B19 | With an empty boat, have two players each press the boat from the water while aiming at a different rear seat, then have a third press it aiming at the driver's seat and drive off | Both rear players sit where they aimed; the third sits in the driver's seat and drives with both still in the rear (ADR 0120) | | |
@@ -126,6 +126,8 @@ Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `
 | B51 | On a lake, turn icebreaker ON and drive at a large mountain that rises 10 or more blocks above the water | The boat tunnels into the mountain at about the water level, the hull stays at the surface, and it never ends up under the water | unverified | unverified |
 | B52 | Keep driving until the tunnel goes dry, then reverse | The boat stops at the dry end without sinking, and reverse brings it back to the water | unverified | unverified |
 | B53 | Repeat B51 with icebreaker OFF | The mountain stays intact, the boat stops at the shore and does not sink | unverified | unverified |
+| B54 | On a PC, dock the boat, right-click the driver deck seat | The prompt reads Drive; sitting there and pushing the stick still sets the boat off (ADR 0063) | unverified | unverified |
+| B55 | On a PC and a phone, aim at the SUV, the camper and the afloat sports boat | The interact button reads Drive on all three; the bulldozer keeps its own text and the chairs still read Sit | unverified | unverified |
 
 ## Sports boat hull (planking and gloss)
 

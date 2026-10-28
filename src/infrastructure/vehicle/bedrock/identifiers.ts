@@ -163,6 +163,8 @@ export const DECK_SEATS_PROPERTY = id("deck_seats");
 export const DECK_SEAT_OF_PROPERTY = id("deck_seat_of");
 /** Event and component group that shrink a deck seat's hit box to the toilet (ADR 0095). */
 export const DECK_SEAT_COMPACT_EVENT = entityEventId("compact");
+/** Event and component group that give a deck seat the Drive interact text (ADR 0177). */
+export const DECK_SEAT_DRIVER_EVENT = entityEventId("driver");
 /**
  * Test input messages have the form "<vehicleId>,<moveX>,<moveY>,<jump>"
  * (jump is 0 / 1). "<vehicleId>,clear" clears the input.

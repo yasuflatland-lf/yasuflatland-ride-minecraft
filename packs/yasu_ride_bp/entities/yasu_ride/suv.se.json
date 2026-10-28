@@ -451,7 +451,7 @@
         "controlling_seat": 0,
         "crouching_skip_interact": true,
         "family_types": ["player"],
-        "interact_text": "action.interact.ride.horse",
+        "interact_text": "action.interact.yasu_ride.drive",
         "seats": [
           { "position": [-0.494, 0.52, -0.0446875], "lock_rider_rotation": 90 },
           { "position": [0.494, 0.52, -0.0446875] },
