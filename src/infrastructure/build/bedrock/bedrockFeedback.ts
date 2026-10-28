@@ -15,7 +15,12 @@ export class BedrockFeedback implements BuildFeedback {
     if (!player?.isValid) return;
     player.onScreenDisplay.setActionBar({
       translate: BUILD_MESSAGE[message],
-      with: count === undefined ? [] : [String(count)],
+      with:
+        message === "tooLarge"
+          ? [String(BUILD_SPEC.maxVolume), String(BUILD_SPEC.maxCopyVolume)]
+          : count === undefined
+            ? []
+            : [String(count)],
     });
   }
 
