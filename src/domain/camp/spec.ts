@@ -19,6 +19,8 @@ export const TABLE_SPEC = Object.freeze({
 });
 
 export const DUTCH_OVEN_SPEC = Object.freeze({
+  /** The item's yaw snaps to this many degrees. */
+  yawStep: 90,
   clearance: 2,
   hitsToTakeBack: 3,
   hitResetTicks: 100,
@@ -26,6 +28,8 @@ export const DUTCH_OVEN_SPEC = Object.freeze({
 });
 
 export const FIRE_PIT_SPEC = Object.freeze({
+  /** The item's yaw snaps to this many degrees. */
+  yawStep: 90,
   clearance: 2,
   hitsToTakeBack: 3,
   hitResetTicks: 100,

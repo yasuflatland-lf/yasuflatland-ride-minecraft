@@ -18,6 +18,7 @@ import {
 import { HitCounters } from "../../domain/shared/hitCounter";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
+import { canUseBlockTop, hasClearance, placeOnGround } from "./groundPlacement";
 import type { DutchOvenWorld } from "./ports/dutchOven";
 
 const RULE = {
@@ -31,7 +32,7 @@ export class DutchOvenActions {
   constructor(private readonly world: DutchOvenWorld) {}
 
   canUseBlock(dimension: DimensionId, block: Vec3, face: string): boolean {
-    return face === "up" && !this.world.isOwnBlock(dimension, block);
+    return canUseBlockTop(this.world, dimension, block, face);
   }
 
   place(cmd: {
@@ -41,14 +42,10 @@ export class DutchOvenActions {
     yaw: number;
     slot: number;
   }): boolean {
-    const { player, dimension, block, yaw, slot } = cmd;
-    if (!this.hasClearance(dimension, { ...block, y: block.y + 1 }))
-      return false;
-    const at = { x: block.x + 0.5, y: block.y + 1, z: block.z + 0.5 };
-    if (this.world.hasDutchOvenNear(dimension, at)) return false;
-    if (!this.takeItem(player, slot)) return false;
-    this.world.spawnDutchOven(dimension, at, Math.round(yaw / 90) * 90);
-    return true;
+    return placeOnGround(this.world, DUTCH_OVEN_SPEC, cmd, {
+      isNear: this.world.hasDutchOvenNear.bind(this.world),
+      spawn: this.world.spawnDutchOven.bind(this.world),
+    });
   }
 
   placeOnFirePit(cmd: {
@@ -64,7 +61,10 @@ export class DutchOvenActions {
       y: Math.floor(pit.at.y),
       z: Math.floor(pit.at.z),
     };
-    if (!this.hasClearance(pit.dimension, cell)) return false;
+    if (
+      !hasClearance(this.world, pit.dimension, cell, DUTCH_OVEN_SPEC.clearance)
+    )
+      return false;
     if (!this.takeItem(cmd.player, cmd.slot)) return false;
     const [spot] = FIRE_PIT_SPOTS;
     this.spawnHosted(pit, hostSpotPoint(pit, spot, FIRE_PIT_TOP_PX), {
@@ -99,25 +99,21 @@ export class DutchOvenActions {
       y: Math.floor(table.at.y),
       z: Math.floor(at.z),
     };
-    if (!this.hasClearance(table.dimension, cell)) return false;
+    if (
+      !hasClearance(
+        this.world,
+        table.dimension,
+        cell,
+        DUTCH_OVEN_SPEC.clearance,
+      )
+    )
+      return false;
     if (!this.takeItem(cmd.player, cmd.slot)) return false;
     this.spawnHosted(table, at, {
       kind: "camp_table",
       id: cmd.table,
       spot: index,
     });
-    return true;
-  }
-
-  private hasClearance(dimension: DimensionId, base: Vec3): boolean {
-    for (let dy = 0; dy < DUTCH_OVEN_SPEC.clearance; dy++) {
-      const cell = { ...base, y: base.y + dy };
-      if (
-        !this.world.isAir(dimension, cell) ||
-        this.world.isVehicleSpace(dimension, cell)
-      )
-        return false;
-    }
     return true;
   }
 
