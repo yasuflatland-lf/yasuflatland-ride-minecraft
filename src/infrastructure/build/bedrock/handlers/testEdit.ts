@@ -1,14 +1,8 @@
-import {
-  BlockPermutation,
-  ScriptEventSource,
-  system,
-  world,
-} from "@minecraft/server";
+import { ScriptEventSource, system, world } from "@minecraft/server";
 import type {
   BuildFeedback,
   BuildMessage,
 } from "../../../../application/build/ports/feedback";
-import { blockStateOf } from "../../../../domain/build/blockState";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
 import { asPlayerId, type PlayerId } from "../../../../domain/shared/ids";
 import {
@@ -16,6 +10,7 @@ import {
   TEST_EDIT_EVENT,
   TEST_RESULT_EVENT,
 } from "../../identifiers";
+import { resolveBlockState } from "../blockStates";
 import type { BuildToolActions } from "../editActions";
 
 export interface LastMessage {
@@ -68,13 +63,9 @@ export function registerTestEdit(
       const playerId = asPlayerId(player.id);
       const chosen = actions(playerId);
       messages.forget(playerId);
-      const resolve = (type: string) => {
-        const permutation = BlockPermutation.resolve(type);
-        return blockStateOf(permutation.type.id, permutation.getAllStates());
-      };
       try {
         if (command === "fill" && args.length === 1 && args[0])
-          chosen.fill({ state: resolve(args[0]) });
+          chosen.fill({ state: resolveBlockState(args[0]) });
         else if (
           command === "replace" &&
           args.length === 2 &&
@@ -82,8 +73,8 @@ export function registerTestEdit(
           args[1]
         )
           chosen.replace(
-            { typeId: resolve(args[0]).typeId },
-            { state: resolve(args[1]) },
+            { typeId: resolveBlockState(args[0]).typeId },
+            { state: resolveBlockState(args[1]) },
           );
         else if (command === "copy" && args.length === 0) chosen.copy();
         else if (
