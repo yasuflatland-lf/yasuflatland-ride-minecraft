@@ -5,7 +5,7 @@ import {
   ItemStack,
   world,
 } from "@minecraft/server";
-import { CUT_KEPT_BLOCKS } from "../../domain/vehicle/cut";
+import { KEPT_BLOCKS } from "../../domain/shared/keptBlocks";
 import { id, LAID_BLOCK_TAG } from "../../infrastructure/shared/identifiers";
 import { BladeCuts } from "../../infrastructure/vehicle/bedrock/bladeCuts";
 import { decorBlockId } from "../../infrastructure/vehicle/bedrock/identifiers";
@@ -165,7 +165,7 @@ export async function bladeCutDrops(a: Arena): Promise<Outcome> {
 }
 
 export async function bladeCutKeptIds(): Promise<Outcome> {
-  const missing = CUT_KEPT_BLOCKS.filter((type) => !BlockTypes.get(type));
+  const missing = KEPT_BLOCKS.filter((type) => !BlockTypes.get(type));
   const untagged = [
     id("camper_floor"),
     id("deck_floor"),

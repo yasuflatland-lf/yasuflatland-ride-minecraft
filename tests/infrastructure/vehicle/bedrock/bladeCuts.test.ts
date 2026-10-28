@@ -2,7 +2,7 @@ import type { Dimension, Entity } from "@minecraft/server";
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import type { Cell } from "../../../../src/domain/shared/cells";
-import { CUT_KEPT_BLOCKS } from "../../../../src/domain/vehicle/cut";
+import { KEPT_BLOCKS } from "../../../../src/domain/shared/keptBlocks";
 import { BladeCuts } from "../../../../src/infrastructure/vehicle/bedrock/bladeCuts";
 import { blockGrid } from "../../../support/blockGrid";
 
@@ -57,7 +57,7 @@ function fixture() {
   };
 }
 function kept(type: string) {
-  return CUT_KEPT_BLOCKS.includes(type) || type === "yasu_ride:camper_floor";
+  return KEPT_BLOCKS.includes(type) || type === "yasu_ride:camper_floor";
 }
 it("cuts every cell from the bottom up to the first air cell and nothing above it (ADR 0137)", () => {
   fc.assert(
@@ -154,7 +154,7 @@ it("filters every fill by the kept types and the laid tag", () => {
   f.cut();
   expect(f.grid.fills[0]?.options).toEqual({
     blockFilter: {
-      excludeTypes: [...CUT_KEPT_BLOCKS],
+      excludeTypes: [...KEPT_BLOCKS],
       excludeTags: ["yasu_ride:laid"],
     },
     ignoreChunkBoundErrors: true,
