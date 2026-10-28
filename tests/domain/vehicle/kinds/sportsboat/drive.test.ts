@@ -103,6 +103,7 @@ const BEACHED: Water = { waterDepth: 0, waterBelow: false };
 /** The usual case for a floating hull: its feet sit above the water cell (ADR 0051). */
 const WATER_BELOW: Water = { waterDepth: 0, waterBelow: true };
 const waterDepth = number(0.01, 5);
+const SURFACING_DEPTH = SPORTSBOAT_SPEC.icebreaker.surfacing.maxDepth;
 const afloatWater: fc.Arbitrary<Water> = fc.oneof(
   waterDepth.map((d) => ({ waterDepth: d })),
   fc.constant(WATER_BELOW),
@@ -893,7 +894,7 @@ describe("SportsboatDrive (ADR 0051)", () => {
     fc.assert(
       fc.property(
         yaw,
-        number(0.01, SPORTSBOAT_SPEC.icebreaker.surfacing.maxDepth),
+        number(0.01, SURFACING_DEPTH),
         fc.array(fc.option(rawInput, { nil: undefined }), {
           minLength: 1,
           maxLength: 80,
@@ -1106,7 +1107,6 @@ describe("SportsboatDrive (ADR 0051)", () => {
   });
 
   it("lifts an afloat hull by surfaceLift when the water over the feet is too deep, and never when beached", () => {
-    const { maxDepth } = SPORTSBOAT_SPEC.icebreaker.surfacing;
     const out = boat(0).tick(
       context(0, undefined, { x: 0, z: 0 }, { waterDepth: 2 }),
     );
@@ -1115,7 +1115,7 @@ describe("SportsboatDrive (ADR 0051)", () => {
     fc.assert(
       fc.property(
         yaw,
-        number(maxDepth + 0.01, SPORTSBOAT_SPEC.height + 1),
+        number(SURFACING_DEPTH + 0.01, SPORTSBOAT_SPEC.height + 1),
         rawInput,
         (heading, depth, raw) => {
           const deep = boat(heading).tick(
@@ -1134,12 +1134,7 @@ describe("SportsboatDrive (ADR 0051)", () => {
   it("never pushes vertically at normal depth and sends only attitude, docking and monitor commands, never a form, bank, or gear, for any inputs and surroundings", () => {
     const tick = fc.record({
       raw: fc.option(rawInput, { nil: undefined }),
-      waterDepth: fc.option(
-        number(0, SPORTSBOAT_SPEC.icebreaker.surfacing.maxDepth),
-        {
-          nil: undefined,
-        },
-      ),
+      waterDepth: fc.option(number(0, SURFACING_DEPTH), { nil: undefined }),
       waterBelow: fc.option(fc.boolean(), { nil: undefined }),
       onGround: fc.boolean(),
       velocity: fc.record({ x: number(-2, 2), z: number(-2, 2) }),

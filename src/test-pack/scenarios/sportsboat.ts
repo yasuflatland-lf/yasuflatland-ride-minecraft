@@ -284,6 +284,10 @@ export function boatDock(a: Arena): Promise<Outcome> {
   );
 }
 
+function isWater(typeId: string | undefined): boolean {
+  return typeId === "minecraft:water" || typeId === "minecraft:flowing_water";
+}
+
 function feetInWater(boat: Entity): boolean {
   const { x, y, z } = boat.location;
   const block = boat.dimension.getBlock({
@@ -291,10 +295,7 @@ function feetInWater(boat: Entity): boolean {
     y: Math.floor(y),
     z: Math.floor(z),
   });
-  return (
-    block?.typeId === "minecraft:water" ||
-    block?.typeId === "minecraft:flowing_water"
-  );
+  return isWater(block?.typeId);
 }
 
 export function boatDrag(a: Arena): Promise<Outcome> {
@@ -789,8 +790,6 @@ async function boatIcebreakerMountain(
         `fill ${wallX} ${from} ${z} ${POOL.maxX} ${to} ${Math.min(z + 19, POOL.maxZ)} ${block}`,
       );
   };
-  const isWater = (type: string | undefined) =>
-    type === "minecraft:water" || type === "minecraft:flowing_water";
   const depthAt = (p: Vec3) => {
     const row = Math.floor(p.y);
     let cells = 0;
@@ -839,12 +838,12 @@ async function boatIcebreakerMountain(
           }
           drive(boat, 0, 0);
           const cell = dim.getBlock({ x: wallX, y: gy, z: 35 })?.typeId;
-          const bedKept: string[] = [];
+          const bedHoles: string[] = [];
           for (let x = 33; x <= wallX + 8; x++)
             for (let z = 32; z <= 39; z++)
               for (let y = gy - POOL_DEPTH; y < gy - 1; y++) {
                 const type = dim.getBlock({ x, y, z })?.typeId;
-                if (type === "minecraft:air") bedKept.push(`${x},${y},${z}`);
+                if (type === "minecraft:air") bedHoles.push(`${x},${y},${z}`);
               }
           const steady =
             lowest >= restY - 0.6 && deepest <= surfacing.maxDepth + 0.2;
@@ -852,8 +851,8 @@ async function boatIcebreakerMountain(
             ? cell !== "minecraft:stone"
             : cell === "minecraft:stone" && boat.location.x < wallX;
           return {
-            pass: steady && wallOk && bedKept.length === 0,
-            detail: `rest=${restY.toFixed(2)} lowest=${lowest.toFixed(2)} deepest=${deepest.toFixed(2)} cell=${cell} x=${boat.location.x.toFixed(2)} bedAir=${bedKept.length} ${bedKept.slice(0, 3).join(" ")} trace(y/depth/feet)=${trace.filter((_, i) => i % 4 === 0).join(" ")}`,
+            pass: steady && wallOk && bedHoles.length === 0,
+            detail: `rest=${restY.toFixed(2)} lowest=${lowest.toFixed(2)} deepest=${deepest.toFixed(2)} cell=${cell} x=${boat.location.x.toFixed(2)} bedAir=${bedHoles.length} ${bedHoles.slice(0, 3).join(" ")} trace(y/depth/feet)=${trace.filter((_, i) => i % 4 === 0).join(" ")}`,
           };
         } finally {
           fillMountain("air", gy, mountainTop);

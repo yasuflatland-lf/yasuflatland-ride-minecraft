@@ -60,7 +60,6 @@ it("covers the hull rectangle from the hull floor row up, with no extra stern ma
       const radius = (Math.abs(f.x) + Math.abs(f.z)) / 2 + 1e-9;
       for (const c of columns) {
         expect(c.bottom).toBe(hullFloorRow(p.y));
-        expect(c.bottom).toBeLessThanOrEqual(Math.floor(p.y + 0.01));
         expect(c.height).toBe(
           Math.ceil(p.y + spec.height + rule.margin) - c.bottom,
         );
