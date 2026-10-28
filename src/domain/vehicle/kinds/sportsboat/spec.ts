@@ -25,6 +25,10 @@ export const SPORTSBOAT_SPEC = Object.freeze({
     probeNear: 1.1, // Half the collision box: the engine stops here before ramFront reaches the wall.
     probeAhead: 1, // Probe this far beyond ramFront (ADR 0171).
     probeHeights: [0.1, height - 0.1], // Sample near the feet and the collision box top.
+    // A cut that leaves the bow blocked (a kept chest or laid block) repeats only after the
+    // boat moves this far or this many ticks pass, instead of every tick (ADR 0171).
+    recutDistance: 0.5,
+    recutTicks: 20,
   }),
   // Water drag estimate (ADR 0053): boat_drag measured 0.833 at full speed,
   // 0.916-0.927 on the 3 ticks of every 14 at the top of the bob, and 0.815

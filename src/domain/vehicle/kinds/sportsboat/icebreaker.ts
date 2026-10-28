@@ -39,3 +39,25 @@ export function icebreakerColumns(location: Vec3, yaw: number): CutColumn[] {
     Math.ceil(location.y + height + icebreaker.margin) - bottom,
   );
 }
+
+export interface LastCut {
+  readonly tick: number;
+  readonly location: Vec3;
+}
+
+/** Whether a blocked bow cuts again on `tick` after the cut in `last` (ADR 0171). */
+export function recutDue(
+  last: LastCut | undefined,
+  tick: number,
+  location: Vec3,
+): boolean {
+  if (last === undefined) return true;
+  const moved = Math.hypot(
+    location.x - last.location.x,
+    location.z - last.location.z,
+  );
+  return (
+    moved >= icebreaker.recutDistance ||
+    tick - last.tick >= icebreaker.recutTicks
+  );
+}

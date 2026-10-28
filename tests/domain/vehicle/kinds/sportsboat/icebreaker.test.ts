@@ -7,6 +7,7 @@ import { SportsboatDrive } from "../../../../../src/domain/vehicle/kinds/sportsb
 import {
   bowBlocked,
   icebreakerColumns,
+  recutDue,
 } from "../../../../../src/domain/vehicle/kinds/sportsboat/icebreaker";
 import { SPORTSBOAT_SPEC as spec } from "../../../../../src/domain/vehicle/kinds/sportsboat/spec";
 import { type Bone, turnedCorners } from "../../../../support/geometry";
@@ -226,4 +227,73 @@ it("does not cut while creeping sideways even with a positive raw forward compon
       },
     ),
   );
+});
+
+it("cuts a still blocked bow again only after the boat moves or the recut delay passes", () => {
+  fc.assert(
+    fc.property(
+      pose,
+      fc.nat(1000),
+      fc.nat(rule.recutTicks - 1),
+      number(0, rule.recutDistance * 0.99),
+      number(-180, 180),
+      (location, tick, waited, drift, heading) => {
+        const last = { tick, location };
+        const step = forward(heading);
+        const at = (d: number) => ({
+          ...location,
+          x: location.x + step.x * d,
+          z: location.z + step.z * d,
+        });
+        expect(recutDue(undefined, tick, location)).toBe(true);
+        expect(recutDue(last, tick + waited, at(drift))).toBe(false);
+        expect(recutDue(last, tick + rule.recutTicks, at(drift))).toBe(true);
+        // 1% over the threshold, so rounding at |x| = 1000 cannot land below it.
+        expect(
+          recutDue(last, tick + waited, at(rule.recutDistance * 1.01)),
+        ).toBe(true);
+      },
+    ),
+  );
+});
+
+function blockedRun(
+  ticks: number,
+  { move = 0, clearOn = -1 }: { move?: number; clearOn?: number } = {},
+): number[] {
+  const drive = new SportsboatDrive(0, { icebreaker: true });
+  const cuts: number[] = [];
+  for (let tick = 0; tick < ticks; tick++) {
+    const step = drive.step(
+      { moveX: 0, moveY: 1, jump: false },
+      {
+        tick,
+        location: { x: 0.5, y: 64, z: 0.5 - tick * move },
+        velocity: { x: 0, y: 0, z: 0 },
+        onGround: false,
+        deckSeatInputs: [],
+        blockTypes: () => [],
+        waterAt: () => true,
+        solidAt: () => tick !== clearOn,
+      },
+    );
+    if (step.cut) cuts.push(tick);
+  }
+  return cuts;
+}
+
+it("does not repeat the cut every tick while a kept block holds the bow", () => {
+  expect(blockedRun(rule.recutTicks * 2 + 1)).toEqual([
+    0,
+    rule.recutTicks,
+    rule.recutTicks * 2,
+  ]);
+});
+
+it("cuts on the next blocked tick once the bow has been clear", () => {
+  expect(blockedRun(3, { clearOn: 1 })).toEqual([0, 2]);
+});
+
+it("cuts every blocked tick while the boat keeps moving", () => {
+  expect(blockedRun(5, { move: rule.recutDistance })).toEqual([0, 1, 2, 3, 4]);
 });

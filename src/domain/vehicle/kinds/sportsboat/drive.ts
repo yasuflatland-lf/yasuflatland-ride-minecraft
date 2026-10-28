@@ -42,7 +42,12 @@ import {
   trimCommand,
 } from "./entity";
 import { ICEBREAKER_SWITCH_ITEM } from "./equipment";
-import { bowBlocked, icebreakerColumns } from "./icebreaker";
+import {
+  bowBlocked,
+  icebreakerColumns,
+  type LastCut,
+  recutDue,
+} from "./icebreaker";
 import { SPORTSBOAT_MOTION, SPORTSBOAT_PROFILE } from "./profile";
 import { SPORTSBOAT_SPEC } from "./spec";
 
@@ -137,6 +142,7 @@ export class SportsboatDrive implements Drive {
   private roll = 0;
   private docked: HoldPose | undefined;
   private stillTicks = 0;
+  private lastCut: LastCut | undefined;
   private resendDocked = false;
   // Until the drive first holds, the entity keeps its default docked value and needs no resend.
   private heldOnce = false;
@@ -386,14 +392,38 @@ export class SportsboatDrive implements Drive {
       commands,
       riders: { thirdPerson: false, underwater: false },
       boardDeckRiders,
-      ...(this.icebreakerOn &&
-        raw !== undefined &&
-        afloat &&
-        control.throttle > 0 &&
-        bowBlocked(ctx.location, step.state.yaw, ctx.solidAt) && {
-          cut: icebreakerColumns(ctx.location, step.state.yaw),
-        }),
+      ...(this.icebreakerCut(
+        raw,
+        ctx,
+        afloat,
+        control.throttle,
+        step.state.yaw,
+      ) && {
+        cut: icebreakerColumns(ctx.location, step.state.yaw),
+      }),
       ...(this.docked && { dock: dockAt(this.docked) }),
     };
+  }
+
+  private icebreakerCut(
+    raw: RawInput | undefined,
+    ctx: TickContext,
+    afloat: boolean,
+    throttle: number,
+    yaw: number,
+  ): boolean {
+    const blocked =
+      this.icebreakerOn &&
+      raw !== undefined &&
+      afloat &&
+      throttle > 0 &&
+      bowBlocked(ctx.location, yaw, ctx.solidAt);
+    if (!blocked) {
+      this.lastCut = undefined;
+      return false;
+    }
+    if (!recutDue(this.lastCut, ctx.tick, ctx.location)) return false;
+    this.lastCut = { tick: ctx.tick, location: ctx.location };
+    return true;
   }
 }
