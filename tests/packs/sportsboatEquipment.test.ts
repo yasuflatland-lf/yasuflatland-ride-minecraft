@@ -100,7 +100,7 @@ describe("Sports Boat Equipment (ADR 0171)", () => {
     expect(bluish).toEqual([]);
   });
 
-  it("lists only the Icebreaker Switch in a group after the bulldozer switches, with the switch as its icon", () => {
+  it("lists only the Icebreaker Switch in a group after the outside camping gear, with the switch as its icon", () => {
     const categories = read(`${BP}/item_catalog/crafting_item_catalog.json`)[
       "minecraft:crafting_items_catalog"
     ].categories;
@@ -111,7 +111,7 @@ describe("Sports Boat Equipment (ADR 0171)", () => {
       (g: { group_identifier: { name: string } }) => g.group_identifier.name,
     );
     expect(names.indexOf(GROUP)).toBe(
-      names.indexOf(id("bulldozer_switches")) + 1,
+      names.indexOf(id("camping_gear_outside")) + 1,
     );
     expect(groups[names.indexOf(GROUP)]).toEqual({
       group_identifier: { icon: SWITCH, name: GROUP },

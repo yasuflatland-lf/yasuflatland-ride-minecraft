@@ -107,7 +107,7 @@ describe("Building Tools recipes and names", () => {
     expect(names.at(-2)).toBe("yasu_ride:sportsboat_equipment");
     expect(groups.at(-1)).toEqual({
       group_identifier: { icon: TOOL, name: GROUP },
-      items: [TOOL, WAND],
+      items: [TOOL, WAND, "yasu_ride:blade_switch"],
     });
   });
 });
