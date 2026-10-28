@@ -1,6 +1,8 @@
 import {
   type BlockPermutation,
+  type Entity,
   ItemStack,
+  type Player,
   system,
   world,
 } from "@minecraft/server";
@@ -17,6 +19,46 @@ import {
   TEST_RESULT_EVENT,
 } from "../../infrastructure/build/identifiers";
 import { type Arena, drive, type Outcome, wait, withCar } from "../arena";
+
+function riddenEntity(player: Player): Entity | undefined {
+  try {
+    return player.getComponent("minecraft:riding")?.entityRidingOn;
+  } catch {
+    // Bedrock can throw here when the mount was removed, even for a standing player.
+    return undefined;
+  }
+}
+
+function ejectPlayer(player: Player, mount: Entity): void {
+  try {
+    if (player.isValid && mount.isValid)
+      mount.getComponent("minecraft:rideable")?.ejectRider(player);
+  } catch {
+    // The player or mount may already be invalid during failure cleanup.
+  }
+}
+
+function withPlayerBulldozer(
+  a: Arena,
+  { player, x, z, yaw }: { player: Player; x: number; z: number; yaw: number },
+  run: (car: Entity) => Promise<Outcome>,
+): Promise<Outcome> {
+  return withCar(
+    a,
+    x,
+    z,
+    yaw,
+    async (car) => {
+      try {
+        return await run(car);
+      } finally {
+        // withCar removes the mount after this callback, so dismount on failures too.
+        ejectPlayer(player, car);
+      }
+    },
+    BULLDOZER_TYPE,
+  );
+}
 
 /** Engine permutation round trips run without a connected player. */
 export async function buildBlockStates(a: Arena): Promise<Outcome> {
@@ -57,10 +99,7 @@ interface Reply {
 /** Exercises real edit handlers and tick jobs with a seated player, bypassing only the forms. */
 export async function buildEdits(a: Arena): Promise<Outcome> {
   const player = world.getAllPlayers()[0];
-  if (
-    !player?.isValid ||
-    player.getComponent("minecraft:riding")?.entityRidingOn
-  )
+  if (!player?.isValid || riddenEntity(player))
     return { pass: false, detail: "an unseated connected player is required" };
   const location = player.location;
   const dimension = player.dimension;
@@ -118,11 +157,9 @@ export async function buildEdits(a: Arena): Promise<Outcome> {
   };
   system.afterEvents.scriptEventReceive.subscribe(listener);
   try {
-    return await withCar(
+    return await withPlayerBulldozer(
       a,
-      20.5,
-      20.5,
-      -90,
+      { player, x: 20.5, z: 20.5, yaw: -90 },
       async (car) => {
         player.teleport({ x: 20.5, y: a.gy, z: 20.5 }, { dimension: a.dim });
         const rideable = car.getComponent("minecraft:rideable");
@@ -280,24 +317,18 @@ export async function buildEdits(a: Arena): Promise<Outcome> {
           system.clearRun(timer);
         }
         await corner("clear", 0, a.gy, 0);
-        rideable?.ejectRider(player);
         return {
           pass: true,
           detail:
             "fill/undo permutations, chest contents, replace mask, driven paste offset, skip air, protected paste, and tick budget verified",
         };
       },
-      BULLDOZER_TYPE,
     );
   } finally {
     system.afterEvents.scriptEventReceive.unsubscribe(listener);
     for (const { cell, permutation } of saved.values())
       a.dim.getBlock(cell)?.setPermutation(permutation);
     if (player.isValid) {
-      player
-        .getComponent("minecraft:riding")
-        ?.entityRidingOn?.getComponent("minecraft:rideable")
-        ?.ejectRider(player);
       player.teleport(location, { dimension, rotation });
     }
   }
@@ -308,7 +339,7 @@ export async function buildSelectionAndMode(a: Arena): Promise<Outcome> {
   const player = world.getAllPlayers()[0];
   if (!player?.isValid)
     return { pass: false, detail: "a connected player is required" };
-  if (player.getComponent("minecraft:riding")?.entityRidingOn)
+  if (riddenEntity(player))
     return { pass: false, detail: "the test player must start unseated" };
   const inventory = player.getComponent("minecraft:inventory")?.container;
   if (!inventory) return { pass: false, detail: "player inventory missing" };
@@ -339,11 +370,9 @@ export async function buildSelectionAndMode(a: Arena): Promise<Outcome> {
   const mode = () => query(TEST_MODE_EVENT, player.name);
   system.afterEvents.scriptEventReceive.subscribe(listener);
   try {
-    return await withCar(
+    return await withPlayerBulldozer(
       a,
-      20.5,
-      20.5,
-      0,
+      { player, x: 20.5, z: 20.5, yaw: 0 },
       async (car) => {
         player.teleport({ x: 20.5, y: a.gy, z: 20.5 }, { dimension: a.dim });
         inventory.setItem(slot, new ItemStack(SELECTION_WAND_TYPE));
@@ -362,7 +391,7 @@ export async function buildSelectionAndMode(a: Arena): Promise<Outcome> {
         inventory.setItem(slot, new ItemStack(SELECTION_WAND_TYPE));
         const scroll = await mode();
         await corner("clear", 20);
-        rideable.ejectRider(player);
+        ejectPlayer(player, car);
         await wait(2);
         const inactive = await mode();
         const refused = await corner("pos1", 25);
@@ -381,15 +410,10 @@ export async function buildSelectionAndMode(a: Arena): Promise<Outcome> {
           detail: `pos1=${first.message} volume=${second.count} mode=${active.mode} scroll=${scroll.mode} off=${inactive.mode} refusal=${refused.message}; visually verify third person while active and restored view after dismount`,
         };
       },
-      BULLDOZER_TYPE,
     );
   } finally {
     system.afterEvents.scriptEventReceive.unsubscribe(listener);
     if (player.isValid) {
-      player
-        .getComponent("minecraft:riding")
-        ?.entityRidingOn?.getComponent("minecraft:rideable")
-        ?.ejectRider(player);
       inventory.setItem(slot, item);
       player.teleport(location, { dimension, rotation });
     }
