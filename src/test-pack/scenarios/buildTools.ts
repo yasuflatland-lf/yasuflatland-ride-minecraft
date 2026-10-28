@@ -1,5 +1,10 @@
-import { ItemStack, system, world } from "@minecraft/server";
-import { blockStateOf } from "../../domain/build/blockState";
+import {
+  type BlockPermutation,
+  ItemStack,
+  system,
+  world,
+} from "@minecraft/server";
+import { blockStateOf, sameBlockState } from "../../domain/build/blockState";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import { asDimensionId } from "../../domain/shared/ids";
 import { BedrockBlockWorld } from "../../infrastructure/build/bedrock/bedrockBlockWorld";
@@ -7,10 +12,11 @@ import {
   BULLDOZER_TYPE,
   SELECTION_WAND_TYPE,
   TEST_CORNER_EVENT,
+  TEST_EDIT_EVENT,
   TEST_MODE_EVENT,
   TEST_RESULT_EVENT,
 } from "../../infrastructure/build/identifiers";
-import { type Arena, type Outcome, wait, withCar } from "../arena";
+import { type Arena, drive, type Outcome, wait, withCar } from "../arena";
 
 /** Engine permutation round trips run without a connected player. */
 export async function buildBlockStates(a: Arena): Promise<Outcome> {
@@ -45,6 +51,248 @@ interface Reply {
   count?: number;
   selection?: { pos1?: { x: number }; pos2?: { x: number } } | null;
   mode?: boolean;
+  ticks?: number;
+}
+
+/** Exercises real edit handlers and tick jobs with a seated player, bypassing only the forms. */
+export async function buildEdits(a: Arena): Promise<Outcome> {
+  const player = world.getAllPlayers()[0];
+  if (
+    !player?.isValid ||
+    player.getComponent("minecraft:riding")?.entityRidingOn
+  )
+    return { pass: false, detail: "an unseated connected player is required" };
+  const location = player.location;
+  const dimension = player.dimension;
+  const rotation = player.getRotation();
+  const saved = new Map<
+    string,
+    { cell: { x: number; y: number; z: number }; permutation: BlockPermutation }
+  >();
+  const at = (x: number, y: number, z: number) => {
+    const cell = { x, y, z };
+    const block = a.dim.getBlock(cell);
+    if (!block) throw new Error("unreadable edit test cell");
+    const key = `${x},${y},${z}`;
+    if (!saved.has(key))
+      saved.set(key, { cell, permutation: block.permutation });
+    return block;
+  };
+  const replies: Reply[] = [];
+  const listener = (ev: { id: string; message: string }) => {
+    if (ev.id !== TEST_RESULT_EVENT) return;
+    const reply: Reply = JSON.parse(ev.message);
+    if (reply.player === player.name) replies.push(reply);
+  };
+  const query = async (event: string, message: string): Promise<Reply> => {
+    replies.length = 0;
+    system.sendScriptEvent(event, message);
+    for (let tick = 0; tick < 100; tick++) {
+      await wait(1);
+      const reply = replies.at(-1);
+      if (reply) return reply;
+    }
+    throw new Error(`no response to ${event}: ${message}`);
+  };
+  const corner = (name: string, x: number, y: number, z: number) =>
+    query(
+      TEST_CORNER_EVENT,
+      JSON.stringify({ player: player.name, corner: name, x, y, z }),
+    );
+  const select = async (x: number, y: number, z: number, size: number) => {
+    await corner("pos1", x, y, z);
+    await corner("pos2", x + size - 1, y + size - 1, z + size - 1);
+  };
+  const edit = (command: string) =>
+    query(TEST_EDIT_EVENT, `${player.id} ${command}`);
+  const check = (ok: boolean, detail: string) => {
+    if (!ok) throw new Error(detail);
+  };
+  const cube = (x: number, y: number, z: number, size: number) => {
+    const cells = [];
+    for (let dx = 0; dx < size; dx++)
+      for (let dy = 0; dy < size; dy++)
+        for (let dz = 0; dz < size; dz++)
+          cells.push(at(x + dx, y + dy, z + dz));
+    return cells;
+  };
+  system.afterEvents.scriptEventReceive.subscribe(listener);
+  try {
+    return await withCar(
+      a,
+      20.5,
+      20.5,
+      -90,
+      async (car) => {
+        player.teleport({ x: 20.5, y: a.gy, z: 20.5 }, { dimension: a.dim });
+        const rideable = car.getComponent("minecraft:rideable");
+        check(
+          rideable?.addRider(player) === true,
+          "player could not board bulldozer",
+        );
+        await wait(3);
+        const y = a.gy + 1;
+        const cells = cube(50, y, 50, 3);
+        for (const [i, block] of cells.entries()) {
+          block.setType(i % 2 === 0 ? "minecraft:oak_log" : "minecraft:air");
+          if (i % 2 === 0)
+            block.setPermutation(
+              block.permutation.withState("pillar_axis", "x"),
+            );
+        }
+        const original = cells.map((b) => b.permutation);
+        await select(50, y, 50, 3);
+        await edit("fill minecraft:stone");
+        check(
+          cells.every((b) => b.typeId === "minecraft:stone"),
+          "fill did not fill all 27 cells",
+        );
+        await edit("undo");
+        check(
+          cells.every((b, i) => {
+            const before = original[i];
+            return (
+              !!before &&
+              sameBlockState(
+                blockStateOf(b.typeId, b.permutation.getAllStates()),
+                blockStateOf(before.type.id, before.getAllStates()),
+              )
+            );
+          }),
+          "undo did not restore exact permutations",
+        );
+
+        const chest = cells[0];
+        if (!chest) throw new Error("missing chest test cell");
+        chest.setType("minecraft:chest");
+        const contents = chest.getComponent("minecraft:inventory")?.container;
+        if (!contents) throw new Error("chest inventory missing");
+        contents.setItem(0, new ItemStack("minecraft:diamond", 7));
+        await edit("fill minecraft:stone");
+        check(
+          chest.typeId === "minecraft:chest" &&
+            contents.getItem(0)?.typeId === "minecraft:diamond" &&
+            contents.getItem(0)?.amount === 7,
+          "fill changed a chest or its contents",
+        );
+        const nonmatching = cells[1];
+        if (!nonmatching) throw new Error("missing nonmatching test cell");
+        nonmatching.setType("minecraft:oak_log");
+        nonmatching.setPermutation(
+          nonmatching.permutation.withState("pillar_axis", "x"),
+        );
+        await edit("replace minecraft:stone minecraft:dirt");
+        check(
+          cells.slice(2).every((b) => b.typeId === "minecraft:dirt") &&
+            nonmatching.typeId === "minecraft:oak_log" &&
+            nonmatching.permutation.getState("pillar_axis") === "x" &&
+            chest.typeId === "minecraft:chest" &&
+            contents.getItem(0)?.amount === 7,
+          "replace touched a nonmatching block or missed stone",
+        );
+        contents.clearAll();
+        chest.setType("minecraft:air");
+        await edit("copy");
+        const copied = cells.map((b) => b.typeId);
+        const target = cube(55, y, 50, 3);
+        for (const block of target) block.setType("minecraft:gold_block");
+        const start = Math.floor(car.location.x);
+        drive(car, 0, 1);
+        for (
+          let tick = 0;
+          tick < 100 && Math.floor(car.location.x) < start + 5;
+          tick++
+        )
+          await wait(1);
+        check(
+          Math.floor(car.location.x) === start + 5,
+          "test input did not drive five cells",
+        );
+        drive(car, 0, -1);
+        await edit("paste 0");
+        drive(car, 0, 0);
+        check(
+          target.every((b, i) => b.typeId === copied[i]),
+          "paste did not preserve the five-cell offset or overwrite air",
+        );
+        await wait(50);
+        // Copy again at the settled feet so the second paste targets the original selection.
+        await edit("copy");
+        for (const block of cells) block.setType("minecraft:gold_block");
+        await edit("paste 1");
+        check(
+          cells.every(
+            (b, i) =>
+              b.typeId ===
+              (copied[i] === "minecraft:air"
+                ? "minecraft:gold_block"
+                : copied[i]),
+          ),
+          "skip-air paste overwrote an air destination or missed a solid cell",
+        );
+
+        const feet = car.location;
+        await select(
+          Math.floor(feet.x),
+          Math.floor(feet.y),
+          Math.floor(feet.z),
+          1,
+        );
+        await edit("copy");
+        const blocked = await edit("paste 0");
+        check(
+          blocked.message === "pasteBlocked",
+          "paste over the bulldozer was not refused",
+        );
+
+        const size = Math.ceil(Math.cbrt(BUILD_SPEC.blocksPerTick + 1));
+        const large = cube(65, a.gy + 8, 55, size);
+        for (const block of large) block.setType("minecraft:air");
+        await select(65, a.gy + 8, 55, size);
+        let heartbeat = 0;
+        let sawPartial = false;
+        const timer = system.runInterval(() => {
+          heartbeat++;
+          if (
+            large[0]?.typeId === "minecraft:stone" &&
+            large.at(-1)?.typeId === "minecraft:air"
+          )
+            sawPartial = true;
+        }, 1);
+        try {
+          const filled = await edit("fill minecraft:stone");
+          check(
+            (filled.ticks ?? 0) >= 1 &&
+              heartbeat >= 1 &&
+              sawPartial &&
+              large.every((b) => b.typeId === "minecraft:stone"),
+            "large fill did not finish over multiple live server ticks",
+          );
+        } finally {
+          system.clearRun(timer);
+        }
+        await corner("clear", 0, a.gy, 0);
+        rideable?.ejectRider(player);
+        return {
+          pass: true,
+          detail:
+            "fill/undo permutations, chest contents, replace mask, driven paste offset, skip air, protected paste, and tick budget verified",
+        };
+      },
+      BULLDOZER_TYPE,
+    );
+  } finally {
+    system.afterEvents.scriptEventReceive.unsubscribe(listener);
+    for (const { cell, permutation } of saved.values())
+      a.dim.getBlock(cell)?.setPermutation(permutation);
+    if (player.isValid) {
+      player
+        .getComponent("minecraft:riding")
+        ?.entityRidingOn?.getComponent("minecraft:rideable")
+        ?.ejectRider(player);
+      player.teleport(location, { dimension, rotation });
+    }
+  }
 }
 
 /** Requires a connected player; stable APIs cannot create one or read back a camera preset (ADR 0001, 0010). */
