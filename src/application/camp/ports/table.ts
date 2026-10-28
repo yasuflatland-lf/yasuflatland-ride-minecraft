@@ -1,7 +1,6 @@
 import type { TableId } from "../../../domain/camp/table";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
-
 import type { GroundCellsWorld } from "./groundCells";
 
 export interface TableWorld extends GroundCellsWorld {

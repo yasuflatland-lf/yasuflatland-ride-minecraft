@@ -2,7 +2,6 @@ import type { DutchOvenId } from "../../../domain/camp/dutchOven";
 import type { FirePitId } from "../../../domain/camp/firePit";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
-
 import type { GroundCellsWorld } from "./groundCells";
 
 export interface DutchOvenWorld extends GroundCellsWorld {
