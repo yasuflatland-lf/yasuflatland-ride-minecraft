@@ -10,12 +10,9 @@ export function blockStateOf(
   typeId: string,
   states: Record<string, StateValue> = {},
 ): BlockState {
-  const sorted: Record<string, StateValue> = {};
-  for (const [key, value] of Object.entries(states).sort(([a], [b]) =>
-    a < b ? -1 : 1,
-  )) {
-    sorted[key] = value;
-  }
+  const sorted = Object.fromEntries(
+    Object.entries(states).sort(([a], [b]) => (a < b ? -1 : 1)),
+  );
   return Object.freeze({ typeId, states: Object.freeze(sorted) });
 }
 
