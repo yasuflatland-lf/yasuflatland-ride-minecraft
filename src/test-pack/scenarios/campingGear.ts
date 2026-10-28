@@ -12,8 +12,8 @@ import type { Arena, Outcome } from "../arena";
 // One cell per gear along the arena's east edge, clear of the camper park spot (x 103-114)
 // and the soul sand strip (x 93-98).
 const ROW = { x: 119, z: 1 } as const;
-// The 18 items after ADR 0169; a spec that loses an item fails here as well as in the unit tests.
-const GEAR_COUNT = 18;
+// The 17 items after ADR 0173; a spec that loses an item fails here as well as in the unit tests.
+const GEAR_COUNT = 17;
 
 // The decor blocks' yasu_ride:spot values: the cell middle and ADR 0107's four burner spots (ADR 0112).
 const SPOTS = 5;

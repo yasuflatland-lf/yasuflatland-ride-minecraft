@@ -141,7 +141,7 @@ function readPng(path: string) {
 }
 
 describe("camping gear spec (ADR 0093)", () => {
-  it("lists the 18 items in the contract's order", () => {
+  it("lists the 17 items in the contract's order", () => {
     expect(SPEC.map((g) => g.id)).toEqual([
       "potted_plant",
       "macrame_planter",
@@ -153,7 +153,6 @@ describe("camping gear spec (ADR 0093)", () => {
       "sugar_pot",
       "fruit_bowl",
       "toaster",
-      "lantern",
       "transistor_radio",
       "book_stack",
       "road_map",
@@ -191,7 +190,7 @@ describe("camping gear spec (ADR 0093)", () => {
       ).toBe(true);
       expect(g).not.toHaveProperty("places");
       expect(g.hanging).toBe(g.id === "macrame_planter");
-      expect(g.glass).toBe(g.id === "sugar_pot" || g.id === "lantern");
+      expect(g.glass).toBe(g.id === "sugar_pot");
       expect(g.reference === null || /^https:\/\/\S+$/.test(g.reference)).toBe(
         true,
       );
@@ -280,19 +279,7 @@ describe("camping gear block models (ADR 0093)", () => {
     },
   );
 
-  it("keeps the lantern within its footprint and the pair geometry budget (ADR 0169)", () => {
-    const cubes = cubesOf("lantern");
-    expect(cubes.length).toBeLessThan(120);
-    expect(SPEC.find((g) => g.id === "lantern")).toMatchObject({
-      id: "lantern",
-      width_px: 5,
-      height_px: 8,
-      glass: true,
-    });
-    for (const p of cubes.flatMap(cubeCorners)) {
-      expect(Math.abs(p[0])).toBeLessThanOrEqual(2.501);
-      expect(Math.abs(p[2])).toBeLessThanOrEqual(2.501);
-    }
+  it("keeps the pair geometries within their cell and size budget (ADR 0169)", () => {
     for (const kind of ["shelf", "table", "cabinet", "fridge"]) {
       expect(
         statSync(`${MODELS}/${kind}_decor_pair.geo.json`).size,
@@ -306,24 +293,27 @@ describe("camping gear block models (ADR 0093)", () => {
     }
   });
 
-  it("removes the oil lamp assets, atlas key, and names", () => {
-    for (const path of [
-      `${BP}/items/yasu_ride/oil_lamp.item.json`,
-      `${BP}/blocks/yasu_ride/oil_lamp_decor.block.json`,
-      `${MODELS}/oil_lamp.geo.json`,
-      `${RP}/textures/items/yasu_ride/oil_lamp.png`,
-      `${PREVIEWS}/oil_lamp.png`,
-    ])
-      expect(existsSync(path), path).toBe(false);
-    expect(
-      readFileSync(`${RP}/textures/item_texture.json`, "utf8"),
-    ).not.toContain("oil_lamp");
-    for (const locale of ["en_US", "ja_JP"]) {
-      expect(readFileSync(`${RP}/texts/${locale}.lang`, "utf8")).not.toContain(
-        "oil_lamp",
-      );
-    }
-  });
+  it.each(["oil_lamp", "lantern"])(
+    "removes the %s decor assets, atlas key, and names",
+    (id) => {
+      for (const path of [
+        `${BP}/items/yasu_ride/${id}.item.json`,
+        `${BP}/blocks/yasu_ride/${id}_decor.block.json`,
+        `${MODELS}/${id}.geo.json`,
+        `${RP}/textures/items/yasu_ride/${id}.png`,
+        `${PREVIEWS}/${id}.png`,
+      ])
+        expect(existsSync(path), path).toBe(false);
+      expect(
+        readFileSync(`${RP}/textures/item_texture.json`, "utf8"),
+      ).not.toContain(`yasu_ride_${id}`);
+      for (const locale of ["en_US", "ja_JP"]) {
+        const lang = readFileSync(`${RP}/texts/${locale}.lang`, "utf8");
+        expect(lang).not.toContain(`item.yasu_ride:${id}.name`);
+        expect(lang).not.toContain(`tile.yasu_ride:${id}_decor.name`);
+      }
+    },
+  );
 
   it("paints the atlas as 16 distinct 4 by 4 swatches, opaque except the glass", () => {
     const { width, height, pixel } = readPng(ATLAS);
@@ -1041,7 +1031,7 @@ describe("camping gear blocks and items (ADR 0093)", () => {
       "yasu_ride:camping_gear_box",
       ...SPEC.map((g) => `yasu_ride:${g.id}`),
     ];
-    expect(items).toHaveLength(19);
+    expect(items).toHaveLength(18);
     expect(readJson(`${BP}/item_catalog/crafting_item_catalog.json`)).toEqual({
       format_version: "1.21.60",
       "minecraft:crafting_items_catalog": {

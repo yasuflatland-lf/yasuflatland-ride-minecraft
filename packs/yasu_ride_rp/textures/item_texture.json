@@ -65,7 +65,6 @@
       "textures": "textures/items/yasu_ride/fruit_bowl"
     },
     "yasu_ride_toaster": { "textures": "textures/items/yasu_ride/toaster" },
-    "yasu_ride_lantern": { "textures": "textures/items/yasu_ride/lantern" },
     "yasu_ride_transistor_radio": {
       "textures": "textures/items/yasu_ride/transistor_radio"
     },

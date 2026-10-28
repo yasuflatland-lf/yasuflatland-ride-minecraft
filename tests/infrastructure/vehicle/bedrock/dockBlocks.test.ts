@@ -580,7 +580,7 @@ it("lays both items of a fridge compartment in its one block, each end's code sp
       [end0.page]: 0,
       [end0.item]: 1,
       [end1.page]: 1,
-      [end1.item]: 7,
+      [end1.item]: 6,
     },
   });
   docks.lay(asVehicleId(f.car.id), f.car, [pairAt(undefined, "desk_fan")]);

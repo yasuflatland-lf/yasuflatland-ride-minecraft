@@ -262,7 +262,7 @@ export function pairDecorBlockId(kind: string): string {
 }
 /**
  * The pair block's states for the item at each end. A block state holds at most 16 values
- * and an end takes 19 (empty or one of 18 standing items), so the end's code, 0 for empty
+ * and an end takes 17 (empty or one of 16 standing items), so the end's code, 0 for empty
  * and 1 + its index in STANDING_GEAR_IDS, is split into `page` (code / PAIR_PAGE_SIZE) and
  * `item` (code % PAIR_PAGE_SIZE) (ADR 0108).
  */

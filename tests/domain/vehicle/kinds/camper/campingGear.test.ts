@@ -27,10 +27,15 @@ it("reads every current gear id unchanged", () => {
   );
 });
 
-it("drops removed gear and migrates the oil lamp to the lantern", () => {
-  expect(LEGACY_GEAR_IDS).toEqual({ lava_lamp: null, oil_lamp: "lantern" });
-  expect(currentGearId("lava_lamp")).toBeUndefined();
-  expect(currentGearId("oil_lamp")).toBe("lantern");
+it("drops lava_lamp, oil_lamp and lantern", () => {
+  expect(LEGACY_GEAR_IDS).toEqual({
+    lava_lamp: null,
+    oil_lamp: null,
+    lantern: null,
+  });
+  for (const id of Object.keys(LEGACY_GEAR_IDS))
+    expect(currentGearId(id)).toBeUndefined();
+  for (const id of CAMPING_GEAR_IDS) expect(currentGearId(id)).toBe(id);
 });
 
 it("drops unknown ids, including inherited object keys", () => {
