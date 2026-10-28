@@ -904,7 +904,7 @@ describe("sports boat hull planking (ADR 0161)", () => {
           (cube.rotation ?? []).filter((angle) => angle !== 0).length,
         ).toBeLessThanOrEqual(1);
       }
-      expect(cubes).toHaveLength(1345 + THROTTLE_CUBES);
+      expect(cubes).toHaveLength(1375 + THROTTLE_CUBES);
     });
   });
 
@@ -1208,33 +1208,67 @@ describe("sports boat hull planking (ADR 0161)", () => {
     }
   });
 
-  it("sets one lens per plan segment from z 32 to 42 on each side, turned with its segment", () => {
+  it("sets four coplanar lens panels per plan segment from z 32 to 42", () => {
     const lenses = bone("headlights");
-    expect(lenses).toHaveLength(10);
-    const yaws = new Map(
-      STATIONS.slice(0, -1).map(([z0, x0], i) => {
-        const [z1 = 0, x1 = 0] = STATIONS[i + 1] ?? [];
-        return [z0, (Math.atan2(x0 - x1, z1 - z0) * 180) / Math.PI];
-      }),
-    );
-    const starts = [32, 34, 36, 38, 40];
-    for (const lens of lenses) {
-      // The lens pivots on its segment's aft end, moved a little outboard
-      const z = -(lens.pivot?.[2] ?? 0);
-      const start = starts.reduce((a, b) =>
-        Math.abs(b - z) < Math.abs(a - z) ? b : a,
+    expect(lenses).toHaveLength(40);
+    for (const side of [-1, 1]) {
+      const flank = lenses.filter(
+        (lens) => Math.sign(lens.pivot?.[0] ?? 0) === side,
       );
-      expect(Math.abs(z - start)).toBeLessThan(0.5);
-      expect(
-        Math.abs(
-          (lens.rotation?.[1] ?? 0) -
-            Math.sign(lens.pivot?.[0] ?? 0) * (yaws.get(start) ?? 0),
-        ),
-      ).toBeLessThanOrEqual(0.5);
+      expect(flank).toHaveLength(20);
+      for (const start of [32, 34, 36, 38, 40]) {
+        const yaw =
+          (side *
+            Math.atan2(lerp(STATIONS, start) - lerp(STATIONS, start + 2), 2) *
+            180) /
+          Math.PI;
+        const group = flank
+          .filter((lens) => Math.abs((lens.rotation?.[1] ?? 0) - yaw) <= 0.5)
+          .sort((a, b) => (b.pivot?.[2] ?? 0) - (a.pivot?.[2] ?? 0));
+        expect(group).toHaveLength(4);
+        const endpoints = group.map((lens, i) => {
+          const [px, , pz] = lens.pivot ?? [0, 0, 0];
+          const aft = lens.origin[2] + lens.size[2] - pz;
+          expect(aft).toBeCloseTo(i === 0 ? 0.25 : 0, 2);
+          const length =
+            Math.hypot(2, lerp(STATIONS, start + 2) - lerp(STATIONS, start)) /
+            4;
+          const fore = lens.size[2] - aft - length;
+          expect(fore).toBeCloseTo(i === 3 ? 0.25 : 0, 2);
+          const point = (along: number) => {
+            const rotated = turn([0, 0, -along], "y", lens.rotation?.[1] ?? 0);
+            return [px + (rotated[0] ?? 0), pz + (rotated[2] ?? 0)] as const;
+          };
+          const first = point(0);
+          const last = point(lens.size[2] - aft - fore);
+          const t = (-(first[1] + last[1]) / 2 - 32) / 10;
+          expect(
+            Math.abs(lens.size[1] - (1.5 * (1 - t) + 0.4 * t)),
+          ).toBeLessThanOrEqual(0.02);
+          return [first, last] as const;
+        });
+        const first = endpoints[0]?.[0] ?? [0, 0];
+        const last = endpoints[3]?.[1] ?? [0, 0];
+        expect(Math.abs(-first[1] - start)).toBeLessThanOrEqual(0.5);
+        expect(Math.abs(-last[1] - start - 2)).toBeLessThanOrEqual(0.5);
+        const dx = last[0] - first[0];
+        const dz = last[1] - first[1];
+        for (const [i, ends] of endpoints.entries()) {
+          for (const point of ends) {
+            const distance =
+              Math.abs(
+                dx * (point[1] - first[1]) - dz * (point[0] - first[0]),
+              ) / Math.hypot(dx, dz);
+            expect(distance).toBeLessThanOrEqual(0.01);
+          }
+          const previous = endpoints[i - 1]?.[1];
+          if (previous)
+            expect(
+              Math.hypot(ends[0][0] - previous[0], ends[0][1] - previous[1]),
+            ).toBeLessThanOrEqual(0.01);
+        }
+      }
     }
-    expect(
-      new Set(lenses.map((lens) => Math.round(-(lens.pivot?.[2] ?? 0)))).size,
-    ).toBe(5);
   });
 
   describe("steering wheel tilt (ADR 0166, #668)", () => {
@@ -1366,7 +1400,7 @@ describe("sports boat hull planking (ADR 0161)", () => {
             ),
         ).toBe(true);
       }
-      expect(cubes).toHaveLength(1388);
+      expect(cubes).toHaveLength(1418);
       expect(body.slice(start, start + 327)).toHaveLength(327);
     });
 
@@ -2534,8 +2568,8 @@ print(json.dumps({name: {"uv": uv, "size": size}
       }
     });
 
-    it("does not grow beyond the documented throttle, switch wedge and filler budget (regression guard)", () => {
-      expect(cubes.length).toBeLessThanOrEqual(1345 + THROTTLE_CUBES);
+    it("does not grow beyond the documented throttle, switch wedge, filler and lens budget (regression guard)", () => {
+      expect(cubes.length).toBeLessThanOrEqual(1375 + THROTTLE_CUBES);
     });
   });
 });
