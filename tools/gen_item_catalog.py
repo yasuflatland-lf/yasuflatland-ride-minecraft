@@ -54,7 +54,7 @@ def validate(groups):
     names = set()
     seen_items = set()
     for group in groups:
-        namespace = group.get("namespace", NAMESPACE)
+        namespace = namespace_of(group)
         name, icon, items = group["name"], group["icon"], group["items"]
         if f"{namespace}:{name}" in names:
             errors.append(f"group {namespace}:{name} is listed more than once")
@@ -72,6 +72,10 @@ def validate(groups):
         sys.exit("\n".join(errors))
 
 
+def namespace_of(group):
+    return group.get("namespace", NAMESPACE)
+
+
 def catalog(groups):
     return {
         "format_version": FORMAT_VERSION,
@@ -82,10 +86,10 @@ def catalog(groups):
                     "groups": [
                         {
                             "group_identifier": {
-                                "icon": f"{group.get('namespace', NAMESPACE)}:{group['icon']}",
-                                "name": f"{group.get('namespace', NAMESPACE)}:{group['name']}",
+                                "icon": f"{namespace_of(group)}:{group['icon']}",
+                                "name": f"{namespace_of(group)}:{group['name']}",
                             },
-                            "items": [f"{group.get('namespace', NAMESPACE)}:{i}" for i in group["items"]],
+                            "items": [f"{namespace_of(group)}:{i}" for i in group["items"]],
                         }
                         for group in groups
                     ],
