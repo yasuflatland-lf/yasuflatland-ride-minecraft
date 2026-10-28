@@ -1,6 +1,13 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { id } from "../../src/infrastructure/shared/identifiers";
+import {
+  GIFT_CONTENTS,
+  GIFT_ITEM,
+  GIFT_LORE,
+  GIFT_RECEIVED_PROPERTY,
+  giftOfItem,
+} from "../../src/infrastructure/vehicle/bedrock/identifiers";
 import { readRgbaPng } from "../support/png";
 
 const BP = "packs/yasu_ride_bp";
@@ -62,6 +69,21 @@ describe("Sports Boat Equipment (ADR 0171)", () => {
     expect(
       Array.from(pixels).some((alpha, i) => i % 4 === 3 && alpha === 255),
     ).toBe(true);
+  });
+
+  it("opens the box into the icebreaker switch with its own lore line and received property", () => {
+    expect(GIFT_ITEM.sportsboat_equipment_box).toBe(BOX);
+    expect(giftOfItem(BOX)).toBe("sportsboat_equipment_box");
+    expect(GIFT_CONTENTS.sportsboat_equipment_box).toEqual([SWITCH]);
+    expect(GIFT_LORE.sportsboat_equipment_box).toBe(
+      "yasu_ride.lore.sportsboat_equipment",
+    );
+    expect(GIFT_RECEIVED_PROPERTY.sportsboat_equipment_box).toBe(
+      "yasu_ride:sportsboat_equipment_given",
+    );
+    expect(GIFT_RECEIVED_PROPERTY.sportsboat_equipment_box).not.toBe(
+      GIFT_RECEIVED_PROPERTY.camping_gear_box,
+    );
   });
 
   it("draws the helm in wood and brass, with none of the blue of the logo it was shaped after", () => {
