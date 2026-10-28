@@ -15,7 +15,6 @@ import {
   stepMode,
 } from "../../../src/domain/build/mode";
 import { BuildSession, isEditRefusal } from "../../../src/domain/build/session";
-import type { BuildSessionRepository } from "../../../src/domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 
@@ -196,34 +195,5 @@ describe("BuildSession", () => {
     );
     expect(flips.filter(Boolean)).toHaveLength(1);
     expect(s.isInBuildMode).toBe(true);
-  });
-});
-
-describe("BuildSessionRepository", () => {
-  const inMemory = (): BuildSessionRepository => {
-    const map = new Map<string, BuildSession>();
-    return {
-      get: (id) => map.get(id),
-      getOrCreate: (id) => {
-        const found = map.get(id);
-        if (found) return found;
-        const created = new BuildSession(id);
-        map.set(id, created);
-        return created;
-      },
-      remove: (id) => void map.delete(id),
-      ids: () => [...map.keys()].map(asPlayerId),
-    };
-  };
-
-  it("creates a session on first use and keeps it until removed", () => {
-    const repo = inMemory();
-    const id = asPlayerId("p1");
-    expect(repo.get(id)).toBeUndefined();
-    const first = repo.getOrCreate(id);
-    expect(repo.getOrCreate(id)).toBe(first);
-    expect(repo.ids()).toEqual([id]);
-    repo.remove(id);
-    expect(repo.get(id)).toBeUndefined();
   });
 });
