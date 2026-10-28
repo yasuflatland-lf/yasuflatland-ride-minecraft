@@ -1155,10 +1155,13 @@ describe("entity mirror (ADR 0055)", () => {
       ];
       // A rebuilt drive trusts the form it reads back and does not send it
       // again (ADR 0039, 0127), so both entities start out holding it.
-      const entityAtStart: fc.Arbitrary<Record<string, string>> =
+      // The icebreaker also trusts its restored bool; a fresh entity defaults to false.
+      const entityAtStart: fc.Arbitrary<Record<string, string | boolean>> =
         properties.form?.type === "enum"
           ? fc.constantFrom(...properties.form.values).map((form) => ({ form }))
-          : fc.constant({});
+          : properties.icebreaker
+            ? fc.boolean().map((icebreaker) => ({ icebreaker }))
+            : fc.constant<Record<string, string | boolean>>({});
       fc.assert(
         fc.property(
           fc.double({ min: -180, max: 180, noNaN: true }),

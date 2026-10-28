@@ -859,7 +859,10 @@ describe("SportsboatDrive (ADR 0051)", () => {
           },
         );
         const out = rebuilt.tick(context(0, undefined, { x: 0, z: 0 }, AFLOAT));
-        expect(out.stepCommands).toStrictEqual(LEVEL);
+        expect(out.stepCommands).toStrictEqual([
+          ...LEVEL,
+          { type: "setProperty", name: "monitor", value: 0 },
+        ]);
         expect(out.riders).toStrictEqual({
           thirdPerson: false,
           underwater: false,
@@ -1101,7 +1104,7 @@ describe("SportsboatDrive (ADR 0051)", () => {
     );
   });
 
-  it("never pushes vertically and sends only attitude and docking commands, never a form, bank, or gear, for any inputs and surroundings", () => {
+  it("never pushes vertically and sends only attitude, docking and monitor commands, never a form, bank, or gear, for any inputs and surroundings", () => {
     const tick = fc.record({
       raw: fc.option(rawInput, { nil: undefined }),
       waterDepth: fc.option(number(0, 5), { nil: undefined }),
@@ -1134,6 +1137,13 @@ describe("SportsboatDrive (ADR 0051)", () => {
                 expect([...dockCommands(), ...undockCommands()]).toContainEqual(
                   command,
                 );
+                continue;
+              }
+              if (
+                command.type === "setProperty" &&
+                command.name === "monitor"
+              ) {
+                expect(command.value).toBe(0);
                 continue;
               }
               expect(command).toMatchObject({ type: "setProperty" });
@@ -1434,7 +1444,10 @@ describe("a sports boat's trim and roll (ADR 0059, ADR 0079)", () => {
 
   it("sends trim and roll only when they change", () => {
     const sim = new BoatSim(boat(0), SPORTSBOAT_WATER.drag);
-    expect(sim.step(undefined, AFLOAT).stepCommands).toStrictEqual(LEVEL);
+    expect(sim.step(undefined, AFLOAT).stepCommands).toStrictEqual([
+      ...LEVEL,
+      { type: "setProperty", name: "monitor", value: 0 },
+    ]);
     for (let i = 0; i < 10; i++)
       expect(sim.step(undefined, AFLOAT).stepCommands).toStrictEqual([]);
   });
@@ -1772,12 +1785,19 @@ it("resends the docked property once after a failed send while held or after dep
   const still = () =>
     drive.step(undefined, context(tick++, undefined, { x: 0, z: 0 }, AFLOAT));
   drive.resync();
-  expect(still().commands).toStrictEqual(LEVEL);
+  expect(still().commands).toStrictEqual([
+    ...LEVEL,
+    { type: "setProperty", name: "icebreaker", value: false },
+  ]);
   for (let i = 2; i < DOCK.ticks; i++) still();
   expect(still().commands).toStrictEqual(dockCommands());
   // The application calls resync when the run carrying the dock commands fails (ADR 0127).
   drive.resync();
-  expect(still().commands).toStrictEqual([dockedCommand(true), ...LEVEL]);
+  expect(still().commands).toStrictEqual([
+    { type: "setProperty", name: "icebreaker", value: false },
+    dockedCommand(true),
+    ...LEVEL,
+  ]);
   expect(still().commands).toStrictEqual([]);
   const departing = drive.step(
     FULL_THROTTLE,
@@ -1802,6 +1822,7 @@ it("resends level trim and roll once after a failed send while a boat that had t
   // The application calls resync when a run fails (ADR 0127).
   drive.resync();
   expect(tickWith(undefined).commands).toStrictEqual([
+    { type: "setProperty", name: "icebreaker", value: false },
     dockedCommand(true),
     ...LEVEL,
   ]);

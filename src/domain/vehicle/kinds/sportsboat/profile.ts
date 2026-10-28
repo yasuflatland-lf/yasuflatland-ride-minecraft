@@ -4,6 +4,7 @@ import {
   type PlacementSurface,
 } from "../../placement/placement";
 import type { VehicleProfile } from "../../profile";
+import { SPORTSBOAT_MONITOR } from "./equipment";
 import { SPORTSBOAT_SPEC } from "./spec";
 
 const body = Object.freeze({
@@ -50,6 +51,7 @@ export const SPORTSBOAT_PROFILE: VehicleProfile = Object.freeze({
       height: clearanceHeight(body),
     }),
   }),
+  monitor: SPORTSBOAT_MONITOR,
   placementGift: "sportsboat_equipment_box",
   chaseCamera: "near",
   defaultPaint: "black", // ADR 0051, 0076
