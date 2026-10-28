@@ -50,8 +50,8 @@ it("cuts to the sky on the ground and up to the top of the body in flight", () =
     fc.property(pose, yaw, (p, y) => {
       for (const c of bladeColumns(p, y, rule, false))
         expect(c.height).toBeUndefined();
+      // Adding 0 turns the -0 that Math.ceil returns just below zero into +0.
       for (const c of bladeColumns(p, y, rule, true))
-        // Adding 0 turns the -0 that Math.ceil returns just below zero into +0.
         expect(c.bottom + (c.height ?? 0)).toBe(Math.ceil(p.y + 2.9) + 0);
     }),
   );
