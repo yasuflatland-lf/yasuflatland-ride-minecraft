@@ -22,7 +22,7 @@ GEAR_IDS = [item["id"] for item in json.loads(SPEC.read_text())]
 OUTSIDE_IDS = ["low_chair_item", "noga_chair_item", "tent_item", "camp_table_item", "fire_pit_item", "dutch_oven_item", "gas_lantern_item"]
 
 # Inside gear starts with its gift box; independent outdoor items follow in their own
-# group, before the bulldozer switches (ADR 0144).
+# group (ADR 0144).
 GROUPS = [
     {
         "name": "camping_gear_inside",
@@ -34,15 +34,15 @@ GROUPS = [
         "icon": "low_chair_item",
         "items": OUTSIDE_IDS,
     },
-    # The bulldozer's switches; the Blade Up/Down item raises and lowers its blade (ADR 0138).
-    {"name": "bulldozer_switches", "icon": "blade_switch", "items": ["blade_switch"]},
     # The sports boat's equipment; the Icebreaker Switch is its only item and its icon; the
     # equipment box is a hidden placement gift (ADR 0174).
     {"name": "sportsboat_equipment", "icon": "icebreaker_switch", "items": ["icebreaker_switch"]},
     # The World Edit build tools live in their own namespace so a later split into a separate
-    # add-on changes no ID; the Build Tool's crane is the group icon (ADR 0178).
+    # add-on changes no ID; the Build Tool's crane is the group icon. The bulldozer's Blade
+    # Up/Down switch keeps its yasu_ride ID and joins the same group, written fully qualified
+    # (ADR 0178).
     {"namespace": "yasu_build", "name": "building_tools", "icon": "build_tool",
-     "items": ["build_tool", "selection_wand"]},
+     "items": ["build_tool", "selection_wand", "yasu_ride:blade_switch"]},
 ]
 
 
@@ -62,15 +62,20 @@ def validate(groups):
         names.add(qualified_name)
         if not items:
             errors.append(f"{name}: has no items")
-        if icon not in items:
+        if qualify(namespace, icon) not in [qualify(namespace, i) for i in items]:
             errors.append(f"{name}: icon {icon} is not one of its items")
         for item in items:
-            qualified = f"{namespace}:{item}"
+            qualified = qualify(namespace, item)
             if qualified in seen_items:
                 errors.append(f"{qualified} is listed more than once")
             seen_items.add(qualified)
     if errors:
         sys.exit("\n".join(errors))
+
+
+def qualify(namespace, item):
+    """An item with its own namespace (a ':' in the ID) keeps it; others take the group's."""
+    return item if ":" in item else f"{namespace}:{item}"
 
 
 def namespace_of(group):
@@ -87,10 +92,10 @@ def catalog(groups):
                     "groups": [
                         {
                             "group_identifier": {
-                                "icon": f"{namespace_of(group)}:{group['icon']}",
+                                "icon": qualify(namespace_of(group), group["icon"]),
                                 "name": f"{namespace_of(group)}:{group['name']}",
                             },
-                            "items": [f"{namespace_of(group)}:{i}" for i in group["items"]],
+                            "items": [qualify(namespace_of(group), i) for i in group["items"]],
                         }
                         for group in groups
                     ],
