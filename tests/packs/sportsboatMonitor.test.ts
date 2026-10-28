@@ -165,6 +165,12 @@ describe("sportsboat dash monitor (ADR 0171)", () => {
           const at = ((cell * 36 + 10 + y) * atlas.width + 4 + x) * 4;
           if (icon.pixels[from + 3] === 0) {
             expect(atlas.pixels[at + 3]).toBe(255);
+          } else if (Math.max(...icon.pixels.slice(from, from + 3)) < 60) {
+            // The near-black deck and rail are lifted so they read on the dark screen.
+            expect(
+              Math.min(...atlas.pixels.slice(at, at + 3)),
+            ).toBeGreaterThanOrEqual(100);
+            expect(atlas.pixels[at + 3]).toBe(0);
           } else {
             expect(atlas.pixels.slice(at, at + 3)).toEqual(
               icon.pixels.slice(from, from + 3),

@@ -2051,7 +2051,10 @@ SPORTSBOAT_MONITOR_LAYOUT = monitor.MonitorLayout(
     # from a root with the same pivot to stay on the tilted screen.
     parent=("root", tuple(next(b["pivot"] for b in geo["minecraft:geometry"][0]["bones"] if b["name"] == "root"))),
 )
-monitor_icon = [[ICEBREAKER_SWITCH_COLORS[code][:3] + (0,) if code != "."
+# The near-black deck and rail would vanish on the dark screen, so they glow in
+# the foreground and a mid grey that still sets off the portholes.
+MONITOR_ICON_COLORS = {**ICEBREAKER_SWITCH_COLORS, "K": SPORTSBOAT_MONITOR_LAYOUT.foreground, "H": (110, 122, 132)}
+monitor_icon = [[MONITOR_ICON_COLORS[code][:3] + (0,) if code != "."
                  else SPORTSBOAT_MONITOR_LAYOUT.background for code in row]
                 for row in ICEBREAKER_SWITCH_ICON]
 STALE.extend(monitor.write_monitor("sportsboat", SPORTSBOAT_MONITOR_LAYOUT,
