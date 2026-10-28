@@ -138,12 +138,13 @@ Run H1-H6 on PC and mobile, with Vibrant Visuals on and off, after a Resource Pa
 | H3 | Dive underwater and look up at the hull | No holes or see-through surfaces | | |
 | H4 | Turn the headlights on at night, then walk the deck and board from the water | The lenses sit flush on the bow; deck walking and boarding work as before | | |
 | H5 | Fly above the boat and follow the lounge's inner V, the gunwale inner edge, and the bow rails | All three curve smoothly toward the bow with no steps or gaps | | |
-| H6 | Sit in the bow lounge and walk through the windshield walk-through | Nothing pokes through the cushions; seat positions and sit heights are as before | | |
+| H6 | Sit in the bow lounge and walk through the windshield walk-through | Nothing pokes through the cushions; rear seat positions and sit heights are as before | | |
 | H7 | In Vibrant Visuals, turn a new unpainted boat (variant 0, `sportsboat.texture_set.json`, the requested result) and a boat repainted with black dye (`sportsboat_black.texture_set.json`) in daylight and at sunset | The hull shows a sharp sky and sun reflection that moves as the boat turns, with no flicker or z-fighting | | |
 | H8 | In Vibrant Visuals, repaint to white, then red | Each keeps the gloss in its own color | | |
 | H9 | In Vibrant Visuals, inspect every non-hull surface of the main-pass atlas: the seats, teak, bimini, consoles, tower, the windshield glass (alpha-blended), the unlit headlight lenses, and the trim, steel, chrome, strake, stripe, platform, and jet swatches | They look exactly as before the change, and the windshield keeps its transparency; if MER_OFF changes their appearance, raise the open question in ADR 0163 before merging | | |
 | H10 | Inspect with Vibrant Visuals off, and on a device without it | The hull looks as before; the lamps glow and the mirror reflects as before | | |
 | H11 | At night with the headlights on, look at each bow flank from the side and from 45 degrees ahead | The lens top and bottom edges read as smooth curves with no stair steps; no flicker or seams between neighbouring panels (ADR 0172) | Unverified | Unverified |
+| H12 | Sit in the driver's seat on PC (keyboard) and on mobile (touch), then look at the wheel and the display; also sit in a rear seat with a driver aboard | The driver is behind the wheel, not inside it, and can see the display; the rear passenger's knees do not poke through the bucket back; the front passenger mirrors the driver (ADR 0176) | Unverified | Unverified |
 
 ## Camper
 

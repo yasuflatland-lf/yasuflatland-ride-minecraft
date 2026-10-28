@@ -1594,6 +1594,65 @@ describe("sports boat hull planking (ADR 0161)", () => {
       }
     });
 
+    describe("driver position (ADR 0176)", () => {
+      const probe = read(
+        "packs/yasu_ride_test_bp/entities/yasu_ride_test/boat_seat_probe.se.json",
+      )["minecraft:entity"].components["minecraft:rideable"].seats;
+      const seats: { position: number[] }[] = c["minecraft:rideable"].seats;
+      // The model is turned around, so a rider at z blocks sits at -z * 16 px in the file.
+      const riderZ = -0.1625 * 16;
+
+      it("seats the front riders at z 0.1625 in the entity, the profile and the probe, rear seats unchanged", () => {
+        expect(seats.map((s) => s.position)).toEqual([
+          [-0.38, 0.52, 0.1625],
+          [0.38, 0.52, 0.1625],
+          [-0.38, 0.52, -0.8],
+          [0.38, 0.52, -0.8],
+        ]);
+        expect(
+          SPORTSBOAT_PROFILE.seats.positions.map((p) => [p.x, p.z]),
+        ).toEqual(seats.map((s) => [s.position[0], s.position[2]]));
+        expect(probe.map((s: { position: number[] }) => s.position)).toEqual(
+          seats.map((s) => s.position),
+        );
+      });
+
+      it("keeps each backrest face 3.6 px behind its rider", () => {
+        const faces = body.filter(
+          (cube) =>
+            Math.abs(cube.size[2] - 0.4) < 0.0001 &&
+            Math.abs(cube.size[1] - 6.6) < 0.0001 &&
+            Math.abs(cube.origin[1] - (F + 3)) < 0.0001 &&
+            Math.abs(cube.origin[0]) < 10.1,
+        );
+        for (const side of [1, -1]) {
+          const mine = faces.filter((cube) => cube.origin[0] * side > 0);
+          expect(mine.length).toBeGreaterThan(0);
+          for (const cube of mine) {
+            expect(cube.origin[2]).toBeCloseTo(riderZ + 3.6, 2);
+          }
+        }
+        const shells = body.filter(
+          (cube) =>
+            Math.abs(cube.size[2] - 1.6) < 0.0001 &&
+            Math.abs(cube.size[1] - 8.4) < 0.0001 &&
+            Math.abs(cube.size[0] - 7.5) < 0.0001,
+        );
+        expect(shells).toHaveLength(2);
+        for (const shell of shells) {
+          expect(shell.origin[2]).toBeCloseTo(riderZ + 3.6 + 0.4, 2);
+        }
+      });
+
+      it("keeps every wheel cube at least 0.5 px ahead of the driver's torso", () => {
+        const torsoFront = riderZ - 2;
+        const rearmost = Math.max(
+          ...wheel.flatMap(corners).map((point) => point[2] ?? 0),
+        );
+        expect(rearmost).toBeLessThanOrEqual(torsoFront - 0.5);
+      });
+    });
+
     it("separates the display from every wheel, support, switch, cupholder and dial cube", () => {
       const bounds = (cube: Cube) => {
         const points = corners(cube);

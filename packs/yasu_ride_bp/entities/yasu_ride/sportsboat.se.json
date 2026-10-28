@@ -615,11 +615,11 @@
         "interact_text": "action.interact.ride.horse",
         "seats": [
           {
-            "position": [-0.38, 0.52, 0.35],
+            "position": [-0.38, 0.52, 0.1625],
             "lock_rider_rotation": 90
           },
           {
-            "position": [0.38, 0.52, 0.35]
+            "position": [0.38, 0.52, 0.1625]
           },
           {
             "position": [-0.38, 0.52, -0.8]

@@ -27,7 +27,7 @@ A four-seat wake boat that drives on water and lava, including the Nether's lava
 
 The boat has no handbrake, flying, or diving controls.
 
-The boat seats 4. Aim at a free seat to choose it; the front-right seat drives. A passenger stays in the chosen seat when another rider gets out.
+The boat seats 4. Aim at a free seat to choose it; the front-right seat drives. The two front seats sit a little behind the wheel (ADR 0176). A passenger stays in the chosen seat when another rider gets out.
 
 ## How it moves
 
