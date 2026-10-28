@@ -26,7 +26,7 @@ vi.mock(
 it("plays no door when a rider leaves a vehicle whose drive has no doors", () => {
   const world = new FakeWorld();
   const log = { warn: vi.fn() };
-  const drive = new DriveVehicles(world, new InMemoryRepo(), log);
+  const drive = new DriveVehicles(world, new InMemoryRepo(), log, () => false);
   const run = vi.spyOn(world, "run");
   world.snapshots = [
     snapshot("v", {

@@ -4,6 +4,7 @@ import { rebuildVehicle } from "../../domain/vehicle/kinds/index";
 import type { ChaseCamera } from "../../domain/vehicle/profile";
 import type { TickOutcome } from "../../domain/vehicle/vehicle";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
+import type { ChaseCameraWish } from "../shared/ports/chaseCamera";
 import { forEachIsolated } from "./isolated";
 import type { DriveWorld, VehicleSnapshot } from "./ports/drive";
 import type { Logger } from "./ports/shared";
@@ -16,6 +17,7 @@ export class DriveVehicles {
     private readonly world: DriveWorld,
     private readonly repo: VehicleRepository,
     private readonly log: Logger,
+    private readonly wantsChaseCamera: ChaseCameraWish,
   ) {
     this.riders = new RiderEffects(world, log);
   }
@@ -45,6 +47,15 @@ export class DriveVehicles {
     this.riders.syncCameras(thirdPersonRiders);
     this.riders.refreshWaterBreathing(underwater, tick);
     this.riders.protectFromFire(fireProtected);
+  }
+
+  private wishCamera(
+    rider: PlayerId,
+    camera: ChaseCamera,
+    thirdPersonRiders: Map<PlayerId, ChaseCamera>,
+  ): void {
+    if (!thirdPersonRiders.has(rider) && this.wantsChaseCamera(rider))
+      thirdPersonRiders.set(rider, camera);
   }
 
   private tickVehicle(
@@ -102,6 +113,13 @@ export class DriveVehicles {
       const camera = vehicle.chaseCamera;
       for (const rider of snap.riders) thirdPersonRiders.set(rider.id, camera);
     }
+    // Another feature may want the chase camera for a seated rider the form leaves in first person.
+    const camera = vehicle.chaseCamera;
+    for (const rider of snap.riders)
+      this.wishCamera(rider.id, camera, thirdPersonRiders);
+    for (const rider of snap.deckSeatRiders)
+      if (rider !== undefined)
+        this.wishCamera(rider, camera, thirdPersonRiders);
     if (out.riders.underwater)
       for (const rider of snap.riders) underwater.add(rider.id);
     if (snap.kind === "sportsboat") {
