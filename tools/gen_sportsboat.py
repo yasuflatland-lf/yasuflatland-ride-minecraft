@@ -1132,20 +1132,24 @@ def striped(x0, x1, y0, y1, z0, z1, quilt_face):
 
 # Helm (right, the driver is seat 0) and passenger buckets on pedestals, wraparound like the reference:
 # a charcoal shell, tall tan wings, a headrest, and a flip-up bolster at the front of the cushion
+# The rider moved from z 5.6 to 2.6 px: the torso (4 px deep) was 2 px inside the wheel's rearmost
+# point, so the whole bucket moves with the rider and keeps its 3.6 px to the backrest face (ADR 0176).
+HELM_SEAT_SHIFT = -3.0  # px
+H = HELM_SEAT_SHIFT
 for sign in (1, -1):
     a, c = (2.5, 10) if sign > 0 else (-10, -2.5)
-    body.append(box(a + 2.5, F, 3, c - 2.5, F + 0.5, 6, "metal"))  # pedestal
-    body.append(box(a, F + 0.5, 0.5, c, F + 1.6, 8, "seat_dark"))  # base shell
-    body += striped(a, c, F + 1.6, F + 2.8, 2, 5.6, "up")  # cushion
-    body.append(box(a + 0.3, F + 1.6, 5.6, c - 0.3, F + 2.6, 5.9, "seat_dark"))  # bolster hinge
-    body.append(box(a, F + 1.6, 5.9, c, F + 3.4, 8, "seat"))  # flip-up bolster, folded down
-    body.append(box(a, F + 1.6, 0, c, F + 10, 1.6, "seat_dark"))  # back shell
-    body += striped(a + 0.6, c - 0.6, F + 3, F + 9.6, 1.6, 2.0, "south")  # face toward the sitter
-    body.append(box(a + 0.8, F + 10, 0.2, c - 0.8, F + 11, 1.8, "seat_dark"))  # headrest
+    body.append(box(a + 2.5, F, 3 + H, c - 2.5, F + 0.5, 6 + H, "metal"))  # pedestal
+    body.append(box(a, F + 0.5, 0.5 + H, c, F + 1.6, 8 + H, "seat_dark"))  # base shell
+    body += striped(a, c, F + 1.6, F + 2.8, 2 + H, 5.6 + H, "up")  # cushion
+    body.append(box(a + 0.3, F + 1.6, 5.6 + H, c - 0.3, F + 2.6, 5.9 + H, "seat_dark"))  # bolster hinge
+    body.append(box(a, F + 1.6, 5.9 + H, c, F + 3.4, 8 + H, "seat"))  # flip-up bolster, folded down
+    body.append(box(a, F + 1.6, 0 + H, c, F + 10, 1.6 + H, "seat_dark"))  # back shell
+    body += striped(a + 0.6, c - 0.6, F + 3, F + 9.6, 1.6 + H, 2.0 + H, "south")  # face toward the sitter
+    body.append(box(a + 0.8, F + 10, 0.2 + H, c - 0.8, F + 11, 1.8 + H, "seat_dark"))  # headrest
     for x0, x1, shell0, shell1 in ((a - 0.6, a, a - 0.9, a), (c, c + 0.6, c, c + 0.6 + 0.3)):
-        body.append(box(x0, F + 1.6, 0, x1, F + 9, 3.5, "seat"))  # tall wing
-        body.append(box(x0, F + 1.6, 3.5, x1, F + 4.6, 8, "seat"))  # arm
-        body.append(box(shell0, F + 0.5, 0, shell1, F + 1.6, 8, "seat_dark"))  # shell under the wing
+        body.append(box(x0, F + 1.6, 0 + H, x1, F + 9, 3.5 + H, "seat"))  # tall wing
+        body.append(box(x0, F + 1.6, 3.5 + H, x1, F + 4.6, 8 + H, "seat"))  # arm
+        body.append(box(shell0, F + 0.5, 0 + H, shell1, F + 1.6, 8 + H, "seat_dark"))  # shell under the wing
 
 # Aft U lounge, as on the reference: a bench across the transom, side benches along the hull facing
 # inboard, and at their front ends forward-facing seats with flip-back backrests for seats 2 and 3.

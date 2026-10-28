@@ -1288,10 +1288,10 @@ describe("a sports boat Vehicle (ADR 0051)", () => {
   });
 
   it("seats riders by its own positions and emits no seat commands when one leaves", () => {
-    // The boat kept the SUV's first seat layout when the SUV's front seats moved back (ADR 0117).
+    // The boat no longer shares the SUV's front z; its riders sit 3 px further back (ADR 0176).
     expect(SPORTSBOAT_PROFILE.seats.positions[0]).toStrictEqual({
       x: -0.38,
-      z: 0.35,
+      z: 0.1625,
     });
     fc.assert(
       fc.property(
