@@ -25,8 +25,13 @@ export function bowBlocked(
   );
 }
 
+/** The block row the hull stands in; the cut never removes anything below it (ADR 0175). */
+export function hullFloorRow(feetY: number): number {
+  return Math.floor(feetY + icebreaker.floorEpsilon);
+}
+
 export function icebreakerColumns(location: Vec3, yaw: number): CutColumn[] {
-  const bottom = Math.floor(location.y) - icebreaker.margin;
+  const bottom = hullFloorRow(location.y);
   return boxColumns(
     location,
     yaw,

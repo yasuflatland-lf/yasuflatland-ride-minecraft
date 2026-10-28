@@ -7,6 +7,7 @@ import {
   SPORTSBOAT_MOTION,
   SPORTSBOAT_PROFILE,
 } from "../../domain/vehicle/kinds/sportsboat/profile";
+import { SPORTSBOAT_SPEC } from "../../domain/vehicle/kinds/sportsboat/spec";
 import {
   nearestSeat,
   seatWorldPositions,
@@ -283,6 +284,10 @@ export function boatDock(a: Arena): Promise<Outcome> {
   );
 }
 
+function isWater(typeId: string | undefined): boolean {
+  return typeId === "minecraft:water" || typeId === "minecraft:flowing_water";
+}
+
 function feetInWater(boat: Entity): boolean {
   const { x, y, z } = boat.location;
   const block = boat.dimension.getBlock({
@@ -290,10 +295,7 @@ function feetInWater(boat: Entity): boolean {
     y: Math.floor(y),
     z: Math.floor(z),
   });
-  return (
-    block?.typeId === "minecraft:water" ||
-    block?.typeId === "minecraft:flowing_water"
-  );
+  return isWater(block?.typeId);
 }
 
 export function boatDrag(a: Arena): Promise<Outcome> {
@@ -668,8 +670,8 @@ export function boatMonitor(a: Arena): Promise<Outcome> {
 }
 
 // The deepest pool the arena fits: its floor is the world's bottom layer. The
-// icebreaker's downward margin reaches that floor, so the check covers the
-// liquid rows only.
+// icebreaker never cuts below the hull floor row (ADR 0175), so the `dried` check
+// also asserts that the original bed rows stay.
 const POOL_DEPTH = 3;
 
 async function boatIcebreaker(
@@ -768,4 +770,104 @@ export function boatIcebreakerOff(a: Arena): Promise<Outcome> {
 
 export function boatIcebreakerBeached(a: Arena): Promise<Outcome> {
   return boatIcebreaker(a, undefined, true);
+}
+
+// Step 0 trace of the sinking bug and its guard (ADR 0175): a mountain closes the
+// pool, and the boat must stay near its resting height while it cuts or stops.
+async function boatIcebreakerMountain(
+  a: Arena,
+  enabled: boolean,
+): Promise<Outcome> {
+  const { dim, gy } = a;
+  const start = { x: 35.5, z: 35.5, yaw: -90 };
+  const wallX = 37;
+  const surfacing = SPORTSBOAT_SPEC.icebreaker.surfacing;
+  const mountainTop = gy + 8;
+  // One fill is capped at 32,768 blocks, so fill the mountain in slabs along z.
+  const fillMountain = (block: string, from: number, to: number) => {
+    for (let z = POOL.minZ; z <= POOL.maxZ; z += 20)
+      dim.runCommand(
+        `fill ${wallX} ${from} ${z} ${POOL.maxX} ${to} ${Math.min(z + 19, POOL.maxZ)} ${block}`,
+      );
+  };
+  const depthAt = (p: Vec3) => {
+    const row = Math.floor(p.y);
+    let cells = 0;
+    while (
+      cells < 4 &&
+      isWater(
+        dim.getBlock({ x: Math.floor(p.x), y: row + cells, z: Math.floor(p.z) })
+          ?.typeId,
+      )
+    )
+      cells++;
+    return cells > 0 ? row + cells - p.y : 0;
+  };
+  return withPool(a, POOL_DEPTH, () =>
+    withBoat(
+      a,
+      async (boat) => {
+        drive(boat, 0, 0);
+        await wait(2);
+        fillMountain("stone", gy - POOL_DEPTH, mountainTop);
+        try {
+          system.sendScriptEvent(
+            TEST_TOOL_EVENT,
+            `${boat.id},icebreaker_switch,${enabled ? "on" : "off"}`,
+          );
+          await wait(20);
+          const restY = boat.location.y;
+          const trace: string[] = [];
+          let lowest = restY;
+          let deepest = 0;
+          drive(boat, 0, 1);
+          for (let tick = 0; tick < 80; tick++) {
+            await wait(1);
+            const p = boat.location;
+            const feet = dim.getBlock({
+              x: Math.floor(p.x),
+              y: Math.floor(p.y),
+              z: Math.floor(p.z),
+            });
+            const depth = depthAt(p);
+            lowest = Math.min(lowest, p.y);
+            deepest = Math.max(deepest, depth);
+            trace.push(
+              `${p.y.toFixed(2)}/${depth.toFixed(2)}/${feet?.typeId?.replace("minecraft:", "")}`,
+            );
+          }
+          drive(boat, 0, 0);
+          const cell = dim.getBlock({ x: wallX, y: gy, z: 35 })?.typeId;
+          const bedHoles: string[] = [];
+          for (let x = 33; x <= wallX + 8; x++)
+            for (let z = 32; z <= 39; z++)
+              for (let y = gy - POOL_DEPTH; y < gy - 1; y++) {
+                const type = dim.getBlock({ x, y, z })?.typeId;
+                if (type === "minecraft:air") bedHoles.push(`${x},${y},${z}`);
+              }
+          const steady =
+            lowest >= restY - 0.6 && deepest <= surfacing.maxDepth + 0.2;
+          const wallOk = enabled
+            ? cell !== "minecraft:stone"
+            : cell === "minecraft:stone" && boat.location.x < wallX;
+          return {
+            pass: steady && wallOk && bedHoles.length === 0,
+            detail: `rest=${restY.toFixed(2)} lowest=${lowest.toFixed(2)} deepest=${deepest.toFixed(2)} cell=${cell} x=${boat.location.x.toFixed(2)} bedAir=${bedHoles.length} ${bedHoles.slice(0, 3).join(" ")} trace(y/depth/feet)=${trace.filter((_, i) => i % 4 === 0).join(" ")}`,
+          };
+        } finally {
+          fillMountain("air", gy, mountainTop);
+        }
+      },
+      start,
+      20,
+    ),
+  );
+}
+
+export function boatIcebreakerMountainOn(a: Arena): Promise<Outcome> {
+  return boatIcebreakerMountain(a, true);
+}
+
+export function boatIcebreakerMountainOff(a: Arena): Promise<Outcome> {
+  return boatIcebreakerMountain(a, false);
 }

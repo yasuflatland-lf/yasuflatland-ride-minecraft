@@ -20,7 +20,13 @@ export const SPORTSBOAT_SPEC = Object.freeze({
   ramHalfWidth: 1.06, // ADR 0051
   footprint: 3.5, // the farthest hull corner, at the stern, is 3.48 from the center in sportsboat.geo.json (ADR 0122)
   icebreaker: Object.freeze({
-    margin: 3, // Added left, right, up, down and ahead of the bow (ADR 0171).
+    margin: 3, // Added left, right, up and ahead of the bow, never down (ADR 0171, ADR 0175).
+    floorEpsilon: 0.01, // Tolerance of the hull floor row, like ADR 0155's floor(y + 0.01) ground rule.
+    // Lifts a hull that sits too deep, in either mode: a trench can flood a hull after the
+    // mode was switched off (ADR 0175). maxDepth is a depth of water over the feet; it is about
+    // 0.56 at rest (deckDraft 0.45 plus the bob). maxLift is in blocks/tick, above ADR 0040's
+    // surfaceRise of 0.05.
+    surfacing: Object.freeze({ maxDepth: 1.5, gain: 0.15, maxLift: 0.08 }),
     sternReach: 3.4, // Rearmost geometry vertex: 54.4 px / 16, rounded up to 0.01 blocks.
     probeNear: 1.1, // Half the collision box: the engine stops here before ramFront reaches the wall.
     probeAhead: 1, // Probe this far beyond ramFront (ADR 0171).

@@ -171,10 +171,11 @@ This directory records design decisions and the reasons behind them. The format 
 | [0168](0168-a-dutch-oven-and-a-grill-for-the-fire-pit.md) | A Dutch oven and a grill for the fire pit | Proposed |
 | [0169](0169-a-lantern-for-the-oil-lamp-and-a-noga-chair.md) | A Lantern for the Oil Lamp, no Lava Lamp, and a Noga Chair | Proposed; superseded in part by [0173](0173-remove-the-inside-lantern-and-add-the-gas-lantern.md) (Proposed) |
 | [0170](0170-measure-suv-side-view-proportions.md) | Measure SUV side-view proportions against a fixed wheel diameter | Proposed |
-| [0171](0171-sports-boat-equipment-and-icebreaker-mode.md) | Sports Boat Equipment and icebreaker mode | Proposed; superseded in part by [0174](0174-show-only-the-icebreaker-switch-in-the-equipment-group.md) (Proposed) |
+| [0171](0171-sports-boat-equipment-and-icebreaker-mode.md) | Sports Boat Equipment and icebreaker mode | Proposed; superseded in part by [0174](0174-show-only-the-icebreaker-switch-in-the-equipment-group.md) (Proposed) and [0175](0175-keep-the-icebreaker-cut-above-the-hull-floor.md) (Proposed) |
 | [0172](0172-smooth-sports-boat-headlight-lenses.md) | Smooth sports boat headlight lenses | Proposed |
 | [0173](0173-remove-the-inside-lantern-and-add-the-gas-lantern.md) | Remove the inside Lantern and add the Gas Lantern | Proposed |
 | [0174](0174-show-only-the-icebreaker-switch-in-the-equipment-group.md) | Show only the Icebreaker Switch in the equipment group | Proposed |
+| [0175](0175-keep-the-icebreaker-cut-above-the-hull-floor.md) | Keep the icebreaker cut above the hull floor | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 

@@ -45,6 +45,7 @@ import {
   SPORTSBOAT_PROFILE,
 } from "../../../../../src/domain/vehicle/kinds/sportsboat/profile";
 import { SPORTSBOAT_SPEC } from "../../../../../src/domain/vehicle/kinds/sportsboat/spec";
+import { surfaceLift } from "../../../../../src/domain/vehicle/kinds/sportsboat/surfacing";
 import { SUV_MOTION } from "../../../../../src/domain/vehicle/kinds/suv/profile";
 import { MOTION } from "../../../../../src/domain/vehicle/motion/constants";
 import { DOCK } from "../../../../../src/domain/vehicle/motion/dock";
@@ -102,6 +103,7 @@ const BEACHED: Water = { waterDepth: 0, waterBelow: false };
 /** The usual case for a floating hull: its feet sit above the water cell (ADR 0051). */
 const WATER_BELOW: Water = { waterDepth: 0, waterBelow: true };
 const waterDepth = number(0.01, 5);
+const SURFACING_DEPTH = SPORTSBOAT_SPEC.icebreaker.surfacing.maxDepth;
 const afloatWater: fc.Arbitrary<Water> = fc.oneof(
   waterDepth.map((d) => ({ waterDepth: d })),
   fc.constant(WATER_BELOW),
@@ -892,7 +894,7 @@ describe("SportsboatDrive (ADR 0051)", () => {
     fc.assert(
       fc.property(
         yaw,
-        waterDepth,
+        number(0.01, SURFACING_DEPTH),
         fc.array(fc.option(rawInput, { nil: undefined }), {
           minLength: 1,
           maxLength: 80,
@@ -1104,10 +1106,35 @@ describe("SportsboatDrive (ADR 0051)", () => {
     );
   });
 
-  it("never pushes vertically and sends only attitude, docking and monitor commands, never a form, bank, or gear, for any inputs and surroundings", () => {
+  it("lifts an afloat hull by surfaceLift when the water over the feet is too deep, and never when beached", () => {
+    const out = boat(0).tick(
+      context(0, undefined, { x: 0, z: 0 }, { waterDepth: 2 }),
+    );
+    expect(out.impulse.y).toBe(surfaceLift(2));
+    expect(out.impulse.y).toBeGreaterThan(0);
+    fc.assert(
+      fc.property(
+        yaw,
+        number(SURFACING_DEPTH + 0.01, SPORTSBOAT_SPEC.height + 1),
+        rawInput,
+        (heading, depth, raw) => {
+          const deep = boat(heading).tick(
+            context(0, raw, { x: 0, z: 0 }, { waterDepth: depth }),
+          );
+          expect(deep.impulse.y).toBeCloseTo(surfaceLift(depth), 6);
+          const beached = boat(heading).tick(
+            context(0, raw, { x: 0, z: 0 }, {}),
+          );
+          expect(beached.impulse.y).toBe(0);
+        },
+      ),
+    );
+  });
+
+  it("never pushes vertically at normal depth and sends only attitude, docking and monitor commands, never a form, bank, or gear, for any inputs and surroundings", () => {
     const tick = fc.record({
       raw: fc.option(rawInput, { nil: undefined }),
-      waterDepth: fc.option(number(0, 5), { nil: undefined }),
+      waterDepth: fc.option(number(0, SURFACING_DEPTH), { nil: undefined }),
       waterBelow: fc.option(fc.boolean(), { nil: undefined }),
       onGround: fc.boolean(),
       velocity: fc.record({ x: number(-2, 2), z: number(-2, 2) }),
