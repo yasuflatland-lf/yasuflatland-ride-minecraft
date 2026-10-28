@@ -1,18 +1,10 @@
+import type { CutRect } from "../../cutArea";
 import { MOTION } from "../../motion/constants";
 import type { Medium } from "../../motion/motion";
 import type { TransformingSpec } from "../../motion/transforming";
-export interface BladeRule {
-  readonly near: number;
-  readonly far: number;
-  readonly halfWidth: number;
+export interface BladeRule extends CutRect {
   readonly bodyHeight: number;
   readonly minSpeed: number;
-}
-interface ShaftRule {
-  /** Blocks the shaft reaches past the footprint on each of north, east, south, and west. */
-  readonly margin: number;
-  /** Cells cut above the body's top, and probed for an obstacle, each tick. */
-  readonly reach: number;
 }
 export interface TrackGeometry {
   readonly halfGauge: number;

@@ -1,10 +1,6 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
-import {
-  forward,
-  localPoint,
-  type Vec2,
-} from "../../../../../src/domain/shared/vec";
+import { rectCells } from "../../../../../src/domain/vehicle/cutArea";
 import { bladeColumns } from "../../../../../src/domain/vehicle/kinds/bulldozer/blade";
 import { BULLDOZER_SPEC } from "../../../../../src/domain/vehicle/kinds/bulldozer/spec";
 
@@ -15,75 +11,11 @@ const pose = fc.record({
   z: fc.double({ min: -1000, max: 1000, noNaN: true }),
 });
 const yaw = fc.double({ min: -180, max: 180, noNaN: true });
-function corners(p: Vec2, y: number) {
-  return [
-    localPoint(p, forward(y), rule.near, -rule.halfWidth),
-    localPoint(p, forward(y), rule.near, rule.halfWidth),
-    localPoint(p, forward(y), rule.far, rule.halfWidth),
-    localPoint(p, forward(y), rule.far, -rule.halfWidth),
-  ];
-}
-function touches(rect: Vec2[], x: number, z: number) {
-  const square = [
-    { x, z },
-    { x: x + 1, z },
-    { x: x + 1, z: z + 1 },
-    { x, z: z + 1 },
-  ];
-  const axes = [
-    { x: 1, z: 0 },
-    { x: 0, z: 1 },
-  ];
-  for (let i = 0; i < 2; i++) {
-    const a = rect[i];
-    const b = rect[i + 1];
-    if (a && b) axes.push({ x: -(b.z - a.z), z: b.x - a.x });
-  }
-  return axes.every((a) => {
-    const r = rect.map((p) => p.x * a.x + p.z * a.z),
-      s = square.map((p) => p.x * a.x + p.z * a.z);
-    return (
-      Math.max(...r) >= Math.min(...s) - 1e-9 &&
-      Math.max(...s) >= Math.min(...r) - 1e-9
-    );
-  });
-}
 it("cuts 15 columns at heading 0", () =>
   expect(bladeColumns({ x: 0.5, y: 64, z: 0.5 }, 0, rule, false)).toEqual(
     Array.from({ length: 5 }, (_, i) => [-2 + i]).flatMap(([x]) =>
       [1, 2, 3].map((z) => ({ x, z, bottom: 64 })),
     ),
-  ));
-it("covers every point of the blade rectangle", () =>
-  fc.assert(
-    fc.property(
-      pose,
-      yaw,
-      fc.double({ min: 1, max: 2.9, noNaN: true }),
-      fc.double({ min: -2.32, max: 2.32, noNaN: true }),
-      (p, y, a, s) => {
-        const q = localPoint(p, forward(y), a, s);
-        expect(bladeColumns(p, y, rule, false)).toContainEqual({
-          x: Math.floor(q.x),
-          z: Math.floor(q.z),
-          bottom: Math.ceil(p.y - 0.01),
-        });
-      },
-    ),
-  ));
-it("returns only columns whose square touches the rectangle", () =>
-  fc.assert(
-    fc.property(pose, yaw, (p, y) => {
-      for (const c of bladeColumns(p, y, rule, false))
-        expect(touches(corners(p, y), c.x, c.z)).toBe(true);
-    }),
-  ));
-it("returns each column once", () =>
-  fc.assert(
-    fc.property(pose, yaw, (p, y) => {
-      const c = bladeColumns(p, y, rule, false);
-      expect(new Set(c.map((c) => `${c.x},${c.z}`)).size).toBe(c.length);
-    }),
   ));
 it("starts a ground cut above the floor block, full or partial", () => {
   for (const [y, bottom] of [
@@ -118,8 +50,9 @@ it("cuts to the sky on the ground and up to the top of the body in flight", () =
     fc.property(pose, yaw, (p, y) => {
       for (const c of bladeColumns(p, y, rule, false))
         expect(c.height).toBeUndefined();
+      // Adding 0 turns the -0 that Math.ceil returns just below zero into +0.
       for (const c of bladeColumns(p, y, rule, true))
-        expect(c.bottom + (c.height ?? 0)).toBe(Math.ceil(p.y + 2.9));
+        expect(c.bottom + (c.height ?? 0)).toBe(Math.ceil(p.y + 2.9) + 0);
     }),
   );
   for (const [y, h] of [
@@ -129,19 +62,27 @@ it("cuts to the sky on the ground and up to the top of the body in flight", () =
     for (const c of bladeColumns({ x: 0, y: y ?? 0, z: 0 }, 0, rule, true))
       expect(c.height).toBe(h);
 });
-it("stays within the bounding box of the rectangle", () =>
+it("keeps rectangle cells and order with the blade bottom and height", () =>
   fc.assert(
-    fc.property(pose, yaw, (p, y) => {
-      const r = corners(p, y);
-      for (const c of bladeColumns(p, y, rule, false)) {
-        expect(c.x + 1).toBeGreaterThanOrEqual(
-          Math.min(...r.map((p) => p.x)) - 1e-9,
+    fc.property(
+      pose,
+      yaw,
+      fc.boolean(),
+      fc.boolean(),
+      (p, y, flying, grounded) => {
+        const bottom = grounded
+          ? Math.ceil(p.y - 0.01)
+          : Math.floor(p.y + 0.01);
+        const height = flying
+          ? Math.ceil(p.y + rule.bodyHeight) - bottom
+          : undefined;
+        expect(bladeColumns(p, y, rule, flying, grounded)).toEqual(
+          rectCells(p, y, rule).map((cell) => ({
+            ...cell,
+            bottom,
+            ...(height === undefined ? {} : { height }),
+          })),
         );
-        expect(c.x).toBeLessThanOrEqual(Math.max(...r.map((p) => p.x)) + 1e-9);
-        expect(c.z + 1).toBeGreaterThanOrEqual(
-          Math.min(...r.map((p) => p.z)) - 1e-9,
-        );
-        expect(c.z).toBeLessThanOrEqual(Math.max(...r.map((p) => p.z)) + 1e-9);
-      }
-    }),
+      },
+    ),
   ));
