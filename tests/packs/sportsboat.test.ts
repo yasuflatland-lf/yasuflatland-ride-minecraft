@@ -1227,26 +1227,25 @@ describe("sports boat hull planking (ADR 0161)", () => {
           .filter((lens) => Math.abs((lens.rotation?.[1] ?? 0) - yaw) <= 0.5)
           .sort((a, b) => (b.pivot?.[2] ?? 0) - (a.pivot?.[2] ?? 0));
         expect(group).toHaveLength(4);
+        const panelLength =
+          Math.hypot(2, lerp(STATIONS, start + 2) - lerp(STATIONS, start)) / 4;
         const endpoints = group.map((lens, i) => {
           const [px, , pz] = lens.pivot ?? [0, 0, 0];
           const aft = lens.origin[2] + lens.size[2] - pz;
           expect(aft).toBeCloseTo(i === 0 ? 0.25 : 0, 2);
-          const length =
-            Math.hypot(2, lerp(STATIONS, start + 2) - lerp(STATIONS, start)) /
-            4;
-          const fore = lens.size[2] - aft - length;
+          const fore = lens.size[2] - aft - panelLength;
           expect(fore).toBeCloseTo(i === 3 ? 0.25 : 0, 2);
           const point = (along: number) => {
             const rotated = turn([0, 0, -along], "y", lens.rotation?.[1] ?? 0);
             return [px + (rotated[0] ?? 0), pz + (rotated[2] ?? 0)] as const;
           };
-          const first = point(0);
-          const last = point(lens.size[2] - aft - fore);
-          const t = (-(first[1] + last[1]) / 2 - 32) / 10;
+          const aftEnd = point(0);
+          const foreEnd = point(panelLength);
+          const t = (-(aftEnd[1] + foreEnd[1]) / 2 - 32) / 10;
           expect(
             Math.abs(lens.size[1] - (1.5 * (1 - t) + 0.4 * t)),
           ).toBeLessThanOrEqual(0.02);
-          return [first, last] as const;
+          return [aftEnd, foreEnd] as const;
         });
         const first = endpoints[0]?.[0] ?? [0, 0];
         const last = endpoints[3]?.[1] ?? [0, 0];

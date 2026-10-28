@@ -1778,13 +1778,11 @@ for k, (za, zb) in enumerate(lamp_segments):
         out += max(LAMP_PROUD - max(clearances), LAMP_MIN_PROUD - min(clearances))
     depth = 0.4
     z0, x0, z1, x1 = proud(za, beam_plan(za), zb, beam_plan(zb), out)
+    joints = [(z0 + (z1 - z0) * f, x0 + (x1 - x0) * f) for f in (i / LAMP_SUBPANELS for i in range(LAMP_SUBPANELS + 1))]
     for i, (h, yc) in enumerate(panels):
-        a, b = i / LAMP_SUBPANELS, (i + 1) / LAMP_SUBPANELS
         aft = overlap if i == 0 else 0
         fore = overlap if i == LAMP_SUBPANELS - 1 else 0
-        headlights += paired_plank(z0 + (z1 - z0) * a, x0 + (x1 - x0) * a,
-                                   z0 + (z1 - z0) * b, x0 + (x1 - x0) * b,
-                                   yc - h / 2, yc + h / 2, "light", depth, (aft, fore))
+        headlights += paired_plank(*joints[i], *joints[i + 1], yc - h / 2, yc + h / 2, "light", depth, (aft, fore))
 
 geo = {
     "format_version": "1.12.0",
