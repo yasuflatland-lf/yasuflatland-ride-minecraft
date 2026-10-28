@@ -1,17 +1,15 @@
 """Generate the plain-lidded cast-iron Dutch oven and its PBR atlas."""
 
 import argparse
-import json
 import math
-import struct
 import sys
-import zlib
 from pathlib import Path
 
 # Isolated mode (-I) omits the script directory from the import path.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tool_loader import load_tool
 
+mer_atlas = load_tool("mer_atlas")
 cube_tilt = load_tool("cube_tilt")
 panels = load_tool("panels")
 r4 = panels.r4
@@ -39,7 +37,7 @@ PALETTE = [
 
 
 def face(slot):
-    return {"uv": [SWATCH * (slot % 4), SWATCH * (slot // 4)], "uv_size": [SWATCH, SWATCH]}
+    return mer_atlas.face(slot, SWATCH, SIZE // SWATCH)
 
 
 def box(x0, y0, z0, x1, y1, z1, slot, pivot=None, rotation=None):
@@ -212,40 +210,16 @@ def validate(doc):
 
 
 def pixels(mer=False):
-    out = bytearray()
-    for y in range(SIZE):
-        for x in range(SIZE):
-            color, material = PALETTE[(y // SWATCH) * 4 + x // SWATCH]
-            if mer:
-                out.extend((*material, 255))
-            else:
-                streak = round(3 * math.sin(x * 1.5 + y * 0.2)) if y < 16 else 0
-                out.extend((*(max(0, min(255, c + streak)) for c in color), 255))
-    return bytes(out)
+    generate = mer_atlas.mer_pixels if mer else mer_atlas.atlas_pixels
+    return generate(PALETTE, SIZE, SWATCH)
 
 
 def write_png(path, data):
-    stride = SIZE * 4
-    raw = b"".join(b"\x00" + data[y * stride : (y + 1) * stride] for y in range(SIZE))
-
-    def chunk(kind, payload):
-        return struct.pack(">I", len(payload)) + kind + payload + struct.pack(">I", zlib.crc32(kind + payload) & 0xFFFFFFFF)
-
-    head = struct.pack(">IIBBBBB", SIZE, SIZE, 8, 6, 0, 0, 0)
-    path.write_bytes(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", head) + chunk(b"IDAT", zlib.compress(raw, 9)) + chunk(b"IEND", b""))
+    mer_atlas.write_png(path, SIZE, data)
 
 
 def read_png(path):
-    data = path.read_bytes()
-    pos, compressed = 8, b""
-    while pos < len(data):
-        length = struct.unpack(">I", data[pos : pos + 4])[0]
-        if data[pos + 4 : pos + 8] == b"IDAT":
-            compressed += data[pos + 8 : pos + 8 + length]
-        pos += length + 12
-    raw = zlib.decompress(compressed)
-    stride = SIZE * 4
-    return b"".join(raw[y * (stride + 1) + 1 : (y + 1) * (stride + 1)] for y in range(SIZE))
+    return mer_atlas.read_png(path, SIZE)
 
 
 def main():
@@ -253,24 +227,14 @@ def main():
     parser.add_argument("resource_pack", type=Path)
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
-    root = args.resource_pack
-    geo = root / GEOMETRY
-    color = root / TEXTURE
-    mer = root / MER
-    texture_set = root / TEXTURE_SET
     doc = geometry()
     validate(doc)
-    set_doc = {"format_version": "1.16.100", "minecraft:texture_set": {"color": "dutch_oven", "metalness_emissive_roughness": "dutch_oven_mer"}}
-    if args.check:
-        if json.loads(geo.read_text()) != doc or json.loads(texture_set.read_text()) != set_doc or read_png(color) != pixels() or read_png(mer) != pixels(True):
-            sys.exit("Dutch oven model, PBR maps, or texture set is stale; run pnpm model")
-        return
-    geo.parent.mkdir(parents=True, exist_ok=True)
-    color.parent.mkdir(parents=True, exist_ok=True)
-    geo.write_text(json.dumps(doc, separators=(",", ":")) + "\n")
-    texture_set.write_text(json.dumps(set_doc, separators=(",", ":")) + "\n")
-    write_png(color, pixels())
-    write_png(mer, pixels(True))
+    mer_atlas.write_or_check(args.resource_pack, args.check, {
+        "geometry": (GEOMETRY, doc),
+        "texture_set": (TEXTURE_SET, mer_atlas.texture_set_doc("dutch_oven")),
+        "color": (TEXTURE, SIZE, pixels()),
+        "mer": (MER, SIZE, pixels(True)),
+    }, "Dutch oven model, PBR maps, or texture set is stale; run pnpm model")
 
 
 if __name__ == "__main__":
