@@ -25,12 +25,13 @@ export class CopySelection {
     }
     const session = this.repo.getOrCreate(playerId);
     const box = session.editableBox(BUILD_SPEC.maxCopyVolume);
+    if (isEditRefusal(box)) {
+      this.feedback.showMessage(playerId, box);
+      return;
+    }
     const dimensionId = session.selection?.dimensionId;
-    if (isEditRefusal(box) || !dimensionId) {
-      this.feedback.showMessage(
-        playerId,
-        isEditRefusal(box) ? box : "noSelection",
-      );
+    if (!dimensionId) {
+      this.feedback.showMessage(playerId, "noSelection");
       return;
     }
     const clipboard = clipboardOf(box, feet.cell, (cell) =>

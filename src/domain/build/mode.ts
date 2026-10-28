@@ -7,12 +7,14 @@ export interface BuildMode {
   readonly streak: number;
 }
 
+export interface ModeInput {
+  readonly riding: boolean;
+  readonly holding: boolean;
+}
+
 export const MODE_OFF: BuildMode = Object.freeze({ active: false, streak: 0 });
 
-export function stepMode(
-  mode: BuildMode,
-  input: { riding: boolean; holding: boolean },
-): BuildMode {
+export function stepMode(mode: BuildMode, input: ModeInput): BuildMode {
   if (!input.riding) return MODE_OFF;
   if (mode.active) {
     if (input.holding) return { active: true, streak: 0 };

@@ -56,9 +56,10 @@ def validate(groups):
     for group in groups:
         namespace = namespace_of(group)
         name, icon, items = group["name"], group["icon"], group["items"]
-        if f"{namespace}:{name}" in names:
-            errors.append(f"group {namespace}:{name} is listed more than once")
-        names.add(f"{namespace}:{name}")
+        qualified_name = f"{namespace}:{name}"
+        if qualified_name in names:
+            errors.append(f"group {qualified_name} is listed more than once")
+        names.add(qualified_name)
         if not items:
             errors.append(f"{name}: has no items")
         if icon not in items:
