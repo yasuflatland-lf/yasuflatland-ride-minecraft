@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
 import { DutchOvenActions } from "../../../src/application/camp/dutchOven";
 import { FirePitActions } from "../../../src/application/camp/firePit";
+import { GasLanternActions } from "../../../src/application/camp/gasLantern";
 import { HitChair } from "../../../src/application/camp/hitChair";
 import { HitTable } from "../../../src/application/camp/hitTable";
 import { PaintTent } from "../../../src/application/camp/paintTent";
@@ -21,6 +22,7 @@ import {
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import { registerDutchOven } from "../../../src/infrastructure/camp/bedrock/handlers/dutchOven";
 import { registerFirePit } from "../../../src/infrastructure/camp/bedrock/handlers/firePit";
+import { registerGasLantern } from "../../../src/infrastructure/camp/bedrock/handlers/gasLantern";
 import { registerChairHits } from "../../../src/infrastructure/camp/bedrock/handlers/hits";
 import { registerChairPlacement } from "../../../src/infrastructure/camp/bedrock/handlers/placement";
 import { registerTable } from "../../../src/infrastructure/camp/bedrock/handlers/table";
@@ -276,5 +278,18 @@ it("registers oven interactions before fire pit interactions", () => {
   installCamp({ isVehicleSpace: () => false });
   expect(vi.mocked(registerDutchOven).mock.invocationCallOrder[0]).toBeLessThan(
     vi.mocked(registerFirePit).mock.invocationCallOrder[0] ?? 0,
+  );
+});
+
+vi.mock("../../../src/infrastructure/camp/bedrock/handlers/gasLantern", () => ({
+  registerGasLantern: vi.fn(),
+}));
+it("registers one Gas Lantern use case after the Fire Pit", () => {
+  installCamp({ isVehicleSpace: () => false });
+  expect(registerGasLantern).toHaveBeenCalledExactlyOnceWith(
+    expect.any(GasLanternActions),
+  );
+  expect(vi.mocked(registerFirePit).mock.invocationCallOrder[0]).toBeLessThan(
+    vi.mocked(registerGasLantern).mock.invocationCallOrder[0] ?? 0,
   );
 });

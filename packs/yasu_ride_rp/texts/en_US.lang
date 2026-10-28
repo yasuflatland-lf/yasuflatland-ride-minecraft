@@ -99,3 +99,8 @@ yasu_ride:sportsboat_equipment=Sports Boat Equipment
 item.yasu_ride:sportsboat_equipment_box.name=Sports Boat Equipment Box
 item.yasu_ride:icebreaker_switch.name=Icebreaker Switch
 yasu_ride.lore.sportsboat_equipment=Sports Boat Equipment
+
+item.yasu_ride:gas_lantern_item.name=Gas Lantern
+entity.yasu_ride:gas_lantern.name=Gas Lantern
+yasu_ride.hint.gas_lantern_hits=Hit %s more to take back the Gas Lantern
+action.interact.yasu_ride.gas_lantern=Turn the Gas Lantern On / Off

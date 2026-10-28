@@ -99,3 +99,8 @@ yasu_ride:sportsboat_equipment=船の装備
 item.yasu_ride:sportsboat_equipment_box.name=船の装備ボックス
 item.yasu_ride:icebreaker_switch.name=砕氷スイッチ
 yasu_ride.lore.sportsboat_equipment=船の装備
+
+item.yasu_ride:gas_lantern_item.name=ガスランタン
+entity.yasu_ride:gas_lantern.name=ガスランタン
+yasu_ride.hint.gas_lantern_hits=あと%s回叩くとガスランタンを片付けます
+action.interact.yasu_ride.gas_lantern=ガスランタンを点灯・消灯

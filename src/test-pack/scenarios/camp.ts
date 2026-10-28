@@ -13,12 +13,16 @@ import {
   FIRE_PIT_ITEM,
   FIRE_PIT_LIT_PROPERTY,
   FIRE_PIT_TYPE,
+  GAS_LANTERN_ITEM,
+  GAS_LANTERN_LIT_PROPERTY,
+  GAS_LANTERN_TYPE,
   TEST_DUTCH_OVEN_HIT_EVENT,
   TEST_DUTCH_OVEN_ON_PIT_EVENT,
   TEST_DUTCH_OVEN_ON_TABLE_EVENT,
   TEST_DUTCH_OVEN_SIMMER_EVENT,
   TEST_FIRE_PIT_EVENT,
   TEST_FIRE_PIT_HIT_EVENT,
+  TEST_GAS_LANTERN_HIT_EVENT,
   TEST_TABLE_HIT_EVENT,
 } from "../../infrastructure/camp/identifiers";
 import { type Arena, type Outcome, wait } from "../arena";
@@ -401,5 +405,44 @@ export async function dutchOvenOnPit(a: Arena): Promise<Outcome> {
   } finally {
     if (oven?.isValid) oven.remove();
     if (pit.isValid) pit.remove();
+  }
+}
+
+export async function gasLanternTakeBack(a: Arena): Promise<Outcome> {
+  const at = { x: CELL.x + 0.5, y: a.gy, z: CELL.z + 17.5 };
+  const items = () => droppedItems(a, at, GAS_LANTERN_ITEM);
+  let lantern: Entity | undefined;
+  try {
+    a.dim.runCommand(`summon ${GAS_LANTERN_TYPE} ${at.x} ${at.y} ${at.z}`);
+    lantern = a.dim.getEntities({
+      type: GAS_LANTERN_TYPE,
+      location: at,
+      maxDistance: 1.5,
+    })[0];
+    if (!lantern) return { pass: false, detail: "Gas Lantern not spawned" };
+    const initial = lantern.getProperty(GAS_LANTERN_LIT_PROPERTY);
+    const family = lantern.getComponent("minecraft:type_family");
+    const matchesFamily =
+      family?.hasTypeFamily("yasu_ride_gas_lantern") === true &&
+      family.hasTypeFamily("inanimate");
+    let survived = true;
+    for (let i = 0; i < 3; i++) {
+      system.sendScriptEvent(TEST_GAS_LANTERN_HIT_EVENT, lantern.id);
+      await wait(2);
+      if (i < 2) survived &&= lantern.isValid;
+    }
+    const amount = totalAmount(items());
+    return {
+      pass:
+        initial === false &&
+        matchesFamily &&
+        survived &&
+        !lantern.isValid &&
+        amount === 1,
+      detail: `initial=${initial} family=${matchesFamily} survived=${survived} afterThree=${lantern.isValid} items=${amount}`,
+    };
+  } finally {
+    if (lantern?.isValid) lantern.remove();
+    for (const item of items()) item.remove();
   }
 }

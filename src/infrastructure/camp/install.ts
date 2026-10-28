@@ -1,5 +1,6 @@
 import { DutchOvenActions } from "../../application/camp/dutchOven";
 import { FirePitActions } from "../../application/camp/firePit";
+import { GasLanternActions } from "../../application/camp/gasLantern";
 import { HitChair } from "../../application/camp/hitChair";
 import { HitTable } from "../../application/camp/hitTable";
 import { PaintTent } from "../../application/camp/paintTent";
@@ -19,12 +20,14 @@ import type { SwitchTarget } from "../shared/switchRouter";
 import { BedrockChairWorld } from "./bedrock/bedrockChairWorld";
 import { BedrockDutchOvenWorld } from "./bedrock/bedrockDutchOvenWorld";
 import { BedrockFirePitWorld } from "./bedrock/bedrockFirePitWorld";
+import { BedrockGasLanternWorld } from "./bedrock/bedrockGasLanternWorld";
 import { BedrockLanternWorld } from "./bedrock/bedrockLanternWorld";
 import { BedrockTableWorld } from "./bedrock/bedrockTableWorld";
 import { BedrockTentPaintWorld } from "./bedrock/bedrockTentPaintWorld";
 import { BedrockTentWorld } from "./bedrock/bedrockTentWorld";
 import { registerDutchOven } from "./bedrock/handlers/dutchOven";
 import { registerFirePit } from "./bedrock/handlers/firePit";
+import { registerGasLantern } from "./bedrock/handlers/gasLantern";
 import { registerChairHits } from "./bedrock/handlers/hits";
 import { registerChairPlacement } from "./bedrock/handlers/placement";
 import { registerTable } from "./bedrock/handlers/table";
@@ -62,6 +65,7 @@ export function installCamp(deps: { isVehicleSpace: SpaceCheck }): {
   const firePits = new BedrockFirePitWorld(deps);
   registerDutchOven(new DutchOvenActions(new BedrockDutchOvenWorld(deps)));
   registerFirePit(new FirePitActions(firePits), firePits);
+  registerGasLantern(new GasLanternActions(new BedrockGasLanternWorld(deps)));
 
   // SleepInBed is stateless, so camp builds its own instead of sharing the vehicle's.
   registerBedBlock(
