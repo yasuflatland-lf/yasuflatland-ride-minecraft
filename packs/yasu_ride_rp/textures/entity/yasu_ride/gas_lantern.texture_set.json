@@ -1,0 +1,7 @@
+{
+  "format_version": "1.16.100",
+  "minecraft:texture_set": {
+    "color": "gas_lantern",
+    "metalness_emissive_roughness": "gas_lantern_mer"
+  }
+}

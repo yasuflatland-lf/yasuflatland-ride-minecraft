@@ -1,0 +1,20 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "yasu_ride:gas_lantern",
+      "materials": {
+        "default": "entity",
+        "glass": "entity_alphablend",
+        "flame": "entity_emissive"
+      },
+      "textures": {
+        "default": "textures/entity/yasu_ride/gas_lantern"
+      },
+      "geometry": {
+        "default": "geometry.yasu_ride.gas_lantern"
+      },
+      "render_controllers": ["controller.render.yasu_ride.gas_lantern"]
+    }
+  }
+}
