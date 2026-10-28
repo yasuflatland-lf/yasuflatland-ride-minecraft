@@ -87,6 +87,7 @@ describe("Blade Up/Down switch (ADR 0138)", () => {
       "yasu_ride:camping_gear_inside",
       "yasu_ride:camping_gear_outside",
       "yasu_ride:bulldozer_switches",
+      "yasu_ride:sportsboat_equipment",
     ]);
     expect(groups[2]).toEqual({
       group_identifier: { icon: TYPE, name: "yasu_ride:bulldozer_switches" },

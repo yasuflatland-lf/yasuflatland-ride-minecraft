@@ -194,6 +194,7 @@ describe("vehicle profiles (ADR 0050)", () => {
         surfaces: ["water", "lava", "top"],
         clearance: { halfX: 1, halfZ: 1, height: 2 },
       },
+      placementGift: "sportsboat_equipment_box",
       chaseCamera: "near",
       defaultPaint: "black",
     });

@@ -1036,7 +1036,7 @@ describe("camping gear blocks and items (ADR 0093)", () => {
       ).toBe(ATLAS_KEY);
   });
 
-  it("lists the exact inside, outside, and bulldozer groups in order", () => {
+  it("lists the exact inside, outside, bulldozer, and sports boat groups in order", () => {
     const items = [
       "yasu_ride:camping_gear_box",
       ...SPEC.map((g) => `yasu_ride:${g.id}`),
@@ -1076,6 +1076,16 @@ describe("camping gear blocks and items (ADR 0093)", () => {
                   name: "yasu_ride:bulldozer_switches",
                 },
                 items: ["yasu_ride:blade_switch"],
+              },
+              {
+                group_identifier: {
+                  icon: "yasu_ride:sportsboat_equipment_box",
+                  name: "yasu_ride:sportsboat_equipment",
+                },
+                items: [
+                  "yasu_ride:sportsboat_equipment_box",
+                  "yasu_ride:icebreaker_switch",
+                ],
               },
             ],
           },

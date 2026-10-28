@@ -18,6 +18,12 @@
     "yasu_ride_blade_switch": {
       "textures": "textures/items/yasu_ride/blade_switch"
     },
+    "yasu_ride_sportsboat_equipment_box": {
+      "textures": "textures/items/yasu_ride/sportsboat_equipment_box"
+    },
+    "yasu_ride_icebreaker_switch": {
+      "textures": "textures/items/yasu_ride/icebreaker_switch"
+    },
     "yasu_ride_low_chair_item": {
       "textures": "textures/items/yasu_ride/low_chair_item"
     },

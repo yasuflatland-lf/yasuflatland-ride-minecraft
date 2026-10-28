@@ -6,6 +6,7 @@ import {
   CAMPING_GEAR_IDS,
   MONITOR_TOOL_ITEMS,
   pairHeights,
+  SPORTSBOAT_EQUIPMENT_IDS,
   STAND_IN_NAMES,
   STANDING_GEAR_IDS,
 } from "../../../domain/vehicle/kinds/index";
@@ -64,23 +65,29 @@ export const STARTER_RECEIVED_PROPERTY: Readonly<Record<StarterKind, string>> =
 export const GIFT_ITEM: Readonly<Record<PlacementGift, string>> = Object.freeze(
   {
     camping_gear_box: id("camping_gear_box"),
+    sportsboat_equipment_box: id("sportsboat_equipment_box"),
   },
 );
 
 /** Player dynamic property recording who received each gift (ADR 0093). */
 export const GIFT_RECEIVED_PROPERTY: Readonly<Record<PlacementGift, string>> =
-  Object.freeze({ camping_gear_box: id("camping_gear_given") });
+  Object.freeze({
+    camping_gear_box: id("camping_gear_given"),
+    sportsboat_equipment_box: id("sportsboat_equipment_given"),
+  });
 
-/** The items each gift holds, in tools/camping_gear.json order (ADR 0093). */
+/** The items each gift holds, in its kind's equipment order (ADR 0093, 0171). */
 export const GIFT_CONTENTS: Readonly<Record<PlacementGift, readonly string[]>> =
   Object.freeze({
     camping_gear_box: Object.freeze(CAMPING_GEAR_IDS.map(id)),
+    sportsboat_equipment_box: Object.freeze(SPORTSBOAT_EQUIPMENT_IDS.map(id)),
   });
 
 /** Lang key of the lore line on every item a gift holds (ADR 0093). */
 export const GIFT_LORE: Readonly<Record<PlacementGift, string>> = Object.freeze(
   {
     camping_gear_box: `${NAMESPACE}.lore.camping_gear`,
+    sportsboat_equipment_box: `${NAMESPACE}.lore.sportsboat_equipment`,
   },
 );
 

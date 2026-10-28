@@ -1968,6 +1968,62 @@ def icon(x, y):
 
 
 png(ITEM_TEXTURES / "sportsboat_item.png", 16, 16, icon)
+
+# Sports Boat Equipment box: a ship's wheel with a round wooden rim, a brass hub, and eight spokes
+# running past the rim as handles (ADR 0171 rule 2). The owner's shape reference was the Kubernetes
+# logo, a trademark, so this keeps none of its heptagon badge, seven spokes or blue and white.
+EQUIPMENT_BOX_ICON = [
+    ".......HH.......",
+    ".H.....HH.....H.",
+    "..H..RRRRRR..H..",
+    "...RRR.SS.RRR...",
+    "..RRS..SS..SRR..",
+    "..R..S.SS.S..R..",
+    "..R...SBBS...R..",
+    "HHRSSSBYBBSSSRHH",
+    "HHRSSSBBBBSSSRHH",
+    "..R...SBBS...R..",
+    "..R..S.SS.S..R..",
+    "..RRS..SS..SRR..",
+    "...RRR.SS.RRR...",
+    "..H..RRRRRR..H..",
+    ".H.....HH.....H.",
+    ".......HH.......",
+]
+EQUIPMENT_BOX_COLORS = {"R": (110, 66, 30), "S": (176, 120, 62), "H": (140, 88, 40), "B": (200, 156, 52),
+                        "Y": (246, 214, 120)}
+
+# Icebreaker Switch: a red bow seen from the side, stem pointing down into cracked ice, with shards
+# flying (ADR 0171 rule 3). 6/7 draws the same map on the helm monitor.
+ICEBREAKER_SWITCH_ICON = [
+    "................",
+    "KKKKKKKKKKKKKK..",
+    "HHHHHHHHHHHHHH..",
+    "HOHHHOHHHOHHH...",
+    "SSSSSSSSSSSSS...",
+    "RRRRRRRRRRRR....",
+    "RRRRRRRRRRRR..G.",
+    ".RRRRRRRRRR.....",
+    "..RRRRRRRRR..G..",
+    "G..RRRRRRR......",
+    "....RRRRRR...G.G",
+    ".G...RRRRR.G....",
+    "LL....RRR....LLL",
+    "ILL...RR...LLIII",
+    "IICLL.R..LLICIII",
+    "IIIICLLLLLCIIIII",
+]
+ICEBREAKER_SWITCH_COLORS = {"K": (44, 44, 48), "H": (30, 30, 34), "O": (170, 205, 225), "S": PALETTE["trim"],
+                            "R": (168, 40, 36), "I": (140, 196, 230), "L": (220, 242, 252),
+                            "C": (60, 120, 170), "G": (200, 235, 252)}
+
+
+def pixel_map(rows, colors):
+    return lambda x, y: colors.get(rows[y][x], (0, 0, 0, 0))
+
+
+png(ITEM_TEXTURES / "sportsboat_equipment_box.png", 16, 16, pixel_map(EQUIPMENT_BOX_ICON, EQUIPMENT_BOX_COLORS))
+png(ITEM_TEXTURES / "icebreaker_switch.png", 16, 16, pixel_map(ICEBREAKER_SWITCH_ICON, ICEBREAKER_SWITCH_COLORS))
 print("cubes:", len(body) + len(headlights) + len(glass) + len(mirror))
 if STALE:
     sys.exit("Stale sports boat outputs:\n" + "\n".join(STALE))
