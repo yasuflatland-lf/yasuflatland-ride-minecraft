@@ -38,8 +38,7 @@ GROUPS = [
     {"name": "bulldozer_switches", "icon": "blade_switch", "items": ["blade_switch"]},
     # The sports boat's equipment; the Icebreaker Switch is its only item and its icon; the
     # equipment box is a hidden placement gift (ADR 0174).
-    {"name": "sportsboat_equipment", "icon": "icebreaker_switch",
-     "items": ["icebreaker_switch"]},
+    {"name": "sportsboat_equipment", "icon": "icebreaker_switch", "items": ["icebreaker_switch"]},
 ]
 
 
