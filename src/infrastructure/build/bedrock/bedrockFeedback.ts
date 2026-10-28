@@ -33,11 +33,17 @@ export class BedrockFeedback implements BuildFeedback {
         : "minecraft:blue_flame_particle";
     for (const point of edgePoints(box, BUILD_SPEC.outlineMaxPoints)) {
       if (!player.isValid) return;
-      player.spawnParticle(particle, {
-        x: point.x + 0.5,
-        y: point.y + 0.5,
-        z: point.z + 0.5,
-      });
+      try {
+        player.spawnParticle(particle, {
+          x: point.x + 0.5,
+          y: point.y + 0.5,
+          z: point.z + 0.5,
+        });
+      } catch {
+        // The engine can throw for a point in an unloaded chunk. Skip this
+        // player's outline for the tick so the other players still get theirs.
+        return;
+      }
     }
   }
 }
