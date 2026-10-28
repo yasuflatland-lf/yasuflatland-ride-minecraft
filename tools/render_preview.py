@@ -187,7 +187,11 @@ DUTCH_OVEN_GEOMETRY = "models/entity/yasu_ride/dutch_oven.geo.json"
 DUTCH_OVEN_TEXTURE = "textures/entity/yasu_ride/dutch_oven.png"
 DUTCH_OVEN_PREVIEW = "dutch_oven"
 DUTCH_OVEN_ICON = "dutch_oven_item"
-ICON_NAMES = {NOGA_CHAIR_PREVIEW: NOGA_CHAIR_ICON, CHAIR_PREVIEW: CHAIR_ICON, TENT_PREVIEW: TENT_ICON, TABLE_PREVIEW: TABLE_ICON, FIRE_PIT_PREVIEW: FIRE_PIT_ICON, DUTCH_OVEN_PREVIEW: DUTCH_OVEN_ICON}
+GAS_LANTERN_GEOMETRY = "models/entity/yasu_ride/gas_lantern.geo.json"
+GAS_LANTERN_TEXTURE = "textures/entity/yasu_ride/gas_lantern.png"
+GAS_LANTERN_PREVIEW = "gas_lantern"
+GAS_LANTERN_ICON = "gas_lantern_item"
+ICON_NAMES = {NOGA_CHAIR_PREVIEW: NOGA_CHAIR_ICON, CHAIR_PREVIEW: CHAIR_ICON, TENT_PREVIEW: TENT_ICON, TABLE_PREVIEW: TABLE_ICON, FIRE_PIT_PREVIEW: FIRE_PIT_ICON, DUTCH_OVEN_PREVIEW: DUTCH_OVEN_ICON, GAS_LANTERN_PREVIEW: GAS_LANTERN_ICON}
 
 POSES = {
     "suv-front-left.png": {"lamps": False, "dusk": False, "hover": False, "submarine": False, "brightness": MAIN_BRIGHTNESS},
@@ -868,6 +872,8 @@ def small_models(rp):
         (TABLE_PREVIEW, rp / TABLE_GEOMETRY, read_png(rp / TABLE_TEXTURE)),
         (FIRE_PIT_PREVIEW, rp / FIRE_PIT_GEOMETRY, read_png(rp / FIRE_PIT_TEXTURE)),
         (DUTCH_OVEN_PREVIEW, rp / DUTCH_OVEN_GEOMETRY, read_png(rp / DUTCH_OVEN_TEXTURE)),
+        # The lit flame (alpha 0) shows; the glass (alpha 96) stays see-through.
+        (GAS_LANTERN_PREVIEW, rp / GAS_LANTERN_GEOMETRY, opaque_lenses(read_png(rp / GAS_LANTERN_TEXTURE))),
     ]
 
 

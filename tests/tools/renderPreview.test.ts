@@ -111,6 +111,7 @@ describe("camping gear, low chair, and tent previews (ADR 0093, 0122, 0130)", ()
       "camp_table",
       "fire_pit",
       "dutch_oven",
+      "gas_lantern",
     ];
     expect(out.names).toEqual(
       names.map((name) => `items/camping-gear/${name}.png`),

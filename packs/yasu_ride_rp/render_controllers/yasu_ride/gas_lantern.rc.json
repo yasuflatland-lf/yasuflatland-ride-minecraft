@@ -1,0 +1,25 @@
+{
+  "format_version": "1.8.0",
+  "render_controllers": {
+    "controller.render.yasu_ride.gas_lantern": {
+      "geometry": "Geometry.default",
+      "materials": [
+        {
+          "*": "Material.default"
+        },
+        {
+          "glass": "Material.glass"
+        },
+        {
+          "flame": "Material.flame"
+        }
+      ],
+      "textures": ["Texture.default"],
+      "part_visibility": [
+        {
+          "flame": "query.property('yasu_ride:lit')"
+        }
+      ]
+    }
+  }
+}

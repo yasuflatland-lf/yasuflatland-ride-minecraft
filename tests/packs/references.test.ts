@@ -165,9 +165,14 @@ describe("Resource Pack and Behavior Pack references", () => {
   });
 
   it("each Behavior Pack entity has a client entity with the same identifier", () => {
-    expect(clientEntities.map((e) => e.identifier).sort()).toEqual(
-      [...bpEntityIds].sort(),
-    );
+    // The Gas Lantern's Resource Pack side ships first; its Behavior Pack entity comes in 12/13 (ADR 0173).
+    const pending = ["yasu_ride:gas_lantern"];
+    expect(
+      clientEntities
+        .map((e) => e.identifier)
+        .filter((id) => !pending.includes(id))
+        .sort(),
+    ).toEqual([...bpEntityIds].sort());
   });
 
   it("defines the identifiers the script uses", () => {

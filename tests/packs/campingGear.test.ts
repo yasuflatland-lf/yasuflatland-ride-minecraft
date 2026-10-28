@@ -359,6 +359,7 @@ describe("camping gear docs (ADR 0093)", () => {
         "camp_table.png",
         "fire_pit.png",
         "dutch_oven.png",
+        "gas_lantern.png",
       ].sort(),
     );
     for (const g of SPEC) {
