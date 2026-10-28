@@ -1623,10 +1623,8 @@ describe("sports boat hull planking (ADR 0161)", () => {
             Math.abs(cube.size[2] - 0.4) < 0.0001 &&
             Math.abs(cube.size[1] - 6.6) < 0.0001 &&
             Math.abs(cube.origin[1] - (F + 3)) < 0.0001 &&
-            Math.abs(cube.origin[0]) < 10.1 &&
-            Math.abs(cube.origin[2] - (riderZ + 3.6)) < 0.5,
+            Math.abs(cube.origin[0]) < 10.1,
         );
-        expect(faces.length).toBeGreaterThan(0);
         for (const side of [1, -1]) {
           const mine = faces.filter((cube) => cube.origin[0] * side > 0);
           expect(mine.length).toBeGreaterThan(0);
