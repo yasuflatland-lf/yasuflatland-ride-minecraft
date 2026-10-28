@@ -452,10 +452,11 @@ Setup: use `/give @s yasu_build:selection_wand` and `/give @s yasu_build:build_t
 |---|---|---|---|---|
 | BT1 | Open the creative Items tab and craft both tools | A "Building Tools" group holds "Selection Wand" and "Build Tool". A stick and a copper ingot craft the wand; an iron ingot and a chain craft the tool | unverified | unverified |
 | BT2 | Ride a bulldozer holding the wand: hit a block, then use it on another, in Survival and in Creative | The first hit sets pos1 without breaking the block, the use sets pos2 and shows the block count, and the outline appears in both modes | unverified | unverified |
-| BT3 | Sneak and use the wand | The selection clears and the outline disappears | unverified | unverified |
+| BT3 | Sneak, aim at the air (no block), and use the wand | The selection clears and the outline disappears | unverified | unverified |
 | BT4 | Copy, then watch the paste preview while driving | The preview outline shows where a paste would land and moves with the bulldozer | unverified | unverified |
 | BT5 | Hold the wand or tool, then flick through the hotbar quickly | The camera does not switch on a flick; it moves to the third-person view after the tool has been held for a moment and back shortly after it is put away | unverified | unverified |
 | BT6 | Use the Build Tool and run Fill, Replace, Copy, Paste, Undo, and Clear selection in turn | Each action does what its name says, shows its message, and Skip air leaves existing blocks in place under air | unverified | unverified |
 | BT7 | Fill a selection that contains a chest with items | The chest and its items stay; the other blocks change | unverified | unverified |
+| BT7b | Copy a selection that contains a chest and a sign, then paste it elsewhere | The pasted copy has no chest or sign, and the target spot keeps what was there | unverified | unverified |
 | BT8 | Paste with the target overlapping the bulldozer | The paste is refused as a whole with the overlap message and nothing changes | unverified | unverified |
 | BT9 | Get off the bulldozer while in build mode | Build mode ends at once and the camera returns to normal | unverified | unverified |
