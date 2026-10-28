@@ -1,5 +1,4 @@
 // Use case: draw the selection and paste outlines to players in build mode (ADR 0178).
-
 import { pasteBox } from "../../domain/build/clipboard/clipboard";
 import { selectionBox } from "../../domain/build/selection/selection";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
@@ -19,14 +18,10 @@ export class ShowOutline {
     for (const id of this.repo.ids()) {
       const session = this.repo.get(id);
       if (!session?.isInBuildMode) continue;
-      const box = selectionBox(session.selection);
-      if (box && session.selection) {
-        this.feedback.drawOutline(
-          id,
-          session.selection.dimensionId,
-          box,
-          "selection",
-        );
+      const { selection } = session;
+      const box = selectionBox(selection);
+      if (selection && box) {
+        this.feedback.drawOutline(id, selection.dimensionId, box, "selection");
       }
       const feet = this.gate.bulldozerFeet(id);
       if (session.clipboard && feet) {

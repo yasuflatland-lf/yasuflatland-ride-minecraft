@@ -11,7 +11,7 @@ import {
   type UndoHistory,
   withRecord,
 } from "./history/history";
-import { type BuildMode, MODE_OFF, stepMode } from "./mode";
+import { type BuildMode, MODE_OFF, type ModeInput, stepMode } from "./mode";
 import type { Corner } from "./selection/corner";
 import {
   type Selection,
@@ -76,7 +76,7 @@ export class BuildSession {
   }
 
   /** Returns whether build mode turned on or off. */
-  tickMode(input: { riding: boolean; holding: boolean }): boolean {
+  tickMode(input: ModeInput): boolean {
     const was = this.currentMode.active;
     this.currentMode = stepMode(this.currentMode, input);
     return this.currentMode.active !== was;

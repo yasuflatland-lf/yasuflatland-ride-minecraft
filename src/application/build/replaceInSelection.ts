@@ -31,13 +31,14 @@ export class ReplaceInSelection {
       this.feedback.showMessage(playerId, box);
       return;
     }
+    // editableBox succeeded, so the selection exists.
+    const dimensionId = session.selection?.dimensionId;
+    if (!dimensionId) return;
     const busy = session.beginEdit();
     if (busy) {
       this.feedback.showMessage(playerId, busy);
       return;
     }
-    const dimensionId = session.selection?.dimensionId;
-    if (!dimensionId) return;
     const plan = planReplace(box, cmd.mask, cmd.pattern, (cell) =>
       this.world.stateAt(dimensionId, cell),
     );
