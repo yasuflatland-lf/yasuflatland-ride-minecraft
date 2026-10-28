@@ -627,6 +627,25 @@ describe("DriveVehicles third-person camera in flight (ADR 0028)", () => {
       expect(cameraCalls(world)).toEqual(["camera:p:far", "camera:p:own"]);
     });
 
+    it("switches a deck-seat rider to the chase camera when the wish is true", () => {
+      const world = new FakeWorld();
+      const uc = new DriveVehicles(
+        world,
+        new InMemoryRepo(),
+        logger(),
+        (id) => id === "rear",
+      );
+      world.snapshots = [
+        snapshot("boat", {
+          kind: "sportsboat",
+          deckSeatRiders: [undefined, undefined, asPlayerId("rear")],
+        }),
+      ];
+      uc.execute(0);
+      uc.execute(1);
+      expect(cameraCalls(world)).toEqual(["camera:rear:third"]);
+    });
+
     it("keeps the form's camera whatever the wish says", () => {
       for (const wished of [true, false]) {
         const world = new FakeWorld();
