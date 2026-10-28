@@ -39,6 +39,10 @@ GROUPS = [
     # The sports boat's equipment; the Icebreaker Switch is its only item and its icon; the
     # equipment box is a hidden placement gift (ADR 0174).
     {"name": "sportsboat_equipment", "icon": "icebreaker_switch", "items": ["icebreaker_switch"]},
+    # The World Edit build tools live in their own namespace so a later split into a separate
+    # add-on changes no ID; the Build Tool's crane is the group icon (ADR 0178).
+    {"namespace": "yasu_build", "name": "building_tools", "icon": "build_tool",
+     "items": ["build_tool", "selection_wand"]},
 ]
 
 
@@ -50,18 +54,20 @@ def validate(groups):
     names = set()
     seen_items = set()
     for group in groups:
+        namespace = group.get("namespace", NAMESPACE)
         name, icon, items = group["name"], group["icon"], group["items"]
-        if name in names:
-            errors.append(f"group {name} is listed more than once")
-        names.add(name)
+        if f"{namespace}:{name}" in names:
+            errors.append(f"group {namespace}:{name} is listed more than once")
+        names.add(f"{namespace}:{name}")
         if not items:
             errors.append(f"{name}: has no items")
         if icon not in items:
             errors.append(f"{name}: icon {icon} is not one of its items")
         for item in items:
-            if item in seen_items:
-                errors.append(f"{item} is listed more than once")
-            seen_items.add(item)
+            qualified = f"{namespace}:{item}"
+            if qualified in seen_items:
+                errors.append(f"{qualified} is listed more than once")
+            seen_items.add(qualified)
     if errors:
         sys.exit("\n".join(errors))
 
@@ -76,10 +82,10 @@ def catalog(groups):
                     "groups": [
                         {
                             "group_identifier": {
-                                "icon": f"{NAMESPACE}:{group['icon']}",
-                                "name": f"{NAMESPACE}:{group['name']}",
+                                "icon": f"{group.get('namespace', NAMESPACE)}:{group['icon']}",
+                                "name": f"{group.get('namespace', NAMESPACE)}:{group['name']}",
                             },
-                            "items": [f"{NAMESPACE}:{i}" for i in group["items"]],
+                            "items": [f"{group.get('namespace', NAMESPACE)}:{i}" for i in group["items"]],
                         }
                         for group in groups
                     ],
