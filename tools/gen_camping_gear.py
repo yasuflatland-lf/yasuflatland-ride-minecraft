@@ -36,7 +36,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tool_loader import load_tool
 
 cube_tilt = load_tool("cube_tilt")
-panels = load_tool("panels")
 
 LAID_TAG = "tag:yasu_ride:laid"
 
@@ -107,7 +106,7 @@ OPEN_STATE = "yasu_ride:open"
 CABINET_COMPONENT = "yasu_ride:camper_cabinet"
 CABINET_BOX_PX = 10
 CEILING_PLATE_PX = 3
-# A block state holds at most 16 values, and an end takes 18: empty, or one of the 17 standing
+# A block state holds at most 16 values, and an end takes 17: empty, or one of the 16 standing
 # items. So an end's code, 0 for empty and 1 + the item's index among the standing items, is
 # split into end<n>_page (code // PAIR_PAGE_SIZE) and end<n>_item (code % PAIR_PAGE_SIZE), as
 # pairEndStates in src/infrastructure/vehicle/bedrock/identifiers.ts.
@@ -169,45 +168,6 @@ def rounded(value):
     if isinstance(value, dict):
         return {k: rounded(v) for k, v in value.items()}
     return value
-
-
-def lantern():
-    """Panel-built glass lantern, kept below 120 cubes for the pair blocks (ADR 0169)."""
-    body = []
-    for radius, y0, y1, thickness in ((2.4, 0, 0.4, 0.35),
-                                      (2.5, 0.4, 1.9, 0.4),
-                                      (2.3, 1.9, 2.6, 1.5)):
-        body += panels.panel_ring(radius, y0, y1, face("black"), sides=10, thickness=thickness)
-    # panel_ring's overlap extends beyond its apothem; fit the rotated silhouette, not origins.
-    _, hi = cube_tilt.bounds(body)
-    for cube in body:
-        for key in ("origin", "size"):
-            for axis in (0, 2):
-                cube[key][axis] *= 2.5 / hi[0]
-    body += panels.disc(2.3, 0, 0.15, face("black"), bars=2)
-    body += panels.panel_ring(0.9, 2.6, 3.2, face("black"), sides=6, thickness=0.25)
-    for y in (2.64, 2.83, 3.02):
-        body += panels.disc(1.0, y, y + 0.08, face("steel"), bars=2)
-    body += panels.disc(1.9, 3.2, 3.4, face("chrome"), bars=3)
-    body += panels.panel_ring(1.2, 3.41, 6.6, face("paper"), sides=12, thickness=0.15)
-    for k in range(6):
-        body.append(panels.panel(-0.035, 3.42, -1.21, 0.035, 6.59, -1.19,
-                                 face("white"), (0, 0, 0), (0, k * 60, 0)))
-    body += panels.panel_ring(1.7, 3.4, 6.8, face("glass"), sides=16, thickness=0.2)
-    for k in range(8):
-        body.append(panels.panel(-0.075, 3.4, -1.85, 0.075, 6.81, -1.75,
-                                 face("chrome"), (0, 0, 0), (0, k * 45, 0)))
-    body += panels.panel_ring(1.8, 3.4, 3.55, face("chrome"), sides=8, thickness=0.15)
-    body += panels.disc(1.9, 6.8, 7.2, face("chrome"), bars=3)
-    body += panels.disc(1.3, 7.2, 7.4, face("chrome"), bars=3)
-    body += panels.panel_ring(0.5, 7.4, 8, face("chrome"), sides=6, thickness=0.5)
-    # Four sides leave the neck loop open; the cup stays inside the bottle's footprint.
-    body += [box(0.85, 2.75, -0.12, 1.65, 2.87, 0.12, "black"),
-             box(1.53, 2.75, -0.12, 1.65, 3.12, 0.12, "black"),
-             box(0.85, 3.0, -0.12, 1.65, 3.12, 0.12, "black"),
-             box(0.85, 2.75, -0.12, 0.97, 3.12, 0.12, "black")]
-    body += panels.panel_ring(0.7, 3.0, 3.5, face("black"), sides=6, thickness=0.18, center=(1.65, 0))
-    return rounded(body)
 
 
 SHAPES = {
@@ -278,7 +238,6 @@ SHAPES = {
         box(-1.5, 4.5, 0.5, 1.5, 5, 1, "harvest_gold"),
         box(2.75, 2, -0.5, 3, 3, 0.5, "steel"),
     ],
-    "lantern": lantern(),
     "transistor_radio": [
         box(-3, 0, -1, 3, 3.5, 1, "burnt_orange"),
         box(-2.5, 0.5, -1.25, 0.5, 3, -1, "cream"),

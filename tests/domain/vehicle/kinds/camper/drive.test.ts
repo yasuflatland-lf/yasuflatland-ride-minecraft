@@ -296,7 +296,7 @@ it("resync resends all room properties with current values while driving or park
   );
 });
 
-it("restores a saved oil lamp as a lantern at every heading", () => {
+it("drops a saved oil lamp and a saved lantern at every heading", () => {
   fc.assert(
     fc.property(
       fc.double({ min: -720, max: 720, noNaN: true }),
@@ -304,9 +304,12 @@ it("restores a saved oil lamp as a lantern at every heading", () => {
       (yaw, docked) => {
         const drive = new CamperDrive(yaw, {
           docked,
-          dockDecor: JSON.stringify([{ slot: "table", item: "oil_lamp" }]),
+          dockDecor: JSON.stringify([
+            { slot: "table", item: "oil_lamp" },
+            { slot: "shelf", item: "lantern" },
+          ]),
         });
-        expect(drive.decor()).toEqual([{ slot: "table", item: "lantern" }]);
+        expect(drive.decor()).toEqual([]);
         const restored = new CamperDrive(yaw, {
           dockDecor: JSON.stringify(drive.decor()),
         });

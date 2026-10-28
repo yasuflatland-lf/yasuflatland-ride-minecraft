@@ -1293,7 +1293,7 @@ it("stands each leaving rider at their exit after the final commands", () => {
   );
 });
 
-it("silently migrates saved oil lamps, drops removed decor and saves it after the next change", () => {
+it("silently drops saved oil lamps and removed decor, and saves it after the next change", () => {
   const world = new FakeWorld();
   const repo = new InMemoryRepo();
   const log = logger();
@@ -1310,9 +1310,7 @@ it("silently migrates saved oil lamps, drops removed decor and saves it after th
   ];
   expect(() => new DriveVehicles(world, repo, log).execute(0)).not.toThrow();
   const vehicleId = asVehicleId("car");
-  expect(repo.get(vehicleId)?.decor()).toEqual([
-    { slot: "table", item: "lantern" },
-  ]);
+  expect(repo.get(vehicleId)?.decor()).toEqual([]);
   expect(log.lines).toEqual([]);
   const saveDecor = vi.fn();
   expect(
@@ -1322,12 +1320,7 @@ it("silently migrates saved oil lamps, drops removed decor and saves it after th
       item: "toaster",
     }),
   ).toBe(true);
-  expect(saveDecor).toHaveBeenCalledWith(
-    vehicleId,
-    expect.arrayContaining([
-      { slot: "table", item: "lantern" },
-      { slot: "stove", item: "toaster" },
-    ]),
-  );
-  expect(saveDecor.mock.calls[0]?.[1]).toHaveLength(2);
+  expect(saveDecor).toHaveBeenCalledWith(vehicleId, [
+    { slot: "stove", item: "toaster" },
+  ]);
 });

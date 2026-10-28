@@ -100,16 +100,6 @@
     "reference": null
   },
   {
-    "id": "lantern",
-    "name_en": "Lantern",
-    "name_ja": "\u30e9\u30f3\u30bf\u30f3",
-    "width_px": 5,
-    "height_px": 8,
-    "glass": true,
-    "hanging": false,
-    "reference": null
-  },
-  {
     "id": "transistor_radio",
     "name_en": "Transistor Radio",
     "name_ja": "\u30c8\u30e9\u30f3\u30b8\u30b9\u30bf\u30e9\u30b8\u30aa",

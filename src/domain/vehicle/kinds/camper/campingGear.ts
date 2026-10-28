@@ -13,7 +13,6 @@ export const CAMPING_GEAR_IDS: readonly string[] = Object.freeze([
   "sugar_pot",
   "fruit_bowl",
   "toaster",
-  "lantern",
   "transistor_radio",
   "book_stack",
   "road_map",
@@ -36,10 +35,11 @@ export const STANDING_GEAR_IDS: readonly string[] = Object.freeze(
   CAMPING_GEAR_IDS.filter((id) => !HANGING_GEAR_IDS.has(id)),
 );
 
-/** Saved catalog ids: null drops removed gear without returning an item (ADR 0169). */
+/** Saved catalog ids: null drops removed gear without returning an item (ADR 0169, 0173). */
 export const LEGACY_GEAR_IDS: Readonly<Record<string, string | null>> = {
   lava_lamp: null,
-  oil_lamp: "lantern",
+  oil_lamp: null,
+  lantern: null,
 };
 
 export function currentGearId(saved: string): string | undefined {
