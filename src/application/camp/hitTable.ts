@@ -1,10 +1,6 @@
 import { TABLE_SPEC } from "../../domain/camp/spec";
 import type { TableId } from "../../domain/camp/table";
-import {
-  EMPTY_COUNTER,
-  type HitCounter,
-  registerHit,
-} from "../../domain/shared/hitCounter";
+import { HitCounters } from "../../domain/shared/hitCounter";
 import type { PlayerId } from "../../domain/shared/ids";
 import type { TableWorld } from "./ports/table";
 
@@ -14,7 +10,7 @@ const RULE = {
 };
 
 export class HitTable {
-  private readonly counters = new Map<TableId, HitCounter>();
+  private readonly hits = new HitCounters<TableId>(RULE);
 
   constructor(private readonly world: TableWorld) {}
 
@@ -28,21 +24,14 @@ export class HitTable {
       return false;
     }
     const occupied = this.world.isOccupied(cmd.tableId);
-    const result = registerHit(
-      this.counters.get(cmd.tableId) ?? EMPTY_COUNTER,
-      cmd.tick,
-      occupied,
-      RULE,
-    );
+    const result = this.hits.hit(cmd.tableId, cmd.tick, occupied);
     if (result.broken) {
-      this.counters.delete(cmd.tableId);
       this.world.dropItem(cmd.tableId);
       this.world.removeTable(cmd.tableId);
       return true;
     }
     if (occupied) return false;
-    this.counters.set(cmd.tableId, result.counter);
-    this.world.showHitsLeft(cmd.playerId, RULE.hits - result.counter.count);
+    this.world.showHitsLeft(cmd.playerId, result.hitsLeft);
     return false;
   }
 }

@@ -15,17 +15,18 @@ import {
   TABLE_SPOTS,
   TABLE_TOP_PX,
 } from "../../domain/camp/spec";
-import {
-  EMPTY_COUNTER,
-  type HitCounter,
-  registerHit,
-} from "../../domain/shared/hitCounter";
+import { HitCounters } from "../../domain/shared/hitCounter";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
 import type { DutchOvenWorld } from "./ports/dutchOven";
 
+const RULE = {
+  hits: DUTCH_OVEN_SPEC.hitsToTakeBack,
+  resetTicks: DUTCH_OVEN_SPEC.hitResetTicks,
+};
+
 export class DutchOvenActions {
-  private readonly counters = new Map<DutchOvenId, HitCounter>();
+  private readonly hits = new HitCounters<DutchOvenId>(RULE);
 
   constructor(private readonly world: DutchOvenWorld) {}
 
@@ -163,17 +164,8 @@ export class DutchOvenActions {
   }
 
   hit(id: DutchOvenId, player: PlayerId, tick: number): boolean {
-    const result = registerHit(
-      this.counters.get(id) ?? EMPTY_COUNTER,
-      tick,
-      false,
-      {
-        hits: DUTCH_OVEN_SPEC.hitsToTakeBack,
-        resetTicks: DUTCH_OVEN_SPEC.hitResetTicks,
-      },
-    );
+    const result = this.hits.hit(id, tick, false);
     if (result.broken) {
-      this.counters.delete(id);
       const host = decodeHost(this.world.host(id));
       if (host.kind === "fire_pit" && this.world.hostExists(host.id))
         this.world.setCovered(asFirePitId(host.id), false);
@@ -181,11 +173,7 @@ export class DutchOvenActions {
       this.world.removeDutchOven(id);
       return true;
     }
-    this.counters.set(id, result.counter);
-    this.world.showHitsLeft(
-      player,
-      DUTCH_OVEN_SPEC.hitsToTakeBack - result.counter.count,
-    );
+    this.world.showHitsLeft(player, result.hitsLeft);
     return false;
   }
 }
