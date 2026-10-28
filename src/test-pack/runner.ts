@@ -17,6 +17,7 @@ import {
 } from "./scenarios/bladeCut";
 import {
   buildBlockStates,
+  buildEdits,
   buildSelectionAndMode,
 } from "./scenarios/buildTools";
 import {
@@ -256,12 +257,14 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
     ["tent_paint_events", 25, () => tentPaintEvents(a)],
   ];
   if (world.getAllPlayers().length > 0) {
+    allTests.push(["build_edits", 250, () => buildEdits(a)]);
     allTests.push([
       "build_selection_and_mode",
       30,
       () => buildSelectionAndMode(a),
     ]);
   } else {
+    log(runId, "SKIP build_edits: a connected player is required");
     log(
       runId,
       "SKIP build_selection_and_mode: a connected player is required; camera perspective needs visual verification",
