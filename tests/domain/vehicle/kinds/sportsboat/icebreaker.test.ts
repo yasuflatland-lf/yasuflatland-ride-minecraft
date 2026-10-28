@@ -101,8 +101,8 @@ it("detects every strip cell at either height using offsets to cell centers", ()
       for (const [ahead, side] of [
         [-rule.sternReach, 0],
         [spec.ramFront, spec.ramHalfWidth + 2],
-      ]) {
-        const point = localPoint(p, forward(y), ahead ?? 0, side ?? 0);
+      ] as const) {
+        const point = localPoint(p, forward(y), ahead, side);
         expect(
           bowBlocked(
             p,
@@ -151,70 +151,22 @@ it("starts probing at the collision box even before the bow reaches the obstacle
   );
 });
 
+const allMet = {
+  on: true,
+  driver: true,
+  afloat: true,
+  blocked: true,
+  throttle: 1,
+};
+
 it.each([
-  {
-    name: "all conditions met",
-    on: true,
-    driver: true,
-    afloat: true,
-    blocked: true,
-    throttle: 1,
-    cuts: true,
-  },
-  {
-    name: "mode off",
-    on: false,
-    driver: true,
-    afloat: true,
-    blocked: true,
-    throttle: 1,
-    cuts: false,
-  },
-  {
-    name: "no driver",
-    on: true,
-    driver: false,
-    afloat: true,
-    blocked: true,
-    throttle: 1,
-    cuts: false,
-  },
-  {
-    name: "beached",
-    on: true,
-    driver: true,
-    afloat: false,
-    blocked: true,
-    throttle: 1,
-    cuts: false,
-  },
-  {
-    name: "neutral throttle",
-    on: true,
-    driver: true,
-    afloat: true,
-    blocked: true,
-    throttle: 0,
-    cuts: false,
-  },
-  {
-    name: "reverse",
-    on: true,
-    driver: true,
-    afloat: true,
-    blocked: true,
-    throttle: -1,
-    cuts: false,
-  },
-  {
-    name: "clear bow",
-    on: true,
-    driver: true,
-    afloat: true,
-    blocked: false,
-    throttle: 1,
-    cuts: false,
-  },
+  { name: "all conditions met", ...allMet, cuts: true },
+  { name: "mode off", ...allMet, on: false, cuts: false },
+  { name: "no driver", ...allMet, driver: false, cuts: false },
+  { name: "beached", ...allMet, afloat: false, cuts: false },
+  { name: "neutral throttle", ...allMet, throttle: 0, cuts: false },
+  { name: "reverse", ...allMet, throttle: -1, cuts: false },
+  { name: "clear bow", ...allMet, blocked: false, cuts: false },
 ])(
   "gates the cut on water and lava: $name",
   ({ on, driver, afloat, blocked, throttle, cuts }) => {
