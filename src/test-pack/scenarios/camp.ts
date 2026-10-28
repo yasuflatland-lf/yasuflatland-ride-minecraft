@@ -22,6 +22,7 @@ import {
   TEST_DUTCH_OVEN_SIMMER_EVENT,
   TEST_FIRE_PIT_EVENT,
   TEST_FIRE_PIT_HIT_EVENT,
+  TEST_GAS_LANTERN_EVENT,
   TEST_GAS_LANTERN_HIT_EVENT,
   TEST_TABLE_HIT_EVENT,
 } from "../../infrastructure/camp/identifiers";
@@ -444,5 +445,67 @@ export async function gasLanternTakeBack(a: Arena): Promise<Outcome> {
   } finally {
     if (lantern?.isValid) lantern.remove();
     for (const item of items()) item.remove();
+  }
+}
+
+export async function gasLanternSwitch(a: Arena): Promise<Outcome> {
+  const at = { x: CELL.x + 0.5, y: a.gy, z: CELL.z + 17.5 };
+  const cell = { x: Math.floor(at.x), y: at.y, z: Math.floor(at.z) };
+  const support = { ...cell, y: cell.y - 1 };
+  const previousSupport = a.dim.getBlock(support)?.permutation;
+  const lanterns = () =>
+    a.dim.getEntities({ type: GAS_LANTERN_TYPE, location: at, maxDistance: 2 });
+  const summon = () => {
+    a.dim.runCommand(`summon ${GAS_LANTERN_TYPE} ${at.x} ${at.y} ${at.z}`);
+    return lanterns()[0];
+  };
+  const air = () => a.dim.getBlock(cell)?.isAir === true;
+  const lit = (entity: Entity) =>
+    entity.getProperty(GAS_LANTERN_LIT_PROPERTY) === true &&
+    a.dim.getBlock(cell)?.typeId === "minecraft:light_block_15";
+  try {
+    a.dim.getBlock(support)?.setType("minecraft:stone");
+    a.dim.getBlock(cell)?.setType("minecraft:air");
+    const first = summon();
+    if (!first) return { pass: false, detail: "Gas Lantern not spawned" };
+    const initial =
+      first.getProperty(GAS_LANTERN_LIT_PROPERTY) === false && air();
+    system.sendScriptEvent(TEST_GAS_LANTERN_EVENT, first.id);
+    await wait(2);
+    const on = lit(first);
+    await wait(12);
+    system.sendScriptEvent(TEST_GAS_LANTERN_EVENT, first.id);
+    await wait(2);
+    const off = first.getProperty(GAS_LANTERN_LIT_PROPERTY) === false && air();
+    await wait(12);
+    system.sendScriptEvent(TEST_GAS_LANTERN_EVENT, first.id);
+    await wait(2);
+    const onAgain = lit(first);
+    a.dim.runCommand(
+      `kill @e[type=${GAS_LANTERN_TYPE},x=${at.x},y=${at.y},z=${at.z},r=2]`,
+    );
+    await wait(25);
+    const killed = !first.isValid && air();
+    const second = summon();
+    if (!second)
+      return { pass: false, detail: "second Gas Lantern not spawned" };
+    system.sendScriptEvent(TEST_GAS_LANTERN_EVENT, second.id);
+    await wait(2);
+    const secondOn = lit(second);
+    for (let i = 0; i < 3; i++) {
+      system.sendScriptEvent(TEST_GAS_LANTERN_HIT_EVENT, second.id);
+      await wait(2);
+    }
+    const takenBack = !second.isValid && air();
+    return {
+      pass: initial && on && off && onAgain && killed && secondOn && takenBack,
+      detail: `initial=${initial} on=${on} off=${off} onAgain=${onAgain} killed=${killed} secondOn=${secondOn} takenBack=${takenBack}`,
+    };
+  } finally {
+    for (const entity of lanterns()) entity.remove();
+    for (const item of droppedItems(a, at, GAS_LANTERN_ITEM)) item.remove();
+    a.dim.getBlock(cell)?.setType("minecraft:air");
+    if (previousSupport)
+      a.dim.getBlock(support)?.setPermutation(previousSupport);
   }
 }

@@ -20,6 +20,8 @@ import {
   tentCells,
 } from "../../../src/domain/camp/tent";
 import { asDimensionId } from "../../../src/domain/shared/ids";
+import { BedrockGasLanternWorld } from "../../../src/infrastructure/camp/bedrock/bedrockGasLanternWorld";
+import { gasLanternSwitchTarget } from "../../../src/infrastructure/camp/bedrock/gasLanternSwitch";
 import { registerDutchOven } from "../../../src/infrastructure/camp/bedrock/handlers/dutchOven";
 import { registerFirePit } from "../../../src/infrastructure/camp/bedrock/handlers/firePit";
 import { registerGasLantern } from "../../../src/infrastructure/camp/bedrock/handlers/gasLantern";
@@ -59,6 +61,10 @@ vi.mock("@minecraft/server", () => ({
     getEntity: game.getEntity,
   },
   system: {},
+}));
+const gasLanternTarget = vi.hoisted(() => ({ fake: "Gas Lantern target" }));
+vi.mock("../../../src/infrastructure/camp/bedrock/gasLanternSwitch", () => ({
+  gasLanternSwitchTarget: vi.fn(() => gasLanternTarget),
 }));
 const lanternTarget = vi.hoisted(() => ({ fake: "lantern target" }));
 vi.mock("../../../src/infrastructure/camp/bedrock/lanternSwitch", () => ({
@@ -255,13 +261,16 @@ it("shares one flap store between the tent world and the loop, and one flap use 
   game.getEntity.mockReset();
 });
 
-it("returns one switch target, the lantern's, built on the same SwitchLantern as the test hook", () => {
+it("returns tent and Gas Lantern targets built on the registered actions", () => {
   game.getDynamicProperty.mockReturnValue(SAVED);
   game.getEntity.mockImplementation((id: string) =>
     id === "t" ? { isValid: true, typeId: TENT_TYPE } : undefined,
   );
   const { switchTargets } = installCamp({ isVehicleSpace: () => false });
-  expect(switchTargets).toEqual([lanternTarget]);
+  expect(switchTargets).toEqual([lanternTarget, gasLanternTarget]);
+  expect(gasLanternSwitchTarget).toHaveBeenCalledExactlyOnceWith(
+    vi.mocked(registerGasLantern).mock.calls[0]?.[0],
+  );
   expect(switchTargets[0]).toBe(lanternTarget);
   const [lantern, tentContaining] =
     vi.mocked(lanternSwitchTarget).mock.calls[0] ?? [];
@@ -288,6 +297,7 @@ it("registers one Gas Lantern use case after the Fire Pit", () => {
   installCamp({ isVehicleSpace: () => false });
   expect(registerGasLantern).toHaveBeenCalledExactlyOnceWith(
     expect.any(GasLanternActions),
+    expect.any(BedrockGasLanternWorld),
   );
   expect(vi.mocked(registerFirePit).mock.invocationCallOrder[0]).toBeLessThan(
     vi.mocked(registerGasLantern).mock.invocationCallOrder[0] ?? 0,

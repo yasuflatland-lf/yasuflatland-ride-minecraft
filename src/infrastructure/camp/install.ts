@@ -25,6 +25,8 @@ import { BedrockLanternWorld } from "./bedrock/bedrockLanternWorld";
 import { BedrockTableWorld } from "./bedrock/bedrockTableWorld";
 import { BedrockTentPaintWorld } from "./bedrock/bedrockTentPaintWorld";
 import { BedrockTentWorld } from "./bedrock/bedrockTentWorld";
+import { createGasLanternLight } from "./bedrock/gasLanternLight";
+import { gasLanternSwitchTarget } from "./bedrock/gasLanternSwitch";
 import { registerDutchOven } from "./bedrock/handlers/dutchOven";
 import { registerFirePit } from "./bedrock/handlers/firePit";
 import { registerGasLantern } from "./bedrock/handlers/gasLantern";
@@ -65,7 +67,12 @@ export function installCamp(deps: { isVehicleSpace: SpaceCheck }): {
   const firePits = new BedrockFirePitWorld(deps);
   registerDutchOven(new DutchOvenActions(new BedrockDutchOvenWorld(deps)));
   registerFirePit(new FirePitActions(firePits), firePits);
-  registerGasLantern(new GasLanternActions(new BedrockGasLanternWorld(deps)));
+  const gasLanternWorld = new BedrockGasLanternWorld(
+    deps,
+    createGasLanternLight(),
+  );
+  const gasLanterns = new GasLanternActions(gasLanternWorld);
+  registerGasLantern(gasLanterns, gasLanternWorld);
 
   // SleepInBed is stateless, so camp builds its own instead of sharing the vehicle's.
   registerBedBlock(
@@ -102,6 +109,7 @@ export function installCamp(deps: { isVehicleSpace: SpaceCheck }): {
     isCampSpace: (d, c) => tents.isCampSpace(d, c),
     switchTargets: [
       lanternSwitchTarget(lantern, (d, feet) => tents.tentContaining(d, feet)),
+      gasLanternSwitchTarget(gasLanterns),
     ],
   };
 }

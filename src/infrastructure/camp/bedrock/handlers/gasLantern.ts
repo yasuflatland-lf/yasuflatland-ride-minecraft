@@ -7,6 +7,7 @@ import {
 } from "@minecraft/server";
 import type { GasLanternActions } from "../../../../application/camp/gasLantern";
 import { asGasLanternId } from "../../../../domain/camp/gasLantern";
+import { GAS_LANTERN_SPEC } from "../../../../domain/camp/spec";
 import {
   asDimensionId,
   asPlayerId,
@@ -18,10 +19,19 @@ import { HEADLIGHT_SWITCH_TYPE } from "../../../shared/identifiers";
 import {
   GAS_LANTERN_ITEM,
   GAS_LANTERN_TYPE,
+  TEST_GAS_LANTERN_EVENT,
   TEST_GAS_LANTERN_HIT_EVENT,
 } from "../../identifiers";
+import type { BedrockGasLanternWorld } from "../bedrockGasLanternWorld";
 
-export function registerGasLantern(actions: GasLanternActions): void {
+export function registerGasLantern(
+  actions: GasLanternActions,
+  lanternWorld: BedrockGasLanternWorld,
+): void {
+  system.runInterval(
+    () => lanternWorld.relayLoaded(),
+    GAS_LANTERN_SPEC.lightTicks,
+  );
   const placements = new TickScopedSet<PlayerId>();
   world.beforeEvents.playerInteractWithBlock.subscribe((ev) => {
     if (!ev.isFirstEvent || ev.itemStack?.typeId !== GAS_LANTERN_ITEM) return;
@@ -48,8 +58,10 @@ export function registerGasLantern(actions: GasLanternActions): void {
       ev.hitEntity.typeId !== GAS_LANTERN_TYPE
     )
       return;
-    // Touch taps with the light tool are reserved for switching (ADR 0173).
-    if (heldTypeId(ev.damagingEntity) === HEADLIGHT_SWITCH_TYPE) return;
+    if (heldTypeId(ev.damagingEntity) === HEADLIGHT_SWITCH_TYPE) {
+      actions.switch(asGasLanternId(ev.hitEntity.id), system.currentTick);
+      return;
+    }
     actions.hit(
       asGasLanternId(ev.hitEntity.id),
       asPlayerId(ev.damagingEntity.id),
@@ -58,12 +70,17 @@ export function registerGasLantern(actions: GasLanternActions): void {
   });
   system.afterEvents.scriptEventReceive.subscribe((ev) => {
     if (
-      ev.id !== TEST_GAS_LANTERN_HIT_EVENT ||
+      (ev.id !== TEST_GAS_LANTERN_HIT_EVENT &&
+        ev.id !== TEST_GAS_LANTERN_EVENT) ||
       ev.sourceType !== ScriptEventSource.Server
     )
       return;
     const entity = world.getEntity(ev.message);
     if (entity?.typeId !== GAS_LANTERN_TYPE) return;
+    if (ev.id === TEST_GAS_LANTERN_EVENT) {
+      actions.switch(asGasLanternId(entity.id), system.currentTick);
+      return;
+    }
     // The lantern id resolves to no player for action-bar hints.
     actions.hit(
       asGasLanternId(entity.id),
