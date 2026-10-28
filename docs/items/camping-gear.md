@@ -85,4 +85,4 @@ Creative players find the 17 decor items above in the **Camping Gear (Inside)** 
 
 ## Getting the gear
 
-The first time you place a camper, you get one Camping Gear Box. Use it (tap or right-click, in the air or on a block) to unpack all 17 items into your inventory, each marked "Camping gear" under its name; what does not fit drops at your feet. Each player gets one box, however many campers they place. In Creative, the Camping Gear (Inside) group near the end of the Items tab holds the box first, then the 18 decor items.
+The first time you place a camper, you get one Camping Gear Box. Use it (tap or right-click, in the air or on a block) to unpack all 17 items into your inventory, each marked "Camping gear" under its name; what does not fit drops at your feet. Each player gets one box, however many campers they place. In Creative, the Camping Gear (Inside) group near the end of the Items tab holds the box first, then the 17 decor items.

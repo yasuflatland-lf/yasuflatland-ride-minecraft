@@ -293,43 +293,27 @@ describe("camping gear block models (ADR 0093)", () => {
     }
   });
 
-  it("removes the oil lamp assets, atlas key, and names", () => {
-    for (const path of [
-      `${BP}/items/yasu_ride/oil_lamp.item.json`,
-      `${BP}/blocks/yasu_ride/oil_lamp_decor.block.json`,
-      `${MODELS}/oil_lamp.geo.json`,
-      `${RP}/textures/items/yasu_ride/oil_lamp.png`,
-      `${PREVIEWS}/oil_lamp.png`,
-    ])
-      expect(existsSync(path), path).toBe(false);
-    expect(
-      readFileSync(`${RP}/textures/item_texture.json`, "utf8"),
-    ).not.toContain("oil_lamp");
-    for (const locale of ["en_US", "ja_JP"]) {
-      expect(readFileSync(`${RP}/texts/${locale}.lang`, "utf8")).not.toContain(
-        "oil_lamp",
-      );
-    }
-  });
-
-  it("removes the lantern decor assets, atlas key, and names", () => {
-    for (const path of [
-      `${BP}/items/yasu_ride/lantern.item.json`,
-      `${BP}/blocks/yasu_ride/lantern_decor.block.json`,
-      `${MODELS}/lantern.geo.json`,
-      `${RP}/textures/items/yasu_ride/lantern.png`,
-      `${PREVIEWS}/lantern.png`,
-    ])
-      expect(existsSync(path), path).toBe(false);
-    expect(
-      readFileSync(`${RP}/textures/item_texture.json`, "utf8"),
-    ).not.toContain("yasu_ride_lantern");
-    for (const locale of ["en_US", "ja_JP"]) {
-      const lang = readFileSync(`${RP}/texts/${locale}.lang`, "utf8");
-      expect(lang).not.toContain("item.yasu_ride:lantern.name");
-      expect(lang).not.toContain("tile.yasu_ride:lantern_decor.name");
-    }
-  });
+  it.each(["oil_lamp", "lantern"])(
+    "removes the %s decor assets, atlas key, and names",
+    (id) => {
+      for (const path of [
+        `${BP}/items/yasu_ride/${id}.item.json`,
+        `${BP}/blocks/yasu_ride/${id}_decor.block.json`,
+        `${MODELS}/${id}.geo.json`,
+        `${RP}/textures/items/yasu_ride/${id}.png`,
+        `${PREVIEWS}/${id}.png`,
+      ])
+        expect(existsSync(path), path).toBe(false);
+      expect(
+        readFileSync(`${RP}/textures/item_texture.json`, "utf8"),
+      ).not.toContain(`yasu_ride_${id}`);
+      for (const locale of ["en_US", "ja_JP"]) {
+        const lang = readFileSync(`${RP}/texts/${locale}.lang`, "utf8");
+        expect(lang).not.toContain(`item.yasu_ride:${id}.name`);
+        expect(lang).not.toContain(`tile.yasu_ride:${id}_decor.name`);
+      }
+    },
+  );
 
   it("paints the atlas as 16 distinct 4 by 4 swatches, opaque except the glass", () => {
     const { width, height, pixel } = readPng(ATLAS);
