@@ -56,16 +56,22 @@ export function* cellsOf(box: Box): Generator<Cell> {
  * maxCells cells, by halving the longest side until a piece fits.
  */
 export function chunksOf(box: Box, maxCells: number): Box[] {
-  if (volume(box) <= maxCells) return [box];
-  const sx = sizeX(box);
-  const sy = sizeY(box);
-  const sz = sizeZ(box);
-  if (sx === 1 && sy === 1 && sz === 1) return [box];
-  const axis = sy >= sx && sy >= sz ? "y" : sz >= sx ? "z" : "x";
+  if (volume(box) <= maxCells || volume(box) === 1) return [box];
+  const axis = longestAxis(box);
   const mid = Math.floor((box.min[axis] + box.max[axis]) / 2);
   const low = boxOf(box.min, { ...box.max, [axis]: mid });
   const high = boxOf({ ...box.min, [axis]: mid + 1 }, box.max);
   return [...chunksOf(low, maxCells), ...chunksOf(high, maxCells)];
+}
+
+/** Ties go to y, then z. */
+function longestAxis(box: Box): "x" | "y" | "z" {
+  const sx = sizeX(box);
+  const sy = sizeY(box);
+  const sz = sizeZ(box);
+  if (sy >= sx && sy >= sz) return "y";
+  if (sz >= sx) return "z";
+  return "x";
 }
 
 export function translate(box: Box, by: Cell): Box {
@@ -125,7 +131,7 @@ export function edgePoints(box: Box, maxPoints: number): Cell[] {
   const count = Math.min(total, maxPoints);
   const picked: Cell[] = [];
   for (let i = 0; i < count; i++) {
-    picked.push(cellAt(count === total ? i : Math.floor((i * total) / count)));
+    picked.push(cellAt(Math.floor((i * total) / count)));
   }
   return picked;
 }
