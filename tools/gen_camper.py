@@ -927,12 +927,28 @@ def bucket_seat(x0, x1):
 # Bed at the rear left: two cells (build cell x = -1, z = +2 and +3), 9 px high like the
 # future parked bed block (the driving model is visual only).
 BED = (-HW + 1, -8, 24, REAR - 1)  # x0, x1, z0, z1
+BUNK_DECK_BOTTOM = FLOOR + 16
+BUNK_DECK_TOP = BUNK_DECK_BOTTOM + 1
+BUNK_TOP = BUNK_DECK_BOTTOM + 5.5
 body.append(box(BED[0], FLOOR, BED[2], BED[1], FLOOR + 3, BED[3], "wood"))
 body.append(box(BED[0] + 0.3, FLOOR + 3, BED[2] + 0.3, BED[1] - 0.3, FLOOR + 7.5, BED[3] - 0.3, "ivory"))
 body.append(box(BED[0] + 0.2, FLOOR + 7.5, BED[2] + 0.2, BED[1] - 0.2, FLOOR + 9, BED[3] - 8, "curtain"))
 body.append(box(BED[0] + 0.1, FLOOR + 5, BED[2] + 0.1, BED[1] - 0.1, FLOOR + 7.5, BED[2] + 0.4, "curtain"))  # blanket over the foot
 body.append(box(BED[0] + 0.2, FLOOR + 8.6, BED[3] - 9, BED[1] - 0.2, FLOOR + 9.4, BED[3] - 7.5, "ivory"))  # folded sheet
 body.append(box(BED[0] + 2, FLOOR + 7.5, BED[3] - 6, BED[1] - 2, FLOOR + 10, BED[3] - 1.5, "white"))  # pillow
+
+bunk = [
+    box(BED[0], BUNK_DECK_BOTTOM, BED[2], BED[1], BUNK_DECK_TOP, BED[3], "wood"),
+    box(BED[0] + 0.3, BUNK_DECK_TOP, BED[2] + 0.3, BED[1] - 0.3, BUNK_TOP - 2, BED[3] - 0.3, "ivory"),
+    # Starts 0.5 px off the wall so it stays clear of the window curtains (0.3 px thick).
+    box(BED[0] + 0.5, BUNK_TOP - 2, BED[2] + 0.2, BED[1] - 0.2, BUNK_TOP - 1, BED[3] - 8, "curtain"),
+    box(BED[0] + 2, BUNK_TOP - 2, BED[3] - 6, BED[1] - 2, BUNK_TOP, BED[3] - 1.5, "white"),
+    *[box(BED[1] - 1.25, FLOOR, z, BED[1], BUNK_DECK_TOP, z + 1.25, "wood")
+      for z in (BED[2], BED[3] - 1.25)],
+]
+# The block of 16/16 takes its selection box height from BUNK_TOP, so it must be the real top.
+assert max(c["origin"][1] + c["size"][1] for c in bunk) == BUNK_TOP
+
 # --- Right-hand furniture (ADR 0093) ----------------------------------------
 # Each decor slot height in src/domain/vehicle/kinds/camper/furniture.ts is the top of the
 # furniture at the middle of its cell; tests/packs/camper.test.ts checks them against this model.
@@ -1291,6 +1307,7 @@ camper_bones = [
     {"name": "root", "pivot": [0, 0, 0]},
     {"name": "body", "parent": "root", "pivot": [0, 0, 0], "cubes": body,
      "locators": {**hover, "exhaust": [-12, 4, REAR - 4], "shower_head": SHOWER_HEAD}},
+    {"name": "bunk", "parent": "body", "pivot": [0, 0, 0], "cubes": bunk},
     {"name": "headlights", "parent": "body", "pivot": [0, 0, 0], "cubes": headlights},
     {"name": "ceiling_lights", "parent": "body", "pivot": [0, 0, 0], "cubes": ceiling_lights},
     *wheels,
