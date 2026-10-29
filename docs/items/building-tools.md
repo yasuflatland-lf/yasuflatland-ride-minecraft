@@ -1,6 +1,6 @@
 # Building tools
 
-Tools the bulldozer's driver uses, from the single Building Tools group of the Items tab. The group holds four items: the Build Tool (its icon), the Selection Wand, the Blade Up/Down switch, and Wide Blade. To find it, open the creative Items tab and scroll to the end; it is the last group. Back to the [item groups](README.md).
+Tools the bulldozer's driver uses, from the single Building Tools group of the Items tab. The group holds five items: the Build Tool (its icon), the Selection Wand, the Blade Up/Down switch, Wide Blade, and Road Paver. To find it, open the creative Items tab and scroll to the end; it is the last group. Back to the [item groups](README.md).
 
 | Item | Recipe | What it does |
 |---|---|---|
@@ -8,6 +8,7 @@ Tools the bulldozer's driver uses, from the single Building Tools group of the I
 | Build Tool | Shapeless, an iron ingot and a chain | Hold it while driving the bulldozer and use it to open a form with Fill, Replace, Copy, Paste, Undo, and Clear selection. |
 | Blade Up/Down | Shapeless, a lever and an iron ingot | Hold it while driving the bulldozer and use it (right-click on PC, long press on mobile) to raise or lower the blade; a held press switches once ([ADR 0138](../adr/0138-raise-and-lower-the-bulldozer-blade.md)). While you hold it, the cab monitor shows UP or DOWN for the blade ([ADR 0139](../adr/0139-show-the-held-tool-on-the-cab-monitor.md)). It keeps its `yasu_ride:blade_switch` ID. It does not turn on build mode. |
 | Wide Blade | Shapeless, a lever and two iron ingots | Hold it while driving the bulldozer and use it to switch between the normal and the wide blade. The monitor shows NORM or WIDE; it cuts and rams twice as wide ([ADR 0180](../adr/0180-a-wide-bulldozer-blade.md)). |
+| Road Paver | Shapeless, a lever, an iron ingot, and a cobblestone | Hold it while driving the bulldozer and use it to turn the paver on or off. The monitor shows OFF or ON; while on, the bulldozer lays the block in your selected slot behind it, and the block is not consumed ([ADR 0181](../adr/0181-a-road-paver-on-the-bulldozer.md)). |
 
 The design is recorded in [ADR 0178](../adr/0178-bulldozer-build-tools-in-a-separate-namespace.md).
 

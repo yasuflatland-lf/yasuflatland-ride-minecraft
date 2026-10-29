@@ -1,5 +1,5 @@
 import { SyncedValue } from "../../../shared/syncedValue";
-import { clamp, normalizeYaw } from "../../../shared/vec";
+import { clamp, normalizeYaw, type Vec3 } from "../../../shared/vec";
 import type { CutColumn } from "../../cut";
 import type { DriveStep, EngineCommand, TickContext } from "../../drive";
 import { type RawInput, toDriveInput } from "../../driveInput";
@@ -13,6 +13,7 @@ import {
   TransformingDrive,
   transformingHorizontalStep,
 } from "../../motion/transformingDrive";
+import type { Pave } from "../../pave";
 import { bladeColumns, shaftColumns } from "./blade";
 import {
   type BULLDOZER_ENTITY,
@@ -29,6 +30,7 @@ import {
   ROAD_PAVER_SWITCH_ITEM,
   WIDE_BLADE_SWITCH_ITEM,
 } from "./monitor";
+import { type CellClass, paveStep } from "./paver";
 import { BULLDOZER_MOTION, BULLDOZER_TYRES } from "./profile";
 import {
   type BladeRule,
@@ -240,6 +242,8 @@ export class BulldozerDrive extends TransformingDrive {
     const out = super.step(raw, ctx);
     this.bladeSteps += Math.sign(this.bladeTargetSteps() - this.bladeSteps);
     const cut = this.bladeCut(raw, ctx);
+    const pave =
+      this.roadPaverOn && raw !== undefined ? this.lay(ctx) : undefined;
     if (this.form === "car")
       this.travel = advanceTracks(
         this.travel,
@@ -255,6 +259,7 @@ export class BulldozerDrive extends TransformingDrive {
       ...out,
       ramHalfWidth: this.bladeRule().halfWidth,
       ...(cut === undefined ? {} : { cut }),
+      ...(pave === undefined ? {} : { pave }),
       commands,
     };
   }
@@ -267,6 +272,33 @@ export class BulldozerDrive extends TransformingDrive {
       return undefined;
     const cut = [...this.forwardCut(raw, ctx), ...this.shaftCut(raw, ctx)];
     return cut.length === 0 ? undefined : cut;
+  }
+
+  private lay(ctx: TickContext): Pave | undefined {
+    return paveStep(
+      {
+        location: ctx.location,
+        yaw: this.yaw,
+        speed: this.speed,
+        form: this.form,
+        onGround: ctx.onGround,
+        halfWidth: this.bladeRule().halfWidth,
+        block: ctx.heldBlock,
+      },
+      (cell) => this.classAt(ctx, cell),
+    );
+  }
+
+  /** Solid first: waterAt is also true for waterlogged blocks. */
+  private classAt(ctx: TickContext, cell: Vec3): CellClass {
+    const offset = {
+      x: cell.x + 0.5 - ctx.location.x,
+      y: cell.y + 0.5 - ctx.location.y,
+      z: cell.z + 0.5 - ctx.location.z,
+    };
+    if (ctx.solidAt(offset)) return "solid";
+    if (ctx.waterAt(offset) || ctx.lavaAt?.(offset)) return "liquid";
+    return "open";
   }
 
   private bladeRule(): BladeRule {

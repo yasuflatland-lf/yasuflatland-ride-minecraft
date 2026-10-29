@@ -348,7 +348,7 @@ Setup: use `/give @s yasu_ride:bulldozer_item` or craft from an SUV item, an iro
 | B8 | Glow and propeller | Thruster glows only in flight; the propeller spins only under water | | |
 | B9 | Cutting bedrock, barriers, command blocks and light blocks with the blade lowered | Forward cutting removes them; liquids, containers and laid add-on blocks stay | | |
 | B10 | Cutting in Adventure mode with the blade lowered | The blade clears the same terrain in Adventure | | |
-| B11 | Creative group | There is no "Bulldozer Switches" group. "Building Tools", named in your language, holds four items: "Build Tool", "Selection Wand", "Blade Up/Down", and "Wide Blade" | | |
+| B11 | Creative group | There is no "Bulldozer Switches" group. "Building Tools", named in your language, holds five items: "Build Tool", "Selection Wand", "Blade Up/Down", "Wide Blade", and "Road Paver" | | |
 | B12 | Spawn pose | Place a bulldozer: the blade is up and the lift rods are short | | |
 | B13 | PC switch | Drive and right-click with the switch, then hold the button. The blade lowers over half a second, the rods lengthen, and a click plays. The held button switches only once. A second click raises the blade again | | |
 | B14 | Mobile switch | Drive and long press with the switch, then hold. The blade lowers over half a second, the rods lengthen, and a click plays. The held press switches only once. A second long press raises the blade again | | |
@@ -364,6 +364,25 @@ Setup: use `/give @s yasu_ride:bulldozer_item` or craft from an SUV item, an iro
 | B24 | Mesh steps (ADR 0146) | Look at the bulldozer from the front-left, the side, and at ground level in daylight on PC and on a phone; both steps beside the cab front read as dark-backed steel mesh, with no orange plate, and the open left door and the driver standing beside it (B5, B23) are unaffected. | | |
 | B25 | Drive under water with the blade lowered into a seabed hill, a rock wall, and bedrock (ADR 0155) | The blade tunnels through them as on land, sea plants included; resting on a slab or mud seabed it keeps the floor row; water, containers and laid add-on blocks stay, and the hole fills with water or leaves a dry pocket as the game decides | | |
 | B26 | Rise with Jump held (and in takeoff) with the blade lowered, under a stone roof in a one-block-wide tunnel, on land and under water (ADR 0155) | A hole as wide as the bulldozer plus two blocks on each side opens above it as it rises, so it never wedges; with the blade raised nothing is cut | | |
+| B56 | Road paver PC toggle | While driving on PC, right-click with Road Paver. Each press toggles once; the monitor shows OFF or ON while it is held. | unverified | unverified |
+| B57 | Road paver mobile toggle | While driving on mobile, long press with Road Paver. Each press toggles once; the monitor shows OFF or ON. | unverified | unverified |
+| B58 | Paving on land | Hold oak planks in the selected slot, turn the paver on, and drive across flat ground: planks are laid in the row under the tracks behind the bulldozer, across the blade width (at heading 0 from the center of a block, 11 columns with Wide Blade and 5 normal); the row above is untouched. | unverified | unverified |
+| B59 | One-block hole | Drive over a one-block hole in the lane: the hole is filled level with the ground. | unverified | unverified |
+| B60 | Step down and slope | Drive down a one-block step and down a slope: the road follows the lower ground; a short gap right at the step is expected. | unverified | unverified |
+| B61 | Step up with the blade raised | Climb a one-block step with the blade raised and the paver on: record the gap the road leaves at the step. | unverified | unverified |
+| B62 | Two-high bump | Drive at a two-block-high bump: the bump is left alone and no road is laid onto it. | unverified | unverified |
+| B63 | Lake level with the bank | Drive across a lake whose surface is level with the bank: a road bridges it, the bulldozer does not sink and stays in car form. | unverified | unverified |
+| B64 | River and lava bridge | Drive across a river two blocks below the bank, and across a lava sea: a road bridges each, nothing is laid below the bank row, and the bulldozer never floats. | unverified | unverified |
+| B65 | Deep water float | Drive into deep water until the bulldozer floats: nothing is laid. Drive back onto the bridge: paving resumes. | unverified | unverified |
+| B66 | Flight over a ravine | Fly over a ravine with the paver on: road appears in the row below the body, only behind it, and the bulldozer stays in hover. Record the server tick time at the wide width. | unverified | unverified |
+| B67 | Climb and sink while flying | Climb and sink while flying with the paver on: the road steps up and down with the body (ADR 0032). | unverified | unverified |
+| B68 | Fly backward onto the road | Fly backward onto the laid road: the bulldozer lands on it. | unverified | unverified |
+| B69 | Wheels near the road | Land near the laid road: the wheels do not flicker (ADR 0033). If they do, record the fix as an addendum to ADR 0181. | unverified | unverified |
+| B70 | Switch the held block | Switch the held block while driving: the road changes to the new block from that point. | unverified | unverified |
+| B71 | Flower in a hole | Drive over a one-block hole holding a flower or tall grass in it: the plant is paved over. | unverified | unverified |
+| B72 | Chest kept | Leave a chest in the lane: it stays in place and no road is laid on it. | unverified | unverified |
+| B73 | Survival | In Survival, drive with the paver on: no item is consumed from the inventory. | unverified | unverified |
+| B74 | Saved paver | Turn the paver on, run `pnpm server:restart`, and rejoin: the monitor shows ON and paving resumes. | unverified | unverified |
 
 ## Tent
 
@@ -457,7 +476,7 @@ Setup: use `/give @s yasu_build:selection_wand` and `/give @s yasu_build:build_t
 
 | # | Steps | Pass condition | PC | Mobile |
 |---|---|---|---|---|
-| BT1 | Open the creative Items tab and craft the four items | One "Building Tools" group, the last group, holds "Build Tool" (its icon), "Selection Wand", "Blade Up/Down", and "Wide Blade", with no group nested inside or beside it for the switch. A stick and a copper ingot craft the wand; an iron ingot and a chain craft the tool; a lever and an iron ingot craft the blade switch; a lever and two iron ingots craft Wide Blade | unverified | unverified |
+| BT1 | Open the creative Items tab and craft the five items | One "Building Tools" group, the last group, holds "Build Tool" (its icon), "Selection Wand", "Blade Up/Down", "Wide Blade", and "Road Paver", with no group nested inside or beside it for the switch. A stick and a copper ingot craft the wand; an iron ingot and a chain craft the tool; a lever and an iron ingot craft the blade switch; a lever and two iron ingots craft Wide Blade; a lever, an iron ingot, and a cobblestone craft Road Paver | unverified | unverified |
 | BT2 | Ride a bulldozer holding the wand: hit a block, then use it on another, in Survival and in Creative | The first hit sets pos1 without breaking the block, the use sets pos2 and shows the block count, and the outline appears in both modes | unverified | unverified |
 | BT3 | Sneak, aim at the air (no block), and use the wand | The selection clears and the outline disappears | unverified | unverified |
 | BT4 | Copy, then watch the paste preview while driving | The preview outline shows where a paste would land and moves with the bulldozer | unverified | unverified |

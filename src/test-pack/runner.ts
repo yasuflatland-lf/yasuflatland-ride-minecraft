@@ -84,6 +84,17 @@ import {
 import { campingGearBlocks } from "./scenarios/campingGear";
 import { fleetForget } from "./scenarios/fleetRemove";
 import {
+  bulldozerPaveCliff,
+  bulldozerPaveFlat,
+  bulldozerPaveFlight,
+  bulldozerPaveHole,
+  bulldozerPaveKept,
+  bulldozerPaveNoBlock,
+  bulldozerPaveStepDown,
+  bulldozerPaveWater,
+  bulldozerPaveWide,
+} from "./scenarios/roadPaver";
+import {
   boatCruise,
   boatDeckSeats,
   boatDock,
@@ -170,6 +181,15 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
     ["bulldozer_spawns_raised", 65, () => bulldozerSpawnsRaised(a)],
     ["bulldozer_monitor", 34, () => bulldozerMonitor(a)],
     ["bulldozer_road_paver_toggle", 60, () => bulldozerRoadPaverToggle(a)],
+    ["bulldozer_pave_flat", 86, () => bulldozerPaveFlat(a)],
+    ["bulldozer_pave_wide", 86, () => bulldozerPaveWide(a)],
+    ["bulldozer_pave_hole", 86, () => bulldozerPaveHole(a)],
+    ["bulldozer_pave_step_down", 92, () => bulldozerPaveStepDown(a)],
+    ["bulldozer_pave_cliff", 86, () => bulldozerPaveCliff(a)],
+    ["bulldozer_pave_water", 90, () => bulldozerPaveWater(a)],
+    ["bulldozer_pave_flight", 102, () => bulldozerPaveFlight(a)],
+    ["bulldozer_pave_kept", 86, () => bulldozerPaveKept(a)],
+    ["bulldozer_pave_no_block", 236, () => bulldozerPaveNoBlock(a)],
     ["bulldozer_wide_blade_toggle", 38, () => bulldozerWideBladeToggle(a)],
     ["camper_accel", 144, () => camperAccel(a)],
     ["camper_wall", 150, () => camperWall(a)],
