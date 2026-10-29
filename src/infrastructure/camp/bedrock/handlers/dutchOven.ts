@@ -29,26 +29,22 @@ import {
   TEST_DUTCH_OVEN_SIMMER_EVENT,
 } from "../../identifiers";
 import { setOvenHost } from "../bedrockDutchOvenWorld";
-import { showTableTopRefusal, tableTopAim } from "../tableTopAim";
-
-const PIXELS = /^-?[0-9]+(?:\.[0-9]+)?$/;
+import {
+  showTableTopRefusal,
+  tableTopAim,
+  testTableTopRequest,
+} from "../tableTopAim";
 
 /** Reads `<table> <0|1>` as an old spot, or `<table> <x> <z>` as local pixels. */
 function testTableRequest(
   message: string,
 ): { table: string; aim: LocalPoint } | undefined {
-  const [table, ...rest] = message.trim().split(/\s+/);
-  if (!table) return undefined;
-  if (rest.length === 1) {
-    const spot = /^[01]$/.test(rest[0] ?? "")
-      ? TABLE_SPOTS[Number(rest[0])]
-      : undefined;
-    return spot ? { table, aim: spot } : undefined;
+  const [table, spot, ...rest] = message.trim().split(/\s+/);
+  if (table && rest.length === 0 && /^[01]$/.test(spot ?? "")) {
+    const aim = TABLE_SPOTS[Number(spot)];
+    return aim ? { table, aim } : undefined;
   }
-  const [x, z] = rest;
-  if (rest.length !== 2 || !PIXELS.test(x ?? "") || !PIXELS.test(z ?? ""))
-    return undefined;
-  return { table, aim: { x: Number(x), z: Number(z) } };
+  return testTableTopRequest(message);
 }
 
 export function registerDutchOven(actions: DutchOvenActions): void {

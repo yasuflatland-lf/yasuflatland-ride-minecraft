@@ -30,6 +30,7 @@ import {
   TEST_FIRE_PIT_HIT_EVENT,
   TEST_GAS_LANTERN_EVENT,
   TEST_GAS_LANTERN_HIT_EVENT,
+  TEST_GAS_LANTERN_ON_TABLE_EVENT,
   TEST_TABLE_HIT_EVENT,
 } from "../../infrastructure/camp/identifiers";
 import { type Arena, type Outcome, wait } from "../arena";
@@ -68,6 +69,9 @@ const summonFirePit = (a: Arena, at: Vector3): Entity | undefined => {
 
 const ovensNear = (a: Arena, at: Vector3) =>
   a.dim.getEntities({ type: DUTCH_OVEN_TYPE, location: at, maxDistance: 2 });
+
+const lanternsNear = (a: Arena, at: Vector3) =>
+  a.dim.getEntities({ type: GAS_LANTERN_TYPE, location: at, maxDistance: 2 });
 
 /** Runs a scenario once per chair kind, passing only when every kind passes. */
 async function forEveryChairKind(
@@ -212,9 +216,10 @@ const summonTable = (a: Arena, at: Vector3): Entity | undefined => {
 };
 
 const cleanTable = (a: Arena, table: Entity | undefined, at: Vector3) => {
-  for (const oven of ovensNear(a, at)) oven.remove();
+  for (const item of [...ovensNear(a, at), ...lanternsNear(a, at)])
+    item.remove();
   if (table?.isValid) table.remove();
-  for (const type of [DUTCH_OVEN_ITEM, CAMP_TABLE_ITEM])
+  for (const type of [DUTCH_OVEN_ITEM, GAS_LANTERN_ITEM, CAMP_TABLE_ITEM])
     for (const item of droppedItems(a, at, type)) item.remove();
 };
 
@@ -289,11 +294,13 @@ const summonMarkedOven = async (a: Arena, at: Vector3, marker: string) => {
   return oven;
 };
 
-const placeOnTableAt = async (table: Entity, x: number, z: number) => {
-  system.sendScriptEvent(
-    TEST_DUTCH_OVEN_ON_TABLE_EVENT,
-    `${table.id} ${x} ${z}`,
-  );
+const placeOnTableAt = async (
+  table: Entity,
+  x: number,
+  z: number,
+  event = TEST_DUTCH_OVEN_ON_TABLE_EVENT,
+) => {
+  system.sendScriptEvent(event, `${table.id} ${x} ${z}`);
   await wait(2);
 };
 
@@ -377,6 +384,95 @@ export async function campTableLegacyOven(a: Arena): Promise<Outcome> {
     return {
       pass: kept && guarded && blocked && beside,
       detail: `kept=${kept} guarded=${guarded} blocked=${blocked} beside=${beside}`,
+    };
+  } finally {
+    cleanTable(a, table, at);
+  }
+}
+
+/**
+ * A lantern and an oven share one top: the lantern stands on it and lights the
+ * cell above, both block folding, a fifth item is refused at a free point, and
+ * taking both back clears the light and lets the table fold (ADR 0185).
+ */
+export async function campTableLantern(a: Arena): Promise<Outcome> {
+  const at = TABLE_AT(a);
+  const table = summonTable(a, at);
+  if (!table) return { pass: false, detail: "table not spawned" };
+  const hitThree = async (event: string, id: string) => {
+    for (let i = 0; i < 3; i++) {
+      system.sendScriptEvent(event, id);
+      await wait(2);
+    }
+  };
+  const placeLantern = (x: number, z: number) =>
+    placeOnTableAt(table, x, z, TEST_GAS_LANTERN_ON_TABLE_EVENT);
+  try {
+    const host = { at: table.location, yaw: table.getRotation().y };
+    const onTop = (entity: Entity) =>
+      Math.abs(entity.location.y - (table.location.y + TABLE_TOP_PX / 16)) <
+      0.05;
+    await placeOnTableAt(table, -9, 0);
+    await placeLantern(15, 0);
+    const [oven] = ovensNear(a, at);
+    const [lantern] = lanternsNear(a, at);
+    if (!oven || !lantern)
+      return { pass: false, detail: `oven=${!!oven} lantern=${!!lantern}` };
+    await wait(22);
+    const standing =
+      onTop(oven) &&
+      onTop(lantern) &&
+      Math.abs(hostLocalPx(host, lantern.location).x - 11.25) < 0.1;
+
+    system.sendScriptEvent(TEST_GAS_LANTERN_EVENT, lantern.id);
+    await wait(2);
+    const lightCell = {
+      x: Math.floor(lantern.location.x),
+      y: Math.floor(table.location.y) + 1,
+      z: Math.floor(lantern.location.z),
+    };
+    const lit =
+      a.dim.getBlock(lightCell)?.typeId === "minecraft:light_block_15";
+
+    await hitThree(TEST_TABLE_HIT_EVENT, table.id);
+    const guarded =
+      table.isValid && totalAmount(droppedItems(a, at, CAMP_TABLE_ITEM)) === 0;
+
+    const fillers: (Entity | undefined)[] = [];
+    for (let i = 0; i < 2; i++)
+      fillers.push(
+        await summonMarkedOven(a, at, `camp_table:${table.id}:@-9,0`),
+      );
+    await placeLantern(2, 0);
+    const refused = lanternsNear(a, at).length === 1;
+    fillers[0]?.remove();
+    await placeLantern(2, 0);
+    const extra = lanternsNear(a, at).filter((e) => e.id !== lantern.id);
+    const freed = extra.length === 1 && extra.every(onTop);
+    for (const entity of [...extra, fillers[1]]) entity?.remove();
+
+    await hitThree(TEST_DUTCH_OVEN_HIT_EVENT, oven.id);
+    await hitThree(TEST_GAS_LANTERN_HIT_EVENT, lantern.id);
+    const returned =
+      totalAmount(droppedItems(a, at, DUTCH_OVEN_ITEM)) === 1 &&
+      totalAmount(droppedItems(a, at, GAS_LANTERN_ITEM)) === 1 &&
+      ovensNear(a, at).length === 0 &&
+      lanternsNear(a, at).length === 0;
+    const dark = a.dim.getBlock(lightCell)?.isAir === true;
+    await hitThree(TEST_TABLE_HIT_EVENT, table.id);
+    const folded =
+      !table.isValid && totalAmount(droppedItems(a, at, CAMP_TABLE_ITEM)) === 1;
+    return {
+      pass:
+        standing &&
+        lit &&
+        guarded &&
+        refused &&
+        freed &&
+        returned &&
+        dark &&
+        folded,
+      detail: `standing=${standing} lit=${lit} guarded=${guarded} refused=${refused} freed=${freed} returned=${returned} dark=${dark} folded=${folded}`,
     };
   } finally {
     cleanTable(a, table, at);

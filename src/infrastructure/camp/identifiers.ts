@@ -164,3 +164,9 @@ export const TEST_GAS_LANTERN_EVENT = id("test_gas_lantern");
 export const GAS_LANTERN_LIT_PROPERTY = id("lit");
 export const GAS_LANTERN_HITS_LEFT_HINT = "yasu_ride.hint.gas_lantern_hits";
 export const TEST_GAS_LANTERN_HIT_EVENT = id("test_gas_lantern_hit");
+/** Holds the lantern's host marker; absent or empty means a ground lantern (ADR 0185). */
+export const GAS_LANTERN_HOST_PROPERTY = id("host");
+export const GAS_LANTERN_HOSTED_EVENT = id("gas_lantern_hosted");
+/** Server test hook: the message is the table entity id and a local point `<x> <z>` in model pixels. */
+export const TEST_GAS_LANTERN_ON_TABLE_EVENT =
+  "yasu_ride_test:test_gas_lantern_on_table";
