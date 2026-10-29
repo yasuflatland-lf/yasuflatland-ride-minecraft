@@ -78,12 +78,12 @@ export const TABLE_SPOTS = Object.freeze([
 ] as const);
 // Must match the tabletop origin plus thickness in tools/gen_camp_table.py (ADR 0168).
 export const TABLE_TOP_PX = 12.25;
-// Must match the 30 by 12 px tabletop cube in tools/gen_camp_table.py (ADR 0182).
+// Must match the 30 by 12 px tabletop cube in tools/gen_camp_table.py (ADR 0185).
 export const TABLE_TOP_HALF_PX: Footprint = Object.freeze({
   halfX: 15,
   halfZ: 6,
 });
-/** Ovens and lanterns together, the owner's limit (ADR 0182). */
+/** Ovens and lanterns together, the owner's limit (ADR 0185). */
 export const TABLE_TOP_LIMIT = 4;
 // Square half extents cover the models at any yaw, rounded up from generated
 // geometry: tools/gen_dutch_oven.py reaches at most 5.70 px from its center,
