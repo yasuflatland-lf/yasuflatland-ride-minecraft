@@ -63,6 +63,11 @@ PALETTE = {
     # The ceiling light lenses: alpha 0, so the emissive material lights them fully while the
     # lights are on, and the plain entity material, which ignores alpha, shows them unlit (ADR 0020, 0115).
     "dome": (250, 244, 218, 0),
+    # The roof clearance and tail lamps that glow with the headlights: the RGB of amber and red,
+    # appended so no swatch index moves, while the side markers and turn signals keep the unlit
+    # swatches (ADR 0184).
+    "marker_amber": (240, 140, 30, 255),
+    "marker_red": (200, 30, 30, 255),
 }
 SLOTS = list(PALETTE)
 EMISSIVE_LIT = 255
@@ -70,7 +75,7 @@ MER_LIT = (0, EMISSIVE_LIT, 255)
 MER_OFF = (0, 0, 255)
 # Each bone name maps to the palette swatches whose cubes form it so the render controller can light them.
 LAMP_GROUPS = {
-    "headlights": ("lens",),
+    "headlights": ("lens", "marker_amber", "marker_red"),
     "ceiling_lights": ("dome",),
 }
 LIT_SLOTS = tuple(dict.fromkeys(SLOTS.index(name) for names in LAMP_GROUPS.values() for name in names))
@@ -661,9 +666,9 @@ body.append(box(-HW - 0.2, ROOF - 0.6, TOP_FRONT - 0.3, HW + 0.2, ROOF + 0.1, TO
 # the middle one a flat lens.
 for x, half, dome in ((-21.5, 0.7, True), (-6, 0.7, True), (0, 1.2, False), (6, 0.7, True), (21.5, 0.7, True)):
     body.append(box(x - half - 0.2, ROOF - 0.1, TOP_FRONT - 0.1, x + half + 0.2, ROOF + 0.1, TOP_FRONT + 1.1, "chrome"))
-    body.append(box(x - half, ROOF - 0.1, TOP_FRONT, x + half, ROOF + 0.7, TOP_FRONT + 1.0, "amber"))
+    body.append(box(x - half, ROOF - 0.1, TOP_FRONT, x + half, ROOF + 0.7, TOP_FRONT + 1.0, "marker_amber"))
     if dome:
-        body.append(box(x - 0.4, ROOF + 0.7, TOP_FRONT + 0.2, x + 0.4, ROOF + 1.0, TOP_FRONT + 0.8, "amber"))
+        body.append(box(x - 0.4, ROOF + 0.7, TOP_FRONT + 0.2, x + 0.4, ROOF + 1.0, TOP_FRONT + 0.8, "marker_amber"))
 for sx in (1, -1):
     # Rectangular side marker high on the wall, just behind the upper leg of the molding
     x0, x1 = sorted((sx * HW, sx * (HW + 0.25)))
@@ -701,7 +706,7 @@ for fy0, fy1 in ((37.4, 38), (50, 50.6)):
 for fx in (-17.6, 17):
     body.append(box(fx, 38, REAR, fx + 0.6, 50, REAR + 0.2, "black"))
 for x in (-12, -4, 4, 12):
-    body += disc("z", x, ROOF - 2.2, REAR + 0.2, 0.7, 0.3, "red", steps=(0, 45))
+    body += disc("z", x, ROOF - 2.2, REAR + 0.2, 0.7, 0.3, "marker_red", steps=(0, 45))
 # Two-door hatch with a tan center bar, a tan band along the bottom, round tail lights.
 for x0, x1 in ((-13, -0.6), (0.6, 13)):
     body.append(box(x0, 12, REAR, x1, 26, REAR + 0.2, "white"))
@@ -713,7 +718,7 @@ body.append(box(-0.6, 10, REAR, 0.6, 27, REAR + 0.35, "tan"))
 body.append(box(-15, 10, REAR, 15, 11, REAR + 0.35, "tan"))
 body.append(box(-HW, BOTTOM, REAR, HW, 10, REAR + 0.15, "tan"))
 for sx in (1, -1):
-    body += disc("z", sx * 19, 15, REAR + 0.2, 1.6, 0.4, "red")
+    body += disc("z", sx * 19, 15, REAR + 0.2, 1.6, 0.4, "marker_red")
     body += disc("z", sx * REAR_SIGNAL_X, REAR_SIGNAL_Y, REAR + 0.2, REAR_SIGNAL_BEZEL_R, 0.4, "chrome", steps=STEPS_16)
     body += disc("z", sx * REAR_SIGNAL_X, REAR_SIGNAL_Y, REAR + 0.5, REAR_SIGNAL_LENS_R, 0.3, "amber", steps=STEPS_16)
 body.append(box(-19, 17.5, REAR, -16, 21, REAR + 0.3, "panel"))  # backup light box

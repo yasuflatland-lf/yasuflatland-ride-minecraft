@@ -41,7 +41,7 @@ const kinds = [
   },
   {
     kind: "camper",
-    slots: [14, 33],
+    slots: [14, 33, 34, 35],
     cell: 1,
     bones: { headlights, ceiling_lights: ceiling },
     condition: `${headlights} || ${ceiling}`,
