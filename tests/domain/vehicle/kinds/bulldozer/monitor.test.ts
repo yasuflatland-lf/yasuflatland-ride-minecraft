@@ -75,7 +75,11 @@ describe("bulldozer cab monitor rule (ADR 0139)", () => {
     fc.assert(
       fc.property(
         fc.tuple(...tools.map((tool) => fc.constantFrom(...tool.states))),
-        fc.string(),
+        fc
+          .oneof(fc.string(), fc.constantFrom("", "toString"))
+          .filter(
+            (state) => !tools.some((tool) => tool.states.includes(state)),
+          ),
         fc.string().filter((item) => !tools.some((tool) => tool.item === item)),
         (initial, invalidState, unknownItem) => {
           const drive = new BulldozerDrive(0, {});
@@ -84,8 +88,7 @@ describe("bulldozer cab monitor rule (ADR 0139)", () => {
             if (state !== undefined) drive.setToolState(item, state);
           });
           const before = statesOf(drive);
-          for (const { item, states } of tools) {
-            if (states.includes(invalidState)) continue;
+          for (const { item } of tools) {
             expect(drive.setToolState(item, invalidState)).toBe(false);
             expect(statesOf(drive)).toEqual(before);
           }
