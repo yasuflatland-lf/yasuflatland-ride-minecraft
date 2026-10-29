@@ -16,7 +16,6 @@ import type { Vec3 } from "../../../domain/shared/vec";
 import { NAMESPACE } from "../../shared/identifiers";
 import { consumeHeld, isCreative, playerById } from "../../shared/players";
 import {
-  CAMP_TABLE_TYPE,
   DUTCH_OVEN_GROUND_EVENT,
   DUTCH_OVEN_HITS_LEFT_HINT,
   DUTCH_OVEN_HOST_PROPERTY,
@@ -31,7 +30,7 @@ import {
   isFirePitCovered,
   setFirePitCovered,
 } from "./firePitCovered";
-import { itemsOnTable } from "./tableItems";
+import { itemsOnTable, tableTop } from "./tableItems";
 
 function dutchOven(id: DutchOvenId) {
   const entity = world.getEntity(id);
@@ -120,14 +119,7 @@ export class BedrockDutchOvenWorld implements DutchOvenWorld {
   }
 
   table(id: string) {
-    const table = world.getEntity(id);
-    return table?.isValid && table.typeId === CAMP_TABLE_TYPE
-      ? {
-          dimension: asDimensionId(table.dimension.id),
-          at: table.location,
-          yaw: table.getRotation().y,
-        }
-      : undefined;
+    return tableTop(id);
   }
 
   itemsOnTable(id: string): readonly TopItem[] {

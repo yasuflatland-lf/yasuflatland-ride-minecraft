@@ -1,5 +1,6 @@
 import { ItemStack, world } from "@minecraft/server";
 import type { GasLanternWorld } from "../../../application/camp/ports/gasLantern";
+import type { HostedKindId } from "../../../application/camp/ports/tableTop";
 import {
   asGasLanternId,
   type GasLanternId,
@@ -7,6 +8,7 @@ import {
   gasLanternLightCells,
 } from "../../../domain/camp/gasLantern";
 import { GAS_LANTERN_SPEC } from "../../../domain/camp/spec";
+import type { TopItem } from "../../../domain/camp/tabletop";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { NAMESPACE } from "../../shared/identifiers";
@@ -14,17 +16,28 @@ import type { CellLayer } from "../../shared/laidCells";
 import { consumeHeld, isCreative, playerById } from "../../shared/players";
 import {
   GAS_LANTERN_HITS_LEFT_HINT,
+  GAS_LANTERN_HOST_PROPERTY,
+  GAS_LANTERN_HOSTED_EVENT,
   GAS_LANTERN_ITEM,
   GAS_LANTERN_LIT_PROPERTY,
   GAS_LANTERN_TYPE,
   SWITCH_CLICK_SOUND,
 } from "../identifiers";
+import { itemsOnTable, tableTop } from "./tableItems";
 
 function gasLantern(id: GasLanternId) {
   const entity = world.getEntity(id);
   return entity?.isValid && entity.typeId === GAS_LANTERN_TYPE
     ? entity
     : undefined;
+}
+
+function spawnLantern(dimension: DimensionId, at: Vec3, yaw: number) {
+  const lantern = world
+    .getDimension(dimension)
+    .spawnEntity(GAS_LANTERN_TYPE, at);
+  lantern.setRotation({ x: 0, y: yaw });
+  return lantern;
 }
 
 export class BedrockGasLanternWorld implements GasLanternWorld {
@@ -80,10 +93,29 @@ export class BedrockGasLanternWorld implements GasLanternWorld {
   }
 
   spawnGasLantern(dimension: DimensionId, at: Vec3, yaw: number): void {
-    world
-      .getDimension(dimension)
-      .spawnEntity(GAS_LANTERN_TYPE, at)
-      .setRotation({ x: 0, y: yaw });
+    spawnLantern(dimension, at, yaw);
+  }
+
+  table(id: string) {
+    return tableTop(id);
+  }
+
+  itemsOnTable(id: string): readonly TopItem[] {
+    return itemsOnTable(id);
+  }
+
+  spawnHostedOnTable(
+    _kind: HostedKindId,
+    dimension: DimensionId,
+    at: Vec3,
+    yaw: number,
+    host: string,
+  ): void {
+    const lantern = spawnLantern(dimension, at, yaw);
+    lantern.setDynamicProperty(GAS_LANTERN_HOST_PROPERTY, host);
+    // Entities do not provide a supporting block surface for another entity.
+    lantern.triggerEvent(GAS_LANTERN_HOSTED_EVENT);
+    lantern.clearVelocity();
   }
 
   isLit(id: GasLanternId): boolean | undefined {

@@ -4,7 +4,7 @@ import type { Vec3 } from "../../../domain/shared/vec";
 import type { GroundCellsWorld } from "./groundCells";
 
 /** The kinds of item a table top can hold (ADR 0185). */
-export type HostedKindId = "dutch_oven";
+export type HostedKindId = "dutch_oven" | "gas_lantern";
 
 /** What the shared table top rule needs to know about one kind of item. */
 export interface HostedItemKind {

@@ -50,6 +50,21 @@
           }
         ]
       }
+    },
+    "component_groups": {
+      "yasu_ride:gas_lantern_hosted": {
+        "minecraft:physics": {
+          "has_collision": false,
+          "has_gravity": false
+        }
+      }
+    },
+    "events": {
+      "yasu_ride:gas_lantern_hosted": {
+        "add": {
+          "component_groups": ["yasu_ride:gas_lantern_hosted"]
+        }
+      }
     }
   }
 }

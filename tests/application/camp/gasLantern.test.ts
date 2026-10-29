@@ -3,6 +3,15 @@ import { expect, it, vi } from "vitest";
 import { GasLanternActions } from "../../../src/application/camp/gasLantern";
 import type { GasLanternWorld } from "../../../src/application/camp/ports/gasLantern";
 import { asGasLanternId } from "../../../src/domain/camp/gasLantern";
+import { decodeHost } from "../../../src/domain/camp/hosted";
+import {
+  DUTCH_OVEN_FOOTPRINT_PX,
+  GAS_LANTERN_FOOTPRINT_PX,
+  GAS_LANTERN_SPEC,
+  TABLE_TOP_HALF_PX,
+  TABLE_TOP_LIMIT,
+} from "../../../src/domain/camp/spec";
+import type { TopItem } from "../../../src/domain/camp/tabletop";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 
 const player = asPlayerId("player");
@@ -30,6 +39,9 @@ function fixture() {
     dropItem: vi.fn(),
     removeGasLantern: vi.fn(),
     showHitsLeft: vi.fn(),
+    table: () => ({ dimension, at: { x: 10.5, y: 64, z: 20.5 }, yaw: 90 }),
+    itemsOnTable: vi.fn((): readonly TopItem[] => []),
+    spawnHostedOnTable: vi.fn<GasLanternWorld["spawnHostedOnTable"]>(),
   } satisfies GasLanternWorld;
   return { actions: new GasLanternActions(world), world };
 }
@@ -165,4 +177,73 @@ it("clears a lit lantern's light before dropping its item and removing it", () =
   expect(world.dropItem.mock.invocationCallOrder[0]).toBeLessThan(
     world.removeGasLantern.mock.invocationCallOrder[0] ?? 0,
   );
+});
+
+const tableCmd = { player, table: "table", slot: 4 };
+
+it("stands on a table with the lantern's footprint, the table's yaw, and a marker naming the table", () => {
+  const { actions, world } = fixture();
+  const far = TABLE_TOP_HALF_PX.halfX + 10;
+  expect(actions.placeOnTable({ ...tableCmd, aim: { x: far, z: 0 } })).toBe(
+    "placed",
+  );
+  const [kind, dim, , yaw, host] = world.spawnHostedOnTable.mock.calls[0] ?? [];
+  expect([kind, dim, yaw]).toEqual(["gas_lantern", dimension, 90]);
+  expect(decodeHost(String(host))).toEqual({
+    kind: "camp_table",
+    id: "table",
+    at: { x: TABLE_TOP_HALF_PX.halfX - GAS_LANTERN_FOOTPRINT_PX.halfX, z: 0 },
+  });
+  expect(world.consumeItem).toHaveBeenCalledExactlyOnceWith(player, 4);
+  expect(world.spawnGasLantern).not.toHaveBeenCalled();
+});
+
+it("keeps the table's cell and the cell above the top clear for the lantern and its light", () => {
+  for (const blockedY of [64, 65, 66]) {
+    const { actions, world } = fixture();
+    world.isAir.mockImplementation((_d, at) => at.y !== blockedY);
+    const placed = blockedY - 64 >= GAS_LANTERN_SPEC.tableClearance;
+    expect(actions.placeOnTable(tableCmd)).toBe(placed ? "placed" : "refused");
+    expect(world.consumeItem).toHaveBeenCalledTimes(placed ? 1 : 0);
+  }
+});
+
+it("shares the limit of 4 with ovens and consumes nothing when the top is full", () => {
+  fc.assert(
+    fc.property(
+      fc.array(
+        fc.constantFrom(DUTCH_OVEN_FOOTPRINT_PX, GAS_LANTERN_FOOTPRINT_PX),
+        {
+          maxLength: TABLE_TOP_LIMIT + 1,
+        },
+      ),
+      (footprints) => {
+        const { actions, world } = fixture();
+        world.itemsOnTable.mockReturnValue(
+          footprints.map((footprint) => ({
+            at: { x: -9.25, z: 0 },
+            footprint,
+          })),
+        );
+        const full = footprints.length >= TABLE_TOP_LIMIT;
+        expect(
+          actions.placeOnTable({ ...tableCmd, aim: { x: 15, z: 0 } }),
+        ).toBe(full ? "full" : "placed");
+        expect(world.consumeItem).toHaveBeenCalledTimes(full ? 0 : 1);
+        expect(world.spawnHostedOnTable).toHaveBeenCalledTimes(full ? 0 : 1);
+      },
+    ),
+  );
+});
+
+it("consumes nothing when the lantern would overlap an oven", () => {
+  const { actions, world } = fixture();
+  world.itemsOnTable.mockReturnValue([
+    { at: { x: 2, z: 1 }, footprint: DUTCH_OVEN_FOOTPRINT_PX },
+  ]);
+  expect(actions.placeOnTable({ ...tableCmd, aim: { x: 0, z: 0 } })).toBe(
+    "overlap",
+  );
+  expect(world.consumeItem).not.toHaveBeenCalled();
+  expect(world.spawnHostedOnTable).not.toHaveBeenCalled();
 });

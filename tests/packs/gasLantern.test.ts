@@ -253,6 +253,22 @@ describe("Gas Lantern item and ground entity", () => {
     });
   });
 
+  it("floats on a table top only through the hosted event, with no way back to gravity", () => {
+    const entity = readJson(`${bp}/entities/yasu_ride/gas_lantern.se.json`)[
+      "minecraft:entity"
+    ];
+    expect(entity.component_groups).toEqual({
+      "yasu_ride:gas_lantern_hosted": {
+        "minecraft:physics": { has_collision: false, has_gravity: false },
+      },
+    });
+    expect(entity.events).toEqual({
+      "yasu_ride:gas_lantern_hosted": {
+        add: { component_groups: ["yasu_ride:gas_lantern_hosted"] },
+      },
+    });
+  });
+
   it("crafts glass panes around a torch above iron into one stackable item", () => {
     const item = readJson(`${bp}/items/yasu_ride/gas_lantern_item.item.json`)[
       "minecraft:item"

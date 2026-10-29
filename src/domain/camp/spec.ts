@@ -109,6 +109,11 @@ export const GAS_LANTERN_SPEC = Object.freeze({
   cellRecheckTicks: 1,
   /** One air cell fits the 11.3 px lantern (ADR 0173). */
   clearance: 1,
+  /**
+   * Counted from the table's own cell: the lantern stands on the 12.25 px top,
+   * so its 11.3 px body and its light cell reach the cell above (ADR 0185).
+   */
+  tableClearance: 2,
   /** The item's yaw snaps to this many degrees. */
   yawStep: 90,
   /** Radius in blocks also finds lanterns settled onto partial blocks. */
