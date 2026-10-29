@@ -1,4 +1,5 @@
 import type { Box } from "../../../domain/build/box";
+import type { Cell } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 
 export type BuildMessage =
@@ -28,4 +29,6 @@ export interface BuildFeedback {
     box: Box,
     style: OutlineStyle,
   ): void;
+  /** Particles around one block cell marking a lone selection corner, seen by that player only. */
+  drawCorner(playerId: PlayerId, dimensionId: DimensionId, cell: Cell): void;
 }

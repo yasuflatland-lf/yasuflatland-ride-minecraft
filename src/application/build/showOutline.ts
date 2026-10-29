@@ -1,6 +1,10 @@
-// Use case: draw the selection and paste outlines to players in build mode (ADR 0178).
+// Use case: draw the selection outline, a lone selection corner, and the paste
+// outline to players in build mode (ADR 0178, ADR 0183).
 import { pasteBox } from "../../domain/build/clipboard/clipboard";
-import { selectionBox } from "../../domain/build/selection/selection";
+import {
+  loneCorner,
+  selectionBox,
+} from "../../domain/build/selection/selection";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import type { BuildFeedback } from "./ports/feedback";
@@ -20,8 +24,11 @@ export class ShowOutline {
       if (!session?.isInBuildMode) continue;
       const { selection } = session;
       const box = selectionBox(selection);
+      const corner = loneCorner(selection);
       if (selection && box) {
         this.feedback.drawOutline(id, selection.dimensionId, box, "selection");
+      } else if (selection && corner) {
+        this.feedback.drawCorner(id, selection.dimensionId, corner);
       }
       const feet = this.gate.bulldozerFeet(id);
       if (session.clipboard && feet) {

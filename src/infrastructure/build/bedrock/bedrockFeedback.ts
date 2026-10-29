@@ -5,11 +5,15 @@ import type {
   OutlineStyle,
 } from "../../../application/build/ports/feedback";
 import { type Box, edgePoints } from "../../../domain/build/box";
+import { cornerMarkerPoints } from "../../../domain/build/cornerMarker";
 import { BUILD_SPEC } from "../../../domain/build/spec";
+import type { Cell } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { playerById } from "../../shared/players";
 import { BUILD_MESSAGE } from "../identifiers";
+
+const CORNER_PARTICLE = "minecraft:endrod";
 
 const OUTLINE_PARTICLE: Readonly<Record<OutlineStyle, string>> = {
   selection: "minecraft:villager_happy",
@@ -47,6 +51,12 @@ export class BedrockFeedback implements BuildFeedback {
       z: p.z + 0.5,
     }));
     this.spawnAll(player, OUTLINE_PARTICLE[style], points);
+  }
+
+  drawCorner(playerId: PlayerId, dimensionId: DimensionId, cell: Cell): void {
+    const player = playerById(playerId);
+    if (!player?.isValid || player.dimension.id !== dimensionId) return;
+    this.spawnAll(player, CORNER_PARTICLE, cornerMarkerPoints(cell));
   }
 
   private spawnAll(
