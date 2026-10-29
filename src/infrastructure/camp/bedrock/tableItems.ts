@@ -34,7 +34,7 @@ const HOSTED_KINDS: readonly {
 ];
 
 /** The table's place in the world, for any kind of item put on its top. */
-export const tableTop: TableTopWorld["table"] = (id) => {
+export function tableTop(id: string): ReturnType<TableTopWorld["table"]> {
   const table = world.getEntity(id);
   return table?.isValid && table.typeId === CAMP_TABLE_TYPE
     ? {
@@ -43,7 +43,7 @@ export const tableTop: TableTopWorld["table"] = (id) => {
         yaw: table.getRotation().y,
       }
     : undefined;
-};
+}
 
 /** Scans the table's dimension, so no stored list can drift from the world (ADR 0185). */
 export function itemsOnTable(id: string): TopItem[] {
