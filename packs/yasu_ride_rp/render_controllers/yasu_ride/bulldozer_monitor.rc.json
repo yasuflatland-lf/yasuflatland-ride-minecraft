@@ -18,6 +18,12 @@
         },
         {
           "screen_wide_blade_switch_wide": "query.property('yasu_ride:monitor') == 4"
+        },
+        {
+          "screen_road_paver_switch_off": "query.property('yasu_ride:monitor') == 5"
+        },
+        {
+          "screen_road_paver_switch_on": "query.property('yasu_ride:monitor') == 6"
         }
       ]
     }

@@ -1601,6 +1601,32 @@ png(
     lambda x, y: ICON_COLORS[WIDE_BLADE_SWITCH_ICON[y][x]],
 )
 
+# Road Paver switch icon: a lever over a strip of road blocks with a yellow lane line (ADR 0181).
+ROAD_PAVER_SWITCH_ICON = [
+    "................",
+    "..........KK....",
+    ".........KKK....",
+    "........KKK.....",
+    ".......KKK......",
+    "......TKK.......",
+    ".....TTTT.......",
+    "................",
+    "................",
+    "KKKKKKKKKKKKKKKK",
+    "KKKKKKKKKKKKKKKK",
+    "KK..KK..KK..KK..",
+    "KKYYKKYYKKYYKKYY",
+    "KKKKKKKKKKKKKKKK",
+    "KKKKKKKKKKKKKKKK",
+    "................",
+]
+png(
+    ITEM_TEXTURES / "road_paver_switch.png",
+    16,
+    16,
+    lambda x, y: ICON_COLORS[ROAD_PAVER_SWITCH_ICON[y][x]],
+)
+
 print("cubes:", sum(len(b.get("cubes", [])) for b in bones))
 
 MONITOR_PLATE = mirror_x([{"pivot": [0, 0, 0], "cubes": [
@@ -1636,6 +1662,7 @@ def monitor_icon_color(code):
 MONITOR_ICONS = {
     "blade_switch": [[monitor_icon_color(code) for code in row] for row in BLADE_SWITCH_ICON],
     "wide_blade_switch": [[monitor_icon_color(code) for code in row] for row in WIDE_BLADE_SWITCH_ICON],
+    "road_paver_switch": [[monitor_icon_color(code) for code in row] for row in ROAD_PAVER_SWITCH_ICON],
 }
 STALE.extend(monitor.write_monitor("bulldozer", MONITOR_LAYOUT, MONITOR_ICONS, CHECK, RP))
 if STALE:

@@ -7,6 +7,7 @@ item.yasu_ride:camper_item.name=Camper
 item.yasu_ride:bulldozer_item.name=Bulldozer
 item.yasu_ride:blade_switch.name=Blade Up/Down
 item.yasu_ride:wide_blade_switch.name=Wide Blade
+item.yasu_ride:road_paver_switch.name=Road Paver
 item.yasu_ride:camping_gear_box.name=Camping Gear Box
 entity.yasu_ride:camper.name=Camper
 entity.yasu_ride:bulldozer.name=Bulldozer
