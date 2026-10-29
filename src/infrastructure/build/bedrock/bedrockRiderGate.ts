@@ -7,10 +7,15 @@ export class BedrockRiderGate implements RiderGate {
   private bulldozer(playerId: PlayerId) {
     const player = playerById(playerId);
     if (!player?.isValid) return undefined;
-    const ridden = player.getComponent("minecraft:riding")?.entityRidingOn;
-    return ridden?.isValid && ridden.typeId === BULLDOZER_TYPE
-      ? ridden
-      : undefined;
+    try {
+      const ridden = player.getComponent("minecraft:riding")?.entityRidingOn;
+      return ridden?.isValid && ridden.typeId === BULLDOZER_TYPE
+        ? ridden
+        : undefined;
+    } catch {
+      // The engine's mount getter can throw when the mount was removed.
+      return undefined;
+    }
   }
 
   ridesBulldozer(playerId: PlayerId): boolean {
@@ -20,10 +25,14 @@ export class BedrockRiderGate implements RiderGate {
   bulldozerFeet(playerId: PlayerId) {
     const ridden = this.bulldozer(playerId);
     if (!ridden) return undefined;
-    const { x, y, z } = ridden.location;
-    return {
-      dimensionId: asDimensionId(ridden.dimension.id),
-      cell: { x: Math.floor(x), y: Math.floor(y), z: Math.floor(z) },
-    };
+    try {
+      const { x, y, z } = ridden.location;
+      return {
+        dimensionId: asDimensionId(ridden.dimension.id),
+        cell: { x: Math.floor(x), y: Math.floor(y), z: Math.floor(z) },
+      };
+    } catch {
+      return undefined;
+    }
   }
 }
