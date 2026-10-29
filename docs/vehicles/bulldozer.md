@@ -24,6 +24,10 @@ While moving forward above 0.02 blocks/tick, the blade clears the columns it tou
 
 Water, lava, containers with their contents, and the add-on's own blocks are kept. Bedrock, barriers, command blocks, structure blocks, reinforced deepslate, end portal frames, and light blocks are cut. The cut works in every game mode, Adventure included. Neighbor updates may drop unsupported blocks; nearby new item drops from the cut are removed as described in [ADR 0137](../adr/0137-clear-block-columns-with-the-blade.md).
 
+## Build mode
+
+While you drive and hold the Selection Wand or the Build Tool, the camera moves to the third-person view and the bulldozer selects, fills, replaces, copies, pastes, and undoes blocks. See [Building tools](../items/building-tools.md).
+
 ## Headlights
 
 Use the headlight switch while driving. The headlights and rear beacon glow, and five road beams reach 6, 10, 15, 21, and 27 blocks ahead. The first two are dimmer (levels 8 and 12), keeping the cab dark; the others use level 15.
