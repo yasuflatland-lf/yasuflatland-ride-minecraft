@@ -68,7 +68,12 @@ SLOTS = list(PALETTE)
 EMISSIVE_LIT = 255
 MER_LIT = (0, EMISSIVE_LIT, 255)
 MER_OFF = (0, 0, 255)
-LIT_SLOTS = tuple(SLOTS.index(name) for name in ("lens", "dome"))
+# Each bone name maps to the palette swatches whose cubes form it so the render controller can light them.
+LAMP_GROUPS = {
+    "headlights": ("lens",),
+    "ceiling_lights": ("dome",),
+}
+LIT_SLOTS = tuple(dict.fromkeys(SLOTS.index(name) for names in LAMP_GROUPS.values() for name in names))
 
 # Accent bases follow the SUV paints (ADR 0031); the white shell never changes.
 ACCENT_BASES = {
@@ -122,6 +127,17 @@ def box(x0, y0, z0, x1, y1, z1, color, rotation=None, pivot=None):
         c["rotation"] = rotation
         c["pivot"] = pivot
     return c
+
+
+def take_slots(cubes, names):
+    slots = {SLOTS.index(n) for n in names}
+    taken, rest = [], []
+    for c in cubes:
+        if c["uv"]["north"]["uv"][0] in slots:
+            taken.append(c)
+        else:
+            rest.append(c)
+    return taken, rest
 
 
 def panel(axis, p0, p1, u0, u1, v0, v1, holes, color):
@@ -1181,10 +1197,11 @@ body.append(box(-16.5, HOOK_CELL_TOP, -0.5, -15.5, HOOK_CELL_TOP + 1.5, 0.5, "ch
 CEILING_LIGHT_ZS = (-16, 48)
 CEILING_LIGHT_HALF = 4
 ceiling_lights = []
+dome_swatch = LAMP_GROUPS["ceiling_lights"][0]
 for zc in CEILING_LIGHT_ZS:
     h = CEILING_LIGHT_HALF
     ceiling_lights.append(box(-h - 0.5, CEIL - 0.6, zc - h - 0.5, h + 0.5, CEIL - 0.2, zc + h + 0.5, "chrome"))
-    ceiling_lights.append(box(-h, CEIL - 1.4, zc - h, h, CEIL - 0.6, zc + h, "dome"))
+    ceiling_lights.append(box(-h, CEIL - 1.4, zc - h, h, CEIL - 0.6, zc + h, dome_swatch))
 seat0 = bucket_seat(7, 18)
 seat1 = bucket_seat(-18, -7)
 
@@ -1290,9 +1307,7 @@ for sgn in (1, -1):
             body.append(box(x_dark, 13, e0, x_wall, ARCH_TOP + 0.5, e1, "wood"))
 
 # Extract lenses after shaping the nose so they follow the same taper as the lamp pods.
-lens_slot = SLOTS.index("lens")
-headlights = [c for c in body if c["uv"]["north"]["uv"][0] == lens_slot]
-body = [c for c in body if c["uv"]["north"]["uv"][0] != lens_slot]
+headlights, body = take_slots(body, LAMP_GROUPS["headlights"])
 
 # Glass gets its own bones, listed last, so only glass is alpha-blended and it draws after the
 # opaque interior. Blending the whole model let a near pane drawn early hide the cabin behind it
