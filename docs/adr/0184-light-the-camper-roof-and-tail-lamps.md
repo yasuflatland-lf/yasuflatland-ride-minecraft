@@ -1,4 +1,4 @@
-# 0183. Light the camper's roof and tail lamps with the headlights
+# 0184. Light the camper's roof and tail lamps with the headlights
 
 - Status: Accepted
 - Date: 2026-10-29
@@ -18,6 +18,6 @@ The side marker lamps, rear amber turn signals (0145), oval red side marker, and
 
 ## Consequences
 
-The unlit appearance and paint atlases do not change. Tail lamps glow with the headlights, not with braking; there is no brake light. There is no new switch, property, script, light block, or light-reach change. Revisit this decision if a brake light or a separate marker switch is wanted.
+Existing swatch indices and the unlit look do not change, but every camper atlas (paint, lit, and MER) and the geometry's `texture_width` grow by two texels, so all of them are regenerated. Tail lamps glow with the headlights, not with braking; there is no brake light. There is no new switch, property, script, light block, or light-reach change. Revisit this decision if a brake light or a separate marker switch is wanted.
 
 Rendering is client side, so verification is manual: row L10 in [the manual checklist](../manual-test.md).

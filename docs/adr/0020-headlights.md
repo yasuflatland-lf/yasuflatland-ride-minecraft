@@ -1,6 +1,6 @@
 # 0020. Headlights that light up the road
 
-- Status: Accepted; extended by 0115, [0136](0136-bulldozer.md) (Proposed), and [0139](0139-show-the-held-tool-on-the-cab-monitor.md) (Proposed); extended by [0147](0147-light-the-lamps-with-a-pbr-emissive-layer.md)
+- Status: Accepted; extended by 0115, [0136](0136-bulldozer.md) (Proposed), and [0139](0139-show-the-held-tool-on-the-cab-monitor.md) (Proposed); extended by [0147](0147-light-the-lamps-with-a-pbr-emissive-layer.md) and [0184](0184-light-the-camper-roof-and-tail-lamps.md)
 - Date: 2026-10-11
 - Amended by: [0024](0024-item-use-on-mobile-and-longer-headlights.md) (switch cooldown and reach)
 
