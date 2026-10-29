@@ -20,17 +20,19 @@ export type TableTopRefusal = Extract<TopPlacement, { ok: false }>["reason"];
 /** `refused` covers a missing table, a blocked column, and an unpaid item. */
 export type TableTopOutcome = "placed" | "refused" | TableTopRefusal;
 
+export interface TableTopRequest {
+  /** Omitted only by the server test hook, which pays nothing (ADR 0010). */
+  player?: PlayerId;
+  table: string;
+  slot: number;
+  aim?: LocalPoint;
+}
+
 /** Stand an item at the aimed point of a table top, paying only once every check passes (ADR 0185). */
 export function placeOnTableTop(
   world: TableTopWorld,
   kind: HostedItemKind,
-  cmd: {
-    /** Omitted only by the server test hook, which pays nothing (ADR 0010). */
-    player?: PlayerId;
-    table: string;
-    slot: number;
-    aim?: LocalPoint;
-  },
+  cmd: TableTopRequest,
 ): TableTopOutcome {
   const table = world.table(cmd.table);
   if (!table) return "refused";

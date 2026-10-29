@@ -11,12 +11,15 @@ import {
   FIRE_PIT_SPOTS,
   FIRE_PIT_TOP_PX,
 } from "../../domain/camp/spec";
-import type { LocalPoint } from "../../domain/camp/tabletop";
 import { HitCounters } from "../../domain/shared/hitCounter";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
 import { canUseBlockTop, hasClearance, placeOnGround } from "./groundPlacement";
-import { placeOnTableTop, type TableTopOutcome } from "./placeOnTableTop";
+import {
+  placeOnTableTop,
+  type TableTopOutcome,
+  type TableTopRequest,
+} from "./placeOnTableTop";
 import type { DutchOvenWorld } from "./ports/dutchOven";
 import type { HostedItemKind } from "./ports/tableTop";
 
@@ -81,13 +84,7 @@ export class DutchOvenActions {
     return true;
   }
 
-  placeOnTable(cmd: {
-    /** Omitted only by the server test hook (ADR 0010). */
-    player?: PlayerId;
-    table: string;
-    slot: number;
-    aim?: LocalPoint;
-  }): TableTopOutcome {
+  placeOnTable(cmd: TableTopRequest): TableTopOutcome {
     return placeOnTableTop(this.world, ON_TABLE, cmd);
   }
 
