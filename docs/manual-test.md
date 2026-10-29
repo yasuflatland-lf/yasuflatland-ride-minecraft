@@ -310,7 +310,7 @@ Run H1-H6 on PC and mobile, with Vibrant Visuals on and off, after a Resource Pa
 | C174 | Place a Dutch Oven on clear ground outside vehicle space | The lid stays on and no steam rises | unverified | unverified |
 | C175 | Use a Dutch Oven on a Fire Pit, light the pit with flint and steel, then put it out with the oven still on it | The grill appears, the lid is off, stew and bubbles show, and steam rises. Lighting and extinguishing still work; the oven simmers in both states | unverified | unverified |
 | C176 | Hit the covered pit three times, then hit the oven three times; finally hit the pit three times | The pit initially stays and shows "Take the Dutch oven off first". The oven returns as one item to collect into inventory, the grill disappears, and the uncovered pit folds | unverified | unverified |
-| C177 | Use an oven on each half of a Camp Table, attempt a third, use Sit with an empty hand, and hit the empty-seat table three times | Two lidded ovens fit, a third is refused, Sit still works, and the table will not fold while an oven stands on it | unverified | unverified |
+| C177 | Use an oven on a Camp Table, then hit the table three times | The oven stands on the top and the table will not fold while it is there; the free placement and removal rows are under "Camp Table top" below (ADR 0185) | unverified | unverified |
 | C178 | Inspect the oven and covered pit in Vibrant Visuals on PC and a touch client | The grill, lugs, and bail read as reflective metal; the iron is matte; the plain lid shows no logo or lettering | unverified | unverified |
 | C179 | Take a Noga Chair from Camping Gear (Outside), directly after the Low Chair, and place it on a clear block top without a vehicle | One chair faces the player; Survival consumes one item; blocked or vehicle space refuses placement | unverified | unverified |
 | C180 | Sit on the Noga Chair on PC and a touch client (long-press for the Sit button) | One player sits low and reclined, with knees above the seat; the player does not clip the back sling; sneak or jump gets up | unverified | unverified |
@@ -337,6 +337,18 @@ Run H1-H6 on PC and mobile, with Vibrant Visuals on and off, after a Resource Pa
 | C196 | Drive the camper and look at it from outside | The upper bunk shows above the lower bed while driving (ADR 0182) | unverified | unverified |
 | C197 | Park, run `pnpm server:restart`, rejoin, and press both levels | Both levels still work and set their own spawn points (ADR 0182) | unverified | unverified |
 | C198 | Park, set `/time set 1000`, press the upper bunk and then the lower bed, then die | "You can sleep only at night" shows each time, and you still respawn in the aisle cell beside the level you pressed (ADR 0182) | unverified | unverified |
+
+### Camp Table top (ADR 0185)
+
+| # | Steps | Pass condition | PC | Mobile |
+|---|---|---|---|---|
+| C199 | Place a Camp Table, then right-click it on PC and long-press it on a phone with an empty hand | No Sit button or prompt appears and nobody sits; the Low Chair and Noga Chair still offer Sit | unverified | unverified |
+| C200 | Aim at a point near one end of the tabletop and use a Dutch Oven, then aim at a point near the other end and use a Gas Lantern; aim past the edge with a second lantern | Each item stands where you aimed, on the top; the one aimed past the edge stands at the edge with its whole body on the top; Survival consumes one item each time | unverified | unverified |
+| C201 | Fill a table with 4 items (ovens and lanterns), then use a fifth item on a free part of the top | The fifth is refused with "The Camp Table is full" and stays in your hand | unverified | unverified |
+| C202 | With an oven on the table, aim at the oven's own place on the top and use a lantern | The lantern is refused with "Something is already there on the Camp Table" and stays in your hand | unverified | unverified |
+| C203 | With an oven and a lit lantern on the table, hit the table three times; take both back with three hits each, then hit the table three times | The table stays while anything stands on it; each item drops as one item and the lantern's light goes out; the empty table folds into its item | unverified | unverified |
+| C204 | At night, put a Dutch oven and a lit Gas Lantern on a table and a lit lantern on the ground beside it, then remove the table with `/kill @e[type=yasu_ride:camp_table,r=3]` | The oven and the table's lantern disappear with no dropped item and no light left on the table's spot; the ground lantern stays lit | unverified | unverified |
+| C205 | Stand a Dutch oven on a Fire Pit and remove the pit with `/kill @e[type=yasu_ride:fire_pit,r=3]` | The oven disappears with the pit and no item drops | unverified | unverified |
 
 ## Bulldozer
 
