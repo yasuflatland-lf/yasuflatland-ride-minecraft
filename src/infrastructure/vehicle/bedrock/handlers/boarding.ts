@@ -6,6 +6,7 @@
 import { type Entity, InputMode, type Player, world } from "@minecraft/server";
 import type { BoardVehicle } from "../../../../application/vehicle/boardVehicle";
 import { asPlayerId, asVehicleId } from "../../../../domain/shared/ids";
+import { mountOf } from "../../../shared/mount";
 import { isStandInEntity } from "../identifiers";
 import { vehicleOfTarget } from "../standIns";
 
@@ -19,10 +20,7 @@ export function registerBoarding(boardVehicle: BoardVehicle): void {
     // As minecraft:rideable's crouching_skip_interact on the vehicle.
     if (player.isSneaking) return;
     // A rider's press keeps its own uses, such as the headlight switch (ADR 0020).
-    if (
-      player.getComponent("minecraft:riding")?.entityRidingOn?.id === vehicle.id
-    )
-      return;
+    if (mountOf(player)?.id === vehicle.id) return;
     if (requestBoarding(boardVehicle, player, vehicle)) ev.cancel = true;
   });
 }
