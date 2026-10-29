@@ -329,6 +329,7 @@ Run H1-H6 on PC and mobile, with Vibrant Visuals on and off, after a Resource Pa
 | C195 | Park and walk onto the lower bed under the upper bunk | You step onto the lower bed; the bunk does not block you (ADR 0182) | unverified | unverified |
 | C196 | Drive the camper and look at it from outside | The upper bunk shows above the lower bed while driving (ADR 0182) | unverified | unverified |
 | C197 | Park, run `pnpm server:restart`, rejoin, and press both levels | Both levels still work and set their own spawn points (ADR 0182) | unverified | unverified |
+| C198 | Park, set `/time set 1000`, press the upper bunk and then the lower bed, then die | "You can sleep only at night" shows each time, and you still respawn in the aisle cell beside the level you pressed (ADR 0182) | unverified | unverified |
 
 ## Bulldozer
 
