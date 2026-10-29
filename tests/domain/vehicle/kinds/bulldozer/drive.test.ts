@@ -15,10 +15,18 @@ import {
   cutReach,
 } from "../../../../../src/domain/vehicle/kinds/bulldozer/drive";
 import {
+  BLADE_SWITCH_ITEM,
+  ROAD_PAVER_SWITCH_ITEM,
+  WIDE_BLADE_SWITCH_ITEM,
+} from "../../../../../src/domain/vehicle/kinds/bulldozer/monitor";
+import { paveStep } from "../../../../../src/domain/vehicle/kinds/bulldozer/paver";
+import {
+  BULLDOZER_PROFILE,
   BULLDOZER_MOTION as limits,
   BULLDOZER_TYRES as tyres,
 } from "../../../../../src/domain/vehicle/kinds/bulldozer/profile";
 import {
+  BULLDOZER_WIDE_BLADE,
   BULLDOZER_SPEC as S,
   BULLDOZER_TRANSFORMING as spec,
 } from "../../../../../src/domain/vehicle/kinds/bulldozer/spec";
@@ -40,6 +48,7 @@ import {
   transformingHorizontalStep,
 } from "../../../../../src/domain/vehicle/motion/transformingDrive";
 import { formCommands } from "../../../../../src/domain/vehicle/motion/transformingEntity";
+import { ramHalfWidthLimit } from "../../../../../src/domain/vehicle/profile";
 import { propertyValue } from "../../../../support/engineCommands";
 import { type Body, engineStep } from "../../../../support/engineModel";
 import { waterSensors } from "../../../../support/waterDepth";
@@ -755,36 +764,43 @@ function cutContext(form: string, tick: number, b: Body): TickContext {
   };
 }
 
-it("cuts only with the blade fully lowered, in every form (ADR 0138)", () =>
-  fc.assert(
-    fc.property(
-      fc.constantFrom(...FORMS),
-      fc.boolean(),
-      switchSchedule,
-      (form, start, switches) => {
-        const d = new BulldozerDrive(0, { form, blade: start ? 1 : 0 });
-        let target = start;
-        let steps = start ? S.bladeLiftTicks : 0;
-        let b: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
-        switches.forEach((set, tick) => {
-          if (set !== undefined) {
-            d.setToolState("blade_switch", set ? "up" : "down");
-            target = set;
-          }
-          steps += Math.sign((target ? S.bladeLiftTicks : 0) - steps);
-          const ctx = cutContext(form, tick, b);
-          const out = d.step(FORWARD, ctx);
-          b = engineStep(
-            b,
-            out.impulse,
-            { mu: 0.69, drag: ctx.onGround ? 0.69 : 0.91 },
-            ctx.onGround,
-          ).body;
-          if (target || steps > 0) expect(out.cut).toBeUndefined();
-        });
-      },
+it.each([false, true])(
+  "cuts only with the blade fully lowered, in every form (wide=%s)",
+  (wide) =>
+    fc.assert(
+      fc.property(
+        fc.constantFrom(...FORMS),
+        fc.boolean(),
+        switchSchedule,
+        (form, start, switches) => {
+          const d = new BulldozerDrive(0, {
+            form,
+            blade: start ? 1 : 0,
+            wide_blade: wide,
+          });
+          let target = start;
+          let steps = start ? S.bladeLiftTicks : 0;
+          let b: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
+          switches.forEach((set, tick) => {
+            if (set !== undefined) {
+              d.setToolState("blade_switch", set ? "up" : "down");
+              target = set;
+            }
+            steps += Math.sign((target ? S.bladeLiftTicks : 0) - steps);
+            const ctx = cutContext(form, tick, b);
+            const out = d.step(FORWARD, ctx);
+            b = engineStep(
+              b,
+              out.impulse,
+              { mu: 0.69, drag: ctx.onGround ? 0.69 : 0.91 },
+              ctx.onGround,
+            ).body;
+            if (target || steps > 0) expect(out.cut).toBeUndefined();
+          });
+        },
+      ),
     ),
-  ));
+);
 
 it("starts cutting on the tick the lowering blade reaches the bottom (ADR 0138)", () => {
   const d = new BulldozerDrive(0, { blade: 1 });
@@ -887,4 +903,272 @@ it("restores a saved lowered blade", () => {
     out = d.step(FORWARD, { ...context(), tick });
   expect(d.speed).toBeGreaterThan(S.blade.minSpeed);
   expect(out.cut).toBeDefined();
+});
+it("restores the wide blade flag, defaulting to normal", () => {
+  for (const [saved, shown] of [
+    [true, "wide"],
+    [false, "normal"],
+    [undefined, "normal"],
+  ] as const)
+    expect(
+      new BulldozerDrive(0, { wide_blade: saved }).toolState(
+        "wide_blade_switch",
+      ),
+    ).toBe(shown);
+});
+it("sends wide_blade once per toggle, and again after resync", () => {
+  const d = new BulldozerDrive(0, {});
+  const sent = (tick: number) =>
+    d
+      .step(IDLE, { ...context(), tick })
+      .commands.filter((c) => c.name === "wide_blade")
+      .map((c) => (c.type === "setProperty" ? c.value : undefined));
+  expect(sent(0)).toEqual([false]);
+  expect(sent(1)).toEqual([]);
+  d.setToolState("wide_blade_switch", "wide");
+  expect(sent(2)).toEqual([true]);
+  expect(sent(3)).toEqual([]);
+  d.resync();
+  expect(sent(4)).toEqual([true]);
+  d.setToolState("wide_blade_switch", "normal");
+  expect(sent(5)).toEqual([false]);
+});
+
+it("keeps the blade, wide blade, and road paver tools independent", () => {
+  fc.assert(
+    fc.property(
+      fc.array(
+        fc.oneof(
+          fc.tuple(
+            fc.constant(BLADE_SWITCH_ITEM),
+            fc.constantFrom("down", "up"),
+          ),
+          fc.tuple(
+            fc.constant(ROAD_PAVER_SWITCH_ITEM),
+            fc.constantFrom("off", "on"),
+          ),
+          fc.tuple(
+            fc.constant(WIDE_BLADE_SWITCH_ITEM),
+            fc.constantFrom("normal", "wide"),
+          ),
+        ),
+      ),
+      (sets) => {
+        const drive = new BulldozerDrive(0, {});
+        const last = new Map([
+          [BLADE_SWITCH_ITEM, drive.toolState(BLADE_SWITCH_ITEM)],
+          [WIDE_BLADE_SWITCH_ITEM, drive.toolState(WIDE_BLADE_SWITCH_ITEM)],
+          [ROAD_PAVER_SWITCH_ITEM, drive.toolState(ROAD_PAVER_SWITCH_ITEM)],
+        ]);
+        for (const [item, state] of sets) {
+          expect(drive.setToolState(item, state)).toBe(true);
+          last.set(item, state);
+        }
+        for (const [item, state] of last)
+          expect(drive.toolState(item)).toBe(state);
+      },
+    ),
+  );
+});
+
+it("uses the current blade rule for cuts and ram width across toggles", () => {
+  fc.assert(
+    fc.property(
+      yaw,
+      fc.array(fc.boolean(), { minLength: 20, maxLength: 40 }),
+      fc.boolean(),
+      (heading, widths, raised) => {
+        const d = new BulldozerDrive(heading, { blade: raised ? 1 : 0 });
+        let b: Body = { pos: { x: 0.5, z: 0.5 }, vel: { x: 0, z: 0 } };
+        widths.forEach((wide, tick) => {
+          d.setToolState(WIDE_BLADE_SWITCH_ITEM, wide ? "wide" : "normal");
+          const rule = wide ? BULLDOZER_WIDE_BLADE : S.blade;
+          const ctx = cutContext("car", tick, b);
+          const out = d.step(FORWARD, ctx);
+          expect(out.ramHalfWidth).toBe(rule.halfWidth);
+          expect(out.ramHalfWidth).toBeLessThanOrEqual(
+            ramHalfWidthLimit(BULLDOZER_PROFILE),
+          );
+          if (raised || d.speed <= rule.minSpeed)
+            expect(out.cut).toBeUndefined();
+          else
+            expect(out.cut).toEqual(
+              bladeColumns(ctx.location, d.yaw, rule, false),
+            );
+          b = engineStep(b, out.impulse, { mu: 0.69 }).body;
+        });
+      },
+    ),
+  );
+});
+it("reports the original body ram width with the normal blade", () => {
+  for (const blade of [0, 1])
+    expect(
+      new BulldozerDrive(0, { blade }).step(FORWARD, context()).ramHalfWidth,
+    ).toBe(BULLDOZER_PROFILE.body.halfWidth);
+});
+
+it("restores the road paver flag, defaulting to off", () => {
+  for (const [saved, shown] of [
+    [true, "on"],
+    [false, "off"],
+    [undefined, "off"],
+  ] as const)
+    expect(
+      new BulldozerDrive(0, { road_paver: saved }).toolState(
+        "road_paver_switch",
+      ),
+    ).toBe(shown);
+});
+it("sends road_paver once per toggle, and again after resync", () => {
+  const d = new BulldozerDrive(0, {});
+  const sent = (tick: number) =>
+    d
+      .step(IDLE, { ...context(), tick })
+      .commands.filter((c) => c.name === "road_paver")
+      .map((c) => (c.type === "setProperty" ? c.value : undefined));
+  expect(sent(0)).toEqual([false]);
+  expect(sent(1)).toEqual([]);
+  d.setToolState("road_paver_switch", "on");
+  expect(sent(2)).toEqual([true]);
+  expect(sent(3)).toEqual([]);
+  d.resync();
+  expect(sent(4)).toEqual([true]);
+  d.setToolState("road_paver_switch", "off");
+  expect(sent(5)).toEqual([false]);
+});
+
+function paveContext(form: string, tick: number, b: Body): TickContext {
+  return {
+    ...cutContext(form, tick, b),
+    heldBlock: "minecraft:oak_planks",
+    waterAt: () => false,
+  };
+}
+function expectedPave(d: BulldozerDrive, ctx: TickContext, wide: boolean) {
+  return paveStep(
+    {
+      location: ctx.location ?? { x: 0, y: 0, z: 0 },
+      yaw: d.yaw,
+      speed: d.speed,
+      form: d.form,
+      onGround: ctx.onGround,
+      halfWidth: (wide ? BULLDOZER_WIDE_BLADE : S.blade).halfWidth,
+      block: ctx.heldBlock,
+    },
+    (cell) => {
+      const o = {
+        x: cell.x + 0.5 - (ctx.location?.x ?? 0),
+        y: cell.y + 0.5 - (ctx.location?.y ?? 0),
+        z: cell.z + 0.5 - (ctx.location?.z ?? 0),
+      };
+      if (ctx.solidAt(o)) return "solid";
+      if (ctx.waterAt(o)) return "liquid";
+      return "open";
+    },
+  );
+}
+
+it.each([false, true])(
+  "lays exactly the paver's road at the blade's width, and only with the switch on and input (wide=%s)",
+  (wide) =>
+    fc.assert(
+      fc.property(
+        fc.constantFrom(...FORMS),
+        fc.boolean(),
+        fc.boolean(),
+        fc.boolean(),
+        (form, paverOn, raised, hasInput) => {
+          const d = new BulldozerDrive(0, {
+            form,
+            blade: raised ? 1 : 0,
+            wide_blade: wide,
+            road_paver: paverOn,
+          });
+          let b: Body = { pos: { x: 0.5, z: 0.5 }, vel: { x: 0, z: 0 } };
+          for (let tick = 0; tick < 30; tick++) {
+            const ctx = paveContext(form, tick, b);
+            const out = d.step(hasInput ? FORWARD : undefined, ctx);
+            if (!paverOn || !hasInput) expect(out.pave).toBeUndefined();
+            else expect(out.pave).toEqual(expectedPave(d, ctx, wide));
+            b = engineStep(b, out.impulse, { mu: 0.69 }).body;
+          }
+        },
+      ),
+    ),
+);
+it("paves the same with the blade raised or lowered, at the wide width", () => {
+  for (const wide of [false, true]) {
+    const run = (blade: number) => {
+      const d = new BulldozerDrive(0, {
+        form: "car",
+        blade,
+        wide_blade: wide,
+        road_paver: true,
+      });
+      let b: Body = { pos: { x: 0.5, z: 0.5 }, vel: { x: 0, z: 0 } };
+      const laid: unknown[] = [];
+      for (let tick = 0; tick < 40; tick++) {
+        const out = d.step(FORWARD, paveContext("car", tick, b));
+        laid.push(out.pave);
+        b = engineStep(b, out.impulse, { mu: 0.69 }).body;
+      }
+      return laid;
+    };
+    expect(run(1)).toEqual(run(0));
+    expect(run(0).some((p) => p !== undefined)).toBe(true);
+  }
+});
+it("lays nothing with no held block or off the ground", () => {
+  function expectNoPave(override: Partial<TickContext>): void {
+    const d = new BulldozerDrive(0, { form: "car", road_paver: true });
+    let b: Body = { pos: { x: 0.5, z: 0.5 }, vel: { x: 0, z: 0 } };
+    for (let tick = 0; tick < 20; tick++) {
+      const out = d.step(FORWARD, {
+        ...paveContext("car", tick, b),
+        ...override,
+      });
+      expect(out.pave).toBeUndefined();
+      b = engineStep(b, out.impulse, { mu: 0.69 }).body;
+    }
+  }
+  expectNoPave({ heldBlock: undefined });
+  expectNoPave({ onGround: false });
+});
+
+// Support cells ahead of the body exist only where the reference row is liquid (ADR 0181 rule 6).
+function supportAhead(overrides: Partial<TickContext>): number {
+  const d = new BulldozerDrive(0, { form: "car", road_paver: true });
+  const start = { x: 0.5, z: 0.5 };
+  let b: Body = { pos: start, vel: { x: 0, z: 0 } };
+  let ahead = 0;
+  for (let tick = 0; tick < 40; tick++) {
+    const ctx = { ...paveContext("car", tick, b), ...overrides };
+    const out = d.step(FORWARD, ctx);
+    const dx = b.pos.x - start.x;
+    const dz = b.pos.z - start.z;
+    const len = Math.hypot(dx, dz);
+    if (tick > 10 && len > 1e-6 && out.pave !== undefined)
+      for (const cell of out.pave.cells) {
+        const along =
+          ((cell.x + 0.5 - b.pos.x) * dx + (cell.z + 0.5 - b.pos.z) * dz) / len;
+        if (along > S.paver.bodyHalf) ahead++;
+      }
+    b = engineStep(b, out.impulse, { mu: 0.69 }).body;
+  }
+  return ahead;
+}
+
+it("bridges a lava or water reference row with support ahead of the body", () => {
+  const sunk = { solidAt: (o: { y: number }) => o.y < -1 };
+  const inRow = (o: { y: number }) => o.y >= -1 && o.y < 0;
+  expect(supportAhead({ ...sunk, lavaAt: inRow })).toBeGreaterThan(0);
+  expect(supportAhead({ ...sunk, waterAt: inRow })).toBeGreaterThan(0);
+  expect(supportAhead(sunk)).toBe(0);
+});
+
+it("treats a waterlogged solid block as solid, so it needs no support", () => {
+  expect(
+    supportAhead({ waterAt: (o) => o.y >= -1 && o.y < 0, lavaAt: () => false }),
+  ).toBe(0);
 });

@@ -142,7 +142,7 @@ CAMPER_POSES = {
 BULLDOZER_GEOMETRY = "models/entity/yasu_ride/bulldozer.geo.json"
 BULLDOZER_TEXTURE = "textures/entity/yasu_ride/bulldozer.png"
 # Only the first grouser phase is drawn, and the propeller only shows under water (ADR 0136)
-BULLDOZER_HIDDEN = ("track_r_1", "track_r_2", "track_l_1", "track_l_2", "propeller")
+BULLDOZER_HIDDEN = ("track_r_1", "track_r_2", "track_l_1", "track_l_2", "propeller", "blade_wide")
 BULLDOZER_POSES = {
     "bulldozer-front-left.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.65, -1.0), "screen_up": None, "brightness": MAIN_BRIGHTNESS},
     "bulldozer-headlights.png": {"lamps": True, "dusk": True, "view": (-1.0, 0.65, -1.0), "screen_up": None},

@@ -33,9 +33,13 @@ import {
   bulldozerRaisedNoCut,
   bulldozerRamCow,
   bulldozerRiseShaft,
+  bulldozerRoadPaverToggle,
   bulldozerSeaCut,
   bulldozerSpawnsRaised,
   bulldozerStep2Raised,
+  bulldozerWideBladeToggle,
+  bulldozerWideClearHill,
+  bulldozerWideRam,
 } from "./scenarios/bulldozer";
 import {
   bulldozerExitGround,
@@ -79,6 +83,17 @@ import {
 } from "./scenarios/camper";
 import { campingGearBlocks } from "./scenarios/campingGear";
 import { fleetForget } from "./scenarios/fleetRemove";
+import {
+  bulldozerPaveCliff,
+  bulldozerPaveFlat,
+  bulldozerPaveFlight,
+  bulldozerPaveHole,
+  bulldozerPaveKept,
+  bulldozerPaveNoBlock,
+  bulldozerPaveStepDown,
+  bulldozerPaveWater,
+  bulldozerPaveWide,
+} from "./scenarios/roadPaver";
 import {
   boatCruise,
   boatDeckSeats,
@@ -148,6 +163,8 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
     ["build_block_states", 0, () => buildBlockStates(a)],
     ["bulldozer_exit_spot", 8, () => bulldozerExitSpot(a)],
     ["bulldozer_exit_ground", 2, () => bulldozerExitGround(a)],
+    ["bulldozer_wide_clear_hill", 83, () => bulldozerWideClearHill(a)],
+    ["bulldozer_wide_ram", 140, () => bulldozerWideRam(a)],
     ["bulldozer_clear_hill", 79, () => bulldozerClearHill(a)],
     ["bulldozer_overhang", 77, () => bulldozerOverhang(a)],
     ["bulldozer_dirt_path", 77, () => bulldozerDirtPath(a)],
@@ -162,7 +179,18 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
     ["bulldozer_step2_raised", 67, () => bulldozerStep2Raised(a)],
     ["bulldozer_raised_no_cut", 77, () => bulldozerRaisedNoCut(a)],
     ["bulldozer_spawns_raised", 65, () => bulldozerSpawnsRaised(a)],
-    ["bulldozer_monitor", 22, () => bulldozerMonitor(a)],
+    ["bulldozer_monitor", 34, () => bulldozerMonitor(a)],
+    ["bulldozer_road_paver_toggle", 60, () => bulldozerRoadPaverToggle(a)],
+    ["bulldozer_pave_flat", 86, () => bulldozerPaveFlat(a)],
+    ["bulldozer_pave_wide", 86, () => bulldozerPaveWide(a)],
+    ["bulldozer_pave_hole", 86, () => bulldozerPaveHole(a)],
+    ["bulldozer_pave_step_down", 92, () => bulldozerPaveStepDown(a)],
+    ["bulldozer_pave_cliff", 86, () => bulldozerPaveCliff(a)],
+    ["bulldozer_pave_water", 90, () => bulldozerPaveWater(a)],
+    ["bulldozer_pave_flight", 102, () => bulldozerPaveFlight(a)],
+    ["bulldozer_pave_kept", 86, () => bulldozerPaveKept(a)],
+    ["bulldozer_pave_no_block", 236, () => bulldozerPaveNoBlock(a)],
+    ["bulldozer_wide_blade_toggle", 38, () => bulldozerWideBladeToggle(a)],
     ["camper_accel", 144, () => camperAccel(a)],
     ["camper_wall", 150, () => camperWall(a)],
     ["camper_takeoff", 33, () => camperTakeoff(a)],

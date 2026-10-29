@@ -234,6 +234,7 @@ it("keeps nothing for a fill older than the window", () => {
   f.set(64, "minecraft:stone");
   f.cut();
   f.time(103);
+  f.set(64, "minecraft:stone");
   f.cut();
   f.time(100);
   const remove = vi.fn();

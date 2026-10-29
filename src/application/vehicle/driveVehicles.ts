@@ -88,7 +88,7 @@ export class DriveVehicles {
         deckSeatInputs: snap.deckSeatInputs,
         deckSeatRiders: snap.deckSeatRiders,
         testInput: snap.testInput,
-        testHeldTool: snap.testHeldTool,
+        testHeld: snap.testHeld,
         location: snap.location,
         velocity: snap.velocity,
         onGround: snap.onGround,
@@ -109,6 +109,8 @@ export class DriveVehicles {
     this.world.holdAt(snap.id, out.dock?.hold);
     if (out.clear.length > 0) this.world.clearBlocks(snap.id, out.clear);
     if (out.cut.length > 0) this.world.cutColumns(snap.id, out.cut);
+    if (out.pave !== undefined && out.pave.cells.length > 0)
+      this.world.pave(snap.id, out.pave);
     const camera = vehicle.chaseCamera;
     if (out.riders.thirdPerson)
       for (const rider of snap.riders) thirdPersonRiders.set(rider.id, camera);

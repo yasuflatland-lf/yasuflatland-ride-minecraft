@@ -65,11 +65,21 @@
           "default": 1.0,
           "client_sync": true
         },
+        "yasu_ride:wide_blade": {
+          "type": "bool",
+          "default": false,
+          "client_sync": true
+        },
         "yasu_ride:monitor": {
           "type": "int",
-          "range": [0, 2],
+          "range": [0, 6],
           "default": 0,
           "client_sync": true
+        },
+        "yasu_ride:road_paver": {
+          "type": "bool",
+          "default": false,
+          "client_sync": false
         }
       }
     },
