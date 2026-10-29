@@ -596,18 +596,17 @@ export async function firePitCoveredTakeBack(a: Arena): Promise<Outcome> {
   }
 }
 
-/** Exercises the host lifecycle through the production placement use case without a player. */
+/** Places an oven on the grill through the production use case without a player. */
 export async function dutchOvenOnPit(a: Arena): Promise<Outcome> {
   const folded = await firePitCoveredTakeBack(a);
   if (!folded.pass) return folded;
   const at = firePitAt(a);
   const pit = summonFirePit(a, at);
   if (!pit) return { pass: false, detail: "fire pit not spawned" };
-  let oven: Entity | undefined;
   try {
     system.sendScriptEvent(TEST_DUTCH_OVEN_ON_PIT_EVENT, pit.id);
     await wait(4);
-    oven = ovensNear(a, at)[0];
+    const oven = ovensNear(a, at)[0];
     if (!oven) return { pass: false, detail: "oven not placed" };
     const covered = pit.getProperty(FIRE_PIT_COVERED_PROPERTY) === true;
     const simmering = oven.getProperty(DUTCH_OVEN_SIMMERING_PROPERTY) === true;
@@ -615,23 +614,64 @@ export async function dutchOvenOnPit(a: Arena): Promise<Outcome> {
     const standing =
       Math.abs(oven.location.y - (pit.location.y + FIRE_PIT_TOP_PX / 16)) <
       0.05;
-    a.dim.runCommand(
-      `kill @e[type=${FIRE_PIT_TYPE},x=${at.x},y=${at.y},z=${at.z},r=2]`,
-    );
-    const settled = () =>
-      oven?.getProperty(DUTCH_OVEN_SIMMERING_PROPERTY) === false &&
-      Math.abs(oven.location.y - a.gy) < 0.05;
-    // The host check runs every hostCheckTicks and a busy server stretches it.
-    for (let i = 0; i < 120 && !settled(); i++) await wait(1);
-    const lidded = oven.getProperty(DUTCH_OVEN_SIMMERING_PROPERTY) === false;
-    const fallen = Math.abs(oven.location.y - a.gy) < 0.05;
     return {
-      pass: covered && simmering && standing && lidded && fallen,
-      detail: `fold=${folded.pass} covered=${covered} simmering=${simmering} standing=${standing} lidded=${lidded} fallen=${fallen} y=${oven.location.y.toFixed(2)}`,
+      pass: covered && simmering && standing,
+      detail: `fold=${folded.pass} covered=${covered} simmering=${simmering} standing=${standing}`,
     };
   } finally {
-    if (oven?.isValid) oven.remove();
+    for (const oven of ovensNear(a, at)) oven.remove();
     if (pit.isValid) pit.remove();
+  }
+}
+
+/**
+ * Removes the host an oven stands on and waits for the host check to remove
+ * the oven with no dropped item (ADR 0185).
+ */
+async function hostRemovalTakesOven(
+  a: Arena,
+  at: Vector3,
+  host: Entity,
+): Promise<Outcome> {
+  const oven = ovensNear(a, at)[0];
+  if (!oven) return { pass: false, detail: "oven not placed" };
+  await wait(2);
+  const kept = oven.isValid;
+  host.remove();
+  // The host check runs every hostCheckTicks and a busy server stretches it.
+  for (let i = 0; i < 120 && oven.isValid; i++) await wait(1);
+  const removed = !oven.isValid && ovensNear(a, at).length === 0;
+  const drops = totalAmount(droppedItems(a, at, DUTCH_OVEN_ITEM));
+  return {
+    pass: kept && removed && drops === 0,
+    detail: `kept=${kept} removed=${removed} drops=${drops}`,
+  };
+}
+
+export async function campTableRemoveOven(a: Arena): Promise<Outcome> {
+  const at = TABLE_AT(a);
+  const table = summonTable(a, at);
+  if (!table) return { pass: false, detail: "table not spawned" };
+  try {
+    await placeOnTableAt(table, -5, 0);
+    return await hostRemovalTakesOven(a, at, table);
+  } finally {
+    cleanTable(a, table, at);
+  }
+}
+
+export async function campPitRemoveOven(a: Arena): Promise<Outcome> {
+  const at = firePitAt(a);
+  const pit = summonFirePit(a, at);
+  if (!pit) return { pass: false, detail: "fire pit not spawned" };
+  try {
+    system.sendScriptEvent(TEST_DUTCH_OVEN_ON_PIT_EVENT, pit.id);
+    await wait(2);
+    return await hostRemovalTakesOven(a, at, pit);
+  } finally {
+    for (const oven of ovensNear(a, at)) oven.remove();
+    if (pit.isValid) pit.remove();
+    for (const item of droppedItems(a, at, DUTCH_OVEN_ITEM)) item.remove();
   }
 }
 
