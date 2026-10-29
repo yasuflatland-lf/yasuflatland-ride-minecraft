@@ -43,8 +43,14 @@ export function isCreative(player: Player | undefined): boolean {
   return player?.isValid === true && player.getGameMode() === GameMode.Creative;
 }
 
-/** The player with `playerId`, or undefined when that entity is gone or is not a player. */
+/** The player with `playerId`, or undefined when the id is malformed, the entity is gone, or it is not a player. */
 export function playerById(playerId: PlayerId): Player | undefined {
-  const entity = world.getEntity(playerId);
+  let entity: ReturnType<typeof world.getEntity>;
+  try {
+    entity = world.getEntity(playerId);
+  } catch {
+    // The engine throws when the entity id is malformed.
+    return undefined;
+  }
   return entity?.typeId === PLAYER_TYPE ? (entity as Player) : undefined;
 }
