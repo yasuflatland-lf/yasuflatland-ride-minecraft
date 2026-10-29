@@ -21,6 +21,7 @@ import { registerModeTick } from "./bedrock/handlers/modeTick";
 import { registerOutlineTick } from "./bedrock/handlers/outlineTick";
 import { registerSessions } from "./bedrock/handlers/sessions";
 import { registerTestCorner } from "./bedrock/handlers/testCorner";
+import { registerTestCornerMarker } from "./bedrock/handlers/testCornerMarker";
 import { recordMessages, registerTestEdit } from "./bedrock/handlers/testEdit";
 import { registerTestMode } from "./bedrock/handlers/testMode";
 import { registerWand } from "./bedrock/handlers/wand";
@@ -51,6 +52,7 @@ export function installBuild(deps: { isProtected: SpaceCheck }): {
   registerOutlineTick(new ShowOutline(repo, gate, feedback));
   registerSessions(repo);
   registerTestCorner(repo, gate, feedback, blocks);
+  registerTestCornerMarker(repo, gate, feedback);
   registerTestMode(modes);
   registerBuildTool(gate, feedback, actions);
   registerEditTick(jobs);
