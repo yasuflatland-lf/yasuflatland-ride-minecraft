@@ -18,7 +18,6 @@ function fakeWorld(): TableWorld {
     isCreative: vi.fn(() => false),
     consumeItem: vi.fn(() => true),
     spawnTable: vi.fn(),
-    isOccupied: vi.fn(() => false),
     dropItem: vi.fn(),
     removeTable: vi.fn(),
     showHitsLeft: vi.fn(),

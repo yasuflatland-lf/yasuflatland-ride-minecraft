@@ -8,7 +8,6 @@ export interface TableWorld extends GroundCellsWorld {
   showOvenOnTop(player: PlayerId): void;
   hasTableNear(dimensionId: DimensionId, at: Vec3): boolean;
   spawnTable(dimensionId: DimensionId, at: Vec3, yaw: number): void;
-  isOccupied(tableId: TableId): boolean;
   dropItem(tableId: TableId): void;
   removeTable(tableId: TableId): void;
   showHitsLeft(playerId: PlayerId, hitsLeft: number): void;

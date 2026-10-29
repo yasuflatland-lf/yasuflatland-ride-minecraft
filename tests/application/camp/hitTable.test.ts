@@ -9,7 +9,7 @@ import { asPlayerId } from "../../../src/domain/shared/ids";
 const TABLE = asTableId("table");
 const PLAYER = asPlayerId("player");
 
-function fakeWorld(occupied = false): TableWorld {
+function fakeWorld(): TableWorld {
   return {
     ovensOnTable: vi.fn(() => 0),
     showOvenOnTop: vi.fn(),
@@ -20,7 +20,6 @@ function fakeWorld(occupied = false): TableWorld {
     isCreative: vi.fn(() => false),
     consumeItem: vi.fn(() => true),
     spawnTable: vi.fn(),
-    isOccupied: vi.fn(() => occupied),
     dropItem: vi.fn(),
     removeTable: vi.fn(),
     showHitsLeft: vi.fn(),
@@ -51,28 +50,6 @@ describe("HitTable (ADR 0152)", () => {
     }
     expect(world.removeTable).toHaveBeenCalledOnce();
     expect(world.showHitsLeft).toHaveBeenLastCalledWith(PLAYER, 2);
-  });
-
-  it("never takes back a table someone sits at, and shows no hint then", () => {
-    fc.assert(
-      fc.property(
-        fc.array(fc.integer({ min: 0, max: 50 }), { maxLength: 20 }),
-        (gaps) => {
-          const world = fakeWorld(true);
-          const hit = new HitTable(world);
-          let tick = 0;
-          for (const gap of gaps) {
-            tick += gap;
-            expect(
-              hit.execute({ tableId: TABLE, tick, playerId: PLAYER }),
-            ).toBe(false);
-          }
-          expect(world.removeTable).not.toHaveBeenCalled();
-          expect(world.dropItem).not.toHaveBeenCalled();
-          expect(world.showHitsLeft).not.toHaveBeenCalled();
-        },
-      ),
-    );
   });
 
   it("never takes back a table hit more than the reset window apart", () => {
