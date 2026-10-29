@@ -50,12 +50,12 @@ function rider(seat: number, tool?: string): RiderView {
 function tickInput(
   tick: number,
   riders: readonly RiderView[],
-  testHeld?: string,
+  testTool?: string,
 ): VehicleTickInput {
   return {
     tick,
     riders,
-    testHeld: testHeld === undefined ? undefined : { tool: testHeld },
+    testHeld: testTool === undefined ? undefined : { tool: testTool },
     deckSeatInputs: [],
     velocity: { x: 0, y: 0, z: 0 },
     onGround: true,
@@ -95,8 +95,8 @@ function setup() {
     state: (value: string | undefined) => {
       state = value;
     },
-    tick: (riders: readonly RiderView[] = [], testHeld?: string) =>
-      vehicle.tick(tickInput(tick++, riders, testHeld)).stepCommands,
+    tick: (riders: readonly RiderView[] = [], testTool?: string) =>
+      vehicle.tick(tickInput(tick++, riders, testTool)).stepCommands,
   };
 }
 function expectedScreen(
