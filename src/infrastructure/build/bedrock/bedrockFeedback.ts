@@ -9,13 +9,20 @@ import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import { playerById } from "../../shared/players";
 import { BUILD_MESSAGE } from "../identifiers";
 
+function messageArgs(message: BuildMessage, count?: number): string[] {
+  if (message === "tooLarge")
+    return [String(BUILD_SPEC.maxVolume), String(BUILD_SPEC.maxCopyVolume)];
+  if (count === undefined) return [];
+  return [String(count)];
+}
+
 export class BedrockFeedback implements BuildFeedback {
   showMessage(playerId: PlayerId, message: BuildMessage, count?: number): void {
     const player = playerById(playerId);
     if (!player?.isValid) return;
     player.onScreenDisplay.setActionBar({
       translate: BUILD_MESSAGE[message],
-      with: count === undefined ? [] : [String(count)],
+      with: messageArgs(message, count),
     });
   }
 

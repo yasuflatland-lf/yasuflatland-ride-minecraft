@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import {
+  BUILD_FORM,
   BUILD_MESSAGE,
   BUILD_NAMESPACE,
   BUILD_TOOL_TYPE,
@@ -40,7 +41,16 @@ it("defines every feedback message in both locales", () => {
     );
     for (const key of Object.values(BUILD_MESSAGE))
       expect(entries.get(key)).toBeTruthy();
+    for (const key of Object.values(BUILD_FORM))
+      expect(entries.get(key)).toBeTruthy();
     expect(entries.get(BUILD_MESSAGE.pos2Set)).toContain("%s");
+    for (const message of [
+      "tooLarge",
+      "copied",
+      "editDone",
+      "undoDone",
+    ] as const)
+      expect(entries.get(BUILD_MESSAGE[message])).toContain("%s");
   }
 });
 
