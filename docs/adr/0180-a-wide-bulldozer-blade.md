@@ -39,4 +39,4 @@ The existing code provides these building blocks:
 - A wide ram hits mobs beside the tracks.
 - The wide blade can poke into walls when the bulldozer is placed beside them.
 - `footprint` (0122) no longer covers the whole model while the wide blade is shown. `isVehicleSpace` lets camping gear, tents, and placements into the wide blade's reach (up to about 5.22 blocks). This is accepted, because the blade is model only, as it already is for placement (0142).
-- The owner can check one interpretation of the fittings decision: the spill guard stays at its original width in the middle of the wide blade.
+- Open interpretation: this ADR counts the spill guard as a fitting, so it stays at its original width in the middle of the wide blade. If the owner reads it as part of the plate, an addendum widens it.
