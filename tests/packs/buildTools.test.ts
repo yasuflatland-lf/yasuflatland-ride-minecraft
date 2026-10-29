@@ -112,6 +112,7 @@ describe("Building Tools recipes and names", () => {
         WAND,
         "yasu_ride:blade_switch",
         "yasu_ride:wide_blade_switch",
+        "yasu_ride:road_paver_switch",
       ],
     });
   });
