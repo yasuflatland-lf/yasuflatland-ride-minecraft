@@ -733,16 +733,17 @@ export function insideRoom(pose: HoldPose, feet: Vec3): boolean {
 
 /** The world cell a press on bed block `cell` of a camper parked at `pose` respawns the player in; undefined when `cell` is no sleepable cell (ADR 0182). */
 export function bedSpawnCell(pose: HoldPose, cell: Vec3): Vec3 | undefined {
-  for (const row of CAMPER_FURNITURE) {
-    if (row.block === undefined || !SLEEP_BLOCKS.has(row.block.type)) continue;
-    const matches = row.cells.some((c) => {
-      const at = localCellAt(pose, c);
-      return at.x === cell.x && at.y === cell.y && at.z === cell.z;
-    });
-    if (matches)
-      return row.spawn === undefined ? cell : localCellAt(pose, row.spawn);
-  }
-  return undefined;
+  const pressed = CAMPER_FURNITURE.find(
+    ({ block, cells }) =>
+      block !== undefined &&
+      SLEEP_BLOCKS.has(block.type) &&
+      cells.some((c) => {
+        const at = localCellAt(pose, c);
+        return at.x === cell.x && at.y === cell.y && at.z === cell.z;
+      }),
+  );
+  if (pressed === undefined) return undefined;
+  return pressed.spawn === undefined ? cell : localCellAt(pose, pressed.spawn);
 }
 
 /** Whether a player with feet at `feet` stands in the shower-toilet's column (ADR 0098, 0118). */
