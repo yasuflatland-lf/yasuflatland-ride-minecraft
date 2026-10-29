@@ -2,6 +2,9 @@ import { execFileSync } from "node:child_process";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+// Each fast-check run spawns python3; CI coverage runs many files in parallel.
+const PYTHON_PROPERTY_TIMEOUT_MS = 30_000;
+
 type Vec = [number, number, number];
 type Cube = {
   origin: Vec;
@@ -27,7 +30,7 @@ const run = (call: string): Cube[] => {
   );
 };
 
-describe("panel_ring", () => {
+describe("panel_ring", { timeout: PYTHON_PROPERTY_TIMEOUT_MS }, () => {
   const ring = (radius: number, sides: number, thickness: number) =>
     run(`panels.panel_ring(${radius}, 0, 1, face, ${sides}, ${thickness})`);
 
@@ -114,7 +117,7 @@ const domeDimensions = fc.integer({ min: 1, max: 12 }).chain((radius) =>
   }),
 );
 
-describe("dome", () => {
+describe("dome", { timeout: PYTHON_PROPERTY_TIMEOUT_MS }, () => {
   it("closes decreasing latitude rings with a positive cap using only Y turns", () => {
     fc.assert(
       fc.property(domeDimensions, ({ radius, height, y0, sides, bands }) => {
@@ -192,7 +195,7 @@ describe("dome", () => {
   });
 });
 
-describe("panel centers", () => {
+describe("panel centers", { timeout: PYTHON_PROPERTY_TIMEOUT_MS }, () => {
   it("translates every dome and disc origin and pivot while preserving shape", () => {
     fc.assert(
       fc.property(
