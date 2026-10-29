@@ -54,6 +54,53 @@ describe("bulldozer cab monitor rule (ADR 0139)", () => {
     );
   });
 
+  it("binds every monitor tool and accepts every declared state", () => {
+    for (const { item, states } of BULLDOZER_MONITOR.tools)
+      fc.assert(
+        fc.property(fc.array(fc.constantFrom(...states)), (changes) => {
+          const drive = new BulldozerDrive(0, {});
+          expect(drive.toolState(item)).toBeDefined();
+          for (const state of [...states, ...changes]) {
+            expect(drive.setToolState(item, state)).toBe(true);
+            expect(drive.toolState(item)).toBe(state);
+          }
+        }),
+      );
+  });
+
+  it("leaves every tool unchanged after an invalid state or unknown item", () => {
+    const tools = BULLDOZER_MONITOR.tools;
+    const statesOf = (drive: BulldozerDrive) =>
+      tools.map(({ item }) => drive.toolState(item));
+    fc.assert(
+      fc.property(
+        fc.tuple(...tools.map((tool) => fc.constantFrom(...tool.states))),
+        fc.string(),
+        fc.string().filter((item) => !tools.some((tool) => tool.item === item)),
+        (initial, invalidState, unknownItem) => {
+          const drive = new BulldozerDrive(0, {});
+          tools.forEach(({ item }, i) => {
+            const state = initial[i];
+            if (state !== undefined) drive.setToolState(item, state);
+          });
+          const before = statesOf(drive);
+          for (const { item, states } of tools) {
+            if (states.includes(invalidState)) continue;
+            expect(drive.setToolState(item, invalidState)).toBe(false);
+            expect(statesOf(drive)).toEqual(before);
+          }
+          for (const state of [
+            invalidState,
+            ...tools.flatMap((tool) => tool.states),
+          ]) {
+            expect(drive.setToolState(unknownItem, state)).toBe(false);
+            expect(statesOf(drive)).toEqual(before);
+          }
+        },
+      ),
+    );
+  });
+
   it("reports no state for an item that is not one of its tools", () => {
     const drive = new BulldozerDrive(0, {});
     for (const item of ["stone", "toString", "constructor", ""])
