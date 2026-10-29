@@ -18,7 +18,7 @@ Ground top speed is 9 blocks/s, half the SUV's, with half its acceleration. Flig
 
 ## Clearing
 
-The blade cuts only when fully lowered. Wide Blade doubles its width: at heading 0 from the center of a block it clears 11 columns instead of 5. Raised or lowered, the ram also widens to hit mobs beside the tracks ([ADR 0180](../adr/0180-a-wide-bulldozer-blade-switched-from-the-cab.md)).
+The blade cuts only when fully lowered. Wide Blade doubles its width: at heading 0 from the center of a block it clears 11 columns instead of 5. Raised or lowered, the ram also widens to hit mobs beside the tracks ([ADR 0180](../adr/0180-a-wide-bulldozer-blade.md)).
 
 While moving forward above 0.02 blocks/tick, the blade clears the columns it touches ahead. On the ground, cutting starts in the row above the block under the tracks, even a block lower than a full cube such as a dirt path, farmland, mud, or a bottom slab, and continues upward until the first air gap, leaving an overhang above a gap. In flight it cuts a tunnel up to the top of the 2.9-block body, including at fractional heights. The tick a hop starts still cuts, because the bulldozer is still on the ground; the airborne ticks after a hop, falling off a ledge, pivoting, reversing, standing, and diving do not cut.
 
