@@ -8,7 +8,7 @@ export interface MonitorTool {
 
 /** What a kind's cab monitor shows (ADR 0139). */
 export interface MonitorRule {
-  /** The bare name of the creative group whose items are the tools; a test keeps `tools` equal to it. */
+  /** The qualified ID of the creative group that holds the tools; a test keeps every tool inside it. */
   readonly group: string;
   readonly tools: readonly MonitorTool[];
 }

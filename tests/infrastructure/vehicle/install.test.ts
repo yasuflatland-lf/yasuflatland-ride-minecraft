@@ -20,7 +20,11 @@ vi.mock("../../../src/infrastructure/vehicle/bedrock/subscriptions", () => ({
 }));
 
 it("wires the decor use cases and the dock owner lookups into the subscriptions (ADR 0093, 0096)", () => {
-  installVehicles({ isCampSpace: () => false, laterSwitchTargets: () => [] });
+  installVehicles({
+    isCampSpace: () => false,
+    wantsChaseCamera: () => false,
+    laterSwitchTargets: () => [],
+  });
   const [useCases, , , dockDoorOwner, dockCellOwner, dockBlockOwner] =
     vi.mocked(registerSubscriptions).mock.calls[0] ?? [
       undefined,
@@ -46,6 +50,7 @@ it("wires the decor use cases and the dock owner lookups into the subscriptions 
 it("returns the vehicles' space check for other features (ADR 0122)", () => {
   const { isVehicleSpace } = installVehicles({
     isCampSpace: () => false,
+    wantsChaseCamera: () => false,
     laterSwitchTargets: () => [],
   });
   // No vehicle is loaded and no room block is laid, so no cell is vehicle space.
@@ -56,7 +61,11 @@ it("returns the vehicles' space check for other features (ADR 0122)", () => {
 
 it("hands the camp's space check to vehicle placement (ADR 0129)", () => {
   const isCampSpace = vi.fn(() => true);
-  installVehicles({ isCampSpace, laterSwitchTargets: () => [] });
+  installVehicles({
+    isCampSpace,
+    wantsChaseCamera: () => false,
+    laterSwitchTargets: () => [],
+  });
   const useCases = vi.mocked(registerSubscriptions).mock.lastCall?.[0];
   expect(
     useCases?.place.execute({
@@ -76,14 +85,22 @@ it("hands the camp's space check to vehicle placement (ADR 0129)", () => {
 
 it("hands the later switch targets to the subscriptions (ADR 0134)", () => {
   const laterSwitchTargets = () => [];
-  installVehicles({ isCampSpace: () => false, laterSwitchTargets });
+  installVehicles({
+    isCampSpace: () => false,
+    wantsChaseCamera: () => false,
+    laterSwitchTargets,
+  });
   expect(vi.mocked(registerSubscriptions).mock.lastCall?.[6]).toBe(
     laterSwitchTargets,
   );
 });
 
 it("hands the monitor tool switch use case to the subscriptions (ADR 0138)", () => {
-  installVehicles({ isCampSpace: () => false, laterSwitchTargets: () => [] });
+  installVehicles({
+    isCampSpace: () => false,
+    wantsChaseCamera: () => false,
+    laterSwitchTargets: () => [],
+  });
   expect(
     vi.mocked(registerSubscriptions).mock.lastCall?.[0].tool,
   ).toBeInstanceOf(SwitchTool);
@@ -91,6 +108,10 @@ it("hands the monitor tool switch use case to the subscriptions (ADR 0138)", () 
 
 it("subscribes the blade-cut drop sweep once (ADR 0137)", () => {
   vi.mocked(world.afterEvents.entitySpawn.subscribe).mockClear();
-  installVehicles({ isCampSpace: () => false, laterSwitchTargets: () => [] });
+  installVehicles({
+    isCampSpace: () => false,
+    wantsChaseCamera: () => false,
+    laterSwitchTargets: () => [],
+  });
   expect(world.afterEvents.entitySpawn.subscribe).toHaveBeenCalledTimes(1);
 });

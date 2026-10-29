@@ -5,8 +5,9 @@ import {
   type Entity,
 } from "@minecraft/server";
 import type { Clock } from "../../../application/vehicle/ports/shared";
+import { KEPT_BLOCKS } from "../../../domain/shared/keptBlocks";
 import type { Vec3 } from "../../../domain/shared/vec";
-import { CUT_KEPT_BLOCKS, type CutColumn } from "../../../domain/vehicle/cut";
+import type { CutColumn } from "../../../domain/vehicle/cut";
 import { AIR_BLOCK, LAID_BLOCK_TAG } from "../../shared/identifiers";
 
 // ADR 0137 records the drop distance and delay measured in game.
@@ -110,7 +111,7 @@ export class BladeCuts {
       AIR_BLOCK,
       {
         blockFilter: {
-          excludeTypes: [...CUT_KEPT_BLOCKS],
+          excludeTypes: [...KEPT_BLOCKS],
           excludeTags: [LAID_BLOCK_TAG],
         },
         ignoreChunkBoundErrors: true,

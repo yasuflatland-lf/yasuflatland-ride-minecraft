@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { id } from "../../src/infrastructure/shared/identifiers";
 import { readRgbaPng } from "../support/png";
@@ -8,8 +8,6 @@ const TYPE = id("blade_switch");
 const read = (p: string) => JSON.parse(readFileSync(p, "utf8"));
 // Keep Japanese names escaped so only the translation file contains CJK text.
 const JA_ITEM_NAME = "\u30d6\u30ec\u30fc\u30c9\u4e0a\u4e0b";
-const JA_GROUP_NAME =
-  "\u30d6\u30eb\u30c9\u30fc\u30b6\u30fc\u7528\u30b9\u30a4\u30c3\u30c1";
 
 describe("Blade Up/Down switch (ADR 0138)", () => {
   it("is a single-stack item that fires on a long press, with its icon and name", () => {
@@ -68,12 +66,9 @@ describe("Blade Up/Down switch (ADR 0138)", () => {
       expect(values.get(`item.${TYPE}.name`)).toBe(
         locale === "en_US" ? "Blade Up/Down" : JA_ITEM_NAME,
       );
-      expect(values.get("yasu_ride:bulldozer_switches")).toBe(
-        locale === "en_US" ? "Bulldozer Switches" : JA_GROUP_NAME,
-      );
     },
   );
-  it("is the only item of the Bulldozer Switches group, which comes after the camping gear groups", () => {
+  it("is the last item of the Building Tools group, which comes after the camping gear and equipment groups", () => {
     const groups = read(
       "packs/yasu_ride_bp/item_catalog/crafting_item_catalog.json",
     )["minecraft:crafting_items_catalog"].categories.find(
@@ -86,18 +81,13 @@ describe("Blade Up/Down switch (ADR 0138)", () => {
     ).toEqual([
       "yasu_ride:camping_gear_inside",
       "yasu_ride:camping_gear_outside",
-      "yasu_ride:bulldozer_switches",
       "yasu_ride:sportsboat_equipment",
+      "yasu_build:building_tools",
     ]);
-    expect(groups[2]).toEqual({
-      group_identifier: { icon: TYPE, name: "yasu_ride:bulldozer_switches" },
-      items: [TYPE],
-    });
-  });
-  it("counts the group on the item groups page", () => {
-    expect(readFileSync("docs/items/README.md", "utf8")).toContain(
-      "| **Bulldozer Switches** | 1 | [Blade Up/Down](bulldozer-switches.md) |",
-    );
-    expect(existsSync("docs/items/bulldozer-switches.md")).toBe(true);
+    expect(groups[3].items).toEqual([
+      "yasu_build:build_tool",
+      "yasu_build:selection_wand",
+      TYPE,
+    ]);
   });
 });
