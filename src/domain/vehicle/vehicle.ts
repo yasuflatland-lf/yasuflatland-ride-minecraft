@@ -30,6 +30,7 @@ import {
   type LitCell,
 } from "./lighting/headlights";
 import { monitorScreen, monitorTool, nextToolState } from "./monitor/monitor";
+import type { Pave } from "./pave";
 import {
   type ChaseCamera,
   ramHalfWidthLimit,
@@ -88,7 +89,7 @@ export interface SeatExit {
 /**
  * What one vehicle does this tick. The application's per-vehicle tick
  * applies it with these world calls, in this order, and a throw skips the
- * rest of that vehicle's tick (ADR 0055). Steps 3, 11, 12, 13 and 14 run
+ * rest of that vehicle's tick (ADR 0055). Steps 3, 12, 13, 14 and 15 run
  * every tick: with nothing to keep, they release what the vehicle held,
  * seated, stood in for it, laid or lit before.
  *
@@ -101,36 +102,39 @@ export interface SeatExit {
  * 4. `clear`, when not empty, before the dock's cells are laid (ADR 0068).
  * 5. `cut`, when not empty, right after `clear` and before the move, so the
  *    body moves into the cleared strip on the same tick (ADR 0137).
- * 6. `riders` is collected. After every vehicle has ticked, the chase
+ * 6. `pave`, when it has cells, right after `cut` and before the move, so the
+ *    body moves onto a road laid on the same tick (ADR 0181).
+ * 7. `riders` is collected. After every vehicle has ticked, the chase
  *    cameras are synced (ADR 0028, 0071), and water breathing is refreshed
  *    every `SPEC.waterBreathingInterval` ticks (ADR 0040).
- * 7. `impulse` and `yaw`, only when there is no `dock`: a docked vehicle is
+ * 8. `impulse` and `yaw`, only when there is no `dock`: a docked vehicle is
  *    held instead of moved (ADR 0063).
- * 8. `seatLayout`: for a kind whose players choose their seat, the
+ * 9. `seatLayout`: for a kind whose players choose their seat, the
  *    vehicle's riders are laid in this order, with a seat filler for each
  *    undefined entry, so each player sits in their seat (ADR 0120).
- * 9. `boardDeckRiders`: the deck-seat riders move into the vehicle
+ * 10. `boardDeckRiders`: the deck-seat riders move into the vehicle
  *    (ADR 0063), before standing players are seated (ADR 0068).
- * 10. `depart`: take any deck-seat rider the vehicle refused off their deck
+ * 11. `depart`: take any deck-seat rider the vehicle refused off their deck
  *    seat, then seat them and the standing players, nearest first, and move
  *    those left without a seat to the exit (ADR 0068, 0095).
- * 11. `dock.seats` at `yaw`, after boarding and departure; with no `dock`,
+ * 12. `dock.seats` at `yaw`, after boarding and departure; with no `dock`,
  *    the deck seats are removed.
- * 12. `standIn`: the vehicle's one stand-in entity is kept at this pose, or
+ * 13. `standIn`: the vehicle's one stand-in entity is kept at this pose, or
  *     removed when there is none (ADR 0116).
- * 13. `dock.cells`; with no `dock`, the laid cells are cleared.
- * 14. Headlight cells along the vehicle's heading after this tick, or none
+ * 14. `dock.cells`; with no `dock`, the laid cells are cleared.
+ * 15. Headlight cells along the vehicle's heading after this tick, or none
  *     when its headlights are off (ADR 0020).
- * 15. `hits`, credited to `driverId`.
- * 16. `finalCommands`: the vacated seats' commands, such as the door
+ * 16. `hits`, credited to `driverId`.
+ * 17. `finalCommands`: the vacated seats' commands, such as the door
  *     animation, then the taken seats' commands (ADR 0007, 0055).
- * 17. `exits`, after `finalCommands`: each player who left a seat with an exit this tick
+ * 18. `exits`, after `finalCommands`: each player who left a seat with an exit this tick
  *     is moved there, unless the world's guard keeps the engine's dismount spot (ADR 0109, 0141).
  */
 export interface TickOutcome {
   dock?: Dock;
   clear: readonly ClearCell[];
   cut: readonly CutColumn[];
+  pave?: Pave;
   message?: string;
   depart?: Departure;
   /** The rider list to keep, for a kind whose players choose their seat; undefined otherwise (ADR 0120). */
@@ -381,6 +385,7 @@ export class Vehicle {
       },
       clear: step.clear ?? [],
       cut: step.cut ?? [],
+      pave: step.pave,
       message: step.message,
       depart: step.depart,
       seatLayout,
