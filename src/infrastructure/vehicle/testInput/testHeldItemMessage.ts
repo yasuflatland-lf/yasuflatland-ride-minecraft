@@ -1,13 +1,13 @@
 import { asVehicleId, type VehicleId } from "../../../domain/shared/ids";
 
-export interface TestHeldToolMessage {
+export interface TestHeldItemMessage {
   readonly vehicleId: VehicleId;
   readonly item: string | undefined;
 }
 
-export function parseTestHeldToolMessage(
+export function parseTestHeldItemMessage(
   message: string,
-): TestHeldToolMessage | undefined {
+): TestHeldItemMessage | undefined {
   const parts = message.split(",");
   const [vehicleId, item] = parts;
   if (parts.length !== 2 || !vehicleId || !item) return undefined;
