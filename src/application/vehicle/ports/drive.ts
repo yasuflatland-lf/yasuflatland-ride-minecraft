@@ -24,11 +24,12 @@ import type {
 } from "../../../domain/vehicle/hints";
 import type { VehicleKind } from "../../../domain/vehicle/kind";
 import type { LitCell } from "../../../domain/vehicle/lighting/headlights";
+import type { Pave } from "../../../domain/vehicle/pave";
 import type { ChaseCamera } from "../../../domain/vehicle/profile";
 import type { RamHit, RamTarget } from "../../../domain/vehicle/ram";
 import type { SeatAssignment } from "../../../domain/vehicle/seatChoice";
 import type { StandInPose } from "../../../domain/vehicle/standIn";
-import type { RiderView } from "../../../domain/vehicle/vehicle";
+import type { RiderHeld, RiderView } from "../../../domain/vehicle/vehicle";
 
 export interface VehicleSnapshot {
   kind: VehicleKind;
@@ -44,7 +45,7 @@ export interface VehicleSnapshot {
   restored(): RestoredValues;
   headlights: boolean;
   testInput?: RawInput;
-  testHeldTool?: string;
+  testHeld?: RiderHeld;
 }
 
 export interface DriveWorld {
@@ -93,6 +94,8 @@ export interface DriveWorld {
   clearBlocks(vehicleId: VehicleId, cells: readonly ClearCell[]): void;
   /** Clears each column in the vehicle's dimension, keeping `KEPT_BLOCKS` and laid blocks; skips columns in unloaded chunks (ADR 0137). */
   cutColumns(vehicleId: VehicleId, columns: readonly CutColumn[]): void;
+  /** Lays road blocks; a cell that fails is skipped, and the drive retries on a later tick (ADR 0181). */
+  pave(vehicleId: VehicleId, pave: Pave): void;
   /** Shows the lang key yasu_ride.message.<name> on a player's action bar; does nothing for a missing player. */
   showMessage(playerId: PlayerId, name: string): void;
   /**

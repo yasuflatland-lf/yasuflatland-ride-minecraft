@@ -38,13 +38,14 @@ import {
   RAM_QUERY_RADIUS,
 } from "../../../domain/vehicle/kinds/index";
 import type { LitCell } from "../../../domain/vehicle/lighting/headlights";
+import type { Pave } from "../../../domain/vehicle/pave";
 import type { ChaseCamera } from "../../../domain/vehicle/profile";
 import type { RamHit, RamTarget } from "../../../domain/vehicle/ram";
 import type { SeatAssignment } from "../../../domain/vehicle/seatChoice";
 import type { StandInPose } from "../../../domain/vehicle/standIn";
 import type { RiderView } from "../../../domain/vehicle/vehicle";
 import { heldTypeId } from "../../shared/heldItem";
-import { AIR_BLOCK, bareId, messageKey } from "../../shared/identifiers";
+import { AIR_BLOCK, messageKey } from "../../shared/identifiers";
 import { isLightBlock } from "../../shared/lightBlocks";
 import { mountOf } from "../../shared/mount";
 import type { VehicleTestStore } from "../testInput/vehicleTestStore";
@@ -52,12 +53,14 @@ import { savedDecor } from "./bedrockDecorWorld";
 import { BladeCuts } from "./bladeCuts";
 import { DeckSeats } from "./deckSeats";
 import { DockBlocks, savedDock } from "./dockBlocks";
+import { DropSweep } from "./dropSweep";
 import {
   type EntityIndex,
   isPlayer,
   loadedVehicleEntities,
 } from "./entityIndex";
 import { HeadlightBlocks } from "./headlightBlocks";
+import { riderHeldOf } from "./heldBlock";
 import {
   CHASE_CAMERAS,
   entityAnimationId,
@@ -68,6 +71,7 @@ import {
   ramMountOf,
   VEHICLE_FAMILY,
 } from "./identifiers";
+import { RoadPaver } from "./roadPaver";
 import { seatExitSpot } from "./seatExitSpot";
 import { SeatFillers } from "./seatFillers";
 import { StandIns } from "./standIns";
@@ -116,7 +120,8 @@ function distanceSq(a: Vec3, b: Vec3): number {
 
 export class BedrockVehicleWorld implements DriveWorld {
   private readonly headlightBlocks: HeadlightBlocks;
-  private readonly bladeCuts = new BladeCuts(systemClock);
+  private readonly bladeCuts: BladeCuts;
+  private readonly roadPaver: RoadPaver;
   private readonly deckSeats = new DeckSeats();
   private readonly standIns = new StandIns();
   private readonly seatFillers = new SeatFillers();
@@ -128,9 +133,12 @@ export class BedrockVehicleWorld implements DriveWorld {
   constructor(
     private readonly index: EntityIndex,
     private readonly testInputs: VehicleTestStore<RawInput>,
-    private readonly testTools: VehicleTestStore<string>,
+    private readonly testHeldItems: VehicleTestStore<string>,
     campSpace: SpaceCheck,
   ) {
+    const drops = new DropSweep(systemClock);
+    this.bladeCuts = new BladeCuts(systemClock, drops);
+    this.roadPaver = new RoadPaver(drops, campSpace);
     this.headlightBlocks = new HeadlightBlocks(campSpace);
     this.dockBlocks = new DockBlocks(campSpace);
     this.releaser = new VehicleReleaser(
@@ -238,12 +246,12 @@ export class BedrockVehicleWorld implements DriveWorld {
         },
         headlights: vehicle.getProperty(HEADLIGHTS_PROPERTY) === true,
         testInput: this.testInputs.get(id),
-        testHeldTool: this.testTools.get(id),
+        testHeld: riderHeldOf(this.testHeldItems.get(id)),
       });
     }
     const live = this.index.trackedIds();
     this.testInputs.retain(live);
-    this.testTools.retain(live);
+    this.testHeldItems.retain(live);
     this.headlightBlocks.clearGone(live);
     this.dockBlocks.clearGone(live);
     this.deckSeats.clearGone(live);
@@ -289,7 +297,7 @@ export class BedrockVehicleWorld implements DriveWorld {
           },
           yaw: p.getRotation().y,
           raw: rawInputOf(p),
-          heldTool: readHeld ? bareId(heldTypeId(p) ?? "") : undefined,
+          held: readHeld ? riderHeldOf(heldTypeId(p)) : undefined,
         };
       });
   }
@@ -368,6 +376,11 @@ export class BedrockVehicleWorld implements DriveWorld {
   cutColumns(vehicleId: VehicleId, columns: readonly CutColumn[]): void {
     const vehicle = this.index.entity(vehicleId);
     if (vehicle) this.bladeCuts.cut(vehicle.dimension, columns);
+  }
+
+  pave(vehicleId: VehicleId, pave: Pave): void {
+    const vehicle = this.index.entity(vehicleId);
+    if (vehicle) this.roadPaver.pave(vehicle.dimension, pave);
   }
 
   sweepCutDrop(entity: Entity): boolean {

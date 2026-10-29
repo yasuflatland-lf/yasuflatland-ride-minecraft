@@ -26,6 +26,7 @@ import { SUV_SPEC } from "../../../src/domain/vehicle/kinds/suv/spec";
 import { headlightCells } from "../../../src/domain/vehicle/lighting/headlights";
 import { MOTION } from "../../../src/domain/vehicle/motion/constants";
 import { STEP_LANES } from "../../../src/domain/vehicle/motion/stepUp";
+import type { VehicleProfile } from "../../../src/domain/vehicle/profile";
 import type { RamTarget } from "../../../src/domain/vehicle/ram";
 import { SPEC } from "../../../src/domain/vehicle/spec";
 import {
@@ -851,6 +852,38 @@ it("passes the drive's cut columns through unchanged, and none when it cuts noth
   );
 });
 
+it("passes the drive's pave through unchanged, and none when it lays nothing (ADR 0181)", () => {
+  const road = { block: "minecraft:stone", cells: [{ x: 1, y: 63, z: 2 }] };
+  for (const pave of [road, undefined]) {
+    const drive: Drive = {
+      speed: 0,
+      yaw: 0,
+      resync() {},
+      onDriverMounted() {},
+      onSeatVacated: () => [],
+      step: () => ({
+        pave,
+        impulse: { x: 0, y: 0, z: 0 },
+        forward: { x: 0, z: 1 },
+        commands: [],
+        riders: { thirdPerson: false, underwater: false },
+      }),
+    };
+    const outcome = new Vehicle(asVehicleId("v"), SUV_PROFILE, drive).tick({
+      tick: 0,
+      riders: [],
+      deckSeatInputs: [],
+      velocity: { x: 0, y: 0, z: 0 },
+      onGround: true,
+      ...waterSensors(),
+      blockTypes: () => [],
+      solidAt: () => false,
+      targets: () => [],
+    });
+    expect(outcome.pave).toEqual(pave);
+  }
+});
+
 it("blanks only the occupied dock seat in the outcome", () => {
   const seats = [
     { x: 1, y: 2, z: 3 },
@@ -1189,5 +1222,100 @@ it("K5 plays the front-right door after a lagged driver leaves", () => {
   expect(out.finalCommands).toContainEqual({
     type: "playAnimation",
     name: "door_fr",
+  });
+});
+
+describe("drive-reported ram half width", () => {
+  function ramVehicle(profile: VehicleProfile) {
+    let ramHalfWidth: number | undefined;
+    const drive: Drive = {
+      speed: SPEC.ramMinSpeed + 1,
+      yaw: 0,
+      resync() {},
+      onDriverMounted() {},
+      onSeatVacated: () => [],
+      step: () => ({
+        ramHalfWidth,
+        impulse: { x: 0, y: 0, z: 0 },
+        forward: { x: 0, z: 1 },
+        commands: [],
+        riders: { thirdPerson: false, underwater: false },
+      }),
+    };
+    const vehicle = new Vehicle(asVehicleId("v"), profile, drive);
+    return (reported: number | undefined, side: number, tick: number) => {
+      ramHalfWidth = reported;
+      return vehicle.tick({
+        tick,
+        riders: [],
+        deckSeatInputs: [],
+        velocity: { x: 0, y: 0, z: 0 },
+        onGround: true,
+        ...waterSensors(),
+        blockTypes: () => [],
+        solidAt: () => false,
+        targets: () => [
+          {
+            id: "target",
+            offset: {
+              x: side,
+              y: (SPEC.ramMinDy + SPEC.ramMaxDy) / 2,
+              z: profile.body.front / 2,
+            },
+          },
+        ],
+      }).hits;
+    };
+  }
+
+  it("hits iff the lateral offset is within this tick's clamped width plus the target half width", () => {
+    const width = fc.integer({ min: 0, max: 80 }).map((n) => n / 4);
+    fc.assert(
+      fc.property(
+        width,
+        fc.option(width, { nil: undefined }),
+        fc.array(fc.option(width, { nil: undefined }), {
+          minLength: 2,
+          maxLength: 10,
+        }),
+        width,
+        (halfWidth, maxRamHalfWidth, reports, d) => {
+          const profile = {
+            ...SUV_PROFILE,
+            body: { ...SUV_PROFILE.body, halfWidth },
+            maxRamHalfWidth,
+          };
+          const hit = ramVehicle(profile);
+          const limit = Math.max(halfWidth, maxRamHalfWidth ?? halfWidth);
+          let tick = 0;
+          for (const reported of reports) {
+            const boundary =
+              Math.min(reported ?? halfWidth, limit) + SPEC.targetHalfWidth;
+            for (const side of [d, boundary, boundary + 0.01]) {
+              for (const sign of [-1, 1]) {
+                expect(hit(reported, sign * side, tick).length === 1).toBe(
+                  side <= boundary,
+                );
+                tick += SPEC.ramCooldown;
+              }
+            }
+          }
+        },
+      ),
+    );
+  });
+
+  it("clamps a reported width that exceeds the cap to the cap", () => {
+    const hit = ramVehicle({ ...SUV_PROFILE, maxRamHalfWidth: 2 });
+    const boundary = 2 + SPEC.targetHalfWidth;
+    expect(hit(50, boundary, 0)).toHaveLength(1);
+    expect(hit(50, boundary + 0.01, SPEC.ramCooldown)).toHaveLength(0);
+  });
+
+  it("an absent reported width keeps the body's hit boundary even with a wider cap", () => {
+    const hit = ramVehicle({ ...SUV_PROFILE, maxRamHalfWidth: 10 });
+    const boundary = SUV_PROFILE.body.halfWidth + SPEC.targetHalfWidth;
+    expect(hit(undefined, boundary, 0)).toHaveLength(1);
+    expect(hit(undefined, boundary + 0.01, SPEC.ramCooldown)).toHaveLength(0);
   });
 });

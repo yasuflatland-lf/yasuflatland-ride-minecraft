@@ -6,6 +6,7 @@ import type { SpaceCheck } from "../../application/shared/ports/space";
 import { SleepInBed } from "../../application/shared/sleepInBed";
 import { BoardVehicle } from "../../application/vehicle/boardVehicle";
 import { DriveVehicles } from "../../application/vehicle/driveVehicles";
+import { FindBedSpawnCell } from "../../application/vehicle/findBedSpawnCell";
 import { GiveStarterVehicle } from "../../application/vehicle/giveStarterVehicle";
 import { HitVehicle } from "../../application/vehicle/hitVehicle";
 import { LimitVehicles } from "../../application/vehicle/limitVehicles";
@@ -59,14 +60,14 @@ export function installVehicles(deps: {
 } {
   const repo = new InMemoryVehicleRepository();
   const testInputs = new VehicleTestStore<RawInput>();
-  const testTools = new VehicleTestStore<string>();
+  const testHeldItems = new VehicleTestStore<string>();
   const index = new EntityIndex();
   const inventory = new BedrockInventory(index);
   const decorWorld = new BedrockDecorWorld(index, inventory);
   const bedrock = new BedrockVehicleWorld(
     index,
     testInputs,
-    testTools,
+    testHeldItems,
     deps.isCampSpace,
   );
   const fleetWorld = new BedrockFleetWorld(index, bedrock.releaser, inventory);
@@ -95,6 +96,7 @@ export function installVehicles(deps: {
       ceilingLights: new SwitchCeilingLights(repo, systemClock),
       tool: new SwitchTool(repo, systemClock),
       door: new UseDockDoor(repo, systemClock),
+      bedSpawnCell: new FindBedSpawnCell(repo),
       bed: new SleepInBed(new BedrockBedWorld(index)),
       showerToilet: new PressShowerToilet(repo, systemClock),
       decor: new SetDecor(decorWorld, repo),
@@ -109,7 +111,7 @@ export function installVehicles(deps: {
       board: new BoardVehicle(repo),
     },
     testInputs,
-    testTools,
+    testHeldItems,
     (dimensionId, cell) => bedrock.dockDoorOwner(dimensionId, cell),
     (dimensionId, cell) => bedrock.dockCellOwner(dimensionId, cell),
     (dimensionId, cell, typeId) =>

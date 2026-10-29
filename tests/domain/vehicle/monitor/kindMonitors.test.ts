@@ -8,7 +8,10 @@ import {
   KINDS,
   profileOf,
 } from "../../../../src/domain/vehicle/kinds/index";
-import { monitorPropertySpec } from "../../../../src/domain/vehicle/monitor/monitor";
+import {
+  monitorPropertySpec,
+  monitorScreen,
+} from "../../../../src/domain/vehicle/monitor/monitor";
 import { defined } from "../../../support/defined";
 import { riderViews, tickSamples } from "../../../support/vehicleFuzz";
 import { waterSensors } from "../../../support/waterDepth";
@@ -34,7 +37,7 @@ it.each(VEHICLE_KINDS)(
             const riders = riderViews(kind, sample.riders, vehicle.yaw).map(
               (rider, index) => ({
                 ...rider,
-                heldTool: tools[(tick + index) % tools.length],
+                held: { tool: tools[(tick + index) % tools.length] },
               }),
             );
             const out = vehicle.tick({
@@ -91,3 +94,13 @@ it.each(VEHICLE_KINDS)(
     );
   },
 );
+
+it("maps the bulldozer road paver state to screens five and six", () => {
+  const rule = defined(profileOf("bulldozer").monitor, "bulldozer monitor");
+  expect(monitorPropertySpec(rule).range).toEqual([0, 6]);
+  for (const [state, screen] of [
+    ["off", 5],
+    ["on", 6],
+  ] as const)
+    expect(monitorScreen(rule, "road_paver_switch", () => state)).toBe(screen);
+});

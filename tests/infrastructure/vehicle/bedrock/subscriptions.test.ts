@@ -51,7 +51,7 @@ import {
   STAND_IN_PROPERTY,
   standInType,
   TEST_DECOR_EVENT,
-  TEST_HELD_TOOL_EVENT,
+  TEST_HELD_ITEM_EVENT,
   TEST_INPUT_EVENT,
   TEST_TOOL_EVENT,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
@@ -1082,6 +1082,59 @@ it("registers bed interactions during startup and passes the player, dimension, 
     { params: undefined },
   );
   expect(bed.execute).not.toHaveBeenCalled();
+});
+
+it("resolves an owned camper bed press to its spawn cell (ADR 0182)", () => {
+  const before = game.startup.mock.calls.length;
+  const bed = { execute: vi.fn() };
+  const spawn = { x: 0, y: 65, z: -3 };
+  const bedSpawnCell = { execute: vi.fn(() => spawn) };
+  const owner = asVehicleId("camper");
+  const dockCellOwner = vi.fn(() => owner);
+  registerSubscriptions(
+    { bed, bedSpawnCell } as unknown as Parameters<
+      typeof registerSubscriptions
+    >[0],
+    new VehicleTestStore<RawInput>(),
+    new VehicleTestStore<string>(),
+    vi.fn(),
+    dockCellOwner,
+    () => undefined,
+    () => [],
+  );
+  const registerCustomComponent =
+    vi.fn<(name: string, component: BlockCustomComponent) => void>();
+  for (const [startup] of game.startup.mock.calls.slice(before)) {
+    startup({
+      blockComponentRegistry: { registerCustomComponent },
+    } as unknown as StartupEvent);
+  }
+  const interact = registerCustomComponent.mock.calls.find(
+    ([name]) => name === CAMPER_BED_COMPONENT,
+  )?.[1].onPlayerInteract;
+  if (!interact) throw new Error("bed interaction missing");
+  const cell = { x: 1, y: 65, z: 2 };
+  interact(
+    {
+      dimension: { id: "minecraft:overworld" },
+      block: { location: cell },
+      player: { id: "p" },
+    } as Parameters<typeof interact>[0],
+    { params: undefined },
+  );
+  expect(bed.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId: "p",
+    dimensionId: "minecraft:overworld",
+    cell: spawn,
+  });
+  expect(dockCellOwner).toHaveBeenCalledExactlyOnceWith(
+    "minecraft:overworld",
+    cell,
+  );
+  expect(bedSpawnCell.execute).toHaveBeenCalledExactlyOnceWith({
+    vehicleId: owner,
+    cell,
+  });
 });
 
 it("registers shower-toilet presses during startup and sends an empty hand's press with the player's feet to the camper (ADR 0098, 0118)", () => {
@@ -2263,12 +2316,12 @@ describe("monitor tool switch (ADR 0171)", () => {
   });
 });
 
-it("stores and clears held tools only from server script events", () => {
-  const tools = new VehicleTestStore<string>();
+it("stores and clears held items only from server script events", () => {
+  const testHeldItems = new VehicleTestStore<string>();
   registerSubscriptions(
     {} as unknown as Parameters<typeof registerSubscriptions>[0],
     new VehicleTestStore<RawInput>(),
-    tools,
+    testHeldItems,
     () => undefined,
     () => undefined,
     () => undefined,
@@ -2283,23 +2336,23 @@ it("stores and clears held tools only from server script events", () => {
   const send = (
     message: string,
     sourceType = "Server",
-    id = TEST_HELD_TOOL_EVENT,
+    id = TEST_HELD_ITEM_EVENT,
   ) =>
     receive({
       id,
       message,
       sourceType,
     } as unknown as ScriptEventCommandMessageAfterEvent);
-  send("car,blade_switch", "Entity");
-  send("car,blade_switch", "Server", "minecraft:other");
-  expect(tools.get(asVehicleId("car"))).toBeUndefined();
-  send("car,blade_switch");
-  expect(tools.get(asVehicleId("car"))).toBe("blade_switch");
+  send("car,yasu_ride:blade_switch", "Entity");
+  send("car,yasu_ride:blade_switch", "Server", "minecraft:other");
+  expect(testHeldItems.get(asVehicleId("car"))).toBeUndefined();
+  send("car,yasu_ride:blade_switch");
+  expect(testHeldItems.get(asVehicleId("car"))).toBe("yasu_ride:blade_switch");
   const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
   send("car,");
   expect(warn).toHaveBeenCalledOnce();
   warn.mockRestore();
-  expect(tools.get(asVehicleId("car"))).toBe("blade_switch");
+  expect(testHeldItems.get(asVehicleId("car"))).toBe("yasu_ride:blade_switch");
   send("car,clear");
-  expect(tools.get(asVehicleId("car"))).toBeUndefined();
+  expect(testHeldItems.get(asVehicleId("car"))).toBeUndefined();
 });

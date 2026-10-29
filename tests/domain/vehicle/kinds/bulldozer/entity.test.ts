@@ -3,8 +3,10 @@ import {
   bladeCommand,
   doorCommand,
   BULLDOZER_ENTITY as E,
+  roadPaverCommand,
   trackPhaseCommand,
   trackSpinCommand,
+  wideBladeCommand,
 } from "../../../../../src/domain/vehicle/kinds/bulldozer/entity";
 import { profileOf } from "../../../../../src/domain/vehicle/kinds/index";
 import { formCommands } from "../../../../../src/domain/vehicle/motion/transformingEntity";
@@ -17,15 +19,19 @@ it("declares the tracks, the door, the blade, and the transforming properties, a
     "door",
     "form",
     "gear_down",
+    "road_paver",
     "spin_l",
     "spin_r",
     "track_l",
     "track_r",
+    "wide_blade",
   ]);
   // BDS 1.26.52.3 rejects [0.0, 0.0]: "range max is less than range min" (ADR 0136).
   expect(E.properties.bank.range).toStrictEqual([0, 1]);
   expect(E.properties.blade).toStrictEqual({ type: "float", range: [0, 1] });
-  expect(E.restored).toEqual(["form", "blade"]);
+  expect(E.properties.wide_blade).toStrictEqual({ type: "bool" });
+  expect(E.properties.road_paver).toStrictEqual({ type: "bool" });
+  expect(E.restored).toEqual(["form", "blade", "wide_blade", "road_paver"]);
 });
 it("builds only declared commands", () => {
   for (const c of [
@@ -37,6 +43,10 @@ it("builds only declared commands", () => {
     bladeCommand(0.5),
     bladeCommand(0),
     bladeCommand(1),
+    wideBladeCommand(true),
+    wideBladeCommand(false),
+    roadPaverCommand(true),
+    roadPaverCommand(false),
     ...formCommands("hover"),
   ])
     expectDeclaredCommand(c, E, profileOf("bulldozer"));

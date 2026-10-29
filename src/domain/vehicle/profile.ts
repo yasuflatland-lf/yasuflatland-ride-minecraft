@@ -55,6 +55,8 @@ export interface VehicleProfile {
   /** Most vehicles of this kind one player keeps; one more removes their oldest (ADR 0066). */
   readonly fleetLimit: number;
   readonly body: VehicleBody;
+  /** The widest ram half width any step of this kind may report; absent = body.halfWidth. The ram query radius covers it (ADR 0180). */
+  readonly maxRamHalfWidth?: number;
   /**
    * The farthest any part of the body, or a stand-in box, reaches from the center
    * across the ground, in blocks: a circle the vehicle covers at any heading. Things
@@ -97,4 +99,12 @@ export interface VehicleProfile {
   readonly placementGift?: PlacementGift;
   /** The tools the cab monitor shows for the driver (ADR 0139). Absent = the kind has no cab monitor. */
   readonly monitor?: MonitorRule;
+}
+
+/** The ram half width the core never exceeds for this profile (ADR 0180). */
+export function ramHalfWidthLimit(profile: VehicleProfile): number {
+  return Math.max(
+    profile.body.halfWidth,
+    profile.maxRamHalfWidth ?? profile.body.halfWidth,
+  );
 }

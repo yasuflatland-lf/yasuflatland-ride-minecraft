@@ -49,6 +49,7 @@ import type { VehicleKind } from "../../../src/domain/vehicle/kind";
 import { parkPose } from "../../../src/domain/vehicle/kinds/camper/room";
 import { createVehicle } from "../../../src/domain/vehicle/kinds/index";
 import type { LitCell } from "../../../src/domain/vehicle/lighting/headlights";
+import type { Pave } from "../../../src/domain/vehicle/pave";
 import type { PlacementGift } from "../../../src/domain/vehicle/placement/gift";
 import type { StarterKind } from "../../../src/domain/vehicle/placement/starter";
 import type { ChaseCamera } from "../../../src/domain/vehicle/profile";
@@ -146,6 +147,7 @@ export class FakeWorld
   /** Whether the slot a gift box was used from still holds one. */
   giftInSlot = true;
   failCutOn: string | undefined;
+  readonly paves: { vehicleId: string; pave: Pave }[] = [];
   readonly cuts: { vehicleId: string; columns: readonly CutColumn[] }[] = [];
   failOn: string | undefined;
   failRunOn: { id: string; name: string } | undefined;
@@ -179,6 +181,10 @@ export class FakeWorld
     if (vehicleId === this.failCutOn) throw new Error("boom");
     this.calls.push("cutColumns");
     this.cuts.push({ vehicleId, columns });
+  }
+  pave(vehicleId: string, pave: Pave) {
+    this.calls.push("pave");
+    this.paves.push({ vehicleId, pave });
   }
   showMessage(playerId: string, name: string) {
     this.calls.push("showMessage");

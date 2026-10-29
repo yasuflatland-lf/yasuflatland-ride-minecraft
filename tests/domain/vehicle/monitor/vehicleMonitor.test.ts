@@ -4,6 +4,7 @@ import { asPlayerId, asVehicleId } from "../../../../src/domain/shared/ids";
 import type {
   Drive,
   EngineCommand,
+  TickContext,
 } from "../../../../src/domain/vehicle/drive";
 import { MONITOR_PROPERTY_NAME } from "../../../../src/domain/vehicle/entityContract";
 import { BLADE_SWITCH_ITEM } from "../../../../src/domain/vehicle/kinds/bulldozer/monitor";
@@ -13,6 +14,7 @@ import {
 } from "../../../../src/domain/vehicle/kinds/index";
 import type { VehicleProfile } from "../../../../src/domain/vehicle/profile";
 import {
+  type RiderHeld,
   type RiderView,
   Vehicle,
   type VehicleTickInput,
@@ -33,7 +35,7 @@ const driveCommand: EngineCommand = {
   value: 0,
 };
 
-function rider(seat: number, heldTool?: string): RiderView {
+function rider(seat: number, tool?: string): RiderView {
   const at = defined(profile.seats.positions[seat], "seat");
   return {
     id: asPlayerId(`r${seat}`),
@@ -41,19 +43,19 @@ function rider(seat: number, heldTool?: string): RiderView {
     yaw: 0,
     raw: { moveX: 0, moveY: 0, jump: false },
     slot: seat,
-    heldTool,
+    held: { tool },
   };
 }
 
 function tickInput(
   tick: number,
   riders: readonly RiderView[],
-  testHeldTool?: string,
+  testTool?: string,
 ): VehicleTickInput {
   return {
     tick,
     riders,
-    testHeldTool,
+    testHeld: testTool === undefined ? undefined : { tool: testTool },
     deckSeatInputs: [],
     velocity: { x: 0, y: 0, z: 0 },
     onGround: true,
@@ -66,6 +68,7 @@ function tickInput(
 
 function setup() {
   let state: string | undefined = "down";
+  let context: TickContext | undefined;
   const drive: Drive = {
     speed: 0,
     yaw: 0,
@@ -74,7 +77,8 @@ function setup() {
     onSeatVacated: () => [],
     toolState: (item) => (item === "switch" ? state : undefined),
     step: (_raw, sensors) => {
-      expect(sensors).not.toHaveProperty("testHeldTool");
+      context = sensors;
+      expect(sensors).not.toHaveProperty("testHeld");
       return {
         impulse: { x: 0, y: 0, z: 0 },
         forward: { x: 0, z: 1 },
@@ -87,11 +91,12 @@ function setup() {
   let tick = 0;
   return {
     vehicle,
+    context: () => context,
     state: (value: string | undefined) => {
       state = value;
     },
-    tick: (riders: readonly RiderView[] = [], testHeldTool?: string) =>
-      vehicle.tick(tickInput(tick++, riders, testHeldTool)).stepCommands,
+    tick: (riders: readonly RiderView[] = [], testTool?: string) =>
+      vehicle.tick(tickInput(tick++, riders, testTool)).stepCommands,
   };
 }
 function expectedScreen(
@@ -135,7 +140,7 @@ describe("vehicle cab monitor", () => {
     expect(sim.tick([rider(1, "switch")])).toEqual([driveCommand, command(0)]);
   });
 
-  it("blanks without a driver and applies testHeldTool only without a driver", () => {
+  it("blanks without a driver and applies testHeld only without a driver", () => {
     const sim = setup();
     expect(sim.tick()).toEqual([driveCommand, command(0)]);
     expect(sim.tick([], "switch")).toEqual([driveCommand, command(1)]);
@@ -144,6 +149,30 @@ describe("vehicle cab monitor", () => {
       driveCommand,
       command(1),
     ]);
+  });
+
+  it("passes only the driver's held block, or the test block without a driver, to the drive", () => {
+    const optionalString = fc.option(fc.string(), { nil: undefined });
+    const held = fc.option(
+      fc.record({ tool: optionalString, block: optionalString }),
+      { nil: undefined },
+    );
+    fc.assert(
+      fc.property(held, held, held, (driverHeld, passengerHeld, testHeld) => {
+        for (const hasDriver of [true, false]) {
+          const sim = setup();
+          const passenger = { ...rider(1), held: passengerHeld };
+          const riders = hasDriver
+            ? [passenger, { ...rider(0), held: driverHeld }]
+            : [passenger];
+          sim.vehicle.tick({ ...tickInput(0, riders), testHeld });
+          const selected: RiderHeld | undefined = hasDriver
+            ? driverHeld
+            : testHeld;
+          expect(sim.context()?.heldBlock).toBe(selected?.block);
+        }
+      }),
+    );
   });
 
   it("emits exactly when the screen differs from the last value sent", () => {
@@ -184,19 +213,19 @@ describe("bulldozer cab monitor", () => {
     const vehicle = createVehicle("bulldozer", asVehicleId("b"), 0);
     const seat = defined(profileOf("bulldozer").seats.positions[0], "seat");
     let tick = 0;
-    const driver = (heldTool?: string): RiderView => ({
+    const driver = (tool?: string): RiderView => ({
       id: asPlayerId("d"),
       offset: { x: seat.x, z: -seat.z },
       yaw: 0,
       raw: { moveX: 0, moveY: 0, jump: false },
       slot: 0,
-      heldTool,
+      held: { tool },
     });
     return {
       vehicle,
-      monitor: (heldTool?: string) =>
+      monitor: (tool?: string) =>
         vehicle
-          .tick(tickInput(tick++, [driver(heldTool)]))
+          .tick(tickInput(tick++, [driver(tool)]))
           .stepCommands.filter(
             (c) => c.type === "setProperty" && c.name === MONITOR_PROPERTY_NAME,
           ),

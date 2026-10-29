@@ -3,6 +3,7 @@
 import type { SleepInBed } from "../../../application/shared/sleepInBed";
 import type { BoardVehicle } from "../../../application/vehicle/boardVehicle";
 import type { DriveVehicles } from "../../../application/vehicle/driveVehicles";
+import type { FindBedSpawnCell } from "../../../application/vehicle/findBedSpawnCell";
 import type { GiveStarterVehicle } from "../../../application/vehicle/giveStarterVehicle";
 import type { HitVehicle } from "../../../application/vehicle/hitVehicle";
 import type { LimitVehicles } from "../../../application/vehicle/limitVehicles";
@@ -45,7 +46,7 @@ import { registerStandIns } from "./handlers/standIn";
 import { registerStarter } from "./handlers/starter";
 import { registerStorage } from "./handlers/storage";
 import { registerTestDecor } from "./handlers/testDecor";
-import { registerTestHeldTool } from "./handlers/testHeldTool";
+import { registerTestHeldItem } from "./handlers/testHeldItem";
 import { registerTestInput } from "./handlers/testInput";
 import { registerTestTool } from "./handlers/testTool";
 import { toolSwitchTarget } from "./handlers/toolSwitch";
@@ -65,6 +66,7 @@ export function registerSubscriptions(
     tool: SwitchTool;
     door: UseDockDoor;
     bed: SleepInBed;
+    bedSpawnCell: FindBedSpawnCell;
     showerToilet: PressShowerToilet;
     decor: SetDecor;
     placeDecor: PlaceDecor;
@@ -74,7 +76,7 @@ export function registerSubscriptions(
     board: BoardVehicle;
   },
   testInputs: VehicleTestStore<RawInput>,
-  testTools: VehicleTestStore<string>,
+  testHeldItems: VehicleTestStore<string>,
   dockDoorOwner: (
     dimensionId: DimensionId,
     cell: Vec3,
@@ -92,7 +94,12 @@ export function registerSubscriptions(
   laterSwitchTargets: () => readonly SwitchTarget[],
 ): void {
   registerDecor(useCases.placeDecor, useCases.removeDecor, dockCellOwner);
-  registerBedBlock(CAMPER_BED_COMPONENT, useCases.bed);
+  registerBedBlock(CAMPER_BED_COMPONENT, useCases.bed, (dim, cell) => {
+    const id = dockCellOwner(dim, cell);
+    return id === undefined
+      ? undefined
+      : useCases.bedSpawnCell.execute({ vehicleId: id, cell });
+  });
   registerDockDoor(useCases.door, dockDoorOwner);
   registerDockGuard(dockBlockOwner);
   registerShowerToilet(useCases.showerToilet, dockCellOwner);
@@ -102,7 +109,7 @@ export function registerSubscriptions(
   registerTestTool(useCases.tool);
   registerTestDecor(useCases.decor);
   registerTestInput(testInputs);
-  registerTestHeldTool(testTools);
+  registerTestHeldItem(testHeldItems);
   registerGifts(useCases.gift);
   registerBoarding(useCases.board);
   registerStandIns(useCases.board);

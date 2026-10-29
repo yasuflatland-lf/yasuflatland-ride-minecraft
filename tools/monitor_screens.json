@@ -9,6 +9,26 @@
       "item": "blade_switch",
       "state": "up",
       "label": "UP"
+    },
+    {
+      "item": "wide_blade_switch",
+      "state": "normal",
+      "label": "NORM"
+    },
+    {
+      "item": "wide_blade_switch",
+      "state": "wide",
+      "label": "WIDE"
+    },
+    {
+      "item": "road_paver_switch",
+      "state": "off",
+      "label": "OFF"
+    },
+    {
+      "item": "road_paver_switch",
+      "state": "on",
+      "label": "ON"
     }
   ],
   "sportsboat": [

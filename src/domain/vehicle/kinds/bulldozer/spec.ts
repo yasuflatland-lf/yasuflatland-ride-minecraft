@@ -6,11 +6,34 @@ export interface BladeRule extends CutRect {
   readonly bodyHeight: number;
   readonly minSpeed: number;
 }
+export interface PaverRule {
+  /** Lays only above this speed (blocks/tick) so a stopped bulldozer does not rewrite cells. */
+  readonly minSpeed: number;
+  /** Half side of a square that holds the 2.4 x 2.4 engine collision box at any yaw: 1.2 * sqrt 2, rounded up. */
+  readonly bodyHalf: number;
+  /** Depth of the trailing strip; above maxSpeed so no row is skipped. */
+  readonly trail: number;
+  /** Gap between bodyHalf and the flight strip; at least the cell diagonal, because rectCells keeps touching cells. */
+  readonly flightGap: number;
+  /** How far past bodyHalf the support zone reaches ahead over liquid. */
+  readonly lookAhead: number;
+  /** Rows below the reference searched for liquid before a drop counts as a cliff. */
+  readonly liquidSearchDepth: number;
+}
 export interface TrackGeometry {
   readonly halfGauge: number;
   readonly phaseStep: number;
   readonly radius: number;
 }
+const blade = Object.freeze({
+  near: 1.0,
+  far: 2.9,
+  // The blade's half width, 37.05 px / 16, rather than the 1.18-block cab. The ram box covers the full blade.
+  halfWidth: 2.32,
+  bodyHeight: 2.9,
+  minSpeed: 0.02,
+});
+
 // Flight and water values repeat the SUV's at the owner's request for the same behavior; they are not shared constants (ADR 0050, 0136).
 export const BULLDOZER_SPEC = Object.freeze({
   maxSpeed: 0.45,
@@ -31,8 +54,7 @@ export const BULLDOZER_SPEC = Object.freeze({
   footprint: 3.35,
   // The blade's front-most point, -38.4 px / 16. The body ends at 2.04, so the ram box covers the blade.
   bodyFront: 2.4,
-  // The blade's half width, 37.05 px / 16, rather than the 1.18-block cab. The ram box covers the full blade.
-  bodyHalfWidth: 2.32,
+  bodyHalfWidth: blade.halfWidth,
   doubleTapTicks: 8,
   takeoffTicks: 20,
   takeoffClimb: 0.075,
@@ -66,13 +88,15 @@ export const BULLDOZER_SPEC = Object.freeze({
   bladeRaisedOnSpawn: true,
   headlightReach: Object.freeze([6, 10, 15, 21, 27] as const),
   headlightLevels: Object.freeze([8, 12, 15, 15, 15] as const),
-  blade: Object.freeze({
-    near: 1.0,
-    far: 2.9,
-    halfWidth: 2.32,
-    bodyHeight: 2.9,
+  blade,
+  paver: Object.freeze({
     minSpeed: 0.02,
-  }),
+    bodyHalf: 1.7,
+    trail: 1.0,
+    flightGap: 1.5,
+    lookAhead: 2.0,
+    liquidSearchDepth: 8,
+  }) satisfies PaverRule,
   // Digs up through an overhead obstacle while rising: the footprint plus two blocks on each side, so the body never wedges in a one-block hole (ADR 0155).
   shaft: Object.freeze({ margin: 2, reach: 2 }),
   tracks: Object.freeze({
@@ -81,6 +105,11 @@ export const BULLDOZER_SPEC = Object.freeze({
     radius: 6.7 / 16,
   }),
 } as const);
+/** Twice the normal half width, matching the wide plate's 74.1 px / 16 (about 4.63 blocks; ADR 0180). */
+export const BULLDOZER_WIDE_BLADE: BladeRule = Object.freeze({
+  ...BULLDOZER_SPEC.blade,
+  halfWidth: 2 * BULLDOZER_SPEC.blade.halfWidth,
+});
 export const BULLDOZER_AIR: Medium = Object.freeze({
   drag: BULLDOZER_SPEC.flightDrag,
   maxSpeed: BULLDOZER_SPEC.maxSpeed,

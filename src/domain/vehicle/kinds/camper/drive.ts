@@ -66,6 +66,7 @@ import {
   parkGround,
   parkPose,
   planPark,
+  bedSpawnCell as roomBedSpawnCell,
   roomCells,
   slotCells,
   storagePlateCells,
@@ -251,6 +252,12 @@ export class CamperDrive extends TransformingDrive {
 
   ceilingLightsReachable(feet: Vec3): boolean {
     return this.parked !== undefined && insideRoom(this.parked, feet);
+  }
+
+  bedSpawnCell(cell: Vec3): Vec3 | undefined {
+    return this.parked === undefined
+      ? undefined
+      : roomBedSpawnCell(this.parked, cell);
   }
 
   runShower(): boolean {
