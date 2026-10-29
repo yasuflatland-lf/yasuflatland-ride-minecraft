@@ -28,6 +28,7 @@ import {
 } from "../../../../src/infrastructure/shared/identifiers";
 import {
   CAMPER_BED_BLOCK,
+  CAMPER_BUNK_BLOCK,
   CAMPER_CABINET_DOOR_BLOCK,
   CAMPER_CEILING_BLOCK,
   CAMPER_DOOR_BLOCK,
@@ -260,6 +261,11 @@ describe("identifiers (ADR 0047)", () => {
     expect(campingGearOfItem("minecraft:stone")).toBeUndefined();
   });
 
+  it("keeps the upper bunk out of the standable room blocks, since stand-up spots are aisle cells (ADR 0182)", () => {
+    expect(isCamperRoomBlock(CAMPER_BUNK_BLOCK)).toBe(true);
+    expect(isStandableRoomBlock(CAMPER_BUNK_BLOCK)).toBe(false);
+  });
+
   it("recognizes only the camper's own room blocks", () => {
     for (const typeId of [
       CAMPER_CABINET_DOOR_BLOCK,
@@ -269,6 +275,7 @@ describe("identifiers (ADR 0047)", () => {
       CAMPER_WALL_BLOCK,
       CAMPER_DOOR_BLOCK,
       CAMPER_BED_BLOCK,
+      CAMPER_BUNK_BLOCK,
       CAMPER_FURNITURE_BLOCK,
       CAMPER_SHOWER_TOILET_BLOCK,
       CAMPER_SHOWER_DOOR_BLOCK,

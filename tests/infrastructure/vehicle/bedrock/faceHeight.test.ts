@@ -15,6 +15,7 @@ import {
 } from "../../../../src/infrastructure/vehicle/bedrock/faceHeight";
 import {
   CAMPER_BED_BLOCK,
+  CAMPER_BUNK_BLOCK,
   CAMPER_CABINET_DOOR_BLOCK,
   CAMPER_CEILING_BLOCK,
   CAMPER_DOOR_BLOCK,
@@ -155,6 +156,7 @@ it("keeps each room block's box top and bottom in step with its block file (ADR 
     CAMPER_SHOWER_TOILET_BLOCK,
     CAMPER_SHOWER_DOOR_BLOCK,
     CAMPER_BED_BLOCK,
+    CAMPER_BUNK_BLOCK,
     CAMPER_CEILING_BLOCK,
     CAMPER_CABINET_DOOR_BLOCK,
     CAMPER_FRIDGE_DOOR_BLOCK,

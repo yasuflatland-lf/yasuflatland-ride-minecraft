@@ -213,6 +213,8 @@ export const CAMPER_CEILING_BLOCK = id("camper_ceiling");
 export const CAMPER_WALL_BLOCK = id("camper_wall");
 export const CAMPER_DOOR_BLOCK = id("camper_door");
 export const CAMPER_BED_BLOCK = id("camper_bed");
+/** The upper bunk's block: no collision, reuses the bed component (ADR 0182). */
+export const CAMPER_BUNK_BLOCK = id("camper_bunk");
 export const CAMPER_SHOWER_TOILET_BLOCK = id("camper_shower_toilet");
 /** An open wall cabinet door's plate in the aisle cell under the ceiling (ADR 0114). */
 export const CAMPER_CABINET_DOOR_BLOCK = id("camper_cabinet_door");
@@ -326,6 +328,7 @@ const CAMPER_ROOM_BLOCKS: ReadonlySet<string> = new Set([
   CAMPER_WALL_BLOCK,
   CAMPER_DOOR_BLOCK,
   CAMPER_BED_BLOCK,
+  CAMPER_BUNK_BLOCK,
   CAMPER_FURNITURE_BLOCK,
   CAMPER_SHOWER_TOILET_BLOCK,
   CAMPER_CABINET_DOOR_BLOCK,

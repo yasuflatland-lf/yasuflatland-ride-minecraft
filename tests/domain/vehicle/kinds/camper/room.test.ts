@@ -33,6 +33,7 @@ import {
   exitCells,
   furnitureCells,
   holdsCargo,
+  localCellAt,
   ownSlotBlock,
   parkCheckCells,
   parkPose,
@@ -95,7 +96,7 @@ const isCabinetCell = (cell: { x: number; z: number; layer: number }) =>
       d.compartment.layer === cell.layer,
   );
 
-it("lays 105 distinct integer cells with the specified counts at any snapped pose, an open cabinet door's plate in place of a ceiling cell and the open shower door's wall in place of a wall, and no fridge plate, which stands below the ceiling (ADR 0068, 0114, 0118, 0123)", () => {
+it("lays 107 distinct integer cells with the specified counts at any snapped pose, an open cabinet door's plate in place of a ceiling cell and the open shower door's wall in place of a wall, and no fridge plate, which stands below the ceiling (ADR 0068, 0114, 0118, 0123)", () => {
   fc.assert(
     fc.property(
       location,
@@ -115,8 +116,8 @@ it("lays 105 distinct integer cells with the specified counts at any snapped pos
         const underCeiling = STORAGE_DOORS.filter(
           (d) => d.plate.layer === 3 && cabinets.has(d.id),
         ).length;
-        expect(cells).toHaveLength(105);
-        expect(new Set(cells.map(cellKey)).size).toBe(105);
+        expect(cells).toHaveLength(107);
+        expect(new Set(cells.map(cellKey)).size).toBe(107);
         expect(
           Object.fromEntries(
             [
@@ -126,6 +127,7 @@ it("lays 105 distinct integer cells with the specified counts at any snapped pos
               "door",
               "deck",
               "bed",
+              "bunk",
               "showerToilet",
               "cabinetDoor",
               "showerDoor",
@@ -141,6 +143,7 @@ it("lays 105 distinct integer cells with the specified counts at any snapped pos
           door: 3,
           deck: 1,
           bed: 2,
+          bunk: 2,
           showerToilet: 2,
           cabinetDoor: underCeiling,
           showerDoor: showerOpen ? 3 : 0,
@@ -282,11 +285,35 @@ it("lays the two bed cells at the rear left, one layer above the floor (ADR 0092
   );
 });
 
+it("lays the two bunk cells over the bed, two layers above the floor (ADR 0182)", () => {
+  fc.assert(
+    fc.property(pose, (p) => {
+      const bunks = roomCells(p, false).filter((c) => c.block.type === "bunk");
+      expect(bunks).toHaveLength(2);
+      const exact = forward(p.yaw);
+      const f = { x: Math.round(exact.x) + 0, z: Math.round(exact.z) + 0 };
+      const left = leftOf(f);
+      const l = { x: left.x + 0, z: left.z + 0 };
+      const along: number[] = [];
+      for (const c of bunks) {
+        const d = { x: c.x - Math.floor(p.x), z: c.z - Math.floor(p.z) };
+        expect(c.y).toBe(p.y + 2);
+        expect(dot(d, l)).toBe(1);
+        along.push(dot(d, f));
+      }
+      expect(along.sort((a, b) => a - b)).toEqual([-3, -2]);
+    }),
+  );
+});
+
 it("covers the interior and the roof exactly once with cargo cells, slot cells, furniture block cells, and the fridge's plate cells (ADR 0093, 0097, 0098, 0123)", () => {
   fc.assert(
     fc.property(pose, (p) => {
       const blocks = roomCells(p, false).filter(
-        (c) => c.block.type === "bed" || c.block.type === "showerToilet",
+        (c) =>
+          c.block.type === "bed" ||
+          c.block.type === "bunk" ||
+          c.block.type === "showerToilet",
       );
       const cargo = cargoCells(p);
       const cargoKeys = new Set(cargo.map(cellKey));
@@ -316,7 +343,7 @@ it("covers the interior and the roof exactly once with cargo cells, slot cells, 
   );
 });
 
-it("checks 168 unique cells including the room and keeps all 47 cargo cells outside its blocks, slots, and the fridge's plate cells (ADR 0097, 0098, 0123)", () => {
+it("checks 168 unique cells including the room and keeps all 45 cargo cells outside its blocks, slots, and the fridge's plate cells (ADR 0097, 0098, 0123)", () => {
   fc.assert(
     fc.property(pose, (p) => {
       const room = new Set(roomCells(p, false).map(cellKey));
@@ -325,8 +352,8 @@ it("checks 168 unique cells including the room and keeps all 47 cargo cells outs
       expect(new Set(check).size).toBe(168);
       for (const c of room) expect(check).toContain(c);
       const cargo = cargoCells(p).map(cellKey);
-      expect(cargo).toHaveLength(47);
-      expect(new Set(cargo).size).toBe(47);
+      expect(cargo).toHaveLength(45);
+      expect(new Set(cargo).size).toBe(45);
       expect(cargo.some((c) => room.has(c))).toBe(false);
       for (const key of slotCells(p).map(cellKey)) {
         expect(room.has(key)).toBe(false);
@@ -1008,18 +1035,28 @@ it("lets a compartment cell hold air, the furniture block, or its unit's compart
   }
 });
 
-it("maps every bed cell to itself and rejects every other room or interior cell at any pose (ADR 0092, 0182)", () => {
+it("maps each level's cells to its own aisle cell on the floor, and rejects every other room or interior cell at any pose (ADR 0092, 0182)", () => {
   fc.assert(
     fc.property(pose, (p) => {
       const room = roomCells(p, false);
-      const beds = room.filter((c) => c.block.type === "bed");
-      expect(beds).toHaveLength(2);
-      for (const { x, y, z } of beds) {
-        const cell = { x, y, z };
-        expect(bedSpawnCell(p, cell)).toEqual(cell);
+      const roomKeys = new Set(room.map(cellKey));
+      const aisle = (z: number) => localCellAt(p, { x: 0, z, layer: 1 });
+      for (const [type, z] of [
+        ["bed", -2],
+        ["bunk", -3],
+      ] as const) {
+        const levels = room.filter((c) => c.block.type === type);
+        expect(levels).toHaveLength(2);
+        for (const { x, y, z: cz } of levels) {
+          const spawn = bedSpawnCell(p, { x, y, z: cz });
+          expect(spawn).toEqual(aisle(z));
+          expect(roomKeys.has(cellKey(defined(spawn, "spawn")))).toBe(false);
+        }
       }
       for (const cell of [
-        ...room.filter((c) => c.block.type !== "bed"),
+        ...room.filter(
+          (c) => c.block.type !== "bed" && c.block.type !== "bunk",
+        ),
         ...cargoCells(p),
         ...slotCells(p),
       ]) {

@@ -24,6 +24,7 @@ import {
 import { LIGHT_BLOCK } from "../../shared/lightBlocks";
 import {
   CAMPER_BED_BLOCK,
+  CAMPER_BUNK_BLOCK,
   CAMPER_CABINET_DOOR_BLOCK,
   CAMPER_CEILING_BLOCK,
   CAMPER_DOOR_BLOCK,
@@ -114,6 +115,7 @@ function isDockCell(v: unknown): v is DockCell {
     case "floor":
     case "ceiling":
     case "bed":
+    case "bunk":
     case "light":
       return true;
     case "furniture":
@@ -179,6 +181,8 @@ function blockIdOf(block: DockBlock): string {
       return CAMPER_DOOR_BLOCK;
     case "bed":
       return CAMPER_BED_BLOCK;
+    case "bunk":
+      return CAMPER_BUNK_BLOCK;
     case "light":
       return LIGHT_BLOCK;
     case "showerToilet":

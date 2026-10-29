@@ -19,6 +19,7 @@ const HIDDEN_CUBE_REFERENCE = {
 };
 const INVISIBLE_BLOCKS = [
   "camper_bed",
+  "camper_bunk",
   "camper_cabinet_door",
   "camper_ceiling",
   "camper_door",

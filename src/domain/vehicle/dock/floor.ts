@@ -17,6 +17,8 @@ export type DockBlock =
   | { readonly type: "floor" }
   | { readonly type: "ceiling" }
   | { readonly type: "bed" }
+  /** The upper bunk's block: no collision, selectable over the upper bunk (ADR 0182). */
+  | { readonly type: "bunk" }
   /** A ceiling light's glow: a light block, invisible and without collision (ADR 0115). */
   | { readonly type: "light" }
   /**

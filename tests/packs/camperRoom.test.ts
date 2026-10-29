@@ -6,6 +6,7 @@ import { CAMPER_SPEC } from "../../src/domain/vehicle/kinds/camper/spec";
 import {
   CAMPER_BED_BLOCK,
   CAMPER_BED_COMPONENT,
+  CAMPER_BUNK_BLOCK,
   CAMPER_CABINET_COMPONENT,
   CAMPER_CEILING_BLOCK,
   CAMPER_DOOR_BLOCK,
@@ -39,6 +40,7 @@ const wallPlates = [
 const customComponents: Record<string, string[]> = {
   door: [CAMPER_DOOR_COMPONENT],
   bed: [CAMPER_BED_COMPONENT],
+  bunk: [CAMPER_BED_COMPONENT],
   shower_toilet: [CAMPER_SHOWER_TOILET_COMPONENT],
   shower_door: [CAMPER_SHOWER_TOILET_COMPONENT],
   fridge_door: [CAMPER_CABINET_COMPONENT],
@@ -51,6 +53,7 @@ describe("Camper room blocks (ADR 0068)", () => {
     ["wall", CAMPER_WALL_BLOCK],
     ["door", CAMPER_DOOR_BLOCK],
     ["bed", CAMPER_BED_BLOCK],
+    ["bunk", CAMPER_BUNK_BLOCK],
     ["furniture", CAMPER_FURNITURE_BLOCK],
     ["shower_toilet", CAMPER_SHOWER_TOILET_BLOCK],
     ["shower_door", CAMPER_SHOWER_DOOR_BLOCK],
@@ -100,6 +103,16 @@ describe("Camper room blocks (ADR 0068)", () => {
       expect(block.components["minecraft:selection_box"]).toEqual(box);
     },
   );
+
+  it("defines the upper bunk without collision, selectable over the bunk only (ADR 0182)", () => {
+    const block = readBlock("bunk")["minecraft:block"];
+    expect(block.components["minecraft:collision_box"]).toBe(false);
+    expect(block.components["minecraft:selection_box"]).toEqual({
+      origin: [-8, 0, -8],
+      size: [16, 5.5, 16],
+    });
+    expect(block.components["tag:yasu_ride:laid"]).toEqual({});
+  });
 
   it("defines a collisionless fridge door plate selectable on its face's side of the cell, the full cell high, giving a light block's glow only while lit (ADR 0115, 0123)", () => {
     const block = readBlock("fridge_door")["minecraft:block"];
