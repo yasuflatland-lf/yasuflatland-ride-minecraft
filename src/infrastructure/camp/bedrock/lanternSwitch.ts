@@ -4,6 +4,7 @@ import type { SwitchLantern } from "../../../application/camp/switchLantern";
 import type { TentId } from "../../../domain/camp/tent";
 import { asDimensionId, type DimensionId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
+import { mountOf } from "../../shared/mount";
 import type { SwitchTarget } from "../../shared/switchRouter";
 import { CHAIR_KIND_BY_TYPE } from "../identifiers";
 
@@ -17,7 +18,7 @@ export function lanternSwitchTarget(
   // anything else is the vehicle target's, or no one's.
   const claims = (player: Player): boolean => {
     if (!player.isValid) return false;
-    const mount = player.getComponent("minecraft:riding")?.entityRidingOn;
+    const mount = mountOf(player);
     if (mount !== undefined && !CHAIR_KIND_BY_TYPE.has(mount.typeId))
       return false;
     return tentOf(player) !== undefined;

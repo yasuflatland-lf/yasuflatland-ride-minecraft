@@ -4,6 +4,7 @@
 import { system, world } from "@minecraft/server";
 import type { BoardVehicle } from "../../../../application/vehicle/boardVehicle";
 import { HEADLIGHT_SWITCH_TYPE } from "../../../shared/identifiers";
+import { mountOf } from "../../../shared/mount";
 import { isStandInEntity } from "../identifiers";
 import { vehicleOfTarget } from "../standIns";
 import { requestBoarding } from "./boarding";
@@ -20,10 +21,7 @@ export function registerStandIns(boardVehicle: BoardVehicle): void {
     if (player.isSneaking) return;
     const vehicle = vehicleOfTarget(ev.target);
     if (!vehicle) return;
-    if (
-      player.getComponent("minecraft:riding")?.entityRidingOn?.id === vehicle.id
-    )
-      return;
+    if (mountOf(player)?.id === vehicle.id) return;
     // A vehicle whose players choose their seat seats the player itself (ADR 0154).
     if (requestBoarding(boardVehicle, player, vehicle)) return;
     // Before events cannot change the world, so the player boards on the next tick.
