@@ -30,7 +30,12 @@ import {
   type LitCell,
 } from "./lighting/headlights";
 import { monitorScreen, monitorTool, nextToolState } from "./monitor/monitor";
-import type { ChaseCamera, VehicleProfile } from "./profile";
+import type { Pave } from "./pave";
+import {
+  type ChaseCamera,
+  ramHalfWidthLimit,
+  type VehicleProfile,
+} from "./profile";
 import { type RamHit, type RamTarget, selectHits } from "./ram";
 import type { SeatAssignment } from "./seatChoice";
 import type { SeatLeaver } from "./seating";
@@ -46,6 +51,12 @@ import {
 
 const HALF_BLOCK = 0.5;
 
+/** What a rider holds, read once per tick. The tool is the bare yasu_ride item ID for the monitor (ADR 0139); the block is the namespaced block the item places as itself (ADR 0181). Either may be absent. */
+export interface RiderHeld {
+  readonly tool?: string;
+  readonly block?: string;
+}
+
 export interface RiderView {
   readonly id: PlayerId;
   readonly offset: Vec2;
@@ -53,16 +64,16 @@ export interface RiderView {
   readonly raw: RawInput;
   /** The rider's index in the engine's rider list, which is the seat it puts them in (ADR 0019). */
   readonly slot?: number;
-  /** Bare id of the `yasu_ride` item in the rider's selected slot, read only for kinds with a cab monitor (ADR 0139). */
-  readonly heldTool?: string;
+  /** Read only for kinds with a cab monitor (ADR 0139); its block feeds TickContext.heldBlock (ADR 0181). */
+  readonly held?: RiderHeld;
 }
 
-export interface VehicleTickInput extends TickContext {
+export interface VehicleTickInput extends Omit<TickContext, "heldBlock"> {
   riders: readonly RiderView[];
   /** Input used only when there is no driver (for in-game tests). */
   testInput?: RawInput;
-  /** Held tool used only when there is no driver (for in-game tests, ADR 0139). */
-  testHeldTool?: string;
+  /** Held item used only when there is no driver (for in-game tests, ADR 0139). */
+  testHeld?: RiderHeld;
   /** The player on each deck seat, in deck seat order (ADR 0063, 0120). */
   deckSeatRiders?: readonly (PlayerId | undefined)[];
   /** Nearby targets. Called only when the speed exceeds the ram threshold (ADR 0083). */
@@ -78,7 +89,7 @@ export interface SeatExit {
 /**
  * What one vehicle does this tick. The application's per-vehicle tick
  * applies it with these world calls, in this order, and a throw skips the
- * rest of that vehicle's tick (ADR 0055). Steps 3, 11, 12, 13 and 14 run
+ * rest of that vehicle's tick (ADR 0055). Steps 3, 12, 13, 14 and 15 run
  * every tick: with nothing to keep, they release what the vehicle held,
  * seated, stood in for it, laid or lit before.
  *
@@ -91,36 +102,39 @@ export interface SeatExit {
  * 4. `clear`, when not empty, before the dock's cells are laid (ADR 0068).
  * 5. `cut`, when not empty, right after `clear` and before the move, so the
  *    body moves into the cleared strip on the same tick (ADR 0137).
- * 6. `riders` is collected. After every vehicle has ticked, the chase
+ * 6. `pave`, when it has cells, right after `cut` and before the move, so the
+ *    body moves onto a road laid on the same tick (ADR 0181).
+ * 7. `riders` is collected. After every vehicle has ticked, the chase
  *    cameras are synced (ADR 0028, 0071), and water breathing is refreshed
  *    every `SPEC.waterBreathingInterval` ticks (ADR 0040).
- * 7. `impulse` and `yaw`, only when there is no `dock`: a docked vehicle is
+ * 8. `impulse` and `yaw`, only when there is no `dock`: a docked vehicle is
  *    held instead of moved (ADR 0063).
- * 8. `seatLayout`: for a kind whose players choose their seat, the
+ * 9. `seatLayout`: for a kind whose players choose their seat, the
  *    vehicle's riders are laid in this order, with a seat filler for each
  *    undefined entry, so each player sits in their seat (ADR 0120).
- * 9. `boardDeckRiders`: the deck-seat riders move into the vehicle
+ * 10. `boardDeckRiders`: the deck-seat riders move into the vehicle
  *    (ADR 0063), before standing players are seated (ADR 0068).
- * 10. `depart`: take any deck-seat rider the vehicle refused off their deck
+ * 11. `depart`: take any deck-seat rider the vehicle refused off their deck
  *    seat, then seat them and the standing players, nearest first, and move
  *    those left without a seat to the exit (ADR 0068, 0095).
- * 11. `dock.seats` at `yaw`, after boarding and departure; with no `dock`,
+ * 12. `dock.seats` at `yaw`, after boarding and departure; with no `dock`,
  *    the deck seats are removed.
- * 12. `standIn`: the vehicle's one stand-in entity is kept at this pose, or
+ * 13. `standIn`: the vehicle's one stand-in entity is kept at this pose, or
  *     removed when there is none (ADR 0116).
- * 13. `dock.cells`; with no `dock`, the laid cells are cleared.
- * 14. Headlight cells along the vehicle's heading after this tick, or none
+ * 14. `dock.cells`; with no `dock`, the laid cells are cleared.
+ * 15. Headlight cells along the vehicle's heading after this tick, or none
  *     when its headlights are off (ADR 0020).
- * 15. `hits`, credited to `driverId`.
- * 16. `finalCommands`: the vacated seats' commands, such as the door
+ * 16. `hits`, credited to `driverId`.
+ * 17. `finalCommands`: the vacated seats' commands, such as the door
  *     animation, then the taken seats' commands (ADR 0007, 0055).
- * 17. `exits`, after `finalCommands`: each player who left a seat with an exit this tick
+ * 18. `exits`, after `finalCommands`: each player who left a seat with an exit this tick
  *     is moved there, unless the world's guard keeps the engine's dismount spot (ADR 0109, 0141).
  */
 export interface TickOutcome {
   dock?: Dock;
   clear: readonly ClearCell[];
   cut: readonly CutColumn[];
+  pave?: Pave;
   message?: string;
   depart?: Departure;
   /** The rider list to keep, for a kind whose players choose their seat; undefined otherwise (ADR 0120). */
@@ -319,14 +333,8 @@ export class Vehicle {
   }
 
   tick(input: VehicleTickInput): TickOutcome {
-    const {
-      riders,
-      testInput,
-      testHeldTool,
-      deckSeatRiders,
-      targets,
-      ...sensors
-    } = input;
+    const { riders, testInput, testHeld, deckSeatRiders, targets, ...sensors } =
+      input;
     const seated = this.crew.update(
       riders,
       forward(this.drive.yaw),
@@ -341,6 +349,7 @@ export class Vehicle {
     const driver = seated.driver;
     if (seated.mounted && driver) this.drive.onDriverMounted(driver.yaw);
 
+    const held = driver ? driver.held : testHeld;
     const raw = driver?.raw ?? testInput;
     const taken = this.crew.taken();
     const deckSeatInputs = sensors.deckSeatInputs.map((deckInput, seat) =>
@@ -348,12 +357,11 @@ export class Vehicle {
     );
     const step = this.drive.step(raw, {
       ...sensors,
+      heldBlock: held?.block,
       awaitingDriver: seated.awaitingDriver,
       deckSeatInputs,
     });
-    const monitor = this.monitorCommands(
-      driver ? driver.heldTool : testHeldTool,
-    );
+    const monitor = this.monitorCommands(held?.tool);
     this.docked = step.dock !== undefined;
     this.deckDriverId =
       this.docked && this.profile.deckSeatDriverHeadlights
@@ -377,6 +385,7 @@ export class Vehicle {
       },
       clear: step.clear ?? [],
       cut: step.cut ?? [],
+      pave: step.pave,
       message: step.message,
       depart: step.depart,
       seatLayout,
@@ -384,7 +393,7 @@ export class Vehicle {
       impulse: step.impulse,
       yaw: this.drive.yaw,
       standIn: this.standIn(step.dock?.hold, sensors),
-      hits: this.ram(sensors.tick, targets, step.forward),
+      hits: this.ram(sensors.tick, targets, step.forward, step.ramHalfWidth),
       driverId: driver?.id,
       stepCommands:
         monitor.length === 0 ? step.commands : [...step.commands, ...monitor],
@@ -464,17 +473,25 @@ export class Vehicle {
     tick: number,
     targets: () => readonly RamTarget[],
     f: Vec2,
+    halfWidth: number | undefined,
   ): RamHit[] {
     this.ramCooldowns.prune(tick);
     // selectHits checks the speed too; checking here skips the targets() query.
     if (Math.abs(this.drive.speed) <= SPEC.ramMinSpeed) return [];
+    const { body } = this.profile;
     const hits = selectHits(
       f,
       this.drive.speed,
       targets(),
       this.ramCooldowns.recent,
       tick,
-      this.profile.body,
+      {
+        front: body.front,
+        halfWidth: Math.min(
+          halfWidth ?? body.halfWidth,
+          ramHalfWidthLimit(this.profile),
+        ),
+      },
     );
     this.ramCooldowns.record(hits, tick);
     return hits;

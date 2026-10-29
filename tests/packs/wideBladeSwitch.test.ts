@@ -61,13 +61,15 @@ describe("Wide Blade switch (ADR 0180)", () => {
       },
     });
   });
-  it("is not a cab monitor tool until the wide blade state exists (5/16)", () => {
-    expect(readFileSync("tools/monitor_screens.json", "utf8")).not.toContain(
-      "wide_blade_switch",
-    );
+  it("is a cab monitor tool with a normal and a wide screen", () => {
     expect(
-      readFileSync("src/domain/vehicle/kinds/bulldozer/monitor.ts", "utf8"),
-    ).not.toContain("wide_blade_switch");
+      read("tools/monitor_screens.json").bulldozer.filter(
+        (s: { item: string }) => s.item === "wide_blade_switch",
+      ),
+    ).toEqual([
+      { item: "wide_blade_switch", state: "normal", label: "NORM" },
+      { item: "wide_blade_switch", state: "wide", label: "WIDE" },
+    ]);
   });
   it.each(["en_US", "ja_JP"])("names the item in %s", (locale) => {
     const values = new Map(

@@ -59,14 +59,14 @@ export function installVehicles(deps: {
 } {
   const repo = new InMemoryVehicleRepository();
   const testInputs = new VehicleTestStore<RawInput>();
-  const testTools = new VehicleTestStore<string>();
+  const testHeldItems = new VehicleTestStore<string>();
   const index = new EntityIndex();
   const inventory = new BedrockInventory(index);
   const decorWorld = new BedrockDecorWorld(index, inventory);
   const bedrock = new BedrockVehicleWorld(
     index,
     testInputs,
-    testTools,
+    testHeldItems,
     deps.isCampSpace,
   );
   const fleetWorld = new BedrockFleetWorld(index, bedrock.releaser, inventory);
@@ -109,7 +109,7 @@ export function installVehicles(deps: {
       board: new BoardVehicle(repo),
     },
     testInputs,
-    testTools,
+    testHeldItems,
     (dimensionId, cell) => bedrock.dockDoorOwner(dimensionId, cell),
     (dimensionId, cell) => bedrock.dockCellOwner(dimensionId, cell),
     (dimensionId, cell, typeId) =>

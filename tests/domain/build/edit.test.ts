@@ -28,7 +28,7 @@ import {
 } from "../../../src/domain/build/edit/plan";
 import { type Cell, cellKey } from "../../../src/domain/shared/cells";
 import { asDimensionId } from "../../../src/domain/shared/ids";
-import { KEPT_BLOCKS } from "../../../src/domain/shared/keptBlocks";
+import { PLACE_KEPT_BLOCKS } from "../../../src/domain/shared/keptBlocks";
 
 const smallCell = fc.record({
   x: fc.integer({ min: -5, max: 5 }),
@@ -190,7 +190,7 @@ describe("clipboard", () => {
 });
 
 describe("guard", () => {
-  const editable = [
+  const open = [
     "minecraft:air",
     "minecraft:water",
     "minecraft:flowing_water",
@@ -198,8 +198,10 @@ describe("guard", () => {
     "minecraft:flowing_lava",
   ];
   it("keeps every listed block except air and fluids", () => {
-    for (const id of [...KEPT_BLOCKS, ...BUILD_KEPT_BLOCKS])
-      expect(isKeptState(blockStateOf(id)), id).toBe(!editable.includes(id));
+    for (const id of [...PLACE_KEPT_BLOCKS, ...BUILD_KEPT_BLOCKS])
+      expect(isKeptState(blockStateOf(id)), id).toBe(true);
+    for (const id of open)
+      expect(isKeptState(blockStateOf(id)), id).toBe(false);
   });
   it("keeps data blocks regardless of their states", () => {
     expect(

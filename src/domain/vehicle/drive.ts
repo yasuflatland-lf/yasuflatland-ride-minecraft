@@ -4,10 +4,13 @@ import type { CutColumn } from "./cut";
 import type { DecorPlacement, StoragePress } from "./dock/decor";
 import type { ClearCell, Departure, Dock, DockRestoredKey } from "./dock/dock";
 import type { RawInput } from "./driveInput";
+import type { Pave } from "./pave";
 
 /** Sensors and inputs from auxiliary seats. Riders, the test input and the ram query stay with the core (ADR 0083). */
 export interface TickContext {
   tick: number;
+  /** Type ID of the block the driver's selected item places as itself, or the test value when there is no driver; undefined for an empty hand or an item that names no block. The core sets it from RiderHeld.block (ADR 0181). */
+  readonly heldBlock?: string;
   deckSeatInputs: readonly (RawInput | undefined)[];
   /** Entity feet in world coordinates. */
   location: Vec3;
@@ -62,6 +65,8 @@ export interface DriveStep {
   clear?: readonly ClearCell[];
   /** Block columns to clear this tick, right after `clear` (ADR 0137). */
   cut?: readonly CutColumn[];
+  /** Road blocks to lay this tick, after cut and before the move (ADR 0181). */
+  pave?: Pave;
   /** Shown on the driver's action bar as the lang key yasu_ride.message.<name> (ADR 0063, 0068). */
   message?: string;
   /** Seats the players standing in these boxes this tick, or moves them to the exit (ADR 0063, 0068). */
@@ -71,6 +76,8 @@ export interface DriveStep {
   impulse: Vec3;
   /** The facing used for the ram this tick. */
   forward: Vec2;
+  /** Half width of the ram box this tick; absent = the profile's body.halfWidth. The core clamps it to ramHalfWidthLimit(profile) (ADR 0006, 0180). */
+  ramHalfWidth?: number;
   commands: readonly EngineCommand[];
   riders: RiderState;
 }

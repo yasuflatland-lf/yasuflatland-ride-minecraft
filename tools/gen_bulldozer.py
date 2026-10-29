@@ -190,7 +190,7 @@ def corner_bar(x0, z0, x1, z1, y0, y1, thick, color, offset=0.0):
                [0, round(angle, 3), 0], [round(cx, 3), round((y0 + y1) / 2, 3), round(cz, 3)])
 
 
-body, blade, glass, lamps, seat = [], [], [], [], []
+body, glass, lamps, seat = [], [], [], []
 
 # --- Undercarriage -----------------------------------------------------------
 # Wheel centers (z, y) and the track's outer radius around each, traced from the side view.
@@ -676,48 +676,59 @@ def blade_top(x):
     return BLADE_TOP
 
 
-y = 3.0
-while y < BLADE_TOP + 1.9 - 1e-6:
-    y1 = min(y + 0.75, BLADE_TOP + 1.9)
-    zf = moldboard_front((y + y1) / 2)
-    if y1 <= BLADE_TOP + 1e-6:
-        blade.append(box(-BLADE_HALF, y, zf, BLADE_HALF, y1, zf + 1.0, "yellow"))
-    else:
-        # Spill guard rows over the middle and the sloped shoulders
-        x_half = GUARD + (BLADE_TOP + 1.9 - y1) / 1.9 * 3.8
-        blade.append(box(-x_half, y, zf, x_half, y1, zf + 1.0, "yellow"))
-    y = y1
-# Cutting edge in five bolted segments, end bits at the corners, painted like the moldboard
-EDGE_CUTS = [f * BLADE_HALF for f in (-1.0, -0.794, -0.393, 0.393, 0.794, 1.0)]
-for i, (x0, x1) in enumerate(zip(EDGE_CUTS, EDGE_CUTS[1:])):
-    x0, x1 = x0 + (0.1 if i else 0.0), x1 - (0.1 if i < 4 else 0.0)
-    blade.append(box(x0, 0.0, BLADE_FRONT, x1, 3.0, BLADE_FRONT + 1.4, "yellow"))
-    blade.append(box(x0, 0.6, BLADE_FRONT + 1.4, x1, 3.0, BLADE_FRONT + 4.6, "yellow_dark"))
-    n = max(2, round((x1 - x0) / 2.2))
-    for k in range(n):
-        bx = x0 + (k + 0.5) * (x1 - x0) / n
-        blade.append(box(bx - 0.25, 1.3, BLADE_FRONT - 0.1, bx + 0.25, 1.8, BLADE_FRONT, "bolt"))
-blade.append(box(-BLADE_HALF, 3.0, BLADE_FRONT + 0.6, BLADE_HALF, 3.6, BLADE_FRONT + 2.2, "yellow_dark"))
-# Side plates, leaning forward at the top like the drawing
-for sx in (1, -1):
-    x0, x1 = (BLADE_HALF - 0.8, BLADE_HALF) if sx > 0 else (-BLADE_HALF, -BLADE_HALF + 0.8)
-    blade.append(box(x0, 0.0, BLADE_FRONT + 0.3, x1, 3.0, BLADE_FRONT + 6.0, "yellow"))
-    y = 3.0
-    while y < BLADE_TOP - 1e-6:
-        y1 = min(y + 0.75, BLADE_TOP)
-        zf = moldboard_front((y + y1) / 2)
-        # The end plates follow the curve of the moldboard, a little ahead of it.
-        blade.append(box(x0, y, zf - 1.0, x1, y1, zf + 2.6 + 3.0 * (y1 / BLADE_TOP), "yellow"))
-        y = y1
-# Back of the moldboard: vertical ribs and two horizontal box beams
 BACK = BLADE_FRONT + 6.6
-blade.append(box(-BLADE_HALF + 0.8, 4.0, BACK - 1.6, BLADE_HALF - 0.8, 7.0, BACK + 1.2, "yellow"))
-blade.append(box(-BLADE_HALF + 0.8, 13.0, BACK - 1.0, BLADE_HALF - 0.8, 16.0, BACK + 0.8, "yellow"))
-for rx in [-2.4 - 5.8 * k for k in range(6)] + [2.4 + 5.8 * k for k in range(6)]:
-    blade.append(box(rx - 0.4, 3.6, BACK - 0.6, rx + 0.4, 18.6, BACK + 1.4, "yellow_dark"))
-# Center pivot bracket where the C-frame meets the blade
-blade.append(box(-3.0, 4.0, BACK, 3.0, 13.0, BACK + 2.4, "yellow"))
-blade += disc("y", 0.0, 13.0, BACK + 1.2, 1.4, 1.0, "yellow_dark", STEPS_8)
+
+
+def blade_cubes(half: float) -> list:
+    """The blade at half width `half` px: the plate spans it, the fittings keep their size (ADR 0180)."""
+    blade = []
+    y = 3.0
+    while y < BLADE_TOP + 1.9 - 1e-6:
+        y1 = min(y + 0.75, BLADE_TOP + 1.9)
+        zf = moldboard_front((y + y1) / 2)
+        if y1 <= BLADE_TOP + 1e-6:
+            blade.append(box(-half, y, zf, half, y1, zf + 1.0, "yellow"))
+        else:
+            # Spill guard rows over the middle and the sloped shoulders
+            x_half = GUARD + (BLADE_TOP + 1.9 - y1) / 1.9 * 3.8
+            blade.append(box(-x_half, y, zf, x_half, y1, zf + 1.0, "yellow"))
+        y = y1
+    # Cutting edge in five bolted segments, end bits at the corners, painted like the moldboard
+    edge_cuts = [f * half for f in (-1.0, -0.794, -0.393, 0.393, 0.794, 1.0)]
+    for i, (x0, x1) in enumerate(zip(edge_cuts, edge_cuts[1:])):
+        x0, x1 = x0 + (0.1 if i else 0.0), x1 - (0.1 if i < 4 else 0.0)
+        blade.append(box(x0, 0.0, BLADE_FRONT, x1, 3.0, BLADE_FRONT + 1.4, "yellow"))
+        blade.append(box(x0, 0.6, BLADE_FRONT + 1.4, x1, 3.0, BLADE_FRONT + 4.6, "yellow_dark"))
+        n = max(2, round((x1 - x0) / 2.2))
+        for k in range(n):
+            bx = x0 + (k + 0.5) * (x1 - x0) / n
+            blade.append(box(bx - 0.25, 1.3, BLADE_FRONT - 0.1, bx + 0.25, 1.8, BLADE_FRONT, "bolt"))
+    blade.append(box(-half, 3.0, BLADE_FRONT + 0.6, half, 3.6, BLADE_FRONT + 2.2, "yellow_dark"))
+    # Side plates, leaning forward at the top like the drawing
+    for sx in (1, -1):
+        x0, x1 = (half - 0.8, half) if sx > 0 else (-half, -half + 0.8)
+        blade.append(box(x0, 0.0, BLADE_FRONT + 0.3, x1, 3.0, BLADE_FRONT + 6.0, "yellow"))
+        y = 3.0
+        while y < BLADE_TOP - 1e-6:
+            y1 = min(y + 0.75, BLADE_TOP)
+            zf = moldboard_front((y + y1) / 2)
+            # The end plates follow the curve of the moldboard, a little ahead of it.
+            blade.append(box(x0, y, zf - 1.0, x1, y1, zf + 2.6 + 3.0 * (y1 / BLADE_TOP), "yellow"))
+            y = y1
+    # Back of the moldboard: vertical ribs and two horizontal box beams
+    blade.append(box(-half + 0.8, 4.0, BACK - 1.6, half - 0.8, 7.0, BACK + 1.2, "yellow"))
+    blade.append(box(-half + 0.8, 13.0, BACK - 1.0, half - 0.8, 16.0, BACK + 0.8, "yellow"))
+    rib_count = int((half - 3.6) / 5.8) + 1
+    for rx in [-2.4 - 5.8 * k for k in range(rib_count)] + [2.4 + 5.8 * k for k in range(rib_count)]:
+        blade.append(box(rx - 0.4, 3.6, BACK - 0.6, rx + 0.4, 18.6, BACK + 1.4, "yellow_dark"))
+    # Center pivot bracket where the C-frame meets the blade
+    blade.append(box(-3.0, 4.0, BACK, 3.0, 13.0, BACK + 2.4, "yellow"))
+    blade += disc("y", 0.0, 13.0, BACK + 1.2, 1.4, 1.0, "yellow_dark", STEPS_8)
+    return blade
+
+
+blade = blade_cubes(BLADE_HALF)
+blade_wide = blade_cubes(2 * BLADE_HALF)  # the domain rule BULLDOZER_WIDE_BLADE doubles the half width (ADR 0180)
 
 # Push arms: long beams from trunnions on the main frame beside the cab front, running forward
 # between the hood and the tracks and sloping down to the C-frame, a ring in front of the hood
@@ -1390,6 +1401,7 @@ bones = mirror_x([
     {"name": "body", "parent": "root", "pivot": [0, 0, 0], "cubes": body, "locators": {"thruster": THRUSTER}},
     {"name": "blade_rig", "parent": "body", "pivot": [0, ARM_REAR[1], ARM_REAR[0]], "cubes": blade_rig},
     {"name": "blade", "parent": "blade_rig", "pivot": [0, 0, BLADE_FRONT], "cubes": blade},
+    {"name": "blade_wide", "parent": "blade_rig", "pivot": [0, 0, BLADE_FRONT], "cubes": blade_wide},
     {"name": "lift_cylinder_r", "parent": "body", "pivot": [LIFT_X, LIFT_Y, LIFT_PIN], "cubes": lift_cylinder},
     {"name": "lift_cylinder_l", "parent": "body", "pivot": [-LIFT_X, LIFT_Y, LIFT_PIN],
      "cubes": [mirrored(c) for c in lift_cylinder]},
@@ -1417,7 +1429,7 @@ geo = {
         "description": {
             "identifier": "geometry.yasu_ride.bulldozer",
             "texture_width": len(SLOTS), "texture_height": 1,
-            "visible_bounds_width": 7, "visible_bounds_height": 5,
+            "visible_bounds_width": 11, "visible_bounds_height": 5,
             "visible_bounds_offset": [0, 1.5, 0],
         },
         "bones": bones,
@@ -1647,7 +1659,10 @@ def monitor_icon_color(code):
     return ICON_COLORS[code][:3] + (0,)
 
 
-MONITOR_ICONS = {"blade_switch": [[monitor_icon_color(code) for code in row] for row in BLADE_SWITCH_ICON]}
+MONITOR_ICONS = {
+    "blade_switch": [[monitor_icon_color(code) for code in row] for row in BLADE_SWITCH_ICON],
+    "wide_blade_switch": [[monitor_icon_color(code) for code in row] for row in WIDE_BLADE_SWITCH_ICON],
+}
 STALE.extend(monitor.write_monitor("bulldozer", MONITOR_LAYOUT, MONITOR_ICONS, CHECK, RP))
 if STALE:
     sys.exit("Stale bulldozer outputs:\n" + "\n".join(STALE))

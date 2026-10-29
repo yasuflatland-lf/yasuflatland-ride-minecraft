@@ -13,12 +13,13 @@ import {
   seatWorldPositions,
   toLocal,
 } from "../../domain/vehicle/seats";
+import { id } from "../../infrastructure/shared/identifiers";
 import {
   DECK_FLOOR_BLOCK,
   DECK_SEAT_TYPE,
   entityPropertyId,
   SEAT_FILLER_TYPE,
-  TEST_HELD_TOOL_EVENT,
+  TEST_HELD_ITEM_EVENT,
   TEST_TOOL_EVENT,
 } from "../../infrastructure/vehicle/bedrock/identifiers";
 import { SeatFillers } from "../../infrastructure/vehicle/bedrock/seatFillers";
@@ -621,7 +622,10 @@ export async function boatSeatFillers(a: Arena): Promise<Outcome> {
 export function boatMonitor(a: Arena): Promise<Outcome> {
   return withBoat(a, async (boat) => {
     const hold = async (item: string): Promise<number> => {
-      system.sendScriptEvent(TEST_HELD_TOOL_EVENT, `${boat.id},${item}`);
+      system.sendScriptEvent(
+        TEST_HELD_ITEM_EVENT,
+        `${boat.id},${item === "clear" ? item : id(item)}`,
+      );
       await wait(2);
       return Number(boat.getProperty(entityPropertyId("monitor")));
     };
@@ -649,7 +653,7 @@ export function boatMonitor(a: Arena): Promise<Outcome> {
       solidAt: () => false,
       blockTypes: () => [],
       targets: () => [],
-      testHeldTool: "icebreaker_switch",
+      testHeld: { tool: "icebreaker_switch" },
     }).stepCommands;
     const restoredOn = commands.some(
       (c) => c.type === "setProperty" && c.name === "monitor" && c.value === 2,

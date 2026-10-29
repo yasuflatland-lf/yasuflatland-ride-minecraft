@@ -9,6 +9,10 @@ import { type Bone, turnedCorners } from "../support/geometry";
 
 const PIXELS_PER_BLOCK = 16;
 
+// The wide blade is a model-only bone: the footprint stays the normal blade's until the cut
+// widens (ADR 0180).
+const MODEL_ONLY_BONES = ["blade_wide"];
+
 function bones(kind: VehicleKind): Bone[] {
   return JSON.parse(
     readFileSync(
@@ -20,7 +24,9 @@ function bones(kind: VehicleKind): Bone[] {
 
 function modelReach(kind: VehicleKind): number {
   let reach = 0;
-  for (const bone of bones(kind))
+  for (const bone of bones(kind).filter(
+    (b) => !MODEL_ONLY_BONES.includes(b.name),
+  ))
     for (const cube of bone.cubes ?? [])
       for (const [x, , z] of turnedCorners(bone, cube))
         reach = Math.max(reach, Math.hypot(x, z));
