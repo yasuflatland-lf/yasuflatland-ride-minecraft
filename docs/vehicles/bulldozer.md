@@ -10,7 +10,7 @@ Push forward or back to drive straight. A sideways stick past 0.35 (A/D on PC) p
 
 Tap Jump to hop one block on the ground. Double-tap within 8 ticks to take off or land. In flight and under water, hold Jump to climb and pull the stick back to sink. Sneak gets out. The left door opens for two seconds when boarding or leaving.
 
-Hold the Blade Up/Down switch while driving and use it (right-click on PC, long press on mobile) to raise or lower the blade. Only the driver can use it. It switches once per press, and again after 10 ticks at the earliest. The blade takes 10 ticks (half a second) to travel, and the lift rods visibly shorten when it is raised. Craft the switch from a lever and an iron ingot.
+Hold the Blade Up/Down switch while driving and use it (right-click on PC, long press on mobile) to raise or lower the blade. Only the driver can use it. It switches once per press, and again after 10 ticks at the earliest. The blade takes 10 ticks (half a second) to travel, and the lift rods visibly shorten when it is raised. Craft the switch from a lever and an iron ingot. Hold Wide Blade and use it to switch widths independently, raised or lowered; the monitor shows NORM or WIDE. Craft it from a lever and two iron ingots. Both switches are in [Building Tools](../items/building-tools.md).
 
 ## How it moves
 
@@ -18,11 +18,24 @@ Ground top speed is 9 blocks/s, half the SUV's, with half its acceleration. Flig
 
 ## Clearing
 
-The blade cuts only when fully lowered.
+The blade cuts only when fully lowered. Wide Blade doubles its width: at heading 0 from the center of a block it clears 11 columns instead of 5. Raised or lowered, the ram also widens to hit mobs beside the tracks ([ADR 0180](../adr/0180-a-wide-bulldozer-blade.md)).
 
 While moving forward above 0.02 blocks/tick, the blade clears the columns it touches ahead. On the ground, cutting starts in the row above the block under the tracks, even a block lower than a full cube such as a dirt path, farmland, mud, or a bottom slab, and continues upward until the first air gap, leaving an overhang above a gap. In flight it cuts a tunnel up to the top of the 2.9-block body, including at fractional heights. The tick a hop starts still cuts, because the bulldozer is still on the ground; the airborne ticks after a hop, falling off a ledge, pivoting, reversing, standing, and diving do not cut.
 
 Water, lava, containers with their contents, and the add-on's own blocks are kept. Bedrock, barriers, command blocks, structure blocks, reinforced deepslate, end portal frames, and light blocks are cut. The cut works in every game mode, Adventure included. Neighbor updates may drop unsupported blocks; nearby new item drops from the cut are removed as described in [ADR 0137](../adr/0137-clear-block-columns-with-the-blade.md).
+
+## Road paver
+
+Hold Road Paver and use it to turn the paver on or off; the cab monitor shows OFF or ON. While it is on and you drive, the bulldozer lays the block in your selected hotbar slot in a strip behind it ([ADR 0181](../adr/0181-a-road-paver-on-the-bulldozer.md)).
+
+- **Which block.** Any placeable full block. An empty hand, doors, beds, signs, banners, falling blocks such as sand and gravel, plants, this add-on's own items, and the Building Tools lay nothing.
+- **Width.** The road is as wide as the blade: at heading 0 from the center of a block, 11 columns with Wide Blade and 5 normal. Raising or lowering the blade does not change it.
+- **Land.** The road goes in the row under the tracks. It fills a one-block hole and follows a step down, with a short gap right at the step. A flower or tall grass is paved over. A two-high bump and a deep drop beside the lane get nothing.
+- **Water and lava.** Over a lake, river, or lava sea the road bridges the liquid, so the bulldozer drives across without sinking or floating.
+- **Flight.** In hover the road is laid one row below the body, behind it, and steps up and down as the bulldozer climbs and sinks.
+- **Floating.** Nothing is laid while the bulldozer floats or is airborne; paving resumes on the ground or on the road.
+- **Never replaced.** Chests and other containers, vehicles and their space, tents and camp space, blocks laid by this add-on, and the other kept blocks stay where they are.
+- **Survival.** The block is not consumed.
 
 ## Build mode
 

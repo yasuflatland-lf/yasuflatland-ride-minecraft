@@ -18,6 +18,12 @@
     "yasu_ride_blade_switch": {
       "textures": "textures/items/yasu_ride/blade_switch"
     },
+    "yasu_ride_wide_blade_switch": {
+      "textures": "textures/items/yasu_ride/wide_blade_switch"
+    },
+    "yasu_ride_road_paver_switch": {
+      "textures": "textures/items/yasu_ride/road_paver_switch"
+    },
     "yasu_ride_sportsboat_equipment_box": {
       "textures": "textures/items/yasu_ride/sportsboat_equipment_box"
     },

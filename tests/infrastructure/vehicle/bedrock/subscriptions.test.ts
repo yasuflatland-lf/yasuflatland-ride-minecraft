@@ -51,7 +51,7 @@ import {
   STAND_IN_PROPERTY,
   standInType,
   TEST_DECOR_EVENT,
-  TEST_HELD_TOOL_EVENT,
+  TEST_HELD_ITEM_EVENT,
   TEST_INPUT_EVENT,
   TEST_TOOL_EVENT,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
@@ -2316,12 +2316,12 @@ describe("monitor tool switch (ADR 0171)", () => {
   });
 });
 
-it("stores and clears held tools only from server script events", () => {
-  const tools = new VehicleTestStore<string>();
+it("stores and clears held items only from server script events", () => {
+  const testHeldItems = new VehicleTestStore<string>();
   registerSubscriptions(
     {} as unknown as Parameters<typeof registerSubscriptions>[0],
     new VehicleTestStore<RawInput>(),
-    tools,
+    testHeldItems,
     () => undefined,
     () => undefined,
     () => undefined,
@@ -2336,23 +2336,23 @@ it("stores and clears held tools only from server script events", () => {
   const send = (
     message: string,
     sourceType = "Server",
-    id = TEST_HELD_TOOL_EVENT,
+    id = TEST_HELD_ITEM_EVENT,
   ) =>
     receive({
       id,
       message,
       sourceType,
     } as unknown as ScriptEventCommandMessageAfterEvent);
-  send("car,blade_switch", "Entity");
-  send("car,blade_switch", "Server", "minecraft:other");
-  expect(tools.get(asVehicleId("car"))).toBeUndefined();
-  send("car,blade_switch");
-  expect(tools.get(asVehicleId("car"))).toBe("blade_switch");
+  send("car,yasu_ride:blade_switch", "Entity");
+  send("car,yasu_ride:blade_switch", "Server", "minecraft:other");
+  expect(testHeldItems.get(asVehicleId("car"))).toBeUndefined();
+  send("car,yasu_ride:blade_switch");
+  expect(testHeldItems.get(asVehicleId("car"))).toBe("yasu_ride:blade_switch");
   const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
   send("car,");
   expect(warn).toHaveBeenCalledOnce();
   warn.mockRestore();
-  expect(tools.get(asVehicleId("car"))).toBe("blade_switch");
+  expect(testHeldItems.get(asVehicleId("car"))).toBe("yasu_ride:blade_switch");
   send("car,clear");
-  expect(tools.get(asVehicleId("car"))).toBeUndefined();
+  expect(testHeldItems.get(asVehicleId("car"))).toBeUndefined();
 });

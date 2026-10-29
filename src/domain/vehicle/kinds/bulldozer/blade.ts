@@ -9,6 +9,17 @@ export interface ShaftBox {
   readonly reach: number;
 }
 
+/**
+ * Feet on a partial block (dirt path, farmland, mud, a bottom slab) stand inside
+ * that block's row, so a ground cut starts one row up to keep the floor. A
+ * hovering body at fractional height still needs the row it sits in (ADR 0136).
+ * A fixed-height cut resting on the ground, such as a submarine on the seabed,
+ * keeps the floor too (ADR 0155). The road paver reads the same rounding (ADR 0181).
+ */
+export function feetRow(feetY: number, grounded: boolean): number {
+  return grounded ? Math.ceil(feetY - 0.01) : Math.floor(feetY + 0.01);
+}
+
 export function bladeColumns(
   location: Vec3,
   yaw: number,
@@ -16,14 +27,7 @@ export function bladeColumns(
   flying: boolean,
   grounded = !flying,
 ): CutColumn[] {
-  // Feet on a partial block (dirt path, farmland, mud, a bottom slab) stand inside
-  // that block's row, so a ground cut starts one row up to keep the floor. A
-  // hovering body at fractional height still needs the row it sits in (ADR 0136).
-  // A fixed-height cut resting on the ground, such as a submarine on the seabed,
-  // keeps the floor too (ADR 0155).
-  const bottom = grounded
-    ? Math.ceil(location.y - 0.01)
-    : Math.floor(location.y + 0.01);
+  const bottom = feetRow(location.y, grounded);
   const height = flying
     ? Math.ceil(location.y + rule.bodyHeight) - bottom
     : undefined;

@@ -5,7 +5,7 @@ import {
 } from "../../placement/placement";
 import type { VehicleProfile } from "../../profile";
 import { BULLDOZER_MONITOR } from "./monitor";
-import { BULLDOZER_SPEC } from "./spec";
+import { BULLDOZER_SPEC, BULLDOZER_WIDE_BLADE } from "./spec";
 
 const body = Object.freeze({
   front: BULLDOZER_SPEC.bodyFront,
@@ -16,6 +16,7 @@ export const BULLDOZER_PROFILE: VehicleProfile = Object.freeze({
   kind: "bulldozer",
   fleetLimit: 1,
   body,
+  maxRamHalfWidth: BULLDOZER_WIDE_BLADE.halfWidth,
   footprint: BULLDOZER_SPEC.footprint,
   seats: Object.freeze({ positions: Object.freeze([{ x: 0, z: -1.35 }]) }),
   boarding: Object.freeze({ order: "engine" }),

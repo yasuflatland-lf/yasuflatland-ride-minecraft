@@ -173,8 +173,8 @@ export const TEST_INPUT_EVENT = id("test_input");
 export const TEST_DECOR_EVENT = id("test_decor");
 /** Server-only test tool messages use "<vehicleId>,<bare item id>,<state>" (ADR 0171). */
 export const TEST_TOOL_EVENT = id("test_tool");
-/** Test held-tool messages have the form "<vehicleId>,<bare item id>" or "<vehicleId>,clear" (ADR 0139). */
-export const TEST_HELD_TOOL_EVENT = id("test_held_tool");
+/** Test held-item messages have the form "<vehicleId>,<full namespaced item id>" or "<vehicleId>,clear" (ADR 0139, 0181). */
+export const TEST_HELD_ITEM_EVENT = id("test_held_item");
 
 /** Item routes for every kind's monitor tools (ADR 0171). */
 export const MONITOR_TOOL_TYPES = MONITOR_TOOL_ITEMS.map(id);

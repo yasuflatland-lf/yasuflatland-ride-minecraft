@@ -76,10 +76,16 @@ it("writes one bone per screen row through the shared entry point", () => {
     "        icons = {s['item']: [[layout.foreground]] for s in screens}",
     "        m.write_monitor(kind, layout, icons, False, Path(output))",
     "        geo = json.loads((Path(output) / f'models/entity/yasu_ride/{kind}_monitor.geo.json').read_text())",
-    "        result.append(dict(expected=[f\"screen_{s['item']}_{s['state']}\" for s in screens], actual=[b['name'] for b in geo['minecraft:geometry'][0]['bones']]))",
+    "        result.append(dict(kind=kind, expected=[f\"screen_{s['item']}_{s['state']}\" for s in screens], actual=[b['name'] for b in geo['minecraft:geometry'][0]['bones']]))",
     "print(json.dumps(result))",
-  ]) as { expected: string[]; actual: string[] }[];
+  ]) as { kind: string; expected: string[]; actual: string[] }[];
   for (const { expected, actual } of result) expect(actual).toEqual(expected);
+  const bulldozer = result.find(({ kind }) => kind === "bulldozer");
+  expect(bulldozer?.actual).toHaveLength(6);
+  expect(bulldozer?.actual.slice(4)).toEqual([
+    "screen_road_paver_switch_off",
+    "screen_road_paver_switch_on",
+  ]);
 });
 
 it("checks the supplied viewer point without requiring a seat bone", () => {

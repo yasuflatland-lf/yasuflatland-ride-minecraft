@@ -192,6 +192,8 @@ describe("identifiers (ADR 0047)", () => {
 
   it("pins the blade switch item id", () => {
     expect(MONITOR_TOOL_TYPES).toContain("yasu_ride:blade_switch");
+    expect(MONITOR_TOOL_TYPES).toContain("yasu_ride:wide_blade_switch");
+    expect(MONITOR_TOOL_TYPES).toContain("yasu_ride:road_paver_switch");
   });
 
   it("names an item's decor block", () => {

@@ -66,6 +66,17 @@ it("declares the transforming properties with a nonzero range for its zero bank"
   expect(p["yasu_ride:blade"].default).toBe(
     BULLDOZER_SPEC.bladeRaisedOnSpawn ? 1 : 0,
   );
+  expect(p["yasu_ride:wide_blade"]).toEqual({
+    type: "bool",
+    default: false,
+    client_sync: true,
+  });
+  expect(p["yasu_ride:road_paver"]).toEqual({
+    type: "bool",
+    default: false,
+    client_sync: false,
+  });
+  expect(p["yasu_ride:monitor"].range).toEqual([0, 6]);
   expect(p["yasu_ride:gear_down"].default).toBe(true);
   for (const key of ["bank", "spin_r", "spin_l", "door", "blade"]) {
     const text = readFileSync(
@@ -77,6 +88,14 @@ it("declares the transforming properties with a nonzero range for its zero bank"
       /"range": \[\s*\d+\.0/,
     );
   }
+});
+it("shows exactly one of blade and blade_wide for each wide_blade value", () => {
+  expect(render.part_visibility).toContainEqual({
+    blade: "!query.property('yasu_ride:wide_blade')",
+  });
+  expect(render.part_visibility).toContainEqual({
+    blade_wide: "query.property('yasu_ride:wide_blade')",
+  });
 });
 it("seats one driver at the cab seat", () =>
   expect(entity.components["minecraft:rideable"]).toMatchObject({
