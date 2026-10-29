@@ -85,17 +85,17 @@ export const TABLE_TOP_HALF_PX: Footprint = Object.freeze({
 });
 /** Ovens and lanterns together, the owner's limit (ADR 0185). */
 export const TABLE_TOP_LIMIT = 4;
-// Square half extents cover the models at any yaw, rounded up from generated
-// geometry: tools/gen_dutch_oven.py reaches at most 5.70 px from its center,
-// tools/gen_gas_lantern.py 3.75 px. The table's yaw is free while items snap to
-// 90 degrees, so their footprints must not depend on yaw.
+// Per-axis half extents of the generated geometry, rounded up to 0.25 px: the
+// oven reaches 5.61 px on x and 4.83 px on z, the lantern 3.70 and 3.08 px. An
+// item on a table spawns at the table's yaw, so its model axes are the table's
+// axes (ADR 0185).
 export const DUTCH_OVEN_FOOTPRINT_PX: Footprint = Object.freeze({
   halfX: 5.75,
-  halfZ: 5.75,
+  halfZ: 5,
 });
 export const GAS_LANTERN_FOOTPRINT_PX: Footprint = Object.freeze({
   halfX: 3.75,
-  halfZ: 3.75,
+  halfZ: 3.25,
 });
 
 export const GAS_LANTERN_SPEC = Object.freeze({
