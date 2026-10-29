@@ -178,11 +178,12 @@ This directory records design decisions and the reasons behind them. The format 
 | [0175](0175-keep-the-icebreaker-cut-above-the-hull-floor.md) | Keep the icebreaker cut above the hull floor | Proposed |
 | [0176](0176-move-the-sports-boat-front-seats-back.md) | Move the sports boat's front seats back | Accepted |
 | [0177](0177-drive-text-on-the-sports-boat-driver-deck-seat.md) | Drive text on the sports boat driver deck seat | Accepted |
-| [0178](0178-bulldozer-build-tools-in-a-separate-namespace.md) | Bulldozer build tools in a separate namespace | Proposed; extended by 0180 (Proposed) and 0181 (Proposed) |
+| [0178](0178-bulldozer-build-tools-in-a-separate-namespace.md) | Bulldozer build tools in a separate namespace | Proposed; extended by 0180 (Proposed), 0181 (Proposed), and 0183 (Proposed) |
 | [0179](0179-support-realms-as-a-second-play-environment.md) | Support Realms as a second play environment | Proposed |
 | [0180](0180-a-wide-bulldozer-blade.md) | A wide bulldozer blade switched from the cab | Proposed; extended by 0181 (Proposed) |
 | [0181](0181-a-road-paver-on-the-bulldozer.md) | Lay a road behind the bulldozer from the driver's held block | Proposed |
 | [0182](0182-a-bunk-bed-in-the-parked-camper.md) | A bunk bed in the parked camper | Proposed |
+| [0183](0183-mark-a-lone-selection-corner.md) | Mark a lone selection corner | Proposed |
 | [0185](0185-put-things-on-the-camp-table-instead-of-sitting-at-it.md) | Put things on the camp table instead of sitting at it | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).

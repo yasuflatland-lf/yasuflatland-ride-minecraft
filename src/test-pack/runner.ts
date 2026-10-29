@@ -16,6 +16,12 @@ import {
   bladeCutKeptIds,
 } from "./scenarios/bladeCut";
 import {
+  buildCornerMarkerNone,
+  buildCornerMarkerPair,
+  buildCornerMarkerPos1,
+  buildCornerMarkerPos2,
+} from "./scenarios/buildCornerMarker";
+import {
   buildBlockStates,
   buildEdits,
   buildSelectionAndMode,
@@ -313,12 +319,19 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
       30,
       () => buildSelectionAndMode(a),
     ]);
+    allTests.push(
+      ["build_corner_marker_pos1", 25, () => buildCornerMarkerPos1(a)],
+      ["build_corner_marker_pos2", 25, () => buildCornerMarkerPos2(a)],
+      ["build_corner_marker_none", 30, () => buildCornerMarkerNone(a)],
+      ["build_corner_marker_pair", 27, () => buildCornerMarkerPair(a)],
+    );
   } else {
     log(runId, "SKIP build_edits: a connected player is required");
     log(
       runId,
       "SKIP build_selection_and_mode: a connected player is required; camera perspective needs visual verification",
     );
+    log(runId, "SKIP build_corner_marker_*: a connected player is required");
   }
   const shards = shardsOf(
     allTests.map(([, ticks]) => ticks),

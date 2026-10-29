@@ -504,3 +504,6 @@ Setup: use `/give @s yasu_build:selection_wand` and `/give @s yasu_build:build_t
 | BT7b | Copy a selection that contains a chest and a sign, then paste it elsewhere | The pasted copy has no chest or sign, and the target spot keeps what was there | unverified | unverified |
 | BT8 | Paste with the target overlapping the bulldozer | The paste is refused as a whole with the overlap message and nothing changes | unverified | unverified |
 | BT9 | Get off the bulldozer while in build mode | Build mode ends at once and the camera returns to normal | unverified | unverified |
+| BT10 | In build mode, set only the first corner with one click of the wand (ADR 0183) | A small cube of end rod particles surrounds that block until the second corner is set | unverified | unverified |
+| BT11 | After BT10, set the second corner (ADR 0183) | The small cube disappears and the selection outline replaces it | unverified | unverified |
+| BT12 | Repeat BT10 at noon on a bright surface (ADR 0183) | The corner marker is still easy to see in daylight | unverified | unverified |

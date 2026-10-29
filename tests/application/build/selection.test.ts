@@ -1,3 +1,4 @@
+import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { ClearSelection } from "../../../src/application/build/clearSelection";
 import { SetCorner } from "../../../src/application/build/setCorner";
@@ -132,6 +133,98 @@ describe("UpdateBuildModes", () => {
 });
 
 describe("ShowOutline", () => {
+  const coordinate = fc.integer({ min: -1000, max: 1000 });
+  const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
+  const dimension = fc.constantFrom(overworld, nether);
+  const corner = fc.constantFrom("pos1" as const, "pos2" as const);
+  const intervalTick = fc
+    .nat({ max: 1000 })
+    .map((n) => n * BUILD_SPEC.outlineInterval);
+
+  it("draws only the lone corner for its owner in the selection dimension", () => {
+    fc.assert(
+      fc.property(
+        cell,
+        dimension,
+        corner,
+        intervalTick,
+        (at, dim, which, tick) => {
+          const { repo, gate, feedback } = setup();
+          repo.getOrCreate(alex).setCorner(which, dim, at);
+          enterBuildMode(new UpdateBuildModes(repo));
+          new ShowOutline(repo, gate, feedback).execute(tick);
+          expect(feedback.corners).toEqual([
+            { playerId: alex, dimensionId: dim, cell: at },
+          ]);
+          expect(feedback.outlines).toEqual([]);
+        },
+      ),
+    );
+  });
+
+  it("draws only the selection outline when both corners exist", () => {
+    fc.assert(
+      fc.property(cell, cell, dimension, intervalTick, (a, b, dim, tick) => {
+        const { repo, gate, feedback } = setup();
+        const session = repo.getOrCreate(alex);
+        session.setCorner("pos1", dim, a);
+        session.setCorner("pos2", dim, b);
+        enterBuildMode(new UpdateBuildModes(repo));
+        new ShowOutline(repo, gate, feedback).execute(tick);
+        expect(feedback.outlines).toEqual([
+          { dimensionId: dim, box: boxOf(a, b), style: "selection" },
+        ]);
+        expect(feedback.corners).toEqual([]);
+      }),
+    );
+  });
+
+  it("draws neither selection feedback without a selection or outside build mode", () => {
+    fc.assert(
+      fc.property(
+        cell,
+        dimension,
+        corner,
+        fc.boolean(),
+        intervalTick,
+        (at, dim, which, active, tick) => {
+          const { repo, gate, feedback } = setup();
+          const session = repo.getOrCreate(alex);
+          if (active) enterBuildMode(new UpdateBuildModes(repo));
+          else session.setCorner(which, dim, at);
+          new ShowOutline(repo, gate, feedback).execute(tick);
+          expect(feedback.corners).toEqual([]);
+          expect(feedback.outlines).toEqual([]);
+        },
+      ),
+    );
+  });
+
+  it("draws neither selection feedback off the outline interval", () => {
+    fc.assert(
+      fc.property(
+        cell,
+        cell,
+        dimension,
+        corner,
+        fc.boolean(),
+        intervalTick,
+        fc.integer({ min: 1, max: BUILD_SPEC.outlineInterval - 1 }),
+        (a, b, dim, which, both, tick, offset) => {
+          const { repo, gate, feedback } = setup();
+          const session = repo.getOrCreate(alex);
+          session.setCorner(which, dim, a);
+          if (both)
+            session.setCorner(which === "pos1" ? "pos2" : "pos1", dim, b);
+          enterBuildMode(new UpdateBuildModes(repo));
+          new ShowOutline(repo, gate, feedback).execute(tick + offset);
+          expect(feedback.corners).toEqual([]);
+          expect(feedback.outlines).toEqual([]);
+        },
+      ),
+    );
+  });
+
   const prepare = () => {
     const { repo, gate, feedback } = setup();
     const modes = new UpdateBuildModes(repo);
