@@ -134,42 +134,60 @@ export function paveStep(
   const flying = input.form === "hover";
   if (!flying && !(input.form === "car" && input.onGround)) return undefined;
   const travelYaw = speed > 0 ? input.yaw : normalizeYaw(input.yaw + 180);
-  const cells: Vec3[] = [];
-  if (flying) {
-    const y = flightRow(location.y);
-    for (const { x, z } of rectCells(location, travelYaw, {
-      near: -(rule.bodyHalf + rule.flightGap + rule.trail),
-      far: -(rule.bodyHalf + rule.flightGap),
-      halfWidth,
-    })) {
-      const cell = { x, y, z };
-      if (classAt(cell) !== "solid") cells.push(cell);
-    }
-  } else {
-    const ref = referenceRow(location.y);
-    const pickIn = (near: number, far: number) =>
-      rectCells(location, travelYaw, { near, far, halfWidth }).flatMap(
-        (column) => {
-          const pick = roadPick(
-            column,
-            ref,
-            (row) => classAt({ x: column.x, y: row, z: column.z }),
-            rule,
-          );
-          return pick === undefined ? [] : [pick];
-        },
-      );
-    const taken = new Set<string>();
-    const take = (pick: RoadPick) => {
-      const key = `${pick.cell.x},${pick.cell.z}`;
-      if (taken.has(key)) return;
-      taken.add(key);
-      cells.push(pick.cell);
-    };
-    for (const pick of pickIn(-(rule.bodyHalf + rule.trail), -rule.bodyHalf))
-      take(pick);
-    for (const pick of pickIn(-rule.bodyHalf, rule.bodyHalf + rule.lookAhead))
-      if (pick.over === "liquid") take(pick);
-  }
+  const cells = flying
+    ? flightCells(location, travelYaw, halfWidth, classAt, rule)
+    : groundCells(location, travelYaw, halfWidth, classAt, rule);
   return cells.length === 0 ? undefined : { block, cells };
+}
+
+/** A strip behind the body, one row below it, in every cell that is not solid. */
+function flightCells(
+  location: Vec3,
+  travelYaw: number,
+  halfWidth: number,
+  classAt: (cell: Vec3) => CellClass,
+  rule: PaverRule,
+): Vec3[] {
+  const y = flightRow(location.y);
+  return rectCells(location, travelYaw, {
+    near: -(rule.bodyHalf + rule.flightGap + rule.trail),
+    far: -(rule.bodyHalf + rule.flightGap),
+    halfWidth,
+  })
+    .map(({ x, z }) => ({ x, y, z }))
+    .filter((cell) => classAt(cell) !== "solid");
+}
+
+/** The trailing strip, plus support over liquid under and ahead of the body; one cell per column. */
+function groundCells(
+  location: Vec3,
+  travelYaw: number,
+  halfWidth: number,
+  classAt: (cell: Vec3) => CellClass,
+  rule: PaverRule,
+): Vec3[] {
+  const ref = referenceRow(location.y);
+  const picksIn = (near: number, far: number): RoadPick[] =>
+    rectCells(location, travelYaw, { near, far, halfWidth }).flatMap(
+      (column) => {
+        const pick = roadPick(
+          column,
+          ref,
+          (row) => classAt({ x: column.x, y: row, z: column.z }),
+          rule,
+        );
+        return pick === undefined ? [] : [pick];
+      },
+    );
+  const trail = picksIn(-(rule.bodyHalf + rule.trail), -rule.bodyHalf);
+  const support = picksIn(
+    -rule.bodyHalf,
+    rule.bodyHalf + rule.lookAhead,
+  ).filter((pick) => pick.over === "liquid");
+  const byColumn = new Map<string, Vec3>();
+  for (const { cell } of [...trail, ...support]) {
+    const key = `${cell.x},${cell.z}`;
+    if (!byColumn.has(key)) byColumn.set(key, cell);
+  }
+  return [...byColumn.values()];
 }
