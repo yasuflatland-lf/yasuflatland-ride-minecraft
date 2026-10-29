@@ -183,6 +183,8 @@ describe("camper model assets (ADR 0067)", () => {
     const top = Math.max(...cubes.map((cube) => cube.top));
     expect(top - 32).toBeLessThanOrEqual(9);
     expect(top).toBeLessThan(38);
+    // BUNK_TOP in tools/gen_camper.py, which the bunk block of 16/16 sizes its box from.
+    expect(top).toBe(37.5);
   });
 
   it("puts wheel pivots at the axle centers and hover locators directly below after mirroring", () => {

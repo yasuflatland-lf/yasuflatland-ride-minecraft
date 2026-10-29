@@ -940,11 +940,14 @@ body.append(box(BED[0] + 2, FLOOR + 7.5, BED[3] - 6, BED[1] - 2, FLOOR + 10, BED
 bunk = [
     box(BED[0], BUNK_DECK_BOTTOM, BED[2], BED[1], BUNK_DECK_TOP, BED[3], "wood"),
     box(BED[0] + 0.3, BUNK_DECK_TOP, BED[2] + 0.3, BED[1] - 0.3, BUNK_TOP - 2, BED[3] - 0.3, "ivory"),
-    box(BED[0] + 0.2, BUNK_TOP - 2, BED[2] + 0.2, BED[1] - 0.2, BUNK_TOP - 1, BED[3] - 8, "curtain"),
+    # Starts 0.5 px off the wall so it stays clear of the window curtains (0.3 px thick).
+    box(BED[0] + 0.5, BUNK_TOP - 2, BED[2] + 0.2, BED[1] - 0.2, BUNK_TOP - 1, BED[3] - 8, "curtain"),
     box(BED[0] + 2, BUNK_TOP - 2, BED[3] - 6, BED[1] - 2, BUNK_TOP, BED[3] - 1.5, "white"),
     *[box(BED[1] - 1.25, FLOOR, z, BED[1], BUNK_DECK_TOP, z + 1.25, "wood")
       for z in (BED[2], BED[3] - 1.25)],
 ]
+# The block of 16/16 takes its selection box height from BUNK_TOP, so it must be the real top.
+assert max(c["origin"][1] + c["size"][1] for c in bunk) == BUNK_TOP
 
 # --- Right-hand furniture (ADR 0093) ----------------------------------------
 # Each decor slot height in src/domain/vehicle/kinds/camper/furniture.ts is the top of the
