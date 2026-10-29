@@ -95,7 +95,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0089](0089-per-kind-control-mapping.md) | Each kind maps the stick to handbrake and creep | Extended by 0136 (Proposed) |
 | [0090](0090-group-the-vehicle-core-by-subcontext.md) | Group the vehicle core by subcontext | Extended by 0129 and 0139 (Proposed) |
 | [0091](0091-alpha-blend-only-the-camper-glass.md) | Alpha-blend only the camper glass | Accepted |
-| [0092](0092-a-bed-in-the-parked-camper.md) | A bed in the parked camper | Extended by 0093, 0129, [0133](0133-sleep-on-the-tent-mattresses.md), and 0182 (Proposed); spawn point superseded in part by 0182 (Proposed) |
+| [0092](0092-a-bed-in-the-parked-camper.md) | A bed in the parked camper | Superseded in part by 0182 (spawn point and cargo cells; Proposed); extended by 0093, 0129, [0133](0133-sleep-on-the-tent-mattresses.md), and 0182 (Proposed) |
 | [0093](0093-decorate-the-parked-camper.md) | Decorate the parked camper | Superseded in part by 0097, 0098, 0099, 0100, 0102, 0103, 0106, 0108, and 0123 (Proposed); extended by 0094, 0095, 0096, 0101, 0113, 0122 (Proposed), 0139 (Proposed), and 0144 (Proposed) |
 | [0094](0094-the-camper-shower-toilet-door-and-shower.md) | The camper's shower-toilet door and shower | Superseded in part by 0098; extended by 0105, 0114, and 0118 |
 | [0095](0095-sit-on-the-camper-toilet-while-parked.md) | Sit on the camper toilet while parked | Extended by 0098 and 0109 |
