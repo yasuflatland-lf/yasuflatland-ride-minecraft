@@ -268,7 +268,7 @@ const marker = fc.oneof(
     .map((at) => encodeHost({ kind: "camp_table", id: "table", at })),
 );
 
-it("lists only lanterns with a host and removes each one whose host is gone, light first and with no drop", () => {
+it("keeps ground lanterns and removes each hosted one whose host is gone, light first and with no drop", () => {
   fc.assert(
     fc.property(
       fc.array(fc.tuple(marker, fc.boolean()), { maxLength: 6 }),
@@ -282,12 +282,10 @@ it("lists only lanterns with a host and removes each one whose host is gone, lig
         world.isHostAreaLoaded.mockImplementation(
           (id) => lanterns[ids.indexOf(id)]?.[1] ?? false,
         );
-        const kind = gasLanternHostedKind(world);
         const hosted = ids.filter(
           (id) => decodeHost(markerOf(id)).kind !== "ground",
         );
-        expect(kind.loaded()).toEqual(hosted);
-        new HostedItemsGuard([kind]).check();
+        new HostedItemsGuard([gasLanternHostedKind(world)]).check();
         const gone = hosted.filter((id) => world.isHostAreaLoaded(id));
         expect(world.removeGasLantern.mock.calls.map(([id]) => id)).toEqual(
           gone,

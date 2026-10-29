@@ -34,15 +34,12 @@ const ON_TABLE: HostedItemKind = {
 
 /**
  * The lantern as a kind the hosted items guard removes when its host is gone.
- * A ground lantern is never listed, and a removal clears the light block
- * before the entity goes so no light is left behind (ADR 0185).
+ * A removal clears the light block before the entity goes so no light is left
+ * behind (ADR 0185).
  */
 export function gasLanternHostedKind(world: GasLanternWorld): HostedKindPort {
   return {
-    loaded: () =>
-      world
-        .loadedGasLanterns()
-        .filter((id) => decodeHost(world.host(id)).kind !== "ground"),
+    loaded: () => world.loadedGasLanterns(),
     host: (id) => decodeHost(world.host(asGasLanternId(id))),
     isHostAreaLoaded: (id) => world.isHostAreaLoaded(asGasLanternId(id)),
     hostExists: (hostId) => world.hostExists(hostId),

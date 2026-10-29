@@ -664,8 +664,18 @@ async function hostRemovalTakesOven(
   };
 }
 
+interface TableLantern {
+  readonly lantern: Entity;
+  readonly lightCell: Vector3;
+  readonly lit: boolean;
+}
+
 /** Places a lantern on the table, switches it on, and returns it with its light cell. */
-async function litTableLantern(a: Arena, table: Entity, x: number) {
+async function litTableLantern(
+  a: Arena,
+  table: Entity,
+  x: number,
+): Promise<TableLantern | undefined> {
   const at = table.location;
   const before = new Set(lanternsNear(a, at).map((e) => e.id));
   await placeOnTableAt(table, x, 0, TEST_GAS_LANTERN_ON_TABLE_EVENT);
@@ -680,6 +690,28 @@ async function litTableLantern(a: Arena, table: Entity, x: number) {
   };
   const lit = a.dim.getBlock(lightCell)?.typeId === "minecraft:light_block_15";
   return { lantern, lightCell, lit };
+}
+
+/**
+ * Removes the table and checks that its lit lantern and every other item on it
+ * go, leaving no light block and no dropped item (ADR 0185).
+ */
+async function tableRemovalTakesLantern(
+  a: Arena,
+  at: Vector3,
+  table: Entity,
+  { lantern, lightCell, lit }: TableLantern,
+  others: readonly Entity[] = [],
+): Promise<Outcome> {
+  const { kept, removed, drops } = await removeHostAndWait(a, at, table, [
+    ...others,
+    lantern,
+  ]);
+  const dark = a.dim.getBlock(lightCell)?.isAir === true;
+  return {
+    pass: lit && kept && removed && dark && drops === 0,
+    detail: `lit=${lit} kept=${kept} removed=${removed} dark=${dark} drops=${drops}`,
+  };
 }
 
 export async function campTableRemoveOven(a: Arena): Promise<Outcome> {
@@ -717,15 +749,7 @@ export async function campTableRemoveLantern(a: Arena): Promise<Outcome> {
   try {
     const placed = await litTableLantern(a, table, 5);
     if (!placed) return { pass: false, detail: "lantern not placed" };
-    const { lantern, lightCell, lit } = placed;
-    const { kept, removed, drops } = await removeHostAndWait(a, at, table, [
-      lantern,
-    ]);
-    const dark = a.dim.getBlock(lightCell)?.isAir === true;
-    return {
-      pass: lit && kept && removed && dark && drops === 0,
-      detail: `lit=${lit} kept=${kept} removed=${removed} dark=${dark} drops=${drops}`,
-    };
+    return await tableRemovalTakesLantern(a, at, table, placed);
   } finally {
     cleanTable(a, table, at);
   }
@@ -780,16 +804,7 @@ export async function campTableRemoveOvenAndLantern(
     const placed = await litTableLantern(a, table, 15);
     if (!oven || !placed)
       return { pass: false, detail: `oven=${!!oven} lantern=${!!placed}` };
-    const { lantern, lightCell, lit } = placed;
-    const { kept, removed, drops } = await removeHostAndWait(a, at, table, [
-      oven,
-      lantern,
-    ]);
-    const dark = a.dim.getBlock(lightCell)?.isAir === true;
-    return {
-      pass: lit && kept && removed && dark && drops === 0,
-      detail: `lit=${lit} kept=${kept} removed=${removed} dark=${dark} drops=${drops}`,
-    };
+    return await tableRemovalTakesLantern(a, at, table, placed, [oven]);
   } finally {
     cleanTable(a, table, at);
   }
