@@ -1,6 +1,10 @@
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
-import { DutchOvenActions } from "../../../src/application/camp/dutchOven";
+import {
+  DutchOvenActions,
+  dutchOvenHostedKind,
+} from "../../../src/application/camp/dutchOven";
+import { HostedItemsGuard } from "../../../src/application/camp/hostedItemsGuard";
 import type { DutchOvenWorld } from "../../../src/application/camp/ports/dutchOven";
 import { asDutchOvenId } from "../../../src/domain/camp/dutchOven";
 import { asFirePitId } from "../../../src/domain/camp/firePit";
@@ -190,23 +194,25 @@ it("uncovers an existing fire pit only on the oven's third hit", () => {
   expect(world.setCovered).toHaveBeenCalledExactlyOnceWith(pit, false);
 });
 
-it("clears vanished hosts only in loaded space, for either host kind", () => {
+it("removes an oven whose host vanished in loaded space with no drop, for either host kind", () => {
   for (const kind of ["fire_pit", "camp_table"]) {
     for (const loaded of [true, false]) {
-      const { actions, world } = fixture({
+      const { world } = fixture({
         loadedOvens: () => [oven],
         host: () => `${kind}:pit:0`,
         hostExists: () => false,
         isHostAreaLoaded: () => loaded,
       });
-      actions.checkHosts();
-      expect(world.setHost).toHaveBeenCalledTimes(loaded ? 1 : 0);
-      if (loaded) expect(world.setHost).toHaveBeenCalledWith(oven, "", false);
+      new HostedItemsGuard([dutchOvenHostedKind(world)]).check();
+      expect(world.removeDutchOven).toHaveBeenCalledTimes(loaded ? 1 : 0);
+      if (loaded) expect(world.removeDutchOven).toHaveBeenCalledWith(oven);
+      expect(world.dropItem).not.toHaveBeenCalled();
+      expect(world.setHost).not.toHaveBeenCalled();
     }
   }
 });
 
-it("repairs an orphaned covered pit and preserves one with a hosted oven", () => {
+it("uncovers an orphaned covered pit and keeps one with a hosted oven covered", () => {
   for (const occupied of [true, false]) {
     const { actions, world } = fixture({
       loadedOvens: () => (occupied ? [oven] : []),
@@ -214,7 +220,7 @@ it("repairs an orphaned covered pit and preserves one with a hosted oven", () =>
       isCovered: () => true,
       host: () => "fire_pit:pit:0",
     });
-    actions.checkHosts();
+    actions.uncoverEmptyFirePits();
     expect(world.setCovered).toHaveBeenCalledTimes(occupied ? 0 : 1);
     expect(world.setHost).not.toHaveBeenCalled();
   }
@@ -240,12 +246,12 @@ it("checks both clearance cells above the pit's ground and rejects before consum
 });
 
 it("leaves ground ovens alone and takes back ovens even if their host is gone", () => {
-  const { actions, world } = fixture({
+  const { world } = fixture({
     loadedOvens: () => [oven],
     hostExists: () => false,
   });
-  actions.checkHosts();
-  expect(world.setHost).not.toHaveBeenCalled();
+  new HostedItemsGuard([dutchOvenHostedKind(world)]).check();
+  expect(world.removeDutchOven).not.toHaveBeenCalled();
   const hosted = fixture({
     host: () => "fire_pit:pit:0",
     hostExists: () => false,

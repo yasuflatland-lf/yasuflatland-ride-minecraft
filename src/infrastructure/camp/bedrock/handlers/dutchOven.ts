@@ -6,6 +6,7 @@ import {
   world,
 } from "@minecraft/server";
 import type { DutchOvenActions } from "../../../../application/camp/dutchOven";
+import type { HostedItemsGuard } from "../../../../application/camp/hostedItemsGuard";
 import { asDutchOvenId } from "../../../../domain/camp/dutchOven";
 import { asFirePitId } from "../../../../domain/camp/firePit";
 import { DUTCH_OVEN_SPEC, TABLE_SPOTS } from "../../../../domain/camp/spec";
@@ -47,7 +48,10 @@ function testTableRequest(
   return testTableTopRequest(message);
 }
 
-export function registerDutchOven(actions: DutchOvenActions): void {
+export function registerDutchOven(
+  actions: DutchOvenActions,
+  hostedItems: HostedItemsGuard,
+): void {
   const placements = new TickScopedSet<PlayerId>();
   world.beforeEvents.playerInteractWithBlock.subscribe((ev) => {
     if (!ev.isFirstEvent || ev.itemStack?.typeId !== DUTCH_OVEN_ITEM) return;
@@ -151,10 +155,10 @@ export function registerDutchOven(actions: DutchOvenActions): void {
       );
     }
   });
-  system.runInterval(
-    () => actions.checkHosts(),
-    DUTCH_OVEN_SPEC.hostCheckTicks,
-  );
+  system.runInterval(() => {
+    hostedItems.check();
+    actions.uncoverEmptyFirePits();
+  }, DUTCH_OVEN_SPEC.hostCheckTicks);
   system.runInterval(() => {
     for (const dimensionId of ["overworld", "nether", "the_end"]) {
       const dimension = world.getDimension(dimensionId);
