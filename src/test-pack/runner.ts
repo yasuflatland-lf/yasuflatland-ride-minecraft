@@ -47,6 +47,7 @@ import {
 } from "./scenarios/bulldozerExit";
 import {
   campTableFreeOven,
+  campTableLantern,
   campTableLegacyOven,
   campTableNoSeats,
   dutchOvenOnPit,
@@ -268,6 +269,7 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
     ["dutch_oven_on_table", 60, () => dutchOvenOnTable(a)],
     ["camp_table_free_oven", 16, () => campTableFreeOven(a)],
     ["camp_table_legacy_oven", 34, () => campTableLegacyOven(a)],
+    ["camp_table_lantern", 60, () => campTableLantern(a)],
     ["dutch_oven_on_pit", 90, () => dutchOvenOnPit(a)],
     ["gas_lantern_take_back", 8, () => gasLanternTakeBack(a)],
     ["gas_lantern_switch", 70, () => gasLanternSwitch(a)],
