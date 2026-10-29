@@ -1,4 +1,4 @@
-import type { VehicleProfile } from "./profile";
+import { ramHalfWidthLimit, type VehicleProfile } from "./profile";
 import { SPEC } from "./spec";
 
 const RAM_HEIGHT_REACH = Math.max(
@@ -8,14 +8,15 @@ const RAM_HEIGHT_REACH = Math.max(
 
 /**
  * Reaches the far corners of every profile's ram hit box at either height
- * bound, so a longer or wider kind cannot be missed by the world query (ADR 0006).
+ * bound and its maximum ram half width, so every drive-reported width is
+ * covered by the world query (ADR 0006, 0180).
  */
 export function ramQueryRadius(profiles: readonly VehicleProfile[]): number {
   return Math.max(
-    ...profiles.map(({ body }) =>
+    ...profiles.map((profile) =>
       Math.hypot(
-        body.front + SPEC.targetHalfWidth,
-        body.halfWidth + SPEC.targetHalfWidth,
+        profile.body.front + SPEC.targetHalfWidth,
+        ramHalfWidthLimit(profile) + SPEC.targetHalfWidth,
         RAM_HEIGHT_REACH,
       ),
     ),
