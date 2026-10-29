@@ -888,3 +888,32 @@ it("restores a saved lowered blade", () => {
   expect(d.speed).toBeGreaterThan(S.blade.minSpeed);
   expect(out.cut).toBeDefined();
 });
+it("restores the wide blade flag, defaulting to normal", () => {
+  for (const [saved, shown] of [
+    [true, "wide"],
+    [false, "normal"],
+    [undefined, "normal"],
+  ] as const)
+    expect(
+      new BulldozerDrive(0, { wide_blade: saved }).toolState(
+        "wide_blade_switch",
+      ),
+    ).toBe(shown);
+});
+it("sends wide_blade once per toggle, and again after resync", () => {
+  const d = new BulldozerDrive(0, {});
+  const sent = (tick: number) =>
+    d
+      .step(IDLE, { ...context(), tick })
+      .commands.filter((c) => c.name === "wide_blade")
+      .map((c) => (c.type === "setProperty" ? c.value : undefined));
+  expect(sent(0)).toEqual([false]);
+  expect(sent(1)).toEqual([]);
+  d.setToolState("wide_blade_switch", "wide");
+  expect(sent(2)).toEqual([true]);
+  expect(sent(3)).toEqual([]);
+  d.resync();
+  expect(sent(4)).toEqual([true]);
+  d.setToolState("wide_blade_switch", "normal");
+  expect(sent(5)).toEqual([false]);
+});

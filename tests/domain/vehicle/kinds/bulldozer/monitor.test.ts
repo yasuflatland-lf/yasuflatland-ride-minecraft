@@ -5,6 +5,7 @@ import { BulldozerDrive } from "../../../../../src/domain/vehicle/kinds/bulldoze
 import {
   BLADE_SWITCH_ITEM,
   BULLDOZER_MONITOR,
+  WIDE_BLADE_SWITCH_ITEM,
 } from "../../../../../src/domain/vehicle/kinds/bulldozer/monitor";
 import { NAMESPACE } from "../../../../../src/infrastructure/shared/identifiers";
 
@@ -51,6 +52,38 @@ describe("bulldozer cab monitor rule (ADR 0139)", () => {
           switches.at(-1) === false ? "down" : "up",
         );
       }),
+    );
+  });
+
+  it("keeps the blade and wide blade tools independent", () => {
+    fc.assert(
+      fc.property(
+        fc.array(
+          fc.oneof(
+            fc.tuple(
+              fc.constant(BLADE_SWITCH_ITEM),
+              fc.constantFrom("down", "up"),
+            ),
+            fc.tuple(
+              fc.constant(WIDE_BLADE_SWITCH_ITEM),
+              fc.constantFrom("normal", "wide"),
+            ),
+          ),
+        ),
+        (sets) => {
+          const drive = new BulldozerDrive(0, {});
+          const last = new Map([
+            [BLADE_SWITCH_ITEM, "up"],
+            [WIDE_BLADE_SWITCH_ITEM, "normal"],
+          ]);
+          for (const [item, state] of sets) {
+            expect(drive.setToolState(item, state)).toBe(true);
+            last.set(item, state);
+          }
+          for (const [item, state] of last)
+            expect(drive.toolState(item)).toBe(state);
+        },
+      ),
     );
   });
 
