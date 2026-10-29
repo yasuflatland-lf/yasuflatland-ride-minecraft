@@ -1563,6 +1563,32 @@ png(
     lambda x, y: ICON_COLORS[BLADE_SWITCH_ICON[y][x]],
 )
 
+# Wide Blade switch icon: outward arrows flank the yellow blade (ADR 0180).
+WIDE_BLADE_SWITCH_ICON = [
+    "................",
+    "................",
+    "................",
+    "................",
+    "................",
+    "....DYYYYYYD....",
+    "..K.DYYYYYYD.K..",
+    ".KK.DYYYYYYD.KK.",
+    "KKKKDYYYYYYDKKKK",
+    ".KK.DDDDDDDD.KK.",
+    "..K..........K..",
+    "................",
+    "................",
+    "................",
+    "................",
+    "................",
+]
+png(
+    ITEM_TEXTURES / "wide_blade_switch.png",
+    16,
+    16,
+    lambda x, y: ICON_COLORS[WIDE_BLADE_SWITCH_ICON[y][x]],
+)
+
 print("cubes:", sum(len(b.get("cubes", [])) for b in bones))
 
 MONITOR_PLATE = mirror_x([{"pivot": [0, 0, 0], "cubes": [
