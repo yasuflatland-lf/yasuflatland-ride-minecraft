@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { asVehicleId } from "../../../../../src/domain/shared/ids";
 import { forward, localPoint } from "../../../../../src/domain/shared/vec";
+import type { TickContext } from "../../../../../src/domain/vehicle/drive";
 import { rebuildVehicle } from "../../../../../src/domain/vehicle/kinds";
 import { BulldozerDrive } from "../../../../../src/domain/vehicle/kinds/bulldozer/drive";
 import {
@@ -9,6 +10,19 @@ import {
   BULLDOZER_WIDE_BLADE,
 } from "../../../../../src/domain/vehicle/kinds/bulldozer/spec";
 import { type Body, engineStep } from "../../../../support/engineModel";
+
+function flatGround(tick: number, b: Body): TickContext {
+  return {
+    tick,
+    deckSeatInputs: [],
+    location: { ...b.pos, y: 64 },
+    velocity: { ...b.vel, y: 0 },
+    onGround: true,
+    solidAt: () => false,
+    waterAt: () => false,
+    blockTypes: () => [],
+  };
+}
 
 const FORWARD = { moveX: 0, moveY: 1, jump: false };
 it.each([false, true])(
@@ -21,16 +35,7 @@ it.each([false, true])(
         let previous: ReturnType<typeof d.step> | undefined;
         let prev = b.pos;
         for (let tick = 0; tick < 80; tick++) {
-          const out = d.step(FORWARD, {
-            tick,
-            deckSeatInputs: [],
-            location: { ...b.pos, y: 64 },
-            velocity: { ...b.vel, y: 0 },
-            onGround: true,
-            solidAt: () => false,
-            waterAt: () => false,
-            blockTypes: () => [],
-          });
+          const out = d.step(FORWARD, flatGround(tick, b));
           if (previous?.cut?.length && out.cut?.length) {
             const keys = new Set(
               [...previous.cut, ...out.cut].map((c) => `${c.x},${c.z}`),
@@ -66,16 +71,7 @@ it.each([false, true])(
         for (let tick = 0; tick < 80; tick++) {
           const out = reverse.step(
             { ...FORWARD, moveY: -1 },
-            {
-              tick,
-              deckSeatInputs: [],
-              location: { ...b.pos, y: 64 },
-              velocity: { ...b.vel, y: 0 },
-              onGround: true,
-              solidAt: () => false,
-              waterAt: () => false,
-              blockTypes: () => [],
-            },
+            flatGround(tick, b),
           );
           expect(out.cut ?? []).toEqual([]);
           b = engineStep(b, out.impulse, { mu: 0.69 }).body;
