@@ -154,7 +154,7 @@ describe("bulldozer cab monitor (ADR 0139)", () => {
           "query.property('yasu_ride:headlights')",
       },
     ]);
-    expect(screens.length).toBeGreaterThanOrEqual(1);
+    expect(screens).toHaveLength(6);
     expect(
       read("packs/yasu_ride_bp/entities/yasu_ride/bulldozer.se.json")[
         "minecraft:entity"

@@ -40,6 +40,7 @@ function expectedParent(name: string): string | undefined {
     case "body":
       return "root";
     case "blade":
+    case "blade_wide":
       return "blade_rig";
     case "lift_rod_r":
       return "lift_cylinder_r";
@@ -98,7 +99,7 @@ describe("bulldozer model (ADR 0009, 0136)", () => {
     expect(geometry().description.texture_width).toBe(32);
     expect(geometry().description.texture_height).toBe(1);
   });
-  it("has exactly the bone contract, each bone parented to body except root, body, blade, the lift rods, and door_glass", () => {
+  it("has exactly the bone contract, each bone parented to body except root, body, blade, blade_wide, the lift rods, and door_glass", () => {
     expect(
       bones()
         .map((b) => b.name)
@@ -109,6 +110,7 @@ describe("bulldozer model (ADR 0009, 0136)", () => {
         "body",
         "blade_rig",
         "blade",
+        "blade_wide",
         "lift_cylinder_r",
         "lift_cylinder_l",
         "lift_rod_r",
@@ -223,13 +225,20 @@ describe("bulldozer model (ADR 0009, 0136)", () => {
   it("pins the blade front and the model reach that the profile is built from", () => {
     const front = Math.min(...points(bone("blade")).map((p) => p[2]));
     expect(front).toBeCloseTo(-38.4, 3);
-    for (const b of bones().filter((b) => b.name !== "blade"))
+    expect(
+      Math.min(...points(bone("blade_wide")).map((p) => p[2])),
+    ).toBeCloseTo(-38.4, 3);
+    for (const b of bones().filter(
+      (b) => b.name !== "blade" && b.name !== "blade_wide",
+    ))
       for (const p of points(b)) expect(p[2]).toBeGreaterThanOrEqual(front);
     expect(
       Math.min(...points(bone("headlights")).map((p) => p[2])),
     ).toBeCloseTo(-14.8, 3);
+    // blade_wide is model only: the footprint keeps the normal blade's reach (ADR 0180).
     const reach = Math.max(
       ...bones()
+        .filter((b) => b.name !== "blade_wide")
         .flatMap(points)
         .map(([x, , z]) => Math.hypot(x, z) / 16),
     );
@@ -402,6 +411,10 @@ describe("bulldozer blade rig (ADR 0138)", () => {
     expect(bottom - trackBottom).toBeCloseTo(3.425, 3);
     expect(lowest(points(bone("blade")), 2)).toBeCloseTo(-38.4, 3);
     expect(lowest(raised(points(bone("blade")), 1), 2)).toBeCloseTo(-35.4, 3);
+    expect(lowest(raised(points(bone("blade_wide")), 1), 2)).toBeCloseTo(
+      -35.4,
+      3,
+    );
   });
   it("keeps each rod's end on its gusset top while the blade moves", () => {
     const ends = ["r", "l"].map(rodEnd);
@@ -505,6 +518,7 @@ describe("bulldozer blade rig (ADR 0138)", () => {
   it("keeps the lowered rest pose: pivots, rods, and cube counts", () => {
     expect(bone("blade_rig").pivot).toEqual([0, 12, 2]);
     expect(bone("blade").pivot).toEqual([0, 0, -37.8]);
+    expect(bone("blade_wide").pivot).toEqual(bone("blade").pivot);
     for (const [side, x] of [
       ["r", -8.5],
       ["l", 8.5],
@@ -517,7 +531,8 @@ describe("bulldozer blade rig (ADR 0138)", () => {
     }
     expect(bone("blade_rig").cubes).toHaveLength(180);
     expect(bone("blade").cubes).toHaveLength(134);
-    expect(bones().flatMap((b) => b.cubes ?? [])).toHaveLength(3565);
+    expect(bone("blade_wide").cubes).toHaveLength(181);
+    expect(bones().flatMap((b) => b.cubes ?? [])).toHaveLength(3746);
     expect(Math.min(...points(bone("blade")).map((p) => p[1]))).toBeCloseTo(
       0,
       3,
@@ -536,6 +551,68 @@ describe("bulldozer blade rig (ADR 0138)", () => {
       );
       expectCube(bone("body"), 4, [x - 1.1, 22.9, 5.8], [x + 1.1, 24.5, 7.4]);
     }
+  });
+});
+
+describe("bulldozer wide blade (ADR 0180)", () => {
+  const cubesOf = (name: string) => bone(name).cubes ?? [];
+  const xs = (name: string) => points(bone(name)).map((p) => p[0] as number);
+  const isBolt = (c: ModelCube) =>
+    Math.abs(c.size[0] - 0.5) < 1e-6 &&
+    Math.abs(c.size[1] - 0.5) < 1e-6 &&
+    Math.abs(c.size[2] - 0.1) < 1e-6;
+  const gaps = (name: string) => {
+    const centres = cubesOf(name)
+      .filter(isBolt)
+      .map((c) => c.origin[0] + c.size[0] / 2)
+      .sort((a, b) => a - b);
+    return centres.slice(1).map((x, i) => x - (centres[i] as number));
+  };
+  const key = (c: ModelCube) =>
+    JSON.stringify([c.origin, c.size].map((v) => v.map((n) => +n.toFixed(4))));
+  const narrowSizes = (name: string) =>
+    new Set(
+      cubesOf(name)
+        .filter((c) => c.size[0] < 1)
+        .map((c) => c.size.map((n) => +n.toFixed(4)).join(",")),
+    );
+  it("spans twice the normal blade on x", () => {
+    const span = (name: string) =>
+      Math.max(...xs(name)) - Math.min(...xs(name));
+    expect(Math.abs(span("blade_wide") - 2 * span("blade"))).toBeLessThan(0.01);
+  });
+  it("keeps the fittings at their size", () => {
+    expect(narrowSizes("blade_wide")).toEqual(narrowSizes("blade"));
+  });
+  it("keeps the bolts at about the same pitch", () => {
+    expect(cubesOf("blade_wide").filter(isBolt).length).toBeGreaterThan(
+      cubesOf("blade").filter(isBolt).length,
+    );
+    const normal = gaps("blade");
+    for (const gap of gaps("blade_wide")) {
+      expect(gap).toBeGreaterThanOrEqual(Math.min(...normal) - 1e-6);
+      expect(gap).toBeLessThanOrEqual(Math.max(...normal) + 1e-6);
+    }
+  });
+  it("keeps the centre bracket and the spill guard as they are", () => {
+    const bracket = (name: string) =>
+      cubesOf(name)
+        .filter(
+          (c) =>
+            Math.abs(c.size[0] - 6) < 1e-6 &&
+            Math.abs(c.size[1] - 9) < 1e-6 &&
+            Math.abs(c.size[2] - 2.4) < 1e-6,
+        )
+        .map(key);
+    expect(bracket("blade")).toHaveLength(1);
+    expect(bracket("blade_wide")).toEqual(bracket("blade"));
+    const guard = (name: string) =>
+      cubesOf(name)
+        .filter((c) => c.origin[1] + c.size[1] > 19.3 + 1e-6)
+        .map(key)
+        .sort();
+    expect(guard("blade")).toHaveLength(4);
+    expect(guard("blade_wide")).toEqual(guard("blade"));
   });
 });
 

@@ -728,6 +728,7 @@ def blade_cubes(half: float) -> list:
 
 
 blade = blade_cubes(BLADE_HALF)
+blade_wide = blade_cubes(2 * BLADE_HALF)  # the domain rule BULLDOZER_WIDE_BLADE doubles the half width (ADR 0180)
 
 # Push arms: long beams from trunnions on the main frame beside the cab front, running forward
 # between the hood and the tracks and sloping down to the C-frame, a ring in front of the hood
@@ -1400,6 +1401,7 @@ bones = mirror_x([
     {"name": "body", "parent": "root", "pivot": [0, 0, 0], "cubes": body, "locators": {"thruster": THRUSTER}},
     {"name": "blade_rig", "parent": "body", "pivot": [0, ARM_REAR[1], ARM_REAR[0]], "cubes": blade_rig},
     {"name": "blade", "parent": "blade_rig", "pivot": [0, 0, BLADE_FRONT], "cubes": blade},
+    {"name": "blade_wide", "parent": "blade_rig", "pivot": [0, 0, BLADE_FRONT], "cubes": blade_wide},
     {"name": "lift_cylinder_r", "parent": "body", "pivot": [LIFT_X, LIFT_Y, LIFT_PIN], "cubes": lift_cylinder},
     {"name": "lift_cylinder_l", "parent": "body", "pivot": [-LIFT_X, LIFT_Y, LIFT_PIN],
      "cubes": [mirrored(c) for c in lift_cylinder]},
@@ -1427,7 +1429,7 @@ geo = {
         "description": {
             "identifier": "geometry.yasu_ride.bulldozer",
             "texture_width": len(SLOTS), "texture_height": 1,
-            "visible_bounds_width": 7, "visible_bounds_height": 5,
+            "visible_bounds_width": 11, "visible_bounds_height": 5,
             "visible_bounds_offset": [0, 1.5, 0],
         },
         "bones": bones,
@@ -1573,6 +1575,58 @@ png(
     lambda x, y: ICON_COLORS[BLADE_SWITCH_ICON[y][x]],
 )
 
+# Wide Blade switch icon: outward arrows flank the yellow blade (ADR 0180).
+WIDE_BLADE_SWITCH_ICON = [
+    "................",
+    "................",
+    "................",
+    "................",
+    "................",
+    "....DYYYYYYD....",
+    "..K.DYYYYYYD.K..",
+    ".KK.DYYYYYYD.KK.",
+    "KKKKDYYYYYYDKKKK",
+    ".KK.DDDDDDDD.KK.",
+    "..K..........K..",
+    "................",
+    "................",
+    "................",
+    "................",
+    "................",
+]
+png(
+    ITEM_TEXTURES / "wide_blade_switch.png",
+    16,
+    16,
+    lambda x, y: ICON_COLORS[WIDE_BLADE_SWITCH_ICON[y][x]],
+)
+
+# Road Paver switch icon: a lever over a strip of road blocks with a yellow lane line (ADR 0181).
+ROAD_PAVER_SWITCH_ICON = [
+    "................",
+    "..........KK....",
+    ".........KKK....",
+    "........KKK.....",
+    ".......KKK......",
+    "......TKK.......",
+    ".....TTTT.......",
+    "................",
+    "................",
+    "KKKKKKKKKKKKKKKK",
+    "KKKKKKKKKKKKKKKK",
+    "KK..KK..KK..KK..",
+    "KKYYKKYYKKYYKKYY",
+    "KKKKKKKKKKKKKKKK",
+    "KKKKKKKKKKKKKKKK",
+    "................",
+]
+png(
+    ITEM_TEXTURES / "road_paver_switch.png",
+    16,
+    16,
+    lambda x, y: ICON_COLORS[ROAD_PAVER_SWITCH_ICON[y][x]],
+)
+
 print("cubes:", sum(len(b.get("cubes", [])) for b in bones))
 
 MONITOR_PLATE = mirror_x([{"pivot": [0, 0, 0], "cubes": [
@@ -1605,7 +1659,11 @@ def monitor_icon_color(code):
     return ICON_COLORS[code][:3] + (0,)
 
 
-MONITOR_ICONS = {"blade_switch": [[monitor_icon_color(code) for code in row] for row in BLADE_SWITCH_ICON]}
+MONITOR_ICONS = {
+    "blade_switch": [[monitor_icon_color(code) for code in row] for row in BLADE_SWITCH_ICON],
+    "wide_blade_switch": [[monitor_icon_color(code) for code in row] for row in WIDE_BLADE_SWITCH_ICON],
+    "road_paver_switch": [[monitor_icon_color(code) for code in row] for row in ROAD_PAVER_SWITCH_ICON],
+}
 STALE.extend(monitor.write_monitor("bulldozer", MONITOR_LAYOUT, MONITOR_ICONS, CHECK, RP))
 if STALE:
     sys.exit("Stale bulldozer outputs:\n" + "\n".join(STALE))

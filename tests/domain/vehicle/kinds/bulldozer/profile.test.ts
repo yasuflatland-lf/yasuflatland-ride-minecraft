@@ -12,6 +12,7 @@ import {
 import {
   BULLDOZER_AIR,
   BULLDOZER_WATER,
+  BULLDOZER_WIDE_BLADE,
   BULLDOZER_SPEC as S,
 } from "../../../../../src/domain/vehicle/kinds/bulldozer/spec";
 import {
@@ -55,4 +56,8 @@ it("puts one exit beside the left track and behind the blade", () => {
   expect(P.seatExits).toHaveLength(P.seats.positions.length);
   expect(S.doorExit.x - 0.3).toBeGreaterThan(18.8 / 16);
   expect(S.doorExit.z).toBeLessThan(S.blade.near);
+});
+
+it("caps the ram at the wide blade's half width", () => {
+  expect(P.maxRamHalfWidth).toBe(BULLDOZER_WIDE_BLADE.halfWidth);
 });

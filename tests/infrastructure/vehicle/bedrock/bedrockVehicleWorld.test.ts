@@ -140,7 +140,7 @@ function fixture() {
     id === car.id ? car : undefined,
   );
   const inputs = new VehicleTestStore<RawInput>();
-  const tools = new VehicleTestStore<string>();
+  const testHeldItems = new VehicleTestStore<string>();
   const index = new EntityIndex();
   const inventory = new BedrockInventory(index);
   return {
@@ -149,11 +149,11 @@ function fixture() {
     placement: new BedrockPlacementWorld(inventory, index, noCampSpace),
     paint: new BedrockPaintWorld(index, inventory),
     inputs,
-    tools,
+    testHeldItems,
     entities,
     dimension,
     car,
-    world: new BedrockVehicleWorld(index, inputs, tools, noCampSpace),
+    world: new BedrockVehicleWorld(index, inputs, testHeldItems, noCampSpace),
   };
 }
 
@@ -442,7 +442,7 @@ describe("BedrockVehicleWorld snapshots", () => {
       seatIdlePlayer(car, inventory);
       const riders = world.loadedVehicles()[0]?.riders;
       expect(riders?.map((r) => r.id)).toEqual(["player"]);
-      expect(riders?.[0]?.heldTool).toBeUndefined();
+      expect(riders?.[0]?.held).toBeUndefined();
       expect(inventory).not.toHaveBeenCalled();
     },
   );
@@ -453,14 +453,14 @@ describe("BedrockVehicleWorld snapshots", () => {
     [undefined, undefined],
   ])(
     "reads the bulldozer driver's held %s as %s for its monitor rule (ADR 0139)",
-    (typeId, heldTool) => {
+    (typeId, tool) => {
       const { car, world } = fixture();
       car.typeId = ENTITY_TYPE.bulldozer;
       const getItem = vi.fn(() => (typeId ? { typeId } : undefined));
       seatIdlePlayer(car, (name) =>
         name === "minecraft:inventory" ? { container: { getItem } } : undefined,
       );
-      expect(world.loadedVehicles()[0]?.riders[0]?.heldTool).toBe(heldTool);
+      expect(world.loadedVehicles()[0]?.riders[0]?.held?.tool).toBe(tool);
       expect(getItem).toHaveBeenCalledWith(3);
     },
   );
@@ -559,14 +559,14 @@ describe("BedrockVehicleWorld snapshots", () => {
     expect(world.loadedVehicles()[0]?.testInput).toBeUndefined();
   });
 
-  it("forgets the test held tool of a vehicle once it is no longer loaded (ADR 0139)", () => {
-    const { tools, dimension, car, world } = fixture();
+  it("forgets the test held item of a vehicle once it is no longer loaded (ADR 0139)", () => {
+    const { testHeldItems, dimension, car, world } = fixture();
     const id = asVehicleId(car.id);
-    tools.set(id, "blade_switch");
-    expect(world.loadedVehicles()[0]?.testHeldTool).toBe("blade_switch");
+    testHeldItems.set(id, "yasu_ride:blade_switch");
+    expect(world.loadedVehicles()[0]?.testHeld?.tool).toBe("blade_switch");
     dimension.getEntities.mockReturnValue([]);
     world.loadedVehicles();
-    expect(tools.get(id)).toBeUndefined();
+    expect(testHeldItems.get(id)).toBeUndefined();
   });
 
   it("clears the headlight blocks of a vehicle once it is no longer loaded (ADR 0020, 0038)", () => {

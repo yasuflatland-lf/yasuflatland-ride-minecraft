@@ -105,6 +105,11 @@ export const BULLDOZER_SPEC = Object.freeze({
     radius: 6.7 / 16,
   }),
 } as const);
+/** Twice the normal half width, matching the wide plate's 74.1 px / 16 (about 4.63 blocks; ADR 0180). */
+export const BULLDOZER_WIDE_BLADE: BladeRule = Object.freeze({
+  ...BULLDOZER_SPEC.blade,
+  halfWidth: 2 * BULLDOZER_SPEC.blade.halfWidth,
+});
 export const BULLDOZER_AIR: Medium = Object.freeze({
   drag: BULLDOZER_SPEC.flightDrag,
   maxSpeed: BULLDOZER_SPEC.maxSpeed,

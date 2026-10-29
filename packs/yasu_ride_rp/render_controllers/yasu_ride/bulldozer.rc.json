@@ -52,6 +52,12 @@
         },
         {
           "beacon": "!query.property('yasu_ride:headlights')"
+        },
+        {
+          "blade": "!query.property('yasu_ride:wide_blade')"
+        },
+        {
+          "blade_wide": "query.property('yasu_ride:wide_blade')"
         }
       ]
     },
