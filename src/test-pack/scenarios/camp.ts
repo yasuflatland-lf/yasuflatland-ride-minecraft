@@ -200,15 +200,28 @@ export function campTableNoSeats(a: Arena): Promise<Outcome> {
   }
 }
 
-/** Checks both tabletop spots and the fold guard through production actions. */
-export async function dutchOvenOnTable(a: Arena): Promise<Outcome> {
-  const at = { x: CELL.x, y: a.gy, z: CELL.z + 8.5 };
+const TABLE_AT = (a: Arena) => ({ x: CELL.x, y: a.gy, z: CELL.z + 8.5 });
+
+const summonTable = (a: Arena, at: Vector3): Entity | undefined => {
   a.dim.runCommand(`summon ${CAMP_TABLE_TYPE} ${at.x} ${at.y} ${at.z}`);
-  const table = a.dim.getEntities({
+  return a.dim.getEntities({
     type: CAMP_TABLE_TYPE,
     location: at,
     maxDistance: 1.5,
   })[0];
+};
+
+const cleanTable = (a: Arena, table: Entity | undefined, at: Vector3) => {
+  for (const oven of ovensNear(a, at)) oven.remove();
+  if (table?.isValid) table.remove();
+  for (const type of [DUTCH_OVEN_ITEM, CAMP_TABLE_ITEM])
+    for (const item of droppedItems(a, at, type)) item.remove();
+};
+
+/** Checks both tabletop spots and the fold guard through production actions. */
+export async function dutchOvenOnTable(a: Arena): Promise<Outcome> {
+  const at = TABLE_AT(a);
+  const table = summonTable(a, at);
   if (!table) return { pass: false, detail: "table not spawned" };
   const hitThree = async (event: string, id: string) => {
     for (let i = 0; i < 3; i++) {
@@ -257,23 +270,9 @@ export async function dutchOvenOnTable(a: Arena): Promise<Outcome> {
       detail: `ovens=${ovens.length} standing=${standing} guarded=${guarded} returned=${returned} afterTwo=${afterTwo} folded=${folded}`,
     };
   } finally {
-    if (table.isValid) table.remove();
-    for (const oven of ovensNear(a, at)) oven.remove();
-    for (const type of [DUTCH_OVEN_ITEM, CAMP_TABLE_ITEM])
-      for (const item of droppedItems(a, at, type)) item.remove();
+    cleanTable(a, table, at);
   }
 }
-
-const TABLE_AT = (a: Arena) => ({ x: CELL.x, y: a.gy, z: CELL.z + 8.5 });
-
-const summonTable = (a: Arena, at: Vector3): Entity | undefined => {
-  a.dim.runCommand(`summon ${CAMP_TABLE_TYPE} ${at.x} ${at.y} ${at.z}`);
-  return a.dim.getEntities({
-    type: CAMP_TABLE_TYPE,
-    location: at,
-    maxDistance: 1.5,
-  })[0];
-};
 
 /**
  * Summons an oven and has the Behavior Pack write its host marker, as a saved
@@ -296,13 +295,6 @@ const placeOnTableAt = async (table: Entity, x: number, z: number) => {
     `${table.id} ${x} ${z}`,
   );
   await wait(2);
-};
-
-const cleanTable = (a: Arena, table: Entity | undefined, at: Vector3) => {
-  for (const oven of ovensNear(a, at)) oven.remove();
-  if (table?.isValid) table.remove();
-  for (const type of [DUTCH_OVEN_ITEM, CAMP_TABLE_ITEM])
-    for (const item of droppedItems(a, at, type)) item.remove();
 };
 
 /**
