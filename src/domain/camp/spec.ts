@@ -1,4 +1,5 @@
 import type { Paint } from "../shared/paint";
+import type { Footprint } from "./tabletop";
 
 // Every tuning value of the low chair (ADR 0122).
 export const CHAIR_SPEC = Object.freeze({
@@ -77,6 +78,25 @@ export const TABLE_SPOTS = Object.freeze([
 ] as const);
 // Must match the tabletop origin plus thickness in tools/gen_camp_table.py (ADR 0168).
 export const TABLE_TOP_PX = 12.25;
+// Must match the 30 by 12 px tabletop cube in tools/gen_camp_table.py (ADR 0182).
+export const TABLE_TOP_HALF_PX: Footprint = Object.freeze({
+  halfX: 15,
+  halfZ: 6,
+});
+/** Ovens and lanterns together, the owner's limit (ADR 0182). */
+export const TABLE_TOP_LIMIT = 4;
+// Square half extents cover the models at any yaw, rounded up from generated
+// geometry: tools/gen_dutch_oven.py reaches at most 5.70 px from its center,
+// tools/gen_gas_lantern.py 3.75 px. The table's yaw is free while items snap to
+// 90 degrees, so their footprints must not depend on yaw.
+export const DUTCH_OVEN_FOOTPRINT_PX: Footprint = Object.freeze({
+  halfX: 5.75,
+  halfZ: 5.75,
+});
+export const GAS_LANTERN_FOOTPRINT_PX: Footprint = Object.freeze({
+  halfX: 3.75,
+  halfZ: 3.75,
+});
 
 export const GAS_LANTERN_SPEC = Object.freeze({
   /** Matches the tent lantern's full-bright light (ADR 0173). */
