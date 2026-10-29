@@ -13,6 +13,7 @@ import {
 } from "../../../../src/infrastructure/vehicle/bedrock/dockBlocks";
 import {
   CAMPER_BED_BLOCK,
+  CAMPER_BUNK_BLOCK,
   CAMPER_CABINET_DOOR_BLOCK,
   CAMPER_CEILING_BLOCK,
   CAMPER_DOOR_BLOCK,
@@ -423,6 +424,7 @@ const roomCells: DockCell[] = [
       end0: "mug_pair",
     },
   },
+  { x: 13, y: 64, z: 0, block: { type: "bunk" } },
 ];
 
 it("lays every block type with its states and changes only an opened door", () => {
@@ -473,6 +475,7 @@ it("lays every block type with its states and changes only an opened door", () =
         ...pairEndStates(1, undefined),
       },
     },
+    { typeId: CAMPER_BUNK_BLOCK, states: undefined },
   ]);
   f.writes.length = 0;
   const opened = roomCells.map((c) =>

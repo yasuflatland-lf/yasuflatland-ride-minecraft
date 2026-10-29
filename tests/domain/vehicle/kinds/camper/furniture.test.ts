@@ -3,6 +3,7 @@ import {
   CAMPER_FURNITURE,
   DECOR_SPOTS,
   type LocalCell,
+  SLEEP_BLOCKS,
   STORAGE_DOORS,
 } from "../../../../../src/domain/vehicle/kinds/camper/furniture";
 
@@ -72,8 +73,36 @@ it("lays the bed block in the two cells under the model's bed (ADR 0092)", () =>
       ],
       slots: [],
       block: { type: "bed" },
+      spawn: { x: 0, z: -2, layer: 1 },
     },
   ]);
+});
+
+it("lays the bunk block in the two cells over the bed, with its own aisle spawn one cell back (ADR 0182)", () => {
+  expect(CAMPER_FURNITURE.filter((row) => row.kind === "bunk")).toEqual([
+    {
+      kind: "bunk",
+      cells: [
+        { x: 1, z: -2, layer: 2 },
+        { x: 1, z: -3, layer: 2 },
+      ],
+      slots: [],
+      block: { type: "bunk" },
+      spawn: { x: 0, z: -3, layer: 1 },
+    },
+  ]);
+});
+
+it("gives every sleepable row its own spawn cell in the aisle, apart from the other beds' (ADR 0182)", () => {
+  const sleepers = CAMPER_FURNITURE.filter(
+    (row) => row.block !== undefined && SLEEP_BLOCKS.has(row.block.type),
+  );
+  expect(sleepers.map((row) => row.kind)).toEqual(["bed", "bunk"]);
+  const spawns = sleepers.map((row) => row.spawn);
+  for (const spawn of spawns) expect(spawn?.x).toBe(0);
+  expect(new Set(spawns.map((s) => (s ? key(s) : undefined))).size).toBe(
+    sleepers.length,
+  );
 });
 
 it("gives the shower-toilet its own block in both of its cells (ADR 0098)", () => {
@@ -85,12 +114,13 @@ it("gives the shower-toilet its own block in both of its cells (ADR 0098)", () =
   ]);
 });
 
-it("lists the ten furniture kinds once each, in order, the storage last: the wall cabinet, then the fridge (ADR 0114, 0121, 0123)", () => {
+it("lists the eleven furniture kinds once each, in order, the storage last: the wall cabinet, then the fridge (ADR 0114, 0121, 0123)", () => {
   expect(CAMPER_FURNITURE.map((f) => f.kind)).toEqual([
     "dashboard",
     "table",
     "dinette_seat",
     "bed",
+    "bunk",
     "stove",
     "counter",
     "ceiling_hook",
@@ -199,7 +229,7 @@ it("keeps every furniture cell inside the interior, apart from the others, and o
   const cells = new Set<string>();
   for (const row of CAMPER_FURNITURE) {
     expect(row.block !== undefined).toBe(
-      row.kind === "bed" || row.kind === "shower_toilet",
+      row.kind === "bed" || row.kind === "bunk" || row.kind === "shower_toilet",
     );
     for (const cell of row.cells) {
       expect(cell.x).toBeGreaterThanOrEqual(-1);

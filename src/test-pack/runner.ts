@@ -57,6 +57,7 @@ import {
 import {
   camperAccel,
   camperBumper,
+  camperBunkCells,
   camperCabinet,
   camperDecor,
   camperDecorPairs,
@@ -169,6 +170,7 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
     ["camper_land", 140, () => camperLand(a)],
     ["camper_dive", 45, () => camperDive(a)],
     ["camper_park", 30, () => camperPark(a)],
+    ["camper_bunk_cells", 30, () => camperBunkCells(a)],
     ["camper_park_blocked", 30, () => camperParkBlocked(a)],
     ["camper_park_snow", 30, () => camperParkSnow(a)],
     ["camper_park_path", 30, () => camperParkPath(a)],

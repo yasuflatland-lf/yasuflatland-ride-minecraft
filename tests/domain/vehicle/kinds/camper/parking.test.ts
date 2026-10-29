@@ -300,7 +300,7 @@ it("departs on the stick press, undocks before properties, and boards deck rider
 
 it("refuses cargo only on each press and requires a new press after cargo is cleared", () => {
   fc.assert(
-    fc.property(fc.integer({ min: 0, max: 46 }), (index) => {
+    fc.property(fc.integer({ min: 0, max: 44 }), (index) => {
       const f = fixture();
       f.park();
       const cell = defined(cargoCells(f.pose)[index], "cargo cell");
@@ -441,7 +441,7 @@ it("checks both exit cells before parking and leaves overflow standing when the 
           ...insidePlates(f.pose),
           ...exitCells(f.pose),
         ]);
-        expect(f.blockTypes.mock.calls.at(-1)?.[0]).toHaveLength(63);
+        expect(f.blockTypes.mock.calls.at(-1)?.[0]).toHaveLength(61);
       },
     ),
   );
@@ -609,7 +609,7 @@ it("departs past its own decor blocks and refuses any other block in a slot cell
     ...insidePlates(f.pose),
     ...exitCells(f.pose),
   ]);
-  expect(f.blockTypes.mock.calls.at(-1)?.[0]).toHaveLength(63);
+  expect(f.blockTypes.mock.calls.at(-1)?.[0]).toHaveLength(61);
 
   const departs = (withDecor: boolean, typeId: string) => {
     const g = parked(withDecor);

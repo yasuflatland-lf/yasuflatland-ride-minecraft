@@ -185,6 +185,16 @@ describe("camper model assets (ADR 0067)", () => {
     expect(top).toBeLessThan(38);
     // BUNK_TOP in tools/gen_camper.py, which the bunk block of 16/16 sizes its box from.
     expect(top).toBe(37.5);
+    // The bunk block's selection box is as high as the bunk above its cell bottom (ADR 0182).
+    const block = JSON.parse(
+      readFileSync(
+        "packs/yasu_ride_bp/blocks/yasu_ride/camper_bunk.block.json",
+        "utf8",
+      ),
+    );
+    expect(
+      block["minecraft:block"].components["minecraft:selection_box"].size[1],
+    ).toBe(top - 32);
   });
 
   it("puts wheel pivots at the axle centers and hover locators directly below after mirroring", () => {

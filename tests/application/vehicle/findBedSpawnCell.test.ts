@@ -1,11 +1,14 @@
 import { expect, it, vi } from "vitest";
 import { FindBedSpawnCell } from "../../../src/application/vehicle/findBedSpawnCell";
 import { asVehicleId } from "../../../src/domain/shared/ids";
-import { roomCells } from "../../../src/domain/vehicle/kinds/camper/room";
+import {
+  localCellAt,
+  roomCells,
+} from "../../../src/domain/vehicle/kinds/camper/room";
 import { defined } from "../../support/defined";
 import { parkedCamper } from "./fakes";
 
-it("returns the parked camper's bed cell and ignores unknown vehicles and other cells (ADR 0182)", () => {
+it("returns the parked camper's aisle spawn cell and ignores unknown vehicles and other cells (ADR 0182)", () => {
   const { car, pose, repo } = parkedCamper();
   const use = new FindBedSpawnCell(repo);
   const { x, y, z } = defined(
@@ -13,12 +16,14 @@ it("returns the parked camper's bed cell and ignores unknown vehicles and other 
     "bed cell",
   );
   const cell = { x, y, z };
-  expect(use.execute({ vehicleId: car.id, cell })).toEqual(cell);
+  expect(use.execute({ vehicleId: car.id, cell })).toEqual(
+    localCellAt(pose, { x: 0, z: -2, layer: 1 }),
+  );
   expect(
     use.execute({ vehicleId: asVehicleId("unknown"), cell }),
   ).toBeUndefined();
   expect(
-    use.execute({ vehicleId: car.id, cell: { ...cell, y: y + 1 } }),
+    use.execute({ vehicleId: car.id, cell: { ...cell, y: y + 3 } }),
   ).toBeUndefined();
 });
 

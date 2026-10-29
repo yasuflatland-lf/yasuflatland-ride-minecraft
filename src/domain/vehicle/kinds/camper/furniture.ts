@@ -13,6 +13,7 @@ type FurnitureKind =
   | "table"
   | "dinette_seat"
   | "bed"
+  | "bunk"
   | "fridge"
   | "stove"
   | "counter"
@@ -119,11 +120,13 @@ export const DECOR_SPOTS: readonly DecorSpot[] = [
 /** A room block a piece of furniture fills its cells with; roomCells turns a faced one toward the aisle (ADR 0092, 0098). */
 export type FurnitureBlock =
   | { readonly type: "bed" }
+  | { readonly type: "bunk" }
   | { readonly type: "showerToilet" };
 
 /** Furniture block types a press sleeps on (ADR 0092, 0182). */
 export const SLEEP_BLOCKS: ReadonlySet<FurnitureBlock["type"]> = new Set([
   "bed",
+  "bunk",
 ]);
 
 interface Furniture {
@@ -383,6 +386,19 @@ export const CAMPER_FURNITURE: readonly Furniture[] = [
     ],
     slots: [],
     block: { type: "bed" },
+    spawn: { x: 0, z: -2, layer: 1 },
+  },
+  // The upper bunk over the bed: its own sleepable block with no collision, and its own aisle
+  // spawn cell one further back (ADR 0182).
+  {
+    kind: "bunk",
+    cells: [
+      { x: 1, z: -2, layer: 2 },
+      { x: 1, z: -3, layer: 2 },
+    ],
+    slots: [],
+    block: { type: "bunk" },
+    spawn: { x: 0, z: -3, layer: 1 },
   },
   // The sink is in front of the stove, as on the real range (ADR 0100). The stove's one burner
   // is in the middle of its cell; height 15 stands the item on the burner grate, whose prongs

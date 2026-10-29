@@ -14,6 +14,7 @@ import {
 } from "../../domain/vehicle/kinds/camper/furniture";
 import { CAMPER_PROFILE } from "../../domain/vehicle/kinds/camper/profile";
 import {
+  bedSpawnCell,
   cargoCells,
   compartmentCells,
   deckSeats,
@@ -30,6 +31,7 @@ import { LIGHT_BLOCK } from "../../infrastructure/shared/lightBlocks";
 import { DOCK_RECHECK_TICKS } from "../../infrastructure/vehicle/bedrock/dockBlocks";
 import {
   CAMPER_BED_BLOCK,
+  CAMPER_BUNK_BLOCK,
   CAMPER_CABINET_DOOR_BLOCK,
   CAMPER_CEILING_BLOCK,
   CAMPER_DOOR_BLOCK,
@@ -105,7 +107,7 @@ const CAMPER_RELAY_TICKS = DOCK_RECHECK_TICKS * 2;
 // The room blocks a parked camper lays with its doors shut: the wall cabinet's two cells are
 // cabinet blocks, not room blocks, since ADR 0114, and the fridge's are its compartment blocks
 // in cells the shelf left to its pair blocks (ADR 0123).
-const ROOM_CELL_COUNT = 105;
+const ROOM_CELL_COUNT = 107;
 
 const ROOM_BLOCK: Readonly<
   Record<
@@ -119,6 +121,7 @@ const ROOM_BLOCK: Readonly<
   wall: CAMPER_WALL_BLOCK,
   door: CAMPER_DOOR_BLOCK,
   bed: CAMPER_BED_BLOCK,
+  bunk: CAMPER_BUNK_BLOCK,
   furniture: CAMPER_FURNITURE_BLOCK,
   showerToilet: CAMPER_SHOWER_TOILET_BLOCK,
   cabinetDoor: CAMPER_CABINET_DOOR_BLOCK,
@@ -261,6 +264,37 @@ export function camperPark(a: Arena): Promise<Outcome> {
     await wait(DOCK.ticks + 10);
     const laid = laidRoomCells(a, car);
     return { pass: laid === ROOM_CELL_COUNT, detail: `laid=${laid}` };
+  });
+}
+
+// Pressing a level sets the spawn point to its own aisle cell on the floor, never a room
+// block; sleeping itself needs a player, so it stays a manual row (ADR 0133, 0182).
+export function camperBunkCells(a: Arena): Promise<Outcome> {
+  return atParkSpot(a, async (car) => {
+    await wait(DOCK.ticks + 10);
+    const pose = carPose(car);
+    const typeAt = (c: { x: number; y: number; z: number }) =>
+      a.dim.getBlock(c)?.typeId;
+    const levels = [
+      { layer: 1, block: CAMPER_BED_BLOCK, aisleZ: -2 },
+      { layer: 2, block: CAMPER_BUNK_BLOCK, aisleZ: -3 },
+    ];
+    const ok = levels.every(({ layer, block, aisleZ }) =>
+      [-2, -3].every((z) => {
+        const cell = localCellAt(pose, { x: 1, z, layer });
+        const spawn = bedSpawnCell(pose, cell);
+        const aisle = localCellAt(pose, { x: 0, z: aisleZ, layer: 1 });
+        return (
+          typeAt(cell) === block &&
+          spawn !== undefined &&
+          spawn.x === aisle.x &&
+          spawn.y === aisle.y &&
+          spawn.z === aisle.z &&
+          typeAt(spawn) === AIR_BLOCK
+        );
+      }),
+    );
+    return { pass: ok, detail: `ok=${ok}` };
   });
 }
 
