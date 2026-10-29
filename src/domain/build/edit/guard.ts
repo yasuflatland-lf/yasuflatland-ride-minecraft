@@ -1,5 +1,5 @@
 // Blocks the build tools never edit or copy (ADR 0137, 0178).
-import { KEPT_BLOCKS } from "../../shared/keptBlocks";
+import { PLACE_KEPT_BLOCKS } from "../../shared/keptBlocks";
 import type { BlockState } from "../blockState";
 
 const WOODS = [
@@ -33,7 +33,7 @@ const SIGNS: readonly string[] = [
   ...WOODS.map((wood) => `minecraft:${wood}_hanging_sign`),
 ];
 
-/** Data-holding blocks the build tools never edit or copy, on top of KEPT_BLOCKS (ADR 0137, 0178). */
+/** Data-holding blocks the build tools never edit or copy, on top of PLACE_KEPT_BLOCKS (ADR 0137, 0178). */
 export const BUILD_KEPT_BLOCKS: readonly string[] = [
   ...SIGNS,
   "minecraft:mob_spawner",
@@ -46,18 +46,8 @@ export const BUILD_KEPT_BLOCKS: readonly string[] = [
   "minecraft:jigsaw",
 ];
 
-// KEPT_BLOCKS keeps air and fluids for the blade cut, but a fill must place
-// into air and over water, so the build tools leave them editable.
-const EDITABLE = new Set([
-  "minecraft:air",
-  "minecraft:water",
-  "minecraft:flowing_water",
-  "minecraft:lava",
-  "minecraft:flowing_lava",
-]);
-
-const KEPT = new Set([...KEPT_BLOCKS, ...BUILD_KEPT_BLOCKS]);
+const KEPT = new Set([...PLACE_KEPT_BLOCKS, ...BUILD_KEPT_BLOCKS]);
 
 export function isKeptState(state: BlockState): boolean {
-  return !EDITABLE.has(state.typeId) && KEPT.has(state.typeId);
+  return KEPT.has(state.typeId);
 }
