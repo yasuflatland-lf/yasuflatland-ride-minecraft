@@ -19,6 +19,7 @@ const END_X = 112;
 const WORLD_MIN_Y = -64;
 const LANE = { minX: 86, maxX: 116, minZ: 74, maxZ: 90 } as const;
 const NORMAL_HALF = BULLDOZER_SPEC.blade.halfWidth;
+const HOLE_Z = [81, 83] as const;
 
 /** Sends the held item through the same derivation as a real player (ADR 0181). */
 function setHeldItem(car: Entity, typeId: string | undefined): void {
@@ -45,8 +46,9 @@ function cleanLane(a: Arena): void {
   fillBox(a, x, [Math.max(WORLD_MIN_Y, a.gy - 8), a.gy - 1], z, "stone");
 }
 
-const typeAt = (a: Arena, x: number, y: number, z: number) =>
-  a.dim.getBlock({ x, y, z })?.typeId;
+function typeAt(a: Arena, x: number, y: number, z: number): string | undefined {
+  return a.dim.getBlock({ x, y, z })?.typeId;
+}
 
 function planksIn(
   a: Arena,
@@ -106,17 +108,17 @@ async function onLane(
   }
 }
 
-const rowOf = (a: Arena) => a.gy - 1;
+function rowOf(a: Arena): number {
+  return a.gy - 1;
+}
 
 async function paveFlatCase(a: Arena, wide: boolean): Promise<Outcome> {
   return onLane(a, () =>
     paveRun(a, { wide }, () => {
       const row = rowOf(a);
       const centre = planksIn(a, [93, 98], row, [81, 84]);
-      const outside = planksIn(a, [93, 98], row, [
-        Math.floor(CENTER_Z + NORMAL_HALF) + 2,
-        Math.floor(CENTER_Z + NORMAL_HALF) + 2,
-      ]);
+      const outsideZ = Math.floor(CENTER_Z + NORMAL_HALF) + 2;
+      const outside = planksIn(a, [93, 98], row, [outsideZ, outsideZ]);
       const above = planksIn(a, [93, 98], a.gy, [78, 87]);
       const ok =
         centre.planks === centre.total &&
@@ -130,23 +132,20 @@ async function paveFlatCase(a: Arena, wide: boolean): Promise<Outcome> {
   );
 }
 
-export const bulldozerPaveFlat = (a: Arena): Promise<Outcome> =>
-  paveFlatCase(a, false);
+export function bulldozerPaveFlat(a: Arena): Promise<Outcome> {
+  return paveFlatCase(a, false);
+}
 
-export const bulldozerPaveWide = (a: Arena): Promise<Outcome> =>
-  paveFlatCase(a, true);
+export function bulldozerPaveWide(a: Arena): Promise<Outcome> {
+  return paveFlatCase(a, true);
+}
 
 export function bulldozerPaveHole(a: Arena): Promise<Outcome> {
-  return onLane(a, async () => {
-    fillBox(
-      a,
-      [100, 100],
-      [rowOf(a), rowOf(a)],
-      [CENTER_Z - 1, CENTER_Z + 1].map(Math.floor) as [number, number],
-      "air",
-    );
+  return onLane(a, () => {
+    const row = rowOf(a);
+    fillBox(a, [100, 100], [row, row], HOLE_Z, "air");
     return paveRun(a, {}, () => {
-      const hole = planksIn(a, [100, 100], rowOf(a), [81, 83]);
+      const hole = planksIn(a, [100, 100], row, HOLE_Z);
       return {
         pass: hole.planks === hole.total,
         detail: `hole=${hole.planks}/${hole.total}`,
@@ -156,16 +155,11 @@ export function bulldozerPaveHole(a: Arena): Promise<Outcome> {
 }
 
 export function bulldozerPaveStepDown(a: Arena): Promise<Outcome> {
-  return onLane(a, async () => {
-    fillBox(
-      a,
-      [100, LANE.maxX],
-      [rowOf(a), rowOf(a)],
-      [LANE.minZ, LANE.maxZ],
-      "air",
-    );
+  return onLane(a, () => {
+    const row = rowOf(a);
+    fillBox(a, [100, LANE.maxX], [row, row], [LANE.minZ, LANE.maxZ], "air");
     return paveRun(a, { until: 114 }, () => {
-      const lower = planksIn(a, [106, 108], rowOf(a) - 1, [81, 84]);
+      const lower = planksIn(a, [106, 108], row - 1, [81, 84]);
       return {
         pass: lower.planks === lower.total,
         detail: `lower=${lower.planks}/${lower.total}`,
@@ -175,11 +169,12 @@ export function bulldozerPaveStepDown(a: Arena): Promise<Outcome> {
 }
 
 export function bulldozerPaveCliff(a: Arena): Promise<Outcome> {
-  return onLane(a, async () => {
-    fillBox(a, [92, 110], [rowOf(a) - 2, rowOf(a)], [86, 90], "air");
+  return onLane(a, () => {
+    const row = rowOf(a);
+    fillBox(a, [92, 110], [row - 2, row], [86, 90], "air");
     return paveRun(a, {}, () => {
       let found = 0;
-      for (let y = rowOf(a) - 2; y <= rowOf(a); y++)
+      for (let y = row - 2; y <= row; y++)
         found += planksIn(a, [92, 110], y, [86, 90]).planks;
       return { pass: found === 0, detail: `planksInCliff=${found}` };
     });
@@ -187,7 +182,7 @@ export function bulldozerPaveCliff(a: Arena): Promise<Outcome> {
 }
 
 export function bulldozerPaveWater(a: Arena): Promise<Outcome> {
-  return onLane(a, async () => {
+  return onLane(a, () => {
     const row = rowOf(a);
     fillBox(a, [96, 104], [row - 2, row], [76, 88], "water");
     fillBox(a, [106, 110], [row - 1, row], [76, 88], "air");
@@ -228,14 +223,10 @@ export function bulldozerPaveWater(a: Arena): Promise<Outcome> {
 }
 
 export function bulldozerPaveFlight(a: Arena): Promise<Outcome> {
-  return onLane(a, async () => {
-    fillBox(
-      a,
-      [100, 104],
-      [Math.max(WORLD_MIN_Y, rowOf(a) - 5), rowOf(a)],
-      [LANE.minZ, LANE.maxZ],
-      "air",
-    );
+  return onLane(a, () => {
+    const row = rowOf(a);
+    const ravineBottom = Math.max(WORLD_MIN_Y, row - 5);
+    fillBox(a, [100, 104], [ravineBottom, row], [LANE.minZ, LANE.maxZ], "air");
     return withBulldozer(a, START_X, CENTER_Z, -90, async (car) => {
       await wait(2);
       await doubleTap(car);
@@ -254,7 +245,7 @@ export function bulldozerPaveFlight(a: Arena): Promise<Outcome> {
       const y = car.location.y;
       let over = 0;
       let high = 0;
-      for (let h = Math.max(WORLD_MIN_Y, rowOf(a) - 5); h <= a.gy + 12; h++) {
+      for (let h = ravineBottom; h <= a.gy + 12; h++) {
         const n = planksIn(a, [100, 104], h, [81, 84]).planks;
         over += n;
         if (h >= Math.floor(y)) high += n;
@@ -272,10 +263,11 @@ export function bulldozerPaveFlight(a: Arena): Promise<Outcome> {
 }
 
 export function bulldozerPaveKept(a: Arena): Promise<Outcome> {
-  return onLane(a, async () => {
-    a.dim.runCommand(`setblock 96 ${rowOf(a)} 82 chest`);
+  return onLane(a, () => {
+    const row = rowOf(a);
+    a.dim.runCommand(`setblock 96 ${row} 82 chest`);
     return paveRun(a, {}, () => {
-      const type = typeAt(a, 96, rowOf(a), 82);
+      const type = typeAt(a, 96, row, 82);
       return {
         pass: type === "minecraft:chest",
         detail: `block=${String(type)}`,

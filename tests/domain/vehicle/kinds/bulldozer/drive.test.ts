@@ -1062,7 +1062,9 @@ function expectedPave(d: BulldozerDrive, ctx: TickContext, wide: boolean) {
         y: cell.y + 0.5 - (ctx.location?.y ?? 0),
         z: cell.z + 0.5 - (ctx.location?.z ?? 0),
       };
-      return ctx.solidAt(o) ? "solid" : ctx.waterAt(o) ? "liquid" : "open";
+      if (ctx.solidAt(o)) return "solid";
+      if (ctx.waterAt(o)) return "liquid";
+      return "open";
     },
   );
 }
@@ -1117,21 +1119,19 @@ it("paves the same with the blade raised or lowered, at the wide width", () => {
     expect(run(0).some((p) => p !== undefined)).toBe(true);
   }
 });
-it("lays nothing with no held block or in the gated forms", () => {
-  const d = new BulldozerDrive(0, { form: "car", road_paver: true });
-  let b: Body = { pos: { x: 0.5, z: 0.5 }, vel: { x: 0, z: 0 } };
-  for (let tick = 0; tick < 20; tick++) {
-    const ctx = { ...paveContext("car", tick, b), heldBlock: undefined };
-    const out = d.step(FORWARD, ctx);
-    expect(out.pave).toBeUndefined();
-    b = engineStep(b, out.impulse, { mu: 0.69 }).body;
+it("lays nothing with no held block or off the ground", () => {
+  function expectNoPave(override: Partial<TickContext>): void {
+    const d = new BulldozerDrive(0, { form: "car", road_paver: true });
+    let b: Body = { pos: { x: 0.5, z: 0.5 }, vel: { x: 0, z: 0 } };
+    for (let tick = 0; tick < 20; tick++) {
+      const out = d.step(FORWARD, {
+        ...paveContext("car", tick, b),
+        ...override,
+      });
+      expect(out.pave).toBeUndefined();
+      b = engineStep(b, out.impulse, { mu: 0.69 }).body;
+    }
   }
-  const air = new BulldozerDrive(0, { form: "car", road_paver: true });
-  b = { pos: { x: 0.5, z: 0.5 }, vel: { x: 0, z: 0 } };
-  for (let tick = 0; tick < 20; tick++) {
-    const ctx = { ...paveContext("car", tick, b), onGround: false };
-    const out = air.step(FORWARD, ctx);
-    expect(out.pave).toBeUndefined();
-    b = engineStep(b, out.impulse, { mu: 0.69 }).body;
-  }
+  expectNoPave({ heldBlock: undefined });
+  expectNoPave({ onGround: false });
 });
