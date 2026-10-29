@@ -467,6 +467,7 @@ Setup: use a Vibrant Visuals device at night, then repeat the legacy checks with
 | L7 | Join on a device without Vibrant Visuals support: vehicles and blocks look as before the change. | [ ] | [ ] |
 | L8 | Fly, bank, and open a door with lights on: the glow follows the parts. | [ ] | [ ] |
 | L9 | Switch the Gas Lantern on and off: with Vibrant Visuals on, the flame glows, glass stays see-through, and metal reflects; with it off, the flame is full-bright only while on. | unverified | unverified |
+| L10 | Switch the camper headlights on at night in Vibrant Visuals: the roof clearance lamps, the four rear roof lamps, and both round tail lamps glow only while on; the side marker lamps and the rear turn signals do not. | [ ] | [ ] |
 
 ## Sports boat mirror (Vibrant Visuals)
 

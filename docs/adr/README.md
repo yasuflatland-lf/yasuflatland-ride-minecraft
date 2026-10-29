@@ -23,7 +23,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0017](0017-repaint-vehicles-with-dye.md) | Repaint vehicles with dye | Superseded by 0031 |
 | [0018](0018-sideways-stick-creeps-forward.md) | Treat a sideways stick as a slow forward turn | Extended by 0074 and 0089 |
 | [0019](0019-passengers-move-up-to-the-driver-seat.md) | Passengers move up to the driver seat | Superseded in part by 0120 (Proposed); amended by 0126; superseded in part by 0128 |
-| [0020](0020-headlights.md) | Headlights that light up the road | Extended by 0115, 0136 (Proposed), and 0139 (Proposed); extended by 0147 |
+| [0020](0020-headlights.md) | Headlights that light up the road | Extended by 0115, 0136 (Proposed), and 0139 (Proposed); extended by 0147 and 0184 |
 | [0021](0021-flight-mode.md) | Flight mode: toggle with a double tap, climb with the view pitch, and switch gravity with a component group | Superseded in part by 0032, 0034, 0039, and 0078 |
 | [0022](0022-fold-wheels-and-glow-in-flight.md) | Fold the wheels and light their undersides in flight | Superseded in part by 0033 and 0043 |
 | [0023](0023-starter-vehicle-on-first-join.md) | Give each player a vehicle item on their first join | Extended by 0136 (Proposed) |
@@ -148,7 +148,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0144](0144-split-camping-gear-into-inside-and-outside-groups.md) | Split camping gear into inside and outside groups | Proposed; Bulldozer Switches group superseded in part by 0178 (Proposed) |
 | [0145](0145-move-camper-side-lamp-and-door-handle.md) | Move the camper's side lamp and door handle | Proposed |
 | [0146](0146-wire-mesh-bulldozer-steps-and-a-camper-vent-cover.md) | Wire mesh bulldozer steps and a camper vent cover | Proposed; superseded in part by 0157 (Proposed) |
-| [0147](0147-light-the-lamps-with-a-pbr-emissive-layer.md) | Light the lamps with a PBR emissive layer | Accepted; extended by 0159 (Proposed) and 0163 (Proposed) |
+| [0147](0147-light-the-lamps-with-a-pbr-emissive-layer.md) | Light the lamps with a PBR emissive layer | Accepted; extended by 0159 (Proposed) and 0163 (Proposed); extended by 0184 |
 | [0148](0148-smooth-bulldozer-side-bevel.md) | Smooth the bulldozer side bevel | Proposed; extended by 0151 (Proposed) |
 | [0149](0149-route-the-parked-camper-wheel-seat-to-headlights.md) | Route the parked camper's wheel seat to the headlights | Accepted |
 | [0150](0150-run-the-sports-boat-on-lava.md) | Run the sports boat on lava | Proposed |
@@ -184,6 +184,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0181](0181-a-road-paver-on-the-bulldozer.md) | Lay a road behind the bulldozer from the driver's held block | Proposed |
 | [0182](0182-a-bunk-bed-in-the-parked-camper.md) | A bunk bed in the parked camper | Proposed |
 | [0183](0183-mark-a-lone-selection-corner.md) | Mark a lone selection corner | Proposed |
+| [0184](0184-light-the-camper-roof-and-tail-lamps.md) | Light the camper's roof and tail lamps with the headlights | Accepted |
 | [0185](0185-put-things-on-the-camp-table-instead-of-sitting-at-it.md) | Put things on the camp table instead of sitting at it | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
