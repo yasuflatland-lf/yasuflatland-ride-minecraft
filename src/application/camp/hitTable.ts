@@ -19,7 +19,7 @@ export class HitTable {
     tick: number;
     playerId: PlayerId;
   }): boolean {
-    if (this.world.ovensOnTable(cmd.tableId) > 0) {
+    if (this.world.itemsOnTable(cmd.tableId) > 0) {
       this.world.showOvenOnTop(cmd.playerId);
       return false;
     }

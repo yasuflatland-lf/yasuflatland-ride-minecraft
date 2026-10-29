@@ -1,29 +1,34 @@
 import {
   type DutchOvenId,
-  decodeHost,
-  encodeHost,
   hostSpotPoint,
   isSimmering,
-  nearestFreeSpot,
-  type OvenHost,
 } from "../../domain/camp/dutchOven";
 import { asFirePitId, type FirePitId } from "../../domain/camp/firePit";
+import { decodeHost, encodeHost, type Host } from "../../domain/camp/hosted";
 import {
+  DUTCH_OVEN_FOOTPRINT_PX,
   DUTCH_OVEN_SPEC,
   FIRE_PIT_SPOTS,
   FIRE_PIT_TOP_PX,
-  TABLE_SPOTS,
-  TABLE_TOP_PX,
 } from "../../domain/camp/spec";
+import type { LocalPoint } from "../../domain/camp/tabletop";
 import { HitCounters } from "../../domain/shared/hitCounter";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
 import { canUseBlockTop, hasClearance, placeOnGround } from "./groundPlacement";
+import { placeOnTableTop, type TableTopOutcome } from "./placeOnTableTop";
 import type { DutchOvenWorld } from "./ports/dutchOven";
+import type { HostedItemKind } from "./ports/tableTop";
 
 const RULE = {
   hits: DUTCH_OVEN_SPEC.hitsToTakeBack,
   resetTicks: DUTCH_OVEN_SPEC.hitResetTicks,
+};
+
+const ON_TABLE: HostedItemKind = {
+  id: "dutch_oven",
+  footprint: DUTCH_OVEN_FOOTPRINT_PX,
+  clearance: DUTCH_OVEN_SPEC.clearance,
 };
 
 export class DutchOvenActions {
@@ -81,40 +86,9 @@ export class DutchOvenActions {
     player?: PlayerId;
     table: string;
     slot: number;
-    aim?: { x: number; z: number };
-  }): boolean {
-    const table = this.world.table(cmd.table);
-    if (!table) return false;
-    const index = nearestFreeSpot(
-      TABLE_SPOTS,
-      this.world.takenTableSpots(cmd.table),
-      cmd.aim ?? { x: 0, z: 0 },
-    );
-    if (index === undefined) return false;
-    const spot = TABLE_SPOTS[index];
-    if (!spot) return false;
-    const at = hostSpotPoint(table, spot, TABLE_TOP_PX);
-    const cell = {
-      x: Math.floor(at.x),
-      y: Math.floor(table.at.y),
-      z: Math.floor(at.z),
-    };
-    if (
-      !hasClearance(
-        this.world,
-        table.dimension,
-        cell,
-        DUTCH_OVEN_SPEC.clearance,
-      )
-    )
-      return false;
-    if (!this.takeItem(cmd.player, cmd.slot)) return false;
-    this.spawnHosted(table, at, {
-      kind: "camp_table",
-      id: cmd.table,
-      spot: index,
-    });
-    return true;
+    aim?: LocalPoint;
+  }): TableTopOutcome {
+    return placeOnTableTop(this.world, ON_TABLE, cmd);
   }
 
   /** A missing player is the server test hook, which pays nothing. */
@@ -129,7 +103,7 @@ export class DutchOvenActions {
   private spawnHosted(
     hostEntity: { dimension: DimensionId; yaw: number },
     at: Vec3,
-    host: OvenHost,
+    host: Host,
   ): void {
     const oven = this.world.spawnDutchOven(
       hostEntity.dimension,

@@ -6,17 +6,10 @@ import {
   world,
 } from "@minecraft/server";
 import type { DutchOvenActions } from "../../../../application/camp/dutchOven";
-import {
-  aimOnPlane,
-  asDutchOvenId,
-  hostLocalPx,
-} from "../../../../domain/camp/dutchOven";
+import { asDutchOvenId } from "../../../../domain/camp/dutchOven";
 import { asFirePitId } from "../../../../domain/camp/firePit";
-import {
-  DUTCH_OVEN_SPEC,
-  TABLE_SPOTS,
-  TABLE_TOP_PX,
-} from "../../../../domain/camp/spec";
+import { DUTCH_OVEN_SPEC, TABLE_SPOTS } from "../../../../domain/camp/spec";
+import type { LocalPoint } from "../../../../domain/camp/tabletop";
 import {
   asDimensionId,
   asPlayerId,
@@ -34,6 +27,27 @@ import {
   TEST_DUTCH_OVEN_ON_TABLE_EVENT,
   TEST_DUTCH_OVEN_SIMMER_EVENT,
 } from "../../identifiers";
+import { showTableTopRefusal, tableTopAim } from "../tableTopAim";
+
+const PIXELS = /^-?[0-9]+(?:\.[0-9]+)?$/;
+
+/** Reads `<table> <0|1>` as an old spot, or `<table> <x> <z>` as local pixels. */
+function testTableRequest(
+  message: string,
+): { table: string; aim: LocalPoint } | undefined {
+  const [table, ...rest] = message.trim().split(/\s+/);
+  if (!table) return undefined;
+  if (rest.length === 1) {
+    const spot = /^[01]$/.test(rest[0] ?? "")
+      ? TABLE_SPOTS[Number(rest[0])]
+      : undefined;
+    return spot ? { table, aim: spot } : undefined;
+  }
+  const [x, z] = rest;
+  if (rest.length !== 2 || !PIXELS.test(x ?? "") || !PIXELS.test(z ?? ""))
+    return undefined;
+  return { table, aim: { x: Number(x), z: Number(z) } };
+}
 
 export function registerDutchOven(actions: DutchOvenActions): void {
   const placements = new TickScopedSet<PlayerId>();
@@ -71,17 +85,14 @@ export function registerDutchOven(actions: DutchOvenActions): void {
         system.run(() => actions.placeOnFirePit({ player, pit, slot }));
       } else {
         const table = ev.target.id;
-        const host = {
-          at: ev.target.location,
-          yaw: ev.target.getRotation().y,
-        };
-        const point = aimOnPlane(
-          ev.player.getHeadLocation(),
-          ev.player.getViewDirection(),
-          host.at.y + TABLE_TOP_PX / 16,
+        const aim = tableTopAim(ev.player, ev.target);
+        const placer = ev.player;
+        system.run(() =>
+          showTableTopRefusal(
+            placer,
+            actions.placeOnTable({ player, table, slot, aim }),
+          ),
         );
-        const aim = point ? hostLocalPx(host, point) : undefined;
-        system.run(() => actions.placeOnTable({ player, table, slot, aim }));
       }
       return;
     }
@@ -103,11 +114,8 @@ export function registerDutchOven(actions: DutchOvenActions): void {
   system.afterEvents.scriptEventReceive.subscribe((ev) => {
     if (ev.id === TEST_DUTCH_OVEN_ON_TABLE_EVENT) {
       if (ev.sourceType !== ScriptEventSource.Server) return;
-      const parts = ev.message.trim().split(/\s+/);
-      const [table, rawSpot] = parts;
-      if (parts.length !== 2 || !table || !/^[01]$/.test(rawSpot ?? "")) return;
-      const aim = TABLE_SPOTS[Number(rawSpot)];
-      if (aim) actions.placeOnTable({ table, slot: 0, aim });
+      const request = testTableRequest(ev.message);
+      if (request) actions.placeOnTable({ ...request, slot: 0 });
       return;
     }
     if (ev.id === TEST_DUTCH_OVEN_ON_PIT_EVENT) {

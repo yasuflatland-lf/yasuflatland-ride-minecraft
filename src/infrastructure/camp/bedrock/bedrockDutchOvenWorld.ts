@@ -1,10 +1,12 @@
 import { ItemStack, world } from "@minecraft/server";
 import type { DutchOvenWorld } from "../../../application/camp/ports/dutchOven";
+import type { HostedKindId } from "../../../application/camp/ports/tableTop";
 import {
   asDutchOvenId,
   type DutchOvenId,
 } from "../../../domain/camp/dutchOven";
 import { asFirePitId, type FirePitId } from "../../../domain/camp/firePit";
+import type { TopItem } from "../../../domain/camp/tabletop";
 import {
   asDimensionId,
   type DimensionId,
@@ -29,7 +31,7 @@ import {
   isFirePitCovered,
   setFirePitCovered,
 } from "./firePitCovered";
-import { takenTableSpots } from "./tableOvens";
+import { itemsOnTable } from "./tableItems";
 
 function dutchOven(id: DutchOvenId) {
   const entity = world.getEntity(id);
@@ -114,8 +116,19 @@ export class BedrockDutchOvenWorld implements DutchOvenWorld {
       : undefined;
   }
 
-  takenTableSpots(id: string): ReadonlySet<number> {
-    return takenTableSpots(id);
+  itemsOnTable(id: string): readonly TopItem[] {
+    return itemsOnTable(id);
+  }
+
+  spawnHostedOnTable(
+    _kind: HostedKindId,
+    dimension: DimensionId,
+    at: Vec3,
+    yaw: number,
+    host: string,
+  ): void {
+    // A table has no fire under it, so the oven never simmers there (ADR 0168).
+    this.setHost(this.spawnDutchOven(dimension, at, yaw), host, false);
   }
 
   firePit(id: FirePitId) {
