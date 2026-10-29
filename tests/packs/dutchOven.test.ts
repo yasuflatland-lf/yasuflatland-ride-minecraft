@@ -125,8 +125,8 @@ it("crafts six iron and one coal into a stackable outside item after the fire pi
       expect(text).toContain(`${key}=`);
   }
   const manifest = readJson(`${rp}/manifest.json`);
-  expect(manifest.header.version).toEqual([0, 1, 193]);
-  expect(manifest.modules[0].version).toEqual([0, 1, 193]);
+  expect(manifest.header.version).toEqual([0, 1, 195]);
+  expect(manifest.modules[0].version).toEqual([0, 1, 195]);
   const dependency = readJson(`${bp}/manifest.json`).dependencies.find(
     (d: { uuid: string }) => d.uuid === manifest.header.uuid,
   );

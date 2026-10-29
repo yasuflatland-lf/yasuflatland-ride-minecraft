@@ -68,7 +68,7 @@ describe("Blade Up/Down switch (ADR 0138)", () => {
       );
     },
   );
-  it("is the last item of the Building Tools group, which comes after the camping gear and equipment groups", () => {
+  it("precedes Wide Blade in the Building Tools group, which comes after the camping gear and equipment groups", () => {
     const groups = read(
       "packs/yasu_ride_bp/item_catalog/crafting_item_catalog.json",
     )["minecraft:crafting_items_catalog"].categories.find(
@@ -88,6 +88,7 @@ describe("Blade Up/Down switch (ADR 0138)", () => {
       "yasu_build:build_tool",
       "yasu_build:selection_wand",
       TYPE,
+      "yasu_ride:wide_blade_switch",
     ]);
   });
 });

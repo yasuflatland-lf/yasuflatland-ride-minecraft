@@ -10,7 +10,15 @@
         {
           "screen_blade_switch_down": "query.property('yasu_ride:monitor') == 1"
         },
-        { "screen_blade_switch_up": "query.property('yasu_ride:monitor') == 2" }
+        {
+          "screen_blade_switch_up": "query.property('yasu_ride:monitor') == 2"
+        },
+        {
+          "screen_wide_blade_switch_normal": "query.property('yasu_ride:monitor') == 3"
+        },
+        {
+          "screen_wide_blade_switch_wide": "query.property('yasu_ride:monitor') == 4"
+        }
       ]
     }
   }
