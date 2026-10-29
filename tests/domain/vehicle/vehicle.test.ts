@@ -851,6 +851,38 @@ it("passes the drive's cut columns through unchanged, and none when it cuts noth
   );
 });
 
+it("passes the drive's pave through unchanged, and none when it lays nothing (ADR 0181)", () => {
+  const road = { block: "minecraft:stone", cells: [{ x: 1, y: 63, z: 2 }] };
+  for (const pave of [road, undefined]) {
+    const drive: Drive = {
+      speed: 0,
+      yaw: 0,
+      resync() {},
+      onDriverMounted() {},
+      onSeatVacated: () => [],
+      step: () => ({
+        pave,
+        impulse: { x: 0, y: 0, z: 0 },
+        forward: { x: 0, z: 1 },
+        commands: [],
+        riders: { thirdPerson: false, underwater: false },
+      }),
+    };
+    const outcome = new Vehicle(asVehicleId("v"), SUV_PROFILE, drive).tick({
+      tick: 0,
+      riders: [],
+      deckSeatInputs: [],
+      velocity: { x: 0, y: 0, z: 0 },
+      onGround: true,
+      ...waterSensors(),
+      blockTypes: () => [],
+      solidAt: () => false,
+      targets: () => [],
+    });
+    expect(outcome.pave).toEqual(pave);
+  }
+});
+
 it("blanks only the occupied dock seat in the outcome", () => {
   const seats = [
     { x: 1, y: 2, z: 3 },

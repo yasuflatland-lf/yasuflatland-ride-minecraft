@@ -24,7 +24,7 @@ const KINDS = [
   "minecraft:dirt",
   ROAD,
   LAID,
-  ...PLACE_KEPT_BLOCKS.slice(0, 2),
+  ...PLACE_KEPT_BLOCKS,
 ];
 
 function fixture(
@@ -62,18 +62,27 @@ it("lays a cell if and only if no guard applies", () => {
   fc.assert(
     fc.property(
       fc.array(fc.constantFrom(...KINDS), { minLength: 1, maxLength: 8 }),
-      (kinds) => {
+      fc.option(fc.nat({ max: 7 }), { nil: undefined }),
+      (kinds, protectedIndex) => {
         const types = Object.fromEntries(
           kinds.map((k, i) => [cellKey(cellAt(i)), k]),
         );
-        const { typeAt, dimension, paver } = fixture(types);
+        const { typeAt, dimension, paver } = fixture(types, {
+          protect:
+            protectedIndex === undefined
+              ? undefined
+              : cellKey(cellAt(protectedIndex)),
+        });
         paver.pave(dimension, {
           block: ROAD,
           cells: kinds.map((_, i) => cellAt(i)),
         });
         kinds.forEach((kind, i) => {
           const guarded =
-            kind === ROAD || kind === LAID || PLACE_KEPT_BLOCKS.includes(kind);
+            kind === ROAD ||
+            kind === LAID ||
+            PLACE_KEPT_BLOCKS.includes(kind) ||
+            i === protectedIndex;
           expect(typeAt(cellAt(i))).toBe(guarded ? kind : ROAD);
         });
       },

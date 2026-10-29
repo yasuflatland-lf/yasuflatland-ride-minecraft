@@ -38,6 +38,7 @@ import {
   SEAT_FILLER_TYPE,
   VEHICLE_FAMILY,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
+import { RoadPaver } from "../../../../src/infrastructure/vehicle/bedrock/roadPaver";
 import { SeatFillers } from "../../../../src/infrastructure/vehicle/bedrock/seatFillers";
 import { VehicleTestStore } from "../../../../src/infrastructure/vehicle/testInput/vehicleTestStore";
 import { blockGrid } from "../../../support/blockGrid";
@@ -1494,6 +1495,18 @@ it("cuts a vehicle's columns in its own dimension, and nothing for a missing veh
   world.cutColumns(asVehicleId("car"), columns);
   expect(cut).toHaveBeenCalledExactlyOnceWith(dimension, columns);
   cut.mockRestore();
+});
+it("paves in a vehicle's own dimension, and nothing for a missing vehicle (ADR 0181)", () => {
+  const { world, dimension } = fixture();
+  const pave = vi
+    .spyOn(RoadPaver.prototype, "pave")
+    .mockImplementation(() => {});
+  const road = { block: "minecraft:stone", cells: [{ x: 9, y: 63, z: 9 }] };
+  world.pave(asVehicleId("missing"), road);
+  expect(pave).not.toHaveBeenCalled();
+  world.pave(asVehicleId("car"), road);
+  expect(pave).toHaveBeenCalledExactlyOnceWith(dimension, road);
+  pave.mockRestore();
 });
 it.each([false, true])(
   "returns the blade cut drop sweep result: %s",
