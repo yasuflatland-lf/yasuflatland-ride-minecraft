@@ -1,4 +1,5 @@
 import type { Paint } from "../shared/paint";
+import type { Footprint } from "./tabletop";
 
 // Every tuning value of the low chair (ADR 0122).
 export const CHAIR_SPEC = Object.freeze({
@@ -77,6 +78,25 @@ export const TABLE_SPOTS = Object.freeze([
 ] as const);
 // Must match the tabletop origin plus thickness in tools/gen_camp_table.py (ADR 0168).
 export const TABLE_TOP_PX = 12.25;
+// Must match the 30 by 12 px tabletop cube in tools/gen_camp_table.py (ADR 0185).
+export const TABLE_TOP_HALF_PX: Footprint = Object.freeze({
+  halfX: 15,
+  halfZ: 6,
+});
+/** Ovens and lanterns together, the owner's limit (ADR 0185). */
+export const TABLE_TOP_LIMIT = 4;
+// Per-axis half extents of the generated geometry, rounded up to 0.25 px: the
+// oven reaches 5.61 px on x and 4.83 px on z, the lantern 3.70 and 3.08 px. An
+// item on a table spawns at the table's yaw, so its model axes are the table's
+// axes (ADR 0185).
+export const DUTCH_OVEN_FOOTPRINT_PX: Footprint = Object.freeze({
+  halfX: 5.75,
+  halfZ: 5,
+});
+export const GAS_LANTERN_FOOTPRINT_PX: Footprint = Object.freeze({
+  halfX: 3.75,
+  halfZ: 3.25,
+});
 
 export const GAS_LANTERN_SPEC = Object.freeze({
   /** Matches the tent lantern's full-bright light (ADR 0173). */
@@ -89,6 +109,11 @@ export const GAS_LANTERN_SPEC = Object.freeze({
   cellRecheckTicks: 1,
   /** One air cell fits the 11.3 px lantern (ADR 0173). */
   clearance: 1,
+  /**
+   * Counted from the table's own cell: the lantern stands on the 12.25 px top,
+   * so its 11.3 px body and its light cell reach the cell above (ADR 0185).
+   */
+  tableClearance: 2,
   /** The item's yaw snaps to this many degrees. */
   yawStep: 90,
   /** Radius in blocks also finds lanterns settled onto partial blocks. */

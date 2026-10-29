@@ -35,6 +35,8 @@ export function recordMessages(feedback: BuildFeedback): {
         latest.set(id, { message, count });
         feedback.showMessage(id, message, count);
       },
+      drawCorner: (id, dimension, cell) =>
+        feedback.drawCorner(id, dimension, cell),
       drawOutline: (id, dimension, box, style) =>
         feedback.drawOutline(id, dimension, box, style),
     },

@@ -16,6 +16,12 @@ import {
   bladeCutKeptIds,
 } from "./scenarios/bladeCut";
 import {
+  buildCornerMarkerNone,
+  buildCornerMarkerPair,
+  buildCornerMarkerPos1,
+  buildCornerMarkerPos2,
+} from "./scenarios/buildCornerMarker";
+import {
   buildBlockStates,
   buildEdits,
   buildSelectionAndMode,
@@ -46,7 +52,15 @@ import {
   bulldozerExitSpot,
 } from "./scenarios/bulldozerExit";
 import {
-  campTableTwoSeats,
+  campGroundLanternKept,
+  campPitRemoveOven,
+  campTableFreeOven,
+  campTableLantern,
+  campTableLegacyOven,
+  campTableNoSeats,
+  campTableRemoveLantern,
+  campTableRemoveOven,
+  campTableRemoveOvenAndLantern,
   dutchOvenOnPit,
   dutchOvenOnTable,
   dutchOvenSimmerAndTakeBack,
@@ -262,9 +276,21 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
     ["blade_cut_kept_ids", 0, () => bladeCutKeptIds()],
     ["low_chair_seat_and_take_back", 6, () => lowChairSeatAndTakeBack(a)],
     ["noga_chair_seat_and_take_back", 6, () => nogaChairSeatAndTakeBack(a)],
-    ["camp_table_two_seats", 2, () => campTableTwoSeats(a)],
+    ["camp_table_no_seats", 2, () => campTableNoSeats(a)],
     ["dutch_oven_on_table", 60, () => dutchOvenOnTable(a)],
-    ["dutch_oven_on_pit", 90, () => dutchOvenOnPit(a)],
+    ["camp_table_free_oven", 16, () => campTableFreeOven(a)],
+    ["camp_table_legacy_oven", 34, () => campTableLegacyOven(a)],
+    ["camp_table_lantern", 60, () => campTableLantern(a)],
+    ["dutch_oven_on_pit", 46, () => dutchOvenOnPit(a)],
+    ["camp_table_remove_oven", 15, () => campTableRemoveOven(a)],
+    ["camp_pit_remove_oven", 20, () => campPitRemoveOven(a)],
+    ["camp_table_remove_lantern", 20, () => campTableRemoveLantern(a)],
+    ["camp_ground_lantern_kept", 60, () => campGroundLanternKept(a)],
+    [
+      "camp_table_remove_oven_and_lantern",
+      20,
+      () => campTableRemoveOvenAndLantern(a),
+    ],
     ["gas_lantern_take_back", 8, () => gasLanternTakeBack(a)],
     ["gas_lantern_switch", 70, () => gasLanternSwitch(a)],
     ["fire_pit_ignition", 6, () => firePitIgnition(a)],
@@ -293,12 +319,19 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
       30,
       () => buildSelectionAndMode(a),
     ]);
+    allTests.push(
+      ["build_corner_marker_pos1", 25, () => buildCornerMarkerPos1(a)],
+      ["build_corner_marker_pos2", 25, () => buildCornerMarkerPos2(a)],
+      ["build_corner_marker_none", 30, () => buildCornerMarkerNone(a)],
+      ["build_corner_marker_pair", 27, () => buildCornerMarkerPair(a)],
+    );
   } else {
     log(runId, "SKIP build_edits: a connected player is required");
     log(
       runId,
       "SKIP build_selection_and_mode: a connected player is required; camera perspective needs visual verification",
     );
+    log(runId, "SKIP build_corner_marker_*: a connected player is required");
   }
   const shards = shardsOf(
     allTests.map(([, ticks]) => ticks),

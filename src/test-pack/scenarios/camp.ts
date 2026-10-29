@@ -1,6 +1,12 @@
 // In-game checks of the camp feature's low chair (ADR 0122).
 import { type Entity, system, type Vector3 } from "@minecraft/server";
-import { FIRE_PIT_TOP_PX, TABLE_TOP_PX } from "../../domain/camp/spec";
+import { hostLocalPx, hostSpotPoint } from "../../domain/camp/dutchOven";
+import {
+  DUTCH_OVEN_SPEC,
+  FIRE_PIT_TOP_PX,
+  TABLE_SPOTS,
+  TABLE_TOP_PX,
+} from "../../domain/camp/spec";
 import {
   CAMP_TABLE_ITEM,
   CAMP_TABLE_TYPE,
@@ -17,6 +23,7 @@ import {
   GAS_LANTERN_LIT_PROPERTY,
   GAS_LANTERN_TYPE,
   TEST_DUTCH_OVEN_HIT_EVENT,
+  TEST_DUTCH_OVEN_HOST_EVENT,
   TEST_DUTCH_OVEN_ON_PIT_EVENT,
   TEST_DUTCH_OVEN_ON_TABLE_EVENT,
   TEST_DUTCH_OVEN_SIMMER_EVENT,
@@ -24,6 +31,7 @@ import {
   TEST_FIRE_PIT_HIT_EVENT,
   TEST_GAS_LANTERN_EVENT,
   TEST_GAS_LANTERN_HIT_EVENT,
+  TEST_GAS_LANTERN_ON_TABLE_EVENT,
   TEST_TABLE_HIT_EVENT,
 } from "../../infrastructure/camp/identifiers";
 import { type Arena, type Outcome, wait } from "../arena";
@@ -62,6 +70,9 @@ const summonFirePit = (a: Arena, at: Vector3): Entity | undefined => {
 
 const ovensNear = (a: Arena, at: Vector3) =>
   a.dim.getEntities({ type: DUTCH_OVEN_TYPE, location: at, maxDistance: 2 });
+
+const lanternsNear = (a: Arena, at: Vector3) =>
+  a.dim.getEntities({ type: GAS_LANTERN_TYPE, location: at, maxDistance: 2 });
 
 /** Runs a scenario once per chair kind, passing only when every kind passes. */
 async function forEveryChairKind(
@@ -168,8 +179,12 @@ async function lowChairSettlesThroughGrassForKind(
   }
 }
 
-/** Confirms that the outside table loads as a persistent two-seat entity. */
-export function campTableTwoSeats(a: Arena): Promise<Outcome> {
+/**
+ * Confirms that the outside table loads in its family with no seats. The stable
+ * Script API cannot read `minecraft:persistent`, so tests/packs/campTable.test.ts
+ * checks persistence instead.
+ */
+export function campTableNoSeats(a: Arena): Promise<Outcome> {
   const at = { x: CELL.x + 0.5, y: a.gy, z: CELL.z + 8.5 };
   a.dim.runCommand(`summon ${CAMP_TABLE_TYPE} ${at.x} ${at.y} ${at.z}`);
   const table = a.dim.getEntities({
@@ -178,26 +193,41 @@ export function campTableTwoSeats(a: Arena): Promise<Outcome> {
     maxDistance: 1.5,
   })[0];
   try {
-    const seats = table?.getComponent("minecraft:rideable")?.seatCount;
+    const rideable = table?.getComponent("minecraft:rideable");
     const family = table?.matches({ families: ["yasu_ride_camp_table"] });
     return Promise.resolve({
-      pass: seats === 2 && family === true,
-      detail: `seats=${seats} family=${family}`,
+      pass:
+        table?.isValid === true && rideable === undefined && family === true,
+      detail: `rideable=${rideable !== undefined} family=${family}`,
     });
   } finally {
     if (table?.isValid) table.remove();
   }
 }
 
-/** Checks both tabletop spots and the fold guard through production actions. */
-export async function dutchOvenOnTable(a: Arena): Promise<Outcome> {
-  const at = { x: CELL.x, y: a.gy, z: CELL.z + 8.5 };
+const TABLE_AT = (a: Arena) => ({ x: CELL.x, y: a.gy, z: CELL.z + 8.5 });
+
+const summonTable = (a: Arena, at: Vector3): Entity | undefined => {
   a.dim.runCommand(`summon ${CAMP_TABLE_TYPE} ${at.x} ${at.y} ${at.z}`);
-  const table = a.dim.getEntities({
+  return a.dim.getEntities({
     type: CAMP_TABLE_TYPE,
     location: at,
     maxDistance: 1.5,
   })[0];
+};
+
+const cleanTable = (a: Arena, table: Entity | undefined, at: Vector3) => {
+  for (const item of [...ovensNear(a, at), ...lanternsNear(a, at)])
+    item.remove();
+  if (table?.isValid) table.remove();
+  for (const type of [DUTCH_OVEN_ITEM, GAS_LANTERN_ITEM, CAMP_TABLE_ITEM])
+    for (const item of droppedItems(a, at, type)) item.remove();
+};
+
+/** Checks both tabletop spots and the fold guard through production actions. */
+export async function dutchOvenOnTable(a: Arena): Promise<Outcome> {
+  const at = TABLE_AT(a);
+  const table = summonTable(a, at);
   if (!table) return { pass: false, detail: "table not spawned" };
   const hitThree = async (event: string, id: string) => {
     for (let i = 0; i < 3; i++) {
@@ -246,10 +276,207 @@ export async function dutchOvenOnTable(a: Arena): Promise<Outcome> {
       detail: `ovens=${ovens.length} standing=${standing} guarded=${guarded} returned=${returned} afterTwo=${afterTwo} folded=${folded}`,
     };
   } finally {
-    if (table.isValid) table.remove();
-    for (const oven of ovensNear(a, at)) oven.remove();
-    for (const type of [DUTCH_OVEN_ITEM, CAMP_TABLE_ITEM])
-      for (const item of droppedItems(a, at, type)) item.remove();
+    cleanTable(a, table, at);
+  }
+}
+
+/**
+ * Summons an oven and has the Behavior Pack write its host marker, as a saved
+ * world would hold it; the test pack cannot read or write that pack's dynamic
+ * properties.
+ */
+const summonMarkedOven = async (a: Arena, at: Vector3, marker: string) => {
+  const before = new Set(ovensNear(a, at).map((oven) => oven.id));
+  a.dim.runCommand(`summon ${DUTCH_OVEN_TYPE} ${at.x} ${at.y} ${at.z}`);
+  const oven = ovensNear(a, at).find((e) => !before.has(e.id));
+  if (oven)
+    system.sendScriptEvent(TEST_DUTCH_OVEN_HOST_EVENT, `${oven.id} ${marker}`);
+  await wait(2);
+  return oven;
+};
+
+const placeOnTableAt = async (
+  table: Entity,
+  x: number,
+  z: number,
+  event = TEST_DUTCH_OVEN_ON_TABLE_EVENT,
+) => {
+  system.sendScriptEvent(event, `${table.id} ${x} ${z}`);
+  await wait(2);
+};
+
+/**
+ * Ovens stand at chosen points of the top, an overlapping one is refused, and
+ * a fifth item is refused at a free point. Only two ovens fit side by side on
+ * the 30 px top, so ovens with hand-written markers fill the limit (ADR 0185).
+ */
+export async function campTableFreeOven(a: Arena): Promise<Outcome> {
+  const at = TABLE_AT(a);
+  const table = summonTable(a, at);
+  if (!table) return { pass: false, detail: "table not spawned" };
+  try {
+    const host = { at: table.location, yaw: table.getRotation().y };
+    const onTop = (oven: Entity) =>
+      Math.abs(oven.location.y - (table.location.y + TABLE_TOP_PX / 16)) < 0.05;
+    await placeOnTableAt(table, -9, 0);
+    await placeOnTableAt(table, 3, 0.5);
+    await placeOnTableAt(table, -4, 0);
+    const placed = ovensNear(a, at);
+    const points = placed
+      .map((oven) => hostLocalPx(host, oven.location))
+      .sort((p, q) => p.x - q.x);
+    const atPoints =
+      placed.length === 2 &&
+      placed.every(onTop) &&
+      [
+        { x: -9, z: 0 },
+        { x: 3, z: 0.5 },
+      ].every(
+        (want, i) =>
+          Math.abs((points[i]?.x ?? Infinity) - want.x) < 0.1 &&
+          Math.abs((points[i]?.z ?? Infinity) - want.z) < 0.1,
+      );
+
+    for (const oven of placed)
+      if (hostLocalPx(host, oven.location).x > 0) oven.remove();
+    const fillers: (Entity | undefined)[] = [];
+    for (let i = 0; i < 3; i++)
+      fillers.push(
+        await summonMarkedOven(a, at, `camp_table:${table.id}:@-9,0`),
+      );
+    await placeOnTableAt(table, 6, 0);
+    const full = ovensNear(a, at).length;
+    fillers[0]?.remove();
+    await placeOnTableAt(table, 6, 0);
+    const freed = ovensNear(a, at).filter(onTop).length;
+    return {
+      pass: atPoints && full === 4 && freed === 2,
+      detail: `placed=${placed.length} points=${JSON.stringify(points)} full=${full} freed=${freed}`,
+    };
+  } finally {
+    cleanTable(a, table, at);
+  }
+}
+
+/** An oven saved with an old spot marker still counts on the top and still blocks folding. */
+export async function campTableLegacyOven(a: Arena): Promise<Outcome> {
+  const at = TABLE_AT(a);
+  const table = summonTable(a, at);
+  if (!table) return { pass: false, detail: "table not spawned" };
+  try {
+    const [left] = TABLE_SPOTS;
+    const top = hostSpotPoint(
+      { at: table.location, yaw: table.getRotation().y },
+      left,
+      TABLE_TOP_PX,
+    );
+    const legacy = await summonMarkedOven(a, top, `camp_table:${table.id}:0`);
+    await wait(22);
+    const kept = legacy?.isValid === true;
+    for (let i = 0; i < 3; i++) {
+      system.sendScriptEvent(TEST_TABLE_HIT_EVENT, table.id);
+      await wait(2);
+    }
+    const guarded = table.isValid;
+    await placeOnTableAt(table, left.x, left.z);
+    const blocked = ovensNear(a, at).length === 1;
+    await placeOnTableAt(table, -left.x, left.z);
+    const beside = ovensNear(a, at).length === 2;
+    return {
+      pass: kept && guarded && blocked && beside,
+      detail: `kept=${kept} guarded=${guarded} blocked=${blocked} beside=${beside}`,
+    };
+  } finally {
+    cleanTable(a, table, at);
+  }
+}
+
+/**
+ * A lantern and an oven share one top: the lantern stands on it and lights the
+ * cell above, both block folding, a fifth item is refused at a free point, and
+ * taking both back clears the light and lets the table fold (ADR 0185).
+ */
+export async function campTableLantern(a: Arena): Promise<Outcome> {
+  const at = TABLE_AT(a);
+  const table = summonTable(a, at);
+  if (!table) return { pass: false, detail: "table not spawned" };
+  const hitThree = async (event: string, id: string) => {
+    for (let i = 0; i < 3; i++) {
+      system.sendScriptEvent(event, id);
+      await wait(2);
+    }
+  };
+  const placeLantern = (x: number, z: number) =>
+    placeOnTableAt(table, x, z, TEST_GAS_LANTERN_ON_TABLE_EVENT);
+  try {
+    const host = { at: table.location, yaw: table.getRotation().y };
+    const onTop = (entity: Entity) =>
+      Math.abs(entity.location.y - (table.location.y + TABLE_TOP_PX / 16)) <
+      0.05;
+    await placeOnTableAt(table, -9, 0);
+    await placeLantern(15, 0);
+    const [oven] = ovensNear(a, at);
+    const [lantern] = lanternsNear(a, at);
+    if (!oven || !lantern)
+      return { pass: false, detail: `oven=${!!oven} lantern=${!!lantern}` };
+    await wait(22);
+    const standing =
+      onTop(oven) &&
+      onTop(lantern) &&
+      Math.abs(hostLocalPx(host, lantern.location).x - 11.25) < 0.1;
+
+    system.sendScriptEvent(TEST_GAS_LANTERN_EVENT, lantern.id);
+    await wait(2);
+    const lightCell = {
+      x: Math.floor(lantern.location.x),
+      y: Math.floor(table.location.y) + 1,
+      z: Math.floor(lantern.location.z),
+    };
+    const lit =
+      a.dim.getBlock(lightCell)?.typeId === "minecraft:light_block_15";
+
+    await hitThree(TEST_TABLE_HIT_EVENT, table.id);
+    const guarded =
+      table.isValid && totalAmount(droppedItems(a, at, CAMP_TABLE_ITEM)) === 0;
+
+    const fillers: (Entity | undefined)[] = [];
+    for (let i = 0; i < 2; i++)
+      fillers.push(
+        await summonMarkedOven(a, at, `camp_table:${table.id}:@-9,0`),
+      );
+    await placeLantern(2, 0);
+    const refused = lanternsNear(a, at).length === 1;
+    fillers[0]?.remove();
+    await placeLantern(2, 0);
+    const extra = lanternsNear(a, at).filter((e) => e.id !== lantern.id);
+    const freed = extra.length === 1 && extra.every(onTop);
+    for (const entity of [...extra, fillers[1]]) entity?.remove();
+
+    await hitThree(TEST_DUTCH_OVEN_HIT_EVENT, oven.id);
+    await hitThree(TEST_GAS_LANTERN_HIT_EVENT, lantern.id);
+    const returned =
+      totalAmount(droppedItems(a, at, DUTCH_OVEN_ITEM)) === 1 &&
+      totalAmount(droppedItems(a, at, GAS_LANTERN_ITEM)) === 1 &&
+      ovensNear(a, at).length === 0 &&
+      lanternsNear(a, at).length === 0;
+    const dark = a.dim.getBlock(lightCell)?.isAir === true;
+    await hitThree(TEST_TABLE_HIT_EVENT, table.id);
+    const folded =
+      !table.isValid && totalAmount(droppedItems(a, at, CAMP_TABLE_ITEM)) === 1;
+    return {
+      pass:
+        standing &&
+        lit &&
+        guarded &&
+        refused &&
+        freed &&
+        returned &&
+        dark &&
+        folded,
+      detail: `standing=${standing} lit=${lit} guarded=${guarded} refused=${refused} freed=${freed} returned=${returned} dark=${dark} folded=${folded}`,
+    };
+  } finally {
+    cleanTable(a, table, at);
   }
 }
 
@@ -370,18 +597,17 @@ export async function firePitCoveredTakeBack(a: Arena): Promise<Outcome> {
   }
 }
 
-/** Exercises the host lifecycle through the production placement use case without a player. */
+/** Places an oven on the grill through the production use case without a player. */
 export async function dutchOvenOnPit(a: Arena): Promise<Outcome> {
   const folded = await firePitCoveredTakeBack(a);
   if (!folded.pass) return folded;
   const at = firePitAt(a);
   const pit = summonFirePit(a, at);
   if (!pit) return { pass: false, detail: "fire pit not spawned" };
-  let oven: Entity | undefined;
   try {
     system.sendScriptEvent(TEST_DUTCH_OVEN_ON_PIT_EVENT, pit.id);
     await wait(4);
-    oven = ovensNear(a, at)[0];
+    const oven = ovensNear(a, at)[0];
     if (!oven) return { pass: false, detail: "oven not placed" };
     const covered = pit.getProperty(FIRE_PIT_COVERED_PROPERTY) === true;
     const simmering = oven.getProperty(DUTCH_OVEN_SIMMERING_PROPERTY) === true;
@@ -389,23 +615,198 @@ export async function dutchOvenOnPit(a: Arena): Promise<Outcome> {
     const standing =
       Math.abs(oven.location.y - (pit.location.y + FIRE_PIT_TOP_PX / 16)) <
       0.05;
-    a.dim.runCommand(
-      `kill @e[type=${FIRE_PIT_TYPE},x=${at.x},y=${at.y},z=${at.z},r=2]`,
-    );
-    const settled = () =>
-      oven?.getProperty(DUTCH_OVEN_SIMMERING_PROPERTY) === false &&
-      Math.abs(oven.location.y - a.gy) < 0.05;
-    // The host check runs every hostCheckTicks and a busy server stretches it.
-    for (let i = 0; i < 120 && !settled(); i++) await wait(1);
-    const lidded = oven.getProperty(DUTCH_OVEN_SIMMERING_PROPERTY) === false;
-    const fallen = Math.abs(oven.location.y - a.gy) < 0.05;
     return {
-      pass: covered && simmering && standing && lidded && fallen,
-      detail: `fold=${folded.pass} covered=${covered} simmering=${simmering} standing=${standing} lidded=${lidded} fallen=${fallen} y=${oven.location.y.toFixed(2)}`,
+      pass: covered && simmering && standing,
+      detail: `fold=${folded.pass} covered=${covered} simmering=${simmering} standing=${standing}`,
     };
   } finally {
-    if (oven?.isValid) oven.remove();
+    for (const oven of ovensNear(a, at)) oven.remove();
     if (pit.isValid) pit.remove();
+  }
+}
+
+/**
+ * Removes a host and waits for the host check to remove every item standing
+ * on it, with no dropped oven or lantern item (ADR 0185).
+ */
+async function removeHostAndWait(
+  a: Arena,
+  at: Vector3,
+  host: Entity,
+  items: readonly Entity[],
+) {
+  await wait(2);
+  const kept = items.every((item) => item.isValid);
+  host.remove();
+  // The host check runs every hostCheckTicks and a busy server stretches it.
+  for (let i = 0; i < 120 && items.some((item) => item.isValid); i++)
+    await wait(1);
+  const removed = items.every((item) => !item.isValid);
+  const drops = totalAmount([
+    ...droppedItems(a, at, DUTCH_OVEN_ITEM),
+    ...droppedItems(a, at, GAS_LANTERN_ITEM),
+  ]);
+  return { kept, removed, drops };
+}
+
+async function hostRemovalTakesOven(
+  a: Arena,
+  at: Vector3,
+  host: Entity,
+): Promise<Outcome> {
+  const oven = ovensNear(a, at)[0];
+  if (!oven) return { pass: false, detail: "oven not placed" };
+  const { kept, removed, drops } = await removeHostAndWait(a, at, host, [oven]);
+  const none = ovensNear(a, at).length === 0;
+  return {
+    pass: kept && removed && none && drops === 0,
+    detail: `kept=${kept} removed=${removed} none=${none} drops=${drops}`,
+  };
+}
+
+interface TableLantern {
+  readonly lantern: Entity;
+  readonly lightCell: Vector3;
+  readonly lit: boolean;
+}
+
+/** Places a lantern on the table, switches it on, and returns it with its light cell. */
+async function litTableLantern(
+  a: Arena,
+  table: Entity,
+  x: number,
+): Promise<TableLantern | undefined> {
+  const at = table.location;
+  const before = new Set(lanternsNear(a, at).map((e) => e.id));
+  await placeOnTableAt(table, x, 0, TEST_GAS_LANTERN_ON_TABLE_EVENT);
+  const lantern = lanternsNear(a, at).find((e) => !before.has(e.id));
+  if (!lantern) return undefined;
+  system.sendScriptEvent(TEST_GAS_LANTERN_EVENT, lantern.id);
+  await wait(2);
+  const lightCell = {
+    x: Math.floor(lantern.location.x),
+    y: Math.floor(table.location.y) + 1,
+    z: Math.floor(lantern.location.z),
+  };
+  const lit = a.dim.getBlock(lightCell)?.typeId === "minecraft:light_block_15";
+  return { lantern, lightCell, lit };
+}
+
+/**
+ * Removes the table and checks that its lit lantern and every other item on it
+ * go, leaving no light block and no dropped item (ADR 0185).
+ */
+async function tableRemovalTakesLantern(
+  a: Arena,
+  at: Vector3,
+  table: Entity,
+  { lantern, lightCell, lit }: TableLantern,
+  others: readonly Entity[] = [],
+): Promise<Outcome> {
+  const { kept, removed, drops } = await removeHostAndWait(a, at, table, [
+    ...others,
+    lantern,
+  ]);
+  const dark = a.dim.getBlock(lightCell)?.isAir === true;
+  return {
+    pass: lit && kept && removed && dark && drops === 0,
+    detail: `lit=${lit} kept=${kept} removed=${removed} dark=${dark} drops=${drops}`,
+  };
+}
+
+export async function campTableRemoveOven(a: Arena): Promise<Outcome> {
+  const at = TABLE_AT(a);
+  const table = summonTable(a, at);
+  if (!table) return { pass: false, detail: "table not spawned" };
+  try {
+    await placeOnTableAt(table, -5, 0);
+    return await hostRemovalTakesOven(a, at, table);
+  } finally {
+    cleanTable(a, table, at);
+  }
+}
+
+export async function campPitRemoveOven(a: Arena): Promise<Outcome> {
+  const at = firePitAt(a);
+  const pit = summonFirePit(a, at);
+  if (!pit) return { pass: false, detail: "fire pit not spawned" };
+  try {
+    system.sendScriptEvent(TEST_DUTCH_OVEN_ON_PIT_EVENT, pit.id);
+    await wait(2);
+    return await hostRemovalTakesOven(a, at, pit);
+  } finally {
+    for (const oven of ovensNear(a, at)) oven.remove();
+    if (pit.isValid) pit.remove();
+    for (const item of droppedItems(a, at, DUTCH_OVEN_ITEM)) item.remove();
+  }
+}
+
+/** A lit lantern goes with its table, leaving no light block and no item (ADR 0185). */
+export async function campTableRemoveLantern(a: Arena): Promise<Outcome> {
+  const at = TABLE_AT(a);
+  const table = summonTable(a, at);
+  if (!table) return { pass: false, detail: "table not spawned" };
+  try {
+    const placed = await litTableLantern(a, table, 5);
+    if (!placed) return { pass: false, detail: "lantern not placed" };
+    return await tableRemovalTakesLantern(a, at, table, placed);
+  } finally {
+    cleanTable(a, table, at);
+  }
+}
+
+/**
+ * A ground lantern beside a removed table stays: the host check skips a
+ * lantern with no marker. The table's own lantern going shows the check ran.
+ */
+export async function campGroundLanternKept(a: Arena): Promise<Outcome> {
+  const at = TABLE_AT(a);
+  const table = summonTable(a, at);
+  if (!table) return { pass: false, detail: "table not spawned" };
+  // Clear of the table's top in either orientation, but within cleanTable's reach.
+  const beside = { x: at.x, y: a.gy, z: at.z - 1.5 };
+  try {
+    const placed = await litTableLantern(a, table, 0);
+    if (!placed) return { pass: false, detail: "lantern not placed" };
+    a.dim.runCommand(
+      `summon ${GAS_LANTERN_TYPE} ${beside.x} ${beside.y} ${beside.z}`,
+    );
+    const ground = lanternsNear(a, beside).find(
+      (e) => e.id !== placed.lantern.id,
+    );
+    if (!ground) return { pass: false, detail: "ground lantern not spawned" };
+    const { removed, drops } = await removeHostAndWait(a, at, table, [
+      placed.lantern,
+    ]);
+    // Two more host checks pass after the one that took the table's lantern.
+    await wait(DUTCH_OVEN_SPEC.hostCheckTicks * 2);
+    const kept = ground.isValid;
+    return {
+      pass: removed && kept && drops === 0,
+      detail: `hostedRemoved=${removed} groundKept=${kept} drops=${drops}`,
+    };
+  } finally {
+    for (const lantern of lanternsNear(a, beside)) lantern.remove();
+    cleanTable(a, table, at);
+  }
+}
+
+/** An oven and a lit lantern on one table both go with it, with no drop. */
+export async function campTableRemoveOvenAndLantern(
+  a: Arena,
+): Promise<Outcome> {
+  const at = TABLE_AT(a);
+  const table = summonTable(a, at);
+  if (!table) return { pass: false, detail: "table not spawned" };
+  try {
+    await placeOnTableAt(table, -9, 0);
+    const oven = ovensNear(a, at)[0];
+    const placed = await litTableLantern(a, table, 15);
+    if (!oven || !placed)
+      return { pass: false, detail: `oven=${!!oven} lantern=${!!placed}` };
+    return await tableRemovalTakesLantern(a, at, table, placed, [oven]);
+  } finally {
+    cleanTable(a, table, at);
   }
 }
 

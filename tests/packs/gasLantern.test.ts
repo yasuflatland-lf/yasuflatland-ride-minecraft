@@ -208,7 +208,7 @@ describe("Gas Lantern textures and pack files", () => {
       { flame: "query.property('yasu_ride:lit')" },
     ]);
     const rpManifest = readJson(`${rp}/manifest.json`);
-    expect(rpManifest.header.version).toEqual([0, 1, 197]);
+    expect(rpManifest.header.version).toEqual([0, 1, 198]);
     const dependency = readJson(`${bp}/manifest.json`).dependencies.find(
       (d: { uuid: string }) => d.uuid === rpManifest.header.uuid,
     );
@@ -249,6 +249,22 @@ describe("Gas Lantern item and ground entity", () => {
         interactions: [
           { interact_text: "action.interact.yasu_ride.gas_lantern" },
         ],
+      },
+    });
+  });
+
+  it("floats on a table top only through the hosted event, with no way back to gravity", () => {
+    const entity = readJson(`${bp}/entities/yasu_ride/gas_lantern.se.json`)[
+      "minecraft:entity"
+    ];
+    expect(entity.component_groups).toEqual({
+      "yasu_ride:gas_lantern_hosted": {
+        "minecraft:physics": { has_collision: false, has_gravity: false },
+      },
+    });
+    expect(entity.events).toEqual({
+      "yasu_ride:gas_lantern_hosted": {
+        add: { component_groups: ["yasu_ride:gas_lantern_hosted"] },
       },
     });
   });
@@ -320,7 +336,7 @@ describe("Gas Lantern item and ground entity", () => {
       }
     }
     expect(readJson(`${rp}/manifest.json`).modules[0].version).toEqual([
-      0, 1, 197,
+      0, 1, 198,
     ]);
   });
 });

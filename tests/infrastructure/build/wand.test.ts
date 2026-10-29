@@ -47,6 +47,7 @@ it("sets the first corner immediately, preserves the block, and defers the secon
         };
         const feedback: BuildFeedback = {
           showMessage: vi.fn(),
+          drawCorner: vi.fn(),
           drawOutline: vi.fn(),
         };
         registerWand(

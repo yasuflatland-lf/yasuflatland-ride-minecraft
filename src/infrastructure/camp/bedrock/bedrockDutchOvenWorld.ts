@@ -1,10 +1,12 @@
-import { ItemStack, world } from "@minecraft/server";
+import { type Entity, ItemStack, world } from "@minecraft/server";
 import type { DutchOvenWorld } from "../../../application/camp/ports/dutchOven";
+import type { HostedKindId } from "../../../application/camp/ports/tableTop";
 import {
   asDutchOvenId,
   type DutchOvenId,
 } from "../../../domain/camp/dutchOven";
 import { asFirePitId, type FirePitId } from "../../../domain/camp/firePit";
+import type { TopItem } from "../../../domain/camp/tabletop";
 import {
   asDimensionId,
   type DimensionId,
@@ -14,7 +16,6 @@ import type { Vec3 } from "../../../domain/shared/vec";
 import { NAMESPACE } from "../../shared/identifiers";
 import { consumeHeld, isCreative, playerById } from "../../shared/players";
 import {
-  CAMP_TABLE_TYPE,
   DUTCH_OVEN_GROUND_EVENT,
   DUTCH_OVEN_HITS_LEFT_HINT,
   DUTCH_OVEN_HOST_PROPERTY,
@@ -29,7 +30,12 @@ import {
   isFirePitCovered,
   setFirePitCovered,
 } from "./firePitCovered";
-import { takenTableSpots } from "./tableOvens";
+import {
+  hostExists,
+  isHostAreaLoaded,
+  loadedEntityIds,
+} from "./hostedEntities";
+import { itemsOnTable, tableTop } from "./tableItems";
 
 function dutchOven(id: DutchOvenId) {
   const entity = world.getEntity(id);
@@ -38,13 +44,18 @@ function dutchOven(id: DutchOvenId) {
     : undefined;
 }
 
-function loadedEntityIds(type: string): string[] {
-  return ["overworld", "nether", "the_end"].flatMap((dimension) =>
-    world
-      .getDimension(dimension)
-      .getEntities({ type })
-      .map((entity) => entity.id),
+export function setOvenHost(
+  oven: Entity,
+  host: string,
+  simmering: boolean,
+): void {
+  oven.setDynamicProperty(DUTCH_OVEN_HOST_PROPERTY, host);
+  oven.setProperty(DUTCH_OVEN_SIMMERING_PROPERTY, simmering);
+  // Entities do not provide a supporting block surface for another entity.
+  oven.triggerEvent(
+    host === "" ? DUTCH_OVEN_GROUND_EVENT : DUTCH_OVEN_HOSTED_EVENT,
   );
+  oven.clearVelocity();
 }
 
 export class BedrockDutchOvenWorld implements DutchOvenWorld {
@@ -104,18 +115,22 @@ export class BedrockDutchOvenWorld implements DutchOvenWorld {
   }
 
   table(id: string) {
-    const table = world.getEntity(id);
-    return table?.isValid && table.typeId === CAMP_TABLE_TYPE
-      ? {
-          dimension: asDimensionId(table.dimension.id),
-          at: table.location,
-          yaw: table.getRotation().y,
-        }
-      : undefined;
+    return tableTop(id);
   }
 
-  takenTableSpots(id: string): ReadonlySet<number> {
-    return takenTableSpots(id);
+  itemsOnTable(id: string): readonly TopItem[] {
+    return itemsOnTable(id);
+  }
+
+  spawnHostedOnTable(
+    _kind: HostedKindId,
+    dimension: DimensionId,
+    at: Vec3,
+    yaw: number,
+    host: string,
+  ): void {
+    // A table has no fire under it, so the oven never simmers there (ADR 0168).
+    this.setHost(this.spawnDutchOven(dimension, at, yaw), host, false);
   }
 
   firePit(id: FirePitId) {
@@ -144,14 +159,7 @@ export class BedrockDutchOvenWorld implements DutchOvenWorld {
 
   setHost(id: DutchOvenId, host: string, simmering: boolean): void {
     const oven = dutchOven(id);
-    if (!oven) return;
-    oven.setDynamicProperty(DUTCH_OVEN_HOST_PROPERTY, host);
-    oven.setProperty(DUTCH_OVEN_SIMMERING_PROPERTY, simmering);
-    // Entities do not provide a supporting block surface for another entity.
-    oven.triggerEvent(
-      host === "" ? DUTCH_OVEN_GROUND_EVENT : DUTCH_OVEN_HOSTED_EVENT,
-    );
-    oven.clearVelocity();
+    if (oven) setOvenHost(oven, host, simmering);
   }
 
   loadedOvens(): readonly DutchOvenId[] {
@@ -163,21 +171,11 @@ export class BedrockDutchOvenWorld implements DutchOvenWorld {
   }
 
   hostExists(id: string): boolean {
-    return world.getEntity(id)?.isValid === true;
+    return hostExists(id);
   }
 
   isHostAreaLoaded(id: DutchOvenId): boolean {
-    const oven = dutchOven(id);
-    if (!oven) return false;
-    try {
-      const at = oven.location;
-      return (
-        oven.dimension.getBlock(at) !== undefined &&
-        oven.dimension.getBlock({ ...at, y: at.y - 1 }) !== undefined
-      );
-    } catch {
-      return false;
-    }
+    return isHostAreaLoaded(dutchOven(id));
   }
 
   dropItem(id: DutchOvenId): void {

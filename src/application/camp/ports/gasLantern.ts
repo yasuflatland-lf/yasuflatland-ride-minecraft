@@ -1,9 +1,9 @@
 import type { GasLanternId } from "../../../domain/camp/gasLantern";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
-import type { GroundCellsWorld } from "./groundCells";
+import type { TableTopWorld } from "./tableTop";
 
-export interface GasLanternWorld extends GroundCellsWorld {
+export interface GasLanternWorld extends TableTopWorld {
   hasGasLanternNear(dimension: DimensionId, at: Vec3): boolean;
   spawnGasLantern(dimension: DimensionId, at: Vec3, yaw: number): void;
   isLit(id: GasLanternId): boolean | undefined;
@@ -12,5 +12,11 @@ export interface GasLanternWorld extends GroundCellsWorld {
   clearLight(id: GasLanternId): void;
   dropItem(id: GasLanternId): void;
   removeGasLantern(id: GasLanternId): void;
+  loadedGasLanterns(): readonly GasLanternId[];
+  /** The saved host marker, or "" for a lantern on the ground. */
+  host(id: GasLanternId): string;
+  /** See HostedKindPort.isHostAreaLoaded. */
+  isHostAreaLoaded(id: GasLanternId): boolean;
+  hostExists(hostId: string): boolean;
   showHitsLeft(player: PlayerId, hitsLeft: number): void;
 }

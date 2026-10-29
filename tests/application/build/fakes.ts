@@ -53,9 +53,13 @@ export class FakeGate implements RiderGate {
 
 export class FakeFeedback implements BuildFeedback {
   messages: { message: BuildMessage; count?: number }[] = [];
+  corners: { playerId: PlayerId; dimensionId: DimensionId; cell: Cell }[] = [];
   outlines: { dimensionId: DimensionId; box: Box; style: OutlineStyle }[] = [];
   showMessage(_player: PlayerId, message: BuildMessage, count?: number) {
     this.messages.push({ message, count });
+  }
+  drawCorner(playerId: PlayerId, dimensionId: DimensionId, cell: Cell) {
+    this.corners.push({ playerId, dimensionId, cell });
   }
   drawOutline(
     _player: PlayerId,

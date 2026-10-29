@@ -6,17 +6,11 @@ import {
   world,
 } from "@minecraft/server";
 import type { DutchOvenActions } from "../../../../application/camp/dutchOven";
-import {
-  aimOnPlane,
-  asDutchOvenId,
-  hostLocalPx,
-} from "../../../../domain/camp/dutchOven";
+import type { HostedItemsGuard } from "../../../../application/camp/hostedItemsGuard";
+import { asDutchOvenId } from "../../../../domain/camp/dutchOven";
 import { asFirePitId } from "../../../../domain/camp/firePit";
-import {
-  DUTCH_OVEN_SPEC,
-  TABLE_SPOTS,
-  TABLE_TOP_PX,
-} from "../../../../domain/camp/spec";
+import { DUTCH_OVEN_SPEC, TABLE_SPOTS } from "../../../../domain/camp/spec";
+import type { LocalPoint } from "../../../../domain/camp/tabletop";
 import {
   asDimensionId,
   asPlayerId,
@@ -30,12 +24,34 @@ import {
   DUTCH_OVEN_TYPE,
   FIRE_PIT_TYPE,
   TEST_DUTCH_OVEN_HIT_EVENT,
+  TEST_DUTCH_OVEN_HOST_EVENT,
   TEST_DUTCH_OVEN_ON_PIT_EVENT,
   TEST_DUTCH_OVEN_ON_TABLE_EVENT,
   TEST_DUTCH_OVEN_SIMMER_EVENT,
 } from "../../identifiers";
+import { setOvenHost } from "../bedrockDutchOvenWorld";
+import {
+  showTableTopRefusal,
+  tableTopAim,
+  testTableTopRequest,
+} from "../tableTopAim";
 
-export function registerDutchOven(actions: DutchOvenActions): void {
+/** Reads `<table> <0|1>` as an old spot, or `<table> <x> <z>` as local pixels. */
+function testTableRequest(
+  message: string,
+): { table: string; aim: LocalPoint } | undefined {
+  const [table, spot, ...rest] = message.trim().split(/\s+/);
+  if (table && rest.length === 0 && /^[01]$/.test(spot ?? "")) {
+    const aim = TABLE_SPOTS[Number(spot)];
+    return aim ? { table, aim } : undefined;
+  }
+  return testTableTopRequest(message);
+}
+
+export function registerDutchOven(
+  actions: DutchOvenActions,
+  hostedItems: HostedItemsGuard,
+): void {
   const placements = new TickScopedSet<PlayerId>();
   world.beforeEvents.playerInteractWithBlock.subscribe((ev) => {
     if (!ev.isFirstEvent || ev.itemStack?.typeId !== DUTCH_OVEN_ITEM) return;
@@ -71,17 +87,14 @@ export function registerDutchOven(actions: DutchOvenActions): void {
         system.run(() => actions.placeOnFirePit({ player, pit, slot }));
       } else {
         const table = ev.target.id;
-        const host = {
-          at: ev.target.location,
-          yaw: ev.target.getRotation().y,
-        };
-        const point = aimOnPlane(
-          ev.player.getHeadLocation(),
-          ev.player.getViewDirection(),
-          host.at.y + TABLE_TOP_PX / 16,
+        const aim = tableTopAim(ev.player, ev.target);
+        const placer = ev.player;
+        system.run(() =>
+          showTableTopRefusal(
+            placer,
+            actions.placeOnTable({ player, table, slot, aim }),
+          ),
         );
-        const aim = point ? hostLocalPx(host, point) : undefined;
-        system.run(() => actions.placeOnTable({ player, table, slot, aim }));
       }
       return;
     }
@@ -103,11 +116,17 @@ export function registerDutchOven(actions: DutchOvenActions): void {
   system.afterEvents.scriptEventReceive.subscribe((ev) => {
     if (ev.id === TEST_DUTCH_OVEN_ON_TABLE_EVENT) {
       if (ev.sourceType !== ScriptEventSource.Server) return;
+      const request = testTableRequest(ev.message);
+      if (request) actions.placeOnTable({ ...request, slot: 0 });
+      return;
+    }
+    if (ev.id === TEST_DUTCH_OVEN_HOST_EVENT) {
+      if (ev.sourceType !== ScriptEventSource.Server) return;
       const parts = ev.message.trim().split(/\s+/);
-      const [table, rawSpot] = parts;
-      if (parts.length !== 2 || !table || !/^[01]$/.test(rawSpot ?? "")) return;
-      const aim = TABLE_SPOTS[Number(rawSpot)];
-      if (aim) actions.placeOnTable({ table, slot: 0, aim });
+      const [ovenId, marker] = parts;
+      const oven = ovenId ? world.getEntity(ovenId) : undefined;
+      if (parts.length === 2 && marker && oven?.typeId === DUTCH_OVEN_TYPE)
+        setOvenHost(oven, marker, false);
       return;
     }
     if (ev.id === TEST_DUTCH_OVEN_ON_PIT_EVENT) {
@@ -136,10 +155,10 @@ export function registerDutchOven(actions: DutchOvenActions): void {
       );
     }
   });
-  system.runInterval(
-    () => actions.checkHosts(),
-    DUTCH_OVEN_SPEC.hostCheckTicks,
-  );
+  system.runInterval(() => {
+    hostedItems.check();
+    actions.uncoverEmptyFirePits();
+  }, DUTCH_OVEN_SPEC.hostCheckTicks);
   system.runInterval(() => {
     for (const dimensionId of ["overworld", "nether", "the_end"]) {
       const dimension = world.getDimension(dimensionId);

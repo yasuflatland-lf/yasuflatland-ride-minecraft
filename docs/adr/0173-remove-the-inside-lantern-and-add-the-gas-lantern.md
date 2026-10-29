@@ -1,6 +1,6 @@
 # 0173. Remove the inside Lantern and add the Gas Lantern
 
-- Status: Proposed
+- Status: Proposed; extended (a Gas Lantern may stand on a Camp Table and is removed with it) by [0185](0185-put-things-on-the-camp-table-instead-of-sitting-at-it.md) (Proposed)
 - Date: 2026-10-28
 - Supersedes in part: [0169](0169-a-lantern-for-the-oil-lamp-and-a-noga-chair.md) (section 1's `oil_lamp -> lantern` legacy entry and section 2's Lantern)
 

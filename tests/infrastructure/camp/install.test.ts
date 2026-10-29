@@ -5,6 +5,7 @@ import { FirePitActions } from "../../../src/application/camp/firePit";
 import { GasLanternActions } from "../../../src/application/camp/gasLantern";
 import { HitChair } from "../../../src/application/camp/hitChair";
 import { HitTable } from "../../../src/application/camp/hitTable";
+import { HostedItemsGuard } from "../../../src/application/camp/hostedItemsGuard";
 import { PaintTent } from "../../../src/application/camp/paintTent";
 import { PitchTent } from "../../../src/application/camp/pitchTent";
 import { PlaceChair } from "../../../src/application/camp/placeChair";
@@ -151,9 +152,10 @@ it("wires one hit use case into both hit handlers and asks the vehicles for thei
   expect(vi.mocked(registerFirePit).mock.calls[0]?.[0]).toBeInstanceOf(
     FirePitActions,
   );
-  expect(vi.mocked(registerDutchOven).mock.calls[0]?.[0]).toBeInstanceOf(
-    DutchOvenActions,
-  );
+  const [ovenActions, hostedItems] =
+    vi.mocked(registerDutchOven).mock.calls[0] ?? [];
+  expect(ovenActions).toBeInstanceOf(DutchOvenActions);
+  expect(hostedItems).toBeInstanceOf(HostedItemsGuard);
 });
 
 it("registers the tent mattress as a bed with its own SleepInBed (ADR 0092, 0133)", () => {
