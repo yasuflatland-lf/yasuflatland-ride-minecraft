@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { forward, rightOf } from "../../../src/domain/shared/vec";
 import { VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
+import { BULLDOZER_WIDE_BLADE } from "../../../src/domain/vehicle/kinds/bulldozer/spec";
 import {
   profileOf,
   RAM_QUERY_RADIUS,
@@ -151,4 +152,13 @@ describe("ramQueryRadius", () => {
       }),
     );
   });
+});
+
+it("reaches the wide bulldozer ram corner", () => {
+  expect(RAM_QUERY_RADIUS).toBeGreaterThanOrEqual(
+    cornerReach(
+      profileOf("bulldozer").body.front,
+      BULLDOZER_WIDE_BLADE.halfWidth,
+    ),
+  );
 });

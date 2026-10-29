@@ -37,6 +37,8 @@ import {
   bulldozerSpawnsRaised,
   bulldozerStep2Raised,
   bulldozerWideBladeToggle,
+  bulldozerWideClearHill,
+  bulldozerWideRam,
 } from "./scenarios/bulldozer";
 import {
   bulldozerExitGround,
@@ -149,6 +151,8 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
     ["build_block_states", 0, () => buildBlockStates(a)],
     ["bulldozer_exit_spot", 8, () => bulldozerExitSpot(a)],
     ["bulldozer_exit_ground", 2, () => bulldozerExitGround(a)],
+    ["bulldozer_wide_clear_hill", 83, () => bulldozerWideClearHill(a)],
+    ["bulldozer_wide_ram", 140, () => bulldozerWideRam(a)],
     ["bulldozer_clear_hill", 79, () => bulldozerClearHill(a)],
     ["bulldozer_overhang", 77, () => bulldozerOverhang(a)],
     ["bulldozer_dirt_path", 77, () => bulldozerDirtPath(a)],

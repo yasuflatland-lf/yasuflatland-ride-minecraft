@@ -11,7 +11,10 @@ import {
   BLADE_SWITCH_ITEM,
   WIDE_BLADE_SWITCH_ITEM,
 } from "../../domain/vehicle/kinds/bulldozer/monitor";
-import { BULLDOZER_SPEC } from "../../domain/vehicle/kinds/bulldozer/spec";
+import {
+  BULLDOZER_SPEC,
+  BULLDOZER_WIDE_BLADE,
+} from "../../domain/vehicle/kinds/bulldozer/spec";
 import {
   ENTITY_TYPE,
   entityPropertyId,
@@ -251,6 +254,160 @@ export async function bulldozerClearHill(a: Arena): Promise<Outcome> {
     );
     at(100, gy + 3, 82)?.setType("minecraft:air");
     cleanup(a);
+  }
+}
+export async function bulldozerWideClearHill(a: Arena): Promise<Outcome> {
+  const { dim, gy } = a;
+  const at = (x: number, y: number, z: number) => dim.getBlock({ x, y, z });
+  const dropLines: string[] = [];
+  const kept = [
+    { x: 100, z: 79, type: "minecraft:water" },
+    { x: 101, z: 79, type: "minecraft:chest" },
+    { x: 102, z: 79, type: "yasu_ride:deck_floor" },
+    { x: 103, z: 79, type: "yasu_ride:camper_wall" },
+  ];
+  let farthest = 0,
+    spawns = 0;
+  let boxes: ReturnType<typeof bladeColumns> = [];
+  const observed = new Set<string>();
+  const recordDrop = (entity: Entity) => {
+    // Another pack may already have swept this drop.
+    if (!entity.isValid) return;
+    let typeId: string;
+    let p: Entity["location"];
+    try {
+      typeId = entity.typeId;
+      p = entity.location;
+    } catch (e) {
+      dropLines.push(`dropReadError=${String(e)}`);
+      return;
+    }
+    if (typeId !== "minecraft:item" || observed.has(entity.id)) return;
+    if (p.x < 96 || p.x > 112 || p.z < 72 || p.z > 89) return;
+    const distance = Math.min(
+      ...boxes.map((c) =>
+        Math.max(
+          c.x - p.x,
+          0,
+          p.x - c.x - 1,
+          c.bottom - p.y,
+          p.y - (gy + 5),
+          c.z - p.z,
+          p.z - c.z - 1,
+        ),
+      ),
+    );
+    if (!Number.isFinite(distance)) return;
+    observed.add(entity.id);
+    farthest = Math.max(farthest, distance);
+    spawns++;
+    let item: string | undefined;
+    try {
+      item = entity.getComponent("minecraft:item")?.itemStack.typeId;
+    } catch (e) {
+      item = `error:${String(e)}`;
+    }
+    dropLines.push(
+      `drop=${item} at=${p.x.toFixed(3)},${p.y.toFixed(3)},${p.z.toFixed(3)} d=${distance.toFixed(3)} boxX=${boxes[0]?.x}`,
+    );
+  };
+  const listener = (ev: { entity: Entity }) => recordDrop(ev.entity);
+  // The main pack sweeps a new drop before this pack's spawn callback; capture it while still valid.
+  const removing = (ev: { removedEntity: Entity }) =>
+    recordDrop(ev.removedEntity);
+  try {
+    dim.runCommand(`fill 88 ${gy} 72 112 ${gy + 6} 89 air`);
+    dim.runCommand(`fill 100 ${gy} 75 104 ${gy + 4} 85 stone`);
+    for (const [i, type] of [
+      "barrier",
+      "command_block",
+      "reinforced_deepslate",
+    ].entries())
+      at(100 + i, gy + 1, 80)?.setType(`minecraft:${type}`);
+    for (const [i, type] of ["light_block_15", "bedrock"].entries())
+      at(100 + i, gy + 2, 81)?.setType(`minecraft:${type}`);
+    for (const p of kept) at(p.x, gy + 3, p.z)?.setType(p.type);
+    const chest = at(101, gy + 3, 79)?.getComponent(
+      "minecraft:inventory",
+    )?.container;
+    if (!chest) throw new Error("chest inventory missing");
+    chest.setItem(0, new ItemStack("minecraft:diamond"));
+    dim.runCommand(`fill 102 ${gy} 74 102 ${gy + 2} 74 stone`);
+    dim.runCommand(
+      `setblock 102 ${gy + 1} 86 torch ["torch_facing_direction"="north"]`,
+    );
+    await wait(2);
+    if (at(102, gy + 1, 86)?.typeId !== "minecraft:torch")
+      return { pass: false, detail: "torch not placed" };
+    world.afterEvents.entitySpawn.subscribe(listener);
+    world.beforeEvents.entityRemove.subscribe(removing);
+    return await withBulldozer(a, 90.5, 80.5, -90, async (car) => {
+      await setBlade(car, false);
+      await setWideBlade(car, true);
+      await throughHill(car, () => {
+        boxes = bladeColumns(
+          car.location,
+          car.getRotation().y,
+          BULLDOZER_WIDE_BLADE,
+          false,
+        );
+      });
+      const wrong: string[] = [];
+      for (let x = 100; x <= 104; x++)
+        for (let z = 75; z <= 85; z++)
+          for (let y = gy; y <= gy + 4; y++) {
+            const keep =
+              y === gy + 3
+                ? kept.find((p) => p.x === x && p.z === z)
+                : undefined;
+            const type = cellType(a, x, y, z);
+            if (
+              keep
+                ? type !== keep.type
+                : type !== "minecraft:air" && type !== "minecraft:flowing_water"
+            )
+              wrong.push(`${x},${y},${z}:${type}`);
+          }
+      let floor = true;
+      for (let x = 100; x <= 104; x++)
+        for (let z = 75; z <= 85; z++)
+          floor &&= at(x, gy - 1, z)?.typeId === "minecraft:stone";
+      const marker = [0, 1, 2].every(
+        (dy) => at(102, gy + dy, 74)?.typeId === "minecraft:stone",
+      );
+      const items = dim.getEntities({
+        type: "minecraft:item",
+        location: { x: 102, y: gy, z: 80 },
+        maxDistance: 8,
+      }).length;
+      const diamond = chest.getItem(0);
+      return {
+        pass:
+          car.location.x >= 108 &&
+          wrong.length === 0 &&
+          at(100, gy + 3, 79)?.permutation.getState("liquid_depth") === 0 &&
+          floor &&
+          marker &&
+          items === 0 &&
+          // The scenario measures the drop radius (ADR 0137), so it needs a drop.
+          spawns > 0 &&
+          diamond?.typeId === "minecraft:diamond" &&
+          diamond.amount === 1,
+        detail: `x=${car.location.x.toFixed(2)} wrong=${wrong.join(";")} floor=${floor} marker=${marker} items=${items} spawned=${spawns}`,
+        lines: [
+          `dropRadius=${farthest.toFixed(3)} spawned=${spawns}`,
+          ...dropLines,
+        ],
+      };
+    });
+  } finally {
+    world.afterEvents.entitySpawn.unsubscribe(listener);
+    world.beforeEvents.entityRemove.unsubscribe(removing);
+    dim.runCommand(
+      `fill 96 ${gy} 72 112 ${gy + 4} 89 air replace flowing_water`,
+    );
+    at(100, gy + 3, 79)?.setType("minecraft:air");
+    dim.runCommand(`fill 88 ${gy} 72 112 ${gy + 6} 89 air`);
   }
 }
 export async function bulldozerOverhang(a: Arena): Promise<Outcome> {
@@ -795,4 +952,49 @@ export async function bulldozerFallSurvives(a: Arena): Promise<Outcome> {
       detail: `ticks=${ticks} y=${car.location.y.toFixed(2)} health=${health} hurt=${hurt}`,
     };
   });
+}
+
+export async function bulldozerWideRam(a: Arena): Promise<Outcome> {
+  const results: Outcome[] = [];
+  for (const wide of [true, false]) {
+    results.push(
+      await withBulldozer(a, 88.5, 72.5, -90, async (car) => {
+        await setWideBlade(car, wide);
+        const cow = summonCow(a, 108.5, 76);
+        if (!cow) return { pass: false, detail: "cow not found" };
+        try {
+          cow.addEffect("slowness", 600, {
+            amplifier: 255,
+            showParticles: false,
+          });
+          cow.addEffect("resistance", 600, {
+            amplifier: 2,
+            showParticles: false,
+          });
+          const health = () =>
+            cow.getComponent("minecraft:health")?.currentValue ?? 0;
+          const hp = health();
+          let hit = false;
+          drive(car, 0, 1);
+          for (let t = 0; t < 100; t++) {
+            await wait(1);
+            if (!cow.isValid)
+              return { pass: false, detail: `wide=${wide}: cow vanished` };
+            hit ||= health() < hp;
+            if (hit || car.location.x >= 112) break;
+          }
+          return {
+            pass: hit === wide && (wide || car.location.x >= 112),
+            detail: `wide=${wide} hit=${hit} hp=${hp}->${health()} x=${car.location.x.toFixed(2)}`,
+          };
+        } finally {
+          if (cow.isValid) cow.remove();
+        }
+      }),
+    );
+  }
+  return {
+    pass: results.every((r) => r.pass),
+    detail: results.map((r) => r.detail).join("; "),
+  };
 }
