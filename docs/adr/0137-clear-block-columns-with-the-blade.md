@@ -10,7 +10,7 @@ This is the first feature that removes arbitrary blocks. The existing per-cell `
 
 ## Decision
 
-- Define `CutColumn` and the single `CUT_KEPT_BLOCKS` list in `src/domain/vehicle/cut.ts`, with no imports. Drives return columns through `DriveStep.cut`; the aggregate passes them through `TickOutcome.cut`, defaulting to an empty array. No existing kind returns a cut.
+- Define `CutColumn` and the single kept-blocks list in `src/domain/vehicle/cut.ts` (later renamed `KEPT_BLOCKS` and moved to `src/domain/shared/keptBlocks.ts`, see 0178), with no imports. Drives return columns through `DriveStep.cut`; the aggregate passes them through `TickOutcome.cut`, defaulting to an empty array. No existing kind returns a cut.
 - Apply cuts right after `clear` and before movement inside the existing per-vehicle isolation (0055). A failed world call skips that vehicle's remaining tick; a failed column fill skips only that column. The per-cell clear path is unchanged.
 - On the ground, scan from the feet upward to the first air gap or the world's top. Only `isAir` ends the run: kept blocks and light blocks do not. In flight, cut a fixed height through air gaps. Clamp to the dimension's height range and never cut below the requested feet.
 - Keep air, water, flowing water, lava, flowing lava, and every block that holds items, with its contents: containers, shelves, item frames, campfires, flower pots, suspicious sand and gravel, beehives, and bee nests. Share one list across all kinds and read it directly in the adapter. Check its 70 IDs against `@minecraft/vanilla-data` 1.26.52 in unit tests and against the server in game. Omit `poplar_shelf`, which may not exist on the dev BDS: an unknown filter ID can reject the fill.
