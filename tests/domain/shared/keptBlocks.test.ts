@@ -1,15 +1,15 @@
 import { MinecraftBlockTypes } from "@minecraft/vanilla-data";
 import { expect, it } from "vitest";
-import { CUT_KEPT_BLOCKS } from "../../../src/domain/vehicle/cut";
+import { KEPT_BLOCKS } from "../../../src/domain/shared/keptBlocks";
 
 it("lists each kept block once, as a real vanilla block id (ADR 0137)", () => {
   const vanilla = new Set<string>(Object.values(MinecraftBlockTypes));
-  expect(new Set(CUT_KEPT_BLOCKS).size).toBe(CUT_KEPT_BLOCKS.length);
-  for (const id of CUT_KEPT_BLOCKS) expect(vanilla.has(id), id).toBe(true);
+  expect(new Set(KEPT_BLOCKS).size).toBe(KEPT_BLOCKS.length);
+  for (const id of KEPT_BLOCKS) expect(vanilla.has(id), id).toBe(true);
 });
 it("keeps air, the liquids, and every block that holds items (ADR 0137)", () => {
-  expect(CUT_KEPT_BLOCKS).toHaveLength(70);
-  expect(CUT_KEPT_BLOCKS).toEqual(
+  expect(KEPT_BLOCKS).toHaveLength(70);
+  expect(KEPT_BLOCKS).toEqual(
     expect.arrayContaining(
       [
         "air",
@@ -66,5 +66,5 @@ it("cuts bedrock, technical, unbreakable, and light blocks (ADR 0137)", () => {
     "reinforced_deepslate",
     "light_block_15",
   ])
-    expect(CUT_KEPT_BLOCKS).not.toContain(`minecraft:${id}`);
+    expect(KEPT_BLOCKS).not.toContain(`minecraft:${id}`);
 });

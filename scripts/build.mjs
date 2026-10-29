@@ -4,7 +4,7 @@ const common = {
   bundle: true,
   format: "esm",
   target: "es2022",
-  external: ["@minecraft/server"],
+  external: ["@minecraft/server", "@minecraft/server-ui"],
   logLevel: "info",
 };
 await build({
