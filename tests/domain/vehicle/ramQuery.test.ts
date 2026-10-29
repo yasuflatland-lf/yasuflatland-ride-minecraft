@@ -7,7 +7,12 @@ import {
   RAM_QUERY_RADIUS,
 } from "../../../src/domain/vehicle/kinds/index";
 import { SUV_SPEC } from "../../../src/domain/vehicle/kinds/suv/spec";
+import {
+  ramHalfWidthLimit,
+  type VehicleProfile,
+} from "../../../src/domain/vehicle/profile";
 import { selectHits } from "../../../src/domain/vehicle/ram";
+import { ramQueryRadius } from "../../../src/domain/vehicle/ramQuery";
 import { SPEC } from "../../../src/domain/vehicle/spec";
 
 // Mixes in the exact bounds so the far corners, where the sphere is tightest, are drawn often.
@@ -69,6 +74,81 @@ describe("RAM_QUERY_RADIUS", () => {
         },
       ),
       { numRuns: 2000 },
+    );
+  });
+});
+
+const height = Math.max(Math.abs(SPEC.ramMinDy), Math.abs(SPEC.ramMaxDy));
+
+function cornerReach(front: number, halfWidth: number): number {
+  return Math.hypot(
+    front + SPEC.targetHalfWidth,
+    halfWidth + SPEC.targetHalfWidth,
+    height,
+  );
+}
+
+function withoutCaps(profiles: readonly VehicleProfile[]): VehicleProfile[] {
+  return profiles.map((profile) => ({
+    ...profile,
+    maxRamHalfWidth: undefined,
+  }));
+}
+
+const profileArb = fc
+  .record({
+    kind: fc.constantFrom(...VEHICLE_KINDS),
+    front: within(0, 20),
+    halfWidth: within(0, 20),
+    maxRamHalfWidth: fc.option(within(0, 40), { nil: undefined }),
+  })
+  .map(({ kind, front, halfWidth, maxRamHalfWidth }) => {
+    const base = profileOf(kind);
+    return {
+      ...base,
+      body: { ...base.body, front, halfWidth },
+      maxRamHalfWidth,
+    };
+  });
+
+describe("ramQueryRadius", () => {
+  const profilesArb = fc.array(profileArb, { minLength: 1, maxLength: 10 });
+
+  it("reaches every profile's corner at its ram half width limit", () => {
+    fc.assert(
+      fc.property(profilesArb, (profiles) => {
+        const radius = ramQueryRadius(profiles);
+        for (const profile of profiles) {
+          expect(radius).toBeGreaterThanOrEqual(
+            cornerReach(profile.body.front, ramHalfWidthLimit(profile)),
+          );
+        }
+      }),
+    );
+  });
+
+  it("adding a cap never shrinks the query radius", () => {
+    fc.assert(
+      fc.property(profilesArb, (profiles) => {
+        expect(ramQueryRadius(profiles)).toBeGreaterThanOrEqual(
+          ramQueryRadius(withoutCaps(profiles)),
+        );
+      }),
+    );
+  });
+
+  it("without caps equals the original body-based formula", () => {
+    fc.assert(
+      fc.property(profilesArb, (profiles) => {
+        const uncapped = withoutCaps(profiles);
+        expect(ramQueryRadius(uncapped)).toBe(
+          Math.max(
+            ...uncapped.map(({ body }) =>
+              cornerReach(body.front, body.halfWidth),
+            ),
+          ),
+        );
+      }),
     );
   });
 });
