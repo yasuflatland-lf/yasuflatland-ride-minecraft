@@ -168,8 +168,8 @@ async function lowChairSettlesThroughGrassForKind(
   }
 }
 
-/** Confirms that the outside table loads as a persistent two-seat entity. */
-export function campTableTwoSeats(a: Arena): Promise<Outcome> {
+/** Confirms that the outside table loads as a persistent entity with no seats. */
+export function campTableNoSeats(a: Arena): Promise<Outcome> {
   const at = { x: CELL.x + 0.5, y: a.gy, z: CELL.z + 8.5 };
   a.dim.runCommand(`summon ${CAMP_TABLE_TYPE} ${at.x} ${at.y} ${at.z}`);
   const table = a.dim.getEntities({
@@ -178,11 +178,12 @@ export function campTableTwoSeats(a: Arena): Promise<Outcome> {
     maxDistance: 1.5,
   })[0];
   try {
-    const seats = table?.getComponent("minecraft:rideable")?.seatCount;
+    const rideable = table?.getComponent("minecraft:rideable");
     const family = table?.matches({ families: ["yasu_ride_camp_table"] });
     return Promise.resolve({
-      pass: seats === 2 && family === true,
-      detail: `seats=${seats} family=${family}`,
+      pass:
+        table?.isValid === true && rideable === undefined && family === true,
+      detail: `rideable=${rideable !== undefined} family=${family}`,
     });
   } finally {
     if (table?.isValid) table.remove();

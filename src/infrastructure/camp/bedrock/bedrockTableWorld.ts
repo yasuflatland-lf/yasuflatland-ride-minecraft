@@ -85,13 +85,6 @@ export class BedrockTableWorld implements TableWorld {
     });
   }
 
-  isOccupied(tableId: TableId): boolean {
-    return (
-      (tableOf(tableId)?.getComponent("minecraft:rideable")?.getRiders()
-        .length ?? 0) > 0
-    );
-  }
-
   dropItem(tableId: TableId): void {
     const table = tableOf(tableId);
     table?.dimension.spawnItem(
