@@ -61,13 +61,15 @@ describe("Road Paver switch (ADR 0181)", () => {
       },
     });
   });
-  it("is not a cab monitor tool until the road paver state exists (11/16)", () => {
-    expect(readFileSync("tools/monitor_screens.json", "utf8")).not.toContain(
-      "road_paver_switch",
-    );
+  it("is a cab monitor tool with an off and an on screen", () => {
     expect(
-      readFileSync("src/domain/vehicle/kinds/bulldozer/monitor.ts", "utf8"),
-    ).not.toContain("road_paver_switch");
+      read("tools/monitor_screens.json").bulldozer.filter(
+        (s: { item: string }) => s.item === "road_paver_switch",
+      ),
+    ).toEqual([
+      { item: "road_paver_switch", state: "off", label: "OFF" },
+      { item: "road_paver_switch", state: "on", label: "ON" },
+    ]);
   });
   it.each(["en_US", "ja_JP"])("names the item in %s", (locale) => {
     const values = new Map(

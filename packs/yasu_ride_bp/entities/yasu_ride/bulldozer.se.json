@@ -72,9 +72,14 @@
         },
         "yasu_ride:monitor": {
           "type": "int",
-          "range": [0, 4],
+          "range": [0, 6],
           "default": 0,
           "client_sync": true
+        },
+        "yasu_ride:road_paver": {
+          "type": "bool",
+          "default": false,
+          "client_sync": false
         }
       }
     },

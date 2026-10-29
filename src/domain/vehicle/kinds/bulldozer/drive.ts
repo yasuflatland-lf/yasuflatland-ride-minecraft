@@ -18,6 +18,7 @@ import {
   type BULLDOZER_ENTITY,
   bladeCommand,
   doorCommand,
+  roadPaverCommand,
   trackPhaseCommand,
   trackSpinCommand,
   wideBladeCommand,
@@ -25,6 +26,7 @@ import {
 import {
   BLADE_SWITCH_ITEM,
   BULLDOZER_MONITOR,
+  ROAD_PAVER_SWITCH_ITEM,
   WIDE_BLADE_SWITCH_ITEM,
 } from "./monitor";
 import { BULLDOZER_MOTION, BULLDOZER_TYRES } from "./profile";
@@ -123,6 +125,8 @@ export class BulldozerDrive extends TransformingDrive {
   private readonly bladeSync = new SyncedValue<number>();
   /** Whether the wide blade model is shown; the cut keeps the normal width until the wide rule lands (ADR 0180). */
   private wideBlade: boolean;
+  private roadPaverOn: boolean;
+  private readonly roadPaverSync = new SyncedValue<boolean>();
   private readonly wideSync = new SyncedValue<boolean>();
   private readonly phaseSync = {
     r: new SyncedValue<0 | 1 | 2>(),
@@ -138,6 +142,12 @@ export class BulldozerDrive extends TransformingDrive {
         get: () => (this.bladeTargetRaised ? "up" : "down"),
         set: (state) => {
           this.bladeTargetRaised = state === "up";
+        },
+      },
+      [ROAD_PAVER_SWITCH_ITEM]: {
+        get: () => (this.roadPaverOn ? "on" : "off"),
+        set: (state) => {
+          this.roadPaverOn = state === "on";
         },
       },
       [WIDE_BLADE_SWITCH_ITEM]: {
@@ -168,6 +178,7 @@ export class BulldozerDrive extends TransformingDrive {
         : BULLDOZER_SPEC.bladeRaisedOnSpawn;
     this.bladeSteps = this.bladeTargetSteps();
     this.wideBlade = restored.wide_blade === true;
+    this.roadPaverOn = restored.road_paver === true;
     // Unlike the other kinds, a rebuilt bulldozer resends gravity and its restored
     // form on the first step instead of trusting ADR 0127's primed form (ADR 0136).
     this.resync();
@@ -212,6 +223,7 @@ export class BulldozerDrive extends TransformingDrive {
     this.doorSync.resync();
     this.bladeSync.resync();
     this.wideSync.resync();
+    this.roadPaverSync.resync();
     for (const side of TRACK_SIDES) {
       this.phaseSync[side].resync();
       this.spinSync[side].resync();
@@ -311,6 +323,8 @@ export class BulldozerDrive extends TransformingDrive {
       this.bladeSteps / BULLDOZER_SPEC.bladeLiftTicks,
     );
     if (blade !== undefined) commands.push(bladeCommand(blade));
+    const roadPaver = this.roadPaverSync.next(this.roadPaverOn);
+    if (roadPaver !== undefined) commands.push(roadPaverCommand(roadPaver));
     const wide = this.wideSync.next(this.wideBlade);
     if (wide !== undefined) commands.push(wideBladeCommand(wide));
     for (const side of TRACK_SIDES) {
