@@ -1,6 +1,6 @@
 # 0168. A Dutch oven and a grill for the fire pit
 
-- Status: Proposed
+- Status: Proposed; superseded in part (rule 1: new table ovens go at the aimed point, not two fixed spots; rule 5: a missing host removes the oven with no drop; rule 8: an overlap and limit check replaces the occupied-spot refusal on a table; the table may now hold Gas Lanterns) by [0185](0185-put-things-on-the-camp-table-instead-of-sitting-at-it.md) (Proposed)
 - Date: 2026-10-27
 - Extends: 0122, 0144, 0152, 0153
 

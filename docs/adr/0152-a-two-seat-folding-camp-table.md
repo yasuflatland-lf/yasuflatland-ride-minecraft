@@ -1,6 +1,6 @@
 # 0152. A two-seat folding camp table
 
-- Status: Proposed; superseded in part (the top holds a Dutch oven) by [0168](0168-a-dutch-oven-and-a-grill-for-the-fire-pit.md) (Proposed)
+- Status: Proposed; superseded in part (the top holds a Dutch oven) by [0168](0168-a-dutch-oven-and-a-grill-for-the-fire-pit.md) (Proposed); superseded in part (no seats, the top holds ovens and lanterns) by [0185](0185-put-things-on-the-camp-table-instead-of-sitting-at-it.md) (Proposed)
 - Date: 2026-10-26
 - Extends: 0122 (outside camping gear), 0144 (inside and outside catalog groups)
 

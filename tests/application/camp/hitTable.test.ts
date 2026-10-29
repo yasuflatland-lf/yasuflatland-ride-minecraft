@@ -9,9 +9,9 @@ import { asPlayerId } from "../../../src/domain/shared/ids";
 const TABLE = asTableId("table");
 const PLAYER = asPlayerId("player");
 
-function fakeWorld(occupied = false): TableWorld {
+function fakeWorld(): TableWorld {
   return {
-    ovensOnTable: vi.fn(() => 0),
+    itemsOnTable: vi.fn(() => 0),
     showOvenOnTop: vi.fn(),
     isAir: vi.fn(() => true),
     isOwnBlock: vi.fn(() => false),
@@ -20,7 +20,6 @@ function fakeWorld(occupied = false): TableWorld {
     isCreative: vi.fn(() => false),
     consumeItem: vi.fn(() => true),
     spawnTable: vi.fn(),
-    isOccupied: vi.fn(() => occupied),
     dropItem: vi.fn(),
     removeTable: vi.fn(),
     showHitsLeft: vi.fn(),
@@ -51,28 +50,6 @@ describe("HitTable (ADR 0152)", () => {
     }
     expect(world.removeTable).toHaveBeenCalledOnce();
     expect(world.showHitsLeft).toHaveBeenLastCalledWith(PLAYER, 2);
-  });
-
-  it("never takes back a table someone sits at, and shows no hint then", () => {
-    fc.assert(
-      fc.property(
-        fc.array(fc.integer({ min: 0, max: 50 }), { maxLength: 20 }),
-        (gaps) => {
-          const world = fakeWorld(true);
-          const hit = new HitTable(world);
-          let tick = 0;
-          for (const gap of gaps) {
-            tick += gap;
-            expect(
-              hit.execute({ tableId: TABLE, tick, playerId: PLAYER }),
-            ).toBe(false);
-          }
-          expect(world.removeTable).not.toHaveBeenCalled();
-          expect(world.dropItem).not.toHaveBeenCalled();
-          expect(world.showHitsLeft).not.toHaveBeenCalled();
-        },
-      ),
-    );
   });
 
   it("never takes back a table hit more than the reset window apart", () => {
@@ -123,12 +100,12 @@ it("leaves the table and its counter alone while either half holds an oven", () 
         const hit = new HitTable(world);
         const command = { tableId: TABLE, playerId: PLAYER, tick: 0 };
         hit.execute(command);
-        vi.mocked(world.ovensOnTable).mockReturnValue(ovens);
+        vi.mocked(world.itemsOnTable).mockReturnValue(ovens);
         for (let tick = 1; tick <= hits; tick++)
           expect(hit.execute({ ...command, tick })).toBe(false);
         expect(world.showOvenOnTop).toHaveBeenCalledTimes(hits);
         expect(world.removeTable).not.toHaveBeenCalled();
-        vi.mocked(world.ovensOnTable).mockReturnValue(0);
+        vi.mocked(world.itemsOnTable).mockReturnValue(0);
         expect(hit.execute({ ...command, tick: hits + 1 })).toBe(false);
         expect(world.showHitsLeft).toHaveBeenLastCalledWith(PLAYER, 1);
         expect(hit.execute({ ...command, tick: hits + 2 })).toBe(true);

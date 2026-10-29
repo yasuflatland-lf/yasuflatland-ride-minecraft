@@ -6,22 +6,12 @@ const rp = "packs/yasu_ride_rp";
 const readJson = (path: string) => JSON.parse(readFileSync(path, "utf8"));
 
 describe("camp table", () => {
-  it("has two adjacent seats facing the same side of the unchanged table", () => {
+  it("has no seats and remains persistent with gravity", () => {
     const entity = readJson(`${bp}/entities/yasu_ride/camp_table.se.json`)[
       "minecraft:entity"
     ];
-    const rideable = entity.components["minecraft:rideable"];
-    expect(rideable.seat_count).toBe(2);
-    expect(rideable.family_types).toEqual(["player"]);
-    expect(rideable.interact_text).toBe("action.interact.yasu_ride.sit");
-    expect(rideable.seats).toHaveLength(2);
-    const [a, b] = rideable.seats.map(
-      (seat: { position: number[] }) => seat.position,
-    );
-    expect(a[0]).toBeLessThan(b[0]);
-    expect(a[1]).toBe(b[1]);
-    expect(a[2]).toBe(b[2]);
-    expect((b[0] - a[0]) * 16).toBeGreaterThanOrEqual(12);
+    expect(entity.components).not.toHaveProperty("minecraft:rideable");
+    expect(entity.components).toHaveProperty("minecraft:persistent");
     expect(entity.components["minecraft:physics"].has_gravity).toBe(true);
   });
 

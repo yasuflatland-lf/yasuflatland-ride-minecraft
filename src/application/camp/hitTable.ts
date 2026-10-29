@@ -19,18 +19,16 @@ export class HitTable {
     tick: number;
     playerId: PlayerId;
   }): boolean {
-    if (this.world.ovensOnTable(cmd.tableId) > 0) {
+    if (this.world.itemsOnTable(cmd.tableId) > 0) {
       this.world.showOvenOnTop(cmd.playerId);
       return false;
     }
-    const occupied = this.world.isOccupied(cmd.tableId);
-    const result = this.hits.hit(cmd.tableId, cmd.tick, occupied);
+    const result = this.hits.hit(cmd.tableId, cmd.tick, false);
     if (result.broken) {
       this.world.dropItem(cmd.tableId);
       this.world.removeTable(cmd.tableId);
       return true;
     }
-    if (occupied) return false;
     this.world.showHitsLeft(cmd.playerId, result.hitsLeft);
     return false;
   }
