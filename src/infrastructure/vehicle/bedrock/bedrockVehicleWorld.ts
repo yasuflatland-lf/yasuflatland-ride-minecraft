@@ -47,6 +47,7 @@ import type { RiderView } from "../../../domain/vehicle/vehicle";
 import { heldTypeId } from "../../shared/heldItem";
 import { AIR_BLOCK, bareId, messageKey } from "../../shared/identifiers";
 import { isLightBlock } from "../../shared/lightBlocks";
+import { mountOf } from "../../shared/mount";
 import type { VehicleTestStore } from "../testInput/vehicleTestStore";
 import { savedDecor } from "./bedrockDecorWorld";
 import { BladeCuts } from "./bladeCuts";
@@ -442,9 +443,7 @@ export class BedrockVehicleWorld implements DriveWorld {
           y: e.location.y - vehicle.location.y,
           z: e.location.z - vehicle.location.z,
         },
-        mount: ramMountOf(
-          e.getComponent("minecraft:riding")?.entityRidingOn?.typeId,
-        ),
+        mount: ramMountOf(mountOf(e)?.typeId),
       }));
   }
 
