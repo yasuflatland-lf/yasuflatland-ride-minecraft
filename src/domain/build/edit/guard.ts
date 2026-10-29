@@ -33,7 +33,7 @@ const SIGNS: readonly string[] = [
   ...WOODS.map((wood) => `minecraft:${wood}_hanging_sign`),
 ];
 
-/** Data-holding blocks the build tools never edit or copy, on top of PLACE_KEPT_BLOCKS (ADR 0137, 0178). */
+/** Data-holding blocks the build tools never edit or copy, on top of PLACE_KEPT_BLOCKS (ADR 0137, 0178, 0181). */
 export const BUILD_KEPT_BLOCKS: readonly string[] = [
   ...SIGNS,
   "minecraft:mob_spawner",

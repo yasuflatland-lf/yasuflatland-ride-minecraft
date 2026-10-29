@@ -1,4 +1,4 @@
-// Fluids stay so a cut never floods or drains, and every block that holds items, including item frames and campfires, is kept with its contents. The blade cut keeps KEPT_BLOCKS so it never floods or drains; a placement may write into air and fluids but never over PLACE_KEPT_BLOCKS (ADR 0137, 0178, 0180).
+// The blade cut keeps KEPT_BLOCKS so it never floods or drains, and every block that holds items, including item frames and campfires, is kept with its contents. A placement may write into air and fluids but never over PLACE_KEPT_BLOCKS (ADR 0137, 0178, 0181).
 const OPEN_BLOCKS: readonly string[] = [
   "minecraft:air",
   "minecraft:water",
@@ -7,7 +7,7 @@ const OPEN_BLOCKS: readonly string[] = [
   "minecraft:flowing_lava",
 ];
 
-/** The blocks a placement (a fill, a paste, a road) must never overwrite. Air and fluids are kept only by the cut (ADR 0137, 0178, 0180). */
+/** The blocks a placement (a fill, a paste, a road) must never overwrite. Air and fluids are kept only by the cut (ADR 0137, 0178, 0181). */
 export const PLACE_KEPT_BLOCKS: readonly string[] = [
   "minecraft:chest",
   "minecraft:trapped_chest",
