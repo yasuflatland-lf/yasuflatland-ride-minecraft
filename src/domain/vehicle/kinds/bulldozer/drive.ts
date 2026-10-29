@@ -125,9 +125,10 @@ export class BulldozerDrive extends TransformingDrive {
   private readonly bladeSync = new SyncedValue<number>();
   /** Whether the wide blade model is shown; the cut keeps the normal width until the wide rule lands (ADR 0180). */
   private wideBlade: boolean;
+  private readonly wideSync = new SyncedValue<boolean>();
+  /** Whether the road paver switch is on; saved but not yet acted on until the paving rule lands (ADR 0181). */
   private roadPaverOn: boolean;
   private readonly roadPaverSync = new SyncedValue<boolean>();
-  private readonly wideSync = new SyncedValue<boolean>();
   private readonly phaseSync = {
     r: new SyncedValue<0 | 1 | 2>(),
     l: new SyncedValue<0 | 1 | 2>(),
@@ -323,10 +324,10 @@ export class BulldozerDrive extends TransformingDrive {
       this.bladeSteps / BULLDOZER_SPEC.bladeLiftTicks,
     );
     if (blade !== undefined) commands.push(bladeCommand(blade));
-    const roadPaver = this.roadPaverSync.next(this.roadPaverOn);
-    if (roadPaver !== undefined) commands.push(roadPaverCommand(roadPaver));
     const wide = this.wideSync.next(this.wideBlade);
     if (wide !== undefined) commands.push(wideBladeCommand(wide));
+    const roadPaver = this.roadPaverSync.next(this.roadPaverOn);
+    if (roadPaver !== undefined) commands.push(roadPaverCommand(roadPaver));
     for (const side of TRACK_SIDES) {
       const phase = this.phaseSync[side].next(
         trackPhase(this.travel[side], phaseStep),

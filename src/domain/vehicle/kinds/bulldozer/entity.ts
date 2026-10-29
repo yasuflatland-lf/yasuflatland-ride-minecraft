@@ -18,6 +18,7 @@ export const BULLDOZER_ENTITY = {
     blade: { type: "float", range: [0, 1] },
     /** Whether the wide blade model is shown instead of the normal one (ADR 0180). */
     wide_blade: { type: "bool" },
+    /** Whether the road paver switch is on; server-only state the cab monitor reads through the tool (ADR 0181). */
     road_paver: { type: "bool" },
   },
   events: TRANSFORMING_EVENTS,

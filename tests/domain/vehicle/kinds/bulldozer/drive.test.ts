@@ -947,7 +947,7 @@ it("keeps the blade, wide blade, and road paver tools independent", () => {
         const last = new Map([
           [BLADE_SWITCH_ITEM, drive.toolState(BLADE_SWITCH_ITEM)],
           [WIDE_BLADE_SWITCH_ITEM, drive.toolState(WIDE_BLADE_SWITCH_ITEM)],
-          [ROAD_PAVER_SWITCH_ITEM, "off"],
+          [ROAD_PAVER_SWITCH_ITEM, drive.toolState(ROAD_PAVER_SWITCH_ITEM)],
         ]);
         for (const [item, state] of sets) {
           expect(drive.setToolState(item, state)).toBe(true);
