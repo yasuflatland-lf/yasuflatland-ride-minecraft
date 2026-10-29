@@ -11,7 +11,7 @@ import {
   DUTCH_OVEN_ON_TOP_HINT,
   TABLE_HITS_LEFT_HINT,
 } from "../identifiers";
-import { takenTableSpots } from "./tableOvens";
+import { itemsOnTable } from "./tableItems";
 
 function tableOf(id: TableId) {
   const entity = world.getEntity(id);
@@ -75,21 +75,14 @@ export class BedrockTableWorld implements TableWorld {
     table.setRotation({ x: 0, y: yaw });
   }
 
-  ovensOnTable(id: TableId): number {
-    return takenTableSpots(id).size;
+  itemsOnTable(id: TableId): number {
+    return itemsOnTable(id).length;
   }
 
   showOvenOnTop(player: PlayerId): void {
     playerById(player)?.onScreenDisplay.setActionBar({
       translate: DUTCH_OVEN_ON_TOP_HINT,
     });
-  }
-
-  isOccupied(tableId: TableId): boolean {
-    return (
-      (tableOf(tableId)?.getComponent("minecraft:rideable")?.getRiders()
-        .length ?? 0) > 0
-    );
   }
 
   dropItem(tableId: TableId): void {

@@ -5,6 +5,7 @@ import { BedrockGasLanternWorld } from "../../../src/infrastructure/camp/bedrock
 import { createGasLanternLight } from "../../../src/infrastructure/camp/bedrock/gasLanternLight";
 import {
   GAS_LANTERN_CELLS_PROPERTY,
+  GAS_LANTERN_HOST_PROPERTY,
   GAS_LANTERN_LIT_PROPERTY,
   GAS_LANTERN_TYPE,
   SWITCH_CLICK_SOUND,
@@ -139,4 +140,18 @@ it("clears saved light before take-back even before the first loaded pass", () =
   expect(f.world.isLit(f.id)).toBeUndefined();
   f.world.relayLight(f.id);
   expect(f.at(f.cell)).toBe("minecraft:air");
+});
+
+it("reads a lantern's host marker, its loaded host area, and whether a host exists", () => {
+  const f = fixture();
+  expect(f.world.loadedGasLanterns()).toEqual([f.id]);
+  expect(f.world.host(f.id)).toBe("");
+  f.saved.set(GAS_LANTERN_HOST_PROPERTY, "camp_table:table:@1,0");
+  expect(f.world.host(f.id)).toBe("camp_table:table:@1,0");
+  expect(f.world.isHostAreaLoaded(f.id)).toBe(true);
+  expect(f.world.hostExists(f.id)).toBe(true);
+  expect(f.world.hostExists("table")).toBe(false);
+  f.entity.isValid = false;
+  expect(f.world.host(f.id)).toBe("");
+  expect(f.world.isHostAreaLoaded(f.id)).toBe(false);
 });

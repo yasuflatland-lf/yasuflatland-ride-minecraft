@@ -20,7 +20,7 @@ import {
 } from "../../infrastructure/build/identifiers";
 import { type Arena, type Outcome, wait, withCar } from "../arena";
 
-function riddenEntity(player: Player): Entity | undefined {
+export function riddenEntity(player: Player): Entity | undefined {
   try {
     return player.getComponent("minecraft:riding")?.entityRidingOn;
   } catch {
@@ -38,7 +38,10 @@ function ejectPlayer(player: Player, mount: Entity): void {
   }
 }
 
-async function boardBulldozer(player: Player, car: Entity): Promise<void> {
+export async function boardBulldozer(
+  player: Player,
+  car: Entity,
+): Promise<void> {
   const rideable = car.getComponent("minecraft:rideable");
   if (!rideable) throw new Error("bulldozer rideable component missing");
   let seatedTicks = 0;
@@ -63,7 +66,7 @@ async function boardBulldozer(player: Player, car: Entity): Promise<void> {
   );
 }
 
-function withPlayerBulldozer(
+export function withPlayerBulldozer(
   a: Arena,
   { player, x, z, yaw }: { player: Player; x: number; z: number; yaw: number },
   run: (car: Entity) => Promise<Outcome>,

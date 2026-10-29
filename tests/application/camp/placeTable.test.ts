@@ -9,7 +9,7 @@ const playerId = asPlayerId("player");
 
 function fakeWorld(): TableWorld {
   return {
-    ovensOnTable: vi.fn(() => 0),
+    itemsOnTable: vi.fn(() => 0),
     showOvenOnTop: vi.fn(),
     isAir: vi.fn(() => true),
     isOwnBlock: vi.fn(() => false),
@@ -18,7 +18,6 @@ function fakeWorld(): TableWorld {
     isCreative: vi.fn(() => false),
     consumeItem: vi.fn(() => true),
     spawnTable: vi.fn(),
-    isOccupied: vi.fn(() => false),
     dropItem: vi.fn(),
     removeTable: vi.fn(),
     showHitsLeft: vi.fn(),

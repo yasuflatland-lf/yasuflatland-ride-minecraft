@@ -25,3 +25,9 @@ export function selectionBox(sel: Selection | undefined): Box | undefined {
   if (!sel?.pos1 || !sel.pos2) return undefined;
   return boxOf(sel.pos1, sel.pos2);
 }
+
+/** The only corner of a selection that holds exactly one, else undefined. */
+export function loneCorner(sel: Selection | undefined): Cell | undefined {
+  if (sel?.pos1 && sel.pos2) return undefined;
+  return sel?.pos1 ?? sel?.pos2;
+}

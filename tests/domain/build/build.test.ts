@@ -16,6 +16,7 @@ import {
   volume,
 } from "../../../src/domain/build/box";
 import {
+  loneCorner,
   selectionBox,
   withCorner,
 } from "../../../src/domain/build/selection/selection";
@@ -206,6 +207,39 @@ describe("BUILD_SPEC", () => {
 describe("Selection", () => {
   const overworld = asDimensionId("minecraft:overworld");
   const nether = asDimensionId("minecraft:nether");
+
+  it("returns either corner when it is the only corner", () => {
+    fc.assert(
+      fc.property(cell, fc.constantFrom("pos1", "pos2"), (c, corner) => {
+        expect(loneCorner(withCorner(undefined, corner, overworld, c))).toBe(c);
+      }),
+    );
+  });
+
+  it("has no lone corner with both corners, neither, or no selection", () => {
+    fc.assert(
+      fc.property(cell, cell, (a, b) => {
+        expect(
+          loneCorner({ dimensionId: overworld, pos1: a, pos2: b }),
+        ).toBeUndefined();
+        expect(
+          loneCorner({ dimensionId: overworld, pos1: a, pos2: a }),
+        ).toBeUndefined();
+        expect(loneCorner({ dimensionId: overworld })).toBeUndefined();
+        expect(loneCorner(undefined)).toBeUndefined();
+      }),
+    );
+  });
+
+  it("keeps the lone corner when the corner positions are swapped", () => {
+    fc.assert(
+      fc.property(cell, (c) => {
+        expect(loneCorner(withCorner(undefined, "pos1", overworld, c))).toBe(
+          loneCorner(withCorner(undefined, "pos2", overworld, c)),
+        );
+      }),
+    );
+  });
 
   it("drops the other corner when a corner lands in a new dimension", () => {
     fc.assert(

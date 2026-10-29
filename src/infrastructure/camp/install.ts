@@ -1,8 +1,15 @@
-import { DutchOvenActions } from "../../application/camp/dutchOven";
+import {
+  DutchOvenActions,
+  dutchOvenHostedKind,
+} from "../../application/camp/dutchOven";
 import { FirePitActions } from "../../application/camp/firePit";
-import { GasLanternActions } from "../../application/camp/gasLantern";
+import {
+  GasLanternActions,
+  gasLanternHostedKind,
+} from "../../application/camp/gasLantern";
 import { HitChair } from "../../application/camp/hitChair";
 import { HitTable } from "../../application/camp/hitTable";
+import { HostedItemsGuard } from "../../application/camp/hostedItemsGuard";
 import { PaintTent } from "../../application/camp/paintTent";
 import { PitchTent } from "../../application/camp/pitchTent";
 import { PlaceChair } from "../../application/camp/placeChair";
@@ -65,12 +72,19 @@ export function installCamp(deps: { isVehicleSpace: SpaceCheck }): {
   const tables = new BedrockTableWorld(deps);
   registerTable(new PlaceTable(tables), new HitTable(tables));
   const firePits = new BedrockFirePitWorld(deps);
-  registerDutchOven(new DutchOvenActions(new BedrockDutchOvenWorld(deps)));
-  registerFirePit(new FirePitActions(firePits), firePits);
+  const ovens = new BedrockDutchOvenWorld(deps);
   const gasLanternWorld = new BedrockGasLanternWorld(
     deps,
     createGasLanternLight(),
   );
+  registerDutchOven(
+    new DutchOvenActions(ovens),
+    new HostedItemsGuard([
+      dutchOvenHostedKind(ovens),
+      gasLanternHostedKind(gasLanternWorld),
+    ]),
+  );
+  registerFirePit(new FirePitActions(firePits), firePits);
   const gasLanterns = new GasLanternActions(gasLanternWorld);
   registerGasLantern(gasLanterns, gasLanternWorld);
 

@@ -17,12 +17,19 @@ import { TickScopedSet } from "../../../../domain/shared/tickScoped";
 import { heldTypeId } from "../../../shared/heldItem";
 import { HEADLIGHT_SWITCH_TYPE } from "../../../shared/identifiers";
 import {
+  CAMP_TABLE_TYPE,
   GAS_LANTERN_ITEM,
   GAS_LANTERN_TYPE,
   TEST_GAS_LANTERN_EVENT,
   TEST_GAS_LANTERN_HIT_EVENT,
+  TEST_GAS_LANTERN_ON_TABLE_EVENT,
 } from "../../identifiers";
 import type { BedrockGasLanternWorld } from "../bedrockGasLanternWorld";
+import {
+  showTableTopRefusal,
+  tableTopAim,
+  testTableTopRequest,
+} from "../tableTopAim";
 
 export function registerGasLantern(
   actions: GasLanternActions,
@@ -52,6 +59,26 @@ export function registerGasLantern(
     const slot = ev.player.selectedSlotIndex;
     system.run(() => actions.place({ player, dimension, block, yaw, slot }));
   });
+  world.beforeEvents.playerInteractWithEntity.subscribe((ev) => {
+    if (
+      ev.target.typeId !== CAMP_TABLE_TYPE ||
+      ev.itemStack?.typeId !== GAS_LANTERN_ITEM
+    )
+      return;
+    ev.cancel = true;
+    const player = asPlayerId(ev.player.id);
+    if (!placements.add(system.currentTick, player)) return;
+    const table = ev.target.id;
+    const slot = ev.player.selectedSlotIndex;
+    const aim = tableTopAim(ev.player, ev.target);
+    const placer = ev.player;
+    system.run(() =>
+      showTableTopRefusal(
+        placer,
+        actions.placeOnTable({ player, table, slot, aim }),
+      ),
+    );
+  });
   world.afterEvents.entityHitEntity.subscribe((ev) => {
     if (
       !(ev.damagingEntity instanceof Player) ||
@@ -69,6 +96,12 @@ export function registerGasLantern(
     );
   });
   system.afterEvents.scriptEventReceive.subscribe((ev) => {
+    if (ev.id === TEST_GAS_LANTERN_ON_TABLE_EVENT) {
+      if (ev.sourceType !== ScriptEventSource.Server) return;
+      const request = testTableTopRequest(ev.message);
+      if (request) actions.placeOnTable({ ...request, slot: 0 });
+      return;
+    }
     if (
       (ev.id !== TEST_GAS_LANTERN_HIT_EVENT &&
         ev.id !== TEST_GAS_LANTERN_EVENT) ||

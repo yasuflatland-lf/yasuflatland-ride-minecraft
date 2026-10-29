@@ -1,16 +1,55 @@
-import type { GasLanternId } from "../../domain/camp/gasLantern";
-import { GAS_LANTERN_SPEC } from "../../domain/camp/spec";
+import {
+  asGasLanternId,
+  type GasLanternId,
+} from "../../domain/camp/gasLantern";
+import { decodeHost } from "../../domain/camp/hosted";
+import {
+  GAS_LANTERN_FOOTPRINT_PX,
+  GAS_LANTERN_SPEC,
+} from "../../domain/camp/spec";
 import { HitCounters } from "../../domain/shared/hitCounter";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import { SwitchCooldowns } from "../../domain/shared/switchCooldown";
 import type { Vec3 } from "../../domain/shared/vec";
 import { canUseBlockTop, placeOnGround } from "./groundPlacement";
+import {
+  placeOnTableTop,
+  type TableTopOutcome,
+  type TableTopRequest,
+} from "./placeOnTableTop";
 import type { GasLanternWorld } from "./ports/gasLantern";
+import type { HostedKindPort } from "./ports/hostedKind";
+import type { HostedItemKind } from "./ports/tableTop";
 
 const RULE = {
   hits: GAS_LANTERN_SPEC.hitsToTakeBack,
   resetTicks: GAS_LANTERN_SPEC.hitResetTicks,
 };
+
+const ON_TABLE: HostedItemKind = {
+  id: "gas_lantern",
+  footprint: GAS_LANTERN_FOOTPRINT_PX,
+  clearance: GAS_LANTERN_SPEC.tableClearance,
+};
+
+/**
+ * The lantern as a kind the hosted items guard removes when its host is gone.
+ * A removal clears the light block before the entity goes so no light is left
+ * behind (ADR 0185).
+ */
+export function gasLanternHostedKind(world: GasLanternWorld): HostedKindPort {
+  return {
+    loaded: () => world.loadedGasLanterns(),
+    host: (id) => decodeHost(world.host(asGasLanternId(id))),
+    isHostAreaLoaded: (id) => world.isHostAreaLoaded(asGasLanternId(id)),
+    hostExists: (hostId) => world.hostExists(hostId),
+    remove: (id) => {
+      const lantern = asGasLanternId(id);
+      world.clearLight(lantern);
+      world.removeGasLantern(lantern);
+    },
+  };
+}
 
 export class GasLanternActions {
   private readonly hits = new HitCounters<GasLanternId>(RULE);
@@ -34,6 +73,10 @@ export class GasLanternActions {
       isNear: this.world.hasGasLanternNear.bind(this.world),
       spawn: this.world.spawnGasLantern.bind(this.world),
     });
+  }
+
+  placeOnTable(cmd: TableTopRequest): TableTopOutcome {
+    return placeOnTableTop(this.world, ON_TABLE, cmd);
   }
 
   switch(id: GasLanternId, tick: number): boolean {
