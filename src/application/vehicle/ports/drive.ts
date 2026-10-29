@@ -29,7 +29,7 @@ import type { ChaseCamera } from "../../../domain/vehicle/profile";
 import type { RamHit, RamTarget } from "../../../domain/vehicle/ram";
 import type { SeatAssignment } from "../../../domain/vehicle/seatChoice";
 import type { StandInPose } from "../../../domain/vehicle/standIn";
-import type { RiderView } from "../../../domain/vehicle/vehicle";
+import type { RiderHeld, RiderView } from "../../../domain/vehicle/vehicle";
 
 export interface VehicleSnapshot {
   kind: VehicleKind;
@@ -45,7 +45,7 @@ export interface VehicleSnapshot {
   restored(): RestoredValues;
   headlights: boolean;
   testInput?: RawInput;
-  testHeldTool?: string;
+  testHeld?: RiderHeld;
 }
 
 export interface DriveWorld {

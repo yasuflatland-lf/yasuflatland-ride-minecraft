@@ -1,28 +1,28 @@
 import { ScriptEventSource, system } from "@minecraft/server";
 import { NAMESPACE } from "../../../shared/identifiers";
-import { parseTestHeldToolMessage } from "../../testInput/testHeldToolMessage";
+import { parseTestHeldItemMessage } from "../../testInput/testHeldItemMessage";
 import type { VehicleTestStore } from "../../testInput/vehicleTestStore";
-import { TEST_HELD_TOOL_EVENT } from "../identifiers";
+import { TEST_HELD_ITEM_EVENT } from "../identifiers";
 
-export function registerTestHeldTool(
-  testTools: VehicleTestStore<string>,
+export function registerTestHeldItem(
+  testHeldItems: VehicleTestStore<string>,
 ): void {
   system.afterEvents.scriptEventReceive.subscribe(
     (ev) => {
       if (
-        ev.id !== TEST_HELD_TOOL_EVENT ||
+        ev.id !== TEST_HELD_ITEM_EVENT ||
         ev.sourceType !== ScriptEventSource.Server
       )
         return;
-      const parsed = parseTestHeldToolMessage(ev.message);
+      const parsed = parseTestHeldItemMessage(ev.message);
       if (!parsed) {
-        console.warn(`[${NAMESPACE}] ignored test held tool: ${ev.message}`);
+        console.warn(`[${NAMESPACE}] ignored test held item: ${ev.message}`);
         return;
       }
       if (parsed.item !== undefined) {
-        testTools.set(parsed.vehicleId, parsed.item);
+        testHeldItems.set(parsed.vehicleId, parsed.item);
       } else {
-        testTools.clear(parsed.vehicleId);
+        testHeldItems.clear(parsed.vehicleId);
       }
     },
     { namespaces: [NAMESPACE] },
