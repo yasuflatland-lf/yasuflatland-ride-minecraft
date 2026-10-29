@@ -453,6 +453,44 @@ describe("camper model assets (ADR 0067)", () => {
     ).toEqual([]);
   });
 
+  it("lights only the roof clearance, rear roof, and tail lamps with the headlights (ADR 0184)", () => {
+    const lit: Record<string, string[]> = {
+      headlights: ["lens", "marker_amber", "marker_red"],
+      ceiling_lights: ["dome"],
+    };
+    const litSwatches = Object.values(lit).flat();
+    for (const b of bones)
+      for (const c of b.cubes ?? [])
+        for (const name of litSwatches)
+          if (swatch(c, name))
+            expect(lit[b.name] ?? [], `${b.name} ${name}`).toContain(name);
+    const lampCenters = (name: string) =>
+      [
+        ...new Set(
+          (bone("headlights").cubes ?? [])
+            .filter((c) => swatch(c, name))
+            .map((c) =>
+              [0, 1, 2].map((axis) => cubeCenter(c, axis).toFixed(2)).join(),
+            ),
+        ),
+      ].sort();
+    const at = (points: number[][]) =>
+      points.map((p) => p.map((v) => v.toFixed(2)).join()).sort();
+    const roofLip = [-21.5, -6, 0, 6, 21.5];
+    expect(lampCenters("marker_amber")).toEqual(
+      at([
+        ...roofLip.map((x) => [x, 64.3, -52.5]),
+        ...roofLip.filter((x) => x !== 0).map((x) => [x, 64.85, -52.5]),
+      ]),
+    );
+    expect(lampCenters("marker_red")).toEqual(
+      at([
+        ...[-12, -4, 4, 12].map((x) => [x, 61.8, 60.525]),
+        ...[-19, 19].map((x) => [x, 15, 59.11]),
+      ]),
+    );
+  });
+
   it("aligns both entry handles half a pixel below the stripe (#596)", () => {
     const door = bone("door_entry");
     expect(door.pivot).toEqual([-24, 0, -7]);
