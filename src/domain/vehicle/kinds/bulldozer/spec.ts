@@ -6,6 +6,20 @@ export interface BladeRule extends CutRect {
   readonly bodyHeight: number;
   readonly minSpeed: number;
 }
+export interface PaverRule {
+  /** Lays only above this speed (blocks/tick) so a stopped bulldozer does not rewrite cells. */
+  readonly minSpeed: number;
+  /** Half side of a square that holds the 2.4 x 2.4 engine collision box at any yaw: 1.2 * sqrt 2, rounded up. */
+  readonly bodyHalf: number;
+  /** Depth of the trailing strip; above maxSpeed so no row is skipped. */
+  readonly trail: number;
+  /** Gap between bodyHalf and the flight strip; at least the cell diagonal, because rectCells keeps touching cells. */
+  readonly flightGap: number;
+  /** How far past bodyHalf the support zone reaches ahead over liquid. */
+  readonly lookAhead: number;
+  /** Rows below the reference searched for liquid before a drop counts as a cliff. */
+  readonly liquidSearchDepth: number;
+}
 export interface TrackGeometry {
   readonly halfGauge: number;
   readonly phaseStep: number;
@@ -75,6 +89,14 @@ export const BULLDOZER_SPEC = Object.freeze({
   headlightReach: Object.freeze([6, 10, 15, 21, 27] as const),
   headlightLevels: Object.freeze([8, 12, 15, 15, 15] as const),
   blade,
+  paver: Object.freeze({
+    minSpeed: 0.02,
+    bodyHalf: 1.7,
+    trail: 1.0,
+    flightGap: 1.5,
+    lookAhead: 2.0,
+    liquidSearchDepth: 8,
+  }) satisfies PaverRule,
   // Digs up through an overhead obstacle while rising: the footprint plus two blocks on each side, so the body never wedges in a one-block hole (ADR 0155).
   shaft: Object.freeze({ margin: 2, reach: 2 }),
   tracks: Object.freeze({

@@ -98,6 +98,12 @@ it("lifts the blade in half a second and starts a placed bulldozer with its blad
   expect(S.bladeRaisedOnSpawn).toBe(true);
 });
 
+it("pins the paver constraints its comments state (ADR 0181)", () => {
+  expect(S.paver.trail).toBeGreaterThan(S.maxSpeed);
+  expect(S.paver.flightGap).toBeGreaterThanOrEqual(Math.SQRT2);
+  expect(S.paver.bodyHalf).toBeGreaterThanOrEqual(1.2 * Math.SQRT2);
+});
+
 it("derives the wide blade from the normal rule", () => {
   expect(BULLDOZER_WIDE_BLADE).toEqual({
     ...S.blade,
