@@ -7,7 +7,10 @@ import {
   RAM_QUERY_RADIUS,
 } from "../../../src/domain/vehicle/kinds/index";
 import { SUV_SPEC } from "../../../src/domain/vehicle/kinds/suv/spec";
-import { ramHalfWidthLimit } from "../../../src/domain/vehicle/profile";
+import {
+  ramHalfWidthLimit,
+  type VehicleProfile,
+} from "../../../src/domain/vehicle/profile";
 import { selectHits } from "../../../src/domain/vehicle/ram";
 import { ramQueryRadius } from "../../../src/domain/vehicle/ramQuery";
 import { SPEC } from "../../../src/domain/vehicle/spec";
@@ -75,6 +78,23 @@ describe("RAM_QUERY_RADIUS", () => {
   });
 });
 
+const height = Math.max(Math.abs(SPEC.ramMinDy), Math.abs(SPEC.ramMaxDy));
+
+function cornerReach(front: number, halfWidth: number): number {
+  return Math.hypot(
+    front + SPEC.targetHalfWidth,
+    halfWidth + SPEC.targetHalfWidth,
+    height,
+  );
+}
+
+function withoutCaps(profiles: readonly VehicleProfile[]): VehicleProfile[] {
+  return profiles.map((profile) => ({
+    ...profile,
+    maxRamHalfWidth: undefined,
+  }));
+}
+
 const profileArb = fc
   .record({
     kind: fc.constantFrom(...VEHICLE_KINDS),
@@ -82,15 +102,17 @@ const profileArb = fc
     halfWidth: within(0, 20),
     maxRamHalfWidth: fc.option(within(0, 40), { nil: undefined }),
   })
-  .map(({ kind, front, halfWidth, maxRamHalfWidth }) => ({
-    ...profileOf(kind),
-    body: { ...profileOf(kind).body, front, halfWidth },
-    maxRamHalfWidth,
-  }));
+  .map(({ kind, front, halfWidth, maxRamHalfWidth }) => {
+    const base = profileOf(kind);
+    return {
+      ...base,
+      body: { ...base.body, front, halfWidth },
+      maxRamHalfWidth,
+    };
+  });
 
 describe("ramQueryRadius", () => {
   const profilesArb = fc.array(profileArb, { minLength: 1, maxLength: 10 });
-  const height = Math.max(Math.abs(SPEC.ramMinDy), Math.abs(SPEC.ramMaxDy));
 
   it("reaches every profile's corner at its ram half width limit", () => {
     fc.assert(
@@ -98,11 +120,7 @@ describe("ramQueryRadius", () => {
         const radius = ramQueryRadius(profiles);
         for (const profile of profiles) {
           expect(radius).toBeGreaterThanOrEqual(
-            Math.hypot(
-              profile.body.front + SPEC.targetHalfWidth,
-              ramHalfWidthLimit(profile) + SPEC.targetHalfWidth,
-              height,
-            ),
+            cornerReach(profile.body.front, ramHalfWidthLimit(profile)),
           );
         }
       }),
@@ -112,12 +130,8 @@ describe("ramQueryRadius", () => {
   it("adding a cap never shrinks the query radius", () => {
     fc.assert(
       fc.property(profilesArb, (profiles) => {
-        const uncapped = profiles.map((profile) => ({
-          ...profile,
-          maxRamHalfWidth: undefined,
-        }));
         expect(ramQueryRadius(profiles)).toBeGreaterThanOrEqual(
-          ramQueryRadius(uncapped),
+          ramQueryRadius(withoutCaps(profiles)),
         );
       }),
     );
@@ -126,18 +140,11 @@ describe("ramQueryRadius", () => {
   it("without caps equals the original body-based formula", () => {
     fc.assert(
       fc.property(profilesArb, (profiles) => {
-        const uncapped = profiles.map((profile) => ({
-          ...profile,
-          maxRamHalfWidth: undefined,
-        }));
+        const uncapped = withoutCaps(profiles);
         expect(ramQueryRadius(uncapped)).toBe(
           Math.max(
             ...uncapped.map(({ body }) =>
-              Math.hypot(
-                body.front + SPEC.targetHalfWidth,
-                body.halfWidth + SPEC.targetHalfWidth,
-                height,
-              ),
+              cornerReach(body.front, body.halfWidth),
             ),
           ),
         );
