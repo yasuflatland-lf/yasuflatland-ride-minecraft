@@ -8,6 +8,7 @@ import type {
 import { world } from "@minecraft/server";
 import type { PlayerId, VehicleId } from "../../../domain/shared/ids";
 import type { SeatAssignment } from "../../../domain/vehicle/seatChoice";
+import { mountOf } from "../../shared/mount";
 import { isVehicleEntity, SEAT_FILLER_TYPE } from "./identifiers";
 
 // A player boards on the tick after their press, so they stand within the engine's
@@ -52,7 +53,7 @@ function board(
 ): boolean {
   if (!canBoard(player, vehicle)) return false;
   if (rideable.getRiders().length >= rideable.seatCount) return false;
-  const mount = player.getComponent("minecraft:riding")?.entityRidingOn;
+  const mount = mountOf(player);
   const other = mount && mount.id !== vehicle.id ? mount : undefined;
   other?.getComponent("minecraft:rideable")?.ejectRider(player);
   if (rideable.addRider(player)) return true;
@@ -78,14 +79,14 @@ function holdSeat(rideable: EntityRideableComponent, vehicle: Entity): void {
  */
 export function removeOrphanSeatFiller(entity: Entity): void {
   if (!entity.isValid || !isFiller(entity)) return;
-  const mount = entity.getComponent("minecraft:riding")?.entityRidingOn;
+  const mount = mountOf(entity);
   if (!mount || !isVehicleEntity(mount.typeId)) entity.remove();
 }
 
 /** The vehicle a seat filler holds a seat in, so a press or a hit on it counts as one on the vehicle. */
 export function vehicleOfSeatFiller(entity: Entity): Entity | undefined {
   if (!isFiller(entity)) return undefined;
-  const mount = entity.getComponent("minecraft:riding")?.entityRidingOn;
+  const mount = mountOf(entity);
   return mount?.isValid && isVehicleEntity(mount.typeId) ? mount : undefined;
 }
 
