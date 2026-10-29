@@ -71,6 +71,8 @@ export function registerTestCorner(
           count = volume;
           feedback.showMessage(id, name, volume);
         },
+        drawCorner: (id, dimension, cell) =>
+          feedback.drawCorner(id, dimension, cell),
         drawOutline: (id, dim, box, style) =>
           feedback.drawOutline(id, dim, box, style),
       };
