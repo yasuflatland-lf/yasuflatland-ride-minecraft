@@ -34,7 +34,7 @@ it.each(VEHICLE_KINDS)(
             const riders = riderViews(kind, sample.riders, vehicle.yaw).map(
               (rider, index) => ({
                 ...rider,
-                heldTool: tools[(tick + index) % tools.length],
+                held: { tool: tools[(tick + index) % tools.length] },
               }),
             );
             const out = vehicle.tick({

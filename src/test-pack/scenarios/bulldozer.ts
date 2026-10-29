@@ -9,10 +9,11 @@ import { normalizeYaw, type Vec3 } from "../../domain/shared/vec";
 import { bladeColumns } from "../../domain/vehicle/kinds/bulldozer/blade";
 import { BLADE_SWITCH_ITEM } from "../../domain/vehicle/kinds/bulldozer/monitor";
 import { BULLDOZER_SPEC } from "../../domain/vehicle/kinds/bulldozer/spec";
+import { id } from "../../infrastructure/shared/identifiers";
 import {
   ENTITY_TYPE,
   entityPropertyId,
-  TEST_HELD_TOOL_EVENT,
+  TEST_HELD_ITEM_EVENT,
   TEST_TOOL_EVENT,
 } from "../../infrastructure/vehicle/bedrock/identifiers";
 import { type Arena, drive, type Outcome, wait, withCar } from "../arena";
@@ -701,7 +702,10 @@ export async function bulldozerMonitor(a: Arena): Promise<Outcome> {
     const screen = (): number =>
       Number(car.getProperty(entityPropertyId("monitor")));
     const hold = (item: string): void =>
-      system.sendScriptEvent(TEST_HELD_TOOL_EVENT, `${car.id},${item}`);
+      system.sendScriptEvent(
+        TEST_HELD_ITEM_EVENT,
+        `${car.id},${item === "clear" ? item : id(item)}`,
+      );
     const holdAndRead = async (item: string): Promise<number> => {
       hold(item);
       await wait(2);

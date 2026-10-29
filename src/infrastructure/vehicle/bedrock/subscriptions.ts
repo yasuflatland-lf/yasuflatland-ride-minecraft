@@ -45,7 +45,7 @@ import { registerStandIns } from "./handlers/standIn";
 import { registerStarter } from "./handlers/starter";
 import { registerStorage } from "./handlers/storage";
 import { registerTestDecor } from "./handlers/testDecor";
-import { registerTestHeldTool } from "./handlers/testHeldTool";
+import { registerTestHeldItem } from "./handlers/testHeldItem";
 import { registerTestInput } from "./handlers/testInput";
 import { registerTestTool } from "./handlers/testTool";
 import { toolSwitchTarget } from "./handlers/toolSwitch";
@@ -74,7 +74,7 @@ export function registerSubscriptions(
     board: BoardVehicle;
   },
   testInputs: VehicleTestStore<RawInput>,
-  testTools: VehicleTestStore<string>,
+  testHeldItems: VehicleTestStore<string>,
   dockDoorOwner: (
     dimensionId: DimensionId,
     cell: Vec3,
@@ -102,7 +102,7 @@ export function registerSubscriptions(
   registerTestTool(useCases.tool);
   registerTestDecor(useCases.decor);
   registerTestInput(testInputs);
-  registerTestHeldTool(testTools);
+  registerTestHeldItem(testHeldItems);
   registerGifts(useCases.gift);
   registerBoarding(useCases.board);
   registerStandIns(useCases.board);

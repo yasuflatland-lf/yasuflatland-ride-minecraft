@@ -44,7 +44,7 @@ import type { SeatAssignment } from "../../../domain/vehicle/seatChoice";
 import type { StandInPose } from "../../../domain/vehicle/standIn";
 import type { RiderView } from "../../../domain/vehicle/vehicle";
 import { heldTypeId } from "../../shared/heldItem";
-import { AIR_BLOCK, bareId, messageKey } from "../../shared/identifiers";
+import { AIR_BLOCK, messageKey } from "../../shared/identifiers";
 import { isLightBlock } from "../../shared/lightBlocks";
 import type { VehicleTestStore } from "../testInput/vehicleTestStore";
 import { savedDecor } from "./bedrockDecorWorld";
@@ -57,6 +57,7 @@ import {
   loadedVehicleEntities,
 } from "./entityIndex";
 import { HeadlightBlocks } from "./headlightBlocks";
+import { riderHeldOf } from "./heldBlock";
 import {
   CHASE_CAMERAS,
   entityAnimationId,
@@ -127,7 +128,7 @@ export class BedrockVehicleWorld implements DriveWorld {
   constructor(
     private readonly index: EntityIndex,
     private readonly testInputs: VehicleTestStore<RawInput>,
-    private readonly testTools: VehicleTestStore<string>,
+    private readonly testHeldItems: VehicleTestStore<string>,
     campSpace: SpaceCheck,
   ) {
     this.headlightBlocks = new HeadlightBlocks(campSpace);
@@ -237,12 +238,12 @@ export class BedrockVehicleWorld implements DriveWorld {
         },
         headlights: vehicle.getProperty(HEADLIGHTS_PROPERTY) === true,
         testInput: this.testInputs.get(id),
-        testHeldTool: this.testTools.get(id),
+        testHeld: riderHeldOf(this.testHeldItems.get(id)),
       });
     }
     const live = this.index.trackedIds();
     this.testInputs.retain(live);
-    this.testTools.retain(live);
+    this.testHeldItems.retain(live);
     this.headlightBlocks.clearGone(live);
     this.dockBlocks.clearGone(live);
     this.deckSeats.clearGone(live);
@@ -288,7 +289,7 @@ export class BedrockVehicleWorld implements DriveWorld {
           },
           yaw: p.getRotation().y,
           raw: rawInputOf(p),
-          heldTool: readHeld ? bareId(heldTypeId(p) ?? "") : undefined,
+          held: readHeld ? riderHeldOf(heldTypeId(p)) : undefined,
         };
       });
   }
