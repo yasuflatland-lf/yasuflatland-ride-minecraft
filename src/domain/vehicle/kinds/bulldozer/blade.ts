@@ -16,7 +16,7 @@ export interface ShaftBox {
  * A fixed-height cut resting on the ground, such as a submarine on the seabed,
  * keeps the floor too (ADR 0155). The road paver reads the same rounding (ADR 0181).
  */
-function feetRow(feetY: number, grounded: boolean): number {
+export function feetRow(feetY: number, grounded: boolean): number {
   return grounded ? Math.ceil(feetY - 0.01) : Math.floor(feetY + 0.01);
 }
 
