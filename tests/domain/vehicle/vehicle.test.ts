@@ -1273,6 +1273,13 @@ describe("drive-reported ram half width", () => {
     );
   });
 
+  it("clamps a reported width that exceeds the cap to the cap", () => {
+    const hit = ramVehicle({ ...SUV_PROFILE, maxRamHalfWidth: 2 });
+    const boundary = 2 + SPEC.targetHalfWidth;
+    expect(hit(50, boundary, 0)).toHaveLength(1);
+    expect(hit(50, boundary + 0.01, SPEC.ramCooldown)).toHaveLength(0);
+  });
+
   it("an absent reported width keeps the body's hit boundary even with a wider cap", () => {
     const hit = ramVehicle({ ...SUV_PROFILE, maxRamHalfWidth: 10 });
     const boundary = SUV_PROFILE.body.halfWidth + SPEC.targetHalfWidth;
