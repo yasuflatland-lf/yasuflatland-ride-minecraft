@@ -1,4 +1,5 @@
 import {
+  asDutchOvenId,
   type DutchOvenId,
   hostSpotPoint,
   isSimmering,
@@ -21,6 +22,7 @@ import {
   type TableTopRequest,
 } from "./placeOnTableTop";
 import type { DutchOvenWorld } from "./ports/dutchOven";
+import type { HostedKindPort } from "./ports/hostedKind";
 import type { HostedItemKind } from "./ports/tableTop";
 
 const RULE = {
@@ -33,6 +35,17 @@ const ON_TABLE: HostedItemKind = {
   footprint: DUTCH_OVEN_FOOTPRINT_PX,
   clearance: DUTCH_OVEN_SPEC.clearance,
 };
+
+/** The oven as a kind the hosted items guard removes when its host is gone. */
+export function dutchOvenHostedKind(world: DutchOvenWorld): HostedKindPort {
+  return {
+    loaded: () => world.loadedOvens(),
+    host: (id) => decodeHost(world.host(asDutchOvenId(id))),
+    isHostAreaLoaded: (id) => world.isHostAreaLoaded(asDutchOvenId(id)),
+    hostExists: (hostId) => world.hostExists(hostId),
+    remove: (id) => world.removeDutchOven(asDutchOvenId(id)),
+  };
+}
 
 export class DutchOvenActions {
   private readonly hits = new HitCounters<DutchOvenId>(RULE);
@@ -110,18 +123,11 @@ export class DutchOvenActions {
     this.world.setHost(oven, encodeHost(host), isSimmering(host));
   }
 
-  checkHosts(): void {
+  /** Clears the covered flag of every loaded Fire Pit no oven stands on. */
+  uncoverEmptyFirePits(): void {
     const occupiedPits = new Set<string>();
     for (const oven of this.world.loadedOvens()) {
       const host = decodeHost(this.world.host(oven));
-      if (host.kind === "ground") continue;
-      if (
-        this.world.isHostAreaLoaded(oven) &&
-        !this.world.hostExists(host.id)
-      ) {
-        this.world.setHost(oven, "", false);
-        continue;
-      }
       if (host.kind === "fire_pit") occupiedPits.add(host.id);
     }
     for (const pit of this.world.loadedFirePits()) {

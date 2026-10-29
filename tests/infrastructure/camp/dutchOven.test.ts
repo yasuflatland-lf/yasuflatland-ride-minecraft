@@ -1,6 +1,7 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import type { DutchOvenActions } from "../../../src/application/camp/dutchOven";
 import type { FirePitActions } from "../../../src/application/camp/firePit";
+import type { HostedItemsGuard } from "../../../src/application/camp/hostedItemsGuard";
 import type { FirePitWorld } from "../../../src/application/camp/ports/firePit";
 import { asDutchOvenId } from "../../../src/domain/camp/dutchOven";
 import { asFirePitId } from "../../../src/domain/camp/firePit";
@@ -69,13 +70,17 @@ beforeEach(() => {
 function handlers() {
   const placeOnFirePit = vi.fn();
   const placeOnTable = vi.fn();
-  const checkHosts = vi.fn();
+  const uncoverEmptyFirePits = vi.fn();
+  const checkHostedItems = vi.fn();
   const toggle = vi.fn();
-  registerDutchOven({
-    placeOnFirePit,
-    placeOnTable,
-    checkHosts,
-  } as unknown as DutchOvenActions);
+  registerDutchOven(
+    {
+      placeOnFirePit,
+      placeOnTable,
+      uncoverEmptyFirePits,
+    } as unknown as DutchOvenActions,
+    { check: checkHostedItems } as unknown as HostedItemsGuard,
+  );
   registerFirePit({ toggle } as unknown as FirePitActions, {} as FirePitWorld);
   const press = (held: string | undefined = DUTCH_OVEN_ITEM) => {
     const event = {
@@ -91,7 +96,15 @@ function handlers() {
     for (const [callback] of game.run.mock.calls) callback();
     game.run.mockClear();
   };
-  return { placeOnFirePit, placeOnTable, checkHosts, toggle, press, flush };
+  return {
+    placeOnFirePit,
+    placeOnTable,
+    uncoverEmptyFirePits,
+    checkHostedItems,
+    toggle,
+    press,
+    flush,
+  };
 }
 
 it("oven interactions win over pit interactions and dedupe before deferred placement", () => {
@@ -125,12 +138,13 @@ it("keeps fire pit interactions for every other held item and empty hands", () =
 });
 
 it("schedules host checks at the spec interval and exposes server-only test placement", () => {
-  const { checkHosts, placeOnFirePit } = handlers();
+  const { uncoverEmptyFirePits, checkHostedItems, placeOnFirePit } = handlers();
   const check = game.interval.mock.calls.find(
     (call) => call[1] === DUTCH_OVEN_SPEC.hostCheckTicks,
   );
   defined(check, "host interval")[0]();
-  expect(checkHosts).toHaveBeenCalledOnce();
+  expect(checkHostedItems).toHaveBeenCalledOnce();
+  expect(uncoverEmptyFirePits).toHaveBeenCalledOnce();
   const script = defined(game.script.mock.calls[0], "oven script handler")[0];
   script({
     id: TEST_DUTCH_OVEN_ON_PIT_EVENT,
@@ -228,6 +242,11 @@ it("switches physics with the host and defers cleanup in unloaded blocks", () =>
   game.block.mockReturnValue({});
   expect(ovens.isHostAreaLoaded(id)).toBe(true);
   game.block.mockReturnValue(undefined);
+  expect(ovens.isHostAreaLoaded(id)).toBe(false);
+  // A table in a neighbouring unloaded chunk must not read as missing.
+  game.block.mockImplementation((at: { x: number }) =>
+    at.x > entity.location.x ? undefined : {},
+  );
   expect(ovens.isHostAreaLoaded(id)).toBe(false);
   game.block.mockImplementation(() => {
     throw new Error("unloaded");
