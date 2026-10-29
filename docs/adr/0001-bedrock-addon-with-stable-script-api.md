@@ -1,6 +1,6 @@
 # 0001. Build a Bedrock add-on and use only the stable Script API
 
-- Status: Accepted
+- Status: Accepted; extended by [0179](0179-support-realms-as-a-second-play-environment.md) (Proposed)
 - Date: 2026-10-10
 
 ## Context
