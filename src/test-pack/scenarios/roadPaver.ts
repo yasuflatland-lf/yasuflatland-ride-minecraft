@@ -1,5 +1,8 @@
 import { type Entity, system } from "@minecraft/server";
-import { BULLDOZER_SPEC } from "../../domain/vehicle/kinds/bulldozer/spec";
+import {
+  BULLDOZER_SPEC,
+  BULLDOZER_WIDE_BLADE,
+} from "../../domain/vehicle/kinds/bulldozer/spec";
 import { BUILD_TOOL_TYPE } from "../../infrastructure/build/identifiers";
 import { TEST_HELD_ITEM_EVENT } from "../../infrastructure/vehicle/bedrock/identifiers";
 import { type Arena, drive, type Outcome, wait } from "../arena";
@@ -19,7 +22,8 @@ const END_X = 112;
 const WORLD_MIN_Y = -64;
 const LANE = { minX: 86, maxX: 116, minZ: 74, maxZ: 90 } as const;
 const NORMAL_HALF = BULLDOZER_SPEC.blade.halfWidth;
-const HOLE_Z = [81, 83] as const;
+const HOLE_Z = 82;
+const WIDE_HALF = BULLDOZER_WIDE_BLADE.halfWidth;
 
 /** Sends the held item through the same derivation as a real player (ADR 0181). */
 function setHeldItem(car: Entity, typeId: string | undefined): void {
@@ -112,21 +116,24 @@ function rowOf(a: Arena): number {
   return a.gy - 1;
 }
 
+/** The columns the road touches at a heading along x: a cell counts when the strip overlaps any of it (ADR 0136). */
+function roadColumns(half: number): readonly [number, number] {
+  return [Math.floor(CENTER_Z - half), Math.floor(CENTER_Z + half)];
+}
+
 async function paveFlatCase(a: Arena, wide: boolean): Promise<Outcome> {
   return onLane(a, () =>
     paveRun(a, { wide }, () => {
       const row = rowOf(a);
-      const centre = planksIn(a, [93, 98], row, [81, 84]);
-      const outsideZ = Math.floor(CENTER_Z + NORMAL_HALF) + 2;
-      const outside = planksIn(a, [93, 98], row, [outsideZ, outsideZ]);
-      const above = planksIn(a, [93, 98], a.gy, [78, 87]);
-      const ok =
-        centre.planks === centre.total &&
-        above.planks === 0 &&
-        (wide ? outside.planks > 0 : outside.planks === 0);
+      const [z0, z1] = roadColumns(wide ? WIDE_HALF : NORMAL_HALF);
+      const road = planksIn(a, [93, 98], row, [z0, z1]);
+      const edges =
+        planksIn(a, [93, 98], row, [z0 - 1, z0 - 1]).planks +
+        planksIn(a, [93, 98], row, [z1 + 1, z1 + 1]).planks;
+      const above = planksIn(a, [93, 98], a.gy, [z0 - 1, z1 + 1]);
       return {
-        pass: ok,
-        detail: `wide=${wide} centre=${centre.planks}/${centre.total} outside=${outside.planks}/${outside.total} above=${above.planks}`,
+        pass: road.planks === road.total && edges === 0 && above.planks === 0,
+        detail: `wide=${wide} z=${z0}..${z1} road=${road.planks}/${road.total} beyondEdges=${edges} above=${above.planks}`,
       };
     }),
   );
@@ -143,9 +150,9 @@ export function bulldozerPaveWide(a: Arena): Promise<Outcome> {
 export function bulldozerPaveHole(a: Arena): Promise<Outcome> {
   return onLane(a, () => {
     const row = rowOf(a);
-    fillBox(a, [100, 100], [row, row], HOLE_Z, "air");
+    fillBox(a, [100, 100], [row, row], [HOLE_Z, HOLE_Z], "air");
     return paveRun(a, {}, () => {
-      const hole = planksIn(a, [100, 100], row, HOLE_Z);
+      const hole = planksIn(a, [100, 100], row, [HOLE_Z, HOLE_Z]);
       return {
         pass: hole.planks === hole.total,
         detail: `hole=${hole.planks}/${hole.total}`,
@@ -171,12 +178,18 @@ export function bulldozerPaveStepDown(a: Arena): Promise<Outcome> {
 export function bulldozerPaveCliff(a: Arena): Promise<Outcome> {
   return onLane(a, () => {
     const row = rowOf(a);
-    fillBox(a, [92, 110], [row - 2, row], [86, 90], "air");
+    // Inside the paved width (z 80..84), so the roadPick rule for a deep dry drop is what keeps it empty.
+    const drop = [84, 85] as const;
+    fillBox(a, [92, 110], [row - 2, row], drop, "air");
     return paveRun(a, {}, () => {
-      let found = 0;
+      let inCliff = 0;
       for (let y = row - 2; y <= row; y++)
-        found += planksIn(a, [92, 110], y, [86, 90]).planks;
-      return { pass: found === 0, detail: `planksInCliff=${found}` };
+        inCliff += planksIn(a, [92, 110], y, drop).planks;
+      const lane = planksIn(a, [93, 110], row, [80, 83]);
+      return {
+        pass: inCliff === 0 && lane.planks === lane.total,
+        detail: `planksInCliff=${inCliff} lane=${lane.planks}/${lane.total}`,
+      };
     });
   });
 }
@@ -226,7 +239,8 @@ export function bulldozerPaveFlight(a: Arena): Promise<Outcome> {
   return onLane(a, () => {
     const row = rowOf(a);
     const ravineBottom = Math.max(WORLD_MIN_Y, row - 5);
-    fillBox(a, [100, 104], [ravineBottom, row], [LANE.minZ, LANE.maxZ], "air");
+    const ravine = [98, 114] as const;
+    fillBox(a, ravine, [ravineBottom, row], [LANE.minZ, LANE.maxZ], "air");
     return withBulldozer(a, START_X, CENTER_Z, -90, async (car) => {
       await wait(2);
       await doubleTap(car);
@@ -235,28 +249,50 @@ export function bulldozerPaveFlight(a: Arena): Promise<Outcome> {
         "hover",
         BULLDOZER_SPEC.takeoffTicks + 15,
       );
+      await setWideBlade(car, true);
       await setRoadPaver(car, true);
       setHeldItem(car, PLANKS);
       await wait(2);
+      // Wide blade over the ravine is the worst case for the per-tick probes (ADR 0181).
+      let last = Date.now();
+      let slowestTickMs = 0;
+      const timer = system.runInterval(() => {
+        const now = Date.now();
+        slowestTickMs = Math.max(slowestTickMs, now - last);
+        last = now;
+      }, 1);
       drive(car, 0, 1);
-      for (let t = 0; t < 400 && car.location.x < END_X; t++) await wait(1);
+      for (let t = 0; t < 400 && car.location.x < 108; t++) await wait(1);
       drive(car, 0, 0);
+      system.clearRun(timer);
       await wait(5);
-      const y = car.location.y;
-      let over = 0;
+      const { x, y } = car.location;
+      let behind = 0;
+      let ahead = 0;
       let high = 0;
       for (let h = ravineBottom; h <= a.gy + 12; h++) {
-        const n = planksIn(a, [100, 104], h, [81, 84]).planks;
-        over += n;
-        if (h >= Math.floor(y)) high += n;
+        behind += planksIn(
+          a,
+          [ravine[0], Math.floor(x) - 1],
+          h,
+          [78, 87],
+        ).planks;
+        ahead += planksIn(
+          a,
+          [Math.floor(x) + 1, ravine[1]],
+          h,
+          [74, 90],
+        ).planks;
+        if (h >= Math.floor(y)) high += planksIn(a, ravine, h, [74, 90]).planks;
       }
       return {
         pass:
           hoverAt >= 0 &&
           vehicleForm(car) === "hover" &&
-          over > 0 &&
+          behind > 0 &&
+          ahead === 0 &&
           high === 0,
-        detail: `hoverAt=${hoverAt} form=${String(vehicleForm(car))} y=${y.toFixed(2)} overRavine=${over} atOrAboveBody=${high}`,
+        detail: `hoverAt=${hoverAt} form=${String(vehicleForm(car))} x=${x.toFixed(2)} y=${y.toFixed(2)} behind=${behind} ahead=${ahead} atOrAboveBody=${high} slowestTickMs=${slowestTickMs}`,
       };
     });
   });
@@ -276,6 +312,18 @@ export function bulldozerPaveKept(a: Arena): Promise<Outcome> {
   });
 }
 
+/** Cells in the lane whose block is not the expected one: stone at the reference row, air above. */
+function disturbed(a: Arena, xs: readonly [number, number]): number {
+  let n = 0;
+  for (let x = xs[0]; x <= xs[1]; x++)
+    for (let z = LANE.minZ; z <= LANE.maxZ; z++) {
+      if (typeAt(a, x, rowOf(a), z) !== "minecraft:stone") n++;
+      for (let y = a.gy; y <= a.gy + 2; y++)
+        if (typeAt(a, x, y, z) !== "minecraft:air") n++;
+    }
+  return n;
+}
+
 export async function bulldozerPaveNoBlock(a: Arena): Promise<Outcome> {
   const cases: (string | undefined)[] = [
     undefined,
@@ -288,10 +336,11 @@ export async function bulldozerPaveNoBlock(a: Arena): Promise<Outcome> {
   for (const held of cases) {
     const result = await onLane(a, () =>
       paveRun(a, { held, until: 100 }, () => {
-        const laid = planksIn(a, [LANE.minX, 100], rowOf(a), [76, 88]);
-        const any =
-          laid.planks + planksIn(a, [LANE.minX, 100], a.gy, [76, 88]).planks;
-        return { pass: any === 0, detail: `${String(held)} laid=${any}` };
+        const changed = disturbed(a, [LANE.minX, 100]);
+        return {
+          pass: changed === 0,
+          detail: `${String(held)} changed=${changed}`,
+        };
       }),
     );
     pass &&= result.pass;

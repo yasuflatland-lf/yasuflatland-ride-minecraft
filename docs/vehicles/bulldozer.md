@@ -29,7 +29,7 @@ Water, lava, containers with their contents, and the add-on's own blocks are kep
 Hold Road Paver and use it to turn the paver on or off; the cab monitor shows OFF or ON. While it is on and you drive, the bulldozer lays the block in your selected hotbar slot in a strip behind it ([ADR 0181](../adr/0181-a-road-paver-on-the-bulldozer.md)).
 
 - **Which block.** Any placeable full block. An empty hand, doors, beds, signs, banners, falling blocks such as sand and gravel, plants, this add-on's own items, and the Building Tools lay nothing.
-- **Width.** The road is as wide as the blade: 11 columns with Wide Blade, 5 normal. Raising or lowering the blade does not change it.
+- **Width.** The road is as wide as the blade: at heading 0 from the center of a block, 11 columns with Wide Blade and 5 normal. Raising or lowering the blade does not change it.
 - **Land.** The road goes in the row under the tracks. It fills a one-block hole and follows a step down, with a short gap right at the step. A flower or tall grass is paved over. A two-high bump and a deep drop beside the lane get nothing.
 - **Water and lava.** Over a lake, river, or lava sea the road bridges the liquid, so the bulldozer drives across without sinking or floating.
 - **Flight.** In hover the road is laid one row below the body, behind it, and steps up and down as the bulldozer climbs and sinks.

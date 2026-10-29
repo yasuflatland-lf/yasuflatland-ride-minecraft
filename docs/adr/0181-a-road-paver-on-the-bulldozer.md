@@ -37,7 +37,7 @@ The existing code provides these building blocks:
 
 ## Consequences
 
-- Worst case about 100 cells per tick (trail strip plus support zone at the wide width), each up to 11 rows of up to 3 world reads; about 300 block reads per tick on flat land. Step 13/16 records the measured tick time; if it is too slow, probe the support zone only when the trail strip found liquid.
-- The gear probe (0033) runs only in landing, so laid road should not flicker the wheels. Step 13/16 checks this in game and records an addendum here if it does.
+- Worst case about 100 cells per tick (trail strip plus support zone at the wide width), each up to 11 rows of up to 3 world reads; about 300 block reads per tick on flat land. Step 13/16 measured the slowest server tick interval during the in-game flight over a 17-block ravine at the wide width (`bulldozer_pave_flight`, 58 ms against the 50 ms tick). No slowdown was seen there, but ground paving over a deep ravine was not measured; manual row B66 records it on PC and mobile. If it is too slow, probe the support zone only when the trail strip found liquid.
+- The gear probe (0033) runs only in landing, so laid road should not flicker the wheels. Flicker is only visible on a client, so manual row B69 checks it and an addendum here records the fix if it appears.
 - Steps leave short gaps (rule 7).
 - The shared placement-kept list prevents the road and World Edit from drifting on air, liquid, and item-holder protection. Broader protection of World Edit's data-bearing blocks remains an open question (rule 5).

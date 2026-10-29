@@ -1135,3 +1135,40 @@ it("lays nothing with no held block or off the ground", () => {
   expectNoPave({ heldBlock: undefined });
   expectNoPave({ onGround: false });
 });
+
+// Support cells ahead of the body exist only where the reference row is liquid (ADR 0181 rule 6).
+function supportAhead(overrides: Partial<TickContext>): number {
+  const d = new BulldozerDrive(0, { form: "car", road_paver: true });
+  const start = { x: 0.5, z: 0.5 };
+  let b: Body = { pos: start, vel: { x: 0, z: 0 } };
+  let ahead = 0;
+  for (let tick = 0; tick < 40; tick++) {
+    const ctx = { ...paveContext("car", tick, b), ...overrides };
+    const out = d.step(FORWARD, ctx);
+    const dx = b.pos.x - start.x;
+    const dz = b.pos.z - start.z;
+    const len = Math.hypot(dx, dz);
+    if (tick > 10 && len > 1e-6 && out.pave !== undefined)
+      for (const cell of out.pave.cells) {
+        const along =
+          ((cell.x + 0.5 - b.pos.x) * dx + (cell.z + 0.5 - b.pos.z) * dz) / len;
+        if (along > S.paver.bodyHalf) ahead++;
+      }
+    b = engineStep(b, out.impulse, { mu: 0.69 }).body;
+  }
+  return ahead;
+}
+
+it("bridges a lava or water reference row with support ahead of the body", () => {
+  const sunk = { solidAt: (o: { y: number }) => o.y < -1 };
+  const inRow = (o: { y: number }) => o.y >= -1 && o.y < 0;
+  expect(supportAhead({ ...sunk, lavaAt: inRow })).toBeGreaterThan(0);
+  expect(supportAhead({ ...sunk, waterAt: inRow })).toBeGreaterThan(0);
+  expect(supportAhead(sunk)).toBe(0);
+});
+
+it("treats a waterlogged solid block as solid, so it needs no support", () => {
+  expect(
+    supportAhead({ waterAt: (o) => o.y >= -1 && o.y < 0, lavaAt: () => false }),
+  ).toBe(0);
+});

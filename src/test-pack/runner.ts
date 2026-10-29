@@ -187,7 +187,7 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
     ["bulldozer_pave_step_down", 92, () => bulldozerPaveStepDown(a)],
     ["bulldozer_pave_cliff", 86, () => bulldozerPaveCliff(a)],
     ["bulldozer_pave_water", 90, () => bulldozerPaveWater(a)],
-    ["bulldozer_pave_flight", 107, () => bulldozerPaveFlight(a)],
+    ["bulldozer_pave_flight", 102, () => bulldozerPaveFlight(a)],
     ["bulldozer_pave_kept", 86, () => bulldozerPaveKept(a)],
     ["bulldozer_pave_no_block", 236, () => bulldozerPaveNoBlock(a)],
     ["bulldozer_wide_blade_toggle", 38, () => bulldozerWideBladeToggle(a)],
