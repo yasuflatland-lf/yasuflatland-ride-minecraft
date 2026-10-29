@@ -1,0 +1,21 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shapeless": {
+    "description": {
+      "identifier": "yasu_ride:wide_blade_switch"
+    },
+    "tags": ["crafting_table"],
+    "unlock": {
+      "context": "AlwaysUnlocked"
+    },
+    "ingredients": [
+      { "item": "minecraft:lever" },
+      { "item": "minecraft:iron_ingot" },
+      { "item": "minecraft:iron_ingot" }
+    ],
+    "result": {
+      "item": "yasu_ride:wide_blade_switch",
+      "count": 1
+    }
+  }
+}

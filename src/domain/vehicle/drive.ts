@@ -74,6 +74,8 @@ export interface DriveStep {
   impulse: Vec3;
   /** The facing used for the ram this tick. */
   forward: Vec2;
+  /** Half width of the ram box this tick; absent = the profile's body.halfWidth. The core clamps it to ramHalfWidthLimit(profile) (ADR 0006, 0180). */
+  ramHalfWidth?: number;
   commands: readonly EngineCommand[];
   riders: RiderState;
 }

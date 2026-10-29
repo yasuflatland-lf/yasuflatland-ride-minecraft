@@ -193,10 +193,12 @@ print(json.dumps({"all": [b["name"] for b in geo["bones"]], "kept": [b["name"] f
       "track_l_1",
       "track_l_2",
       "propeller",
+      "blade_wide",
     ];
     expect(result.kept).toEqual(
       result.all.filter((name: string) => !hidden.includes(name)),
     );
+    expect(result.kept).toContain("blade");
     expect(result.kept).toContain("track_r_0");
     expect(result.kept).toContain("track_l_0");
   });

@@ -31,7 +31,11 @@ import {
 } from "./lighting/headlights";
 import { monitorScreen, monitorTool, nextToolState } from "./monitor/monitor";
 import type { Pave } from "./pave";
-import type { ChaseCamera, VehicleProfile } from "./profile";
+import {
+  type ChaseCamera,
+  ramHalfWidthLimit,
+  type VehicleProfile,
+} from "./profile";
 import { type RamHit, type RamTarget, selectHits } from "./ram";
 import type { SeatAssignment } from "./seatChoice";
 import type { SeatLeaver } from "./seating";
@@ -389,7 +393,7 @@ export class Vehicle {
       impulse: step.impulse,
       yaw: this.drive.yaw,
       standIn: this.standIn(step.dock?.hold, sensors),
-      hits: this.ram(sensors.tick, targets, step.forward),
+      hits: this.ram(sensors.tick, targets, step.forward, step.ramHalfWidth),
       driverId: driver?.id,
       stepCommands:
         monitor.length === 0 ? step.commands : [...step.commands, ...monitor],
@@ -469,17 +473,25 @@ export class Vehicle {
     tick: number,
     targets: () => readonly RamTarget[],
     f: Vec2,
+    halfWidth: number | undefined,
   ): RamHit[] {
     this.ramCooldowns.prune(tick);
     // selectHits checks the speed too; checking here skips the targets() query.
     if (Math.abs(this.drive.speed) <= SPEC.ramMinSpeed) return [];
+    const { body } = this.profile;
     const hits = selectHits(
       f,
       this.drive.speed,
       targets(),
       this.ramCooldowns.recent,
       tick,
-      this.profile.body,
+      {
+        front: body.front,
+        halfWidth: Math.min(
+          halfWidth ?? body.halfWidth,
+          ramHalfWidthLimit(this.profile),
+        ),
+      },
     );
     this.ramCooldowns.record(hits, tick);
     return hits;
