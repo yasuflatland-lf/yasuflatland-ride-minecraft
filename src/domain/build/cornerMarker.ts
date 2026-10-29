@@ -1,4 +1,5 @@
-// Selection markers use block boundaries rather than block centers.
+// Unlike the selection outline, which is drawn at block centers, the lone-corner
+// marker sits on the block boundary so it surrounds the block (ADR 0183).
 import type { Cell } from "../shared/cells";
 import type { Vec3 } from "../shared/vec";
 
