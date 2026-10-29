@@ -15,6 +15,10 @@ import {
   cutReach,
 } from "../../../../../src/domain/vehicle/kinds/bulldozer/drive";
 import {
+  BLADE_SWITCH_ITEM,
+  WIDE_BLADE_SWITCH_ITEM,
+} from "../../../../../src/domain/vehicle/kinds/bulldozer/monitor";
+import {
   BULLDOZER_MOTION as limits,
   BULLDOZER_TYRES as tyres,
 } from "../../../../../src/domain/vehicle/kinds/bulldozer/profile";
@@ -916,4 +920,36 @@ it("sends wide_blade once per toggle, and again after resync", () => {
   expect(sent(4)).toEqual([true]);
   d.setToolState("wide_blade_switch", "normal");
   expect(sent(5)).toEqual([false]);
+});
+
+it("keeps the blade and wide blade tools independent", () => {
+  fc.assert(
+    fc.property(
+      fc.array(
+        fc.oneof(
+          fc.tuple(
+            fc.constant(BLADE_SWITCH_ITEM),
+            fc.constantFrom("down", "up"),
+          ),
+          fc.tuple(
+            fc.constant(WIDE_BLADE_SWITCH_ITEM),
+            fc.constantFrom("normal", "wide"),
+          ),
+        ),
+      ),
+      (sets) => {
+        const drive = new BulldozerDrive(0, {});
+        const last = new Map([
+          [BLADE_SWITCH_ITEM, drive.toolState(BLADE_SWITCH_ITEM)],
+          [WIDE_BLADE_SWITCH_ITEM, drive.toolState(WIDE_BLADE_SWITCH_ITEM)],
+        ]);
+        for (const [item, state] of sets) {
+          expect(drive.setToolState(item, state)).toBe(true);
+          last.set(item, state);
+        }
+        for (const [item, state] of last)
+          expect(drive.toolState(item)).toBe(state);
+      },
+    ),
+  );
 });
