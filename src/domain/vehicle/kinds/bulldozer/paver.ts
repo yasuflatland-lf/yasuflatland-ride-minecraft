@@ -98,7 +98,7 @@ const REJECTED_SUFFIXES = [
 ];
 const REJECTED_PREFIXES = ["yasu_ride:", "yasu_build:"];
 
-/** Whether a held block may be laid as road (ADR 0181 rule 4). */
+/** Whether a held block may be laid as road (ADR 0181 rule 4). The id is the namespaced item type id (`minecraft:stone`), as the engine reports it. */
 export function isRoadBlock(blockId: string): boolean {
   return !(
     KEPT_BLOCKS.includes(blockId) ||
