@@ -946,7 +946,7 @@ bunk = [
     *[box(BED[1] - 1.25, FLOOR, z, BED[1], BUNK_DECK_TOP, z + 1.25, "wood")
       for z in (BED[2], BED[3] - 1.25)],
 ]
-# The block of 16/16 takes its selection box height from BUNK_TOP, so it must be the real top.
+# camper_bunk.block.json sizes its selection box to BUNK_TOP - BUNK_DECK_BOTTOM, so it must be the real top.
 assert max(c["origin"][1] + c["size"][1] for c in bunk) == BUNK_TOP
 
 # --- Right-hand furniture (ADR 0093) ----------------------------------------

@@ -183,7 +183,7 @@ describe("camper model assets (ADR 0067)", () => {
     const top = Math.max(...cubes.map((cube) => cube.top));
     expect(top - 32).toBeLessThanOrEqual(9);
     expect(top).toBeLessThan(38);
-    // BUNK_TOP in tools/gen_camper.py, which the bunk block of 16/16 sizes its box from.
+    // BUNK_TOP in tools/gen_camper.py, which camper_bunk.block.json sizes its box from.
     expect(top).toBe(37.5);
     // The bunk block's selection box is as high as the bunk above its cell bottom (ADR 0182).
     const block = JSON.parse(

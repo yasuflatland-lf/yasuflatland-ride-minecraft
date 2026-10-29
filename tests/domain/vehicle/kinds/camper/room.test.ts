@@ -8,7 +8,6 @@ import {
   leftOf,
   normalizeYaw,
   rightOf,
-  type Vec3,
 } from "../../../../../src/domain/shared/vec";
 import { decorFace } from "../../../../../src/domain/vehicle/dock/decor";
 import { inBox } from "../../../../../src/domain/vehicle/dock/dock";
@@ -1042,7 +1041,6 @@ it("maps each level's cells to its own aisle cell on the floor, and rejects ever
       const room = roomCells(p, false);
       const roomKeys = new Set(room.map(cellKey));
       const aisle = (z: number) => localCellAt(p, { x: 0, z, layer: 1 });
-      const spawns = new Map<string, Vec3>();
       for (const [type, z] of [
         ["bed", -2],
         ["bunk", -3],
@@ -1054,9 +1052,7 @@ it("maps each level's cells to its own aisle cell on the floor, and rejects ever
           expect(spawn).toEqual(aisle(z));
           expect(roomKeys.has(cellKey(defined(spawn, "spawn")))).toBe(false);
         }
-        spawns.set(type, defined(bedSpawnCell(p, levels[0] as Vec3), "spawn"));
       }
-      expect(spawns.get("bed")).not.toEqual(spawns.get("bunk"));
       for (const cell of [
         ...room.filter(
           (c) => c.block.type !== "bed" && c.block.type !== "bunk",

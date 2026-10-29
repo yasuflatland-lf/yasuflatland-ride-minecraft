@@ -68,7 +68,7 @@ const ROOM_BOXES: Readonly<Record<string, PressedShape>> = {
   [CAMPER_SHOWER_TOILET_BLOCK]: FULL,
   [CAMPER_SHOWER_DOOR_BLOCK]: FULL,
   [CAMPER_BED_BLOCK]: { kind: "room", bottom: 0, top: 9 / PX_PER_BLOCK },
-  // BUNK_TOP - 32 in tools/gen_camper.py: the bunk's top above its cell bottom (ADR 0182).
+  // BUNK_TOP - BUNK_DECK_BOTTOM in tools/gen_camper.py: the bunk's top above its cell bottom (ADR 0182).
   [CAMPER_BUNK_BLOCK]: { kind: "room", bottom: 0, top: 5.5 / PX_PER_BLOCK },
   [CAMPER_CEILING_BLOCK]: { kind: "room", bottom: 13 / PX_PER_BLOCK, top: 1 },
   [CAMPER_CABINET_DOOR_BLOCK]: {
