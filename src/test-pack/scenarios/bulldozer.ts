@@ -31,13 +31,18 @@ function withBulldozer<T>(
 ): Promise<T> {
   return withCar(a, x, z, yaw, run, ENTITY_TYPE.bulldozer);
 }
+/** Sets a tool state through the server-only test hook. */
+async function sendToolState(
+  car: Entity,
+  item: string,
+  state: string,
+): Promise<void> {
+  await wait(2); // the main pack builds the aggregate of a freshly summoned bulldozer first
+  system.sendScriptEvent(TEST_TOOL_EVENT, `${car.id},${item},${state}`);
+}
 /** Sets the blade through the server-only test hook and waits until it has finished moving (ADR 0138). */
 async function setBlade(car: Entity, raised: boolean): Promise<void> {
-  await wait(2); // the main pack builds the aggregate of a freshly summoned bulldozer first
-  system.sendScriptEvent(
-    TEST_TOOL_EVENT,
-    `${car.id},${BLADE_SWITCH_ITEM},${raised ? "up" : "down"}`,
-  );
+  await sendToolState(car, BLADE_SWITCH_ITEM, raised ? "up" : "down");
   await wait(BULLDOZER_SPEC.bladeLiftTicks + 2);
   const lift = car.getProperty(entityPropertyId("blade"));
   const want = raised ? 1 : 0;
@@ -45,11 +50,7 @@ async function setBlade(car: Entity, raised: boolean): Promise<void> {
 }
 /** Sets the wide blade state through the server-only test hook and checks the saved property (ADR 0180). */
 async function setWideBlade(car: Entity, wide: boolean): Promise<void> {
-  await wait(2); // the main pack builds the aggregate of a freshly summoned bulldozer first
-  system.sendScriptEvent(
-    TEST_TOOL_EVENT,
-    `${car.id},${WIDE_BLADE_SWITCH_ITEM},${wide ? "wide" : "normal"}`,
-  );
+  await sendToolState(car, WIDE_BLADE_SWITCH_ITEM, wide ? "wide" : "normal");
   await wait(2);
   const shown = car.getProperty(entityPropertyId("wide_blade"));
   if (shown !== wide)
