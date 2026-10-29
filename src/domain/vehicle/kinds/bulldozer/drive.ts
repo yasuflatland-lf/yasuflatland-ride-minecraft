@@ -4,6 +4,7 @@ import type { CutColumn } from "../../cut";
 import type { DriveStep, EngineCommand, TickContext } from "../../drive";
 import { type RawInput, toDriveInput } from "../../driveInput";
 import type { RestoredOf } from "../../entityContract";
+import { monitorTool } from "../../monitor/monitor";
 import { climbInput, type Form } from "../../motion/forms";
 import type { GroundInput, MotionResult } from "../../motion/motion";
 import { pivotGroundStep, pivotMediumStep } from "../../motion/pivot";
@@ -20,15 +21,20 @@ import {
   trackPhaseCommand,
   trackSpinCommand,
 } from "./entity";
-import { BLADE_SWITCH_ITEM } from "./monitor";
+import { BLADE_SWITCH_ITEM, BULLDOZER_MONITOR } from "./monitor";
 import { BULLDOZER_MOTION, BULLDOZER_TYRES } from "./profile";
-import { BULLDOZER_SPEC, BULLDOZER_TRANSFORMING } from "./spec";
+import { type BladeRule, BULLDOZER_SPEC, BULLDOZER_TRANSFORMING } from "./spec";
 import {
   advanceTracks,
   type TrackTravel,
   trackPhase,
   trackSpin,
 } from "./tracks";
+
+interface ToolBinding {
+  readonly get: () => string;
+  readonly set: (state: string) => void;
+}
 
 const TRACK_SIDES = ["r", "l"] as const;
 
@@ -118,10 +124,16 @@ export class BulldozerDrive extends TransformingDrive {
     r: new SyncedValue<number>(),
     l: new SyncedValue<number>(),
   };
-  private readonly toolStates: Readonly<Record<string, () => string>> =
-    Object.freeze({
-      [BLADE_SWITCH_ITEM]: () => (this.bladeTargetRaised ? "up" : "down"),
-    });
+  private readonly tools: Readonly<Record<string, ToolBinding>> = Object.freeze(
+    {
+      [BLADE_SWITCH_ITEM]: {
+        get: () => (this.bladeTargetRaised ? "up" : "down"),
+        set: (state) => {
+          this.bladeTargetRaised = state === "up";
+        },
+      },
+    },
+  );
 
   constructor(yaw: number, restored: RestoredOf<typeof BULLDOZER_ENTITY>) {
     super(
@@ -148,15 +160,16 @@ export class BulldozerDrive extends TransformingDrive {
 
   /** The monitor state of a held tool; the blade shows its target, so a switch shows at once (ADR 0139). */
   toolState(item: string): string | undefined {
-    return Object.hasOwn(this.toolStates, item)
-      ? this.toolStates[item]?.()
+    return Object.hasOwn(this.tools, item)
+      ? this.tools[item]?.get()
       : undefined;
   }
 
   setToolState(item: string, state: string): boolean {
-    if (item !== BLADE_SWITCH_ITEM || (state !== "up" && state !== "down"))
+    const tool = monitorTool(BULLDOZER_MONITOR, item);
+    if (!tool?.states.includes(state) || !Object.hasOwn(this.tools, item))
       return false;
-    this.bladeTargetRaised = state === "up";
+    this.tools[item]?.set(state);
     return true;
   }
 
@@ -218,17 +231,22 @@ export class BulldozerDrive extends TransformingDrive {
     return cut.length === 0 ? undefined : cut;
   }
 
+  private bladeRule(): BladeRule {
+    return BULLDOZER_SPEC.blade;
+  }
+
   private forwardCut(raw: RawInput, ctx: TickContext): CutColumn[] {
+    const rule = this.bladeRule();
     const reach = cutReach(this.form, ctx.onGround);
     if (
       bulldozerInput(raw, this.form).steer === 0 &&
-      this.speed > BULLDOZER_SPEC.blade.minSpeed &&
+      this.speed > rule.minSpeed &&
       reach !== undefined
     )
       return bladeColumns(
         ctx.location,
         this.yaw,
-        BULLDOZER_SPEC.blade,
+        rule,
         reach === "tunnel",
         ctx.onGround,
       );
