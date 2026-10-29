@@ -9,7 +9,7 @@ export class HostedItemsGuard {
       for (const id of kind.loaded()) {
         const host = kind.host(id);
         if (host.kind === "ground") continue;
-        // An unloaded host reads as missing, so only a loaded area can prove it gone.
+        // An unloaded host reads as missing, so only a loaded host area can prove it gone.
         if (kind.isHostAreaLoaded(id) && !kind.hostExists(host.id))
           kind.remove(id);
       }

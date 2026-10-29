@@ -243,6 +243,11 @@ it("switches physics with the host and defers cleanup in unloaded blocks", () =>
   expect(ovens.isHostAreaLoaded(id)).toBe(true);
   game.block.mockReturnValue(undefined);
   expect(ovens.isHostAreaLoaded(id)).toBe(false);
+  // A table in a neighbouring unloaded chunk must not read as missing.
+  game.block.mockImplementation((at: { x: number }) =>
+    at.x > entity.location.x ? undefined : {},
+  );
+  expect(ovens.isHostAreaLoaded(id)).toBe(false);
   game.block.mockImplementation(() => {
     throw new Error("unloaded");
   });
