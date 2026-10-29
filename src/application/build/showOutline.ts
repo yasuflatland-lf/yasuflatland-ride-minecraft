@@ -23,12 +23,19 @@ export class ShowOutline {
       const session = this.repo.get(id);
       if (!session?.isInBuildMode) continue;
       const { selection } = session;
-      const box = selectionBox(selection);
-      const corner = loneCorner(selection);
-      if (selection && box) {
-        this.feedback.drawOutline(id, selection.dimensionId, box, "selection");
-      } else if (selection && corner) {
-        this.feedback.drawCorner(id, selection.dimensionId, corner);
+      if (selection) {
+        const box = selectionBox(selection);
+        const corner = loneCorner(selection);
+        if (box) {
+          this.feedback.drawOutline(
+            id,
+            selection.dimensionId,
+            box,
+            "selection",
+          );
+        } else if (corner) {
+          this.feedback.drawCorner(id, selection.dimensionId, corner);
+        }
       }
       const feet = this.gate.bulldozerFeet(id);
       if (session.clipboard && feet) {

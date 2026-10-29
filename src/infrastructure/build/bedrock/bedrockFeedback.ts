@@ -27,6 +27,15 @@ function messageArgs(message: BuildMessage, count?: number): string[] {
   return [String(count)];
 }
 
+function viewerIn(
+  playerId: PlayerId,
+  dimensionId: DimensionId,
+): Player | undefined {
+  const player = playerById(playerId);
+  if (!player?.isValid || player.dimension.id !== dimensionId) return undefined;
+  return player;
+}
+
 export class BedrockFeedback implements BuildFeedback {
   showMessage(playerId: PlayerId, message: BuildMessage, count?: number): void {
     const player = playerById(playerId);
@@ -43,8 +52,8 @@ export class BedrockFeedback implements BuildFeedback {
     box: Box,
     style: OutlineStyle,
   ): void {
-    const player = playerById(playerId);
-    if (!player?.isValid || player.dimension.id !== dimensionId) return;
+    const player = viewerIn(playerId, dimensionId);
+    if (!player) return;
     const points = edgePoints(box, BUILD_SPEC.outlineMaxPoints).map((p) => ({
       x: p.x + 0.5,
       y: p.y + 0.5,
@@ -54,8 +63,8 @@ export class BedrockFeedback implements BuildFeedback {
   }
 
   drawCorner(playerId: PlayerId, dimensionId: DimensionId, cell: Cell): void {
-    const player = playerById(playerId);
-    if (!player?.isValid || player.dimension.id !== dimensionId) return;
+    const player = viewerIn(playerId, dimensionId);
+    if (!player) return;
     this.spawnAll(player, CORNER_PARTICLE, cornerMarkerPoints(cell));
   }
 
