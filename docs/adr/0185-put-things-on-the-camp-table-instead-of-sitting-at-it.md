@@ -2,8 +2,8 @@
 
 - Status: Proposed
 - Date: 2026-10-29
-- Extends: 0152 (the camp table), 0168 (the Dutch oven and its hosts)
-- Supersedes in part: 0152 (the two seats, the Sit interaction, and "does not accept placed items") and 0168 (rule 5: a missing host no longer drops the oven to the ground; rule 1: new ovens on a table no longer use two fixed spots)
+- Extends: 0152 (the camp table), 0168 (the Dutch oven and its hosts), 0173 (the Gas Lantern, which now may stand on a table)
+- Supersedes in part: 0152 (the two seats, the Sit interaction, and "does not accept placed items") and 0168 (rule 5: a missing host no longer drops the oven to the ground; rule 1: new ovens on a table no longer use two fixed spots; rule 8: an overlap and limit check replaces the occupied-spot refusal on a table; Out of scope: the table may now hold Gas Lanterns)
 
 ## Context
 
@@ -21,7 +21,7 @@ The owner wants the outside Camp Table to hold camp gear where the player aims, 
 6. **Taking back.** Three quick hits on a placed oven or lantern drop its item and remove the entity, as on the ground. A lantern also clears its light block; switching and light otherwise behave as on the ground.
 7. **Folding.** The table folds only when nothing stands on it. Both ovens and lanterns count; otherwise show the existing on-top hint.
 8. **Missing hosts.** When a table or Fire Pit disappears, remove the oven or lantern standing on it with no drop, no entity, and no light block. Keep checking every `DUTCH_OVEN_SPEC.hostCheckTicks`. If either the host's chunk or the item's chunk is unloaded, never treat the host as missing. This replaces 0168 rule 5 and deletes its fall-to-ground code path and tests.
-9. **Saved ovens.** The old `<hostEntityId>:<spot>` marker still decodes and maps to the old spot position. Such an oven keeps working and counts toward the limit and overlap check like any other item, with no legacy branch in the placement rule.
+9. **Saved ovens.** The old `camp_table:<hostEntityId>:<spot>` marker still decodes (a Fire Pit oven keeps its `fire_pit:<hostEntityId>:<spot>` marker) and maps to the old spot position. Such an oven keeps working and counts toward the limit and overlap check like any other item, with no legacy branch in the placement rule.
 10. **Lantern hosts.** A Gas Lantern gets an optional host marker. A lantern with no marker is a ground lantern and is never removed by the host check.
 11. **Shared rule.** Clamp, overlap, and limit are pure domain logic with property-based tests. Each hosted item kind gets a definition (footprint, clearance, item, entity type), and one placement rule runs over them, without branching on oven versus lantern in shared logic. Entity calls stay in `src/infrastructure/camp`.
 12. **Fire Pit.** Keep its single fixed oven spot and today's placement. Only the removal rule changes for it.
