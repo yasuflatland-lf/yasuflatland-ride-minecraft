@@ -1,3 +1,5 @@
+import { clamp } from "../shared/vec";
+
 export interface LocalPoint {
   readonly x: number;
   readonly z: number;
@@ -29,22 +31,19 @@ export function placeOnTop(
     return { ok: false, reason: "tooBig" };
 
   const at = {
-    x: Math.min(
-      top.halfX - footprint.halfX,
-      Math.max(-top.halfX + footprint.halfX, aim.x),
-    ),
-    z: Math.min(
-      top.halfZ - footprint.halfZ,
-      Math.max(-top.halfZ + footprint.halfZ, aim.z),
-    ),
+    x: clamp(aim.x, -top.halfX + footprint.halfX, top.halfX - footprint.halfX),
+    z: clamp(aim.z, -top.halfZ + footprint.halfZ, top.halfZ - footprint.halfZ),
   };
-  if (
-    existing.some(
-      (item) =>
-        Math.abs(at.x - item.at.x) < footprint.halfX + item.footprint.halfX &&
-        Math.abs(at.z - item.at.z) < footprint.halfZ + item.footprint.halfZ,
-    )
-  )
+  const placed = { at, footprint };
+  if (existing.some((item) => overlaps(placed, item)))
     return { ok: false, reason: "overlap" };
   return { ok: true, at };
+}
+
+// Strict comparisons let footprints touch along an edge without overlapping.
+function overlaps(a: TopItem, b: TopItem): boolean {
+  return (
+    Math.abs(a.at.x - b.at.x) < a.footprint.halfX + b.footprint.halfX &&
+    Math.abs(a.at.z - b.at.z) < a.footprint.halfZ + b.footprint.halfZ
+  );
 }
