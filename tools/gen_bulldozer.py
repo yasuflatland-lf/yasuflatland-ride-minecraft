@@ -694,8 +694,8 @@ def blade_cubes(half: float) -> list:
             blade.append(box(-x_half, y, zf, x_half, y1, zf + 1.0, "yellow"))
         y = y1
     # Cutting edge in five bolted segments, end bits at the corners, painted like the moldboard
-    EDGE_CUTS = [f * half for f in (-1.0, -0.794, -0.393, 0.393, 0.794, 1.0)]
-    for i, (x0, x1) in enumerate(zip(EDGE_CUTS, EDGE_CUTS[1:])):
+    edge_cuts = [f * half for f in (-1.0, -0.794, -0.393, 0.393, 0.794, 1.0)]
+    for i, (x0, x1) in enumerate(zip(edge_cuts, edge_cuts[1:])):
         x0, x1 = x0 + (0.1 if i else 0.0), x1 - (0.1 if i < 4 else 0.0)
         blade.append(box(x0, 0.0, BLADE_FRONT, x1, 3.0, BLADE_FRONT + 1.4, "yellow"))
         blade.append(box(x0, 0.6, BLADE_FRONT + 1.4, x1, 3.0, BLADE_FRONT + 4.6, "yellow_dark"))
