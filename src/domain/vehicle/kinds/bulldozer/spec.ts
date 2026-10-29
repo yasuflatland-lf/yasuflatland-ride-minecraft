@@ -11,6 +11,15 @@ export interface TrackGeometry {
   readonly phaseStep: number;
   readonly radius: number;
 }
+const blade = Object.freeze({
+  near: 1.0,
+  far: 2.9,
+  // The blade's half width, 37.05 px / 16, rather than the 1.18-block cab. The ram box covers the full blade.
+  halfWidth: 2.32,
+  bodyHeight: 2.9,
+  minSpeed: 0.02,
+});
+
 // Flight and water values repeat the SUV's at the owner's request for the same behavior; they are not shared constants (ADR 0050, 0136).
 export const BULLDOZER_SPEC = Object.freeze({
   maxSpeed: 0.45,
@@ -31,8 +40,7 @@ export const BULLDOZER_SPEC = Object.freeze({
   footprint: 3.35,
   // The blade's front-most point, -38.4 px / 16. The body ends at 2.04, so the ram box covers the blade.
   bodyFront: 2.4,
-  // The blade's half width, 37.05 px / 16, rather than the 1.18-block cab. The ram box covers the full blade.
-  bodyHalfWidth: 2.32,
+  bodyHalfWidth: blade.halfWidth,
   doubleTapTicks: 8,
   takeoffTicks: 20,
   takeoffClimb: 0.075,
@@ -66,13 +74,7 @@ export const BULLDOZER_SPEC = Object.freeze({
   bladeRaisedOnSpawn: true,
   headlightReach: Object.freeze([6, 10, 15, 21, 27] as const),
   headlightLevels: Object.freeze([8, 12, 15, 15, 15] as const),
-  blade: Object.freeze({
-    near: 1.0,
-    far: 2.9,
-    halfWidth: 2.32,
-    bodyHeight: 2.9,
-    minSpeed: 0.02,
-  }),
+  blade,
   // Digs up through an overhead obstacle while rising: the footprint plus two blocks on each side, so the body never wedges in a one-block hole (ADR 0155).
   shaft: Object.freeze({ margin: 2, reach: 2 }),
   tracks: Object.freeze({
