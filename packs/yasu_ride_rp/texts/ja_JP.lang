@@ -6,6 +6,7 @@ entity.yasu_ride:sportsboat.name=スポーツボート
 item.yasu_ride:camper_item.name=キャンピングカー
 item.yasu_ride:bulldozer_item.name=ブルドーザー
 item.yasu_ride:blade_switch.name=ブレード上下
+item.yasu_ride:wide_blade_switch.name=ワイドブレード
 item.yasu_ride:camping_gear_box.name=キャンピング用品の箱
 entity.yasu_ride:camper.name=キャンピングカー
 entity.yasu_ride:bulldozer.name=ブルドーザー
