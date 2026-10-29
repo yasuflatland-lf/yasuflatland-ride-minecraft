@@ -1311,7 +1311,8 @@ for sgn in (1, -1):
         for e0, e1 in ((a0 - 0.3, a0), (a1, a1 + 0.3)):
             body.append(box(x_dark, 13, e0, x_wall, ARCH_TOP + 0.5, e1, "wood"))
 
-# Extract lenses after shaping the nose so they follow the same taper as the lamp pods.
+# Extract the headlight group's lamps (lenses, roof clearance, rear roof, and tail lamps)
+# after shaping the nose so the lenses follow the lamp pod taper.
 headlights, body = take_slots(body, LAMP_GROUPS["headlights"])
 
 # Glass gets its own bones, listed last, so only glass is alpha-blended and it draws after the
