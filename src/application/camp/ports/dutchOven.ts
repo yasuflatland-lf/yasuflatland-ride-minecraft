@@ -2,13 +2,9 @@ import type { DutchOvenId } from "../../../domain/camp/dutchOven";
 import type { FirePitId } from "../../../domain/camp/firePit";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
-import type { GroundCellsWorld } from "./groundCells";
+import type { TableTopWorld } from "./tableTop";
 
-export interface DutchOvenWorld extends GroundCellsWorld {
-  table(
-    id: string,
-  ): { dimension: DimensionId; at: Vec3; yaw: number } | undefined;
-  takenTableSpots(id: string): ReadonlySet<number>;
+export interface DutchOvenWorld extends TableTopWorld {
   hasDutchOvenNear(dimension: DimensionId, at: Vec3): boolean;
   spawnDutchOven(dimension: DimensionId, at: Vec3, yaw: number): DutchOvenId;
   firePit(

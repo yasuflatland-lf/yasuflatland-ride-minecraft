@@ -1,4 +1,5 @@
 // Camping entity, item, and block ids (ADR 0047, 0122, 0130, 0131, 0132, 0133, 0134).
+import type { TableTopRefusal } from "../../application/camp/placeOnTableTop";
 import type { ChairKindId } from "../../domain/camp/chair";
 import type { PitchRefusal } from "../../domain/camp/tent";
 import { id } from "../shared/identifiers";
@@ -56,10 +57,21 @@ export const HITS_LEFT_HINT = CHAIR_KINDS.low_chair.hitsHint;
 export const CAMP_TABLE_TYPE = id("camp_table");
 export const CAMP_TABLE_ITEM = id("camp_table_item");
 export const TEST_TABLE_HIT_EVENT = "yasu_ride_test:test_table_hit";
-/** Server test hook: message is the table entity id followed by spot 0 or 1. */
+/**
+ * Server test hook: the message is the table entity id followed by an old spot
+ * index 0 or 1, or by a local point `<x> <z>` in model pixels.
+ */
 export const TEST_DUTCH_OVEN_ON_TABLE_EVENT =
   "yasu_ride_test:test_dutch_oven_on_table";
 export const TABLE_HITS_LEFT_HINT = "yasu_ride.hint.camp_table_hits";
+/** Action bar hint for each refusal of the table top rule (ADR 0185). */
+export const TABLE_TOP_REFUSAL_HINTS: Readonly<
+  Record<TableTopRefusal, string>
+> = {
+  full: "yasu_ride.hint.camp_table_full",
+  overlap: "yasu_ride.hint.camp_table_overlap",
+  tooBig: "yasu_ride.hint.camp_table_too_big",
+};
 
 export const DUTCH_OVEN_HOST_PROPERTY = id("host");
 export const DUTCH_OVEN_HOSTED_EVENT = id("oven_hosted");
@@ -67,6 +79,12 @@ export const DUTCH_OVEN_GROUND_EVENT = id("oven_ground");
 /** Server test hook: the message is the pit entity id; no player or item is needed. */
 export const TEST_DUTCH_OVEN_ON_PIT_EVENT =
   "yasu_ride_test:test_dutch_oven_on_pit";
+/**
+ * Server test hook: the message is an oven entity id and a host marker. Dynamic
+ * properties belong to the pack that wrote them, so the test pack cannot write
+ * the marker itself.
+ */
+export const TEST_DUTCH_OVEN_HOST_EVENT = "yasu_ride_test:test_dutch_oven_host";
 export const DUTCH_OVEN_TYPE = id("dutch_oven");
 export const DUTCH_OVEN_ITEM = id("dutch_oven_item");
 export const DUTCH_OVEN_SIMMERING_PROPERTY = id("simmering");

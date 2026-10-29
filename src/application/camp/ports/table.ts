@@ -4,7 +4,8 @@ import type { Vec3 } from "../../../domain/shared/vec";
 import type { GroundCellsWorld } from "./groundCells";
 
 export interface TableWorld extends GroundCellsWorld {
-  ovensOnTable(id: TableId): number;
+  /** How many items of any kind stand on the table. */
+  itemsOnTable(id: TableId): number;
   showOvenOnTop(player: PlayerId): void;
   hasTableNear(dimensionId: DimensionId, at: Vec3): boolean;
   spawnTable(dimensionId: DimensionId, at: Vec3, yaw: number): void;

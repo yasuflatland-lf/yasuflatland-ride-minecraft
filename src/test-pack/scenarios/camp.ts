@@ -1,6 +1,11 @@
 // In-game checks of the camp feature's low chair (ADR 0122).
 import { type Entity, system, type Vector3 } from "@minecraft/server";
-import { FIRE_PIT_TOP_PX, TABLE_TOP_PX } from "../../domain/camp/spec";
+import { hostLocalPx, hostSpotPoint } from "../../domain/camp/dutchOven";
+import {
+  FIRE_PIT_TOP_PX,
+  TABLE_SPOTS,
+  TABLE_TOP_PX,
+} from "../../domain/camp/spec";
 import {
   CAMP_TABLE_ITEM,
   CAMP_TABLE_TYPE,
@@ -17,6 +22,7 @@ import {
   GAS_LANTERN_LIT_PROPERTY,
   GAS_LANTERN_TYPE,
   TEST_DUTCH_OVEN_HIT_EVENT,
+  TEST_DUTCH_OVEN_HOST_EVENT,
   TEST_DUTCH_OVEN_ON_PIT_EVENT,
   TEST_DUTCH_OVEN_ON_TABLE_EVENT,
   TEST_DUTCH_OVEN_SIMMER_EVENT,
@@ -194,15 +200,28 @@ export function campTableNoSeats(a: Arena): Promise<Outcome> {
   }
 }
 
-/** Checks both tabletop spots and the fold guard through production actions. */
-export async function dutchOvenOnTable(a: Arena): Promise<Outcome> {
-  const at = { x: CELL.x, y: a.gy, z: CELL.z + 8.5 };
+const TABLE_AT = (a: Arena) => ({ x: CELL.x, y: a.gy, z: CELL.z + 8.5 });
+
+const summonTable = (a: Arena, at: Vector3): Entity | undefined => {
   a.dim.runCommand(`summon ${CAMP_TABLE_TYPE} ${at.x} ${at.y} ${at.z}`);
-  const table = a.dim.getEntities({
+  return a.dim.getEntities({
     type: CAMP_TABLE_TYPE,
     location: at,
     maxDistance: 1.5,
   })[0];
+};
+
+const cleanTable = (a: Arena, table: Entity | undefined, at: Vector3) => {
+  for (const oven of ovensNear(a, at)) oven.remove();
+  if (table?.isValid) table.remove();
+  for (const type of [DUTCH_OVEN_ITEM, CAMP_TABLE_ITEM])
+    for (const item of droppedItems(a, at, type)) item.remove();
+};
+
+/** Checks both tabletop spots and the fold guard through production actions. */
+export async function dutchOvenOnTable(a: Arena): Promise<Outcome> {
+  const at = TABLE_AT(a);
+  const table = summonTable(a, at);
   if (!table) return { pass: false, detail: "table not spawned" };
   const hitThree = async (event: string, id: string) => {
     for (let i = 0; i < 3; i++) {
@@ -251,10 +270,116 @@ export async function dutchOvenOnTable(a: Arena): Promise<Outcome> {
       detail: `ovens=${ovens.length} standing=${standing} guarded=${guarded} returned=${returned} afterTwo=${afterTwo} folded=${folded}`,
     };
   } finally {
-    if (table.isValid) table.remove();
-    for (const oven of ovensNear(a, at)) oven.remove();
-    for (const type of [DUTCH_OVEN_ITEM, CAMP_TABLE_ITEM])
-      for (const item of droppedItems(a, at, type)) item.remove();
+    cleanTable(a, table, at);
+  }
+}
+
+/**
+ * Summons an oven and has the Behavior Pack write its host marker, as a saved
+ * world would hold it; the test pack cannot read or write that pack's dynamic
+ * properties.
+ */
+const summonMarkedOven = async (a: Arena, at: Vector3, marker: string) => {
+  const before = new Set(ovensNear(a, at).map((oven) => oven.id));
+  a.dim.runCommand(`summon ${DUTCH_OVEN_TYPE} ${at.x} ${at.y} ${at.z}`);
+  const oven = ovensNear(a, at).find((e) => !before.has(e.id));
+  if (oven)
+    system.sendScriptEvent(TEST_DUTCH_OVEN_HOST_EVENT, `${oven.id} ${marker}`);
+  await wait(2);
+  return oven;
+};
+
+const placeOnTableAt = async (table: Entity, x: number, z: number) => {
+  system.sendScriptEvent(
+    TEST_DUTCH_OVEN_ON_TABLE_EVENT,
+    `${table.id} ${x} ${z}`,
+  );
+  await wait(2);
+};
+
+/**
+ * Ovens stand at chosen points of the top, an overlapping one is refused, and
+ * a fifth item is refused at a free point. Only two ovens fit side by side on
+ * the 30 px top, so ovens with hand-written markers fill the limit (ADR 0185).
+ */
+export async function campTableFreeOven(a: Arena): Promise<Outcome> {
+  const at = TABLE_AT(a);
+  const table = summonTable(a, at);
+  if (!table) return { pass: false, detail: "table not spawned" };
+  try {
+    const host = { at: table.location, yaw: table.getRotation().y };
+    const onTop = (oven: Entity) =>
+      Math.abs(oven.location.y - (table.location.y + TABLE_TOP_PX / 16)) < 0.05;
+    await placeOnTableAt(table, -9, 0);
+    await placeOnTableAt(table, 3, 0.5);
+    await placeOnTableAt(table, -4, 0);
+    const placed = ovensNear(a, at);
+    const points = placed
+      .map((oven) => hostLocalPx(host, oven.location))
+      .sort((p, q) => p.x - q.x);
+    const atPoints =
+      placed.length === 2 &&
+      placed.every(onTop) &&
+      [
+        { x: -9, z: 0 },
+        { x: 3, z: 0.5 },
+      ].every(
+        (want, i) =>
+          Math.abs((points[i]?.x ?? Infinity) - want.x) < 0.1 &&
+          Math.abs((points[i]?.z ?? Infinity) - want.z) < 0.1,
+      );
+
+    for (const oven of placed)
+      if (hostLocalPx(host, oven.location).x > 0) oven.remove();
+    const fillers: (Entity | undefined)[] = [];
+    for (let i = 0; i < 3; i++)
+      fillers.push(
+        await summonMarkedOven(a, at, `camp_table:${table.id}:@-9,0`),
+      );
+    await placeOnTableAt(table, 6, 0);
+    const full = ovensNear(a, at).length;
+    fillers[0]?.remove();
+    await placeOnTableAt(table, 6, 0);
+    const freed = ovensNear(a, at).filter(onTop).length;
+    return {
+      pass: atPoints && full === 4 && freed === 2,
+      detail: `placed=${placed.length} points=${JSON.stringify(points)} full=${full} freed=${freed}`,
+    };
+  } finally {
+    cleanTable(a, table, at);
+  }
+}
+
+/** An oven saved with an old spot marker still counts on the top and still blocks folding. */
+export async function campTableLegacyOven(a: Arena): Promise<Outcome> {
+  const at = TABLE_AT(a);
+  const table = summonTable(a, at);
+  if (!table) return { pass: false, detail: "table not spawned" };
+  try {
+    const [left] = TABLE_SPOTS;
+    const top = hostSpotPoint(
+      { at: table.location, yaw: table.getRotation().y },
+      left,
+      TABLE_TOP_PX,
+    );
+    const legacy = await summonMarkedOven(a, top, `camp_table:${table.id}:0`);
+    await wait(22);
+    const kept = legacy?.isValid === true;
+    for (let i = 0; i < 3; i++) {
+      system.sendScriptEvent(TEST_TABLE_HIT_EVENT, table.id);
+      await wait(2);
+    }
+    const guarded = table.isValid;
+    await placeOnTableAt(table, left.x, left.z);
+    const blocked = ovensNear(a, at).length === 1;
+    await placeOnTableAt(table, -left.x, left.z);
+    const beside = ovensNear(a, at).length === 2;
+    return {
+      pass: kept && guarded && blocked && beside,
+      detail: `kept=${kept} guarded=${guarded} blocked=${blocked} beside=${beside}`,
+    };
+  } finally {
+    cleanTable(a, table, at);
   }
 }
 
