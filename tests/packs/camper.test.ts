@@ -138,47 +138,40 @@ describe("camper model assets (ADR 0067)", () => {
     expect(bunk.parent).toBe("body");
     expect(bunk.pivot).toEqual([0, 0, 0]);
     expect(bunk.rotation).toBeUndefined();
-    const cubes = bunk.cubes ?? [];
-    const panels = cubes.filter(
-      (cube) => defined(cube.origin[1], "bunk origin") >= 32,
-    );
-    const posts = cubes.filter(
-      (cube) => defined(cube.origin[1], "bunk origin") < 32,
-    );
+    const cubes = (bunk.cubes ?? []).map((cube) => {
+      expect(cube.rotation).toBeUndefined();
+      const [x, y, z] = [0, 1, 2].map((axis) =>
+        defined(cube.origin[axis], "bunk origin"),
+      ) as [number, number, number];
+      const [width, height, depth] = [0, 1, 2].map((axis) =>
+        defined(cube.size[axis], "bunk size"),
+      ) as [number, number, number];
+      return { x, y, z, width, height, depth, top: y + height };
+    });
+    const panels = cubes.filter((cube) => cube.y >= 32);
+    const posts = cubes.filter((cube) => cube.y < 32);
     expect(panels.length).toBeGreaterThanOrEqual(4);
     expect(posts).toHaveLength(2);
-    const deck = panels.find((cube) => cube.origin[1] === 32);
-    expect(deck).toBeDefined();
-    expect(deck?.origin).toEqual([8, 32, 24]);
-    expect(deck?.size[0]).toBe(15);
-    expect(deck?.size[2]).toBe(31);
-    const deckTop = (deck?.origin[1] ?? 0) + (deck?.size[1] ?? 0);
-    for (const cube of cubes) {
-      expect(cube.rotation).toBeUndefined();
-      const [x, y, z] = [
-        defined(cube.origin[0], "bunk origin"),
-        defined(cube.origin[1], "bunk origin"),
-        defined(cube.origin[2], "bunk origin"),
-      ] as const;
-      const [width, height, depth] = [
-        defined(cube.size[0], "bunk size"),
-        defined(cube.size[1], "bunk size"),
-        defined(cube.size[2], "bunk size"),
-      ] as const;
+    const deck = defined(
+      panels.find((cube) => cube.y === 32),
+      "bunk deck",
+    );
+    expect([deck.x, deck.y, deck.z]).toEqual([8, 32, 24]);
+    expect(deck.width).toBe(15);
+    expect(deck.depth).toBe(31);
+    for (const post of posts) {
+      expect(post.y).toBe(16);
+      expect(post.x).toBe(8);
+      expect(post.width).toBeLessThanOrEqual(1.5);
+      expect(post.depth).toBeLessThanOrEqual(1.5);
+      expect(post.top).toBeLessThanOrEqual(deck.top);
+    }
+    for (const { x, z, width, depth, top } of cubes) {
       expect(x).toBeGreaterThanOrEqual(8);
       expect(x + width).toBeLessThanOrEqual(24);
       expect(z).toBeGreaterThanOrEqual(24);
       expect(z + depth).toBeLessThanOrEqual(56);
-      expect(y + height).toBeLessThan(48);
-      if (y < 32) {
-        expect(y).toBe(16);
-        expect(width).toBeLessThanOrEqual(1.5);
-        expect(depth).toBeLessThanOrEqual(1.5);
-        expect(y + height).toBeLessThanOrEqual(deckTop);
-        expect(x).toBe(8);
-      } else {
-        expect(y).toBeGreaterThanOrEqual(32);
-      }
+      expect(top).toBeLessThan(48);
       // Horizontal separation also keeps the view of the cabinet and aisle lights clear.
       for (const [left, right] of [
         [-22.8, -10],
@@ -187,13 +180,7 @@ describe("camper model assets (ADR 0067)", () => {
         expect(x >= right || x + width <= left).toBe(true);
       }
     }
-    const top = Math.max(
-      ...cubes.map(
-        (cube) =>
-          defined(cube.origin[1], "bunk origin") +
-          defined(cube.size[1], "bunk size"),
-      ),
-    );
+    const top = Math.max(...cubes.map((cube) => cube.top));
     expect(top - 32).toBeLessThanOrEqual(9);
     expect(top).toBeLessThan(38);
   });
