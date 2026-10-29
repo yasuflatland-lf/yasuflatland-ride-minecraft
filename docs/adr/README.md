@@ -9,7 +9,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0003](0003-friction-compensation-and-axis-wall-detection.md) | Estimate and compensate for ground friction, and detect wall collisions per axis | Superseded in part by 0077, 0081, and 0082 |
 | [0004](0004-two-block-step-up-by-look-ahead.md) | Climb two-block steps by looking ahead in the script | Superseded in part by 0035 |
 | [0005](0005-touch-throttle-compensation.md) | Compensate the throttle from the mobile joystick | Superseded by 0018 |
-| [0006](0006-ram-damage-and-occupant-protection.md) | Ram damage detection, and always protecting occupants | Accepted |
+| [0006](0006-ram-damage-and-occupant-protection.md) | Ram damage detection, and always protecting occupants | Accepted; extended by 0180 (Proposed) |
 | [0007](0007-seats-and-driver.md) | Seats and choosing the driver | Superseded by 0019 |
 | [0008](0008-vehicle-item-and-breaking.md) | Placing and picking up vehicles | Superseded in part by 0036; extended by 0122 (Proposed) |
 | [0009](0009-vehicle-model-conventions.md) | Vehicle model conventions, and accepting a square collision box | Superseded in part by 0170 (SUV collision dimensions; Proposed); extended by 0091, 0093, 0136 (Proposed), and 0139 (Proposed) |
@@ -36,7 +36,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0030](0030-engine-and-hover-sounds.md) | Engine and hover sounds from client animations, stepped by speed | Extended by 0073 and 0140 (Proposed) |
 | [0031](0031-repaint-with-all-sixteen-dyes.md) | Repaint vehicles with all sixteen dyes | Superseded in part by 0036; extended by 0076, [0135](0135-repaint-the-tent-with-dyes.md), and 0136 (Proposed) |
 | [0032](0032-climb-with-jump-and-sink-with-the-stick.md) | Climb with held Jump and sink with the stick pulled back | Accepted |
-| [0033](0033-lower-the-wheels-before-touchdown.md) | Lower the wheels before touchdown | Accepted |
+| [0033](0033-lower-the-wheels-before-touchdown.md) | Lower the wheels before touchdown | Accepted; extended by 0181 (Proposed) |
 | [0034](0034-touch-down-from-flight.md) | Return to the ground when a flying vehicle sinks onto it | Accepted |
 | [0035](0035-jump-one-block-steps-in-the-script.md) | Jump one-block steps in the script, and skip blocks without a collision box | Extended by 0136 (Proposed) and 0138 (Proposed) |
 | [0036](0036-paint-by-hitting-with-a-dye.md) | Paint by hitting with a dye, and get in by interacting | Accepted |
@@ -53,12 +53,12 @@ This directory records design decisions and the reasons behind them. The format 
 | [0047](0047-rename-to-yasuflatland-ride.md) | Rename to Yasuflatland Ride | Accepted; extended by 0178 (Proposed) |
 | [0048](0048-mutation-testing-and-unused-code-checks.md) | Mutation testing with Stryker, and unused code checks with knip | Extended by 0088 |
 | [0049](0049-pack-icons-rendered-from-model.md) | Render pack icons from the hovering SUV model | Accepted |
-| [0050](0050-vehicle-kinds-and-per-kind-profiles.md) | Vehicle kinds and per-kind profiles | Superseded in part by 0055; extended by 0120, 0136 (Proposed), and 0139 (Proposed) |
+| [0050](0050-vehicle-kinds-and-per-kind-profiles.md) | Vehicle kinds and per-kind profiles | Superseded in part by 0055; extended by 0120, 0136 (Proposed), 0139 (Proposed), and 0180 (Proposed) |
 | [0051](0051-sports-boat.md) | Sports boat | Superseded in part by 0066, 0080, and 0150 (Proposed); extended by 0058, 0063, 0089, 0120, 0158 (Proposed), 0159 (Proposed), 0161 (Proposed), 0162 (Proposed), and 0163 (Proposed) |
 | [0052](0052-retry-camera-switches-and-break-seat-ties-low.md) | Retry camera switches in both directions, and break seat ties toward the lower index | Superseded in part by 0117 |
 | [0053](0053-estimate-buoyant-boat-water-drag.md) | Estimate the buoyant boat's water drag | Accepted |
 | [0054](0054-shard-in-game-tests-in-ci.md) | Shard the in-game tests across four CI jobs and run model:check beside the unit tests | Accepted |
-| [0055](0055-kind-neutral-vehicle-core.md) | Kind-neutral vehicle core | Superseded in part by 0083 and 0087; extended by 0064, 0065, 0072, 0089, 0090, 0127, 0136 (Proposed), 0137 (Proposed), and 0139 (Proposed) |
+| [0055](0055-kind-neutral-vehicle-core.md) | Kind-neutral vehicle core | Superseded in part by 0083 and 0087; extended by 0064, 0065, 0072, 0089, 0090, 0127, 0136 (Proposed), 0137 (Proposed), 0139 (Proposed), 0180 (Proposed), and 0181 (Proposed) |
 | [0056](0056-sports-boat-previews.md) | Render README previews of the sports boat | Accepted |
 | [0057](0057-skip-model-check-when-inputs-unchanged.md) | Skip model:check on pull requests that leave the renderer's files alone | Accepted |
 | [0058](0058-refine-the-sports-boat-interior.md) | Refine the sports boat interior from reference photos | Accepted |
@@ -95,7 +95,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0089](0089-per-kind-control-mapping.md) | Each kind maps the stick to handbrake and creep | Extended by 0136 (Proposed) |
 | [0090](0090-group-the-vehicle-core-by-subcontext.md) | Group the vehicle core by subcontext | Extended by 0129 and 0139 (Proposed) |
 | [0091](0091-alpha-blend-only-the-camper-glass.md) | Alpha-blend only the camper glass | Accepted |
-| [0092](0092-a-bed-in-the-parked-camper.md) | A bed in the parked camper | Extended by 0093, 0129, and [0133](0133-sleep-on-the-tent-mattresses.md) |
+| [0092](0092-a-bed-in-the-parked-camper.md) | A bed in the parked camper | Extended by 0093, 0129, [0133](0133-sleep-on-the-tent-mattresses.md), and 0182 (Proposed); spawn point superseded in part by 0182 (Proposed) |
 | [0093](0093-decorate-the-parked-camper.md) | Decorate the parked camper | Superseded in part by 0097, 0098, 0099, 0100, 0102, 0103, 0106, 0108, and 0123 (Proposed); extended by 0094, 0095, 0096, 0101, 0113, 0122 (Proposed), 0139 (Proposed), and 0144 (Proposed) |
 | [0094](0094-the-camper-shower-toilet-door-and-shower.md) | The camper's shower-toilet door and shower | Superseded in part by 0098; extended by 0105, 0114, and 0118 |
 | [0095](0095-sit-on-the-camper-toilet-while-parked.md) | Sit on the camper toilet while parked | Extended by 0098 and 0109 |
@@ -125,7 +125,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0119](0119-park-the-camper-over-natural-ground.md) | Park the camper over natural ground, and lift its bumper stand-in out of it | Proposed |
 | [0120](0120-choose-a-sports-boat-seat-by-aiming-at-it.md) | Choose a sports boat seat by aiming at it | Proposed; extended by 0154 (Proposed) |
 | [0121](0121-doored-storage-in-the-camper.md) | Doored storage in the camper | Extended by 0123 (Proposed) |
-| [0122](0122-a-low-chair-to-sit-on-outside-the-vehicles.md) | A low chair to sit on outside the vehicles | Proposed; extended by 0129, [0130](0130-a-tent-entity-whose-hits-land-on-its-blocks.md), [0131](0131-pitch-a-tent-in-the-camp.md), and 0144 (Proposed) |
+| [0122](0122-a-low-chair-to-sit-on-outside-the-vehicles.md) | A low chair to sit on outside the vehicles | Proposed; extended by 0129, [0130](0130-a-tent-entity-whose-hits-land-on-its-blocks.md), [0131](0131-pitch-a-tent-in-the-camp.md), 0144 (Proposed), and 0180 (Proposed) |
 | [0123](0123-a-fridge-in-place-of-the-camper-shelf.md) | A fridge in place of the camper shelf | Proposed |
 | [0124](0124-take-back-an-eviction-when-a-slot-frees.md) | Take back an eviction when a slot frees | Extended by 0125 |
 | [0125](0125-forget-a-vehicle-removed-from-a-loaded-chunk.md) | Forget a vehicle removed from a loaded chunk | Accepted |
@@ -139,10 +139,10 @@ This directory records design decisions and the reasons behind them. The format 
 | [0133](0133-sleep-on-the-tent-mattresses.md) | Sleep on the tent mattresses | Proposed |
 | [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md) | Switch the tent lantern with the headlight switch | Proposed; extended by 0138 (Proposed) |
 | [0135](0135-repaint-the-tent-with-dyes.md) | Repaint the tent with dyes | Proposed |
-| [0136](0136-bulldozer.md) | Add the bulldozer kind | Proposed; superseded in part and extended by 0138 (Proposed), 0140 (Proposed), and 0141 (Proposed); extended by 0146 (Proposed); extended by 0147, 0148, and 0151 (Proposed); submarine no-cut rule superseded by 0155 (Proposed); extended by 0178 (Proposed) |
-| [0137](0137-clear-block-columns-with-the-blade.md) | Clear block columns with the blade, keeping liquids, containers, and laid blocks | Proposed; extended by 0138 (Proposed), 0155 (Proposed), and 0178 (Proposed) |
-| [0138](0138-raise-and-lower-the-bulldozer-blade.md) | Raise and lower the bulldozer blade with a switch item | Proposed; extended by 0139 (Proposed), 0140 (Proposed), 0148 (Proposed), 0151 (Proposed), and 0155 (Proposed); creative group superseded in part by 0178 (Proposed) |
-| [0139](0139-show-the-held-tool-on-the-cab-monitor.md) | Show the driver's held tool on the cab monitor | Proposed; superseded in part by 0171 (Proposed) and 0178 (Proposed) |
+| [0136](0136-bulldozer.md) | Add the bulldozer kind | Proposed; superseded in part and extended by 0138 (Proposed), 0140 (Proposed), and 0141 (Proposed); extended by 0146 (Proposed); extended by 0147, 0148, and 0151 (Proposed); submarine no-cut rule superseded by 0155 (Proposed); extended by 0178 (Proposed), 0180 (Proposed), and 0181 (Proposed) |
+| [0137](0137-clear-block-columns-with-the-blade.md) | Clear block columns with the blade, keeping liquids, containers, and laid blocks | Proposed; extended by 0138 (Proposed), 0155 (Proposed), 0178 (Proposed), and 0181 (Proposed) |
+| [0138](0138-raise-and-lower-the-bulldozer-blade.md) | Raise and lower the bulldozer blade with a switch item | Proposed; extended by 0139 (Proposed), 0140 (Proposed), 0148 (Proposed), 0151 (Proposed), 0155 (Proposed), and 0180 (Proposed); creative group superseded in part by 0178 (Proposed) |
+| [0139](0139-show-the-held-tool-on-the-cab-monitor.md) | Show the driver's held tool on the cab monitor | Proposed; superseded in part by 0171 (Proposed) and 0178 (Proposed); extended by 0180 (Proposed) and 0181 (Proposed) |
 | [0140](0140-bulldozer-sounds.md) | Give the bulldozer its own engine, track, and blade hydraulic sounds | Proposed |
 | [0141](0141-put-a-bulldozer-driver-out-beside-the-left-door.md) | Put a bulldozer driver out beside the left door | Proposed |
 | [0144](0144-split-camping-gear-into-inside-and-outside-groups.md) | Split camping gear into inside and outside groups | Proposed; Bulldozer Switches group superseded in part by 0178 (Proposed) |
@@ -178,8 +178,11 @@ This directory records design decisions and the reasons behind them. The format 
 | [0175](0175-keep-the-icebreaker-cut-above-the-hull-floor.md) | Keep the icebreaker cut above the hull floor | Proposed |
 | [0176](0176-move-the-sports-boat-front-seats-back.md) | Move the sports boat's front seats back | Accepted |
 | [0177](0177-drive-text-on-the-sports-boat-driver-deck-seat.md) | Drive text on the sports boat driver deck seat | Accepted |
-| [0178](0178-bulldozer-build-tools-in-a-separate-namespace.md) | Bulldozer build tools in a separate namespace | Proposed |
+| [0178](0178-bulldozer-build-tools-in-a-separate-namespace.md) | Bulldozer build tools in a separate namespace | Proposed; extended by 0180 (Proposed) and 0181 (Proposed) |
 | [0179](0179-support-realms-as-a-second-play-environment.md) | Support Realms as a second play environment | Proposed |
+| [0180](0180-a-wide-bulldozer-blade.md) | A wide bulldozer blade switched from the cab | Proposed; extended by 0181 (Proposed) |
+| [0181](0181-a-road-paver-on-the-bulldozer.md) | Lay a road behind the bulldozer from the driver's held block | Proposed |
+| [0182](0182-a-bunk-bed-in-the-parked-camper.md) | A bunk bed in the parked camper | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 
