@@ -7,7 +7,10 @@ import {
 } from "@minecraft/server";
 import { normalizeYaw, type Vec3 } from "../../domain/shared/vec";
 import { bladeColumns } from "../../domain/vehicle/kinds/bulldozer/blade";
-import { BLADE_SWITCH_ITEM } from "../../domain/vehicle/kinds/bulldozer/monitor";
+import {
+  BLADE_SWITCH_ITEM,
+  WIDE_BLADE_SWITCH_ITEM,
+} from "../../domain/vehicle/kinds/bulldozer/monitor";
 import { BULLDOZER_SPEC } from "../../domain/vehicle/kinds/bulldozer/spec";
 import {
   ENTITY_TYPE,
@@ -28,17 +31,30 @@ function withBulldozer<T>(
 ): Promise<T> {
   return withCar(a, x, z, yaw, run, ENTITY_TYPE.bulldozer);
 }
+/** Sets a tool state through the server-only test hook. */
+async function sendToolState(
+  car: Entity,
+  item: string,
+  state: string,
+): Promise<void> {
+  await wait(2); // the main pack builds the aggregate of a freshly summoned bulldozer first
+  system.sendScriptEvent(TEST_TOOL_EVENT, `${car.id},${item},${state}`);
+}
 /** Sets the blade through the server-only test hook and waits until it has finished moving (ADR 0138). */
 async function setBlade(car: Entity, raised: boolean): Promise<void> {
-  await wait(2); // the main pack builds the aggregate of a freshly summoned bulldozer first
-  system.sendScriptEvent(
-    TEST_TOOL_EVENT,
-    `${car.id},${BLADE_SWITCH_ITEM},${raised ? "up" : "down"}`,
-  );
+  await sendToolState(car, BLADE_SWITCH_ITEM, raised ? "up" : "down");
   await wait(BULLDOZER_SPEC.bladeLiftTicks + 2);
   const lift = car.getProperty(entityPropertyId("blade"));
   const want = raised ? 1 : 0;
   if (lift !== want) throw new Error(`blade=${String(lift)} want ${want}`);
+}
+/** Sets the wide blade state through the server-only test hook and checks the saved property (ADR 0180). */
+async function setWideBlade(car: Entity, wide: boolean): Promise<void> {
+  await sendToolState(car, WIDE_BLADE_SWITCH_ITEM, wide ? "wide" : "normal");
+  await wait(2);
+  const shown = car.getProperty(entityPropertyId("wide_blade"));
+  if (shown !== wide)
+    throw new Error(`wide_blade=${String(shown)} want ${wide}`);
 }
 /** The cells of the box from `min` to `max`, inclusive, that no longer hold stone. */
 function missingStone(a: Arena, min: Vec3, max: Vec3): string[] {
@@ -711,12 +727,47 @@ export async function bulldozerMonitor(a: Arena): Promise<Outcome> {
     const up = await holdAndRead(BLADE_SWITCH_ITEM);
     await setBlade(car, false);
     const down = screen();
+    const norm = await holdAndRead(WIDE_BLADE_SWITCH_ITEM);
+    await setWideBlade(car, true);
+    const wide = screen();
     const other = await holdAndRead("stone");
     hold(BLADE_SWITCH_ITEM);
     const cleared = await holdAndRead("clear");
     return {
-      pass: up === 2 && down === 1 && other === 0 && cleared === 0,
-      detail: `up=${up} down=${down} other=${other} cleared=${cleared}`,
+      pass:
+        up === 2 &&
+        down === 1 &&
+        norm === 3 &&
+        wide === 4 &&
+        other === 0 &&
+        cleared === 0,
+      detail: `up=${up} down=${down} norm=${norm} wide=${wide} other=${other} cleared=${cleared}`,
+    };
+  });
+}
+
+/** The wide blade switch toggles the saved wide_blade property, independent of the blade height (ADR 0180). */
+export async function bulldozerWideBladeToggle(a: Arena): Promise<Outcome> {
+  return withBulldozer(a, 20.5, 20.5, 0, async (car) => {
+    const wideNow = () => car.getProperty(entityPropertyId("wide_blade"));
+    await wait(2);
+    const spawn = wideNow();
+    await setWideBlade(car, true);
+    const wide = wideNow();
+    await setBlade(car, false);
+    const lowered = wideNow();
+    await setBlade(car, true);
+    const raised = wideNow();
+    await setWideBlade(car, false);
+    const normal = wideNow();
+    return {
+      pass:
+        spawn === false &&
+        wide === true &&
+        lowered === true &&
+        raised === true &&
+        normal === false,
+      detail: `spawn=${String(spawn)} wide=${String(wide)} lowered=${String(lowered)} raised=${String(raised)} normal=${String(normal)}`,
     };
   });
 }

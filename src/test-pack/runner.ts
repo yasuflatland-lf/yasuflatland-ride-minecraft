@@ -36,6 +36,7 @@ import {
   bulldozerSeaCut,
   bulldozerSpawnsRaised,
   bulldozerStep2Raised,
+  bulldozerWideBladeToggle,
 } from "./scenarios/bulldozer";
 import {
   bulldozerExitGround,
@@ -162,7 +163,8 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
     ["bulldozer_step2_raised", 67, () => bulldozerStep2Raised(a)],
     ["bulldozer_raised_no_cut", 77, () => bulldozerRaisedNoCut(a)],
     ["bulldozer_spawns_raised", 65, () => bulldozerSpawnsRaised(a)],
-    ["bulldozer_monitor", 22, () => bulldozerMonitor(a)],
+    ["bulldozer_monitor", 28, () => bulldozerMonitor(a)],
+    ["bulldozer_wide_blade_toggle", 38, () => bulldozerWideBladeToggle(a)],
     ["camper_accel", 144, () => camperAccel(a)],
     ["camper_wall", 150, () => camperWall(a)],
     ["camper_takeoff", 33, () => camperTakeoff(a)],
