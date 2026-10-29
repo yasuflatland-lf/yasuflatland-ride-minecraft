@@ -3,6 +3,7 @@ import {
   bladeCommand,
   doorCommand,
   BULLDOZER_ENTITY as E,
+  roadPaverCommand,
   trackPhaseCommand,
   trackSpinCommand,
   wideBladeCommand,
@@ -18,6 +19,7 @@ it("declares the tracks, the door, the blade, and the transforming properties, a
     "door",
     "form",
     "gear_down",
+    "road_paver",
     "spin_l",
     "spin_r",
     "track_l",
@@ -28,7 +30,8 @@ it("declares the tracks, the door, the blade, and the transforming properties, a
   expect(E.properties.bank.range).toStrictEqual([0, 1]);
   expect(E.properties.blade).toStrictEqual({ type: "float", range: [0, 1] });
   expect(E.properties.wide_blade).toStrictEqual({ type: "bool" });
-  expect(E.restored).toEqual(["form", "blade", "wide_blade"]);
+  expect(E.properties.road_paver).toStrictEqual({ type: "bool" });
+  expect(E.restored).toEqual(["form", "blade", "wide_blade", "road_paver"]);
 });
 it("builds only declared commands", () => {
   for (const c of [
@@ -42,6 +45,8 @@ it("builds only declared commands", () => {
     bladeCommand(1),
     wideBladeCommand(true),
     wideBladeCommand(false),
+    roadPaverCommand(true),
+    roadPaverCommand(false),
     ...formCommands("hover"),
   ])
     expectDeclaredCommand(c, E, profileOf("bulldozer"));

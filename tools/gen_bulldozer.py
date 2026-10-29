@@ -1662,6 +1662,7 @@ def monitor_icon_color(code):
 MONITOR_ICONS = {
     "blade_switch": [[monitor_icon_color(code) for code in row] for row in BLADE_SWITCH_ICON],
     "wide_blade_switch": [[monitor_icon_color(code) for code in row] for row in WIDE_BLADE_SWITCH_ICON],
+    "road_paver_switch": [[monitor_icon_color(code) for code in row] for row in ROAD_PAVER_SWITCH_ICON],
 }
 STALE.extend(monitor.write_monitor("bulldozer", MONITOR_LAYOUT, MONITOR_ICONS, CHECK, RP))
 if STALE:

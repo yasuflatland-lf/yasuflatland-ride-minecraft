@@ -16,6 +16,7 @@ import {
 } from "../../../../../src/domain/vehicle/kinds/bulldozer/drive";
 import {
   BLADE_SWITCH_ITEM,
+  ROAD_PAVER_SWITCH_ITEM,
   WIDE_BLADE_SWITCH_ITEM,
 } from "../../../../../src/domain/vehicle/kinds/bulldozer/monitor";
 import {
@@ -932,7 +933,7 @@ it("sends wide_blade once per toggle, and again after resync", () => {
   expect(sent(5)).toEqual([false]);
 });
 
-it("keeps the blade and wide blade tools independent", () => {
+it("keeps the blade, wide blade, and road paver tools independent", () => {
   fc.assert(
     fc.property(
       fc.array(
@@ -940,6 +941,10 @@ it("keeps the blade and wide blade tools independent", () => {
           fc.tuple(
             fc.constant(BLADE_SWITCH_ITEM),
             fc.constantFrom("down", "up"),
+          ),
+          fc.tuple(
+            fc.constant(ROAD_PAVER_SWITCH_ITEM),
+            fc.constantFrom("off", "on"),
           ),
           fc.tuple(
             fc.constant(WIDE_BLADE_SWITCH_ITEM),
@@ -952,6 +957,7 @@ it("keeps the blade and wide blade tools independent", () => {
         const last = new Map([
           [BLADE_SWITCH_ITEM, drive.toolState(BLADE_SWITCH_ITEM)],
           [WIDE_BLADE_SWITCH_ITEM, drive.toolState(WIDE_BLADE_SWITCH_ITEM)],
+          [ROAD_PAVER_SWITCH_ITEM, drive.toolState(ROAD_PAVER_SWITCH_ITEM)],
         ]);
         for (const [item, state] of sets) {
           expect(drive.setToolState(item, state)).toBe(true);
@@ -962,6 +968,35 @@ it("keeps the blade and wide blade tools independent", () => {
       },
     ),
   );
+});
+it("restores the road paver flag, defaulting to off", () => {
+  for (const [saved, shown] of [
+    [true, "on"],
+    [false, "off"],
+    [undefined, "off"],
+  ] as const)
+    expect(
+      new BulldozerDrive(0, { road_paver: saved }).toolState(
+        "road_paver_switch",
+      ),
+    ).toBe(shown);
+});
+it("sends road_paver once per toggle, and again after resync", () => {
+  const d = new BulldozerDrive(0, {});
+  const sent = (tick: number) =>
+    d
+      .step(IDLE, { ...context(), tick })
+      .commands.filter((c) => c.name === "road_paver")
+      .map((c) => (c.type === "setProperty" ? c.value : undefined));
+  expect(sent(0)).toEqual([false]);
+  expect(sent(1)).toEqual([]);
+  d.setToolState("road_paver_switch", "on");
+  expect(sent(2)).toEqual([true]);
+  expect(sent(3)).toEqual([]);
+  d.resync();
+  expect(sent(4)).toEqual([true]);
+  d.setToolState("road_paver_switch", "off");
+  expect(sent(5)).toEqual([false]);
 });
 
 it("uses the current blade rule for cuts and ram width across toggles", () => {

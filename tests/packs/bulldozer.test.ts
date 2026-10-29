@@ -71,7 +71,12 @@ it("declares the transforming properties with a nonzero range for its zero bank"
     default: false,
     client_sync: true,
   });
-  expect(p["yasu_ride:monitor"].range).toEqual([0, 4]);
+  expect(p["yasu_ride:road_paver"]).toEqual({
+    type: "bool",
+    default: false,
+    client_sync: false,
+  });
+  expect(p["yasu_ride:monitor"].range).toEqual([0, 6]);
   expect(p["yasu_ride:gear_down"].default).toBe(true);
   for (const key of ["bank", "spin_r", "spin_l", "door", "blade"]) {
     const text = readFileSync(

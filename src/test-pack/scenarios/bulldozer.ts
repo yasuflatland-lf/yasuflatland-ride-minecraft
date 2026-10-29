@@ -9,6 +9,7 @@ import { normalizeYaw, type Vec3 } from "../../domain/shared/vec";
 import { bladeColumns } from "../../domain/vehicle/kinds/bulldozer/blade";
 import {
   BLADE_SWITCH_ITEM,
+  ROAD_PAVER_SWITCH_ITEM,
   WIDE_BLADE_SWITCH_ITEM,
 } from "../../domain/vehicle/kinds/bulldozer/monitor";
 import {
@@ -60,6 +61,13 @@ async function setWideBlade(car: Entity, wide: boolean): Promise<void> {
   const shown = car.getProperty(entityPropertyId("wide_blade"));
   if (shown !== wide)
     throw new Error(`wide_blade=${String(shown)} want ${wide}`);
+}
+/** Checks the saved paver state after the server-only tool hook (ADR 0181). */
+async function setRoadPaver(car: Entity, on: boolean): Promise<void> {
+  await sendToolState(car, ROAD_PAVER_SWITCH_ITEM, on ? "on" : "off");
+  await wait(2);
+  const saved = car.getProperty(entityPropertyId("road_paver"));
+  if (saved !== on) throw new Error(`road_paver=${String(saved)} want ${on}`);
 }
 /** The cells of the box from `min` to `max`, inclusive, that no longer hold stone. */
 function missingStone(a: Arena, min: Vec3, max: Vec3): string[] {
@@ -770,6 +778,9 @@ export async function bulldozerMonitor(a: Arena): Promise<Outcome> {
     const norm = await holdAndRead(WIDE_BLADE_SWITCH_ITEM);
     await setWideBlade(car, true);
     const wide = screen();
+    const off = await holdAndRead(ROAD_PAVER_SWITCH_ITEM);
+    await setRoadPaver(car, true);
+    const on = screen();
     const other = await holdAndRead("stone");
     hold(BLADE_SWITCH_ITEM);
     const cleared = await holdAndRead("clear");
@@ -779,9 +790,11 @@ export async function bulldozerMonitor(a: Arena): Promise<Outcome> {
         down === 1 &&
         norm === 3 &&
         wide === 4 &&
+        off === 5 &&
+        on === 6 &&
         other === 0 &&
         cleared === 0,
-      detail: `up=${up} down=${down} norm=${norm} wide=${wide} other=${other} cleared=${cleared}`,
+      detail: `up=${up} down=${down} norm=${norm} wide=${wide} off=${off} on=${on} other=${other} cleared=${cleared}`,
     };
   });
 }
@@ -833,6 +846,40 @@ export async function bulldozerFallSurvives(a: Arena): Promise<Outcome> {
     return {
       pass: health === 20 && !hurt && car.isValid,
       detail: `ticks=${ticks} y=${car.location.y.toFixed(2)} health=${health} hurt=${hurt}`,
+    };
+  });
+}
+
+/** Paver state persists independently of both blade switches (ADR 0181). */
+export async function bulldozerRoadPaverToggle(a: Arena): Promise<Outcome> {
+  return withBulldozer(a, 20.5, 20.5, 0, async (car) => {
+    const paverNow = () => car.getProperty(entityPropertyId("road_paver"));
+    await wait(2);
+    const spawn = paverNow();
+    await setRoadPaver(car, true);
+    const on = paverNow();
+    await setBlade(car, false);
+    const lowered = paverNow();
+    await setWideBlade(car, true);
+    const wide = paverNow();
+    await setRoadPaver(car, false);
+    const off = paverNow();
+    const blade = car.getProperty(entityPropertyId("blade"));
+    const wideBlade = car.getProperty(entityPropertyId("wide_blade"));
+    await setBlade(car, true);
+    await setWideBlade(car, false);
+    const reset = paverNow();
+    return {
+      pass:
+        spawn === false &&
+        on === true &&
+        lowered === true &&
+        wide === true &&
+        off === false &&
+        blade === 0 &&
+        wideBlade === true &&
+        reset === false,
+      detail: `spawn=${String(spawn)} on=${String(on)} lowered=${String(lowered)} wide=${String(wide)} off=${String(off)} blade=${String(blade)} wideBlade=${String(wideBlade)} reset=${String(reset)}`,
     };
   });
 }
