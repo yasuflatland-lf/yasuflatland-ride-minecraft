@@ -40,7 +40,11 @@ function setup() {
     ridesBulldozer: vi.fn(() => true),
     bulldozerFeet: () => undefined,
   };
-  const feedback = { showMessage: vi.fn(), drawOutline: vi.fn() };
+  const feedback = {
+    showMessage: vi.fn(),
+    drawCorner: vi.fn(),
+    drawOutline: vi.fn(),
+  };
   const actions = {
     fill: vi.fn(),
     replace: vi.fn(),
