@@ -38,6 +38,7 @@ import {
   RAM_QUERY_RADIUS,
 } from "../../../domain/vehicle/kinds/index";
 import type { LitCell } from "../../../domain/vehicle/lighting/headlights";
+import type { Pave } from "../../../domain/vehicle/pave";
 import type { ChaseCamera } from "../../../domain/vehicle/profile";
 import type { RamHit, RamTarget } from "../../../domain/vehicle/ram";
 import type { SeatAssignment } from "../../../domain/vehicle/seatChoice";
@@ -51,6 +52,7 @@ import { savedDecor } from "./bedrockDecorWorld";
 import { BladeCuts } from "./bladeCuts";
 import { DeckSeats } from "./deckSeats";
 import { DockBlocks, savedDock } from "./dockBlocks";
+import { DropSweep } from "./dropSweep";
 import {
   type EntityIndex,
   isPlayer,
@@ -67,6 +69,7 @@ import {
   ramMountOf,
   VEHICLE_FAMILY,
 } from "./identifiers";
+import { RoadPaver } from "./roadPaver";
 import { seatExitSpot } from "./seatExitSpot";
 import { SeatFillers } from "./seatFillers";
 import { StandIns } from "./standIns";
@@ -115,7 +118,8 @@ function distanceSq(a: Vec3, b: Vec3): number {
 
 export class BedrockVehicleWorld implements DriveWorld {
   private readonly headlightBlocks: HeadlightBlocks;
-  private readonly bladeCuts = new BladeCuts(systemClock);
+  private readonly bladeCuts: BladeCuts;
+  private readonly roadPaver: RoadPaver;
   private readonly deckSeats = new DeckSeats();
   private readonly standIns = new StandIns();
   private readonly seatFillers = new SeatFillers();
@@ -130,6 +134,9 @@ export class BedrockVehicleWorld implements DriveWorld {
     private readonly testTools: VehicleTestStore<string>,
     campSpace: SpaceCheck,
   ) {
+    const drops = new DropSweep(systemClock);
+    this.bladeCuts = new BladeCuts(systemClock, drops);
+    this.roadPaver = new RoadPaver(drops, campSpace);
     this.headlightBlocks = new HeadlightBlocks(campSpace);
     this.dockBlocks = new DockBlocks(campSpace);
     this.releaser = new VehicleReleaser(
@@ -367,6 +374,11 @@ export class BedrockVehicleWorld implements DriveWorld {
   cutColumns(vehicleId: VehicleId, columns: readonly CutColumn[]): void {
     const vehicle = this.index.entity(vehicleId);
     if (vehicle) this.bladeCuts.cut(vehicle.dimension, columns);
+  }
+
+  pave(vehicleId: VehicleId, pave: Pave): void {
+    const vehicle = this.index.entity(vehicleId);
+    if (vehicle) this.roadPaver.pave(vehicle.dimension, pave);
   }
 
   sweepCutDrop(entity: Entity): boolean {

@@ -4,6 +4,7 @@ import type { CutColumn } from "./cut";
 import type { DecorPlacement, StoragePress } from "./dock/decor";
 import type { ClearCell, Departure, Dock, DockRestoredKey } from "./dock/dock";
 import type { RawInput } from "./driveInput";
+import type { Pave } from "./pave";
 
 /** Sensors and inputs from auxiliary seats. Riders, the test input and the ram query stay with the core (ADR 0083). */
 export interface TickContext {
@@ -62,6 +63,8 @@ export interface DriveStep {
   clear?: readonly ClearCell[];
   /** Block columns to clear this tick, right after `clear` (ADR 0137). */
   cut?: readonly CutColumn[];
+  /** Road blocks to lay this tick, after cut and before the move (ADR 0181). */
+  pave?: Pave;
   /** Shown on the driver's action bar as the lang key yasu_ride.message.<name> (ADR 0063, 0068). */
   message?: string;
   /** Seats the players standing in these boxes this tick, or moves them to the exit (ADR 0063, 0068). */
