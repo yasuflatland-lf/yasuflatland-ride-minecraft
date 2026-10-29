@@ -3,6 +3,7 @@ import { type Entity, type Player, world } from "@minecraft/server";
 import { asVehicleId, type VehicleId } from "../../../domain/shared/ids";
 import type { DeckSeatSpot } from "../../../domain/vehicle/dock/dock";
 import { DECK_SEAT_REACH } from "../../../domain/vehicle/kinds/index";
+import { mountOf } from "../../shared/mount";
 import {
   DECK_SEAT_COMPACT_EVENT,
   DECK_SEAT_DRIVER_EVENT,
@@ -75,7 +76,7 @@ export function removeOrphanDeckSeat(seat: Entity): void {
 export function deckSeatRide(
   player: Player,
 ): { vehicle: Entity; seat: number } | undefined {
-  const mount = player.getComponent("minecraft:riding")?.entityRidingOn;
+  const mount = mountOf(player);
   if (!mount?.isValid || mount.typeId !== DECK_SEAT_TYPE) return undefined;
   const owner = mount.getDynamicProperty(DECK_SEAT_OF_PROPERTY);
   if (typeof owner !== "string") return undefined;
