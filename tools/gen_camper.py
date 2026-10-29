@@ -1312,11 +1312,8 @@ headlights, body = take_slots(body, LAMP_GROUPS["headlights"])
 # Glass gets its own bones, listed last, so only glass is alpha-blended and it draws after the
 # opaque interior. Blending the whole model let a near pane drawn early hide the cabin behind it
 # and show the terrain on the far side (ADR 0091).
-glass_slot = SLOTS.index("glass")
-glass = [c for c in body if c["uv"]["north"]["uv"][0] == glass_slot]
-body = [c for c in body if c["uv"]["north"]["uv"][0] != glass_slot]
-door_glass = [c for c in door if c["uv"]["north"]["uv"][0] == glass_slot]
-door = [c for c in door if c["uv"]["north"]["uv"][0] != glass_slot]
+glass, body = take_slots(body, ("glass",))
+door_glass, door = take_slots(door, ("glass",))
 
 camper_bones = [
     {"name": "root", "pivot": [0, 0, 0]},
