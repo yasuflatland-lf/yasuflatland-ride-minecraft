@@ -168,7 +168,11 @@ async function lowChairSettlesThroughGrassForKind(
   }
 }
 
-/** Confirms that the outside table loads as a persistent entity with no seats. */
+/**
+ * Confirms that the outside table loads in its family with no seats. The stable
+ * Script API cannot read `minecraft:persistent`, so tests/packs/campTable.test.ts
+ * checks persistence instead.
+ */
 export function campTableNoSeats(a: Arena): Promise<Outcome> {
   const at = { x: CELL.x + 0.5, y: a.gy, z: CELL.z + 8.5 };
   a.dim.runCommand(`summon ${CAMP_TABLE_TYPE} ${at.x} ${at.y} ${at.z}`);
