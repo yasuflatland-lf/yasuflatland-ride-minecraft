@@ -32,6 +32,7 @@ import {
   type FurnitureBlock,
   isStoragePairKind,
   type LocalCell,
+  SLEEP_BLOCKS,
   STORAGE_DOORS,
   type StorageCompartmentBlock,
 } from "./furniture";
@@ -728,6 +729,20 @@ function standingBox(
 /** Whether a player with feet at `feet` is inside the parked room, standing or seated (ADR 0115). */
 export function insideRoom(pose: HoldPose, feet: Vec3): boolean {
   return inBox(standingBox(pose, INSIDE_FEET), feet);
+}
+
+/** The world cell a press on bed block `cell` of a camper parked at `pose` respawns the player in; undefined when `cell` is no sleepable cell (ADR 0182). */
+export function bedSpawnCell(pose: HoldPose, cell: Vec3): Vec3 | undefined {
+  for (const row of CAMPER_FURNITURE) {
+    if (row.block === undefined || !SLEEP_BLOCKS.has(row.block.type)) continue;
+    const matches = row.cells.some((c) => {
+      const at = localCellAt(pose, c);
+      return at.x === cell.x && at.y === cell.y && at.z === cell.z;
+    });
+    if (matches)
+      return row.spawn === undefined ? cell : localCellAt(pose, row.spawn);
+  }
+  return undefined;
 }
 
 /** Whether a player with feet at `feet` stands in the shower-toilet's column (ADR 0098, 0118). */

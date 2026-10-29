@@ -21,9 +21,16 @@ vi.mock("@minecraft/server", () => ({
   system: { beforeEvents: { startup: { subscribe: game.startup } } },
 }));
 
-function registered(componentId: string) {
+function registered(
+  componentId: string,
+  spawnCellFor?: Parameters<typeof registerBedBlock>[2],
+) {
   const execute = vi.fn();
-  registerBedBlock(componentId, { execute } as unknown as SleepInBed);
+  registerBedBlock(
+    componentId,
+    { execute } as unknown as SleepInBed,
+    spawnCellFor,
+  );
   for (const [handler] of game.startup.mock.calls)
     handler({
       blockComponentRegistry: { registerCustomComponent: game.register },
@@ -92,3 +99,28 @@ describe("registerBedBlock (ADR 0092)", () => {
     expect(execute).not.toHaveBeenCalled();
   });
 });
+
+it.each([true, false])(
+  "uses the resolved spawn cell or falls back when absent: %s (ADR 0182)",
+  (resolved) => {
+    const cell = { x: 1, y: 65, z: 2 };
+    const spawn = { x: 0, y: 65, z: -3 };
+    const spawnCellFor = vi.fn(() => (resolved ? spawn : undefined));
+    const { execute } = registered("yasu_ride:test_bed", spawnCellFor);
+    const [, component] = game.register.mock.calls[0] ?? [];
+    component?.onPlayerInteract({
+      player: { id: "p" },
+      dimension: { id: "minecraft:overworld" },
+      block: { location: cell },
+    });
+    expect(spawnCellFor).toHaveBeenCalledExactlyOnceWith(
+      "minecraft:overworld",
+      cell,
+    );
+    expect(execute).toHaveBeenCalledExactlyOnceWith({
+      playerId: "p",
+      dimensionId: "minecraft:overworld",
+      cell: resolved ? spawn : cell,
+    });
+  },
+);

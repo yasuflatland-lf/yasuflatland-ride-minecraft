@@ -121,12 +121,19 @@ export type FurnitureBlock =
   | { readonly type: "bed" }
   | { readonly type: "showerToilet" };
 
+/** Furniture block types a press sleeps on (ADR 0092, 0182). */
+export const SLEEP_BLOCKS: ReadonlySet<FurnitureBlock["type"]> = new Set([
+  "bed",
+]);
+
 interface Furniture {
   readonly kind: FurnitureKind;
   readonly cells: readonly LocalCell[];
   readonly slots: readonly DecorSlot[];
   /** Laid in every cell; furniture without one is drawn only by the model and can be walked through. */
   readonly block?: FurnitureBlock;
+  /** Where a press on this furniture's sleeping block sets the spawn point; absent = the pressed cell (ADR 0092, 0182). */
+  readonly spawn?: LocalCell;
 }
 
 // The shower-toilet's two cells; their block opens the shower door or runs the shower (ADR 0094, 0098).

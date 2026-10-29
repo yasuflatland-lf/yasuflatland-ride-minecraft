@@ -267,6 +267,11 @@ export class Vehicle {
     return this.drive.useDockDoor?.(tick) ?? false;
   }
 
+  /** The spawn cell for a press on bed block `cell`; undefined when it is none of this vehicle's beds (ADR 0182). */
+  bedSpawnCell(cell: Vec3): Vec3 | undefined {
+    return this.drive.bedSpawnCell?.(cell);
+  }
+
   /** A player with feet at `feet` pressed the shower-toilet at `tick`. Returns whether its door swung or its shower ran (ADR 0094, 0098, 0105, 0118). */
   pressShowerToilet(feet: Vec3, tick: number): boolean {
     return this.drive.pressShowerToilet?.(feet, tick) ?? false;

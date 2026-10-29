@@ -96,6 +96,8 @@ export interface Drive {
   setToolState?(item: string, state: string): boolean;
   /** The state name of one of the kind's monitor tools; undefined when `item` is not one of them (ADR 0139). */
   toolState?(item: string): string | undefined;
+  /** The spawn cell for a press on bed block `cell` of this held vehicle; undefined when it is none of its beds (ADR 0182). */
+  bedSpawnCell?(cell: Vec3): Vec3 | undefined;
   /** A press on the shower-toilet of a held vehicle by a player with feet at `feet`, at `tick`: swings its door or runs its shower; false when it has none or the press is ignored (ADR 0094, 0098, 0105, 0118). */
   pressShowerToilet?(feet: Vec3, tick: number): boolean;
   /** The decor of the vehicle's room, in slot order, then any stowed decor whose slot no longer exists (ADR 0103); absent for kinds without decor (ADR 0093). */

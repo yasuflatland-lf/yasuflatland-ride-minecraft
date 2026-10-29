@@ -22,6 +22,7 @@ import {
 import { CAMPER_PROFILE } from "../../../../../src/domain/vehicle/kinds/camper/profile";
 import {
   AIR,
+  bedSpawnCell,
   cargoCells,
   compartmentCells,
   deckSeats,
@@ -1005,4 +1006,25 @@ it("lets a compartment cell hold air, the furniture block, or its unit's compart
     expect(ownSlotBlock("yasu_ride:camper_ceiling", name)).toBe(false);
     expect(ownSlotBlock("minecraft:stone", name)).toBe(false);
   }
+});
+
+it("maps every bed cell to itself and rejects every other room or interior cell at any pose (ADR 0092, 0182)", () => {
+  fc.assert(
+    fc.property(pose, (p) => {
+      const room = roomCells(p, false);
+      const beds = room.filter((c) => c.block.type === "bed");
+      expect(beds).toHaveLength(2);
+      for (const { x, y, z } of beds) {
+        const cell = { x, y, z };
+        expect(bedSpawnCell(p, cell)).toEqual(cell);
+      }
+      for (const cell of [
+        ...room.filter((c) => c.block.type !== "bed"),
+        ...cargoCells(p),
+        ...slotCells(p),
+      ]) {
+        expect(bedSpawnCell(p, cell)).toBeUndefined();
+      }
+    }),
+  );
 });
