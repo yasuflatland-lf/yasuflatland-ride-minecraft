@@ -1,4 +1,4 @@
-import { ItemStack, world } from "@minecraft/server";
+import { type Entity, ItemStack, world } from "@minecraft/server";
 import type { DutchOvenWorld } from "../../../application/camp/ports/dutchOven";
 import type { HostedKindId } from "../../../application/camp/ports/tableTop";
 import {
@@ -38,6 +38,20 @@ function dutchOven(id: DutchOvenId) {
   return entity?.isValid && entity.typeId === DUTCH_OVEN_TYPE
     ? entity
     : undefined;
+}
+
+export function setOvenHost(
+  oven: Entity,
+  host: string,
+  simmering: boolean,
+): void {
+  oven.setDynamicProperty(DUTCH_OVEN_HOST_PROPERTY, host);
+  oven.setProperty(DUTCH_OVEN_SIMMERING_PROPERTY, simmering);
+  // Entities do not provide a supporting block surface for another entity.
+  oven.triggerEvent(
+    host === "" ? DUTCH_OVEN_GROUND_EVENT : DUTCH_OVEN_HOSTED_EVENT,
+  );
+  oven.clearVelocity();
 }
 
 function loadedEntityIds(type: string): string[] {
@@ -157,14 +171,7 @@ export class BedrockDutchOvenWorld implements DutchOvenWorld {
 
   setHost(id: DutchOvenId, host: string, simmering: boolean): void {
     const oven = dutchOven(id);
-    if (!oven) return;
-    oven.setDynamicProperty(DUTCH_OVEN_HOST_PROPERTY, host);
-    oven.setProperty(DUTCH_OVEN_SIMMERING_PROPERTY, simmering);
-    // Entities do not provide a supporting block surface for another entity.
-    oven.triggerEvent(
-      host === "" ? DUTCH_OVEN_GROUND_EVENT : DUTCH_OVEN_HOSTED_EVENT,
-    );
-    oven.clearVelocity();
+    if (oven) setOvenHost(oven, host, simmering);
   }
 
   loadedOvens(): readonly DutchOvenId[] {

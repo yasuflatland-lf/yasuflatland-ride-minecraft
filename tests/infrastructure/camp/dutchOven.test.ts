@@ -22,6 +22,7 @@ import {
   DUTCH_OVEN_TYPE,
   FIRE_PIT_COVERED_PROPERTY,
   FIRE_PIT_TYPE,
+  TEST_DUTCH_OVEN_HOST_EVENT,
   TEST_DUTCH_OVEN_ON_PIT_EVENT,
   TEST_DUTCH_OVEN_ON_TABLE_EVENT,
 } from "../../../src/infrastructure/camp/identifiers";
@@ -362,6 +363,42 @@ it("accepts only server table test requests with one valid spot or a local point
     { table: "table", slot: 0, aim: { x: 7.5, z: 0 } },
     { table: "table", slot: 0, aim: { x: -3.25, z: 4 } },
   ]);
+});
+it("writes a host marker only for server requests naming an oven", () => {
+  handlers();
+  const script = defined(game.script.mock.calls[0], "oven script")[0];
+  const oven = {
+    typeId: DUTCH_OVEN_TYPE,
+    setDynamicProperty: vi.fn(),
+    setProperty: vi.fn(),
+    triggerEvent: vi.fn(),
+    clearVelocity: vi.fn(),
+  };
+  game.entity.mockImplementation((id: string) =>
+    id === "oven" ? oven : { ...oven, typeId: CAMP_TABLE_TYPE },
+  );
+  for (const [message, sourceType] of [
+    ["oven camp_table:t:0", "Entity"],
+    ["oven", "Server"],
+    ["oven camp_table:t:0 extra", "Server"],
+    ["table camp_table:t:0", "Server"],
+  ])
+    script({ id: TEST_DUTCH_OVEN_HOST_EVENT, message, sourceType });
+  expect(oven.setDynamicProperty).not.toHaveBeenCalled();
+  script({
+    id: TEST_DUTCH_OVEN_HOST_EVENT,
+    message: "oven camp_table:t:0",
+    sourceType: "Server",
+  });
+  expect(oven.setDynamicProperty).toHaveBeenCalledExactlyOnceWith(
+    DUTCH_OVEN_HOST_PROPERTY,
+    "camp_table:t:0",
+  );
+  expect(oven.setProperty).toHaveBeenCalledWith(
+    DUTCH_OVEN_SIMMERING_PROPERTY,
+    false,
+  );
+  expect(oven.triggerEvent).toHaveBeenCalledWith(DUTCH_OVEN_HOSTED_EVENT);
 });
 it("reads every oven hosted by this table, at its point or its legacy spot", () => {
   const hosts = [

@@ -23,10 +23,12 @@ import {
   DUTCH_OVEN_TYPE,
   FIRE_PIT_TYPE,
   TEST_DUTCH_OVEN_HIT_EVENT,
+  TEST_DUTCH_OVEN_HOST_EVENT,
   TEST_DUTCH_OVEN_ON_PIT_EVENT,
   TEST_DUTCH_OVEN_ON_TABLE_EVENT,
   TEST_DUTCH_OVEN_SIMMER_EVENT,
 } from "../../identifiers";
+import { setOvenHost } from "../bedrockDutchOvenWorld";
 import { showTableTopRefusal, tableTopAim } from "../tableTopAim";
 
 const PIXELS = /^-?[0-9]+(?:\.[0-9]+)?$/;
@@ -116,6 +118,15 @@ export function registerDutchOven(actions: DutchOvenActions): void {
       if (ev.sourceType !== ScriptEventSource.Server) return;
       const request = testTableRequest(ev.message);
       if (request) actions.placeOnTable({ ...request, slot: 0 });
+      return;
+    }
+    if (ev.id === TEST_DUTCH_OVEN_HOST_EVENT) {
+      if (ev.sourceType !== ScriptEventSource.Server) return;
+      const parts = ev.message.trim().split(/\s+/);
+      const [ovenId, marker] = parts;
+      const oven = ovenId ? world.getEntity(ovenId) : undefined;
+      if (parts.length === 2 && marker && oven?.typeId === DUTCH_OVEN_TYPE)
+        setOvenHost(oven, marker, false);
       return;
     }
     if (ev.id === TEST_DUTCH_OVEN_ON_PIT_EVENT) {

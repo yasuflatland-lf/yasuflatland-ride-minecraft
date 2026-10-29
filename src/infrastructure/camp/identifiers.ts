@@ -79,6 +79,12 @@ export const DUTCH_OVEN_GROUND_EVENT = id("oven_ground");
 /** Server test hook: the message is the pit entity id; no player or item is needed. */
 export const TEST_DUTCH_OVEN_ON_PIT_EVENT =
   "yasu_ride_test:test_dutch_oven_on_pit";
+/**
+ * Server test hook: the message is an oven entity id and a host marker. Dynamic
+ * properties belong to the pack that wrote them, so the test pack cannot write
+ * the marker itself.
+ */
+export const TEST_DUTCH_OVEN_HOST_EVENT = "yasu_ride_test:test_dutch_oven_host";
 export const DUTCH_OVEN_TYPE = id("dutch_oven");
 export const DUTCH_OVEN_ITEM = id("dutch_oven_item");
 export const DUTCH_OVEN_SIMMERING_PROPERTY = id("simmering");
