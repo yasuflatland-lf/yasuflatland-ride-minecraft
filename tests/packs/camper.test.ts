@@ -16,6 +16,7 @@ import {
   CAMPER_DOOR_COMPONENT,
   SEAT_FILLER_FAMILY,
 } from "../../src/infrastructure/vehicle/bedrock/identifiers";
+import { defined } from "../support/defined";
 import { assertOneAxis, multipleAxes } from "./oneAxis";
 
 const RP = "packs/yasu_ride_rp";
@@ -95,6 +96,7 @@ describe("camper model assets (ADR 0067)", () => {
       [
         "root",
         "body",
+        "bunk",
         "headlights",
         "ceiling_lights",
         "wheel_fl",
@@ -129,6 +131,60 @@ describe("camper model assets (ADR 0067)", () => {
       if (b.name === "door_glass") expect(b.parent).toBe("door_entry");
       else if (b.name !== "body") expect(b.parent).toBe("body");
     }
+  });
+
+  it("fits the upper bunk in its mirrored cells with only slim posts below the deck (ADR 0182)", () => {
+    const bunk = bone("bunk");
+    expect(bunk.parent).toBe("body");
+    expect(bunk.pivot).toEqual([0, 0, 0]);
+    expect(bunk.rotation).toBeUndefined();
+    const cubes = (bunk.cubes ?? []).map((cube) => {
+      expect(cube.rotation).toBeUndefined();
+      const [x, y, z] = [0, 1, 2].map((axis) =>
+        defined(cube.origin[axis], "bunk origin"),
+      ) as [number, number, number];
+      const [width, height, depth] = [0, 1, 2].map((axis) =>
+        defined(cube.size[axis], "bunk size"),
+      ) as [number, number, number];
+      return { x, y, z, width, height, depth, top: y + height };
+    });
+    const panels = cubes.filter((cube) => cube.y >= 32);
+    const posts = cubes.filter((cube) => cube.y < 32);
+    expect(panels.length).toBeGreaterThanOrEqual(4);
+    expect(posts).toHaveLength(2);
+    const deck = defined(
+      panels.find((cube) => cube.y === 32),
+      "bunk deck",
+    );
+    expect([deck.x, deck.y, deck.z]).toEqual([8, 32, 24]);
+    expect(deck.width).toBe(15);
+    expect(deck.depth).toBe(31);
+    for (const post of posts) {
+      expect(post.y).toBe(16);
+      expect(post.x).toBe(8);
+      expect(post.width).toBeLessThanOrEqual(1.5);
+      expect(post.depth).toBeLessThanOrEqual(1.5);
+      expect(post.top).toBeLessThanOrEqual(deck.top);
+    }
+    for (const { x, z, width, depth, top } of cubes) {
+      expect(x).toBeGreaterThanOrEqual(8);
+      expect(x + width).toBeLessThanOrEqual(24);
+      expect(z).toBeGreaterThanOrEqual(24);
+      expect(z + depth).toBeLessThanOrEqual(56);
+      expect(top).toBeLessThan(48);
+      // Horizontal separation also keeps the view of the cabinet and aisle lights clear.
+      for (const [left, right] of [
+        [-22.8, -10],
+        [-4, 4],
+      ] as const) {
+        expect(x >= right || x + width <= left).toBe(true);
+      }
+    }
+    const top = Math.max(...cubes.map((cube) => cube.top));
+    expect(top - 32).toBeLessThanOrEqual(9);
+    expect(top).toBeLessThan(38);
+    // BUNK_TOP in tools/gen_camper.py, which the bunk block of 16/16 sizes its box from.
+    expect(top).toBe(37.5);
   });
 
   it("puts wheel pivots at the axle centers and hover locators directly below after mirroring", () => {
