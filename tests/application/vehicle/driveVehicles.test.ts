@@ -1062,6 +1062,22 @@ describe("DriveVehicles dock ports", () => {
       ),
     ).toEqual(["clearBlocks", "cutColumns", "motion:a:0"]);
   });
+  it("paves right after the cut and before moving the vehicle (ADR 0181)", () => {
+    const pave = { block: "minecraft:stone", cells: [{ x: 9, y: 63, z: 9 }] };
+    const { world } = fixture({ cut: [{ x: 9, z: 9, bottom: 64 }], pave });
+    expect(world.paves).toEqual([{ vehicleId: "a", pave }]);
+    expect(
+      world.calls.filter((c) =>
+        ["cutColumns", "pave", "motion:a:0"].includes(c),
+      ),
+    ).toEqual(["cutColumns", "pave", "motion:a:0"]);
+  });
+  it.each([undefined, { block: "minecraft:stone", cells: [] }])(
+    "makes no pave call when the step paves nothing",
+    (pave) => {
+      expect(fixture({ pave }).world.paves).toEqual([]);
+    },
+  );
   it.each([undefined, []])(
     "makes no cut call when the step cuts nothing",
     (cut) => {

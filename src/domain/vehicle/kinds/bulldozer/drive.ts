@@ -30,7 +30,12 @@ import {
   WIDE_BLADE_SWITCH_ITEM,
 } from "./monitor";
 import { BULLDOZER_MOTION, BULLDOZER_TYRES } from "./profile";
-import { type BladeRule, BULLDOZER_SPEC, BULLDOZER_TRANSFORMING } from "./spec";
+import {
+  type BladeRule,
+  BULLDOZER_SPEC,
+  BULLDOZER_TRANSFORMING,
+  BULLDOZER_WIDE_BLADE,
+} from "./spec";
 import {
   advanceTracks,
   type TrackTravel,
@@ -123,7 +128,6 @@ export class BulldozerDrive extends TransformingDrive {
   /** 0 (down) to BULLDOZER_SPEC.bladeLiftTicks (up), one step per tick. */
   private bladeSteps: number;
   private readonly bladeSync = new SyncedValue<number>();
-  /** Whether the wide blade model is shown; the cut keeps the normal width until the wide rule lands (ADR 0180). */
   private wideBlade: boolean;
   private readonly wideSync = new SyncedValue<boolean>();
   /** Whether the road paver switch is on; saved but not yet acted on until the paving rule lands (ADR 0181). */
@@ -247,7 +251,12 @@ export class BulldozerDrive extends TransformingDrive {
     const doorTarget = this.doorTimer > 0 ? BULLDOZER_SPEC.doorSteps : 0;
     this.doorSteps += Math.sign(doorTarget - this.doorSteps);
     const commands = [...out.commands, ...this.bodyCommands()];
-    return { ...out, ...(cut === undefined ? {} : { cut }), commands };
+    return {
+      ...out,
+      ramHalfWidth: this.bladeRule().halfWidth,
+      ...(cut === undefined ? {} : { cut }),
+      commands,
+    };
   }
 
   private bladeCut(
@@ -261,7 +270,7 @@ export class BulldozerDrive extends TransformingDrive {
   }
 
   private bladeRule(): BladeRule {
-    return BULLDOZER_SPEC.blade;
+    return this.wideBlade ? BULLDOZER_WIDE_BLADE : BULLDOZER_SPEC.blade;
   }
 
   private forwardCut(raw: RawInput, ctx: TickContext): CutColumn[] {

@@ -1,16 +1,16 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
-import { parseTestHeldToolMessage } from "../../../../src/infrastructure/vehicle/testInput/testHeldToolMessage";
+import { parseTestHeldItemMessage } from "../../../../src/infrastructure/vehicle/testInput/testHeldItemMessage";
 
 const part = fc.string({ minLength: 1 }).filter((s) => !s.includes(","));
 
-it("round trips vehicle ids and held tools without commas", () => {
+it("round trips vehicle ids and namespaced held item IDs", () => {
   fc.assert(
     fc.property(
       part,
-      part.filter((s) => s !== "clear"),
+      fc.tuple(part, part).map(([namespace, item]) => `${namespace}:${item}`),
       (vehicleId, item) => {
-        expect(parseTestHeldToolMessage(`${vehicleId},${item}`)).toEqual({
+        expect(parseTestHeldItemMessage(`${vehicleId},${item}`)).toEqual({
           vehicleId,
           item,
         });
@@ -19,10 +19,10 @@ it("round trips vehicle ids and held tools without commas", () => {
   );
 });
 
-it("clears the held tool", () => {
+it("clears the held item", () => {
   fc.assert(
     fc.property(part, (vehicleId) => {
-      expect(parseTestHeldToolMessage(`${vehicleId},clear`)).toEqual({
+      expect(parseTestHeldItemMessage(`${vehicleId},clear`)).toEqual({
         vehicleId,
         item: undefined,
       });
@@ -43,7 +43,7 @@ it("rejects wrong part counts and empty parts", () => {
         fc.constant(","),
       ),
       (message) => {
-        expect(parseTestHeldToolMessage(message)).toBeUndefined();
+        expect(parseTestHeldItemMessage(message)).toBeUndefined();
       },
     ),
   );

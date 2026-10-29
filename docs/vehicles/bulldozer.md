@@ -10,7 +10,7 @@ Push forward or back to drive straight. A sideways stick past 0.35 (A/D on PC) p
 
 Tap Jump to hop one block on the ground. Double-tap within 8 ticks to take off or land. In flight and under water, hold Jump to climb and pull the stick back to sink. Sneak gets out. The left door opens for two seconds when boarding or leaving.
 
-Hold the Blade Up/Down switch while driving and use it (right-click on PC, long press on mobile) to raise or lower the blade. Only the driver can use it. It switches once per press, and again after 10 ticks at the earliest. The blade takes 10 ticks (half a second) to travel, and the lift rods visibly shorten when it is raised. Craft the switch from a lever and an iron ingot.
+Hold the Blade Up/Down switch while driving and use it (right-click on PC, long press on mobile) to raise or lower the blade. Only the driver can use it. It switches once per press, and again after 10 ticks at the earliest. The blade takes 10 ticks (half a second) to travel, and the lift rods visibly shorten when it is raised. Craft the switch from a lever and an iron ingot. Hold Wide Blade and use it to switch widths independently, raised or lowered; the monitor shows NORM or WIDE. Craft it from a lever and two iron ingots. Both switches are in [Building Tools](../items/building-tools.md).
 
 ## How it moves
 
@@ -18,7 +18,7 @@ Ground top speed is 9 blocks/s, half the SUV's, with half its acceleration. Flig
 
 ## Clearing
 
-The blade cuts only when fully lowered.
+The blade cuts only when fully lowered. Wide Blade doubles its width: at heading 0 from the center of a block it clears 11 columns instead of 5. Raised or lowered, the ram also widens to hit mobs beside the tracks ([ADR 0180](../adr/0180-a-wide-bulldozer-blade.md)).
 
 While moving forward above 0.02 blocks/tick, the blade clears the columns it touches ahead. On the ground, cutting starts in the row above the block under the tracks, even a block lower than a full cube such as a dirt path, farmland, mud, or a bottom slab, and continues upward until the first air gap, leaving an overhang above a gap. In flight it cuts a tunnel up to the top of the 2.9-block body, including at fractional heights. The tick a hop starts still cuts, because the bulldozer is still on the ground; the airborne ticks after a hop, falling off a ledge, pivoting, reversing, standing, and diving do not cut.
 

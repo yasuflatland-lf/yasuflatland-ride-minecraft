@@ -20,10 +20,12 @@ import {
   WIDE_BLADE_SWITCH_ITEM,
 } from "../../../../../src/domain/vehicle/kinds/bulldozer/monitor";
 import {
+  BULLDOZER_PROFILE,
   BULLDOZER_MOTION as limits,
   BULLDOZER_TYRES as tyres,
 } from "../../../../../src/domain/vehicle/kinds/bulldozer/profile";
 import {
+  BULLDOZER_WIDE_BLADE,
   BULLDOZER_SPEC as S,
   BULLDOZER_TRANSFORMING as spec,
 } from "../../../../../src/domain/vehicle/kinds/bulldozer/spec";
@@ -45,6 +47,7 @@ import {
   transformingHorizontalStep,
 } from "../../../../../src/domain/vehicle/motion/transformingDrive";
 import { formCommands } from "../../../../../src/domain/vehicle/motion/transformingEntity";
+import { ramHalfWidthLimit } from "../../../../../src/domain/vehicle/profile";
 import { propertyValue } from "../../../../support/engineCommands";
 import { type Body, engineStep } from "../../../../support/engineModel";
 import { waterSensors } from "../../../../support/waterDepth";
@@ -760,36 +763,43 @@ function cutContext(form: string, tick: number, b: Body): TickContext {
   };
 }
 
-it("cuts only with the blade fully lowered, in every form (ADR 0138)", () =>
-  fc.assert(
-    fc.property(
-      fc.constantFrom(...FORMS),
-      fc.boolean(),
-      switchSchedule,
-      (form, start, switches) => {
-        const d = new BulldozerDrive(0, { form, blade: start ? 1 : 0 });
-        let target = start;
-        let steps = start ? S.bladeLiftTicks : 0;
-        let b: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
-        switches.forEach((set, tick) => {
-          if (set !== undefined) {
-            d.setToolState("blade_switch", set ? "up" : "down");
-            target = set;
-          }
-          steps += Math.sign((target ? S.bladeLiftTicks : 0) - steps);
-          const ctx = cutContext(form, tick, b);
-          const out = d.step(FORWARD, ctx);
-          b = engineStep(
-            b,
-            out.impulse,
-            { mu: 0.69, drag: ctx.onGround ? 0.69 : 0.91 },
-            ctx.onGround,
-          ).body;
-          if (target || steps > 0) expect(out.cut).toBeUndefined();
-        });
-      },
+it.each([false, true])(
+  "cuts only with the blade fully lowered, in every form (wide=%s)",
+  (wide) =>
+    fc.assert(
+      fc.property(
+        fc.constantFrom(...FORMS),
+        fc.boolean(),
+        switchSchedule,
+        (form, start, switches) => {
+          const d = new BulldozerDrive(0, {
+            form,
+            blade: start ? 1 : 0,
+            wide_blade: wide,
+          });
+          let target = start;
+          let steps = start ? S.bladeLiftTicks : 0;
+          let b: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
+          switches.forEach((set, tick) => {
+            if (set !== undefined) {
+              d.setToolState("blade_switch", set ? "up" : "down");
+              target = set;
+            }
+            steps += Math.sign((target ? S.bladeLiftTicks : 0) - steps);
+            const ctx = cutContext(form, tick, b);
+            const out = d.step(FORWARD, ctx);
+            b = engineStep(
+              b,
+              out.impulse,
+              { mu: 0.69, drag: ctx.onGround ? 0.69 : 0.91 },
+              ctx.onGround,
+            ).body;
+            if (target || steps > 0) expect(out.cut).toBeUndefined();
+          });
+        },
+      ),
     ),
-  ));
+);
 
 it("starts cutting on the tick the lowering blade reaches the bottom (ADR 0138)", () => {
   const d = new BulldozerDrive(0, { blade: 1 });
@@ -987,4 +997,41 @@ it("sends road_paver once per toggle, and again after resync", () => {
   expect(sent(4)).toEqual([true]);
   d.setToolState("road_paver_switch", "off");
   expect(sent(5)).toEqual([false]);
+});
+
+it("uses the current blade rule for cuts and ram width across toggles", () => {
+  fc.assert(
+    fc.property(
+      yaw,
+      fc.array(fc.boolean(), { minLength: 20, maxLength: 40 }),
+      fc.boolean(),
+      (heading, widths, raised) => {
+        const d = new BulldozerDrive(heading, { blade: raised ? 1 : 0 });
+        let b: Body = { pos: { x: 0.5, z: 0.5 }, vel: { x: 0, z: 0 } };
+        widths.forEach((wide, tick) => {
+          d.setToolState(WIDE_BLADE_SWITCH_ITEM, wide ? "wide" : "normal");
+          const rule = wide ? BULLDOZER_WIDE_BLADE : S.blade;
+          const ctx = cutContext("car", tick, b);
+          const out = d.step(FORWARD, ctx);
+          expect(out.ramHalfWidth).toBe(rule.halfWidth);
+          expect(out.ramHalfWidth).toBeLessThanOrEqual(
+            ramHalfWidthLimit(BULLDOZER_PROFILE),
+          );
+          if (raised || d.speed <= rule.minSpeed)
+            expect(out.cut).toBeUndefined();
+          else
+            expect(out.cut).toEqual(
+              bladeColumns(ctx.location, d.yaw, rule, false),
+            );
+          b = engineStep(b, out.impulse, { mu: 0.69 }).body;
+        });
+      },
+    ),
+  );
+});
+it("reports the original body ram width with the normal blade", () => {
+  for (const blade of [0, 1])
+    expect(
+      new BulldozerDrive(0, { blade }).step(FORWARD, context()).ramHalfWidth,
+    ).toBe(BULLDOZER_PROFILE.body.halfWidth);
 });

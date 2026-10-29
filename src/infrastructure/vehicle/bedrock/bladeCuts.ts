@@ -6,20 +6,9 @@ import {
 } from "@minecraft/server";
 import type { Clock } from "../../../application/vehicle/ports/shared";
 import { KEPT_BLOCKS } from "../../../domain/shared/keptBlocks";
-import type { Vec3 } from "../../../domain/shared/vec";
 import type { CutColumn } from "../../../domain/vehicle/cut";
 import { AIR_BLOCK, LAID_BLOCK_TAG } from "../../shared/identifiers";
-
-// ADR 0137 records the drop distance and delay measured in game.
-const DROP_MARGIN = 1;
-const DROP_WINDOW_TICKS = 1;
-
-interface FillRecord {
-  dimensionId: string;
-  min: Vec3;
-  max: Vec3;
-  tick: number;
-}
+import { DropSweep } from "./dropSweep";
 
 /**
  * The highest cell of the unbroken non-air run from `start` up, or `start - 1`
@@ -43,24 +32,14 @@ function nonAirTop(
   return top;
 }
 
-function isNearFill(p: Vec3, { min, max }: FillRecord): boolean {
-  return (
-    p.x >= min.x - DROP_MARGIN &&
-    p.x <= max.x + DROP_MARGIN &&
-    p.y >= min.y - DROP_MARGIN &&
-    p.y <= max.y + DROP_MARGIN &&
-    p.z >= min.z - DROP_MARGIN &&
-    p.z <= max.z + DROP_MARGIN
-  );
-}
-
 export class BladeCuts {
-  private fills: FillRecord[] = [];
-  constructor(private readonly clock: Clock) {}
+  constructor(
+    clock: Clock,
+    private readonly drops: DropSweep = new DropSweep(clock),
+  ) {}
 
   /** Clears each column in `dimension` with one filtered fill (ADR 0137). */
   cut(dimension: Dimension, columns: readonly CutColumn[]): void {
-    this.prune();
     for (const column of columns) {
       try {
         this.cutColumn(dimension, column);
@@ -70,28 +49,9 @@ export class BladeCuts {
     }
   }
 
-  /**
-   * Removes `entity` and returns true when it is an item that spawned in the
-   * same dimension within DROP_MARGIN blocks of a fill and within
-   * DROP_WINDOW_TICKS ticks after it, such as a torch the fill knocked off
-   * (ADR 0137).
-   */
+  /** Removes `entity` and returns true when it is a drop of a recent fill (ADR 0137). */
   sweepDrop(entity: Entity): boolean {
-    this.prune();
-    if (!entity.isValid || entity.typeId !== "minecraft:item") return false;
-    const now = this.clock.now();
-    const matches = this.fills.some((record) => {
-      const dt = now - record.tick;
-      return (
-        entity.dimension.id === record.dimensionId &&
-        dt >= 0 &&
-        dt <= DROP_WINDOW_TICKS &&
-        isNearFill(entity.location, record)
-      );
-    });
-    if (!matches) return false;
-    entity.remove();
-    return true;
+    return this.drops.sweep(entity);
   }
 
   private cutColumn(
@@ -117,18 +77,10 @@ export class BladeCuts {
         ignoreChunkBoundErrors: true,
       },
     );
-    this.fills.push({
-      dimensionId: dimension.id,
-      min: { x, y: start, z },
-      max: { x: x + 1, y: top + 1, z: z + 1 },
-      tick: this.clock.now(),
-    });
-  }
-
-  private prune(): void {
-    const now = this.clock.now();
-    this.fills = this.fills.filter(
-      (record) => now - record.tick <= DROP_WINDOW_TICKS,
+    this.drops.record(
+      dimension.id,
+      { x, y: start, z },
+      { x: x + 1, y: top + 1, z: z + 1 },
     );
   }
 }
