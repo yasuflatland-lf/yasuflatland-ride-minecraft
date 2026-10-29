@@ -1,0 +1,18 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "yasu_ride:noga_chair",
+      "materials": {
+        "default": "entity"
+      },
+      "textures": {
+        "default": "textures/entity/yasu_ride/noga_chair"
+      },
+      "geometry": {
+        "default": "geometry.yasu_ride.noga_chair"
+      },
+      "render_controllers": ["controller.render.default"]
+    }
+  }
+}

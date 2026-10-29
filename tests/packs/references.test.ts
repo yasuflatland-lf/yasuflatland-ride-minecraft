@@ -7,11 +7,12 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { VEHICLE_KINDS } from "../../src/domain/vehicle/kind";
+import { HEADLIGHT_SWITCH_TYPE } from "../../src/infrastructure/shared/identifiers";
 import {
   DECK_SEAT_TYPE,
   ENTITY_TYPE,
-  HEADLIGHT_SWITCH_TYPE,
   ITEM_TYPE,
+  MONITOR_TOOL_TYPES,
   VEHICLE_FAMILY,
 } from "../../src/infrastructure/vehicle/bedrock/identifiers";
 import { type Json, jsonFiles } from "../support/packFiles";
@@ -177,6 +178,7 @@ describe("Resource Pack and Behavior Pack references", () => {
       expect.arrayContaining([
         ...Object.values(ITEM_TYPE),
         HEADLIGHT_SWITCH_TYPE,
+        ...MONITOR_TOOL_TYPES,
       ]),
     );
   });

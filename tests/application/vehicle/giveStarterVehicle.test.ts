@@ -2,41 +2,79 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { GiveStarterVehicle } from "../../../src/application/vehicle/giveStarterVehicle";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { STARTER_KINDS } from "../../../src/domain/vehicle/placement/starter";
 import { FakeWorld } from "./fakes";
 
+function joinWithoutStarters(world: FakeWorld, id: string) {
+  for (const k of STARTER_KINDS) world.starters.set(`${id}:${k}`, false);
+}
+
 describe("GiveStarterVehicle (ADR 0023)", () => {
-  it("gives one item per player, however many times they join", () => {
+  it("gives each player one item of each starter kind, however many times they join", () => {
     fc.assert(
       fc.property(
         fc.array(fc.constantFrom("a", "b", "c"), { maxLength: 20 }),
         (joins) => {
           const world = new FakeWorld();
-          for (const id of joins) world.starters.set(id, false);
+          for (const id of joins) joinWithoutStarters(world, id);
           const give = new GiveStarterVehicle(world);
           for (const id of joins) give.execute(asPlayerId(id));
           const players = [...new Set(joins)];
           expect(world.calls.filter((c) => c.startsWith("give:"))).toEqual(
-            players.map((id) => `give:${id}:suv`),
+            players.flatMap((id) =>
+              STARTER_KINDS.map((k) => `give:${id}:${k}`),
+            ),
           );
-          for (const id of players) expect(world.starters.get(id)).toBe(true);
+          for (const id of players) {
+            for (const k of STARTER_KINDS)
+              expect(world.starters.get(`${id}:${k}`)).toBe(true);
+          }
         },
       ),
     );
   });
 
-  it("marks the player only after giving the item", () => {
-    const world = new FakeWorld();
-    world.starters.set("p", false);
-    expect(new GiveStarterVehicle(world).execute(asPlayerId("p"))).toBe(true);
-    expect(world.calls).toEqual(["give:p:suv", "mark:p"]);
+  it("gives exactly the starter kinds the player has not received yet", () => {
+    fc.assert(
+      fc.property(fc.subarray([...STARTER_KINDS]), (received) => {
+        const world = new FakeWorld();
+        joinWithoutStarters(world, "p");
+        for (const k of received) world.starters.set(`p:${k}`, true);
+        expect(new GiveStarterVehicle(world).execute(asPlayerId("p"))).toBe(
+          received.length < STARTER_KINDS.length,
+        );
+        expect(world.calls.filter((c) => c.startsWith("give:"))).toEqual(
+          STARTER_KINDS.filter((k) => !received.includes(k)).map(
+            (k) => `give:p:${k}`,
+          ),
+        );
+      }),
+    );
   });
 
-  it("does nothing for a player who already received it, or who left", () => {
+  it("marks each kind only after giving its item", () => {
     const world = new FakeWorld();
-    world.starters.set("p", true);
+    joinWithoutStarters(world, "p");
+    expect(new GiveStarterVehicle(world).execute(asPlayerId("p"))).toBe(true);
+    expect(world.calls).toEqual(
+      STARTER_KINDS.flatMap((k) => [`give:p:${k}`, `mark:p:${k}`]),
+    );
+  });
+
+  it("does nothing for a player who already received every kind, or who left", () => {
+    const world = new FakeWorld();
+    for (const k of STARTER_KINDS) world.starters.set(`p:${k}`, true);
     const give = new GiveStarterVehicle(world);
     expect(give.execute(asPlayerId("p"))).toBe(false);
     expect(give.execute(asPlayerId("gone"))).toBe(false);
     expect(world.calls).toEqual([]);
   });
+});
+
+it("gives a player who already got their SUV only the bulldozer", () => {
+  const world = new FakeWorld();
+  world.starters.set("p:suv", true);
+  world.starters.set("p:bulldozer", false);
+  new GiveStarterVehicle(world).execute(asPlayerId("p"));
+  expect(world.calls).toEqual(["give:p:bulldozer", "mark:p:bulldozer"]);
 });

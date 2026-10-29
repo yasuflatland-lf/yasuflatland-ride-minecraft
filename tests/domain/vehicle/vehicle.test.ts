@@ -30,6 +30,7 @@ import type { RamTarget } from "../../../src/domain/vehicle/ram";
 import { SPEC } from "../../../src/domain/vehicle/spec";
 import {
   type RiderView,
+  type TickOutcome,
   Vehicle,
   type VehicleTickInput,
 } from "../../../src/domain/vehicle/vehicle";
@@ -325,7 +326,7 @@ describe("Vehicle (aggregate)", () => {
         const step = stepAhead(yaw, stepDistance, 2);
         const sim = new Sim();
         sim.yaw = yaw;
-        // A ceiling 2 to 3 blocks up over the approach, ending where the step starts.
+        // The scaled SUV needs a third block above the approach; the ceiling blocks a jump.
         sim.solid = (p) => {
           const ahead = dot({ x: p.x, z: p.z }, f);
           const side = dot({ x: p.x, z: p.z }, leftOf(f));
@@ -333,8 +334,8 @@ describe("Vehicle (aggregate)", () => {
             ahead > -10 &&
             ahead < stepDistance &&
             Math.abs(side) <= 2 &&
-            p.y >= 2 &&
-            p.y < 3;
+            p.y >= 3 &&
+            p.y < 4;
           return ceiling || step(p);
         };
         sim.riders = [{ id: "d", seat: 0, yaw, raw: FORWARD }];
@@ -698,11 +699,11 @@ describe("Vehicle headlight cells and chase camera (ADR 0020, 0071)", () => {
     );
   });
 
-  it("pulls the camper's camera back and keeps the near view for the SUV and the sports boat", () => {
+  it("pulls the camper's camera back, gives the SUV the mid view, and keeps the near view for the sports boat", () => {
     expect(createVehicle("camper", asVehicleId("v"), 0).chaseCamera).toBe(
       "far",
     );
-    expect(createVehicle("suv", asVehicleId("v"), 0).chaseCamera).toBe("near");
+    expect(createVehicle("suv", asVehicleId("v"), 0).chaseCamera).toBe("mid");
     expect(createVehicle("sportsboat", asVehicleId("v"), 0).chaseCamera).toBe(
       "near",
     );
@@ -800,6 +801,56 @@ it("concatenates seat commands in seat order when multiple riders leave", () => 
   );
 });
 
+it("passes the drive's cut columns through unchanged, and none when it cuts nothing (ADR 0137)", () => {
+  fc.assert(
+    fc.property(
+      fc.option(
+        fc.array(
+          fc.record(
+            {
+              x: fc.integer({ min: -100, max: 100 }),
+              z: fc.integer({ min: -100, max: 100 }),
+              bottom: fc.integer({ min: -64, max: 319 }),
+              height: fc.integer({ min: 1, max: 3 }),
+            },
+            { requiredKeys: ["x", "z", "bottom"] },
+          ),
+          { maxLength: 20 },
+        ),
+        { nil: undefined },
+      ),
+      (cut) => {
+        const drive: Drive = {
+          speed: 0,
+          yaw: 0,
+          resync() {},
+          onDriverMounted() {},
+          onSeatVacated: () => [],
+          step: () => ({
+            cut,
+            impulse: { x: 0, y: 0, z: 0 },
+            forward: { x: 0, z: 1 },
+            commands: [],
+            riders: { thirdPerson: false, underwater: false },
+          }),
+        };
+        const outcome = new Vehicle(asVehicleId("v"), SUV_PROFILE, drive).tick({
+          tick: 0,
+          riders: [],
+          deckSeatInputs: [],
+          velocity: { x: 0, y: 0, z: 0 },
+          onGround: true,
+          ...waterSensors(),
+          blockTypes: () => [],
+          solidAt: () => false,
+          targets: () => [],
+        });
+        expect(outcome.cut).toEqual(cut ?? []);
+      },
+    ),
+  );
+});
+
 it("blanks only the occupied dock seat in the outcome", () => {
   const seats = [
     { x: 1, y: 2, z: 3 },
@@ -810,6 +861,7 @@ it("blanks only the occupied dock seat in the outcome", () => {
   const drive: Drive = {
     speed: 0,
     yaw: 0,
+    resync() {},
     onDriverMounted() {},
     onSeatVacated: () => [],
     step: () => ({
@@ -844,6 +896,110 @@ it("blanks only the occupied dock seat in the outcome", () => {
     expect(outcome.dock?.seats[seat]).toEqual(seats[seat]);
 });
 
+describe("seat-taken hook", () => {
+  function recordingDrive(log: string[], withHook: boolean): Drive {
+    return {
+      speed: 0,
+      yaw: 0,
+      resync() {},
+      onDriverMounted() {
+        log.push("mounted");
+      },
+      onSeatVacated(seat) {
+        log.push(`vacated:${seat}`);
+        return [{ type: "playSound", name: `vacated_${seat}` }];
+      },
+      ...(withHook
+        ? {
+            onSeatTaken(seat: number) {
+              log.push(`taken:${seat}`);
+              return [{ type: "playSound" as const, name: `taken_${seat}` }];
+            },
+          }
+        : {}),
+      step() {
+        log.push("step");
+        return {
+          impulse: { x: 0, y: 0, z: 0 },
+          forward: { x: 0, z: 1 },
+          commands: [],
+          riders: { thirdPerson: false, underwater: false },
+        };
+      },
+    };
+  }
+
+  const newVehicle = (log: string[], withHook: boolean) =>
+    new Vehicle(asVehicleId("v"), SUV_PROFILE, recordingDrive(log, withHook));
+  const names = (outcome: TickOutcome) =>
+    outcome.finalCommands.map((command) => command.name);
+  const at = (id: string, seat: number) => ({
+    id: asPlayerId(id),
+    offset: defined(SUV_PROFILE.seats.positions[seat], "seat"),
+    yaw: 0,
+    raw: IDLE,
+  });
+  const input = (
+    tick: number,
+    riders: readonly RiderView[],
+  ): VehicleTickInput => ({
+    tick,
+    riders,
+    deckSeatInputs: [],
+    velocity: { x: 0, y: 0, z: 0 },
+    onGround: true,
+    ...waterSensors(),
+    blockTypes: () => [],
+    solidAt: () => false,
+    targets: () => [],
+  });
+
+  it("runs the taken seats' commands after the vacated seats' commands, ascending", () => {
+    const log: string[] = [];
+    const vehicle = newVehicle(log, true);
+    const first = vehicle.tick(input(0, [at("a", 0), at("b", 2)]));
+    expect(names(first)).toEqual(["taken_0", "taken_2"]);
+    const second = vehicle.tick(input(1, [at("a", 0), at("c", 1)]));
+    expect(names(second)).toEqual(["vacated_2", "taken_1"]);
+  });
+
+  it("calls the seat-taken hook before the mount hook and the step", () => {
+    const log: string[] = [];
+    const vehicle = newVehicle(log, true);
+    vehicle.tick(input(0, [at("a", 0)]));
+    expect(log).toEqual(["taken:0", "mounted", "step"]);
+  });
+
+  it("does not call the seat-taken hook for riders who stay or move seats", () => {
+    const log: string[] = [];
+    const vehicle = newVehicle(log, true);
+    vehicle.tick(input(0, [at("a", 0), at("b", 2)]));
+    log.length = 0;
+    const second = vehicle.tick(input(1, [at("b", 0)]));
+    expect(log.some((entry) => entry.startsWith("taken:"))).toBe(false);
+    expect(names(second)).toEqual(["vacated_0"]);
+  });
+
+  it("does not call the seat-taken hook for riders aboard when the vehicle is rebuilt", () => {
+    const log: string[] = [];
+    const vehicle = Vehicle.withRidersAboard(
+      asVehicleId("v"),
+      SUV_PROFILE,
+      recordingDrive(log, true),
+      [at("a", 0)],
+      0,
+    );
+    const outcome = vehicle.tick(input(0, [at("a", 0)]));
+    expect(log.some((entry) => entry.startsWith("taken:"))).toBe(false);
+    expect(outcome.finalCommands).toEqual([]);
+  });
+
+  it("emits no taken seat commands for a drive without the hook", () => {
+    const vehicle = newVehicle([], false);
+    expect(vehicle.tick(input(0, [at("a", 0)])).finalCommands).toEqual([]);
+  });
+});
+
 describe("hints (ADR 0086)", () => {
   const SEAT0 = defined(CAMPER_PROFILE.seats.positions[0], "seat 0");
   const BUMPER = defined(CAMPER_PROFILE.hints?.bumper, "bumper zone");
@@ -855,6 +1011,7 @@ describe("hints (ADR 0086)", () => {
     const drive: Drive = {
       speed: 0,
       yaw: YAW,
+      resync() {},
       onDriverMounted() {},
       onSeatVacated: () => [],
       step: () => ({
@@ -996,4 +1153,41 @@ it("has no hand-placed decor for a kind without decor (ADR 0093)", () => {
   expect(suv.placeDecor("stove", "percolator")).toBe(false);
   expect(suv.removeDecor({ x: 0, y: 0, z: 0 })).toBeUndefined();
   expect(suv.decor()).toEqual([]);
+});
+
+it("K5 plays the front-right door after a lagged driver leaves", () => {
+  const v = createVehicle("suv", asVehicleId("car"), 0);
+  const d = {
+    id: asPlayerId("d"),
+    offset: seatOffset(0, 0),
+    slot: 0,
+    yaw: 0,
+    raw: IDLE,
+  };
+  const p = {
+    id: asPlayerId("p"),
+    offset: seatOffset(0, 2),
+    slot: 2,
+    yaw: 0,
+    raw: IDLE,
+  };
+  const tick = (riders: readonly RiderView[], t: number) =>
+    v.tick({
+      tick: t,
+      riders,
+      deckSeatInputs: [],
+      velocity: { x: 0, y: 0, z: 0 },
+      onGround: true,
+      ...waterSensors(),
+      blockTypes: () => [],
+      solidAt: () => false,
+      targets: () => [],
+    });
+  tick([d, p], 0);
+  tick([{ ...d, offset: seatOffset(0, 2) }, p], 1);
+  const out = tick([p], 2);
+  expect(out.finalCommands).toContainEqual({
+    type: "playAnimation",
+    name: "door_fr",
+  });
 });

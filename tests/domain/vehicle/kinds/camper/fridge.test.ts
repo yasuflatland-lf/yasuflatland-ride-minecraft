@@ -3,6 +3,7 @@
 // mechanism (ADR 0121, 0123).
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
+import { cellKey } from "../../../../../src/domain/shared/cells";
 import type { Vec3 } from "../../../../../src/domain/shared/vec";
 import { decorFace } from "../../../../../src/domain/vehicle/dock/decor";
 import type { DockCell } from "../../../../../src/domain/vehicle/dock/floor";
@@ -27,7 +28,6 @@ import {
   parkPose,
 } from "../../../../../src/domain/vehicle/kinds/camper/room";
 import { CAMPER_SPEC } from "../../../../../src/domain/vehicle/kinds/camper/spec";
-import { cellKey } from "../../../../../src/domain/vehicle/lighting/headlights";
 import { DOCK } from "../../../../../src/domain/vehicle/motion/dock";
 import { defined } from "../../../../support/defined";
 

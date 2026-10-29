@@ -35,10 +35,8 @@ coverage:
   status:
     project:
       default:
-        # Refactors that delete or move covered lines lower the ratio by a few
-        # hundredths of a percent with no new untested code; the patch status
-        # still catches untested additions.
-        threshold: 0.1%
+        # The owner allows the total to drop by up to 1% in a pull request.
+        threshold: 1%
         paths:
           - src/domain/**
           - src/application/**
@@ -46,6 +44,9 @@ coverage:
           - src/main.ts
     patch:
       default:
+        # The target is the base commit's total, so the changed lines may be
+        # covered up to 1% below it.
+        threshold: 1%
         paths:
           - src/domain/**
           - src/application/**

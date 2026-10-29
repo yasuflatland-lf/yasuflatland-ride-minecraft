@@ -1,7 +1,8 @@
+import type { Paint } from "../shared/paint";
 import type { Vec2 } from "../shared/vec";
 import type { HintZones } from "./hints";
 import type { VehicleKind } from "./kind";
-import type { Paint } from "./paint/paint";
+import type { MonitorRule } from "./monitor/monitor";
 import type { PlacementGift } from "./placement/gift";
 import type { PlacementRule } from "./placement/placement";
 import type { StandInRule } from "./standIn";
@@ -34,6 +35,8 @@ type SeatBoarding =
     };
 
 export interface BeamPattern {
+  /** Light level (0 to 15) of the light block at each reach, by index. Absent = 15 for every reach (ADR 0020). */
+  readonly levels?: readonly number[];
   /** Blocks ahead of the center. */
   readonly reach: readonly number[];
   /** Sideways offsets in blocks. */
@@ -42,9 +45,10 @@ export interface BeamPattern {
 
 /**
  * The view riders get off the road (ADR 0028, 0071): `near` is the vanilla view from
- * behind, as F5 shows it, and `far` pulls back far enough to show a long body whole.
+ * behind, as F5 shows it, `mid` pulls back enough to frame the scaled SUV (ADR 0170),
+ * and `far` pulls back far enough to show a long body whole.
  */
-export type ChaseCamera = "near" | "far";
+export type ChaseCamera = "near" | "mid" | "far";
 
 export interface VehicleProfile {
   readonly kind: VehicleKind;
@@ -61,10 +65,18 @@ export interface VehicleProfile {
   /** How a boarding player gets a seat, set per kind (ADR 0050). */
   readonly boarding: SeatBoarding;
   /**
+   * Where a rider who leaves seat i is put, x = left and z = forward from the vehicle's
+   * center, at its feet height, in place of the engine's dismount spot. Absent, or
+   * undefined at a seat, keeps the engine's spot (ADR 0141).
+   */
+  readonly seatExits?: readonly (Vec2 | undefined)[];
+  /**
    * Seats that exist only while the vehicle is parked, as deck seats after the deck
    * seats of its own seats (x = left, z = forward). Absent = none (ADR 0095).
    */
   readonly parkedSeats?: SeatLayout;
+  /** A rider in the wheel deck seat operates the headlights while parked (ADR 0149). */
+  readonly deckSeatDriverHeadlights?: boolean;
   readonly beams: BeamPattern;
   readonly placement: PlacementRule;
   readonly chaseCamera: ChaseCamera;
@@ -83,4 +95,6 @@ export interface VehicleProfile {
   readonly standIn?: StandInRule;
   /** The gift a player gets the first time they place this kind (ADR 0093). Absent = no gift. */
   readonly placementGift?: PlacementGift;
+  /** The tools the cab monitor shows for the driver (ADR 0139). Absent = the kind has no cab monitor. */
+  readonly monitor?: MonitorRule;
 }

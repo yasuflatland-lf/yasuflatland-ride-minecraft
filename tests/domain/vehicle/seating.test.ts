@@ -4,11 +4,10 @@ import { asPlayerId } from "../../../src/domain/shared/ids";
 import { forward, leftOf, type Vec2 } from "../../../src/domain/shared/vec";
 import { CAMPER_PROFILE } from "../../../src/domain/vehicle/kinds/camper/profile";
 import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
-import { Seating } from "../../../src/domain/vehicle/seating";
+import { Seating, type SeatLeaver } from "../../../src/domain/vehicle/seating";
 import {
   occupiedSeats,
   type RiderPos,
-  vacatedSeats,
 } from "../../../src/domain/vehicle/seats";
 import { defined } from "../../support/defined";
 
@@ -17,6 +16,10 @@ const yaw = fc.double({ min: -180, max: 180, noNaN: true });
 const seat = fc.integer({ min: 0, max: 3 });
 const backSeat = fc.integer({ min: 1, max: 3 });
 const AT_REST: Vec2 = { x: 0, z: 0 };
+
+function seatsOf(leavers: readonly SeatLeaver[]): number[] {
+  return leavers.map(({ seat }) => seat);
+}
 
 interface Spec {
   id: string;
@@ -34,6 +37,13 @@ function specs(
     maxLength: max,
   });
 }
+
+const distinctSlots = fc
+  .uniqueArray(fc.record({ id: fc.constantFrom("a", "b", "c", "d"), seat }), {
+    selector: (r) => r.id,
+    maxLength: 4,
+  })
+  .filter((list) => new Set(list.map((r) => r.seat)).size === list.length);
 
 const anyRiders = specs(["a", "b", "c", "d", "e"], seat, 4);
 const others = (at: fc.Arbitrary<number>) => specs(["a", "b", "c", "e"], at, 3);
@@ -55,7 +65,7 @@ function place(list: readonly Spec[], yawDeg: number): RiderPos[] {
 }
 
 describe("Seating (ADR 0019, ADR 0025)", () => {
-  it("reports as vacated exactly the seats of riders who left, ascending", () => {
+  it("reports exactly the riders who left, each with the seat they had, ascending by seat", () => {
     fc.assert(
       fc.property(anyRiders, anyRiders, yaw, (prev, now, y) => {
         const f = forward(y);
@@ -63,14 +73,28 @@ describe("Seating (ADR 0019, ADR 0025)", () => {
         const after = place(now, y);
         const s = new Seating(P);
         s.update(before, f, AT_REST);
-        const { vacated } = s.update(after, f, AT_REST);
-        expect(vacated).toEqual(
-          vacatedSeats(
-            occupiedSeats(before, f, P),
-            occupiedSeats(after, f, P),
-          ).sort((a, b) => a - b),
+        const { left } = s.update(after, f, AT_REST);
+        const departed = before.filter(
+          (r) => !after.some((a) => a.id === r.id),
         );
-        expect([...vacated]).toEqual([...vacated].sort((a, b) => a - b));
+        expect(new Set(left.map((l) => l.id))).toEqual(
+          new Set(departed.map((r) => r.id)),
+        );
+        const expected: SeatLeaver[] = departed
+          .flatMap((r) => {
+            const probe = new Seating(P);
+            probe.update(before, f, AT_REST);
+            return probe
+              .update(
+                before.filter((a) => a.id !== r.id),
+                f,
+                AT_REST,
+              )
+              .left.map(({ seat }) => ({ id: r.id, seat }));
+          })
+          .sort((a, b) => a.seat - b.seat);
+        expect(left).toEqual(expected);
+        expect(seatsOf(left)).toEqual(seatsOf(left).sort((a, b) => a - b));
       }),
     );
   });
@@ -115,7 +139,9 @@ describe("Seating (ADR 0019, ADR 0025)", () => {
   });
 
   it("has no driver once the driver leaves and nobody sits in seat 0", () => {
-    const first = others(backSeat).map((o) => [...o, { id: "d", seat: 0 }]);
+    const first = others(backSeat)
+      .filter((o) => new Set(o.map((r) => r.seat)).size === o.length)
+      .map((o) => [...o, { id: "d", seat: 0 }]);
     fc.assert(
       fc.property(first, others(backSeat), yaw, (tick0, tick1, y) => {
         const f = forward(y);
@@ -124,7 +150,7 @@ describe("Seating (ADR 0019, ADR 0025)", () => {
         const out = s.update(place(tick1, y), f, AT_REST);
         expect(out.driver).toBeUndefined();
         expect(out.mounted).toBe(false);
-        expect(out.vacated).toContain(0);
+        expect(seatsOf(out.left)).toContain(0);
         expect(s.driver).toBeUndefined();
       }),
     );
@@ -136,10 +162,24 @@ describe("Seating (ADR 0019, ADR 0025)", () => {
         const s = new Seating(P);
         s.update(place(list, y), forward(y), AT_REST);
         const byNumber = (a: number, b: number) => a - b;
-        expect([...s.taken()].sort(byNumber)).toEqual(
-          [...new Set(list.map((r) => r.seat))].sort(byNumber),
-        );
+        expect(s.taken().size).toBe(list.length);
+        expect(
+          [...s.taken()].sort(byNumber).every((i) => i >= 0 && i < P.length),
+        ).toBe(true);
         expect(s.occupied).toBe(list.length > 0);
+      }),
+    );
+  });
+
+  it("reports every seated rider as boarded on the first update and nobody on a repeat", () => {
+    fc.assert(
+      fc.property(anyRiders, yaw, (list, y) => {
+        const s = new Seating(P);
+        const riders = place(list, y);
+        const f = forward(y);
+        const out = s.update(riders, f, AT_REST);
+        expect(out.boarded).toEqual([...s.taken()].sort((a, b) => a - b));
+        expect(s.update(riders, f, AT_REST).boarded).toEqual([]);
       }),
     );
   });
@@ -151,8 +191,9 @@ describe("Seating (ADR 0019, ADR 0025)", () => {
         const riders = place(list, y);
         const s = Seating.restore(P, riders, f);
         const out = s.update(riders, f, AT_REST);
-        expect(out.vacated).toEqual([]);
+        expect(out.left).toEqual([]);
         expect(out.mounted).toBe(false);
+        expect(out.boarded).toEqual([]);
         expect(out.driver?.id).toBe(list.find((r) => r.seat === 0)?.id);
       }),
     );
@@ -163,8 +204,8 @@ describe("Seating read by rider-list slot (ADR 0120)", () => {
   it("seats each rider by their slot wherever they stand, and the driver is exactly the rider in slot 0", () => {
     fc.assert(
       fc.property(
-        anyRiders,
-        anyRiders,
+        distinctSlots,
+        distinctSlots,
         fc.array(seat, { minLength: 5, maxLength: 5 }),
         yaw,
         (prev, now, stands, y) => {
@@ -176,7 +217,7 @@ describe("Seating read by rider-list slot (ADR 0120)", () => {
               offset: worldOffset(y, stands[i] ?? 0),
               slot: r.seat,
             }));
-          const s = new Seating(P, "slot");
+          const s = new Seating(P);
           s.update(laid(prev), f, AT_REST);
           const out = s.update(laid(now), f, AT_REST);
           expect([...s.taken()].sort()).toEqual(
@@ -190,17 +231,41 @@ describe("Seating read by rider-list slot (ADR 0120)", () => {
 
   it("restores the riders by slot without reporting a new driver", () => {
     fc.assert(
-      fc.property(anyRiders, yaw, (list, y) => {
+      fc.property(distinctSlots, yaw, (list, y) => {
         const f = forward(y);
         const riders = list.map((r) => ({
           id: asPlayerId(r.id),
           offset: { x: 0, z: 0 },
           slot: r.seat,
         }));
-        const s = Seating.restore(P, riders, f, "slot");
+        const s = Seating.restore(P, riders, f);
         const out = s.update(riders, f, AT_REST);
         expect(out.mounted).toBe(false);
+        expect(out.boarded).toEqual([]);
         expect(out.driver?.id).toBe(list.find((r) => r.seat === 0)?.id);
+      }),
+    );
+  });
+
+  it("reports as boarded exactly the slots of riders who were not aboard, ascending", () => {
+    fc.assert(
+      fc.property(distinctSlots, distinctSlots, yaw, (prev, now, y) => {
+        const laid = (list: readonly Spec[]) =>
+          list.map((r) => ({
+            id: asPlayerId(r.id),
+            offset: { x: 0, z: 0 },
+            slot: r.seat,
+          }));
+        const s = new Seating(P);
+        const f = forward(y);
+        s.update(laid(prev), f, AT_REST);
+        const out = s.update(laid(now), f, AT_REST);
+        expect(out.boarded).toEqual(
+          now
+            .filter((r) => !prev.some((p) => p.id === r.id))
+            .map((r) => r.seat)
+            .sort((a, b) => a - b),
+        );
       }),
     );
   });
@@ -305,3 +370,145 @@ describe("Choosing a driver with position lag (ADR 0126)", () => {
     expect(out.mounted).toBe(true);
   });
 });
+
+it("K5 keeps the lagged driver's seat taken and vacates the front seat", () => {
+  const s = new Seating(P);
+  const d = { id: asPlayerId("d"), offset: worldOffset(0, 0), slot: 0 };
+  const p = { id: asPlayerId("p"), offset: worldOffset(0, 2), slot: 2 };
+  s.update([d, p], forward(0), AT_REST);
+  s.update([{ ...d, offset: worldOffset(0, 2) }, p], forward(0), AT_REST);
+  expect(s.taken()).toEqual(new Set([0, 2]));
+  expect(seatsOf(s.update([p], forward(0), AT_REST).left)).toEqual([0]);
+});
+
+for (const profile of [SUV_PROFILE, CAMPER_PROFILE]) {
+  const positions = profile.seats.positions;
+  const coordinate = fc.double({ min: -5, max: 5, noNaN: true });
+  const snapshot = fc
+    .uniqueArray(
+      fc.record({
+        id: fc.constantFrom("a", "b", "c", "d", "e", "f"),
+        offset: fc.record({ x: coordinate, z: coordinate }),
+        slot: fc.option(fc.integer({ min: 0, max: 7 }), { nil: undefined }),
+      }),
+      { selector: (r) => r.id, maxLength: 6 },
+    )
+    .map((list) => list.map((r) => ({ ...r, id: asPlayerId(r.id) })));
+
+  it(`settles arbitrary readings uniquely through a sequence (${profile.kind})`, () => {
+    fc.assert(
+      fc.property(
+        fc.array(snapshot, { minLength: 1, maxLength: 12 }),
+        yaw,
+        (ticks, y) => {
+          const f = forward(y);
+          const seating = new Seating(positions);
+          for (const [tick, riders] of ticks.entries()) {
+            seating.update(riders, f, AT_REST);
+            const settled = riders.flatMap((rider) => {
+              const probe = new Seating(positions);
+              for (const list of ticks.slice(0, tick + 1))
+                probe.update(list, f, AT_REST);
+              return seatsOf(
+                probe.update(
+                  riders.filter((r) => r.id !== rider.id),
+                  f,
+                  AT_REST,
+                ).left,
+              );
+            });
+            expect(settled.length).toBe(
+              Math.min(riders.length, positions.length),
+            );
+            expect(new Set(settled).size).toBe(settled.length);
+            expect(seating.taken()).toEqual(new Set(settled));
+            expect(
+              settled.every((seat) => seat >= 0 && seat < positions.length),
+            ).toBe(true);
+          }
+        },
+      ),
+    );
+  });
+
+  it(`keeps doors and the indexed driver stable under shared lag (${profile.kind})`, () => {
+    const lag = fc.record({
+      x: fc.double({ min: -1.5, max: 1.5, noNaN: true }),
+      z: fc.double({ min: -1.5, max: 1.5, noNaN: true }),
+    });
+    const slots = fc.shuffledSubarray([0, 1, 2, 3]);
+    fc.assert(
+      fc.property(
+        slots,
+        slots,
+        yaw,
+        lag,
+        fc.array(fc.boolean(), { minLength: 1, maxLength: 12 }),
+        (aboard, leaving, y, l, lagTicks) => {
+          const f = forward(y);
+          const seating = new Seating(positions);
+          const makeRiders = (list: readonly number[], lagged: boolean) =>
+            list.map((slot) => {
+              const at = worldOffset(y, slot, positions);
+              return {
+                id: asPlayerId(`r${slot}`),
+                slot,
+                offset: {
+                  x: at.x + (lagged ? l.x : 0),
+                  z: at.z + (lagged ? l.z : 0),
+                },
+              };
+            });
+          for (const [tick, lagged] of lagTicks.entries()) {
+            const out = seating.update(makeRiders(aboard, lagged), f, AT_REST);
+            expect(out.left).toEqual([]);
+            expect(out.driver?.id).toBe(aboard.includes(0) ? "r0" : undefined);
+            expect(out.mounted).toBe(tick === 0 && aboard.includes(0));
+            expect(seating.taken()).toEqual(new Set(aboard));
+          }
+          const remaining = aboard.filter((slot) => !leaving.includes(slot));
+          const out = seating.update(makeRiders(remaining, true), f, AT_REST);
+          expect(seatsOf(out.left)).toEqual(
+            aboard
+              .filter((slot) => leaving.includes(slot))
+              .sort((a, b) => a - b),
+          );
+          expect(out.driver?.id).toBe(remaining.includes(0) ? "r0" : undefined);
+          expect(out.mounted).toBe(false);
+          const restored = Seating.restore(
+            positions,
+            makeRiders(remaining, true),
+            f,
+          );
+          expect(restored.taken()).toEqual(new Set(remaining));
+          expect(
+            restored.update(makeRiders(remaining, false), f, AT_REST).mounted,
+          ).toBe(false);
+        },
+      ),
+    );
+  });
+
+  it(`reserves a matching previous seat for its position-only rider (${profile.kind})`, () => {
+    fc.assert(
+      fc.property(yaw, fc.integer({ min: 0, max: 3 }), (y, seat) => {
+        const f = forward(y);
+        const seating = new Seating(positions);
+        const resident = {
+          id: asPlayerId("resident"),
+          offset: worldOffset(y, seat, positions),
+        };
+        const newcomer = {
+          id: asPlayerId("newcomer"),
+          offset: resident.offset,
+        };
+        seating.update([resident], f, AT_REST);
+        seating.update([newcomer, resident], f, AT_REST);
+        expect(seating.taken().size).toBe(2);
+        expect(seatsOf(seating.update([newcomer], f, AT_REST).left)).toEqual([
+          seat,
+        ]);
+      }),
+    );
+  });
+}

@@ -4,6 +4,7 @@ import { asChairId } from "../../../src/domain/camp/chair";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockChairWorld } from "../../../src/infrastructure/camp/bedrock/bedrockChairWorld";
 import {
+  CHAIR_KINDS,
   HITS_LEFT_HINT,
   LOW_CHAIR_ITEM,
   LOW_CHAIR_TYPE,
@@ -71,6 +72,15 @@ function fixture() {
 describe("BedrockChairWorld (ADR 0122)", () => {
   beforeEach(() => vi.resetAllMocks());
 
+  it("identifies only valid, registered chair entities", () => {
+    const { chair, chairs } = fixture();
+    expect(chairs.kindOf(asChairId("chair"))).toBe("low_chair");
+    expect(chairs.kindOf(asChairId("player"))).toBeUndefined();
+    expect(chairs.kindOf(asChairId("gone"))).toBeUndefined();
+    chair.isValid = false;
+    expect(chairs.kindOf(asChairId("chair"))).toBeUndefined();
+  });
+
   it("counts only this add-on's blocks as its own", () => {
     const { dimension, chairs } = fixture();
     dimension.getBlock.mockReturnValueOnce({
@@ -121,7 +131,7 @@ describe("BedrockChairWorld (ADR 0122)", () => {
         fc.double({ min: 0, max: 1, noNaN: true }),
         (x, y, z, fall) => {
           const chairs = oneChairAt({ x: x + 0.5, y: y - fall, z: z + 0.5 });
-          expect(chairs.hasChairAt(DIM, { x, y, z })).toBe(true);
+          expect(chairs.hasChairAt("low_chair", DIM, { x, y, z })).toBe(true);
         },
       ),
     );
@@ -141,7 +151,7 @@ describe("BedrockChairWorld (ADR 0122)", () => {
             y: y - fall,
             z: z + dz + 0.5,
           });
-          expect(chairs.hasChairAt(DIM, { x, y, z })).toBe(false);
+          expect(chairs.hasChairAt("low_chair", DIM, { x, y, z })).toBe(false);
         },
       ),
     );
@@ -150,7 +160,7 @@ describe("BedrockChairWorld (ADR 0122)", () => {
   it("spawns the chair turned to the yaw", () => {
     const { dimension, chair, chairs } = fixture();
     dimension.spawnEntity.mockReturnValue(chair);
-    chairs.spawnChair(DIM, { x: 1.5, y: 64, z: 2.5 }, 135);
+    chairs.spawnChair("low_chair", DIM, { x: 1.5, y: 64, z: 2.5 }, 135);
     expect(dimension.spawnEntity).toHaveBeenCalledWith(LOW_CHAIR_TYPE, {
       x: 1.5,
       y: 64,
@@ -184,21 +194,28 @@ describe("BedrockChairWorld (ADR 0122)", () => {
     expect(dimension.spawnItem).not.toHaveBeenCalled();
   });
 
-  it("takes the chair item only from the slot that still holds it", () => {
-    const { container, chairs } = fixture();
-    container.getItem.mockReturnValueOnce({
-      typeId: LOW_CHAIR_ITEM,
-      amount: 1,
-    });
-    expect(chairs.consumeChairItem(asPlayerId("player"), 4)).toBe(true);
-    expect(container.setItem).toHaveBeenCalledWith(4, undefined);
-    container.getItem.mockReturnValueOnce({
-      typeId: "minecraft:dirt",
-      amount: 1,
-    });
-    expect(chairs.consumeChairItem(asPlayerId("player"), 4)).toBe(false);
-    expect(chairs.consumeChairItem(asPlayerId("nobody"), 4)).toBe(false);
-  });
+  it.each(["low_chair", "noga_chair"] as const)(
+    "takes only the matching %s item from the selected slot",
+    (kind) => {
+      const { container, chairs } = fixture();
+      container.getItem.mockReturnValueOnce({
+        typeId: CHAIR_KINDS[kind].itemId,
+        amount: 1,
+      });
+      expect(chairs.consumeChairItem(kind, asPlayerId("player"), 4)).toBe(true);
+      expect(container.setItem).toHaveBeenCalledWith(4, undefined);
+      container.getItem.mockReturnValueOnce({
+        typeId: "minecraft:dirt",
+        amount: 1,
+      });
+      expect(chairs.consumeChairItem(kind, asPlayerId("player"), 4)).toBe(
+        false,
+      );
+      expect(chairs.consumeChairItem(kind, asPlayerId("nobody"), 4)).toBe(
+        false,
+      );
+    },
+  );
 
   it("counts only an air block as air, and a cell outside the world as not", () => {
     const { dimension, chairs } = fixture();
@@ -216,7 +233,11 @@ describe("BedrockChairWorld (ADR 0122)", () => {
       throw new Error("unknown dimension");
     });
     expect(
-      chairs.hasChairAt(asDimensionId("nowhere"), { x: 0, y: 0, z: 0 }),
+      chairs.hasChairAt("low_chair", asDimensionId("nowhere"), {
+        x: 0,
+        y: 0,
+        z: 0,
+      }),
     ).toBe(false);
   });
 
@@ -239,7 +260,7 @@ describe("BedrockChairWorld (ADR 0122)", () => {
 
   it("shows how many hits are left", () => {
     const { player, chairs } = fixture();
-    chairs.showHitsLeft(asPlayerId("player"), 2);
+    chairs.showHitsLeft("low_chair", asPlayerId("player"), 2);
     expect(player.onScreenDisplay.setActionBar).toHaveBeenCalledWith({
       translate: HITS_LEFT_HINT,
       with: ["2"],

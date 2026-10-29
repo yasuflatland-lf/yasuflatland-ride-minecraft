@@ -1,9 +1,10 @@
+import { PAINT_EVENT_PREFIX } from "../shared/paint";
 import type { EngineCommand, RestoredValues } from "./drive";
-import type { Paint } from "./paint/paint";
 
 export type PropertySpec =
   | { type: "enum"; values: readonly string[] }
   | { type: "float"; range: readonly [number, number] }
+  | { type: "int"; range: readonly [number, number] }
   | { type: "bool" };
 
 export interface EntityContract {
@@ -15,7 +16,9 @@ export interface EntityContract {
 }
 
 /** The TypeScript type a property spec accepts. */
-export type PropertyValue<S extends PropertySpec> = S extends { type: "float" }
+export type PropertyValue<S extends PropertySpec> = S extends {
+  type: "float" | "int";
+}
   ? number
   : S extends { type: "bool" }
     ? boolean
@@ -46,15 +49,11 @@ export type RestoredOf<C extends EntityContract> = RestoredValues<
 
 /** The property the core writes to light the lamps. */
 export const HEADLIGHTS_PROPERTY_NAME = "headlights";
-const PAINT_EVENT_PREFIX = "paint_";
-
-/** The entity event that sets the variant for a paint (ADR 0031). */
-export function paintEventName(paint: Paint): string {
-  return `${PAINT_EVENT_PREFIX}${paint}`;
-}
-
+/** The int property the core writes to pick the cab monitor's screen (ADR 0139). */
+export const MONITOR_PROPERTY_NAME = "monitor";
 /** Names the core writes; no kind may declare them. */
 export const CORE_PROPERTY_NAMES: readonly string[] = [
   HEADLIGHTS_PROPERTY_NAME,
+  MONITOR_PROPERTY_NAME,
 ];
 export const CORE_EVENT_PREFIXES: readonly string[] = [PAINT_EVENT_PREFIX];

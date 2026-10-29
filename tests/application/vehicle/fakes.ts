@@ -18,8 +18,15 @@ import type {
   StarterWorld,
 } from "../../../src/application/vehicle/ports/placement";
 import type { Clock } from "../../../src/application/vehicle/ports/shared";
-import { asVehicleId, type VehicleId } from "../../../src/domain/shared/ids";
+import { cellKey } from "../../../src/domain/shared/cells";
+import {
+  asPlayerId,
+  asVehicleId,
+  type VehicleId,
+} from "../../../src/domain/shared/ids";
+import type { Paint } from "../../../src/domain/shared/paint";
 import type { Vec3 } from "../../../src/domain/shared/vec";
+import type { CutColumn } from "../../../src/domain/vehicle/cut";
 import type { DecorPlacement } from "../../../src/domain/vehicle/dock/decor";
 import type {
   ClearCell,
@@ -41,12 +48,9 @@ import type { Hint } from "../../../src/domain/vehicle/hints";
 import type { VehicleKind } from "../../../src/domain/vehicle/kind";
 import { parkPose } from "../../../src/domain/vehicle/kinds/camper/room";
 import { createVehicle } from "../../../src/domain/vehicle/kinds/index";
-import {
-  type Cell,
-  cellKey,
-} from "../../../src/domain/vehicle/lighting/headlights";
-import type { Paint } from "../../../src/domain/vehicle/paint/paint";
+import type { LitCell } from "../../../src/domain/vehicle/lighting/headlights";
 import type { PlacementGift } from "../../../src/domain/vehicle/placement/gift";
+import type { StarterKind } from "../../../src/domain/vehicle/placement/starter";
 import type { ChaseCamera } from "../../../src/domain/vehicle/profile";
 import type { RamHit, RamTarget } from "../../../src/domain/vehicle/ram";
 import type { StandInPose } from "../../../src/domain/vehicle/standIn";
@@ -115,10 +119,10 @@ export class FakeWorld
   readonly kinds = new Map<string, VehicleKind>();
   readonly owners = new Map<string, string>();
   readonly headlights = new Map<string, boolean>();
-  /** Players in the world, and whether each has received the starter item. */
+  /** Players in the world, keyed `player:kind`, and whether each has received that kind's starter item. */
   readonly starters = new Map<string, boolean>();
   /** The cells each vehicle was last told to light. */
-  readonly shone = new Map<string, readonly Cell[]>();
+  readonly shone = new Map<string, readonly LitCell[]>();
   readonly held = new Map<string, HoldPose | undefined>();
   /** The stand-in pose each vehicle kept last (ADR 0116). */
   readonly standIns = new Map<string, StandInPose | undefined>();
@@ -130,6 +134,7 @@ export class FakeWorld
   air = (_at: Vec3) => true;
   /** Which cells hold water; dry everywhere unless a test says otherwise. */
   water = (_at: Vec3) => false;
+  lava = (_at: Vec3) => false;
   /** The dimension of every water query, in order. */
   readonly waterDimensions: string[] = [];
   /** Whether the slot a vehicle item was used from still holds one. */
@@ -140,12 +145,22 @@ export class FakeWorld
   readonly giftsReceived = new Set<string>();
   /** Whether the slot a gift box was used from still holds one. */
   giftInSlot = true;
+  failCutOn: string | undefined;
+  readonly cuts: { vehicleId: string; columns: readonly CutColumn[] }[] = [];
   failOn: string | undefined;
   failRunOn: { id: string; name: string } | undefined;
   failCameraOn: string | undefined;
   failBreathingOn: string | undefined;
+  failFireProtectionOn: string | undefined;
   failRemoveOn: string | undefined;
   failReleaseOn: string | undefined;
+  /**
+   * Fails the `call`-th `run` (counted from 0 over every vehicle's runs) when it returns
+   * an index: the commands before that index reach the entity, then `run` throws. An
+   * index past the last command sends them all, then throws.
+   */
+  runFault: ((id: string, call: number) => number | undefined) | undefined;
+  private runCalls = 0;
   readonly calls: string[] = [];
   private nextId = 1;
 
@@ -159,6 +174,11 @@ export class FakeWorld
   clearBlocks(vehicleId: string, cells: readonly ClearCell[]) {
     this.calls.push("clearBlocks");
     this.cleared.push({ vehicleId, cells });
+  }
+  cutColumns(vehicleId: string, columns: readonly CutColumn[]) {
+    if (vehicleId === this.failCutOn) throw new Error("boom");
+    this.calls.push("cutColumns");
+    this.cuts.push({ vehicleId, columns });
   }
   showMessage(playerId: string, name: string) {
     this.calls.push("showMessage");
@@ -181,6 +201,9 @@ export class FakeWorld
     this.calls.push("seatStandingPlayers");
     this.departures.push({ vehicleId, departure });
   }
+  standRiderAt() {
+    this.calls.push("standRiderAt");
+  }
   loadedVehicles() {
     return this.snapshots;
   }
@@ -194,6 +217,16 @@ export class FakeWorld
     const snap = this.snapshots.find((s) => s.id === id);
     const waterAt = snap && waterQueries.get(snap);
     return waterAt ? waterAt(offset) : false;
+  }
+  lavaAt(id: string, offset: Vec3) {
+    const snap = this.snapshots.find((s) => s.id === id);
+    return snap
+      ? this.lava({
+          x: snap.location.x + offset.x,
+          y: snap.location.y + offset.y,
+          z: snap.location.z + offset.z,
+        })
+      : false;
   }
   targetsNear() {
     return this.targets;
@@ -231,7 +264,10 @@ export class FakeWorld
     Record<string, string | number | boolean>
   >();
   run(id: string, commands: readonly EngineCommand[]) {
-    for (const command of commands) {
+    const call = this.runCalls++;
+    const fault = this.runFault?.(id, call);
+    for (const [index, command] of commands.entries()) {
+      if (index === fault) throw new Error("run fault");
       if (id === this.failRunOn?.id && command.name === this.failRunOn.name)
         throw new Error(`command ${command.name}`);
       if (command.type === "setProperty") {
@@ -248,6 +284,7 @@ export class FakeWorld
       if (command.type === "playAnimation")
         this.calls.push(`door:${id}:${command.name}`);
     }
+    if (fault !== undefined) throw new Error("run fault");
   }
   formOf(id: string) {
     return (
@@ -258,17 +295,21 @@ export class FakeWorld
   }
   setChaseCamera(id: string, camera: ChaseCamera | undefined) {
     if (id === this.failCameraOn) throw new Error("camera");
-    const view = { near: "third", far: "far" }[camera ?? "near"];
+    const view = { near: "third", mid: "mid", far: "far" }[camera ?? "near"];
     this.calls.push(`camera:${id}:${camera ? view : "own"}`);
   }
   giveWaterBreathing(id: string, ticks: number) {
     if (id === this.failBreathingOn) throw new Error("breathing");
     this.calls.push(`breathing:${id}:${ticks}`);
   }
+  protectFromFire(id: string) {
+    if (id === this.failFireProtectionOn) throw new Error("fire");
+    this.calls.push(`fire:${id}`);
+  }
   damage(hit: RamHit, attackerId: string | undefined) {
     this.calls.push(`damage:${hit.id}:${attackerId ?? "-"}`);
   }
-  shineHeadlights(id: string, cells: readonly Cell[]) {
+  shineHeadlights(id: string, cells: readonly LitCell[]) {
     this.shone.set(id, cells);
   }
   releaseVehicle(id: string) {
@@ -282,12 +323,19 @@ export class FakeWorld
     this.headlights.set(id, on);
     this.calls.push(`headlights:${id}:${on}`);
   }
+  campSpace: (dim: string, at: Vec3) => boolean = () => false;
+  isCampSpace(dim: string, at: Vec3) {
+    return this.campSpace(dim, at);
+  }
   isAir(_dim: string, at: Vec3) {
     return this.air(at);
   }
   isWaterAt(dim: string, at: Vec3) {
     this.waterDimensions.push(dim);
     return this.water(at);
+  }
+  isLavaAt(_dim: string, at: Vec3) {
+    return this.lava(at);
   }
   spawnVehicle(
     dim: string,
@@ -306,15 +354,15 @@ export class FakeWorld
     this.calls.push(`consume:${playerId}:${slot}:${kind}`);
     return true;
   }
-  receivedStarter(playerId: string) {
-    return this.starters.get(playerId);
+  receivedStarter(playerId: string, kind: StarterKind) {
+    return this.starters.get(`${playerId}:${kind}`);
   }
   giveVehicleItem(playerId: string, kind: VehicleKind) {
     this.calls.push(`give:${playerId}:${kind}`);
   }
-  markStarterReceived(playerId: string) {
-    this.starters.set(playerId, true);
-    this.calls.push(`mark:${playerId}`);
+  markStarterReceived(playerId: string, kind: StarterKind) {
+    this.starters.set(`${playerId}:${kind}`, true);
+    this.calls.push(`mark:${playerId}:${kind}`);
   }
   receivedGift(playerId: string, gift: PlacementGift) {
     return this.absentPlayers.has(playerId)
@@ -408,12 +456,13 @@ export const snapshot = (
 };
 
 /** A camper parked at (0.5, 64, 0.5) with its room laid; the next tick a test runs is tick(21). */
-/** Ticks a riderless vehicle standing still on open ground at (0.5, 64, 0.5). */
-export function stillTick(vehicle: Vehicle, time: number) {
+/** Ticks a vehicle standing still on open ground at (0.5, 64, 0.5), optionally with its wheel deck seat occupied. */
+export function stillTick(vehicle: Vehicle, time: number, deckDriver?: string) {
   return vehicle.tick({
     tick: time,
     riders: [],
-    deckSeatInputs: [],
+    deckSeatInputs: deckDriver ? [{ moveX: 0, moveY: 0, jump: false }] : [],
+    deckSeatRiders: deckDriver ? [asPlayerId(deckDriver)] : [],
     location: { x: 0.5, y: 64, z: 0.5 },
     velocity: { x: 0, y: 0, z: 0 },
     onGround: true,

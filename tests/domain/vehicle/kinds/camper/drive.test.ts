@@ -8,6 +8,7 @@ import {
   CAMPER_WATER,
 } from "../../../../../src/domain/vehicle/kinds/camper/spec";
 import { MOTION } from "../../../../../src/domain/vehicle/motion/constants";
+import { dockedCommand } from "../../../../../src/domain/vehicle/motion/dockEntity";
 import { type Body, engineStep } from "../../../../support/engineModel";
 
 function context(): TickContext {
@@ -232,3 +233,88 @@ it.each([
     }
   },
 );
+
+it("resync resends all room properties with current values while driving or parked", () => {
+  fc.assert(
+    fc.property(
+      fc.boolean(),
+      fc.boolean(),
+      fc.boolean(),
+      fc.boolean(),
+      (parked, open, lights, running) => {
+        const drive = new CamperDrive(0, {
+          docked: parked,
+          door: open ? 1 : 0,
+          shower_door: open ? 1 : 0,
+          cabinet_sink_door: open ? 1 : 0,
+          cabinet_stove_door: open ? 1 : 0,
+          fridge_top_door: open ? 1 : 0,
+          fridge_bottom_door: open ? 1 : 0,
+          ceiling_lights: lights,
+        });
+        const raw = parked ? undefined : { moveX: 0, moveY: 1, jump: false };
+        const current = new Map<string, unknown>();
+        for (let tick = 0; tick < 40; tick++) {
+          if (tick === 20 && running) expect(drive.runShower()).toBe(parked);
+          for (const c of drive.step(raw, { ...context(), tick }).commands)
+            if (c.type === "setProperty") current.set(c.name, c.value);
+        }
+        expect(drive.inspect().parked).toBe(parked);
+        expect(current.get("shower")).toBe(parked && running);
+        drive.resync();
+        const out = drive.step(raw, { ...context(), tick: 40 });
+        for (const name of [
+          "door",
+          "shower_door",
+          "shower",
+          "ceiling_lights",
+          "cabinet_sink_door",
+          "cabinet_stove_door",
+          "fridge_top_door",
+          "fridge_bottom_door",
+        ]) {
+          expect(current.has(name)).toBe(true);
+          expect(out.commands).toContainEqual({
+            type: "setProperty",
+            name,
+            value: current.get(name),
+          });
+        }
+        // A camper that never parked keeps the entity's default docked value (ADR 0156).
+        expect(
+          out.commands.filter(
+            (c) => c.type === "setProperty" && c.name === "docked",
+          ),
+        ).toStrictEqual(parked ? [dockedCommand(true)] : []);
+        expect(
+          out.commands.every(
+            (c) => c.type === "setProperty" || c.type === "triggerEvent",
+          ),
+        ).toBe(true);
+      },
+    ),
+  );
+});
+
+it("drops a saved oil lamp and a saved lantern at every heading", () => {
+  fc.assert(
+    fc.property(
+      fc.double({ min: -720, max: 720, noNaN: true }),
+      fc.boolean(),
+      (yaw, docked) => {
+        const drive = new CamperDrive(yaw, {
+          docked,
+          dockDecor: JSON.stringify([
+            { slot: "table", item: "oil_lamp" },
+            { slot: "shelf", item: "lantern" },
+          ]),
+        });
+        expect(drive.decor()).toEqual([]);
+        const restored = new CamperDrive(yaw, {
+          dockDecor: JSON.stringify(drive.decor()),
+        });
+        expect(restored.decor()).toEqual(drive.decor());
+      },
+    ),
+  );
+});

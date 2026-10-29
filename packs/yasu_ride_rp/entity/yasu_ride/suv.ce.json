@@ -24,7 +24,8 @@
         "blue": "textures/entity/yasu_ride/suv_blue",
         "purple": "textures/entity/yasu_ride/suv_purple",
         "magenta": "textures/entity/yasu_ride/suv_magenta",
-        "pink": "textures/entity/yasu_ride/suv_pink"
+        "pink": "textures/entity/yasu_ride/suv_pink",
+        "lit": "textures/entity/yasu_ride/suv_lit"
       },
       "geometry": { "default": "geometry.yasu_ride.suv" },
       "animations": {
@@ -96,7 +97,12 @@
           }
         ]
       },
-      "render_controllers": ["controller.render.yasu_ride.suv"]
+      "render_controllers": [
+        "controller.render.yasu_ride.suv",
+        {
+          "controller.render.yasu_ride.suv.lit": "query.property('yasu_ride:headlights')"
+        }
+      ]
     }
   }
 }

@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { inflateSync } from "node:zlib";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
@@ -6,7 +6,10 @@ import { forward } from "../../src/domain/shared/vec";
 import { DECOR_SLOTS } from "../../src/domain/vehicle/kinds/camper/decor";
 import { DECOR_SPOTS } from "../../src/domain/vehicle/kinds/camper/furniture";
 import { decorSpotOffset } from "../../src/domain/vehicle/kinds/camper/room";
-import { STANDING_GEAR_IDS } from "../../src/domain/vehicle/kinds/index";
+import {
+  CAMPING_GEAR_IDS,
+  STANDING_GEAR_IDS,
+} from "../../src/domain/vehicle/kinds/index";
 import {
   CAMPER_CABINET_COMPONENT,
   CAMPER_DECOR_COMPONENT,
@@ -56,7 +59,8 @@ const AXES = [0, 1, 2] as const;
 interface Cube {
   origin: [number, number, number];
   size: [number, number, number];
-  rotation?: unknown;
+  rotation?: [number, number, number];
+  pivot?: [number, number, number];
   uv: Record<
     (typeof FACES)[number],
     { uv: [number, number]; uv_size: number[] }
@@ -75,6 +79,26 @@ const geometryOf = (id: string) =>
   };
 
 const cubesOf = (id: string) => geometryOf(id).bones.flatMap((b) => b.cubes);
+
+function cubeCorners(cube: Cube): [number, number, number][] {
+  const pivot = cube.pivot ?? [0, 0, 0];
+  const [rx, ry, rz] = cube.rotation ?? [0, 0, 0];
+  return Array.from({ length: 8 }, (_, n) => {
+    let [x, y, z] = AXES.map(
+      (i) => cube.origin[i] + cube.size[i] * ((n >> i) & 1) - pivot[i],
+    ) as [number, number, number];
+    // Bedrock's X and Z turns have the opposite sign to mathematical rotations (ADR 0051).
+    for (const [axis, degrees] of [-rx, ry, -rz].entries()) {
+      const r = (degrees * Math.PI) / 180;
+      const c = Math.cos(r);
+      const s = Math.sin(r);
+      if (axis === 0) [y, z] = [y * c - z * s, y * s + z * c];
+      if (axis === 1) [x, z] = [x * c + z * s, -x * s + z * c];
+      if (axis === 2) [x, y] = [x * c - y * s, x * s + y * c];
+    }
+    return [x + pivot[0], y + pivot[1], z + pivot[2]];
+  });
+}
 
 const ySpan = (g: Gear): [number, number] => [0, g.height_px];
 
@@ -117,7 +141,7 @@ function readPng(path: string) {
 }
 
 describe("camping gear spec (ADR 0093)", () => {
-  it("lists the 19 items in the contract's order", () => {
+  it("lists the 17 items in the contract's order", () => {
     expect(SPEC.map((g) => g.id)).toEqual([
       "potted_plant",
       "macrame_planter",
@@ -129,8 +153,6 @@ describe("camping gear spec (ADR 0093)", () => {
       "sugar_pot",
       "fruit_bowl",
       "toaster",
-      "oil_lamp",
-      "lava_lamp",
       "transistor_radio",
       "book_stack",
       "road_map",
@@ -206,16 +228,18 @@ describe("camping gear block models (ADR 0093)", () => {
       ]);
       const cubes = cubesOf(g.id);
       expect(cubes.length).toBeGreaterThan(0);
-      const lo = AXES.map((i) => Math.min(...cubes.map((c) => c.origin[i])));
-      const hi = AXES.map((i) =>
-        Math.max(...cubes.map((c) => c.origin[i] + c.size[i])),
-      );
-      expect([lo[0], hi[0]]).toEqual([-g.width_px / 2, g.width_px / 2]);
+      const points = cubes.flatMap(cubeCorners);
+      const lo = AXES.map((i) => Math.min(...points.map((p) => p[i])));
+      const hi = AXES.map((i) => Math.max(...points.map((p) => p[i])));
+      expect(lo[0]).toBeCloseTo(-g.width_px / 2, 3);
+      expect(hi[0]).toBeCloseTo(g.width_px / 2, 3);
       expect([lo[1], hi[1]]).toEqual(ySpan(g));
       expect(lo[2]).toBeGreaterThanOrEqual(-8);
       expect(hi[2]).toBeLessThanOrEqual(8);
       for (const c of cubes) {
-        expect(c.rotation).toBeUndefined();
+        expect(
+          (c.rotation ?? []).filter((v) => v !== 0).length,
+        ).toBeLessThanOrEqual(1);
         expect(c.size.every((s) => s > 0)).toBe(true);
         expect(Object.keys(c.uv).sort()).toEqual([...FACES].sort());
         for (const f of FACES) {
@@ -234,9 +258,13 @@ describe("camping gear block models (ADR 0093)", () => {
     "$id: stays inside its cell, 0 to 16 px high (ADR 0099)",
     (g) => {
       const cubes = cubesOf(g.id);
-      for (const c of cubes) {
-        expect(c.origin[1], g.id).toBeGreaterThanOrEqual(0);
-        expect(c.origin[1] + c.size[1], g.id).toBeLessThanOrEqual(16);
+      for (const point of cubes.flatMap(cubeCorners)) {
+        expect(point[0], g.id).toBeGreaterThanOrEqual(-8);
+        expect(point[0], g.id).toBeLessThanOrEqual(8);
+        expect(point[1], g.id).toBeGreaterThanOrEqual(0);
+        expect(point[1], g.id).toBeLessThanOrEqual(16);
+        expect(point[2], g.id).toBeGreaterThanOrEqual(-8);
+        expect(point[2], g.id).toBeLessThanOrEqual(8);
       }
     },
   );
@@ -248,6 +276,42 @@ describe("camping gear block models (ADR 0093)", () => {
         FACES.some((f) => c.uv[f].uv.join() === GLASS_UV.join()),
       );
       expect(usesGlass).toBe(g.glass);
+    },
+  );
+
+  it("keeps the pair geometries within their cell and size budget (ADR 0169)", () => {
+    for (const kind of ["shelf", "table", "cabinet", "fridge"]) {
+      expect(
+        statSync(`${MODELS}/${kind}_decor_pair.geo.json`).size,
+      ).toBeLessThan(1_000_000);
+      for (const bone of geometryOf(`${kind}_decor_pair`).bones) {
+        for (const p of bone.cubes.flatMap(cubeCorners)) {
+          expect(Math.abs(p[0])).toBeLessThanOrEqual(8);
+          expect(Math.abs(p[2])).toBeLessThanOrEqual(8);
+        }
+      }
+    }
+  });
+
+  it.each(["oil_lamp", "lantern"])(
+    "removes the %s decor assets, atlas key, and names",
+    (id) => {
+      for (const path of [
+        `${BP}/items/yasu_ride/${id}.item.json`,
+        `${BP}/blocks/yasu_ride/${id}_decor.block.json`,
+        `${MODELS}/${id}.geo.json`,
+        `${RP}/textures/items/yasu_ride/${id}.png`,
+        `${PREVIEWS}/${id}.png`,
+      ])
+        expect(existsSync(path), path).toBe(false);
+      expect(
+        readFileSync(`${RP}/textures/item_texture.json`, "utf8"),
+      ).not.toContain(`yasu_ride_${id}`);
+      for (const locale of ["en_US", "ja_JP"]) {
+        const lang = readFileSync(`${RP}/texts/${locale}.lang`, "utf8");
+        expect(lang).not.toContain(`item.yasu_ride:${id}.name`);
+        expect(lang).not.toContain(`tile.yasu_ride:${id}_decor.name`);
+      }
     },
   );
 
@@ -284,10 +348,19 @@ describe("camping gear block models (ADR 0093)", () => {
 });
 
 describe("camping gear docs (ADR 0093)", () => {
-  it("renders a 128 px RGBA preview for every item and the low chair, and no other", () => {
-    // The low chair shares the folder but is not decor (ADR 0122)
+  it("renders a 128 px RGBA preview for every item and the low chair and tent, and no other", () => {
+    // The low chair and tent share the folder but are not decor (ADR 0122, 0130)
     expect(readdirSync(PREVIEWS).sort()).toEqual(
-      [...SPEC.map((g) => `${g.id}.png`), "low_chair.png"].sort(),
+      [
+        ...SPEC.map((g) => `${g.id}.png`),
+        "low_chair.png",
+        "noga_chair.png",
+        "tent.png",
+        "camp_table.png",
+        "fire_pit.png",
+        "dutch_oven.png",
+        "gas_lantern.png",
+      ].sort(),
     );
     for (const g of SPEC) {
       const { width, height } = readPng(`${PREVIEWS}/${g.id}.png`);
@@ -305,7 +378,13 @@ describe("camping gear docs (ADR 0093)", () => {
   it("counts the camping gear on the item groups page", () => {
     const lines = readFileSync("docs/items/README.md", "utf8").split("\n");
     expect(lines).toContain(
-      `| **Camping Gear** | ${SPEC.length} | [Previews and placement](camping-gear.md) |`,
+      `| **Camping Gear (Inside)** | ${SPEC.length} | [Previews and placement](camping-gear.md) |`,
+    );
+  });
+
+  it("counts the outside gear on the item groups page", () => {
+    expect(readFileSync("docs/items/README.md", "utf8")).toContain(
+      "| **Camping Gear (Outside)** | 7 | [Low Chair, Noga Chair, Tent, Camp Table, Fire Pit, Dutch Oven, and Gas Lantern](camping-gear.md#low-chair-outside-the-vehicles) |",
     );
   });
 
@@ -441,6 +520,7 @@ function expectedDecor(g: Gear) {
         "minecraft:light_dampening": 0,
         "minecraft:destructible_by_mining": false,
         "minecraft:destructible_by_explosion": false,
+        "tag:yasu_ride:laid": {},
         "minecraft:custom_components": [CAMPER_DECOR_COMPONENT],
         "minecraft:collision_box": false,
         "minecraft:selection_box": selectionBox(g),
@@ -867,16 +947,17 @@ describe("camping gear blocks and items (ADR 0093)", () => {
           b.cubes,
         ]),
       );
+      // The gear model's frame has the camper's left at -x and its forward at -z,
+      // and the generator writes pixels to three decimals.
+      const atSpot = ([x, y, z]: [number, number, number]) =>
+        [x - left, y, z - ahead].map((v) => Math.round(v * 1000) / 1000 + 0);
       for (const g of SPEC.filter((item) => !item.hanging)) {
         const cubes = defined(bones.get(`end${pair.end}_${g.id}`), g.id);
-        // The gear model's frame has the camper's left at -x and its forward at -z.
         expect(cubes, `${slot.id} ${g.id}`).toEqual(
           cubesOf(g.id).map((c) => ({
             ...c,
-            // The generator writes pixels to three decimals.
-            origin: [c.origin[0] - left, c.origin[1], c.origin[2] - ahead].map(
-              (v) => Math.round(v * 1000) / 1000 + 0,
-            ),
+            ...(c.pivot ? { pivot: atSpot(c.pivot) } : {}),
+            origin: atSpot(c.origin),
           })),
         );
       }
@@ -946,14 +1027,12 @@ describe("camping gear blocks and items (ADR 0093)", () => {
       ).toBe(ATLAS_KEY);
   });
 
-  it("lists the camping gear box, then every gear item in spec order, then the low chair, in the Camping Gear group of the Items tab", () => {
+  it("lists the exact inside, outside, bulldozer, and sports boat groups in order", () => {
     const items = [
       "yasu_ride:camping_gear_box",
       ...SPEC.map((g) => `yasu_ride:${g.id}`),
-      // Not in the box: it stands outside the vehicles (ADR 0122)
-      "yasu_ride:low_chair_item",
     ];
-    expect(items).toHaveLength(21);
+    expect(items).toHaveLength(18);
     expect(readJson(`${BP}/item_catalog/crafting_item_catalog.json`)).toEqual({
       format_version: "1.21.60",
       "minecraft:crafting_items_catalog": {
@@ -964,15 +1043,73 @@ describe("camping gear blocks and items (ADR 0093)", () => {
               {
                 group_identifier: {
                   icon: "yasu_ride:camping_gear_box",
-                  name: "yasu_ride:camping_gear",
+                  name: "yasu_ride:camping_gear_inside",
                 },
                 items,
+              },
+              {
+                group_identifier: {
+                  icon: "yasu_ride:low_chair_item",
+                  name: "yasu_ride:camping_gear_outside",
+                },
+                items: [
+                  "yasu_ride:low_chair_item",
+                  "yasu_ride:noga_chair_item",
+                  "yasu_ride:tent_item",
+                  "yasu_ride:camp_table_item",
+                  "yasu_ride:fire_pit_item",
+                  "yasu_ride:dutch_oven_item",
+                  "yasu_ride:gas_lantern_item",
+                ],
+              },
+              {
+                group_identifier: {
+                  icon: "yasu_ride:icebreaker_switch",
+                  name: "yasu_ride:sportsboat_equipment",
+                },
+                items: ["yasu_ride:icebreaker_switch"],
+              },
+              {
+                group_identifier: {
+                  icon: "yasu_build:build_tool",
+                  name: "yasu_build:building_tools",
+                },
+                items: [
+                  "yasu_build:build_tool",
+                  "yasu_build:selection_wand",
+                  "yasu_ride:blade_switch",
+                ],
               },
             ],
           },
         ],
       },
     });
+  });
+
+  it("keeps outside items separate from decor and each catalog item unique", () => {
+    const groups = readJson(`${BP}/item_catalog/crafting_item_catalog.json`)[
+      "minecraft:crafting_items_catalog"
+    ].categories[0].groups as {
+      group_identifier: { name: string };
+      items: string[];
+    }[];
+    const itemsOf = (name: string) =>
+      defined(
+        groups.find((g) => g.group_identifier.name === `yasu_ride:${name}`),
+        name,
+      ).items.map((item) => item.slice("yasu_ride:".length));
+    const specIds = SPEC.map((g) => g.id);
+    expect(itemsOf("camping_gear_inside").slice(1)).toEqual(CAMPING_GEAR_IDS);
+    for (const id of itemsOf("camping_gear_outside")) {
+      expect(specIds).not.toContain(id);
+      expect(CAMPING_GEAR_IDS).not.toContain(id);
+    }
+    const items = groups.flatMap((g) => g.items);
+    expect(new Set(items).size).toBe(items.length);
+    expect(groups.map((g) => g.group_identifier.name)).not.toContain(
+      "yasu_ride:camping_gear",
+    );
   });
 
   it.each(["en_US", "ja_JP"])(
@@ -982,8 +1119,16 @@ describe("camping gear blocks and items (ADR 0093)", () => {
       const name = (g: Gear) => (locale === "en_US" ? g.name_en : g.name_ja);
       const expected = new Map<string, string>([
         [
-          "yasu_ride:camping_gear",
-          locale === "en_US" ? "Camping Gear" : JA_GROUP_NAME,
+          "yasu_ride:camping_gear_inside",
+          locale === "en_US"
+            ? "Camping Gear (Inside)"
+            : `${JA_GROUP_NAME}\uff08\u8eca\u5185\u7528\uff09`,
+        ],
+        [
+          "yasu_ride:camping_gear_outside",
+          locale === "en_US"
+            ? "Camping Gear (Outside)"
+            : `${JA_GROUP_NAME}\uff08\u8eca\u5916\u7528\uff09`,
         ],
         ...SPEC.map((g): [string, string] => [
           `item.yasu_ride:${g.id}.name`,
@@ -994,7 +1139,8 @@ describe("camping gear blocks and items (ADR 0093)", () => {
           name(g),
         ]),
       ]);
-      expect(expected.size).toBe(1 + 2 * SPEC.length);
+      expect(expected.size).toBe(2 + 2 * SPEC.length);
+      expect(values.has("yasu_ride:camping_gear")).toBe(false);
       for (const [key, value] of expected)
         expect(values.get(key), key).toEqual([value]);
     },

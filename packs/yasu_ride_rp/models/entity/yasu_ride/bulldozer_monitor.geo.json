@@ -1,0 +1,43 @@
+{
+  "format_version": "1.12.0",
+  "minecraft:geometry": [
+    {
+      "description": {
+        "identifier": "geometry.yasu_ride.bulldozer_monitor",
+        "texture_width": 48,
+        "texture_height": 64,
+        "visible_bounds_width": 7,
+        "visible_bounds_height": 5,
+        "visible_bounds_offset": [0, 1.5, 0]
+      },
+      "bones": [
+        {
+          "name": "screen_blade_switch_down",
+          "pivot": [0, 0, 0],
+          "cubes": [
+            {
+              "origin": [-2.2, 33.091, 9.14],
+              "size": [4.4, 0.02, 3.01],
+              "uv": { "down": { "uv": [48, 32], "uv_size": [-48, -32] } },
+              "rotation": [138.366, 0, 0],
+              "pivot": [0.0, 33.101, 10.645]
+            }
+          ]
+        },
+        {
+          "name": "screen_blade_switch_up",
+          "pivot": [0, 0, 0],
+          "cubes": [
+            {
+              "origin": [-2.2, 33.091, 9.14],
+              "size": [4.4, 0.02, 3.01],
+              "uv": { "down": { "uv": [48, 64], "uv_size": [-48, -32] } },
+              "rotation": [138.366, 0, 0],
+              "pivot": [0.0, 33.101, 10.645]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -14,6 +14,14 @@ import sys
 import zlib
 from pathlib import Path
 
+# Isolated mode (-I) omits the script directory from the import path.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from tool_loader import load_tool
+
+cube_tilt = load_tool("cube_tilt")
+assert_axes, compound_cubes = cube_tilt.assert_axes, cube_tilt.compound_cubes
+ASSEMBLIES = {"arc": {"owner": "suv", "cubes": 16}}
+
 RP = Path(sys.argv[1])
 MODELS = RP / "models/entity/yasu_ride"
 ENTITY_TEXTURES = RP / "textures/entity/yasu_ride"
@@ -48,6 +56,10 @@ PALETTE = {
     "hardtop_rib": (46, 47, 52),  # the lit tops of the roof ribs
 }
 NAMES = list(PALETTE)
+EMISSIVE_LIT = 255
+MER_LIT = (0, EMISSIVE_LIT, 255)
+MER_OFF = (0, 0, 255)
+LIT_SLOTS = tuple(NAMES.index(name) for name in ("light",))
 # A power of two wide enough for a 4 px cell per swatch (16 swatches filled 64 px before "prop")
 TEXTURE_WIDTH = 128
 assert len(NAMES) * 4 <= TEXTURE_WIDTH, "the palette no longer fits in the texture"
@@ -127,104 +139,183 @@ def both_sides(cubes):
     return [*cubes, *[mirrored(c) for c in cubes]]
 
 
-# The rear end, 6 px behind where the first SUV ended, leaves room for a cargo area behind the rear
-# doors under a black hardtop, like a four-door Wrangler. The rear wheels sit 5 px further back than
-# the first SUV's, under the cargo area.
-REAR = -32  # z of the tailgate's outer face
+# The seated player replaces the wheel diameter as the size anchor (ADR 0170).
+# Keep construction coordinates unscaled until export so every length shares one transform.
+SIZE_SCALE = 1.3
+
+# The wheelbase and overhang ratios follow the side-view reference (ADR 0170).
+REAR = -31  # z of the tailgate's outer face
 CARGO_FRONT = -19  # z where the rear doors end and the cargo area's fixed panels begin
-ROOF_Y = 29  # underside of the roof
+# Chassis and ground clearance: the chassis runs from the sill (its underside, which also sets where
+# the side steps and bumpers hang) up to the cabin floor. The sill sits at the target's clearance
+# (ADR 0170, 4/7). The floor sits only as high as the side steps' thickness needs, and the seats do not
+# follow it: higher seats would take the riders' head room under the lowered roof.
+SILL_Y = 6.875
+FLOOR_Y = 8
+BODY_HALF_WIDTH = 13
+CABIN_HALF_WIDTH = 12
+DOOR_FRAME_MID_X = (BODY_HALF_WIDTH + CABIN_HALF_WIDTH) / 2
+
+# The sealed rear pane supplies the measured belt and clear window height (ADR 0170, 6/7).
+# Roof ribs add 0.3 px above ROOF_TOP to the measured overall height.
+BELT_Y = 18.4
+WINDOW_BOTTOM_Y = BELT_Y
+WINDOW_TOP_Y = WINDOW_BOTTOM_Y + 6.5
+ROOF_Y = WINDOW_TOP_Y + 1  # underside of the roof
+ROOF_TOP = ROOF_Y + 0.2
+
+# The target hood stands above the belt line, so its cowl has its own height (ADR 0170).
+HOOD_TOP_Y = 19
+FRONT = 25  # z of the hood's front face
+HOOD_REAR_Z = 7.75  # z of the cowl, where the hood meets the windshield frame
+WINDSHIELD_FOOT_Z = HOOD_REAR_Z - 0.5  # the windshield's lower frame pivot, before it leans back
+
+# The door hinges and dashboard follow the cowl; the pillars keep their cabin positions (ADR 0170).
+FRONT_DOOR_HINGE_Z = HOOD_REAR_Z - 1
+B_PILLAR_REAR_Z, B_PILLAR_FRONT_Z = -6, -5
+DASH_BOTTOM_Y = 13
+DASH_FACE_Z = HOOD_REAR_Z - 0.75
+DASH_GAUGE_DROP = 1.25
+DASH_SHIFT_Z = DASH_FACE_Z - 10
+REAR_SEAT_Z = CARGO_FRONT + 1
 
 # The windshield leans back: its frame turns around the lower frame's edge. Written here, a positive x
 # rotation tips +y toward the rear (-z) in game; a negative one leaned the frame out over the hood.
 # The roof starts where the A-pillars meet it.
-WINDSHIELD_LEAN = 25  # degrees back from vertical
-WINDSHIELD_PIVOT = (0, 17, 12.5)
+WINDSHIELD_LEAN = 35  # degrees back from vertical
+WINDSHIELD_PIVOT = (0, HOOD_TOP_Y, WINDSHIELD_FOOT_Z)
 _LEAN_SIN = math.sin(math.radians(WINDSHIELD_LEAN))
 _LEAN_COS = math.cos(math.radians(WINDSHIELD_LEAN))
 _LEAN_TAN = math.tan(math.radians(WINDSHIELD_LEAN))
-ROOF_FRONT = 12.5 - (ROOF_Y + 1 - 17) * _LEAN_TAN + 0.6
+ROOF_FRONT = WINDSHIELD_FOOT_Z - (ROOF_TOP - HOOD_TOP_Y) * _LEAN_TAN + 0.6
 
 
 def windshield_part(x0, y0, z0, x1, y1, z1, color):
     return turned(box(x0, y0, z0, x1, y1, z1, color), WINDSHIELD_PIVOT, (WINDSHIELD_LEAN, 0, 0))
 
 
-# Distance of the wheel hubs from the center line. The tires stand 1.5 px out from the body's side
-# (x 13), under over-fenders.
-HUB_X = 15.5
-# Outer face of the flares: 2.75 px out from the body's side, over the inner half of the tires
-FLARE_X = 15.75
-FRONT_AXLE_Z, REAR_AXLE_Z = 17, -21
+def leaning_top(y):
+    """The unturned top of a windshield part whose face 0.5 px off the pivot should end at height y:
+    leaning shortens its rise and lifts that face by its depth."""
+    return HOOD_TOP_Y + (y - HOOD_TOP_Y - 0.5 * _LEAN_SIN) / _LEAN_COS
+
+
+# Distance of the wheel hubs from the center line. The tires stand out from the body's side, under
+# over-fenders.
+HUB_X = BODY_HALF_WIDTH + 2.5
+ROAD_WHEEL_RADIUS = 6
+HUB_Y = ROAD_WHEEL_RADIUS
+TIRE_HALF_WIDTH = 2
+FRONT_AXLE_Z, REAR_AXLE_Z = 21, -21.5
+# Outer face of the flares, over the inner half of the tires
+FLARE_X = BODY_HALF_WIDTH + 2.75
+FLARE_THICKNESS = 1.5
 # Wheel arch: the inside of each flare. Its flat top's underside, the top's half length, and the inner
-# lower end of each slope, ahead of and behind the axle. The inner edge stays at least 6.3 px from the
-# axle, clear of the tire.
-ARCH_TOP_Y, ARCH_TOP_HALF = 12.3, 4
-ARCH_FOOT_Y, ARCH_FOOT_Z = 8, 7
+# lower end of each slope, ahead of and behind the axle. The slope stays over 6.3 px from the
+# hub while the slimmer foot fits behind the target's 8.38 px front overhang (ADR 0170).
+ARCH_TOP_Y, ARCH_TOP_HALF = 12.3, 3.5
+ARCH_FOOT_Y, ARCH_FOOT_Z = 8, 6.2
 ARCH_RUN_PER_RISE = (ARCH_FOOT_Z - ARCH_TOP_HALF) / (ARCH_TOP_Y - ARCH_FOOT_Y)
+
+# Bumpers: low bars sized to the side-view reference (ADR 0170, 7/7). A length is the bar's run along
+# the car between the body and its tip. The front bar's top meets the grille's bottom frame, which sits
+# just under the round headlights; its lower lip, top edge and fog lamps follow the bar.
+FRONT_BUMPER_LENGTH = 4
+GRILLE_BOTTOM_Y = 9
+FRONT_BUMPER_HEIGHT = 4.2
+FRONT_BUMPER_TOP_Y = GRILLE_BOTTOM_Y
+FRONT_BUMPER_BOTTOM_Y = FRONT_BUMPER_TOP_Y - FRONT_BUMPER_HEIGHT
+FRONT_BUMPER_TIP_Z = FRONT + 4.5
+FRONT_BUMPER_BACK_Z = FRONT_BUMPER_TIP_Z - FRONT_BUMPER_LENGTH
+FRONT_BUMPER_BAND_BOTTOM_Y = FRONT_BUMPER_BOTTOM_Y + 0.7
+FRONT_BUMPER_BAND_TOP_Y = FRONT_BUMPER_TOP_Y - 0.6
+REAR_BUMPER_LENGTH = 5
+REAR_BUMPER_BOTTOM_Y = SILL_Y - 0.5
+REAR_BUMPER_HEIGHT = 3
+REAR_BUMPER_TOP_Y = REAR_BUMPER_BOTTOM_Y + REAR_BUMPER_HEIGHT
+REAR_BUMPER_TIP_Z = REAR - 1.5
+# Both bars reach out over the tires like the reference's, but only as far back as the tire's
+# farthest spinning corner (6.07 px from the hub at D=12.05 px, on its inner face) allows: outboard
+# of the body they are shallow end pieces, and only the part between the tires runs back to the body.
+BUMPER_HALF_WIDTH = HUB_X + 1
+BUMPER_END_CLEARANCE = ROAD_WHEEL_RADIUS + 0.2
+
+# The arch liners hide the cabin through the arches; the side steps stop short of the flares' legs.
+ARCH_LINER_X = 11.4
+STEP_REAR_Z = REAR_AXLE_Z + ARCH_FOOT_Z + 1
+STEP_FRONT_Z = FRONT_AXLE_Z - ARCH_FOOT_Z
+STEP_TOP_Y = FLOOR_Y  # flush with the doors' lower edge, so an opening door clears the step
+
+# The folded wheels hang out from the body on arms in flight, like a hovering DeLorean (ADR 0043): the
+# hover animation moves each wheel FOLD_OUT outward and FOLD_DROP down. The dive and submerged
+# animations move each rear wheel SUB_OUT out, which the submarine arms reach to (ADR 0040); it equals
+# FOLD_OUT but is set by a different animation. Timing and angles in suv.anim.json stay hand-authored;
+# export rebuilds its translations from these lengths to keep the assemblies attached.
+FOLD_OUT = 6
+FOLD_DROP = 4
+SUB_OUT = 6
+ARM_THICK = 1.4
+ARM_ROOT_X, ARM_ROOT_Y = CABIN_HALF_WIDTH, FLOOR_Y + 2
+FOLDED_WHEEL_TOP_Y = HUB_Y - FOLD_DROP + TIRE_HALF_WIDTH
 
 body = [
     # Chassis and floor
-    box(-13, 4, REAR + 1, 13, 7, 24, "trim"),
+    box(-BODY_HALF_WIDTH, SILL_Y, REAR + 1, BODY_HALF_WIDTH, FLOOR_Y, FRONT - 1, "trim"),
     # Hood (engine compartment) above the front arches; its lower sides follow the arches below
-    box(-13, ARCH_TOP_Y, 13, 13, 17, 25, "body"),
-    box(-11.4, 7, 13, 11.4, ARCH_TOP_Y, 25, "body"),
+    box(-BODY_HALF_WIDTH, ARCH_TOP_Y, HOOD_REAR_Z, BODY_HALF_WIDTH, HOOD_TOP_Y, FRONT, "body"),
+    box(-ARCH_LINER_X, FLOOR_Y, HOOD_REAR_Z, ARCH_LINER_X, ARCH_TOP_Y, FRONT, "body"),
     # Dashboard
-    box(-12, 13, 10, 12, 17, 13, "trim"),
+    box(-CABIN_HALF_WIDTH, DASH_BOTTOM_Y, DASH_FACE_Z, CABIN_HALF_WIDTH, HOOD_TOP_Y, HOOD_REAR_Z, "trim"),
     # Windshield lower frame and A-pillars, leaning back
-    windshield_part(-12, 17, 12.5, 12, 18, 13, "trim"),
-    *both_sides([windshield_part(12, 17, 12, 13, 17 + (ROOF_Y + 0.8 - 17) / _LEAN_COS, 13, "body")]),
+    windshield_part(-CABIN_HALF_WIDTH, HOOD_TOP_Y, WINDSHIELD_FOOT_Z, CABIN_HALF_WIDTH, HOOD_TOP_Y + 1, HOOD_REAR_Z, "trim"),
+    *both_sides([windshield_part(CABIN_HALF_WIDTH, HOOD_TOP_Y, HOOD_REAR_Z - 1, BODY_HALF_WIDTH, leaning_top(ROOF_TOP), HOOD_REAR_Z, "body")]),
     # Rearview mirror (center of the windshield's top edge, behind the leaning glass)
-    box(-0.5, 26.5, ROOF_FRONT - 0.8, 0.5, ROOF_Y, ROOF_FRONT - 0.3, "trim"),
-    box(-2.5, 25, ROOF_FRONT - 1.3, 2.5, 26.5, ROOF_FRONT - 0.8, "rim"),
+    box(-0.5, ROOF_Y - 2.5, ROOF_FRONT - 0.8, 0.5, ROOF_Y, ROOF_FRONT - 0.3, "trim"),
+    box(-2.5, ROOF_Y - 4, ROOF_FRONT - 1.3, 2.5, ROOF_Y - 2.5, ROOF_FRONT - 0.8, "rim"),
     # Black hardtop roof
-    box(-13, ROOF_Y, REAR, 13, ROOF_Y + 1, ROOF_FRONT, "hardtop"),
+    box(-BODY_HALF_WIDTH, ROOF_Y, REAR, BODY_HALF_WIDTH, ROOF_TOP, ROOF_FRONT, "hardtop"),
     # B-pillars, down to the floor so they close the gap between the front and rear doors
-    *both_sides([box(12, 7, -6, 13, ROOF_Y, -5, "body")]),
+    *both_sides([box(CABIN_HALF_WIDTH, FLOOR_Y, B_PILLAR_REAR_Z, BODY_HALF_WIDTH, ROOF_Y, B_PILLAR_FRONT_Z, "body")]),
     # Cargo area sides: body-colored below the belt line, the black hardtop above it with a closed,
     # tinted quarter window
     *both_sides([
-        box(12, 17, REAR, 13, ROOF_Y, CARGO_FRONT, "hardtop"),
-        box(13, 18.5, REAR + 2.5, 13.1, 27, CARGO_FRONT - 1.5, "glass"),
+        box(CABIN_HALF_WIDTH, BELT_Y, REAR, BODY_HALF_WIDTH, ROOF_Y, CARGO_FRONT, "hardtop"),
+        box(BODY_HALF_WIDTH, WINDOW_BOTTOM_Y, REAR + 2.5, 13.1, WINDOW_TOP_Y, CARGO_FRONT - 1.5, "glass"),
     ]),
     # Cargo floor
-    box(-12, 7, REAR + 1, 12, 7.3, CARGO_FRONT, "hardtop"),
+    box(-CABIN_HALF_WIDTH, FLOOR_Y, REAR + 1, CABIN_HALF_WIDTH, FLOOR_Y + 0.3, CARGO_FRONT, "hardtop"),
     # Rear: body-colored tailgate, and the hardtop's header over the rear window with the third brake
     # light under it. On the ground the rear window stays open; the rear_glass bone closes it in the
     # other forms (ADR 0026).
-    box(-13, 7, REAR, 13, 17, REAR + 1, "body"),
-    box(-13, 27, REAR, 13, ROOF_Y, REAR + 1, "hardtop"),
-    box(-1.5, 26.3, REAR - 0.2, 1.5, 27, REAR, "tail"),
+    box(-BODY_HALF_WIDTH, FLOOR_Y, REAR, BODY_HALF_WIDTH, BELT_Y, REAR + 1, "body"),
+    box(-BODY_HALF_WIDTH, WINDOW_TOP_Y, REAR, BODY_HALF_WIDTH, ROOF_Y, REAR + 1, "hardtop"),
+    box(-1.5, WINDOW_TOP_Y - 0.7, REAR - 0.2, 1.5, WINDOW_TOP_Y, REAR, "tail"),
     # Tall tail lights at the rear corners, and the tailgate hinges on the right
     *both_sides([box(9.6, 10, REAR - 0.3, 12.8, 16, REAR, "tail")]),
     box(6.2, 14.2, REAR - 0.3, 9.0, 15.2, REAR, "body"),
     box(6.2, 10.4, REAR - 0.3, 9.0, 11.4, REAR, "body"),
     # Exhaust pipe (rear right = +x side, sticking out backward from under the rear bumper)
-    box(8, 1.8, REAR - 2, 10, 3.4, -22, "trim"),
-    box(7.75, 1.55, REAR - 2.5, 10.25, 3.65, REAR - 2, "rim"),
+    box(8, SILL_Y - 2.2, REAR - 2, 10, SILL_Y - 0.6, REAR_AXLE_Z - 1, "trim"),
+    box(7.75, SILL_Y - 2.45, REAR - 2.5, 10.25, SILL_Y - 0.35, REAR - 2, "rim"),
     # Side steps, running between the fender flares
-    *both_sides([box(13, 4, -13, 15.5, 6, 10, "trim")]),
+    *both_sides([box(BODY_HALF_WIDTH, SILL_Y, STEP_REAR_Z, HUB_X, STEP_TOP_Y, STEP_FRONT_Z, "trim")]),
 ]
 
 # Hood: a raised power dome, a black mesh vent on each side of it, washer nozzles, the cowl's vent
 # strip with the wipers parked on it, and the latches at the rear corners
 body += [
-    box(-9.5, 17, 15, 9.5, 17.4, 24.6, "body"),
-    box(-8.5, 17.4, 15.6, 8.5, 17.7, 24.1, "body"),
-    box(-13, 17, 13, 13, 17.3, 14.6, "trim"),  # cowl
-    box(-3, 17.3, 13.4, 3, 17.4, 14.3, "grille"),  # cowl vent
+    box(-9.5, HOOD_TOP_Y, HOOD_REAR_Z + 2, 9.5, HOOD_TOP_Y + 0.4, FRONT - 0.4, "body"),
+    box(-8.5, HOOD_TOP_Y + 0.4, HOOD_REAR_Z + 2.6, 8.5, HOOD_TOP_Y + 0.7, FRONT - 0.9, "body"),
+    box(-BODY_HALF_WIDTH, HOOD_TOP_Y, HOOD_REAR_Z, BODY_HALF_WIDTH, HOOD_TOP_Y + 0.3, HOOD_REAR_Z + 1.6, "trim"),  # cowl
+    box(-3, HOOD_TOP_Y + 0.3, HOOD_REAR_Z + 0.4, 3, HOOD_TOP_Y + 0.4, HOOD_REAR_Z + 1.3, "grille"),  # cowl vent
 ]
 body += both_sides([
-    box(10, 17, 17.5, 12.2, 17.5, 22.5, "grille"),  # vent
-    *[box(10.2, 17.5, z, 12.0, 17.6, z + 0.35, "trim") for z in (18, 18.9, 19.8, 20.7, 21.6)],  # vent mesh
-    box(2.4, 17.7, 21, 3.2, 18.1, 22, "grille"),  # washer nozzle
-    box(11.4, 16.2, 13.8, 12.6, 17.7, 15.2, "grille"),  # latch
-    turned(box(1, 17.3, 13.6, 9.5, 17.6, 13.9, "grille"), (1, 17.3, 13.75), (0, -8, 0)),  # wiper
+    box(10, HOOD_TOP_Y, FRONT - 7.5, 12.2, HOOD_TOP_Y + 0.5, FRONT - 2.5, "grille"),  # vent
+    *[box(10.2, HOOD_TOP_Y + 0.5, z, 12.0, HOOD_TOP_Y + 0.6, z + 0.35, "trim") for z in (FRONT - d for d in (7, 6.1, 5.2, 4.3, 3.4))],  # vent mesh
+    box(2.4, HOOD_TOP_Y + 0.7, FRONT - 4, 3.2, HOOD_TOP_Y + 1.1, FRONT - 3, "grille"),  # washer nozzle
+    box(11.4, HOOD_TOP_Y - 0.8, HOOD_REAR_Z + 0.8, 12.6, HOOD_TOP_Y + 0.7, HOOD_REAR_Z + 2.2, "grille"),  # latch
+    turned(box(1, HOOD_TOP_Y + 0.3, HOOD_REAR_Z + 0.6, 9.5, HOOD_TOP_Y + 0.6, HOOD_REAR_Z + 0.9, "grille"), (1, HOOD_TOP_Y + 0.3, HOOD_REAR_Z + 0.75), (0, -8, 0)),  # wiper
 ])
-
-
-
-
-FLARE_THICKNESS = 2
 
 
 def arch_side_z(z_center, side, y):
@@ -244,19 +335,19 @@ def fender_flare(z_center, front_leg_bottom, rear_leg_bottom):
     length = math.hypot(ARCH_TOP_Y - ARCH_FOOT_Y, ARCH_FOOT_Z - ARCH_TOP_HALF) + 0.6  # closes the corner
     slope = round(math.degrees(math.atan(ARCH_RUN_PER_RISE)), 3)
     x1 = FLARE_X
-    cubes = [box(13, ARCH_TOP_Y, z_center - ARCH_TOP_HALF - 0.8, x1, ARCH_TOP_Y + FLARE_THICKNESS,
+    cubes = [box(BODY_HALF_WIDTH, ARCH_TOP_Y, z_center - ARCH_TOP_HALF - 0.8, x1, ARCH_TOP_Y + FLARE_THICKNESS,
                  z_center + ARCH_TOP_HALF + 0.8, "trim")]
     # Each slope stands on its lower inner end and tips its top toward the wheel's center; a positive x
     # rotation here tips +y toward -z in game (see WINDSHIELD_LEAN).
     for side in (1, -1):
         z0 = z_center + side * ARCH_FOOT_Z
         z1 = z0 + side * FLARE_THICKNESS
-        cubes.append(turned(box(13, ARCH_FOOT_Y, min(z0, z1), x1, ARCH_FOOT_Y + length, max(z0, z1), "trim"),
-                            (13, ARCH_FOOT_Y, z0), (side * slope, 0, 0)))
+        cubes.append(turned(box(BODY_HALF_WIDTH, ARCH_FOOT_Y, min(z0, z1), x1, ARCH_FOOT_Y + length, max(z0, z1), "trim"),
+                            (BODY_HALF_WIDTH, ARCH_FOOT_Y, z0), (side * slope, 0, 0)))
     for side, leg_bottom in ((1, front_leg_bottom), (-1, rear_leg_bottom)):
         z0 = z_center + side * ARCH_FOOT_Z
-        z1 = z0 + side * 1.9
-        cubes.append(box(13, leg_bottom, min(z0, z1), x1, ARCH_FOOT_Y + 0.5, max(z0, z1), "trim"))
+        z1 = z0 + side * (FLARE_THICKNESS - 0.1)
+        cubes.append(box(BODY_HALF_WIDTH, leg_bottom, min(z0, z1), x1, ARCH_FOOT_Y + 0.5, max(z0, z1), "trim"))
     return cubes
 
 
@@ -264,7 +355,7 @@ def arch_cut(x0, x1, y0, y1, z_back, z_front, z_center, color, step=0.5):
     """A side panel from z_back to z_front whose part below the arch top stops at the arch's slope: strips
     `step` tall, each ending at the slope's z at its lower edge so none pokes into the arch. The slope
     moves toward the axle as it rises, so each step leaves a sliver of at most 0.35 px outside the arch,
-    which the 2 px flare covers; the panel's edge reads as the flare's outline."""
+    which the flare covers; the panel's edge reads as the flare's outline."""
     cubes = []
     if y1 > ARCH_TOP_Y:
         cubes.append(box(x0, max(y0, ARCH_TOP_Y), z_back, x1, y1, z_front, color))
@@ -281,21 +372,24 @@ def arch_cut(x0, x1, y0, y1, z_back, z_front, z_center, color, step=0.5):
     return cubes
 
 
-# The hood's lower sides, cut along the front arch, outside the liners
-body += both_sides(arch_cut(11.4, 13, 7, ARCH_TOP_Y, 13, 25, FRONT_AXLE_Z, "body"))
+# The hood's lower sides, cut along the front arch, outside the liners. They reach back to the front
+# door's hinge: with the front arch moved forward, its flare no longer hides the gap under the cowl.
+body += both_sides(arch_cut(ARCH_LINER_X, BODY_HALF_WIDTH, FLOOR_Y, ARCH_TOP_Y, FRONT_DOOR_HINGE_Z, FRONT, FRONT_AXLE_Z, "body"))
+body += both_sides([box(ARCH_LINER_X, ARCH_TOP_Y, FRONT_DOOR_HINGE_Z, BODY_HALF_WIDTH, HOOD_TOP_Y, HOOD_REAR_Z, "body")])
 # The cargo area's body-colored side below the belt line, cut along the rear arch
-body += both_sides(arch_cut(12, 13, 7, 17, REAR + 1, CARGO_FRONT, REAR_AXLE_Z, "body"))
+body += both_sides(arch_cut(CABIN_HALF_WIDTH, BODY_HALF_WIDTH, FLOOR_Y, BELT_Y, REAR + 1, CARGO_FRONT, REAR_AXLE_Z, "body"))
 # Round fuel door on the left side of the cargo area, behind the rear flare and under the belt line
-body += disc("x", (-13, 14.8, -29.3), 1.2, -13.25, -13, [i * 11.25 for i in range(8)], "grille")  # 32 sides
-# Black inner liners behind each arch, so the cabin does not show through it
+body += disc("x", (-BODY_HALF_WIDTH, 14.8, REAR + 2.7), 1.2, -BODY_HALF_WIDTH - 0.25, -BODY_HALF_WIDTH, [i * 11.25 for i in range(8)], "grille")  # 32 sides
+# Black inner liners behind each arch, so the cabin does not show through it. The front arch sits
+# close enough to the hood's front face that an unclipped liner would stick out ahead of the grille.
 body += both_sides([
-    box(11.4, ARCH_FOOT_Y - 1, z - ARCH_FOOT_Z - 0.5, 11.6, ARCH_TOP_Y + 0.5, z + ARCH_FOOT_Z + 0.5, "grille")
+    box(ARCH_LINER_X, ARCH_FOOT_Y - 1, z - ARCH_FOOT_Z - 0.5, 11.6, ARCH_TOP_Y + 0.5, min(z + ARCH_FOOT_Z + 0.5, FRONT), "grille")
     for z in (FRONT_AXLE_Z, REAR_AXLE_Z)
 ])
 LAMP_Y0, LAMP_Y1 = 11.4, 12.2
 body += both_sides([
-    *fender_flare(FRONT_AXLE_Z, 5, 4),
-    *fender_flare(REAR_AXLE_Z, 4, 4),
+    *fender_flare(FRONT_AXLE_Z, SILL_Y + 1, SILL_Y),
+    *fender_flare(REAR_AXLE_Z, SILL_Y, SILL_Y),
     # Beside the headlights (center y 12.3): a light strip standing a little proud of the front flare's
     # sloping front face, and the turn signal on the flare's outer side
     box(13.3, LAMP_Y0, flare_face_z(FRONT_AXLE_Z, 1, LAMP_Y1) - 0.2, FLARE_X - 0.2, LAMP_Y1,
@@ -305,26 +399,37 @@ body += both_sides([
 ])
 
 
-def chamfered_band(y0, y1, z_back, z_front, half_width, chamfer, angle=30):
-    """A slab across the car whose front corners are cut back at `angle` degrees, so it reads as a
-    trapezoid from above: a straight middle, and at each corner a block turned back around the inner end
-    of the cut (a positive y rotation turns +x toward -z) over a side block that fills behind it."""
+def chamfered_bar(y0, y1, z_back, z_tip, z_end_back, half_width, chamfer, angle=30):
+    """A bar across the car whose front corners are cut back at `angle` degrees, so it reads as a
+    trapezoid from above. Between the body's sides it runs back to z_back; outboard of them it is a
+    shallow end piece from z_end_back, clear of the tire behind it. Each cut is a block turned back
+    around the cut's inner front end (a positive y rotation turns +x toward -z), just deep enough to
+    fill the triangle the cut leaves over the end piece, so its turned back corner stays ahead of
+    z_end_back. The cut must start outboard of the body's side."""
     cx = half_width - chamfer
+    assert cx > BODY_HALF_WIDTH
     radians = math.radians(angle)
-    tan = math.tan(radians)
-    corner = turned(box(cx, y0, z_back, cx + chamfer / math.cos(radians), y1, z_front, "trim"),
-                    (cx, y0, z_front), (0, angle, 0))
-    side = box(cx, y0, z_back, half_width, y1, z_front - chamfer * tan, "trim")
-    return [box(-cx, y0, z_back, cx, y1, z_front, "trim"), *both_sides([corner, side])]
+    corner = turned(box(cx, y0, z_tip - chamfer * math.sin(radians), cx + chamfer / math.cos(radians), y1, z_tip, "trim"),
+                    (cx, y0, z_tip), (0, angle, 0))
+    side = box(cx, y0, z_end_back, half_width, y1, z_tip - chamfer * math.tan(radians), "trim")
+    end = box(BODY_HALF_WIDTH, y0, z_end_back, cx, y1, z_tip, "trim")
+    return [box(-BODY_HALF_WIDTH, y0, z_back, BODY_HALF_WIDTH, y1, z_tip, "trim"), *both_sides([corner, side, end])]
 
 
-# Front bumper: a thick band whose corners are cut back toward the flares, between a tucked-in lower lip
-# and a slightly set-back top edge, so it reads as a trapezoid from above
-body += chamfered_band(2.5, 3.5, 25, 28.2, 14.7, 2.2)
-body += chamfered_band(3.5, 7.3, 24, 29.5, 16, 3.5)
-body += chamfered_band(7.3, 8, 25, 28.9, 15.4, 2.9)
+# Front bumper: a low bar under the grille, between a tucked-in lower lip and a slightly set-back top
+# edge, standing on two frame horns that reach forward from the chassis
+FRONT_BUMPER_END_BACK_Z = FRONT_AXLE_Z + BUMPER_END_CLEARANCE
+body += chamfered_bar(FRONT_BUMPER_BOTTOM_Y, FRONT_BUMPER_BAND_BOTTOM_Y, FRONT_BUMPER_BACK_Z, FRONT_BUMPER_TIP_Z - 1,
+                      FRONT_BUMPER_END_BACK_Z, BUMPER_HALF_WIDTH - 1, 1.2)
+body += chamfered_bar(FRONT_BUMPER_BAND_BOTTOM_Y, FRONT_BUMPER_BAND_TOP_Y, FRONT_BUMPER_BACK_Z, FRONT_BUMPER_TIP_Z,
+                      FRONT_BUMPER_END_BACK_Z, BUMPER_HALF_WIDTH, 2)
+body += chamfered_bar(FRONT_BUMPER_BAND_TOP_Y, FRONT_BUMPER_TOP_Y, FRONT_BUMPER_BACK_Z, FRONT_BUMPER_TIP_Z - 0.5,
+                      FRONT_BUMPER_END_BACK_Z, BUMPER_HALF_WIDTH - 0.5, 1.7)
+body += both_sides([box(5, SILL_Y, FRONT - 1.5, 7, FLOOR_Y, FRONT_BUMPER_BACK_Z + 0.5, "trim")])  # frame horn
+# Tow hooks standing on the bar's top, outboard of the grille's middle slots
+body += both_sides([box(5.2, FRONT_BUMPER_TOP_Y, FRONT_BUMPER_TIP_Z - 2, 5.9, FRONT_BUMPER_TOP_Y + 1, FRONT_BUMPER_TIP_Z - 0.8, "rim")])
 
-# Rear bumper: the same kind of band facing backward, with red reflectors at its ends and red tow
+# Rear bumper: the same kind of bar facing backward, with red reflectors at its ends and red tow
 # hooks under it
 def facing_back(cube):
     """The same cube mirrored front to back (z -> -z). The bumper's corners turn only around y."""
@@ -338,10 +443,14 @@ def facing_back(cube):
     return copy
 
 
-body += [facing_back(c) for c in chamfered_band(3, 7, 27.5, -REAR + 1.5, 15.5, 2.5)]
+REAR_BUMPER_CHAMFER = 2
+# The reflectors end where the bar's straight face meets its cut corners
+REFLECTOR_X1 = BUMPER_HALF_WIDTH - REAR_BUMPER_CHAMFER
+body += [facing_back(c) for c in chamfered_bar(REAR_BUMPER_BOTTOM_Y, REAR_BUMPER_TOP_Y, -REAR_BUMPER_TIP_Z - REAR_BUMPER_LENGTH, -REAR_BUMPER_TIP_Z,
+                                               -REAR_AXLE_Z + BUMPER_END_CLEARANCE, BUMPER_HALF_WIDTH, REAR_BUMPER_CHAMFER)]
 body += both_sides([
-    box(10.5, 5, REAR - 1.6, 13, 6.2, REAR - 1.5, "tail"),  # reflector
-    box(7.4, 1.8, REAR - 1.2, 8.4, 3, REAR + 1, "tail"),  # tow hook
+    box(REFLECTOR_X1 - 2.5, REAR_BUMPER_BOTTOM_Y + 0.8, REAR_BUMPER_TIP_Z - 0.1, REFLECTOR_X1, REAR_BUMPER_TOP_Y - 0.8, REAR_BUMPER_TIP_Z, "tail"),  # reflector
+    box(7.4, SILL_Y - 2.2, REAR - 1.2, 8.4, REAR_BUMPER_BOTTOM_Y, REAR + 1, "tail"),  # tow hook
 ])
 
 
@@ -376,27 +485,27 @@ def pleated_seat(x0, x1, z_back):
     return cubes
 
 
-# Seats: 2 in front and a rear bench made of two halves. The front seats sit 2 px behind where they
-# first stood, and their riders 2.4 px (ADR 0117), so a front rider ends up 5.2 px ahead of the seat's
-# back, the same as on the rear bench.
-FRONT_SEAT_Z = -2
+# Seats: 2 in front and a rear bench made of two halves. A front rider sits 5.2 px ahead of the seat's
+# back, the same as on the rear bench (ADR 0117). The front seats and riders sit 3.75 px farther back
+# than ADR 0117 put them: 2 px so the rider's torso clears the steering wheel under the rearward cowl,
+# and 1.75 px more so the scaled rider's head clears the raked windshield glass (ADR 0170).
+FRONT_SEAT_Z = -5.75
 body += pleated_seat(2, 11, FRONT_SEAT_Z)
 body += pleated_seat(-11, -2, FRONT_SEAT_Z)
-body += pleated_seat(-11, 0, -18)
-body += pleated_seat(0, 11, -18)
+body += pleated_seat(-11, 0, REAR_SEAT_Z)
+body += pleated_seat(0, 11, REAR_SEAT_Z)
 
 # Steering wheel (+x side; shown in game as right-hand drive), tilted 20° with its top away from the
 # driver, toward the dashboard (a negative x rotation tips +y toward +z in game, see WINDSHIELD_LEAN).
-# Its center sits at WHEEL_Z, 0.6 px farther back than when the top leaned toward the driver, so the
-# rim's top stays about 0.5 px off the speedometer's glass; the column runs forward and down into the
-# dashboard. Like the tires, the rim is a ring of thin blocks turned around the column. Brown leather
+# The wheel follows the dashboard face so its column stays inside the cabin as the cowl moves.
+# Like the tires, the rim is a ring of thin blocks turned around the column. Brown leather
 # rim, gray spokes, and a black hub and column
 WHEEL_CENTER = (6.0, 16.5)  # (x, y)
-WHEEL_Z = 8.1
+WHEEL_Z = 8.1 + DASH_SHIFT_Z
 WHEEL_PIVOT = [WHEEL_CENTER[0], WHEEL_CENTER[1], WHEEL_Z]
 WHEEL_RADIUS = 2.4
 WHEEL_TILT = -20
-COLUMN_END_Z = 11.0  # inside the dashboard
+COLUMN_END_Z = 11.0 + DASH_SHIFT_Z  # inside the dashboard
 
 
 def tilted_spin(spin):
@@ -448,8 +557,6 @@ steering += [
 ]
 body += steering
 
-FRONT = 25  # z of the hood's front face
-
 
 def round_lamp(cx, cy, r, ring, lens, z0, z1):
     """Make a round-looking lamp from a rim of small blocks on a circle plus a cross-shaped lens."""
@@ -475,13 +582,13 @@ SLOTS, SLOT_W, BAR_W = 8, 1.1, 0.6
 grille_w = SLOTS * SLOT_W + (SLOTS + 1) * BAR_W
 gx0 = -grille_w / 2
 body += [
-    box(gx0, 8.5, FRONT, -gx0, 16.5, FRONT + 0.2, "grille"),  # back panel
-    box(gx0 - 0.5, 16.5, FRONT, -gx0 + 0.5, 17, FRONT + 0.6, "body"),  # top frame
-    box(gx0 - 0.5, 8, FRONT, -gx0 + 0.5, 8.5, FRONT + 0.6, "body"),  # bottom frame
+    box(gx0, GRILLE_BOTTOM_Y + 0.5, FRONT, -gx0, 16.5, FRONT + 0.2, "grille"),  # back panel
+    box(gx0 - 0.5, 16.5, FRONT, -gx0 + 0.5, HOOD_TOP_Y, FRONT + 0.6, "body"),  # top frame
+    box(gx0 - 0.5, GRILLE_BOTTOM_Y, FRONT, -gx0 + 0.5, GRILLE_BOTTOM_Y + 0.5, FRONT + 0.6, "body"),  # bottom frame
 ]
 for i in range(SLOTS + 1):
     x = gx0 + i * (SLOT_W + BAR_W)
-    body.append(box(x, 8.5, FRONT + 0.2, x + BAR_W, 16.5, FRONT + 0.6, "body"))
+    body.append(box(x, GRILLE_BOTTOM_Y + 0.5, FRONT + 0.2, x + BAR_W, 16.5, FRONT + 0.6, "body"))
 
 
 def round_face(center, radius, z0, z1, color, segments=12):
@@ -501,21 +608,23 @@ def round_face(center, radius, z0, z1, color, segments=12):
     return cubes
 
 
-# Round fog lamps in black pockets near the front bumper's ends
+# Round fog lamps in black pockets near the front bumper's ends, inboard of the bar's cut corners so
+# they sit on its straight face
+FOG_X = 10.5
+FOG_Y = (FRONT_BUMPER_BAND_BOTTOM_Y + FRONT_BUMPER_BAND_TOP_Y) / 2
 body += both_sides([
-    box(8.8, 4.2, 29.5, 11.8, 6.6, 29.55, "grille"),
-    *round_face((10.3, 5.4, 0), 0.9, 29.55, 29.62, "light"),
+    box(FOG_X - 1.3, FOG_Y - 1.05, FRONT_BUMPER_TIP_Z, FOG_X + 1.3, FOG_Y + 1.05, FRONT_BUMPER_TIP_Z + 0.05, "grille"),
+    *round_face((FOG_X, FOG_Y, 0), 0.8, FRONT_BUMPER_TIP_Z + 0.05, FRONT_BUMPER_TIP_Z + 0.12, "light"),
 ])
 
 # Ribs on the hardtop: two front panels split down the middle over the front seats, a seam across,
 # and long ribs running back over the rear panel
-ROOF_TOP = ROOF_Y + 1
-ROOF_SEAM = -3
+ROOF_SEAM = B_PILLAR_FRONT_Z
 # The hardtop's thick side edge stands a little proud of the doors and drops over their frames' top rails
-body += both_sides([box(13, ROOF_Y - 0.4, REAR, 13.4, ROOF_TOP + 0.2, ROOF_FRONT, "hardtop")])
+body += both_sides([box(BODY_HALF_WIDTH, ROOF_Y - 0.4, REAR, 13.4, ROOF_TOP + 0.2, ROOF_FRONT, "hardtop")])
 body += [
     box(-0.15, ROOF_TOP, ROOF_SEAM, 0.15, ROOF_TOP + 0.05, ROOF_FRONT - 0.5, "grille"),
-    box(-13, ROOF_TOP, ROOF_SEAM - 0.15, 13, ROOF_TOP + 0.05, ROOF_SEAM + 0.15, "grille"),
+    box(-BODY_HALF_WIDTH, ROOF_TOP, ROOF_SEAM - 0.15, BODY_HALF_WIDTH, ROOF_TOP + 0.05, ROOF_SEAM + 0.15, "grille"),
     *both_sides([box(x - 0.4, ROOF_TOP, ROOF_SEAM + 1.5, x + 0.4, ROOF_TOP + 0.3, ROOF_FRONT - 1.5, "hardtop_rib")
                  for x in (3, 6.5, 10)]),
     *[box(x - 0.4, ROOF_TOP, REAR + 2, x + 0.4, ROOF_TOP + 0.3, ROOF_SEAM - 1.5, "hardtop_rib")
@@ -543,19 +652,32 @@ def dial(cx, cy, radius, ticks, needle_angle):
     return cubes
 
 
-body.append(box(1.6, 15.6, 10.5, 10.4, 20.9, 10.9, "grille"))  # instrument panel
-body += dial(6, 18.2, 1.8, 9, 40)  # speedometer
+def translate(cubes, axis, offset):
+    """Move cubes and their pivots by offset along axis (0 = x, 1 = y, 2 = z)."""
+    for cube in cubes:
+        cube["origin"][axis] += offset
+        if "pivot" in cube:
+            pivot = list(cube["pivot"])
+            pivot[axis] += offset
+            cube["pivot"] = pivot
+
+
+gauges = [box(1.6, 15.6, 10.5, 10.4, 20.9, 10.9, "grille")]  # instrument panel
+gauges += dial(6, 18.2, 1.8, 9, 40)  # speedometer
 for gx in (3.3, 8.7):
-    body += dial(gx, 19.3, 0.85, 5, 30)
-    body += dial(gx, 17.2, 0.85, 5, -30)
+    gauges += dial(gx, 19.3, 0.85, 5, 30)
+    gauges += dial(gx, 17.2, 0.85, 5, -30)
+# The raked glass crosses the old instrument panel height; lower the cluster to keep it inside
+# the cabin without bringing the steering wheel behind the rider (ADR 0170).
+translate(gauges, 1, -DASH_GAUGE_DROP)
 
 # Passenger side of the dashboard, like an old utility 4x4: a flat body-colored panel under a black
 # pad along the top, a chrome windshield latch at the outer end of the pad, a black grab bar standing
 # off the panel on two posts, a black box under the bar, and a glovebox lid a little proud of the panel
 # at the outer end with a chrome knob. The driver's side keeps its gauges and wheel.
-body += [
-    box(-12, 13, 9.9, -1, 16.3, 10, "body"),  # panel
-    box(-12, 16.3, 9.7, -1, 17, 10, "grille"),  # pad
+passenger_dash = [
+    box(-CABIN_HALF_WIDTH, 13, 9.9, -1, 16.3, 10, "body"),  # panel
+    box(-CABIN_HALF_WIDTH, 16.3, 9.7, -1, HOOD_TOP_Y - 2, 10, "grille"),  # pad
     box(-11.3, 16.1, 9.5, -10.5, 17.3, 9.7, "rim"),  # windshield latch
     box(-9.6, 15.3, 9.2, -3, 15.7, 9.5, "grille"),  # grab bar
     *[box(x - 0.2, 15.3, 9.5, x + 0.2, 15.7, 9.9, "trim") for x in (-9.3, -3.3)],  # bar posts
@@ -563,22 +685,25 @@ body += [
     box(-11.7, 13.3, 9.75, -8.1, 14.9, 9.9, "body"),  # glovebox lid
     box(-9.05, 14.4, 9.65, -8.75, 14.7, 9.75, "rim"),  # glovebox knob
 ]
+translate(gauges + passenger_dash, 2, DASH_SHIFT_Z)
+body += gauges + passenger_dash
+
 
 # Floor shifters between the front seats, like an old utility 4x4: a tall shift lever in an
 # accordion rubber boot, and two shorter transfer levers behind it. Each lever leans back toward
 # the seats (a positive x rotation tips +y toward -z in game, see WINDSHIELD_LEAN) and ends in a ball
 # knob.
 def floor_lever(x, z, height, knob, lean=15):
-    pivot = [x, 7, z]
+    pivot = [x, FLOOR_Y, z]
 
     def leaned(cube):
         cube["pivot"] = pivot
         cube["rotation"] = [lean, 0, 0]
         return cube
 
-    top = 7 + height
+    top = FLOOR_Y + height
     return [
-        leaned(box(x - 0.2, 7, z - 0.2, x + 0.2, top, z + 0.2, "trim")),  # rod
+        leaned(box(x - 0.2, FLOOR_Y, z - 0.2, x + 0.2, top, z + 0.2, "trim")),  # rod
         leaned(box(x - knob, top - knob * 0.8, z - knob * 0.8, x + knob, top + knob * 0.8, z + knob * 0.8, "grille")),
         leaned(box(x - knob * 0.8, top - knob, z - knob * 0.8, x + knob * 0.8, top + knob, z + knob * 0.8, "grille")),
         leaned(box(x - knob * 0.8, top - knob * 0.8, z - knob, x + knob * 0.8, top + knob * 0.8, z + knob, "grille")),
@@ -586,14 +711,15 @@ def floor_lever(x, z, height, knob, lean=15):
 
 
 SHIFT_X, SHIFT_Z = 0, 8.5
-body.append(box(-1.8, 7, 4, 1.8, 7.6, 11, "trim"))  # transmission tunnel
+TUNNEL_TOP_Y = FLOOR_Y + 0.6
+body.append(box(-1.8, FLOOR_Y, 4, 1.8, TUNNEL_TOP_Y, 11, "trim"))  # transmission tunnel
 BOOT_RINGS = ((1.0, 0.5), (0.75, 0.4), (0.85, 0.4), (0.6, 0.4), (0.7, 0.35), (0.45, 0.4))  # (half width, height)
 for i, (half, height) in enumerate(BOOT_RINGS):
-    y = 7.6 + sum(h for _, h in BOOT_RINGS[:i])
+    y = TUNNEL_TOP_Y + sum(h for _, h in BOOT_RINGS[:i])
     body.append(box(SHIFT_X - half, y, SHIFT_Z - half, SHIFT_X + half, y + height, SHIFT_Z + half, "tire"))  # boot
 body += floor_lever(SHIFT_X, SHIFT_Z, 7.2, 0.55)
 for x in (-1.1, 1.1):
-    body.append(box(x - 0.4, 7.6, 6.1, x + 0.4, 8.1, 6.9, "tire"))  # boot
+    body.append(box(x - 0.4, TUNNEL_TOP_Y, 6.1, x + 0.4, TUNNEL_TOP_Y + 0.5, 6.9, "tire"))  # boot
     body += floor_lever(x, 6.5, 4.6, 0.4)
 
 # Pedals in the driver's footwell (+x side): clutch and brake are square rubber pads with ribs on
@@ -605,27 +731,27 @@ for px in (4.4, 6.6):  # clutch, brake
         box(px - 0.9, 8.2, 11.4, px + 0.9, 9.6, 11.7, "grille"),  # pad
     ]
     body += [box(px - 0.8, y, 11.3, px + 0.8, y + 0.2, 11.4, "trim") for y in (8.45, 8.8, 9.15)]  # ribs
-accelerator = box(8.3, 7, 10.2, 9.3, 7.3, 12.8, "grille")
-accelerator["pivot"] = [8.8, 7, 12.8]
+accelerator = box(8.3, FLOOR_Y, 10.2, 9.3, FLOOR_Y + 0.3, 12.8, "grille")
+accelerator["pivot"] = [8.8, FLOOR_Y, 12.8]
 accelerator["rotation"] = [-25, 0, 0]
 body.append(accelerator)
 
 
 # Doors (ADR 0009). The +x side of this definition becomes the right side in game. The pivot sits on the hinge (front edge)
 DOORS = {
-    "door_fr": (+1, 12, -5),  # (side, front-edge z, rear-edge z)
-    "door_rr": (+1, -6, CARGO_FRONT),
-    "door_fl": (-1, 12, -5),
-    "door_rl": (-1, -6, CARGO_FRONT),
+    "door_fr": (+1, FRONT_DOOR_HINGE_Z, B_PILLAR_FRONT_Z),  # (side, front-edge z, rear-edge z)
+    "door_rr": (+1, B_PILLAR_REAR_Z, CARGO_FRONT),
+    "door_fl": (-1, FRONT_DOOR_HINGE_Z, B_PILLAR_FRONT_Z),
+    "door_rl": (-1, B_PILLAR_REAR_Z, CARGO_FRONT),
 }
 # The front door's window frame leans with the windshield, so its window is a trapezoid. The frame's
 # front post sits just behind the A-pillar, turned around the same pivot.
-FRONT_POST_LENGTH = (ROOF_Y - 17) / _LEAN_COS
+FRONT_POST_LENGTH = (ROOF_Y - HOOD_TOP_Y) / _LEAN_COS
 
 
 def window_frame_piece(y0, z0, y1, z1):
     """A window frame bar: body-colored outside and black inside, like the door cards."""
-    return [box(12.5, y0, z0, 13, y1, z1, "body"), box(12, y0, z0, 12.5, y1, z1, "trim")]
+    return [box(DOOR_FRAME_MID_X, y0, z0, BODY_HALF_WIDTH, y1, z1, "body"), box(CABIN_HALF_WIDTH, y0, z0, DOOR_FRAME_MID_X, y1, z1, "trim")]
 
 
 def door(name):
@@ -634,34 +760,35 @@ def door(name):
     side, z_front, z_back = DOORS[name]
     # Each door's lower corner nearest a wheel follows that wheel's arch
     axle = FRONT_AXLE_Z if z_front > 0 else REAR_AXLE_Z
-    panel = arch_cut(12, 13, 7, 17, z_back, z_front, axle, "body")
-    card = arch_cut(11.8, 12, 8, 16, z_back + 0.6, z_front - 0.6, axle, "trim")
+    panel = arch_cut(CABIN_HALF_WIDTH, BODY_HALF_WIDTH, FLOOR_Y, BELT_Y, z_back, z_front, axle, "body")
+    card = arch_cut(11.8, CABIN_HALF_WIDTH, FLOOR_Y + 1, BELT_Y - 1, z_back + 0.6, z_front - 0.6, axle, "trim")
     if z_front > 0:
-        front_post = [windshield_part(x0, 17, 11, x0 + 0.5, 17 + FRONT_POST_LENGTH, 12, color)
-                      for x0, color in ((12.5, "body"), (12, "trim"))]
-        top_front = ROOF_FRONT - 0.4
+        front_post = [windshield_part(x0, HOOD_TOP_Y, HOOD_REAR_Z - 2, x0 + 0.5, HOOD_TOP_Y + FRONT_POST_LENGTH, HOOD_REAR_Z - 1, color)
+                      for x0, color in ((DOOR_FRAME_MID_X, "body"), (CABIN_HALF_WIDTH, "trim"))]
+        front_post += window_frame_piece(BELT_Y, z_front - 1, HOOD_TOP_Y, z_front)
+        top_front = ROOF_FRONT + 0.1
         side_mirror = [
-            box(13, 17, 10, 14, 18, 11, "body"),
-            box(14, 16.5, 9.5, 16.5, 19.5, 11, "body"),
-            box(14.2, 17, 9.3, 16.3, 19, 9.5, "rim"),
+            box(BODY_HALF_WIDTH, BELT_Y, z_front - 2, 14, BELT_Y + 1, z_front - 1, "body"),
+            box(14, BELT_Y - 0.5, z_front - 2.5, 16.5, BELT_Y + 2.5, z_front - 1, "body"),
+            box(14.2, BELT_Y, z_front - 2.7, 16.3, BELT_Y + 2, z_front - 2.5, "rim"),
         ]
     else:
-        front_post = window_frame_piece(17, z_front - 1, ROOF_Y, z_front)
+        front_post = window_frame_piece(BELT_Y, z_front - 1, ROOF_Y, z_front)
         top_front = z_front
         side_mirror = []
     cubes = [
         *panel,
         *card,
         *front_post,
-        box(13, 14.4, z_back + 1.5, 13.35, 15.1, z_back + 4.5, "grille"),  # door handle, near the rear edge
-        *window_frame_piece(17, z_back, ROOF_Y, z_back + 1),  # rear post
-        *window_frame_piece(ROOF_Y - 1, z_back, ROOF_Y, top_front),  # top rail
+        box(BODY_HALF_WIDTH, 14.4, z_back + 1.5, 13.35, 15.1, z_back + 4.5, "grille"),  # door handle, near the rear edge
+        *window_frame_piece(BELT_Y, z_back, ROOF_Y, z_back + 1),  # rear post
+        *window_frame_piece(WINDOW_TOP_Y, z_back, ROOF_Y, top_front),  # top rail
         *side_mirror,
     ]
     return {
         "name": name,
         "parent": "body",
-        "pivot": [12.5 * side, 12, z_front],
+        "pivot": [DOOR_FRAME_MID_X * side, 12, z_front],
         "cubes": cubes if side > 0 else [mirrored(c) for c in cubes],
     }
 
@@ -727,7 +854,7 @@ def wheel(name, x_out, z_center):
     hub with chrome lug nuts and a small center cap. Every turned set is symmetric under reversing its
     angles, so it looks the same whichever way the game turns x rotations. Nothing reaches past
     HUB_X + 2.5, where the submarine prop mounts (ADR 0042)."""
-    center = (HUB_X * x_out, 6, z_center)
+    center = (HUB_X * x_out, HUB_Y, z_center)
 
     def span(inner, outer):
         return hub_span(x_out, inner, outer)
@@ -735,9 +862,9 @@ def wheel(name, x_out, z_center):
     rivets = [i * 22.5 for i in range(16)]
     spokes = [22.5 + i * 45 for i in range(8)]
     cubes = [
-        *round_tire("x", center, 6, *span(-2, 2), segments=24),
+        *round_tire("x", center, ROAD_WHEEL_RADIUS, *span(-TIRE_HALF_WIDTH, TIRE_HALF_WIDTH), segments=24),
         # Shoulder lugs on every other tread block, standing out of the outer sidewall
-        *around_axle(center, *span(1.8, 2.15), 5.1, 6, 0.75, [i * 30 for i in range(12)], "tire"),
+        *around_axle(center, *span(1.8, 2.15), ROAD_WHEEL_RADIUS - 0.9, ROAD_WHEEL_RADIUS, 0.75, [i * 30 for i in range(12)], "tire"),
         *disc("x", center, 3.6, *span(1.8, 1.85), (0, 30, 60), "trim"),  # barrel behind the spokes
         *ring(center, *span(1.85, 2.2), 3.25, 3.9, 24, "grille"),  # lip
         *around_axle(center, *span(2.2, 2.3), 3.45, 3.7, 0.12, rivets, "rim"),
@@ -761,11 +888,28 @@ def front_post_back(y):
     return z0 - (y - y0) * _LEAN_TAN
 
 
+def front_side_panes():
+    # Split at the cowl height as well as each pixel: every strip end stays hidden in either
+    # the upright foot or the raked post, even when the belt and roof are fractional pixels.
+    panes = []
+    y = WINDOW_BOTTOM_Y
+    while y < WINDOW_TOP_Y - 1e-6:
+        if y < HOOD_TOP_Y:
+            top = min(y + 1, HOOD_TOP_Y)
+            front = FRONT_DOOR_HINGE_Z - 1
+        else:
+            top = min(y + 1, WINDOW_TOP_Y)
+            front = front_post_back(y) + 0.2
+        panes.append(box(12.85, y, -4, 12.95, top, front, "rear_glass"))
+        y = top
+    return panes
+
+
 WINDOWS_SEALED = [
-    windshield_part(-12, 18, 12.9, 12, 17 + FRONT_POST_LENGTH, 13, "rear_glass"),
+    windshield_part(-CABIN_HALF_WIDTH, HOOD_TOP_Y + 1, HOOD_REAR_Z - 0.1, CABIN_HALF_WIDTH, leaning_top(ROOF_Y), HOOD_REAR_Z, "rear_glass"),
     *both_sides([
-        *[box(12.85, y, -4, 12.95, y + 1, front_post_back(y) + 0.2, "rear_glass") for y in range(17, ROOF_Y - 1)],
-        box(12.9, 17, CARGO_FRONT + 1, 13, ROOF_Y - 1, -7, "rear_glass"),
+        *front_side_panes(),
+        box(12.9, WINDOW_BOTTOM_Y, CARGO_FRONT + 1, BODY_HALF_WIDTH, WINDOW_TOP_Y, -7, "rear_glass"),
     ]),
 ]
 
@@ -779,7 +923,7 @@ PROP_BLADE = ((0.9, 2.0, 0.55, 0), (1.9, 3.3, 1.05, 14), (3.2, 4.3, 0.8, 30))
 def prop(name, x_out, z_center):
     """A hub and four swept blades mounted on the outer face of the rear wheel's hub cap, in the wheel's
     plane and inside the tire's inner radius, so the tread ring frames the prop."""
-    center = (HUB_X * x_out, 6, z_center)
+    center = (HUB_X * x_out, HUB_Y, z_center)
     _, cy, cz = center
     x0, x1 = hub_span(x_out, 2.5, 3.1)
     blades = []
@@ -805,23 +949,13 @@ def prop(name, x_out, z_center):
     }
 
 
-# The folded wheels hang out from the body on arms in flight, like a hovering DeLorean (ADR 0043): the
-# hover animation moves each wheel this far outward on top of lowering it 4 px. suv.anim.json is
-# written by hand, so wheels_folded, wheels_deploy and wheels_retract must use the same value.
-FOLD_OUT = 6
-# How far the dive and submerged animations move each turned rear wheel out (ADR 0040), which the
-# submarine arms reach to. Equal to FOLD_OUT, but set by a different animation.
-SUB_OUT = 6
-ARM_THICK = 1.4
-
-
 def arm(name, x_out, z_center):
     """A gunmetal arm from inside the wheel arch down and out to the hub of the folded wheel, built from
     overlapping cubes along the diagonal so it needs no rotation. Hidden by scale outside flight."""
     s = x_out
-    ax, ay = 12, 9  # inside the wheel arch
-    # The hub on top of the folded wheel, whose top face is at y 4: the last cube rests on it
-    hx, hy = HUB_X + FOLD_OUT, 4 + ARM_THICK / 2
+    ax, ay = ARM_ROOT_X, ARM_ROOT_Y  # inside the wheel arch
+    # The hub on top of the folded wheel: the last cube rests on its top face
+    hx, hy = HUB_X + FOLD_OUT, FOLDED_WHEEL_TOP_Y + ARM_THICK / 2
     steps = 8
     cubes = []
     for i in range(steps):
@@ -830,7 +964,7 @@ def arm(name, x_out, z_center):
         cubes.append(box(s * x - 0.8, y - ARM_THICK / 2, z_center - 0.8,
                          s * x + 0.8, y + ARM_THICK / 2, z_center + 0.8, "arm"))
     # The hub pin the arm holds the wheel by
-    cubes.append(box(s * hx - 1.2, 4, z_center - 1.2, s * hx + 1.2, 4.6, z_center + 1.2, "arm"))
+    cubes.append(box(s * hx - 1.2, FOLDED_WHEEL_TOP_Y, z_center - 1.2, s * hx + 1.2, FOLDED_WHEEL_TOP_Y + 0.6, z_center + 1.2, "arm"))
     return {"name": name, "parent": "root", "pivot": [s * ax, ay, z_center], "cubes": cubes}
 
 
@@ -841,14 +975,14 @@ def sub_arm(name, x_out, z_center):
     s = x_out
     hx = HUB_X + SUB_OUT
     xs = sorted((s * 11, s * (hx + 0.8)))
-    face = z_center + 2  # the tire's front face
+    face = z_center + TIRE_HALF_WIDTH  # the tire's front face
     return {
         "name": name,
         "parent": "root",
-        "pivot": [s * 13, 6, z_center],
+        "pivot": [s * BODY_HALF_WIDTH, HUB_Y, z_center],
         "cubes": [
-            box(xs[0], 5.3, face, xs[1], 6.7, face + 1.2, "arm"),
-            box(s * hx - 1.2, 4.8, face + 1.2, s * hx + 1.2, 7.2, face + 1.6, "arm"),
+            box(xs[0], HUB_Y - ARM_THICK / 2, face, xs[1], HUB_Y + ARM_THICK / 2, face + 1.2, "arm"),
+            box(s * hx - 1.2, HUB_Y - 1.2, face + 1.2, s * hx + 1.2, HUB_Y + 1.2, face + 1.6, "arm"),
         ],
     }
 
@@ -893,18 +1027,18 @@ geo = {
             },
             "bones": [
                 {"name": "root", "pivot": [0, 12, 0]},
-                {"name": "body", "parent": "root", "pivot": [0, 7, 0], "cubes": body,
-                 "locators": {"exhaust": [9, 2.6, REAR - 2.6]}},
-                {"name": "headlights", "parent": "body", "pivot": [0, 7, 0], "cubes": headlights},
+                {"name": "body", "parent": "root", "pivot": [0, FLOOR_Y, 0], "cubes": body,
+                 "locators": {"exhaust": [9, SILL_Y - 1.4, REAR - 2.6]}},
+                {"name": "headlights", "parent": "body", "pivot": [0, FLOOR_Y, 0], "cubes": headlights},
                 # Shown only in flight by the render controller (ADR 0026)
-                {"name": "rear_glass", "parent": "body", "pivot": [0, 7, 0],
-                 "cubes": [box(-12, 17, REAR, 12, 27, REAR + 1, "rear_glass")]},
+                {"name": "rear_glass", "parent": "body", "pivot": [0, FLOOR_Y, 0],
+                 "cubes": [box(-CABIN_HALF_WIDTH, WINDOW_BOTTOM_Y, REAR, CABIN_HALF_WIDTH, WINDOW_TOP_Y, REAR + 1, "rear_glass")]},
                 wheel("wheel_fl", -1, FRONT_AXLE_Z),
                 wheel("wheel_fr", +1, FRONT_AXLE_Z),
                 wheel("wheel_rl", -1, REAR_AXLE_Z),
                 wheel("wheel_rr", +1, REAR_AXLE_Z),
                 # Hidden until the submarine form shows them (ADR 0040)
-                {"name": "windows_sealed", "parent": "body", "pivot": [0, 7, 0], "cubes": WINDOWS_SEALED},
+                {"name": "windows_sealed", "parent": "body", "pivot": [0, FLOOR_Y, 0], "cubes": WINDOWS_SEALED},
                 prop("prop_rl", -1, REAR_AXLE_Z),
                 prop("prop_rr", +1, REAR_AXLE_Z),
                 glow("glow_fl", -1, FRONT_AXLE_Z),
@@ -920,8 +1054,8 @@ geo = {
                 *[door(n) for n in DOORS],
                 {"name": "seat_0", "parent": "body", "pivot": [6, 10, FRONT_SEAT_Z + 2]},
                 {"name": "seat_1", "parent": "body", "pivot": [-6, 10, FRONT_SEAT_Z + 2]},
-                {"name": "seat_2", "parent": "body", "pivot": [6, 10, -17]},
-                {"name": "seat_3", "parent": "body", "pivot": [-6, 10, -17]},
+                {"name": "seat_2", "parent": "body", "pivot": [6, 10, REAR_SEAT_Z + 1]},
+                {"name": "seat_3", "parent": "body", "pivot": [-6, 10, REAR_SEAT_Z + 1]},
             ],
         }
     ],
@@ -932,7 +1066,7 @@ def turn_around(bones):
     """Rotate 180° around the Y axis (negate x and z)."""
     for bone in bones:
         if "pivot" in bone:
-            bone["pivot"] = [-bone["pivot"][0], bone["pivot"][1], -bone["pivot"][2]]
+            bone["pivot"] = [-bone["pivot"][0] or 0, bone["pivot"][1], -bone["pivot"][2] or 0]
         for name, (lx, ly, lz) in bone.get("locators", {}).items():
             bone["locators"][name] = [-lx, ly, -lz]
         for cube in bone.get("cubes", []):
@@ -946,8 +1080,47 @@ def turn_around(bones):
             # Face directions also swap (north <-> south, east <-> west). The faces are solid colors, so the UVs can stay as they are
 
 
-turn_around(geo["minecraft:geometry"][0]["bones"])
+def scaled(vector):
+    return [round(value * SIZE_SCALE, 12) for value in vector]
 
+
+geometry = geo["minecraft:geometry"][0]
+for bone in geometry["bones"]:
+    bone["pivot"] = scaled(bone["pivot"])
+    for name, locator in bone.get("locators", {}).items():
+        bone["locators"][name] = scaled(locator)
+    for cube in bone.get("cubes", []):
+        for key in ("origin", "size", "pivot"):
+            if key in cube:
+                cube[key] = scaled(cube[key])
+description = geometry["description"]
+for key in ("visible_bounds_width", "visible_bounds_height"):
+    description[key] *= SIZE_SCALE
+description["visible_bounds_offset"] = scaled(description["visible_bounds_offset"])
+turn_around(geometry["bones"])
+
+# Rebuild translations from construction lengths on every run, avoiding cumulative scaling.
+animation_path = RP / "animations/yasu_ride/suv.anim.json"
+if animation_path.exists():
+    animation = json.loads(animation_path.read_text())
+    for name, clip in animation["animations"].items():
+        for member, channels in clip.get("bones", {}).items():
+            if "position" not in channels:
+                continue
+            side = 1 if member.endswith("l") else -1
+            folded = "wheels_" in name
+            offset = scaled([side * (FOLD_OUT if folded else SUB_OUT),
+                             -FOLD_DROP if folded else 0, 0])
+            position = channels["position"]
+            if isinstance(position, list):
+                channels["position"] = offset
+            else:
+                channels["position"] = {t: offset if any(v) else [0, 0, 0]
+                                        for t, v in position.items()}
+    animation_path.write_text(json.dumps(animation, indent=2) + "\n")
+
+model_cubes = [cube for bone in geometry["bones"] for cube in bone.get("cubes", [])]
+assert_axes(model_cubes, {"arc": compound_cubes(model_cubes)}, ASSEMBLIES)
 (MODELS / "suv.geo.json").write_text(json.dumps(geo, indent=1))
 
 
@@ -963,6 +1136,29 @@ def png(path, w, h, pixel):
     data = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 6, 0, 0, 0))
     data += chunk(b"IDAT", zlib.compress(rows)) + chunk(b"IEND", b"")
     path.write_bytes(data)
+
+
+def lit_textures(kind, width, height, pixel):
+    def is_lit(x, y):
+        return y < 4 and x // 4 in LIT_SLOTS
+
+    def color(x, y):
+        rgba = (*pixel(x, y), 255)[:4]
+        return (*rgba[:3], 0) if is_lit(x, y) else rgba
+
+    def mer(x, y):
+        return (*(MER_LIT if is_lit(x, y) else MER_OFF), 255)
+
+    png(ENTITY_TEXTURES / f"{kind}_lit.png", width, height, color)
+    png(ENTITY_TEXTURES / f"{kind}_lit_mer.png", width, height, mer)
+    texture_set = {
+        "format_version": "1.16.100",
+        "minecraft:texture_set": {
+            "color": f"{kind}_lit",
+            "metalness_emissive_roughness": f"{kind}_lit_mer",
+        },
+    }
+    (ENTITY_TEXTURES / f"{kind}_lit.texture_set.json").write_text(json.dumps(texture_set))
 
 
 def swatches(body_color):
@@ -983,6 +1179,8 @@ ITEM_TEXTURES.mkdir(parents=True, exist_ok=True)
 for paint, body_color in BODY_PAINTS.items():
     name = "suv" if paint == "khaki" else f"suv_{paint}"
     png(ENTITY_TEXTURES / f"{name}.png", TEXTURE_WIDTH, 16, swatches(body_color))
+
+lit_textures("suv", TEXTURE_WIDTH, 16, swatches(BODY_PAINTS["khaki"]))
 
 
 def icon(x, y):

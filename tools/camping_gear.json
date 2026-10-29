@@ -100,26 +100,6 @@
     "reference": null
   },
   {
-    "id": "oil_lamp",
-    "name_en": "Oil Lamp",
-    "name_ja": "\u30aa\u30a4\u30eb\u30e9\u30f3\u30d7",
-    "width_px": 4,
-    "height_px": 7,
-    "glass": false,
-    "hanging": false,
-    "reference": null
-  },
-  {
-    "id": "lava_lamp",
-    "name_en": "Lava Lamp",
-    "name_ja": "\u30e9\u30d0\u30e9\u30f3\u30d7",
-    "width_px": 3,
-    "height_px": 8,
-    "glass": false,
-    "hanging": false,
-    "reference": null
-  },
-  {
     "id": "transistor_radio",
     "name_en": "Transistor Radio",
     "name_ja": "\u30c8\u30e9\u30f3\u30b8\u30b9\u30bf\u30e9\u30b8\u30aa",

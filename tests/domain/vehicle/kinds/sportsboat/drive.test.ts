@@ -10,8 +10,12 @@ import {
   type Vec2,
   type Vec3,
 } from "../../../../../src/domain/shared/vec";
+import type { DeckSeatSpot } from "../../../../../src/domain/vehicle/dock/dock";
 import type { HoldPose } from "../../../../../src/domain/vehicle/dock/floor";
-import type { RestoredValues } from "../../../../../src/domain/vehicle/drive";
+import type {
+  EngineCommand,
+  RestoredValues,
+} from "../../../../../src/domain/vehicle/drive";
 import {
   type ControlInput,
   type RawInput,
@@ -42,11 +46,13 @@ import {
   SPORTSBOAT_PROFILE,
 } from "../../../../../src/domain/vehicle/kinds/sportsboat/profile";
 import { SPORTSBOAT_SPEC } from "../../../../../src/domain/vehicle/kinds/sportsboat/spec";
+import { surfaceLift } from "../../../../../src/domain/vehicle/kinds/sportsboat/surfacing";
 import { SUV_MOTION } from "../../../../../src/domain/vehicle/kinds/suv/profile";
 import { MOTION } from "../../../../../src/domain/vehicle/motion/constants";
 import { DOCK } from "../../../../../src/domain/vehicle/motion/dock";
 import {
   dockCommands,
+  dockedCommand,
   undockCommands,
 } from "../../../../../src/domain/vehicle/motion/dockEntity";
 import { FORMS } from "../../../../../src/domain/vehicle/motion/forms";
@@ -57,7 +63,10 @@ import {
   stepMotion,
 } from "../../../../../src/domain/vehicle/motion/motion";
 import type { RamTarget } from "../../../../../src/domain/vehicle/ram";
-import { seatWorldPositions } from "../../../../../src/domain/vehicle/seats";
+import {
+  DRIVER_SEAT,
+  seatWorldPositions,
+} from "../../../../../src/domain/vehicle/seats";
 import { SPEC } from "../../../../../src/domain/vehicle/spec";
 import type {
   TickOutcome,
@@ -98,6 +107,7 @@ const BEACHED: Water = { waterDepth: 0, waterBelow: false };
 /** The usual case for a floating hull: its feet sit above the water cell (ADR 0051). */
 const WATER_BELOW: Water = { waterDepth: 0, waterBelow: true };
 const waterDepth = number(0.01, 5);
+const SURFACING_DEPTH = SPORTSBOAT_SPEC.icebreaker.surfacing.maxDepth;
 const afloatWater: fc.Arbitrary<Water> = fc.oneof(
   waterDepth.map((d) => ({ waterDepth: d })),
   fc.constant(WATER_BELOW),
@@ -158,6 +168,12 @@ const LEVEL = [
   { type: "setProperty", name: "roll", value: 0 },
 ];
 
+function withoutDriver(
+  seats: readonly (DeckSeatSpot | undefined)[],
+): (Vec3 | undefined)[] {
+  return seats.map((seat) => seat && { x: seat.x, y: seat.y, z: seat.z });
+}
+
 function boat(heading: number): Vehicle {
   return createVehicle("sportsboat", asVehicleId("boat"), heading);
 }
@@ -187,12 +203,15 @@ describe("sports boat docking (ADR 0063)", () => {
             const step = drive.step(raw, { ...ctx, tick });
             if (step.dock === undefined) return;
             expect(step.dock.cells).toStrictEqual(floorCells(step.dock.hold));
-            expect(step.dock.seats).toStrictEqual(
+            expect(withoutDriver(step.dock.seats)).toStrictEqual(
               seatWorldPositions(
                 step.dock.hold,
                 SPORTSBOAT_PROFILE.seats.positions,
               ),
             );
+            step.dock.seats.forEach((seat, i) => {
+              expect(seat?.driver === true).toBe(i === DRIVER_SEAT);
+            });
           });
         },
       ),
@@ -232,7 +251,7 @@ describe("sports boat docking (ADR 0063)", () => {
           expect(out.dock?.hold).toStrictEqual(hold);
           if (!out.dock) throw new Error("missing dock hold");
           expect(out.dock.cells).toStrictEqual(floorCells(out.dock.hold));
-          expect(out.dock.seats).toStrictEqual(
+          expect(withoutDriver(out.dock.seats)).toStrictEqual(
             seatWorldPositions(
               out.dock.hold,
               SPORTSBOAT_PROFILE.seats.positions,
@@ -389,7 +408,7 @@ describe("sports boat docking (ADR 0063)", () => {
           });
           if (!out.dock) throw new Error("missing dock hold");
           expect(out.dock.cells).toStrictEqual(floorCells(out.dock.hold));
-          expect(out.dock.seats).toStrictEqual(
+          expect(withoutDriver(out.dock.seats)).toStrictEqual(
             seatWorldPositions(
               out.dock.hold,
               SPORTSBOAT_PROFILE.seats.positions,
@@ -855,7 +874,10 @@ describe("SportsboatDrive (ADR 0051)", () => {
           },
         );
         const out = rebuilt.tick(context(0, undefined, { x: 0, z: 0 }, AFLOAT));
-        expect(out.stepCommands).toStrictEqual(LEVEL);
+        expect(out.stepCommands).toStrictEqual([
+          ...LEVEL,
+          { type: "setProperty", name: "monitor", value: 0 },
+        ]);
         expect(out.riders).toStrictEqual({
           thirdPerson: false,
           underwater: false,
@@ -885,7 +907,7 @@ describe("SportsboatDrive (ADR 0051)", () => {
     fc.assert(
       fc.property(
         yaw,
-        waterDepth,
+        number(0.01, SURFACING_DEPTH),
         fc.array(fc.option(rawInput, { nil: undefined }), {
           minLength: 1,
           maxLength: 80,
@@ -1097,10 +1119,35 @@ describe("SportsboatDrive (ADR 0051)", () => {
     );
   });
 
-  it("never pushes vertically and sends only attitude and docking commands, never a form, bank, or gear, for any inputs and surroundings", () => {
+  it("lifts an afloat hull by surfaceLift when the water over the feet is too deep, and never when beached", () => {
+    const out = boat(0).tick(
+      context(0, undefined, { x: 0, z: 0 }, { waterDepth: 2 }),
+    );
+    expect(out.impulse.y).toBe(surfaceLift(2));
+    expect(out.impulse.y).toBeGreaterThan(0);
+    fc.assert(
+      fc.property(
+        yaw,
+        number(SURFACING_DEPTH + 0.01, SPORTSBOAT_SPEC.height + 1),
+        rawInput,
+        (heading, depth, raw) => {
+          const deep = boat(heading).tick(
+            context(0, raw, { x: 0, z: 0 }, { waterDepth: depth }),
+          );
+          expect(deep.impulse.y).toBeCloseTo(surfaceLift(depth), 6);
+          const beached = boat(heading).tick(
+            context(0, raw, { x: 0, z: 0 }, {}),
+          );
+          expect(beached.impulse.y).toBe(0);
+        },
+      ),
+    );
+  });
+
+  it("never pushes vertically at normal depth and sends only attitude, docking and monitor commands, never a form, bank, or gear, for any inputs and surroundings", () => {
     const tick = fc.record({
       raw: fc.option(rawInput, { nil: undefined }),
-      waterDepth: fc.option(number(0, 5), { nil: undefined }),
+      waterDepth: fc.option(number(0, SURFACING_DEPTH), { nil: undefined }),
       waterBelow: fc.option(fc.boolean(), { nil: undefined }),
       onGround: fc.boolean(),
       velocity: fc.record({ x: number(-2, 2), z: number(-2, 2) }),
@@ -1130,6 +1177,13 @@ describe("SportsboatDrive (ADR 0051)", () => {
                 expect([...dockCommands(), ...undockCommands()]).toContainEqual(
                   command,
                 );
+                continue;
+              }
+              if (
+                command.type === "setProperty" &&
+                command.name === "monitor"
+              ) {
+                expect(command.value).toBe(0);
                 continue;
               }
               expect(command).toMatchObject({ type: "setProperty" });
@@ -1247,10 +1301,10 @@ describe("a sports boat Vehicle (ADR 0051)", () => {
   });
 
   it("seats riders by its own positions and emits no seat commands when one leaves", () => {
-    // The boat kept the SUV's first seat layout when the SUV's front seats moved back (ADR 0117).
+    // The boat no longer shares the SUV's front z; its riders sit 3 px further back (ADR 0176).
     expect(SPORTSBOAT_PROFILE.seats.positions[0]).toStrictEqual({
       x: -0.38,
-      z: 0.35,
+      z: 0.1625,
     });
     fc.assert(
       fc.property(
@@ -1303,6 +1357,16 @@ it("queries below the boat only when its depth query is dry", () => {
       expect(probes.filter((y) => y === -0.3)).toEqual(atFeet ? [] : [-0.3]);
     }),
   );
+});
+
+it("drives and docks on lava with the same surface sensing as water", () => {
+  const drive = new SportsboatDrive(0, {});
+  const ctx = context(0, FULL_THROTTLE, { x: 0, z: 0 }, BEACHED);
+  const step = drive.step(FULL_THROTTLE, {
+    ...ctx,
+    lavaAt: (offset) => offset.y <= 0.5,
+  });
+  expect(step.impulse.z).toBeGreaterThan(0);
 });
 
 /** The trim and roll a vehicle last sent, starting level. */
@@ -1420,7 +1484,10 @@ describe("a sports boat's trim and roll (ADR 0059, ADR 0079)", () => {
 
   it("sends trim and roll only when they change", () => {
     const sim = new BoatSim(boat(0), SPORTSBOAT_WATER.drag);
-    expect(sim.step(undefined, AFLOAT).stepCommands).toStrictEqual(LEVEL);
+    expect(sim.step(undefined, AFLOAT).stepCommands).toStrictEqual([
+      ...LEVEL,
+      { type: "setProperty", name: "monitor", value: 0 },
+    ]);
     for (let i = 0; i < 10; i++)
       expect(sim.step(undefined, AFLOAT).stepCommands).toStrictEqual([]);
   });
@@ -1698,4 +1765,106 @@ describe("sports boat control mapping (ADR 0089)", () => {
       { numRuns: 100 },
     );
   });
+});
+
+it("resync resends unchanged trim and roll after any input sequence", () => {
+  const attitudeCommands = (commands: readonly EngineCommand[]) =>
+    commands.filter(
+      (c) =>
+        c.type === "setProperty" && (c.name === "trim" || c.name === "roll"),
+    );
+  // An idle boat afloat levels out in at most maxTrim / trimSettleRate ticks;
+  // the cap only stops a regression from looping forever.
+  const maxSettleTicks = 1000;
+  fc.assert(
+    fc.property(
+      fc.array(rawInput, { minLength: 1, maxLength: 60 }),
+      fc.boolean(),
+      (inputs, hold) => {
+        const drive = new SportsboatDrive(0, {});
+        let tick = 0;
+        const idleStep = () =>
+          drive.step(
+            undefined,
+            context(tick++, undefined, { x: 0, z: 0 }, AFLOAT),
+          );
+        for (const raw of inputs) {
+          drive.step(raw, context(tick++, raw, { x: 0, z: 0 }, AFLOAT));
+        }
+        let settled = false;
+        for (let i = 0; i < maxSettleTicks && !settled; i++) {
+          settled = attitudeCommands(idleStep().commands).length === 0;
+        }
+        expect(settled).toBe(true);
+        // A held hull skips the attitude latches, so resync must reach them there too (ADR 0156).
+        for (
+          let i = 0;
+          i < maxSettleTicks && hold && !drive.inspect().docked;
+          i++
+        )
+          idleStep();
+        if (hold) expect(drive.inspect().docked).toBe(true);
+        // Without resync an unchanged attitude sends nothing, so the commands
+        // after resync can only come from the reset latches.
+        expect(attitudeCommands(idleStep().commands)).toEqual([]);
+        drive.resync();
+        const { trim, roll } = drive.inspect();
+        expect(attitudeCommands(idleStep().commands)).toEqual([
+          { type: "setProperty", name: "trim", value: trim },
+          { type: "setProperty", name: "roll", value: roll },
+        ]);
+        expect(attitudeCommands(idleStep().commands)).toEqual([]);
+      },
+    ),
+  );
+});
+
+it("resends the docked property once after a failed send while held or after departing, and never before the first hold", () => {
+  const drive = new SportsboatDrive(0, {});
+  let tick = 0;
+  const still = () =>
+    drive.step(undefined, context(tick++, undefined, { x: 0, z: 0 }, AFLOAT));
+  drive.resync();
+  expect(still().commands).toStrictEqual([
+    ...LEVEL,
+    { type: "setProperty", name: "icebreaker", value: false },
+  ]);
+  for (let i = 2; i < DOCK.ticks; i++) still();
+  expect(still().commands).toStrictEqual(dockCommands());
+  // The application calls resync when the run carrying the dock commands fails (ADR 0127).
+  drive.resync();
+  expect(still().commands).toStrictEqual([
+    { type: "setProperty", name: "icebreaker", value: false },
+    dockedCommand(true),
+    ...LEVEL,
+  ]);
+  expect(still().commands).toStrictEqual([]);
+  const departing = drive.step(
+    FULL_THROTTLE,
+    context(tick++, FULL_THROTTLE, { x: 0, z: 0 }, AFLOAT),
+  );
+  expect(departing.commands.slice(0, 2)).toStrictEqual(undockCommands());
+  drive.resync();
+  expect(still().commands).toContainEqual(dockedCommand(false));
+});
+
+it("resends level trim and roll once after a failed send while a boat that had tilted is held", () => {
+  const drive = new SportsboatDrive(0, {});
+  let tick = 0;
+  const tickWith = (raw: RawInput | undefined) =>
+    drive.step(raw, context(tick++, raw, { x: 0, z: 0 }, AFLOAT));
+  for (let i = 0; i < 10; i++) tickWith(FULL_THROTTLE);
+  expect(drive.inspect().trim).not.toBe(0);
+  let docking: readonly EngineCommand[] = [];
+  for (let i = 0; i < 1000 && !drive.inspect().docked; i++)
+    docking = tickWith(undefined).commands;
+  expect(docking).toContainEqual(dockedCommand(true));
+  // The application calls resync when a run fails (ADR 0127).
+  drive.resync();
+  expect(tickWith(undefined).commands).toStrictEqual([
+    { type: "setProperty", name: "icebreaker", value: false },
+    dockedCommand(true),
+    ...LEVEL,
+  ]);
+  expect(tickWith(undefined).commands).toStrictEqual([]);
 });

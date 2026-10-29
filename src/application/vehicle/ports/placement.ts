@@ -7,11 +7,15 @@ import type {
 import type { Vec3 } from "../../../domain/shared/vec";
 import type { VehicleKind } from "../../../domain/vehicle/kind";
 import type { PlacementGift } from "../../../domain/vehicle/placement/gift";
+import type { StarterKind } from "../../../domain/vehicle/placement/starter";
 
 export interface PlacementWorld {
+  /** Whether another feature holds `at`, such as a pitched tent's cell (ADR 0129). */
+  isCampSpace(dimensionId: DimensionId, at: Vec3): boolean;
   isAir(dimensionId: DimensionId, at: Vec3): boolean;
   /** Whether the block cell at `at` holds water, including a waterlogged block. False for an unloaded cell or an unknown dimension. */
   isWaterAt(dimensionId: DimensionId, at: Vec3): boolean;
+  isLavaAt(dimensionId: DimensionId, at: Vec3): boolean;
   spawnVehicle(
     dimensionId: DimensionId,
     at: Vec3,
@@ -35,11 +39,11 @@ export interface PlacementWorld {
 }
 
 export interface StarterWorld {
-  /** undefined when the player is no longer in the world. */
-  receivedStarter(playerId: PlayerId): boolean | undefined;
+  /** Whether the player has received `kind`'s starter item; undefined when the player is no longer in the world. */
+  receivedStarter(playerId: PlayerId, kind: StarterKind): boolean | undefined;
   /** Puts one item of this kind in the inventory, or at the player's feet when it is full. */
   giveVehicleItem(playerId: PlayerId, kind: VehicleKind): void;
-  markStarterReceived(playerId: PlayerId): void;
+  markStarterReceived(playerId: PlayerId, kind: StarterKind): void;
 }
 
 export interface GiftBoxWorld {

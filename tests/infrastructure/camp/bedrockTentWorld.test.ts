@@ -1,0 +1,685 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { SpaceCheck } from "../../../src/application/shared/ports/space";
+import {
+  asTentId,
+  flapCells,
+  PITCHED_STATE,
+  type TentPose,
+  tentCellAt,
+  tentCells,
+  tentClearCells,
+  tentEntityLocation,
+  tentFootprintBox,
+  tentGroundCells,
+} from "../../../src/domain/camp/tent";
+import type { TentEntry } from "../../../src/domain/camp/tentRegistry";
+import { cellKey } from "../../../src/domain/shared/cells";
+import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
+import type { Vec3 } from "../../../src/domain/shared/vec";
+import { BedrockTentWorld } from "../../../src/infrastructure/camp/bedrock/bedrockTentWorld";
+import { TENT_CELL_CODEC } from "../../../src/infrastructure/camp/bedrock/tentBlocks";
+import { TentFlapStore } from "../../../src/infrastructure/camp/bedrock/tentFlapStore";
+import {
+  FLAP_BLOCKED_HINT,
+  PITCH_REFUSAL_MESSAGE,
+  TENT_CEILING_BLOCK,
+  TENT_FLAP_BLOCK,
+  TENT_ITEM,
+  TENT_TYPE,
+  TENT_WALL_BLOCK,
+} from "../../../src/infrastructure/camp/identifiers";
+import type { DynamicPropertyTentRegistry } from "../../../src/infrastructure/camp/persistence/tentRegistry";
+import type { CellLayer } from "../../../src/infrastructure/shared/laidCells";
+import { defined } from "../../support/defined";
+
+const game = vi.hoisted(() => ({ getDimension: vi.fn(), getEntity: vi.fn() }));
+vi.mock("@minecraft/server", () => ({
+  world: game,
+  GameMode: { Creative: "Creative", Survival: "Survival" },
+  BlockPermutation: { resolve: vi.fn() },
+  ItemStack: class {
+    constructor(
+      public typeId: string,
+      public amount: number,
+    ) {}
+  },
+}));
+
+const DIM = asDimensionId("minecraft:overworld");
+const POSE: TentPose = { x: 110, y: -60, z: 46, yaw: 180 };
+const TENT = asTentId("tent");
+
+function fixture(entries: TentEntry[] = []) {
+  const order: string[] = [];
+  const dimension = {
+    id: DIM,
+    getBlock: vi.fn(),
+    getEntities: vi.fn((_q?: unknown) => [] as unknown[]),
+    getPlayers: vi.fn((_q?: unknown) => [] as unknown[]),
+    spawnEntity: vi.fn(),
+    spawnItem: vi.fn(),
+  };
+  const tent = {
+    id: TENT,
+    typeId: TENT_TYPE,
+    isValid: true,
+    location: tentEntityLocation(POSE),
+    dimension,
+    setRotation: vi.fn(),
+    getProperty: vi.fn(() => 0),
+    remove: vi.fn(() => order.push("remove")),
+  };
+  const container = {
+    addItem: vi.fn(() => undefined),
+    getItem: vi.fn(() => undefined as unknown),
+    setItem: vi.fn(),
+  };
+  const player = {
+    id: "player",
+    typeId: "minecraft:player",
+    isValid: true,
+    location: { x: 0, y: 0, z: 0 },
+    dimension,
+    getGameMode: vi.fn(() => "Survival"),
+    getComponent: vi.fn(() => ({ container })),
+    onScreenDisplay: { setActionBar: vi.fn() },
+  };
+  game.getDimension.mockReturnValue(dimension);
+  game.getEntity.mockImplementation((id: string) =>
+    id === tent.id ? tent : id === player.id ? player : undefined,
+  );
+  let list = [...entries];
+  const registry = {
+    all: vi.fn(() => list),
+    add: vi.fn((e: TentEntry) => {
+      list = [...list, e];
+    }),
+    remove: vi.fn((id: string) => {
+      order.push("forget");
+      list = list.filter((e) => e.id !== id);
+    }),
+  };
+  const blocks = {
+    lay: vi.fn(() => order.push("lay")),
+    laidBlockOwner: vi.fn(() => undefined),
+  };
+  const isVehicleSpace = vi.fn<SpaceCheck>(() => false);
+  const flaps = new TentFlapStore();
+  const world = new BedrockTentWorld({
+    isVehicleSpace,
+    registry: registry as unknown as DynamicPropertyTentRegistry,
+    blocks: blocks as unknown as CellLayer<never, never>,
+    flaps,
+  });
+  return {
+    dimension,
+    tent,
+    player,
+    container,
+    registry,
+    blocks,
+    isVehicleSpace,
+    flaps,
+    world,
+    order,
+  };
+}
+
+const ENTRY: TentEntry = { id: TENT, dimensionId: DIM, pose: POSE };
+
+describe("BedrockTentWorld (ADR 0131)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("surveys a light block as air, and an unloaded or throwing cell as unreadable", () => {
+    const { dimension, world } = fixture();
+    const clear = tentClearCells(POSE);
+    const ground = tentGroundCells(POSE);
+    const at = (i: number) => cellKey(clear[i] ?? { x: 0, y: 0, z: 0 });
+    dimension.getBlock.mockImplementation(
+      (c: { x: number; y: number; z: number }) => {
+        const k = cellKey(c);
+        if (k === at(0))
+          return { typeId: "minecraft:light_block_15", isLiquid: false };
+        if (k === at(1)) return undefined;
+        if (k === at(2)) throw new Error("unloaded");
+        if (k === cellKey(ground[0] ?? c))
+          return { typeId: "minecraft:water", isLiquid: true };
+        return {
+          typeId: c.y < POSE.y ? "minecraft:stone" : "minecraft:air",
+          isLiquid: false,
+        };
+      },
+    );
+    const survey = world.survey(DIM, POSE);
+    expect(survey.clear.slice(0, 4)).toEqual([
+      "minecraft:air",
+      undefined,
+      undefined,
+      "minecraft:air",
+    ]);
+    expect(survey.ground[0]).toEqual({
+      typeId: "minecraft:water",
+      liquid: true,
+    });
+    expect(survey.ground[1]).toEqual({
+      typeId: "minecraft:stone",
+      liquid: false,
+    });
+    expect(survey.clear).toHaveLength(336);
+    expect(survey.ground).toHaveLength(84);
+  });
+
+  it("finds vehicle space on a footprint cell two layers up", () => {
+    const { dimension, isVehicleSpace, world } = fixture();
+    dimension.getBlock.mockReturnValue({
+      typeId: "minecraft:air",
+      isLiquid: false,
+    });
+    const high = tentCellAt(POSE, { x: -3, depth: 0, layer: 2 });
+    isVehicleSpace.mockImplementation((_d, c) => cellKey(c) === cellKey(high));
+    expect(world.survey(DIM, POSE).vehicleSpace).toBe(true);
+    expect(isVehicleSpace).toHaveBeenCalledTimes(
+      tentClearCells(POSE).findIndex((c) => cellKey(c) === cellKey(high)) + 1,
+    );
+  });
+
+  it("finds another tent's camp space where it overlaps, though its corner strip reads as air", () => {
+    const { dimension, world } = fixture([ENTRY]);
+    dimension.getBlock.mockReturnValue({
+      typeId: "minecraft:air",
+      isLiquid: false,
+    });
+    // Six cells to the side, the new tent's x -3 column is the first one's x 3
+    // corner column, which no tent cell takes at depth 0..2.
+    const beside = {
+      ...tentCellAt(POSE, { x: 6, depth: 0, layer: 0 }),
+      yaw: 180 as const,
+    };
+    expect(world.survey(DIM, beside).campSpace).toBe(true);
+    const apart = {
+      ...tentCellAt(POSE, { x: 7, depth: 0, layer: 0 }),
+      yaw: 180 as const,
+    };
+    expect(world.survey(DIM, apart).campSpace).toBe(false);
+  });
+
+  it("counts players and entities with health in the footprint box, never items or xp orbs", () => {
+    const { dimension, world, registry } = fixture([ENTRY]);
+    dimension.getBlock.mockReturnValue({
+      typeId: "minecraft:air",
+      isLiquid: false,
+    });
+    const withHealth = (typeId: string) => ({
+      typeId,
+      getComponent: (n: string) => (n === "minecraft:health" ? {} : undefined),
+    });
+    dimension.getEntities.mockReturnValue([
+      { typeId: "minecraft:player", getComponent: () => undefined },
+      withHealth("yasu_ride:low_chair"),
+      withHealth("minecraft:cow"),
+      { typeId: "minecraft:arrow", getComponent: () => undefined },
+    ]);
+    const survey = world.survey(DIM, POSE);
+    expect(survey.occupants).toBe(3);
+    expect(survey.tents).toBe(1);
+    expect(registry.all).toHaveBeenCalled();
+    const box = tentFootprintBox(POSE);
+    expect(dimension.getEntities).toHaveBeenCalledWith({
+      location: box.min,
+      volume: box.size,
+      excludeTypes: ["minecraft:item", "minecraft:xp_orb"],
+    });
+  });
+
+  it("answers camp space and block owners from the registry before any lay", () => {
+    const { world, blocks } = fixture([ENTRY]);
+    const wall = tentCells(POSE, PITCHED_STATE).find(
+      (c) => c.block.type === "wall",
+    );
+    const ceiling = tentCells(POSE, PITCHED_STATE).find(
+      (c) => c.block.type === "ceiling",
+    );
+    if (!wall || !ceiling) throw new Error("no cells");
+    expect(world.isCampSpace(DIM, wall)).toBe(true);
+    expect(world.isCampSpace(DIM, { x: 0, y: 0, z: 0 })).toBe(false);
+    expect(world.isCampSpace(asDimensionId("minecraft:nether"), wall)).toBe(
+      false,
+    );
+    expect(world.tentBlockOwner(DIM, wall, TENT_WALL_BLOCK)).toBe(TENT);
+    expect(world.tentBlockOwner(DIM, ceiling, TENT_CEILING_BLOCK)).toBe(TENT);
+    expect(world.tentBlockOwner(DIM, wall, TENT_CEILING_BLOCK)).toBeUndefined();
+    expect(world.tentBlockOwner(DIM, wall, "minecraft:stone")).toBeUndefined();
+    expect(blocks.laidBlockOwner).toHaveBeenCalledWith(
+      DIM,
+      wall,
+      TENT_WALL_BLOCK,
+    );
+  });
+
+  it("is occupied while a player's feet are inside", () => {
+    const { dimension, player, world } = fixture([ENTRY]);
+    dimension.getPlayers.mockReturnValue([player]);
+    const room = tentCellAt(POSE, { x: 0, depth: 6, layer: 0 });
+    player.location = { x: room.x + 0.5, y: room.y, z: room.z + 0.5 };
+    expect(world.isOccupied(TENT)).toBe(true);
+    // Feet in a side wall cell are outside its room-side plate.
+    const sideWall = tentCellAt(POSE, { x: 3, depth: 6, layer: 0 });
+    player.location = {
+      x: sideWall.x + 0.5,
+      y: sideWall.y,
+      z: sideWall.z + 0.5,
+    };
+    expect(world.isOccupied(TENT)).toBe(false);
+    const tarp = tentCellAt(POSE, { x: 0, depth: 1, layer: 0 });
+    player.location = { x: tarp.x + 0.5, y: tarp.y, z: tarp.z + 0.5 };
+    expect(world.isOccupied(TENT)).toBe(false);
+    expect(world.isOccupied(asTentId("other"))).toBe(false);
+  });
+
+  it("finds the loaded tent whose rooms hold the feet", () => {
+    const { world } = fixture([ENTRY]);
+    const room = tentCellAt(POSE, { x: 1, depth: 5, layer: 1 });
+    const feet = { x: room.x + 0.5, y: room.y, z: room.z + 0.5 };
+    expect(world.tentContaining(DIM, feet)).toBe(TENT);
+    const tarp = tentCellAt(POSE, { x: 0, depth: 1, layer: 0 });
+    expect(
+      world.tentContaining(DIM, {
+        x: tarp.x + 0.5,
+        y: tarp.y,
+        z: tarp.z + 0.5,
+      }),
+    ).toBeUndefined();
+    expect(
+      world.tentContaining(asDimensionId("minecraft:nether"), feet),
+    ).toBeUndefined();
+    game.getEntity.mockReturnValue(undefined);
+    expect(world.tentContaining(DIM, feet)).toBeUndefined();
+  });
+
+  it("gives the item to the hitter, or drops it at the tent", () => {
+    const { container, dimension, tent, world, registry } = fixture([ENTRY]);
+    world.returnTentItem(TENT, asPlayerId("player"));
+    expect(container.addItem).toHaveBeenCalledWith({
+      typeId: TENT_ITEM,
+      amount: 1,
+    });
+    world.returnTentItem(TENT, undefined);
+    expect(dimension.spawnItem).toHaveBeenLastCalledWith(
+      { typeId: TENT_ITEM, amount: 1 },
+      tent.location,
+    );
+    game.getEntity.mockReturnValue(undefined);
+    world.returnTentItem(TENT, undefined);
+    expect(dimension.spawnItem).toHaveBeenLastCalledWith(
+      { typeId: TENT_ITEM, amount: 1 },
+      tentEntityLocation(POSE),
+    );
+    expect(registry.all).toHaveBeenCalled();
+  });
+
+  it("reads the game mode, takes the held tent item, and gives one back only to a player", () => {
+    const { container, player, tent, world } = fixture();
+    const id = asPlayerId("player");
+    const held = { typeId: TENT_ITEM, amount: 1 };
+    const inventory = Object.assign(container, {
+      getItem: vi.fn(() => held),
+      setItem: vi.fn(),
+    });
+    const withMode = Object.assign(player, {
+      getGameMode: vi.fn(() => "Creative"),
+    });
+    expect(world.isCreative(id)).toBe(true);
+    withMode.getGameMode.mockReturnValue("Survival");
+    expect(world.isCreative(id)).toBe(false);
+    expect(world.consumeTentItem(id, 3)).toBe(true);
+    expect(inventory.getItem).toHaveBeenCalledWith(3);
+    expect(inventory.setItem).toHaveBeenCalledWith(3, undefined);
+    world.giveTentItem(id);
+    expect(container.addItem).toHaveBeenCalledWith({
+      typeId: TENT_ITEM,
+      amount: 1,
+    });
+    // The tent entity shares the id space but is not a player.
+    const notPlayer = asPlayerId(tent.id);
+    expect(world.isCreative(notPlayer)).toBe(false);
+    expect(world.consumeTentItem(notPlayer, 3)).toBe(false);
+    container.addItem.mockClear();
+    world.giveTentItem(notPlayer);
+    world.giveTentItem(asPlayerId("gone"));
+    expect(container.addItem).not.toHaveBeenCalled();
+  });
+
+  it("takes down by clearing with the entity, forgetting, then removing", () => {
+    const { blocks, order, registry, tent, world } = fixture([ENTRY]);
+    world.takeDown(TENT);
+    expect(blocks.lay).toHaveBeenCalledWith(TENT, tent, []);
+    expect(registry.remove).toHaveBeenCalledWith(TENT);
+    expect(order).toEqual(["lay", "forget", "remove"]);
+  });
+
+  it("clears a tent's loaded cells by pose when its entity has not loaded yet, sparing a player's block", () => {
+    const { blocks, dimension, registry, world } = fixture([ENTRY]);
+    game.getEntity.mockReturnValue(undefined);
+    const cells = tentCells(POSE, PITCHED_STATE);
+    const replaced = cellKey(cells[0] ?? POSE);
+    const unloaded = cellKey(cells[1] ?? POSE);
+    const set = new Map<string, ReturnType<typeof vi.fn>>();
+    dimension.getBlock.mockImplementation(
+      (c: { x: number; y: number; z: number }) => {
+        const k = cellKey(c);
+        if (k === unloaded) throw new Error("unloaded");
+        const laid = cells.find((l) => cellKey(l) === k);
+        const setType = vi.fn();
+        set.set(k, setType);
+        return {
+          typeId:
+            k === replaced || !laid
+              ? "minecraft:stone"
+              : TENT_CELL_CODEC.blockIdOf(laid.block),
+          setType,
+        };
+      },
+    );
+    world.takeDown(TENT);
+    expect(blocks.lay).toHaveBeenCalledWith(TENT, undefined, []);
+    expect(registry.remove).toHaveBeenCalledWith(TENT);
+    const cleared = [...set].filter(([, f]) => f.mock.calls.length > 0);
+    expect(cleared).toHaveLength(cells.length - 2);
+    for (const [, f] of cleared)
+      expect(f).toHaveBeenCalledWith("minecraft:air");
+    expect(set.get(replaced)).not.toHaveBeenCalled();
+  });
+
+  it("does not read the world by pose when the entity is loaded", () => {
+    const { dimension, world } = fixture([ENTRY]);
+    world.takeDown(TENT);
+    expect(dimension.getBlock).not.toHaveBeenCalled();
+  });
+
+  it("pitches by spawning, registering, and laying, in one call", () => {
+    const { blocks, dimension, registry, tent, world } = fixture();
+    dimension.spawnEntity.mockReturnValue(tent);
+    expect(world.pitch(DIM, POSE)).toBe(TENT);
+    expect(dimension.spawnEntity).toHaveBeenCalledWith(
+      TENT_TYPE,
+      tentEntityLocation(POSE),
+    );
+    expect(tent.setRotation).toHaveBeenCalledWith({ x: 0, y: 180 });
+    expect(registry.add).toHaveBeenCalledWith(ENTRY);
+    expect(blocks.lay).toHaveBeenCalledWith(
+      TENT,
+      tent,
+      tentCells(POSE, PITCHED_STATE),
+    );
+    dimension.spawnEntity.mockImplementation(() => {
+      throw new Error("no spawn");
+    });
+    expect(world.pitch(DIM, POSE)).toBeUndefined();
+  });
+
+  it("undoes a pitch that fails after the spawn, every step on its own, and logs it", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const failures = ["add", "lay", "add and undo"] as const;
+    for (const failure of failures) {
+      const { blocks, dimension, registry, tent, world } = fixture();
+      dimension.spawnEntity.mockReturnValue(tent);
+      if (failure !== "lay")
+        registry.add.mockImplementationOnce(() => {
+          throw new Error("write failed");
+        });
+      if (failure === "lay")
+        blocks.lay.mockImplementationOnce(() => {
+          throw new Error("lay failed");
+        });
+      if (failure === "add and undo")
+        registry.remove.mockImplementationOnce(() => {
+          throw new Error("write failed");
+        });
+      expect(world.pitch(DIM, POSE)).toBeUndefined();
+      expect(registry.remove).toHaveBeenCalledWith(TENT);
+      expect(blocks.lay).toHaveBeenLastCalledWith(TENT, tent, []);
+      expect(tent.remove).toHaveBeenCalledTimes(1);
+    }
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("tent pitch failed"),
+    );
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("tent pitch undo (registry) failed"),
+    );
+    warn.mockRestore();
+  });
+
+  it("shows the refusal with the limit, the hits left, and the occupied hint", () => {
+    const { player, world } = fixture();
+    const id = asPlayerId("player");
+    world.showPitchRefusal(id, "limit");
+    expect(player.onScreenDisplay.setActionBar).toHaveBeenLastCalledWith({
+      translate: PITCH_REFUSAL_MESSAGE.limit,
+      with: ["4"],
+    });
+    world.showPitchRefusal(id, "ground");
+    expect(player.onScreenDisplay.setActionBar).toHaveBeenLastCalledWith({
+      translate: PITCH_REFUSAL_MESSAGE.ground,
+    });
+    world.showHitsLeft(id, 2);
+    expect(player.onScreenDisplay.setActionBar).toHaveBeenLastCalledWith({
+      translate: "yasu_ride.hint.tent_hits",
+      with: ["2"],
+    });
+    world.showOccupied(id);
+    expect(player.onScreenDisplay.setActionBar).toHaveBeenLastCalledWith({
+      translate: "yasu_ride.hint.tent_occupied",
+    });
+  });
+
+  it("finds the tent and the flap for a flap cell before any lay, and nothing for a wall (ADR 0132)", () => {
+    const { world, blocks } = fixture([ENTRY]);
+    for (const flap of ["front", "left", "right", "bedroom"] as const)
+      for (const cell of flapCells(POSE, flap))
+        expect(world.flapAt(DIM, cell)).toEqual({ tentId: TENT, flap });
+    const wall = tentCells(POSE, PITCHED_STATE).find(
+      (c) => c.block.type === "wall",
+    );
+    if (!wall) throw new Error("no wall");
+    expect(world.flapAt(DIM, wall)).toBeUndefined();
+    expect(
+      world.flapAt(asDimensionId("minecraft:nether"), wall),
+    ).toBeUndefined();
+    expect(blocks.laidBlockOwner).toHaveBeenCalledWith(
+      DIM,
+      wall,
+      TENT_FLAP_BLOCK,
+    );
+  });
+
+  it("finds the flap through the laid owner, and nothing once that tent has left the registry (ADR 0132)", () => {
+    const { world, blocks } = fixture([ENTRY]);
+    const cell = defined(flapCells(POSE, "bedroom")[0], "bedroom flap cell");
+    blocks.laidBlockOwner.mockReturnValue(TENT as never);
+    expect(world.flapAt(DIM, cell)).toEqual({ tentId: TENT, flap: "bedroom" });
+    blocks.laidBlockOwner.mockReturnValue(asTentId("gone") as never);
+    expect(world.flapAt(DIM, cell)).toBeUndefined();
+  });
+
+  it("is blocked by a body that leans into a flap cell from the next cell (ADR 0132)", () => {
+    const { dimension, world } = fixture([ENTRY]);
+    const cell = defined(flapCells(POSE, "left")[0], "left flap cell");
+    // Feet 0.25 past the cell's west edge: a 0.6-wide hitbox still reaches 0.05 into it.
+    const feet = { x: cell.x - 0.25, y: cell.y, z: cell.z + 0.5 };
+    const contains = (q: { location: Vec3; volume: Vec3 }) =>
+      (["x", "y", "z"] as const).every(
+        (k) =>
+          feet[k] >= q.location[k] && feet[k] <= q.location[k] + q.volume[k],
+      );
+    dimension.getPlayers.mockImplementation((q) =>
+      contains(q as { location: Vec3; volume: Vec3 }) ? [{}] : [],
+    );
+    expect(world.isFlapBlocked(TENT, "left")).toBe(true);
+  });
+
+  it("is blocked by a player or a mob in one flap cell, not by an item (ADR 0132)", () => {
+    const { dimension, world } = fixture([ENTRY]);
+    const cell = defined(flapCells(POSE, "left")[1], "left flap cell");
+    const box = {
+      location: { x: cell.x - 0.3, y: cell.y, z: cell.z - 0.3 },
+      volume: { x: 1.6, y: 1, z: 1.6 },
+    };
+    const at = (q: { location: unknown }) =>
+      JSON.stringify(q.location) === JSON.stringify(box.location);
+    expect(world.isFlapBlocked(TENT, "left")).toBe(false);
+    dimension.getPlayers.mockImplementation((q) =>
+      at(q as { location: unknown }) ? [{}] : [],
+    );
+    expect(world.isFlapBlocked(TENT, "left")).toBe(true);
+    expect(world.isFlapBlocked(TENT, "right")).toBe(false);
+    expect(dimension.getPlayers).toHaveBeenCalledWith(box);
+    dimension.getPlayers.mockReturnValue([]);
+    // The query asks for mobs only, so an item standing there never matches.
+    dimension.getEntities.mockImplementation((q) => {
+      const query = q as { location: unknown; families?: string[] };
+      return at(query) && query.families?.includes("mob") ? [{}] : [];
+    });
+    expect(world.isFlapBlocked(TENT, "left")).toBe(true);
+    expect(dimension.getEntities).toHaveBeenCalledWith({
+      ...box,
+      families: ["mob"],
+    });
+    dimension.getEntities.mockReturnValue([]);
+    expect(world.isFlapBlocked(TENT, "left")).toBe(false);
+    expect(world.isFlapBlocked(asTentId("other"), "left")).toBe(false);
+  });
+
+  it("builds the loaded tent's flaps once, shows the blocked hint, and forgets them on take-down (ADR 0132)", () => {
+    const { flaps, player, tent, world } = fixture([ENTRY]);
+    const built = world.flapsOf(TENT);
+    expect(built).toBeDefined();
+    expect(world.flapsOf(TENT)).toBe(built);
+    expect(world.flapsOf(asTentId("other"))).toBeUndefined();
+    const forget = vi.spyOn(flaps, "forget");
+    world.takeDown(TENT);
+    expect(forget).toHaveBeenCalledWith(TENT);
+    expect(flaps.flapsOf(tent as never)).not.toBe(built);
+    world.showFlapBlocked(asPlayerId("player"));
+    expect(player.onScreenDisplay.setActionBar).toHaveBeenLastCalledWith({
+      translate: FLAP_BLOCKED_HINT,
+    });
+  });
+
+  it("reads a block's type, and owns only the add-on's blocks", () => {
+    const { dimension, world } = fixture();
+    const at = { x: 1, y: 2, z: 3 };
+    dimension.getBlock.mockReturnValueOnce({ typeId: TENT_WALL_BLOCK });
+    expect(world.isOwnBlock(DIM, at)).toBe(true);
+    dimension.getBlock.mockReturnValueOnce({ typeId: "minecraft:stone" });
+    expect(world.isOwnBlock(DIM, at)).toBe(false);
+    dimension.getBlock.mockReturnValueOnce(undefined);
+    expect(world.isOwnBlock(DIM, at)).toBe(false);
+    dimension.getBlock.mockReturnValueOnce({ typeId: "minecraft:stone" });
+    expect(world.typeIdAt(DIM, at)).toBe("minecraft:stone");
+    expect(dimension.getBlock).toHaveBeenLastCalledWith(at);
+  });
+
+  it("reads nothing in an unknown dimension", () => {
+    const { dimension, world } = fixture();
+    game.getDimension.mockImplementation(() => {
+      throw new Error("unknown dimension");
+    });
+    const elsewhere = asDimensionId("yasu_ride:nowhere");
+    expect(world.typeIdAt(elsewhere, { x: 0, y: 0, z: 0 })).toBeUndefined();
+    expect(world.isOwnBlock(elsewhere, { x: 0, y: 0, z: 0 })).toBe(false);
+    const survey = world.survey(elsewhere, POSE);
+    expect(survey.clear.every((c) => c === undefined)).toBe(true);
+    expect(survey.ground.every((g) => g === undefined)).toBe(true);
+    expect(survey.occupants).toBe(0);
+    world.clearDecorations(elsewhere, [{ x: 0, y: 0, z: 0 }]);
+    expect(dimension.getBlock).not.toHaveBeenCalled();
+    expect(dimension.getEntities).not.toHaveBeenCalled();
+  });
+
+  it("reads unloaded ground as unreadable, and counts no occupants when the entity query throws", () => {
+    const { dimension, world } = fixture();
+    dimension.getBlock.mockReturnValue(undefined);
+    dimension.getEntities.mockImplementation(() => {
+      throw new Error("unloaded");
+    });
+    const survey = world.survey(DIM, POSE);
+    expect(survey.ground.every((g) => g === undefined)).toBe(true);
+    expect(survey.occupants).toBe(0);
+  });
+
+  it("answers a laid block's owner from the layer without the registry", () => {
+    const { blocks, registry, world } = fixture([ENTRY]);
+    const other = asTentId("other");
+    blocks.laidBlockOwner.mockReturnValueOnce(other as never);
+    const cell = { x: 1, y: 2, z: 3 };
+    expect(world.tentBlockOwner(DIM, cell, TENT_WALL_BLOCK)).toBe(other);
+    expect(registry.all).not.toHaveBeenCalled();
+  });
+
+  it("reads Creative, takes one held tent item, and gives one back, only for a player", () => {
+    const { container, player, world } = fixture();
+    const id = asPlayerId("player");
+    expect(world.isCreative(id)).toBe(false);
+    player.getGameMode.mockReturnValue("Creative");
+    expect(world.isCreative(id)).toBe(true);
+    container.getItem.mockReturnValueOnce({ typeId: TENT_ITEM, amount: 2 });
+    expect(world.consumeTentItem(id, 3)).toBe(true);
+    expect(container.getItem).toHaveBeenLastCalledWith(3);
+    expect(container.setItem).toHaveBeenLastCalledWith(3, {
+      typeId: TENT_ITEM,
+      amount: 1,
+    });
+    container.getItem.mockReturnValueOnce({
+      typeId: "minecraft:stone",
+      amount: 1,
+    });
+    expect(world.consumeTentItem(id, 3)).toBe(false);
+    world.giveTentItem(id);
+    expect(container.addItem).toHaveBeenCalledExactlyOnceWith({
+      typeId: TENT_ITEM,
+      amount: 1,
+    });
+    // The tent entity is no player, and a missing entity is none either.
+    for (const notPlayer of [asPlayerId(TENT), asPlayerId("gone")]) {
+      expect(world.isCreative(notPlayer)).toBe(false);
+      expect(world.consumeTentItem(notPlayer, 0)).toBe(false);
+      world.giveTentItem(notPlayer);
+    }
+    expect(container.addItem).toHaveBeenCalledTimes(1);
+    expect(container.getItem).toHaveBeenCalledTimes(2);
+  });
+
+  it("clears decorations to air, skipping an unloaded cell and one that refuses the change", () => {
+    const { dimension, world } = fixture();
+    const cells = [
+      { x: 0, y: 0, z: 0 },
+      { x: 1, y: 0, z: 0 },
+      { x: 2, y: 0, z: 0 },
+      { x: 3, y: 0, z: 0 },
+    ];
+    const setTypes = new Map<string, ReturnType<typeof vi.fn>>();
+    dimension.getBlock.mockImplementation(
+      (c: { x: number; y: number; z: number }) => {
+        if (c.x === 1) return undefined;
+        if (c.x === 2) throw new Error("unloaded");
+        const setType = vi.fn(() => {
+          if (c.x === 0) throw new Error("changed since the survey");
+        });
+        setTypes.set(cellKey(c), setType);
+        return { typeId: "minecraft:short_grass", setType };
+      },
+    );
+    world.clearDecorations(DIM, cells);
+    expect(dimension.getBlock).toHaveBeenCalledTimes(4);
+    for (const x of [0, 3])
+      expect(setTypes.get(cellKey({ x, y: 0, z: 0 }))).toHaveBeenCalledWith(
+        "minecraft:air",
+      );
+  });
+
+  it("drops no item for a tent with neither an entity nor an entry", () => {
+    const { dimension, world } = fixture();
+    world.returnTentItem(asTentId("gone"), undefined);
+    expect(dimension.spawnItem).not.toHaveBeenCalled();
+  });
+});

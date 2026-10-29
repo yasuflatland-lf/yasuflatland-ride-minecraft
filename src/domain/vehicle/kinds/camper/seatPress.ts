@@ -1,5 +1,5 @@
+import { SwitchCooldowns } from "../../../shared/switchCooldown";
 import type { Vec3 } from "../../../shared/vec";
-import { SwitchCooldown } from "../../cooldowns";
 import { CAMPER_SPEC } from "./spec";
 
 // A dinette deck seat stands on the floor layer, under its slot cell; the cells from the
@@ -28,15 +28,12 @@ export function seatSlotCell(
  * time, so one long-press places one item (ADR 0024, 0097).
  */
 export class SeatPresses<K> {
-  private readonly last = new Map<K, SwitchCooldown>();
+  private readonly cooldowns = new SwitchCooldowns<K>(
+    CAMPER_SPEC.seatPressIdleTicks,
+  );
 
   /** Records a press by `player` at `tick`; true when it starts a new press. */
   press(tick: number, player: K): boolean {
-    let cooldown = this.last.get(player);
-    if (cooldown === undefined) {
-      cooldown = new SwitchCooldown();
-      this.last.set(player, cooldown);
-    }
-    return cooldown.tryUse(tick, CAMPER_SPEC.seatPressIdleTicks);
+    return this.cooldowns.tryUse(player, tick);
   }
 }

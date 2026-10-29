@@ -1,5 +1,7 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
+import { cellKey } from "../../../../../src/domain/shared/cells";
+import { CLEARABLE_DECORATIONS } from "../../../../../src/domain/shared/decorations";
 import {
   dot,
   forward,
@@ -20,7 +22,6 @@ import {
 import { CAMPER_PROFILE } from "../../../../../src/domain/vehicle/kinds/camper/profile";
 import {
   AIR,
-  CLEARABLE_DECORATIONS,
   cargoCells,
   compartmentCells,
   deckSeats,
@@ -42,7 +43,6 @@ import {
   wallFootCells,
 } from "../../../../../src/domain/vehicle/kinds/camper/room";
 import { seatSlotCell } from "../../../../../src/domain/vehicle/kinds/camper/seatPress";
-import { cellKey } from "../../../../../src/domain/vehicle/lighting/headlights";
 import { seatWorldPositions } from "../../../../../src/domain/vehicle/seats";
 import { defined } from "../../../../support/defined";
 
@@ -431,6 +431,7 @@ it("puts a deck seat at each profile seat with the measured rises, then the comp
       const seats = deckSeats(p);
       const world = seatWorldPositions(p, CAMPER_PROFILE.seats.positions);
       expect(seats).toHaveLength(5);
+      for (const s of seats) expect(s).not.toHaveProperty("driver");
       seats.slice(0, 4).forEach((s, i) => {
         expect(s).not.toHaveProperty("compact");
         expect(s.x).toBe(world[i]?.x);

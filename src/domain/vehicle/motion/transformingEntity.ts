@@ -8,7 +8,11 @@ import { FORMS, type Form } from "./forms";
 export function transformingProperties(maxBank: number) {
   return {
     form: { type: "enum", values: FORMS },
-    bank: { type: "float", range: [-maxBank, maxBank] },
+    // BDS 1.26.52.3 rejects [0.0, 0.0]: "range max is less than range min" (ADR 0136).
+    bank: {
+      type: "float",
+      range: maxBank === 0 ? ([0, 1] as const) : ([-maxBank, maxBank] as const),
+    },
     gear_down: { type: "bool" },
   } as const;
 }

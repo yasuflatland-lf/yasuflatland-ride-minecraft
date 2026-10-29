@@ -1,4 +1,6 @@
 // The parked camper's room: its pose, its cells, and what may stand in them (ADR 0068).
+import { cellKey } from "../../../shared/cells";
+import { CLEARABLE_DECORATIONS } from "../../../shared/decorations";
 import {
   forward,
   leftOf,
@@ -15,7 +17,6 @@ import {
   inBox,
 } from "../../dock/dock";
 import type { DockBlock, DockCell, Face, HoldPose } from "../../dock/floor";
-import { cellKey } from "../../lighting/headlights";
 import { seatWorldPositions } from "../../seats";
 import { DECOR_CELLS, decorInCell, decorSlot } from "./decor";
 import {
@@ -112,50 +113,6 @@ const FURNITURE_BLOCK_SUFFIX = ":camper_furniture";
 // whatever the hanging slot's own height (ADR 0097, 0102).
 const HANGING_FURNITURE_HEIGHT = 0;
 const NO_DOORS: ReadonlySet<string> = new Set();
-
-/** Passable decorations that parking removes; anything else in a checked cell refuses (ADR 0068). */
-export const CLEARABLE_DECORATIONS: ReadonlySet<string> = new Set([
-  "minecraft:short_grass",
-  "minecraft:tall_grass",
-  "minecraft:fern",
-  "minecraft:large_fern",
-  "minecraft:deadbush",
-  "minecraft:short_dry_grass",
-  "minecraft:tall_dry_grass",
-  "minecraft:bush",
-  "minecraft:dandelion",
-  "minecraft:poppy",
-  "minecraft:blue_orchid",
-  "minecraft:allium",
-  "minecraft:azure_bluet",
-  "minecraft:red_tulip",
-  "minecraft:orange_tulip",
-  "minecraft:white_tulip",
-  "minecraft:pink_tulip",
-  "minecraft:oxeye_daisy",
-  "minecraft:cornflower",
-  "minecraft:lily_of_the_valley",
-  "minecraft:sunflower",
-  "minecraft:lilac",
-  "minecraft:rose_bush",
-  "minecraft:peony",
-  "minecraft:pink_petals",
-  "minecraft:wildflowers",
-  "minecraft:leaf_litter",
-  "minecraft:snow_layer",
-  // Ground cover that grows on its own in forests, taigas, swamps and pale gardens
-  // (ADR 0119); saplings, torchflowers and pitcher plants are planted by players, so
-  // they still refuse parking.
-  "minecraft:golden_dandelion",
-  "minecraft:open_eyeblossom",
-  "minecraft:closed_eyeblossom",
-  "minecraft:brown_mushroom",
-  "minecraft:red_mushroom",
-  "minecraft:sweet_berry_bush",
-  "minecraft:firefly_bush",
-  "minecraft:moss_carpet",
-  "minecraft:pale_moss_carpet",
-]);
 
 /**
  * Full natural ground blocks: one rising into a floor or door step cell has its top flush

@@ -5,6 +5,7 @@ import type {
 } from "../../../domain/shared/ids";
 // Ports the per-tick drive requires from the game; implemented in the infrastructure layer (ADR 0012).
 import type { Vec3 } from "../../../domain/shared/vec";
+import type { CutColumn } from "../../../domain/vehicle/cut";
 import type {
   ClearCell,
   DeckSeatSpot,
@@ -22,7 +23,7 @@ import type {
   HintControls,
 } from "../../../domain/vehicle/hints";
 import type { VehicleKind } from "../../../domain/vehicle/kind";
-import type { Cell } from "../../../domain/vehicle/lighting/headlights";
+import type { LitCell } from "../../../domain/vehicle/lighting/headlights";
 import type { ChaseCamera } from "../../../domain/vehicle/profile";
 import type { RamHit, RamTarget } from "../../../domain/vehicle/ram";
 import type { SeatAssignment } from "../../../domain/vehicle/seatChoice";
@@ -43,9 +44,18 @@ export interface VehicleSnapshot {
   restored(): RestoredValues;
   headlights: boolean;
   testInput?: RawInput;
+  testHeldTool?: string;
 }
 
 export interface DriveWorld {
+  /**
+   * Moves a player who rides nothing to `at`, keeping their view. Leaves them where the
+   * engine put them when they or the vehicle are gone, they are dead, in another
+   * dimension, more than 6 blocks from the vehicle, or the feet or head cell at `at`
+   * is not open (ADR 0109, 0141).
+   */
+  standRiderAt(vehicleId: VehicleId, playerId: PlayerId, at: Vec3): void;
+
   loadedVehicles(): VehicleSnapshot[];
   keepDeckSeats(
     vehicleId: VehicleId,
@@ -65,6 +75,7 @@ export interface DriveWorld {
    */
   keepStandIn(vehicleId: VehicleId, pose: StandInPose | undefined): void;
   waterAt(vehicleId: VehicleId, offset: Vec3): boolean;
+  lavaAt(vehicleId: VehicleId, offset: Vec3): boolean;
   solidAt(vehicleId: VehicleId, offset: Vec3): boolean;
   targetsNear(vehicleId: VehicleId): RamTarget[];
   /** While a pose is set, teleports the vehicle there and clears its velocity every tick instead of applying the impulse. */
@@ -80,6 +91,8 @@ export interface DriveWorld {
   ): (string | undefined)[];
   /** Sets each cell to air if it still holds the type it had at the check. */
   clearBlocks(vehicleId: VehicleId, cells: readonly ClearCell[]): void;
+  /** Clears each column in the vehicle's dimension, keeping `KEPT_BLOCKS` and laid blocks; skips columns in unloaded chunks (ADR 0137). */
+  cutColumns(vehicleId: VehicleId, columns: readonly CutColumn[]): void;
   /** Shows the lang key yasu_ride.message.<name> on a player's action bar; does nothing for a missing player. */
   showMessage(playerId: PlayerId, name: string): void;
   /**
@@ -94,12 +107,13 @@ export interface DriveWorld {
   setChaseCamera(playerId: PlayerId, camera: ChaseCamera | undefined): void;
   /** Refreshes water breathing; does nothing for a missing player (ADR 0040). */
   giveWaterBreathing(playerId: PlayerId, ticks: number): void;
+  protectFromFire(playerId: PlayerId): void;
   damage(hit: RamHit, attackerId: PlayerId | undefined): void;
   /**
    * Keeps light blocks in exactly these cells for the vehicle and clears the
    * ones it lit before.
    */
-  shineHeadlights(vehicleId: VehicleId, cells: readonly Cell[]): void;
+  shineHeadlights(vehicleId: VehicleId, cells: readonly LitCell[]): void;
   /**
    * Releases everything the world keeps for a vehicle that is no longer loaded:
    * its light blocks, dock cells, deck seats, seat fillers, stand-in and hold. Every part is attempted

@@ -1,5 +1,5 @@
 // Kind-neutral hold pose and the cells a stopped vehicle lays (ADR 0063, 0068).
-import { type Cell, cellKey } from "../lighting/headlights";
+import type { LaidCell } from "../../shared/laidCells";
 
 export interface HoldPose {
   readonly x: number;
@@ -93,9 +93,7 @@ export type DockBlock =
    */
   | { readonly type: "fridgeDoor"; readonly face: Face; readonly lit: boolean };
 
-export interface DockCell extends Cell {
-  readonly block: DockBlock;
-}
+export type DockCell = LaidCell<DockBlock>;
 
 export function sameBlock(a: DockBlock, b: DockBlock): boolean {
   switch (a.type) {
@@ -152,28 +150,4 @@ export function sameBlock(a: DockBlock, b: DockBlock): boolean {
     default:
       return a.type === b.type;
   }
-}
-
-/**
- * Cells to clear and cells to place or replace to go from laid to wanted. A laid
- * cell that `lost` says the world no longer holds is placed again (ADR 0096).
- */
-export function refloor(
-  laid: readonly DockCell[],
-  wanted: readonly DockCell[],
-  lost: (cell: DockCell) => boolean = () => false,
-): { clear: DockCell[]; place: DockCell[] } {
-  const laidByKey = new Map(laid.map((c) => [cellKey(c), c]));
-  const wantedKeys = new Set(wanted.map(cellKey));
-  return {
-    clear: laid.filter((c) => !wantedKeys.has(cellKey(c))),
-    place: wanted.filter((c) => {
-      const before = laidByKey.get(cellKey(c));
-      return (
-        before === undefined ||
-        !sameBlock(before.block, c.block) ||
-        lost(before)
-      );
-    }),
-  };
 }

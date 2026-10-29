@@ -1,6 +1,8 @@
 import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { SpaceCheck } from "../../../../src/application/shared/ports/space";
 import { asPlayerId, asVehicleId } from "../../../../src/domain/shared/ids";
+import type { RawInput } from "../../../../src/domain/vehicle/driveInput";
 import { BedrockFleetWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockFleetWorld";
 import { BedrockVehicleWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockVehicleWorld";
 import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
@@ -13,7 +15,7 @@ import {
   VEHICLE_FAMILY,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 import type { VehicleReleaser } from "../../../../src/infrastructure/vehicle/bedrock/vehicleReleaser";
-import { TestInputStore } from "../../../../src/infrastructure/vehicle/testInput/testInputStore";
+import { VehicleTestStore } from "../../../../src/infrastructure/vehicle/testInput/vehicleTestStore";
 import { blockGrid } from "../../../support/blockGrid";
 
 const game = vi.hoisted(() => ({
@@ -87,9 +89,14 @@ function fixture() {
   game.getEntity.mockImplementation((id: string) =>
     id === car.id ? car : undefined,
   );
-  const inputs = new TestInputStore();
+  const inputs = new VehicleTestStore<RawInput>();
   const index = new EntityIndex();
-  const world = new BedrockVehicleWorld(index, inputs);
+  const world = new BedrockVehicleWorld(
+    index,
+    inputs,
+    new VehicleTestStore<string>(),
+    noCampSpace,
+  );
   const inventory = { giveItems: vi.fn() };
   return {
     inventory,
@@ -199,7 +206,7 @@ describe("BedrockFleetWorld drop and removal (ADR 0038, 0063)", () => {
     const { dimension, car, world, fleet } = fixture();
     const grid = blockGrid();
     dimension.getBlock.mockImplementation(grid.getBlock);
-    const cell = { x: 0, y: 65, z: 4 };
+    const cell = { x: 0, y: 65, z: 4, level: 15 };
     world.loadedVehicles();
     world.shineHeadlights(asVehicleId(car.id), [cell]);
     expect(grid.typeAt(cell)).toBe("minecraft:light_block_15");
@@ -231,3 +238,5 @@ describe("BedrockFleetWorld drop and removal (ADR 0038, 0063)", () => {
     ]);
   });
 });
+
+const noCampSpace: SpaceCheck = () => false;

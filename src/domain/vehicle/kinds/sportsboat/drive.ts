@@ -1,4 +1,6 @@
 // The sports boat's drive: the engine floats the hull and the script drives only x and z (ADR 0051).
+
+import { SyncedValue } from "../../../shared/syncedValue";
 import { clamp, dot, type Vec2 } from "../../../shared/vec";
 import type { Dock } from "../../dock/dock";
 import type { HoldPose } from "../../dock/floor";
@@ -11,7 +13,11 @@ import {
 import type { RestoredOf } from "../../entityContract";
 import { MOTION } from "../../motion/constants";
 import { DOCK, heldStep, pushesStick } from "../../motion/dock";
-import { dockCommands, undockCommands } from "../../motion/dockEntity";
+import {
+  dockCommands,
+  dockedCommand,
+  undockCommands,
+} from "../../motion/dockEntity";
 import type { MotionLimits, TyreLimits } from "../../motion/limits";
 import {
   alignOnMount,
@@ -26,13 +32,25 @@ import {
   stepMotion,
 } from "../../motion/motion";
 import { waterBelowAt, waterDepthAt } from "../../motion/water";
-import { seatWorldPositions } from "../../seats";
-import { SyncedValue } from "../../syncedValue";
+import { DRIVER_SEAT, seatWorldPositions } from "../../seats";
 import { stepRoll, stepTrim } from "./attitude";
 import { floorCells, holdHeight } from "./deck";
-import { rollCommand, type SPORTSBOAT_ENTITY, trimCommand } from "./entity";
+import {
+  icebreakerCommand,
+  rollCommand,
+  type SPORTSBOAT_ENTITY,
+  trimCommand,
+} from "./entity";
+import { ICEBREAKER_SWITCH_ITEM } from "./equipment";
+import {
+  bowBlocked,
+  icebreakerColumns,
+  type LastCut,
+  recutDue,
+} from "./icebreaker";
 import { SPORTSBOAT_MOTION, SPORTSBOAT_PROFILE } from "./profile";
 import { SPORTSBOAT_SPEC } from "./spec";
+import { surfaceLift } from "./surfacing";
 
 export const SPORTSBOAT_DRAG = Object.freeze({
   initial: SPORTSBOAT_SPEC.waterDragInitial,
@@ -81,7 +99,9 @@ function dockAt(pose: HoldPose): Dock {
   return {
     hold: pose,
     cells: floorCells(pose),
-    seats: seatWorldPositions(pose, SPORTSBOAT_PROFILE.seats.positions),
+    seats: seatWorldPositions(pose, SPORTSBOAT_PROFILE.seats.positions).map(
+      (at, i) => (i === DRIVER_SEAT ? { ...at, driver: true } : at),
+    ),
   };
 }
 
@@ -116,6 +136,8 @@ export interface SportsboatDriveState {
 }
 
 export class SportsboatDrive implements Drive {
+  private icebreakerOn: boolean;
+  private readonly icebreakerSync: SyncedValue<boolean>;
   private motion: MotionState;
   private readonly beachedTyres: TyreLimits;
   private dragEstimate: number | undefined;
@@ -123,6 +145,10 @@ export class SportsboatDrive implements Drive {
   private roll = 0;
   private docked: HoldPose | undefined;
   private stillTicks = 0;
+  private lastCut: LastCut | undefined;
+  private resendDocked = false;
+  // Until the drive first holds, the entity keeps its default docked value and needs no resend.
+  private heldOnce = false;
   private restoredDocked: boolean;
   private readonly trimSync = new SyncedValue<number>();
   private readonly rollSync = new SyncedValue<number>();
@@ -135,6 +161,8 @@ export class SportsboatDrive implements Drive {
     private readonly creepSpeed: number = SPORTSBOAT_SPEC.creepSpeed,
   ) {
     this.motion = initialMotion(yaw);
+    this.icebreakerOn = restored.icebreaker === true;
+    this.icebreakerSync = new SyncedValue({ value: this.icebreakerOn });
     this.restoredDocked = restored.docked === true;
     // A beached hull has no handbrake and does not creep (beachedInput), so
     // stepMotion never reads these; the grip stands in for the handbrake grip.
@@ -199,7 +227,64 @@ export class SportsboatDrive implements Drive {
     return [];
   }
 
+  toolState(item: string): string | undefined {
+    if (item !== ICEBREAKER_SWITCH_ITEM) return undefined;
+    return this.icebreakerOn ? "on" : "off";
+  }
+
+  setToolState(item: string, state: string): boolean {
+    if (item !== ICEBREAKER_SWITCH_ITEM || (state !== "on" && state !== "off"))
+      return false;
+    this.icebreakerOn = state === "on";
+    return true;
+  }
+
+  resync(): void {
+    this.icebreakerSync.resync();
+    this.resendDocked = this.heldOnce;
+    this.trimSync.resync();
+    this.rollSync.resync();
+  }
+
   step(raw: RawInput | undefined, ctx: TickContext): DriveStep {
+    const wasDocked = this.docked !== undefined || this.restoredDocked;
+    const hull = this.stepHull(raw, ctx);
+    const icebreaker = this.icebreakerSync.next(this.icebreakerOn);
+    const step =
+      icebreaker === undefined
+        ? hull
+        : {
+            ...hull,
+            commands: [...hull.commands, icebreakerCommand(icebreaker)],
+          };
+    const held = this.docked !== undefined;
+    this.heldOnce ||= held;
+    if (!this.resendDocked) return step;
+    this.resendDocked = false;
+    // The docked property goes out only when the hull docks or departs, so after a failed
+    // send it goes out again unless this step docks or departs and sends it anyway (ADR 0156).
+    // A held step skips the attitude latches, so it resends trim and roll here too.
+    if (held !== wasDocked) return step;
+    return {
+      ...step,
+      commands: [
+        ...step.commands,
+        dockedCommand(held),
+        ...(held ? this.attitudeCommands() : []),
+      ],
+    };
+  }
+
+  private attitudeCommands(): EngineCommand[] {
+    const commands: EngineCommand[] = [];
+    const trim = this.trimSync.next(this.trim);
+    if (trim !== undefined) commands.push(trimCommand(trim));
+    const roll = this.rollSync.next(this.roll);
+    if (roll !== undefined) commands.push(rollCommand(roll));
+    return commands;
+  }
+
+  private stepHull(raw: RawInput | undefined, ctx: TickContext): DriveStep {
     if (this.restoredDocked && !this.docked) {
       this.docked = { ...ctx.location, yaw: this.motion.yaw };
       this.restoredDocked = false;
@@ -224,12 +309,14 @@ export class SportsboatDrive implements Drive {
     const motion = this.motion;
     let step: MotionResult;
     // Body height bounds the query because the boat only tests whether depth is above zero.
+    const liquidAt = (offset: import("../../../shared/vec").Vec3) =>
+      ctx.waterAt(offset) || (ctx.lavaAt?.(offset) ?? false);
     const depth = waterDepthAt(
       ctx.location,
-      ctx.waterAt,
+      liquidAt,
       SPORTSBOAT_PROFILE.body.height,
     );
-    const afloat = isAfloat(depth, () => waterBelowAt(ctx.waterAt));
+    const afloat = isAfloat(depth, () => waterBelowAt(liquidAt));
     if (afloat) {
       const waterDrag = estimateWaterDrag(
         this.dragEstimate,
@@ -271,7 +358,7 @@ export class SportsboatDrive implements Drive {
         : 0;
     if (this.stillTicks >= DOCK.ticks) {
       const holdY = holdHeight(ctx.location.y, (dy) =>
-        ctx.waterAt({ x: 0, y: dy, z: 0 }),
+        liquidAt({ x: 0, y: dy, z: 0 }),
       );
       if (holdY !== undefined) {
         this.docked = { ...ctx.location, y: holdY, yaw: step.state.yaw };
@@ -300,18 +387,51 @@ export class SportsboatDrive implements Drive {
         this.limits,
       );
     }
-    const trim = this.trimSync.next(this.trim);
-    if (trim !== undefined) commands.push(trimCommand(trim));
-    const roll = this.rollSync.next(this.roll);
-    if (roll !== undefined) commands.push(rollCommand(roll));
-    // Buoyancy and gravity belong to the engine, so the script never pushes vertically.
+    commands.push(...this.attitudeCommands());
+    // Buoyancy and gravity belong to the engine. The script pushes vertically only while the
+    // water over the feet is deeper than surfacing.maxDepth (ADR 0175).
     return {
-      impulse: { x: step.impulse.x, y: 0, z: step.impulse.z },
+      impulse: {
+        x: step.impulse.x,
+        y: afloat ? surfaceLift(depth) : 0,
+        z: step.impulse.z,
+      },
       forward: step.forward,
       commands,
       riders: { thirdPerson: false, underwater: false },
       boardDeckRiders,
+      ...(this.icebreakerCut(
+        raw,
+        ctx,
+        afloat,
+        control.throttle,
+        step.state.yaw,
+      ) && {
+        cut: icebreakerColumns(ctx.location, step.state.yaw),
+      }),
       ...(this.docked && { dock: dockAt(this.docked) }),
     };
+  }
+
+  private icebreakerCut(
+    raw: RawInput | undefined,
+    ctx: TickContext,
+    afloat: boolean,
+    throttle: number,
+    yaw: number,
+  ): boolean {
+    const blocked =
+      this.icebreakerOn &&
+      raw !== undefined &&
+      afloat &&
+      throttle > 0 &&
+      bowBlocked(ctx.location, yaw, ctx.solidAt);
+    if (!blocked) {
+      this.lastCut = undefined;
+      return false;
+    }
+    if (!recutDue(this.lastCut, ctx.tick, ctx.location)) return false;
+    this.lastCut = { tick: ctx.tick, location: ctx.location };
+    return true;
   }
 }

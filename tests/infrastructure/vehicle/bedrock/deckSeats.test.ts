@@ -7,14 +7,51 @@ import type { DeckSeatSpot } from "../../../../src/domain/vehicle/dock/dock";
 import { DECK_SEAT_REACH } from "../../../../src/domain/vehicle/kinds/index";
 import {
   DeckSeats,
+  deckSeatRide,
   removeOrphanDeckSeat,
 } from "../../../../src/infrastructure/vehicle/bedrock/deckSeats";
 import {
   DECK_SEAT_COMPACT_EVENT,
+  DECK_SEAT_DRIVER_EVENT,
   DECK_SEAT_OF_PROPERTY,
   DECK_SEAT_TYPE,
   DECK_SEATS_PROPERTY,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
+
+it("resolves a rider's deck seat to its vehicle and seat index", () => {
+  const { car, dimension } = fixture();
+  const seat = dimension.spawnEntity(DECK_SEAT_TYPE, { x: 0, y: 0, z: 0 });
+  seat.setDynamicProperty(DECK_SEAT_OF_PROPERTY, car.id);
+  car.setDynamicProperty(DECK_SEATS_PROPERTY, JSON.stringify([seat.id]));
+  const player = {
+    getComponent: () => ({ entityRidingOn: seat }),
+  } as unknown as import("@minecraft/server").Player;
+  expect(deckSeatRide(player)).toEqual({ vehicle: car, seat: 0 });
+  car.setDynamicProperty(DECK_SEATS_PROPERTY, JSON.stringify([]));
+  expect(deckSeatRide(player)).toBeUndefined();
+});
+
+it("resolves no vehicle for a rider of a deck seat that lost its owner", () => {
+  const { boat, car, dimension, entities, entity } = fixture();
+  const seat = dimension.spawnEntity(DECK_SEAT_TYPE, { x: 0, y: 0, z: 0 });
+  car.setDynamicProperty(DECK_SEATS_PROPERTY, JSON.stringify([seat.id]));
+  const player = {
+    getComponent: () => ({ entityRidingOn: seat }),
+  } as unknown as import("@minecraft/server").Player;
+  // A seat left over from a removed vehicle must not give its rider a vehicle's controls.
+  // The lookup would find the car for any id, so only the owner check can refuse.
+  game.getEntity.mockReturnValue(car);
+  expect(deckSeatRide(player)).toBeUndefined();
+  game.getEntity.mockImplementation((id: string) => entities.get(id));
+  const cow = entity("cow", "minecraft:cow");
+  cow.setDynamicProperty(DECK_SEATS_PROPERTY, JSON.stringify([seat.id]));
+  seat.setDynamicProperty(DECK_SEAT_OF_PROPERTY, cow.id);
+  expect(deckSeatRide(player)).toBeUndefined();
+  seat.setDynamicProperty(DECK_SEAT_OF_PROPERTY, car.id);
+  expect(deckSeatRide(player)).toEqual({ vehicle: car, seat: 0 });
+  boat.isValid = false;
+  expect(deckSeatRide(player)).toBeUndefined();
+});
 
 const game = vi.hoisted(() => ({ getEntity: vi.fn() }));
 vi.mock("@minecraft/server", () => ({ world: game }));
@@ -82,6 +119,7 @@ function fixture() {
     boat,
     car: boat as unknown as Entity,
     entities,
+    entity,
     dimension,
     boarded,
     blocks,
@@ -360,6 +398,48 @@ it("triggers the compact event once on each newly spawned compact seat only (ADR
                 DECK_SEAT_COMPACT_EVENT,
               );
             else expect(seat.triggerEvent).not.toHaveBeenCalled();
+          });
+        check();
+        seats.keep(asVehicleId(f.car.id), f.car, spots, 0);
+        check();
+      },
+    ),
+  );
+});
+
+it("triggers the driver event once on each newly spawned driver seat only (ADR 0177)", () => {
+  fc.assert(
+    fc.property(
+      fc.array(fc.record({ compact: fc.boolean(), driver: fc.boolean() }), {
+        minLength: 1,
+        maxLength: 6,
+      }),
+      (flags) => {
+        const f = fixture();
+        const seats = new DeckSeats();
+        const spots = flags.map(({ compact, driver }, x) => ({
+          x,
+          y: 0,
+          z: 0,
+          ...(compact && { compact }),
+          ...(driver && { driver }),
+        }));
+        seats.keep(asVehicleId(f.car.id), f.car, spots, 0);
+        const ids: string[] = JSON.parse(
+          String(f.boat.saved.get(DECK_SEATS_PROPERTY)),
+        );
+        const check = () =>
+          ids.forEach((id, i) => {
+            const seat = f.entities.get(id);
+            const flag = flags[i];
+            if (!seat || !flag) throw new Error("missing seat");
+            const events = [
+              ...(flag.compact ? [DECK_SEAT_COMPACT_EVENT] : []),
+              ...(flag.driver ? [DECK_SEAT_DRIVER_EVENT] : []),
+            ];
+            expect(seat.triggerEvent).toHaveBeenCalledTimes(events.length);
+            for (const event of events)
+              expect(seat.triggerEvent).toHaveBeenCalledWith(event);
           });
         check();
         seats.keep(asVehicleId(f.car.id), f.car, spots, 0);

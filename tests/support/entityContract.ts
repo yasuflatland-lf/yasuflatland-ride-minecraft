@@ -1,0 +1,91 @@
+import { expect } from "vitest";
+import type { EngineCommand } from "../../src/domain/vehicle/drive";
+import {
+  type EntityContract,
+  MONITOR_PROPERTY_NAME,
+  type PropertySpec,
+} from "../../src/domain/vehicle/entityContract";
+import { monitorPropertySpec } from "../../src/domain/vehicle/monitor/monitor";
+import type { VehicleProfile } from "../../src/domain/vehicle/profile";
+
+function expectInRange(
+  value: unknown,
+  [min, max]: readonly [number, number],
+): void {
+  expect(value).toBeGreaterThanOrEqual(min);
+  expect(value).toBeLessThanOrEqual(max);
+}
+
+/** The monitor's spec follows the profile's rule, since the core writes it and no kind contract may declare it (ADR 0139). */
+function declaredSpec(
+  name: string,
+  contract: EntityContract,
+  profile: VehicleProfile,
+): PropertySpec | undefined {
+  if (name !== MONITOR_PROPERTY_NAME) return contract.properties[name];
+  return profile.monitor && monitorPropertySpec(profile.monitor);
+}
+
+/** Fails unless the contract (or, for the monitor, the profile's rule) declares `command` and its value fits the declared type and range. Contracts declare no sounds, so only a sound's name is checked. */
+export function expectDeclaredCommand(
+  command: EngineCommand,
+  contract: EntityContract,
+  profile: VehicleProfile,
+): void {
+  switch (command.type) {
+    case "setProperty": {
+      const spec = declaredSpec(command.name, contract, profile);
+      if (!spec) throw new Error(`Undeclared property ${command.name}`);
+      switch (spec.type) {
+        case "enum":
+          expect(spec.values).toContain(command.value);
+          break;
+        case "bool":
+          expect(typeof command.value).toBe("boolean");
+          break;
+        case "int":
+          expect(Number.isInteger(command.value)).toBe(true);
+          expectInRange(command.value, spec.range);
+          break;
+        case "float":
+          expect(typeof command.value).toBe("number");
+          expectInRange(command.value, spec.range);
+          break;
+        default: {
+          // A spec type with no case here would let every value pass, the bug
+          // behind #529; `never` makes tsc fail instead.
+          const unchecked: never = spec;
+          throw new Error(
+            `Unchecked property spec ${JSON.stringify(unchecked)}`,
+          );
+        }
+      }
+      break;
+    }
+    case "triggerEvent":
+      expect(contract.events).toContain(command.name);
+      break;
+    case "playAnimation":
+      expect(contract.animations).toContain(command.name);
+      break;
+    case "playSound":
+      expect(typeof command.name).toBe("string");
+      break;
+  }
+}
+
+/** Fails unless a BP property definition's default fits its spec's range, and, for int, the bounds and default are integers. */
+export function expectPackProperty(
+  definition: { default?: unknown },
+  spec: PropertySpec,
+): void {
+  if (spec.type !== "float" && spec.type !== "int") return;
+  expect(spec.range[0]).toBeLessThanOrEqual(spec.range[1]);
+  expect(typeof definition.default).toBe("number");
+  expectInRange(definition.default, spec.range);
+  if (spec.type === "int") {
+    expect(Number.isInteger(spec.range[0])).toBe(true);
+    expect(Number.isInteger(spec.range[1])).toBe(true);
+    expect(Number.isInteger(definition.default)).toBe(true);
+  }
+}

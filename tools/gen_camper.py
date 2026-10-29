@@ -14,6 +14,14 @@ import sys
 import zlib
 from pathlib import Path
 
+# Isolated mode (-I) omits the script directory from the import path.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from tool_loader import load_tool
+
+cube_tilt = load_tool("cube_tilt")
+assert_axes, compound_cubes = cube_tilt.assert_axes, cube_tilt.compound_cubes
+ASSEMBLIES = {"slanted": {"owner": "camper", "cubes": 6}}
+
 RP = Path(sys.argv[1])
 MODELS = RP / "models/entity/yasu_ride"
 ENTITY_TEXTURES = RP / "textures/entity/yasu_ride"
@@ -57,6 +65,10 @@ PALETTE = {
     "dome": (250, 244, 218, 0),
 }
 SLOTS = list(PALETTE)
+EMISSIVE_LIT = 255
+MER_LIT = (0, EMISSIVE_LIT, 255)
+MER_OFF = (0, 0, 255)
+LIT_SLOTS = tuple(SLOTS.index(name) for name in ("lens", "dome"))
 
 # Accent bases follow the SUV paints (ADR 0031); the white shell never changes.
 ACCENT_BASES = {
@@ -165,6 +177,43 @@ def shift_in_slices(cube, cuts, dz_at):
     return pieces
 
 
+def vent_cover(z0, z1, y0, y1):
+    """An aluminium-rimmed lid with two columns of louvre slits over a plain lower third (ADR 0157)."""
+    band = HW + 0.1  # the khaki band's outer face
+    w, r = VENT_RIM, VENT_CORNER
+    iz0, iz1, iy0, iy1 = z0 + w, z1 - w, y0 + w, y1 - w
+    rim_top = band + 0.4
+    cubes = [
+        # The rim ring, with each outer corner cut by r so the lid reads as a rounded rectangle.
+        box(band, y1 - w, z0 + w, rim_top, y1, z1 - w, "chrome"),
+        box(band, y0, z0 + w, rim_top, y0 + w, z1 - w, "chrome"),
+        box(band, y0 + w, z0, rim_top, y1 - w, z0 + w, "chrome"),
+        box(band, y0 + w, z1 - w, rim_top, y1 - w, z1, "chrome"),
+    ]
+    for outer_z, inner_z in (((z0, z0 + r), (z0 + r, z0 + w)), ((z1 - r, z1), (z1 - w, z1 - r))):
+        for outer_y, inner_y in (((y0, y0 + r), (y0 + r, y0 + w)), ((y1 - r, y1), (y1 - w, y1 - r))):
+            cy0, cy1 = min(*outer_y, *inner_y), max(*outer_y, *inner_y)
+            cubes.append(box(band, cy0, inner_z[0], rim_top, cy1, inner_z[1], "chrome"))
+            cubes.append(box(band, inner_y[0], outer_z[0], rim_top, inner_y[1], outer_z[1], "chrome"))
+    # Louvre slits in the upper two thirds, in a left and a right column; the lower third stays plain.
+    mid = (iz0 + iz1) / 2
+    columns = ((iz0 + VENT_SLIT_MARGIN, mid - VENT_SLIT_GAP / 2), (mid + VENT_SLIT_GAP / 2, iz1 - VENT_SLIT_MARGIN))
+    top = iy1 - VENT_SLIT_MARGIN
+    slits = [
+        (sz0, sz1, top - i * VENT_SLIT_PITCH - VENT_SLIT, top - i * VENT_SLIT_PITCH)
+        for sz0, sz1 in columns
+        for i in range(VENT_SLITS)
+    ]
+    # The panel sits 0.2 px under the rim; each slit is a further 0.1 px recess onto black.
+    cubes += panel("x", band, band + 0.2, iz0, iz1, iy0, iy1, slits, "white")
+    cubes += [box(band, sy0, sz0, band + 0.1, sy1, sz1, "black") for sz0, sz1, sy0, sy1 in slits]
+    cubes.append(box(band + 0.2, iy0 + 0.4, mid - 0.6, band + 0.45, iy0 + 1.0, mid + 0.6, "steel"))  # latch
+    for sz in (z0 + w / 2, mid, z1 - w / 2):  # screw heads on the rim
+        for sy in (y0 + w / 2, y1 - w / 2):
+            cubes.append(box(rim_top, sy - 0.15, sz - 0.15, rim_top + 0.05, sy + 0.15, sz + 0.15, "steel"))
+    return cubes
+
+
 body = []
 
 # --- Floor, roof and walls -------------------------------------------------
@@ -173,6 +222,10 @@ body.append(box(-HW, CEIL, FRONT + 8.5, HW, ROOF, REAR_INNER, "white"))  # the c
 body.append(box(-HW + 1, CEIL - 0.2, FRONT + 1, HW - 1, CEIL, REAR_INNER, "panel"))
 
 WIN_Y = (36, 49)
+VENT_COVER = (40.5, 49.5, 36.5, 48.5)
+VENT_RIM, VENT_CORNER = 0.7, 0.35
+VENT_SLITS, VENT_SLIT, VENT_SLIT_PITCH = 12, 0.25, 0.6
+VENT_SLIT_MARGIN, VENT_SLIT_GAP = 0.5, 0.8
 BAND_Y = (34.5, 50.5)
 STRIPE_Y = (29.5, 31.5)
 # The rear seen from the side, from the rear-corner photo: the top leans out to the roof
@@ -241,6 +294,12 @@ def w_stroke(x0, x1, bottom, top, y_top):
     return cube, drop
 
 
+def w_arm_inner(y):
+    """The p of an outer arm's inner edge at height y, a straight line through the arm's top
+    corner on the stripe's lower edge and its foot, extended up through the stripe."""
+    return W_ARM_START[1] + (W_FOOT[1] - W_ARM_START[1]) * (STRIPE_Y[0] - y) / (STRIPE_Y[0] - W_BOTTOM)
+
+
 def w_fill(x0, x1, span, y0, y1):
     return box(x0, y0, w_z(span[1]), x1, y1, w_z(span[0]), "stripe")
 
@@ -258,7 +317,7 @@ for a0, a1 in ARCHES:  # straight up to ARCH_SLOPE_Y, then sloping in by ARCH_IN
         arch_holes.append((a0 + inset, a1 - inset, y, y + ARCH_STEP))
 # The window over the counter is as long as the one ahead of the door and centered between
 # the door and the rear window, so the stove and the sink look out (ADR 0113).
-right_windows = [CAB_WIN, (-35, -10, *WIN_Y), (10, 35, *WIN_Y), (38, 50, *WIN_Y), (-31, -19, 56, 59)]
+right_windows = [CAB_WIN, (-35, -10, *WIN_Y), (10, 35, *WIN_Y), (-31, -19, 56, 59)]
 left_windows = [CAB_WIN, (-29, -5, *WIN_Y), (-19, -8, 56, 59), (16, 21, *WIN_Y), (40, 49, *WIN_Y)]
 for x0, x1, windows in ((HW - 1, HW, right_windows), (-HW, -HW + 1, left_windows)):
     right = x0 > 0
@@ -282,12 +341,23 @@ for x0, x1, windows in ((HW - 1, HW, right_windows), (-HW, -HW + 1, left_windows
     lo, hi = (out, out + 0.12) if right else (out - 0.12, out)
     # The stripe dips into a large W ahead of the door; the W's top stays open between
     # its outer arms. The owner chose to keep this logo, an exception recorded in ADR 0067.
-    w_open = (w_z(W_ARM_END[0]), w_z(W_ARM_START[1]))  # only between the outer arms
+    # Its ends follow the arms' inner edges up through the stripe, so the outline has no step
+    # where the stripe meets an arm: the panel is open at the widest, and quarter-pixel rows
+    # stay inside the edge line (ADR 0145).
+    w_wide = w_arm_inner(STRIPE_Y[1])
+    w_open = (w_z(1 - w_wide), w_z(w_wide))
     body += panel("x", lo, hi, STRIPE_FRONT, REAR_INNER, *STRIPE_Y, door_cut + [(*w_open, *STRIPE_Y)], "stripe")
     y = STRIPE_Y[0]
     while y < STRIPE_Y[1] - 1e-6:  # the front end is cut on a slant, its top reaching further
         f = (y + 0.125 - STRIPE_Y[0]) / (STRIPE_Y[1] - STRIPE_Y[0])
         body.append(box(lo, y, STRIPE_FRONT - 3 * f, hi, y + 0.25, STRIPE_FRONT, "stripe"))
+        y += 0.25
+    y = STRIPE_Y[0]
+    while y < STRIPE_Y[1] - 1e-6:
+        p_row = w_arm_inner(y + 0.25)
+        if p_row < w_wide - 1e-6:  # the top row would be flush with the panel's end
+            body.append(box(lo, y, w_z(p_row), hi, y + 0.25, w_z(w_wide), "stripe"))
+            body.append(box(lo, y, w_z(1 - w_wide), hi, y + 0.25, w_z(1 - p_row), "stripe"))
         y += 0.25
     drops = {}
     for bottom, top, y_top in W_STROKES:
@@ -321,8 +391,8 @@ for x0, x1, windows in ((HW - 1, HW, right_windows), (-HW, -HW + 1, left_windows
 
 body.append(box(HW, WIN_Y[0], -22.8, HW + 0.2, WIN_Y[1], -22.2, "chrome"))  # double window dividers
 body.append(box(-HW - 0.2, WIN_Y[0], -17.3, -HW, WIN_Y[1], -16.7, "chrome"))
-body.append(box(HW, 56, DOOR[1] + 0.8, HW + 0.5, 58, DOOR[1] + 2.6, "amber"))  # porch light
 body.append(box(HW, 13, 10, HW + 0.3, 19, 17, "slat"))  # small louvered vent
+body += vent_cover(*VENT_COVER)
 # Louvered hatch low at the rear corner of both sides, small utility boxes.
 for sx in (HW, -HW):
     o = 0.3 if sx > 0 else -0.3
@@ -334,6 +404,7 @@ body.append(box(-HW - 0.4, 19, 14, -HW - 0.3, 20, 15.5, "chrome"))
 
 # Entry door stays closed until the later parking work; a fold-out step stays below it.
 DZ0, DZ1, DY0, DY1 = DOOR
+DOOR_HANDLE_Y = (STRIPE_Y[0] - 1.5, STRIPE_Y[0] - 0.5)  # half a pixel below the stripe (ADR 0145)
 door = [box(HW - 1, DY0, DZ0 + 0.1, HW, DY1, DZ1 - 0.1, "white")]
 # The door window lines up with the side windows, as on the close-up photo.
 DW0, DW1 = DZ0 + 3, DZ1 - 3
@@ -344,8 +415,8 @@ for fz0, fz1, fy0, fy1 in ((DW0 - 0.6, DW1 + 0.6, WIN_Y[0] - 0.6, WIN_Y[0]), (DW
 door.append(box(HW, STRIPE_Y[0], DZ0 + 0.1, HW + 0.12, STRIPE_Y[1], DZ1 - 0.1, "stripe"))
 door.append(box(HW, BAND_Y[0], DZ0 + 0.1, HW + 0.1, BAND_Y[1], DZ1 - 0.1, "khaki"))
 door.append(box(HW, DY0, DZ0 + 0.1, HW + 0.12, 15, DZ1 - 0.1, "tan"))
-door.append(box(HW, 26, DZ1 - 2.5, HW + 0.6, 27, DZ1 - 1, "chrome"))  # handle outside
-door.append(box(HW - 1.6, 26, DZ1 - 2.5, HW - 1, 27, DZ1 - 1, "chrome"))  # handle inside
+door.append(box(HW, DOOR_HANDLE_Y[0], DZ1 - 2.5, HW + 0.6, DOOR_HANDLE_Y[1], DZ1 - 1, "chrome"))  # handle outside
+door.append(box(HW - 1.6, DOOR_HANDLE_Y[0], DZ1 - 2.5, HW - 1, DOOR_HANDLE_Y[1], DZ1 - 1, "chrome"))  # handle inside
 DOOR_HINGE = [HW, 0, DZ0]
 body.append(box(HW, 7, DZ0 + 1, HW + 6, 8, DZ1 - 1, "black"))
 body.append(box(HW, 3.5, DZ0 + 1, HW + 6, 4.5, DZ1 - 1, "black"))
@@ -602,6 +673,9 @@ for sx in (1, -1):
     body.append(box(x0, MY0 + 0.4, mz + 1.2, x1, MY1 - 0.4, mz + 1.3, "glass"))
 
 # --- Rear -------------------------------------------------------------------
+# Static amber turn signals outside the tail lights, clear of the ladder (ADR 0145).
+REAR_SIGNAL_X, REAR_SIGNAL_Y = 22.9, 15.0
+REAR_SIGNAL_BEZEL_R, REAR_SIGNAL_LENS_R = 0.9, 0.65
 REAR_START = len(body)
 REAR_WIN = (-17, 17, 38, 50)
 body.append(box(-17, 38, REAR - 0.6, 17, 50, REAR - 0.4, "glass"))
@@ -624,6 +698,8 @@ body.append(box(-15, 10, REAR, 15, 11, REAR + 0.35, "tan"))
 body.append(box(-HW, BOTTOM, REAR, HW, 10, REAR + 0.15, "tan"))
 for sx in (1, -1):
     body += disc("z", sx * 19, 15, REAR + 0.2, 1.6, 0.4, "red")
+    body += disc("z", sx * REAR_SIGNAL_X, REAR_SIGNAL_Y, REAR + 0.2, REAR_SIGNAL_BEZEL_R, 0.4, "chrome", steps=STEPS_16)
+    body += disc("z", sx * REAR_SIGNAL_X, REAR_SIGNAL_Y, REAR + 0.5, REAR_SIGNAL_LENS_R, 0.3, "amber", steps=STEPS_16)
 body.append(box(-19, 17.5, REAR, -16, 21, REAR + 0.3, "panel"))  # backup light box
 body.append(box(-20, 10.5, REAR, -15, 13.5, REAR + 0.3, "white"))  # plate
 body.append(box(-HW - 0.5, 3, REAR - 1, HW + 0.5, 7.5, REAR + 2.5, "steel"))  # bumper with step slots, as the front
@@ -1279,6 +1355,8 @@ geo = {
     }],
 }
 MODELS.mkdir(parents=True, exist_ok=True)
+model_cubes = [cube for bone in geo["minecraft:geometry"][0]["bones"] for cube in bone.get("cubes", [])]
+assert_axes(model_cubes, {"slanted": compound_cubes(model_cubes)}, ASSEMBLIES)
 (MODELS / "camper.geo.json").write_text(json.dumps(rounded(geo), separators=(",", ":")))
 
 
@@ -1292,6 +1370,29 @@ def png(path, width, height, pixel):
     path.write_bytes(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", head) + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b""))
 
 
+def lit_textures(kind, width, height, pixel):
+    def is_lit(x, y):
+        return x in LIT_SLOTS
+
+    def color(x, y):
+        rgba = (*pixel(x, y), 255)[:4]
+        return (*rgba[:3], 0) if is_lit(x, y) else rgba
+
+    def mer(x, y):
+        return (*(MER_LIT if is_lit(x, y) else MER_OFF), 255)
+
+    png(ENTITY_TEXTURES / f"{kind}_lit.png", width, height, color)
+    png(ENTITY_TEXTURES / f"{kind}_lit_mer.png", width, height, mer)
+    texture_set = {
+        "format_version": "1.16.100",
+        "minecraft:texture_set": {
+            "color": f"{kind}_lit",
+            "metalness_emissive_roughness": f"{kind}_lit_mer",
+        },
+    }
+    (ENTITY_TEXTURES / f"{kind}_lit.texture_set.json").write_text(json.dumps(texture_set))
+
+
 def scale(color, factor):
     return tuple(max(0, min(255, math.floor(c * factor + 0.5))) for c in color)
 
@@ -1303,6 +1404,8 @@ for paint, base in ACCENT_BASES.items():
         colors.update(khaki=(*scale(base, 0.85), 255), stripe=(*scale(base, 0.65), 255), tan=(*base, 255))
     name = "camper" if paint == "khaki" else f"camper_{paint}"
     png(ENTITY_TEXTURES / f"{name}.png", len(SLOTS), 1, lambda x, y: colors[SLOTS[x]])
+
+lit_textures("camper", len(SLOTS), 1, lambda x, y: PALETTE[SLOTS[x]])
 
 ICON = [
     "................",

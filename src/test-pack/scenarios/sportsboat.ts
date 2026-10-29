@@ -1,11 +1,13 @@
-import type { Entity, Player } from "@minecraft/server";
+import { type Entity, type Player, system } from "@minecraft/server";
 import { asPlayerId, asVehicleId } from "../../domain/shared/ids";
 import { dot, forward, length, type Vec3 } from "../../domain/shared/vec";
+import { rebuildVehicle } from "../../domain/vehicle/kinds/index";
 import { SportsboatDrive } from "../../domain/vehicle/kinds/sportsboat/drive";
 import {
   SPORTSBOAT_MOTION,
   SPORTSBOAT_PROFILE,
 } from "../../domain/vehicle/kinds/sportsboat/profile";
+import { SPORTSBOAT_SPEC } from "../../domain/vehicle/kinds/sportsboat/spec";
 import {
   nearestSeat,
   seatWorldPositions,
@@ -16,6 +18,8 @@ import {
   DECK_SEAT_TYPE,
   entityPropertyId,
   SEAT_FILLER_TYPE,
+  TEST_HELD_TOOL_EVENT,
+  TEST_TOOL_EVENT,
 } from "../../infrastructure/vehicle/bedrock/identifiers";
 import { SeatFillers } from "../../infrastructure/vehicle/bedrock/seatFillers";
 import {
@@ -68,6 +72,31 @@ export function boatFloat(a: Arena): Promise<Outcome> {
       undefined,
       0,
     ),
+  );
+}
+
+export function boatLava(a: Arena): Promise<Outcome> {
+  return withPool(
+    a,
+    3,
+    () =>
+      withBoat(
+        a,
+        async (boat) => {
+          drive(boat, 0, 1);
+          const start = boat.location;
+          await wait(60);
+          const moved = boat.location.z - start.z;
+          const draft = a.gy - boat.location.y;
+          return {
+            pass: boat.isValid && moved > 5 && draft >= 0 && draft < 1,
+            detail: `moved=${moved.toFixed(2)} draft=${draft.toFixed(2)} valid=${boat.isValid}`,
+          };
+        },
+        POOL_SOUTH_LANE,
+        20,
+      ),
+    "lava",
   );
 }
 
@@ -255,6 +284,10 @@ export function boatDock(a: Arena): Promise<Outcome> {
   );
 }
 
+function isWater(typeId: string | undefined): boolean {
+  return typeId === "minecraft:water" || typeId === "minecraft:flowing_water";
+}
+
 function feetInWater(boat: Entity): boolean {
   const { x, y, z } = boat.location;
   const block = boat.dimension.getBlock({
@@ -262,10 +295,7 @@ function feetInWater(boat: Entity): boolean {
     y: Math.floor(y),
     z: Math.floor(z),
   });
-  return (
-    block?.typeId === "minecraft:water" ||
-    block?.typeId === "minecraft:flowing_water"
-  );
+  return isWater(block?.typeId);
 }
 
 export function boatDrag(a: Arena): Promise<Outcome> {
@@ -586,4 +616,258 @@ export async function boatSeatFillers(a: Arena): Promise<Outcome> {
     for (const cow of cows) if (cow?.isValid) cow.remove();
     if (probe?.isValid) probe.remove();
   }
+}
+
+export function boatMonitor(a: Arena): Promise<Outcome> {
+  return withBoat(a, async (boat) => {
+    const hold = async (item: string): Promise<number> => {
+      system.sendScriptEvent(TEST_HELD_TOOL_EVENT, `${boat.id},${item}`);
+      await wait(2);
+      return Number(boat.getProperty(entityPropertyId("monitor")));
+    };
+    await wait(2);
+    const off = await hold("icebreaker_switch");
+    system.sendScriptEvent(TEST_TOOL_EVENT, `${boat.id},icebreaker_switch,on`);
+    await wait(2);
+    const on = boat.getProperty(entityPropertyId("monitor"));
+    const restored = boat.getProperty(entityPropertyId("icebreaker"));
+    const rebuilt = rebuildVehicle(
+      "sportsboat",
+      asVehicleId(boat.id),
+      boat.getRotation().y,
+      [],
+      { icebreaker: restored },
+    );
+    const commands = rebuilt.tick({
+      tick: 0,
+      riders: [],
+      deckSeatInputs: [],
+      location: boat.location,
+      velocity: boat.getVelocity(),
+      onGround: boat.isOnGround,
+      waterAt: () => true,
+      solidAt: () => false,
+      blockTypes: () => [],
+      targets: () => [],
+      testHeldTool: "icebreaker_switch",
+    }).stepCommands;
+    const restoredOn = commands.some(
+      (c) => c.type === "setProperty" && c.name === "monitor" && c.value === 2,
+    );
+    const box = await hold("sportsboat_equipment_box");
+    const cleared = await hold("clear");
+    return {
+      pass:
+        off === 1 &&
+        on === 2 &&
+        box === 0 &&
+        cleared === 0 &&
+        restored === true &&
+        restoredOn,
+      detail: `off=${off} on=${on} box=${box} cleared=${cleared} saved=${restored} rebuilt=${restoredOn}`,
+    };
+  });
+}
+
+// The deepest pool the arena fits: its floor is the world's bottom layer. The
+// icebreaker never cuts below the hull floor row (ADR 0175), so the `dried` check
+// also asserts that the original bed rows stay.
+const POOL_DEPTH = 3;
+
+async function boatIcebreaker(
+  a: Arena,
+  liquid: "water" | "lava" | undefined,
+  enabled: boolean,
+): Promise<Outcome> {
+  const { dim, gy } = a;
+  const start = { x: 35.5, z: 35.5, yaw: -90 };
+  const wallX = 37;
+  const wallType =
+    liquid === "water" ? "minecraft:packed_ice" : "minecraft:stone";
+  const wall = { x: wallX, y: gy - (liquid ? 1 : 0), z: 35 };
+  const highSide = { x: wallX, y: gy + 3, z: 38 };
+  const run = () =>
+    withBoat(
+      a,
+      async (boat) => {
+        drive(boat, 0, 0);
+        await wait(2);
+        dim.runCommand(
+          `fill ${wallX} ${wall.y} 34 ${wallX} ${gy + 1} 36 ${wallType}`,
+        );
+        dim.getBlock(highSide)?.setType("minecraft:stone");
+        try {
+          system.sendScriptEvent(
+            TEST_TOOL_EVENT,
+            `${boat.id},icebreaker_switch,${enabled ? "on" : "off"}`,
+          );
+          await wait(2);
+          const switched =
+            boat.getProperty(entityPropertyId("icebreaker")) === enabled;
+          drive(boat, 0, 1);
+          let ticks = 0;
+          while (ticks < 60 && boat.location.x < wallX + 3) {
+            await wait(1);
+            ticks++;
+          }
+          drive(boat, 0, 0);
+          const wallAfter = dim.getBlock(wall)?.typeId;
+          const sideAfter = dim.getBlock(highSide)?.typeId;
+          const shouldCut = enabled && liquid !== undefined;
+          const cleared =
+            wallAfter !== undefined &&
+            wallAfter !== wallType &&
+            sideAfter === "minecraft:air";
+          const intact =
+            wallAfter === wallType && sideAfter === "minecraft:stone";
+          const moved = boat.location.x > wallX + 2;
+          const dried: string[] = [];
+          if (liquid) {
+            for (let x = 33; x <= 39; x++)
+              for (let z = 32; z <= 39; z++)
+                for (let y = gy - POOL_DEPTH; y < gy; y++) {
+                  if (x === wallX && y === wall.y && z >= 34 && z <= 36)
+                    continue;
+                  const type = dim.getBlock({ x, y, z })?.typeId;
+                  if (
+                    type !== `minecraft:${liquid}` &&
+                    type !== `minecraft:flowing_${liquid}`
+                  )
+                    dried.push(`${x},${y},${z}:${type}`);
+                }
+          }
+          return {
+            pass:
+              switched &&
+              (shouldCut ? cleared && moved : intact && !moved) &&
+              dried.length === 0,
+            detail: `switched=${switched} wall=${wallAfter} side=${sideAfter} x=${boat.location.x.toFixed(2)} ticks=${ticks} dried=${dried.length} ${dried.slice(0, 3).join(" ")}`,
+          };
+        } finally {
+          dim.runCommand(
+            `fill ${wallX} ${wall.y} 34 ${wallX} ${gy + 1} 36 air`,
+          );
+          dim.getBlock(highSide)?.setType("minecraft:air");
+        }
+      },
+      start,
+      liquid ? 20 : 0,
+    );
+  return liquid ? withPool(a, POOL_DEPTH, run, liquid) : run();
+}
+
+export function boatIcebreakerIce(a: Arena): Promise<Outcome> {
+  return boatIcebreaker(a, "water", true);
+}
+
+export function boatIcebreakerLava(a: Arena): Promise<Outcome> {
+  return boatIcebreaker(a, "lava", true);
+}
+
+export function boatIcebreakerOff(a: Arena): Promise<Outcome> {
+  return boatIcebreaker(a, "water", false);
+}
+
+export function boatIcebreakerBeached(a: Arena): Promise<Outcome> {
+  return boatIcebreaker(a, undefined, true);
+}
+
+// Step 0 trace of the sinking bug and its guard (ADR 0175): a mountain closes the
+// pool, and the boat must stay near its resting height while it cuts or stops.
+async function boatIcebreakerMountain(
+  a: Arena,
+  enabled: boolean,
+): Promise<Outcome> {
+  const { dim, gy } = a;
+  const start = { x: 35.5, z: 35.5, yaw: -90 };
+  const wallX = 37;
+  const surfacing = SPORTSBOAT_SPEC.icebreaker.surfacing;
+  const mountainTop = gy + 8;
+  // One fill is capped at 32,768 blocks, so fill the mountain in slabs along z.
+  const fillMountain = (block: string, from: number, to: number) => {
+    for (let z = POOL.minZ; z <= POOL.maxZ; z += 20)
+      dim.runCommand(
+        `fill ${wallX} ${from} ${z} ${POOL.maxX} ${to} ${Math.min(z + 19, POOL.maxZ)} ${block}`,
+      );
+  };
+  const depthAt = (p: Vec3) => {
+    const row = Math.floor(p.y);
+    let cells = 0;
+    while (
+      cells < 4 &&
+      isWater(
+        dim.getBlock({ x: Math.floor(p.x), y: row + cells, z: Math.floor(p.z) })
+          ?.typeId,
+      )
+    )
+      cells++;
+    return cells > 0 ? row + cells - p.y : 0;
+  };
+  return withPool(a, POOL_DEPTH, () =>
+    withBoat(
+      a,
+      async (boat) => {
+        drive(boat, 0, 0);
+        await wait(2);
+        fillMountain("stone", gy - POOL_DEPTH, mountainTop);
+        try {
+          system.sendScriptEvent(
+            TEST_TOOL_EVENT,
+            `${boat.id},icebreaker_switch,${enabled ? "on" : "off"}`,
+          );
+          await wait(20);
+          const restY = boat.location.y;
+          const trace: string[] = [];
+          let lowest = restY;
+          let deepest = 0;
+          drive(boat, 0, 1);
+          for (let tick = 0; tick < 80; tick++) {
+            await wait(1);
+            const p = boat.location;
+            const feet = dim.getBlock({
+              x: Math.floor(p.x),
+              y: Math.floor(p.y),
+              z: Math.floor(p.z),
+            });
+            const depth = depthAt(p);
+            lowest = Math.min(lowest, p.y);
+            deepest = Math.max(deepest, depth);
+            trace.push(
+              `${p.y.toFixed(2)}/${depth.toFixed(2)}/${feet?.typeId?.replace("minecraft:", "")}`,
+            );
+          }
+          drive(boat, 0, 0);
+          const cell = dim.getBlock({ x: wallX, y: gy, z: 35 })?.typeId;
+          const bedHoles: string[] = [];
+          for (let x = 33; x <= wallX + 8; x++)
+            for (let z = 32; z <= 39; z++)
+              for (let y = gy - POOL_DEPTH; y < gy - 1; y++) {
+                const type = dim.getBlock({ x, y, z })?.typeId;
+                if (type === "minecraft:air") bedHoles.push(`${x},${y},${z}`);
+              }
+          const steady =
+            lowest >= restY - 0.6 && deepest <= surfacing.maxDepth + 0.2;
+          const wallOk = enabled
+            ? cell !== "minecraft:stone"
+            : cell === "minecraft:stone" && boat.location.x < wallX;
+          return {
+            pass: steady && wallOk && bedHoles.length === 0,
+            detail: `rest=${restY.toFixed(2)} lowest=${lowest.toFixed(2)} deepest=${deepest.toFixed(2)} cell=${cell} x=${boat.location.x.toFixed(2)} bedAir=${bedHoles.length} ${bedHoles.slice(0, 3).join(" ")} trace(y/depth/feet)=${trace.filter((_, i) => i % 4 === 0).join(" ")}`,
+          };
+        } finally {
+          fillMountain("air", gy, mountainTop);
+        }
+      },
+      start,
+      20,
+    ),
+  );
+}
+
+export function boatIcebreakerMountainOn(a: Arena): Promise<Outcome> {
+  return boatIcebreakerMountain(a, true);
+}
+
+export function boatIcebreakerMountainOff(a: Arena): Promise<Outcome> {
+  return boatIcebreakerMountain(a, false);
 }

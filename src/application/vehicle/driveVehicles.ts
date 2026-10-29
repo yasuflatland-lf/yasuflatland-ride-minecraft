@@ -2,7 +2,9 @@ import type { PlayerId, VehicleId } from "../../domain/shared/ids";
 // Use case: every tick, move all loaded vehicles.
 import { rebuildVehicle } from "../../domain/vehicle/kinds/index";
 import type { ChaseCamera } from "../../domain/vehicle/profile";
+import type { TickOutcome } from "../../domain/vehicle/vehicle";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
+import type { ChaseCameraWish } from "../shared/ports/chaseCamera";
 import { forEachIsolated } from "./isolated";
 import type { DriveWorld, VehicleSnapshot } from "./ports/drive";
 import type { Logger } from "./ports/shared";
@@ -15,6 +17,7 @@ export class DriveVehicles {
     private readonly world: DriveWorld,
     private readonly repo: VehicleRepository,
     private readonly log: Logger,
+    private readonly wantsChaseCamera: ChaseCameraWish,
   ) {
     this.riders = new RiderEffects(world, log);
   }
@@ -23,12 +26,19 @@ export class DriveVehicles {
     const seen = new Set<VehicleId>();
     const thirdPersonRiders = new Map<PlayerId, ChaseCamera>();
     const underwater = new Set<PlayerId>();
+    const fireProtected = new Set<PlayerId>();
     // A failure in one vehicle must not stop the others.
     forEachIsolated(
       this.world.loadedVehicles(),
       (snap) => {
         seen.add(snap.id);
-        this.tickVehicle(snap, tick, thirdPersonRiders, underwater);
+        this.tickVehicle(
+          snap,
+          tick,
+          thirdPersonRiders,
+          underwater,
+          fireProtected,
+        );
       },
       this.log,
       (snap) => snap.id,
@@ -36,6 +46,16 @@ export class DriveVehicles {
     this.releaseGone(seen);
     this.riders.syncCameras(thirdPersonRiders);
     this.riders.refreshWaterBreathing(underwater, tick);
+    this.riders.protectFromFire(fireProtected);
+  }
+
+  private wishCamera(
+    rider: PlayerId,
+    camera: ChaseCamera,
+    thirdPersonRiders: Map<PlayerId, ChaseCamera>,
+  ): void {
+    if (!thirdPersonRiders.has(rider) && this.wantsChaseCamera(rider))
+      thirdPersonRiders.set(rider, camera);
   }
 
   private tickVehicle(
@@ -43,6 +63,7 @@ export class DriveVehicles {
     tick: number,
     thirdPersonRiders: Map<PlayerId, ChaseCamera>,
     underwater: Set<PlayerId>,
+    fireProtected: Set<PlayerId>,
   ): void {
     let vehicle = this.repo.get(snap.id);
     if (!vehicle) {
@@ -59,32 +80,51 @@ export class DriveVehicles {
       );
       this.repo.save(vehicle);
     }
-    const out = vehicle.tick({
-      tick,
-      riders: snap.riders,
-      deckSeatInputs: snap.deckSeatInputs,
-      deckSeatRiders: snap.deckSeatRiders,
-      testInput: snap.testInput,
-      location: snap.location,
-      velocity: snap.velocity,
-      onGround: snap.onGround,
-      waterAt: (offset) => this.world.waterAt(snap.id, offset),
-      solidAt: (offset) => this.world.solidAt(snap.id, offset),
-      blockTypes: (cells) => this.world.blockTypes(snap.id, cells),
-      targets: () => this.world.targetsNear(snap.id),
-    });
-    // Commands are sent on change, so send them before anything else that could throw.
-    this.world.run(snap.id, out.stepCommands);
+    let out: TickOutcome;
+    try {
+      out = vehicle.tick({
+        tick,
+        riders: snap.riders,
+        deckSeatInputs: snap.deckSeatInputs,
+        deckSeatRiders: snap.deckSeatRiders,
+        testInput: snap.testInput,
+        testHeldTool: snap.testHeldTool,
+        location: snap.location,
+        velocity: snap.velocity,
+        onGround: snap.onGround,
+        waterAt: (offset) => this.world.waterAt(snap.id, offset),
+        lavaAt: (offset) => this.world.lavaAt(snap.id, offset),
+        solidAt: (offset) => this.world.solidAt(snap.id, offset),
+        blockTypes: (cells) => this.world.blockTypes(snap.id, cells),
+        targets: () => this.world.targetsNear(snap.id),
+      });
+      // Latches advance while building commands; a failed tick or send must retry every value (ADR 0127).
+      this.world.run(snap.id, out.stepCommands);
+    } catch (error) {
+      vehicle.resync();
+      throw error;
+    }
     if (out.message && out.driverId)
       this.world.showMessage(out.driverId, out.message);
     this.world.holdAt(snap.id, out.dock?.hold);
     if (out.clear.length > 0) this.world.clearBlocks(snap.id, out.clear);
-    if (out.riders.thirdPerson) {
-      const camera = vehicle.chaseCamera;
+    if (out.cut.length > 0) this.world.cutColumns(snap.id, out.cut);
+    const camera = vehicle.chaseCamera;
+    if (out.riders.thirdPerson)
       for (const rider of snap.riders) thirdPersonRiders.set(rider.id, camera);
-    }
+    // Another feature may want the chase camera for a seated rider the form leaves in first person.
+    for (const rider of snap.riders)
+      this.wishCamera(rider.id, camera, thirdPersonRiders);
+    for (const rider of snap.deckSeatRiders)
+      if (rider !== undefined)
+        this.wishCamera(rider, camera, thirdPersonRiders);
     if (out.riders.underwater)
       for (const rider of snap.riders) underwater.add(rider.id);
+    if (snap.kind === "sportsboat") {
+      for (const rider of snap.riders) fireProtected.add(rider.id);
+      for (const rider of snap.deckSeatRiders)
+        if (rider !== undefined) fireProtected.add(rider);
+    }
     if (!out.dock) this.world.applyMotion(snap.id, out.impulse, out.yaw);
     if (out.seatLayout) this.world.keepSeatLayout(snap.id, out.seatLayout);
     if (out.boardDeckRiders) this.world.boardDeckRiders(snap.id);
@@ -98,6 +138,8 @@ export class DriveVehicles {
     );
     for (const hit of out.hits) this.world.damage(hit, out.driverId);
     this.world.run(snap.id, out.finalCommands);
+    for (const exit of out.exits)
+      this.world.standRiderAt(snap.id, exit.playerId, exit.at);
   }
 
   private releaseGone(seen: ReadonlySet<VehicleId>): void {

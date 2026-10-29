@@ -1,4 +1,6 @@
-// Shared transforming drivetrain: forms, landing gear, bank, and vertical motion (ADR 0050).
+// Shared transforming drivetrain: forms, landing gear, bank, and vertical motion, with a per-kind control mapping, horizontal step, and per-tick step-up hook (ADR 0050, 0089).
+
+import { SyncedValue } from "../../shared/syncedValue";
 import { clamp, localOffset, type Vec2 } from "../../shared/vec";
 import type {
   Drive,
@@ -8,7 +10,6 @@ import type {
   TickContext,
 } from "../drive";
 import { NEUTRAL_CONTROL, type RawInput, toDriveInput } from "../driveInput";
-import { SyncedValue } from "../syncedValue";
 import { bankSink, stepBank } from "./bank";
 import { MOTION } from "./constants";
 import {
@@ -38,6 +39,8 @@ import { submarineVerticalSpeed } from "./submarine";
 import type { TransformingSpec } from "./transforming";
 import { bankCommand, formCommands, gearCommand } from "./transformingEntity";
 import { waterDepthAt } from "./water";
+
+const NO_STEP: StepProbe = () => 0;
 
 function stepProbe(
   ctx: TickContext,
@@ -107,13 +110,76 @@ export type StepGuard = (
   form: Form,
 ) => MotionResult;
 
+/** What a kind's horizontal step reads each tick. */
+export interface HorizontalStepInput {
+  readonly state: MotionState;
+  readonly input: GroundInput;
+  readonly ctx: TickContext;
+  readonly form: Form;
+  /** Jump went down this tick after being up the tick before. */
+  readonly jumpTapped: boolean;
+  /** The car-form step probe; it never finds a step on a tick when `stepUpEnabled()` is false. */
+  readonly probe: StepProbe;
+  readonly spec: TransformingSpec;
+  readonly limits: MotionLimits;
+  readonly tyres: TyreLimits;
+}
+
+export type HorizontalStep = (h: HorizontalStepInput) => MotionResult;
+
+/** Today's step: stepMotion in car form, stepMediumMotion (spec.water as a submarine, else spec.air) otherwise. */
+export function transformingHorizontalStep(
+  h: HorizontalStepInput,
+): MotionResult {
+  const velocity = { x: h.ctx.velocity.x, z: h.ctx.velocity.z };
+  if (h.form === "car")
+    return stepMotion(
+      h.state,
+      h.input,
+      { velocity, onGround: h.ctx.onGround },
+      h.probe,
+      h.limits,
+      h.tyres,
+    );
+  const medium = h.form === "submarine" ? h.spec.water : h.spec.air;
+  return stepMediumMotion(
+    h.state,
+    h.input,
+    velocity,
+    medium,
+    h.limits,
+    h.tyres.creepSpeed,
+  );
+}
+
+/** A kind's meaning for the stick and Jump in each form (ADR 0089). */
+export type InputMapping = (
+  raw: RawInput | undefined,
+  form: Form,
+) => GroundInput;
+
+export interface TransformingOptions {
+  /** Defaults to groundInputFor. */
+  readonly inputFor?: InputMapping;
+  /** Defaults to transformingHorizontalStep. */
+  readonly horizontal?: HorizontalStep;
+  /** What `stepUpEnabled()` returns unless a kind overrides it: whether car form climbs one- and two-block steps and a submarine rises at a shore step (ADR 0004, 0035); default true. False turns off both probes. */
+  readonly stepUp?: boolean;
+  readonly guard?: StepGuard;
+}
+
 export class TransformingDrive implements Drive {
   private motion: MotionState;
   private formState: FormState;
+  private readonly formSync: SyncedValue<Form>;
   private bank = 0;
   private readonly bankSync = new SyncedValue<number>();
   private gearDown: boolean;
   private readonly gearDownSync = new SyncedValue<boolean>();
+  private readonly inputFor: InputMapping;
+  private readonly horizontal: HorizontalStep;
+  private readonly stepUp: boolean;
+  private readonly guard: StepGuard | undefined;
 
   constructor(
     yaw: number,
@@ -121,11 +187,16 @@ export class TransformingDrive implements Drive {
     protected readonly spec: TransformingSpec,
     protected readonly limits: MotionLimits,
     protected readonly tyres: TyreLimits,
-    private readonly guard?: StepGuard,
+    options: TransformingOptions = {},
   ) {
+    this.inputFor = options.inputFor ?? groundInputFor;
+    this.horizontal = options.horizontal ?? transformingHorizontalStep;
+    this.stepUp = options.stepUp ?? true;
+    this.guard = options.guard;
     const form = isForm(restored.form) ? restored.form : "car";
     this.motion = initialMotion(yaw);
     this.formState = initialForm(form);
+    this.formSync = new SyncedValue<Form>({ value: form });
     this.gearDown = form === "car";
   }
 
@@ -154,6 +225,19 @@ export class TransformingDrive implements Drive {
     this.motion = initialMotion(yaw);
   }
 
+  /**
+   * Whether this step's probes may find a step: the car-form step probe and the
+   * submarine rising probe (ADR 0004, 0035). It returns the `stepUp` option.
+   * A kind whose step-up depends on its own state overrides this, because a
+   * `super(...)` argument cannot close over `this` (TS 17009). It is read during
+   * `step`, never in the constructor, so an override may read fields the subclass
+   * sets after `super(...)`. An override must give the same answer for every read
+   * within one step.
+   */
+  protected stepUpEnabled(): boolean {
+    return this.stepUp;
+  }
+
   onDriverMounted(driverYaw: number): void {
     this.motion = alignOnMount(this.motion, driverYaw);
   }
@@ -166,8 +250,13 @@ export class TransformingDrive implements Drive {
     return [];
   }
 
+  resync(): void {
+    this.formSync.resync();
+    this.bankSync.resync();
+    this.gearDownSync.resync();
+  }
+
   step(raw: RawInput | undefined, ctx: TickContext): DriveStep {
-    const motion = this.motion;
     // A passenger may be moving up to the driver seat (ADR 0078).
     const controlled = raw !== undefined || ctx.awaitingDriver === true;
     const waterDepth = waterDepthAt(
@@ -175,8 +264,50 @@ export class TransformingDrive implements Drive {
       ctx.waterAt,
       this.spec.carHeight,
     );
-    const velocity = { x: ctx.velocity.x, z: ctx.velocity.z };
-    const before = this.formState.form;
+    const jumpTapped = (raw?.jump ?? false) && !this.formState.jumpHeld;
+    const form = this.advanceForm(raw, ctx, controlled, waterDepth);
+    const input = this.inputFor(raw, form);
+    const yawBefore = this.motion.yaw;
+    const step = this.moveHorizontally(input, ctx, form, jumpTapped);
+    this.bank = stepBank(
+      this.bank,
+      form,
+      yawBefore,
+      step.state.yaw,
+      this.limits.turnRate,
+      this.spec,
+    );
+    const impulseY = this.verticalImpulseFor(
+      form,
+      raw,
+      input,
+      step,
+      ctx,
+      controlled,
+      waterDepth,
+    );
+    const sentForm = this.formSync.next(form);
+    const bank = this.bankSync.next(this.bank);
+    this.gearDown = nextGearDown(this.gearDown, form, () =>
+      groundNear(ctx, step.forward, this.spec),
+    );
+    const gearDown = this.gearDownSync.next(this.gearDown);
+
+    this.motion = step.state;
+    return {
+      impulse: { x: step.impulse.x, y: impulseY, z: step.impulse.z },
+      forward: step.forward,
+      commands: this.engineCommands(sentForm, bank, gearDown),
+      riders: { thirdPerson: form !== "car", underwater: form === "submarine" },
+    };
+  }
+
+  private advanceForm(
+    raw: RawInput | undefined,
+    ctx: TickContext,
+    controlled: boolean,
+    waterDepth: number,
+  ): Form {
     this.formState = stepForm(
       this.formState,
       {
@@ -188,96 +319,116 @@ export class TransformingDrive implements Drive {
       },
       this.spec,
     );
-    const form = this.formState.form;
-    const input = groundInputFor(raw, form);
-    const yawBefore = motion.yaw;
-    const moved: MotionResult =
-      form === "car"
-        ? stepMotion(
-            motion,
-            input,
-            { velocity, onGround: ctx.onGround },
-            stepProbe(ctx, this.spec),
-            this.limits,
-            this.tyres,
-          )
-        : stepMediumMotion(
-            motion,
-            input,
-            velocity,
-            form === "submarine" ? this.spec.water : this.spec.air,
-            this.limits,
-            this.tyres.creepSpeed,
-          );
-    const step = this.guard ? this.guard(moved, ctx, form) : moved;
-    this.bank = stepBank(
-      this.bank,
+    return this.formState.form;
+  }
+
+  private moveHorizontally(
+    input: GroundInput,
+    ctx: TickContext,
+    form: Form,
+    jumpTapped: boolean,
+  ): MotionResult {
+    const moved = this.horizontal({
+      state: this.motion,
+      input,
+      ctx,
       form,
-      yawBefore,
-      step.state.yaw,
-      this.limits.turnRate,
+      jumpTapped,
+      probe: this.stepUpEnabled() ? stepProbe(ctx, this.spec) : NO_STEP,
+      spec: this.spec,
+      limits: this.limits,
+      tyres: this.tyres,
+    });
+    return this.guard ? this.guard(moved, ctx, form) : moved;
+  }
+
+  private verticalImpulseFor(
+    form: Form,
+    raw: RawInput | undefined,
+    input: GroundInput,
+    step: MotionResult,
+    ctx: TickContext,
+    controlled: boolean,
+    waterDepth: number,
+  ): number {
+    if (form === "car") return step.jumpVelocity;
+    if (form === "submarine")
+      return this.submarineImpulse(
+        raw,
+        input,
+        step,
+        ctx,
+        controlled,
+        waterDepth,
+      );
+    return this.airImpulse(form, raw, ctx);
+  }
+
+  private submarineImpulse(
+    raw: RawInput | undefined,
+    input: GroundInput,
+    step: MotionResult,
+    ctx: TickContext,
+    controlled: boolean,
+    waterDepth: number,
+  ): number {
+    // Gated like a step jump in stepMotion (speed >= 0). The stepMinSpeed
+    // floor only sets how far ahead the probe looks, not whether it rises:
+    // pressed against a shore step the wall check drops speed to about 0,
+    // and the bare look-ahead margin would miss a step face just beyond it
+    // (ADR 0035).
+    const rising =
+      this.stepUpEnabled() &&
+      input.throttle > 0 &&
+      step.state.speed >= 0 &&
+      stepProbe(
+        ctx,
+        this.spec,
+        this.spec.submarineStepProbeDrop,
+      )(step.forward, Math.max(step.state.speed, MOTION.stepMinSpeed)) > 0;
+    const targetVy = submarineVerticalSpeed(
+      {
+        climb: climbInput(raw),
+        controlled,
+        rising,
+        waterDepth,
+      },
       this.spec,
     );
-    let impulseY: number;
-    if (form === "car") {
-      impulseY = step.jumpVelocity;
-    } else if (form === "submarine") {
-      // Gated like a step jump in stepMotion (speed >= 0). The stepMinSpeed
-      // floor only sets how far ahead the probe looks, not whether it rises:
-      // pressed against a shore step the wall check drops speed to about 0,
-      // and the bare look-ahead margin would miss a step face just beyond it
-      // (ADR 0035).
-      const rising =
-        input.throttle > 0 &&
-        step.state.speed >= 0 &&
-        stepProbe(
-          ctx,
-          this.spec,
-          this.spec.submarineStepProbeDrop,
-        )(step.forward, Math.max(step.state.speed, MOTION.stepMinSpeed)) > 0;
-      const targetVy = submarineVerticalSpeed(
-        {
-          climb: climbInput(raw),
-          controlled,
-          rising,
-          waterDepth,
-        },
-        this.spec,
-      );
-      impulseY = verticalImpulse(
-        targetVy,
-        ctx.velocity.y,
-        this.spec.waterVerticalDrag,
-      );
-    } else {
-      const targetVy = clamp(
-        verticalSpeed(form, climbInput(raw), this.spec) -
-          bankSink(form, this.bank, this.spec),
-        -this.spec.maxClimb,
-        this.spec.maxClimb,
-      );
-      impulseY = verticalImpulse(
-        targetVy,
-        ctx.velocity.y,
-        this.spec.flightVerticalDrag,
-      );
-    }
-    const bank = this.bankSync.next(this.bank);
-    this.gearDown = nextGearDown(this.gearDown, form, () =>
-      groundNear(ctx, step.forward, this.spec),
+    return verticalImpulse(
+      targetVy,
+      ctx.velocity.y,
+      this.spec.waterVerticalDrag,
     );
-    const gearDown = this.gearDownSync.next(this.gearDown);
+  }
 
-    this.motion = step.state;
-    return {
-      impulse: { x: step.impulse.x, y: impulseY, z: step.impulse.z },
-      forward: step.forward,
-      commands: [
-        ...(form === before ? [] : formCommands(form)),
-        ...(bank === undefined ? [] : [bankCommand(bank)]),
-        ...(gearDown === undefined ? [] : [gearCommand(gearDown)]),
-      ],
-      riders: { thirdPerson: form !== "car", underwater: form === "submarine" },
-    };
+  private airImpulse(
+    form: Form,
+    raw: RawInput | undefined,
+    ctx: TickContext,
+  ): number {
+    const targetVy = clamp(
+      verticalSpeed(form, climbInput(raw), this.spec) -
+        bankSink(form, this.bank, this.spec),
+      -this.spec.maxClimb,
+      this.spec.maxClimb,
+    );
+    return verticalImpulse(
+      targetVy,
+      ctx.velocity.y,
+      this.spec.flightVerticalDrag,
+    );
+  }
+
+  private engineCommands(
+    sentForm: Form | undefined,
+    bank: number | undefined,
+    gearDown: boolean | undefined,
+  ): EngineCommand[] {
+    return [
+      ...(sentForm === undefined ? [] : formCommands(sentForm)),
+      ...(bank === undefined ? [] : [bankCommand(bank)]),
+      ...(gearDown === undefined ? [] : [gearCommand(gearDown)]),
+    ];
   }
 }

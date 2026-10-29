@@ -1,8 +1,9 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
+import { PAINTS } from "../../src/domain/shared/paint";
+import { SLEEP_MESSAGES } from "../../src/domain/shared/sleep";
 import { DECOR_MESSAGES } from "../../src/domain/vehicle/dock/decorMessages";
-import { SLEEP_MESSAGES } from "../../src/domain/vehicle/dock/sleep";
 import { HINTS } from "../../src/domain/vehicle/hints";
 import {
   CAMPER_FURNITURE,
@@ -11,8 +12,11 @@ import {
   type DecorSlot,
 } from "../../src/domain/vehicle/kinds/camper/furniture";
 import { CAMPER_PROFILE } from "../../src/domain/vehicle/kinds/camper/profile";
-import { PAINTS } from "../../src/domain/vehicle/paint/paint";
-import { CAMPER_DOOR_COMPONENT } from "../../src/infrastructure/vehicle/bedrock/identifiers";
+import {
+  CAMPER_DOOR_COMPONENT,
+  SEAT_FILLER_FAMILY,
+} from "../../src/infrastructure/vehicle/bedrock/identifiers";
+import { assertOneAxis, multipleAxes } from "./oneAxis";
 
 const RP = "packs/yasu_ride_rp";
 const geometryText = readFileSync(
@@ -74,6 +78,13 @@ function readPng(path: string) {
 }
 
 describe("camper model assets (ADR 0067)", () => {
+  it("allows compound rotations only in declared assemblies (ADR 0167)", () => {
+    const cubes = bones.flatMap((bone) => bone.cubes ?? []);
+    const assemblies = { slanted: cubes.filter(multipleAxes) };
+    expect(assemblies.slanted).toHaveLength(6);
+    expect(() => assertOneAxis(cubes, assemblies)).not.toThrow();
+  });
+
   it("uses the production geometry identifier with no test namespace", () => {
     expect(geometry.description.identifier).toBe("geometry.yasu_ride.camper");
     expect(geometryText).not.toContain("yasu_ride_test");
@@ -233,6 +244,168 @@ describe("camper model assets (ADR 0067)", () => {
     }
   });
 
+  it("ends the stripe on the W's outer arm inner edges, with no step at their tops (ADR 0145)", () => {
+    const frontAxle = -31.5;
+    const stripeBand: [number, number] = [29.5, 31.5];
+    const cubes = (bone("body").cubes ?? []).filter(
+      (cube) => cube.uv.north?.uv[0] === 6,
+    );
+    const arms = cubes.filter((cube) => (cube.rotation?.[0] ?? 0) !== 0);
+    const armLength = Math.max(...arms.map((cube) => cube.size[1] ?? 0));
+    for (const xSide of [1, -1]) {
+      for (const zSide of [1, -1]) {
+        const arm = arms.find(
+          (cube) =>
+            cube.size[1] === armLength &&
+            Math.sign(cube.origin[0] ?? 0) === xSide &&
+            Math.sign((cube.pivot?.[2] ?? 0) - frontAxle) === zSide,
+        );
+        expect(arm, `side ${xSide} ${zSide}`).toBeDefined();
+        const cube = arm as Cube;
+        const angle = ((cube.rotation?.[0] ?? 0) * Math.PI) / 180;
+        const py = cube.pivot?.[1] ?? 0;
+        const pz = cube.pivot?.[2] ?? 0;
+        // The arm's edge on the axle side, as the (z, y) corners of its rotated end faces; in game
+        // a negative x rotation tips the top toward +z (ADR 0051).
+        const edges = [0, 1].map((faceZ) =>
+          [0, 1].map((faceY) => {
+            const y = (cube.origin[1] ?? 0) + faceY * (cube.size[1] ?? 0);
+            const z = (cube.origin[2] ?? 0) + faceZ * (cube.size[2] ?? 0);
+            return [
+              pz - (y - py) * Math.sin(angle) + (z - pz) * Math.cos(angle),
+              py + (y - py) * Math.cos(angle) + (z - pz) * Math.sin(angle),
+            ];
+          }),
+        );
+        const mean = (edge: number[][]) =>
+          ((edge[0]?.[0] ?? 0) + (edge[1]?.[0] ?? 0)) / 2;
+        const inner = [...edges].sort(
+          (a, b) =>
+            Math.abs(mean(a) - frontAxle) - Math.abs(mean(b) - frontAxle),
+        )[0] as number[][];
+        const [a, b] = inner as [number[], number[]];
+        const edgeZ = (y: number) =>
+          (a[0] ?? 0) +
+          (((b[0] ?? 0) - (a[0] ?? 0)) * (y - (a[1] ?? 0))) /
+            ((b[1] ?? 0) - (a[1] ?? 0));
+        const inBand = cubes.filter(
+          (other) =>
+            (other.rotation?.[0] ?? 0) === 0 &&
+            Math.sign(other.origin[0] ?? 0) === xSide &&
+            Math.sign(cubeCenter(other, 2) - frontAxle) === zSide &&
+            (other.origin[1] ?? 0) >= stripeBand[0] - 0.001 &&
+            (other.origin[1] ?? 0) + (other.size[1] ?? 0) <=
+              (stripeBand[1] ?? 0) + 0.001,
+        );
+        expect(inBand.length).toBeGreaterThan(0);
+        for (const other of inBand) {
+          for (const y of [
+            other.origin[1] ?? 0,
+            (other.origin[1] ?? 0) + (other.size[1] ?? 0),
+          ]) {
+            for (const z of [
+              other.origin[2] ?? 0,
+              (other.origin[2] ?? 0) + (other.size[2] ?? 0),
+            ]) {
+              // Nothing of the stripe lies on the axle side of the arm's edge line.
+              expect(zSide * (z - edgeZ(y))).toBeGreaterThan(-0.005);
+            }
+          }
+        }
+        // The arm's edge itself meets the stripe's lower edge, and the stripe's top meets that line.
+        expect(
+          inBand.some(
+            (other) =>
+              Math.abs(
+                (zSide > 0
+                  ? (other.origin[2] ?? 0)
+                  : (other.origin[2] ?? 0) + (other.size[2] ?? 0)) -
+                  edgeZ(stripeBand[1] ?? 0),
+              ) < 0.01,
+          ),
+        ).toBe(true);
+      }
+    }
+  });
+
+  const paletteBlock =
+    readFileSync("tools/gen_camper.py", "utf8").match(
+      /^PALETTE = \{\n([\s\S]*?)^\}/m,
+    )?.[1] ?? "";
+  const paletteSlots = [...paletteBlock.matchAll(/^\s+"(\w+)":/gm)].map(
+    (m) => m[1],
+  );
+  const swatch = (c: Cube, name: string) => {
+    const slot = paletteSlots.indexOf(name);
+    expect(slot).toBeGreaterThanOrEqual(0);
+    return c.uv.north?.uv[0] === slot;
+  };
+  const cubeCenter = (c: Cube, axis: number) =>
+    (c.origin[axis] ?? 0) + (c.size[axis] ?? 0) / 2;
+
+  it("replaces the mid-body amber box with symmetric static rear signals (#596)", () => {
+    const body = bone("body").cubes ?? [];
+    const amber = bones
+      .flatMap((b) => b.cubes ?? [])
+      .filter((c) => swatch(c, "amber"));
+    expect(
+      amber.filter(
+        (c) =>
+          Math.abs(cubeCenter(c, 0)) >= 23.5 &&
+          cubeCenter(c, 1) >= 50 &&
+          cubeCenter(c, 1) < 60,
+      ),
+    ).toEqual([]);
+    expect(
+      amber.filter(
+        (c) => Math.abs(cubeCenter(c, 2)) <= 40 && (c.origin[1] ?? 0) < 60.4,
+      ),
+    ).toEqual([]);
+    for (const material of ["chrome", "amber"]) {
+      const signals = body.filter(
+        (c) =>
+          swatch(c, material) &&
+          Math.abs(Math.abs(cubeCenter(c, 0)) - 22.9) < 0.05 &&
+          Math.abs(cubeCenter(c, 1) - 15) < 0.05 &&
+          cubeCenter(c, 2) > 50,
+      );
+      const left = signals.filter((c) => cubeCenter(c, 0) < 0);
+      const right = signals.filter((c) => cubeCenter(c, 0) > 0);
+      expect(left.length).toBeGreaterThan(0);
+      expect(left.map((c) => c.size)).toEqual(right.map((c) => c.size));
+      for (const c of left)
+        expect(
+          right.some(
+            (r) =>
+              Math.abs(cubeCenter(c, 0) + cubeCenter(r, 0)) < 0.002 &&
+              cubeCenter(c, 2) === cubeCenter(r, 2),
+          ),
+        ).toBe(true);
+    }
+    expect(
+      (bone("headlights").cubes ?? []).filter((c) => swatch(c, "amber")),
+    ).toEqual([]);
+  });
+
+  it("aligns both entry handles half a pixel below the stripe (#596)", () => {
+    const door = bone("door_entry");
+    expect(door.pivot).toEqual([-24, 0, -7]);
+    const handles = (door.cubes ?? []).filter(
+      (c) => swatch(c, "chrome") && c.origin[2] === 4.5 && c.size[2] === 1.5,
+    );
+    expect(handles).toHaveLength(2);
+    expect(handles.map((c) => c.origin[0] ?? 0).sort((a, b) => a - b)).toEqual([
+      -24.6, -23,
+    ]);
+    for (const c of handles) {
+      expect(c.origin[1]).toBe(28);
+      expect(c.size).toEqual([0.6, 1, 1.5]);
+    }
+    const stripe = (door.cubes ?? []).filter((c) => swatch(c, "stripe"));
+    expect(stripe).toHaveLength(1);
+    expect(stripe[0]?.origin[1]).toBe(29.5);
+  });
+
   it("clears furniture and wall lining from all four wheel housings", () => {
     const interior = bones.filter(
       (b) => b.name === "body" || b.name.startsWith("seat_"),
@@ -315,13 +488,7 @@ describe("camper model assets (ADR 0067)", () => {
   });
 
   it("keeps the wheel's spokes level (owner decision in #410)", () => {
-    const palette = readFileSync("tools/gen_camper.py", "utf8").match(
-      /^PALETTE = \{\n([\s\S]*?)^\}/m,
-    )?.[1];
-    const slots = [...(palette ?? "").matchAll(/^\s+"(\w+)":/gm)].map(
-      (m) => m[1],
-    );
-    const ivory = slots.indexOf("ivory");
+    const ivory = paletteSlots.indexOf("ivory");
     expect(ivory).toBeGreaterThanOrEqual(0);
     const spokes = (bone("steering").cubes ?? []).filter(
       (cube) => cube.uv.north?.uv[0] === ivory && Math.max(...cube.size) >= 3,
@@ -494,7 +661,8 @@ describe("camper model assets (ADR 0067)", () => {
 
   it("generates all 16 equally sized paints, changing only the three accent swatches", () => {
     const files = readdirSync(`${RP}/textures/entity/yasu_ride`).filter(
-      (name) => /^camper(?:_\w+)?\.png$/.test(name),
+      (name) =>
+        /^camper(?:_\w+)?\.png$/.test(name) && !name.startsWith("camper_lit"),
     );
     expect(files).toHaveLength(PAINTS.length);
     const khaki = readPng("textures/entity/yasu_ride/camper");
@@ -548,6 +716,11 @@ const camperEntity = JSON.parse(
 it("matches the camper's four seat positions and collision box to its profile", () => {
   const components = camperEntity.components;
   const seats = components["minecraft:rideable"].seats;
+
+  expect(components["minecraft:rideable"].family_types).toEqual([
+    "player",
+    SEAT_FILLER_FAMILY,
+  ]);
   expect(seats).toHaveLength(4);
   expect(
     seats.map((seat: { position: number[] }) => ({
@@ -1544,11 +1717,10 @@ describe("camper ceiling lights (ADR 0115)", () => {
     }
   });
 
-  it("lights the lenses with the lamp material while the property is on", () => {
+  it("keeps the ceiling lenses on the unlit material in the base pass", () => {
     const entries: Record<string, string>[] = camperRender.materials;
     expect(entries).toContainEqual({
-      ceiling_lights:
-        "Array.lamps[query.property('yasu_ride:ceiling_lights') ? 1 : 0]",
+      ceiling_lights: "Material.lamp",
     });
     const property = JSON.parse(
       readFileSync(
@@ -1561,5 +1733,112 @@ describe("camper ceiling lights (ADR 0115)", () => {
       default: false,
       client_sync: true,
     });
+  });
+});
+
+describe("camper rear-right vent lid (ADR 0146, 0157)", () => {
+  // Slots in the PALETTE order of tools/gen_camper.py.
+  const WHITE_SLOT = 0;
+  const KHAKI_SLOT = 4;
+  const STEEL_SLOT = 5;
+  const BLACK_SLOT = 7;
+  const CHROME_SLOT = 10;
+  const WALL_IN_SLOT = 22;
+  const end = (c: Cube, axis: number) =>
+    (c.origin[axis] ?? 0) + (c.size[axis] ?? 0);
+  it("removes the rear-right pane and closes the outer wall, lining, and band", () => {
+    expect(
+      (bone("glass").cubes ?? []).filter(
+        (c) =>
+          (c.origin[0] ?? 0) < -23 && (c.origin[2] ?? 0) < 50 && end(c, 2) > 38,
+      ),
+    ).toEqual([]);
+    for (const [slot, x] of [
+      [WHITE_SLOT, -23.5],
+      [WALL_IN_SLOT, -22.9],
+      [KHAKI_SLOT, -24.05],
+    ] as const) {
+      expect(
+        (bone("body").cubes ?? []).some(
+          (c) =>
+            c.uv.north?.uv[0] === slot &&
+            [x, 42, 45].every(
+              (v, axis) => v >= (c.origin[axis] ?? 0) && v <= end(c, axis),
+            ),
+        ),
+      ).toBe(true);
+    }
+  });
+  const lid = () =>
+    (bone("body").cubes ?? []).filter(
+      (c) =>
+        end(c, 0) <= -24.0999 &&
+        (c.origin[1] ?? 0) >= 36.5 &&
+        end(c, 1) <= 48.5001 &&
+        (c.origin[2] ?? 0) >= 40.5 &&
+        end(c, 2) <= 49.5001,
+    );
+  const covers = (c: Cube, y: number, z: number) =>
+    (c.origin[1] ?? 0) <= y &&
+    y <= end(c, 1) &&
+    (c.origin[2] ?? 0) <= z &&
+    z <= end(c, 2);
+  it("frames a white panel in a raised aluminium rim with cut corners", () => {
+    const cubes = lid();
+    for (const c of cubes)
+      for (const face of Object.values(c.uv))
+        expect([WHITE_SLOT, STEEL_SLOT, BLACK_SLOT, CHROME_SLOT]).toContain(
+          face.uv[0],
+        );
+    const rim = cubes.filter((c) => c.uv.north?.uv[0] === CHROME_SLOT);
+    for (const c of rim) {
+      expect(c.origin[0]).toBeCloseTo(-24.5, 4);
+      expect(end(c, 0)).toBeCloseTo(-24.1, 4);
+    }
+    for (const [axis, low, high] of [
+      [1, 36.5, 48.5],
+      [2, 40.5, 49.5],
+    ] as const) {
+      expect(Math.min(...rim.map((c) => c.origin[axis] ?? 0))).toBeCloseTo(
+        low,
+        4,
+      );
+      expect(Math.max(...rim.map((c) => end(c, axis)))).toBeCloseTo(high, 4);
+    }
+    for (const [y, z] of [
+      [36.6, 40.6],
+      [36.6, 49.4],
+      [48.4, 40.6],
+      [48.4, 49.4],
+    ] as const)
+      expect(cubes.filter((c) => covers(c, y, z))).toEqual([]);
+    for (const c of cubes.filter((c) => c.uv.north?.uv[0] === WHITE_SLOT))
+      expect(c.origin[0]).toBeCloseTo(-24.3, 4);
+  });
+  it("cuts two columns of twelve recessed slits above a plain lower part", () => {
+    const slits = lid().filter((c) => c.uv.north?.uv[0] === BLACK_SLOT);
+    expect(slits).toHaveLength(24);
+    for (const c of slits) {
+      expect(c.origin[0]).toBeCloseTo(-24.2, 4);
+      expect(c.size[0]).toBeCloseTo(0.1, 4);
+      expect(c.origin[1]).toBeGreaterThan(40);
+    }
+    const left = slits.filter((c) => end(c, 2) < 45);
+    const right = slits.filter((c) => (c.origin[2] ?? 0) > 45);
+    expect(left).toHaveLength(12);
+    expect(right).toHaveLength(12);
+    const panel = lid().filter((c) => c.uv.north?.uv[0] === WHITE_SLOT);
+    for (const c of slits)
+      expect(
+        panel.some((p) =>
+          covers(p, (c.origin[1] ?? 0) + 0.1, (c.origin[2] ?? 0) + 0.1),
+        ),
+      ).toBe(false);
+  });
+  it("adds a latch below the slits", () => {
+    const steel = lid().filter((c) => c.uv.north?.uv[0] === STEEL_SLOT);
+    const latch = steel.filter((c) => (c.size[2] ?? 0) > 1);
+    expect(latch).toHaveLength(1);
+    expect(end(latch[0] as Cube, 1)).toBeLessThan(40);
   });
 });

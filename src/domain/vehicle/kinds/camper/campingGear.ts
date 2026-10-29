@@ -13,8 +13,6 @@ export const CAMPING_GEAR_IDS: readonly string[] = Object.freeze([
   "sugar_pot",
   "fruit_bowl",
   "toaster",
-  "oil_lamp",
-  "lava_lamp",
   "transistor_radio",
   "book_stack",
   "road_map",
@@ -36,3 +34,20 @@ export const HANGING_GEAR_IDS: ReadonlySet<string> = new Set([
 export const STANDING_GEAR_IDS: readonly string[] = Object.freeze(
   CAMPING_GEAR_IDS.filter((id) => !HANGING_GEAR_IDS.has(id)),
 );
+
+/** Saved catalog ids: null drops removed gear without returning an item (ADR 0169, 0173). */
+export const LEGACY_GEAR_IDS: Readonly<Record<string, string | null>> = {
+  lava_lamp: null,
+  oil_lamp: null,
+  lantern: null,
+};
+
+export function currentGearId(saved: string): string | undefined {
+  if (CAMPING_GEAR_IDS.includes(saved)) return saved;
+  // hasOwn keeps inherited keys such as "constructor" from reading as legacy ids.
+  if (!Object.hasOwn(LEGACY_GEAR_IDS, saved)) return undefined;
+  const mapped = LEGACY_GEAR_IDS[saved];
+  return mapped != null && CAMPING_GEAR_IDS.includes(mapped)
+    ? mapped
+    : undefined;
+}

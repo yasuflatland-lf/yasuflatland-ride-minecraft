@@ -1,6 +1,7 @@
 // The parked camper's ceiling lights: where they shine and who switches them (ADR 0115).
 import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
+import { cellKey } from "../../../../../src/domain/shared/cells";
 import type { Vec3 } from "../../../../../src/domain/shared/vec";
 import type { DockCell } from "../../../../../src/domain/vehicle/dock/floor";
 import type {
@@ -28,7 +29,6 @@ import {
   slotCells,
   storagePlateChecks,
 } from "../../../../../src/domain/vehicle/kinds/camper/room";
-import { cellKey } from "../../../../../src/domain/vehicle/lighting/headlights";
 import { DOCK } from "../../../../../src/domain/vehicle/motion/dock";
 
 const PUSH: RawInput = { moveX: 0, moveY: 1, jump: false };

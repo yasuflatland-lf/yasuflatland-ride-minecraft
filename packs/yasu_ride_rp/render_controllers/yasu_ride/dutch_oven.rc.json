@@ -1,0 +1,22 @@
+{
+  "format_version": "1.8.0",
+  "render_controllers": {
+    "controller.render.yasu_ride.dutch_oven": {
+      "geometry": "Geometry.default",
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "textures": ["Texture.default"],
+      "part_visibility": [
+        {
+          "lid": "!query.property('yasu_ride:simmering')"
+        },
+        {
+          "food": "query.property('yasu_ride:simmering')"
+        }
+      ]
+    }
+  }
+}

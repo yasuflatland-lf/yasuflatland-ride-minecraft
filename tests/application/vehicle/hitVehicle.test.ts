@@ -143,7 +143,7 @@ describe("HitVehicle (ADR 0008)", () => {
     );
     const saved = [
       ...standing,
-      { slot: "wall_cabinet_front", item: "lava_lamp" },
+      { slot: "wall_cabinet_front", item: "book_stack" },
       { slot: "wall_cabinet_rear", item: "toaster" },
     ];
     const repo = new InMemoryRepo();

@@ -8,7 +8,7 @@
           {
             "group_identifier": {
               "icon": "yasu_ride:camping_gear_box",
-              "name": "yasu_ride:camping_gear"
+              "name": "yasu_ride:camping_gear_inside"
             },
             "items": [
               "yasu_ride:camping_gear_box",
@@ -22,16 +22,46 @@
               "yasu_ride:sugar_pot",
               "yasu_ride:fruit_bowl",
               "yasu_ride:toaster",
-              "yasu_ride:oil_lamp",
-              "yasu_ride:lava_lamp",
               "yasu_ride:transistor_radio",
               "yasu_ride:book_stack",
               "yasu_ride:road_map",
               "yasu_ride:photo_frame",
               "yasu_ride:cushion",
               "yasu_ride:tissue_box",
-              "yasu_ride:desk_fan",
-              "yasu_ride:low_chair_item"
+              "yasu_ride:desk_fan"
+            ]
+          },
+          {
+            "group_identifier": {
+              "icon": "yasu_ride:low_chair_item",
+              "name": "yasu_ride:camping_gear_outside"
+            },
+            "items": [
+              "yasu_ride:low_chair_item",
+              "yasu_ride:noga_chair_item",
+              "yasu_ride:tent_item",
+              "yasu_ride:camp_table_item",
+              "yasu_ride:fire_pit_item",
+              "yasu_ride:dutch_oven_item",
+              "yasu_ride:gas_lantern_item"
+            ]
+          },
+          {
+            "group_identifier": {
+              "icon": "yasu_ride:icebreaker_switch",
+              "name": "yasu_ride:sportsboat_equipment"
+            },
+            "items": ["yasu_ride:icebreaker_switch"]
+          },
+          {
+            "group_identifier": {
+              "icon": "yasu_build:build_tool",
+              "name": "yasu_build:building_tools"
+            },
+            "items": [
+              "yasu_build:build_tool",
+              "yasu_build:selection_wand",
+              "yasu_ride:blade_switch"
             ]
           }
         ]

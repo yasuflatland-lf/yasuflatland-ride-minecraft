@@ -1,5 +1,6 @@
 // How one vehicle kind moves each tick, under the shared core in vehicle.ts (ADR 0050, 0055).
 import type { Vec2, Vec3 } from "../shared/vec";
+import type { CutColumn } from "./cut";
 import type { DecorPlacement, StoragePress } from "./dock/decor";
 import type { ClearCell, Departure, Dock, DockRestoredKey } from "./dock/dock";
 import type { RawInput } from "./driveInput";
@@ -17,6 +18,8 @@ export interface TickContext {
   solidAt(offset: Vec3): boolean;
   /** Water, flowing water, bubble columns, or waterlogged blocks at floor(location + offset). */
   waterAt(offset: Vec3): boolean;
+  /** Lava or flowing lava at floor(location + offset). */
+  lavaAt?(offset: Vec3): boolean;
   /**
    * Block type IDs at these world cells, in order. Air and light blocks read as
    * "minecraft:air"; a cell in an unloaded chunk reads as undefined. Drives call it
@@ -57,6 +60,8 @@ export interface DriveStep {
   dock?: Dock;
   /** Blocks to remove this tick before the dock's cells are laid (ADR 0063, 0068). */
   clear?: readonly ClearCell[];
+  /** Block columns to clear this tick, right after `clear` (ADR 0137). */
+  cut?: readonly CutColumn[];
   /** Shown on the driver's action bar as the lang key yasu_ride.message.<name> (ADR 0063, 0068). */
   message?: string;
   /** Seats the players standing in these boxes this tick, or moves them to the exit (ADR 0063, 0068). */
@@ -71,18 +76,26 @@ export interface DriveStep {
 }
 
 export interface Drive {
+  /** Forgets which entity values were sent, so the next step sends all of them again; called when a tick's commands may not have reached the entity. */
+  resync(): void;
   /** Internal forward/reverse speed in blocks/tick; negative means reverse. */
   readonly speed: number;
   readonly yaw: number;
   /** Called when a new driver takes seat 0. */
   onDriverMounted(driverYaw: number): void;
   onSeatVacated(seat: number): readonly EngineCommand[];
+  /** Called before `step` for each seat a newly boarded rider takes this tick, ascending; its commands go into `finalCommands` after the vacated seats' commands. Absent means none. */
+  onSeatTaken?(seat: number): readonly EngineCommand[];
   /** Opens or closes the door of a held vehicle's room at `tick`; false when it has none or the tap is ignored (ADR 0068, 0105). */
   useDockDoor?(tick: number): boolean;
   /** Turns the ceiling lights of a held vehicle's room on or off for a player with feet at `feet`; false when it has none or the player is not inside (ADR 0115). */
   switchCeilingLights?(feet: Vec3): boolean;
   /** Whether `switchCeilingLights` would take a use from feet at `feet` now, without switching (ADR 0115). */
   ceilingLightsReachable?(feet: Vec3): boolean;
+  /** Sets a monitor tool's state; false for an unknown item or state (ADR 0171). */
+  setToolState?(item: string, state: string): boolean;
+  /** The state name of one of the kind's monitor tools; undefined when `item` is not one of them (ADR 0139). */
+  toolState?(item: string): string | undefined;
   /** A press on the shower-toilet of a held vehicle by a player with feet at `feet`, at `tick`: swings its door or runs its shower; false when it has none or the press is ignored (ADR 0094, 0098, 0105, 0118). */
   pressShowerToilet?(feet: Vec3, tick: number): boolean;
   /** The decor of the vehicle's room, in slot order, then any stowed decor whose slot no longer exists (ADR 0103); absent for kinds without decor (ADR 0093). */

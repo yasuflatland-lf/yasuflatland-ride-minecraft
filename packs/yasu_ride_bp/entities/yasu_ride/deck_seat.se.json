@@ -12,6 +12,15 @@
           "width": 0.5,
           "height": 0.8
         }
+      },
+      "yasu_ride:driver": {
+        "minecraft:rideable": {
+          "seat_count": 1,
+          "family_types": ["player"],
+          "interact_text": "action.interact.yasu_ride.drive",
+          "crouching_skip_interact": true,
+          "seats": [{ "position": [0, 0.52, 0] }]
+        }
       }
     },
     "components": {
@@ -43,6 +52,7 @@
           "deals_damage": "no"
         }
       },
+      "minecraft:fire_immune": {},
       "minecraft:rideable": {
         "seat_count": 1,
         "family_types": ["player"],
@@ -55,6 +65,11 @@
       "yasu_ride:compact": {
         "add": {
           "component_groups": ["yasu_ride:compact"]
+        }
+      },
+      "yasu_ride:driver": {
+        "add": {
+          "component_groups": ["yasu_ride:driver"]
         }
       }
     }

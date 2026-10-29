@@ -43,6 +43,10 @@ export const CAMPER_SPEC = Object.freeze({
   // The camper's own hitbox: a cube this wide and high on its feet, inside the parked floor
   // block under its center, so no tap reaches the camper itself (ADR 0116)
   hiddenHitboxSize: 0.1,
+  // Midpoint of the front rideable seats at 1.5 and the dinette seats at 1.2 (ADR 0154).
+  seatAimHeight: 1.35,
+  // Below half the smallest seat gap, hypot(0.25, 1.1) = 1.128, so aim balls never overlap.
+  seatAimRadius: 0.5,
   // Hints (ADR 0086), in blocks
   bumperHintReach: 1.5,
   bumperHintFeet: [-1, 1.5], // from the ground in front of the bumper up to standing on a 1-block step

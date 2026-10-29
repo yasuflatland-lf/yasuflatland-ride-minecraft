@@ -1,5 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
+import { cellKey } from "../../../../../src/domain/shared/cells";
+import { CLEARABLE_DECORATIONS } from "../../../../../src/domain/shared/decorations";
 import {
   decorFace,
   parseDecor,
@@ -23,7 +25,6 @@ import { CamperDrive } from "../../../../../src/domain/vehicle/kinds/camper/driv
 import { STORAGE_DOORS } from "../../../../../src/domain/vehicle/kinds/camper/furniture";
 import {
   AIR,
-  CLEARABLE_DECORATIONS,
   cargoCells,
   compartmentCells,
   decorCells,
@@ -41,7 +42,6 @@ import {
   wallFootCells,
 } from "../../../../../src/domain/vehicle/kinds/camper/room";
 import { CAMPER_SPEC } from "../../../../../src/domain/vehicle/kinds/camper/spec";
-import { cellKey } from "../../../../../src/domain/vehicle/lighting/headlights";
 import { DOCK } from "../../../../../src/domain/vehicle/motion/dock";
 import { defined } from "../../../../support/defined";
 
@@ -659,12 +659,12 @@ it("keeps the decor through departure and lays it again on the next park", () =>
 it("restores saved decor and moves an entry of a removed slot to the first free slot that takes it, docked or not (ADR 0103)", () => {
   const saved = JSON.stringify([
     { slot: "table", item: "potted_plant" },
-    { slot: "wall_cabinet_front", item: "lava_lamp" },
+    { slot: "wall_cabinet_front", item: "book_stack" },
     { slot: "nowhere", item: "cushion" },
     { slot: "stove", item: "Bad Item" },
   ]);
   const expected = [
-    { slot: "dashboard_center", item: "lava_lamp" },
+    { slot: "dashboard_center", item: "book_stack" },
     { slot: "dashboard_left", item: "cushion" },
     { slot: "table", item: "potted_plant" },
   ];
@@ -697,7 +697,7 @@ const fullSlots = standingCells.flatMap(({ slots }) =>
     .map((s) => ({ slot: s.id, item: "potted_plant" })),
 );
 const cabinetEntries = [
-  { slot: "wall_cabinet_front", item: "lava_lamp" },
+  { slot: "wall_cabinet_front", item: "book_stack" },
   { slot: "wall_cabinet_rear", item: "toaster" },
 ];
 

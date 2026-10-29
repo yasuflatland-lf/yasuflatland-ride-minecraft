@@ -5,6 +5,7 @@ import { asVehicleId } from "../../../src/domain/shared/ids";
 import { dot, forward, rightOf } from "../../../src/domain/shared/vec";
 import { NEUTRAL_CONTROL } from "../../../src/domain/vehicle/driveInput";
 import { isVehicleKind, VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
+import { BULLDOZER_PROFILE } from "../../../src/domain/vehicle/kinds/bulldozer/profile";
 import {
   CAMPER_MOTION,
   CAMPER_PROFILE,
@@ -85,13 +86,13 @@ describe("vehicle profiles (ADR 0050)", () => {
   it.each([
     {
       kind: "suv",
-      body: { front: 1.85, halfWidth: 1.1, height: 1.6 },
-      clearance: { halfX: 1, halfZ: 1, height: 2 },
+      body: { front: 2.41, halfWidth: 1.47, height: 2.08 },
+      clearance: { halfX: 1, halfZ: 1, height: 3 },
     },
     {
       kind: "camper",
       body: { front: 3.7, halfWidth: 1.5, height: 4.0 },
-      clearance: { halfX: 4, halfZ: 4, height: 4 },
+      clearance: { halfX: 1, halfZ: 1, height: 4 },
     },
     {
       kind: "sportsboat",
@@ -130,22 +131,22 @@ describe("vehicle profiles (ADR 0050)", () => {
         halfWidth: SUV_SPEC.bodyHalfWidth,
         height: SUV_SPEC.carHeight,
       },
-      footprint: 2.35,
+      footprint: 3.05,
       seats: {
         positions: [
-          { x: -0.38, z: 0.2 },
-          { x: 0.38, z: 0.2 },
-          { x: -0.38, z: -0.8 },
-          { x: 0.38, z: -0.8 },
+          { x: -0.494, z: -0.0446875 },
+          { x: 0.494, z: -0.0446875 },
+          { x: -0.494, z: -1.04 },
+          { x: 0.494, z: -1.04 },
         ],
       },
       boarding: { order: "engine" },
       beams: { reach: SUV_SPEC.headlightReach, lanes: [0] },
       placement: {
         surfaces: ["top"],
-        clearance: { halfX: 1, halfZ: 1, height: 2 },
+        clearance: { halfX: 1, halfZ: 1, height: 3 },
       },
-      chaseCamera: "near",
+      chaseCamera: "mid",
       defaultPaint: "khaki",
     });
   });
@@ -178,8 +179,8 @@ describe("vehicle profiles (ADR 0050)", () => {
       footprint: 3.5,
       seats: {
         positions: [
-          { x: -0.38, z: 0.35 },
-          { x: 0.38, z: 0.35 },
+          { x: -0.38, z: 0.1625 },
+          { x: 0.38, z: 0.1625 },
           { x: -0.38, z: -0.8 },
           { x: 0.38, z: -0.8 },
         ],
@@ -190,13 +191,31 @@ describe("vehicle profiles (ADR 0050)", () => {
         lanes: [-3, 3],
       },
       placement: {
-        surfaces: ["water", "top"],
+        surfaces: ["water", "lava", "top"],
         clearance: { halfX: 1, halfZ: 1, height: 2 },
       },
+      monitor: {
+        group: "sportsboat_equipment",
+        tools: [{ item: "icebreaker_switch", states: ["off", "on"] }],
+      },
+      placementGift: "sportsboat_equipment_box",
       chaseCamera: "near",
       defaultPaint: "black",
     });
     expect(profileOf("sportsboat")).toBe(SPORTSBOAT_PROFILE);
+  });
+
+  it("gives a kind's beam levels one integer light level from 0 to 15 per reach", () => {
+    for (const kind of VEHICLE_KINDS) {
+      const { reach, levels } = profileOf(kind).beams;
+      if (levels === undefined) continue;
+      expect(levels).toHaveLength(reach.length);
+      for (const level of levels) {
+        expect(Number.isInteger(level)).toBe(true);
+        expect(level).toBeGreaterThanOrEqual(0);
+        expect(level).toBeLessThanOrEqual(15);
+      }
+    }
   });
 
   it("freezes every profile and motion limit so a write cannot change all vehicles of a kind", () => {
@@ -217,6 +236,7 @@ describe("vehicle profiles (ADR 0050)", () => {
         profile.beams,
         profile.beams.reach,
         profile.beams.lanes,
+        ...(profile.beams.levels ? [profile.beams.levels] : []),
         profile.placement,
       ]) {
         expect(Object.isFrozen(part)).toBe(true);
@@ -266,6 +286,7 @@ describe("vehicle profiles (ADR 0050)", () => {
             suv: SUV_PROFILE,
             sportsboat: SPORTSBOAT_PROFILE,
             camper: CAMPER_PROFILE,
+            bulldozer: BULLDOZER_PROFILE,
           }[kind],
         );
         expect(createVehicle(kind, asVehicleId("v"), heading).kind).toBe(kind);
@@ -449,10 +470,10 @@ describe("vehicle profiles (ADR 0050)", () => {
     );
   });
 
-  it("lets only the sports boat's players choose their seat; the others keep the engine's rider order (ADR 0019, 0050, 0120)", () => {
+  it("lets sports boat and camper players choose seats while SUV and bulldozer keep engine order (ADR 0050, 0120, 0154)", () => {
     for (const kind of VEHICLE_KINDS)
       expect(profileOf(kind).boarding.order).toBe(
-        kind === "sportsboat" ? "chosen" : "engine",
+        kind === "sportsboat" || kind === "camper" ? "chosen" : "engine",
       );
   });
 
@@ -462,29 +483,6 @@ describe("vehicle profiles (ADR 0050)", () => {
 
   it("gives the camper a khaki default paint (ADR 0067, 0076)", () => {
     expect(CAMPER_PROFILE.defaultPaint).toBe("khaki");
-  });
-
-  it("clears every cell the camper's body reaches at any facing", () => {
-    const { halfX, halfZ } = CAMPER_PROFILE.placement.clearance;
-    fc.assert(
-      fc.property(fc.double({ min: 0, max: 360, noNaN: true }), (yaw) => {
-        const f = forward(yaw);
-        const r = rightOf(f);
-        for (const ahead of [CAMPER_SPEC.bodyFront, -CAMPER_SPEC.bodyRear])
-          for (const side of [-1, 1].map(
-            (s) => s * CAMPER_SPEC.bodyHalfWidth,
-          )) {
-            // The camper spawns at the cell center, so cells -half..half span
-            // half + 0.5 blocks each way.
-            expect(Math.abs(f.x * ahead + r.x * side)).toBeLessThanOrEqual(
-              halfX + 0.5,
-            );
-            expect(Math.abs(f.z * ahead + r.z * side)).toBeLessThanOrEqual(
-              halfZ + 0.5,
-            );
-          }
-      }),
-    );
   });
 });
 

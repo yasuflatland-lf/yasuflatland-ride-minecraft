@@ -4,6 +4,7 @@ import {
   type PlacementSurface,
 } from "../../placement/placement";
 import type { VehicleProfile } from "../../profile";
+import { SPORTSBOAT_MONITOR } from "./equipment";
 import { SPORTSBOAT_SPEC } from "./spec";
 
 const body = Object.freeze({
@@ -18,11 +19,11 @@ export const SPORTSBOAT_PROFILE: VehicleProfile = Object.freeze({
   fleetLimit: 1, // Per player (ADR 0066).
   body,
   footprint: SPORTSBOAT_SPEC.footprint,
-  // Must match minecraft:rideable in packs/yasu_ride_bp/entities/yasu_ride/sportsboat.se.json; the SUV's first x/z, no doors (ADR 0051), kept when the SUV's front seats moved back (ADR 0117).
+  // Must match minecraft:rideable in packs/yasu_ride_bp/entities/yasu_ride/sportsboat.se.json. The front z follows ADR 0176; the rear seats are the SUV's first x/z, no doors (ADR 0051).
   seats: Object.freeze({
     positions: Object.freeze([
-      { x: -0.38, z: 0.35 },
-      { x: 0.38, z: 0.35 },
+      { x: -0.38, z: 0.1625 },
+      { x: 0.38, z: 0.1625 },
       { x: -0.38, z: -0.8 },
       { x: 0.38, z: -0.8 },
     ]),
@@ -42,7 +43,7 @@ export const SPORTSBOAT_PROFILE: VehicleProfile = Object.freeze({
   }),
   // At the water surface from the bed, the water, or the side of a shore; on land from a top face (ADR 0051).
   placement: Object.freeze({
-    surfaces: Object.freeze<PlacementSurface[]>(["water", "top"]),
+    surfaces: Object.freeze<PlacementSurface[]>(["water", "lava", "top"]),
     // 3 × 2 × 3 cells fit the 2.2-wide, 1.2-high collision box (ADR 0051).
     clearance: Object.freeze({
       halfX: 1,
@@ -50,6 +51,8 @@ export const SPORTSBOAT_PROFILE: VehicleProfile = Object.freeze({
       height: clearanceHeight(body),
     }),
   }),
+  monitor: SPORTSBOAT_MONITOR,
+  placementGift: "sportsboat_equipment_box",
   chaseCamera: "near",
   defaultPaint: "black", // ADR 0051, 0076
 });

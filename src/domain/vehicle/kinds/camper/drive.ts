@@ -1,3 +1,5 @@
+import { SyncedValue } from "../../../shared/syncedValue";
+import { TapToggle } from "../../../shared/tapToggle";
 import type { Vec3 } from "../../../shared/vec";
 import {
   type DecorPlacement,
@@ -11,10 +13,14 @@ import type { DriveStep, EngineCommand, TickContext } from "../../drive";
 import type { RawInput } from "../../driveInput";
 import type { RestoredOf } from "../../entityContract";
 import { DOCK, heldStep, pushesStick } from "../../motion/dock";
-import { dockCommands, undockCommands } from "../../motion/dockEntity";
+import {
+  dockCommands,
+  dockedCommand,
+  undockCommands,
+} from "../../motion/dockEntity";
 import { TransformingDrive } from "../../motion/transformingDrive";
-import { SyncedValue } from "../../syncedValue";
 import { type BodyEnds, guardEnds } from "./bodyGuard";
+import { currentGearId } from "./campingGear";
 import {
   cellTaken,
   DECOR_CELLS,
@@ -26,7 +32,6 @@ import {
 import { nearest, slotForPress, slotsAt, slotsFor } from "./decorPlacing";
 import { StorageDoors } from "./dooredStorage";
 import { DOOR_STEPS, restoredDoorStep, swing } from "./doorSwing";
-import { DoorToggle } from "./doorToggle";
 import {
   type CAMPER_ENTITY,
   ceilingLightsCommand,
@@ -82,6 +87,9 @@ const CAMPER_ENDS: BodyEnds = {
 export class CamperDrive extends TransformingDrive {
   private parked: HoldPose | undefined;
   private restoredDocked: boolean;
+  private resendDocked = false;
+  // Until the drive first holds, the entity keeps its default docked value and needs no resend.
+  private heldOnce = false;
   private readonly restoredLaid: boolean;
   // False on the parking tick: its teleport and dock event take effect only at
   // the end of the tick, and a floor laid under a body that still collides would
@@ -92,12 +100,12 @@ export class CamperDrive extends TransformingDrive {
   private parkTried = false;
   private stickWasPushed = false;
   private doorOpen: boolean;
-  private readonly doorToggle = new DoorToggle();
+  private readonly doorToggle = new TapToggle(CAMPER_SPEC.doorSwingTicks);
   private doorStep: number;
   private readonly doorStepSync = new SyncedValue<number>();
   // The shower door swings in the entry door's DOOR_STEPS (ADR 0094).
   private showerDoorOpen: boolean;
-  private readonly showerDoorToggle = new DoorToggle();
+  private readonly showerDoorToggle = new TapToggle(CAMPER_SPEC.doorSwingTicks);
   private showerDoorStep: number;
   private readonly showerDoorStepSync = new SyncedValue<number>();
   private showerTicks = 0;
@@ -114,14 +122,9 @@ export class CamperDrive extends TransformingDrive {
   private readonly stowedDecor: DecorPlacement[] = [];
 
   constructor(yaw: number, restored: RestoredOf<typeof CAMPER_ENTITY>) {
-    super(
-      yaw,
-      restored,
-      CAMPER_TRANSFORMING,
-      CAMPER_MOTION,
-      CAMPER_TYRES,
-      (step, ctx, form) => guardEnds(step, ctx, CAMPER_ENDS, form),
-    );
+    super(yaw, restored, CAMPER_TRANSFORMING, CAMPER_MOTION, CAMPER_TYRES, {
+      guard: (step, ctx, form) => guardEnds(step, ctx, CAMPER_ENDS, form),
+    });
     this.restoredDocked = restored.docked === true;
     this.restoredLaid = restored[DOCK_RESTORED.laid] === true;
     this.doorStep = restoredDoorStep(restored.door, this.restoredDocked);
@@ -133,11 +136,14 @@ export class CamperDrive extends TransformingDrive {
     // Decor survives driving: it is restored whether or not the camper was docked (ADR 0093).
     // An entry whose slot no longer exists, or whose cell an earlier entry already holds,
     // moves to the first free slot that takes its item, or is stowed (ADR 0103, 0105). Decor
-    // saved in a renamed slot loads as if saved in its new one (ADR 0112).
-    const saved = parseDecor(restored[DOCK_RESTORED.decor]).map((entry) => ({
-      ...entry,
-      slot: savedSlotId(entry.slot),
-    }));
+    // saved in a renamed slot loads as if saved in its new one (ADR 0112), and an item that
+    // left the catalog is dropped without being handed back (ADR 0169).
+    const saved = parseDecor(restored[DOCK_RESTORED.decor]).flatMap((entry) => {
+      const item = currentGearId(entry.item);
+      return item === undefined
+        ? []
+        : [{ slot: savedSlotId(entry.slot), item }];
+    });
     const homeless: DecorPlacement[] = [];
     for (const entry of saved) {
       const slot = decorSlot(entry.slot);
@@ -264,7 +270,7 @@ export class CamperDrive extends TransformingDrive {
     if (!pose) return false;
     const doorTakesIt =
       this.showerDoorOpen ||
-      this.showerDoorToggle.withinSwing(tick) ||
+      this.showerDoorToggle.withinWindow(tick) ||
       !inShowerToilet(pose, feet);
     return doorTakesIt ? this.useShowerDoor(tick) : this.runShower();
   }
@@ -347,7 +353,31 @@ export class CamperDrive extends TransformingDrive {
     return item;
   }
 
+  override resync(): void {
+    super.resync();
+    this.resendDocked = this.heldOnce;
+    this.doorStepSync.resync();
+    this.showerDoorStepSync.resync();
+    this.showerSync.resync();
+    this.ceilingLightsSync.resync();
+    this.storage.resync();
+  }
+
   override step(raw: RawInput | undefined, ctx: TickContext): DriveStep {
+    const wasParked = this.parked !== undefined || this.restoredDocked;
+    const step = this.stepCamper(raw, ctx);
+    const held = this.parked !== undefined;
+    this.heldOnce ||= held;
+    if (!this.resendDocked) return step;
+    this.resendDocked = false;
+    // The docked property goes out only when the camper parks or departs, so after a failed
+    // send it goes out again unless this step docks or departs and sends it anyway (ADR 0156).
+    return held === wasParked
+      ? { ...step, commands: [...step.commands, dockedCommand(held)] }
+      : step;
+  }
+
+  private stepCamper(raw: RawInput | undefined, ctx: TickContext): DriveStep {
     if (this.restoredDocked) {
       this.restoredDocked = false;
       const pose = parkPose(ctx.location, this.yaw);

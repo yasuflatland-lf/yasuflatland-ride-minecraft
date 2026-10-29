@@ -9,16 +9,18 @@ stands on y 0; a hanging item also starts on y 0, and its slot's height lifts it
 0102). The atlas is 16 x 16 with one 4 x 4 swatch per color, so mipmapping in the block atlas does
 not bleed a neighbor's color into a face. --check compares parsed JSON and decoded pixels, because
 Biome reformats the geometry and zlib builds do not all compress identically. It also writes the
-Behavior Pack decor blocks, the items, the creative catalog, and the gear part of
+Behavior Pack decor blocks, the items, and the gear part of
 item_texture.json; the decor block's face, height, and spot states are described next to
 FACE_ROTATION. It also writes the pair blocks and their geometry, which draw the two items of a
 shelf board or of the table in one block (PAIRS, ADR 0108), the wall cabinet's compartment
 block, a pair block that also holds the ceiling up and shows its items only while its door is
 open (ADR 0114), and the fridge's compartment block, which shows its items the same way (ADR
 0123).
-The camping gear box (BOX) is the creative group's icon and first item, and its icon entry comes
-first in the generated part of item_texture.json; its item JSON and icon are written elsewhere (ADR
-0093).
+The icon entry of the camping gear box (BOX) comes first in the generated part of
+item_texture.json; its item JSON and icon are written elsewhere (ADR 0093), and
+tools/gen_item_catalog.py lists it in the creative group.
+A gear shape may use cubes turned about a single axis (a `pivot` and a `rotation` on the cube; ADR
+0169): cube_tilt.bounds() and the pair blocks follow the turn. Compound rotations are not allowed in gear.
 """
 
 import argparse
@@ -29,13 +31,20 @@ import sys
 import zlib
 from pathlib import Path
 
+# Isolated mode (-I) omits the script directory from the import path.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from tool_loader import load_tool
+
+cube_tilt = load_tool("cube_tilt")
+
+LAID_TAG = "tag:yasu_ride:laid"
+
 SPEC = Path(__file__).resolve().parent / "camping_gear.json"
 MODELS = "models/blocks/yasu_ride"
 ATLAS = "textures/blocks/yasu_ride/camping_gear.png"
 TERRAIN = "textures/terrain_texture.json"
 BLOCKS = "blocks/yasu_ride"
 ITEMS = "items/yasu_ride"
-CATALOG = "item_catalog/crafting_item_catalog.json"
 ITEM_TEXTURES = "textures/item_texture.json"
 ATLAS_KEY = "yasu_ride_camping_gear"
 # Decor block states (ADR 0093). The rotation turns the gear model into the camper model's frame:
@@ -97,7 +106,7 @@ OPEN_STATE = "yasu_ride:open"
 CABINET_COMPONENT = "yasu_ride:camper_cabinet"
 CABINET_BOX_PX = 10
 CEILING_PLATE_PX = 3
-# A block state holds at most 16 values, and an end takes 19: empty, or one of the 18 standing
+# A block state holds at most 16 values, and an end takes 17: empty, or one of the 16 standing
 # items. So an end's code, 0 for empty and 1 + the item's index among the standing items, is
 # split into end<n>_page (code // PAIR_PAGE_SIZE) and end<n>_item (code % PAIR_PAGE_SIZE), as
 # pairEndStates in src/infrastructure/vehicle/bedrock/identifiers.ts.
@@ -107,13 +116,10 @@ MAX_STATE_VALUES = 16
 # than 1 value"), so a pair whose ends share one height, the table, has no HEIGHT_STATE and its
 # permutations lift it by that height (ADR 0108).
 MIN_STATE_VALUES = 2
-GROUP = "yasu_ride:camping_gear"
-# The box a player gets with their first camper (ADR 0093): the group's icon and first item.
+# The box a player gets with their first camper (ADR 0093). Its icon entry comes first in the
+# generated part of item_texture.json; tools/gen_item_catalog.py makes it the creative group's
+# icon and first item.
 BOX = "camping_gear_box"
-GROUP_ICON = f"yasu_ride:{BOX}"
-# Camping items that stand outside the vehicles rather than decor, listed after the gear in the
-# creative group. Their item JSON and icon entry are written by hand (ADR 0122).
-OUTDOOR_ITEMS = ["low_chair_item"]
 ATLAS_SIZE = 16
 SWATCH = 4
 CELL_PX = 16
@@ -150,6 +156,18 @@ def box(x0, y0, z0, x1, y1, z1, color):
         "size": [x1 - x0, y1 - y0, z1 - z0],
         "uv": {f: face(color) for f in ("north", "south", "east", "west", "up", "down")},
     }
+
+
+def rounded(value):
+    """Drop floating-point noise and normalize negative zero before writing."""
+    if isinstance(value, float):
+        value = round(value, 3) + 0.0
+        return int(value) if value.is_integer() else value
+    if isinstance(value, list):
+        return [rounded(v) for v in value]
+    if isinstance(value, dict):
+        return {k: rounded(v) for k, v in value.items()}
+    return value
 
 
 SHAPES = {
@@ -220,20 +238,6 @@ SHAPES = {
         box(-1.5, 4.5, 0.5, 1.5, 5, 1, "harvest_gold"),
         box(2.75, 2, -0.5, 3, 3, 0.5, "steel"),
     ],
-    "oil_lamp": [
-        box(-2, 0, -2, 2, 1, 2, "dark_brown"),
-        box(-1.5, 1, -1.5, 1.5, 3, 1.5, "harvest_gold"),
-        box(-1, 3, -1, 1, 3.5, 1, "chrome"),
-        box(-1, 3.5, -1, 1, 6.5, 1, "cream"),
-        box(-0.75, 6.5, -0.75, 0.75, 7, 0.75, "chrome"),
-    ],
-    "lava_lamp": [
-        box(-1.5, 0, -1.5, 1.5, 2.5, 1.5, "harvest_gold"),
-        box(-1, 2.5, -1, 1, 6.5, 1, "red"),
-        box(-1.25, 3.5, -0.5, 1.25, 4.5, 0.5, "burnt_orange"),
-        box(-0.5, 5, -1.25, 0.5, 6, 1.25, "burnt_orange"),
-        box(-0.75, 6.5, -0.75, 0.75, 8, 0.75, "harvest_gold"),
-    ],
     "transistor_radio": [
         box(-3, 0, -1, 3, 3.5, 1, "burnt_orange"),
         box(-2.5, 0.5, -1.25, 0.5, 3, -1, "cream"),
@@ -275,18 +279,6 @@ SHAPES = {
 }
 
 
-def rounded(value):
-    """Drop floating-point noise and normalize negative zero before writing."""
-    if isinstance(value, float):
-        value = round(value, 3) + 0.0
-        return int(value) if value.is_integer() else value
-    if isinstance(value, list):
-        return [rounded(v) for v in value]
-    if isinstance(value, dict):
-        return {k: rounded(v) for k, v in value.items()}
-    return value
-
-
 def geometry(item_id, cubes):
     return rounded({
         "format_version": "1.12.0",
@@ -301,6 +293,15 @@ def geometry(item_id, cubes):
     })
 
 
+def moved(cube, left, ahead):
+    """The cube shifted to a pair end's spot; a turned cube's pivot moves with it."""
+    shift = [left, 0, ahead]
+    result = {**cube, "origin": [cube["origin"][i] - shift[i] for i in range(3)]}
+    if "pivot" in cube:
+        result["pivot"] = [cube["pivot"][i] - shift[i] for i in range(3)]
+    return result
+
+
 def pair_geometry(kind, spec):
     """One bone per standing item per end, its cubes moved to the end's spot in the gear model's
     frame, where the camper's left is -x and its forward -z (FACE_ROTATION). Every face is opaque,
@@ -310,10 +311,7 @@ def pair_geometry(kind, spec):
     bones = []
     for end, (left, ahead) in enumerate(PAIRS[kind]["ends"]):
         for item in standing(spec):
-            cubes = [
-                {**c, "origin": [c["origin"][0] - left, c["origin"][1], c["origin"][2] - ahead]}
-                for c in SHAPES[item["id"]]
-            ]
+            cubes = [moved(c, left, ahead) for c in SHAPES[item["id"]]]
             bones.append({"name": pair_bone(end, item["id"]), "pivot": [0, 0, 0], "cubes": cubes})
     return rounded({
         "format_version": "1.12.0",
@@ -340,12 +338,6 @@ def pair_pages(spec):
     return -(-(len(standing(spec)) + 1) // PAIR_PAGE_SIZE)
 
 
-def bounds(cubes):
-    lo = [min(c["origin"][i] for c in cubes) for i in range(3)]
-    hi = [max(c["origin"][i] + c["size"][i] for c in cubes) for i in range(3)]
-    return lo, hi
-
-
 def y_span(item):
     """Every item's model starts on y 0; a hanging item is lifted to the hook by its slot's
     yasu_ride:height (ADR 0102)."""
@@ -363,9 +355,15 @@ def validate(spec):
         cubes = SHAPES.get(item["id"], [])
         if not cubes:
             continue
-        (x0, y0, z0), (x1, y1, z1) = bounds(cubes)
+        try:
+            cube_tilt.assert_axes(cubes, {})
+        except ValueError as error:
+            errors.append(f"{item['id']}: {error}")
+            continue
+        (x0, y0, z0), (x1, y1, z1) = cube_tilt.bounds(cubes)
         w = item["width_px"]
-        if (x0, x1) != (-w / 2, w / 2):
+        # Written cube coordinates have three decimals; turning them adds sub-millipixel error.
+        if abs(x0 + w / 2) > 0.001 or abs(x1 - w / 2) > 0.001:
             errors.append(f"{item['id']}: x spans {x0}..{x1}, not {-w / 2}..{w / 2}")
         ylo, yhi = y_span(item)
         if (y0, y1) != (ylo, yhi):
@@ -380,7 +378,7 @@ def validate(spec):
     for kind, pair in PAIRS.items():
         for end, (left, ahead) in enumerate(pair["ends"]):
             for item in standing(spec):
-                (x0, _, z0), (x1, _, z1) = bounds(SHAPES.get(item["id"], []) or [box(0, 0, 0, 0, 0, 0, "cream")])
+                (x0, _, z0), (x1, _, z1) = cube_tilt.bounds(SHAPES.get(item["id"], []) or [box(0, 0, 0, 0, 0, 0, "cream")])
                 if x0 - left < -8 or x1 - left > 8 or z0 - ahead < -8 or z1 - ahead > 8:
                     errors.append(f"{kind} end {end}: {item['id']} leaves the cell")
     for kind, pair in PAIRS.items():
@@ -492,6 +490,7 @@ def decor_block(item):
                 "minecraft:light_dampening": 0,
                 "minecraft:destructible_by_mining": False,
                 "minecraft:destructible_by_explosion": False,
+                LAID_TAG: {},
                 "minecraft:custom_components": ["yasu_ride:camper_decor"],
                 "minecraft:collision_box": False,
                 "minecraft:selection_box": selection_box(item),
@@ -575,6 +574,7 @@ def pair_block(kind, spec):
                 "minecraft:light_dampening": 0,
                 "minecraft:destructible_by_mining": False,
                 "minecraft:destructible_by_explosion": False,
+                LAID_TAG: {},
                 **(DOOR_BOXES[door][0](heights[0]) if door else {
                     "minecraft:custom_components": ["yasu_ride:camper_decor"],
                     "minecraft:collision_box": False,
@@ -646,27 +646,6 @@ def gear_item(item):
     }
 
 
-def catalog(spec):
-    return {
-        "format_version": "1.21.60",
-        "minecraft:crafting_items_catalog": {
-            "categories": [
-                {
-                    "category_name": "items",
-                    "groups": [
-                        {
-                            "group_identifier": {"icon": GROUP_ICON, "name": GROUP},
-                            "items": [f"yasu_ride:{BOX}"]
-                            + [f"yasu_ride:{item['id']}" for item in spec]
-                            + [f"yasu_ride:{i}" for i in OUTDOOR_ITEMS],
-                        }
-                    ],
-                }
-            ]
-        },
-    }
-
-
 def item_textures(current, spec):
     """Keep every other entry in its order, then the box and each gear item, in spec order (ADR 0093)."""
     owned = [BOX] + [item["id"] for item in spec]
@@ -727,7 +706,6 @@ def main():
         documents[bp / ITEMS / f"{gid}.item.json"] = gear_item(item)
     for kind in PAIRS:
         documents[bp / BLOCKS / f"{kind}_decor_pair.block.json"] = pair_block(kind, spec)
-    documents[bp / CATALOG] = catalog(spec)
     documents[rp / ITEM_TEXTURES] = item_textures(json.loads((rp / ITEM_TEXTURES).read_text()), spec)
     atlas = rp / ATLAS
     if not args.check:
@@ -736,7 +714,7 @@ def main():
     stale = stale_files(documents, atlas)
     if stale:
         sys.exit(f"{', '.join(stale)} out of date with tools/gen_camping_gear.py and tools/camping_gear.json. Run `pnpm model` and commit the result.")
-    print("camping gear models, atlas, blocks, items, and catalog are up to date")
+    print("camping gear models, atlas, blocks, and items are up to date")
 
 
 if __name__ == "__main__":

@@ -1,12 +1,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import {
-  HEADLIGHT_SWITCH_TYPE,
-  HEADLIGHTS_PROPERTY,
-} from "../../src/infrastructure/vehicle/bedrock/identifiers";
+import { HEADLIGHT_SWITCH_TYPE } from "../../src/infrastructure/shared/identifiers";
+import { HEADLIGHTS_PROPERTY } from "../../src/infrastructure/vehicle/bedrock/identifiers";
 
 const read = (p: string) => JSON.parse(readFileSync(p, "utf8"));
-describe.each(["suv", "sportsboat", "camper"])(
+describe.each(["suv", "sportsboat", "camper", "bulldozer"])(
   "%s headlights (ADR 0020)",
   (vehicle) => {
     const entity = read(
@@ -36,14 +34,11 @@ describe.each(["suv", "sportsboat", "camper"])(
       expect(lamps?.cubes?.length).toBeGreaterThan(0);
     });
 
-    it("the render controller gives the lamps the glowing material only while the headlights are on", () => {
+    it("the base render controller keeps the unlit lamp material", () => {
       expect(controller.materials).toContainEqual({
-        headlights: `Array.lamps[query.property('${HEADLIGHTS_PROPERTY}') ? 1 : 0]`,
+        headlights: "Material.lamp",
       });
-      expect(controller.arrays.materials["Array.lamps"]).toEqual([
-        "Material.lamp",
-        "Material.lamp_lit",
-      ]);
+      expect(controller.arrays.materials).toBeUndefined();
       expect(client.materials.lamp).toBe("entity");
       expect(client.materials.lamp_lit).toBe("entity_emissive");
     });

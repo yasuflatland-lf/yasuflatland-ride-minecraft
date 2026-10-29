@@ -1,6 +1,6 @@
 // In-game tests (ADR 0010). They run in a script environment separate from the
 // main Behavior Pack, so they drive the vehicle through script events.
-import { system } from "@minecraft/server";
+import { system, world } from "@minecraft/server";
 import { type Outcome, setupArena } from "./arena";
 import {
   LOG_TAG,
@@ -11,8 +11,48 @@ import {
   TEST_EVENT,
 } from "./protocol";
 import {
+  bladeCutColumn,
+  bladeCutDrops,
+  bladeCutKeptIds,
+} from "./scenarios/bladeCut";
+import {
+  buildBlockStates,
+  buildEdits,
+  buildSelectionAndMode,
+} from "./scenarios/buildTools";
+import {
+  bulldozerClearHill,
+  bulldozerDirtPath,
+  bulldozerDive,
+  bulldozerFallSurvives,
+  bulldozerFlightTunnel,
+  bulldozerHopAndTakeoff,
+  bulldozerMonitor,
+  bulldozerOverhang,
+  bulldozerPivot,
+  bulldozerRaisedNoCut,
+  bulldozerRamCow,
+  bulldozerRiseShaft,
+  bulldozerSeaCut,
+  bulldozerSpawnsRaised,
+  bulldozerStep2Raised,
+} from "./scenarios/bulldozer";
+import {
+  bulldozerExitGround,
+  bulldozerExitSpot,
+} from "./scenarios/bulldozerExit";
+import {
+  campTableTwoSeats,
+  dutchOvenOnPit,
+  dutchOvenOnTable,
+  dutchOvenSimmerAndTakeBack,
+  firePitCoveredTakeBack,
+  firePitIgnition,
+  gasLanternSwitch,
+  gasLanternTakeBack,
   lowChairSeatAndTakeBack,
   lowChairSettlesThroughGrass,
+  nogaChairSeatAndTakeBack,
 } from "./scenarios/camp";
 import {
   camperAccel,
@@ -38,12 +78,21 @@ import {
   camperWall,
 } from "./scenarios/camper";
 import { campingGearBlocks } from "./scenarios/campingGear";
+import { fleetForget } from "./scenarios/fleetRemove";
 import {
   boatCruise,
   boatDeckSeats,
   boatDock,
   boatDrag,
   boatFloat,
+  boatIcebreakerBeached,
+  boatIcebreakerIce,
+  boatIcebreakerLava,
+  boatIcebreakerMountainOff,
+  boatIcebreakerMountainOn,
+  boatIcebreakerOff,
+  boatLava,
+  boatMonitor,
   boatRam,
   boatSeatFillers,
   boatShore,
@@ -74,6 +123,18 @@ import {
   vehicleLimit,
   wallDiagonal,
 } from "./scenarios/suv";
+import {
+  tentEntityContract,
+  tentFlapOpensAlone,
+  tentLantern,
+  tentMattresses,
+  tentPaintEvents,
+  tentPitchAndTakeDown,
+  tentPitchOnSnow,
+  tentRefuseStep,
+  tentRefuseVehicleSpace,
+  tentRelayLostCell,
+} from "./scenarios/tent";
 
 function log(runId: string, msg: string): void {
   console.warn(`${linePrefix(runId)}${msg}`);
@@ -84,6 +145,24 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
   // The middle number is the test's ticks as last logged in CI; shardsOf packs
   // by it, so update it when a test gets much slower or faster (ADR 0054).
   const allTests: [string, number, () => Promise<Outcome>][] = [
+    ["build_block_states", 0, () => buildBlockStates(a)],
+    ["bulldozer_exit_spot", 8, () => bulldozerExitSpot(a)],
+    ["bulldozer_exit_ground", 2, () => bulldozerExitGround(a)],
+    ["bulldozer_clear_hill", 79, () => bulldozerClearHill(a)],
+    ["bulldozer_overhang", 77, () => bulldozerOverhang(a)],
+    ["bulldozer_dirt_path", 77, () => bulldozerDirtPath(a)],
+    ["bulldozer_flight_tunnel", 102, () => bulldozerFlightTunnel(a)],
+    ["bulldozer_pivot", 30, () => bulldozerPivot(a)],
+    ["bulldozer_ram_cow", 62, () => bulldozerRamCow(a)],
+    ["bulldozer_hop_and_takeoff", 47, () => bulldozerHopAndTakeoff(a)],
+    ["bulldozer_dive", 18, () => bulldozerDive(a)],
+    ["bulldozer_sea_cut", 104, () => bulldozerSeaCut(a)],
+    ["bulldozer_rise_shaft", 53, () => bulldozerRiseShaft(a)],
+    ["bulldozer_fall_survives", 60, () => bulldozerFallSurvives(a)],
+    ["bulldozer_step2_raised", 67, () => bulldozerStep2Raised(a)],
+    ["bulldozer_raised_no_cut", 77, () => bulldozerRaisedNoCut(a)],
+    ["bulldozer_spawns_raised", 65, () => bulldozerSpawnsRaised(a)],
+    ["bulldozer_monitor", 22, () => bulldozerMonitor(a)],
     ["camper_accel", 144, () => camperAccel(a)],
     ["camper_wall", 150, () => camperWall(a)],
     ["camper_takeoff", 33, () => camperTakeoff(a)],
@@ -129,23 +208,68 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
     ["submarine_unmanned", 211, () => submarineUnmanned(a)],
     ["submarine_shallow", 118, () => submarineShallow(a)],
     ["vehicle_limit", 20, () => vehicleLimit(a)],
+    ["fleet_forget", 112, () => fleetForget(a)],
+    ["boat_monitor", 50, () => boatMonitor(a)],
     ["boat_float", 105, () => boatFloat(a)],
+    ["boat_lava", 80, () => boatLava(a)],
     ["boat_dock", 76, () => boatDock(a)],
     ["boat_deck_seats", 27, () => boatDeckSeats(a)],
     ["boat_drag", 138, () => boatDrag(a)],
     ["boat_cruise", 270, () => boatCruise(a)],
+    ["boat_icebreaker_ice", 90, () => boatIcebreakerIce(a)],
+    ["boat_icebreaker_lava", 90, () => boatIcebreakerLava(a)],
+    ["boat_icebreaker_off", 90, () => boatIcebreakerOff(a)],
+    ["boat_icebreaker_beached", 70, () => boatIcebreakerBeached(a)],
+    ["boat_icebreaker_mountain_on", 120, () => boatIcebreakerMountainOn(a)],
+    ["boat_icebreaker_mountain_off", 120, () => boatIcebreakerMountainOff(a)],
     ["boat_shore", 165, () => boatShore(a)],
     ["boat_ram", 77, () => boatRam(a)],
     ["boat_seat_fillers", 19, () => boatSeatFillers(a)],
     ["suv_soul_sand", 78, () => suvSoulSand(a)],
     ["camping_gear_blocks", 0, () => campingGearBlocks(a)],
+    ["blade_cut_column", 0, () => bladeCutColumn(a)],
+    ["blade_cut_drops", 6, () => bladeCutDrops(a)],
+    ["blade_cut_kept_ids", 0, () => bladeCutKeptIds()],
     ["low_chair_seat_and_take_back", 6, () => lowChairSeatAndTakeBack(a)],
+    ["noga_chair_seat_and_take_back", 6, () => nogaChairSeatAndTakeBack(a)],
+    ["camp_table_two_seats", 2, () => campTableTwoSeats(a)],
+    ["dutch_oven_on_table", 60, () => dutchOvenOnTable(a)],
+    ["dutch_oven_on_pit", 90, () => dutchOvenOnPit(a)],
+    ["gas_lantern_take_back", 8, () => gasLanternTakeBack(a)],
+    ["gas_lantern_switch", 70, () => gasLanternSwitch(a)],
+    ["fire_pit_ignition", 6, () => firePitIgnition(a)],
+    ["dutch_oven_simmer_take_back", 8, () => dutchOvenSimmerAndTakeBack(a)],
+    ["fire_pit_covered_take_back", 22, () => firePitCoveredTakeBack(a)],
     [
       "low_chair_settles_through_grass",
       20,
       () => lowChairSettlesThroughGrass(a),
     ],
+    ["tent_entity_contract", 12, () => tentEntityContract(a)],
+    ["tent_pitch_and_take_down", 7, () => tentPitchAndTakeDown(a)],
+    ["tent_pitch_on_snow", 6, () => tentPitchOnSnow(a)],
+    ["tent_refuse_step", 5, () => tentRefuseStep(a)],
+    ["tent_refuse_vehicle_space", 7, () => tentRefuseVehicleSpace(a)],
+    ["tent_relay_lost_cell", 23, () => tentRelayLostCell(a)],
+    ["tent_flap_opens_alone", 19, () => tentFlapOpensAlone(a)],
+    ["tent_mattresses", 9, () => tentMattresses(a)],
+    ["tent_lantern", 37, () => tentLantern(a)],
+    ["tent_paint_events", 25, () => tentPaintEvents(a)],
   ];
+  if (world.getAllPlayers().length > 0) {
+    allTests.push(["build_edits", 250, () => buildEdits(a)]);
+    allTests.push([
+      "build_selection_and_mode",
+      30,
+      () => buildSelectionAndMode(a),
+    ]);
+  } else {
+    log(runId, "SKIP build_edits: a connected player is required");
+    log(
+      runId,
+      "SKIP build_selection_and_mode: a connected player is required; camera perspective needs visual verification",
+    );
+  }
   const shards = shardsOf(
     allTests.map(([, ticks]) => ticks),
     shard.total,

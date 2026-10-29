@@ -92,3 +92,13 @@ describe("RiderEffects water breathing", () => {
     expect(log.lines).toEqual(["breathing bad: Error: breathing"]);
   });
 });
+
+describe("RiderEffects fire protection", () => {
+  it("protects every rider and isolates a failing one", () => {
+    const { world, log, riders } = setup();
+    world.failFireProtectionOn = "bad";
+    riders.protectFromFire(new Set([asPlayerId("bad"), asPlayerId("good")]));
+    expect(world.calls).toEqual(["fire:good"]);
+    expect(log.lines).toEqual(["fire protection bad: Error: fire"]);
+  });
+});

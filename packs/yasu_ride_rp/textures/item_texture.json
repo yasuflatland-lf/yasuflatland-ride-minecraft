@@ -12,8 +12,42 @@
     "yasu_ride_camper_item": {
       "textures": "textures/items/yasu_ride/camper_item"
     },
+    "yasu_ride_bulldozer_item": {
+      "textures": "textures/items/yasu_ride/bulldozer_item"
+    },
+    "yasu_ride_blade_switch": {
+      "textures": "textures/items/yasu_ride/blade_switch"
+    },
+    "yasu_ride_sportsboat_equipment_box": {
+      "textures": "textures/items/yasu_ride/sportsboat_equipment_box"
+    },
+    "yasu_ride_icebreaker_switch": {
+      "textures": "textures/items/yasu_ride/icebreaker_switch"
+    },
     "yasu_ride_low_chair_item": {
       "textures": "textures/items/yasu_ride/low_chair_item"
+    },
+    "yasu_ride_camp_table_item": {
+      "textures": "textures/items/yasu_ride/camp_table_item"
+    },
+    "yasu_ride_fire_pit_item": {
+      "textures": "textures/items/yasu_ride/fire_pit_item"
+    },
+    "yasu_ride_tent_item": { "textures": "textures/items/yasu_ride/tent_item" },
+    "yasu_ride_dutch_oven_item": {
+      "textures": "textures/items/yasu_ride/dutch_oven_item"
+    },
+    "yasu_ride_gas_lantern_item": {
+      "textures": "textures/items/yasu_ride/gas_lantern_item"
+    },
+    "yasu_ride_noga_chair_item": {
+      "textures": "textures/items/yasu_ride/noga_chair_item"
+    },
+    "yasu_build_selection_wand": {
+      "textures": "textures/items/yasu_build/selection_wand"
+    },
+    "yasu_build_build_tool": {
+      "textures": "textures/items/yasu_build/build_tool"
     },
     "yasu_ride_camping_gear_box": {
       "textures": "textures/items/yasu_ride/camping_gear_box"
@@ -40,8 +74,6 @@
       "textures": "textures/items/yasu_ride/fruit_bowl"
     },
     "yasu_ride_toaster": { "textures": "textures/items/yasu_ride/toaster" },
-    "yasu_ride_oil_lamp": { "textures": "textures/items/yasu_ride/oil_lamp" },
-    "yasu_ride_lava_lamp": { "textures": "textures/items/yasu_ride/lava_lamp" },
     "yasu_ride_transistor_radio": {
       "textures": "textures/items/yasu_ride/transistor_radio"
     },

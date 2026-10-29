@@ -1,6 +1,6 @@
 # 0051. Sports boat
 
-- Status: Superseded in part by 0066 (counting boats under the world limit of 10) and 0080 (a beached boat coasting to a stop, and the boat never leaving the water by itself); extended by 0058, 0063, 0089, and 0120
+- Status: Superseded in part by 0066 (counting boats under the world limit of 10), 0080 (a beached boat coasting to a stop, and the boat never leaving the water by itself), and 0150 (water-only buoyancy and placement), and 0175 (the script lifts a hull that sits too deep, so "no vertical impulse" no longer holds); extended by 0058, 0063, 0089, and 0120
 - Date: 2026-10-12
 
 ## Context

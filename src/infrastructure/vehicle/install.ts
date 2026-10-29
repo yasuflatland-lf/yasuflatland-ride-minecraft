@@ -1,5 +1,9 @@
 // Wires the vehicle feature's repositories, port implementations, and use cases
 // together.
+
+import type { ChaseCameraWish } from "../../application/shared/ports/chaseCamera";
+import type { SpaceCheck } from "../../application/shared/ports/space";
+import { SleepInBed } from "../../application/shared/sleepInBed";
 import { BoardVehicle } from "../../application/vehicle/boardVehicle";
 import { DriveVehicles } from "../../application/vehicle/driveVehicles";
 import { GiveStarterVehicle } from "../../application/vehicle/giveStarterVehicle";
@@ -14,15 +18,15 @@ import { PressStorage } from "../../application/vehicle/pressStorage";
 import { RemoveDecor } from "../../application/vehicle/removeDecor";
 import { SetDecor } from "../../application/vehicle/setDecor";
 import { ShowVehicleHints } from "../../application/vehicle/showVehicleHints";
-import { SleepInBed } from "../../application/vehicle/sleepInBed";
 import { SwitchCeilingLights } from "../../application/vehicle/switchCeilingLights";
 import { SwitchHeadlights } from "../../application/vehicle/switchHeadlights";
+import { SwitchTool } from "../../application/vehicle/switchTool";
 import { UseDockDoor } from "../../application/vehicle/useDockDoor";
-import type { DimensionId } from "../../domain/shared/ids";
-import type { Vec3 } from "../../domain/shared/vec";
+import type { RawInput } from "../../domain/vehicle/driveInput";
 import { fleetLimitOf } from "../../domain/vehicle/kinds/index";
+import { BedrockBedWorld } from "../shared/bedrockBedWorld";
 import { NAMESPACE } from "../shared/identifiers";
-import { BedrockBedWorld } from "./bedrock/bedrockBedWorld";
+import type { SwitchTarget } from "../shared/switchRouter";
 import { BedrockDecorWorld } from "./bedrock/bedrockDecorWorld";
 import { BedrockFleetWorld } from "./bedrock/bedrockFleetWorld";
 import { BedrockHeadlightWorld } from "./bedrock/bedrockHeadlightWorld";
@@ -32,33 +36,47 @@ import { BedrockPaintWorld } from "./bedrock/bedrockPaintWorld";
 import { BedrockPlacementWorld } from "./bedrock/bedrockPlacementWorld";
 import { BedrockVehicleWorld } from "./bedrock/bedrockVehicleWorld";
 import { EntityIndex } from "./bedrock/entityIndex";
+import { registerCutDrops } from "./bedrock/handlers/cutDrops";
 import { registerSubscriptions } from "./bedrock/subscriptions";
 import { systemClock } from "./bedrock/systemClock";
 import { DynamicPropertyFleetRepository } from "./persistence/dynamicPropertyFleetRepository";
 import { InMemoryVehicleRepository } from "./persistence/inMemoryVehicleRepository";
-import { TestInputStore } from "./testInput/testInputStore";
+import { VehicleTestStore } from "./testInput/vehicleTestStore";
 
 /**
  * Installs the vehicle feature. The returned check lets bootstrap hand other
- * features the vehicles' space without them importing this feature (ADR 0046, 0122).
+ * features the vehicles' space without them importing this feature. Camp's check
+ * comes through bootstrap too, and so do the chase camera wish (whether another
+ * feature wants a seated rider in the chase camera) and the switch targets of
+ * other features, which the switch router asks after the vehicle's (ADR 0046, 0122, 0129).
  */
-export function installVehicles(): {
-  isVehicleSpace(dimensionId: DimensionId, cell: Vec3): boolean;
+export function installVehicles(deps: {
+  isCampSpace: SpaceCheck;
+  wantsChaseCamera: ChaseCameraWish;
+  laterSwitchTargets: () => readonly SwitchTarget[];
+}): {
+  isVehicleSpace: SpaceCheck;
 } {
   const repo = new InMemoryVehicleRepository();
-  const store = new TestInputStore();
+  const testInputs = new VehicleTestStore<RawInput>();
+  const testTools = new VehicleTestStore<string>();
   const index = new EntityIndex();
   const inventory = new BedrockInventory(index);
   const decorWorld = new BedrockDecorWorld(index, inventory);
-  const bedrock = new BedrockVehicleWorld(index, store);
+  const bedrock = new BedrockVehicleWorld(
+    index,
+    testInputs,
+    testTools,
+    deps.isCampSpace,
+  );
   const fleetWorld = new BedrockFleetWorld(index, bedrock.releaser, inventory);
   const log = { warn: (m: string) => console.warn(`[${NAMESPACE}] ${m}`) };
   const fleets = new DynamicPropertyFleetRepository(log, fleetLimitOf);
   registerSubscriptions(
     {
-      drive: new DriveVehicles(bedrock, repo, log),
+      drive: new DriveVehicles(bedrock, repo, log, deps.wantsChaseCamera),
       place: new PlaceVehicle(
-        new BedrockPlacementWorld(inventory, index),
+        new BedrockPlacementWorld(inventory, index, deps.isCampSpace),
         repo,
       ),
       starter: new GiveStarterVehicle(inventory),
@@ -75,6 +93,7 @@ export function installVehicles(): {
         systemClock,
       ),
       ceilingLights: new SwitchCeilingLights(repo, systemClock),
+      tool: new SwitchTool(repo, systemClock),
       door: new UseDockDoor(repo, systemClock),
       bed: new SleepInBed(new BedrockBedWorld(index)),
       showerToilet: new PressShowerToilet(repo, systemClock),
@@ -89,12 +108,15 @@ export function installVehicles(): {
       ),
       board: new BoardVehicle(repo),
     },
-    store,
+    testInputs,
+    testTools,
     (dimensionId, cell) => bedrock.dockDoorOwner(dimensionId, cell),
     (dimensionId, cell) => bedrock.dockCellOwner(dimensionId, cell),
     (dimensionId, cell, typeId) =>
       bedrock.dockBlockOwner(dimensionId, cell, typeId),
+    deps.laterSwitchTargets,
   );
+  registerCutDrops((entity) => bedrock.sweepCutDrop(entity));
   return {
     isVehicleSpace: (dimensionId, cell) =>
       bedrock.isVehicleSpace(dimensionId, cell),

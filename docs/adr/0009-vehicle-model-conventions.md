@@ -1,7 +1,9 @@
 # 0009. Vehicle model conventions, and accepting a square collision box
 
-- Status: Accepted (extended by [0091](0091-alpha-blend-only-the-camper-glass.md) and [0093](0093-decorate-the-parked-camper.md))
+- Status: Accepted (extended by [0091](0091-alpha-blend-only-the-camper-glass.md), [0093](0093-decorate-the-parked-camper.md), [0136](0136-bulldozer.md) (Proposed), and [0139](0139-show-the-held-tool-on-the-cab-monitor.md) (Proposed))
+- Superseded in part by: [0170](0170-measure-suv-side-view-proportions.md) (SUV collision dimensions; Proposed)
 - Date: 2026-10-10
+- Amended by: [0167](0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md)
 
 ## Context
 

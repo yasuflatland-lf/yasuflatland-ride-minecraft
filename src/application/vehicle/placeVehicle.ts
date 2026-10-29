@@ -1,7 +1,7 @@
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 // Use case: place a vehicle from its item on the cell its kind's placement rule
 // (profile.placement) picks (ADR 0008, ADR 0050): the SUV and the camper on the top
-// face of a block (ADR 0067), the sports boat at the water surface from any face or
+// face of a block (ADR 0067), the sports boat at a liquid surface from any face or
 // the view ray first, then on land from a top face (ADR 0051). This use case picks
 // the cell (cellFor) and checks profile.placement.clearance.
 import type { Vec3 } from "../../domain/shared/vec";
@@ -22,7 +22,7 @@ export interface PlaceVehicleCommand {
   dimensionId: DimensionId;
   /**
    * Cell the vehicle sits on top of (integer coordinates): the block the item was
-   * used on, or for a water kind the top water cell above or beside it (ADR 0051).
+   * used on, or for a liquid kind the top liquid cell above or beside it (ADR 0051, 0149).
    * The vehicle appears one block above it.
    */
   blockLocation: Vec3;
@@ -49,26 +49,33 @@ export class PlaceVehicle {
     clicked: Vec3,
     face: BlockFace,
   ): Vec3 | undefined {
-    return placementCell(profileOf(kind).placement, clicked, face, (at) =>
-      this.world.isWaterAt(dimensionId, at),
+    return placementCell(
+      profileOf(kind).placement,
+      clicked,
+      face,
+      (at, liquid) =>
+        liquid === "water"
+          ? this.world.isWaterAt(dimensionId, at)
+          : this.world.isLavaAt(dimensionId, at),
     );
   }
 
-  /** Whether this kind can be placed on water, so a view ray over open water may place it (ADR 0051). */
-  placesOnWater(kind: VehicleKind): boolean {
-    return profileOf(kind).placement.surfaces.includes("water");
+  /** Whether a view ray over an open liquid may place this kind (ADR 0051, 0149). */
+  placesOnLiquid(kind: VehicleKind): boolean {
+    return profileOf(kind).placement.surfaces.some(
+      (surface) => surface === "water" || surface === "lava",
+    );
   }
 
   execute(cmd: PlaceVehicleCommand): boolean {
     const block = cmd.blockLocation;
-    const isAir = (dx: number, dy: number, dz: number) =>
-      this.world.isAir(cmd.dimensionId, {
-        x: block.x + dx,
-        y: block.y + dy,
-        z: block.z + dz,
-      });
+    const isFree = (dx: number, dy: number, dz: number) => {
+      const at = { x: block.x + dx, y: block.y + dy, z: block.z + dz };
+      if (this.world.isCampSpace(cmd.dimensionId, at)) return false;
+      return this.world.isAir(cmd.dimensionId, at);
+    };
     // Returning before the spawn also leaves the item unconsumed.
-    if (!canPlaceAt(isAir, profileOf(cmd.kind).placement.clearance))
+    if (!canPlaceAt(isFree, profileOf(cmd.kind).placement.clearance))
       return false;
     // Taking the item first means a player who moved or dropped it in the
     // meantime gets no vehicle, instead of a vehicle and the item (ADR 0024).

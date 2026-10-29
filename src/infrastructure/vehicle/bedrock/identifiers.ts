@@ -1,21 +1,20 @@
 import { asPlayerId, asVehicleId } from "../../../domain/shared/ids";
-import {
-  HEADLIGHTS_PROPERTY_NAME,
-  paintEventName,
-} from "../../../domain/vehicle/entityContract";
+import { HEADLIGHTS_PROPERTY_NAME } from "../../../domain/vehicle/entityContract";
 import type { FleetEntry } from "../../../domain/vehicle/fleet/fleet";
 import { VEHICLE_KINDS, type VehicleKind } from "../../../domain/vehicle/kind";
 import {
   CAMPING_GEAR_IDS,
+  MONITOR_TOOL_ITEMS,
   pairHeights,
+  SPORTSBOAT_EQUIPMENT_IDS,
   STAND_IN_NAMES,
   STANDING_GEAR_IDS,
 } from "../../../domain/vehicle/kinds/index";
-import { PAINTS, type Paint } from "../../../domain/vehicle/paint/paint";
 import {
   PLACEMENT_GIFTS,
   type PlacementGift,
 } from "../../../domain/vehicle/placement/gift";
+import type { StarterKind } from "../../../domain/vehicle/placement/starter";
 import type { ChaseCamera } from "../../../domain/vehicle/profile";
 import type { RamMount } from "../../../domain/vehicle/ram";
 import type { StandInAxis } from "../../../domain/vehicle/standIn";
@@ -32,12 +31,14 @@ export const ENTITY_TYPE: Readonly<Record<VehicleKind, string>> = Object.freeze(
     suv: id("suv"),
     sportsboat: id("sportsboat"),
     camper: id("camper"),
+    bulldozer: id("bulldozer"),
   },
 );
 export const ITEM_TYPE: Readonly<Record<VehicleKind, string>> = Object.freeze({
   suv: id("suv_item"),
   sportsboat: id("sportsboat_item"),
   camper: id("camper_item"),
+  bulldozer: id("bulldozer_item"),
 });
 export function kindOfEntity(
   typeId: string | undefined,
@@ -53,30 +54,40 @@ export function kindOfItem(
   return VEHICLE_KINDS.find((kind) => ITEM_TYPE[kind] === typeId);
 }
 export const PLAYER_TYPE = "minecraft:player";
-/** Dynamic property on a player, set after they have been given their starter vehicle item (ADR 0023). */
-export const STARTER_RECEIVED_PROPERTY = id("starter_received");
+/** Player dynamic property set after they have been given each starter kind's item (ADR 0023). The SUV keeps the original key, so nobody gets a second SUV. */
+export const STARTER_RECEIVED_PROPERTY: Readonly<Record<StarterKind, string>> =
+  Object.freeze({
+    suv: id("starter_received"),
+    bulldozer: id("bulldozer_starter_received"),
+  });
 
 /** The item of each placement gift (ADR 0093). */
 export const GIFT_ITEM: Readonly<Record<PlacementGift, string>> = Object.freeze(
   {
     camping_gear_box: id("camping_gear_box"),
+    sportsboat_equipment_box: id("sportsboat_equipment_box"),
   },
 );
 
 /** Player dynamic property recording who received each gift (ADR 0093). */
 export const GIFT_RECEIVED_PROPERTY: Readonly<Record<PlacementGift, string>> =
-  Object.freeze({ camping_gear_box: id("camping_gear_given") });
+  Object.freeze({
+    camping_gear_box: id("camping_gear_given"),
+    sportsboat_equipment_box: id("sportsboat_equipment_given"),
+  });
 
-/** The items each gift holds, in tools/camping_gear.json order (ADR 0093). */
+/** The items each gift holds, in its kind's equipment order (ADR 0093, 0171). */
 export const GIFT_CONTENTS: Readonly<Record<PlacementGift, readonly string[]>> =
   Object.freeze({
     camping_gear_box: Object.freeze(CAMPING_GEAR_IDS.map(id)),
+    sportsboat_equipment_box: Object.freeze(SPORTSBOAT_EQUIPMENT_IDS.map(id)),
   });
 
 /** Lang key of the lore line on every item a gift holds (ADR 0093). */
 export const GIFT_LORE: Readonly<Record<PlacementGift, string>> = Object.freeze(
   {
     camping_gear_box: `${NAMESPACE}.lore.camping_gear`,
+    sportsboat_equipment_box: `${NAMESPACE}.lore.sportsboat_equipment`,
   },
 );
 
@@ -90,8 +101,6 @@ export function giftOfItem(
 export const FLEET_PROPERTY = id("fleet");
 /** Entity dynamic property on a vehicle placed from its item: the placing player's id (ADR 0066). */
 export const OWNER_PROPERTY = id("owner");
-/** Item a rider uses to switch the headlights (ADR 0020). */
-export const HEADLIGHT_SWITCH_TYPE = id("headlight_switch");
 /**
  * Entity property declared in every vehicle entity file (suv, sportsboat and
  * camper .se.json); the render controller makes the lamps glow by it.
@@ -154,45 +163,31 @@ export const DECK_SEATS_PROPERTY = id("deck_seats");
 export const DECK_SEAT_OF_PROPERTY = id("deck_seat_of");
 /** Event and component group that shrink a deck seat's hit box to the toilet (ADR 0095). */
 export const DECK_SEAT_COMPACT_EVENT = entityEventId("compact");
-export const LIGHT_BLOCK = "minecraft:light_block_15";
+/** Event and component group that give a deck seat the Drive interact text (ADR 0177). */
+export const DECK_SEAT_DRIVER_EVENT = entityEventId("driver");
 /**
  * Test input messages have the form "<vehicleId>,<moveX>,<moveY>,<jump>"
  * (jump is 0 / 1). "<vehicleId>,clear" clears the input.
  */
 export const TEST_INPUT_EVENT = id("test_input");
 export const TEST_DECOR_EVENT = id("test_decor");
+/** Server-only test tool messages use "<vehicleId>,<bare item id>,<state>" (ADR 0171). */
+export const TEST_TOOL_EVENT = id("test_tool");
+/** Test held-tool messages have the form "<vehicleId>,<bare item id>" or "<vehicleId>,clear" (ADR 0139). */
+export const TEST_HELD_TOOL_EVENT = id("test_held_tool");
+
+/** Item routes for every kind's monitor tools (ADR 0171). */
+export const MONITOR_TOOL_TYPES = MONITOR_TOOL_ITEMS.map(id);
 /**
  * Camera presets for each chase camera: the vanilla preset that views the player from
- * behind, as F5 does (ADR 0028), and the pack's preset pulled back from it (ADR 0071).
+ * behind, as F5 does (ADR 0028), and the pack's presets pulled back from it (ADR 0071, 0170).
  */
 export const CHASE_CAMERAS: Readonly<Record<ChaseCamera, string>> =
   Object.freeze({
     near: "minecraft:third_person",
+    mid: id("mid_chase"),
     far: id("far_chase"),
   });
-
-/**
- * The vanilla dye that repaints a vehicle with a paint (ADR 0031). Brown dye
- * turns it back to variant 0, which shows the kind's default paint (ADR 0076).
- */
-export function dyeOf(paint: Paint): string {
-  const color = paint === "khaki" ? "brown" : paint;
-  return `minecraft:${color}_dye`;
-}
-export const PAINT_BY_DYE: Readonly<Record<string, Paint>> = Object.fromEntries(
-  PAINTS.map((paint) => [dyeOf(paint), paint]),
-);
-/** minecraft:variant value for each paint. The render controller picks the texture by this index. */
-export const PAINT_VARIANT: Readonly<Record<Paint, number>> =
-  Object.fromEntries(PAINTS.map((paint, i) => [paint, i])) as Record<
-    Paint,
-    number
-  >;
-/**
- * Entity event declared in every vehicle entity file (suv, sportsboat and
- * camper .se.json) that sets the variant for a paint.
- */
-export const paintEvent = (paint: Paint): string => id(paintEventName(paint));
 
 export function fleetEntryOf(entity: {
   id: string;
@@ -212,7 +207,6 @@ export function fleetEntryOf(entity: {
   };
 }
 
-export const AIR_BLOCK = "minecraft:air";
 /** Invisible room blocks of a parked camper (ADR 0063, 0068). */
 export const CAMPER_FLOOR_BLOCK = id("camper_floor");
 export const CAMPER_CEILING_BLOCK = id("camper_ceiling");
@@ -270,7 +264,7 @@ export function pairDecorBlockId(kind: string): string {
 }
 /**
  * The pair block's states for the item at each end. A block state holds at most 16 values
- * and an end takes 19 (empty or one of 18 standing items), so the end's code, 0 for empty
+ * and an end takes 17 (empty or one of 16 standing items), so the end's code, 0 for empty
  * and 1 + its index in STANDING_GEAR_IDS, is split into `page` (code / PAIR_PAGE_SIZE) and
  * `item` (code % PAIR_PAGE_SIZE) (ADR 0108).
  */
@@ -371,8 +365,5 @@ export function campingGearOfItem(
 export function campingGearOfDecorBlock(typeId: string): string | undefined {
   return CAMPING_GEAR_IDS.find((gear) => decorBlockId(gear) === typeId);
 }
-/** Action bar messages a drive shows its driver (ADR 0063, 0068). */
-export const messageKey = (name: string): string =>
-  `${NAMESPACE}.message.${name}`;
 /** Action bar hints for players on foot near a vehicle (ADR 0086). */
 export const hintKey = (name: string): string => `${NAMESPACE}.hint.${name}`;

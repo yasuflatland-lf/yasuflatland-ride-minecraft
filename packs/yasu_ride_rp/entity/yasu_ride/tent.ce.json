@@ -1,0 +1,44 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "yasu_ride:tent",
+      "materials": {
+        "default": "entity",
+        "lamp": "entity",
+        "lamp_lit": "entity_emissive"
+      },
+      "textures": {
+        "default": "textures/entity/yasu_ride/tent",
+        "green": "textures/entity/yasu_ride/tent_green",
+        "red": "textures/entity/yasu_ride/tent_red",
+        "white": "textures/entity/yasu_ride/tent_white",
+        "light_gray": "textures/entity/yasu_ride/tent_light_gray",
+        "gray": "textures/entity/yasu_ride/tent_gray",
+        "black": "textures/entity/yasu_ride/tent_black",
+        "orange": "textures/entity/yasu_ride/tent_orange",
+        "yellow": "textures/entity/yasu_ride/tent_yellow",
+        "lime": "textures/entity/yasu_ride/tent_lime",
+        "cyan": "textures/entity/yasu_ride/tent_cyan",
+        "light_blue": "textures/entity/yasu_ride/tent_light_blue",
+        "blue": "textures/entity/yasu_ride/tent_blue",
+        "purple": "textures/entity/yasu_ride/tent_purple",
+        "magenta": "textures/entity/yasu_ride/tent_magenta",
+        "pink": "textures/entity/yasu_ride/tent_pink"
+      },
+      "geometry": {
+        "default": "geometry.yasu_ride.tent"
+      },
+      "render_controllers": ["controller.render.yasu_ride.tent"],
+      "animations": {
+        "flap_front": "animation.yasu_ride.tent.flap_front",
+        "flap_left": "animation.yasu_ride.tent.flap_left",
+        "flap_right": "animation.yasu_ride.tent.flap_right",
+        "flap_bedroom": "animation.yasu_ride.tent.flap_bedroom"
+      },
+      "scripts": {
+        "animate": ["flap_front", "flap_left", "flap_right", "flap_bedroom"]
+      }
+    }
+  }
+}

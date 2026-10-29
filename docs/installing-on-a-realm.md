@@ -2,7 +2,7 @@
 
 Back to the [README](../README.md).
 
-A Realm has no folder to copy packs into, so the packs go in with the world: apply them to a world on your device, then upload that world to the Realm ([ADR 0129](adr/0129-support-realms-as-a-second-play-environment.md)). Only the Realm owner needs to do this.
+A Realm has no folder to copy packs into, so the packs go in with the world: apply them to a world on your device, then upload that world to the Realm ([ADR 0179](adr/0179-support-realms-as-a-second-play-environment.md)). Only the Realm owner needs to do this.
 
 1. **Import the add-on on your device.** Download `yasuflatland-ride-<version>.mcaddon` from the [latest release](https://github.com/yasuflatland-lf/yasuflatland-ride-minecraft/releases/latest) and open it (on iPad, follow steps 1 and 2 of [these steps](installing-on-ipad.md)).
 2. **Turn it on in a world.**

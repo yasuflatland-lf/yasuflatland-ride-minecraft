@@ -1,6 +1,6 @@
 # 0090. Group the vehicle core by subcontext
 
-- Status: Accepted
+- Status: Accepted (extended by [0129](0129-share-room-primitives-between-features.md): syncedValue.ts left the vehicle core for shared, and by [0139](0139-show-the-held-tool-on-the-cab-monitor.md) (Proposed): the cab monitor gets a core subfolder)
 - Date: 2026-10-21
 - Extends: 0055
 

@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { asPlayerId } from "../../../../src/domain/shared/ids";
 import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
+import { STARTER_KINDS } from "../../../../src/domain/vehicle/placement/starter";
 import { BedrockInventory } from "../../../../src/infrastructure/vehicle/bedrock/bedrockInventory";
 import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
 import {
@@ -123,37 +124,46 @@ describe("BedrockInventory", () => {
 
   it("reports no starter flag for a missing player", () => {
     const { inventory } = fixture();
-    expect(inventory.receivedStarter(asPlayerId("nobody"))).toBeUndefined();
+    expect(
+      inventory.receivedStarter(asPlayerId("nobody"), "suv"),
+    ).toBeUndefined();
   });
 
   it("reports the starter flag only when it is exactly true", () => {
     fc.assert(
-      fc.property(fc.constantFrom(true, false, undefined, "true"), (value) => {
-        const { player, inventory } = fixture();
-        player.getDynamicProperty.mockReturnValue(value);
-        expect(inventory.receivedStarter(asPlayerId("player"))).toBe(
-          value === true,
-        );
-        expect(player.getDynamicProperty).toHaveBeenCalledWith(
-          STARTER_RECEIVED_PROPERTY,
-        );
-      }),
+      fc.property(
+        fc.constantFrom(...STARTER_KINDS),
+        fc.constantFrom(true, false, undefined, "true"),
+        (kind, value) => {
+          const { player, inventory } = fixture();
+          player.getDynamicProperty.mockReturnValue(value);
+          expect(inventory.receivedStarter(asPlayerId("player"), kind)).toBe(
+            value === true,
+          );
+          expect(player.getDynamicProperty).toHaveBeenCalledWith(
+            STARTER_RECEIVED_PROPERTY[kind],
+          );
+        },
+      ),
     );
   });
 
-  it("marks the starter as received on a present player", () => {
-    const { player, inventory } = fixture();
-    inventory.markStarterReceived(asPlayerId("player"));
-    expect(player.setDynamicProperty).toHaveBeenCalledExactlyOnceWith(
-      STARTER_RECEIVED_PROPERTY,
-      true,
-    );
-  });
+  it.each(STARTER_KINDS)(
+    "marks the %s starter as received on a present player",
+    (kind) => {
+      const { player, inventory } = fixture();
+      inventory.markStarterReceived(asPlayerId("player"), kind);
+      expect(player.setDynamicProperty).toHaveBeenCalledExactlyOnceWith(
+        STARTER_RECEIVED_PROPERTY[kind],
+        true,
+      );
+    },
+  );
 
   it("does nothing when marking a missing player", () => {
     const { player, inventory } = fixture();
     expect(() =>
-      inventory.markStarterReceived(asPlayerId("nobody")),
+      inventory.markStarterReceived(asPlayerId("nobody"), "suv"),
     ).not.toThrow();
     expect(player.setDynamicProperty).not.toHaveBeenCalled();
   });
@@ -310,7 +320,7 @@ describe("BedrockInventory", () => {
         },
       ]),
     );
-    expect(container.addItem).toHaveBeenCalledTimes(19);
+    expect(container.addItem).toHaveBeenCalledTimes(17);
     expect(dimension.spawnItem).not.toHaveBeenCalled();
   });
 
@@ -343,7 +353,7 @@ describe("BedrockInventory", () => {
     const { dimension, player, inventory } = fixture();
     player.getComponent.mockReturnValue(undefined);
     inventory.unpackGift(asPlayerId("player"), "camping_gear_box");
-    expect(dimension.spawnItem).toHaveBeenCalledTimes(19);
+    expect(dimension.spawnItem).toHaveBeenCalledTimes(17);
   });
 
   it("unpacks nothing for a missing player", () => {

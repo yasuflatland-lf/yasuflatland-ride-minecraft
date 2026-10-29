@@ -1,12 +1,11 @@
 import type { Entity } from "@minecraft/server";
 import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
+import type { SpaceCheck } from "../../../../src/application/shared/ports/space";
+import { type Cell, cellKey } from "../../../../src/domain/shared/cells";
 import { asDimensionId, asVehicleId } from "../../../../src/domain/shared/ids";
 import type { DockCell } from "../../../../src/domain/vehicle/dock/floor";
-import {
-  type Cell,
-  cellKey,
-} from "../../../../src/domain/vehicle/lighting/headlights";
+import { roomCells as camperRoomCells } from "../../../../src/domain/vehicle/kinds/camper/room";
 import {
   DOCK_RECHECK_TICKS,
   DockBlocks,
@@ -47,6 +46,8 @@ vi.mock("@minecraft/server", () => ({
     }),
   },
 }));
+
+const noCampSpace: SpaceCheck = () => false;
 
 const cell = fc.record({
   x: fc.integer({ min: -3, max: 3 }),
@@ -141,11 +142,59 @@ function fixture() {
 }
 
 describe("DockBlocks (ADR 0063)", () => {
+  it("restores and rewrites the exact saved deck_cells of a build before the shared layer", () => {
+    const f = fixture();
+    const raw =
+      '[{"x":0,"y":64,"z":0,"height":5},{"x":1,"y":64,"z":0,"block":{"type":"decor","item":"potted_plant","face":2,"height":3}},{"x":2,"y":64,"z":0,"block":{"type":"door","face":1,"open":true}},{"x":3,"y":65,"z":0,"block":{"type":"light"}},{"x":4,"y":64,"z":0,"block":{"type":"wall","face":7}},"junk"]';
+    f.saved.set(DECK_CELLS_PROPERTY, raw);
+    const wanted: DockCell[] = [
+      { x: 0, y: 64, z: 0, block: { type: "deck", height: 5 } },
+      {
+        x: 1,
+        y: 64,
+        z: 0,
+        block: {
+          type: "decor",
+          item: "potted_plant",
+          face: 2,
+          height: 3,
+          spot: 0,
+        },
+      },
+      { x: 2, y: 64, z: 0, block: { type: "door", face: 1, open: true } },
+      { x: 3, y: 65, z: 0, block: { type: "light" } },
+    ];
+    const ids = [
+      DECK_FLOOR_BLOCK,
+      decorBlockId("potted_plant"),
+      CAMPER_DOOR_BLOCK,
+      "minecraft:light_block_15",
+    ];
+    wanted.forEach((c, i) => {
+      f.blocks.set(cellKey(c), { typeId: defined(ids[i], "block id") });
+    });
+    expect(savedDock(f.car)).toEqual({ laid: true, doorOpen: true });
+    const floors = new DockBlocks(noCampSpace);
+    floors.lay(asVehicleId(f.car.id), f.car, wanted);
+    expect(f.writes).toEqual([]);
+    expect(f.saved.get(DECK_CELLS_PROPERTY)).toBe(raw);
+    const closed = wanted.map((c) =>
+      c.block.type === "door"
+        ? { ...c, block: { ...c.block, open: false } }
+        : c,
+    );
+    floors.lay(asVehicleId(f.car.id), f.car, closed);
+    expect(f.writes).toEqual(["2,64,0"]);
+    expect(f.saved.get(DECK_CELLS_PROPERTY)).toBe(
+      '[{"x":0,"y":64,"z":0,"block":{"type":"deck","height":5}},{"x":1,"y":64,"z":0,"block":{"type":"decor","item":"potted_plant","face":2,"height":3,"spot":0}},{"x":2,"y":64,"z":0,"block":{"type":"door","face":1,"open":false}},{"x":3,"y":65,"z":0,"block":{"type":"light"}}]',
+    );
+  });
+
   it("persists placed cells, restores them after reload, resizes owned cells and clears them", () => {
     fc.assert(
       fc.property(cells, (wanted) => {
         const f = fixture();
-        const floors = new DockBlocks();
+        const floors = new DockBlocks(noCampSpace);
         floors.lay(asVehicleId(f.car.id), f.car, wanted);
         for (const c of wanted)
           expect(f.at(c)).toEqual({
@@ -157,7 +206,7 @@ describe("DockBlocks (ADR 0063)", () => {
           });
         expect(f.savedCells()).toEqual(wanted);
         const resized = wanted.map(nextHeight);
-        const reloaded = new DockBlocks();
+        const reloaded = new DockBlocks(noCampSpace);
         reloaded.lay(asVehicleId(f.car.id), f.car, resized);
         for (const c of resized)
           expect(f.at(c)).toEqual({
@@ -168,7 +217,7 @@ describe("DockBlocks (ADR 0063)", () => {
             },
           });
         expect(f.savedCells()).toEqual(resized);
-        new DockBlocks().lay(asVehicleId(f.car.id), f.car, []);
+        new DockBlocks(noCampSpace).lay(asVehicleId(f.car.id), f.car, []);
         for (const c of wanted) expect(f.at(c).typeId).toBe("minecraft:air");
         expect(f.saved.get(DECK_CELLS_PROPERTY)).toBeUndefined();
       }),
@@ -179,7 +228,7 @@ describe("DockBlocks (ADR 0063)", () => {
     fc.assert(
       fc.property(cells, (wanted) => {
         const f = fixture();
-        const floors = new DockBlocks();
+        const floors = new DockBlocks(noCampSpace);
         wanted.forEach((c, i) => {
           f.blocks.set(cellKey(c), {
             typeId:
@@ -211,7 +260,7 @@ describe("DockBlocks (ADR 0063)", () => {
         fc.constantFrom("throw", "undefined"),
         (wanted, mode) => {
           const f = fixture();
-          const floors = new DockBlocks();
+          const floors = new DockBlocks(noCampSpace);
           f.unavailable(mode);
           floors.lay(asVehicleId(f.car.id), f.car, wanted);
           expect(f.saved.get(DECK_CELLS_PROPERTY)).toBeUndefined();
@@ -235,7 +284,7 @@ describe("DockBlocks (ADR 0063)", () => {
     fc.assert(
       fc.property(cells, (wanted) => {
         const f = fixture();
-        const floors = new DockBlocks();
+        const floors = new DockBlocks(noCampSpace);
         floors.lay(asVehicleId(f.car.id), f.car, wanted);
         const before = f.saved.get(DECK_CELLS_PROPERTY);
         const resized = wanted.map(nextHeight);
@@ -254,7 +303,7 @@ describe("DockBlocks (ADR 0063)", () => {
       fc.property(cells, cells, (wanted, there) => {
         const f = fixture();
         const nether = fakeDimension("nether");
-        const floors = new DockBlocks();
+        const floors = new DockBlocks(noCampSpace);
         floors.lay(asVehicleId(f.car.id), f.car, wanted);
         for (const c of wanted)
           nether.blocks.set(cellKey(c), { typeId: DECK_FLOOR_BLOCK });
@@ -289,7 +338,7 @@ describe("DockBlocks (ADR 0063)", () => {
         (wanted, mode) => {
           const f = fixture();
           const nether = fakeDimension("nether");
-          const floors = new DockBlocks();
+          const floors = new DockBlocks(noCampSpace);
           floors.lay(asVehicleId(f.car.id), f.car, wanted);
           f.unavailable(mode);
           Object.assign(f.car, { dimension: nether.dimension });
@@ -326,7 +375,7 @@ describe("DockBlocks (ADR 0063)", () => {
     f.blocks.set(cellKey(seed), { typeId: DECK_FLOOR_BLOCK });
     f.saved.set(DECK_CELLS_PROPERTY, raw);
     expect(() =>
-      new DockBlocks().lay(asVehicleId(f.car.id), f.car, []),
+      new DockBlocks(noCampSpace).lay(asVehicleId(f.car.id), f.car, []),
     ).not.toThrow();
     expect(f.at(seed).typeId).toBe(DECK_FLOOR_BLOCK);
     expect(f.saved.get(DECK_CELLS_PROPERTY)).toBe(raw);
@@ -378,7 +427,7 @@ const roomCells: DockCell[] = [
 
 it("lays every block type with its states and changes only an opened door", () => {
   const f = fixture();
-  const docks = new DockBlocks();
+  const docks = new DockBlocks(noCampSpace);
   docks.lay(asVehicleId(f.car.id), f.car, roomCells);
   expect(roomCells.map(f.at)).toEqual([
     { typeId: DECK_FLOOR_BLOCK, states: { [DECK_FLOOR_HEIGHT_STATE]: 9 } },
@@ -435,7 +484,7 @@ it("lays every block type with its states and changes only an opened door", () =
     [ROOM_FACE_STATE]: 3,
     [ROOM_OPEN_STATE]: true,
   });
-  new DockBlocks().lay(asVehicleId(f.car.id), f.car, []);
+  new DockBlocks(noCampSpace).lay(asVehicleId(f.car.id), f.car, []);
   for (const c of roomCells) expect(f.at(c).typeId).toBe("minecraft:air");
 });
 
@@ -457,7 +506,7 @@ it.each([
   "replaces a $before.type cell with a $after.type cell at the same position",
   ({ before, after, expected }) => {
     const f = fixture();
-    const docks = new DockBlocks();
+    const docks = new DockBlocks(noCampSpace);
     const position = { x: 0, y: 64, z: 0 };
     docks.lay(asVehicleId(f.car.id), f.car, [{ ...position, block: before }]);
     const wanted = { ...position, block: after };
@@ -469,7 +518,7 @@ it.each([
 
 it("preserves replacements of wall, door, bed, decor, furniture, and shower-toilet cells", () => {
   const f = fixture();
-  const docks = new DockBlocks();
+  const docks = new DockBlocks(noCampSpace);
   docks.lay(asVehicleId(f.car.id), f.car, roomCells);
   for (const c of roomCells.slice(3))
     f.blocks.set(cellKey(c), { typeId: "minecraft:stone" });
@@ -480,7 +529,7 @@ it("preserves replacements of wall, door, bed, decor, furniture, and shower-toil
 
 it("replaces a decor item in place and clears it", () => {
   const f = fixture();
-  const docks = new DockBlocks();
+  const docks = new DockBlocks(noCampSpace);
   const position = { x: 0, y: 64, z: 0 };
   const states = {
     [DECOR_FACE_STATE]: 2,
@@ -506,7 +555,7 @@ it("replaces a decor item in place and clears it", () => {
 
 it("lays both items of a fridge compartment in its one block, each end's code split into page and item states, switches an end in place, and clears it (ADR 0108, 0123)", () => {
   const f = fixture();
-  const docks = new DockBlocks();
+  const docks = new DockBlocks(noCampSpace);
   const position = { x: 0, y: 64, z: 0 };
   const pairAt = (end0?: string, end1?: string): DockCell => ({
     ...position,
@@ -520,7 +569,7 @@ it("lays both items of a fridge compartment in its one block, each end's code sp
     },
   });
   const [end0, end1] = PAIR_END_STATES;
-  // potted_plant is standing item 0 (code 1); desk_fan is standing item 17 (code 18).
+  // potted_plant is standing item 0 (code 1); desk_fan is standing item 16 (code 17).
   docks.lay(asVehicleId(f.car.id), f.car, [pairAt("potted_plant", "desk_fan")]);
   expect(f.at(position)).toEqual({
     typeId: pairDecorBlockId("fridge"),
@@ -531,7 +580,7 @@ it("lays both items of a fridge compartment in its one block, each end's code sp
       [end0.page]: 0,
       [end0.item]: 1,
       [end1.page]: 1,
-      [end1.item]: 8,
+      [end1.item]: 6,
     },
   });
   docks.lay(asVehicleId(f.car.id), f.car, [pairAt(undefined, "desk_fan")]);
@@ -540,7 +589,7 @@ it("lays both items of a fridge compartment in its one block, each end's code sp
     [end0.item]: 0,
   });
   expect(f.savedCells()).toEqual([pairAt(undefined, "desk_fan")]);
-  new DockBlocks().lay(asVehicleId(f.car.id), f.car, []);
+  new DockBlocks(noCampSpace).lay(asVehicleId(f.car.id), f.car, []);
   expect(f.at(position).typeId).toBe("minecraft:air");
 });
 
@@ -548,7 +597,7 @@ it("lays the table's pair block without a height state, since its one height can
   const f = fixture();
   const position = { x: 0, y: 64, z: 0 };
   const [end0, end1] = PAIR_END_STATES;
-  new DockBlocks().lay(asVehicleId(f.car.id), f.car, [
+  new DockBlocks(noCampSpace).lay(asVehicleId(f.car.id), f.car, [
     {
       ...position,
       block: {
@@ -585,13 +634,13 @@ it("clears a decor block that an early ADR 0108 build laid at spot 6 (ADR 0108)"
       },
     ]),
   );
-  new DockBlocks().lay(asVehicleId(f.car.id), f.car, []);
+  new DockBlocks(noCampSpace).lay(asVehicleId(f.car.id), f.car, []);
   expect(f.at(position).typeId).toBe("minecraft:air");
 });
 
 it("switches a slot between furniture and decor in place and clears it (ADR 0097)", () => {
   const f = fixture();
-  const docks = new DockBlocks();
+  const docks = new DockBlocks(noCampSpace);
   const position = { x: 0, y: 64, z: 0 };
   const furniture: DockCell = {
     ...position,
@@ -640,7 +689,7 @@ it("restores a saved bed cell and clears it", () => {
     JSON.stringify([{ ...cell, block: { type: "bed" } }]),
   );
   f.blocks.set(cellKey(cell), { typeId: CAMPER_BED_BLOCK });
-  new DockBlocks().lay(asVehicleId(f.car.id), f.car, []);
+  new DockBlocks(noCampSpace).lay(asVehicleId(f.car.id), f.car, []);
   expect(f.at(cell).typeId).toBe("minecraft:air");
   expect(f.saved.get(DECK_CELLS_PROPERTY)).toBeUndefined();
 });
@@ -653,7 +702,7 @@ it("restores a saved shower-toilet cell with its face and drops one without a va
     JSON.stringify([{ ...cell, block: { type: "showerToilet", face: 2 } }]),
   );
   f.blocks.set(cellKey(cell), { typeId: CAMPER_SHOWER_TOILET_BLOCK });
-  new DockBlocks().lay(asVehicleId(f.car.id), f.car, []);
+  new DockBlocks(noCampSpace).lay(asVehicleId(f.car.id), f.car, []);
   expect(f.at(cell).typeId).toBe("minecraft:air");
   expect(f.saved.get(DECK_CELLS_PROPERTY)).toBeUndefined();
   for (const block of [
@@ -664,7 +713,7 @@ it("restores a saved shower-toilet cell with its face and drops one without a va
     const raw = JSON.stringify([{ ...cell, block }]);
     g.saved.set(DECK_CELLS_PROPERTY, raw);
     g.blocks.set(cellKey(cell), { typeId: CAMPER_SHOWER_TOILET_BLOCK });
-    new DockBlocks().lay(asVehicleId(g.car.id), g.car, []);
+    new DockBlocks(noCampSpace).lay(asVehicleId(g.car.id), g.car, []);
     expect(g.at(cell).typeId).toBe(CAMPER_SHOWER_TOILET_BLOCK);
     expect(g.saved.get(DECK_CELLS_PROPERTY)).toBe(raw);
   }
@@ -673,7 +722,7 @@ it("restores a saved shower-toilet cell with its face and drops one without a va
 it("lays the wall behind the open shower door with its face, swaps it back to the wall, and restores a saved one (ADR 0118)", () => {
   const cell = { x: 0, y: 64, z: 0 };
   const f = fixture();
-  const docks = new DockBlocks();
+  const docks = new DockBlocks(noCampSpace);
   docks.lay(asVehicleId(f.car.id), f.car, [
     { ...cell, block: { type: "showerDoor", face: 1 } },
   ]);
@@ -694,7 +743,7 @@ it("lays the wall behind the open shower door with its face, swaps it back to th
     JSON.stringify([{ ...cell, block: { type: "showerDoor", face: 3 } }]),
   );
   g.blocks.set(cellKey(cell), { typeId: CAMPER_SHOWER_DOOR_BLOCK });
-  new DockBlocks().lay(asVehicleId(g.car.id), g.car, []);
+  new DockBlocks(noCampSpace).lay(asVehicleId(g.car.id), g.car, []);
   expect(g.at(cell).typeId).toBe("minecraft:air");
   const h = fixture();
   const raw = JSON.stringify([
@@ -702,7 +751,7 @@ it("lays the wall behind the open shower door with its face, swaps it back to th
   ]);
   h.saved.set(DECK_CELLS_PROPERTY, raw);
   h.blocks.set(cellKey(cell), { typeId: CAMPER_SHOWER_DOOR_BLOCK });
-  new DockBlocks().lay(asVehicleId(h.car.id), h.car, []);
+  new DockBlocks(noCampSpace).lay(asVehicleId(h.car.id), h.car, []);
   expect(h.at(cell).typeId).toBe(CAMPER_SHOWER_DOOR_BLOCK);
   expect(h.saved.get(DECK_CELLS_PROPERTY)).toBe(raw);
 });
@@ -715,7 +764,7 @@ it("clears saved deck cells from the legacy height-only format", () => {
     JSON.stringify([{ x: c.x, y: c.y, z: c.z, height: 9 }]),
   );
   f.blocks.set(cellKey(c), { typeId: DECK_FLOOR_BLOCK });
-  new DockBlocks().lay(asVehicleId(f.car.id), f.car, []);
+  new DockBlocks(noCampSpace).lay(asVehicleId(f.car.id), f.car, []);
   expect(f.at(c).typeId).toBe("minecraft:air");
   expect(f.saved.get(DECK_CELLS_PROPERTY)).toBeUndefined();
 });
@@ -726,7 +775,7 @@ it("reads a saved decor cell from before the spot state as standing in the cell 
   const block = { type: "decor", item: "percolator", face: 2, height: 14 };
   f.saved.set(DECK_CELLS_PROPERTY, JSON.stringify([{ ...position, block }]));
   f.blocks.set(cellKey(position), { typeId: decorBlockId("percolator") });
-  const docks = new DockBlocks();
+  const docks = new DockBlocks(noCampSpace);
   const moved: DockCell = {
     ...position,
     block: { type: "decor", item: "percolator", face: 2, height: 15, spot: 1 },
@@ -862,14 +911,14 @@ it.each([
   const raw = JSON.stringify([{ ...position, block }]);
   f.blocks.set(cellKey(position), { typeId: seed });
   f.saved.set(DECK_CELLS_PROPERTY, raw);
-  new DockBlocks().lay(asVehicleId(f.car.id), f.car, []);
+  new DockBlocks(noCampSpace).lay(asVehicleId(f.car.id), f.car, []);
   expect(f.at(position).typeId).toBe(seed);
   expect(f.saved.get(DECK_CELLS_PROPERTY)).toBe(raw);
 });
 
 it("finds only the owner of a laid door in the same dimension", () => {
   const f = fixture();
-  const docks = new DockBlocks();
+  const docks = new DockBlocks(noCampSpace);
   docks.lay(asVehicleId(f.car.id), f.car, roomCells);
   for (const c of roomCells) {
     expect(docks.doorOwner(asDimensionId(f.car.dimension.id), c)).toBe(
@@ -886,7 +935,7 @@ it("finds only the owner of a laid door in the same dimension", () => {
 
 it("finds the owner of any laid cell, but of a door only through doorOwner, in the same dimension (ADR 0093)", () => {
   const f = fixture();
-  const docks = new DockBlocks();
+  const docks = new DockBlocks(noCampSpace);
   docks.lay(asVehicleId(f.car.id), f.car, roomCells);
   const here = asDimensionId(f.car.dimension.id);
   expect(roomCells.some((c) => c.block.type === "decor")).toBe(true);
@@ -909,7 +958,7 @@ it("finds the owner of any laid cell, but of a door only through doorOwner, in t
 
 it("finds the owner of a laid furniture cell through cellOwner only (ADR 0097)", () => {
   const f = fixture();
-  const docks = new DockBlocks();
+  const docks = new DockBlocks(noCampSpace);
   docks.lay(asVehicleId(f.car.id), f.car, roomCells);
   const here = asDimensionId(f.car.dimension.id);
   const furniture = defined(
@@ -960,7 +1009,7 @@ describe("DockBlocks lost cells (ADR 0096)", () => {
         fc.array(fc.constantFrom("keep", "air", "light", "stone")),
         (wanted, flags) => {
           const f = fixture();
-          const floors = new DockBlocks();
+          const floors = new DockBlocks(noCampSpace);
           floors.lay(id, f.car, wanted);
           const flagOf = (i: number) => flags[i] ?? "keep";
           wanted.forEach((c, i) => {
@@ -999,7 +1048,7 @@ describe("DockBlocks lost cells (ADR 0096)", () => {
   it("keeps a laid light, lays it again once lost, and clears only its own light (ADR 0115)", () => {
     const light: DockCell = { x: 3, y: 66, z: 4, block: { type: "light" } };
     const f = fixture();
-    const docks = new DockBlocks();
+    const docks = new DockBlocks(noCampSpace);
     docks.lay(id, f.car, [light]);
     expect(f.at(light).typeId).toBe("minecraft:light_block_15");
     expect(f.savedCells()).toEqual([light]);
@@ -1023,7 +1072,7 @@ describe("DockBlocks lost cells (ADR 0096)", () => {
 
   it("reads no block between checks (ADR 0096)", () => {
     const f = fixture();
-    const docks = new DockBlocks();
+    const docks = new DockBlocks(noCampSpace);
     docks.lay(id, f.car, roomCells);
     const getBlock = vi.spyOn(f.car.dimension, "getBlock");
     for (let i = 0; i < DOCK_RECHECK_TICKS - 1; i++)
@@ -1035,10 +1084,10 @@ describe("DockBlocks lost cells (ADR 0096)", () => {
 
   it("reads the saved cells on the first lay after a reload (ADR 0096)", () => {
     const f = fixture();
-    new DockBlocks().lay(id, f.car, roomCells);
+    new DockBlocks(noCampSpace).lay(id, f.car, roomCells);
     const floor = defined(roomCells[1], "floor cell");
     f.blocks.delete(cellKey(floor));
-    new DockBlocks().lay(id, f.car, roomCells);
+    new DockBlocks(noCampSpace).lay(id, f.car, roomCells);
     expect(f.at(floor).typeId).toBe(CAMPER_FLOOR_BLOCK);
   });
 
@@ -1049,7 +1098,7 @@ describe("DockBlocks lost cells (ADR 0096)", () => {
         fc.constantFrom("throw" as const, "undefined" as const),
         (wanted, mode) => {
           const f = fixture();
-          const floors = new DockBlocks();
+          const floors = new DockBlocks(noCampSpace);
           floors.lay(id, f.car, wanted);
           for (const c of wanted) f.blocks.delete(cellKey(c));
           f.unavailable(mode);
@@ -1068,7 +1117,7 @@ describe("DockBlocks lost cells (ADR 0096)", () => {
 
   it("does not read the world for a vehicle that is gone or wants no cells (ADR 0096)", () => {
     const f = fixture();
-    const docks = new DockBlocks();
+    const docks = new DockBlocks(noCampSpace);
     for (let i = 0; i < DOCK_RECHECK_TICKS; i++)
       docks.lay(id, f.car, roomCells);
     // The next lay that wants cells would read every laid cell, and a throwing
@@ -1085,7 +1134,7 @@ describe("DockBlocks lost cells (ADR 0096)", () => {
 
   it("finds the owner of a laid cell only while the world holds the block it laid (ADR 0096)", () => {
     const f = fixture();
-    const docks = new DockBlocks();
+    const docks = new DockBlocks(noCampSpace);
     docks.lay(id, f.car, roomCells);
     const here = asDimensionId(f.car.dimension.id);
     for (const c of roomCells) {
@@ -1132,7 +1181,7 @@ it("restores saved storage cells, empty ones too, and a shelf pair block an olde
     const f = fixture();
     f.saved.set(DECK_CELLS_PROPERTY, JSON.stringify([{ ...cell, block }]));
     f.blocks.set(cellKey(cell), { typeId });
-    new DockBlocks().lay(asVehicleId(f.car.id), f.car, []);
+    new DockBlocks(noCampSpace).lay(asVehicleId(f.car.id), f.car, []);
     expect(f.at(cell).typeId).toBe("minecraft:air");
     expect(f.saved.get(DECK_CELLS_PROPERTY)).toBeUndefined();
   }
@@ -1151,8 +1200,89 @@ it("restores saved storage cells, empty ones too, and a shelf pair block an olde
     const raw = JSON.stringify([{ ...cell, block }]);
     g.saved.set(DECK_CELLS_PROPERTY, raw);
     g.blocks.set(cellKey(cell), { typeId: CAMPER_CABINET_DOOR_BLOCK });
-    new DockBlocks().lay(asVehicleId(g.car.id), g.car, []);
+    new DockBlocks(noCampSpace).lay(asVehicleId(g.car.id), g.car, []);
     expect(g.at(cell).typeId).toBe(CAMPER_CABINET_DOOR_BLOCK);
     expect(g.saved.get(DECK_CELLS_PROPERTY)).toBe(raw);
   }
+});
+
+describe("DockBlocks and camp space (ADR 0129)", () => {
+  const wanted = camperRoomCells({ x: 0, y: 64, z: 0, yaw: 0 }, false);
+
+  it("lays and saves exactly the camper room cells outside camp space", () => {
+    fc.assert(
+      fc.property(fc.subarray(wanted), (claimed) => {
+        const f = fixture();
+        const keys = new Set(claimed.map(cellKey));
+        for (const c of claimed)
+          f.blocks.set(cellKey(c), { typeId: "minecraft:light_block_15" });
+        const docks = new DockBlocks((_, at) => keys.has(cellKey(at)));
+        docks.lay(asVehicleId(f.car.id), f.car, wanted);
+        const allowed = wanted.filter((c) => !keys.has(cellKey(c)));
+        expect(f.writes).toEqual(allowed.map(cellKey));
+        expect(
+          f.saved.get(DECK_CELLS_PROPERTY) === undefined ? [] : f.savedCells(),
+        ).toEqual(allowed);
+      }),
+    );
+  });
+
+  it("keeps cells already held when camp later claims them", () => {
+    const f = fixture();
+    let claimed = false;
+    const docks = new DockBlocks(() => claimed);
+    const wanted = [defined(roomCells[0], "room cell")];
+    docks.lay(asVehicleId(f.car.id), f.car, wanted);
+    claimed = true;
+    docks.lay(asVehicleId(f.car.id), f.car, wanted);
+    expect(f.at(defined(wanted[0], "room cell")).typeId).toBe(DECK_FLOOR_BLOCK);
+    expect(f.savedCells()).toEqual(wanted);
+    expect(f.writes).toEqual(wanted.map(cellKey));
+  });
+
+  it("keeps saved cells after a reload when camp claims them", () => {
+    const f = fixture();
+    const wanted = [defined(roomCells[0], "room cell")];
+    new DockBlocks(noCampSpace).lay(asVehicleId(f.car.id), f.car, wanted);
+    const reloaded = new DockBlocks(() => true);
+    reloaded.lay(asVehicleId(f.car.id), f.car, wanted);
+    expect(f.at(defined(wanted[0], "room cell")).typeId).toBe(DECK_FLOOR_BLOCK);
+    expect(f.savedCells()).toEqual(wanted);
+    expect(f.writes).toEqual(wanted.map(cellKey));
+  });
+
+  it("drops only claimed cells the vehicle does not hold", () => {
+    fc.assert(
+      fc.property(
+        fc.subarray(roomCells),
+        fc.subarray(roomCells),
+        (held, claimed) => {
+          const f = fixture();
+          new DockBlocks(noCampSpace).lay(asVehicleId(f.car.id), f.car, held);
+          const keys = new Set(claimed.map(cellKey));
+          const heldKeys = new Set(held.map(cellKey));
+          const docks = new DockBlocks((_, at) => keys.has(cellKey(at)));
+          docks.lay(asVehicleId(f.car.id), f.car, roomCells);
+          const kept = roomCells.filter(
+            (c) => !keys.has(cellKey(c)) || heldKeys.has(cellKey(c)),
+          );
+          const saved =
+            f.saved.get(DECK_CELLS_PROPERTY) === undefined
+              ? []
+              : f.savedCells();
+          expect(new Set(saved.map(cellKey))).toEqual(
+            new Set(kept.map(cellKey)),
+          );
+        },
+      ),
+    );
+  });
+
+  it("asks camp with the vehicle's dimension", () => {
+    const f = fixture();
+    const check = vi.fn(() => false);
+    new DockBlocks(check).lay(asVehicleId(f.car.id), f.car, roomCells);
+    for (const c of roomCells)
+      expect(check).toHaveBeenCalledWith(asDimensionId(f.car.dimension.id), c);
+  });
 });

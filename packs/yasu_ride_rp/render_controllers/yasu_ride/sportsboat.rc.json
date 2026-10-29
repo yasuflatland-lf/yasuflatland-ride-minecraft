@@ -22,20 +22,35 @@
             "Texture.magenta",
             "Texture.pink"
           ]
-        },
-        "materials": {
-          "Array.lamps": ["Material.lamp", "Material.lamp_lit"]
         }
       },
       "geometry": "Geometry.default",
       "materials": [
         { "*": "Material.default" },
-        {
-          "headlights": "Array.lamps[query.property('yasu_ride:headlights') ? 1 : 0]"
-        },
+        { "headlights": "Material.lamp" },
         { "windshield": "Material.glass" }
       ],
-      "textures": ["Array.paints[query.variant]"]
+      "textures": ["Array.paints[query.variant]"],
+      "part_visibility": [
+        { "*": true },
+        { "headlights": "!query.property('yasu_ride:headlights')" },
+        { "mirror": false }
+      ]
+    },
+    "controller.render.yasu_ride.sportsboat.mirror": {
+      "geometry": "Geometry.default",
+      "materials": [{ "*": "Material.default" }],
+      "textures": ["Texture.mirror"],
+      "part_visibility": [{ "*": false }, { "mirror": true }]
+    },
+    "controller.render.yasu_ride.sportsboat.lit": {
+      "geometry": "Geometry.default",
+      "materials": [{ "*": "Material.lamp_lit" }],
+      "textures": ["Texture.lit"],
+      "part_visibility": [
+        { "*": false },
+        { "headlights": "query.property('yasu_ride:headlights')" }
+      ]
     }
   }
 }

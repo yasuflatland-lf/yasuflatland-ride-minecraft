@@ -4,6 +4,7 @@ import { asPlayerId } from "../../../src/domain/shared/ids";
 import { forward, leftOf, type Vec2 } from "../../../src/domain/shared/vec";
 import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
 import {
+  DRIVER_SEAT,
   nearestSeat,
   occupiedSeats,
   seatWorldPositions,
@@ -25,7 +26,7 @@ function worldOffset(yawDeg: number, i: number): Vec2 {
 
 describe("seats (ADR 0019)", () => {
   it("seat 0 is front right (negative x = right, positive z = forward)", () => {
-    expect(SEATS[0]).toEqual({ x: -0.38, z: 0.2 });
+    expect(SEATS[0]).toEqual({ x: -0.494, z: -0.0446875 });
   });
 
   it("assigns an occupant at a seat position to that seat for any facing", () => {
@@ -89,7 +90,7 @@ describe("seats (ADR 0019)", () => {
         expect([0, 2]).toContain(nearestSeat({ x: 0, z }, SEATS));
       }),
     );
-    expect(nearestSeat({ x: 0, z: 0.2 }, SEATS)).toBe(0);
+    expect(nearestSeat({ x: 0, z: 0.075 }, SEATS)).toBe(0);
     expect(nearestSeat({ x: 0, z: -0.8 }, SEATS)).toBe(2);
   });
 
@@ -123,5 +124,16 @@ it("recovers every local seat from its world position at any hold pose", () => {
         }
       },
     ),
+  );
+});
+
+it("keeps the driver's seat at index zero for every facing (ADR 0019)", () => {
+  fc.assert(
+    fc.property(yaw, (y) => {
+      expect(DRIVER_SEAT).toBe(0);
+      expect(
+        nearestSeat(toLocal(worldOffset(y, DRIVER_SEAT), forward(y)), SEATS),
+      ).toBe(DRIVER_SEAT);
+    }),
   );
 });

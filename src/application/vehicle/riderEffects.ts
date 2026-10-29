@@ -15,7 +15,7 @@ export class RiderEffects {
   constructor(
     private readonly world: Pick<
       DriveWorld,
-      "setChaseCamera" | "giveWaterBreathing"
+      "setChaseCamera" | "giveWaterBreathing" | "protectFromFire"
     >,
     private readonly log: Logger,
   ) {}
@@ -43,6 +43,15 @@ export class RiderEffects {
       (id) => this.world.giveWaterBreathing(id, SPEC.waterBreathingTicks),
       this.log,
       (id) => `breathing ${id}`,
+    );
+  }
+
+  protectFromFire(riders: ReadonlySet<PlayerId>): void {
+    forEachIsolated(
+      riders,
+      (id) => this.world.protectFromFire(id),
+      this.log,
+      (id) => `fire protection ${id}`,
     );
   }
 

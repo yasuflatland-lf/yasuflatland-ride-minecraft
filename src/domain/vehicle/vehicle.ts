@@ -4,13 +4,18 @@ import {
   registerHit,
 } from "../shared/hitCounter";
 import type { PlayerId, VehicleId } from "../shared/ids";
+import { SwitchCooldown } from "../shared/switchCooldown";
+import { SyncedValue } from "../shared/syncedValue";
 // Aggregate for one vehicle: wires its drive to its seating, cooldowns, and hit count.
 import { forward, type Vec2, type Vec3 } from "../shared/vec";
-import { RamCooldowns, SwitchCooldown } from "./cooldowns";
+import { RamCooldowns } from "./cooldowns";
+import { Crew } from "./crew";
+import type { CutColumn } from "./cut";
 import type { DecorPlacement, StoragePress } from "./dock/decor";
 import type { ClearCell, Departure, Dock } from "./dock/dock";
 import type { Drive, EngineCommand, RiderState, TickContext } from "./drive";
 import type { RawInput } from "./driveInput";
+import { MONITOR_PROPERTY_NAME } from "./entityContract";
 import {
   type HeldItem,
   type Hint,
@@ -21,14 +26,15 @@ import {
 } from "./hints";
 import type { VehicleKind } from "./kind";
 import {
-  type Cell,
   headlightCells as cellsLitFrom,
+  type LitCell,
 } from "./lighting/headlights";
+import { monitorScreen, monitorTool, nextToolState } from "./monitor/monitor";
 import type { ChaseCamera, VehicleProfile } from "./profile";
 import { type RamHit, type RamTarget, selectHits } from "./ram";
-import { ChosenSeats, type SeatAssignment } from "./seatChoice";
-import { Seating } from "./seating";
-import { toLocal } from "./seats";
+import type { SeatAssignment } from "./seatChoice";
+import type { SeatLeaver } from "./seating";
+import { DRIVER_SEAT, seatWorldPositions, toLocal } from "./seats";
 import { SPEC } from "./spec";
 import {
   liftStandIn,
@@ -47,57 +53,74 @@ export interface RiderView {
   readonly raw: RawInput;
   /** The rider's index in the engine's rider list, which is the seat it puts them in (ADR 0019). */
   readonly slot?: number;
+  /** Bare id of the `yasu_ride` item in the rider's selected slot, read only for kinds with a cab monitor (ADR 0139). */
+  readonly heldTool?: string;
 }
 
 export interface VehicleTickInput extends TickContext {
   riders: readonly RiderView[];
   /** Input used only when there is no driver (for in-game tests). */
   testInput?: RawInput;
+  /** Held tool used only when there is no driver (for in-game tests, ADR 0139). */
+  testHeldTool?: string;
   /** The player on each deck seat, in deck seat order (ADR 0063, 0120). */
   deckSeatRiders?: readonly (PlayerId | undefined)[];
   /** Nearby targets. Called only when the speed exceeds the ram threshold (ADR 0083). */
   targets(): readonly RamTarget[];
 }
 
+/** A player who left a seat with an exit this tick, and the world point to put them (ADR 0141). */
+export interface SeatExit {
+  readonly playerId: PlayerId;
+  readonly at: Vec3;
+}
+
 /**
  * What one vehicle does this tick. The application's per-vehicle tick
  * applies it with these world calls, in this order, and a throw skips the
- * rest of that vehicle's tick (ADR 0055). Steps 3, 10, 11, 12 and 13 run
+ * rest of that vehicle's tick (ADR 0055). Steps 3, 11, 12, 13 and 14 run
  * every tick: with nothing to keep, they release what the vehicle held,
  * seated, stood in for it, laid or lit before.
  *
- * 1. `stepCommands`, in order, before anything else that could throw,
- *    because drives send them only on change (ADR 0055).
+ * 1. `stepCommands`: the drive's commands, then the cab monitor's screen (ADR 0139),
+ *    in order, before anything else that could throw,
+ *    because drives send them only on change (ADR 0055); if they fail, the vehicle
+ *    resyncs and sends every value again next tick (ADR 0127).
  * 2. `message` on the action bar of `driverId`, only when there is one.
  * 3. `dock.hold`; with no `dock`, the hold is released (ADR 0063, 0064).
  * 4. `clear`, when not empty, before the dock's cells are laid (ADR 0068).
- * 5. `riders` is collected. After every vehicle has ticked, the chase
+ * 5. `cut`, when not empty, right after `clear` and before the move, so the
+ *    body moves into the cleared strip on the same tick (ADR 0137).
+ * 6. `riders` is collected. After every vehicle has ticked, the chase
  *    cameras are synced (ADR 0028, 0071), and water breathing is refreshed
  *    every `SPEC.waterBreathingInterval` ticks (ADR 0040).
- * 6. `impulse` and `yaw`, only when there is no `dock`: a docked vehicle is
+ * 7. `impulse` and `yaw`, only when there is no `dock`: a docked vehicle is
  *    held instead of moved (ADR 0063).
- * 7. `seatLayout`: for a kind whose players choose their seat, the
+ * 8. `seatLayout`: for a kind whose players choose their seat, the
  *    vehicle's riders are laid in this order, with a seat filler for each
  *    undefined entry, so each player sits in their seat (ADR 0120).
- * 8. `boardDeckRiders`: the deck-seat riders move into the vehicle
+ * 9. `boardDeckRiders`: the deck-seat riders move into the vehicle
  *    (ADR 0063), before standing players are seated (ADR 0068).
- * 9. `depart`: take any deck-seat rider the vehicle refused off their deck
+ * 10. `depart`: take any deck-seat rider the vehicle refused off their deck
  *    seat, then seat them and the standing players, nearest first, and move
  *    those left without a seat to the exit (ADR 0068, 0095).
- * 10. `dock.seats` at `yaw`, after boarding and departure; with no `dock`,
+ * 11. `dock.seats` at `yaw`, after boarding and departure; with no `dock`,
  *    the deck seats are removed.
- * 11. `standIn`: the vehicle's one stand-in entity is kept at this pose, or
+ * 12. `standIn`: the vehicle's one stand-in entity is kept at this pose, or
  *     removed when there is none (ADR 0116).
- * 12. `dock.cells`; with no `dock`, the laid cells are cleared.
- * 13. Headlight cells along the vehicle's heading after this tick, or none
+ * 13. `dock.cells`; with no `dock`, the laid cells are cleared.
+ * 14. Headlight cells along the vehicle's heading after this tick, or none
  *     when its headlights are off (ADR 0020).
- * 14. `hits`, credited to `driverId`.
- * 15. `finalCommands`, last: the vacated seats' commands, such as the door
- *     animation (ADR 0007, 0055).
+ * 15. `hits`, credited to `driverId`.
+ * 16. `finalCommands`: the vacated seats' commands, such as the door
+ *     animation, then the taken seats' commands (ADR 0007, 0055).
+ * 17. `exits`, after `finalCommands`: each player who left a seat with an exit this tick
+ *     is moved there, unless the world's guard keeps the engine's dismount spot (ADR 0109, 0141).
  */
 export interface TickOutcome {
   dock?: Dock;
   clear: readonly ClearCell[];
+  cut: readonly CutColumn[];
   message?: string;
   depart?: Departure;
   /** The rider list to keep, for a kind whose players choose their seat; undefined otherwise (ADR 0120). */
@@ -111,28 +134,25 @@ export interface TickOutcome {
   driverId?: PlayerId;
   stepCommands: readonly EngineCommand[];
   finalCommands: readonly EngineCommand[];
+  exits: readonly SeatExit[];
   riders: RiderState;
 }
 
-/** A kind whose players choose their seat keeps each rider's list index equal to their seat (ADR 0120). */
-function seatReadingOf(profile: VehicleProfile): "position" | "slot" {
-  return profile.boarding.order === "chosen" ? "slot" : "position";
-}
-
 export class Vehicle {
-  private seating: Seating;
-  /** Defined only for a kind whose players choose their seat (ADR 0120). */
-  private readonly chosenSeats: ChosenSeats | undefined;
+  private crew: Crew;
+  private readonly monitorSync = new SyncedValue<number>();
   private readonly ramCooldowns = new RamCooldowns();
   private readonly switchCooldown = new SwitchCooldown();
   // Its own cooldown, so a driver's headlight switch and a ceiling light switch in the room never block each other (ADR 0115).
   private readonly ceilingLightCooldown = new SwitchCooldown();
+  // Its own cooldown, so monitor tools and light switches never block each other (ADR 0171).
+  private readonly toolCooldown = new SwitchCooldown();
   private hitCounter: HitCounter = EMPTY_COUNTER;
-  /** Ticks since the last tick with a driver; infinite until the first driver (ADR 0078). */
-  private driverlessTicks = Number.POSITIVE_INFINITY;
   /** As of the last tick: held in place (ADR 0063, 0068), and nobody in the driver's seat or its deck seat. */
   private docked = false;
   private driverSeatFree = true;
+  /** The parked camper's wheel deck seat rider, who operates its headlights (ADR 0149). */
+  private deckDriverId: PlayerId | undefined;
   /** The row axis of the stand-in kept last tick; a rebuilt vehicle starts with none (ADR 0116). */
   private standInAxis: StandInAxis | undefined;
 
@@ -142,15 +162,7 @@ export class Vehicle {
     private readonly profile: VehicleProfile,
     private readonly drive: Drive,
   ) {
-    this.seating = new Seating(profile.seats.positions, seatReadingOf(profile));
-    this.chosenSeats =
-      profile.boarding.order === "chosen"
-        ? new ChosenSeats({
-            positions: profile.seats.positions,
-            height: profile.boarding.aimHeight,
-            radius: profile.boarding.aimRadius,
-          })
-        : undefined;
+    this.crew = new Crew(profile);
   }
 
   /**
@@ -168,12 +180,7 @@ export class Vehicle {
     yaw: number,
   ): Vehicle {
     const vehicle = new Vehicle(id, profile, drive);
-    vehicle.seating = Seating.restore(
-      profile.seats.positions,
-      riders,
-      forward(yaw),
-      seatReadingOf(profile),
-    );
+    vehicle.crew = Crew.restore(profile, riders, forward(yaw));
     return vehicle;
   }
 
@@ -190,7 +197,7 @@ export class Vehicle {
   }
 
   /** Cells the headlights light with the vehicle at `location`, along its current heading (ADR 0020). */
-  headlightCells(location: Vec3): Cell[] {
+  headlightCells(location: Vec3): LitCell[] {
     return cellsLitFrom(location, this.drive.yaw, this.profile.beams);
   }
 
@@ -222,7 +229,7 @@ export class Vehicle {
       yaw: this.drive.yaw,
       docked: this.docked,
       driverSeatFree: this.driverSeatFree,
-      hasRiders: this.seating.occupied,
+      hasRiders: this.crew.occupied,
       held,
       controls,
     };
@@ -247,14 +254,12 @@ export class Vehicle {
    * them (ADR 0120).
    */
   requestSeat(playerId: PlayerId, eye: Vec3, view?: Vec3): boolean {
-    if (!this.chosenSeats) return false;
     const f = forward(this.drive.yaw);
     const local = (v: Vec3): Vec3 => ({ ...toLocal(v, f), y: v.y });
-    this.chosenSeats.request(playerId, {
+    return this.crew.request(playerId, {
       eye: local(eye),
       view: view && local(view),
     });
-    return true;
   }
 
   /** A player tapped the door of this vehicle's room at `tick`. Returns whether it opened or closed (ADR 0068, 0105). */
@@ -307,42 +312,61 @@ export class Vehicle {
     return this.drive.pressStorage?.(cell, point, tick);
   }
 
+  /** Called by the application when this tick's step commands may not have reached the entity (ADR 0055, 0127). */
+  resync(): void {
+    this.drive.resync();
+    this.monitorSync.resync();
+  }
+
   tick(input: VehicleTickInput): TickOutcome {
-    const { riders, testInput, deckSeatRiders, targets, ...sensors } = input;
-    const seated = this.seating.update(
+    const {
+      riders,
+      testInput,
+      testHeldTool,
+      deckSeatRiders,
+      targets,
+      ...sensors
+    } = input;
+    const seated = this.crew.update(
       riders,
       forward(this.drive.yaw),
       sensors.velocity,
     );
-    const seatCommands = seated.vacated.flatMap((seat) =>
+    const vacatedCommands = seated.left.flatMap(({ seat }) =>
       this.drive.onSeatVacated(seat),
+    );
+    const takenCommands = seated.boarded.flatMap(
+      (seat) => this.drive.onSeatTaken?.(seat) ?? [],
     );
     const driver = seated.driver;
     if (seated.mounted && driver) this.drive.onDriverMounted(driver.yaw);
-    this.driverlessTicks = driver ? 0 : this.driverlessTicks + 1;
-    const awaitingDriver =
-      driver === undefined &&
-      riders.length > 0 &&
-      this.driverlessTicks <= SPEC.driverHandoverTicks;
 
     const raw = driver?.raw ?? testInput;
-    const taken = this.seating.taken();
+    const taken = this.crew.taken();
     const deckSeatInputs = sensors.deckSeatInputs.map((deckInput, seat) =>
       taken.has(seat) ? undefined : deckInput,
     );
     const step = this.drive.step(raw, {
       ...sensors,
-      awaitingDriver,
+      awaitingDriver: seated.awaitingDriver,
       deckSeatInputs,
     });
+    const monitor = this.monitorCommands(
+      driver ? driver.heldTool : testHeldTool,
+    );
     this.docked = step.dock !== undefined;
-    const seatLayout = this.layRiders(
+    this.deckDriverId =
+      this.docked && this.profile.deckSeatDriverHeadlights
+        ? deckSeatRiders?.[DRIVER_SEAT]
+        : undefined;
+    const seatLayout = this.crew.layout(
       riders,
       deckSeatRiders ?? [],
       step.boardDeckRiders ?? false,
     );
     // A deck seat's input is defined only while a player sits in it.
-    this.driverSeatFree = !taken.has(0) && deckSeatInputs[0] === undefined;
+    this.driverSeatFree =
+      !taken.has(DRIVER_SEAT) && deckSeatInputs[DRIVER_SEAT] === undefined;
 
     return {
       dock: step.dock && {
@@ -352,6 +376,7 @@ export class Vehicle {
         ),
       },
       clear: step.clear ?? [],
+      cut: step.cut ?? [],
       message: step.message,
       depart: step.depart,
       seatLayout,
@@ -361,35 +386,40 @@ export class Vehicle {
       standIn: this.standIn(step.dock?.hold, sensors),
       hits: this.ram(sensors.tick, targets, step.forward),
       driverId: driver?.id,
-      stepCommands: step.commands,
-      finalCommands: seatCommands,
+      stepCommands:
+        monitor.length === 0 ? step.commands : [...step.commands, ...monitor],
+      finalCommands: [...vacatedCommands, ...takenCommands],
+      exits: this.seatExits(seated.left, step.dock?.hold ?? sensors.location),
       riders: step.riders,
     };
   }
 
+  private monitorCommands(held: string | undefined): readonly EngineCommand[] {
+    const rule = this.profile.monitor;
+    if (!rule) return [];
+    const value = this.monitorSync.next(
+      monitorScreen(rule, held, (item) => this.drive.toolState?.(item)),
+    );
+    return value === undefined
+      ? []
+      : [{ type: "setProperty", name: MONITOR_PROPERTY_NAME, value }];
+  }
+
   /**
-   * The rider list for a kind whose players choose their seat. The seat of an occupied
-   * deck seat is held for its rider, since a player seated there would take the deck seat
-   * away under them (ADR 0063). Deck-seat riders who board this tick ask for that seat.
+   * The exit of each leaver whose seat has one, around the hold pose while held or the
+   * location before this tick's move while driving, at the heading after this step (ADR 0141).
    */
-  private layRiders(
-    riders: readonly RiderView[],
-    deckSeatRiders: readonly (PlayerId | undefined)[],
-    departing: boolean,
-  ): SeatAssignment | undefined {
-    const boarding = this.profile.boarding;
-    if (!this.chosenSeats || boarding.order !== "chosen") return undefined;
-    const positions = this.profile.seats.positions;
-    const held = deckSeatRiders.slice(0, positions.length);
-    if (departing)
-      for (const [seat, id] of held.entries()) {
-        const at = positions[seat];
-        if (id !== undefined && at)
-          this.chosenSeats.request(id, {
-            eye: { x: at.x, y: boarding.aimHeight, z: at.z },
-          });
-      }
-    return this.chosenSeats.settle(riders, held);
+  private seatExits(leavers: readonly SeatLeaver[], origin: Vec3): SeatExit[] {
+    const { x, y, z } = origin;
+    const pose = { x, y, z, yaw: this.drive.yaw };
+    const exits: SeatExit[] = [];
+    for (const { id, seat } of leavers) {
+      const exit = this.profile.seatExits?.[seat];
+      if (exit === undefined) continue;
+      const [at] = seatWorldPositions(pose, [exit]);
+      if (at) exits.push({ playerId: id, at });
+    }
+    return exits;
   }
 
   /**
@@ -451,23 +481,29 @@ export class Vehicle {
   }
 
   /**
-   * A player uses the headlight switch. Only the driver may flip it, and only
+   * A player uses the headlight switch. Only the driver or the rider of the parked
+   * camper's wheel deck seat may flip it (ADR 0149), and only
    * after the switch has been idle for the cooldown, so a burst of uses from
    * one touch flips it once (ADR 0024). Returns whether it flipped.
    */
   flipHeadlightSwitch(playerId: PlayerId, tick: number): boolean {
-    if (playerId !== this.seating.driver) return false;
+    if (playerId !== this.crew.driver && playerId !== this.deckDriverId)
+      return false;
     return this.switchCooldown.tryUse(tick, SPEC.headlightSwitchCooldown);
   }
 
   /**
    * A player who is not at the wheel uses the light switch with their feet at `feet`: inside a
-   * parked room, it turns the ceiling lights on or off. The driver's switch stays the
+   * parked room, it turns the ceiling lights on or off. The wheel seat rider's switch stays the
    * headlights' (ADR 0020). It uses its own cooldown with the headlight switch's duration, so
    * one touch flips once (ADR 0024, 0115). Returns whether it flipped.
    */
   switchCeilingLights(playerId: PlayerId, feet: Vec3, tick: number): boolean {
-    if (playerId === this.seating.driver || !this.drive.switchCeilingLights)
+    if (
+      playerId === this.crew.driver ||
+      playerId === this.deckDriverId ||
+      !this.drive.switchCeilingLights
+    )
       return false;
     if (!this.ceilingLightCooldown.tryUse(tick, SPEC.headlightSwitchCooldown))
       return false;
@@ -480,13 +516,31 @@ export class Vehicle {
    * and changes nothing, so a press is taken over only where the switch can work (ADR 0115).
    */
   canSwitchCeilingLights(playerId: PlayerId, feet: Vec3): boolean {
-    if (playerId === this.seating.driver) return false;
+    if (playerId === this.crew.driver || playerId === this.deckDriverId)
+      return false;
     return this.drive.ceilingLightsReachable?.(feet) ?? false;
+  }
+
+  /** Only the driver may advance a monitor tool; all tools share an idle cooldown (ADR 0024, 0171). */
+  switchTool(playerId: PlayerId, item: string, tick: number): boolean {
+    const tool = monitorTool(this.profile.monitor, item);
+    if (playerId !== this.crew.driver || !tool || !this.drive.setToolState)
+      return false;
+    if (!this.toolCooldown.tryUse(tick, SPEC.toolSwitchCooldown)) return false;
+    return this.drive.setToolState(
+      item,
+      nextToolState(tool, this.drive.toolState?.(item)),
+    );
+  }
+
+  /** Bypasses role and cooldown checks for the server-only test hook (ADR 0171). */
+  forceTool(item: string, state: string): boolean {
+    return this.drive.setToolState?.(item, state) ?? false;
   }
 
   /** Hit by a player. Returns whether the vehicle breaks (ADR 0008). */
   receiveHit(tick: number): boolean {
-    const r = registerHit(this.hitCounter, tick, this.seating.occupied, {
+    const r = registerHit(this.hitCounter, tick, this.crew.occupied, {
       hits: SPEC.hitsToBreak,
       resetTicks: SPEC.hitResetTicks,
     });

@@ -1,0 +1,83 @@
+{
+  "format_version": "1.10.0",
+  "animation_controllers": {
+    "controller.animation.yasu_ride.bulldozer.form": {
+      "initial_state": "ground",
+      "states": {
+        "ground": {
+          "animations": ["propeller_stowed"],
+          "transitions": [
+            {
+              "hover": "query.property('yasu_ride:form') == 'takeoff' || query.property('yasu_ride:form') == 'hover' || query.property('yasu_ride:form') == 'landing'"
+            },
+            {
+              "submarine": "query.property('yasu_ride:form') == 'submarine'"
+            }
+          ]
+        },
+        "hover": {
+          "animations": [
+            "propeller_stowed",
+            "hover_glow",
+            {
+              "hover_sound_0": "query.ground_speed < 1"
+            },
+            {
+              "hover_sound_1": "query.ground_speed >= 1 && query.ground_speed < 3"
+            },
+            {
+              "hover_sound_2": "query.ground_speed >= 3 && query.ground_speed < 5"
+            },
+            {
+              "hover_sound_3": "query.ground_speed >= 5 && query.ground_speed < 7"
+            },
+            {
+              "hover_sound_4": "query.ground_speed >= 7"
+            }
+          ],
+          "transitions": [
+            {
+              "ground": "query.property('yasu_ride:form') == 'car'"
+            }
+          ]
+        },
+        "submarine": {
+          "animations": [
+            "propeller",
+            {
+              "submarine_sound": "query.has_rider"
+            }
+          ],
+          "transitions": [
+            {
+              "ground": "query.property('yasu_ride:form') == 'car'"
+            },
+            {
+              "hover": "query.property('yasu_ride:form') == 'takeoff' || query.property('yasu_ride:form') == 'hover' || query.property('yasu_ride:form') == 'landing'"
+            }
+          ]
+        }
+      }
+    },
+    "controller.animation.yasu_ride.bulldozer.hydraulics": {
+      "initial_state": "rest",
+      "states": {
+        "rest": {
+          "transitions": [
+            {
+              "moving": "query.property('yasu_ride:blade') >= 0.05 && query.property('yasu_ride:blade') <= 0.95"
+            }
+          ]
+        },
+        "moving": {
+          "animations": ["hydraulics_sound"],
+          "transitions": [
+            {
+              "rest": "query.property('yasu_ride:blade') < 0.05 || query.property('yasu_ride:blade') > 0.95"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

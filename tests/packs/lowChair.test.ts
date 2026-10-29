@@ -194,12 +194,16 @@ describe("low chair item (ADR 0122)", () => {
     expect(existsSync(`${RP}/${icon}.png`)).toBe(true);
   });
 
-  it("is in the Camping Gear group of the Items tab", () => {
+  it("is the icon and first item of the Camping Gear (Outside) group", () => {
     const catalog = readJson(`${BP}/item_catalog/crafting_item_catalog.json`);
-    const items = catalog["minecraft:crafting_items_catalog"].categories
+    const group = catalog["minecraft:crafting_items_catalog"].categories
       .flatMap((c: { groups: { items: string[] }[] }) => c.groups)
-      .flatMap((g: { items: string[] }) => g.items);
-    expect(items).toContain(ITEM);
+      .find(
+        (g: { group_identifier: { name: string } }) =>
+          g.group_identifier.name === "yasu_ride:camping_gear_outside",
+      );
+    expect(group.group_identifier.icon).toBe(ITEM);
+    expect(group.items[0]).toBe(ITEM);
   });
 
   it("is crafted from leather, sticks, and iron ingots", () => {

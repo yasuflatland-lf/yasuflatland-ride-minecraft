@@ -83,8 +83,8 @@ describe("render_preview.py bone rotations", () => {
   });
 });
 
-describe("camping gear and low chair previews (ADR 0093, 0122)", () => {
-  it("renders every item of the spec and the low chair into their own 128 px squares and keeps the vehicle frame for the rest", () => {
+describe("camping gear, low chair, and tent previews (ADR 0093, 0122, 0130)", () => {
+  it("renders every item of the spec and the low chair and tent into their own 128 px squares and keeps the vehicle frame for the rest", () => {
     const script = [
       "import json, sys",
       "from pathlib import Path",
@@ -103,11 +103,127 @@ describe("camping gear and low chair previews (ADR 0093, 0122)", () => {
         id: string;
       }[]
     ).map((g) => g.id);
-    const names = [...ids, "low_chair"];
+    const names = [
+      ...ids,
+      "noga_chair",
+      "low_chair",
+      "tent",
+      "camp_table",
+      "fire_pit",
+      "dutch_oven",
+      "gas_lantern",
+    ];
     expect(out.names).toEqual(
       names.map((name) => `items/camping-gear/${name}.png`),
     );
     expect(out.lengths).toEqual([128 * 128 * 4]);
     expect(out.sizes).toEqual([...names.map(() => [128, 128]), [800, 600]]);
+  });
+});
+
+const previewPython = (body: string) =>
+  JSON.parse(
+    execFileSync(
+      "python3",
+      [
+        "-I",
+        "-c",
+        [
+          "import json, sys",
+          "from pathlib import Path",
+          "sys.path.insert(0, 'tools')",
+          "import render_preview as r",
+          body,
+        ].join("\n"),
+      ],
+      { encoding: "utf8" },
+    ),
+  );
+
+// An opaque face as [rgb, bloom group or null].
+type LitFace = [number[], string | null];
+
+describe("render_preview.py lit bones", () => {
+  it("lights each bone named in lit in its own color only while the lamps are on", () => {
+    const result: {
+      on: LitFace[];
+      off: LitFace[];
+      default: LitFace[];
+      lamp: number[];
+    } = previewPython(`
+face = {"uv": [0, 0], "uv_size": [1, 1]}
+cube = {"origin": [0, 0, 0], "size": [1, 1, 1], "uv": {f: face for f in ("north", "south", "east", "west", "up", "down")}}
+geo = {"description": {"texture_width": 1, "texture_height": 1}, "bones": [{"name": name, "cubes": [cube]} for name in ("body", "headlights", "beacon")]}
+texture = [[(255, 255, 255, 255)]]
+lit = {"headlights": (1, 2, 3), "beacon": (4, 5, 6)}
+def faces(lamps, default=False):
+    args = () if default else (lit,)
+    polygons, _ = r.collect_boat(geo, texture, {"lamps": lamps, "dusk": False}, *args)
+    return [[rgb, group] for _, rgb, group in polygons]
+print(json.dumps({"on": faces(True), "off": faces(False), "default": faces(True, True), "lamp": r.LAMP_LIT}))
+`);
+    const lampFaces = (faces: LitFace[], rgb: number[]) =>
+      faces.filter(
+        ([color, group]) =>
+          group === "lamp" && JSON.stringify(color) === JSON.stringify(rgb),
+      );
+    const groups = (faces: LitFace[]) => faces.map(([, group]) => group);
+    expect(lampFaces(result.on, [1, 2, 3])).toHaveLength(6);
+    expect(lampFaces(result.on, [4, 5, 6])).toHaveLength(6);
+    expect(groups(result.on).filter((group) => group === null)).toHaveLength(6);
+    expect(groups(result.off)).toEqual(Array(18).fill(null));
+    expect(lampFaces(result.default, result.lamp)).toHaveLength(6);
+    expect(groups(result.default)).toEqual([
+      ...Array(6).fill(null),
+      ...Array(6).fill("lamp"),
+      ...Array(6).fill(null),
+    ]);
+  });
+});
+
+describe("bulldozer previews (ADR 0136)", () => {
+  it("draws only the first grouser phase and no propeller", () => {
+    const result = previewPython(`
+geo = json.loads(Path("packs/yasu_ride_rp/models/entity/yasu_ride/bulldozer.geo.json").read_text())["minecraft:geometry"][0]
+print(json.dumps({"all": [b["name"] for b in geo["bones"]], "kept": [b["name"] for b in r.bulldozer_bones(geo["bones"])]}))
+`);
+    const hidden = [
+      "track_r_1",
+      "track_r_2",
+      "track_l_1",
+      "track_l_2",
+      "propeller",
+    ];
+    expect(result.kept).toEqual(
+      result.all.filter((name: string) => !hidden.includes(name)),
+    );
+    expect(result.kept).toContain("track_r_0");
+    expect(result.kept).toContain("track_l_0");
+  });
+  it("draws alpha-0 lens swatches opaque and keeps the glass see-through", () => {
+    expect(
+      previewPython(
+        "print(json.dumps(r.opaque_lenses([[(1,2,3,0),(4,5,6,96),(7,8,9,255)]])))",
+      ),
+    ).toEqual([
+      [
+        [1, 2, 3, 255],
+        [4, 5, 6, 96],
+        [7, 8, 9, 255],
+      ],
+    ]);
+  });
+  it("renders four previews from the camper's angles in the vehicle frame", () => {
+    const result = previewPython(
+      "print(json.dumps({'names': list(r.BULLDOZER_POSES), 'views': [p['view'] for p in r.BULLDOZER_POSES.values()], 'camper': [p['view'] for p in r.CAMPER_POSES.values()], 'size': r.image_size('bulldozer-side.png')}))",
+    );
+    expect(result.names).toEqual([
+      "bulldozer-front-left.png",
+      "bulldozer-headlights.png",
+      "bulldozer-side.png",
+      "bulldozer-rear.png",
+    ]);
+    expect(result.views).toEqual(result.camper);
+    expect(result.size).toEqual([800, 600]);
   });
 });

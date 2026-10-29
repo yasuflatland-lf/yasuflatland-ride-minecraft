@@ -438,6 +438,14 @@ describe("dependency-cruiser rules (ADR 0065)", () => {
       ["feature-imports-other-feature"],
     ],
     [
+      "the vehicles' install importing the camp's",
+      {
+        "src/infrastructure/vehicle/install.ts": importX("../camp/install"),
+        "src/infrastructure/camp/install.ts": EXPORTS_X,
+      },
+      ["feature-imports-other-feature"],
+    ],
+    [
       "normalized other feature",
       {
         "src/domain/vehicle/motion.ts": importX("./nested/../../building/wall"),

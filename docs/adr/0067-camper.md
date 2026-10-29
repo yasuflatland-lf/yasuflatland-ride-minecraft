@@ -1,6 +1,6 @@
 # 0067. Camper
 
-- Status: Accepted (the hitboxes are superseded by [0068](0068-park-the-camper-with-room-blocks.md), and the seat layout by [0069](0069-camper-right-hand-drive.md); extended by [0091](0091-alpha-blend-only-the-camper-glass.md) and [0093](0093-decorate-the-parked-camper.md))
+- Status: Accepted (the hitboxes are superseded by [0068](0068-park-the-camper-with-room-blocks.md), and the seat layout by [0069](0069-camper-right-hand-drive.md); extended by [0091](0091-alpha-blend-only-the-camper-glass.md), [0093](0093-decorate-the-parked-camper.md), and [0145](0145-move-camper-side-lamp-and-door-handle.md) (Proposed))
 - Date: 2026-10-19
 
 ## Context

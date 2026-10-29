@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { defined } from "../support/defined";
+import { expectContiguous, speedRanges } from "../support/soundLevels";
 
 const read = (p: string) => JSON.parse(readFileSync(p, "utf8"));
 const RP = "packs/yasu_ride_rp";
@@ -13,6 +14,9 @@ const controller = read(`${RP}/animation_controllers/yasu_ride/suv.ac.json`)
 const camperController = read(
   `${RP}/animation_controllers/yasu_ride/camper.ac.json`,
 ).animation_controllers["controller.animation.yasu_ride.camper.form"];
+const bulldozerController = read(
+  `${RP}/animation_controllers/yasu_ride/bulldozer.ac.json`,
+).animation_controllers["controller.animation.yasu_ride.bulldozer.form"];
 const render = read(`${RP}/render_controllers/yasu_ride/suv.rc.json`)
   .render_controllers["controller.render.yasu_ride.suv"];
 const particle = read(
@@ -49,6 +53,10 @@ describe("Resource Pack flight visuals (ADR 0022)", () => {
     );
     expect(client.render_controllers).toEqual([
       "controller.render.yasu_ride.suv",
+      {
+        "controller.render.yasu_ride.suv.lit":
+          "query.property('yasu_ride:headlights')",
+      },
     ]);
     expect(client.materials.default).toBe("entity_emissive_alpha");
     expect(client.particle_effects.hover_glow).toBe(
@@ -89,14 +97,14 @@ describe("Resource Pack flight visuals (ADR 0022)", () => {
     }
   });
 
-  it("folds every wheel 90 degrees, lowers it 4 px and moves it 6 px out, with the two sides turning opposite ways", () => {
+  it("folds every wheel 90 degrees, lowers it 5.2 px and moves it 7.8 px out, with the two sides turning opposite ways", () => {
     const folded = anims["animation.yasu_ride.suv.wheels_folded"].bones;
     for (const w of WHEELS) {
       expect(Math.abs(folded[w].rotation[2]), w).toBe(90);
       // Animation positions run along the model's axes (ADR 0043), so the
       // outward step takes the sign of the wheel's side.
       const outward = Math.sign(geoPivot(w)[0] ?? 0);
-      expect(folded[w].position, w).toEqual([6 * outward, -4, 0]);
+      expect(folded[w].position, w).toEqual([7.8 * outward, -5.2, 0]);
     }
     expect(folded.wheel_fl.rotation[2]).toBe(-folded.wheel_fr.rotation[2]);
     expect(folded.wheel_rl.rotation[2]).toBe(folded.wheel_fl.rotation[2]);
@@ -174,6 +182,7 @@ describe("Resource Pack flight visuals (ADR 0022)", () => {
       {
         windows_sealed: "query.property('yasu_ride:form') == 'submarine'",
       },
+      { headlights: "!query.property('yasu_ride:headlights')" },
     ]);
   });
 
@@ -246,38 +255,6 @@ describe("Resource Pack sounds (ADR 0030)", () => {
 
   const GROUND = "query.has_rider && query.property('yasu_ride:form') == 'car'";
 
-  /** The [lo, hi) range of query.ground_speed each level plays in, in level order. */
-  function speedRanges(
-    entries: Record<string, string>[],
-    prefix: string,
-    guard: string,
-  ): [number, number][] {
-    return entries.map((entry, level) => {
-      const [name, condition] = defined(
-        Object.entries(entry)[0],
-        `level ${level}`,
-      );
-      expect(name).toBe(`${prefix}${level}`);
-      let rest = condition;
-      if (guard) {
-        expect(rest.startsWith(guard), name).toBe(true);
-        rest = rest.slice(guard.length).replace(/^ && /, "");
-      }
-      const lo = /query\.ground_speed >= ([\d.]+)/.exec(rest)?.[1];
-      const hi = /query\.ground_speed < ([\d.]+)/.exec(rest)?.[1];
-      return [lo ? Number(lo) : 0, hi ? Number(hi) : Number.POSITIVE_INFINITY];
-    });
-  }
-
-  function expectContiguous(ranges: [number, number][]): void {
-    expect(ranges[0]?.[0]).toBe(0);
-    expect(ranges.at(-1)?.[1]).toBe(Number.POSITIVE_INFINITY);
-    ranges.slice(1).forEach(([lo, hi], i) => {
-      expect(lo).toBe(ranges[i]?.[1]);
-      expect(lo).toBeLessThan(hi);
-    });
-  }
-
   it("rumbles the engine on the ground at a pitch that rises with the speed", () => {
     const levels = client.scripts.animate.filter(
       (a: unknown) =>
@@ -313,6 +290,7 @@ describe("Resource Pack sounds (ADR 0030)", () => {
   it.each([
     ["suv", controller],
     ["camper", camperController],
+    ["bulldozer", bulldozerController],
   ])(
     "%s keeps the hover sound on a riderless vehicle (ADR 0073)",
     (_kind, form) => {
@@ -660,7 +638,7 @@ describe("Resource Pack submarine visuals (ADR 0040)", () => {
       const hubX = bone(wheel).pivot[0] + submerged.bones[wheel].position[0];
       const arm = samples(`sub_arm_${side}`);
       const xs = arm.map((p) => p[0] * outward);
-      expect(Math.min(...xs)).toBeLessThan(13);
+      expect(Math.min(...xs)).toBeLessThan(16.9);
       expect(Math.max(...xs)).toBeGreaterThanOrEqual(hubX * outward);
       const propZ = Math.min(...posed(`prop_${side}`).map((p) => p[2]));
       expect(Math.max(...arm.map((p) => p[2]))).toBeLessThan(propZ);

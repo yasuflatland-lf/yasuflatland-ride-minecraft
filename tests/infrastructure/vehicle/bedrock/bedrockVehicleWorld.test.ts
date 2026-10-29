@@ -1,5 +1,7 @@
+import type { Entity } from "@minecraft/server";
 import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { SpaceCheck } from "../../../../src/application/shared/ports/space";
 import {
   asDimensionId,
   asPlayerId,
@@ -8,13 +10,16 @@ import {
 import type { Vec3 } from "../../../../src/domain/shared/vec";
 import type { Departure } from "../../../../src/domain/vehicle/dock/dock";
 import type { EngineCommand } from "../../../../src/domain/vehicle/drive";
+import type { RawInput } from "../../../../src/domain/vehicle/driveInput";
 import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
+import { profileOf } from "../../../../src/domain/vehicle/kinds/index";
 import { SPEC } from "../../../../src/domain/vehicle/spec";
 import { NAMESPACE } from "../../../../src/infrastructure/shared/identifiers";
 import { BedrockInventory } from "../../../../src/infrastructure/vehicle/bedrock/bedrockInventory";
 import { BedrockPaintWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockPaintWorld";
 import { BedrockPlacementWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockPlacementWorld";
 import { BedrockVehicleWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockVehicleWorld";
+import { BladeCuts } from "../../../../src/infrastructure/vehicle/bedrock/bladeCuts";
 import { DockBlocks } from "../../../../src/infrastructure/vehicle/bedrock/dockBlocks";
 import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
 import {
@@ -33,7 +38,8 @@ import {
   SEAT_FILLER_TYPE,
   VEHICLE_FAMILY,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
-import { TestInputStore } from "../../../../src/infrastructure/vehicle/testInput/testInputStore";
+import { SeatFillers } from "../../../../src/infrastructure/vehicle/bedrock/seatFillers";
+import { VehicleTestStore } from "../../../../src/infrastructure/vehicle/testInput/vehicleTestStore";
 import { blockGrid } from "../../../support/blockGrid";
 
 const game = vi.hoisted(() => ({
@@ -42,6 +48,8 @@ const game = vi.hoisted(() => ({
 }));
 vi.mock("@minecraft/server", () => ({
   world: game,
+  system: {},
+  BlockVolume: class {},
   GameMode: { Creative: "Creative", Survival: "Survival" },
   ButtonState: {},
   InputButton: {},
@@ -59,6 +67,28 @@ vi.mock("@minecraft/server", () => ({
     ) {}
   },
 }));
+
+/** Seats one idle player, holding hotbar slot 3, on `car`; the player's components come from `getComponent`. */
+function seatIdlePlayer(
+  car: ReturnType<typeof fixture>["car"],
+  getComponent: (name: string) => unknown,
+): void {
+  const player = {
+    id: "player",
+    typeId: "minecraft:player",
+    location: car.location,
+    selectedSlotIndex: 3,
+    getRotation: () => ({ y: 0 }),
+    getComponent,
+    inputInfo: {
+      getMovementVector: () => ({ x: 0, y: 0 }),
+      getButtonState: () => "Released",
+    },
+  };
+  car.getComponent.mockImplementation((name) =>
+    name === "minecraft:rideable" ? { getRiders: () => [player] } : undefined,
+  );
+}
 
 function fixture() {
   const dimension = {
@@ -108,19 +138,21 @@ function fixture() {
   game.getEntity.mockImplementation((id: string) =>
     id === car.id ? car : undefined,
   );
-  const inputs = new TestInputStore();
+  const inputs = new VehicleTestStore<RawInput>();
+  const tools = new VehicleTestStore<string>();
   const index = new EntityIndex();
   const inventory = new BedrockInventory(index);
   return {
     index,
     inventory,
-    placement: new BedrockPlacementWorld(inventory, index),
+    placement: new BedrockPlacementWorld(inventory, index, noCampSpace),
     paint: new BedrockPaintWorld(index, inventory),
     inputs,
+    tools,
     entities,
     dimension,
     car,
-    world: new BedrockVehicleWorld(index, inputs),
+    world: new BedrockVehicleWorld(index, inputs, tools, noCampSpace),
   };
 }
 
@@ -400,6 +432,38 @@ describe("BedrockVehicleWorld snapshots", () => {
     );
   });
 
+  it.each(VEHICLE_KINDS.filter((kind) => !profileOf(kind).monitor))(
+    "does not read rider inventory for %s without a monitor rule",
+    (kind) => {
+      const { car, world } = fixture();
+      car.typeId = ENTITY_TYPE[kind];
+      const inventory = vi.fn();
+      seatIdlePlayer(car, inventory);
+      const riders = world.loadedVehicles()[0]?.riders;
+      expect(riders?.map((r) => r.id)).toEqual(["player"]);
+      expect(riders?.[0]?.heldTool).toBeUndefined();
+      expect(inventory).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    ["yasu_ride:blade_switch", "blade_switch"],
+    ["minecraft:stone", undefined],
+    [undefined, undefined],
+  ])(
+    "reads the bulldozer driver's held %s as %s for its monitor rule (ADR 0139)",
+    (typeId, heldTool) => {
+      const { car, world } = fixture();
+      car.typeId = ENTITY_TYPE.bulldozer;
+      const getItem = vi.fn(() => (typeId ? { typeId } : undefined));
+      seatIdlePlayer(car, (name) =>
+        name === "minecraft:inventory" ? { container: { getItem } } : undefined,
+      );
+      expect(world.loadedVehicles()[0]?.riders[0]?.heldTool).toBe(heldTool);
+      expect(getItem).toHaveBeenCalledWith(3);
+    },
+  );
+
   it("counts only players in the seats as riders (ADR 0019)", () => {
     const { car, world } = fixture();
     const player = {
@@ -494,11 +558,21 @@ describe("BedrockVehicleWorld snapshots", () => {
     expect(world.loadedVehicles()[0]?.testInput).toBeUndefined();
   });
 
+  it("forgets the test held tool of a vehicle once it is no longer loaded (ADR 0139)", () => {
+    const { tools, dimension, car, world } = fixture();
+    const id = asVehicleId(car.id);
+    tools.set(id, "blade_switch");
+    expect(world.loadedVehicles()[0]?.testHeldTool).toBe("blade_switch");
+    dimension.getEntities.mockReturnValue([]);
+    world.loadedVehicles();
+    expect(tools.get(id)).toBeUndefined();
+  });
+
   it("clears the headlight blocks of a vehicle once it is no longer loaded (ADR 0020, 0038)", () => {
     const { dimension, car, world } = fixture();
     const grid = blockGrid();
     dimension.getBlock.mockImplementation(grid.getBlock);
-    const cell = { x: 0, y: 65, z: 4 };
+    const cell = { x: 0, y: 65, z: 4, level: 15 };
     world.loadedVehicles();
     world.shineHeadlights(asVehicleId(car.id), [cell]);
     world.loadedVehicles();
@@ -680,29 +754,36 @@ describe("BedrockVehicleWorld command interpreter", () => {
 });
 
 it.each([
-  { kind: "suv", name: "form", value: "hover" },
-  { kind: "sportsboat", name: "docked", value: true },
+  { kind: "suv", names: ["form"], values: { form: "hover" } },
+  {
+    kind: "sportsboat",
+    names: ["docked", "icebreaker"],
+    values: { docked: true, icebreaker: true },
+  },
 ] as const)(
   "reads only $kind's declared restored properties, lazily",
-  ({ kind, name, value }) => {
+  ({ kind, names, values }) => {
     vi.resetAllMocks();
     const { world, car } = fixture();
     car.typeId = ENTITY_TYPE[kind];
     const stored: Record<string, unknown> = {
       [`${NAMESPACE}:form`]: "hover",
       [`${NAMESPACE}:docked`]: true,
+      [`${NAMESPACE}:icebreaker`]: true,
     };
     car.getProperty.mockImplementation((key) => stored[key] ?? false);
     const snapshot = world.loadedVehicles()[0];
     expect(car.getProperty.mock.calls).toEqual([[HEADLIGHTS_PROPERTY]]);
     car.getProperty.mockClear();
     expect(snapshot?.restored()).toStrictEqual({
-      [name]: value,
+      ...values,
       dockLaid: false,
       dockDoorOpen: undefined,
       dockDecor: undefined,
     });
-    expect(car.getProperty.mock.calls).toEqual([[`${NAMESPACE}:${name}`]]);
+    expect(car.getProperty.mock.calls).toEqual(
+      names.map((name) => [`${NAMESPACE}:${name}`]),
+    );
   },
 );
 
@@ -766,7 +847,7 @@ describe("BedrockVehicleWorld holds (ADR 0063)", () => {
       z: 3,
       block: { type: "deck" as const, height: 9 },
     };
-    const light = { x: 0, y: 65, z: 4 };
+    const light = { x: 0, y: 65, z: 4, level: 15 };
     const pose = { x: 1, y: 64.5, z: -2, yaw: 30 };
     world.loadedVehicles();
     world.holdAt(asVehicleId(car.id), pose);
@@ -975,6 +1056,35 @@ describe("BedrockVehicleWorld dock ports", () => {
     const { toilet, near } = departWithRefusedDeckRider(undefined);
     expect(toilet.teleport).not.toHaveBeenCalled();
     expect(near.teleport).not.toHaveBeenCalled();
+  });
+
+  it("leaves a rider the seat layout is about to seat again out of the departure exit (ADR 0154)", () => {
+    const { world, car, dimension } = fixture();
+    car.location = { x: 0, y: 64, z: 0 };
+    const player = (id: string) => ({
+      id,
+      location: { x: 1, y: 64, z: 1 },
+      getComponent: vi.fn(() => undefined),
+      teleport: vi.fn(),
+    });
+    const dinette = player("dinette");
+    const bystander = player("bystander");
+    dimension.getPlayers.mockReturnValue([dinette, bystander]);
+    const waiting = vi
+      .spyOn(SeatFillers.prototype, "waitingRiders")
+      .mockReturnValue(new Map([[asPlayerId("dinette"), 2]]));
+    const addRider = vi.fn().mockReturnValue(false);
+    car.getComponent.mockImplementation((name: string) =>
+      name === "minecraft:rideable" ? { addRider } : undefined,
+    );
+    world.seatStandingPlayers(asVehicleId("car"), {
+      boxes: [{ min: { x: 0, y: 64, z: 0 }, max: { x: 3, y: 67, z: 3 } }],
+      exit: { x: 5, y: 64, z: 2, yaw: 90 },
+    });
+    expect(addRider.mock.calls).toEqual([[bystander]]);
+    expect(dinette.teleport).not.toHaveBeenCalled();
+    expect(bystander.teleport).toHaveBeenCalledOnce();
+    waiting.mockRestore();
   });
 
   it("seats only standing players inside any box nearest first and teleports overflow", () => {
@@ -1273,7 +1383,7 @@ describe("BedrockVehicleWorld.isVehicleSpace (ADR 0122)", () => {
   const OVERWORLD = asDimensionId("overworld");
 
   // The car stands at (-1.25, 64.25, 2.75), in cell (-2, 64, 2). The SUV's footprint
-  // reaches 2.35 blocks at any heading, and its clearance two blocks up.
+  // reaches 3.05 blocks at any heading, and its clearance three blocks up.
   it.each<[Vec3, boolean]>([
     [{ x: -2, y: 64, z: 2 }, true],
     [{ x: -1, y: 66, z: 3 }, true],
@@ -1283,14 +1393,15 @@ describe("BedrockVehicleWorld.isVehicleSpace (ADR 0122)", () => {
     [{ x: -2, y: 64, z: 0 }, true],
     [{ x: 2, y: 64, z: 2 }, false],
     [{ x: -2, y: 64, z: 6 }, false],
-    [{ x: -2, y: 67, z: 2 }, false],
+    [{ x: -2, y: 67, z: 2 }, true],
+    [{ x: -2, y: 68, z: 2 }, false],
     [{ x: -2, y: 63, z: 2 }, false],
   ])("treats %o as vehicle space: %s", (cell, expected) => {
     const { world } = fixture();
     expect(world.isVehicleSpace(OVERWORLD, cell)).toBe(expected);
   });
 
-  // The SUV's body reaches 1.85 ahead and 2.22 behind its center (suv.geo.json), so a
+  // The scaled SUV extends over two blocks ahead and behind its center, so a
   // cell up to two cells ahead or behind, or to a side, overlaps it at some heading.
   it("treats every cell up to two cells from an SUV's cell along an axis as vehicle space", () => {
     fc.assert(
@@ -1313,12 +1424,12 @@ describe("BedrockVehicleWorld.isVehicleSpace (ADR 0122)", () => {
     );
   });
 
-  it("leaves every cell four or more cells from an SUV's cell free", () => {
+  it("leaves every cell five or more cells from an SUV's cell free", () => {
     fc.assert(
       fc.property(
         fc.double({ min: -100, max: 100, noNaN: true }),
         fc.double({ min: -100, max: 100, noNaN: true }),
-        fc.integer({ min: 4, max: 7 }),
+        fc.integer({ min: 5, max: 8 }),
         fc.constantFrom(-1, 1),
         fc.integer({ min: -6, max: 6 }),
         fc.boolean(),
@@ -1370,4 +1481,69 @@ describe("BedrockVehicleWorld.isVehicleSpace (ADR 0122)", () => {
     entities.push({ ...car, id: "unknown", typeId: "yasu_ride:unknown" });
     expect(world.isVehicleSpace(OVERWORLD, { x: -2, y: 64, z: 2 })).toBe(false);
   });
+});
+
+const noCampSpace: SpaceCheck = () => false;
+
+it("cuts a vehicle's columns in its own dimension, and nothing for a missing vehicle (ADR 0137)", () => {
+  const { world, dimension } = fixture();
+  const cut = vi.spyOn(BladeCuts.prototype, "cut").mockImplementation(() => {});
+  const columns = [{ x: 9, z: 9, bottom: 64 }];
+  world.cutColumns(asVehicleId("missing"), columns);
+  expect(cut).not.toHaveBeenCalled();
+  world.cutColumns(asVehicleId("car"), columns);
+  expect(cut).toHaveBeenCalledExactlyOnceWith(dimension, columns);
+  cut.mockRestore();
+});
+it.each([false, true])(
+  "returns the blade cut drop sweep result: %s",
+  (result) => {
+    const { world } = fixture();
+    const entity = {} as Entity;
+    const sweep = vi
+      .spyOn(BladeCuts.prototype, "sweepDrop")
+      .mockReturnValue(result);
+    expect(world.sweepCutDrop(entity)).toBe(result);
+    expect(sweep).toHaveBeenCalledWith(entity);
+    sweep.mockRestore();
+  },
+);
+
+describe("standRiderAt", () => {
+  const rotation = { x: 23, y: -72 };
+  const standing = (missing?: "vehicle" | "player") => {
+    const { world, car, dimension } = fixture();
+    const player = {
+      ...car,
+      id: "rider",
+      typeId: PLAYER_TYPE,
+      getRotation: () => rotation,
+      teleport: vi.fn(),
+    };
+    game.getEntity.mockImplementation((id: string) => {
+      if (id === car.id && missing !== "vehicle") return car;
+      if (id === player.id && missing !== "player") return player;
+      return undefined;
+    });
+    dimension.getBlock.mockImplementation(({ y }: Vec3) =>
+      y < 64
+        ? { isAir: false, isLiquid: false, typeId: "minecraft:stone" }
+        : { isAir: true, isLiquid: false, typeId: "minecraft:air" },
+    );
+    const at = { x: 0.5, y: 64.25, z: 2 };
+    world.standRiderAt(asVehicleId(car.id), asPlayerId(player.id), at);
+    return { player, at };
+  };
+
+  it("teleports a present rider to the exit on open ground, keeping their view", () => {
+    const { player, at } = standing();
+    expect(player.teleport).toHaveBeenCalledExactlyOnceWith(at, { rotation });
+  });
+
+  it.each(["vehicle", "player"] as const)(
+    "leaves the rider where they are when the %s is missing",
+    (missing) => {
+      expect(standing(missing).player.teleport).not.toHaveBeenCalled();
+    },
+  );
 });

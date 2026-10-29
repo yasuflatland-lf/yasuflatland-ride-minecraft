@@ -14,11 +14,14 @@ as a submarine (ADR 0045). Four sports boat pictures share another scale: afloat
 black and with the headlights on at night from the SUV's angle, from its rear-left corner, and from
 straight above (ADR 0056). Four camper pictures share a third scale: front-left,
 headlights at dusk, side, and rear, without water layers (ADR 0067).
+Four bulldozer pictures share a fourth scale: front-left, headlights at dusk, side, and rear,
+showing only the first grouser phase and no propeller (ADR 0136). The beacon stays unlit: it faces
+backward on the cab roof, so the cab hides it from the front-left dusk view.
 
 Each camping gear item in tools/camping_gear.json gets its own 128-pixel square preview in
 <output dir>/items/camping-gear/<id>.png, from the same angle as the vehicles, with no ground,
 its longer side filling 80 percent of the square, for its row in docs/items/camping-gear.md
-(ADR 0093). The low chair gets one the same way, low_chair.png, from its entity model (ADR 0122).
+(ADR 0093). The low chair and tent get previews the same way from their entity models (ADR 0122, 0130).
 
 Only the standard library is used, like gen_model.py. The arithmetic avoids math.sin/cos (their
 last bit can differ between platforms' libm) so the same model renders to the same pixels on a Mac
@@ -46,6 +49,14 @@ CAMERA_DISTANCE = 6.0  # in multiples of the model's size; far enough to keep pe
 
 # Minecraft's fixed face shading: top faces full brightness, north/south 0.8, east/west 0.6, bottom 0.5.
 SHADE_UP, SHADE_DOWN, SHADE_Z, SHADE_X = 1.0, 0.5, 0.8, 0.6
+# A level side view shows almost only east/west faces, so the whole picture sits at 0.6. A pose can
+# set "brightness" to lift its faces back to the level of the other views.
+SIDE_BRIGHTNESS = 1.0 / SHADE_X
+# The sports boat hull is near black, which a multiplier barely changes, so its rear picture also adds
+# a flat "lift" (0 to 255) to every lit face.
+BOAT_LIFT = 36
+# The main pictures of each vehicle (SUV, boat, camper, bulldozer) are lifted a little too.
+MAIN_BRIGHTNESS = 1.3
 
 SHADOW_LAYERS = 12
 SHADOW_ALPHA = 0.025  # per layer, so the center of the shadow is 0.3
@@ -54,6 +65,7 @@ SHADOW_GROWTH = 0.5  # pixels (model units) added around the footprint per layer
 # Dusk: unlit surfaces are dimmed and tinted blue so the lamps stand out.
 NIGHT_TINT = (0.6, 0.64, 0.8)
 LAMP_LIT = (255, 246, 205)
+HEADLIGHTS_LIT = {"headlights": LAMP_LIT}
 # Light on the road ahead. In game it reaches 27 blocks (ADR 0024); the picture shows the first
 # few so the vehicle keeps its size.
 BEAM_LAYERS = 24
@@ -112,19 +124,30 @@ BOAT_REAR_VIEW = (-1.0, 0.65, 1.0)
 BOAT_TOP_VIEW = (0.0, 1.0, 0.0)
 BOAT_TOP_SCREEN_UP = (-1.0, 0.0, 0.0)
 BOAT_POSES = {
-    "sportsboat-afloat.png": {"lamps": False, "dusk": False, "view": VIEW_DIRECTION, "screen_up": None},
+    "sportsboat-afloat.png": {"lamps": False, "dusk": False, "view": VIEW_DIRECTION, "screen_up": None, "brightness": MAIN_BRIGHTNESS, "lift": BOAT_LIFT},
     "sportsboat-headlights.png": {"lamps": True, "dusk": True, "view": VIEW_DIRECTION, "screen_up": None},
-    "sportsboat-rear.png": {"lamps": False, "dusk": False, "view": BOAT_REAR_VIEW, "screen_up": None},
-    "sportsboat-top.png": {"lamps": False, "dusk": False, "view": BOAT_TOP_VIEW, "screen_up": BOAT_TOP_SCREEN_UP},
+    "sportsboat-rear.png": {"lamps": False, "dusk": False, "view": BOAT_REAR_VIEW, "screen_up": None, "brightness": MAIN_BRIGHTNESS, "lift": BOAT_LIFT},
+    "sportsboat-top.png": {"lamps": False, "dusk": False, "view": BOAT_TOP_VIEW, "screen_up": BOAT_TOP_SCREEN_UP, "brightness": MAIN_BRIGHTNESS, "lift": BOAT_LIFT},
 }
 
 CAMPER_GEOMETRY = "models/entity/yasu_ride/camper.geo.json"
 CAMPER_TEXTURE = "textures/entity/yasu_ride/camper.png"
 CAMPER_POSES = {
-    "camper-front-left.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.65, -1.0), "screen_up": None},
+    "camper-front-left.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.65, -1.0), "screen_up": None, "brightness": MAIN_BRIGHTNESS},
     "camper-headlights.png": {"lamps": True, "dusk": True, "view": (-1.0, 0.65, -1.0), "screen_up": None},
-    "camper-side.png": {"lamps": False, "dusk": False, "view": (1.0, 0.15, 0.0001), "screen_up": None},
-    "camper-rear.png": {"lamps": False, "dusk": False, "view": (1.0, 0.6, 1.0), "screen_up": None},
+    "camper-side.png": {"lamps": False, "dusk": False, "view": (1.0, 0.15, 0.0001), "screen_up": None, "brightness": SIDE_BRIGHTNESS},
+    "camper-rear.png": {"lamps": False, "dusk": False, "view": (1.0, 0.6, 1.0), "screen_up": None, "brightness": MAIN_BRIGHTNESS},
+}
+
+BULLDOZER_GEOMETRY = "models/entity/yasu_ride/bulldozer.geo.json"
+BULLDOZER_TEXTURE = "textures/entity/yasu_ride/bulldozer.png"
+# Only the first grouser phase is drawn, and the propeller only shows under water (ADR 0136)
+BULLDOZER_HIDDEN = ("track_r_1", "track_r_2", "track_l_1", "track_l_2", "propeller")
+BULLDOZER_POSES = {
+    "bulldozer-front-left.png": {"lamps": False, "dusk": False, "view": (-1.0, 0.65, -1.0), "screen_up": None, "brightness": MAIN_BRIGHTNESS},
+    "bulldozer-headlights.png": {"lamps": True, "dusk": True, "view": (-1.0, 0.65, -1.0), "screen_up": None},
+    "bulldozer-side.png": {"lamps": False, "dusk": False, "view": (1.0, 0.15, 0.0001), "screen_up": None, "brightness": SIDE_BRIGHTNESS},
+    "bulldozer-rear.png": {"lamps": False, "dusk": False, "view": (1.0, 0.6, 1.0), "screen_up": None, "brightness": MAIN_BRIGHTNESS},
 }
 
 # Each camping gear item gets its own square preview for its row in docs/items/camping-gear.md,
@@ -138,17 +161,42 @@ GEAR_FILL = 0.8
 GEAR_ICON_DIR = "textures/items/yasu_ride"
 GEAR_ICON_SIZE = 32
 GEAR_ICON_PACK = "yasu_ride_rp"  # the --icons pack that receives the gear item icons
-# The low chair stands outside the vehicles and has its own entity model, but its preview and icon
-# match the gear's (ADR 0122)
+# The low chair and tent stand outside the vehicles and have their own entity models, but their
+# previews and icons match the gear's (ADR 0122, 0130)
 CHAIR_GEOMETRY = "models/entity/yasu_ride/low_chair.geo.json"
 CHAIR_TEXTURE = "textures/entity/yasu_ride/low_chair.png"
 CHAIR_PREVIEW = "low_chair"
 CHAIR_ICON = "low_chair_item"
+NOGA_CHAIR_GEOMETRY = "models/entity/yasu_ride/noga_chair.geo.json"
+NOGA_CHAIR_TEXTURE = "textures/entity/yasu_ride/noga_chair.png"
+NOGA_CHAIR_PREVIEW = "noga_chair"
+NOGA_CHAIR_ICON = "noga_chair_item"
+TENT_GEOMETRY = "models/entity/yasu_ride/tent.geo.json"
+TENT_TEXTURE = "textures/entity/yasu_ride/tent.png"
+TENT_PREVIEW = "tent"
+TENT_ICON = "tent_item"
+TABLE_GEOMETRY = "models/entity/yasu_ride/camp_table.geo.json"
+TABLE_TEXTURE = "textures/entity/yasu_ride/camp_table.png"
+TABLE_PREVIEW = "camp_table"
+TABLE_ICON = "camp_table_item"
+FIRE_PIT_GEOMETRY = "models/entity/yasu_ride/fire_pit.geo.json"
+FIRE_PIT_TEXTURE = "textures/entity/yasu_ride/fire_pit.png"
+FIRE_PIT_PREVIEW = "fire_pit"
+FIRE_PIT_ICON = "fire_pit_item"
+DUTCH_OVEN_GEOMETRY = "models/entity/yasu_ride/dutch_oven.geo.json"
+DUTCH_OVEN_TEXTURE = "textures/entity/yasu_ride/dutch_oven.png"
+DUTCH_OVEN_PREVIEW = "dutch_oven"
+DUTCH_OVEN_ICON = "dutch_oven_item"
+GAS_LANTERN_GEOMETRY = "models/entity/yasu_ride/gas_lantern.geo.json"
+GAS_LANTERN_TEXTURE = "textures/entity/yasu_ride/gas_lantern.png"
+GAS_LANTERN_PREVIEW = "gas_lantern"
+GAS_LANTERN_ICON = "gas_lantern_item"
+ICON_NAMES = {NOGA_CHAIR_PREVIEW: NOGA_CHAIR_ICON, CHAIR_PREVIEW: CHAIR_ICON, TENT_PREVIEW: TENT_ICON, TABLE_PREVIEW: TABLE_ICON, FIRE_PIT_PREVIEW: FIRE_PIT_ICON, DUTCH_OVEN_PREVIEW: DUTCH_OVEN_ICON, GAS_LANTERN_PREVIEW: GAS_LANTERN_ICON}
 
 POSES = {
-    "suv-front-left.png": {"lamps": False, "dusk": False, "hover": False, "submarine": False},
+    "suv-front-left.png": {"lamps": False, "dusk": False, "hover": False, "submarine": False, "brightness": MAIN_BRIGHTNESS},
     "suv-headlights.png": {"lamps": True, "dusk": True, "hover": False, "submarine": False},
-    "suv-flying.png": {"lamps": False, "dusk": False, "hover": True, "submarine": False},
+    "suv-flying.png": {"lamps": False, "dusk": False, "hover": True, "submarine": False, "brightness": MAIN_BRIGHTNESS},
     "suv-submarine.png": {"lamps": False, "dusk": False, "hover": False, "submarine": True},
 }
 
@@ -370,8 +418,9 @@ def collect(geo, texture, folds, turns, pose):
                     rgb = LAMP_LIT if emissive == "lamp" else GLOW_LIT
                 else:
                     r, g, b, _ = face_color(texture, cube["uv"][face], desc["texture_width"], desc["texture_height"])
-                    k = shade(normalize(normal))
-                    rgb = (r * k * tint[0], g * k * tint[1], b * k * tint[2])
+                    k = shade(normalize(normal)) * pose.get("brightness", 1.0)
+                    face_lift = pose.get("lift", 0)
+                    rgb = (r * k * tint[0] + face_lift, g * k * tint[1] + face_lift, b * k * tint[2] + face_lift)
                 polygons.append((quad, rgb, emissive))
     return polygons
 
@@ -438,15 +487,15 @@ def bone_turns(bones):
     return turns
 
 
-def collect_boat(geo, texture, pose):
+def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT):
     """Return the boat's opaque faces as (quad, rgb, bloom group or None) and its see-through faces as
-    (quad, rgb, alpha)."""
+    (quad, rgb, alpha). Bones named in lit glow in their color while the lamps are on."""
     desc = geo["description"]
     tint = NIGHT_TINT if pose["dusk"] else (1.0, 1.0, 1.0)
     polygons, glass = [], []
     turns = bone_turns(geo["bones"])
     for bone in geo["bones"]:
-        emissive = "lamp" if bone["name"] == "headlights" and pose["lamps"] else None
+        color = lit.get(bone["name"]) if pose["lamps"] else None
         for cube in bone.get("cubes", []):
             for face, quad in cube_faces({**cube, "rotation": game_turn(cube.get("rotation", [0, 0, 0]))}):
                 for pivot, rotation in turns[bone["name"]]:
@@ -455,12 +504,13 @@ def collect_boat(geo, texture, pose):
                 normal = cross(sub(quad[1], quad[0]), sub(quad[3], quad[0]))
                 if dot(normal, normal) == 0:
                     continue
-                if emissive:
-                    polygons.append((quad, LAMP_LIT, emissive))
+                if color is not None:
+                    polygons.append((quad, color, "lamp"))
                     continue
                 r, g, b, a = face_color(texture, cube["uv"][face], desc["texture_width"], desc["texture_height"])
-                k = shade(normalize(normal))
-                rgb = (r * k * tint[0], g * k * tint[1], b * k * tint[2])
+                k = shade(normalize(normal)) * pose.get("brightness", 1.0)
+                face_lift = pose.get("lift", 0)
+                rgb = (r * k * tint[0] + face_lift, g * k * tint[1] + face_lift, b * k * tint[2] + face_lift)
                 if a < 255:
                     glass.append((quad, rgb, a / 255))
                 else:
@@ -691,11 +741,12 @@ def render(rp, icons=False):
     images = {name: rasterize(scenes[name], layers[name], to_screen) for name in POSES}
     images.update(render_boat(rp))
     images.update(render_camper(rp))
+    images.update(render_bulldozer(rp))
     images.update(render_camping_gear(rp))
     icon = None
     if icons:
         # Lamps lit without the dusk tint, so the body keeps its daylight colors
-        pose = {**POSES["suv-flying.png"], "lamps": True}
+        pose = {**POSES["suv-flying.png"], "lamps": True, "brightness": 1.0}
         polygons = collect(geo, texture, folds, turns, pose)
         icon = render_icon(geo, polygons, camera)
     return images, icon
@@ -761,10 +812,33 @@ def render_boat(rp):
 def render_camper(rp):
     geo = json.loads((rp / CAMPER_GEOMETRY).read_text())["minecraft:geometry"][0]
     texture = read_png(rp / CAMPER_TEXTURE)
-    scenes = {name: collect_boat(geo, texture, pose) for name, pose in CAMPER_POSES.items()}
+    return render_poses(geo, texture, CAMPER_POSES)
+
+
+def bulldozer_bones(bones):
+    return [b for b in bones if b["name"] not in BULLDOZER_HIDDEN]
+
+
+def opaque_lenses(texture):
+    # The plain entity material ignores alpha (ADR 0020).
+    return [[(r, g, b, 255 if a == 0 else a) for r, g, b, a in row] for row in texture]
+
+
+def render_bulldozer(rp):
+    geo = json.loads((rp / BULLDOZER_GEOMETRY).read_text())["minecraft:geometry"][0]
+    texture = read_png(rp / BULLDOZER_TEXTURE)
+    return render_poses(
+        {**geo, "bones": bulldozer_bones(geo["bones"])},
+        opaque_lenses(texture),
+        BULLDOZER_POSES,
+    )
+
+
+def render_poses(geo, texture, poses, lit=HEADLIGHTS_LIT):
+    scenes = {name: collect_boat(geo, texture, pose, lit) for name, pose in poses.items()}
     points = [p for polygons, _ in scenes.values() for quad, _, _ in polygons for p in quad]
     frames = {}
-    for name, pose in CAMPER_POSES.items():
+    for name, pose in poses.items():
         frames.setdefault((pose["view"], pose["screen_up"]), []).append(name)
     views = [
         (Camera(points, view, screen_up), [q for name in names for q, _, _ in scenes[name][0]])
@@ -775,7 +849,7 @@ def render_camper(rp):
         for name in names:
             polygons, glass = scenes[name]
             images[name] = rasterize(polygons, [], to_screen, see_through=glass)
-    return {name: images[name] for name in CAMPER_POSES}
+    return {name: images[name] for name in poses}
 
 
 def render_gear(geo_path, texture, size):
@@ -788,10 +862,19 @@ def render_gear(geo_path, texture, size):
 
 
 def small_models(rp):
-    """(name, geometry path, texture) of each camping gear item, then the low chair."""
+    """(name, geometry path, texture) of the decor and outside camping gear."""
     texture = read_png(rp / GEAR_TEXTURE)
     models = [(item["id"], rp / GEAR_GEOMETRY.format(item["id"]), texture) for item in json.loads(GEAR_SPEC.read_text())]
-    return models + [(CHAIR_PREVIEW, rp / CHAIR_GEOMETRY, read_png(rp / CHAIR_TEXTURE))]
+    return models + [
+        (NOGA_CHAIR_PREVIEW, rp / NOGA_CHAIR_GEOMETRY, read_png(rp / NOGA_CHAIR_TEXTURE)),
+        (CHAIR_PREVIEW, rp / CHAIR_GEOMETRY, read_png(rp / CHAIR_TEXTURE)),
+        (TENT_PREVIEW, rp / TENT_GEOMETRY, read_png(rp / TENT_TEXTURE)),
+        (TABLE_PREVIEW, rp / TABLE_GEOMETRY, read_png(rp / TABLE_TEXTURE)),
+        (FIRE_PIT_PREVIEW, rp / FIRE_PIT_GEOMETRY, read_png(rp / FIRE_PIT_TEXTURE)),
+        (DUTCH_OVEN_PREVIEW, rp / DUTCH_OVEN_GEOMETRY, read_png(rp / DUTCH_OVEN_TEXTURE)),
+        # The lit flame (alpha 0) shows; the glass (alpha 96) stays see-through.
+        (GAS_LANTERN_PREVIEW, rp / GAS_LANTERN_GEOMETRY, opaque_lenses(read_png(rp / GAS_LANTERN_TEXTURE))),
+    ]
 
 
 def render_camping_gear(rp):
@@ -906,7 +989,7 @@ def main():
     for pack in args.icons:
         if pack.name == GEAR_ICON_PACK:
             for name, geo, texture in small_models(args.resource_pack):
-                icon_name = CHAIR_ICON if name == CHAIR_PREVIEW else name
+                icon_name = ICON_NAMES.get(name, name)
                 pixels = render_gear(geo, texture, GEAR_ICON_SIZE)
                 targets.append((pack / GEAR_ICON_DIR / f"{icon_name}.png", GEAR_ICON_SIZE, GEAR_ICON_SIZE, pixels, False))
     stale = []

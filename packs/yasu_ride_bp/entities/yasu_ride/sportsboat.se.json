@@ -27,6 +27,17 @@
           "range": [-20.0, 20.0],
           "default": 0.0,
           "client_sync": true
+        },
+        "yasu_ride:icebreaker": {
+          "type": "bool",
+          "default": false,
+          "client_sync": false
+        },
+        "yasu_ride:monitor": {
+          "type": "int",
+          "range": [0, 2],
+          "default": 0,
+          "client_sync": true
         }
       }
     },
@@ -558,8 +569,14 @@
         "apply_gravity": true,
         "simulate_waves": false,
         "big_wave_probability": 0,
-        "liquid_blocks": ["minecraft:water", "minecraft:flowing_water"]
+        "liquid_blocks": [
+          "minecraft:water",
+          "minecraft:flowing_water",
+          "minecraft:lava",
+          "minecraft:flowing_lava"
+        ]
       },
+      "minecraft:fire_immune": {},
       "minecraft:health": {
         "value": 20,
         "max": 20
@@ -595,14 +612,14 @@
         "controlling_seat": 0,
         "crouching_skip_interact": true,
         "family_types": ["player", "yasu_ride_seat_filler"],
-        "interact_text": "action.interact.ride.horse",
+        "interact_text": "action.interact.yasu_ride.drive",
         "seats": [
           {
-            "position": [-0.38, 0.52, 0.35],
+            "position": [-0.38, 0.52, 0.1625],
             "lock_rider_rotation": 90
           },
           {
-            "position": [0.38, 0.52, 0.35]
+            "position": [0.38, 0.52, 0.1625]
           },
           {
             "position": [-0.38, 0.52, -0.8]

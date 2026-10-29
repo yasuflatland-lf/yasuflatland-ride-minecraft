@@ -3,6 +3,7 @@
 // cells, and plates in the aisle in the room's inside layers (ADR 0121, 0123).
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { cellKey } from "../../../../../src/domain/shared/cells";
 import { forward } from "../../../../../src/domain/shared/vec";
 import { decorFace } from "../../../../../src/domain/vehicle/dock/decor";
 import type { EngineCommand } from "../../../../../src/domain/vehicle/drive";
@@ -42,7 +43,6 @@ import {
   storagePressTarget,
 } from "../../../../../src/domain/vehicle/kinds/camper/room";
 import { CAMPER_SPEC } from "../../../../../src/domain/vehicle/kinds/camper/spec";
-import { cellKey } from "../../../../../src/domain/vehicle/lighting/headlights";
 
 const SWING = CAMPER_SPEC.doorSwingTicks;
 
@@ -597,4 +597,37 @@ describe("cells", () => {
       ),
     );
   });
+});
+
+it("resync resends every storage door's current swing while driving or parked", () => {
+  fc.assert(
+    fc.property(
+      fc.boolean(),
+      fc.array(fc.boolean(), {
+        minLength: STORAGE_DOORS.length,
+        maxLength: STORAGE_DOORS.length,
+      }),
+      (docked, opened) => {
+        const doors = new StorageDoors(
+          STORAGE_DOORS,
+          (id) => (opened[STORAGE_DOORS.findIndex((d) => d.id === id)] ? 1 : 0),
+          docked,
+        );
+        const command = (name: string, value: number): EngineCommand => ({
+          type: "setProperty",
+          name,
+          value,
+        });
+        let settled: EngineCommand[] = [];
+        for (let tick = 0; tick <= SWING; tick++) {
+          const out = doors.swingCommands(command);
+          if (tick === 0) settled = out;
+        }
+        expect(doors.swingCommands(command)).toEqual([]);
+        doors.resync();
+        expect(doors.swingCommands(command)).toEqual(settled);
+        expect(settled).toHaveLength(STORAGE_DOORS.length);
+      },
+    ),
+  );
 });

@@ -1,15 +1,15 @@
 import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { asPlayerId, asVehicleId } from "../../../../src/domain/shared/ids";
-import { PAINTS } from "../../../../src/domain/vehicle/paint/paint";
-import type { BedrockInventory } from "../../../../src/infrastructure/vehicle/bedrock/bedrockInventory";
-import { BedrockPaintWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockPaintWorld";
-import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
+import { PAINTS } from "../../../../src/domain/shared/paint";
 import {
   dyeOf,
   PAINT_VARIANT,
   paintEvent,
-} from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
+} from "../../../../src/infrastructure/shared/dyes";
+import type { BedrockInventory } from "../../../../src/infrastructure/vehicle/bedrock/bedrockInventory";
+import { BedrockPaintWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockPaintWorld";
+import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
 
 const game = vi.hoisted(() => ({ getEntity: vi.fn() }));
 vi.mock("@minecraft/server", () => ({ world: game }));
@@ -90,4 +90,26 @@ describe("BedrockPaintWorld", () => {
     paint.consumeDye(asPlayerId("player"), color);
     expect(consumeHeld).toHaveBeenCalledExactlyOnceWith("player", dyeOf(color));
   });
+});
+
+it("indexes integer variants and rejects non-integers, defaulting a missing component to khaki", () => {
+  fc.assert(
+    fc.property(
+      fc.oneof(
+        fc.integer({ min: -5, max: PAINTS.length + 5 }),
+        fc.double().filter((value) => !Number.isInteger(value)),
+      ),
+      (variant) => {
+        const { vehicle, paint } = fixture();
+        vehicle.getComponent.mockReturnValue({ value: variant });
+        const expected =
+          Number.isInteger(variant) && variant >= 0 && variant < PAINTS.length
+            ? PAINTS[variant]
+            : undefined;
+        expect(paint.paintOf(asVehicleId(vehicle.id))).toBe(expected);
+        vehicle.getComponent.mockReturnValue(undefined);
+        expect(paint.paintOf(asVehicleId(vehicle.id))).toBe("khaki");
+      },
+    ),
+  );
 });

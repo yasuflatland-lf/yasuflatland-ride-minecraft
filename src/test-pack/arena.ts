@@ -1,7 +1,11 @@
 // The in-game test arena and the fixtures that spawn vehicles in it (ADR 0010).
 import { type Dimension, type Entity, system, world } from "@minecraft/server";
 import type { Vec2 } from "../domain/shared/vec";
-import { LOW_CHAIR_TYPE } from "../infrastructure/camp/identifiers";
+import {
+  CHAIR_KINDS,
+  DUTCH_OVEN_TYPE,
+  TENT_TYPE,
+} from "../infrastructure/camp/identifiers";
 import {
   TEST_DECOR_EVENT as DECOR_EVENT,
   ENTITY_TYPE,
@@ -137,7 +141,11 @@ export async function setupArena(): Promise<Arena> {
   dim.runCommand(`kill @e[type=${ENTITY_TYPE.suv}]`);
   dim.runCommand(`kill @e[type=${ENTITY_TYPE.sportsboat}]`);
   dim.runCommand(`kill @e[type=${ENTITY_TYPE.camper}]`);
-  dim.runCommand(`kill @e[type=${LOW_CHAIR_TYPE}]`);
+  dim.runCommand(`kill @e[type=${ENTITY_TYPE.bulldozer}]`);
+  for (const { typeId } of Object.values(CHAIR_KINDS))
+    dim.runCommand(`kill @e[type=${typeId}]`);
+  dim.runCommand(`kill @e[type=${TENT_TYPE}]`);
+  dim.runCommand(`kill @e[type=${DUTCH_OVEN_TYPE}]`);
   dim.runCommand("kill @e[type=cow]");
   dim.runCommand(`kill @e[type=${SEAT_PROBE}]`);
   dim.runCommand(`kill @e[type=${BOAT_SEAT_PROBE}]`);
@@ -157,6 +165,7 @@ export async function withPool<T>(
   a: Arena,
   depth: number,
   run: () => Promise<T>,
+  liquid: "water" | "lava" = "water",
 ): Promise<T> {
   const { minX, maxX, minZ, maxZ } = POOL;
   const bottom = a.gy - depth;
@@ -185,7 +194,7 @@ export async function withPool<T>(
   // of throwing. Seen in game with an arena ticking area kept from a smaller
   // arena under the same name: every submarine test then failed with
   // enteredAt=-1.
-  if (fillPool("water").successCount === 0)
+  if (fillPool(liquid).successCount === 0)
     throw new Error(
       `the pool was not filled: check that "tickingarea list" shows yasu_ride_arena covering x ${ARENA.minX}-${ARENA.maxX}, z ${ARENA.minZ}-${ARENA.maxZ}`,
     );

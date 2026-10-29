@@ -13,24 +13,27 @@
 | ![The black sports boat afloat, seen from its front-left corner](docs/images/sportsboat-afloat.png) | ![The sports boat with its headlights on, lighting the water ahead](docs/images/sportsboat-headlights.png) | ![The sports boat seen from its rear-left corner, showing the stern deck and the swim platform](docs/images/sportsboat-rear.png) | ![The sports boat seen from straight above, bow to the right](docs/images/sportsboat-top.png) |
 | **Camper** | **Headlights on** | **From the side** | **From the rear** |
 | ![The camper seen from its front-left corner](docs/images/camper-front-left.png) | ![The camper with its headlights on at dusk](docs/images/camper-headlights.png) | ![The camper seen from the side](docs/images/camper-side.png) | ![The camper seen from the rear](docs/images/camper-rear.png) |
+| **Bulldozer** | **Headlights on** | **From the side** | **From the rear** |
+| ![The bulldozer seen from its front-left corner](docs/images/bulldozer-front-left.png) | ![The bulldozer with headlights on at dusk](docs/images/bulldozer-headlights.png) | ![The bulldozer seen from the side](docs/images/bulldozer-side.png) | ![The bulldozer seen from the rear](docs/images/bulldozer-rear.png) |
 
-A vehicle add-on for Minecraft Bedrock Edition. It is built as a Behavior Pack + Resource Pack driven by the stable Script API (`@minecraft/server` 2.x), with no experimental toggles required. The target setup is a Bedrock Dedicated Server on a home LAN or a Realm, with players joining from PC (keyboard) and mobile (touch).
+A vehicle add-on for Minecraft Bedrock Edition 1.21.120 or newer. It is built as a Behavior Pack + Resource Pack driven by the stable Script API (`@minecraft/server` 2.x), with no experimental toggles required. The target setup is a Bedrock Dedicated Server on a home LAN or a Realm, with players joining from PC (keyboard) and mobile (touch).
 
-This add-on holds only rides. House-building parts will ship as a separate add-on with their own namespace. The `yasu_ride` namespace never changes once Yasuflatland Ride is first released ([ADR 0047](docs/adr/0047-rename-to-yasuflatland-ride.md)).
+This add-on holds rides, and for now the bulldozer's build tools, which will move to their own add-on ([ADR 0178](docs/adr/0178-bulldozer-build-tools-in-a-separate-namespace.md)). House-building parts will ship as a separate add-on with their own namespace. The `yasu_ride` namespace never changes once Yasuflatland Ride is first released ([ADR 0047](docs/adr/0047-rename-to-yasuflatland-ride.md)).
 
 ## Vehicles
 
 | Vehicle | What it does | Details |
 |---|---|---|
 | **SUV** | Drives on land, flies, and dives as a submarine. Every player gets one on their first join | [Controls and details](docs/vehicles/suv.md) |
-| **Sports boat** | Drives on water; shores stop it, and on land it can only reverse | [Controls and details](docs/vehicles/sportsboat.md) |
+| **Sports boat** | Drives on water and lava, including Nether lava seas; seated riders are protected from fire. Shores stop it, and on land it can only reverse | [Controls and details](docs/vehicles/sportsboat.md) |
 | **Camper** | Drives, flies, and dives like the SUV, with a long body and a facing dinette | [Controls and details](docs/vehicles/camper.md) |
+| **Bulldozer** | Pivots, hops, flies, and dives; with its blade lowered it clears hills and flight tunnels, and raised it climbs steps; its cab monitor shows whether the blade is up or down while the driver holds the Blade Up/Down switch. Every player gets one on their first join | [Controls and details](docs/vehicles/bulldozer.md) |
 
-All three seat 4, can be repainted with any of the 16 dyes, and light the way with a headlight switch item. Each can be placed from its item and broken back into it. Each player keeps at most 10 SUVs, 1 sports boat, and 1 camper: placing one more removes that player's oldest of that kind.
+The SUV, sports boat, and camper each seat 4; the bulldozer seats 1. All four can be repainted with any of the 16 dyes, and light the way with a headlight switch item. Each can be placed from its item and broken back into it. Each player keeps at most 10 SUVs, 1 sports boat, 1 camper, and 1 bulldozer: placing one more removes that player's oldest of that kind.
 
 ## Items
 
-Items other than vehicles, such as the 19 pieces of camping gear made to decorate a parked camper, are listed with previews in [the item groups](docs/items/README.md).
+Items other than vehicles, such as the 19 pieces of camping gear made to decorate a parked camper and the bulldozer's Blade Up/Down switch, are listed in [the item groups](docs/items/README.md).
 
 ## Installing
 

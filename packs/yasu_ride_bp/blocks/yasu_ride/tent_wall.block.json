@@ -1,0 +1,86 @@
+{
+  "format_version": "1.21.80",
+  "minecraft:block": {
+    "description": {
+      "identifier": "yasu_ride:tent_wall",
+      "menu_category": {
+        "category": "none"
+      },
+      "states": {
+        "yasu_ride:face": [0, 1, 2, 3]
+      }
+    },
+    "components": {
+      "minecraft:geometry": {
+        "identifier": "geometry.yasu_ride.deck_floor",
+        "bone_visibility": {
+          "root": false
+        }
+      },
+      "minecraft:material_instances": {
+        "*": {
+          "texture": "glass",
+          "render_method": "alpha_test"
+        }
+      },
+      "minecraft:light_dampening": 0,
+      "minecraft:destructible_by_mining": false,
+      "minecraft:destructible_by_explosion": false,
+      "tag:yasu_ride:laid": {}
+    },
+    "permutations": [
+      {
+        "condition": "q.block_state('yasu_ride:face') == 0",
+        "components": {
+          "minecraft:collision_box": {
+            "origin": [-8, 0, -8],
+            "size": [16, 16, 2]
+          },
+          "minecraft:selection_box": {
+            "origin": [-8, 0, -8],
+            "size": [16, 16, 2]
+          }
+        }
+      },
+      {
+        "condition": "q.block_state('yasu_ride:face') == 1",
+        "components": {
+          "minecraft:collision_box": {
+            "origin": [-8, 0, 6],
+            "size": [16, 16, 2]
+          },
+          "minecraft:selection_box": {
+            "origin": [-8, 0, 6],
+            "size": [16, 16, 2]
+          }
+        }
+      },
+      {
+        "condition": "q.block_state('yasu_ride:face') == 2",
+        "components": {
+          "minecraft:collision_box": {
+            "origin": [6, 0, -8],
+            "size": [2, 16, 16]
+          },
+          "minecraft:selection_box": {
+            "origin": [6, 0, -8],
+            "size": [2, 16, 16]
+          }
+        }
+      },
+      {
+        "condition": "q.block_state('yasu_ride:face') == 3",
+        "components": {
+          "minecraft:collision_box": {
+            "origin": [-8, 0, -8],
+            "size": [2, 16, 16]
+          },
+          "minecraft:selection_box": {
+            "origin": [-8, 0, -8],
+            "size": [2, 16, 16]
+          }
+        }
+      }
+    ]
+  }
+}

@@ -1,24 +1,18 @@
 // Persistent auxiliary seats for held vehicles (ADR 0063).
-import {
-  type Dimension,
-  type Entity,
-  type Player,
-  world,
-} from "@minecraft/server";
+import { type Entity, type Player, world } from "@minecraft/server";
 import { asVehicleId, type VehicleId } from "../../../domain/shared/ids";
-import type { Vec3 } from "../../../domain/shared/vec";
 import type { DeckSeatSpot } from "../../../domain/vehicle/dock/dock";
 import { DECK_SEAT_REACH } from "../../../domain/vehicle/kinds/index";
-import { isLightBlock } from "./headlightBlocks";
 import {
   DECK_SEAT_COMPACT_EVENT,
+  DECK_SEAT_DRIVER_EVENT,
   DECK_SEAT_OF_PROPERTY,
   DECK_SEAT_TYPE,
   DECK_SEATS_PROPERTY,
-  isStandableRoomBlock,
   isVehicleEntity,
   PLAYER_TYPE,
 } from "./identifiers";
+import { standUp } from "./standUp";
 
 // Under a pixel (1/16 block): a seat this close to its spot is left alone, so a
 // seated player is not teleported every tick for drift nobody can see.
@@ -29,11 +23,6 @@ const TELEPORT_TOLERANCE = 0.05;
 // hold pose.
 const ORPHAN_MARGIN = 5;
 const ORPHAN_RADIUS = DECK_SEAT_REACH + ORPHAN_MARGIN;
-// The engine drops a dismounting rider next to the seat's box, outside the camper
-// wall or on its roof at worst, so within a few blocks of the seat. A player who
-// left the seat by /tp, an ender pearl or a portal lands farther and is not pulled
-// back into the aisle (ADR 0109).
-const STAND_UP_REACH = 6;
 
 function savedIds(vehicle: Entity): (string | null)[] {
   const raw = vehicle.getDynamicProperty(DECK_SEATS_PROPERTY);
@@ -73,50 +62,6 @@ interface Seated {
   readonly player: Player;
 }
 
-// The feet and head cells must be open, so a block a player put in the aisle
-// leaves the engine's dismount spot instead of trapping the rider in it (ADR 0109). An open
-// fridge door's plate has no collision, so it leaves the cell open (ADR 0123).
-function standClear(dimension: Dimension, at: Vec3): boolean {
-  const feet = { x: at.x, y: Math.floor(at.y), z: at.z };
-  return [feet, { ...feet, y: feet.y + 1 }].every((cell) => {
-    try {
-      const block = dimension.getBlock(cell);
-      return (
-        block !== undefined &&
-        (block.isAir ||
-          isLightBlock(block) ||
-          isStandableRoomBlock(block.typeId))
-      );
-    } catch {
-      return false; // Unloaded chunk or outside the world
-    }
-  });
-}
-
-/**
- * Moves a player who rode `seat` when the deck seats were last kept, and now
- * rides nothing, to `at`, keeping their view (ADR 0109). A player boarded into the
- * vehicle or onto another seat still rides something and is left alone, and so is
- * a dead player or one who went farther than the engine's dismount spot.
- */
-function standUp(seated: Seated, seat: Entity, at: Vec3): void {
-  const { player } = seated;
-  if (
-    !player.isValid ||
-    player.dimension.id !== seat.dimension.id ||
-    player.getComponent("minecraft:riding") ||
-    (player.getComponent("minecraft:health")?.currentValue ?? 1) <= 0 ||
-    Math.hypot(
-      player.location.x - seat.location.x,
-      player.location.y - seat.location.y,
-      player.location.z - seat.location.z,
-    ) > STAND_UP_REACH ||
-    !standClear(seat.dimension, at)
-  )
-    return;
-  player.teleport(at, { rotation: player.getRotation() });
-}
-
 export function removeOrphanDeckSeat(seat: Entity): void {
   if (!seat.isValid || seat.typeId !== DECK_SEAT_TYPE) return;
   const owner = seat.getDynamicProperty(DECK_SEAT_OF_PROPERTY);
@@ -124,6 +69,20 @@ export function removeOrphanDeckSeat(seat: Entity): void {
     .getEntities({ location: seat.location, maxDistance: ORPHAN_RADIUS })
     .some((entity) => entity.id === owner && isVehicleEntity(entity.typeId));
   if (!found) seat.remove();
+}
+
+/** The vehicle and seat index of a player riding one of its parked deck seats. */
+export function deckSeatRide(
+  player: Player,
+): { vehicle: Entity; seat: number } | undefined {
+  const mount = player.getComponent("minecraft:riding")?.entityRidingOn;
+  if (!mount?.isValid || mount.typeId !== DECK_SEAT_TYPE) return undefined;
+  const owner = mount.getDynamicProperty(DECK_SEAT_OF_PROPERTY);
+  if (typeof owner !== "string") return undefined;
+  const vehicle = world.getEntity(owner);
+  if (!vehicle?.isValid || !isVehicleEntity(vehicle.typeId)) return undefined;
+  const seat = savedIds(vehicle).indexOf(mount.id);
+  return seat < 0 ? undefined : { vehicle, seat };
 }
 
 export class DeckSeats {
@@ -161,7 +120,7 @@ export class DeckSeats {
       // remove theirs, and their riders keep the engine's dismount (ADR 0109).
       const was = wasSeated[index];
       if (seat && at.stand && was?.seatId === seat.id)
-        standUp(was, seat, at.stand);
+        standUp(was.player, seat, at.stand);
       if (seat && seat.dimension.id !== vehicle.dimension.id) {
         seat.remove();
         seat = undefined;
@@ -175,6 +134,7 @@ export class DeckSeats {
         seat.setDynamicProperty(DECK_SEAT_OF_PROPERTY, vehicleId);
         seat.setRotation({ x: 0, y: yaw });
         if (at.compact) seat.triggerEvent(DECK_SEAT_COMPACT_EVENT);
+        if (at.driver) seat.triggerEvent(DECK_SEAT_DRIVER_EVENT);
         ids[index] = seat.id;
       } else if (
         Math.hypot(

@@ -61,7 +61,7 @@ describe("camping gear box (ADR 0093)", () => {
     expect(GIFT_CONTENTS.camping_gear_box).toEqual(
       spec.map((g) => `yasu_ride:${g.id}`),
     );
-    expect(GIFT_CONTENTS.camping_gear_box).toHaveLength(19);
+    expect(GIFT_CONTENTS.camping_gear_box).toHaveLength(17);
     const items = new Set(
       jsonFiles(BP)
         .map(
@@ -87,17 +87,16 @@ describe("camping gear box (ADR 0093)", () => {
     );
     const group = category.groups.find(
       (g: { group_identifier: { name: string } }) =>
-        g.group_identifier.name === "yasu_ride:camping_gear",
+        g.group_identifier.name === "yasu_ride:camping_gear_inside",
     );
     const items: string[] = group.items;
     expect(group.group_identifier.icon).toBe(BOX);
     expect(items[0]).toBe(BOX);
     expect(items.filter((i) => i === BOX)).toHaveLength(1);
-    // The low chair closes the group but is not in the box (ADR 0122)
-    expect(items.at(-1)).toBe("yasu_ride:low_chair_item");
-    expect(new Set(items.slice(1, -1))).toEqual(
-      new Set(GIFT_CONTENTS.camping_gear_box),
-    );
+    expect(items).not.toContain("yasu_ride:low_chair_item");
+    expect(items).not.toContain("yasu_ride:tent_item");
+    expect(items).not.toContain("yasu_ride:camp_table_item");
+    expect(items.slice(1)).toEqual(GIFT_CONTENTS.camping_gear_box);
   });
 
   it("maps the box icon to its texture, ahead of the gear icons", () => {

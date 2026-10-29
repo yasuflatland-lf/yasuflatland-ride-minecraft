@@ -1,18 +1,15 @@
 import type { Entity } from "@minecraft/server";
+import { PAINTS } from "../../domain/shared/paint";
 import { dot, forward, length, type Vec2 } from "../../domain/shared/vec";
 import { SUV_PROFILE } from "../../domain/vehicle/kinds/suv/profile";
 import { SUV_SPEC } from "../../domain/vehicle/kinds/suv/spec";
 import { headlightCells } from "../../domain/vehicle/lighting/headlights";
 import type { Form } from "../../domain/vehicle/motion/forms";
-import { PAINTS } from "../../domain/vehicle/paint/paint";
 import { nearestSeat, toLocal } from "../../domain/vehicle/seats";
 import { SPEC } from "../../domain/vehicle/spec";
-import {
-  HEADLIGHTS_PROPERTY,
-  LIGHT_BLOCK,
-  PAINT_VARIANT,
-  paintEvent,
-} from "../../infrastructure/vehicle/bedrock/identifiers";
+import { PAINT_VARIANT, paintEvent } from "../../infrastructure/shared/dyes";
+import { LIGHT_BLOCK } from "../../infrastructure/shared/lightBlocks";
+import { HEADLIGHTS_PROPERTY } from "../../infrastructure/vehicle/bedrock/identifiers";
 import {
   type Arena,
   clearInput,
@@ -508,11 +505,12 @@ export function flightDriverless(a: Arena): Promise<Outcome> {
   });
 }
 
-// Deep enough for a full car height of water with a block under it. In the
-// flat dev world (gy = -60) this puts the pool's stone floor at -64, the
-// bottom of the world, so a carHeight above 2 no longer fits; withPool throws
+// Deep enough for a full car height of water. In the flat dev world
+// (gy = -60) a 3-deep pool puts its stone floor at -64, the bottom of the
+// world, so the scaled SUV (carHeight 2.08, ADR 0170) gets no spare block of
+// water under it; a carHeight above 3 no longer fits and withPool throws
 // instead of filling below the world.
-const DIVE_DEPTH = Math.ceil(SUV_SPEC.carHeight + 1);
+const DIVE_DEPTH = Math.ceil(SUV_SPEC.carHeight);
 
 // The car holds depth exactly once it is a submarine (submarine_dive measured
 // a range of 0.000), so 0.1 only absorbs float noise in the reported position.

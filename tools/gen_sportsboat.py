@@ -3,15 +3,60 @@
 Ported from the spike's generator (docs/spike-sportsboat.md, appendix). Coordinates are in pixels
 (16 px = 1 block), forward +z and right +x, and the model is rotated 180 degrees around the Y axis
 just before writing, because in Bedrock the front of an entity is on the -z side of the model.
-Bones: root / body / headlights / windshield (ADR 0009). No logo or model name.
-Run: python3 -I tools/gen_sportsboat.py packs/yasu_ride_rp
+Bones: root / body / headlights / windshield / mirror (ADR 0009, 0159). No logo or model name.
+Run: python3 -I tools/gen_sportsboat.py packs/yasu_ride_rp [--check]
+--check writes nothing and exits 1 listing every stale output.
 """
+import functools
 import json
 import math
 import struct
 import sys
 import zlib
+from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
+
+# Isolated mode (-I) omits the script directory from the import path.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from tool_loader import load_tool
+
+monitor = load_tool("monitor")
+assert_axes = load_tool("cube_tilt").assert_axes
+ASSEMBLIES = {"wheel": {"owner": "sportsboat", "cubes": 146},
+              "throttle_lever": {"owner": "sportsboat", "cubes": 8}}
+
+CHECK = "--check" in sys.argv[2:]
+STALE = []
+
+
+@functools.cache
+def png_reader():
+    """render_preview.py's decoder, so --check compares pixels however zlib packed the bytes."""
+    return load_tool("render_preview").read_png
+
+
+def emit(path, data, pixels=None):
+    """Write `data` to `path`, or under --check record `path` as stale when it differs. JSON compares
+    parsed, because `pnpm model` reformats it with Biome; a PNG compares `pixels`, its RGBA rows."""
+    if not CHECK:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if isinstance(data, bytes):
+            path.write_bytes(data)
+        else:
+            path.write_text(data)
+        return
+    try:
+        if path.suffix == ".json":
+            matches = json.loads(path.read_text()) == json.loads(data)
+        else:
+            matches = png_reader()(path) == pixels
+    except (OSError, ValueError, struct.error, zlib.error):
+        matches = False
+    if not matches:
+        STALE.append(str(path))
+
 
 RP = Path(sys.argv[1])
 MODELS = RP / "models/entity/yasu_ride"
@@ -43,16 +88,37 @@ PALETTE = {
     "gunmetal": (74, 76, 82),  # matte speaker pods
     "chrome": (226, 228, 232),
     "button": (60, 60, 64),
+    "mirror": (200, 214, 228),  # the rear-view mirror glass's thin edges (ADR 0159)
 }
 # The windshield renders with entity_alphablend, so its swatch is see-through
 ALPHA = {"glass": 80}
 NAMES = list(PALETTE)
+EMISSIVE_LIT = 255
+MER_LIT = (0, EMISSIVE_LIT, 255)
+MER_OFF = (0, 0, 255)
+# Dielectric clear coat: a near-black metal would reflect almost nothing (ADR 0163).
+MER_HULL = (0, 0, 16)
+HULL_SLOT = NAMES.index("hull")
+# The dash, consoles and frames: a smooth dielectric, slightly softer than the hull so the large flat dash
+# does not mirror like water (ADR 0166).
+MER_GLOSS = (0, 0, 24)
+GLOSS_SLOTS = tuple(NAMES.index(name) for name in ("gloss", "frame"))
+LIT_SLOTS = tuple(NAMES.index(name) for name in ("light",))
+# The mirror glass is metalness 255 and roughness 0 so Vibrant Visuals reflects the environment on it.
+# No renderer can show the live scene behind the boat, so the face tile also bakes a sky-to-horizon
+# gradient for clients without PBR (ADR 0159).
+MER_MIRROR = (255, 0, 0)
+MIRROR_SLOT = NAMES.index("mirror")
+MIRROR_RIM = (54, 58, 64)
+MIRROR_SKY = (150, 192, 232)
+MIRROR_HORIZON = (236, 242, 246)
 TEXTURE_WIDTH = 128
 TEXTURE_HEIGHT = 32
 assert len(NAMES) * 4 <= TEXTURE_WIDTH, "the palette no longer fits in the texture"
 
 # Hull color of each paint, in variant order (ADR 0031). Variant 0, khaki on the SUV, is black here,
 # so a new boat is black (ADR 0051). Khaki writes sportsboat.png; the others write sportsboat_<paint>.png.
+# Each atlas <name>.png also gets <name>_mer.png and <name>.texture_set.json for the hull clear coat (ADR 0163).
 HULL_PAINTS = {
     "khaki": (20, 20, 22),
     "green": (62, 96, 56),
@@ -81,7 +147,6 @@ def uv(color):
 
 # A quilted tile below the swatch row: tan with a darker honeycomb stitch, as on the reference boat's
 # cushions, stretched over a whole face.
-QUILT_UV = {"uv": [0, 16], "uv_size": [8, 8]}
 QUILT_LINE = (128, 80, 44)
 QUILT = [
     "........",
@@ -95,23 +160,169 @@ QUILT = [
 ]
 
 
-def box(x0, y0, z0, x1, y1, z1, color, faces=None, **extra):
-    """`faces` names the faces ("up", "south", ...) that get the quilted tile instead of the color."""
+def tile_layout_module():
+    return load_tool("tile_layout")
+
+
+def paint_quilt(pixels):
+    (u, v), (w, h) = tile_layout.TILE_RECTS["quilt"]
+    for y in range(h):
+        for x in range(w):
+            pixels[v + y][u + x] = QUILT_LINE if QUILT[y][x] == "L" else PALETTE["seat"]
+
+
+# The switch plate's face (ADR 0166): a slightly lighter recessed panel with rounded corners inside the
+# black plate, and six round buttons in a zigzag of 1, 2, 2, 1 from top to bottom. Each button is a chrome
+# ring with a one-texel dark outline around a near-white lit centre. Top is the bow point; the wall edge is the right side.
+SWITCH_BUTTON = [
+    ".OOO.",
+    "OLLLO",
+    "OLCLO",
+    "OLLLO",
+    ".OOO.",
+]
+SWITCH_BUTTON_COLORS = {"O": (24, 24, 28), "L": (176, 180, 186), "C": (246, 248, 250)}
+SWITCH_PANEL = (30, 30, 34)
+# Left texel column and top texel row in the 24 x 28 wedge tile.
+SWITCH_BUTTONS = [(18, 4), (14, 10), (18, 13), (11, 16), (18, 18), (14, 21)]
+
+
+def paint_switch_plate(pixels):
+    (u, v), (w, h) = tile_layout.TILE_RECTS["switch_plate"]
+    for y in range(h):
+        for x in range(w):
+            # A right triangle: the vertical outboard edge is the tile's right side, the point is at the top.
+            t = (y + 0.5) / h
+            left = w - (0.4 + 2.1 * t) / 2.5 * w
+            inside = 1 <= y < h - 2 and left + 1 < x + 0.5 < w - 1
+            pixels[v + y][u + x] = SWITCH_PANEL if inside else PALETTE["gloss"]
+    for bx, by in SWITCH_BUTTONS:
+        for y, row in enumerate(SWITCH_BUTTON):
+            for x, ch in enumerate(row):
+                if ch != ".":
+                    pixels[v + by + y][u + bx + x] = SWITCH_BUTTON_COLORS[ch]
+
+
+# Cropped panel UVs share the base coordinates so icons stay aligned across overlapping panels.
+def paint_dial_pad(pixels):
+    (u, v), (w, h) = tile_layout.TILE_RECTS["dial_pad"]
+    for y in range(h):
+        for x in range(w):
+            radius = math.hypot(x - 7.5, y - 9.3)
+            color = (42, 44, 48)
+            if 4.5 <= radius <= 5.5 or x in (1, 14) or y in (1, 14):
+                color = (16, 18, 20)
+            pixels[v + y][u + x] = color
+    icons = [(2, 11, [".#.", "###", "#.#"]),
+             (7, 13, [".#.", "#.#", ".#."]),
+             (11, 11, [".#.", "###"]),
+             (2, 2, ["###", ".#."]),
+             (11, 2, [".#.", "#.#", ".#."])]
+    for bx, by, rows in icons:
+        for y, row in enumerate(rows):
+            for x, mark in enumerate(row):
+                if mark == "#":
+                    pixels[v + by + y][u + bx + x] = (184, 188, 194)
+
+
+def paint_display(pixels):
+    (u, v), (w, h) = tile_layout.TILE_RECTS["display"]
+    navy, blue, light = (8, 16, 30), (40, 126, 224), (150, 218, 255)
+    red = (232, 66, 62)
+    # Tile top is the far edge; circular gauges retain equal radii on the 16:9 face.
+    for y in range(h):
+        for x in range(w):
+            color = navy
+            for cx in (7, 24):
+                radius = math.hypot(x - cx, y - 9)
+                if radius < 3:
+                    glow = 1 - radius / 3
+                    color = (int(14 + 22 * glow), int(35 + 45 * glow), int(66 + 70 * glow))
+                elif 3 <= radius <= 4 and not (y > 9 and abs(x - cx) < 2):
+                    color = blue
+            if x in (1, w - 2) and 5 <= y <= 12:
+                color = light if y >= 8 else (27, 59, 91)
+            if x in (13, 15, 17) and 6 <= y <= 12:
+                color = red if y == 9 else (62, 84, 108)
+            if y in (1, 2) and x in (5, 9, 13, 17, 21, 25):
+                color = light if x == 17 else (53, 83, 114)
+            if y == 15 and x in (9, 12, 15, 18, 21, 24):
+                color = (100, 140, 174)
+            if x + (h - 1 - y) <= 2:
+                color = (244, 194, 51)
+            if (w - 1 - x) + (h - 1 - y) <= 2:
+                color = red
+            pixels[v + y][u + x] = color
+
+
+def paint_mirror(pixels):
+    (u, v), (w, h) = tile_layout.TILE_RECTS["mirror"]
+    for y in range(v, v + h):
+        for x in range(u, u + w):
+            pixels[y][x] = mirror_tile(x, y)
+
+
+# The layout lives in tools/tile_layout.py so tests can read it without running this generator.
+tile_layout = tile_layout_module()
+TILE_PAINTERS = {"quilt": paint_quilt, "mirror": paint_mirror, "switch_plate": paint_switch_plate,
+                 "dial_pad": paint_dial_pad, "display": paint_display}
+TILES = {name: {"uv": list(uv_), "size": list(size), "paint": TILE_PAINTERS[name]}
+         for name, (uv_, size) in tile_layout.TILE_RECTS.items()}
+tile_layout.assert_tile_allocations(tile_layout.TILE_RECTS, TEXTURE_WIDTH, TEXTURE_HEIGHT)
+
+
+def tile_faces(name):
+    tile = TILES[name]
+    return {"uv": list(tile["uv"]), "uv_size": list(tile["size"])}
+
+
+def box(x0, y0, z0, x1, y1, z1, color, faces=None, tiles=None, **extra):
+    """`faces` selects quilted faces; explicit `tiles` overrides them by registered tile name."""
     face_uv = uv(color)
-    for face in faces or ():
-        face_uv[face] = dict(QUILT_UV)
+    for face, name in {**dict.fromkeys(faces or (), "quilt"), **(tiles or {})}.items():
+        face_uv[face] = tile_faces(name)
     return {"origin": [x0, y0, z0], "size": [x1 - x0, y1 - y0, z1 - z0], "uv": face_uv, **extra}
 
 
 def pair(x0, y0, z0, x1, y1, z1, color, **extra):
-    """A box on the right (+x) and its mirror on the left."""
-    return [box(x0, y0, z0, x1, y1, z1, color, **extra), box(-x1, y0, z0, -x0, y1, z1, color, **extra)]
+    """A box on the right (+x) and its mirror through x = 0 on the left. A y or z turn mirrors to the
+    opposite turn about the mirrored pivot; an x turn is unchanged by the mirror."""
+    left = dict(extra)
+    rx, ry, rz = extra.get("rotation", (0, 0, 0))
+    if ry or rz:
+        px, py, pz = extra["pivot"]
+        left["pivot"] = [-px, py, pz]
+        left["rotation"] = [rx, -ry, -rz]
+    return [box(x0, y0, z0, x1, y1, z1, color, **extra), box(-x1, y0, z0, -x0, y1, z1, color, **left)]
+
+
+SPEAKER_SIDES = 12
+SPEAKER_WALL = 0.5
+
+
+tilt_assembly = load_tool("cube_tilt").tilt_assembly
 
 
 def disc(cx, cy, r, z0, z1, color):
     """A round section along z: a square and the same square turned 45 degrees."""
     return [box(cx - r, cy - r, z0, cx + r, cy + r, z1, color, pivot=[cx, cy, z0], rotation=[0, 0, rot])
             for rot in (0, 45)]
+
+
+def cylinder(cx, cy, r, z0, z1, color, sides=SPEAKER_SIDES, wall=SPEAKER_WALL, solid=False,
+             small_sides=8):
+    """Tangent walls, or diametral panels filling the same polygon (ADR 0165).
+
+    A solid section under 1 px radius is capped at `small_sides` (8 unless the caller raises it)."""
+    if solid and r < 1.0:
+        sides = min(sides, small_sides)
+    assert 8 <= sides <= 16 and sides % 2 == 0
+    wall = min(wall, r)
+    w = 2 * r * math.tan(math.pi / sides)
+    return [box(cx - w / 2, cy - r if solid else cy + r - wall, z0,
+                cx + w / 2, cy + r, z1, color,
+                pivot=[cx, cy, z0], rotation=[0, 0, 360 * k / sides])
+            for k in range(sides // 2 if solid else sides)]
 
 
 def lerp(table, z):
@@ -138,57 +349,734 @@ LOUNGE_BASE = DECK_BOW + 2.2  # top of the bow lounge's charcoal base
 LOUNGE_CUSHION = DECK_BOW + 3.2  # top of its tan cushion
 SLICE = 2.0
 
-body, glass = [], []
+LOUNGE_DEPTH = 7.5  # how far the bow lounge reaches inboard from the hull's half-breadth
+
+glass = []
 
 
+# Hull profile: every hull caller reads the profiles through these, never through lerp() directly.
 def sheer(z):
     return lerp(SHEER, z)
+
+
+def keel(z):
+    return lerp(KEEL, z)
 
 
 def beam(z):
     return lerp(BEAM, z)
 
 
-# Hull: 2-pixel slices; inside each, the V bottom widens in steps up to the chine.
+def strake_y(z):
+    return lerp(STRAKE, z)
+
+
+def pchip_slopes(points):
+    """The tangents of a monotone cubic Hermite (PCHIP) through `points`: Fritsch-Butland's weighted
+    harmonic mean inside, zero at a local extremum or a flat run, the end secants at both ends."""
+    h = [b[0] - a[0] for a, b in zip(points, points[1:])]
+    m = [(b[1] - a[1]) / (b[0] - a[0]) for a, b in zip(points, points[1:])]
+    slopes = [m[0]]
+    for k in range(1, len(points) - 1):
+        if m[k - 1] * m[k] <= 0:
+            slopes.append(0.0)
+        else:
+            w1, w2 = 2 * h[k] + h[k - 1], h[k] + 2 * h[k - 1]
+            slopes.append((w1 + w2) / (w1 / m[k - 1] + w2 / m[k]))
+    return [*slopes, m[-1]]
+
+
+BEAM_SLOPES = pchip_slopes(BEAM)
+
+
+def beam_plan(z):
+    """The hull's half-breadth on a smooth plan curve through every BEAM point, for the outer planking
+    (ADR 0161). It strays at most 0.27 px from the polyline beam(), which the glass, mirror post, and
+    tower keep using."""
+    if z <= BEAM[0][0]:
+        return BEAM[0][1]
+    for ((z0, v0), (z1, v1)), d0, d1 in zip(zip(BEAM, BEAM[1:]), BEAM_SLOPES, BEAM_SLOPES[1:]):
+        if z <= z1:
+            h = z1 - z0
+            t = (z - z0) / h
+            return ((2 * t ** 3 - 3 * t ** 2 + 1) * v0 + (t ** 3 - 2 * t ** 2 + t) * h * d0
+                    + (3 * t ** 2 - 2 * t ** 3) * v1 + (t ** 3 - t ** 2) * h * d1)
+    return BEAM[-1][1]
+
+
+def open_cockpit(zc):
+    return COCKPIT[0] <= zc <= COCKPIT[1]
+
+
+def open_bow(zc):
+    return BOW[0] <= zc <= BOW[1]
+
+
+def hull_top(zc, s):
+    """Top of the solid hull: the floor where the cockpit or the bow is open, the sheer elsewhere."""
+    return min(s, DECK) if open_cockpit(zc) else min(s, DECK_BOW) if open_bow(zc) else s
+
+
+@dataclass(frozen=True)
+class Inset:
+    """A horizontal edge at `max(b * scale - px, floor) + step`, for the hull's half-breadth b.
+
+    A negative `px` stands proud of the hull. `scale` gives the V bottom's fractions of the beam and,
+    at 0, a fixed half-width of `-px`; `floor` keeps an edge from crossing the centreline.
+    """
+
+    px: float = 0.0
+    scale: float = 1.0
+    floor: float | None = None
+    step: float = 0.0
+
+    def x(self, b):
+        x = b * self.scale - self.px
+        if self.floor is not None:
+            x = max(x, self.floor)
+        return x + self.step
+
+
+LOUNGE_EDGE = Inset(LOUNGE_DEPTH, floor=0.0)  # the lounge's inboard edge
+PIPING_EDGE = Inset(LOUNGE_DEPTH, floor=0.0, step=0.6)  # where the cushion meets its piping
+ACROSS = "across"  # an `inner` that makes the band one box across the centreline, `outer` wide each way
+
+
+@dataclass(frozen=True)
+class Band:
+    """One hull row sliced outside the open bow and chained along its plan curve inside it.
+
+    `name` labels the row in the table. `y0`, `y1`, and `when` take the slice centre zc, the sheer s,
+    and the keel k there (the segment midpoint for chains). Bow-specific fields preserve
+    the cockpit slices while declaring chain edges, clipping, and termination in the table.
+    """
+
+    name: str
+    swatch: str
+    outer: Inset
+    inner: Inset | str
+    y0: Callable[[float, float, float], float]
+    y1: Callable[[float, float, float], float]
+    when: Callable[[float, float, float], bool] = lambda zc, s, k: True
+    bow_outer: Inset | None = None
+    clip: Literal["none", "trim", "wall"] = "trim"
+    bow_end: float = BOW[1]
+    bow_end_breadth: float | None = None
+    preserve_slices_through: float | None = None
+
+
+# The V bottom's steps across the centreline: (height over the keel, fraction of the beam)
 V_STEPS = [(0.0, 0.3), (1.5, 0.55), (3.0, 0.78), (4.5, 1.0)]
-z = -48.0
-while z < 48.0:
-    zc = z + SLICE / 2
-    s, k, b = sheer(zc), lerp(KEEL, zc), beam(zc)
-    open_cockpit = COCKPIT[0] <= zc <= COCKPIT[1]
-    open_bow = BOW[0] <= zc <= BOW[1]
-    top = min(s, DECK) if open_cockpit else min(s, DECK_BOW) if open_bow else s
-    for i, (off, frac) in enumerate(V_STEPS):
-        y0 = k + off
-        y1 = min(k + V_STEPS[i + 1][0], top) if i + 1 < len(V_STEPS) else top
-        if y1 > y0:
-            body.append(box(-b * frac, y0, z, b * frac, y1, z + SLICE, "hull"))
-    if open_cockpit and s > DECK:
-        body += pair(b - 1.6, DECK, z, b, s, z + SLICE, "hull")
-    if open_bow:
-        body += pair(b - 1.6, DECK_BOW, z, b, s, z + SLICE, "hull")
-        body.append(box(-b + 1.6, DECK_BOW, z, b - 1.6, DECK_BOW + 0.3, z + SLICE, "teak"))
+
+
+def in_bow(zc, s, k):
+    return open_bow(zc)
+
+
+def lounge_open(zc, s, k):
+    return open_bow(zc) and LOUNGE_EDGE.x(beam(zc)) > 0
+
+
+def filler_open(zc, s, k):
+    return zc > BOW_FILLER and lounge_open(zc, s, k)
+
+
+def vfrac(d):
+    """The V bottom's fraction of the beam at `d` px over the keel, 1.0 from the chine up."""
+    return lerp(V_STEPS, d)
+
+
+def half_breadth(y, z):
+    """The outer hull's half-breadth at height y, or 0 below the keel."""
+    d = y - keel(z)
+    return beam_plan(z) * vfrac(d) if d >= 0 else 0.0
+
+
+# Outer planking (ADR 0161): long panels on waterline bands, each turned about y only to follow the
+# plan curve between these stations. The left side mirrors the right through pair().
+PLAN_STATIONS = [-48, -47, -46, -45, -44, 8, 12, 16, 18, 20, 23, 26, 29, 32, 34, 36, 38, 40, 42, 44, 45.5,
+                 47, 48.5]
+FLAT = (-44.0, 8.0)  # beam_plan is constant here, so the rails along the sheer tilt about x instead
+BAND = 2.0  # BAND 1.5 needs 1263 cubes against 1202 here; neither meets the no-growth target (ADR 0161)
+PLANK_DEPTH = 0.5
+MERGE_TOLERANCE = 0.1  # how far a merged plank's chord may stray from the curve at any sample
+STRAKE_HEIGHT = 2.0  # the sheer strake, at least BAND tall so it covers the planks' stepped tops
+STRAKE_PROUD = 0.1
+CAP_INSET = 1.6  # the gunwale cap reaches this far inboard of the half-breadth
+DECK_STEP = 1.0  # a core under a deck narrows at most this much along its length
+JOINT_PROJECTION = 0.03  # maximum outboard spur where square-ended panels turn inboard
+RAIL_RISE = 0.4  # a level rail piece is split until its line rises at most this much within it
+
+
+def joint_overlap(depth, turn):
+    """The seam allowance closes the wedge between adjacent panels (ADR 0161)."""
+    return max(0.25, depth * math.tan(abs(turn)) / 2 + 0.05)
+
+
+def chain_overlaps(segments, depth):
+    """(aft, fore) overlaps for each (z0, x0, z1, x1) of a run of segments, from the joint at each end."""
+    ends = []
+    for k, (z0, x0, z1, x1) in enumerate(segments):
+        here = yaw(z0, x0, z1, x1)
+        aft = segments[k - 1] if k and abs(segments[k - 1][2] - z0) < 1e-9 else None
+        fore = segments[k + 1] if k + 1 < len(segments) and abs(segments[k + 1][0] - z1) < 1e-9 else None
+        ends.append((joint_overlap(depth, here - yaw(*aft)) if aft else 0.25,
+                     joint_overlap(depth, yaw(*fore) - here) if fore else 0.25))
+    return ends
+
+
+def joint_setback(overlap, turn):
+    """At an inward bend the inner corners already meet. Set back the nominal end before adding
+    the seam allowance, so its square outer corner cannot project beyond the next face (ADR 0161)."""
+    return max(0.0, overlap - JOINT_PROJECTION / math.sin(-turn)) if turn < -1e-9 else 0.0
+
+
+def plank(z0, x0, z1, x1, y0, y1, swatch, depth, overlap):
+    """A flat panel on the right side whose outer face runs from (z0, x0) to (z1, x1) in plan, `depth`
+    thick inboard and longer by `overlap` (aft, fore) past its ends, turned about y on (x0, y0, z0).
+    A positive y turn carries +z toward +x in this frame, as rotate() in
+    render_preview.py draws it; device confirmation is pending (ADR 0161)."""
+    aft, fore = overlap if isinstance(overlap, tuple) else (overlap, overlap)
+    length = math.hypot(z1 - z0, x1 - x0)
+    extra = {} if x0 == x1 else {"pivot": [x0, y0, z0],
+                                 "rotation": [0, math.degrees(math.atan2(x1 - x0, z1 - z0)), 0]}
+    return box(x0 - depth, y0, z0 - aft, x0, y1, z0 + length + fore, swatch, **extra)
+
+
+def paired_plank(*args, setbacks=(0.0, 0.0)):
+    z0, x0, z1, x1, *rest = args
+    length = math.hypot(z1 - z0, x1 - x0)
+    uz, ux = (z1 - z0) / length, (x1 - x0) / length
+    aft, fore = setbacks
+    cube = plank(z0 + aft * uz, x0 + aft * ux, z1 - fore * uz, x1 - fore * ux, *rest)
+    x, y, z = cube["origin"]
+    sx, sy, sz = cube["size"]
+    extra = {key: cube[key] for key in ("pivot", "rotation") if key in cube}
+    return pair(x, y, z, x + sx, y + sy, z + sz, args[6], **extra)
+
+
+def proud(z0, x0, z1, x1, out):
+    """The segment (z0, x0)-(z1, x1) moved `out` px outboard, square to itself."""
+    length = math.hypot(z1 - z0, x1 - x0)
+    dx, dz = out * (z1 - z0) / length, -out * (x1 - x0) / length
+    return z0 + dz, x0 + dx, z1 + dz, x1 + dx
+
+
+def yaw(z0, x0, z1, x1):
+    return math.atan2(x1 - x0, z1 - z0)
+
+
+def crossing(f, lo, hi, rising):
+    """The z in lo..hi where the monotone f crosses 0, rising or falling."""
+    for _ in range(60):
+        mid = (lo + hi) / 2
+        if (f(mid) < 0) == rising:
+            lo = mid
+        else:
+            hi = mid
+    return (lo + hi) / 2
+
+
+KEEL_LOW = (-39.0, -10.0)  # the keel's flat run at y 0
+
+
+def band_extent(i):
+    """The band's (z0, z1, closes_aft): where the keel is at or under its middle and the sheer at or over
+    its top. closes_aft says the aft end is at the keel or the transom, not under the sheer."""
+    y0 = BAND * i
+    y_mid, y1 = y0 + BAND / 2, y0 + BAND
+    if y1 > sheer(48) or y_mid < 0:
+        return None
+    za = -48.0 if keel(-48) <= y_mid else crossing(lambda z: keel(z) - y_mid, -48, KEEL_LOW[0], False)
+    zs = -48.0 if sheer(-48) >= y1 else crossing(lambda z: sheer(z) - y1, -48, 48, True)
+    zb = 48.0 if keel(48) <= y_mid else crossing(lambda z: keel(z) - y_mid, KEEL_LOW[1], 48, True)
+    z0 = max(za, zs)
+    return (z0, zb, za >= zs) if z0 < zb else None
+
+
+def merged_segments(zs, xs):
+    """Greedily join neighbouring segments while the joined chord stays within MERGE_TOLERANCE of every
+    sample it spans. Returns index pairs into zs."""
+    segments, i = [], 0
+    while i < len(zs) - 1:
+        j = i + 1
+        while j + 1 < len(zs) and all(
+                abs(xs[i] + (xs[j + 1] - xs[i]) * (zs[k] - zs[i]) / (zs[j + 1] - zs[i]) - xs[k]) <= MERGE_TOLERANCE
+                for k in range(i + 1, j + 1)):
+            j += 1
+        segments.append((i, j))
+        i = j
+    return segments
+
+
+def band_segments(i):
+    """The band's plank segments on the right side as (z0, x0, z1, x1), aft to fore."""
+    z0, z1, _ = BANDS[i]
+    y_mid = BAND * i + BAND / 2
+    knots = {*PLAN_STATIONS, *(z for z, _ in KEEL), z0, z1}
+    zs = sorted(z for z in knots if z0 <= z <= z1)
+    xs = [half_breadth(y_mid, z) for z in zs]
+    return [(zs[a], xs[a], zs[b], xs[b]) for a, b in merged_segments(zs, xs)]
+
+
+BANDS = {i: extent for i in range(int(sheer(48) // BAND) + 1) if (extent := band_extent(i))}
+
+
+def regime_cuts(z0, z1):
+    """z0..z1 cut where the hull top changes between the cockpit floor, the bow floor, and the sheer."""
+    cuts = [z for z in (COCKPIT[0], COCKPIT[1], BOW[0], BOW[1]) if z0 < z < z1]
+    edges = [z0, *cuts, z1]
+    return list(zip(edges, edges[1:]))
+
+
+def core_top(i, z0, z1, y1):
+    """Top of band i's core over z0..z1: the band's top where the band above covers the whole run, else
+    the hull top (the floor where the cockpit or the bow is open, the sheer elsewhere)."""
+    top = hull_top((z0 + z1) / 2, sheer(z0))
+    above = BANDS.get(i + 1)
+    return min(top, y1) if above and above[0] <= z0 and z1 <= above[1] else top
+
+
+def strake_inner(z0, z1):
+    """How far out a box over z0..z1 may reach and stay inside the sheer strake's inner face."""
+    x0, x1 = beam_plan(z0), beam_plan(z1)
+    return min(x0, x1) + STRAKE_PROUD - PLANK_DEPTH * math.hypot(z1 - z0, x1 - x0) / (z1 - z0) - 0.05
+
+
+def joined(cubes):
+    """Join boxes stacked straight on top of one another into one taller box."""
+    out = []
+    for cube in cubes:
+        last = out[-1] if out else None
+        if (last and "rotation" not in cube and "rotation" not in last
+                and last["origin"][0] == cube["origin"][0] and last["origin"][2] == cube["origin"][2]
+                and last["size"][0] == cube["size"][0] and last["size"][2] == cube["size"][2]
+                and abs(last["origin"][1] + last["size"][1] - cube["origin"][1]) < 1e-9):
+            last["size"][1] += cube["size"][1]
+        else:
+            out.append(cube)
+    return out
+
+
+def hull_shell():
+    """The outer planking: yawed planks per band segment, an axis-aligned core between them, and end
+    caps where a band ends at the keel or the transom (ADR 0161)."""
+    planks, latest, cores, caps = [], {}, [], []
+    for i, (z0, z1, closes_aft) in BANDS.items():
+        y0, y1 = BAND * i, BAND * (i + 1)
+        segments = band_segments(i)
+        for segment, overlap in zip(segments, chain_overlaps(segments, PLANK_DEPTH)):
+            # A band whose segment matches the one under it, as everywhere above the chine, extends
+            # that plank upward instead of adding its own
+            key = tuple(round(v, 9) for v in segment)
+            below = latest.get(key)
+            if below and abs(below[1] - y0) < 1e-9:
+                below[1], below[2] = y1, tuple(map(max, below[2], overlap))
+            else:
+                latest[key] = [y0, y1, overlap, segment]
+                planks.append(latest[key])
+            sz0, sx0, sz1, sx1 = segment
+            sec = math.hypot(sz1 - sz0, sx1 - sx0) / (sz1 - sz0)
+
+            def chord(z, sz0=sz0, sx0=sx0, sz1=sz1, sx1=sx1):
+                return sx0 + (sx1 - sx0) * (z - sz0) / (sz1 - sz0)
+
+            for a, b in regime_cuts(sz0, sz1):
+                top = core_top(i, a, b, y1)
+                # Under a deck the core must reach the gunwale cap's inner edge, so where the plan
+                # narrows fast it is cut short enough that its narrow end still does
+                n = max(1, math.ceil(abs(chord(b) - chord(a)) / DECK_STEP)) if top > y1 else 1
+                for c, d in ((a + (b - a) * j / n, a + (b - a) * (j + 1) / n) for j in range(n)):
+                    inner = min(chord(c), chord(d)) - PLANK_DEPTH * sec
+                    if top > y0 and inner > 0:
+                        cores.append(box(-inner, y0, c, inner, top, d, "hull"))
+                    if top > y0 and (top < y1 and abs(chord(d) - chord(c)) > 0.5 or inner <= 0):
+                        # A yawed inner shelf covers the slots left by a rectangular core at its
+                        # narrow end, including the last bow core whose inner width crosses zero.
+                        depth = PLANK_DEPTH + abs(chord(d) - chord(c)) / sec
+                        caps += paired_plank(c, chord(c), d, chord(d), min(top, y1) - 0.2,
+                                             min(top, y1), "hull", depth, 0.0)
+                    if top > y1 and d < KEEL_LOW[0]:
+                        # Continue the top band's face to the sheer instead of exposing an
+                        # axis-aligned deck outside its inner face on the stern quarter.
+                        caps += paired_plank(c, chord(c), d, chord(d), y1, top,
+                                             "hull", PLANK_DEPTH, 0.0)
+        for z, aft, hb in ((z1, False, half_breadth(BAND * i + BAND / 2, z1)),
+                           (z0, True, half_breadth(BAND * i + BAND / 2, z0))):
+            if aft and not closes_aft:
+                continue
+            top = min(y1, core_top(i, z - 0.5, z, y1) if not aft else core_top(i, z, z + 0.5, y1))
+            half = hb - 0.25
+            if half > 0 and top > y0:
+                caps.append(box(-half, y0, z if aft else z - 0.5, half, top, z + 0.5 if aft else z, "hull"))
+    cubes = []
+    for y0, y1, overlap, segment in planks:
+        z0, x0, z1, x1 = segment
+        here = yaw(*segment)
+        neighbours = [p[3] for p in planks if p[0] <= y0 < p[1]]
+        aft = next((p for p in neighbours if abs(p[2] - z0) < 1e-9 and abs(p[3] - x0) < 1e-9), None)
+        fore = next((p for p in neighbours if abs(p[0] - z1) < 1e-9 and abs(p[1] - x1) < 1e-9), None)
+        setbacks = (joint_setback(overlap[0], here - yaw(*aft)) if aft else 0.0,
+                    joint_setback(overlap[1], yaw(*fore) - here) if fore else 0.0)
+        cubes += paired_plank(*segment, y0, y1, "hull", PLANK_DEPTH, overlap, setbacks=setbacks)
+    cores.sort(key=lambda c: (c["origin"][2], c["size"][2], c["size"][0], c["origin"][1]))
+    # Full-width deck cores are hidden above the lowest sheer-strake edge, including
+    # its level-piece rise allowance; below that edge only yawed band faces may show.
+    for a, b, _, _, tilted in RAIL_PIECES:
+        if not tilted:
+            deck = strake_inner(a, b)
+            bottom = max(sheer(a), sheer(b)) - STRAKE_HEIGHT + RAIL_RISE
+            if deck > 0 and hull_top((a + b) / 2, sheer(a)) > bottom:
+                cores.append(box(-deck, bottom, a, deck, min(sheer(a), sheer(b)), b, "hull"))
+    # The stem strakes turn past each other inboard, leaving a centreline slit at their tips; a thin
+    # plate under the gunwale cap closes it from above and below.
+    stem = sheer(PLAN_STATIONS[-1]) - 0.3
+    caps.append(box(-0.45, stem, 48.0, 0.45, stem + 0.05, PLAN_STATIONS[-1], "hull"))
+    return cubes + joined(cores) + caps
+
+
+def rail_pieces():
+    """The rails' run along the sheer as (z0, z1, station z0, station z1, tilted). Over FLAT a piece is
+    one SHEER segment, tilted about x to follow it; elsewhere each plan segment is split until the sheer
+    rises at most RAIL_RISE within a piece, which stays level."""
+    flat = sorted({FLAT[0], FLAT[1], *(z for z, _ in SHEER if FLAT[0] < z < FLAT[1])})
+    pieces = [(a, b, a, b, True) for a, b in zip(flat, flat[1:])]
+    for a, b in zip(PLAN_STATIONS, PLAN_STATIONS[1:]):
+        if FLAT[0] <= a and b <= FLAT[1]:
+            continue
+        n = max(1, math.ceil((sheer(b) - sheer(a)) / RAIL_RISE - 1e-9))
+        pieces += [(a + (b - a) * j / n, a + (b - a) * (j + 1) / n, a, b, False) for j in range(n)]
+    return sorted(pieces)
+
+
+RAIL_PIECES = rail_pieces()
+
+
+def rail(face_x, y_range, swatch, out, depth, when=lambda z0, z1: True):
+    """One rail along the sheer, `out` px proud of the face face_x(z) and `depth` deep. y_range(z0, z1)
+    gives a level piece's (y0, y1), and a tilted piece's at its aft end; a tilted piece's height is
+    measured upright."""
+    pieces = []
+    for z0, z1, sa, sb, tilted in RAIL_PIECES:
+        if when(z0, z1):
+            xa, xb = face_x(sa), face_x(sb)
+            # On the plan segment's chord, so the pieces of one segment line up
+            pieces.append((z0, xa + (xb - xa) * (z0 - sa) / (sb - sa), z1, xa + (xb - xa) * (z1 - sa) / (sb - sa),
+                           tilted))
+    cubes = []
+    for k, (z0, x0, z1, x1, tilted) in enumerate(pieces):
+        piece_depth = depth(yaw(z0, x0, z1, x1)) if callable(depth) else depth
+        if tilted:
+            (ya0, ya1), (yb0, _) = y_range(z0, z0), y_range(z1, z1)
+            slope = math.atan2(yb0 - ya0, z1 - z0)
+            length = math.hypot(z1 - z0, yb0 - ya0)
+            x = x0 + out
+            cubes += pair(x - piece_depth, ya0, z0 - 0.25, x, ya0 + (ya1 - ya0) * math.cos(slope), z0 + length + 0.25,
+                          swatch, pivot=[x, ya0, z0], rotation=[math.degrees(slope), 0, 0])
+            continue
+        neighbours = [p for p in pieces[max(k - 1, 0):k + 2]
+                      if not p[4] and (abs(p[2] - z0) < 1e-9 or abs(p[0] - z1) < 1e-9)]
+        turns = [abs(yaw(z0, x0, z1, x1) - yaw(*p[:4])) for p in neighbours]
+        y0, y1 = y_range(z0, z1)
+        overlap = max(joint_overlap(piece_depth, t) for t in [0.0, *turns])
+        here = yaw(z0, x0, z1, x1)
+        aft = next((p for p in neighbours if abs(p[2] - z0) < 1e-9), None)
+        fore = next((p for p in neighbours if abs(p[0] - z1) < 1e-9), None)
+        setbacks = (joint_setback(overlap, here - yaw(*aft[:4])) if aft else 0.0,
+                    joint_setback(overlap, yaw(*fore[:4]) - here) if fore else 0.0)
+        cubes += paired_plank(*proud(z0, x0, z1, x1, out), y0, y1, swatch, piece_depth,
+                              overlap, setbacks=setbacks)
+    return cubes
+
+
+def strake_line_x(z):
+    """The planks' face at the strake line's height: the band it falls in sets the V fraction."""
+    y = strake_y(z)
+    return half_breadth(BAND * (y // BAND) + BAND / 2, z)
+
+
+def rails():
+    """The sheer strake and gunwale cap (hull), the rub rail, and the strake line (ADR 0161)."""
+    def under_sheer(z0, z1):
+        s = sheer((z0 + z1) / 2)
+        return s - STRAKE_HEIGHT, s
+
+    def cap(z0, z1):
+        s = sheer((z0 + z1) / 2)
+        return s - 0.25, s + 0.05
+
+    def rub(z0, z1):
+        s = sheer((z0 + z1) / 2)
+        return s - 1.1, s - 0.4
+
+    def line(z0, z1):
+        y = strake_y((z0 + z1) / 2)
+        return y, y + 0.4
+
+    def strake_window(z0, z1):
+        zc = (z0 + z1) / 2
+        return keel(zc) + 4.5 < strake_y(zc) < sheer(zc) - 2 and zc < 44
+
+    shell = (rail(beam_plan, under_sheer, "hull", STRAKE_PROUD, PLANK_DEPTH)
+             + rail(beam_plan, cap, "hull", STRAKE_PROUD,
+                    lambda angle: CAP_INSET * math.cos(angle) + STRAKE_PROUD))
+    rub_rail = rail(beam_plan, rub, "stripe", STRAKE_PROUD + 0.35, STRAKE_PROUD + 0.35)
+    strake = rail(strake_line_x, line, "strake", 0.2, 0.45, strake_window)
+    return shell, rub_rail, strake
+
+
+def plank_inner(y, z):
+    """How far out a cube at height y may reach at z and stay inside the planks' inner faces."""
+    hb = half_breadth(y, z)
+    i = y // BAND
+    segments = band_segments(i) if i in BANDS else []
+    faces = [x0 + (x1 - x0) * (z - z0) / (z1 - z0)
+             - PLANK_DEPTH * math.hypot(z1 - z0, x1 - x0) / (z1 - z0)
+             for z0, x0, z1, x1 in segments if z0 <= z <= z1]
+    return min([hb - PLANK_DEPTH, *faces])
+
+
+# Interior rows retain table order within each slice outside the open bow; the bow is one appended
+# bow_interior() group of chains and across spans. Shell and rail regions each have one long-panel
+# group, emitted by hull_body() at slice 0 (ADR 0161, 0162).
+HULL_BANDS = {
+    "hull_interior": [
+        Band("gunwale_wall", "hull", Inset(0.0), Inset(1.6),
+             lambda zc, s, k: DECK if open_cockpit(zc) else DECK_BOW, lambda zc, s, k: s,
+             lambda zc, s, k: (open_cockpit(zc) and s > DECK) or open_bow(zc),
+             bow_outer=Inset(PLANK_DEPTH), clip="wall"),
+        Band("bow_floor", "teak", Inset(1.6), ACROSS,
+             lambda zc, s, k: DECK_BOW, lambda zc, s, k: DECK_BOW + 0.3, in_bow,
+             preserve_slices_through=22),
         # U-shaped bow lounge along the sides: charcoal base, tan cushion with charcoal piping on its
         # inboard edge, and a tan back capped in charcoal
-        inner = max(b - 7.5, 0.0)
-        body += pair(inner, DECK_BOW, z, b - 1.6, LOUNGE_BASE, z + SLICE, "seat_dark")
-        body += pair(inner + 0.6, LOUNGE_BASE, z, b - 1.6, LOUNGE_CUSHION, z + SLICE, "seat")
-        if inner > 0:
-            body += pair(inner, LOUNGE_BASE, z, inner + 0.6, LOUNGE_CUSHION + 0.1, z + SLICE, "seat_dark")
-        body += pair(b - 2.8, LOUNGE_CUSHION, z, b - 1.6, s - 0.9, z + SLICE, "seat")
-        body += pair(b - 3.0, s - 0.9, z, b - 1.6, s - 0.3, z + SLICE, "seat_dark")
+        Band("lounge_base", "seat_dark", Inset(1.6), LOUNGE_EDGE,
+             lambda zc, s, k: DECK_BOW, lambda zc, s, k: LOUNGE_BASE, in_bow,
+             bow_end_breadth=LOUNGE_DEPTH),
+        Band("lounge_cushion", "seat", Inset(1.6), PIPING_EDGE,
+             lambda zc, s, k: LOUNGE_BASE, lambda zc, s, k: LOUNGE_CUSHION, in_bow,
+             bow_end_breadth=LOUNGE_DEPTH),
+        Band("lounge_piping", "seat_dark", PIPING_EDGE, LOUNGE_EDGE,
+             lambda zc, s, k: LOUNGE_BASE, lambda zc, s, k: LOUNGE_CUSHION + 0.1, lounge_open,
+             bow_end_breadth=LOUNGE_DEPTH),
+        Band("lounge_back", "seat", Inset(1.6), Inset(2.8),
+             lambda zc, s, k: LOUNGE_CUSHION, lambda zc, s, k: s - 0.9, in_bow),
+        Band("lounge_back_cap", "seat_dark", Inset(1.6), Inset(3.0),
+             lambda zc, s, k: s - 0.9, lambda zc, s, k: s - 0.3, in_bow),
         # Filler cushions close the aisle into one sun pad, leaving room to stand inside the
         # walk-through
-        if zc > BOW_FILLER and inner > 0:
-            body.append(box(-inner, DECK_BOW, z, inner, LOUNGE_BASE, z + SLICE, "seat_dark"))
-            body.append(box(-inner, LOUNGE_BASE, z, inner, LOUNGE_CUSHION, z + SLICE, "seat"))
-            body.append(box(-0.15, LOUNGE_CUSHION, z, 0.15, LOUNGE_CUSHION + 0.1, z + SLICE, "seam"))
-    # Rub rail just below the gunwale, and a faint strake lower down
-    body += pair(b, s - 1.1, z, b + 0.35, s - 0.4, z + SLICE, "stripe")
-    sy = lerp(STRAKE, zc)
-    if k + 4.5 < sy < s - 2 and zc < 44:
-        body += pair(b, sy, z, b + 0.2, sy + 0.4, z + SLICE, "strake")
-    z += SLICE
+        Band("filler_base", "seat_dark", LOUNGE_EDGE, ACROSS,
+             lambda zc, s, k: DECK_BOW, lambda zc, s, k: LOUNGE_BASE,
+             filler_open),
+        Band("filler_cushion", "seat", LOUNGE_EDGE, ACROSS,
+             lambda zc, s, k: LOUNGE_BASE, lambda zc, s, k: LOUNGE_CUSHION,
+             filler_open),
+        Band("filler_seam", "seam", Inset(-0.15, scale=0.0), ACROSS,
+             lambda zc, s, k: LOUNGE_CUSHION, lambda zc, s, k: LOUNGE_CUSHION + 0.1,
+             filler_open),
+    ],
+}
+
+
+def slice_band(row, z0, z1):
+    """The cubes `row` adds to the hull slice z0..z1, its outer edge kept inside the planks at both
+    slice ends (ADR 0161)."""
+    zc = z0 + (z1 - z0) / 2
+    s, k, b = sheer(zc), keel(zc), beam(zc)
+    if not row.when(zc, s, k):
+        return []
+    y0, y1 = row.y0(zc, s, k), row.y1(zc, s, k)
+    limit = min(plank_inner(y0, z0), plank_inner(y0, z1))
+    outer = min(row.outer.x(b), limit)
+    if row.inner == ACROSS:
+        return [box(-outer, y0, z0, outer, y1, z1, row.swatch)] if outer > 0 else []
+    inner = row.inner.x(b)
+    return pair(inner, y0, z0, outer, y1, z1, row.swatch) if outer > inner else []
+
+
+INTERIOR_CLEARANCE = 0.002  # covers the geo.json's four-decimal coordinate and angle rounding
+INTERIOR_STEP = 0.05  # conservative interval bounds, including every rotated footprint corner
+WALL_MIN_DEPTH = 0.05  # a nondegenerate local thickness, 25 times the coordinate-rounding clearance
+
+
+def interior_footprint(cube):
+    """Right-side cube outline, including the square ends extended by the seam allowance."""
+    x, _, z = cube["origin"]
+    w, _, d = cube["size"]
+    px, _, pz = cube.get("pivot", (0, 0, 0))
+    angle = math.radians(cube.get("rotation", (0, 0, 0))[1])
+    c, s = math.cos(angle), math.sin(angle)
+    corners = [(pz - (a - px) * s + (b - pz) * c,
+                px + (a - px) * c + (b - pz) * s)
+               for a, b in ((x, z), (x + w, z), (x + w, z + d), (x, z + d))]
+    zs = sorted({a for a, _ in corners})
+    # plank_inner can change slope or jump at a band segment's end.
+    zs = sorted({*zs, *(a for i in BANDS for segment in band_segments(i)
+                       for a in (segment[0], segment[2]) if zs[0] < a < zs[-1])})
+    samples = sorted({a + (b - a) * j / max(1, math.ceil((b - a) / INTERIOR_STEP))
+                      for a, b in zip(zs, zs[1:])
+                      for j in range(max(1, math.ceil((b - a) / INTERIOR_STEP)) + 1)})
+    outline = []
+    for at in samples:
+        xs = []
+        for (za, xa), (zb, xb) in zip(corners, corners[1:] + corners[:1]):
+            if min(za, zb) - 1e-9 <= at <= max(za, zb) + 1e-9:
+                xs.append(xa + (xb - xa) * (at - za) / (zb - za) if abs(zb - za) > 1e-9 else max(abs(xa), abs(xb)))
+        outline.append((at, max(map(abs, xs))))
+    return outline
+
+
+def interior_fits(cube, y):
+    outline = interior_footprint(cube)
+    limits = [plank_inner(y, z) - INTERIOR_CLEARANCE for z, _ in outline]
+    # In the bow, half_breadth and every plank chord decrease toward the stem. Between
+    # footprint and plank corners their endpoint minima bound the whole interval.
+    return all(max(a[1], b[1]) <= min(lo, hi)
+               for a, b, lo, hi in zip(outline, outline[1:], limits, limits[1:]))
+
+
+def widest_fit(cube, y):
+    """Largest width, found by bisection, that keeps the cube's footprint inside the planks at height y."""
+    probe = dict(cube, size=list(cube["size"]))
+    lo, hi = 0.0, probe["size"][0]
+    for _ in range(24):
+        probe["size"][0] = (lo + hi) / 2
+        if interior_fits(probe, y):
+            lo = probe["size"][0]
+        else:
+            hi = probe["size"][0]
+    return lo
+
+
+def clip_interior(cube, wall=False):
+    """Keep the inboard line fixed while removing the concealed outboard excess."""
+    y0 = cube["origin"][1]
+    y1 = y0 + cube["size"][1]
+    if wall:
+        # Plank chords can bind below the sheer even where the keel is well below the floor.
+        # Trim at every band's lowest spanned height before sacrificing any wall height.
+        # Only z 38..40 needs a raised bottom (y 12): band 5's inner chord binds below it,
+        # even after trimming to WALL_MIN_DEPTH. All earlier bow walls reach DECK_BOW.
+        def heights(bottom):
+            return [bottom, *(i * BAND for i in BANDS if bottom < i * BAND < y1), y1]
+
+        probe = dict(cube, size=[WALL_MIN_DEPTH, *cube["size"][1:]])
+        if not all(interior_fits(probe, y) for y in heights(y0)):
+            lo, hi = y0, y1
+            for _ in range(24):
+                mid = (lo + hi) / 2
+                if all(interior_fits(probe, y) for y in heights(mid)):
+                    hi = mid
+                else:
+                    lo = mid
+            y0 = hi
+            cube["origin"][1] = y0
+            cube["size"][1] = y1 - y0
+        cube["size"][0] = min(widest_fit(cube, y) for y in heights(y0))
+    elif not interior_fits(cube, y0):
+        cube["size"][0] = widest_fit(cube, y0)
+    return cube
+
+
+def plan_chain(row, start, end):
+    """Return mirrored pairs of y-turned panels per active segment, clipped inside the planks when
+    the row requests it. Cosine-scaled local depth preserves horizontal inset widths (ADR 0162)."""
+    stations = [start, *(z for z in PLAN_STATIONS if start < z < end), end]
+    outer = row.bow_outer or row.outer
+    segments = [(a, outer.x(beam_plan(a)), b, outer.x(beam_plan(b)))
+                for a, b in zip(stations, stations[1:])
+                if row.when((a + b) / 2, sheer((a + b) / 2), keel((a + b) / 2))]
+    depths = [(outer.x(beam_plan((a + b) / 2)) - row.inner.x(beam_plan((a + b) / 2)))
+              * math.cos(yaw(a, x0, b, x1)) for a, x0, b, x1 in segments]
+    cubes = []
+    for i, (segment, depth) in enumerate(zip(segments, depths)):
+        a, _, b, _ = segment
+        zc = (a + b) / 2
+        s, k = sheer(zc), keel(zc)
+        angle = yaw(*segment)
+        aft_turn = angle - yaw(*segments[i - 1]) if i else 0.0
+        fore_turn = yaw(*segments[i + 1]) - angle if i + 1 < len(segments) else 0.0
+        aft_depth = max(depth, depths[i - 1]) if i else depth
+        fore_depth = max(depth, depths[i + 1]) if i + 1 < len(depths) else depth
+        overlaps = (joint_overlap(aft_depth, aft_turn), joint_overlap(fore_depth, fore_turn))
+        setbacks = (joint_setback(overlaps[0], aft_turn), joint_setback(overlaps[1], fore_turn))
+        panels = paired_plank(*segment, row.y0(zc, s, k), row.y1(zc, s, k), row.swatch,
+                              depth, overlaps, setbacks=setbacks)
+        if row.clip != "none":
+            right = clip_interior(panels[0], row.clip == "wall")
+            x, y, z = right["origin"]
+            w, h, d = right["size"]
+            extra = {key: right[key] for key in ("pivot", "rotation") if key in right}
+            panels = pair(x, y, z, x + w, y + h, z + d, row.swatch, **extra)
+        cubes += panels
+    return cubes
+
+
+def bow_interior():
+    cubes = []
+    for row in HULL_BANDS["hull_interior"]:
+        spans = []
+        if row.inner != ACROSS:
+            stop = (crossing(lambda z: beam_plan(z) - row.bow_end_breadth, BOW[0], row.bow_end, False)
+                    if row.bow_end_breadth is not None else row.bow_end)
+            cubes += plan_chain(row, BOW[0], stop)
+            continue
+        for a, b in hull_slices():
+            if not BOW[0] <= a < b <= BOW[1]:
+                continue
+            zc = (a + b) / 2
+            s, k = sheer(zc), keel(zc)
+            if not row.when(zc, s, k):
+                continue
+            # The windshield's walk-through floor is a fixed part of its contract.
+            if row.preserve_slices_through is not None and b <= row.preserve_slices_through:
+                spans += slice_band(row, a, b)
+                continue
+            y0 = row.y0(zc, s, k)
+            band = y0 // BAND
+            samples = {a, b, *(z for segment in band_segments(band)
+                               for z in (segment[0], segment[2]) if a < z < b)}
+            half = min(max(row.outer.x(beam_plan(z)) for z in (a, b)),
+                       *(plank_inner(y0, z) - INTERIOR_CLEARANCE for z in samples))
+            if half > 0:
+                span = box(-half, row.y0(zc, s, k), a, half, row.y1(zc, s, k), b, row.swatch)
+                previous = spans[-1] if spans else None
+                # Identical adjacent slices have no visible seam; merging saves six seam cubes.
+                if (previous and previous["origin"][:2] == span["origin"][:2]
+                        and previous["size"][:2] == span["size"][:2]
+                        and abs(previous["origin"][2] + previous["size"][2] - a) < 1e-9):
+                    previous["size"][2] += b - a
+                else:
+                    spans.append(span)
+        cubes += spans
+    return cubes
+
+
+def hull_slices():
+    z = -48.0
+    while z < 48.0:
+        yield z, z + SLICE
+        z += SLICE
+
+
+def build_hull():
+    """Return {region name: [cube groups]}: interior slices in HULL_BANDS order outside the bow,
+    followed by one bow_interior() group; the shell and each rail region have one group each."""
+    shell, rub_rail, strake = rails()
+    interior = [[cube for row in rows for cube in slice_band(row, z0, z1)] for z0, z1 in hull_slices()
+                for rows in HULL_BANDS.values() if not BOW[0] <= z0 < z1 <= BOW[1]]
+    interior.append(bow_interior())
+    return {"hull_shell": [hull_shell() + shell], "hull_interior": interior, "rub_rail": [rub_rail],
+            "strake": [strake]}
+
+
+def hull_body(regions):
+    groups = list(regions.values())
+    return [cube for i in range(max(map(len, groups)))
+            for region in groups if i < len(region) for cube in region[i]]
+
+
+body = hull_body(build_hull())
 
 # Swim platform: gray mat with seams, a stainless edge, a ladder down into the water on the right,
 # and below it the drive and a black fin
@@ -244,20 +1132,24 @@ def striped(x0, x1, y0, y1, z0, z1, quilt_face):
 
 # Helm (right, the driver is seat 0) and passenger buckets on pedestals, wraparound like the reference:
 # a charcoal shell, tall tan wings, a headrest, and a flip-up bolster at the front of the cushion
+# The rider moved from z 5.6 to 2.6 px: the torso (4 px deep) was 2 px inside the wheel's rearmost
+# point, so the whole bucket moves with the rider and keeps its 3.6 px to the backrest face (ADR 0176).
+HELM_SEAT_SHIFT = -3.0  # px
+H = HELM_SEAT_SHIFT
 for sign in (1, -1):
     a, c = (2.5, 10) if sign > 0 else (-10, -2.5)
-    body.append(box(a + 2.5, F, 3, c - 2.5, F + 0.5, 6, "metal"))  # pedestal
-    body.append(box(a, F + 0.5, 0.5, c, F + 1.6, 8, "seat_dark"))  # base shell
-    body += striped(a, c, F + 1.6, F + 2.8, 2, 5.6, "up")  # cushion
-    body.append(box(a + 0.3, F + 1.6, 5.6, c - 0.3, F + 2.6, 5.9, "seat_dark"))  # bolster hinge
-    body.append(box(a, F + 1.6, 5.9, c, F + 3.4, 8, "seat"))  # flip-up bolster, folded down
-    body.append(box(a, F + 1.6, 0, c, F + 10, 1.6, "seat_dark"))  # back shell
-    body += striped(a + 0.6, c - 0.6, F + 3, F + 9.6, 1.6, 2.0, "south")  # face toward the sitter
-    body.append(box(a + 0.8, F + 10, 0.2, c - 0.8, F + 11, 1.8, "seat_dark"))  # headrest
+    body.append(box(a + 2.5, F, 3 + H, c - 2.5, F + 0.5, 6 + H, "metal"))  # pedestal
+    body.append(box(a, F + 0.5, 0.5 + H, c, F + 1.6, 8 + H, "seat_dark"))  # base shell
+    body += striped(a, c, F + 1.6, F + 2.8, 2 + H, 5.6 + H, "up")  # cushion
+    body.append(box(a + 0.3, F + 1.6, 5.6 + H, c - 0.3, F + 2.6, 5.9 + H, "seat_dark"))  # bolster hinge
+    body.append(box(a, F + 1.6, 5.9 + H, c, F + 3.4, 8 + H, "seat"))  # flip-up bolster, folded down
+    body.append(box(a, F + 1.6, 0 + H, c, F + 10, 1.6 + H, "seat_dark"))  # back shell
+    body += striped(a + 0.6, c - 0.6, F + 3, F + 9.6, 1.6 + H, 2.0 + H, "south")  # face toward the sitter
+    body.append(box(a + 0.8, F + 10, 0.2 + H, c - 0.8, F + 11, 1.8 + H, "seat_dark"))  # headrest
     for x0, x1, shell0, shell1 in ((a - 0.6, a, a - 0.9, a), (c, c + 0.6, c, c + 0.6 + 0.3)):
-        body.append(box(x0, F + 1.6, 0, x1, F + 9, 3.5, "seat"))  # tall wing
-        body.append(box(x0, F + 1.6, 3.5, x1, F + 4.6, 8, "seat"))  # arm
-        body.append(box(shell0, F + 0.5, 0, shell1, F + 1.6, 8, "seat_dark"))  # shell under the wing
+        body.append(box(x0, F + 1.6, 0 + H, x1, F + 9, 3.5 + H, "seat"))  # tall wing
+        body.append(box(x0, F + 1.6, 3.5 + H, x1, F + 4.6, 8 + H, "seat"))  # arm
+        body.append(box(shell0, F + 0.5, 0 + H, shell1, F + 1.6, 8 + H, "seat_dark"))  # shell under the wing
 
 # Aft U lounge, as on the reference: a bench across the transom, side benches along the hull facing
 # inboard, and at their front ends forward-facing seats with flip-back backrests for seats 2 and 3.
@@ -307,35 +1199,63 @@ body += striped(-15.4, 15.4, F + 3.8, F + 6.8, -44, -42, "south")
 body.append(box(-15.4, F + 6.8, -44, 15.4, F + 7.4, -42, "seat_dark"))  # charcoal cap
 body.append(box(-15.4, F + 3.8, -44, 15.4, F + 4.4, -42.4, "seat_dark"))  # charcoal band
 
-# Helm console with a glossy dash, a big display, a wheel, and the throttle; passenger console
-body.append(box(WALK_HALF, F, 9, 15.4, F + 7, 16, "gloss"))
-body.append(box(WALK_HALF, F + 7, 10, 15.4, F + 8, 15.5, "gloss"))
-body.append(box(-15.4, F, 9, -WALK_HALF, F + 6.5, 16, "gloss"))
-body.append(box(-15.4, F + 6.5, 10, -WALK_HALF, F + 7.3, 15.5, "gloss"))
+# Helm consoles anchor the contiguous cube block counted in ADR 0166.
+body.append(box(WALK_HALF, F, 9, 15.4, F + 7, 12.5, "gloss"))
+body.append(box(WALK_HALF, F + 7, 10, 15.4, F + 8, 12.0, "gloss"))
+body.append(box(-15.4, F, 9, -WALK_HALF, F + 6.5, 12.5, "gloss"))
+body.append(box(-15.4, F + 6.5, 10, -WALK_HALF, F + 7.3, 12.0, "gloss"))
 # Tan leather panel on each side wall beside the front seats
 body += pair(15.0, F + 3.5, -1.0, 15.4, sheer(2) - 1.2, 4.8, "seat")
 body += pair(14.9, F + 3.0, -1.0, 15.4, F + 3.5, 4.8, "seat_dark")
 # A large display inboard of the wheel, as on the reference helm, overhanging the console toward the
 # aisle. It stands ahead of the driver (bow at +z), and its top leans away from the driver, toward +z.
-# In game a negative x rotation tips +y toward +z before the 180-degree turn, so the angle is -20;
+# In game a negative x rotation tips +y toward +z before the 180-degree turn, so the angle is -45;
 # render_preview.py draws it leaning the other way (ADR 0051).
-SCREEN_PIVOT = [5.5, F + 8, 13.5]
-body.append(box(2.0, F + 8, 13, 9.0, F + 12.4, 14, "gloss", pivot=SCREEN_PIVOT, rotation=[-20, 0, 0]))
-body.append(box(2.4, F + 8.4, 12.8, 8.6, F + 12.0, 13.1, "screen", pivot=SCREEN_PIVOT, rotation=[-20, 0, 0]))
-# Phone holder standing on the dash, and a switch panel outboard of it
-body.append(box(11.0, F + 8, 12.4, 12.4, F + 10.6, 12.9, "gloss"))
-body.append(box(11.2, F + 8.3, 12.3, 12.2, F + 10.4, 12.4, "screen"))
-body.append(box(12.8, F + 8, 10.6, 15.0, F + 8.3, 13.4, "gloss"))
-for bx in (13.1, 13.8, 14.5):
-    for bz in (11.2, 12.4):
-        body.append(box(bx, F + 8.3, bz, bx + 0.4, F + 8.45, bz + 0.4, "metal"))
-# Two chrome-rimmed cupholders: on the dash between the display and the wheel, and on the ledge below
-for x0, y0, z0, size in ((9.6, F + 8, 10.4, 1.3), (3.9, F + 7, 9.0, 1.0)):
+SCREEN_TILT = -45
+DISPLAY_DX = 3.7  # Clears the switch plate at x 12.8 (ADR 0166).
+# The lowest frame edge may overhang the shortened step by at most 1 px (#694).
+DISPLAY_DZ = -(0.5 + 0.3 / math.sqrt(2))
+SCREEN_PIVOT = [5.5 + DISPLAY_DX, F + 8, 13.5 + DISPLAY_DZ]
+# A world-y lift of 0.3 / sqrt(2) keeps the rear bottom corner on the dash.
+# With the fixed pivot and -45 tilt, that is local y +0.15 and z -0.15.
+body.append(box(2.0 + DISPLAY_DX, F + 8.15, 13.05 + DISPLAY_DZ, 9.0 + DISPLAY_DX, F + 12.35, 13.65 + DISPLAY_DZ, "gloss", pivot=SCREEN_PIVOT, rotation=[SCREEN_TILT, 0, 0]))
+body.append(box(2.3 + DISPLAY_DX, F + 8.45, 12.95 + DISPLAY_DZ, 8.7 + DISPLAY_DX, F + 12.05, 13.05 + DISPLAY_DZ, "screen",
+                tiles={"north": "display"},
+                pivot=SCREEN_PIVOT, rotation=[SCREEN_TILT, 0, 0]))
+# One shared pivot makes the cropped strips a continuous face (ADR 0166, #691).
+# The slab's +y face needs the opposite sign from the standing display's -z face
+# to share its driver-facing normal (ADR 0051, #696).
+SWITCH_TILT = -SCREEN_TILT
+SWITCH_STRIPS = 10
+SWITCH_PIVOT = [13.9, F + 8, 10.3]
+# A right triangle: the outboard edge stays on the wall line, the base (the dial panel's width) is at the
+# driver end and the point is toward the bow; only the inboard edge moves (#700).
+SWITCH_BOUNDS = (13.15, 15.65, SWITCH_PIVOT[2], SWITCH_PIVOT[2] + 4.0)
+SWITCH_BASE_WIDTH = SWITCH_BOUNDS[1] - SWITCH_BOUNDS[0]
+SWITCH_POINT_WIDTH = 0.4
+for i in range(SWITCH_STRIPS):
+    t = i / (SWITCH_STRIPS - 1)
+    width = SWITCH_BASE_WIDTH - (SWITCH_BASE_WIDTH - SWITCH_POINT_WIDTH) * t
+    z0 = SWITCH_BOUNDS[2] + i * 0.4
+    strip = box(SWITCH_BOUNDS[1] - width, F + 8, z0,
+                SWITCH_BOUNDS[1], F + 8.4, z0 + 0.4, "gloss",
+                pivot=SWITCH_PIVOT, rotation=[SWITCH_TILT, 0, 0])
+    (u, v), (w, h) = tile_layout.TILE_RECTS["switch_plate"]
+    # Tile top is the bow point; reverse v to keep the image continuous toward the driver base.
+    strip["uv"]["up"] = {
+        "uv": [u + (SWITCH_BOUNDS[1] - width - SWITCH_BOUNDS[0]) / SWITCH_BASE_WIDTH * w,
+               v + (SWITCH_BOUNDS[3] - z0) / 4 * h],
+        "uv_size": [width / SWITCH_BASE_WIDTH * w, -0.4 / 4 * h],
+    }
+    body.append(strip)
+for x0, y0, z0, size in ((3.9, F + 7, 9.0, 1.0),):
     body.append(box(x0, y0, z0, x0 + size, y0 + 0.15, z0 + size, "chrome"))
     body.append(box(x0 + 0.25, y0 + 0.15, z0 + 0.25, x0 + size - 0.25, y0 + 0.17, z0 + size - 0.25, "gloss"))
 # Steering wheel as on the reference: a thick black rim and a broad black three-spoke pad with
 # chrome strips along the lower edges of the side spokes, small buttons, one blue
 # LED, and a plain silver cap with no emblem (ADR 0009). The column sits under a thick glossy cowl.
+WHEEL_TILT = -30  # Top toward +z, away from the driver at -z (ADR 0051, 0166).
+wheel = []
 WX, WY, WZ = 7.6, F + 7.5, 7.0  # wheel center; the driver faces its -z side
 # The rim is 40 short segments, so its outline reads as a circle rather than a polygon. A full-depth
 # core with thinner bands along its inner and outer edges rounds off the rim's cross-section.
@@ -348,89 +1268,273 @@ for r, half, z0, z1 in ((2.7, 0.3, WZ, WZ + 0.8), (2.325, 0.075, WZ + 0.15, WZ +
         ang = i * 360 / RIM_SEGMENTS
         cx = WX + r * math.cos(math.radians(ang))
         cy = WY + r * math.sin(math.radians(ang))
-        body.append(box(cx - half_len, cy - half, z0, cx + half_len, cy + half, z1, "gloss",
+        wheel.append(box(cx - half_len, cy - half, z0, cx + half_len, cy + half, z1, "gloss",
                         pivot=[cx, cy, (z0 + z1) / 2], rotation=[0, 0, ang + 90]))
 for ang in (20, 160, 270):
     ca, sa = math.cos(math.radians(ang)), math.sin(math.radians(ang))
     cx, cy = WX + 1.3 * ca, WY + 1.3 * sa
-    body.append(box(cx - 1.2, cy - 0.75, WZ + 0.15, cx + 1.2, cy + 0.75, WZ + 0.6, "gloss",
+    wheel.append(box(cx - 1.2, cy - 0.75, WZ + 0.15, cx + 1.2, cy + 0.75, WZ + 0.6, "gloss",
                     pivot=[cx, cy, WZ + 0.4], rotation=[0, 0, ang]))
     if ang != 270:
         # Across the spoke, pointing down on either side
         dx, dy = (sa, -ca) if ca > 0 else (-sa, ca)
         lx, ly = cx + 0.7 * dx, cy + 0.7 * dy
-        body.append(box(lx - 1.1, ly - 0.12, WZ + 0.05, lx + 1.1, ly + 0.12, WZ + 0.15, "chrome",
+        wheel.append(box(lx - 1.1, ly - 0.12, WZ + 0.05, lx + 1.1, ly + 0.12, WZ + 0.15, "chrome",
                         pivot=[lx, ly, WZ + 0.1], rotation=[0, 0, ang]))
         for r in (0.9, 1.6):
             bx, by = WX + r * ca - 0.15 * dx, WY + r * sa - 0.15 * dy
-            body.append(box(bx - 0.2, by - 0.2, WZ + 0.05, bx + 0.2, by + 0.2, WZ + 0.15, "button",
+            wheel.append(box(bx - 0.2, by - 0.2, WZ + 0.05, bx + 0.2, by + 0.2, WZ + 0.15, "button",
                             pivot=[bx, by, WZ + 0.1], rotation=[0, 0, ang]))
-body += disc(WX, WY, 1.3, WZ + 0.1, WZ + 0.7, "gloss")  # pad center
-body += disc(WX, WY, 0.6, WZ - 0.05, WZ + 0.1, "steel")  # cap
+# Round hub from diametral panels (ADR 0166): 16 sides read as a circle, 8 panels each.
+wheel += cylinder(WX, WY, 1.3, WZ + 0.1, WZ + 0.7, "gloss", sides=16, solid=True)  # pad center
+wheel += cylinder(WX, WY, 0.6, WZ - 0.05, WZ + 0.1, "steel", sides=16, solid=True, small_sides=16)  # cap
 lx, ly = WX + 0.45, WY - 1.9
-body.append(box(lx - 0.15, ly - 0.15, WZ + 0.05, lx + 0.15, ly + 0.15, WZ + 0.15, "ring"))  # LED
-body.append(box(WX - 1.0, WY - 1.6, WZ + 0.6, WX + 1.0, WY + 0.6, 9.0, "gloss"))  # cowl
-body.append(box(WX - 1.05, WY - 1.65, WZ + 1.0, WX + 1.05, WY + 0.65, WZ + 1.2, "chrome"))
-body.append(box(WX - 0.7, F + 4, 8.2, WX + 0.7, WY - 1.6, 9.0, "gloss"))  # column
-# Throttle on the right side wall beside the driver: a glossy black housing with a chrome
-# handle on a black lever arm, as in the photo
-body.append(box(13.4, F + 4.5, 5.0, 15.4, F + 7.4, 9.0, "gloss"))
-body.append(box(12.6, F + 7.0, 6.2, 14.2, F + 7.8, 8.6, "gloss"))  # lever arm
-body.append(box(11.4, F + 7.4, 6.6, 12.8, F + 8.8, 8.4, "steel"))  # chrome handle
-body.append(box(11.6, F + 8.8, 6.9, 12.6, F + 9.2, 8.1, "steel"))
+wheel.append(box(lx - 0.15, ly - 0.15, WZ + 0.05, lx + 0.15, ly + 0.15, WZ + 0.15, "ring"))  # LED
+# Keep the composed y turn through turn_around's legacy z-turn convention (ADR 0058).
+# It already reverses x; the wheel's composed y must reverse too to keep one rigid plane.
+wheel_start = len(body)
+wheel = tilt_assembly(wheel, pivot=[WX, WY, WZ + 0.4], axis="x",
+                      degrees=WHEEL_TILT, assembly="wheel", assemblies=ASSEMBLIES)
+body += wheel
+for cube in body[wheel_start:]:
+    cube["rotation"][1] *= -1
+# In the wheel's local frame the cowl and column start at the pad's rear face, so their
+# front edges touch it without protruding. Their shared x tilt preserves that contact.
+column_cowl = [
+    box(WX - 1.0, WY - 0.9, WZ + 0.7, WX + 1.0, WY + 0.3, 9.0, "gloss"),
+    box(WX - 1.05, WY - 0.95, WZ + 1.5, WX + 1.05, WY + 0.35, WZ + 1.7, "chrome"),
+    box(WX - 0.7, F + 3, WZ + 0.7, WX + 0.7, WY - 0.9, WZ + 1.5, "gloss"),
+]
+body += tilt_assembly(column_cowl, pivot=[WX, WY, WZ + 0.4], axis="x", degrees=WHEEL_TILT)
+DIAL_BOUNDS = (13.15, 15.65, 5.1, 8.9)
+DIAL_Y = F + 6.5
+DIAL_SIDES = 16
+DIAL_CENTER = (14.4, 7.3)
+dial = []
 
-# Wraparound windshield: side panes follow the gunwale back to z -10; the front leans back toward
-# the cockpit about 55 degrees, built from thin rows that each step aft, and the side panes are cut
-# along the same slope where they meet it.
-WS_TOP = [(-12, 0.0), (-10, 1.8), (0, 3.4), (12, 4.3), (16, 4.5)]  # glass height above the sheer
+
+def dial_face(cube):
+    (u, v), (w, h) = tile_layout.TILE_RECTS["dial_pad"]
+    x0, x1, z0, z1 = DIAL_BOUNDS
+    x, _, z = cube["origin"]
+    dx, _, dz = cube["size"]
+    cube["uv"]["up"] = {"uv": [u + (x - x0) / (x1 - x0) * w,
+                                  v + (z - z0) / (z1 - z0) * h],
+                         "uv_size": [dx / (x1 - x0) * w, dz / (z1 - z0) * h]}
+    return cube
+
+
+def dial_plate(x0, x1, z0, z1, y0, y1, chamfer, painted=False, wedge=False):
+    rear = 0.35 if wedge else chamfer
+    parts = [box(x0 + rear, y0, z0, x1 - rear, y1, z1, "button"),
+             box(x0, y0, z0 + chamfer, x1, y1, z1 - rear, "button")]
+    if wedge:
+        parts.append(box(x0 + chamfer, y0, z0, x1 - chamfer, y1, z0 + chamfer, "button"))
+    for z, cut in ((z0 + chamfer, chamfer), (z1 - rear, rear)):
+        for x in (x0 + cut, x1 - cut):
+            half = cut / math.sqrt(2)
+            parts.append(box(x - half, y0, z - half, x + half, y1, z + half, "button",
+                             pivot=[x, y0, z], rotation=[0, 45, 0]))
+    return [dial_face(c) if painted and "rotation" not in c else c for c in parts]
+
+
+# A larger front chamfer narrows the shield toward the driver while retaining a wide bow edge.
+x0, x1, z0, z1 = DIAL_BOUNDS
+front, rear = 0.5, 0.18
+dial += [dial_face(box(x0 + front, DIAL_Y, z0, x1 - front, DIAL_Y + 0.22, z1, "button")),
+         dial_face(box(x0, DIAL_Y, z0 + front, x1, DIAL_Y + 0.22, z1 - rear, "button")),
+         dial_face(box(x0 + rear, DIAL_Y, z1 - rear, x1 - rear, DIAL_Y + 0.22, z1, "button"))]
+for z, cut in ((z0 + front, front), (z1 - rear, rear)):
+    for x in (x0 + cut, x1 - cut):
+        half = cut / math.sqrt(2)
+        dial.append(box(x - half, DIAL_Y, z - half, x + half, DIAL_Y + 0.22, z + half,
+                        "button", pivot=[x, DIAL_Y, z], rotation=[0, 45, 0]))
+outline = [(x0 + front, z0), (x1 - front, z0), (x1, z0 + front), (x1, z1 - rear),
+           (x1 - rear, z1), (x0 + rear, z1), (x0, z1 - rear), (x0, z0 + front)]
+for (ax, az), (bx, bz) in zip(outline, outline[1:] + outline[:1]):
+    length = math.hypot(bx - ax, bz - az)
+    x, z = (ax + bx) / 2, (az + bz) / 2
+    dial.append(box(x - length / 2, DIAL_Y + 0.22, z - 0.025,
+                    x + length / 2, DIAL_Y + 0.28, z + 0.025, "button",
+                    pivot=[x, DIAL_Y, z], rotation=[0, -math.degrees(math.atan2(bz - az, bx - ax)), 0]))
+DIAL_BUTTONS = [(13.35, 13.95, 7.65, 8.45), (14.0, 14.8, 7.9, 8.78),
+                (14.85, 15.45, 7.65, 8.45), (13.4, 14.3, 5.4, 6.55),
+                (14.5, 15.4, 5.4, 6.55)]
+for bx0, bx1, bz0, bz1 in DIAL_BUTTONS:
+    dial += dial_plate(bx0, bx1, bz0, bz1, DIAL_Y + 0.22, DIAL_Y + 0.32, 0.14, painted=True, wedge=bz0 < 6)
+
+
+def horizontal_ring(cx, cz, radius, bottom, top, color, solid=False, wall=0.08, ribs=False):
+    panels = cylinder(0, 0, radius, bottom, top, color, sides=DIAL_SIDES,
+                      wall=wall, solid=solid, small_sides=DIAL_SIDES)
+    for panel in panels:
+        x, y, z = panel["origin"]
+        dx, dy, dz = panel["size"]
+        # Permuting the cylinder axis from z to y keeps every panel on one rotation axis (0009).
+        panel["origin"] = [cx + x, z, cz - y - dy]
+        panel["size"] = [dx, dz, dy]
+        panel["pivot"] = [cx, bottom, cz]
+        panel["rotation"] = [0, panel["rotation"][2], 0]
+        if ribs:
+            panel["origin"][0] += dx * 0.08
+            panel["size"][0] *= 0.84
+    return panels
+
+
+dial += horizontal_ring(*DIAL_CENTER, 0.77, DIAL_Y + 0.22, DIAL_Y + 0.35, "button", solid=True)
+dial += horizontal_ring(*DIAL_CENTER, 0.69, DIAL_Y + 0.35, DIAL_Y + 0.85, "button", ribs=True)
+dial += horizontal_ring(*DIAL_CENTER, 0.76, DIAL_Y + 0.82, DIAL_Y + 0.88, "steel")
+dial += horizontal_ring(*DIAL_CENTER, 0.74, DIAL_Y + 0.88, DIAL_Y + 0.94, "steel")
+dial += horizontal_ring(*DIAL_CENTER, 0.66, DIAL_Y + 0.85, DIAL_Y + 0.94, "button", solid=True)
+body += dial
+
+EXT_X0, EXT_X1 = 11.4, 15.4
+EXT_FRONT, EXT_BACK = 4.8, 9.0
+EXT_TOP = F + 6.5
+EXT_CHAMFER = 1.0
+extension = [
+    box(EXT_X0, F, EXT_FRONT + EXT_CHAMFER, EXT_X1, EXT_TOP, EXT_BACK, "gloss"),
+    box(EXT_X0, F + EXT_CHAMFER, EXT_FRONT, EXT_X1, EXT_TOP,
+        EXT_FRONT + EXT_CHAMFER, "gloss"),
+    box(EXT_X0, F, EXT_FRONT + EXT_CHAMFER, EXT_X1, F + math.sqrt(2),
+        EXT_FRONT + EXT_CHAMFER + 0.7, "gloss",
+        pivot=[EXT_X0, F, EXT_FRONT + EXT_CHAMFER], rotation=[45, 0, 0]),
+]
+body += extension
+def side_ring(cy, cz, radius, inner, outer, color):
+    panels = cylinder(0, 0, radius, inner, outer, color, sides=16,
+                      solid=True, small_sides=16)
+    for panel in panels:
+        x, y, z = panel["origin"]
+        dx, dy, dz = panel["size"]
+        # The cyclic permutation puts the cylinder axis on x without compound rotations.
+        panel["origin"] = [z, cy + x, cz + y]
+        panel["size"] = [dz, dx, dy]
+        panel["pivot"] = [inner, cy, cz]
+        panel["rotation"] = [panel["rotation"][2], 0, 0]
+    return panels
+
+
+POD_Y, POD_Z = F + 3.1, 6.8
+pod = []
+for radius, inner, outer, color in ((1.2, 11.25, 11.4, "jet"),
+                                   (1.0, 10.95, 11.25, "gloss"),
+                                   (0.8, 10.75, 10.95, "gloss"),
+                                   (0.55, 10.6, 10.75, "chrome")):
+    pod += side_ring(POD_Y, POD_Z, radius, inner, outer, color)
+body += pod
+LEVER_PIVOT = [10.85, F + 3.95, 6.6]
+LEVER_YAW, LEVER_PITCH = -6, 5
+lever = []
+
+
+def lever_box(x0, y0, z0, x1, y1, z1, color):
+    return box(x0, y0, z0, x1, y1, z1, color,
+               pivot=LEVER_PIVOT, rotation=[0, LEVER_YAW, 0])
+
+
+lever.append(lever_box(10.65, F + 3.6, 6.3, 11.05, F + 4.2, 6.9, "chrome"))
+for z0, z1, width, height in ((6.6, 8.3, 0.4, 0.35),
+                             (7.9, 8.55, 0.6, 0.5),
+                             (8.5, 8.8, 0.5, 0.4)):
+    for w, h in ((width, height), (width * 0.8, height + 0.1)):
+        lever.append(lever_box(10.85 - w / 2, F + 4.2 - h / 2, z0,
+                               10.85 + w / 2, F + 4.2 + h / 2, z1, "gunmetal"))
+lever.append(lever_box(10.65, F + 4.35, 8.0, 11.05, F + 4.5, 8.55, "gunmetal"))
+lever = tilt_assembly(lever, pivot=LEVER_PIVOT, axis="x", degrees=LEVER_PITCH,
+                      assembly="throttle_lever", assemblies=ASSEMBLIES)
+body += lever
+# Preserve the composed y turn through the legacy turn_around convention, as for the wheel (0166).
+for cube in lever:
+    cube["rotation"][1] *= -1
+
+# Thin ledges close the exposed trough to the existing hull at z 14 (#694).
+# Keep the central 7 px walk-through open and the original helm part indices stable.
+body.append(box(WALK_HALF, F + 6.9, 12.5, 15.4, F + 7, 14, "gloss"))
+body.append(box(-15.4, F + 6.4, 12.5, -WALK_HALF, F + 6.5, 14, "gloss"))
+
+# Wraparound windshield: the front leans back toward the cockpit about 55 degrees and the side panes
+# follow the gunwale back to z -10. Every pane is one thin cube rotated to its slope (ADR 0158).
 WS_HEIGHT = 4.5
 FRONT_BASE, FRONT_TOP = 22.0, 15.5  # z of the front glass at the sheer and at its top edge
-RAKE = (FRONT_BASE - FRONT_TOP) / WS_HEIGHT  # blocks aft per block up
-WS_ROWS = 9
-
-
-def glass_height(z):
-    return max(0.0, min(lerp(WS_TOP, z), (FRONT_BASE - z) / RAKE))
-
-
-z = -10.0
-while z < FRONT_BASE:
-    zc = z + SLICE / 2
-    s, b, h = sheer(zc), beam(zc), glass_height(zc)
-    if h > 0.3:
-        glass += pair(b - 1.5, s, z, b - 1.0, s + h, z + SLICE, "glass")
-        body += pair(b - 1.7, s + h, z, b - 0.8, s + h + 0.7, z + SLICE, "frame")  # top rail
-    z += SLICE
 s0 = sheer(FRONT_BASE)
-ROW_HEIGHT = WS_HEIGHT / WS_ROWS
-# (bottom y, front z) of each row of the front glass
-ROWS = [(s0 + r * WS_HEIGHT / WS_ROWS, FRONT_BASE - r * (FRONT_BASE - FRONT_TOP) / WS_ROWS) for r in range(WS_ROWS)]
 POST = WALK_HALF + 0.6  # outer face of each walk-through post
 RAIL_Y = s0 + WS_HEIGHT  # bottom of the front glass's top rail
-for y0, zf in ROWS:
-    # The center section is the walk-through to the bow
-    glass += pair(POST, y0, zf - 0.9, beam(zf) - 1.0, y0 + ROW_HEIGHT, zf, "glass")
+RAKE_LENGTH = math.hypot(FRONT_BASE - FRONT_TOP, WS_HEIGHT)
+# Same convention as strut(): a negative x rotation leans toward +z, and this glass leans aft
+RAKE_ROTATION = -math.degrees(math.atan2(FRONT_TOP - FRONT_BASE, WS_HEIGHT))
+PANE = 0.5  # glass thickness
+FRAME_PROUD = 0.3  # how far the posts stand out in front of the glass, to cover the pane edges
+CORNER = (beam(FRONT_BASE) - 1.2, beam(FRONT_BASE))  # x of the corner posts
+
+
+def raked(x0, x1, color, front=0.0, depth=PANE, length=RAKE_LENGTH):
+    """A flat box lying on the front glass's slope, its front face `front` px ahead of the glass's."""
+    return box(x0, s0, FRONT_BASE + front - depth, x1, s0 + length, FRONT_BASE + front, color,
+               pivot=[(x0 + x1) / 2, s0, FRONT_BASE], rotation=[RAKE_ROTATION, 0, 0])
+
+
+def raked_pair(x0, x1, color, **extra):
+    return [raked(x0, x1, color, **extra), raked(-x1, -x0, color, **extra)]
+
+
+# One flat pane per section, so the glass reads as a single slanted sheet rather than stepped rows.
+# The center section is the walk-through to the bow; its door is closed, in line with the front panes.
+glass += raked_pair(POST, CORNER[0], "glass")
+glass.append(raked(-WALK_HALF, WALK_HALF, "glass"))
 body += pair(POST - 0.2, RAIL_Y, FRONT_TOP - 1.0, beam(FRONT_TOP) - 1.0, RAIL_Y + 0.7, FRONT_TOP + 0.2, "frame")
-# Walk-through posts lean back with the glass: one short block per row
-for y0, zf in ROWS:
-    body += pair(WALK_HALF, y0, zf - 0.9, POST, y0 + ROW_HEIGHT + 0.05, zf, "frame")
-# Corner posts where the front meets the sides, a divider halfway across each front pane, and a mid
-# post on each side pane
-for y0, zf in ROWS:
-    hw = beam(zf) - 1.0
-    body += pair(hw - 0.6, y0, zf - 0.9, hw, y0 + ROW_HEIGHT + 0.05, zf, "frame")
-    mid = (POST + hw) / 2
-    body += pair(mid - 0.25, y0, zf - 0.95, mid + 0.25, y0 + ROW_HEIGHT + 0.05, zf + 0.05, "frame")
-# The walk-through door is closed: its glass leans back in line with the front panes, under the top rail
-for y0, zf in ROWS:
-    glass.append(box(-WALK_HALF, y0, zf - 0.9, WALK_HALF, y0 + ROW_HEIGHT, zf, "glass"))
+# Walk-through posts, and corner posts where the front meets the sides; each front half is one
+# undivided pane (ADR 0158). The hull flares from 14.0 to 15.1 px up the slope, which a flat pane
+# cannot follow, so the corner post is wide enough to cover the side panes' cut edges.
+POST_DEPTH = PANE + 2 * FRAME_PROUD
+for x0, x1 in ((WALK_HALF, POST), CORNER):
+    body += raked_pair(x0, x1, "frame", front=FRAME_PROUD, depth=POST_DEPTH)
+
+# Each side pane is one flat sheet from z -10, 1.8 px over the sheer, up to the front glass's top
+# corner, tilted so its top edge rises in a straight line under the side rail. Its lower part is
+# buried in the gunwale, whose wall spans x b - 1.6 to b.
+SIDE_REAR = -10.0
+SIDE_REAR_TOP = sheer(SIDE_REAR) + 1.8
+SIDE_LENGTH = math.hypot(FRONT_TOP - SIDE_REAR, RAIL_Y - SIDE_REAR_TOP)
+SIDE_SLOPE = math.atan2(RAIL_Y - SIDE_REAR_TOP, FRONT_TOP - SIDE_REAR)
+SIDE_X = (beam(0) - 1.5, beam(0) - 1.0)  # straight, inside the wall where the hull narrows toward z 16
+SIDE_DROP = WS_HEIGHT + 0.5
+
+
+def side_top(z):
+    return SIDE_REAR_TOP + (z - SIDE_REAR) * math.tan(SIDE_SLOPE)
+
+
+def sided(x0, x1, y0, y1, z0, z1, color):
+    """A box in the side pane's frame (y measured from its top edge at z -10), tilted with it."""
+    return pair(x0, SIDE_REAR_TOP + y0, SIDE_REAR + z0, x1, SIDE_REAR_TOP + y1, SIDE_REAR + z1, color,
+                pivot=[(x0 + x1) / 2, SIDE_REAR_TOP, SIDE_REAR], rotation=[math.degrees(SIDE_SLOPE), 0, 0])
+
+
+glass += sided(*SIDE_X, -SIDE_DROP, 0.0, 0.0, SIDE_LENGTH, "glass")
+body += sided(SIDE_X[0] - 0.5, SIDE_X[1] + 0.2, 0.0, 0.7, 0.0, SIDE_LENGTH, "frame")  # side rail
+# Under the front glass's slope a flat corner pane fills the triangle down to the sheer: its front
+# edge lies on the slope, under the corner post, and it runs aft square to the slope far enough to
+# reach the side pane's front edge at the sheer. A square-cut pane cannot meet that 48-degree corner
+# edge to edge, so its top end stops short of the corner: its aft edge then meets the side pane's
+# front edge just behind the corner post, which hides the sliver left uncovered above, and the
+# doubled glass below is smaller than when the pane reaches the corner (ADR 0158).
+CORNER_PANE_X = (CORNER[1] - PANE, CORNER[1])
+SIDE_FRONT_AT_SHEER = FRONT_TOP + (RAIL_Y - sheer(FRONT_TOP)) * math.tan(SIDE_SLOPE)
+CORNER_PANE_DEPTH = (FRONT_BASE - SIDE_FRONT_AT_SHEER) * WS_HEIGHT / RAKE_LENGTH + 0.1
+CORNER_ANGLE = math.pi / 2 - SIDE_SLOPE - math.atan2(WS_HEIGHT, FRONT_BASE - FRONT_TOP)
+CORNER_PANE_TRIM = (POST_DEPTH - FRAME_PROUD) / math.tan(CORNER_ANGLE)
+glass += raked_pair(*CORNER_PANE_X, "glass", depth=CORNER_PANE_DEPTH, length=RAKE_LENGTH - CORNER_PANE_TRIM)
 body.append(box(-WALK_HALF, RAIL_Y, FRONT_TOP - 1.0, WALK_HALF, RAIL_Y + 0.7, FRONT_TOP + 0.2, "frame"))
 # Rear-view mirror on a stalk over the helm half of the windshield's top rail, its glass facing aft
 MX, MY, MZ = 8.5, RAIL_Y + 0.7, FRONT_TOP - 0.4
 body.append(box(MX - 0.3, MY, MZ - 0.3, MX + 0.3, MY + 1.0, MZ + 0.3, "frame"))
 body.append(box(MX - 3.4, MY + 0.8, MZ - 0.9, MX + 3.4, MY + 2.2, MZ - 0.3, "gloss"))
-body.append(box(MX - 3.1, MY + 1.0, MZ - 1.0, MX + 3.1, MY + 2.0, MZ - 0.9, "chrome"))
-body += pair(beam(6) - 1.6, sheer(6), 5.6, beam(6) - 1.0, sheer(6) + glass_height(6) + 0.2, 6.4, "frame")
+# The glass gets its own bone so a separate pass can draw it with the PBR mirror texture set (ADR 0159).
+# Its aft face is "north" here; turn_around makes it the in-game south face.
+mirror = [box(MX - 3.1, MY + 1.0, MZ - 1.0, MX + 3.1, MY + 2.0, MZ - 0.9, "mirror",
+              tiles={"north": "mirror"})]
+body += pair(beam(6) - 1.6, sheer(6), 5.6, beam(6) - 1.0, side_top(6) + 0.2, 6.4, "frame")
 
 # Wake tower: on each gunwale a raked rear and front strut with rungs and an X brace, then the top beam.
 TX = 15.6  # inner face of the legs
@@ -479,75 +1583,210 @@ B_TOP = TOWER_TOP + 3.5
 B_THICK = 2.0
 
 
-def bimini_top(zc):
-    front = B_FRONT - zc
-    t = (zc - B_REAR) / (B_FRONT - B_REAR)
-    drop = 2.4 if front < 1.5 else 1.2 if front < 3.5 else 0.0
-    return B_TOP - drop - 1.5 * t + 0.6 * (1 - (2 * t - 1) ** 2)
+def dome(z):
+    t = (z - B_REAR) / (B_FRONT - B_REAR)
+    return B_TOP - 1.5 * t + 0.6 * (1 - (2 * t - 1) ** 2)
 
 
-z = B_REAR
-while z < B_FRONT:
-    zc = z + SLICE / 2
-    front = B_FRONT - zc
-    rear = zc - B_REAR
-    corner = 2.0 if min(front, rear) < 1.5 else 0.8 if min(front, rear) < 3.5 else 0.0
-    hw = B_HALF - corner
-    top = bimini_top(zc)
-    body.append(box(-hw + 3, top - B_THICK, z, hw - 3, top, z + SLICE, "canvas"))
-    # Two ribs under the top run from near the middle of the front edge out toward the rear corners
-    rib = 3.0 + (B_HALF - 8.0 - 3.0) * front / (B_FRONT - B_REAR)
-    body += pair(rib - 0.4, top - B_THICK - 0.4, z, rib + 0.4, top - B_THICK, z + SLICE, "frame")
-    if B_REAR + 4 <= z and z + SLICE <= B_FRONT - 4:
-        body.append(box(-9, top, z, 9, top + 0.25, z + SLICE, "canvas_panel"))
-    body += pair(hw - 3, top - B_THICK - 0.8, z, hw - 1, top - 0.3, z + SLICE, "canvas")
-    body += pair(hw - 1, top - B_THICK - 1.6, z, hw, top - 1.0, z + SLICE, "canvas")
-    z += SLICE
+ROOF_REAR = ("rear", B_REAR, -3.0, dome(B_REAR), dome(-3.0))
+ROOF_MAIN = ("main", -3.0, 6.0, dome(-3.0), dome(6.0))
+ROOF_LIP = ("lip", 6.0, B_FRONT, dome(6.0), dome(B_FRONT) - 2.4)
+ROOF_PANELS = [ROOF_REAR, ROOF_MAIN, ROOF_LIP]
+
+
+def roof_top(z):
+    z = max(B_REAR, min(B_FRONT, z))
+    for _, z0, z1, y0, y1 in ROOF_PANELS:
+        if z <= z1:
+            return y0 + (y1 - y0) * (z - z0) / (z1 - z0)
+
+
+# In-game x turns have the opposite sign to the preview's (0051): a falling +z surface needs
+# a negative turn, correcting #647's atan2(y0 - y1, dz) sign (0164).
+ROOF_ANGLES = [math.atan2(y1 - y0, z1 - z0) for _, z0, z1, y0, y1 in ROOF_PANELS]
+ROOF_OVERLAPS = [max(0.25, B_THICK * math.tan(abs(b - a)) / 2 + 0.05)
+                 for a, b in zip(ROOF_ANGLES, ROOF_ANGLES[1:])]
+for i, (_, z0, z1, y0, y1) in enumerate(ROOF_PANELS):
+    rear_overlap = ROOF_OVERLAPS[i - 1] if i else 0.0
+    front_overlap = ROOF_OVERLAPS[i] if i < len(ROOF_OVERLAPS) else 0.0
+    length = math.hypot(z1 - z0, y1 - y0)
+    body.append(box(-16.0, y0 - B_THICK, z0 - rear_overlap,
+                    16.0, y0, z0 + length + front_overlap, "canvas",
+                    pivot=[0, y0, z0], rotation=[math.degrees(ROOF_ANGLES[i]), 0, 0]))
+
+_, z0, _, y0, _ = ROOF_MAIN
+# Local distances along the main panel project onto the hatch's nominal z -2..5 footprint.
+main_cos = math.cos(ROOF_ANGLES[1])
+body.append(box(-9.0, y0, z0 + (-2.0 - z0) / main_cos,
+                9.0, y0 + 0.25, z0 + (5.0 - z0) / main_cos, "canvas_panel",
+                pivot=[0, y0, z0], rotation=[math.degrees(ROOF_ANGLES[1]), 0, 0]))
+
+# Three chords soften the side fold while retaining the original reach and drop (ADR 0164).
+SKIRT_SPAN = (B_REAR, B_FRONT)
+SKIRT_DROP = 2.6
+SKIRT_THICK = 0.8
+SKIRT_INNER = 16.0
+SKIRT_RUN = B_HALF - SKIRT_INNER
+SKIRT_ANGLES = [math.radians(a) for a in (15, 30, 45)]
+SHOULDER_RUN = 0.3
+MIDDLE_RUN = (SKIRT_RUN - SKIRT_DROP - SHOULDER_RUN * (1 - math.tan(SKIRT_ANGLES[0]))) / (1 - math.tan(SKIRT_ANGLES[1]))
+SKIRT_RUNS = [SHOULDER_RUN, MIDDLE_RUN, SKIRT_RUN - SHOULDER_RUN - MIDDLE_RUN]
+SKIRT_OVERLAPS = [max(0.25, SKIRT_THICK * math.tan(b - a) / 2 + 0.05)
+                  for a, b in zip(SKIRT_ANGLES, SKIRT_ANGLES[1:])]
+skirt_top = roof_top(B_FRONT)
+x, y = SKIRT_INNER, skirt_top
+for i, (run, angle) in enumerate(zip(SKIRT_RUNS, SKIRT_ANGLES)):
+    inner_overlap = SKIRT_OVERLAPS[i - 1] if i else 0.0
+    outer_overlap = SKIRT_OVERLAPS[i] if i < len(SKIRT_OVERLAPS) else 0.0
+    # A negative build-frame z turn lowers +x; pair() mirrors the left turn.
+    body += pair(x - inner_overlap, y - SKIRT_THICK, SKIRT_SPAN[0],
+                 x + run / math.cos(angle) + outer_overlap, y, SKIRT_SPAN[1], "canvas",
+                 pivot=[x, y, sum(SKIRT_SPAN) / 2], rotation=[0, 0, -math.degrees(angle)])
+    x += run
+    y -= run * math.tan(angle)
+
+# One level bridge covers rear and main: y 34.1 lies inside both top panels, while its
+# bottom buries in the roll. Only the drooping lip needs a separate x-turned bridge.
+body += pair(15.8, skirt_top - 0.4, B_REAR, 16.1, 34.1, 6.25, "canvas")
+_, z0, z1, y0, y1 = ROOF_LIP
+angle = ROOF_ANGLES[2]
+# The lower plane meets y skirt_top - 0.03 at z 6, and stays above the outer hem at z 9.
+bridge_thick = (y0 - skirt_top + 0.03) * math.cos(angle)
+body += pair(15.8, y0 - bridge_thick, z0 - 0.25,
+             16.1, y0, z0 + math.hypot(z1 - z0, y1 - y0), "canvas",
+             pivot=[0, y0, z0], rotation=[math.degrees(angle), 0, 0])
+
+# Two continuous backing plates per side close both end triangles at once. Their upper
+# outer corners bury in the roll skins; the flat bottom stays above the physical outer hem.
+for x0, x1, top in [(15.8, 16.95, skirt_top - 0.65),
+                    (16.7, 17.9, skirt_top - 1.6)]:
+    body += pair(x0, skirt_top - SKIRT_DROP - 0.1, B_REAR,
+                 x1, top, B_FRONT, "canvas")
 
 # Tower speakers set into the underside of the top near its rear edge, a quarter of the way in from
 # each side, facing aft as on the reference. Each is a bullet-shaped matte pod that narrows toward
 # the bow, with a blue LED ring behind the bezel and a grille of split spokes round a hub.
 G = B_REAR + 1.4  # z of the grille face
-under = bimini_top(G + 3) - B_THICK
+under = roof_top(G + 3) - B_THICK
 cy = under - 1.6
+# Round sections of one speaker, back to front: (name, radius, z0, z1, swatch), z relative to G.
+SPEAKER_SECTIONS = (
+    ("back", 1.6, -0.05, 0.0, "gloss"),  # behind the grille
+    ("hub", 0.45, -0.25, -0.05, "jet"),
+    ("bezel", 1.9, 0.0, 0.5, "gunmetal"),
+    ("ring", 1.95, 0.5, 0.7, "ring"),  # blue LEDs
+    ("pod_0", 1.9, 0.7, 2.4, "gunmetal"),
+    ("pod_1", 1.6, 2.4, 3.6, "gunmetal"),
+    ("pod_2", 1.15, 3.6, 4.5, "gunmetal"),
+    ("pod_3", 0.6, 4.5, 5.0, "gunmetal"),
+)
+SPEAKER_SPOKES = {"angles": range(0, 360, 60), "offsets": (-0.2, 0.2), "radius": 1.05}
+# Mount box: x half-width, y from cy + 1.4 up to under, z from G + 1.5 to G + 3.0.
+SPEAKER_MOUNT = {"half_x": 0.5, "dy": 1.4, "z0": 1.5, "z1": 3.0, "swatch": "gloss"}
+
+
+def speaker(sx):
+    """Cubes of one speaker centred on x = sx. The spokes sit between the back disc and the hub."""
+    cubes = []
+    for k, (name, r, z0, z1, swatch) in enumerate(SPEAKER_SECTIONS):
+        cubes += cylinder(sx, cy, r, G + z0, G + z1, swatch,
+                          solid=name in ("back", "hub", "pod_3"))
+        if k == 0:
+            for ang in SPEAKER_SPOKES["angles"]:
+                ca, sa = math.cos(math.radians(ang)), math.sin(math.radians(ang))
+                for off in SPEAKER_SPOKES["offsets"]:
+                    px = sx + SPEAKER_SPOKES["radius"] * ca - off * sa
+                    py = cy + SPEAKER_SPOKES["radius"] * sa + off * ca
+                    cubes.append(box(px - 0.55, py - 0.08, G - 0.15, px + 0.55, py + 0.08, G - 0.05,
+                                     "jet", pivot=[px, py, G - 0.1], rotation=[0, 0, ang]))
+    m = SPEAKER_MOUNT
+    cubes.append(box(sx - m["half_x"], cy + m["dy"], G + m["z0"], sx + m["half_x"], under,
+                     G + m["z1"], m["swatch"]))
+    return cubes
+
+
 for sx in (-B_HALF / 2, B_HALF / 2):
-    body += disc(sx, cy, 1.6, G - 0.05, G, "gloss")  # behind the grille
-    for ang in range(0, 360, 60):
-        ca, sa = math.cos(math.radians(ang)), math.sin(math.radians(ang))
-        for off in (-0.2, 0.2):
-            px, py = sx + 1.05 * ca - off * sa, cy + 1.05 * sa + off * ca
-            body.append(box(px - 0.55, py - 0.08, G - 0.15, px + 0.55, py + 0.08, G - 0.05, "jet",
-                            pivot=[px, py, G - 0.1], rotation=[0, 0, ang]))
-    body += disc(sx, cy, 0.45, G - 0.25, G - 0.05, "jet")  # hub
-    body += disc(sx, cy, 1.9, G, G + 0.5, "gunmetal")  # bezel
-    body += disc(sx, cy, 1.95, G + 0.5, G + 0.7, "ring")  # LED ring
-    for r, z0, z1 in ((1.9, 0.7, 2.4), (1.6, 2.4, 3.6), (1.15, 3.6, 4.5), (0.6, 4.5, 5.0)):
-        body += disc(sx, cy, r, G + z0, G + z1, "gunmetal")
-    body.append(box(sx - 0.5, cy + 1.4, G + 1.5, sx + 0.5, under, G + 3.0, "gloss"))  # mount
+    body += speaker(sx)
 # Stainless bow rails on the foredeck
 for z0 in (34.0, 38.0, 42.0):
-    body += pair(beam(z0 + 0.4) - 1.6, sheer(z0), z0, beam(z0 + 0.4) - 1.1, sheer(z0) + 1.8, z0 + 0.5, "steel")
-z = 34.0
-while z < 43.0:
-    body += pair(beam(z + 1) - 1.6, sheer(z) + 1.6, z, beam(z + 1) - 1.1, sheer(z) + 2.1, z + 1.0, "steel")
-    z += 1.0
+    body += pair(beam_plan(z0 + 0.4) - 1.6, sheer(z0), z0,
+                 beam_plan(z0 + 0.4) - 1.1, sheer(z0) + 1.8, z0 + 0.5, "steel")
+body += plan_chain(Band("bow_rail", "steel", Inset(1.1), Inset(1.6),
+                        lambda zc, s, k: s + 1.6, lambda zc, s, k: s + 2.1, clip="none"), 34.0, 43.0)
 
-# Headlights: a slim teardrop lens set into each bow flank, flush with the hull slice it sits on
-# and following the sheer, widest at the rear and tapering to a point toward the stem.
+def hull_face(y, z):
+    """Rightmost hull face met by a horizontal ray in the build frame."""
+    outer = 0.0
+    for cube in body:
+        if cube["uv"]["up"] != uv("hull")["up"]:
+            continue
+        px, py, pz = cube.get("pivot", (0, 0, 0))
+        rx, ry, _ = cube.get("rotation", (0, 0, 0))
+        ax, ay = math.radians(rx), math.radians(ry)
+        p = [-px, y - py, z - pz]
+        d = [1.0, 0.0, 0.0]
+        if rx:
+            p = [p[0], p[1] * math.cos(ax) - p[2] * math.sin(ax), p[1] * math.sin(ax) + p[2] * math.cos(ax)]
+        if ry:
+            p = [p[0] * math.cos(ay) - p[2] * math.sin(ay), p[1], p[0] * math.sin(ay) + p[2] * math.cos(ay)]
+            d = [math.cos(ay), 0, math.sin(ay)]
+        lo, hi = -math.inf, math.inf
+        for q, v, a, size, pivot in zip(p, d, cube["origin"], cube["size"], (px, py, pz)):
+            a -= pivot
+            if abs(v) < 1e-12:
+                if not a <= q <= a + size:
+                    hi = -math.inf
+                    break
+            else:
+                ends = ((a - q) / v, (a + size - q) / v)
+                lo, hi = max(lo, min(ends)), min(hi, max(ends))
+        if lo <= hi:
+            outer = max(outer, hi)
+    return outer
+
+
+# Headlights: a slim teardrop lens set into each bow flank, widest at the rear and tapering to a point
+# toward the stem: four coplanar panels per plan segment follow the sheer (ADR 0172).
 headlights = []
-LAMP = (32.0, 42.0)  # on hull slice boundaries, so each lens segment covers exactly one slice
-zl = LAMP[0]
-while zl < LAMP[1]:
-    hull_b = beam(zl + SLICE / 2)
-    t = (zl + SLICE / 2 - LAMP[0]) / (LAMP[1] - LAMP[0])
-    h = 1.5 * (1 - t) + 0.4 * t
-    yc = sheer(zl + SLICE / 2) - 3.2 + 1.2 * t
-    headlights += pair(hull_b - 0.05, yc - h / 2, zl, hull_b + 0.15, yc + h / 2, zl + SLICE, "light")
-    # The step to the next, narrower slice exposes this segment's front face; cap it with lens too
-    if zl + SLICE < LAMP[1]:
-        next_b = beam(zl + SLICE * 1.5)
-        headlights += pair(next_b, yc - h / 2, zl + SLICE - 0.15, hull_b + 0.15, yc + h / 2, zl + SLICE, "light")
-    zl += SLICE
+LAMP = (32.0, 42.0)  # on plan stations
+LAMP_SUBPANELS = 4  # finer one-axis lens edges (ADR 0172)
+LAMP_PROUD = 0.15
+LAMP_MIN_PROUD = 0.03  # a flat lens over faceted planks: kept clear of the face so it cannot z-fight
+lamp_segments = [(a, b) for a, b in zip(PLAN_STATIONS, PLAN_STATIONS[1:]) if LAMP[0] <= a and b <= LAMP[1]]
+lamp_yaws = [yaw(a, beam_plan(a), b, beam_plan(b)) for a, b in lamp_segments]
+for k, (za, zb) in enumerate(lamp_segments):
+    panels = []
+    for i in range(LAMP_SUBPANELS):
+        zm = za + (zb - za) * (i + 0.5) / LAMP_SUBPANELS
+        t = (zm - LAMP[0]) / (LAMP[1] - LAMP[0])
+        panels.append((1.5 * (1 - t) + 0.4 * t, sheer(zm) - 3.2 + 1.2 * t))
+    angle = lamp_yaws[k]
+    cosine = math.cos(angle)
+    sine = math.sin(angle)
+    overlap = 0.25
+    length = math.hypot(zb - za, beam_plan(zb) - beam_plan(za))
+    out = LAMP_PROUD
+    # Keep the station yaw while fitting its plane to the actual merged faces. The
+    # maximum clearance limits standoff; the depth buries the back across sheer-strake joints.
+    for _ in range(3):
+        clearances = []
+        for j in range(81):
+            along = -overlap + (length + 2 * overlap) * j / 80
+            i = max(0, min(LAMP_SUBPANELS - 1, math.floor(LAMP_SUBPANELS * along / length)))
+            h, yc = panels[i]
+            z = za + along * cosine - out * sine
+            x = beam_plan(za) + along * sine + out * cosine
+            for fraction in (0.001, 0.25, 0.5, 0.75, 0.999):
+                y = yc + h * (fraction - 0.5)
+                clearances.append((x - hull_face(y, z)) * cosine)
+        out += max(LAMP_PROUD - max(clearances), LAMP_MIN_PROUD - min(clearances))
+    depth = 0.4
+    z0, x0, z1, x1 = proud(za, beam_plan(za), zb, beam_plan(zb), out)
+    joints = [(z0 + (z1 - z0) * f, x0 + (x1 - x0) * f) for f in (i / LAMP_SUBPANELS for i in range(LAMP_SUBPANELS + 1))]
+    for i, (h, yc) in enumerate(panels):
+        aft = overlap if i == 0 else 0
+        fore = overlap if i == LAMP_SUBPANELS - 1 else 0
+        headlights += paired_plank(*joints[i], *joints[i + 1], yc - h / 2, yc + h / 2, "light", depth, (aft, fore))
 
 geo = {
     "format_version": "1.12.0",
@@ -566,6 +1805,7 @@ geo = {
              "locators": {"jet_left": [-5.0, 3.0, -52.0], "jet_right": [5.0, 3.0, -52.0]}},
             {"name": "headlights", "parent": "body", "pivot": [0, 7, 0], "cubes": headlights},
             {"name": "windshield", "parent": "body", "pivot": [0, 7, 0], "cubes": glass},
+            {"name": "mirror", "parent": "body", "pivot": [0, 7, 0], "cubes": mirror},
         ],
     }],
 }
@@ -608,44 +1848,110 @@ def rounded(value):
     return value
 
 
-MODELS.mkdir(parents=True, exist_ok=True)
 turn_around(geo["minecraft:geometry"][0]["bones"])
-(MODELS / "sportsboat.geo.json").write_text(json.dumps(rounded(geo), separators=(",", ":")))
+assert_axes([cube for bone in geo["minecraft:geometry"][0]["bones"]
+             for cube in bone.get("cubes", [])], {"wheel": wheel, "throttle_lever": lever}, ASSEMBLIES)
+emit(MODELS / "sportsboat.geo.json", json.dumps(rounded(geo), separators=(",", ":")))
 
 
 def png(path, w, h, pixel):
     # pixel returns (r, g, b) for an opaque texel or (r, g, b, a)
-    rows = b""
-    for y in range(h):
-        rows += b"\x00" + b"".join(bytes((*pixel(x, y), 255)[:4]) for x in range(w))
+    pixels = [[(*pixel(x, y), 255)[:4] for x in range(w)] for y in range(h)]
+    rows = b"".join(b"\x00" + b"".join(bytes(texel) for texel in row) for row in pixels)
 
     def chunk(t, d):
         return struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d) & 0xFFFFFFFF)
 
     data = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 6, 0, 0, 0))
     data += chunk(b"IDAT", zlib.compress(rows)) + chunk(b"IEND", b"")
-    path.write_bytes(data)
+    emit(path, data, pixels)
+
+
+def swatch_cell(x, y):
+    """The swatch cell (x 4i..4i+3, y 0..3) that holds texel (x, y), or None outside the swatch row."""
+    return x // 4 if y < 4 else None
+
+
+def cell_mer(cells, default=MER_OFF, extra=None):
+    """A MER texel function: swatch cell i (x 4i..4i+3, y 0..3) gets cells[i], `extra(x, y)` may claim
+    any other texel by returning its MER, and every other texel gets `default`."""
+
+    def mer(x, y):
+        value = cells.get(swatch_cell(x, y))
+        if value is None and extra is not None:
+            value = extra(x, y)
+        return (*(default if value is None else value), 255)
+
+    return mer
+
+
+def write_texture_set(color_name, mer_name):
+    texture_set = {
+        "format_version": "1.16.100",
+        "minecraft:texture_set": {"color": color_name, "metalness_emissive_roughness": mer_name},
+    }
+    emit(ENTITY_TEXTURES / f"{color_name}.texture_set.json", json.dumps(texture_set))
+
+
+def lit_textures(kind, width, height, pixel):
+    def color(x, y):
+        rgba = (*pixel(x, y), 255)[:4]
+        return (*rgba[:3], 0) if swatch_cell(x, y) in LIT_SLOTS else rgba
+
+    png(ENTITY_TEXTURES / f"{kind}_lit.png", width, height, color)
+    png(ENTITY_TEXTURES / f"{kind}_lit_mer.png", width, height, cell_mer({slot: MER_LIT for slot in LIT_SLOTS}))
+    write_texture_set(f"{kind}_lit", f"{kind}_lit_mer")
+
+
+(MU, MV), (MW, MH) = TILES["mirror"]["uv"], TILES["mirror"]["size"]
+
+
+def in_mirror_glass(x, y):
+    return MU < x < MU + MW - 1 and MV < y < MV + MH - 1
+
+
+def mirror_tile(x, y):
+    if not in_mirror_glass(x, y):
+        return MIRROR_RIM
+    t = (y - MV - 1) / (MH - 3)
+    return tuple(round(a + (b - a) * t) for a, b in zip(MIRROR_SKY, MIRROR_HORIZON))
+
+
+def mirror_textures(width, height, pixel):
+    def glass_mer(x, y):
+        return MER_MIRROR if in_mirror_glass(x, y) else None
+
+    png(ENTITY_TEXTURES / "sportsboat_mirror.png", width, height, pixel)
+    png(ENTITY_TEXTURES / "sportsboat_mirror_mer.png", width, height,
+        cell_mer({MIRROR_SLOT: MER_MIRROR}, extra=glass_mer))
+    write_texture_set("sportsboat_mirror", "sportsboat_mirror_mer")
 
 
 def swatches(hull_color):
     colors = {**PALETTE, "hull": hull_color}
 
     def swatch(x, y):
-        if 16 <= y < 24 and x < 8:
-            return QUILT_LINE if QUILT[y - 16][x] == "L" else PALETTE["seat"]
-        i = x // 4
-        if y >= 4 or i >= len(NAMES):
+        i = swatch_cell(x, y)
+        if i is None or i >= len(NAMES):
             return (0, 0, 0)
         name = NAMES[i]
         return (*colors[name], ALPHA.get(name, 255))
 
-    return swatch
+    pixels = [[swatch(x, y) for x in range(TEXTURE_WIDTH)] for y in range(TEXTURE_HEIGHT)]
+    for tile in TILES.values():
+        tile["paint"](pixels)
+    return lambda x, y: pixels[y][x]
 
 
-ENTITY_TEXTURES.mkdir(parents=True, exist_ok=True)
 for paint, hull_color in HULL_PAINTS.items():
     name = "sportsboat" if paint == "khaki" else f"sportsboat_{paint}"
     png(ENTITY_TEXTURES / f"{name}.png", TEXTURE_WIDTH, TEXTURE_HEIGHT, swatches(hull_color))
+    png(ENTITY_TEXTURES / f"{name}_mer.png", TEXTURE_WIDTH, TEXTURE_HEIGHT,
+        cell_mer({HULL_SLOT: MER_HULL, **{slot: MER_GLOSS for slot in GLOSS_SLOTS}}))
+    write_texture_set(name, f"{name}_mer")
+
+lit_textures("sportsboat", TEXTURE_WIDTH, TEXTURE_HEIGHT, swatches(HULL_PAINTS["khaki"]))
+mirror_textures(TEXTURE_WIDTH, TEXTURE_HEIGHT, swatches(HULL_PAINTS["khaki"]))
 
 # Item icon: a 16-pixel side view, bow to the right, tower leaning forward, on transparency.
 ICON = [
@@ -674,6 +1980,99 @@ def icon(x, y):
     return ICON_COLORS.get(ICON[y][x], (0, 0, 0, 0))
 
 
-ITEM_TEXTURES.mkdir(parents=True, exist_ok=True)
 png(ITEM_TEXTURES / "sportsboat_item.png", 16, 16, icon)
-print("cubes:", len(body) + len(headlights) + len(glass))
+
+# Sports Boat Equipment box: a ship's wheel with a round wooden rim, a brass hub, and eight spokes
+# running past the rim as handles (ADR 0171 rule 2). The owner's shape reference was the Kubernetes
+# logo, a trademark, so this keeps none of its heptagon badge, seven spokes or blue and white.
+EQUIPMENT_BOX_ICON = [
+    ".......HH.......",
+    ".H.....HH.....H.",
+    "..H..RRRRRR..H..",
+    "...RRR.SS.RRR...",
+    "..RRS..SS..SRR..",
+    "..R..S.SS.S..R..",
+    "..R...SBBS...R..",
+    "HHRSSSBYBBSSSRHH",
+    "HHRSSSBBBBSSSRHH",
+    "..R...SBBS...R..",
+    "..R..S.SS.S..R..",
+    "..RRS..SS..SRR..",
+    "...RRR.SS.RRR...",
+    "..H..RRRRRR..H..",
+    ".H.....HH.....H.",
+    ".......HH.......",
+]
+EQUIPMENT_BOX_COLORS = {"R": (110, 66, 30), "S": (176, 120, 62), "H": (140, 88, 40), "B": (200, 156, 52),
+                        "Y": (246, 214, 120)}
+
+# Icebreaker Switch: a red bow seen from the side, stem pointing down into cracked ice, with shards
+# flying (ADR 0171 rule 3). 6/7 draws the same map on the helm monitor.
+ICEBREAKER_SWITCH_ICON = [
+    "................",
+    "KKKKKKKKKKKKKK..",
+    "HHHHHHHHHHHHHH..",
+    "HOHHHOHHHOHHH...",
+    "SSSSSSSSSSSSS...",
+    "RRRRRRRRRRRR....",
+    "RRRRRRRRRRRR..G.",
+    ".RRRRRRRRRR.....",
+    "..RRRRRRRRR..G..",
+    "G..RRRRRRR......",
+    "....RRRRRR...G.G",
+    ".G...RRRRR.G....",
+    "LL....RRR....LLL",
+    "ILL...RR...LLIII",
+    "IICLL.R..LLICIII",
+    "IIIICLLLLLCIIIII",
+]
+ICEBREAKER_SWITCH_COLORS = {"K": (44, 44, 48), "H": (30, 30, 34), "O": (170, 205, 225), "S": PALETTE["trim"],
+                            "R": (168, 40, 36), "I": (140, 196, 230), "L": (220, 242, 252),
+                            "C": (60, 120, 170), "G": (200, 235, 252)}
+
+
+def pixel_map(rows, colors):
+    return lambda x, y: colors.get(rows[y][x], (0, 0, 0, 0))
+
+
+png(ITEM_TEXTURES / "sportsboat_equipment_box.png", 16, 16, pixel_map(EQUIPMENT_BOX_ICON, EQUIPMENT_BOX_COLORS))
+png(ITEM_TEXTURES / "icebreaker_switch.png", 16, 16, pixel_map(ICEBREAKER_SWITCH_ICON, ICEBREAKER_SWITCH_COLORS))
+# The bulldozer overlay's visible face clears its screen by 0.10 px. Here the
+# screen is local -z; turn_around makes it south-facing in the final frame.
+monitor_plate = box(2.3 + DISPLAY_DX, F + 8.45, 12.85 + DISPLAY_DZ,
+                    8.7 + DISPLAY_DX, F + 12.05, 12.87 + DISPLAY_DZ, "screen",
+                    pivot=SCREEN_PIVOT, rotation=[SCREEN_TILT, 0, 0])
+turn_around([{"cubes": [monitor_plate]}])
+boat_entity = json.loads((RP.parent / "yasu_ride_bp/entities/yasu_ride/sportsboat.se.json").read_text())
+seat = boat_entity["minecraft:entity"]["components"]["minecraft:rideable"]["seats"][0]["position"]
+# Player standing eye height, in blocks; the seat position is relative to the boat.
+driver_eye = (seat[0] * 16, (seat[1] + 1.62) * 16, seat[2] * 16)
+bounds = geo["minecraft:geometry"][0]["description"]
+SPORTSBOAT_MONITOR_LAYOUT = monitor.MonitorLayout(
+    cell_size=(64, 36), label_width=33, face="south",
+    plate_origin=tuple(monitor_plate["origin"]),
+    plate_pivot=tuple(monitor_plate["pivot"]),
+    plate_rotation=tuple(monitor_plate["rotation"]),
+    plate_size=tuple(monitor_plate["size"]), viewer_point=driver_eye,
+    uv_flip=(False, False), background=(12, 22, 30, 255),
+    foreground=(200, 236, 248, 0), icon_at=(4, 10), label_at=(27, 14),
+    visible_bounds_width=bounds["visible_bounds_width"],
+    visible_bounds_height=bounds["visible_bounds_height"],
+    visible_bounds_offset=tuple(bounds["visible_bounds_offset"]),
+    # The attitude animation trims and rolls root (ADR 0059), so the plate hangs
+    # from a root with the same pivot to stay on the tilted screen.
+    parent=("root", tuple(next(b["pivot"] for b in geo["minecraft:geometry"][0]["bones"] if b["name"] == "root"))),
+)
+# The near-black deck and rail would vanish on the dark screen, so they glow in
+# the foreground and a mid grey that still sets off the portholes.
+MONITOR_ICON_COLORS = {**ICEBREAKER_SWITCH_COLORS, "K": SPORTSBOAT_MONITOR_LAYOUT.foreground, "H": (110, 122, 132)}
+monitor_icon = [[MONITOR_ICON_COLORS[code][:3] + (0,) if code != "."
+                 else SPORTSBOAT_MONITOR_LAYOUT.background for code in row]
+                for row in ICEBREAKER_SWITCH_ICON]
+STALE.extend(monitor.write_monitor("sportsboat", SPORTSBOAT_MONITOR_LAYOUT,
+                                   {"icebreaker_switch": monitor_icon}, CHECK, RP))
+print("cubes:", len(body) + len(headlights) + len(glass) + len(mirror))
+if STALE:
+    sys.exit("Stale sports boat outputs:\n" + "\n".join(STALE))
+if CHECK:
+    print("sports boat model and textures are up to date")
