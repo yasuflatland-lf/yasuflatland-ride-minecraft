@@ -2,7 +2,10 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { rectCells } from "../../../../../src/domain/vehicle/cutArea";
 import { bladeColumns } from "../../../../../src/domain/vehicle/kinds/bulldozer/blade";
-import { BULLDOZER_SPEC } from "../../../../../src/domain/vehicle/kinds/bulldozer/spec";
+import {
+  BULLDOZER_SPEC,
+  BULLDOZER_WIDE_BLADE,
+} from "../../../../../src/domain/vehicle/kinds/bulldozer/spec";
 
 const rule = BULLDOZER_SPEC.blade;
 const pose = fc.record({
@@ -86,3 +89,29 @@ it("keeps rectangle cells and order with the blade bottom and height", () =>
       },
     ),
   ));
+
+it("cuts 11 columns times 3 rows with the wide blade at heading 0", () => {
+  expect(
+    bladeColumns({ x: 0.5, y: 64, z: 0.5 }, 0, BULLDOZER_WIDE_BLADE, false),
+  ).toEqual(
+    Array.from({ length: 11 }, (_, i) => i - 5).flatMap((x) =>
+      [1, 2, 3].map((z) => ({ x, z, bottom: 64 })),
+    ),
+  );
+});
+it("includes every normal column in the wide cut at any pose", () => {
+  fc.assert(
+    fc.property(
+      pose,
+      yaw,
+      fc.boolean(),
+      fc.boolean(),
+      (p, y, flying, grounded) => {
+        const wide = bladeColumns(p, y, BULLDOZER_WIDE_BLADE, flying, grounded);
+        expect(wide).toEqual(
+          expect.arrayContaining(bladeColumns(p, y, rule, flying, grounded)),
+        );
+      },
+    ),
+  );
+});

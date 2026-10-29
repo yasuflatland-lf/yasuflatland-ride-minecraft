@@ -11,7 +11,11 @@ import {
   BLADE_SWITCH_ITEM,
   WIDE_BLADE_SWITCH_ITEM,
 } from "../../domain/vehicle/kinds/bulldozer/monitor";
-import { BULLDOZER_SPEC } from "../../domain/vehicle/kinds/bulldozer/spec";
+import {
+  type BladeRule,
+  BULLDOZER_SPEC,
+  BULLDOZER_WIDE_BLADE,
+} from "../../domain/vehicle/kinds/bulldozer/spec";
 import {
   ENTITY_TYPE,
   entityPropertyId,
@@ -100,15 +104,48 @@ async function doubleTap(car: Entity): Promise<void> {
   await wait(1);
   drive(car, 0, 0);
 }
+interface ClearHillLayout {
+  readonly rule: BladeRule;
+  readonly wide: boolean;
+  readonly hillMinZ: number;
+  readonly centerZ: number;
+  readonly clearMinX: number;
+  readonly clearMinZ: number;
+}
+const CLEAR_HILL_LAYOUT: ClearHillLayout = {
+  rule: BULLDOZER_SPEC.blade,
+  wide: false,
+  hillMinZ: 81,
+  centerZ: 83,
+  clearMinX: 96,
+  clearMinZ: 78,
+};
+const WIDE_CLEAR_HILL_LAYOUT: ClearHillLayout = {
+  rule: BULLDOZER_WIDE_BLADE,
+  wide: true,
+  hillMinZ: 75,
+  centerZ: 80,
+  clearMinX: 88,
+  clearMinZ: 72,
+};
 export async function bulldozerClearHill(a: Arena): Promise<Outcome> {
+  return clearHillScenario(a, CLEAR_HILL_LAYOUT);
+}
+export async function bulldozerWideClearHill(a: Arena): Promise<Outcome> {
+  return clearHillScenario(a, WIDE_CLEAR_HILL_LAYOUT);
+}
+async function clearHillScenario(
+  a: Arena,
+  { rule, wide, hillMinZ, centerZ, clearMinX, clearMinZ }: ClearHillLayout,
+): Promise<Outcome> {
   const { dim, gy } = a;
   const at = (x: number, y: number, z: number) => dim.getBlock({ x, y, z });
   const dropLines: string[] = [];
   const kept = [
-    { x: 100, z: 82, type: "minecraft:water" },
-    { x: 101, z: 82, type: "minecraft:chest" },
-    { x: 102, z: 82, type: "yasu_ride:deck_floor" },
-    { x: 103, z: 82, type: "yasu_ride:camper_wall" },
+    { x: 100, z: centerZ - 1, type: "minecraft:water" },
+    { x: 101, z: centerZ - 1, type: "minecraft:chest" },
+    { x: 102, z: centerZ - 1, type: "yasu_ride:deck_floor" },
+    { x: 103, z: centerZ - 1, type: "yasu_ride:camper_wall" },
   ];
   let farthest = 0,
     spawns = 0;
@@ -127,7 +164,7 @@ export async function bulldozerClearHill(a: Arena): Promise<Outcome> {
       return;
     }
     if (typeId !== "minecraft:item" || observed.has(entity.id)) return;
-    if (p.x < 96 || p.x > 112 || p.z < 78 || p.z > 89) return;
+    if (p.x < 96 || p.x > 112 || p.z < clearMinZ || p.z > 89) return;
     const distance = Math.min(
       ...boxes.map((c) =>
         Math.max(
@@ -160,23 +197,25 @@ export async function bulldozerClearHill(a: Arena): Promise<Outcome> {
   const removing = (ev: { removedEntity: Entity }) =>
     recordDrop(ev.removedEntity);
   try {
-    cleanup(a);
-    dim.runCommand(`fill 100 ${gy} 81 104 ${gy + 4} 85 stone`);
+    dim.runCommand(`fill ${clearMinX} ${gy} ${clearMinZ} 112 ${gy + 6} 89 air`);
+    dim.runCommand(`fill 100 ${gy} ${hillMinZ} 104 ${gy + 4} 85 stone`);
     for (const [i, type] of [
       "barrier",
       "command_block",
       "reinforced_deepslate",
     ].entries())
-      at(100 + i, gy + 1, 83)?.setType(`minecraft:${type}`);
+      at(100 + i, gy + 1, centerZ)?.setType(`minecraft:${type}`);
     for (const [i, type] of ["light_block_15", "bedrock"].entries())
-      at(100 + i, gy + 2, 84)?.setType(`minecraft:${type}`);
+      at(100 + i, gy + 2, centerZ + 1)?.setType(`minecraft:${type}`);
     for (const p of kept) at(p.x, gy + 3, p.z)?.setType(p.type);
-    const chest = at(101, gy + 3, 82)?.getComponent(
+    const chest = at(101, gy + 3, centerZ - 1)?.getComponent(
       "minecraft:inventory",
     )?.container;
     if (!chest) throw new Error("chest inventory missing");
     chest.setItem(0, new ItemStack("minecraft:diamond"));
-    dim.runCommand(`fill 102 ${gy} 80 102 ${gy + 2} 80 stone`);
+    dim.runCommand(
+      `fill 102 ${gy} ${hillMinZ - 1} 102 ${gy + 2} ${hillMinZ - 1} stone`,
+    );
     dim.runCommand(
       `setblock 102 ${gy + 1} 86 torch ["torch_facing_direction"="north"]`,
     );
@@ -185,19 +224,15 @@ export async function bulldozerClearHill(a: Arena): Promise<Outcome> {
       return { pass: false, detail: "torch not placed" };
     world.afterEvents.entitySpawn.subscribe(listener);
     world.beforeEvents.entityRemove.subscribe(removing);
-    return await withBulldozer(a, 90.5, 83.5, -90, async (car) => {
+    return await withBulldozer(a, 90.5, centerZ + 0.5, -90, async (car) => {
       await setBlade(car, false);
+      if (wide) await setWideBlade(car, true);
       await throughHill(car, () => {
-        boxes = bladeColumns(
-          car.location,
-          car.getRotation().y,
-          BULLDOZER_SPEC.blade,
-          false,
-        );
+        boxes = bladeColumns(car.location, car.getRotation().y, rule, false);
       });
       const wrong: string[] = [];
       for (let x = 100; x <= 104; x++)
-        for (let z = 81; z <= 85; z++)
+        for (let z = hillMinZ; z <= 85; z++)
           for (let y = gy; y <= gy + 4; y++) {
             const keep =
               y === gy + 3
@@ -213,14 +248,14 @@ export async function bulldozerClearHill(a: Arena): Promise<Outcome> {
           }
       let floor = true;
       for (let x = 100; x <= 104; x++)
-        for (let z = 81; z <= 85; z++)
+        for (let z = hillMinZ; z <= 85; z++)
           floor &&= at(x, gy - 1, z)?.typeId === "minecraft:stone";
       const marker = [0, 1, 2].every(
-        (dy) => at(102, gy + dy, 80)?.typeId === "minecraft:stone",
+        (dy) => at(102, gy + dy, hillMinZ - 1)?.typeId === "minecraft:stone",
       );
       const items = dim.getEntities({
         type: "minecraft:item",
-        location: { x: 102, y: gy, z: 83 },
+        location: { x: 102, y: gy, z: centerZ },
         maxDistance: 8,
       }).length;
       const diamond = chest.getItem(0);
@@ -228,7 +263,8 @@ export async function bulldozerClearHill(a: Arena): Promise<Outcome> {
         pass:
           car.location.x >= 108 &&
           wrong.length === 0 &&
-          at(100, gy + 3, 82)?.permutation.getState("liquid_depth") === 0 &&
+          at(100, gy + 3, centerZ - 1)?.permutation.getState("liquid_depth") ===
+            0 &&
           floor &&
           marker &&
           items === 0 &&
@@ -247,10 +283,10 @@ export async function bulldozerClearHill(a: Arena): Promise<Outcome> {
     world.afterEvents.entitySpawn.unsubscribe(listener);
     world.beforeEvents.entityRemove.unsubscribe(removing);
     dim.runCommand(
-      `fill 96 ${gy} 78 112 ${gy + 4} 89 air replace flowing_water`,
+      `fill 96 ${gy} ${clearMinZ} 112 ${gy + 4} 89 air replace flowing_water`,
     );
-    at(100, gy + 3, 82)?.setType("minecraft:air");
-    cleanup(a);
+    at(100, gy + 3, centerZ - 1)?.setType("minecraft:air");
+    dim.runCommand(`fill ${clearMinX} ${gy} ${clearMinZ} 112 ${gy + 6} 89 air`);
   }
 }
 export async function bulldozerOverhang(a: Arena): Promise<Outcome> {
@@ -795,4 +831,49 @@ export async function bulldozerFallSurvives(a: Arena): Promise<Outcome> {
       detail: `ticks=${ticks} y=${car.location.y.toFixed(2)} health=${health} hurt=${hurt}`,
     };
   });
+}
+
+export async function bulldozerWideRam(a: Arena): Promise<Outcome> {
+  const results: Outcome[] = [];
+  for (const wide of [true, false]) {
+    results.push(
+      await withBulldozer(a, 88.5, 72.5, -90, async (car) => {
+        await setWideBlade(car, wide);
+        const cow = summonCow(a, 108.5, 76);
+        if (!cow) return { pass: false, detail: "cow not found" };
+        try {
+          cow.addEffect("slowness", 600, {
+            amplifier: 255,
+            showParticles: false,
+          });
+          cow.addEffect("resistance", 600, {
+            amplifier: 2,
+            showParticles: false,
+          });
+          const health = () =>
+            cow.getComponent("minecraft:health")?.currentValue ?? 0;
+          const hp = health();
+          let hit = false;
+          drive(car, 0, 1);
+          for (let t = 0; t < 100; t++) {
+            await wait(1);
+            if (!cow.isValid)
+              return { pass: false, detail: `wide=${wide}: cow vanished` };
+            hit ||= health() < hp;
+            if (hit || car.location.x >= 112) break;
+          }
+          return {
+            pass: hit === wide && (wide || car.location.x >= 112),
+            detail: `wide=${wide} hit=${hit} hp=${hp}->${health()} x=${car.location.x.toFixed(2)}`,
+          };
+        } finally {
+          if (cow.isValid) cow.remove();
+        }
+      }),
+    );
+  }
+  return {
+    pass: results.every((r) => r.pass),
+    detail: results.map((r) => r.detail).join("; "),
+  };
 }

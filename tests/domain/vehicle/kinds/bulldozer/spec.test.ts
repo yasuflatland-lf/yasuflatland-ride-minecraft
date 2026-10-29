@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import {
   BULLDOZER_AIR,
   BULLDOZER_WATER,
+  BULLDOZER_WIDE_BLADE,
   BULLDOZER_SPEC as S,
   BULLDOZER_TRANSFORMING as T,
 } from "../../../../../src/domain/vehicle/kinds/bulldozer/spec";
@@ -95,4 +96,13 @@ it("sizes the tracks and the door from the model", () => {
 it("lifts the blade in half a second and starts a placed bulldozer with its blade raised (ADR 0138)", () => {
   expect(S.bladeLiftTicks).toBe(10);
   expect(S.bladeRaisedOnSpawn).toBe(true);
+});
+
+it("derives the wide blade from the normal rule", () => {
+  expect(BULLDOZER_WIDE_BLADE).toEqual({
+    ...S.blade,
+    halfWidth: 2 * S.blade.halfWidth,
+  });
+  expect(BULLDOZER_WIDE_BLADE.halfWidth).toBe(4.64);
+  expect(Object.isFrozen(BULLDOZER_WIDE_BLADE)).toBe(true);
 });
