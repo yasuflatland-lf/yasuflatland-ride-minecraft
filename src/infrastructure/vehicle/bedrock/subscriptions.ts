@@ -3,6 +3,7 @@
 import type { SleepInBed } from "../../../application/shared/sleepInBed";
 import type { BoardVehicle } from "../../../application/vehicle/boardVehicle";
 import type { DriveVehicles } from "../../../application/vehicle/driveVehicles";
+import type { FindBedSpawnCell } from "../../../application/vehicle/findBedSpawnCell";
 import type { GiveStarterVehicle } from "../../../application/vehicle/giveStarterVehicle";
 import type { HitVehicle } from "../../../application/vehicle/hitVehicle";
 import type { LimitVehicles } from "../../../application/vehicle/limitVehicles";
@@ -65,6 +66,7 @@ export function registerSubscriptions(
     tool: SwitchTool;
     door: UseDockDoor;
     bed: SleepInBed;
+    bedSpawnCell: FindBedSpawnCell;
     showerToilet: PressShowerToilet;
     decor: SetDecor;
     placeDecor: PlaceDecor;
@@ -92,7 +94,12 @@ export function registerSubscriptions(
   laterSwitchTargets: () => readonly SwitchTarget[],
 ): void {
   registerDecor(useCases.placeDecor, useCases.removeDecor, dockCellOwner);
-  registerBedBlock(CAMPER_BED_COMPONENT, useCases.bed);
+  registerBedBlock(CAMPER_BED_COMPONENT, useCases.bed, (dim, cell) => {
+    const id = dockCellOwner(dim, cell);
+    return id === undefined
+      ? undefined
+      : useCases.bedSpawnCell.execute({ vehicleId: id, cell });
+  });
   registerDockDoor(useCases.door, dockDoorOwner);
   registerDockGuard(dockBlockOwner);
   registerShowerToilet(useCases.showerToilet, dockCellOwner);

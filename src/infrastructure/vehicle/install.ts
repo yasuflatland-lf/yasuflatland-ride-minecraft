@@ -6,6 +6,7 @@ import type { SpaceCheck } from "../../application/shared/ports/space";
 import { SleepInBed } from "../../application/shared/sleepInBed";
 import { BoardVehicle } from "../../application/vehicle/boardVehicle";
 import { DriveVehicles } from "../../application/vehicle/driveVehicles";
+import { FindBedSpawnCell } from "../../application/vehicle/findBedSpawnCell";
 import { GiveStarterVehicle } from "../../application/vehicle/giveStarterVehicle";
 import { HitVehicle } from "../../application/vehicle/hitVehicle";
 import { LimitVehicles } from "../../application/vehicle/limitVehicles";
@@ -95,6 +96,7 @@ export function installVehicles(deps: {
       ceilingLights: new SwitchCeilingLights(repo, systemClock),
       tool: new SwitchTool(repo, systemClock),
       door: new UseDockDoor(repo, systemClock),
+      bedSpawnCell: new FindBedSpawnCell(repo),
       bed: new SleepInBed(new BedrockBedWorld(index)),
       showerToilet: new PressShowerToilet(repo, systemClock),
       decor: new SetDecor(decorWorld, repo),

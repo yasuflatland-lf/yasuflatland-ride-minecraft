@@ -1084,6 +1084,59 @@ it("registers bed interactions during startup and passes the player, dimension, 
   expect(bed.execute).not.toHaveBeenCalled();
 });
 
+it("resolves an owned camper bed press to its spawn cell (ADR 0182)", () => {
+  const before = game.startup.mock.calls.length;
+  const bed = { execute: vi.fn() };
+  const spawn = { x: 0, y: 65, z: -3 };
+  const bedSpawnCell = { execute: vi.fn(() => spawn) };
+  const owner = asVehicleId("camper");
+  const dockCellOwner = vi.fn(() => owner);
+  registerSubscriptions(
+    { bed, bedSpawnCell } as unknown as Parameters<
+      typeof registerSubscriptions
+    >[0],
+    new VehicleTestStore<RawInput>(),
+    new VehicleTestStore<string>(),
+    vi.fn(),
+    dockCellOwner,
+    () => undefined,
+    () => [],
+  );
+  const registerCustomComponent =
+    vi.fn<(name: string, component: BlockCustomComponent) => void>();
+  for (const [startup] of game.startup.mock.calls.slice(before)) {
+    startup({
+      blockComponentRegistry: { registerCustomComponent },
+    } as unknown as StartupEvent);
+  }
+  const interact = registerCustomComponent.mock.calls.find(
+    ([name]) => name === CAMPER_BED_COMPONENT,
+  )?.[1].onPlayerInteract;
+  if (!interact) throw new Error("bed interaction missing");
+  const cell = { x: 1, y: 65, z: 2 };
+  interact(
+    {
+      dimension: { id: "minecraft:overworld" },
+      block: { location: cell },
+      player: { id: "p" },
+    } as Parameters<typeof interact>[0],
+    { params: undefined },
+  );
+  expect(bed.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId: "p",
+    dimensionId: "minecraft:overworld",
+    cell: spawn,
+  });
+  expect(dockCellOwner).toHaveBeenCalledExactlyOnceWith(
+    "minecraft:overworld",
+    cell,
+  );
+  expect(bedSpawnCell.execute).toHaveBeenCalledExactlyOnceWith({
+    vehicleId: owner,
+    cell,
+  });
+});
+
 it("registers shower-toilet presses during startup and sends an empty hand's press with the player's feet to the camper (ADR 0098, 0118)", () => {
   const before = game.startup.mock.calls.length;
   const showerToilet = { execute: vi.fn() };

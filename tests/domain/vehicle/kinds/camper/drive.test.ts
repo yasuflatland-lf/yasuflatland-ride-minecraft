@@ -318,3 +318,15 @@ it("drops a saved oil lamp and a saved lantern at every heading", () => {
     ),
   );
 });
+
+it("has no bed spawn cell before parking (ADR 0182)", () => {
+  fc.assert(
+    fc.property(
+      fc.integer({ min: -720, max: 720 }),
+      fc.record({ x: fc.integer(), y: fc.integer(), z: fc.integer() }),
+      (yaw, cell) => {
+        expect(new CamperDrive(yaw, {}).bedSpawnCell(cell)).toBeUndefined();
+      },
+    ),
+  );
+});
