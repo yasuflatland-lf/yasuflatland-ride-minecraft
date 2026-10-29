@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, edgePoints } from "../../../src/domain/build/box";
+import { cornerMarkerPoints } from "../../../src/domain/build/cornerMarker";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockBlockWorld } from "../../../src/infrastructure/build/bedrock/bedrockBlockWorld";
@@ -194,6 +195,63 @@ it("sends translated counts and bounded player-only particles at block centers",
         feedback.drawOutline(playerId, dimension, box, style);
         expect(setActionBar).not.toHaveBeenCalled();
         expect(spawnParticle).not.toHaveBeenCalled();
+      },
+    ),
+  );
+});
+
+it("draws 20 endrod particles on the corner boundary for the owner only", () => {
+  fc.assert(
+    fc.property(cell, (at) => {
+      const spawnParticle = vi.fn();
+      const player = {
+        typeId: "minecraft:player",
+        isValid: true,
+        dimension: { id: dimension },
+        spawnParticle,
+      };
+      engine.getEntity.mockReturnValue(player);
+      const feedback = new BedrockFeedback();
+      feedback.drawCorner(playerId, dimension, at);
+      expect(engine.getEntity).toHaveBeenLastCalledWith(playerId);
+      expect(spawnParticle).toHaveBeenCalledTimes(20);
+      expect(spawnParticle.mock.calls).toEqual(
+        cornerMarkerPoints(at).map((point) => ["minecraft:endrod", point]),
+      );
+      spawnParticle.mockClear();
+      feedback.drawCorner(playerId, asDimensionId("minecraft:nether"), at);
+      expect(spawnParticle).not.toHaveBeenCalled();
+      player.isValid = false;
+      feedback.drawCorner(playerId, dimension, at);
+      expect(spawnParticle).not.toHaveBeenCalled();
+      engine.getEntity.mockReturnValue(undefined);
+      feedback.drawCorner(playerId, dimension, at);
+      expect(spawnParticle).not.toHaveBeenCalled();
+    }),
+  );
+});
+
+it("stops a corner marker at the first rejected particle without throwing", () => {
+  fc.assert(
+    fc.property(
+      cell,
+      fc.integer({ min: 0, max: 19 }),
+      (at, successfulSpawns) => {
+        const spawnParticle = vi.fn(() => {
+          if (spawnParticle.mock.calls.length > successfulSpawns) {
+            throw new Error("unloaded");
+          }
+        });
+        engine.getEntity.mockReturnValue({
+          typeId: "minecraft:player",
+          isValid: true,
+          dimension: { id: dimension },
+          spawnParticle,
+        });
+        expect(() =>
+          new BedrockFeedback().drawCorner(playerId, dimension, at),
+        ).not.toThrow();
+        expect(spawnParticle).toHaveBeenCalledTimes(successfulSpawns + 1);
       },
     ),
   );
