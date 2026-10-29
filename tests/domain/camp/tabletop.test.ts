@@ -9,6 +9,7 @@ import {
 } from "../../../src/domain/camp/spec";
 import {
   type Footprint,
+  type LocalPoint,
   placeOnTop,
   type TopItem,
 } from "../../../src/domain/camp/tabletop";
@@ -21,34 +22,94 @@ const item = fc.record({ at: point, footprint });
 const items = fc.array(item, { maxLength: 8 });
 const limit = fc.integer({ min: 1, max: 10 });
 
+// Inputs that pass the limit and size checks, with existing items spread over
+// the top and aims both on and off it, so most runs reach the clamp and overlap
+// checks. fc.double crowds its draws near zero, so these fractions of the top
+// come from evenly spread integers instead.
+function fraction(min: number, max: number) {
+  return fc
+    .noBias(fc.integer({ min: min * 1000, max: max * 1000 }))
+    .map((n) => n / 1000);
+}
+const share = fraction(0.05, 0.5);
+const offset = fraction(-1, 1);
+const roomyCase = fc
+  .record({
+    top: footprint,
+    shape: fc.record({ x: share, z: share }),
+    others: fc.array(fc.record({ u: offset, v: offset, x: share, z: share }), {
+      maxLength: 4,
+    }),
+    aim: fc.record({ u: fraction(-2, 2), v: fraction(-2, 2) }),
+    spare: fc.integer({ min: 1, max: 3 }),
+  })
+  .map(({ top, shape, others, aim, spare }) => {
+    const existing: TopItem[] = others.map(({ u, v, x, z }) => ({
+      at: { x: u * top.halfX, z: v * top.halfZ },
+      footprint: { halfX: x * top.halfX, halfZ: z * top.halfZ },
+    }));
+    return {
+      top,
+      shape: { halfX: shape.x * top.halfX, halfZ: shape.z * top.halfZ },
+      existing,
+      aim: { x: aim.u * top.halfX, z: aim.v * top.halfZ },
+      cap: existing.length + spare,
+    };
+  });
+
+function span(center: number, half: number): readonly [number, number] {
+  return [center - half, center + half];
+}
+
+// Written as interval intersection rather than as the center distance the
+// implementation uses, so a shared mistake in both is less likely.
 function overlaps(a: TopItem, b: TopItem): boolean {
+  const sharesLength = (
+    [aLow, aHigh]: readonly [number, number],
+    [bLow, bHigh]: readonly [number, number],
+  ) => Math.min(aHigh, bHigh) > Math.max(aLow, bLow);
   return (
-    Math.abs(a.at.x - b.at.x) < a.footprint.halfX + b.footprint.halfX &&
-    Math.abs(a.at.z - b.at.z) < a.footprint.halfZ + b.footprint.halfZ
+    sharesLength(
+      span(a.at.x, a.footprint.halfX),
+      span(b.at.x, b.footprint.halfX),
+    ) &&
+    sharesLength(
+      span(a.at.z, a.footprint.halfZ),
+      span(b.at.z, b.footprint.halfZ),
+    )
   );
+}
+
+function clampInside(top: Footprint, shape: Footprint, aim: LocalPoint) {
+  const limitTo = (value: number, half: number) =>
+    Math.min(Math.max(value, -half), half);
+  return {
+    x: limitTo(aim.x, top.halfX - shape.halfX),
+    z: limitTo(aim.z, top.halfZ - shape.halfZ),
+  };
 }
 
 it("keeps accepted footprints inside the top and clear of existing items", () => {
   fc.assert(
-    fc.property(
-      footprint,
-      limit,
-      items,
-      point,
-      footprint,
-      (top, cap, existing, aim, shape) => {
-        const result = placeOnTop(top, cap, existing, aim, shape);
-        if (!result.ok) return;
-        expect(result.at.x).toBeGreaterThanOrEqual(-top.halfX + shape.halfX);
-        expect(result.at.x).toBeLessThanOrEqual(top.halfX - shape.halfX);
-        expect(result.at.z).toBeGreaterThanOrEqual(-top.halfZ + shape.halfZ);
-        expect(result.at.z).toBeLessThanOrEqual(top.halfZ - shape.halfZ);
-        for (const other of existing)
-          expect(overlaps({ at: result.at, footprint: shape }, other)).toBe(
-            false,
-          );
-      },
-    ),
+    fc.property(roomyCase, ({ top, shape, existing, aim, cap }) => {
+      const result = placeOnTop(top, cap, existing, aim, shape);
+      const at = clampInside(top, shape, aim);
+      const blocked = existing.some((other) =>
+        overlaps({ at, footprint: shape }, other),
+      );
+      if (blocked) {
+        expect(result).toEqual({ ok: false, reason: "overlap" });
+        return;
+      }
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      // toEqual tells -0 from 0, which name the same spot on the top.
+      expect([result.at.x + 0, result.at.z + 0]).toEqual([at.x + 0, at.z + 0]);
+      expect(result.at.x).toBeGreaterThanOrEqual(-top.halfX + shape.halfX);
+      expect(result.at.x).toBeLessThanOrEqual(top.halfX - shape.halfX);
+      expect(result.at.z).toBeGreaterThanOrEqual(-top.halfZ + shape.halfZ);
+      expect(result.at.z).toBeLessThanOrEqual(top.halfZ - shape.halfZ);
+    }),
   );
 });
 
@@ -84,20 +145,11 @@ it("returns an already valid aim unchanged", () => {
 
 it("clamps idempotently", () => {
   fc.assert(
-    fc.property(
-      footprint,
-      limit,
-      items,
-      point,
-      footprint,
-      (top, cap, existing, aim, shape) => {
-        const result = placeOnTop(top, cap, existing, aim, shape);
-        if (!result.ok) return;
-        expect(placeOnTop(top, cap, existing, result.at, shape)).toEqual(
-          result,
-        );
-      },
-    ),
+    fc.property(roomyCase, ({ top, shape, existing, aim, cap }) => {
+      const result = placeOnTop(top, cap, existing, aim, shape);
+      if (!result.ok) return;
+      expect(placeOnTop(top, cap, existing, result.at, shape)).toEqual(result);
+    }),
   );
 });
 
@@ -169,8 +221,11 @@ it("allows touching edges on either axis but refuses a 1e-6 px overlap without n
   const shape = GAS_LANTERN_FOOTPRINT_PX;
   const top = { halfX: 20, halfZ: 20 };
   const existing = [{ at: { x: 0, z: 0 }, footprint: shape }];
-  for (const axis of ["x", "z"] as const) {
-    const aim = { x: 0, z: 0, [axis]: 7.5 };
+  for (const [axis, half] of [
+    ["x", shape.halfX],
+    ["z", shape.halfZ],
+  ] as const) {
+    const aim = { x: 0, z: 0, [axis]: 2 * half };
     expect(placeOnTop(top, TABLE_TOP_LIMIT, existing, aim, shape)).toEqual({
       ok: true,
       at: aim,
@@ -180,7 +235,7 @@ it("allows touching edges on either axis but refuses a 1e-6 px overlap without n
         top,
         TABLE_TOP_LIMIT,
         existing,
-        { ...aim, [axis]: 7.5 - 1e-6 },
+        { ...aim, [axis]: 2 * half - 1e-6 },
         shape,
       ),
     ).toEqual({ ok: false, reason: "overlap" });
