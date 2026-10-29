@@ -28,7 +28,7 @@ import { type Arena, drive, type Outcome, wait, withCar } from "../arena";
 import { hitTick, judgeRam, PUSH_WINDOW, type RamSample } from "../ramJudge";
 import { summonCow, ticksUntilForm, vehicleForm } from "./shared";
 
-function withBulldozer<T>(
+export function withBulldozer<T>(
   a: Arena,
   x: number,
   z: number,
@@ -55,7 +55,7 @@ async function setBlade(car: Entity, raised: boolean): Promise<void> {
   if (lift !== want) throw new Error(`blade=${String(lift)} want ${want}`);
 }
 /** Sets the wide blade state through the server-only test hook and checks the saved property (ADR 0180). */
-async function setWideBlade(car: Entity, wide: boolean): Promise<void> {
+export async function setWideBlade(car: Entity, wide: boolean): Promise<void> {
   await sendToolState(car, WIDE_BLADE_SWITCH_ITEM, wide ? "wide" : "normal");
   await wait(2);
   const shown = car.getProperty(entityPropertyId("wide_blade"));
@@ -63,7 +63,7 @@ async function setWideBlade(car: Entity, wide: boolean): Promise<void> {
     throw new Error(`wide_blade=${String(shown)} want ${wide}`);
 }
 /** Checks the saved paver state after the server-only tool hook (ADR 0181). */
-async function setRoadPaver(car: Entity, on: boolean): Promise<void> {
+export async function setRoadPaver(car: Entity, on: boolean): Promise<void> {
   await sendToolState(car, ROAD_PAVER_SWITCH_ITEM, on ? "on" : "off");
   await wait(2);
   const saved = car.getProperty(entityPropertyId("road_paver"));
@@ -104,7 +104,7 @@ async function throughHill(
   drive(car, 0, 0);
   await wait(3);
 }
-async function doubleTap(car: Entity): Promise<void> {
+export async function doubleTap(car: Entity): Promise<void> {
   drive(car, 0, 0, true);
   await wait(2);
   drive(car, 0, 0);

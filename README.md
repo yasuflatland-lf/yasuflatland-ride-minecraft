@@ -27,13 +27,13 @@ This add-on holds rides, and for now the bulldozer's build tools, which will mov
 | **SUV** | Drives on land, flies, and dives as a submarine. Every player gets one on their first join | [Controls and details](docs/vehicles/suv.md) |
 | **Sports boat** | Drives on water and lava, including Nether lava seas; seated riders are protected from fire. Shores stop it, and on land it can only reverse | [Controls and details](docs/vehicles/sportsboat.md) |
 | **Camper** | Drives, flies, and dives like the SUV, with a long body and a facing dinette | [Controls and details](docs/vehicles/camper.md) |
-| **Bulldozer** | Pivots, hops, flies, and dives; with its blade lowered it clears hills and flight tunnels, and raised it climbs steps; Wide Blade doubles the cut and ram width, and its cab monitor shows UP/DOWN or NORM/WIDE for the held switch, and with the build tools it selects, fills, copies, and pastes blocks. Every player gets one on their first join | [Controls and details](docs/vehicles/bulldozer.md) |
+| **Bulldozer** | Pivots, hops, flies, and dives; with its blade lowered it clears hills and flight tunnels, and raised it climbs steps; Wide Blade doubles the cut and ram width, Road Paver lays the block in the selected slot behind it, and its cab monitor shows UP/DOWN, NORM/WIDE, or OFF/ON for the held switch, and with the build tools it selects, fills, copies, and pastes blocks. Every player gets one on their first join | [Controls and details](docs/vehicles/bulldozer.md) |
 
 The SUV, sports boat, and camper each seat 4; the bulldozer seats 1. All four can be repainted with any of the 16 dyes, and light the way with a headlight switch item. Each can be placed from its item and broken back into it. Each player keeps at most 10 SUVs, 1 sports boat, 1 camper, and 1 bulldozer: placing one more removes that player's oldest of that kind.
 
 ## Items
 
-Items other than vehicles, such as the 19 pieces of camping gear made to decorate a parked camper, the Building Tools group (Build Tool, Selection Wand, Blade Up/Down, and Wide Blade), are listed in [the item groups](docs/items/README.md).
+Items other than vehicles, such as the 19 pieces of camping gear made to decorate a parked camper, the Building Tools group (Build Tool, Selection Wand, Blade Up/Down, Wide Blade, and Road Paver), are listed in [the item groups](docs/items/README.md).
 
 ## Installing
 
