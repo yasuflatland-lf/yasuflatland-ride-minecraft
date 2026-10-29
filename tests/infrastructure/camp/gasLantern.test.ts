@@ -87,6 +87,10 @@ function fixture() {
     }),
     itemsOnTable: () => [],
     spawnHostedOnTable: vi.fn(),
+    loadedGasLanterns: () => [],
+    host: () => "",
+    isHostAreaLoaded: () => true,
+    hostExists: () => true,
   };
   registerGasLantern(
     new GasLanternActions(world),

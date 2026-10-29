@@ -2,6 +2,7 @@
 import { type Entity, system, type Vector3 } from "@minecraft/server";
 import { hostLocalPx, hostSpotPoint } from "../../domain/camp/dutchOven";
 import {
+  DUTCH_OVEN_SPEC,
   FIRE_PIT_TOP_PX,
   TABLE_SPOTS,
   TABLE_TOP_PX,
@@ -625,9 +626,29 @@ export async function dutchOvenOnPit(a: Arena): Promise<Outcome> {
 }
 
 /**
- * Removes the host an oven stands on and waits for the host check to remove
- * the oven with no dropped item (ADR 0185).
+ * Removes a host and waits for the host check to remove every item standing
+ * on it, with no dropped oven or lantern item (ADR 0185).
  */
+async function removeHostAndWait(
+  a: Arena,
+  at: Vector3,
+  host: Entity,
+  items: readonly Entity[],
+) {
+  await wait(2);
+  const kept = items.every((item) => item.isValid);
+  host.remove();
+  // The host check runs every hostCheckTicks and a busy server stretches it.
+  for (let i = 0; i < 120 && items.some((item) => item.isValid); i++)
+    await wait(1);
+  const removed = items.every((item) => !item.isValid);
+  const drops = totalAmount([
+    ...droppedItems(a, at, DUTCH_OVEN_ITEM),
+    ...droppedItems(a, at, GAS_LANTERN_ITEM),
+  ]);
+  return { kept, removed, drops };
+}
+
 async function hostRemovalTakesOven(
   a: Arena,
   at: Vector3,
@@ -635,16 +656,61 @@ async function hostRemovalTakesOven(
 ): Promise<Outcome> {
   const oven = ovensNear(a, at)[0];
   if (!oven) return { pass: false, detail: "oven not placed" };
-  await wait(2);
-  const kept = oven.isValid;
-  host.remove();
-  // The host check runs every hostCheckTicks and a busy server stretches it.
-  for (let i = 0; i < 120 && oven.isValid; i++) await wait(1);
-  const removed = !oven.isValid && ovensNear(a, at).length === 0;
-  const drops = totalAmount(droppedItems(a, at, DUTCH_OVEN_ITEM));
+  const { kept, removed, drops } = await removeHostAndWait(a, at, host, [oven]);
+  const none = ovensNear(a, at).length === 0;
   return {
-    pass: kept && removed && drops === 0,
-    detail: `kept=${kept} removed=${removed} drops=${drops}`,
+    pass: kept && removed && none && drops === 0,
+    detail: `kept=${kept} removed=${removed} none=${none} drops=${drops}`,
+  };
+}
+
+interface TableLantern {
+  readonly lantern: Entity;
+  readonly lightCell: Vector3;
+  readonly lit: boolean;
+}
+
+/** Places a lantern on the table, switches it on, and returns it with its light cell. */
+async function litTableLantern(
+  a: Arena,
+  table: Entity,
+  x: number,
+): Promise<TableLantern | undefined> {
+  const at = table.location;
+  const before = new Set(lanternsNear(a, at).map((e) => e.id));
+  await placeOnTableAt(table, x, 0, TEST_GAS_LANTERN_ON_TABLE_EVENT);
+  const lantern = lanternsNear(a, at).find((e) => !before.has(e.id));
+  if (!lantern) return undefined;
+  system.sendScriptEvent(TEST_GAS_LANTERN_EVENT, lantern.id);
+  await wait(2);
+  const lightCell = {
+    x: Math.floor(lantern.location.x),
+    y: Math.floor(table.location.y) + 1,
+    z: Math.floor(lantern.location.z),
+  };
+  const lit = a.dim.getBlock(lightCell)?.typeId === "minecraft:light_block_15";
+  return { lantern, lightCell, lit };
+}
+
+/**
+ * Removes the table and checks that its lit lantern and every other item on it
+ * go, leaving no light block and no dropped item (ADR 0185).
+ */
+async function tableRemovalTakesLantern(
+  a: Arena,
+  at: Vector3,
+  table: Entity,
+  { lantern, lightCell, lit }: TableLantern,
+  others: readonly Entity[] = [],
+): Promise<Outcome> {
+  const { kept, removed, drops } = await removeHostAndWait(a, at, table, [
+    ...others,
+    lantern,
+  ]);
+  const dark = a.dim.getBlock(lightCell)?.isAir === true;
+  return {
+    pass: lit && kept && removed && dark && drops === 0,
+    detail: `lit=${lit} kept=${kept} removed=${removed} dark=${dark} drops=${drops}`,
   };
 }
 
@@ -672,6 +738,75 @@ export async function campPitRemoveOven(a: Arena): Promise<Outcome> {
     for (const oven of ovensNear(a, at)) oven.remove();
     if (pit.isValid) pit.remove();
     for (const item of droppedItems(a, at, DUTCH_OVEN_ITEM)) item.remove();
+  }
+}
+
+/** A lit lantern goes with its table, leaving no light block and no item (ADR 0185). */
+export async function campTableRemoveLantern(a: Arena): Promise<Outcome> {
+  const at = TABLE_AT(a);
+  const table = summonTable(a, at);
+  if (!table) return { pass: false, detail: "table not spawned" };
+  try {
+    const placed = await litTableLantern(a, table, 5);
+    if (!placed) return { pass: false, detail: "lantern not placed" };
+    return await tableRemovalTakesLantern(a, at, table, placed);
+  } finally {
+    cleanTable(a, table, at);
+  }
+}
+
+/**
+ * A ground lantern beside a removed table stays: the host check skips a
+ * lantern with no marker. The table's own lantern going shows the check ran.
+ */
+export async function campGroundLanternKept(a: Arena): Promise<Outcome> {
+  const at = TABLE_AT(a);
+  const table = summonTable(a, at);
+  if (!table) return { pass: false, detail: "table not spawned" };
+  // Clear of the table's top in either orientation, but within cleanTable's reach.
+  const beside = { x: at.x, y: a.gy, z: at.z - 1.5 };
+  try {
+    const placed = await litTableLantern(a, table, 0);
+    if (!placed) return { pass: false, detail: "lantern not placed" };
+    a.dim.runCommand(
+      `summon ${GAS_LANTERN_TYPE} ${beside.x} ${beside.y} ${beside.z}`,
+    );
+    const ground = lanternsNear(a, beside).find(
+      (e) => e.id !== placed.lantern.id,
+    );
+    if (!ground) return { pass: false, detail: "ground lantern not spawned" };
+    const { removed, drops } = await removeHostAndWait(a, at, table, [
+      placed.lantern,
+    ]);
+    // Two more host checks pass after the one that took the table's lantern.
+    await wait(DUTCH_OVEN_SPEC.hostCheckTicks * 2);
+    const kept = ground.isValid;
+    return {
+      pass: removed && kept && drops === 0,
+      detail: `hostedRemoved=${removed} groundKept=${kept} drops=${drops}`,
+    };
+  } finally {
+    for (const lantern of lanternsNear(a, beside)) lantern.remove();
+    cleanTable(a, table, at);
+  }
+}
+
+/** An oven and a lit lantern on one table both go with it, with no drop. */
+export async function campTableRemoveOvenAndLantern(
+  a: Arena,
+): Promise<Outcome> {
+  const at = TABLE_AT(a);
+  const table = summonTable(a, at);
+  if (!table) return { pass: false, detail: "table not spawned" };
+  try {
+    await placeOnTableAt(table, -9, 0);
+    const oven = ovensNear(a, at)[0];
+    const placed = await litTableLantern(a, table, 15);
+    if (!oven || !placed)
+      return { pass: false, detail: `oven=${!!oven} lantern=${!!placed}` };
+    return await tableRemovalTakesLantern(a, at, table, placed, [oven]);
+  } finally {
+    cleanTable(a, table, at);
   }
 }
 

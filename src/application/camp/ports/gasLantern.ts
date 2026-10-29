@@ -12,5 +12,11 @@ export interface GasLanternWorld extends TableTopWorld {
   clearLight(id: GasLanternId): void;
   dropItem(id: GasLanternId): void;
   removeGasLantern(id: GasLanternId): void;
+  loadedGasLanterns(): readonly GasLanternId[];
+  /** The saved host marker, or "" for a lantern on the ground. */
+  host(id: GasLanternId): string;
+  /** See HostedKindPort.isHostAreaLoaded. */
+  isHostAreaLoaded(id: GasLanternId): boolean;
+  hostExists(hostId: string): boolean;
   showHitsLeft(player: PlayerId, hitsLeft: number): void;
 }
