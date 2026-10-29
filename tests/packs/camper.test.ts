@@ -16,6 +16,7 @@ import {
   CAMPER_DOOR_COMPONENT,
   SEAT_FILLER_FAMILY,
 } from "../../src/infrastructure/vehicle/bedrock/identifiers";
+import { defined } from "../support/defined";
 import { assertOneAxis, multipleAxes } from "./oneAxis";
 
 const RP = "packs/yasu_ride_rp";
@@ -95,6 +96,7 @@ describe("camper model assets (ADR 0067)", () => {
       [
         "root",
         "body",
+        "bunk",
         "headlights",
         "ceiling_lights",
         "wheel_fl",
@@ -129,6 +131,71 @@ describe("camper model assets (ADR 0067)", () => {
       if (b.name === "door_glass") expect(b.parent).toBe("door_entry");
       else if (b.name !== "body") expect(b.parent).toBe("body");
     }
+  });
+
+  it("fits the upper bunk in its mirrored cells with only slim posts below the deck (ADR 0182)", () => {
+    const bunk = bone("bunk");
+    expect(bunk.parent).toBe("body");
+    expect(bunk.pivot).toEqual([0, 0, 0]);
+    expect(bunk.rotation).toBeUndefined();
+    const cubes = bunk.cubes ?? [];
+    const panels = cubes.filter(
+      (cube) => defined(cube.origin[1], "bunk origin") >= 32,
+    );
+    const posts = cubes.filter(
+      (cube) => defined(cube.origin[1], "bunk origin") < 32,
+    );
+    expect(panels.length).toBeGreaterThanOrEqual(4);
+    expect(posts).toHaveLength(2);
+    const deck = panels.find((cube) => cube.origin[1] === 32);
+    expect(deck).toBeDefined();
+    expect(deck?.origin).toEqual([8, 32, 24]);
+    expect(deck?.size[0]).toBe(15);
+    expect(deck?.size[2]).toBe(31);
+    const deckTop = (deck?.origin[1] ?? 0) + (deck?.size[1] ?? 0);
+    for (const cube of cubes) {
+      expect(cube.rotation).toBeUndefined();
+      const [x, y, z] = [
+        defined(cube.origin[0], "bunk origin"),
+        defined(cube.origin[1], "bunk origin"),
+        defined(cube.origin[2], "bunk origin"),
+      ] as const;
+      const [width, height, depth] = [
+        defined(cube.size[0], "bunk size"),
+        defined(cube.size[1], "bunk size"),
+        defined(cube.size[2], "bunk size"),
+      ] as const;
+      expect(x).toBeGreaterThanOrEqual(8);
+      expect(x + width).toBeLessThanOrEqual(24);
+      expect(z).toBeGreaterThanOrEqual(24);
+      expect(z + depth).toBeLessThanOrEqual(56);
+      expect(y + height).toBeLessThan(48);
+      if (y < 32) {
+        expect(y).toBe(16);
+        expect(width).toBeLessThanOrEqual(1.5);
+        expect(depth).toBeLessThanOrEqual(1.5);
+        expect(y + height).toBeLessThanOrEqual(deckTop);
+        expect(x).toBe(8);
+      } else {
+        expect(y).toBeGreaterThanOrEqual(32);
+      }
+      // Horizontal separation also keeps the view of the cabinet and aisle lights clear.
+      for (const [left, right] of [
+        [-22.8, -10],
+        [-4, 4],
+      ] as const) {
+        expect(x >= right || x + width <= left).toBe(true);
+      }
+    }
+    const top = Math.max(
+      ...cubes.map(
+        (cube) =>
+          defined(cube.origin[1], "bunk origin") +
+          defined(cube.size[1], "bunk size"),
+      ),
+    );
+    expect(top - 32).toBeLessThanOrEqual(9);
+    expect(top).toBeLessThan(38);
   });
 
   it("puts wheel pivots at the axle centers and hover locators directly below after mirroring", () => {
