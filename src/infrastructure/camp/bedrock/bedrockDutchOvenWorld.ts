@@ -30,9 +30,12 @@ import {
   isFirePitCovered,
   setFirePitCovered,
 } from "./firePitCovered";
+import {
+  hostExists,
+  isHostAreaLoaded,
+  loadedEntityIds,
+} from "./hostedEntities";
 import { itemsOnTable, tableTop } from "./tableItems";
-
-const HOST_REACH_OFFSETS = [-1, 0, 1] as const;
 
 function dutchOven(id: DutchOvenId) {
   const entity = world.getEntity(id);
@@ -53,15 +56,6 @@ export function setOvenHost(
     host === "" ? DUTCH_OVEN_GROUND_EVENT : DUTCH_OVEN_HOSTED_EVENT,
   );
   oven.clearVelocity();
-}
-
-function loadedEntityIds(type: string): string[] {
-  return ["overworld", "nether", "the_end"].flatMap((dimension) =>
-    world
-      .getDimension(dimension)
-      .getEntities({ type })
-      .map((entity) => entity.id),
-  );
 }
 
 export class BedrockDutchOvenWorld implements DutchOvenWorld {
@@ -177,30 +171,11 @@ export class BedrockDutchOvenWorld implements DutchOvenWorld {
   }
 
   hostExists(id: string): boolean {
-    return world.getEntity(id)?.isValid === true;
+    return hostExists(id);
   }
 
   isHostAreaLoaded(id: DutchOvenId): boolean {
-    const oven = dutchOven(id);
-    if (!oven) return false;
-    try {
-      const at = oven.location;
-      if (oven.dimension.getBlock({ ...at, y: at.y - 1 }) === undefined)
-        return false;
-      // A table oven can sit up to TABLE_TOP_HALF_PX (under one block) off
-      // the table's position, so the table may be in a neighbouring chunk.
-      // Requiring the 3x3 cells around the oven covers wherever it can be.
-      for (const dx of HOST_REACH_OFFSETS)
-        for (const dz of HOST_REACH_OFFSETS)
-          if (
-            oven.dimension.getBlock({ ...at, x: at.x + dx, z: at.z + dz }) ===
-            undefined
-          )
-            return false;
-      return true;
-    } catch {
-      return false;
-    }
+    return isHostAreaLoaded(dutchOven(id));
   }
 
   dropItem(id: DutchOvenId): void {

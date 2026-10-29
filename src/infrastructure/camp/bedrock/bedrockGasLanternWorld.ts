@@ -23,6 +23,11 @@ import {
   GAS_LANTERN_TYPE,
   SWITCH_CLICK_SOUND,
 } from "../identifiers";
+import {
+  hostExists,
+  isHostAreaLoaded,
+  loadedEntityIds,
+} from "./hostedEntities";
 import { itemsOnTable, tableTop } from "./tableItems";
 
 function gasLantern(id: GasLanternId) {
@@ -169,6 +174,23 @@ export class BedrockGasLanternWorld implements GasLanternWorld {
 
   removeGasLantern(id: GasLanternId): void {
     gasLantern(id)?.remove();
+  }
+
+  loadedGasLanterns(): readonly GasLanternId[] {
+    return loadedEntityIds(GAS_LANTERN_TYPE).map(asGasLanternId);
+  }
+
+  host(id: GasLanternId): string {
+    const value = gasLantern(id)?.getDynamicProperty(GAS_LANTERN_HOST_PROPERTY);
+    return typeof value === "string" ? value : "";
+  }
+
+  isHostAreaLoaded(id: GasLanternId): boolean {
+    return isHostAreaLoaded(gasLantern(id));
+  }
+
+  hostExists(hostId: string): boolean {
+    return hostExists(hostId);
   }
 
   showHitsLeft(player: PlayerId, hitsLeft: number): void {
