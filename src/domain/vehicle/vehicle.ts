@@ -30,7 +30,11 @@ import {
   type LitCell,
 } from "./lighting/headlights";
 import { monitorScreen, monitorTool, nextToolState } from "./monitor/monitor";
-import type { ChaseCamera, VehicleProfile } from "./profile";
+import {
+  type ChaseCamera,
+  ramHalfWidthLimit,
+  type VehicleProfile,
+} from "./profile";
 import { type RamHit, type RamTarget, selectHits } from "./ram";
 import type { SeatAssignment } from "./seatChoice";
 import type { SeatLeaver } from "./seating";
@@ -46,6 +50,12 @@ import {
 
 const HALF_BLOCK = 0.5;
 
+/** What a rider holds, read once per tick. The tool is the bare yasu_ride item ID for the monitor (ADR 0139); the block is the namespaced block the item places as itself (ADR 0181). Either may be absent. */
+export interface RiderHeld {
+  readonly tool?: string;
+  readonly block?: string;
+}
+
 export interface RiderView {
   readonly id: PlayerId;
   readonly offset: Vec2;
@@ -53,16 +63,16 @@ export interface RiderView {
   readonly raw: RawInput;
   /** The rider's index in the engine's rider list, which is the seat it puts them in (ADR 0019). */
   readonly slot?: number;
-  /** Bare id of the `yasu_ride` item in the rider's selected slot, read only for kinds with a cab monitor (ADR 0139). */
-  readonly heldTool?: string;
+  /** Read only for kinds with a cab monitor (ADR 0139); its block feeds TickContext.heldBlock (ADR 0181). */
+  readonly held?: RiderHeld;
 }
 
-export interface VehicleTickInput extends TickContext {
+export interface VehicleTickInput extends Omit<TickContext, "heldBlock"> {
   riders: readonly RiderView[];
   /** Input used only when there is no driver (for in-game tests). */
   testInput?: RawInput;
-  /** Held tool used only when there is no driver (for in-game tests, ADR 0139). */
-  testHeldTool?: string;
+  /** Held item used only when there is no driver (for in-game tests, ADR 0139). */
+  testHeld?: RiderHeld;
   /** The player on each deck seat, in deck seat order (ADR 0063, 0120). */
   deckSeatRiders?: readonly (PlayerId | undefined)[];
   /** Nearby targets. Called only when the speed exceeds the ram threshold (ADR 0083). */
@@ -319,14 +329,8 @@ export class Vehicle {
   }
 
   tick(input: VehicleTickInput): TickOutcome {
-    const {
-      riders,
-      testInput,
-      testHeldTool,
-      deckSeatRiders,
-      targets,
-      ...sensors
-    } = input;
+    const { riders, testInput, testHeld, deckSeatRiders, targets, ...sensors } =
+      input;
     const seated = this.crew.update(
       riders,
       forward(this.drive.yaw),
@@ -341,6 +345,7 @@ export class Vehicle {
     const driver = seated.driver;
     if (seated.mounted && driver) this.drive.onDriverMounted(driver.yaw);
 
+    const held = driver ? driver.held : testHeld;
     const raw = driver?.raw ?? testInput;
     const taken = this.crew.taken();
     const deckSeatInputs = sensors.deckSeatInputs.map((deckInput, seat) =>
@@ -348,12 +353,11 @@ export class Vehicle {
     );
     const step = this.drive.step(raw, {
       ...sensors,
+      heldBlock: held?.block,
       awaitingDriver: seated.awaitingDriver,
       deckSeatInputs,
     });
-    const monitor = this.monitorCommands(
-      driver ? driver.heldTool : testHeldTool,
-    );
+    const monitor = this.monitorCommands(held?.tool);
     this.docked = step.dock !== undefined;
     this.deckDriverId =
       this.docked && this.profile.deckSeatDriverHeadlights
@@ -384,7 +388,7 @@ export class Vehicle {
       impulse: step.impulse,
       yaw: this.drive.yaw,
       standIn: this.standIn(step.dock?.hold, sensors),
-      hits: this.ram(sensors.tick, targets, step.forward),
+      hits: this.ram(sensors.tick, targets, step.forward, step.ramHalfWidth),
       driverId: driver?.id,
       stepCommands:
         monitor.length === 0 ? step.commands : [...step.commands, ...monitor],
@@ -464,17 +468,25 @@ export class Vehicle {
     tick: number,
     targets: () => readonly RamTarget[],
     f: Vec2,
+    halfWidth: number | undefined,
   ): RamHit[] {
     this.ramCooldowns.prune(tick);
     // selectHits checks the speed too; checking here skips the targets() query.
     if (Math.abs(this.drive.speed) <= SPEC.ramMinSpeed) return [];
+    const { body } = this.profile;
     const hits = selectHits(
       f,
       this.drive.speed,
       targets(),
       this.ramCooldowns.recent,
       tick,
-      this.profile.body,
+      {
+        front: body.front,
+        halfWidth: Math.min(
+          halfWidth ?? body.halfWidth,
+          ramHalfWidthLimit(this.profile),
+        ),
+      },
     );
     this.ramCooldowns.record(hits, tick);
     return hits;

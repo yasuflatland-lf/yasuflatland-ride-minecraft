@@ -8,6 +8,8 @@ import type { RawInput } from "./driveInput";
 /** Sensors and inputs from auxiliary seats. Riders, the test input and the ram query stay with the core (ADR 0083). */
 export interface TickContext {
   tick: number;
+  /** Type ID of the block the driver's selected item places as itself, or the test value when there is no driver; undefined for an empty hand or an item that names no block. The core sets it from RiderHeld.block (ADR 0181). */
+  readonly heldBlock?: string;
   deckSeatInputs: readonly (RawInput | undefined)[];
   /** Entity feet in world coordinates. */
   location: Vec3;
@@ -71,6 +73,8 @@ export interface DriveStep {
   impulse: Vec3;
   /** The facing used for the ram this tick. */
   forward: Vec2;
+  /** Half width of the ram box this tick; absent = the profile's body.halfWidth. The core clamps it to ramHalfWidthLimit(profile) (ADR 0006, 0180). */
+  ramHalfWidth?: number;
   commands: readonly EngineCommand[];
   riders: RiderState;
 }
