@@ -35,7 +35,7 @@ The outside Camp Table (ADR 0152) is a two-seat table whose top takes only Dutch
    - The point is clamped so the item's footprint lies inside the tabletop rectangle. The footprint of each item is a tuning value kept with the table's other values (`TABLE_SPEC` or a sibling), measured from the item's model.
    - If the clamped footprint overlaps an item already on the table, the placement is refused and nothing is consumed. (Owner's call: nothing about nudging was asked for, so this design refuses.)
    - If the table already holds 4 items, the placement is refused.
-   - The tabletop clearance check stays: the cell above the item needs the air its entity needs (`DUTCH_OVEN_SPEC.clearance`, `GAS_LANTERN_SPEC.clearance`).
+   - The tabletop clearance check stays: the cell above the item needs the air its entity needs (`DUTCH_OVEN_SPEC.clearance`, `GAS_LANTERN_SPEC.tableClearance`). The check counts from the table's own cell, and the lantern on the 12.25 px top reaches the cell above the table with its body and its light cell, so it needs 2 cells instead of its ground clearance of 1.
    - Survival consumes the item; Creative does not, as today.
 3. **Taking back.** Three quick hits on a placed oven or lantern drop its item and remove the entity, as on the ground. For an oven this is today's behavior; for a lantern on a table it is the same as on the ground, and its light block is cleared.
 4. **Folding the table.** Three quick hits fold the table into its item only when nothing stands on it, as today for ovens; now lanterns count too. With something on it, the player sees the existing "something is on top" hint.
