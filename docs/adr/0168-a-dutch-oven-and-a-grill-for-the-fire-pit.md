@@ -1,6 +1,6 @@
 # 0168. A Dutch oven and a grill for the fire pit
 
-- Status: Proposed
+- Status: Proposed; superseded in part (a missing host removes the oven with no drop) and extended (the table top holds ovens and Gas Lanterns at the aimed point) by [0185](0185-put-things-on-the-camp-table-instead-of-sitting-at-it.md) (Proposed)
 - Date: 2026-10-27
 - Extends: 0122, 0144, 0152, 0153
 
