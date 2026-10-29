@@ -1,11 +1,19 @@
 // In-game checks of the camp feature's low chair (ADR 0122).
 import { type Entity, system, type Vector3 } from "@minecraft/server";
-import { FIRE_PIT_TOP_PX, TABLE_TOP_PX } from "../../domain/camp/spec";
+import { hostLocalPx, hostSpotPoint } from "../../domain/camp/dutchOven";
+import { decodeHost } from "../../domain/camp/hosted";
+import {
+  FIRE_PIT_TOP_PX,
+  TABLE_SPOTS,
+  TABLE_TOP_PX,
+} from "../../domain/camp/spec";
 import {
   CAMP_TABLE_ITEM,
   CAMP_TABLE_TYPE,
   CHAIR_KINDS,
   type ChairProfile,
+  DUTCH_OVEN_HOST_PROPERTY,
+  DUTCH_OVEN_HOSTED_EVENT,
   DUTCH_OVEN_ITEM,
   DUTCH_OVEN_SIMMERING_PROPERTY,
   DUTCH_OVEN_TYPE,
@@ -255,6 +263,144 @@ export async function dutchOvenOnTable(a: Arena): Promise<Outcome> {
     for (const oven of ovensNear(a, at)) oven.remove();
     for (const type of [DUTCH_OVEN_ITEM, CAMP_TABLE_ITEM])
       for (const item of droppedItems(a, at, type)) item.remove();
+  }
+}
+
+const TABLE_AT = (a: Arena) => ({ x: CELL.x, y: a.gy, z: CELL.z + 8.5 });
+
+const summonTable = (a: Arena, at: Vector3): Entity | undefined => {
+  a.dim.runCommand(`summon ${CAMP_TABLE_TYPE} ${at.x} ${at.y} ${at.z}`);
+  return a.dim.getEntities({
+    type: CAMP_TABLE_TYPE,
+    location: at,
+    maxDistance: 1.5,
+  })[0];
+};
+
+/** The ovens whose host marker names this table. */
+const ovensOnTable = (a: Arena, table: Entity) =>
+  a.dim.getEntities({ type: DUTCH_OVEN_TYPE }).filter((oven) => {
+    const host = decodeHost(
+      String(oven.getDynamicProperty(DUTCH_OVEN_HOST_PROPERTY) ?? ""),
+    );
+    return host.kind === "camp_table" && host.id === table.id;
+  });
+
+/** Summons an oven that names the table in its host marker, as a saved world would hold it. */
+const summonMarkedOven = (a: Arena, at: Vector3, marker: string) => {
+  a.dim.runCommand(`summon ${DUTCH_OVEN_TYPE} ${at.x} ${at.y} ${at.z}`);
+  const oven = a.dim
+    .getEntities({ type: DUTCH_OVEN_TYPE, location: at, maxDistance: 0.5 })
+    .find((e) => e.getDynamicProperty(DUTCH_OVEN_HOST_PROPERTY) === undefined);
+  oven?.setDynamicProperty(DUTCH_OVEN_HOST_PROPERTY, marker);
+  oven?.triggerEvent(DUTCH_OVEN_HOSTED_EVENT);
+  return oven;
+};
+
+const placeOnTableAt = async (table: Entity, x: number, z: number) => {
+  system.sendScriptEvent(
+    TEST_DUTCH_OVEN_ON_TABLE_EVENT,
+    `${table.id} ${x} ${z}`,
+  );
+  await wait(2);
+};
+
+const cleanTable = (a: Arena, table: Entity | undefined, at: Vector3) => {
+  for (const oven of ovensNear(a, at)) oven.remove();
+  if (table?.isValid) table.remove();
+  for (const type of [DUTCH_OVEN_ITEM, CAMP_TABLE_ITEM])
+    for (const item of droppedItems(a, at, type)) item.remove();
+};
+
+/**
+ * Ovens stand at chosen points of the top, an overlapping one is refused, and
+ * a fifth item is refused at a free point. Only two ovens fit side by side on
+ * the 30 px top, so ovens with hand-written markers fill the limit (ADR 0185).
+ */
+export async function campTableFreeOven(a: Arena): Promise<Outcome> {
+  const at = TABLE_AT(a);
+  const table = summonTable(a, at);
+  if (!table) return { pass: false, detail: "table not spawned" };
+  try {
+    const host = { at: table.location, yaw: table.getRotation().y };
+    await placeOnTableAt(table, -9, 0);
+    await placeOnTableAt(table, 3, 0.5);
+    await placeOnTableAt(table, -4, 0);
+    const placed = ovensOnTable(a, table);
+    const points = placed
+      .map((oven) => hostLocalPx(host, oven.location))
+      .sort((p, q) => p.x - q.x);
+    const atPoints =
+      placed.length === 2 &&
+      [
+        { x: -9, z: 0 },
+        { x: 3, z: 0.5 },
+      ].every(
+        (want, i) =>
+          Math.abs((points[i]?.x ?? Infinity) - want.x) < 0.1 &&
+          Math.abs((points[i]?.z ?? Infinity) - want.z) < 0.1,
+      ) &&
+      placed.every(
+        (oven) =>
+          Math.abs(oven.location.y - (table.location.y + TABLE_TOP_PX / 16)) <
+          0.05,
+      );
+
+    for (const oven of placed)
+      if (hostLocalPx(host, oven.location).x > 0) oven.remove();
+    const fillers = [0, 1, 2].map(() =>
+      summonMarkedOven(a, at, `camp_table:${table.id}:@-9,0`),
+    );
+    await placeOnTableAt(table, 6, 0);
+    const full = ovensOnTable(a, table).length;
+    fillers[0]?.remove();
+    await placeOnTableAt(table, 6, 0);
+    const freed = ovensOnTable(a, table).length;
+    return {
+      pass: atPoints && full === 4 && freed === 4,
+      detail: `placed=${placed.length} points=${JSON.stringify(points)} full=${full} freed=${freed}`,
+    };
+  } finally {
+    cleanTable(a, table, at);
+  }
+}
+
+/** An oven saved with an old spot marker still counts on the top and still blocks folding. */
+export async function campTableLegacyOven(a: Arena): Promise<Outcome> {
+  const at = TABLE_AT(a);
+  const table = summonTable(a, at);
+  if (!table) return { pass: false, detail: "table not spawned" };
+  try {
+    const [left] = TABLE_SPOTS;
+    const legacy = summonMarkedOven(
+      a,
+      hostSpotPoint(
+        { at: table.location, yaw: table.getRotation().y },
+        left,
+        TABLE_TOP_PX,
+      ),
+      `camp_table:${table.id}:0`,
+    );
+    await wait(22);
+    const kept =
+      legacy?.isValid === true &&
+      legacy.getDynamicProperty(DUTCH_OVEN_HOST_PROPERTY) ===
+        `camp_table:${table.id}:0`;
+    for (let i = 0; i < 3; i++) {
+      system.sendScriptEvent(TEST_TABLE_HIT_EVENT, table.id);
+      await wait(2);
+    }
+    const guarded = table.isValid;
+    await placeOnTableAt(table, left.x, left.z);
+    const blocked = ovensOnTable(a, table).length === 1;
+    await placeOnTableAt(table, -left.x, left.z);
+    const beside = ovensOnTable(a, table).length === 2;
+    return {
+      pass: kept && guarded && blocked && beside,
+      detail: `kept=${kept} guarded=${guarded} blocked=${blocked} beside=${beside}`,
+    };
+  } finally {
+    cleanTable(a, table, at);
   }
 }
 
