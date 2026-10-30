@@ -70,4 +70,4 @@ for name, rows in (("selection_wand", SELECTION_WAND), ("build_tool", BUILD_TOOL
     assert len(rows) == 16 and all(len(row) == 16 for row in rows), name
     out.png(ITEM_TEXTURES / f"{name}.png", 16, 16, lambda x, y: COLORS[rows[y][x]])
 
-out.finish("out of date with tools/gen_build_tools.py. Run `pnpm model` and commit the result:")
+out.finish("Build tool outputs are out of date with tools/gen_build_tools.py. Run `pnpm model` and commit the result:")

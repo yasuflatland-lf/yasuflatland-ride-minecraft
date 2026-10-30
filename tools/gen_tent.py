@@ -337,7 +337,7 @@ def main():
     out.json(geo_path, json.dumps(document, separators=(",", ":")) + "\n")
     for paint, path in textures.items():
         out.png(path, ATLAS_SIZE, ATLAS_SIZE, texture_io.texel_reader(ATLAS_SIZE, texture_pixels(paint)), compress_level=9)
-    out.finish("out of date with tools/gen_tent.py. Run `pnpm model` and commit the result.", "tent model and textures are up to date")
+    out.finish("Tent outputs are out of date with tools/gen_tent.py. Run `pnpm model` and commit the result:", "tent model and textures are up to date")
 
 
 if __name__ == "__main__":

@@ -292,7 +292,7 @@ def main():
 
     out.json(geo_path, json.dumps(document, separators=(",", ":")) + "\n")
     out.png(texture_path, ATLAS_SIZE, ATLAS_SIZE, texture_io.texel_reader(ATLAS_SIZE, texture_pixels()), compress_level=9)
-    out.finish("out of date with tools/gen_noga_chair.py. Run `pnpm model` and commit the result.", "Noga Chair model and texture are up to date")
+    out.finish("Noga Chair outputs are out of date with tools/gen_noga_chair.py. Run `pnpm model` and commit the result:", "Noga Chair model and texture are up to date")
 
 
 if __name__ == "__main__":

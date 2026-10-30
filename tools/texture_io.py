@@ -26,8 +26,9 @@ class Outputs:
         if self.check:
             try:
                 matches = json.loads(path.read_text()) == json.loads(data)
-            except (OSError, ValueError):
-                matches = False
+            except (OSError, ValueError) as e:
+                self.stale.append(f"{path} ({e})")
+                return
             if not matches:
                 self.stale.append(str(path))
         else:
@@ -38,12 +39,13 @@ class Outputs:
 
     # Compare decoded RGBA rows so zlib packing differences do not affect --check.
     def png(self, path, width, height, pixel, compress_level=-1):
-        pixels = [[tuple(pixel(x, y)) for x in range(width)] for y in range(height)]
+        pixels = [[(*pixel(x, y), 255)[:4] for x in range(width)] for y in range(height)]
         if self.check:
             try:
                 matches = load_tool("render_preview").read_png(path) == pixels
-            except (OSError, ValueError, struct.error, zlib.error):
-                matches = False
+            except (OSError, ValueError, struct.error, zlib.error) as e:
+                self.stale.append(f"{path} ({e})")
+                return
             if not matches:
                 self.stale.append(str(path))
             return

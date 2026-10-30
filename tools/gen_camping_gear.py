@@ -656,7 +656,7 @@ def main():
     for path, document in documents.items():
         out.json(path, json.dumps(document, separators=(",", ":")) + "\n")
     out.png(atlas, ATLAS_SIZE, ATLAS_SIZE, texture_io.texel_reader(ATLAS_SIZE, atlas_pixels()), compress_level=9)
-    out.finish("out of date with tools/gen_camping_gear.py and tools/camping_gear.json. Run `pnpm model` and commit the result.", "camping gear models, atlas, blocks, and items are up to date")
+    out.finish("Camping gear outputs are out of date with tools/gen_camping_gear.py and tools/camping_gear.json. Run `pnpm model` and commit the result:", "camping gear models, atlas, blocks, and items are up to date")
 
 
 if __name__ == "__main__":
