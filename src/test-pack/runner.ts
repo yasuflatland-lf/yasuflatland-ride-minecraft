@@ -7,8 +7,8 @@ import { coverageGaps, planOf } from "./plan";
 import {
   LOG_TAG,
   linePrefix,
+  parseRunRequest,
   type RunRequest,
-  runRequestFrom,
   TEST_EVENT,
 } from "./protocol";
 import { SCENARIOS } from "./scenarios/index";
@@ -59,12 +59,32 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
   log(runId, `SUMMARY pass=${passed} fail=${plan.runs.length - passed}`);
 }
 
+function unsupportedOption(request: RunRequest): string | undefined {
+  if (request.at !== 0) return "at";
+  if (request.features !== undefined) return "features";
+  if (request.lanes !== 1) return "lanes";
+  return undefined;
+}
+
 // Two runs would share the arena and kill each other's cars in setupArena.
 let activeRun: string | undefined;
 
 system.afterEvents.scriptEventReceive.subscribe((ev) => {
   if (ev.id !== TEST_EVENT) return;
-  const request = runRequestFrom(ev.message);
+  const parsed = parseRunRequest(ev.message);
+  if (!parsed.ok) {
+    log(parsed.runId, `SUMMARY pass=0 fail=1 error=${parsed.error}`);
+    return;
+  }
+  const request = parsed.request;
+  const unsupported = unsupportedOption(request);
+  if (unsupported !== undefined) {
+    log(
+      request.runId,
+      `SUMMARY pass=0 fail=1 error=${unsupported} not supported yet`,
+    );
+    return;
+  }
   const { runId } = request;
   if (activeRun !== undefined) {
     log(runId, `SUMMARY pass=0 fail=1 error=run ${activeRun} in progress`);
