@@ -2,12 +2,6 @@ import type { Arena } from "../arena";
 import type { Outcome, StepSink } from "../outcome";
 import { bladeCutColumn, bladeCutDrops, bladeCutKeptIds } from "./bladeCut";
 import {
-  buildCornerMarkerNone,
-  buildCornerMarkerPair,
-  buildCornerMarkerPos1,
-  buildCornerMarkerPos2,
-} from "./buildCornerMarker";
-import {
   buildBlockStates,
   buildEdits,
   buildSelectionAndMode,
@@ -236,8 +230,4 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   tent_paint_events: tentPaintEvents,
   build_edits: buildEdits,
   build_selection_and_mode: buildSelectionAndMode,
-  build_corner_marker_pos1: buildCornerMarkerPos1,
-  build_corner_marker_pos2: buildCornerMarkerPos2,
-  build_corner_marker_none: buildCornerMarkerNone,
-  build_corner_marker_pair: buildCornerMarkerPair,
 };

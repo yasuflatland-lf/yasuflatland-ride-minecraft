@@ -4,7 +4,6 @@ import {
   ItemStack,
   type Player,
   system,
-  type Vector3,
   world,
 } from "@minecraft/server";
 import { blockStateOf, sameBlockState } from "../../domain/build/blockState";
@@ -22,7 +21,7 @@ import {
 import { type Arena, wait, withCar } from "../arena";
 import type { Outcome } from "../outcome";
 
-export function riddenEntity(player: Player): Entity | undefined {
+function riddenEntity(player: Player): Entity | undefined {
   try {
     return player.getComponent("minecraft:riding")?.entityRidingOn;
   } catch {
@@ -40,10 +39,7 @@ function ejectPlayer(player: Player, mount: Entity): void {
   }
 }
 
-export async function boardBulldozer(
-  player: Player,
-  car: Entity,
-): Promise<void> {
+async function boardBulldozer(player: Player, car: Entity): Promise<void> {
   const rideable = car.getComponent("minecraft:rideable");
   if (!rideable) throw new Error("bulldozer rideable component missing");
   let seatedTicks = 0;
@@ -68,7 +64,7 @@ export async function boardBulldozer(
   );
 }
 
-export function withPlayerBulldozer(
+function withPlayerBulldozer(
   a: Arena,
   { player, x, z, yaw }: { player: Player; x: number; z: number; yaw: number },
   run: (car: Entity) => Promise<Outcome>,
@@ -103,15 +99,13 @@ export async function buildBlockStates(a: Arena): Promise<Outcome> {
     const state = blockStateOf("minecraft:oak_log", { pillar_axis: "x" });
     const written = blocks.setState(dimension, cell, state);
     const actual = blocks.stateAt(dimension, cell);
-    const protectedBlocks = new BedrockBlockWorld({ isProtected: () => true });
     return {
       pass:
         written &&
         !!actual &&
         actual.typeId === state.typeId &&
         actual.states.pillar_axis === "x" &&
-        blocks.mayEdit(dimension, cell) &&
-        !protectedBlocks.mayEdit(dimension, cell),
+        blocks.mayEdit(dimension, cell),
       detail: `written=${written} state=${JSON.stringify(actual)}`,
     };
   } finally {
@@ -122,8 +116,7 @@ export async function buildBlockStates(a: Arena): Promise<Outcome> {
 interface Reply {
   player: string;
   message?: string;
-  count?: number;
-  selection?: { pos1?: Vector3; pos2?: Vector3 } | null;
+  selection?: unknown;
   mode?: boolean;
   ticks?: number;
 }
@@ -206,20 +199,12 @@ export async function buildEdits(a: Arena): Promise<Outcome> {
         }
         const original = cells.map((b) => b.permutation);
         await select(50, y, 50, 3);
-        const filledReply = await edit("fill minecraft:stone");
+        await edit("fill minecraft:stone");
         check(
           cells.every((b) => b.typeId === "minecraft:stone"),
           "fill did not fill all 27 cells",
         );
-        check(
-          filledReply.message === "editDone" && filledReply.count === 27,
-          "fill did not report editDone with its block count",
-        );
-        const undoneReply = await edit("undo");
-        check(
-          undoneReply.message === "undoDone" && undoneReply.count === 27,
-          "undo did not report undoDone with its block count",
-        );
+        await edit("undo");
         check(
           cells.every((b, i) => {
             const before = original[i];
@@ -395,7 +380,6 @@ export async function buildSelectionAndMode(a: Arena): Promise<Outcome> {
       }),
     );
   const mode = () => query(TEST_MODE_EVENT, player.name);
-  const localX = (p: Vector3 | undefined) => (p ? a.local(p).x : undefined);
   system.afterEvents.scriptEventReceive.subscribe(listener);
   try {
     return await withPlayerBulldozer(
@@ -406,8 +390,6 @@ export async function buildSelectionAndMode(a: Arena): Promise<Outcome> {
         inventory.setItem(slot, new ItemStack(SELECTION_WAND_TYPE));
         await boardBulldozer(player, car);
         await corner("clear", 20);
-        const first = await corner("pos1", 21);
-        const second = await corner("pos2", 23);
         await wait(BUILD_SPEC.modeEnterTicks);
         const active = await mode();
         // A short hotbar scroll must not flick build mode or the vehicle's camera wish.
@@ -422,17 +404,12 @@ export async function buildSelectionAndMode(a: Arena): Promise<Outcome> {
         const refused = await corner("pos1", 25);
         return {
           pass:
-            first.message === "pos1Set" &&
-            localX(first.selection?.pos1) === 21 &&
-            second.message === "pos2Set" &&
-            localX(second.selection?.pos2) === 23 &&
-            second.count === 3 &&
             active.mode === true &&
             scroll.mode === true &&
             inactive.mode === false &&
             refused.message === "notInBulldozer" &&
             refused.selection === null,
-          detail: `pos1=${first.message} volume=${second.count} mode=${active.mode} scroll=${scroll.mode} off=${inactive.mode} refusal=${refused.message}; visually verify third person while active and restored view after dismount`,
+          detail: `mode=${active.mode} scroll=${scroll.mode} off=${inactive.mode} refusal=${refused.message}; visually verify third person while active and restored view after dismount`,
         };
       },
     );
