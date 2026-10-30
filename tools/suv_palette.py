@@ -31,7 +31,6 @@ PALETTE = {
     "hardtop_rib": (46, 47, 52),  # the lit tops of the roof ribs
 }
 NAMES = list(PALETTE)
-EMISSIVE_LIT = 255
 LIT_SLOTS = tuple(NAMES.index(name) for name in ("light",))
 # A power of two wide enough for a 4 px cell per swatch (16 swatches filled 64 px before "prop")
 TEXTURE_WIDTH = 128
