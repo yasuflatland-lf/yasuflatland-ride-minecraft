@@ -10,6 +10,8 @@ import {
   paintEvent,
 } from "../../src/infrastructure/shared/dyes";
 
+import { readRgbaPng } from "../support/png";
+
 const read = (p: string) => JSON.parse(readFileSync(p, "utf8"));
 const entity = read("packs/yasu_ride_bp/entities/yasu_ride/suv.se.json")[
   "minecraft:entity"
@@ -186,5 +188,28 @@ describe("tent paints (ADR 0031, 0135)", () => {
         false,
       );
     expect(TENT_SPEC.defaultPaint).toBe("khaki");
+  });
+});
+
+describe("camper atlas paints (ADR 0190)", () => {
+  it("keeps the swatch row except accents and every region texel identical across all 16 paints", () => {
+    const base = readRgbaPng(textureOf("camper", PAINTS[0]));
+    expect(base.height).toBeGreaterThan(1);
+    for (const paint of PAINTS) {
+      const texture = readRgbaPng(textureOf("camper", paint));
+      expect([texture.width, texture.height]).toEqual([
+        base.width,
+        base.height,
+      ]);
+      for (let x = 0; x < base.width; x++) {
+        if ([3, 4, 6].includes(x)) continue;
+        expect(texture.pixels.subarray(x * 4, (x + 1) * 4), paint).toEqual(
+          base.pixels.subarray(x * 4, (x + 1) * 4),
+        );
+      }
+      expect(texture.pixels.subarray(base.width * 4), paint).toEqual(
+        base.pixels.subarray(base.width * 4),
+      );
+    }
   });
 });

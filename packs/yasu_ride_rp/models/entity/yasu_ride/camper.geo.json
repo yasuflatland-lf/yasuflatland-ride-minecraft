@@ -4,8 +4,8 @@
     {
       "description": {
         "identifier": "geometry.yasu_ride.camper",
-        "texture_width": 36,
-        "texture_height": 1,
+        "texture_width": 38,
+        "texture_height": 129,
         "visible_bounds_width": 10,
         "visible_bounds_height": 5,
         "visible_bounds_offset": [0, 1.5, 0]

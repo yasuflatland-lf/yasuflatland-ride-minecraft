@@ -101,9 +101,14 @@ PALETTE = {
     # swatches (ADR 0184).
     "marker_amber": (240, 140, 30, 255),
     "marker_red": (200, 30, 30, 255),
+    # Append trim swatches so every existing cube keeps its palette index.
+    "aluminium": (168, 170, 168, 255),
+    "trim_beige": (214, 211, 202, 255),
 }
 SLOTS = list(PALETTE)
 ATLAS = camper_atlas.Atlas(SLOTS)
+RIB_PERIOD_TEXELS = 2
+RIB_TEXELS_PER_PX = 2
 EMISSIVE_LIT = 255
 MER_LIT = (0, EMISSIVE_LIT, 255)
 MER_OFF = (0, 0, 255)
@@ -137,6 +142,8 @@ ACCENT_BASES = {
 HW = 24  # half width
 FRONT, REAR = -56, 56
 BOTTOM, FLOOR, CEIL, ROOF = 8, 16, 61, 64  # roof 4.0 blocks up, the top of the fourth cell from the ground
+# From the region's top, row dy maps to model y = dy / RIB_TEXELS_PER_PX above y = 0.
+RIB_REGION = ATLAS.allocate("rib", 8, ROOF * RIB_TEXELS_PER_PX)
 FRONT_AXLE, REAR_AXLE = -31.5, 31
 WHEEL_R = 7.8
 # Keep the existing 2.5 px end gaps and 2 px top gap; scaling the gaps crowds the rear hatch.
@@ -1463,14 +1470,20 @@ def scale(color, factor):
     return tuple(max(0, min(255, math.floor(c * factor + 0.5))) for c in color)
 
 
+def region_pixel(region, x, y):
+    phase = y % RIB_PERIOD_TEXELS
+    factor = 0.93 if phase == 0 else 1.05 if phase == 1 else 1
+    return (*scale(PALETTE["white"][:3], factor), 255)
+
+
 for paint, base in ACCENT_BASES.items():
     colors = dict(PALETTE)
     if paint != "khaki":
         colors.update(khaki=(*scale(base, 0.85), 255), stripe=(*scale(base, 0.65), 255), tan=(*base, 255))
     name = "camper" if paint == "khaki" else f"camper_{paint}"
-    png(ENTITY_TEXTURES / f"{name}.png", ATLAS.width, ATLAS.height, lambda x, y: ATLAS.pixel(colors, x, y))
+    png(ENTITY_TEXTURES / f"{name}.png", ATLAS.width, ATLAS.height, lambda x, y: ATLAS.pixel(colors, x, y, region_pixel))
 
-lit_textures("camper", ATLAS.width, ATLAS.height, lambda x, y: ATLAS.pixel(PALETTE, x, y))
+lit_textures("camper", ATLAS.width, ATLAS.height, lambda x, y: ATLAS.pixel(PALETTE, x, y, region_pixel))
 
 ICON = [
     "................",

@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
@@ -1944,5 +1945,69 @@ describe("camper rear-right vent lid (ADR 0146, 0157)", () => {
     const latch = steel.filter((c) => (c.size[2] ?? 0) > 1);
     expect(latch).toHaveLength(1);
     expect(end(latch[0] as Cube, 1)).toBeLessThan(40);
+  });
+});
+
+describe("camper rib atlas (ADR 0190)", () => {
+  it("allocates only the rib region below the swatches, without overlaps and within the texture", () => {
+    const { width, height, regions, period, texelsPerPx } = JSON.parse(
+      execFileSync(
+        "python3",
+        [
+          "-I",
+          "-c",
+          [
+            "import contextlib, io, json, runpy, sys",
+            "sys.argv = ['tools/gen_camper.py', 'packs/yasu_ride_rp', '--check']",
+            "with contextlib.redirect_stdout(io.StringIO()):",
+            "    camper = runpy.run_path('tools/gen_camper.py')",
+            "atlas = camper['ATLAS']",
+            "print(json.dumps(dict(width=atlas.width, height=atlas.height, regions=atlas.regions, period=camper['RIB_PERIOD_TEXELS'], texelsPerPx=camper['RIB_TEXELS_PER_PX'])))",
+          ].join("\n"),
+        ],
+        { encoding: "utf8" },
+      ),
+    ) as {
+      width: number;
+      height: number;
+      regions: [string, number, number, number, number][];
+      period: number;
+      texelsPerPx: number;
+    };
+    expect([width, height]).toEqual([
+      geometry.description.texture_width,
+      geometry.description.texture_height,
+    ]);
+    expect(regions.map(([name]) => name)).toEqual(["rib"]);
+    expect(period).toBe(2);
+    expect(texelsPerPx).toBe(2);
+    for (const [i, [, x, y, w, h]] of regions.entries()) {
+      expect(x).toBeGreaterThanOrEqual(0);
+      expect(y).toBeGreaterThanOrEqual(1);
+      expect(w).toBe(8);
+      expect(h).toBe(64 * texelsPerPx);
+      expect(h % period).toBe(0);
+      expect(x + w).toBeLessThanOrEqual(width);
+      expect(y + h).toBeLessThanOrEqual(height);
+      for (const [, ox, oy, ow, oh] of regions.slice(0, i))
+        expect(x + w <= ox || ox + ow <= x || y + h <= oy || oy + oh <= y).toBe(
+          true,
+        );
+      const texture = readPng("textures/entity/yasu_ride/camper");
+      const shell = [...texture.pixels.subarray(0, 3)];
+      for (let dy = 0; dy < h; dy++) {
+        const factor = dy % period === 0 ? 0.93 : 1.05;
+        const expected = [
+          ...shell.map((c) => Math.min(255, Math.floor(c * factor + 0.5))),
+          255,
+        ];
+        for (let dx = 0; dx < w; dx++) {
+          const offset = ((y + dy) * width + x + dx) * 4;
+          expect([...texture.pixels.subarray(offset, offset + 4)]).toEqual(
+            expected,
+          );
+        }
+      }
+    }
   });
 });
