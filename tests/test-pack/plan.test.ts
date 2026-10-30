@@ -179,6 +179,7 @@ describe("planOf", () => {
       features: ["build"],
       isolation: "exclusive",
       needsPlayer: true,
+      skipNote: "camera perspective needs visual verification",
       vehicles: 1,
     };
     expect(
@@ -211,13 +212,29 @@ describe("coverageGaps", () => {
             names.every((name) => registered.includes(name)) &&
               registered.every((name) => names.includes(name)),
           );
-          expect(coverageGaps(names, [...names].reverse())).toEqual({
-            missing: [],
-            extra: [],
-          });
+          const uniqueNames = [...new Set(names)];
+          expect(coverageGaps(uniqueNames, [...uniqueNames].reverse())).toEqual(
+            {
+              missing: [],
+              extra: [],
+              duplicates: [],
+            },
+          );
         },
       ),
     );
+  });
+  it("reports names repeated in either list once, including shared duplicates", () => {
+    expect(
+      coverageGaps(
+        ["both", "both", "both", "catalog", "catalog", "shared"],
+        ["both", "both", "registry", "registry", "shared"],
+      ),
+    ).toEqual({
+      missing: ["catalog"],
+      extra: ["registry"],
+      duplicates: ["both", "catalog", "registry"],
+    });
   });
 });
 

@@ -18,14 +18,14 @@ function log(runId: string, msg: string): void {
 }
 
 async function runAll({ runId, shard }: RunRequest): Promise<void> {
-  const { missing, extra } = coverageGaps(
+  const { missing, extra, duplicates } = coverageGaps(
     CATALOG.map((spec) => spec.name),
     Object.keys(SCENARIOS),
   );
-  if (missing.length > 0 || extra.length > 0) {
+  if (missing.length > 0 || extra.length > 0 || duplicates.length > 0) {
     log(
       runId,
-      `SUMMARY pass=0 fail=1 error=catalog mismatch missing=${missing.join(",")} extra=${extra.join(",")}`,
+      `SUMMARY pass=0 fail=1 error=catalog mismatch missing=${missing.join(",")} extra=${extra.join(",")} duplicates=${duplicates.join(",")}`,
     );
     return;
   }

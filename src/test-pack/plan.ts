@@ -35,10 +35,7 @@ export interface RunPlan {
 }
 
 function skipReason(spec: ScenarioSpec): string {
-  if (spec.name === "build_selection_and_mode") {
-    return "a connected player is required; camera perspective needs visual verification";
-  }
-  return "a connected player is required";
+  return `a connected player is required${spec.skipNote === undefined ? "" : `; ${spec.skipNote}`}`;
 }
 
 export function planOf(
@@ -78,11 +75,24 @@ export function planOf(
 export function coverageGaps(
   names: readonly string[],
   registered: readonly string[],
-): { readonly missing: string[]; readonly extra: string[] } {
+): {
+  readonly missing: string[];
+  readonly extra: string[];
+  readonly duplicates: string[];
+} {
   const expected = new Set(names);
   const actual = new Set(registered);
+  const duplicates = new Set<string>();
+  for (const list of [names, registered]) {
+    const seen = new Set<string>();
+    for (const name of list) {
+      if (seen.has(name)) duplicates.add(name);
+      seen.add(name);
+    }
+  }
   return {
     missing: [...expected].filter((name) => !actual.has(name)),
     extra: [...actual].filter((name) => !expected.has(name)),
+    duplicates: [...duplicates],
   };
 }
