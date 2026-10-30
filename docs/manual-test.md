@@ -469,12 +469,12 @@ Setup: use a Vibrant Visuals device at night, then repeat the legacy checks with
 | L8 | Fly, bank, and open a door with lights on: the glow follows the parts. | [ ] | [ ] |
 | L9 | Switch the Gas Lantern on and off: with Vibrant Visuals on, the flame glows, glass stays see-through, and metal reflects; with it off, the flame is full-bright only while on. | unverified | unverified |
 | L10 | Switch the camper headlights on at night in Vibrant Visuals: the roof clearance lamps, the four rear roof lamps, and both round tail lamps glow only while on; the side marker lamps and the rear turn signals do not. | [ ] | [ ] |
-| L11 | Switch the SUV headlights on and off at night with Vibrant Visuals on and off: the tail lights, third brake light, headlights, fog lamps, and front strip look the same as before this change (ADR 0192). | [ ] | [ ] |
+| L11 | Switch the SUV headlights on and off at night with Vibrant Visuals on and off: the headlights, fog lamps, and front strip look the same as before this change (ADR 0192); for the tail lamps and third brake light, see L18. | [ ] | [ ] |
 | L12 | With Vibrant Visuals on, check that SUV paint is glossy metallic, not chrome, and keeps its hue. | [ ] | [ ] |
 | L13 | With Vibrant Visuals on, check that the SUV hardtop is matte. | [ ] | [ ] |
 | L14 | With Vibrant Visuals on and SUV headlights off, check that the headlights do not glow (L1). | [ ] | [ ] |
 | L15 | With Vibrant Visuals on and SUV headlights on, check that the lit lamps from L1 and L5 still glow. | [ ] | [ ] |
-| L16 | With Vibrant Visuals off, check that the SUV paint and lights look unchanged, and repeat L6 for the SUV. | [ ] | [ ] |
+| L16 | With Vibrant Visuals off, check that the SUV paint, headlights, fog lamps, and front strip look unchanged (tail lamps and third brake light: see L18), and repeat L6 for the SUV. | [ ] | [ ] |
 | L17 | Hover the SUV at night with Vibrant Visuals on and then off: the glow discs underneath still glow blue in both modes. | [ ] | [ ] |
 | L18 | Switch the SUV headlights on and off at night with Vibrant Visuals on and then off: both tail lamps' LED bars and clear reverse lamps and the third brake light glow only while the headlights are on. The lower red lens, housing frame, resin blocks, and bumper reflectors never glow. There is no separate brake or reverse lamp behavior. | [ ] | [ ] |
 
