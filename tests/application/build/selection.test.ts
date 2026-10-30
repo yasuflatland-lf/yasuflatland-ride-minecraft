@@ -46,25 +46,44 @@ describe("SetCorner", () => {
     expect(repo.get(alex)).toBeUndefined();
   });
 
-  it("reports the volume once both corners are set", () => {
-    const { repo, gate, feedback } = setup();
-    const set = new SetCorner(repo, gate, feedback);
-    set.execute({
-      playerId: alex,
-      corner: "pos1",
-      dimensionId: overworld,
-      cell: { x: 0, y: 0, z: 0 },
-    });
-    set.execute({
-      playerId: alex,
-      corner: "pos2",
-      dimensionId: overworld,
-      cell: { x: 1, y: 2, z: 3 },
-    });
-    expect(feedback.messages).toEqual([
-      { message: "pos1Set", count: undefined },
-      { message: "pos2Set", count: 24 },
-    ]);
+  it("reports the inclusive volume once both corners are set in either order", () => {
+    const coordinate = fc.integer({ min: -1000, max: 1000 });
+    const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
+    fc.assert(
+      fc.property(cell, cell, fc.boolean(), (a, b, reverse) => {
+        const { repo, gate, feedback } = setup();
+        const set = new SetCorner(repo, gate, feedback);
+        const first = reverse ? "pos2" : "pos1";
+        const second = reverse ? "pos1" : "pos2";
+        set.execute({
+          playerId: alex,
+          corner: first,
+          dimensionId: overworld,
+          cell: a,
+        });
+        set.execute({
+          playerId: alex,
+          corner: second,
+          dimensionId: overworld,
+          cell: b,
+        });
+        expect(repo.get(alex)?.selection).toEqual({
+          dimensionId: overworld,
+          [first]: a,
+          [second]: b,
+        });
+        expect(feedback.messages).toEqual([
+          { message: `${first}Set`, count: undefined },
+          {
+            message: `${second}Set`,
+            count:
+              (Math.abs(a.x - b.x) + 1) *
+              (Math.abs(a.y - b.y) + 1) *
+              (Math.abs(a.z - b.z) + 1),
+          },
+        ]);
+      }),
+    );
   });
 
   it("starts a new selection for a corner in another dimension", () => {
@@ -193,6 +212,40 @@ describe("ShowOutline", () => {
           if (active) enterBuildMode(new UpdateBuildModes(repo));
           else session.setCorner(which, dim, at);
           new ShowOutline(repo, gate, feedback).execute(tick);
+          expect(feedback.corners).toEqual([]);
+          expect(feedback.outlines).toEqual([]);
+        },
+      ),
+    );
+  });
+
+  it("draws nothing before setting a corner or after clearing it in build mode", () => {
+    fc.assert(
+      fc.property(
+        cell,
+        dimension,
+        corner,
+        intervalTick,
+        (at, dim, which, tick) => {
+          const { repo, gate, feedback } = setup();
+          enterBuildMode(new UpdateBuildModes(repo));
+          const outline = new ShowOutline(repo, gate, feedback);
+          outline.execute(tick);
+          expect(feedback.corners).toEqual([]);
+          expect(feedback.outlines).toEqual([]);
+          new SetCorner(repo, gate, feedback).execute({
+            playerId: alex,
+            corner: which,
+            dimensionId: dim,
+            cell: at,
+          });
+          outline.execute(tick);
+          expect(feedback.corners).toEqual([
+            { playerId: alex, dimensionId: dim, cell: at },
+          ]);
+          feedback.corners.length = 0;
+          new ClearSelection(repo, gate, feedback).execute({ playerId: alex });
+          outline.execute(tick);
           expect(feedback.corners).toEqual([]);
           expect(feedback.outlines).toEqual([]);
         },

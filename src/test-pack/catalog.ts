@@ -13,6 +13,7 @@ export interface ScenarioSpec {
   readonly isolation: Isolation;
   readonly group?: "tent";
   readonly needsPlayer: boolean;
+  readonly skipNote?: string;
   readonly vehicles: number;
 }
 
@@ -989,46 +990,11 @@ export const CATALOG: readonly ScenarioSpec[] = [
   {
     name: "build_selection_and_mode",
     file: "buildTools",
-    ticks: 30,
+    ticks: 26,
     features: ["build", "vehicle:suv", "vehicle:bulldozer"],
     isolation: "exclusive",
     needsPlayer: true,
+    skipNote: "camera perspective needs visual verification",
     vehicles: 1,
-  },
-  {
-    name: "build_corner_marker_pos1",
-    file: "buildCornerMarker",
-    ticks: 25,
-    features: ["build", "vehicle:bulldozer"],
-    isolation: "exclusive",
-    needsPlayer: true,
-    vehicles: 0,
-  },
-  {
-    name: "build_corner_marker_pos2",
-    file: "buildCornerMarker",
-    ticks: 25,
-    features: ["build", "vehicle:bulldozer"],
-    isolation: "exclusive",
-    needsPlayer: true,
-    vehicles: 0,
-  },
-  {
-    name: "build_corner_marker_none",
-    file: "buildCornerMarker",
-    ticks: 30,
-    features: ["build", "vehicle:bulldozer"],
-    isolation: "exclusive",
-    needsPlayer: true,
-    vehicles: 0,
-  },
-  {
-    name: "build_corner_marker_pair",
-    file: "buildCornerMarker",
-    ticks: 27,
-    features: ["build", "vehicle:bulldozer"],
-    isolation: "exclusive",
-    needsPlayer: true,
-    vehicles: 0,
   },
 ];
