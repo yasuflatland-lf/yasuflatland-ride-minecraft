@@ -1,9 +1,9 @@
 # 0190. A ribbed camper shell atlas, trim, and roof rails
 
-- Status: Accepted
+- Status: Proposed
 - Date: 2026-10-30
 - Related: [0067](0067-camper.md), [0091](0091-alpha-blend-only-the-camper-glass.md), [0157](0157-an-aluminium-rimmed-louvred-camper-vent-lid.md), [0076](0076-per-kind-default-paint.md)
-- Pull requests: #962 (1/7), #963 (2/7), #966 (3/7), #967 (4/7), #965 (5/7), #964 (6/7)
+- Pull requests: #962 (1/7), #963 (2/7), #966 (3/7), #967 (4/7), #965 (5/7), #964 (6/7), #968 (7/7)
 
 ## Context
 
@@ -16,11 +16,11 @@ The panel shell design in issue #954 calls for horizontal ribs, metal edges, gre
 - Apply ribs only to both side walls. Each period has a groove at 93% of the existing white shell RGB and a highlight one texel below at 105%, clamped to 255, followed by two flat shell texels. This paints gloss into the white shell without PBR. Front, rear, and roof stay plain. Region texels use the fixed shell color, independent of accent paints.
 - Repaints continue to change only `khaki`, `stripe`, and `tan` (0067, 0076). The shell and trim stay fixed. All 16 textures share the atlas dimensions. Lit color textures preserve region pixels and transparent unused space; every region or unused MER texel uses `MER_OFF`.
 - Use aluminium for the door frame and roof edge, with bolt heads along the roof edge. Use grey-beige trim for window frames. Keep rail and trim dimensions in camper-specific constants, rather than sharing another vehicle's tuning.
-- Draw door and vent hardware through four aluminium atlas regions: `door_head` (18 by 3), `door_hinge` (3 by 26), `door_latch` (3 by 26), and `vent_screws` (16 by 3). Their darker hardware texels (`HARDWARE_DARK_FACTOR`) sit off each region's centre texel, because `render_preview` colours a face from its centre texel and would otherwise shade the whole post. The vent lid of 0157 now has a `trim_beige` panel and an aluminium top rail whose west face carries `vent_screws`.
+- Draw door and vent hardware through four aluminium atlas regions: `door_head` (18 by 3), `door_hinge` (3 by 26), `door_latch` (3 by 26), and `vent_screws` (16 by 3). Their darker hardware texels (`HARDWARE_DARK_FACTOR`) are placed to read as a head bar, hinge knuckles, latch, and screws in the per-texel camper preview and in game; the camper preview maps each texel, with only uniform faces falling back to centre sampling. The vent lid of 0157 now has a `trim_beige` panel and an aluminium top rail whose west face carries `vent_screws`.
 - Add a roof rail on slim posts along each side edge of the roof. Keep the rails and posts inside the body's footprint in both x and z. They are visual geometry only: the hitbox, roof cell, and room blocks stay unchanged.
 - Retain the opaque shell and separate alpha-blended glass bones of 0091. The atlas lifts the one-row texture limit that Proposed ADR 0157 worked around, without changing the lid.
 - The atlas was introduced before mapping cubes to its regions in issue #956. The completed shell maps side walls and door hardware, adds trim and roof-edge bolts, and places rails on slim posts as the remaining parts of #954.
 
 ## Consequences
 
-The texture grows while remaining small and repetitive enough to compress well. Palette UVs remain compatible, and paints cannot recolor the ribs. Tests check paint invariance, atlas bounds and overlaps, and non-emissive region texels. The rail adds visual height without changing clearance checks. The accepted two-model-pixel rib period reduces the aliasing of the original alternating stripe and preserves flat bands between grooves. Fine ribs and bolt heads may still shimmer on mobile or at a distance; revisit the tuning if in-game viewing reveals a concrete problem.
+The texture grows while remaining small and repetitive enough to compress well. Palette UVs remain compatible, and paints cannot recolor the ribs. Tests check paint invariance, atlas bounds and overlaps, and non-emissive region texels. The rail adds visual height without changing clearance checks. The two-model-pixel rib period reduces the aliasing of the original alternating stripe and preserves flat bands between grooves. Fine ribs and bolt heads may still shimmer on mobile or at a distance; keep this decision Proposed until the completed shell is checked in game from the side and three-quarter view at chase-camera distance on PC and mobile, widening the rib period if needed.

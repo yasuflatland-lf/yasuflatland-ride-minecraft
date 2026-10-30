@@ -2231,6 +2231,43 @@ describe("camper rib atlas (ADR 0190)", () => {
     expect(rail.uv.west).toEqual(regionFace("vent_screws"));
   });
 
+  it("paints the exact dark hardware pattern over aluminium in each region", () => {
+    const texture = readPng("textures/entity/yasu_ride/camper");
+    const aluminiumOffset = slots.indexOf("aluminium") * 4;
+    const aluminium = [
+      ...texture.pixels.subarray(aluminiumOffset, aluminiumOffset + 3),
+    ];
+    const light = [...aluminium, 255];
+    const dark = [...aluminium.map((c) => Math.floor(c * 0.65 + 0.5)), 255];
+    const patterns: Record<
+      string,
+      (dx: number, dy: number, h: number) => boolean
+    > = {
+      door_head: (_dx, dy, h) => dy === h - 1,
+      door_hinge: (_dx, dy) => [5, 6, 19, 20].includes(dy),
+      door_latch: (dx, dy) => dx === 1 && [10, 11].includes(dy),
+      vent_screws: (dx, dy) => dy === 1 && [2, 7, 12].includes(dx),
+    };
+    for (const [name, isDark] of Object.entries(patterns)) {
+      const [, x, y, w, h] = required(regions.find(([n]) => n === name));
+      let darkCount = 0;
+      let lightCount = 0;
+      for (let dy = 0; dy < h; dy++) {
+        for (let dx = 0; dx < w; dx++) {
+          const hardware = isDark(dx, dy, h);
+          const offset = ((y + dy) * width + x + dx) * 4;
+          expect([...texture.pixels.subarray(offset, offset + 4)]).toEqual(
+            hardware ? dark : light,
+          );
+          if (hardware) darkCount++;
+          else lightCount++;
+        }
+      }
+      expect(darkCount).toBeGreaterThan(0);
+      expect(lightCount).toBeGreaterThan(0);
+    }
+  });
+
   it("preserves hardware pixels in lit textures and keeps their MER non-emissive", () => {
     const base = readPng("textures/entity/yasu_ride/camper");
     const lit = readPng("textures/entity/yasu_ride/camper_lit");
