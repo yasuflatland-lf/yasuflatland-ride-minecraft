@@ -7,13 +7,14 @@ import type { Outcome } from "../outcome";
 
 export async function bulldozerExitSpot(a: Arena): Promise<Outcome> {
   const { dim, gy } = a;
-  const clear = () => dim.runCommand(`fill 88 ${gy} 78 98 ${gy + 5} 88 air`);
+  const clear = () =>
+    dim.runCommand(`fill ${a.box(88, gy, 78, 98, gy + 5, 88)} air`);
   const exit = BULLDOZER_PROFILE.seatExits?.[0];
   if (!exit) return { pass: false, detail: "driver exit missing" };
   const results: Outcome[] = [];
   try {
     clear();
-    dim.runCommand(`fill 88 ${gy - 1} 78 98 ${gy - 1} 88 stone`);
+    dim.runCommand(`fill ${a.box(88, gy - 1, 78, 98, gy - 1, 88)} stone`);
     for (const yaw of [0, 90, 180, -90]) {
       results.push(
         await withCar(
@@ -23,7 +24,7 @@ export async function bulldozerExitSpot(a: Arena): Promise<Outcome> {
           yaw,
           async (car) => {
             await wait(2);
-            const location = car.location;
+            const location = a.local(car.location);
             const [at] = seatWorldPositions(
               { ...location, yaw: car.getRotation().y },
               [exit],
@@ -40,7 +41,7 @@ export async function bulldozerExitSpot(a: Arena): Promise<Outcome> {
               z: Math.floor(at.z),
             };
             const [feetBlock, headBlock, belowBlock] = [0, 1, -1].map(
-              (dy) => dim.getBlock({ ...feet, y: feet.y + dy })?.typeId,
+              (dy) => dim.getBlock(a.at(feet.x, feet.y + dy, feet.z))?.typeId,
             );
             return {
               pass:
@@ -72,7 +73,8 @@ export async function bulldozerExitSpot(a: Arena): Promise<Outcome> {
  */
 export async function bulldozerExitGround(a: Arena): Promise<Outcome> {
   const { dim, gy } = a;
-  const clear = () => dim.runCommand(`fill 88 ${gy} 78 98 ${gy + 5} 88 air`);
+  const clear = () =>
+    dim.runCommand(`fill ${a.box(88, gy, 78, 98, gy + 5, 88)} air`);
   const cases: {
     name: string;
     x: number;
@@ -109,13 +111,13 @@ export async function bulldozerExitGround(a: Arena): Promise<Outcome> {
   ];
   try {
     clear();
-    dim.runCommand(`fill 88 ${gy - 1} 78 98 ${gy - 1} 88 stone`);
+    dim.runCommand(`fill ${a.box(88, gy - 1, 78, 98, gy - 1, 88)} stone`);
     for (const { x, blocks } of cases)
       for (const [dy, block] of blocks)
-        dim.runCommand(`setblock ${x} ${gy + dy} 83 ${block}`);
+        dim.runCommand(`setblock ${a.xyz(x, gy + dy, 83)} ${block}`);
     await wait(2);
     const results = cases.map(({ name, x, dy = 0, stands }) => {
-      const at = { x: x + 0.5, y: gy + dy, z: 83.5 };
+      const at = a.at(x + 0.5, gy + dy, 83.5);
       const spot = seatExitSpot(dim, at);
       const pass =
         stands === undefined
@@ -129,6 +131,6 @@ export async function bulldozerExitGround(a: Arena): Promise<Outcome> {
     };
   } finally {
     clear();
-    dim.runCommand(`fill 88 ${gy - 1} 78 98 ${gy - 1} 88 stone`);
+    dim.runCommand(`fill ${a.box(88, gy - 1, 78, 98, gy - 1, 88)} stone`);
   }
 }

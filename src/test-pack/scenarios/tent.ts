@@ -155,9 +155,9 @@ async function pitchTestTent(
 }
 
 /**
- * Removes tents in the strip, the tent items a take-down dropped, and empties the
- * strip above the ground. A dropped item left behind would be counted by the
- * next scenario in the same shard that takes a tent down.
+ * Removes tents in the strip, the tent items a take-down dropped, and empties
+ * the strip above the ground. A dropped item left behind would be counted by
+ * the next scenario in the same shard that takes a tent down.
  */
 function clearTentStrip(a: Arena): void {
   for (const item of tentItemsNear(a)) item.remove();

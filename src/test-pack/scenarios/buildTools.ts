@@ -395,6 +395,7 @@ export async function buildSelectionAndMode(a: Arena): Promise<Outcome> {
       }),
     );
   const mode = () => query(TEST_MODE_EVENT, player.name);
+  const localX = (p: Vector3 | undefined) => (p ? a.local(p).x : undefined);
   system.afterEvents.scriptEventReceive.subscribe(listener);
   try {
     return await withPlayerBulldozer(
@@ -422,11 +423,9 @@ export async function buildSelectionAndMode(a: Arena): Promise<Outcome> {
         return {
           pass:
             first.message === "pos1Set" &&
-            !!first.selection?.pos1 &&
-            a.local(first.selection.pos1).x === 21 &&
+            localX(first.selection?.pos1) === 21 &&
             second.message === "pos2Set" &&
-            !!second.selection?.pos2 &&
-            a.local(second.selection.pos2).x === 23 &&
+            localX(second.selection?.pos2) === 23 &&
             second.count === 3 &&
             active.mode === true &&
             scroll.mode === true &&

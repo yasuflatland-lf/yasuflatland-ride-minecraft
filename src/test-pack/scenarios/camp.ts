@@ -35,7 +35,7 @@ import {
   TEST_TABLE_HIT_EVENT,
 } from "../../infrastructure/camp/identifiers";
 import { type Arena, wait } from "../arena";
-import { type Outcome, runCourse } from "../outcome";
+import { type Outcome, runCourse, type StepSink } from "../outcome";
 
 // On the arena's east edge, past the camping gear row (z 1-19) and clear of the
 // camper park spot (x 103-114, z 73-84) and the camper tank (z 61-69).
@@ -74,20 +74,25 @@ const lanternsNear = (a: Arena, at: Vector3) =>
 /** Runs a scenario once per chair kind, passing only when every kind passes. */
 async function forEveryChairKind(
   scenario: (profile: ChairProfile) => Promise<Outcome>,
+  onStep: StepSink,
 ): Promise<Outcome> {
   return runCourse(
     Object.entries(CHAIR_KINDS).map(([name, profile]) => ({
       name,
       run: () => scenario(profile),
     })),
-    { stopOnFail: false },
+    { stopOnFail: false, onStep },
   );
 }
 
 /** Summons a chair, checks its one seat, and folds it back with three hits into one dropped item. */
-export async function lowChairSeatAndTakeBack(a: Arena): Promise<Outcome> {
-  return forEveryChairKind((profile) =>
-    lowChairSeatAndTakeBackForKind(a, profile),
+export async function lowChairSeatAndTakeBack(
+  a: Arena,
+  onStep: StepSink,
+): Promise<Outcome> {
+  return forEveryChairKind(
+    (profile) => lowChairSeatAndTakeBackForKind(a, profile),
+    onStep,
   );
 }
 
@@ -134,9 +139,13 @@ const GRASS_CELL = { x: CELL.x, z: CELL.z + 3 } as const;
  * Summons a chair where a click on short grass places it, a block above the grass, and
  * checks that it settles through the grass onto the ground under it (ADR 0122).
  */
-export async function lowChairSettlesThroughGrass(a: Arena): Promise<Outcome> {
-  return forEveryChairKind((profile) =>
-    lowChairSettlesThroughGrassForKind(a, profile),
+export async function lowChairSettlesThroughGrass(
+  a: Arena,
+  onStep: StepSink,
+): Promise<Outcome> {
+  return forEveryChairKind(
+    (profile) => lowChairSettlesThroughGrassForKind(a, profile),
+    onStep,
   );
 }
 
@@ -874,7 +883,7 @@ export async function gasLanternSwitch(a: Arena): Promise<Outcome> {
     await wait(2);
     const onAgain = lit(first);
     a.dim.runCommand(
-      `execute positioned ${a.xyz(CELL.x + 0.5, a.gy, CELL.z + 17.5)} run kill @e[type=${GAS_LANTERN_TYPE},r=2]`,
+      `kill @e[type=${GAS_LANTERN_TYPE},x=${at.x},y=${at.y},z=${at.z},r=2]`,
     );
     await wait(25);
     const killed = !first.isValid && air();
