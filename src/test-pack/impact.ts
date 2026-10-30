@@ -1,11 +1,10 @@
-// The temporary knip.json entry is removed by 14/22 (#922), which wires this into game-test.mjs.
 import type { ScenarioSpec } from "./catalog.ts";
 import { CATALOG } from "./catalog.ts";
 import type { FeatureTag } from "./features.ts";
 import { FEATURE_TAGS, isFeatureTag } from "./features.ts";
 
 export type Impact = "all" | "none" | readonly FeatureTag[];
-export interface ImpactRule {
+interface ImpactRule {
   readonly rule: string;
   readonly test: RegExp;
   readonly impact: Impact | ((m: RegExpMatchArray) => Impact);
@@ -283,7 +282,7 @@ function mappedRules(
 }
 
 const scenarioTags = scenarioFileTags(CATALOG);
-export const IMPACT_RULES: readonly ImpactRule[] = [
+const IMPACT_RULES: readonly ImpactRule[] = [
   {
     rule: "registry",
     test: /^src\/test-pack\/(?:catalog|scenarios\/index)\.ts$/,

@@ -1,13 +1,17 @@
 import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { setTimeout as sleep } from "node:timers/promises";
-import { isFeatureTag } from "../src/test-pack/features.ts";
+import { fileURLToPath } from "node:url";
+import { CATALOG } from "../src/test-pack/catalog.ts";
 import {
   deadlineMsOf,
   observe,
   watchStart,
   watchVerdict,
 } from "../src/test-pack/deadline.ts";
+import { isFeatureTag } from "../src/test-pack/features.ts";
+import { mustRunAll, selectionOf } from "../src/test-pack/impact.ts";
+import { planOf } from "../src/test-pack/plan.ts";
 import {
   CANCEL_EVENT,
   featuresFrom,
@@ -43,7 +47,7 @@ if (at === undefined) {
   process.exit(1);
 }
 const featuresText = process.env.GAME_TEST_FEATURES;
-const features =
+let features =
   featuresText === undefined ? undefined : featuresFrom(featuresText);
 if (featuresText !== undefined && features === undefined) {
   console.error(
@@ -55,6 +59,57 @@ const unknownFeature = features?.find((tag) => !isFeatureTag(tag));
 if (unknownFeature !== undefined) {
   console.error(`GAME_TEST_FEATURES: unknown feature ${unknownFeature}`);
   process.exit(1);
+}
+if (features !== undefined) {
+  console.log(`impact: explicit ${features.join(",")}`);
+} else {
+  const reason = mustRunAll(process.env);
+  if (reason !== undefined) {
+    const label =
+      reason === "CI" || reason === "GAME_TEST_SHARD"
+        ? `${reason} set`
+        : reason;
+    console.log(`impact: all (${label})`);
+  } else {
+    const root = fileURLToPath(new URL("../", import.meta.url));
+    const git = (args) =>
+      execFileSync("git", args, {
+        cwd: root,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      }).trim();
+    let paths;
+    try {
+      const base =
+        process.env.GAME_TEST_BASE ??
+        git(["merge-base", "HEAD", "origin/main"]);
+      const changed = git(["diff", "--name-only", "--no-renames", base]);
+      const untracked = git(["ls-files", "--others", "--exclude-standard"]);
+      paths = `${changed}\n${untracked}`.split("\n").filter(Boolean);
+    } catch (error) {
+      console.log(`impact: all (git failed: ${error.message.split("\n")[0]})`);
+    }
+    if (paths !== undefined) {
+      const selection = selectionOf(paths);
+      if (selection.all) {
+        console.log(`impact: all (${selection.reason})`);
+      } else {
+        features = selection.features;
+        const impactPlan = planOf(CATALOG, {
+          shard: WHOLE_RUN,
+          playerConnected: true,
+          features,
+        });
+        if (impactPlan.runs.length === 0) {
+          console.log("impact: no in-game scenario affected");
+          process.exit(0);
+        }
+        console.log(
+          `impact: ${features.join(",")} -> ${impactPlan.runs.length} scenarios, ${impactPlan.expectedTicks} declared ticks`,
+        );
+      }
+    }
+  }
 }
 const message = formatRunRequest({ runId, shard, lanes: 1, at, features });
 const since = new Date().toISOString();
