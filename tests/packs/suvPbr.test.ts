@@ -16,18 +16,27 @@ const names: string[] = JSON.parse(
     { encoding: "utf8" },
   ),
 );
-const nameFor = (paint: string) => (paint === "khaki" ? "suv" : `suv_${paint}`);
-const merFor = (paint: string) =>
-  readRgbaPng(`${directory}/${nameFor(paint)}_mer.png`);
-const swatchX = (name: string) => {
+type Png = ReturnType<typeof readRgbaPng>;
+
+function nameFor(paint: string): string {
+  return paint === "khaki" ? "suv" : `suv_${paint}`;
+}
+
+function merFor(paint: string): Png {
+  return readRgbaPng(`${directory}/${nameFor(paint)}_mer.png`);
+}
+
+function swatchX(name: string): number {
   const index = names.indexOf(name);
   if (index < 0) throw new Error(`Missing palette swatch: ${name}`);
   return index * 4;
-};
-const swatch = (mer: ReturnType<typeof merFor>, name: string) => {
+}
+
+// Samples (1, 1) inside the 4-texel cell, past the swatch inset.
+function swatch(mer: Png, name: string): number[] {
   const offset = (mer.width + swatchX(name) + 1) * 4;
   return [...mer.pixels.subarray(offset, offset + 4)];
-};
+}
 
 describe("SUV paint texture sets", () => {
   it.each(PAINTS)("%s has the exact texture set", (paint) => {
