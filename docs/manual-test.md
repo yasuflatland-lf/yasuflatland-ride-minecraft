@@ -476,6 +476,7 @@ Setup: use a Vibrant Visuals device at night, then repeat the legacy checks with
 | L15 | With Vibrant Visuals on and SUV headlights on, check that the lit lamps from L1 and L5 still glow. | [ ] | [ ] |
 | L16 | With Vibrant Visuals off, check that the SUV paint and lights look unchanged, and repeat L6 for the SUV. | [ ] | [ ] |
 | L17 | Hover the SUV at night with Vibrant Visuals on and then off: the glow discs underneath still glow blue in both modes. | [ ] | [ ] |
+| L18 | Switch the SUV headlights on and off at night with Vibrant Visuals on and then off: both tail lamps' LED bars and clear reverse lamps and the third brake light glow only while the headlights are on. The lower red lens, housing frame, resin blocks, and bumper reflectors never glow. There is no separate brake or reverse lamp behavior. | [ ] | [ ] |
 
 ## Sports boat mirror (Vibrant Visuals)
 
