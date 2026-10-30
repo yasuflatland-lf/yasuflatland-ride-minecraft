@@ -1471,8 +1471,7 @@ def scale(color, factor):
 
 
 def region_pixel(region, x, y):
-    phase = y % RIB_PERIOD_TEXELS
-    factor = 0.93 if phase == 0 else 1.05 if phase == 1 else 1
+    factor = 0.93 if y % RIB_PERIOD_TEXELS == 0 else 1.05
     return (*scale(PALETTE["white"][:3], factor), 255)
 
 
