@@ -30,5 +30,5 @@ Widen the model CI job path filter to include every `tools/*.py` file. The filte
 ## Consequences
 
 - A fix to writing, checking or lit textures lands once for every adopter. Until 8/17 lands, the sports boat, bulldozer and gear generators still carry their own copies.
-- A change to a shared module can change several generators' outputs at once; `pnpm model:check` catches it because every `tools/*.py` change now runs the model job.
+- A shared-module change can affect several generators at once. `pnpm model:check` runs `--check` for the camper, MER atlas and gear generators; `tools/gen_model.py` has no `--check`, so SUV drift is caught only where `render_preview --check` notices it in the preview. 6/17 must add `gen_model.py --check` to `model:check` when the SUV adopts the shared modules.
 - The model job also runs for Python tools that do not feed the renderer, such as `tools/gen_sounds.py`. That costs CI time on those pull requests, which are rare.

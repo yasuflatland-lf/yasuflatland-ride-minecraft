@@ -15,6 +15,7 @@ class Outputs:
         self.check = check
         self.stale = []
 
+    # Compare parsed JSON because pnpm model reformats the written JSON with Biome.
     def json(self, path, doc, separators=None, indent=None):
         data = doc if isinstance(doc, str) else json.dumps(doc, separators=separators, indent=indent)
         if self.check:
@@ -28,6 +29,7 @@ class Outputs:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(data)
 
+    # Compare decoded RGBA rows so zlib packing differences do not affect --check.
     def png(self, path, width, height, pixel, compress_level=-1):
         pixels = [[tuple(pixel(x, y)) for x in range(width)] for y in range(height)]
         if self.check:
