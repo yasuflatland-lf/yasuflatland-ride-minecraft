@@ -33,3 +33,30 @@ with tempfile.TemporaryDirectory() as d:
     execFileSync("python3", ["-I", "-c", script], { encoding: "utf8" }).trim(),
   ).toBe("Stale:\nDIR/a.json\nDIR/a.png\nDIR/missing.json");
 });
+
+it("accepts one relief variant and preserves texture sets without relief", () => {
+  execFileSync("python3", [
+    "-I",
+    "-c",
+    `
+import sys, tempfile, json
+from pathlib import Path
+sys.path.insert(0, 'tools')
+from tool_loader import load_tool
+io = load_tool('texture_io')
+base = {'color': 'paint', 'metalness_emissive_roughness': 'mer'}
+assert io.texture_set_doc('paint', 'mer')['minecraft:texture_set'] == base
+for kind in ('heightmap', 'normal'):
+    with tempfile.TemporaryDirectory() as d:
+        io.write_texture_set(io.Outputs(False), Path(d), 'paint', 'mer', (kind, 'relief'))
+        doc = json.loads((Path(d) / 'paint.texture_set.json').read_text())
+        assert doc['minecraft:texture_set'] == {**base, kind: 'relief'}
+try:
+    io.texture_set_doc('paint', 'mer', ('unknown', 'relief'))
+except ValueError:
+    pass
+else:
+    raise AssertionError('Unknown relief kind accepted')
+`,
+  ]);
+});

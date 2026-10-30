@@ -38,6 +38,40 @@ function swatch(mer: Png, name: string): number[] {
   return [...mer.pixels.subarray(offset, offset + 4)];
 }
 
+const regions: {
+  name: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  base: string;
+}[] = JSON.parse(
+  execFileSync(
+    "python3",
+    [
+      "-I",
+      "-c",
+      `import json, sys
+sys.path.insert(0, 'tools')
+from tool_loader import load_tool
+a = load_tool('suv_atlas')
+print(json.dumps([dict(name=s.name, x=a.region('body', s.name).x, y=a.region('body', s.name).y, w=s.w, h=s.h, base=s.base) for s in a.PAINTERS['body'].REGIONS]))`,
+    ],
+    { encoding: "utf8" },
+  ),
+);
+
+function textureSet(name: string): Record<string, string> {
+  return JSON.parse(
+    readFileSync(`${directory}/${name}.texture_set.json`, "utf8"),
+  )["minecraft:texture_set"];
+}
+
+const reliefKeys = ["heightmap", "normal"];
+const reliefKind =
+  reliefKeys.find((key) => key in textureSet("suv")) ?? "heightmap";
+const reliefName = textureSet("suv")[reliefKind];
+
 describe("SUV paint texture sets", () => {
   it.each(PAINTS)("%s has the exact texture set", (paint) => {
     const name = nameFor(paint);
@@ -48,6 +82,7 @@ describe("SUV paint texture sets", () => {
       "minecraft:texture_set": {
         color: name,
         metalness_emissive_roughness: `${name}_mer`,
+        [reliefKind]: reliefName,
       },
     });
   });
@@ -97,29 +132,6 @@ describe("SUV paint texture sets", () => {
 });
 
 describe("SUV detailed steel body regions", () => {
-  const regions: {
-    name: string;
-    x: number;
-    y: number;
-    w: number;
-    h: number;
-    base: string;
-  }[] = JSON.parse(
-    execFileSync(
-      "python3",
-      [
-        "-I",
-        "-c",
-        `import json, sys
-sys.path.insert(0, 'tools')
-from tool_loader import load_tool
-a = load_tool('suv_atlas')
-print(json.dumps([dict(name=s.name, x=a.region('body', s.name).x, y=a.region('body', s.name).y, w=s.w, h=s.h, base=s.base) for s in a.PAINTERS['body'].REGIONS]))`,
-      ],
-      { encoding: "utf8" },
-    ),
-  );
-
   it.each(PAINTS)(
     "%s has bounded nonemissive steel and matte hardtop detail",
     (paint) => {
@@ -222,5 +234,71 @@ for name in s.DOORS:
       ],
       { encoding: "utf8" },
     );
+  });
+});
+
+describe("SUV panel-line relief map", () => {
+  it("shares exactly one relief map across all sixteen paints and excludes the lit pass", () => {
+    expect(PAINTS).toHaveLength(16);
+    expect(reliefName).toBe(`suv_${reliefKind}`);
+    for (const paint of PAINTS) {
+      const set = textureSet(nameFor(paint));
+      expect(reliefKeys.filter((key) => key in set)).toEqual([reliefKind]);
+      expect(set[reliefKind]).toBe(reliefName);
+    }
+    expect(reliefKeys.filter((key) => key in textureSet("suv_lit"))).toEqual(
+      [],
+    );
+  });
+
+  it("matches the colour size and stays flat outside body regions", () => {
+    const map = readRgbaPng(`${directory}/${reliefName}.png`);
+    const color = readRgbaPng(`${directory}/suv.png`);
+    expect([map.width, map.height]).toEqual([color.width, color.height]);
+    const flat =
+      reliefKind === "heightmap" ? [128, 128, 128, 255] : [128, 128, 255, 255];
+    const invalid: [number, number][] = [];
+    for (let y = 0; y < map.height; y++) {
+      for (let x = 0; x < map.width; x++) {
+        if (
+          regions.some(
+            (r) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h,
+          )
+        )
+          continue;
+        const offset = (y * map.width + x) * 4;
+        if (
+          flat.some((value, c) => map.pixels[offset + c] !== value) &&
+          invalid.length < 10
+        )
+          invalid.push([x, y]);
+      }
+    }
+    expect(invalid).toEqual([]);
+  });
+
+  it("recesses every panel perimeter in the heightmap", () => {
+    if (reliefKind !== "heightmap") return;
+    const map = readRgbaPng(`${directory}/${reliefName}.png`);
+    const panels = regions.filter((r) =>
+      ["door_front", "door_rear", "hood_top", "tailgate"].includes(r.name),
+    );
+    expect(panels).toHaveLength(4);
+    for (const r of panels) {
+      for (let v = 0; v < r.h; v++) {
+        for (let u = 0; u < r.w; u++) {
+          if (u !== 0 && v !== 0 && u !== r.w - 1 && v !== r.h - 1) continue;
+          const i = ((r.y + v) * map.width + r.x + u) * 4;
+          const height = map.pixels[i];
+          expect(height).toBeLessThan(128);
+          expect([...map.pixels.subarray(i, i + 4)]).toEqual([
+            height,
+            height,
+            height,
+            255,
+          ]);
+        }
+      }
+    }
   });
 });
