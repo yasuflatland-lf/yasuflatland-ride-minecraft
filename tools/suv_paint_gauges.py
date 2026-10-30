@@ -25,7 +25,7 @@ LEATHER_PERFORATION_DELTA = -8
 LEATHER_GRAIN_DELTA = 12
 
 
-def in_dial(size, u, v):
+def inside(size, u, v):
     return (u + 0.5 - size / 2) ** 2 + (v + 0.5 - size / 2) ** 2 < (size / 2) ** 2
 
 
@@ -66,11 +66,12 @@ def color(region, u, v, paint):
                  LEATHER_GRAIN_DELTA if u % 4 == 2 and v % 4 == 2 else 0)
         return (*(max(0, min(255, c + delta)) for c in base), 255)
     size = region_size(region)
-    if not in_dial(size, u, v):
+    if not inside(size, u, v):
         grain = next(spec for spec in dash.REGIONS if spec.name == "grain")
         return dash.color("grain", u % grain.w, v % grain.h, paint)
-    if (any((u, v) in mark for mark in tick_marks(region)) or
-            any(needle(size, u, v, angle, NEEDLE_LENGTH) for angle in NEEDLE_ANGLES[region])):
+    if any((u, v) in mark for mark in tick_marks(region)):
+        return (*palette.PALETTE["gauge"], 255)
+    if any(needle(size, u, v, angle, NEEDLE_LENGTH) for angle in NEEDLE_ANGLES[region]):
         return (*palette.PALETTE["gauge"], 255)
     left, top, right, bottom = LCD_RECT
     if region == "speed" and left <= u <= right and top <= v <= bottom:

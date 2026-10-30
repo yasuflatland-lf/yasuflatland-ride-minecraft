@@ -23,8 +23,8 @@ tick = (*load_tool('suv_palette').PALETTE['gauge'], 255)
 marks = p.tick_marks(name)
 assert len(marks) == {'tach': p.TICKS_TACH, 'speed': p.TICKS_SPEED, 'fuel_temp': p.TICKS_FUEL_TEMP}[name]
 assert len(set(marks)) == len(marks)
-assert all(0 <= u < size and 0 <= v < size and p.in_dial(size, u, v) and p.color(name, u, v, paint) == tick for mark in marks for u, v in mark)
-assert all(p.color(name, u, v, paint) != tick for v in range(size) for u in range(size) if not p.in_dial(size, u, v))`);
+assert all(0 <= u < size and 0 <= v < size and p.inside(size, u, v) and p.color(name, u, v, paint) == tick for mark in marks for u, v in mark)
+assert all(p.color(name, u, v, paint) != tick for v in range(size) for u in range(size) if not p.inside(size, u, v))`);
   },
 );
 

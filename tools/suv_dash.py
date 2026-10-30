@@ -32,14 +32,21 @@ KNOB_CENTERS = (-2.65, 0.65)
 KNOB_Y, KNOB_RADIUS = 14.35, 0.28
 KNOB_FRONT_Z, KNOB_BACK_Z = 9.45, 9.7
 KNOB_ANGLES = (0, 45)
+GRAIN_SIZE = 32
+PASSENGER_UV = (0, 0, 36, 16)
+STACK_UV = (0, 0, 20, 24)
+AUDIO_UV = (0, 0, 16, 4)
+KNOB_UV = (0, 0, 4, 4)
+FACES = ("north", "south", "east", "west", "up", "down")
 
 
 def grain_faces():
-    return suv_cubes.whole_region_faces("dash", "grain")
+    return suv_cubes.region_faces("dash", "grain", {
+        face: (0, 0, GRAIN_SIZE, GRAIN_SIZE) for face in FACES})
 
 
-def panel_faces(region):
-    return suv_cubes.whole_region_faces("dash", region, ("north",))
+def panel_faces(region, rectangle):
+    return suv_cubes.region_faces("dash", region, {"north": rectangle})
 
 
 def dash_slab_cubes():
@@ -62,7 +69,7 @@ def vent_ring(cx):
 def passenger_dash_cubes():
     cubes = [
         box(-CABIN_HALF_WIDTH, DASH_BOTTOM_Y, PANEL_Z, DASH_STACK_X0,
-            PASSENGER_TOP_Y, LOCAL_FACE_Z, panel_faces("passenger")),
+            PASSENGER_TOP_Y, LOCAL_FACE_Z, panel_faces("passenger", PASSENGER_UV)),
         box(-CABIN_HALF_WIDTH, PAD_BOTTOM_Y, PAD_FRONT_Z, DASH_STACK_X0,
             PASSENGER_TOP_Y, LOCAL_FACE_Z, grain_faces()),
         box(*LATCH_BOUNDS, "rim"),
@@ -73,14 +80,14 @@ def passenger_dash_cubes():
           for x in HANDLE_POST_X],
         box(*TRAY_BOUNDS, grain_faces()),
         box(DASH_STACK_X0, DASH_BOTTOM_Y, PANEL_Z, DASH_STACK_X1,
-            HOOD_TOP_Y, LOCAL_FACE_Z, panel_faces("stack")),
-        box(*AUDIO_BOUNDS, panel_faces("audio")),
+            HOOD_TOP_Y, LOCAL_FACE_Z, panel_faces("stack", STACK_UV)),
+        box(*AUDIO_BOUNDS, panel_faces("audio", AUDIO_UV)),
     ]
     for cx in VENT_CENTERS:
         cubes.extend(vent_ring(cx))
     for cx in KNOB_CENTERS:
         cubes.extend(suv_cubes.disc("z", (cx, KNOB_Y, LOCAL_FACE_Z), KNOB_RADIUS,
                                    KNOB_FRONT_Z, KNOB_BACK_Z, KNOB_ANGLES,
-                                   panel_faces("knob")))
+                                   panel_faces("knob", KNOB_UV)))
     translate(cubes, 2, DASH_SHIFT_Z)
     return cubes
