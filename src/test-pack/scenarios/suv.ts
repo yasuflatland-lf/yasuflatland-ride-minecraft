@@ -173,10 +173,11 @@ export function wallDiagonal(a: Arena): Promise<Outcome> {
     let hit = false;
     for (let t = 0; t < 120; t++) {
       await wait(1);
-      if (a.local(car.location).z + SUV_SPEC.bodyHalfWidth > wallEndZ) break;
+      const p = a.local(car.location);
+      if (p.z + SUV_SPEC.bodyHalfWidth > wallEndZ) break;
       const v = car.getVelocity();
-      maxX = Math.max(maxX, a.local(car.location).x);
-      if (!hit && a.local(car.location).x > 43.5) hit = true;
+      maxX = Math.max(maxX, p.x);
+      if (!hit && p.x > 43.5) hit = true;
       if (hit) {
         maxAfter = Math.max(maxAfter, Math.abs(v.z));
         endSide = Math.abs(v.z);
@@ -256,10 +257,8 @@ export function step2(
       maxY = Math.max(maxY, car.location.y);
       if (a.local(car.location).x > stepX + 3) break;
     }
-    const side = Math.abs(
-      (a.local(car.location).x - startX) * dir.z -
-        (a.local(car.location).z - startZ) * dir.x,
-    );
+    const end = a.local(car.location);
+    const side = Math.abs((end.x - startX) * dir.z - (end.z - startZ) * dir.x);
     const climbed = maxY >= a.gy + 1.9;
     return {
       pass: climbed && side < 0.5,
@@ -766,11 +765,10 @@ export function submarineShallow(a: Arena): Promise<Outcome> {
       let enteredWater = false;
       for (let t = 0; t < 240; t++) {
         await wait(1);
+        const p = a.local(car.location);
         carOnly &&= vehicleForm(car) === "car";
-        enteredWater ||=
-          a.local(car.location).x > POOL.minX + 2 &&
-          car.location.y < a.gy - 0.5;
-        if (a.local(car.location).x > POOL.maxX + 3) {
+        enteredWater ||= p.x > POOL.minX + 2 && car.location.y < a.gy - 0.5;
+        if (p.x > POOL.maxX + 3) {
           crossed = true;
           break;
         }
