@@ -328,8 +328,8 @@ def textured_face(texture, face, quad, name, tex_w, tex_h):
         yield quad, face_color(texture, face, tex_w, tex_h)
         return
 
-    # cube_faces lists east/north with their vertical edge first; the others run across u first.
-    order = (1, 2, 3, 0) if name in ("north", "east") else (3, 2, 1, 0)
+    # Bedrock up/down UVs run u along +x and v toward -z; side faces run v downward.
+    order = (1, 2, 3, 0) if name in ("north", "east", "up") else (3, 2, 1, 0)
     tl, tr, br, bl = [quad[i] for i in order]
 
     def point(a, b):
