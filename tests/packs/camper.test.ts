@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
+import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { PAINTS } from "../../src/domain/shared/paint";
 import { SLEEP_MESSAGES } from "../../src/domain/shared/sleep";
@@ -1947,6 +1948,17 @@ describe("camper rear-right vent lid (ADR 0146, 0157)", () => {
 });
 
 describe("camper rib atlas (ADR 0190)", () => {
+  it("preserves every cube's bone, origin, and size from the pre-rib geometry", () => {
+    const fixture = JSON.parse(
+      readFileSync("tests/packs/fixtures/camper-cubes.json", "utf8"),
+    );
+    expect(
+      bones.flatMap((b) =>
+        (b.cubes ?? []).map((c) => [b.name, c.origin, c.size]),
+      ),
+    ).toEqual(fixture);
+  });
+
   const { width, height, regions, period, texelsPerPx, slots, windows } =
     JSON.parse(
       execFileSync(
@@ -2098,5 +2110,123 @@ describe("camper rib atlas (ADR 0190)", () => {
             0, 0, 255, 255,
           ]);
         }
+  });
+
+  it("maps only the outward white shell faces on both walls and the door to height-aligned ribs", () => {
+    const [, x, y, w, h] = defined(regions[0], "rib region");
+    const roofHeight = h / texelsPerPx;
+    const end = (cube: Cube, axis: number) =>
+      (cube.origin[axis] ?? 0) + (cube.size[axis] ?? 0);
+    const sampledRow = (cube: Cube, v: number, worldY: number) =>
+      Math.floor(v + (end(cube, 1) - worldY) * texelsPerPx);
+    const entries = bones.flatMap((b) =>
+      (b.cubes ?? []).flatMap((c) =>
+        Object.entries(c.uv)
+          .filter(([, f]) => (f.uv[1] ?? 0) >= y && (f.uv[1] ?? 0) < y + h)
+          .map(([side, face]) => ({ bone: b.name, cube: c, side, face })),
+      ),
+    );
+    expect(
+      entries.filter((e) => e.bone === "body" && e.side === "west"),
+    ).toHaveLength(256);
+    expect(
+      entries.filter((e) => e.bone === "body" && e.side === "east"),
+    ).toHaveLength(223);
+    const roof = (bone("body").cubes ?? []).find(
+      (c) => c.origin[1] === 61 && c.size[1] === 3 && c.size[0] === 48,
+    );
+    expect(roof).toBeDefined();
+    for (const face of Object.values(roof?.uv ?? {}))
+      expect(face.uv[1]).toBe(0);
+    expect(new Set(entries.map((e) => e.bone))).toEqual(
+      new Set(["body", "door_entry"]),
+    );
+    expect(
+      entries.filter((e) => e.bone === "door_entry").map((e) => e.side),
+    ).toEqual(["west"]);
+    fc.assert(
+      fc.property(
+        fc.shuffledSubarray(entries, {
+          minLength: entries.length,
+          maxLength: entries.length,
+        }),
+        (faces) => {
+          for (const { cube, side, face } of faces) {
+            const [u = 0, v = 0] = face.uv;
+            const [du = 0, dv = 0] = face.uv_size;
+            const y0 = cube.origin[1] ?? 0;
+            const height = cube.size[1] ?? 0;
+            expect(u).toBeGreaterThanOrEqual(x);
+            expect(v).toBeGreaterThanOrEqual(y);
+            expect(du).toBeGreaterThan(0);
+            expect(dv).toBeGreaterThan(0);
+            expect(u + du).toBeLessThanOrEqual(x + w);
+            expect(v + dv).toBeLessThanOrEqual(y + h);
+            expect(v - y).toBeCloseTo(
+              (roofHeight - (y0 + height)) * texelsPerPx,
+              8,
+            );
+            expect(dv).toBeCloseTo(height * texelsPerPx, 8);
+            const worldHeights = [0.137, 0.513, 0.879].map(
+              (fraction) => y0 + fraction * height,
+            );
+            for (
+              let step = Math.floor(y0 * texelsPerPx);
+              step < (y0 + height) * texelsPerPx;
+              step++
+            ) {
+              const worldY = (step + 0.5) / texelsPerPx;
+              if (worldY > y0 && worldY < y0 + height)
+                worldHeights.push(worldY);
+            }
+            for (const worldY of worldHeights)
+              expect(sampledRow(cube, v, worldY)).toBe(
+                Math.floor(y + (roofHeight - worldY) * texelsPerPx),
+              );
+            const edge =
+              side === "west"
+                ? (cube.origin[0] ?? 0)
+                : (cube.origin[0] ?? 0) + (cube.size[0] ?? 0);
+            expect(edge).toBe(side === "west" ? -24 : 24);
+            expect(cube.rotation).toBeUndefined();
+            for (const [other, f] of Object.entries(cube.uv)) {
+              if (f.uv[1] === 0)
+                expect(f).toEqual({ uv: [0, 0], uv_size: [1, 1] });
+              else expect(["east", "west"]).toContain(other);
+            }
+          }
+        },
+      ),
+      { numRuns: 10 },
+    );
+    const overlaps = entries.flatMap((a, i) =>
+      entries.slice(i + 1).flatMap((b) => {
+        const plane = (entry: typeof a) =>
+          entry.side === "west"
+            ? (entry.cube.origin[0] ?? 0)
+            : end(entry.cube, 0);
+        if (a.side !== b.side || plane(a) !== plane(b)) return [];
+        const bottom = Math.max(a.cube.origin[1] ?? 0, b.cube.origin[1] ?? 0);
+        const top = Math.min(end(a.cube, 1), end(b.cube, 1));
+        const front = Math.max(a.cube.origin[2] ?? 0, b.cube.origin[2] ?? 0);
+        const rear = Math.min(end(a.cube, 2), end(b.cube, 2));
+        return bottom < top && front < rear ? [{ a, b, bottom, top }] : [];
+      }),
+    );
+    expect(overlaps.length).toBeGreaterThan(0);
+    fc.assert(
+      fc.property(
+        fc.double({ min: 0.1, max: 0.9, noNaN: true }),
+        (fraction) => {
+          for (const { a, b, bottom, top } of overlaps) {
+            const worldY = bottom + fraction * (top - bottom);
+            expect(sampledRow(a.cube, a.face.uv[1] ?? 0, worldY) % 2).toBe(
+              sampledRow(b.cube, b.face.uv[1] ?? 0, worldY) % 2,
+            );
+          }
+        },
+      ),
+      { numRuns: 10 },
+    );
   });
 });
