@@ -31,7 +31,7 @@ pnpm sounds        # regenerate the Resource Pack sounds (Python 3)
 pnpm server:up     # register the packs and start the dev BDS (Docker)
 pnpm server:down   # stop the dev BDS
 pnpm server:restart # stop the dev BDS and start it again under a new dev pack version
-pnpm test:game     # run the in-game tests on the running dev BDS (GAME_TEST_SHARD=2/3 runs one CI slice)
+pnpm test:game     # run the in-game tests on the running dev BDS (GAME_TEST_SHARD=2/3 runs one CI slice; GAME_TEST_LANES=<1..8> runs that many lanes at once in one BDS)
 # Local runs select only impacted scenarios; CI/sharded runs run everything.
 # GAME_TEST_ALL=1 runs everything.
 # GAME_TEST_BASE=<ref> overrides the merge base.

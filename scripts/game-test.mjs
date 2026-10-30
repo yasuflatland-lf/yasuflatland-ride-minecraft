@@ -18,6 +18,7 @@ import {
   formatRunRequest,
   LOG_TAG,
   laneIndexFrom,
+  lanesFrom,
   shardFrom,
   TEST_EVENT,
   WHOLE_RUN,
@@ -44,6 +45,18 @@ const atText = process.env.GAME_TEST_AT;
 const at = atText === undefined ? 0 : laneIndexFrom(atText);
 if (at === undefined) {
   console.error(`GAME_TEST_AT must be a valid lane index, got ${atText}`);
+  process.exit(1);
+}
+const lanesText = process.env.GAME_TEST_LANES;
+const lanes = lanesText === undefined ? 1 : lanesFrom(lanesText);
+if (lanes === undefined) {
+  console.error(
+    `GAME_TEST_LANES must be an integer from 1 to 8, got ${lanesText}`,
+  );
+  process.exit(1);
+}
+if (lanes > 1 && at > 0) {
+  console.error("GAME_TEST_AT cannot be combined with GAME_TEST_LANES > 1");
   process.exit(1);
 }
 const featuresText = process.env.GAME_TEST_FEATURES;
@@ -117,7 +130,7 @@ if (features !== undefined) {
 } else {
   features = impactedFeatures();
 }
-const message = formatRunRequest({ runId, shard, lanes: 1, at, features });
+const message = formatRunRequest({ runId, shard, lanes, at, features });
 const since = new Date().toISOString();
 // Write the command to bedrock_server's stdin ourselves, as Mojang's Creator
 // Tools does with the process it spawns. The image's send-command cannot be
