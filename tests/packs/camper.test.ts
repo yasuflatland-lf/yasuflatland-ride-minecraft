@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
+import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { PAINTS } from "../../src/domain/shared/paint";
 import { SLEEP_MESSAGES } from "../../src/domain/shared/sleep";
@@ -30,7 +31,7 @@ interface Cube {
   size: number[];
   pivot?: number[];
   rotation?: number[];
-  uv: Record<string, { uv: number[] }>;
+  uv: Record<string, { uv: number[]; uv_size: number[] }>;
 }
 interface Bone {
   name: string;
@@ -1923,31 +1924,42 @@ describe("camper rear-right vent lid (ADR 0146, 0157)", () => {
 });
 
 describe("camper rib atlas (ADR 0190)", () => {
-  it("allocates only the rib region below the swatches and shades its rows alternately", () => {
-    const { width, height, regions, period, texelsPerPx } = JSON.parse(
-      execFileSync(
-        "python3",
-        [
-          "-I",
-          "-c",
-          [
-            "import contextlib, io, json, runpy, sys",
-            "sys.argv = ['tools/gen_camper.py', 'packs/yasu_ride_rp', '--check']",
-            "with contextlib.redirect_stdout(io.StringIO()):",
-            "    camper = runpy.run_path('tools/gen_camper.py')",
-            "atlas = camper['ATLAS']",
-            "print(json.dumps(dict(width=atlas.width, height=atlas.height, regions=atlas.regions, period=camper['RIB_PERIOD_TEXELS'], texelsPerPx=camper['RIB_TEXELS_PER_PX'])))",
-          ].join("\n"),
-        ],
-        { encoding: "utf8" },
+  it("preserves every cube's bone, origin, and size from the pre-rib geometry", () => {
+    const fixture = JSON.parse(
+      readFileSync("tests/packs/fixtures/camper-cubes.json", "utf8"),
+    );
+    expect(
+      bones.flatMap((b) =>
+        (b.cubes ?? []).map((c) => [b.name, c.origin, c.size]),
       ),
-    ) as {
-      width: number;
-      height: number;
-      regions: [[string, number, number, number, number]];
-      period: number;
-      texelsPerPx: number;
-    };
+    ).toEqual(fixture);
+  });
+
+  const { width, height, regions, period, texelsPerPx } = JSON.parse(
+    execFileSync(
+      "python3",
+      [
+        "-I",
+        "-c",
+        [
+          "import contextlib, io, json, runpy, sys",
+          "sys.argv = ['tools/gen_camper.py', 'packs/yasu_ride_rp', '--check']",
+          "with contextlib.redirect_stdout(io.StringIO()):",
+          "    camper = runpy.run_path('tools/gen_camper.py')",
+          "atlas = camper['ATLAS']",
+          "print(json.dumps(dict(width=atlas.width, height=atlas.height, regions=atlas.regions, period=camper['RIB_PERIOD_TEXELS'], texelsPerPx=camper['RIB_TEXELS_PER_PX'])))",
+        ].join("\n"),
+      ],
+      { encoding: "utf8" },
+    ),
+  ) as {
+    width: number;
+    height: number;
+    regions: [string, number, number, number, number][];
+    period: number;
+    texelsPerPx: number;
+  };
+  it("allocates only the rib region below the swatches and shades its rows alternately", () => {
     expect([width, height]).toEqual([
       geometry.description.texture_width,
       geometry.description.texture_height,
@@ -1955,7 +1967,7 @@ describe("camper rib atlas (ADR 0190)", () => {
     expect(period).toBe(2);
     expect(texelsPerPx).toBe(2);
     expect(regions).toEqual([["rib", 0, 1, 8, 64 * texelsPerPx]]);
-    const [[, x, y, w, h]] = regions;
+    const [, x, y, w, h] = defined(regions[0], "rib region");
     const texture = readPng("textures/entity/yasu_ride/camper");
     const shell = [...texture.pixels.subarray(0, 3)];
     for (let dy = 0; dy < h; dy++) {
@@ -1972,5 +1984,78 @@ describe("camper rib atlas (ADR 0190)", () => {
         );
       }
     }
+  });
+
+  it("maps only the outward white shell faces on both walls and the door to height-aligned ribs", () => {
+    const [, x, y, w, h] = defined(regions[0], "rib region");
+    const entries = bones.flatMap((b) =>
+      (b.cubes ?? []).flatMap((c) =>
+        Object.entries(c.uv)
+          .filter(([, f]) => (f.uv[1] ?? 0) >= y)
+          .map(([side, face]) => ({ bone: b.name, cube: c, side, face })),
+      ),
+    );
+    expect(
+      entries.filter((e) => e.bone === "body" && e.side === "west"),
+    ).toHaveLength(256);
+    expect(
+      entries.filter((e) => e.bone === "body" && e.side === "east"),
+    ).toHaveLength(223);
+    const roof = (bone("body").cubes ?? []).find(
+      (c) => c.origin[1] === 61 && c.size[1] === 3 && c.size[0] === 48,
+    );
+    expect(roof).toBeDefined();
+    for (const face of Object.values(roof?.uv ?? {}))
+      expect(face.uv[1]).toBe(0);
+    expect(new Set(entries.map((e) => e.bone))).toEqual(
+      new Set(["body", "door_entry"]),
+    );
+    for (const side of ["east", "west"]) {
+      expect(entries.some((e) => e.bone === "body" && e.side === side)).toBe(
+        true,
+      );
+    }
+    expect(
+      entries.filter((e) => e.bone === "door_entry").map((e) => e.side),
+    ).toEqual(["west"]);
+    fc.assert(
+      fc.property(
+        fc.shuffledSubarray(entries, {
+          minLength: entries.length,
+          maxLength: entries.length,
+        }),
+        (faces) => {
+          for (const { cube, side, face } of faces) {
+            const [u = 0, v = 0] = face.uv;
+            const [du = 0, dv = 0] = face.uv_size;
+            const y0 = cube.origin[1] ?? 0;
+            expect(u).toBeGreaterThanOrEqual(x);
+            expect(v).toBeGreaterThanOrEqual(y);
+            expect(du).toBeGreaterThan(0);
+            expect(dv).toBeGreaterThan(0);
+            expect(u + du).toBeLessThanOrEqual(x + w);
+            expect(v + dv).toBeLessThanOrEqual(y + h);
+            expect(v - y).toBeCloseTo(y0 * texelsPerPx, 8);
+            expect((v - y) % period).toBeCloseTo(
+              (y0 * texelsPerPx) % period,
+              8,
+            );
+            expect(dv).toBeCloseTo((cube.size[1] ?? 0) * texelsPerPx, 8);
+            const edge =
+              side === "west"
+                ? (cube.origin[0] ?? 0)
+                : (cube.origin[0] ?? 0) + (cube.size[0] ?? 0);
+            expect(edge).toBe(side === "west" ? -24 : 24);
+            expect(cube.rotation).toBeUndefined();
+            for (const [other, f] of Object.entries(cube.uv)) {
+              if (f.uv[1] === 0)
+                expect(f).toEqual({ uv: [0, 0], uv_size: [1, 1] });
+              else expect(["east", "west"]).toContain(other);
+            }
+          }
+        },
+      ),
+      { numRuns: 10 },
+    );
   });
 });
