@@ -9,6 +9,7 @@ const modules = [
   "features",
   "catalog",
   "plan",
+  "lane",
   "resultLog",
   "deadline",
 ].filter((name) => existsSync(new URL(`src/test-pack/${name}.ts`, root)));
