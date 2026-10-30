@@ -1,4 +1,4 @@
-"""tail_lamp block painter, owned by SUV detail 14/17."""
+"""tail_lamp block painter, owned by SUV detail 13/17."""
 
 from tool_loader import load_tool
 
