@@ -2270,14 +2270,16 @@ describe("camper aluminium roof edges", () => {
     expect(front.origin[0]).toBe(-24.2);
     expect(front.origin[1]).toBe(63.4);
     expect(front.size).toEqual([48.4, 0.7, 1]);
+    function edgeWidth(c: Cube): number {
+      return defined(c.size[c === front ? 0 : 2], "edge width");
+    }
+    function outerFace(c: Cube): string {
+      if (c === front) return "north";
+      return defined(c.origin[0], "edge x") < 0 ? "west" : "east";
+    }
     for (const c of edges) {
-      const outer =
-        c === front
-          ? "north"
-          : defined(c.origin[0], "edge x") < 0
-            ? "west"
-            : "east";
-      const width = defined(c.size[c === front ? 0 : 2], "edge width");
+      const outer = outerFace(c);
+      const width = edgeWidth(c);
       if (c !== front) {
         expect(c.origin[1]).toBe(63.4);
         expect(c.size.slice(0, 2)).toEqual([0.4, 0.6]);

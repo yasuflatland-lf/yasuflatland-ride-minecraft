@@ -726,7 +726,7 @@ for sx in (1, -1):  # the molding carries on down the pillar to the corner glass
     body.append(corner(sx, WS_Z, 49.2, 49.7, "chrome"))  # header strip over the corner glass
 body.append(box(-FW, 49.2, BOT_C - 0.3, FW, 49.7, BOT_C + 2.2, "chrome"))  # windshield header strip
 roof_lip = box(-HW - 0.2, ROOF - 0.6, TOP_FRONT - 0.3, HW + 0.2, ROOF + 0.1, TOP_FRONT + 0.7, "aluminium")
-roof_lip["uv"]["north"] = ATLAS.face(BOLT_REGION, (0, 0), (roof_lip["size"][0], 1))
+roof_lip["uv"]["north"] = ATLAS.face(BOLT_REGION, uv_size=(roof_lip["size"][0], 1))
 body.append(roof_lip)
 # Roof-lip lamps: a clearance dome near each corner and three identification lamps at the centre,
 # the middle one a flat lens.
@@ -850,7 +850,7 @@ for z in (-46, -42):
 for sx in (-1, 1):
     rail = box(sx * HW, ROOF - 0.6, TOP_FRONT, sx * (HW + 0.4), ROOF, REAR_OUT, "aluminium")
     outer_face = "west" if sx < 0 else "east"
-    rail["uv"][outer_face] = ATLAS.face(BOLT_REGION, (0, 0), (rail["size"][2], 1))
+    rail["uv"][outer_face] = ATLAS.face(BOLT_REGION, uv_size=(rail["size"][2], 1))
     body.append(rail)
 # Roof rack around the rear air conditioner
 RACK = (22, 55)
