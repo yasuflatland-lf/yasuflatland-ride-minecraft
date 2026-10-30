@@ -144,6 +144,11 @@ FRONT, REAR = -56, 56
 BOTTOM, FLOOR, CEIL, ROOF = 8, 16, 61, 64  # roof 4.0 blocks up, the top of the fourth cell from the ground
 # From the region's top, row dy maps to model y = dy / RIB_TEXELS_PER_PX above y = 0.
 RIB_REGION = ATLAS.allocate("rib", 8, ROOF * RIB_TEXELS_PER_PX)
+DOOR_HEAD_REGION = ATLAS.allocate("door_head", 18, 3)
+DOOR_HINGE_REGION = ATLAS.allocate("door_hinge", 3, 26)
+DOOR_LATCH_REGION = ATLAS.allocate("door_latch", 3, 26)
+VENT_SCREWS_REGION = ATLAS.allocate("vent_screws", 16, 3)
+HARDWARE_DARK_FACTOR = 0.65
 FRONT_AXLE, REAR_AXLE = -31.5, 31
 WHEEL_R = 7.8
 # Keep the existing 2.5 px end gaps and 2 px top gap; scaling the gaps crowds the rear hatch.
@@ -257,11 +262,12 @@ def vent_cover(z0, z1, y0, y1):
     rim_top = band + 0.4
     cubes = [
         # The rim ring, with each outer corner cut by r so the lid reads as a rounded rectangle.
-        box(band, y1 - w, z0 + w, rim_top, y1, z1 - w, "chrome"),
+        box(band, y1 - w, z0 + w, rim_top, y1, z1 - w, "aluminium"),
         box(band, y0, z0 + w, rim_top, y0 + w, z1 - w, "chrome"),
         box(band, y0 + w, z0, rim_top, y1 - w, z0 + w, "chrome"),
         box(band, y0 + w, z1 - w, rim_top, y1 - w, z1, "chrome"),
     ]
+    cubes[0]["uv"]["west"] = ATLAS.face(VENT_SCREWS_REGION)
     for outer_z, inner_z in (((z0, z0 + r), (z0 + r, z0 + w)), ((z1 - r, z1), (z1 - w, z1 - r))):
         for outer_y, inner_y in (((y0, y0 + r), (y0 + r, y0 + w)), ((y1 - r, y1), (y1 - w, y1 - r))):
             cy0, cy1 = min(*outer_y, *inner_y), max(*outer_y, *inner_y)
@@ -277,7 +283,7 @@ def vent_cover(z0, z1, y0, y1):
         for i in range(VENT_SLITS)
     ]
     # The panel sits 0.2 px under the rim; each slit is a further 0.1 px recess onto black.
-    cubes += panel("x", band, band + 0.2, iz0, iz1, iy0, iy1, slits, "white")
+    cubes += panel("x", band, band + 0.2, iz0, iz1, iy0, iy1, slits, "trim_beige")
     cubes += [box(band, sy0, sz0, band + 0.1, sy1, sz1, "black") for sz0, sz1, sy0, sy1 in slits]
     cubes.append(box(band + 0.2, iy0 + 0.4, mid - 0.6, band + 0.45, iy0 + 1.0, mid + 0.6, "steel"))  # latch
     for sz in (z0 + w / 2, mid, z1 - w / 2):  # screw heads on the rim
@@ -444,7 +450,7 @@ for x0, x1, windows in ((HW - 1, HW, right_windows), (-HW, -HW + 1, left_windows
         else:
             body.append(w_fill(lo, hi, span, W_BOTTOM, W_BOTTOM + drop))
     for z0, z1, y0, y1 in windows:
-        frame = "black" if (z0, z1) == CAB_WIN[:2] else "chrome"
+        frame = "black" if (z0, z1) == CAB_WIN[:2] else "trim_beige"
         for fz0, fz1, fy0, fy1 in ((z0 - 0.6, z1 + 0.6, y0 - 0.6, y0), (z0 - 0.6, z1 + 0.6, y1, y1 + 0.6),
                                    (z0 - 0.6, z0, y0, y1), (z1, z1 + 0.6, y0, y1)):
             body.append(box(out, fy0, fz0, out + sgn * 0.15, fy1, fz1, frame))
@@ -461,8 +467,8 @@ for x0, x1, windows in ((HW - 1, HW, right_windows), (-HW, -HW + 1, left_windows
     body.append(box(mo0, 29.2, FRONT + 4, mo1, 31.3, FRONT + 6, "red"))
     body.append(box(out, 19, REAR - 4, out + sgn * 0.2, 21, REAR - 2, "red"))
 
-body.append(box(HW, WIN_Y[0], -22.8, HW + 0.2, WIN_Y[1], -22.2, "chrome"))  # double window dividers
-body.append(box(-HW - 0.2, WIN_Y[0], -17.3, -HW, WIN_Y[1], -16.7, "chrome"))
+body.append(box(HW, WIN_Y[0], -22.8, HW + 0.2, WIN_Y[1], -22.2, "aluminium"))  # double window dividers
+body.append(box(-HW - 0.2, WIN_Y[0], -17.3, -HW, WIN_Y[1], -16.7, "aluminium"))
 body.append(box(HW, 13, 10, HW + 0.3, 19, 17, "slat"))  # small louvered vent
 body += vent_cover(*VENT_COVER)
 # Louvered hatch low at the rear corner of both sides, small utility boxes.
@@ -483,7 +489,13 @@ DW0, DW1 = DZ0 + 3, DZ1 - 3
 door.append(box(HW, WIN_Y[0], DW0, HW + 0.15, WIN_Y[1], DW1, "glass"))
 for fz0, fz1, fy0, fy1 in ((DW0 - 0.6, DW1 + 0.6, WIN_Y[0] - 0.6, WIN_Y[0]), (DW0 - 0.6, DW1 + 0.6, WIN_Y[1], WIN_Y[1] + 0.6),
                            (DW0 - 0.6, DW0, *WIN_Y), (DW1, DW1 + 0.6, *WIN_Y)):
-    door.append(box(HW, fy0, fz0, HW + 0.18, fy1, fz1, "chrome"))
+    door.append(box(HW, fy0, fz0, HW + 0.18, fy1, fz1, "aluminium"))
+    hardware = (DOOR_HEAD_REGION if fy0 == WIN_Y[1] else
+                DOOR_HINGE_REGION if fz1 == DW0 else
+                DOOR_LATCH_REGION if fz0 == DW1 else None)
+    if hardware is not None:
+        # The build's +x side becomes the outward west face after mirror_x.
+        door[-1]["uv"]["west"] = ATLAS.face(hardware)
 door.append(box(HW, STRIPE_Y[0], DZ0 + 0.1, HW + 0.12, STRIPE_Y[1], DZ1 - 0.1, "stripe"))
 door.append(box(HW, BAND_Y[0], DZ0 + 0.1, HW + 0.1, BAND_Y[1], DZ1 - 0.1, "khaki"))
 door.append(box(HW, DY0, DZ0 + 0.1, HW + 0.12, 15, DZ1 - 0.1, "tan"))
@@ -1488,9 +1500,21 @@ def scale(color, factor):
 
 
 def region_pixel(region, x, y):
-    phase = y % RIB_PERIOD_TEXELS
-    factor = 0.93 if phase == 0 else 1.05 if phase == 1 else 1
-    return (*scale(PALETTE["white"][:3], factor), 255)
+    if region.name == "rib":
+        phase = y % RIB_PERIOD_TEXELS
+        factor = 0.93 if phase == 0 else 1.05 if phase == 1 else 1
+        return (*scale(PALETTE["white"][:3], factor), 255)
+    if region.name == "door_head":
+        dark = y == region.h - 1
+    elif region.name == "door_hinge":
+        dark = y in (5, 6, 19, 20)
+    elif region.name == "door_latch":
+        dark = x == 1 and y in (12, 13)
+    elif region.name == "vent_screws":
+        dark = y == 1 and x in (2, 7, 12)
+    else:
+        raise ValueError(f"Unknown camper region: {region.name}")
+    return (*scale(PALETTE["aluminium"][:3], HARDWARE_DARK_FACTOR if dark else 1), 255)
 
 
 for paint, base in ACCENT_BASES.items():

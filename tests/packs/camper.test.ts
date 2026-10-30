@@ -1824,6 +1824,8 @@ describe("camper rear-right vent lid (ADR 0146, 0157)", () => {
   const BLACK_SLOT = 7;
   const CHROME_SLOT = 10;
   const WALL_IN_SLOT = 22;
+  const ALUMINIUM_SLOT = 36;
+  const TRIM_BEIGE_SLOT = 37;
   const end = (c: Cube, axis: number) =>
     (c.origin[axis] ?? 0) + (c.size[axis] ?? 0);
   it("removes the rear-right pane and closes the outer wall, lining, and band", () => {
@@ -1863,14 +1865,30 @@ describe("camper rear-right vent lid (ADR 0146, 0157)", () => {
     y <= end(c, 1) &&
     (c.origin[2] ?? 0) <= z &&
     z <= end(c, 2);
-  it("frames a white panel in a raised aluminium rim with cut corners", () => {
+  it("frames a grey-beige panel in a raised aluminium rim with cut corners", () => {
     const cubes = lid();
     for (const c of cubes)
       for (const face of Object.values(c.uv))
-        expect([WHITE_SLOT, STEEL_SLOT, BLACK_SLOT, CHROME_SLOT]).toContain(
-          face.uv[0],
-        );
-    const rim = cubes.filter((c) => c.uv.north?.uv[0] === CHROME_SLOT);
+        if (face.uv[1] === 0)
+          expect([
+            TRIM_BEIGE_SLOT,
+            STEEL_SLOT,
+            BLACK_SLOT,
+            CHROME_SLOT,
+            ALUMINIUM_SLOT,
+          ]).toContain(face.uv[0]);
+        else {
+          expect(face.uv[1]).toBeGreaterThan(0);
+          expect(
+            (face.uv[0] ?? 0) + (face.uv_size[0] ?? 0),
+          ).toBeLessThanOrEqual(geometry.description.texture_width);
+          expect(
+            (face.uv[1] ?? 0) + (face.uv_size[1] ?? 0),
+          ).toBeLessThanOrEqual(geometry.description.texture_height);
+        }
+    const rim = cubes.filter((c) =>
+      [CHROME_SLOT, ALUMINIUM_SLOT].includes(c.uv.north?.uv[0] ?? -1),
+    );
     for (const c of rim) {
       expect(c.origin[0]).toBeCloseTo(-24.5, 4);
       expect(end(c, 0)).toBeCloseTo(-24.1, 4);
@@ -1892,7 +1910,7 @@ describe("camper rear-right vent lid (ADR 0146, 0157)", () => {
       [48.4, 49.4],
     ] as const)
       expect(cubes.filter((c) => covers(c, y, z))).toEqual([]);
-    for (const c of cubes.filter((c) => c.uv.north?.uv[0] === WHITE_SLOT))
+    for (const c of cubes.filter((c) => c.uv.north?.uv[0] === TRIM_BEIGE_SLOT))
       expect(c.origin[0]).toBeCloseTo(-24.3, 4);
   });
   it("cuts two columns of twelve recessed slits above a plain lower part", () => {
@@ -1907,7 +1925,7 @@ describe("camper rear-right vent lid (ADR 0146, 0157)", () => {
     const right = slits.filter((c) => (c.origin[2] ?? 0) > 45);
     expect(left).toHaveLength(12);
     expect(right).toHaveLength(12);
-    const panel = lid().filter((c) => c.uv.north?.uv[0] === WHITE_SLOT);
+    const panel = lid().filter((c) => c.uv.north?.uv[0] === TRIM_BEIGE_SLOT);
     for (const c of slits)
       expect(
         panel.some((p) =>
@@ -1935,7 +1953,7 @@ describe("camper rib atlas (ADR 0190)", () => {
     ).toEqual(fixture);
   });
 
-  const { width, height, regions, period, texelsPerPx } = JSON.parse(
+  const { width, height, regions, period, texelsPerPx, slots, windows } = JSON.parse(
     execFileSync(
       "python3",
       [
@@ -1947,7 +1965,7 @@ describe("camper rib atlas (ADR 0190)", () => {
           "with contextlib.redirect_stdout(io.StringIO()):",
           "    camper = runpy.run_path('tools/gen_camper.py')",
           "atlas = camper['ATLAS']",
-          "print(json.dumps(dict(width=atlas.width, height=atlas.height, regions=atlas.regions, period=camper['RIB_PERIOD_TEXELS'], texelsPerPx=camper['RIB_TEXELS_PER_PX'])))",
+          "print(json.dumps(dict(width=atlas.width, height=atlas.height, regions=atlas.regions, period=camper['RIB_PERIOD_TEXELS'], texelsPerPx=camper['RIB_TEXELS_PER_PX'], slots=camper['SLOTS'], windows=[camper['right_windows'], camper['left_windows']])))",
         ].join("\n"),
       ],
       { encoding: "utf8" },
@@ -1958,6 +1976,8 @@ describe("camper rib atlas (ADR 0190)", () => {
     regions: [string, number, number, number, number][];
     period: number;
     texelsPerPx: number;
+    slots: string[];
+    windows: number[][][];
   };
   it("allocates only the rib region below the swatches and shades its rows alternately", () => {
     expect([width, height]).toEqual([
@@ -1966,7 +1986,19 @@ describe("camper rib atlas (ADR 0190)", () => {
     ]);
     expect(period).toBe(2);
     expect(texelsPerPx).toBe(2);
-    expect(regions).toEqual([["rib", 0, 1, 8, 64 * texelsPerPx]]);
+    expect(regions[0]).toEqual(["rib", 0, 1, 8, 64 * texelsPerPx]);
+    for (const [i, [, x, y, w, h]] of regions.entries()) {
+      expect(x).toBeGreaterThanOrEqual(0);
+      expect(y).toBeGreaterThanOrEqual(1);
+      expect(w).toBeGreaterThan(0);
+      expect(h).toBeGreaterThan(0);
+      expect(x + w).toBeLessThanOrEqual(width);
+      expect(y + h).toBeLessThanOrEqual(height);
+      for (const [, ox, oy, ow, oh] of regions.slice(0, i))
+        expect(x + w <= ox || ox + ow <= x || y + h <= oy || oy + oh <= y).toBe(
+          true,
+        );
+    }
     const [, x, y, w, h] = defined(regions[0], "rib region");
     const texture = readPng("textures/entity/yasu_ride/camper");
     const shell = [...texture.pixels.subarray(0, 3)];
@@ -2057,5 +2089,90 @@ describe("camper rib atlas (ADR 0190)", () => {
       ),
       { numRuns: 10 },
     );
+  });
+  const required = <T>(value: T | undefined): T =>
+    defined(value, "camper trim");
+  const regionFace = (name: string) => {
+    const [, x, y, w, h] = required(regions.find(([n]) => n === name));
+    return { uv: [x, y], uv_size: [w, h] };
+  };
+
+  it("uses aluminium door frames with head, hinge, and latch hardware on the outward face", () => {
+    const frames = (bone("door_entry").cubes ?? []).filter(
+      (c) => c.size[0] === 0.18,
+    );
+    expect(frames).toHaveLength(4);
+    for (const c of frames)
+      expect(c.uv.north?.uv).toEqual([slots.indexOf("aluminium"), 0]);
+    for (const [name, y, z] of [
+      ["door_head", 49, -4.6],
+      ["door_hinge", 36, -4.6],
+      ["door_latch", 36, 4],
+    ] as const) {
+      const frame = required(
+        frames.find((c) => c.origin[1] === y && c.origin[2] === z),
+      );
+      expect(frame.uv.west).toEqual(regionFace(name));
+    }
+  });
+
+  it("uses beige side window frames, black cab frames, and aluminium mullions", () => {
+    for (const [side, sideWindows] of windows.entries()) {
+      for (const [index, window] of sideWindows.entries()) {
+        const [z0, z1, y0, y1] = window;
+        const frames = (bone("body").cubes ?? []).filter(
+          (c) =>
+            c.size[0] === 0.15 &&
+            Math.abs((c.origin[0] ?? 0) - (side === 0 ? -24.15 : 24)) < 1e-6 &&
+            (c.origin[2] ?? 0) >= required(z0) - 0.601 &&
+            (c.origin[2] ?? 0) + (c.size[2] ?? 0) <= required(z1) + 0.601 &&
+            (c.origin[1] ?? 0) >= required(y0) - 0.601 &&
+            (c.origin[1] ?? 0) + (c.size[1] ?? 0) <= required(y1) + 0.601,
+        );
+        expect(frames).toHaveLength(4);
+        for (const c of frames)
+          for (const face of Object.values(c.uv))
+            expect(face.uv).toEqual([
+              slots.indexOf(index === 0 ? "black" : "trim_beige"),
+              0,
+            ]);
+      }
+    }
+    for (const z of [-22.8, -17.3]) {
+      const mullion = required(
+        (bone("body").cubes ?? []).find(
+          (c) => c.origin[2] === z && c.size[0] === 0.2 && c.size[1] === 13,
+        ),
+      );
+      expect(mullion.uv.north?.uv).toEqual([slots.indexOf("aluminium"), 0]);
+    }
+  });
+
+  it("puts a screw row on the aluminium vent upper rail", () => {
+    const rail = required(
+      (bone("body").cubes ?? []).find(
+        (c) =>
+          c.origin[0] === -24.5 && c.origin[1] === 47.8 && c.origin[2] === 41.2,
+      ),
+    );
+    expect(rail.uv.north?.uv).toEqual([slots.indexOf("aluminium"), 0]);
+    expect(rail.uv.west).toEqual(regionFace("vent_screws"));
+  });
+
+  it("preserves hardware pixels in lit textures and keeps their MER non-emissive", () => {
+    const base = readPng("textures/entity/yasu_ride/camper");
+    const lit = readPng("textures/entity/yasu_ride/camper_lit");
+    const mer = readPng("textures/entity/yasu_ride/camper_lit_mer");
+    for (const [, x, y, w, h] of regions)
+      for (let dy = 0; dy < h; dy++)
+        for (let dx = 0; dx < w; dx++) {
+          const offset = ((y + dy) * width + x + dx) * 4;
+          expect(lit.pixels.subarray(offset, offset + 4)).toEqual(
+            base.pixels.subarray(offset, offset + 4),
+          );
+          expect([...mer.pixels.subarray(offset, offset + 4)]).toEqual([
+            0, 0, 255, 255,
+          ]);
+        }
   });
 });
