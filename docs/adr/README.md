@@ -190,7 +190,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0187](0187-run-in-game-scenarios-in-concurrent-lanes.md) | Run in-game scenarios in concurrent lanes | Proposed |
 | [0188](0188-fuse-in-game-scenarios-and-keep-only-engine-facts-in-game.md) | Fuse in-game scenarios and keep only engine facts in game | Proposed |
 | [0189](0189-run-only-impacted-in-game-scenarios-locally.md) | Run only impacted in-game scenarios locally | Proposed |
-| [0190](0190-ribbed-camper-shell-atlas.md) | A ribbed camper shell atlas, trim, and roof rails | Proposed |
+| [0190](0190-ribbed-camper-shell-atlas.md) | A ribbed camper shell atlas and trim | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 
