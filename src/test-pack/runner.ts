@@ -32,6 +32,7 @@ interface ActiveRun {
   passed: number;
   failed: number;
   cancelled: boolean;
+  settled: Promise<void>;
 }
 
 function summary(run: ActiveRun, error?: string): void {
@@ -131,7 +132,6 @@ system.afterEvents.scriptEventReceive.subscribe((ev) => {
     const state = activeRun;
     state.cancelled = true;
     summary(state, "cancelled");
-    activeRun = undefined;
     return;
   }
   if (ev.id !== TEST_EVENT) return;
@@ -147,7 +147,7 @@ system.afterEvents.scriptEventReceive.subscribe((ev) => {
     return;
   }
   const { runId } = request;
-  if (activeRun !== undefined) {
+  if (activeRun !== undefined && !activeRun.cancelled) {
     reject(runId, `run ${activeRun.runId} in progress`);
     return;
   }
@@ -158,9 +158,18 @@ system.afterEvents.scriptEventReceive.subscribe((ev) => {
     passed: 0,
     failed: 0,
     cancelled: false,
+    settled: Promise.resolve(),
   };
+  const previous = activeRun;
   activeRun = state;
-  runAll(request, state)
+  // Cancellation cannot stop an in-flight scenario from mutating the arena.
+  state.settled = (
+    previous
+      ? previous.settled.then(() => {
+          if (!state.cancelled) return runAll(request, state);
+        })
+      : runAll(request, state)
+  )
     .catch((e) => {
       if (state.cancelled) return;
       state.failed++;
