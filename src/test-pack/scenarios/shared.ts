@@ -5,7 +5,8 @@ import { length } from "../../domain/shared/vec";
 import type { SUV_ENTITY } from "../../domain/vehicle/kinds/suv/entity";
 import { type Form, isForm } from "../../domain/vehicle/motion/forms";
 import { entityPropertyId } from "../../infrastructure/vehicle/bedrock/identifiers";
-import { type Arena, drive, type Outcome, wait } from "../arena";
+import { type Arena, drive, wait } from "../arena";
+import type { Outcome } from "../outcome";
 
 export function suvProperty(
   car: Entity,

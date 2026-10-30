@@ -15,7 +15,6 @@ import {
   clearInput,
   drive,
   insideArena,
-  type Outcome,
   POOL,
   SEAT_PROBE,
   spawnCar,
@@ -23,6 +22,7 @@ import {
   withCar,
   withPool,
 } from "../arena";
+import type { Outcome } from "../outcome";
 import { hitTick, judgeRam, PUSH_WINDOW, type RamSample } from "../ramJudge";
 import {
   FLIGHT_LANE,

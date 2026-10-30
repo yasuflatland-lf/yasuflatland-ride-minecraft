@@ -10,7 +10,8 @@ import {
   TEST_MODE_EVENT,
   TEST_RESULT_EVENT,
 } from "../../infrastructure/build/identifiers";
-import { type Arena, type Outcome, wait } from "../arena";
+import { type Arena, wait } from "../arena";
+import type { Outcome } from "../outcome";
 import {
   boardBulldozer,
   riddenEntity,
