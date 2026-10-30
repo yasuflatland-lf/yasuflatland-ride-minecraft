@@ -99,6 +99,8 @@ async function runAll(
   if (!a) throw new Error("arena not prepared");
   if (state.cancelled) return;
   log(runId, READY);
+  if (state.cancelled) return;
+  log(runId, READY);
   for (const { name } of plan.runs) {
     if (state.cancelled) return;
     const start = system.currentTick;
