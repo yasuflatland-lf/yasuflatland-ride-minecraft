@@ -60,9 +60,22 @@ if (unknownFeature !== undefined) {
   console.error(`GAME_TEST_FEATURES: unknown feature ${unknownFeature}`);
   process.exit(1);
 }
-if (features !== undefined) {
-  console.log(`impact: explicit ${features.join(",")}`);
-} else {
+function changedPaths() {
+  const root = fileURLToPath(new URL("../", import.meta.url));
+  const git = (args) =>
+    execFileSync("git", args, {
+      cwd: root,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim();
+  const base =
+    process.env.GAME_TEST_BASE ?? git(["merge-base", "HEAD", "origin/main"]);
+  const changed = git(["diff", "--name-only", "--no-renames", base]);
+  const untracked = git(["ls-files", "--others", "--exclude-standard"]);
+  return `${changed}\n${untracked}`.split("\n").filter(Boolean);
+}
+
+function impactedFeatures() {
   const reason = mustRunAll(process.env);
   if (reason !== undefined) {
     const label =
@@ -70,46 +83,39 @@ if (features !== undefined) {
         ? `${reason} set`
         : reason;
     console.log(`impact: all (${label})`);
-  } else {
-    const root = fileURLToPath(new URL("../", import.meta.url));
-    const git = (args) =>
-      execFileSync("git", args, {
-        cwd: root,
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "pipe"],
-      }).trim();
-    let paths;
-    try {
-      const base =
-        process.env.GAME_TEST_BASE ??
-        git(["merge-base", "HEAD", "origin/main"]);
-      const changed = git(["diff", "--name-only", "--no-renames", base]);
-      const untracked = git(["ls-files", "--others", "--exclude-standard"]);
-      paths = `${changed}\n${untracked}`.split("\n").filter(Boolean);
-    } catch (error) {
-      console.log(`impact: all (git failed: ${error.message.split("\n")[0]})`);
-    }
-    if (paths !== undefined) {
-      const selection = selectionOf(paths);
-      if (selection.all) {
-        console.log(`impact: all (${selection.reason})`);
-      } else {
-        features = selection.features;
-        const impactPlan = planOf(CATALOG, {
-          shard: WHOLE_RUN,
-          playerConnected: true,
-          features,
-        });
-        if (impactPlan.runs.length === 0) {
-          console.log("impact: no in-game scenario affected");
-          process.exit(0);
-        }
-        console.log(
-          `impact: ${features.join(",")} -> ${impactPlan.runs.length} scenarios, ${impactPlan.expectedTicks} declared ticks`,
-        );
-      }
-    }
+    return undefined;
   }
+  let paths;
+  try {
+    paths = changedPaths();
+  } catch (error) {
+    console.log(`impact: all (git failed: ${error.message.split("\n")[0]})`);
+    return undefined;
+  }
+  const selection = selectionOf(paths);
+  if (selection.all) {
+    console.log(`impact: all (${selection.reason})`);
+    return undefined;
+  }
+  const impactPlan = planOf(CATALOG, {
+    shard: WHOLE_RUN,
+    playerConnected: true,
+    features: selection.features,
+  });
+  if (impactPlan.runs.length === 0) {
+    console.log("impact: no in-game scenario affected");
+    process.exit(0);
+  }
+  console.log(
+    `impact: ${selection.features.join(",")} -> ${impactPlan.runs.length} scenarios, ${impactPlan.expectedTicks} declared ticks`,
+  );
+  return selection.features;
+}
+
+if (features !== undefined) {
+  console.log(`impact: explicit ${features.join(",")}`);
+} else {
+  features = impactedFeatures();
 }
 const message = formatRunRequest({ runId, shard, lanes: 1, at, features });
 const since = new Date().toISOString();
