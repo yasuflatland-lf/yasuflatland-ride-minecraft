@@ -14,9 +14,7 @@ Run: python3 -I tools/gen_bulldozer.py packs/yasu_ride_rp [--check]
 
 import json
 import math
-import struct
 import sys
-import zlib
 from pathlib import Path
 
 # Isolated mode (-I) omits the script directory from the import path.
@@ -32,26 +30,9 @@ ASSEMBLIES = {
     "propeller": {"owner": "bulldozer", "cubes": 4},
 }
 
-CHECK = "--check" in sys.argv[2:]
-STALE = []
-
-
-def emit(path, data):
-    if CHECK:
-        try:
-            matches = (json.loads(path.read_text()) == json.loads(data)
-                       if path.suffix == ".json" else path.read_bytes() == data)
-        except (OSError, ValueError):
-            matches = False
-        if not matches:
-            STALE.append(str(path))
-    else:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        if isinstance(data, bytes):
-            path.write_bytes(data)
-        else:
-            path.write_text(data)
-
+texture_io = load_tool("texture_io")
+outputs = texture_io.Outputs("--check" in sys.argv[2:])
+build_lit_textures = load_tool("lit_textures").build_lit_textures
 
 RP = Path(sys.argv[1])
 MODELS = RP / "models/entity/yasu_ride"
@@ -95,9 +76,6 @@ PALETTE = {
     "glass": (120, 164, 174, 96),
 }
 SLOTS = list(PALETTE)
-EMISSIVE_LIT = 255
-MER_LIT = (0, EMISSIVE_LIT, 255)
-MER_OFF = (0, 0, 255)
 LIT_SLOTS = tuple(SLOTS.index(name) for name in ("lens", "amber"))
 
 # Overall extents (spec, converted at 15.1 px per meter)
@@ -1442,40 +1420,7 @@ assert_axes(model_cubes, {
     "yawed_pair": [c for c in compound if c["rotation"][0] == -15],
     "propeller": [c for c in compound if c["rotation"][1] == -18],
 }, ASSEMBLIES)
-emit(MODELS / "bulldozer.geo.json", json.dumps(rounded(geo), separators=(",", ":")))
-
-
-def png(path, width, height, pixel):
-    raw = b"".join(b"\x00" + b"".join(bytes(pixel(x, y)) for x in range(width)) for y in range(height))
-
-    def chunk(t, d):
-        return struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d) & 0xFFFFFFFF)
-
-    head = struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0)
-    emit(path, b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", head) + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b""))
-
-
-def lit_textures(kind, width, height, pixel):
-    def is_lit(x, y):
-        return x in LIT_SLOTS
-
-    def color(x, y):
-        rgba = (*pixel(x, y), 255)[:4]
-        return (*rgba[:3], 0) if is_lit(x, y) else rgba
-
-    def mer(x, y):
-        return (*(MER_LIT if is_lit(x, y) else MER_OFF), 255)
-
-    png(ENTITY_TEXTURES / f"{kind}_lit.png", width, height, color)
-    png(ENTITY_TEXTURES / f"{kind}_lit_mer.png", width, height, mer)
-    texture_set = {
-        "format_version": "1.16.100",
-        "minecraft:texture_set": {
-            "color": f"{kind}_lit",
-            "metalness_emissive_roughness": f"{kind}_lit_mer",
-        },
-    }
-    emit(ENTITY_TEXTURES / f"{kind}_lit.texture_set.json", json.dumps(texture_set))
+outputs.json(MODELS / "bulldozer.geo.json", json.dumps(rounded(geo), separators=(",", ":")))
 
 
 # Variant 0, khaki on the SUV, is yellow here, so a new bulldozer is yellow (ADR 0076); khaki writes bulldozer.png, the others bulldozer_<paint>.png.
@@ -1517,9 +1462,10 @@ for paint, base in BODY_PAINTS.items():
             yellow_light=(*lighten(base, 0.25), 255),
         )
     name = "bulldozer" if paint == "khaki" else f"bulldozer_{paint}"
-    png(ENTITY_TEXTURES / f"{name}.png", len(SLOTS), 1, lambda x, y: colors[SLOTS[x]])
+    outputs.png(ENTITY_TEXTURES / f"{name}.png", len(SLOTS), 1, lambda x, y: colors[SLOTS[x]])
 
-lit_textures("bulldozer", len(SLOTS), 1, lambda x, y: PALETTE[SLOTS[x]])
+build_lit_textures(outputs, ENTITY_TEXTURES, "bulldozer", len(SLOTS), 1,
+                   lambda x, y: PALETTE[SLOTS[x]], is_lit=lambda x, y: x in LIT_SLOTS)
 
 ICON = [
     "................",
@@ -1547,7 +1493,7 @@ ICON_COLORS = {
     "G": PALETTE["glass"][:3] + (255,),
     ".": (0, 0, 0, 0),
 }
-png(ITEM_TEXTURES / "bulldozer_item.png", 16, 16, lambda x, y: ICON_COLORS[ICON[y][x]])
+outputs.png(ITEM_TEXTURES / "bulldozer_item.png", 16, 16, lambda x, y: ICON_COLORS[ICON[y][x]])
 
 # Blade Up/Down switch icon: the yellow blade between an up and a down arrow (ADR 0138).
 BLADE_SWITCH_ICON = [
@@ -1568,7 +1514,7 @@ BLADE_SWITCH_ICON = [
     "................",
     "................",
 ]
-png(
+outputs.png(
     ITEM_TEXTURES / "blade_switch.png",
     16,
     16,
@@ -1594,7 +1540,7 @@ WIDE_BLADE_SWITCH_ICON = [
     "................",
     "................",
 ]
-png(
+outputs.png(
     ITEM_TEXTURES / "wide_blade_switch.png",
     16,
     16,
@@ -1620,7 +1566,7 @@ ROAD_PAVER_SWITCH_ICON = [
     "KKKKKKKKKKKKKKKK",
     "................",
 ]
-png(
+outputs.png(
     ITEM_TEXTURES / "road_paver_switch.png",
     16,
     16,
@@ -1664,6 +1610,5 @@ MONITOR_ICONS = {
     "wide_blade_switch": [[monitor_icon_color(code) for code in row] for row in WIDE_BLADE_SWITCH_ICON],
     "road_paver_switch": [[monitor_icon_color(code) for code in row] for row in ROAD_PAVER_SWITCH_ICON],
 }
-STALE.extend(monitor.write_monitor("bulldozer", MONITOR_LAYOUT, MONITOR_ICONS, CHECK, RP))
-if STALE:
-    sys.exit("Stale bulldozer outputs:\n" + "\n".join(STALE))
+outputs.stale.extend(monitor.write_monitor("bulldozer", MONITOR_LAYOUT, MONITOR_ICONS, outputs.check, RP))
+outputs.finish("Stale bulldozer outputs:", None)
