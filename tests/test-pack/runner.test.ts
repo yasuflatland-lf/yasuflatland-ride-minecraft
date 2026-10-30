@@ -193,11 +193,13 @@ it("skips a queued run cancelled before the previous scenario settles", async ()
 });
 
 it("suppresses READY after cancellation during setup and retains request validation", async () => {
+  let now = 0;
+  vi.spyOn(Date, "now").mockImplementation(() => now++);
   const setup = deferred<object[]>();
   harness.setup.mockReturnValue(setup.promise);
   for (const request of ["invalid unknown=1", "features features=nonsense"]) {
     send(TEST_EVENT, request);
-    expect(logs.at(-1)).toMatch(/SUMMARY pass=0 fail=1 ticks=0 ms=0 error=/);
+    expect(logs.at(-1)).toMatch(/SUMMARY pass=0 fail=1 ticks=0 ms=\d+ error=/);
   }
   expect(harness.setup).not.toHaveBeenCalled();
   send(TEST_EVENT, "setup");

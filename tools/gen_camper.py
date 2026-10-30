@@ -109,6 +109,7 @@ SLOTS = list(PALETTE)
 ATLAS = camper_atlas.Atlas(SLOTS)
 RIB_PERIOD_TEXELS = 2
 RIB_TEXELS_PER_PX = 2
+BOLT_PITCH_PX = 6
 EMISSIVE_LIT = 255
 MER_LIT = (0, EMISSIVE_LIT, 255)
 MER_OFF = (0, 0, 255)
@@ -142,8 +143,14 @@ ACCENT_BASES = {
 HW = 24  # half width
 FRONT, REAR = -56, 56
 BOTTOM, FLOOR, CEIL, ROOF = 8, 16, 61, 64  # roof 4.0 blocks up, the top of the fourth cell from the ground
-# From the region's top, row dy maps to model y = dy / RIB_TEXELS_PER_PX above y = 0.
+# Row dy maps to height ROOF - dy / RIB_TEXELS_PER_PX; side UVs start at the cube's top,
+# keeping one rib phase across cubes.
 RIB_REGION = ATLAS.allocate("rib", 8, ROOF * RIB_TEXELS_PER_PX)
+DOOR_HEAD_REGION = ATLAS.allocate("door_head", 18, 3)
+DOOR_HINGE_REGION = ATLAS.allocate("door_hinge", 3, 26)
+DOOR_LATCH_REGION = ATLAS.allocate("door_latch", 3, 26)
+VENT_SCREWS_REGION = ATLAS.allocate("vent_screws", 16, 3)
+HARDWARE_DARK_FACTOR = 0.65
 FRONT_AXLE, REAR_AXLE = -31.5, 31
 WHEEL_R = 7.8
 # Keep the existing 2.5 px end gaps and 2 px top gap; scaling the gaps crowds the rear hatch.
@@ -169,6 +176,20 @@ def box(x0, y0, z0, x1, y1, z1, color, rotation=None, pivot=None, offset=(0, 0),
         c["rotation"] = rotation
         c["pivot"] = pivot
     return c
+
+
+def rib_sides(cubes):
+    for c in cubes:
+        if c["uv"]["north"] != ATLAS.face("white"):
+            continue
+        x0, y0, _ = c["origin"]
+        width, height, _ = c["size"]
+        for face, edge in (("west", x0), ("east", x0 + width)):
+            if abs(edge) == HW:
+                # Ribs are uniform along u; the full region width also fits long wall faces.
+                c["uv"][face] = ATLAS.face(RIB_REGION, (0, round((ROOF - (y0 + height)) * RIB_TEXELS_PER_PX, 3)),
+                                          (RIB_REGION.w, height * RIB_TEXELS_PER_PX))
+    return cubes
 
 
 def take_slots(cubes, names):
@@ -243,11 +264,12 @@ def vent_cover(z0, z1, y0, y1):
     rim_top = band + 0.4
     cubes = [
         # The rim ring, with each outer corner cut by r so the lid reads as a rounded rectangle.
-        box(band, y1 - w, z0 + w, rim_top, y1, z1 - w, "chrome"),
+        box(band, y1 - w, z0 + w, rim_top, y1, z1 - w, "aluminium"),
         box(band, y0, z0 + w, rim_top, y0 + w, z1 - w, "chrome"),
         box(band, y0 + w, z0, rim_top, y1 - w, z0 + w, "chrome"),
         box(band, y0 + w, z1 - w, rim_top, y1 - w, z1, "chrome"),
     ]
+    cubes[0]["uv"]["east"] = ATLAS.face(VENT_SCREWS_REGION)
     for outer_z, inner_z in (((z0, z0 + r), (z0 + r, z0 + w)), ((z1 - r, z1), (z1 - w, z1 - r))):
         for outer_y, inner_y in (((y0, y0 + r), (y0 + r, y0 + w)), ((y1 - r, y1), (y1 - w, y1 - r))):
             cy0, cy1 = min(*outer_y, *inner_y), max(*outer_y, *inner_y)
@@ -263,7 +285,7 @@ def vent_cover(z0, z1, y0, y1):
         for i in range(VENT_SLITS)
     ]
     # The panel sits 0.2 px under the rim; each slit is a further 0.1 px recess onto black.
-    cubes += panel("x", band, band + 0.2, iz0, iz1, iy0, iy1, slits, "white")
+    cubes += panel("x", band, band + 0.2, iz0, iz1, iy0, iy1, slits, "trim_beige")
     cubes += [box(band, sy0, sz0, band + 0.1, sy1, sz1, "black") for sz0, sz1, sy0, sy1 in slits]
     cubes.append(box(band + 0.2, iy0 + 0.4, mid - 0.6, band + 0.45, iy0 + 1.0, mid + 0.6, "steel"))  # latch
     for sz in (z0 + w / 2, mid, z1 - w / 2):  # screw heads on the rim
@@ -383,7 +405,7 @@ for x0, x1, windows in ((HW - 1, HW, right_windows), (-HW, -HW + 1, left_windows
     out = x1 if right else x0
     # The front cut-out reaches up to where the cab-over chevron passes SIDE0.
     holes = windows + arch_holes + [(SIDE0, -50.5, 35.4, 52)] + ([DOOR] if right else [])
-    body += panel("x", x0, x1, SIDE0, REAR_INNER, BOTTOM, CEIL, holes, "white")
+    body += rib_sides(panel("x", x0, x1, SIDE0, REAR_INNER, BOTTOM, CEIL, holes, "white"))
     inner = x0 - 0.2 if right else x1
     body += panel("x", inner, inner + 0.2, FRONT + 8, REAR_INNER, FLOOR, CEIL - 0.2, holes, "wall_in")
     # Tan lower skirt just proud of the wall.
@@ -430,7 +452,7 @@ for x0, x1, windows in ((HW - 1, HW, right_windows), (-HW, -HW + 1, left_windows
         else:
             body.append(w_fill(lo, hi, span, W_BOTTOM, W_BOTTOM + drop))
     for z0, z1, y0, y1 in windows:
-        frame = "black" if (z0, z1) == CAB_WIN[:2] else "chrome"
+        frame = "black" if (z0, z1) == CAB_WIN[:2] else "trim_beige"
         for fz0, fz1, fy0, fy1 in ((z0 - 0.6, z1 + 0.6, y0 - 0.6, y0), (z0 - 0.6, z1 + 0.6, y1, y1 + 0.6),
                                    (z0 - 0.6, z0, y0, y1), (z1, z1 + 0.6, y0, y1)):
             body.append(box(out, fy0, fz0, out + sgn * 0.15, fy1, fz1, frame))
@@ -447,8 +469,8 @@ for x0, x1, windows in ((HW - 1, HW, right_windows), (-HW, -HW + 1, left_windows
     body.append(box(mo0, 29.2, FRONT + 4, mo1, 31.3, FRONT + 6, "red"))
     body.append(box(out, 19, REAR - 4, out + sgn * 0.2, 21, REAR - 2, "red"))
 
-body.append(box(HW, WIN_Y[0], -22.8, HW + 0.2, WIN_Y[1], -22.2, "chrome"))  # double window dividers
-body.append(box(-HW - 0.2, WIN_Y[0], -17.3, -HW, WIN_Y[1], -16.7, "chrome"))
+body.append(box(HW, WIN_Y[0], -22.8, HW + 0.2, WIN_Y[1], -22.2, "aluminium"))  # double window dividers
+body.append(box(-HW - 0.2, WIN_Y[0], -17.3, -HW, WIN_Y[1], -16.7, "aluminium"))
 body.append(box(HW, 13, 10, HW + 0.3, 19, 17, "slat"))  # small louvered vent
 body += vent_cover(*VENT_COVER)
 # Louvered hatch low at the rear corner of both sides, small utility boxes.
@@ -463,13 +485,18 @@ body.append(box(-HW - 0.4, 19, 14, -HW - 0.3, 20, 15.5, "chrome"))
 # Entry door stays closed until the later parking work; a fold-out step stays below it.
 DZ0, DZ1, DY0, DY1 = DOOR
 DOOR_HANDLE_Y = (STRIPE_Y[0] - 1.5, STRIPE_Y[0] - 0.5)  # half a pixel below the stripe (ADR 0145)
-door = [box(HW - 1, DY0, DZ0 + 0.1, HW, DY1, DZ1 - 0.1, "white")]
+door = rib_sides([box(HW - 1, DY0, DZ0 + 0.1, HW, DY1, DZ1 - 0.1, "white")])
 # The door window lines up with the side windows, as on the close-up photo.
 DW0, DW1 = DZ0 + 3, DZ1 - 3
 door.append(box(HW, WIN_Y[0], DW0, HW + 0.15, WIN_Y[1], DW1, "glass"))
-for fz0, fz1, fy0, fy1 in ((DW0 - 0.6, DW1 + 0.6, WIN_Y[0] - 0.6, WIN_Y[0]), (DW0 - 0.6, DW1 + 0.6, WIN_Y[1], WIN_Y[1] + 0.6),
-                           (DW0 - 0.6, DW0, *WIN_Y), (DW1, DW1 + 0.6, *WIN_Y)):
-    door.append(box(HW, fy0, fz0, HW + 0.18, fy1, fz1, "chrome"))
+for fz0, fz1, fy0, fy1, hardware in ((DW0 - 0.6, DW1 + 0.6, WIN_Y[0] - 0.6, WIN_Y[0], None),
+                                     (DW0 - 0.6, DW1 + 0.6, WIN_Y[1], WIN_Y[1] + 0.6, DOOR_HEAD_REGION),
+                                     (DW0 - 0.6, DW0, *WIN_Y, DOOR_HINGE_REGION),
+                                     (DW1, DW1 + 0.6, *WIN_Y, DOOR_LATCH_REGION)):
+    door.append(box(HW, fy0, fz0, HW + 0.18, fy1, fz1, "aluminium"))
+    if hardware is not None:
+        # The build's +x face is named east; mirror_x swaps it to the outward west face.
+        door[-1]["uv"]["east"] = ATLAS.face(hardware)
 door.append(box(HW, STRIPE_Y[0], DZ0 + 0.1, HW + 0.12, STRIPE_Y[1], DZ1 - 0.1, "stripe"))
 door.append(box(HW, BAND_Y[0], DZ0 + 0.1, HW + 0.1, BAND_Y[1], DZ1 - 0.1, "khaki"))
 door.append(box(HW, DY0, DZ0 + 0.1, HW + 0.12, 15, DZ1 - 0.1, "tan"))
@@ -623,7 +650,7 @@ EDGE_Z = FRONT - TAPER + 1.5
 for sx in (1, -1):
     x0, x1 = sorted((sx * (HW - 1), sx * HW))
     body.append(box(x0, BOTTOM, EDGE_Z, x1, 15, SIDE0, "tan"))
-    body.append(box(x0, 15, EDGE_Z, x1, SILL_LOW, SIDE0, "white"))
+    body += rib_sides([box(x0, 15, EDGE_Z, x1, SILL_LOW, SIDE0, "white")])
     t0, t1 = sorted((sx * (HW - 0.4), sx * (HW + 0.2)))
     body.append(box(t0, BOTTOM, EDGE_Z - 0.2, t1, SILL_LOW, EDGE_Z + 0.5, "chrome"))
 # The sill: from the windshield foot it slopes down toward the front, as on the photo,
@@ -651,10 +678,11 @@ CAP_Y0 = 49.5  # the windshield top
 CREASE = 56
 NOSE = WS_Z - 5.5
 TOP_FRONT = WS_Z + 0.5
+BOLT_REGION = ATLAS.allocate("bolt", math.ceil(max(2 * HW + 0.4, REAR_OUT - TOP_FRONT)), 1)
 BOT_C, BOT_S = WS_Z - 0.5, WS_Z + 3  # lower face foot over the windshield and at the side pillar
 CAP_BACK = WS_Z + 6
 body.append(box(-FW, CAP_Y0, BOT_C, FW, ROOF, CAP_BACK, "white"))
-body.append(box(-HW, CAP_Y0, BOT_S, HW, ROOF, CAP_BACK, "white"))
+body += rib_sides([box(-HW, CAP_Y0, BOT_S, HW, ROOF, CAP_BACK, "white")])
 
 
 def lerp(a, b, t):
@@ -683,14 +711,14 @@ for i in range(LAYERS):
         z = lerp(zc, ze, (x + FACET_COL / 2 - FW) / (HW - FW))
         for sx in (1, -1):
             x0, x1 = sorted((sx * x, sx * (x + FACET_COL)))
-            body.append(box(x0, y0, z, x1, y0 + 0.25, BOT_S + 0.5, "white"))
+            body += rib_sides([box(x0, y0, z, x1, y0 + 0.25, BOT_S + 0.5, "white")])
         x += FACET_COL
     chevron_molding(y0, y0 + 0.25, ze)
 UPPER_LAYERS = round((ROOF - CREASE) / 0.25)
 for i in range(UPPER_LAYERS):
     y0 = CREASE + 0.25 * i
     zf = lerp(NOSE, TOP_FRONT, (i + 0.5) / UPPER_LAYERS)
-    body.append(box(-HW, y0, zf, HW, y0 + 0.25, CAP_BACK, "white"))
+    body += rib_sides([box(-HW, y0, zf, HW, y0 + 0.25, CAP_BACK, "white")])
     chevron_molding(y0, y0 + 0.25, zf)
     if 60 <= y0 < 62.5:  # the dark window set into the upper face, right of centre on the photo
         body.append(box(-3.5, y0, zf - 0.1, 9.5, y0 + 0.25, zf + 0.3, "grille"))
@@ -698,7 +726,9 @@ for sx in (1, -1):  # the molding carries on down the pillar to the corner glass
     molding(sx, 35.4, CAP_Y0, BOT_S)
     body.append(corner(sx, WS_Z, 49.2, 49.7, "chrome"))  # header strip over the corner glass
 body.append(box(-FW, 49.2, BOT_C - 0.3, FW, 49.7, BOT_C + 2.2, "chrome"))  # windshield header strip
-body.append(box(-HW - 0.2, ROOF - 0.6, TOP_FRONT - 0.3, HW + 0.2, ROOF + 0.1, TOP_FRONT + 0.7, "chrome"))
+roof_lip = box(-HW - 0.2, ROOF - 0.6, TOP_FRONT - 0.3, HW + 0.2, ROOF + 0.1, TOP_FRONT + 0.7, "aluminium")
+roof_lip["uv"]["north"] = ATLAS.face(BOLT_REGION, uv_size=(roof_lip["size"][0], 1))
+body.append(roof_lip)
 # Roof-lip lamps: a clearance dome near each corner and three identification lamps at the centre,
 # the middle one a flat lens.
 for x, half, dome in ((-21.5, 0.7, True), (-6, 0.7, True), (0, 1.2, False), (6, 0.7, True), (21.5, 0.7, True)):
@@ -784,7 +814,7 @@ while y < ROOF - 1e-6:
             else "khaki" if BAND_Y[0] <= yc < BAND_Y[1] else "white")
     for sx in (1, -1):
         x0, x1 = sorted((sx * HW, sx * (HW - 1)))
-        body.append(box(x0, y, min(REAR_INNER, z1 - 1), x1, y + 0.5, z1, side))
+        body += rib_sides([box(x0, y, min(REAR_INNER, z1 - 1), x1, y + 0.5, z1, side)])
     if REAR_WIN[2] <= yc < REAR_WIN[3]:
         spans = [(-HW + 1, REAR_WIN[0]), (REAR_WIN[1], HW - 1)]
     else:
@@ -818,8 +848,12 @@ body.append(box(-3.5, ROOF + 1.6, -1.5, 3.5, ROOF + 2, 5.5, "white"))
 body.append(box(-18, ROOF, -48, -10, ROOF + 2.6, -40, "black"))
 for z in (-46, -42):
     body += disc("z", -14, ROOF + 1.3, z, 1.2, 0.2, "grille", steps=(0, 45))
-body.append(box(-HW, ROOF - 0.6, TOP_FRONT, -HW - 0.4, ROOF, REAR_OUT, "slat"))  # drip rails
-body.append(box(HW, ROOF - 0.6, TOP_FRONT, HW + 0.4, ROOF, REAR_OUT, "slat"))
+for sx in (-1, 1):
+    rail = box(sx * HW, ROOF - 0.6, TOP_FRONT, sx * (HW + 0.4), ROOF, REAR_OUT, "aluminium")
+    # mirror_x swaps east and west with the rail position.
+    outer_face = "west" if sx < 0 else "east"
+    rail["uv"][outer_face] = ATLAS.face(BOLT_REGION, uv_size=(rail["size"][2], 1))
+    body.append(rail)
 # Roof rack around the rear air conditioner
 RACK = (22, 55)
 for sx in (1, -1):
@@ -1416,6 +1450,9 @@ def mirror_x(bones):
             bone["rotation"] = [rx, -ry, -rz]
         for c in bone.get("cubes", []):
             c["origin"] = [-(c["origin"][0] + c["size"][0]), *c["origin"][1:]]
+            # Face names follow the written x axis, so a ribbed outer face swaps names with the
+            # mirror, as the sports boat's turn-around does (gen_sportsboat.py).
+            c["uv"]["east"], c["uv"]["west"] = c["uv"]["west"], c["uv"]["east"]
             if "pivot" in c:
                 c["pivot"] = [-c["pivot"][0], *c["pivot"][1:]]
                 rx, ry, rz = c["rotation"]
@@ -1495,9 +1532,23 @@ def scale(color, factor):
 
 
 def region_pixel(region, x, y):
-    phase = y % RIB_PERIOD_TEXELS
-    factor = 0.93 if phase == 0 else 1.05 if phase == 1 else 1
-    return (*scale(PALETTE["white"][:3], factor), 255)
+    if region.name == "rib":
+        factor = 0.93 if y % RIB_PERIOD_TEXELS == 0 else 1.05
+        return (*scale(PALETTE["white"][:3], factor), 255)
+    if region.name == "bolt":
+        factor = 0.65 if x % BOLT_PITCH_PX == 0 else 1
+        return (*scale(PALETTE["aluminium"][:3], factor), 255)
+    if region.name == "door_head":
+        dark = y == region.h - 1
+    elif region.name == "door_hinge":
+        dark = y in (5, 6, 19, 20)
+    elif region.name == "door_latch":
+        dark = x == 1 and y in (10, 11)
+    elif region.name == "vent_screws":
+        dark = y == 1 and x in (2, 7, 12)
+    else:
+        raise ValueError(f"Unknown camper region: {region.name}")
+    return (*scale(PALETTE["aluminium"][:3], HARDWARE_DARK_FACTOR if dark else 1), 255)
 
 
 for paint, base in ACCENT_BASES.items():
