@@ -47,6 +47,8 @@ const bone = (name: string) => {
   expect(found, name).toBeDefined();
   return found as Bone;
 };
+const end = (cube: Cube, axis: number) =>
+  (cube.origin[axis] ?? 0) + (cube.size[axis] ?? 0);
 
 const readPng = (path: string) => readRgbaPng(`${RP}/${path}.png`);
 
@@ -1823,8 +1825,6 @@ describe("camper rear-right vent lid (ADR 0146, 0157)", () => {
   const BLACK_SLOT = 7;
   const CHROME_SLOT = 10;
   const WALL_IN_SLOT = 22;
-  const end = (c: Cube, axis: number) =>
-    (c.origin[axis] ?? 0) + (c.size[axis] ?? 0);
   it("removes the rear-right pane and closes the outer wall, lining, and band", () => {
     expect(
       (bone("glass").cubes ?? []).filter(
@@ -1978,8 +1978,6 @@ describe("camper rib atlas (ADR 0190)", () => {
 describe("camper aluminium roof rails", () => {
   const ROOF = 64;
   const ALUMINIUM_SLOT = 36;
-  const end = (cube: Cube, axis: number) =>
-    (cube.origin[axis] ?? 0) + (cube.size[axis] ?? 0);
   const body = bone("body").cubes ?? [];
   const rails = body.filter(
     (cube) =>
