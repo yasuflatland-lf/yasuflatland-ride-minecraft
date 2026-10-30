@@ -5,6 +5,10 @@
 export const TEST_EVENT = "yasu_ride:test";
 export const LOG_TAG = "[YASU-RIDE-TEST]";
 export const MANUAL_RUN_ID = "manual";
+export const MAX_LANES = 8;
+// Script event messages are capped at 2048 characters:
+// https://learn.microsoft.com/en-us/minecraft/creator/scriptapi/minecraft/server/system#sendscriptevent
+export const MESSAGE_LIMIT = 2048;
 
 const RUN_ID = /^[A-Za-z0-9_-]{1,32}$/;
 const SHARD = /^([1-9]\d?)\/([1-9]\d?)$/;
@@ -18,8 +22,11 @@ export interface Shard {
 export const WHOLE_RUN: Shard = { index: 1, total: 1 };
 
 export interface RunRequest {
-  runId: string;
-  shard: Shard;
+  readonly runId: string;
+  readonly shard: Shard;
+  readonly lanes: number;
+  readonly at: number;
+  readonly features?: readonly string[];
 }
 
 export function shardFrom(text: string): Shard | undefined {
@@ -30,17 +37,111 @@ export function shardFrom(text: string): Shard | undefined {
   return index <= total ? { index, total } : undefined;
 }
 
-/**
- * The message is `<runId>` or `<runId> <index>/<total>`. A run started by hand
- * (`/scriptevent yasu_ride:test`) has no id, so it gets the manual id and the
- * whole suite.
- */
-export function runRequestFrom(message: string): RunRequest {
-  const [id = "", shardText, ...rest] = message.trim().split(/\s+/);
-  const shard = shardText === undefined ? WHOLE_RUN : shardFrom(shardText);
-  if (!RUN_ID.test(id) || !shard || rest.length > 0)
-    return { runId: MANUAL_RUN_ID, shard: WHOLE_RUN };
-  return { runId: id, shard };
+export function lanesFrom(text: string): number | undefined {
+  if (text.trim() !== text || !/^[1-9]\d*$/.test(text)) return undefined;
+  const value = Number(text);
+  return value <= MAX_LANES ? value : undefined;
+}
+
+export function laneIndexFrom(text: string): number | undefined {
+  if (text.trim() !== text || !/^(0|[1-9]\d*)$/.test(text)) return undefined;
+  const value = Number(text);
+  return value < MAX_LANES ? value : undefined;
+}
+
+export function featuresFrom(text: string): readonly string[] | undefined {
+  const features = text.split(",");
+  return features.every(
+    (tag) => tag.trim() === tag && /^[a-z]+(:[a-z]+)?$/.test(tag),
+  ) && new Set(features).size === features.length
+    ? features
+    : undefined;
+}
+
+export type ParsedRequest =
+  | { readonly ok: true; readonly request: RunRequest }
+  | { readonly ok: false; readonly runId: string; readonly error: string };
+
+export function parseRunRequest(message: string): ParsedRequest {
+  const [runId = "", ...tokens] = message.trim().split(/\s+/);
+  if (!RUN_ID.test(runId)) {
+    return {
+      ok: true,
+      request: { runId: MANUAL_RUN_ID, shard: WHOLE_RUN, lanes: 1, at: 0 },
+    };
+  }
+  let shard = WHOLE_RUN;
+  let lanes = 1;
+  let at = 0;
+  let features: readonly string[] | undefined;
+  const seen = new Set<string>();
+  const invalid = (token: string): ParsedRequest => ({
+    ok: false,
+    runId,
+    error: `invalid or duplicate token: ${token}`,
+  });
+  for (const [position, token] of tokens.entries()) {
+    const equals = token.indexOf("=");
+    const positional = equals === -1;
+    if (positional && position !== 0) return invalid(token);
+    const key = positional ? "shard" : token.slice(0, equals);
+    const value = positional ? token : token.slice(equals + 1);
+    if (seen.has(key)) return invalid(token);
+    seen.add(key);
+    switch (key) {
+      case "shard": {
+        const parsed = shardFrom(value);
+        if (parsed === undefined) return invalid(token);
+        shard = parsed;
+        break;
+      }
+      case "lanes": {
+        const parsed = lanesFrom(value);
+        if (parsed === undefined) return invalid(token);
+        lanes = parsed;
+        break;
+      }
+      case "at": {
+        const parsed = laneIndexFrom(value);
+        if (parsed === undefined) return invalid(token);
+        at = parsed;
+        break;
+      }
+      case "features": {
+        const parsed = featuresFrom(value);
+        if (parsed === undefined) return invalid(token);
+        features = parsed;
+        break;
+      }
+      default:
+        return invalid(token);
+    }
+    if (lanes > 1 && at > 0) return invalid(token);
+  }
+  return {
+    ok: true,
+    request: {
+      runId,
+      shard,
+      lanes,
+      at,
+      ...(features === undefined ? {} : { features }),
+    },
+  };
+}
+
+export function formatRunRequest(request: RunRequest): string {
+  const { runId, shard, lanes, at, features } = request;
+  const tokens = [runId];
+  if (shard.index !== WHOLE_RUN.index || shard.total !== WHOLE_RUN.total)
+    tokens.push(`shard=${shard.index}/${shard.total}`);
+  if (lanes !== 1) tokens.push(`lanes=${lanes}`);
+  if (at !== 0) tokens.push(`at=${at}`);
+  if (features !== undefined) tokens.push(`features=${features.join(",")}`);
+  const message = tokens.join(" ");
+  if (message.length > MESSAGE_LIMIT)
+    throw new Error(`Run request exceeds MESSAGE_LIMIT (${MESSAGE_LIMIT})`);
+  return message;
 }
 
 /**
