@@ -59,7 +59,7 @@ import {
 import { type Arena, drive, setDecor, wait, withCamper } from "../arena";
 import type { Outcome } from "../outcome";
 import {
-  FLIGHT_LANE,
+  FLIGHT_PATH,
   gearDownLandingOutcome,
   takeOff,
   takeoffOutcome,
@@ -741,14 +741,14 @@ export function camperRelay(a: Arena): Promise<Outcome> {
 }
 
 export function camperTakeoff(a: Arena): Promise<Outcome> {
-  return withCamper(a, FLIGHT_LANE.x, FLIGHT_LANE.z, -90, async (car) => {
+  return withCamper(a, FLIGHT_PATH.x, FLIGHT_PATH.z, -90, async (car) => {
     await takeOff(car, CAMPER_SPEC.takeoffTicks);
     return takeoffOutcome(a, car);
   });
 }
 
 export function camperLand(a: Arena): Promise<Outcome> {
-  return withCamper(a, FLIGHT_LANE.x, FLIGHT_LANE.z, -90, async (car) => {
+  return withCamper(a, FLIGHT_PATH.x, FLIGHT_PATH.z, -90, async (car) => {
     await takeOff(car, CAMPER_SPEC.takeoffTicks);
     return gearDownLandingOutcome(a, car, CAMPER_SPEC.gearDownHeight);
   });
