@@ -45,6 +45,56 @@ export interface RunPlan {
   readonly makespanTicks: number;
 }
 
+function sumTicks(specs: readonly ScenarioSpec[]): number {
+  return specs.reduce((sum, spec) => sum + spec.ticks, 0);
+}
+
+function laneCountOf(
+  laneSpecs: readonly ScenarioSpec[],
+  requested: number,
+): number {
+  if (!Number.isInteger(requested) || requested < 1 || requested > MAX_LANES)
+    throw new RangeError(`lanes must be an integer between 1 and ${MAX_LANES}`);
+  const largestVehicles = Math.max(
+    1,
+    ...laneSpecs.map((spec) => spec.vehicles),
+  );
+  return Math.min(
+    requested,
+    Math.max(1, Math.floor(MAX_LANE_VEHICLES / largestVehicles)),
+  );
+}
+
+function packLanes(
+  laneSpecs: readonly ScenarioSpec[],
+  count: number,
+): ScenarioSpec[][] {
+  const lanes: ScenarioSpec[][] = Array.from({ length: count }, () => []);
+  const units: { members: ScenarioSpec[]; ticks: number }[] = [];
+  const groups = new Map<string, (typeof units)[number]>();
+  for (const spec of laneSpecs) {
+    const existing =
+      spec.group === undefined ? undefined : groups.get(spec.group);
+    if (existing) {
+      existing.members.push(spec);
+      existing.ticks += spec.ticks;
+    } else {
+      const unit = { members: [spec], ticks: spec.ticks };
+      units.push(unit);
+      if (spec.group !== undefined) groups.set(spec.group, unit);
+    }
+  }
+  const bins = packByTicks(
+    units.map((unit) => unit.ticks),
+    count,
+  );
+  for (const [index, unit] of units.entries()) {
+    const bin = bins[index];
+    if (bin !== undefined) lanes[bin]?.push(...unit.members);
+  }
+  return lanes;
+}
+
 export function planOf(
   catalog: readonly ScenarioSpec[],
   options: {
@@ -79,47 +129,17 @@ export function planOf(
     options.shard.total,
   );
   const runs = eligible.filter((_, i) => shards[i] === options.shard.index);
-  const requested = options.lanes ?? 1;
-  if (!Number.isInteger(requested) || requested < 1 || requested > MAX_LANES)
-    throw new RangeError(`lanes must be an integer between 1 and ${MAX_LANES}`);
   const laneSpecs = runs.filter((spec) => spec.isolation === "lane");
-  const largestVehicles = Math.max(
-    1,
-    ...laneSpecs.map((spec) => spec.vehicles),
-  );
-  const count = Math.min(
-    requested,
-    Math.max(1, Math.floor(MAX_LANE_VEHICLES / largestVehicles)),
-  );
-  const expectedTicks = runs.reduce((sum, spec) => sum + spec.ticks, 0);
-  const lanes: ScenarioSpec[][] = Array.from({ length: count }, () => []);
-  const exclusive =
-    count === 1 ? [] : runs.filter((spec) => spec.isolation === "exclusive");
+  const count = laneCountOf(laneSpecs, options.lanes ?? 1);
+  const expectedTicks = sumTicks(runs);
+  let lanes: ScenarioSpec[][];
+  let exclusive: ScenarioSpec[];
   if (count === 1) {
-    lanes[0] = runs;
+    lanes = [runs];
+    exclusive = [];
   } else {
-    const units: { members: ScenarioSpec[]; ticks: number }[] = [];
-    const groups = new Map<string, (typeof units)[number]>();
-    for (const spec of laneSpecs) {
-      const existing =
-        spec.group === undefined ? undefined : groups.get(spec.group);
-      if (existing) {
-        existing.members.push(spec);
-        existing.ticks += spec.ticks;
-      } else {
-        const unit = { members: [spec], ticks: spec.ticks };
-        units.push(unit);
-        if (spec.group !== undefined) groups.set(spec.group, unit);
-      }
-    }
-    const bins = packByTicks(
-      units.map((unit) => unit.ticks),
-      count,
-    );
-    for (const [index, unit] of units.entries()) {
-      const bin = bins[index];
-      if (bin !== undefined) lanes[bin]?.push(...unit.members);
-    }
+    lanes = packLanes(laneSpecs, count);
+    exclusive = runs.filter((spec) => spec.isolation === "exclusive");
   }
   return {
     runs,
@@ -128,10 +148,7 @@ export function planOf(
     expectedTicks,
     lanes,
     exclusive,
-    makespanTicks:
-      Math.max(
-        ...lanes.map((lane) => lane.reduce((sum, spec) => sum + spec.ticks, 0)),
-      ) + exclusive.reduce((sum, spec) => sum + spec.ticks, 0),
+    makespanTicks: Math.max(...lanes.map(sumTicks)) + sumTicks(exclusive),
   };
 }
 
