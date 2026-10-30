@@ -39,7 +39,12 @@ assert p.LIT_SLOTS == (7,)
 for i, name in enumerate(original):
     assert a.ATLAS.face(name) == {'uv': [i * 4 + 1, 1], 'uv_size': [2, 2]}
 assert a.region('dash', 'grain') == ('grain', 192, 168, 32, 32)
-for x, y in [(191, 168), (224, 168), (192, 200), (0, 0), (0, 8)]:
+regions = a.BLOCKS['dash'].regions
+for i, r in enumerate(regions):
+    assert 192 <= r.x and r.x + r.w <= 320 and 168 <= r.y and r.y + r.h <= 256
+    for other in regions[:i]:
+        assert r.x + r.w <= other.x or other.x + other.w <= r.x or r.y + r.h <= other.y or other.y + other.h <= r.y
+for x, y in [(191, 168), (0, 0), (0, 167)]:
     assert a.region_at(x, y) is None`);
 });
 
@@ -140,12 +145,15 @@ r = a.region('dash', 'grain')
 hit = a.region_at(r.x + ${u}, r.y + ${v})
 assert hit == ('dash', t.RegionSpec('grain', 32, 32, 'resin'), ${u}, ${v})
 for paint in p.BODY_PAINTS:
-    assert t.paint_pixel(paint)(r.x + ${u}, r.y + ${v}) == (24, 24, 24, 255)
+    pixel = t.paint_pixel(paint)(r.x + ${u}, r.y + ${v})
+    assert pixel == a.PAINTERS['dash'].color('grain', ${u}, ${v}, paint)
+    assert pixel[3] == 255
+    assert all(abs(c - 24) <= a.PAINTERS['dash'].GRAIN_JITTER for c in pixel[:3])
     assert t.paint_pixel(paint)(511, 255) == (0, 0, 0, 255)
 assert not t.is_lit(r.x + ${u}, r.y + ${v})
 assert t.is_lit(28, 0) and t.is_lit(31, 3) and not t.is_lit(28, 4)
 painter = a.PAINTERS['dash']
-assert painter.mer('grain', ${u}, ${v}, p.BODY_PAINTS[0]) is None
+assert painter.mer('grain', ${u}, ${v}, p.BODY_PAINTS[0]) == load_tool('mer').Mer(0, 0, 235)
 assert painter.relief('grain', ${u}, ${v}) is None
 painter.color = lambda name, u, v, paint: (u, v, 123, 255)
 painter.lit = lambda name, u, v: u == ${u} and v == ${v}

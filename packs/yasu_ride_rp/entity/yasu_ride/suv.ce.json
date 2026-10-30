@@ -6,6 +6,7 @@
       "materials": {
         "default": "entity_emissive_alpha",
         "lamp": "entity",
+        "lamp_cutout": "entity_alphatest",
         "lamp_lit": "entity_emissive"
       },
       "textures": {
