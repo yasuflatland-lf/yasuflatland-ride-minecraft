@@ -93,6 +93,12 @@ const kinds = [
 describe.each(kinds)(
   "$kind lit textures (ADR 0147)",
   ({ kind, slots, cell, regionRule, bones, condition }) => {
+    function expectedColorTexel(pixel: number[], on: boolean) {
+      if (on) return [...pixel.slice(0, 3), 0];
+      if (kind === "suv" && pixel[3] === 0) return [...pixel.slice(0, 3), 255];
+      return pixel;
+    }
+
     it("generates a matching color atlas, maximum-emissive MER mask, and exact texture set", () => {
       const base = texels(kind);
       const lit = texels(`${kind}_lit`);
@@ -114,11 +120,7 @@ describe.each(kinds)(
           (Math.floor(i / base.width) < (cell ?? 1) &&
             slots.includes(Math.floor((i % base.width) / (cell ?? 1))));
         expect(lit.pixels[i], `color texel ${i}`).toEqual(
-          on
-            ? [...pixel.slice(0, 3), 0]
-            : kind === "suv" && pixel[3] === 0
-              ? [...pixel.slice(0, 3), 255]
-              : pixel,
+          expectedColorTexel(pixel, on),
         );
         expect(mer.pixels[i], `MER texel ${i}`).toEqual([
           0,

@@ -68,10 +68,11 @@ def color(region, u, v, paint):
         return (*(palette.PALETTE["grille"] if screw else paint.body), 255)
     x, y = centered(u, v, LENS_SIZE)
     rgb = lens_color(x, y)
-    # A broad reflection ties the separate projectors together under one clear cover.
-    reflection = CLEAR_LENS_HIGHLIGHT * max(0, 1 - abs(x + y * 0.4) / LENS_RADIUS)
     if math.hypot(x, y) > RIM_INNER_RADIUS:
         reflection = 0
+    else:
+        # A broad reflection ties the separate projectors together under one clear cover.
+        reflection = CLEAR_LENS_HIGHLIGHT * max(0, 1 - abs(x + y * 0.4) / LENS_RADIUS)
     return (*(round(c + (255 - c) * reflection) for c in rgb), 255)
 
 

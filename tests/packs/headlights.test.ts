@@ -115,6 +115,10 @@ describe("headlight switch (ADR 0020)", () => {
 });
 
 describe("SUV round headlights (ADR 0192)", () => {
+  function hasBezelVisibility(partVisibility: Record<string, unknown>[]) {
+    return partVisibility.some((entry) => "headlight_bezels" in entry);
+  }
+
   const rp = "packs/yasu_ride_rp";
   const bones: {
     name: string;
@@ -154,17 +158,9 @@ describe("SUV round headlights (ADR 0192)", () => {
       headlight_bezels: "Material.lamp_cutout",
     });
     expect(base.part_visibility).toContainEqual({ "*": true });
-    expect(
-      base.part_visibility.some(
-        (entry: Record<string, unknown>) => "headlight_bezels" in entry,
-      ),
-    ).toBe(false);
+    expect(hasBezelVisibility(base.part_visibility)).toBe(false);
     expect(overlay.part_visibility).toContainEqual({ "*": false });
-    expect(
-      overlay.part_visibility.some(
-        (entry: Record<string, unknown>) => "headlight_bezels" in entry,
-      ),
-    ).toBe(false);
+    expect(hasBezelVisibility(overlay.part_visibility)).toBe(false);
   });
 
   it("uses high-resolution square lens faces and slightly forward, larger bezel panels", () => {
