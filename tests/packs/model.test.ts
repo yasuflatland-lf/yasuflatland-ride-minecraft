@@ -9,6 +9,7 @@ import { assertOneAxis, multipleAxes } from "./oneAxis";
 type Vec3 = [number, number, number];
 
 interface Cube {
+  uv?: Record<string, { uv: [number, number] }>;
   origin: Vec3;
   size: Vec3;
   pivot?: Vec3;
@@ -148,6 +149,58 @@ it("keeps every seated player's head beneath the SUV roof and behind the raked w
 });
 
 describe("SUV model (ADR 0009)", () => {
+  it("keeps every gauge face, ring and hub on the cabin side of the dash slab", () => {
+    const body = bones.get("body");
+    if (!body) throw new Error("Missing SUV body");
+    const cubes = body.cubes ?? [];
+    const slabs = cubes.filter(
+      (c) =>
+        !c.rotation &&
+        c.size[0] > 30 &&
+        c.origin[1] === 16.9 &&
+        c.size[1] > 5 &&
+        c.size[2] < 2,
+    );
+    expect(slabs).toHaveLength(1);
+    const slab = slabs[0];
+    if (!slab) throw new Error("Missing dash slab");
+    // Export turns +z toward the hood into -z, then scales by SIZE_SCALE.
+    const rearFace = slab.origin[2] + slab.size[2];
+    const textured = cubes.filter((c) =>
+      Object.values(c.uv ?? {}).some(
+        ({ uv: [u, v] }) => u >= 320 && u < 448 && v >= 168 && v < 256,
+      ),
+    );
+    // The gauges block also contains steering leather; dial faces are unrotated.
+    const faces = textured.filter((c) => !c.rotation);
+    expect(faces).toHaveLength(3);
+    const centers = faces.map((c) => [
+      c.origin[0] + c.size[0] / 2,
+      c.origin[1] + c.size[1] / 2,
+    ]);
+    const nearCenter = (x: number, y: number) =>
+      centers.some(
+        ([cx, cy]) =>
+          Math.abs(x - (cx ?? 0)) < 1e-6 && Math.abs(y - (cy ?? 0)) < 1e-6,
+      );
+    // Ring pivots and hub centers share the faces' x/y centers, regardless of depth.
+    const rings = cubes.filter(
+      (c) => c.rotation && c.pivot && nearCenter(c.pivot[0], c.pivot[1]),
+    );
+    const hubs = cubes.filter(
+      (c) =>
+        !c.rotation &&
+        !faces.includes(c) &&
+        nearCenter(c.origin[0] + c.size[0] / 2, c.origin[1] + c.size[1] / 2),
+    );
+    expect(rings).toHaveLength(36);
+    expect(hubs).toHaveLength(3);
+    for (const cube of [...textured, ...rings, ...hubs]) {
+      const nearestZ = Math.min(...turnedCorners(body, cube).map((p) => p[2]));
+      expect(nearestZ, JSON.stringify(cube)).toBeGreaterThan(rearFace);
+    }
+  });
+
   it("keeps spinning road tires clear of flares, steps and bumpers", () => {
     const bounds = (points: number[][]) =>
       [0, 1, 2].map((axis) => {

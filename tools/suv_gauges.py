@@ -9,12 +9,14 @@ box = suv_cubes.box
 translate = suv_cubes.translate
 
 
-# The ring projects 0.35 forward of the face. The face is 0.04 thick, with its
-# back 0.01 in front of the panel at z 10.5 to avoid z-fighting. The hub sits
-# between the ring front and the face.
-RING_FRONT_Z, FACE_Z = 10.1, 10.45
-FACE_BACK_Z = 10.49
-HUB_FRONT_Z = 10.3
+# Dials sit on the dash slab's rear face; the instrument panel behind it is
+# buried in the slab. Leave a 0.01 gap to avoid z-fighting, with the ring
+# projecting 0.35 forward of the 0.04-thick face and the hub between them.
+SLAB_FACE_Z = DASH_FACE_Z - DASH_SHIFT_Z
+FACE_BACK_Z = SLAB_FACE_Z - 0.01
+FACE_Z = FACE_BACK_Z - 0.04
+RING_FRONT_Z = FACE_Z - 0.35
+HUB_FRONT_Z = FACE_Z - 0.15
 
 
 def dial(cx, cy, radius, name):
