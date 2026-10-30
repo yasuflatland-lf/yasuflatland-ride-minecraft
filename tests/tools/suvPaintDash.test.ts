@@ -59,7 +59,7 @@ it("caps every dash texel and keeps its material matte, unlit and without relief
         for u in range(spec.w):
             for paint in p.BODY_PAINTS:
                 pixel = d.color(spec.name, u, v, paint)
-                assert max(pixel[:3]) <= d.BRIGHTNESS_CAP <= 120
+                assert max(pixel[:3]) <= 96
                 assert min(pixel[:3]) >= 0 and pixel[3] == 255
                 assert pixel == d.color(spec.name, u, v, p.BODY_PAINTS[0])
                 assert d.mer(spec.name, u, v, paint) == load_tool('mer').Mer(0, 0, 235)

@@ -120,13 +120,14 @@ def steering_cubes():
 def floor_console_cubes():
     result = []
     SHIFT_X, SHIFT_Z = 0, 8.5
+    SHIFT_LEAN = 22  # Keep the tall rod and knob behind the dashboard's lower edge.
     TUNNEL_TOP_Y = FLOOR_Y + 0.6
     result.append(box(-1.8, FLOOR_Y, 4, 1.8, TUNNEL_TOP_Y, 11, "trim"))  # transmission tunnel
     BOOT_RINGS = ((1.0, 0.5), (0.75, 0.4), (0.85, 0.4), (0.6, 0.4), (0.7, 0.35), (0.45, 0.4))  # (half width, height)
     for i, (half, height) in enumerate(BOOT_RINGS):
         y = TUNNEL_TOP_Y + sum(h for _, h in BOOT_RINGS[:i])
         result.append(box(SHIFT_X - half, y, SHIFT_Z - half, SHIFT_X + half, y + height, SHIFT_Z + half, "tire"))  # boot
-    result += floor_lever(SHIFT_X, SHIFT_Z, 7.2, 0.55)
+    result += floor_lever(SHIFT_X, SHIFT_Z, 7.2, 0.55, SHIFT_LEAN)
     for x in (-1.1, 1.1):
         result.append(box(x - 0.4, TUNNEL_TOP_Y, 6.1, x + 0.4, TUNNEL_TOP_Y + 0.5, 6.9, "tire"))  # boot
         result += floor_lever(x, 6.5, 4.6, 0.4)
