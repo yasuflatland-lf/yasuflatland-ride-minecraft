@@ -1,15 +1,12 @@
-import {
-  type Dimension,
-  type Entity,
-  system,
-  type Vector3,
-} from "@minecraft/server";
+import { type Entity, system } from "@minecraft/server";
 import { SPEC } from "../../domain/vehicle/spec";
 import { ENTITY_TYPE } from "../../infrastructure/vehicle/bedrock/identifiers";
-import { type Arena, spawnCar, wait } from "../arena";
+import { type Arena, blockLoaded, spawnCar, wait, waitUntil } from "../arena";
+import { UNLOAD_AREA } from "../lane";
 import type { Outcome } from "../outcome";
 
-const UNLOAD_AREA = "yasu_ride_unload_spike";
+// The far car and its area stay in world coordinates outside every lane area;
+// even lane 7's area ends at x = 1256.
 const UNLOAD_CENTER = { x: 2008, z: 8 } as const;
 const AREA_LOAD_TICKS = 200;
 const REMOVE_TICKS = 200;
@@ -18,24 +15,6 @@ const SPAWN_SEEN_TICKS = 5;
 const EVICT_TICKS = 20;
 // /kill raises the death event about 21 ticks before the removal (ADR 0125).
 const KILL_TO_REMOVE_TICKS = 40;
-
-// getBlock returns undefined in an unloaded chunk but can also throw
-// LocationInUnloadedChunkError, so a throw counts as unloaded.
-function blockLoaded(dimension: Dimension, location: Vector3): boolean {
-  try {
-    return dimension.getBlock(location) !== undefined;
-  } catch {
-    return false;
-  }
-}
-
-async function waitUntil(ticks: number, done: () => boolean): Promise<boolean> {
-  for (let tick = 0; tick < ticks; tick++) {
-    if (done()) return true;
-    await wait(1);
-  }
-  return done();
-}
 
 function addUnloadArea(a: Arena): void {
   a.dim.runCommand(`tickingarea add 2000 -64 0 2015 0 15 ${UNLOAD_AREA} true`);

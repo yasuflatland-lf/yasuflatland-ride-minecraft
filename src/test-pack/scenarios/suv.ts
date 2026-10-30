@@ -25,7 +25,7 @@ import {
 import type { Outcome } from "../outcome";
 import { hitTick, judgeRam, PUSH_WINDOW, type RamSample } from "../ramJudge";
 import {
-  FLIGHT_LANE,
+  FLIGHT_PATH,
   gearDownLandingOutcome,
   summonCow,
   suvProperty,
@@ -42,7 +42,7 @@ function slipAngleDeg(v: Vec2, yaw: number): number {
 }
 
 export function accelAndStep1(a: Arena): Promise<Outcome> {
-  a.dim.runCommand(`fill 60 ${a.gy} 15 70 ${a.gy} 25 stone`);
+  a.dim.runCommand(`fill ${a.box(60, a.gy, 15, 70, a.gy, 25)} stone`);
   return withCar(a, 5.5, 20.5, -90, async (car) => {
     drive(car, 0, 1);
     const reach = await ticksToReach(
@@ -50,7 +50,7 @@ export function accelAndStep1(a: Arena): Promise<Outcome> {
       0.95,
       SUV_SPEC.maxSpeed,
       200,
-      () => car.location.x > 63,
+      () => a.local(car.location).x > 63,
     );
     const climbed = car.location.y >= a.gy + 0.9;
     // The tick the input takes effect shifts by 0 or 1 depending on pack run
@@ -65,17 +65,17 @@ export function accelAndStep1(a: Arena): Promise<Outcome> {
 // Carpets and torches have no collision box, so the step look-ahead must not
 // jump for them (ADR 0035).
 export function passableNoHop(a: Arena): Promise<Outcome> {
-  a.dim.runCommand(`fill 30 ${a.gy} 25 34 ${a.gy} 28 white_carpet`);
-  a.dim.runCommand(`fill 40 ${a.gy} 25 40 ${a.gy} 28 torch`);
+  a.dim.runCommand(`fill ${a.box(30, a.gy, 25, 34, a.gy, 28)} white_carpet`);
+  a.dim.runCommand(`fill ${a.box(40, a.gy, 25, 40, a.gy, 28)} torch`);
   return withCar(a, 5.5, 26.5, -90, async (car) => {
     drive(car, 0, 1);
     let maxRise = 0;
     for (let t = 0; t < 120; t++) {
       await wait(1);
       maxRise = Math.max(maxRise, car.location.y - a.gy);
-      if (car.location.x > 45) break;
+      if (a.local(car.location).x > 45) break;
     }
-    const passed = car.location.x > 45;
+    const passed = a.local(car.location).x > 45;
     return {
       pass: passed && maxRise < 0.2,
       detail: `passed=${passed} maxRise=${maxRise.toFixed(2)}`,
@@ -99,7 +99,7 @@ export async function turnAndHandbrake(a: Arena): Promise<Outcome> {
       let inside = true;
       for (let t = 0; t < 20; t++) {
         await wait(1);
-        inside &&= insideArena(car.location, SUV_SPEC.bodyHalfWidth);
+        inside &&= insideArena(a.local(car.location), SUV_SPEC.bodyHalfWidth);
         const v = car.getVelocity();
         const speed = length(v);
         maxSpeed = Math.max(maxSpeed, speed);
@@ -134,7 +134,7 @@ export function ramCow(a: Arena): Promise<Outcome> {
       cow.addEffect("resistance", 600, { amplifier: 2, showParticles: false });
       const health = () => cow.getComponent("minecraft:health")?.currentValue;
       const hp0 = health() ?? 0;
-      const x0 = cow.location.x;
+      const x0 = a.local(cow.location).x;
       drive(car, 0, 1);
       const samples: RamSample[] = [];
       for (let t = 0; t < 80; t++) {
@@ -143,7 +143,7 @@ export function ramCow(a: Arena): Promise<Outcome> {
         samples.push({
           valid,
           hp: valid ? (health() ?? 0) : 0,
-          x: valid ? cow.location.x : Number.NaN,
+          x: valid ? a.local(cow.location).x : Number.NaN,
         });
         const hit = hitTick(hp0, samples);
         // Removing the car on the hit tick leaves the knockback as the only
@@ -162,21 +162,21 @@ export function wallDiagonal(a: Arena): Promise<Outcome> {
   // The wall's face spans z 20-41; past its end the sliding car is free
   // again and drives on toward +x (ADR 0081).
   const wallEndZ = 41;
-  a.dim.runCommand(`fill 45 ${a.gy} 20 45 ${a.gy + 3} 40 stone`);
+  a.dim.runCommand(`fill ${a.box(45, a.gy, 20, 45, a.gy + 3, 40)} stone`);
   return withCar(a, 20.5, 24.5, -70, async (car) => {
     drive(car, 0, 1);
     let before = 0;
     let maxAfter = 0;
     let endSide = 0;
     let contactTicks = 0;
-    let maxX = car.location.x;
+    let maxX = a.local(car.location).x;
     let hit = false;
     for (let t = 0; t < 120; t++) {
       await wait(1);
-      if (car.location.z + SUV_SPEC.bodyHalfWidth > wallEndZ) break;
+      if (a.local(car.location).z + SUV_SPEC.bodyHalfWidth > wallEndZ) break;
       const v = car.getVelocity();
-      maxX = Math.max(maxX, car.location.x);
-      if (!hit && car.location.x > 43.5) hit = true;
+      maxX = Math.max(maxX, a.local(car.location).x);
+      if (!hit && a.local(car.location).x > 43.5) hit = true;
       if (hit) {
         maxAfter = Math.max(maxAfter, Math.abs(v.z));
         endSide = Math.abs(v.z);
@@ -203,7 +203,7 @@ export function wallDiagonal(a: Arena): Promise<Outcome> {
 // must learn instead of reading it as a wall (ADR 0082).
 export async function suvSoulSand(a: Arena): Promise<Outcome> {
   const floor = a.gy - 1;
-  a.dim.runCommand(`fill 93 ${floor} 1 98 ${floor} 58 soul_sand`);
+  a.dim.runCommand(`fill ${a.box(93, floor, 1, 98, floor, 58)} soul_sand`);
   try {
     return await withCar(a, 95.5, 3.5, 0, async (car) => {
       drive(car, 0, 1);
@@ -222,7 +222,7 @@ export async function suvSoulSand(a: Arena): Promise<Outcome> {
               y: Math.floor(car.location.y),
               z: Math.floor(car.location.z),
             })?.typeId ?? "none";
-        if (car.location.z > 54) break;
+        if (a.local(car.location).z > 54) break;
       }
       return {
         pass: under === "minecraft:soul_sand" && max >= 0.3,
@@ -230,7 +230,7 @@ export async function suvSoulSand(a: Arena): Promise<Outcome> {
       };
     });
   } finally {
-    a.dim.runCommand(`fill 93 ${floor} 1 98 ${floor} 58 stone`);
+    a.dim.runCommand(`fill ${a.box(93, floor, 1, 98, floor, 58)} stone`);
   }
 }
 
@@ -243,7 +243,7 @@ export function step2(
   // Place a 2-high step spanning z ± 6, and back-compute the start so that a
   // diagonal approach still meets the step at its z center.
   a.dim.runCommand(
-    `fill ${stepX} ${a.gy} ${z - 6} ${stepX + 8} ${a.gy + 1} ${z + 6} stone`,
+    `fill ${a.box(stepX, a.gy, z - 6, stepX + 8, a.gy + 1, z + 6)} stone`,
   );
   const dir = forward(yaw);
   const startX = stepX - 25 + 0.5;
@@ -254,10 +254,11 @@ export function step2(
     for (let t = 0; t < 120; t++) {
       await wait(1);
       maxY = Math.max(maxY, car.location.y);
-      if (car.location.x > stepX + 3) break;
+      if (a.local(car.location).x > stepX + 3) break;
     }
     const side = Math.abs(
-      (car.location.x - startX) * dir.z - (car.location.z - startZ) * dir.x,
+      (a.local(car.location).x - startX) * dir.z -
+        (a.local(car.location).z - startZ) * dir.x,
     );
     const climbed = maxY >= a.gy + 1.9;
     return {
@@ -282,10 +283,10 @@ function seatOf(vehicle: Entity, rider: Entity): number {
 // Bedrock seats riders by their index in the rider list, so a passenger moves
 // up into the driver's seat when the driver gets out (ADR 0019).
 export async function seatsAfterDriverLeaves(a: Arena): Promise<Outcome> {
-  a.dim.runCommand(`summon ${SEAT_PROBE} 30.5 ${a.gy} 8.5`);
+  a.dim.runCommand(`summon ${SEAT_PROBE} ${a.xyz(30.5, a.gy, 8.5)}`);
   const probe = a.dim.getEntities({
     type: SEAT_PROBE,
-    location: { x: 30.5, y: a.gy, z: 8.5 },
+    location: a.at(30.5, a.gy, 8.5),
     maxDistance: 1.5,
   })[0];
   const cows = [0, 1, 2].map((i) => summonCow(a, 26.5 + i * 2, 4.5));
@@ -350,7 +351,7 @@ export function headlightsFollowAndClear(a: Arena): Promise<Outcome> {
       for (let x = 0; x <= 60; x++)
         for (let z = 9; z <= 16; z++)
           for (let dy = 0; dy <= 2; dy++)
-            if (lightAt({ x, y: a.gy + dy, z })) n++;
+            if (lightAt(a.at(x, a.gy + dy, z))) n++;
       return n;
     };
     car.setProperty(HEADLIGHTS_PROPERTY, true);
@@ -393,7 +394,7 @@ function withAirborneCar<T>(
   a: Arena,
   run: (car: Entity) => Promise<T>,
 ): Promise<T> {
-  return withCar(a, FLIGHT_LANE.x, FLIGHT_LANE.z, -90, async (car) => {
+  return withCar(a, FLIGHT_PATH.x, FLIGHT_PATH.z, -90, async (car) => {
     await takeOff(car, SUV_SPEC.takeoffTicks);
     return run(car);
   });
@@ -670,13 +671,13 @@ export function submarineShore(a: Arena): Promise<Outcome> {
     // One-block steps up from the bed; the top one is level with the floor.
     for (let step = 1; step <= depth; step++) {
       a.dim.runCommand(
-        `fill ${shoreX + (step - 1) * tread} ${a.gy - depth} ${POOL.minZ} ${POOL.maxX} ${a.gy - depth + step - 1} ${POOL.maxZ} stone`,
+        `fill ${a.box(shoreX + (step - 1) * tread, a.gy - depth, POOL.minZ, POOL.maxX, a.gy - depth + step - 1, POOL.maxZ)} stone`,
       );
     }
     return withDivingCar(a, async (car, enteredAt) => {
       drive(car, 0, 1);
       const landedAt = await ticksUntilGround(car, 200);
-      const landedX = car.location.x;
+      const landedX = a.local(car.location).x;
       const landedY = car.location.y - a.gy;
       // It becomes a car while the step climb lifts it over the last
       // submerged step, once its roof clears the surface, and can still be in
@@ -689,7 +690,7 @@ export function submarineShore(a: Arena): Promise<Outcome> {
         await wait(1);
         forms.add(vehicleForm(car));
       }
-      const parkedX = car.location.x;
+      const parkedX = a.local(car.location).x;
       const parkedY = car.location.y - a.gy;
       // The submerged step's top is a block below the dry floor (gy - 1), so
       // half a block separates parking in water from parking on dry land.
@@ -699,7 +700,7 @@ export function submarineShore(a: Arena): Promise<Outcome> {
       for (let t = 0; t < 100 && !climbedOut; t++) {
         await wait(1);
         climbedOut =
-          car.location.x >= dryX + 1 &&
+          a.local(car.location).x >= dryX + 1 &&
           Math.abs(car.location.y - a.gy) <= 0.1 &&
           vehicleForm(car) === "car";
       }
@@ -713,7 +714,7 @@ export function submarineShore(a: Arena): Promise<Outcome> {
           forms.size === 1 &&
           forms.has("car") &&
           climbedOut,
-        detail: `enteredAt=${enteredAt} landedAt=${landedAt} landedX=${landedX.toFixed(2)} landedY=${landedY.toFixed(2)} parkedX=${parkedX.toFixed(2)} parkedY=${parkedY.toFixed(2)} parkedForms=${[...forms].join("/")} climbedOut=${climbedOut} x=${car.location.x.toFixed(2)} y=${(car.location.y - a.gy).toFixed(2)} form=${vehicleForm(car)}`,
+        detail: `enteredAt=${enteredAt} landedAt=${landedAt} landedX=${landedX.toFixed(2)} landedY=${landedY.toFixed(2)} parkedX=${parkedX.toFixed(2)} parkedY=${parkedY.toFixed(2)} parkedForms=${[...forms].join("/")} climbedOut=${climbedOut} x=${a.local(car.location).x.toFixed(2)} y=${(car.location.y - a.gy).toFixed(2)} form=${vehicleForm(car)}`,
       };
     });
   });
@@ -767,15 +768,16 @@ export function submarineShallow(a: Arena): Promise<Outcome> {
         await wait(1);
         carOnly &&= vehicleForm(car) === "car";
         enteredWater ||=
-          car.location.x > POOL.minX + 2 && car.location.y < a.gy - 0.5;
-        if (car.location.x > POOL.maxX + 3) {
+          a.local(car.location).x > POOL.minX + 2 &&
+          car.location.y < a.gy - 0.5;
+        if (a.local(car.location).x > POOL.maxX + 3) {
           crossed = true;
           break;
         }
       }
       return {
         pass: carOnly && enteredWater && crossed,
-        detail: `carOnly=${carOnly} enteredWater=${enteredWater} crossed=${crossed} x=${car.location.x.toFixed(2)}`,
+        detail: `carOnly=${carOnly} enteredWater=${enteredWater} crossed=${crossed} x=${a.local(car.location).x.toFixed(2)}`,
       };
     }),
   );
