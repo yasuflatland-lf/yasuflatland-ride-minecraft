@@ -473,8 +473,9 @@ Setup: use a Vibrant Visuals device at night, then repeat the legacy checks with
 | L12 | With Vibrant Visuals on, check that SUV paint is glossy metallic, not chrome, and keeps its hue. | [ ] | [ ] |
 | L13 | With Vibrant Visuals on, check that the SUV hardtop is matte. | [ ] | [ ] |
 | L14 | With Vibrant Visuals on and SUV headlights off, check that the headlights do not glow (L1). | [ ] | [ ] |
-| L15 | With Vibrant Visuals on and SUV headlights on, check that L1, L5 and L6 still glow. | [ ] | [ ] |
-| L16 | With Vibrant Visuals off, check that the SUV paint and lights look unchanged. | [ ] | [ ] |
+| L15 | With Vibrant Visuals on and SUV headlights on, check that the lit lamps from L1 and L5 still glow. | [ ] | [ ] |
+| L16 | With Vibrant Visuals off, check that the SUV paint and lights look unchanged, and repeat L6 for the SUV. | [ ] | [ ] |
+| L17 | Hover the SUV at night with Vibrant Visuals on and then off: the glow discs underneath still glow blue in both modes. | [ ] | [ ] |
 
 ## Sports boat mirror (Vibrant Visuals)
 

@@ -45,9 +45,9 @@ def mer_pixel(paint: Paint) -> Callable[[int, int], tuple]:
             return MER_OFF.rgba()
         block, spec, u, v = hit
         value = atlas.PAINTERS[block].mer(spec.name, u, v, paint)
-        # Static paint texture sets must not make unlit lamps glow (ADR 0147, 0192).
         if value is None:
             value = SWATCH_MER[spec.base]
+        # Static paint texture sets must not make unlit lamps glow (ADR 0147, 0192).
         if value.emissive > 0:
             raise ValueError("SUV paint region MER must not be emissive")
         return value.rgba()
