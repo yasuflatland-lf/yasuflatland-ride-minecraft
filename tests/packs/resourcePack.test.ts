@@ -183,6 +183,7 @@ describe("Resource Pack flight visuals (ADR 0022)", () => {
         windows_sealed: "query.property('yasu_ride:form') == 'submarine'",
       },
       { headlights: "!query.property('yasu_ride:headlights')" },
+      { tail_lights: "!query.property('yasu_ride:headlights')" },
     ]);
   });
 
