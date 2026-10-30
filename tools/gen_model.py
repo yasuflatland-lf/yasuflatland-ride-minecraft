@@ -3,9 +3,10 @@
 Coordinates are in pixels (16 px = 1 block). The definitions below use "forward +z, right +x",
 and are rotated 180° around the Y axis just before writing, because in Bedrock the front of an
 entity is on the -z side of the model.
-Bone names follow the convention (ADR 0009, 0022, 0043): root / body / wheel_fl / wheel_fr / wheel_rl /
-wheel_rr / glow_fl / glow_fr / glow_rl / glow_rr / rear_glass / windows_sealed / prop_rl / prop_rr /
-arm_fl / arm_fr / arm_rl / arm_rr / sub_arm_rl / sub_arm_rr / door_fr / door_rr / door_fl / door_rl / seat_0..3.
+Bone names follow the convention (ADR 0009, 0022, 0043, 0192): root / body / headlights / tail_lights /
+wheel_fl / wheel_fr / wheel_rl / wheel_rr / glow_fl / glow_fr / glow_rl / glow_rr / rear_glass / windows_sealed /
+prop_rl / prop_rr / arm_fl / arm_fr / arm_rl / arm_rr / sub_arm_rl / sub_arm_rr / door_fr / door_rr / door_fl /
+door_rl / seat_0..3.
 """
 import json
 import sys
@@ -44,6 +45,21 @@ ASSEMBLIES = {
     for name, count in getattr(part, "ASSEMBLIES", {}).items()
 }
 
+lamp_bones = {part.bone: [] for part in lamps.LAMP_PARTS if part.bone != "body"}
+
+
+def lamp_part(name, mirrored=False):
+    """Return a lamp piece's cubes for the body, or move them to their own lamp bone (ADR 0192)."""
+    cubes = getattr(lamps, f"{name}_cubes")()
+    if mirrored:
+        cubes = both_sides(cubes)
+    bone = lamps.PART_BONES[name]
+    if bone == "body":
+        return cubes
+    lamp_bones[bone].extend(cubes)
+    return []
+
+
 body = [
     *shell.chassis_cubes(),
     *shell.hood_cubes(),
@@ -56,8 +72,8 @@ body = [
     *both_sides(shell.cargo_upper_side_cubes()),
     *shell.cargo_floor_cubes(),
     *shell.tailgate_cubes(),
-    *lamps.third_brake_light_cubes(),
-    *both_sides(lamps.tail_light_cubes()),
+    *lamp_part("third_brake_light"),
+    *lamp_part("tail_light", mirrored=True),
     *shell.tailgate_hinge_cubes(),
     *shell.exhaust_cubes(),
     *both_sides(shell.side_step_cubes()),
@@ -72,8 +88,9 @@ body += both_sides(shell.arch_liner_cubes())
 body += both_sides([
     *shell.fender_flare(FRONT_AXLE_Z, SILL_Y + 1, SILL_Y),
     *shell.fender_flare(REAR_AXLE_Z, SILL_Y, SILL_Y),
-    *lamps.lamp_strip_and_turn_signal_cubes(),
+    *lamp_part("turn_signal"),
 ])
+lamp_part("front_strip", mirrored=True)
 body += shell.front_bumper_lower_cubes()
 body += shell.front_bumper_band_cubes()
 body += shell.front_bumper_top_cubes()
@@ -81,7 +98,7 @@ body += both_sides(shell.frame_horn_cubes())
 body += both_sides(shell.front_tow_hook_cubes())
 body += shell.rear_bumper_cubes()
 body += both_sides([
-    *lamps.bumper_reflector_cubes(),
+    *lamp_part("bumper_reflector"),
     *shell.rear_tow_hook_cubes(),
 ])
 body += cabin.pleated_seat(2, 11, FRONT_SEAT_Z)
@@ -89,9 +106,11 @@ body += cabin.pleated_seat(-11, -2, FRONT_SEAT_Z)
 body += cabin.pleated_seat(-11, 0, REAR_SEAT_Z)
 body += cabin.pleated_seat(0, 11, REAR_SEAT_Z)
 body += cabin.steering_cubes()
-body += lamps.headlight_cubes()
+body += lamp_part("headlight_ring")
+lamp_part("headlight_lens")
 body += shell.grille_cubes()
-body += both_sides(lamps.fog_lamp_cubes())
+body += lamp_part("fog_pocket", mirrored=True)
+lamp_part("fog_lens", mirrored=True)
 body += both_sides(shell.roof_edge_cubes())
 body += shell.roof_rib_cubes()
 body += gauges.gauge_cluster_cubes() + dash.passenger_dash_cubes()
@@ -99,8 +118,6 @@ body += cabin.floor_console_cubes()
 body += cabin.pedal_cubes()
 body += running_gear.round_tire("z", SPARE, 5, REAR - 3, REAR)
 body += shell.spare_rim_cubes()
-
-body, headlights = lamps.split_lamps(body)
 
 geo = {
     "format_version": "1.12.0",
@@ -118,7 +135,8 @@ geo = {
                 {"name": "root", "pivot": [0, 12, 0]},
                 {"name": "body", "parent": "root", "pivot": [0, FLOOR_Y, 0], "cubes": body,
                  "locators": {"exhaust": [9, SILL_Y - 1.4, REAR - 2.6]}},
-                {"name": "headlights", "parent": "body", "pivot": [0, FLOOR_Y, 0], "cubes": headlights},
+                *[{"name": name, "parent": "body", "pivot": [0, FLOOR_Y, 0], "cubes": lamp_bones[name]}
+                  for name in ("headlights", "tail_lights")],
                 # Shown only in flight by the render controller (ADR 0026)
                 {"name": "rear_glass", "parent": "body", "pivot": [0, FLOOR_Y, 0],
                  "cubes": shell.rear_glass_cubes()},

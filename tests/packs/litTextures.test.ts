@@ -29,7 +29,7 @@ const kinds = [
     kind: "suv",
     slots: [7],
     cell: 4,
-    bones: { headlights },
+    bones: { headlights, tail_lights: headlights },
     condition: headlights,
   },
   {
