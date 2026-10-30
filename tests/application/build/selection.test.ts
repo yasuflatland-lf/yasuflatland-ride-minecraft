@@ -18,6 +18,8 @@ import {
 } from "./fakes";
 
 const alex = asPlayerId("alex");
+const coordinate = fc.integer({ min: -1000, max: 1000 });
+const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
 
 function setup() {
   const repo = new FakeSessions();
@@ -47,8 +49,6 @@ describe("SetCorner", () => {
   });
 
   it("reports the inclusive volume once both corners are set in either order", () => {
-    const coordinate = fc.integer({ min: -1000, max: 1000 });
-    const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
     fc.assert(
       fc.property(cell, cell, fc.boolean(), (a, b, reverse) => {
         const { repo, gate, feedback } = setup();
@@ -152,8 +152,6 @@ describe("UpdateBuildModes", () => {
 });
 
 describe("ShowOutline", () => {
-  const coordinate = fc.integer({ min: -1000, max: 1000 });
-  const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
   const dimension = fc.constantFrom(overworld, nether);
   const corner = fc.constantFrom("pos1" as const, "pos2" as const);
   const intervalTick = fc
