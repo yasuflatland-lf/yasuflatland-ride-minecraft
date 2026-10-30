@@ -561,16 +561,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
   {
     name: "boat_dock",
     file: "sportsboat",
-    ticks: 76,
-    features: ["vehicle:sportsboat"],
-    isolation: "lane",
-    needsPlayer: false,
-    vehicles: 1,
-  },
-  {
-    name: "boat_deck_seats",
-    file: "sportsboat",
-    ticks: 27,
+    ticks: 88,
     features: ["vehicle:sportsboat"],
     isolation: "lane",
     needsPlayer: false,

@@ -77,7 +77,6 @@ import {
 } from "./roadPaver";
 import {
   boatCruise,
-  boatDeckSeats,
   boatDock,
   boatDrag,
   boatFloat,
@@ -192,7 +191,6 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   boat_float: boatFloat,
   boat_lava: boatLava,
   boat_dock: boatDock,
-  boat_deck_seats: boatDeckSeats,
   boat_drag: boatDrag,
   boat_cruise: boatCruise,
   boat_icebreaker_ice: boatIcebreakerIce,

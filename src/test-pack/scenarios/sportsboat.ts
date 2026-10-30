@@ -33,7 +33,8 @@ import {
   withBoat,
   withPool,
 } from "../arena";
-import type { Outcome } from "../outcome";
+import { type Outcome, runCourse, type StepSink } from "../outcome";
+import { settledAt } from "../settle";
 import { summonCow } from "./shared";
 
 function mean(values: number[]): number {
@@ -128,72 +129,6 @@ const BOAT_DECK_SEATS_TEST = {
   clearTicks: 10,
 } as const;
 
-export function boatDeckSeats(a: Arena): Promise<Outcome> {
-  return withPool(a, 3, () =>
-    withBoat(
-      a,
-      async (boat) => {
-        const docked = () =>
-          boat.getProperty(entityPropertyId("docked")) === true;
-        let ticks = 0;
-        while (!docked() && ticks < BOAT_DOCK_TEST.timeout) {
-          await wait(1);
-          ticks++;
-        }
-        if (!docked())
-          return { pass: false, detail: `not docked after ${ticks} ticks` };
-        const start = boat.location;
-        const seatsWithin = (maxDistance: number) =>
-          a.dim.getEntities({
-            type: DECK_SEAT_TYPE,
-            location: start,
-            maxDistance,
-          });
-        const seats = seatsWithin(BOAT_DECK_SEATS_TEST.radius);
-        const expected = seatWorldPositions(
-          { ...start, yaw: boat.getRotation().y },
-          SPORTSBOAT_PROFILE.seats.positions,
-        );
-        const unmatched = [...seats];
-        const positioned = expected.every((at) => {
-          const index = unmatched.findIndex(
-            (seat) =>
-              Math.hypot(
-                seat.location.x - at.x,
-                seat.location.y - at.y,
-                seat.location.z - at.z,
-              ) <= BOAT_DECK_SEATS_TEST.tolerance,
-          );
-          if (index < 0) return false;
-          unmatched.splice(index, 1);
-          return true;
-        });
-        drive(boat, 0, 1);
-        const remaining = () =>
-          seatsWithin(BOAT_DECK_SEATS_TEST.clearRadius).length;
-        let clearTicks = 0;
-        while (
-          remaining() > 0 &&
-          clearTicks < BOAT_DECK_SEATS_TEST.clearTicks
-        ) {
-          await wait(1);
-          clearTicks++;
-        }
-        const count = remaining();
-        return {
-          pass:
-            seats.length === BOAT_DECK_SEATS_TEST.count &&
-            positioned &&
-            count === 0,
-          detail: `seats=${seats.length} positioned=${positioned} clearTicks=${clearTicks} remaining=${count}`,
-        };
-      },
-      POOL_SOUTH_STRIP,
-      0,
-    ),
-  );
-}
-
 function deckFloorCount(a: Arena, center: Vec3, radius: number): number {
   const cx = Math.floor(center.x);
   const cy = Math.floor(center.y);
@@ -213,71 +148,149 @@ function deckFloorCount(a: Arena, center: Vec3, radius: number): number {
   return count;
 }
 
-export function boatDock(a: Arena): Promise<Outcome> {
+export function boatDock(a: Arena, onStep: StepSink): Promise<Outcome> {
   return withPool(a, 3, () =>
     withBoat(
       a,
       async (boat) => {
         const docked = () =>
           boat.getProperty(entityPropertyId("docked")) === true;
-        let dockTicks = 0;
-        while (!docked() && dockTicks < BOAT_DOCK_TEST.timeout) {
-          await wait(1);
-          dockTicks++;
-        }
-        if (!docked())
-          return { pass: false, detail: `not docked after ${dockTicks} ticks` };
-        const start = boat.location;
-        let maxHeightError = 0;
-        let held = true;
-        for (let tick = 0; tick < BOAT_DOCK_TEST.holdTicks; tick++) {
-          await wait(1);
-          maxHeightError = Math.max(
-            maxHeightError,
-            Math.abs(boat.location.y - start.y),
-          );
-          held &&= docked();
-        }
-        const floorCount = deckFloorCount(a, start, BOAT_DOCK_TEST.floorRadius);
-        const f = forward(boat.getRotation().y);
-        drive(boat, 0, 1);
-        let undockTicks = 0;
-        let remainingFloor = deckFloorCount(
-          a,
-          start,
-          BOAT_DOCK_TEST.clearRadius,
+        let start = boat.location;
+        const seatsWithin = (maxDistance: number) =>
+          a.dim.getEntities({
+            type: DECK_SEAT_TYPE,
+            location: start,
+            maxDistance,
+          });
+        return runCourse(
+          [
+            {
+              name: "dock",
+              run: async () => {
+                let dockTicks = 0;
+                while (!docked() && dockTicks < BOAT_DOCK_TEST.timeout) {
+                  await wait(1);
+                  dockTicks++;
+                }
+                if (!docked())
+                  return {
+                    pass: false,
+                    detail: `not docked after ${dockTicks} ticks`,
+                  };
+                start = boat.location;
+                let maxHeightError = 0;
+                let held = true;
+                for (let tick = 0; tick < BOAT_DOCK_TEST.holdTicks; tick++) {
+                  await wait(1);
+                  maxHeightError = Math.max(
+                    maxHeightError,
+                    Math.abs(boat.location.y - start.y),
+                  );
+                  held &&= docked();
+                }
+                const floorCount = deckFloorCount(
+                  a,
+                  start,
+                  BOAT_DOCK_TEST.floorRadius,
+                );
+                return {
+                  pass:
+                    held &&
+                    maxHeightError <= BOAT_DOCK_TEST.heightTolerance &&
+                    floorCount >= BOAT_DOCK_TEST.minDeckCells,
+                  detail: `dockTicks=${dockTicks} held=${held} heightError=${maxHeightError.toFixed(3)} floor=${floorCount}`,
+                };
+              },
+            },
+            {
+              name: "deck_seats",
+              run: async () => {
+                const seats = seatsWithin(BOAT_DECK_SEATS_TEST.radius);
+                const expected = seatWorldPositions(
+                  { ...start, yaw: boat.getRotation().y },
+                  SPORTSBOAT_PROFILE.seats.positions,
+                );
+                const unmatched = [...seats];
+                const positioned = expected.every((at) => {
+                  const index = unmatched.findIndex(
+                    (seat) =>
+                      Math.hypot(
+                        seat.location.x - at.x,
+                        seat.location.y - at.y,
+                        seat.location.z - at.z,
+                      ) <= BOAT_DECK_SEATS_TEST.tolerance,
+                  );
+                  if (index < 0) return false;
+                  unmatched.splice(index, 1);
+                  return true;
+                });
+                return {
+                  pass:
+                    seats.length === BOAT_DECK_SEATS_TEST.count && positioned,
+                  detail: `seats=${seats.length} positioned=${positioned}`,
+                };
+              },
+            },
+            {
+              name: "drive_off",
+              run: async () => {
+                const seatsLeft = () =>
+                  seatsWithin(BOAT_DECK_SEATS_TEST.clearRadius).length;
+                const f = forward(boat.getRotation().y);
+                drive(boat, 0, 1);
+                let undockTicks = 0;
+                let remainingFloor = deckFloorCount(
+                  a,
+                  start,
+                  BOAT_DOCK_TEST.clearRadius,
+                );
+                while (
+                  (docked() || remainingFloor > 0) &&
+                  undockTicks < BOAT_DOCK_TEST.undockTicks
+                ) {
+                  await wait(1);
+                  undockTicks++;
+                  remainingFloor = deckFloorCount(
+                    a,
+                    start,
+                    BOAT_DOCK_TEST.clearRadius,
+                  );
+                }
+                const leftDock = !docked();
+                let clearTicks = undockTicks;
+                while (
+                  seatsLeft() > 0 &&
+                  clearTicks < BOAT_DECK_SEATS_TEST.clearTicks
+                ) {
+                  await wait(1);
+                  clearTicks++;
+                }
+                const remainingSeats = seatsLeft();
+                let distance = 0;
+                for (
+                  let tick = clearTicks;
+                  tick < BOAT_DOCK_TEST.departureTicks;
+                  tick++
+                ) {
+                  await wait(1);
+                  distance =
+                    (boat.location.x - start.x) * f.x +
+                    (boat.location.z - start.z) * f.z;
+                  if (distance >= BOAT_DOCK_TEST.minDeparture) break;
+                }
+                return {
+                  pass:
+                    leftDock &&
+                    remainingFloor === 0 &&
+                    distance >= BOAT_DOCK_TEST.minDeparture &&
+                    remainingSeats === 0,
+                  detail: `undockTicks=${undockTicks} undocked=${leftDock} remainingFloor=${remainingFloor} forward=${distance.toFixed(3)} clearTicks=${clearTicks} remainingSeats=${remainingSeats}`,
+                };
+              },
+            },
+          ],
+          { onStep },
         );
-        while (
-          (docked() || remainingFloor > 0) &&
-          undockTicks < BOAT_DOCK_TEST.undockTicks
-        ) {
-          await wait(1);
-          undockTicks++;
-          remainingFloor = deckFloorCount(a, start, BOAT_DOCK_TEST.clearRadius);
-        }
-        const leftDock = !docked();
-        let distance = 0;
-        for (
-          let tick = undockTicks;
-          tick < BOAT_DOCK_TEST.departureTicks;
-          tick++
-        ) {
-          await wait(1);
-          distance =
-            (boat.location.x - start.x) * f.x +
-            (boat.location.z - start.z) * f.z;
-          if (distance >= BOAT_DOCK_TEST.minDeparture) break;
-        }
-        return {
-          pass:
-            held &&
-            maxHeightError <= BOAT_DOCK_TEST.heightTolerance &&
-            floorCount >= BOAT_DOCK_TEST.minDeckCells &&
-            leftDock &&
-            remainingFloor === 0 &&
-            distance >= BOAT_DOCK_TEST.minDeparture,
-          detail: `dockTicks=${dockTicks} held=${held} heightError=${maxHeightError.toFixed(3)} floor=${floorCount} undockTicks=${undockTicks} undocked=${leftDock} remainingFloor=${remainingFloor} forward=${distance.toFixed(3)}`,
-        };
       },
       POOL_SOUTH_STRIP,
       0,
@@ -453,7 +466,13 @@ export function boatShore(a: Arena): Promise<Outcome> {
     return withBoat(a, async (boat) => {
       const x0 = a.local(boat.location).x;
       drive(boat, 0, 1);
-      await wait(120);
+      const samples: number[] = [];
+      for (let tick = 0; tick < 120; tick++) {
+        await wait(1);
+        const v = boat.getVelocity();
+        samples.push(Math.hypot(v.x, v.z));
+        if (settledAt(samples, 0.02, 10) !== undefined) break;
+      }
       const x = a.local(boat.location).x;
       const feet = boat.location.y - a.gy;
       const speed = length(boat.getVelocity());
