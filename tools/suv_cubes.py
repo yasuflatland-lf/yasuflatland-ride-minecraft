@@ -4,8 +4,7 @@ import math
 
 from tool_loader import load_tool
 
-palette = load_tool("suv_palette")
-uv = palette.uv
+uv = load_tool("suv_atlas").uv
 
 
 def box(x0, y0, z0, x1, y1, z1, color):

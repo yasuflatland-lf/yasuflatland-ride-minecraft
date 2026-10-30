@@ -32,8 +32,6 @@ PALETTE = {
 }
 NAMES = list(PALETTE)
 EMISSIVE_LIT = 255
-MER_LIT = (0, EMISSIVE_LIT, 255)
-MER_OFF = (0, 0, 255)
 LIT_SLOTS = tuple(NAMES.index(name) for name in ("light",))
 # A power of two wide enough for a 4 px cell per swatch (16 swatches filled 64 px before "prop")
 TEXTURE_WIDTH = 128
@@ -70,22 +68,3 @@ BODY_PAINTS = (
     Paint("magenta", (160, 52, 140)),
     Paint("pink", (214, 132, 162)),
 )
-
-
-def uv(color):
-    i = NAMES.index(color)
-    face = {"uv": [i * 4 + 1, 1], "uv_size": [2, 2]}
-    return {k: dict(face) for k in ("north", "south", "east", "west", "up", "down")}
-
-
-def swatches(body_color):
-    colors = {**PALETTE, "body": body_color}
-
-    def swatch(x, y):
-        i = x // 4
-        if y >= 4 or i >= len(NAMES):
-            return (0, 0, 0)
-        name = NAMES[i]
-        return (*colors[name], ALPHA.get(name, 255))
-
-    return swatch

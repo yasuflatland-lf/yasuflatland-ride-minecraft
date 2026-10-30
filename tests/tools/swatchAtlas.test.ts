@@ -19,21 +19,26 @@ const run = (script: string) =>
     { encoding: "utf8" },
   );
 
-it("matches every SUV swatch face and pixel for every paint", () => {
-  run(`import contextlib, io, tempfile
-with tempfile.TemporaryDirectory() as output:
-    sys.argv = ['gen_model.py', output]
-    with contextlib.redirect_stdout(io.StringIO()):
-        g = load_tool('gen_model')
-    atlas = m.Atlas(g.NAMES, cell=4, inset=1, width=g.TEXTURE_WIDTH, height=16, fill=(0,0,0,255))
-    for name in g.NAMES:
-        assert all(face == atlas.face(name) for face in g.uv(name).values())
-    for body in g.BODY_PAINTS.values():
-        palette = {**g.PALETTE, 'body': body}
-        colors = {name: (*palette[name], g.ALPHA.get(name, 255)) for name in g.NAMES}
-        for y in range(16):
-            for x in range(g.TEXTURE_WIDTH):
-                assert atlas.pixel(colors, x, y) == (*g.swatches(body)(x, y), 255)[:4]`);
+it("preserves the original SUV swatch layout and pixels for every paint", () => {
+  run(`suv_atlas = load_tool('suv_atlas')
+suv_palette = load_tool('suv_palette')
+suv_export = load_tool('suv_export')
+assert suv_atlas.ATLAS.width == 128 and suv_atlas.ATLAS.height == 16
+for i, name in enumerate(suv_palette.NAMES):
+    faces = suv_atlas.uv(name)
+    assert set(faces) == {'north', 'south', 'east', 'west', 'up', 'down'}
+    assert all(face == {'uv': [i * 4 + 1, 1], 'uv_size': [2, 2]} for face in faces.values())
+    assert len({id(face) for face in faces.values()}) == 6
+for paint in suv_palette.BODY_PAINTS:
+    colors = {**suv_palette.PALETTE, 'body': paint.body}
+    pixel = suv_export.paint_pixel(paint.body)
+    for y in range(16):
+        for x in range(128):
+            expected = (0, 0, 0, 255)
+            if y < 4 and x // 4 < len(suv_palette.NAMES):
+                name = suv_palette.NAMES[x // 4]
+                expected = (*colors[name], suv_palette.ALPHA.get(name, 255))
+            assert pixel(x, y) == expected`);
 }, 120_000);
 
 it("pins camper defaults and rejects invalid placements without mutation", () => {
