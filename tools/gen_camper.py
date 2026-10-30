@@ -4,9 +4,10 @@ Based on the owner's photos of a cab-over motorhome, with no manufacturer name.
 Model units are pixels (16 per block), with the front at -z (ADR 0009). Build
 coordinates use +x for right; mirror left and right just before writing into
 Bedrock's frame. The stripe's W is an explicit exception recorded in ADR 0067.
-Run: python3 -I tools/gen_camper.py packs/yasu_ride_rp
+Run: python3 -I tools/gen_camper.py packs/yasu_ride_rp [--check]
 """
 
+import functools
 import json
 import math
 import struct
@@ -18,9 +19,41 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tool_loader import load_tool
 
+camper_atlas = load_tool("camper_atlas")
 cube_tilt = load_tool("cube_tilt")
 assert_axes, compound_cubes = cube_tilt.assert_axes, cube_tilt.compound_cubes
 ASSEMBLIES = {"slanted": {"owner": "camper", "cubes": 6}}
+
+CHECK = "--check" in sys.argv[2:]
+STALE = []
+
+
+@functools.cache
+def png_reader():
+    """render_preview.py's decoder, so --check compares pixels however zlib packed the bytes."""
+    return load_tool("render_preview").read_png
+
+
+def emit(path, data, pixels=None):
+    """Write `data` to `path`, or under --check record `path` as stale when it differs. JSON compares
+    parsed, because `pnpm model` reformats it with Biome; a PNG compares `pixels`, its RGBA rows."""
+    if not CHECK:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if isinstance(data, bytes):
+            path.write_bytes(data)
+        else:
+            path.write_text(data)
+        return
+    try:
+        if path.suffix == ".json":
+            matches = json.loads(path.read_text()) == json.loads(data)
+        else:
+            matches = png_reader()(path) == pixels
+    except (OSError, ValueError, struct.error, zlib.error):
+        matches = False
+    if not matches:
+        STALE.append(str(path))
+
 
 RP = Path(sys.argv[1])
 MODELS = RP / "models/entity/yasu_ride"
@@ -70,6 +103,7 @@ PALETTE = {
     "marker_red": (200, 30, 30, 255),
 }
 SLOTS = list(PALETTE)
+ATLAS = camper_atlas.Atlas(SLOTS)
 EMISSIVE_LIT = 255
 MER_LIT = (0, EMISSIVE_LIT, 255)
 MER_OFF = (0, 0, 255)
@@ -118,15 +152,11 @@ DOOR = (-7, 7, 12, 54)  # z0, z1, y0, y1 on the right side; local cell z = 0
 REAR_INNER = REAR
 
 
-def face(color):
-    return {"uv": [SLOTS.index(color), 0], "uv_size": [1, 1]}
-
-
-def box(x0, y0, z0, x1, y1, z1, color, rotation=None, pivot=None):
+def box(x0, y0, z0, x1, y1, z1, color, rotation=None, pivot=None, offset=(0, 0), uv_size=None):
     c = {
         "origin": [round(min(x0, x1), 3), round(min(y0, y1), 3), round(min(z0, z1), 3)],
         "size": [round(abs(x1 - x0), 3), round(abs(y1 - y0), 3), round(abs(z1 - z0), 3)],
-        "uv": {f: face(color) for f in ("north", "south", "east", "west", "up", "down")},
+        "uv": {f: ATLAS.face(color, offset, uv_size) for f in ("north", "south", "east", "west", "up", "down")},
     }
     if rotation:
         c["rotation"] = rotation
@@ -138,7 +168,7 @@ def take_slots(cubes, names):
     slots = {SLOTS.index(n) for n in names}
     taken, rest = [], []
     for c in cubes:
-        if c["uv"]["north"]["uv"][0] in slots:
+        if ATLAS.swatch_at(*c["uv"]["north"]["uv"]) in slots:
             taken.append(c)
         else:
             rest.append(c)
@@ -1382,32 +1412,33 @@ geo = {
     "minecraft:geometry": [{
         "description": {
             "identifier": "geometry.yasu_ride.camper",
-            "texture_width": len(SLOTS), "texture_height": 1,
+            "texture_width": ATLAS.width, "texture_height": ATLAS.height,
             "visible_bounds_width": 10, "visible_bounds_height": 5,
             "visible_bounds_offset": [0, 1.5, 0],
         },
         "bones": camper_bones,
     }],
 }
-MODELS.mkdir(parents=True, exist_ok=True)
 model_cubes = [cube for bone in geo["minecraft:geometry"][0]["bones"] for cube in bone.get("cubes", [])]
 assert_axes(model_cubes, {"slanted": compound_cubes(model_cubes)}, ASSEMBLIES)
-(MODELS / "camper.geo.json").write_text(json.dumps(rounded(geo), separators=(",", ":")))
+emit(MODELS / "camper.geo.json", json.dumps(rounded(geo), separators=(",", ":")))
 
 
 def png(path, width, height, pixel):
-    raw = b"".join(b"\x00" + b"".join(bytes(pixel(x, y)) for x in range(width)) for y in range(height))
+    pixels = [[tuple(pixel(x, y)) for x in range(width)] for y in range(height)]
+    raw = b"".join(b"\x00" + b"".join(bytes(texel) for texel in row) for row in pixels)
 
     def chunk(t, d):
         return struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d) & 0xFFFFFFFF)
 
     head = struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0)
-    path.write_bytes(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", head) + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b""))
+    emit(path, b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", head)
+         + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b""), pixels)
 
 
 def lit_textures(kind, width, height, pixel):
     def is_lit(x, y):
-        return x in LIT_SLOTS
+        return ATLAS.swatch_at(x, y) in LIT_SLOTS
 
     def color(x, y):
         rgba = (*pixel(x, y), 255)[:4]
@@ -1425,22 +1456,21 @@ def lit_textures(kind, width, height, pixel):
             "metalness_emissive_roughness": f"{kind}_lit_mer",
         },
     }
-    (ENTITY_TEXTURES / f"{kind}_lit.texture_set.json").write_text(json.dumps(texture_set))
+    emit(ENTITY_TEXTURES / f"{kind}_lit.texture_set.json", json.dumps(texture_set))
 
 
 def scale(color, factor):
     return tuple(max(0, min(255, math.floor(c * factor + 0.5))) for c in color)
 
 
-ENTITY_TEXTURES.mkdir(parents=True, exist_ok=True)
 for paint, base in ACCENT_BASES.items():
     colors = dict(PALETTE)
     if paint != "khaki":
         colors.update(khaki=(*scale(base, 0.85), 255), stripe=(*scale(base, 0.65), 255), tan=(*base, 255))
     name = "camper" if paint == "khaki" else f"camper_{paint}"
-    png(ENTITY_TEXTURES / f"{name}.png", len(SLOTS), 1, lambda x, y: colors[SLOTS[x]])
+    png(ENTITY_TEXTURES / f"{name}.png", ATLAS.width, ATLAS.height, lambda x, y: ATLAS.pixel(colors, x, y))
 
-lit_textures("camper", len(SLOTS), 1, lambda x, y: PALETTE[SLOTS[x]])
+lit_textures("camper", ATLAS.width, ATLAS.height, lambda x, y: ATLAS.pixel(PALETTE, x, y))
 
 ICON = [
     "................",
@@ -1463,7 +1493,6 @@ ICON = [
 ICON_COLORS = {"W": PALETTE["white"], "K": PALETTE["khaki"], "G": (70, 86, 96, 255),
                "S": PALETTE["stripe"], "T": PALETTE["tan"], "B": (28, 28, 30, 255),
                "O": (60, 60, 60, 255), ".": (0, 0, 0, 0)}
-ITEM_TEXTURES.mkdir(parents=True, exist_ok=True)
 png(ITEM_TEXTURES / "camper_item.png", 16, 16, lambda x, y: ICON_COLORS[ICON[y][x]])
 # The camping gear box a player gets with their first camper (ADR 0093), in the 1970s palette of #347.
 BOX_ICON = [
@@ -1489,3 +1518,8 @@ BOX_ICON_COLORS = {"L": (222, 184, 135, 255), "C": (196, 150, 98, 255), "O": (11
                    ".": (0, 0, 0, 0)}
 png(ITEM_TEXTURES / "camping_gear_box.png", 16, 16, lambda x, y: BOX_ICON_COLORS[BOX_ICON[y][x]])
 print("cubes:", sum(len(b.get("cubes", [])) for b in camper_bones))
+
+if STALE:
+    sys.exit("Stale camper outputs:\n" + "\n".join(STALE))
+if CHECK:
+    print("camper model and textures are up to date")
