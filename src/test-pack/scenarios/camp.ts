@@ -881,7 +881,7 @@ export async function gasLanternSwitch(a: Arena): Promise<Outcome> {
     await wait(2);
     const onAgain = lit(first);
     a.dim.runCommand(
-      `execute positioned ${a.xyz(CELL.x + 0.5, a.gy, CELL.z + 17.5)} run kill @e[type=${GAS_LANTERN_TYPE},r=2]`,
+      `kill @e[type=${GAS_LANTERN_TYPE},x=${at.x},y=${at.y},z=${at.z},r=2]`,
     );
     await wait(25);
     const killed = !first.isValid && air();
