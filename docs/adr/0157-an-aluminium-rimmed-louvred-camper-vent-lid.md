@@ -21,4 +21,6 @@ The constraints from 0146 still hold: the opaque `entity` material ignores alpha
 
 ## Consequences
 
+Partly superseded in look by [0190](0190-ribbed-camper-shell-atlas.md): the panel is `trim_beige`, the top rail is aluminium, and the screws are drawn with the `vent_screws` atlas region.
+
 The lid has 92 small cubes instead of the mesh's bars. The 0.25 px slits may shimmer or merge at a distance, which offline previews cannot show. The panel uses the white body swatch, so it does not follow the accent paint. Manual row C164 checks the look on PC and mobile; keep this ADR Proposed until it passes. Nothing inside the camper changes, and model cubes take no part in collision. Tests check the rim's bounds and cut corners, the swatches, the two slit columns and their recess, and the latch.
