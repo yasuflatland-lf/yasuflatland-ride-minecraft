@@ -1,6 +1,7 @@
 // Shared by the in-game runner and scripts/game-test.mjs, so it must stay free
 // of @minecraft/server imports and of TypeScript-only syntax that Node's type
-// stripping cannot erase.
+// stripping cannot erase. Use .ts specifiers for relative value imports and
+// import type for every type-only import so Node can load this module directly.
 
 export const TEST_EVENT = "yasu_ride:test";
 export const LOG_TAG = "[YASU-RIDE-TEST]";
@@ -41,25 +42,6 @@ export function runRequestFrom(message: string): RunRequest {
   if (!RUN_ID.test(id) || !shard || rest.length > 0)
     return { runId: MANUAL_RUN_ID, shard: WHOLE_RUN };
   return { runId: id, shard };
-}
-
-/**
- * The 1-based shard of each test, packing the slowest first into the shard
- * with the fewest ticks so far (ADR 0054). Ties go to the earlier test and the
- * lower shard, so every CI job computes the same split.
- */
-export function shardsOf(ticks: readonly number[], total: number): number[] {
-  const load = new Array<number>(total).fill(0);
-  const shards = new Array<number>(ticks.length);
-  const slowestFirst = ticks
-    .map((t, position) => ({ t, position }))
-    .sort((a, b) => b.t - a.t || a.position - b.position);
-  for (const { t, position } of slowestFirst) {
-    const lightest = load.indexOf(Math.min(...load));
-    load[lightest] = (load[lightest] ?? 0) + t;
-    shards[position] = lightest + 1;
-  }
-  return shards;
 }
 
 export function linePrefix(runId: string): string {
