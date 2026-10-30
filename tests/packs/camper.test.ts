@@ -1959,7 +1959,8 @@ describe("camper rib atlas (ADR 0190)", () => {
     const texture = readPng("textures/entity/yasu_ride/camper");
     const shell = [...texture.pixels.subarray(0, 3)];
     for (let dy = 0; dy < h; dy++) {
-      const factor = dy % period === 0 ? 0.93 : 1.05;
+      const phase = dy % period;
+      const factor = phase === 0 ? 0.93 : phase === 1 ? 1.05 : 1;
       const expected = [
         ...shell.map((c) => Math.min(255, Math.floor(c * factor + 0.5))),
         255,
