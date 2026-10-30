@@ -4,13 +4,17 @@ Run: python3 -I tools/gen_build_tools.py packs/yasu_ride_rp [--check]
 --check writes nothing and exits 1 listing every stale output.
 """
 
-import struct
 import sys
-import zlib
 from pathlib import Path
 
+# Isolated mode (-I) omits the script directory from the import path.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from tool_loader import load_tool
+
+texture_io = load_tool("texture_io")
+
 RP = Path(sys.argv[1])
-CHECK = "--check" in sys.argv[2:]
+out = texture_io.Outputs("--check" in sys.argv[2:])
 ITEM_TEXTURES = RP / "textures/items/yasu_build"
 
 COLORS = {
@@ -62,32 +66,8 @@ BUILD_TOOL = [
     "................",
 ]
 
-STALE = []
-
-
-def png(path, rows):
-    raw = b"".join(b"\x00" + b"".join(bytes(COLORS[c]) for c in row) for row in rows)
-
-    def chunk(t, d):
-        return struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d) & 0xFFFFFFFF)
-
-    head = struct.pack(">IIBBBBB", 16, 16, 8, 6, 0, 0, 0)
-    data = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", head) + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b"")
-    if CHECK:
-        try:
-            if path.read_bytes() == data:
-                return
-        except OSError:
-            pass
-        STALE.append(str(path))
-    else:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(data)
-
-
 for name, rows in (("selection_wand", SELECTION_WAND), ("build_tool", BUILD_TOOL)):
     assert len(rows) == 16 and all(len(row) == 16 for row in rows), name
-    png(ITEM_TEXTURES / f"{name}.png", rows)
+    out.png(ITEM_TEXTURES / f"{name}.png", 16, 16, lambda x, y: COLORS[rows[y][x]])
 
-if STALE:
-    sys.exit("out of date with tools/gen_build_tools.py. Run `pnpm model` and commit the result:\n" + "\n".join(STALE))
+out.finish("Build tool outputs are out of date with tools/gen_build_tools.py. Run `pnpm model` and commit the result:")
