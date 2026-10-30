@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { CATALOG } from "../../src/test-pack/catalog";
+import { MAX_SCENARIO_TICKS } from "../../src/test-pack/deadline";
 import { isFeatureTag } from "../../src/test-pack/features";
 import { coverageGaps } from "../../src/test-pack/plan";
 
@@ -34,6 +35,7 @@ describe("scenario catalog", () => {
       expect(Number.isInteger(count)).toBe(true);
       expect(count).toBeGreaterThanOrEqual(0);
     }
+    expect(spec.ticks).toBeLessThanOrEqual(MAX_SCENARIO_TICKS);
     expect(spec.features.length).toBeGreaterThan(0);
     expect(new Set(spec.features).size).toBe(spec.features.length);
     expect(spec.features.every(isFeatureTag)).toBe(true);

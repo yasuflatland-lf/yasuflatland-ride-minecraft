@@ -3,61 +3,117 @@
 import { system, world } from "@minecraft/server";
 import { setupArena } from "./arena";
 import { CATALOG } from "./catalog";
-import type { Outcome } from "./outcome";
+import { type Outcome, stepLines } from "./outcome";
 import { coverageGaps, planOf } from "./plan";
 import {
+  CANCEL_EVENT,
   LOG_TAG,
-  linePrefix,
   parseRunRequest,
   type RunRequest,
   TEST_EVENT,
 } from "./protocol";
+import {
+  formatPlan,
+  formatResult,
+  formatSummary,
+  linePrefix,
+  READY,
+} from "./resultLog";
 import { SCENARIOS } from "./scenarios/index";
 
 function log(runId: string, msg: string): void {
   console.warn(`${linePrefix(runId)}${msg}`);
 }
 
-async function runAll({ runId, shard }: RunRequest): Promise<void> {
+interface ActiveRun {
+  readonly runId: string;
+  readonly startTick: number;
+  readonly startMs: number;
+  passed: number;
+  failed: number;
+  cancelled: boolean;
+  settled: Promise<void>;
+}
+
+function summary(run: ActiveRun, error?: string): void {
+  log(
+    run.runId,
+    formatSummary({
+      pass: run.passed,
+      fail: run.failed,
+      ticks: system.currentTick - run.startTick,
+      ms: Date.now() - run.startMs,
+      error,
+    }),
+  );
+}
+
+function reject(runId: string, error: string): void {
+  log(runId, formatSummary({ pass: 0, fail: 1, ticks: 0, ms: 0, error }));
+}
+
+async function runAll({ shard }: RunRequest, state: ActiveRun): Promise<void> {
+  const { runId } = state;
   const { missing, extra, duplicates } = coverageGaps(
     CATALOG.map((spec) => spec.name),
     Object.keys(SCENARIOS),
   );
   if (missing.length > 0 || extra.length > 0 || duplicates.length > 0) {
-    log(
-      runId,
-      `SUMMARY pass=0 fail=1 error=catalog mismatch missing=${missing.join(",")} extra=${extra.join(",")} duplicates=${duplicates.join(",")}`,
+    state.failed++;
+    summary(
+      state,
+      `catalog mismatch missing=${missing.join(",")} extra=${extra.join(",")} duplicates=${duplicates.join(",")}`,
     );
     return;
   }
-  const a = await setupArena();
   const plan = planOf(CATALOG, {
     shard,
     playerConnected: world.getAllPlayers().length > 0,
   });
+  log(
+    runId,
+    formatPlan({
+      runs: plan.runs.length,
+      skipped: plan.skipped.length,
+      unselected: plan.unselected,
+      ticks: plan.expectedTicks,
+      lanes: 1,
+    }),
+  );
   for (const { name, reason } of plan.skipped)
     log(runId, `SKIP ${name}: ${reason}`);
-  let passed = 0;
-  const lines: string[] = [];
+  const a = await setupArena();
+  if (state.cancelled) return;
+  log(runId, READY);
   for (const { name } of plan.runs) {
+    if (state.cancelled) return;
     const start = system.currentTick;
     let outcome: Outcome;
     try {
       const run = SCENARIOS[name];
       if (!run) throw new Error(`scenario not registered: ${name}`);
-      outcome = await run(a);
+      outcome = await run(a, (result) => {
+        if (state.cancelled) return;
+        for (const line of stepLines(result)) log(runId, `${name} ${line}`);
+      });
     } catch (e) {
       outcome = { pass: false, detail: `error: ${e}` };
     }
-    if (outcome.pass) passed++;
-    // ticks= is what rebalancing the CI shards needs.
-    lines.push(
-      `${outcome.pass ? "PASS" : "FAIL"} ${name} ticks=${system.currentTick - start} ${outcome.detail}`,
+    if (state.cancelled) return;
+    if (outcome.pass) state.passed++;
+    else state.failed++;
+    log(
+      runId,
+      formatResult({
+        verdict: outcome.pass ? "PASS" : "FAIL",
+        name,
+        ticks: system.currentTick - start,
+        detail: outcome.detail,
+      }),
     );
-    for (const line of outcome.lines ?? []) lines.push(`${name} ${line}`);
+    for (const line of outcome.lines ?? []) log(runId, `${name} ${line}`);
   }
-  for (const line of lines) log(runId, line);
-  log(runId, `SUMMARY pass=${passed} fail=${plan.runs.length - passed}`);
+  summary(state);
 }
 
 function unsupportedOption(request: RunRequest): string | undefined {
@@ -68,34 +124,59 @@ function unsupportedOption(request: RunRequest): string | undefined {
 }
 
 // Two runs would share the arena and kill each other's cars in setupArena.
-let activeRun: string | undefined;
+let activeRun: ActiveRun | undefined;
 
 system.afterEvents.scriptEventReceive.subscribe((ev) => {
+  if (ev.id === CANCEL_EVENT) {
+    if (activeRun?.runId !== ev.message) return;
+    const state = activeRun;
+    state.cancelled = true;
+    summary(state, "cancelled");
+    return;
+  }
   if (ev.id !== TEST_EVENT) return;
   const parsed = parseRunRequest(ev.message);
   if (!parsed.ok) {
-    log(parsed.runId, `SUMMARY pass=0 fail=1 error=${parsed.error}`);
+    reject(parsed.runId, parsed.error);
     return;
   }
   const request = parsed.request;
   const unsupported = unsupportedOption(request);
   if (unsupported !== undefined) {
-    log(
-      request.runId,
-      `SUMMARY pass=0 fail=1 error=${unsupported} not supported yet`,
-    );
+    reject(request.runId, `${unsupported} not supported yet`);
     return;
   }
   const { runId } = request;
-  if (activeRun !== undefined) {
-    log(runId, `SUMMARY pass=0 fail=1 error=run ${activeRun} in progress`);
+  if (activeRun !== undefined && !activeRun.cancelled) {
+    reject(runId, `run ${activeRun.runId} in progress`);
     return;
   }
-  activeRun = runId;
-  runAll(request)
-    .catch((e) => log(runId, `SUMMARY pass=0 fail=1 error=${e}`))
+  const state: ActiveRun = {
+    runId,
+    startTick: system.currentTick,
+    startMs: Date.now(),
+    passed: 0,
+    failed: 0,
+    cancelled: false,
+    settled: Promise.resolve(),
+  };
+  const previous = activeRun;
+  activeRun = state;
+  // Cancellation cannot stop an in-flight scenario from mutating the arena.
+  state.settled = (
+    previous
+      ? previous.settled.then(() => {
+          if (!state.cancelled) return runAll(request, state);
+        })
+      : runAll(request, state)
+  )
+    .catch((e) => {
+      if (state.cancelled) return;
+      state.failed++;
+      summary(state, String(e));
+    })
     .finally(() => {
-      activeRun = undefined;
+      if (activeRun === state) activeRun = undefined;
     });
 });
 console.warn(`${LOG_TAG} loaded`);
