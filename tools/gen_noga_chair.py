@@ -7,13 +7,13 @@ import argparse
 import itertools
 import json
 import math
-import struct
 import sys
-import zlib
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tool_loader import load_tool
+
+texture_io = load_tool("texture_io")
 
 panels = load_tool("panels")
 tilt = load_tool("cube_tilt")
@@ -280,37 +280,6 @@ def texture_pixels():
     )
 
 
-def write_png(path, size, pixels):
-    stride = size * 4
-    raw = b"".join(b"\x00" + pixels[y * stride : (y + 1) * stride] for y in range(size))
-
-    def chunk(t, d):
-        return struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d) & 0xFFFFFFFF)
-
-    head = struct.pack(">IIBBBBB", size, size, 8, 6, 0, 0, 0)
-    path.write_bytes(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", head) + chunk(b"IDAT", zlib.compress(raw, 9)) + chunk(b"IEND", b""))
-
-
-def read_png(path, size):
-    """Decode a PNG this script wrote: 8-bit RGBA, size x size, every row unfiltered."""
-    data = path.read_bytes()
-    pos, idat = 8, b""
-    while pos < len(data):
-        length = struct.unpack(">I", data[pos : pos + 4])[0]
-        kind = data[pos + 4 : pos + 8]
-        if kind == b"IHDR" and data[pos + 8 : pos + 18] != struct.pack(">IIBB", size, size, 8, 6):
-            raise ValueError("not a 16 x 16 RGBA PNG")
-        if kind == b"IDAT":
-            idat += data[pos + 8 : pos + 8 + length]
-        pos += length + 12
-    raw = zlib.decompress(idat)
-    stride = size * 4
-    rows = [raw[y * (stride + 1) : (y + 1) * (stride + 1)] for y in range(size)]
-    if any(len(row) != stride + 1 or row[0] != 0 for row in rows):
-        raise ValueError("rows are not unfiltered")
-    return b"".join(row[1:] for row in rows)
-
-
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("resource_pack", type=Path)
@@ -319,28 +288,11 @@ def main():
     validate(*cubes_and_assemblies())
     geo_path, texture_path = args.resource_pack / GEOMETRY, args.resource_pack / TEXTURE
     document = geometry()
-    if not args.check:
-        geo_path.parent.mkdir(parents=True, exist_ok=True)
-        geo_path.write_text(json.dumps(document, separators=(",", ":")) + "\n")
-        print(f"wrote {geo_path}")
-        texture_path.parent.mkdir(parents=True, exist_ok=True)
-        write_png(texture_path, ATLAS_SIZE, texture_pixels())
-        print(f"wrote {texture_path}")
-        return
-    stale = []
-    try:
-        if json.loads(geo_path.read_text()) != document:
-            stale.append(str(geo_path))
-    except (OSError, ValueError) as e:
-        stale.append(f"{geo_path} ({e})")
-    try:
-        if read_png(texture_path, ATLAS_SIZE) != texture_pixels():
-            stale.append(str(texture_path))
-    except (OSError, ValueError, struct.error, zlib.error) as e:
-        stale.append(f"{texture_path} ({e})")
-    if stale:
-        sys.exit(f"{', '.join(stale)} out of date with tools/gen_noga_chair.py. Run `pnpm model` and commit the result.")
-    print("Noga Chair model and texture are up to date")
+    out = texture_io.Outputs(args.check, report_writes=True)
+
+    out.json(geo_path, json.dumps(document, separators=(",", ":")) + "\n")
+    out.png(texture_path, ATLAS_SIZE, ATLAS_SIZE, texture_io.texel_reader(ATLAS_SIZE, texture_pixels()), compress_level=9)
+    out.finish("Noga Chair outputs are out of date with tools/gen_noga_chair.py. Run `pnpm model` and commit the result:", "Noga Chair model and texture are up to date")
 
 
 if __name__ == "__main__":

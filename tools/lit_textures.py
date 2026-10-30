@@ -13,8 +13,7 @@ write_texture_set = load_tool("texture_io").write_texture_set
 def build_lit_textures(out, directory, kind, width, height, pixel, is_lit,
                        lit_mer=mer.MER_LIT, off_mer=mer.MER_OFF):
     def color(x, y):
-        rgba = (*pixel(x, y), 255)[:4]
-        return (*rgba[:3], 0) if is_lit(x, y) else rgba
+        return (*pixel(x, y)[:3], 0) if is_lit(x, y) else pixel(x, y)
 
     out.png(directory / f"{kind}_lit.png", width, height, color)
     out.png(directory / f"{kind}_lit_mer.png", width, height,
