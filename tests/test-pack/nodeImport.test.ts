@@ -4,9 +4,16 @@ import { fileURLToPath } from "node:url";
 import { expect, it } from "vitest";
 
 const root = new URL("../../", import.meta.url);
-const modules = ["protocol", "features", "catalog", "plan", "impact"].filter(
-  (name) => existsSync(new URL(`src/test-pack/${name}.ts`, root)),
-);
+const modules = [
+  "protocol",
+  "features",
+  "catalog",
+  "plan",
+  "lane",
+  "resultLog",
+  "deadline",
+  "impact",
+].filter((name) => existsSync(new URL(`src/test-pack/${name}.ts`, root)));
 
 it.each(modules)("loads %s with Node type stripping", (name) => {
   const module = new URL(`src/test-pack/${name}.ts`, root).href;

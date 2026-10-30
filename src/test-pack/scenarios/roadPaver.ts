@@ -5,7 +5,8 @@ import {
 } from "../../domain/vehicle/kinds/bulldozer/spec";
 import { BUILD_TOOL_TYPE } from "../../infrastructure/build/identifiers";
 import { TEST_HELD_ITEM_EVENT } from "../../infrastructure/vehicle/bedrock/identifiers";
-import { type Arena, drive, type Outcome, wait } from "../arena";
+import { type Arena, drive, wait } from "../arena";
+import type { Outcome } from "../outcome";
 import {
   doubleTap,
   setRoadPaver,

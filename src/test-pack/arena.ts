@@ -1,5 +1,10 @@
 // The in-game test arena and the fixtures that spawn vehicles in it (ADR 0010).
-import { type Dimension, type Entity, system, world } from "@minecraft/server";
+import {
+  type Dimension,
+  type Entity,
+  system,
+  type Vector3,
+} from "@minecraft/server";
 import type { Vec2 } from "../domain/shared/vec";
 import {
   CHAIR_KINDS,
@@ -13,22 +18,77 @@ import {
   SEAT_FILLER_TYPE,
 } from "../infrastructure/vehicle/bedrock/identifiers";
 
-// setupArena clears and floors this x/z rectangle and keeps it ticking.
-const ARENA = { minX: 0, maxX: 120, minZ: 0, maxZ: 90 } as const;
+import {
+  areaBounds,
+  inside,
+  type Lane,
+  LOCAL_ARENA,
+  laneOf,
+  SERIES_AREAS,
+  toLocal,
+  toWorld,
+  worldBounds,
+} from "./lane";
+import { MAX_LANES } from "./protocol";
 
 // Mirrors the SUV's minecraft:rideable but seats cows, because only players
 // can ride the SUV and a test has no players (ADR 0010).
 export const SEAT_PROBE = "yasu_ride_test:seat_probe";
 export const BOAT_SEAT_PROBE = "yasu_ride_test:boat_seat_probe";
 
-export interface Outcome {
-  pass: boolean;
-  detail: string;
-  lines?: string[];
-}
 export interface Arena {
-  dim: Dimension;
-  gy: number;
+  readonly dim: Dimension;
+  readonly gy: number;
+  readonly lane: Lane;
+  at(x: number, y: number, z: number): Vector3;
+  xyz(x: number, y: number, z: number): string;
+  box(
+    x1: number,
+    y1: number,
+    z1: number,
+    x2: number,
+    y2: number,
+    z2: number,
+  ): string;
+  local(v: Vector3): Vector3;
+}
+
+function arenaOf(dim: Dimension, gy: number, lane: Lane): Arena {
+  const at = (x: number, y: number, z: number): Vector3 =>
+    toWorld(lane, { x, y, z });
+  const xyz = (x: number, y: number, z: number): string => {
+    const p = at(x, y, z);
+    return `${p.x} ${p.y} ${p.z}`;
+  };
+  return {
+    dim,
+    gy,
+    lane,
+    at,
+    xyz,
+    box: (x1, y1, z1, x2, y2, z2) => `${xyz(x1, y1, z1)} ${xyz(x2, y2, z2)}`,
+    local: (v) => toLocal(lane, v),
+  };
+}
+
+// getBlock may return undefined or throw for an unloaded chunk.
+export function blockLoaded(dimension: Dimension, location: Vector3): boolean {
+  try {
+    return dimension.getBlock(location) !== undefined;
+  } catch {
+    return false;
+  }
+}
+
+export async function waitUntil(
+  ticks: number,
+  done: () => boolean,
+): Promise<boolean> {
+  for (let tick = 0; tick < ticks; tick++) {
+    if (done()) return true;
+    await wait(1);
+  }
+  return done();
 }
 
 export function wait(ticks: number): Promise<void> {
@@ -40,12 +100,7 @@ export function wait(ticks: number): Promise<void> {
  * arena floor.
  */
 export function insideArena(p: Vec2, halfWidth: number): boolean {
-  return (
-    p.x >= ARENA.minX + halfWidth &&
-    p.x <= ARENA.maxX + 1 - halfWidth &&
-    p.z >= ARENA.minZ + halfWidth &&
-    p.z <= ARENA.maxZ + 1 - halfWidth
-  );
+  return inside(LOCAL_ARENA, p, halfWidth);
 }
 
 export function drive(car: Entity, x: number, y: number, jump = false): void {
@@ -71,10 +126,10 @@ export function spawnCar(
   yaw: number,
   type = ENTITY_TYPE.suv,
 ): Entity {
-  a.dim.runCommand(`summon ${type} ${x} ${a.gy} ${z}`);
+  a.dim.runCommand(`summon ${type} ${a.xyz(x, a.gy, z)}`);
   const car = a.dim.getEntities({
     type,
-    location: { x, y: a.gy, z },
+    location: a.at(x, a.gy, z),
     maxDistance: 1.5,
   })[0];
   if (!car) throw new Error(`car not spawned at ${x},${z}`);
@@ -109,35 +164,56 @@ export function withCamper<T>(
   return withCar(a, x, z, yaw, run, ENTITY_TYPE.camper);
 }
 
-export async function setupArena(): Promise<Arena> {
-  const dim = world.getDimension("overworld");
-  const { minX, maxX, minZ, maxZ } = ARENA;
-  // An existing area of the same name keeps its old bounds; withPool reports
-  // the fill that then fails in the chunks left out.
-  dim.runCommand(
-    `tickingarea add ${minX} -64 ${minZ} ${maxX} 0 ${maxZ} yasu_ride_arena true`,
+const GROUND_PROBE = { x: 5, z: 20 } as const;
+
+function arenaLoaded(dim: Dimension, lane: Lane, y: number): boolean {
+  const b = worldBounds(lane, LOCAL_ARENA);
+  return [b.minX, b.maxX].every((x) =>
+    [b.minZ, b.maxZ].every((z) => blockLoaded(dim, { x, y, z })),
   );
-  await wait(60);
-  const top = dim.getTopmostBlock({ x: 5, z: 20 });
-  if (!top) throw new Error("arena chunk not loaded");
+}
+
+export async function prepareRun(
+  dim: Dimension,
+  lanes: readonly Lane[],
+): Promise<Arena[]> {
+  for (const name of SERIES_AREAS) {
+    try {
+      dim.runCommand(`tickingarea remove ${name}`);
+    } catch {
+      // Missing series areas are normal on the first run.
+    }
+  }
+  await wait(2);
+  const allLanes = Array.from({ length: MAX_LANES }, (_, index) =>
+    laneOf(index),
+  );
+  for (const lane of allLanes) {
+    const b = areaBounds(lane);
+    try {
+      const result = dim.runCommand(
+        `tickingarea add ${b.minX} -64 ${b.minZ} ${b.maxX} 0 ${b.maxZ} ${lane.tickingArea} true`,
+      );
+      if (result.successCount <= 0) throw new Error("area not added");
+    } catch (e) {
+      throw new Error(
+        `ticking area limit reached; check tickingarea list (${lane.tickingArea}: ${e})`,
+      );
+    }
+  }
+  for (const lane of allLanes) {
+    if (!(await waitUntil(200, () => arenaLoaded(dim, lane, 0))))
+      throw new Error(`lane ${lane.index} not loaded (corners)`);
+  }
+  const top = dim.getTopmostBlock(toWorld(laneOf(0), GROUND_PROBE));
+  if (!top) throw new Error("lane 0 not loaded");
   const gy = top.location.y + 1;
-  // fill is capped at 32,768 blocks per call, so the clear is split in four.
-  const midX = (minX + maxX) / 2;
-  const midZ = Math.floor((minZ + maxZ) / 2);
-  for (const [x0, x1] of [
-    [minX, midX],
-    [midX + 1, maxX],
-  ])
-    for (const [z0, z1] of [
-      [minZ, midZ],
-      [midZ + 1, maxZ],
-    ])
-      dim.runCommand(`fill ${x0} ${gy} ${z0} ${x1} ${gy + 6} ${z1} air`);
-  dim.runCommand(
-    `fill ${minX} ${gy - 1} ${minZ} ${maxX} ${gy - 1} ${maxZ} stone`,
-  );
-  // The flight tests climb up to about 8 blocks above the floor along z = 4.5.
-  dim.runCommand(`fill ${minX} ${gy + 7} 0 60 ${gy + 20} 12 air`);
+  for (const lane of lanes) {
+    const laneTop = dim.getTopmostBlock(toWorld(lane, GROUND_PROBE));
+    if (!laneTop) throw new Error(`lane ${lane.index} not loaded (corners)`);
+    if (laneTop.location.y + 1 !== gy)
+      throw new Error(`lane ${lane.index} ground height differs from lane 0`);
+  }
   dim.runCommand(`kill @e[type=${ENTITY_TYPE.suv}]`);
   dim.runCommand(`kill @e[type=${ENTITY_TYPE.sportsboat}]`);
   dim.runCommand(`kill @e[type=${ENTITY_TYPE.camper}]`);
@@ -154,7 +230,38 @@ export async function setupArena(): Promise<Arena> {
   // torches, which then drop as items.
   dim.runCommand("kill @e[type=item]");
   await wait(5);
-  return { dim, gy };
+  for (const lane of allLanes) {
+    if (!lanes.some((used) => used.index === lane.index))
+      dim.runCommand(`tickingarea remove ${lane.tickingArea}`);
+  }
+  const arenas = lanes.map((lane) => arenaOf(dim, gy, lane));
+  const { minX, maxX, minZ, maxZ } = LOCAL_ARENA;
+  const midX = (minX + maxX) / 2;
+  const midZ = Math.floor((minZ + maxZ) / 2);
+  for (const [index, a] of arenas.entries()) {
+    if (index > 0) await wait(1);
+    // successCount is 0 both for an unloaded chunk and for a fill that changes
+    // nothing (air over air on a rerun), so loading is checked on the corners.
+    if (!arenaLoaded(dim, a.lane, gy))
+      throw new Error(`lane ${a.lane.index} not loaded (fill)`);
+    // fill is capped at 32,768 blocks per call, so split the clear in four.
+    for (const [x0, x1] of [
+      [minX, midX],
+      [midX + 1, maxX],
+    ] as const)
+      for (const [z0, z1] of [
+        [minZ, midZ],
+        [midZ + 1, maxZ],
+      ] as const)
+        dim.runCommand(`fill ${a.box(x0, gy, z0, x1, gy + 6, z1)} air`);
+    dim.runCommand(
+      `fill ${a.box(minX, gy - 1, minZ, maxX, gy - 1, maxZ)} stone`,
+    );
+    // Flight tests climb about eight blocks above the floor along z = 4.5.
+    dim.runCommand(`fill ${a.box(minX, gy + 7, 0, 60, gy + 20, 12)} air`);
+  }
+  await wait(5);
+  return arenas;
 }
 
 // 80 blocks across z, so a submarine has room to turn (submarine_bank); the
@@ -176,27 +283,26 @@ export async function withPool<T>(
     );
   const fillPool = (block: string) =>
     a.dim.runCommand(
-      `fill ${minX} ${bottom} ${minZ} ${maxX} ${a.gy - 1} ${maxZ} ${block}`,
+      `fill ${a.box(minX, bottom, minZ, maxX, a.gy - 1, maxZ)} ${block}`,
     );
   a.dim.runCommand(
-    `fill ${minX} ${bottom - 1} ${minZ} ${maxX} ${bottom - 1} ${maxZ} stone`,
+    `fill ${a.box(minX, bottom - 1, minZ, maxX, bottom - 1, maxZ)} stone`,
   );
   // Contain the water even when the arena's original terrain has caves.
   for (const x of [minX - 1, maxX + 1])
     a.dim.runCommand(
-      `fill ${x} ${bottom} ${minZ - 1} ${x} ${a.gy - 1} ${maxZ + 1} stone`,
+      `fill ${a.box(x, bottom, minZ - 1, x, a.gy - 1, maxZ + 1)} stone`,
     );
   for (const z of [minZ - 1, maxZ + 1])
-    a.dim.runCommand(
-      `fill ${minX} ${bottom} ${z} ${maxX} ${a.gy - 1} ${z} stone`,
-    );
+    a.dim.runCommand(`fill ${a.box(minX, bottom, z, maxX, a.gy - 1, z)} stone`);
   // runCommand reports a fill into unloaded chunks as successCount 0 instead
   // of throwing. Seen in game with an arena ticking area kept from a smaller
   // arena under the same name: every submarine test then failed with
   // enteredAt=-1.
+  const bounds = worldBounds(a.lane, LOCAL_ARENA);
   if (fillPool(liquid).successCount === 0)
     throw new Error(
-      `the pool was not filled: check that "tickingarea list" shows yasu_ride_arena covering x ${ARENA.minX}-${ARENA.maxX}, z ${ARENA.minZ}-${ARENA.maxZ}`,
+      `the pool was not filled: check that "tickingarea list" shows ${a.lane.tickingArea} covering x ${bounds.minX}-${bounds.maxX}, z ${bounds.minZ}-${bounds.maxZ}`,
     );
   try {
     await wait(5);
@@ -204,7 +310,7 @@ export async function withPool<T>(
   } finally {
     fillPool("air");
     a.dim.runCommand(
-      `fill ${minX} ${a.gy - 1} ${minZ} ${maxX} ${a.gy - 1} ${maxZ} stone`,
+      `fill ${a.box(minX, a.gy - 1, minZ, maxX, a.gy - 1, maxZ)} stone`,
     );
   }
 }
@@ -220,10 +326,10 @@ export async function withBoat<T>(
   settleTicks = 40,
 ): Promise<T> {
   const { x, z } = start;
-  a.dim.runCommand(`summon ${ENTITY_TYPE.sportsboat} ${x} ${a.gy} ${z}`);
+  a.dim.runCommand(`summon ${ENTITY_TYPE.sportsboat} ${a.xyz(x, a.gy, z)}`);
   const boat = a.dim.getEntities({
     type: ENTITY_TYPE.sportsboat,
-    location: { x, y: a.gy, z },
+    location: a.at(x, a.gy, z),
     maxDistance: 1.5,
   })[0];
   if (!boat) throw new Error("boat not spawned at the pool surface");
