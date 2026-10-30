@@ -788,9 +788,9 @@ async function monitorStep(car: Entity): Promise<Outcome> {
     );
   const holdAndRead = async (item: string): Promise<number> => {
     hold(item);
+    await wait(2);
     return screen();
   };
-  await wait(2);
   const up = await holdAndRead(BLADE_SWITCH_ITEM);
   await setBlade(car, false);
   const down = screen();
@@ -941,13 +941,15 @@ async function roadPaverToggleStep(car: Entity): Promise<Outcome> {
   };
 }
 
-/** Puts the stationary bulldozer back into the state every tool scenario started from: blade up, normal width, paver off, nothing held. */
+/** Puts the stationary bulldozer back into the state every tool scenario started from: blade up, normal width, paver off. Nothing is held at the start, and the monitor step ends by clearing it. */
 async function resetTools(car: Entity): Promise<void> {
-  await setBlade(car, true);
-  await setWideBlade(car, false);
-  await setRoadPaver(car, false);
-  system.sendScriptEvent(TEST_HELD_ITEM_EVENT, `${car.id},clear`);
-  await wait(2);
+  // Only the switches that differ cost ticks: a blade move waits for the lift.
+  if (car.getProperty(entityPropertyId("blade")) !== 1)
+    await setBlade(car, true);
+  if (car.getProperty(entityPropertyId("wide_blade")) !== false)
+    await setWideBlade(car, false);
+  if (car.getProperty(entityPropertyId("road_paver")) !== false)
+    await setRoadPaver(car, false);
 }
 
 /** The cab monitor, the wide blade switch and the paver switch on one stationary bulldozer (ADR 0139, 0180, 0181, 0188). */

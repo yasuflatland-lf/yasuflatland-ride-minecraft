@@ -191,7 +191,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
   {
     name: "bulldozer_tools",
     file: "bulldozer",
-    ticks: 130,
+    ticks: 136,
     features: ["vehicle:bulldozer"],
     isolation: "lane",
     needsPlayer: false,
@@ -245,7 +245,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
   {
     name: "bulldozer_pave_no_block",
     file: "roadPaver",
-    ticks: 70,
+    ticks: 59,
     features: ["vehicle:bulldozer", "build"],
     isolation: "lane",
     needsPlayer: false,
@@ -470,7 +470,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
   {
     name: "turn_and_handbrake",
     file: "suv",
-    ticks: 130,
+    ticks: 136,
     features: ["vehicle:suv"],
     isolation: "lane",
     needsPlayer: false,
@@ -488,7 +488,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
   {
     name: "wall_diagonal",
     file: "suv",
-    ticks: 70,
+    ticks: 59,
     features: ["vehicle:suv"],
     isolation: "lane",
     needsPlayer: false,
@@ -767,7 +767,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
   {
     name: "boat_icebreaker_beached",
     file: "sportsboat",
-    ticks: 70,
+    ticks: 59,
     features: ["vehicle:sportsboat"],
     isolation: "lane",
     needsPlayer: false,
@@ -997,7 +997,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
   {
     name: "gas_lantern_switch",
     file: "camp",
-    ticks: 70,
+    ticks: 59,
     features: ["camp"],
     isolation: "lane",
     needsPlayer: false,
