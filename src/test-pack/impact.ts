@@ -154,6 +154,17 @@ export const PACK_STEM_TAGS: Readonly<Record<string, Impact>> = {
   wide_blade_switch: ["vehicle:bulldozer"],
 };
 
+function ownValue<T>(
+  table: Readonly<Record<string, T>>,
+  key: string,
+): T | undefined {
+  return Object.hasOwn(table, key) ? table[key] : undefined;
+}
+
+function packStemImpact(m: RegExpMatchArray): Impact {
+  return ownValue(PACK_STEM_TAGS, m[1] ?? "") ?? "all";
+}
+
 function exactPaths(paths: readonly string[]): RegExp {
   return new RegExp(
     `^(?:${paths.map((path) => path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})$`,
@@ -244,7 +255,7 @@ export const IMPACT_RULES: readonly ImpactRule[] = [
     impact: (m) => {
       const stem = m[1] ?? "";
       return (
-        (Object.hasOwn(MOTION_TAGS, stem) ? MOTION_TAGS[stem] : undefined) ??
+        ownValue(MOTION_TAGS, stem) ??
         (stem.startsWith("transforming") ? transforming : ["vehicle"])
       );
     },
@@ -262,10 +273,7 @@ export const IMPACT_RULES: readonly ImpactRule[] = [
   {
     rule: "pack-stem",
     test: /^packs\/yasu_ride_bp\/[^/]+\/yasu_ride\/([^/.]+)\./,
-    impact: (m) =>
-      Object.hasOwn(PACK_STEM_TAGS, m[1] ?? "")
-        ? (PACK_STEM_TAGS[m[1] ?? ""] ?? "all")
-        : "all",
+    impact: packStemImpact,
   },
   {
     rule: "camera",
@@ -285,10 +293,7 @@ export const IMPACT_RULES: readonly ImpactRule[] = [
   {
     rule: "block-model",
     test: /^packs\/yasu_ride_rp\/models\/blocks\/(?:yasu_ride\/)?([^/.]+)\./,
-    impact: (m) =>
-      Object.hasOwn(PACK_STEM_TAGS, m[1] ?? "")
-        ? (PACK_STEM_TAGS[m[1] ?? ""] ?? "all")
-        : "all",
+    impact: packStemImpact,
   },
   { rule: "resource-pack", test: /^packs\/yasu_ride_rp\//, impact: "none" },
   // The Behavior Pack icon belongs to the whole add-on.
