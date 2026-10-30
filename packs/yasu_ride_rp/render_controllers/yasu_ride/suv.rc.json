@@ -28,6 +28,7 @@
       "materials": [
         { "*": "Material.default" },
         { "headlights": "Material.lamp" },
+        { "headlight_bezels": "Material.lamp_cutout" },
         { "tail_lights": "Material.lamp" }
       ],
       "textures": ["Array.paints[query.variant]"],

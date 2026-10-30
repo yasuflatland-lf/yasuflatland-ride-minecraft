@@ -71,6 +71,7 @@ To use commands, run `docker exec yasuflatland-ride-bds send-command op <player 
 | 62 | On PC and mobile, compare every SUV paint with the owner's reference photo with VV on and off; inspect both sides, hood and tailgate while parked, then drive at chase-camera distance | Panel lines and door handle recesses read with VV off; steel retains each paint's hue, the hardtop stays matte, and no shimmer appears at chase distance | | |
 | 63 | With VV off on PC and mobile, inspect every SUV paint | Every paint looks as it did after SUV detail 11/17; relief affects VV only | | |
 | 64 | With VV on, compare `RELIEF_KIND` heightmap and normal in `tools/suv_material.py` on PC and mobile, next to the SUV and at chase distance | Door, hood and tailgate grooves and handle recesses read as recessed without shimmer; record the preferred variant and reason | | |
+| 65 | On PC and a touch client, inspect the SUV interior from both front seats in several paints | The dash stays matte black with fine grain in every paint; two round vents and two louvred vents surround a small clock with fixed hands; the centre stack has switch rows, a head unit and a climate panel with two knobs and sliders; the passenger tray and grab handle have depth; no legible text or logos, and nothing pokes through the windshield | | |
 
 ## Sports boat
 
@@ -462,23 +463,25 @@ Setup: use a Vibrant Visuals device at night, then repeat the legacy checks with
 
 | # | Check | PC | Mobile |
 |---|---|---|---|
-| L1 | Switch the SUV headlights on and off at night in Vibrant Visuals: headlights and fog lenses glow only while on. | [ ] | [ ] |
-| L2 | Repeat for the sports boat's bow flank headlights. | [ ] | [ ] |
+| L1 | Switch the SUV headlights on and off at night in Vibrant Visuals, in several paints: each round lens glows softly over its whole circle only while on; fog lenses still glow. The bezel stays body-coloured with six dark screws, with no holes or flicker. | [ ] | [ ] |
+| L2 | Switch the sports boat's bow flank headlights on and off at night in Vibrant Visuals: they glow only while on. | [ ] | [ ] |
 | L3 | Switch camper headlights and, while parked, ceiling lights independently: each glows only while its own switch is on. | [ ] | [ ] |
 | L4 | Switch bulldozer headlights and inspect the rear beacon from behind: both glow only while on. | [ ] | [ ] |
 | L5 | Repaint a vehicle with any dye: the lamps keep their glow while on. | [ ] | [ ] |
-| L6 | Repeat with Vibrant Visuals off: lit lenses are full-bright, unlit lenses look as before, with no flicker, double drawing, or holes. | [ ] | [ ] |
-| L7 | Join on a device without Vibrant Visuals support: vehicles and blocks look as before the change. | [ ] | [ ] |
-| L8 | Fly, bank, and open a door with lights on: the glow follows the parts. | [ ] | [ ] |
+| L6 | Repeat with Vibrant Visuals off: lit lenses are full-bright, unlit lenses look as before, with no flicker, double drawing, or holes. On the SUV, the whole round lens is full-bright only while on, the projectors stay visible while off, and the body-coloured bezel and six screws stay visible. | [ ] | [ ] |
+| L7 | Join on a device without Vibrant Visuals support: vehicles and blocks look as before the change, except the SUV headlights: in several paints, the round lenses glow only while on and the bezels show the body colour and six screws, with no holes or flicker. | [ ] | [ ] |
+| L8 | Fly, bank, and open a door with lights on, with Vibrant Visuals on and off: the glow follows the parts; on the SUV, the whole round lens glow follows the body and the bezels and screws stay aligned, with no holes or flicker. | [ ] | [ ] |
 | L9 | Switch the Gas Lantern on and off: with Vibrant Visuals on, the flame glows, glass stays see-through, and metal reflects; with it off, the flame is full-bright only while on. | unverified | unverified |
 | L10 | Switch the camper headlights on at night in Vibrant Visuals: the roof clearance lamps, the four rear roof lamps, and both round tail lamps glow only while on; the side marker lamps and the rear turn signals do not. | [ ] | [ ] |
-| L11 | Switch the SUV headlights on and off at night with Vibrant Visuals on and off: the tail lights, third brake light, headlights, fog lamps, and front strip look the same as before this change (ADR 0192). | [ ] | [ ] |
+| L11 | Switch the SUV headlights on and off at night with Vibrant Visuals on and off: the fog lamps and front strip look the same as before the lamp-bone split (ADR 0192); the round headlights are checked in L1, and the tail lamps and third brake light in L18. | [ ] | [ ] |
 | L12 | With Vibrant Visuals on, check that SUV paint is glossy metallic, not chrome, and keeps its hue. | [ ] | [ ] |
 | L13 | With Vibrant Visuals on, check that the SUV hardtop is matte. | [ ] | [ ] |
 | L14 | With Vibrant Visuals on and SUV headlights off, check that the headlights do not glow (L1). | [ ] | [ ] |
 | L15 | With Vibrant Visuals on and SUV headlights on, check that the lit lamps from L1 and L5 still glow. | [ ] | [ ] |
-| L16 | With Vibrant Visuals off, check that the SUV paint and lights look unchanged, and repeat L6 for the SUV. | [ ] | [ ] |
+| L16 | With Vibrant Visuals off, check that the SUV paint, fog lamps, and front strip look unchanged (tail lamps and third brake light: see L18), and repeat L6 for the SUV. | [ ] | [ ] |
 | L17 | Hover the SUV at night with Vibrant Visuals on and then off: the glow discs underneath still glow blue in both modes. | [ ] | [ ] |
+| L18 | Switch the SUV headlights on and off at night with Vibrant Visuals on and then off: both tail lamps' LED bars and clear reverse lamps and the third brake light glow only while the headlights are on. The lower red lens, housing frame, resin blocks, and bumper reflectors never glow. There is no separate brake or reverse lamp behavior. | [ ] | [ ] |
+| L19 | On PC and a touch client, sit in the SUV driver seat with Vibrant Visuals on and off: three gauges have the tachometer left and speedometer right, chrome rings, blended square corners, and no numerals or logos; the black grained leather rim has a plain hub. | [ ] | [ ] |
 
 ## Sports boat mirror (Vibrant Visuals)
 
