@@ -21,7 +21,7 @@ const CENTER_Z = 82.5;
 const END_X = 112;
 // The lowest block row of the overworld.
 const WORLD_MIN_Y = -64;
-const LANE = { minX: 86, maxX: 116, minZ: 74, maxZ: 90 } as const;
+const PAVE_STRIP = { minX: 86, maxX: 116, minZ: 74, maxZ: 90 } as const;
 const NORMAL_HALF = BULLDOZER_SPEC.blade.halfWidth;
 const HOLE_Z = 82;
 const WIDE_HALF = BULLDOZER_WIDE_BLADE.halfWidth;
@@ -41,18 +41,18 @@ function fillBox(
   [z0, z1]: readonly [number, number],
   block: string,
 ): void {
-  a.dim.runCommand(`fill ${x0} ${y0} ${z0} ${x1} ${y1} ${z1} ${block}`);
+  a.dim.runCommand(`fill ${a.box(x0, y0, z0, x1, y1, z1)} ${block}`);
 }
 
 function cleanLane(a: Arena): void {
-  const x = [LANE.minX, LANE.maxX] as const;
-  const z = [LANE.minZ, LANE.maxZ] as const;
+  const x = [PAVE_STRIP.minX, PAVE_STRIP.maxX] as const;
+  const z = [PAVE_STRIP.minZ, PAVE_STRIP.maxZ] as const;
   fillBox(a, x, [a.gy, a.gy + 8], z, "air");
   fillBox(a, x, [Math.max(WORLD_MIN_Y, a.gy - 8), a.gy - 1], z, "stone");
 }
 
 function typeAt(a: Arena, x: number, y: number, z: number): string | undefined {
-  return a.dim.getBlock({ x, y, z })?.typeId;
+  return a.dim.getBlock(a.at(x, y, z))?.typeId;
 }
 
 function planksIn(
@@ -91,7 +91,11 @@ async function paveRun(
     setHeldItem(car, "held" in run ? run.held : PLANKS);
     await wait(2);
     drive(car, 0, 1);
-    for (let t = 0; t < 400 && car.location.x < (run.until ?? END_X); t++) {
+    for (
+      let t = 0;
+      t < 400 && a.local(car.location).x < (run.until ?? END_X);
+      t++
+    ) {
       await wait(1);
       run.watch?.(car);
     }
@@ -165,7 +169,13 @@ export function bulldozerPaveHole(a: Arena): Promise<Outcome> {
 export function bulldozerPaveStepDown(a: Arena): Promise<Outcome> {
   return onLane(a, () => {
     const row = rowOf(a);
-    fillBox(a, [100, LANE.maxX], [row, row], [LANE.minZ, LANE.maxZ], "air");
+    fillBox(
+      a,
+      [100, PAVE_STRIP.maxX],
+      [row, row],
+      [PAVE_STRIP.minZ, PAVE_STRIP.maxZ],
+      "air",
+    );
     return paveRun(a, { until: 114 }, () => {
       const lower = planksIn(a, [106, 108], row - 1, [81, 84]);
       return {
@@ -214,7 +224,7 @@ export function bulldozerPaveWater(a: Arena): Promise<Outcome> {
       {
         until: 114,
         watch: (car) => {
-          lowest = Math.min(lowest, car.location.y);
+          lowest = Math.min(lowest, a.local(car.location).y);
           sawOtherForm ||= vehicleForm(car) !== "car";
         },
       },
@@ -229,7 +239,7 @@ export function bulldozerPaveWater(a: Arena): Promise<Outcome> {
             below.planks === 0 &&
             !sawOtherForm &&
             lowest >= a.gy - 0.1,
-          detail: `x=${car.location.x.toFixed(2)} pool=${pool.planks}/${pool.total} river=${river.planks}/${river.total} below=${below.planks} otherForm=${sawOtherForm} lowest=${lowest.toFixed(2)}`,
+          detail: `x=${a.local(car.location).x.toFixed(2)} pool=${pool.planks}/${pool.total} river=${river.planks}/${river.total} below=${below.planks} otherForm=${sawOtherForm} lowest=${lowest.toFixed(2)}`,
         };
       },
     );
@@ -241,7 +251,13 @@ export function bulldozerPaveFlight(a: Arena): Promise<Outcome> {
     const row = rowOf(a);
     const ravineBottom = Math.max(WORLD_MIN_Y, row - 5);
     const ravine = [98, 114] as const;
-    fillBox(a, ravine, [ravineBottom, row], [LANE.minZ, LANE.maxZ], "air");
+    fillBox(
+      a,
+      ravine,
+      [ravineBottom, row],
+      [PAVE_STRIP.minZ, PAVE_STRIP.maxZ],
+      "air",
+    );
     return withBulldozer(a, START_X, CENTER_Z, -90, async (car) => {
       await wait(2);
       await doubleTap(car);
@@ -256,6 +272,7 @@ export function bulldozerPaveFlight(a: Arena): Promise<Outcome> {
       await wait(2);
       // Wide blade over the ravine is the worst case for the per-tick probes (ADR 0181).
       let last = Date.now();
+      // With concurrent lanes, this includes the other lanes' load.
       let slowestTickMs = 0;
       const timer = system.runInterval(() => {
         const now = Date.now();
@@ -263,11 +280,12 @@ export function bulldozerPaveFlight(a: Arena): Promise<Outcome> {
         last = now;
       }, 1);
       drive(car, 0, 1);
-      for (let t = 0; t < 400 && car.location.x < 108; t++) await wait(1);
+      for (let t = 0; t < 400 && a.local(car.location).x < 108; t++)
+        await wait(1);
       drive(car, 0, 0);
       system.clearRun(timer);
       await wait(5);
-      const { x, y } = car.location;
+      const { x, y } = a.local(car.location);
       let behind = 0;
       let ahead = 0;
       let high = 0;
@@ -302,7 +320,7 @@ export function bulldozerPaveFlight(a: Arena): Promise<Outcome> {
 export function bulldozerPaveKept(a: Arena): Promise<Outcome> {
   return onLane(a, () => {
     const row = rowOf(a);
-    a.dim.runCommand(`setblock 96 ${row} 82 chest`);
+    a.dim.runCommand(`setblock ${a.xyz(96, row, 82)} chest`);
     return paveRun(a, {}, () => {
       const type = typeAt(a, 96, row, 82);
       return {
@@ -317,7 +335,7 @@ export function bulldozerPaveKept(a: Arena): Promise<Outcome> {
 function disturbed(a: Arena, xs: readonly [number, number]): number {
   let n = 0;
   for (let x = xs[0]; x <= xs[1]; x++)
-    for (let z = LANE.minZ; z <= LANE.maxZ; z++) {
+    for (let z = PAVE_STRIP.minZ; z <= PAVE_STRIP.maxZ; z++) {
       if (typeAt(a, x, rowOf(a), z) !== "minecraft:stone") n++;
       for (let y = a.gy; y <= a.gy + 2; y++)
         if (typeAt(a, x, y, z) !== "minecraft:air") n++;
@@ -337,7 +355,7 @@ export async function bulldozerPaveNoBlock(a: Arena): Promise<Outcome> {
   for (const held of cases) {
     const result = await onLane(a, () =>
       paveRun(a, { held, until: 100 }, () => {
-        const changed = disturbed(a, [LANE.minX, 100]);
+        const changed = disturbed(a, [PAVE_STRIP.minX, 100]);
         return {
           pass: changed === 0,
           detail: `${String(held)} changed=${changed}`,
