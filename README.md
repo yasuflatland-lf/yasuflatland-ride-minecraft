@@ -64,10 +64,12 @@ pnpm model           # generate the vehicle models and textures, the camping gea
 pnpm model:check     # fail if the camping gear models, the README or item previews, or the pack icons are out of date
 pnpm server:up       # start the dev BDS in Docker
 pnpm server:restart  # restart it under a new dev-only Resource Pack version
-pnpm test:game       # in-game tests
+pnpm test:game       # run impacted in-game scenarios in 4 lanes locally by default
 ```
 
-CI runs the Biome check, the README preview and pack icon check, type checking, tests, the build, and packaging on every pull request.
+Local in-game runs select only impacted scenarios. `GAME_TEST_ALL=1` runs everything, and `GAME_TEST_LANES=1` runs serially. `GAME_TEST_FEATURES=<tags>` selects comma-separated feature tags, and `GAME_TEST_BASE=<ref>` overrides the merge base used for impact selection. `GAME_TEST_AT=<0..7>` runs inside one lane for converting scenarios and defaults to serial execution.
+
+CI runs the Biome check, the README preview and pack icon check, type checking, tests, the build, and packaging on every pull request. In-game CI runs every scenario in 4 serial shards plus one 4-lane job.
 
 The dev world starts fresh as `yasuflatland-ride-dev`. The world from before the rename can be deleted by hand; its path is recorded in [ADR 0047](docs/adr/0047-rename-to-yasuflatland-ride.md). Before your first `pnpm server:up` after the rename, remove the dev container from before the rename once, since it still holds the server ports: find its name with `docker ps -a`, then run `docker rm -f <name>`.
 

@@ -1,8 +1,10 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
+  defaultLanesOf,
   featuresFrom,
   formatRunRequest,
+  LOCAL_DEFAULT_LANES,
   laneIndexFrom,
   lanesFrom,
   MANUAL_RUN_ID,
@@ -32,6 +34,72 @@ const request = fc
     features: fc.option(features, { nil: undefined }),
   })
   .filter((r) => r.lanes === 1 || r.at === 0);
+
+describe("defaultLanesOf", () => {
+  const value = fc.oneof(fc.string(), fc.constant(undefined), fc.constant(""));
+  const context = fc.record({ CI: value, GAME_TEST_SHARD: value });
+  const unsetLanes = value.filter(
+    (text) => lanesFrom(text ?? "") === undefined,
+  );
+
+  it("lets valid explicit lanes win over CI and shard defaults", () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 1, max: MAX_LANES }),
+        context,
+        (lanes, env) => {
+          expect(
+            defaultLanesOf({ ...env, GAME_TEST_LANES: String(lanes) }),
+          ).toBe(lanes);
+        },
+      ),
+    );
+  });
+
+  it("uses one lane for nonempty CI or shard values, otherwise the local default", () => {
+    fc.assert(
+      fc.property(context, unsetLanes, (env, GAME_TEST_LANES) => {
+        expect(defaultLanesOf({ ...env, GAME_TEST_LANES })).toBe(
+          env.CI || env.GAME_TEST_SHARD ? 1 : LOCAL_DEFAULT_LANES,
+        );
+      }),
+    );
+  });
+
+  it("treats invalid and empty lane values as unset", () => {
+    fc.assert(
+      fc.property(context, unsetLanes, (env, GAME_TEST_LANES) => {
+        expect(defaultLanesOf({ ...env, GAME_TEST_LANES })).toBe(
+          defaultLanesOf(env),
+        );
+        expect(defaultLanesOf({ ...env, GAME_TEST_LANES: "" })).toBe(
+          defaultLanesOf(env),
+        );
+      }),
+    );
+  });
+
+  it("treats empty CI and shard values as unset", () => {
+    fc.assert(
+      fc.property(unsetLanes, (GAME_TEST_LANES) => {
+        expect(
+          defaultLanesOf({ CI: "", GAME_TEST_SHARD: "", GAME_TEST_LANES }),
+        ).toBe(LOCAL_DEFAULT_LANES);
+      }),
+    );
+  });
+
+  it("always returns a lane count from 1 to 8", () => {
+    fc.assert(
+      fc.property(context, value, (env, GAME_TEST_LANES) => {
+        const lanes = defaultLanesOf({ ...env, GAME_TEST_LANES });
+        expect(Number.isInteger(lanes)).toBe(true);
+        expect(lanes).toBeGreaterThanOrEqual(1);
+        expect(lanes).toBeLessThanOrEqual(MAX_LANES);
+      }),
+    );
+  });
+});
 
 describe("run request grammar", () => {
   it("round trips valid requests within the message limit", () => {

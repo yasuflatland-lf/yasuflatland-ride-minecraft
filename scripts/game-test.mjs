@@ -14,6 +14,7 @@ import { mustRunAll, selectionOf } from "../src/test-pack/impact.ts";
 import { planOf } from "../src/test-pack/plan.ts";
 import {
   CANCEL_EVENT,
+  defaultLanesOf,
   featuresFrom,
   formatRunRequest,
   LOG_TAG,
@@ -41,24 +42,28 @@ if (!shard) {
   console.error(`GAME_TEST_SHARD must look like 2/3, got ${shardText}`);
   process.exit(1);
 }
-const atText = process.env.GAME_TEST_AT;
+const atText = process.env.GAME_TEST_AT || undefined;
 const at = atText === undefined ? 0 : laneIndexFrom(atText);
 if (at === undefined) {
   console.error(`GAME_TEST_AT must be a valid lane index, got ${atText}`);
   process.exit(1);
 }
-const lanesText = process.env.GAME_TEST_LANES;
-const lanes = lanesText === undefined ? 1 : lanesFrom(lanesText);
-if (lanes === undefined) {
+const lanesText = process.env.GAME_TEST_LANES || undefined;
+if (lanesText !== undefined && lanesFrom(lanesText) === undefined) {
   console.error(
     `GAME_TEST_LANES must be an integer from 1 to 8, got ${lanesText}`,
   );
   process.exit(1);
 }
+const lanes =
+  atText !== undefined && lanesText === undefined
+    ? 1
+    : defaultLanesOf(process.env);
 if (lanes > 1 && at > 0) {
   console.error("GAME_TEST_AT cannot be combined with GAME_TEST_LANES > 1");
   process.exit(1);
 }
+console.log(`lanes: ${lanes}`);
 const featuresText = process.env.GAME_TEST_FEATURES;
 let features =
   featuresText === undefined ? undefined : featuresFrom(featuresText);
