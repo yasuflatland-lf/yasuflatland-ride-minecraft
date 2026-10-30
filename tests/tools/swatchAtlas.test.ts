@@ -20,20 +20,17 @@ const run = (script: string) =>
   );
 
 it("matches every SUV swatch face and pixel for every paint", () => {
-  run(`import contextlib, io, tempfile
-with tempfile.TemporaryDirectory() as output:
-    sys.argv = ['gen_model.py', output]
-    with contextlib.redirect_stdout(io.StringIO()):
-        g = load_tool('gen_model')
-    atlas = m.Atlas(g.NAMES, cell=4, inset=1, width=g.TEXTURE_WIDTH, height=16, fill=(0,0,0,255))
-    for name in g.NAMES:
-        assert all(face == atlas.face(name) for face in g.uv(name).values())
-    for body in g.BODY_PAINTS.values():
-        palette = {**g.PALETTE, 'body': body}
-        colors = {name: (*palette[name], g.ALPHA.get(name, 255)) for name in g.NAMES}
-        for y in range(16):
-            for x in range(g.TEXTURE_WIDTH):
-                assert atlas.pixel(colors, x, y) == (*g.swatches(body)(x, y), 255)[:4]`);
+  run(`g = load_tool('suv_palette')
+atlas = m.Atlas(g.NAMES, cell=4, inset=1, width=g.TEXTURE_WIDTH, height=16, fill=(0,0,0,255))
+for name in g.NAMES:
+    assert all(face == atlas.face(name) for face in g.uv(name).values())
+for paint in g.BODY_PAINTS:
+    body = paint.body
+    palette = {**g.PALETTE, 'body': body}
+    colors = {name: (*palette[name], g.ALPHA.get(name, 255)) for name in g.NAMES}
+    for y in range(16):
+        for x in range(g.TEXTURE_WIDTH):
+            assert atlas.pixel(colors, x, y) == (*g.swatches(body)(x, y), 255)[:4]`);
 }, 120_000);
 
 it("pins camper defaults and rejects invalid placements without mutation", () => {
