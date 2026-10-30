@@ -133,6 +133,8 @@ WHEEL_RADIUS = 2.4
 WHEEL_TILT = -20
 COLUMN_END_Z = 11.0 + DASH_SHIFT_Z  # inside the dashboard
 
+# Round fog lamps in black pockets near the front bumper's ends, inboard of the bar's cut corners so
+# they sit on its straight face
 FOG_X = 10.5
 FOG_Y = (FRONT_BUMPER_BAND_BOTTOM_Y + FRONT_BUMPER_BAND_TOP_Y) / 2
 ROOF_SEAM = B_PILLAR_FRONT_Z

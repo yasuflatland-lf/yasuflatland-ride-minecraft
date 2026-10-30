@@ -45,7 +45,8 @@ ASSEMBLIES = {
     for name, count in getattr(part, "ASSEMBLIES", {}).items()
 }
 
-lamp_bones = {bone: [] for bone in lamps.PART_BONES.values() if bone != "body"}
+part_bones = {p.name: p.bone for p in lamps.LAMP_PARTS}
+lamp_bones = {p.bone: [] for p in lamps.LAMP_PARTS if p.bone != "body"}
 
 
 def lamp_part(name, mirrored=False):
@@ -53,7 +54,7 @@ def lamp_part(name, mirrored=False):
     cubes = getattr(lamps, f"{name}_cubes")()
     if mirrored:
         cubes = both_sides(cubes)
-    bone = lamps.PART_BONES[name]
+    bone = part_bones[name]
     if bone == "body":
         return cubes
     lamp_bones[bone].extend(cubes)
@@ -90,7 +91,7 @@ body += both_sides([
     *shell.fender_flare(REAR_AXLE_Z, SILL_Y, SILL_Y),
     *lamp_part("turn_signal"),
 ])
-lamp_part("front_strip", mirrored=True)
+body += lamp_part("front_strip", mirrored=True)
 body += shell.front_bumper_lower_cubes()
 body += shell.front_bumper_band_cubes()
 body += shell.front_bumper_top_cubes()
@@ -107,10 +108,10 @@ body += cabin.pleated_seat(-11, 0, REAR_SEAT_Z)
 body += cabin.pleated_seat(0, 11, REAR_SEAT_Z)
 body += cabin.steering_cubes()
 body += lamp_part("headlight_ring")
-lamp_part("headlight_lens")
+body += lamp_part("headlight_lens")
 body += shell.grille_cubes()
 body += lamp_part("fog_pocket", mirrored=True)
-lamp_part("fog_lens", mirrored=True)
+body += lamp_part("fog_lens", mirrored=True)
 body += both_sides(shell.roof_edge_cubes())
 body += shell.roof_rib_cubes()
 body += gauges.gauge_cluster_cubes() + dash.passenger_dash_cubes()
