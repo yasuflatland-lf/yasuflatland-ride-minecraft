@@ -407,6 +407,39 @@ describe("SUV model (ADR 0009)", () => {
         expect(separated(glass, fitting)).toBe(true);
     });
 
+    it("keeps all three floor levers clear of the dashboard", () => {
+      const body = bones.get("body");
+      if (!body) throw new Error("Missing cabin");
+      const levers = (body.cubes ?? []).filter(
+        (c) =>
+          c.pivot?.[1] === 10.4 &&
+          Math.abs(c.pivot[0]) <= 1.43 &&
+          c.pivot[2] >= -11.05 &&
+          c.pivot[2] <= -8.45 &&
+          c.rotation?.[1] === 0 &&
+          c.rotation[2] === 0 &&
+          (c.rotation[0] === -15 || c.rotation[0] === -22),
+      );
+      // Include the slab and fittings, from the grab handle to the cowl edge.
+      const dash = (body.cubes ?? [])
+        .map((c) => turnedCorners(body, c))
+        .filter((corners) =>
+          corners.every(
+            ([x, y, z]) =>
+              Math.abs(x) <= 15.6 &&
+              y >= 16.9 &&
+              y <= 24.7 &&
+              z >= -10.075 - 1e-8 &&
+              z <= -8.06 + 1e-8,
+          ),
+        );
+      expect(levers).toHaveLength(12);
+      expect(dash.length).toBeGreaterThan(0);
+      for (const lever of levers)
+        for (const fitting of dash)
+          expect(separated(turnedCorners(body, lever), fitting)).toBe(true);
+    });
+
     it("keeps the whole steering wheel ahead of the seated driver's torso", () => {
       const body = bones.get("body");
       const driver = SUV_PROFILE.seats.positions[0];
