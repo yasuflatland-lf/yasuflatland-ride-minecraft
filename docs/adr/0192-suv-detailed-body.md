@@ -3,7 +3,7 @@
 - Status: Proposed
 - Date: 2026-10-30
 - Extends: [0009](0009-vehicle-model-conventions.md) (bone contract)
-- Amends in part: [0020](0020-headlights.md), [0147](0147-light-the-lamps-with-a-pbr-emissive-layer.md) (lamp geometry, bones and extraction), [0031](0031-repaint-with-all-sixteen-dyes.md) (texture dimensions and paint-dependent regions), [0170](0170-measure-suv-side-view-proportions.md) (frozen palette and atlas)
+- Amends in part: [0020](0020-headlights.md), [0147](0147-light-the-lamps-with-a-pbr-emissive-layer.md) (lamp geometry, bones, extraction, the SUV table row and the tail/brake exclusion), [0031](0031-repaint-with-all-sixteen-dyes.md) (texture dimensions and paint-dependent regions), [0170](0170-measure-suv-side-view-proportions.md) (frozen palette and atlas)
 
 ## Context
 
@@ -31,7 +31,7 @@ The owner approved the following design points on 2026-10-30; the bone contract 
 
 4. **Dashboard.** Make the whole dashboard matte black grained plastic in every paint, including today's body-coloured passenger panel (`passenger_dash`). Replace the glovebox lid with the tray and grab handle from the photo, and keep the windshield latch. Dash detail uses one shared set of regions, not one per paint. Keep the SUV right-hand drive (0069).
 
-5. **Tail lamps.** Keep the photo's elements: a red housing with a frame, two horizontal rows of LED bars, a clear reverse lamp in the middle, and a black resin block on the outer side. Use the outline and proportions set in part 14 of the SUV detail series (#989); the tail lamp must not copy the Wrangler JL lamp. While the headlights are on, the red LED bars and the high-mounted third brake light glow red, and the reverse lamp glows white, through the same lit pass as the headlights. There is no separate brake or reverse state. The owner requested on 2026-10-30: "when the headlights are on, the brake lamps also glow red".
+5. **Tail lamps.** Keep the photo's elements: a red housing with a frame, two horizontal rows of LED bars, a clear reverse lamp in the middle, and a black resin block on the outer side. Use the outline and proportions set in part 14 of the SUV detail series (#989); the tail lamp must not copy the Wrangler JL lamp. While the headlights are on, the red LED bars and the high-mounted third brake light glow red, and the reverse lamp glows white, through the same lit pass as the headlights. This decision narrows 0147's tail/brake exclusion for these SUV tail lamp parts without rewriting it; turn signals, hover glow discs and the monitor remain outside. There is no separate brake or reverse state. The owner requested on 2026-10-30: "when the headlights are on, the brake lamps also glow red".
 
 6. **Gauges.** Dial faces carry tick marks and unreadable marks only, with no numerals. Needles are drawn into the texture and do not move.
 
@@ -42,6 +42,12 @@ The owner approved the following design points on 2026-10-30; the bone contract 
 9. **Bone contract extension.** Extend 0009 with `tail_lights` for the lit tail lamp parts and the third brake light, and `headlight_bezels` for the cutout panels. Existing bone names do not change. These two new bones explicitly go beyond the design document's "no change to the bone contract" non-goal: the owner's later tail lamp request in rule 5 and the round lamp in rule 8 cannot be built without them. The PR description must quote this rule and ask the owner to approve the extension. **Merging this ADR's PR is the owner's approval of the bone contract extension.** If the owner declines, stop the series and ask.
 
 10. **Lamp bones by part.** Assign lamp cubes to bones by the part that builds them, not by colour. `headlights` keeps the headlight lenses, fog lamp lenses and front lamp strip on the fender flares (today's `light` cubes). Rule 9 assigns the lit tail lamp parts and third brake light to `tail_lights`; rule 8 assigns the bezel panels to `headlight_bezels`.
+
+    The replacement SUV row for 0147's per-kind table uses lit detail regions in `suv_lit` / `suv_lit_mer`, rather than whole swatches, because extraction is by part, not colour. `headlight_bezels` stays in the base pass and is not an overlay bone.
+
+    | Kind | Lit parts | Overlay bones | Switch |
+    |---|---|---|---|
+    | SUV | Headlight lenses, fog lamp lenses and front lamp strip (today's `light` swatch), plus red LED bars, third brake light and white reverse lamp | `headlights`, `tail_lights` | `yasu_ride:headlights` for both |
 
 11. **Generator structure.** Split the SUV generator into cohesive `tools/suv_*.py` modules in part 4 of the SUV detail series (#979). Each feature PR edits only the module that owns its part. Per-face texture maps must survive mirroring and the 180 degree turn: a mark drawn near the rear of a region must show at the rear of the vehicle on both sides. Part 9 of the SUV detail series (#984) establishes this mapping.
 
@@ -55,7 +61,7 @@ The owner approved the following design points on 2026-10-30; the bone contract 
 
 ## Consequences
 
-This proposal amends 0009's bone contract; 0020 and 0147's cube-built lamps, sole SUV lamp bone `headlights`, and extraction by colour; 0031's texture size and statement that only the body swatch differs between paints; and 0170's frozen palette and atlas. Detail regions on painted panels are computed from each paint's body colour. Existing swatch indices and UVs stay compatible, following 0184, while rectangular detail regions follow 0190. The existing ADRs gain only a proposed amendment link; their Decisions remain historical records.
+This proposal amends 0009's bone contract; 0020 and 0147's cube-built lamps, sole SUV lamp bone `headlights`, and extraction by colour; 0147's SUV table row and tail/brake exclusion; 0031's texture size and statement that only the body swatch differs between paints; and 0170's frozen palette and atlas. Detail regions on painted panels are computed from each paint's body colour. Existing swatch indices and UVs stay compatible, following 0184, while rectangular detail regions follow 0190. The existing ADRs gain only a proposed amendment link; their Decisions remain historical records.
 
 Part 17 of the SUV detail series (#992) changes the amendment links from "Amended in part" to "Superseded in part" when this ADR is accepted. Part 12 of the SUV detail series (#987) writes its relief-map test result back here, and part 13 of the SUV detail series (#988) writes its headlight material test result back here, including any replacement stable material. Neither result is established by this proposal.
 
