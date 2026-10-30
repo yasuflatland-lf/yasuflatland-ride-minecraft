@@ -1518,5 +1518,4 @@ BOX_ICON_COLORS = {"L": (222, 184, 135, 255), "C": (196, 150, 98, 255), "O": (11
 outputs.png(ITEM_TEXTURES / "camping_gear_box.png", 16, 16, lambda x, y: BOX_ICON_COLORS[BOX_ICON[y][x]])
 print("cubes:", sum(len(b.get("cubes", [])) for b in camper_bones))
 
-if outputs.check:
-    outputs.finish("Stale camper outputs:", "camper model and textures are up to date")
+outputs.finish("Stale camper outputs:", "camper model and textures are up to date")

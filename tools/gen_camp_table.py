@@ -3,10 +3,14 @@
 import argparse
 import json
 import math
-import struct
 import sys
-import zlib
 from pathlib import Path
+
+# Isolated mode (-I) omits the script directory from the import path.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from tool_loader import load_tool
+
+texture_io = load_tool("texture_io")
 
 SIZE = 64
 GEOMETRY = "models/entity/yasu_ride/camp_table.geo.json"
@@ -56,31 +60,6 @@ def pixels():
     return bytes(data)
 
 
-def write_png(path, size, data):
-    stride = size * 4
-    raw = b"".join(b"\x00" + data[y * stride : (y + 1) * stride] for y in range(size))
-
-    def chunk(kind, payload):
-        return struct.pack(">I", len(payload)) + kind + payload + struct.pack(">I", zlib.crc32(kind + payload) & 0xFFFFFFFF)
-
-    header = struct.pack(">IIBBBBB", size, size, 8, 6, 0, 0, 0)
-    path.write_bytes(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", header) + chunk(b"IDAT", zlib.compress(raw, 9)) + chunk(b"IEND", b""))
-
-
-def read_png(path, size):
-    data = path.read_bytes()
-    pos, compressed = 8, b""
-    while pos < len(data):
-        length = struct.unpack(">I", data[pos : pos + 4])[0]
-        kind = data[pos + 4 : pos + 8]
-        if kind == b"IDAT":
-            compressed += data[pos + 8 : pos + 8 + length]
-        pos += length + 12
-    raw = zlib.decompress(compressed)
-    stride = size * 4
-    return b"".join(raw[y * (stride + 1) + 1 : (y + 1) * (stride + 1)] for y in range(size))
-
-
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("resource_pack", type=Path)
@@ -88,14 +67,10 @@ def main():
     args = parser.parse_args()
     geo = args.resource_pack / GEOMETRY
     texture = args.resource_pack / TEXTURE
-    if args.check:
-        if json.loads(geo.read_text()) != geometry() or read_png(texture, SIZE) != pixels():
-            sys.exit("camp table model or texture is stale; run pnpm model")
-        return
-    geo.parent.mkdir(parents=True, exist_ok=True)
-    texture.parent.mkdir(parents=True, exist_ok=True)
-    geo.write_text(json.dumps(geometry(), separators=(",", ":")) + "\n")
-    write_png(texture, SIZE, pixels())
+    out = texture_io.Outputs(args.check)
+    out.json(geo, json.dumps(geometry(), separators=(",", ":")) + "\n")
+    out.png(texture, SIZE, SIZE, texture_io.texel_reader(SIZE, pixels()), compress_level=9)
+    out.finish("camp table model or texture is stale; run pnpm model")
 
 
 if __name__ == "__main__":
