@@ -4,11 +4,8 @@ export interface Outcome {
   readonly lines?: readonly string[];
 }
 
-export interface StepResult {
+export interface StepResult extends Outcome {
   readonly name: string;
-  readonly pass: boolean;
-  readonly detail: string;
-  readonly lines?: readonly string[];
 }
 
 export interface Step {
