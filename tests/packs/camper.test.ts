@@ -48,6 +48,8 @@ const bone = (name: string) => {
   expect(found, name).toBeDefined();
   return found as Bone;
 };
+const end = (cube: Cube, axis: number) =>
+  (cube.origin[axis] ?? 0) + (cube.size[axis] ?? 0);
 
 const readPng = (path: string) => readRgbaPng(`${RP}/${path}.png`);
 
@@ -1984,7 +1986,7 @@ describe("camper rib atlas (ADR 0190)", () => {
       bones.flatMap((b) =>
         (b.cubes ?? []).filter((c) => isAddedRoofRail(b, c)),
       ),
-    ).toHaveLength(18);
+    ).toHaveLength(20);
     expect(
       bones.flatMap((b) =>
         (b.cubes ?? [])
@@ -2336,8 +2338,6 @@ describe("camper aluminium roof edges", () => {
 describe("camper aluminium roof rails", () => {
   const ROOF = 64;
   const ALUMINIUM_SLOT = 36;
-  const end = (cube: Cube, axis: number) =>
-    (cube.origin[axis] ?? 0) + (cube.size[axis] ?? 0);
   const body = bone("body").cubes ?? [];
   const rails = body.filter(
     (cube) =>
@@ -2364,6 +2364,26 @@ describe("camper aluminium roof rails", () => {
             other.origin[1] === cube.origin[1] &&
             other.origin[2] === cube.origin[2] &&
             other.size.every((size, axis) => size === cube.size[axis]),
+        ),
+      ).toBe(true);
+    }
+  });
+
+  it("supports each rail's front and rear end with a post underneath", () => {
+    const posts = rails.filter((cube) => cube.origin[1] === ROOF);
+    const ends = rails.filter(
+      (cube) => (cube.origin[1] ?? 0) > ROOF && (cube.size[2] ?? 0) < 1,
+    );
+    expect(ends).toHaveLength(4);
+    for (const railEnd of ends) {
+      expect(
+        posts.some(
+          (post) =>
+            (post.origin[0] ?? 0) >= (railEnd.origin[0] ?? 0) &&
+            end(post, 0) <= end(railEnd, 0) &&
+            Math.abs(end(post, 1) - (railEnd.origin[1] ?? 0)) < 1e-6 &&
+            Math.abs((post.origin[2] ?? 0) - (railEnd.origin[2] ?? 0)) < 1e-6 &&
+            Math.abs(end(post, 2) - end(railEnd, 2)) < 1e-6,
         ),
       ).toBe(true);
     }
