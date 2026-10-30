@@ -107,7 +107,7 @@ body += cabin.pleated_seat(-11, -2, FRONT_SEAT_Z)
 body += cabin.pleated_seat(-11, 0, REAR_SEAT_Z)
 body += cabin.pleated_seat(0, 11, REAR_SEAT_Z)
 body += cabin.steering_cubes()
-body += lamp_part("headlight_ring")
+body += lamp_part("headlight_bezel")
 body += lamp_part("headlight_lens")
 body += shell.grille_cubes()
 body += lamp_part("fog_pocket", mirrored=True)
@@ -138,6 +138,7 @@ geo = {
                  "locators": {"exhaust": [9, SILL_Y - 1.4, REAR - 2.6]}},
                 *[{"name": name, "parent": "body", "pivot": [0, FLOOR_Y, 0], "cubes": lamp_bones[name]}
                   for name in ("headlights", "tail_lights")],
+                {"name": "headlight_bezels", "parent": "body", "pivot": [0, 0, 0], "cubes": lamp_bones["headlight_bezels"]},
                 # Shown only in flight by the render controller (ADR 0026)
                 {"name": "rear_glass", "parent": "body", "pivot": [0, FLOOR_Y, 0],
                  "cubes": shell.rear_glass_cubes()},
@@ -182,7 +183,7 @@ export.paint_textures(out, ENTITY_TEXTURES)
 load_tool("lit_textures").build_lit_textures(
     out, ENTITY_TEXTURES, "suv", ATLAS.width, ATLAS.height,
     texture.paint_pixel(palette.BODY_PAINTS[0]),
-    is_lit=texture.is_lit)
+    is_lit=texture.is_lit, opaque_unlit_cutouts=True)
 export.item_icons(out, ITEM_TEXTURES)
 print("cubes:", len(model_cubes))
 

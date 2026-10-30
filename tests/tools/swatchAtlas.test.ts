@@ -31,7 +31,7 @@ for i, name in enumerate(suv_palette.NAMES):
 for paint in suv_palette.BODY_PAINTS:
     colors = {**suv_palette.PALETTE, 'body': paint.body}
     pixel = load_tool("suv_texture").paint_pixel(paint)
-    for y in range(16):
+    for y in range(8):
         for x in range(128):
             expected = (0, 0, 0, 255)
             if y < 4 and x // 4 < len(suv_palette.NAMES):

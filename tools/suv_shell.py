@@ -7,7 +7,51 @@ from tool_loader import load_tool
 dims = load_tool("suv_dims")
 globals().update({k: v for k, v in vars(dims).items() if k.isupper()})
 suv_cubes = load_tool("suv_cubes")
-box = suv_cubes.box
+body_paint = load_tool("suv_paint_body")
+MIN_FLAKE_FACE_PX = body_paint.MIN_FLAKE_FACE_PX
+HANDLE_BOTTOM_Y, HANDLE_TOP_Y = 14.4, 15.1
+HANDLE_REAR_OFFSET, HANDLE_FRONT_OFFSET = 1.5, 4.5
+HANDLE_OUTER_X = 13.35
+
+
+def face_size(cube, face):
+    w, h, d = cube["size"]
+    return {"north": (w, h), "south": (w, h), "east": (d, h),
+            "west": (d, h), "up": (w, d), "down": (w, d)}[face]
+
+
+def box(x0, y0, z0, x1, y1, z1, color):
+    cube = suv_cubes.box(x0, y0, z0, x1, y1, z1, color)
+    if color not in ("body", "hardtop", "hardtop_rib"):
+        return cube
+    scale = suv_cubes.atlas.TEXELS_PER_PIXEL
+    for face in ("north", "south", "east", "west", "up", "down"):
+        a, b = face_size(cube, face)
+        if color == "body" and min(a, b) < MIN_FLAKE_FACE_PX:
+            continue
+        if color == "body":
+            name, face_scale = "flake", scale
+        elif color == "hardtop_rib":
+            name, face_scale = "hardtop_rib" if face in ("up", "down") else "hardtop_rib_side", scale
+        elif face in ("up", "down"):
+            name, face_scale = "hardtop", body_paint.HARDTOP_FLAT_DENSITY
+        else:
+            name, face_scale = "hardtop_side", scale
+        r = suv_cubes.atlas.region("body", name)
+        cube["uv"][face] = suv_cubes.atlas.ATLAS.face(r, uv_size=(a * face_scale, b * face_scale))
+    return cube
+
+
+def panel_face(cube, name, face, offset=(0, 0)):
+    r = suv_cubes.atlas.region("body", name)
+    a, b = face_size(cube, face)
+    scale_u, scale_v = (body_paint.panel_scale(name) if name in body_paint.PANEL_EXTENTS
+                        else (suv_cubes.atlas.TEXELS_PER_PIXEL,) * 2)
+    cube["uv"][face] = suv_cubes.atlas.ATLAS.face(
+        r, (offset[0] * scale_u, offset[1] * scale_v), (a * scale_u, b * scale_v))
+    return cube
+
+
 disc = suv_cubes.disc
 turned = suv_cubes.turned
 mirrored = suv_cubes.mirrored
@@ -67,6 +111,15 @@ def arch_cut(x0, x1, y0, y1, z_back, z_front, z_center, color, step=0.5):
         if z_back < rear_cut:
             cubes.append(box(x0, y, z_back, x1, top, min(z_front, rear_cut), color))
         y = top
+    if color == "body":
+        if z_back in (FRONT_DOOR_HINGE_Z, REAR + 1):
+            name = "flake"
+        else:
+            name = "door_front" if z_front > 0 else "door_rear"
+        for cube in cubes:
+            _, bottom, back = cube["origin"]
+            strip_top = bottom + cube["size"][1]
+            panel_face(cube, name, "east", (back - z_back, y1 - strip_top))
     return cubes
 
 
@@ -127,7 +180,7 @@ def door(name):
         *panel,
         *card,
         *front_post,
-        box(BODY_HALF_WIDTH, 14.4, z_back + 1.5, 13.35, 15.1, z_back + 4.5, "grille"),  # door handle, near the rear edge
+        box(BODY_HALF_WIDTH, HANDLE_BOTTOM_Y, z_back + HANDLE_REAR_OFFSET, HANDLE_OUTER_X, HANDLE_TOP_Y, z_back + HANDLE_FRONT_OFFSET, "grille"),  # door handle, near the rear edge
         *window_frame_piece(BELT_Y, z_back, ROOF_Y, z_back + 1),  # rear post
         *window_frame_piece(WINDOW_TOP_Y, z_back, ROOF_Y, top_front),  # top rail
         *side_mirror,
@@ -188,7 +241,7 @@ def chassis_cubes():
 def hood_cubes():
     return [
         # Hood (engine compartment) above the front arches; its lower sides follow the arches below
-        box(-BODY_HALF_WIDTH, ARCH_TOP_Y, HOOD_REAR_Z, BODY_HALF_WIDTH, HOOD_TOP_Y, FRONT, "body"),
+        panel_face(box(-BODY_HALF_WIDTH, ARCH_TOP_Y, HOOD_REAR_Z, BODY_HALF_WIDTH, HOOD_TOP_Y, FRONT, "body"), "hood_top", "up"),
         box(-ARCH_LINER_X, FLOOR_Y, HOOD_REAR_Z, ARCH_LINER_X, ARCH_TOP_Y, FRONT, "body"),
     ]
 
@@ -245,7 +298,7 @@ def tailgate_cubes():
         # Rear: body-colored tailgate, and the hardtop's header over the rear window with the third brake
         # light under it. On the ground the rear window stays open; the rear_glass bone closes it in the
         # other forms (ADR 0026).
-        box(-BODY_HALF_WIDTH, FLOOR_Y, REAR, BODY_HALF_WIDTH, BELT_Y, REAR + 1, "body"),
+        panel_face(box(-BODY_HALF_WIDTH, FLOOR_Y, REAR, BODY_HALF_WIDTH, BELT_Y, REAR + 1, "body"), "tailgate", "north"),
         box(-BODY_HALF_WIDTH, WINDOW_TOP_Y, REAR, BODY_HALF_WIDTH, ROOF_Y, REAR + 1, "hardtop"),
     ]
 

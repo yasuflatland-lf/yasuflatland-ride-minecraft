@@ -143,6 +143,12 @@ const kinds = [
 describe.each(kinds)(
   "$kind lit textures (ADR 0147)",
   ({ kind, slots, cell, regionRule, bones, condition }) => {
+    function expectedColorTexel(pixel: number[], on: boolean) {
+      if (on) return [...pixel.slice(0, 3), 0];
+      if (kind === "suv" && pixel[3] === 0) return [...pixel.slice(0, 3), 255];
+      return pixel;
+    }
+
     it("generates a matching color atlas, maximum-emissive MER mask, and exact texture set", () => {
       const base = texels(kind);
       const lit = texels(`${kind}_lit`);
@@ -164,7 +170,7 @@ describe.each(kinds)(
           (Math.floor(i / base.width) < (cell ?? 1) &&
             slots.includes(Math.floor((i % base.width) / (cell ?? 1))));
         expect(lit.pixels[i], `color texel ${i}`).toEqual(
-          on ? [...pixel.slice(0, 3), 0] : pixel,
+          expectedColorTexel(pixel, on),
         );
         expect(mer.pixels[i], `MER texel ${i}`).toEqual([
           0,
@@ -238,4 +244,41 @@ it("requires the approved PBR engine version and matching Resource Pack versions
       (dependency: { uuid?: string }) => dependency.uuid === rp.header.uuid,
     )?.version,
   ).toEqual(rp.header.version);
+});
+
+describe("SUV round headlight glow", () => {
+  it("marks exactly the lens circle as full-bright and emissive inside the headlight block", () => {
+    const [x0, y0, w, h]: [number, number, number, number] = JSON.parse(
+      execFileSync(
+        "python3",
+        [
+          "-I",
+          "-c",
+          `import json, sys
+sys.path.insert(0, 'tools')
+from tool_loader import load_tool
+print(json.dumps(list(load_tool('suv_atlas').region('headlight', 'lens')[1:])))`,
+        ],
+        { encoding: "utf8" },
+      ),
+    );
+    const lit = texels("suv_lit");
+    const mer = texels("suv_lit_mer");
+    const block = suvLampRegions[0];
+    if (!block) throw new Error("Missing headlight block");
+    const [bx, by, bw, bh] = block.rect;
+    for (let y = by; y < by + bh; y++) {
+      for (let x = bx; x < bx + bw; x++) {
+        const inside =
+          x >= x0 &&
+          x < x0 + w &&
+          y >= y0 &&
+          y < y0 + h &&
+          (x + 0.5 - x0 - w / 2) ** 2 + (y + 0.5 - y0 - h / 2) ** 2 <=
+            (w / 2) ** 2;
+        expect(lit.pixels[y * lit.width + x]?.[3]).toBe(inside ? 0 : 255);
+        expect(mer.pixels[y * mer.width + x]?.[1]).toBe(inside ? 255 : 0);
+      }
+    }
+  });
 });
