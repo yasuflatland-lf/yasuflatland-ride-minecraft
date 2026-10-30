@@ -1962,7 +1962,7 @@ describe("camper rib atlas (ADR 0190)", () => {
     ) as {
       width: number;
       height: number;
-      regions: [[string, number, number, number, number]];
+      regions: [string, number, number, number, number][];
       period: number;
       texelsPerPx: number;
       slots: string[];
