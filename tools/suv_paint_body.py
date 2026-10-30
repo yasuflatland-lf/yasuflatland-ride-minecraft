@@ -20,6 +20,10 @@ GROOVE_RELIEF = -2
 RECESS_RELIEF = -1
 RECESS_PADDING_TEXELS = 2
 
+DETAIL_DELTAS = {"groove": -GROOVE_DARKEN, "highlight": HIGHLIGHT_LIGHTEN,
+                 "recess": -GROOVE_DARKEN // 2, "recess_highlight": HIGHLIGHT_LIGHTEN}
+
+
 # Importing the atlas here would re-enter its painter allocation.
 def density():
     return load_tool("suv_atlas").TEXELS_PER_PIXEL
@@ -63,12 +67,15 @@ def jitter(u, v, bound, shift=0):
     return (texel_hash(u, v) >> shift) % (2 * bound + 1) - bound
 
 
+def door_extent(region):
+    return load_tool("suv_shell").DOORS["door_fr" if region == "door_front" else "door_rr"]
+
+
 @cache
 def recess(region):
     # Handles and DOORS are available only after atlas allocation finishes.
     shell = load_tool("suv_shell")
-    door = "door_fr" if region == "door_front" else "door_rr"
-    _, _, back = shell.DOORS[door]
+    _, _, back = door_extent(region)
     center_z = back + (shell.HANDLE_REAR_OFFSET + shell.HANDLE_FRONT_OFFSET) / 2
     center_y = (shell.HANDLE_BOTTOM_Y + shell.HANDLE_TOP_Y) / 2
     return ((center_z - back) * density(), (dims.BELT_Y - center_y) * density(),
@@ -79,8 +86,7 @@ def recess(region):
 @cache
 def arch_panel(region):
     if region.startswith("door_"):
-        shell = load_tool("suv_shell")
-        _, front, back = shell.DOORS["door_fr" if region == "door_front" else "door_rr"]
+        _, front, back = door_extent(region)
         return back, dims.BELT_Y, dims.FRONT_AXLE_Z if front > 0 else dims.REAR_AXLE_Z
     return {
         "hood_side": (dims.HOOD_REAR_Z, dims.HOOD_TOP_Y, dims.FRONT_AXLE_Z),
@@ -113,7 +119,7 @@ def arch_detail(region, u, v):
 
 def detail(region, u, v):
     spec = SPECS[region]
-    if region in ("flake", "hardtop", "hardtop_down", "hardtop_side", "hardtop_rib", "hardtop_rib_down"):
+    if region == "flake" or spec.base != "body":
         return None
     edge = min(u, v, spec.w - 1 - u, spec.h - 1 - v)
     if edge == 0:
@@ -135,9 +141,7 @@ def color(region, u, v, paint):
     else:
         rgb = paint.body
         kind = detail(region, u, v)
-        delta = {"groove": -GROOVE_DARKEN, "highlight": HIGHLIGHT_LIGHTEN,
-                 "recess": -GROOVE_DARKEN // 2, "recess_highlight": HIGHLIGHT_LIGHTEN}.get(
-                     kind, jitter(u, v, FLAKE_COLOR_JITTER))
+        delta = DETAIL_DELTAS.get(kind, jitter(u, v, FLAKE_COLOR_JITTER))
     return (*(max(0, min(255, c + delta)) for c in rgb), 255)
 
 

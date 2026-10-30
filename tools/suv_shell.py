@@ -14,25 +14,31 @@ HANDLE_REAR_OFFSET, HANDLE_FRONT_OFFSET = 1.5, 4.5
 HANDLE_OUTER_X = 13.35
 
 
+def face_size(cube, face):
+    w, h, d = cube["size"]
+    return {"north": (w, h), "south": (w, h), "east": (d, h),
+            "west": (d, h), "up": (d, w), "down": (w, d)}[face]
+
+
 def box(x0, y0, z0, x1, y1, z1, color):
     cube = suv_cubes.box(x0, y0, z0, x1, y1, z1, color)
     if color not in ("body", "hardtop", "hardtop_rib"):
         return cube
-    w, h, d = cube["size"]
-    sizes = {"north": (w, h), "south": (w, h), "east": (d, h),
-             "west": (d, h), "up": (d, w), "down": (w, d)}
     scale = suv_cubes.atlas.TEXELS_PER_PIXEL
-    for face, (a, b) in sizes.items():
+    for face in ("north", "south", "east", "west", "up", "down"):
+        a, b = face_size(cube, face)
         if color == "body" and min(a, b) < MIN_FLAKE_FACE_PX:
             continue
-        name = "flake" if color == "body" else color
-        face_scale = scale
-        if color == "hardtop_rib" and face == "down":
-            name = "hardtop_rib_down"
-        if color == "hardtop":
-            name = {"up": "hardtop", "down": "hardtop_down"}.get(face, "hardtop_side")
-            if face in ("up", "down"):
-                face_scale = body_paint.HARDTOP_FLAT_DENSITY
+        if color == "body":
+            name, face_scale = "flake", scale
+        elif color == "hardtop_rib":
+            name, face_scale = "hardtop_rib_down" if face == "down" else "hardtop_rib", scale
+        elif face == "up":
+            name, face_scale = "hardtop", body_paint.HARDTOP_FLAT_DENSITY
+        elif face == "down":
+            name, face_scale = "hardtop_down", body_paint.HARDTOP_FLAT_DENSITY
+        else:
+            name, face_scale = "hardtop_side", scale
         r = suv_cubes.atlas.region("body", name)
         cube["uv"][face] = suv_cubes.atlas.ATLAS.face(r, uv_size=(a * face_scale, b * face_scale))
     return cube
@@ -40,8 +46,7 @@ def box(x0, y0, z0, x1, y1, z1, color):
 
 def panel_face(cube, name, face, offset=(0, 0)):
     r = suv_cubes.atlas.region("body", name)
-    w, h, d = cube["size"]
-    a, b = {"east": (d, h), "north": (w, h), "up": (d, w)}[face]
+    a, b = face_size(cube, face)
     scale = suv_cubes.atlas.TEXELS_PER_PIXEL
     cube["uv"][face] = suv_cubes.atlas.ATLAS.face(r, offset, (a * scale, b * scale))
     if name == "hood_side":
@@ -118,8 +123,8 @@ def arch_cut(x0, x1, y0, y1, z_back, z_front, z_center, color, step=0.5):
         scale = suv_cubes.atlas.TEXELS_PER_PIXEL
         for cube in cubes:
             _, bottom, back = cube["origin"]
-            top = bottom + cube["size"][1]
-            panel_face(cube, name, "east", ((back - z_back) * scale, (y1 - top) * scale))
+            strip_top = bottom + cube["size"][1]
+            panel_face(cube, name, "east", ((back - z_back) * scale, (y1 - strip_top) * scale))
     return cubes
 
 
