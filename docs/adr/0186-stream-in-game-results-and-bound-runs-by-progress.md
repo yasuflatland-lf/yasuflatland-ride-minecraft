@@ -18,7 +18,7 @@ Reject a malformed request with an error SUMMARY under its own run id. The scrip
 
 `pnpm test:game` prints lines as they arrive. Any new line of the run counts as progress, including PLAN, SKIP, READY, and step lines. The run is `overdue` when the time since PLAN exceeds `ceil(ticks / 20 * 1.5)` seconds plus a 30-second setup margin. It is `stalled` when no new line arrives for 60 seconds. On either condition, the command sends the cancel event and exits 1. Remove the fixed five-minute deadline.
 
-A scenario declares at most 300 ticks. At 20 TPS this is a quarter of the 60-second stall window, so a scenario only looks stalled when TPS drops to about 5. Courses also stream their steps.
+A scenario declares at most 300 ticks. At 20 TPS this is a quarter of the 60-second stall window, so a scenario only looks stalled when TPS drops to about 5.
 
 ## Consequences
 
