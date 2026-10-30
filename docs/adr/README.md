@@ -13,7 +13,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0007](0007-seats-and-driver.md) | Seats and choosing the driver | Superseded by 0019 |
 | [0008](0008-vehicle-item-and-breaking.md) | Placing and picking up vehicles | Superseded in part by 0036; extended by 0122 (Proposed) |
 | [0009](0009-vehicle-model-conventions.md) | Vehicle model conventions, and accepting a square collision box | Superseded in part by 0170 (SUV collision dimensions; Proposed); extended by 0091, 0093, 0136 (Proposed), and 0139 (Proposed) |
-| [0010](0010-testing-strategy.md) | Testing strategy | Accepted; extended by 0139 (Proposed) |
+| [0010](0010-testing-strategy.md) | Testing strategy | Accepted; extended by 0139 (Proposed), 0186 (Proposed), and 0188 (Proposed) |
 | [0011](0011-dev-server-docker-raknet.md) | Run the development server as BDS in Docker with raknet | Superseded by 0015 |
 | [0012](0012-ddd-layered-architecture.md) | Split the code into domain, application, and infrastructure layers | Extended by 0065 |
 | [0013](0013-dependency-updates-with-renovate.md) | Keep dependencies up to date with Renovate | Accepted |
@@ -57,7 +57,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0051](0051-sports-boat.md) | Sports boat | Superseded in part by 0066, 0080, and 0150 (Proposed); extended by 0058, 0063, 0089, 0120, 0158 (Proposed), 0159 (Proposed), 0161 (Proposed), 0162 (Proposed), and 0163 (Proposed) |
 | [0052](0052-retry-camera-switches-and-break-seat-ties-low.md) | Retry camera switches in both directions, and break seat ties toward the lower index | Superseded in part by 0117 |
 | [0053](0053-estimate-buoyant-boat-water-drag.md) | Estimate the buoyant boat's water drag | Accepted |
-| [0054](0054-shard-in-game-tests-in-ci.md) | Shard the in-game tests across four CI jobs and run model:check beside the unit tests | Accepted |
+| [0054](0054-shard-in-game-tests-in-ci.md) | Shard the in-game tests across four CI jobs and run model:check beside the unit tests | Accepted; extended by 0186 (Proposed), 0187 (Proposed), and 0189 (Proposed) |
 | [0055](0055-kind-neutral-vehicle-core.md) | Kind-neutral vehicle core | Superseded in part by 0083 and 0087; extended by 0064, 0065, 0072, 0089, 0090, 0127, 0136 (Proposed), 0137 (Proposed), 0139 (Proposed), 0180 (Proposed), and 0181 (Proposed) |
 | [0056](0056-sports-boat-previews.md) | Render README previews of the sports boat | Accepted |
 | [0057](0057-skip-model-check-when-inputs-unchanged.md) | Skip model:check on pull requests that leave the renderer's files alone | Accepted |
@@ -186,6 +186,10 @@ This directory records design decisions and the reasons behind them. The format 
 | [0183](0183-mark-a-lone-selection-corner.md) | Mark a lone selection corner | Proposed |
 | [0184](0184-light-the-camper-roof-and-tail-lamps.md) | Light the camper's roof and tail lamps with the headlights | Accepted |
 | [0185](0185-put-things-on-the-camp-table-instead-of-sitting-at-it.md) | Put things on the camp table instead of sitting at it | Proposed |
+| [0186](0186-stream-in-game-results-and-bound-runs-by-progress.md) | Stream in-game results and bound runs by progress | Proposed |
+| [0187](0187-run-in-game-scenarios-in-concurrent-lanes.md) | Run in-game scenarios in concurrent lanes | Proposed |
+| [0188](0188-fuse-in-game-scenarios-and-keep-only-engine-facts-in-game.md) | Fuse in-game scenarios and keep only engine facts in game | Proposed |
+| [0189](0189-run-only-impacted-in-game-scenarios-locally.md) | Run only impacted in-game scenarios locally | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 

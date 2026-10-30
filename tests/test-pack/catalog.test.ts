@@ -52,10 +52,28 @@ describe("scenario catalog", () => {
         CATALOG.map((spec) => spec.name),
         keys,
       ),
-    ).toEqual({ missing: [], extra: [] });
+    ).toEqual({ missing: [], extra: [], duplicates: [] });
+    const exceptions: Record<string, { functionName: string; call?: string }> =
+      {
+        step2_front: { functionName: "step2", call: "step2(a, 8, -90, 100)" },
+        step2_diagonal: {
+          functionName: "step2",
+          call: "step2(a, 30, -60, 100)",
+        },
+        dutch_oven_simmer_take_back: {
+          functionName: "dutchOvenSimmerAndTakeBack",
+        },
+      };
     for (const spec of CATALOG) {
       const entry = entries.find((entry) => entry[1] === spec.name);
       expect(imports.get(entry?.[2] ?? "")).toBe(spec.file);
+      const exception = exceptions[spec.name];
+      const camelCase = spec.name.replace(/_([a-z0-9])/g, (_, char: string) =>
+        char.toUpperCase(),
+      );
+      expect(entry?.[2]).toBe(exception?.functionName ?? camelCase);
+      if (exception?.call !== undefined)
+        expect(entry?.[0]).toContain(exception.call);
     }
   });
 });

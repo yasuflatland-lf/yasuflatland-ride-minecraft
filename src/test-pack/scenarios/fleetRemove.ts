@@ -5,6 +5,8 @@ import { type Arena, blockLoaded, spawnCar, wait, waitUntil } from "../arena";
 import { UNLOAD_AREA } from "../lane";
 import type { Outcome } from "../outcome";
 
+// The far car and its area stay in world coordinates outside every lane area;
+// even lane 7's area ends at x = 1256.
 const UNLOAD_CENTER = { x: 2008, z: 8 } as const;
 const AREA_LOAD_TICKS = 200;
 const REMOVE_TICKS = 200;

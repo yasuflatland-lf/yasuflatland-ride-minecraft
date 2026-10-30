@@ -35,10 +35,11 @@ import {
 } from "../../infrastructure/camp/identifiers";
 import { PAINT_VARIANT, paintEvent } from "../../infrastructure/shared/dyes";
 import { type Arena, spawnCar, wait } from "../arena";
+import { inside, worldBounds } from "../lane";
 import type { Outcome } from "../outcome";
 
 export async function tentEntityContract(a: Arena): Promise<Outcome> {
-  const at = { x: 119.5, y: a.gy + 2, z: 46.5 };
+  const at = a.at(119.5, a.gy + 2, 46.5);
   a.dim.runCommand(`summon ${TENT_TYPE} ${at.x} ${at.y} ${at.z}`);
   const tent = a.dim.getEntities({
     type: TENT_TYPE,
@@ -86,25 +87,20 @@ const PITCH_WAIT_TICKS = 20;
 
 // The pitch message clicks the ground at (110, gy - 1, 46) with the player
 // facing south (yaw 0), so the tent faces north.
-const pitchClick = (a: Arena) => ({ x: 110, y: a.gy - 1, z: 46 });
+const pitchClick = (a: Arena) => a.at(110, a.gy - 1, 46);
 const PITCH_YAW = 0;
 const pitchMessage = (a: Arena) => {
   const c = pitchClick(a);
   return `${c.x} ${c.y} ${c.z} ${PITCH_YAW}`;
 };
 const pitchedPose = (a: Arena): TentPose => tentPose(pitchClick(a), PITCH_YAW);
-const tentEntityAt = (a: Arena) => ({ x: 110.5, y: a.gy, z: 57.5 });
+const tentEntityAt = (a: Arena) => a.at(110.5, a.gy, 57.5);
 
 function tentsInStrip(a: Arena): Entity[] {
+  const bounds = worldBounds(a.lane, STRIP);
   return a.dim
     .getEntities({ type: TENT_TYPE })
-    .filter(
-      (e) =>
-        e.location.x >= STRIP.minX &&
-        e.location.x <= STRIP.maxX + 1 &&
-        e.location.z >= STRIP.minZ &&
-        e.location.z <= STRIP.maxZ + 1,
-    );
+    .filter((e) => inside(bounds, e.location, 0));
 }
 
 const TENT_BLOCKS = [
@@ -121,7 +117,7 @@ function tentBlockCounts(a: Arena): Map<string, number> {
   for (let x = FOOTPRINT.minX; x <= FOOTPRINT.maxX; x++)
     for (let y = a.gy; y <= a.gy + 3; y++)
       for (let z = FOOTPRINT.minZ; z <= FOOTPRINT.maxZ; z++) {
-        const t = a.dim.getBlock({ x, y, z })?.typeId;
+        const t = a.dim.getBlock(a.at(x, y, z))?.typeId;
         if (t === undefined) continue;
         const n = counts.get(t);
         if (n !== undefined) counts.set(t, n + 1);
@@ -152,23 +148,22 @@ async function pitchTestTent(
       location: at,
       maxDistance: 0.5,
     })[0];
-    const front = a.dim.getBlock({ x: 110, y: a.gy, z: 49 })?.typeId;
+    const front = a.dim.getBlock(a.at(110, a.gy, 49))?.typeId;
     if (tent && front === TENT_FLAP_BLOCK) return tent;
   }
   throw new Error("tent not pitched");
 }
 
 /**
- * Removes every tent, the tent items a take-down dropped, and empties the
- * strip above the ground. A dropped item left behind would be counted by the
- * next scenario in the same shard that takes a tent down.
+ * Removes tents in the strip, the tent items a take-down dropped, and empties
+ * the strip above the ground. A dropped item left behind would be counted by
+ * the next scenario in the same shard that takes a tent down.
  */
 function clearTentStrip(a: Arena): void {
   for (const item of tentItemsNear(a)) item.remove();
-  for (const tent of a.dim.getEntities({ type: TENT_TYPE }))
-    if (tent.isValid) tent.remove();
+  for (const tent of tentsInStrip(a)) if (tent.isValid) tent.remove();
   a.dim.runCommand(
-    `fill ${STRIP.minX} ${a.gy} ${STRIP.minZ} ${STRIP.maxX} ${a.gy + 3} ${STRIP.maxZ} air`,
+    `fill ${a.box(STRIP.minX, a.gy, STRIP.minZ, STRIP.maxX, a.gy + 3, STRIP.maxZ)} air`,
   );
 }
 
@@ -204,7 +199,7 @@ export async function tentPitchAndTakeDown(a: Arena): Promise<Outcome> {
     const flaps = counts.get(TENT_FLAP_BLOCK) ?? 0;
     const mattresses = counts.get(TENT_MATTRESS_BLOCK) ?? 0;
     const lanterns = counts.get(TENT_LANTERN_BLOCK) ?? 0;
-    const stone = { x: 110, y: a.gy, z: 50 };
+    const stone = a.at(110, a.gy, 50);
     a.dim.runCommand(`setblock ${stone.x} ${stone.y} ${stone.z} cobblestone`);
     await takeDownTestTent(tent.id);
     const left = tentsInStrip(a).length;
@@ -244,7 +239,7 @@ async function refusedPitch(
 
 export async function tentRefuseStep(a: Arena): Promise<Outcome> {
   try {
-    a.dim.runCommand(`setblock 110 ${a.gy} 50 stone`);
+    a.dim.runCommand(`setblock ${a.xyz(110, a.gy, 50)} stone`);
     const { tents, laid } = await refusedPitch(a);
     return {
       pass: tents === 0 && laid === 0,
@@ -270,7 +265,7 @@ export async function tentRefuseVehicleSpace(a: Arena): Promise<Outcome> {
 export async function tentRelayLostCell(a: Arena): Promise<Outcome> {
   try {
     await pitchTestTent(a);
-    const wall = { x: 113, y: a.gy, z: 50 };
+    const wall = a.at(113, a.gy, 50);
     const before = a.dim.getBlock(wall)?.typeId;
     a.dim.runCommand(`setblock ${wall.x} ${wall.y} ${wall.z} air`);
     const lost = a.dim.getBlock(wall)?.typeId;
@@ -291,12 +286,12 @@ export async function tentRelayLostCell(a: Arena): Promise<Outcome> {
 export async function tentPitchOnSnow(a: Arena): Promise<Outcome> {
   try {
     a.dim.runCommand(
-      `fill ${FOOTPRINT.minX} ${a.gy} ${FOOTPRINT.minZ} ${FOOTPRINT.maxX} ${a.gy} ${FOOTPRINT.maxZ} snow_layer`,
+      `fill ${a.box(FOOTPRINT.minX, a.gy, FOOTPRINT.minZ, FOOTPRINT.maxX, a.gy, FOOTPRINT.maxZ)} snow_layer`,
     );
     // The click lands on the snow layer itself, one cell above the ground.
-    await pitchTestTent(a, `110 ${a.gy} 46 0`);
+    await pitchTestTent(a, `${a.xyz(110, a.gy, 46)} 0`);
     const laid = tentBlocksInFootprint(a);
-    const tarp = a.dim.getBlock({ x: 110, y: a.gy, z: 46 })?.typeId;
+    const tarp = a.dim.getBlock(a.at(110, a.gy, 46))?.typeId;
     return {
       pass: laid === 141 && tarp === "minecraft:air",
       detail: `laid=${laid} tarp=${tarp}`,
@@ -370,13 +365,13 @@ export async function tentMattresses(a: Arena): Promise<Outcome> {
     const tent = await pitchTestTent(a);
     // Index 0 is at local x 1 and index 1 at x -1; the 180-yaw tent turns them to x 109 and 111.
     const cells = [109, 111].flatMap((x) =>
-      [55, 56].map((z) => ({ x, y: a.gy, z })),
+      [55, 56].map((z) => a.at(x, a.gy, z)),
     );
     const typeAt = (c: { x: number; y: number; z: number }) =>
       a.dim.getBlock(c)?.typeId;
     const laid = cells.map(typeAt);
     const above = cells.map((c) => typeAt({ ...c, y: c.y + 1 }));
-    const stone = { x: 109, y: a.gy + 1, z: 55 };
+    const stone = a.at(109, a.gy + 1, 55);
     a.dim.runCommand(`setblock ${stone.x} ${stone.y} ${stone.z} stone`);
     await takeDownTestTent(tent.id);
     const after = cells.map(typeAt);

@@ -122,9 +122,15 @@ it("cancels only the matching run, suppresses pending output and preserves a new
   const oldLogs = logs.filter((line) => line.includes(" old "));
   send(TEST_EVENT, "newer");
   await flush();
+  expect(harness.setup).toHaveBeenCalledTimes(1);
+  expect(harness.first).toHaveBeenCalledTimes(1);
+  send(TEST_EVENT, "waiting");
+  expect(logs.at(-1)).toContain("error=run newer in progress");
   oldSink({ name: "late", pass: true, detail: "ignored" });
   old.resolve({ pass: true, detail: "ignored" });
   await flush();
+  expect(harness.setup).toHaveBeenCalledTimes(2);
+  expect(harness.first).toHaveBeenCalledTimes(2);
   expect(logs.filter((line) => line.includes(" old "))).toEqual(oldLogs);
   expect(harness.second).not.toHaveBeenCalled();
   send(TEST_EVENT, "third");
@@ -132,6 +138,23 @@ it("cancels only the matching run, suppresses pending output and preserves a new
   newer.resolve({ pass: true, detail: "ok" });
   await flush();
   expect(logs.at(-1)).toMatch(/newer SUMMARY pass=2 fail=0 ticks=0 ms=\d+$/);
+});
+
+it("skips a queued run cancelled before the previous scenario settles", async () => {
+  const old = deferred<Outcome>();
+  harness.first.mockReturnValueOnce(old.promise);
+  send(TEST_EVENT, "old");
+  await flush();
+  send(CANCEL_EVENT, "old");
+  send(TEST_EVENT, "queued");
+  send(CANCEL_EVENT, "queued");
+  old.resolve({ pass: true, detail: "ignored" });
+  await flush();
+  expect(harness.setup).toHaveBeenCalledTimes(1);
+  expect(harness.first).toHaveBeenCalledTimes(1);
+  send(TEST_EVENT, "next");
+  await flush();
+  expect(logs.at(-1)).toMatch(/next SUMMARY pass=2 fail=0 ticks=0 ms=\d+$/);
 });
 
 it("suppresses READY after cancellation during setup and retains request validation", async () => {
