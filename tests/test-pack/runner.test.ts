@@ -45,11 +45,11 @@ vi.mock("../../src/test-pack/catalog", () => ({
     {
       name: "player",
       ticks: 10,
-      needsPlayer: true,
       isolation: "lane",
       file: "x",
       vehicles: 0,
       features: [],
+      needsPlayer: true,
     },
   ],
 }));

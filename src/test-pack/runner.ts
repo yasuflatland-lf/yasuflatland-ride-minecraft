@@ -105,11 +105,11 @@ async function runAll(request: RunRequest, state: ActiveRun): Promise<void> {
   log(runId, READY);
 
   // A throw is a FAIL of that scenario only, so one lane never stops another.
-  const runScenario = async (
+  async function runScenario(
     arena: Arena,
     spec: ScenarioSpec,
     laneIndex: number,
-  ): Promise<void> => {
+  ): Promise<void> {
     const { name } = spec;
     const start = system.currentTick;
     let outcome: Outcome;
@@ -137,17 +137,17 @@ async function runAll(request: RunRequest, state: ActiveRun): Promise<void> {
       }),
     );
     for (const line of outcome.lines ?? []) log(runId, `${name} ${line}`);
-  };
-  const runLane = async (
+  }
+  async function runLane(
     arena: Arena,
     specs: readonly ScenarioSpec[],
     laneIndex: number,
-  ): Promise<void> => {
+  ): Promise<void> {
     for (const spec of specs) {
       if (state.cancelled) return;
       await runScenario(arena, spec, laneIndex);
     }
-  };
+  }
 
   await Promise.all(
     plan.lanes.map((specs, i) => {
