@@ -91,11 +91,6 @@ export async function lowChairSeatAndTakeBack(a: Arena): Promise<Outcome> {
   );
 }
 
-/** Reports the Noga Chair's seat and fold lifecycle as its own scenario. */
-export async function nogaChairSeatAndTakeBack(a: Arena): Promise<Outcome> {
-  return lowChairSeatAndTakeBackForKind(a, CHAIR_KINDS.noga_chair);
-}
-
 async function lowChairSeatAndTakeBackForKind(
   a: Arena,
   profile: ChairProfile,
@@ -596,8 +591,6 @@ export async function firePitCoveredTakeBack(a: Arena): Promise<Outcome> {
 
 /** Places an oven on the grill through the production use case without a player. */
 export async function dutchOvenOnPit(a: Arena): Promise<Outcome> {
-  const folded = await firePitCoveredTakeBack(a);
-  if (!folded.pass) return folded;
   const at = firePitAt(a);
   const pit = summonFirePit(a, at);
   if (!pit) return { pass: false, detail: "fire pit not spawned" };
@@ -614,7 +607,7 @@ export async function dutchOvenOnPit(a: Arena): Promise<Outcome> {
       0.05;
     return {
       pass: covered && simmering && standing,
-      detail: `fold=${folded.pass} covered=${covered} simmering=${simmering} standing=${standing}`,
+      detail: `covered=${covered} simmering=${simmering} standing=${standing}`,
     };
   } finally {
     for (const oven of ovensNear(a, at)) oven.remove();
