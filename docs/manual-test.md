@@ -481,6 +481,7 @@ Setup: use a Vibrant Visuals device at night, then repeat the legacy checks with
 | L16 | With Vibrant Visuals off, check that the SUV paint, fog lamps, and front strip look unchanged (tail lamps and third brake light: see L18), and repeat L6 for the SUV. | [ ] | [ ] |
 | L17 | Hover the SUV at night with Vibrant Visuals on and then off: the glow discs underneath still glow blue in both modes. | [ ] | [ ] |
 | L18 | Switch the SUV headlights on and off at night with Vibrant Visuals on and then off: both tail lamps' LED bars and clear reverse lamps and the third brake light glow only while the headlights are on. The lower red lens, housing frame, resin blocks, and bumper reflectors never glow. There is no separate brake or reverse lamp behavior. | [ ] | [ ] |
+| L19 | On PC and a touch client, sit in the SUV driver seat with Vibrant Visuals on and off: three gauges have the tachometer left and speedometer right, chrome rings, blended square corners, and no numerals or logos; the black grained leather rim has a plain hub. | [ ] | [ ] |
 
 ## Sports boat mirror (Vibrant Visuals)
 
