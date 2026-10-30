@@ -13,6 +13,11 @@ REGIONS = (RegionSpec("tach", 32, 32, "resin"), RegionSpec("fuel_temp", 24, 24, 
 TICKS_TACH = 9
 TICKS_SPEED = 11
 TICKS_FUEL_TEMP = 10
+TICK_COUNTS = {"tach": TICKS_TACH, "speed": TICKS_SPEED, "fuel_temp": TICKS_FUEL_TEMP}
+NEEDLE_ANGLES = {"tach": (145,), "speed": (35,), "fuel_temp": (150, 35)}
+NEEDLE_LENGTH = 0.29
+FACE_RGB = (12, 13, 14)
+DOT_RGB = (100, 100, 100)
 LCD_RECT = (11, 22, 20, 25)
 LCD_FILL = (30, 36, 33)
 LCD_FRAME = (6, 7, 7)
@@ -22,14 +27,22 @@ def inside(size, u, v):
     return (u + 0.5 - size / 2) ** 2 + (v + 0.5 - size / 2) ** 2 < (size / 2) ** 2
 
 
+def region_size(region):
+    return next(spec.w for spec in REGIONS if spec.name == region)
+
+
+def tick_angles(region, count):
+    if region == "fuel_temp":
+        return ([140 + i * 100 / (count // 2 - 1) for i in range(count // 2)] +
+                [300 + i * 100 / (count // 2 - 1) for i in range(count // 2)])
+    return [225 - i * 270 / (count - 1) for i in range(count)]
+
+
 @lru_cache(maxsize=None)
 def tick_marks(region):
-    size = next(spec.w for spec in REGIONS if spec.name == region)
-    count = {"tach": TICKS_TACH, "speed": TICKS_SPEED, "fuel_temp": TICKS_FUEL_TEMP}[region]
-    angles = ([140 + i * 100 / (count // 2 - 1) for i in range(count // 2)] +
-              [300 + i * 100 / (count // 2 - 1) for i in range(count // 2)]) if region == "fuel_temp" else [225 - i * 270 / (count - 1) for i in range(count)]
+    size = region_size(region)
     marks = []
-    for angle in angles:
+    for angle in tick_angles(region, TICK_COUNTS[region]):
         a = math.radians(angle)
         marks.append(frozenset((round((size - 1) / 2 + r * math.cos(a)), round((size - 1) / 2 - r * math.sin(a)))
                                for r in (size * 0.37, size * 0.41)))
@@ -49,22 +62,21 @@ def color(region, u, v, paint):
         base = palette.PALETTE["seat"]
         delta = 5 if (u * 3 + v * 5) % 7 == 0 else 0
         return (*(min(255, c + delta) for c in base), 255)
-    size = next(spec.w for spec in REGIONS if spec.name == region)
+    size = region_size(region)
     if not inside(size, u, v):
         grain = next(spec for spec in dash.REGIONS if spec.name == "grain")
         return dash.color("grain", u % grain.w, v % grain.h, paint)
     if any((u, v) in mark for mark in tick_marks(region)):
         return (*palette.PALETTE["gauge"], 255)
-    angles = (150, 35) if region == "fuel_temp" else ((145,) if region == "tach" else (35,))
-    if any(needle(size, u, v, angle, 0.29) for angle in angles):
+    if any(needle(size, u, v, angle, NEEDLE_LENGTH) for angle in NEEDLE_ANGLES[region]):
         return (*palette.PALETTE["gauge"], 255)
     left, top, right, bottom = LCD_RECT
     if region == "speed" and left <= u <= right and top <= v <= bottom:
         frame = u in (left, right) or v in (top, bottom)
         return (*(LCD_FRAME if frame else LCD_FILL), 255)
     if (u, v) in ((size // 2 - 3, size // 2 + 5), (size // 2 + 3, size // 2 + 5)):
-        return (100, 100, 100, 255)
-    return (12, 13, 14, 255)
+        return (*DOT_RGB, 255)
+    return (*FACE_RGB, 255)
 
 
 def mer(region, u, v, paint):
