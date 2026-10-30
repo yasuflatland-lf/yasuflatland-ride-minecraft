@@ -26,6 +26,7 @@ import {
   TEST_DUTCH_OVEN_HOST_EVENT,
   TEST_DUTCH_OVEN_ON_PIT_EVENT,
   TEST_DUTCH_OVEN_ON_TABLE_EVENT,
+  TEST_DUTCH_OVEN_SIMMER_EVENT,
 } from "../../../src/infrastructure/camp/identifiers";
 import { defined } from "../../support/defined";
 
@@ -73,8 +74,10 @@ function handlers() {
   const uncoverEmptyFirePits = vi.fn();
   const checkHostedItems = vi.fn();
   const toggle = vi.fn();
+  const toggleLid = vi.fn();
   registerDutchOven(
     {
+      toggleLid,
       placeOnFirePit,
       placeOnTable,
       uncoverEmptyFirePits,
@@ -102,6 +105,7 @@ function handlers() {
     uncoverEmptyFirePits,
     checkHostedItems,
     toggle,
+    toggleLid,
     press,
     flush,
   };
@@ -460,4 +464,87 @@ it("reads every oven hosted by this table, at its point or its legacy spot", () 
   table.isValid = false;
   expect(ovens.table("table")).toBeUndefined();
   expect(ovens.itemsOnTable("table")).toEqual([]);
+});
+
+it.each([
+  undefined,
+  "minecraft:stick",
+  DUTCH_OVEN_ITEM,
+  "yasu_ride:headlight_switch",
+])("cancels an oven press holding %s and defers the lid toggle", (held) => {
+  const { toggleLid, flush } = handlers();
+  const interact = defined(game.interact.mock.calls[0], "oven interaction")[0];
+  const event = {
+    cancel: false,
+    target: { id: "oven", typeId: DUTCH_OVEN_TYPE },
+    itemStack: held ? { typeId: held } : undefined,
+  };
+  interact(event);
+  expect(event.cancel).toBe(true);
+  expect(toggleLid).not.toHaveBeenCalled();
+  game.tick++;
+  event.target.id = "changed";
+  flush();
+  expect(toggleLid).toHaveBeenCalledExactlyOnceWith("oven", game.tick);
+});
+
+it("leaves unrelated entity presses alone", () => {
+  const { toggleLid, flush } = handlers();
+  const interact = defined(game.interact.mock.calls[0], "oven interaction")[0];
+  const event = { cancel: false, target: { typeId: "minecraft:pig" } };
+  interact(event);
+  flush();
+  expect(event.cancel).toBe(false);
+  expect(toggleLid).not.toHaveBeenCalled();
+});
+
+it("routes only server oven simmer events through the lid action", () => {
+  const { toggleLid } = handlers();
+  const script = defined(game.script.mock.calls[0], "oven script")[0];
+  game.entity.mockReturnValue({ id: "oven", typeId: DUTCH_OVEN_TYPE });
+  for (const sourceType of ["Entity", "Block"])
+    script({ id: TEST_DUTCH_OVEN_SIMMER_EVENT, message: "oven", sourceType });
+  expect(toggleLid).not.toHaveBeenCalled();
+  script({
+    id: TEST_DUTCH_OVEN_SIMMER_EVENT,
+    message: "oven",
+    sourceType: "Server",
+  });
+  expect(toggleLid).toHaveBeenCalledExactlyOnceWith("oven", game.tick);
+});
+
+it("reads the persisted lid property and writes it with sound without changing the host", () => {
+  let value = true;
+  const entity = {
+    isValid: true,
+    typeId: DUTCH_OVEN_TYPE,
+    location: { x: 1, y: 2, z: 3 },
+    dimension: { playSound: vi.fn() },
+    getProperty: vi.fn(() => value),
+    setProperty: vi.fn((_key: string, next: boolean) => {
+      value = next;
+    }),
+    setDynamicProperty: vi.fn(),
+    triggerEvent: vi.fn(),
+  };
+  game.entity.mockReturnValue(entity);
+  const world = new BedrockDutchOvenWorld({ isVehicleSpace: () => false });
+  const id = asDutchOvenId("oven");
+  expect(world.simmering(id)).toBe(true);
+  world.setSimmering(id, false);
+  expect(world.simmering(id)).toBe(false);
+  expect(entity.setProperty).toHaveBeenCalledExactlyOnceWith(
+    DUTCH_OVEN_SIMMERING_PROPERTY,
+    false,
+  );
+  expect(entity.dimension.playSound).toHaveBeenCalledExactlyOnceWith(
+    DUTCH_OVEN_SPEC.lidSound,
+    entity.location,
+  );
+  expect(entity.setDynamicProperty).not.toHaveBeenCalled();
+  expect(entity.triggerEvent).not.toHaveBeenCalled();
+  entity.isValid = false;
+  expect(world.simmering(id)).toBeUndefined();
+  world.setSimmering(id, true);
+  expect(entity.setProperty).toHaveBeenCalledTimes(1);
 });

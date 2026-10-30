@@ -7,8 +7,8 @@ export function asDutchOvenId(value: string): DutchOvenId {
   return value as DutchOvenId;
 }
 
-/** Simmering depends on the host, even when the fire is unlit (ADR 0168). */
-export function isSimmering(host: Host): boolean {
+/** The host sets only the initial lid state; later presses toggle it (ADR 0191). */
+export function initialSimmering(host: Host): boolean {
   return host.kind === "fire_pit";
 }
 

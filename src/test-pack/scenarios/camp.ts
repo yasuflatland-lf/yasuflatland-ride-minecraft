@@ -7,6 +7,7 @@ import {
   TABLE_SPOTS,
   TABLE_TOP_PX,
 } from "../../domain/camp/spec";
+import { LIGHT_SWITCH_COOLDOWN_TICKS } from "../../domain/shared/switchCooldown";
 import {
   CAMP_TABLE_ITEM,
   CAMP_TABLE_TYPE,
@@ -908,5 +909,49 @@ export async function gasLanternSwitch(a: Arena): Promise<Outcome> {
     a.dim.getBlock(cell)?.setType("minecraft:air");
     if (previousSupport)
       a.dim.getBlock(support)?.setPermutation(previousSupport);
+  }
+}
+
+/** A table oven starts with the lid on and a pit oven simmering; each toggle after the cooldown flips the lid (ADR 0191). */
+export async function dutchOvenLidToggle(a: Arena): Promise<Outcome> {
+  const tableAt = TABLE_AT(a);
+  const pitAt = firePitAt(a);
+  let table: Entity | undefined;
+  let pit: Entity | undefined;
+  try {
+    table = summonTable(a, tableAt);
+    pit = summonFirePit(a, pitAt);
+    if (!table || !pit) return { pass: false, detail: "hosts not spawned" };
+    system.sendScriptEvent(TEST_DUTCH_OVEN_ON_TABLE_EVENT, `${table.id} 0 0`);
+    system.sendScriptEvent(TEST_DUTCH_OVEN_ON_PIT_EVENT, pit.id);
+    await wait(4);
+    const tableOven = ovensNear(a, tableAt)[0];
+    const pitOven = ovensNear(a, pitAt)[0];
+    if (!tableOven || !pitOven)
+      return { pass: false, detail: "ovens not placed" };
+    const initial =
+      tableOven.getProperty(DUTCH_OVEN_SIMMERING_PROPERTY) === false &&
+      pitOven.getProperty(DUTCH_OVEN_SIMMERING_PROPERTY) === true;
+    system.sendScriptEvent(TEST_DUTCH_OVEN_SIMMER_EVENT, tableOven.id);
+    system.sendScriptEvent(TEST_DUTCH_OVEN_SIMMER_EVENT, pitOven.id);
+    await wait(2);
+    const flipped =
+      tableOven.getProperty(DUTCH_OVEN_SIMMERING_PROPERTY) === true &&
+      pitOven.getProperty(DUTCH_OVEN_SIMMERING_PROPERTY) === false;
+    await wait(LIGHT_SWITCH_COOLDOWN_TICKS);
+    system.sendScriptEvent(TEST_DUTCH_OVEN_SIMMER_EVENT, tableOven.id);
+    await wait(2);
+    const closed =
+      tableOven.getProperty(DUTCH_OVEN_SIMMERING_PROPERTY) === false;
+    const covered = pit.getProperty(FIRE_PIT_COVERED_PROPERTY) === true;
+    return {
+      pass: initial && flipped && closed && covered,
+      detail: `initial=${initial} flipped=${flipped} closed=${closed} covered=${covered}`,
+    };
+  } finally {
+    for (const at of [tableAt, pitAt])
+      for (const oven of ovensNear(a, at)) oven.remove();
+    if (table?.isValid) table.remove();
+    if (pit?.isValid) pit.remove();
   }
 }

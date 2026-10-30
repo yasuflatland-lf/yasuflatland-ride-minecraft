@@ -80,6 +80,22 @@ function overlaps(a: TopItem, b: TopItem): boolean {
   );
 }
 
+// Items placed by clamping often touch exactly along an edge, where the
+// interval form above and the rule's center-distance form round differently.
+// Touching is allowed, so a case within rounding of touching has no single
+// right answer and is skipped.
+const EDGE_EPSILON = 1e-9;
+function nearlyTouches(a: TopItem, b: TopItem): boolean {
+  const gap = (aAt: number, aHalf: number, bAt: number, bHalf: number) =>
+    Math.abs(aAt - bAt) - (aHalf + bHalf);
+  const gapX = gap(a.at.x, a.footprint.halfX, b.at.x, b.footprint.halfX);
+  const gapZ = gap(a.at.z, a.footprint.halfZ, b.at.z, b.footprint.halfZ);
+  return (
+    (Math.abs(gapX) < EDGE_EPSILON && gapZ < EDGE_EPSILON) ||
+    (Math.abs(gapZ) < EDGE_EPSILON && gapX < EDGE_EPSILON)
+  );
+}
+
 function clampInside(top: Footprint, shape: Footprint, aim: LocalPoint) {
   const limitTo = (value: number, half: number) =>
     Math.min(Math.max(value, -half), half);
@@ -94,6 +110,11 @@ it("keeps accepted footprints inside the top and clear of existing items", () =>
     fc.property(roomyCase, ({ top, shape, existing, aim, cap }) => {
       const result = placeOnTop(top, cap, existing, aim, shape);
       const at = clampInside(top, shape, aim);
+      fc.pre(
+        !existing.some((other) =>
+          nearlyTouches({ at, footprint: shape }, other),
+        ),
+      );
       const blocked = existing.some((other) =>
         overlaps({ at, footprint: shape }, other),
       );
