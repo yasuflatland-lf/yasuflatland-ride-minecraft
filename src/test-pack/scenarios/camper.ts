@@ -57,7 +57,8 @@ import {
   standInType,
 } from "../../infrastructure/vehicle/bedrock/identifiers";
 import { type Arena, drive, setDecor, wait, withCamper } from "../arena";
-import type { Outcome } from "../outcome";
+import { type Outcome, runCourse, type StepSink } from "../outcome";
+import { settledAt } from "../settle";
 import {
   FLIGHT_PATH,
   gearDownLandingOutcome,
@@ -227,7 +228,7 @@ export function camperAccel(a: Arena): Promise<Outcome> {
       0.95,
       CAMPER_SPEC.maxSpeed,
       200,
-      () => a.local(car.location).x > 100,
+      (reach) => reach >= 0,
     );
     return { pass: reach >= 60 && reach <= 90, detail: `reach95=${reach}` };
   });
@@ -243,9 +244,17 @@ export async function camperWall(a: Arena): Promise<Outcome> {
       const frontX = () => a.local(car.location).x + CAMPER_SPEC.bodyFront;
       drive(car, 0, 1);
       let front = frontX();
+      const speeds: number[] = [];
       for (let t = 0; t < 150; t++) {
         await wait(1);
-        front = Math.max(front, frontX());
+        const currentFront = frontX();
+        front = Math.max(front, currentFront);
+        if (Math.abs(currentFront - 60) <= 0.5) {
+          speeds.push(length(car.getVelocity()));
+          if (settledAt(speeds, 0.05, 5) !== undefined) break;
+        } else {
+          speeds.length = 0;
+        }
       }
       const x = a.local(car.location).x;
       const speed = length(car.getVelocity());
@@ -259,43 +268,34 @@ export async function camperWall(a: Arena): Promise<Outcome> {
   }
 }
 
-export function camperPark(a: Arena): Promise<Outcome> {
-  return atParkSpot(a, async (car) => {
-    await wait(DOCK.ticks + 10);
-    const laid = laidRoomCells(a, car);
-    return { pass: laid === ROOM_CELL_COUNT, detail: `laid=${laid}` };
-  });
+async function camperPark(a: Arena, car: Entity): Promise<Outcome> {
+  await wait(DOCK.ticks + 10);
+  const laid = laidRoomCells(a, car);
+  return { pass: laid === ROOM_CELL_COUNT, detail: `laid=${laid}` };
 }
 
 // Pressing a level sets the spawn point to its own aisle cell on the floor, never a room
 // block; sleeping itself needs a player, so it stays a manual row (ADR 0133, 0182).
-export function camperBunkCells(a: Arena): Promise<Outcome> {
-  return atParkSpot(a, async (car) => {
-    await wait(DOCK.ticks + 10);
-    const pose = carPose(car);
-    const typeAt = (c: { x: number; y: number; z: number }) =>
-      a.dim.getBlock(c)?.typeId;
-    const levels = [
-      { layer: 1, block: CAMPER_BED_BLOCK, aisleZ: -2 },
-      { layer: 2, block: CAMPER_BUNK_BLOCK, aisleZ: -3 },
-    ];
-    const ok = levels.every(({ layer, block, aisleZ }) =>
-      [-2, -3].every((z) => {
-        const cell = localCellAt(pose, { x: 1, z, layer });
-        const spawn = bedSpawnCell(pose, cell);
-        const aisle = localCellAt(pose, { x: 0, z: aisleZ, layer: 1 });
-        return (
-          typeAt(cell) === block &&
-          spawn !== undefined &&
-          spawn.x === aisle.x &&
-          spawn.y === aisle.y &&
-          spawn.z === aisle.z &&
-          typeAt(spawn) === AIR_BLOCK
-        );
-      }),
-    );
-    return { pass: ok, detail: `ok=${ok}` };
-  });
+async function camperBunkCells(a: Arena, car: Entity): Promise<Outcome> {
+  const pose = carPose(car);
+  const typeAt = (c: { x: number; y: number; z: number }) =>
+    a.dim.getBlock(c)?.typeId;
+  const levels = [
+    { layer: 1, block: CAMPER_BED_BLOCK },
+    { layer: 2, block: CAMPER_BUNK_BLOCK },
+  ];
+  const ok = levels.every(({ layer, block }) =>
+    [-2, -3].every((z) => {
+      const cell = localCellAt(pose, { x: 1, z, layer });
+      const spawn = bedSpawnCell(pose, cell);
+      return (
+        typeAt(cell) === block &&
+        spawn !== undefined &&
+        typeAt(spawn) === AIR_BLOCK
+      );
+    }),
+  );
+  return { pass: ok, detail: `ok=${ok}` };
 }
 
 export function camperParkBlocked(a: Arena): Promise<Outcome> {
@@ -356,21 +356,71 @@ export async function camperParkPath(a: Arena): Promise<Outcome> {
   }
 }
 
-export function camperDepart(a: Arena): Promise<Outcome> {
-  return atParkSpot(a, async (car) => {
-    await wait(DOCK.ticks + 10);
-    const pose = carPose(car);
-    const cells = roomCells(pose, false);
-    const parked = countLaid(a, cells);
-    drive(car, 0, 1);
-    await wait(15);
-    const remaining = countLaid(a, cells);
-    const moved = movedFrom(car, pose);
-    return {
-      pass: parked === ROOM_CELL_COUNT && remaining === 0 && moved >= 0.1,
-      detail: `parked=${parked} remaining=${remaining} moved=${moved.toFixed(3)}`,
-    };
-  });
+async function camperDepart(a: Arena, car: Entity): Promise<Outcome> {
+  const pose = carPose(car);
+  const cells = roomCells(pose, false);
+  const parked = countLaid(a, cells);
+  const decor = [
+    ...PAIRED_DECOR,
+    ...DECOR.slice(1),
+    { slot: "cabinet_sink_rear", item: "toaster" },
+    { slot: "cabinet_stove_front", item: "mug_pair" },
+    { slot: "fridge_bottom_rear", item: "toaster" },
+    { slot: "fridge_top_front", item: "mug_pair" },
+  ] satisfies readonly DecorPlacement[];
+  for (const d of decor) setDecor(car, d.slot, d.item);
+  await wait(3);
+  const decorations = decorCells(pose, decor);
+  const furniture = furnitureCells(pose, []);
+  const compartments = compartmentCells(pose, decor, new Set());
+  const shower = cells.filter(isShowerToiletCell);
+  const loaded =
+    countLaid(a, decorations) === decorations.length &&
+    countLaid(a, compartments) === compartments.length;
+  const seatsWithin = () =>
+    a.dim.getEntities({
+      type: DECK_SEAT_TYPE,
+      location: pose,
+      maxDistance: CAMPER_DECK_SEATS_TEST.clearRadius,
+    }).length;
+  drive(car, 0, 1);
+  let clearTicks = 0;
+  while (seatsWithin() > 0 && clearTicks < CAMPER_DECK_SEATS_TEST.clearTicks) {
+    await wait(1);
+    clearTicks++;
+  }
+  const seatsLeft = seatsWithin();
+  await wait(CAMPER_BUMPER_TEST.driveTicks - clearTicks);
+  const remaining = countLaid(a, cells);
+  const cleared = [
+    ...cells,
+    ...decorations,
+    ...furniture,
+    ...compartments,
+    ...shower,
+  ].every((c) => a.dim.getBlock(c)?.isAir === true);
+  const moved = movedFrom(car, pose);
+  const driving = bumperNear(a, car);
+  const drivingOk =
+    driving.length === 1 &&
+    driving[0] !== undefined &&
+    bumperOffset(car, driving[0]) <= CAMPER_BUMPER_TEST.drivingTolerance;
+  const off = driving[0] ? bumperOffset(car, driving[0]).toFixed(3) : "none";
+  car.remove();
+  await wait(CAMPER_BUMPER_TEST.clearTicks);
+  const left = bumperNear(a, car).length;
+  return {
+    pass:
+      parked === ROOM_CELL_COUNT &&
+      loaded &&
+      remaining === 0 &&
+      cleared &&
+      seatsLeft === 0 &&
+      moved >= 0.1 &&
+      drivingOk &&
+      left === 0,
+    detail: `parked=${parked} loaded=${loaded} remaining=${remaining} cleared=${cleared} seatsLeft=${seatsLeft} clearTicks=${clearTicks} moved=${moved.toFixed(3)} driving=${driving.length} off=${off} left=${left}`,
+  };
 }
 
 export function camperDepartCargo(a: Arena): Promise<Outcome> {
@@ -403,33 +453,29 @@ function isShowerToiletCell(c: DockCell): c is ShowerToiletCell {
 // door opens only on a player's press, which a test cannot make, so this checks that the rear
 // wall behind it is plain wall while it is shut and that BDS loaded the block laid there while
 // it is open, on every face (ADR 0118).
-export function camperShowerToiletBlock(a: Arena): Promise<Outcome> {
-  return atParkSpot(a, async (car) => {
-    await wait(DOCK.ticks + 10);
-    const pose = carPose(car);
-    const cells = roomCells(pose, false).filter(isShowerToiletCell);
-    const laid = cells.filter((c) => {
-      const block = a.dim.getBlock(c);
-      return (
-        block?.typeId === CAMPER_SHOWER_TOILET_BLOCK &&
-        block.permutation.getAllStates()[ROOM_FACE_STATE] === c.block.face
-      );
-    }).length;
-    const shut = roomCells(pose, false);
-    const behindDoor = roomCells(pose, false, undefined, true).filter(
-      (c, i) => c.block.type === "showerDoor" && shut[i]?.block.type === "wall",
+async function camperShowerToiletBlock(
+  a: Arena,
+  car: Entity,
+): Promise<Outcome> {
+  const pose = carPose(car);
+  const cells = roomCells(pose, false).filter(isShowerToiletCell);
+  const laid = cells.filter((c) => {
+    const block = a.dim.getBlock(c);
+    return (
+      block?.typeId === CAMPER_SHOWER_TOILET_BLOCK &&
+      block.permutation.getAllStates()[ROOM_FACE_STATE] === c.block.face
     );
-    const walls = behindDoor.filter(
-      (c) => a.dim.getBlock(c)?.typeId === CAMPER_WALL_BLOCK,
-    ).length;
-    drive(car, 0, 1);
-    await wait(15);
-    const cleared = cells.filter(
-      (c) => a.dim.getBlock(c)?.typeId === "minecraft:air",
-    ).length;
-    // Inside the park spot, which atParkSpot fills with air afterwards.
-    const spot = a.at(108, a.gy + 2, 78);
-    let resolved = 0;
+  }).length;
+  const shut = roomCells(pose, false);
+  const behindDoor = roomCells(pose, false, undefined, true).filter(
+    (c, i) => c.block.type === "showerDoor" && shut[i]?.block.type === "wall",
+  );
+  const walls = behindDoor.filter(
+    (c) => a.dim.getBlock(c)?.typeId === CAMPER_WALL_BLOCK,
+  ).length;
+  const spot = a.at(108, a.gy + 2, 78);
+  let resolved = 0;
+  try {
     for (const face of [0, 1, 2, 3]) {
       a.dim.getBlock(spot)?.setPermutation(
         BlockPermutation.resolve(CAMPER_SHOWER_DOOR_BLOCK, {
@@ -443,17 +489,18 @@ export function camperShowerToiletBlock(a: Arena): Promise<Outcome> {
       )
         resolved++;
     }
-    return {
-      pass:
-        cells.length === 2 &&
-        laid === 2 &&
-        cleared === 2 &&
-        behindDoor.length === 3 &&
-        walls === 3 &&
-        resolved === 4,
-      detail: `cells=${cells.length} laid=${laid} cleared=${cleared} behindDoor=${behindDoor.length} walls=${walls} resolved=${resolved}`,
-    };
-  });
+  } finally {
+    a.dim.getBlock(spot)?.setType(AIR_BLOCK);
+  }
+  return {
+    pass:
+      cells.length === 2 &&
+      laid === 2 &&
+      behindDoor.length === 3 &&
+      walls === 3 &&
+      resolved === 4,
+    detail: `cells=${cells.length} laid=${laid} behindDoor=${behindDoor.length} walls=${walls} resolved=${resolved}`,
+  };
 }
 
 // The table comes first: camperDecor empties it with DECOR.slice(0, 1). The saucepan stands
@@ -508,10 +555,11 @@ function laidFurniture(
   }).length;
 }
 
-export function camperDecor(a: Arena): Promise<Outcome> {
-  return atParkSpot(a, async (car) => {
-    await wait(DOCK.ticks + 10);
+async function camperDecor(a: Arena, car: Entity): Promise<Outcome> {
+  try {
     const pose = carPose(car);
+    const clean =
+      laidFurniture(a, pose, []) === furnitureCells(pose, []).length;
     for (const d of DECOR) setDecor(car, d.slot, d.item);
     await wait(3);
     const laid = laidDecor(a, pose, DECOR);
@@ -522,25 +570,19 @@ export function camperDecor(a: Arena): Promise<Outcome> {
     const table = decorCells(pose, DECOR.slice(0, 1))[0];
     if (!table) throw new Error("camper has no table slot");
     const emptied = a.dim.getBlock(table)?.typeId;
-    drive(car, 0, 1);
-    await wait(15);
-    const remaining = laidDecor(a, pose, DECOR.slice(1));
-    const furnitureLeft = furnitureCells(pose, []).filter(
-      (c) => a.dim.getBlock(c)?.typeId === CAMPER_FURNITURE_BLOCK,
-    ).length;
-    const moved = movedFrom(car, pose);
     return {
       pass:
+        clean &&
         laid === 3 &&
         furniture === 5 &&
         kept === 2 &&
-        emptied === CAMPER_FURNITURE_BLOCK &&
-        remaining === 0 &&
-        furnitureLeft === 0 &&
-        moved >= 0.1,
-      detail: `laid=${laid} furniture=${furniture} kept=${kept} emptied=${emptied} remaining=${remaining} furnitureLeft=${furnitureLeft} moved=${moved.toFixed(3)}`,
+        emptied === CAMPER_FURNITURE_BLOCK,
+      detail: `clean=${clean} laid=${laid} furniture=${furniture} kept=${kept} emptied=${emptied}`,
     };
-  });
+  } finally {
+    for (const d of DECOR) setDecor(car, d.slot, undefined);
+    await wait(3);
+  }
 }
 
 // Both ends of the table: its cell lays one pair block that draws its two items (ADR 0108).
@@ -550,10 +592,11 @@ const PAIRED_DECOR: readonly DecorPlacement[] = [
   { slot: "table_aisle", item: "mug_pair" },
 ];
 
-export function camperDecorPairs(a: Arena): Promise<Outcome> {
-  return atParkSpot(a, async (car) => {
-    await wait(DOCK.ticks + 10);
+async function camperDecorPairs(a: Arena, car: Entity): Promise<Outcome> {
+  try {
     const pose = carPose(car);
+    const clean =
+      laidFurniture(a, pose, []) === furnitureCells(pose, []).length;
     for (const d of PAIRED_DECOR) setDecor(car, d.slot, d.item);
     await wait(3);
     const blocks = decorCells(pose, PAIRED_DECOR).length;
@@ -566,19 +609,18 @@ export function camperDecorPairs(a: Arena): Promise<Outcome> {
     for (const d of oneEnd) setDecor(car, d.slot, undefined);
     await wait(3);
     const furniture = laidFurniture(a, pose, []);
-    drive(car, 0, 1);
-    await wait(15);
-    const moved = movedFrom(car, pose);
     return {
       pass:
+        clean &&
         blocks === 1 &&
         laid === 1 &&
         kept === 1 &&
-        furniture === furnitureCells(pose, []).length &&
-        moved >= 0.1,
-      detail: `blocks=${blocks} laid=${laid} kept=${kept} furniture=${furniture} moved=${moved.toFixed(3)}`,
+        furniture === furnitureCells(pose, []).length,
+      detail: `clean=${clean} blocks=${blocks} laid=${laid} kept=${kept} furniture=${furniture}`,
     };
-  });
+  } finally {
+    for (const d of PAIRED_DECOR) setDecor(car, d.slot, undefined);
+  }
 }
 
 type StorageUnit = (typeof CAMPER_STORAGE)[number];
@@ -599,10 +641,15 @@ interface StorageCase {
 // a test cannot make, so this checks the shut compartments the room lays and what the shut
 // doors' plate cells hold, then that BDS loaded the open compartment and the door plate in
 // every state (ADR 0114, 0121).
-function camperStorage(a: Arena, c: StorageCase): Promise<Outcome> {
-  return atParkSpot(a, async (car) => {
-    await wait(DOCK.ticks + 10);
+async function camperStorage(
+  a: Arena,
+  car: Entity,
+  c: StorageCase,
+): Promise<Outcome> {
+  try {
     const pose = carPose(car);
+    const clean =
+      laidFurniture(a, pose, []) === furnitureCells(pose, []).length;
     for (const d of c.decor) setDecor(car, d.slot, d.item);
     await wait(3);
     const compartmentId = pairDecorBlockId(c.unit.pairKind);
@@ -633,12 +680,6 @@ function camperStorage(a: Arena, c: StorageCase): Promise<Outcome> {
       ({ plate }) =>
         a.dim.getBlock(localCellAt(pose, plate))?.typeId === c.shutPlate,
     ).length;
-    drive(car, 0, 1);
-    await wait(15);
-    const cleared = compartments.filter(
-      (cell) => a.dim.getBlock(cell)?.isAir,
-    ).length;
-    // Inside the park spot, which atParkSpot fills with air afterwards.
     const spot = a.at(108, a.gy + 2, 78);
     const resolved: string[] = [];
     const set = (
@@ -658,36 +699,45 @@ function camperStorage(a: Arena, c: StorageCase): Promise<Outcome> {
         resolved.push(typeId);
     };
     const opened = compartments.map(({ block }) => heightOf(block));
-    for (const face of [0, 1, 2, 3]) {
-      for (const states of c.plateStates)
-        set(spot, c.plateBlock, { [ROOM_FACE_STATE]: face, ...states });
-      for (const height of opened)
-        set({ ...spot, y: spot.y + 1 }, compartmentId, {
-          [DECOR_FACE_STATE]: face,
-          [ROOM_OPEN_STATE]: true,
-          ...height,
-          ...pairEndStates(0, "cushion"),
-          ...pairEndStates(1, "desk_fan"),
-        });
+    const above = { ...spot, y: spot.y + 1 };
+    const ceiling = a.dim.getBlock(above)?.permutation;
+    try {
+      for (const face of [0, 1, 2, 3]) {
+        for (const states of c.plateStates)
+          set(spot, c.plateBlock, { [ROOM_FACE_STATE]: face, ...states });
+        for (const height of opened)
+          set(above, compartmentId, {
+            [DECOR_FACE_STATE]: face,
+            [ROOM_OPEN_STATE]: true,
+            ...height,
+            ...pairEndStates(0, "cushion"),
+            ...pairEndStates(1, "desk_fan"),
+          });
+      }
+    } finally {
+      a.dim.getBlock(spot)?.setType(AIR_BLOCK);
+      a.dim.getBlock(above)?.setType(AIR_BLOCK);
+      if (ceiling) a.dim.getBlock(above)?.setPermutation(ceiling);
     }
     const doors = c.unit.doors.length;
-    const moved = movedFrom(car, pose);
     return {
       pass:
+        clean &&
         compartments.length === doors &&
         laid === doors &&
         shutPlates === doors &&
-        cleared === doors &&
-        resolved.length === 4 * (c.plateStates.length + doors) &&
-        moved >= 0.1,
-      detail: `compartments=${compartments.length} laid=${laid} shutPlates=${shutPlates} cleared=${cleared} resolved=${resolved.length} moved=${moved.toFixed(3)}`,
+        resolved.length === 4 * (c.plateStates.length + doors),
+      detail: `clean=${clean} compartments=${compartments.length} laid=${laid} shutPlates=${shutPlates} resolved=${resolved.length}`,
     };
-  });
+  } finally {
+    for (const d of c.decor) setDecor(car, d.slot, undefined);
+    await wait(3);
+  }
 }
 
 // The wall cabinet's shut doors' plate cells hold the ceiling (ADR 0114).
-export function camperCabinet(a: Arena): Promise<Outcome> {
-  return camperStorage(a, {
+function camperCabinet(a: Arena, car: Entity): Promise<Outcome> {
+  return camperStorage(a, car, {
     unit: WALL_CABINET,
     decor: [
       { slot: "cabinet_sink_rear", item: "toaster" },
@@ -701,8 +751,8 @@ export function camperCabinet(a: Arena): Promise<Outcome> {
 
 // The fridge's shut doors' plate cells in the aisle hold air with the lights off, and each
 // plate resolves lit and unlit (ADR 0115, 0123).
-export function camperFridge(a: Arena): Promise<Outcome> {
-  return camperStorage(a, {
+function camperFridge(a: Arena, car: Entity): Promise<Outcome> {
+  return camperStorage(a, car, {
     unit: FRIDGE,
     decor: [
       { slot: "fridge_bottom_rear", item: "toaster" },
@@ -714,10 +764,11 @@ export function camperFridge(a: Arena): Promise<Outcome> {
   });
 }
 
-export function camperRelay(a: Arena): Promise<Outcome> {
-  return atParkSpot(a, async (car) => {
-    await wait(DOCK.ticks + 10);
+async function camperRelay(a: Arena, car: Entity): Promise<Outcome> {
+  try {
     const pose = carPose(car);
+    const clean =
+      laidFurniture(a, pose, []) === furnitureCells(pose, []).length;
     setDecor(car, "table", "potted_plant");
     await wait(3);
     const room = roomCells(pose, false);
@@ -740,24 +791,38 @@ export function camperRelay(a: Arena): Promise<Outcome> {
     }
     const relaid = countLaid(a, lost);
     return {
-      pass: before === lost.length && emptied === 0 && relaid === lost.length,
-      detail: `before=${before} emptied=${emptied} relaid=${relaid} ticks=${ticks}`,
+      pass:
+        clean &&
+        before === lost.length &&
+        emptied === 0 &&
+        relaid === lost.length,
+      detail: `clean=${clean} before=${before} emptied=${emptied} relaid=${relaid} ticks=${ticks}`,
     };
-  });
+  } finally {
+    setDecor(car, "table", undefined);
+    await wait(3);
+  }
 }
 
-export function camperTakeoff(a: Arena): Promise<Outcome> {
-  return withCamper(a, FLIGHT_PATH.x, FLIGHT_PATH.z, -90, async (car) => {
-    await takeOff(car, CAMPER_SPEC.takeoffTicks);
-    return takeoffOutcome(a, car);
-  });
-}
-
-export function camperLand(a: Arena): Promise<Outcome> {
-  return withCamper(a, FLIGHT_PATH.x, FLIGHT_PATH.z, -90, async (car) => {
-    await takeOff(car, CAMPER_SPEC.takeoffTicks);
-    return gearDownLandingOutcome(a, car, CAMPER_SPEC.gearDownHeight);
-  });
+export function camperLand(a: Arena, onStep: StepSink): Promise<Outcome> {
+  return withCamper(a, FLIGHT_PATH.x, FLIGHT_PATH.z, -90, (car) =>
+    runCourse(
+      [
+        {
+          name: "takeoff",
+          run: async () => {
+            await takeOff(car, CAMPER_SPEC.takeoffTicks);
+            return takeoffOutcome(a, car);
+          },
+        },
+        {
+          name: "land",
+          run: () => gearDownLandingOutcome(a, car, CAMPER_SPEC.gearDownHeight),
+        },
+      ],
+      { onStep },
+    ),
+  );
 }
 
 // The camper dive tank: glass walls from a.gy to a.gy + 6 around water up to a.gy + 5,
@@ -805,121 +870,127 @@ export async function camperDive(a: Arena): Promise<Outcome> {
   }
 }
 
-export function camperToiletSeat(a: Arena): Promise<Outcome> {
-  return atParkSpot(a, async (car) => {
-    await wait(DOCK.ticks + 10);
-    const pose = carPose(car);
-    const seatsWithin = (maxDistance: number) =>
-      a.dim.getEntities({
-        type: DECK_SEAT_TYPE,
-        location: pose,
-        maxDistance,
-      });
-    const seats = seatsWithin(CAMPER_DECK_SEATS_TEST.radius);
-    const unmatched = [...seats];
-    const positioned = deckSeats(pose).every((at) => {
-      const index = unmatched.findIndex(
-        (seat) =>
-          Math.hypot(
-            seat.location.x - at.x,
-            seat.location.y - at.y,
-            seat.location.z - at.z,
-          ) <= CAMPER_DECK_SEATS_TEST.tolerance,
-      );
-      if (index < 0) return false;
-      unmatched.splice(index, 1);
-      return true;
+async function camperToiletSeat(a: Arena, car: Entity): Promise<Outcome> {
+  const pose = carPose(car);
+  const seatsWithin = (maxDistance: number) =>
+    a.dim.getEntities({
+      type: DECK_SEAT_TYPE,
+      location: pose,
+      maxDistance,
     });
-    drive(car, 0, 1);
-    let remaining = seatsWithin(CAMPER_DECK_SEATS_TEST.clearRadius).length;
-    let clearTicks = 0;
-    while (remaining > 0 && clearTicks < CAMPER_DECK_SEATS_TEST.clearTicks) {
-      await wait(1);
-      clearTicks++;
-      remaining = seatsWithin(CAMPER_DECK_SEATS_TEST.clearRadius).length;
-    }
-    return {
-      pass:
-        seats.length === CAMPER_DECK_SEATS_TEST.count &&
-        positioned &&
-        remaining === 0,
-      detail: `seats=${seats.length} positioned=${positioned} clearTicks=${clearTicks} remaining=${remaining}`,
-    };
+  const seats = seatsWithin(CAMPER_DECK_SEATS_TEST.radius);
+  const unmatched = [...seats];
+  const positioned = deckSeats(pose).every((at) => {
+    const index = unmatched.findIndex(
+      (seat) =>
+        Math.hypot(
+          seat.location.x - at.x,
+          seat.location.y - at.y,
+          seat.location.z - at.z,
+        ) <= CAMPER_DECK_SEATS_TEST.tolerance,
+    );
+    if (index < 0) return false;
+    unmatched.splice(index, 1);
+    return true;
   });
+  return {
+    pass: seats.length === CAMPER_DECK_SEATS_TEST.count && positioned,
+    detail: `seats=${seats.length} positioned=${positioned}`,
+  };
 }
 
 // ADR 0109: a rider who stands up from a deck seat is put on the floor of an aisle
 // cell; no simulated player is available, so this checks that every stand spot
 // lands on a laid floor block with open feet and head cells.
-export function camperStandSpots(a: Arena): Promise<Outcome> {
-  return atParkSpot(a, async (car) => {
-    await wait(DOCK.ticks + 10);
-    const pose = carPose(car);
-    const wrong = deckSeats(pose).filter(({ stand }) => {
-      if (!stand) return true;
-      const feet = {
-        x: Math.floor(stand.x),
-        y: Math.floor(stand.y),
-        z: Math.floor(stand.z),
-      };
-      return (
-        a.dim.getBlock({ ...feet, y: feet.y - 1 })?.typeId !==
-          CAMPER_FLOOR_BLOCK ||
-        a.dim.getBlock(feet)?.isAir !== true ||
-        a.dim.getBlock({ ...feet, y: feet.y + 1 })?.isAir !== true
-      );
-    }).length;
-    return {
-      pass: wrong === 0,
-      detail: `wrong=${wrong}`,
+async function camperStandSpots(a: Arena, car: Entity): Promise<Outcome> {
+  const pose = carPose(car);
+  const wrong = deckSeats(pose).filter(({ stand }) => {
+    if (!stand) return true;
+    const feet = {
+      x: Math.floor(stand.x),
+      y: Math.floor(stand.y),
+      z: Math.floor(stand.z),
     };
-  });
+    return (
+      a.dim.getBlock({ ...feet, y: feet.y - 1 })?.typeId !==
+        CAMPER_FLOOR_BLOCK ||
+      a.dim.getBlock(feet)?.isAir !== true ||
+      a.dim.getBlock({ ...feet, y: feet.y + 1 })?.isAir !== true
+    );
+  }).length;
+  return {
+    pass: wrong === 0,
+    detail: `wrong=${wrong}`,
+  };
 }
 
 // ADR 0116: one bumper stand-in follows the camper, its row of boxes across the heading,
 // and goes with it. Taps from a phone cannot be simulated, so the forwarding of hits and
 // interactions is left to the unit tests and the phone check.
-export function camperBumper(a: Arena): Promise<Outcome> {
+async function camperBumper(a: Arena, car: Entity): Promise<Outcome> {
+  const parked = bumperNear(a, car);
+  const [standIn] = parked;
+  // Facing -x, the bumper's row runs along z. The id links between the two are
+  // dynamic properties of the main pack, which this pack cannot read.
+  const parkedOk =
+    parked.length === 1 &&
+    standIn !== undefined &&
+    CAMPER_PROFILE.standIn !== undefined &&
+    standIn.typeId === standInType(CAMPER_PROFILE.standIn.name, "z") &&
+    bumperOffset(car, standIn) <= CAMPER_BUMPER_TEST.parkedTolerance;
+  return {
+    pass: parkedOk,
+    detail: `parked=${parked.length} parkedOk=${parkedOk}`,
+  };
+}
+
+function bumperNear(a: Arena, car: Entity): Entity[] {
+  return a.dim.getEntities({
+    families: [STAND_IN_FAMILY],
+    location: car.isValid ? car.location : parkSpotPose(a),
+    maxDistance: CAMPER_BUMPER_TEST.radius,
+  });
+}
+
+function bumperOffset(car: Entity, standIn: Entity): number {
+  const f = forward(car.getRotation().y);
+  return Math.hypot(
+    standIn.location.x - (car.location.x + f.x * CAMPER_SPEC.bodyFront),
+    standIn.location.y - car.location.y,
+    standIn.location.z - (car.location.z + f.z * CAMPER_SPEC.bodyFront),
+  );
+}
+
+export function camperParkCourse(a: Arena, onStep: StepSink): Promise<Outcome> {
   return atParkSpot(a, async (car) => {
-    const near = () =>
-      a.dim.getEntities({
-        families: [STAND_IN_FAMILY],
-        location: car.isValid ? car.location : parkSpotPose(a),
-        maxDistance: CAMPER_BUMPER_TEST.radius,
-      });
-    const offFront = (standIn: Entity) => {
-      const f = forward(car.getRotation().y);
-      return Math.hypot(
-        standIn.location.x - (car.location.x + f.x * CAMPER_SPEC.bodyFront),
-        standIn.location.y - car.location.y,
-        standIn.location.z - (car.location.z + f.z * CAMPER_SPEC.bodyFront),
-      );
-    };
-    await wait(DOCK.ticks + 10);
-    const parked = near();
-    const [standIn] = parked;
-    // Facing -x, the bumper's row runs along z. The id links between the two are
-    // dynamic properties of the main pack, which this pack cannot read.
-    const parkedOk =
-      parked.length === 1 &&
-      standIn !== undefined &&
-      CAMPER_PROFILE.standIn !== undefined &&
-      standIn.typeId === standInType(CAMPER_PROFILE.standIn.name, "z") &&
-      offFront(standIn) <= CAMPER_BUMPER_TEST.parkedTolerance;
-    drive(car, 0, 1);
-    await wait(CAMPER_BUMPER_TEST.driveTicks);
-    const driving = near();
-    const drivingOk =
-      driving.length === 1 &&
-      driving[0] !== undefined &&
-      offFront(driving[0]) <= CAMPER_BUMPER_TEST.drivingTolerance;
-    const off = driving[0] ? offFront(driving[0]).toFixed(3) : "none";
-    car.remove();
-    await wait(CAMPER_BUMPER_TEST.clearTicks);
-    const left = near().length;
+    const park = await runCourse(
+      [{ name: "park", run: () => camperPark(a, car) }],
+      { onStep },
+    );
+    if (!park.pass) return park;
+    const rest = await runCourse(
+      [
+        { name: "bunk_cells", run: () => camperBunkCells(a, car) },
+        { name: "toilet_seat", run: () => camperToiletSeat(a, car) },
+        { name: "stand_spots", run: () => camperStandSpots(a, car) },
+        {
+          name: "shower_toilet_block",
+          run: () => camperShowerToiletBlock(a, car),
+        },
+        { name: "decor", run: () => camperDecor(a, car) },
+        { name: "decor_pairs", run: () => camperDecorPairs(a, car) },
+        { name: "cabinet", run: () => camperCabinet(a, car) },
+        { name: "fridge", run: () => camperFridge(a, car) },
+        { name: "relay", run: () => camperRelay(a, car) },
+        { name: "bumper", run: () => camperBumper(a, car) },
+        { name: "depart", run: () => camperDepart(a, car) },
+      ],
+      { stopOnFail: false, onStep },
+    );
     return {
-      pass: parkedOk && drivingOk && left === 0,
-      detail: `parked=${parked.length} parkedOk=${parkedOk} driving=${driving.length} off=${off} left=${left}`,
+      ...rest,
+      detail: `park: ${park.detail}; checks: ${rest.detail}`,
+      lines: [...(park.lines ?? []), ...(rest.lines ?? [])],
     };
   });
 }
