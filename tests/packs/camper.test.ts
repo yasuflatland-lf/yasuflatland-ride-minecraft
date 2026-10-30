@@ -1,5 +1,5 @@
+import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
-import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 import { PAINTS } from "../../src/domain/shared/paint";
 import { SLEEP_MESSAGES } from "../../src/domain/shared/sleep";
@@ -17,6 +17,7 @@ import {
   SEAT_FILLER_FAMILY,
 } from "../../src/infrastructure/vehicle/bedrock/identifiers";
 import { defined } from "../support/defined";
+import { readRgbaPng } from "../support/png";
 import { assertOneAxis, multipleAxes } from "./oneAxis";
 
 const RP = "packs/yasu_ride_rp";
@@ -47,36 +48,7 @@ const bone = (name: string) => {
   return found as Bone;
 };
 
-// The generator writes unfiltered 8-bit RGBA rows, as the preview generator does for icons.
-function readPng(path: string) {
-  const png = readFileSync(`${RP}/${path}.png`);
-  expect(png.subarray(0, 8)).toEqual(
-    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
-  );
-  const width = png.readUInt32BE(16);
-  const height = png.readUInt32BE(20);
-  expect(png[24]).toBe(8);
-  expect(png[25]).toBe(6);
-  const idat: Buffer[] = [];
-  for (let pos = 8; pos < png.length; ) {
-    const length = png.readUInt32BE(pos);
-    if (png.toString("ascii", pos + 4, pos + 8) === "IDAT") {
-      idat.push(png.subarray(pos + 8, pos + 8 + length));
-    }
-    pos += length + 12;
-  }
-  const raw = inflateSync(Buffer.concat(idat));
-  const stride = width * 4;
-  expect(raw.length).toBe(height * (stride + 1));
-  const pixels = Buffer.concat(
-    Array.from({ length: height }, (_, y) => {
-      const start = y * (stride + 1);
-      expect(raw[start]).toBe(0);
-      return raw.subarray(start + 1, start + 1 + stride);
-    }),
-  );
-  return { width, height, pixels };
-}
+const readPng = (path: string) => readRgbaPng(`${RP}/${path}.png`);
 
 describe("camper model assets (ADR 0067)", () => {
   it("allows compound rotations only in declared assemblies (ADR 0167)", () => {
@@ -763,7 +735,7 @@ describe("camper model assets (ADR 0067)", () => {
       expect(corner[1] ?? 0).toBeLessThan(consoleBottom);
   });
 
-  it("generates all 16 equally sized paints, changing only the three accent swatches", () => {
+  it("generates all 16 equally sized paints, changing only the three accent swatches and no region texel", () => {
     const files = readdirSync(`${RP}/textures/entity/yasu_ride`).filter(
       (name) =>
         /^camper(?:_\w+)?\.png$/.test(name) && !name.startsWith("camper_lit"),
@@ -785,10 +757,19 @@ describe("camper model assets (ADR 0067)", () => {
         // The PALETTE order in tools/gen_camper.py puts tan, khaki, and stripe
         // in slots 3, 4, and 6.
         if ([3, 4, 6].includes(i)) continue;
-        expect(texture.pixels.subarray(i * 4, i * 4 + 4), paint).toEqual(
-          khaki.pixels.subarray(i * 4, i * 4 + 4),
-        );
+        expect(
+          texture.pixels
+            .subarray(i * 4, i * 4 + 4)
+            .equals(khaki.pixels.subarray(i * 4, i * 4 + 4)),
+          `${paint} slot ${i}`,
+        ).toBe(true);
       }
+      expect(
+        texture.pixels
+          .subarray(khaki.width * 4)
+          .equals(khaki.pixels.subarray(khaki.width * 4)),
+        paint,
+      ).toBe(true);
     }
   });
 
@@ -1944,5 +1925,58 @@ describe("camper rear-right vent lid (ADR 0146, 0157)", () => {
     const latch = steel.filter((c) => (c.size[2] ?? 0) > 1);
     expect(latch).toHaveLength(1);
     expect(end(latch[0] as Cube, 1)).toBeLessThan(40);
+  });
+});
+
+describe("camper rib atlas (ADR 0190)", () => {
+  it("allocates only the rib region below the swatches and shades its rows alternately", () => {
+    const { width, height, regions, period, texelsPerPx } = JSON.parse(
+      execFileSync(
+        "python3",
+        [
+          "-I",
+          "-c",
+          [
+            "import contextlib, io, json, runpy, sys",
+            "sys.argv = ['tools/gen_camper.py', 'packs/yasu_ride_rp', '--check']",
+            "with contextlib.redirect_stdout(io.StringIO()):",
+            "    camper = runpy.run_path('tools/gen_camper.py')",
+            "atlas = camper['ATLAS']",
+            "print(json.dumps(dict(width=atlas.width, height=atlas.height, regions=atlas.regions, period=camper['RIB_PERIOD_TEXELS'], texelsPerPx=camper['RIB_TEXELS_PER_PX'])))",
+          ].join("\n"),
+        ],
+        { encoding: "utf8" },
+      ),
+    ) as {
+      width: number;
+      height: number;
+      regions: [[string, number, number, number, number]];
+      period: number;
+      texelsPerPx: number;
+    };
+    expect([width, height]).toEqual([
+      geometry.description.texture_width,
+      geometry.description.texture_height,
+    ]);
+    expect(period).toBe(2);
+    expect(texelsPerPx).toBe(2);
+    expect(regions).toEqual([["rib", 0, 1, 8, 64 * texelsPerPx]]);
+    const [[, x, y, w, h]] = regions;
+    const texture = readPng("textures/entity/yasu_ride/camper");
+    const shell = [...texture.pixels.subarray(0, 3)];
+    for (let dy = 0; dy < h; dy++) {
+      const phase = dy % period;
+      const factor = phase === 0 ? 0.93 : phase === 1 ? 1.05 : 1;
+      const expected = [
+        ...shell.map((c) => Math.min(255, Math.floor(c * factor + 0.5))),
+        255,
+      ];
+      for (let dx = 0; dx < w; dx++) {
+        const offset = ((y + dy) * width + x + dx) * 4;
+        expect([...texture.pixels.subarray(offset, offset + 4)]).toEqual(
+          expected,
+        );
+      }
+    }
   });
 });

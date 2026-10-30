@@ -273,7 +273,7 @@ describe("camper atlas", () => {
       Object.fromEntries(
         ["north", "south", "east", "west", "up", "down"].map((side) => [
           side,
-          { uv: [14, 2], uv_size: [1, 1] },
+          { uv: [14, 130], uv_size: [1, 1] },
         ]),
       ),
       true,
