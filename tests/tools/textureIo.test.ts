@@ -31,7 +31,9 @@ with tempfile.TemporaryDirectory() as d:
 `;
   expect(
     execFileSync("python3", ["-I", "-c", script], { encoding: "utf8" }).trim(),
-  ).toBe("Stale:\nDIR/a.json\nDIR/a.png\nDIR/missing.json");
+  ).toMatch(
+    /^Stale:\nDIR\/a\.json\nDIR\/a\.png\nDIR\/missing\.json \(.*No such file.*\)$/,
+  );
 });
 
 it("accepts one relief variant and preserves texture sets without relief", () => {
