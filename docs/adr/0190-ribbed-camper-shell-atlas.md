@@ -20,7 +20,7 @@ The panel shell design in issue #954 calls for horizontal ribs, metal edges, and
 - Retain the opaque shell and separate alpha-blended glass bones of 0091. The atlas lifts the one-row texture limit that Proposed ADR 0157 worked around, without changing the lid.
 - The atlas was introduced before mapping cubes to its regions in issue #956. The completed shell maps side walls and door hardware and adds trim and roof-edge bolts as the remaining parts of #954.
 
-The rails from #964 were removed at the owner's request in [issue #970](https://github.com/yasuflatland-lf/yasuflatland-ride-minecraft/issues/970) and the pull request that closes #970.
+The rails from #964 were removed at the owner's request in [issue #970](https://github.com/yasuflatland-lf/yasuflatland-ride-minecraft/issues/970) and [pull request #973](https://github.com/yasuflatland-lf/yasuflatland-ride-minecraft/pull/973).
 
 ## Consequences
 
