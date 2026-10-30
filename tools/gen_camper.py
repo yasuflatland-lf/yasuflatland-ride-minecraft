@@ -489,12 +489,11 @@ door = rib_sides([box(HW - 1, DY0, DZ0 + 0.1, HW, DY1, DZ1 - 0.1, "white")])
 # The door window lines up with the side windows, as on the close-up photo.
 DW0, DW1 = DZ0 + 3, DZ1 - 3
 door.append(box(HW, WIN_Y[0], DW0, HW + 0.15, WIN_Y[1], DW1, "glass"))
-for fz0, fz1, fy0, fy1 in ((DW0 - 0.6, DW1 + 0.6, WIN_Y[0] - 0.6, WIN_Y[0]), (DW0 - 0.6, DW1 + 0.6, WIN_Y[1], WIN_Y[1] + 0.6),
-                           (DW0 - 0.6, DW0, *WIN_Y), (DW1, DW1 + 0.6, *WIN_Y)):
+for fz0, fz1, fy0, fy1, hardware in ((DW0 - 0.6, DW1 + 0.6, WIN_Y[0] - 0.6, WIN_Y[0], None),
+                                     (DW0 - 0.6, DW1 + 0.6, WIN_Y[1], WIN_Y[1] + 0.6, DOOR_HEAD_REGION),
+                                     (DW0 - 0.6, DW0, *WIN_Y, DOOR_HINGE_REGION),
+                                     (DW1, DW1 + 0.6, *WIN_Y, DOOR_LATCH_REGION)):
     door.append(box(HW, fy0, fz0, HW + 0.18, fy1, fz1, "aluminium"))
-    hardware = (DOOR_HEAD_REGION if fy0 == WIN_Y[1] else
-                DOOR_HINGE_REGION if fz1 == DW0 else
-                DOOR_LATCH_REGION if fz0 == DW1 else None)
     if hardware is not None:
         door[-1]["uv"]["east"] = ATLAS.face(hardware)
 door.append(box(HW, STRIPE_Y[0], DZ0 + 0.1, HW + 0.12, STRIPE_Y[1], DZ1 - 0.1, "stripe"))
@@ -1542,7 +1541,7 @@ def region_pixel(region, x, y):
     elif region.name == "door_hinge":
         dark = y in (5, 6, 19, 20)
     elif region.name == "door_latch":
-        dark = x == 1 and y in (12, 13)
+        dark = x == 1 and y in (10, 11)
     elif region.name == "vent_screws":
         dark = y == 1 and x in (2, 7, 12)
     else:
