@@ -93,6 +93,7 @@ sendEvent(TEST_EVENT, message);
 let printed = 0;
 let lastLine = "none";
 let plan;
+const prefix = linePrefix(runId);
 while (true) {
   await sleep(3000);
   let logs = "";
@@ -111,11 +112,7 @@ while (true) {
   }
   printed = Math.max(printed, lines.length);
   plan ??= lines
-    .map((line) =>
-      planLineOf(
-        line.slice(line.indexOf(linePrefix(runId)) + linePrefix(runId).length),
-      ),
-    )
+    .map((line) => planLineOf(line.slice(line.indexOf(prefix) + prefix.length)))
     .find((p) => p !== undefined);
   const now = Date.now();
   watch = observe(watch, now, printed, plan);
