@@ -7,12 +7,9 @@ Bedrock's frame. The stripe's W is an explicit exception recorded in ADR 0067.
 Run: python3 -I tools/gen_camper.py packs/yasu_ride_rp [--check]
 """
 
-import functools
 import json
 import math
-import struct
 import sys
-import zlib
 from pathlib import Path
 
 # Isolated mode (-I) omits the script directory from the import path.
@@ -24,36 +21,8 @@ cube_tilt = load_tool("cube_tilt")
 assert_axes, compound_cubes = cube_tilt.assert_axes, cube_tilt.compound_cubes
 ASSEMBLIES = {"slanted": {"owner": "camper", "cubes": 6}}
 
-CHECK = "--check" in sys.argv[2:]
-STALE = []
-
-
-@functools.cache
-def png_reader():
-    """render_preview.py's decoder, so --check compares pixels however zlib packed the bytes."""
-    return load_tool("render_preview").read_png
-
-
-def emit(path, data, pixels=None):
-    """Write `data` to `path`, or under --check record `path` as stale when it differs. JSON compares
-    parsed, because `pnpm model` reformats it with Biome; a PNG compares `pixels`, its RGBA rows."""
-    if not CHECK:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        if isinstance(data, bytes):
-            path.write_bytes(data)
-        else:
-            path.write_text(data)
-        return
-    try:
-        if path.suffix == ".json":
-            matches = json.loads(path.read_text()) == json.loads(data)
-        else:
-            matches = png_reader()(path) == pixels
-    except (OSError, ValueError, struct.error, zlib.error):
-        matches = False
-    if not matches:
-        STALE.append(str(path))
-
+outputs = load_tool("texture_io").Outputs("--check" in sys.argv[2:])
+build_lit_textures = load_tool("lit_textures").build_lit_textures
 
 RP = Path(sys.argv[1])
 MODELS = RP / "models/entity/yasu_ride"
@@ -110,9 +79,6 @@ ATLAS = camper_atlas.Atlas(SLOTS)
 RIB_PERIOD_TEXELS = 4
 RIB_TEXELS_PER_PX = 2
 BOLT_PITCH_PX = 6
-EMISSIVE_LIT = 255
-MER_LIT = (0, EMISSIVE_LIT, 255)
-MER_OFF = (0, 0, 255)
 # Each bone name maps to the palette swatches whose cubes form it so the render controller can light them.
 LAMP_GROUPS = {
     "headlights": ("lens", "marker_amber", "marker_red"),
@@ -1467,42 +1433,7 @@ geo = {
 }
 model_cubes = [cube for bone in geo["minecraft:geometry"][0]["bones"] for cube in bone.get("cubes", [])]
 assert_axes(model_cubes, {"slanted": compound_cubes(model_cubes)}, ASSEMBLIES)
-emit(MODELS / "camper.geo.json", json.dumps(rounded(geo), separators=(",", ":")))
-
-
-def png(path, width, height, pixel):
-    pixels = [[tuple(pixel(x, y)) for x in range(width)] for y in range(height)]
-    raw = b"".join(b"\x00" + b"".join(bytes(texel) for texel in row) for row in pixels)
-
-    def chunk(t, d):
-        return struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d) & 0xFFFFFFFF)
-
-    head = struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0)
-    emit(path, b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", head)
-         + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b""), pixels)
-
-
-def lit_textures(kind, width, height, pixel):
-    def is_lit(x, y):
-        return ATLAS.swatch_at(x, y) in LIT_SLOTS
-
-    def color(x, y):
-        rgba = (*pixel(x, y), 255)[:4]
-        return (*rgba[:3], 0) if is_lit(x, y) else rgba
-
-    def mer(x, y):
-        return (*(MER_LIT if is_lit(x, y) else MER_OFF), 255)
-
-    png(ENTITY_TEXTURES / f"{kind}_lit.png", width, height, color)
-    png(ENTITY_TEXTURES / f"{kind}_lit_mer.png", width, height, mer)
-    texture_set = {
-        "format_version": "1.16.100",
-        "minecraft:texture_set": {
-            "color": f"{kind}_lit",
-            "metalness_emissive_roughness": f"{kind}_lit_mer",
-        },
-    }
-    emit(ENTITY_TEXTURES / f"{kind}_lit.texture_set.json", json.dumps(texture_set))
+outputs.json(MODELS / "camper.geo.json", rounded(geo), separators=(",", ":"))
 
 
 def scale(color, factor):
@@ -1534,9 +1465,11 @@ for paint, base in ACCENT_BASES.items():
     if paint != "khaki":
         colors.update(khaki=(*scale(base, 0.85), 255), stripe=(*scale(base, 0.65), 255), tan=(*base, 255))
     name = "camper" if paint == "khaki" else f"camper_{paint}"
-    png(ENTITY_TEXTURES / f"{name}.png", ATLAS.width, ATLAS.height, lambda x, y: ATLAS.pixel(colors, x, y, region_pixel))
+    outputs.png(ENTITY_TEXTURES / f"{name}.png", ATLAS.width, ATLAS.height, lambda x, y: ATLAS.pixel(colors, x, y, region_pixel))
 
-lit_textures("camper", ATLAS.width, ATLAS.height, lambda x, y: ATLAS.pixel(PALETTE, x, y, region_pixel))
+build_lit_textures(outputs, ENTITY_TEXTURES, "camper", ATLAS.width, ATLAS.height,
+                   lambda x, y: ATLAS.pixel(PALETTE, x, y, region_pixel),
+                   lambda x, y: ATLAS.swatch_at(x, y) in LIT_SLOTS)
 
 ICON = [
     "................",
@@ -1559,7 +1492,7 @@ ICON = [
 ICON_COLORS = {"W": PALETTE["white"], "K": PALETTE["khaki"], "G": (70, 86, 96, 255),
                "S": PALETTE["stripe"], "T": PALETTE["tan"], "B": (28, 28, 30, 255),
                "O": (60, 60, 60, 255), ".": (0, 0, 0, 0)}
-png(ITEM_TEXTURES / "camper_item.png", 16, 16, lambda x, y: ICON_COLORS[ICON[y][x]])
+outputs.png(ITEM_TEXTURES / "camper_item.png", 16, 16, lambda x, y: ICON_COLORS[ICON[y][x]])
 # The camping gear box a player gets with their first camper (ADR 0093), in the 1970s palette of #347.
 BOX_ICON = [
     "................",
@@ -1582,10 +1515,8 @@ BOX_ICON = [
 BOX_ICON_COLORS = {"L": (222, 184, 135, 255), "C": (196, 150, 98, 255), "O": (110, 74, 40, 255),
                    "G": (218, 165, 32, 255), "R": (204, 85, 0, 255), "A": (86, 130, 3, 255),
                    ".": (0, 0, 0, 0)}
-png(ITEM_TEXTURES / "camping_gear_box.png", 16, 16, lambda x, y: BOX_ICON_COLORS[BOX_ICON[y][x]])
+outputs.png(ITEM_TEXTURES / "camping_gear_box.png", 16, 16, lambda x, y: BOX_ICON_COLORS[BOX_ICON[y][x]])
 print("cubes:", sum(len(b.get("cubes", [])) for b in camper_bones))
 
-if STALE:
-    sys.exit("Stale camper outputs:\n" + "\n".join(STALE))
-if CHECK:
-    print("camper model and textures are up to date")
+if outputs.check:
+    outputs.finish("Stale camper outputs:", "camper model and textures are up to date")

@@ -8,6 +8,12 @@ import math
 import struct
 import sys
 import zlib
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from tool_loader import load_tool
+
+texture_io = load_tool("texture_io")
 
 
 def face(slot, swatch=8, columns=4):
@@ -46,15 +52,12 @@ def mer_pixels(palette, size=32, swatch=8):
     return bytes(out)
 
 
+def texel_reader(size, data):
+    return lambda x, y: tuple(data[(y * size + x) * 4 : (y * size + x + 1) * 4])
+
+
 def write_png(path, size, data):
-    stride = size * 4
-    raw = b"".join(b"\x00" + data[y * stride : (y + 1) * stride] for y in range(size))
-
-    def chunk(kind, payload):
-        return struct.pack(">I", len(payload)) + kind + payload + struct.pack(">I", zlib.crc32(kind + payload) & 0xFFFFFFFF)
-
-    head = struct.pack(">IIBBBBB", size, size, 8, 6, 0, 0, 0)
-    path.write_bytes(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", head) + chunk(b"IDAT", zlib.compress(raw, 9)) + chunk(b"IEND", b""))
+    texture_io.Outputs(False).png(path, size, size, texel_reader(size, data), compress_level=9)
 
 
 def read_png(path, size):
@@ -71,8 +74,7 @@ def read_png(path, size):
 
 
 def texture_set_doc(color_name):
-    return {"format_version": "1.16.100", "minecraft:texture_set": {
-        "color": color_name, "metalness_emissive_roughness": f"{color_name}_mer"}}
+    return texture_io.texture_set_doc(color_name, f"{color_name}_mer")
 
 
 def write_or_check(root, check, files, stale_message):
@@ -81,21 +83,12 @@ def write_or_check(root, check, files, stale_message):
     files maps geometry and texture_set to (relative path, JSON document),
     and color and mer to (relative path, size, RGBA bytes).
     """
+    out = texture_io.Outputs(check)
     for name in ("geometry", "texture_set"):
         relative, doc = files[name]
-        path = root / relative
-        if check:
-            if json.loads(path.read_text()) != doc:
-                sys.exit(stale_message)
-        else:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(json.dumps(doc, separators=(",", ":")) + "\n")
+        out.json(root / relative, json.dumps(doc, separators=(",", ":")) + "\n")
     for name in ("color", "mer"):
         relative, size, data = files[name]
-        path = root / relative
-        if check:
-            if read_png(path, size) != data:
-                sys.exit(stale_message)
-        else:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            write_png(path, size, data)
+        out.png(root / relative, size, size, texel_reader(size, data), compress_level=9)
+    if out.stale:
+        sys.exit(stale_message + "\n" + "\n".join(out.stale))
