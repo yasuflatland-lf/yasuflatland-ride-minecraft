@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { CATALOG } from "../../src/test-pack/catalog";
+import { MAX_SCENARIO_TICKS } from "../../src/test-pack/deadline";
 import { isFeatureTag } from "../../src/test-pack/features";
 import { coverageGaps } from "../../src/test-pack/plan";
 
@@ -34,6 +35,7 @@ describe("scenario catalog", () => {
       expect(Number.isInteger(count)).toBe(true);
       expect(count).toBeGreaterThanOrEqual(0);
     }
+    expect(spec.ticks).toBeLessThanOrEqual(MAX_SCENARIO_TICKS);
     expect(spec.features.length).toBeGreaterThan(0);
     expect(new Set(spec.features).size).toBe(spec.features.length);
     expect(spec.features.every(isFeatureTag)).toBe(true);
@@ -50,10 +52,28 @@ describe("scenario catalog", () => {
         CATALOG.map((spec) => spec.name),
         keys,
       ),
-    ).toEqual({ missing: [], extra: [] });
+    ).toEqual({ missing: [], extra: [], duplicates: [] });
+    const exceptions: Record<string, { functionName: string; call?: string }> =
+      {
+        step2_front: { functionName: "step2", call: "step2(a, 8, -90, 100)" },
+        step2_diagonal: {
+          functionName: "step2",
+          call: "step2(a, 30, -60, 100)",
+        },
+        dutch_oven_simmer_take_back: {
+          functionName: "dutchOvenSimmerAndTakeBack",
+        },
+      };
     for (const spec of CATALOG) {
       const entry = entries.find((entry) => entry[1] === spec.name);
       expect(imports.get(entry?.[2] ?? "")).toBe(spec.file);
+      const exception = exceptions[spec.name];
+      const camelCase = spec.name.replace(/_([a-z0-9])/g, (_, char: string) =>
+        char.toUpperCase(),
+      );
+      expect(entry?.[2]).toBe(exception?.functionName ?? camelCase);
+      if (exception?.call !== undefined)
+        expect(entry?.[0]).toContain(exception.call);
     }
   });
 });

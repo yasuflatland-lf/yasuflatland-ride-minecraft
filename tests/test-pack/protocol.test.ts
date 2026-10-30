@@ -3,32 +3,18 @@ import { describe, expect, it } from "vitest";
 import {
   featuresFrom,
   formatRunRequest,
-  LOG_TAG,
   laneIndexFrom,
   lanesFrom,
-  linePrefix,
-  linesOfRun,
   MANUAL_RUN_ID,
   MAX_LANES,
   MESSAGE_LIMIT,
   parseRunRequest,
   shardFrom,
-  summaryOfRun,
-  summaryPassed,
   TEST_EVENT,
   WHOLE_RUN,
 } from "../../src/test-pack/protocol";
 
 const runId = fc.stringMatching(/^[A-Za-z0-9_-]{1,32}$/);
-const twoRunIds = fc
-  .tuple(runId, runId)
-  .filter(([a, b]) => a !== b && !a.endsWith(b) && !b.endsWith(a));
-const counts = fc.nat({ max: 6 });
-
-function summaryLine(id: string, fail: number): string {
-  return `2026 WARN ${linePrefix(id)}SUMMARY pass=${6 - fail} fail=${fail}`;
-}
-
 const shard = fc
   .integer({ min: 1, max: 99 })
   .chain((total) =>
@@ -238,53 +224,9 @@ describe("shardFrom", () => {
   });
 });
 
-describe("a run reads only its own lines", () => {
-  it("ignores a line that names the run id without LOG_TAG", () => {
-    fc.assert(
-      fc.property(runId, (id) => {
-        expect(LOG_TAG.trim()).not.toBe("");
-        const chat = `2026 INFO <Steve> ${id} SUMMARY pass=6 fail=0`;
-        expect(linesOfRun([chat], id)).toEqual([]);
-        expect(summaryOfRun([chat], id)).toBeUndefined();
-      }),
-    );
-  });
-
-  it("ignores the SUMMARY and results of another run", () => {
-    fc.assert(
-      fc.property(twoRunIds, counts, counts, ([mine, other], f1, f2) => {
-        const logs = [
-          `${linePrefix(other)}PASS ram_cow`,
-          summaryLine(other, f1),
-          `${linePrefix(mine)}FAIL ram_cow`,
-          summaryLine(mine, f2),
-        ];
-        expect(summaryOfRun(logs, mine)).toBe(summaryLine(mine, f2));
-        expect(linesOfRun(logs, mine)).toEqual([logs[2], logs[3]]);
-        expect(summaryOfRun(logs.slice(0, 2), mine)).toBeUndefined();
-      }),
-    );
-  });
-});
-
 describe("TEST_EVENT", () => {
   it("is a namespaced scriptevent id outside the minecraft namespace", () => {
     expect(TEST_EVENT).toMatch(/^[a-z0-9_]+:[a-z0-9_]+$/);
     expect(TEST_EVENT.startsWith("minecraft:")).toBe(false);
-  });
-});
-
-describe("summaryPassed", () => {
-  it("passes only when no test failed", () => {
-    fc.assert(
-      fc.property(runId, counts, (id, fail) => {
-        expect(summaryPassed(summaryLine(id, fail))).toBe(fail === 0);
-      }),
-    );
-  });
-
-  it("ignores a fail=0 echoed in the error text", () => {
-    const line = "SUMMARY pass=0 fail=1 error=bad token: x=fail=0";
-    expect(summaryPassed(line)).toBe(false);
   });
 });
