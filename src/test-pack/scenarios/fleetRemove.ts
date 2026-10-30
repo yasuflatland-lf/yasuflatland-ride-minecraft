@@ -93,10 +93,10 @@ export async function fleetForget(a: Arena): Promise<Outcome> {
     }
     spawnAt(n - 1);
     await wait(EVICT_TICKS);
-    const survivors = cars.filter((c) => c.isValid);
-    const unloadKept = survivors.length === n - 1;
+    const [c0, ...rest] = cars;
+    const unloadKept = !c0?.isValid && rest.every((c) => c.isValid);
 
-    const killed = survivors[Math.floor(survivors.length / 2)];
+    const killed = cars[Math.floor(n / 2)];
     if (!killed) throw new Error("no car to kill");
     killed.addTag(killTag);
     a.dim.runCommand(`kill @e[type=${ENTITY_TYPE.suv},tag=${killTag}]`);
@@ -106,9 +106,7 @@ export async function fleetForget(a: Arena): Promise<Outcome> {
     await wait(KILL_TO_REMOVE_TICKS);
     spawnAt(n);
     await wait(EVICT_TICKS);
-    const killFreed =
-      survivors.every((c) => c === killed || c.isValid) &&
-      cars.at(-1)?.isValid === true;
+    const killFreed = cars.every((c) => c === c0 || c === killed || c.isValid);
     const valid = cars.filter((c) => c.isValid).length;
     return {
       pass: unloadKept && killFreed,
