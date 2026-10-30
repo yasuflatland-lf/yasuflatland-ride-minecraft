@@ -359,6 +359,13 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
   log(runId, `SUMMARY pass=${passed} fail=${tests.length - passed}`);
 }
 
+function unsupportedOption(request: RunRequest): string | undefined {
+  if (request.at !== 0) return "at";
+  if (request.features !== undefined) return "features";
+  if (request.lanes !== 1) return "lanes";
+  return undefined;
+}
+
 // Two runs would share the arena and kill each other's cars in setupArena.
 let activeRun: string | undefined;
 
@@ -370,14 +377,7 @@ system.afterEvents.scriptEventReceive.subscribe((ev) => {
     return;
   }
   const request = parsed.request;
-  const unsupported =
-    request.at !== 0
-      ? "at"
-      : request.features !== undefined
-        ? "features"
-        : request.lanes !== 1
-          ? "lanes"
-          : undefined;
+  const unsupported = unsupportedOption(request);
   if (unsupported !== undefined) {
     log(
       request.runId,

@@ -38,24 +38,26 @@ export function shardFrom(text: string): Shard | undefined {
 }
 
 export function lanesFrom(text: string): number | undefined {
-  if (text.trim() !== text || !/^[1-9]\d*$/.test(text)) return undefined;
+  if (!/^[1-9]\d*$/.test(text)) return undefined;
   const value = Number(text);
   return value <= MAX_LANES ? value : undefined;
 }
 
 export function laneIndexFrom(text: string): number | undefined {
-  if (text.trim() !== text || !/^(0|[1-9]\d*)$/.test(text)) return undefined;
+  if (!/^(0|[1-9]\d*)$/.test(text)) return undefined;
   const value = Number(text);
   return value < MAX_LANES ? value : undefined;
 }
 
 export function featuresFrom(text: string): readonly string[] | undefined {
   const features = text.split(",");
-  return features.every(
-    (tag) => tag.trim() === tag && /^[a-z]+(:[a-z]+)?$/.test(tag),
-  ) && new Set(features).size === features.length
-    ? features
-    : undefined;
+  if (
+    features.every((tag) => /^[a-z]+(:[a-z]+)?$/.test(tag)) &&
+    new Set(features).size === features.length
+  ) {
+    return features;
+  }
+  return undefined;
 }
 
 export type ParsedRequest =
