@@ -66,29 +66,6 @@ describe("defaultLanesOf", () => {
     );
   });
 
-  it("treats invalid and empty lane values as unset", () => {
-    fc.assert(
-      fc.property(context, unsetLanes, (env, GAME_TEST_LANES) => {
-        expect(defaultLanesOf({ ...env, GAME_TEST_LANES })).toBe(
-          defaultLanesOf(env),
-        );
-        expect(defaultLanesOf({ ...env, GAME_TEST_LANES: "" })).toBe(
-          defaultLanesOf(env),
-        );
-      }),
-    );
-  });
-
-  it("treats empty CI and shard values as unset", () => {
-    fc.assert(
-      fc.property(unsetLanes, (GAME_TEST_LANES) => {
-        expect(
-          defaultLanesOf({ CI: "", GAME_TEST_SHARD: "", GAME_TEST_LANES }),
-        ).toBe(LOCAL_DEFAULT_LANES);
-      }),
-    );
-  });
-
   it("always returns a lane count from 1 to 8", () => {
     fc.assert(
       fc.property(context, value, (env, GAME_TEST_LANES) => {

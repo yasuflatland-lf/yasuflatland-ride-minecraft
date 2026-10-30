@@ -33,7 +33,7 @@ pnpm server:down   # stop the dev BDS
 pnpm server:restart # stop the dev BDS and start it again under a new dev pack version
 pnpm test:game     # run impacted scenarios on the running dev BDS in 4 lanes locally by default
 # GAME_TEST_ALL=1 runs everything.
-# GAME_TEST_LANES=1 runs serially; GAME_TEST_LANES=<1..8> sets the lane count.
+# GAME_TEST_LANES=<1..8> sets the lane count; 1 runs serially.
 # GAME_TEST_SHARD=2/4 runs one CI slice; CI runs every scenario in 4 shards plus one 4-lane job.
 # GAME_TEST_BASE=<ref> overrides the merge base.
 # GAME_TEST_FEATURES=<tags> runs those comma-separated feature tags.

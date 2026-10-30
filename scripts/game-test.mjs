@@ -55,8 +55,10 @@ if (lanesText !== undefined && lanesFrom(lanesText) === undefined) {
   );
   process.exit(1);
 }
+// GAME_TEST_AT converts scenarios inside one lane, so it runs serially
+// unless GAME_TEST_LANES is set.
 const lanes =
-  atText !== undefined && lanesText === undefined
+  lanesText === undefined && atText !== undefined
     ? 1
     : defaultLanesOf(process.env);
 if (lanes > 1 && at > 0) {
