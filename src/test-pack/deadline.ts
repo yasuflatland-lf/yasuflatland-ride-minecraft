@@ -27,14 +27,13 @@ export function observe(
   seen: number,
   plan?: { readonly ticks: number },
 ): Watch {
+  const deadlineAt =
+    w.deadlineAt ??
+    (plan === undefined ? undefined : now + deadlineMsOf(plan.ticks));
   return {
     lastProgressAt: seen > w.seen ? now : w.lastProgressAt,
     seen,
-    ...(w.deadlineAt !== undefined
-      ? { deadlineAt: w.deadlineAt }
-      : plan === undefined
-        ? {}
-        : { deadlineAt: now + deadlineMsOf(plan.ticks) }),
+    ...(deadlineAt === undefined ? {} : { deadlineAt }),
   };
 }
 

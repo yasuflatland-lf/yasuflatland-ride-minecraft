@@ -4,6 +4,7 @@ import {
   ItemStack,
   type Player,
   system,
+  type Vector3,
   world,
 } from "@minecraft/server";
 import { blockStateOf, sameBlockState } from "../../domain/build/blockState";
@@ -95,7 +96,7 @@ export function withPlayerBulldozer(
 export async function buildBlockStates(a: Arena): Promise<Outcome> {
   const blocks = new BedrockBlockWorld({ isProtected: () => false });
   const dimension = asDimensionId(a.dim.id);
-  const cell = { x: 20, y: a.gy + 8, z: 20 };
+  const cell = a.at(20, a.gy + 8, 20);
   const original = blocks.stateAt(dimension, cell);
   if (!original) return { pass: false, detail: "test cell unreadable" };
   try {
@@ -122,7 +123,7 @@ interface Reply {
   player: string;
   message?: string;
   count?: number;
-  selection?: { pos1?: { x: number }; pos2?: { x: number } } | null;
+  selection?: { pos1?: Vector3; pos2?: Vector3 } | null;
   mode?: boolean;
   ticks?: number;
 }
@@ -140,7 +141,7 @@ export async function buildEdits(a: Arena): Promise<Outcome> {
     { cell: { x: number; y: number; z: number }; permutation: BlockPermutation }
   >();
   const at = (x: number, y: number, z: number) => {
-    const cell = { x, y, z };
+    const cell = a.at(x, y, z);
     const block = a.dim.getBlock(cell);
     if (!block) throw new Error("unreadable edit test cell");
     const key = `${x},${y},${z}`;
@@ -167,7 +168,7 @@ export async function buildEdits(a: Arena): Promise<Outcome> {
   const corner = (name: string, x: number, y: number, z: number) =>
     query(
       TEST_CORNER_EVENT,
-      JSON.stringify({ player: player.name, corner: name, x, y, z }),
+      JSON.stringify({ player: player.name, corner: name, ...a.at(x, y, z) }),
     );
   const select = async (x: number, y: number, z: number, size: number) => {
     await corner("pos1", x, y, z);
@@ -192,7 +193,7 @@ export async function buildEdits(a: Arena): Promise<Outcome> {
       a,
       { player, x: 20.5, z: 20.5, yaw: -90 },
       async (car) => {
-        player.teleport({ x: 20.5, y: a.gy, z: 20.5 }, { dimension: a.dim });
+        player.teleport(a.at(20.5, a.gy, 20.5), { dimension: a.dim });
         await boardBulldozer(player, car);
         const y = a.gy + 1;
         const cells = cube(50, y, 50, 3);
@@ -298,7 +299,7 @@ export async function buildEdits(a: Arena): Promise<Outcome> {
           "skip-air paste overwrote an air destination or missed a solid cell",
         );
 
-        const feet = car.location;
+        const feet = a.local(car.location);
         await select(
           Math.floor(feet.x),
           Math.floor(feet.y),
@@ -387,16 +388,21 @@ export async function buildSelectionAndMode(a: Arena): Promise<Outcome> {
   const corner = (name: string, x: number) =>
     query(
       TEST_CORNER_EVENT,
-      JSON.stringify({ player: player.name, corner: name, x, y: a.gy, z: 20 }),
+      JSON.stringify({
+        player: player.name,
+        corner: name,
+        ...a.at(x, a.gy, 20),
+      }),
     );
   const mode = () => query(TEST_MODE_EVENT, player.name);
+  const localX = (p: Vector3 | undefined) => (p ? a.local(p).x : undefined);
   system.afterEvents.scriptEventReceive.subscribe(listener);
   try {
     return await withPlayerBulldozer(
       a,
       { player, x: 20.5, z: 20.5, yaw: 0 },
       async (car) => {
-        player.teleport({ x: 20.5, y: a.gy, z: 20.5 }, { dimension: a.dim });
+        player.teleport(a.at(20.5, a.gy, 20.5), { dimension: a.dim });
         inventory.setItem(slot, new ItemStack(SELECTION_WAND_TYPE));
         await boardBulldozer(player, car);
         await corner("clear", 20);
@@ -417,9 +423,9 @@ export async function buildSelectionAndMode(a: Arena): Promise<Outcome> {
         return {
           pass:
             first.message === "pos1Set" &&
-            first.selection?.pos1?.x === 21 &&
+            localX(first.selection?.pos1) === 21 &&
             second.message === "pos2Set" &&
-            second.selection?.pos2?.x === 23 &&
+            localX(second.selection?.pos2) === 23 &&
             second.count === 3 &&
             active.mode === true &&
             scroll.mode === true &&

@@ -21,10 +21,10 @@ export function summaryOfRun(
 export function summaryPassed(summary: string): boolean {
   // Judge only the first SUMMARY on the line: error text after it cannot fake a pass.
   const at = summary.indexOf("SUMMARY ");
+  if (at === -1) return false;
+  const judged = summary.slice(at);
   return (
-    at !== -1 &&
-    /^SUMMARY pass=\d+ fail=0(?!\d)/.test(summary.slice(at)) &&
-    !/\berror=/.test(summary.slice(at))
+    /^SUMMARY pass=\d+ fail=0(?!\d)/.test(judged) && !/\berror=/.test(judged)
   );
 }
 

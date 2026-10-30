@@ -277,9 +277,10 @@ async function clearHillScenario(
         maxDistance: 8,
       }).length;
       const diamond = chest.getItem(0);
+      const pos = a.local(car.location);
       return {
         pass:
-          a.local(car.location).x >= 108 &&
+          pos.x >= 108 &&
           wrong.length === 0 &&
           at(100, gy + 3, centerZ - 1)?.permutation.getState("liquid_depth") ===
             0 &&
@@ -290,7 +291,7 @@ async function clearHillScenario(
           spawns > 0 &&
           diamond?.typeId === "minecraft:diamond" &&
           diamond.amount === 1,
-        detail: `x=${a.local(car.location).x.toFixed(2)} wrong=${wrong.join(";")} floor=${floor} marker=${marker} items=${items} spawned=${spawns}`,
+        detail: `x=${pos.x.toFixed(2)} wrong=${wrong.join(";")} floor=${floor} marker=${marker} items=${items} spawned=${spawns}`,
         lines: [
           `dropRadius=${farthest.toFixed(3)} spawned=${spawns}`,
           ...dropLines,
@@ -319,14 +320,15 @@ export async function bulldozerOverhang(a: Arena): Promise<Outcome> {
     return await withBulldozer(a, 90.5, 83.5, -90, async (car) => {
       await setBlade(car, false);
       await throughHill(a, car);
-      let pass = a.local(car.location).x >= 108;
+      const pos = a.local(car.location);
+      let pass = pos.x >= 108;
       for (let x = 100; x <= 104; x++)
         for (let z = 81; z <= 85; z++)
           for (const dy of [0, 1, 3, 4])
             pass &&=
               a.dim.getBlock(a.at(x, a.gy + dy, z))?.typeId ===
               (dy < 2 ? "minecraft:air" : "minecraft:stone");
-      return { pass, detail: `x=${a.local(car.location).x.toFixed(2)}` };
+      return { pass, detail: `x=${pos.x.toFixed(2)}` };
     });
   } finally {
     cleanup(a);
@@ -344,14 +346,15 @@ export async function bulldozerDirtPath(a: Arena): Promise<Outcome> {
     return await withBulldozer(a, 90.5, 83.5, -90, async (car) => {
       await setBlade(car, false);
       await throughHill(a, car);
+      const pos = a.local(car.location);
       const missing: string[] = [];
       for (let x = 92; x <= 106; x++)
         for (let z = 81; z <= 86; z++)
           if (pathAt(x, z) !== "minecraft:grass_path")
             missing.push(`${x},${z}:${pathAt(x, z)}`);
       return {
-        pass: a.local(car.location).x >= 108 && missing.length === 0,
-        detail: `x=${a.local(car.location).x.toFixed(2)} y=${a.local(car.location).y.toFixed(4)} missing=${missing.join(";")}`,
+        pass: pos.x >= 108 && missing.length === 0,
+        detail: `x=${pos.x.toFixed(2)} y=${pos.y.toFixed(4)} missing=${missing.join(";")}`,
       };
     });
   } finally {
@@ -408,8 +411,9 @@ export async function bulldozerStep2Raised(a: Arena): Promise<Outcome> {
       let maxY = gy;
       for (let t = 0; t < 120; t++) {
         await wait(1);
-        maxY = Math.max(maxY, a.local(car.location).y);
-        if (a.local(car.location).x > 103) break;
+        const pos = a.local(car.location);
+        maxY = Math.max(maxY, pos.y);
+        if (pos.x > 103) break;
       }
       drive(car, 0, 0);
       await wait(3);
@@ -449,10 +453,10 @@ export async function bulldozerRaisedNoCut(a: Arena): Promise<Outcome> {
         location: a.at(102, gy, 83),
         maxDistance: 8,
       }).length;
+      const pos = a.local(car.location);
       return {
-        pass:
-          wrong.length === 0 && a.local(car.location).x < 100 && items === 0,
-        detail: `x=${a.local(car.location).x.toFixed(2)} wrong=${wrong.join(";")} items=${items}`,
+        pass: wrong.length === 0 && pos.x < 100 && items === 0,
+        detail: `x=${pos.x.toFixed(2)} wrong=${wrong.join(";")} items=${items}`,
       };
     });
   } finally {
@@ -465,10 +469,8 @@ export function bulldozerPivot(a: Arena): Promise<Outcome> {
       yaw = car.getRotation().y;
     drive(car, 1, 0);
     await wait(30);
-    const moved = Math.hypot(
-        a.local(car.location).x - p.x,
-        a.local(car.location).z - p.z,
-      ),
+    const now = a.local(car.location);
+    const moved = Math.hypot(now.x - p.x, now.z - p.z),
       turn = Math.abs(normalizeYaw(car.getRotation().y - yaw));
     return {
       pass: moved < 0.2 && turn >= 80 && turn <= 95,
@@ -615,9 +617,10 @@ export async function bulldozerSeaCut(a: Arena): Promise<Outcome> {
         await wait(1);
         // A conservative start: the strip, 1.0 to 2.9 ahead, first touches the
         // wall's west face at x = 96 once the body passes about x = 93.1.
-        if (a.local(car.location).x < 92) continue;
-        minY = Math.min(minY, a.local(car.location).y);
-        maxY = Math.max(maxY, a.local(car.location).y);
+        const pos = a.local(car.location);
+        if (pos.x < 92) continue;
+        minY = Math.min(minY, pos.y);
+        maxY = Math.max(maxY, pos.y);
         const form = String(vehicleForm(car));
         if (forms.at(-1) !== form) forms.push(form);
       }
@@ -675,17 +678,18 @@ export async function bulldozerSeaCut(a: Arena): Promise<Outcome> {
       const cutCells = Object.entries(cut)
         .map(([type, n]) => `${type.replace("minecraft:", "")}:${n}`)
         .join(",");
+      const pos = a.local(car.location);
       return {
         pass:
           enteredAt >= 0 &&
           forms.join(">") === "submarine" &&
-          a.local(car.location).x >= 100 &&
+          pos.x >= 100 &&
           Object.keys(cut).length > 0 &&
           wrong.length === 0 &&
           dried.length === 0 &&
           diamond?.typeId === "minecraft:diamond" &&
           diamond.amount === 1,
-        detail: `enteredAt=${enteredAt} forms=${forms.join(">")} x=${a.local(car.location).x.toFixed(2)} y=${(minY - gy).toFixed(3)}..${(maxY - gy).toFixed(3)} cutCells=${cutCells} wrong=${wrong.join(";")} dried=${dried.join(";")}`,
+        detail: `enteredAt=${enteredAt} forms=${forms.join(">")} x=${pos.x.toFixed(2)} y=${(minY - gy).toFixed(3)}..${(maxY - gy).toFixed(3)} cutCells=${cutCells} wrong=${wrong.join(";")} dried=${dried.join(";")}`,
       };
     });
   } finally {
@@ -724,7 +728,8 @@ export async function bulldozerRiseShaft(a: Arena): Promise<Outcome> {
         await wait(1);
       drive(car, 0, 0);
       await wait(3);
-      const rise = a.local(car.location).y - gy;
+      const pos = a.local(car.location);
+      const rise = pos.y - gy;
       const half = BULLDOZER_SPEC.footprint / 2 + BULLDOZER_SPEC.shaft.margin;
       const inShaft = (c: number, center: number) =>
         c + 1 > center - half && c < center + half;
@@ -741,10 +746,7 @@ export async function bulldozerRiseShaft(a: Arena): Promise<Outcome> {
             if (type !== want) wrong.push(`${x},${y},${z}:${type}`);
           }
       return {
-        pass:
-          hoverAt >= 0 &&
-          a.local(car.location).y >= clearY &&
-          wrong.length === 0,
+        pass: hoverAt >= 0 && pos.y >= clearY && wrong.length === 0,
         detail: `hoverAt=${hoverAt} rise=${rise.toFixed(3)} wrong=${wrong.join(";")}`,
       };
     });
@@ -767,9 +769,10 @@ export async function bulldozerSpawnsRaised(a: Arena): Promise<Outcome> {
         { x: 100, y: gy, z: 81 },
         { x: 104, y: gy, z: 85 },
       ).length;
+      const pos = a.local(car.location);
       return {
-        pass: blade === 1 && a.local(car.location).x >= 108 && removed === 0,
-        detail: `blade=${String(blade)} x=${a.local(car.location).x.toFixed(2)} removed=${removed}`,
+        pass: blade === 1 && pos.x >= 108 && removed === 0,
+        detail: `blade=${String(blade)} x=${pos.x.toFixed(2)} removed=${removed}`,
       };
     });
   } finally {
@@ -845,7 +848,7 @@ export async function bulldozerFallSurvives(a: Arena): Promise<Outcome> {
   const { gy } = a;
   return withBulldozer(a, 20.5, 20.5, 0, async (car) => {
     await wait(2);
-    car.teleport(a.at(20.5, a.gy + 40, 20.5));
+    car.teleport(a.at(20.5, gy + 40, 20.5));
     let ticks = 0;
     // isOnGround still reads true for a few ticks after the teleport, so wait on the height
     while (ticks < 200 && car.isValid && a.local(car.location).y > gy + 0.5) {
@@ -894,9 +897,10 @@ export async function bulldozerWideRam(a: Arena): Promise<Outcome> {
             hit ||= health() < hp;
             if (hit || a.local(car.location).x >= 112) break;
           }
+          const pos = a.local(car.location);
           return {
-            pass: hit === wide && (wide || a.local(car.location).x >= 112),
-            detail: `wide=${wide} hit=${hit} hp=${hp}->${health()} x=${a.local(car.location).x.toFixed(2)}`,
+            pass: hit === wide && (wide || pos.x >= 112),
+            detail: `wide=${wide} hit=${hit} hp=${hp}->${health()} x=${pos.x.toFixed(2)}`,
           };
         } finally {
           if (cow.isValid) cow.remove();
