@@ -335,4 +335,9 @@ describe("summaryPassed", () => {
       }),
     );
   });
+
+  it("ignores a fail=0 echoed in the error text", () => {
+    const line = "SUMMARY pass=0 fail=1 error=bad token: x=fail=0";
+    expect(summaryPassed(line)).toBe(false);
+  });
 });

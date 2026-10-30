@@ -184,5 +184,7 @@ export function summaryOfRun(
 }
 
 export function summaryPassed(summary: string): boolean {
-  return /\bfail=0\b/.test(summary);
+  // Judge only the first SUMMARY on the line: error text after it cannot fake a pass.
+  const at = summary.indexOf("SUMMARY ");
+  return at !== -1 && /^SUMMARY pass=\d+ fail=0(?!\d)/.test(summary.slice(at));
 }
