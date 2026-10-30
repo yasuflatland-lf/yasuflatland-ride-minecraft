@@ -173,6 +173,13 @@ function arenaLoaded(dim: Dimension, lane: Lane, y: number): boolean {
   );
 }
 
+const VEHICLE_TYPES = [
+  ENTITY_TYPE.suv,
+  ENTITY_TYPE.sportsboat,
+  ENTITY_TYPE.camper,
+  ENTITY_TYPE.bulldozer,
+] as const;
+
 export async function prepareRun(
   dim: Dimension,
   lanes: readonly Lane[],
@@ -214,10 +221,7 @@ export async function prepareRun(
     if (laneTop.location.y + 1 !== gy)
       throw new Error(`lane ${lane.index} ground height differs from lane 0`);
   }
-  dim.runCommand(`kill @e[type=${ENTITY_TYPE.suv}]`);
-  dim.runCommand(`kill @e[type=${ENTITY_TYPE.sportsboat}]`);
-  dim.runCommand(`kill @e[type=${ENTITY_TYPE.camper}]`);
-  dim.runCommand(`kill @e[type=${ENTITY_TYPE.bulldozer}]`);
+  for (const type of VEHICLE_TYPES) dim.runCommand(`kill @e[type=${type}]`);
   for (const { typeId } of Object.values(CHAIR_KINDS))
     dim.runCommand(`kill @e[type=${typeId}]`);
   dim.runCommand(`kill @e[type=${TENT_TYPE}]`);
@@ -262,6 +266,15 @@ export async function prepareRun(
   }
   await wait(5);
   return arenas;
+}
+
+// A runaway vehicle from a lane would otherwise hold an unowned slot that
+// vehicle_limit and fleet_forget count.
+export async function removeVehicles(dim: Dimension): Promise<void> {
+  for (const type of VEHICLE_TYPES) {
+    for (const entity of dim.getEntities({ type })) entity.remove();
+  }
+  await wait(5);
 }
 
 // 80 blocks across z, so a submarine has room to turn (submarine_bank); the

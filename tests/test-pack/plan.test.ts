@@ -1,14 +1,17 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import type { Isolation, ScenarioSpec } from "../../src/test-pack/catalog";
-import { covers, FEATURE_TAGS } from "../../src/test-pack/features";
+import { SPEC } from "../../src/domain/vehicle/spec.ts";
+import type { Isolation, ScenarioSpec } from "../../src/test-pack/catalog.ts";
+import { covers, FEATURE_TAGS } from "../../src/test-pack/features.ts";
+import type { Skipped } from "../../src/test-pack/plan.ts";
 import {
   coverageGaps,
+  MAX_LANE_VEHICLES,
+  packByTicks,
   planOf,
-  type Skipped,
   shardsOf,
-} from "../../src/test-pack/plan";
-import { WHOLE_RUN } from "../../src/test-pack/protocol";
+} from "../../src/test-pack/plan.ts";
+import { MAX_LANES, WHOLE_RUN } from "../../src/test-pack/protocol.ts";
 
 const tags = fc.uniqueArray(fc.constantFrom(...FEATURE_TAGS));
 const catalog = fc
@@ -18,6 +21,8 @@ const catalog = fc
       features: tags,
       needsPlayer: fc.boolean(),
       isolation: fc.constantFrom<Isolation>("lane", "exclusive"),
+      group: fc.option(fc.constant("tent" as const), { nil: undefined }),
+      vehicles: fc.integer({ min: 0, max: 4 }),
     }),
     { maxLength: 40 },
   )
@@ -26,7 +31,6 @@ const catalog = fc
       ...spec,
       name: `scenario_${i}`,
       file: "fixture",
-      vehicles: 0,
     })),
   );
 const selectedBy = (
@@ -170,6 +174,191 @@ describe("planOf", () => {
     );
   });
 
+  it("allocates every selected run once within the vehicle and tick budgets", () => {
+    fc.assert(
+      fc.property(
+        catalog,
+        fc.integer({ min: 1, max: 8 }),
+        fc.boolean(),
+        fc.option(tags, { nil: undefined }),
+        fc.integer({ min: 1, max: 8 }),
+        (specs, requested, playerConnected, features, total) => {
+          const options = {
+            shard: { index: 1, total },
+            playerConnected,
+            features,
+            lanes: requested,
+          };
+          const plan = planOf(specs, options);
+          expect(planOf([...specs], options)).toEqual(plan);
+          const all = [...plan.lanes.flat(), ...plan.exclusive];
+          expect(all).toHaveLength(plan.runs.length);
+          expect(new Set(all).size).toBe(all.length);
+          expect(new Set(all)).toEqual(new Set(plan.runs));
+          const laneSpecs = plan.runs.filter(
+            (spec) => spec.isolation === "lane",
+          );
+          const largest = Math.max(
+            1,
+            ...laneSpecs.map((spec) => spec.vehicles),
+          );
+          const count = Math.min(
+            requested,
+            Math.max(1, Math.floor(MAX_LANE_VEHICLES / largest)),
+          );
+          expect(plan.lanes).toHaveLength(count);
+          expect(count * largest).toBeLessThanOrEqual(MAX_LANE_VEHICLES);
+          expect(plan.makespanTicks).toBeLessThanOrEqual(plan.expectedTicks);
+          if (count === 1) {
+            expect(plan.lanes).toEqual([plan.runs]);
+            expect(plan.exclusive).toEqual([]);
+            expect(plan.makespanTicks).toBe(plan.expectedTicks);
+            return;
+          }
+          expect(plan.exclusive).toEqual(
+            plan.runs.filter((spec) => spec.isolation === "exclusive"),
+          );
+          const grouped = laneSpecs.filter((spec) => spec.group === "tent");
+          if (grouped.length > 0) {
+            expect(
+              plan.lanes.filter((lane) =>
+                lane.some((spec) => spec.group === "tent"),
+              ),
+            ).toHaveLength(1);
+            expect(
+              plan.lanes.flat().filter((spec) => spec.group === "tent"),
+            ).toEqual(grouped);
+          }
+          const sumTicks = (items: readonly ScenarioSpec[]) =>
+            items.reduce((sum, spec) => sum + spec.ticks, 0);
+          const maxUnitTicks = Math.max(
+            0,
+            sumTicks(grouped),
+            ...laneSpecs
+              .filter((spec) => spec.group === undefined)
+              .map((spec) => spec.ticks),
+          );
+          const bound = Math.ceil(sumTicks(laneSpecs) / count) + maxUnitTicks;
+          for (const lane of plan.lanes) {
+            expect(lane.every((spec) => spec.isolation === "lane")).toBe(true);
+            expect(sumTicks(lane)).toBeLessThanOrEqual(bound);
+            const firstMembers = lane.filter(
+              (spec) => spec.group === undefined || spec === grouped[0],
+            );
+            expect(firstMembers).toEqual(
+              laneSpecs.filter((spec) => firstMembers.includes(spec)),
+            );
+            const firstGrouped = grouped[0];
+            if (firstGrouped !== undefined && lane.includes(firstGrouped)) {
+              const start = lane.indexOf(firstGrouped);
+              expect(lane.slice(start, start + grouped.length)).toEqual(
+                grouped,
+              );
+            }
+          }
+          expect(plan.makespanTicks).toBe(
+            Math.max(...plan.lanes.map(sumTicks)) + sumTicks(plan.exclusive),
+          );
+          expect(plan.makespanTicks).toBeLessThanOrEqual(
+            bound + sumTicks(plan.exclusive),
+          );
+        },
+      ),
+    );
+  });
+
+  it("keeps four requested lanes for one-vehicle lane specs", () => {
+    const specs: ScenarioSpec[] = Array.from({ length: 4 }, (_, index) => ({
+      name: `scenario_${index}`,
+      file: "fixture",
+      ticks: 10,
+      features: [],
+      isolation: "lane",
+      needsPlayer: false,
+      vehicles: 1,
+    }));
+    const plan = planOf(specs, {
+      shard: WHOLE_RUN,
+      playerConnected: true,
+      lanes: 4,
+    });
+    expect(plan.lanes).toHaveLength(4);
+  });
+
+  it("reduces eight requested lanes to four for a two-vehicle largest lane spec", () => {
+    const specs: ScenarioSpec[] = Array.from({ length: 8 }, (_, index) => ({
+      name: `scenario_${index}`,
+      file: "fixture",
+      ticks: 10,
+      features: [],
+      isolation: "lane",
+      needsPlayer: false,
+      vehicles: index === 0 ? 2 : 1,
+    }));
+    const plan = planOf(specs, {
+      shard: WHOLE_RUN,
+      playerConnected: true,
+      lanes: 8,
+    });
+    expect(plan.lanes).toHaveLength(4);
+  });
+
+  it("orders lane units by their first catalog member and keeps tent members contiguous", () => {
+    const specs: ScenarioSpec[] = [2, 4, 9, 3, 4, 6, 1].map((ticks, index) => ({
+      name: `scenario_${index}`,
+      file: "fixture",
+      ticks,
+      features: [],
+      isolation: "lane",
+      group: index === 1 || index === 3 || index === 5 ? "tent" : undefined,
+      needsPlayer: false,
+      vehicles: 1,
+    }));
+    const plan = planOf(specs, {
+      shard: WHOLE_RUN,
+      playerConnected: true,
+      lanes: 2,
+    });
+    expect(plan.lanes.map((lane) => lane.map((spec) => spec.name))).toEqual([
+      ["scenario_0", "scenario_1", "scenario_3", "scenario_5"],
+      ["scenario_2", "scenario_4", "scenario_6"],
+    ]);
+  });
+
+  it("keeps the default and explicit single lane identical", () => {
+    fc.assert(
+      fc.property(catalog, (specs) => {
+        const options = { shard: WHOLE_RUN, playerConnected: true };
+        const plan = planOf(specs, options);
+        expect(planOf(specs, { ...options, lanes: 1 })).toEqual(plan);
+        expect(plan.lanes).toEqual([specs]);
+        expect(plan.exclusive).toEqual([]);
+        expect(plan.makespanTicks).toBe(plan.expectedTicks);
+      }),
+    );
+  });
+
+  it("rejects lane counts outside the supported integers", () => {
+    fc.assert(
+      fc.property(
+        fc.oneof(
+          fc.integer({ max: 0 }),
+          fc.integer({ min: MAX_LANES + 1 }),
+          fc.constantFrom(NaN, Infinity, -Infinity, 1.5),
+        ),
+        (lanes) => {
+          expect(() =>
+            planOf([], { shard: WHOLE_RUN, playerConnected: true, lanes }),
+          ).toThrow(RangeError);
+        },
+      ),
+    );
+  });
+
+  it("reserves two vehicle slots below the world eviction cap", () => {
+    expect(MAX_LANE_VEHICLES).toBe(SPEC.maxUnownedVehicles - 2);
+  });
+
   it("preserves the camera verification note when skipping build selection", () => {
     const spec: ScenarioSpec = {
       name: "build_selection_and_mode",
@@ -228,6 +417,12 @@ function loads(ticks: number[], shards: number[], total: number): number[] {
     ticks.reduce((sum, t, i) => (shards[i] === k + 1 ? sum + t : sum), 0),
   );
 }
+
+describe("packByTicks", () => {
+  it("breaks equal tick and load ties by position and bin", () => {
+    expect(packByTicks([2, 3, 3, 2, 0], 2)).toEqual([0, 0, 1, 1, 0]);
+  });
+});
 
 describe("shardsOf", () => {
   it("puts every test in one shard between 1 and the total", () => {

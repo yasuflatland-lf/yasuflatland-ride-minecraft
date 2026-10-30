@@ -2,14 +2,19 @@ import type { ScenarioSpec } from "./catalog.ts";
 import type { FeatureTag } from "./features.ts";
 import { covers } from "./features.ts";
 import type { Shard } from "./protocol.ts";
+import { MAX_LANES } from "./protocol.ts";
+
+// SPEC.maxUnownedVehicles (10) minus 2 slots of headroom: the cap is per world
+// and evicts the oldest vehicle, which could belong to another lane.
+export const MAX_LANE_VEHICLES = 8;
 
 /**
- * The 1-based shard of each test, packing the slowest first into the shard
- * with the fewest ticks so far (ADR 0054). Ties go to the earlier test and the
- * lower shard, so every CI job computes the same split.
+ * Places items slowest first into the lightest bin.
+ * Ties go to the earlier item and the lower bin so every CI job computes
+ * the same split (ADR 0054).
  */
-export function shardsOf(ticks: readonly number[], total: number): number[] {
-  const load = new Array<number>(total).fill(0);
+export function packByTicks(ticks: readonly number[], bins: number): number[] {
+  const load = new Array<number>(bins).fill(0);
   const shards = new Array<number>(ticks.length);
   const slowestFirst = ticks
     .map((t, position) => ({ t, position }))
@@ -17,9 +22,13 @@ export function shardsOf(ticks: readonly number[], total: number): number[] {
   for (const { t, position } of slowestFirst) {
     const lightest = load.indexOf(Math.min(...load));
     load[lightest] = (load[lightest] ?? 0) + t;
-    shards[position] = lightest + 1;
+    shards[position] = lightest;
   }
   return shards;
+}
+
+export function shardsOf(ticks: readonly number[], total: number): number[] {
+  return packByTicks(ticks, total).map((bin) => bin + 1);
 }
 
 export interface Skipped {
@@ -32,6 +41,64 @@ export interface RunPlan {
   readonly skipped: readonly Skipped[];
   readonly unselected: number;
   readonly expectedTicks: number;
+  /** With one lane, this is [runs], including exclusive specs. */
+  readonly lanes: readonly (readonly ScenarioSpec[])[];
+  /** Empty with one lane; consumers must not run exclusive specs twice. */
+  readonly exclusive: readonly ScenarioSpec[];
+  readonly makespanTicks: number;
+}
+
+function sumTicks(specs: readonly ScenarioSpec[]): number {
+  return specs.reduce((sum, spec) => sum + spec.ticks, 0);
+}
+
+function laneCountOf(
+  laneSpecs: readonly ScenarioSpec[],
+  requested: number,
+): number {
+  if (!Number.isInteger(requested) || requested < 1 || requested > MAX_LANES)
+    throw new RangeError(`lanes must be an integer between 1 and ${MAX_LANES}`);
+  const largestVehicles = Math.max(
+    1,
+    ...laneSpecs.map((spec) => spec.vehicles),
+  );
+  return Math.min(
+    requested,
+    Math.max(1, Math.floor(MAX_LANE_VEHICLES / largestVehicles)),
+  );
+}
+
+function packLanes(
+  laneSpecs: readonly ScenarioSpec[],
+  count: number,
+): ScenarioSpec[][] {
+  const lanes: ScenarioSpec[][] = Array.from({ length: count }, () => []);
+  const units: { members: ScenarioSpec[]; ticks: number }[] = [];
+  const groups = new Map<string, (typeof units)[number]>();
+  for (const spec of laneSpecs) {
+    const existing =
+      spec.group === undefined ? undefined : groups.get(spec.group);
+    if (existing) {
+      existing.members.push(spec);
+      existing.ticks += spec.ticks;
+    } else {
+      const unit = { members: [spec], ticks: spec.ticks };
+      units.push(unit);
+      if (spec.group !== undefined) groups.set(spec.group, unit);
+    }
+  }
+  const bins = packByTicks(
+    units.map((unit) => unit.ticks),
+    count,
+  );
+  for (const [index, unit] of units.entries()) {
+    const bin = bins[index];
+    const lane = bin === undefined ? undefined : lanes[bin];
+    if (lane === undefined)
+      throw new Error(`Missing lane assignment for unit ${index}`);
+    lane.push(...unit.members);
+  }
+  return lanes;
 }
 
 export function planOf(
@@ -40,6 +107,7 @@ export function planOf(
     readonly shard: Shard;
     readonly playerConnected: boolean;
     readonly features?: readonly FeatureTag[];
+    readonly lanes?: number;
   },
 ): RunPlan {
   const selected = catalog.filter(
@@ -67,11 +135,26 @@ export function planOf(
     options.shard.total,
   );
   const runs = eligible.filter((_, i) => shards[i] === options.shard.index);
+  const laneSpecs = runs.filter((spec) => spec.isolation === "lane");
+  const count = laneCountOf(laneSpecs, options.lanes ?? 1);
+  const expectedTicks = sumTicks(runs);
+  let lanes: ScenarioSpec[][];
+  let exclusive: ScenarioSpec[];
+  if (count === 1) {
+    lanes = [runs];
+    exclusive = [];
+  } else {
+    lanes = packLanes(laneSpecs, count);
+    exclusive = runs.filter((spec) => spec.isolation === "exclusive");
+  }
   return {
     runs,
     skipped,
     unselected: catalog.length - selected.length,
-    expectedTicks: runs.reduce((sum, spec) => sum + spec.ticks, 0),
+    expectedTicks,
+    lanes,
+    exclusive,
+    makespanTicks: Math.max(...lanes.map(sumTicks)) + sumTicks(exclusive),
   };
 }
 
