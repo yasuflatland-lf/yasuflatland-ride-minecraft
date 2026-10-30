@@ -36,6 +36,8 @@ pnpm test:game     # run the in-game tests on the running dev BDS (GAME_TEST_SHA
 
 Before you say a change is done, run `pnpm lint`, `pnpm lint:lang`, `pnpm lint:unused`, `pnpm lint:deps`, `pnpm typecheck`, and `pnpm test`. When you change `src/infrastructure`, `src/test-pack`, or the packs, also run `pnpm build`, restart the dev BDS, and run `pnpm test:game` if Docker is available. CI runs the lint, unused code, test, build, and package checks on every pull request ([unit-test.yml](.github/workflows/unit-test.yml), which also uploads coverage to Codecov) and runs the in-game tests against a BDS container ([integration-test.yml](.github/workflows/integration-test.yml)).
 
+Adding an in-game scenario requires a `CATALOG` entry in `src/test-pack/catalog.ts` (name, file, declared ticks, tags, isolation, vehicles) and an entry in `src/test-pack/scenarios/index.ts`.
+
 ## Language and comments
 
 - Write everything committed to the repository in English: code, identifiers, comments, test names, commit messages, and docs. Pull request titles and descriptions must be in English too; issues are not covered. `pnpm lint:lang` enforces this for files in CI, and [pr-language.yml](.github/workflows/pr-language.yml) checks the title and description of every pull request. Resource Pack translations for other locales (`texts/<locale>.lang`) are the only exception.

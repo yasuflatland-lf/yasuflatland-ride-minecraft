@@ -2,23 +2,38 @@ import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { setTimeout as sleep } from "node:timers/promises";
 import {
+  deadlineMsOf,
+  observe,
+  watchStart,
+  watchVerdict,
+} from "../src/test-pack/deadline.ts";
+import {
+  CANCEL_EVENT,
+  formatRunRequest,
   LOG_TAG,
-  linesOfRun,
   shardFrom,
+  TEST_EVENT,
+  WHOLE_RUN,
+} from "../src/test-pack/protocol.ts";
+import {
+  linePrefix,
+  linesOfRun,
+  planLineOf,
   summaryOfRun,
   summaryPassed,
-  TEST_EVENT,
-} from "../src/test-pack/protocol.ts";
+} from "../src/test-pack/resultLog.ts";
 
 const CONTAINER = "yasuflatland-ride-bds";
 const runId = randomBytes(4).toString("hex");
 // GAME_TEST_SHARD=2/3 runs the second of three slices of the suite, so CI can
 // spread it over parallel jobs, each with its own BDS.
 const shardText = process.env.GAME_TEST_SHARD ?? "";
-if (shardText !== "" && !shardFrom(shardText)) {
+const shard = shardText === "" ? WHOLE_RUN : shardFrom(shardText);
+if (!shard) {
   console.error(`GAME_TEST_SHARD must look like 2/3, got ${shardText}`);
   process.exit(1);
 }
+const message = formatRunRequest({ runId, shard, lanes: 1, at: 0 });
 const since = new Date().toISOString();
 // Write the command to bedrock_server's stdin ourselves, as Mojang's Creator
 // Tools does with the process it spawns. The image's send-command cannot be
@@ -45,35 +60,78 @@ const [serverPid, serverUser] = execFileSync(
 )
   .trim()
   .split(" ");
-execFileSync("docker", [
-  "exec",
-  "--user",
-  serverUser,
-  CONTAINER,
-  "sh",
-  "-c",
-  'echo "$1" > "/proc/$2/fd/0"',
-  "sh",
-  `scriptevent ${TEST_EVENT} ${runId} ${shardText}`.trimEnd(),
-  serverPid,
-]);
-const deadline = Date.now() + 5 * 60_000;
-let summary;
-let lines = [];
-while (Date.now() < deadline) {
+function sendEvent(event, payload) {
+  execFileSync("docker", [
+    "exec",
+    "--user",
+    serverUser,
+    CONTAINER,
+    "sh",
+    "-c",
+    'echo "$1" > "/proc/$2/fd/0"',
+    "sh",
+    `scriptevent ${event} ${payload}`,
+    serverPid,
+  ]);
+}
+
+function cancel() {
+  try {
+    sendEvent(CANCEL_EVENT, runId);
+  } catch {
+    // A stopped BDS cannot receive cancellation; retain the original exit status.
+  }
+}
+
+process.on("SIGINT", () => {
+  cancel();
+  process.exit(130);
+});
+
+let watch = watchStart(Date.now());
+sendEvent(TEST_EVENT, message);
+let printed = 0;
+let lastLine = "none";
+let plan;
+while (true) {
   await sleep(3000);
-  const logs = execFileSync("docker", ["logs", "--since", since, CONTAINER], {
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  const all = logs.split("\n");
-  lines = linesOfRun(all, runId);
-  summary = summaryOfRun(all, runId);
-  if (summary) break;
+  let logs = "";
+  try {
+    logs = execFileSync("docker", ["logs", "--since", since, CONTAINER], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+  } catch {
+    // Log retrieval failure is absence of progress, so the stall watch still runs.
+  }
+  const lines = linesOfRun(logs.split("\n"), runId);
+  for (const line of lines.slice(printed)) {
+    lastLine = line.slice(line.indexOf(LOG_TAG));
+    console.log(lastLine);
+  }
+  printed = Math.max(printed, lines.length);
+  plan ??= lines
+    .map((line) =>
+      planLineOf(
+        line.slice(line.indexOf(linePrefix(runId)) + linePrefix(runId).length),
+      ),
+    )
+    .find((p) => p !== undefined);
+  const now = Date.now();
+  watch = observe(watch, now, printed, plan);
+  const summary = summaryOfRun(lines, runId);
+  if (summary) process.exit(summaryPassed(summary) ? 0 : 1);
+  const verdict = watchVerdict(watch, now);
+  if (verdict !== "running") {
+    cancel();
+    console.error(
+      verdict === "stalled"
+        ? `stalled: no new line for 60 s (last: ${lastLine})`
+        : `overdue: ${plan.ticks} declared ticks allow ${deadlineMsOf(plan.ticks) / 1000} s`,
+    );
+    console.error(
+      "if the next run reports a run in progress, use pnpm server:restart",
+    );
+    process.exit(1);
+  }
 }
-for (const l of lines) console.log(l.slice(l.indexOf(LOG_TAG)));
-if (!summary) {
-  console.error(`timed out waiting for ${LOG_TAG} ${runId} SUMMARY`);
-  process.exit(1);
-}
-process.exit(summaryPassed(summary) ? 0 : 1);
