@@ -79,6 +79,16 @@ export function registerGasLantern(
       ),
     );
   });
+  world.beforeEvents.playerInteractWithEntity.subscribe((ev) => {
+    if (
+      ev.target.typeId !== GAS_LANTERN_TYPE ||
+      ev.itemStack?.typeId === HEADLIGHT_SWITCH_TYPE
+    )
+      return;
+    ev.cancel = true;
+    const id = ev.target.id;
+    system.run(() => actions.switch(asGasLanternId(id), system.currentTick));
+  });
   world.afterEvents.entityHitEntity.subscribe((ev) => {
     if (
       !(ev.damagingEntity instanceof Player) ||

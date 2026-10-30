@@ -19,6 +19,7 @@ import { HEADLIGHT_SWITCH_TYPE } from "../../../src/infrastructure/shared/identi
 import { defined } from "../../support/defined";
 
 const game = vi.hoisted(() => ({
+  tick: 42,
   interval: vi.fn(),
   interact: vi.fn(),
   run: vi.fn(),
@@ -55,13 +56,18 @@ vi.mock("@minecraft/server", () => ({
       id === game.entity.id ? game.entity : undefined,
   },
   system: {
-    currentTick: 42,
+    get currentTick() {
+      return game.tick;
+    },
     run: game.run,
     runInterval: game.interval,
     afterEvents: { scriptEventReceive: { subscribe: game.script } },
   },
 }));
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  game.tick = 42;
+});
 
 function fixture() {
   const world = {
@@ -98,6 +104,48 @@ function fixture() {
   );
   return world;
 }
+
+it.each([undefined, "minecraft:stone"])(
+  "cancels a lantern press holding %s and switches on the next tick",
+  (held) => {
+    const world = fixture();
+    const press = defined(game.interact.mock.calls[1]?.[0], "lantern press");
+    const event = {
+      cancel: false,
+      target: game.entity,
+      itemStack: held ? { typeId: held } : undefined,
+    };
+    press(event);
+    expect(event.cancel).toBe(true);
+    expect(world.setLit).not.toHaveBeenCalled();
+    expect(game.run).toHaveBeenCalledOnce();
+    game.tick++;
+    defined(game.run.mock.calls[0]?.[0], "next tick")();
+    expect(world.setLit).toHaveBeenCalledExactlyOnceWith("lantern", true);
+    expect(world.relayLight).toHaveBeenCalledExactlyOnceWith("lantern", true);
+    expect(world.showHitsLeft).not.toHaveBeenCalled();
+  },
+);
+
+it("leaves light-tool presses to the router and ignores other entities", () => {
+  const world = fixture();
+  const press = defined(game.interact.mock.calls[1]?.[0], "lantern press");
+  for (const [typeId, held] of [
+    [GAS_LANTERN_TYPE, HEADLIGHT_SWITCH_TYPE],
+    [CAMP_TABLE_TYPE, undefined],
+    ["minecraft:cow", "minecraft:stone"],
+  ]) {
+    const event = {
+      cancel: false,
+      target: { id: "target", typeId },
+      itemStack: held ? { typeId: held } : undefined,
+    };
+    press(event);
+    expect(event.cancel).toBe(false);
+  }
+  expect(game.run).not.toHaveBeenCalled();
+  expect(world.setLit).not.toHaveBeenCalled();
+});
 
 it("switches on tool hits without hints or progress toward taking back a lantern", () => {
   const world = fixture();
