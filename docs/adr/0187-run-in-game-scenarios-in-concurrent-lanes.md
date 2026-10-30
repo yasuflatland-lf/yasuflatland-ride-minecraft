@@ -37,7 +37,7 @@ The per-tick script cost grows with K, which lowers TPS and stretches wall time 
 
 ### Measured results (part 22/22)
 
-Measured on the dev BDS in Docker on a developer Mac, with no player connected. Local runs use K = 4 (`LOCAL_DEFAULT_LANES`); K = 4 finished well under the 240 s threshold at which the constant would be raised, so it stays 4. CI runs the four shards at K = 1 and one unsharded job at K = 4 (`in-game (lanes)`). The CI lanes job has no measurement yet; the first CI run of the pull request is its measurement, and the entry drops to `lanes: "2"` if the runner cannot meet the ADR 0186 deadline.
+Measured on the dev BDS in Docker on a developer Mac, with no player connected. Local runs use K = 4 (`LOCAL_DEFAULT_LANES`); K = 4 finished well under the 240 s threshold at which the constant would be raised, so it stays 4. CI runs the four shards at K = 1 and one unsharded job at K = 4 (`in-game (lanes)`). The first CI run of the pull request measured the lanes job on `ubuntu-latest`: 105 scenarios passed with `fail=0` in 1,760 ticks and 88 s of test time, 2 m 0 s for the whole job, against 1 m 47 s to 1 m 56 s for each serial shard. The runner meets the ADR 0186 deadline at K = 4, so the entry stays `lanes: "4"`; it drops to `lanes: "2"` only if a later run misses the deadline.
 
 | Run | K | Wall time | PLAN `ticks=` | SUMMARY `ticks=` | SUMMARY `ms=` | Effective TPS |
 |---|---|---|---|---|---|---|
