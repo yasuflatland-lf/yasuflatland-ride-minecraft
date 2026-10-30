@@ -11,13 +11,13 @@ class Region(NamedTuple):
     h: int
 
 
-def _dimensions(w, h):
+def _check_dimensions(w, h):
     if any(type(n) is not int or n <= 0 for n in (w, h)):
         raise ValueError("Region dimensions must be positive texel counts")
 
 
-def _contains(region, x, y):
-    return region.x <= x < region.x + region.w and region.y <= y < region.y + region.h
+def _region_at(regions, x, y):
+    return next((r for r in regions if r.x <= x < r.x + r.w and r.y <= y < r.y + r.h), None)
 
 
 class Block:
@@ -34,7 +34,7 @@ class Block:
         return tuple(self._regions)
 
     def allocate(self, name, w, h):
-        _dimensions(w, h)
+        _check_dimensions(w, h)
         self._atlas._check_name(name)
         x, y = self._x, self._y
         shelf_height = self._shelf_height
@@ -46,7 +46,7 @@ class Block:
             raise ValueError("Region exceeds block bounds")
         region = Region(name, x, y, w, h)
         self._regions.append(region)
-        self._atlas._names.add(name)
+        self._atlas._claim_name(name)
         self._x, self._y = x + w, y
         self._shelf_height = max(shelf_height, h)
         return region
@@ -95,11 +95,14 @@ class Atlas:
         if name in self._names:
             raise ValueError("Atlas names must be unique")
 
+    def _claim_name(self, name):
+        self._names.add(name)
+
     def allocate(self, name, w, h):
         return self.place(name, 0, self._bottom(), w, h)
 
     def place(self, name, x, y, w, h):
-        _dimensions(w, h)
+        _check_dimensions(w, h)
         self._check_name(name)
         if (type(x) is not int or type(y) is not int or x < 0 or y < self.swatch_rows
                 or (self._width is not None and x + w > self._width)
@@ -110,7 +113,7 @@ class Atlas:
             raise ValueError("Regions must not overlap")
         region = Region(name, x, y, w, h)
         self._regions.append(region)
-        self._names.add(name)
+        self._claim_name(name)
         return region
 
     def block(self, name, x, y, w, h):
@@ -140,13 +143,9 @@ class Atlas:
         slot = self.swatch_at(x, y)
         if slot is not None:
             return colors[self.swatches[slot]]
-        for region in self._regions:
-            if _contains(region, x, y):
-                block = self._blocks.get(region.name)
-                if block is not None:
-                    for subregion in block.regions:
-                        if _contains(subregion, x, y):
-                            return region_pixel(subregion, x - subregion.x, y - subregion.y)
-                    return self.fill
-                return region_pixel(region, x - region.x, y - region.y)
-        return self.fill
+        region = _region_at(self._regions, x, y)
+        if region is not None and region.name in self._blocks:
+            region = _region_at(self._blocks[region.name].regions, x, y)
+        if region is None:
+            return self.fill
+        return region_pixel(region, x - region.x, y - region.y)
