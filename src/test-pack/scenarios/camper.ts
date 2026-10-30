@@ -137,7 +137,13 @@ function carPose(car: Entity): HoldPose {
 }
 
 function parkSpotPose(a: Arena): HoldPose {
-  return parkPose({ x: PARK_SPOT.x, y: a.gy, z: PARK_SPOT.z }, PARK_SPOT.yaw);
+  return parkPose(a.at(PARK_SPOT.x, a.gy, PARK_SPOT.z), PARK_SPOT.yaw);
+}
+
+function paveParkSpot(a: Arena, block: string): void {
+  a.dim.runCommand(
+    `fill ${a.box(103, a.gy - 1, 73, 114, a.gy - 1, 84)} ${block}`,
+  );
 }
 
 function countLaid(a: Arena, cells: readonly DockCell[]): number {
@@ -162,7 +168,7 @@ async function atParkSpot(
   try {
     return await withCamper(a, PARK_SPOT.x, PARK_SPOT.z, PARK_SPOT.yaw, run);
   } finally {
-    a.dim.runCommand(`fill 103 ${a.gy} 73 114 ${a.gy + 5} 84 air`);
+    a.dim.runCommand(`fill ${a.box(103, a.gy, 73, 114, a.gy + 5, 84)} air`);
   }
 }
 
@@ -170,8 +176,7 @@ async function atParkSpot(
 // its collision box, clears the plants, and lifts its bumper stand-in out of a grass block
 // in front of the bumper.
 export async function camperParkGrass(a: Arena): Promise<Outcome> {
-  const ground = a.gy - 1;
-  a.dim.runCommand(`fill 103 ${ground} 73 114 ${ground} 84 grass_block`);
+  paveParkSpot(a, "grass_block");
   const pose = parkSpotPose(a);
   const raised = localCellAt(pose, { x: 1, z: 3, layer: 0 });
   const bumper = localCellAt(pose, { x: 0, z: 4, layer: 0 });
@@ -210,7 +215,7 @@ export async function camperParkGrass(a: Arena): Promise<Outcome> {
       };
     });
   } finally {
-    a.dim.runCommand(`fill 103 ${ground} 73 114 ${ground} 84 stone`);
+    paveParkSpot(a, "stone");
   }
 }
 
@@ -222,7 +227,7 @@ export function camperAccel(a: Arena): Promise<Outcome> {
       0.95,
       CAMPER_SPEC.maxSpeed,
       200,
-      () => car.location.x > 100,
+      () => a.local(car.location).x > 100,
     );
     return { pass: reach >= 60 && reach <= 90, detail: `reach95=${reach}` };
   });
@@ -232,16 +237,17 @@ export function camperAccel(a: Arena): Promise<Outcome> {
 // The guard samples every block the front crosses each tick, so it stops the
 // camper here whatever phase the front reaches the wall in (ADR 0067).
 export async function camperWall(a: Arena): Promise<Outcome> {
-  a.dim.runCommand(`fill 60 ${a.gy} 82 60 ${a.gy + 3} 89 stone`);
+  a.dim.runCommand(`fill ${a.box(60, a.gy, 82, 60, a.gy + 3, 89)} stone`);
   try {
     return await withCamper(a, 30.5, 85.5, -90, async (car) => {
+      const frontX = () => a.local(car.location).x + CAMPER_SPEC.bodyFront;
       drive(car, 0, 1);
-      let front = car.location.x + CAMPER_SPEC.bodyFront;
+      let front = frontX();
       for (let t = 0; t < 150; t++) {
         await wait(1);
-        front = Math.max(front, car.location.x + CAMPER_SPEC.bodyFront);
+        front = Math.max(front, frontX());
       }
-      const x = car.location.x;
+      const x = a.local(car.location).x;
       const speed = length(car.getVelocity());
       return {
         pass: front <= 60.05 && x > 50 && speed < 0.05,
@@ -249,7 +255,7 @@ export async function camperWall(a: Arena): Promise<Outcome> {
       };
     });
   } finally {
-    a.dim.runCommand(`fill 60 ${a.gy} 82 60 ${a.gy + 3} 89 air`);
+    a.dim.runCommand(`fill ${a.box(60, a.gy, 82, 60, a.gy + 3, 89)} air`);
   }
 }
 
@@ -333,20 +339,20 @@ export function camperParkSnow(a: Arena): Promise<Outcome> {
 
 export async function camperParkPath(a: Arena): Promise<Outcome> {
   const ground = a.gy - 1;
-  a.dim.runCommand(`fill 103 ${ground} 73 114 ${ground} 84 grass_path`);
+  paveParkSpot(a, "grass_path");
   try {
     return await atParkSpot(a, async (car) => {
       await wait(DOCK.ticks + 10);
       const laid = laidRoomCells(a, car);
       // A path under a full block turns into dirt, so the ground is only logged.
-      const under = a.dim.getBlock({ x: 108, y: ground, z: 78 })?.typeId;
+      const under = a.dim.getBlock(a.at(108, ground, 78))?.typeId;
       return {
         pass: laid === ROOM_CELL_COUNT && car.location.y === a.gy,
         detail: `laid=${laid} y=${car.location.y} ground=${under}`,
       };
     });
   } finally {
-    a.dim.runCommand(`fill 103 ${ground} 73 114 ${ground} 84 stone`);
+    paveParkSpot(a, "stone");
   }
 }
 
@@ -422,7 +428,7 @@ export function camperShowerToiletBlock(a: Arena): Promise<Outcome> {
       (c) => a.dim.getBlock(c)?.typeId === "minecraft:air",
     ).length;
     // Inside the park spot, which atParkSpot fills with air afterwards.
-    const spot = { x: 108, y: a.gy + 2, z: 78 };
+    const spot = a.at(108, a.gy + 2, 78);
     let resolved = 0;
     for (const face of [0, 1, 2, 3]) {
       a.dim.getBlock(spot)?.setPermutation(
@@ -633,7 +639,7 @@ function camperStorage(a: Arena, c: StorageCase): Promise<Outcome> {
       (cell) => a.dim.getBlock(cell)?.isAir,
     ).length;
     // Inside the park spot, which atParkSpot fills with air afterwards.
-    const spot = { x: 108, y: a.gy + 2, z: 78 };
+    const spot = a.at(108, a.gy + 2, 78);
     const resolved: string[] = [];
     const set = (
       at: { x: number; y: number; z: number },
@@ -769,10 +775,10 @@ export async function camperDive(a: Arena): Promise<Outcome> {
   // The flat world's four-block ground cannot hold a pool deep enough for the camper.
   try {
     const rim = a.gy + CAMPER_TANK.waterTop;
-    a.dim.runCommand(`fill 100 ${a.gy} 61 118 ${rim} 69 glass`);
-    a.dim.runCommand(`fill 101 ${a.gy} 62 117 ${rim - 1} 68 water`);
+    a.dim.runCommand(`fill ${a.box(100, a.gy, 61, 118, rim, 69)} glass`);
+    a.dim.runCommand(`fill ${a.box(101, a.gy, 62, 117, rim - 1, 68)} water`);
     // The glass fill also roofed the tank; open its top layer so the camper can surface.
-    a.dim.runCommand(`fill 101 ${rim} 62 117 ${rim} 68 air`);
+    a.dim.runCommand(`fill ${a.box(101, rim, 62, 117, rim, 68)} air`);
     return await withCamper(a, 109.5, 65.5, -90, async (car) => {
       const enteredAt = await ticksUntilForm(car, "submarine", 40);
       drive(car, 0, 0, true);
@@ -794,7 +800,7 @@ export async function camperDive(a: Arena): Promise<Outcome> {
     });
   } finally {
     a.dim.runCommand(
-      `fill 100 ${a.gy} 61 118 ${a.gy + CAMPER_TANK.waterTop} 69 air`,
+      `fill ${a.box(100, a.gy, 61, 118, a.gy + CAMPER_TANK.waterTop, 69)} air`,
     );
   }
 }
