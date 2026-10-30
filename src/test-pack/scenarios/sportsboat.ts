@@ -234,6 +234,8 @@ export function boatDock(a: Arena, onStep: StepSink): Promise<Outcome> {
             {
               name: "drive_off",
               run: async () => {
+                const seatsLeft = () =>
+                  seatsWithin(BOAT_DECK_SEATS_TEST.clearRadius).length;
                 const f = forward(boat.getRotation().y);
                 drive(boat, 0, 1);
                 let undockTicks = 0;
@@ -257,15 +259,13 @@ export function boatDock(a: Arena, onStep: StepSink): Promise<Outcome> {
                 const leftDock = !docked();
                 let clearTicks = undockTicks;
                 while (
-                  seatsWithin(BOAT_DECK_SEATS_TEST.clearRadius).length > 0 &&
+                  seatsLeft() > 0 &&
                   clearTicks < BOAT_DECK_SEATS_TEST.clearTicks
                 ) {
                   await wait(1);
                   clearTicks++;
                 }
-                const remainingSeats = seatsWithin(
-                  BOAT_DECK_SEATS_TEST.clearRadius,
-                ).length;
+                const remainingSeats = seatsLeft();
                 let distance = 0;
                 for (
                   let tick = clearTicks;
