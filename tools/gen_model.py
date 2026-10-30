@@ -106,8 +106,8 @@ geo = {
         {
             "description": {
                 "identifier": "geometry.yasu_ride.suv",
-                "texture_width": TEXTURE_WIDTH,
-                "texture_height": 16,
+                "texture_width": ATLAS.width,
+                "texture_height": ATLAS.height,
                 "visible_bounds_width": 5,
                 "visible_bounds_height": 3,
                 "visible_bounds_offset": [0, 1, 0],

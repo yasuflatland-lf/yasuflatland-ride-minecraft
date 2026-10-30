@@ -32,9 +32,6 @@ PALETTE = {
 }
 NAMES = list(PALETTE)
 LIT_SLOTS = tuple(NAMES.index(name) for name in ("light",))
-# A power of two wide enough for a 4 px cell per swatch (16 swatches filled 64 px before "prop")
-TEXTURE_WIDTH = 128
-assert len(NAMES) * 4 <= TEXTURE_WIDTH, "the palette no longer fits in the texture"
 # Swatch alpha, 255 unless listed. Alpha 0 marks the headlight lenses as emissive for the
 # entity_emissive material; the materials the lenses use while the headlights are off ignore alpha
 # (ADR 0020). entity_emissive_alpha makes a texel glow when its alpha is low but not 0 (ADR 0022).

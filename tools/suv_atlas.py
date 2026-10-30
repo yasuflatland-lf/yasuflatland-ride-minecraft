@@ -3,8 +3,9 @@
 from tool_loader import load_tool
 
 palette = load_tool("suv_palette")
+# A power of two wide enough for a 4 px cell per swatch
 ATLAS = load_tool("swatch_atlas").Atlas(
-    palette.NAMES, cell=4, inset=1, width=palette.TEXTURE_WIDTH, height=16, fill=(0, 0, 0, 255))
+    palette.NAMES, cell=4, inset=1, width=128, height=16, fill=(0, 0, 0, 255))
 
 
 def uv(color):
