@@ -409,6 +409,15 @@ def mirror(quad):
     return [(-x, y, z) for x, y, z in quad]
 
 
+def combine_textures(texture, lit_texture):
+    """Join each base texel with the lit texel at the same spot, so one UV lookup reads both."""
+    if lit_texture is None:
+        raise ValueError("Texel lighting requires a lit texture")
+    if len(texture) != len(lit_texture) or any(len(row) != len(lit_row) for row, lit_row in zip(texture, lit_texture)):
+        raise ValueError("Base and lit texture sizes differ")
+    return [[base + lit for base, lit in zip(row, lit_row)] for row, lit_row in zip(texture, lit_texture)]
+
+
 def collect(geo, texture, folds, turns, pose, lit_texture=None, lit_bones=SUV_LIT_BONES, cutout_bones=SUV_CUTOUT_BONES):
     """Return the vehicle's faces as (quad, rgb, bloom group or None)."""
     desc = geo["description"]
@@ -451,11 +460,7 @@ def collect(geo, texture, folds, turns, pose, lit_texture=None, lit_bones=SUV_LI
         face_texture = texture
         if style == "texel" and not emissive:
             if combined_texture is None:
-                if lit_texture is None:
-                    raise ValueError("Texel lighting requires a lit texture")
-                if len(texture) != len(lit_texture) or any(len(row) != len(lit_row) for row, lit_row in zip(texture, lit_texture)):
-                    raise ValueError("Base and lit texture sizes differ")
-                combined_texture = [[base + lit for base, lit in zip(row, lit_row)] for row, lit_row in zip(texture, lit_texture)]
+                combined_texture = combine_textures(texture, lit_texture)
             face_texture = combined_texture
         for cube in bone.get("cubes", []):
             # In game a cube's x and z rotations turn the other way from this rotate() (ADR 0051, 0058)
@@ -482,6 +487,7 @@ def collect(geo, texture, folds, turns, pose, lit_texture=None, lit_bones=SUV_LI
                     if name in cutout_bones and alpha == 0:
                         continue
                     if style == "texel" and texel[7] == 0:
+                        # texel[4:] is the lit texture's texel that combine_textures appended
                         rgb = tuple(c + (255 - c) * LIT_GAIN for c in texel[4:7])
                         polygons.append((patch, rgb, "lamp"))
                     else:
