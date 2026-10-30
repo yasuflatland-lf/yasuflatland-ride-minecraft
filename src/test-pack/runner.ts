@@ -54,15 +54,15 @@ function reject(runId: string, error: string): void {
 
 async function runAll({ shard }: RunRequest, state: ActiveRun): Promise<void> {
   const { runId } = state;
-  const { missing, extra } = coverageGaps(
+  const { missing, extra, duplicates } = coverageGaps(
     CATALOG.map((spec) => spec.name),
     Object.keys(SCENARIOS),
   );
-  if (missing.length > 0 || extra.length > 0) {
+  if (missing.length > 0 || extra.length > 0 || duplicates.length > 0) {
     state.failed++;
     summary(
       state,
-      `catalog mismatch missing=${missing.join(",")} extra=${extra.join(",")}`,
+      `catalog mismatch missing=${missing.join(",")} extra=${extra.join(",")} duplicates=${duplicates.join(",")}`,
     );
     return;
   }

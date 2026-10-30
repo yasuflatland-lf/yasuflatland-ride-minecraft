@@ -1,7 +1,11 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import type { Isolation, ScenarioSpec } from "../../src/test-pack/catalog";
-import { covers, FEATURE_TAGS } from "../../src/test-pack/features";
+import {
+  covers,
+  FEATURE_TAGS,
+  type FeatureTag,
+} from "../../src/test-pack/features";
 import {
   coverageGaps,
   planOf,
@@ -29,10 +33,7 @@ const catalog = fc
       vehicles: 0,
     })),
   );
-const selectedBy = (
-  spec: ScenarioSpec,
-  features: readonly (typeof FEATURE_TAGS)[number][],
-) =>
+const selectedBy = (spec: ScenarioSpec, features: readonly FeatureTag[]) =>
   features.some((changed) => spec.features.some((tag) => covers(changed, tag)));
 
 describe("planOf", () => {
@@ -178,6 +179,7 @@ describe("planOf", () => {
       features: ["build"],
       isolation: "exclusive",
       needsPlayer: true,
+      skipNote: "camera perspective needs visual verification",
       vehicles: 1,
     };
     expect(
@@ -210,13 +212,29 @@ describe("coverageGaps", () => {
             names.every((name) => registered.includes(name)) &&
               registered.every((name) => names.includes(name)),
           );
-          expect(coverageGaps(names, [...names].reverse())).toEqual({
-            missing: [],
-            extra: [],
-          });
+          const uniqueNames = [...new Set(names)];
+          expect(coverageGaps(uniqueNames, [...uniqueNames].reverse())).toEqual(
+            {
+              missing: [],
+              extra: [],
+              duplicates: [],
+            },
+          );
         },
       ),
     );
+  });
+  it("reports names repeated in either list once, including shared duplicates", () => {
+    expect(
+      coverageGaps(
+        ["both", "both", "both", "catalog", "catalog", "shared"],
+        ["both", "both", "registry", "registry", "shared"],
+      ),
+    ).toEqual({
+      missing: ["catalog"],
+      extra: ["registry"],
+      duplicates: ["both", "catalog", "registry"],
+    });
   });
 });
 
