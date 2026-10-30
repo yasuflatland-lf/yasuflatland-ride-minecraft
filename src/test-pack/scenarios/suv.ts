@@ -25,7 +25,7 @@ import {
 import type { Outcome } from "../outcome";
 import { hitTick, judgeRam, PUSH_WINDOW, type RamSample } from "../ramJudge";
 import {
-  FLIGHT_LANE,
+  FLIGHT_PATH,
   gearDownLandingOutcome,
   summonCow,
   suvProperty,
@@ -393,7 +393,7 @@ function withAirborneCar<T>(
   a: Arena,
   run: (car: Entity) => Promise<T>,
 ): Promise<T> {
-  return withCar(a, FLIGHT_LANE.x, FLIGHT_LANE.z, -90, async (car) => {
+  return withCar(a, FLIGHT_PATH.x, FLIGHT_PATH.z, -90, async (car) => {
     await takeOff(car, SUV_SPEC.takeoffTicks);
     return run(car);
   });
