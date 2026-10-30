@@ -7,12 +7,9 @@ Bones: root / body / headlights / windshield / mirror (ADR 0009, 0159). No logo 
 Run: python3 -I tools/gen_sportsboat.py packs/yasu_ride_rp [--check]
 --check writes nothing and exits 1 listing every stale output.
 """
-import functools
 import json
 import math
-import struct
 import sys
-import zlib
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -27,36 +24,11 @@ assert_axes = load_tool("cube_tilt").assert_axes
 ASSEMBLIES = {"wheel": {"owner": "sportsboat", "cubes": 146},
               "throttle_lever": {"owner": "sportsboat", "cubes": 8}}
 
-CHECK = "--check" in sys.argv[2:]
-STALE = []
-
-
-@functools.cache
-def png_reader():
-    """render_preview.py's decoder, so --check compares pixels however zlib packed the bytes."""
-    return load_tool("render_preview").read_png
-
-
-def emit(path, data, pixels=None):
-    """Write `data` to `path`, or under --check record `path` as stale when it differs. JSON compares
-    parsed, because `pnpm model` reformats it with Biome; a PNG compares `pixels`, its RGBA rows."""
-    if not CHECK:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        if isinstance(data, bytes):
-            path.write_bytes(data)
-        else:
-            path.write_text(data)
-        return
-    try:
-        if path.suffix == ".json":
-            matches = json.loads(path.read_text()) == json.loads(data)
-        else:
-            matches = png_reader()(path) == pixels
-    except (OSError, ValueError, struct.error, zlib.error):
-        matches = False
-    if not matches:
-        STALE.append(str(path))
-
+texture_io = load_tool("texture_io")
+outputs = texture_io.Outputs("--check" in sys.argv[2:])
+build_lit_textures = load_tool("lit_textures").build_lit_textures
+mer = load_tool("mer")
+Mer = mer.Mer
 
 RP = Path(sys.argv[1])
 MODELS = RP / "models/entity/yasu_ride"
@@ -93,21 +65,18 @@ PALETTE = {
 # The windshield renders with entity_alphablend, so its swatch is see-through
 ALPHA = {"glass": 80}
 NAMES = list(PALETTE)
-EMISSIVE_LIT = 255
-MER_LIT = (0, EMISSIVE_LIT, 255)
-MER_OFF = (0, 0, 255)
 # Dielectric clear coat: a near-black metal would reflect almost nothing (ADR 0163).
-MER_HULL = (0, 0, 16)
+MER_HULL = Mer(0, 0, 16)
 HULL_SLOT = NAMES.index("hull")
 # The dash, consoles and frames: a smooth dielectric, slightly softer than the hull so the large flat dash
 # does not mirror like water (ADR 0166).
-MER_GLOSS = (0, 0, 24)
+MER_GLOSS = Mer(0, 0, 24)
 GLOSS_SLOTS = tuple(NAMES.index(name) for name in ("gloss", "frame"))
 LIT_SLOTS = tuple(NAMES.index(name) for name in ("light",))
 # The mirror glass is metalness 255 and roughness 0 so Vibrant Visuals reflects the environment on it.
 # No renderer can show the live scene behind the boat, so the face tile also bakes a sky-to-horizon
 # gradient for clients without PBR (ADR 0159).
-MER_MIRROR = (255, 0, 0)
+MER_MIRROR = Mer(255, 0, 0)
 MIRROR_SLOT = NAMES.index("mirror")
 MIRROR_RIM = (54, 58, 64)
 MIRROR_SKY = (150, 192, 232)
@@ -1851,20 +1820,7 @@ def rounded(value):
 turn_around(geo["minecraft:geometry"][0]["bones"])
 assert_axes([cube for bone in geo["minecraft:geometry"][0]["bones"]
              for cube in bone.get("cubes", [])], {"wheel": wheel, "throttle_lever": lever}, ASSEMBLIES)
-emit(MODELS / "sportsboat.geo.json", json.dumps(rounded(geo), separators=(",", ":")))
-
-
-def png(path, w, h, pixel):
-    # pixel returns (r, g, b) for an opaque texel or (r, g, b, a)
-    pixels = [[(*pixel(x, y), 255)[:4] for x in range(w)] for y in range(h)]
-    rows = b"".join(b"\x00" + b"".join(bytes(texel) for texel in row) for row in pixels)
-
-    def chunk(t, d):
-        return struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d) & 0xFFFFFFFF)
-
-    data = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 6, 0, 0, 0))
-    data += chunk(b"IDAT", zlib.compress(rows)) + chunk(b"IEND", b"")
-    emit(path, data, pixels)
+outputs.json(MODELS / "sportsboat.geo.json", json.dumps(rounded(geo), separators=(",", ":")))
 
 
 def swatch_cell(x, y):
@@ -1872,35 +1828,13 @@ def swatch_cell(x, y):
     return x // 4 if y < 4 else None
 
 
-def cell_mer(cells, default=MER_OFF, extra=None):
-    """A MER texel function: swatch cell i (x 4i..4i+3, y 0..3) gets cells[i], `extra(x, y)` may claim
-    any other texel by returning its MER, and every other texel gets `default`."""
-
-    def mer(x, y):
+def cell_mer(cells, default=mer.MER_OFF, extra=None):
+    """Paint swatch cells, then optional extra regions, falling back to default."""
+    def lookup(x, y):
         value = cells.get(swatch_cell(x, y))
-        if value is None and extra is not None:
-            value = extra(x, y)
-        return (*(default if value is None else value), 255)
+        return extra(x, y) if value is None and extra is not None else value
 
-    return mer
-
-
-def write_texture_set(color_name, mer_name):
-    texture_set = {
-        "format_version": "1.16.100",
-        "minecraft:texture_set": {"color": color_name, "metalness_emissive_roughness": mer_name},
-    }
-    emit(ENTITY_TEXTURES / f"{color_name}.texture_set.json", json.dumps(texture_set))
-
-
-def lit_textures(kind, width, height, pixel):
-    def color(x, y):
-        rgba = (*pixel(x, y), 255)[:4]
-        return (*rgba[:3], 0) if swatch_cell(x, y) in LIT_SLOTS else rgba
-
-    png(ENTITY_TEXTURES / f"{kind}_lit.png", width, height, color)
-    png(ENTITY_TEXTURES / f"{kind}_lit_mer.png", width, height, cell_mer({slot: MER_LIT for slot in LIT_SLOTS}))
-    write_texture_set(f"{kind}_lit", f"{kind}_lit_mer")
+    return mer.mer_painter(lookup, default)
 
 
 (MU, MV), (MW, MH) = TILES["mirror"]["uv"], TILES["mirror"]["size"]
@@ -1921,10 +1855,12 @@ def mirror_textures(width, height, pixel):
     def glass_mer(x, y):
         return MER_MIRROR if in_mirror_glass(x, y) else None
 
-    png(ENTITY_TEXTURES / "sportsboat_mirror.png", width, height, pixel)
-    png(ENTITY_TEXTURES / "sportsboat_mirror_mer.png", width, height,
-        cell_mer({MIRROR_SLOT: MER_MIRROR}, extra=glass_mer))
-    write_texture_set("sportsboat_mirror", "sportsboat_mirror_mer")
+    outputs.png(ENTITY_TEXTURES / "sportsboat_mirror.png", width, height, pixel)
+    outputs.png(
+        ENTITY_TEXTURES / "sportsboat_mirror_mer.png", width, height,
+        cell_mer({MIRROR_SLOT: MER_MIRROR}, extra=glass_mer),
+    )
+    texture_io.write_texture_set(outputs, ENTITY_TEXTURES, "sportsboat_mirror", "sportsboat_mirror_mer")
 
 
 def swatches(hull_color):
@@ -1945,12 +1881,15 @@ def swatches(hull_color):
 
 for paint, hull_color in HULL_PAINTS.items():
     name = "sportsboat" if paint == "khaki" else f"sportsboat_{paint}"
-    png(ENTITY_TEXTURES / f"{name}.png", TEXTURE_WIDTH, TEXTURE_HEIGHT, swatches(hull_color))
-    png(ENTITY_TEXTURES / f"{name}_mer.png", TEXTURE_WIDTH, TEXTURE_HEIGHT,
-        cell_mer({HULL_SLOT: MER_HULL, **{slot: MER_GLOSS for slot in GLOSS_SLOTS}}))
-    write_texture_set(name, f"{name}_mer")
+    outputs.png(ENTITY_TEXTURES / f"{name}.png", TEXTURE_WIDTH, TEXTURE_HEIGHT, swatches(hull_color))
+    outputs.png(
+        ENTITY_TEXTURES / f"{name}_mer.png", TEXTURE_WIDTH, TEXTURE_HEIGHT,
+        cell_mer({HULL_SLOT: MER_HULL, **{slot: MER_GLOSS for slot in GLOSS_SLOTS}}),
+    )
+    texture_io.write_texture_set(outputs, ENTITY_TEXTURES, name, f"{name}_mer")
 
-lit_textures("sportsboat", TEXTURE_WIDTH, TEXTURE_HEIGHT, swatches(HULL_PAINTS["khaki"]))
+build_lit_textures(outputs, ENTITY_TEXTURES, "sportsboat", TEXTURE_WIDTH, TEXTURE_HEIGHT,
+                   swatches(HULL_PAINTS["khaki"]), is_lit=lambda x, y: swatch_cell(x, y) in LIT_SLOTS)
 mirror_textures(TEXTURE_WIDTH, TEXTURE_HEIGHT, swatches(HULL_PAINTS["khaki"]))
 
 # Item icon: a 16-pixel side view, bow to the right, tower leaning forward, on transparency.
@@ -1980,7 +1919,7 @@ def icon(x, y):
     return ICON_COLORS.get(ICON[y][x], (0, 0, 0, 0))
 
 
-png(ITEM_TEXTURES / "sportsboat_item.png", 16, 16, icon)
+outputs.png(ITEM_TEXTURES / "sportsboat_item.png", 16, 16, icon)
 
 # Sports Boat Equipment box: a ship's wheel with a round wooden rim, a brass hub, and eight spokes
 # running past the rim as handles (ADR 0171 rule 2). The owner's shape reference was the Kubernetes
@@ -2035,8 +1974,8 @@ def pixel_map(rows, colors):
     return lambda x, y: colors.get(rows[y][x], (0, 0, 0, 0))
 
 
-png(ITEM_TEXTURES / "sportsboat_equipment_box.png", 16, 16, pixel_map(EQUIPMENT_BOX_ICON, EQUIPMENT_BOX_COLORS))
-png(ITEM_TEXTURES / "icebreaker_switch.png", 16, 16, pixel_map(ICEBREAKER_SWITCH_ICON, ICEBREAKER_SWITCH_COLORS))
+outputs.png(ITEM_TEXTURES / "sportsboat_equipment_box.png", 16, 16, pixel_map(EQUIPMENT_BOX_ICON, EQUIPMENT_BOX_COLORS))
+outputs.png(ITEM_TEXTURES / "icebreaker_switch.png", 16, 16, pixel_map(ICEBREAKER_SWITCH_ICON, ICEBREAKER_SWITCH_COLORS))
 # The bulldozer overlay's visible face clears its screen by 0.10 px. Here the
 # screen is local -z; turn_around makes it south-facing in the final frame.
 monitor_plate = box(2.3 + DISPLAY_DX, F + 8.45, 12.85 + DISPLAY_DZ,
@@ -2069,10 +2008,9 @@ MONITOR_ICON_COLORS = {**ICEBREAKER_SWITCH_COLORS, "K": SPORTSBOAT_MONITOR_LAYOU
 monitor_icon = [[MONITOR_ICON_COLORS[code][:3] + (0,) if code != "."
                  else SPORTSBOAT_MONITOR_LAYOUT.background for code in row]
                 for row in ICEBREAKER_SWITCH_ICON]
-STALE.extend(monitor.write_monitor("sportsboat", SPORTSBOAT_MONITOR_LAYOUT,
-                                   {"icebreaker_switch": monitor_icon}, CHECK, RP))
+outputs.stale.extend(monitor.write_monitor(
+    "sportsboat", SPORTSBOAT_MONITOR_LAYOUT,
+    {"icebreaker_switch": monitor_icon}, outputs.check, RP,
+))
 print("cubes:", len(body) + len(headlights) + len(glass) + len(mirror))
-if STALE:
-    sys.exit("Stale sports boat outputs:\n" + "\n".join(STALE))
-if CHECK:
-    print("sports boat model and textures are up to date")
+outputs.finish("Stale sports boat outputs:", "sports boat model and textures are up to date")

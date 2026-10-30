@@ -52,12 +52,8 @@ def mer_pixels(palette, size=32, swatch=8):
     return bytes(out)
 
 
-def texel_reader(size, data):
-    return lambda x, y: tuple(data[(y * size + x) * 4 : (y * size + x + 1) * 4])
-
-
 def write_png(path, size, data):
-    texture_io.Outputs(False).png(path, size, size, texel_reader(size, data), compress_level=9)
+    texture_io.Outputs(False).png(path, size, size, texture_io.texel_reader(size, data), compress_level=9)
 
 
 def read_png(path, size):
@@ -89,6 +85,6 @@ def write_or_check(root, check, files, stale_message):
         out.json(root / relative, json.dumps(doc, separators=(",", ":")) + "\n")
     for name in ("color", "mer"):
         relative, size, data = files[name]
-        out.png(root / relative, size, size, texel_reader(size, data), compress_level=9)
+        out.png(root / relative, size, size, texture_io.texel_reader(size, data), compress_level=9)
     if out.stale:
         sys.exit(stale_message + "\n" + "\n".join(out.stale))

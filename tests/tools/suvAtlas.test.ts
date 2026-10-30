@@ -44,7 +44,7 @@ for i, r in enumerate(regions):
     assert 192 <= r.x and r.x + r.w <= 320 and 168 <= r.y and r.y + r.h <= 256
     for other in regions[:i]:
         assert r.x + r.w <= other.x or other.x + other.w <= r.x or r.y + r.h <= other.y or other.y + other.h <= r.y
-for x, y in [(191, 168), (0, 0), (0, 8)]:
+for x, y in [(191, 168), (0, 0), (0, 167)]:
     assert a.region_at(x, y) is None`);
 });
 
