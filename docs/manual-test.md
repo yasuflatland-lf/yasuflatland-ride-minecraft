@@ -69,6 +69,8 @@ To use commands, run `docker exec yasuflatland-ride-bds send-command op <player 
 | 60 | Place the scaled SUV beside a wall at straight and diagonal headings, then board and open every door | Placement respects the 3 by 3 by 3 clearance; record body, bumper and door overlap from the square collision box | unverified | unverified |
 | 61 | On PC and a touch client, fly the scaled SUV in hover form and dive it as a submarine (ADR 0170, 8/8) | The third-person chase camera sits far enough back to show the whole SUV with some ground around it, not just the tailgate | unverified | unverified |
 | 62 | On PC and mobile, compare every SUV paint with the owner's reference photo with VV on and off; inspect both sides, hood and tailgate while parked, then drive at chase-camera distance | Panel lines and door handle recesses read with VV off; steel retains each paint's hue, the hardtop stays matte, and no shimmer appears at chase distance | | |
+| 63 | With VV off on PC and mobile, inspect every SUV paint | Every paint looks as it did after SUV detail 11/17; relief affects VV only | | |
+| 64 | With VV on, compare `RELIEF_KIND` heightmap and normal in `tools/suv_material.py` on PC and mobile, next to the SUV and at chase distance | Door, hood and tailgate grooves and handle recesses read as recessed without shimmer; record the preferred variant and reason | | |
 
 ## Sports boat
 
