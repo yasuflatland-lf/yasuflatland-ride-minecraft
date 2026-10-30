@@ -9,6 +9,7 @@ import { MAX_LANES } from "./protocol.ts";
 export const MAX_LANE_VEHICLES = 8;
 
 /**
+ * Places items slowest first into the lightest bin.
  * Ties go to the earlier item and the lower bin so every CI job computes
  * the same split (ADR 0054).
  */
@@ -40,7 +41,9 @@ export interface RunPlan {
   readonly skipped: readonly Skipped[];
   readonly unselected: number;
   readonly expectedTicks: number;
+  /** With one lane, this is [runs], including exclusive specs. */
   readonly lanes: readonly (readonly ScenarioSpec[])[];
+  /** Empty with one lane; consumers must not run exclusive specs twice. */
   readonly exclusive: readonly ScenarioSpec[];
   readonly makespanTicks: number;
 }
@@ -90,7 +93,10 @@ function packLanes(
   );
   for (const [index, unit] of units.entries()) {
     const bin = bins[index];
-    if (bin !== undefined) lanes[bin]?.push(...unit.members);
+    const lane = bin === undefined ? undefined : lanes[bin];
+    if (lane === undefined)
+      throw new Error(`Missing lane assignment for unit ${index}`);
+    lane.push(...unit.members);
   }
   return lanes;
 }

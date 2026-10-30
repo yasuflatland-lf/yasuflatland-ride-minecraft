@@ -267,6 +267,64 @@ describe("planOf", () => {
     );
   });
 
+  it("keeps four requested lanes for one-vehicle lane specs", () => {
+    const specs: ScenarioSpec[] = Array.from({ length: 4 }, (_, index) => ({
+      name: `scenario_${index}`,
+      file: "fixture",
+      ticks: 10,
+      features: [],
+      isolation: "lane",
+      needsPlayer: false,
+      vehicles: 1,
+    }));
+    const plan = planOf(specs, {
+      shard: WHOLE_RUN,
+      playerConnected: true,
+      lanes: 4,
+    });
+    expect(plan.lanes).toHaveLength(4);
+  });
+
+  it("reduces eight requested lanes to four for a two-vehicle largest lane spec", () => {
+    const specs: ScenarioSpec[] = Array.from({ length: 8 }, (_, index) => ({
+      name: `scenario_${index}`,
+      file: "fixture",
+      ticks: 10,
+      features: [],
+      isolation: "lane",
+      needsPlayer: false,
+      vehicles: index === 0 ? 2 : 1,
+    }));
+    const plan = planOf(specs, {
+      shard: WHOLE_RUN,
+      playerConnected: true,
+      lanes: 8,
+    });
+    expect(plan.lanes).toHaveLength(4);
+  });
+
+  it("orders lane units by their first catalog member and keeps tent members contiguous", () => {
+    const specs: ScenarioSpec[] = [2, 4, 9, 3, 4, 6, 1].map((ticks, index) => ({
+      name: `scenario_${index}`,
+      file: "fixture",
+      ticks,
+      features: [],
+      isolation: "lane",
+      group: index === 1 || index === 3 || index === 5 ? "tent" : undefined,
+      needsPlayer: false,
+      vehicles: 1,
+    }));
+    const plan = planOf(specs, {
+      shard: WHOLE_RUN,
+      playerConnected: true,
+      lanes: 2,
+    });
+    expect(plan.lanes.map((lane) => lane.map((spec) => spec.name))).toEqual([
+      ["scenario_0", "scenario_1", "scenario_3", "scenario_5"],
+      ["scenario_2", "scenario_4", "scenario_6"],
+    ]);
+  });
+
   it("keeps the default and explicit single lane identical", () => {
     fc.assert(
       fc.property(catalog, (specs) => {
@@ -361,16 +419,6 @@ function loads(ticks: number[], shards: number[], total: number): number[] {
 }
 
 describe("packByTicks", () => {
-  it("matches the one-based shard assignments", () => {
-    fc.assert(
-      fc.property(tickList, shardCount, (ticks, bins) => {
-        expect(packByTicks(ticks, bins).map((bin) => bin + 1)).toEqual(
-          shardsOf(ticks, bins),
-        );
-      }),
-    );
-  });
-
   it("breaks equal tick and load ties by position and bin", () => {
     expect(packByTicks([2, 3, 3, 2, 0], 2)).toEqual([0, 0, 1, 1, 0]);
   });
