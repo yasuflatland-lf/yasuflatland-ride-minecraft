@@ -49,7 +49,7 @@ class Outputs:
                          + chunk(b"IDAT", zlib.compress(raw, compress_level)) + chunk(b"IEND", b""))
 
     def finish(self, stale_header, ok_message):
-        if self.check and self.stale:
+        if self.stale:
             sys.exit(stale_header + "\n" + "\n".join(self.stale))
         print(ok_message)
 

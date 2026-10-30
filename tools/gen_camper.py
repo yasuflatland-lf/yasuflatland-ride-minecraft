@@ -1433,7 +1433,7 @@ geo = {
 }
 model_cubes = [cube for bone in geo["minecraft:geometry"][0]["bones"] for cube in bone.get("cubes", [])]
 assert_axes(model_cubes, {"slanted": compound_cubes(model_cubes)}, ASSEMBLIES)
-outputs.json(MODELS / "camper.geo.json", json.dumps(rounded(geo), separators=(",", ":")))
+outputs.json(MODELS / "camper.geo.json", rounded(geo), separators=(",", ":"))
 
 
 def scale(color, factor):
