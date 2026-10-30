@@ -34,3 +34,19 @@ Keep the four CI shards at K = 1. Part 22/22 of the series (#930) adds one unsha
 ## Consequences
 
 The per-tick script cost grows with K, which lowers TPS and stretches wall time without changing tick counts. Part 22/22 adds measurements to assess the resulting run time.
+
+### Measured results (part 22/22)
+
+Measured on the dev BDS in Docker on a developer Mac, with no player connected. Local runs use K = 4 (`LOCAL_DEFAULT_LANES`); K = 4 finished well under the 240 s threshold at which the constant would be raised, so it stays 4. CI runs the four shards at K = 1 and one unsharded job at K = 4 (`in-game (lanes)`). The first CI run of the pull request measured the lanes job on `ubuntu-latest`: 105 scenarios passed with `fail=0` in 1,760 ticks and 88 s of test time, 2 m 0 s for the whole job, against 1 m 47 s to 1 m 56 s for each serial shard. The runner meets the ADR 0186 deadline at K = 4, so the entry stays `lanes: "4"`; it drops to `lanes: "2"` only if a later run misses the deadline.
+
+| Run | K | Wall time | PLAN `ticks=` | SUMMARY `ticks=` | SUMMARY `ms=` | Effective TPS |
+|---|---|---|---|---|---|---|
+| `GAME_TEST_ALL=1`, run 1 | 4 | 91 s | 6477 | 1773 | 89091 | 19.9 |
+| `GAME_TEST_ALL=1`, run 2 | 4 | 92 s | 6477 | 1779 | 89404 | 19.9 |
+| `GAME_TEST_ALL=1`, run 3 | 4 | 91 s | 6477 | 1764 | 88719 | 19.9 |
+| shard 1/4 | 1 | 82 s | 1618 | 1607 | 80514 | 20.0 |
+| shard 2/4 | 1 | 85 s | 1620 | 1662 | 83107 | 20.0 |
+| shard 3/4 | 1 | 85 s | 1619 | 1608 | 80442 | 20.0 |
+| shard 4/4 | 1 | 82 s | 1620 | 1635 | 82049 | 19.9 |
+
+All runs passed with `fail=0`, and no watchdog warning was logged. The four lanes cost about 0.1 TPS compared with a serial run, so the wall time follows the longest lane, not the sum of the scenarios. The serial suite took 7,816 ticks (about 391 s) before the series.

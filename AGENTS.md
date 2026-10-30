@@ -31,12 +31,13 @@ pnpm sounds        # regenerate the Resource Pack sounds (Python 3)
 pnpm server:up     # register the packs and start the dev BDS (Docker)
 pnpm server:down   # stop the dev BDS
 pnpm server:restart # stop the dev BDS and start it again under a new dev pack version
-pnpm test:game     # run the in-game tests on the running dev BDS (GAME_TEST_SHARD=2/3 runs one CI slice; GAME_TEST_LANES=<1..8> runs that many lanes at once in one BDS)
-# Local runs select only impacted scenarios; CI/sharded runs run everything.
+pnpm test:game     # run impacted scenarios on the running dev BDS in 4 lanes locally by default
 # GAME_TEST_ALL=1 runs everything.
+# GAME_TEST_LANES=<1..8> sets the lane count; 1 runs serially.
+# GAME_TEST_SHARD=2/4 runs one CI slice; CI runs every scenario in 4 shards plus one 4-lane job.
 # GAME_TEST_BASE=<ref> overrides the merge base.
 # GAME_TEST_FEATURES=<tags> runs those comma-separated feature tags.
-# GAME_TEST_AT=<0..7> runs inside one lane, for converting scenarios.
+# GAME_TEST_AT=<0..7> runs inside one lane, for converting scenarios (defaults to serial).
 ```
 
 Before you say a change is done, run `pnpm lint`, `pnpm lint:lang`, `pnpm lint:unused`, `pnpm lint:deps`, `pnpm typecheck`, and `pnpm test`. When you change `src/infrastructure`, `src/test-pack`, or the packs, also run `pnpm build`, restart the dev BDS, and run `pnpm test:game` if Docker is available. CI runs the lint, unused code, test, build, and package checks on every pull request ([unit-test.yml](.github/workflows/unit-test.yml), which also uploads coverage to Codecov) and runs the in-game tests against a BDS container ([integration-test.yml](.github/workflows/integration-test.yml)).

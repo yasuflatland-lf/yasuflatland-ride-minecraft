@@ -8,6 +8,7 @@ export const TEST_EVENT = "yasu_ride:test";
 export const LOG_TAG = "[YASU-RIDE-TEST]";
 export const MANUAL_RUN_ID = "manual";
 export const MAX_LANES = 8;
+export const LOCAL_DEFAULT_LANES = 4;
 // Script event messages are capped at 2048 characters:
 // https://learn.microsoft.com/en-us/minecraft/creator/scriptapi/minecraft/server/system#sendscriptevent
 export const MESSAGE_LIMIT = 2048;
@@ -43,6 +44,15 @@ export function lanesFrom(text: string): number | undefined {
   if (!/^[1-9]\d*$/.test(text)) return undefined;
   const value = Number(text);
   return value <= MAX_LANES ? value : undefined;
+}
+
+export function defaultLanesOf(
+  env: Readonly<Record<string, string | undefined>>,
+): number {
+  return (
+    lanesFrom(env.GAME_TEST_LANES ?? "") ??
+    (env.CI || env.GAME_TEST_SHARD ? 1 : LOCAL_DEFAULT_LANES)
+  );
 }
 
 export function laneIndexFrom(text: string): number | undefined {

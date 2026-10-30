@@ -480,7 +480,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
   {
     name: "submarine_course",
     file: "suv",
-    ticks: 250,
+    ticks: 192,
     features: ["vehicle:suv"],
     isolation: "lane",
     needsPlayer: false,
@@ -588,7 +588,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
   {
     name: "boat_icebreaker_ice",
     file: "sportsboat",
-    ticks: 90,
+    ticks: 50,
     features: ["vehicle:sportsboat"],
     isolation: "lane",
     needsPlayer: false,
@@ -597,7 +597,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
   {
     name: "boat_icebreaker_lava",
     file: "sportsboat",
-    ticks: 90,
+    ticks: 51,
     features: ["vehicle:sportsboat"],
     isolation: "lane",
     needsPlayer: false,
@@ -642,7 +642,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
   {
     name: "boat_shore",
     file: "sportsboat",
-    ticks: 165,
+    ticks: 96,
     features: ["vehicle:sportsboat"],
     isolation: "lane",
     needsPlayer: false,
