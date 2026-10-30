@@ -476,6 +476,7 @@ Setup: use a Vibrant Visuals device at night, then repeat the legacy checks with
 | L15 | With Vibrant Visuals on and SUV headlights on, check that the lit lamps from L1 and L5 still glow. | [ ] | [ ] |
 | L16 | With Vibrant Visuals off, check that the SUV paint and lights look unchanged, and repeat L6 for the SUV. | [ ] | [ ] |
 | L17 | Hover the SUV at night with Vibrant Visuals on and then off: the glow discs underneath still glow blue in both modes. | [ ] | [ ] |
+| L18 | On PC and a touch client, sit in the SUV driver seat with Vibrant Visuals on and off: three gauges have the tachometer left and speedometer right, chrome rings, blended square corners, and no numerals or logos; the black grained leather rim has a plain hub. | [ ] | [ ] |
 
 ## Sports boat mirror (Vibrant Visuals)
 
