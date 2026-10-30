@@ -1958,19 +1958,18 @@ describe("camper rib atlas (ADR 0190)", () => {
     expect(regions[1]?.[4]).toBe(1);
     expect(period).toBe(2);
     expect(texelsPerPx).toBe(2);
-    for (const [i, [, x, y, w, h]] of regions.entries()) {
+    const texture = readPng("textures/entity/yasu_ride/camper");
+    const shell = [...texture.pixels.subarray(0, 3)];
+    for (const [i, [name, x, y, w, h]] of regions.entries()) {
       expect(x).toBeGreaterThanOrEqual(0);
       expect(y).toBeGreaterThanOrEqual(1);
-
       expect(x + w).toBeLessThanOrEqual(width);
       expect(y + h).toBeLessThanOrEqual(height);
       for (const [, ox, oy, ow, oh] of regions.slice(0, i))
         expect(x + w <= ox || ox + ow <= x || y + h <= oy || oy + oh <= y).toBe(
           true,
         );
-      if (regions[i]?.[0] !== "rib") continue;
-      const texture = readPng("textures/entity/yasu_ride/camper");
-      const shell = [...texture.pixels.subarray(0, 3)];
+      if (name !== "rib") continue;
       for (let dy = 0; dy < h; dy++) {
         const phase = dy % period;
         const factor = phase === 0 ? 0.93 : phase === 1 ? 1.05 : 1;
@@ -2004,14 +2003,16 @@ describe("camper aluminium roof edges", () => {
     expect(front.origin[0]).toBe(-24.2);
     expect(front.origin[1]).toBe(63.4);
     expect(front.size).toEqual([48.4, 0.7, 1]);
+    function edgeWidth(c: Cube): number {
+      return defined(c.size[c === front ? 0 : 2], "edge width");
+    }
+    function outerFace(c: Cube): string {
+      if (c === front) return "north";
+      return defined(c.origin[0], "edge x") < 0 ? "west" : "east";
+    }
     for (const c of edges) {
-      const outer =
-        c === front
-          ? "north"
-          : defined(c.origin[0], "edge x") < 0
-            ? "west"
-            : "east";
-      const width = defined(c.size[c === front ? 0 : 2], "edge width");
+      const outer = outerFace(c);
+      const width = edgeWidth(c);
       if (c !== front) {
         expect(c.origin[1]).toBe(63.4);
         expect(c.size.slice(0, 2)).toEqual([0.4, 0.6]);
@@ -2046,15 +2047,7 @@ describe("camper aluminium roof edges", () => {
         expect(face).toEqual({ uv: [10, 0], uv_size: [1, 1] });
     const texture = readPng("textures/entity/yasu_ride/camper");
     expect(texture.height).toBe(boltY + 1);
-    expect(texture.width).toBe(
-      Math.ceil(
-        Math.max(
-          ...edges.map((c) =>
-            defined(c.size[c === front ? 0 : 2], "edge width"),
-          ),
-        ),
-      ),
-    );
+    expect(texture.width).toBe(Math.ceil(Math.max(...edges.map(edgeWidth))));
     for (let x = 0; x < texture.width; x++) {
       const offset = (boltY * texture.width + x) * 4;
       expect([...texture.pixels.subarray(offset, offset + 4)]).toEqual(
