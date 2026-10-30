@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-12
+- Amended in part by [0193](0193-shared-texture-tooling.md) (Proposed)
 
 ## Context
 

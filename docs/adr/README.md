@@ -60,7 +60,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0054](0054-shard-in-game-tests-in-ci.md) | Shard the in-game tests across four CI jobs and run model:check beside the unit tests | Accepted; extended by 0186 (Proposed), 0187 (Proposed), and 0189 (Proposed) |
 | [0055](0055-kind-neutral-vehicle-core.md) | Kind-neutral vehicle core | Superseded in part by 0083 and 0087; extended by 0064, 0065, 0072, 0089, 0090, 0127, 0136 (Proposed), 0137 (Proposed), 0139 (Proposed), 0180 (Proposed), and 0181 (Proposed) |
 | [0056](0056-sports-boat-previews.md) | Render README previews of the sports boat | Accepted |
-| [0057](0057-skip-model-check-when-inputs-unchanged.md) | Skip model:check on pull requests that leave the renderer's files alone | Accepted |
+| [0057](0057-skip-model-check-when-inputs-unchanged.md) | Skip model:check on pull requests that leave the renderer's files alone | Accepted; amended in part by [0193](0193-shared-texture-tooling.md) (Proposed) |
 | [0058](0058-refine-the-sports-boat-interior.md) | Refine the sports boat interior from reference photos | Accepted |
 | [0059](0059-sports-boat-wake-trim-and-roll.md) | Sports boat wake, bow rise, and roll | Superseded in part by 0061 and 0079 |
 | [0060](0060-sports-boat-engine-sound.md) | Sports boat engine sound | Accepted; extended by 0140 (Proposed) |
@@ -148,7 +148,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0144](0144-split-camping-gear-into-inside-and-outside-groups.md) | Split camping gear into inside and outside groups | Proposed; Bulldozer Switches group superseded in part by 0178 (Proposed) |
 | [0145](0145-move-camper-side-lamp-and-door-handle.md) | Move the camper's side lamp and door handle | Proposed |
 | [0146](0146-wire-mesh-bulldozer-steps-and-a-camper-vent-cover.md) | Wire mesh bulldozer steps and a camper vent cover | Proposed; superseded in part by 0157 (Proposed) |
-| [0147](0147-light-the-lamps-with-a-pbr-emissive-layer.md) | Light the lamps with a PBR emissive layer | Accepted; extended by 0159 (Proposed) and 0163 (Proposed); extended by 0184 |
+| [0147](0147-light-the-lamps-with-a-pbr-emissive-layer.md) | Light the lamps with a PBR emissive layer | Accepted; extended by 0159 (Proposed) and 0163 (Proposed); extended by 0184; amended in part by [0193](0193-shared-texture-tooling.md) (Proposed) |
 | [0148](0148-smooth-bulldozer-side-bevel.md) | Smooth the bulldozer side bevel | Proposed; extended by 0151 (Proposed) |
 | [0149](0149-route-the-parked-camper-wheel-seat-to-headlights.md) | Route the parked camper's wheel seat to the headlights | Accepted |
 | [0150](0150-run-the-sports-boat-on-lava.md) | Run the sports boat on lava | Proposed |
@@ -192,6 +192,8 @@ This directory records design decisions and the reasons behind them. The format 
 | [0189](0189-run-only-impacted-in-game-scenarios-locally.md) | Run only impacted in-game scenarios locally | Proposed |
 | [0190](0190-ribbed-camper-shell-atlas.md) | A ribbed camper shell atlas and trim | Proposed |
 | [0191](0191-press-camp-gear-without-the-light-tool.md) | Press camp gear without the light tool | Proposed |
+| [0192](0192-suv-detailed-body.md) | Detail the SUV body, dashboard and lamps | Proposed |
+| [0193](0193-shared-texture-tooling.md) | Share texture tooling between generators | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 
