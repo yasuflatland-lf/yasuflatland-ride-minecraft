@@ -43,30 +43,84 @@ for x, y in [(191, 168), (224, 168), (192, 200), (0, 0), (0, 8)]:
     assert a.region_at(x, y) is None`);
 });
 
-it("allocates the same regions regardless of module import order", () => {
-  const modules = [
+it("allocates regions in declaration order regardless of module import order", () => {
+  const painters = [
     "suv_paint_body",
     "suv_paint_headlight",
     "suv_paint_tail",
     "suv_paint_dash",
     "suv_paint_gauges",
-    "suv_texture",
-    "suv_cubes",
-    "suv_atlas",
   ];
-  const table = (order: string[]) =>
-    run(`for name in ${JSON.stringify(order)}: load_tool(name)
+  const modules = ["suv_texture", "suv_cubes", "suv_atlas"];
+  const table = (painterOrder: string[], moduleOrder: string[]) =>
+    JSON.parse(
+      run(`stubs = {
+    'suv_paint_body': [('panel', 300, 20, 'body'), ('trim', 180, 30, 'trim'), ('roof', 80, 12, 'hardtop')],
+    'suv_paint_headlight': [('lens', 60, 12, 'light'), ('rim', 30, 20, 'chrome'), ('indicator', 20, 8, 'amber')],
+    'suv_paint_tail': [('lens', 50, 10, 'tail'), ('rim', 40, 16, 'chrome'), ('indicator', 24, 12, 'amber')],
+    'suv_paint_dash': [('grain', 80, 16, 'resin'), ('trim', 64, 12, 'trim')],
+    'suv_paint_gauges': [('dial', 48, 12, 'gauge'), ('rim', 64, 20, 'chrome')],
+}
+for name in ${JSON.stringify(painterOrder)}:
+    painter = load_tool(name)
+    painter.REGIONS = tuple(load_tool('suv_texture').RegionSpec(*spec) for spec in stubs[name])
+for name in ${JSON.stringify(moduleOrder)}: load_tool(name)
 a = load_tool('suv_atlas')
-print(json.dumps([(block, list(b.regions)) for block, b in a.BLOCKS.items()]))`);
-  const expected = table(modules);
+print(json.dumps([(block, list(b.regions)) for block, b in a.BLOCKS.items()]))`),
+    );
+  const expected = [
+    [
+      "body",
+      [
+        ["body.panel", 0, 8, 300, 20],
+        ["body.trim", 300, 8, 180, 30],
+        ["body.roof", 0, 38, 80, 12],
+      ],
+    ],
+    [
+      "headlight",
+      [
+        ["headlight.lens", 0, 168, 60, 12],
+        ["headlight.rim", 60, 168, 30, 20],
+        ["headlight.indicator", 0, 188, 20, 8],
+      ],
+    ],
+    [
+      "tail_lamp",
+      [
+        ["tail_lamp.lens", 96, 168, 50, 10],
+        ["tail_lamp.rim", 146, 168, 40, 16],
+        ["tail_lamp.indicator", 96, 184, 24, 12],
+      ],
+    ],
+    [
+      "dash",
+      [
+        ["dash.grain", 192, 168, 80, 16],
+        ["dash.trim", 192, 184, 64, 12],
+      ],
+    ],
+    [
+      "gauges",
+      [
+        ["gauges.dial", 320, 168, 48, 12],
+        ["gauges.rim", 368, 168, 64, 20],
+      ],
+    ],
+    ["spare", []],
+  ];
   fc.assert(
     fc.property(
+      fc.shuffledSubarray(painters, {
+        minLength: painters.length,
+        maxLength: painters.length,
+      }),
       fc.shuffledSubarray(modules, {
         minLength: modules.length,
         maxLength: modules.length,
       }),
-      (order) => {
-        expect(table(order)).toBe(expected);
+      (painterOrder, moduleOrder) => {
+        expect(table(painterOrder, moduleOrder)).toEqual(expected);
       },
     ),
     { numRuns: 15 },
