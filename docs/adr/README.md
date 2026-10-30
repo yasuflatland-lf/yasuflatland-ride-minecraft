@@ -168,12 +168,12 @@ This directory records design decisions and the reasons behind them. The format 
 | [0165](0165-cylindrical-sports-boat-tower-speakers.md) | Cylindrical sports boat tower speakers | Proposed |
 | [0166](0166-tilted-two-axis-sports-boat-helm-assemblies.md) | Tilted two-axis assemblies on the sports boat helm | Proposed |
 | [0167](0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md) | Compound-rotation assemblies as a vehicle-neutral rule | Proposed |
-| [0168](0168-a-dutch-oven-and-a-grill-for-the-fire-pit.md) | A Dutch oven and a grill for the fire pit | Proposed; superseded in part (rule 1: new table ovens go at the aimed point, not two fixed spots; rule 5: a missing host removes the oven with no drop; rule 8: an overlap and limit check replaces the occupied-spot refusal on a table; the table may now hold Gas Lanterns) by 0185 (Proposed) |
+| [0168](0168-a-dutch-oven-and-a-grill-for-the-fire-pit.md) | A Dutch oven and a grill for the fire pit | Proposed; superseded in part (rule 1: new table ovens go at the aimed point, not two fixed spots; rule 5: a missing host removes the oven with no drop; rule 8: an overlap and limit check replaces the occupied-spot refusal on a table; the table may now hold Gas Lanterns) by 0185 (Proposed); superseded in part (rule 2 and the isSimmering note: the host sets the initial state only; presses toggle it on every host) by [0191](0191-press-camp-gear-without-the-light-tool.md) (Proposed) |
 | [0169](0169-a-lantern-for-the-oil-lamp-and-a-noga-chair.md) | A Lantern for the Oil Lamp, no Lava Lamp, and a Noga Chair | Proposed; superseded in part by [0173](0173-remove-the-inside-lantern-and-add-the-gas-lantern.md) (Proposed) |
 | [0170](0170-measure-suv-side-view-proportions.md) | Measure SUV side-view proportions against a fixed wheel diameter | Proposed |
 | [0171](0171-sports-boat-equipment-and-icebreaker-mode.md) | Sports Boat Equipment and icebreaker mode | Proposed; superseded in part by [0174](0174-show-only-the-icebreaker-switch-in-the-equipment-group.md) (Proposed) and [0175](0175-keep-the-icebreaker-cut-above-the-hull-floor.md) (Proposed), and group position by 0178 (Proposed) |
 | [0172](0172-smooth-sports-boat-headlight-lenses.md) | Smooth sports boat headlight lenses | Proposed |
-| [0173](0173-remove-the-inside-lantern-and-add-the-gas-lantern.md) | Remove the inside Lantern and add the Gas Lantern | Proposed; extended (a Gas Lantern may stand on a Camp Table and is removed with it) by 0185 (Proposed) |
+| [0173](0173-remove-the-inside-lantern-and-add-the-gas-lantern.md) | Remove the inside Lantern and add the Gas Lantern | Proposed; extended (a Gas Lantern may stand on a Camp Table and is removed with it) by 0185 (Proposed); superseded in part (rule 12: presses with any item or an empty hand switch the lantern; hits switch only with the light tool) by [0191](0191-press-camp-gear-without-the-light-tool.md) (Proposed) |
 | [0174](0174-show-only-the-icebreaker-switch-in-the-equipment-group.md) | Show only the Icebreaker Switch in the equipment group | Proposed; group position superseded in part by 0178 (Proposed) |
 | [0175](0175-keep-the-icebreaker-cut-above-the-hull-floor.md) | Keep the icebreaker cut above the hull floor | Proposed |
 | [0176](0176-move-the-sports-boat-front-seats-back.md) | Move the sports boat's front seats back | Accepted |
@@ -191,6 +191,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0188](0188-fuse-in-game-scenarios-and-keep-only-engine-facts-in-game.md) | Fuse in-game scenarios and keep only engine facts in game | Proposed |
 | [0189](0189-run-only-impacted-in-game-scenarios-locally.md) | Run only impacted in-game scenarios locally | Proposed |
 | [0190](0190-ribbed-camper-shell-atlas.md) | A ribbed camper shell atlas, trim, and roof rails | Proposed |
+| [0191](0191-press-camp-gear-without-the-light-tool.md) | Press camp gear without the light tool | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 
