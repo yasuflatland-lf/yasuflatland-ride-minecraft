@@ -12,6 +12,7 @@ const modules = [
   "lane",
   "resultLog",
   "deadline",
+  "impact",
 ].filter((name) => existsSync(new URL(`src/test-pack/${name}.ts`, root)));
 
 it.each(modules)("loads %s with Node type stripping", (name) => {
