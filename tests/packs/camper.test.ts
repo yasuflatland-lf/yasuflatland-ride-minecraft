@@ -759,13 +759,19 @@ describe("camper model assets (ADR 0067)", () => {
         // The PALETTE order in tools/gen_camper.py puts tan, khaki, and stripe
         // in slots 3, 4, and 6.
         if ([3, 4, 6].includes(i)) continue;
-        expect(texture.pixels.subarray(i * 4, i * 4 + 4), paint).toEqual(
-          khaki.pixels.subarray(i * 4, i * 4 + 4),
-        );
+        expect(
+          texture.pixels
+            .subarray(i * 4, i * 4 + 4)
+            .equals(khaki.pixels.subarray(i * 4, i * 4 + 4)),
+          `${paint} slot ${i}`,
+        ).toBe(true);
       }
-      expect(texture.pixels.subarray(khaki.width * 4), paint).toEqual(
-        khaki.pixels.subarray(khaki.width * 4),
-      );
+      expect(
+        texture.pixels
+          .subarray(khaki.width * 4)
+          .equals(khaki.pixels.subarray(khaki.width * 4)),
+        paint,
+      ).toBe(true);
     }
   });
 
