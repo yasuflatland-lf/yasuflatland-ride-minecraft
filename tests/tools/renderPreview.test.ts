@@ -229,3 +229,23 @@ print(json.dumps({"all": [b["name"] for b in geo["bones"]], "kept": [b["name"] f
     expect(result.size).toEqual([800, 600]);
   });
 });
+
+describe("render_preview.py textured faces", () => {
+  it("maps fractional UV rows to matching strips and preserves uniform faces", () => {
+    const result = previewPython(`
+cube = {"origin": [0, 0, 0], "size": [1, 1, 1]}
+quad = dict(r.cube_faces(cube))["east"]
+face = {"uv": [0, 0.5], "uv_size": [1, 2]}
+texture = [[(v, v, v, 255)] for v in (10, 20, 30)]
+patches = list(r.textured_face(texture, face, quad, "east", 1, 3))
+uniform = list(r.textured_face([[(10,10,10,255)]] * 3, face, quad, "east", 1, 3))
+print(json.dumps({"strips": [[min(p[1] for p in q), max(p[1] for p in q), color[0]] for q, color in patches], "uniform": uniform == [(quad, (10,10,10,255))]}))
+`);
+    expect(result.strips).toEqual([
+      [0.75, 1, 10],
+      [0.25, 0.75, 20],
+      [0, 0.25, 30],
+    ]);
+    expect(result.uniform).toBe(true);
+  });
+});

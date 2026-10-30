@@ -171,6 +171,20 @@ def box(x0, y0, z0, x1, y1, z1, color, rotation=None, pivot=None, offset=(0, 0),
     return c
 
 
+def rib_sides(cubes):
+    for c in cubes:
+        if c["uv"]["north"] != ATLAS.face("white"):
+            continue
+        x0, y0, _ = c["origin"]
+        width, height, _ = c["size"]
+        for face, edge in (("west", x0), ("east", x0 + width)):
+            if abs(edge) == HW:
+                # Ribs are uniform along u; the full region width also fits long wall faces.
+                c["uv"][face] = ATLAS.face(RIB_REGION, (0, y0 * RIB_TEXELS_PER_PX),
+                                          (RIB_REGION.w, height * RIB_TEXELS_PER_PX))
+    return cubes
+
+
 def take_slots(cubes, names):
     slots = {SLOTS.index(n) for n in names}
     taken, rest = [], []
@@ -383,7 +397,7 @@ for x0, x1, windows in ((HW - 1, HW, right_windows), (-HW, -HW + 1, left_windows
     out = x1 if right else x0
     # The front cut-out reaches up to where the cab-over chevron passes SIDE0.
     holes = windows + arch_holes + [(SIDE0, -50.5, 35.4, 52)] + ([DOOR] if right else [])
-    body += panel("x", x0, x1, SIDE0, REAR_INNER, BOTTOM, CEIL, holes, "white")
+    body += rib_sides(panel("x", x0, x1, SIDE0, REAR_INNER, BOTTOM, CEIL, holes, "white"))
     inner = x0 - 0.2 if right else x1
     body += panel("x", inner, inner + 0.2, FRONT + 8, REAR_INNER, FLOOR, CEIL - 0.2, holes, "wall_in")
     # Tan lower skirt just proud of the wall.
@@ -463,7 +477,7 @@ body.append(box(-HW - 0.4, 19, 14, -HW - 0.3, 20, 15.5, "chrome"))
 # Entry door stays closed until the later parking work; a fold-out step stays below it.
 DZ0, DZ1, DY0, DY1 = DOOR
 DOOR_HANDLE_Y = (STRIPE_Y[0] - 1.5, STRIPE_Y[0] - 0.5)  # half a pixel below the stripe (ADR 0145)
-door = [box(HW - 1, DY0, DZ0 + 0.1, HW, DY1, DZ1 - 0.1, "white")]
+door = rib_sides([box(HW - 1, DY0, DZ0 + 0.1, HW, DY1, DZ1 - 0.1, "white")])
 # The door window lines up with the side windows, as on the close-up photo.
 DW0, DW1 = DZ0 + 3, DZ1 - 3
 door.append(box(HW, WIN_Y[0], DW0, HW + 0.15, WIN_Y[1], DW1, "glass"))
@@ -623,7 +637,7 @@ EDGE_Z = FRONT - TAPER + 1.5
 for sx in (1, -1):
     x0, x1 = sorted((sx * (HW - 1), sx * HW))
     body.append(box(x0, BOTTOM, EDGE_Z, x1, 15, SIDE0, "tan"))
-    body.append(box(x0, 15, EDGE_Z, x1, SILL_LOW, SIDE0, "white"))
+    body += rib_sides([box(x0, 15, EDGE_Z, x1, SILL_LOW, SIDE0, "white")])
     t0, t1 = sorted((sx * (HW - 0.4), sx * (HW + 0.2)))
     body.append(box(t0, BOTTOM, EDGE_Z - 0.2, t1, SILL_LOW, EDGE_Z + 0.5, "chrome"))
 # The sill: from the windshield foot it slopes down toward the front, as on the photo,
@@ -654,7 +668,7 @@ TOP_FRONT = WS_Z + 0.5
 BOT_C, BOT_S = WS_Z - 0.5, WS_Z + 3  # lower face foot over the windshield and at the side pillar
 CAP_BACK = WS_Z + 6
 body.append(box(-FW, CAP_Y0, BOT_C, FW, ROOF, CAP_BACK, "white"))
-body.append(box(-HW, CAP_Y0, BOT_S, HW, ROOF, CAP_BACK, "white"))
+body += rib_sides([box(-HW, CAP_Y0, BOT_S, HW, ROOF, CAP_BACK, "white")])
 
 
 def lerp(a, b, t):
@@ -683,14 +697,14 @@ for i in range(LAYERS):
         z = lerp(zc, ze, (x + FACET_COL / 2 - FW) / (HW - FW))
         for sx in (1, -1):
             x0, x1 = sorted((sx * x, sx * (x + FACET_COL)))
-            body.append(box(x0, y0, z, x1, y0 + 0.25, BOT_S + 0.5, "white"))
+            body += rib_sides([box(x0, y0, z, x1, y0 + 0.25, BOT_S + 0.5, "white")])
         x += FACET_COL
     chevron_molding(y0, y0 + 0.25, ze)
 UPPER_LAYERS = round((ROOF - CREASE) / 0.25)
 for i in range(UPPER_LAYERS):
     y0 = CREASE + 0.25 * i
     zf = lerp(NOSE, TOP_FRONT, (i + 0.5) / UPPER_LAYERS)
-    body.append(box(-HW, y0, zf, HW, y0 + 0.25, CAP_BACK, "white"))
+    body += rib_sides([box(-HW, y0, zf, HW, y0 + 0.25, CAP_BACK, "white")])
     chevron_molding(y0, y0 + 0.25, zf)
     if 60 <= y0 < 62.5:  # the dark window set into the upper face, right of centre on the photo
         body.append(box(-3.5, y0, zf - 0.1, 9.5, y0 + 0.25, zf + 0.3, "grille"))
@@ -784,7 +798,7 @@ while y < ROOF - 1e-6:
             else "khaki" if BAND_Y[0] <= yc < BAND_Y[1] else "white")
     for sx in (1, -1):
         x0, x1 = sorted((sx * HW, sx * (HW - 1)))
-        body.append(box(x0, y, min(REAR_INNER, z1 - 1), x1, y + 0.5, z1, side))
+        body += rib_sides([box(x0, y, min(REAR_INNER, z1 - 1), x1, y + 0.5, z1, side)])
     if REAR_WIN[2] <= yc < REAR_WIN[3]:
         spans = [(-HW + 1, REAR_WIN[0]), (REAR_WIN[1], HW - 1)]
     else:
@@ -1392,6 +1406,9 @@ def mirror_x(bones):
             bone["rotation"] = [rx, -ry, -rz]
         for c in bone.get("cubes", []):
             c["origin"] = [-(c["origin"][0] + c["size"][0]), *c["origin"][1:]]
+            # Face names follow the written x axis, so a ribbed outer face swaps names with the
+            # mirror, as the sports boat's turn-around does (gen_sportsboat.py).
+            c["uv"]["east"], c["uv"]["west"] = c["uv"]["west"], c["uv"]["east"]
             if "pivot" in c:
                 c["pivot"] = [-c["pivot"][0], *c["pivot"][1:]]
                 rx, ry, rz = c["rotation"]

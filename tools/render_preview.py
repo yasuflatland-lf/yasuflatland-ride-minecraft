@@ -290,12 +290,49 @@ def rotate(point, pivot, rotation):
 
 
 def face_color(texture, face, tex_w, tex_h):
-    # gen_model.py paints every face a single color, so the center texel of the face's UV stands for it.
-    # A Blockbench model with detailed textures would need real texture mapping here.
     (u, v), (du, dv) = face["uv"], face["uv_size"]
     x = min(int((u + du / 2) * len(texture[0]) / tex_w), len(texture[0]) - 1)
     y = min(int((v + dv / 2) * len(texture) / tex_h), len(texture) - 1)
     return texture[y][x]
+
+
+def textured_face(texture, face, quad, name, tex_w, tex_h):
+    """Split nonuniform UV rectangles at texel boundaries, preserving uniform quads exactly."""
+    (u, v), (du, dv) = face["uv"], face["uv_size"]
+    u, du = u * len(texture[0]) / tex_w, du * len(texture[0]) / tex_w
+    v, dv = v * len(texture) / tex_h, dv * len(texture) / tex_h
+
+    def breaks(start, length):
+        if length == 0:
+            return [0, 1]
+        lo, hi = sorted((start, start + length))
+        return sorted([0, 1, *[(n - start) / length for n in range(math.floor(lo) + 1, math.ceil(hi))]])
+
+    us, vs = breaks(u, du), breaks(v, dv)
+    cells = []
+    for a, b in zip(us, us[1:]):
+        for c, d in zip(vs, vs[1:]):
+            x = max(0, min(len(texture[0]) - 1, int(u + du * (a + b) / 2)))
+            y = max(0, min(len(texture) - 1, int(v + dv * (c + d) / 2)))
+            cells.append((a, b, c, d, texture[y][x]))
+    if len({color for *_, color in cells}) == 1:
+        yield quad, face_color(texture, face, tex_w, tex_h)
+        return
+
+    # cube_faces lists east/north with their vertical edge first; the others run across u first.
+    order = (1, 2, 3, 0) if name in ("north", "east") else (3, 2, 1, 0)
+    tl, tr, br, bl = [quad[i] for i in order]
+
+    def point(a, b):
+        return tuple((1 - b) * ((1 - a) * tl[i] + a * tr[i]) +
+                     b * ((1 - a) * bl[i] + a * br[i]) for i in range(3))
+
+    for a, b, c, d, color in cells:
+        corners = [point(a, c), point(b, c), point(b, d), point(a, d)]
+        patch = [None] * 4
+        for i, corner in zip(order, corners):
+            patch[i] = corner
+        yield patch, color
 
 
 def cube_faces(cube):
@@ -487,7 +524,7 @@ def bone_turns(bones):
     return turns
 
 
-def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT):
+def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False):
     """Return the boat's opaque faces as (quad, rgb, bloom group or None) and its see-through faces as
     (quad, rgb, alpha). Bones named in lit glow in their color while the lamps are on."""
     desc = geo["description"]
@@ -507,14 +544,15 @@ def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT):
                 if color is not None:
                     polygons.append((quad, color, "lamp"))
                     continue
-                r, g, b, a = face_color(texture, cube["uv"][face], desc["texture_width"], desc["texture_height"])
                 k = shade(normalize(normal)) * pose.get("brightness", 1.0)
                 face_lift = pose.get("lift", 0)
-                rgb = (r * k * tint[0] + face_lift, g * k * tint[1] + face_lift, b * k * tint[2] + face_lift)
-                if a < 255:
-                    glass.append((quad, rgb, a / 255))
-                else:
-                    polygons.append((quad, rgb, None))
+                patches = textured_face(texture, cube["uv"][face], quad, face, desc["texture_width"], desc["texture_height"]) if texture_mapping else [(quad, face_color(texture, cube["uv"][face], desc["texture_width"], desc["texture_height"]))]
+                for patch, (r, g, b, a) in patches:
+                    rgb = (r * k * tint[0] + face_lift, g * k * tint[1] + face_lift, b * k * tint[2] + face_lift)
+                    if a < 255:
+                        glass.append((patch, rgb, a / 255))
+                    else:
+                        polygons.append((patch, rgb, None))
     return polygons, glass
 
 
@@ -812,7 +850,8 @@ def render_boat(rp):
 def render_camper(rp):
     geo = json.loads((rp / CAMPER_GEOMETRY).read_text())["minecraft:geometry"][0]
     texture = read_png(rp / CAMPER_TEXTURE)
-    return render_poses(geo, texture, CAMPER_POSES)
+    # Other atlases intentionally use center sampling in their established previews.
+    return render_poses(geo, texture, CAMPER_POSES, texture_mapping=True)
 
 
 def bulldozer_bones(bones):
@@ -834,8 +873,8 @@ def render_bulldozer(rp):
     )
 
 
-def render_poses(geo, texture, poses, lit=HEADLIGHTS_LIT):
-    scenes = {name: collect_boat(geo, texture, pose, lit) for name, pose in poses.items()}
+def render_poses(geo, texture, poses, lit=HEADLIGHTS_LIT, texture_mapping=False):
+    scenes = {name: collect_boat(geo, texture, pose, lit, texture_mapping) for name, pose in poses.items()}
     points = [p for polygons, _ in scenes.values() for quad, _, _ in polygons for p in quad]
     frames = {}
     for name, pose in poses.items():
