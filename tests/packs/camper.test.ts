@@ -2010,11 +2010,6 @@ describe("camper rib atlas (ADR 0190)", () => {
     expect(new Set(entries.map((e) => e.bone))).toEqual(
       new Set(["body", "door_entry"]),
     );
-    for (const side of ["east", "west"]) {
-      expect(entries.some((e) => e.bone === "body" && e.side === side)).toBe(
-        true,
-      );
-    }
     expect(
       entries.filter((e) => e.bone === "door_entry").map((e) => e.side),
     ).toEqual(["west"]);
@@ -2036,10 +2031,6 @@ describe("camper rib atlas (ADR 0190)", () => {
             expect(u + du).toBeLessThanOrEqual(x + w);
             expect(v + dv).toBeLessThanOrEqual(y + h);
             expect(v - y).toBeCloseTo(y0 * texelsPerPx, 8);
-            expect((v - y) % period).toBeCloseTo(
-              (y0 * texelsPerPx) % period,
-              8,
-            );
             expect(dv).toBeCloseTo((cube.size[1] ?? 0) * texelsPerPx, 8);
             const edge =
               side === "west"

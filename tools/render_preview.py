@@ -546,7 +546,11 @@ def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False):
                     continue
                 k = shade(normalize(normal)) * pose.get("brightness", 1.0)
                 face_lift = pose.get("lift", 0)
-                patches = textured_face(texture, cube["uv"][face], quad, face, desc["texture_width"], desc["texture_height"]) if texture_mapping else [(quad, face_color(texture, cube["uv"][face], desc["texture_width"], desc["texture_height"]))]
+                uv = cube["uv"][face]
+                if texture_mapping:
+                    patches = textured_face(texture, uv, quad, face, desc["texture_width"], desc["texture_height"])
+                else:
+                    patches = [(quad, face_color(texture, uv, desc["texture_width"], desc["texture_height"]))]
                 for patch, (r, g, b, a) in patches:
                     rgb = (r * k * tint[0] + face_lift, g * k * tint[1] + face_lift, b * k * tint[2] + face_lift)
                     if a < 255:
