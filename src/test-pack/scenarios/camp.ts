@@ -35,7 +35,7 @@ import {
   TEST_TABLE_HIT_EVENT,
 } from "../../infrastructure/camp/identifiers";
 import { type Arena, wait } from "../arena";
-import { type Outcome, runCourse } from "../outcome";
+import { type Outcome, runCourse, type StepSink } from "../outcome";
 
 // On the arena's east edge, past the camping gear row (z 1-19) and clear of the
 // camper park spot (x 103-114, z 73-84) and the camper tank (z 61-69).
@@ -74,26 +74,26 @@ const lanternsNear = (a: Arena, at: Vector3) =>
 /** Runs a scenario once per chair kind, passing only when every kind passes. */
 async function forEveryChairKind(
   scenario: (profile: ChairProfile) => Promise<Outcome>,
+  onStep: StepSink,
 ): Promise<Outcome> {
   return runCourse(
     Object.entries(CHAIR_KINDS).map(([name, profile]) => ({
       name,
       run: () => scenario(profile),
     })),
-    { stopOnFail: false },
+    { stopOnFail: false, onStep },
   );
 }
 
 /** Summons a chair, checks its one seat, and folds it back with three hits into one dropped item. */
-export async function lowChairSeatAndTakeBack(a: Arena): Promise<Outcome> {
-  return forEveryChairKind((profile) =>
-    lowChairSeatAndTakeBackForKind(a, profile),
+export async function lowChairSeatAndTakeBack(
+  a: Arena,
+  onStep: StepSink,
+): Promise<Outcome> {
+  return forEveryChairKind(
+    (profile) => lowChairSeatAndTakeBackForKind(a, profile),
+    onStep,
   );
-}
-
-/** Reports the Noga Chair's seat and fold lifecycle as its own scenario. */
-export async function nogaChairSeatAndTakeBack(a: Arena): Promise<Outcome> {
-  return lowChairSeatAndTakeBackForKind(a, CHAIR_KINDS.noga_chair);
 }
 
 async function lowChairSeatAndTakeBackForKind(
@@ -139,9 +139,13 @@ const GRASS_CELL = { x: CELL.x, z: CELL.z + 3 } as const;
  * Summons a chair where a click on short grass places it, a block above the grass, and
  * checks that it settles through the grass onto the ground under it (ADR 0122).
  */
-export async function lowChairSettlesThroughGrass(a: Arena): Promise<Outcome> {
-  return forEveryChairKind((profile) =>
-    lowChairSettlesThroughGrassForKind(a, profile),
+export async function lowChairSettlesThroughGrass(
+  a: Arena,
+  onStep: StepSink,
+): Promise<Outcome> {
+  return forEveryChairKind(
+    (profile) => lowChairSettlesThroughGrassForKind(a, profile),
+    onStep,
   );
 }
 
@@ -596,8 +600,6 @@ export async function firePitCoveredTakeBack(a: Arena): Promise<Outcome> {
 
 /** Places an oven on the grill through the production use case without a player. */
 export async function dutchOvenOnPit(a: Arena): Promise<Outcome> {
-  const folded = await firePitCoveredTakeBack(a);
-  if (!folded.pass) return folded;
   const at = firePitAt(a);
   const pit = summonFirePit(a, at);
   if (!pit) return { pass: false, detail: "fire pit not spawned" };
@@ -614,7 +616,7 @@ export async function dutchOvenOnPit(a: Arena): Promise<Outcome> {
       0.05;
     return {
       pass: covered && simmering && standing,
-      detail: `fold=${folded.pass} covered=${covered} simmering=${simmering} standing=${standing}`,
+      detail: `covered=${covered} simmering=${simmering} standing=${standing}`,
     };
   } finally {
     for (const oven of ovensNear(a, at)) oven.remove();

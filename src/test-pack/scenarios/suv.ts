@@ -22,7 +22,7 @@ import {
   withCar,
   withPool,
 } from "../arena";
-import type { Outcome } from "../outcome";
+import { type Outcome, runCourse, type Step, type StepSink } from "../outcome";
 import { hitTick, judgeRam, PUSH_WINDOW, type RamSample } from "../ramJudge";
 import {
   FLIGHT_PATH,
@@ -173,10 +173,11 @@ export function wallDiagonal(a: Arena): Promise<Outcome> {
     let hit = false;
     for (let t = 0; t < 120; t++) {
       await wait(1);
-      if (a.local(car.location).z + SUV_SPEC.bodyHalfWidth > wallEndZ) break;
+      const p = a.local(car.location);
+      if (p.z + SUV_SPEC.bodyHalfWidth > wallEndZ) break;
       const v = car.getVelocity();
-      maxX = Math.max(maxX, a.local(car.location).x);
-      if (!hit && a.local(car.location).x > 43.5) hit = true;
+      maxX = Math.max(maxX, p.x);
+      if (!hit && p.x > 43.5) hit = true;
       if (hit) {
         maxAfter = Math.max(maxAfter, Math.abs(v.z));
         endSide = Math.abs(v.z);
@@ -256,10 +257,8 @@ export function step2(
       maxY = Math.max(maxY, car.location.y);
       if (a.local(car.location).x > stepX + 3) break;
     }
-    const side = Math.abs(
-      (a.local(car.location).x - startX) * dir.z -
-        (a.local(car.location).z - startZ) * dir.x,
-    );
+    const end = a.local(car.location);
+    const side = Math.abs((end.x - startX) * dir.z - (end.z - startZ) * dir.x);
     const climbed = maxY >= a.gy + 1.9;
     return {
       pass: climbed && side < 0.5,
@@ -393,9 +392,12 @@ export function headlightsFollowAndClear(a: Arena): Promise<Outcome> {
 function withAirborneCar<T>(
   a: Arena,
   run: (car: Entity) => Promise<T>,
-): Promise<T> {
+): Promise<T | Outcome> {
   return withCar(a, FLIGHT_PATH.x, FLIGHT_PATH.z, -90, async (car) => {
     await takeOff(car, SUV_SPEC.takeoffTicks);
+    const outcome = takeoffOutcome(a, car);
+    if (!outcome.pass)
+      return { pass: false, detail: `takeoff: ${outcome.detail}` };
     return run(car);
   });
 }
@@ -404,50 +406,111 @@ function ticksUntilGround(car: Entity, limit: number): Promise<number> {
   return ticksUntilForm(car, "car", limit);
 }
 
-export function flightTakeoff(a: Arena): Promise<Outcome> {
-  return withAirborneCar(a, async (car) => takeoffOutcome(a, car));
-}
-
-export function flightCruise(a: Arena): Promise<Outcome> {
+export function flightCourse(a: Arena, onStep: StepSink): Promise<Outcome> {
   return withAirborneCar(a, async (car) => {
-    drive(car, 0, 1);
-    let minY = Number.POSITIVE_INFINITY;
-    let maxY = Number.NEGATIVE_INFINITY;
-    let speed = 0;
-    for (let t = 0; t < 60; t++) {
-      await wait(1);
-      if (t >= 20) {
-        minY = Math.min(minY, car.location.y);
-        maxY = Math.max(maxY, car.location.y);
-      }
-      if (t >= 50) speed = Math.max(speed, length(car.getVelocity()));
-    }
-    const altRange = maxY - minY;
-    // At steady state the speed is maxSpeed * engineDrag / SUV_SPEC.flightDrag,
-    // so the ratio reveals the engine's drag with gravity off.
-    const measuredDrag = (SUV_SPEC.flightDrag * speed) / SUV_SPEC.maxSpeed;
-    return {
-      pass:
-        altRange <= 0.5 &&
-        speed >= SUV_SPEC.maxSpeed * 0.95 &&
-        speed <= SUV_SPEC.maxSpeed * 1.05,
-      detail: `altRange=${altRange.toFixed(3)} speed=${speed.toFixed(3)} measuredDrag=${measuredDrag.toFixed(3)}`,
+    const min = {
+      x: Number(FLIGHT_PATH.x),
+      y: a.gy,
+      z: Number(FLIGHT_PATH.z),
     };
-  });
-}
-
-export function flightClimbDescend(a: Arena): Promise<Outcome> {
-  return withAirborneCar(a, async (car) => {
-    drive(car, 0, 1, true);
-    await wait(20);
-    const top = car.location.y;
-    drive(car, 0, -1);
-    await wait(10);
-    const climbed = top - a.gy;
-    const sank = top - car.location.y;
+    const max = { ...min };
+    const sample = async (ticks: number) => {
+      for (let t = 0; t < ticks; t++) {
+        await wait(1);
+        const p = a.local(car.location);
+        for (const axis of ["x", "y", "z"] as const) {
+          min[axis] = Math.min(min[axis], p[axis]);
+          max[axis] = Math.max(max[axis], p[axis]);
+        }
+      }
+    };
+    const withDelta = async (run: () => Promise<Outcome>) => {
+      const start = a.local(car.location);
+      const heading = car.getRotation().y;
+      const outcome = await run();
+      const end = a.local(car.location);
+      return {
+        ...outcome,
+        detail: `${outcome.detail} delta=(${(end.x - start.x).toFixed(2)},${(end.y - start.y).toFixed(2)},${(end.z - start.z).toFixed(2)}) heading=${heading.toFixed(1)}->${car.getRotation().y.toFixed(1)}`,
+      };
+    };
+    // At accel 0.0225, 52 cruise ticks travel 29.25 blocks. Coasting from
+    // 0.9 at drag 0.02 adds 19.8; a 60-tick cruise would coast past x=60.
+    // Banking then flying straight would also leave the 12-block-wide lane.
+    const steps: Step[] = [
+      {
+        name: "cruise",
+        run: () =>
+          withDelta(async () => {
+            drive(car, 0, 1);
+            const startY = car.location.y;
+            let minY = Number.POSITIVE_INFINITY;
+            let maxY = Number.NEGATIVE_INFINITY;
+            let speed = 0;
+            for (let t = 0; t < 52; t++) {
+              await sample(1);
+              if (t >= 20) {
+                minY = Math.min(minY, car.location.y - startY);
+                maxY = Math.max(maxY, car.location.y - startY);
+              }
+              if (t >= 50) speed = Math.max(speed, length(car.getVelocity()));
+            }
+            const altRange = maxY - minY;
+            // At steady state the speed is maxSpeed * engineDrag / SUV_SPEC.flightDrag,
+            // so the ratio reveals the engine's drag with gravity off.
+            const measuredDrag =
+              (SUV_SPEC.flightDrag * speed) / SUV_SPEC.maxSpeed;
+            return {
+              pass:
+                altRange <= 0.5 &&
+                speed >= SUV_SPEC.maxSpeed * 0.95 &&
+                speed <= SUV_SPEC.maxSpeed * 1.05,
+              detail: `altRange=${altRange.toFixed(3)} speed=${speed.toFixed(3)} measuredDrag=${measuredDrag.toFixed(3)}`,
+            };
+          }),
+      },
+      {
+        name: "climb_descend",
+        run: async () => {
+          drive(car, 0, 0);
+          // takeOff allows five ticks after its transition; coasting additionally
+          // needs maxSpeed / drag ticks before a stationary climb fits the lane.
+          await sample(Math.ceil(SUV_SPEC.maxSpeed / SUV_SPEC.drag) + 5);
+          if (
+            length(car.getVelocity()) > 0.01 ||
+            suvProperty(car, "bank") !== 0
+          )
+            return { pass: false, detail: "did not settle before climb" };
+          return withDelta(async () => {
+            drive(car, 0, 0, true);
+            await sample(20);
+            const top = car.location.y;
+            drive(car, 0, -1);
+            await sample(10);
+            // Measured from the lane floor like the former scenario, so the
+            // take-off rise counts; the climb is stationary to stay in the lane.
+            const climbed = top - a.gy;
+            const sank = top - car.location.y;
+            return {
+              pass: climbed >= 4 && sank >= 1.5,
+              detail: `climbed=${climbed.toFixed(2)} sank=${sank.toFixed(2)}`,
+            };
+          });
+        },
+      },
+    ];
+    const outcome = await runCourse(steps, { stopOnFail: true, onStep });
+    const inside =
+      min.x >= 0 &&
+      max.x <= 60 &&
+      min.z >= 0 &&
+      max.z <= 12 &&
+      max.y <= a.gy + 20;
+    const bounds = `localBounds x=${min.x.toFixed(2)}..${max.x.toFixed(2)} z=${min.z.toFixed(2)}..${max.z.toFixed(2)} y-gy=${(min.y - a.gy).toFixed(2)}..${(max.y - a.gy).toFixed(2)}`;
     return {
-      pass: climbed >= 4 && sank >= 1.5,
-      detail: `climbed=${climbed.toFixed(2)} sank=${sank.toFixed(2)}`,
+      ...outcome,
+      pass: outcome.pass && inside,
+      detail: `${outcome.detail}; inside=${inside}; ${bounds}`,
     };
   });
 }
@@ -513,7 +576,7 @@ export function flightDriverless(a: Arena): Promise<Outcome> {
 // instead of filling below the world.
 const DIVE_DEPTH = Math.ceil(SUV_SPEC.carHeight);
 
-// The car holds depth exactly once it is a submarine (submarine_dive measured
+// The car holds depth exactly once it is a submarine (the dive check measured
 // a range of 0.000), so 0.1 only absorbs float noise in the reported position.
 // The same margin keeps the held depth clear of the bed and the float line, so
 // a car that sank onto the bed or rose to the surface fails the hold check.
@@ -545,112 +608,124 @@ function withDivingCar<T>(
   });
 }
 
-export function submarineDive(a: Arena): Promise<Outcome> {
+export function submarineCourse(a: Arena, onStep: StepSink): Promise<Outcome> {
   return withPool(a, DIVE_DEPTH, () =>
     withDivingCar(a, async (car, enteredAt) => {
-      const y0 = car.location.y;
-      drive(car, 0, 1);
-      let minY = y0;
-      let maxY = y0;
-      let speed = 0;
-      let submerged = enteredAt >= 0;
-      for (let t = 0; t < 60; t++) {
-        await wait(1);
-        submerged &&= vehicleForm(car) === "submarine";
-        minY = Math.min(minY, car.location.y);
-        maxY = Math.max(maxY, car.location.y);
-        if (t >= 50) speed = Math.max(speed, length(car.getVelocity()));
-      }
-      const drift = Math.max(y0 - minY, maxY - y0);
-      const bed = a.gy - DIVE_DEPTH;
-      const floatLine = a.gy - SUV_SPEC.floatDraft;
-      const heldDepth =
-        drift <= DEPTH_HOLD_TOLERANCE &&
-        minY > bed + DEPTH_HOLD_TOLERANCE &&
-        maxY < floatLine - DEPTH_HOLD_TOLERANCE;
-      // Sink to the bed, then rise with Jump held. The flat world's floor is
-      // near the bottom of the world, so the pool is only a few blocks deep
-      // and the rise is sampled in its first ticks, while still submerged.
-      // The first ticks overshoot (the input lands a tick late and the
-      // impulse assumes SUV_SPEC.waterVerticalDrag), so only the last two
-      // samples count.
-      drive(car, 0, -1);
-      await wait(20);
-      drive(car, 0, 0, true);
-      const rise: number[] = [];
-      for (let t = 0; t < 5; t++) {
-        await wait(1);
-        if (vehicleForm(car) !== "submarine") break;
-        rise.push(car.getVelocity().y);
-      }
-      const steady = rise.slice(3);
-      const riseSpeed =
-        steady.length === 2
-          ? steady.reduce((sum, v) => sum + v, 0) / steady.length
-          : Number.NaN;
-      // As in flight_cruise, steady speed is target * engineDrag / the SUV_SPEC
-      // drag: SUV_SPEC.waterDrag horizontally, SUV_SPEC.waterVerticalDrag
-      // vertically. The ratio reveals the engine's drag in water.
-      const measuredDrag =
-        (SUV_SPEC.waterDrag * speed) / SUV_SPEC.maxWaterSpeed;
-      const measuredVerticalDrag =
-        (SUV_SPEC.waterVerticalDrag * riseSpeed) / SUV_SPEC.maxClimb;
-      return {
-        pass:
-          submerged &&
-          heldDepth &&
-          withinFivePercent(speed, SUV_SPEC.maxWaterSpeed) &&
-          withinFivePercent(riseSpeed, SUV_SPEC.maxClimb),
-        detail: `enteredAt=${enteredAt} submerged=${submerged} y0=${(y0 - a.gy).toFixed(3)} drift=${drift.toFixed(3)} speed=${speed.toFixed(3)} riseSpeed=${riseSpeed.toFixed(3)} measuredDrag=${measuredDrag.toFixed(3)} measuredVerticalDrag=${measuredVerticalDrag.toFixed(3)}`,
-      };
-    }),
-  );
-}
-
-export function submarineBank(a: Arena): Promise<Outcome> {
-  return withPool(a, DIVE_DEPTH, () =>
-    withDivingCar(a, async (car, enteredAt) => {
-      const bank = () => Number(suvProperty(car, "bank"));
-      // Turn right into the open water, as flight_bank does in the air (ADR 0044).
-      drive(car, -1, 1);
-      await wait(20);
-      const turning = bank();
-      drive(car, 0, 0);
-      await wait(20);
-      const straight = bank();
-      return {
-        pass:
-          enteredAt >= 0 &&
-          vehicleForm(car) === "submarine" &&
-          turning >= SUV_SPEC.maxBank / 2 &&
-          straight === 0,
-        detail: `enteredAt=${enteredAt} turning=${turning.toFixed(1)} straight=${straight.toFixed(1)}`,
-      };
-    }),
-  );
-}
-
-export function submarineBreach(a: Arena): Promise<Outcome> {
-  return withPool(a, DIVE_DEPTH, () =>
-    withDivingCar(a, async (car, enteredAt) => {
-      drive(car, 0, 0, true);
-      let hoverAt = -1;
-      let noCar = vehicleForm(car) === "submarine";
-      let dry = false;
-      for (let t = 0; t < 60; t++) {
-        await wait(1);
-        const form = vehicleForm(car);
-        noCar &&= form !== "car";
-        if (form === "hover") {
-          hoverAt = t;
-          dry = car.location.y >= a.gy;
-          break;
-        }
-      }
-      return {
-        pass: enteredAt >= 0 && hoverAt >= 0 && noCar && dry,
-        detail: `enteredAt=${enteredAt} hoverAt=${hoverAt} noCar=${noCar} dry=${dry} rise=${(car.location.y - a.gy).toFixed(2)}`,
-      };
+      const steps: Step[] = [
+        {
+          name: "dive",
+          run: async () => {
+            const y0 = car.location.y;
+            drive(car, 0, 1);
+            let minY = y0;
+            let maxY = y0;
+            let speed = 0;
+            let submerged = enteredAt >= 0;
+            for (let t = 0; t < 60; t++) {
+              await wait(1);
+              submerged &&= vehicleForm(car) === "submarine";
+              minY = Math.min(minY, car.location.y);
+              maxY = Math.max(maxY, car.location.y);
+              if (t >= 50) speed = Math.max(speed, length(car.getVelocity()));
+            }
+            const drift = Math.max(y0 - minY, maxY - y0);
+            const bed = a.gy - DIVE_DEPTH;
+            const floatLine = a.gy - SUV_SPEC.floatDraft;
+            const heldDepth =
+              drift <= DEPTH_HOLD_TOLERANCE &&
+              minY > bed + DEPTH_HOLD_TOLERANCE &&
+              maxY < floatLine - DEPTH_HOLD_TOLERANCE;
+            // Sink to the bed, then rise with Jump held. The flat world's floor is
+            // near the bottom of the world, so the pool is only a few blocks deep
+            // and the rise is sampled in its first ticks, while still submerged.
+            // The first ticks overshoot (the input lands a tick late and the
+            // impulse assumes SUV_SPEC.waterVerticalDrag), so only the last two
+            // samples count.
+            drive(car, 0, -1);
+            await wait(20);
+            drive(car, 0, 0, true);
+            const rise: number[] = [];
+            for (let t = 0; t < 5; t++) {
+              await wait(1);
+              if (vehicleForm(car) !== "submarine") break;
+              rise.push(car.getVelocity().y);
+            }
+            const steady = rise.slice(3);
+            const riseSpeed =
+              steady.length === 2
+                ? steady.reduce((sum, v) => sum + v, 0) / steady.length
+                : Number.NaN;
+            // As in the flight cruise step, steady speed is target * engineDrag /
+            // the SUV_SPEC drag: SUV_SPEC.waterDrag horizontally,
+            // SUV_SPEC.waterVerticalDrag vertically. The ratio reveals the
+            // engine's drag in water.
+            const measuredDrag =
+              (SUV_SPEC.waterDrag * speed) / SUV_SPEC.maxWaterSpeed;
+            const measuredVerticalDrag =
+              (SUV_SPEC.waterVerticalDrag * riseSpeed) / SUV_SPEC.maxClimb;
+            drive(car, 0, 0);
+            await wait(5);
+            submerged &&=
+              vehicleForm(car) === "submarine" && car.location.y < a.gy;
+            return {
+              pass:
+                submerged &&
+                heldDepth &&
+                withinFivePercent(speed, SUV_SPEC.maxWaterSpeed) &&
+                withinFivePercent(riseSpeed, SUV_SPEC.maxClimb),
+              detail: `enteredAt=${enteredAt} submerged=${submerged} y0=${(y0 - a.gy).toFixed(3)} drift=${drift.toFixed(3)} speed=${speed.toFixed(3)} riseSpeed=${riseSpeed.toFixed(3)} measuredDrag=${measuredDrag.toFixed(3)} measuredVerticalDrag=${measuredVerticalDrag.toFixed(3)}`,
+            };
+          },
+        },
+        {
+          name: "bank",
+          run: async () => {
+            const start = a.local(car.location);
+            const heading = car.getRotation().y;
+            const bank = () => Number(suvProperty(car, "bank"));
+            // Turn right into the open water, as flight_bank does in the air (ADR 0044).
+            drive(car, -1, 1);
+            await wait(20);
+            const turning = bank();
+            drive(car, 0, 0);
+            await wait(20);
+            const straight = bank();
+            const end = a.local(car.location);
+            return {
+              pass:
+                enteredAt >= 0 &&
+                vehicleForm(car) === "submarine" &&
+                turning >= SUV_SPEC.maxBank / 2 &&
+                straight === 0,
+              detail: `enteredAt=${enteredAt} turning=${turning.toFixed(1)} straight=${straight.toFixed(1)} dx=${(end.x - start.x).toFixed(2)} dz=${(end.z - start.z).toFixed(2)} dy=${(end.y - start.y).toFixed(2)} heading=${heading.toFixed(1)}->${car.getRotation().y.toFixed(1)}`,
+            };
+          },
+        },
+        {
+          name: "breach",
+          run: async () => {
+            drive(car, 0, 0, true);
+            let hoverAt = -1;
+            let noCar = vehicleForm(car) === "submarine";
+            let dry = false;
+            for (let t = 0; t < 60; t++) {
+              await wait(1);
+              const form = vehicleForm(car);
+              noCar &&= form !== "car";
+              if (form === "hover") {
+                hoverAt = t;
+                dry = car.location.y >= a.gy;
+                break;
+              }
+            }
+            return {
+              pass: enteredAt >= 0 && hoverAt >= 0 && noCar && dry,
+              detail: `enteredAt=${enteredAt} hoverAt=${hoverAt} noCar=${noCar} dry=${dry} rise=${(car.location.y - a.gy).toFixed(2)}`,
+            };
+          },
+        },
+      ];
+      return runCourse(steps, { stopOnFail: true, onStep });
     }),
   );
 }
@@ -766,11 +841,10 @@ export function submarineShallow(a: Arena): Promise<Outcome> {
       let enteredWater = false;
       for (let t = 0; t < 240; t++) {
         await wait(1);
+        const p = a.local(car.location);
         carOnly &&= vehicleForm(car) === "car";
-        enteredWater ||=
-          a.local(car.location).x > POOL.minX + 2 &&
-          car.location.y < a.gy - 0.5;
-        if (a.local(car.location).x > POOL.maxX + 3) {
+        enteredWater ||= p.x > POOL.minX + 2 && car.location.y < a.gy - 0.5;
+        if (p.x > POOL.maxX + 3) {
           crossed = true;
           break;
         }

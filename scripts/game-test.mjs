@@ -1,19 +1,35 @@
 import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { setTimeout as sleep } from "node:timers/promises";
-import { isFeatureTag } from "../src/test-pack/features.ts";
+import { fileURLToPath } from "node:url";
+import { CATALOG } from "../src/test-pack/catalog.ts";
 import {
+  deadlineMsOf,
+  observe,
+  watchStart,
+  watchVerdict,
+} from "../src/test-pack/deadline.ts";
+import { isFeatureTag } from "../src/test-pack/features.ts";
+import { mustRunAll, selectionOf } from "../src/test-pack/impact.ts";
+import { planOf } from "../src/test-pack/plan.ts";
+import {
+  CANCEL_EVENT,
   featuresFrom,
   formatRunRequest,
   LOG_TAG,
   laneIndexFrom,
-  linesOfRun,
+  lanesFrom,
   shardFrom,
-  summaryOfRun,
-  summaryPassed,
   TEST_EVENT,
   WHOLE_RUN,
 } from "../src/test-pack/protocol.ts";
+import {
+  linePrefix,
+  linesOfRun,
+  planLineOf,
+  summaryOfRun,
+  summaryPassed,
+} from "../src/test-pack/resultLog.ts";
 
 const CONTAINER = "yasuflatland-ride-bds";
 const runId = randomBytes(4).toString("hex");
@@ -31,8 +47,20 @@ if (at === undefined) {
   console.error(`GAME_TEST_AT must be a valid lane index, got ${atText}`);
   process.exit(1);
 }
+const lanesText = process.env.GAME_TEST_LANES;
+const lanes = lanesText === undefined ? 1 : lanesFrom(lanesText);
+if (lanes === undefined) {
+  console.error(
+    `GAME_TEST_LANES must be an integer from 1 to 8, got ${lanesText}`,
+  );
+  process.exit(1);
+}
+if (lanes > 1 && at > 0) {
+  console.error("GAME_TEST_AT cannot be combined with GAME_TEST_LANES > 1");
+  process.exit(1);
+}
 const featuresText = process.env.GAME_TEST_FEATURES;
-const features =
+let features =
   featuresText === undefined ? undefined : featuresFrom(featuresText);
 if (featuresText !== undefined && features === undefined) {
   console.error(
@@ -45,7 +73,64 @@ if (unknownFeature !== undefined) {
   console.error(`GAME_TEST_FEATURES: unknown feature ${unknownFeature}`);
   process.exit(1);
 }
-const message = formatRunRequest({ runId, shard, lanes: 1, at, features });
+function changedPaths() {
+  const root = fileURLToPath(new URL("../", import.meta.url));
+  const git = (args) =>
+    execFileSync("git", args, {
+      cwd: root,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim();
+  const base =
+    process.env.GAME_TEST_BASE ?? git(["merge-base", "HEAD", "origin/main"]);
+  const changed = git(["diff", "--name-only", "--no-renames", base]);
+  const untracked = git(["ls-files", "--others", "--exclude-standard"]);
+  return `${changed}\n${untracked}`.split("\n").filter(Boolean);
+}
+
+function impactedFeatures() {
+  const reason = mustRunAll(process.env);
+  if (reason !== undefined) {
+    const label =
+      reason === "CI" || reason === "GAME_TEST_SHARD"
+        ? `${reason} set`
+        : reason;
+    console.log(`impact: all (${label})`);
+    return undefined;
+  }
+  let paths;
+  try {
+    paths = changedPaths();
+  } catch (error) {
+    console.log(`impact: all (git failed: ${error.message.split("\n")[0]})`);
+    return undefined;
+  }
+  const selection = selectionOf(paths);
+  if (selection.all) {
+    console.log(`impact: all (${selection.reason})`);
+    return undefined;
+  }
+  const impactPlan = planOf(CATALOG, {
+    shard: WHOLE_RUN,
+    playerConnected: true,
+    features: selection.features,
+  });
+  if (impactPlan.runs.length === 0) {
+    console.log("impact: no in-game scenario affected");
+    process.exit(0);
+  }
+  console.log(
+    `impact: ${selection.features.join(",")} -> ${impactPlan.runs.length} scenarios, ${impactPlan.expectedTicks} declared ticks`,
+  );
+  return selection.features;
+}
+
+if (features !== undefined) {
+  console.log(`impact: explicit ${features.join(",")}`);
+} else {
+  features = impactedFeatures();
+}
+const message = formatRunRequest({ runId, shard, lanes, at, features });
 const since = new Date().toISOString();
 // Write the command to bedrock_server's stdin ourselves, as Mojang's Creator
 // Tools does with the process it spawns. The image's send-command cannot be
@@ -72,35 +157,75 @@ const [serverPid, serverUser] = execFileSync(
 )
   .trim()
   .split(" ");
-execFileSync("docker", [
-  "exec",
-  "--user",
-  serverUser,
-  CONTAINER,
-  "sh",
-  "-c",
-  'echo "$1" > "/proc/$2/fd/0"',
-  "sh",
-  `scriptevent ${TEST_EVENT} ${message}`,
-  serverPid,
-]);
-const deadline = Date.now() + 5 * 60_000;
-let summary;
-let lines = [];
-while (Date.now() < deadline) {
+function sendEvent(event, payload) {
+  execFileSync("docker", [
+    "exec",
+    "--user",
+    serverUser,
+    CONTAINER,
+    "sh",
+    "-c",
+    'echo "$1" > "/proc/$2/fd/0"',
+    "sh",
+    `scriptevent ${event} ${payload}`,
+    serverPid,
+  ]);
+}
+
+function cancel() {
+  try {
+    sendEvent(CANCEL_EVENT, runId);
+  } catch {
+    // A stopped BDS cannot receive cancellation; retain the original exit status.
+  }
+}
+
+process.on("SIGINT", () => {
+  cancel();
+  process.exit(130);
+});
+
+let watch = watchStart(Date.now());
+sendEvent(TEST_EVENT, message);
+let printed = 0;
+let lastLine = "none";
+let plan;
+const prefix = linePrefix(runId);
+while (true) {
   await sleep(3000);
-  const logs = execFileSync("docker", ["logs", "--since", since, CONTAINER], {
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  const all = logs.split("\n");
-  lines = linesOfRun(all, runId);
-  summary = summaryOfRun(all, runId);
-  if (summary) break;
+  let logs = "";
+  try {
+    logs = execFileSync("docker", ["logs", "--since", since, CONTAINER], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+  } catch {
+    // Log retrieval failure is absence of progress, so the stall watch still runs.
+  }
+  const lines = linesOfRun(logs.split("\n"), runId);
+  for (const line of lines.slice(printed)) {
+    lastLine = line.slice(line.indexOf(LOG_TAG));
+    console.log(lastLine);
+  }
+  printed = Math.max(printed, lines.length);
+  plan ??= lines
+    .map((line) => planLineOf(line.slice(line.indexOf(prefix) + prefix.length)))
+    .find((p) => p !== undefined);
+  const now = Date.now();
+  watch = observe(watch, now, printed, plan);
+  const summary = summaryOfRun(lines, runId);
+  if (summary) process.exit(summaryPassed(summary) ? 0 : 1);
+  const verdict = watchVerdict(watch, now);
+  if (verdict !== "running") {
+    cancel();
+    console.error(
+      verdict === "stalled"
+        ? `stalled: no new line for 60 s (last: ${lastLine})`
+        : `overdue: ${plan.ticks} declared ticks allow ${deadlineMsOf(plan.ticks) / 1000} s`,
+    );
+    console.error(
+      "if the next run reports a run in progress, use pnpm server:restart",
+    );
+    process.exit(1);
+  }
 }
-for (const l of lines) console.log(l.slice(l.indexOf(LOG_TAG)));
-if (!summary) {
-  console.error(`timed out waiting for ${LOG_TAG} ${runId} SUMMARY`);
-  process.exit(1);
-}
-process.exit(summaryPassed(summary) ? 0 : 1);
