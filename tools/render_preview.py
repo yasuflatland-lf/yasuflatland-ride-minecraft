@@ -70,9 +70,9 @@ LIT_GAIN = 0.5  # Fraction of the way from a lit texel's color to full white.
 # With lamps on, "lamp" paints the whole bone LAMP_LIT; "texel" follows suv_lit.png's
 # alpha-0 mask, as in the game's lit pass, moving its color toward white by LIT_GAIN.
 # Other texels keep normal shading.
-SUV_LIT_BONES: dict[str, str] = {"headlights": "lamp", "tail_lights": "texel"}
+SUV_LIT_BONES: dict[str, str] = {"headlights": "texel", "tail_lights": "texel"}
 # Only these bones skip alpha-0 texels; elsewhere alpha is an emissive mask, ignored for color.
-SUV_CUTOUT_BONES: frozenset[str] = frozenset()
+SUV_CUTOUT_BONES: frozenset[str] = frozenset({"headlight_bezels"})
 HEADLIGHTS_LIT = {"headlights": LAMP_LIT}
 # Light on the road ahead. In game it reaches 27 blocks (ADR 0024); the picture shows the first
 # few so the vehicle keeps its size.

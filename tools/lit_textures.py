@@ -11,10 +11,13 @@ write_texture_set = load_tool("texture_io").write_texture_set
 
 
 def build_lit_textures(out, directory, kind, width, height, pixel, is_lit,
-                       lit_mer=mer.MER_LIT, off_mer=mer.MER_OFF):
+                       lit_mer=mer.MER_LIT, off_mer=mer.MER_OFF, opaque_unlit_cutouts=False):
     def color(x, y):
         rgba = (*pixel(x, y), 255)[:4]
-        return (*rgba[:3], 0) if is_lit(x, y) else rgba
+        if is_lit(x, y):
+            return (*rgba[:3], 0)
+        # Cutout bones never draw in the lit pass; their holes must not mark extra glow.
+        return (*rgba[:3], 255) if opaque_unlit_cutouts and rgba[3] == 0 else rgba
 
     out.png(directory / f"{kind}_lit.png", width, height, color)
     out.png(directory / f"{kind}_lit_mer.png", width, height,

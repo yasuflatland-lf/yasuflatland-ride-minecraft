@@ -1,6 +1,5 @@
 """SUV lamp pieces and their bone assignments."""
 
-import math
 from typing import NamedTuple
 
 from tool_loader import load_tool
@@ -19,9 +18,10 @@ class LampPart(NamedTuple):
     bone: str
 
 
-# The only place that maps a lamp part to its bone (headlights, tail_lights, or body).
+# The only place that maps a lamp part to its bone: headlights, headlight_bezels,
+# tail_lights, or body.
 LAMP_PARTS: tuple[LampPart, ...] = (
-    LampPart("headlight_ring", "body"),
+    LampPart("headlight_bezel", "headlight_bezels"),
     LampPart("headlight_lens", "headlights"),
     LampPart("fog_pocket", "body"),
     LampPart("fog_lens", "headlights"),
@@ -33,31 +33,34 @@ LAMP_PARTS: tuple[LampPart, ...] = (
 )
 
 
-# Round headlights (left and right): a rim of small blocks on a circle around a cross-shaped lens
 HEADLIGHT_CENTERS = ((10.3, 12.3), (-10.3, 12.3))
-HEADLIGHT_RADIUS = 2.3
-HEADLIGHT_Z0, HEADLIGHT_Z1 = FRONT, FRONT + 0.6
+HEADLIGHT_DIAMETER = 5.6
+HEADLIGHT_THICKNESS = 0.1
+HEADLIGHT_FRONT = FRONT + 0.65
+BEZEL_SCALE = 1.25
+BEZEL_THICKNESS = 0.05
+BEZEL_FRONT_GAP = 0.05
 
 
-def headlight_ring_cubes():
-    cubes = []
-    for cx, cy in HEADLIGHT_CENTERS:
-        for a in range(0, 360, 30):
-            x = cx + HEADLIGHT_RADIUS * math.cos(math.radians(a))
-            y = cy + HEADLIGHT_RADIUS * math.sin(math.radians(a))
-            cubes.append(box(x - 0.5, y - 0.5, HEADLIGHT_Z0, x + 0.5, y + 0.5, HEADLIGHT_Z1, "trim"))
-    return cubes
+def headlight_panel(region, diameter, front, thickness):
+    spec = load_tool("suv_atlas").region_spec("headlight", region)
+    # The back face needs the same hole so the thin panel cannot cover the lens behind it.
+    mapped = ("north", "south") if region == "bezel" else ("south",)
+    faces = suv_cubes.region_faces("headlight", region,
+                                   {face: (0, 0, spec.w, spec.h) for face in mapped})
+    half = diameter / 2
+    return [box(cx - half, cy - half, front - thickness,
+                cx + half, cy + half, front, faces)
+            for cx, cy in HEADLIGHT_CENTERS]
+
+
+def headlight_bezel_cubes():
+    return headlight_panel("bezel", HEADLIGHT_DIAMETER * BEZEL_SCALE,
+                           HEADLIGHT_FRONT + BEZEL_FRONT_GAP, BEZEL_THICKNESS)
 
 
 def headlight_lens_cubes():
-    cubes = []
-    k = HEADLIGHT_RADIUS * 0.75
-    for cx, cy in HEADLIGHT_CENTERS:
-        cubes += [
-            box(cx - k, cy - k * 0.55, HEADLIGHT_Z0, cx + k, cy + k * 0.55, HEADLIGHT_Z1 + 0.05, "light"),
-            box(cx - k * 0.55, cy - k, HEADLIGHT_Z0, cx + k * 0.55, cy + k, HEADLIGHT_Z1 + 0.05, "light"),
-        ]
-    return cubes
+    return headlight_panel("lens", HEADLIGHT_DIAMETER, HEADLIGHT_FRONT, HEADLIGHT_THICKNESS)
 
 
 def fog_pocket_cubes():
