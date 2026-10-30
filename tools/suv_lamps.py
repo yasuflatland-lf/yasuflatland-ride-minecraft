@@ -7,7 +7,7 @@ from tool_loader import load_tool
 
 dims = load_tool("suv_dims")
 globals().update({k: v for k, v in vars(dims).items() if k.isupper()})
-palette = load_tool("suv_palette")
+uv = load_tool("suv_atlas").uv
 suv_cubes = load_tool("suv_cubes")
 box = suv_cubes.box
 round_face = suv_cubes.round_face
