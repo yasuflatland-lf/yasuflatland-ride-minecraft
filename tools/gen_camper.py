@@ -152,15 +152,11 @@ DOOR = (-7, 7, 12, 54)  # z0, z1, y0, y1 on the right side; local cell z = 0
 REAR_INNER = REAR
 
 
-def face(target, offset=(0, 0), uv_size=None):
-    return ATLAS.face(target, offset, uv_size)
-
-
 def box(x0, y0, z0, x1, y1, z1, color, rotation=None, pivot=None, offset=(0, 0), uv_size=None):
     c = {
         "origin": [round(min(x0, x1), 3), round(min(y0, y1), 3), round(min(z0, z1), 3)],
         "size": [round(abs(x1 - x0), 3), round(abs(y1 - y0), 3), round(abs(z1 - z0), 3)],
-        "uv": {f: face(color, offset, uv_size) for f in ("north", "south", "east", "west", "up", "down")},
+        "uv": {f: ATLAS.face(color, offset, uv_size) for f in ("north", "south", "east", "west", "up", "down")},
     }
     if rotation:
         c["rotation"] = rotation
@@ -172,9 +168,7 @@ def take_slots(cubes, names):
     slots = {SLOTS.index(n) for n in names}
     taken, rest = [], []
     for c in cubes:
-        if (c["uv"]["north"]["uv"][1] == 0
-                and c["uv"]["north"]["uv_size"] == [1, 1]
-                and c["uv"]["north"]["uv"][0] in slots):
+        if ATLAS.swatch_at(*c["uv"]["north"]["uv"]) in slots:
             taken.append(c)
         else:
             rest.append(c)
