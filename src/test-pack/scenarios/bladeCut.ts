@@ -152,7 +152,12 @@ export async function bladeCutDrops(a: Arena): Promise<Outcome> {
         nearby.length === 0 &&
         first.isValid &&
         second.isValid,
-      detail: `removed=${lines.length} nearby=${nearby.length}${nearby.map((e) => ` ${e.getComponent("minecraft:item")?.itemStack.typeId}@${a.local(e.location).x.toFixed(2)},${a.local(e.location).y.toFixed(2)},${a.local(e.location).z.toFixed(2)}`).join("")} controls=${first.isValid},${second.isValid}`,
+      detail: `removed=${lines.length} nearby=${nearby.length}${nearby
+        .map((e) => {
+          const p = a.local(e.location);
+          return ` ${e.getComponent("minecraft:item")?.itemStack.typeId}@${p.x.toFixed(2)},${p.y.toFixed(2)},${p.z.toFixed(2)}`;
+        })
+        .join("")} controls=${first.isValid},${second.isValid}`,
       lines,
     };
   } finally {
