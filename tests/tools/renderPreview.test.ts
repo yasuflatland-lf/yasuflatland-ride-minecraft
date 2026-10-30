@@ -181,6 +181,59 @@ print(json.dumps({"on": faces(True), "off": faces(False), "default": faces(True,
   });
 });
 
+describe("render_preview.py SUV lit and cutout bones", () => {
+  const result: {
+    on: LitFace[][];
+    off: LitFace[];
+    opaqueBase: LitFace[];
+    litColor: number[];
+  } = previewPython(`
+face = {"uv": [0, 0], "uv_size": [2, 1]}
+uv = {f: face for f in ("north", "south", "east", "west", "up", "down")}
+geo = {"description": {"texture_width": 2, "texture_height": 1}, "bones": [
+    {"name": name, "cubes": [{"origin": [i * 2, 0, 0], "size": [1, 1, 1], "uv": uv}]}
+    for i, name in enumerate(("lens", "cutout", "body"))]}
+texture = [[(200, 100, 50, 0), (10, 20, 30, 255)]]
+lit = [[(200, 100, 50, 0), (10, 20, 30, 255)]]
+pose = {"lamps": True, "dusk": False, "hover": False, "submarine": False}
+def faces(bone, base=texture, lamps=True):
+    polygons = r.collect({**geo, "bones": [bone]}, base, {}, {}, {**pose, "lamps": lamps}, lit,
+                         lit_bones={"lens": "texel"}, cutout_bones=frozenset({"cutout"}))
+    return [[rgb, group] for _, rgb, group in polygons]
+print(json.dumps({"on": [faces(bone) for bone in geo["bones"]],
+                  "off": faces(geo["bones"][0], lamps=False),
+                  "opaqueBase": faces(geo["bones"][0], [[(200, 100, 50, 255), (10, 20, 30, 255)]]),
+                  "litColor": [c + (255 - c) * r.LIT_GAIN for c in (200, 100, 50)]}))
+`);
+  // Mirroring reverses winding, so the down/up normals receive up/down shading.
+  const shades = [0.8, 0.8, 0.6, 0.6, 1, 0.5];
+  const shaded = (color: number[]): LitFace[] =>
+    shades.map((shade) => [color.map((c) => c * shade), null]);
+
+  it("lights only the lit texture's alpha-0 texels in their own brightened color", () => {
+    const expected = shaded([10, 20, 30]).flatMap((face) => [
+      [result.litColor, "lamp"],
+      face,
+    ]);
+    expect(result.on[0]).toEqual(expected);
+    expect(result.opaqueBase).toEqual(expected);
+  });
+
+  it("skips transparent texels only on cutout bones", () => {
+    expect(result.on[1]).toEqual(shaded([10, 20, 30]));
+    expect(result.on[2]).toEqual(
+      shades.flatMap((shade) => [
+        [[200, 100, 50].map((c) => c * shade), null],
+        [[10, 20, 30].map((c) => c * shade), null],
+      ]),
+    );
+  });
+
+  it("shades every texel normally when the lamps are off", () => {
+    expect(result.off).toEqual(result.on[2]);
+  });
+});
+
 describe("bulldozer previews (ADR 0136)", () => {
   it("draws only the first grouser phase and no propeller", () => {
     const result = previewPython(`
