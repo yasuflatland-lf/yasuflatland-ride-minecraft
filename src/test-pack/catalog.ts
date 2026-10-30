@@ -726,15 +726,6 @@ export const CATALOG: readonly ScenarioSpec[] = [
     vehicles: 0,
   },
   {
-    name: "noga_chair_seat_and_take_back",
-    file: "camp",
-    ticks: 6,
-    features: ["camp"],
-    isolation: "lane",
-    needsPlayer: false,
-    vehicles: 0,
-  },
-  {
     name: "camp_table_no_seats",
     file: "camp",
     ticks: 2,
@@ -782,7 +773,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
   {
     name: "dutch_oven_on_pit",
     file: "camp",
-    ticks: 46,
+    ticks: 24,
     features: ["camp"],
     isolation: "lane",
     needsPlayer: false,
