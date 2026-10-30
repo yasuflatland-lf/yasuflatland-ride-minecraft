@@ -21,6 +21,57 @@ const outcomes = fc
   );
 
 describe("outcomeOfSteps", () => {
+  it("passes with no expected steps or results", () => {
+    expect(outcomeOfSteps([], [])).toEqual({
+      pass: true,
+      detail: "steps=0/0",
+      lines: [],
+    });
+  });
+
+  it("reports unexpected names even when results are streamed", () => {
+    fc.assert(
+      fc.property(outcomes, fc.boolean(), (results, streamed) => {
+        const passing = results.map((r) => ({ ...r, pass: true }));
+        const outcome = outcomeOfSteps(
+          results.map((r) => r.name),
+          [...passing, { name: "unexpected", pass: true, detail: "extra" }],
+          { streamed },
+        );
+        expect(outcome.pass).toBe(false);
+        expect(outcome.detail).toBe(
+          `steps=${results.length}/${results.length}`,
+        );
+        expect(outcome.lines).toContain("step unexpected UNEXPECTED");
+      }),
+    );
+  });
+
+  it("reports duplicate names even when results are streamed", () => {
+    fc.assert(
+      fc.property(
+        outcomes.filter((results) => results.length > 0),
+        fc.nat(),
+        fc.boolean(),
+        (results, index, streamed) => {
+          const passing = results.map((r) => ({ ...r, pass: true }));
+          const duplicate = passing[index % passing.length];
+          if (!duplicate) throw new Error("Expected a result to duplicate");
+          const outcome = outcomeOfSteps(
+            results.map((r) => r.name),
+            [...passing, duplicate],
+            { streamed },
+          );
+          expect(outcome.pass).toBe(false);
+          expect(outcome.detail).toBe(
+            `steps=${results.length - 1}/${results.length}`,
+          );
+          expect(outcome.lines).toContain(`step ${duplicate.name} DUPLICATE`);
+        },
+      ),
+    );
+  });
+
   it("requires exactly one passing result for every expected name and preserves run order", () => {
     fc.assert(
       fc.property(outcomes, (results) => {
@@ -62,6 +113,39 @@ describe("outcomeOfSteps", () => {
 });
 
 describe("runCourse", () => {
+  it("passes an empty course", async () => {
+    expect(await runCourse([])).toEqual({
+      pass: true,
+      detail: "steps=0/0",
+      lines: [],
+    });
+  });
+
+  it("retains only the results whose sink throws", async () => {
+    await fc.assert(
+      fc.asyncProperty(outcomes, async (results) => {
+        const outcome = await runCourse(
+          results.map((r) => ({ name: r.name, run: async () => r })),
+          {
+            stopOnFail: false,
+            onStep: (r) => {
+              if (!r.pass) throw new Error("sink unavailable");
+            },
+          },
+        );
+        expect(outcome.pass).toBe(results.every((r) => r.pass));
+        expect(outcome.lines).toEqual(
+          results
+            .filter((r) => !r.pass)
+            .flatMap((r) => [
+              ...stepLines(r),
+              `sink failed for ${r.name}: Error: sink unavailable`,
+            ]),
+        );
+      }),
+    );
+  });
+
   it("runs in order, stops by default, and streams each executed result immediately", async () => {
     await fc.assert(
       fc.asyncProperty(
@@ -71,6 +155,8 @@ describe("runCourse", () => {
         async (results, stopOnFail, streamed) => {
           const executed: string[] = [];
           const received: StepResult[] = [];
+          const sinkObservations: { name: string; executed: string[] }[] = [];
+          const runObservations: { received: number; executed: number }[] = [];
           const firstFail = results.findIndex((r) => !r.pass);
           const count =
             stopOnFail && firstFail >= 0 ? firstFail + 1 : results.length;
@@ -80,7 +166,10 @@ describe("runCourse", () => {
             results.map((r) => ({
               name: r.name,
               run: async () => {
-                if (streamed) expect(received).toHaveLength(executed.length);
+                runObservations.push({
+                  received: received.length,
+                  executed: executed.length,
+                });
                 executed.push(r.name);
                 return r;
               },
@@ -90,7 +179,10 @@ describe("runCourse", () => {
               ...(streamed
                 ? {
                     onStep: (r: StepResult) => {
-                      expect(executed.at(-1)).toBe(r.name);
+                      sinkObservations.push({
+                        name: r.name,
+                        executed: [...executed],
+                      });
                       received.push(r);
                     },
                   }
@@ -99,6 +191,20 @@ describe("runCourse", () => {
           );
           expect(executed).toEqual(ran.map((r) => r.name));
           expect(received).toEqual(streamed ? ran : []);
+          expect(runObservations).toEqual(
+            ran.map((_, index) => ({
+              received: streamed ? index : 0,
+              executed: index,
+            })),
+          );
+          expect(sinkObservations).toEqual(
+            streamed
+              ? ran.map((r, index) => ({
+                  name: r.name,
+                  executed: ran.slice(0, index + 1).map((step) => step.name),
+                }))
+              : [],
+          );
           expect(outcome.pass).toBe(results.every((r) => r.pass));
           expect(outcome.lines).toEqual([
             ...(streamed ? [] : ran.flatMap(stepLines)),
@@ -141,6 +247,12 @@ describe("runCourse", () => {
             `steps=${stopOnFail ? 0 : 1}/2; first_fail=throws: error: ${new Error(message)}`,
           );
           expect(later).toBe(stopOnFail ? 0 : 1);
+          expect(outcome.lines).toEqual([
+            `step throws FAIL error: ${new Error(message)}`,
+            stopOnFail
+              ? "step later SKIP after throws"
+              : "step later PASS done",
+          ]);
         },
       ),
     );
@@ -162,7 +274,12 @@ describe("runCourse", () => {
         );
         expect(calls).toBe(results.length);
         expect(outcome.pass).toBe(results.every((r) => r.pass));
-        expect(outcome.lines).toEqual([]);
+        expect(outcome.lines).toEqual(
+          results.flatMap((r) => [
+            ...stepLines(r),
+            `sink failed for ${r.name}: Error: sink unavailable`,
+          ]),
+        );
       }),
     );
   });

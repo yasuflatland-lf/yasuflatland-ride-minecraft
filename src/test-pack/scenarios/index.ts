@@ -1,5 +1,5 @@
 import type { Arena } from "../arena";
-import type { Outcome } from "../outcome";
+import type { Outcome, StepSink } from "../outcome";
 import { bladeCutColumn, bladeCutDrops, bladeCutKeptIds } from "./bladeCut";
 import {
   buildCornerMarkerNone,
@@ -149,7 +149,7 @@ import {
   tentRelayLostCell,
 } from "./tent";
 
-export type ScenarioRun = (a: Arena) => Promise<Outcome>;
+export type ScenarioRun = (a: Arena, onStep: StepSink) => Promise<Outcome>;
 
 export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   build_block_states: buildBlockStates,

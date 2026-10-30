@@ -3,6 +3,7 @@
 // stripping cannot erase. Use .ts specifiers for relative value imports and
 // import type for every type-only import so Node can load this module directly.
 
+export const CANCEL_EVENT = "yasu_ride:test_cancel";
 export const TEST_EVENT = "yasu_ride:test";
 export const LOG_TAG = "[YASU-RIDE-TEST]";
 export const MANUAL_RUN_ID = "manual";
@@ -145,28 +146,4 @@ export function formatRunRequest(request: RunRequest): string {
   if (message.length > MESSAGE_LIMIT)
     throw new Error(`Run request exceeds MESSAGE_LIMIT (${MESSAGE_LIMIT})`);
   return message;
-}
-
-export function linePrefix(runId: string): string {
-  return `${LOG_TAG} ${runId} `;
-}
-
-/** Only this run's lines count; an earlier run can still be logging. */
-export function linesOfRun(lines: readonly string[], runId: string): string[] {
-  const prefix = linePrefix(runId);
-  return lines.filter((l) => l.includes(prefix));
-}
-
-export function summaryOfRun(
-  lines: readonly string[],
-  runId: string,
-): string | undefined {
-  const marker = `${linePrefix(runId)}SUMMARY `;
-  return lines.find((l) => l.includes(marker));
-}
-
-export function summaryPassed(summary: string): boolean {
-  // Judge only the first SUMMARY on the line: error text after it cannot fake a pass.
-  const at = summary.indexOf("SUMMARY ");
-  return at !== -1 && /^SUMMARY pass=\d+ fail=0(?!\d)/.test(summary.slice(at));
 }
