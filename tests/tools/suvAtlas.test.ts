@@ -39,7 +39,7 @@ assert p.LIT_SLOTS == (7,)
 for i, name in enumerate(original):
     assert a.ATLAS.face(name) == {'uv': [i * 4 + 1, 1], 'uv_size': [2, 2]}
 assert a.region('dash', 'grain') == ('grain', 192, 168, 32, 32)
-for x, y in [(191, 168), (224, 168), (192, 200), (0, 0), (0, 8)]:
+for x, y in [(191, 168), (224, 168), (192, 200), (0, 0), (0, 167)]:
     assert a.region_at(x, y) is None`);
 });
 
