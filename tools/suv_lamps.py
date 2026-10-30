@@ -42,25 +42,24 @@ BEZEL_THICKNESS = 0.05
 BEZEL_FRONT_GAP = 0.05
 
 
-def headlight_panel(region, diameter, front, thickness):
+def headlight_panel(region, diameter, front, thickness, faces: tuple[str, ...]):
     spec = load_tool("suv_atlas").region_spec("headlight", region)
-    # The back face needs the same hole so the thin panel cannot cover the lens behind it.
-    mapped = ("north", "south") if region == "bezel" else ("south",)
-    faces = suv_cubes.region_faces("headlight", region,
-                                   {face: (0, 0, spec.w, spec.h) for face in mapped})
+    uv = suv_cubes.region_faces("headlight", region,
+                                {face: (0, 0, spec.w, spec.h) for face in faces})
     half = diameter / 2
     return [box(cx - half, cy - half, front - thickness,
-                cx + half, cy + half, front, faces)
+                cx + half, cy + half, front, uv)
             for cx, cy in HEADLIGHT_CENTERS]
 
 
 def headlight_bezel_cubes():
+    # The back face needs the same hole so the thin panel cannot cover the lens behind it.
     return headlight_panel("bezel", HEADLIGHT_DIAMETER * BEZEL_SCALE,
-                           HEADLIGHT_FRONT + BEZEL_FRONT_GAP, BEZEL_THICKNESS)
+                           HEADLIGHT_FRONT + BEZEL_FRONT_GAP, BEZEL_THICKNESS, ("north", "south"))
 
 
 def headlight_lens_cubes():
-    return headlight_panel("lens", HEADLIGHT_DIAMETER, HEADLIGHT_FRONT, HEADLIGHT_THICKNESS)
+    return headlight_panel("lens", HEADLIGHT_DIAMETER, HEADLIGHT_FRONT, HEADLIGHT_THICKNESS, ("south",))
 
 
 def fog_pocket_cubes():

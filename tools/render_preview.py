@@ -67,9 +67,8 @@ NIGHT_TINT = (0.6, 0.64, 0.8)
 LAMP_LIT = (255, 246, 205)
 LIT_TEXTURE = "textures/entity/yasu_ride/suv_lit.png"
 LIT_GAIN = 0.5  # Fraction of the way from a lit texel's color to full white.
-# With lamps on, "lamp" paints the whole bone LAMP_LIT; "texel" follows suv_lit.png's
-# alpha-0 mask, as in the game's lit pass, moving its color toward white by LIT_GAIN.
-# Other texels keep normal shading.
+# With lamps on, a "texel" bone follows suv_lit.png's alpha-0 mask, as in the game's lit pass,
+# moving its color toward white by LIT_GAIN. Other texels keep normal shading.
 SUV_LIT_BONES: dict[str, str] = {"headlights": "texel", "tail_lights": "texel"}
 # Only these bones skip alpha-0 texels; elsewhere alpha is an emissive mask, ignored for color.
 SUV_CUTOUT_BONES: frozenset[str] = frozenset({"headlight_bezels"})
@@ -456,12 +455,7 @@ def collect(geo, texture, folds, turns, pose, lit_texture=None, lit_bones=SUV_LI
             (rx, ry, _), offset = turns[name]
             motion = ((rx, ry, 0), offset)
         style = lit_bones.get(name) if pose["lamps"] else None
-        if name.startswith("glow_"):
-            emissive = "disc"
-        elif style == "lamp":
-            emissive = "lamp"
-        else:
-            emissive = None
+        emissive = "disc" if name.startswith("glow_") else None
         face_texture = texture
         if style == "texel" and not emissive:
             if combined_texture is None:
@@ -482,8 +476,7 @@ def collect(geo, texture, folds, turns, pose, lit_texture=None, lit_bones=SUV_LI
                 if dot(normal, normal) == 0:
                     continue
                 if emissive:
-                    rgb = LAMP_LIT if emissive == "lamp" else GLOW_LIT
-                    polygons.append((quad, rgb, emissive))
+                    polygons.append((quad, GLOW_LIT, emissive))
                     continue
                 k = shade(normalize(normal)) * pose.get("brightness", 1.0)
                 face_lift = pose.get("lift", 0)

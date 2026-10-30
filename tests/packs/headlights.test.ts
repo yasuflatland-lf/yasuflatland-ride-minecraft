@@ -169,7 +169,7 @@ describe("SUV round headlights (ADR 0192)", () => {
       expect(Math.abs(cube.uv.north.uv_size[0])).toBeGreaterThanOrEqual(32);
       expect(Math.abs(cube.uv.north.uv_size[1])).toBeGreaterThanOrEqual(32);
       expect(cube.size[0]).toBeCloseTo(cube.size[1]);
-      expect(cube.size[2] / cube.size[0]).toBeCloseTo(0.1 / 5.6);
+      expect(cube.size[2] / cube.size[0]).toBeCloseTo(0.1 / 5.6, 4);
       const bezel = bezels?.cubes?.find(
         (panel) =>
           Math.abs(
@@ -180,10 +180,10 @@ describe("SUV round headlights (ADR 0192)", () => {
           ) < 0.001,
       );
       expect(bezel).toBeDefined();
-      expect(bezel?.size[0]).toBeCloseTo(cube.size[0] * 1.25);
+      expect(bezel?.size[0]).toBeCloseTo(cube.size[0] * 1.25, 4);
       expect(
         (cube.origin[2] - (bezel?.origin[2] ?? 0)) / cube.size[0],
-      ).toBeCloseTo(0.05 / 5.6);
+      ).toBeCloseTo(0.05 / 5.6, 4);
     }
   });
 
@@ -205,6 +205,11 @@ print(json.dumps([{'name': p.name, 'body': p.body} for p in load_tool('suv_palet
     const face = bezels?.cubes?.[0]?.uv.north;
     expect(face).toBeDefined();
     if (!face) throw new Error("Missing bezel face");
+    expect(bezels?.cubes).toHaveLength(2);
+    for (const cube of bezels?.cubes ?? []) {
+      expect(cube.uv.north).toEqual(face);
+      expect(cube.uv.south).toEqual(face);
+    }
     const w = Math.abs(face.uv_size[0]);
     const h = Math.abs(face.uv_size[1]);
     const x0 = Math.min(face.uv[0], face.uv[0] + face.uv_size[0]);
@@ -218,6 +223,7 @@ print(json.dumps([{'name': p.name, 'body': p.body} for p in load_tool('suv_palet
       const bodyMer = [
         ...mer.pixels.subarray((mer.width + 1) * 4, (mer.width + 1) * 4 + 4),
       ];
+      const screwTexels = new Set<number>();
       for (let v = 0; v < h; v++) {
         for (let u = 0; u < w; u++) {
           const inside =
@@ -229,8 +235,46 @@ print(json.dumps([{'name': p.name, 'body': p.body} for p in load_tool('suv_palet
             ...image.pixels.subarray(i, i + 3),
           ]);
           expect([...mer.pixels.subarray(i, i + 4)]).toEqual(bodyMer);
+          if (
+            image.pixels[i] === 14 &&
+            image.pixels[i + 1] === 14 &&
+            image.pixels[i + 2] === 14 &&
+            image.pixels[i + 3] === 255
+          ) {
+            screwTexels.add(v * w + u);
+          }
         }
       }
+      let screwCount = 0;
+      for (const start of screwTexels) {
+        const component = [start];
+        screwTexels.delete(start);
+        let sumU = 0;
+        let sumV = 0;
+        for (const texel of component) {
+          const u = texel % w;
+          const v = Math.floor(texel / w);
+          sumU += u + 0.5 - w / 2;
+          sumV += v + 0.5 - h / 2;
+          for (const [x, y] of [
+            [u - 1, v],
+            [u + 1, v],
+            [u, v - 1],
+            [u, v + 1],
+          ] as const) {
+            if (x < 0 || x >= w || y < 0 || y >= h) continue;
+            const neighbor = y * w + x;
+            if (screwTexels.delete(neighbor)) component.push(neighbor);
+          }
+        }
+        const radius = Math.hypot(
+          sumU / component.length,
+          sumV / component.length,
+        );
+        expect(Math.abs(radius - (1.1 * w) / 1.25 / 2)).toBeLessThanOrEqual(1);
+        screwCount++;
+      }
+      expect(screwCount).toBe(6);
     }
   });
 });
