@@ -91,6 +91,8 @@ def floor_lever(x, z, height, knob, lean=15):
     ]
 
 
+# Like the tires, the rim is a ring of thin blocks turned around the column. Brown leather
+# rim, gray spokes, and a black hub and column
 def steering_cubes():
     cx, cy = WHEEL_CENTER
     RIM_SEGMENTS, RIM_WIDTH = 16, 0.7

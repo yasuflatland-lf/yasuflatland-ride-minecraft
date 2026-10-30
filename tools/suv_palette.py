@@ -43,6 +43,7 @@ assert len(NAMES) * 4 <= TEXTURE_WIDTH, "the palette no longer fits in the textu
 # (ADR 0020). entity_emissive_alpha makes a texel glow when its alpha is low but not 0 (ADR 0022).
 ALPHA = {"light": 0, "glow": 40}
 
+
 class Paint(NamedTuple):
     name: str
     body: tuple[int, int, int]

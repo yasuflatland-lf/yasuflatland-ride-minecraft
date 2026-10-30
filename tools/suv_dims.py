@@ -126,8 +126,6 @@ FRONT_SEAT_Z = -5.75
 # Steering wheel (+x side; shown in game as right-hand drive), tilted 20° with its top away from the
 # driver, toward the dashboard (a negative x rotation tips +y toward +z in game, see WINDSHIELD_LEAN).
 # The wheel follows the dashboard face so its column stays inside the cabin as the cowl moves.
-# Like the tires, the rim is a ring of thin blocks turned around the column. Brown leather
-# rim, gray spokes, and a black hub and column
 WHEEL_CENTER = (6.0, 16.5)  # (x, y)
 WHEEL_Z = 8.1 + DASH_SHIFT_Z
 WHEEL_PIVOT = [WHEEL_CENTER[0], WHEEL_CENTER[1], WHEEL_Z]
