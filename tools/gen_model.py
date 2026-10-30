@@ -163,4 +163,4 @@ export.paint_textures(ENTITY_TEXTURES)
 export.lit_textures(ENTITY_TEXTURES, "suv", TEXTURE_WIDTH, 16,
                     palette.swatches(BODY_PAINTS[0].body))
 export.item_icons(ITEM_TEXTURES)
-print("cubes:", sum(len(b.get("cubes", [])) for b in geo["minecraft:geometry"][0]["bones"]))
+print("cubes:", len(model_cubes))

@@ -4,7 +4,8 @@ import math
 
 from tool_loader import load_tool
 
-globals().update({k: v for k, v in vars(load_tool("suv_dims")).items() if k.isupper()})
+dims = load_tool("suv_dims")
+globals().update({k: v for k, v in vars(dims).items() if k.isupper()})
 suv_cubes = load_tool("suv_cubes")
 box = suv_cubes.box
 disc = suv_cubes.disc
@@ -12,7 +13,6 @@ turned = suv_cubes.turned
 mirrored = suv_cubes.mirrored
 both_sides = suv_cubes.both_sides
 facing_back = suv_cubes.facing_back
-dims = load_tool("suv_dims")
 arch_side_z = dims.arch_side_z
 
 

@@ -4,13 +4,13 @@ import math
 
 from tool_loader import load_tool
 
-globals().update({k: v for k, v in vars(load_tool("suv_dims")).items() if k.isupper()})
+dims = load_tool("suv_dims")
+globals().update({k: v for k, v in vars(dims).items() if k.isupper()})
 palette = load_tool("suv_palette")
 uv = palette.uv
 suv_cubes = load_tool("suv_cubes")
 box = suv_cubes.box
 round_face = suv_cubes.round_face
-dims = load_tool("suv_dims")
 arch_side_z = dims.arch_side_z
 flare_face_z = dims.flare_face_z
 
@@ -78,7 +78,7 @@ def bumper_reflector_cubes():
 def split_lamps(cubes):
     # Lamp lenses (the "light" swatch: headlights and fog lamps) get a bone of their own, so the render
     # controller can give them a glowing material while the headlights are on (ADR 0020)
-    LIGHT_UV = uv("light")
-    headlights = [c for c in cubes if c["uv"] == LIGHT_UV]
-    body = [c for c in cubes if c["uv"] != LIGHT_UV]
+    light_uv = uv("light")
+    headlights = [c for c in cubes if c["uv"] == light_uv]
+    body = [c for c in cubes if c["uv"] != light_uv]
     return body, headlights
