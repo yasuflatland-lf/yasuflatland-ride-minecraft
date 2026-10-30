@@ -1,7 +1,5 @@
 """SUV instrument panel and gauge dials."""
 
-import math
-
 from tool_loader import load_tool
 
 globals().update({k: v for k, v in vars(load_tool("suv_dims")).items() if k.isupper()})
@@ -11,7 +9,9 @@ box = suv_cubes.box
 translate = suv_cubes.translate
 
 
-# The ring projects from the face while remaining attached to it.
+# The ring projects 0.35 forward of the face. The face is 0.04 thick, with its
+# back 0.01 in front of the panel at z 10.5 to avoid z-fighting. The hub sits
+# between the ring front and the face.
 RING_FRONT_Z, FACE_Z = 10.1, 10.45
 FACE_BACK_Z = 10.49
 HUB_FRONT_Z = 10.3
@@ -19,14 +19,7 @@ HUB_FRONT_Z = 10.3
 
 def dial(cx, cy, radius, name):
     center = (cx, cy, 10)
-    outer = radius + 0.25
-    half_chord = outer * math.tan(math.radians(15))
-    cubes = []
-    for i in range(12):
-        cube = box(cx - half_chord, cy + radius, RING_FRONT_Z, cx + half_chord, cy + outer, FACE_Z, "chrome")
-        cube["pivot"] = list(center)
-        cube["rotation"] = [0, 0, i * 30]
-        cubes.append(cube)
+    cubes = suv_cubes.round_face(center, radius + 0.25, RING_FRONT_Z, FACE_Z, "chrome", inner_radius=radius)
     spec = suv_atlas.region_spec("gauges", name)
     faces = suv_cubes.region_faces("gauges", name, {"north": (0, 0, spec.w, spec.h)})
     cubes.append(box(cx - radius, cy - radius, FACE_Z, cx + radius, cy + radius, FACE_BACK_Z, faces))

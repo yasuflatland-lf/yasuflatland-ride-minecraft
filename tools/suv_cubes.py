@@ -104,17 +104,17 @@ def facing_back(cube):
     return copy
 
 
-def round_face(center, radius, z0, z1, color, segments=12):
+def round_face(center, radius, z0, z1, color, segments=12, *, inner_radius=0):
     """A flat round face (facing -z) made of thin blocks reaching out from the center like clock hands.
 
     Turned squares would leave their corners poking out like a gear; these blocks only overhang the
-    circle by a few percent at their outer corners.
+    circle by a few percent at their outer corners. Set inner_radius to leave a central opening.
     """
     cx, cy, _ = center
     half_chord = radius * math.tan(math.radians(180 / segments))
     cubes = []
     for i in range(segments):
-        cube = box(cx - half_chord, cy, z0, cx + half_chord, cy + radius, z1, color)
+        cube = box(cx - half_chord, cy + inner_radius, z0, cx + half_chord, cy + radius, z1, color)
         cube["pivot"] = list(center)
         cube["rotation"] = [0, 0, round(i * 360 / segments, 3)]
         cubes.append(cube)

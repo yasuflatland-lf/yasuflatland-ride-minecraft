@@ -21,6 +21,8 @@ DOT_RGB = (100, 100, 100)
 LCD_RECT = (11, 22, 20, 25)
 LCD_FILL = (30, 36, 33)
 LCD_FRAME = (6, 7, 7)
+LEATHER_PERFORATION_DELTA = -8
+LEATHER_GRAIN_DELTA = 12
 
 
 def inside(size, u, v):
@@ -60,8 +62,9 @@ def needle(size, u, v, angle, length):
 def color(region, u, v, paint):
     if region == "leather":
         base = palette.PALETTE["seat"]
-        delta = 5 if (u * 3 + v * 5) % 7 == 0 else 0
-        return (*(min(255, c + delta) for c in base), 255)
+        delta = (LEATHER_PERFORATION_DELTA if u % 4 == 0 and v % 4 == 0 else
+                 LEATHER_GRAIN_DELTA if u % 4 == 2 and v % 4 == 2 else 0)
+        return (*(max(0, min(255, c + delta)) for c in base), 255)
     size = region_size(region)
     if not inside(size, u, v):
         grain = next(spec for spec in dash.REGIONS if spec.name == "grain")
