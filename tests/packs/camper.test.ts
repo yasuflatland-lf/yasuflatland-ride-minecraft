@@ -1,6 +1,5 @@
 import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
-import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 import { PAINTS } from "../../src/domain/shared/paint";
 import { SLEEP_MESSAGES } from "../../src/domain/shared/sleep";
@@ -18,6 +17,7 @@ import {
   SEAT_FILLER_FAMILY,
 } from "../../src/infrastructure/vehicle/bedrock/identifiers";
 import { defined } from "../support/defined";
+import { readRgbaPng } from "../support/png";
 import { assertOneAxis, multipleAxes } from "./oneAxis";
 
 const RP = "packs/yasu_ride_rp";
@@ -48,36 +48,7 @@ const bone = (name: string) => {
   return found as Bone;
 };
 
-// The generator writes unfiltered 8-bit RGBA rows, as the preview generator does for icons.
-function readPng(path: string) {
-  const png = readFileSync(`${RP}/${path}.png`);
-  expect(png.subarray(0, 8)).toEqual(
-    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
-  );
-  const width = png.readUInt32BE(16);
-  const height = png.readUInt32BE(20);
-  expect(png[24]).toBe(8);
-  expect(png[25]).toBe(6);
-  const idat: Buffer[] = [];
-  for (let pos = 8; pos < png.length; ) {
-    const length = png.readUInt32BE(pos);
-    if (png.toString("ascii", pos + 4, pos + 8) === "IDAT") {
-      idat.push(png.subarray(pos + 8, pos + 8 + length));
-    }
-    pos += length + 12;
-  }
-  const raw = inflateSync(Buffer.concat(idat));
-  const stride = width * 4;
-  expect(raw.length).toBe(height * (stride + 1));
-  const pixels = Buffer.concat(
-    Array.from({ length: height }, (_, y) => {
-      const start = y * (stride + 1);
-      expect(raw[start]).toBe(0);
-      return raw.subarray(start + 1, start + 1 + stride);
-    }),
-  );
-  return { width, height, pixels };
-}
+const readPng = (path: string) => readRgbaPng(`${RP}/${path}.png`);
 
 describe("camper model assets (ADR 0067)", () => {
   it("allows compound rotations only in declared assemblies (ADR 0167)", () => {
@@ -764,7 +735,7 @@ describe("camper model assets (ADR 0067)", () => {
       expect(corner[1] ?? 0).toBeLessThan(consoleBottom);
   });
 
-  it("generates all 16 equally sized paints, changing only the three accent swatches", () => {
+  it("generates all 16 equally sized paints, changing only the three accent swatches and no region texel", () => {
     const files = readdirSync(`${RP}/textures/entity/yasu_ride`).filter(
       (name) =>
         /^camper(?:_\w+)?\.png$/.test(name) && !name.startsWith("camper_lit"),
@@ -790,6 +761,9 @@ describe("camper model assets (ADR 0067)", () => {
           khaki.pixels.subarray(i * 4, i * 4 + 4),
         );
       }
+      expect(texture.pixels.subarray(khaki.width * 4), paint).toEqual(
+        khaki.pixels.subarray(khaki.width * 4),
+      );
     }
   });
 
@@ -1988,7 +1962,7 @@ describe("camper rib atlas (ADR 0190)", () => {
     ) as {
       width: number;
       height: number;
-      regions: [string, number, number, number, number][];
+      regions: [[string, number, number, number, number]];
       period: number;
       texelsPerPx: number;
       slots: string[];
