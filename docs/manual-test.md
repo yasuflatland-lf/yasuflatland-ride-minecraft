@@ -324,13 +324,14 @@ Run H1-H6 on PC and mobile, with Vibrant Visuals on and off, after a Resource Pa
 | C183 | Place on grass and on a slab top; try water, a parked camper's space, and beside another Gas Lantern | It settles on the slab; water, vehicle space, and nearby Gas Lantern placement are refused | unverified | unverified |
 | C184 | Hit three times quickly; repeat with two hits, a 5 second pause, and one hit; hit while holding the Headlight Switch | Three quick hits drop one item; the paused sequence does not; switch hits never take it back | unverified | unverified |
 | C185 | Compare front, side, and top with the owner's photos | Clear glass cylinder with brass nozzle, stainless cap, dark gasket and silver ring, faceted metal burner with wire handle and brass knob, smooth dome with silver collar, olive cartridge with silver rim; no logo, lettering, or brand mark | unverified | unverified |
-| C186 | On PC right-click and on touch use the interact button while holding the Headlight Switch | Each press flips the lantern with a click; the flame shows only while on | unverified | unverified |
-| C187 | Hold the switch press for 2 seconds | The lantern flips once | unverified | unverified |
+| C186 | On PC right-click and on touch use the interact button while holding the Headlight Switch, then with an empty hand | Each press flips the lantern with a click either way; the flame shows only while on (ADR 0191) | unverified | unverified |
+| C187 | Hold the press for 2 seconds with the switch, then with an empty hand | The lantern flips once each time (ADR 0191) | unverified | unverified |
 | C188 | At night, switch the lantern on and off and observe nearby ground and hostile mobs | The ground around it is lit while on and dark after off; no hostile mob spawns beside the lit lantern | unverified | unverified |
 | C189 | Switch on, run `/reload`, then restart the server | The lantern stays on and keeps lighting after both | unverified | unverified |
 | C190 | Take back a lit lantern; break the block under another lit lantern; light one on a slab | Take-back leaves no light; within a second the falling lantern light follows it down with none left behind; the slab lantern lights the area too | unverified | unverified |
-| C191 | Press with an empty hand, a stick, and flint and steel | Pressing does nothing | unverified | unverified |
+| C191 | Press with an empty hand, a stick, and flint and steel, on the ground and on a Camp Table | Each press flips the lantern once with a click (ADR 0191) | unverified | unverified |
 | C192 | On mobile tap three times with the switch; on PC left-click three times with the switch, pausing between taps | Each tap flips it once; it is never taken back | unverified | unverified |
+| C206 | On mobile tap a lit lantern three times quickly with an empty hand | It is taken back on the third tap; the taps do not also switch it on and off (ADR 0191) | unverified | unverified |
 | C193 | Park, then press the upper bunk from the floor on PC and on mobile at night | You sleep, the night is skipped, and after dying you respawn in the aisle cell a block further back than the lower bed's (ADR 0182) | unverified | unverified |
 | C194 | Two players: one sleeps on the lower bed, the other on the upper bunk, then both die | Each respawns in the aisle cell beside their own level (ADR 0182) | unverified | unverified |
 | C195 | Park and walk onto the lower bed under the upper bunk | You step onto the lower bed; the bunk does not block you (ADR 0182) | unverified | unverified |
