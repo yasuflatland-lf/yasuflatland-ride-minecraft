@@ -1994,13 +1994,13 @@ describe("camper rib atlas (ADR 0190)", () => {
     ).toEqual(fixture);
   });
 
-  it("allocates the rib region first below the swatches and shades its rows alternately", () => {
+  it("allocates the rib region below the swatches with groove, highlight, and flat bands", () => {
     expect([width, height]).toEqual([
       geometry.description.texture_width,
       geometry.description.texture_height,
     ]);
     expect(regions.find(([name]) => name === "bolt")?.[4]).toBe(1);
-    expect(period).toBe(2);
+    expect(period / texelsPerPx).toBe(2);
     expect(texelsPerPx).toBe(2);
     expect(regions[0]).toEqual(["rib", 0, 1, 8, 64 * texelsPerPx]);
     expect(regions.map(([name]) => name)).toEqual([
@@ -2024,6 +2024,7 @@ describe("camper rib atlas (ADR 0190)", () => {
         );
     }
     const [, x, y, w, h] = defined(regions[0], "rib region");
+    expect(h % period).toBe(0);
     const texture = readPng("textures/entity/yasu_ride/camper");
     const shell = [...texture.pixels.subarray(0, 3)];
     for (let dy = 0; dy < h; dy++) {
