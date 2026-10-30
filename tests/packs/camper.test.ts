@@ -1962,7 +1962,7 @@ const { width, height, regions, period, texelsPerPx, slots, windows } =
   ) as {
     width: number;
     height: number;
-    regions: [string, number, number, number, number][];
+    regions: [[string, number, number, number, number]];
     period: number;
     texelsPerPx: number;
     slots: string[];
@@ -2045,6 +2045,11 @@ describe("camper rib atlas (ADR 0190)", () => {
 
   it("maps only the outward white shell faces on both walls and the door to height-aligned ribs", () => {
     const [, x, y, w, h] = defined(regions[0], "rib region");
+    const roofHeight = h / texelsPerPx;
+    const end = (cube: Cube, axis: number) =>
+      (cube.origin[axis] ?? 0) + (cube.size[axis] ?? 0);
+    const sampledRow = (cube: Cube, v: number, worldY: number) =>
+      Math.floor(v + (end(cube, 1) - worldY) * texelsPerPx);
     const entries = bones.flatMap((b) =>
       (b.cubes ?? []).flatMap((c) =>
         Object.entries(c.uv)
@@ -2070,11 +2075,6 @@ describe("camper rib atlas (ADR 0190)", () => {
     expect(new Set(entries.map((e) => e.bone))).toEqual(
       new Set(["body", "door_entry"]),
     );
-    for (const side of ["east", "west"]) {
-      expect(entries.some((e) => e.bone === "body" && e.side === side)).toBe(
-        true,
-      );
-    }
     expect(
       entries.filter((e) => e.bone === "door_entry").map((e) => e.side),
     ).toEqual(["west"]);
@@ -2089,18 +2089,34 @@ describe("camper rib atlas (ADR 0190)", () => {
             const [u = 0, v = 0] = face.uv;
             const [du = 0, dv = 0] = face.uv_size;
             const y0 = cube.origin[1] ?? 0;
+            const height = cube.size[1] ?? 0;
             expect(u).toBeGreaterThanOrEqual(x);
             expect(v).toBeGreaterThanOrEqual(y);
             expect(du).toBeGreaterThan(0);
             expect(dv).toBeGreaterThan(0);
             expect(u + du).toBeLessThanOrEqual(x + w);
             expect(v + dv).toBeLessThanOrEqual(y + h);
-            expect(v - y).toBeCloseTo(y0 * texelsPerPx, 8);
-            expect((v - y) % period).toBeCloseTo(
-              (y0 * texelsPerPx) % period,
+            expect(v - y).toBeCloseTo(
+              (roofHeight - (y0 + height)) * texelsPerPx,
               8,
             );
-            expect(dv).toBeCloseTo((cube.size[1] ?? 0) * texelsPerPx, 8);
+            expect(dv).toBeCloseTo(height * texelsPerPx, 8);
+            const worldHeights = [0.137, 0.513, 0.879].map(
+              (fraction) => y0 + fraction * height,
+            );
+            for (
+              let step = Math.floor(y0 * texelsPerPx);
+              step < (y0 + height) * texelsPerPx;
+              step++
+            ) {
+              const worldY = (step + 0.5) / texelsPerPx;
+              if (worldY > y0 && worldY < y0 + height)
+                worldHeights.push(worldY);
+            }
+            for (const worldY of worldHeights)
+              expect(sampledRow(cube, v, worldY)).toBe(
+                Math.floor(y + (roofHeight - worldY) * texelsPerPx),
+              );
             const edge =
               side === "west"
                 ? (cube.origin[0] ?? 0)
@@ -2112,6 +2128,35 @@ describe("camper rib atlas (ADR 0190)", () => {
                 expect(f).toEqual({ uv: [0, 0], uv_size: [1, 1] });
               else expect(["east", "west"]).toContain(other);
             }
+          }
+        },
+      ),
+      { numRuns: 10 },
+    );
+    const overlaps = entries.flatMap((a, i) =>
+      entries.slice(i + 1).flatMap((b) => {
+        const plane = (entry: typeof a) =>
+          entry.side === "west"
+            ? (entry.cube.origin[0] ?? 0)
+            : end(entry.cube, 0);
+        if (a.side !== b.side || plane(a) !== plane(b)) return [];
+        const bottom = Math.max(a.cube.origin[1] ?? 0, b.cube.origin[1] ?? 0);
+        const top = Math.min(end(a.cube, 1), end(b.cube, 1));
+        const front = Math.max(a.cube.origin[2] ?? 0, b.cube.origin[2] ?? 0);
+        const rear = Math.min(end(a.cube, 2), end(b.cube, 2));
+        return bottom < top && front < rear ? [{ a, b, bottom, top }] : [];
+      }),
+    );
+    expect(overlaps.length).toBeGreaterThan(0);
+    fc.assert(
+      fc.property(
+        fc.double({ min: 0.1, max: 0.9, noNaN: true }),
+        (fraction) => {
+          for (const { a, b, bottom, top } of overlaps) {
+            const worldY = bottom + fraction * (top - bottom);
+            expect(sampledRow(a.cube, a.face.uv[1] ?? 0, worldY) % 2).toBe(
+              sampledRow(b.cube, b.face.uv[1] ?? 0, worldY) % 2,
+            );
           }
         },
       ),

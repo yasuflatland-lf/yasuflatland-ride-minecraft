@@ -289,6 +289,7 @@ def rotate(point, pivot, rotation):
     return (x + pivot[0], y + pivot[1], z + pivot[2])
 
 
+# Correct only for single-color faces (as gen_model.py paints them); nonuniform UVs use textured_face.
 def face_color(texture, face, tex_w, tex_h):
     (u, v), (du, dv) = face["uv"], face["uv_size"]
     x = min(int((u + du / 2) * len(texture[0]) / tex_w), len(texture[0]) - 1)
@@ -546,7 +547,11 @@ def collect_boat(geo, texture, pose, lit=HEADLIGHTS_LIT, texture_mapping=False):
                     continue
                 k = shade(normalize(normal)) * pose.get("brightness", 1.0)
                 face_lift = pose.get("lift", 0)
-                patches = textured_face(texture, cube["uv"][face], quad, face, desc["texture_width"], desc["texture_height"]) if texture_mapping else [(quad, face_color(texture, cube["uv"][face], desc["texture_width"], desc["texture_height"]))]
+                uv = cube["uv"][face]
+                if texture_mapping:
+                    patches = textured_face(texture, uv, quad, face, desc["texture_width"], desc["texture_height"])
+                else:
+                    patches = [(quad, face_color(texture, uv, desc["texture_width"], desc["texture_height"]))]
                 for patch, (r, g, b, a) in patches:
                     rgb = (r * k * tint[0] + face_lift, g * k * tint[1] + face_lift, b * k * tint[2] + face_lift)
                     if a < 255:

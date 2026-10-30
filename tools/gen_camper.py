@@ -143,7 +143,8 @@ ACCENT_BASES = {
 HW = 24  # half width
 FRONT, REAR = -56, 56
 BOTTOM, FLOOR, CEIL, ROOF = 8, 16, 61, 64  # roof 4.0 blocks up, the top of the fourth cell from the ground
-# From the region's top, row dy maps to model y = dy / RIB_TEXELS_PER_PX above y = 0.
+# Row dy maps to height ROOF - dy / RIB_TEXELS_PER_PX; side UVs start at the cube's top,
+# keeping one rib phase across cubes.
 RIB_REGION = ATLAS.allocate("rib", 8, ROOF * RIB_TEXELS_PER_PX)
 DOOR_HEAD_REGION = ATLAS.allocate("door_head", 18, 3)
 DOOR_HINGE_REGION = ATLAS.allocate("door_hinge", 3, 26)
@@ -186,7 +187,7 @@ def rib_sides(cubes):
         for face, edge in (("west", x0), ("east", x0 + width)):
             if abs(edge) == HW:
                 # Ribs are uniform along u; the full region width also fits long wall faces.
-                c["uv"][face] = ATLAS.face(RIB_REGION, (0, y0 * RIB_TEXELS_PER_PX),
+                c["uv"][face] = ATLAS.face(RIB_REGION, (0, round((ROOF - (y0 + height)) * RIB_TEXELS_PER_PX, 3)),
                                           (RIB_REGION.w, height * RIB_TEXELS_PER_PX))
     return cubes
 
