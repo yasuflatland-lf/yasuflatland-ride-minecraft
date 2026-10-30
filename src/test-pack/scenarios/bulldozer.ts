@@ -25,7 +25,7 @@ import {
   TEST_TOOL_EVENT,
 } from "../../infrastructure/vehicle/bedrock/identifiers";
 import { type Arena, drive, wait, withCar } from "../arena";
-import type { Outcome } from "../outcome";
+import { type Outcome, runCourse, type StepSink } from "../outcome";
 import { hitTick, judgeRam, PUSH_WINDOW, type RamSample } from "../ramJudge";
 import { summonCow, ticksUntilForm, vehicleForm } from "./shared";
 
@@ -778,72 +778,66 @@ export async function bulldozerSpawnsRaised(a: Arena): Promise<Outcome> {
 }
 
 /** The cab monitor shows the held blade switch's state and blanks for any other item or none (ADR 0139). */
-export async function bulldozerMonitor(a: Arena): Promise<Outcome> {
-  return withBulldozer(a, 20.5, 20.5, 0, async (car) => {
-    const screen = (): number =>
-      Number(car.getProperty(entityPropertyId("monitor")));
-    const hold = (item: string): void =>
-      system.sendScriptEvent(
-        TEST_HELD_ITEM_EVENT,
-        `${car.id},${item === "clear" ? item : id(item)}`,
-      );
-    const holdAndRead = async (item: string): Promise<number> => {
-      hold(item);
-      await wait(2);
-      return screen();
-    };
-    await wait(2);
-    const up = await holdAndRead(BLADE_SWITCH_ITEM);
-    await setBlade(car, false);
-    const down = screen();
-    const norm = await holdAndRead(WIDE_BLADE_SWITCH_ITEM);
-    await setWideBlade(car, true);
-    const wide = screen();
-    const off = await holdAndRead(ROAD_PAVER_SWITCH_ITEM);
-    await setRoadPaver(car, true);
-    const on = screen();
-    const other = await holdAndRead("stone");
-    hold(BLADE_SWITCH_ITEM);
-    const cleared = await holdAndRead("clear");
-    return {
-      pass:
-        up === 2 &&
-        down === 1 &&
-        norm === 3 &&
-        wide === 4 &&
-        off === 5 &&
-        on === 6 &&
-        other === 0 &&
-        cleared === 0,
-      detail: `up=${up} down=${down} norm=${norm} wide=${wide} off=${off} on=${on} other=${other} cleared=${cleared}`,
-    };
-  });
+async function monitorStep(car: Entity): Promise<Outcome> {
+  const screen = (): number =>
+    Number(car.getProperty(entityPropertyId("monitor")));
+  const hold = (item: string): void =>
+    system.sendScriptEvent(
+      TEST_HELD_ITEM_EVENT,
+      `${car.id},${item === "clear" ? item : id(item)}`,
+    );
+  const holdAndRead = async (item: string): Promise<number> => {
+    hold(item);
+    return screen();
+  };
+  await wait(2);
+  const up = await holdAndRead(BLADE_SWITCH_ITEM);
+  await setBlade(car, false);
+  const down = screen();
+  const norm = await holdAndRead(WIDE_BLADE_SWITCH_ITEM);
+  await setWideBlade(car, true);
+  const wide = screen();
+  const off = await holdAndRead(ROAD_PAVER_SWITCH_ITEM);
+  await setRoadPaver(car, true);
+  const on = screen();
+  const other = await holdAndRead("stone");
+  hold(BLADE_SWITCH_ITEM);
+  const cleared = await holdAndRead("clear");
+  return {
+    pass:
+      up === 2 &&
+      down === 1 &&
+      norm === 3 &&
+      wide === 4 &&
+      off === 5 &&
+      on === 6 &&
+      other === 0 &&
+      cleared === 0,
+    detail: `up=${up} down=${down} norm=${norm} wide=${wide} off=${off} on=${on} other=${other} cleared=${cleared}`,
+  };
 }
 
 /** The wide blade switch toggles the saved wide_blade property, independent of the blade height (ADR 0180). */
-export async function bulldozerWideBladeToggle(a: Arena): Promise<Outcome> {
-  return withBulldozer(a, 20.5, 20.5, 0, async (car) => {
-    const wideNow = () => car.getProperty(entityPropertyId("wide_blade"));
-    await wait(2);
-    const spawn = wideNow();
-    await setWideBlade(car, true);
-    const wide = wideNow();
-    await setBlade(car, false);
-    const lowered = wideNow();
-    await setBlade(car, true);
-    const raised = wideNow();
-    await setWideBlade(car, false);
-    const normal = wideNow();
-    return {
-      pass:
-        spawn === false &&
-        wide === true &&
-        lowered === true &&
-        raised === true &&
-        normal === false,
-      detail: `spawn=${String(spawn)} wide=${String(wide)} lowered=${String(lowered)} raised=${String(raised)} normal=${String(normal)}`,
-    };
-  });
+async function wideBladeToggleStep(car: Entity): Promise<Outcome> {
+  const wideNow = () => car.getProperty(entityPropertyId("wide_blade"));
+  const spawn = wideNow();
+  await setWideBlade(car, true);
+  const wide = wideNow();
+  await setBlade(car, false);
+  const lowered = wideNow();
+  await setBlade(car, true);
+  const raised = wideNow();
+  await setWideBlade(car, false);
+  const normal = wideNow();
+  return {
+    pass:
+      spawn === false &&
+      wide === true &&
+      lowered === true &&
+      raised === true &&
+      normal === false,
+    detail: `spawn=${String(spawn)} wide=${String(wide)} lowered=${String(lowered)} raised=${String(raised)} normal=${String(normal)}`,
+  };
 }
 
 /** A bulldozer dropped from 40 blocks takes no damage, like the other vehicles (ADR 0006). */
@@ -917,35 +911,66 @@ export async function bulldozerWideRam(a: Arena): Promise<Outcome> {
 }
 
 /** Paver state persists independently of both blade switches (ADR 0181). */
-export async function bulldozerRoadPaverToggle(a: Arena): Promise<Outcome> {
+async function roadPaverToggleStep(car: Entity): Promise<Outcome> {
+  const paverNow = () => car.getProperty(entityPropertyId("road_paver"));
+  const spawn = paverNow();
+  await setRoadPaver(car, true);
+  const on = paverNow();
+  await setBlade(car, false);
+  const lowered = paverNow();
+  await setWideBlade(car, true);
+  const wide = paverNow();
+  await setRoadPaver(car, false);
+  const off = paverNow();
+  const blade = car.getProperty(entityPropertyId("blade"));
+  const wideBlade = car.getProperty(entityPropertyId("wide_blade"));
+  await setBlade(car, true);
+  await setWideBlade(car, false);
+  const reset = paverNow();
+  return {
+    pass:
+      spawn === false &&
+      on === true &&
+      lowered === true &&
+      wide === true &&
+      off === false &&
+      blade === 0 &&
+      wideBlade === true &&
+      reset === false,
+    detail: `spawn=${String(spawn)} on=${String(on)} lowered=${String(lowered)} wide=${String(wide)} off=${String(off)} blade=${String(blade)} wideBlade=${String(wideBlade)} reset=${String(reset)}`,
+  };
+}
+
+/** Puts the stationary bulldozer back into the state every tool scenario started from: blade up, normal width, paver off, nothing held. */
+async function resetTools(car: Entity): Promise<void> {
+  await setBlade(car, true);
+  await setWideBlade(car, false);
+  await setRoadPaver(car, false);
+  system.sendScriptEvent(TEST_HELD_ITEM_EVENT, `${car.id},clear`);
+  await wait(2);
+}
+
+/** The cab monitor, the wide blade switch and the paver switch on one stationary bulldozer (ADR 0139, 0180, 0181, 0188). */
+export async function bulldozerTools(
+  a: Arena,
+  onStep: StepSink,
+): Promise<Outcome> {
   return withBulldozer(a, 20.5, 20.5, 0, async (car) => {
-    const paverNow = () => car.getProperty(entityPropertyId("road_paver"));
     await wait(2);
-    const spawn = paverNow();
-    await setRoadPaver(car, true);
-    const on = paverNow();
-    await setBlade(car, false);
-    const lowered = paverNow();
-    await setWideBlade(car, true);
-    const wide = paverNow();
-    await setRoadPaver(car, false);
-    const off = paverNow();
-    const blade = car.getProperty(entityPropertyId("blade"));
-    const wideBlade = car.getProperty(entityPropertyId("wide_blade"));
-    await setBlade(car, true);
-    await setWideBlade(car, false);
-    const reset = paverNow();
-    return {
-      pass:
-        spawn === false &&
-        on === true &&
-        lowered === true &&
-        wide === true &&
-        off === false &&
-        blade === 0 &&
-        wideBlade === true &&
-        reset === false,
-      detail: `spawn=${String(spawn)} on=${String(on)} lowered=${String(lowered)} wide=${String(wide)} off=${String(off)} blade=${String(blade)} wideBlade=${String(wideBlade)} reset=${String(reset)}`,
-    };
+    const step = (name: string, run: (car: Entity) => Promise<Outcome>) => ({
+      name,
+      run: async () => {
+        await resetTools(car);
+        return run(car);
+      },
+    });
+    return runCourse(
+      [
+        step("monitor", monitorStep),
+        step("wide_blade_toggle", wideBladeToggleStep),
+        step("road_paver_toggle", roadPaverToggleStep),
+      ],
+      { stopOnFail: false, onStep },
+    );
   });
 }
