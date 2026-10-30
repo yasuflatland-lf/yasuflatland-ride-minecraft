@@ -42,6 +42,12 @@ export function outcomeOfSteps(
     detail: `steps=${passed}/${expected.length}${firstFail ? `; first_fail=${firstFail.name}: ${firstFail.detail}` : ""}`,
     lines: [
       ...(options?.streamed ? [] : results.flatMap(stepLines)),
+      ...[...new Set(results.map((r) => r.name))].flatMap((name) => [
+        ...(expected.includes(name) ? [] : [`step ${name} UNEXPECTED`]),
+        ...(results.filter((r) => r.name === name).length > 1
+          ? [`step ${name} DUPLICATE`]
+          : []),
+      ]),
       ...missing.map((name) =>
         options?.skippedAfter !== undefined
           ? `step ${name} SKIP after ${options.skippedAfter}`
@@ -56,6 +62,7 @@ export async function runCourse(
   options?: { readonly stopOnFail?: boolean; readonly onStep?: StepSink },
 ): Promise<Outcome> {
   const results: StepResult[] = [];
+  const sinkFailures: { result: StepResult; error: unknown }[] = [];
   let skippedAfter: string | undefined;
   for (const step of steps) {
     let outcome: Outcome;
@@ -68,15 +75,15 @@ export async function runCourse(
     results.push(result);
     try {
       options?.onStep?.(result);
-    } catch {
-      // Reporting must not reject the course or prevent its remaining checks.
+    } catch (error) {
+      sinkFailures.push({ result, error });
     }
     if (!result.pass && (options?.stopOnFail ?? true)) {
       skippedAfter = step.name;
       break;
     }
   }
-  return outcomeOfSteps(
+  const outcome = outcomeOfSteps(
     steps.map((step) => step.name),
     results,
     {
@@ -84,4 +91,14 @@ export async function runCourse(
       streamed: options?.onStep !== undefined,
     },
   );
+  return {
+    ...outcome,
+    lines: [
+      ...sinkFailures.flatMap(({ result, error }) => [
+        ...stepLines(result),
+        `sink failed for ${result.name}: ${error}`,
+      ]),
+      ...(outcome.lines ?? []),
+    ],
+  };
 }
