@@ -109,6 +109,7 @@ SLOTS = list(PALETTE)
 ATLAS = camper_atlas.Atlas(SLOTS)
 RIB_PERIOD_TEXELS = 2
 RIB_TEXELS_PER_PX = 2
+BOLT_PITCH_PX = 6
 EMISSIVE_LIT = 255
 MER_LIT = (0, EMISSIVE_LIT, 255)
 MER_OFF = (0, 0, 255)
@@ -651,6 +652,7 @@ CAP_Y0 = 49.5  # the windshield top
 CREASE = 56
 NOSE = WS_Z - 5.5
 TOP_FRONT = WS_Z + 0.5
+BOLT_REGION = ATLAS.allocate("bolt", math.ceil(max(2 * HW + 0.4, REAR_OUT - TOP_FRONT)), 1)
 BOT_C, BOT_S = WS_Z - 0.5, WS_Z + 3  # lower face foot over the windshield and at the side pillar
 CAP_BACK = WS_Z + 6
 body.append(box(-FW, CAP_Y0, BOT_C, FW, ROOF, CAP_BACK, "white"))
@@ -698,7 +700,9 @@ for sx in (1, -1):  # the molding carries on down the pillar to the corner glass
     molding(sx, 35.4, CAP_Y0, BOT_S)
     body.append(corner(sx, WS_Z, 49.2, 49.7, "chrome"))  # header strip over the corner glass
 body.append(box(-FW, 49.2, BOT_C - 0.3, FW, 49.7, BOT_C + 2.2, "chrome"))  # windshield header strip
-body.append(box(-HW - 0.2, ROOF - 0.6, TOP_FRONT - 0.3, HW + 0.2, ROOF + 0.1, TOP_FRONT + 0.7, "chrome"))
+roof_lip = box(-HW - 0.2, ROOF - 0.6, TOP_FRONT - 0.3, HW + 0.2, ROOF + 0.1, TOP_FRONT + 0.7, "aluminium")
+roof_lip["uv"]["north"] = ATLAS.face(BOLT_REGION, (0, 0), (roof_lip["size"][0], 1))
+body.append(roof_lip)
 # Roof-lip lamps: a clearance dome near each corner and three identification lamps at the centre,
 # the middle one a flat lens.
 for x, half, dome in ((-21.5, 0.7, True), (-6, 0.7, True), (0, 1.2, False), (6, 0.7, True), (21.5, 0.7, True)):
@@ -818,8 +822,12 @@ body.append(box(-3.5, ROOF + 1.6, -1.5, 3.5, ROOF + 2, 5.5, "white"))
 body.append(box(-18, ROOF, -48, -10, ROOF + 2.6, -40, "black"))
 for z in (-46, -42):
     body += disc("z", -14, ROOF + 1.3, z, 1.2, 0.2, "grille", steps=(0, 45))
-body.append(box(-HW, ROOF - 0.6, TOP_FRONT, -HW - 0.4, ROOF, REAR_OUT, "slat"))  # drip rails
-body.append(box(HW, ROOF - 0.6, TOP_FRONT, HW + 0.4, ROOF, REAR_OUT, "slat"))
+for sx in (-1, 1):
+    rail = box(sx * HW, ROOF - 0.6, TOP_FRONT, sx * (HW + 0.4), ROOF, REAR_OUT, "aluminium")
+    # mirror_x flips positions but leaves UV face names in the final Bedrock frame.
+    outer_face = "east" if sx < 0 else "west"
+    rail["uv"][outer_face] = ATLAS.face(BOLT_REGION, (0, 0), (rail["size"][2], 1))
+    body.append(rail)
 # Roof rack around the rear air conditioner
 RACK = (22, 55)
 for sx in (1, -1):
@@ -1471,9 +1479,14 @@ def scale(color, factor):
 
 
 def region_pixel(region, x, y):
-    phase = y % RIB_PERIOD_TEXELS
-    factor = 0.93 if phase == 0 else 1.05 if phase == 1 else 1
-    return (*scale(PALETTE["white"][:3], factor), 255)
+    if region.name == "rib":
+        phase = y % RIB_PERIOD_TEXELS
+        factor = 0.93 if phase == 0 else 1.05 if phase == 1 else 1
+        return (*scale(PALETTE["white"][:3], factor), 255)
+    if region.name == "bolt":
+        factor = 0.65 if x % BOLT_PITCH_PX == 0 else 1
+        return (*scale(PALETTE["aluminium"][:3], factor), 255)
+    raise ValueError(f"Unknown atlas region: {region.name}")
 
 
 for paint, base in ACCENT_BASES.items():

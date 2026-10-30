@@ -30,7 +30,7 @@ interface Cube {
   size: number[];
   pivot?: number[];
   rotation?: number[];
-  uv: Record<string, { uv: number[] }>;
+  uv: Record<string, { uv: number[]; uv_size: number[] }>;
 }
 interface Bone {
   name: string;
@@ -882,7 +882,7 @@ describe("camper glass (ADR 0091)", () => {
       for (let i = 0; i < width; i++) {
         const alpha = pixels[i * 4 + 3];
         if (i === glassSlot) expect(alpha, paint).toBeLessThan(255);
-        else if (i === domeSlot) expect(alpha, paint).toBe(0);
+        else if (i === domeSlot || i >= 38) expect(alpha, paint).toBe(0);
         else expect(alpha, `${paint} slot ${i}`).toBe(255);
       }
     }
@@ -1949,7 +1949,7 @@ describe("camper rear-right vent lid (ADR 0146, 0157)", () => {
 });
 
 describe("camper rib atlas (ADR 0190)", () => {
-  it("allocates only the rib region below the swatches, without overlaps and within the texture", () => {
+  it("appends the bolt region after the unchanged rib region within the texture", () => {
     const { width, height, regions, period, texelsPerPx } = JSON.parse(
       execFileSync(
         "python3",
@@ -1978,21 +1978,23 @@ describe("camper rib atlas (ADR 0190)", () => {
       geometry.description.texture_width,
       geometry.description.texture_height,
     ]);
-    expect(regions.map(([name]) => name)).toEqual(["rib"]);
+    expect(regions.map(([name]) => name)).toEqual(["rib", "bolt"]);
+    expect(regions[0]).toEqual(["rib", 0, 1, 8, 128]);
+    expect(regions[1]?.slice(0, 3)).toEqual(["bolt", 0, 129]);
+    expect(regions[1]?.[4]).toBe(1);
     expect(period).toBe(2);
     expect(texelsPerPx).toBe(2);
     for (const [i, [, x, y, w, h]] of regions.entries()) {
       expect(x).toBeGreaterThanOrEqual(0);
       expect(y).toBeGreaterThanOrEqual(1);
-      expect(w).toBe(8);
-      expect(h).toBe(64 * texelsPerPx);
-      expect(h % period).toBe(0);
+
       expect(x + w).toBeLessThanOrEqual(width);
       expect(y + h).toBeLessThanOrEqual(height);
       for (const [, ox, oy, ow, oh] of regions.slice(0, i))
         expect(x + w <= ox || ox + ow <= x || y + h <= oy || oy + oh <= y).toBe(
           true,
         );
+      if (regions[i]?.[0] !== "rib") continue;
       const texture = readPng("textures/entity/yasu_ride/camper");
       const shell = [...texture.pixels.subarray(0, 3)];
       for (let dy = 0; dy < h; dy++) {
@@ -2008,6 +2010,81 @@ describe("camper rib atlas (ADR 0190)", () => {
           );
         }
       }
+    }
+  });
+});
+
+describe("camper aluminium roof edges", () => {
+  it("maps bolts only to the three outer edge faces and preserves lamp swatches and bezels", () => {
+    const boltY = 129;
+    const cubes = bones.flatMap((b) => b.cubes ?? []);
+    const edges = cubes.filter((c) =>
+      Object.values(c.uv).some((f) => f.uv[1] === boltY),
+    );
+    expect(edges).toHaveLength(3);
+    const front = defined(
+      edges.find((c) => c.size[0] === 48.4),
+      "front roof edge",
+    );
+    expect(front.origin[0]).toBe(-24.2);
+    expect(front.origin[1]).toBe(63.4);
+    expect(front.size).toEqual([48.4, 0.7, 1]);
+    for (const c of edges) {
+      const outer =
+        c === front
+          ? "north"
+          : defined(c.origin[0], "edge x") < 0
+            ? "west"
+            : "east";
+      const width = defined(c.size[c === front ? 0 : 2], "edge width");
+      if (c !== front) {
+        expect(c.origin[1]).toBe(63.4);
+        expect(c.size.slice(0, 2)).toEqual([0.4, 0.6]);
+        expect(c.origin[0]).toBe(outer === "west" ? -24.4 : 24);
+      }
+      for (const [face, uv] of Object.entries(c.uv))
+        expect(uv).toEqual(
+          face === outer
+            ? { uv: [0, boltY], uv_size: [width, 1] }
+            : { uv: [36, 0], uv_size: [1, 1] },
+        );
+    }
+    for (const [name, slots] of [
+      ["headlights", [14, 34, 35]],
+      ["ceiling_lights", [10, 33]],
+    ] as const) {
+      const lamps = bone(name).cubes ?? [];
+      expect(lamps.length).toBeGreaterThan(0);
+      for (const c of lamps)
+        for (const face of Object.values(c.uv)) {
+          expect(slots as readonly number[]).toContain(face.uv[0]);
+          expect(face.uv[1]).toBe(0);
+          expect(face.uv_size).toEqual([1, 1]);
+        }
+    }
+    const bezels = cubes.filter(
+      (c) => c.origin[1] === 63.9 && c.size[1] === 0.2 && c.size[2] === 1.2,
+    );
+    expect(bezels).toHaveLength(5);
+    for (const c of bezels)
+      for (const face of Object.values(c.uv))
+        expect(face).toEqual({ uv: [10, 0], uv_size: [1, 1] });
+    const texture = readPng("textures/entity/yasu_ride/camper");
+    expect(texture.height).toBe(boltY + 1);
+    expect(texture.width).toBe(
+      Math.ceil(
+        Math.max(
+          ...edges.map((c) =>
+            defined(c.size[c === front ? 0 : 2], "edge width"),
+          ),
+        ),
+      ),
+    );
+    for (let x = 0; x < texture.width; x++) {
+      const offset = (boltY * texture.width + x) * 4;
+      expect([...texture.pixels.subarray(offset, offset + 4)]).toEqual(
+        x % 6 === 0 ? [109, 111, 109, 255] : [168, 170, 168, 255],
+      );
     }
   });
 });
