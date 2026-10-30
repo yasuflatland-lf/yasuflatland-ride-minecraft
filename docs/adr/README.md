@@ -192,6 +192,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0189](0189-run-only-impacted-in-game-scenarios-locally.md) | Run only impacted in-game scenarios locally | Proposed |
 | [0190](0190-ribbed-camper-shell-atlas.md) | A ribbed camper shell atlas and trim | Proposed |
 | [0191](0191-press-camp-gear-without-the-light-tool.md) | Press camp gear without the light tool | Proposed |
+| [0192](0192-suv-detailed-body.md) | Detail the SUV body, dashboard and lamps | Proposed |
 | [0193](0193-shared-texture-tooling.md) | Share texture tooling between generators | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).

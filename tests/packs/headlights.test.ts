@@ -45,6 +45,50 @@ describe.each(["suv", "sportsboat", "camper", "bulldozer"])(
   },
 );
 
+describe("SUV tail lights", () => {
+  const bones: {
+    name: string;
+    parent?: string;
+    cubes?: { uv: Record<string, { uv: [number, number] }> }[];
+  }[] = read("packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json")[
+    "minecraft:geometry"
+  ][0].bones;
+  const controller = read(
+    "packs/yasu_ride_rp/render_controllers/yasu_ride/suv.rc.json",
+  ).render_controllers["controller.render.yasu_ride.suv"];
+
+  it("places the tail lamps on a child bone of the body", () => {
+    const tail = bones.find((bone) => bone.name === "tail_lights");
+    expect(tail?.parent).toBe("body");
+    expect(tail?.cubes?.length).toBeGreaterThan(0);
+  });
+
+  it("uses the unlit material and hides the base pass when switched on", () => {
+    expect(controller.materials).toContainEqual({
+      tail_lights: "Material.lamp",
+    });
+    expect(controller.part_visibility).toContainEqual({
+      tail_lights: "!query.property('yasu_ride:headlights')",
+    });
+  });
+
+  it("places every light swatch cube on the headlights bone", () => {
+    let lightCubes = 0;
+    for (const bone of bones) {
+      for (const cube of bone.cubes ?? []) {
+        const light = Object.values(cube.uv).some(
+          ({ uv }) => uv[0] >= 28 && uv[0] < 32 && uv[1] >= 0 && uv[1] < 4,
+        );
+        if (light) {
+          lightCubes++;
+          expect(bone.name).toBe("headlights");
+        }
+      }
+    }
+    expect(lightCubes).toBeGreaterThan(0);
+  });
+});
+
 describe("headlight switch (ADR 0020)", () => {
   it("has a switch item with an icon, a name, and a recipe unlocked from the start", () => {
     const item = read(

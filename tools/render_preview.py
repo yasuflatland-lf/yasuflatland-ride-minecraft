@@ -65,6 +65,14 @@ SHADOW_GROWTH = 0.5  # pixels (model units) added around the footprint per layer
 # Dusk: unlit surfaces are dimmed and tinted blue so the lamps stand out.
 NIGHT_TINT = (0.6, 0.64, 0.8)
 LAMP_LIT = (255, 246, 205)
+LIT_TEXTURE = "textures/entity/yasu_ride/suv_lit.png"
+LIT_GAIN = 0.5  # Fraction of the way from a lit texel's color to full white.
+# With lamps on, "lamp" paints the whole bone LAMP_LIT; "texel" follows suv_lit.png's
+# alpha-0 mask, as in the game's lit pass, moving its color toward white by LIT_GAIN.
+# Other texels keep normal shading.
+SUV_LIT_BONES: dict[str, str] = {"headlights": "lamp", "tail_lights": "texel"}
+# Only these bones skip alpha-0 texels; elsewhere alpha is an emissive mask, ignored for color.
+SUV_CUTOUT_BONES: frozenset[str] = frozenset()
 HEADLIGHTS_LIT = {"headlights": LAMP_LIT}
 # Light on the road ahead. In game it reaches 27 blocks (ADR 0024); the picture shows the first
 # few so the vehicle keeps its size.
@@ -401,7 +409,16 @@ def mirror(quad):
     return [(-x, y, z) for x, y, z in quad]
 
 
-def collect(geo, texture, folds, turns, pose):
+def combine_textures(texture, lit_texture):
+    """Join each base texel with the lit texel at the same spot, so one UV lookup reads both."""
+    if lit_texture is None:
+        raise ValueError("Texel lighting requires a lit texture")
+    if len(texture) != len(lit_texture) or any(len(row) != len(lit_row) for row, lit_row in zip(texture, lit_texture)):
+        raise ValueError("Base and lit texture sizes differ")
+    return [[base + lit for base, lit in zip(row, lit_row)] for row, lit_row in zip(texture, lit_texture)]
+
+
+def collect(geo, texture, folds, turns, pose, lit_texture=None, lit_bones=SUV_LIT_BONES, cutout_bones=SUV_CUTOUT_BONES):
     """Return the vehicle's faces as (quad, rgb, bloom group or None)."""
     desc = geo["description"]
     lift = FLIGHT_LIFT if pose["hover"] else 0.0
@@ -412,6 +429,7 @@ def collect(geo, texture, folds, turns, pose):
     else:
         tint = (1.0, 1.0, 1.0)
     polygons = []
+    combined_texture = None
     for bone in geo["bones"]:
         name = bone["name"]
         # The render controller hides the glow while the gear is down: on the ground and under water (ADR 0022)
@@ -437,7 +455,13 @@ def collect(geo, texture, folds, turns, pose):
             # uses, whose direction was pinned from the game
             (rx, ry, _), offset = turns[name]
             motion = ((rx, ry, 0), offset)
-        emissive = "lamp" if name == "headlights" and pose["lamps"] else "disc" if name.startswith("glow_") else None
+        style = lit_bones.get(name) if pose["lamps"] else None
+        emissive = "disc" if name.startswith("glow_") else "lamp" if style == "lamp" else None
+        face_texture = texture
+        if style == "texel" and not emissive:
+            if combined_texture is None:
+                combined_texture = combine_textures(texture, lit_texture)
+            face_texture = combined_texture
         for cube in bone.get("cubes", []):
             # In game a cube's x and z rotations turn the other way from this rotate() (ADR 0051, 0058)
             rx, ry, rz = cube.get("rotation", [0, 0, 0])
@@ -454,12 +478,21 @@ def collect(geo, texture, folds, turns, pose):
                     continue
                 if emissive:
                     rgb = LAMP_LIT if emissive == "lamp" else GLOW_LIT
-                else:
-                    r, g, b, _ = face_color(texture, cube["uv"][face], desc["texture_width"], desc["texture_height"])
-                    k = shade(normalize(normal)) * pose.get("brightness", 1.0)
-                    face_lift = pose.get("lift", 0)
-                    rgb = (r * k * tint[0] + face_lift, g * k * tint[1] + face_lift, b * k * tint[2] + face_lift)
-                polygons.append((quad, rgb, emissive))
+                    polygons.append((quad, rgb, emissive))
+                    continue
+                k = shade(normalize(normal)) * pose.get("brightness", 1.0)
+                face_lift = pose.get("lift", 0)
+                for patch, texel in textured_face(face_texture, cube["uv"][face], quad, face, desc["texture_width"], desc["texture_height"]):
+                    r, g, b, alpha = texel[:4]
+                    if name in cutout_bones and alpha == 0:
+                        continue
+                    if style == "texel" and texel[7] == 0:
+                        # texel[4:] is the lit texture's texel that combine_textures appended
+                        rgb = tuple(c + (255 - c) * LIT_GAIN for c in texel[4:7])
+                        polygons.append((patch, rgb, "lamp"))
+                    else:
+                        rgb = (r * k * tint[0] + face_lift, g * k * tint[1] + face_lift, b * k * tint[2] + face_lift)
+                        polygons.append((patch, rgb, None))
     return polygons
 
 
@@ -769,11 +802,12 @@ def rasterize(polygons, layers, to_screen, width=WIDTH, height=HEIGHT, backgroun
 def render(rp, icons=False):
     geo = json.loads((rp / GEOMETRY).read_text())["minecraft:geometry"][0]
     texture = read_png(rp / TEXTURE)
+    lit_texture = read_png(rp / LIT_TEXTURE)
     animations = json.loads((rp / ANIMATIONS).read_text())
     folds = folded_wheels(animations)
     turns = submerged_parts(animations)
 
-    scenes = {name: collect(geo, texture, folds, turns, pose) for name, pose in POSES.items()}
+    scenes = {name: collect(geo, texture, folds, turns, pose, lit_texture) for name, pose in POSES.items()}
     ground_y = min(p[1] for quad, _, _ in scenes["suv-front-left.png"] for p in quad)
     layers = {name: ground_layers(scenes[name], pose, ground_y) for name, pose in POSES.items()}
 
@@ -790,7 +824,7 @@ def render(rp, icons=False):
     if icons:
         # Lamps lit without the dusk tint, so the body keeps its daylight colors
         pose = {**POSES["suv-flying.png"], "lamps": True, "brightness": 1.0}
-        polygons = collect(geo, texture, folds, turns, pose)
+        polygons = collect(geo, texture, folds, turns, pose, lit_texture)
         icon = render_icon(geo, polygons, camera)
     return images, icon
 
