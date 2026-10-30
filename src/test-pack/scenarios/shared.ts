@@ -5,7 +5,8 @@ import { length } from "../../domain/shared/vec";
 import type { SUV_ENTITY } from "../../domain/vehicle/kinds/suv/entity";
 import { type Form, isForm } from "../../domain/vehicle/motion/forms";
 import { entityPropertyId } from "../../infrastructure/vehicle/bedrock/identifiers";
-import { type Arena, drive, type Outcome, wait } from "../arena";
+import { type Arena, drive, wait } from "../arena";
+import type { Outcome } from "../outcome";
 
 export function suvProperty(
   car: Entity,
@@ -121,16 +122,16 @@ export function summonCow(a: Arena, x: number, z: number): Entity | undefined {
   // roll; spawn_adult keeps the target size fixed. The spawn event is only
   // accepted after the yaw and pitch arguments.
   a.dim.runCommand(
-    `summon minecraft:cow ${x} ${a.gy} ${z} 0 0 minecraft:spawn_adult`,
+    `summon minecraft:cow ${a.xyz(x, a.gy, z)} 0 0 minecraft:spawn_adult`,
   );
   return a.dim.getEntities({
     type: "minecraft:cow",
-    location: { x, y: a.gy, z },
+    location: a.at(x, a.gy, z),
     maxDistance: 2,
   })[0];
 }
 
-export const FLIGHT_LANE = { x: 5.5, z: 4.5 } as const;
+export const FLIGHT_PATH = { x: 5.5, z: 4.5 } as const;
 
 /** Ticks until the vehicle form reads `form`, or -1 after `limit` ticks. */
 export async function ticksUntilForm(

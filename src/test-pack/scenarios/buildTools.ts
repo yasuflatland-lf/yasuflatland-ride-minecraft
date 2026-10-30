@@ -18,7 +18,8 @@ import {
   TEST_MODE_EVENT,
   TEST_RESULT_EVENT,
 } from "../../infrastructure/build/identifiers";
-import { type Arena, type Outcome, wait, withCar } from "../arena";
+import { type Arena, wait, withCar } from "../arena";
+import type { Outcome } from "../outcome";
 
 export function riddenEntity(player: Player): Entity | undefined {
   try {

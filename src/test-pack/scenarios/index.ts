@@ -1,4 +1,5 @@
-import type { Arena, Outcome } from "../arena";
+import type { Arena } from "../arena";
+import type { Outcome } from "../outcome";
 import { bladeCutColumn, bladeCutDrops, bladeCutKeptIds } from "./bladeCut";
 import {
   buildCornerMarkerNone,

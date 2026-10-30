@@ -28,12 +28,12 @@ import {
   BOAT_SEAT_PROBE,
   clearInput,
   drive,
-  type Outcome,
   POOL,
   wait,
   withBoat,
   withPool,
 } from "../arena";
+import type { Outcome } from "../outcome";
 import { summonCow } from "./shared";
 
 function mean(values: number[]): number {

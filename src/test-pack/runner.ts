@@ -1,14 +1,17 @@
 // In-game tests (ADR 0010). They run in a script environment separate from the
 // main Behavior Pack, so they drive the vehicle through script events.
 import { system, world } from "@minecraft/server";
-import { type Outcome, setupArena } from "./arena";
+import { prepareRun } from "./arena";
 import { CATALOG } from "./catalog";
+import { isFeatureTag } from "./features";
+import { laneOf } from "./lane";
+import type { Outcome } from "./outcome";
 import { coverageGaps, planOf } from "./plan";
 import {
   LOG_TAG,
   linePrefix,
+  parseRunRequest,
   type RunRequest,
-  runRequestFrom,
   TEST_EVENT,
 } from "./protocol";
 import { SCENARIOS } from "./scenarios/index";
@@ -17,7 +20,12 @@ function log(runId: string, msg: string): void {
   console.warn(`${linePrefix(runId)}${msg}`);
 }
 
-async function runAll({ runId, shard }: RunRequest): Promise<void> {
+async function runAll({
+  runId,
+  shard,
+  at,
+  features,
+}: RunRequest): Promise<void> {
   const { missing, extra, duplicates } = coverageGaps(
     CATALOG.map((spec) => spec.name),
     Object.keys(SCENARIOS),
@@ -29,13 +37,21 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
     );
     return;
   }
-  const a = await setupArena();
+  const tags = features?.filter(isFeatureTag);
+  const unknown = features?.find((tag) => !isFeatureTag(tag));
+  if (unknown !== undefined) {
+    log(runId, `SUMMARY pass=0 fail=1 error=unknown feature ${unknown}`);
+    return;
+  }
   const plan = planOf(CATALOG, {
     shard,
+    features: tags,
     playerConnected: world.getAllPlayers().length > 0,
   });
   for (const { name, reason } of plan.skipped)
     log(runId, `SKIP ${name}: ${reason}`);
+  const [a] = await prepareRun(world.getDimension("overworld"), [laneOf(at)]);
+  if (!a) throw new Error("arena not prepared");
   let passed = 0;
   const lines: string[] = [];
   for (const { name } of plan.runs) {
@@ -59,12 +75,30 @@ async function runAll({ runId, shard }: RunRequest): Promise<void> {
   log(runId, `SUMMARY pass=${passed} fail=${plan.runs.length - passed}`);
 }
 
-// Two runs would share the arena and kill each other's cars in setupArena.
+function unsupportedOption(request: RunRequest): string | undefined {
+  if (request.lanes !== 1) return "lanes";
+  return undefined;
+}
+
+// Two runs would share the arena and kill each other's cars in prepareRun.
 let activeRun: string | undefined;
 
 system.afterEvents.scriptEventReceive.subscribe((ev) => {
   if (ev.id !== TEST_EVENT) return;
-  const request = runRequestFrom(ev.message);
+  const parsed = parseRunRequest(ev.message);
+  if (!parsed.ok) {
+    log(parsed.runId, `SUMMARY pass=0 fail=1 error=${parsed.error}`);
+    return;
+  }
+  const request = parsed.request;
+  const unsupported = unsupportedOption(request);
+  if (unsupported !== undefined) {
+    log(
+      request.runId,
+      `SUMMARY pass=0 fail=1 error=${unsupported} not supported yet`,
+    );
+    return;
+  }
   const { runId } = request;
   if (activeRun !== undefined) {
     log(runId, `SUMMARY pass=0 fail=1 error=run ${activeRun} in progress`);
