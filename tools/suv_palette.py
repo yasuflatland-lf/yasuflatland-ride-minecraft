@@ -29,6 +29,8 @@ PALETTE = {
     # little bluer and darker than the "black" paint so the two read apart on a black body.
     "hardtop": (28, 29, 32),
     "hardtop_rib": (46, 47, 52),  # the lit tops of the roof ribs
+    "resin": (24, 24, 24),
+    "chrome": (200, 202, 205),
 }
 NAMES = list(PALETTE)
 LIT_SLOTS = tuple(NAMES.index(name) for name in ("light",))

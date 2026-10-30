@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { readRgbaPng } from "../support/png";
@@ -19,6 +20,40 @@ function texels(name: string) {
   };
 }
 
+const suvLampRegions: {
+  rect: [number, number, number, number];
+  lit: [number, number][];
+}[] = JSON.parse(
+  execFileSync(
+    "python3",
+    [
+      "-I",
+      "-c",
+      `import json, sys
+sys.path.insert(0, 'tools')
+from tool_loader import load_tool
+atlas = load_tool('suv_atlas')
+texture = load_tool('suv_texture')
+result = []
+for name in ('headlight', 'tail_lamp'):
+    r = atlas.BLOCKS[name].region
+    result.append({'rect': list(r[1:]), 'lit': [[x, y] for y in range(r.y, r.y + r.h) for x in range(r.x, r.x + r.w) if texture.is_lit(x, y)]})
+print(json.dumps(result))`,
+    ],
+    { encoding: "utf8" },
+  ),
+);
+const suvLit = (x: number, y: number) =>
+  (y < 4 && [7].includes(Math.floor(x / 4))) ||
+  suvLampRegions.some(
+    ({ rect: [bx, by, w, h], lit }) =>
+      x >= bx &&
+      x < bx + w &&
+      y >= by &&
+      y < by + h &&
+      lit.some(([lx, ly]) => lx === x && ly === y),
+  );
+
 const headlights = "query.property('yasu_ride:headlights')";
 const ceiling = "query.property('yasu_ride:ceiling_lights')";
 // The slots are the palette columns the generators select by name into
@@ -28,7 +63,7 @@ const kinds = [
   {
     kind: "suv",
     slots: [7],
-    cell: 4,
+    regionRule: suvLit,
     bones: { headlights, tail_lights: headlights },
     condition: headlights,
   },
@@ -57,7 +92,7 @@ const kinds = [
 
 describe.each(kinds)(
   "$kind lit textures (ADR 0147)",
-  ({ kind, slots, cell, bones, condition }) => {
+  ({ kind, slots, cell, regionRule, bones, condition }) => {
     it("generates a matching color atlas, maximum-emissive MER mask, and exact texture set", () => {
       const base = texels(kind);
       const lit = texels(`${kind}_lit`);
@@ -75,8 +110,9 @@ describe.each(kinds)(
       });
       for (const [i, pixel] of base.pixels.entries()) {
         const on =
-          Math.floor(i / base.width) < cell &&
-          slots.includes(Math.floor((i % base.width) / cell));
+          regionRule?.(i % base.width, Math.floor(i / base.width)) ??
+          (Math.floor(i / base.width) < (cell ?? 1) &&
+            slots.includes(Math.floor((i % base.width) / (cell ?? 1))));
         expect(lit.pixels[i], `color texel ${i}`).toEqual(
           on ? [...pixel.slice(0, 3), 0] : pixel,
         );
