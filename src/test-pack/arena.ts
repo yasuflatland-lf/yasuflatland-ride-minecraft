@@ -175,6 +175,7 @@ export async function prepareRun(
       // Missing series areas are normal on the first run.
     }
   }
+  await wait(2);
   const allLanes = Array.from({ length: MAX_LANES }, (_, index) =>
     laneOf(index),
   );
@@ -185,8 +186,10 @@ export async function prepareRun(
         `tickingarea add ${b.minX} -64 ${b.minZ} ${b.maxX} 0 ${b.maxZ} ${lane.tickingArea} true`,
       );
       if (result.successCount <= 0) throw new Error("area not added");
-    } catch {
-      throw new Error("ticking area limit reached; check tickingarea list");
+    } catch (e) {
+      throw new Error(
+        `ticking area limit reached; check tickingarea list (${lane.tickingArea}: ${e})`,
+      );
     }
   }
   for (const lane of allLanes) {
@@ -198,14 +201,14 @@ export async function prepareRun(
         ),
       ))
     )
-      throw new Error(`lane ${lane.index} not loaded`);
+      throw new Error(`lane ${lane.index} not loaded (corners)`);
   }
   const top = dim.getTopmostBlock(toWorld(laneOf(0), { x: 5, z: 20 }));
   if (!top) throw new Error("lane 0 not loaded");
   const gy = top.location.y + 1;
   for (const lane of lanes) {
     const laneTop = dim.getTopmostBlock(toWorld(lane, { x: 5, z: 20 }));
-    if (!laneTop) throw new Error(`lane ${lane.index} not loaded`);
+    if (!laneTop) throw new Error(`lane ${lane.index} not loaded (corners)`);
     if (laneTop.location.y + 1 !== gy)
       throw new Error(`lane ${lane.index} ground height differs from lane 0`);
   }
@@ -235,9 +238,15 @@ export async function prepareRun(
   const midZ = Math.floor((minZ + maxZ) / 2);
   for (const [index, a] of arenas.entries()) {
     if (index > 0) await wait(1);
+    // successCount is 0 both for an unloaded chunk and for a fill that changes
+    // nothing (air over air on a rerun), so loading is checked on the corners.
+    const b = worldBounds(a.lane, LOCAL_ARENA);
+    const loaded = [b.minX, b.maxX].every((x) =>
+      [b.minZ, b.maxZ].every((z) => blockLoaded(dim, { x, y: gy, z })),
+    );
+    if (!loaded) throw new Error(`lane ${a.lane.index} not loaded (fill)`);
     const fill = (box: string, block: string) => {
-      if (dim.runCommand(`fill ${box} ${block}`).successCount <= 0)
-        throw new Error(`lane ${a.lane.index} not loaded`);
+      dim.runCommand(`fill ${box} ${block}`);
     };
     // fill is capped at 32,768 blocks per call, so split the clear in four.
     for (const [x0, x1] of [
