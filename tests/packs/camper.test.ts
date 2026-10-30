@@ -2008,7 +2008,7 @@ describe("camper aluminium roof edges", () => {
     }
     function outerFace(c: Cube): string {
       if (c === front) return "north";
-      return defined(c.origin[0], "edge x") < 0 ? "west" : "east";
+      return defined(c.origin[0], "edge x") < 0 ? "east" : "west";
     }
     for (const c of edges) {
       const outer = outerFace(c);
@@ -2016,7 +2016,7 @@ describe("camper aluminium roof edges", () => {
       if (c !== front) {
         expect(c.origin[1]).toBe(63.4);
         expect(c.size.slice(0, 2)).toEqual([0.4, 0.6]);
-        expect(c.origin[0]).toBe(outer === "west" ? -24.4 : 24);
+        expect(c.origin[0]).toBe(outer === "east" ? -24.4 : 24);
       }
       for (const [face, uv] of Object.entries(c.uv))
         expect(uv).toEqual(

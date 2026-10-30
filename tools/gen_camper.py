@@ -825,7 +825,7 @@ for z in (-46, -42):
 for sx in (-1, 1):
     rail = box(sx * HW, ROOF - 0.6, TOP_FRONT, sx * (HW + 0.4), ROOF, REAR_OUT, "aluminium")
     # mirror_x flips positions but leaves UV face names in the final Bedrock frame.
-    outer_face = "east" if sx < 0 else "west"
+    outer_face = "west" if sx < 0 else "east"
     rail["uv"][outer_face] = ATLAS.face(BOLT_REGION, uv_size=(rail["size"][2], 1))
     body.append(rail)
 # Roof rack around the rear air conditioner
