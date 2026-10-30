@@ -1,7 +1,6 @@
 """SUV lamp pieces and their bone assignments."""
 
 import math
-from typing import NamedTuple
 
 from tool_loader import load_tool
 
@@ -15,23 +14,17 @@ arch_side_z = dims.arch_side_z
 flare_face_z = dims.flare_face_z
 
 
-class LampPart(NamedTuple):
-    name: str
-    bone: str
-
-
-LAMP_PARTS: tuple[LampPart, ...] = (
-    LampPart("headlight_ring", "body"),
-    LampPart("headlight_lens", "headlights"),
-    LampPart("fog_pocket", "body"),
-    LampPart("fog_lens", "headlights"),
-    LampPart("front_strip", "headlights"),
-    LampPart("turn_signal", "body"),
-    LampPart("third_brake_light", "tail_lights"),
-    LampPart("tail_light", "tail_lights"),
-    LampPart("bumper_reflector", "body"),
-)
-PART_BONES = {part.name: part.bone for part in LAMP_PARTS}
+PART_BONES = {
+    "headlight_ring": "body",
+    "headlight_lens": "headlights",
+    "fog_pocket": "body",
+    "fog_lens": "headlights",
+    "front_strip": "headlights",
+    "turn_signal": "body",
+    "third_brake_light": "tail_lights",
+    "tail_light": "tail_lights",
+    "bumper_reflector": "body",
+}
 
 
 # Round headlights (left and right): a rim of small blocks on a circle around a cross-shaped lens

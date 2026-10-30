@@ -45,7 +45,7 @@ ASSEMBLIES = {
     for name, count in getattr(part, "ASSEMBLIES", {}).items()
 }
 
-lamp_bones = {part.bone: [] for part in lamps.LAMP_PARTS if part.bone != "body"}
+lamp_bones = {bone: [] for bone in lamps.PART_BONES.values() if bone != "body"}
 
 
 def lamp_part(name, mirrored=False):
