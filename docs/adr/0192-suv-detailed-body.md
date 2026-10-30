@@ -51,6 +51,24 @@ The owner approved the following design points on 2026-10-30; the bone contract 
 
 11. **Generator structure.** Split the SUV generator into cohesive `tools/suv_*.py` modules in part 4 of the SUV detail series (#979). Each feature PR edits only the module that owns its part. Per-face texture maps must survive mirroring and the 180 degree turn: a mark drawn near the rear of a region must show at the rear of the vehicle on both sides. Part 9 of the SUV detail series (#984) establishes this mapping.
 
+### Atlas layout (9/17)
+
+The 512 x 256 atlas keeps swatches at y 0–3 and allocates blocks in this order:
+
+| Block | x | y | Width | Height |
+|---|---|---|---|---|
+| body | 0 | 8 | 512 | 160 |
+| headlight | 0 | 168 | 96 | 88 |
+| tail_lamp | 96 | 168 | 96 | 88 |
+| dash | 192 | 168 | 128 | 88 |
+| gauges | 320 | 168 | 128 | 88 |
+| spare | 448 | 168 | 64 | 88 |
+
+On overflow, first lower the largest flat faces from 4 to at least 2 texels per
+model pixel before `SIZE_SCALE`. If still full, claim `spare` (first PR merged)
+or raise the height to 512 and add `<block>_ext` in the next free 64-row band
+below y 256. Never move another block; record extension numbers here.
+
 ### Anti-goals
 
 - No logos or legible lettering anywhere, including the wheel, dash, lamps, radio, gauges and switches.

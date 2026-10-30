@@ -8,7 +8,8 @@ globals().update({k: v for k, v in vars(load_tool("suv_dims")).items() if k.isup
 palette = load_tool("suv_palette")
 PALETTE = palette.PALETTE
 BODY_PAINTS = palette.BODY_PAINTS
-ALPHA = palette.ALPHA
+texture = load_tool("suv_texture")
+transform_uv = load_tool("suv_cubes").transform_uv
 ATLAS = load_tool("suv_atlas").ATLAS
 
 
@@ -27,7 +28,7 @@ def turn_around(bones):
             if "rotation" in cube:
                 rx, ry, rz = cube["rotation"]
                 cube["rotation"] = [-rx, ry, -rz]
-            # Face directions also swap (north <-> south, east <-> west). The faces are solid colors, so the UVs can stay as they are
+            cube["uv"] = transform_uv(cube["uv"], "xz")
 
 
 def scaled(vector):
@@ -90,16 +91,10 @@ def switch_icon(x, y):
     return (0, 0, 0, 0)
 
 
-def paint_pixel(body_color):
-    colors = {name: (*rgb, ALPHA.get(name, 255))
-              for name, rgb in {**PALETTE, "body": body_color}.items()}
-    return lambda x, y: ATLAS.pixel(colors, x, y)
-
-
 def paint_textures(out, directory):
     for paint in BODY_PAINTS:
         name = "suv" if paint.name == "khaki" else f"suv_{paint.name}"
-        out.png(directory / f"{name}.png", ATLAS.width, ATLAS.height, paint_pixel(paint.body))
+        out.png(directory / f"{name}.png", ATLAS.width, ATLAS.height, texture.paint_pixel(paint))
 
 
 def item_icons(out, directory):

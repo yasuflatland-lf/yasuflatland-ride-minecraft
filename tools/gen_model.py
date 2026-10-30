@@ -179,8 +179,8 @@ out.json(MODELS / "suv.geo.json", geo, indent=1)
 export.paint_textures(out, ENTITY_TEXTURES)
 load_tool("lit_textures").build_lit_textures(
     out, ENTITY_TEXTURES, "suv", ATLAS.width, ATLAS.height,
-    export.paint_pixel(palette.BODY_PAINTS[0].body),
-    is_lit=lambda x, y: ATLAS.swatch_at(x, y) in LIT_SLOTS)
+    load_tool("suv_texture").paint_pixel(palette.BODY_PAINTS[0]),
+    is_lit=load_tool("suv_texture").is_lit)
 export.item_icons(out, ITEM_TEXTURES)
 print("cubes:", len(model_cubes))
 

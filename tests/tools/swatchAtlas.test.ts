@@ -22,8 +22,7 @@ const run = (script: string) =>
 it("preserves the original SUV swatch layout and pixels for every paint", () => {
   run(`suv_atlas = load_tool('suv_atlas')
 suv_palette = load_tool('suv_palette')
-suv_export = load_tool('suv_export')
-assert suv_atlas.ATLAS.width == 128 and suv_atlas.ATLAS.height == 16
+assert suv_atlas.ATLAS.width == 512 and suv_atlas.ATLAS.height == 256
 for i, name in enumerate(suv_palette.NAMES):
     faces = suv_atlas.uv(name)
     assert set(faces) == {'north', 'south', 'east', 'west', 'up', 'down'}
@@ -31,7 +30,7 @@ for i, name in enumerate(suv_palette.NAMES):
     assert len({id(face) for face in faces.values()}) == 6
 for paint in suv_palette.BODY_PAINTS:
     colors = {**suv_palette.PALETTE, 'body': paint.body}
-    pixel = suv_export.paint_pixel(paint.body)
+    pixel = load_tool("suv_texture").paint_pixel(paint)
     for y in range(16):
         for x in range(128):
             expected = (0, 0, 0, 255)
