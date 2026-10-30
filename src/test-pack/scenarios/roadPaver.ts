@@ -305,6 +305,33 @@ const CLIFF_X = [103, 110] as const;
 const CLIFF_Z = [84, 85] as const;
 const CLIFF_LANE_Z = [80, 83] as const;
 
+function keptOutcome(a: Arena, row: number): Outcome {
+  const type = typeAt(a, KEPT_X, row, HOLE_Z);
+  return {
+    pass: type === "minecraft:chest",
+    detail: `block=${String(type)}`,
+  };
+}
+
+function holeOutcome(a: Arena, row: number): Outcome {
+  const hole = planksIn(a, [HOLE_X, HOLE_X], row, [HOLE_Z, HOLE_Z]);
+  return {
+    pass: hole.planks === hole.total,
+    detail: `hole=${hole.planks}/${hole.total}`,
+  };
+}
+
+function cliffOutcome(a: Arena, row: number): Outcome {
+  let inCliff = 0;
+  for (let y = row - 2; y <= row; y++)
+    inCliff += planksIn(a, CLIFF_X, y, CLIFF_Z).planks;
+  const lane = planksIn(a, CLIFF_X, row, CLIFF_LANE_Z);
+  return {
+    pass: inCliff === 0 && lane.planks === lane.total,
+    detail: `planksInCliff=${inCliff} lane=${lane.planks}/${lane.total}`,
+  };
+}
+
 /** One normal-width drive checked as four independent cells: flat road, a kept chest, a hole and a cliff (ADR 0181, 0188). */
 export function bulldozerPaveCourse(
   a: Arena,
@@ -321,36 +348,15 @@ export function bulldozerPaveCourse(
           { name: "flat", run: async () => flatOutcome(a, false, FLAT_X) },
           {
             name: "kept",
-            run: async () => {
-              const type = typeAt(a, KEPT_X, row, HOLE_Z);
-              return {
-                pass: type === "minecraft:chest",
-                detail: `block=${String(type)}`,
-              };
-            },
+            run: async () => keptOutcome(a, row),
           },
           {
             name: "hole",
-            run: async () => {
-              const hole = planksIn(a, [HOLE_X, HOLE_X], row, [HOLE_Z, HOLE_Z]);
-              return {
-                pass: hole.planks === hole.total,
-                detail: `hole=${hole.planks}/${hole.total}`,
-              };
-            },
+            run: async () => holeOutcome(a, row),
           },
           {
             name: "cliff",
-            run: async () => {
-              let inCliff = 0;
-              for (let y = row - 2; y <= row; y++)
-                inCliff += planksIn(a, CLIFF_X, y, CLIFF_Z).planks;
-              const lane = planksIn(a, CLIFF_X, row, CLIFF_LANE_Z);
-              return {
-                pass: inCliff === 0 && lane.planks === lane.total,
-                detail: `planksInCliff=${inCliff} lane=${lane.planks}/${lane.total}`,
-              };
-            },
+            run: async () => cliffOutcome(a, row),
           },
         ],
         { stopOnFail: false, onStep },
