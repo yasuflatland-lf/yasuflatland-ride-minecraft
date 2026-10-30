@@ -1,12 +1,13 @@
 """Generate kind-neutral monitor overlays in the final model coordinate frame (ADR 0139)."""
 
 import json
-import struct
-import zlib
 from dataclasses import dataclass
 from pathlib import Path
 
 from cube_tilt import assert_axes, cube_matrix
+from tool_loader import load_tool
+
+texture_io = load_tool("texture_io")
 
 PixelMap = list[list[tuple[int, int, int, int]]]
 Vec = tuple[float, float, float]
@@ -145,36 +146,10 @@ def rounded(value):
     return value
 
 
-def png_bytes(width, height, pixel):
-    raw = b"".join(b"\x00" + b"".join(bytes(pixel(x, y)) for x in range(width)) for y in range(height))
-
-    def chunk(t, d):
-        return struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d) & 0xFFFFFFFF)
-
-    head = struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0)
-    return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", head) + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b"")
-
-
 def write_monitor(kind: str, layout: MonitorLayout, icons: dict[str, PixelMap],
                   check: bool, rp: Path):
     """Write the overlay assets, or return their stale paths without writing in check mode."""
-    stale = []
-
-    def emit(path, data):
-        if check:
-            try:
-                matches = (json.loads(path.read_text()) == json.loads(data)
-                           if path.suffix == ".json" else path.read_bytes() == data)
-            except (OSError, ValueError):
-                matches = False
-            if not matches:
-                stale.append(str(path))
-        else:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            if isinstance(data, bytes):
-                path.write_bytes(data)
-            else:
-                path.write_text(data)
+    out = texture_io.Outputs(check)
 
     check_monitor_faces_viewer(layout)
     screens = json.loads(Path(__file__).with_name("monitor_screens.json").read_text())[kind]
@@ -199,11 +174,11 @@ def write_monitor(kind: str, layout: MonitorLayout, icons: dict[str, PixelMap],
         }],
     }
     assert_axes([cube for bone in screen_bones for cube in bone["cubes"]], {})
-    emit(rp / f"models/entity/yasu_ride/{kind}_monitor.geo.json", json.dumps(rounded(monitor_geo), separators=(",", ":")))
-    emit(rp / f"textures/entity/yasu_ride/{kind}_monitor.png", png_bytes(
+    out.json(rp / f"models/entity/yasu_ride/{kind}_monitor.geo.json", json.dumps(rounded(monitor_geo), separators=(",", ":")))
+    out.png(rp / f"textures/entity/yasu_ride/{kind}_monitor.png",
         layout.cell_size[0], layout.cell_size[1] * len(screens),
-        lambda x, y: cells[y // layout.cell_size[1]][y % layout.cell_size[1]][x]))
-    emit(rp / f"render_controllers/yasu_ride/{kind}_monitor.rc.json", json.dumps({
+        lambda x, y: cells[y // layout.cell_size[1]][y % layout.cell_size[1]][x])
+    out.json(rp / f"render_controllers/yasu_ride/{kind}_monitor.rc.json", json.dumps({
         "format_version": "1.8.0",
         "render_controllers": {f"controller.render.yasu_ride.{kind}.monitor": {
             "geometry": "Geometry.monitor", "materials": [{"*": "Material.lamp_lit"}],
@@ -214,4 +189,4 @@ def write_monitor(kind: str, layout: MonitorLayout, icons: dict[str, PixelMap],
             ]],
         }},
     }, separators=(",", ":")))
-    return stale
+    return out.stale

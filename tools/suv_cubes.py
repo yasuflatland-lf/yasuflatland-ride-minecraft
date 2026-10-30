@@ -25,10 +25,10 @@ def region_faces(block: str, name: str, faces: dict[str, tuple[int, int, int, in
 
 
 def transform_uv(faces, axes):
-    # Axes follow render_preview.textured_face's corner ordering in the cube's local frame.
+    # Bedrock per-face UVs run along x/z on both horizontal faces.
     directions = {"north": ("x", "y"), "south": ("x", "y"),
                   "east": ("z", "y"), "west": ("z", "y"),
-                  "up": ("z", "x"), "down": ("x", "z")}
+                  "up": ("x", "z"), "down": ("x", "z")}
     swaps = {}
     for axis, pair in (("x", ("east", "west")), ("z", ("north", "south"))):
         if axis in axes:

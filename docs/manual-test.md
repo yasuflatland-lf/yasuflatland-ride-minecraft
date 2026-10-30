@@ -68,6 +68,7 @@ To use commands, run `docker exec yasuflatland-ride-bds send-command op <player 
 | 59 | Drive the scaled SUV through a 3-wide gap and under a 3-high ceiling; try a 2-high opening | The 2.34-wide, 2.08-high collision box fits the 3-wide, 3-high passage; it cannot enter the 2-high opening; record visible clearance at both ends | unverified | unverified |
 | 60 | Place the scaled SUV beside a wall at straight and diagonal headings, then board and open every door | Placement respects the 3 by 3 by 3 clearance; record body, bumper and door overlap from the square collision box | unverified | unverified |
 | 61 | On PC and a touch client, fly the scaled SUV in hover form and dive it as a submarine (ADR 0170, 8/8) | The third-person chase camera sits far enough back to show the whole SUV with some ground around it, not just the tailgate | unverified | unverified |
+| 62 | On PC and mobile, compare every SUV paint with the owner's reference photo with VV on and off; inspect both sides, hood and tailgate while parked, then drive at chase-camera distance | Panel lines and door handle recesses read with VV off; steel retains each paint's hue, the hardtop stays matte, and no shimmer appears at chase distance | | |
 
 ## Sports boat
 
