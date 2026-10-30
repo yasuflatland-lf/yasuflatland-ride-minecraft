@@ -1,7 +1,11 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import type { Isolation, ScenarioSpec } from "../../src/test-pack/catalog";
-import { covers, FEATURE_TAGS } from "../../src/test-pack/features";
+import {
+  covers,
+  FEATURE_TAGS,
+  type FeatureTag,
+} from "../../src/test-pack/features";
 import {
   coverageGaps,
   planOf,
@@ -29,10 +33,7 @@ const catalog = fc
       vehicles: 0,
     })),
   );
-const selectedBy = (
-  spec: ScenarioSpec,
-  features: readonly (typeof FEATURE_TAGS)[number][],
-) =>
+const selectedBy = (spec: ScenarioSpec, features: readonly FeatureTag[]) =>
   features.some((changed) => spec.features.some((tag) => covers(changed, tag)));
 
 describe("planOf", () => {

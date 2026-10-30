@@ -34,6 +34,13 @@ export interface RunPlan {
   readonly expectedTicks: number;
 }
 
+function skipReason(spec: ScenarioSpec): string {
+  if (spec.name === "build_selection_and_mode") {
+    return "a connected player is required; camera perspective needs visual verification";
+  }
+  return "a connected player is required";
+}
+
 export function planOf(
   catalog: readonly ScenarioSpec[],
   options: {
@@ -52,14 +59,7 @@ export function planOf(
   const skipped: Skipped[] = [];
   const eligible = selected.filter((spec) => {
     if (options.playerConnected || !spec.needsPlayer) return true;
-    skipped.push({
-      name: spec.name,
-      reason:
-        "a connected player is required" +
-        (spec.name === "build_selection_and_mode"
-          ? "; camera perspective needs visual verification"
-          : ""),
-    });
+    skipped.push({ name: spec.name, reason: skipReason(spec) });
     return false;
   });
   const shards = shardsOf(
