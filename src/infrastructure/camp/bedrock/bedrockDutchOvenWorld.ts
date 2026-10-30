@@ -6,6 +6,7 @@ import {
   type DutchOvenId,
 } from "../../../domain/camp/dutchOven";
 import { asFirePitId, type FirePitId } from "../../../domain/camp/firePit";
+import { DUTCH_OVEN_SPEC } from "../../../domain/camp/spec";
 import type { TopItem } from "../../../domain/camp/tabletop";
 import {
   asDimensionId,
@@ -129,7 +130,6 @@ export class BedrockDutchOvenWorld implements DutchOvenWorld {
     yaw: number,
     host: string,
   ): void {
-    // A table has no fire under it, so the oven never simmers there (ADR 0168).
     this.setHost(this.spawnDutchOven(dimension, at, yaw), host, false);
   }
 
@@ -150,6 +150,20 @@ export class BedrockDutchOvenWorld implements DutchOvenWorld {
 
   setCovered(id: FirePitId, covered: boolean): void {
     setFirePitCovered(id, covered);
+  }
+
+  simmering(id: DutchOvenId): boolean | undefined {
+    const oven = dutchOven(id);
+    return oven
+      ? oven.getProperty(DUTCH_OVEN_SIMMERING_PROPERTY) === true
+      : undefined;
+  }
+
+  setSimmering(id: DutchOvenId, value: boolean): void {
+    const oven = dutchOven(id);
+    if (!oven) return;
+    oven.setProperty(DUTCH_OVEN_SIMMERING_PROPERTY, value);
+    oven.dimension.playSound(DUTCH_OVEN_SPEC.lidSound, oven.location);
   }
 
   host(id: DutchOvenId): string {

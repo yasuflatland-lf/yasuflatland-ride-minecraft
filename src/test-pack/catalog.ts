@@ -852,6 +852,15 @@ export const CATALOG: readonly ScenarioSpec[] = [
     vehicles: 0,
   },
   {
+    name: "dutch_oven_lid_toggle",
+    file: "camp",
+    ticks: 18,
+    features: ["camp"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
     name: "dutch_oven_simmer_take_back",
     file: "camp",
     ticks: 8,

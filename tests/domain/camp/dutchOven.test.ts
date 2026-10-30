@@ -1,9 +1,12 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
-import { aimOnPlane, isSimmering } from "../../../src/domain/camp/dutchOven";
+import {
+  aimOnPlane,
+  initialSimmering,
+} from "../../../src/domain/camp/dutchOven";
 import type { Host } from "../../../src/domain/camp/hosted";
 
-it("simmers exactly on a fire pit", () => {
+it("initially simmers exactly on a fire pit", () => {
   fc.assert(
     fc.property(
       fc.oneof(
@@ -20,7 +23,7 @@ it("simmers exactly on a fire pit", () => {
         }),
       ),
       (host: Host) => {
-        expect(isSimmering(host)).toBe(host.kind === "fire_pit");
+        expect(initialSimmering(host)).toBe(host.kind === "fire_pit");
       },
     ),
   );

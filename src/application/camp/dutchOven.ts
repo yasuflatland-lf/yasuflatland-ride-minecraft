@@ -2,7 +2,7 @@ import {
   asDutchOvenId,
   type DutchOvenId,
   hostSpotPoint,
-  isSimmering,
+  initialSimmering,
 } from "../../domain/camp/dutchOven";
 import { asFirePitId, type FirePitId } from "../../domain/camp/firePit";
 import { decodeHost, encodeHost, type Host } from "../../domain/camp/hosted";
@@ -14,6 +14,7 @@ import {
 } from "../../domain/camp/spec";
 import { HitCounters } from "../../domain/shared/hitCounter";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
+import { SwitchCooldowns } from "../../domain/shared/switchCooldown";
 import type { Vec3 } from "../../domain/shared/vec";
 import { canUseBlockTop, hasClearance, placeOnGround } from "./groundPlacement";
 import {
@@ -50,7 +51,18 @@ export function dutchOvenHostedKind(world: DutchOvenWorld): HostedKindPort {
 export class DutchOvenActions {
   private readonly hits = new HitCounters<DutchOvenId>(RULE);
 
+  private readonly switches = new SwitchCooldowns<DutchOvenId>();
+
   constructor(private readonly world: DutchOvenWorld) {}
+
+  toggleLid(id: DutchOvenId, tick: number): boolean {
+    this.switches.forgetIdle(tick);
+    const simmering = this.world.simmering(id);
+    if (simmering === undefined || !this.switches.tryUse(id, tick))
+      return false;
+    this.world.setSimmering(id, !simmering);
+    return true;
+  }
 
   canUseBlock(dimension: DimensionId, block: Vec3, face: string): boolean {
     return canUseBlockTop(this.world, dimension, block, face);
@@ -120,7 +132,7 @@ export class DutchOvenActions {
       at,
       hostEntity.yaw,
     );
-    this.world.setHost(oven, encodeHost(host), isSimmering(host));
+    this.world.setHost(oven, encodeHost(host), initialSimmering(host));
   }
 
   /** Clears the covered flag of every loaded Fire Pit no oven stands on. */

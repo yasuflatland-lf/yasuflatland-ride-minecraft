@@ -17,6 +17,8 @@ import {
 import type { TopItem } from "../../../src/domain/camp/tabletop";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 
+import { LIGHT_SWITCH_COOLDOWN_TICKS } from "../../../src/domain/shared/switchCooldown";
+
 const oven = asDutchOvenId("oven");
 const player = asPlayerId("player");
 const dimension = asDimensionId("overworld");
@@ -40,6 +42,8 @@ function fixture(overrides: Partial<DutchOvenWorld> = {}) {
     setCovered: vi.fn(),
     host: () => "",
     setHost: vi.fn(),
+    simmering: () => false,
+    setSimmering: vi.fn(),
     loadedOvens: () => [],
     loadedFirePits: () => [],
     hostExists: () => true,
@@ -338,4 +342,60 @@ it("taking back an oven frees its place for a replacement", () => {
   expect(world.dropItem).toHaveBeenCalledExactlyOnceWith("oven0");
   expect(actions.placeOnTable(left)).toBe("placed");
   expect(hosts.get("oven2")).toBe("camp_table:table:@-7.5,0");
+});
+
+it("toggles each oven only after an idle cooldown across arbitrary presses", () => {
+  fc.assert(
+    fc.property(
+      fc.boolean(),
+      fc.array(
+        fc.record({
+          id: fc.constantFrom("a", "b"),
+          gap: fc.integer({ min: 0, max: LIGHT_SWITCH_COOLDOWN_TICKS * 2 }),
+        }),
+        { minLength: 1, maxLength: 100 },
+      ),
+      (initial, presses) => {
+        const states = new Map([
+          ["a", initial],
+          ["b", initial],
+        ]);
+        const expected = new Map(states);
+        const last = new Map<string, number>();
+        const write = vi.fn((id: string, value: boolean) => {
+          states.set(id, value);
+        });
+        const { actions } = fixture({
+          simmering: (id) => states.get(id),
+          setSimmering: write,
+        });
+        let tick = 0;
+        let flips = 0;
+        for (const { id, gap } of presses) {
+          tick += gap;
+          const accepted =
+            tick - (last.get(id) ?? Number.NEGATIVE_INFINITY) >=
+            LIGHT_SWITCH_COOLDOWN_TICKS;
+          last.set(id, tick);
+          if (accepted) {
+            expected.set(id, !expected.get(id));
+            flips++;
+          }
+          expect(actions.toggleLid(asDutchOvenId(id), tick)).toBe(accepted);
+          expect(states).toEqual(expected);
+          expect(write).toHaveBeenCalledTimes(flips);
+        }
+      },
+    ),
+  );
+});
+
+it("ignores missing ovens without starting their cooldown", () => {
+  let state: boolean | undefined;
+  const { actions, world } = fixture({ simmering: () => state });
+  expect(actions.toggleLid(oven, 0)).toBe(false);
+  expect(world.setSimmering).not.toHaveBeenCalled();
+  state = false;
+  expect(actions.toggleLid(oven, 1)).toBe(true);
+  expect(world.setSimmering).toHaveBeenCalledExactlyOnceWith(oven, true);
 });

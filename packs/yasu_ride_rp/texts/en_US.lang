@@ -92,7 +92,7 @@ tile.yasu_ride:desk_fan_decor.name=Desk Fan
 
 item.yasu_ride:dutch_oven_item.name=Dutch Oven
 entity.yasu_ride:dutch_oven.name=Dutch Oven
-action.interact.yasu_ride.dutch_oven=Dutch Oven
+action.interact.yasu_ride.dutch_oven=Lid On / Off
 yasu_ride.hint.dutch_oven_hits=Hit %s more to take back the Dutch Oven
 yasu_ride.hint.dutch_oven_on_top=Take the Dutch oven off first
 

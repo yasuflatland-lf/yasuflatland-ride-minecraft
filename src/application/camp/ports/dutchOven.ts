@@ -12,6 +12,8 @@ export interface DutchOvenWorld extends TableTopWorld {
   ): { dimension: DimensionId; at: Vec3; yaw: number } | undefined;
   isCovered(id: FirePitId): boolean;
   setCovered(id: FirePitId, covered: boolean): void;
+  simmering(id: DutchOvenId): boolean | undefined;
+  setSimmering(id: DutchOvenId, value: boolean): void;
   host(id: DutchOvenId): string;
   setHost(id: DutchOvenId, host: string, simmering: boolean): void;
   loadedOvens(): readonly DutchOvenId[];

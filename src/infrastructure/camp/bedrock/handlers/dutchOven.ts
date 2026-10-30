@@ -100,6 +100,8 @@ export function registerDutchOven(
     }
     if (ev.target.typeId !== DUTCH_OVEN_TYPE) return;
     ev.cancel = true;
+    const id = ev.target.id;
+    system.run(() => actions.toggleLid(asDutchOvenId(id), system.currentTick));
   });
   world.afterEvents.entityHitEntity.subscribe((ev) => {
     if (
@@ -140,6 +142,11 @@ export function registerDutchOven(
       ev.id !== TEST_DUTCH_OVEN_HIT_EVENT
     )
       return;
+    if (
+      ev.id === TEST_DUTCH_OVEN_SIMMER_EVENT &&
+      ev.sourceType !== ScriptEventSource.Server
+    )
+      return;
     const entity = world.getEntity(ev.message);
     if (entity?.typeId !== DUTCH_OVEN_TYPE) return;
     if (ev.id === TEST_DUTCH_OVEN_HIT_EVENT) {
@@ -149,10 +156,7 @@ export function registerDutchOven(
         system.currentTick,
       );
     } else {
-      entity.setProperty(
-        DUTCH_OVEN_SIMMERING_PROPERTY,
-        entity.getProperty(DUTCH_OVEN_SIMMERING_PROPERTY) !== true,
-      );
+      actions.toggleLid(asDutchOvenId(entity.id), system.currentTick);
     }
   });
   system.runInterval(() => {
