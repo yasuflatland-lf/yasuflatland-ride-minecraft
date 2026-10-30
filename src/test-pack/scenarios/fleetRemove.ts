@@ -6,7 +6,8 @@ import {
 } from "@minecraft/server";
 import { SPEC } from "../../domain/vehicle/spec";
 import { ENTITY_TYPE } from "../../infrastructure/vehicle/bedrock/identifiers";
-import { type Arena, type Outcome, spawnCar, wait } from "../arena";
+import { type Arena, spawnCar, wait } from "../arena";
+import type { Outcome } from "../outcome";
 
 const UNLOAD_AREA = "yasu_ride_unload_spike";
 const UNLOAD_CENTER = { x: 2008, z: 8 } as const;

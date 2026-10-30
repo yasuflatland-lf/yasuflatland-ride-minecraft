@@ -21,11 +21,6 @@ const ARENA = { minX: 0, maxX: 120, minZ: 0, maxZ: 90 } as const;
 export const SEAT_PROBE = "yasu_ride_test:seat_probe";
 export const BOAT_SEAT_PROBE = "yasu_ride_test:boat_seat_probe";
 
-export interface Outcome {
-  pass: boolean;
-  detail: string;
-  lines?: string[];
-}
 export interface Arena {
   dim: Dimension;
   gy: number;
