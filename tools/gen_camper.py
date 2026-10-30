@@ -268,7 +268,7 @@ def vent_cover(z0, z1, y0, y1):
         box(band, y0 + w, z0, rim_top, y1 - w, z0 + w, "chrome"),
         box(band, y0 + w, z1 - w, rim_top, y1 - w, z1, "chrome"),
     ]
-    cubes[0]["uv"]["west"] = ATLAS.face(VENT_SCREWS_REGION)
+    cubes[0]["uv"]["east"] = ATLAS.face(VENT_SCREWS_REGION)
     for outer_z, inner_z in (((z0, z0 + r), (z0 + r, z0 + w)), ((z1 - r, z1), (z1 - w, z1 - r))):
         for outer_y, inner_y in (((y0, y0 + r), (y0 + r, y0 + w)), ((y1 - r, y1), (y1 - w, y1 - r))):
             cy0, cy1 = min(*outer_y, *inner_y), max(*outer_y, *inner_y)
@@ -495,8 +495,7 @@ for fz0, fz1, fy0, fy1 in ((DW0 - 0.6, DW1 + 0.6, WIN_Y[0] - 0.6, WIN_Y[0]), (DW
                 DOOR_HINGE_REGION if fz1 == DW0 else
                 DOOR_LATCH_REGION if fz0 == DW1 else None)
     if hardware is not None:
-        # The build's +x side becomes the outward west face after mirror_x.
-        door[-1]["uv"]["west"] = ATLAS.face(hardware)
+        door[-1]["uv"]["east"] = ATLAS.face(hardware)
 door.append(box(HW, STRIPE_Y[0], DZ0 + 0.1, HW + 0.12, STRIPE_Y[1], DZ1 - 0.1, "stripe"))
 door.append(box(HW, BAND_Y[0], DZ0 + 0.1, HW + 0.1, BAND_Y[1], DZ1 - 0.1, "khaki"))
 door.append(box(HW, DY0, DZ0 + 0.1, HW + 0.12, 15, DZ1 - 0.1, "tan"))
@@ -850,8 +849,7 @@ for z in (-46, -42):
     body += disc("z", -14, ROOF + 1.3, z, 1.2, 0.2, "grille", steps=(0, 45))
 for sx in (-1, 1):
     rail = box(sx * HW, ROOF - 0.6, TOP_FRONT, sx * (HW + 0.4), ROOF, REAR_OUT, "aluminium")
-    # mirror_x flips positions but leaves UV face names in the final Bedrock frame.
-    outer_face = "east" if sx < 0 else "west"
+    outer_face = "west" if sx < 0 else "east"
     rail["uv"][outer_face] = ATLAS.face(BOLT_REGION, (0, 0), (rail["size"][2], 1))
     body.append(rail)
 # Roof rack around the rear air conditioner

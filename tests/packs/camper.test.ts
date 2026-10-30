@@ -1941,19 +1941,8 @@ describe("camper rear-right vent lid (ADR 0146, 0157)", () => {
   });
 });
 
-describe("camper rib atlas (ADR 0190)", () => {
-  it("preserves every cube's bone, origin, and size from the pre-rib geometry", () => {
-    const fixture = JSON.parse(
-      readFileSync("tests/packs/fixtures/camper-cubes.json", "utf8"),
-    );
-    expect(
-      bones.flatMap((b) =>
-        (b.cubes ?? []).map((c) => [b.name, c.origin, c.size]),
-      ),
-    ).toEqual(fixture);
-  });
-
-  const { width, height, regions, period, texelsPerPx, slots, windows } = JSON.parse(
+const { width, height, regions, period, texelsPerPx, slots, windows } =
+  JSON.parse(
     execFileSync(
       "python3",
       [
@@ -1979,7 +1968,33 @@ describe("camper rib atlas (ADR 0190)", () => {
     slots: string[];
     windows: number[][][];
   };
-  it("allocates only the rib region below the swatches and shades its rows alternately", () => {
+
+describe("camper rib atlas (ADR 0190)", () => {
+  it("preserves every cube's bone, origin, and size from the pre-rib geometry", () => {
+    const fixture = JSON.parse(
+      readFileSync("tests/packs/fixtures/camper-cubes.json", "utf8"),
+    );
+    const isAddedRoofRail = (b: Bone, c: Cube) =>
+      b.name === "body" &&
+      (c.origin[1] ?? 0) >= 64 &&
+      ((c.origin[0] ?? 0) >= 22 ||
+        (c.origin[0] ?? 0) + (c.size[0] ?? 0) <= -22) &&
+      c.uv.north?.uv[0] === 36;
+    expect(
+      bones.flatMap((b) =>
+        (b.cubes ?? []).filter((c) => isAddedRoofRail(b, c)),
+      ),
+    ).toHaveLength(18);
+    expect(
+      bones.flatMap((b) =>
+        (b.cubes ?? [])
+          .filter((c) => !isAddedRoofRail(b, c))
+          .map((c) => [b.name, c.origin, c.size]),
+      ),
+    ).toEqual(fixture);
+  });
+
+  it("allocates the rib region first below the swatches and shades its rows alternately", () => {
     expect([width, height]).toEqual([
       geometry.description.texture_width,
       geometry.description.texture_height,
@@ -1988,6 +2003,14 @@ describe("camper rib atlas (ADR 0190)", () => {
     expect(period).toBe(2);
     expect(texelsPerPx).toBe(2);
     expect(regions[0]).toEqual(["rib", 0, 1, 8, 64 * texelsPerPx]);
+    expect(regions.map(([name]) => name)).toEqual([
+      "rib",
+      "door_head",
+      "door_hinge",
+      "door_latch",
+      "vent_screws",
+      "bolt",
+    ]);
     for (const [i, [, x, y, w, h]] of regions.entries()) {
       expect(x).toBeGreaterThanOrEqual(0);
       expect(y).toBeGreaterThanOrEqual(1);
@@ -2024,7 +2047,10 @@ describe("camper rib atlas (ADR 0190)", () => {
     const entries = bones.flatMap((b) =>
       (b.cubes ?? []).flatMap((c) =>
         Object.entries(c.uv)
-          .filter(([, f]) => (f.uv[1] ?? 0) >= y)
+          .filter(([, f]) => {
+            const [u = 0, v = 0] = f.uv;
+            return u >= x && u < x + w && v >= y && v < y + h;
+          })
           .map(([side, face]) => ({ bone: b.name, cube: c, side, face })),
       ),
     );
@@ -2180,7 +2206,12 @@ describe("camper rib atlas (ADR 0190)", () => {
 
 describe("camper aluminium roof edges", () => {
   it("maps bolts only to the three outer edge faces and preserves lamp swatches and bezels", () => {
-    const boltY = 129;
+    const [, boltX, boltY, boltWidth, boltHeight] = defined(
+      regions.find(([name]) => name === "bolt"),
+      "bolt region",
+    );
+    expect(boltX).toBe(0);
+    expect(boltHeight).toBe(1);
     const cubes = bones.flatMap((b) => b.cubes ?? []);
     const edges = cubes.filter((c) =>
       Object.values(c.uv).some((f) => f.uv[1] === boltY),
@@ -2234,7 +2265,8 @@ describe("camper aluminium roof edges", () => {
       for (const face of Object.values(c.uv))
         expect(face).toEqual({ uv: [10, 0], uv_size: [1, 1] });
     const texture = readPng("textures/entity/yasu_ride/camper");
-    expect(texture.height).toBe(boltY + 1);
+    expect(texture.height).toBeGreaterThanOrEqual(boltY + boltHeight);
+    expect(boltWidth).toBe(texture.width);
     expect(texture.width).toBe(
       Math.ceil(
         Math.max(
