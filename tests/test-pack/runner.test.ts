@@ -5,6 +5,7 @@ import { CANCEL_EVENT, TEST_EVENT } from "../../src/test-pack/protocol";
 const harness = vi.hoisted(() => ({
   receive: (_ev: { id: string; message: string }) => {},
   setup: vi.fn(),
+  remove: vi.fn(),
   first: vi.fn(),
   second: vi.fn(),
   system: {
@@ -15,14 +16,41 @@ const harness = vi.hoisted(() => ({
 
 vi.mock("@minecraft/server", () => ({
   system: harness.system,
-  world: { getAllPlayers: () => [] },
+  world: { getAllPlayers: () => [], getDimension: () => ({}) },
 }));
-vi.mock("../../src/test-pack/arena", () => ({ setupArena: harness.setup }));
+vi.mock("../../src/test-pack/arena", () => ({
+  prepareRun: harness.setup,
+  removeVehicles: harness.remove,
+}));
 vi.mock("../../src/test-pack/catalog", () => ({
   CATALOG: [
-    { name: "first", ticks: 20 },
-    { name: "second", ticks: 40 },
-    { name: "player", ticks: 10, needsPlayer: true },
+    {
+      name: "first",
+      ticks: 20,
+      isolation: "lane",
+      file: "x",
+      vehicles: 0,
+      features: [],
+      needsPlayer: false,
+    },
+    {
+      name: "second",
+      ticks: 40,
+      isolation: "lane",
+      file: "x",
+      vehicles: 0,
+      features: [],
+      needsPlayer: false,
+    },
+    {
+      name: "player",
+      ticks: 10,
+      needsPlayer: true,
+      isolation: "lane",
+      file: "x",
+      vehicles: 0,
+      features: [],
+    },
   ],
 }));
 vi.mock("../../src/test-pack/scenarios/index", () => ({
@@ -62,7 +90,7 @@ beforeEach(async () => {
       harness.receive = receive;
     },
   );
-  harness.setup.mockResolvedValue({});
+  harness.setup.mockResolvedValue([{}]);
   harness.first.mockResolvedValue({ pass: true, detail: "ok" });
   harness.second.mockResolvedValue({ pass: true, detail: "ok" });
   await import("../../src/test-pack/runner");
@@ -71,7 +99,7 @@ beforeEach(async () => {
 afterEach(() => vi.restoreAllMocks());
 
 it("logs PLAN and SKIP before setup, then streams steps and results before completion", async () => {
-  const setup = deferred<object>();
+  const setup = deferred<object[]>();
   const first = deferred<Outcome>();
   const second = deferred<Outcome>();
   harness.setup.mockReturnValue(setup.promise);
@@ -82,7 +110,7 @@ it("logs PLAN and SKIP before setup, then streams steps and results before compl
     "[YASU-RIDE-TEST] stream PLAN runs=2 skipped=1 unselected=0 ticks=60 lanes=1",
     "[YASU-RIDE-TEST] stream SKIP player: a connected player is required",
   ]);
-  setup.resolve({});
+  setup.resolve([{}]);
   await flush();
   expect(logs.at(-1)).toBe("[YASU-RIDE-TEST] stream READY");
   const sink = harness.first.mock.calls[0]?.[1] as StepSink;
@@ -158,14 +186,9 @@ it("skips a queued run cancelled before the previous scenario settles", async ()
 });
 
 it("suppresses READY after cancellation during setup and retains request validation", async () => {
-  const setup = deferred<object>();
+  const setup = deferred<object[]>();
   harness.setup.mockReturnValue(setup.promise);
-  for (const request of [
-    "invalid unknown=1",
-    "lanes lanes=2",
-    "at at=1",
-    "features features=vehicle",
-  ]) {
+  for (const request of ["invalid unknown=1", "features features=nonsense"]) {
     send(TEST_EVENT, request);
     expect(logs.at(-1)).toMatch(/SUMMARY pass=0 fail=1 ticks=0 ms=0 error=/);
   }
@@ -173,7 +196,7 @@ it("suppresses READY after cancellation during setup and retains request validat
   send(TEST_EVENT, "setup");
   send(CANCEL_EVENT, "setup");
   const before = [...logs];
-  setup.resolve({});
+  setup.resolve([{}]);
   await flush();
   expect(logs).toEqual(before);
   expect(harness.first).not.toHaveBeenCalled();

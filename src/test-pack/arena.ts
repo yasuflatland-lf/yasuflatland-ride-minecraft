@@ -264,6 +264,19 @@ export async function prepareRun(
   return arenas;
 }
 
+// A runaway vehicle from a lane would otherwise hold an unowned slot that
+// vehicle_limit and fleet_forget count.
+export async function removeVehicles(dim: Dimension): Promise<void> {
+  for (const type of [
+    ENTITY_TYPE.suv,
+    ENTITY_TYPE.camper,
+    ENTITY_TYPE.sportsboat,
+    ENTITY_TYPE.bulldozer,
+  ])
+    for (const entity of dim.getEntities({ type })) entity.remove();
+  await wait(5);
+}
+
 // 80 blocks across z, so a submarine has room to turn (submarine_bank); the
 // lane runs along the low-z edge and right turns head into the open water.
 export const POOL = { minX: 15, maxX: 85, minZ: 2, maxZ: 81, z: 7.5 } as const;

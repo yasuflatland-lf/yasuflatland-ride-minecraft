@@ -1,8 +1,8 @@
 // In-game tests (ADR 0010). They run in a script environment separate from the
 // main Behavior Pack, so they drive the vehicle through script events.
 import { system, world } from "@minecraft/server";
-import { prepareRun } from "./arena";
-import { CATALOG } from "./catalog";
+import { type Arena, prepareRun, removeVehicles } from "./arena";
+import { CATALOG, type ScenarioSpec } from "./catalog";
 import { isFeatureTag } from "./features";
 import { laneOf } from "./lane";
 import { type Outcome, stepLines } from "./outcome";
@@ -54,11 +54,9 @@ function reject(runId: string, error: string): void {
   log(runId, formatSummary({ pass: 0, fail: 1, ticks: 0, ms: 0, error }));
 }
 
-async function runAll(
-  { shard, at, features }: RunRequest,
-  state: ActiveRun,
-): Promise<void> {
+async function runAll(request: RunRequest, state: ActiveRun): Promise<void> {
   const { runId } = state;
+  const { shard, features } = request;
   const { missing, extra } = coverageGaps(
     CATALOG.map((spec) => spec.name),
     Object.keys(SCENARIOS),
@@ -81,8 +79,10 @@ async function runAll(
   const plan = planOf(CATALOG, {
     shard,
     features: tags,
+    lanes: request.lanes,
     playerConnected: world.getAllPlayers().length > 0,
   });
+  const laneCount = plan.lanes.length;
   log(
     runId,
     formatPlan({
@@ -90,23 +90,33 @@ async function runAll(
       skipped: plan.skipped.length,
       unselected: plan.unselected,
       ticks: plan.expectedTicks,
-      lanes: 1,
+      lanes: laneCount,
     }),
   );
   for (const { name, reason } of plan.skipped)
     log(runId, `SKIP ${name}: ${reason}`);
-  const [a] = await prepareRun(world.getDimension("overworld"), [laneOf(at)]);
-  if (!a) throw new Error("arena not prepared");
+  const dim = world.getDimension("overworld");
+  const lanes =
+    laneCount === 1
+      ? [laneOf(request.at)]
+      : plan.lanes.map((_, i) => laneOf(i));
+  const arenas = await prepareRun(dim, lanes);
   if (state.cancelled) return;
   log(runId, READY);
-  for (const { name } of plan.runs) {
-    if (state.cancelled) return;
+
+  // A throw is a FAIL of that scenario only, so one lane never stops another.
+  const runScenario = async (
+    arena: Arena,
+    spec: ScenarioSpec,
+    laneIndex: number,
+  ): Promise<void> => {
+    const { name } = spec;
     const start = system.currentTick;
     let outcome: Outcome;
     try {
       const run = SCENARIOS[name];
       if (!run) throw new Error(`scenario not registered: ${name}`);
-      outcome = await run(a, (result) => {
+      outcome = await run(arena, (result) => {
         if (state.cancelled) return;
         for (const line of stepLines(result)) log(runId, `${name} ${line}`);
       });
@@ -122,20 +132,42 @@ async function runAll(
         verdict: outcome.pass ? "PASS" : "FAIL",
         name,
         ticks: system.currentTick - start,
+        lane: laneCount === 1 ? undefined : laneIndex,
         detail: outcome.detail,
       }),
     );
     for (const line of outcome.lines ?? []) log(runId, `${name} ${line}`);
+  };
+  const runLane = async (
+    arena: Arena,
+    specs: readonly ScenarioSpec[],
+    laneIndex: number,
+  ): Promise<void> => {
+    for (const spec of specs) {
+      if (state.cancelled) return;
+      await runScenario(arena, spec, laneIndex);
+    }
+  };
+
+  await Promise.all(
+    plan.lanes.map((specs, i) => {
+      const arena = arenas[i];
+      if (!arena) throw new Error(`arena ${i} not prepared`);
+      return runLane(arena, specs, i);
+    }),
+  );
+  if (plan.exclusive.length > 0 && !state.cancelled) {
+    await removeVehicles(dim);
+    const arena = arenas[0];
+    if (!arena) throw new Error("arena 0 not prepared");
+    await runLane(arena, plan.exclusive, 0);
   }
+  if (state.cancelled) return;
   summary(state);
 }
 
-function unsupportedOption(request: RunRequest): string | undefined {
-  if (request.lanes !== 1) return "lanes";
-  return undefined;
-}
-
-// Two runs would share the arena and kill each other's cars in prepareRun.
+// One run at a time, covering every lane: two runs would share the arenas and
+// kill each other's cars in prepareRun.
 let activeRun: ActiveRun | undefined;
 
 system.afterEvents.scriptEventReceive.subscribe((ev) => {
@@ -153,11 +185,6 @@ system.afterEvents.scriptEventReceive.subscribe((ev) => {
     return;
   }
   const request = parsed.request;
-  const unsupported = unsupportedOption(request);
-  if (unsupported !== undefined) {
-    reject(request.runId, `${unsupported} not supported yet`);
-    return;
-  }
   const { runId } = request;
   if (activeRun !== undefined && !activeRun.cancelled) {
     reject(runId, `run ${activeRun.runId} in progress`);
