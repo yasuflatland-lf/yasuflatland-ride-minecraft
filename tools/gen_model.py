@@ -7,7 +7,6 @@ Bone names follow the convention (ADR 0009, 0022, 0043): root / body / wheel_fl 
 wheel_rr / glow_fl / glow_fr / glow_rl / glow_rr / rear_glass / windows_sealed / prop_rl / prop_rr /
 arm_fl / arm_fr / arm_rl / arm_rr / sub_arm_rl / sub_arm_rr / door_fr / door_rr / door_fl / door_rl / seat_0..3.
 """
-import json
 import sys
 from pathlib import Path
 
@@ -22,9 +21,7 @@ RP = Path(sys.argv[1])
 MODELS = RP / "models/entity/yasu_ride"
 ENTITY_TEXTURES = RP / "textures/entity/yasu_ride"
 ITEM_TEXTURES = RP / "textures/items/yasu_ride"
-MODELS.mkdir(parents=True, exist_ok=True)
-ENTITY_TEXTURES.mkdir(parents=True, exist_ok=True)
-ITEM_TEXTURES.mkdir(parents=True, exist_ok=True)
+out = load_tool("texture_io").Outputs("--check" in sys.argv[2:])
 
 globals().update({k: v for k, v in vars(load_tool("suv_dims")).items() if k.isupper()})
 palette = load_tool("suv_palette")
@@ -36,6 +33,7 @@ gauges = load_tool("suv_gauges")
 cabin = load_tool("suv_cabin")
 running_gear = load_tool("suv_running_gear")
 export = load_tool("suv_export")
+ATLAS = load_tool("suv_atlas").ATLAS
 both_sides = load_tool("suv_cubes").both_sides
 
 ASSEMBLIES = {
@@ -108,8 +106,8 @@ geo = {
         {
             "description": {
                 "identifier": "geometry.yasu_ride.suv",
-                "texture_width": TEXTURE_WIDTH,
-                "texture_height": 16,
+                "texture_width": ATLAS.width,
+                "texture_height": ATLAS.height,
                 "visible_bounds_width": 5,
                 "visible_bounds_height": 3,
                 "visible_bounds_offset": [0, 1, 0],
@@ -153,14 +151,19 @@ geo = {
 geometry = geo["minecraft:geometry"][0]
 export.scale_geometry(geometry)
 export.turn_around(geometry["bones"])
-export.sync_animation(RP / "animations/yasu_ride/suv.anim.json", export.scaled)
+export.sync_animation(out, RP / "animations/yasu_ride/suv.anim.json", export.scaled)
 
 model_cubes = [cube for bone in geometry["bones"] for cube in bone.get("cubes", [])]
 assert_axes(model_cubes, {"arc": compound_cubes(model_cubes)}, ASSEMBLIES)
-(MODELS / "suv.geo.json").write_text(json.dumps(geo, indent=1))
+out.json(MODELS / "suv.geo.json", geo, indent=1)
 
-export.paint_textures(ENTITY_TEXTURES)
-export.lit_textures(ENTITY_TEXTURES, "suv", TEXTURE_WIDTH, 16,
-                    palette.swatches(BODY_PAINTS[0].body))
-export.item_icons(ITEM_TEXTURES)
+export.paint_textures(out, ENTITY_TEXTURES)
+load_tool("lit_textures").build_lit_textures(
+    out, ENTITY_TEXTURES, "suv", ATLAS.width, ATLAS.height,
+    export.paint_pixel(palette.BODY_PAINTS[0].body),
+    is_lit=lambda x, y: ATLAS.swatch_at(x, y) in LIT_SLOTS)
+export.item_icons(out, ITEM_TEXTURES)
 print("cubes:", len(model_cubes))
+
+if out.check:
+    out.finish("Stale SUV outputs:", "SUV model and textures are up to date")
