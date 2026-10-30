@@ -69,12 +69,16 @@ class Outputs:
 
 
 def texture_set_doc(color, mer, relief=None):
-    """Build a texture set; relief is reserved for future use."""
+    """Build a texture set with at most one relief map (Bedrock 1.16.100)."""
+    textures = {"color": color, "metalness_emissive_roughness": mer}
     if relief is not None:
-        raise NotImplementedError("Relief texture sets are reserved for future use")
-    return {"format_version": "1.16.100", "minecraft:texture_set": {
-        "color": color, "metalness_emissive_roughness": mer}}
+        kind, name = relief
+        if kind not in ("heightmap", "normal"):
+            raise ValueError(f"Unknown relief kind: {kind}")
+        textures[kind] = name
+    return {"format_version": "1.16.100", "minecraft:texture_set": textures}
 
 
-def write_texture_set(out, directory, color, mer=None):
-    out.json(directory / f"{color}.texture_set.json", texture_set_doc(color, mer if mer is not None else f"{color}_mer"))
+def write_texture_set(out, directory, color, mer=None, relief=None):
+    out.json(directory / f"{color}.texture_set.json",
+             texture_set_doc(color, mer if mer is not None else f"{color}_mer", relief))
