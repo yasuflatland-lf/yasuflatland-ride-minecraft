@@ -3,6 +3,7 @@
 - Status: Accepted
 - Date: 2026-10-25
 - Extends: 0020, 0115, 0136
+- Amended in part by [0192](0192-suv-detailed-body.md) (Proposed)
 
 ## Context
 
