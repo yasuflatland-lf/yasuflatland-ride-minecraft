@@ -632,7 +632,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
   {
     name: "submarine_course",
     file: "suv",
-    ticks: 300,
+    ticks: 250,
     features: ["vehicle:suv"],
     isolation: "lane",
     needsPlayer: false,

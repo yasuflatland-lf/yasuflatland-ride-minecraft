@@ -483,13 +483,14 @@ export function flightCourse(a: Arena, onStep: StepSink): Promise<Outcome> {
           )
             return { pass: false, detail: "did not settle before climb" };
           return withDelta(async () => {
-            const startY = car.location.y;
             drive(car, 0, 0, true);
             await sample(20);
             const top = car.location.y;
             drive(car, 0, -1);
             await sample(10);
-            const climbed = top - startY;
+            // Measured from the lane floor like the former scenario, so the
+            // take-off rise counts; the climb is stationary to stay in the lane.
+            const climbed = top - a.gy;
             const sank = top - car.location.y;
             return {
               pass: climbed >= 4 && sank >= 1.5,
