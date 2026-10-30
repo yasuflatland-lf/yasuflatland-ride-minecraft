@@ -459,14 +459,14 @@ Setup: use a Vibrant Visuals device at night, then repeat the legacy checks with
 
 | # | Check | PC | Mobile |
 |---|---|---|---|
-| L1 | Switch the SUV headlights on and off at night in Vibrant Visuals: headlights and fog lenses glow only while on. | [ ] | [ ] |
+| L1 | Switch the SUV headlights on and off at night in Vibrant Visuals, in several paints: each round lens glows softly over its whole circle only while on; fog lenses still glow. The bezel stays body-coloured with six dark screws, with no holes or flicker. | [ ] | [ ] |
 | L2 | Repeat for the sports boat's bow flank headlights. | [ ] | [ ] |
 | L3 | Switch camper headlights and, while parked, ceiling lights independently: each glows only while its own switch is on. | [ ] | [ ] |
 | L4 | Switch bulldozer headlights and inspect the rear beacon from behind: both glow only while on. | [ ] | [ ] |
 | L5 | Repaint a vehicle with any dye: the lamps keep their glow while on. | [ ] | [ ] |
-| L6 | Repeat with Vibrant Visuals off: lit lenses are full-bright, unlit lenses look as before, with no flicker, double drawing, or holes. | [ ] | [ ] |
-| L7 | Join on a device without Vibrant Visuals support: vehicles and blocks look as before the change. | [ ] | [ ] |
-| L8 | Fly, bank, and open a door with lights on: the glow follows the parts. | [ ] | [ ] |
+| L6 | Repeat L1 with Vibrant Visuals off: the whole round lens is full-bright only while on, and the projectors remain visible while off. The body-coloured bezel and screws stay visible, with no flicker, double drawing, or holes. | [ ] | [ ] |
+| L7 | Repeat L1 on a device without Vibrant Visuals support (VV off), in several paints: round lenses glow only while on; bezels show the body colour and six screws, with no holes or flicker. | [ ] | [ ] |
+| L8 | Fly, bank, and open a door with lights on, with VV on and off: the whole round lens glow follows the SUV; body-coloured bezels and screws stay aligned, with no holes or flicker. | [ ] | [ ] |
 | L9 | Switch the Gas Lantern on and off: with Vibrant Visuals on, the flame glows, glass stays see-through, and metal reflects; with it off, the flame is full-bright only while on. | unverified | unverified |
 | L10 | Switch the camper headlights on at night in Vibrant Visuals: the roof clearance lamps, the four rear roof lamps, and both round tail lamps glow only while on; the side marker lamps and the rear turn signals do not. | [ ] | [ ] |
 | L11 | Switch the SUV headlights on and off at night with Vibrant Visuals on and off: the tail lights, third brake light, headlights, fog lamps, and front strip look the same as before this change (ADR 0192). | [ ] | [ ] |
