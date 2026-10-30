@@ -34,7 +34,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tool_loader import load_tool
 
 texture_io = load_tool("texture_io")
-texel_reader = texture_io.texel_reader
 
 cube_tilt = load_tool("cube_tilt")
 
@@ -652,18 +651,12 @@ def main():
         documents[bp / BLOCKS / f"{kind}_decor_pair.block.json"] = pair_block(kind, spec)
     documents[rp / ITEM_TEXTURES] = item_textures(json.loads((rp / ITEM_TEXTURES).read_text()), spec)
     atlas = rp / ATLAS
-    out = texture_io.Outputs(args.check)
-
-    def report_written(path):
-        if not out.check:
-            print(f"wrote {path}")
+    out = texture_io.Outputs(args.check, report_writes=True)
 
     for path, document in documents.items():
         out.json(path, json.dumps(document, separators=(",", ":")) + "\n")
-        report_written(path)
-    out.png(atlas, ATLAS_SIZE, ATLAS_SIZE, texel_reader(ATLAS_SIZE, atlas_pixels()), compress_level=9)
-    report_written(atlas)
-    out.finish("out of date with tools/gen_camping_gear.py and tools/camping_gear.json. Run `pnpm model` and commit the result.", "camping gear models, atlas, blocks, and items are up to date" if out.check else None)
+    out.png(atlas, ATLAS_SIZE, ATLAS_SIZE, texture_io.texel_reader(ATLAS_SIZE, atlas_pixels()), compress_level=9)
+    out.finish("out of date with tools/gen_camping_gear.py and tools/camping_gear.json. Run `pnpm model` and commit the result.", "camping gear models, atlas, blocks, and items are up to date")
 
 
 if __name__ == "__main__":

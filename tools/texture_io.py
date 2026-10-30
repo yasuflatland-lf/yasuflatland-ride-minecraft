@@ -15,8 +15,9 @@ def texel_reader(size, data):
 
 
 class Outputs:
-    def __init__(self, check):
+    def __init__(self, check, report_writes=False):
         self.check = check
+        self.report_writes = report_writes
         self.stale = []
 
     # Compare parsed JSON because pnpm model reformats the written JSON with Biome.
@@ -32,6 +33,8 @@ class Outputs:
         else:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(data)
+            if self.report_writes:
+                print(f"wrote {path}")
 
     # Compare decoded RGBA rows so zlib packing differences do not affect --check.
     def png(self, path, width, height, pixel, compress_level=-1):
@@ -53,11 +56,13 @@ class Outputs:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", head)
                          + chunk(b"IDAT", zlib.compress(raw, compress_level)) + chunk(b"IEND", b""))
+        if self.report_writes:
+            print(f"wrote {path}")
 
-    def finish(self, stale_header, ok_message):
+    def finish(self, stale_header, ok_message=None):
         if self.stale:
             sys.exit(stale_header + "\n" + "\n".join(self.stale))
-        if ok_message is not None:
+        if self.check and ok_message is not None:
             print(ok_message)
 
 

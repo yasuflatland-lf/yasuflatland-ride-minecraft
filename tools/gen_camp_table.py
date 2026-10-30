@@ -11,7 +11,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tool_loader import load_tool
 
 texture_io = load_tool("texture_io")
-texel_reader = texture_io.texel_reader
 
 SIZE = 64
 GEOMETRY = "models/entity/yasu_ride/camp_table.geo.json"
@@ -70,8 +69,8 @@ def main():
     texture = args.resource_pack / TEXTURE
     out = texture_io.Outputs(args.check)
     out.json(geo, json.dumps(geometry(), separators=(",", ":")) + "\n")
-    out.png(texture, SIZE, SIZE, texel_reader(SIZE, pixels()), compress_level=9)
-    out.finish("camp table model or texture is stale; run pnpm model", None)
+    out.png(texture, SIZE, SIZE, texture_io.texel_reader(SIZE, pixels()), compress_level=9)
+    out.finish("camp table model or texture is stale; run pnpm model")
 
 
 if __name__ == "__main__":

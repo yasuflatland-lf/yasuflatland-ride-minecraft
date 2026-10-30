@@ -22,7 +22,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tool_loader import load_tool
 
 texture_io = load_tool("texture_io")
-texel_reader = texture_io.texel_reader
 
 GEOMETRY = "models/entity/yasu_ride/low_chair.geo.json"
 TEXTURE = "textures/entity/yasu_ride/low_chair.png"
@@ -206,17 +205,11 @@ def main():
     validate(parts)
     geo_path, texture_path = args.resource_pack / GEOMETRY, args.resource_pack / TEXTURE
     document = geometry()
-    out = texture_io.Outputs(args.check)
-
-    def report_written(path):
-        if not out.check:
-            print(f"wrote {path}")
+    out = texture_io.Outputs(args.check, report_writes=True)
 
     out.json(geo_path, json.dumps(document, separators=(",", ":")) + "\n")
-    report_written(geo_path)
-    out.png(texture_path, ATLAS_SIZE, ATLAS_SIZE, texel_reader(ATLAS_SIZE, texture_pixels()), compress_level=9)
-    report_written(texture_path)
-    out.finish("out of date with tools/gen_low_chair.py. Run `pnpm model` and commit the result.", "low chair model and texture are up to date" if out.check else None)
+    out.png(texture_path, ATLAS_SIZE, ATLAS_SIZE, texture_io.texel_reader(ATLAS_SIZE, texture_pixels()), compress_level=9)
+    out.finish("out of date with tools/gen_low_chair.py. Run `pnpm model` and commit the result.", "low chair model and texture are up to date")
 
 
 if __name__ == "__main__":

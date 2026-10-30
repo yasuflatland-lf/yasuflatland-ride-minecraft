@@ -29,7 +29,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tool_loader import load_tool
 
 texture_io = load_tool("texture_io")
-texel_reader = texture_io.texel_reader
 
 GEOMETRY = "models/entity/yasu_ride/tent.geo.json"
 TEXTURE = "textures/entity/yasu_ride/tent.png"
@@ -333,18 +332,12 @@ def main():
     textures = {paint: args.resource_pack / texture_path(paint) for paint in FLY_PAINTS}
     document = geometry()
     validate(document["minecraft:geometry"][0]["bones"])
-    out = texture_io.Outputs(args.check)
-
-    def report_written(path):
-        if not out.check:
-            print(f"wrote {path}")
+    out = texture_io.Outputs(args.check, report_writes=True)
 
     out.json(geo_path, json.dumps(document, separators=(",", ":")) + "\n")
-    report_written(geo_path)
     for paint, path in textures.items():
-        out.png(path, ATLAS_SIZE, ATLAS_SIZE, texel_reader(ATLAS_SIZE, texture_pixels(paint)), compress_level=9)
-        report_written(path)
-    out.finish("out of date with tools/gen_tent.py. Run `pnpm model` and commit the result.", "tent model and textures are up to date" if out.check else None)
+        out.png(path, ATLAS_SIZE, ATLAS_SIZE, texture_io.texel_reader(ATLAS_SIZE, texture_pixels(paint)), compress_level=9)
+    out.finish("out of date with tools/gen_tent.py. Run `pnpm model` and commit the result.", "tent model and textures are up to date")
 
 
 if __name__ == "__main__":

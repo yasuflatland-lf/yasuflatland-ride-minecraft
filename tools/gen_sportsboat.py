@@ -1863,6 +1863,10 @@ def mirror_textures(width, height, pixel):
     texture_io.write_texture_set(outputs, ENTITY_TEXTURES, "sportsboat_mirror", "sportsboat_mirror_mer")
 
 
+def rgba(color):
+    return (*color, 255)[:4]
+
+
 def swatches(hull_color):
     colors = {**PALETTE, "hull": hull_color}
 
@@ -1876,7 +1880,7 @@ def swatches(hull_color):
     pixels = [[swatch(x, y) for x in range(TEXTURE_WIDTH)] for y in range(TEXTURE_HEIGHT)]
     for tile in TILES.values():
         tile["paint"](pixels)
-    return lambda x, y: (*pixels[y][x], 255)[:4]
+    return lambda x, y: rgba(pixels[y][x])
 
 
 for paint, hull_color in HULL_PAINTS.items():
@@ -1916,7 +1920,7 @@ ICON_COLORS = {"K": (44, 44, 48), "F": (70, 70, 76), "G": (170, 205, 225), "T": 
 
 
 def icon(x, y):
-    return (*ICON_COLORS.get(ICON[y][x], (0, 0, 0, 0)), 255)[:4]
+    return rgba(ICON_COLORS.get(ICON[y][x], (0, 0, 0, 0)))
 
 
 outputs.png(ITEM_TEXTURES / "sportsboat_item.png", 16, 16, icon)
@@ -1971,7 +1975,7 @@ ICEBREAKER_SWITCH_COLORS = {"K": (44, 44, 48), "H": (30, 30, 34), "O": (170, 205
 
 
 def pixel_map(rows, colors):
-    return lambda x, y: (*colors.get(rows[y][x], (0, 0, 0, 0)), 255)[:4]
+    return lambda x, y: rgba(colors.get(rows[y][x], (0, 0, 0, 0)))
 
 
 outputs.png(ITEM_TEXTURES / "sportsboat_equipment_box.png", 16, 16, pixel_map(EQUIPMENT_BOX_ICON, EQUIPMENT_BOX_COLORS))
@@ -2013,4 +2017,4 @@ outputs.stale.extend(monitor.write_monitor(
     {"icebreaker_switch": monitor_icon}, outputs.check, RP,
 ))
 print("cubes:", len(body) + len(headlights) + len(glass) + len(mirror))
-outputs.finish("Stale sports boat outputs:", "sports boat model and textures are up to date" if outputs.check else None)
+outputs.finish("Stale sports boat outputs:", "sports boat model and textures are up to date")

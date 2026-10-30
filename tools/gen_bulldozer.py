@@ -1611,4 +1611,4 @@ MONITOR_ICONS = {
     "road_paver_switch": [[monitor_icon_color(code) for code in row] for row in ROAD_PAVER_SWITCH_ICON],
 }
 outputs.stale.extend(monitor.write_monitor("bulldozer", MONITOR_LAYOUT, MONITOR_ICONS, outputs.check, RP))
-outputs.finish("Stale bulldozer outputs:", None)
+outputs.finish("Stale bulldozer outputs:")
