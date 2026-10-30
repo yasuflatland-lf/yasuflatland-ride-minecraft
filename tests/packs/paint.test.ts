@@ -71,6 +71,8 @@ describe("vehicle paints (ADR 0031)", () => {
         paint === "khaki" ? /\/suv$/ : new RegExp(`/suv_${paint}$`),
       );
       expect(existsSync(`packs/yasu_ride_rp/${path}.png`), path).toBe(true);
+      expect(existsSync(`${RP}/${path}_mer.png`), path).toBe(true);
+      expect(existsSync(`${RP}/${path}.texture_set.json`), path).toBe(true);
     }
   });
 
