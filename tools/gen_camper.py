@@ -473,12 +473,11 @@ door = [box(HW - 1, DY0, DZ0 + 0.1, HW, DY1, DZ1 - 0.1, "white")]
 # The door window lines up with the side windows, as on the close-up photo.
 DW0, DW1 = DZ0 + 3, DZ1 - 3
 door.append(box(HW, WIN_Y[0], DW0, HW + 0.15, WIN_Y[1], DW1, "glass"))
-for fz0, fz1, fy0, fy1 in ((DW0 - 0.6, DW1 + 0.6, WIN_Y[0] - 0.6, WIN_Y[0]), (DW0 - 0.6, DW1 + 0.6, WIN_Y[1], WIN_Y[1] + 0.6),
-                           (DW0 - 0.6, DW0, *WIN_Y), (DW1, DW1 + 0.6, *WIN_Y)):
+for fz0, fz1, fy0, fy1, hardware in ((DW0 - 0.6, DW1 + 0.6, WIN_Y[0] - 0.6, WIN_Y[0], None),
+                                     (DW0 - 0.6, DW1 + 0.6, WIN_Y[1], WIN_Y[1] + 0.6, DOOR_HEAD_REGION),
+                                     (DW0 - 0.6, DW0, *WIN_Y, DOOR_HINGE_REGION),
+                                     (DW1, DW1 + 0.6, *WIN_Y, DOOR_LATCH_REGION)):
     door.append(box(HW, fy0, fz0, HW + 0.18, fy1, fz1, "aluminium"))
-    hardware = (DOOR_HEAD_REGION if fy0 == WIN_Y[1] else
-                DOOR_HINGE_REGION if fz1 == DW0 else
-                DOOR_LATCH_REGION if fz0 == DW1 else None)
     if hardware is not None:
         # The build's +x side becomes the outward west face after mirror_x.
         door[-1]["uv"]["west"] = ATLAS.face(hardware)
@@ -1484,8 +1483,7 @@ def scale(color, factor):
 
 def region_pixel(region, x, y):
     if region.name == "rib":
-        phase = y % RIB_PERIOD_TEXELS
-        factor = 0.93 if phase == 0 else 1.05 if phase == 1 else 1
+        factor = 0.93 if y % RIB_PERIOD_TEXELS == 0 else 1.05
         return (*scale(PALETTE["white"][:3], factor), 255)
     if region.name == "door_head":
         dark = y == region.h - 1
