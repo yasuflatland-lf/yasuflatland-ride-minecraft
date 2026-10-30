@@ -10,9 +10,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tool_loader import load_tool
 
 
+def texel_reader(size, data):
+    return lambda x, y: tuple(data[(y * size + x) * 4 : (y * size + x + 1) * 4])
+
+
 class Outputs:
-    def __init__(self, check):
+    def __init__(self, check, report_writes=False):
         self.check = check
+        self.report_writes = report_writes
         self.stale = []
 
     # Compare parsed JSON because pnpm model reformats the written JSON with Biome.
@@ -21,22 +26,26 @@ class Outputs:
         if self.check:
             try:
                 matches = json.loads(path.read_text()) == json.loads(data)
-            except (OSError, ValueError):
-                matches = False
+            except (OSError, ValueError) as e:
+                self.stale.append(f"{path} ({e})")
+                return
             if not matches:
                 self.stale.append(str(path))
         else:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(data)
+            if self.report_writes:
+                print(f"wrote {path}")
 
     # Compare decoded RGBA rows so zlib packing differences do not affect --check.
     def png(self, path, width, height, pixel, compress_level=-1):
-        pixels = [[tuple(pixel(x, y)) for x in range(width)] for y in range(height)]
+        pixels = [[(*pixel(x, y), 255)[:4] for x in range(width)] for y in range(height)]
         if self.check:
             try:
                 matches = load_tool("render_preview").read_png(path) == pixels
-            except (OSError, ValueError, struct.error, zlib.error):
-                matches = False
+            except (OSError, ValueError, struct.error, zlib.error) as e:
+                self.stale.append(f"{path} ({e})")
+                return
             if not matches:
                 self.stale.append(str(path))
             return
@@ -49,11 +58,14 @@ class Outputs:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", head)
                          + chunk(b"IDAT", zlib.compress(raw, compress_level)) + chunk(b"IEND", b""))
+        if self.report_writes:
+            print(f"wrote {path}")
 
-    def finish(self, stale_header, ok_message):
+    def finish(self, stale_header, ok_message=None):
         if self.stale:
             sys.exit(stale_header + "\n" + "\n".join(self.stale))
-        print(ok_message)
+        if self.check and ok_message is not None:
+            print(ok_message)
 
 
 def texture_set_doc(color, mer, relief=None):
