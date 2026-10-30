@@ -13,12 +13,14 @@ export default {
   // main.ts and the in-game test pack's runner, arena and scenarios only wire
   // up @minecraft/server, which exists only inside the game, so no unit test
   // can kill their mutants (0010, 0048, 0088). protocol.ts and ramJudge.ts
-  // have unit tests in tests/test-pack and stay mutated.
+  // have unit tests in tests/test-pack and stay mutated. The catalog is data,
+  // checked against the scenario registry instead of mutation tested.
   mutate: [
     "src/**/*.ts",
     "!src/main.ts",
     "!src/test-pack/runner.ts",
     "!src/test-pack/arena.ts",
+    "!src/test-pack/catalog.ts",
     "!src/test-pack/scenarios/**/*.ts",
   ],
   coverageAnalysis: "perTest",
