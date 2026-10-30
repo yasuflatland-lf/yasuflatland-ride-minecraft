@@ -80,7 +80,11 @@ async function withBuildMode(
     corner: async (name, cell) => {
       await query(
         TEST_CORNER_EVENT,
-        JSON.stringify({ player: player.name, corner: name, ...cell }),
+        JSON.stringify({
+          player: player.name,
+          corner: name,
+          ...a.at(cell.x, cell.y, cell.z),
+        }),
       );
     },
     marker: async () => {
@@ -89,7 +93,7 @@ async function withBuildMode(
         JSON.stringify({ player: player.name }),
       );
       return {
-        corner: reply.corner ?? null,
+        corner: reply.corner ? a.local(reply.corner) : null,
         outline: reply.outline === true,
         cornerCount: reply.cornerCount ?? 0,
       };
@@ -103,7 +107,7 @@ async function withBuildMode(
       a,
       { player, x: 20.5, z: 20.5, yaw: 0 },
       async (car) => {
-        player.teleport({ x: 20.5, y: a.gy, z: 20.5 }, { dimension: a.dim });
+        player.teleport(a.at(20.5, a.gy, 20.5), { dimension: a.dim });
         inventory.setItem(slot, new ItemStack(SELECTION_WAND_TYPE));
         await boardBulldozer(player, car);
         await steps.corner("clear", steps.pos1);
