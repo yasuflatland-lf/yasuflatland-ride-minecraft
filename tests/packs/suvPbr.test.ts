@@ -169,6 +169,7 @@ for name in s.DOORS:
     side, front, back = s.DOORS[name]
     face = 'east' if side > 0 else 'west'
     region = a.region('body', 'door_front' if front > 0 else 'door_rear')
+    scale_u, scale_v = a.PAINTERS['body'].panel_scale(region.name)
     cubes = s.door(name)['cubes']
     strips = [cube for cube in cubes if cube['uv'][face]['uv'][1] >= 4 and region.x <= cube['uv'][face]['uv'][0] < region.x + region.w and cube['origin'][1] < s.BELT_Y]
     assert len(strips) > 1
@@ -176,10 +177,25 @@ for name in s.DOORS:
         _, y, z = cube['origin']
         _, h, d = cube['size']
         uv = cube['uv'][face]
-        assert abs(uv['uv'][0] - region.x - (z - back) * a.TEXELS_PER_PIXEL) < 1e-8
-        assert abs(uv['uv'][1] - region.y - (s.BELT_Y - y - h) * a.TEXELS_PER_PIXEL) < 1e-8
-        assert uv['uv_size'][0] == d * a.TEXELS_PER_PIXEL
-        assert abs(uv['uv_size'][1] - h * a.TEXELS_PER_PIXEL) < 1e-8
+        assert abs(uv['uv'][0] - region.x - (z - back) * scale_u) < 1e-8
+        assert abs(uv['uv'][1] - region.y - (s.BELT_Y - y - h) * scale_v) < 1e-8
+        assert abs(uv['uv_size'][0] - d * scale_u) < 1e-8
+        assert abs(uv['uv_size'][1] - h * scale_v) < 1e-8
+p = a.PAINTERS['body']
+for name, cubes in [('hood_top', s.hood_cubes()), ('tailgate', s.tailgate_cubes())]:
+    face = 'up' if name == 'hood_top' else 'north'
+    spec = p.SPECS[name]
+    assert cubes[0]['uv'][face]['uv_size'] == [spec.w, spec.h]
+for cubes in (s.hood_lower_side_cubes(), s.cargo_lower_side_cubes()):
+    region = a.region('body', 'flake')
+    back = min(cube['origin'][2] for cube in cubes)
+    top = max(cube['origin'][1] + cube['size'][1] for cube in cubes)
+    for cube in cubes:
+        uv = cube['uv']['east']
+        assert abs(uv['uv'][0] - region.x - (cube['origin'][2] - back) * 4) < 1e-8
+        assert abs(uv['uv'][1] - region.y - (top - cube['origin'][1] - cube['size'][1]) * 4) < 1e-8
+        for start, size, origin, extent in zip(uv['uv'], uv['uv_size'], (region.x, region.y), (104, 104)):
+            assert origin <= start and start + size <= origin + extent + 1e-8
 # The handle recess is at the rear on both sides, including the exported turn.
 p = a.PAINTERS['body']
 texture = [[(0, 0, 0, 255)] * 512 for _ in range(256)]

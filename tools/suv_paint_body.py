@@ -24,13 +24,7 @@ DETAIL_DELTAS = {"groove": -GROOVE_DARKEN, "highlight": HIGHLIGHT_LIGHTEN,
                  "recess": -GROOVE_DARKEN // 2, "recess_highlight": HIGHLIGHT_LIGHTEN}
 
 
-# Importing the atlas here would re-enter its painter allocation.
-def density():
-    return load_tool("suv_atlas").TEXELS_PER_PIXEL
-
-
-# The full-density roof and underside overflow the 160-row block together.
-# ADR 0192 permits reducing the largest flat faces first; steel stays at 4.
+# ADR 0192 permits lower density on the largest flat hardtop faces; steel stays at 4.
 HARDTOP_FLAT_DENSITY = 2
 REGION_DENSITY = 4
 
@@ -39,20 +33,20 @@ def panel(name, w, h, base="body", scale=REGION_DENSITY):
     return RegionSpec(name, math.ceil(w * scale), math.ceil(h * scale), base)
 
 
+PANEL_EXTENTS = {
+    "hood_top": (2 * dims.BODY_HALF_WIDTH, dims.FRONT - dims.HOOD_REAR_Z),
+    "tailgate": (2 * dims.BODY_HALF_WIDTH, dims.BELT_Y - dims.FLOOR_Y),
+    "door_front": (dims.FRONT_DOOR_HINGE_Z - dims.B_PILLAR_FRONT_Z, dims.BELT_Y - dims.FLOOR_Y),
+    "door_rear": (dims.B_PILLAR_REAR_Z - dims.CARGO_FRONT, dims.BELT_Y - dims.FLOOR_Y),
+}
+
 REGIONS = (
     panel("flake", 2 * dims.BODY_HALF_WIDTH, 2 * dims.BODY_HALF_WIDTH),
-    panel("hardtop", dims.ROOF_FRONT - dims.REAR, 2 * dims.BODY_HALF_WIDTH, "hardtop", HARDTOP_FLAT_DENSITY),
-    panel("hardtop_down", 2 * dims.BODY_HALF_WIDTH, dims.ROOF_FRONT - dims.REAR, "hardtop", HARDTOP_FLAT_DENSITY),
-    panel("hood_top", dims.FRONT - dims.HOOD_REAR_Z, 2 * dims.BODY_HALF_WIDTH),
-    panel("tailgate", 2 * dims.BODY_HALF_WIDTH, dims.BELT_Y - dims.FLOOR_Y),
-    panel("door_front", dims.FRONT_DOOR_HINGE_Z - dims.B_PILLAR_FRONT_Z, dims.BELT_Y - dims.FLOOR_Y),
-    panel("door_rear", dims.B_PILLAR_REAR_Z - dims.CARGO_FRONT, dims.BELT_Y - dims.FLOOR_Y),
-    panel("hardtop_rib_down", 1, dims.ROOF_SEAM - dims.REAR, "hardtop_rib"),
-    panel("hood_side", dims.FRONT - dims.HOOD_REAR_Z, dims.HOOD_TOP_Y - dims.ARCH_TOP_Y),
-    panel("hood_lower", dims.FRONT - dims.FRONT_DOOR_HINGE_Z, dims.ARCH_TOP_Y - dims.FLOOR_Y),
-    panel("cargo", dims.CARGO_FRONT - (dims.REAR + 1), dims.BELT_Y - dims.FLOOR_Y),
+    panel("hardtop", 2 * dims.BODY_HALF_WIDTH, dims.ROOF_FRONT - dims.REAR, "hardtop", HARDTOP_FLAT_DENSITY),
+    *(panel(name, *extent) for name, extent in PANEL_EXTENTS.items()),
+    panel("hardtop_rib", 1, dims.ROOF_SEAM - dims.REAR, "hardtop_rib"),
     panel("hardtop_side", dims.ROOF_FRONT - dims.REAR, dims.ROOF_Y - dims.BELT_Y, "hardtop"),
-    panel("hardtop_rib", dims.ROOF_FRONT - dims.REAR, 1, "hardtop_rib"),
+    panel("hardtop_rib_side", dims.ROOF_FRONT - dims.REAR, 1, "hardtop_rib"),
 )
 SPECS = {spec.name: spec for spec in REGIONS}
 
@@ -67,59 +61,28 @@ def jitter(u, v, bound, shift=0):
     return (texel_hash(u, v) >> shift) % (2 * bound + 1) - bound
 
 
-def door_extent(region):
-    return load_tool("suv_shell").DOORS["door_fr" if region == "door_front" else "door_rr"]
+def panel_scale(region):
+    w, h = PANEL_EXTENTS[region]
+    spec = SPECS[region]
+    # Map the rounded region in full so fractional panel sizes cannot clip an edge texel.
+    return spec.w / w, spec.h / h
 
 
 @cache
 def recess(region):
-    # Handles and DOORS are available only after atlas allocation finishes.
+    # Handle dimensions are available only after atlas allocation finishes.
     shell = load_tool("suv_shell")
-    _, _, back = door_extent(region)
-    center_z = back + (shell.HANDLE_REAR_OFFSET + shell.HANDLE_FRONT_OFFSET) / 2
+    scale_u, scale_v = panel_scale(region)
+    center_z = (shell.HANDLE_REAR_OFFSET + shell.HANDLE_FRONT_OFFSET) / 2
     center_y = (shell.HANDLE_BOTTOM_Y + shell.HANDLE_TOP_Y) / 2
-    return ((center_z - back) * density(), (dims.BELT_Y - center_y) * density(),
-            (shell.HANDLE_FRONT_OFFSET - shell.HANDLE_REAR_OFFSET) * density() / 2 + RECESS_PADDING_TEXELS,
-            (shell.HANDLE_TOP_Y - shell.HANDLE_BOTTOM_Y) * density() / 2 + RECESS_PADDING_TEXELS)
-
-
-@cache
-def arch_panel(region):
-    if region.startswith("door_"):
-        _, front, back = door_extent(region)
-        return back, dims.BELT_Y, dims.FRONT_AXLE_Z if front > 0 else dims.REAR_AXLE_Z
-    return {
-        "hood_side": (dims.HOOD_REAR_Z, dims.HOOD_TOP_Y, dims.FRONT_AXLE_Z),
-        "hood_lower": (dims.FRONT_DOOR_HINGE_Z, dims.ARCH_TOP_Y, dims.FRONT_AXLE_Z),
-        "cargo": (dims.REAR + 1, dims.BELT_Y, dims.REAR_AXLE_Z),
-    }.get(region)
-
-
-def arch_detail(region, u, v):
-    panel = arch_panel(region)
-    if panel is None:
-        return None
-    back, top, axle = panel
-    y = top - (v + 0.5) / density()
-    z = back + (u + 0.5) / density()
-    # Use the same trapezoid as arch_cut so separate strips share one continuous joint.
-    if y >= dims.ARCH_TOP_Y:
-        if abs(z - axle) > dims.ARCH_TOP_HALF:
-            return None
-        distance = y - dims.ARCH_TOP_Y
-    else:
-        distance = abs(z - axle) - (dims.arch_side_z(axle, 1, y) - axle)
-    texels = distance * density()
-    if 0 <= texels < 1:
-        return "groove"
-    if 1 <= texels < 2:
-        return "highlight"
-    return None
+    return (center_z * scale_u, (dims.BELT_Y - center_y) * scale_v,
+            (shell.HANDLE_FRONT_OFFSET - shell.HANDLE_REAR_OFFSET) * scale_u / 2 + RECESS_PADDING_TEXELS,
+            (shell.HANDLE_TOP_Y - shell.HANDLE_BOTTOM_Y) * scale_v / 2 + RECESS_PADDING_TEXELS)
 
 
 def detail(region, u, v):
     spec = SPECS[region]
-    if region == "flake" or spec.base != "body":
+    if region not in PANEL_EXTENTS:
         return None
     edge = min(u, v, spec.w - 1 - u, spec.h - 1 - v)
     if edge == 0:
@@ -130,7 +93,7 @@ def detail(region, u, v):
         x, y, rx, ry = recess(region)
         if ((u + 0.5 - x) / rx) ** 2 + ((v + 0.5 - y) / ry) ** 2 <= 1:
             return "recess_highlight" if v + 0.5 > y + ry / 2 else "recess"
-    return arch_detail(region, u, v)
+    return None
 
 
 def color(region, u, v, paint):

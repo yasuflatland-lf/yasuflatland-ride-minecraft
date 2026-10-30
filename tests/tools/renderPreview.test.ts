@@ -302,3 +302,23 @@ print(json.dumps({"strips": [[min(p[1] for p in q), max(p[1] for p in q), color[
     expect(result.uniform).toBe(true);
   });
 });
+
+it("maps up and down UVs along x with the same z direction", () => {
+  const result = previewPython(`
+cube = {"origin": [0, 0, 0], "size": [30, 1, 12]}
+texture = [[(10,0,0,255), (20,0,0,255)], [(30,0,0,255), (40,0,0,255)]]
+result = {}
+for name in ('up', 'down'):
+    patches = r.textured_face(texture, {"uv": [0,0], "uv_size": [2,2]}, dict(r.cube_faces(cube))[name], name, 2, 2)
+    result[name] = [[sum(p[0] for p in quad)/4, sum(p[2] for p in quad)/4, color[0]] for quad, color in patches]
+print(json.dumps(result))
+`);
+  const expected = [
+    [7.5, 9, 10],
+    [7.5, 3, 30],
+    [22.5, 9, 20],
+    [22.5, 3, 40],
+  ];
+  expect(result.up).toEqual(expected);
+  expect(result.down).toEqual(expected);
+});

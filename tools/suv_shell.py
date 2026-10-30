@@ -17,7 +17,7 @@ HANDLE_OUTER_X = 13.35
 def face_size(cube, face):
     w, h, d = cube["size"]
     return {"north": (w, h), "south": (w, h), "east": (d, h),
-            "west": (d, h), "up": (d, w), "down": (w, d)}[face]
+            "west": (d, h), "up": (w, d), "down": (w, d)}[face]
 
 
 def box(x0, y0, z0, x1, y1, z1, color):
@@ -32,11 +32,9 @@ def box(x0, y0, z0, x1, y1, z1, color):
         if color == "body":
             name, face_scale = "flake", scale
         elif color == "hardtop_rib":
-            name, face_scale = "hardtop_rib_down" if face == "down" else "hardtop_rib", scale
-        elif face == "up":
+            name, face_scale = "hardtop_rib" if face in ("up", "down") else "hardtop_rib_side", scale
+        elif face in ("up", "down"):
             name, face_scale = "hardtop", body_paint.HARDTOP_FLAT_DENSITY
-        elif face == "down":
-            name, face_scale = "hardtop_down", body_paint.HARDTOP_FLAT_DENSITY
         else:
             name, face_scale = "hardtop_side", scale
         r = suv_cubes.atlas.region("body", name)
@@ -47,10 +45,10 @@ def box(x0, y0, z0, x1, y1, z1, color):
 def panel_face(cube, name, face, offset=(0, 0)):
     r = suv_cubes.atlas.region("body", name)
     a, b = face_size(cube, face)
-    scale = suv_cubes.atlas.TEXELS_PER_PIXEL
-    cube["uv"][face] = suv_cubes.atlas.ATLAS.face(r, offset, (a * scale, b * scale))
-    if name == "hood_side":
-        cube["uv"]["west"] = dict(cube["uv"][face])
+    scale_u, scale_v = (body_paint.panel_scale(name) if name in body_paint.PANEL_EXTENTS
+                        else (suv_cubes.atlas.TEXELS_PER_PIXEL,) * 2)
+    cube["uv"][face] = suv_cubes.atlas.ATLAS.face(
+        r, (offset[0] * scale_u, offset[1] * scale_v), (a * scale_u, b * scale_v))
     return cube
 
 
@@ -114,17 +112,14 @@ def arch_cut(x0, x1, y0, y1, z_back, z_front, z_center, color, step=0.5):
             cubes.append(box(x0, y, z_back, x1, top, min(z_front, rear_cut), color))
         y = top
     if color == "body":
-        if z_back == FRONT_DOOR_HINGE_Z:
-            name = "hood_lower"
-        elif z_back == REAR + 1:
-            name = "cargo"
+        if z_back in (FRONT_DOOR_HINGE_Z, REAR + 1):
+            name = "flake"
         else:
             name = "door_front" if z_front > 0 else "door_rear"
-        scale = suv_cubes.atlas.TEXELS_PER_PIXEL
         for cube in cubes:
             _, bottom, back = cube["origin"]
             strip_top = bottom + cube["size"][1]
-            panel_face(cube, name, "east", ((back - z_back) * scale, (y1 - strip_top) * scale))
+            panel_face(cube, name, "east", (back - z_back, y1 - strip_top))
     return cubes
 
 
@@ -246,7 +241,7 @@ def chassis_cubes():
 def hood_cubes():
     return [
         # Hood (engine compartment) above the front arches; its lower sides follow the arches below
-        panel_face(panel_face(box(-BODY_HALF_WIDTH, ARCH_TOP_Y, HOOD_REAR_Z, BODY_HALF_WIDTH, HOOD_TOP_Y, FRONT, "body"), "hood_top", "up"), "hood_side", "east"),
+        panel_face(box(-BODY_HALF_WIDTH, ARCH_TOP_Y, HOOD_REAR_Z, BODY_HALF_WIDTH, HOOD_TOP_Y, FRONT, "body"), "hood_top", "up"),
         box(-ARCH_LINER_X, FLOOR_Y, HOOD_REAR_Z, ARCH_LINER_X, ARCH_TOP_Y, FRONT, "body"),
     ]
 
