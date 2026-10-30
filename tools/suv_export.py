@@ -97,13 +97,15 @@ def paint_textures(out, directory):
     relief_name = f"suv_{material.RELIEF_KIND}"
     out.png(directory / f"{relief_name}.png", ATLAS.width, ATLAS.height,
             material.relief_pixel(material.RELIEF_KIND))
-    other_kind = "normal" if material.RELIEF_KIND == "heightmap" else "heightmap"
-    other_path = directory / f"suv_{other_kind}.png"
-    if other_path.exists():
-        if out.check:
-            out.stale.append(str(other_path))
-        else:
-            other_path.unlink()
+    for other_kind in material.RELIEF_KINDS:
+        if other_kind == material.RELIEF_KIND:
+            continue
+        other_path = directory / f"suv_{other_kind}.png"
+        if other_path.exists():
+            if out.check:
+                out.stale.append(str(other_path))
+            else:
+                other_path.unlink()
     for paint in BODY_PAINTS:
         name = "suv" if paint.name == "khaki" else f"suv_{paint.name}"
         out.png(directory / f"{name}.png", ATLAS.width, ATLAS.height, texture.paint_pixel(paint))

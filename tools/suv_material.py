@@ -13,6 +13,8 @@ Mer = mer.Mer
 MER_OFF = mer.MER_OFF
 
 RELIEF_KIND = "heightmap"
+RELIEF_KINDS = ("heightmap", "normal")
+FLAT_NORMAL = (128, 128, 255, 255)
 FLAT_HEIGHT = 128
 RELIEF_DEPTH_STEP = 32
 RELIEF_STRENGTH = 4
@@ -72,10 +74,10 @@ def relief_heights(block, spec):
 
 
 def relief_pixel(kind: Literal["heightmap", "normal"]) -> Callable[[int, int], tuple]:
-    if kind not in ("heightmap", "normal"):
+    if kind not in RELIEF_KINDS:
         raise ValueError(f"Unknown relief kind: {kind}")
     atlas = load_tool("suv_atlas")
-    flat = (FLAT_HEIGHT, FLAT_HEIGHT, FLAT_HEIGHT, 255) if kind == "heightmap" else (128, 128, 255, 255)
+    flat = (FLAT_HEIGHT, FLAT_HEIGHT, FLAT_HEIGHT, 255) if kind == "heightmap" else FLAT_NORMAL
 
     def pixel(x, y):
         if atlas.ATLAS.swatch_at(x, y) is not None:

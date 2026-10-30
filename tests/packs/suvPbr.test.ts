@@ -68,9 +68,9 @@ function textureSet(name: string): Record<string, string> {
 }
 
 const reliefKeys = ["heightmap", "normal"];
-const reliefKind =
-  reliefKeys.find((key) => key in textureSet("suv")) ?? "heightmap";
-const reliefName = textureSet("suv")[reliefKind];
+const khakiSet = textureSet("suv");
+const reliefKind = reliefKeys.find((key) => key in khakiSet) ?? "heightmap";
+const reliefName = khakiSet[reliefKind];
 
 describe("SUV paint texture sets", () => {
   it.each(PAINTS)("%s has the exact texture set", (paint) => {
