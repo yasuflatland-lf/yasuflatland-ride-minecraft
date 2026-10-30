@@ -1,75 +1,219 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
-  LOG_TAG,
-  linePrefix,
-  linesOfRun,
+  featuresFrom,
+  formatRunRequest,
+  laneIndexFrom,
+  lanesFrom,
   MANUAL_RUN_ID,
-  runRequestFrom,
+  MAX_LANES,
+  MESSAGE_LIMIT,
+  parseRunRequest,
   shardFrom,
-  shardsOf,
-  summaryOfRun,
-  summaryPassed,
   TEST_EVENT,
   WHOLE_RUN,
 } from "../../src/test-pack/protocol";
 
 const runId = fc.stringMatching(/^[A-Za-z0-9_-]{1,32}$/);
-const twoRunIds = fc
-  .tuple(runId, runId)
-  .filter(([a, b]) => a !== b && !a.endsWith(b) && !b.endsWith(a));
-const counts = fc.nat({ max: 6 });
-
-function summaryLine(id: string, fail: number): string {
-  return `2026 WARN ${linePrefix(id)}SUMMARY pass=${6 - fail} fail=${fail}`;
-}
-
 const shard = fc
   .integer({ min: 1, max: 99 })
   .chain((total) =>
     fc.integer({ min: 1, max: total }).map((index) => ({ index, total })),
   );
 
-describe("runRequestFrom", () => {
-  it("runs the whole suite for a message with only a run id", () => {
+const featureTag = fc.stringMatching(/^[a-z]{1,24}(:[a-z]{1,24})?$/);
+const features = fc.uniqueArray(featureTag, { minLength: 1, maxLength: 7 });
+const request = fc
+  .record({
+    runId,
+    shard,
+    lanes: fc.integer({ min: 1, max: MAX_LANES }),
+    at: fc.integer({ min: 0, max: MAX_LANES - 1 }),
+    features: fc.option(features, { nil: undefined }),
+  })
+  .filter((r) => r.lanes === 1 || r.at === 0);
+
+describe("run request grammar", () => {
+  it("round trips valid requests within the message limit", () => {
     fc.assert(
-      fc.property(runId, (id) => {
-        expect(runRequestFrom(` ${id} `)).toEqual({
-          runId: id,
-          shard: WHOLE_RUN,
-        });
+      fc.property(request, (r) => {
+        const message = formatRunRequest(r);
+        expect(message.length).toBeLessThanOrEqual(MESSAGE_LIMIT);
+        expect(parseRunRequest(message)).toEqual({ ok: true, request: r });
       }),
     );
   });
 
-  it("reads the shard that follows the run id", () => {
+  it("accepts positional and keyed shards identically", () => {
     fc.assert(
       fc.property(runId, shard, (id, s) => {
-        expect(runRequestFrom(`${id} ${s.index}/${s.total}`)).toEqual({
-          runId: id,
-          shard: s,
-        });
+        const expected = {
+          ok: true,
+          request: { runId: id, shard: s, lanes: 1, at: 0 },
+        };
+        expect(parseRunRequest(` ${id} ${s.index}/${s.total} `)).toEqual(
+          expected,
+        );
+        expect(parseRunRequest(`${id} shard=${s.index}/${s.total}`)).toEqual(
+          expected,
+        );
       }),
     );
   });
 
-  it("falls back to a whole manual run for an empty or malformed message", () => {
+  it("omits defaults and orders canonical keys", () => {
+    fc.assert(
+      fc.property(runId, (id) => {
+        expect(
+          formatRunRequest({
+            runId: id,
+            shard: { index: 1, total: 1 },
+            lanes: 1,
+            at: 0,
+          }),
+        ).toBe(id);
+        expect(parseRunRequest(` ${id} `)).toEqual({
+          ok: true,
+          request: { runId: id, shard: WHOLE_RUN, lanes: 1, at: 0 },
+        });
+        expect(
+          formatRunRequest({
+            runId: id,
+            shard: { index: 2, total: 4 },
+            lanes: 1,
+            at: 3,
+            features: ["vehicle:suv"],
+          }),
+        ).toBe(`${id} shard=2/4 at=3 features=vehicle:suv`);
+      }),
+    );
+  });
+
+  it("reports malformed, unknown, duplicate and conflicting tokens under the supplied id", () => {
+    fc.assert(
+      fc.property(runId, (id) => {
+        for (const [suffix, offending] of [
+          ["extra", "extra"],
+          ["3/2", "3/2"],
+          ["unknown=1", "unknown=1"],
+          ["shard=0/2", "shard=0/2"],
+          ["lanes=0", "lanes=0"],
+          ["at=8", "at=8"],
+          ["features=", "features="],
+          ["features=a,a", "features=a,a"],
+          ["lanes=1 lanes=2", "lanes=2"],
+          ["at=0 at=0", "at=0"],
+          ["features=a features=b", "features=b"],
+          ["shard=1/2 shard=2/2", "shard=2/2"],
+          ["1/2 shard=1/2", "shard=1/2"],
+          ["shard=1/2 1/2", "1/2"],
+          ["lanes=1 1/2", "1/2"],
+          ["lanes=2 at=1", "at=1"],
+          ["at=1 lanes=2", "lanes=2"],
+          ["lanes=1=2", "lanes=1=2"],
+        ]) {
+          const result = parseRunRequest(`${id} ${suffix}`);
+          expect(result.ok).toBe(false);
+          if (!result.ok) {
+            expect(result.runId).toBe(id);
+            expect(result.error).toContain(offending);
+          }
+        }
+      }),
+    );
+  });
+
+  it("uses a manual whole run for empty or invalid ids regardless of trailing tokens", () => {
     fc.assert(
       fc.property(
         fc.oneof(
           fc.constant(""),
-          fc.string().filter((s) => /[^\w\s/-]/.test(s)),
-          runId.map((id) => `${id} 3/2`),
-          runId.map((id) => `${id} 1/2 extra`),
+          runId.map((id) => `!${id}`),
+          fc.constant("a".repeat(33)),
         ),
-        (msg) => {
-          expect(runRequestFrom(msg)).toEqual({
-            runId: MANUAL_RUN_ID,
-            shard: WHOLE_RUN,
-          });
+        (id) => {
+          for (const message of [id, `${id} !bad=token`]) {
+            expect(parseRunRequest(message)).toEqual({
+              ok: true,
+              request: {
+                runId: MANUAL_RUN_ID,
+                shard: WHOLE_RUN,
+                lanes: 1,
+                at: 0,
+              },
+            });
+          }
         },
       ),
     );
+  });
+
+  it("allows the exact message limit and rejects longer messages even with one tag", () => {
+    const r = {
+      runId: "a",
+      shard: WHOLE_RUN,
+      lanes: 1,
+      at: 0,
+      features: ["a".repeat(MESSAGE_LIMIT - "a features=".length)],
+    };
+    expect(formatRunRequest(r)).toHaveLength(MESSAGE_LIMIT);
+    expect(() =>
+      formatRunRequest({ ...r, features: [`${r.features[0]}a`] }),
+    ).toThrow("MESSAGE_LIMIT");
+  });
+});
+
+describe("token validators", () => {
+  it("accepts exactly the lane count and index ranges", () => {
+    fc.assert(
+      fc.property(fc.integer(), (n) => {
+        expect(lanesFrom(String(n))).toBe(n >= 1 && n <= 8 ? n : undefined);
+        expect(laneIndexFrom(String(n))).toBe(n >= 0 && n <= 7 ? n : undefined);
+      }),
+    );
+    for (let n = 0; n <= 9; n++) {
+      expect(lanesFrom(String(n))).toBe(n >= 1 && n <= 8 ? n : undefined);
+      expect(laneIndexFrom(String(n))).toBe(n <= 7 ? n : undefined);
+    }
+    for (const text of [
+      "",
+      "01",
+      "+1",
+      "1.0",
+      "1e0",
+      " 1",
+      "1 ",
+      "NaN",
+      "Infinity",
+    ]) {
+      expect(lanesFrom(text)).toBeUndefined();
+      expect(laneIndexFrom(text)).toBeUndefined();
+    }
+  });
+
+  it("accepts unique feature lists and rejects duplicates and malformed tags", () => {
+    fc.assert(
+      fc.property(features, (tags) => {
+        expect(featuresFrom(tags.join(","))).toEqual(tags);
+        expect(featuresFrom([...tags, ...tags].join(","))).toBeUndefined();
+        expect(featuresFrom(`${tags.join(",")},`)).toBeUndefined();
+      }),
+    );
+    for (const text of [
+      "",
+      ",",
+      "a,,b",
+      "A",
+      "a:b:c",
+      "a1",
+      "a_b",
+      ":a",
+      "a:",
+      "a, b",
+      "a\n",
+    ]) {
+      expect(featuresFrom(text)).toBeUndefined();
+    }
   });
 });
 
@@ -80,100 +224,9 @@ describe("shardFrom", () => {
   });
 });
 
-const tickList = fc.array(fc.integer({ min: 1, max: 400 }), { maxLength: 60 });
-const shardCount = fc.integer({ min: 1, max: 8 });
-
-function loads(ticks: number[], shards: number[], total: number): number[] {
-  return Array.from({ length: total }, (_, k) =>
-    ticks.reduce((sum, t, i) => (shards[i] === k + 1 ? sum + t : sum), 0),
-  );
-}
-
-describe("shardsOf", () => {
-  it("puts every test in one shard between 1 and the total", () => {
-    fc.assert(
-      fc.property(tickList, shardCount, (ticks, total) => {
-        const shards = shardsOf(ticks, total);
-        expect(shards).toHaveLength(ticks.length);
-        for (const s of shards) {
-          expect(s).toBeGreaterThanOrEqual(1);
-          expect(s).toBeLessThanOrEqual(total);
-        }
-      }),
-    );
-  });
-
-  it("keeps the slowest shard within one test of the average", () => {
-    fc.assert(
-      fc.property(tickList, shardCount, (ticks, total) => {
-        const load = loads(ticks, shardsOf(ticks, total), total);
-        const sum = ticks.reduce((a, b) => a + b, 0);
-        expect(Math.max(...load)).toBeLessThanOrEqual(
-          sum / total + Math.max(0, ...ticks),
-        );
-      }),
-    );
-  });
-
-  it("splits the same ticks the same way in every job", () => {
-    fc.assert(
-      fc.property(tickList, shardCount, (ticks, total) => {
-        expect(shardsOf(ticks, total)).toEqual(shardsOf([...ticks], total));
-      }),
-    );
-  });
-
-  it("puts everything in the only shard of a whole run", () => {
-    fc.assert(
-      fc.property(tickList, (ticks) => {
-        expect(shardsOf(ticks, 1).every((s) => s === 1)).toBe(true);
-      }),
-    );
-  });
-});
-
-describe("a run reads only its own lines", () => {
-  it("ignores a line that names the run id without LOG_TAG", () => {
-    fc.assert(
-      fc.property(runId, (id) => {
-        expect(LOG_TAG.trim()).not.toBe("");
-        const chat = `2026 INFO <Steve> ${id} SUMMARY pass=6 fail=0`;
-        expect(linesOfRun([chat], id)).toEqual([]);
-        expect(summaryOfRun([chat], id)).toBeUndefined();
-      }),
-    );
-  });
-
-  it("ignores the SUMMARY and results of another run", () => {
-    fc.assert(
-      fc.property(twoRunIds, counts, counts, ([mine, other], f1, f2) => {
-        const logs = [
-          `${linePrefix(other)}PASS ram_cow`,
-          summaryLine(other, f1),
-          `${linePrefix(mine)}FAIL ram_cow`,
-          summaryLine(mine, f2),
-        ];
-        expect(summaryOfRun(logs, mine)).toBe(summaryLine(mine, f2));
-        expect(linesOfRun(logs, mine)).toEqual([logs[2], logs[3]]);
-        expect(summaryOfRun(logs.slice(0, 2), mine)).toBeUndefined();
-      }),
-    );
-  });
-});
-
 describe("TEST_EVENT", () => {
   it("is a namespaced scriptevent id outside the minecraft namespace", () => {
     expect(TEST_EVENT).toMatch(/^[a-z0-9_]+:[a-z0-9_]+$/);
     expect(TEST_EVENT.startsWith("minecraft:")).toBe(false);
-  });
-});
-
-describe("summaryPassed", () => {
-  it("passes only when no test failed", () => {
-    fc.assert(
-      fc.property(runId, counts, (id, fail) => {
-        expect(summaryPassed(summaryLine(id, fail))).toBe(fail === 0);
-      }),
-    );
   });
 });

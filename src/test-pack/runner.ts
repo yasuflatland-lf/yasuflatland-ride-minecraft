@@ -2,380 +2,181 @@
 // main Behavior Pack, so they drive the vehicle through script events.
 import { system, world } from "@minecraft/server";
 import { setupArena } from "./arena";
-import type { Outcome } from "./outcome";
+import { CATALOG } from "./catalog";
+import { type Outcome, stepLines } from "./outcome";
+import { coverageGaps, planOf } from "./plan";
 import {
+  CANCEL_EVENT,
   LOG_TAG,
-  linePrefix,
+  parseRunRequest,
   type RunRequest,
-  runRequestFrom,
-  shardsOf,
   TEST_EVENT,
 } from "./protocol";
 import {
-  bladeCutColumn,
-  bladeCutDrops,
-  bladeCutKeptIds,
-} from "./scenarios/bladeCut";
-import {
-  buildCornerMarkerNone,
-  buildCornerMarkerPair,
-  buildCornerMarkerPos1,
-  buildCornerMarkerPos2,
-} from "./scenarios/buildCornerMarker";
-import {
-  buildBlockStates,
-  buildEdits,
-  buildSelectionAndMode,
-} from "./scenarios/buildTools";
-import {
-  bulldozerClearHill,
-  bulldozerDirtPath,
-  bulldozerDive,
-  bulldozerFallSurvives,
-  bulldozerFlightTunnel,
-  bulldozerHopAndTakeoff,
-  bulldozerMonitor,
-  bulldozerOverhang,
-  bulldozerPivot,
-  bulldozerRaisedNoCut,
-  bulldozerRamCow,
-  bulldozerRiseShaft,
-  bulldozerRoadPaverToggle,
-  bulldozerSeaCut,
-  bulldozerSpawnsRaised,
-  bulldozerStep2Raised,
-  bulldozerWideBladeToggle,
-  bulldozerWideClearHill,
-  bulldozerWideRam,
-} from "./scenarios/bulldozer";
-import {
-  bulldozerExitGround,
-  bulldozerExitSpot,
-} from "./scenarios/bulldozerExit";
-import {
-  campGroundLanternKept,
-  campPitRemoveOven,
-  campTableFreeOven,
-  campTableLantern,
-  campTableLegacyOven,
-  campTableNoSeats,
-  campTableRemoveLantern,
-  campTableRemoveOven,
-  campTableRemoveOvenAndLantern,
-  dutchOvenOnPit,
-  dutchOvenOnTable,
-  dutchOvenSimmerAndTakeBack,
-  firePitCoveredTakeBack,
-  firePitIgnition,
-  gasLanternSwitch,
-  gasLanternTakeBack,
-  lowChairSeatAndTakeBack,
-  lowChairSettlesThroughGrass,
-  nogaChairSeatAndTakeBack,
-} from "./scenarios/camp";
-import {
-  camperAccel,
-  camperBumper,
-  camperBunkCells,
-  camperCabinet,
-  camperDecor,
-  camperDecorPairs,
-  camperDepart,
-  camperDepartCargo,
-  camperDive,
-  camperFridge,
-  camperLand,
-  camperPark,
-  camperParkBlocked,
-  camperParkGrass,
-  camperParkPath,
-  camperParkSnow,
-  camperRelay,
-  camperShowerToiletBlock,
-  camperStandSpots,
-  camperTakeoff,
-  camperToiletSeat,
-  camperWall,
-} from "./scenarios/camper";
-import { campingGearBlocks } from "./scenarios/campingGear";
-import { fleetForget } from "./scenarios/fleetRemove";
-import {
-  bulldozerPaveCliff,
-  bulldozerPaveFlat,
-  bulldozerPaveFlight,
-  bulldozerPaveHole,
-  bulldozerPaveKept,
-  bulldozerPaveNoBlock,
-  bulldozerPaveStepDown,
-  bulldozerPaveWater,
-  bulldozerPaveWide,
-} from "./scenarios/roadPaver";
-import {
-  boatCruise,
-  boatDeckSeats,
-  boatDock,
-  boatDrag,
-  boatFloat,
-  boatIcebreakerBeached,
-  boatIcebreakerIce,
-  boatIcebreakerLava,
-  boatIcebreakerMountainOff,
-  boatIcebreakerMountainOn,
-  boatIcebreakerOff,
-  boatLava,
-  boatMonitor,
-  boatRam,
-  boatSeatFillers,
-  boatShore,
-} from "./scenarios/sportsboat";
-import {
-  accelAndStep1,
-  flightBank,
-  flightClimbDescend,
-  flightCruise,
-  flightDriverless,
-  flightLand,
-  flightTakeoff,
-  flightTouchdown,
-  headlightsFollowAndClear,
-  paintEvents,
-  passableNoHop,
-  ramCow,
-  seatsAfterDriverLeaves,
-  step2,
-  submarineBank,
-  submarineBreach,
-  submarineDive,
-  submarineShallow,
-  submarineShore,
-  submarineUnmanned,
-  suvSoulSand,
-  turnAndHandbrake,
-  vehicleLimit,
-  wallDiagonal,
-} from "./scenarios/suv";
-import {
-  tentEntityContract,
-  tentFlapOpensAlone,
-  tentLantern,
-  tentMattresses,
-  tentPaintEvents,
-  tentPitchAndTakeDown,
-  tentPitchOnSnow,
-  tentRefuseStep,
-  tentRefuseVehicleSpace,
-  tentRelayLostCell,
-} from "./scenarios/tent";
+  formatPlan,
+  formatResult,
+  formatSummary,
+  linePrefix,
+  READY,
+} from "./resultLog";
+import { SCENARIOS } from "./scenarios/index";
 
 function log(runId: string, msg: string): void {
   console.warn(`${linePrefix(runId)}${msg}`);
 }
 
-async function runAll({ runId, shard }: RunRequest): Promise<void> {
-  const a = await setupArena();
-  // The middle number is the test's ticks as last logged in CI; shardsOf packs
-  // by it, so update it when a test gets much slower or faster (ADR 0054).
-  const allTests: [string, number, () => Promise<Outcome>][] = [
-    ["build_block_states", 0, () => buildBlockStates(a)],
-    ["bulldozer_exit_spot", 8, () => bulldozerExitSpot(a)],
-    ["bulldozer_exit_ground", 2, () => bulldozerExitGround(a)],
-    ["bulldozer_wide_clear_hill", 83, () => bulldozerWideClearHill(a)],
-    ["bulldozer_wide_ram", 140, () => bulldozerWideRam(a)],
-    ["bulldozer_clear_hill", 79, () => bulldozerClearHill(a)],
-    ["bulldozer_overhang", 77, () => bulldozerOverhang(a)],
-    ["bulldozer_dirt_path", 77, () => bulldozerDirtPath(a)],
-    ["bulldozer_flight_tunnel", 102, () => bulldozerFlightTunnel(a)],
-    ["bulldozer_pivot", 30, () => bulldozerPivot(a)],
-    ["bulldozer_ram_cow", 62, () => bulldozerRamCow(a)],
-    ["bulldozer_hop_and_takeoff", 47, () => bulldozerHopAndTakeoff(a)],
-    ["bulldozer_dive", 18, () => bulldozerDive(a)],
-    ["bulldozer_sea_cut", 104, () => bulldozerSeaCut(a)],
-    ["bulldozer_rise_shaft", 53, () => bulldozerRiseShaft(a)],
-    ["bulldozer_fall_survives", 60, () => bulldozerFallSurvives(a)],
-    ["bulldozer_step2_raised", 67, () => bulldozerStep2Raised(a)],
-    ["bulldozer_raised_no_cut", 77, () => bulldozerRaisedNoCut(a)],
-    ["bulldozer_spawns_raised", 65, () => bulldozerSpawnsRaised(a)],
-    ["bulldozer_monitor", 34, () => bulldozerMonitor(a)],
-    ["bulldozer_road_paver_toggle", 60, () => bulldozerRoadPaverToggle(a)],
-    ["bulldozer_pave_flat", 86, () => bulldozerPaveFlat(a)],
-    ["bulldozer_pave_wide", 86, () => bulldozerPaveWide(a)],
-    ["bulldozer_pave_hole", 86, () => bulldozerPaveHole(a)],
-    ["bulldozer_pave_step_down", 92, () => bulldozerPaveStepDown(a)],
-    ["bulldozer_pave_cliff", 86, () => bulldozerPaveCliff(a)],
-    ["bulldozer_pave_water", 90, () => bulldozerPaveWater(a)],
-    ["bulldozer_pave_flight", 102, () => bulldozerPaveFlight(a)],
-    ["bulldozer_pave_kept", 86, () => bulldozerPaveKept(a)],
-    ["bulldozer_pave_no_block", 236, () => bulldozerPaveNoBlock(a)],
-    ["bulldozer_wide_blade_toggle", 38, () => bulldozerWideBladeToggle(a)],
-    ["camper_accel", 144, () => camperAccel(a)],
-    ["camper_wall", 150, () => camperWall(a)],
-    ["camper_takeoff", 33, () => camperTakeoff(a)],
-    ["camper_land", 140, () => camperLand(a)],
-    ["camper_dive", 45, () => camperDive(a)],
-    ["camper_park", 30, () => camperPark(a)],
-    ["camper_bunk_cells", 30, () => camperBunkCells(a)],
-    ["camper_park_blocked", 30, () => camperParkBlocked(a)],
-    ["camper_park_snow", 30, () => camperParkSnow(a)],
-    ["camper_park_path", 30, () => camperParkPath(a)],
-    ["camper_park_grass", 30, () => camperParkGrass(a)],
-    ["camper_depart", 45, () => camperDepart(a)],
-    ["camper_depart_cargo", 50, () => camperDepartCargo(a)],
-    ["camper_toilet_seat", 31, () => camperToiletSeat(a)],
-    ["camper_stand_spots", 31, () => camperStandSpots(a)],
-    ["camper_shower_toilet_block", 45, () => camperShowerToiletBlock(a)],
-    ["camper_decor", 51, () => camperDecor(a)],
-    ["camper_decor_pairs", 54, () => camperDecorPairs(a)],
-    ["camper_cabinet", 52, () => camperCabinet(a)],
-    ["camper_fridge", 52, () => camperFridge(a)],
-    ["camper_relay", 55, () => camperRelay(a)],
-    ["camper_bumper", 48, () => camperBumper(a)],
-    ["accel_and_step1", 85, () => accelAndStep1(a)],
-    ["passable_no_hop", 65, () => passableNoHop(a)],
-    ["turn_and_handbrake", 130, () => turnAndHandbrake(a)],
-    ["ram_cow", 44, () => ramCow(a)],
-    ["wall_diagonal", 70, () => wallDiagonal(a)],
-    ["step2_front", 52, () => step2(a, 8, -90, 100)],
-    ["step2_diagonal", 57, () => step2(a, 30, -60, 100)],
-    ["seats_after_driver_leaves", 20, () => seatsAfterDriverLeaves(a)],
-    ["paint_events", 16, () => paintEvents(a)],
-    ["headlights_follow_and_clear", 56, () => headlightsFollowAndClear(a)],
-    ["flight_takeoff", 33, () => flightTakeoff(a)],
-    ["flight_cruise", 93, () => flightCruise(a)],
-    ["flight_climb_descend", 63, () => flightClimbDescend(a)],
-    ["flight_bank", 73, () => flightBank(a)],
-    ["flight_land", 140, () => flightLand(a)],
-    ["flight_touchdown", 60, () => flightTouchdown(a)],
-    ["flight_driverless", 45, () => flightDriverless(a)],
-    ["submarine_dive", 136, () => submarineDive(a)],
-    ["submarine_bank", 91, () => submarineBank(a)],
-    ["submarine_breach", 59, () => submarineBreach(a)],
-    ["submarine_shore", 178, () => submarineShore(a)],
-    ["submarine_unmanned", 211, () => submarineUnmanned(a)],
-    ["submarine_shallow", 118, () => submarineShallow(a)],
-    ["vehicle_limit", 20, () => vehicleLimit(a)],
-    ["fleet_forget", 112, () => fleetForget(a)],
-    ["boat_monitor", 50, () => boatMonitor(a)],
-    ["boat_float", 105, () => boatFloat(a)],
-    ["boat_lava", 80, () => boatLava(a)],
-    ["boat_dock", 76, () => boatDock(a)],
-    ["boat_deck_seats", 27, () => boatDeckSeats(a)],
-    ["boat_drag", 138, () => boatDrag(a)],
-    ["boat_cruise", 270, () => boatCruise(a)],
-    ["boat_icebreaker_ice", 90, () => boatIcebreakerIce(a)],
-    ["boat_icebreaker_lava", 90, () => boatIcebreakerLava(a)],
-    ["boat_icebreaker_off", 90, () => boatIcebreakerOff(a)],
-    ["boat_icebreaker_beached", 70, () => boatIcebreakerBeached(a)],
-    ["boat_icebreaker_mountain_on", 120, () => boatIcebreakerMountainOn(a)],
-    ["boat_icebreaker_mountain_off", 120, () => boatIcebreakerMountainOff(a)],
-    ["boat_shore", 165, () => boatShore(a)],
-    ["boat_ram", 77, () => boatRam(a)],
-    ["boat_seat_fillers", 19, () => boatSeatFillers(a)],
-    ["suv_soul_sand", 78, () => suvSoulSand(a)],
-    ["camping_gear_blocks", 0, () => campingGearBlocks(a)],
-    ["blade_cut_column", 0, () => bladeCutColumn(a)],
-    ["blade_cut_drops", 6, () => bladeCutDrops(a)],
-    ["blade_cut_kept_ids", 0, () => bladeCutKeptIds()],
-    ["low_chair_seat_and_take_back", 6, () => lowChairSeatAndTakeBack(a)],
-    ["noga_chair_seat_and_take_back", 6, () => nogaChairSeatAndTakeBack(a)],
-    ["camp_table_no_seats", 2, () => campTableNoSeats(a)],
-    ["dutch_oven_on_table", 60, () => dutchOvenOnTable(a)],
-    ["camp_table_free_oven", 16, () => campTableFreeOven(a)],
-    ["camp_table_legacy_oven", 34, () => campTableLegacyOven(a)],
-    ["camp_table_lantern", 60, () => campTableLantern(a)],
-    ["dutch_oven_on_pit", 46, () => dutchOvenOnPit(a)],
-    ["camp_table_remove_oven", 15, () => campTableRemoveOven(a)],
-    ["camp_pit_remove_oven", 20, () => campPitRemoveOven(a)],
-    ["camp_table_remove_lantern", 20, () => campTableRemoveLantern(a)],
-    ["camp_ground_lantern_kept", 60, () => campGroundLanternKept(a)],
-    [
-      "camp_table_remove_oven_and_lantern",
-      20,
-      () => campTableRemoveOvenAndLantern(a),
-    ],
-    ["gas_lantern_take_back", 8, () => gasLanternTakeBack(a)],
-    ["gas_lantern_switch", 70, () => gasLanternSwitch(a)],
-    ["fire_pit_ignition", 6, () => firePitIgnition(a)],
-    ["dutch_oven_simmer_take_back", 8, () => dutchOvenSimmerAndTakeBack(a)],
-    ["fire_pit_covered_take_back", 22, () => firePitCoveredTakeBack(a)],
-    [
-      "low_chair_settles_through_grass",
-      20,
-      () => lowChairSettlesThroughGrass(a),
-    ],
-    ["tent_entity_contract", 12, () => tentEntityContract(a)],
-    ["tent_pitch_and_take_down", 7, () => tentPitchAndTakeDown(a)],
-    ["tent_pitch_on_snow", 6, () => tentPitchOnSnow(a)],
-    ["tent_refuse_step", 5, () => tentRefuseStep(a)],
-    ["tent_refuse_vehicle_space", 7, () => tentRefuseVehicleSpace(a)],
-    ["tent_relay_lost_cell", 23, () => tentRelayLostCell(a)],
-    ["tent_flap_opens_alone", 19, () => tentFlapOpensAlone(a)],
-    ["tent_mattresses", 9, () => tentMattresses(a)],
-    ["tent_lantern", 37, () => tentLantern(a)],
-    ["tent_paint_events", 25, () => tentPaintEvents(a)],
-  ];
-  if (world.getAllPlayers().length > 0) {
-    allTests.push(["build_edits", 250, () => buildEdits(a)]);
-    allTests.push([
-      "build_selection_and_mode",
-      30,
-      () => buildSelectionAndMode(a),
-    ]);
-    allTests.push(
-      ["build_corner_marker_pos1", 25, () => buildCornerMarkerPos1(a)],
-      ["build_corner_marker_pos2", 25, () => buildCornerMarkerPos2(a)],
-      ["build_corner_marker_none", 30, () => buildCornerMarkerNone(a)],
-      ["build_corner_marker_pair", 27, () => buildCornerMarkerPair(a)],
-    );
-  } else {
-    log(runId, "SKIP build_edits: a connected player is required");
-    log(
-      runId,
-      "SKIP build_selection_and_mode: a connected player is required; camera perspective needs visual verification",
-    );
-    log(runId, "SKIP build_corner_marker_*: a connected player is required");
-  }
-  const shards = shardsOf(
-    allTests.map(([, ticks]) => ticks),
-    shard.total,
+interface ActiveRun {
+  readonly runId: string;
+  readonly startTick: number;
+  readonly startMs: number;
+  passed: number;
+  failed: number;
+  cancelled: boolean;
+  settled: Promise<void>;
+}
+
+function summary(run: ActiveRun, error?: string): void {
+  log(
+    run.runId,
+    formatSummary({
+      pass: run.passed,
+      fail: run.failed,
+      ticks: system.currentTick - run.startTick,
+      ms: Date.now() - run.startMs,
+      error,
+    }),
   );
-  const tests = allTests.filter((_, i) => shards[i] === shard.index);
-  let passed = 0;
-  const lines: string[] = [];
-  for (const [name, , test] of tests) {
+}
+
+function reject(runId: string, error: string): void {
+  log(runId, formatSummary({ pass: 0, fail: 1, ticks: 0, ms: 0, error }));
+}
+
+async function runAll({ shard }: RunRequest, state: ActiveRun): Promise<void> {
+  const { runId } = state;
+  const { missing, extra } = coverageGaps(
+    CATALOG.map((spec) => spec.name),
+    Object.keys(SCENARIOS),
+  );
+  if (missing.length > 0 || extra.length > 0) {
+    state.failed++;
+    summary(
+      state,
+      `catalog mismatch missing=${missing.join(",")} extra=${extra.join(",")}`,
+    );
+    return;
+  }
+  const plan = planOf(CATALOG, {
+    shard,
+    playerConnected: world.getAllPlayers().length > 0,
+  });
+  log(
+    runId,
+    formatPlan({
+      runs: plan.runs.length,
+      skipped: plan.skipped.length,
+      unselected: plan.unselected,
+      ticks: plan.expectedTicks,
+      lanes: 1,
+    }),
+  );
+  for (const { name, reason } of plan.skipped)
+    log(runId, `SKIP ${name}: ${reason}`);
+  const a = await setupArena();
+  if (state.cancelled) return;
+  log(runId, READY);
+  for (const { name } of plan.runs) {
+    if (state.cancelled) return;
     const start = system.currentTick;
     let outcome: Outcome;
     try {
-      outcome = await test();
+      const run = SCENARIOS[name];
+      if (!run) throw new Error(`scenario not registered: ${name}`);
+      outcome = await run(a, (result) => {
+        if (state.cancelled) return;
+        for (const line of stepLines(result)) log(runId, `${name} ${line}`);
+      });
     } catch (e) {
       outcome = { pass: false, detail: `error: ${e}` };
     }
-    if (outcome.pass) passed++;
-    // ticks= is what rebalancing the CI shards needs.
-    lines.push(
-      `${outcome.pass ? "PASS" : "FAIL"} ${name} ticks=${system.currentTick - start} ${outcome.detail}`,
+    if (state.cancelled) return;
+    if (outcome.pass) state.passed++;
+    else state.failed++;
+    log(
+      runId,
+      formatResult({
+        verdict: outcome.pass ? "PASS" : "FAIL",
+        name,
+        ticks: system.currentTick - start,
+        detail: outcome.detail,
+      }),
     );
-    for (const line of outcome.lines ?? []) lines.push(`${name} ${line}`);
+    for (const line of outcome.lines ?? []) log(runId, `${name} ${line}`);
   }
-  for (const line of lines) log(runId, line);
-  log(runId, `SUMMARY pass=${passed} fail=${tests.length - passed}`);
+  summary(state);
+}
+
+function unsupportedOption(request: RunRequest): string | undefined {
+  if (request.at !== 0) return "at";
+  if (request.features !== undefined) return "features";
+  if (request.lanes !== 1) return "lanes";
+  return undefined;
 }
 
 // Two runs would share the arena and kill each other's cars in setupArena.
-let activeRun: string | undefined;
+let activeRun: ActiveRun | undefined;
 
 system.afterEvents.scriptEventReceive.subscribe((ev) => {
-  if (ev.id !== TEST_EVENT) return;
-  const request = runRequestFrom(ev.message);
-  const { runId } = request;
-  if (activeRun !== undefined) {
-    log(runId, `SUMMARY pass=0 fail=1 error=run ${activeRun} in progress`);
+  if (ev.id === CANCEL_EVENT) {
+    if (activeRun?.runId !== ev.message) return;
+    const state = activeRun;
+    state.cancelled = true;
+    summary(state, "cancelled");
     return;
   }
-  activeRun = runId;
-  runAll(request)
-    .catch((e) => log(runId, `SUMMARY pass=0 fail=1 error=${e}`))
+  if (ev.id !== TEST_EVENT) return;
+  const parsed = parseRunRequest(ev.message);
+  if (!parsed.ok) {
+    reject(parsed.runId, parsed.error);
+    return;
+  }
+  const request = parsed.request;
+  const unsupported = unsupportedOption(request);
+  if (unsupported !== undefined) {
+    reject(request.runId, `${unsupported} not supported yet`);
+    return;
+  }
+  const { runId } = request;
+  if (activeRun !== undefined && !activeRun.cancelled) {
+    reject(runId, `run ${activeRun.runId} in progress`);
+    return;
+  }
+  const state: ActiveRun = {
+    runId,
+    startTick: system.currentTick,
+    startMs: Date.now(),
+    passed: 0,
+    failed: 0,
+    cancelled: false,
+    settled: Promise.resolve(),
+  };
+  const previous = activeRun;
+  activeRun = state;
+  // Cancellation cannot stop an in-flight scenario from mutating the arena.
+  state.settled = (
+    previous
+      ? previous.settled.then(() => {
+          if (!state.cancelled) return runAll(request, state);
+        })
+      : runAll(request, state)
+  )
+    .catch((e) => {
+      if (state.cancelled) return;
+      state.failed++;
+      summary(state, String(e));
+    })
     .finally(() => {
-      activeRun = undefined;
+      if (activeRun === state) activeRun = undefined;
     });
 });
 console.warn(`${LOG_TAG} loaded`);
