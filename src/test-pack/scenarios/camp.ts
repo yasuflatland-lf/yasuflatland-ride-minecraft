@@ -34,7 +34,8 @@ import {
   TEST_GAS_LANTERN_ON_TABLE_EVENT,
   TEST_TABLE_HIT_EVENT,
 } from "../../infrastructure/camp/identifiers";
-import { type Arena, type Outcome, wait } from "../arena";
+import { type Arena, wait } from "../arena";
+import { type Outcome, runCourse } from "../outcome";
 
 // On the arena's east edge, past the camping gear row (z 1-19) and clear of the
 // camper park spot (x 103-114, z 73-84) and the camper tank (z 61-69).
@@ -78,13 +79,13 @@ const lanternsNear = (a: Arena, at: Vector3) =>
 async function forEveryChairKind(
   scenario: (profile: ChairProfile) => Promise<Outcome>,
 ): Promise<Outcome> {
-  const outcomes: Outcome[] = [];
-  for (const profile of Object.values(CHAIR_KINDS))
-    outcomes.push(await scenario(profile));
-  return {
-    pass: outcomes.every((outcome) => outcome.pass),
-    detail: outcomes.map((outcome) => outcome.detail).join("; "),
-  };
+  return runCourse(
+    Object.entries(CHAIR_KINDS).map(([name, profile]) => ({
+      name,
+      run: () => scenario(profile),
+    })),
+    { stopOnFail: false },
+  );
 }
 
 /** Summons a chair, checks its one seat, and folds it back with three hits into one dropped item. */

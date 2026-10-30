@@ -24,7 +24,8 @@ import {
   TEST_HELD_ITEM_EVENT,
   TEST_TOOL_EVENT,
 } from "../../infrastructure/vehicle/bedrock/identifiers";
-import { type Arena, drive, type Outcome, wait, withCar } from "../arena";
+import { type Arena, drive, wait, withCar } from "../arena";
+import type { Outcome } from "../outcome";
 import { hitTick, judgeRam, PUSH_WINDOW, type RamSample } from "../ramJudge";
 import { summonCow, ticksUntilForm, vehicleForm } from "./shared";
 

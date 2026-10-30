@@ -13,7 +13,6 @@ import {
   MESSAGE_LIMIT,
   parseRunRequest,
   shardFrom,
-  shardsOf,
   summaryOfRun,
   summaryPassed,
   TEST_EVENT,
@@ -236,58 +235,6 @@ describe("shardFrom", () => {
   it("rejects an index of 0, above the total, or a malformed text", () => {
     for (const text of ["0/2", "3/2", "1/0", "1-2", "1/2/3", "", " 1/2"])
       expect(shardFrom(text)).toBeUndefined();
-  });
-});
-
-const tickList = fc.array(fc.integer({ min: 1, max: 400 }), { maxLength: 60 });
-const shardCount = fc.integer({ min: 1, max: 8 });
-
-function loads(ticks: number[], shards: number[], total: number): number[] {
-  return Array.from({ length: total }, (_, k) =>
-    ticks.reduce((sum, t, i) => (shards[i] === k + 1 ? sum + t : sum), 0),
-  );
-}
-
-describe("shardsOf", () => {
-  it("puts every test in one shard between 1 and the total", () => {
-    fc.assert(
-      fc.property(tickList, shardCount, (ticks, total) => {
-        const shards = shardsOf(ticks, total);
-        expect(shards).toHaveLength(ticks.length);
-        for (const s of shards) {
-          expect(s).toBeGreaterThanOrEqual(1);
-          expect(s).toBeLessThanOrEqual(total);
-        }
-      }),
-    );
-  });
-
-  it("keeps the slowest shard within one test of the average", () => {
-    fc.assert(
-      fc.property(tickList, shardCount, (ticks, total) => {
-        const load = loads(ticks, shardsOf(ticks, total), total);
-        const sum = ticks.reduce((a, b) => a + b, 0);
-        expect(Math.max(...load)).toBeLessThanOrEqual(
-          sum / total + Math.max(0, ...ticks),
-        );
-      }),
-    );
-  });
-
-  it("splits the same ticks the same way in every job", () => {
-    fc.assert(
-      fc.property(tickList, shardCount, (ticks, total) => {
-        expect(shardsOf(ticks, total)).toEqual(shardsOf([...ticks], total));
-      }),
-    );
-  });
-
-  it("puts everything in the only shard of a whole run", () => {
-    fc.assert(
-      fc.property(tickList, (ticks) => {
-        expect(shardsOf(ticks, 1).every((s) => s === 1)).toBe(true);
-      }),
-    );
   });
 });
 

@@ -7,7 +7,8 @@ import {
   DECOR_SPOT_STATE,
   decorBlockId,
 } from "../../infrastructure/vehicle/bedrock/identifiers";
-import type { Arena, Outcome } from "../arena";
+import type { Arena } from "../arena";
+import type { Outcome } from "../outcome";
 
 // One cell per gear along the arena's east edge, clear of the camper park spot (x 103-114)
 // and the soul sand strip (x 93-98).

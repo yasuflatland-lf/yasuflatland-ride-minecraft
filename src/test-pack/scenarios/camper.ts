@@ -56,14 +56,8 @@ import {
   STAND_IN_FAMILY,
   standInType,
 } from "../../infrastructure/vehicle/bedrock/identifiers";
-import {
-  type Arena,
-  drive,
-  type Outcome,
-  setDecor,
-  wait,
-  withCamper,
-} from "../arena";
+import { type Arena, drive, setDecor, wait, withCamper } from "../arena";
+import type { Outcome } from "../outcome";
 import {
   FLIGHT_LANE,
   gearDownLandingOutcome,
