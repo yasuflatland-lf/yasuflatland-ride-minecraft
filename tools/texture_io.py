@@ -10,6 +10,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tool_loader import load_tool
 
 
+def texel_reader(size, data):
+    return lambda x, y: tuple(data[(y * size + x) * 4 : (y * size + x + 1) * 4])
+
+
 class Outputs:
     def __init__(self, check):
         self.check = check
@@ -53,7 +57,8 @@ class Outputs:
     def finish(self, stale_header, ok_message):
         if self.stale:
             sys.exit(stale_header + "\n" + "\n".join(self.stale))
-        print(ok_message)
+        if ok_message is not None:
+            print(ok_message)
 
 
 def texture_set_doc(color, mer, relief=None):
