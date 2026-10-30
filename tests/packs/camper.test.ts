@@ -2009,6 +2009,26 @@ describe("camper aluminium roof rails", () => {
     }
   });
 
+  it("supports each rail's front and rear end with a post underneath", () => {
+    const posts = rails.filter((cube) => cube.origin[1] === ROOF);
+    const ends = rails.filter(
+      (cube) => (cube.origin[1] ?? 0) > ROOF && (cube.size[2] ?? 0) < 1,
+    );
+    expect(ends).toHaveLength(4);
+    for (const railEnd of ends) {
+      expect(
+        posts.some(
+          (post) =>
+            (post.origin[0] ?? 0) >= (railEnd.origin[0] ?? 0) &&
+            end(post, 0) <= end(railEnd, 0) &&
+            Math.abs(end(post, 1) - (railEnd.origin[1] ?? 0)) < 1e-6 &&
+            Math.abs((post.origin[2] ?? 0) - (railEnd.origin[2] ?? 0)) < 1e-6 &&
+            Math.abs(end(post, 2) - end(railEnd, 2)) < 1e-6,
+        ),
+      ).toBe(true);
+    }
+  });
+
   it("clears the existing roof equipment, including the AC units, fan, rack and ladder", () => {
     // Include every existing body cube reaching above the roof, so equipment changes
     // cannot silently drop out of the clearance check through a coordinate filter.

@@ -849,7 +849,8 @@ for sx in (1, -1):
     for z in (z0, z1 - ROOF_RAIL_END_LENGTH):
         body.append(box(x0, y0, z, x1, y1 - ROOF_RAIL_END_STEP,
                         z + ROOF_RAIL_END_LENGTH, "aluminium"))
-    for post_z in range(z0, z1, ROOF_POST_PITCH):
+    for i in range((z1 - z0) // ROOF_POST_PITCH + 1):
+        post_z = min(z0 + i * ROOF_POST_PITCH, z1 - ROOF_POST_WIDTH)
         body.append(box(sx * (post_x - ROOF_POST_WIDTH / 2), ROOF, post_z,
                         sx * (post_x + ROOF_POST_WIDTH / 2), y0,
                         post_z + ROOF_POST_WIDTH, "aluminium"))
