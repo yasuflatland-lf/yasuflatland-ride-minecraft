@@ -34,6 +34,7 @@ gauges = load_tool("suv_gauges")
 cabin = load_tool("suv_cabin")
 running_gear = load_tool("suv_running_gear")
 export = load_tool("suv_export")
+texture = load_tool("suv_texture")
 ATLAS = load_tool("suv_atlas").ATLAS
 both_sides = load_tool("suv_cubes").both_sides
 
@@ -179,8 +180,8 @@ out.json(MODELS / "suv.geo.json", geo, indent=1)
 export.paint_textures(out, ENTITY_TEXTURES)
 load_tool("lit_textures").build_lit_textures(
     out, ENTITY_TEXTURES, "suv", ATLAS.width, ATLAS.height,
-    load_tool("suv_texture").paint_pixel(palette.BODY_PAINTS[0]),
-    is_lit=load_tool("suv_texture").is_lit)
+    texture.paint_pixel(palette.BODY_PAINTS[0]),
+    is_lit=texture.is_lit)
 export.item_icons(out, ITEM_TEXTURES)
 print("cubes:", len(model_cubes))
 

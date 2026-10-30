@@ -18,8 +18,7 @@ def region_faces(block: str, name: str, faces: dict[str, tuple[int, int, int, in
     if not faces.keys() <= allowed:
         raise ValueError("Unknown cube face")
     r = atlas.region(block, name)
-    _, spec, _, _ = atlas.region_at(r.x, r.y)
-    result = uv(spec.base)
+    result = uv(atlas.region_spec(block, name).base)
     for face, (u, v, w, h) in faces.items():
         result[face] = atlas.ATLAS.face(r, (u, v), (w, h))
     return result

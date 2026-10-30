@@ -34,6 +34,10 @@ def region(block: str, name: str) -> Region:
     return _REGIONS[block, name][0]._replace(name=name)
 
 
+def region_spec(block: str, name: str) -> RegionSpec:
+    return _REGIONS[block, name][1]
+
+
 def region_at(x: int, y: int) -> tuple[str, RegionSpec, int, int] | None:
     for (block, _), (r, spec) in _REGIONS.items():
         if r.x <= x < r.x + r.w and r.y <= y < r.y + r.h:

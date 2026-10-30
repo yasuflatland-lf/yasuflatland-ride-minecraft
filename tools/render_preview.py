@@ -456,7 +456,12 @@ def collect(geo, texture, folds, turns, pose, lit_texture=None, lit_bones=SUV_LI
             (rx, ry, _), offset = turns[name]
             motion = ((rx, ry, 0), offset)
         style = lit_bones.get(name) if pose["lamps"] else None
-        emissive = "disc" if name.startswith("glow_") else "lamp" if style == "lamp" else None
+        if name.startswith("glow_"):
+            emissive = "disc"
+        elif style == "lamp":
+            emissive = "lamp"
+        else:
+            emissive = None
         face_texture = texture
         if style == "texel" and not emissive:
             if combined_texture is None:
