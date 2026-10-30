@@ -2,7 +2,8 @@ import { BULLDOZER_PROFILE } from "../../domain/vehicle/kinds/bulldozer/profile"
 import { seatWorldPositions } from "../../domain/vehicle/seats";
 import { ENTITY_TYPE } from "../../infrastructure/vehicle/bedrock/identifiers";
 import { seatExitSpot } from "../../infrastructure/vehicle/bedrock/seatExitSpot";
-import { type Arena, type Outcome, wait, withCar } from "../arena";
+import { type Arena, wait, withCar } from "../arena";
+import type { Outcome } from "../outcome";
 
 export async function bulldozerExitSpot(a: Arena): Promise<Outcome> {
   const { dim, gy } = a;

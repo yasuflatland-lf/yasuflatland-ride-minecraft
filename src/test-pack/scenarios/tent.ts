@@ -34,7 +34,8 @@ import {
   TEST_TENT_PITCH_EVENT,
 } from "../../infrastructure/camp/identifiers";
 import { PAINT_VARIANT, paintEvent } from "../../infrastructure/shared/dyes";
-import { type Arena, type Outcome, spawnCar, wait } from "../arena";
+import { type Arena, spawnCar, wait } from "../arena";
+import type { Outcome } from "../outcome";
 
 export async function tentEntityContract(a: Arena): Promise<Outcome> {
   const at = { x: 119.5, y: a.gy + 2, z: 46.5 };

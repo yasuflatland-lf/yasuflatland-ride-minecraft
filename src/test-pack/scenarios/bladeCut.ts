@@ -10,7 +10,8 @@ import { id, LAID_BLOCK_TAG } from "../../infrastructure/shared/identifiers";
 import { BladeCuts } from "../../infrastructure/vehicle/bedrock/bladeCuts";
 import { decorBlockId } from "../../infrastructure/vehicle/bedrock/identifiers";
 import { systemClock } from "../../infrastructure/vehicle/bedrock/systemClock";
-import { type Arena, type Outcome, wait } from "../arena";
+import { type Arena, wait } from "../arena";
+import type { Outcome } from "../outcome";
 
 function cleanup(a: Arena): void {
   a.dim.runCommand(`fill 116 ${a.gy} 24 118 ${a.gy + 12} 30 air`);
