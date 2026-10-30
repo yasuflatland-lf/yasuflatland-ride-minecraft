@@ -96,9 +96,7 @@ def steering_cubes():
     cx, cy = WHEEL_CENTER
     RIM_SEGMENTS, RIM_WIDTH = 16, 0.7
     rim_half_chord = round(WHEEL_RADIUS * math.tan(math.radians(180 / RIM_SEGMENTS)) + 0.05, 3)
-    leather = suv_cubes.region_faces(
-        "gauges", "leather", {face: (0, 0, 8, 8) for face in ("north", "south", "east", "west", "up", "down")}
-    )
+    leather = suv_cubes.whole_region_faces("gauges", "leather")
     steering = [
         steering_part(
             cx - rim_half_chord, cy + WHEEL_RADIUS - RIM_WIDTH / 2, cx + rim_half_chord, cy + WHEEL_RADIUS + RIM_WIDTH / 2,

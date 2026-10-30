@@ -44,9 +44,7 @@ BEZEL_FRONT_GAP = 0.05
 
 
 def headlight_panel(region, diameter, front, thickness, faces: tuple[str, ...]):
-    spec = load_tool("suv_atlas").region_spec("headlight", region)
-    uv = suv_cubes.region_faces("headlight", region,
-                                {face: (0, 0, spec.w, spec.h) for face in faces})
+    uv = suv_cubes.whole_region_faces("headlight", region, faces)
     half = diameter / 2
     return [box(cx - half, cy - half, front - thickness,
                 cx + half, cy + half, front, uv)
@@ -87,13 +85,13 @@ def turn_signal_cubes():
 def third_brake_light_cubes():
     return [
         box(-1.5, WINDOW_TOP_Y - 0.7, REAR - 0.2, 1.5, WINDOW_TOP_Y, REAR,
-            suv_cubes.region_faces("tail_lamp", "third_brake", {"north": (0, 0, 12, 3)})),
+            suv_cubes.whole_region_faces("tail_lamp", "third_brake", ("north",))),
     ]
 
 
 def tail_light_cubes():
     return [box(9.6, 10, REAR - 0.3, 12.6, 16, REAR,
-                suv_cubes.region_faces("tail_lamp", "tail_face", {"north": (0, 0, 12, 24)}))]
+                suv_cubes.whole_region_faces("tail_lamp", "tail_face", ("north",)))]
 
 
 def tail_resin_cubes():

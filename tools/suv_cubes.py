@@ -8,13 +8,15 @@ from tool_loader import load_tool
 atlas = load_tool("suv_atlas")
 uv = atlas.uv
 
+CUBE_FACES = ("north", "south", "east", "west", "up", "down")
+
 
 def box(x0, y0, z0, x1, y1, z1, color):
     return {"origin": [x0, y0, z0], "size": [x1 - x0, y1 - y0, z1 - z0], "uv": uv(color) if isinstance(color, str) else deepcopy(color)}
 
 
 def region_faces(block: str, name: str, faces: dict[str, tuple[int, int, int, int]]) -> dict:
-    allowed = {"north", "south", "east", "west", "up", "down"}
+    allowed = set(CUBE_FACES)
     if not faces.keys() <= allowed:
         raise ValueError("Unknown cube face")
     r = atlas.region(block, name)
@@ -22,6 +24,12 @@ def region_faces(block: str, name: str, faces: dict[str, tuple[int, int, int, in
     for face, (u, v, w, h) in faces.items():
         result[face] = atlas.ATLAS.face(r, (u, v), (w, h))
     return result
+
+
+def whole_region_faces(block, name, faces=CUBE_FACES):
+    """Maps each listed face to the whole region."""
+    spec = atlas.region_spec(block, name)
+    return region_faces(block, name, {face: (0, 0, spec.w, spec.h) for face in faces})
 
 
 def transform_uv(faces, axes):
