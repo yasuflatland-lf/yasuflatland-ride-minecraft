@@ -9,6 +9,8 @@ palette = load_tool("suv_palette")
 PALETTE = palette.PALETTE
 BODY_PAINTS = palette.BODY_PAINTS
 texture = load_tool("suv_texture")
+material = load_tool("suv_material")
+write_texture_set = load_tool("texture_io").write_texture_set
 transform_uv = load_tool("suv_cubes").transform_uv
 ATLAS = load_tool("suv_atlas").ATLAS
 
@@ -95,6 +97,8 @@ def paint_textures(out, directory):
     for paint in BODY_PAINTS:
         name = "suv" if paint.name == "khaki" else f"suv_{paint.name}"
         out.png(directory / f"{name}.png", ATLAS.width, ATLAS.height, texture.paint_pixel(paint))
+        out.png(directory / f"{name}_mer.png", ATLAS.width, ATLAS.height, material.mer_pixel(paint))
+        write_texture_set(out, directory, name)
 
 
 def item_icons(out, directory):
