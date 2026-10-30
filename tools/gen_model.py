@@ -74,6 +74,7 @@ body = [
     *shell.tailgate_cubes(),
     *lamp_part("third_brake_light"),
     *lamp_part("tail_light", mirrored=True),
+    *lamp_part("tail_resin", mirrored=True),
     *shell.tailgate_hinge_cubes(),
     *shell.exhaust_cubes(),
     *both_sides(shell.side_step_cubes()),
