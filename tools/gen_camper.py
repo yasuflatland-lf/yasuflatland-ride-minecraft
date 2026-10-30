@@ -1490,7 +1490,7 @@ def region_pixel(region, x, y):
     elif region.name == "door_hinge":
         dark = y in (5, 6, 19, 20)
     elif region.name == "door_latch":
-        dark = x == 1 and y in (12, 13)
+        dark = x == 1 and y in (10, 11)
     elif region.name == "vent_screws":
         dark = y == 1 and x in (2, 7, 12)
     else:
