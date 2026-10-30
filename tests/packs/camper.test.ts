@@ -2252,3 +2252,59 @@ describe("camper aluminium roof edges", () => {
     }
   });
 });
+
+describe("camper aluminium roof rails", () => {
+  const ROOF = 64;
+  const ALUMINIUM_SLOT = 36;
+  const end = (cube: Cube, axis: number) =>
+    (cube.origin[axis] ?? 0) + (cube.size[axis] ?? 0);
+  const body = bone("body").cubes ?? [];
+  const rails = body.filter(
+    (cube) =>
+      cube.uv.north?.uv[0] === ALUMINIUM_SLOT &&
+      (cube.origin[1] ?? 0) >= ROOF &&
+      ((cube.origin[0] ?? 0) >= 22 || end(cube, 0) <= -22),
+  );
+
+  it("keeps mirrored rails and posts inside the footprint and at most 3 px above the roof", () => {
+    expect(rails.length).toBeGreaterThan(0);
+    expect(rails.some((cube) => cube.origin[1] === ROOF)).toBe(true);
+    expect(rails.some((cube) => (cube.size[2] ?? 0) > 80)).toBe(true);
+    for (const cube of rails) {
+      expect(cube.origin[0]).toBeGreaterThanOrEqual(-24);
+      expect(end(cube, 0)).toBeLessThanOrEqual(24);
+      expect(cube.origin[2]).toBeGreaterThanOrEqual(-56);
+      expect(end(cube, 2)).toBeLessThanOrEqual(56);
+      expect(end(cube, 1)).toBeLessThanOrEqual(ROOF + 3);
+      expect(cube.rotation ?? [0, 0, 0]).toEqual([0, 0, 0]);
+      expect(
+        rails.some(
+          (other) =>
+            Math.abs((other.origin[0] ?? 0) + end(cube, 0)) < 1e-6 &&
+            other.origin[1] === cube.origin[1] &&
+            other.origin[2] === cube.origin[2] &&
+            other.size.every((size, axis) => size === cube.size[axis]),
+        ),
+      ).toBe(true);
+    }
+  });
+
+  it("clears the existing roof equipment, including the AC units, fan, rack and ladder", () => {
+    // Include every existing body cube reaching above the roof, so equipment changes
+    // cannot silently drop out of the clearance check through a coordinate filter.
+    const equipment = body.filter(
+      (cube) => !rails.includes(cube) && end(cube, 1) > ROOF,
+    );
+    expect(equipment.length).toBeGreaterThan(0);
+    for (const rail of rails) {
+      const overlaps = equipment.filter((cube) =>
+        [0, 1, 2].every(
+          (axis) =>
+            (rail.origin[axis] ?? 0) < end(cube, axis) - 1e-6 &&
+            (cube.origin[axis] ?? 0) < end(rail, axis) - 1e-6,
+        ),
+      );
+      expect(overlaps).toEqual([]);
+    }
+  });
+});
