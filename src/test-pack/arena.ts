@@ -164,6 +164,22 @@ export function withCamper<T>(
   return withCar(a, x, z, yaw, run, ENTITY_TYPE.camper);
 }
 
+const GROUND_PROBE = { x: 5, z: 20 } as const;
+
+function arenaLoaded(dim: Dimension, lane: Lane, y: number): boolean {
+  const b = worldBounds(lane, LOCAL_ARENA);
+  return [b.minX, b.maxX].every((x) =>
+    [b.minZ, b.maxZ].every((z) => blockLoaded(dim, { x, y, z })),
+  );
+}
+
+const VEHICLE_TYPES = [
+  ENTITY_TYPE.suv,
+  ENTITY_TYPE.sportsboat,
+  ENTITY_TYPE.camper,
+  ENTITY_TYPE.bulldozer,
+] as const;
+
 export async function prepareRun(
   dim: Dimension,
   lanes: readonly Lane[],
@@ -193,29 +209,19 @@ export async function prepareRun(
     }
   }
   for (const lane of allLanes) {
-    const b = worldBounds(lane, LOCAL_ARENA);
-    if (
-      !(await waitUntil(200, () =>
-        [b.minX, b.maxX].every((x) =>
-          [b.minZ, b.maxZ].every((z) => blockLoaded(dim, { x, y: 0, z })),
-        ),
-      ))
-    )
+    if (!(await waitUntil(200, () => arenaLoaded(dim, lane, 0))))
       throw new Error(`lane ${lane.index} not loaded (corners)`);
   }
-  const top = dim.getTopmostBlock(toWorld(laneOf(0), { x: 5, z: 20 }));
+  const top = dim.getTopmostBlock(toWorld(laneOf(0), GROUND_PROBE));
   if (!top) throw new Error("lane 0 not loaded");
   const gy = top.location.y + 1;
   for (const lane of lanes) {
-    const laneTop = dim.getTopmostBlock(toWorld(lane, { x: 5, z: 20 }));
+    const laneTop = dim.getTopmostBlock(toWorld(lane, GROUND_PROBE));
     if (!laneTop) throw new Error(`lane ${lane.index} not loaded (corners)`);
     if (laneTop.location.y + 1 !== gy)
       throw new Error(`lane ${lane.index} ground height differs from lane 0`);
   }
-  dim.runCommand(`kill @e[type=${ENTITY_TYPE.suv}]`);
-  dim.runCommand(`kill @e[type=${ENTITY_TYPE.sportsboat}]`);
-  dim.runCommand(`kill @e[type=${ENTITY_TYPE.camper}]`);
-  dim.runCommand(`kill @e[type=${ENTITY_TYPE.bulldozer}]`);
+  for (const type of VEHICLE_TYPES) dim.runCommand(`kill @e[type=${type}]`);
   for (const { typeId } of Object.values(CHAIR_KINDS))
     dim.runCommand(`kill @e[type=${typeId}]`);
   dim.runCommand(`kill @e[type=${TENT_TYPE}]`);
@@ -240,14 +246,8 @@ export async function prepareRun(
     if (index > 0) await wait(1);
     // successCount is 0 both for an unloaded chunk and for a fill that changes
     // nothing (air over air on a rerun), so loading is checked on the corners.
-    const b = worldBounds(a.lane, LOCAL_ARENA);
-    const loaded = [b.minX, b.maxX].every((x) =>
-      [b.minZ, b.maxZ].every((z) => blockLoaded(dim, { x, y: gy, z })),
-    );
-    if (!loaded) throw new Error(`lane ${a.lane.index} not loaded (fill)`);
-    const fill = (box: string, block: string) => {
-      dim.runCommand(`fill ${box} ${block}`);
-    };
+    if (!arenaLoaded(dim, a.lane, gy))
+      throw new Error(`lane ${a.lane.index} not loaded (fill)`);
     // fill is capped at 32,768 blocks per call, so split the clear in four.
     for (const [x0, x1] of [
       [minX, midX],
@@ -257,13 +257,24 @@ export async function prepareRun(
         [minZ, midZ],
         [midZ + 1, maxZ],
       ] as const)
-        fill(a.box(x0, gy, z0, x1, gy + 6, z1), "air");
-    fill(a.box(minX, gy - 1, minZ, maxX, gy - 1, maxZ), "stone");
+        dim.runCommand(`fill ${a.box(x0, gy, z0, x1, gy + 6, z1)} air`);
+    dim.runCommand(
+      `fill ${a.box(minX, gy - 1, minZ, maxX, gy - 1, maxZ)} stone`,
+    );
     // Flight tests climb about eight blocks above the floor along z = 4.5.
-    fill(a.box(minX, gy + 7, 0, 60, gy + 20, 12), "air");
+    dim.runCommand(`fill ${a.box(minX, gy + 7, 0, 60, gy + 20, 12)} air`);
   }
   await wait(5);
   return arenas;
+}
+
+// A runaway vehicle from a lane would otherwise hold an unowned slot that
+// vehicle_limit and fleet_forget count.
+export async function removeVehicles(dim: Dimension): Promise<void> {
+  for (const type of VEHICLE_TYPES) {
+    for (const entity of dim.getEntities({ type })) entity.remove();
+  }
+  await wait(5);
 }
 
 // 80 blocks across z, so a submarine has room to turn (submarine_bank); the

@@ -13,6 +13,7 @@ export interface ScenarioSpec {
   readonly isolation: Isolation;
   readonly group?: "tent";
   readonly needsPlayer: boolean;
+  readonly skipNote?: string;
   readonly vehicles: number;
 }
 
@@ -189,25 +190,16 @@ export const CATALOG: readonly ScenarioSpec[] = [
     vehicles: 1,
   },
   {
-    name: "bulldozer_monitor",
+    name: "bulldozer_tools",
     file: "bulldozer",
-    ticks: 34,
+    ticks: 136,
     features: ["vehicle:bulldozer"],
     isolation: "lane",
     needsPlayer: false,
     vehicles: 1,
   },
   {
-    name: "bulldozer_road_paver_toggle",
-    file: "bulldozer",
-    ticks: 60,
-    features: ["vehicle:bulldozer"],
-    isolation: "lane",
-    needsPlayer: false,
-    vehicles: 1,
-  },
-  {
-    name: "bulldozer_pave_flat",
+    name: "bulldozer_pave_course",
     file: "roadPaver",
     ticks: 86,
     features: ["vehicle:bulldozer"],
@@ -225,27 +217,9 @@ export const CATALOG: readonly ScenarioSpec[] = [
     vehicles: 1,
   },
   {
-    name: "bulldozer_pave_hole",
-    file: "roadPaver",
-    ticks: 86,
-    features: ["vehicle:bulldozer"],
-    isolation: "lane",
-    needsPlayer: false,
-    vehicles: 1,
-  },
-  {
     name: "bulldozer_pave_step_down",
     file: "roadPaver",
     ticks: 92,
-    features: ["vehicle:bulldozer"],
-    isolation: "lane",
-    needsPlayer: false,
-    vehicles: 1,
-  },
-  {
-    name: "bulldozer_pave_cliff",
-    file: "roadPaver",
-    ticks: 86,
     features: ["vehicle:bulldozer"],
     isolation: "lane",
     needsPlayer: false,
@@ -270,28 +244,10 @@ export const CATALOG: readonly ScenarioSpec[] = [
     vehicles: 1,
   },
   {
-    name: "bulldozer_pave_kept",
-    file: "roadPaver",
-    ticks: 86,
-    features: ["vehicle:bulldozer"],
-    isolation: "lane",
-    needsPlayer: false,
-    vehicles: 1,
-  },
-  {
     name: "bulldozer_pave_no_block",
     file: "roadPaver",
-    ticks: 236,
+    ticks: 59,
     features: ["vehicle:bulldozer", "build"],
-    isolation: "lane",
-    needsPlayer: false,
-    vehicles: 1,
-  },
-  {
-    name: "bulldozer_wide_blade_toggle",
-    file: "bulldozer",
-    ticks: 38,
-    features: ["vehicle:bulldozer"],
     isolation: "lane",
     needsPlayer: false,
     vehicles: 1,
@@ -1092,6 +1048,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
     features: ["build", "vehicle:suv", "vehicle:bulldozer"],
     isolation: "exclusive",
     needsPlayer: true,
+    skipNote: "camera perspective needs visual verification",
     vehicles: 1,
   },
   {
