@@ -13,6 +13,7 @@ export interface ScenarioSpec {
   readonly isolation: Isolation;
   readonly group?: "tent";
   readonly needsPlayer: boolean;
+  readonly skipNote?: string;
   readonly vehicles: number;
 }
 
@@ -1200,6 +1201,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
     features: ["build", "vehicle:suv", "vehicle:bulldozer"],
     isolation: "exclusive",
     needsPlayer: true,
+    skipNote: "camera perspective needs visual verification",
     vehicles: 1,
   },
   {
