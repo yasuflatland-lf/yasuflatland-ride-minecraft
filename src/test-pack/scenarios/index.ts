@@ -51,7 +51,6 @@ import {
   gasLanternTakeBack,
   lowChairSeatAndTakeBack,
   lowChairSettlesThroughGrass,
-  nogaChairSeatAndTakeBack,
 } from "./camp";
 import {
   camperAccel,
@@ -208,7 +207,6 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   blade_cut_drops: bladeCutDrops,
   blade_cut_kept_ids: bladeCutKeptIds,
   low_chair_seat_and_take_back: lowChairSeatAndTakeBack,
-  noga_chair_seat_and_take_back: nogaChairSeatAndTakeBack,
   camp_table_no_seats: campTableNoSeats,
   dutch_oven_on_table: dutchOvenOnTable,
   camp_table_free_oven: campTableFreeOven,
