@@ -3,7 +3,7 @@
 - Status: Superseded in part by 0036 (painting by interacting); extended by 0076, 0135, and [0136](0136-bulldozer.md) (Proposed)
 - Date: 2026-10-11
 - Supersedes: 0017
-- Amended in part by [0192](0192-suv-detailed-body.md) (Proposed)
+- Amended in part by: [0192](0192-suv-detailed-body.md) (Proposed)
 
 ## Context
 

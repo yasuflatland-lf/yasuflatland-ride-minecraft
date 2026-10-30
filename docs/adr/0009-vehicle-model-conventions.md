@@ -4,7 +4,7 @@
 - Superseded in part by: [0170](0170-measure-suv-side-view-proportions.md) (SUV collision dimensions; Proposed)
 - Date: 2026-10-10
 - Amended by: [0167](0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md)
-- Amended in part by [0192](0192-suv-detailed-body.md) (Proposed)
+- Amended in part by: [0192](0192-suv-detailed-body.md) (Proposed)
 
 ## Context
 

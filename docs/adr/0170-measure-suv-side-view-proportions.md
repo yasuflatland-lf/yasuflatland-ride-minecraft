@@ -4,7 +4,7 @@
 - Date: 2026-10-27
 - Extends: 0009 (model conventions), 0006 (body probes), 0122 (footprint)
 - Supersedes in part: 0009 (SUV collision dimensions), 0117 (the front seats' and front riders' z), 0029 (the seat height)
-- Amended in part by [0192](0192-suv-detailed-body.md) (Proposed)
+- Amended in part by: [0192](0192-suv-detailed-body.md) (Proposed)
 
 ## Context
 
