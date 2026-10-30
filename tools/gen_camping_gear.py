@@ -26,14 +26,15 @@ A gear shape may use cubes turned about a single axis (a `pivot` and a `rotation
 import argparse
 import json
 import math
-import struct
 import sys
-import zlib
 from pathlib import Path
 
 # Isolated mode (-I) omits the script directory from the import path.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tool_loader import load_tool
+
+texture_io = load_tool("texture_io")
+texel_reader = texture_io.texel_reader
 
 cube_tilt = load_tool("cube_tilt")
 
@@ -401,37 +402,6 @@ def atlas_pixels():
     )
 
 
-def write_png(path, size, pixels):
-    stride = size * 4
-    raw = b"".join(b"\x00" + pixels[y * stride : (y + 1) * stride] for y in range(size))
-
-    def chunk(t, d):
-        return struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d) & 0xFFFFFFFF)
-
-    head = struct.pack(">IIBBBBB", size, size, 8, 6, 0, 0, 0)
-    path.write_bytes(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", head) + chunk(b"IDAT", zlib.compress(raw, 9)) + chunk(b"IEND", b""))
-
-
-def read_png(path, size):
-    """Decode a PNG this script wrote: 8-bit RGBA, size x size, every row unfiltered."""
-    data = path.read_bytes()
-    pos, idat = 8, b""
-    while pos < len(data):
-        length = struct.unpack(">I", data[pos : pos + 4])[0]
-        kind = data[pos + 4 : pos + 8]
-        if kind == b"IHDR" and data[pos + 8 : pos + 18] != struct.pack(">IIBB", size, size, 8, 6):
-            raise ValueError("not a 16 x 16 RGBA PNG")
-        if kind == b"IDAT":
-            idat += data[pos + 8 : pos + 8 + length]
-        pos += length + 12
-    raw = zlib.decompress(idat)
-    stride = size * 4
-    rows = [raw[y * (stride + 1) : (y + 1) * (stride + 1)] for y in range(size)]
-    if any(len(row) != stride + 1 or row[0] != 0 for row in rows):
-        raise ValueError("rows are not unfiltered")
-    return b"".join(row[1:] for row in rows)
-
-
 def terrain():
     return {
         "resource_pack_name": "yasu_ride",
@@ -660,32 +630,6 @@ def item_textures(current, spec):
     }
 
 
-def stale_files(documents, atlas):
-    stale = []
-    for path, document in documents.items():
-        try:
-            if json.loads(path.read_text()) != document:
-                stale.append(str(path))
-        except (OSError, ValueError) as e:
-            stale.append(f"{path} ({e})")
-    try:
-        if read_png(atlas, ATLAS_SIZE) != atlas_pixels():
-            stale.append(str(atlas))
-    except (OSError, ValueError, struct.error, zlib.error) as e:
-        stale.append(f"{atlas} ({e})")
-    return stale
-
-
-def write_files(documents, atlas):
-    for path, document in documents.items():
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(document, separators=(",", ":")) + "\n")
-        print(f"wrote {path}")
-    atlas.parent.mkdir(parents=True, exist_ok=True)
-    write_png(atlas, ATLAS_SIZE, atlas_pixels())
-    print(f"wrote {atlas}")
-
-
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("resource_pack", type=Path)
@@ -708,13 +652,18 @@ def main():
         documents[bp / BLOCKS / f"{kind}_decor_pair.block.json"] = pair_block(kind, spec)
     documents[rp / ITEM_TEXTURES] = item_textures(json.loads((rp / ITEM_TEXTURES).read_text()), spec)
     atlas = rp / ATLAS
-    if not args.check:
-        write_files(documents, atlas)
-        return
-    stale = stale_files(documents, atlas)
-    if stale:
-        sys.exit(f"{', '.join(stale)} out of date with tools/gen_camping_gear.py and tools/camping_gear.json. Run `pnpm model` and commit the result.")
-    print("camping gear models, atlas, blocks, and items are up to date")
+    out = texture_io.Outputs(args.check)
+
+    def report_written(path):
+        if not out.check:
+            print(f"wrote {path}")
+
+    for path, document in documents.items():
+        out.json(path, json.dumps(document, separators=(",", ":")) + "\n")
+        report_written(path)
+    out.png(atlas, ATLAS_SIZE, ATLAS_SIZE, texel_reader(ATLAS_SIZE, atlas_pixels()), compress_level=9)
+    report_written(atlas)
+    out.finish("out of date with tools/gen_camping_gear.py and tools/camping_gear.json. Run `pnpm model` and commit the result.", "camping gear models, atlas, blocks, and items are up to date" if out.check else None)
 
 
 if __name__ == "__main__":
