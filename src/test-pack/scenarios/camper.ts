@@ -140,6 +140,12 @@ function parkSpotPose(a: Arena): HoldPose {
   return parkPose(a.at(PARK_SPOT.x, a.gy, PARK_SPOT.z), PARK_SPOT.yaw);
 }
 
+function paveParkSpot(a: Arena, block: string): void {
+  a.dim.runCommand(
+    `fill ${a.box(103, a.gy - 1, 73, 114, a.gy - 1, 84)} ${block}`,
+  );
+}
+
 function countLaid(a: Arena, cells: readonly DockCell[]): number {
   return cells.filter((c) => a.dim.getBlock(c)?.typeId === laidTypeOf(c.block))
     .length;
@@ -170,10 +176,7 @@ async function atParkSpot(
 // its collision box, clears the plants, and lifts its bumper stand-in out of a grass block
 // in front of the bumper.
 export async function camperParkGrass(a: Arena): Promise<Outcome> {
-  const ground = a.gy - 1;
-  a.dim.runCommand(
-    `fill ${a.box(103, ground, 73, 114, ground, 84)} grass_block`,
-  );
+  paveParkSpot(a, "grass_block");
   const pose = parkSpotPose(a);
   const raised = localCellAt(pose, { x: 1, z: 3, layer: 0 });
   const bumper = localCellAt(pose, { x: 0, z: 4, layer: 0 });
@@ -212,7 +215,7 @@ export async function camperParkGrass(a: Arena): Promise<Outcome> {
       };
     });
   } finally {
-    a.dim.runCommand(`fill ${a.box(103, ground, 73, 114, ground, 84)} stone`);
+    paveParkSpot(a, "stone");
   }
 }
 
@@ -237,14 +240,12 @@ export async function camperWall(a: Arena): Promise<Outcome> {
   a.dim.runCommand(`fill ${a.box(60, a.gy, 82, 60, a.gy + 3, 89)} stone`);
   try {
     return await withCamper(a, 30.5, 85.5, -90, async (car) => {
+      const frontX = () => a.local(car.location).x + CAMPER_SPEC.bodyFront;
       drive(car, 0, 1);
-      let front = a.local(car.location).x + CAMPER_SPEC.bodyFront;
+      let front = frontX();
       for (let t = 0; t < 150; t++) {
         await wait(1);
-        front = Math.max(
-          front,
-          a.local(car.location).x + CAMPER_SPEC.bodyFront,
-        );
+        front = Math.max(front, frontX());
       }
       const x = a.local(car.location).x;
       const speed = length(car.getVelocity());
@@ -338,9 +339,7 @@ export function camperParkSnow(a: Arena): Promise<Outcome> {
 
 export async function camperParkPath(a: Arena): Promise<Outcome> {
   const ground = a.gy - 1;
-  a.dim.runCommand(
-    `fill ${a.box(103, ground, 73, 114, ground, 84)} grass_path`,
-  );
+  paveParkSpot(a, "grass_path");
   try {
     return await atParkSpot(a, async (car) => {
       await wait(DOCK.ticks + 10);
@@ -353,7 +352,7 @@ export async function camperParkPath(a: Arena): Promise<Outcome> {
       };
     });
   } finally {
-    a.dim.runCommand(`fill ${a.box(103, ground, 73, 114, ground, 84)} stone`);
+    paveParkSpot(a, "stone");
   }
 }
 
