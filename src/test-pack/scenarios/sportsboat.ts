@@ -368,9 +368,10 @@ export function boatDrag(a: Arena): Promise<Outcome> {
           values.length > 0 ? mean(values).toFixed(3) : "n/a";
         const summary = (values: number[]) =>
           `mean=${meanText(values)} spread=${values.length > 0 ? (Math.max(...values) - Math.min(...values)).toFixed(3) : "n/a"} n=${values.length}`;
+        const end = a.local(boat.location);
         const distance = length({
-          x: a.local(boat.location).x - start.x,
-          z: a.local(boat.location).z - start.z,
+          x: end.x - start.x,
+          z: end.z - start.z,
         });
         return {
           pass: distance >= 5,
@@ -469,6 +470,7 @@ export function boatRam(a: Arena): Promise<Outcome> {
     withBoat(a, async (boat) => {
       const start = a.local(boat.location);
       const spot = { x: start.x + 14, y: start.y, z: start.z };
+      const pinAt = a.at(spot.x, spot.y, spot.z);
       const cow = summonCow(a, spot.x, spot.z);
       if (!cow) return { pass: false, detail: "cow not found" };
       // Slowness does not stop a mob in water: its float goal bobs it on a
@@ -477,7 +479,7 @@ export function boatRam(a: Arena): Promise<Outcome> {
       // until the first hit.
       const pin = () => {
         if (!cow.isValid) return;
-        cow.teleport(a.at(spot.x, spot.y, spot.z));
+        cow.teleport(pinAt);
         cow.clearVelocity();
       };
       let offset = "n/a";
@@ -713,6 +715,7 @@ async function boatIcebreaker(
             ticks++;
           }
           drive(boat, 0, 0);
+          const boatX = a.local(boat.location).x;
           const wallAfter = dim.getBlock(wall)?.typeId;
           const sideAfter = dim.getBlock(highSide)?.typeId;
           const shouldCut = enabled && liquid !== undefined;
@@ -722,7 +725,7 @@ async function boatIcebreaker(
             sideAfter === "minecraft:air";
           const intact =
             wallAfter === wallType && sideAfter === "minecraft:stone";
-          const moved = a.local(boat.location).x > wallX + 2;
+          const moved = boatX > wallX + 2;
           const dried: string[] = [];
           if (liquid) {
             for (let x = 33; x <= 39; x++)
@@ -743,7 +746,7 @@ async function boatIcebreaker(
               switched &&
               (shouldCut ? cleared && moved : intact && !moved) &&
               dried.length === 0,
-            detail: `switched=${switched} wall=${wallAfter} side=${sideAfter} x=${a.local(boat.location).x.toFixed(2)} ticks=${ticks} dried=${dried.length} ${dried.slice(0, 3).join(" ")}`,
+            detail: `switched=${switched} wall=${wallAfter} side=${sideAfter} x=${boatX.toFixed(2)} ticks=${ticks} dried=${dried.length} ${dried.slice(0, 3).join(" ")}`,
           };
         } finally {
           dim.runCommand(
@@ -839,6 +842,7 @@ async function boatIcebreakerMountain(
             );
           }
           drive(boat, 0, 0);
+          const boatX = a.local(boat.location).x;
           const cell = dim.getBlock(a.at(wallX, gy, 35))?.typeId;
           const bedHoles: string[] = [];
           for (let x = 33; x <= wallX + 8; x++)
@@ -851,10 +855,10 @@ async function boatIcebreakerMountain(
             lowest >= restY - 0.6 && deepest <= surfacing.maxDepth + 0.2;
           const wallOk = enabled
             ? cell !== "minecraft:stone"
-            : cell === "minecraft:stone" && a.local(boat.location).x < wallX;
+            : cell === "minecraft:stone" && boatX < wallX;
           return {
             pass: steady && wallOk && bedHoles.length === 0,
-            detail: `rest=${restY.toFixed(2)} lowest=${lowest.toFixed(2)} deepest=${deepest.toFixed(2)} cell=${cell} x=${a.local(boat.location).x.toFixed(2)} bedAir=${bedHoles.length} ${bedHoles.slice(0, 3).join(" ")} trace(y/depth/feet)=${trace.filter((_, i) => i % 4 === 0).join(" ")}`,
+            detail: `rest=${restY.toFixed(2)} lowest=${lowest.toFixed(2)} deepest=${deepest.toFixed(2)} cell=${cell} x=${boatX.toFixed(2)} bedAir=${bedHoles.length} ${bedHoles.slice(0, 3).join(" ")} trace(y/depth/feet)=${trace.filter((_, i) => i % 4 === 0).join(" ")}`,
           };
         } finally {
           fillMountain("air", gy, mountainTop);
