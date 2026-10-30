@@ -37,6 +37,10 @@ def reverse_lamp(u, v):
             REVERSE_TOP <= v < REVERSE_TOP + REVERSE_SIZE)
 
 
+def led_bar(u, v):
+    return LED_LEFT <= u < LED_RIGHT and any(top <= v < bottom for top, bottom in LED_ROWS)
+
+
 def color(region, u, v, paint):
     if region == "third_brake":
         rgb = LED
@@ -46,7 +50,7 @@ def color(region, u, v, paint):
         rgb = FRAME
     elif reverse_lamp(u, v):
         rgb = REVERSE
-    elif lit(region, u, v):
+    elif led_bar(u, v):
         rgb = LED
     else:
         rgb = LENS
@@ -62,8 +66,7 @@ def lit(region, u, v):
         return True
     if housing(u, v) or chamfer(u, v):
         return False
-    return reverse_lamp(u, v) or (
-        LED_LEFT <= u < LED_RIGHT and any(top <= v < bottom for top, bottom in LED_ROWS))
+    return reverse_lamp(u, v) or led_bar(u, v)
 
 
 def relief(region, u, v):

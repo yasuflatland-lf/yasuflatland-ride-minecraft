@@ -106,15 +106,15 @@ describe("SUV tail lights", () => {
     }
     expect(resin).toHaveLength(2);
     expect(reflectors).toHaveLength(2);
+    const tailCubes =
+      bones.find((bone) => bone.name === "tail_lights")?.cubes ?? [];
     for (const cube of resin) {
       const side = Math.sign(cube.origin[0]);
-      const lamp = bones
-        .find((bone) => bone.name === "tail_lights")
-        ?.cubes?.find(
-          (entry) =>
-            entry.uv.south?.uv_size[1] === 24 &&
-            Math.sign(entry.origin[0]) === side,
-        );
+      const lamp = tailCubes.find(
+        (entry) =>
+          entry.uv.south?.uv_size[1] === 24 &&
+          Math.sign(entry.origin[0]) === side,
+      );
       expect(lamp).toBeDefined();
       expect(cube.origin.slice(1)).toEqual(lamp?.origin.slice(1));
       expect(cube.size.slice(1)).toEqual(lamp?.size.slice(1));
