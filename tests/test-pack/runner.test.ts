@@ -15,9 +15,11 @@ const harness = vi.hoisted(() => ({
 
 vi.mock("@minecraft/server", () => ({
   system: harness.system,
-  world: { getAllPlayers: () => [] },
+  world: { getAllPlayers: () => [], getDimension: () => ({}) },
 }));
-vi.mock("../../src/test-pack/arena", () => ({ setupArena: harness.setup }));
+vi.mock("../../src/test-pack/arena", () => ({
+  prepareRun: async (...args: unknown[]) => [await harness.setup(...args)],
+}));
 vi.mock("../../src/test-pack/catalog", () => ({
   CATALOG: [
     { name: "first", ticks: 20 },
@@ -140,8 +142,8 @@ it("suppresses READY after cancellation during setup and retains request validat
   for (const request of [
     "invalid unknown=1",
     "lanes lanes=2",
-    "at at=1",
-    "features features=vehicle",
+    "at at=8",
+    "features features=vehicle,",
   ]) {
     send(TEST_EVENT, request);
     expect(logs.at(-1)).toMatch(/SUMMARY pass=0 fail=1 ticks=0 ms=0 error=/);

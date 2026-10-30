@@ -1,13 +1,13 @@
 import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { setTimeout as sleep } from "node:timers/promises";
-import { isFeatureTag } from "../src/test-pack/features.ts";
 import {
   deadlineMsOf,
   observe,
   watchStart,
   watchVerdict,
 } from "../src/test-pack/deadline.ts";
+import { isFeatureTag } from "../src/test-pack/features.ts";
 import {
   CANCEL_EVENT,
   featuresFrom,
