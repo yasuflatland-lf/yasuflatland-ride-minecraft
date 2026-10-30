@@ -289,6 +289,7 @@ def rotate(point, pivot, rotation):
     return (x + pivot[0], y + pivot[1], z + pivot[2])
 
 
+# Correct only for single-color faces (as gen_model.py paints them); nonuniform UVs use textured_face.
 def face_color(texture, face, tex_w, tex_h):
     (u, v), (du, dv) = face["uv"], face["uv_size"]
     x = min(int((u + du / 2) * len(texture[0]) / tex_w), len(texture[0]) - 1)
