@@ -25,6 +25,7 @@ SWITCH_ROWS = (8, 22)
 SWITCH_COLUMNS = (2, 6, 10, 14, 18)
 CLIMATE_RECT = (1, 16, 19, 21)
 SLIDER_ROWS, SLIDER_STOPS = (17, 19), (8, 12)
+SLIDER_SPAN = (6, 13)
 AUDIO_SCREEN_RECT = (3, 1, 12, 3)
 AUDIO_BUTTON_COLUMNS = (1, 13, 15)
 
@@ -40,33 +41,37 @@ def grain(u, v):
     return palette.PALETTE["resin"][0] + value % (2 * GRAIN_JITTER + 1) - GRAIN_JITTER
 
 
+def stack_shade(u, v, shade):
+    if any(
+        (u - cx) ** 2 + (v - cy) ** 2 <= VENT_RADIUS_TEXELS ** 2
+        for cx, cy in ROUND_VENTS
+    ) or any(inside(u, v, rect) for rect in LOUVRE_RECTS):
+        shade = LOUVRE if v % 2 else RECESS
+    cx, cy = CLOCK_CENTER
+    distance = (u - cx) ** 2 + (v - cy) ** 2
+    if distance <= CLOCK_RADIUS ** 2:
+        shade = EDGE if distance > (CLOCK_RADIUS - 1) ** 2 else RECESS
+        if (u == cx and cy - 1 <= v <= cy) or (v == cy and cx <= u <= cx + 1):
+            shade = MARK
+    for row in SWITCH_ROWS:
+        if row <= v <= row + 1 and any(abs(u - x) <= 1 for x in SWITCH_COLUMNS):
+            shade = EDGE if v == row else RECESS
+            if v == row and u in SWITCH_COLUMNS:
+                shade = MARK
+    if inside(u, v, CLIMATE_RECT):
+        shade = RECESS
+        for row, stop in zip(SLIDER_ROWS, SLIDER_STOPS):
+            if v == row and SLIDER_SPAN[0] <= u <= SLIDER_SPAN[1]:
+                shade = MARK if u == stop else LOUVRE
+    return shade
+
+
 def color(region, u, v, paint):
     shade = grain(u, v)
     if region == "passenger" and inside(u, v, TRAY_RECT):
         shade = EDGE if v == TRAY_RECT[3] - 1 else RECESS
     elif region == "stack":
-        for cx, cy in ROUND_VENTS:
-            if (u - cx) ** 2 + (v - cy) ** 2 <= VENT_RADIUS_TEXELS ** 2:
-                shade = LOUVRE if v % 2 else RECESS
-        for rect in LOUVRE_RECTS:
-            if inside(u, v, rect):
-                shade = LOUVRE if v % 2 else RECESS
-        cx, cy = CLOCK_CENTER
-        distance = (u - cx) ** 2 + (v - cy) ** 2
-        if distance <= CLOCK_RADIUS ** 2:
-            shade = EDGE if distance > (CLOCK_RADIUS - 1) ** 2 else RECESS
-            if (u == cx and cy - 1 <= v <= cy) or (v == cy and cx <= u <= cx + 1):
-                shade = MARK
-        for row in SWITCH_ROWS:
-            if row <= v <= row + 1 and any(abs(u - x) <= 1 for x in SWITCH_COLUMNS):
-                shade = EDGE if v == row else RECESS
-                if v == row and u in SWITCH_COLUMNS:
-                    shade = MARK
-        if inside(u, v, CLIMATE_RECT):
-            shade = RECESS
-            for row, stop in zip(SLIDER_ROWS, SLIDER_STOPS):
-                if v == row and 6 <= u <= 13:
-                    shade = MARK if u == stop else LOUVRE
+        shade = stack_shade(u, v, shade)
     elif region == "audio":
         if inside(u, v, AUDIO_SCREEN_RECT):
             shade = SCREEN
