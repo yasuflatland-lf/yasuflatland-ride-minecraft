@@ -27,7 +27,7 @@ Apply filters in this order: features, player, shard, then lanes. Pack lane scen
 
 Exclusive scenarios run alone after every lane has finished and every vehicle has been removed. These are `vehicle_limit`, `fleet_forget`, and every player-bound `build_*` scenario.
 
-K is at most 8, and K times the largest lane scenario's `vehicles` value is at most `SPEC.maxUnownedVehicles - 2`, because the unowned cap is per world. K = 1 reproduces today's order exactly.
+K is at most 8, and K times the largest lane scenario's `vehicles` value is at most `SPEC.maxUnownedVehicles - 2`, because the unowned cap is per world. K = 1 runs the same scenarios as today in a single lane, but not in today's order: lane scenarios are packed by LPT and exclusive scenarios run last, so the order within a shard changes.
 
 Keep the four CI shards at K = 1. Part 22/22 of the series (#930) adds one unsharded CI job that runs everything in lanes.
 
