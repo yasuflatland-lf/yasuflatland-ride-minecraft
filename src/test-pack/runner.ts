@@ -37,12 +37,12 @@ async function runAll({
     );
     return;
   }
-  const tags = features?.filter(isFeatureTag);
   const unknown = features?.find((tag) => !isFeatureTag(tag));
   if (unknown !== undefined) {
     log(runId, `SUMMARY pass=0 fail=1 error=unknown feature ${unknown}`);
     return;
   }
+  const tags = features?.filter(isFeatureTag);
   const plan = planOf(CATALOG, {
     shard,
     features: tags,
