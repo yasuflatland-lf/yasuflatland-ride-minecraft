@@ -194,7 +194,7 @@ geo = {"description": {"texture_width": 2, "texture_height": 1}, "bones": [
     {"name": name, "cubes": [{"origin": [i * 2, 0, 0], "size": [1, 1, 1], "uv": uv}]}
     for i, name in enumerate(("lens", "cutout", "body"))]}
 texture = [[(200, 100, 50, 0), (10, 20, 30, 255)]]
-lit = [[(200, 100, 50, 0), (10, 20, 30, 255)]]
+lit = [[(250, 10, 10, 0), (10, 20, 30, 255)]]
 pose = {"lamps": True, "dusk": False, "hover": False, "submarine": False}
 def faces(bone, base=texture, lamps=True):
     polygons = r.collect({**geo, "bones": [bone]}, base, {}, {}, {**pose, "lamps": lamps}, lit,
@@ -203,7 +203,7 @@ def faces(bone, base=texture, lamps=True):
 print(json.dumps({"on": [faces(bone) for bone in geo["bones"]],
                   "off": faces(geo["bones"][0], lamps=False),
                   "opaqueBase": faces(geo["bones"][0], [[(200, 100, 50, 255), (10, 20, 30, 255)]]),
-                  "litColor": [c + (255 - c) * r.LIT_GAIN for c in (200, 100, 50)]}))
+                  "litColor": [c + (255 - c) * r.LIT_GAIN for c in (250, 10, 10)]}))
 `);
   // Mirroring reverses winding, so the down/up normals receive up/down shading.
   const shades = [0.8, 0.8, 0.6, 0.6, 1, 0.5];
