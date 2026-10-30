@@ -91,16 +91,18 @@ def floor_lever(x, z, height, knob, lean=15):
     ]
 
 
-# Like the tires, the rim is a ring of thin blocks turned around the column. Brown leather
-# rim, gray spokes, and a black hub and column
+# Like the tires, the rim is a ring of thin blocks turned around the column.
 def steering_cubes():
     cx, cy = WHEEL_CENTER
     RIM_SEGMENTS, RIM_WIDTH = 16, 0.7
     rim_half_chord = round(WHEEL_RADIUS * math.tan(math.radians(180 / RIM_SEGMENTS)) + 0.05, 3)
+    leather = suv_cubes.region_faces(
+        "gauges", "leather", {face: (0, 0, 8, 8) for face in ("north", "south", "east", "west", "up", "down")}
+    )
     steering = [
         steering_part(
             cx - rim_half_chord, cy + WHEEL_RADIUS - RIM_WIDTH / 2, cx + rim_half_chord, cy + WHEEL_RADIUS + RIM_WIDTH / 2,
-            "leather", spin=i * 360 / RIM_SEGMENTS,
+            leather, spin=i * 360 / RIM_SEGMENTS,
         )
         for i in range(RIM_SEGMENTS)
     ]
@@ -110,8 +112,6 @@ def steering_cubes():
         small(cx - 1.2, cy, 1.2, 0.5, "spoke"),  # spoke (left)
         small(cx + 1.2, cy, 1.2, 0.5, "spoke"),  # spoke (right)
         small(cx, cy - 1.2, 0.5, 1.2, "spoke"),  # spoke (bottom)
-        # 0.15 px below the hub's center, so the column's top edge runs under the speedometer bezel's
-        # bottom (y 16.15) on its way forward and down instead of poking through it
         small(cx, cy - 0.15, 0.8, 0.8, "grille", WHEEL_Z + 0.4, COLUMN_END_Z),  # column
     ]
     return steering
