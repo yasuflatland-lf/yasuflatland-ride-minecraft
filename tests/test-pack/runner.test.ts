@@ -8,6 +8,8 @@ const harness = vi.hoisted(() => ({
   remove: vi.fn(),
   first: vi.fn(),
   second: vi.fn(),
+  player: vi.fn(),
+  playerConnected: false,
   system: {
     currentTick: 0,
     afterEvents: { scriptEventReceive: { subscribe: vi.fn() } },
@@ -16,7 +18,10 @@ const harness = vi.hoisted(() => ({
 
 vi.mock("@minecraft/server", () => ({
   system: harness.system,
-  world: { getAllPlayers: () => [], getDimension: () => ({}) },
+  world: {
+    getAllPlayers: () => (harness.playerConnected ? [{}] : []),
+    getDimension: () => ({}),
+  },
 }));
 vi.mock("../../src/test-pack/arena", () => ({
   prepareRun: harness.setup,
@@ -45,7 +50,7 @@ vi.mock("../../src/test-pack/catalog", () => ({
     {
       name: "player",
       ticks: 10,
-      isolation: "lane",
+      isolation: "exclusive",
       file: "x",
       vehicles: 0,
       features: [],
@@ -57,7 +62,7 @@ vi.mock("../../src/test-pack/scenarios/index", () => ({
   SCENARIOS: {
     first: harness.first,
     second: harness.second,
-    player: vi.fn(),
+    player: harness.player,
   },
 }));
 
@@ -85,6 +90,7 @@ beforeEach(async () => {
     logs.push(line),
   );
   harness.system.currentTick = 0;
+  harness.playerConnected = false;
   harness.system.afterEvents.scriptEventReceive.subscribe.mockImplementation(
     (receive) => {
       harness.receive = receive;
@@ -93,6 +99,7 @@ beforeEach(async () => {
   harness.setup.mockResolvedValue([{}]);
   harness.first.mockResolvedValue({ pass: true, detail: "ok" });
   harness.second.mockResolvedValue({ pass: true, detail: "ok" });
+  harness.player.mockResolvedValue({ pass: true, detail: "ok" });
   await import("../../src/test-pack/runner");
   logs = [];
 });
@@ -200,4 +207,120 @@ it("suppresses READY after cancellation during setup and retains request validat
   await flush();
   expect(logs).toEqual(before);
   expect(harness.first).not.toHaveBeenCalled();
+});
+
+it("logs the makespan and lane numbers for a two-lane request", async () => {
+  const arenas = [{}, {}];
+  const first = deferred<Outcome>();
+  const second = deferred<Outcome>();
+  harness.setup.mockResolvedValue(arenas);
+  harness.first.mockReturnValue(first.promise);
+  harness.second.mockReturnValue(second.promise);
+  send(TEST_EVENT, "parallel lanes=2");
+  await flush();
+  expect(logs[0]).toBe(
+    "[YASU-RIDE-TEST] parallel PLAN runs=2 skipped=1 unselected=0 ticks=40 lanes=2",
+  );
+  expect(harness.second.mock.calls[0]?.[0]).toBe(arenas[0]);
+  expect(harness.first.mock.calls[0]?.[0]).toBe(arenas[1]);
+  harness.system.currentTick = 20;
+  first.resolve({ pass: true, detail: "ok" });
+  await flush();
+  expect(logs.at(-1)).toBe(
+    "[YASU-RIDE-TEST] parallel PASS first ticks=20 lane=1 ok",
+  );
+  harness.system.currentTick = 40;
+  second.resolve({ pass: true, detail: "ok" });
+  await flush();
+  expect(logs.at(-2)).toBe(
+    "[YASU-RIDE-TEST] parallel PASS second ticks=40 lane=0 ok",
+  );
+  expect(logs.at(-1)).toMatch(/SUMMARY pass=2 fail=0 ticks=40 ms=\d+$/);
+});
+
+it("fails only the throwing scenario while the other lane continues", async () => {
+  const second = deferred<Outcome>();
+  harness.setup.mockResolvedValue([{}, {}]);
+  harness.first.mockImplementation(() => {
+    throw new Error("scenario broke");
+  });
+  harness.second.mockReturnValue(second.promise);
+  send(TEST_EVENT, "error lanes=2");
+  await flush();
+  expect(logs.at(-1)).toBe(
+    "[YASU-RIDE-TEST] error FAIL first ticks=0 lane=1 error: Error: scenario broke",
+  );
+  expect(logs.some((line) => line.includes("SUMMARY"))).toBe(false);
+  second.resolve({ pass: true, detail: "survived" });
+  await flush();
+  expect(logs.at(-2)).toBe(
+    "[YASU-RIDE-TEST] error PASS second ticks=0 lane=0 survived",
+  );
+  expect(logs.at(-1)).toMatch(/SUMMARY pass=1 fail=1 ticks=0 ms=\d+$/);
+});
+
+it("waits for every lane and vehicle removal before running exclusive specs on lane zero", async () => {
+  const arenas = [{}, {}];
+  const first = deferred<Outcome>();
+  const second = deferred<Outcome>();
+  const removal = deferred<void>();
+  harness.playerConnected = true;
+  harness.setup.mockResolvedValue(arenas);
+  harness.first.mockReturnValue(first.promise);
+  harness.second.mockReturnValue(second.promise);
+  harness.remove.mockReturnValue(removal.promise);
+  send(TEST_EVENT, "exclusive lanes=2");
+  await flush();
+  expect(logs[0]).toBe(
+    "[YASU-RIDE-TEST] exclusive PLAN runs=3 skipped=0 unselected=0 ticks=50 lanes=2",
+  );
+  expect(harness.remove).not.toHaveBeenCalled();
+  expect(harness.player).not.toHaveBeenCalled();
+  second.resolve({ pass: true, detail: "ok" });
+  await flush();
+  expect(harness.remove).not.toHaveBeenCalled();
+  expect(harness.player).not.toHaveBeenCalled();
+  first.resolve({ pass: true, detail: "ok" });
+  await flush();
+  expect(harness.remove).toHaveBeenCalledTimes(1);
+  expect(harness.player).not.toHaveBeenCalled();
+  expect(logs.some((line) => line.includes("SUMMARY"))).toBe(false);
+  removal.resolve();
+  await flush();
+  expect(harness.player).toHaveBeenCalledTimes(1);
+  expect(harness.player.mock.calls[0]?.[0]).toBe(arenas[0]);
+  expect(logs.at(-2)).toBe(
+    "[YASU-RIDE-TEST] exclusive PASS player ticks=0 lane=0 ok",
+  );
+  expect(logs.at(-1)).toMatch(/SUMMARY pass=3 fail=0 ticks=0 ms=\d+$/);
+});
+
+it("suppresses output from all pending lanes and skips exclusive specs after cancellation", async () => {
+  const first = deferred<Outcome>();
+  const second = deferred<Outcome>();
+  harness.playerConnected = true;
+  harness.setup.mockResolvedValue([{}, {}]);
+  harness.first.mockReturnValue(first.promise);
+  harness.second.mockReturnValue(second.promise);
+  send(TEST_EVENT, "cancel lanes=2");
+  await flush();
+  expect(harness.first).toHaveBeenCalledTimes(1);
+  expect(harness.second).toHaveBeenCalledTimes(1);
+  send(CANCEL_EVENT, "cancel");
+  expect(logs.at(-1)).toMatch(
+    /cancel SUMMARY pass=0 fail=0 ticks=0 ms=\d+ error=cancelled$/,
+  );
+  const before = [...logs];
+  for (const scenario of [harness.first, harness.second]) {
+    const sink = scenario.mock.calls[0]?.[1] as StepSink;
+    sink({ name: "late", pass: true, detail: "ignored" });
+  }
+  first.resolve({ pass: true, detail: "ignored", lines: ["late detail"] });
+  await flush();
+  expect(logs).toEqual(before);
+  second.resolve({ pass: false, detail: "ignored", lines: ["late failure"] });
+  await flush();
+  expect(logs).toEqual(before);
+  expect(harness.remove).not.toHaveBeenCalled();
+  expect(harness.player).not.toHaveBeenCalled();
 });

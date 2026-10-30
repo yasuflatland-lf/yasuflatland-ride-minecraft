@@ -89,7 +89,7 @@ async function runAll(request: RunRequest, state: ActiveRun): Promise<void> {
       runs: plan.runs.length,
       skipped: plan.skipped.length,
       unselected: plan.unselected,
-      ticks: plan.expectedTicks,
+      ticks: plan.makespanTicks,
       lanes: laneCount,
     }),
   );
