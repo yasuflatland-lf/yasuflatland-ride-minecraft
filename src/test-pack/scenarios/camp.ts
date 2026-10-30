@@ -34,7 +34,8 @@ import {
   TEST_GAS_LANTERN_ON_TABLE_EVENT,
   TEST_TABLE_HIT_EVENT,
 } from "../../infrastructure/camp/identifiers";
-import { type Arena, type Outcome, wait } from "../arena";
+import { type Arena, wait } from "../arena";
+import { type Outcome, runCourse, type StepSink } from "../outcome";
 
 // On the arena's east edge, past the camping gear row (z 1-19) and clear of the
 // camper park spot (x 103-114, z 73-84) and the camper tank (z 61-69).
@@ -77,20 +78,25 @@ const lanternsNear = (a: Arena, at: Vector3) =>
 /** Runs a scenario once per chair kind, passing only when every kind passes. */
 async function forEveryChairKind(
   scenario: (profile: ChairProfile) => Promise<Outcome>,
+  onStep: StepSink,
 ): Promise<Outcome> {
-  const outcomes: Outcome[] = [];
-  for (const profile of Object.values(CHAIR_KINDS))
-    outcomes.push(await scenario(profile));
-  return {
-    pass: outcomes.every((outcome) => outcome.pass),
-    detail: outcomes.map((outcome) => outcome.detail).join("; "),
-  };
+  return runCourse(
+    Object.entries(CHAIR_KINDS).map(([name, profile]) => ({
+      name,
+      run: () => scenario(profile),
+    })),
+    { stopOnFail: false, onStep },
+  );
 }
 
 /** Summons a chair, checks its one seat, and folds it back with three hits into one dropped item. */
-export async function lowChairSeatAndTakeBack(a: Arena): Promise<Outcome> {
-  return forEveryChairKind((profile) =>
-    lowChairSeatAndTakeBackForKind(a, profile),
+export async function lowChairSeatAndTakeBack(
+  a: Arena,
+  onStep: StepSink,
+): Promise<Outcome> {
+  return forEveryChairKind(
+    (profile) => lowChairSeatAndTakeBackForKind(a, profile),
+    onStep,
   );
 }
 
@@ -142,9 +148,13 @@ const GRASS_CELL = { x: CELL.x, z: CELL.z + 3 } as const;
  * Summons a chair where a click on short grass places it, a block above the grass, and
  * checks that it settles through the grass onto the ground under it (ADR 0122).
  */
-export async function lowChairSettlesThroughGrass(a: Arena): Promise<Outcome> {
-  return forEveryChairKind((profile) =>
-    lowChairSettlesThroughGrassForKind(a, profile),
+export async function lowChairSettlesThroughGrass(
+  a: Arena,
+  onStep: StepSink,
+): Promise<Outcome> {
+  return forEveryChairKind(
+    (profile) => lowChairSettlesThroughGrassForKind(a, profile),
+    onStep,
   );
 }
 

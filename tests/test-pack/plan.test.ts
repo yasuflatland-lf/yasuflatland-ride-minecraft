@@ -2,7 +2,11 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { SPEC } from "../../src/domain/vehicle/spec.ts";
 import type { Isolation, ScenarioSpec } from "../../src/test-pack/catalog.ts";
-import { covers, FEATURE_TAGS } from "../../src/test-pack/features.ts";
+import {
+  covers,
+  FEATURE_TAGS,
+  type FeatureTag,
+} from "../../src/test-pack/features.ts";
 import type { Skipped } from "../../src/test-pack/plan.ts";
 import {
   coverageGaps,
@@ -33,10 +37,7 @@ const catalog = fc
       file: "fixture",
     })),
   );
-const selectedBy = (
-  spec: ScenarioSpec,
-  features: readonly (typeof FEATURE_TAGS)[number][],
-) =>
+const selectedBy = (spec: ScenarioSpec, features: readonly FeatureTag[]) =>
   features.some((changed) => spec.features.some((tag) => covers(changed, tag)));
 
 describe("planOf", () => {
@@ -367,6 +368,7 @@ describe("planOf", () => {
       features: ["build"],
       isolation: "exclusive",
       needsPlayer: true,
+      skipNote: "camera perspective needs visual verification",
       vehicles: 1,
     };
     expect(
@@ -399,13 +401,29 @@ describe("coverageGaps", () => {
             names.every((name) => registered.includes(name)) &&
               registered.every((name) => names.includes(name)),
           );
-          expect(coverageGaps(names, [...names].reverse())).toEqual({
-            missing: [],
-            extra: [],
-          });
+          const uniqueNames = [...new Set(names)];
+          expect(coverageGaps(uniqueNames, [...uniqueNames].reverse())).toEqual(
+            {
+              missing: [],
+              extra: [],
+              duplicates: [],
+            },
+          );
         },
       ),
     );
+  });
+  it("reports names repeated in either list once, including shared duplicates", () => {
+    expect(
+      coverageGaps(
+        ["both", "both", "both", "catalog", "catalog", "shared"],
+        ["both", "both", "registry", "registry", "shared"],
+      ),
+    ).toEqual({
+      missing: ["catalog"],
+      extra: ["registry"],
+      duplicates: ["both", "catalog", "registry"],
+    });
   });
 });
 
