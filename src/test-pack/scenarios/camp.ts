@@ -54,11 +54,7 @@ const totalAmount = (items: Entity[]) =>
     0,
   );
 
-const firePitAt = (a: Arena) => ({
-  x: CELL.x + 0.5,
-  y: a.gy,
-  z: CELL.z + 11.5,
-});
+const firePitAt = (a: Arena) => a.at(CELL.x + 0.5, a.gy, CELL.z + 11.5);
 
 const summonFirePit = (a: Arena, at: Vector3): Entity | undefined => {
   a.dim.runCommand(`summon ${FIRE_PIT_TYPE} ${at.x} ${at.y} ${at.z}`);
@@ -104,7 +100,7 @@ async function lowChairSeatAndTakeBackForKind(
   a: Arena,
   profile: ChairProfile,
 ): Promise<Outcome> {
-  const at = { x: CELL.x + 0.5, y: a.gy, z: CELL.z + 0.5 };
+  const at = a.at(CELL.x + 0.5, a.gy, CELL.z + 0.5);
   a.dim.runCommand(`summon ${profile.typeId} ${at.x} ${at.y} ${at.z}`);
   const chair = a.dim.getEntities({
     type: profile.typeId,
@@ -153,11 +149,11 @@ async function lowChairSettlesThroughGrassForKind(
   a: Arena,
   profile: ChairProfile,
 ): Promise<Outcome> {
-  const ground = { x: GRASS_CELL.x, y: a.gy - 1, z: GRASS_CELL.z };
+  const ground = a.at(GRASS_CELL.x, a.gy - 1, GRASS_CELL.z);
   const plant = { ...ground, y: a.gy };
   a.dim.runCommand(`setblock ${ground.x} ${ground.y} ${ground.z} grass_block`);
   a.dim.runCommand(`setblock ${plant.x} ${plant.y} ${plant.z} short_grass`);
-  const at = { x: GRASS_CELL.x + 0.5, y: a.gy + 1, z: GRASS_CELL.z + 0.5 };
+  const at = a.at(GRASS_CELL.x + 0.5, a.gy + 1, GRASS_CELL.z + 0.5);
   a.dim.runCommand(`summon ${profile.typeId} ${at.x} ${at.y} ${at.z}`);
   const chair = a.dim.getEntities({
     type: profile.typeId,
@@ -186,7 +182,7 @@ async function lowChairSettlesThroughGrassForKind(
  * checks persistence instead.
  */
 export function campTableNoSeats(a: Arena): Promise<Outcome> {
-  const at = { x: CELL.x + 0.5, y: a.gy, z: CELL.z + 8.5 };
+  const at = a.at(CELL.x + 0.5, a.gy, CELL.z + 8.5);
   a.dim.runCommand(`summon ${CAMP_TABLE_TYPE} ${at.x} ${at.y} ${at.z}`);
   const table = a.dim.getEntities({
     type: CAMP_TABLE_TYPE,
@@ -206,7 +202,7 @@ export function campTableNoSeats(a: Arena): Promise<Outcome> {
   }
 }
 
-const TABLE_AT = (a: Arena) => ({ x: CELL.x, y: a.gy, z: CELL.z + 8.5 });
+const TABLE_AT = (a: Arena) => a.at(CELL.x, a.gy, CELL.z + 8.5);
 
 const summonTable = (a: Arena, at: Vector3): Entity | undefined => {
   a.dim.runCommand(`summon ${CAMP_TABLE_TYPE} ${at.x} ${at.y} ${at.z}`);
@@ -510,7 +506,7 @@ export async function firePitIgnition(a: Arena): Promise<Outcome> {
 
 /** Checks the ground oven's initial state, visual toggle, and three-hit take-back. */
 export async function dutchOvenSimmerAndTakeBack(a: Arena): Promise<Outcome> {
-  const at = { x: CELL.x + 0.5, y: a.gy, z: CELL.z + 14.5 };
+  const at = a.at(CELL.x + 0.5, a.gy, CELL.z + 14.5);
   a.dim.runCommand(`summon ${DUTCH_OVEN_TYPE} ${at.x} ${at.y} ${at.z}`);
   const oven = a.dim.getEntities({
     type: DUTCH_OVEN_TYPE,
@@ -812,7 +808,7 @@ export async function campTableRemoveOvenAndLantern(
 }
 
 export async function gasLanternTakeBack(a: Arena): Promise<Outcome> {
-  const at = { x: CELL.x + 0.5, y: a.gy, z: CELL.z + 17.5 };
+  const at = a.at(CELL.x + 0.5, a.gy, CELL.z + 17.5);
   const items = () => droppedItems(a, at, GAS_LANTERN_ITEM);
   let lantern: Entity | undefined;
   try {
@@ -851,7 +847,7 @@ export async function gasLanternTakeBack(a: Arena): Promise<Outcome> {
 }
 
 export async function gasLanternSwitch(a: Arena): Promise<Outcome> {
-  const at = { x: CELL.x + 0.5, y: a.gy, z: CELL.z + 17.5 };
+  const at = a.at(CELL.x + 0.5, a.gy, CELL.z + 17.5);
   const cell = { x: Math.floor(at.x), y: at.y, z: Math.floor(at.z) };
   const support = { ...cell, y: cell.y - 1 };
   const previousSupport = a.dim.getBlock(support)?.permutation;
