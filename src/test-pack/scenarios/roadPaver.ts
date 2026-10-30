@@ -375,6 +375,10 @@ export function bulldozerPaveNoBlock(
       {
         name: "held_probe",
         run: async () => {
+          const controlBlock = riderHeldOf(PLANKS)?.block;
+          const control =
+            controlBlock !== undefined && isRoadBlock(controlBlock);
+          const emptyHand = riderHeldOf(undefined) === undefined;
           const held = [undefined, DOOR, "minecraft:bed"].map((typeId) => {
             const block = riderHeldOf(typeId)?.block;
             return {
@@ -384,13 +388,13 @@ export function bulldozerPaveNoBlock(
             };
           });
           return {
-            pass: held.every((h) => !h.laid),
-            detail: held
+            pass: control && emptyHand && held.every((h) => !h.laid),
+            detail: `control=${control} block=${String(controlBlock)} emptyHand=${emptyHand}; ${held
               .map(
                 (h) =>
                   `${String(h.typeId)} block=${String(h.block)} laid=${h.laid}`,
               )
-              .join("; "),
+              .join("; ")}`,
           };
         },
       },

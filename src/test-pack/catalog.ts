@@ -470,7 +470,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
   {
     name: "turn_and_handbrake",
     file: "suv",
-    ticks: 136,
+    ticks: 130,
     features: ["vehicle:suv"],
     isolation: "lane",
     needsPlayer: false,
@@ -488,7 +488,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
   {
     name: "wall_diagonal",
     file: "suv",
-    ticks: 59,
+    ticks: 70,
     features: ["vehicle:suv"],
     isolation: "lane",
     needsPlayer: false,
@@ -767,7 +767,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
   {
     name: "boat_icebreaker_beached",
     file: "sportsboat",
-    ticks: 59,
+    ticks: 70,
     features: ["vehicle:sportsboat"],
     isolation: "lane",
     needsPlayer: false,
@@ -997,7 +997,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
   {
     name: "gas_lantern_switch",
     file: "camp",
-    ticks: 59,
+    ticks: 70,
     features: ["camp"],
     isolation: "lane",
     needsPlayer: false,
