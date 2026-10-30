@@ -100,12 +100,43 @@ describe("impact reach", () => {
   it("keeps every external harness import in the all list", () => {
     const files = tracked.filter((p) => /^src\/test-pack\/[^/]+\.ts$/.test(p));
     files.push("src/test-pack/scenarios/shared.ts");
-    const imports = new Set(
-      files.flatMap(importsOf).filter((p) => !p.startsWith("src/test-pack/")),
-    );
+    // Include type imports conservatively, just as importsOf does for scenarios.
+    const imports = new Set<string>();
+    const pending = files.flatMap(importsOf);
+    while (pending.length) {
+      const path = pending.pop();
+      if (!path || path.startsWith("src/test-pack/") || imports.has(path))
+        continue;
+      imports.add(path);
+      pending.push(...importsOf(path));
+    }
     expect(new Set(HARNESS_IMPORTS)).toEqual(imports);
     for (const path of HARNESS_IMPORTS)
       expect(impactOfPath(path).impact).toBe("all");
+  });
+
+  it("covers the pack string IDs used by every scenario file", () => {
+    for (const [file, tags] of Object.entries(scenarioFileTags(CATALOG))) {
+      const path = `src/test-pack/scenarios/${file}.ts`;
+      const source = readFileSync(new URL(path, root), "utf8");
+      const usages = [
+        ...source.matchAll(/\bid\s*\(\s*["'`]([a-z0-9_]+)["'`]/g),
+        ...source.matchAll(/["'`](?:yasu_ride|yasu_build):([a-z0-9_]+)["'`]/g),
+      ];
+      for (const stem of new Set(usages.map((match) => match[1] ?? ""))) {
+        if (!Object.hasOwn(PACK_STEM_TAGS, stem)) continue;
+        const impact = PACK_STEM_TAGS[stem];
+        expect(
+          impact === "all" ||
+            (impact !== undefined &&
+              impact !== "none" &&
+              impact.some((changed) =>
+                tags.some((tag) => covers(changed, tag)),
+              )),
+          `${path}: ${stem}`,
+        ).toBe(true);
+      }
+    }
   });
 
   it("covers each kind reaching a motion file through any motion imports", () => {
@@ -243,8 +274,8 @@ describe("selectionOf", () => {
 
   it.each([
     ["docs/adr/0001-x.md", "none"],
-    ["src/domain/vehicle/kinds/camper/room.ts", ["vehicle:camper"]],
-    ["src/domain/vehicle/motion/pivot.ts", ["vehicle:bulldozer"]],
+    ["src/domain/vehicle/kinds/camper/room.ts", "all"],
+    ["src/domain/vehicle/motion/pivot.ts", "all"],
     ["src/domain/shared/vec.ts", "all"],
     ["packs/yasu_ride_bp/entities/yasu_ride/tent.se.json", ["camp"]],
   ])("maps %s", (path, impact) => {
