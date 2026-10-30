@@ -57,7 +57,7 @@ import {
   standInType,
 } from "../../infrastructure/vehicle/bedrock/identifiers";
 import { type Arena, drive, setDecor, wait, withCamper } from "../arena";
-import { type Outcome, runCourse, type StepSink } from "../outcome";
+import { type Outcome, runCourse, type Step, type StepSink } from "../outcome";
 import { settledAt } from "../settle";
 import {
   FLIGHT_PATH,
@@ -967,26 +967,32 @@ export function camperParkCourse(a: Arena, onStep: StepSink): Promise<Outcome> {
       [{ name: "park", run: () => camperPark(a, car) }],
       { onStep },
     );
-    if (!park.pass) return park;
-    const rest = await runCourse(
-      [
-        { name: "bunk_cells", run: () => camperBunkCells(a, car) },
-        { name: "toilet_seat", run: () => camperToiletSeat(a, car) },
-        { name: "stand_spots", run: () => camperStandSpots(a, car) },
-        {
-          name: "shower_toilet_block",
-          run: () => camperShowerToiletBlock(a, car),
-        },
-        { name: "decor", run: () => camperDecor(a, car) },
-        { name: "decor_pairs", run: () => camperDecorPairs(a, car) },
-        { name: "cabinet", run: () => camperCabinet(a, car) },
-        { name: "fridge", run: () => camperFridge(a, car) },
-        { name: "relay", run: () => camperRelay(a, car) },
-        { name: "bumper", run: () => camperBumper(a, car) },
-        { name: "depart", run: () => camperDepart(a, car) },
-      ],
-      { stopOnFail: false, onStep },
-    );
+    const restSteps: Step[] = [
+      { name: "bunk_cells", run: () => camperBunkCells(a, car) },
+      { name: "toilet_seat", run: () => camperToiletSeat(a, car) },
+      { name: "stand_spots", run: () => camperStandSpots(a, car) },
+      {
+        name: "shower_toilet_block",
+        run: () => camperShowerToiletBlock(a, car),
+      },
+      { name: "decor", run: () => camperDecor(a, car) },
+      { name: "decor_pairs", run: () => camperDecorPairs(a, car) },
+      { name: "cabinet", run: () => camperCabinet(a, car) },
+      { name: "fridge", run: () => camperFridge(a, car) },
+      { name: "relay", run: () => camperRelay(a, car) },
+      { name: "bumper", run: () => camperBumper(a, car) },
+      { name: "depart", run: () => camperDepart(a, car) },
+    ];
+    if (!park.pass) {
+      return {
+        ...park,
+        lines: [
+          ...(park.lines ?? []),
+          ...restSteps.map((step) => `step ${step.name} SKIP after park`),
+        ],
+      };
+    }
+    const rest = await runCourse(restSteps, { stopOnFail: false, onStep });
     return {
       ...rest,
       detail: `park: ${park.detail}; checks: ${rest.detail}`,
