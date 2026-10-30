@@ -243,11 +243,8 @@ export async function camperWall(a: Arena): Promise<Outcome> {
       const speeds: number[] = [];
       for (let t = 0; t < 150; t++) {
         await wait(1);
-        front = Math.max(
-          front,
-          a.local(car.location).x + CAMPER_SPEC.bodyFront,
-        );
         const currentFront = a.local(car.location).x + CAMPER_SPEC.bodyFront;
+        front = Math.max(front, currentFront);
         if (Math.abs(currentFront - 60) <= 0.5) {
           speeds.push(length(car.getVelocity()));
           if (settledAt(speeds, 0.05, 5) !== undefined) break;
@@ -707,7 +704,7 @@ async function camperStorage(
         for (const states of c.plateStates)
           set(spot, c.plateBlock, { [ROOM_FACE_STATE]: face, ...states });
         for (const height of opened)
-          set({ ...spot, y: spot.y + 1 }, compartmentId, {
+          set(above, compartmentId, {
             [DECOR_FACE_STATE]: face,
             [ROOM_OPEN_STATE]: true,
             ...height,
@@ -952,6 +949,7 @@ function bumperNear(a: Arena, car: Entity): Entity[] {
     maxDistance: CAMPER_BUMPER_TEST.radius,
   });
 }
+
 function bumperOffset(car: Entity, standIn: Entity): number {
   const f = forward(car.getRotation().y);
   return Math.hypot(

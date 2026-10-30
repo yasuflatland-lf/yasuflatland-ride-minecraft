@@ -32,9 +32,9 @@ async function doubleTap(car: Entity): Promise<void> {
 
 /**
  * Ticks until the horizontal speed first reaches `fraction` of `maxSpeed`, or
- * -1. It keeps driving until `done(reach)` or `limit` ticks even after the speed is
- * reached, so the caller can check where the vehicle ended up (accel_and_step1
- * checks that it climbed the step at the end of its lane).
+ * -1. It keeps driving until `done(reach)` or `limit` ticks even after the speed
+ * is reached, so the caller can check where the vehicle ended up
+ * (accel_and_step1 checks that it climbed the step at the end of its lane).
  */
 export async function ticksToReach(
   car: Entity,
