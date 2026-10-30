@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { setTimeout as sleep } from "node:timers/promises";
+import { isFeatureTag } from "../src/test-pack/features.ts";
 import {
   deadlineMsOf,
   observe,
@@ -9,8 +10,10 @@ import {
 } from "../src/test-pack/deadline.ts";
 import {
   CANCEL_EVENT,
+  featuresFrom,
   formatRunRequest,
   LOG_TAG,
+  laneIndexFrom,
   shardFrom,
   TEST_EVENT,
   WHOLE_RUN,
@@ -33,7 +36,27 @@ if (!shard) {
   console.error(`GAME_TEST_SHARD must look like 2/3, got ${shardText}`);
   process.exit(1);
 }
-const message = formatRunRequest({ runId, shard, lanes: 1, at: 0 });
+const atText = process.env.GAME_TEST_AT;
+const at = atText === undefined ? 0 : laneIndexFrom(atText);
+if (at === undefined) {
+  console.error(`GAME_TEST_AT must be a valid lane index, got ${atText}`);
+  process.exit(1);
+}
+const featuresText = process.env.GAME_TEST_FEATURES;
+const features =
+  featuresText === undefined ? undefined : featuresFrom(featuresText);
+if (featuresText !== undefined && features === undefined) {
+  console.error(
+    `GAME_TEST_FEATURES must be comma-separated feature tags, got ${featuresText}`,
+  );
+  process.exit(1);
+}
+const unknownFeature = features?.find((tag) => !isFeatureTag(tag));
+if (unknownFeature !== undefined) {
+  console.error(`GAME_TEST_FEATURES: unknown feature ${unknownFeature}`);
+  process.exit(1);
+}
+const message = formatRunRequest({ runId, shard, lanes: 1, at, features });
 const since = new Date().toISOString();
 // Write the command to bedrock_server's stdin ourselves, as Mojang's Creator
 // Tools does with the process it spawns. The image's send-command cannot be

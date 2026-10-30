@@ -1,8 +1,10 @@
 // In-game tests (ADR 0010). They run in a script environment separate from the
 // main Behavior Pack, so they drive the vehicle through script events.
 import { system, world } from "@minecraft/server";
-import { setupArena } from "./arena";
+import { prepareRun } from "./arena";
 import { CATALOG } from "./catalog";
+import { isFeatureTag } from "./features";
+import { laneOf } from "./lane";
 import { type Outcome, stepLines } from "./outcome";
 import { coverageGaps, planOf } from "./plan";
 import {
@@ -51,7 +53,10 @@ function reject(runId: string, error: string): void {
   log(runId, formatSummary({ pass: 0, fail: 1, ticks: 0, ms: 0, error }));
 }
 
-async function runAll({ shard }: RunRequest, state: ActiveRun): Promise<void> {
+async function runAll(
+  { shard, at, features }: RunRequest,
+  state: ActiveRun,
+): Promise<void> {
   const { runId } = state;
   const { missing, extra } = coverageGaps(
     CATALOG.map((spec) => spec.name),
@@ -65,8 +70,16 @@ async function runAll({ shard }: RunRequest, state: ActiveRun): Promise<void> {
     );
     return;
   }
+  const unknown = features?.find((tag) => !isFeatureTag(tag));
+  if (unknown !== undefined) {
+    state.failed++;
+    summary(state, `unknown feature ${unknown}`);
+    return;
+  }
+  const tags = features?.filter(isFeatureTag);
   const plan = planOf(CATALOG, {
     shard,
+    features: tags,
     playerConnected: world.getAllPlayers().length > 0,
   });
   log(
@@ -81,7 +94,8 @@ async function runAll({ shard }: RunRequest, state: ActiveRun): Promise<void> {
   );
   for (const { name, reason } of plan.skipped)
     log(runId, `SKIP ${name}: ${reason}`);
-  const a = await setupArena();
+  const [a] = await prepareRun(world.getDimension("overworld"), [laneOf(at)]);
+  if (!a) throw new Error("arena not prepared");
   if (state.cancelled) return;
   log(runId, READY);
   for (const { name } of plan.runs) {
@@ -116,13 +130,11 @@ async function runAll({ shard }: RunRequest, state: ActiveRun): Promise<void> {
 }
 
 function unsupportedOption(request: RunRequest): string | undefined {
-  if (request.at !== 0) return "at";
-  if (request.features !== undefined) return "features";
   if (request.lanes !== 1) return "lanes";
   return undefined;
 }
 
-// Two runs would share the arena and kill each other's cars in setupArena.
+// Two runs would share the arena and kill each other's cars in prepareRun.
 let activeRun: ActiveRun | undefined;
 
 system.afterEvents.scriptEventReceive.subscribe((ev) => {
