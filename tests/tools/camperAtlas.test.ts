@@ -1,4 +1,13 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
+import {
+  cpSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
@@ -26,6 +35,79 @@ type Region = [string, number, number, number, number];
 type Face = { uv: number[]; uv_size: number[] };
 
 describe("camper atlas", () => {
+  it("detects stale outputs while accepting equivalent JSON and PNG encoding", () => {
+    const temporary = mkdtempSync(join(tmpdir(), "camper-atlas-"));
+    try {
+      cpSync("packs/yasu_ride_rp", temporary, { recursive: true });
+      const geometryPath = join(
+        temporary,
+        "models/entity/yasu_ride/camper.geo.json",
+      );
+      const texturePath = join(
+        temporary,
+        "textures/entity/yasu_ride/camper.png",
+      );
+      const check = () =>
+        spawnSync(
+          "python3",
+          ["-I", "tools/gen_camper.py", temporary, "--check"],
+          {
+            encoding: "utf8",
+          },
+        );
+      const encodePng = (corrupt: boolean) =>
+        execFileSync("python3", [
+          "-I",
+          "-c",
+          [
+            "import struct, sys, zlib",
+            "from pathlib import Path",
+            "sys.path.insert(0, 'tools')",
+            "from tool_loader import load_tool",
+            "path = Path(sys.argv[1])",
+            "rows = load_tool('render_preview').read_png(path)",
+            "if sys.argv[2] == 'true':",
+            "    r, g, b, a = rows[0][0]",
+            "    rows[0][0] = ((r + 1) % 256, g, b, a)",
+            "raw = b''.join(b'\\x00' + bytes(c for pixel in row for c in pixel) for row in rows)",
+            "def chunk(kind, data):",
+            "    return struct.pack('>I', len(data)) + kind + data + struct.pack('>I', zlib.crc32(kind + data) & 0xffffffff)",
+            "header = struct.pack('>IIBBBBB', len(rows[0]), len(rows), 8, 6, 0, 0, 0)",
+            "path.write_bytes(b'\\x89PNG\\r\\n\\x1a\\n' + chunk(b'IHDR', header) + chunk(b'IDAT', zlib.compress(raw, 0)) + chunk(b'IEND', b''))",
+          ].join("\n"),
+          texturePath,
+          String(corrupt),
+        ]);
+
+      expect(check().status).toBe(0);
+      const originalJson = readFileSync(geometryPath, "utf8");
+      const geometry = JSON.parse(originalJson);
+      const formattedJson = JSON.stringify(geometry, null, 2);
+      expect(formattedJson).not.toBe(originalJson);
+      writeFileSync(geometryPath, formattedJson);
+      const originalPng = readFileSync(texturePath);
+      encodePng(false);
+      expect(readFileSync(texturePath)).not.toEqual(originalPng);
+      expect(check().status).toBe(0);
+
+      geometry["minecraft:geometry"][0].description.texture_width += 1;
+      writeFileSync(geometryPath, JSON.stringify(geometry));
+      encodePng(true);
+      const stale = check();
+      expect(stale.error).toBeUndefined();
+      expect(stale.status).not.toBeNull();
+      expect(stale.status).not.toBe(0);
+      expect(stale.stderr).toContain("Stale camper outputs:");
+      expect(stale.stderr).toContain(geometryPath);
+      expect(stale.stderr).toContain(texturePath);
+      expect(stale.stderr).not.toContain(
+        "textures/entity/yasu_ride/camper_red.png",
+      );
+    } finally {
+      rmSync(temporary, { recursive: true, force: true });
+    }
+  }, 120_000);
+
   it("preserves the one-row swatches without any regions", () => {
     expect(
       run(
