@@ -14,16 +14,16 @@ import { type Arena, wait } from "../arena";
 import type { Outcome } from "../outcome";
 
 function cleanup(a: Arena): void {
-  a.dim.runCommand(`fill 116 ${a.gy} 24 118 ${a.gy + 12} 30 air`);
+  a.dim.runCommand(`fill ${a.box(116, a.gy, 24, 118, a.gy + 12, 30)} air`);
 }
 
 export async function bladeCutColumn(a: Arena): Promise<Outcome> {
   const { dim, gy } = a;
   const cuts = new BladeCuts(systemClock);
   const set = (x: number, y: number, z: number, type: string) =>
-    dim.getBlock({ x, y, z })?.setType(type);
+    dim.getBlock(a.at(x, y, z))?.setType(type);
   const at = (x: number, y: number, z: number) =>
-    dim.getBlock({ x, y, z })?.typeId;
+    dim.getBlock(a.at(x, y, z))?.typeId;
   try {
     cleanup(a);
     const stack = [
@@ -44,7 +44,7 @@ export async function bladeCutColumn(a: Arena): Promise<Outcome> {
     });
     set(117, gy + 12, 25, "minecraft:stone");
     const chest = dim
-      .getBlock({ x: 117, y: gy + 7, z: 25 })
+      .getBlock(a.at(117, gy + 7, 25))
       ?.getComponent("minecraft:inventory")?.container;
     if (!chest) throw new Error("chest inventory missing");
     chest.setItem(0, new ItemStack("minecraft:diamond"));
@@ -62,9 +62,9 @@ export async function bladeCutColumn(a: Arena): Promise<Outcome> {
     set(118, gy, 25, "minecraft:stone");
     const floor = at(117, gy - 1, 25);
     cuts.cut(dim, [
-      { x: 117, z: 25, bottom: gy },
-      { x: 117, z: 27, bottom: gy },
-      { x: 117, z: 29, bottom: gy, height: 3 },
+      { ...a.at(117, gy, 25), bottom: gy },
+      { ...a.at(117, gy, 27), bottom: gy },
+      { ...a.at(117, gy, 29), bottom: gy, height: 3 },
     ]);
     const checks = [
       ...[0, 1, 2, 3, 4, 5, 6, 8, 10].map(
@@ -101,7 +101,7 @@ export async function bladeCutDrops(a: Arena): Promise<Outcome> {
   let first: Entity | undefined;
   let second: Entity | undefined;
   const listener = (ev: { entity: Entity }) => {
-    const p = ev.entity.location;
+    const p = a.local(ev.entity.location);
     const d = Math.max(
       117 - p.x,
       0,
@@ -117,25 +117,23 @@ export async function bladeCutDrops(a: Arena): Promise<Outcome> {
   world.afterEvents.entitySpawn.subscribe(listener);
   try {
     cleanup(a);
-    dim.getBlock({ x: 117, y: gy, z: 30 })?.setType("minecraft:stone");
+    dim.getBlock(a.at(117, gy, 30))?.setType("minecraft:stone");
     dim.runCommand(
-      `setblock 118 ${gy} 30 torch ["torch_facing_direction"="east"]`,
+      `setblock ${a.xyz(118, gy, 30)} torch ["torch_facing_direction"="east"]`,
     );
-    if (dim.getBlock({ x: 118, y: gy, z: 30 })?.typeId !== "minecraft:torch")
+    if (dim.getBlock(a.at(118, gy, 30))?.typeId !== "minecraft:torch")
       throw new Error("torch missing before cut");
     cutTick = systemClock.now();
-    first = dim.spawnItem(new ItemStack("minecraft:diamond"), {
-      x: 120.5,
-      y: gy,
-      z: 30.5,
-    });
-    cuts.cut(dim, [{ x: 117, z: 30, bottom: gy }]);
+    first = dim.spawnItem(
+      new ItemStack("minecraft:diamond"),
+      a.at(120.5, gy, 30.5),
+    );
+    cuts.cut(dim, [{ ...a.at(117, gy, 30), bottom: gy }]);
     await wait(3);
-    second = dim.spawnItem(new ItemStack("minecraft:diamond"), {
-      x: 117.5,
-      y: gy,
-      z: 30.5,
-    });
+    second = dim.spawnItem(
+      new ItemStack("minecraft:diamond"),
+      a.at(117.5, gy, 30.5),
+    );
     await wait(3);
     // The column box grown by DROP_MARGIN on every axis. Both controls are
     // checked by isValid instead: the first one spawns outside the box but
@@ -143,18 +141,23 @@ export async function bladeCutDrops(a: Arena): Promise<Outcome> {
     const nearby = dim
       .getEntities({
         type: "minecraft:item",
-        location: { x: 116, y: gy - 1, z: 29 },
+        location: a.at(116, gy - 1, 29),
         volume: { x: 3, y: 3, z: 3 },
       })
       .filter((e) => e.id !== first?.id && e.id !== second?.id);
     return {
       pass:
-        dim.getBlock({ x: 118, y: gy, z: 30 })?.isAir === true &&
+        dim.getBlock(a.at(118, gy, 30))?.isAir === true &&
         lines.length === 1 &&
         nearby.length === 0 &&
         first.isValid &&
         second.isValid,
-      detail: `removed=${lines.length} nearby=${nearby.length}${nearby.map((e) => ` ${e.getComponent("minecraft:item")?.itemStack.typeId}@${e.location.x.toFixed(2)},${e.location.y.toFixed(2)},${e.location.z.toFixed(2)}`).join("")} controls=${first.isValid},${second.isValid}`,
+      detail: `removed=${lines.length} nearby=${nearby.length}${nearby
+        .map((e) => {
+          const p = a.local(e.location);
+          return ` ${e.getComponent("minecraft:item")?.itemStack.typeId}@${p.x.toFixed(2)},${p.y.toFixed(2)},${p.z.toFixed(2)}`;
+        })
+        .join("")} controls=${first.isValid},${second.isValid}`,
       lines,
     };
   } finally {
