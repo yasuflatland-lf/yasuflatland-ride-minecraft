@@ -54,6 +54,56 @@ const suvLit = (x: number, y: number) =>
       lit.some(([lx, ly]) => lx === x && ly === y),
   );
 
+describe("SUV tail lamp lit texels", () => {
+  it("lights exactly the painter's LED, reverse and complete third brake regions", () => {
+    const expected: {
+      rect: [number, number, number, number];
+      lit: number[];
+      third: number[];
+    } = JSON.parse(
+      execFileSync(
+        "python3",
+        [
+          "-I",
+          "-c",
+          `import json, sys
+sys.path.insert(0, 'tools')
+from tool_loader import load_tool
+atlas = load_tool('suv_atlas')
+tail = load_tool('suv_paint_tail')
+expected, third = [], []
+for spec in tail.REGIONS:
+    r = atlas.region('tail_lamp', spec.name)
+    for v in range(r.h):
+        for u in range(r.w):
+            i = (r.y + v) * atlas.ATLAS.width + r.x + u
+            if tail.lit(spec.name, u, v): expected.append(i)
+            if spec.name == 'third_brake': third.append(i)
+print(json.dumps({'rect': list(atlas.BLOCKS['tail_lamp'].region[1:]), 'lit': sorted(expected), 'third': third}))`,
+        ],
+        { encoding: "utf8" },
+      ),
+    );
+    const color = texels("suv_lit");
+    const mer = texels("suv_lit_mer");
+    const [x, y, w, h] = expected.rect;
+    const alphaLit: number[] = [];
+    const emissiveLit: number[] = [];
+    for (let v = y; v < y + h; v++) {
+      for (let u = x; u < x + w; u++) {
+        const i = v * color.width + u;
+        if (color.pixels[i]?.[3] === 0) alphaLit.push(i);
+        if (mer.pixels[i]?.[1] === 255) emissiveLit.push(i);
+      }
+    }
+    expect(expected.lit.length).toBeGreaterThan(0);
+    expect(expected.third).toHaveLength(12 * 3);
+    expect(expected.lit).toEqual(expect.arrayContaining(expected.third));
+    expect(alphaLit).toEqual(expected.lit);
+    expect(emissiveLit).toEqual(expected.lit);
+  });
+});
+
 const headlights = "query.property('yasu_ride:headlights')";
 const ceiling = "query.property('yasu_ride:ceiling_lights')";
 // The slots are the palette columns the generators select by name into
