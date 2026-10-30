@@ -50,6 +50,12 @@ const bone = (name: string) => {
 };
 const end = (cube: Cube, axis: number) =>
   (cube.origin[axis] ?? 0) + (cube.size[axis] ?? 0);
+const ROOF = 64;
+const ALUMINIUM_SLOT = 36;
+const isRoofRail = (cube: Cube) =>
+  cube.uv.north?.uv[0] === ALUMINIUM_SLOT &&
+  (cube.origin[1] ?? 0) >= ROOF &&
+  ((cube.origin[0] ?? 0) >= 22 || end(cube, 0) <= -22);
 
 const readPng = (path: string) => readRgbaPng(`${RP}/${path}.png`);
 
@@ -1826,10 +1832,7 @@ describe("camper rear-right vent lid (ADR 0146, 0157)", () => {
   const BLACK_SLOT = 7;
   const CHROME_SLOT = 10;
   const WALL_IN_SLOT = 22;
-  const ALUMINIUM_SLOT = 36;
   const TRIM_BEIGE_SLOT = 37;
-  const end = (c: Cube, axis: number) =>
-    (c.origin[axis] ?? 0) + (c.size[axis] ?? 0);
   it("removes the rear-right pane and closes the outer wall, lining, and band", () => {
     expect(
       (bone("glass").cubes ?? []).filter(
@@ -1977,11 +1980,7 @@ describe("camper rib atlas (ADR 0190)", () => {
       readFileSync("tests/packs/fixtures/camper-cubes.json", "utf8"),
     );
     const isAddedRoofRail = (b: Bone, c: Cube) =>
-      b.name === "body" &&
-      (c.origin[1] ?? 0) >= 64 &&
-      ((c.origin[0] ?? 0) >= 22 ||
-        (c.origin[0] ?? 0) + (c.size[0] ?? 0) <= -22) &&
-      c.uv.north?.uv[0] === 36;
+      b.name === "body" && isRoofRail(c);
     expect(
       bones.flatMap((b) =>
         (b.cubes ?? []).filter((c) => isAddedRoofRail(b, c)),
@@ -2048,8 +2047,6 @@ describe("camper rib atlas (ADR 0190)", () => {
   it("maps only the outward white shell faces on both walls and the door to height-aligned ribs", () => {
     const [, x, y, w, h] = defined(regions[0], "rib region");
     const roofHeight = h / texelsPerPx;
-    const end = (cube: Cube, axis: number) =>
-      (cube.origin[axis] ?? 0) + (cube.size[axis] ?? 0);
     const sampledRow = (cube: Cube, v: number, worldY: number) =>
       Math.floor(v + (end(cube, 1) - worldY) * texelsPerPx);
     const entries = bones.flatMap((b) =>
@@ -2291,7 +2288,7 @@ describe("camper aluminium roof edges", () => {
         expect(uv).toEqual(
           face === outer
             ? { uv: [0, boltY], uv_size: [width, 1] }
-            : { uv: [36, 0], uv_size: [1, 1] },
+            : { uv: [ALUMINIUM_SLOT, 0], uv_size: [1, 1] },
         );
     }
     for (const [name, slots] of [
@@ -2317,15 +2314,7 @@ describe("camper aluminium roof edges", () => {
     const texture = readPng("textures/entity/yasu_ride/camper");
     expect(texture.height).toBeGreaterThanOrEqual(boltY + boltHeight);
     expect(boltWidth).toBe(texture.width);
-    expect(texture.width).toBe(
-      Math.ceil(
-        Math.max(
-          ...edges.map((c) =>
-            defined(c.size[c === front ? 0 : 2], "edge width"),
-          ),
-        ),
-      ),
-    );
+    expect(texture.width).toBe(Math.ceil(Math.max(...edges.map(edgeWidth))));
     for (let x = 0; x < texture.width; x++) {
       const offset = (boltY * texture.width + x) * 4;
       expect([...texture.pixels.subarray(offset, offset + 4)]).toEqual(
@@ -2336,15 +2325,8 @@ describe("camper aluminium roof edges", () => {
 });
 
 describe("camper aluminium roof rails", () => {
-  const ROOF = 64;
-  const ALUMINIUM_SLOT = 36;
   const body = bone("body").cubes ?? [];
-  const rails = body.filter(
-    (cube) =>
-      cube.uv.north?.uv[0] === ALUMINIUM_SLOT &&
-      (cube.origin[1] ?? 0) >= ROOF &&
-      ((cube.origin[0] ?? 0) >= 22 || end(cube, 0) <= -22),
-  );
+  const rails = body.filter(isRoofRail);
 
   it("keeps mirrored rails and posts inside the footprint and at most 3 px above the roof", () => {
     expect(rails.length).toBeGreaterThan(0);

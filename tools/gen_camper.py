@@ -262,14 +262,15 @@ def vent_cover(z0, z1, y0, y1):
     w, r = VENT_RIM, VENT_CORNER
     iz0, iz1, iy0, iy1 = z0 + w, z1 - w, y0 + w, y1 - w
     rim_top = band + 0.4
+    top_rail = box(band, y1 - w, z0 + w, rim_top, y1, z1 - w, "aluminium")
+    top_rail["uv"]["east"] = ATLAS.face(VENT_SCREWS_REGION)
     cubes = [
         # The rim ring, with each outer corner cut by r so the lid reads as a rounded rectangle.
-        box(band, y1 - w, z0 + w, rim_top, y1, z1 - w, "aluminium"),
+        top_rail,
         box(band, y0, z0 + w, rim_top, y0 + w, z1 - w, "chrome"),
         box(band, y0 + w, z0, rim_top, y1 - w, z0 + w, "chrome"),
         box(band, y0 + w, z1 - w, rim_top, y1 - w, z1, "chrome"),
     ]
-    cubes[0]["uv"]["east"] = ATLAS.face(VENT_SCREWS_REGION)
     for outer_z, inner_z in (((z0, z0 + r), (z0 + r, z0 + w)), ((z1 - r, z1), (z1 - w, z1 - r))):
         for outer_y, inner_y in (((y0, y0 + r), (y0 + r, y0 + w)), ((y1 - r, y1), (y1 - w, y1 - r))):
             cy0, cy1 = min(*outer_y, *inner_y), max(*outer_y, *inner_y)
@@ -493,9 +494,10 @@ for fz0, fz1, fy0, fy1, hardware in ((DW0 - 0.6, DW1 + 0.6, WIN_Y[0] - 0.6, WIN_
                                      (DW0 - 0.6, DW1 + 0.6, WIN_Y[1], WIN_Y[1] + 0.6, DOOR_HEAD_REGION),
                                      (DW0 - 0.6, DW0, *WIN_Y, DOOR_HINGE_REGION),
                                      (DW1, DW1 + 0.6, *WIN_Y, DOOR_LATCH_REGION)):
-    door.append(box(HW, fy0, fz0, HW + 0.18, fy1, fz1, "aluminium"))
+    door_frame = box(HW, fy0, fz0, HW + 0.18, fy1, fz1, "aluminium")
     if hardware is not None:
-        door[-1]["uv"]["east"] = ATLAS.face(hardware)
+        door_frame["uv"]["east"] = ATLAS.face(hardware)
+    door.append(door_frame)
 door.append(box(HW, STRIPE_Y[0], DZ0 + 0.1, HW + 0.12, STRIPE_Y[1], DZ1 - 0.1, "stripe"))
 door.append(box(HW, BAND_Y[0], DZ0 + 0.1, HW + 0.1, BAND_Y[1], DZ1 - 0.1, "khaki"))
 door.append(box(HW, DY0, DZ0 + 0.1, HW + 0.12, 15, DZ1 - 0.1, "tan"))
@@ -1535,9 +1537,8 @@ def region_pixel(region, x, y):
         factor = 0.93 if phase == 0 else 1.05 if phase == 1 else 1
         return (*scale(PALETTE["white"][:3], factor), 255)
     if region.name == "bolt":
-        factor = 0.65 if x % BOLT_PITCH_PX == 0 else 1
-        return (*scale(PALETTE["aluminium"][:3], factor), 255)
-    if region.name == "door_head":
+        dark = x % BOLT_PITCH_PX == 0
+    elif region.name == "door_head":
         dark = y == region.h - 1
     elif region.name == "door_hinge":
         dark = y in (5, 6, 19, 20)
