@@ -425,7 +425,7 @@ export function flightCourse(a: Arena, onStep: StepSink): Promise<Outcome> {
         }
       }
     };
-    const relative = (run: () => Promise<Outcome>) => async () => {
+    const withDelta = async (run: () => Promise<Outcome>) => {
       const start = a.local(car.location);
       const heading = car.getRotation().y;
       const outcome = await run();
@@ -441,33 +441,34 @@ export function flightCourse(a: Arena, onStep: StepSink): Promise<Outcome> {
     const steps: Step[] = [
       {
         name: "cruise",
-        run: relative(async () => {
-          drive(car, 0, 1);
-          const startY = car.location.y;
-          let minY = Number.POSITIVE_INFINITY;
-          let maxY = Number.NEGATIVE_INFINITY;
-          let speed = 0;
-          for (let t = 0; t < 52; t++) {
-            await sample(1);
-            if (t >= 20) {
-              minY = Math.min(minY, car.location.y - startY);
-              maxY = Math.max(maxY, car.location.y - startY);
+        run: () =>
+          withDelta(async () => {
+            drive(car, 0, 1);
+            const startY = car.location.y;
+            let minY = Number.POSITIVE_INFINITY;
+            let maxY = Number.NEGATIVE_INFINITY;
+            let speed = 0;
+            for (let t = 0; t < 52; t++) {
+              await sample(1);
+              if (t >= 20) {
+                minY = Math.min(minY, car.location.y - startY);
+                maxY = Math.max(maxY, car.location.y - startY);
+              }
+              if (t >= 50) speed = Math.max(speed, length(car.getVelocity()));
             }
-            if (t >= 50) speed = Math.max(speed, length(car.getVelocity()));
-          }
-          const altRange = maxY - minY;
-          // At steady state the speed is maxSpeed * engineDrag / SUV_SPEC.flightDrag,
-          // so the ratio reveals the engine's drag with gravity off.
-          const measuredDrag =
-            (SUV_SPEC.flightDrag * speed) / SUV_SPEC.maxSpeed;
-          return {
-            pass:
-              altRange <= 0.5 &&
-              speed >= SUV_SPEC.maxSpeed * 0.95 &&
-              speed <= SUV_SPEC.maxSpeed * 1.05,
-            detail: `altRange=${altRange.toFixed(3)} speed=${speed.toFixed(3)} measuredDrag=${measuredDrag.toFixed(3)}`,
-          };
-        }),
+            const altRange = maxY - minY;
+            // At steady state the speed is maxSpeed * engineDrag / SUV_SPEC.flightDrag,
+            // so the ratio reveals the engine's drag with gravity off.
+            const measuredDrag =
+              (SUV_SPEC.flightDrag * speed) / SUV_SPEC.maxSpeed;
+            return {
+              pass:
+                altRange <= 0.5 &&
+                speed >= SUV_SPEC.maxSpeed * 0.95 &&
+                speed <= SUV_SPEC.maxSpeed * 1.05,
+              detail: `altRange=${altRange.toFixed(3)} speed=${speed.toFixed(3)} measuredDrag=${measuredDrag.toFixed(3)}`,
+            };
+          }),
       },
       {
         name: "climb_descend",
@@ -481,7 +482,7 @@ export function flightCourse(a: Arena, onStep: StepSink): Promise<Outcome> {
             suvProperty(car, "bank") !== 0
           )
             return { pass: false, detail: "did not settle before climb" };
-          return relative(async () => {
+          return withDelta(async () => {
             const startY = car.location.y;
             drive(car, 0, 0, true);
             await sample(20);
@@ -494,7 +495,7 @@ export function flightCourse(a: Arena, onStep: StepSink): Promise<Outcome> {
               pass: climbed >= 4 && sank >= 1.5,
               detail: `climbed=${climbed.toFixed(2)} sank=${sank.toFixed(2)}`,
             };
-          })();
+          });
         },
       },
     ];
@@ -654,9 +655,10 @@ export function submarineCourse(a: Arena, onStep: StepSink): Promise<Outcome> {
               steady.length === 2
                 ? steady.reduce((sum, v) => sum + v, 0) / steady.length
                 : Number.NaN;
-            // As in the flight cruise step, steady speed is target * engineDrag / the SUV_SPEC
-            // drag: SUV_SPEC.waterDrag horizontally, SUV_SPEC.waterVerticalDrag
-            // vertically. The ratio reveals the engine's drag in water.
+            // As in the flight cruise step, steady speed is target * engineDrag /
+            // the SUV_SPEC drag: SUV_SPEC.waterDrag horizontally,
+            // SUV_SPEC.waterVerticalDrag vertically. The ratio reveals the
+            // engine's drag in water.
             const measuredDrag =
               (SUV_SPEC.waterDrag * speed) / SUV_SPEC.maxWaterSpeed;
             const measuredVerticalDrag =
@@ -688,13 +690,14 @@ export function submarineCourse(a: Arena, onStep: StepSink): Promise<Outcome> {
             drive(car, 0, 0);
             await wait(20);
             const straight = bank();
+            const end = a.local(car.location);
             return {
               pass:
                 enteredAt >= 0 &&
                 vehicleForm(car) === "submarine" &&
                 turning >= SUV_SPEC.maxBank / 2 &&
                 straight === 0,
-              detail: `enteredAt=${enteredAt} turning=${turning.toFixed(1)} straight=${straight.toFixed(1)} dx=${(a.local(car.location).x - start.x).toFixed(2)} dz=${(a.local(car.location).z - start.z).toFixed(2)} dy=${(car.location.y - start.y).toFixed(2)} heading=${heading.toFixed(1)}->${car.getRotation().y.toFixed(1)}`,
+              detail: `enteredAt=${enteredAt} turning=${turning.toFixed(1)} straight=${straight.toFixed(1)} dx=${(end.x - start.x).toFixed(2)} dz=${(end.z - start.z).toFixed(2)} dy=${(end.y - start.y).toFixed(2)} heading=${heading.toFixed(1)}->${car.getRotation().y.toFixed(1)}`,
             };
           },
         },
