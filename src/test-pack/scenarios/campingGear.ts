@@ -24,7 +24,7 @@ export function campingGearBlocks(a: Arena): Promise<Outcome> {
   const failed: string[] = [];
   try {
     gear.forEach((g, i) => {
-      const at = { x: ROW.x, y: a.gy, z: ROW.z + i };
+      const at = a.at(ROW.x, a.gy, ROW.z + i);
       const blockId = decorBlockId(g.id);
       const face = i % 4;
       const height = (i * 5) % 16;
@@ -59,7 +59,7 @@ export function campingGearBlocks(a: Arena): Promise<Outcome> {
     });
   } finally {
     a.dim.runCommand(
-      `fill ${ROW.x} ${a.gy} ${ROW.z} ${ROW.x} ${a.gy} ${ROW.z + gear.length - 1} air`,
+      `fill ${a.box(ROW.x, a.gy, ROW.z, ROW.x, a.gy, ROW.z + gear.length - 1)} air`,
     );
   }
 }
