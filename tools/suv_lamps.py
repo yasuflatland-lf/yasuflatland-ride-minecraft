@@ -29,6 +29,7 @@ LAMP_PARTS: tuple[LampPart, ...] = (
     LampPart("turn_signal", "body"),
     LampPart("third_brake_light", "tail_lights"),
     LampPart("tail_light", "tail_lights"),
+    LampPart("tail_resin", "body"),
     LampPart("bumper_reflector", "body"),
 )
 
@@ -83,13 +84,18 @@ def turn_signal_cubes():
 
 def third_brake_light_cubes():
     return [
-        box(-1.5, WINDOW_TOP_Y - 0.7, REAR - 0.2, 1.5, WINDOW_TOP_Y, REAR, "tail"),
+        box(-1.5, WINDOW_TOP_Y - 0.7, REAR - 0.2, 1.5, WINDOW_TOP_Y, REAR,
+            suv_cubes.region_faces("tail_lamp", "third_brake", {"north": (0, 0, 12, 3)})),
     ]
 
 
 def tail_light_cubes():
-    # Tall tail lights at the rear corners
-    return [box(9.6, 10, REAR - 0.3, 12.8, 16, REAR, "tail")]
+    return [box(9.6, 10, REAR - 0.3, 12.6, 16, REAR,
+                suv_cubes.region_faces("tail_lamp", "tail_face", {"north": (0, 0, 12, 24)}))]
+
+
+def tail_resin_cubes():
+    return [box(12.6, 10, REAR - 0.3, 13, 16, REAR, "resin")]
 
 
 def bumper_reflector_cubes():
