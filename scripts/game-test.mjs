@@ -1,6 +1,8 @@
 import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { setTimeout as sleep } from "node:timers/promises";
+import { fileURLToPath } from "node:url";
+import { CATALOG } from "../src/test-pack/catalog.ts";
 import {
   deadlineMsOf,
   observe,
@@ -8,12 +10,15 @@ import {
   watchVerdict,
 } from "../src/test-pack/deadline.ts";
 import { isFeatureTag } from "../src/test-pack/features.ts";
+import { mustRunAll, selectionOf } from "../src/test-pack/impact.ts";
+import { planOf } from "../src/test-pack/plan.ts";
 import {
   CANCEL_EVENT,
   featuresFrom,
   formatRunRequest,
   LOG_TAG,
   laneIndexFrom,
+  lanesFrom,
   shardFrom,
   TEST_EVENT,
   WHOLE_RUN,
@@ -42,8 +47,20 @@ if (at === undefined) {
   console.error(`GAME_TEST_AT must be a valid lane index, got ${atText}`);
   process.exit(1);
 }
+const lanesText = process.env.GAME_TEST_LANES;
+const lanes = lanesText === undefined ? 1 : lanesFrom(lanesText);
+if (lanes === undefined) {
+  console.error(
+    `GAME_TEST_LANES must be an integer from 1 to 8, got ${lanesText}`,
+  );
+  process.exit(1);
+}
+if (lanes > 1 && at > 0) {
+  console.error("GAME_TEST_AT cannot be combined with GAME_TEST_LANES > 1");
+  process.exit(1);
+}
 const featuresText = process.env.GAME_TEST_FEATURES;
-const features =
+let features =
   featuresText === undefined ? undefined : featuresFrom(featuresText);
 if (featuresText !== undefined && features === undefined) {
   console.error(
@@ -56,7 +73,64 @@ if (unknownFeature !== undefined) {
   console.error(`GAME_TEST_FEATURES: unknown feature ${unknownFeature}`);
   process.exit(1);
 }
-const message = formatRunRequest({ runId, shard, lanes: 1, at, features });
+function changedPaths() {
+  const root = fileURLToPath(new URL("../", import.meta.url));
+  const git = (args) =>
+    execFileSync("git", args, {
+      cwd: root,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim();
+  const base =
+    process.env.GAME_TEST_BASE ?? git(["merge-base", "HEAD", "origin/main"]);
+  const changed = git(["diff", "--name-only", "--no-renames", base]);
+  const untracked = git(["ls-files", "--others", "--exclude-standard"]);
+  return `${changed}\n${untracked}`.split("\n").filter(Boolean);
+}
+
+function impactedFeatures() {
+  const reason = mustRunAll(process.env);
+  if (reason !== undefined) {
+    const label =
+      reason === "CI" || reason === "GAME_TEST_SHARD"
+        ? `${reason} set`
+        : reason;
+    console.log(`impact: all (${label})`);
+    return undefined;
+  }
+  let paths;
+  try {
+    paths = changedPaths();
+  } catch (error) {
+    console.log(`impact: all (git failed: ${error.message.split("\n")[0]})`);
+    return undefined;
+  }
+  const selection = selectionOf(paths);
+  if (selection.all) {
+    console.log(`impact: all (${selection.reason})`);
+    return undefined;
+  }
+  const impactPlan = planOf(CATALOG, {
+    shard: WHOLE_RUN,
+    playerConnected: true,
+    features: selection.features,
+  });
+  if (impactPlan.runs.length === 0) {
+    console.log("impact: no in-game scenario affected");
+    process.exit(0);
+  }
+  console.log(
+    `impact: ${selection.features.join(",")} -> ${impactPlan.runs.length} scenarios, ${impactPlan.expectedTicks} declared ticks`,
+  );
+  return selection.features;
+}
+
+if (features !== undefined) {
+  console.log(`impact: explicit ${features.join(",")}`);
+} else {
+  features = impactedFeatures();
+}
+const message = formatRunRequest({ runId, shard, lanes, at, features });
 const since = new Date().toISOString();
 // Write the command to bedrock_server's stdin ourselves, as Mojang's Creator
 // Tools does with the process it spawns. The image's send-command cannot be
