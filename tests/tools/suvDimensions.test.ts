@@ -182,7 +182,7 @@ it("keeps hover and submarine animation offsets aligned with their assemblies", 
   }
 });
 
-it("derives the seated-player size anchor and collision dimensions from one scale (ADR 0194)", () => {
+it("keeps scaled SUV dimensions with the observed seat height (ADRs 0194, 0196)", () => {
   const scale = constant("SIZE_SCALE");
   expect(scale).toBe(1.45);
   const entity = JSON.parse(
@@ -202,7 +202,7 @@ it("derives the seated-player size anchor and collision dimensions from one scal
     "minecraft:rideable"
   ].seats.entries()) {
     expect(Math.abs(position[0])).toBeCloseTo(0.38 * scale, 12);
-    expect(position[1]).toBeCloseTo(0.4 * scale, 12);
+    expect(position[1]).toBe(0.73);
     const seatZ = constant(index < 2 ? "FRONT_SEAT_Z" : "REAR_SEAT_Z");
     expect(position[2]).toBeCloseTo(((seatZ + 5.2) * scale) / 16, 12);
   }

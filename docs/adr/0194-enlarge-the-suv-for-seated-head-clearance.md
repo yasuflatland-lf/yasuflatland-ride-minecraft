@@ -1,6 +1,7 @@
 # 0194. Enlarge the SUV for seated head clearance
 
 - Status: Proposed
+- Superseded in part by: [0196](0196-raise-the-suv-seats-for-first-person-visibility.md) (rideable seat height and clearance estimates)
 - Date: 2026-10-31
 - Supersedes in part: [0170](0170-measure-suv-side-view-proportions.md) (size-anchor numbers)
 - Extends: [0192](0192-suv-detailed-body.md), [0015](0015-dev-server-docker-nethernet.md), [0142](0142-place-the-bulldozer-in-the-suvs-space.md), [0143](0143-place-the-camper-in-the-suvs-space.md)
