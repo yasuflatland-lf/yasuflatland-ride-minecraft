@@ -199,6 +199,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0196](0196-raise-the-suv-seats-for-first-person-visibility.md) | Raise the SUV seats for first-person visibility | Proposed |
 | [0197](0197-emit-camper-hover-particles-below-the-discs.md) | Emit camper hover particles below the discs | Proposed; extends 0147 and 0184 with a PBR glow overlay |
 | [0198](0198-one-build-wand-without-a-bulldozer.md) | One Build Wand without a bulldozer | Proposed |
+| [0199](0199-fold-the-camper-front-into-a-center-ridge-and-lean-it-back.md) | Fold the camper front into a center ridge and lean it back | Accepted |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 

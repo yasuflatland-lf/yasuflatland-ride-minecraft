@@ -42,8 +42,8 @@ def build(ctx: FrontContext) -> None:
     front.append(box(-0.45, UPPER[1], FRONT - ctx.shape.grille_ridge_px - 0.45, 0.45, SILL_LOW, FRONT - ctx.shape.grille_ridge_px, "chrome"))
     front.extend(ctx.front)
 
-    # As on the cab close-up, the body under the windshield juts out at the sill and tapers
-    # back toward the bottom: every front cube below the sill moves forward with its height,
+    # The whole front face below the sill leans by FrontShape.lean_deg (ADR 0199): every
+    # front cube below the sill shifts with its height,
     # tall ones cut into slices so the face steps back smoothly, and the side walls are
     # carried forward to meet it.
     for c in front:

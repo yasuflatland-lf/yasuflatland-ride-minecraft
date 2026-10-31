@@ -11,7 +11,7 @@ GRILLE_STEP = 0.5
 @dataclass(frozen=True)
 class FrontShape:
     windshield_ridge_px: float = 4.0
-    cap_ridge_px: float = 0.0
+    cap_ridge_px: float = 4.0
     grille_ridge_px: float = 2.0
     lean_deg: float = 5.0
     hood_edge_y: float = SILL_LOW

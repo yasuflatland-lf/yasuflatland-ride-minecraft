@@ -25,6 +25,7 @@ const shape = runShape<{
   lean_deg: number;
   grille_half_span: number;
   windshield_ridge_px: number;
+  cap_ridge_px: number;
   grille_ridge_px: number;
 }>("asdict(FrontShape())", null);
 
@@ -46,7 +47,7 @@ describe("camper front shape", () => {
     );
   });
 
-  it("enables the windshield and grille ridges by default and keeps the cap flat", () => {
+  it("enables the windshield and grille ridges by default and enables the cap ridge", () => {
     fc.assert(
       fc.property(fc.double({ min: -1, max: 1, noNaN: true }), (fraction) => {
         const x = fraction * shape.grille_half_span;
@@ -58,12 +59,16 @@ describe("camper front shape", () => {
         ).toEqual([
           -shape.windshield_ridge_px *
             (1 - Math.abs(x) / shape.grille_half_span),
-          0,
+          -shape.cap_ridge_px * (1 - Math.abs(x) / shape.grille_half_span),
           -shape.grille_ridge_px * (1 - Math.abs(x) / shape.grille_half_span),
         ]);
       }),
       runs,
     );
+  });
+
+  it("defaults the cap ridge to 4 px", () => {
+    expect(runShape("FrontShape().cap_ridge_px", 0)).toBe(4);
   });
 
   it("keeps ridge edges fixed and places the symmetric center ahead by its depth", () => {

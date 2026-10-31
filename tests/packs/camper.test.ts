@@ -2244,13 +2244,25 @@ const { width, height, regions, period, texelsPerPx, slots, windows } =
   };
 
 describe("camper rib atlas (ADR 0190)", () => {
-  it("preserves the pre-rib geometry outside the reshaped front", () => {
+  it("preserves the pre-rib geometry outside the folded cab-over", () => {
+    // Issue #1070 replaces the cap layers and center header; camperCap.test.ts pins them.
+    const outsideCap = ([name, origin, size]: [string, number[], number[]]) => {
+      const y = origin[1] ?? 0;
+      const z = origin[2] ?? 0;
+      return !(
+        name === "body" &&
+        z < -47 &&
+        ((y >= 49.5 && y < 64 && size[1] === 0.25) ||
+          (y === 49.2 && size[1] === 0.5 && (size[0] ?? 0) > 20))
+      );
+    };
     const fixture = JSON.parse(
       readFileSync("tests/packs/fixtures/camper-cubes.json", "utf8"),
     ) as [string, number[], number[]][];
     const outsideFront = (entry: [string, number[], number[]]) =>
       ((entry[1][2] ?? 0) >= -50 || (entry[1][1] ?? 0) >= 36) &&
-      !isWindshieldCube({ origin: entry[1], size: entry[2] });
+      !isWindshieldCube({ origin: entry[1], size: entry[2] }) &&
+      outsideCap(entry);
     expect(
       bones
         .filter((b) => !b.name.startsWith("glow_"))

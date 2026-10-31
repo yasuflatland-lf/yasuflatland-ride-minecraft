@@ -491,7 +491,7 @@ for z in (DZ0 + 1, DZ1 - 2):
     body.append(box(HW, 3.5, z, HW + 6, 8, z + 1, "black"))
 
 # --- Front ------------------------------------------------------------------
-FW = HW - 3  # half width of the flat front face; the corners are cut at 45 degrees
+FW = HW - 3  # half width of the front face before the ridge folds; the corners are cut at 45 degrees
 WS_Z = FRONT + 2.5  # the windshield sits behind a ledge over the grille
 UPPER = (18, 29.5)  # upper grille, across the face and around the corners
 LOWER_Y = (8, 18)  # lower grille between the lamps, narrower at the bottom
@@ -1143,7 +1143,7 @@ for sgn in (1, -1):
             body.append(box(x_dark, 13, e0, x_wall, ARCH_TOP + 0.5, e1, "wood"))
 
 # Extract the headlight group's lamps (lenses, roof clearance, rear roof, and tail lamps)
-# after shaping the nose so the lenses follow the lamp pod taper.
+# after shaping the nose so the lenses follow the lean of the lamp pods.
 headlights, body = take_slots(body, LAMP_GROUPS["headlights"])
 
 # Glass gets its own bones, listed last, so only glass is alpha-blended and it draws after the
