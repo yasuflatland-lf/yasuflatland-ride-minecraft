@@ -38,13 +38,17 @@ describe("camper front shape", () => {
       fc.property(fc.double({ min: -24, max: 24, noNaN: true }), (x) => {
         expect(
           runShape(
-            "[ridge_dz(args, ridge, 24) for ridge in (FrontShape().windshield_ridge_px, FrontShape(cap_ridge_px=0).cap_ridge_px, FrontShape().grille_ridge_px)]",
+            "[ridge_dz(args, ridge, 24) for ridge in (lambda f: (f.windshield_ridge_px, f.cap_ridge_px, f.grille_ridge_px))(FrontShape(windshield_ridge_px=0, cap_ridge_px=0, grille_ridge_px=0))]",
             x,
           ),
         ).toEqual([0, 0, 0]);
       }),
       runs,
     );
+  });
+
+  it("defaults the cap ridge to 4 px", () => {
+    expect(runShape("FrontShape().cap_ridge_px", 0)).toBe(4);
   });
 
   it("keeps ridge edges fixed and places the symmetric center ahead by its depth", () => {
