@@ -1,6 +1,7 @@
 # 0178. Bulldozer build tools in a separate namespace
 
 - Status: Proposed
+- Amended in part by: [0198](0198-one-build-wand-without-a-bulldozer.md) (the bulldozer requirement, the two items, the build camera, and the hit and use mapping)
 - Date: 2026-10-29
 - Supersedes in part: [0138](0138-raise-and-lower-the-bulldozer-blade.md) and [0144](0144-split-camping-gear-into-inside-and-outside-groups.md) (the separate Bulldozer Switches creative group), [0139](0139-show-the-held-tool-on-the-cab-monitor.md) (the monitor tools equal the whole creative group), [0171](0171-sports-boat-equipment-and-icebreaker-mode.md) and [0174](0174-show-only-the-icebreaker-switch-in-the-equipment-group.md) (the Sports Boat Equipment group sits directly after the Bulldozer Switches group)
 - Extends: [0028](0028-third-person-camera-in-flight.md) (the rider's third-person camera), [0039](0039-vehicle-forms.md) (vehicle forms), [0047](0047-rename-to-yasuflatland-ride.md) (the `yasu_ride` namespace), [0052](0052-retry-camera-switches-and-break-seat-ties-low.md) (camera switching), [0136](0136-bulldozer.md) (the bulldozer kind), [0137](0137-clear-block-columns-with-the-blade.md) (the kept block list)
