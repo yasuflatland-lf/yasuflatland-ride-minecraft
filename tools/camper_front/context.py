@@ -3,7 +3,12 @@
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
-from .shape import FrontShape
+from .shape import FrontShape, ridge_dz
+
+# Sill geometry hood.py builds: the top drops this far toward the nose, and the center
+# rib stands this far above the white top.
+SILL_DROP = 1.5
+SILL_RIB_RISE = 0.35
 
 
 @dataclass(frozen=True)
@@ -41,3 +46,11 @@ class FrontContext:
         return self.box(cx - self.CORNER / 2, y0, cz - 0.5 - inset,
                         cx + self.CORNER / 2, y1, cz + 0.5 - inset,
                         color, [0, -sx * 45, 0], [cx, 0, cz])
+
+    def sill_top_y(self, x, z):
+        """Height of the sloping sill's white top at world (x, z), as hood.py builds it."""
+        edge_y = getattr(self.shape, "hood_edge_y", self.UPPER[0])
+        ridge = getattr(self.shape, "grille_ridge_px", 0.0)
+        nose = (self.FRONT + self.shape.lean_dz(edge_y) + ridge_dz(x, ridge, self.HW)
+                + max(0, abs(x) - self.FW))
+        return self.SILL - SILL_DROP * (self.WS_Z - z) / (self.WS_Z - nose)
