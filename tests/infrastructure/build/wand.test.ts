@@ -1,6 +1,8 @@
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
+import { AimRoofHeight } from "../../../src/application/build/aimRoofHeight";
 import { CancelFlow } from "../../../src/application/build/cancelFlow";
+import { ChooseRoof } from "../../../src/application/build/chooseRoof";
 import { EditJobs } from "../../../src/application/build/editJobs";
 import { PasteAt } from "../../../src/application/build/pasteAt";
 import type { AimReader } from "../../../src/application/build/ports/aim";
@@ -88,6 +90,7 @@ it("preserves blocks and defers point taps out of before events", () => {
         const blocks = new FakeWorld();
         blocks.put({ x, y, z }, blockStateOf("minecraft:stone"));
         registerWand({
+          aimRoofHeight: new AimRoofHeight(repo),
           repo,
           pasteAt: new PasteAt(
             repo,
@@ -186,6 +189,9 @@ function setupAir() {
   const blocks = new FakeWorld();
   const setPoint = new SetPoint(repo, blocks, feedback);
   const tapAir = new TapAir(repo, feedback);
+  const aimRoofHeight = new AimRoofHeight(repo);
+  const roofExecute = vi.spyOn(aimRoofHeight, "execute");
+  const pointExecute = vi.spyOn(setPoint, "execute");
   const execute = vi.spyOn(tapAir, "execute");
   const menus = {
     showShapeMenu: vi.fn(),
@@ -202,7 +208,15 @@ function setupAir() {
     }),
   };
   const debounce = new PressDebounces<PlayerId>(BUILD_SPEC.pressDebounceTicks);
-  const player = { id: "p", isValid: true, isSneaking: false };
+  const player = {
+    id: "p",
+    isValid: true,
+    isSneaking: false,
+    selectedSlotIndex: 0,
+    getComponent: () => ({
+      container: { getItem: () => ({ typeId: SELECTION_WAND_TYPE }) },
+    }),
+  };
   const id = asPlayerId(player.id);
   const session = repo.getOrCreate(id);
   session.setFlow({
@@ -212,6 +226,7 @@ function setupAir() {
     material: blockStateOf("minecraft:stone"),
   });
   registerWand({
+    aimRoofHeight,
     repo,
     pasteAt: new PasteAt(
       repo,
@@ -232,7 +247,19 @@ function setupAir() {
       source: player,
       itemStack: { typeId: SELECTION_WAND_TYPE },
     });
-  return { repo, session, id, player, use, execute, menus, aim, debounce };
+  return {
+    repo,
+    session,
+    id,
+    player,
+    use,
+    execute,
+    menus,
+    aim,
+    debounce,
+    roofExecute,
+    pointExecute,
+  };
 }
 
 it("computes a virtual air endpoint and ignores held repeats", () => {
@@ -252,6 +279,93 @@ it("computes a virtual air endpoint and ignores held repeats", () => {
   use();
   expect(execute).toHaveBeenCalledTimes(2);
 });
+
+it.each(["gable", "hip"] as const)(
+  "confirms aimed %s height once on the first block event, including paired itemUse",
+  (kind) => {
+    const e = setupRoof(kind);
+    const target = {
+      ray: e.ray,
+      block: { cell: { x: 90, y: 80, z: 70 }, face: "Up" },
+    };
+    e.aim.aim = vi.fn(() => target);
+    const event = {
+      player: e.player,
+      block: {
+        dimension: { id: "minecraft:nether" },
+        location: target.block.cell,
+      },
+      isFirstEvent: true,
+      cancel: false,
+    };
+    engine.handlers.get("interact")?.(event);
+    engine.handlers.get("interact")?.({ ...event, isFirstEvent: false });
+    e.use();
+    expect(event.cancel).toBe(true);
+    expect(e.roofExecute).not.toHaveBeenCalled();
+    expect(e.menus.showRoofMenu).not.toHaveBeenCalled();
+    for (const callback of engine.scheduled.splice(0)) callback();
+    e.use();
+    expect(e.aim.aim).toHaveBeenCalledWith(e.id);
+    expectRoofTap(e);
+  },
+);
+
+it.each(["gable", "hip"] as const)(
+  "confirms aimed %s height once on an air press, even while sneaking",
+  (kind) => {
+    for (const sneaking of [false, true]) {
+      const e = setupRoof(kind);
+      e.player.isSneaking = sneaking;
+      const read = vi.spyOn(e.aim, "aim");
+      for (const tick of [0, 4, 10, 15]) {
+        engine.tick = tick;
+        e.use();
+      }
+      for (const callback of engine.scheduled.splice(0)) callback();
+      expect(read).toHaveBeenCalledExactlyOnceWith(e.id);
+      expectRoofTap(e);
+    }
+  },
+);
+
+function setupRoof(kind: "gable" | "hip") {
+  const e = setupAir();
+  e.session.setFlow({
+    kind: "endpoint",
+    dimensionId: nether,
+    from: { x: 0, y: 0, z: 0 },
+    to: { x: 4, y: 0, z: 4 },
+    material: blockStateOf("minecraft:stone"),
+  });
+  new ChooseRoof(e.repo).execute({ playerId: e.id, kind });
+  const flow = e.session.flow;
+  const ray = {
+    origin: { x: -10, y: 5, z: 2.5 },
+    direction: { x: 1, y: 0, z: 0 },
+  };
+  e.aim.aim = () => ({ ray });
+  e.menus.showRoofMenu.mockImplementation(() => {
+    expect(e.session.flow).toEqual({ ...flow, previous: 5 });
+  });
+  return { ...e, flow, ray };
+}
+
+function expectRoofTap(e: ReturnType<typeof setupRoof>) {
+  expect(e.roofExecute).toHaveBeenCalledExactlyOnceWith({
+    playerId: e.id,
+    ray: e.ray,
+  });
+  expect(e.menus.showRoofMenu).toHaveBeenCalledExactlyOnceWith(e.player);
+  expect(e.roofExecute.mock.invocationCallOrder[0]).toBeLessThan(
+    e.menus.showRoofMenu.mock.invocationCallOrder[0] as number,
+  );
+  expect(e.session.flow).toEqual({ ...e.flow, previous: 5 });
+  expect(e.pointExecute).not.toHaveBeenCalled();
+  expect(e.execute).not.toHaveBeenCalled();
+  expect(e.menus.showShapeMenu).not.toHaveBeenCalled();
+  expect(e.menus.showUtilityMenu).not.toHaveBeenCalled();
+}
 
 it("opens the utility menu once for a held sneak air press without clearing the flow", () => {
   const { player, use, menus, execute, session } = setupAir();
@@ -349,6 +463,7 @@ it("routes each engine face to aimed paste in the hit dimension after the before
         const point = new SetPoint(repo, blocks, feedback);
         const pointCall = vi.spyOn(point, "execute");
         registerWand({
+          aimRoofHeight: new AimRoofHeight(repo),
           setPoint: point,
           tapAir: new TapAir(repo, feedback),
           menus,
@@ -426,6 +541,7 @@ it("opens only on entering endpoint and defers an air-triggered menu safely", ()
     execute({ ...cmd, end: to }),
   );
   registerWand({
+    aimRoofHeight: new AimRoofHeight(repo),
     setPoint: new SetPoint(repo, blocks, feedback),
     tapAir: air,
     repo,

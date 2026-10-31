@@ -572,5 +572,5 @@ Remaining manual checks are BW1-BW4 (real taps, debounce and break prevention), 
 
 | ID | Action | Expected | PC | iPad |
 |---|---|---|---|---|
-| BW5 | Choose a roof, aim up/down and nearly parallel to its apex line, then tap | Height preview follows aim, retains height for a parallel ray, respects the cap, and opens Fill/Hollow once | unverified | unverified |
+| BW5 | Choose Gable roof or Hip roof, aim up/down and nearly parallel to its apex line, then tap a block; repeat with an air tap and a sneaking air tap | Height preview follows aim, retains height for a parallel ray, respects the cap, and each tap opens Fill/Hollow once with the aimed height; the shape and utility menus stay closed | unverified | unverified |
 | BW6 | Choose Paste, aim at each face, switch items, then retry and tap | Preview minimum corner is adjacent to the face; switching items cancels it; the pasted blocks match the preview | unverified | unverified |

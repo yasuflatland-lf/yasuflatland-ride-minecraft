@@ -1,4 +1,5 @@
 import { Direction, system, world } from "@minecraft/server";
+import type { AimRoofHeight } from "../../../../application/build/aimRoofHeight";
 import type { PasteAt } from "../../../../application/build/pasteAt";
 import type { AimReader } from "../../../../application/build/ports/aim";
 import type { SetPoint } from "../../../../application/build/setPoint";
@@ -30,6 +31,7 @@ export function registerWand({
   setPoint,
   tapAir,
   pasteAt,
+  aimRoofHeight,
   repo,
   menus,
   aim,
@@ -39,6 +41,7 @@ export function registerWand({
   setPoint: SetPoint;
   tapAir: TapAir;
   pasteAt: PasteAt;
+  aimRoofHeight: AimRoofHeight;
   repo: BuildSessionRepository;
   menus: BuildMenus;
   aim: AimReader;
@@ -61,7 +64,12 @@ export function registerWand({
     const face = ev.blockFace;
     system.run(() => {
       if (!player.isValid) return;
-      if (repo.get(command.playerId)?.flow.kind === "pasteAim") {
+      if (repo.get(command.playerId)?.flow.kind === "roofHeight") {
+        const target = aim.aim(command.playerId);
+        if (!target) return;
+        aimRoofHeight.execute({ playerId: command.playerId, ray: target.ray });
+        void menus.showRoofMenu(player);
+      } else if (repo.get(command.playerId)?.flow.kind === "pasteAim") {
         pasteAt.execute({ ...command, block: command.cell, face: FACES[face] });
       } else {
         const before = repo.get(command.playerId)?.flow.kind;
@@ -81,6 +89,11 @@ export function registerWand({
     const target = aim.aim(playerId);
     // A block tap can also emit itemUse; only the interact handler owns that tap.
     if (!target || target.block) return;
+    if (repo.get(playerId)?.flow.kind === "roofHeight") {
+      aimRoofHeight.execute({ playerId, ray: target.ray });
+      void menus.showRoofMenu(source);
+      return;
+    }
     if (source.isSneaking) {
       void menus.showUtilityMenu(source);
       return;
