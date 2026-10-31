@@ -25,3 +25,23 @@ The rails from #964 were removed at the owner's request in [issue #970](https://
 ## Consequences
 
 The texture grows while remaining small and repetitive enough to compress well. Palette UVs remain compatible, and paints cannot recolor the ribs. Tests check paint invariance, atlas bounds and overlaps, and non-emissive region texels. The two-model-pixel rib period reduces the aliasing of the original alternating stripe and preserves flat bands between grooves. Fine ribs and bolt heads may still shimmer on mobile or at a distance; keep this decision Proposed until the completed shell is checked in game from the side and three-quarter view at chase-camera distance on PC and mobile, widening the rib period if needed.
+
+## Addendum: round camper hover glows (2026-10-31)
+
+Issue #1032 extends the camper's bone contract (0009, 0067) with `glow_fl`,
+`glow_fr`, `glow_rl`, and `glow_rr`, each a child of `body` centered at the
+existing `hover_*` locator. Each disc uses 16 turned squares with corner radius
+`WHEEL_R` (7.8 px) and spans y = -0.5 to 0, below the folded wheel. This applies
+0022 to the camper using its own wheel dimensions.
+
+Append a cyan `glow` swatch (80, 170, 255, alpha 40) without moving existing
+swatches. Only `glow_*` uses `entity_emissive_alpha`; the opaque shell, blended
+glass, and separately switched lamps retain their materials. The main render
+controller shows the discs when `yasu_ride:gear_down` is false, matching the SUV
+and the camper's wheel fold controller. The lamp pass keeps them hidden. Existing
+hover particles and locators stay unchanged. Ground-pose camper previews omit
+the glow bones, matching the render controller.
+
+The discs look bright without lighting nearby blocks. Collision, seats, driving,
+and other part colors do not change. The owner must check the flight appearance
+in game, including the particles over the discs.

@@ -887,6 +887,8 @@ def render_boat(rp):
 def render_camper(rp):
     geo = json.loads((rp / CAMPER_GEOMETRY).read_text())["minecraft:geometry"][0]
     texture = read_png(rp / CAMPER_TEXTURE)
+    # Camper previews use the ground pose, where the render controller hides hover glows.
+    geo = {**geo, "bones": [b for b in geo["bones"] if not b["name"].startswith("glow_")]}
     # Other atlases intentionally use center sampling in their established previews.
     return render_poses(geo, texture, CAMPER_POSES, texture_mapping=True)
 

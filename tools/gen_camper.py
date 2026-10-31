@@ -73,6 +73,7 @@ PALETTE = {
     # Append trim swatches so every existing cube keeps its palette index.
     "aluminium": (168, 170, 168, 255),
     "trim_beige": (214, 211, 202, 255),
+    "glow": (80, 170, 255, 40),
 }
 SLOTS = list(PALETTE)
 ATLAS = camper_atlas.Atlas(SLOTS)
@@ -119,6 +120,8 @@ VENT_SCREWS_REGION = ATLAS.allocate("vent_screws", 16, 3)
 HARDWARE_DARK_FACTOR = 0.65
 FRONT_AXLE, REAR_AXLE = -31.5, 31
 WHEEL_R = 7.8
+GLOW_RADIUS = WHEEL_R
+GLOW_SEGMENTS = 16
 # Keep the existing 2.5 px end gaps and 2 px top gap; scaling the gaps crowds the rear hatch.
 ARCH_HALF = WHEEL_R + 2.5
 ARCH_TOP, ARCH_SLOPE_Y, ARCH_INSET, ARCH_STEP = 2 * WHEEL_R + 2, 10.8, 4.2, 0.25
@@ -192,11 +195,14 @@ STEPS_16 = tuple(i * 22.5 for i in range(8))
 STEPS_8 = tuple(i * 45.0 for i in range(4))
 
 
-def disc(axis, cx, cy, cz, r, depth, color, steps=STEPS_32):
+def disc(axis, cx, cy, cz, r, depth, color, steps=STEPS_32, square=False):
     """A disc of 2 * len(steps) sides (32 with the default steps) from bars turned about its
-    normal: 'x' (wheels), 'y' (the stove burner), or 'z' (lamps)."""
+    normal: 'x' (wheels), 'y' (the stove burner), or 'z' (lamps).
+    square=True uses turned squares with corner radius r for hover glows."""
     n = 2 * len(steps)
     long, short = 2 * r, 2 * r * math.tan(math.pi / n)
+    if square:
+        long = short = math.sqrt(2) * r
     out = []
     for a in steps:
         if axis == "x":
@@ -836,6 +842,7 @@ for x in range(-17, 18, 4):
 # --- Chassis and wheels -----------------------------------------------------
 body.append(box(-18, 5, FRONT + 2, 18, BOTTOM + 1, REAR - 2, "black"))
 wheels = []
+glows = []
 hover = {}
 for end, z in (("f", FRONT_AXLE), ("r", REAR_AXLE)):
     for sx in (1, -1):
@@ -843,6 +850,10 @@ for end, z in (("f", FRONT_AXLE), ("r", REAR_AXLE)):
         name = end + ("l" if sx < 0 else "r")
         center_x = sx * (HW - 0.6 - 2)
         hover[f"hover_{name}"] = [center_x, 0, z]
+        glows.append({"name": f"glow_{name}", "parent": "body", "pivot": [center_x, 0, z],
+                      "cubes": disc("y", center_x, 0, z, GLOW_RADIUS, -0.5, "glow",
+                                    steps=tuple(i * 90 / GLOW_SEGMENTS for i in range(GLOW_SEGMENTS)),
+                                    square=True)})
         x_out = sx * (HW - 0.6)
         cubes += disc("x", min(x_out, x_out - sx * 4), WHEEL_R, z, WHEEL_R, 4, "tire")
         face_x = x_out if sx > 0 else x_out - 0.3
@@ -1368,6 +1379,7 @@ camper_bones = [
     {"name": "headlights", "parent": "body", "pivot": [0, 0, 0], "cubes": headlights},
     {"name": "ceiling_lights", "parent": "body", "pivot": [0, 0, 0], "cubes": ceiling_lights},
     *wheels,
+    *glows,
     *[{"name": f"seat_{i}", "parent": "body", "pivot": [0, FLOOR, 0], "cubes": cubes}
       for i, cubes in enumerate((seat0, seat1, seat2, seat3))],
     {"name": "door_entry", "parent": "body", "pivot": DOOR_HINGE, "cubes": door},
