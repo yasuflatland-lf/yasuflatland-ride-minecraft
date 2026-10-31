@@ -35,7 +35,11 @@ def build(ctx: FrontContext, assemblies: dict) -> dict[str, list[dict]]:
         return ctx.sill_top_y(x, z)
 
     def foot_slivers(lo, hi, z0, z1, color):
-        """Vertical slivers from the sill top up to WS_FOOT_Y, one per FOOT_SLICE of x."""
+        """Slivers from the sill top up to WS_FOOT_Y, one column per FOOT_SLICE of x.
+
+        Each is at most SLICE high, so hood.py leans it as one piece; level_foot() then
+        cancels that lean and the glass stays vertical down to the sill.
+        """
         sx = 1 if hi > 0 else -1
         inner, outer = (lo, hi) if sx > 0 else (hi, lo)
         slivers = []
@@ -43,10 +47,24 @@ def build(ctx: FrontContext, assemblies: dict) -> dict[str, list[dict]]:
         while abs(a - outer) > 1e-6:
             b = outer if abs(outer - a) <= FOOT_SLICE + 1e-6 else a + sx * FOOT_SLICE
             lo_x, hi_x = sorted((a, b))
-            slivers.append(box(pane_x_of(sx, lo_x), foot_y(a), z0, pane_x_of(sx, hi_x),
-                               WS_FOOT_Y, z1, color))
+            y = foot_y(a)
+            while y < WS_FOOT_Y - 1e-6:
+                y1 = min(y + ctx.SLICE, WS_FOOT_Y)
+                slivers.append(box(pane_x_of(sx, lo_x), y, z0, pane_x_of(sx, hi_x), y1, z1,
+                                   color))
+                y = y1
             a = b
         return slivers
+
+    def level_foot(cubes):
+        for cube in cubes:
+            if cube["origin"][1] + cube["size"][1] / 2 >= ctx.SILL:
+                continue
+            lean = ctx.shape.lean_dz(cube["origin"][1] + cube["size"][1] / 2)
+            cube["origin"][2] = round(cube["origin"][2] - lean, 3)
+            cube["pivot"][2] = round(cube["pivot"][2] - lean, 3)
+        return cubes
+
     members = {}
 
     for sx, name, wiper_x in zip((-1, 1), ("windshield_left", "windshield_right"), WIPER_OFFSETS):
@@ -74,14 +92,14 @@ def build(ctx: FrontContext, assemblies: dict) -> dict[str, list[dict]]:
         panes += foot_slivers(f0, f1, WS_Z - 0.2, WS_Z + 0.6, "black")
         fixed = corners
         if sx == 1:
-            fixed.append(box(-0.7, foot_y(0), ridge_z - 0.2,
+            fixed.append(box(-0.7, ctx.sill_top_y(0, ridge_z + PANE_CENTER_DZ), ridge_z - 0.2,
                              0.7, WS_HEADER_Y, ridge_z + 0.6, "chrome"))
         # The wiper is the one accepted compound-rotation cube: z-rolled, then yawed about y.
         yawed = cube_tilt.yaw_cubes(
             panes, pivot=[sx * FW, WS_FOOT_Y, WS_Z], degrees=-sx * angle,
             assembly=name, assemblies=assemblies,
         )
-        members[name] = fixed + yawed
+        members[name] = fixed + level_foot(yawed)
         ctx.glass_corners[sx] = members[name][:2]
         ctx.front.extend(members[name][2:])
     return members

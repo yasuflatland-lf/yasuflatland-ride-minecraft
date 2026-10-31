@@ -66,8 +66,28 @@ const WINDSHIELD_CUBES: [string, number[], number[]][] = [
   ["body", [-21.05, 36, -53.814], [0.611, 13.5, 0.8]],
   ["body", [5.848, 36.6, -55.473], [8.152, 0.6, 0.6]],
   ["body", [-13.152, 36.6, -57.237], [8.152, 0.6, 0.6]],
-  ["body", [-0.7, 36, -57.7], [1.4, 13.5, 0.8]],
 ];
+// Pane and rubber slivers under y 36 that reach down to the sloping sill.
+const isFootSliver = (cube: Pick<Cube, "origin" | "size">) => {
+  const [, y, z] = cube.origin;
+  const [width, height, depth] = cube.size;
+  return (
+    (z ?? 0) < -45 &&
+    (y ?? 0) > 33 &&
+    (y ?? 0) < 36 &&
+    (height ?? 9) <= 0.5 &&
+    (width ?? 9) <= 0.6 &&
+    [0.2, 0.8].includes(depth ?? 0)
+  );
+};
+// The chrome post stands on the sill top and ends at the header, 49.5.
+const isPost = (cube: Pick<Cube, "origin" | "size">) =>
+  (cube.origin[2] ?? 0) < -45 &&
+  cube.size[0] === 1.4 &&
+  cube.size[2] === 0.8 &&
+  (cube.origin[1] ?? 0) > 33 &&
+  (cube.origin[1] ?? 0) < 36 &&
+  Math.abs((cube.origin[1] ?? 0) + (cube.size[1] ?? 0) - 49.5) < 1e-6;
 // The pre-ridge cubes the windshield replaced, as stored in the rib-atlas fixture.
 const LEGACY_WINDSHIELD_CUBES: [string, number[], number[]][] = [
   ["body", [-0.7, 36, -53.7], [1.4, 13.5, 0.8]],
@@ -91,7 +111,9 @@ const isListed = (
   cube: Pick<Cube, "origin" | "size">,
 ) => list.some((entry) => sameCube(entry, [boneName, cube.origin, cube.size]));
 const windshieldCubes = bones.flatMap((b) =>
-  (b.cubes ?? []).filter((cube) => isListed(WINDSHIELD_CUBES, b.name, cube)),
+  (b.cubes ?? []).filter(
+    (cube) => isListed(WINDSHIELD_CUBES, b.name, cube) || isPost(cube),
+  ),
 );
 // Changed by #1069 only: the corner glass and black corners keep their old geometry.
 const CHANGED_WINDSHIELD = WINDSHIELD_CUBES.filter(
@@ -960,7 +982,11 @@ describe("camper windshield ridge (#1069)", () => {
       members.find((cube) => cube.uv.north?.uv[0] === 10),
       "windshield coordinate",
     );
-    expect(post.size).toEqual([1.4, 13.5, 0.8]);
+    expect(post.size[0]).toBe(1.4);
+    expect(post.size[2]).toBe(0.8);
+    expect(
+      defined(post.origin[1], "post foot") + defined(post.size[1], "post"),
+    ).toBeCloseTo(49.5, 3);
     for (const pane of panes) {
       for (const height of [0, 1]) {
         const postZ = point(post, 0.5, height, 0.5)[2];
@@ -999,6 +1025,76 @@ describe("camper windshield ridge (#1069)", () => {
         expect(header[0]).toBeCloseTo(foot[0], 3);
         expect(header[2]).toBeCloseTo(foot[2], 3);
         expect(header[1] - foot[1]).toBeCloseTo(13.5, 3);
+      }
+    }
+  });
+
+  it("lands the glass foot on the sill top and keeps it vertical down to it", () => {
+    const all = bones.flatMap((b) => b.cubes ?? []);
+    const sill = all.filter(
+      (cube) =>
+        cube.origin[1] === 33 &&
+        defined(cube.size[2], "sill") <= 0.25 &&
+        defined(cube.size[1], "sill") > 1 &&
+        defined(cube.origin[2], "sill") < -53.4,
+    );
+    const sillTop = (x: number, z: number) => {
+      const strip = defined(
+        sill.find(
+          (c) =>
+            defined(c.origin[0], "sill") - 1e-6 <= x &&
+            x <=
+              defined(c.origin[0], "sill") +
+                defined(c.size[0], "sill") +
+                1e-6 &&
+            defined(c.origin[2], "sill") - 1e-6 <= z &&
+            z <=
+              defined(c.origin[2], "sill") + defined(c.size[2], "sill") + 1e-6,
+        ),
+        "sill strip under the glass foot",
+      );
+      return defined(strip.origin[1], "sill") + defined(strip.size[1], "sill");
+    };
+    const slivers = (bone("glass").cubes ?? []).filter(
+      (cube) =>
+        cube.size[2] === 0.2 &&
+        defined(cube.origin[1], "sliver") > 33 &&
+        defined(cube.origin[1], "sliver") < 36,
+    );
+    const columns = new Map<number, Cube>();
+    for (const cube of slivers) {
+      const key = Math.round(defined(cube.origin[0], "sliver") * 100);
+      const low = columns.get(key);
+      if (
+        !low ||
+        defined(cube.origin[1], "sliver") < defined(low.origin[1], "sliver")
+      )
+        columns.set(key, cube);
+    }
+    expect(columns.size).toBeGreaterThan(70);
+    const gaps = [...columns.values()].map((cube) => {
+      const [x, y, z] = point(cube, 0.5, 0, 0.5);
+      return y - sillTop(x, z);
+    });
+    // The sill is built in 0.25 px deep strips, so its top steps by up to 0.08 px.
+    expect(Math.max(...gaps.map(Math.abs))).toBeLessThan(0.08);
+    for (const cube of slivers) {
+      const foot = point(cube, 0.5, 0, 0.5);
+      const header = point(cube, 0.5, 1, 0.5);
+      expect(header[0]).toBeCloseTo(foot[0], 3);
+      expect(header[2]).toBeCloseTo(foot[2], 3);
+      expect(cube.rotation?.[0] ?? 0).toBe(0);
+      expect(cube.rotation?.[2] ?? 0).toBe(0);
+    }
+    // Stacked slivers of one column share a world x and z line from the sill to y 36.
+    for (const key of columns.keys()) {
+      const stack = slivers.filter(
+        (c) => Math.round(defined(c.origin[0], "sliver") * 100) === key,
+      );
+      const [first, ...rest] = stack.map((c) => point(c, 0.5, 0.5, 0.5));
+      for (const p of rest) {
+        expect(p[0]).toBeCloseTo(defined(first, "sliver")[0], 3);
+        expect(p[2]).toBeCloseTo(defined(first, "sliver")[2], 3);
       }
     }
   });
@@ -1090,10 +1186,11 @@ describe("camper windshield ridge (#1069)", () => {
 
   it("preserves exactly the same glass panes and their render order", () => {
     const glass = bone("glass").cubes ?? [];
-    expect(glass).toHaveLength(39);
+    expect(glass.filter((cube) => !isFootSliver(cube))).toHaveLength(39);
     expect(bone("door_glass").cubes).toHaveLength(1);
     const unchanged = glass.filter(
-      (cube) => !panes.includes(cube) && !corners.includes(cube),
+      (cube) =>
+        !panes.includes(cube) && !corners.includes(cube) && !isFootSliver(cube),
     );
     const signature = (cube: Cube) => [...cube.origin, ...cube.size].join(",");
     const expected = [
@@ -2325,7 +2422,12 @@ describe("camper rib atlas (ADR 0190)", () => {
       .filter((b) => !b.name.startsWith("glow_"))
       .flatMap((b) =>
         (b.cubes ?? [])
-          .filter((cube) => !isListed(CHANGED_WINDSHIELD, b.name, cube))
+          .filter(
+            (cube) =>
+              !isListed(CHANGED_WINDSHIELD, b.name, cube) &&
+              !isFootSliver(cube) &&
+              !isPost(cube),
+          )
           .map((cube) => [b.name, cube.origin, cube.size]),
       );
     expect(unchanged).toEqual(
