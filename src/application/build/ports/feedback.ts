@@ -6,7 +6,6 @@ export type BuildMessage =
   | "pos1Set"
   | "pos2Set"
   | "selectionCleared"
-  | "notInBulldozer"
   | "noSelection"
   | "tooLarge"
   | "busy"

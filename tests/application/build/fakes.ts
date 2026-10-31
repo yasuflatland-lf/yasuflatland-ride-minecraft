@@ -1,10 +1,10 @@
+import type { BuildAnchor } from "../../../src/application/build/ports/anchor";
 import type { BuildBlockWorld } from "../../../src/application/build/ports/blocks";
 import type {
   BuildFeedback,
   BuildMessage,
   OutlineStyle,
 } from "../../../src/application/build/ports/feedback";
-import type { RiderGate } from "../../../src/application/build/ports/rider";
 import { AIR, type BlockState } from "../../../src/domain/build/blockState";
 import type { Box } from "../../../src/domain/build/box";
 import { BuildSession } from "../../../src/domain/build/session";
@@ -37,17 +37,13 @@ export class FakeSessions implements BuildSessionRepository {
   }
 }
 
-export class FakeGate implements RiderGate {
-  riding = true;
+export class FakeAnchor implements BuildAnchor {
   feet: { dimensionId: DimensionId; cell: Cell } | undefined = {
     dimensionId: overworld,
     cell: { x: 0, y: 64, z: 0 },
   };
-  ridesBulldozer() {
-    return this.riding;
-  }
-  bulldozerFeet() {
-    return this.riding ? this.feet : undefined;
+  feetOf() {
+    return this.feet;
   }
 }
 

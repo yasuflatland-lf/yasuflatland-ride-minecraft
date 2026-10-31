@@ -1008,11 +1008,10 @@ export const CATALOG: readonly ScenarioSpec[] = [
   {
     name: "build_selection_and_mode",
     file: "buildTools",
-    ticks: 26,
-    features: ["build", "vehicle:suv", "vehicle:bulldozer"],
+    ticks: 80,
+    features: ["build", "vehicle:bulldozer"],
     isolation: "exclusive",
     needsPlayer: true,
-    skipNote: "camera perspective needs visual verification",
     vehicles: 1,
   },
 ];

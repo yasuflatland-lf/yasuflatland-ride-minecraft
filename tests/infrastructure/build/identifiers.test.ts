@@ -7,7 +7,6 @@ import {
   BUILD_NAMESPACE,
   BUILD_TOOL_TYPE,
   BUILD_TOOL_TYPES,
-  BULLDOZER_TYPE,
   buildId,
   LAID_BLOCK_TAG,
   SELECTION_WAND_TYPE,
@@ -17,10 +16,8 @@ import {
   TEST_RESULT_EVENT,
 } from "../../../src/infrastructure/build/identifiers";
 import { LAID_BLOCK_TAG as VEHICLE_LAID_BLOCK_TAG } from "../../../src/infrastructure/shared/identifiers";
-import { ENTITY_TYPE } from "../../../src/infrastructure/vehicle/bedrock/identifiers";
 
 it("keeps the copied vehicle identifiers in sync across the feature boundary", () => {
-  expect(BULLDOZER_TYPE).toBe(ENTITY_TYPE.bulldozer);
   expect(LAID_BLOCK_TAG).toBe(VEHICLE_LAID_BLOCK_TAG);
   expect(BUILD_TOOL_TYPES).toEqual(
     new Set([SELECTION_WAND_TYPE, BUILD_TOOL_TYPE]),

@@ -5,22 +5,16 @@ import type { BuildSessionRepository } from "../../domain/build/sessionRepositor
 import type { PlayerId } from "../../domain/shared/ids";
 import type { EditJobs } from "./editJobs";
 import type { BuildFeedback } from "./ports/feedback";
-import type { RiderGate } from "./ports/rider";
 
 export class UndoEdit {
   constructor(
     private readonly repo: BuildSessionRepository,
-    private readonly gate: RiderGate,
     private readonly feedback: BuildFeedback,
     private readonly jobs: EditJobs,
   ) {}
 
   execute(cmd: { playerId: PlayerId }): void {
     const { playerId } = cmd;
-    if (!this.gate.ridesBulldozer(playerId)) {
-      this.feedback.showMessage(playerId, "notInBulldozer");
-      return;
-    }
     const session = this.repo.getOrCreate(playerId);
     const record = session.takeUndo();
     if (isEditRefusal(record)) {

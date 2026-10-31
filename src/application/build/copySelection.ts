@@ -4,25 +4,22 @@ import { isEditRefusal } from "../../domain/build/session";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import type { PlayerId } from "../../domain/shared/ids";
+import type { BuildAnchor } from "./ports/anchor";
 import type { BuildBlockWorld } from "./ports/blocks";
 import type { BuildFeedback } from "./ports/feedback";
-import type { RiderGate } from "./ports/rider";
 
 export class CopySelection {
   constructor(
     private readonly repo: BuildSessionRepository,
-    private readonly gate: RiderGate,
+    private readonly anchor: BuildAnchor,
     private readonly world: BuildBlockWorld,
     private readonly feedback: BuildFeedback,
   ) {}
 
   execute(cmd: { playerId: PlayerId }): void {
     const { playerId } = cmd;
-    const feet = this.gate.bulldozerFeet(playerId);
-    if (!this.gate.ridesBulldozer(playerId) || !feet) {
-      this.feedback.showMessage(playerId, "notInBulldozer");
-      return;
-    }
+    const feet = this.anchor.feetOf(playerId);
+    if (!feet) return;
     const session = this.repo.getOrCreate(playerId);
     const box = session.editableBox(BUILD_SPEC.maxCopyVolume);
     if (isEditRefusal(box)) {
