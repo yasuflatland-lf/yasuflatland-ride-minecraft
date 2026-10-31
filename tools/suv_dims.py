@@ -31,6 +31,7 @@ ROOF_TOP = ROOF_Y + 0.2
 
 # The target hood stands above the belt line, so its cowl has its own height (ADR 0170).
 HOOD_TOP_Y = 19
+WINDSHIELD_RAIL_HEIGHT = 0.3
 FRONT = 25  # z of the hood's front face
 HOOD_REAR_Z = 7.75  # z of the cowl, where the hood meets the windshield frame
 WINDSHIELD_FOOT_Z = HOOD_REAR_Z - 0.5  # the windshield's lower frame pivot, before it leans back

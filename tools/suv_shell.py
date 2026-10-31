@@ -223,7 +223,7 @@ def front_side_panes():
 
 def windows_sealed():
     return [
-        windshield_part(-CABIN_HALF_WIDTH, HOOD_TOP_Y + 1, HOOD_REAR_Z - 0.1, CABIN_HALF_WIDTH, leaning_top(ROOF_Y), HOOD_REAR_Z, "rear_glass"),
+        windshield_part(-CABIN_HALF_WIDTH, HOOD_TOP_Y + WINDSHIELD_RAIL_HEIGHT, HOOD_REAR_Z - 0.1, CABIN_HALF_WIDTH, leaning_top(ROOF_Y), HOOD_REAR_Z, "rear_glass"),
         *both_sides([
             *front_side_panes(),
             box(12.9, WINDOW_BOTTOM_Y, CARGO_FRONT + 1, BODY_HALF_WIDTH, WINDOW_TOP_Y, -7, "rear_glass"),
@@ -248,8 +248,7 @@ def hood_cubes():
 
 def windshield_frame_cubes():
     return [
-        # Windshield lower frame and A-pillars, leaning back
-        windshield_part(-CABIN_HALF_WIDTH, HOOD_TOP_Y, WINDSHIELD_FOOT_Z, CABIN_HALF_WIDTH, HOOD_TOP_Y + 1, HOOD_REAR_Z, "trim"),
+        windshield_part(-CABIN_HALF_WIDTH, HOOD_TOP_Y, WINDSHIELD_FOOT_Z, CABIN_HALF_WIDTH, HOOD_TOP_Y + WINDSHIELD_RAIL_HEIGHT, HOOD_REAR_Z, "trim"),
     ]
 
 
