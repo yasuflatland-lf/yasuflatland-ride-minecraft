@@ -1,7 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
-import { boxOf } from "../../../src/domain/build/box";
 import type { EditRecord } from "../../../src/domain/build/edit/change";
 import {
   EMPTY_HISTORY,
@@ -15,7 +14,7 @@ import {
   type ModeInput,
   stepMode,
 } from "../../../src/domain/build/mode";
-import { BuildSession, isEditRefusal } from "../../../src/domain/build/session";
+import { BuildSession } from "../../../src/domain/build/session";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 
@@ -134,31 +133,6 @@ describe("BuildSession", () => {
     s.finishEdit(recordAt(2), true);
     expect(s.takeUndo()).toEqual(recordAt(1));
     expect(s.takeUndo()).toBe("nothingToUndo");
-  });
-
-  it("refuses tooLarge exactly when the volume exceeds the limit", () => {
-    fc.assert(
-      fc.property(
-        fc.integer({ min: 1, max: 6 }),
-        fc.integer({ min: 1, max: 6 }),
-        fc.integer({ min: 1, max: 6 }),
-        fc.integer({ min: 1, max: 300 }),
-        (x, y, z, limit) => {
-          const s = session();
-          expect(s.editableBox(limit)).toBe("noSelection");
-          s.setCorner("pos1", dim, { x: 0, y: 0, z: 0 });
-          s.setCorner("pos2", dim, { x: x - 1, y: y - 1, z: z - 1 });
-          const result = s.editableBox(limit);
-          if (x * y * z > limit) expect(result).toBe("tooLarge");
-          else {
-            expect(isEditRefusal(result)).toBe(false);
-            expect(result).toEqual(
-              boxOf({ x: 0, y: 0, z: 0 }, { x: x - 1, y: y - 1, z: z - 1 }),
-            );
-          }
-        },
-      ),
-    );
   });
 
   it("reports when build mode turns on", () => {

@@ -1,10 +1,10 @@
 // Everything one player has in the build feature. Every change to the
 // selection, clipboard, history, mode, or running edit goes through here.
-import type { Cell } from "../shared/cells";
 import type { DimensionId, PlayerId } from "../shared/ids";
-import { type Box, volume } from "./box";
+import type { Box } from "./box";
 import type { Clipboard } from "./clipboard/clipboard";
 import type { EditRecord } from "./edit/change";
+import { type BuildFlow, cancel } from "./flow/flow";
 import {
   EMPTY_HISTORY,
   takeLast,
@@ -12,12 +12,6 @@ import {
   withRecord,
 } from "./history/history";
 import { type BuildMode, MODE_OFF, type ModeInput, stepMode } from "./mode";
-import type { Corner } from "./selection/corner";
-import {
-  type Selection,
-  selectionBox,
-  withCorner,
-} from "./selection/selection";
 import { BUILD_SPEC } from "./spec";
 
 export type EditRefusal =
@@ -33,7 +27,10 @@ export function isEditRefusal(value: unknown): value is EditRefusal {
 }
 
 export class BuildSession {
-  private currentSelection: Selection | undefined;
+  private currentFlow: BuildFlow = { kind: "idle" };
+  private currentConfirmedBox:
+    | { dimensionId: DimensionId; box: Box }
+    | undefined;
   private currentClipboard: Clipboard | undefined;
   private currentMode: BuildMode = MODE_OFF;
   private history: UndoHistory = EMPTY_HISTORY;
@@ -41,8 +38,21 @@ export class BuildSession {
 
   constructor(readonly playerId: PlayerId) {}
 
-  get selection(): Selection | undefined {
-    return this.currentSelection;
+  get flow(): BuildFlow {
+    return this.currentFlow;
+  }
+  get confirmedBox(): { dimensionId: DimensionId; box: Box } | undefined {
+    return this.currentConfirmedBox;
+  }
+  get hasHistory(): boolean {
+    return this.history.records.length > 0;
+  }
+  setFlow(flow: BuildFlow): void {
+    this.currentFlow = flow;
+  }
+  confirmBox(dimensionId: DimensionId, box: Box): void {
+    this.currentConfirmedBox = { dimensionId, box };
+    this.currentFlow = cancel(this.currentFlow);
   }
 
   get clipboard(): Clipboard | undefined {
@@ -61,18 +71,9 @@ export class BuildSession {
     return this.editing;
   }
 
-  setCorner(corner: Corner, dimensionId: DimensionId, cell: Cell): Selection {
-    this.currentSelection = withCorner(
-      this.currentSelection,
-      corner,
-      dimensionId,
-      cell,
-    );
-    return this.currentSelection;
-  }
-
   clearSelection(): void {
-    this.currentSelection = undefined;
+    this.currentFlow = cancel(this.currentFlow);
+    this.currentConfirmedBox = undefined;
   }
 
   /** Returns whether build mode turned on or off. */
@@ -80,13 +81,6 @@ export class BuildSession {
     const was = this.currentMode.active;
     this.currentMode = stepMode(this.currentMode, input);
     return this.currentMode.active !== was;
-  }
-
-  /** The box an edit of the selection may use, or why not. `limit` is maxVolume or maxCopyVolume. */
-  editableBox(limit: number): Box | EditRefusal {
-    const box = selectionBox(this.currentSelection);
-    if (!box) return "noSelection";
-    return volume(box) > limit ? "tooLarge" : box;
   }
 
   setClipboard(clipboard: Clipboard): void {

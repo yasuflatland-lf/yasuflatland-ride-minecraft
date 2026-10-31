@@ -2,6 +2,7 @@ import { BlockPermutation, world } from "@minecraft/server";
 import type { BuildBlockWorld } from "../../../application/build/ports/blocks";
 import type { SpaceCheck } from "../../../application/shared/ports/space";
 import type { BlockState } from "../../../domain/build/blockState";
+import { isUsableMaterial } from "../../../domain/build/edit/guard";
 import type { Cell } from "../../../domain/shared/cells";
 import type { DimensionId } from "../../../domain/shared/ids";
 import { LAID_BLOCK_TAG } from "../identifiers";
@@ -10,6 +11,10 @@ import { stateOfPermutation } from "./blockStates";
 export class BedrockBlockWorld implements BuildBlockWorld {
   constructor(private readonly deps: { isProtected: SpaceCheck }) {}
 
+  materialOf(dimensionId: DimensionId, cell: Cell): BlockState | "refused" {
+    const state = this.stateAt(dimensionId, cell);
+    return isUsableMaterial(state) ? state : "refused";
+  }
   stateAt(dimensionId: DimensionId, cell: Cell): BlockState | undefined {
     try {
       const permutation = world

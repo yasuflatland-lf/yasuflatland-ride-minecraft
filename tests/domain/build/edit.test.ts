@@ -20,12 +20,7 @@ import {
   BUILD_KEPT_BLOCKS,
   isKeptState,
 } from "../../../src/domain/build/edit/guard";
-import { type Mask, matches } from "../../../src/domain/build/edit/pattern";
-import {
-  planFill,
-  planPaste,
-  planReplace,
-} from "../../../src/domain/build/edit/plan";
+import { planPaste, planShape } from "../../../src/domain/build/edit/plan";
 import { type Cell, cellKey } from "../../../src/domain/shared/cells";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import { PLACE_KEPT_BLOCKS } from "../../../src/domain/shared/keptBlocks";
@@ -52,50 +47,14 @@ const keys = (cells: Iterable<Cell>) => [...cells].map(cellKey).sort();
 const worldRead = (states: readonly BlockState[]) => (c: Cell) =>
   states[Math.abs(c.x * 31 + c.y * 17 + c.z * 7) % states.length];
 
-describe("Mask", () => {
-  it("matches on type and only the listed states", () => {
-    fc.assert(
-      fc.property(stateArb, (state) => {
-        expect(matches({ typeId: state.typeId }, state)).toBe(true);
-        expect(
-          matches({ typeId: state.typeId, states: state.states }, state),
-        ).toBe(true);
-        expect(matches({ typeId: `${state.typeId}_x` }, state)).toBe(false);
-        const other: Mask = { typeId: state.typeId, states: { nope: 1 } };
-        expect(matches(other, state)).toBe(false);
-      }),
-    );
-  });
-});
-
 describe("edit planning", () => {
   it("fill yields exactly the box cells with the pattern", () => {
     fc.assert(
       fc.property(smallBox, stateArb, (box, state) => {
-        const plan = [...planFill(box, { state })];
+        const plan = [...planShape({ kind: "box", box }, "fill", { state })];
         expect(keys(plan.map((c) => c.cell))).toEqual(keys(cellsOf(box)));
         expect(plan.every((c) => c.after === state)).toBe(true);
       }),
-    );
-  });
-
-  it("replace yields exactly the cells whose read matches the mask", () => {
-    fc.assert(
-      fc.property(
-        smallBox,
-        fc.array(stateArb, { minLength: 1, maxLength: 4 }),
-        stateArb,
-        (box, states, state) => {
-          const read = worldRead(states);
-          const mask: Mask = { typeId: "minecraft:stone" };
-          const plan = [...planReplace(box, mask, { state }, read)];
-          const expected = [...cellsOf(box)].filter((c) => {
-            const s = read(c);
-            return s !== undefined && matches(mask, s);
-          });
-          expect(keys(plan.map((c) => c.cell))).toEqual(keys(expected));
-        },
-      ),
     );
   });
 

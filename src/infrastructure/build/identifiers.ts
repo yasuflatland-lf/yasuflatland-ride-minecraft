@@ -12,8 +12,9 @@ export const BUILD_TOOL_TYPES: ReadonlySet<string> = new Set([
 export const LAID_BLOCK_TAG = "yasu_ride:laid";
 
 export const BUILD_MESSAGE: Readonly<Record<BuildMessage, string>> = {
-  pos1Set: "yasu_build.message.pos1_set",
-  pos2Set: "yasu_build.message.pos2_set",
+  pointSet: "yasu_build.message.point_set",
+  endSet: "yasu_build.message.end_set",
+  materialRefused: "yasu_build.message.material_refused",
   selectionCleared: "yasu_build.message.selection_cleared",
   noSelection: "yasu_build.message.no_selection",
   tooLarge: "yasu_build.message.too_large",
@@ -34,14 +35,10 @@ export const TEST_RESULT_EVENT = buildId("test_result");
 export const BUILD_FORM = {
   title: "yasu_build.form.title",
   fill: "yasu_build.form.fill",
-  replace: "yasu_build.form.replace",
   copy: "yasu_build.form.copy",
   paste: "yasu_build.form.paste",
   undo: "yasu_build.form.undo",
   clearSelection: "yasu_build.form.clear_selection",
-  block: "yasu_build.form.block",
-  with: "yasu_build.form.with",
   skipAir: "yasu_build.form.skip_air",
-  air: "yasu_build.form.air",
   submit: "yasu_build.form.submit",
 } as const;

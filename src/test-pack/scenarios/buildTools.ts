@@ -116,7 +116,7 @@ export async function buildBlockStates(a: Arena): Promise<Outcome> {
 interface Reply {
   player: string;
   message?: string;
-  selection?: unknown;
+  flow?: { kind: string };
   mode?: boolean;
   ticks?: number;
 }
@@ -164,6 +164,8 @@ export async function buildEdits(a: Arena): Promise<Outcome> {
       JSON.stringify({ player: player.name, corner: name, ...a.at(x, y, z) }),
     );
   const select = async (x: number, y: number, z: number, size: number) => {
+    await corner("clear", x, y, z);
+    at(x, y, z).setType("minecraft:stone");
     await corner("pos1", x, y, z);
     await corner("pos2", x + size - 1, y + size - 1, z + size - 1);
   };
@@ -197,9 +199,10 @@ export async function buildEdits(a: Arena): Promise<Outcome> {
               block.permutation.withState("pillar_axis", "x"),
             );
         }
+        cells[0]?.setType("minecraft:stone");
         const original = cells.map((b) => b.permutation);
         await select(50, y, 50, 3);
-        await edit("fill minecraft:stone");
+        await edit("fill");
         check(
           cells.every((b) => b.typeId === "minecraft:stone"),
           "fill did not fill all 27 cells",
@@ -221,31 +224,17 @@ export async function buildEdits(a: Arena): Promise<Outcome> {
 
         const chest = cells[0];
         if (!chest) throw new Error("missing chest test cell");
+        await select(50, y, 50, 3);
         chest.setType("minecraft:chest");
         const contents = chest.getComponent("minecraft:inventory")?.container;
         if (!contents) throw new Error("chest inventory missing");
         contents.setItem(0, new ItemStack("minecraft:diamond", 7));
-        await edit("fill minecraft:stone");
+        await edit("fill");
         check(
           chest.typeId === "minecraft:chest" &&
             contents.getItem(0)?.typeId === "minecraft:diamond" &&
             contents.getItem(0)?.amount === 7,
           "fill changed a chest or its contents",
-        );
-        const nonmatching = cells[1];
-        if (!nonmatching) throw new Error("missing nonmatching test cell");
-        nonmatching.setType("minecraft:oak_log");
-        nonmatching.setPermutation(
-          nonmatching.permutation.withState("pillar_axis", "x"),
-        );
-        await edit("replace minecraft:stone minecraft:dirt");
-        check(
-          cells.slice(2).every((b) => b.typeId === "minecraft:dirt") &&
-            nonmatching.typeId === "minecraft:oak_log" &&
-            nonmatching.permutation.getState("pillar_axis") === "x" &&
-            chest.typeId === "minecraft:chest" &&
-            contents.getItem(0)?.amount === 7,
-          "replace touched a nonmatching block or missed stone",
         );
         contents.clearAll();
         chest.setType("minecraft:air");
@@ -292,6 +281,7 @@ export async function buildEdits(a: Arena): Promise<Outcome> {
           Math.floor(feet.z),
           1,
         );
+        await edit("fill");
         await edit("copy");
         const blocked = await edit("paste 0");
         check(
@@ -314,7 +304,7 @@ export async function buildEdits(a: Arena): Promise<Outcome> {
             sawPartial = true;
         }, 1);
         try {
-          const filled = await edit("fill minecraft:stone");
+          const filled = await edit("fill");
           check(
             (filled.ticks ?? 0) >= 1 &&
               heartbeat >= 1 &&
@@ -329,7 +319,7 @@ export async function buildEdits(a: Arena): Promise<Outcome> {
         return {
           pass: true,
           detail:
-            "fill/undo permutations, chest contents, replace mask, moved paste offset, skip air, protected paste, and tick budget verified",
+            "fill/undo permutations, chest contents, moved paste offset, skip air, protected paste, and tick budget verified",
         };
       },
     );
@@ -402,7 +392,11 @@ export async function buildSelectionAndMode(a: Arena): Promise<Outcome> {
         ejectPlayer(player, car);
         await wait(2);
         const onFoot = await mode();
+        const pointBlock = a.dim.getBlock(a.at(25, a.gy, 20));
+        const pointBefore = pointBlock?.permutation;
+        pointBlock?.setType("minecraft:stone");
         const selected = await corner("pos1", 25);
+        if (pointBefore) pointBlock?.setPermutation(pointBefore);
         inventory.setItem(slot, undefined);
         await wait(BUILD_SPEC.modeLeaveTicks);
         const inactive = await mode();
@@ -412,8 +406,8 @@ export async function buildSelectionAndMode(a: Arena): Promise<Outcome> {
             scroll.mode === true &&
             onFoot.mode === true &&
             inactive.mode === false &&
-            selected.message === "pos1Set" &&
-            selected.selection !== null,
+            selected.message === "pointSet" &&
+            selected.flow?.kind === "point1",
           detail: `mode=${active.mode} scroll=${scroll.mode} onFoot=${onFoot.mode} off=${inactive.mode} corner=${selected.message}`,
         };
       },

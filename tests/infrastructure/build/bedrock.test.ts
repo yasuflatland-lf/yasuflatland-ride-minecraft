@@ -92,6 +92,7 @@ it("preserves permutation states and refuses protected or laid cells", () => {
         const isProtected = vi.fn(() => protectedCell);
         const blocks = new BedrockBlockWorld({ isProtected });
         expect(blocks.stateAt(dimension, at)).toEqual(state);
+        expect(blocks.materialOf(dimension, at)).toEqual(state);
         expect(blocks.setState(dimension, at, state)).toBe(true);
         expect(engine.resolve).toHaveBeenLastCalledWith(
           state.typeId,
@@ -117,6 +118,7 @@ it("fails closed for unreadable blocks and rejected permutations", () => {
   ]) {
     engine.getBlock.mockImplementation(get);
     expect(blocks.stateAt(dimension, at)).toBeUndefined();
+    expect(blocks.materialOf(dimension, at)).toBe("refused");
     expect(
       blocks.setState(dimension, at, blockStateOf("minecraft:stone")),
     ).toBe(false);
@@ -157,10 +159,19 @@ it("sends translated counts and bounded player-only particles at block centers",
         };
         engine.getEntity.mockReturnValue(player);
         const feedback = new BedrockFeedback();
-        feedback.showMessage(playerId, "pos2Set", count);
+        feedback.showMessage(playerId, "endSet", count);
         expect(setActionBar).toHaveBeenCalledWith({
-          translate: BUILD_MESSAGE.pos2Set,
+          translate: BUILD_MESSAGE.endSet,
           with: [String(count)],
+        });
+        feedback.showMessage(playerId, "tooLarge", count);
+        expect(setActionBar).toHaveBeenLastCalledWith({
+          translate: BUILD_MESSAGE.tooLarge,
+          with: [
+            String(count),
+            String(BUILD_SPEC.maxVolume),
+            String(BUILD_SPEC.maxCopyVolume),
+          ],
         });
         const box = boxOf(a, b);
         feedback.drawOutline(playerId, dimension, box, style);
@@ -247,4 +258,19 @@ it("stops a corner marker at the first rejected particle without throwing", () =
       },
     ),
   );
+});
+
+it("refuses air, liquids and data-holding blocks as material", () => {
+  const blocks = new BedrockBlockWorld({ isProtected: () => false });
+  for (const typeId of [
+    "minecraft:air",
+    "minecraft:flowing_water",
+    "minecraft:chest",
+    "minecraft:lectern",
+  ]) {
+    engine.getBlock.mockReturnValue({
+      permutation: { type: { id: typeId }, getAllStates: () => ({}) },
+    });
+    expect(blocks.materialOf(dimension, { x: 0, y: 64, z: 0 })).toBe("refused");
+  }
 });

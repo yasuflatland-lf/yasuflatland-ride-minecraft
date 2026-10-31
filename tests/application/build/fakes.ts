@@ -7,6 +7,7 @@ import type {
 } from "../../../src/application/build/ports/feedback";
 import { AIR, type BlockState } from "../../../src/domain/build/blockState";
 import type { Box } from "../../../src/domain/build/box";
+import { isUsableMaterial } from "../../../src/domain/build/edit/guard";
 import { BuildSession } from "../../../src/domain/build/session";
 import type { BuildSessionRepository } from "../../../src/domain/build/sessionRepository";
 import type { Cell } from "../../../src/domain/shared/cells";
@@ -73,6 +74,10 @@ export class FakeWorld implements BuildBlockWorld {
   readonly refusedCells = new Set<string>();
   readonly unreadableCells = new Set<string>();
   writes = 0;
+  materialOf(dimensionId: DimensionId, cell: Cell): BlockState | "refused" {
+    const state = this.stateAt(dimensionId, cell);
+    return isUsableMaterial(state) ? state : "refused";
+  }
   stateAt(_d: DimensionId, cell: Cell) {
     if (this.unreadableCells.has(cellKey(cell))) return undefined;
     return this.blocks.get(cellKey(cell)) ?? AIR;

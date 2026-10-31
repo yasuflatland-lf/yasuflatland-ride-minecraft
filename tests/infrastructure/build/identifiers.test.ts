@@ -40,7 +40,7 @@ it("defines every feedback message in both locales", () => {
       expect(entries.get(key)).toBeTruthy();
     for (const key of Object.values(BUILD_FORM))
       expect(entries.get(key)).toBeTruthy();
-    expect(entries.get(BUILD_MESSAGE.pos2Set)).toContain("%s");
+    expect(entries.get(BUILD_MESSAGE.endSet)).toContain("%s");
     for (const message of [
       "tooLarge",
       "copied",

@@ -6,7 +6,7 @@ import type {
   BuildFeedback,
   BuildMessage,
 } from "../../../../application/build/ports/feedback";
-import { SetCorner } from "../../../../application/build/setCorner";
+import { SetPoint } from "../../../../application/build/setPoint";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
 import { asDimensionId, asPlayerId } from "../../../../domain/shared/ids";
 import {
@@ -77,11 +77,10 @@ export function registerTestCorner(
       if (input.corner === "clear")
         new ClearSelection(repo, observed).execute({ playerId });
       else
-        new SetCorner(repo, observed).execute({
+        new SetPoint(repo, blocks, observed).execute({
           playerId,
           dimensionId,
           cell,
-          corner: input.corner,
         });
       system.sendScriptEvent(
         TEST_RESULT_EVENT,
@@ -89,7 +88,7 @@ export function registerTestCorner(
           player: player.name,
           message,
           count,
-          selection: repo.get(playerId)?.selection ?? null,
+          flow: repo.get(playerId)?.flow ?? null,
           state: blocks.stateAt(dimensionId, cell) ?? null,
           mayEdit: blocks.mayEdit(dimensionId, cell),
         }),

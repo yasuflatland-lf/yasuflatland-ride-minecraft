@@ -51,3 +51,22 @@ const KEPT = new Set([...PLACE_KEPT_BLOCKS, ...BUILD_KEPT_BLOCKS]);
 export function isKeptState(state: BlockState): boolean {
   return KEPT.has(state.typeId);
 }
+
+const UNUSABLE_MATERIALS = new Set([
+  "minecraft:air",
+  "minecraft:water",
+  "minecraft:flowing_water",
+  "minecraft:lava",
+  "minecraft:flowing_lava",
+  "minecraft:shulker_box",
+]);
+
+export function isUsableMaterial(
+  state: BlockState | undefined,
+): state is BlockState {
+  return (
+    state !== undefined &&
+    !UNUSABLE_MATERIALS.has(state.typeId) &&
+    !isKeptState(state)
+  );
+}

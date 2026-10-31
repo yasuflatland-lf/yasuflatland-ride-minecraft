@@ -10,7 +10,6 @@ import {
   TEST_EDIT_EVENT,
   TEST_RESULT_EVENT,
 } from "../../identifiers";
-import { resolveBlockState } from "../blockStates";
 import type { BuildToolActions } from "../editActions";
 
 export interface LastMessage {
@@ -66,18 +65,7 @@ export function registerTestEdit(
       const chosen = actions(playerId);
       messages.forget(playerId);
       try {
-        if (command === "fill" && args.length === 1 && args[0])
-          chosen.fill({ state: resolveBlockState(args[0]) });
-        else if (
-          command === "replace" &&
-          args.length === 2 &&
-          args[0] &&
-          args[1]
-        )
-          chosen.replace(
-            { typeId: resolveBlockState(args[0]).typeId },
-            { state: resolveBlockState(args[1]) },
-          );
+        if (command === "fill" && args.length === 0) chosen.fill();
         else if (command === "copy" && args.length === 0) chosen.copy();
         else if (
           command === "paste" &&
