@@ -26,7 +26,7 @@ const reach: fc.Arbitrary<CutReach> = fc.oneof(
 it("cuts 15 columns at heading 0", () =>
   expect(bladeColumns({ x: 0.5, y: 64, z: 0.5 }, 0, rule, RUN)).toEqual(
     Array.from({ length: 5 }, (_, i) => [-2 + i]).flatMap(([x]) =>
-      [1, 2, 3].map((z) => ({ x, z, bottom: 64 })),
+      [1, 2, 3].map((z) => ({ x, z, bottom: 64, minHeight: 3 })),
     ),
   ));
 it("starts a ground cut above the floor block, full or partial", () => {
@@ -57,11 +57,33 @@ it("starts a flight cut in the row the body sits in", () => {
     for (const c of bladeColumns({ x: 0, y, z: 0 }, 0, rule, FLYING))
       expect(c.bottom).toBe(64);
 });
-it("cuts to the sky on the ground and up to the top of the body in flight", () => {
+it("clears the body height before continuing the ground run in the same columns as a fixed cut", () =>
+  fc.assert(
+    fc.property(
+      pose,
+      yaw,
+      fc.constantFrom(rule, BULLDOZER_WIDE_BLADE),
+      (p, y, blade) => {
+        const run = bladeColumns(p, y, blade, { kind: "run" });
+        const bottom = Math.ceil(p.y - 0.01);
+        for (const c of run) {
+          expect(c.minHeight).toBe(Math.ceil(p.y + blade.bodyHeight) - bottom);
+          expect(c).not.toHaveProperty("height");
+        }
+        expect(
+          run.map(({ x, z, bottom, minHeight }) => ({
+            x,
+            z,
+            bottom,
+            height: minHeight,
+          })),
+        ).toEqual(bladeColumns(p, y, blade, { kind: "fixed", grounded: true }));
+      },
+    ),
+  ));
+it("cuts up to the top of the body in flight", () => {
   fc.assert(
     fc.property(pose, yaw, (p, y) => {
-      for (const c of bladeColumns(p, y, rule, RUN))
-        expect(c.height).toBeUndefined();
       // Adding 0 turns the -0 that Math.ceil returns just below zero into +0.
       for (const c of bladeColumns(p, y, rule, FLYING))
         expect(c.bottom + (c.height ?? 0)).toBe(Math.ceil(p.y + 2.9) + 0);
@@ -81,15 +103,12 @@ it("keeps rectangle cells and order with the blade bottom and height", () =>
         r.kind === "run" || r.grounded
           ? Math.ceil(p.y - 0.01)
           : Math.floor(p.y + 0.01);
-      const height =
-        r.kind === "fixed"
-          ? Math.ceil(p.y + rule.bodyHeight) - bottom
-          : undefined;
+      const height = Math.ceil(p.y + rule.bodyHeight) - bottom;
       expect(bladeColumns(p, y, rule, r)).toEqual(
         rectCells(p, y, rule).map((cell) => ({
           ...cell,
           bottom,
-          ...(height === undefined ? {} : { height }),
+          ...(r.kind === "run" ? { minHeight: height } : { height }),
         })),
       );
     }),
@@ -100,7 +119,7 @@ it("cuts 11 columns times 3 rows with the wide blade at heading 0", () => {
     bladeColumns({ x: 0.5, y: 64, z: 0.5 }, 0, BULLDOZER_WIDE_BLADE, RUN),
   ).toEqual(
     Array.from({ length: 11 }, (_, i) => i - 5).flatMap((x) =>
-      [1, 2, 3].map((z) => ({ x, z, bottom: 64 })),
+      [1, 2, 3].map((z) => ({ x, z, bottom: 64, minHeight: 3 })),
     ),
   );
 });
