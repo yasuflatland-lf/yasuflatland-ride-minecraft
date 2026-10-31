@@ -1,3 +1,4 @@
+import { CancelFlow } from "../../application/build/cancelFlow";
 import { ClearSelection } from "../../application/build/clearSelection";
 import { ConfirmShape } from "../../application/build/confirmShape";
 import { CopySelection } from "../../application/build/copySelection";
@@ -9,7 +10,10 @@ import { TapAir } from "../../application/build/tapAir";
 import { UndoEdit } from "../../application/build/undoEdit";
 import { UpdateBuildModes } from "../../application/build/updateBuildModes";
 import type { SpaceCheck } from "../../application/shared/ports/space";
+import { BUILD_SPEC } from "../../domain/build/spec";
 import type { PlayerId } from "../../domain/shared/ids";
+import { PressDebounces } from "../../domain/shared/pressDebounce";
+import { BedrockAimReader } from "./bedrock/bedrockAimReader";
 import { BedrockBlockWorld } from "./bedrock/bedrockBlockWorld";
 import { BedrockBuildAnchor } from "./bedrock/bedrockBuildAnchor";
 import { BedrockFeedback } from "./bedrock/bedrockFeedback";
@@ -23,6 +27,7 @@ import { registerTestCorner } from "./bedrock/handlers/testCorner";
 import { recordMessages, registerTestEdit } from "./bedrock/handlers/testEdit";
 import { registerTestMode } from "./bedrock/handlers/testMode";
 import { registerWand } from "./bedrock/handlers/wand";
+import { StubBuildMenus } from "./bedrock/stubBuildMenus";
 import { InMemorySessionRepository } from "./persistence/inMemorySessionRepository";
 
 export function installBuild(deps: { isProtected: SpaceCheck }): void {
@@ -31,7 +36,9 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
   const recorded = recordMessages(new BedrockFeedback());
   const feedback = recorded.feedback;
   const blocks = new BedrockBlockWorld(deps);
-  const modes = new UpdateBuildModes(repo);
+  const cancel = new CancelFlow(repo);
+  const debounce = new PressDebounces<PlayerId>(BUILD_SPEC.pressDebounceTicks);
+  const modes = new UpdateBuildModes(repo, cancel);
   const jobs = new EditJobs(repo, blocks, feedback);
   const clear = new ClearSelection(repo, feedback);
   const cases = {
@@ -42,14 +49,20 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
     clear,
   };
   const actions = (id: PlayerId) => editActions(id, cases);
-  registerWand(
-    new SetPoint(repo, blocks, feedback),
-    new TapAir(repo, feedback),
-    clear,
-  );
+  registerWand({
+    setPoint: new SetPoint(repo, blocks, feedback),
+    tapAir: new TapAir(repo, feedback),
+    menus: new StubBuildMenus(),
+    aim: new BedrockAimReader(),
+    debounce,
+    pointOf: (playerId) => {
+      const flow = repo.get(playerId)?.flow;
+      return flow?.kind === "point1" ? flow.cell : undefined;
+    },
+  });
   registerModeTick(modes);
   registerOutlineTick(new ShowOutline(repo, anchor, feedback));
-  registerSessions(repo);
+  registerSessions(repo, cancel, debounce);
   registerTestCorner(repo, feedback, blocks);
   registerTestMode(modes);
   registerBuildTool(actions);
