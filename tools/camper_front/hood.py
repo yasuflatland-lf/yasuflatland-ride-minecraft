@@ -43,9 +43,8 @@ def build(ctx: FrontContext) -> None:
     front.extend(ctx.front)
 
     # The whole front face below the sill leans by FrontShape.lean_deg (ADR 0199): every
-    # front cube below the sill shifts with its height,
-    # tall ones cut into slices so the face steps back smoothly, and the side walls are
-    # carried forward to meet it.
+    # front cube below the sill shifts with its height, and tall ones are cut into slices so
+    # the face steps back smoothly.
     for c in front:
         y0, sy = c["origin"][1], c["size"][1]
         rot = c.get("rotation")
@@ -58,7 +57,7 @@ def build(ctx: FrontContext) -> None:
                 cuts.append(cuts[-1] + SLICE)
         cuts.append(y0 + sy)
         body += shift_in_slices(c, cuts, ctx.shape.lean_dz)
-    # The side edge follows the same half-pixel lean as the chamfered face.
+    # The side walls are carried forward to meet the leaning face.
     for sx in (1, -1):
         x0, x1 = sorted((sx * (HW - 1), sx * HW))
         t0, t1 = sorted((sx * (HW - 0.4), sx * (HW + 0.2)))

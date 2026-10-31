@@ -115,6 +115,15 @@ def assert_axes(cubes, assemblies, table=None):
             raise ValueError("compound rotation outside a declared assembly (ADR 0167)")
 
 
+def flip_z_for_mirror(cubes):
+    """Negate the z turn of assembly cubes in place, before a generator's mirror_x.
+
+    mirror_x keeps the legacy z sign because the game turns z the other way; a rigid assembly
+    whose turns were composed by this module needs the full mirror, so its z flips first."""
+    for cube in cubes:
+        cube["rotation"][2] *= -1
+
+
 def tilt_assembly(cubes, pivot, axis, degrees, assembly=None, assemblies=None):
     """Return copies of `cubes` moved rigidly, as one body, about the world line through `pivot`
     along `axis` (only "x"). `degrees` has the sign of a cube's x rotation: tilting a cube turned

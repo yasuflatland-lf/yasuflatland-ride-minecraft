@@ -1211,10 +1211,8 @@ def rounded(value):
     return value
 
 
-# mirror_x retains the legacy z sign; rigid windshield assemblies need the full mirror.
 for members in windshield_assemblies.values():
-    for cube in members:
-        cube["rotation"][2] *= -1
+    cube_tilt.flip_z_for_mirror(members)
 mirror_x(camper_bones)
 geo = {
     "format_version": "1.12.0",
