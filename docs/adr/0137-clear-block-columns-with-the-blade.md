@@ -1,6 +1,6 @@
 # 0137. Clear block columns with the blade, keeping liquids, containers, and laid blocks
 
-- Status: Proposed; extended by [0138](0138-raise-and-lower-the-bulldozer-blade.md) (Proposed) and [0155](0155-cut-under-water-and-dig-a-shaft-when-rising.md) (Proposed)
+- Status: Proposed; extended by [0138](0138-raise-and-lower-the-bulldozer-blade.md) (Proposed) and [0155](0155-cut-under-water-and-dig-a-shaft-when-rising.md) (Proposed); amended by [0195](0195-cut-the-body-height-ahead-of-a-grounded-blade.md) (Proposed)
 - Date: 2026-10-24
 - Extends: [0055](0055-kind-neutral-vehicle-core.md) (the DriveStep/TickOutcome contract and the order of the world calls in a tick)
 
