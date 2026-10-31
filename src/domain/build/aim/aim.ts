@@ -41,18 +41,25 @@ export function apexHeight(args: {
   const { centerX, centerZ, baseY, ray, cap, previous, maxY } = args;
   const max = Math.floor(Math.min(cap, maxY - baseY));
   if (max < 1) return 1;
-  const { origin, direction } = ray;
-  let height = previous;
-  if (Math.abs(direction.y) <= VERTICAL_PARALLEL_EPSILON) {
-    // The line can match any y, so closest approach minimizes horizontal distance.
-    // Restricting t to nonnegative values keeps the closest point on the ray.
-    const t = Math.max(
-      0,
-      ((centerX - origin.x) * direction.x +
-        (centerZ - origin.z) * direction.z) /
-        (direction.x ** 2 + direction.z ** 2),
-    );
-    height = origin.y + t * direction.y - baseY;
-  }
+  const height =
+    Math.abs(ray.direction.y) > VERTICAL_PARALLEL_EPSILON
+      ? previous
+      : rayHeightNearestLine(centerX, centerZ, ray) - baseY;
   return Math.max(1, Math.min(max, Math.round(height)));
+}
+
+function rayHeightNearestLine(
+  centerX: number,
+  centerZ: number,
+  ray: Ray,
+): number {
+  const { origin, direction } = ray;
+  // The line can match any y, so closest approach minimizes horizontal distance.
+  // Restricting t to nonnegative values keeps the closest point on the ray.
+  const t = Math.max(
+    0,
+    ((centerX - origin.x) * direction.x + (centerZ - origin.z) * direction.z) /
+      (direction.x ** 2 + direction.z ** 2),
+  );
+  return origin.y + t * direction.y;
 }

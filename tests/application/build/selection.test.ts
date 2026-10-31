@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { CancelFlow } from "../../../src/application/build/cancelFlow";
 import { ClearSelection } from "../../../src/application/build/clearSelection";
 import { ShowOutline } from "../../../src/application/build/showOutline";
 import { UpdateBuildModes } from "../../../src/application/build/updateBuildModes";
@@ -245,4 +246,28 @@ it("does not draw the confirmed box after the flow returns to idle", () => {
   new ShowOutline(repo, feedback).execute(BUILD_SPEC.outlineInterval);
   expect(feedback.outlines).toEqual([]);
   expect(feedback.corners).toEqual([]);
+});
+
+it("cancels only point1 when build mode leaves after its grace delay", () => {
+  fc.assert(
+    fc.property(cell, cell, fc.boolean(), (a, b, endpoint) => {
+      const { repo } = setup();
+      const modes = new UpdateBuildModes(repo, new CancelFlow(repo));
+      enterBuildMode(modes);
+      const session = repo.getOrCreate(alex);
+      const material = blockStateOf("minecraft:stone");
+      session.confirmBox(overworld, boxOf(a, b));
+      session.setFlow(tapBlock(session.flow, overworld, a, material));
+      if (endpoint)
+        session.setFlow(tapBlock(session.flow, overworld, b, material));
+      const flow = session.flow;
+      const confirmed = session.confirmedBox;
+      for (let i = 0; i < BUILD_SPEC.modeLeaveTicks - 1; i++)
+        modes.execute([{ playerId: alex, holding: false }]);
+      expect(session.flow).toBe(flow);
+      modes.execute([{ playerId: alex, holding: false }]);
+      expect(session.flow.kind).toBe(endpoint ? "endpoint" : "idle");
+      expect(session.confirmedBox).toBe(confirmed);
+    }),
+  );
 });

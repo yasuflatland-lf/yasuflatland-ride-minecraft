@@ -1,23 +1,41 @@
 import { Direction, system, world } from "@minecraft/server";
-import type { ClearSelection } from "../../../../application/build/clearSelection";
 import type { PasteAt } from "../../../../application/build/pasteAt";
+import type { AimReader } from "../../../../application/build/ports/aim";
 import type { SetPoint } from "../../../../application/build/setPoint";
 import type { TapAir } from "../../../../application/build/tapAir";
+import { virtualEndPoint } from "../../../../domain/build/aim/aim";
 import type { Face } from "../../../../domain/build/clipboard/clipboard";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
-import { asDimensionId, asPlayerId } from "../../../../domain/shared/ids";
+import type { Cell } from "../../../../domain/shared/cells";
+import {
+  asDimensionId,
+  asPlayerId,
+  type PlayerId,
+} from "../../../../domain/shared/ids";
+import type { PressDebounces } from "../../../../domain/shared/pressDebounce";
 import { heldTypeId } from "../../../shared/heldItem";
 import { SELECTION_WAND_TYPE } from "../../identifiers";
 import type { BuildMenus } from "../buildMenus";
 
-export function registerWand(
-  setPoint: SetPoint,
-  tapAir: TapAir,
-  clear: ClearSelection,
-  repo: BuildSessionRepository,
-  pasteAt: PasteAt,
-  menus: BuildMenus,
-): void {
+export function registerWand({
+  setPoint,
+  tapAir,
+  menus,
+  aim,
+  debounce,
+  pointOf,
+  repo,
+  pasteAt,
+}: {
+  repo: BuildSessionRepository;
+  pasteAt: PasteAt;
+  setPoint: SetPoint;
+  tapAir: TapAir;
+  menus: BuildMenus;
+  aim: AimReader;
+  debounce: PressDebounces<PlayerId>;
+  pointOf(playerId: PlayerId): Cell | undefined;
+}): void {
   world.beforeEvents.playerBreakBlock.subscribe((ev) => {
     if (heldTypeId(ev.player) === SELECTION_WAND_TYPE) ev.cancel = true;
   });
@@ -57,18 +75,22 @@ export function registerWand(
   });
   world.afterEvents.itemUse.subscribe(({ source, itemStack }) => {
     if (!source.isValid || itemStack.typeId !== SELECTION_WAND_TYPE) return;
-    const cmd = { playerId: asPlayerId(source.id) };
-    if (source.isSneaking) clear.execute(cmd);
-    else {
-      const before = repo.get(cmd.playerId)?.flow.kind;
-      tapAir.execute(cmd);
-      if (
-        before !== "endpoint" &&
-        repo.get(cmd.playerId)?.flow.kind === "endpoint"
-      )
-        system.run(() => {
-          if (source.isValid) void menus.showShapeMenu(source);
-        });
+    const playerId = asPlayerId(source.id);
+    if (!debounce.press(playerId, system.currentTick)) return;
+    const target = aim.aim(playerId);
+    // A block tap can also emit itemUse; only the interact handler owns that tap.
+    if (!target || target.block) return;
+    if (source.isSneaking) {
+      void menus.showUtilityMenu(source);
+      return;
     }
+    const point1 = pointOf(playerId);
+    const end = point1 ? virtualEndPoint(point1, target.ray) : undefined;
+    const before = repo.get(playerId)?.flow.kind;
+    tapAir.execute({ playerId, end });
+    if (before !== "endpoint" && repo.get(playerId)?.flow.kind === "endpoint")
+      system.run(() => {
+        if (source.isValid) void menus.showShapeMenu(source);
+      });
   });
 }
