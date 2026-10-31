@@ -371,7 +371,7 @@ Setup: use `/give @s yasu_ride:bulldozer_item` or craft from an SUV item, an iro
 | B8 | Glow and propeller | Thruster glows only in flight; the propeller spins only under water | | |
 | B9 | Cutting bedrock, barriers, command blocks and light blocks with the blade lowered | Forward cutting removes them; liquids, containers and laid add-on blocks stay | | |
 | B10 | Cutting in Adventure mode with the blade lowered | The blade clears the same terrain in Adventure | | |
-| B11 | Creative group | There is no "Bulldozer Switches" group. "Building Tools", named in your language, holds five items: "Build Tool", "Selection Wand", "Blade Up/Down", "Wide Blade", and "Road Paver" | | |
+| B11 | Creative group | There is no "Bulldozer Switches" group. "Building Tools", named in your language, holds four items: "Selection Wand" (the crane icon), "Blade Up/Down", "Wide Blade", and "Road Paver" | unverified | unverified |
 | B12 | Spawn pose | Place a bulldozer: the blade is up and the lift rods are short | | |
 | B13 | PC switch | Drive and right-click with the switch, then hold the button. The blade lowers over half a second, the rods lengthen, and a click plays. The held button switches only once. A second click raises the blade again | | |
 | B14 | Mobile switch | Drive and long press with the switch, then hold. The blade lowers over half a second, the rods lengthen, and a click plays. The held press switches only once. A second long press raises the blade again | | |
@@ -504,24 +504,24 @@ Setup: in a world that used MyCar 0.5.0, place two vehicles and switch the headl
 | U2 | Join with a player who had received the starter vehicle before | One "SUV" item is given again | | |
 | U3 | Look where the vehicle with its headlights off stood | No light blocks are left there | | |
 
-## Building tools (ADR 0178)
+## Building tools (ADR 0198)
 
-Setup: use `/give @s yasu_build:selection_wand` and `/give @s yasu_build:build_tool`, or craft them. Ride a bulldozer. Verification is pending on both platforms.
+Setup: use `/give @s yasu_build:selection_wand`, or craft it. Test on foot and while riding a bulldozer. Verification is pending on both platforms.
 
 | # | Steps | Pass condition | PC | Mobile |
 |---|---|---|---|---|
-| BT1 | Open the creative Items tab and craft the five items | One "Building Tools" group, the last group, holds "Build Tool" (its icon), "Selection Wand", "Blade Up/Down", "Wide Blade", and "Road Paver", with no group nested inside or beside it for the switch. A stick and a copper ingot craft the wand; an iron ingot and a chain craft the tool; a lever and an iron ingot craft the blade switch; a lever and two iron ingots craft Wide Blade; a lever, an iron ingot, and a cobblestone craft Road Paver | unverified | unverified |
-| BT2 | Ride a bulldozer holding the wand: tap a solid block, then tap another, in Survival and in Creative | The first tap sets point 1 and its material, the second sets the end point and shows the block count, and the outline appears in both modes | unverified | unverified |
-| BT3 | Sneak, aim at the air (no block), and use the wand | The utility menu opens once without clearing the selection; see BW3 for the part 8/12 stub limitation | unverified | unverified |
-| BT4 | Copy a selection, choose Paste in the Build Tool form, then hold the wand and tap each face of a target block in turn | Choosing Paste starts aiming without editing; the wand tap places the clipboard minimum corner adjacent to the tapped face | unverified | unverified |
-| BT5 | Hold the wand or tool, then flick through the hotbar quickly | The camera does not switch on a flick; it moves to the third-person view after the tool has been held for a moment and back shortly after it is put away | unverified | unverified |
-| BT6 | Use the Build Tool and run Fill, Copy, Paste, Undo, and Clear selection in turn; after choosing Paste, tap a target block with the wand; repeat with Skip air | Each action shows its message; paste uses the tapped face as its anchor, and Skip air leaves existing blocks in place under air | unverified | unverified |
+| BT1 | Open the creative Items tab and craft the four items | One "Building Tools" group, the last group, holds "Selection Wand" (the crane icon), "Blade Up/Down", "Wide Blade", and "Road Paver", with no group nested inside or beside it for the switch. A stick and a copper ingot craft the wand; a lever and an iron ingot craft the blade switch; a lever and two iron ingots craft Wide Blade; a lever, an iron ingot, and a cobblestone craft Road Paver | unverified | unverified |
+| BT2 | On foot and riding a bulldozer, tap a solid block with the wand, then tap another, in Survival and Creative | The first tap sets point 1 and its material; the live preview follows the view, and the second tap fixes the end point and opens the shape menu | unverified | unverified |
+| BT3 | Sneak, aim at the air (no block), and use the wand | The utility menu opens once without clearing the selection | unverified | unverified |
+| BT4 | Copy a selection, sneak and tap on air with the wand to choose Paste and tap each face of a target block in turn | Choosing Paste starts aiming without editing; the wand tap places the clipboard minimum corner adjacent to the tapped face | unverified | unverified |
+| BT5 | Hold the wand, then flick through the hotbar quickly; switch away for longer than the grace delay | Build mode enters and leaves after the grace delay; a quick flick does not toggle it. The camera stays unchanged, and switching away cancels unfinished steps | unverified | unverified |
+| BT6 | Fill from the shape menu, then sneak and tap on air for Copy, Paste, Undo, and Clear selection; repeat Paste with Skip air | Each action shows its message; paste uses the tapped face as its anchor, and Skip air leaves existing blocks in place under air | unverified | unverified |
 | BT7 | Fill a selection that contains a chest with items | The chest and its items stay; the other blocks change | unverified | unverified |
 | BT7b | Copy a selection that contains a chest and a sign, then paste it elsewhere | The pasted copy has no chest or sign, and the target spot keeps what was there | unverified | unverified |
 | BT8 | Paste with the target overlapping the bulldozer | The paste is refused as a whole with the overlap message and nothing changes | unverified | unverified |
-| BT9 | Get off the bulldozer while in build mode | Build mode ends at once and the camera returns to normal | unverified | unverified |
+| BT9 | Get off the bulldozer while holding the wand in build mode | Build mode remains active on foot and the camera stays unchanged | unverified | unverified |
 | BT10 | In build mode, set only the first corner with one click of the wand (ADR 0183) | A small cube of end rod particles surrounds that block until the second corner is set | unverified | unverified |
-| BT11 | After BT10, set the second corner (ADR 0183) | The small cube disappears and the selection outline replaces it | unverified | unverified |
+| BT11 | After BT10, set the end point with a second tap (ADR 0198) | The shape menu opens for the confirmed selection; the selection outline remains visible | unverified | unverified |
 | BT12 | Repeat BT10 at noon on a bright surface (ADR 0183) | The corner marker is still easy to see in daylight | unverified | unverified |
 
 ### Build Wand live preview
@@ -541,7 +541,7 @@ Setup: use `/give @s yasu_build:selection_wand` and `/give @s yasu_build:build_t
 | BWM2 | Choose each shape action; reopen and use Cancel, Escape or Back | Each action builds the selected style; cancellation returns to end-point selection | unverified | unverified |
 | BWM3 | Choose either roof kind, confirm its height, then choose Fill or Hollow; repeat with Cancel, Escape and Back | Fill builds a solid roof, Hollow builds its shell, and cancellation returns to end-point selection | unverified | unverified |
 | BWM4 | Enable the height slider fallback and choose either roof kind | Slider ranges from 1 to the allowed roof height, starts at the previous height and applies it before opening Fill/Hollow; with the flag disabled no slider opens | unverified | unverified |
-| BWM5 | Open the Build Tool utility menu with and without a selection, clipboard and history; choose each available action | Only applicable Copy, Paste, Undo and Clear selection entries appear; Paste asks for Skip air, initially off, before starting paste aiming; dismissal does nothing | unverified | unverified |
+| BWM5 | Sneak and tap on air with the wand to open the utility menu with and without a selection, clipboard and history; choose each available action | Only applicable Copy, Paste, Undo and Clear selection entries appear; Paste asks for Skip air, initially off, before starting paste aiming; dismissal does nothing | unverified | unverified |
 | BWM6 | Repeatedly request menus, including while the paste toggle or height slider is open | Only one form opens per player; another player can open independently; the form does not hide the preview more than the engine forces | unverified | unverified |
 
 ## Build Wand touch input (ADR 0198)
@@ -552,5 +552,5 @@ Precondition: hold the wand in first person on the iPad. A block tap selects the
 |---|--------|----------|----|--------|
 | BW1 | In first person, aim at a solid block and tap it once with the wand | Point 1 selects the view-ray block and its material exactly once | unverified | unverified |
 | BW2 | After setting point 1, aim at air and tap; repeat with a held touch | The air tap fixes the virtual endpoint on the vertical plane through point 1; a held touch counts once | unverified | unverified |
-| BW3 | Sneak, aim at air, and tap or hold with the wand | The utility menu opens once and the selection remains; menu display awaits part 9/12, since part 8/12 uses a no-op menu stub | unverified | unverified |
+| BW3 | Sneak, aim at air, and tap or hold with the wand | The utility menu opens once and the selection remains | unverified | unverified |
 | BW4 | In Survival and Creative, tap and long-press solid blocks while holding the wand | No block breaks; a block tap does not also trigger an air tap | unverified | unverified |

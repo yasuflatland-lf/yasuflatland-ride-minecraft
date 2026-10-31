@@ -19,35 +19,12 @@ ITEM_TEXTURES = RP / "textures/items/yasu_build"
 
 COLORS = {
     ".": (0, 0, 0, 0),
-    "W": (140, 98, 57, 255),  # wand shaft
-    "w": (96, 66, 38, 255),  # shaft shade
-    "S": (255, 240, 120, 255),  # bright tip
-    "s": (255, 200, 40, 255),  # tip glow
     "Y": (250, 190, 20, 255),  # crane yellow
     "D": (190, 130, 10, 255),  # crane shade
     "K": (50, 50, 50, 255),  # hook and counterweight
 }
 
 SELECTION_WAND = [
-    "................",
-    "..........s.....",
-    ".........sSs....",
-    "........sSSSs...",
-    ".........sSs....",
-    "..........Ws....",
-    ".........Ww.....",
-    "........Ww......",
-    ".......Ww.......",
-    "......Ww........",
-    ".....Ww.........",
-    "....Ww..........",
-    "...Ww...........",
-    "..Ww............",
-    "..w.............",
-    "................",
-]
-
-BUILD_TOOL = [
     "................",
     "......Y.........",
     "...YYYYYYYYYYYY.",
@@ -66,7 +43,7 @@ BUILD_TOOL = [
     "................",
 ]
 
-for name, rows in (("selection_wand", SELECTION_WAND), ("build_tool", BUILD_TOOL)):
+for name, rows in (("selection_wand", SELECTION_WAND),):
     assert len(rows) == 16 and all(len(row) == 16 for row in rows), name
     out.png(ITEM_TEXTURES / f"{name}.png", 16, 16, lambda x, y: COLORS[rows[y][x]])
 
