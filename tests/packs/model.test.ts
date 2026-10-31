@@ -163,7 +163,7 @@ it("keeps every seated player's head beneath the SUV roof and behind the raked w
   expect(windshield.length).toBeGreaterThanOrEqual(4);
   expect(seats).toHaveLength(4);
   for (const seat of seats) {
-    expect(seat.position[1]).toBe(0.58);
+    expect(seat.position[1]).toBe(0.73);
     const top = seat.position[1] * 16 + RIDER_HEAD_PX;
     expect(top + 0.5).toBeLessThanOrEqual(roof.origin[1]);
     // The head box grown by the margin; the model's front is -z (ADR 0009).

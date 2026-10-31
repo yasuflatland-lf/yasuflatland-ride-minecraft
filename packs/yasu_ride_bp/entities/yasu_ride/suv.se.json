@@ -454,12 +454,12 @@
         "interact_text": "action.interact.yasu_ride.drive",
         "seats": [
           {
-            "position": [-0.551, 0.58, -0.04984375],
+            "position": [-0.551, 0.73, -0.04984375],
             "lock_rider_rotation": 90
           },
-          { "position": [0.551, 0.58, -0.04984375] },
-          { "position": [-0.551, 0.58, -1.16] },
-          { "position": [0.551, 0.58, -1.16] }
+          { "position": [0.551, 0.73, -0.04984375] },
+          { "position": [-0.551, 0.73, -1.16] },
+          { "position": [0.551, 0.73, -1.16] }
         ]
       }
     }
