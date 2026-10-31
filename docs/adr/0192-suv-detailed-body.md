@@ -101,3 +101,22 @@ thin-rail choice; driver-seat appearance and absence of z-fighting still need
 the owner's in-game check. The A-pillars, front door posts, roof, seats and
 collision dimensions stay unchanged. Resource Pack header/module and Behavior
 Pack dependency advance to 0.1.215 for client cache invalidation (0015).
+
+### Steering hub addendum (#1023)
+
+Replace the two grille-colored hub squares with a `disc("z", ...)` of 16 turned
+squares (64 outer tips), radius 1 model pixel before scaling. Its radial outline
+stays between 0.95 and 1 pixel, inside the 2.05-pixel rim opening. Compose each
+spin with the existing wheel tilt. The disc occupies wheel-local z -0.65 to
+-0.35 relative to the pivot, ahead of the spokes' driver-facing z -0.5 face.
+The column, spokes, rim, seats and bone contract stay unchanged, retaining the
+0170 torso and windshield guards.
+
+Append a 16 x 16 `hub` region to the gauges block without moving existing UVs
+or lit slots. Its neutral RGB 8 black has a faint grayscale highlight up to 20,
+and MER (35, 0, 45) adds modest metalness and low roughness without chrome.
+All disc surfaces sample its black corner; only the unspun square's front maps
+the full highlight, 0.01 pixel forward to avoid coplanar texture competition.
+The highlight fades to black inside that square, leaving the circular outline
+to geometry. The owner still needs to check the tilted driver's view with
+Vibrant Visuals on and off. Resource Pack and BP dependency advance to 0.1.216.

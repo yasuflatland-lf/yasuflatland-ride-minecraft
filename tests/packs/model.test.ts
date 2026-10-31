@@ -272,7 +272,7 @@ describe("SUV model (ADR 0009)", () => {
   it("allows compound rotations only in declared assemblies (ADR 0167)", () => {
     const cubes = [...bones.values()].flatMap((bone) => bone.cubes ?? []);
     const assemblies = { arc: cubes.filter(multipleAxes) };
-    expect(assemblies.arc).toHaveLength(16);
+    expect(assemblies.arc).toHaveLength(30);
     expect(() => assertOneAxis(cubes, assemblies)).not.toThrow();
   });
 

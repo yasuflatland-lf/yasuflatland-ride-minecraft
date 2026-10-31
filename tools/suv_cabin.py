@@ -9,7 +9,11 @@ suv_cubes = load_tool("suv_cubes")
 box = suv_cubes.box
 
 
-ASSEMBLIES = {"arc": 16}
+ASSEMBLIES = {"arc": 30}
+HUB_RADIUS = 1.0
+HUB_SEGMENTS = 16
+HUB_FRONT = WHEEL_Z - 0.65
+HUB_BACK = WHEEL_Z - 0.35
 
 
 def pleated_seat(x0, x1, z_back):
@@ -106,8 +110,20 @@ def steering_cubes():
         )
         for i in range(RIM_SEGMENTS)
     ]
-    steering += [steering_part(cx - 0.7, cy - 0.7, cx + 0.7, cy + 0.7, "grille", WHEEL_Z - 0.4, WHEEL_Z + 0.4, spin)
-                 for spin in (0, 45)]  # hub
+    hub_uv = suv_cubes.region_faces(
+        "gauges", "hub", {face: (0, 0, 1, 1) for face in leather}
+    )
+    hub = suv_cubes.disc("z", WHEEL_PIVOT, HUB_RADIUS / math.sqrt(2), HUB_FRONT, HUB_BACK,
+                         [i * 90 / HUB_SEGMENTS for i in range(HUB_SEGMENTS)], hub_uv)
+    for cube in hub:
+        cube["rotation"] = tilted_spin(cube["rotation"][2])
+    # One inset highlight face avoids competing UVs on the disc's coplanar squares.
+    hub[0]["origin"][2] -= 0.01
+    hub[0]["size"][2] += 0.01
+    hub[0]["uv"]["north"] = suv_cubes.region_faces(
+        "gauges", "hub", {"north": (0, 0, 16, 16)}
+    )["north"]
+    steering += hub
     steering += [
         small(cx - 1.2, cy, 1.2, 0.5, "spoke"),  # spoke (left)
         small(cx + 1.2, cy, 1.2, 0.5, "spoke"),  # spoke (right)
