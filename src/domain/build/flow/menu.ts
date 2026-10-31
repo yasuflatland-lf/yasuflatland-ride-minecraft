@@ -13,6 +13,9 @@ export function shapeMenu(flow: BuildFlow): MenuEntry[] {
     ...stylesFor(shape).map((style) => ({
       id: shape.kind === "line" ? "place" : style,
     })),
+    ...(shape.kind === "rect" && shape.flat === "y"
+      ? [{ id: "gable" }, { id: "hip" }]
+      : []),
     { id: "cancel" },
   ];
 }
@@ -25,4 +28,10 @@ export function utilityMenu(session: BuildSession): MenuEntry[] {
   if (session.flow.kind !== "idle" || session.confirmedBox)
     entries.push({ id: "clear" });
   return entries;
+}
+
+export function roofMenu(flow: BuildFlow): MenuEntry[] {
+  return flow.kind === "roofHeight"
+    ? [{ id: "fill" }, { id: "hollow" }, { id: "cancel" }]
+    : [];
 }

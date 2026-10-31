@@ -1,4 +1,3 @@
-import type { BuildAnchor } from "../../../src/application/build/ports/anchor";
 import type { BuildBlockWorld } from "../../../src/application/build/ports/blocks";
 import type {
   BuildFeedback,
@@ -35,16 +34,6 @@ export class FakeSessions implements BuildSessionRepository {
   }
   ids() {
     return [...this.sessions.keys()];
-  }
-}
-
-export class FakeAnchor implements BuildAnchor {
-  feet: { dimensionId: DimensionId; cell: Cell } | undefined = {
-    dimensionId: overworld,
-    cell: { x: 0, y: 64, z: 0 },
-  };
-  feetOf() {
-    return this.feet;
   }
 }
 

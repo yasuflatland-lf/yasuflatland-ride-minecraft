@@ -8,10 +8,18 @@ import {
   type BuildFlow,
   backToAiming,
   cancel,
+  chooseRoof,
+  chooseRoofFill,
+  setRoofHeight,
+  startPaste,
   tapAir,
   tapBlock,
 } from "../../../src/domain/build/flow/flow";
-import { shapeMenu, utilityMenu } from "../../../src/domain/build/flow/menu";
+import {
+  roofMenu,
+  shapeMenu,
+  utilityMenu,
+} from "../../../src/domain/build/flow/menu";
 import { BuildSession } from "../../../src/domain/build/session";
 import { shapeOf, stylesFor } from "../../../src/domain/build/shape/shape";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
@@ -105,13 +113,16 @@ it("offers only supported shape styles followed by Cancel", () => {
         ...stylesFor(shape).map((style) =>
           shape.kind === "line" ? "place" : style,
         ),
+        ...(shape.kind === "rect" && shape.flat === "y"
+          ? ["gable", "hip"]
+          : []),
         "cancel",
       ]);
     }),
   );
   for (const [to, ids] of [
     [{ x: 3, y: 0, z: 0 }, ["place", "cancel"]],
-    [{ x: 3, y: 0, z: 3 }, ["fill", "frame", "cancel"]],
+    [{ x: 3, y: 0, z: 3 }, ["fill", "frame", "gable", "hip", "cancel"]],
     [{ x: 3, y: 3, z: 3 }, ["fill", "faces", "walls", "cancel"]],
   ] as const)
     expect(
@@ -133,7 +144,7 @@ it("offers utility entries exactly when their prerequisites exist", () => {
         const session = new BuildSession(asPlayerId("p"));
         const box = boxOf(at, at);
         if (confirmed) session.confirmBox(dim, box);
-        if (clipboard) session.setClipboard(clipboardOf(box, at, () => stone));
+        if (clipboard) session.setClipboard(clipboardOf(box, () => stone));
         if (history)
           session.finishEdit(
             {
@@ -180,4 +191,70 @@ it("refuses unreadable, open and data-holding material regardless of block state
       blockStateOf("minecraft:oak_stairs", { upside_down_bit: true }),
     ),
   ).toBe(true);
+});
+
+it("roof and paste stages accept only their own transitions and ignore selection taps", () => {
+  fc.assert(
+    fc.property(
+      cell,
+      cell,
+      fc.constantFrom("gable" as const, "hip" as const),
+      fc.integer(),
+      fc.boolean(),
+      (a, b, kind, height, hollow) => {
+        const endpoint = tapAir(tapBlock(idle, dim, a, stone), b);
+        const shape = shapeOf(a, b);
+        const roof = chooseRoof(endpoint, kind);
+        if (shape.kind === "rect" && shape.flat === "y") {
+          expect(roof).toEqual({
+            kind: "roofHeight",
+            dimensionId: dim,
+            base: boxOf(a, b),
+            roofKind: kind,
+            previous: 1,
+            material: stone,
+          });
+        } else expect(roof).toBe(endpoint);
+        const horizontal = chooseRoof(
+          tapAir(tapBlock(idle, dim, a, stone), {
+            x: a.x + 2,
+            y: a.y,
+            z: a.z + 3,
+          }),
+          kind,
+        );
+        const paste = startPaste(idle, hollow);
+        for (const flow of [
+          idle,
+          tapBlock(idle, dim, a, stone),
+          endpoint,
+          horizontal,
+          paste,
+        ]) {
+          expect(chooseRoofFill(flow, hollow)).toEqual(
+            flow.kind === "roofHeight" ? idle : flow,
+          );
+          expect(setRoofHeight(flow, height)).toEqual(
+            flow.kind === "roofHeight" ? { ...flow, previous: height } : flow,
+          );
+          expect(startPaste(flow, hollow)).toEqual(
+            flow.kind === "idle" ? { kind: "pasteAim", skipAir: hollow } : flow,
+          );
+          if (flow.kind !== "endpoint")
+            expect(chooseRoof(flow, kind)).toBe(flow);
+          expect(roofMenu(flow)).toEqual(
+            flow.kind === "roofHeight"
+              ? [{ id: "fill" }, { id: "hollow" }, { id: "cancel" }]
+              : [],
+          );
+          expect(cancel(flow)).toEqual(idle);
+        }
+        for (const flow of [horizontal, paste]) {
+          expect(tapBlock(flow, other, b, dirt)).toBe(flow);
+          expect(tapAir(flow, b)).toBe(flow);
+          expect(backToAiming(flow)).toBe(flow);
+        }
+      },
+    ),
+  );
 });
