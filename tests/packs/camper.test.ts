@@ -74,6 +74,10 @@ describe("camper model assets (ADR 0067)", () => {
         "bunk",
         "headlights",
         "ceiling_lights",
+        "glow_fl",
+        "glow_fr",
+        "glow_rl",
+        "glow_rr",
         "wheel_fl",
         "wheel_fr",
         "wheel_rl",
@@ -844,6 +848,7 @@ describe("camper glass (ADR 0091)", () => {
   it("draws the model opaque and blends only the glass material", () => {
     expect(camperMaterials).toEqual({
       default: "entity",
+      glow: "entity_emissive_alpha",
       lamp: "entity",
       lamp_lit: "entity_emissive",
       glass: "entity_alphablend",
@@ -858,14 +863,16 @@ describe("camper glass (ADR 0091)", () => {
     );
   });
 
-  it("keeps the glass swatch see-through and every other swatch opaque in every paint", () => {
+  it("keeps glass transparent and limits emissive alpha to lamps and glows in every paint", () => {
     for (const paint of PAINTS) {
       const name = paint === PAINTS[0] ? "camper" : `camper_${paint}`;
       const { width, pixels } = readPng(`textures/entity/yasu_ride/${name}`);
+      const glowSlot = bone("glow_fl").cubes?.[0]?.uv.north?.uv[0];
       for (let i = 0; i < width; i++) {
         const alpha = pixels[i * 4 + 3];
         if (i === glassSlot) expect(alpha, paint).toBeLessThan(255);
-        else if (i === domeSlot || i >= 38) expect(alpha, paint).toBe(0);
+        else if (i === glowSlot) expect(alpha, paint).toBe(40);
+        else if (i === domeSlot || i >= 39) expect(alpha, paint).toBe(0);
         else expect(alpha, `${paint} slot ${i}`).toBe(255);
       }
     }
@@ -1980,9 +1987,9 @@ describe("camper rib atlas (ADR 0190)", () => {
       readFileSync("tests/packs/fixtures/camper-cubes.json", "utf8"),
     );
     expect(
-      bones.flatMap((b) =>
-        (b.cubes ?? []).map((c) => [b.name, c.origin, c.size]),
-      ),
+      bones
+        .filter((b) => !b.name.startsWith("glow_"))
+        .flatMap((b) => (b.cubes ?? []).map((c) => [b.name, c.origin, c.size])),
     ).toEqual(fixture);
   });
 

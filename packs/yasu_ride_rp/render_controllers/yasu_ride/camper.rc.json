@@ -29,6 +29,7 @@
         {
           "*": "Material.default"
         },
+        { "glow_*": "Material.glow" },
         {
           "headlights": "Material.lamp"
         },
@@ -47,6 +48,7 @@
         {
           "*": true
         },
+        { "glow_*": "!query.property('yasu_ride:gear_down')" },
         {
           "headlights": "!query.property('yasu_ride:headlights')"
         },
