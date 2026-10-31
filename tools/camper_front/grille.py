@@ -1,6 +1,7 @@
 """Grilles, lamp pods and bumper."""
 
 from .context import FrontContext
+from .shape import ridge_dz
 
 
 def build(ctx: FrontContext) -> None:
@@ -23,7 +24,8 @@ def build(ctx: FrontContext) -> None:
     # Upper grille in three sections, as on the lower-front photo; the middle section's slats
     # dip in a shallow V whose point reaches down into the lower grille.
     GDIV, V_DIP, STEP = 7.5, 1.2, 0.5
-    body.append(box(-19.5, UPPER[0], FRONT + 0.7, 19.5, UPPER[1], FRONT + 1, "grille"))
+    for x0, x1 in ((-19.5, 0), (0, 19.5)):
+        body.append(ctx.folded_box(x0, UPPER[0], FRONT + 0.7, x1, UPPER[1], FRONT + 1, "grille"))
 
     def dip(x):
         return V_DIP * (1 - abs(x) / GDIV)
@@ -32,25 +34,28 @@ def build(ctx: FrontContext) -> None:
         middle = x0 == -GDIV
         for y in SLAT_Y:
             if not middle:
-                body.append(box(x0 + 0.5, y, FRONT + 0.3, x1 - 0.5, y + 0.8, FRONT + 0.7, "slat"))
+                body.append(ctx.folded_box(x0 + 0.5, y, FRONT + 0.3, x1 - 0.5, y + 0.8, FRONT + 0.7, "slat", preserve_width=True))
                 continue
             xa = x0 + 0.5
             while xa < x1 - 0.5 - 1e-6:
                 d = dip(xa + STEP / 2)
-                body.append(box(xa, y - d, FRONT + 0.3, xa + STEP, y - d + 0.8, FRONT + 0.7, "slat"))
+                dz = ridge_dz(xa + STEP / 2, ctx.shape.grille_ridge_px, 19.5)
+                body.append(box(xa, y - d, FRONT + 0.3 + dz, xa + STEP, y - d + 0.8, FRONT + 0.7 + dz, "slat"))
                 xa += STEP
-        body.append(box(x0, UPPER[1] - 0.5, FRONT + 0.1, x1, UPPER[1], FRONT + 0.7, "chrome"))
+        for a, b in (((x0, 0), (0, x1)) if middle else ((x0, x1),)):
+            body.append(ctx.folded_box(a, UPPER[1] - 0.5, FRONT + 0.1, b, UPPER[1], FRONT + 0.7, "chrome"))
         if middle:  # the bottom bar and the backing follow the V down
             xa = x0
             while xa < x1 - 1e-6:
                 d = dip(xa + STEP / 2)
-                body.append(box(xa, UPPER[0] - d, FRONT + 0.1, xa + STEP, UPPER[0] - d + 0.5, FRONT + 0.7, "chrome"))
-                body.append(box(xa, UPPER[0] - d, FRONT + 0.7, xa + STEP, UPPER[0], FRONT + 1, "grille"))
+                dz = ridge_dz(xa + STEP / 2, ctx.shape.grille_ridge_px, 19.5)
+                body.append(box(xa, UPPER[0] - d, FRONT + 0.1 + dz, xa + STEP, UPPER[0] - d + 0.5, FRONT + 0.7 + dz, "chrome"))
+                body.append(box(xa, UPPER[0] - d, FRONT + 0.7 + dz, xa + STEP, UPPER[0], FRONT + 1 + dz, "grille"))
                 xa += STEP
         else:
-            body.append(box(x0, UPPER[0], FRONT + 0.1, x1, UPPER[0] + 0.5, FRONT + 0.7, "chrome"))
+            body.append(ctx.folded_box(x0, UPPER[0], FRONT + 0.1, x1, UPPER[0] + 0.5, FRONT + 0.7, "chrome"))
         for fx in (x0, x1 - 0.5):
-            body.append(box(fx, UPPER[0], FRONT + 0.1, fx + 0.5, UPPER[1], FRONT + 0.7, "chrome"))
+            body.append(ctx.folded_box(fx, UPPER[0], FRONT + 0.1, fx + 0.5, UPPER[1], FRONT + 0.7, "chrome"))
     # Below it, black lamp pods at both sides and a lower grille between them that narrows
     # toward the bumper; the pods' inner edges follow the grille's slanted sides.
 

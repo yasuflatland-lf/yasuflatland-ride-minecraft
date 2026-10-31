@@ -1,9 +1,10 @@
 """Dimensions, helpers and ordered staging buffers shared by front zones."""
 
 from dataclasses import dataclass, field
+from math import atan, cos, degrees, radians
 from typing import Any, Callable
 
-from .shape import FrontShape
+from .shape import FrontShape, ridge_dz
 
 
 @dataclass(frozen=True)
@@ -41,3 +42,14 @@ class FrontContext:
         return self.box(cx - self.CORNER / 2, y0, cz - 0.5 - inset,
                         cx + self.CORNER / 2, y1, cz + 0.5 - inset,
                         color, [0, -sx * 45, 0], [cx, 0, cz])
+
+    def folded_box(self, x0, y0, z0, x1, y1, z1, color, half_span=19.5, preserve_width=False):
+        """Fold a half-face; slats retain their size, backing and trim meet at the ridge."""
+        xc = (x0 + x1) / 2
+        dz = ridge_dz(xc, self.shape.grille_ridge_px, half_span)
+        angle = -degrees(atan(self.shape.grille_ridge_px / half_span)) * (1 if xc > 0 else -1)
+        half_width = (x1 - x0) / 2
+        if not preserve_width:
+            half_width /= cos(radians(angle))
+        return self.box(xc - half_width, y0, z0 + dz, xc + half_width, y1, z1 + dz, color,
+                        [0, angle, 0], [xc, 0, z0 + dz])

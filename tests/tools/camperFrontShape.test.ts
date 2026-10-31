@@ -21,19 +21,22 @@ const runShape = <T>(expression: string, input: unknown): T => {
 const runs = { numRuns: 25 };
 
 describe("camper front shape", () => {
-  it("preserves the legacy taper below and above the upper grille", () => {
+  it("leans forward at five degrees about the hood edge", () => {
     fc.assert(
       fc.property(fc.double({ min: 0, max: 64, noNaN: true }), (y) => {
-        const expected = y >= 18 ? -2 : -2 + ((2 + 0.5) * (18 - y)) / (18 - 8);
-        expect(
-          runShape("[lean_dz(args), FrontShape().lean_dz(args)]", y),
-        ).toEqual([expected, expected]);
+        const expected = -(y - 33) * Math.tan((5 * Math.PI) / 180);
+        for (const value of runShape<number[]>(
+          "[lean_dz(args), FrontShape().lean_dz(args)]",
+          y,
+        )) {
+          expect(value).toBeCloseTo(expected, 12);
+        }
       }),
       runs,
     );
   });
 
-  it("leaves the front flat across its width with all ridges disabled", () => {
+  it("keeps the glass and cap flat while giving the grille a two-pixel ridge", () => {
     fc.assert(
       fc.property(fc.double({ min: -24, max: 24, noNaN: true }), (x) => {
         expect(
@@ -41,7 +44,7 @@ describe("camper front shape", () => {
             "[ridge_dz(args, ridge, 24) for ridge in (FrontShape().windshield_ridge_px, FrontShape().cap_ridge_px, FrontShape().grille_ridge_px)]",
             x,
           ),
-        ).toEqual([0, 0, 0]);
+        ).toEqual([0, 0, -2 * (1 - Math.abs(x) / 24)]);
       }),
       runs,
     );

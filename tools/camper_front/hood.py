@@ -1,6 +1,7 @@
 """Chamfered body, lean and sloping sill."""
 
 from .context import FrontContext
+from .shape import ridge_dz
 
 
 def build(ctx: FrontContext) -> None:
@@ -30,10 +31,15 @@ def build(ctx: FrontContext) -> None:
         front.extend(ctx.grille_corners[sx])
         front.append(corner(sx, FRONT, BOTTOM, 15, "tan", inset=0.12))
         front.extend(ctx.glass_corners[sx])
-    front += panel("z", FRONT, FRONT + 1, -FW, FW, LOWER_Y[1], SILL_LOW, [(-19.5, 19.5, *UPPER)], "white")
+    for c in panel("z", FRONT, FRONT + 1, -FW, FW, LOWER_Y[1], SILL_LOW, [(-19.5, 19.5, *UPPER)], "white"):
+        x, y, z = c["origin"]
+        w, h, d = c["size"]
+        spans = ((x, 0), (0, x + w)) if x < 0 < x + w else ((x, x + w),)
+        for a, b in spans:
+            front.append(ctx.folded_box(a, y, z, b, y + h, z + d, "white", HW))
     # The windshield's chrome center post continues as a raised rib over the sill and down the
     # face between the two upper panels to the grille, as on the photo.
-    front.append(box(-0.45, UPPER[1], FRONT - 0.45, 0.45, SILL_LOW, FRONT, "chrome"))
+    front.append(box(-0.45, UPPER[1], FRONT - ctx.shape.grille_ridge_px - 0.45, 0.45, SILL_LOW, FRONT - ctx.shape.grille_ridge_px, "chrome"))
     front.extend(ctx.front)
 
     # As on the cab close-up, the body under the windshield juts out at the sill and tapers
@@ -52,26 +58,36 @@ def build(ctx: FrontContext) -> None:
                 cuts.append(cuts[-1] + SLICE)
         cuts.append(y0 + sy)
         body += shift_in_slices(c, cuts, ctx.shape.lean_dz)
-    # The side walls reach forward to the overhang with a straight upright edge in chrome trim.
-    EDGE_Z = FRONT + ctx.shape.lean_dz(UPPER[0]) + 1.5
+    # The side edge follows the same half-pixel lean as the chamfered face.
     for sx in (1, -1):
         x0, x1 = sorted((sx * (HW - 1), sx * HW))
-        body.append(box(x0, BOTTOM, EDGE_Z, x1, 15, SIDE0, "tan"))
-        body += rib_sides([box(x0, 15, EDGE_Z, x1, SILL_LOW, SIDE0, "white")])
         t0, t1 = sorted((sx * (HW - 0.4), sx * (HW + 0.2)))
-        body.append(box(t0, BOTTOM, EDGE_Z - 0.2, t1, SILL_LOW, EDGE_Z + 0.5, "chrome"))
-    # The sill: from the windshield foot it slopes down toward the front, as on the photo,
-    # in quarter-pixel columns whose width follows the chamfered front corners.
-    SILL_FRONT = FRONT + ctx.shape.lean_dz(UPPER[0])
-    z = SILL_FRONT
-    while z < WS_Z - 1e-6:
-        zc = z + 0.125
-        top = SILL - 1.5 * (WS_Z - zc) / (WS_Z - SILL_FRONT)
-        half = min(HW, FW + (zc - SILL_FRONT))
-        body.append(box(-half, SILL_LOW, z, half, top, z + 0.25, "white"))
-        for sx in (1, -1):  # chrome trim along the sloping edge on both sides
-            t0, t1 = sorted((sx * (half - 0.4), sx * (half + 0.2)))
-            body.append(box(t0, top - 0.4, z, t1, top + 0.05, z + 0.25, "chrome"))
-        body.append(box(-0.45, top - 0.2, z, 0.45, top + 0.35, z + 0.25, "chrome"))  # center rib
-        z += 0.25
-    body.append(box(-0.45, SILL_LOW, SILL_FRONT - 0.45, 0.45, SILL - 1.5 + 0.35, SILL_FRONT, "chrome"))  # rib over the nose
+        y = BOTTOM
+        while y < SILL_LOW - 1e-6:
+            y1 = min(y + SLICE, SILL_LOW)
+            edge = FRONT + ctx.shape.lean_dz((y + y1) / 2) + 1.5
+            if edge < SIDE0:
+                c = box(x0, y, edge, x1, y1, SIDE0, "tan" if y < 15 else "white")
+                body.extend([c] if y < 15 else rib_sides([c]))
+            body.append(box(t0, y, edge - 0.2, t1, y1, edge + 0.5, "chrome"))
+            y = y1
+    # Each strip starts on the V and ends at the straight windshield foot.
+    SILL_FRONT = FRONT + ctx.shape.lean_dz(SILL_LOW)
+    x = -HW
+    while x < HW - 1e-6:
+        x1 = min(x + 0.5, HW)
+        xc = (x + x1) / 2
+        nose = SILL_FRONT + ridge_dz(xc, ctx.shape.grille_ridge_px, HW)
+        z = nose + max(0, abs(xc) - FW)
+        while z < WS_Z - 1e-6:
+            z1 = min(z + 0.25, WS_Z)
+            top = SILL - 1.5 * (WS_Z - (z + z1) / 2) / (WS_Z - nose)
+            body.append(box(x, SILL_LOW, z, x1, top, z1, "white"))
+            if abs(xc) < 0.5:
+                body.append(box(x, top - 0.2, z, x1, top + 0.35, z1, "chrome"))
+            if abs(xc) > HW - 0.5 or (abs(xc) > FW and z == nose + abs(xc) - FW):
+                body.append(box(x, top - 0.4, z, x1, top + 0.05, z1, "chrome"))
+            z = z1
+        x = x1
+    nose = SILL_FRONT - ctx.shape.grille_ridge_px
+    body.append(box(-0.45, SILL_LOW, nose - 0.45, 0.45, SILL - 1.5 + 0.35, nose, "chrome"))

@@ -274,7 +274,7 @@ def vent_cover(z0, z1, y0, y1):
 body = []
 
 # --- Floor, roof and walls -------------------------------------------------
-body.append(box(-HW + 1, 13, FRONT + 1, HW - 1, FLOOR, REAR_INNER, "wood"))
+body.append(box(-HW + 1, 13, FRONT + 1 + FrontShape().lean_dz(13), HW - 1, FLOOR, REAR_INNER, "wood"))
 body.append(box(-HW, CEIL, FRONT + 8.5, HW, ROOF, REAR_INNER, "white"))  # the cab-over fills the front
 body.append(box(-HW + 1, CEIL - 0.2, FRONT + 1, HW - 1, CEIL, REAR_INNER, "panel"))
 
@@ -503,7 +503,7 @@ front_ctx = FrontContext(
     TOP_FRONT=TOP_FRONT, CORNER=CORNER, SLAT_Y=SLAT_Y, SLICE=SLICE,
     BOLT_REGION=BOLT_REGION, body=body, ATLAS=ATLAS, box=box, panel=panel,
     disc=disc, rib_sides=rib_sides, shift_in_slices=shift_in_slices,
-    shape=FrontShape(upper_y=UPPER[0], bottom_y=BOTTOM),
+    shape=FrontShape(hood_edge_y=SILL_LOW),
 )
 # Grille and glass stage cubes; hood restores their interleaved order before leaning.
 grille.build(front_ctx)
@@ -734,7 +734,7 @@ for c in body[dash_start:]:
     c["origin"][1] = round(c["origin"][1] + DASH_RISE, 3)
     if "pivot" in c:
         c["pivot"] = [c["pivot"][0], round(c["pivot"][1] + DASH_RISE, 3), c["pivot"][2]]
-body.append(box(-HW + 1, FLOOR, FRONT + 1, HW - 1, 27 + DASH_RISE, DASH_FACE, "dash"))
+body.append(box(-HW + 1, FLOOR, FRONT + 1 + front_ctx.shape.lean_dz(FLOOR), HW - 1, 27 + DASH_RISE, DASH_FACE, "dash"))
 # Green vinyl engine cover between the seats, rounded on top
 body.append(box(-6, FLOOR, DASH_FACE, 6, 22, DASH_FACE + 13, "dash"))
 body.append(box(-5.2, 22, DASH_FACE + 0.5, 5.2, 23.6, DASH_FACE + 12.5, "dash"))

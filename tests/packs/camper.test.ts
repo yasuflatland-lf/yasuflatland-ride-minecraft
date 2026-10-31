@@ -699,7 +699,8 @@ describe("camper model assets (ADR 0067)", () => {
       (cube) =>
         near(cube.origin[1], 16) &&
         near(cube.size[0], 46) &&
-        near(cube.size[2], 7),
+        near(end(cube, 2), -48) &&
+        cube.uv.north?.uv[0] === 17,
     );
     expect(dashBodies).toHaveLength(1);
     const dash = dashBodies[0] as Cube;
@@ -1981,15 +1982,24 @@ const { width, height, regions, period, texelsPerPx, slots, windows } =
   };
 
 describe("camper rib atlas (ADR 0190)", () => {
-  it("preserves every cube's bone, origin, and size from the pre-rib geometry", () => {
+  it("preserves the pre-rib geometry outside the reshaped front", () => {
     const fixture = JSON.parse(
       readFileSync("tests/packs/fixtures/camper-cubes.json", "utf8"),
     );
+    const outsideFront = (entry: [string, number[], number[]]) =>
+      (entry[1][2] ?? 0) >= -50 || (entry[1][1] ?? 0) >= 36;
     expect(
       bones
         .filter((b) => !b.name.startsWith("glow_"))
-        .flatMap((b) => (b.cubes ?? []).map((c) => [b.name, c.origin, c.size])),
-    ).toEqual(fixture);
+        .flatMap((b) =>
+          (b.cubes ?? []).map((c): [string, number[], number[]] => [
+            b.name,
+            c.origin,
+            c.size,
+          ]),
+        )
+        .filter(outsideFront),
+    ).toEqual(fixture.filter(outsideFront));
   });
 
   it("allocates the rib region below the swatches with groove, highlight, and flat bands", () => {
@@ -2058,10 +2068,10 @@ describe("camper rib atlas (ADR 0190)", () => {
     );
     expect(
       entries.filter((e) => e.bone === "body" && e.side === "west"),
-    ).toHaveLength(256);
+    ).toHaveLength(289);
     expect(
       entries.filter((e) => e.bone === "body" && e.side === "east"),
-    ).toHaveLength(223);
+    ).toHaveLength(256);
     const roof = (bone("body").cubes ?? []).find(
       (c) => c.origin[1] === 61 && c.size[1] === 3 && c.size[0] === 48,
     );
