@@ -331,6 +331,33 @@ export async function bulldozerOverhang(a: Arena): Promise<Outcome> {
     cleanup(a);
   }
 }
+export async function bulldozerOverhangClear(a: Arena): Promise<Outcome> {
+  try {
+    cleanup(a);
+    // Feet stand at gy on the arena floor at gy - 1. The gap at gy + 1
+    // separates the ground run from the overhang inside the 2.9-block body;
+    // the control rows at gy + 3 and gy + 4 sit above the body.
+    a.dim.runCommand(`fill ${a.box(100, a.gy, 81, 104, a.gy, 85)} stone`);
+    a.dim.runCommand(
+      `fill ${a.box(100, a.gy + 2, 81, 104, a.gy + 4, 85)} stone`,
+    );
+    return await withBulldozer(a, 90.5, 83.5, -90, async (car) => {
+      await setBlade(car, false);
+      await throughHill(a, car);
+      const pos = a.local(car.location);
+      let pass = pos.x >= 108;
+      for (let x = 100; x <= 104; x++)
+        for (let z = 81; z <= 85; z++)
+          for (const dy of [0, 1, 2, 3, 4])
+            pass &&=
+              a.dim.getBlock(a.at(x, a.gy + dy, z))?.typeId ===
+              (dy < 3 ? "minecraft:air" : "minecraft:stone");
+      return { pass, detail: `x=${pos.x.toFixed(2)}` };
+    });
+  } finally {
+    cleanup(a);
+  }
+}
 export async function bulldozerDirtPath(a: Arena): Promise<Outcome> {
   const floor = a.gy - 1;
   const pathAt = (x: number, z: number) =>
