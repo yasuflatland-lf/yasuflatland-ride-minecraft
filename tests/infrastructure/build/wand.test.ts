@@ -262,8 +262,7 @@ function setupAir() {
   const repo = new InMemorySessionRepository();
   const feedback: BuildFeedback = {
     showMessage: vi.fn(),
-    drawCorner: vi.fn(),
-    drawOutline: vi.fn(),
+    drawPreview: vi.fn(),
   };
   const setPoint = new SetPoint(repo, new FakeWorld(), feedback);
   const tapAir = new TapAir(repo, feedback);

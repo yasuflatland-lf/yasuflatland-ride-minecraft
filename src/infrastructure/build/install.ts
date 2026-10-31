@@ -1,6 +1,6 @@
 import { AimRoofHeight } from "../../application/build/aimRoofHeight";
-import { ChooseRoof } from "../../application/build/chooseRoof";
 import { CancelFlow } from "../../application/build/cancelFlow";
+import { ChooseRoof } from "../../application/build/chooseRoof";
 import { ClearSelection } from "../../application/build/clearSelection";
 import { ConfirmRoof } from "../../application/build/confirmRoof";
 import { ConfirmShape } from "../../application/build/confirmShape";
@@ -8,8 +8,8 @@ import { CopySelection } from "../../application/build/copySelection";
 import { EditJobs } from "../../application/build/editJobs";
 import { PasteAt } from "../../application/build/pasteAt";
 import { SetPoint } from "../../application/build/setPoint";
-import { ShowPreview } from "../../application/build/showPreview";
 import { SetRoofHeightTo } from "../../application/build/setRoofHeightTo";
+import { ShowPreview } from "../../application/build/showPreview";
 import { StartPaste } from "../../application/build/startPaste";
 import { TapAir } from "../../application/build/tapAir";
 import { UndoEdit } from "../../application/build/undoEdit";
@@ -39,6 +39,7 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
   const recorded = recordMessages(new BedrockFeedback());
   const feedback = recorded.feedback;
   const blocks = new BedrockBlockWorld(deps);
+  const aim = new BedrockAimReader();
   const cancel = new CancelFlow(repo);
   const debounce = new PressDebounces<PlayerId>(BUILD_SPEC.pressDebounceTicks);
   const modes = new UpdateBuildModes(repo, cancel);

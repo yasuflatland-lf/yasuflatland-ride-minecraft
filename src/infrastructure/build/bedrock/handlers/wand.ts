@@ -1,6 +1,6 @@
 import { Direction, system, world } from "@minecraft/server";
-import type { AimReader } from "../../../../application/build/ports/aim";
 import type { PasteAt } from "../../../../application/build/pasteAt";
+import type { AimReader } from "../../../../application/build/ports/aim";
 import type { SetPoint } from "../../../../application/build/setPoint";
 import type { TapAir } from "../../../../application/build/tapAir";
 import { virtualEndPoint } from "../../../../domain/build/aim/aim";
