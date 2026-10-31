@@ -1,8 +1,9 @@
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
-import { ClearSelection } from "../../../src/application/build/clearSelection";
+import { CancelFlow } from "../../../src/application/build/cancelFlow";
 import { EditJobs } from "../../../src/application/build/editJobs";
 import { PasteAt } from "../../../src/application/build/pasteAt";
+import type { AimReader } from "../../../src/application/build/ports/aim";
 import type { BuildFeedback } from "../../../src/application/build/ports/feedback";
 import { SetPoint } from "../../../src/application/build/setPoint";
 import { StartPaste } from "../../../src/application/build/startPaste";
@@ -10,11 +11,25 @@ import { TapAir } from "../../../src/application/build/tapAir";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
-import { asPlayerId } from "../../../src/domain/shared/ids";
+import { BUILD_SPEC } from "../../../src/domain/build/spec";
+import {
+  asDimensionId,
+  asPlayerId,
+  type PlayerId,
+} from "../../../src/domain/shared/ids";
+import { PressDebounces } from "../../../src/domain/shared/pressDebounce";
+import { registerSessions } from "../../../src/infrastructure/build/bedrock/handlers/sessions";
 import { registerWand } from "../../../src/infrastructure/build/bedrock/handlers/wand";
 import { SELECTION_WAND_TYPE } from "../../../src/infrastructure/build/identifiers";
 import { InMemorySessionRepository } from "../../../src/infrastructure/build/persistence/inMemorySessionRepository";
 import { FakeFeedback, FakeWorld, nether } from "../../application/build/fakes";
+
+const menus = {
+  showShapeMenu: vi.fn(),
+  showRoofMenu: vi.fn(),
+  showUtilityMenu: vi.fn(),
+  showHeightSlider: vi.fn(),
+};
 
 const engine = vi.hoisted(() => {
   const handlers = new Map<string, (event: unknown) => void>();
@@ -23,7 +38,7 @@ const engine = vi.hoisted(() => {
     subscribe: (handler: (event: unknown) => void) =>
       handlers.set(name, handler),
   });
-  return { handlers, scheduled, event };
+  return { handlers, scheduled, event, tick: 0 };
 });
 vi.mock("@minecraft/server", () => ({
   Direction: {
@@ -38,13 +53,21 @@ vi.mock("@minecraft/server", () => ({
     afterEvents: {
       entityHitBlock: engine.event("hit"),
       itemUse: engine.event("use"),
+      playerLeave: engine.event("leave"),
+      playerDimensionChange: engine.event("dimension"),
+      entityDie: engine.event("die"),
     },
     beforeEvents: {
       playerBreakBlock: engine.event("break"),
       playerInteractWithBlock: engine.event("interact"),
     },
   },
-  system: { run: (callback: () => void) => engine.scheduled.push(callback) },
+  system: {
+    run: (callback: () => void) => engine.scheduled.push(callback),
+    get currentTick() {
+      return engine.tick;
+    },
+  },
 }));
 
 it("preserves blocks and defers point taps out of before events", () => {
@@ -56,6 +79,7 @@ it("preserves blocks and defers point taps out of before events", () => {
       fc.boolean(),
       (x, y, z, holding) => {
         engine.scheduled.length = 0;
+        vi.clearAllMocks();
         const repo = new InMemorySessionRepository();
         const feedback: BuildFeedback = {
           showMessage: vi.fn(),
@@ -63,18 +87,29 @@ it("preserves blocks and defers point taps out of before events", () => {
         };
         const blocks = new FakeWorld();
         blocks.put({ x, y, z }, blockStateOf("minecraft:stone"));
-        registerWand(
-          new SetPoint(repo, blocks, feedback),
-          new TapAir(repo, feedback),
-          new ClearSelection(repo, feedback),
+        registerWand({
           repo,
-          new PasteAt(
+          pasteAt: new PasteAt(
             repo,
             blocks,
             feedback,
             new EditJobs(repo, blocks, feedback),
           ),
-        );
+          setPoint: new SetPoint(repo, blocks, feedback),
+          tapAir: new TapAir(repo, feedback),
+          menus,
+          aim: {
+            aim: () => ({
+              ray: {
+                origin: { x: 0, y: 0, z: 0 },
+                direction: { x: 1, y: 0, z: 0 },
+              },
+              block: { cell: { x, y, z }, face: "Up" },
+            }),
+          },
+          debounce: new PressDebounces<PlayerId>(BUILD_SPEC.pressDebounceTicks),
+          pointOf: () => undefined,
+        });
         const player = {
           id: "p",
           typeId: "minecraft:player",
@@ -124,23 +159,165 @@ it("preserves blocks and defers point taps out of before events", () => {
         engine.handlers.get("interact")?.(interact);
         for (const callback of engine.scheduled.splice(0)) callback();
         expect(repo.get(id)?.flow.kind).toBe(holding ? "endpoint" : undefined);
+        expect(menus.showShapeMenu).toHaveBeenCalledTimes(holding ? 1 : 0);
         player.isSneaking = true;
         engine.handlers.get("use")?.({
           source: player,
           itemStack: { typeId: SELECTION_WAND_TYPE },
         });
-        expect(repo.get(id)?.flow.kind).toBe(holding ? "idle" : undefined);
-        expect(feedback.showMessage).toHaveBeenLastCalledWith(
-          id,
-          "selectionCleared",
-        );
+        expect(repo.get(id)?.flow.kind).toBe(holding ? "endpoint" : undefined);
         engine.handlers.get("interact")?.(interact);
         player.isValid = false;
         for (const callback of engine.scheduled.splice(0)) callback();
-        expect(repo.get(id)?.flow.kind).toBe(holding ? "idle" : undefined);
+        expect(repo.get(id)?.flow.kind).toBe(holding ? "endpoint" : undefined);
       },
     ),
   );
+});
+
+function setupAir() {
+  engine.tick = 0;
+  engine.scheduled.length = 0;
+  const repo = new InMemorySessionRepository();
+  const feedback: BuildFeedback = {
+    showMessage: vi.fn(),
+    drawPreview: vi.fn(),
+  };
+  const blocks = new FakeWorld();
+  const setPoint = new SetPoint(repo, blocks, feedback);
+  const tapAir = new TapAir(repo, feedback);
+  const execute = vi.spyOn(tapAir, "execute");
+  const menus = {
+    showShapeMenu: vi.fn(),
+    showRoofMenu: vi.fn(),
+    showUtilityMenu: vi.fn(),
+    showHeightSlider: vi.fn(),
+  };
+  const aim: AimReader = {
+    aim: () => ({
+      ray: {
+        origin: { x: 0.5, y: 5.5, z: 0.5 },
+        direction: { x: 1, y: 0, z: 0 },
+      },
+    }),
+  };
+  const debounce = new PressDebounces<PlayerId>(BUILD_SPEC.pressDebounceTicks);
+  const player = { id: "p", isValid: true, isSneaking: false };
+  const id = asPlayerId(player.id);
+  const session = repo.getOrCreate(id);
+  session.setFlow({
+    kind: "point1",
+    dimensionId: asDimensionId("minecraft:overworld"),
+    cell: { x: 10, y: 0, z: 0 },
+    material: blockStateOf("minecraft:stone"),
+  });
+  registerWand({
+    repo,
+    pasteAt: new PasteAt(
+      repo,
+      blocks,
+      feedback,
+      new EditJobs(repo, blocks, feedback),
+    ),
+    setPoint,
+    tapAir,
+    menus,
+    aim,
+    debounce,
+    pointOf: () =>
+      session.flow.kind === "point1" ? session.flow.cell : undefined,
+  });
+  const use = () =>
+    engine.handlers.get("use")?.({
+      source: player,
+      itemStack: { typeId: SELECTION_WAND_TYPE },
+    });
+  return { repo, session, id, player, use, execute, menus, aim, debounce };
+}
+
+it("computes a virtual air endpoint and ignores held repeats", () => {
+  const { session, use, execute } = setupAir();
+  use();
+  expect(execute).toHaveBeenCalledWith({
+    playerId: asPlayerId("p"),
+    end: { x: 10, y: 5, z: 0 },
+  });
+  expect(session.flow.kind).toBe("endpoint");
+  for (const tick of [4, 10, 15]) {
+    engine.tick = tick;
+    use();
+  }
+  expect(execute).toHaveBeenCalledTimes(1);
+  engine.tick = 25;
+  use();
+  expect(execute).toHaveBeenCalledTimes(2);
+});
+
+it("opens the utility menu once for a held sneak air press without clearing the flow", () => {
+  const { player, use, menus, execute, session } = setupAir();
+  player.isSneaking = true;
+  for (const tick of [0, 4, 10]) {
+    engine.tick = tick;
+    use();
+  }
+  expect(menus.showUtilityMenu).toHaveBeenCalledExactlyOnceWith(player);
+  expect(execute).not.toHaveBeenCalled();
+  expect(session.flow.kind).toBe("point1");
+});
+
+it("ignores itemUse for an aimed block, even before the deferred interact callback", () => {
+  const { aim, use, execute, menus, player } = setupAir();
+  aim.aim = () => ({
+    ray: { origin: { x: 0, y: 0, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
+    block: { cell: { x: 1, y: 0, z: 0 }, face: "Up" },
+  });
+  use();
+  engine.tick = 10;
+  player.isSneaking = true;
+  use();
+  expect(execute).not.toHaveBeenCalled();
+  expect(menus.showUtilityMenu).not.toHaveBeenCalled();
+});
+
+it("ignores unavailable aim, invalid players, and other items", () => {
+  const { aim, use, execute, menus, player } = setupAir();
+  aim.aim = () => undefined;
+  use();
+  player.isValid = false;
+  engine.tick = 10;
+  use();
+  player.isValid = true;
+  engine.handlers.get("use")?.({
+    source: player,
+    itemStack: { typeId: "minecraft:stick" },
+  });
+  expect(execute).not.toHaveBeenCalled();
+  expect(menus.showUtilityMenu).not.toHaveBeenCalled();
+});
+
+it.each(["dimension", "die"])(
+  "cancels the flow on %s without dropping the session",
+  (event) => {
+    const { repo, session, id, player, debounce } = setupAir();
+    registerSessions(repo, new CancelFlow(repo), debounce);
+    engine.handlers.get(event)?.({
+      player,
+      deadEntity: { id: player.id, typeId: "minecraft:player" },
+    });
+    expect(session.flow.kind).toBe("idle");
+    expect(repo.get(id)).toBe(session);
+  },
+);
+
+it("ignores non-player deaths and drops both session and debounce on disconnect", () => {
+  const { repo, session, id, debounce } = setupAir();
+  registerSessions(repo, new CancelFlow(repo), debounce);
+  engine.handlers.get("die")?.({ deadEntity: { id, typeId: "minecraft:pig" } });
+  expect(session.flow.kind).toBe("point1");
+  expect(debounce.press(id, 0)).toBe(true);
+  engine.handlers.get("leave")?.({ playerId: id });
+  expect(repo.get(id)).toBeUndefined();
+  expect(debounce.press(id, 0)).toBe(true);
 });
 
 it("routes each engine face to aimed paste in the hit dimension after the before event", () => {
@@ -155,6 +332,7 @@ it("routes each engine face to aimed paste in the hit dimension after the before
       fc.boolean(),
       (face, block, skipAir) => {
         engine.scheduled.length = 0;
+        vi.clearAllMocks();
         const repo = new InMemorySessionRepository();
         const id = asPlayerId("p");
         const session = repo.getOrCreate(id);
@@ -170,13 +348,16 @@ it("routes each engine face to aimed paste in the hit dimension after the before
         const jobs = new EditJobs(repo, blocks, feedback);
         const point = new SetPoint(repo, blocks, feedback);
         const pointCall = vi.spyOn(point, "execute");
-        registerWand(
-          point,
-          new TapAir(repo, feedback),
-          new ClearSelection(repo, feedback),
+        registerWand({
+          setPoint: point,
+          tapAir: new TapAir(repo, feedback),
+          menus,
+          aim: { aim: () => undefined },
+          debounce: new PressDebounces<PlayerId>(BUILD_SPEC.pressDebounceTicks),
+          pointOf: () => undefined,
           repo,
-          new PasteAt(repo, blocks, feedback, jobs),
-        );
+          pasteAt: new PasteAt(repo, blocks, feedback, jobs),
+        });
         const player = {
           id: "p",
           typeId: "minecraft:player",
@@ -219,4 +400,63 @@ it("routes each engine face to aimed paste in the hit dimension after the before
       },
     ),
   );
+});
+
+it("opens only on entering endpoint and defers an air-triggered menu safely", () => {
+  engine.tick = 0;
+  engine.scheduled.length = 0;
+  vi.clearAllMocks();
+  const repo = new InMemorySessionRepository();
+  const feedback = new FakeFeedback();
+  const blocks = new FakeWorld();
+  const id = asPlayerId("p");
+  const session = repo.getOrCreate(id);
+  const from = { x: 0, y: 60, z: 0 };
+  const to = { x: 4, y: 60, z: 4 };
+  const point1 = {
+    kind: "point1" as const,
+    dimensionId: nether,
+    cell: from,
+    material: blockStateOf("minecraft:stone"),
+  };
+  session.setFlow(point1);
+  const air = new TapAir(repo, feedback);
+  const execute = air.execute.bind(air);
+  vi.spyOn(air, "execute").mockImplementation((cmd) =>
+    execute({ ...cmd, end: to }),
+  );
+  registerWand({
+    setPoint: new SetPoint(repo, blocks, feedback),
+    tapAir: air,
+    repo,
+    pasteAt: new PasteAt(
+      repo,
+      blocks,
+      feedback,
+      new EditJobs(repo, blocks, feedback),
+    ),
+    menus,
+    aim: {
+      aim: () => ({ ray: { origin: from, direction: { x: 1, y: 0, z: 0 } } }),
+    },
+    debounce: new PressDebounces<PlayerId>(BUILD_SPEC.pressDebounceTicks),
+    pointOf: () =>
+      session.flow.kind === "point1" ? session.flow.cell : undefined,
+  });
+  const player = { id, isValid: true, isSneaking: false };
+  const event = { source: player, itemStack: { typeId: SELECTION_WAND_TYPE } };
+  engine.handlers.get("use")?.(event);
+  expect(session.flow.kind).toBe("endpoint");
+  expect(menus.showShapeMenu).not.toHaveBeenCalled();
+  for (const callback of engine.scheduled.splice(0)) callback();
+  expect(menus.showShapeMenu).toHaveBeenCalledExactlyOnceWith(player);
+  engine.tick = BUILD_SPEC.pressDebounceTicks;
+  engine.handlers.get("use")?.(event);
+  expect(engine.scheduled).toHaveLength(0);
+  session.setFlow(point1);
+  engine.tick += BUILD_SPEC.pressDebounceTicks;
+  engine.handlers.get("use")?.(event);
+  player.isValid = false;
+  for (const callback of engine.scheduled.splice(0)) callback();
+  expect(menus.showShapeMenu).toHaveBeenCalledTimes(1);
 });

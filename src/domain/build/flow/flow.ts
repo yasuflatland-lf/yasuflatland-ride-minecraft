@@ -24,6 +24,7 @@ export type BuildFlow =
       readonly kind: "roofHeight";
       readonly dimensionId: DimensionId;
       readonly base: Box;
+      readonly from: Cell;
       readonly roofKind: RoofKind;
       readonly previous: number;
       readonly material: BlockState;
@@ -64,6 +65,13 @@ export function cancel(_flow: BuildFlow): BuildFlow {
 }
 
 export function backToAiming(flow: BuildFlow): BuildFlow {
+  if (flow.kind === "roofHeight")
+    return Object.freeze({
+      kind: "point1",
+      dimensionId: flow.dimensionId,
+      cell: flow.from,
+      material: flow.material,
+    });
   return flow.kind === "endpoint"
     ? Object.freeze({
         kind: "point1",
@@ -82,6 +90,7 @@ export function chooseRoof(flow: BuildFlow, kind: RoofKind): BuildFlow {
     kind: "roofHeight",
     dimensionId: flow.dimensionId,
     base: shape.box,
+    from: flow.from,
     roofKind: kind,
     previous: 1,
     material: flow.material,

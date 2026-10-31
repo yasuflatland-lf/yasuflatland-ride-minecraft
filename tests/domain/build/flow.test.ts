@@ -210,6 +210,7 @@ it("roof and paste stages accept only their own transitions and ignore selection
             kind: "roofHeight",
             dimensionId: dim,
             base: boxOf(a, b),
+            from: a,
             roofKind: kind,
             previous: 1,
             material: stone,
@@ -252,7 +253,41 @@ it("roof and paste stages accept only their own transitions and ignore selection
         for (const flow of [horizontal, paste]) {
           expect(tapBlock(flow, other, b, dirt)).toBe(flow);
           expect(tapAir(flow, b)).toBe(flow);
-          expect(backToAiming(flow)).toBe(flow);
+          expect(backToAiming(flow)).toEqual(
+            flow.kind === "roofHeight"
+              ? {
+                  kind: "point1",
+                  dimensionId: flow.dimensionId,
+                  cell: flow.from,
+                  material: flow.material,
+                }
+              : flow,
+          );
+        }
+      },
+    ),
+  );
+});
+
+it("roof Cancel preserves the original first point for either selection direction", () => {
+  fc.assert(
+    fc.property(
+      cell,
+      fc.integer({ min: 1, max: 20 }),
+      fc.integer({ min: 1, max: 20 }),
+      fc.boolean(),
+      (a, dx, dz, reverse) => {
+        const b = { x: a.x + dx, y: a.y, z: a.z + dz };
+        const from = reverse ? b : a;
+        const to = reverse ? a : b;
+        const endpoint = tapAir(tapBlock(idle, dim, from, stone), to);
+        for (const kind of ["gable", "hip"] as const) {
+          expect(backToAiming(chooseRoof(endpoint, kind))).toEqual({
+            kind: "point1",
+            dimensionId: dim,
+            cell: from,
+            material: stone,
+          });
         }
       },
     ),

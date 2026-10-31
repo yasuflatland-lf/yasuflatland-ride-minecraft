@@ -112,6 +112,7 @@ it("uses the confirmation height calculation for roofs without mutating the sess
   session.setFlow({
     kind: "roofHeight",
     dimensionId: nether,
+    from: cell,
     base: boxOf(cell, { x: 8, y: 64, z: 4 }),
     roofKind: "hip",
     previous: 3,

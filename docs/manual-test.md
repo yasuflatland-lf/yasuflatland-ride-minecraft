@@ -512,7 +512,7 @@ Setup: use `/give @s yasu_build:selection_wand` and `/give @s yasu_build:build_t
 |---|---|---|---|---|
 | BT1 | Open the creative Items tab and craft the five items | One "Building Tools" group, the last group, holds "Build Tool" (its icon), "Selection Wand", "Blade Up/Down", "Wide Blade", and "Road Paver", with no group nested inside or beside it for the switch. A stick and a copper ingot craft the wand; an iron ingot and a chain craft the tool; a lever and an iron ingot craft the blade switch; a lever and two iron ingots craft Wide Blade; a lever, an iron ingot, and a cobblestone craft Road Paver | unverified | unverified |
 | BT2 | Ride a bulldozer holding the wand: tap a solid block, then tap another, in Survival and in Creative | The first tap sets point 1 and its material, the second sets the end point and shows the block count, and the outline appears in both modes | unverified | unverified |
-| BT3 | Sneak, aim at the air (no block), and use the wand | The selection clears and the outline disappears | unverified | unverified |
+| BT3 | Sneak, aim at the air (no block), and use the wand | The utility menu opens once without clearing the selection | unverified | unverified |
 | BT4 | Copy a selection, choose Paste in the Build Tool form, then hold the wand and tap each face of a target block in turn | Choosing Paste starts aiming without editing; the wand tap places the clipboard minimum corner adjacent to the tapped face | unverified | unverified |
 | BT5 | Hold the wand or tool, then flick through the hotbar quickly | The camera does not switch on a flick; it moves to the third-person view after the tool has been held for a moment and back shortly after it is put away | unverified | unverified |
 | BT6 | Use the Build Tool and run Fill, Copy, Paste, Undo, and Clear selection in turn; after choosing Paste, tap a target block with the wand; repeat with Skip air | Each action shows its message; paste uses the tapped face as its anchor, and Skip air leaves existing blocks in place under air | unverified | unverified |
@@ -532,3 +532,25 @@ Setup: use `/give @s yasu_build:selection_wand` and `/give @s yasu_build:build_t
 | The shape and end-point cube outlines follow the view while aiming at air. | unverified |
 | The roof wireframe follows the view in the height step. | unverified |
 | The paste outline follows the aimed block. | unverified |
+
+### Build Wand menus
+
+| ID | Action | Expected | PC | iPad |
+|---|---|---|---|---|
+| BWM1 | Confirm an end point for a line, vertical rectangle, horizontal rectangle, and box | The shape menu shows only applicable entries: Place; Fill and Frame; Fill, Frame, Gable roof and Hip roof; or Fill, Faces only and Walls only, respectively, plus Cancel | unverified | unverified |
+| BWM2 | Choose each shape action; reopen and use Cancel, Escape or Back | Each action builds the selected style; cancellation returns to end-point selection | unverified | unverified |
+| BWM3 | Choose either roof kind, confirm its height, then choose Fill or Hollow; repeat with Cancel, Escape and Back | Fill builds a solid roof, Hollow builds its shell, and cancellation returns to end-point selection | unverified | unverified |
+| BWM4 | Enable the height slider fallback and choose either roof kind | Slider ranges from 1 to the allowed roof height, starts at the previous height and applies it before opening Fill/Hollow; with the flag disabled no slider opens | unverified | unverified |
+| BWM5 | Open the Build Tool utility menu with and without a selection, clipboard and history; choose each available action | Only applicable Copy, Paste, Undo and Clear selection entries appear; Paste asks for Skip air, initially off, before starting paste aiming; dismissal does nothing | unverified | unverified |
+| BWM6 | Repeatedly request menus, including while the paste toggle or height slider is open | Only one form opens per player; another player can open independently; the form does not hide the preview more than the engine forces | unverified | unverified |
+
+## Build Wand touch input (ADR 0198)
+
+Precondition: hold the wand in first person on the iPad. A block tap selects the block under the view ray; aim the view at the intended block before tapping. No bulldozer is required. Leave at least half a second between separate taps.
+
+| # | Action | Expected | PC | Mobile |
+|---|--------|----------|----|--------|
+| BW1 | In first person, aim at a solid block and tap it once with the wand | Point 1 selects the view-ray block and its material exactly once | unverified | unverified |
+| BW2 | After setting point 1, aim at air and tap; repeat with a held touch | The air tap fixes the virtual endpoint on the vertical plane through point 1; a held touch counts once | unverified | unverified |
+| BW3 | Sneak, aim at air, and tap or hold with the wand | The utility menu opens once and the selection remains | unverified | unverified |
+| BW4 | In Survival and Creative, tap and long-press solid blocks while holding the wand | No block breaks; a block tap does not also trigger an air tap | unverified | unverified |

@@ -267,8 +267,10 @@ export async function buildEdits(a: Arena): Promise<Outcome> {
         );
 
         const feet = a.local(car.location);
+        // Stay outside the collision box but inside the protected footprint:
+        // select() places stone, which would push the bulldozer up at its feet.
         await select(
-          Math.floor(feet.x),
+          Math.floor(feet.x) + 2,
           Math.floor(feet.y),
           Math.floor(feet.z),
           1,
