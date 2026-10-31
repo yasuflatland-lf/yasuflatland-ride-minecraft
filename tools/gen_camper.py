@@ -24,8 +24,8 @@ cube_tilt = load_tool("cube_tilt")
 assert_axes, compound_cubes = cube_tilt.assert_axes, cube_tilt.compound_cubes
 ASSEMBLIES = {
     "slanted": {"owner": "camper", "cubes": 6},
-    "windshield_right": {"owner": "camper", "cubes": 6},
-    "windshield_left": {"owner": "camper", "cubes": 5},
+    "windshield_right": {"owner": "camper", "cubes": 1},
+    "windshield_left": {"owner": "camper", "cubes": 1},
 }
 
 outputs = load_tool("texture_io").Outputs("--check" in sys.argv[2:])
@@ -1215,7 +1215,8 @@ def rounded(value):
 # mirror_x retains the legacy z sign; rigid windshield assemblies need the full mirror.
 for members in windshield_assemblies.values():
     for cube in members:
-        cube["rotation"][2] *= -1
+        if "rotation" in cube:
+            cube["rotation"][2] *= -1
 mirror_x(camper_bones)
 geo = {
     "format_version": "1.12.0",
@@ -1233,7 +1234,7 @@ model_cubes = [cube for bone in geo["minecraft:geometry"][0]["bones"] for cube i
 windshield_cubes = [cube for members in windshield_assemblies.values() for cube in members]
 assert_axes(model_cubes, {
     "slanted": [cube for cube in compound_cubes(model_cubes) if cube not in windshield_cubes],
-    **windshield_assemblies,
+    **{name: compound_cubes(members) for name, members in windshield_assemblies.items()},
 }, ASSEMBLIES)
 outputs.json(MODELS / "camper.geo.json", rounded(geo), separators=(",", ":"))
 

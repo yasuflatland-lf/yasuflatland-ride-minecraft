@@ -1,4 +1,4 @@
-"""Windshield, frame and corner glass."""
+"""Vertical windshield with yawed panes, frame and wipers, and fixed corner glass."""
 
 import math
 
@@ -11,7 +11,6 @@ WS_POST_HALF_WIDTH = 0.6
 WS_FOOT_Y = 36
 WS_HEADER_Y = 49.5
 WS_FRAME_BOTTOM_Y = 35.4
-WS_LEAN = -8
 WIPER_ANGLE = 25
 WIPER_OFFSETS = (-14, 5)
 WIPER_LENGTH = 8
@@ -20,7 +19,6 @@ WIPER_LENGTH = 8
 def build(ctx: FrontContext, assemblies: dict) -> dict[str, list[dict]]:
     FW, WS_Z = ctx.FW, ctx.WS_Z
     box = ctx.box
-    pivot = [0, WS_FOOT_Y, WS_Z]
     ridge = ctx.shape.windshield_ridge_px
     angle = math.degrees(math.atan2(ridge, FW - WS_POST_HALF_WIDTH))
     stretch = 1 / math.cos(math.radians(angle))
@@ -52,16 +50,11 @@ def build(ctx: FrontContext, assemblies: dict) -> dict[str, list[dict]]:
         if sx == 1:
             fixed.append(box(-0.7, WS_FOOT_Y, ridge_z - 0.2,
                              0.7, WS_HEADER_Y, ridge_z + 0.6, "chrome"))
-        tilted = cube_tilt.tilt_assembly(
-            fixed + panes, pivot=pivot, axis="x", degrees=WS_LEAN,
-            assembly=name, assemblies=assemblies,
-        )
-        # The outer foot lies on the lean axis, so its tilted position is unchanged.
         yawed = cube_tilt.yaw_cubes(
-            tilted[len(fixed):], pivot=[sx * FW, WS_FOOT_Y, WS_Z], degrees=-sx * angle,
+            panes, pivot=[sx * FW, WS_FOOT_Y, WS_Z], degrees=-sx * angle,
             assembly=name, assemblies=assemblies,
         )
-        members[name] = tilted[:len(fixed)] + yawed
+        members[name] = fixed + yawed
         ctx.glass_corners[sx] = members[name][:2]
         ctx.front.extend(members[name][2:])
     return members

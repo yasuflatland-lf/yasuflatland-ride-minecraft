@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class FrontShape:
+    # The vertical panes share the same ridge at the foot and header.
     windshield_ridge_px: float = 4.0
     cap_ridge_px: float = 0.0
     grille_ridge_px: float = 0.0

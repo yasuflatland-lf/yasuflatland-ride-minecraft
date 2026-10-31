@@ -66,7 +66,9 @@ const isWindshieldCube = (cube: Pick<Cube, "origin" | "size">) => {
 describe("camper model assets (ADR 0067)", () => {
   it("allows compound rotations only in declared assemblies (ADR 0167)", () => {
     const cubes = bones.flatMap((bone) => bone.cubes ?? []);
-    const windshield = cubes.filter(isWindshieldCube);
+    const windshield = cubes.filter(
+      (cube) => isWindshieldCube(cube) && multipleAxes(cube),
+    );
     const assemblies = {
       slanted: cubes.filter(
         (cube) => multipleAxes(cube) && !windshield.includes(cube),
@@ -84,8 +86,8 @@ describe("camper model assets (ADR 0067)", () => {
           0,
       ),
     };
-    expect(assemblies.windshield_right).toHaveLength(6);
-    expect(assemblies.windshield_left).toHaveLength(5);
+    expect(assemblies.windshield_right).toHaveLength(1);
+    expect(assemblies.windshield_left).toHaveLength(1);
     expect(assemblies.slanted).toHaveLength(6);
     expect(() => assertOneAxis(cubes, assemblies)).not.toThrow();
   });
@@ -896,18 +898,6 @@ describe("camper windshield ridge (#1069)", () => {
       z + defined(pivot[2], "windshield coordinate"),
     ] as const;
   };
-  const untilt = ([x, y, z]: readonly number[]) => {
-    const angle = (8 * Math.PI) / 180;
-    return [
-      defined(x, "windshield coordinate"),
-      36 +
-        (defined(y, "windshield coordinate") - 36) * Math.cos(angle) +
-        (defined(z, "windshield coordinate") + 53.5) * Math.sin(angle),
-      -53.5 -
-        (defined(y, "windshield coordinate") - 36) * Math.sin(angle) +
-        (defined(z, "windshield coordinate") + 53.5) * Math.cos(angle),
-    ] as const;
-  };
   const members = bones.flatMap((b) => b.cubes ?? []).filter(isWindshieldCube);
   const panes = (bone("glass").cubes ?? []).filter(
     (cube) => cube.size[1] === 13.5 && cube.size[2] === 0.2,
@@ -916,7 +906,7 @@ describe("camper windshield ridge (#1069)", () => {
     (cube) => cube.size[1] === 13.5 && cube.size[2] === 1,
   );
 
-  it("puts the post four pixels ahead of the outer edges at the specified slope", () => {
+  it("keeps the panes vertical with a four-pixel ridge at foot and header", () => {
     expect(panes).toHaveLength(2);
     expect(panes.map((pane) => Math.sign(point(pane, 0.5, 0, 0.5)[0]))).toEqual(
       [1, -1],
@@ -926,43 +916,45 @@ describe("camper windshield ridge (#1069)", () => {
       "windshield coordinate",
     );
     expect(post.size).toEqual([1.4, 13.5, 0.8]);
-    const postZ = point(post, 0.5, 0, 0.5)[2];
     for (const pane of panes) {
-      const endpoints = [point(pane, 0, 0, 0.5), point(pane, 1, 0, 0.5)];
-      const [inner, outer] = endpoints.sort(
-        (a, b) => Math.abs(a[0]) - Math.abs(b[0]),
-      );
-      expect(defined(outer, "windshield coordinate")[2] - postZ).toBeCloseTo(
-        4,
-        1,
-      );
-      expect(
-        defined(outer, "outer edge")[2] - defined(inner, "inner edge")[2],
-      ).toBeCloseTo(4, 2);
-      const slope =
-        (Math.atan2(
-          defined(outer, "windshield coordinate")[2] -
-            defined(inner, "windshield coordinate")[2],
-          Math.abs(
-            defined(outer, "windshield coordinate")[0] -
-              defined(inner, "windshield coordinate")[0],
-          ),
-        ) *
-          180) /
-        Math.PI;
-      expect(
-        Math.abs(slope - (Math.atan(4 / 20.4) * 180) / Math.PI),
-      ).toBeLessThan(0.5);
-      const foot = point(pane, 0.5, 0, 0.5);
-      const header = point(pane, 0.5, 1, 0.5);
-      expect(
-        (Math.atan2(
-          Math.hypot(header[0] - foot[0], header[2] - foot[2]),
-          header[1] - foot[1],
-        ) *
-          180) /
-          Math.PI,
-      ).toBeCloseTo(8, 2);
+      for (const height of [0, 1]) {
+        const postZ = point(post, 0.5, height, 0.5)[2];
+        const endpoints = [
+          point(pane, 0, height, 0.5),
+          point(pane, 1, height, 0.5),
+        ];
+        const [inner, outer] = endpoints.sort(
+          (a, b) => Math.abs(a[0]) - Math.abs(b[0]),
+        );
+        expect(defined(outer, "windshield coordinate")[2] - postZ).toBeCloseTo(
+          4,
+          1,
+        );
+        expect(
+          defined(outer, "outer edge")[2] - defined(inner, "inner edge")[2],
+        ).toBeCloseTo(4, 2);
+        const slope =
+          (Math.atan2(
+            defined(outer, "windshield coordinate")[2] -
+              defined(inner, "windshield coordinate")[2],
+            Math.abs(
+              defined(outer, "windshield coordinate")[0] -
+                defined(inner, "windshield coordinate")[0],
+            ),
+          ) *
+            180) /
+          Math.PI;
+        expect(
+          Math.abs(slope - (Math.atan(4 / 20.4) * 180) / Math.PI),
+        ).toBeLessThan(0.5);
+      }
+      for (const width of [0, 0.5, 1]) {
+        const foot = point(pane, width, 0, 0.5);
+        const header = point(pane, width, 1, 0.5);
+        expect(header[0]).toBeCloseTo(foot[0], 3);
+        expect(header[2]).toBeCloseTo(foot[2], 3);
+        expect(header[1] - foot[1]).toBeCloseTo(13.5, 3);
+      }
     }
   });
 
@@ -995,22 +987,59 @@ describe("camper windshield ridge (#1069)", () => {
       for (const height of [0, 0.5, 1]) {
         const edge = point(pane, sx > 0 ? 1 : 0, height, 0.5);
         const wrap = point(corner, sx > 0 ? 0 : 1, height, 0.5);
-        // Compare the seam at the same world height after the pane's world yaw.
-        const wrapZ =
-          wrap[2] + (edge[1] - wrap[1]) * Math.tan((8 * Math.PI) / 180);
         expect(Math.abs(edge[0] - wrap[0])).toBeLessThan(0.5);
         expect(Math.abs(edge[1] - wrap[1])).toBeLessThan(0.04);
-        expect(Math.abs(edge[2] - wrapZ)).toBeLessThan(0.2);
+        expect(Math.abs(edge[2] - wrap[2])).toBeLessThan(0.2);
         const rubber = point(strip, sx > 0 ? 1 : 0, height, 0.5);
         expect(
           Math.hypot(edge[0] - rubber[0], edge[2] - rubber[2]),
         ).toBeLessThan(0.2);
       }
-      const a = untilt(point(corner, 0, 0, 0.5));
-      const b = untilt(point(corner, 1, 0, 0.5));
+      const a = point(corner, 0, 0, 0.5);
+      const b = point(corner, 1, 0, 0.5);
       expect(
         Math.abs((Math.atan2(b[2] - a[2], b[0] - a[0]) * 180) / Math.PI),
       ).toBeCloseTo(45, 2);
+    }
+  });
+
+  it("keeps each wiper ahead of its pane and clear of the side strips", () => {
+    const wipers = members.filter(
+      (cube) => cube.size[1] === 0.6 && cube.size[2] === 0.6,
+    );
+    expect(wipers).toHaveLength(2);
+    for (const pane of panes) {
+      const center = point(pane, 0.5, 0.5, 0.5);
+      const wiper = defined(
+        wipers.find(
+          (cube) =>
+            Math.sign(point(cube, 0.5, 0.5, 0.5)[0]) === Math.sign(center[0]),
+        ),
+        "windshield wiper",
+      );
+      const start = point(pane, 0, 0, 0.5);
+      const finish = point(pane, 1, 0, 0.5);
+      const length = Math.hypot(finish[0] - start[0], finish[2] - start[2]);
+      const dx = (finish[0] - start[0]) / length;
+      const dz = (finish[2] - start[2]) / length;
+      const distances: number[] = [];
+      for (const u of [0, 1]) {
+        for (const v of [0, 1]) {
+          for (const w of [0, 1]) {
+            const [x, , z] = point(wiper, u, v, w);
+            // Project onto the pane's width and normal after both wiper rotations.
+            const along = (x - start[0]) * dx + (z - start[2]) * dz;
+            expect(along).toBeGreaterThan(0.6);
+            expect(along).toBeLessThan(length - 0.6);
+            distances.push(
+              Math.abs((x - center[0]) * -dz + (z - center[2]) * dx),
+            );
+          }
+        }
+      }
+      // Glass half-thickness is 0.1 px: the nearest wiper face clears it by 0.1 px.
+      expect(Math.min(...distances)).toBeCloseTo(0.2, 2);
+      expect(Math.max(...distances)).toBeCloseTo(0.8, 2);
     }
   });
 
@@ -1076,7 +1105,7 @@ describe("camper windshield ridge (#1069)", () => {
         ),
       ),
     );
-    expect(minimumY - end(pad, 1)).toBeCloseTo(0.958, 3);
+    expect(minimumY - end(pad, 1)).toBeCloseTo(1, 3);
     const minimumGlassY = Math.min(
       ...[...panes, ...corners].flatMap((cube) =>
         [0, 1].flatMap((u) =>
@@ -1084,7 +1113,7 @@ describe("camper windshield ridge (#1069)", () => {
         ),
       ),
     );
-    expect(minimumGlassY - end(pad, 1)).toBeCloseTo(0.534, 3);
+    expect(minimumGlassY - end(pad, 1)).toBeCloseTo(1, 3);
     for (const cube of [...panes, ...corners]) {
       for (const u of [0, 0.25, 0.5, 0.75, 1]) {
         for (const v of [0, 1]) {

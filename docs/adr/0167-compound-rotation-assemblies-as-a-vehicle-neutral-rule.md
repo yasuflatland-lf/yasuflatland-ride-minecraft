@@ -29,3 +29,12 @@ Implementation verification found compound cubes outside the sports boat that pr
 All four vehicle generators enforce one rule without a global vehicle-specific exception. Registration records ownership and scope, while the final checker catches compound cubes that escape their assembly. Each new assembly needs matching generator and test membership lists, which must remain in the checked coordinate frame.
 
 Regeneration and the model freshness check must leave assets byte-identical. If the pending device check finds a different composition order, revisit the shared transform under a separate model change.
+
+## Camper windshield correction (#1069, 2026-10-31)
+
+The camper windshield now stands vertical: the former 8-degree x tilt is removed.
+Only the panes, outer rubber strips, and wipers are yawed about their outer foot;
+the 45-degree corner glass and chrome center post keep their original vertical
+orientation. The ridge is 4 px at both the foot and header. Each windshield
+assembly declares one compound-rotation cube, its wiper; the other members need
+at most one axis. This replaces the camper transform sequence described above.
