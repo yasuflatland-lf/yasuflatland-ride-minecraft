@@ -4,7 +4,11 @@ import type {
   BuildMessage,
 } from "../../../../application/build/ports/feedback";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
-import { asPlayerId, type PlayerId } from "../../../../domain/shared/ids";
+import {
+  asDimensionId,
+  asPlayerId,
+  type PlayerId,
+} from "../../../../domain/shared/ids";
 import {
   BUILD_NAMESPACE,
   TEST_EDIT_EVENT,
@@ -69,11 +73,17 @@ export function registerTestEdit(
         else if (command === "copy" && args.length === 0) chosen.copy();
         else if (
           command === "paste" &&
-          args.length === 1 &&
+          args.length === 4 &&
+          args.slice(1).every((value) => Number.isInteger(Number(value))) &&
           (args[0] === "0" || args[0] === "1")
-        )
+        ) {
           chosen.paste(args[0] === "1");
-        else if (command === "undo" && args.length === 0) chosen.undo();
+          chosen.pasteAt(
+            asDimensionId(player.dimension.id),
+            { x: Number(args[1]), y: Number(args[2]) - 1, z: Number(args[3]) },
+            "up",
+          );
+        } else if (command === "undo" && args.length === 0) chosen.undo();
         else return;
       } catch {
         // A malformed test command must not interrupt the server event loop.

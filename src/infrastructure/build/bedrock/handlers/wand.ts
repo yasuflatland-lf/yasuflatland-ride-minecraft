@@ -1,7 +1,10 @@
-import { system, world } from "@minecraft/server";
+import { Direction, system, world } from "@minecraft/server";
 import type { ClearSelection } from "../../../../application/build/clearSelection";
+import type { PasteAt } from "../../../../application/build/pasteAt";
 import type { SetPoint } from "../../../../application/build/setPoint";
 import type { TapAir } from "../../../../application/build/tapAir";
+import type { Face } from "../../../../domain/build/clipboard/clipboard";
+import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
 import { asDimensionId, asPlayerId } from "../../../../domain/shared/ids";
 import { heldTypeId } from "../../../shared/heldItem";
 import { SELECTION_WAND_TYPE } from "../../identifiers";
@@ -10,6 +13,8 @@ export function registerWand(
   setPoint: SetPoint,
   tapAir: TapAir,
   clear: ClearSelection,
+  repo: BuildSessionRepository,
+  pasteAt: PasteAt,
 ): void {
   world.beforeEvents.playerBreakBlock.subscribe((ev) => {
     if (heldTypeId(ev.player) === SELECTION_WAND_TYPE) ev.cancel = true;
@@ -24,8 +29,20 @@ export function registerWand(
       dimensionId: asDimensionId(ev.block.dimension.id),
       cell: ev.block.location,
     };
+    const face = ev.blockFace;
     system.run(() => {
-      if (player.isValid) setPoint.execute(command);
+      if (!player.isValid) return;
+      if (repo.get(command.playerId)?.flow.kind === "pasteAim") {
+        const faces: Record<Direction, Face> = {
+          [Direction.Up]: "up",
+          [Direction.Down]: "down",
+          [Direction.North]: "north",
+          [Direction.South]: "south",
+          [Direction.East]: "east",
+          [Direction.West]: "west",
+        };
+        pasteAt.execute({ ...command, block: command.cell, face: faces[face] });
+      } else setPoint.execute(command);
     });
   });
   world.afterEvents.itemUse.subscribe(({ source, itemStack }) => {

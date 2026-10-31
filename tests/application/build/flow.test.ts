@@ -15,7 +15,6 @@ import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
   cellKey,
-  FakeAnchor,
   FakeFeedback,
   FakeSessions,
   FakeWorld,
@@ -32,13 +31,12 @@ function setup() {
   const repo = new FakeSessions();
   const world = new FakeWorld();
   const feedback = new FakeFeedback();
-  const anchor = new FakeAnchor();
   const jobs = new EditJobs(repo, world, feedback);
   const session = repo.getOrCreate(playerId);
   const point = new SetPoint(repo, world, feedback);
   const air = new TapAir(repo, feedback);
   const confirm = new ConfirmShape(repo, feedback, jobs);
-  const copy = new CopySelection(repo, anchor, world, feedback);
+  const copy = new CopySelection(repo, world, feedback);
   const endpoint = () =>
     session.setFlow(
       tapAir(tapBlock({ kind: "idle" }, overworld, from, stone), to),
@@ -47,7 +45,6 @@ function setup() {
     repo,
     world,
     feedback,
-    anchor,
     jobs,
     session,
     point,
@@ -208,7 +205,7 @@ it("CancelFlow cancels or returns to aiming without clearing the confirmed box, 
   expect(e.session.flow.kind).toBe("idle");
   expect(e.session.confirmedBox).toBe(box);
   e.endpoint();
-  const clip = clipboardOf(boxOf(from, to), from, () => stone);
+  const clip = clipboardOf(boxOf(from, to), () => stone);
   e.session.setClipboard(clip);
   new ClearSelection(e.repo, e.feedback).execute({ playerId });
   expect(e.session.flow.kind).toBe("idle");

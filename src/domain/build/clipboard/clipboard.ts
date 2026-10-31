@@ -1,4 +1,4 @@
-// A copied box, remembered relative to where the player stood.
+// Clipboard cells are relative to the minimum corner.
 import type { Cell } from "../../shared/cells";
 import type { BlockState } from "../blockState";
 import { type Box, boxOf, cellsOf } from "../box";
@@ -11,8 +11,6 @@ interface ClipboardCell {
 }
 
 export interface Clipboard {
-  /** box.min - feet at copy time. */
-  readonly offset: Cell;
   readonly size: Cell;
   readonly cells: readonly ClipboardCell[];
 }
@@ -20,7 +18,6 @@ export interface Clipboard {
 /** A cell that reads undefined or is kept is left out, so a paste leaves that target cell as it is. */
 export function clipboardOf(
   box: Box,
-  feet: Cell,
   read: (cell: Cell) => BlockState | undefined,
 ): Clipboard {
   const cells: ClipboardCell[] = [];
@@ -37,11 +34,6 @@ export function clipboardOf(
     });
   }
   return {
-    offset: {
-      x: box.min.x - feet.x,
-      y: box.min.y - feet.y,
-      z: box.min.z - feet.z,
-    },
     size: {
       x: box.max.x - box.min.x + 1,
       y: box.max.y - box.min.y + 1,
@@ -51,15 +43,28 @@ export function clipboardOf(
   };
 }
 
-export function pasteBox(clipboard: Clipboard, feet: Cell): Box {
-  const min = {
-    x: feet.x + clipboard.offset.x,
-    y: feet.y + clipboard.offset.y,
-    z: feet.z + clipboard.offset.z,
+export type Face = "up" | "down" | "north" | "south" | "east" | "west";
+
+export function anchorCell(block: Cell, face: Face): Cell {
+  const offsets: Record<Face, Cell> = {
+    up: { x: 0, y: 1, z: 0 },
+    down: { x: 0, y: -1, z: 0 },
+    north: { x: 0, y: 0, z: -1 },
+    south: { x: 0, y: 0, z: 1 },
+    east: { x: 1, y: 0, z: 0 },
+    west: { x: -1, y: 0, z: 0 },
   };
-  return boxOf(min, {
-    x: min.x + clipboard.size.x - 1,
-    y: min.y + clipboard.size.y - 1,
-    z: min.z + clipboard.size.z - 1,
+  const offset = offsets[face];
+  return {
+    x: block.x + offset.x,
+    y: block.y + offset.y,
+    z: block.z + offset.z,
+  };
+}
+export function pasteBox(clipboard: Clipboard, anchor: Cell): Box {
+  return boxOf(anchor, {
+    x: anchor.x + clipboard.size.x - 1,
+    y: anchor.y + clipboard.size.y - 1,
+    z: anchor.z + clipboard.size.z - 1,
   });
 }
