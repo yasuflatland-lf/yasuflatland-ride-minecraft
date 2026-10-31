@@ -33,12 +33,24 @@ export const TEST_EDIT_EVENT = buildId("test_edit");
 export const TEST_RESULT_EVENT = buildId("test_result");
 
 export const BUILD_FORM = {
-  title: "yasu_build.form.title",
+  shapeTitle: "yasu_build.form.shape_title",
+  roofTitle: "yasu_build.form.roof_title",
+  utilityTitle: "yasu_build.form.title",
+  height: "yasu_build.form.height",
+  place: "yasu_build.form.place",
+  frame: "yasu_build.form.frame",
+  faces: "yasu_build.form.faces",
+  walls: "yasu_build.form.walls",
+  gable: "yasu_build.form.gable",
+  hip: "yasu_build.form.hip",
+  hollow: "yasu_build.form.hollow",
+  cancel: "yasu_build.form.cancel",
+
   fill: "yasu_build.form.fill",
   copy: "yasu_build.form.copy",
   paste: "yasu_build.form.paste",
   undo: "yasu_build.form.undo",
-  clearSelection: "yasu_build.form.clear_selection",
+  clear: "yasu_build.form.clear_selection",
   skipAir: "yasu_build.form.skip_air",
   submit: "yasu_build.form.submit",
 } as const;
