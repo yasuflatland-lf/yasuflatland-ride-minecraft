@@ -314,7 +314,7 @@ it("cuts from the feet to the sky in car form on the ground while moving forward
     b = engineStep(b, out.impulse, { mu: 0.69 }).body;
     if (tick === 9)
       expect(out.cut).toEqual(
-        bladeColumns(ctx.location, d.yaw, S.blade, false),
+        bladeColumns(ctx.location, d.yaw, S.blade, { kind: "run" }),
       );
   }
 });
@@ -399,7 +399,7 @@ it("cuts on the hop tick, still on the ground, but not in the air after it", () 
     if (tick === 50) {
       expect(out.impulse.y).toBeGreaterThan(0);
       expect(out.cut).toEqual(
-        bladeColumns(ctx.location, d.yaw, S.blade, false),
+        bladeColumns(ctx.location, d.yaw, S.blade, { kind: "run" }),
       );
     }
     if (tick > 50) expect(out.cut ?? []).toEqual([]);
@@ -426,8 +426,12 @@ it("cuts only above blade.minSpeed while driving forward", () => {
 it("maps forms to the cut reach", () => {
   for (const f of FORMS)
     for (const ground of [true, false])
-      expect(cutReach(f, ground)).toBe(
-        f === "car" ? (ground ? "sky" : undefined) : "tunnel",
+      expect(cutReach(f, ground)).toEqual(
+        f === "car"
+          ? ground
+            ? { kind: "run" }
+            : undefined
+          : { kind: "fixed", grounded: ground },
       );
 });
 function driveSubmarine(
@@ -457,7 +461,10 @@ it("tunnels through rock under water from the pre-step location, without a shaft
   const { d, steps } = driveSubmarine(() => FORWARD, false);
   for (const { ctx, out } of steps.slice(5))
     expect(out.cut).toEqual(
-      bladeColumns(ctx.location, d.yaw, S.blade, true, false),
+      bladeColumns(ctx.location, d.yaw, S.blade, {
+        kind: "fixed",
+        grounded: false,
+      }),
     );
 });
 it("keeps the seabed floor row when the submarine rests on the bottom (ADR 0155)", () => {
@@ -813,7 +820,7 @@ it("starts cutting on the tick the lowering blade reaches the bottom (ADR 0138)"
     if (tick < 20 + S.bladeLiftTicks - 1) expect(out.cut).toBeUndefined();
     else
       expect(out.cut).toEqual(
-        bladeColumns(ctx.location, d.yaw, S.blade, false),
+        bladeColumns(ctx.location, d.yaw, S.blade, { kind: "run" }),
       );
   }
 });
@@ -993,7 +1000,7 @@ it("uses the current blade rule for cuts and ram width across toggles", () => {
             expect(out.cut).toBeUndefined();
           else
             expect(out.cut).toEqual(
-              bladeColumns(ctx.location, d.yaw, rule, false),
+              bladeColumns(ctx.location, d.yaw, rule, { kind: "run" }),
             );
           b = engineStep(b, out.impulse, { mu: 0.69 }).body;
         });

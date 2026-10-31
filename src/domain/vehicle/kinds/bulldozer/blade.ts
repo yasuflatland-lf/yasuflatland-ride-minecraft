@@ -3,6 +3,10 @@ import type { CutColumn } from "../../cut";
 import { rectCells } from "../../cutArea";
 import type { BladeRule } from "./spec";
 
+export type CutReach =
+  | { readonly kind: "run" }
+  | { readonly kind: "fixed"; readonly grounded: boolean };
+
 export interface ShaftBox {
   readonly halfExtent: number;
   readonly bodyHeight: number;
@@ -24,13 +28,13 @@ export function bladeColumns(
   location: Vec3,
   yaw: number,
   rule: BladeRule,
-  flying: boolean,
-  grounded = !flying,
+  reach: CutReach,
 ): CutColumn[] {
-  const bottom = feetRow(location.y, grounded);
-  const height = flying
-    ? Math.ceil(location.y + rule.bodyHeight) - bottom
-    : undefined;
+  const bottom = feetRow(location.y, reach.kind === "run" || reach.grounded);
+  const height =
+    reach.kind === "fixed"
+      ? Math.ceil(location.y + rule.bodyHeight) - bottom
+      : undefined;
   return rectCells(location, yaw, rule).map((cell) => ({
     ...cell,
     bottom,

@@ -14,7 +14,7 @@ import {
   transformingHorizontalStep,
 } from "../../motion/transformingDrive";
 import type { Pave } from "../../pave";
-import { bladeColumns, shaftColumns } from "./blade";
+import { bladeColumns, type CutReach, shaftColumns } from "./blade";
 import {
   type BULLDOZER_ENTITY,
   bladeCommand,
@@ -112,12 +112,9 @@ export function bulldozerHorizontalStep(h: HorizontalStepInput): MotionResult {
   };
 }
 
-export function cutReach(
-  form: Form,
-  onGround: boolean,
-): "sky" | "tunnel" | undefined {
-  if (form !== "car") return "tunnel";
-  return onGround ? "sky" : undefined;
+export function cutReach(form: Form, onGround: boolean): CutReach | undefined {
+  if (form !== "car") return { kind: "fixed", grounded: onGround };
+  return onGround ? { kind: "run" } : undefined;
 }
 
 export class BulldozerDrive extends TransformingDrive {
@@ -313,13 +310,7 @@ export class BulldozerDrive extends TransformingDrive {
       this.speed > rule.minSpeed &&
       reach !== undefined
     )
-      return bladeColumns(
-        ctx.location,
-        this.yaw,
-        rule,
-        reach === "tunnel",
-        ctx.onGround,
-      );
+      return bladeColumns(ctx.location, this.yaw, rule, reach);
     return [];
   }
 

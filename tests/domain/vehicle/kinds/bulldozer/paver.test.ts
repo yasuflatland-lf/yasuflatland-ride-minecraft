@@ -285,12 +285,9 @@ it("referenceRow and flightRow round like the blade", () => {
   expect(flightRow(70.3)).toBe(69);
   fc.assert(
     fc.property(fc.double({ min: -64, max: 319, noNaN: true }), (y) => {
-      const cols = bladeColumns(
-        { x: 0, y, z: 0 },
-        0,
-        BULLDOZER_SPEC.blade,
-        false,
-      );
+      const cols = bladeColumns({ x: 0, y, z: 0 }, 0, BULLDOZER_SPEC.blade, {
+        kind: "run",
+      });
       expect(referenceRow(y) + 1 + 0).toBe((cols[0]?.bottom ?? 0) + 0);
     }),
   );
