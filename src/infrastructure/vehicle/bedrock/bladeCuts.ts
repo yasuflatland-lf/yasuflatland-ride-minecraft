@@ -61,16 +61,14 @@ export class BladeCuts {
     const start = Math.max(bottom, dimension.heightRange.min);
     const first = dimension.getBlock({ x, y: start, z });
     if (!first) return;
-    const top =
+    const reach =
       height === undefined
-        ? Math.min(
-            Math.max(
-              nonAirTop(dimension, x, z, start, first),
-              bottom + (minHeight ?? 0) - 1,
-            ),
-            dimension.heightRange.max - 1,
+        ? Math.max(
+            nonAirTop(dimension, x, z, start, first),
+            bottom + (minHeight ?? 0) - 1,
           )
-        : Math.min(bottom + height - 1, dimension.heightRange.max - 1);
+        : bottom + height - 1;
+    const top = Math.min(reach, dimension.heightRange.max - 1);
     if (top < start) return;
     dimension.fillBlocks(
       new BlockVolume({ x, y: start, z }, { x, y: top, z }),
