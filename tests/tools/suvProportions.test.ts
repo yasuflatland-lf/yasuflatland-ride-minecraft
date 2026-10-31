@@ -247,6 +247,18 @@ describe("SUV proportions", () => {
     expect(
       Math.max(...points.map((p) => Math.abs(p[0]))) / 16,
     ).toBeLessThanOrEqual(SUV_SPEC.bodyHalfWidth);
+    expect(Math.max(...points.map((p) => -p[2])) / 16).toBeCloseTo(
+      2.67796875,
+      10,
+    );
+    expect(Math.max(...points.map((p) => Math.abs(p[0]))) / 16).toBeCloseTo(
+      1.4953125,
+      10,
+    );
+    expect(linear(baseline, "overall_height").pixels / 16).toBeCloseTo(
+      2.394847541651231,
+      10,
+    );
     // ADR 0170 retains the maximum 0.30-block roof allowance after scaling.
     const heightMargin = 0.3;
     expect(linear(baseline, "overall_height").pixels / 16).toBeLessThanOrEqual(
@@ -254,13 +266,13 @@ describe("SUV proportions", () => {
     );
     const lamps = cornersOf((name) => name === "headlights");
     const wheels = cornersOf((name) => name.startsWith("wheel_"));
-    // Bound main's existing decorative protrusions separately (ADR 0170).
+    // The enclosing probes include lamps and wheel hubs after scaling (ADR 0194).
     expect(Math.max(...lamps.map((p) => -p[2])) / 16).toBeLessThanOrEqual(
-      SUV_SPEC.bodyFront + 0.00125 + 1e-12,
+      SUV_SPEC.bodyFront,
     );
     expect(
       Math.max(...wheels.map((p) => Math.abs(p[0]))) / 16,
-    ).toBeLessThanOrEqual(SUV_SPEC.bodyHalfWidth + 0.025);
+    ).toBeLessThanOrEqual(SUV_SPEC.bodyHalfWidth);
     const all = cornersOf(() => true);
     expect(
       Math.max(...all.map((p) => Math.hypot(p[0], p[2]))) / 16,

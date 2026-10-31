@@ -427,7 +427,7 @@
       "minecraft:type_family": {
         "family": ["yasu_ride_vehicle", "inanimate"]
       },
-      "minecraft:collision_box": { "width": 2.34, "height": 2.08 },
+      "minecraft:collision_box": { "width": 2.61, "height": 2.32 },
       "minecraft:health": { "value": 20, "max": 20 },
       "minecraft:physics": {},
       "minecraft:pushable": {
@@ -453,10 +453,13 @@
         "family_types": ["player"],
         "interact_text": "action.interact.yasu_ride.drive",
         "seats": [
-          { "position": [-0.494, 0.52, -0.0446875], "lock_rider_rotation": 90 },
-          { "position": [0.494, 0.52, -0.0446875] },
-          { "position": [-0.494, 0.52, -1.04] },
-          { "position": [0.494, 0.52, -1.04] }
+          {
+            "position": [-0.551, 0.58, -0.04984375],
+            "lock_rider_rotation": 90
+          },
+          { "position": [0.551, 0.58, -0.04984375] },
+          { "position": [-0.551, 0.58, -1.16] },
+          { "position": [0.551, 0.58, -1.16] }
         ]
       }
     }

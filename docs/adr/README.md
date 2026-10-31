@@ -170,7 +170,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0167](0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md) | Compound-rotation assemblies as a vehicle-neutral rule | Proposed |
 | [0168](0168-a-dutch-oven-and-a-grill-for-the-fire-pit.md) | A Dutch oven and a grill for the fire pit | Proposed; superseded in part (rule 1: new table ovens go at the aimed point, not two fixed spots; rule 5: a missing host removes the oven with no drop; rule 8: an overlap and limit check replaces the occupied-spot refusal on a table; the table may now hold Gas Lanterns) by 0185 (Proposed); superseded in part (rule 2 and the isSimmering note: the host sets the initial state only; presses toggle it on every host) by [0191](0191-press-camp-gear-without-the-light-tool.md) (Proposed) |
 | [0169](0169-a-lantern-for-the-oil-lamp-and-a-noga-chair.md) | A Lantern for the Oil Lamp, no Lava Lamp, and a Noga Chair | Proposed; superseded in part by [0173](0173-remove-the-inside-lantern-and-add-the-gas-lantern.md) (Proposed) |
-| [0170](0170-measure-suv-side-view-proportions.md) | Measure SUV side-view proportions against a fixed wheel diameter | Proposed |
+| [0170](0170-measure-suv-side-view-proportions.md) | Measure SUV side-view proportions against a fixed wheel diameter | Proposed; size-anchor numbers superseded in part by [0194](0194-enlarge-the-suv-for-seated-head-clearance.md) (Proposed) |
 | [0171](0171-sports-boat-equipment-and-icebreaker-mode.md) | Sports Boat Equipment and icebreaker mode | Proposed; superseded in part by [0174](0174-show-only-the-icebreaker-switch-in-the-equipment-group.md) (Proposed) and [0175](0175-keep-the-icebreaker-cut-above-the-hull-floor.md) (Proposed), and group position by 0178 (Proposed) |
 | [0172](0172-smooth-sports-boat-headlight-lenses.md) | Smooth sports boat headlight lenses | Proposed |
 | [0173](0173-remove-the-inside-lantern-and-add-the-gas-lantern.md) | Remove the inside Lantern and add the Gas Lantern | Proposed; extended (a Gas Lantern may stand on a Camp Table and is removed with it) by 0185 (Proposed); superseded in part (rule 12: presses with any item or an empty hand switch the lantern; hits switch only with the light tool) by [0191](0191-press-camp-gear-without-the-light-tool.md) (Proposed) |
@@ -194,6 +194,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0191](0191-press-camp-gear-without-the-light-tool.md) | Press camp gear without the light tool | Proposed |
 | [0192](0192-suv-detailed-body.md) | Detail the SUV body, dashboard and lamps | Proposed |
 | [0193](0193-shared-texture-tooling.md) | Share texture tooling between generators | Proposed |
+| [0194](0194-enlarge-the-suv-for-seated-head-clearance.md) | Enlarge the SUV for seated head clearance | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 

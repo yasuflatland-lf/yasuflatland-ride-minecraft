@@ -571,7 +571,7 @@ export function flightDriverless(a: Arena): Promise<Outcome> {
 
 // Deep enough for a full car height of water. In the flat dev world
 // (gy = -60) a 3-deep pool puts its stone floor at -64, the bottom of the
-// world, so the scaled SUV (carHeight 2.08, ADR 0170) gets no spare block of
+// world, so the scaled SUV (carHeight 2.32, ADR 0194) gets no spare block of
 // water under it; a carHeight above 3 no longer fits and withPool throws
 // instead of filling below the world.
 const DIVE_DEPTH = Math.ceil(SUV_SPEC.carHeight);

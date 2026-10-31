@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { expect, it } from "vitest";
 import { SUV_PROFILE } from "../../src/domain/vehicle/kinds/suv/profile";
+import { SUV_SPEC } from "../../src/domain/vehicle/kinds/suv/spec";
 import { type Bone as GeometryBone, turnedCorners } from "../support/geometry";
 
 type Vec = [number, number, number];
@@ -179,4 +180,35 @@ it("keeps hover and submarine animation offsets aligned with their assemblies", 
       }
     }
   }
+});
+
+it("derives the seated-player size anchor and collision dimensions from one scale (ADR 0194)", () => {
+  const scale = constant("SIZE_SCALE");
+  expect(scale).toBe(1.45);
+  const entity = JSON.parse(
+    readFileSync("packs/yasu_ride_bp/entities/yasu_ride/suv.se.json", "utf8"),
+  )["minecraft:entity"].components;
+  const box = entity["minecraft:collision_box"];
+  expect(box.width).toBeCloseTo(1.8 * scale, 12);
+  expect(box.height).toBeCloseTo(1.6 * scale, 12);
+  expect(SUV_SPEC.carHeight).toBe(box.height);
+  expect(SUV_SPEC.hitboxFront).toBe(box.width / 2);
+  expect(SUV_SPEC.floatDraft).toBeCloseTo(box.height * 0.75, 12);
+  expect(SUV_SPEC.gearProbeOffset).toBeCloseTo(
+    (box.width / 2) * (0.8 / 0.9),
+    12,
+  );
+  for (const [index, { position }] of entity[
+    "minecraft:rideable"
+  ].seats.entries()) {
+    expect(Math.abs(position[0])).toBeCloseTo(0.38 * scale, 12);
+    expect(position[1]).toBeCloseTo(0.4 * scale, 12);
+    const seatZ = constant(index < 2 ? "FRONT_SEAT_Z" : "REAR_SEAT_Z");
+    expect(position[2]).toBeCloseTo(((seatZ + 5.2) * scale) / 16, 12);
+  }
+  const clearance = SUV_PROFILE.placement.clearance;
+  expect(clearance).toEqual({ halfX: 1, halfZ: 1, height: 3 });
+  const depth = Math.ceil(SUV_SPEC.carHeight);
+  expect(depth).toBe(3);
+  expect(-60 - depth - 1).toBeGreaterThanOrEqual(-64);
 });

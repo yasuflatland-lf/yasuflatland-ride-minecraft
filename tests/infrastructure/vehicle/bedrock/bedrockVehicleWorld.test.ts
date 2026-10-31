@@ -1384,7 +1384,7 @@ describe("BedrockVehicleWorld.isVehicleSpace (ADR 0122)", () => {
   const OVERWORLD = asDimensionId("overworld");
 
   // The car stands at (-1.25, 64.25, 2.75), in cell (-2, 64, 2). The SUV's footprint
-  // reaches 3.05 blocks at any heading, and its clearance three blocks up.
+  // reaches 3.40 blocks at any heading, and its clearance three blocks up.
   it.each<[Vec3, boolean]>([
     [{ x: -2, y: 64, z: 2 }, true],
     [{ x: -1, y: 66, z: 3 }, true],
@@ -1392,8 +1392,10 @@ describe("BedrockVehicleWorld.isVehicleSpace (ADR 0122)", () => {
     [{ x: 0, y: 64, z: 2 }, true],
     [{ x: -2, y: 64, z: 4 }, true],
     [{ x: -2, y: 64, z: 0 }, true],
-    [{ x: 2, y: 64, z: 2 }, false],
-    [{ x: -2, y: 64, z: 6 }, false],
+    [{ x: 2, y: 64, z: 2 }, true],
+    [{ x: 3, y: 64, z: 2 }, false],
+    [{ x: -2, y: 64, z: 6 }, true],
+    [{ x: -2, y: 64, z: 7 }, false],
     [{ x: -2, y: 67, z: 2 }, true],
     [{ x: -2, y: 68, z: 2 }, false],
     [{ x: -2, y: 63, z: 2 }, false],
