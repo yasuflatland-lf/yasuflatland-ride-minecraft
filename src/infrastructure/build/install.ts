@@ -8,12 +8,11 @@ import { SetCorner } from "../../application/build/setCorner";
 import { ShowOutline } from "../../application/build/showOutline";
 import { UndoEdit } from "../../application/build/undoEdit";
 import { UpdateBuildModes } from "../../application/build/updateBuildModes";
-import type { ChaseCameraWish } from "../../application/shared/ports/chaseCamera";
 import type { SpaceCheck } from "../../application/shared/ports/space";
 import type { PlayerId } from "../../domain/shared/ids";
 import { BedrockBlockWorld } from "./bedrock/bedrockBlockWorld";
+import { BedrockBuildAnchor } from "./bedrock/bedrockBuildAnchor";
 import { BedrockFeedback } from "./bedrock/bedrockFeedback";
-import { BedrockRiderGate } from "./bedrock/bedrockRiderGate";
 import { editActions } from "./bedrock/editActions";
 import { registerBuildTool } from "./bedrock/handlers/buildTool";
 import { registerEditTick } from "./bedrock/handlers/editTick";
@@ -26,34 +25,31 @@ import { registerTestMode } from "./bedrock/handlers/testMode";
 import { registerWand } from "./bedrock/handlers/wand";
 import { InMemorySessionRepository } from "./persistence/inMemorySessionRepository";
 
-export function installBuild(deps: { isProtected: SpaceCheck }): {
-  isInBuildMode: ChaseCameraWish;
-} {
+export function installBuild(deps: { isProtected: SpaceCheck }): void {
   const repo = new InMemorySessionRepository();
-  const gate = new BedrockRiderGate();
+  const anchor = new BedrockBuildAnchor();
   const recorded = recordMessages(new BedrockFeedback());
   const feedback = recorded.feedback;
   const blocks = new BedrockBlockWorld(deps);
   const modes = new UpdateBuildModes(repo);
   const jobs = new EditJobs(repo, blocks, feedback);
-  const clear = new ClearSelection(repo, gate, feedback);
+  const clear = new ClearSelection(repo, feedback);
   const cases = {
-    fill: new FillSelection(repo, gate, feedback, jobs),
-    replace: new ReplaceInSelection(repo, gate, blocks, feedback, jobs),
-    copy: new CopySelection(repo, gate, blocks, feedback),
-    paste: new PasteClipboard(repo, gate, blocks, feedback, jobs),
-    undo: new UndoEdit(repo, gate, feedback, jobs),
+    fill: new FillSelection(repo, feedback, jobs),
+    replace: new ReplaceInSelection(repo, blocks, feedback, jobs),
+    copy: new CopySelection(repo, anchor, blocks, feedback),
+    paste: new PasteClipboard(repo, anchor, blocks, feedback, jobs),
+    undo: new UndoEdit(repo, feedback, jobs),
     clear,
   };
   const actions = (id: PlayerId) => editActions(id, cases);
-  registerWand(new SetCorner(repo, gate, feedback), clear);
-  registerModeTick(modes, gate);
-  registerOutlineTick(new ShowOutline(repo, gate, feedback));
+  registerWand(new SetCorner(repo, feedback), clear);
+  registerModeTick(modes);
+  registerOutlineTick(new ShowOutline(repo, anchor, feedback));
   registerSessions(repo);
-  registerTestCorner(repo, gate, feedback, blocks);
+  registerTestCorner(repo, feedback, blocks);
   registerTestMode(modes);
-  registerBuildTool(gate, feedback, actions);
+  registerBuildTool(actions);
   registerEditTick(jobs);
   registerTestEdit(actions, repo, recorded);
-  return { isInBuildMode: (playerId) => modes.isInBuildMode(playerId) };
 }

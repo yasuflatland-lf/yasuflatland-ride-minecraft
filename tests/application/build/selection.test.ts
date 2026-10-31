@@ -10,8 +10,8 @@ import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
+  FakeAnchor,
   FakeFeedback,
-  FakeGate,
   FakeSessions,
   nether,
   overworld,
@@ -23,36 +23,23 @@ const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
 
 function setup() {
   const repo = new FakeSessions();
-  const gate = new FakeGate();
+  const anchor = new FakeAnchor();
   const feedback = new FakeFeedback();
-  return { repo, gate, feedback };
+  return { repo, anchor, feedback };
 }
 
 function enterBuildMode(modes: UpdateBuildModes) {
   for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++) {
-    modes.execute([{ playerId: alex, riding: true, holding: true }]);
+    modes.execute([{ playerId: alex, holding: true }]);
   }
 }
 
 describe("SetCorner", () => {
-  it("refuses outside a bulldozer and changes nothing", () => {
-    const { repo, gate, feedback } = setup();
-    gate.riding = false;
-    new SetCorner(repo, gate, feedback).execute({
-      playerId: alex,
-      corner: "pos1",
-      dimensionId: overworld,
-      cell: { x: 1, y: 2, z: 3 },
-    });
-    expect(feedback.messages).toEqual([{ message: "notInBulldozer" }]);
-    expect(repo.get(alex)).toBeUndefined();
-  });
-
   it("reports the inclusive volume once both corners are set in either order", () => {
     fc.assert(
       fc.property(cell, cell, fc.boolean(), (a, b, reverse) => {
-        const { repo, gate, feedback } = setup();
-        const set = new SetCorner(repo, gate, feedback);
+        const { repo, feedback } = setup();
+        const set = new SetCorner(repo, feedback);
         const first = reverse ? "pos2" : "pos1";
         const second = reverse ? "pos1" : "pos2";
         set.execute({
@@ -87,8 +74,8 @@ describe("SetCorner", () => {
   });
 
   it("starts a new selection for a corner in another dimension", () => {
-    const { repo, gate, feedback } = setup();
-    const set = new SetCorner(repo, gate, feedback);
+    const { repo, feedback } = setup();
+    const set = new SetCorner(repo, feedback);
     set.execute({
       playerId: alex,
       corner: "pos1",
@@ -110,42 +97,34 @@ describe("SetCorner", () => {
 });
 
 describe("ClearSelection", () => {
-  it("refuses outside a bulldozer and keeps the selection", () => {
-    const { repo, gate, feedback } = setup();
-    repo.getOrCreate(alex).setCorner("pos1", overworld, { x: 0, y: 0, z: 0 });
-    gate.riding = false;
-    new ClearSelection(repo, gate, feedback).execute({ playerId: alex });
-    expect(feedback.messages).toEqual([{ message: "notInBulldozer" }]);
-    expect(repo.get(alex)?.selection).toBeDefined();
-  });
-
   it("clears the selection", () => {
-    const { repo, gate, feedback } = setup();
+    const { repo, feedback } = setup();
     repo.getOrCreate(alex).setCorner("pos1", overworld, { x: 0, y: 0, z: 0 });
-    new ClearSelection(repo, gate, feedback).execute({ playerId: alex });
+    new ClearSelection(repo, feedback).execute({ playerId: alex });
     expect(feedback.messages).toEqual([{ message: "selectionCleared" }]);
     expect(repo.get(alex)?.selection).toBeUndefined();
   });
 });
 
 describe("UpdateBuildModes", () => {
-  it("turns on after the enter ticks and off at once on getting off", () => {
+  it("turns on after the enter ticks and off after the leave ticks", () => {
     const { repo } = setup();
     const modes = new UpdateBuildModes(repo);
     for (let i = 0; i < BUILD_SPEC.modeEnterTicks - 1; i++) {
-      modes.execute([{ playerId: alex, riding: true, holding: true }]);
+      modes.execute([{ playerId: alex, holding: true }]);
     }
     expect(modes.isInBuildMode(alex)).toBe(false);
-    modes.execute([{ playerId: alex, riding: true, holding: true }]);
+    modes.execute([{ playerId: alex, holding: true }]);
     expect(modes.isInBuildMode(alex)).toBe(true);
-    modes.execute([{ playerId: alex, riding: false, holding: true }]);
+    for (let i = 0; i < BUILD_SPEC.modeLeaveTicks; i++)
+      modes.execute([{ playerId: alex, holding: false }]);
     expect(modes.isInBuildMode(alex)).toBe(false);
   });
 
   it("creates a session only for a player who holds the tool", () => {
     const { repo } = setup();
     const modes = new UpdateBuildModes(repo);
-    modes.execute([{ playerId: alex, riding: true, holding: false }]);
+    modes.execute([{ playerId: alex, holding: false }]);
     expect(repo.get(alex)).toBeUndefined();
     expect(modes.isInBuildMode(asPlayerId("nobody"))).toBe(false);
   });
@@ -166,10 +145,10 @@ describe("ShowOutline", () => {
         corner,
         intervalTick,
         (at, dim, which, tick) => {
-          const { repo, gate, feedback } = setup();
+          const { repo, anchor, feedback } = setup();
           repo.getOrCreate(alex).setCorner(which, dim, at);
           enterBuildMode(new UpdateBuildModes(repo));
-          new ShowOutline(repo, gate, feedback).execute(tick);
+          new ShowOutline(repo, anchor, feedback).execute(tick);
           expect(feedback.corners).toEqual([
             { playerId: alex, dimensionId: dim, cell: at },
           ]);
@@ -182,12 +161,12 @@ describe("ShowOutline", () => {
   it("draws only the selection outline when both corners exist", () => {
     fc.assert(
       fc.property(cell, cell, dimension, intervalTick, (a, b, dim, tick) => {
-        const { repo, gate, feedback } = setup();
+        const { repo, anchor, feedback } = setup();
         const session = repo.getOrCreate(alex);
         session.setCorner("pos1", dim, a);
         session.setCorner("pos2", dim, b);
         enterBuildMode(new UpdateBuildModes(repo));
-        new ShowOutline(repo, gate, feedback).execute(tick);
+        new ShowOutline(repo, anchor, feedback).execute(tick);
         expect(feedback.outlines).toEqual([
           { dimensionId: dim, box: boxOf(a, b), style: "selection" },
         ]);
@@ -205,11 +184,11 @@ describe("ShowOutline", () => {
         fc.boolean(),
         intervalTick,
         (at, dim, which, active, tick) => {
-          const { repo, gate, feedback } = setup();
+          const { repo, anchor, feedback } = setup();
           const session = repo.getOrCreate(alex);
           if (active) enterBuildMode(new UpdateBuildModes(repo));
           else session.setCorner(which, dim, at);
-          new ShowOutline(repo, gate, feedback).execute(tick);
+          new ShowOutline(repo, anchor, feedback).execute(tick);
           expect(feedback.corners).toEqual([]);
           expect(feedback.outlines).toEqual([]);
         },
@@ -225,13 +204,13 @@ describe("ShowOutline", () => {
         corner,
         intervalTick,
         (at, dim, which, tick) => {
-          const { repo, gate, feedback } = setup();
+          const { repo, anchor, feedback } = setup();
           enterBuildMode(new UpdateBuildModes(repo));
-          const outline = new ShowOutline(repo, gate, feedback);
+          const outline = new ShowOutline(repo, anchor, feedback);
           outline.execute(tick);
           expect(feedback.corners).toEqual([]);
           expect(feedback.outlines).toEqual([]);
-          new SetCorner(repo, gate, feedback).execute({
+          new SetCorner(repo, feedback).execute({
             playerId: alex,
             corner: which,
             dimensionId: dim,
@@ -242,7 +221,7 @@ describe("ShowOutline", () => {
             { playerId: alex, dimensionId: dim, cell: at },
           ]);
           feedback.corners.length = 0;
-          new ClearSelection(repo, gate, feedback).execute({ playerId: alex });
+          new ClearSelection(repo, feedback).execute({ playerId: alex });
           outline.execute(tick);
           expect(feedback.corners).toEqual([]);
           expect(feedback.outlines).toEqual([]);
@@ -262,13 +241,13 @@ describe("ShowOutline", () => {
         intervalTick,
         fc.integer({ min: 1, max: BUILD_SPEC.outlineInterval - 1 }),
         (a, b, dim, which, both, tick, offset) => {
-          const { repo, gate, feedback } = setup();
+          const { repo, anchor, feedback } = setup();
           const session = repo.getOrCreate(alex);
           session.setCorner(which, dim, a);
           if (both)
             session.setCorner(which === "pos1" ? "pos2" : "pos1", dim, b);
           enterBuildMode(new UpdateBuildModes(repo));
-          new ShowOutline(repo, gate, feedback).execute(tick + offset);
+          new ShowOutline(repo, anchor, feedback).execute(tick + offset);
           expect(feedback.corners).toEqual([]);
           expect(feedback.outlines).toEqual([]);
         },
@@ -277,7 +256,7 @@ describe("ShowOutline", () => {
   });
 
   const prepare = () => {
-    const { repo, gate, feedback } = setup();
+    const { repo, anchor, feedback } = setup();
     const modes = new UpdateBuildModes(repo);
     const session = repo.getOrCreate(alex);
     session.setCorner("pos1", overworld, { x: 0, y: 0, z: 0 });
@@ -291,10 +270,10 @@ describe("ShowOutline", () => {
     );
     return {
       repo,
-      gate,
+      anchor,
       feedback,
       modes,
-      outline: new ShowOutline(repo, gate, feedback),
+      outline: new ShowOutline(repo, anchor, feedback),
     };
   };
 
@@ -307,9 +286,9 @@ describe("ShowOutline", () => {
   });
 
   it("draws the selection and a paste outline that follows the feet", () => {
-    const { gate, feedback, modes, outline } = prepare();
+    const { anchor, feedback, modes, outline } = prepare();
     enterBuildMode(modes);
-    gate.feet = { dimensionId: nether, cell: { x: 10, y: 20, z: 30 } };
+    anchor.feet = { dimensionId: nether, cell: { x: 10, y: 20, z: 30 } };
     outline.execute(BUILD_SPEC.outlineInterval);
     expect(feedback.outlines).toEqual([
       {

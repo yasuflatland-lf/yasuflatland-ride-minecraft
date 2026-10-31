@@ -8,8 +8,6 @@ export const BUILD_TOOL_TYPES: ReadonlySet<string> = new Set([
   SELECTION_WAND_TYPE,
   BUILD_TOOL_TYPE,
 ]);
-// Build cannot import the vehicle feature (ADR 0046, 0178).
-export const BULLDOZER_TYPE = "yasu_ride:bulldozer";
 // Copy of the vehicle protection tag; build cannot import that feature (ADR 0046, 0178).
 export const LAID_BLOCK_TAG = "yasu_ride:laid";
 
@@ -17,7 +15,6 @@ export const BUILD_MESSAGE: Readonly<Record<BuildMessage, string>> = {
   pos1Set: "yasu_build.message.pos1_set",
   pos2Set: "yasu_build.message.pos2_set",
   selectionCleared: "yasu_build.message.selection_cleared",
-  notInBulldozer: "yasu_build.message.not_in_bulldozer",
   noSelection: "yasu_build.message.no_selection",
   tooLarge: "yasu_build.message.too_large",
   busy: "yasu_build.message.busy",

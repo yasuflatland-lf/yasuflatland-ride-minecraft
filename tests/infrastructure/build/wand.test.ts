@@ -41,18 +41,14 @@ it("sets the first corner immediately, preserves the block, and defers the secon
       (x, y, z, holding) => {
         engine.scheduled.length = 0;
         const repo = new InMemorySessionRepository();
-        const gate = {
-          ridesBulldozer: () => true,
-          bulldozerFeet: () => undefined,
-        };
         const feedback: BuildFeedback = {
           showMessage: vi.fn(),
           drawCorner: vi.fn(),
           drawOutline: vi.fn(),
         };
         registerWand(
-          new SetCorner(repo, gate, feedback),
-          new ClearSelection(repo, gate, feedback),
+          new SetCorner(repo, feedback),
+          new ClearSelection(repo, feedback),
         );
         const player = {
           id: "p",

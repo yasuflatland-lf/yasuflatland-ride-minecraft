@@ -27,7 +27,6 @@ const recordAt = (x: number): EditRecord => ({
   changes: [{ cell: { x, y: 0, z: 0 }, before: AIR, after: stone }],
 });
 const recordArb = fc.integer({ min: 1, max: 50 }).map(recordAt);
-const inputArb = fc.record({ riding: fc.boolean(), holding: fc.boolean() });
 const run = (inputs: ModeInput[], from = MODE_OFF) =>
   inputs.reduce<BuildMode>(stepMode, from);
 
@@ -70,29 +69,16 @@ describe("undo history", () => {
 });
 
 describe("build mode", () => {
-  it("does not turn on before modeEnterTicks of riding and holding", () => {
+  it("does not turn on before modeEnterTicks of holding", () => {
     fc.assert(
       fc.property(
         fc.integer({ min: 0, max: BUILD_SPEC.modeEnterTicks - 1 }),
         (n) => {
-          const held = { riding: true, holding: true };
+          const held = { holding: true };
           expect(run(Array(n).fill(held)).active).toBe(false);
           expect(run(Array(BUILD_SPEC.modeEnterTicks).fill(held)).active).toBe(
             true,
           );
-        },
-      ),
-    );
-  });
-
-  it("turns off at once when not riding", () => {
-    fc.assert(
-      fc.property(
-        fc.array(inputArb, { maxLength: 30 }),
-        fc.boolean(),
-        (inputs, holding) => {
-          const mode = run(inputs);
-          expect(stepMode(mode, { riding: false, holding })).toEqual(MODE_OFF);
         },
       ),
     );
@@ -105,15 +91,11 @@ describe("build mode", () => {
         (flick) => {
           const on = run(
             Array(BUILD_SPEC.modeEnterTicks).fill({
-              riding: true,
               holding: true,
             }),
           );
           const after = run(
-            [
-              ...Array(flick).fill({ riding: true, holding: false }),
-              { riding: true, holding: true },
-            ],
+            [...Array(flick).fill({ holding: false }), { holding: true }],
             on,
           );
           expect(after.active).toBe(true);
@@ -123,11 +105,9 @@ describe("build mode", () => {
   });
 
   it("turns off after modeLeaveTicks without holding", () => {
-    const on = run(
-      Array(BUILD_SPEC.modeEnterTicks).fill({ riding: true, holding: true }),
-    );
+    const on = run(Array(BUILD_SPEC.modeEnterTicks).fill({ holding: true }));
     const off = run(
-      Array(BUILD_SPEC.modeLeaveTicks).fill({ riding: true, holding: false }),
+      Array(BUILD_SPEC.modeLeaveTicks).fill({ holding: false }),
       on,
     );
     expect(off.active).toBe(false);
@@ -183,7 +163,7 @@ describe("BuildSession", () => {
 
   it("reports when build mode turns on", () => {
     const s = session();
-    const input = { riding: true, holding: true };
+    const input = { holding: true };
     const flips = Array.from({ length: BUILD_SPEC.modeEnterTicks }, () =>
       s.tickMode(input),
     );

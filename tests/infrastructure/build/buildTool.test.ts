@@ -36,15 +36,6 @@ beforeEach(() => {
 });
 
 function setup() {
-  const gate = {
-    ridesBulldozer: vi.fn(() => true),
-    bulldozerFeet: () => undefined,
-  };
-  const feedback = {
-    showMessage: vi.fn(),
-    drawCorner: vi.fn(),
-    drawOutline: vi.fn(),
-  };
   const actions = {
     fill: vi.fn(),
     replace: vi.fn(),
@@ -54,7 +45,7 @@ function setup() {
     clearSelection: vi.fn(),
   } satisfies BuildToolActions;
   const forPlayer = vi.fn(() => actions);
-  registerBuildTool(gate, feedback, forPlayer);
+  registerBuildTool(forPlayer);
   const use = (tick: number, id = "p", typeId = BUILD_TOOL_TYPE) => {
     engine.tick = tick;
     engine.use({
@@ -62,7 +53,7 @@ function setup() {
       itemStack: { typeId },
     });
   };
-  return { gate, feedback, actions, forPlayer, use };
+  return { actions, forPlayer, use };
 }
 
 it("opens once for a held touch, restarts its idle cooldown on every repeat, and lets another player open", async () => {
@@ -106,16 +97,13 @@ it("keeps a pending form exclusive even after the cooldown expires and releases 
   close?.();
 });
 
-it("ignores other items and refuses an unseated player before opening the form", () => {
-  const { use, gate, feedback, forPlayer } = setup();
+it("ignores other items and opens the form on foot", () => {
+  vi.mocked(showBuildToolForm).mockResolvedValue();
+  const { use, forPlayer } = setup();
   use(0, "p", "minecraft:stick");
-  expect(gate.ridesBulldozer).not.toHaveBeenCalled();
-  gate.ridesBulldozer.mockReturnValue(false);
-  use(1);
-  expect(feedback.showMessage).toHaveBeenCalledExactlyOnceWith(
-    asPlayerId("p"),
-    "notInBulldozer",
-  );
   expect(forPlayer).not.toHaveBeenCalled();
   expect(showBuildToolForm).not.toHaveBeenCalled();
+  use(1);
+  expect(forPlayer).toHaveBeenCalledExactlyOnceWith(asPlayerId("p"));
+  expect(showBuildToolForm).toHaveBeenCalledTimes(1);
 });
