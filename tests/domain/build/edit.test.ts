@@ -20,7 +20,12 @@ import {
   BUILD_KEPT_BLOCKS,
   isKeptState,
 } from "../../../src/domain/build/edit/guard";
-import { planPaste, planShape } from "../../../src/domain/build/edit/plan";
+import {
+  planPaste,
+  planRoof,
+  planShape,
+} from "../../../src/domain/build/edit/plan";
+import { roofCount } from "../../../src/domain/build/roof/roof";
 import { type Cell, cellKey } from "../../../src/domain/shared/cells";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import { PLACE_KEPT_BLOCKS } from "../../../src/domain/shared/keptBlocks";
@@ -99,8 +104,8 @@ describe("clipboard", () => {
 
   it("pastes one change per clipboard cell inside the paste box, and skipAir drops air", () => {
     fc.assert(
-      fc.property(smallBox, smallCell, smallCell, (box, feet, target) => {
-        const clip = clipboardOf(box, feet, read);
+      fc.property(smallBox, smallCell, (box, target) => {
+        const clip = clipboardOf(box, read);
         const all = [...planPaste(clip, target, false)];
         expect(all).toHaveLength(clip.cells.length);
         const into = pasteBox(clip, target);
@@ -114,12 +119,12 @@ describe("clipboard", () => {
     );
   });
 
-  it("copy then paste at the same feet reproduces every non-kept cell", () => {
+  it("copy then paste at the box minimum reproduces every non-kept cell", () => {
     fc.assert(
-      fc.property(smallBox, smallCell, (box, feet) => {
-        const clip = clipboardOf(box, feet, read);
+      fc.property(smallBox, (box) => {
+        const clip = clipboardOf(box, read);
         const plan = new Map(
-          [...planPaste(clip, feet, false)].map((c) => [
+          [...planPaste(clip, box.min, false)].map((c) => [
             cellKey(c.cell),
             c.after,
           ]),
@@ -136,11 +141,6 @@ describe("clipboard", () => {
   it("leaves out cells that read undefined", () => {
     const clip = clipboardOf(
       boxOf({ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }),
-      {
-        x: 0,
-        y: 0,
-        z: 0,
-      },
       () => undefined,
     );
     expect(clip.cells).toEqual([]);
@@ -170,4 +170,26 @@ describe("guard", () => {
     ).toBe(true);
     expect(isKeptState(blockStateOf("minecraft:stone"))).toBe(false);
   });
+});
+
+it("roof plans have exactly the roof count and selected material", () => {
+  fc.assert(
+    fc.property(
+      smallBox,
+      fc.integer({ min: 1, max: 12 }),
+      fc.constantFrom("gable" as const, "hip" as const),
+      fc.boolean(),
+      stateArb,
+      (box, height, kind, hollow, state) => {
+        const spec = {
+          base: boxOf(box.min, { ...box.max, y: box.min.y }),
+          height,
+          kind,
+        };
+        const plan = [...planRoof(spec, hollow, { state })];
+        expect(plan).toHaveLength(roofCount(spec, hollow));
+        expect(plan.every((change) => change.after === state)).toBe(true);
+      },
+    ),
+  );
 });

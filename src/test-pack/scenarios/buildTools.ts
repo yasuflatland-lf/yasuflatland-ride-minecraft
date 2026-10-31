@@ -242,27 +242,19 @@ export async function buildEdits(a: Arena): Promise<Outcome> {
         const copied = cells.map((b) => b.typeId);
         const target = cube(55, y, 50, 3);
         for (const block of target) block.setType("minecraft:gold_block");
-        const start = car.location;
-        const playerStart = player.location;
-        // Real driver input takes precedence over drive()'s injected test input.
-        car.teleport({ x: start.x + 5, y: start.y, z: start.z });
-        await wait(2);
-        check(
-          riddenEntity(player)?.id === car.id &&
-            Math.floor(player.location.x) === Math.floor(playerStart.x) + 5 &&
-            Math.floor(player.location.y) === Math.floor(playerStart.y) &&
-            Math.floor(player.location.z) === Math.floor(playerStart.z),
-          "teleport did not preserve the rider and shift player feet by five x cells",
+        const pasteTarget = a.at(55, y, 50);
+        await edit(
+          `paste 0 ${pasteTarget.x} ${pasteTarget.y} ${pasteTarget.z}`,
         );
-        await edit("paste 0");
         check(
           target.every((b, i) => b.typeId === copied[i]),
-          "paste did not preserve the five-cell offset or overwrite air",
+          "paste did not use the explicit target or overwrite air",
         );
-        // Copy again at the new feet so the second paste targets the original selection.
-        await edit("copy");
         for (const block of cells) block.setType("minecraft:gold_block");
-        await edit("paste 1");
+        const originalTarget = a.at(50, y, 50);
+        await edit(
+          `paste 1 ${originalTarget.x} ${originalTarget.y} ${originalTarget.z}`,
+        );
         check(
           cells.every(
             (b, i) =>
@@ -283,12 +275,16 @@ export async function buildEdits(a: Arena): Promise<Outcome> {
         );
         await edit("fill");
         await edit("copy");
-        const blocked = await edit("paste 0");
+        const blockedTarget = car.location;
+        const blocked = await edit(
+          `paste 0 ${Math.floor(blockedTarget.x)} ${Math.floor(blockedTarget.y)} ${Math.floor(blockedTarget.z)}`,
+        );
         check(
           blocked.message === "pasteBlocked",
           "paste over the bulldozer was not refused",
         );
 
+        await corner("clear", 0, a.gy, 0);
         const size = Math.ceil(Math.cbrt(BUILD_SPEC.blocksPerTick + 1));
         const large = cube(65, a.gy + 8, 55, size);
         for (const block of large) block.setType("minecraft:air");
@@ -319,7 +315,7 @@ export async function buildEdits(a: Arena): Promise<Outcome> {
         return {
           pass: true,
           detail:
-            "fill/undo permutations, chest contents, moved paste offset, skip air, protected paste, and tick budget verified",
+            "fill/undo permutations, chest contents, aimed paste anchor, skip air, protected paste, and tick budget verified",
         };
       },
     );

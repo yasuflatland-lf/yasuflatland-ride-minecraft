@@ -6,7 +6,6 @@ import { cornerMarkerPoints } from "../../../src/domain/build/cornerMarker";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockBlockWorld } from "../../../src/infrastructure/build/bedrock/bedrockBlockWorld";
-import { BedrockBuildAnchor } from "../../../src/infrastructure/build/bedrock/bedrockBuildAnchor";
 import { BedrockFeedback } from "../../../src/infrastructure/build/bedrock/bedrockFeedback";
 import {
   BUILD_MESSAGE,
@@ -32,40 +31,6 @@ const cell = fc.record({
   x: fc.integer({ min: -100, max: 100 }),
   y: fc.integer({ min: -60, max: 200 }),
   z: fc.integer({ min: -100, max: 100 }),
-});
-
-it("maps player feet with floor rounding on every axis", () => {
-  fc.assert(
-    fc.property(
-      fc.record({
-        x: fc.double({ min: -100, max: 100, noNaN: true }),
-        y: fc.double({ min: -60, max: 200, noNaN: true }),
-        z: fc.double({ min: -100, max: 100, noNaN: true }),
-      }),
-      fc.constantFrom("minecraft:overworld", "minecraft:nether"),
-      fc.boolean(),
-      (location, dimensionId, valid) => {
-        engine.getEntity.mockReturnValue({
-          typeId: "minecraft:player",
-          isValid: valid,
-          dimension: { id: dimensionId },
-          location,
-        });
-        expect(new BedrockBuildAnchor().feetOf(playerId)).toEqual(
-          valid
-            ? {
-                dimensionId,
-                cell: {
-                  x: Math.floor(location.x),
-                  y: Math.floor(location.y),
-                  z: Math.floor(location.z),
-                },
-              }
-            : undefined,
-        );
-      },
-    ),
-  );
 });
 
 it("preserves permutation states and refuses protected or laid cells", () => {

@@ -81,6 +81,7 @@ function setup(hotbar: string[] = []) {
     fill: vi.fn(),
     copy: vi.fn(),
     paste: vi.fn(),
+    pasteAt: vi.fn(),
     undo: vi.fn(),
     clearSelection: vi.fn(),
   };

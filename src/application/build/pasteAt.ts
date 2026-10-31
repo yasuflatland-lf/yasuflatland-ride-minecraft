@@ -1,35 +1,45 @@
 import { cellsOf } from "../../domain/build/box";
-import { pasteBox } from "../../domain/build/clipboard/clipboard";
+import {
+  anchorCell,
+  type Face,
+  pasteBox,
+} from "../../domain/build/clipboard/clipboard";
 import { planPaste } from "../../domain/build/edit/plan";
+import { cancel } from "../../domain/build/flow/flow";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
-import type { PlayerId } from "../../domain/shared/ids";
+import type { Cell } from "../../domain/shared/cells";
+import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { EditJobs } from "./editJobs";
-import type { BuildAnchor } from "./ports/anchor";
 import type { BuildBlockWorld } from "./ports/blocks";
 import type { BuildFeedback } from "./ports/feedback";
 
-export class PasteClipboard {
+export class PasteAt {
   constructor(
     private readonly repo: BuildSessionRepository,
-    private readonly anchor: BuildAnchor,
     private readonly world: BuildBlockWorld,
     private readonly feedback: BuildFeedback,
     private readonly jobs: EditJobs,
   ) {}
 
-  execute(cmd: { playerId: PlayerId; skipAir: boolean }): void {
+  execute(cmd: {
+    playerId: PlayerId;
+    dimensionId: DimensionId;
+    block: Cell;
+    face: Face;
+  }): void {
     const { playerId } = cmd;
-    const feet = this.anchor.feetOf(playerId);
-    if (!feet) return;
     const session = this.repo.getOrCreate(playerId);
+    const flow = session.flow;
+    if (flow.kind !== "pasteAim") return;
+    const anchor = anchorCell(cmd.block, cmd.face);
     const clipboard = session.clipboard;
     if (!clipboard) {
       this.feedback.showMessage(playerId, "noClipboard");
       return;
     }
-    const box = pasteBox(clipboard, feet.cell);
+    const box = pasteBox(clipboard, anchor);
     for (const cell of cellsOf(box)) {
-      if (!this.world.mayEdit(feet.dimensionId, cell)) {
+      if (!this.world.mayEdit(cmd.dimensionId, cell)) {
         this.feedback.showMessage(playerId, "pasteBlocked");
         return;
       }
@@ -41,9 +51,10 @@ export class PasteClipboard {
     }
     this.jobs.start(
       playerId,
-      feet.dimensionId,
-      planPaste(clipboard, feet.cell, cmd.skipAir),
+      cmd.dimensionId,
+      planPaste(clipboard, anchor, flow.skipAir),
       false,
     );
+    session.setFlow(cancel(flow));
   }
 }

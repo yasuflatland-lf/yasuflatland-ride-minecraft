@@ -1,17 +1,20 @@
+import { AimRoofHeight } from "../../application/build/aimRoofHeight";
+import { ChooseRoof } from "../../application/build/chooseRoof";
 import { ClearSelection } from "../../application/build/clearSelection";
+import { ConfirmRoof } from "../../application/build/confirmRoof";
 import { ConfirmShape } from "../../application/build/confirmShape";
 import { CopySelection } from "../../application/build/copySelection";
 import { EditJobs } from "../../application/build/editJobs";
-import { PasteClipboard } from "../../application/build/pasteClipboard";
+import { PasteAt } from "../../application/build/pasteAt";
 import { SetPoint } from "../../application/build/setPoint";
 import { ShowOutline } from "../../application/build/showOutline";
+import { StartPaste } from "../../application/build/startPaste";
 import { TapAir } from "../../application/build/tapAir";
 import { UndoEdit } from "../../application/build/undoEdit";
 import { UpdateBuildModes } from "../../application/build/updateBuildModes";
 import type { SpaceCheck } from "../../application/shared/ports/space";
 import type { PlayerId } from "../../domain/shared/ids";
 import { BedrockBlockWorld } from "./bedrock/bedrockBlockWorld";
-import { BedrockBuildAnchor } from "./bedrock/bedrockBuildAnchor";
 import { BedrockFeedback } from "./bedrock/bedrockFeedback";
 import { editActions } from "./bedrock/editActions";
 import { registerBuildTool } from "./bedrock/handlers/buildTool";
@@ -27,7 +30,6 @@ import { InMemorySessionRepository } from "./persistence/inMemorySessionReposito
 
 export function installBuild(deps: { isProtected: SpaceCheck }): void {
   const repo = new InMemorySessionRepository();
-  const anchor = new BedrockBuildAnchor();
   const recorded = recordMessages(new BedrockFeedback());
   const feedback = recorded.feedback;
   const blocks = new BedrockBlockWorld(deps);
@@ -36,8 +38,12 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
   const clear = new ClearSelection(repo, feedback);
   const cases = {
     fill: new ConfirmShape(repo, feedback, jobs),
-    copy: new CopySelection(repo, anchor, blocks, feedback),
-    paste: new PasteClipboard(repo, anchor, blocks, feedback, jobs),
+    copy: new CopySelection(repo, blocks, feedback),
+    paste: new StartPaste(repo),
+    pasteAt: new PasteAt(repo, blocks, feedback, jobs),
+    chooseRoof: new ChooseRoof(repo),
+    aimRoofHeight: new AimRoofHeight(repo),
+    confirmRoof: new ConfirmRoof(repo, feedback, jobs),
     undo: new UndoEdit(repo, feedback, jobs),
     clear,
   };
@@ -46,9 +52,11 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
     new SetPoint(repo, blocks, feedback),
     new TapAir(repo, feedback),
     clear,
+    repo,
+    cases.pasteAt,
   );
   registerModeTick(modes);
-  registerOutlineTick(new ShowOutline(repo, anchor, feedback));
+  registerOutlineTick(new ShowOutline(repo, feedback));
   registerSessions(repo);
   registerTestCorner(repo, feedback, blocks);
   registerTestMode(modes);
