@@ -5,8 +5,9 @@ import { describe, expect, it } from "vitest";
 const runShape = <T>(expression: string, input: unknown): T => {
   const script = [
     "import json, sys",
+    "from dataclasses import asdict",
     "sys.path.insert(0, 'tools')",
-    "from camper_front.shape import FrontShape, lean_dz, ridge_dz",
+    "from camper_front.shape import SILL_LOW, FrontShape, lean_dz, ridge_dz",
     "args = json.loads(sys.stdin.read())",
     `print(json.dumps(${expression}))`,
   ].join("\n");
@@ -19,12 +20,20 @@ const runShape = <T>(expression: string, input: unknown): T => {
 };
 
 const runs = { numRuns: 25 };
+const shape = runShape<{
+  hood_edge_y: number;
+  lean_deg: number;
+  grille_half_span: number;
+  grille_ridge_px: number;
+}>("asdict(FrontShape())", null);
 
 describe("camper front shape", () => {
-  it("leans forward at five degrees about the hood edge", () => {
+  it("leans forward at the configured angle about the shared sill height", () => {
+    expect(shape.hood_edge_y).toBe(runShape<number>("SILL_LOW", null));
     fc.assert(
       fc.property(fc.double({ min: 0, max: 64, noNaN: true }), (y) => {
-        const expected = -(y - 33) * Math.tan((5 * Math.PI) / 180);
+        const expected =
+          -(y - shape.hood_edge_y) * Math.tan((shape.lean_deg * Math.PI) / 180);
         for (const value of runShape<number[]>(
           "[lean_dz(args), FrontShape().lean_dz(args)]",
           y,
@@ -36,15 +45,20 @@ describe("camper front shape", () => {
     );
   });
 
-  it("keeps the glass and cap flat while giving the grille a two-pixel ridge", () => {
+  it("keeps the glass and cap flat while giving the grille its configured ridge", () => {
     fc.assert(
-      fc.property(fc.double({ min: -24, max: 24, noNaN: true }), (x) => {
+      fc.property(fc.double({ min: -1, max: 1, noNaN: true }), (fraction) => {
+        const x = fraction * shape.grille_half_span;
         expect(
           runShape(
-            "[ridge_dz(args, ridge, 24) for ridge in (FrontShape().windshield_ridge_px, FrontShape().cap_ridge_px, FrontShape().grille_ridge_px)]",
+            "[ridge_dz(args, ridge, FrontShape().grille_half_span) for ridge in (FrontShape().windshield_ridge_px, FrontShape().cap_ridge_px, FrontShape().grille_ridge_px)]",
             x,
           ),
-        ).toEqual([0, 0, -2 * (1 - Math.abs(x) / 24)]);
+        ).toEqual([
+          0,
+          0,
+          -shape.grille_ridge_px * (1 - Math.abs(x) / shape.grille_half_span),
+        ]);
       }),
       runs,
     );

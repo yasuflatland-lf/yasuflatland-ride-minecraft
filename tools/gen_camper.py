@@ -17,7 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tool_loader import load_tool
 from camper_front import cap, glass, grille, hood
 from camper_front.context import FrontContext
-from camper_front.shape import FrontShape
+from camper_front.shape import SILL_LOW, FrontShape
 
 camper_atlas = load_tool("camper_atlas")
 cube_tilt = load_tool("cube_tilt")
@@ -487,7 +487,6 @@ for z in (DZ0 + 1, DZ1 - 2):
     body.append(box(HW, 3.5, z, HW + 6, 8, z + 1, "black"))
 
 # --- Front ------------------------------------------------------------------
-SILL_LOW = 33  # the front face and corners stop here; the sloping sill caps them
 FW = HW - 3  # half width of the flat front face; the corners are cut at 45 degrees
 WS_Z = FRONT + 2.5  # the windshield sits behind a ledge over the grille
 UPPER = (18, 29.5)  # upper grille, across the face and around the corners

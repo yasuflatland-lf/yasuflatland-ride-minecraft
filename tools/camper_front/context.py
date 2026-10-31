@@ -43,8 +43,10 @@ class FrontContext:
                         cx + self.CORNER / 2, y1, cz + 0.5 - inset,
                         color, [0, -sx * 45, 0], [cx, 0, cz])
 
-    def folded_box(self, x0, y0, z0, x1, y1, z1, color, half_span=19.5, preserve_width=False):
+    def folded_box(self, x0, y0, z0, x1, y1, z1, color, half_span=None, preserve_width=False):
         """Fold a half-face; slats retain their size, backing and trim meet at the ridge."""
+        if half_span is None:
+            half_span = self.shape.grille_half_span
         xc = (x0 + x1) / 2
         dz = ridge_dz(xc, self.shape.grille_ridge_px, half_span)
         angle = -degrees(atan(self.shape.grille_ridge_px / half_span)) * (1 if xc > 0 else -1)

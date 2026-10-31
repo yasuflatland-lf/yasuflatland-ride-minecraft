@@ -31,7 +31,7 @@ def build(ctx: FrontContext) -> None:
         front.extend(ctx.grille_corners[sx])
         front.append(corner(sx, FRONT, BOTTOM, 15, "tan", inset=0.12))
         front.extend(ctx.glass_corners[sx])
-    for c in panel("z", FRONT, FRONT + 1, -FW, FW, LOWER_Y[1], SILL_LOW, [(-19.5, 19.5, *UPPER)], "white"):
+    for c in panel("z", FRONT, FRONT + 1, -FW, FW, LOWER_Y[1], SILL_LOW, [(-ctx.shape.grille_half_span, ctx.shape.grille_half_span, *UPPER)], "white"):
         x, y, z = c["origin"]
         w, h, d = c["size"]
         spans = ((x, 0), (0, x + w)) if x < 0 < x + w else ((x, x + w),)
