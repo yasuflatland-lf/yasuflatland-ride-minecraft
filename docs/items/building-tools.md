@@ -23,6 +23,8 @@ Tap or right-click a block to set point 1 and choose that block's material. A bl
 - A rectangle offers Fill and Frame only; a horizontal rectangle also offers Gable roof and Hip roof.
 - A box offers Fill, Faces only, and Walls only.
 
+On the iPad a short tap on air sends nothing to the add-on, so every air action (an end point in the air, confirming a roof height while looking at the sky, the utility menu) needs a long press of about one second. A tap on a block works as usual.
+
 Cancel returns to end-point selection. For a roof, aim to choose its height, tap to confirm, then choose Fill or Hollow. Roofs use full blocks of the selected material. Switching items after the grace delay cancels unfinished selection or paste aiming. A confirmed selection remains available for Copy until a new point 1 or Clear selection.
 
 ## Utility menu and paste
