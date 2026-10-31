@@ -1,8 +1,12 @@
+import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { CancelFlow } from "../../../src/application/build/cancelFlow";
 import { UpdateBuildModes } from "../../../src/application/build/updateBuildModes";
+import { blockStateOf } from "../../../src/domain/build/blockState";
+import { tapBlock } from "../../../src/domain/build/flow/flow";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
-import { FakeFeedback, FakeSessions } from "./fakes";
+import { FakeFeedback, FakeSessions, overworld } from "./fakes";
 
 const alex = asPlayerId("alex");
 function setup() {
@@ -33,4 +37,28 @@ describe("UpdateBuildModes", () => {
     expect(repo.get(alex)).toBeUndefined();
     expect(modes.isInBuildMode(asPlayerId("nobody"))).toBe(false);
   });
+});
+
+it("cancels only point1 when build mode leaves after its grace delay", () => {
+  const coordinate = fc.integer({ min: -1000, max: 1000 });
+  const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
+  fc.assert(
+    fc.property(cell, cell, fc.boolean(), (a, b, endpoint) => {
+      const { repo } = setup();
+      const modes = new UpdateBuildModes(repo, new CancelFlow(repo));
+      for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
+        modes.execute([{ playerId: alex, holding: true }]);
+      const session = repo.getOrCreate(alex);
+      const material = blockStateOf("minecraft:stone");
+      session.setFlow(tapBlock(session.flow, overworld, a, material));
+      if (endpoint)
+        session.setFlow(tapBlock(session.flow, overworld, b, material));
+      const flow = session.flow;
+      for (let i = 0; i < BUILD_SPEC.modeLeaveTicks - 1; i++)
+        modes.execute([{ playerId: alex, holding: false }]);
+      expect(session.flow).toBe(flow);
+      modes.execute([{ playerId: alex, holding: false }]);
+      expect(session.flow.kind).toBe(endpoint ? "endpoint" : "idle");
+    }),
+  );
 });
