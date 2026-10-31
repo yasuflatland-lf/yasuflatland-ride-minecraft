@@ -533,6 +533,17 @@ Setup: use `/give @s yasu_build:selection_wand` and `/give @s yasu_build:build_t
 | The roof wireframe follows the view in the height step. | unverified |
 | The paste outline follows the aimed block. | unverified |
 
+### Build Wand menus
+
+| ID | Action | Expected | PC | iPad |
+|---|---|---|---|---|
+| BWM1 | Confirm an end point for a line, vertical rectangle, horizontal rectangle, and box | The shape menu shows only applicable entries: Place; Fill and Frame; Fill, Frame, Gable roof and Hip roof; or Fill, Faces only and Walls only, respectively, plus Cancel | unverified | unverified |
+| BWM2 | Choose each shape action; reopen and use Cancel, Escape or Back | Each action builds the selected style; cancellation returns to end-point selection | unverified | unverified |
+| BWM3 | Choose either roof kind, confirm its height, then choose Fill or Hollow; repeat with Cancel, Escape and Back | Fill builds a solid roof, Hollow builds its shell, and cancellation returns to end-point selection | unverified | unverified |
+| BWM4 | Enable the height slider fallback and choose either roof kind | Slider ranges from 1 to the allowed roof height, starts at the previous height and applies it before opening Fill/Hollow; with the flag disabled no slider opens | unverified | unverified |
+| BWM5 | Open the Build Tool utility menu with and without a selection, clipboard and history; choose each available action | Only applicable Copy, Paste, Undo and Clear selection entries appear; Paste asks for Skip air, initially off, before starting paste aiming; dismissal does nothing | unverified | unverified |
+| BWM6 | Repeatedly request menus, including while the paste toggle or height slider is open | Only one form opens per player; another player can open independently; the form does not hide the preview more than the engine forces | unverified | unverified |
+
 ## Build Wand touch input (ADR 0198)
 
 Precondition: hold the wand in first person on the iPad. A block tap selects the block under the view ray; aim the view at the intended block before tapping. No bulldozer is required. Leave at least half a second between separate taps.
