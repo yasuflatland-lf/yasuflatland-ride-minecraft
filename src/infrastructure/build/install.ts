@@ -66,6 +66,7 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
     setPoint: new SetPoint(repo, blocks, feedback),
     tapAir: new TapAir(repo, feedback),
     pasteAt: cases.pasteAt,
+    aimRoofHeight: cases.aimRoofHeight,
     repo,
     menus,
     aim,
