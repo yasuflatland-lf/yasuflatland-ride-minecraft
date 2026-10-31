@@ -9,7 +9,7 @@ import { EditJobs } from "../../application/build/editJobs";
 import { PasteAt } from "../../application/build/pasteAt";
 import { SetPoint } from "../../application/build/setPoint";
 import { SetRoofHeightTo } from "../../application/build/setRoofHeightTo";
-import { ShowOutline } from "../../application/build/showOutline";
+import { ShowPreview } from "../../application/build/showPreview";
 import { StartPaste } from "../../application/build/startPaste";
 import { TapAir } from "../../application/build/tapAir";
 import { UndoEdit } from "../../application/build/undoEdit";
@@ -76,7 +76,7 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
     },
   });
   registerModeTick(modes);
-  registerOutlineTick(new ShowOutline(repo, feedback));
+  registerOutlineTick(new ShowPreview(repo, feedback, new BedrockAimReader()));
   registerSessions(repo, cancel, debounce);
   registerTestCorner(repo, feedback, blocks);
   registerTestMode(modes);

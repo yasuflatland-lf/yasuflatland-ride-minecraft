@@ -2,23 +2,13 @@ import type { Player } from "@minecraft/server";
 import type {
   BuildFeedback,
   BuildMessage,
-  OutlineStyle,
 } from "../../../application/build/ports/feedback";
-import { type Box, edgePoints } from "../../../domain/build/box";
-import { cornerMarkerPoints } from "../../../domain/build/cornerMarker";
+import type { PreviewSet } from "../../../domain/build/preview/preview";
 import { BUILD_SPEC } from "../../../domain/build/spec";
-import type { Cell } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { playerById } from "../../shared/players";
 import { BUILD_MESSAGE } from "../identifiers";
-
-const CORNER_PARTICLE = "minecraft:endrod";
-
-const OUTLINE_PARTICLE: Readonly<Record<OutlineStyle, string>> = {
-  selection: "minecraft:villager_happy",
-  paste: "minecraft:blue_flame_particle",
-};
 
 function messageArgs(message: BuildMessage, count?: number): string[] {
   if (message === "tooLarge")
@@ -33,10 +23,14 @@ function messageArgs(message: BuildMessage, count?: number): string[] {
 
 function viewerIn(
   playerId: PlayerId,
-  dimensionId: DimensionId,
+  dimensionId: DimensionId | undefined,
 ): Player | undefined {
   const player = playerById(playerId);
-  if (!player?.isValid || player.dimension.id !== dimensionId) return undefined;
+  if (
+    !player?.isValid ||
+    (dimensionId !== undefined && player.dimension.id !== dimensionId)
+  )
+    return undefined;
   return player;
 }
 
@@ -50,42 +44,40 @@ export class BedrockFeedback implements BuildFeedback {
     });
   }
 
-  drawOutline(
+  drawPreview(
     playerId: PlayerId,
-    dimensionId: DimensionId,
-    box: Box,
-    style: OutlineStyle,
+    dimensionId: DimensionId | undefined,
+    set: PreviewSet,
   ): void {
     const player = viewerIn(playerId, dimensionId);
     if (!player) return;
-    const points = edgePoints(box, BUILD_SPEC.outlineMaxPoints).map((p) => ({
-      x: p.x + 0.5,
-      y: p.y + 0.5,
-      z: p.z + 0.5,
-    }));
-    this.spawnAll(player, OUTLINE_PARTICLE[style], points);
-  }
-
-  drawCorner(playerId: PlayerId, dimensionId: DimensionId, cell: Cell): void {
-    const player = viewerIn(playerId, dimensionId);
-    if (!player) return;
-    this.spawnAll(player, CORNER_PARTICLE, cornerMarkerPoints(cell));
+    const styles: Record<keyof PreviewSet, string> = {
+      marker: "minecraft:endrod",
+      shape: "minecraft:villager_happy",
+      endCube: "minecraft:endrod",
+      roof: "minecraft:villager_happy",
+      paste: "minecraft:blue_flame_particle",
+    };
+    for (const key of Object.keys(styles) as (keyof PreviewSet)[]) {
+      if (!this.spawnAll(player, styles[key], set[key])) return;
+    }
   }
 
   private spawnAll(
     player: Player,
     particle: string,
     points: readonly Vec3[],
-  ): void {
+  ): boolean {
     for (const point of points) {
-      if (!player.isValid) return;
+      if (!player.isValid) return false;
       try {
         player.spawnParticle(particle, point);
       } catch {
         // The engine can throw for a point in an unloaded chunk. Skip this
         // player's outline for the tick so the other players still get theirs.
-        return;
+        return false;
       }
     }
+    return true;
   }
 }

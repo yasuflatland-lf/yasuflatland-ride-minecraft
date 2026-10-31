@@ -1,5 +1,4 @@
-import type { Box } from "../../../domain/build/box";
-import type { Cell } from "../../../domain/shared/cells";
+import type { PreviewSet } from "../../../domain/build/preview/preview";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 
 export type BuildMessage =
@@ -17,18 +16,12 @@ export type BuildMessage =
   | "editDone"
   | "undoDone";
 
-export type OutlineStyle = "selection" | "paste";
-
 export interface BuildFeedback {
   /** Action bar message; `count` is shown where the message has one (volume, blocks changed). */
   showMessage(playerId: PlayerId, message: BuildMessage, count?: number): void;
-  /** Particles along the edges of `box`, seen by that player only. */
-  drawOutline(
+  drawPreview(
     playerId: PlayerId,
-    dimensionId: DimensionId,
-    box: Box,
-    style: OutlineStyle,
+    dimensionId: DimensionId | undefined,
+    set: PreviewSet,
   ): void;
-  /** Particles around one block cell marking a lone selection corner, seen by that player only. */
-  drawCorner(playerId: PlayerId, dimensionId: DimensionId, cell: Cell): void;
 }

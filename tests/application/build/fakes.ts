@@ -2,11 +2,10 @@ import type { BuildBlockWorld } from "../../../src/application/build/ports/block
 import type {
   BuildFeedback,
   BuildMessage,
-  OutlineStyle,
 } from "../../../src/application/build/ports/feedback";
 import { AIR, type BlockState } from "../../../src/domain/build/blockState";
-import type { Box } from "../../../src/domain/build/box";
 import { isUsableMaterial } from "../../../src/domain/build/edit/guard";
+import type { PreviewSet } from "../../../src/domain/build/preview/preview";
 import { BuildSession } from "../../../src/domain/build/session";
 import type { BuildSessionRepository } from "../../../src/domain/build/sessionRepository";
 import type { Cell } from "../../../src/domain/shared/cells";
@@ -39,21 +38,20 @@ export class FakeSessions implements BuildSessionRepository {
 
 export class FakeFeedback implements BuildFeedback {
   messages: { message: BuildMessage; count?: number }[] = [];
-  corners: { playerId: PlayerId; dimensionId: DimensionId; cell: Cell }[] = [];
-  outlines: { dimensionId: DimensionId; box: Box; style: OutlineStyle }[] = [];
+  previews: {
+    playerId: PlayerId;
+    dimensionId: DimensionId | undefined;
+    set: PreviewSet;
+  }[] = [];
   showMessage(_player: PlayerId, message: BuildMessage, count?: number) {
     this.messages.push({ message, count });
   }
-  drawCorner(playerId: PlayerId, dimensionId: DimensionId, cell: Cell) {
-    this.corners.push({ playerId, dimensionId, cell });
-  }
-  drawOutline(
-    _player: PlayerId,
-    dimensionId: DimensionId,
-    box: Box,
-    style: OutlineStyle,
+  drawPreview(
+    playerId: PlayerId,
+    dimensionId: DimensionId | undefined,
+    set: PreviewSet,
   ) {
-    this.outlines.push({ dimensionId, box, style });
+    this.previews.push({ playerId, dimensionId, set });
   }
 }
 

@@ -69,10 +69,8 @@ export function registerTestCorner(
           count = volume;
           feedback.showMessage(id, name, volume);
         },
-        drawCorner: (id, dimension, cell) =>
-          feedback.drawCorner(id, dimension, cell),
-        drawOutline: (id, dim, box, style) =>
-          feedback.drawOutline(id, dim, box, style),
+        drawPreview: (id, dimension, set) =>
+          feedback.drawPreview(id, dimension, set),
       };
       if (input.corner === "clear")
         new ClearSelection(repo, observed).execute({ playerId });
