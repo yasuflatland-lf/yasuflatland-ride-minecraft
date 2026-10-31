@@ -5,11 +5,21 @@ import type { Cell } from "../../shared/cells";
 import type { BlockState } from "../blockState";
 import { type Box, cellsOf } from "../box";
 import { type Clipboard, pasteBox } from "../clipboard/clipboard";
+import { cellsOfShape, type Shape, type ShapeStyle } from "../shape/shape";
 import type { PlannedChange } from "./change";
 import { type Mask, matches, type Pattern } from "./pattern";
 
 export function* planFill(box: Box, pattern: Pattern): Iterable<PlannedChange> {
-  for (const cell of cellsOf(box)) yield { cell, after: pattern.state };
+  yield* planShape({ kind: "box", box }, "fill", pattern);
+}
+
+export function* planShape(
+  shape: Shape,
+  style: ShapeStyle,
+  pattern: Pattern,
+): Iterable<PlannedChange> {
+  for (const cell of cellsOfShape(shape, style))
+    yield { cell, after: pattern.state };
 }
 
 export function* planReplace(
