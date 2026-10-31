@@ -22,7 +22,11 @@ const OUTLINE_PARTICLE: Readonly<Record<OutlineStyle, string>> = {
 
 function messageArgs(message: BuildMessage, count?: number): string[] {
   if (message === "tooLarge")
-    return [String(BUILD_SPEC.maxVolume), String(BUILD_SPEC.maxCopyVolume)];
+    return [
+      String(count ?? 0),
+      String(BUILD_SPEC.maxVolume),
+      String(BUILD_SPEC.maxCopyVolume),
+    ];
   if (count === undefined) return [];
   return [String(count)];
 }

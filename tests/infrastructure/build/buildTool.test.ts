@@ -38,7 +38,6 @@ beforeEach(() => {
 function setup() {
   const actions = {
     fill: vi.fn(),
-    replace: vi.fn(),
     copy: vi.fn(),
     paste: vi.fn(),
     undo: vi.fn(),

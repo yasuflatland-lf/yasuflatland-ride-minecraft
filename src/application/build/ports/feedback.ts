@@ -3,8 +3,9 @@ import type { Cell } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 
 export type BuildMessage =
-  | "pos1Set"
-  | "pos2Set"
+  | "pointSet"
+  | "endSet"
+  | "materialRefused"
   | "selectionCleared"
   | "noSelection"
   | "tooLarge"

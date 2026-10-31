@@ -2,7 +2,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, cellsOf, contains } from "../../../src/domain/build/box";
-import { planFill, planShape } from "../../../src/domain/build/edit/plan";
+import { planShape } from "../../../src/domain/build/edit/plan";
 import {
   cellsOfShape,
   type Shape,
@@ -233,10 +233,6 @@ describe("shape planning", () => {
             true,
           );
         }
-        if (shape.kind === "box")
-          expect([...planFill(shape.box, pattern)]).toEqual([
-            ...planShape(shape, "fill", pattern),
-          ]);
       }),
     );
   });

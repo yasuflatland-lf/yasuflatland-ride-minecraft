@@ -15,14 +15,8 @@ import {
   translate,
   volume,
 } from "../../../src/domain/build/box";
-import {
-  loneCorner,
-  selectionBox,
-  withCorner,
-} from "../../../src/domain/build/selection/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { cellKey } from "../../../src/domain/shared/cells";
-import { asDimensionId } from "../../../src/domain/shared/ids";
 
 const coord = fc.integer({ min: -50, max: 50 });
 const cell = fc.record({ x: coord, y: coord, z: coord });
@@ -201,66 +195,5 @@ describe("BUILD_SPEC", () => {
 
   it("names air with no states", () => {
     expect(AIR).toEqual({ typeId: "minecraft:air", states: {} });
-  });
-});
-
-describe("Selection", () => {
-  const overworld = asDimensionId("minecraft:overworld");
-  const nether = asDimensionId("minecraft:nether");
-
-  it("returns either corner when it is the only corner", () => {
-    fc.assert(
-      fc.property(cell, fc.constantFrom("pos1", "pos2"), (c, corner) => {
-        expect(loneCorner(withCorner(undefined, corner, overworld, c))).toBe(c);
-      }),
-    );
-  });
-
-  it("has no lone corner with both corners, neither, or no selection", () => {
-    fc.assert(
-      fc.property(cell, cell, (a, b) => {
-        expect(
-          loneCorner({ dimensionId: overworld, pos1: a, pos2: b }),
-        ).toBeUndefined();
-        expect(
-          loneCorner({ dimensionId: overworld, pos1: a, pos2: a }),
-        ).toBeUndefined();
-        expect(loneCorner({ dimensionId: overworld })).toBeUndefined();
-        expect(loneCorner(undefined)).toBeUndefined();
-      }),
-    );
-  });
-
-  it("keeps the lone corner when the corner positions are swapped", () => {
-    fc.assert(
-      fc.property(cell, (c) => {
-        expect(loneCorner(withCorner(undefined, "pos1", overworld, c))).toBe(
-          loneCorner(withCorner(undefined, "pos2", overworld, c)),
-        );
-      }),
-    );
-  });
-
-  it("drops the other corner when a corner lands in a new dimension", () => {
-    fc.assert(
-      fc.property(cell, cell, (a, b) => {
-        const first = withCorner(undefined, "pos1", overworld, a);
-        const moved = withCorner(first, "pos2", nether, b);
-        expect(moved).toEqual({ dimensionId: nether, pos2: b });
-      }),
-    );
-  });
-
-  it("has a box exactly when both corners are set", () => {
-    fc.assert(
-      fc.property(cell, cell, (a, b) => {
-        const one = withCorner(undefined, "pos1", overworld, a);
-        expect(selectionBox(undefined)).toBeUndefined();
-        expect(selectionBox(one)).toBeUndefined();
-        expect(selectionBox(withCorner(one, "pos2", overworld, b))).toEqual(
-          boxOf(a, b),
-        );
-      }),
-    );
   });
 });

@@ -1,12 +1,12 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { ClearSelection } from "../../../src/application/build/clearSelection";
-import { SetCorner } from "../../../src/application/build/setCorner";
 import { ShowOutline } from "../../../src/application/build/showOutline";
 import { UpdateBuildModes } from "../../../src/application/build/updateBuildModes";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
+import { tapBlock } from "../../../src/domain/build/flow/flow";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
@@ -34,78 +34,6 @@ function enterBuildMode(modes: UpdateBuildModes) {
   }
 }
 
-describe("SetCorner", () => {
-  it("reports the inclusive volume once both corners are set in either order", () => {
-    fc.assert(
-      fc.property(cell, cell, fc.boolean(), (a, b, reverse) => {
-        const { repo, feedback } = setup();
-        const set = new SetCorner(repo, feedback);
-        const first = reverse ? "pos2" : "pos1";
-        const second = reverse ? "pos1" : "pos2";
-        set.execute({
-          playerId: alex,
-          corner: first,
-          dimensionId: overworld,
-          cell: a,
-        });
-        set.execute({
-          playerId: alex,
-          corner: second,
-          dimensionId: overworld,
-          cell: b,
-        });
-        expect(repo.get(alex)?.selection).toEqual({
-          dimensionId: overworld,
-          [first]: a,
-          [second]: b,
-        });
-        expect(feedback.messages).toEqual([
-          { message: `${first}Set`, count: undefined },
-          {
-            message: `${second}Set`,
-            count:
-              (Math.abs(a.x - b.x) + 1) *
-              (Math.abs(a.y - b.y) + 1) *
-              (Math.abs(a.z - b.z) + 1),
-          },
-        ]);
-      }),
-    );
-  });
-
-  it("starts a new selection for a corner in another dimension", () => {
-    const { repo, feedback } = setup();
-    const set = new SetCorner(repo, feedback);
-    set.execute({
-      playerId: alex,
-      corner: "pos1",
-      dimensionId: overworld,
-      cell: { x: 0, y: 0, z: 0 },
-    });
-    set.execute({
-      playerId: alex,
-      corner: "pos2",
-      dimensionId: nether,
-      cell: { x: 5, y: 5, z: 5 },
-    });
-    expect(feedback.messages[1]).toEqual({
-      message: "pos2Set",
-      count: undefined,
-    });
-    expect(repo.get(alex)?.selection?.pos1).toBeUndefined();
-  });
-});
-
-describe("ClearSelection", () => {
-  it("clears the selection", () => {
-    const { repo, feedback } = setup();
-    repo.getOrCreate(alex).setCorner("pos1", overworld, { x: 0, y: 0, z: 0 });
-    new ClearSelection(repo, feedback).execute({ playerId: alex });
-    expect(feedback.messages).toEqual([{ message: "selectionCleared" }]);
-    expect(repo.get(alex)?.selection).toBeUndefined();
-  });
-});
-
 describe("UpdateBuildModes", () => {
   it("turns on after the enter ticks and off after the leave ticks", () => {
     const { repo } = setup();
@@ -132,29 +60,31 @@ describe("UpdateBuildModes", () => {
 
 describe("ShowOutline", () => {
   const dimension = fc.constantFrom(overworld, nether);
-  const corner = fc.constantFrom("pos1" as const, "pos2" as const);
   const intervalTick = fc
     .nat({ max: 1000 })
     .map((n) => n * BUILD_SPEC.outlineInterval);
 
   it("draws only the lone corner for its owner in the selection dimension", () => {
     fc.assert(
-      fc.property(
-        cell,
-        dimension,
-        corner,
-        intervalTick,
-        (at, dim, which, tick) => {
-          const { repo, anchor, feedback } = setup();
-          repo.getOrCreate(alex).setCorner(which, dim, at);
-          enterBuildMode(new UpdateBuildModes(repo));
-          new ShowOutline(repo, anchor, feedback).execute(tick);
-          expect(feedback.corners).toEqual([
-            { playerId: alex, dimensionId: dim, cell: at },
-          ]);
-          expect(feedback.outlines).toEqual([]);
-        },
-      ),
+      fc.property(cell, dimension, intervalTick, (at, dim, tick) => {
+        const { repo, anchor, feedback } = setup();
+        repo
+          .getOrCreate(alex)
+          .setFlow(
+            tapBlock(
+              repo.getOrCreate(alex).flow,
+              dim,
+              at,
+              blockStateOf("minecraft:stone"),
+            ),
+          );
+        enterBuildMode(new UpdateBuildModes(repo));
+        new ShowOutline(repo, anchor, feedback).execute(tick);
+        expect(feedback.corners).toEqual([
+          { playerId: alex, dimensionId: dim, cell: at },
+        ]);
+        expect(feedback.outlines).toEqual([]);
+      }),
     );
   });
 
@@ -163,8 +93,12 @@ describe("ShowOutline", () => {
       fc.property(cell, cell, dimension, intervalTick, (a, b, dim, tick) => {
         const { repo, anchor, feedback } = setup();
         const session = repo.getOrCreate(alex);
-        session.setCorner("pos1", dim, a);
-        session.setCorner("pos2", dim, b);
+        session.setFlow(
+          tapBlock(session.flow, dim, a, blockStateOf("minecraft:stone")),
+        );
+        session.setFlow(
+          tapBlock(session.flow, dim, b, blockStateOf("minecraft:stone")),
+        );
         enterBuildMode(new UpdateBuildModes(repo));
         new ShowOutline(repo, anchor, feedback).execute(tick);
         expect(feedback.outlines).toEqual([
@@ -180,14 +114,16 @@ describe("ShowOutline", () => {
       fc.property(
         cell,
         dimension,
-        corner,
         fc.boolean(),
         intervalTick,
-        (at, dim, which, active, tick) => {
+        (at, dim, active, tick) => {
           const { repo, anchor, feedback } = setup();
           const session = repo.getOrCreate(alex);
           if (active) enterBuildMode(new UpdateBuildModes(repo));
-          else session.setCorner(which, dim, at);
+          else
+            session.setFlow(
+              tapBlock(session.flow, dim, at, blockStateOf("minecraft:stone")),
+            );
           new ShowOutline(repo, anchor, feedback).execute(tick);
           expect(feedback.corners).toEqual([]);
           expect(feedback.outlines).toEqual([]);
@@ -198,35 +134,27 @@ describe("ShowOutline", () => {
 
   it("draws nothing before setting a corner or after clearing it in build mode", () => {
     fc.assert(
-      fc.property(
-        cell,
-        dimension,
-        corner,
-        intervalTick,
-        (at, dim, which, tick) => {
-          const { repo, anchor, feedback } = setup();
-          enterBuildMode(new UpdateBuildModes(repo));
-          const outline = new ShowOutline(repo, anchor, feedback);
-          outline.execute(tick);
-          expect(feedback.corners).toEqual([]);
-          expect(feedback.outlines).toEqual([]);
-          new SetCorner(repo, feedback).execute({
-            playerId: alex,
-            corner: which,
-            dimensionId: dim,
-            cell: at,
-          });
-          outline.execute(tick);
-          expect(feedback.corners).toEqual([
-            { playerId: alex, dimensionId: dim, cell: at },
-          ]);
-          feedback.corners.length = 0;
-          new ClearSelection(repo, feedback).execute({ playerId: alex });
-          outline.execute(tick);
-          expect(feedback.corners).toEqual([]);
-          expect(feedback.outlines).toEqual([]);
-        },
-      ),
+      fc.property(cell, dimension, intervalTick, (at, dim, tick) => {
+        const { repo, anchor, feedback } = setup();
+        enterBuildMode(new UpdateBuildModes(repo));
+        const outline = new ShowOutline(repo, anchor, feedback);
+        outline.execute(tick);
+        expect(feedback.corners).toEqual([]);
+        expect(feedback.outlines).toEqual([]);
+        const session = repo.getOrCreate(alex);
+        session.setFlow(
+          tapBlock(session.flow, dim, at, blockStateOf("minecraft:stone")),
+        );
+        outline.execute(tick);
+        expect(feedback.corners).toEqual([
+          { playerId: alex, dimensionId: dim, cell: at },
+        ]);
+        feedback.corners.length = 0;
+        new ClearSelection(repo, feedback).execute({ playerId: alex });
+        outline.execute(tick);
+        expect(feedback.corners).toEqual([]);
+        expect(feedback.outlines).toEqual([]);
+      }),
     );
   });
 
@@ -236,16 +164,19 @@ describe("ShowOutline", () => {
         cell,
         cell,
         dimension,
-        corner,
         fc.boolean(),
         intervalTick,
         fc.integer({ min: 1, max: BUILD_SPEC.outlineInterval - 1 }),
-        (a, b, dim, which, both, tick, offset) => {
+        (a, b, dim, both, tick, offset) => {
           const { repo, anchor, feedback } = setup();
           const session = repo.getOrCreate(alex);
-          session.setCorner(which, dim, a);
+          session.setFlow(
+            tapBlock(session.flow, dim, a, blockStateOf("minecraft:stone")),
+          );
           if (both)
-            session.setCorner(which === "pos1" ? "pos2" : "pos1", dim, b);
+            session.setFlow(
+              tapBlock(session.flow, dim, b, blockStateOf("minecraft:stone")),
+            );
           enterBuildMode(new UpdateBuildModes(repo));
           new ShowOutline(repo, anchor, feedback).execute(tick + offset);
           expect(feedback.corners).toEqual([]);
@@ -259,8 +190,22 @@ describe("ShowOutline", () => {
     const { repo, anchor, feedback } = setup();
     const modes = new UpdateBuildModes(repo);
     const session = repo.getOrCreate(alex);
-    session.setCorner("pos1", overworld, { x: 0, y: 0, z: 0 });
-    session.setCorner("pos2", overworld, { x: 2, y: 2, z: 2 });
+    session.setFlow(
+      tapBlock(
+        session.flow,
+        overworld,
+        { x: 0, y: 0, z: 0 },
+        blockStateOf("minecraft:stone"),
+      ),
+    );
+    session.setFlow(
+      tapBlock(
+        session.flow,
+        overworld,
+        { x: 2, y: 2, z: 2 },
+        blockStateOf("minecraft:stone"),
+      ),
+    );
     session.setClipboard(
       clipboardOf(
         boxOf({ x: 0, y: 0, z: 0 }, { x: 1, y: 1, z: 1 }),
@@ -303,4 +248,17 @@ describe("ShowOutline", () => {
       },
     ]);
   });
+});
+
+it("does not draw the confirmed box after the flow returns to idle", () => {
+  const { repo, anchor, feedback } = setup();
+  const session = repo.getOrCreate(alex);
+  session.confirmBox(
+    overworld,
+    boxOf({ x: 0, y: 64, z: 0 }, { x: 2, y: 66, z: 2 }),
+  );
+  enterBuildMode(new UpdateBuildModes(repo));
+  new ShowOutline(repo, anchor, feedback).execute(BUILD_SPEC.outlineInterval);
+  expect(feedback.outlines).toEqual([]);
+  expect(feedback.corners).toEqual([]);
 });

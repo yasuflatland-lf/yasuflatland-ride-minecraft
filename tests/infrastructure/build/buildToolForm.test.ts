@@ -1,5 +1,4 @@
 import type { Player, RawMessage } from "@minecraft/server";
-import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
 import { showBuildToolForm } from "../../../src/infrastructure/build/bedrock/buildToolForm";
 import { BUILD_FORM } from "../../../src/infrastructure/build/identifiers";
@@ -80,7 +79,6 @@ function setup(hotbar: string[] = []) {
   } as unknown as Player;
   const actions = {
     fill: vi.fn(),
-    replace: vi.fn(),
     copy: vi.fn(),
     paste: vi.fn(),
     undo: vi.fn(),
@@ -89,85 +87,20 @@ function setup(hotbar: string[] = []) {
   return { player, actions, getItem };
 }
 
-it("offers distinct resolvable hotbar blocks in slot order followed by air", async () => {
-  await fc.assert(
-    fc.asyncProperty(
-      fc.array(
-        fc.constantFrom(
-          "minecraft:stone",
-          "minecraft:oak_log",
-          "minecraft:stick",
-          "minecraft:air",
-          "",
-        ),
-        { maxLength: 12 },
-      ),
-      async (items) => {
-        ui.forms.length = 0;
-        ui.answers.push(
-          { canceled: false, selection: 0 },
-          { canceled: false, formValues: [0] },
-        );
-        const { player, actions, getItem } = setup(items);
-        await showBuildToolForm(player, actions);
-        expect(ui.forms[0]?.buttons).toEqual(
-          [
-            BUILD_FORM.fill,
-            BUILD_FORM.replace,
-            BUILD_FORM.copy,
-            BUILD_FORM.paste,
-            BUILD_FORM.undo,
-            BUILD_FORM.clearSelection,
-          ].map((translate) => ({ translate })),
-        );
-        const expected = [
-          ...new Set(
-            items
-              .slice(0, 9)
-              .filter(
-                (type) =>
-                  type === "minecraft:stone" || type === "minecraft:oak_log",
-              ),
-          ),
-        ];
-        expect(ui.forms[1]?.dropdowns).toEqual([
-          {
-            label: { translate: BUILD_FORM.block },
-            items: [
-              ...expected.map((type) => ({ translate: `item.${type}` })),
-              { translate: BUILD_FORM.air },
-            ],
-          },
-        ]);
-        expect(getItem.mock.calls.map(([slot]) => slot)).toEqual([
-          0, 1, 2, 3, 4, 5, 6, 7, 8,
-        ]);
-        expect(actions.fill).toHaveBeenCalledExactlyOnceWith({
-          state: {
-            typeId: expected[0] ?? "minecraft:air",
-            states:
-              expected[0] === "minecraft:oak_log" ? { pillar_axis: "y" } : {},
-          },
-        });
-      },
-    ),
-  );
-});
-
-it("uses a type-only replace mask and the resolved destination states", async () => {
-  const { player, actions } = setup(["minecraft:stone", "minecraft:oak_log"]);
-  ui.answers.push(
-    { canceled: false, selection: 1 },
-    { canceled: false, formValues: [1, 0] },
-  );
+it("confirms fill immediately without asking for a block", async () => {
+  const { player, actions, getItem } = setup();
+  ui.answers.push({ canceled: false, selection: 0 });
   await showBuildToolForm(player, actions);
-  expect(ui.forms[1]?.dropdowns.map((d) => d.label)).toEqual([
-    { translate: BUILD_FORM.replace },
-    { translate: BUILD_FORM.with },
-  ]);
-  expect(actions.replace).toHaveBeenCalledExactlyOnceWith(
-    { typeId: "minecraft:oak_log" },
-    { state: { typeId: "minecraft:stone", states: {} } },
+  expect(actions.fill).toHaveBeenCalledExactlyOnceWith();
+  expect(getItem).not.toHaveBeenCalled();
+  expect(ui.forms[0]?.buttons).toEqual(
+    [
+      BUILD_FORM.fill,
+      BUILD_FORM.copy,
+      BUILD_FORM.paste,
+      BUILD_FORM.undo,
+      BUILD_FORM.clearSelection,
+    ].map((translate) => ({ translate })),
   );
 });
 
@@ -176,7 +109,7 @@ it.each([false, true])(
   async (skipAir) => {
     const { player, actions, getItem } = setup();
     ui.answers.push(
-      { canceled: false, selection: 3 },
+      { canceled: false, selection: 2 },
       { canceled: false, formValues: [skipAir] },
     );
     await showBuildToolForm(player, actions);
@@ -191,16 +124,16 @@ it.each([false, true])(
   },
 );
 
-it.each([2, 4, 5])(
+it.each([1, 3, 4])(
   "executes immediate menu action %s without a modal",
   async (selection) => {
     const { player, actions, getItem } = setup();
     ui.answers.push({ canceled: false, selection });
     await showBuildToolForm(player, actions);
     const chosen =
-      selection === 2
+      selection === 1
         ? actions.copy
-        : selection === 4
+        : selection === 3
           ? actions.undo
           : actions.clearSelection;
     expect(chosen).toHaveBeenCalledExactlyOnceWith();
@@ -209,7 +142,7 @@ it.each([2, 4, 5])(
   },
 );
 
-it.each([undefined, 0, 1, 3])(
+it.each([undefined, 2])(
   "leaves all actions untouched when a form is cancelled after choice %s",
   async (selection) => {
     const { player, actions } = setup(["minecraft:stone"]);

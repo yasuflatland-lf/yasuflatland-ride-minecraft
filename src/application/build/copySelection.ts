@@ -1,6 +1,7 @@
 // Use case: copy the selection into the clipboard in one tick (ADR 0178).
+
+import { volume } from "../../domain/build/box";
 import { clipboardOf } from "../../domain/build/clipboard/clipboard";
-import { isEditRefusal } from "../../domain/build/session";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import type { PlayerId } from "../../domain/shared/ids";
@@ -21,14 +22,14 @@ export class CopySelection {
     const feet = this.anchor.feetOf(playerId);
     if (!feet) return;
     const session = this.repo.getOrCreate(playerId);
-    const box = session.editableBox(BUILD_SPEC.maxCopyVolume);
-    if (isEditRefusal(box)) {
-      this.feedback.showMessage(playerId, box);
+    const confirmed = session.confirmedBox;
+    if (!confirmed) {
+      this.feedback.showMessage(playerId, "noSelection");
       return;
     }
-    const dimensionId = session.selection?.dimensionId;
-    if (!dimensionId) {
-      this.feedback.showMessage(playerId, "noSelection");
+    const { box, dimensionId } = confirmed;
+    if (volume(box) > BUILD_SPEC.maxCopyVolume) {
+      this.feedback.showMessage(playerId, "tooLarge", volume(box));
       return;
     }
     const clipboard = clipboardOf(box, feet.cell, (cell) =>
