@@ -3,6 +3,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, edgePoints } from "../../../src/domain/build/box";
 import { cornerMarkerPoints } from "../../../src/domain/build/cornerMarker";
+import type { PreviewSet } from "../../../src/domain/build/preview/preview";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockBlockWorld } from "../../../src/infrastructure/build/bedrock/bedrockBlockWorld";
@@ -32,6 +33,10 @@ const cell = fc.record({
   y: fc.integer({ min: -60, max: 200 }),
   z: fc.integer({ min: -100, max: 100 }),
 });
+
+function preview(part: Partial<PreviewSet>): PreviewSet {
+  return { marker: [], shape: [], endCube: [], roof: [], paste: [], ...part };
+}
 
 it("preserves permutation states and refuses protected or laid cells", () => {
   fc.assert(
@@ -139,7 +144,13 @@ it("sends translated counts and bounded player-only particles at block centers",
           ],
         });
         const box = boxOf(a, b);
-        feedback.drawOutline(playerId, dimension, box, style);
+        const centered = edgePoints(box, BUILD_SPEC.outlineMaxPoints).map(
+          (p) => ({ x: p.x + 0.5, y: p.y + 0.5, z: p.z + 0.5 }),
+        );
+        const set = preview(
+          style === "selection" ? { shape: centered } : { paste: centered },
+        );
+        feedback.drawPreview(playerId, dimension, set);
         const points = edgePoints(box, BUILD_SPEC.outlineMaxPoints);
         expect(spawnParticle.mock.calls).toEqual(
           points.map((p) => [
@@ -150,17 +161,12 @@ it("sends translated counts and bounded player-only particles at block centers",
           ]),
         );
         spawnParticle.mockClear();
-        feedback.drawOutline(
-          playerId,
-          asDimensionId("minecraft:nether"),
-          box,
-          style,
-        );
+        feedback.drawPreview(playerId, asDimensionId("minecraft:nether"), set);
         expect(spawnParticle).not.toHaveBeenCalled();
         player.isValid = false;
         setActionBar.mockClear();
         feedback.showMessage(playerId, "selectionCleared");
-        feedback.drawOutline(playerId, dimension, box, style);
+        feedback.drawPreview(playerId, dimension, set);
         expect(setActionBar).not.toHaveBeenCalled();
         expect(spawnParticle).not.toHaveBeenCalled();
       },
@@ -180,20 +186,36 @@ it("draws 20 endrod particles on the corner boundary for the owner only", () => 
       };
       engine.getEntity.mockReturnValue(player);
       const feedback = new BedrockFeedback();
-      feedback.drawCorner(playerId, dimension, at);
+      feedback.drawPreview(
+        playerId,
+        dimension,
+        preview({ marker: cornerMarkerPoints(at) }),
+      );
       expect(engine.getEntity).toHaveBeenLastCalledWith(playerId);
       expect(spawnParticle).toHaveBeenCalledTimes(20);
       expect(spawnParticle.mock.calls).toEqual(
         cornerMarkerPoints(at).map((point) => ["minecraft:endrod", point]),
       );
       spawnParticle.mockClear();
-      feedback.drawCorner(playerId, asDimensionId("minecraft:nether"), at);
+      feedback.drawPreview(
+        playerId,
+        asDimensionId("minecraft:nether"),
+        preview({ marker: cornerMarkerPoints(at) }),
+      );
       expect(spawnParticle).not.toHaveBeenCalled();
       player.isValid = false;
-      feedback.drawCorner(playerId, dimension, at);
+      feedback.drawPreview(
+        playerId,
+        dimension,
+        preview({ marker: cornerMarkerPoints(at) }),
+      );
       expect(spawnParticle).not.toHaveBeenCalled();
       engine.getEntity.mockReturnValue(undefined);
-      feedback.drawCorner(playerId, dimension, at);
+      feedback.drawPreview(
+        playerId,
+        dimension,
+        preview({ marker: cornerMarkerPoints(at) }),
+      );
       expect(spawnParticle).not.toHaveBeenCalled();
     }),
   );
@@ -217,7 +239,15 @@ it("stops a corner marker at the first rejected particle without throwing", () =
           spawnParticle,
         });
         expect(() =>
-          new BedrockFeedback().drawCorner(playerId, dimension, at),
+          new BedrockFeedback().drawPreview(
+            playerId,
+            dimension,
+            preview({
+              marker: cornerMarkerPoints(at),
+              shape: [{ x: 0, y: 0, z: 0 }],
+              endCube: cornerMarkerPoints(at),
+            }),
+          ),
         ).not.toThrow();
         expect(spawnParticle).toHaveBeenCalledTimes(successfulSpawns + 1);
       },
@@ -238,4 +268,25 @@ it("refuses air, liquids and data-holding blocks as material", () => {
     });
     expect(blocks.materialOf(dimension, { x: 0, y: 64, z: 0 })).toBe("refused");
   }
+});
+
+it("draws every preview style in the viewer dimension when no dimension is fixed", () => {
+  const spawnParticle = vi.fn();
+  engine.getEntity.mockReturnValue({
+    typeId: "minecraft:player",
+    isValid: true,
+    dimension: { id: "minecraft:nether" },
+    spawnParticle,
+  });
+  const point = { x: 1, y: 2, z: 3 };
+  new BedrockFeedback().drawPreview(
+    playerId,
+    undefined,
+    preview({ endCube: [point], roof: [point], paste: [point] }),
+  );
+  expect(spawnParticle.mock.calls).toEqual([
+    ["minecraft:endrod", point],
+    ["minecraft:villager_happy", point],
+    ["minecraft:blue_flame_particle", point],
+  ]);
 });

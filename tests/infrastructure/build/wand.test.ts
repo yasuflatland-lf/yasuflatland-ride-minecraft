@@ -59,8 +59,7 @@ it("preserves blocks and defers point taps out of before events", () => {
         const repo = new InMemorySessionRepository();
         const feedback: BuildFeedback = {
           showMessage: vi.fn(),
-          drawCorner: vi.fn(),
-          drawOutline: vi.fn(),
+          drawPreview: vi.fn(),
         };
         const blocks = new FakeWorld();
         blocks.put({ x, y, z }, blockStateOf("minecraft:stone"));

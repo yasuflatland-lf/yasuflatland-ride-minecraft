@@ -523,3 +523,12 @@ Setup: use `/give @s yasu_build:selection_wand` and `/give @s yasu_build:build_t
 | BT10 | In build mode, set only the first corner with one click of the wand (ADR 0183) | A small cube of end rod particles surrounds that block until the second corner is set | unverified | unverified |
 | BT11 | After BT10, set the second corner (ADR 0183) | The small cube disappears and the selection outline replaces it | unverified | unverified |
 | BT12 | Repeat BT10 at noon on a bright surface (ADR 0183) | The corner marker is still easy to see in daylight | unverified | unverified |
+
+### Build Wand live preview
+
+| Check | Status |
+|---|---|
+| The blinking marker around point 1 is visible on the iPad in daylight and at night. | unverified |
+| The shape and end-point cube outlines follow the view while aiming at air. | unverified |
+| The roof wireframe follows the view in the height step. | unverified |
+| The paste outline follows the aimed block. | unverified |
