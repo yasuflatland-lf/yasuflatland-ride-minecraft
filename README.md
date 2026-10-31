@@ -18,7 +18,7 @@
 
 A vehicle add-on for Minecraft Bedrock Edition 1.21.120 or newer. It is built as a Behavior Pack + Resource Pack driven by the stable Script API (`@minecraft/server` 2.x), with no experimental toggles required. The target setup is a Bedrock Dedicated Server on a home LAN or a Realm, with players joining from PC (keyboard) and mobile (touch).
 
-This add-on holds rides, and for now the bulldozer's build tools, which will move to their own add-on ([ADR 0178](docs/adr/0178-bulldozer-build-tools-in-a-separate-namespace.md)). House-building parts will ship as a separate add-on with their own namespace. The `yasu_ride` namespace never changes once Yasuflatland Ride is first released ([ADR 0047](docs/adr/0047-rename-to-yasuflatland-ride.md)).
+This add-on holds rides, and for now the build tools, which will move to their own add-on ([ADR 0178](docs/adr/0178-bulldozer-build-tools-in-a-separate-namespace.md)). House-building parts will ship as a separate add-on with their own namespace. The `yasu_ride` namespace never changes once Yasuflatland Ride is first released ([ADR 0047](docs/adr/0047-rename-to-yasuflatland-ride.md)).
 
 ## Vehicles
 
@@ -27,7 +27,7 @@ This add-on holds rides, and for now the bulldozer's build tools, which will mov
 | **SUV** | Drives on land, flies, and dives as a submarine. Every player gets one on their first join | [Controls and details](docs/vehicles/suv.md) |
 | **Sports boat** | Drives on water and lava, including Nether lava seas; seated riders are protected from fire. Shores stop it, and on land it can only reverse | [Controls and details](docs/vehicles/sportsboat.md) |
 | **Camper** | Drives, flies, and dives like the SUV, with a long body and a facing dinette | [Controls and details](docs/vehicles/camper.md) |
-| **Bulldozer** | Pivots, hops, flies, and dives; with its blade lowered it clears hills and flight tunnels, and raised it climbs steps; Wide Blade doubles the cut and ram width, Road Paver lays the block in the selected slot behind it, and its cab monitor shows UP/DOWN, NORM/WIDE, or OFF/ON for the held switch, and with the build tools it selects, fills, copies, and pastes blocks. Every player gets one on their first join | [Controls and details](docs/vehicles/bulldozer.md) |
+| **Bulldozer** | Pivots, hops, flies, and dives; with its blade lowered it clears hills and flight tunnels, and raised it climbs steps; Wide Blade doubles the cut and ram width, Road Paver lays the block in the selected slot behind it, and its cab monitor shows UP/DOWN, NORM/WIDE, or OFF/ON for the held switch, and the build tools select, fill, copy, and paste blocks on foot or while riding. Every player gets one on their first join | [Controls and details](docs/vehicles/bulldozer.md) |
 
 The SUV, sports boat, and camper each seat 4; the bulldozer seats 1. All four can be repainted with any of the 16 dyes, and light the way with a headlight switch item. Each can be placed from its item and broken back into it. Each player keeps at most 10 SUVs, 1 sports boat, 1 camper, and 1 bulldozer: placing one more removes that player's oldest of that kind.
 

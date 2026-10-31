@@ -116,7 +116,6 @@ yasu_build:building_tools=建築ツール
 yasu_build.message.pos1_set=始点を設定しました。
 yasu_build.message.pos2_set=終点を設定しました（%s ブロック）。
 yasu_build.message.selection_cleared=選択を解除しました。
-yasu_build.message.not_in_bulldozer=建築ツールはブルドーザーに乗って使ってください。
 yasu_build.message.no_selection=選択の両端を設定してください。
 yasu_build.message.too_large=選択範囲が大きすぎます（編集上限: %s ブロック、コピー上限: %s ブロック）。
 yasu_build.message.busy=編集中です。

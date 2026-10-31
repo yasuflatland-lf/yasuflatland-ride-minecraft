@@ -7,13 +7,13 @@ import {
 } from "../../domain/build/selection/selection";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
+import type { BuildAnchor } from "./ports/anchor";
 import type { BuildFeedback } from "./ports/feedback";
-import type { RiderGate } from "./ports/rider";
 
 export class ShowOutline {
   constructor(
     private readonly repo: BuildSessionRepository,
-    private readonly gate: RiderGate,
+    private readonly anchor: BuildAnchor,
     private readonly feedback: BuildFeedback,
   ) {}
 
@@ -37,7 +37,7 @@ export class ShowOutline {
           this.feedback.drawCorner(id, selection.dimensionId, corner);
         }
       }
-      const feet = this.gate.bulldozerFeet(id);
+      const feet = this.anchor.feetOf(id);
       if (session.clipboard && feet) {
         this.feedback.drawOutline(
           id,
