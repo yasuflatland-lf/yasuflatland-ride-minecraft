@@ -168,7 +168,8 @@ export const PACK_STEM_TAGS: Readonly<Record<string, Impact>> = {
   camp_table: ["camp"],
   camp_table_item: ["camp"],
   camper: ["vehicle:camper"],
-  camper_bed: ["vehicle:camper"],
+  // Build scenarios use this laid block to verify edit protection without a vehicle.
+  camper_bed: ["vehicle:camper", "build"],
   camper_bumper_x: ["vehicle:camper"],
   camper_bumper_z: ["vehicle:camper"],
   camper_bunk: ["vehicle:camper"],

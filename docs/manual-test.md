@@ -504,22 +504,22 @@ Setup: in a world that used MyCar 0.5.0, place two vehicles and switch the headl
 | U2 | Join with a player who had received the starter vehicle before | One "SUV" item is given again | | |
 | U3 | Look where the vehicle with its headlights off stood | No light blocks are left there | | |
 
-## Building tools (ADR 0178)
+## Building tools (ADR 0178, 0198)
 
-Setup: use `/give @s yasu_build:selection_wand` and `/give @s yasu_build:build_tool`, or craft them. Ride a bulldozer. Verification is pending on both platforms.
+Setup: use `/give @s yasu_build:selection_wand`, or craft it. Start on foot; the Build Tool item is covered by part 11/12. Verification is pending on both platforms.
 
 | # | Steps | Pass condition | PC | Mobile |
 |---|---|---|---|---|
 | BT1 | Open the creative Items tab and craft the five items | One "Building Tools" group, the last group, holds "Build Tool" (its icon), "Selection Wand", "Blade Up/Down", "Wide Blade", and "Road Paver", with no group nested inside or beside it for the switch. A stick and a copper ingot craft the wand; an iron ingot and a chain craft the tool; a lever and an iron ingot craft the blade switch; a lever and two iron ingots craft Wide Blade; a lever, an iron ingot, and a cobblestone craft Road Paver | unverified | unverified |
-| BT2 | Ride a bulldozer holding the wand: tap a solid block, then tap another, in Survival and in Creative | The first tap sets point 1 and its material, the second sets the end point and shows the block count, and the outline appears in both modes | unverified | unverified |
-| BT3 | Sneak, aim at the air (no block), and use the wand | The utility menu opens once without clearing the selection; see BW3 for the part 8/12 stub limitation | unverified | unverified |
-| BT4 | Copy a selection, choose Paste in the Build Tool form, then hold the wand and tap each face of a target block in turn | Choosing Paste starts aiming without editing; the wand tap places the clipboard minimum corner adjacent to the tapped face | unverified | unverified |
-| BT5 | Hold the wand or tool, then flick through the hotbar quickly | The camera does not switch on a flick; it moves to the third-person view after the tool has been held for a moment and back shortly after it is put away | unverified | unverified |
-| BT6 | Use the Build Tool and run Fill, Copy, Paste, Undo, and Clear selection in turn; after choosing Paste, tap a target block with the wand; repeat with Skip air | Each action shows its message; paste uses the tapped face as its anchor, and Skip air leaves existing blocks in place under air | unverified | unverified |
+| BT2 | Stand on foot holding the wand: tap a solid block, then tap another, in Survival and in Creative | The first tap sets point 1 and its material, the second sets the end point and shows the block count, and the outline appears in both modes | unverified | unverified |
+| BT3 | Sneak, aim at the air (no block), and use the wand | The utility menu opens once without clearing the selection | unverified | unverified |
+| BT4 | Copy a selection, choose Paste in the wand utility menu, then hold the wand and tap each face of a target block in turn | Choosing Paste starts aiming without editing; the wand tap places the clipboard minimum corner adjacent to the tapped face | unverified | unverified |
+| BT5 | Hold the wand, flick through the hotbar, then switch items for longer than the grace delay | A flick preserves aiming; a sustained switch cancels point 1; the camera stays unchanged | unverified | unverified |
+| BT6 | Use the wand shape and utility menus for Fill, Copy, Paste, Undo, and Clear selection in turn; after choosing Paste, tap a target block with the wand; repeat with Skip air | Each action shows its message; paste uses the tapped face as its anchor, and Skip air leaves existing blocks in place under air | unverified | unverified |
 | BT7 | Fill a selection that contains a chest with items | The chest and its items stay; the other blocks change | unverified | unverified |
 | BT7b | Copy a selection that contains a chest and a sign, then paste it elsewhere | The pasted copy has no chest or sign, and the target spot keeps what was there | unverified | unverified |
 | BT8 | Paste with the target overlapping the bulldozer | The paste is refused as a whole with the overlap message and nothing changes | unverified | unverified |
-| BT9 | Get off the bulldozer while in build mode | Build mode ends at once and the camera returns to normal | unverified | unverified |
+| BT9 | Hold the wand, board a bulldozer, then get off | Build mode remains available on foot with no build-specific camera change | unverified | unverified |
 | BT10 | In build mode, set only the first corner with one click of the wand (ADR 0183) | A small cube of end rod particles surrounds that block until the second corner is set | unverified | unverified |
 | BT11 | After BT10, set the second corner (ADR 0183) | The small cube disappears and the selection outline replaces it | unverified | unverified |
 | BT12 | Repeat BT10 at noon on a bright surface (ADR 0183) | The corner marker is still easy to see in daylight | unverified | unverified |
@@ -552,5 +552,25 @@ Precondition: hold the wand in first person on the iPad. A block tap selects the
 | BWM2 | Choose each shape action; reopen and use Cancel, Escape or Back | Each action builds the selected style; cancellation returns to end-point selection | unverified | unverified |
 | BWM3 | Choose either roof kind, confirm its height, then choose Fill or Hollow; repeat with Cancel, Escape and Back | Fill builds a solid roof, Hollow builds its shell, and cancellation returns to end-point selection | unverified | unverified |
 | BWM4 | Enable the height slider fallback and choose either roof kind | Slider ranges from 1 to the allowed roof height, starts at the previous height and applies it before opening Fill/Hollow; with the flag disabled no slider opens | unverified | unverified |
-| BWM5 | Open the Build Tool utility menu with and without a selection, clipboard and history; choose each available action | Only applicable Copy, Paste, Undo and Clear selection entries appear; Paste asks for Skip air, initially off, before starting paste aiming; dismissal does nothing | unverified | unverified |
+| BWM5 | Open the wand utility menu with and without a selection, clipboard and history; choose each available action | Only applicable Copy, Paste, Undo and Clear selection entries appear; Paste asks for Skip air, initially off, before starting paste aiming; dismissal does nothing | unverified | unverified |
 | BWM6 | Repeatedly request menus, including while the paste toggle or height slider is open | Only one form opens per player; another player can open independently; the form does not hide the preview more than the engine forces | unverified | unverified |
+
+### Build Wand in-game scenarios
+
+These scenarios require one connected player, run exclusively without vehicles, and restore changed blocks, inventory and player position. Hooks exercise the real tap use cases and menu dispatch; they do not simulate client input or forms.
+
+| Scenario | Coverage |
+|---|---|
+| `build_shapes` | Box fill/faces/walls (125/98/80), rectangle frame (16), line (5), absent menu entries and exact permutation undo |
+| `build_roofs` | Gable solid/hollow (45/42), hip solid/hollow (35/34), explicit height, roof menu availability and undo |
+| `build_flow_cancel` | Wand mode on foot, item-switch cancellation of point 1, preserved endpoint, shape/roof Cancel returning to aiming |
+| `build_refusals` | Over-limit air endpoint, refused chest material and laid-block protection |
+| `build_aimed_paste` | Copy, all six aimed faces, Skip air on/off, block states and exact destination undo |
+| `build_block_states` | Engine block-permutation round trip |
+
+Remaining manual checks are BW1-BW4 (real taps, debounce and break prevention), BWM1-BWM6 (forms and dismissal), BT5/BT9 (camera and hotbar feel), and the live preview rows above. Also check:
+
+| ID | Action | Expected | PC | iPad |
+|---|---|---|---|---|
+| BW5 | Choose a roof, aim up/down and nearly parallel to its apex line, then tap | Height preview follows aim, retains height for a parallel ray, respects the cap, and opens Fill/Hollow once | unverified | unverified |
+| BW6 | Choose Paste, aim at each face, switch items, then retry and tap | Preview minimum corner is adjacent to the face; switching items cancels it; the pasted blocks match the preview | unverified | unverified |

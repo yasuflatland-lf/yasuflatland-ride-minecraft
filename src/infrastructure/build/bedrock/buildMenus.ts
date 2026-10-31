@@ -1,14 +1,5 @@
 import type { Player } from "@minecraft/server";
 import { ActionFormData, ModalFormData } from "@minecraft/server-ui";
-import type { CancelFlow } from "../../../application/build/cancelFlow";
-import type { ChooseRoof } from "../../../application/build/chooseRoof";
-import type { ClearSelection } from "../../../application/build/clearSelection";
-import type { ConfirmRoof } from "../../../application/build/confirmRoof";
-import type { ConfirmShape } from "../../../application/build/confirmShape";
-import type { CopySelection } from "../../../application/build/copySelection";
-import type { SetRoofHeightTo } from "../../../application/build/setRoofHeightTo";
-import type { StartPaste } from "../../../application/build/startPaste";
-import type { UndoEdit } from "../../../application/build/undoEdit";
 import {
   type MenuEntry,
   roofMenu,
@@ -21,6 +12,8 @@ import { BUILD_SPEC } from "../../../domain/build/spec";
 import { asPlayerId, type PlayerId } from "../../../domain/shared/ids";
 import { BUILD_FORM } from "../identifiers";
 
+import { type MenuCases, MenuChoices } from "./menuChoices";
+
 export interface BuildMenus {
   showShapeMenu(player: Player): Promise<void>;
   showRoofMenu(player: Player): Promise<void>;
@@ -28,26 +21,18 @@ export interface BuildMenus {
   showHeightSlider(player: Player): Promise<void>;
 }
 
-interface MenuCases {
-  confirmShape: Pick<ConfirmShape, "execute">;
-  chooseRoof: Pick<ChooseRoof, "execute">;
-  confirmRoof: Pick<ConfirmRoof, "execute">;
-  cancel: Pick<CancelFlow, "backToAiming">;
-  copy: Pick<CopySelection, "execute">;
-  paste: Pick<StartPaste, "execute">;
-  undo: Pick<UndoEdit, "execute">;
-  clear: Pick<ClearSelection, "execute">;
-  setRoofHeight: Pick<SetRoofHeightTo, "execute">;
-}
-
 export class BedrockBuildMenus implements BuildMenus {
   private readonly open = new Set<PlayerId>();
+
+  private readonly choices: MenuChoices;
 
   constructor(
     private readonly repo: BuildSessionRepository,
     private readonly cases: MenuCases,
     private readonly heightSliderFallback: boolean = BUILD_SPEC.heightSliderFallback,
-  ) {}
+  ) {
+    this.choices = new MenuChoices(repo, cases);
+  }
 
   showShapeMenu(player: Player): Promise<void> {
     return this.exclusive(player, async () => {
@@ -60,25 +45,13 @@ export class BedrockBuildMenus implements BuildMenus {
         shapeMenu(session.flow),
       );
       if (!player.isValid) return;
-      switch (id) {
-        case "place":
-        case "fill":
-        case "frame":
-        case "faces":
-        case "walls":
-          this.cases.confirmShape.execute({
-            playerId,
-            style: id === "place" ? "fill" : id,
-          });
-          break;
-        case "gable":
-        case "hip":
-          this.cases.chooseRoof.execute({ playerId, kind: id });
-          if (this.heightSliderFallback) await this.heightSlider(player);
-          break;
-        case "cancel":
-          this.cases.cancel.backToAiming({ playerId });
-      }
+      const offered = this.choices.choose(playerId, "shape", id);
+      if (
+        offered &&
+        (id === "gable" || id === "hip") &&
+        this.heightSliderFallback
+      )
+        await this.heightSlider(player);
     });
   }
 
@@ -101,29 +74,22 @@ export class BedrockBuildMenus implements BuildMenus {
         utilityMenu(session),
       );
       if (!player.isValid) return;
-      switch (id) {
-        case "copy":
-        case "undo":
-        case "clear":
-          this.cases[id].execute({ playerId });
-          break;
-        case "paste": {
-          const answer = await new ModalFormData()
-            .title({ translate: BUILD_FORM.paste })
-            .toggle({ translate: BUILD_FORM.skipAir }, { defaultValue: false })
-            .submitButton({ translate: BUILD_FORM.submit })
-            .show(player);
-          if (
-            !player.isValid ||
-            answer.canceled ||
-            answer.cancelationReason !== undefined
-          )
-            return;
-          const skipAir = answer.formValues?.[0];
-          if (typeof skipAir === "boolean")
-            this.cases.paste.execute({ playerId, skipAir });
-        }
-      }
+      if (id === "paste") {
+        const answer = await new ModalFormData()
+          .title({ translate: BUILD_FORM.paste })
+          .toggle({ translate: BUILD_FORM.skipAir }, { defaultValue: false })
+          .submitButton({ translate: BUILD_FORM.submit })
+          .show(player);
+        if (
+          !player.isValid ||
+          answer.canceled ||
+          answer.cancelationReason !== undefined
+        )
+          return;
+        const skipAir = answer.formValues?.[0];
+        if (typeof skipAir === "boolean")
+          this.choices.choose(playerId, "utility", id, { skipAir });
+      } else this.choices.choose(playerId, "utility", id);
     });
   }
 
@@ -137,9 +103,7 @@ export class BedrockBuildMenus implements BuildMenus {
       roofMenu(session.flow),
     );
     if (!player.isValid) return;
-    if (id === "cancel") this.cases.cancel.backToAiming({ playerId });
-    else if (id === "fill" || id === "hollow")
-      this.cases.confirmRoof.execute({ playerId, hollow: id === "hollow" });
+    this.choices.choose(playerId, "roof", id);
   }
 
   private async heightSlider(player: Player): Promise<void> {

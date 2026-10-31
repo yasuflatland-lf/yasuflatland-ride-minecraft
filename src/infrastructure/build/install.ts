@@ -22,16 +22,16 @@ import { BedrockAimReader } from "./bedrock/bedrockAimReader";
 import { BedrockBlockWorld } from "./bedrock/bedrockBlockWorld";
 import { BedrockFeedback } from "./bedrock/bedrockFeedback";
 import { BedrockBuildMenus } from "./bedrock/buildMenus";
-import { editActions } from "./bedrock/editActions";
 import { registerBuildTool } from "./bedrock/handlers/buildTool";
 import { registerEditTick } from "./bedrock/handlers/editTick";
 import { registerModeTick } from "./bedrock/handlers/modeTick";
 import { registerOutlineTick } from "./bedrock/handlers/outlineTick";
 import { registerSessions } from "./bedrock/handlers/sessions";
-import { registerTestCorner } from "./bedrock/handlers/testCorner";
+import { registerTestTap } from "./bedrock/handlers/testCorner";
 import { recordMessages, registerTestEdit } from "./bedrock/handlers/testEdit";
 import { registerTestMode } from "./bedrock/handlers/testMode";
 import { registerWand } from "./bedrock/handlers/wand";
+import { MenuChoices } from "./bedrock/menuChoices";
 import { InMemorySessionRepository } from "./persistence/inMemorySessionRepository";
 
 export function installBuild(deps: { isProtected: SpaceCheck }): void {
@@ -56,13 +56,13 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
     undo: new UndoEdit(repo, feedback, jobs),
     clear,
   };
-  const actions = (id: PlayerId) => editActions(id, cases);
-  const menus = new BedrockBuildMenus(repo, {
+  const menuCases = {
     ...cases,
     confirmShape: cases.fill,
     cancel,
     setRoofHeight: new SetRoofHeightTo(repo),
-  });
+  };
+  const menus = new BedrockBuildMenus(repo, menuCases);
   registerWand({
     setPoint: new SetPoint(repo, blocks, feedback),
     tapAir: new TapAir(repo, feedback),
@@ -79,9 +79,16 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
   registerModeTick(modes);
   registerOutlineTick(new ShowPreview(repo, feedback, aim));
   registerSessions(repo, cancel, debounce);
-  registerTestCorner(repo, feedback, blocks);
-  registerTestMode(modes);
+  registerTestTap(repo, feedback, blocks);
+  registerTestMode(modes, repo);
   registerBuildTool(menus);
   registerEditTick(jobs);
-  registerTestEdit(actions, repo, recorded);
+  registerTestEdit(
+    new MenuChoices(repo, menuCases),
+    menuCases.setRoofHeight,
+    cases.pasteAt,
+    cases.undo,
+    repo,
+    recorded,
+  );
 }

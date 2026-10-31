@@ -20,6 +20,7 @@ import { maxRoofHeight } from "../../../src/domain/build/roof/roof";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockBuildMenus } from "../../../src/infrastructure/build/bedrock/buildMenus";
+import { MenuChoices } from "../../../src/infrastructure/build/bedrock/menuChoices";
 import { BUILD_FORM } from "../../../src/infrastructure/build/identifiers";
 import { FakeSessions, overworld } from "../../application/build/fakes";
 
@@ -111,7 +112,14 @@ function setup(fallback?: boolean) {
   };
   const player = { id: playerId, isValid: true } as unknown as Player;
   const menus = new BedrockBuildMenus(repo, cases, fallback);
-  return { repo, session, cases, player, menus };
+  return {
+    repo,
+    session,
+    cases,
+    player,
+    menus,
+    choices: new MenuChoices(repo, cases),
+  };
 }
 const labels = (entries: { id: string }[]) =>
   entries.map(({ id }) => ({
@@ -444,5 +452,116 @@ it.each([false, true])(
     await menus.showShapeMenu(player);
     expect(ui.forms).toHaveLength(2);
     warn.mockRestore();
+  },
+);
+
+it("dispatches only entries offered by the current flow, including stale choices", () => {
+  fc.assert(
+    fc.property(
+      cell,
+      cell,
+      fc.constantFrom(
+        "place",
+        "fill",
+        "frame",
+        "faces",
+        "walls",
+        "gable",
+        "hip",
+        "cancel",
+        "invalid",
+      ),
+      (from, to, id) => {
+        const { session, cases, choices } = setup();
+        const flow: BuildFlow = { ...endpoint, from, to };
+        session.setFlow(flow);
+        const offered = shapeMenu(flow).some((entry) => entry.id === id);
+        expect(choices.choose(playerId, "shape", id)).toBe(offered);
+        if (!offered) {
+          for (const action of Object.values(cases))
+            expect(Object.values(action)[0]).not.toHaveBeenCalled();
+        } else if (id === "cancel") {
+          expect(cases.cancel.backToAiming).toHaveBeenCalledExactlyOnceWith({
+            playerId,
+          });
+        } else if (id === "gable" || id === "hip") {
+          expect(cases.chooseRoof.execute).toHaveBeenCalledExactlyOnceWith({
+            playerId,
+            kind: id,
+          });
+        } else {
+          expect(cases.confirmShape.execute).toHaveBeenCalledExactlyOnceWith({
+            playerId,
+            style: id === "place" ? "fill" : id,
+          });
+        }
+        session.setFlow({ kind: "idle" });
+        expect(choices.choose(playerId, "shape", id)).toBe(false);
+        expect(choices.choose(playerId, "roof", "fill")).toBe(false);
+      },
+    ),
+  );
+});
+
+it("validates utility availability before dispatching and preserves the paste toggle", () => {
+  fc.assert(
+    fc.property(
+      fc.boolean(),
+      fc.boolean(),
+      fc.boolean(),
+      fc.boolean(),
+      (confirmed, clipboard, history, skipAir) => {
+        const { session, cases, choices } = setup();
+        session.setFlow({ kind: "idle" });
+        const box = boxOf(from, to);
+        if (confirmed) session.confirmBox(overworld, box);
+        if (clipboard) session.setClipboard(clipboardOf(box, () => stone));
+        if (history)
+          session.finishEdit(
+            {
+              dimensionId: overworld,
+              changes: [{ cell: from, before: stone, after: stone }],
+            },
+            false,
+          );
+        for (const [id, offered] of [
+          ["copy", confirmed],
+          ["paste", clipboard],
+          ["undo", history],
+          ["clear", confirmed],
+        ] as const) {
+          expect(choices.choose(playerId, "utility", id, { skipAir })).toBe(
+            offered,
+          );
+          if (offered)
+            expect(cases[id].execute).toHaveBeenCalledExactlyOnceWith(
+              id === "paste" ? { playerId, skipAir } : { playerId },
+            );
+          else expect(cases[id].execute).not.toHaveBeenCalled();
+        }
+        expect(choices.choose(asPlayerId("absent"), "utility", "paste")).toBe(
+          false,
+        );
+      },
+    ),
+  );
+});
+
+it.each(["fill", "hollow", "cancel"] as const)(
+  "dispatches roof %s only during height selection",
+  (id) => {
+    const { session, choices, cases } = setup();
+    expect(choices.choose(playerId, "roof", id)).toBe(false);
+    session.setFlow(chooseRoof(endpoint, "hip"));
+    expect(choices.choose(playerId, "roof", id)).toBe(true);
+    if (id === "cancel")
+      expect(cases.cancel.backToAiming).toHaveBeenCalledExactlyOnceWith({
+        playerId,
+      });
+    else
+      expect(cases.confirmRoof.execute).toHaveBeenCalledExactlyOnceWith({
+        playerId,
+        hollow: id === "hollow",
+      });
   },
 );
