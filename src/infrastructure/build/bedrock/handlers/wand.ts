@@ -1,6 +1,5 @@
 import { Direction, system, world } from "@minecraft/server";
 import type { AimReader } from "../../../../application/build/ports/aim";
-import type { BuildMenus } from "../../../../application/build/ports/menus";
 import type { PasteAt } from "../../../../application/build/pasteAt";
 import type { SetPoint } from "../../../../application/build/setPoint";
 import type { TapAir } from "../../../../application/build/tapAir";
@@ -16,6 +15,7 @@ import {
 import type { PressDebounces } from "../../../../domain/shared/pressDebounce";
 import { heldTypeId } from "../../../shared/heldItem";
 import { SELECTION_WAND_TYPE } from "../../identifiers";
+import type { BuildMenus } from "../buildMenus";
 
 const FACES: Record<Direction, Face> = {
   [Direction.Up]: "up",
@@ -63,7 +63,15 @@ export function registerWand({
       if (!player.isValid) return;
       if (repo.get(command.playerId)?.flow.kind === "pasteAim") {
         pasteAt.execute({ ...command, block: command.cell, face: FACES[face] });
-      } else setPoint.execute(command);
+      } else {
+        const before = repo.get(command.playerId)?.flow.kind;
+        setPoint.execute(command);
+        if (
+          before !== "endpoint" &&
+          repo.get(command.playerId)?.flow.kind === "endpoint"
+        )
+          void menus.showShapeMenu(player);
+      }
     });
   });
   world.afterEvents.itemUse.subscribe(({ source, itemStack }) => {
@@ -74,11 +82,16 @@ export function registerWand({
     // A block tap can also emit itemUse; only the interact handler owns that tap.
     if (!target || target.block) return;
     if (source.isSneaking) {
-      menus.openUtility(playerId);
+      void menus.showUtilityMenu(source);
       return;
     }
+    const before = repo.get(playerId)?.flow.kind;
     const point1 = pointOf(playerId);
     const end = point1 ? virtualEndPoint(point1, target.ray) : undefined;
     tapAir.execute({ playerId, end });
+    if (before !== "endpoint" && repo.get(playerId)?.flow.kind === "endpoint")
+      system.run(() => {
+        if (source.isValid) void menus.showShapeMenu(source);
+      });
   });
 }
