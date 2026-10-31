@@ -85,7 +85,7 @@ LAMP_GROUPS = {
     "headlights": ("lens", "marker_amber", "marker_red"),
     "ceiling_lights": ("dome",),
 }
-LIT_SLOTS = tuple(dict.fromkeys(SLOTS.index(name) for names in LAMP_GROUPS.values() for name in names))
+LIT_SLOTS = tuple(dict.fromkeys(SLOTS.index(name) for names in LAMP_GROUPS.values() for name in names)) + (SLOTS.index("glow"),)
 
 # Accent bases follow the SUV paints (ADR 0031); the white shell never changes.
 ACCENT_BASES = {
@@ -122,6 +122,7 @@ FRONT_AXLE, REAR_AXLE = -31.5, 31
 WHEEL_R = 7.8
 GLOW_RADIUS = WHEEL_R
 GLOW_SEGMENTS = 16
+GLOW_BOTTOM = -0.5
 # Keep the existing 2.5 px end gaps and 2 px top gap; scaling the gaps crowds the rear hatch.
 ARCH_HALF = WHEEL_R + 2.5
 ARCH_TOP, ARCH_SLOPE_Y, ARCH_INSET, ARCH_STEP = 2 * WHEEL_R + 2, 10.8, 4.2, 0.25
@@ -849,9 +850,10 @@ for end, z in (("f", FRONT_AXLE), ("r", REAR_AXLE)):
         cubes = []
         name = end + ("l" if sx < 0 else "r")
         center_x = sx * (HW - 0.6 - 2)
-        hover[f"hover_{name}"] = [center_x, 0, z]
+        # Emit below the solid disc: emissive alpha controls brightness, not transparency.
+        hover[f"hover_{name}"] = [center_x, GLOW_BOTTOM, z]
         glows.append({"name": f"glow_{name}", "parent": "body", "pivot": [center_x, 0, z],
-                      "cubes": disc("y", center_x, 0, z, GLOW_RADIUS, -0.5, "glow",
+                      "cubes": disc("y", center_x, 0, z, GLOW_RADIUS, GLOW_BOTTOM, "glow",
                                     steps=tuple(i * 90 / GLOW_SEGMENTS for i in range(GLOW_SEGMENTS)),
                                     square=True)})
         x_out = sx * (HW - 0.6)

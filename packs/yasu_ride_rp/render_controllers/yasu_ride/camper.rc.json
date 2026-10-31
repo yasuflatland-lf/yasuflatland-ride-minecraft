@@ -29,7 +29,6 @@
         {
           "*": "Material.default"
         },
-        { "glow_*": "Material.glow" },
         {
           "headlights": "Material.lamp"
         },
@@ -48,7 +47,9 @@
         {
           "*": true
         },
-        { "glow_*": "!query.property('yasu_ride:gear_down')" },
+        {
+          "glow_*": false
+        },
         {
           "headlights": "!query.property('yasu_ride:headlights')"
         },
@@ -74,6 +75,23 @@
         },
         {
           "ceiling_lights": "query.property('yasu_ride:ceiling_lights')"
+        }
+      ]
+    },
+    "controller.render.yasu_ride.camper.glow": {
+      "geometry": "Geometry.default",
+      "materials": [
+        {
+          "*": "Material.lamp_lit"
+        }
+      ],
+      "textures": ["Texture.lit"],
+      "part_visibility": [
+        {
+          "*": false
+        },
+        {
+          "glow_*": "!query.property('yasu_ride:gear_down')"
         }
       ]
     }

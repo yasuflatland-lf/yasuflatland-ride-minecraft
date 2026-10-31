@@ -33,13 +33,14 @@ it("centers round discs at the hover locators below folded camper wheels", () =>
     const wheel = bone(glow.name.replace("glow_", "wheel_"));
     const radius = wheel.pivot[1];
     expect(glow.parent).toBe("body");
-    expect(glow.pivot).toEqual(
-      bone("body").locators?.[glow.name.replace("glow_", "hover_")],
-    );
+    const locator =
+      bone("body").locators?.[glow.name.replace("glow_", "hover_")];
+    expect(locator).toEqual([glow.pivot[0], -0.5, glow.pivot[2]]);
     expect(glow.cubes).toHaveLength(16);
     for (const cube of glow.cubes) {
       expect(cube.pivot).toEqual(glow.pivot);
       expect(cube.origin[1]).toBe(-0.5);
+      expect(locator?.[1]).toBeLessThanOrEqual(cube.origin[1]);
       expect(cube.size[1]).toBe(0.5);
       expect(cube.size[0]).toBe(cube.size[2]);
       expect(cube.rotation?.[0]).toBe(0);
@@ -76,19 +77,32 @@ it("centers round discs at the hover locators below folded camper wheels", () =>
   );
 });
 
-it("gives only the glow bones a partial-alpha emissive material and hides them with the gear down", () => {
-  expect(
-    read("entity/yasu_ride/camper.ce.json")["minecraft:client_entity"]
-      .description.materials.glow,
-  ).toBe("entity_emissive_alpha");
-  expect(
-    render.materials.filter((entry: Record<string, string>) =>
-      Object.values(entry).includes("Material.glow"),
-    ),
-  ).toEqual([{ "glow_*": "Material.glow" }]);
-  expect(render.part_visibility).toContainEqual({
-    "glow_*": "!query.property('yasu_ride:gear_down')",
+it("draws only the flight discs in their own emissive overlay independently of the lamps", () => {
+  const client = read("entity/yasu_ride/camper.ce.json")[
+    "minecraft:client_entity"
+  ].description;
+  const condition = "!query.property('yasu_ride:gear_down')";
+  expect(client.materials.lamp_lit).toBe("entity_emissive");
+  expect(client.textures.lit).toBe("textures/entity/yasu_ride/camper_lit");
+  expect(client.render_controllers).toEqual([
+    "controller.render.yasu_ride.camper",
+    { "controller.render.yasu_ride.camper.glow": condition },
+    {
+      "controller.render.yasu_ride.camper.lit":
+        "query.property('yasu_ride:headlights') || query.property('yasu_ride:ceiling_lights')",
+    },
+  ]);
+  expect(controllers["controller.render.yasu_ride.camper.glow"]).toEqual({
+    geometry: "Geometry.default",
+    materials: [{ "*": "Material.lamp_lit" }],
+    textures: ["Texture.lit"],
+    part_visibility: [{ "*": false }, { "glow_*": condition }],
   });
+  expect(
+    render.part_visibility.filter(
+      (entry: Record<string, unknown>) => "glow_*" in entry,
+    ),
+  ).toEqual([{ "glow_*": false }]);
   expect(
     controllers["controller.render.yasu_ride.camper.lit"].part_visibility,
   ).toEqual([
@@ -96,6 +110,11 @@ it("gives only the glow bones a partial-alpha emissive material and hides them w
     { headlights: "query.property('yasu_ride:headlights')" },
     { ceiling_lights: "query.property('yasu_ride:ceiling_lights')" },
   ]);
+});
+
+it("keeps the paint glow swatch and UVs unchanged and makes its lit texel fully emissive", () => {
+  const lit = readRgbaPng(`${RP}/textures/entity/yasu_ride/camper_lit.png`);
+  const mer = readRgbaPng(`${RP}/textures/entity/yasu_ride/camper_lit_mer.png`);
   for (const paint of PAINTS) {
     const name = paint === PAINTS[0] ? "camper" : `camper_${paint}`;
     const { pixels } = readRgbaPng(
@@ -108,6 +127,13 @@ it("gives only the glow bones a partial-alpha emissive material and hides them w
       for (const cube of cubes) {
         for (const face of Object.values(cube.uv)) {
           const slot = face.uv[0] ?? -1;
+          expect(face.uv).toEqual([38, 0]);
+          expect(Array.from(lit.pixels.slice(slot * 4, slot * 4 + 4))).toEqual([
+            80, 170, 255, 0,
+          ]);
+          expect(Array.from(mer.pixels.slice(slot * 4, slot * 4 + 4))).toEqual([
+            0, 255, 255, 255,
+          ]);
           expect(Array.from(pixels.slice(slot * 4, slot * 4 + 4))).toEqual([
             80, 170, 255, 40,
           ]);

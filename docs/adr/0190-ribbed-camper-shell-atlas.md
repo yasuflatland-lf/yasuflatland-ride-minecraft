@@ -1,6 +1,7 @@
 # 0190. A ribbed camper shell atlas and trim
 
 - Status: Proposed
+- Amended in part by [0197](0197-emit-camper-hover-particles-below-the-discs.md) (Proposed)
 - Date: 2026-10-30
 - Related: [0067](0067-camper.md), [0091](0091-alpha-blend-only-the-camper-glass.md), [0157](0157-an-aluminium-rimmed-louvred-camper-vent-lid.md), [0076](0076-per-kind-default-paint.md)
 - Pull requests: #962 (1/7), #963 (2/7), #966 (3/7), #967 (4/7), #965 (5/7), #964 (6/7), #968 (7/7)

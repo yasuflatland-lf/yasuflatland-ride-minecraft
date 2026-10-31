@@ -198,7 +198,7 @@ describe("camper model assets (ADR 0067)", () => {
     ] as const) {
       const wheel = bone(`wheel_${name}`);
       expect(wheel.pivot).toEqual([x, 7.8, z]);
-      expect(locators?.[`hover_${name}`]).toEqual([x, 0, z]);
+      expect(locators?.[`hover_${name}`]).toEqual([x, -0.5, z]);
       expect(wheel.cubes).toHaveLength(64);
       expect(new Set(wheel.cubes?.map((c) => c.uv.north?.uv[0])).size).toBe(4);
       for (const cube of wheel.cubes ?? []) {
@@ -848,7 +848,6 @@ describe("camper glass (ADR 0091)", () => {
   it("draws the model opaque and blends only the glass material", () => {
     expect(camperMaterials).toEqual({
       default: "entity",
-      glow: "entity_emissive_alpha",
       lamp: "entity",
       lamp_lit: "entity_emissive",
       glass: "entity_alphablend",
