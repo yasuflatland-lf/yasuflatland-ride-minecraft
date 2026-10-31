@@ -33,7 +33,7 @@ describe("camper front shape", () => {
     );
   });
 
-  it("leaves the front flat across its width with all ridges disabled", () => {
+  it("enables only the windshield ridge by default", () => {
     fc.assert(
       fc.property(fc.double({ min: -24, max: 24, noNaN: true }), (x) => {
         expect(
@@ -41,7 +41,7 @@ describe("camper front shape", () => {
             "[ridge_dz(args, ridge, 24) for ridge in (FrontShape().windshield_ridge_px, FrontShape().cap_ridge_px, FrontShape().grille_ridge_px)]",
             x,
           ),
-        ).toEqual([0, 0, 0]);
+        ).toEqual([-4 * (1 - Math.abs(x) / 24), 0, 0]);
       }),
       runs,
     );

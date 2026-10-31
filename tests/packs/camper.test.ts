@@ -53,10 +53,39 @@ const end = (cube: Cube, axis: number) =>
 const ALUMINIUM_SLOT = 36;
 const readPng = (path: string) => readRgbaPng(`${RP}/${path}.png`);
 
+const isWindshieldCube = (cube: Pick<Cube, "origin" | "size">) => {
+  if ((cube.origin[2] ?? 0) >= -45) return false;
+  const [width, height, depth] = cube.size;
+  return (
+    (height === 13.5 && [0.2, 0.8, 1].includes(depth ?? 0)) ||
+    (width === 4.243 && height === 0.6 && depth === 1) ||
+    ((width ?? 0) >= 8 && (width ?? 0) < 8.2 && height === 0.6 && depth === 0.6)
+  );
+};
+
 describe("camper model assets (ADR 0067)", () => {
   it("allows compound rotations only in declared assemblies (ADR 0167)", () => {
     const cubes = bones.flatMap((bone) => bone.cubes ?? []);
-    const assemblies = { slanted: cubes.filter(multipleAxes) };
+    const windshield = cubes.filter(isWindshieldCube);
+    const assemblies = {
+      slanted: cubes.filter(
+        (cube) => multipleAxes(cube) && !windshield.includes(cube),
+      ),
+      windshield_right: windshield.filter(
+        (cube) =>
+          defined(cube.origin[0], "coordinate") +
+            defined(cube.size[0], "coordinate") / 2 <=
+          0,
+      ),
+      windshield_left: windshield.filter(
+        (cube) =>
+          defined(cube.origin[0], "coordinate") +
+            defined(cube.size[0], "coordinate") / 2 >
+          0,
+      ),
+    };
+    expect(assemblies.windshield_right).toHaveLength(6);
+    expect(assemblies.windshield_left).toHaveLength(5);
     expect(assemblies.slanted).toHaveLength(6);
     expect(() => assertOneAxis(cubes, assemblies)).not.toThrow();
   });
@@ -836,6 +865,220 @@ const camperRender = JSON.parse(
 const camperMaterials: Record<string, string> = JSON.parse(
   readFileSync(`${RP}/entity/yasu_ride/camper.ce.json`, "utf8"),
 )["minecraft:client_entity"].description.materials;
+
+describe("camper windshield ridge (#1069)", () => {
+  const point = (cube: Cube, u: number, v: number, w: number) => {
+    const pivot = cube.pivot ?? [0, 0, 0];
+    let [x, y, z] = [u, v, w].map(
+      (fraction, axis) =>
+        defined(cube.origin[axis], "windshield coordinate") +
+        fraction * defined(cube.size[axis], "windshield coordinate") -
+        defined(pivot[axis], "windshield coordinate"),
+    ) as [number, number, number];
+    const [rx, ry, rz] = (cube.rotation ?? [0, 0, 0]).map(
+      (angle, axis) => (angle * Math.PI * (axis === 1 ? 1 : -1)) / 180,
+    ) as [number, number, number];
+    [y, z] = [
+      y * Math.cos(rx) - z * Math.sin(rx),
+      y * Math.sin(rx) + z * Math.cos(rx),
+    ];
+    [x, z] = [
+      x * Math.cos(ry) + z * Math.sin(ry),
+      -x * Math.sin(ry) + z * Math.cos(ry),
+    ];
+    [x, y] = [
+      x * Math.cos(rz) - y * Math.sin(rz),
+      x * Math.sin(rz) + y * Math.cos(rz),
+    ];
+    return [
+      x + defined(pivot[0], "windshield coordinate"),
+      y + defined(pivot[1], "windshield coordinate"),
+      z + defined(pivot[2], "windshield coordinate"),
+    ] as const;
+  };
+  const untilt = ([x, y, z]: readonly number[]) => {
+    const angle = (8 * Math.PI) / 180;
+    return [
+      defined(x, "windshield coordinate"),
+      36 +
+        (defined(y, "windshield coordinate") - 36) * Math.cos(angle) +
+        (defined(z, "windshield coordinate") + 53.5) * Math.sin(angle),
+      -53.5 -
+        (defined(y, "windshield coordinate") - 36) * Math.sin(angle) +
+        (defined(z, "windshield coordinate") + 53.5) * Math.cos(angle),
+    ] as const;
+  };
+  const members = bones.flatMap((b) => b.cubes ?? []).filter(isWindshieldCube);
+  const panes = (bone("glass").cubes ?? []).filter(
+    (cube) => cube.size[1] === 13.5 && cube.size[2] === 0.2,
+  );
+  const corners = (bone("glass").cubes ?? []).filter(
+    (cube) => cube.size[1] === 13.5 && cube.size[2] === 1,
+  );
+
+  it("puts the post four pixels ahead of the outer edges at the specified slope", () => {
+    expect(panes).toHaveLength(2);
+    expect(panes.map((pane) => Math.sign(point(pane, 0.5, 0, 0.5)[0]))).toEqual(
+      [1, -1],
+    );
+    const post = defined(
+      members.find((cube) => cube.uv.north?.uv[0] === 10),
+      "windshield coordinate",
+    );
+    expect(post.size).toEqual([1.4, 13.5, 0.8]);
+    const postZ = untilt(point(post, 0.5, 0, 0.625))[2];
+    for (const pane of panes) {
+      const endpoints = [
+        untilt(point(pane, 0, 0, 0.5)),
+        untilt(point(pane, 1, 0, 0.5)),
+      ];
+      const [inner, outer] = endpoints.sort(
+        (a, b) => Math.abs(a[0]) - Math.abs(b[0]),
+      );
+      expect(defined(outer, "windshield coordinate")[2] - postZ).toBeCloseTo(
+        4,
+        1,
+      );
+      expect(
+        defined(outer, "outer edge")[2] - defined(inner, "inner edge")[2],
+      ).toBeCloseTo(4, 2);
+      const slope =
+        (Math.atan2(
+          defined(outer, "windshield coordinate")[2] -
+            defined(inner, "windshield coordinate")[2],
+          Math.abs(
+            defined(outer, "windshield coordinate")[0] -
+              defined(inner, "windshield coordinate")[0],
+          ),
+        ) *
+          180) /
+        Math.PI;
+      expect(
+        Math.abs(slope - (Math.atan(4 / 20.4) * 180) / Math.PI),
+      ).toBeLessThan(0.5);
+      const foot = point(pane, 0.5, 0, 0.5);
+      const header = point(pane, 0.5, 1, 0.5);
+      expect(
+        (Math.atan2(header[2] - foot[2], header[1] - foot[1]) * 180) / Math.PI,
+      ).toBeCloseTo(8, 2);
+    }
+  });
+
+  it("joins each corner and pane inside their shared outer rubber strip", () => {
+    expect(corners).toHaveLength(2);
+    for (const pane of panes) {
+      const sx = Math.sign(point(pane, 0.5, 0, 0.5)[0]);
+      const corner = corners.find(
+        (cube) => Math.sign(point(cube, 0.5, 0, 0.5)[0]) === sx,
+      ) as Cube;
+      const strip = members.find(
+        (cube) =>
+          cube.size[0] === 0.611 &&
+          Math.sign(point(cube, 0.5, 0, 0.5)[0]) === sx,
+      ) as Cube;
+      for (const height of [0, 0.5, 1]) {
+        const edge = untilt(point(pane, sx > 0 ? 1 : 0, height, 0.5));
+        const wrap = untilt(point(corner, sx > 0 ? 0 : 1, height, 0.5));
+        expect(Math.abs(edge[0] - wrap[0])).toBeLessThan(0.1);
+        expect(Math.abs(edge[1] - wrap[1])).toBeLessThan(0.002);
+        expect(Math.abs(edge[2] - wrap[2])).toBeLessThan(0.4);
+        const rubber = untilt(point(strip, sx > 0 ? 1 : 0, height, 0.5));
+        expect(
+          Math.hypot(edge[0] - rubber[0], edge[2] - rubber[2]),
+        ).toBeLessThan(0.2);
+      }
+      const a = untilt(point(corner, 0, 0, 0.5));
+      const b = untilt(point(corner, 1, 0, 0.5));
+      expect(
+        Math.abs((Math.atan2(b[2] - a[2], b[0] - a[0]) * 180) / Math.PI),
+      ).toBeCloseTo(45, 2);
+    }
+  });
+
+  it("preserves exactly the same glass panes and their render order", () => {
+    const glass = bone("glass").cubes ?? [];
+    expect(glass).toHaveLength(39);
+    expect(bone("door_glass").cubes).toHaveLength(1);
+    const unchanged = glass.filter(
+      (cube) => !panes.includes(cube) && !corners.includes(cube),
+    );
+    const signature = (cube: Cube) => [...cube.origin, ...cube.size].join(",");
+    const expected = [
+      [-23.6, 35, -50, 0.2, 15, 12],
+      [-23.6, 36, -35, 0.2, 13, 25],
+      [-23.6, 36, 10, 0.2, 13, 25],
+      [-23.6, 56, -31, 0.2, 3, 12],
+      [23.4, 35, -50, 0.2, 15, 12],
+      [23.4, 36, -29, 0.2, 13, 24],
+      [23.4, 56, -19, 0.2, 3, 11],
+      [23.4, 36, 16, 0.2, 13, 5],
+      [23.4, 36, 40, 0.2, 13, 9],
+      [-29.8, 37.4, -49.3, 4.6, 9.7, 0.1],
+      [25.2, 37.4, -49.3, 4.6, 9.7, 0.1],
+      ...Array.from({ length: 24 }, (_, i) => [
+        -17,
+        38 + i / 2,
+        55.9,
+        34,
+        0.5,
+        0.2,
+      ]),
+    ].map((values) => values.join(","));
+    expect(unchanged.map(signature).sort()).toEqual(expected.sort());
+    for (const pane of [...panes, ...corners])
+      expect(pane.uv.north?.uv).toEqual([13, 0]);
+    expect(bones.slice(-2).map((b) => b.name)).toEqual(["glass", "door_glass"]);
+    expect(members.filter((cube) => cube.uv.north?.uv[0] === 7)).toHaveLength(
+      6,
+    );
+    expect(members.filter((cube) => cube.uv.north?.uv[0] === 10)).toHaveLength(
+      1,
+    );
+  });
+
+  it("clears the unchanged dashboard pad and rear face", () => {
+    const pad = (bone("body").cubes ?? []).find(
+      (cube) =>
+        cube.origin[1] === 33.4 && cube.size[1] === 1.6 && !cube.rotation,
+    ) as Cube;
+    expect(pad.origin).toEqual([-23, 33.4, -52]);
+    expect(pad.size).toEqual([46, 1.6, 5]);
+    const dash = (bone("body").cubes ?? []).find(
+      (cube) =>
+        cube.uv.north?.uv[0] === 17 &&
+        cube.origin[1] === 16 &&
+        end(cube, 1) === 33.4,
+    ) as Cube;
+    expect(end(dash, 2)).toBe(-48); // DASH_FACE
+    const minimumY = Math.min(
+      ...panes.flatMap((cube) =>
+        [0, 1].flatMap((u) =>
+          [0, 1].flatMap((v) => [0, 1].map((w) => point(cube, u, v, w)[1])),
+        ),
+      ),
+    );
+    expect(minimumY - end(pad, 1)).toBeCloseTo(0.946, 3);
+    const minimumGlassY = Math.min(
+      ...[...panes, ...corners].flatMap((cube) =>
+        [0, 1].flatMap((u) =>
+          [0, 1].flatMap((v) => [0, 1].map((w) => point(cube, u, v, w)[1])),
+        ),
+      ),
+    );
+    expect(minimumGlassY - end(pad, 1)).toBeCloseTo(0.534, 3);
+    for (const cube of [...panes, ...corners]) {
+      for (const u of [0, 0.25, 0.5, 0.75, 1]) {
+        for (const v of [0, 1]) {
+          for (const w of [0, 1]) {
+            const [x, y, z] = point(cube, u, v, w);
+            if (x >= -23 && x <= 23 && z >= -52 && z <= -47)
+              expect(y).toBeGreaterThan(35);
+          }
+        }
+      }
+    }
+  });
+});
 
 describe("camper glass (ADR 0091)", () => {
   const glassBones = ["glass", "door_glass"];
@@ -1981,15 +2224,20 @@ const { width, height, regions, period, texelsPerPx, slots, windows } =
   };
 
 describe("camper rib atlas (ADR 0190)", () => {
-  it("preserves every cube's bone, origin, and size from the pre-rib geometry", () => {
+  it("preserves pre-rib cube geometry outside the windshield and hover glows", () => {
     const fixture = JSON.parse(
       readFileSync("tests/packs/fixtures/camper-cubes.json", "utf8"),
+    ) as [string, number[], number[]][];
+    const unchanged = bones
+      .filter((b) => !b.name.startsWith("glow_"))
+      .flatMap((b) =>
+        (b.cubes ?? [])
+          .filter((cube) => !isWindshieldCube(cube))
+          .map((cube) => [b.name, cube.origin, cube.size]),
+      );
+    expect(unchanged).toEqual(
+      fixture.filter(([, origin, size]) => !isWindshieldCube({ origin, size })),
     );
-    expect(
-      bones
-        .filter((b) => !b.name.startsWith("glow_"))
-        .flatMap((b) => (b.cubes ?? []).map((c) => [b.name, c.origin, c.size])),
-    ).toEqual(fixture);
   });
 
   it("allocates the rib region below the swatches with groove, highlight, and flat bands", () => {

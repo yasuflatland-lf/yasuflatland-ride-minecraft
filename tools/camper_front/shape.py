@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class FrontShape:
-    windshield_ridge_px: float = 0.0
+    windshield_ridge_px: float = 4.0
     cap_ridge_px: float = 0.0
     grille_ridge_px: float = 0.0
     # Reserved for the constant-angle profile; the legacy curve remains in use.
