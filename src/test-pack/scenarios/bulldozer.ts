@@ -241,12 +241,9 @@ async function clearHillScenario(
       await setBlade(car, false);
       if (wide) await setWideBlade(car, true);
       await throughHill(a, car, () => {
-        boxes = bladeColumns(
-          a.local(car.location),
-          car.getRotation().y,
-          rule,
-          false,
-        );
+        boxes = bladeColumns(a.local(car.location), car.getRotation().y, rule, {
+          kind: "run",
+        });
       });
       const wrong: string[] = [];
       for (let x = 100; x <= 104; x++)
