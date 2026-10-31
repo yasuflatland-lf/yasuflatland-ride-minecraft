@@ -307,13 +307,28 @@ async function clearHillScenario(
     );
   }
 }
-export async function bulldozerOverhang(a: Arena): Promise<Outcome> {
+/**
+ * Fills stone rows from `a.gy + from` to `a.gy + to` in the lane, drives the
+ * bulldozer through with the blade lowered, and checks that every cell below
+ * `a.gy + cutTop` is air while the stone at and above it stays.
+ */
+async function throughStoneRows(
+  a: Arena,
+  rows: readonly (readonly [from: number, to: number])[],
+  cutTop: number,
+): Promise<Outcome> {
+  const expected: { dy: number; type: string }[] = [];
+  for (let dy = 0; dy < cutTop; dy++)
+    expected.push({ dy, type: "minecraft:air" });
+  for (const [from, to] of rows)
+    for (let dy = Math.max(from, cutTop); dy <= to; dy++)
+      expected.push({ dy, type: "minecraft:stone" });
   try {
     cleanup(a);
-    a.dim.runCommand(`fill ${a.box(100, a.gy, 81, 104, a.gy + 1, 85)} stone`);
-    a.dim.runCommand(
-      `fill ${a.box(100, a.gy + 3, 81, 104, a.gy + 4, 85)} stone`,
-    );
+    for (const [from, to] of rows)
+      a.dim.runCommand(
+        `fill ${a.box(100, a.gy + from, 81, 104, a.gy + to, 85)} stone`,
+      );
     return await withBulldozer(a, 90.5, 83.5, -90, async (car) => {
       await setBlade(car, false);
       await throughHill(a, car);
@@ -321,42 +336,36 @@ export async function bulldozerOverhang(a: Arena): Promise<Outcome> {
       let pass = pos.x >= 108;
       for (let x = 100; x <= 104; x++)
         for (let z = 81; z <= 85; z++)
-          for (const dy of [0, 1, 3, 4])
-            pass &&=
-              a.dim.getBlock(a.at(x, a.gy + dy, z))?.typeId ===
-              (dy < 2 ? "minecraft:air" : "minecraft:stone");
+          for (const { dy, type } of expected)
+            pass &&= a.dim.getBlock(a.at(x, a.gy + dy, z))?.typeId === type;
       return { pass, detail: `x=${pos.x.toFixed(2)}` };
     });
   } finally {
     cleanup(a);
   }
 }
-export async function bulldozerOverhangClear(a: Arena): Promise<Outcome> {
-  try {
-    cleanup(a);
-    // Feet stand at gy on the arena floor at gy - 1. The gap at gy + 1
-    // separates the ground run from the overhang inside the 2.9-block body;
-    // the control rows at gy + 3 and gy + 4 sit above the body.
-    a.dim.runCommand(`fill ${a.box(100, a.gy, 81, 104, a.gy, 85)} stone`);
-    a.dim.runCommand(
-      `fill ${a.box(100, a.gy + 2, 81, 104, a.gy + 4, 85)} stone`,
-    );
-    return await withBulldozer(a, 90.5, 83.5, -90, async (car) => {
-      await setBlade(car, false);
-      await throughHill(a, car);
-      const pos = a.local(car.location);
-      let pass = pos.x >= 108;
-      for (let x = 100; x <= 104; x++)
-        for (let z = 81; z <= 85; z++)
-          for (const dy of [0, 1, 2, 3, 4])
-            pass &&=
-              a.dim.getBlock(a.at(x, a.gy + dy, z))?.typeId ===
-              (dy < 3 ? "minecraft:air" : "minecraft:stone");
-      return { pass, detail: `x=${pos.x.toFixed(2)}` };
-    });
-  } finally {
-    cleanup(a);
-  }
+export function bulldozerOverhang(a: Arena): Promise<Outcome> {
+  return throughStoneRows(
+    a,
+    [
+      [0, 1],
+      [3, 4],
+    ],
+    2,
+  );
+}
+export function bulldozerOverhangClear(a: Arena): Promise<Outcome> {
+  // Feet stand at gy on the arena floor at gy - 1. The gap at gy + 1
+  // separates the ground run from the overhang inside the 2.9-block body;
+  // the control rows at gy + 3 and gy + 4 sit above the body.
+  return throughStoneRows(
+    a,
+    [
+      [0, 0],
+      [2, 4],
+    ],
+    3,
+  );
 }
 export async function bulldozerDirtPath(a: Arena): Promise<Outcome> {
   const floor = a.gy - 1;
