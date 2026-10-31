@@ -116,3 +116,43 @@ assert c.both_sides([cube])[1]['uv'] == original
 e.turn_around([{'cubes': [cube]}])
 assert cube['uv'] == original`);
 });
+
+it("builds discs on each axis with invariant corner radius and axial span", () => {
+  fc.assert(
+    fc.property(
+      fc.tuple(
+        fc.integer({ min: -50, max: 50 }),
+        fc.integer({ min: -50, max: 50 }),
+        fc.integer({ min: -50, max: 50 }),
+      ),
+      fc.integer({ min: 1, max: 20 }),
+      fc.integer({ min: 0, max: 359 }),
+      (center, half, angle) => {
+        run(`import math
+from itertools import product
+c = load_tool('suv_cubes')
+t = load_tool('cube_tilt')
+center = ${JSON.stringify(center)}
+for axis, index in [('x', 0), ('y', 1), ('z', 2)]:
+    cubes = c.disc(axis, center, ${half}, center[index] - 0.5, center[index], [0, ${angle}], 'glow')
+    assert len(cubes) == 2
+    for cube, angle in zip(cubes, [0, ${angle}]):
+        assert cube['pivot'] == center
+        assert cube['rotation'] == [angle if i == index else 0 for i in range(3)]
+        assert cube['uv'] == c.uv('glow')
+        assert cube['origin'][index] == center[index] - 0.5
+        assert cube['size'][index] == 0.5
+        radial = [i for i in range(3) if i != index]
+        for i in radial:
+            assert cube['origin'][i] == center[i] - ${half}
+            assert cube['size'][i] == 2 * ${half}
+        for signs in product((0, 1), repeat=3):
+            delta = [cube['origin'][i] + signs[i] * cube['size'][i] - center[i] for i in range(3)]
+            point = t._apply(t.cube_matrix(cube['rotation']), delta)
+            assert abs(math.hypot(*(point[i] for i in radial)) - math.sqrt(2) * ${half}) < 1e-10
+            assert abs(point[index] - delta[index]) < 1e-10`);
+      },
+    ),
+    { numRuns: 15 },
+  );
+}, 60_000);
