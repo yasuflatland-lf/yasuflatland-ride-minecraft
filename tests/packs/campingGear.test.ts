@@ -1071,11 +1071,10 @@ describe("camping gear blocks and items (ADR 0093)", () => {
               },
               {
                 group_identifier: {
-                  icon: "yasu_build:build_tool",
+                  icon: "yasu_build:selection_wand",
                   name: "yasu_build:building_tools",
                 },
                 items: [
-                  "yasu_build:build_tool",
                   "yasu_build:selection_wand",
                   "yasu_ride:blade_switch",
                   "yasu_ride:wide_blade_switch",

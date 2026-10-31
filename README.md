@@ -33,7 +33,7 @@ The SUV, sports boat, and camper each seat 4; the bulldozer seats 1. All four ca
 
 ## Items
 
-Items other than vehicles, such as the 19 pieces of camping gear made to decorate a parked camper, the Building Tools group (Build Tool, Selection Wand, Blade Up/Down, Wide Blade, and Road Paver), are listed in [the item groups](docs/items/README.md).
+Items other than vehicles, such as the 19 pieces of camping gear made to decorate a parked camper, the Building Tools group (Selection Wand, Blade Up/Down, Wide Blade, and Road Paver), are listed in [the item groups](docs/items/README.md).
 
 ## Installing
 

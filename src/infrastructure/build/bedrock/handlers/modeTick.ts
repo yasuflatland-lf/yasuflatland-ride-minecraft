@@ -2,7 +2,7 @@ import { system, world } from "@minecraft/server";
 import type { UpdateBuildModes } from "../../../../application/build/updateBuildModes";
 import { asPlayerId } from "../../../../domain/shared/ids";
 import { heldTypeId } from "../../../shared/heldItem";
-import { BUILD_TOOL_TYPES } from "../../identifiers";
+import { SELECTION_WAND_TYPE } from "../../identifiers";
 
 export function registerModeTick(modes: UpdateBuildModes): void {
   system.runInterval(() => {
@@ -14,7 +14,7 @@ export function registerModeTick(modes: UpdateBuildModes): void {
           const playerId = asPlayerId(player.id);
           return {
             playerId,
-            holding: BUILD_TOOL_TYPES.has(heldTypeId(player) ?? ""),
+            holding: heldTypeId(player) === SELECTION_WAND_TYPE,
           };
         }),
     );

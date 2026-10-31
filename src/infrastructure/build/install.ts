@@ -23,7 +23,6 @@ import { BedrockBlockWorld } from "./bedrock/bedrockBlockWorld";
 import { BedrockFeedback } from "./bedrock/bedrockFeedback";
 import { BedrockBuildMenus } from "./bedrock/buildMenus";
 import { editActions } from "./bedrock/editActions";
-import { registerBuildTool } from "./bedrock/handlers/buildTool";
 import { registerEditTick } from "./bedrock/handlers/editTick";
 import { registerModeTick } from "./bedrock/handlers/modeTick";
 import { registerOutlineTick } from "./bedrock/handlers/outlineTick";
@@ -59,7 +58,7 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
   const menus = new BedrockBuildMenus(repo, {
     ...cases,
     confirmShape: cases.fill,
-    cancel: new CancelFlow(repo),
+    cancel,
     setRoofHeight: new SetRoofHeightTo(repo),
   });
   registerWand({
@@ -80,7 +79,6 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
   registerSessions(repo, cancel, debounce);
   registerTestCorner(repo, feedback, blocks);
   registerTestMode(modes);
-  registerBuildTool(menus);
   registerEditTick(jobs);
   registerTestEdit(actions, repo, recorded);
 }

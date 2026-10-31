@@ -110,7 +110,6 @@ entity.yasu_ride:gas_lantern.name=Gas Lantern
 yasu_ride.hint.gas_lantern_hits=Hit %s more to take back the Gas Lantern
 action.interact.yasu_ride.gas_lantern=Turn the Gas Lantern On / Off
 item.yasu_build:selection_wand.name=Selection Wand
-item.yasu_build:build_tool.name=Build Tool
 yasu_build:building_tools=Building Tools
 
 yasu_build.message.selection_cleared=Selection cleared.
