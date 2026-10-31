@@ -1981,15 +1981,33 @@ const { width, height, regions, period, texelsPerPx, slots, windows } =
   };
 
 describe("camper rib atlas (ADR 0190)", () => {
-  it("preserves every cube's bone, origin, and size from the pre-rib geometry", () => {
+  it("preserves the pre-rib geometry outside the folded cab-over", () => {
+    // Issue #1070 replaces the cap layers and center header; camperCap.test.ts pins them.
+    const outsideCap = ([name, origin, size]: [string, number[], number[]]) => {
+      const y = origin[1] ?? 0;
+      const z = origin[2] ?? 0;
+      return !(
+        name === "body" &&
+        z < -47 &&
+        ((y >= 49.5 && y < 64 && size[1] === 0.25) ||
+          (y === 49.2 && size[1] === 0.5 && (size[0] ?? 0) > 20))
+      );
+    };
     const fixture = JSON.parse(
       readFileSync("tests/packs/fixtures/camper-cubes.json", "utf8"),
     );
     expect(
       bones
         .filter((b) => !b.name.startsWith("glow_"))
-        .flatMap((b) => (b.cubes ?? []).map((c) => [b.name, c.origin, c.size])),
-    ).toEqual(fixture);
+        .flatMap((b) =>
+          (b.cubes ?? []).map((c): [string, number[], number[]] => [
+            b.name,
+            c.origin,
+            c.size,
+          ]),
+        )
+        .filter(outsideCap),
+    ).toEqual(fixture.filter(outsideCap));
   });
 
   it("allocates the rib region below the swatches with groove, highlight, and flat bands", () => {

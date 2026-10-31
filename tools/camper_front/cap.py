@@ -1,6 +1,9 @@
 """Cab-over faces, moldings, lamps and mirrors."""
 
+import math
+
 from .context import FrontContext
+from .shape import ridge_dz
 
 
 def build(ctx: FrontContext) -> None:
@@ -18,19 +21,31 @@ def build(ctx: FrontContext) -> None:
 
     # The cab-over, after the owner's reference photos: each side wall ends in a forward-pointing
     # chevron edged in chrome. Its nose (the crease) sits 45 % of the way up the cap, level with
-    # the bumper front. The lower face runs from the crease back to the windshield header, with a
-    # slanted end facet over each corner glass; the upper face is one flat panel up to the roof
-    # edge, where the five lamps stand.
+    # the bumper front at the centre ridge. The lower face folds into two panels meeting at that
+    # ridge, with a slanted end facet over each corner glass; the upper face is one panel up to the
+    # straight roof edge, where the five lamps stand, and its lower edge follows the crease V.
     CAP_Y0 = 49.5  # the windshield top
     CREASE = 56
     NOSE = WS_Z - 5.5
     BOT_C, BOT_S = WS_Z - 0.5, WS_Z + 3  # lower face foot over the windshield and at the side pillar
     CAP_BACK = WS_Z + 6
+    R = ctx.shape.cap_ridge_px
     body.append(box(-FW, CAP_Y0, BOT_C, FW, ROOF, CAP_BACK, "white"))
     body += rib_sides([box(-HW, CAP_Y0, BOT_S, HW, ROOF, CAP_BACK, "white")])
 
     def lerp(a, b, t):
         return a + (b - a) * t
+
+    def off(x):
+        return R + ridge_dz(x, R, FW)
+
+    def ridge_slabs(y0, y1, z0, span, slope, depth, color):
+        theta = math.atan(slope)
+        width = span / math.cos(theta)
+        for sx in (1, -1):
+            rotation = [0, -sx * math.degrees(theta), 0] if abs(slope) > 1e-9 else None
+            body.append(box(0, y0, z0, sx * width, y1, z0 + depth,
+                            color, rotation, [0, y0, z0]))
 
     def molding(sx, y0, y1, z):
         x0, x1 = sorted((sx * (HW - 0.3), sx * (HW + 0.2)))
@@ -45,8 +60,10 @@ def build(ctx: FrontContext) -> None:
     for i in range(LAYERS):
         y0 = CAP_Y0 + 0.25 * i
         t = (i + 0.5) / LAYERS
-        zc, ze = lerp(BOT_C, NOSE, t), lerp(BOT_S, NOSE, t)
-        body.append(box(-FW, y0, zc, FW, y0 + 0.25, CAP_BACK, "white"))
+        z0 = lerp(BOT_C - R, NOSE, t)
+        zc, ze = z0 + off(FW), lerp(BOT_S, NOSE + off(HW), t)
+        ridge_slabs(y0, y0 + 0.25, z0, FW, R / FW, off(HW) + 1.2, "white")
+        body.append(box(-FW, y0, z0 + off(HW), FW, y0 + 0.25, CAP_BACK, "white"))
         x = FW
         while x < HW - 1e-6:  # the end facet's front edge runs from (FW, zc) to (HW, ze)
             z = lerp(zc, ze, (x + FACET_COL / 2 - FW) / (HW - FW))
@@ -58,15 +75,20 @@ def build(ctx: FrontContext) -> None:
     UPPER_LAYERS = round((ROOF - CREASE) / 0.25)
     for i in range(UPPER_LAYERS):
         y0 = CREASE + 0.25 * i
-        zf = lerp(NOSE, TOP_FRONT, (i + 0.5) / UPPER_LAYERS)
-        body += rib_sides([box(-HW, y0, zf, HW, y0 + 0.25, CAP_BACK, "white")])
-        chevron_molding(y0, y0 + 0.25, zf)
+        u = (i + 0.5) / UPPER_LAYERS
+        zf = lerp(NOSE, TOP_FRONT, u)
+        slope = R * (1 - u) / FW
+        wall_z = zf + slope * HW
+        ridge_slabs(y0, y0 + 0.25, zf, HW, slope, slope * HW + 1.2, "white")
+        body += rib_sides([box(-HW, y0, wall_z, HW, y0 + 0.25, CAP_BACK, "white")])
+        chevron_molding(y0, y0 + 0.25, wall_z)
         if 60 <= y0 < 62.5:  # the dark window set into the upper face, right of centre on the photo
-            body.append(box(-3.5, y0, zf - 0.1, 9.5, y0 + 0.25, zf + 0.3, "grille"))
+            # Extend the hidden back to the folded shell without moving the window's visible face.
+            body.append(box(-3.5, y0, zf - 0.1, 9.5, y0 + 0.25, zf + slope * 9.5 + 0.3, "grille"))
     for sx in (1, -1):  # the molding carries on down the pillar to the corner glass foot
         molding(sx, 35.4, CAP_Y0, BOT_S)
         body.append(corner(sx, WS_Z, 49.2, 49.7, "chrome"))  # header strip over the corner glass
-    body.append(box(-FW, 49.2, BOT_C - 0.3, FW, 49.7, BOT_C + 2.2, "chrome"))  # windshield header strip
+    ridge_slabs(49.2, 49.7, BOT_C - R - 0.3, FW, R / FW, off(HW) + 2.5, "chrome")
     roof_lip = box(-HW - 0.2, ROOF - 0.6, TOP_FRONT - 0.3, HW + 0.2, ROOF + 0.1, TOP_FRONT + 0.7, "aluminium")
     roof_lip["uv"]["north"] = ATLAS.face(BOLT_REGION, uv_size=(roof_lip["size"][0], 1))
     body.append(roof_lip)

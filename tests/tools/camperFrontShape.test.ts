@@ -38,7 +38,7 @@ describe("camper front shape", () => {
       fc.property(fc.double({ min: -24, max: 24, noNaN: true }), (x) => {
         expect(
           runShape(
-            "[ridge_dz(args, ridge, 24) for ridge in (FrontShape().windshield_ridge_px, FrontShape().cap_ridge_px, FrontShape().grille_ridge_px)]",
+            "[ridge_dz(args, ridge, 24) for ridge in (FrontShape().windshield_ridge_px, FrontShape(cap_ridge_px=0).cap_ridge_px, FrontShape().grille_ridge_px)]",
             x,
           ),
         ).toEqual([0, 0, 0]);
