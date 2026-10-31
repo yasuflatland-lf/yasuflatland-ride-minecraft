@@ -1,9 +1,18 @@
 /** One block column a drive clears this tick (ADR 0137). */
-export interface CutColumn {
+export type CutColumn = {
   readonly x: number;
   readonly z: number;
   /** The lowest cell cut: floor of the feet. */
   readonly bottom: number;
-  /** Cells cut from `bottom` up; undefined cuts every cell up to the first air cell above `bottom`, or the world's top. */
-  readonly height?: number;
-}
+} & (
+  | {
+      /** Exact cells cut from bottom, ignoring the non-air run. */
+      readonly height?: number;
+      readonly minHeight?: never;
+    }
+  | {
+      readonly height?: never;
+      /** Cells from bottom that are cut even when the run is broken by air; the run above them still continues while it is non-air. */
+      readonly minHeight?: number;
+    }
+);

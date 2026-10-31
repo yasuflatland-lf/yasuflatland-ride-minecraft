@@ -1,8 +1,9 @@
 import type { Dimension, Entity } from "@minecraft/server";
 import fc from "fast-check";
-import { expect, it, vi } from "vitest";
+import { expect, expectTypeOf, it, vi } from "vitest";
 import type { Cell } from "../../../../src/domain/shared/cells";
 import { KEPT_BLOCKS } from "../../../../src/domain/shared/keptBlocks";
+import type { CutColumn } from "../../../../src/domain/vehicle/cut";
 import { BladeCuts } from "../../../../src/infrastructure/vehicle/bedrock/bladeCuts";
 import { blockGrid } from "../../../support/blockGrid";
 
@@ -39,7 +40,7 @@ function fixture() {
   const dimension = { id: "overworld", ...grid };
   let tick = 100;
   const cuts = new BladeCuts({ now: () => tick });
-  const cut = (columns = [column]) =>
+  const cut = (columns: readonly CutColumn[] = [column]) =>
     cuts.cut(dimension as unknown as Dimension, columns);
   const set = (y: number, type: string, x = 0) =>
     grid.getBlock({ x, y, z: 0 }).setType(type);
@@ -59,6 +60,15 @@ function fixture() {
 function kept(type: string) {
   return KEPT_BLOCKS.includes(type) || type === "yasu_ride:camper_floor";
 }
+it("rejects columns with both exact and minimum heights at the type level", () => {
+  expectTypeOf<{
+    x: number;
+    z: number;
+    bottom: number;
+    height: number;
+    minHeight: number;
+  }>().not.toExtend<CutColumn>();
+});
 it("cuts every cell from the bottom up to the first air cell and nothing above it (ADR 0137)", () => {
   fc.assert(
     fc.property(stack, stack, (below, above) => {
@@ -82,6 +92,79 @@ it("cuts every cell from the bottom up to the first air cell and nothing above i
     }),
   );
 });
+it("cuts through an air gap up to the minimum height with one filtered fill", () => {
+  fc.assert(
+    fc.property(stack, stack, (below, above) => {
+      const f = fixture();
+      below.forEach((type, i) => {
+        f.set(64 + i, type);
+      });
+      above.forEach((type, i) => {
+        f.set(65 + below.length + i, type);
+      });
+      const minHeight = below.length + 1 + above.length;
+      const top = 64 + minHeight - 1;
+      f.set(top + 1, "minecraft:stone");
+      f.cut([{ ...column, minHeight }]);
+      expect(f.grid.fills).toHaveLength(1);
+      expect(f.grid.fills[0]?.to.y).toBe(top);
+      below.forEach((type, i) => {
+        expect(f.at(64 + i)).toBe(kept(type) ? type : "minecraft:air");
+      });
+      above.forEach((type, i) => {
+        expect(f.at(65 + below.length + i)).toBe(
+          kept(type) ? type : "minecraft:air",
+        );
+      });
+      expect(f.at(top + 1)).toBe("minecraft:stone");
+    }),
+  );
+});
+it("extends an unbroken non-air run above the minimum height", () => {
+  fc.assert(
+    fc.property(stack, fc.nat({ max: 11 }), (cells, offset) => {
+      const f = fixture();
+      cells.forEach((type, i) => {
+        f.set(64 + i, type);
+      });
+      f.cut([{ ...column, minHeight: offset % cells.length }]);
+      expect(f.grid.fills).toHaveLength(1);
+      expect(f.grid.fills[0]?.to.y).toBe(63 + cells.length);
+      cells.forEach((type, i) => {
+        expect(f.at(64 + i)).toBe(kept(type) ? type : "minecraft:air");
+      });
+    }),
+  );
+});
+it("clamps the minimum height to the world's top", () => {
+  fc.assert(
+    fc.property(fc.integer({ min: 257, max: 1000 }), (minHeight) => {
+      const f = fixture();
+      f.set(319, "minecraft:stone");
+      f.set(320, "minecraft:stone");
+      f.cut([{ ...column, minHeight }]);
+      expect(f.grid.fills).toHaveLength(1);
+      expect(f.grid.fills[0]?.to.y).toBe(319);
+      expect(f.at(319)).toBe("minecraft:air");
+      expect(f.at(320)).toBe("minecraft:stone");
+    }),
+  );
+});
+it.each([0, 1])(
+  "handles an air feet cell with minimum height %i",
+  (minHeight) => {
+    const f = fixture();
+    f.set(65, "minecraft:stone");
+    f.cut([{ ...column, minHeight }]);
+    expect(f.grid.fills).toHaveLength(minHeight);
+    if (minHeight === 1) {
+      expect(f.grid.fills[0]?.from.y).toBe(64);
+      expect(f.grid.fills[0]?.to.y).toBe(64);
+    }
+    expect(f.at(64)).toBe("minecraft:air");
+    expect(f.at(65)).toBe("minecraft:stone");
+  },
+);
 it("cuts a fixed height in flight, through air cells too", () => {
   fc.assert(
     fc.property(
@@ -116,19 +199,22 @@ it("makes no fill for a column whose bottom cell is air", () => {
   f.cut();
   expect(f.grid.fills).toEqual([]);
 });
-it("skips a column in an unloaded chunk and cuts it when asked again once loaded", () => {
-  let unloaded = false;
-  const grid = blockGrid({ unloaded: () => unloaded });
-  grid.getBlock({ x: 0, y: 64, z: 0 })?.setType("minecraft:stone");
-  const dimension = { id: "overworld", ...grid };
-  const cuts = new BladeCuts({ now: () => 100 });
-  unloaded = true;
-  cuts.cut(dimension as unknown as Dimension, [column]);
-  expect(grid.fills).toHaveLength(0);
-  unloaded = false;
-  cuts.cut(dimension as unknown as Dimension, [column]);
-  expect(grid.typeAt({ x: 0, y: 64, z: 0 })).toBe("minecraft:air");
-});
+it.each([undefined, 3])(
+  "skips an unloaded column with minimum height %s until loaded",
+  (minHeight) => {
+    let unloaded = false;
+    const grid = blockGrid({ unloaded: () => unloaded });
+    grid.getBlock({ x: 0, y: 64, z: 0 })?.setType("minecraft:stone");
+    const dimension = { id: "overworld", ...grid };
+    const cuts = new BladeCuts({ now: () => 100 });
+    unloaded = true;
+    cuts.cut(dimension as unknown as Dimension, [{ ...column, minHeight }]);
+    expect(grid.fills).toHaveLength(0);
+    unloaded = false;
+    cuts.cut(dimension as unknown as Dimension, [{ ...column, minHeight }]);
+    expect(grid.typeAt({ x: 0, y: 64, z: 0 })).toBe("minecraft:air");
+  },
+);
 it("skips a column when the chunk check throws", () => {
   const f = fixture();
   f.set(64, "minecraft:stone");

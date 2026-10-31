@@ -56,14 +56,20 @@ export class BladeCuts {
 
   private cutColumn(
     dimension: Dimension,
-    { x, z, bottom, height }: CutColumn,
+    { x, z, bottom, height, minHeight }: CutColumn,
   ): void {
     const start = Math.max(bottom, dimension.heightRange.min);
     const first = dimension.getBlock({ x, y: start, z });
     if (!first) return;
     const top =
       height === undefined
-        ? nonAirTop(dimension, x, z, start, first)
+        ? Math.min(
+            Math.max(
+              nonAirTop(dimension, x, z, start, first),
+              bottom + (minHeight ?? 0) - 1,
+            ),
+            dimension.heightRange.max - 1,
+          )
         : Math.min(bottom + height - 1, dimension.heightRange.max - 1);
     if (top < start) return;
     dimension.fillBlocks(
