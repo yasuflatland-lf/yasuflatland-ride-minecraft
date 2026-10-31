@@ -3,7 +3,7 @@
 import math
 
 from .context import FrontContext
-from .shape import ridge_dz
+from .shape import HEADER_Y, HEADER_FRONT_DZ, ridge_dz
 
 
 def build(ctx: FrontContext) -> None:
@@ -24,10 +24,10 @@ def build(ctx: FrontContext) -> None:
     # the bumper front at the centre ridge. The lower face folds into two panels meeting at that
     # ridge, with a slanted end facet over each corner glass; the upper face is one panel up to the
     # straight roof edge, where the five lamps stand, and its lower edge follows the crease V.
-    CAP_Y0 = 49.5  # the windshield top
+    CAP_Y0 = HEADER_Y  # the windshield top
     CREASE = 56
     NOSE = WS_Z - 5.5
-    BOT_C, BOT_S = WS_Z - 0.5, WS_Z + 3  # lower face foot over the windshield and at the side pillar
+    BOT_C, BOT_S = WS_Z + HEADER_FRONT_DZ, WS_Z + 3  # lower face foot over the windshield and at the side pillar
     CAP_BACK = WS_Z + 6
     R = ctx.shape.cap_ridge_px
     body.append(box(-FW, CAP_Y0, BOT_C, FW, ROOF, CAP_BACK, "white"))

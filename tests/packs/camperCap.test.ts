@@ -40,7 +40,7 @@ describe("camper cab-over ridge", () => {
           cube.origin[2] < -50,
       );
       const center = minZ(layer, 0);
-      expect(center).toBeCloseTo(-58 - (i + 0.5) / 26, 2);
+      expect(center).toBeCloseTo(-57.7 - (1.3 * (i + 0.5)) / 26, 2);
       for (const x of [-21, 21])
         expect(minZ(layer, x) - center).toBeCloseTo(4, 2);
       expect(layer.filter((cube) => cube.rotation)).toHaveLength(2);
@@ -75,8 +75,8 @@ describe("camper cab-over ridge", () => {
         cube.size[0] > 20,
     );
     expect(header).toHaveLength(2);
-    expect(minZ(header, 0)).toBeCloseTo(-58.3, 2);
-    for (const x of [-21, 21]) expect(minZ(header, x)).toBeCloseTo(-54.3, 2);
+    expect(minZ(header, 0)).toBeCloseTo(-58, 2);
+    for (const x of [-21, 21]) expect(minZ(header, x)).toBeCloseTo(-54, 2);
   });
 
   it("keeps ten window strips in place and connects their backs to the folded face", () => {

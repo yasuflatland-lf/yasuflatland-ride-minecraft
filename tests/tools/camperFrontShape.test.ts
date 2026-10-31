@@ -6,7 +6,7 @@ const runShape = <T>(expression: string, input: unknown): T => {
   const script = [
     "import json, sys",
     "sys.path.insert(0, 'tools')",
-    "from camper_front.shape import FrontShape, lean_dz, ridge_dz",
+    "from camper_front.shape import HEADER_Y, HEADER_FRONT_DZ, FrontShape, header_front_z, lean_dz, ridge_dz",
     "args = json.loads(sys.stdin.read())",
     `print(json.dumps(${expression}))`,
   ].join("\n");
@@ -21,6 +21,24 @@ const runShape = <T>(expression: string, input: unknown): T => {
 const runs = { numRuns: 25 };
 
 describe("camper front shape", () => {
+  it("fixes the windshield header height and front offset", () => {
+    expect(runShape("[HEADER_Y, HEADER_FRONT_DZ]", null)).toEqual([49.5, -0.2]);
+  });
+
+  it("places the header center and both outer edges on the ridged front plane", () => {
+    fc.assert(
+      fc.property(fc.integer({ min: -100, max: 100 }), (ws) => {
+        expect(
+          runShape(
+            "[header_front_z(x, args, 4, 24) for x in (0, -24, 24)]",
+            ws,
+          ),
+        ).toEqual([ws - 0.2 - 4, ws - 0.2, ws - 0.2]);
+      }),
+      runs,
+    );
+  });
+
   it("preserves the legacy taper below and above the upper grille", () => {
     fc.assert(
       fc.property(fc.double({ min: 0, max: 64, noNaN: true }), (y) => {
