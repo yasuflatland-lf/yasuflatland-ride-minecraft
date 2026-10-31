@@ -6,7 +6,6 @@ import type {
   BuildFeedback,
   BuildMessage,
 } from "../../../../application/build/ports/feedback";
-import type { RiderGate } from "../../../../application/build/ports/rider";
 import { SetCorner } from "../../../../application/build/setCorner";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
 import { asDimensionId, asPlayerId } from "../../../../domain/shared/ids";
@@ -18,7 +17,6 @@ import {
 
 export function registerTestCorner(
   repo: BuildSessionRepository,
-  gate: RiderGate,
   feedback: BuildFeedback,
   blocks: BuildBlockWorld,
 ): void {
@@ -77,9 +75,9 @@ export function registerTestCorner(
           feedback.drawOutline(id, dim, box, style),
       };
       if (input.corner === "clear")
-        new ClearSelection(repo, gate, observed).execute({ playerId });
+        new ClearSelection(repo, observed).execute({ playerId });
       else
-        new SetCorner(repo, gate, observed).execute({
+        new SetCorner(repo, observed).execute({
           playerId,
           dimensionId,
           cell,

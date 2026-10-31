@@ -6,11 +6,10 @@ import { cornerMarkerPoints } from "../../../src/domain/build/cornerMarker";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockBlockWorld } from "../../../src/infrastructure/build/bedrock/bedrockBlockWorld";
+import { BedrockBuildAnchor } from "../../../src/infrastructure/build/bedrock/bedrockBuildAnchor";
 import { BedrockFeedback } from "../../../src/infrastructure/build/bedrock/bedrockFeedback";
-import { BedrockRiderGate } from "../../../src/infrastructure/build/bedrock/bedrockRiderGate";
 import {
   BUILD_MESSAGE,
-  BULLDOZER_TYPE,
   LAID_BLOCK_TAG,
 } from "../../../src/infrastructure/build/identifiers";
 
@@ -35,7 +34,7 @@ const cell = fc.record({
   z: fc.integer({ min: -100, max: 100 }),
 });
 
-it("maps riding components to bulldozer feet with floor rounding on every axis", () => {
+it("maps player feet with floor rounding on every axis", () => {
   fc.assert(
     fc.property(
       fc.record({
@@ -43,26 +42,19 @@ it("maps riding components to bulldozer feet with floor rounding on every axis",
         y: fc.double({ min: -60, max: 200, noNaN: true }),
         z: fc.double({ min: -100, max: 100, noNaN: true }),
       }),
+      fc.constantFrom("minecraft:overworld", "minecraft:nether"),
       fc.boolean(),
-      fc.boolean(),
-      (location, bulldozer, valid) => {
-        const ridden = {
-          isValid: valid,
-          typeId: bulldozer ? BULLDOZER_TYPE : "yasu_ride:suv",
-          dimension: { id: dimension },
-          location,
-        };
+      (location, dimensionId, valid) => {
         engine.getEntity.mockReturnValue({
           typeId: "minecraft:player",
-          isValid: true,
-          getComponent: () => ({ entityRidingOn: ridden }),
+          isValid: valid,
+          dimension: { id: dimensionId },
+          location,
         });
-        const gate = new BedrockRiderGate();
-        expect(gate.ridesBulldozer(playerId)).toBe(bulldozer && valid);
-        expect(gate.bulldozerFeet(playerId)).toEqual(
-          bulldozer && valid
+        expect(new BedrockBuildAnchor().feetOf(playerId)).toEqual(
+          valid
             ? {
-                dimensionId: dimension,
+                dimensionId,
                 cell: {
                   x: Math.floor(location.x),
                   y: Math.floor(location.y),

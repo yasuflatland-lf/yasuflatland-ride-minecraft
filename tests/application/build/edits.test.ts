@@ -11,8 +11,8 @@ import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
   cellKey,
+  FakeAnchor,
   FakeFeedback,
-  FakeGate,
   FakeSessions,
   FakeWorld,
   overworld,
@@ -26,21 +26,21 @@ const sign = blockStateOf("minecraft:standing_sign");
 
 function setup() {
   const repo = new FakeSessions();
-  const gate = new FakeGate();
+  const anchor = new FakeAnchor();
   const feedback = new FakeFeedback();
   const world = new FakeWorld();
   const jobs = new EditJobs(repo, world, feedback);
   return {
     repo,
-    gate,
+    anchor,
     feedback,
     world,
     jobs,
-    fill: new FillSelection(repo, gate, feedback, jobs),
-    replace: new ReplaceInSelection(repo, gate, world, feedback, jobs),
-    copy: new CopySelection(repo, gate, world, feedback),
-    paste: new PasteClipboard(repo, gate, world, feedback, jobs),
-    undo: new UndoEdit(repo, gate, feedback, jobs),
+    fill: new FillSelection(repo, feedback, jobs),
+    replace: new ReplaceInSelection(repo, world, feedback, jobs),
+    copy: new CopySelection(repo, anchor, world, feedback),
+    paste: new PasteClipboard(repo, anchor, world, feedback, jobs),
+    undo: new UndoEdit(repo, feedback, jobs),
   };
 }
 
@@ -171,21 +171,8 @@ describe("EditJobs properties", () => {
 });
 
 describe("edit use cases", () => {
-  it("refuses outside a bulldozer, without a selection, and when busy", () => {
+  it("refuses without a selection and when busy", () => {
     const env = setup();
-    env.gate.riding = false;
-    env.fill.execute({ playerId: alex, pattern: { state: stone } });
-    env.undo.execute({ playerId: alex });
-    env.copy.execute({ playerId: alex });
-    env.paste.execute({ playerId: alex, skipAir: false });
-    expect(env.feedback.messages.map((m) => m.message)).toEqual([
-      "notInBulldozer",
-      "notInBulldozer",
-      "notInBulldozer",
-      "notInBulldozer",
-    ]);
-    env.feedback.messages = [];
-    env.gate.riding = true;
     env.fill.execute({ playerId: alex, pattern: { state: stone } });
     env.replace.execute({
       playerId: alex,
@@ -278,7 +265,7 @@ describe("edit use cases", () => {
     env.world.put({ x: 0, y: 64, z: 0 }, dirt);
     select(env, alex, 2);
     env.copy.execute({ playerId: alex });
-    env.gate.feet = { dimensionId: overworld, cell: { x: 10, y: 64, z: 10 } };
+    env.anchor.feet = { dimensionId: overworld, cell: { x: 10, y: 64, z: 10 } };
     env.world.put({ x: 11, y: 64, z: 10 }, stone);
     env.paste.execute({ playerId: alex, skipAir: true });
     runAll(env);

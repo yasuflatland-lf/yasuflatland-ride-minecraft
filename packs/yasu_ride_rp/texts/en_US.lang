@@ -116,7 +116,6 @@ yasu_build:building_tools=Building Tools
 yasu_build.message.pos1_set=First corner set.
 yasu_build.message.pos2_set=Second corner set (%s blocks).
 yasu_build.message.selection_cleared=Selection cleared.
-yasu_build.message.not_in_bulldozer=Ride a bulldozer to use building tools.
 yasu_build.message.no_selection=Set both selection corners first.
 yasu_build.message.too_large=The selection is too large (edit limit: %s blocks; copy limit: %s blocks).
 yasu_build.message.busy=An edit is already running.

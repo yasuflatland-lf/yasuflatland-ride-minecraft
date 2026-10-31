@@ -11,13 +11,13 @@ import { BUILD_SPEC } from "../../domain/build/spec";
 import { asDimensionId } from "../../domain/shared/ids";
 import { BedrockBlockWorld } from "../../infrastructure/build/bedrock/bedrockBlockWorld";
 import {
-  BULLDOZER_TYPE,
   SELECTION_WAND_TYPE,
   TEST_CORNER_EVENT,
   TEST_EDIT_EVENT,
   TEST_MODE_EVENT,
   TEST_RESULT_EVENT,
 } from "../../infrastructure/build/identifiers";
+import { ENTITY_TYPE } from "../../infrastructure/vehicle/bedrock/identifiers";
 import { type Arena, wait, withCar } from "../arena";
 import type { Outcome } from "../outcome";
 
@@ -84,7 +84,7 @@ function withPlayerBulldozer(
         await wait(2);
       }
     },
-    BULLDOZER_TYPE,
+    ENTITY_TYPE.bulldozer,
   );
 }
 
@@ -254,15 +254,16 @@ export async function buildEdits(a: Arena): Promise<Outcome> {
         const target = cube(55, y, 50, 3);
         for (const block of target) block.setType("minecraft:gold_block");
         const start = car.location;
+        const playerStart = player.location;
         // Real driver input takes precedence over drive()'s injected test input.
         car.teleport({ x: start.x + 5, y: start.y, z: start.z });
         await wait(2);
         check(
           riddenEntity(player)?.id === car.id &&
-            Math.floor(car.location.x) === Math.floor(start.x) + 5 &&
-            Math.floor(car.location.y) === Math.floor(start.y) &&
-            Math.floor(car.location.z) === Math.floor(start.z),
-          "teleport did not preserve the rider and shift bulldozer feet by five x cells",
+            Math.floor(player.location.x) === Math.floor(playerStart.x) + 5 &&
+            Math.floor(player.location.y) === Math.floor(playerStart.y) &&
+            Math.floor(player.location.z) === Math.floor(playerStart.z),
+          "teleport did not preserve the rider and shift player feet by five x cells",
         );
         await edit("paste 0");
         check(
@@ -342,7 +343,7 @@ export async function buildEdits(a: Arena): Promise<Outcome> {
   }
 }
 
-/** Requires a connected player; stable APIs cannot create one or read back a camera preset (ADR 0001, 0010). */
+/** Requires a connected player; stable APIs cannot create one (ADR 0001, 0010). */
 export async function buildSelectionAndMode(a: Arena): Promise<Outcome> {
   const player = world.getAllPlayers()[0];
   if (!player?.isValid)
@@ -392,7 +393,7 @@ export async function buildSelectionAndMode(a: Arena): Promise<Outcome> {
         await corner("clear", 20);
         await wait(BUILD_SPEC.modeEnterTicks);
         const active = await mode();
-        // A short hotbar scroll must not flick build mode or the vehicle's camera wish.
+        // A short hotbar scroll must not flick build mode.
         inventory.setItem(slot, undefined);
         await wait(1);
         inventory.setItem(slot, new ItemStack(SELECTION_WAND_TYPE));
@@ -400,16 +401,20 @@ export async function buildSelectionAndMode(a: Arena): Promise<Outcome> {
         await corner("clear", 20);
         ejectPlayer(player, car);
         await wait(2);
+        const onFoot = await mode();
+        const selected = await corner("pos1", 25);
+        inventory.setItem(slot, undefined);
+        await wait(BUILD_SPEC.modeLeaveTicks);
         const inactive = await mode();
-        const refused = await corner("pos1", 25);
         return {
           pass:
             active.mode === true &&
             scroll.mode === true &&
+            onFoot.mode === true &&
             inactive.mode === false &&
-            refused.message === "notInBulldozer" &&
-            refused.selection === null,
-          detail: `mode=${active.mode} scroll=${scroll.mode} off=${inactive.mode} refusal=${refused.message}; visually verify third person while active and restored view after dismount`,
+            selected.message === "pos1Set" &&
+            selected.selection !== null,
+          detail: `mode=${active.mode} scroll=${scroll.mode} onFoot=${onFoot.mode} off=${inactive.mode} corner=${selected.message}`,
         };
       },
     );

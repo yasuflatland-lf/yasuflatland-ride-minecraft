@@ -7,22 +7,16 @@ import { BUILD_SPEC } from "../../domain/build/spec";
 import type { PlayerId } from "../../domain/shared/ids";
 import type { EditJobs } from "./editJobs";
 import type { BuildFeedback } from "./ports/feedback";
-import type { RiderGate } from "./ports/rider";
 
 export class FillSelection {
   constructor(
     private readonly repo: BuildSessionRepository,
-    private readonly gate: RiderGate,
     private readonly feedback: BuildFeedback,
     private readonly jobs: EditJobs,
   ) {}
 
   execute(cmd: { playerId: PlayerId; pattern: Pattern }): void {
     const { playerId } = cmd;
-    if (!this.gate.ridesBulldozer(playerId)) {
-      this.feedback.showMessage(playerId, "notInBulldozer");
-      return;
-    }
     const session = this.repo.getOrCreate(playerId);
     const box = session.editableBox(BUILD_SPEC.maxVolume);
     if (isEditRefusal(box)) {

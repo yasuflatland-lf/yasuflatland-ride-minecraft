@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { PlaceChair } from "../../src/application/camp/placeChair";
 import type { SpaceCheck } from "../../src/application/shared/ports/space";
 import { asDimensionId, asPlayerId } from "../../src/domain/shared/ids";
@@ -54,9 +54,6 @@ vi.mock("../../src/infrastructure/camp/install", () => ({
 vi.mock("../../src/infrastructure/build/install", () => ({
   installBuild: vi.fn(),
 }));
-beforeEach(() => {
-  vi.mocked(installBuild).mockReturnValue({ isInBuildMode: () => false });
-});
 afterEach(() => vi.restoreAllMocks());
 
 it("wires space both ways through a late-bound camp reference (ADR 0129)", () => {
@@ -148,29 +145,23 @@ it("hands the vehicles the camp's switch targets once camp is installed", () => 
   expect(later?.()).toBe(switchTargets);
 });
 
-it("installs build last and passes its camera wish and both space checks (ADR 0178)", () => {
+it("installs build last and passes both space checks without requesting a camera change", () => {
   vi.spyOn(console, "warn").mockImplementation(() => {});
   const isVehicleSpace = vi.fn<SpaceCheck>();
   const isCampSpace = vi.fn<SpaceCheck>();
-  const isInBuildMode = vi.fn<(id: ReturnType<typeof asPlayerId>) => boolean>();
   const playerId = asPlayerId("builder");
   vi.mocked(installVehicles).mockImplementation((deps) => {
     expect(deps.wantsChaseCamera(playerId)).toBe(false);
     return { isVehicleSpace };
   });
   vi.mocked(installCamp).mockReturnValue({ isCampSpace, switchTargets: [] });
-  vi.mocked(installBuild).mockReturnValue({ isInBuildMode });
   bootstrap();
   expect(installBuild).toHaveBeenCalledTimes(1);
   expect(vi.mocked(installCamp).mock.invocationCallOrder[0]).toBeLessThan(
     vi.mocked(installBuild).mock.invocationCallOrder[0] ?? 0,
   );
   const wish = vi.mocked(installVehicles).mock.lastCall?.[0].wantsChaseCamera;
-  for (const active of [true, false]) {
-    isInBuildMode.mockReturnValue(active);
-    expect(wish?.(playerId)).toBe(active);
-    expect(isInBuildMode).toHaveBeenLastCalledWith(playerId);
-  }
+  expect(wish?.(playerId)).toBe(false);
   const protectedAt = vi.mocked(installBuild).mock.lastCall?.[0].isProtected;
   const dimension = asDimensionId("minecraft:overworld");
   const cell = { x: 1, y: 2, z: 3 };
