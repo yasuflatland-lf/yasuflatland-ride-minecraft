@@ -122,22 +122,34 @@ def tilt_assembly(cubes, pivot, axis, degrees, assembly=None, assemblies=None):
     `assembly` to be a key in the generator's `assemblies` table (empty by default)."""
     if axis != "x":
         raise ValueError(f"only the x axis is supported, got {axis!r}")
+    return _rotate_cubes(cubes, pivot, _rx(-degrees), degrees, assembly, assemblies)
+
+
+def yaw_cubes(cubes, pivot, degrees, assembly=None, assemblies=None):
+    """Return rigid copies yawed about the world vertical line through `pivot`.
+
+    Positive degrees use the cube y convention. Ry multiplies the existing cube matrix
+    on the left; compound results require the same assembly registration as tilt_assembly.
+    """
+    return _rotate_cubes(cubes, pivot, _ry(degrees), degrees, assembly, assemblies)
+
+
+def _rotate_cubes(cubes, pivot, transform, degrees, assembly, assemblies):
     assemblies = {} if assemblies is None else assemblies
     if not degrees:
         result = copy.deepcopy(cubes)
         assert_axes(result, {assembly: result} if assembly is not None and assembly in assemblies else {})
         return result
-    tilt = _rx(-degrees)
     result = []
     for cube in cubes:
         moved = copy.deepcopy(cube)
         old_pivot = cube.get("pivot", cube["origin"])
         rotation = cube.get("rotation", [0, 0, 0])
         offset = [old_pivot[i] - pivot[i] for i in range(3)]
-        new_pivot = [_clean(pivot[i] + v) for i, v in enumerate(_apply(tilt, offset))]
+        new_pivot = [_clean(pivot[i] + v) for i, v in enumerate(_apply(transform, offset))]
         moved["origin"] = [_clean(new_pivot[i] + cube["origin"][i] - old_pivot[i]) for i in range(3)]
         moved["pivot"] = new_pivot
-        moved["rotation"] = _rotation_of(_mul(tilt, cube_matrix(rotation)))
+        moved["rotation"] = _rotation_of(_mul(transform, cube_matrix(rotation)))
         if axis_count(moved) > 1 and (assembly is None or assembly not in assemblies):
             raise ValueError(f"assembly {assembly!r} may not carry a two-axis rotation (ADR 0009, 0167)")
         result.append(moved)

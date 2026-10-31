@@ -926,12 +926,9 @@ describe("camper windshield ridge (#1069)", () => {
       "windshield coordinate",
     );
     expect(post.size).toEqual([1.4, 13.5, 0.8]);
-    const postZ = untilt(point(post, 0.5, 0, 0.625))[2];
+    const postZ = point(post, 0.5, 0, 0.5)[2];
     for (const pane of panes) {
-      const endpoints = [
-        untilt(point(pane, 0, 0, 0.5)),
-        untilt(point(pane, 1, 0, 0.5)),
-      ];
+      const endpoints = [point(pane, 0, 0, 0.5), point(pane, 1, 0, 0.5)];
       const [inner, outer] = endpoints.sort(
         (a, b) => Math.abs(a[0]) - Math.abs(b[0]),
       );
@@ -959,8 +956,27 @@ describe("camper windshield ridge (#1069)", () => {
       const foot = point(pane, 0.5, 0, 0.5);
       const header = point(pane, 0.5, 1, 0.5);
       expect(
-        (Math.atan2(header[2] - foot[2], header[1] - foot[1]) * 180) / Math.PI,
+        (Math.atan2(
+          Math.hypot(header[0] - foot[0], header[2] - foot[2]),
+          header[1] - foot[1],
+        ) *
+          180) /
+          Math.PI,
       ).toBeCloseTo(8, 2);
+    }
+  });
+
+  it("keeps each pane's foot and header edges level in world space", () => {
+    expect(panes).toHaveLength(2);
+    for (const pane of panes) {
+      for (const height of [0, 1]) {
+        for (const depth of [0, 1]) {
+          expect(point(pane, 0, height, depth)[1]).toBeCloseTo(
+            point(pane, 1, height, depth)[1],
+            3,
+          );
+        }
+      }
     }
   });
 
@@ -977,12 +993,15 @@ describe("camper windshield ridge (#1069)", () => {
           Math.sign(point(cube, 0.5, 0, 0.5)[0]) === sx,
       ) as Cube;
       for (const height of [0, 0.5, 1]) {
-        const edge = untilt(point(pane, sx > 0 ? 1 : 0, height, 0.5));
-        const wrap = untilt(point(corner, sx > 0 ? 0 : 1, height, 0.5));
-        expect(Math.abs(edge[0] - wrap[0])).toBeLessThan(0.1);
-        expect(Math.abs(edge[1] - wrap[1])).toBeLessThan(0.002);
-        expect(Math.abs(edge[2] - wrap[2])).toBeLessThan(0.4);
-        const rubber = untilt(point(strip, sx > 0 ? 1 : 0, height, 0.5));
+        const edge = point(pane, sx > 0 ? 1 : 0, height, 0.5);
+        const wrap = point(corner, sx > 0 ? 0 : 1, height, 0.5);
+        // Compare the seam at the same world height after the pane's world yaw.
+        const wrapZ =
+          wrap[2] + (edge[1] - wrap[1]) * Math.tan((8 * Math.PI) / 180);
+        expect(Math.abs(edge[0] - wrap[0])).toBeLessThan(0.5);
+        expect(Math.abs(edge[1] - wrap[1])).toBeLessThan(0.04);
+        expect(Math.abs(edge[2] - wrapZ)).toBeLessThan(0.2);
+        const rubber = point(strip, sx > 0 ? 1 : 0, height, 0.5);
         expect(
           Math.hypot(edge[0] - rubber[0], edge[2] - rubber[2]),
         ).toBeLessThan(0.2);
@@ -1057,7 +1076,7 @@ describe("camper windshield ridge (#1069)", () => {
         ),
       ),
     );
-    expect(minimumY - end(pad, 1)).toBeCloseTo(0.946, 3);
+    expect(minimumY - end(pad, 1)).toBeCloseTo(0.958, 3);
     const minimumGlassY = Math.min(
       ...[...panes, ...corners].flatMap((cube) =>
         [0, 1].flatMap((u) =>

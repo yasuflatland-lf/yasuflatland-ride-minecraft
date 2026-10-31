@@ -4,60 +4,64 @@ import math
 
 from tool_loader import load_tool
 from .context import FrontContext
-from .shape import ridge_dz
 
 cube_tilt = load_tool("cube_tilt")
+
+WS_POST_HALF_WIDTH = 0.6
+WS_FOOT_Y = 36
+WS_HEADER_Y = 49.5
+WS_FRAME_BOTTOM_Y = 35.4
+WS_LEAN = -8
+WIPER_ANGLE = 25
+WIPER_OFFSETS = (-14, 5)
+WIPER_LENGTH = 8
 
 
 def build(ctx: FrontContext, assemblies: dict) -> dict[str, list[dict]]:
     FW, WS_Z = ctx.FW, ctx.WS_Z
     box = ctx.box
-    pivot = [0, 36, WS_Z]
+    pivot = [0, WS_FOOT_Y, WS_Z]
     ridge = ctx.shape.windshield_ridge_px
-    angle = math.degrees(math.atan2(ridge, FW - 0.6))
+    angle = math.degrees(math.atan2(ridge, FW - WS_POST_HALF_WIDTH))
     stretch = 1 / math.cos(math.radians(angle))
-    ridge_z = WS_Z + ridge_dz(0, ridge, FW)
+    ridge_z = WS_Z - ridge
     members = {}
 
-    for sx, name, wiper_x in ((-1, "windshield_left", -14), (1, "windshield_right", 5)):
-        # Keep the projected width fixed so the 45-degree corner still meets the pane.
-        outer_dz = ridge_dz(FW, ridge, FW)
+    for sx, name, wiper_x in zip((-1, 1), ("windshield_left", "windshield_right"), WIPER_OFFSETS):
         corners = [
-            ctx.corner(sx, WS_Z + outer_dz, 36, 49.5, "glass"),
-            ctx.corner(sx, WS_Z + outer_dz, 35.4, 36, "black", inset=0.2),
+            ctx.corner(sx, WS_Z, WS_FOOT_Y, WS_HEADER_Y, "glass"),
+            ctx.corner(sx, WS_Z, WS_FRAME_BOTTOM_Y, WS_FOOT_Y, "black", inset=0.2),
         ]
-        yaw = -sx * angle
-        pane_pivot = [sx * 0.6, 36, ridge_z]
 
         def pane_x(x):
-            return sx * 0.6 + (x - sx * 0.6) * stretch
-        x0, x1 = sorted((sx * 0.6, sx * FW))
-        f0, f1 = sorted((sx * (FW - 0.6), sx * FW))
-        cubes = corners + [
-            box(pane_x(x0), 36, ridge_z + 0.2, pane_x(x1), 49.5, ridge_z + 0.4,
-                "glass", [0, yaw, 0], pane_pivot),
-            box(pane_x(f0), 36, ridge_z - 0.2, pane_x(f1), 49.5, ridge_z + 0.6,
-                "black", [0, yaw, 0], pane_pivot),
+            return sx * FW + (x - sx * FW) * stretch
+
+        x0, x1 = sorted((sx * WS_POST_HALF_WIDTH, sx * FW))
+        f0, f1 = sorted((sx * (FW - WS_POST_HALF_WIDTH), sx * FW))
+        # Center the glass at +0.2 so the 45-degree corner seam stays within 0.2 px in z.
+        panes = [
+            box(pane_x(x0), WS_FOOT_Y, WS_Z + 0.1, pane_x(x1), WS_HEADER_Y, WS_Z + 0.3,
+                "glass"),
+            box(pane_x(f0), WS_FOOT_Y, WS_Z - 0.2, pane_x(f1), WS_HEADER_Y, WS_Z + 0.6,
+                "black"),
+            box(pane_x(wiper_x), WS_FOOT_Y + 0.6, WS_Z - 0.6,
+                pane_x(wiper_x + WIPER_LENGTH), WS_FOOT_Y + 1.2, WS_Z, "black",
+                [0, 0, WIPER_ANGLE], [pane_x(wiper_x), WS_FOOT_Y + 1, WS_Z]),
         ]
+        fixed = corners
         if sx == 1:
-            cubes.append(box(-0.7, 36, ridge_z - 0.2, 0.7, 49.5, ridge_z + 0.6, "chrome"))
-        # Preserve the blade's diagonal in its pane's plane, including its original pivot.
-        wiper = box(pane_x(wiper_x), 36.6, ridge_z - 0.6,
-                    pane_x(wiper_x + 8), 37.2, ridge_z, "black",
-                    [0, 0, 25], [pane_x(wiper_x), 37, ridge_z])
-        yaw_matrix = cube_tilt.cube_matrix([0, yaw, 0])
-        old_pivot = wiper["pivot"]
-        new_pivot = [pane_pivot[i] + d for i, d in enumerate(cube_tilt._apply(
-            yaw_matrix, [old_pivot[i] - pane_pivot[i] for i in range(3)]))]
-        wiper["origin"] = [new_pivot[i] + wiper["origin"][i] - old_pivot[i] for i in range(3)]
-        wiper["pivot"] = new_pivot
-        wiper["rotation"] = cube_tilt._rotation_of(cube_tilt._mul(
-            yaw_matrix, cube_tilt.cube_matrix(wiper["rotation"])))
-        cubes.append(wiper)
-        members[name] = cube_tilt.tilt_assembly(
-            cubes, pivot=pivot, axis="x", degrees=-8,
+            fixed.append(box(-0.7, WS_FOOT_Y, ridge_z - 0.2,
+                             0.7, WS_HEADER_Y, ridge_z + 0.6, "chrome"))
+        tilted = cube_tilt.tilt_assembly(
+            fixed + panes, pivot=pivot, axis="x", degrees=WS_LEAN,
             assembly=name, assemblies=assemblies,
         )
+        # The outer foot lies on the lean axis, so its tilted position is unchanged.
+        yawed = cube_tilt.yaw_cubes(
+            tilted[len(fixed):], pivot=[sx * FW, WS_FOOT_Y, WS_Z], degrees=-sx * angle,
+            assembly=name, assemblies=assemblies,
+        )
+        members[name] = tilted[:len(fixed)] + yawed
         ctx.glass_corners[sx] = members[name][:2]
         ctx.front.extend(members[name][2:])
     return members
