@@ -1,4 +1,5 @@
 import { AimRoofHeight } from "../../application/build/aimRoofHeight";
+import { CancelFlow } from "../../application/build/cancelFlow";
 import { ChooseRoof } from "../../application/build/chooseRoof";
 import { ClearSelection } from "../../application/build/clearSelection";
 import { ConfirmRoof } from "../../application/build/confirmRoof";
@@ -7,6 +8,7 @@ import { CopySelection } from "../../application/build/copySelection";
 import { EditJobs } from "../../application/build/editJobs";
 import { PasteAt } from "../../application/build/pasteAt";
 import { SetPoint } from "../../application/build/setPoint";
+import { SetRoofHeightTo } from "../../application/build/setRoofHeightTo";
 import { ShowOutline } from "../../application/build/showOutline";
 import { StartPaste } from "../../application/build/startPaste";
 import { TapAir } from "../../application/build/tapAir";
@@ -16,6 +18,7 @@ import type { SpaceCheck } from "../../application/shared/ports/space";
 import type { PlayerId } from "../../domain/shared/ids";
 import { BedrockBlockWorld } from "./bedrock/bedrockBlockWorld";
 import { BedrockFeedback } from "./bedrock/bedrockFeedback";
+import { BedrockBuildMenus } from "./bedrock/buildMenus";
 import { editActions } from "./bedrock/editActions";
 import { registerBuildTool } from "./bedrock/handlers/buildTool";
 import { registerEditTick } from "./bedrock/handlers/editTick";
@@ -48,19 +51,26 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
     clear,
   };
   const actions = (id: PlayerId) => editActions(id, cases);
+  const menus = new BedrockBuildMenus(repo, {
+    ...cases,
+    confirmShape: cases.fill,
+    cancel: new CancelFlow(repo),
+    setRoofHeight: new SetRoofHeightTo(repo),
+  });
   registerWand(
     new SetPoint(repo, blocks, feedback),
     new TapAir(repo, feedback),
     clear,
     repo,
     cases.pasteAt,
+    menus,
   );
   registerModeTick(modes);
   registerOutlineTick(new ShowOutline(repo, feedback));
   registerSessions(repo);
   registerTestCorner(repo, feedback, blocks);
   registerTestMode(modes);
-  registerBuildTool(actions);
+  registerBuildTool(menus);
   registerEditTick(jobs);
   registerTestEdit(actions, repo, recorded);
 }

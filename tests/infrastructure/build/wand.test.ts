@@ -16,6 +16,13 @@ import { SELECTION_WAND_TYPE } from "../../../src/infrastructure/build/identifie
 import { InMemorySessionRepository } from "../../../src/infrastructure/build/persistence/inMemorySessionRepository";
 import { FakeFeedback, FakeWorld, nether } from "../../application/build/fakes";
 
+const menus = {
+  showShapeMenu: vi.fn(),
+  showRoofMenu: vi.fn(),
+  showUtilityMenu: vi.fn(),
+  showHeightSlider: vi.fn(),
+};
+
 const engine = vi.hoisted(() => {
   const handlers = new Map<string, (event: unknown) => void>();
   const scheduled: (() => void)[] = [];
@@ -56,6 +63,7 @@ it("preserves blocks and defers point taps out of before events", () => {
       fc.boolean(),
       (x, y, z, holding) => {
         engine.scheduled.length = 0;
+        vi.clearAllMocks();
         const repo = new InMemorySessionRepository();
         const feedback: BuildFeedback = {
           showMessage: vi.fn(),
@@ -75,6 +83,7 @@ it("preserves blocks and defers point taps out of before events", () => {
             feedback,
             new EditJobs(repo, blocks, feedback),
           ),
+          menus,
         );
         const player = {
           id: "p",
@@ -125,6 +134,7 @@ it("preserves blocks and defers point taps out of before events", () => {
         engine.handlers.get("interact")?.(interact);
         for (const callback of engine.scheduled.splice(0)) callback();
         expect(repo.get(id)?.flow.kind).toBe(holding ? "endpoint" : undefined);
+        expect(menus.showShapeMenu).toHaveBeenCalledTimes(holding ? 1 : 0);
         player.isSneaking = true;
         engine.handlers.get("use")?.({
           source: player,
@@ -156,6 +166,7 @@ it("routes each engine face to aimed paste in the hit dimension after the before
       fc.boolean(),
       (face, block, skipAir) => {
         engine.scheduled.length = 0;
+        vi.clearAllMocks();
         const repo = new InMemorySessionRepository();
         const id = asPlayerId("p");
         const session = repo.getOrCreate(id);
@@ -177,6 +188,7 @@ it("routes each engine face to aimed paste in the hit dimension after the before
           new ClearSelection(repo, feedback),
           repo,
           new PasteAt(repo, blocks, feedback, jobs),
+          menus,
         );
         const player = {
           id: "p",
@@ -220,4 +232,50 @@ it("routes each engine face to aimed paste in the hit dimension after the before
       },
     ),
   );
+});
+
+it("opens only on entering endpoint and defers an air-triggered menu safely", () => {
+  engine.scheduled.length = 0;
+  vi.clearAllMocks();
+  const repo = new InMemorySessionRepository();
+  const feedback = new FakeFeedback();
+  const blocks = new FakeWorld();
+  const id = asPlayerId("p");
+  const session = repo.getOrCreate(id);
+  const from = { x: 0, y: 60, z: 0 };
+  const to = { x: 4, y: 60, z: 4 };
+  const point1 = {
+    kind: "point1" as const,
+    dimensionId: nether,
+    cell: from,
+    material: blockStateOf("minecraft:stone"),
+  };
+  session.setFlow(point1);
+  const air = new TapAir(repo, feedback);
+  const execute = air.execute.bind(air);
+  vi.spyOn(air, "execute").mockImplementation((cmd) =>
+    execute({ ...cmd, end: to }),
+  );
+  registerWand(
+    new SetPoint(repo, blocks, feedback),
+    air,
+    new ClearSelection(repo, feedback),
+    repo,
+    new PasteAt(repo, blocks, feedback, new EditJobs(repo, blocks, feedback)),
+    menus,
+  );
+  const player = { id, isValid: true, isSneaking: false };
+  const event = { source: player, itemStack: { typeId: SELECTION_WAND_TYPE } };
+  engine.handlers.get("use")?.(event);
+  expect(session.flow.kind).toBe("endpoint");
+  expect(menus.showShapeMenu).not.toHaveBeenCalled();
+  for (const callback of engine.scheduled.splice(0)) callback();
+  expect(menus.showShapeMenu).toHaveBeenCalledExactlyOnceWith(player);
+  engine.handlers.get("use")?.(event);
+  expect(engine.scheduled).toHaveLength(0);
+  session.setFlow(point1);
+  engine.handlers.get("use")?.(event);
+  player.isValid = false;
+  for (const callback of engine.scheduled.splice(0)) callback();
+  expect(menus.showShapeMenu).toHaveBeenCalledTimes(1);
 });

@@ -8,6 +8,7 @@ import type { BuildSessionRepository } from "../../../../domain/build/sessionRep
 import { asDimensionId, asPlayerId } from "../../../../domain/shared/ids";
 import { heldTypeId } from "../../../shared/heldItem";
 import { SELECTION_WAND_TYPE } from "../../identifiers";
+import type { BuildMenus } from "../buildMenus";
 
 export function registerWand(
   setPoint: SetPoint,
@@ -15,6 +16,7 @@ export function registerWand(
   clear: ClearSelection,
   repo: BuildSessionRepository,
   pasteAt: PasteAt,
+  menus: BuildMenus,
 ): void {
   world.beforeEvents.playerBreakBlock.subscribe((ev) => {
     if (heldTypeId(ev.player) === SELECTION_WAND_TYPE) ev.cancel = true;
@@ -42,13 +44,31 @@ export function registerWand(
           [Direction.West]: "west",
         };
         pasteAt.execute({ ...command, block: command.cell, face: faces[face] });
-      } else setPoint.execute(command);
+      } else {
+        const before = repo.get(command.playerId)?.flow.kind;
+        setPoint.execute(command);
+        if (
+          before !== "endpoint" &&
+          repo.get(command.playerId)?.flow.kind === "endpoint"
+        )
+          void menus.showShapeMenu(player);
+      }
     });
   });
   world.afterEvents.itemUse.subscribe(({ source, itemStack }) => {
     if (!source.isValid || itemStack.typeId !== SELECTION_WAND_TYPE) return;
     const cmd = { playerId: asPlayerId(source.id) };
     if (source.isSneaking) clear.execute(cmd);
-    else tapAir.execute(cmd);
+    else {
+      const before = repo.get(cmd.playerId)?.flow.kind;
+      tapAir.execute(cmd);
+      if (
+        before !== "endpoint" &&
+        repo.get(cmd.playerId)?.flow.kind === "endpoint"
+      )
+        system.run(() => {
+          if (source.isValid) void menus.showShapeMenu(source);
+        });
+    }
   });
 }

@@ -1,6 +1,7 @@
 // Limits the build feature reads (ADR 0178).
 export const BUILD_SPEC = Object.freeze({
   reach: 64,
+  heightSliderFallback: false,
   worldTopY: 319,
   maxVolume: 100_000, // largest selection an edit accepts
   maxCopyVolume: 32_768, // largest selection copy accepts; copy reads in one tick
