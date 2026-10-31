@@ -139,8 +139,8 @@ This directory records design decisions and the reasons behind them. The format 
 | [0133](0133-sleep-on-the-tent-mattresses.md) | Sleep on the tent mattresses | Proposed |
 | [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md) | Switch the tent lantern with the headlight switch | Proposed; extended by 0138 (Proposed) |
 | [0135](0135-repaint-the-tent-with-dyes.md) | Repaint the tent with dyes | Proposed |
-| [0136](0136-bulldozer.md) | Add the bulldozer kind | Proposed; superseded in part and extended by 0138 (Proposed), 0140 (Proposed), and 0141 (Proposed); extended by 0146 (Proposed); extended by 0147, 0148, and 0151 (Proposed); submarine no-cut rule superseded by 0155 (Proposed); extended by 0178 (Proposed), 0180 (Proposed), and 0181 (Proposed) |
-| [0137](0137-clear-block-columns-with-the-blade.md) | Clear block columns with the blade, keeping liquids, containers, and laid blocks | Proposed; extended by 0138 (Proposed), 0155 (Proposed), 0178 (Proposed), and 0181 (Proposed) |
+| [0136](0136-bulldozer.md) | Add the bulldozer kind | Proposed; superseded in part and extended by 0138 (Proposed), 0140 (Proposed), and 0141 (Proposed); extended by 0146 (Proposed); extended by 0147, 0148, and 0151 (Proposed); submarine no-cut rule superseded by 0155 (Proposed); extended by 0178 (Proposed), 0180 (Proposed), and 0181 (Proposed); amended by 0195 (Proposed) |
+| [0137](0137-clear-block-columns-with-the-blade.md) | Clear block columns with the blade, keeping liquids, containers, and laid blocks | Proposed; extended by 0138 (Proposed), 0155 (Proposed), 0178 (Proposed), and 0181 (Proposed); amended by 0195 (Proposed) |
 | [0138](0138-raise-and-lower-the-bulldozer-blade.md) | Raise and lower the bulldozer blade with a switch item | Proposed; extended by 0139 (Proposed), 0140 (Proposed), 0148 (Proposed), 0151 (Proposed), 0155 (Proposed), and 0180 (Proposed); creative group superseded in part by 0178 (Proposed) |
 | [0139](0139-show-the-held-tool-on-the-cab-monitor.md) | Show the driver's held tool on the cab monitor | Proposed; superseded in part by 0171 (Proposed) and 0178 (Proposed); extended by 0180 (Proposed) and 0181 (Proposed) |
 | [0140](0140-bulldozer-sounds.md) | Give the bulldozer its own engine, track, and blade hydraulic sounds | Proposed |
@@ -195,6 +195,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0192](0192-suv-detailed-body.md) | Detail the SUV body, dashboard and lamps | Proposed |
 | [0193](0193-shared-texture-tooling.md) | Share texture tooling between generators | Proposed |
 | [0194](0194-enlarge-the-suv-for-seated-head-clearance.md) | Enlarge the SUV for seated head clearance | Proposed |
+| [0195](0195-cut-the-body-height-ahead-of-a-grounded-blade.md) | Cut the body height ahead of a grounded blade | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 

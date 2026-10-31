@@ -24,6 +24,10 @@ export function feetRow(feetY: number, grounded: boolean): number {
   return grounded ? Math.ceil(feetY - 0.01) : Math.floor(feetY + 0.01);
 }
 
+/**
+ * Clear through air gaps up to the body's top. Ground cuts also clear any longer
+ * unbroken non-air run from the feet; fixed cuts stop at the body's top.
+ */
 export function bladeColumns(
   location: Vec3,
   yaw: number,
@@ -31,14 +35,13 @@ export function bladeColumns(
   reach: CutReach,
 ): CutColumn[] {
   const bottom = feetRow(location.y, reach.kind === "run" || reach.grounded);
-  const height =
-    reach.kind === "fixed"
-      ? Math.ceil(location.y + rule.bodyHeight) - bottom
-      : undefined;
+  const bodyHeight = Math.ceil(location.y + rule.bodyHeight) - bottom;
   return rectCells(location, yaw, rule).map((cell) => ({
     ...cell,
     bottom,
-    ...(height === undefined ? {} : { height }),
+    ...(reach.kind === "run"
+      ? { minHeight: bodyHeight }
+      : { height: bodyHeight }),
   }));
 }
 
