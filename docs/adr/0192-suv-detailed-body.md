@@ -89,6 +89,19 @@ Larger colour textures and 16 MER textures, with one texture set per paint, incr
 
 The new bone contract requires downstream generators, render controllers and model checks to recognise both names. If the owner declines the extension, the series stops and asks for direction before proceeding. This issue changes documentation only; code, packs, tests and the separate shared texture tooling ADR 0193 are outside its scope.
 
+## Addendum: windshield lower rail (#1022)
+
+The lower windshield rail uses `WINDSHIELD_RAIL_HEIGHT = 0.3` construction
+pixels, matching the hood sheet thickness instead of the previous 1 px band.
+The sealed windshield starts at `HOOD_TOP_Y + WINDSHIELD_RAIL_HEIGHT` (19.3 px)
+and shares the rail's pivot and rake, so their adjoining faces leave no gap.
+The sloping rail is not coplanar with the horizontal hood; its front top corner
+is about 0.533 px above `HOOD_TOP_Y`, down from 1.106 px. This is the initial
+thin-rail choice; driver-seat appearance and absence of z-fighting still need
+the owner's in-game check. The A-pillars, front door posts, roof, seats and
+collision dimensions stay unchanged. Resource Pack header/module and Behavior
+Pack dependency advance to 0.1.215 for client cache invalidation (0015).
+
 ### Steering hub addendum (#1023)
 
 Replace the two grille-colored hub squares with a `disc("z", ...)` of 16 turned

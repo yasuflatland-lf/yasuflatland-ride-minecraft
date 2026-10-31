@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
@@ -8,7 +9,31 @@ import { assertOneAxis, multipleAxes } from "./oneAxis";
 
 type Vec3 = [number, number, number];
 
-const SIZE_SCALE = 1.45;
+const dimensions = JSON.parse(
+  execFileSync(
+    "python3",
+    [
+      "-I",
+      "-c",
+      [
+        "import json, sys",
+        "sys.path.insert(0, 'tools')",
+        "from tool_loader import load_tool",
+        "d = load_tool('suv_dims')",
+        "print(json.dumps({k: v for k, v in vars(d).items() if k.isupper() and isinstance(v, (int, float))}))",
+      ].join("\n"),
+    ],
+    { encoding: "utf8" },
+  ),
+) as {
+  SIZE_SCALE: number;
+  HOOD_TOP_Y: number;
+  WINDSHIELD_RAIL_HEIGHT: number;
+  WINDSHIELD_LEAN: number;
+  ROOF_Y: number;
+  ROOF_TOP: number;
+};
+const SIZE_SCALE = dimensions.SIZE_SCALE;
 const scaled = (value: number) => Number((value * SIZE_SCALE).toFixed(12));
 
 interface Cube {
@@ -440,6 +465,32 @@ describe("SUV model (ADR 0009)", () => {
         expect(windshield?.rotation).toEqual(pillar.rotation);
         expect(windshield?.pivot).toEqual(pillar.pivot);
       }
+    });
+
+    it("joins the thin lower rail to the sealed plate at the named rail height", () => {
+      const rails = allBodyCubes.filter(
+        (c) =>
+          c.rotation?.[0] === -dimensions.WINDSHIELD_LEAN &&
+          c.size[0] > scaled(20),
+      );
+      expect(rails).toHaveLength(1);
+      const rail = rails[0];
+      const plate = plates.find((c) => c.rotation);
+      if (!rail || !plate) throw new Error("Missing windshield");
+      expect(dimensions.WINDSHIELD_RAIL_HEIGHT).toBeGreaterThan(0);
+      expect(dimensions.WINDSHIELD_RAIL_HEIGHT).toBeLessThanOrEqual(0.3);
+      expect(rail.origin[1]).toBe(scaled(dimensions.HOOD_TOP_Y));
+      expect(rail.size[1]).toBe(scaled(dimensions.WINDSHIELD_RAIL_HEIGHT));
+      expect(plate.origin[1]).toBeCloseTo(
+        scaled(dimensions.HOOD_TOP_Y + dimensions.WINDSHIELD_RAIL_HEIGHT),
+        10,
+      );
+      expect(plate.origin[1]).toBeCloseTo(rail.origin[1] + rail.size[1], 10);
+      expect(plate.pivot).toEqual(rail.pivot);
+      expect(plate.rotation).toEqual(rail.rotation);
+      expect(span(plate, 0)).toEqual(span(rail, 0));
+      expect(span(plate, 2)[0]).toBeCloseTo(span(rail, 2)[0], 10);
+      expect(span(plate, 2)[1]).toBeLessThanOrEqual(span(rail, 2)[1]);
     });
 
     it("keeps the dashboard fittings and steering clear of the sealed windshield", () => {
