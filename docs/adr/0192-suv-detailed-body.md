@@ -88,3 +88,22 @@ Part 17 of the SUV detail series (#992) changes the amendment links from "Amende
 Larger colour textures and 16 MER textures, with one texture set per paint, increase pack size and texture memory. Shared dash regions and the 512 x 512 cap limit that cost. Detailed paint and soft lamp glow improve the close parked view, but fine flake and panel lines can alias at chase-camera distance, especially on mobile. Revisit contrast first if moire or shimmering bands appear, then resolution if needed. Revisit the MER treatment if paints lose their hue or become chrome mirrors, and the colour detail if the VV-off appearance stops reading clearly. A stable material failing in part 13 of the SUV detail series (#988) requires revisiting the bezel material and recording the tested alternative here.
 
 The new bone contract requires downstream generators, render controllers and model checks to recognise both names. If the owner declines the extension, the series stops and asks for direction before proceeding. This issue changes documentation only; code, packs, tests and the separate shared texture tooling ADR 0193 are outside its scope.
+
+### Steering hub addendum (#1023)
+
+Replace the two grille-colored hub squares with a `disc("z", ...)` of 16 turned
+squares (64 outer tips), radius 1 model pixel before scaling. Its radial outline
+stays between 0.95 and 1 pixel, inside the 2.05-pixel rim opening. Compose each
+spin with the existing wheel tilt. The disc occupies wheel-local z -0.65 to
+-0.35 relative to the pivot, ahead of the spokes' driver-facing z -0.5 face.
+The column, spokes, rim, seats and bone contract stay unchanged, retaining the
+0170 torso and windshield guards.
+
+Append a 16 x 16 `hub` region to the gauges block without moving existing UVs
+or lit slots. Its neutral RGB 8 black has a faint grayscale highlight up to 20,
+and MER (35, 0, 45) adds modest metalness and low roughness without chrome.
+All disc surfaces sample its black corner; only the unspun square's front maps
+the full highlight, 0.01 pixel forward to avoid coplanar texture competition.
+The highlight fades to black inside that square, leaving the circular outline
+to geometry. The owner still needs to check the tilted driver's view with
+Vibrant Visuals on and off. Resource Pack and BP dependency advance to 0.1.216.

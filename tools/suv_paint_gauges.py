@@ -9,7 +9,8 @@ palette = load_tool("suv_palette")
 dash = load_tool("suv_paint_dash")
 RegionSpec = load_tool("suv_texture").RegionSpec
 REGIONS = (RegionSpec("tach", 32, 32, "resin"), RegionSpec("fuel_temp", 24, 24, "resin"),
-           RegionSpec("speed", 32, 32, "resin"), RegionSpec("leather", 8, 8, "seat"))
+           RegionSpec("speed", 32, 32, "resin"), RegionSpec("leather", 8, 8, "seat"),
+           RegionSpec("hub", 16, 16, "resin"))
 TICKS_TACH = 9
 TICKS_SPEED = 11
 TICKS_FUEL_TEMP = 10
@@ -23,6 +24,7 @@ LCD_FILL = (30, 36, 33)
 LCD_FRAME = (6, 7, 7)
 LEATHER_PERFORATION_DELTA = -8
 LEATHER_GRAIN_DELTA = 12
+HUB_MER = load_tool("mer").Mer(35, 0, 45)
 
 
 def inside(size, u, v):
@@ -60,6 +62,10 @@ def needle(size, u, v, angle, length):
 
 
 def color(region, u, v, paint):
+    if region == "hub":
+        highlight = max(0, 1 - ((u - 6) / 5) ** 2 - ((v - 5) / 4) ** 2)
+        value = 8 + round(12 * highlight)
+        return (value, value, value, 255)
     if region == "leather":
         base = palette.PALETTE["seat"]
         delta = (LEATHER_PERFORATION_DELTA if u % 4 == 0 and v % 4 == 0 else
@@ -83,7 +89,7 @@ def color(region, u, v, paint):
 
 
 def mer(region, u, v, paint):
-    return None
+    return HUB_MER if region == "hub" else None
 
 
 def lit(region, u, v):
