@@ -53,22 +53,55 @@ const end = (cube: Cube, axis: number) =>
 const ALUMINIUM_SLOT = 36;
 const readPng = (path: string) => readRgbaPng(`${RP}/${path}.png`);
 
-const isWindshieldCube = (cube: Pick<Cube, "origin" | "size">) => {
-  if ((cube.origin[2] ?? 0) >= -45) return false;
-  const [width, height, depth] = cube.size;
-  return (
-    (height === 13.5 && [0.2, 0.8, 1].includes(depth ?? 0)) ||
-    (width === 4.243 && height === 0.6 && depth === 1) ||
-    ((width ?? 0) >= 8 && (width ?? 0) < 8.2 && height === 0.6 && depth === 0.6)
-  );
-};
+// Exact generated windshield cubes as [bone, origin, size] (tools/camper_front/glass.py):
+// corner glass, black corners, panes, rubber strips, wipers, and the chrome post.
+const WINDSHIELD_CUBES: [string, number[], number[]][] = [
+  ["glass", [-24.622, 36, -52.5], [4.243, 13.5, 1]],
+  ["glass", [20.378, 36, -52.5], [4.243, 13.5, 1]],
+  ["glass", [0.193, 36, -53.402], [20.788, 13.5, 0.2]],
+  ["glass", [-21.369, 36, -57.402], [20.788, 13.5, 0.2]],
+  ["body", [-24.622, 35.4, -54.7], [4.243, 0.6, 1]],
+  ["body", [20.378, 35.4, -54.7], [4.243, 0.6, 1]],
+  ["body", [20.427, 36, -53.696], [0.611, 13.5, 0.8]],
+  ["body", [-21.05, 36, -53.814], [0.611, 13.5, 0.8]],
+  ["body", [5.848, 36.6, -55.473], [8.152, 0.6, 0.6]],
+  ["body", [-13.152, 36.6, -57.237], [8.152, 0.6, 0.6]],
+  ["body", [-0.7, 36, -57.7], [1.4, 13.5, 0.8]],
+];
+// The pre-ridge cubes the windshield replaced, as stored in the rib-atlas fixture.
+const LEGACY_WINDSHIELD_CUBES: [string, number[], number[]][] = [
+  ["body", [-0.7, 36, -53.7], [1.4, 13.5, 0.8]],
+  ["body", [20.4, 36, -53.7], [0.6, 13.5, 0.8]],
+  ["body", [-21, 36, -53.7], [0.6, 13.5, 0.8]],
+  ["body", [6, 36.6, -54.1], [8, 0.6, 0.6]],
+  ["body", [-13, 36.6, -54.1], [8, 0.6, 0.6]],
+  ["glass", [0.6, 36, -53.3], [20.4, 13.5, 0.2]],
+  ["glass", [-21, 36, -53.3], [20.4, 13.5, 0.2]],
+];
+const sameCube = (
+  [boneA, originA, sizeA]: [string, number[], number[]],
+  [boneB, originB, sizeB]: [string, number[], number[]],
+) =>
+  boneA === boneB &&
+  originA.join() === originB.join() &&
+  sizeA.join() === sizeB.join();
+const isListed = (
+  list: [string, number[], number[]][],
+  boneName: string,
+  cube: Pick<Cube, "origin" | "size">,
+) => list.some((entry) => sameCube(entry, [boneName, cube.origin, cube.size]));
+const windshieldCubes = bones.flatMap((b) =>
+  (b.cubes ?? []).filter((cube) => isListed(WINDSHIELD_CUBES, b.name, cube)),
+);
+// Changed by #1069 only: the corner glass and black corners keep their old geometry.
+const CHANGED_WINDSHIELD = WINDSHIELD_CUBES.filter(
+  ([, , size]) => size[0] !== 4.243,
+);
 
 describe("camper model assets (ADR 0067)", () => {
   it("allows compound rotations only in declared assemblies (ADR 0167)", () => {
     const cubes = bones.flatMap((bone) => bone.cubes ?? []);
-    const windshield = cubes.filter(
-      (cube) => isWindshieldCube(cube) && multipleAxes(cube),
-    );
+    const windshield = windshieldCubes.filter(multipleAxes);
     const assemblies = {
       slanted: cubes.filter(
         (cube) => multipleAxes(cube) && !windshield.includes(cube),
@@ -898,13 +931,25 @@ describe("camper windshield ridge (#1069)", () => {
       z + defined(pivot[2], "windshield coordinate"),
     ] as const;
   };
-  const members = bones.flatMap((b) => b.cubes ?? []).filter(isWindshieldCube);
+  const members = windshieldCubes;
   const panes = (bone("glass").cubes ?? []).filter(
     (cube) => cube.size[1] === 13.5 && cube.size[2] === 0.2,
   );
   const corners = (bone("glass").cubes ?? []).filter(
     (cube) => cube.size[1] === 13.5 && cube.size[2] === 1,
   );
+
+  it("uses no x rotation on the windshield except the declared wiper roll", () => {
+    expect(members).toHaveLength(11);
+    const wipers = members.filter(
+      (cube) => cube.size[1] === 0.6 && cube.size[2] === 0.6,
+    );
+    expect(wipers).toHaveLength(2);
+    for (const cube of members.filter((c) => !wipers.includes(c)))
+      expect(cube.rotation?.[0] ?? 0).toBe(0);
+    // Accepted compound exception (ADR 0167): a z-rolled wiper yawed about y.
+    for (const wiper of wipers) expect(multipleAxes(wiper)).toBe(true);
+  });
 
   it("keeps the panes vertical with a four-pixel ridge at foot and header", () => {
     expect(panes).toHaveLength(2);
@@ -2280,11 +2325,13 @@ describe("camper rib atlas (ADR 0190)", () => {
       .filter((b) => !b.name.startsWith("glow_"))
       .flatMap((b) =>
         (b.cubes ?? [])
-          .filter((cube) => !isWindshieldCube(cube))
+          .filter((cube) => !isListed(CHANGED_WINDSHIELD, b.name, cube))
           .map((cube) => [b.name, cube.origin, cube.size]),
       );
     expect(unchanged).toEqual(
-      fixture.filter(([, origin, size]) => !isWindshieldCube({ origin, size })),
+      fixture.filter(
+        (entry) => !LEGACY_WINDSHIELD_CUBES.some((old) => sameCube(old, entry)),
+      ),
     );
   });
 

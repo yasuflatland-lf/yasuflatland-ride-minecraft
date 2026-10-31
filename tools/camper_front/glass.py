@@ -50,6 +50,7 @@ def build(ctx: FrontContext, assemblies: dict) -> dict[str, list[dict]]:
         if sx == 1:
             fixed.append(box(-0.7, WS_FOOT_Y, ridge_z - 0.2,
                              0.7, WS_HEADER_Y, ridge_z + 0.6, "chrome"))
+        # The wiper is the one accepted compound-rotation cube: z-rolled, then yawed about y.
         yawed = cube_tilt.yaw_cubes(
             panes, pivot=[sx * FW, WS_FOOT_Y, WS_Z], degrees=-sx * angle,
             assembly=name, assemblies=assemblies,
