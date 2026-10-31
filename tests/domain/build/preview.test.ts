@@ -49,7 +49,7 @@ it("bounds every list and keeps shape and paste samples on box edges", () => {
           { kind: "endpoint", from: a, to: b, dimensionId, material },
           {
             kind: "roofHeight",
-            from: { x: 0, y: 0, z: 0 },
+            from: a,
             base: boxOf(a, { ...b, y: a.y }),
             roofKind,
             previous: height,
@@ -113,7 +113,7 @@ it("draws gable ridges on the long axis and hip ridges inset at both ends", () =
   const base = boxOf({ x: 0, y: 10, z: 0 }, { x: 8, y: 10, z: 4 });
   const flow = {
     kind: "roofHeight" as const,
-    from: { x: 0, y: 0, z: 0 },
+    from: base.min,
     base,
     previous: 5,
     dimensionId,
@@ -162,7 +162,7 @@ it("keeps roof wireframes within the built footprint and centers the ridge on it
         const points = previewPoints(
           {
             kind: "roofHeight",
-            from: { x: 0, y: 0, z: 0 },
+            from: origin,
             base,
             roofKind,
             previous: height,

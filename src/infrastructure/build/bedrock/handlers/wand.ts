@@ -20,17 +20,17 @@ import type { BuildMenus } from "../buildMenus";
 export function registerWand({
   setPoint,
   tapAir,
-  pasteAt,
-  repo,
   menus,
   aim,
   debounce,
   pointOf,
+  repo,
+  pasteAt,
 }: {
+  repo: BuildSessionRepository;
+  pasteAt: PasteAt;
   setPoint: SetPoint;
   tapAir: TapAir;
-  pasteAt: PasteAt;
-  repo: BuildSessionRepository;
   menus: BuildMenus;
   aim: AimReader;
   debounce: PressDebounces<PlayerId>;

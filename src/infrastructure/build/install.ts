@@ -64,11 +64,11 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
   registerWand({
     setPoint: new SetPoint(repo, blocks, feedback),
     tapAir: new TapAir(repo, feedback),
-    pasteAt: cases.pasteAt,
-    repo,
     menus,
     aim: new BedrockAimReader(),
     debounce,
+    repo,
+    pasteAt: cases.pasteAt,
     pointOf: (playerId) => {
       const flow = repo.get(playerId)?.flow;
       return flow?.kind === "point1" ? flow.cell : undefined;

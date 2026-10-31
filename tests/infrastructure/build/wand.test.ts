@@ -88,15 +88,15 @@ it("preserves blocks and defers point taps out of before events", () => {
         const blocks = new FakeWorld();
         blocks.put({ x, y, z }, blockStateOf("minecraft:stone"));
         registerWand({
-          setPoint: new SetPoint(repo, blocks, feedback),
-          tapAir: new TapAir(repo, feedback),
+          repo,
           pasteAt: new PasteAt(
             repo,
             blocks,
             feedback,
             new EditJobs(repo, blocks, feedback),
           ),
-          repo,
+          setPoint: new SetPoint(repo, blocks, feedback),
+          tapAir: new TapAir(repo, feedback),
           menus,
           aim: {
             aim: () => ({
@@ -175,100 +175,24 @@ it("preserves blocks and defers point taps out of before events", () => {
   );
 });
 
-it("routes each engine face to aimed paste in the hit dimension after the before event", () => {
-  fc.assert(
-    fc.property(
-      fc.constantFrom("Up", "Down", "North", "South", "East", "West"),
-      fc.record({
-        x: fc.integer({ min: -100, max: 100 }),
-        y: fc.integer({ min: 0, max: 200 }),
-        z: fc.integer({ min: -100, max: 100 }),
-      }),
-      fc.boolean(),
-      (face, block, skipAir) => {
-        engine.scheduled.length = 0;
-        vi.clearAllMocks();
-        const repo = new InMemorySessionRepository();
-        const id = asPlayerId("p");
-        const session = repo.getOrCreate(id);
-        const feedback = new FakeFeedback();
-        const blocks = new FakeWorld();
-        session.setClipboard(
-          clipboardOf(boxOf(block, block), () =>
-            blockStateOf("minecraft:stone"),
-          ),
-        );
-        new StartPaste(repo).execute({ playerId: id, skipAir });
-        const flow = session.flow;
-        const jobs = new EditJobs(repo, blocks, feedback);
-        const point = new SetPoint(repo, blocks, feedback);
-        const pointCall = vi.spyOn(point, "execute");
-        registerWand({
-          setPoint: point,
-          tapAir: new TapAir(repo, feedback),
-          pasteAt: new PasteAt(repo, blocks, feedback, jobs),
-          repo,
-          menus,
-          aim: { aim: () => undefined },
-          debounce: new PressDebounces<PlayerId>(BUILD_SPEC.pressDebounceTicks),
-          pointOf: () => undefined,
-        });
-        const player = {
-          id: "p",
-          typeId: "minecraft:player",
-          isValid: true,
-          selectedSlotIndex: 0,
-          getComponent: () => ({
-            container: { getItem: () => ({ typeId: SELECTION_WAND_TYPE }) },
-          }),
-        };
-        const event = {
-          player,
-          block: { dimension: { id: "minecraft:nether" }, location: block },
-          blockFace: face,
-          isFirstEvent: true,
-          cancel: false,
-        };
-        engine.handlers.get("interact")?.(event);
-        expect(event.cancel).toBe(true);
-        expect(session.flow).toBe(flow);
-        expect(session.isEditing).toBe(false);
-        for (const callback of engine.scheduled.splice(0)) callback();
-        expect(pointCall).not.toHaveBeenCalled();
-        expect(session.flow.kind).toBe("idle");
-        jobs.step();
-        const offset = {
-          Up: [0, 1, 0],
-          Down: [0, -1, 0],
-          North: [0, 0, -1],
-          South: [0, 0, 1],
-          East: [1, 0, 0],
-          West: [-1, 0, 0],
-        }[face];
-        expect(
-          blocks.stateAt(nether, {
-            x: block.x + (offset[0] as number),
-            y: block.y + (offset[1] as number),
-            z: block.z + (offset[2] as number),
-          }),
-        ).toEqual(blockStateOf("minecraft:stone"));
-      },
-    ),
-  );
-});
-
 function setupAir() {
   engine.tick = 0;
   engine.scheduled.length = 0;
-  vi.clearAllMocks();
   const repo = new InMemorySessionRepository();
   const feedback: BuildFeedback = {
     showMessage: vi.fn(),
     drawPreview: vi.fn(),
   };
-  const setPoint = new SetPoint(repo, new FakeWorld(), feedback);
+  const blocks = new FakeWorld();
+  const setPoint = new SetPoint(repo, blocks, feedback);
   const tapAir = new TapAir(repo, feedback);
   const execute = vi.spyOn(tapAir, "execute");
+  const menus = {
+    showShapeMenu: vi.fn(),
+    showRoofMenu: vi.fn(),
+    showUtilityMenu: vi.fn(),
+    showHeightSlider: vi.fn(),
+  };
   const aim: AimReader = {
     aim: () => ({
       ray: {
@@ -288,15 +212,15 @@ function setupAir() {
     material: blockStateOf("minecraft:stone"),
   });
   registerWand({
-    setPoint,
-    tapAir,
+    repo,
     pasteAt: new PasteAt(
       repo,
-      new FakeWorld(),
+      blocks,
       feedback,
-      new EditJobs(repo, new FakeWorld(), feedback),
+      new EditJobs(repo, blocks, feedback),
     ),
-    repo,
+    setPoint,
+    tapAir,
     menus,
     aim,
     debounce,
@@ -396,26 +320,142 @@ it("ignores non-player deaths and drops both session and debounce on disconnect"
   expect(debounce.press(id, 0)).toBe(true);
 });
 
-it("opens the shape menu once after an air tap enters endpoint, deferred and only for a valid player", () => {
-  const { session, player, use, id } = setupAir();
-  vi.clearAllMocks();
+it("routes each engine face to aimed paste in the hit dimension after the before event", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom("Up", "Down", "North", "South", "East", "West"),
+      fc.record({
+        x: fc.integer({ min: -100, max: 100 }),
+        y: fc.integer({ min: 0, max: 200 }),
+        z: fc.integer({ min: -100, max: 100 }),
+      }),
+      fc.boolean(),
+      (face, block, skipAir) => {
+        engine.scheduled.length = 0;
+        vi.clearAllMocks();
+        const repo = new InMemorySessionRepository();
+        const id = asPlayerId("p");
+        const session = repo.getOrCreate(id);
+        const feedback = new FakeFeedback();
+        const blocks = new FakeWorld();
+        session.setClipboard(
+          clipboardOf(boxOf(block, block), () =>
+            blockStateOf("minecraft:stone"),
+          ),
+        );
+        new StartPaste(repo).execute({ playerId: id, skipAir });
+        const flow = session.flow;
+        const jobs = new EditJobs(repo, blocks, feedback);
+        const point = new SetPoint(repo, blocks, feedback);
+        const pointCall = vi.spyOn(point, "execute");
+        registerWand({
+          setPoint: point,
+          tapAir: new TapAir(repo, feedback),
+          menus,
+          aim: { aim: () => undefined },
+          debounce: new PressDebounces<PlayerId>(BUILD_SPEC.pressDebounceTicks),
+          pointOf: () => undefined,
+          repo,
+          pasteAt: new PasteAt(repo, blocks, feedback, jobs),
+        });
+        const player = {
+          id: "p",
+          typeId: "minecraft:player",
+          isValid: true,
+          selectedSlotIndex: 0,
+          getComponent: () => ({
+            container: { getItem: () => ({ typeId: SELECTION_WAND_TYPE }) },
+          }),
+        };
+        const event = {
+          player,
+          block: { dimension: { id: "minecraft:nether" }, location: block },
+          blockFace: face,
+          isFirstEvent: true,
+          cancel: false,
+        };
+        engine.handlers.get("interact")?.(event);
+        expect(event.cancel).toBe(true);
+        expect(session.flow).toBe(flow);
+        expect(session.isEditing).toBe(false);
+        for (const callback of engine.scheduled.splice(0)) callback();
+        expect(pointCall).not.toHaveBeenCalled();
+        expect(session.flow.kind).toBe("idle");
+        jobs.step();
+        const offset = {
+          Up: [0, 1, 0],
+          Down: [0, -1, 0],
+          North: [0, 0, -1],
+          South: [0, 0, 1],
+          East: [1, 0, 0],
+          West: [-1, 0, 0],
+        }[face];
+        expect(
+          blocks.stateAt(nether, {
+            x: block.x + (offset[0] as number),
+            y: block.y + (offset[1] as number),
+            z: block.z + (offset[2] as number),
+          }),
+        ).toEqual(blockStateOf("minecraft:stone"));
+      },
+    ),
+  );
+});
+
+it("opens only on entering endpoint and defers an air-triggered menu safely", () => {
+  engine.tick = 0;
   engine.scheduled.length = 0;
-  use();
+  vi.clearAllMocks();
+  const repo = new InMemorySessionRepository();
+  const feedback = new FakeFeedback();
+  const blocks = new FakeWorld();
+  const id = asPlayerId("p");
+  const session = repo.getOrCreate(id);
+  const from = { x: 0, y: 60, z: 0 };
+  const to = { x: 4, y: 60, z: 4 };
+  const point1 = {
+    kind: "point1" as const,
+    dimensionId: nether,
+    cell: from,
+    material: blockStateOf("minecraft:stone"),
+  };
+  session.setFlow(point1);
+  const air = new TapAir(repo, feedback);
+  const execute = air.execute.bind(air);
+  vi.spyOn(air, "execute").mockImplementation((cmd) =>
+    execute({ ...cmd, end: to }),
+  );
+  registerWand({
+    setPoint: new SetPoint(repo, blocks, feedback),
+    tapAir: air,
+    repo,
+    pasteAt: new PasteAt(
+      repo,
+      blocks,
+      feedback,
+      new EditJobs(repo, blocks, feedback),
+    ),
+    menus,
+    aim: {
+      aim: () => ({ ray: { origin: from, direction: { x: 1, y: 0, z: 0 } } }),
+    },
+    debounce: new PressDebounces<PlayerId>(BUILD_SPEC.pressDebounceTicks),
+    pointOf: () =>
+      session.flow.kind === "point1" ? session.flow.cell : undefined,
+  });
+  const player = { id, isValid: true, isSneaking: false };
+  const event = { source: player, itemStack: { typeId: SELECTION_WAND_TYPE } };
+  engine.handlers.get("use")?.(event);
   expect(session.flow.kind).toBe("endpoint");
   expect(menus.showShapeMenu).not.toHaveBeenCalled();
   for (const callback of engine.scheduled.splice(0)) callback();
   expect(menus.showShapeMenu).toHaveBeenCalledExactlyOnceWith(player);
-  use();
+  engine.tick = BUILD_SPEC.pressDebounceTicks;
+  engine.handlers.get("use")?.(event);
   expect(engine.scheduled).toHaveLength(0);
-  engine.tick = 10;
-  session.setFlow({
-    kind: "point1",
-    dimensionId: asDimensionId("minecraft:overworld"),
-    cell: { x: 10, y: 0, z: 0 },
-    material: blockStateOf("minecraft:stone"),
-  });
-  expect(id).toBe(asPlayerId("p"));
-  use();
+  session.setFlow(point1);
+  engine.tick += BUILD_SPEC.pressDebounceTicks;
+  engine.handlers.get("use")?.(event);
   player.isValid = false;
   for (const callback of engine.scheduled.splice(0)) callback();
   expect(menus.showShapeMenu).toHaveBeenCalledTimes(1);
