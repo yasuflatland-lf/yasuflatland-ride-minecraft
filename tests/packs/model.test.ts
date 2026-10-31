@@ -8,6 +8,9 @@ import { assertOneAxis, multipleAxes } from "./oneAxis";
 
 type Vec3 = [number, number, number];
 
+const SIZE_SCALE = 1.45;
+const scaled = (value: number) => Number((value * SIZE_SCALE).toFixed(12));
+
 interface Cube {
   uv?: Record<string, { uv: [number, number] }>;
   origin: Vec3;
@@ -135,6 +138,7 @@ it("keeps every seated player's head beneath the SUV roof and behind the raked w
   expect(windshield.length).toBeGreaterThanOrEqual(4);
   expect(seats).toHaveLength(4);
   for (const seat of seats) {
+    expect(seat.position[1]).toBe(0.58);
     const top = seat.position[1] * 16 + RIDER_HEAD_PX;
     expect(top + 0.5).toBeLessThanOrEqual(roof.origin[1]);
     // The head box grown by the margin; the model's front is -z (ADR 0009).
@@ -157,7 +161,7 @@ describe("SUV model (ADR 0009)", () => {
       (c) =>
         !c.rotation &&
         c.size[0] > 30 &&
-        c.origin[1] === 16.9 &&
+        c.origin[1] === scaled(13) &&
         c.size[1] > 5 &&
         c.size[2] < 2,
     );
@@ -354,10 +358,10 @@ describe("SUV model (ADR 0009)", () => {
       const xs = cubes.flatMap((c) => [c.origin[0], c.origin[0] + c.size[0]]);
       const ys = cubes.flatMap((c) => [c.origin[1], c.origin[1] + c.size[1]]);
       const hubX = Math.abs(wheel[0]) + FOLD_OUT;
-      expect(Math.min(...xs.map((x) => x * out))).toBeLessThan(16.9);
+      expect(Math.min(...xs.map((x) => x * out))).toBeLessThan(scaled(13));
       expect(Math.max(...xs.map((x) => x * out))).toBeGreaterThan(hubX);
       // The arm rests on the scaled folded tire's top face.
-      expect(Math.min(...ys)).toBeCloseTo(5.2, 6);
+      expect(Math.min(...ys)).toBeCloseTo(scaled(4), 6);
       for (const c of cubes) {
         expect(c.rotation, `arm_${w}`).toBeUndefined();
         // Each arm stays in its own wheel's plane, centered on the axle in z.
@@ -426,7 +430,7 @@ describe("SUV model (ADR 0009)", () => {
       const pillars = allBodyCubes.filter(
         (c) =>
           c.rotation?.[0] === windshield?.rotation?.[0] &&
-          Math.abs(c.size[0] - 1.3) < 1e-6 &&
+          Math.abs(c.size[0] - SIZE_SCALE) < 1e-6 &&
           c.pivot?.[1] === windshield?.pivot?.[1],
       );
       expect(pillars).toHaveLength(2);
@@ -448,10 +452,10 @@ describe("SUV model (ADR 0009)", () => {
         .filter((corners) =>
           corners.every(
             ([x, y, z]) =>
-              Math.abs(x) < 15.6 &&
-              y >= 16.9 &&
-              y <= 28.6 &&
-              z > -10.4 &&
+              Math.abs(x) < scaled(12) &&
+              y >= scaled(13) &&
+              y <= scaled(22) &&
+              z > -scaled(8) &&
               z < 0,
           ),
         );
@@ -465,10 +469,10 @@ describe("SUV model (ADR 0009)", () => {
       if (!body) throw new Error("Missing cabin");
       const levers = (body.cubes ?? []).filter(
         (c) =>
-          c.pivot?.[1] === 10.4 &&
-          Math.abs(c.pivot[0]) <= 1.43 &&
-          c.pivot[2] >= -11.05 &&
-          c.pivot[2] <= -8.45 &&
+          c.pivot?.[1] === scaled(8) &&
+          Math.abs(c.pivot[0]) <= scaled(1.1) &&
+          c.pivot[2] >= -scaled(8.5) &&
+          c.pivot[2] <= -scaled(6.5) &&
           c.rotation?.[1] === 0 &&
           c.rotation[2] === 0 &&
           (c.rotation[0] === -15 || c.rotation[0] === -22),
@@ -479,11 +483,11 @@ describe("SUV model (ADR 0009)", () => {
         .filter((corners) =>
           corners.every(
             ([x, y, z]) =>
-              Math.abs(x) <= 15.6 &&
-              y >= 16.9 &&
-              y <= 24.7 &&
-              z >= -10.075 - 1e-8 &&
-              z <= -8.06 + 1e-8,
+              Math.abs(x) <= scaled(12) &&
+              y >= scaled(13) &&
+              y <= scaled(19) &&
+              z >= -scaled(7.75) - 1e-8 &&
+              z <= -scaled(6.2) + 1e-8,
           ),
         );
       expect(levers).toHaveLength(12);
@@ -498,7 +502,7 @@ describe("SUV model (ADR 0009)", () => {
       const driver = SUV_PROFILE.seats.positions[0];
       if (!body || !driver) throw new Error("Missing cabin");
       const steering = (body.cubes ?? []).filter(
-        (c) => c.rotation && c.pivot?.[1] === 21.45,
+        (c) => c.rotation && c.pivot?.[1] === scaled(16.5),
       );
       expect(steering.length).toBeGreaterThan(16);
       // A player's torso is 4 px deep around the rider's position; the model's front is -z.
@@ -526,7 +530,7 @@ describe("SUV model (ADR 0009)", () => {
 
     it("has thin side plates that overlap no body cube", () => {
       for (const p of sidePlates) {
-        expect(Math.min(...p.size)).toBeLessThanOrEqual(0.13);
+        expect(Math.min(...p.size)).toBeLessThanOrEqual(scaled(0.1));
         for (const c of bodyCubes) {
           const overlaps = [0, 1, 2].every((a) => {
             const [p0, p1] = span(p, a);
@@ -538,7 +542,7 @@ describe("SUV model (ADR 0009)", () => {
       }
     });
 
-    // Each side plate sits at most 0.065 px inside the outer face of a frame
+    // Each side plate sits at most 0.05 construction px inside the outer face of a frame
     // piece it touches, so it reads as glass set in the window frame.
     it("sits in the window frame, at its outer face", () => {
       for (const p of sidePlates) {
@@ -549,11 +553,11 @@ describe("SUV model (ADR 0009)", () => {
           const touches = [0, 1, 2].every((a) => {
             const [c0, c1] = span(c, a);
             const [q0, q1] = span(p, a);
-            return q0 <= c1 && c0 <= q1;
+            return q0 <= c1 + EPS && c0 <= q1 + EPS;
           });
           const [c0, c1] = span(c, thin);
           const gap = Math.max(Math.abs(c0), Math.abs(c1)) - outer;
-          return touches && gap > -EPS && gap <= 0.065 + EPS;
+          return touches && gap > -EPS && gap <= scaled(0.05) + EPS;
         });
         expect(flush, JSON.stringify(p)).toBe(true);
       }
@@ -584,8 +588,8 @@ describe("SUV model (ADR 0009)", () => {
                 (near(c0, edge) || near(c1, edge)) &&
                 ct0 <= t1 + EPS &&
                 t0 <= ct1 + EPS &&
-                co0 <= o0 &&
-                o1 <= co1
+                co0 <= o0 + EPS &&
+                o1 <= co1 + EPS
               );
             });
             const at = (o: number): Vec3 => {
@@ -606,7 +610,8 @@ describe("SUV model (ADR 0009)", () => {
               const [n0, n1] = span(n, other);
               if (n1 <= o0 || o1 <= n0) return false;
               return (
-                (n0 <= o0 || inPost(o0, n0)) && (o1 <= n1 || inPost(n1, o1))
+                (n0 <= o0 + EPS || inPost(o0, n0)) &&
+                (o1 <= n1 + EPS || inPost(n1, o1))
               );
             });
             expect(

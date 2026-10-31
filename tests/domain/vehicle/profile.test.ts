@@ -86,7 +86,7 @@ describe("vehicle profiles (ADR 0050)", () => {
   it.each([
     {
       kind: "suv",
-      body: { front: 2.41, halfWidth: 1.47, height: 2.08 },
+      body: { front: 2.69, halfWidth: 1.64, height: 2.32 },
       clearance: { halfX: 1, halfZ: 1, height: 3 },
     },
     {
@@ -131,13 +131,13 @@ describe("vehicle profiles (ADR 0050)", () => {
         halfWidth: SUV_SPEC.bodyHalfWidth,
         height: SUV_SPEC.carHeight,
       },
-      footprint: 3.05,
+      footprint: 3.4,
       seats: {
         positions: [
-          { x: -0.494, z: -0.0446875 },
-          { x: 0.494, z: -0.0446875 },
-          { x: -0.494, z: -1.04 },
-          { x: 0.494, z: -1.04 },
+          { x: -0.551, z: -0.04984375 },
+          { x: 0.551, z: -0.04984375 },
+          { x: -0.551, z: -1.16 },
+          { x: 0.551, z: -1.16 },
         ],
       },
       boarding: { order: "engine" },

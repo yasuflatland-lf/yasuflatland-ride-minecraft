@@ -16,12 +16,12 @@ export const SUV_SPEC = Object.freeze({
   handbrakeGrip: 0.04,
   creepSpeed: 0.12, // Below SPEC.ramMinSpeed, so creeping never rams (ADR 0006)
   // Steps (ADR 0004)
-  hitboxFront: 1.17,
-  carHeight: 2.08,
+  hitboxFront: 1.305,
+  carHeight: 2.32,
   // Collisions (ADR 0006)
-  bodyFront: 2.41, // encloses the measured 2.406625-block fog lamp lenses (ADR 0170)
-  bodyHalfWidth: 1.47, // encloses the measured 1.4625-block wheel hub caps (ADR 0170)
-  footprint: 3.05, // the rear hover glow reaches 3.045 blocks at its farthest corner (ADR 0122, 0170)
+  bodyFront: 2.69, // encloses the measured 2.6843125-block fog lamp lenses (ADR 0194)
+  bodyHalfWidth: 1.64, // encloses the measured 1.63125-block wheel hub caps (ADR 0194)
+  footprint: 3.4, // the rear hover glow reaches 3.396322 blocks at its farthest corner (ADR 0122, 0194)
   // Headlights (ADR 0020)
   headlightReach: Object.freeze([4, 9, 15, 21, 27] as const), // blocks ahead of the vehicle's center, one light block each; 6 apart, the road surface between them stays at level 9 or brighter (ADR 0024)
   // Flight (ADR 0021)
@@ -40,7 +40,7 @@ export const SUV_SPEC = Object.freeze({
   // in-game test measured it (0.833 horizontal, 0.836 vertical).
   waterDrag: 0.83,
   waterVerticalDrag: 0.84,
-  floatDraft: 1.56, // preserves the float line relative to the scaled collision box (ADR 0170).
+  floatDraft: 1.74, // preserves the float line relative to the scaled collision box (ADR 0194).
   // A floating submarine's feet sit fractionally into a shore step, so the
   // step top can be less than the half block above the feet where stepUp.ts
   // probes. Lowering the probe by this much starts it at the feet.
@@ -53,7 +53,7 @@ export const SUV_SPEC = Object.freeze({
   // Landing gear (ADR 0033). Unfolding takes 1 s (ADR 0022), 3 blocks of
   // landing at landingSink, so the wheels come down a block above that.
   gearDownHeight: 4, // blocks of air below the vehicle within which landing unfolds the wheels
-  gearProbeOffset: 1.04, // keeps the probes inside the 2.34-block hitbox (ADR 0170)
+  gearProbeOffset: 1.16, // keeps the probes inside the 2.61-block hitbox (ADR 0194)
   bankSink: 0.03, // blocks/tick of altitude lost at full bank
 } as const);
 

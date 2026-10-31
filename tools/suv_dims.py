@@ -5,7 +5,8 @@ import math
 
 # The seated player replaces the wheel diameter as the size anchor (ADR 0170).
 # Keep construction coordinates unscaled until export so every length shares one transform.
-SIZE_SCALE = 1.3
+# ADR 0194 raises the initial estimate after the owner observed clipping in game.
+SIZE_SCALE = 1.45
 
 # The wheelbase and overhang ratios follow the side-view reference (ADR 0170).
 REAR = -31  # z of the tailgate's outer face
@@ -121,6 +122,7 @@ REFLECTOR_X1 = BUMPER_HALF_WIDTH - REAR_BUMPER_CHAMFER
 # back, the same as on the rear bench (ADR 0117). The front seats and riders sit 3.75 px farther back
 # than ADR 0117 put them: 2 px so the rider's torso clears the steering wheel under the rearward cowl,
 # and 1.75 px more so the scaled rider's head clears the raked windshield glass (ADR 0170).
+# The grown head still clears it at scale 1.45 (ADR 0194).
 FRONT_SEAT_Z = -5.75
 
 # Steering wheel (+x side; shown in game as right-hand drive), tilted 20° with its top away from the
