@@ -82,6 +82,15 @@ export const CATALOG: readonly ScenarioSpec[] = [
     vehicles: 1,
   },
   {
+    name: "bulldozer_overhang_clear",
+    file: "bulldozer",
+    ticks: 77,
+    features: ["vehicle:bulldozer"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 1,
+  },
+  {
     name: "bulldozer_dirt_path",
     file: "bulldozer",
     ticks: 77,

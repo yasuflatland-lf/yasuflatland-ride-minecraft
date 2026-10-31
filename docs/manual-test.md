@@ -406,6 +406,7 @@ Setup: use `/give @s yasu_ride:bulldozer_item` or craft from an SUV item, an iro
 | B72 | Chest kept | Leave a chest in the lane: it stays in place and no road is laid on it. | unverified | unverified |
 | B73 | Survival | In Survival, drive with the paver on: no item is consumed from the inventory. | unverified | unverified |
 | B74 | Saved paver | Turn the paver on, run `pnpm server:restart`, and rejoin: the monitor shows ON and paving resumes. | unverified | unverified |
+| B75 | Clear a rock overhang | Dig along the ground with the blade lowered into a slope with a rock overhang ahead: the bulldozer no longer stops. Then raise the blade and confirm nothing is cut. | unverified | unverified |
 
 ## Tent
 
