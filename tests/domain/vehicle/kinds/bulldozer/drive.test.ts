@@ -424,15 +424,11 @@ it("cuts only above blade.minSpeed while driving forward", () => {
   expect(speeds.fast).toBeGreaterThan(0);
 });
 it("maps forms to the cut reach", () => {
-  for (const f of FORMS)
+  expect(cutReach("car", true)).toEqual({ kind: "run" });
+  expect(cutReach("car", false)).toBeUndefined();
+  for (const f of FORMS.filter((form) => form !== "car"))
     for (const ground of [true, false])
-      expect(cutReach(f, ground)).toEqual(
-        f === "car"
-          ? ground
-            ? { kind: "run" }
-            : undefined
-          : { kind: "fixed", grounded: ground },
-      );
+      expect(cutReach(f, ground)).toEqual({ kind: "fixed", grounded: ground });
 });
 function driveSubmarine(
   raw: (tick: number) => RawInput | undefined,
