@@ -3,11 +3,6 @@ import type { BuildMessage } from "../../application/build/ports/feedback";
 export const BUILD_NAMESPACE = "yasu_build";
 export const buildId = (name: string): string => `${BUILD_NAMESPACE}:${name}`;
 export const SELECTION_WAND_TYPE = buildId("selection_wand");
-export const BUILD_TOOL_TYPE = buildId("build_tool");
-export const BUILD_TOOL_TYPES: ReadonlySet<string> = new Set([
-  SELECTION_WAND_TYPE,
-  BUILD_TOOL_TYPE,
-]);
 // Copy of the vehicle protection tag; build cannot import that feature (ADR 0046, 0178).
 export const LAID_BLOCK_TAG = "yasu_ride:laid";
 

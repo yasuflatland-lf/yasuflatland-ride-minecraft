@@ -162,7 +162,7 @@ it("keeps roof wireframes within the built footprint and centers the ridge on it
         const points = previewPoints(
           {
             kind: "roofHeight",
-            from: base.min,
+            from: origin,
             base,
             roofKind,
             previous: height,

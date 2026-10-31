@@ -39,7 +39,7 @@ Hold Road Paver and use it to turn the paver on or off; the cab monitor shows OF
 
 ## Build mode
 
-While you drive and hold the Selection Wand or the Build Tool, the camera moves to the third-person view and the bulldozer selects, fills, replaces, copies, pastes, and undoes blocks. See [Building tools](../items/building-tools.md).
+The Selection Wand selects, builds shapes and roofs, copies, pastes, and undoes blocks on foot or while riding. Holding it does not change the camera. See [Building tools](../items/building-tools.md).
 
 ## Headlights
 

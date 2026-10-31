@@ -22,7 +22,6 @@ import { BedrockAimReader } from "./bedrock/bedrockAimReader";
 import { BedrockBlockWorld } from "./bedrock/bedrockBlockWorld";
 import { BedrockFeedback } from "./bedrock/bedrockFeedback";
 import { BedrockBuildMenus } from "./bedrock/buildMenus";
-import { registerBuildTool } from "./bedrock/handlers/buildTool";
 import { registerEditTick } from "./bedrock/handlers/editTick";
 import { registerModeTick } from "./bedrock/handlers/modeTick";
 import { registerOutlineTick } from "./bedrock/handlers/outlineTick";
@@ -81,7 +80,6 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
   registerSessions(repo, cancel, debounce);
   registerTestTap(repo, feedback, blocks);
   registerTestMode(modes, repo);
-  registerBuildTool(menus);
   registerEditTick(jobs);
   registerTestEdit(
     new MenuChoices(repo, menuCases),

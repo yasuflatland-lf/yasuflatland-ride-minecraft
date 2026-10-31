@@ -5,8 +5,6 @@ import {
   BUILD_FORM,
   BUILD_MESSAGE,
   BUILD_NAMESPACE,
-  BUILD_TOOL_TYPE,
-  BUILD_TOOL_TYPES,
   buildId,
   LAID_BLOCK_TAG,
   SELECTION_WAND_TYPE,
@@ -19,9 +17,6 @@ import { LAID_BLOCK_TAG as VEHICLE_LAID_BLOCK_TAG } from "../../../src/infrastru
 
 it("keeps the copied vehicle identifiers in sync across the feature boundary", () => {
   expect(LAID_BLOCK_TAG).toBe(VEHICLE_LAID_BLOCK_TAG);
-  expect(BUILD_TOOL_TYPES).toEqual(
-    new Set([SELECTION_WAND_TYPE, BUILD_TOOL_TYPE]),
-  );
 });
 
 it("defines every feedback message in both locales", () => {
@@ -60,7 +55,6 @@ it("defines items and test events in the build namespace", () => {
   expect(
     [
       SELECTION_WAND_TYPE,
-      BUILD_TOOL_TYPE,
       TEST_TAP_EVENT,
       TEST_MODE_EVENT,
       TEST_EDIT_EVENT,

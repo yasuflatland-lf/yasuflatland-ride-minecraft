@@ -12,11 +12,9 @@ import { FakeFeedback, FakeSessions, overworld } from "./fakes";
 const alex = asPlayerId("alex");
 const coordinate = fc.integer({ min: -1000, max: 1000 });
 const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
-
 function enterBuildMode(modes: UpdateBuildModes) {
-  for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++) {
+  for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
     modes.execute([{ playerId: alex, holding: true }]);
-  }
 }
 function setup() {
   const repo = new FakeSessions();
@@ -47,7 +45,6 @@ describe("UpdateBuildModes", () => {
     expect(modes.isInBuildMode(asPlayerId("nobody"))).toBe(false);
   });
 });
-
 it("cancels only point1 when build mode leaves after its grace delay", () => {
   fc.assert(
     fc.property(cell, cell, fc.boolean(), (a, b, endpoint) => {

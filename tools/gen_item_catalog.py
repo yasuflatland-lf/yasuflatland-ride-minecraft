@@ -38,11 +38,11 @@ GROUPS = [
     # equipment box is a hidden placement gift (ADR 0174).
     {"name": "sportsboat_equipment", "icon": "icebreaker_switch", "items": ["icebreaker_switch"]},
     # The World Edit build tools live in their own namespace so a later split into a separate
-    # add-on changes no ID; the Build Tool's crane is the group icon. The bulldozer's Blade
+    # add-on changes no ID; the Selection Wand's crane is the group icon. The bulldozer's Blade
     # Up/Down, Wide Blade, and Road Paver switches keep their fully qualified yasu_ride IDs
     # in that order (ADR 0178, 0180, 0181).
-    {"namespace": "yasu_build", "name": "building_tools", "icon": "build_tool",
-     "items": ["build_tool", "selection_wand", "yasu_ride:blade_switch",
+    {"namespace": "yasu_build", "name": "building_tools", "icon": "selection_wand",
+     "items": ["selection_wand", "yasu_ride:blade_switch",
                "yasu_ride:wide_blade_switch", "yasu_ride:road_paver_switch"]},
 ]
 

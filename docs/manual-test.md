@@ -371,7 +371,7 @@ Setup: use `/give @s yasu_ride:bulldozer_item` or craft from an SUV item, an iro
 | B8 | Glow and propeller | Thruster glows only in flight; the propeller spins only under water | | |
 | B9 | Cutting bedrock, barriers, command blocks and light blocks with the blade lowered | Forward cutting removes them; liquids, containers and laid add-on blocks stay | | |
 | B10 | Cutting in Adventure mode with the blade lowered | The blade clears the same terrain in Adventure | | |
-| B11 | Creative group | There is no "Bulldozer Switches" group. "Building Tools", named in your language, holds five items: "Build Tool", "Selection Wand", "Blade Up/Down", "Wide Blade", and "Road Paver" | | |
+| B11 | Creative group | There is no "Bulldozer Switches" group. "Building Tools", named in your language, holds four items: "Selection Wand" (the crane icon), "Blade Up/Down", "Wide Blade", and "Road Paver" | unverified | unverified |
 | B12 | Spawn pose | Place a bulldozer: the blade is up and the lift rods are short | | |
 | B13 | PC switch | Drive and right-click with the switch, then hold the button. The blade lowers over half a second, the rods lengthen, and a click plays. The held button switches only once. A second click raises the blade again | | |
 | B14 | Mobile switch | Drive and long press with the switch, then hold. The blade lowers over half a second, the rods lengthen, and a click plays. The held press switches only once. A second long press raises the blade again | | |
@@ -504,24 +504,24 @@ Setup: in a world that used MyCar 0.5.0, place two vehicles and switch the headl
 | U2 | Join with a player who had received the starter vehicle before | One "SUV" item is given again | | |
 | U3 | Look where the vehicle with its headlights off stood | No light blocks are left there | | |
 
-## Building tools (ADR 0178, 0198)
+## Building tools (ADR 0198)
 
-Setup: use `/give @s yasu_build:selection_wand`, or craft it. Start on foot; the Build Tool item is covered by part 11/12. Verification is pending on both platforms.
+Setup: use `/give @s yasu_build:selection_wand`, or craft it. Test on foot and while riding a bulldozer. Verification is pending on both platforms.
 
 | # | Steps | Pass condition | PC | Mobile |
 |---|---|---|---|---|
-| BT1 | Open the creative Items tab and craft the five items | One "Building Tools" group, the last group, holds "Build Tool" (its icon), "Selection Wand", "Blade Up/Down", "Wide Blade", and "Road Paver", with no group nested inside or beside it for the switch. A stick and a copper ingot craft the wand; an iron ingot and a chain craft the tool; a lever and an iron ingot craft the blade switch; a lever and two iron ingots craft Wide Blade; a lever, an iron ingot, and a cobblestone craft Road Paver | unverified | unverified |
-| BT2 | Stand on foot holding the wand: tap a solid block, then tap another, in Survival and in Creative | The first tap sets point 1 and its material, the second sets the end point and shows the block count, and the outline appears in both modes | unverified | unverified |
+| BT1 | Open the creative Items tab and craft the four items | One "Building Tools" group, the last group, holds "Selection Wand" (the crane icon), "Blade Up/Down", "Wide Blade", and "Road Paver", with no group nested inside or beside it for the switch. A stick and a copper ingot craft the wand; a lever and an iron ingot craft the blade switch; a lever and two iron ingots craft Wide Blade; a lever, an iron ingot, and a cobblestone craft Road Paver | unverified | unverified |
+| BT2 | On foot and riding a bulldozer, tap a solid block with the wand, then tap another, in Survival and Creative | The first tap sets point 1 and its material; the live preview follows the view, and the second tap fixes the end point and opens the shape menu | unverified | unverified |
 | BT3 | Sneak, aim at the air (no block), and use the wand | The utility menu opens once without clearing the selection | unverified | unverified |
-| BT4 | Copy a selection, choose Paste in the wand utility menu, then hold the wand and tap each face of a target block in turn | Choosing Paste starts aiming without editing; the wand tap places the clipboard minimum corner adjacent to the tapped face | unverified | unverified |
-| BT5 | Hold the wand, flick through the hotbar, then switch items for longer than the grace delay | A flick preserves aiming; a sustained switch cancels point 1; the camera stays unchanged | unverified | unverified |
-| BT6 | Use the wand shape and utility menus for Fill, Copy, Paste, Undo, and Clear selection in turn; after choosing Paste, tap a target block with the wand; repeat with Skip air | Each action shows its message; paste uses the tapped face as its anchor, and Skip air leaves existing blocks in place under air | unverified | unverified |
+| BT4 | Copy a selection, sneak and tap on air with the wand to choose Paste and tap each face of a target block in turn | Choosing Paste starts aiming without editing; the wand tap places the clipboard minimum corner adjacent to the tapped face | unverified | unverified |
+| BT5 | Hold the wand, then flick through the hotbar quickly; switch away for longer than the grace delay | Build mode enters and leaves after the grace delay; a quick flick does not toggle it. The camera stays unchanged, and switching away cancels unfinished steps | unverified | unverified |
+| BT6 | Fill from the shape menu, then sneak and tap on air for Copy, Paste, Undo, and Clear selection; repeat Paste with Skip air | Each action shows its message; paste uses the tapped face as its anchor, and Skip air leaves existing blocks in place under air | unverified | unverified |
 | BT7 | Fill a selection that contains a chest with items | The chest and its items stay; the other blocks change | unverified | unverified |
 | BT7b | Copy a selection that contains a chest and a sign, then paste it elsewhere | The pasted copy has no chest or sign, and the target spot keeps what was there | unverified | unverified |
 | BT8 | Paste with the target overlapping the bulldozer | The paste is refused as a whole with the overlap message and nothing changes | unverified | unverified |
-| BT9 | Hold the wand, board a bulldozer, then get off | Build mode remains available on foot with no build-specific camera change | unverified | unverified |
+| BT9 | Get off the bulldozer while holding the wand in build mode | Build mode remains active on foot and the camera stays unchanged | unverified | unverified |
 | BT10 | In build mode, set only the first corner with one click of the wand (ADR 0183) | A small cube of end rod particles surrounds that block until the second corner is set | unverified | unverified |
-| BT11 | After BT10, set the second corner (ADR 0183) | The small cube disappears and the selection outline replaces it | unverified | unverified |
+| BT11 | After BT10, set the end point with a second tap (ADR 0198) | The shape menu opens for the confirmed selection; the selection outline remains visible | unverified | unverified |
 | BT12 | Repeat BT10 at noon on a bright surface (ADR 0183) | The corner marker is still easy to see in daylight | unverified | unverified |
 
 ### Build Wand live preview
