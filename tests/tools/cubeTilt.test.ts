@@ -314,3 +314,76 @@ describe("tilt_assembly (ADR 0166)", () => {
     );
   });
 });
+
+describe("yaw_cubes", () => {
+  it("rotates tilted cubes about world vertical after their own rotations", () => {
+    fc.assert(
+      fc.property(cube, vec, angle, angle, (one, pivot, lean, yaw) => {
+        const tilted = tilt([one], pivot, lean);
+        const moved = runCubeTilt<Cube[]>(
+          "cube_tilt.yaw_cubes(args['cubes'], args['pivot'], args['degrees'], 'pane', {'pane': {}})",
+          { cubes: tilted, pivot, degrees: yaw },
+        );
+        close(
+          matrixOf(at(moved, 0).rotation as Vec).flat(),
+          mul(ry(yaw), matrixOf(at(tilted, 0).rotation as Vec)).flat(),
+          1e-9,
+        );
+        const before = at(measure(tilted).corners, 0);
+        const after = at(measure(moved).corners, 0);
+        before.forEach((point, i) => {
+          const dx = point[0] - pivot[0];
+          const dz = point[2] - pivot[2];
+          close(
+            at(after, i),
+            [
+              pivot[0] + dx * Math.cos(rad(yaw)) + dz * Math.sin(rad(yaw)),
+              point[1],
+              pivot[2] - dx * Math.sin(rad(yaw)) + dz * Math.cos(rad(yaw)),
+            ],
+            2e-6,
+          );
+        });
+      }),
+      runs,
+    );
+  });
+
+  it("copies zero-degree input and rejects undeclared compound results", () => {
+    const result = runCubeTilt(
+      "(lambda c: [cube_tilt.yaw_cubes([c], [0, 0, 0], 0), cube_tilt.yaw_cubes([c], [0, 0, 0], 30)])({'origin': [0, 2, 0], 'size': [1, 1, 1]})",
+      null,
+    );
+    expect(result).toEqual([
+      [{ origin: [0, 2, 0], size: [1, 1, 1] }],
+      [
+        {
+          origin: [0, 2, 0],
+          size: [1, 1, 1],
+          pivot: [0, 2, 0],
+          rotation: [0, 30, 0],
+        },
+      ],
+    ]);
+    const script = [
+      "import sys",
+      "sys.path.insert(0, 'tools')",
+      "from cube_tilt import yaw_cubes",
+      "cube = {'origin': [0, 0, 0], 'size': [1, 1, 1], 'rotation': [-8, 0, 25]}",
+      "for degrees in (0, 11):",
+      "    for name, table in ((None, {}), ('unknown', {'pane': {}}), ('pane', {})):",
+      "        try:",
+      "            yaw_cubes([cube], [0, 0, 0], degrees, name, table)",
+      "        except ValueError:",
+      "            pass",
+      "        else:",
+      "            raise AssertionError('undeclared yaw accepted')",
+      "print('ok')",
+    ].join("\n");
+    expect(
+      execFileSync("python3", ["-I", "-c", script], {
+        encoding: "utf8",
+      }).trim(),
+    ).toBe("ok");
+  });
+});

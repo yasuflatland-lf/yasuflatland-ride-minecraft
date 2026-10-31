@@ -24,6 +24,7 @@ const shape = runShape<{
   hood_edge_y: number;
   lean_deg: number;
   grille_half_span: number;
+  windshield_ridge_px: number;
   grille_ridge_px: number;
 }>("asdict(FrontShape())", null);
 
@@ -45,7 +46,7 @@ describe("camper front shape", () => {
     );
   });
 
-  it("keeps the glass and cap flat while giving the grille its configured ridge", () => {
+  it("enables the windshield and grille ridges by default and keeps the cap flat", () => {
     fc.assert(
       fc.property(fc.double({ min: -1, max: 1, noNaN: true }), (fraction) => {
         const x = fraction * shape.grille_half_span;
@@ -55,7 +56,8 @@ describe("camper front shape", () => {
             x,
           ),
         ).toEqual([
-          0,
+          -shape.windshield_ridge_px *
+            (1 - Math.abs(x) / shape.grille_half_span),
           0,
           -shape.grille_ridge_px * (1 - Math.abs(x) / shape.grille_half_span),
         ]);
