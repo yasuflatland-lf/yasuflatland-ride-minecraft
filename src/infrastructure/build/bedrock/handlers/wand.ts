@@ -17,20 +17,29 @@ import { heldTypeId } from "../../../shared/heldItem";
 import { SELECTION_WAND_TYPE } from "../../identifiers";
 import type { BuildMenus } from "../buildMenus";
 
+const FACES: Record<Direction, Face> = {
+  [Direction.Up]: "up",
+  [Direction.Down]: "down",
+  [Direction.North]: "north",
+  [Direction.South]: "south",
+  [Direction.East]: "east",
+  [Direction.West]: "west",
+};
+
 export function registerWand({
   setPoint,
   tapAir,
+  pasteAt,
+  repo,
   menus,
   aim,
   debounce,
   pointOf,
-  repo,
-  pasteAt,
 }: {
-  repo: BuildSessionRepository;
-  pasteAt: PasteAt;
   setPoint: SetPoint;
   tapAir: TapAir;
+  pasteAt: PasteAt;
+  repo: BuildSessionRepository;
   menus: BuildMenus;
   aim: AimReader;
   debounce: PressDebounces<PlayerId>;
@@ -53,15 +62,7 @@ export function registerWand({
     system.run(() => {
       if (!player.isValid) return;
       if (repo.get(command.playerId)?.flow.kind === "pasteAim") {
-        const faces: Record<Direction, Face> = {
-          [Direction.Up]: "up",
-          [Direction.Down]: "down",
-          [Direction.North]: "north",
-          [Direction.South]: "south",
-          [Direction.East]: "east",
-          [Direction.West]: "west",
-        };
-        pasteAt.execute({ ...command, block: command.cell, face: faces[face] });
+        pasteAt.execute({ ...command, block: command.cell, face: FACES[face] });
       } else {
         const before = repo.get(command.playerId)?.flow.kind;
         setPoint.execute(command);
@@ -84,9 +85,9 @@ export function registerWand({
       void menus.showUtilityMenu(source);
       return;
     }
+    const before = repo.get(playerId)?.flow.kind;
     const point1 = pointOf(playerId);
     const end = point1 ? virtualEndPoint(point1, target.ray) : undefined;
-    const before = repo.get(playerId)?.flow.kind;
     tapAir.execute({ playerId, end });
     if (before !== "endpoint" && repo.get(playerId)?.flow.kind === "endpoint")
       system.run(() => {

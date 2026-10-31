@@ -1,4 +1,4 @@
-// Exercises the same corner use case and feedback adapter with a named player (ADR 0010, 0178).
+// Exercises the same tap use cases and feedback adapter with a named player (ADR 0010, 0178).
 import { ScriptEventSource, system, world } from "@minecraft/server";
 import { ClearSelection } from "../../../../application/build/clearSelection";
 import type { BuildBlockWorld } from "../../../../application/build/ports/blocks";
@@ -7,15 +7,16 @@ import type {
   BuildMessage,
 } from "../../../../application/build/ports/feedback";
 import { SetPoint } from "../../../../application/build/setPoint";
+import { TapAir } from "../../../../application/build/tapAir";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
 import { asDimensionId, asPlayerId } from "../../../../domain/shared/ids";
 import {
   BUILD_NAMESPACE,
-  TEST_CORNER_EVENT,
   TEST_RESULT_EVENT,
+  TEST_TAP_EVENT,
 } from "../../identifiers";
 
-export function registerTestCorner(
+export function registerTestTap(
   repo: BuildSessionRepository,
   feedback: BuildFeedback,
   blocks: BuildBlockWorld,
@@ -24,13 +25,13 @@ export function registerTestCorner(
     (ev) => {
       if (
         ev.sourceType !== ScriptEventSource.Server ||
-        ev.id !== TEST_CORNER_EVENT
+        ev.id !== TEST_TAP_EVENT
       )
         return;
       // JSON preserves spaces in player names. Coordinates must be integer block cells.
       let input: {
         player?: string;
-        corner?: string;
+        tap?: string;
         x?: number;
         y?: number;
         z?: number;
@@ -43,9 +44,7 @@ export function registerTestCorner(
       if (
         !input ||
         typeof input.player !== "string" ||
-        (input.corner !== "pos1" &&
-          input.corner !== "pos2" &&
-          input.corner !== "clear")
+        (input.tap !== "block" && input.tap !== "air" && input.tap !== "clear")
       )
         return;
       const { x, y, z } = input;
@@ -72,8 +71,10 @@ export function registerTestCorner(
         drawPreview: (id, dimension, set) =>
           feedback.drawPreview(id, dimension, set),
       };
-      if (input.corner === "clear")
+      if (input.tap === "clear")
         new ClearSelection(repo, observed).execute({ playerId });
+      else if (input.tap === "air")
+        new TapAir(repo, observed).execute({ playerId, end: cell });
       else
         new SetPoint(repo, blocks, observed).execute({
           playerId,

@@ -22,7 +22,7 @@ export const BUILD_MESSAGE: Readonly<Record<BuildMessage, string>> = {
   undoDone: "yasu_build.message.undo_done",
 };
 
-export const TEST_CORNER_EVENT = buildId("test_corner");
+export const TEST_TAP_EVENT = buildId("test_tap");
 export const TEST_MODE_EVENT = buildId("test_mode");
 export const TEST_EDIT_EVENT = buildId("test_edit");
 export const TEST_RESULT_EVENT = buildId("test_result");

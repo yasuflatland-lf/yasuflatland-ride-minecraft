@@ -1,8 +1,12 @@
 import { ScriptEventSource, system, world } from "@minecraft/server";
+import type { PasteAt } from "../../../../application/build/pasteAt";
 import type {
   BuildFeedback,
   BuildMessage,
 } from "../../../../application/build/ports/feedback";
+import type { SetRoofHeightTo } from "../../../../application/build/setRoofHeightTo";
+import type { UndoEdit } from "../../../../application/build/undoEdit";
+import type { Face } from "../../../../domain/build/clipboard/clipboard";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
 import {
   asDimensionId,
@@ -14,7 +18,7 @@ import {
   TEST_EDIT_EVENT,
   TEST_RESULT_EVENT,
 } from "../../identifiers";
-import type { BuildToolActions } from "../editActions";
+import type { MenuChoices } from "../menuChoices";
 
 export interface LastMessage {
   message: BuildMessage;
@@ -49,7 +53,10 @@ export function recordMessages(feedback: BuildFeedback): {
 }
 
 export function registerTestEdit(
-  actions: (id: PlayerId) => BuildToolActions,
+  choices: MenuChoices,
+  height: SetRoofHeightTo,
+  paste: PasteAt,
+  undo: UndoEdit,
   repo: BuildSessionRepository,
   messages: Pick<ReturnType<typeof recordMessages>, "last" | "forget">,
 ): void {
@@ -64,24 +71,46 @@ export function registerTestEdit(
       const player = world.getAllPlayers().find((p) => p.id === id);
       if (!player?.isValid) return;
       const playerId = asPlayerId(player.id);
-      const chosen = actions(playerId);
+      let offered: boolean | undefined;
       messages.forget(playerId);
       try {
-        if (command === "fill" && args.length === 0) chosen.fill();
-        else if (command === "copy" && args.length === 0) chosen.copy();
-        else if (
-          command === "paste" &&
-          args.length === 4 &&
-          args.slice(1).every((value) => Number.isInteger(Number(value))) &&
-          (args[0] === "0" || args[0] === "1")
+        if (
+          command === "menu" &&
+          (args[0] === "shape" ||
+            args[0] === "roof" ||
+            args[0] === "utility") &&
+          (args.length === 2 ||
+            (args.length === 3 && (args[2] === "0" || args[2] === "1")))
         ) {
-          chosen.paste(args[0] === "1");
-          chosen.pasteAt(
-            asDimensionId(player.dimension.id),
-            { x: Number(args[1]), y: Number(args[2]) - 1, z: Number(args[3]) },
-            "up",
-          );
-        } else if (command === "undo" && args.length === 0) chosen.undo();
+          offered = choices.choose(playerId, args[0], args[1], {
+            skipAir: args[2] === "1",
+          });
+        } else if (
+          command === "height" &&
+          args.length === 1 &&
+          Number.isInteger(Number(args[0]))
+        ) {
+          height.execute({ playerId, height: Number(args[0]) });
+        } else if (
+          command === "pasteat" &&
+          args.length === 4 &&
+          args.slice(0, 3).every((value) => Number.isInteger(Number(value))) &&
+          ["up", "down", "north", "south", "east", "west"].includes(
+            args[3] ?? "",
+          )
+        ) {
+          paste.execute({
+            playerId,
+            dimensionId: asDimensionId(player.dimension.id),
+            block: {
+              x: Number(args[0]),
+              y: Number(args[1]),
+              z: Number(args[2]),
+            },
+            face: args[3] as Face,
+          });
+        } else if (command === "undo" && args.length === 0)
+          undo.execute({ playerId });
         else return;
       } catch {
         // A malformed test command must not interrupt the server event loop.
@@ -90,7 +119,10 @@ export function registerTestEdit(
       const started = system.currentTick;
       const reply = () => {
         if (!player.isValid) return;
-        if (repo.get(playerId)?.isEditing) {
+        if (
+          repo.get(playerId)?.isEditing &&
+          system.currentTick - started < 200
+        ) {
           system.runTimeout(reply, 1);
           return;
         }
@@ -99,6 +131,9 @@ export function registerTestEdit(
           TEST_RESULT_EVENT,
           JSON.stringify({
             player: player.name,
+            offered,
+            flow: repo.get(playerId)?.flow ?? { kind: "idle" },
+            timedOut: repo.get(playerId)?.isEditing ?? false,
             message: last?.message,
             count: last?.count,
             ticks: system.currentTick - started,

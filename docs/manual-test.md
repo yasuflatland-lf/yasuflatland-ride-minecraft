@@ -533,17 +533,6 @@ Setup: use `/give @s yasu_build:selection_wand`, or craft it. Test on foot and w
 | The roof wireframe follows the view in the height step. | unverified |
 | The paste outline follows the aimed block. | unverified |
 
-### Build Wand menus
-
-| ID | Action | Expected | PC | iPad |
-|---|---|---|---|---|
-| BWM1 | Confirm an end point for a line, vertical rectangle, horizontal rectangle, and box | The shape menu shows only applicable entries: Place; Fill and Frame; Fill, Frame, Gable roof and Hip roof; or Fill, Faces only and Walls only, respectively, plus Cancel | unverified | unverified |
-| BWM2 | Choose each shape action; reopen and use Cancel, Escape or Back | Each action builds the selected style; cancellation returns to end-point selection | unverified | unverified |
-| BWM3 | Choose either roof kind, confirm its height, then choose Fill or Hollow; repeat with Cancel, Escape and Back | Fill builds a solid roof, Hollow builds its shell, and cancellation returns to end-point selection | unverified | unverified |
-| BWM4 | Enable the height slider fallback and choose either roof kind | Slider ranges from 1 to the allowed roof height, starts at the previous height and applies it before opening Fill/Hollow; with the flag disabled no slider opens | unverified | unverified |
-| BWM5 | Sneak and tap on air with the wand to open the utility menu with and without a selection, clipboard and history; choose each available action | Only applicable Copy, Paste, Undo and Clear selection entries appear; Paste asks for Skip air, initially off, before starting paste aiming; dismissal does nothing | unverified | unverified |
-| BWM6 | Repeatedly request menus, including while the paste toggle or height slider is open | Only one form opens per player; another player can open independently; the form does not hide the preview more than the engine forces | unverified | unverified |
-
 ## Build Wand touch input (ADR 0198)
 
 Precondition: hold the wand in first person on the iPad. A block tap selects the block under the view ray; aim the view at the intended block before tapping. No bulldozer is required. Leave at least half a second between separate taps.
@@ -554,3 +543,34 @@ Precondition: hold the wand in first person on the iPad. A block tap selects the
 | BW2 | After setting point 1, aim at air and tap; repeat with a held touch | The air tap fixes the virtual endpoint on the vertical plane through point 1; a held touch counts once | unverified | unverified |
 | BW3 | Sneak, aim at air, and tap or hold with the wand | The utility menu opens once and the selection remains | unverified | unverified |
 | BW4 | In Survival and Creative, tap and long-press solid blocks while holding the wand | No block breaks; a block tap does not also trigger an air tap | unverified | unverified |
+
+### Build Wand menus
+
+| ID | Action | Expected | PC | iPad |
+|---|---|---|---|---|
+| BWM1 | Confirm an end point for a line, vertical rectangle, horizontal rectangle, and box | The shape menu shows only applicable entries: Place; Fill and Frame; Fill, Frame, Gable roof and Hip roof; or Fill, Faces only and Walls only, respectively, plus Cancel | unverified | unverified |
+| BWM2 | Choose each shape action; reopen and use Cancel, Escape or Back | Each action builds the selected style; cancellation returns to end-point selection | unverified | unverified |
+| BWM3 | Choose either roof kind, confirm its height, then choose Fill or Hollow; repeat with Cancel, Escape and Back | Fill builds a solid roof, Hollow builds its shell, and cancellation returns to end-point selection | unverified | unverified |
+| BWM4 | Enable the height slider fallback and choose either roof kind | Slider ranges from 1 to the allowed roof height, starts at the previous height and applies it before opening Fill/Hollow; with the flag disabled no slider opens | unverified | unverified |
+| BWM5 | Open the wand utility menu with and without a selection, clipboard and history; choose each available action | Only applicable Copy, Paste, Undo and Clear selection entries appear; Paste asks for Skip air, initially off, before starting paste aiming; dismissal does nothing | unverified | unverified |
+| BWM6 | Repeatedly request menus, including while the paste toggle or height slider is open | Only one form opens per player; another player can open independently; the form does not hide the preview more than the engine forces | unverified | unverified |
+
+### Build Wand in-game scenarios
+
+These scenarios require one connected player, run exclusively without vehicles, and restore changed blocks, inventory and player position. Hooks exercise the real tap use cases and menu dispatch; they do not simulate client input or forms.
+
+| Scenario | Coverage |
+|---|---|
+| `build_shapes` | Box fill/faces/walls (125/98/80), rectangle frame (16), line (5), absent menu entries and exact permutation undo |
+| `build_roofs` | Gable solid/hollow (45/42), hip solid/hollow (35/34), explicit height, roof menu availability and undo |
+| `build_flow_cancel` | Wand mode on foot, item-switch cancellation of point 1, preserved endpoint, shape/roof Cancel returning to aiming |
+| `build_refusals` | Over-limit air endpoint, refused chest material and laid-block protection |
+| `build_aimed_paste` | Copy, all six aimed faces, Skip air on/off, block states and exact destination undo |
+| `build_block_states` | Engine block-permutation round trip |
+
+Remaining manual checks are BW1-BW4 (real taps, debounce and break prevention), BWM1-BWM6 (forms and dismissal), BT5/BT9 (camera and hotbar feel), and the live preview rows above. Also check:
+
+| ID | Action | Expected | PC | iPad |
+|---|---|---|---|---|
+| BW5 | Choose a roof, aim up/down and nearly parallel to its apex line, then tap | Height preview follows aim, retains height for a parallel ray, respects the cap, and opens Fill/Hollow once | unverified | unverified |
+| BW6 | Choose Paste, aim at each face, switch items, then retry and tap | Preview minimum corner is adjacent to the face; switching items cancels it; the pasted blocks match the preview | unverified | unverified |

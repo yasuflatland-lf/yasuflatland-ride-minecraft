@@ -43,8 +43,8 @@ Each row is the verdict of the shift-left audit in parts 16/22 to 21/22 (#924-#9
 | `camping_gear_blocks`: gear count is 17 | Logic | `tests/packs/campingGear.test.ts` |
 | `fleet_forget`: which car is evicted | Logic | Fleet properties in `tests/domain/vehicle/fleet/` |
 | `build_block_states`: protected predicate | Logic | `tests/infrastructure/build/bedrock.test.ts` |
-| `build_edits`: fill and undo messages and counts | Logic | Application edit tests |
-| `build_selection_and_mode`: corner messages, coordinates, volume | Logic | `tests/application/build/selection.test.ts` |
+| `build_edits` (now [Build Wand scenarios](../manual-test.md#build-wand-in-game-scenarios)): fill and undo messages and counts | Logic | Application edit tests |
+| `build_selection_and_mode` (now [build_flow_cancel](../manual-test.md#build-wand-in-game-scenarios)): corner messages, coordinates, volume | Logic | `tests/application/build/selection.test.ts` |
 | `build_corner_marker_*` | Logic | Selection properties in `tests/application/build/selection.test.ts`; scenarios removed |
 | `blade_cut_*`, `tent_*`, other `build_*` and `camping_gear_blocks` checks | Engine fact | Unchanged in game |
 

@@ -22,15 +22,15 @@ import { BedrockAimReader } from "./bedrock/bedrockAimReader";
 import { BedrockBlockWorld } from "./bedrock/bedrockBlockWorld";
 import { BedrockFeedback } from "./bedrock/bedrockFeedback";
 import { BedrockBuildMenus } from "./bedrock/buildMenus";
-import { editActions } from "./bedrock/editActions";
 import { registerEditTick } from "./bedrock/handlers/editTick";
 import { registerModeTick } from "./bedrock/handlers/modeTick";
 import { registerOutlineTick } from "./bedrock/handlers/outlineTick";
 import { registerSessions } from "./bedrock/handlers/sessions";
-import { registerTestCorner } from "./bedrock/handlers/testCorner";
+import { registerTestTap } from "./bedrock/handlers/testCorner";
 import { recordMessages, registerTestEdit } from "./bedrock/handlers/testEdit";
 import { registerTestMode } from "./bedrock/handlers/testMode";
 import { registerWand } from "./bedrock/handlers/wand";
+import { MenuChoices } from "./bedrock/menuChoices";
 import { InMemorySessionRepository } from "./persistence/inMemorySessionRepository";
 
 export function installBuild(deps: { isProtected: SpaceCheck }): void {
@@ -38,6 +38,7 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
   const recorded = recordMessages(new BedrockFeedback());
   const feedback = recorded.feedback;
   const blocks = new BedrockBlockWorld(deps);
+  const aim = new BedrockAimReader();
   const cancel = new CancelFlow(repo);
   const debounce = new PressDebounces<PlayerId>(BUILD_SPEC.pressDebounceTicks);
   const modes = new UpdateBuildModes(repo, cancel);
@@ -54,31 +55,38 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
     undo: new UndoEdit(repo, feedback, jobs),
     clear,
   };
-  const actions = (id: PlayerId) => editActions(id, cases);
-  const menus = new BedrockBuildMenus(repo, {
+  const menuCases = {
     ...cases,
     confirmShape: cases.fill,
     cancel,
     setRoofHeight: new SetRoofHeightTo(repo),
-  });
+  };
+  const menus = new BedrockBuildMenus(repo, menuCases);
   registerWand({
     setPoint: new SetPoint(repo, blocks, feedback),
     tapAir: new TapAir(repo, feedback),
-    menus,
-    aim: new BedrockAimReader(),
-    debounce,
-    repo,
     pasteAt: cases.pasteAt,
+    repo,
+    menus,
+    aim,
+    debounce,
     pointOf: (playerId) => {
       const flow = repo.get(playerId)?.flow;
       return flow?.kind === "point1" ? flow.cell : undefined;
     },
   });
   registerModeTick(modes);
-  registerOutlineTick(new ShowPreview(repo, feedback, new BedrockAimReader()));
+  registerOutlineTick(new ShowPreview(repo, feedback, aim));
   registerSessions(repo, cancel, debounce);
-  registerTestCorner(repo, feedback, blocks);
-  registerTestMode(modes);
+  registerTestTap(repo, feedback, blocks);
+  registerTestMode(modes, repo);
   registerEditTick(jobs);
-  registerTestEdit(actions, repo, recorded);
+  registerTestEdit(
+    new MenuChoices(repo, menuCases),
+    menuCases.setRoofHeight,
+    cases.pasteAt,
+    cases.undo,
+    repo,
+    recorded,
+  );
 }

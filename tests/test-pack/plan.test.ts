@@ -360,16 +360,16 @@ describe("planOf", () => {
     expect(MAX_LANE_VEHICLES).toBe(SPEC.maxUnownedVehicles - 2);
   });
 
-  it("preserves the camera verification note when skipping build selection", () => {
+  it("preserves the preview verification note when skipping build flow", () => {
     const spec: ScenarioSpec = {
-      name: "build_selection_and_mode",
-      file: "buildTools",
+      name: "build_flow_cancel",
+      file: "buildFlow",
       ticks: 30,
       features: ["build"],
       isolation: "exclusive",
       needsPlayer: true,
-      skipNote: "camera perspective needs visual verification",
-      vehicles: 1,
+      skipNote: "preview visibility needs visual verification",
+      vehicles: 0,
     };
     expect(
       planOf([spec], { shard: WHOLE_RUN, playerConnected: false }).skipped,
@@ -377,7 +377,7 @@ describe("planOf", () => {
       {
         name: spec.name,
         reason:
-          "a connected player is required; camera perspective needs visual verification",
+          "a connected player is required; preview visibility needs visual verification",
       },
     ]);
   });

@@ -8,10 +8,10 @@ import {
   buildId,
   LAID_BLOCK_TAG,
   SELECTION_WAND_TYPE,
-  TEST_CORNER_EVENT,
   TEST_EDIT_EVENT,
   TEST_MODE_EVENT,
   TEST_RESULT_EVENT,
+  TEST_TAP_EVENT,
 } from "../../../src/infrastructure/build/identifiers";
 import { LAID_BLOCK_TAG as VEHICLE_LAID_BLOCK_TAG } from "../../../src/infrastructure/shared/identifiers";
 
@@ -55,7 +55,7 @@ it("defines items and test events in the build namespace", () => {
   expect(
     [
       SELECTION_WAND_TYPE,
-      TEST_CORNER_EVENT,
+      TEST_TAP_EVENT,
       TEST_MODE_EVENT,
       TEST_EDIT_EVENT,
       TEST_RESULT_EVENT,

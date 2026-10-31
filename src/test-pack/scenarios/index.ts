@@ -2,10 +2,13 @@ import type { Arena } from "../arena";
 import type { Outcome, StepSink } from "../outcome";
 import { bladeCutColumn, bladeCutDrops, bladeCutKeptIds } from "./bladeCut";
 import {
-  buildBlockStates,
-  buildEdits,
-  buildSelectionAndMode,
-} from "./buildTools";
+  buildAimedPaste,
+  buildFlowCancel,
+  buildRefusals,
+  buildRoofs,
+  buildShapes,
+} from "./buildFlow";
+import { buildBlockStates } from "./buildTools";
 import {
   bulldozerClearHill,
   bulldozerDirtPath,
@@ -232,6 +235,9 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   tent_mattresses: tentMattresses,
   tent_lantern: tentLantern,
   tent_paint_events: tentPaintEvents,
-  build_edits: buildEdits,
-  build_selection_and_mode: buildSelectionAndMode,
+  build_shapes: buildShapes,
+  build_roofs: buildRoofs,
+  build_flow_cancel: buildFlowCancel,
+  build_refusals: buildRefusals,
+  build_aimed_paste: buildAimedPaste,
 };
