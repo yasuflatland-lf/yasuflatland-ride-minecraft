@@ -2,7 +2,7 @@
 
 - Status: Proposed
 - Date: 2026-10-31
-- Supersedes in part: [0178](0178-bulldozer-build-tools-in-a-separate-namespace.md) (the bulldozer requirement in Decisions 3 and 4, the two items in Decisions 3, 8, and 13, the third-person build camera in Decision 5, and the hit and use mapping in Decision 8)
+- Supersedes in part: [0178](0178-bulldozer-build-tools-in-a-separate-namespace.md) (the bulldozer requirement in Decisions 3 and 4, the two items in Decisions 3, 8, and 13, the third-person build camera in Decision 5, the bulldozer-relative paste offset and moving preview in Decision 7, the hit and use mapping in Decision 8, and the Build Tool form in Decision 11)
 - Extends: [0183](0183-mark-a-lone-selection-corner.md) (the first-point marker) and [0137](0137-clear-block-columns-with-the-blade.md) (the kept block list)
 
 ## Context
