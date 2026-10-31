@@ -4,6 +4,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { DOOR_BY_SEAT } from "../../src/domain/vehicle/kinds/suv/entity";
 import { SUV_PROFILE } from "../../src/domain/vehicle/kinds/suv/profile";
+import { SUV_SPEC } from "../../src/domain/vehicle/kinds/suv/spec";
 import { turnedCorners } from "../support/geometry";
 import { assertOneAxis, multipleAxes } from "./oneAxis";
 
@@ -367,7 +368,49 @@ describe("SUV model (ADR 0009)", () => {
         wheel[0] + FOLD_OUT * Math.sign(wheel[0]),
       );
       expect(glow[2], `glow_${w} z`).toBe(wheel[2]);
-      expect(bones.get(`glow_${w}`)?.locators?.[`hover_${w}`]).toHaveLength(3);
+      expect(bones.get(`glow_${w}`)?.locators).toEqual({
+        [`hover_${w}`]: [glow[0], scaled(-0.5), glow[2]],
+      });
+    }
+  });
+
+  it("keeps every hover glow round and inside the vehicle footprint", () => {
+    for (const w of ["fl", "fr", "rl", "rr"]) {
+      const bone = bones.get(`glow_${w}`);
+      if (!bone) throw new Error(`Missing glow_${w}`);
+      const center = pivot(bone.name);
+      const cubes = bone.cubes ?? [];
+      const radius = scaled(5);
+      expect(cubes).toHaveLength(16);
+      for (const cube of cubes) {
+        expect(cube.pivot).toEqual(center);
+        expect(cube.origin[1]).toBe(scaled(-0.5));
+        expect(cube.size[1]).toBe(scaled(0.5));
+        expect(cube.rotation?.[0]).toBe(0);
+        expect(cube.rotation?.[2]).toBe(0);
+        for (const point of turnedCorners(bone, cube)) {
+          expect(Math.hypot(point[0], point[2]) / 16).toBeLessThanOrEqual(
+            SUV_SPEC.footprint,
+          );
+          expect(
+            Math.hypot(point[0] - center[0], point[2] - center[2]),
+          ).toBeCloseTo(radius, 10);
+        }
+      }
+      // A union's boundary includes valleys between tips; corner radii alone
+      // would also accept the original square. Intersect rays with every slab.
+      for (let degree = 0; degree < 360; degree += 0.25) {
+        const reaches = cubes.map((cube) => {
+          const angle = ((degree - (cube.rotation?.[1] ?? 0)) * Math.PI) / 180;
+          return Math.min(
+            cube.size[0] / 2 / Math.abs(Math.cos(angle)),
+            cube.size[2] / 2 / Math.abs(Math.sin(angle)),
+          );
+        });
+        const reach = Math.max(...reaches);
+        expect(reach).toBeGreaterThanOrEqual(radius * 0.95);
+        expect(reach).toBeLessThanOrEqual(radius + 1e-10);
+      }
     }
   });
 

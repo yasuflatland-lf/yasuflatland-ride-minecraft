@@ -59,6 +59,9 @@ def disc(axis, center, half, a0, a1, angles, color):
         if axis == "x":
             cube = box(a0, center[1] - half, center[2] - half, a1, center[1] + half, center[2] + half, color)
             cube["rotation"] = [angle, 0, 0]
+        elif axis == "y":
+            cube = box(center[0] - half, a0, center[2] - half, center[0] + half, a1, center[2] + half, color)
+            cube["rotation"] = [0, angle, 0]
         else:
             cube = box(center[0] - half, center[1] - half, a0, center[0] + half, center[1] + half, a1, color)
             cube["rotation"] = [0, 0, angle]

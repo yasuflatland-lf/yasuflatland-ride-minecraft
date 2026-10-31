@@ -120,3 +120,26 @@ the full highlight, 0.01 pixel forward to avoid coplanar texture competition.
 The highlight fades to black inside that square, leaving the circular outline
 to geometry. The owner still needs to check the tilted driver's view with
 Vibrant Visuals on and off. Resource Pack and BP dependency advance to 0.1.216.
+
+### Circular hover glow addendum (#1027)
+
+Each hover glow uses 16 flat squares turned in 5.625-degree steps around y,
+with half-side `5 / sqrt(2)` construction pixels. Their 64 outer tips have
+radius 5 px; the intervening outline stays above 4.77 px (less than 5 percent
+radial variation). Turned geometry preserves the existing `glow` swatch,
+alpha 40 and emissive material (0022), without a new circular texture whose
+transparent surroundings would require a different material. The shared
+`disc` helper gains y-axis support; existing x/z callers remain unchanged.
+
+Keep the four glow bones, centers, hover locators and y span -0.5..0 px from
+0043. The 10 px diameter becomes 14.5 px after the existing 1.45 export scale
+(0194), with radius 7.25 px and thickness 0.725 px. Check every rotated corner
+against the current 3.40-block footprint from 0194; the issue's 3.05-block
+value predates that enlargement. Collision, seats, animation and driving do
+not change. Resource Pack header/module and BP dependency advance to 0.1.217.
+
+The overlapping squares add 60 cubes across four glows. Geometry tests cover
+radial variation and footprint containment, but cannot establish the client's
+emissive appearance or coplanar rendering. The owner must check the result
+from above, below and the sides in flight and while hovering, with VV on and
+off; no server or in-game tests are run for this change.

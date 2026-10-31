@@ -167,6 +167,10 @@ def sub_arm(name, x_out, z_center):
     }
 
 
+GLOW_RADIUS = 5
+GLOW_SEGMENTS = 16
+
+
 def glow(name, x_out, z_center):
     # A disc under the folded wheel (ADR 0022, moved out with it by ADR 0043). The render controller hides
     # it while the gear is down: on the ground and under water.
@@ -175,6 +179,7 @@ def glow(name, x_out, z_center):
         "name": name,
         "parent": "root",
         "pivot": [x, 0, z_center],
-        "cubes": [box(x - 5, -0.5, z_center - 5, x + 5, 0, z_center + 5, "glow")],
+        "cubes": disc("y", (x, 0, z_center), GLOW_RADIUS / math.sqrt(2), -0.5, 0,
+                      [i * 90 / GLOW_SEGMENTS for i in range(GLOW_SEGMENTS)], "glow"),
         "locators": {name.replace("glow", "hover"): [x, -0.5, z_center]},
     }
