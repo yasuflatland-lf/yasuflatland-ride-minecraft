@@ -10,7 +10,7 @@ import {
 import { previewPoints } from "../../../src/domain/build/preview/preview";
 import { roofCells } from "../../../src/domain/build/roof/roof";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
-import { geometryOf } from "../../../src/domain/build/volume/geometry";
+import { volumeOf } from "../../../src/domain/build/volume/geometry";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import type { Vec3 } from "../../../src/domain/shared/vec";
 
@@ -237,7 +237,7 @@ it("draws a locked cylinder at the box height even when another height is aimed"
           "cylinder",
         );
         if (flow.kind !== "heightStep") throw new Error("Expected height step");
-        const expected = geometryOf("cylinder").wireframe(
+        const expected = volumeOf("cylinder").wireframe(
           { base: flow.base, kind: "cylinder", height },
           BUILD_SPEC.outlineMaxPoints,
         );
@@ -246,6 +246,54 @@ it("draws a locked cylinder at the box height even when another height is aimed"
         expect(
           previewPoints(flow, { blink: false, height: aimed }).roof,
         ).toEqual(expected);
+      },
+    ),
+  );
+});
+
+it("uses only the Copy layer and warns exactly above the copy volume limit", () => {
+  fc.assert(
+    fc.property(
+      fc.integer({ min: 2, max: 128 }),
+      fc.integer({ min: 2, max: 128 }),
+      fc.integer({ min: 1, max: 256 }),
+      fc.option(fc.integer({ min: 1, max: 256 }), { nil: undefined }),
+      fc.boolean(),
+      (width, depth, previous, aimed, heightLocked) => {
+        const base = boxOf(
+          { x: 0, y: 0, z: 0 },
+          { x: width - 1, y: 0, z: depth - 1 },
+        );
+        const flow: BuildFlow = {
+          kind: "heightStep",
+          heightedKind: "copy",
+          base,
+          from: base.min,
+          previous,
+          heightLocked,
+          dimensionId,
+          material,
+        };
+        const set = previewPoints(flow, {
+          blink: false,
+          ...(aimed === undefined ? {} : { height: aimed }),
+        });
+        const height = heightLocked ? previous : (aimed ?? previous);
+        const over = width * depth * height > BUILD_SPEC.maxCopyVolume;
+        expect(set.copyOver.length > 0).toBe(over);
+        expect(set.copy.length > 0).toBe(!over);
+        expect(set.roof).toEqual([]);
+        expect(set.shape).toEqual([]);
+        expect(set.marker).toEqual([]);
+        expect(set.endCube).toEqual([]);
+        expect(set.paste).toEqual([]);
+        const points = over ? set.copyOver : set.copy;
+        expect(points).toEqual(
+          volumeOf("copy").wireframe(
+            { base, kind: "copy", height },
+            BUILD_SPEC.outlineMaxPoints,
+          ),
+        );
       },
     ),
   );

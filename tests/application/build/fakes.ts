@@ -44,6 +44,18 @@ export class FakeFeedback implements BuildFeedback {
   showSize(playerId: PlayerId, size: { x: number; y: number; z: number }) {
     this.sizes.push({ playerId, size });
   }
+  pasteHints: {
+    playerId: PlayerId;
+    size: { x: number; y: number; z: number };
+    count: number;
+  }[] = [];
+  showPasteHint(
+    playerId: PlayerId,
+    size: { x: number; y: number; z: number },
+    count: number,
+  ) {
+    this.pasteHints.push({ playerId, size, count });
+  }
   previews: {
     playerId: PlayerId;
     dimensionId: DimensionId | undefined;

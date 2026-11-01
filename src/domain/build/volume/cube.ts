@@ -1,6 +1,10 @@
 import { type Box, center, edgePoints } from "../box";
 import { cellsOfShape, type ShapeStyle, shapeCount } from "../shape/shape";
-import type { HeightedGeometry, HeightedSpec } from "./geometry";
+import type {
+  HeightedPlacement,
+  HeightedVolume,
+  HeightStepSpec,
+} from "./geometry";
 import type { FillStyle } from "./kind";
 
 const STYLES: Record<FillStyle, ShapeStyle> = {
@@ -9,20 +13,23 @@ const STYLES: Record<FillStyle, ShapeStyle> = {
   tube: "walls",
 };
 
-function boundsOf({ base, height }: HeightedSpec): Box {
+function boundsOf({ base, height }: HeightStepSpec): Box {
   return {
     min: base.min,
     max: { ...base.max, y: base.min.y + height - 1 },
   };
 }
 
-export const cubeGeometry: HeightedGeometry = {
+export const cubePlacement: HeightedPlacement = {
   cells(spec, fill) {
     return cellsOfShape({ kind: "box", box: boundsOf(spec) }, STYLES[fill]);
   },
   count(spec, fill) {
     return shapeCount({ kind: "box", box: boundsOf(spec) }, STYLES[fill]);
   },
+};
+
+export const cubeVolume: HeightedVolume = {
   maxHeight(base, worldTopY) {
     return Math.max(1, worldTopY - base.min.y + 1);
   },

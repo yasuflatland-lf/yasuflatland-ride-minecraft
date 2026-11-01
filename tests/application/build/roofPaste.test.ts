@@ -29,7 +29,7 @@ import {
   roofCount,
 } from "../../../src/domain/build/roof/roof";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
-import { geometryOf } from "../../../src/domain/build/volume/geometry";
+import { placementOf } from "../../../src/domain/build/volume/geometry";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
   cellKey,
@@ -222,6 +222,7 @@ it("pastes clipboard-relative cells at the hit face with either air policy", () 
         for (const at of cellsOf(pasteBox(clip, anchor))) e.world.put(at, dirt);
         const read = vi.spyOn(e.world, "mayEdit");
         new PasteAt(e.repo, e.world, e.feedback, e.jobs).execute({
+          tick: 0,
           playerId,
           dimensionId: nether,
           block,
@@ -230,7 +231,11 @@ it("pastes clipboard-relative cells at the hit face with either air policy", () 
         expect(read.mock.calls).toEqual(
           [...cellsOf(pasteBox(clip, anchor))].map((at) => [nether, at]),
         );
-        expect(e.session.flow).toEqual({ kind: "idle" });
+        expect(e.session.flow).toEqual({
+          kind: "pasteAim",
+          skipAir,
+          lastPaste: { anchor, tick: 0 },
+        });
         e.jobs.step();
         for (const { at, state } of clip.cells)
           expect(
@@ -254,6 +259,7 @@ it("preserves paste aiming on missing clipboard, busy jobs and protected holes",
     dimensionId: overworld,
     block: { x: 0, y: 0, z: 0 },
     face: "up" as const,
+    tick: 0,
   };
   paste.execute(cmd);
   expect(e.feedback.messages).toEqual([]);
@@ -336,8 +342,8 @@ it("confirms solid tubes and rejects oversized solids without consuming the flow
           },
         });
         e.jobs.step();
-        expect(e.world.writes).toBe(geometryOf(kind).count(spec, "tube"));
-        for (const at of geometryOf(kind).cells(spec, "tube"))
+        expect(e.world.writes).toBe(placementOf(kind).count(spec, "tube"));
+        for (const at of placementOf(kind).cells(spec, "tube"))
           expect(e.world.stateAt(overworld, at)).toEqual(stone);
         for (const fill of ["fill", "hollow", "tube"] as const) {
           const large = { ...base, max: { x: 100, y: 60, z: 100 } };
@@ -352,7 +358,7 @@ it("confirms solid tubes and rejects oversized solids without consuming the flow
             1000,
           );
           e.session.setFlow(flow);
-          const count = geometryOf(kind).count(
+          const count = placementOf(kind).count(
             { base: large, kind, height: 1000 },
             fill,
           );

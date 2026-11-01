@@ -1,9 +1,9 @@
 import type { Cell } from "../../shared/cells";
 import type { DimensionId } from "../../shared/ids";
 import type { BlockState } from "../blockState";
-import type { Box } from "../box";
+import { type Box, boxOf } from "../box";
 import { shapeOf } from "../shape/shape";
-import type { HeightedKind } from "../volume/kind";
+import type { HeightStepKind } from "../volume/kind";
 
 export type BuildFlow =
   | { readonly kind: "idle" }
@@ -25,12 +25,16 @@ export type BuildFlow =
       readonly dimensionId: DimensionId;
       readonly base: Box;
       readonly from: Cell;
-      readonly heightedKind: HeightedKind;
+      readonly heightedKind: HeightStepKind;
       readonly previous: number;
       readonly heightLocked: boolean;
       readonly material: BlockState;
     }
-  | { readonly kind: "pasteAim"; readonly skipAir: boolean };
+  | {
+      readonly kind: "pasteAim";
+      readonly skipAir: boolean;
+      readonly lastPaste?: { readonly anchor: Cell; readonly tick: number };
+    };
 
 export function tapBlock(
   flow: BuildFlow,
@@ -83,7 +87,10 @@ export function backToAiming(flow: BuildFlow): BuildFlow {
     : flow;
 }
 
-export function chooseHeighted(flow: BuildFlow, kind: HeightedKind): BuildFlow {
+export function chooseHeighted(
+  flow: BuildFlow,
+  kind: HeightStepKind,
+): BuildFlow {
   if (flow.kind !== "endpoint") return flow;
   const shape = shapeOf(flow.from, flow.to);
   const locked = shape.kind === "box" && kind === "cylinder";
@@ -113,4 +120,40 @@ export function startPaste(flow: BuildFlow, skipAir: boolean): BuildFlow {
   return flow.kind === "idle"
     ? Object.freeze({ kind: "pasteAim", skipAir })
     : flow;
+}
+
+export function recordPaste(
+  flow: BuildFlow,
+  anchor: Cell,
+  tick: number,
+): BuildFlow {
+  return flow.kind === "pasteAim"
+    ? Object.freeze({
+        ...flow,
+        lastPaste: Object.freeze({
+          anchor: Object.freeze({ ...anchor }),
+          tick,
+        }),
+      })
+    : flow;
+}
+
+export function isRepeat(
+  flow: BuildFlow,
+  anchor: Cell,
+  tick: number,
+  window: number,
+): boolean {
+  if (flow.kind !== "pasteAim" || !flow.lastPaste) return false;
+  const last = flow.lastPaste;
+  return (
+    last.anchor.x === anchor.x &&
+    last.anchor.y === anchor.y &&
+    last.anchor.z === anchor.z &&
+    tick - last.tick < window
+  );
+}
+
+export function copyBoxOf(flow: BuildFlow): Box | undefined {
+  return flow.kind === "endpoint" ? boxOf(flow.from, flow.to) : undefined;
 }

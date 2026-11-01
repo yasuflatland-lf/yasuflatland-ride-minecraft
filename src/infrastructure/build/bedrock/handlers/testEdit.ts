@@ -43,6 +43,8 @@ export function recordMessages(feedback: BuildFeedback): {
         feedback.showMessage(id, message, count);
       },
       showSize: (id, size) => feedback.showSize(id, size),
+      showPasteHint: (id, size, count) =>
+        feedback.showPasteHint(id, size, count),
       drawPreview: (id, dimension, set) =>
         feedback.drawPreview(id, dimension, set),
     },
@@ -109,6 +111,7 @@ export function registerTestEdit(
               z: Number(args[2]),
             },
             face: args[3] as Face,
+            tick: system.currentTick,
           });
         } else if (command === "undo" && args.length === 0)
           undo.execute({ playerId });

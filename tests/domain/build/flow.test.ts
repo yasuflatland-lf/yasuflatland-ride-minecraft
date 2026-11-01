@@ -122,17 +122,21 @@ it("offers only supported shape styles followed by Cancel", () => {
           : shape.kind === "box"
             ? ["cylinder"]
             : []),
+        "copy",
         "cancel",
       ]);
     }),
   );
   for (const [to, ids] of [
-    [{ x: 3, y: 0, z: 0 }, ["place", "cancel"]],
+    [{ x: 3, y: 0, z: 0 }, ["place", "copy", "cancel"]],
     [
       { x: 3, y: 0, z: 3 },
-      ["fill", "frame", "gable", "hip", "cylinder", "cube", "cancel"],
+      ["fill", "frame", "gable", "hip", "cylinder", "cube", "copy", "cancel"],
     ],
-    [{ x: 3, y: 3, z: 3 }, ["fill", "faces", "walls", "cylinder", "cancel"]],
+    [
+      { x: 3, y: 3, z: 3 },
+      ["fill", "faces", "walls", "cylinder", "copy", "cancel"],
+    ],
   ] as const)
     expect(
       shapeMenu(
@@ -214,17 +218,26 @@ it("accepts every heighted kind only on its supported shapes", () => {
         for (const [offset, ids] of [
           [
             { x: dx, y: 0, z: dz },
-            ["fill", "frame", "gable", "hip", "cylinder", "cube", "cancel"],
+            [
+              "fill",
+              "frame",
+              "gable",
+              "hip",
+              "cylinder",
+              "cube",
+              "copy",
+              "cancel",
+            ],
           ],
           [
             { x: dx, y: dy, z: dz },
-            ["fill", "faces", "walls", "cylinder", "cancel"],
+            ["fill", "faces", "walls", "cylinder", "copy", "cancel"],
           ],
-          [{ x: dx, y: dy, z: 0 }, ["fill", "frame", "cancel"]],
-          [{ x: 0, y: dy, z: dz }, ["fill", "frame", "cancel"]],
-          [{ x: dx, y: 0, z: 0 }, ["place", "cancel"]],
-          [{ x: 0, y: dy, z: 0 }, ["place", "cancel"]],
-          [{ x: 0, y: 0, z: dz }, ["place", "cancel"]],
+          [{ x: dx, y: dy, z: 0 }, ["fill", "frame", "copy", "cancel"]],
+          [{ x: 0, y: dy, z: dz }, ["fill", "frame", "copy", "cancel"]],
+          [{ x: dx, y: 0, z: 0 }, ["place", "copy", "cancel"]],
+          [{ x: 0, y: dy, z: 0 }, ["place", "copy", "cancel"]],
+          [{ x: 0, y: 0, z: dz }, ["place", "copy", "cancel"]],
         ] as const) {
           const end = {
             x: origin.x + offset.x,

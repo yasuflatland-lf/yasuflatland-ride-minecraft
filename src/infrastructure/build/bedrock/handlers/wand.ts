@@ -1,5 +1,6 @@
 import { Direction, system, world } from "@minecraft/server";
 import type { AimHeight } from "../../../../application/build/aimHeight";
+import type { ConfirmCopyHeight } from "../../../../application/build/confirmCopyHeight";
 import type { PasteAt } from "../../../../application/build/pasteAt";
 import type { AimReader } from "../../../../application/build/ports/aim";
 import type { SetPoint } from "../../../../application/build/setPoint";
@@ -32,6 +33,7 @@ export function registerWand({
   tapAir,
   pasteAt,
   aimHeight,
+  confirmCopyHeight,
   repo,
   menus,
   aim,
@@ -42,6 +44,7 @@ export function registerWand({
   tapAir: TapAir;
   pasteAt: PasteAt;
   aimHeight: AimHeight;
+  confirmCopyHeight: Pick<ConfirmCopyHeight, "execute">;
   repo: BuildSessionRepository;
   menus: BuildMenus;
   aim: AimReader;
@@ -64,13 +67,21 @@ export function registerWand({
     const face = ev.blockFace;
     system.run(() => {
       if (!player.isValid) return;
-      if (repo.get(command.playerId)?.flow.kind === "heightStep") {
+      const flow = repo.get(command.playerId)?.flow;
+      if (flow?.kind === "heightStep") {
         const target = aim.aim(command.playerId);
         if (!target) return;
         aimHeight.execute({ playerId: command.playerId, ray: target.ray });
-        void menus.showContentsMenu(player);
+        if (flow.heightedKind === "copy")
+          confirmCopyHeight.execute({ playerId: command.playerId });
+        else void menus.showContentsMenu(player);
       } else if (repo.get(command.playerId)?.flow.kind === "pasteAim") {
-        pasteAt.execute({ ...command, block: command.cell, face: FACES[face] });
+        pasteAt.execute({
+          ...command,
+          block: command.cell,
+          face: FACES[face],
+          tick: system.currentTick,
+        });
       } else {
         const before = repo.get(command.playerId)?.flow.kind;
         setPoint.execute(command);
@@ -89,9 +100,11 @@ export function registerWand({
     const target = aim.aim(playerId);
     // A block tap can also emit itemUse; only the interact handler owns that tap.
     if (!target || target.block) return;
-    if (repo.get(playerId)?.flow.kind === "heightStep") {
+    const flow = repo.get(playerId)?.flow;
+    if (flow?.kind === "heightStep") {
       aimHeight.execute({ playerId, ray: target.ray });
-      void menus.showContentsMenu(source);
+      if (flow.heightedKind === "copy") confirmCopyHeight.execute({ playerId });
+      else void menus.showContentsMenu(source);
       return;
     }
     if (source.isSneaking) {

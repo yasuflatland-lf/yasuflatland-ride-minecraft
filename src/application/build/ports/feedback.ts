@@ -27,6 +27,11 @@ export interface BuildFeedback {
     material?: BlockState,
   ): void;
   showSize(playerId: PlayerId, size: { x: number; y: number; z: number }): void;
+  showPasteHint(
+    playerId: PlayerId,
+    size: { x: number; y: number; z: number },
+    count: number,
+  ): void;
   drawPreview(
     playerId: PlayerId,
     dimensionId: DimensionId | undefined,

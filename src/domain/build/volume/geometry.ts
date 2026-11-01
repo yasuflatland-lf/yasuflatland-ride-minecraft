@@ -1,31 +1,51 @@
 import type { Cell } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
 import type { Box } from "../box";
-import { roofGeometry } from "../roof/geometry";
-import { cubeGeometry } from "./cube";
-import { cylinderGeometry } from "./cylinder";
-import type { FillStyle, HeightedKind } from "./kind";
+import { roofPlacement, roofVolume } from "../roof/geometry";
+import { copyVolume } from "./copy";
+import { cubePlacement, cubeVolume } from "./cube";
+import { cylinderPlacement, cylinderVolume } from "./cylinder";
+import type { FillStyle, HeightedKind, HeightStepKind } from "./kind";
 
-export interface HeightedSpec {
+export interface HeightStepSpec {
   readonly base: Box;
-  readonly kind: HeightedKind;
+  readonly kind: HeightStepKind;
   readonly height: number;
 }
 
-export interface HeightedGeometry {
-  cells(spec: HeightedSpec, fill: FillStyle): Iterable<Cell>;
-  count(spec: HeightedSpec, fill: FillStyle): number;
-  maxHeight(base: Box, worldTopY: number): number;
-  wireframe(spec: HeightedSpec, maxPoints: number): Vec3[];
+export interface HeightedSpec extends HeightStepSpec {
+  readonly kind: HeightedKind;
 }
 
-const GEOMETRIES: Record<HeightedKind, HeightedGeometry> = {
-  gable: roofGeometry,
-  hip: roofGeometry,
-  cube: cubeGeometry,
-  cylinder: cylinderGeometry,
+export interface HeightedVolume {
+  maxHeight(base: Box, worldTopY: number): number;
+  wireframe(spec: HeightStepSpec, maxPoints: number): Vec3[];
+}
+
+export interface HeightedPlacement {
+  cells(spec: HeightedSpec, fill: FillStyle): Iterable<Cell>;
+  count(spec: HeightedSpec, fill: FillStyle): number;
+}
+
+const VOLUMES: Record<HeightStepKind, HeightedVolume> = {
+  copy: copyVolume,
+  gable: roofVolume,
+  hip: roofVolume,
+  cube: cubeVolume,
+  cylinder: cylinderVolume,
 };
 
-export function geometryOf(kind: HeightedKind): HeightedGeometry {
-  return GEOMETRIES[kind];
+const PLACEMENTS: Record<HeightedKind, HeightedPlacement> = {
+  gable: roofPlacement,
+  hip: roofPlacement,
+  cube: cubePlacement,
+  cylinder: cylinderPlacement,
+};
+
+export function volumeOf(kind: HeightStepKind): HeightedVolume {
+  return VOLUMES[kind];
+}
+
+export function placementOf(kind: HeightedKind): HeightedPlacement {
+  return PLACEMENTS[kind];
 }

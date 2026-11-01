@@ -71,6 +71,19 @@ export class BedrockFeedback implements BuildFeedback {
     });
   }
 
+  showPasteHint(
+    playerId: PlayerId,
+    size: { x: number; y: number; z: number },
+    count: number,
+  ): void {
+    const player = playerById(playerId);
+    if (!player?.isValid) return;
+    player.onScreenDisplay.setActionBar({
+      translate: BUILD_MESSAGE.pasteHint,
+      with: [String(size.x), String(size.y), String(size.z), String(count)],
+    });
+  }
+
   drawPreview(
     playerId: PlayerId,
     dimensionId: DimensionId | undefined,
@@ -84,6 +97,8 @@ export class BedrockFeedback implements BuildFeedback {
       endCube: "minecraft:endrod",
       roof: "minecraft:villager_happy",
       paste: "minecraft:blue_flame_particle",
+      copy: "minecraft:balloon_gas_particle",
+      copyOver: "minecraft:redstone_wire_dust_particle",
     };
     for (const key of Object.keys(styles) as (keyof PreviewSet)[]) {
       if (!this.spawnAll(player, styles[key], set[key])) return;

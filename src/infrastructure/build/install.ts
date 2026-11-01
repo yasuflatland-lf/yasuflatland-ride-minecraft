@@ -1,7 +1,9 @@
 import { AimHeight } from "../../application/build/aimHeight";
 import { CancelFlow } from "../../application/build/cancelFlow";
+import { ChooseCopy } from "../../application/build/chooseCopy";
 import { ChooseHeighted } from "../../application/build/chooseHeighted";
 import { ClearSelection } from "../../application/build/clearSelection";
+import { ConfirmCopyHeight } from "../../application/build/confirmCopyHeight";
 import { ConfirmHeighted } from "../../application/build/confirmHeighted";
 import { ConfirmShape } from "../../application/build/confirmShape";
 import { CopySelection } from "../../application/build/copySelection";
@@ -11,6 +13,7 @@ import { SetHeightTo } from "../../application/build/setHeightTo";
 import { SetPoint } from "../../application/build/setPoint";
 import { ShowPreview } from "../../application/build/showPreview";
 import { StartPaste } from "../../application/build/startPaste";
+import { StopPaste } from "../../application/build/stopPaste";
 import { TapAir } from "../../application/build/tapAir";
 import { UndoEdit } from "../../application/build/undoEdit";
 import { UpdateBuildModes } from "../../application/build/updateBuildModes";
@@ -45,9 +48,12 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
   const jobs = new EditJobs(repo, blocks, feedback);
   const clear = new ClearSelection(repo, feedback);
   const cases = {
+    chooseCopy: new ChooseCopy(repo, blocks, feedback),
+    confirmCopyHeight: new ConfirmCopyHeight(repo, blocks, feedback),
     fill: new ConfirmShape(repo, feedback, jobs),
     copy: new CopySelection(repo, blocks, feedback),
     paste: new StartPaste(repo),
+    stopPaste: new StopPaste(repo),
     pasteAt: new PasteAt(repo, blocks, feedback, jobs),
     chooseHeighted: new ChooseHeighted(repo, feedback),
     aimHeight: new AimHeight(repo),
@@ -67,6 +73,7 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
     tapAir: new TapAir(repo, feedback),
     pasteAt: cases.pasteAt,
     aimHeight: cases.aimHeight,
+    confirmCopyHeight: cases.confirmCopyHeight,
     repo,
     menus,
     aim,

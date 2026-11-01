@@ -7,9 +7,10 @@ export const SELECTION_WAND_TYPE = buildId("selection_wand");
 export const LAID_BLOCK_TAG = "yasu_ride:laid";
 
 export const BUILD_MESSAGE: Readonly<
-  Record<BuildMessage | "heightSize", string>
+  Record<BuildMessage | "heightSize" | "pasteHint", string>
 > = {
   building: "yasu_build.message.building",
+  pasteHint: "yasu_build.message.paste_hint",
   heightSize: "yasu_build.message.height_size",
   pointSet: "yasu_build.message.point_set",
   endSet: "yasu_build.message.end_set",
@@ -45,6 +46,7 @@ export const BUILD_FORM = {
   cylinder: "yasu_build.form.cylinder",
   cube: "yasu_build.form.cube",
   tube: "yasu_build.form.tube",
+  copyTitle: "yasu_build.form.copy_title",
   solidTitle: "yasu_build.form.solid_title",
   hollow: "yasu_build.form.hollow",
   cancel: "yasu_build.form.cancel",
@@ -52,6 +54,7 @@ export const BUILD_FORM = {
   fill: "yasu_build.form.fill",
   copy: "yasu_build.form.copy",
   paste: "yasu_build.form.paste",
+  stopPaste: "yasu_build.form.stop_paste",
   undo: "yasu_build.form.undo",
   clear: "yasu_build.form.clear_selection",
   skipAir: "yasu_build.form.skip_air",

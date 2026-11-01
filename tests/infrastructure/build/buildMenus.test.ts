@@ -2,8 +2,10 @@ import type { Player, RawMessage } from "@minecraft/server";
 import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
 import { CancelFlow } from "../../../src/application/build/cancelFlow";
+import { ChooseCopy } from "../../../src/application/build/chooseCopy";
 import { ChooseHeighted } from "../../../src/application/build/chooseHeighted";
 import { SetHeightTo } from "../../../src/application/build/setHeightTo";
+import { StopPaste } from "../../../src/application/build/stopPaste";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
@@ -17,7 +19,7 @@ import {
   utilityMenu,
 } from "../../../src/domain/build/flow/menu";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
-import { geometryOf } from "../../../src/domain/build/volume/geometry";
+import { volumeOf } from "../../../src/domain/build/volume/geometry";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockBuildMenus } from "../../../src/infrastructure/build/bedrock/buildMenus";
 import { MenuChoices } from "../../../src/infrastructure/build/bedrock/menuChoices";
@@ -25,6 +27,7 @@ import { BUILD_FORM } from "../../../src/infrastructure/build/identifiers";
 import {
   FakeFeedback,
   FakeSessions,
+  FakeWorld,
   overworld,
 } from "../../application/build/fakes";
 
@@ -100,6 +103,12 @@ function setup(fallback?: boolean) {
   const session = repo.getOrCreate(playerId);
   session.setFlow(endpoint);
   const cases = {
+    chooseCopy: {
+      execute: vi.fn((cmd) =>
+        new ChooseCopy(repo, new FakeWorld(), new FakeFeedback()).execute(cmd),
+      ),
+    },
+    confirmCopyHeight: { execute: vi.fn() },
     confirmShape: { execute: vi.fn() },
     chooseHeighted: {
       execute: vi.fn((cmd) =>
@@ -112,6 +121,7 @@ function setup(fallback?: boolean) {
     },
     copy: { execute: vi.fn() },
     paste: { execute: vi.fn() },
+    stopPaste: { execute: vi.fn((cmd) => new StopPaste(repo).execute(cmd)) },
     undo: { execute: vi.fn() },
     clear: { execute: vi.fn() },
     setHeight: {
@@ -251,7 +261,12 @@ it.each(["shape", "contents"] as const)(
     for (const answer of [
       { canceled: true },
       { cancelationReason: "UserClosed" },
-      { selection: menu === "shape" ? 6 : 2 },
+      {
+        selection:
+          menu === "shape"
+            ? shapeMenu(endpoint).findIndex((entry) => entry.id === "cancel")
+            : 2,
+      },
     ]) {
       const { session, menus, player, cases } = setup();
       if (menu === "contents")
@@ -335,7 +350,7 @@ it("bounds the fallback slider, uses the previous height and applies it before t
           kind,
         );
         if (flow.kind !== "heightStep") throw new Error("Expected roof");
-        const max = geometryOf(kind).maxHeight(flow.base, BUILD_SPEC.worldTopY);
+        const max = volumeOf(kind).maxHeight(flow.base, BUILD_SPEC.worldTopY);
         const previous = Math.min(max, requested);
         session.setFlow({ ...flow, previous });
         ui.forms.length = 0;
@@ -623,3 +638,86 @@ it.each([false, true])(
     expect(cases.setHeight.execute).not.toHaveBeenCalled();
   },
 );
+
+it("accepts StopPaste only in paste aiming and exposes its own label", async () => {
+  const { session, choices, cases, menus, player } = setup();
+  for (const flow of [
+    { kind: "idle" } as const,
+    {
+      kind: "point1",
+      dimensionId: overworld,
+      cell: from,
+      material: stone,
+    } as const,
+    endpoint,
+    chooseHeighted(endpoint, "hip"),
+  ]) {
+    session.setFlow(flow);
+    expect(choices.choose(playerId, "utility", "stopPaste")).toBe(false);
+  }
+  expect(cases.stopPaste.execute).not.toHaveBeenCalled();
+  session.setFlow({ kind: "pasteAim", skipAir: false });
+  expect(choices.choose(playerId, "utility", "stopPaste")).toBe(true);
+  expect(cases.stopPaste.execute).toHaveBeenCalledExactlyOnceWith({ playerId });
+  expect(session.flow.kind).toBe("idle");
+  expect(choices.choose(playerId, "utility", "stopPaste")).toBe(false);
+  session.setFlow({ kind: "pasteAim", skipAir: true });
+  ui.answers.push({
+    selection: utilityMenu(session).findIndex(
+      (entry) => entry.id === "stopPaste",
+    ),
+  });
+  await menus.showUtilityMenu(player);
+  expect(ui.forms[0]?.buttons).toContainEqual({
+    translate: BUILD_FORM.stopPaste,
+  });
+  expect(session.flow.kind).toBe("idle");
+});
+
+it.each([
+  ["line", { x: 4, y: 60, z: 0 }],
+  ["horizontal rectangle", to],
+  ["x-flat rectangle", { x: 0, y: 64, z: 6 }],
+  ["z-flat rectangle", { x: 4, y: 64, z: 0 }],
+  ["box", { x: 4, y: 64, z: 6 }],
+] as const)("routes Copy on a %s to ChooseCopy", async (_shape, end) => {
+  const { session, menus, player, cases } = setup();
+  session.setFlow({ ...endpoint, to: end });
+  ui.answers.push({
+    selection: shapeMenu(session.flow).findIndex((e) => e.id === "copy"),
+  });
+  await menus.showShapeMenu(player);
+  expect(cases.chooseCopy.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId,
+  });
+  expect(cases.copy.execute).not.toHaveBeenCalled();
+  expect(ui.forms).toHaveLength(1);
+});
+
+it("confirms Copy after the fallback slider without opening contents", async () => {
+  const { menus, player, cases, session } = setup(true);
+  ui.answers.push(
+    { selection: shapeMenu(endpoint).findIndex((e) => e.id === "copy") },
+    { formValues: [7] },
+  );
+  cases.confirmCopyHeight.execute.mockImplementation(() => {
+    expect(session.flow).toMatchObject({ heightedKind: "copy", previous: 7 });
+  });
+  await menus.showShapeMenu(player);
+  expect(ui.forms).toHaveLength(2);
+  expect(ui.forms[1]?.heading).toEqual({ translate: BUILD_FORM.copyTitle });
+  expect(cases.confirmCopyHeight.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId,
+  });
+  expect(cases.confirmHeighted.execute).not.toHaveBeenCalled();
+});
+
+it("does not open contents or a slider for locked Copy", async () => {
+  const { menus, player, session } = setup(true);
+  const flow = chooseHeighted(endpoint, "copy");
+  if (flow.kind !== "heightStep") throw new Error("Expected height step");
+  session.setFlow({ ...flow, heightLocked: true });
+  await menus.showHeightSlider(player);
+  await menus.showContentsMenu(player);
+  expect(ui.forms).toHaveLength(0);
+});

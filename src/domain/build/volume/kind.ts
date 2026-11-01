@@ -2,6 +2,7 @@ import type { RoofKind } from "../roof/roof";
 
 export type SolidKind = "cylinder" | "cube";
 export type HeightedKind = RoofKind | SolidKind;
+export type HeightStepKind = HeightedKind | "copy";
 export type FillStyle = "fill" | "hollow" | "tube";
 
 const ROOF_FILLS: readonly FillStyle[] = Object.freeze(["fill", "hollow"]);
