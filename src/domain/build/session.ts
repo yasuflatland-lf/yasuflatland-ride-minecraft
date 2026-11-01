@@ -55,6 +55,16 @@ export class BuildSession {
     this.currentFlow = cancel(this.currentFlow);
   }
 
+  completeCopy(dimensionId: DimensionId, box: Box, clipboard: Clipboard): void {
+    this.currentClipboard = clipboard;
+    this.confirmBox(dimensionId, box);
+  }
+
+  /** Pre-redesign retention rule; ADR 0203 and issue H (#1138) intentionally change it. */
+  leaveBuildMode(): void {
+    this.currentFlow = cancel(this.currentFlow);
+  }
+
   get clipboard(): Clipboard | undefined {
     return this.currentClipboard;
   }

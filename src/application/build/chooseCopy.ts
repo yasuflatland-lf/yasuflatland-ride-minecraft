@@ -1,19 +1,14 @@
-import {
-  cancel,
-  chooseHeighted,
-  copyBoxOf,
-} from "../../domain/build/flow/flow";
+import { chooseHeighted, copyBoxOf } from "../../domain/build/flow/flow";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { shapeOf } from "../../domain/build/shape/shape";
 import type { PlayerId } from "../../domain/shared/ids";
-import { CopyBox } from "./copyBox";
-import type { BuildBlockWorld } from "./ports/blocks";
+import type { CopyBox } from "./copyBox";
 import type { BuildFeedback } from "./ports/feedback";
 
 export class ChooseCopy {
   constructor(
     private readonly repo: BuildSessionRepository,
-    private readonly world: BuildBlockWorld,
+    private readonly copy: CopyBox,
     private readonly feedback: BuildFeedback,
   ) {}
 
@@ -30,14 +25,6 @@ export class ChooseCopy {
       return;
     }
     const box = copyBoxOf(flow);
-    if (
-      box &&
-      new CopyBox(this.repo, this.world, this.feedback).execute(
-        playerId,
-        flow.dimensionId,
-        box,
-      )
-    )
-      session.setFlow(cancel(flow));
+    if (box) this.copy.execute(playerId, flow.dimensionId, box);
   }
 }

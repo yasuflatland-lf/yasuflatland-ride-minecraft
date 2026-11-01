@@ -13,6 +13,7 @@ import type { UndoEdit } from "../../../application/build/undoEdit";
 import {
   contentsMenu,
   type MenuEntry,
+  pasteMenu,
   shapeMenu,
   utilityMenu,
 } from "../../../domain/build/flow/menu";
@@ -48,7 +49,7 @@ export class MenuChoices {
   ) {}
   choose(
     playerId: PlayerId,
-    menu: "shape" | "contents" | "utility",
+    menu: "shape" | "contents" | "utility" | "paste",
     entryId: string | undefined,
     options: { skipAir?: boolean } = {},
   ): boolean {
@@ -100,13 +101,20 @@ export class MenuChoices {
           return exhaustive;
         }
       }
+    } else if (menu === "paste") {
+      if (
+        session.flow.kind !== "pasteAim" ||
+        !isOffered(pasteMenu(session), entryId)
+      )
+        return false;
+      if (entryId === "endPaste") this.cases.stopPaste.execute({ playerId });
+      else this.cases.undo.execute({ playerId });
     } else {
       if (!isOffered(utilityMenu(session), entryId)) return false;
       switch (entryId) {
         case "copy":
         case "undo":
         case "clear":
-        case "stopPaste":
           this.cases[entryId].execute({ playerId });
           break;
         case "paste":

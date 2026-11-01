@@ -30,6 +30,7 @@ const menus = {
   showShapeMenu: vi.fn(),
   showContentsMenu: vi.fn(),
   showUtilityMenu: vi.fn(),
+  showPasteMenu: vi.fn(),
   showHeightSlider: vi.fn(),
 };
 
@@ -110,7 +111,7 @@ it("preserves blocks and defers point taps out of before events", () => {
                 origin: { x: 0, y: 0, z: 0 },
                 direction: { x: 1, y: 0, z: 0 },
               },
-              block: { cell: { x, y, z }, face: "Up" },
+              block: { cell: { x, y, z }, face: "up" as const },
             }),
           },
           debounce: new PressDebounces<PlayerId>(BUILD_SPEC.pressDebounceTicks),
@@ -203,6 +204,7 @@ function setupAir() {
     showShapeMenu: vi.fn(),
     showContentsMenu: vi.fn(),
     showUtilityMenu: vi.fn(),
+    showPasteMenu: vi.fn(),
     showHeightSlider: vi.fn(),
   };
   const aim: AimReader = {
@@ -295,7 +297,7 @@ it.each(["gable", "hip"] as const)(
     const e = setupRoof(kind);
     const target = {
       ray: e.ray,
-      block: { cell: { x: 90, y: 80, z: 70 }, face: "Up" },
+      block: { cell: { x: 90, y: 80, z: 70 }, face: "up" as const },
     };
     e.aim.aim = vi.fn(() => target);
     const event = {
@@ -392,7 +394,7 @@ it("ignores itemUse for an aimed block, even before the deferred interact callba
   const { aim, use, execute, menus, player } = setupAir();
   aim.aim = () => ({
     ray: { origin: { x: 0, y: 0, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
-    block: { cell: { x: 1, y: 0, z: 0 }, face: "Up" },
+    block: { cell: { x: 1, y: 0, z: 0 }, face: "up" as const },
   });
   use();
   engine.tick = 10;
