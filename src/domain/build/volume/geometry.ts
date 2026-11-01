@@ -4,6 +4,7 @@ import type { Box } from "../box";
 import { roofGeometry } from "../roof/geometry";
 import type { RoofKind } from "../roof/roof";
 import { cubeGeometry } from "./cube";
+import { cylinderGeometry } from "./cylinder";
 import type { FillStyle, HeightedKind, SolidKind } from "./kind";
 
 export interface HeightedSpec {
@@ -24,6 +25,7 @@ const GEOMETRIES: Record<RoofKind, HeightedGeometry> &
   gable: roofGeometry,
   hip: roofGeometry,
   cube: cubeGeometry,
+  cylinder: cylinderGeometry,
 };
 
 export function geometryOf(kind: HeightedKind): HeightedGeometry {
