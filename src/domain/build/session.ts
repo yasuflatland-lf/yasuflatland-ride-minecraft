@@ -5,6 +5,7 @@ import type { Box } from "./box";
 import type { Clipboard } from "./clipboard/clipboard";
 import type { EditRecord } from "./edit/change";
 import { type BuildFlow, cancel } from "./flow/flow";
+import { beginPasteAim } from "./flow/paste";
 import {
   EMPTY_HISTORY,
   takeLast,
@@ -58,6 +59,11 @@ export class BuildSession {
   completeCopy(dimensionId: DimensionId, box: Box, clipboard: Clipboard): void {
     this.currentClipboard = clipboard;
     this.confirmBox(dimensionId, box);
+    this.currentFlow = beginPasteAim(false);
+  }
+
+  startNewCopy(): void {
+    this.clearSelection();
   }
 
   clearClipboard(): void {
