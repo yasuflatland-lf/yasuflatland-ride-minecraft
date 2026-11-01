@@ -260,7 +260,14 @@ it("ToggleSkipAir flips only a paste aim and ignores unknown players", () => {
   fc.assert(
     fc.property(cell, fc.boolean(), (at, skipAir) => {
       const first = tapBlock({ kind: "idle" }, overworld, at, stone);
-      for (const flow of [first, beginPasteAim(skipAir)]) {
+      const endpoint = tapAir(first, { ...at, x: at.x + 2, z: at.z + 2 });
+      for (const flow of [
+        { kind: "idle" } as const,
+        first,
+        endpoint,
+        chooseHeighted(endpoint, "gable"),
+        beginPasteAim(skipAir),
+      ]) {
         const e = setup();
         const toggle = new ToggleSkipAir(e.repo);
         toggle.execute({ playerId: asPlayerId("absent") });

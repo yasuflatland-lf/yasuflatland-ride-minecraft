@@ -18,6 +18,12 @@ import {
 import { type Arena, wait } from "../arena";
 import type { Outcome } from "../outcome";
 
+interface BuildState {
+  flow: string;
+  clipboardHeld: boolean;
+  pasteMenu: string[];
+}
+
 interface Reply {
   player: string;
   message?: string;
@@ -42,6 +48,8 @@ async function withBuilder(
   if (!inventory) return { pass: false, detail: "player inventory missing" };
   const slot = player.selectedSlotIndex;
   const item = inventory.getItem(slot);
+  const otherSlot = (slot + 1) % 9;
+  const otherItem = inventory.getItem(otherSlot);
   const location = player.location;
   const dimension = player.dimension;
   const rotation = player.getRotation();
@@ -49,21 +57,27 @@ async function withBuilder(
     string,
     { cell: Cell; permutation: BlockPermutation }
   >();
-  const responses: Reply[] = [];
+  const responses: (Reply | BuildState)[] = [];
   const listener = (ev: { id: string; message: string }) => {
     if (ev.id !== TEST_RESULT_EVENT) return;
-    const reply: Reply = JSON.parse(ev.message);
+    const reply = JSON.parse(ev.message);
     if (reply.player === player.name) responses.push(reply);
   };
-  const query = async (event: string, message: string): Promise<Reply> => {
+  const query = async <T extends Reply | BuildState = Reply>(
+    event: string,
+    message: string,
+  ): Promise<T> => {
     responses.length = 0;
     system.sendScriptEvent(event, message);
     for (let tick = 0; tick < 220; tick++) {
       await wait(1);
       const response = responses.at(-1);
       if (response) {
-        check(!response.timedOut, `edit timed out: ${message}`);
-        return response;
+        check(
+          !("timedOut" in response && response.timedOut),
+          `edit timed out: ${message}`,
+        );
+        return response as T;
       }
     }
     throw new Error(`no response to ${event}: ${message}`);
@@ -100,6 +114,12 @@ async function withBuilder(
     tap,
     edit,
     region,
+    state: () => query<BuildState>(TEST_EDIT_EVENT, `${player.id} state`),
+    switchItem: async (wand = false) => {
+      if (!wand) inventory.setItem(otherSlot, undefined);
+      await edit(`slot ${wand ? slot : otherSlot}`);
+      await wait(BUILD_SPEC.modeLeaveTicks + 4);
+    },
     menu: (menu: string, id: string) => edit(`menu ${menu} ${id}`),
     mode: () => query(TEST_MODE_EVENT, player.name),
     hold: (wand: boolean) =>
@@ -133,6 +153,7 @@ async function withBuilder(
         a.dim.getBlock(cell)?.setPermutation(permutation);
       if (player.isValid) {
         inventory.setItem(slot, item);
+        inventory.setItem(otherSlot, otherItem);
         player.selectedSlotIndex = slot;
         player.teleport(location, { dimension, rotation });
       }
@@ -146,6 +167,8 @@ type Fixture = {
   edit(command: string): Promise<Reply>;
   menu(menu: string, id: string): Promise<Reply>;
   mode(): Promise<Reply>;
+  state(): Promise<BuildState>;
+  switchItem(wand?: boolean): Promise<void>;
   hold(wand: boolean): void;
   select(end: Cell, air?: boolean): Promise<void>;
   region(sx: number, sy: number, sz: number, offset?: Cell): Cell[];
@@ -272,11 +295,12 @@ export function buildFlowCancel(a: Arena): Promise<Outcome> {
     f.hold(false);
     await wait(BUILD_SPEC.modeLeaveTicks + 2);
     check(
-      (await f.mode()).flow.kind === "endpoint",
-      "item switch cancelled endpoint",
+      (await f.mode()).flow.kind === "idle",
+      "item switch did not cancel endpoint",
     );
     f.hold(true);
     await wait(BUILD_SPEC.modeEnterTicks + 2);
+    await f.select(f.cell(4, 0, 4));
     check(
       (await f.menu("shape", "cancel")).flow.kind === "point1",
       "shape Cancel did not resume aiming",
@@ -382,11 +406,239 @@ async function endPasteStep(f: Fixture): Promise<void> {
     (await f.menu("paste", "endPaste")).offered === false,
     "End pasting offered while idle",
   );
-  const at = f.cell(12, 0, 12);
+  const target = pasteTarget(f, f.cell(12, 0, 12), 1, 1, 1);
+  await pasteStep(f, target.anchor.x, target.anchor.y, target.anchor.z, "up");
+  await checkState(f, "idle", false);
   check(
-    (await pasteStep(f, at.x, at.y, at.z, "up")).flow.kind === "idle",
-    "Paste resumed after End pasting",
+    unchanged(f, target.cells, target.before),
+    "Paste wrote blocks after End pasting",
   );
+}
+
+async function checkState(
+  f: Fixture,
+  flow: string,
+  clipboardHeld: boolean,
+): Promise<BuildState> {
+  const state = await f.state();
+  check(state.flow === flow, `expected ${flow}, got ${state.flow}`);
+  check(
+    state.clipboardHeld === clipboardHeld,
+    `expected clipboard presence ${clipboardHeld}`,
+  );
+  return state;
+}
+
+async function copyLine(f: Fixture): Promise<void> {
+  f.region(2, 1, 1);
+  await f.select(f.cell(1));
+  f.block(f.cell(1)).setType("minecraft:oak_log");
+  await f.menu("shape", "copy");
+  await checkState(f, "pasteAim", true);
+}
+
+async function pasteInto(
+  f: Fixture,
+  target: ReturnType<typeof pasteTarget>,
+): Promise<void> {
+  await pasteStep(f, target.anchor.x, target.anchor.y, target.anchor.z, "up");
+}
+
+export function buildCopyEntersPasteAim(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    await copyLine(f);
+    const expected = snapshot(f, f.region(2, 1, 1));
+    const target = pasteTarget(f, f.cell(12, 0, 12), 2, 1, 1);
+    await pasteInto(f, target);
+    await checkState(f, "pasteAim", true);
+    check(
+      unchanged(f, target.cells, expected),
+      "Copy did not allow immediate Paste",
+    );
+    await f.menu("paste", "undo");
+  });
+}
+
+export function buildPasteMenu(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    for (let i = 0; i < BUILD_SPEC.undoDepth; i++) {
+      if (!(await f.state()).pasteMenu.includes("undo")) break;
+      await f.edit("undo");
+    }
+    await copyLine(f);
+    const withoutHistory = await checkState(f, "pasteAim", true);
+    check(
+      withoutHistory.pasteMenu.join() === "skipAir,newCopy,endPaste",
+      "Paste menu without history has unexpected entries",
+    );
+    const target = pasteTarget(f, f.cell(12, 0, 12), 2, 1, 1);
+    await pasteInto(f, target);
+    const withHistory = await checkState(f, "pasteAim", true);
+    check(
+      withHistory.pasteMenu.join() === "undo,skipAir,newCopy,endPaste",
+      "Paste menu with history must have exactly four ordered entries",
+    );
+    await f.menu("paste", "undo");
+    check(
+      unchanged(f, target.cells, target.before),
+      "menu Undo did not restore blocks",
+    );
+    check(
+      (await f.state()).pasteMenu.join() === "skipAir,newCopy,endPaste",
+      "Undo remained in the menu without history",
+    );
+  });
+}
+
+export function buildEndPastingDiscards(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    await copyLine(f);
+    const target = pasteTarget(f, f.cell(12, 0, 12), 2, 1, 1);
+    await f.menu("paste", "endPaste");
+    await checkState(f, "idle", false);
+    await pasteInto(f, target);
+    await checkState(f, "idle", false);
+    check(
+      unchanged(f, target.cells, target.before),
+      "Paste wrote blocks after End pasting",
+    );
+  });
+}
+
+export function buildNewCopyReplaces(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    await copyLine(f);
+    await f.menu("paste", "newCopy");
+    await checkState(f, "idle", true);
+    const source = f.region(2, 2, 2);
+    for (const cell of source) f.block(cell).setType("minecraft:gold_block");
+    await f.tap("block");
+    await checkState(f, "point1", true);
+    await f.tap("air", f.cell(1, 0, 1));
+    await checkState(f, "endpoint", true);
+    await f.menu("shape", "copy");
+    await checkState(f, "heightStep", true);
+    await f.edit("height 2");
+    const expected = snapshot(f, source);
+    await f.edit("confirmcopy");
+    await checkState(f, "pasteAim", true);
+    const target = pasteTarget(f, f.cell(12, 0, 12), 2, 2, 2);
+    await pasteInto(f, target);
+    check(
+      unchanged(f, target.cells, expected),
+      "New copy did not replace the clipboard",
+    );
+    await f.menu("paste", "undo");
+  });
+}
+
+export function buildPasteItemSwitch(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    await copyLine(f);
+    const target = pasteTarget(f, f.cell(12, 0, 12), 2, 1, 1);
+    await f.switchItem();
+    await checkState(f, "idle", false);
+    await pasteInto(f, target);
+    check(
+      unchanged(f, target.cells, target.before),
+      "Paste wrote blocks after item switch",
+    );
+  });
+}
+
+export function buildNewCopyItemSwitch(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    for (const selecting of [false, true]) {
+      await copyLine(f);
+      await f.menu("paste", "newCopy");
+      await checkState(f, "idle", true);
+      if (selecting) {
+        await f.tap("block");
+        await checkState(f, "point1", true);
+      }
+      await f.switchItem();
+      await checkState(f, "idle", false);
+      const target = pasteTarget(f, f.cell(12, 0, 12), 2, 1, 1);
+      await pasteInto(f, target);
+      check(
+        unchanged(f, target.cells, target.before),
+        "New copy item switch kept a usable clipboard",
+      );
+      await f.switchItem(true);
+    }
+  });
+}
+
+export function buildPasteToggleNext(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    await copyLine(f);
+    f.block(f.cell(1)).setType("minecraft:air");
+    await f.menu("paste", "newCopy");
+    await f.select(f.cell(1));
+    await f.menu("shape", "copy");
+    await checkState(f, "pasteAim", true);
+    const first = pasteTarget(f, f.cell(12, 0, 12), 2, 1, 1);
+    const second = pasteTarget(f, f.cell(16, 0, 12), 2, 1, 1);
+    const third = pasteTarget(f, f.cell(20, 0, 12), 2, 1, 1);
+    await pasteInto(f, first);
+    check(
+      f.block(first.cells[1] as Cell).typeId === "minecraft:air",
+      "Skip air was not off by default",
+    );
+    const beforeToggle = snapshot(f, first.cells);
+    await f.menu("paste", "skipAir");
+    await pasteInto(f, second);
+    check(
+      f.block(second.cells[0] as Cell).typeId === "minecraft:stone" &&
+        f.block(second.cells[1] as Cell).typeId === "minecraft:gold_block",
+      "Skip air did not apply to the next Paste",
+    );
+    check(
+      unchanged(f, first.cells, beforeToggle),
+      "toggle changed the previous Paste",
+    );
+    await f.menu("paste", "skipAir");
+    await pasteInto(f, third);
+    check(
+      f.block(third.cells[1] as Cell).typeId === "minecraft:air",
+      "Skip air did not toggle off",
+    );
+    await checkState(f, "pasteAim", true);
+    for (const target of [third, second, first]) {
+      await f.menu("paste", "undo");
+      check(
+        unchanged(f, target.cells, target.before),
+        "toggle Paste Undo lost blocks",
+      );
+    }
+  });
+}
+
+export function buildPasteUndoRepeat(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    await copyLine(f);
+    const expected = snapshot(f, f.region(2, 1, 1));
+    const target = pasteTarget(f, f.cell(12, 0, 12), 2, 1, 1);
+    // Two cells finish in one edit tick, keeping Undo and re-paste inside
+    // pasteRepeatTicks without a wait or state query between them.
+    await pasteInto(f, target);
+    check(
+      unchanged(f, target.cells, expected),
+      "first Paste did not write blocks",
+    );
+    await f.menu("paste", "undo");
+    check(
+      unchanged(f, target.cells, target.before),
+      "Undo did not restore blocks",
+    );
+    await pasteInto(f, target);
+    check(
+      unchanged(f, target.cells, expected),
+      "same-anchor re-paste was suppressed after Undo",
+    );
+    await checkState(f, "pasteAim", true);
+    await f.menu("paste", "undo");
+  });
 }
 
 export function buildAimedPaste(a: Arena): Promise<Outcome> {
