@@ -15,9 +15,10 @@ export class DescribeBuild {
     return {
       flow: session?.flow.kind ?? "idle",
       clipboardHeld: session?.clipboard !== undefined,
-      pasteMenu: pasteMenu({ hasHistory: session?.hasHistory ?? false }).map(
-        (entry) => entry.id,
-      ),
+      pasteMenu: pasteMenu({
+        hasHistory: session?.hasHistory ?? false,
+        skipAir: session?.flow.kind === "pasteAim" && session.flow.skipAir,
+      }).map((entry) => entry.id),
     };
   }
 

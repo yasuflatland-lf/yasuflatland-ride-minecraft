@@ -22,12 +22,14 @@ import { BUILD_FORM } from "../identifiers";
 import { type MenuCases, MenuChoices } from "./menuChoices";
 
 function menuLabel(
-  _menu: "shape" | "contents" | "utility" | "paste",
+  menu: "shape" | "contents" | "utility" | "paste",
   entry: MenuEntry<
     ShapeEntryId | ContentsEntryId | UtilityEntryId | PasteEntryId
   >,
   _session: BuildSession,
 ): string {
+  if (menu === "paste" && entry.id === "skipAir")
+    return entry.on ? BUILD_FORM.skipAirOn : BUILD_FORM.skipAirOff;
   return BUILD_FORM[entry.id === "endPaste" ? "stopPaste" : entry.id];
 }
 
@@ -125,7 +127,10 @@ export class BedrockBuildMenus implements BuildMenus {
       const id = await this.choose(
         player,
         BUILD_FORM.utilityTitle,
-        pasteMenu(session),
+        pasteMenu({
+          hasHistory: session.hasHistory,
+          skipAir: session.flow.kind === "pasteAim" && session.flow.skipAir,
+        }),
         "paste",
         session,
       );

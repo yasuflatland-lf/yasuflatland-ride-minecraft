@@ -39,3 +39,7 @@ export function isRepeat(
     tick - last.tick < window
   );
 }
+
+export function toggleSkipAir(aim: PasteAim): PasteAim {
+  return Object.freeze({ ...aim, skipAir: !aim.skipAir });
+}

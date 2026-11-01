@@ -131,6 +131,8 @@ yasu_build.form.stop_paste=Stop pasting
 yasu_build.form.undo=Undo
 yasu_build.form.clear_selection=Clear selection
 yasu_build.form.skip_air=Skip air
+yasu_build.form.skip_air_on=Skip air: on
+yasu_build.form.skip_air_off=Skip air: off
 yasu_build.form.submit=Apply
 
 yasu_build.message.point_set=Point 1 set.

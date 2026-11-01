@@ -17,6 +17,7 @@ import { ShowPreview } from "../../application/build/showPreview";
 import { StartPaste } from "../../application/build/startPaste";
 import { StopPaste } from "../../application/build/stopPaste";
 import { TapAir } from "../../application/build/tapAir";
+import { ToggleSkipAir } from "../../application/build/toggleSkipAir";
 import { UndoEdit } from "../../application/build/undoEdit";
 import { UpdateBuildModes } from "../../application/build/updateBuildModes";
 import type { SpaceCheck } from "../../application/shared/ports/space";
@@ -56,6 +57,7 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
     copy: new CopySelection(repo, blocks, feedback),
     paste: new StartPaste(repo),
     stopPaste: new StopPaste(repo),
+    toggleSkipAir: new ToggleSkipAir(repo),
     pasteAt: new PasteAt(repo, blocks, feedback, jobs),
     chooseHeighted: new ChooseHeighted(repo, feedback),
     aimHeight: new AimHeight(repo),
