@@ -5,7 +5,6 @@ import { CopyBox } from "../../../src/application/build/copyBox";
 import { CopySelection } from "../../../src/application/build/copySelection";
 import { EditJobs } from "../../../src/application/build/editJobs";
 import { PasteAt } from "../../../src/application/build/pasteAt";
-import { StartPaste } from "../../../src/application/build/startPaste";
 import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
@@ -14,6 +13,7 @@ import {
   pasteTarget,
 } from "../../../src/domain/build/clipboard/clipboard";
 import { tapBlock } from "../../../src/domain/build/flow/flow";
+import { beginPasteAim } from "../../../src/domain/build/flow/paste";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
@@ -42,7 +42,6 @@ function setup() {
     jobs,
     fill: new ConfirmShape(repo, feedback, jobs),
     copy: new CopySelection(repo, new CopyBox(repo, world, feedback), feedback),
-    startPaste: new StartPaste(repo),
     paste: new PasteAt(repo, world, feedback, jobs),
     undo: new UndoEdit(repo, feedback, jobs),
   };
@@ -188,7 +187,7 @@ describe("edit use cases", () => {
     const env = setup();
     env.fill.execute({ playerId: alex, style: "fill" });
     env.copy.execute({ playerId: alex });
-    env.startPaste.execute({ playerId: alex, skipAir: false });
+    env.repo.getOrCreate(alex).setFlow(beginPasteAim(false));
     env.paste.execute({
       tick: 0,
       playerId: alex,
@@ -252,7 +251,7 @@ describe("edit use cases", () => {
     env.copy.execute({ playerId: alex });
     expect(env.feedback.messages.at(-1)?.message).toBe("copied");
     env.world.protectedCells.add(cellKey({ x: 1, y: 64, z: 1 }));
-    env.startPaste.execute({ playerId: alex, skipAir: false });
+    env.repo.getOrCreate(alex).setFlow(beginPasteAim(false));
     env.paste.execute({
       tick: 0,
       playerId: alex,
@@ -279,7 +278,7 @@ describe("edit use cases", () => {
     confirmForCopy(env);
     env.copy.execute({ playerId: alex });
     env.world.put({ x: 11, y: 64, z: 10 }, stone);
-    env.startPaste.execute({ playerId: alex, skipAir: true });
+    env.repo.getOrCreate(alex).setFlow(beginPasteAim(true));
     env.paste.execute({
       tick: 0,
       playerId: alex,

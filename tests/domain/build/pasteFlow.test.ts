@@ -6,7 +6,6 @@ import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
 import {
   type BuildFlow,
   chooseHeighted,
-  startPaste,
   tapAir,
   tapBlock,
 } from "../../../src/domain/build/flow/flow";
@@ -66,7 +65,7 @@ it("records an immutable paste and suppresses only the same anchor within the wi
   );
 });
 
-it("offers ordered paste entries by history and never endPaste in the utility menu", () => {
+it("offers ordered paste entries by history and never paste or endPaste in the utility menu", () => {
   fc.assert(
     fc.property(
       cell,
@@ -95,17 +94,23 @@ it("offers ordered paste entries by history and never endPaste in the utility me
           first,
           endpoint,
           height,
-          startPaste(idle, false),
+          beginPasteAim(false),
         ]) {
           session.setFlow(flow);
           const entries = utilityMenu(session).map(({ id }) => id);
           expect(entries).not.toContain("endPaste");
+          expect(entries).not.toContain("paste");
           expect(
             pasteMenu({
               hasHistory: session.hasHistory,
               skipAir: session.flow.kind === "pasteAim" && session.flow.skipAir,
             }).map(({ id }) => id),
-          ).toEqual([...(history ? ["undo"] : []), "skipAir", "endPaste"]);
+          ).toEqual([
+            ...(history ? ["undo"] : []),
+            "skipAir",
+            "newCopy",
+            "endPaste",
+          ]);
         }
       },
     ),
@@ -133,6 +138,7 @@ it("toggles immutably, preserves the repeat record, and toggles twice to identit
         ).toEqual([
           ...(history ? [{ id: "undo" }] : []),
           { id: "skipAir", on: !skipAir },
+          { id: "newCopy" },
           { id: "endPaste" },
         ]);
       },

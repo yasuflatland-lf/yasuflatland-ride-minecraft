@@ -10,7 +10,6 @@ import {
   tapAir,
   tapBlock,
 } from "../../../src/domain/build/flow/flow";
-import { pasteMenu } from "../../../src/domain/build/flow/menu";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { FakeSessions, overworld } from "./fakes";
 
@@ -61,10 +60,12 @@ it("reports every flow, clipboard presence and domain paste entries without chan
           expect(describe.execute(playerId)).toEqual({
             flow: flow.kind,
             clipboardHeld: clipboard,
-            pasteMenu: pasteMenu({
-              hasHistory: session.hasHistory,
-              skipAir: session.flow.kind === "pasteAim" && session.flow.skipAir,
-            }).map((entry) => entry.id),
+            pasteMenu: [
+              ...(history ? ["undo"] : []),
+              "skipAir",
+              "newCopy",
+              "endPaste",
+            ],
           });
           expect(session.flow).toBe(flow);
           expect(session.hasHistory).toBe(history);
@@ -87,7 +88,7 @@ it("describes a missing session as idle without creating it", () => {
   expect(describe.execute(playerId)).toEqual({
     flow: "idle",
     clipboardHeld: false,
-    pasteMenu: ["skipAir", "endPaste"],
+    pasteMenu: ["skipAir", "newCopy", "endPaste"],
   });
   expect(describe.editStatus(playerId)).toEqual({
     flow: { kind: "idle" },

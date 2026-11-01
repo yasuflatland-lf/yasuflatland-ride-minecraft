@@ -14,7 +14,6 @@ import {
 } from "../../../src/domain/build/clipboard/clipboard";
 import {
   chooseHeighted,
-  startPaste,
   tapAir,
   tapBlock,
 } from "../../../src/domain/build/flow/flow";
@@ -44,7 +43,7 @@ function setup() {
   const jobs = new EditJobs(repo, world, feedback);
   const at = { x: 0, y: 0, z: 0 };
   session.setClipboard(clipboardOf(boxOf(at, at), () => stone));
-  session.setFlow(startPaste(session.flow, false));
+  session.setFlow(beginPasteAim(false));
   const paste = new PasteAt(repo, world, feedback, jobs);
   const target = (block: { x: number; y: number; z: number }) => {
     if (!session.clipboard) throw new Error("Expected clipboard");
@@ -187,7 +186,7 @@ it("leaves any flow after the exact grace delay and does not re-trigger", () => 
           first,
           endpoint,
           height,
-          startPaste({ kind: "idle" }, skipAir),
+          beginPasteAim(skipAir),
         ]) {
           const e = setup();
           const leave = new LeaveBuild(e.repo);
@@ -238,7 +237,7 @@ it("LeaveBuild twice has the same effect as once in every flow", () => {
         first,
         endpoint,
         chooseHeighted(endpoint, "copy"),
-        startPaste({ kind: "idle" }, skipAir),
+        beginPasteAim(skipAir),
       ]) {
         const e = setup();
         e.session.confirmBox(overworld, boxOf(at, at));
@@ -252,6 +251,32 @@ it("LeaveBuild twice has the same effect as once in every flow", () => {
         expect(e.session.clipboard).toBeUndefined();
         expect(e.session.confirmedBox).toBeUndefined();
         expect(end).toHaveBeenCalledTimes(1);
+      }
+    }),
+  );
+});
+
+it("ToggleSkipAir flips only a paste aim and ignores unknown players", () => {
+  fc.assert(
+    fc.property(cell, fc.boolean(), (at, skipAir) => {
+      const first = tapBlock({ kind: "idle" }, overworld, at, stone);
+      const endpoint = tapAir(first, { ...at, x: at.x + 2, z: at.z + 2 });
+      for (const flow of [
+        { kind: "idle" } as const,
+        first,
+        endpoint,
+        chooseHeighted(endpoint, "gable"),
+        beginPasteAim(skipAir),
+      ]) {
+        const e = setup();
+        const toggle = new ToggleSkipAir(e.repo);
+        toggle.execute({ playerId: asPlayerId("absent") });
+        expect(e.repo.get(asPlayerId("absent"))).toBeUndefined();
+        e.session.setFlow(flow);
+        toggle.execute({ playerId });
+        if (flow.kind === "pasteAim")
+          expect(e.session.flow).toEqual({ ...flow, skipAir: !skipAir });
+        else expect(e.session.flow).toBe(flow);
       }
     }),
   );
@@ -306,32 +331,6 @@ it("EndPasting lets a running paste finish with its undo record and keeps older 
       });
       expect(start).not.toHaveBeenCalled();
       expect(e.world.writes).toBe(1);
-    }),
-  );
-});
-
-it("toggles Skip air only in paste aiming without creating a session", () => {
-  fc.assert(
-    fc.property(cell, fc.boolean(), (at, skipAir) => {
-      const first = tapBlock({ kind: "idle" }, overworld, at, stone);
-      const endpoint = tapAir(first, { ...at, x: at.x + 2, z: at.z + 2 });
-      for (const flow of [
-        { kind: "idle" } as const,
-        first,
-        endpoint,
-        chooseHeighted(endpoint, "gable"),
-        startPaste({ kind: "idle" }, skipAir),
-      ]) {
-        const e = setup();
-        const toggle = new ToggleSkipAir(e.repo);
-        toggle.execute({ playerId: asPlayerId("absent") });
-        expect(e.repo.get(asPlayerId("absent"))).toBeUndefined();
-        e.session.setFlow(flow);
-        toggle.execute({ playerId });
-        if (flow.kind === "pasteAim")
-          expect(e.session.flow).toEqual({ ...flow, skipAir: !skipAir });
-        else expect(e.session.flow).toBe(flow);
-      }
     }),
   );
 });
