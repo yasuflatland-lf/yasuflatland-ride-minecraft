@@ -320,3 +320,58 @@ it("memoizes sizes independently for each player and forgets removed sessions", 
   expect(feedback.sizes).toHaveLength(4);
   expect(feedback.sizes[3]?.playerId).toBe(bob);
 });
+
+it("refreshes the paste hint each interval without requiring an aimed block", () => {
+  const { session, preview, feedback } = setup();
+  session.setFlow({ kind: "pasteAim", skipAir: false });
+  preview.execute(0);
+  expect(feedback.pasteHints).toEqual([]);
+  const clipboard = clipboardOf(boxOf(cell, end), (at) =>
+    at.y === cell.y ? material : undefined,
+  );
+  session.setClipboard(clipboard);
+  for (let tick = 1; tick <= 3 * interval; tick++) preview.execute(tick);
+  expect(feedback.pasteHints).toEqual(
+    Array.from({ length: 3 }, () => ({
+      playerId: alex,
+      size: { x: 1, y: 3, z: 4 },
+      count: 4,
+    })),
+  );
+});
+
+it("never shows paste hints in other flows or outside build mode", () => {
+  const { session, preview, feedback } = setup();
+  session.setClipboard(clipboardOf(boxOf(cell, end), () => material));
+  for (const flow of [
+    { kind: "idle" } as const,
+    { kind: "point1", dimensionId: overworld, cell, material } as const,
+    {
+      kind: "endpoint",
+      dimensionId: overworld,
+      from: cell,
+      to: end,
+      material,
+    } as const,
+    {
+      kind: "heightStep",
+      dimensionId: overworld,
+      from: cell,
+      base: boxOf(cell, end),
+      heightedKind: "cube",
+      previous: 3,
+      heightLocked: false,
+      material,
+    } as const,
+  ]) {
+    session.setFlow(flow);
+    preview.execute(0);
+    preview.execute(interval);
+  }
+  expect(feedback.pasteHints).toEqual([]);
+  const inactive = setup(false);
+  inactive.session.setClipboard(clipboardOf(boxOf(cell, end), () => material));
+  inactive.session.setFlow({ kind: "pasteAim", skipAir: false });
+  inactive.preview.execute(0);
+  expect(inactive.feedback.pasteHints).toEqual([]);
+});
