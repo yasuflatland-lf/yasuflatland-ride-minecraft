@@ -4,7 +4,7 @@ import { type Box, boxOf, center, edgePoints } from "../box";
 import { cornerMarkerPoints } from "../cornerMarker";
 import type { BuildFlow } from "../flow/flow";
 import { BUILD_SPEC } from "../spec";
-import { geometryOf } from "../volume/geometry";
+import { volumeOf } from "../volume/geometry";
 
 export interface PreviewSet {
   marker: Vec3[];
@@ -48,7 +48,7 @@ export function previewPoints(flow: BuildFlow, aim: PreviewAim): PreviewSet {
       set.endCube = cornerMarkerPoints(flow.to);
       break;
     case "heightStep":
-      set.roof = geometryOf(flow.heightedKind).wireframe(
+      set.roof = volumeOf(flow.heightedKind).wireframe(
         {
           base: flow.base,
           kind: flow.heightedKind,
