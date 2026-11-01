@@ -10,7 +10,13 @@ import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
 import { previewPoints } from "../../../src/domain/build/preview/preview";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
-import { FakeFeedback, FakeSessions, nether, overworld } from "./fakes";
+import {
+  FakeAimReader,
+  FakeFeedback,
+  FakeSessions,
+  nether,
+  overworld,
+} from "./fakes";
 
 const alex = asPlayerId("alex");
 const material = blockStateOf("minecraft:stone");
@@ -55,7 +61,7 @@ it("follows the aimed block and falls back to the air plane without changing the
   session.setFlow({ kind: "point1", dimensionId: overworld, cell, material });
   const flow = session.flow;
   const hit = { x: 4, y: 70, z: 2 };
-  aim.mockReturnValue({ ray, block: { cell: hit, face: "Up" } });
+  aim.mockReturnValue({ ray, block: { cell: hit, face: "up" } });
   preview.execute(0);
   expect(feedback.previews[0]?.set).toEqual(
     previewPoints(flow, { blink: true, end: hit }),
@@ -135,14 +141,21 @@ it("uses the confirmation height calculation for roofs without mutating the sess
   );
 });
 
-it("anchors paste on a normalized face in the viewer dimension and ignores invalid or absent targets", () => {
+it("anchors paste on each typed face in the viewer dimension and ignores absent targets", () => {
   const { session, preview, feedback, aim } = setup();
   session.setFlow({ kind: "pasteAim", skipAir: false });
-  aim.mockReturnValue({ ray, block: { cell, face: "UP" } });
+  aim.mockReturnValue({ ray, block: { cell, face: "up" } });
   preview.execute(0);
   expect(feedback.previews).toEqual([]);
   session.setClipboard(clipboardOf(boxOf(cell, end), () => material));
-  for (const face of ["Up", "DOWN", "north", "South", "east", "WEST"]) {
+  for (const face of [
+    "up",
+    "down",
+    "north",
+    "south",
+    "east",
+    "west",
+  ] as const) {
     aim.mockReturnValue({ ray, block: { cell, face } });
     preview.execute(0);
   }
@@ -155,11 +168,7 @@ it("anchors paste on a normalized face in the viewer dimension and ignores inval
       pasteBox: boxOf({ x: 0, y: 65, z: 0 }, { x: 0, y: 67, z: 3 }),
     }),
   });
-  for (const target of [
-    { ray, block: { cell, face: "invalid" } },
-    { ray },
-    undefined,
-  ]) {
+  for (const target of [{ ray }, undefined]) {
     aim.mockReturnValue(target);
     preview.execute(0);
   }
@@ -374,4 +383,29 @@ it("never shows paste hints in other flows or outside build mode", () => {
   inactive.session.setFlow({ kind: "pasteAim", skipAir: false });
   inactive.preview.execute(0);
   expect(inactive.feedback.pasteHints).toEqual([]);
+});
+
+it("flow.kind === 'pasteAim' draws no paste layers with a clipboard but no aimed block", () => {
+  const { repo, session, feedback } = setup();
+  session.setFlow({ kind: "pasteAim", skipAir: false });
+  session.setClipboard(clipboardOf(boxOf(cell, end), () => material));
+  const aim = new FakeAimReader();
+  const preview = new ShowPreview(repo, feedback, aim);
+  for (const target of [{ ray }, undefined]) {
+    aim.target = target;
+    preview.execute(0);
+  }
+  expect(feedback.previews).toEqual([]);
+  expect(feedback.pasteHints).toHaveLength(2);
+});
+
+it("flow.kind === 'pasteAim' excludes idle with a held clipboard from paste layers and hints", () => {
+  const { repo, session, feedback } = setup();
+  session.setFlow({ kind: "idle" });
+  session.setClipboard(clipboardOf(boxOf(cell, end), () => material));
+  const aim = new FakeAimReader();
+  aim.target = { ray, block: { cell, face: "up" } };
+  new ShowPreview(repo, feedback, aim).execute(0);
+  expect(feedback.previews).toEqual([]);
+  expect(feedback.pasteHints).toEqual([]);
 });
