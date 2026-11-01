@@ -12,10 +12,9 @@ import { TapAir } from "../../../src/application/build/tapAir";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, cellsOf } from "../../../src/domain/build/box";
 import {
-  anchorCell,
   clipboardOf,
   type Face,
-  pasteBox,
+  pasteTarget,
 } from "../../../src/domain/build/clipboard/clipboard";
 import {
   chooseHeighted,
@@ -204,7 +203,7 @@ it("pastes clipboard-relative cells at the hit face with either air policy", () 
         const clip = clipboardOf(sourceBox, () => (solids[i++] ? stone : AIR));
         e.session.setClipboard(clip);
         new StartPaste(e.repo).execute({ playerId, skipAir });
-        const anchor = anchorCell(block, face);
+        const { anchor, box } = pasteTarget(clip, block, face);
         const delta = {
           up: [0, 1, 0],
           down: [0, -1, 0],
@@ -218,8 +217,8 @@ it("pastes clipboard-relative cells at the hit face with either air policy", () 
           y: block.y + (delta[1] as number),
           z: block.z + (delta[2] as number),
         });
-        expect(pasteBox(clip, anchor).min).toEqual(anchor);
-        for (const at of cellsOf(pasteBox(clip, anchor))) e.world.put(at, dirt);
+        expect(box.min).toEqual(anchor);
+        for (const at of cellsOf(box)) e.world.put(at, dirt);
         const read = vi.spyOn(e.world, "mayEdit");
         new PasteAt(e.repo, e.world, e.feedback, e.jobs).execute({
           tick: 0,
@@ -229,7 +228,7 @@ it("pastes clipboard-relative cells at the hit face with either air policy", () 
           face,
         });
         expect(read.mock.calls).toEqual(
-          [...cellsOf(pasteBox(clip, anchor))].map((at) => [nether, at]),
+          [...cellsOf(box)].map((at) => [nether, at]),
         );
         expect(e.session.flow).toEqual({
           kind: "pasteAim",
