@@ -22,13 +22,13 @@ import { BUILD_FORM } from "../identifiers";
 import { type MenuCases, MenuChoices } from "./menuChoices";
 
 function menuLabel(
-  menu: "shape" | "contents" | "utility" | "paste",
+  _menu: "shape" | "contents" | "utility" | "paste",
   entry: MenuEntry<
     ShapeEntryId | ContentsEntryId | UtilityEntryId | PasteEntryId
   >,
   _session: BuildSession,
 ): string {
-  if (menu === "paste" && entry.id === "skipAir")
+  if (entry.id === "skipAir")
     return entry.on ? BUILD_FORM.skipAirOn : BUILD_FORM.skipAirOff;
   return BUILD_FORM[entry.id];
 }
@@ -100,22 +100,7 @@ export class BedrockBuildMenus implements BuildMenus {
         session,
       );
       if (!player.isValid) return;
-      if (id === "paste") {
-        const answer = await new ModalFormData()
-          .title({ translate: BUILD_FORM.paste })
-          .toggle({ translate: BUILD_FORM.skipAir }, { defaultValue: false })
-          .submitButton({ translate: BUILD_FORM.submit })
-          .show(player);
-        if (
-          !player.isValid ||
-          answer.canceled ||
-          answer.cancelationReason !== undefined
-        )
-          return;
-        const skipAir = answer.formValues?.[0];
-        if (typeof skipAir === "boolean")
-          this.choices.choose(playerId, "utility", id, { skipAir });
-      } else this.choices.choose(playerId, "utility", id);
+      this.choices.choose(playerId, "utility", id);
     });
   }
 

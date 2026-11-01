@@ -100,12 +100,9 @@ export function registerTestEdit(
             args[0] === "contents" ||
             args[0] === "utility" ||
             args[0] === "paste") &&
-          (args.length === 2 ||
-            (args.length === 3 && (args[2] === "0" || args[2] === "1")))
+          args.length === 2
         ) {
-          offered = choices.choose(playerId, args[0], args[1], {
-            skipAir: args[2] === "1",
-          });
+          offered = choices.choose(playerId, args[0], args[1]);
         } else if (
           command === "height" &&
           args.length === 1 &&

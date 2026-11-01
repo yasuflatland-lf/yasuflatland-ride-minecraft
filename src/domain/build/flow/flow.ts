@@ -4,7 +4,7 @@ import type { BlockState } from "../blockState";
 import { type Box, boxOf } from "../box";
 import { shapeOf } from "../shape/shape";
 import type { HeightStepKind } from "../volume/kind";
-import { beginPasteAim, type PasteAim } from "./paste";
+import type { PasteAim } from "./paste";
 
 export type BuildFlow =
   | { readonly kind: "idle" }
@@ -112,9 +112,6 @@ export function setHeight(flow: BuildFlow, height: number): BuildFlow {
 }
 export function finishHeightStep(flow: BuildFlow, _hollow: boolean): BuildFlow {
   return flow.kind === "heightStep" ? cancel(flow) : flow;
-}
-export function startPaste(flow: BuildFlow, skipAir: boolean): BuildFlow {
-  return flow.kind === "idle" ? beginPasteAim(skipAir) : flow;
 }
 
 export function copyBoxOf(flow: BuildFlow): Box | undefined {
