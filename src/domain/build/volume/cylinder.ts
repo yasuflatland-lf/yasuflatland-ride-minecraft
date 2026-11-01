@@ -3,8 +3,8 @@ import type { Vec3 } from "../../shared/vec";
 import type { Box } from "../box";
 import type {
   HeightedPlacement,
-  HeightedSpec,
   HeightedVolume,
+  HeightStepSpec,
 } from "./geometry";
 
 function* columns(base: Box) {
@@ -62,7 +62,7 @@ export const cylinderVolume: HeightedVolume = {
 };
 
 function cylinderWireframe(
-  { base: { min, max }, height }: HeightedSpec,
+  { base: { min, max }, height }: HeightStepSpec,
   maxPoints: number,
 ): Vec3[] {
   const budget = Math.max(0, Math.floor(maxPoints));

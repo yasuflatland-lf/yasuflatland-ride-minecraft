@@ -2,19 +2,24 @@ import type { Cell } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
 import type { Box } from "../box";
 import { roofPlacement, roofVolume } from "../roof/geometry";
+import { copyVolume } from "./copy";
 import { cubePlacement, cubeVolume } from "./cube";
 import { cylinderPlacement, cylinderVolume } from "./cylinder";
-import type { FillStyle, HeightedKind } from "./kind";
+import type { FillStyle, HeightedKind, HeightStepKind } from "./kind";
 
-export interface HeightedSpec {
+export interface HeightStepSpec {
   readonly base: Box;
-  readonly kind: HeightedKind;
+  readonly kind: HeightStepKind;
   readonly height: number;
+}
+
+export interface HeightedSpec extends HeightStepSpec {
+  readonly kind: HeightedKind;
 }
 
 export interface HeightedVolume {
   maxHeight(base: Box, worldTopY: number): number;
-  wireframe(spec: HeightedSpec, maxPoints: number): Vec3[];
+  wireframe(spec: HeightStepSpec, maxPoints: number): Vec3[];
 }
 
 export interface HeightedPlacement {
@@ -22,7 +27,8 @@ export interface HeightedPlacement {
   count(spec: HeightedSpec, fill: FillStyle): number;
 }
 
-const VOLUMES: Record<HeightedKind, HeightedVolume> = {
+const VOLUMES: Record<HeightStepKind, HeightedVolume> = {
+  copy: copyVolume,
   gable: roofVolume,
   hip: roofVolume,
   cube: cubeVolume,
@@ -36,7 +42,7 @@ const PLACEMENTS: Record<HeightedKind, HeightedPlacement> = {
   cylinder: cylinderPlacement,
 };
 
-export function volumeOf(kind: HeightedKind): HeightedVolume {
+export function volumeOf(kind: HeightStepKind): HeightedVolume {
   return VOLUMES[kind];
 }
 

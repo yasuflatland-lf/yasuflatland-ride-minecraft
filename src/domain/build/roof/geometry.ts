@@ -2,8 +2,8 @@ import type { Vec3 } from "../../shared/vec";
 import { center } from "../box";
 import type {
   HeightedPlacement,
-  HeightedSpec,
   HeightedVolume,
+  HeightStepSpec,
 } from "../volume/geometry";
 import {
   isRoofKind,
@@ -13,7 +13,7 @@ import {
   roofCount,
 } from "./roof";
 
-function roofSpec(spec: HeightedSpec): RoofSpec {
+function roofSpec(spec: HeightStepSpec): RoofSpec {
   if (!isRoofKind(spec.kind)) throw new Error(`Not a roof kind: ${spec.kind}`);
   return { ...spec, kind: spec.kind };
 }

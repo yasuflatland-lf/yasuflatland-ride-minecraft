@@ -1,9 +1,9 @@
 import type { Cell } from "../../shared/cells";
 import type { DimensionId } from "../../shared/ids";
 import type { BlockState } from "../blockState";
-import type { Box } from "../box";
+import { type Box, boxOf } from "../box";
 import { shapeOf } from "../shape/shape";
-import type { HeightedKind } from "../volume/kind";
+import type { HeightStepKind } from "../volume/kind";
 
 export type BuildFlow =
   | { readonly kind: "idle" }
@@ -25,7 +25,7 @@ export type BuildFlow =
       readonly dimensionId: DimensionId;
       readonly base: Box;
       readonly from: Cell;
-      readonly heightedKind: HeightedKind;
+      readonly heightedKind: HeightStepKind;
       readonly previous: number;
       readonly heightLocked: boolean;
       readonly material: BlockState;
@@ -83,7 +83,10 @@ export function backToAiming(flow: BuildFlow): BuildFlow {
     : flow;
 }
 
-export function chooseHeighted(flow: BuildFlow, kind: HeightedKind): BuildFlow {
+export function chooseHeighted(
+  flow: BuildFlow,
+  kind: HeightStepKind,
+): BuildFlow {
   if (flow.kind !== "endpoint") return flow;
   const shape = shapeOf(flow.from, flow.to);
   const locked = shape.kind === "box" && kind === "cylinder";
@@ -113,4 +116,8 @@ export function startPaste(flow: BuildFlow, skipAir: boolean): BuildFlow {
   return flow.kind === "idle"
     ? Object.freeze({ kind: "pasteAim", skipAir })
     : flow;
+}
+
+export function copyBoxOf(flow: BuildFlow): Box | undefined {
+  return flow.kind === "endpoint" ? boxOf(flow.from, flow.to) : undefined;
 }
