@@ -223,7 +223,7 @@ it("completeCopy replaces the clipboard and box and idles any flow without chang
   );
 });
 
-it("leaveBuildMode idles any flow and retains the clipboard and confirmed box", () => {
+it("leaveBuildMode discards the clipboard in every flow and is idempotent", () => {
   fc.assert(
     fc.property(
       flowArb,
@@ -238,8 +238,37 @@ it("leaveBuildMode idles any flow and retains the clipboard and confirmed box", 
         session.setFlow(flow);
         session.leaveBuildMode();
         expect(session.flow).toEqual({ kind: "idle" });
-        expect(session.clipboard).toBe(clipboard);
-        expect(session.confirmedBox).toBe(confirmed);
+        expect(session.clipboard).toBeUndefined();
+        expect(session.confirmedBox).toBe(
+          clipboard || flow.kind !== "idle" ? undefined : confirmed,
+        );
+        const idle = session.flow;
+        session.leaveBuildMode();
+        expect(session.flow).toBe(idle);
+      },
+    ),
+  );
+});
+
+it("endPasting clears every flow, clipboard and confirmed box without changing history", () => {
+  fc.assert(
+    fc.property(
+      flowArb,
+      dimensionArb,
+      fc.option(boxArb, { nil: undefined }),
+      fc.option(clipboardArb, { nil: undefined }),
+      recordArb,
+      (flow, dimensionId, box, clipboard, record) => {
+        const session = new BuildSession(asPlayerId("p1"));
+        if (box) session.confirmBox(dimensionId, box);
+        if (clipboard) session.setClipboard(clipboard);
+        session.setFlow(flow);
+        session.finishEdit(record, false);
+        session.endPasting();
+        expect(session.flow).toEqual({ kind: "idle" });
+        expect(session.clipboard).toBeUndefined();
+        expect(session.confirmedBox).toBeUndefined();
+        expect(session.takeUndo()).toBe(record);
       },
     ),
   );

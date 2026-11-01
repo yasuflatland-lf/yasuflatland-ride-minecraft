@@ -1,12 +1,12 @@
 import { world } from "@minecraft/server";
-import type { CancelFlow } from "../../../../application/build/cancelFlow";
+import type { EndPasting } from "../../../../application/build/endPasting";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
 import { asPlayerId, type PlayerId } from "../../../../domain/shared/ids";
 import type { PressDebounces } from "../../../../domain/shared/pressDebounce";
 
 export function registerSessions(
   repo: BuildSessionRepository,
-  cancel: CancelFlow,
+  endPasting: EndPasting,
   debounce: PressDebounces<PlayerId>,
 ): void {
   world.afterEvents.playerLeave.subscribe(({ playerId }) => {
@@ -15,10 +15,10 @@ export function registerSessions(
     debounce.remove(id);
   });
   world.afterEvents.playerDimensionChange.subscribe(({ player }) => {
-    cancel.execute({ playerId: asPlayerId(player.id) });
+    endPasting.execute(asPlayerId(player.id));
   });
   world.afterEvents.entityDie.subscribe(({ deadEntity }) => {
     if (deadEntity.typeId === "minecraft:player")
-      cancel.execute({ playerId: asPlayerId(deadEntity.id) });
+      endPasting.execute(asPlayerId(deadEntity.id));
   });
 }
