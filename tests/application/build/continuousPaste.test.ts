@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
-import { CancelFlow } from "../../../src/application/build/cancelFlow";
 import { EditJobs } from "../../../src/application/build/editJobs";
+import { LeaveBuild } from "../../../src/application/build/leaveBuild";
 import { PasteAt } from "../../../src/application/build/pasteAt";
 import { StopPaste } from "../../../src/application/build/stopPaste";
 import { UpdateBuildModes } from "../../../src/application/build/updateBuildModes";
@@ -17,6 +17,10 @@ import {
   tapAir,
   tapBlock,
 } from "../../../src/domain/build/flow/flow";
+import {
+  beginPasteAim,
+  recordPaste,
+} from "../../../src/domain/build/flow/paste";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
@@ -64,14 +68,13 @@ it("keeps aiming through successive pastes with one job and bounded undo record 
             target: e.target(block),
             tick: i * BUILD_SPEC.pasteRepeatTicks,
           });
-          expect(e.session.flow).toEqual({
-            kind: "pasteAim",
-            skipAir: false,
-            lastPaste: {
-              anchor: { ...block, y: block.y + 1 },
-              tick: i * BUILD_SPEC.pasteRepeatTicks,
-            },
-          });
+          expect(e.session.flow).toEqual(
+            recordPaste(
+              beginPasteAim(false),
+              { ...block, y: block.y + 1 },
+              i * BUILD_SPEC.pasteRepeatTicks,
+            ),
+          );
           expect(e.session.isEditing).toBe(true);
           e.jobs.step();
           expect(e.session.isEditing).toBe(false);
@@ -190,7 +193,7 @@ it("stops only paste aiming and cancels all in-progress flows on leaving build m
         if (flow.kind === "pasteAim")
           expect(e.session.flow).toEqual({ kind: "idle" });
         else expect(e.session.flow).toBe(flow);
-        const modes = new UpdateBuildModes(e.repo, new CancelFlow(e.repo));
+        const modes = new UpdateBuildModes(e.repo, new LeaveBuild(e.repo));
         for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
           modes.execute([{ playerId, holding: true }]);
         e.session.setFlow(flow);
