@@ -1,7 +1,11 @@
 import type { Cell } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
 import type { Box } from "../box";
-import type { HeightedGeometry, HeightedSpec } from "./geometry";
+import type {
+  HeightedPlacement,
+  HeightedSpec,
+  HeightedVolume,
+} from "./geometry";
 
 function* columns(base: Box) {
   const { min, max } = base;
@@ -25,7 +29,7 @@ function* columns(base: Box) {
   }
 }
 
-export const cylinderGeometry: HeightedGeometry = {
+export const cylinderPlacement: HeightedPlacement = {
   *cells({ base, height }, fill): Generator<Cell> {
     for (const { x, z, wall } of columns(base)) {
       if (fill === "tube" && !wall) continue;
@@ -48,6 +52,9 @@ export const cylinderGeometry: HeightedGeometry = {
     const capLayers = Math.min(2, height);
     return insideCount * capLayers + wallCount * (height - capLayers);
   },
+};
+
+export const cylinderVolume: HeightedVolume = {
   maxHeight(base, worldTopY) {
     return Math.max(1, worldTopY - base.min.y + 1);
   },

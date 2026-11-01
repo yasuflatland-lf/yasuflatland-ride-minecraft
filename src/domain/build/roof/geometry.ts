@@ -1,6 +1,10 @@
 import type { Vec3 } from "../../shared/vec";
 import { center } from "../box";
-import type { HeightedGeometry, HeightedSpec } from "../volume/geometry";
+import type {
+  HeightedPlacement,
+  HeightedSpec,
+  HeightedVolume,
+} from "../volume/geometry";
 import {
   isRoofKind,
   maxRoofHeight,
@@ -14,7 +18,7 @@ function roofSpec(spec: HeightedSpec): RoofSpec {
   return { ...spec, kind: spec.kind };
 }
 
-export const roofGeometry: HeightedGeometry = {
+export const roofPlacement: HeightedPlacement = {
   cells(spec, fill) {
     const roof = roofSpec(spec);
     if (fill === "tube") throw new Error("Roofs do not support tube fill");
@@ -25,6 +29,9 @@ export const roofGeometry: HeightedGeometry = {
     if (fill === "tube") throw new Error("Roofs do not support tube fill");
     return roofCount(roof, fill === "hollow");
   },
+};
+
+export const roofVolume: HeightedVolume = {
   maxHeight: maxRoofHeight,
   wireframe(spec, maxPoints) {
     return roofWireframe(roofSpec(spec), maxPoints);
