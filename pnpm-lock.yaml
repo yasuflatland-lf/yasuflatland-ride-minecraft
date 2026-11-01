@@ -162,8 +162,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-pnpmfileChecksum: sha256-oY54qkziaWUR93Lzphi2gim6zV+aORbrQVd+v89wNSA=
-
 patchedDependencies:
   '@stryker-mutator/vitest-runner@10.0.0': 7fafb35818cd76543d0c005132fe2b8e6fed3c52a39180616659246431acafeb
 
@@ -176,19 +174,19 @@ importers:
         version: 2.5.15
       '@minecraft/server':
         specifier: 2.10.0
-        version: 2.10.0(@minecraft/common@1.3.0)(@minecraft/vanilla-data@1.26.52)
+        version: 2.10.0(@minecraft/common@1.3.0)(@minecraft/vanilla-data@1.26.60)
       '@minecraft/server-ui':
         specifier: 2.0.0
-        version: 2.0.0(@minecraft/vanilla-data@1.26.52)
+        version: 2.0.0(@minecraft/vanilla-data@1.26.60)
       '@minecraft/vanilla-data':
-        specifier: 1.26.52
-        version: 1.26.52
+        specifier: 1.26.60
+        version: 1.26.60
       '@stryker-mutator/core':
         specifier: 10.0.0
         version: 10.0.0(@types/node@24.19.2)
       '@stryker-mutator/typescript-checker':
         specifier: 10.0.0
-        version: 10.0.0(@stryker-mutator/core@10.0.0(@types/node@24.19.2))
+        version: 10.0.0(@stryker-mutator/core@10.0.0(@types/node@24.19.2))(typescript@7.0.2)
       '@stryker-mutator/vitest-runner':
         specifier: 10.0.0
         version: 10.0.0(patch_hash=7fafb35818cd76543d0c005132fe2b8e6fed3c52a39180616659246431acafeb)(@stryker-mutator/core@10.0.0(@types/node@24.19.2))(vitest@5.0.3)
@@ -809,8 +807,8 @@ packages:
       '@minecraft/common': ^1.2.0
       '@minecraft/vanilla-data': '>=1.20.70'
 
-  '@minecraft/vanilla-data@1.26.52':
-    resolution: {integrity: sha512-zXrOu1w0sngWMLUCHaj7BQ0gA5uUxMPy5UZcxZCk9ND4tXprQYm48MXoFwqj4O7oXJXi2OzxldLkKIt9wrlh9g==}
+  '@minecraft/vanilla-data@1.26.60':
+    resolution: {integrity: sha512-6ARh4/fbNRA4XRRrMO3ys0ldO208ipcpyLAf4tpc3KXw/E6EUeaFKuFqJ2ESMQ6sSUUIfK1dNXm9MtFdWj9BPg==}
 
   '@napi-rs/wasm-runtime@1.2.5':
     resolution: {integrity: sha512-HshSvXzmBxNzqejd3k/KemgQ3hdREUYFRRrgxOZ+gPljDIsO2SDZrVZMd4Z/HsxudQbE62OVyVFE8z9BCurfjA==}
@@ -1171,6 +1169,7 @@ packages:
     engines: {node: '>=22.0.0'}
     peerDependencies:
       '@stryker-mutator/core': 10.0.0
+      typescript: '>=3.6'
 
   '@stryker-mutator/util@10.0.0':
     resolution: {integrity: sha512-LzOpHiJaCp2ABQgnPMlrQQcsK43bd5Vo/2FGL78aN62yDoeRQ+4j3tzeuXxK5OAHdC3fUz6TDoy4IsoAuLAd3w==}
@@ -2152,11 +2151,6 @@ packages:
     resolution: {integrity: sha512-k4kX5Up6qA68D0Cby2AK+6+vM5k3qTxe+/3FqhnHRExjY5cfbOnzjQZbP/LXleF8hVoDvDqxlgk9KK83HoBZlQ==}
     engines: {node: '>= 16.0.0'}
 
-  typescript@6.0.3:
-    resolution: {integrity: sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==}
-    engines: {node: '>=14.17'}
-    hasBin: true
-
   typescript@7.0.2:
     resolution: {integrity: sha512-8FYau96o3NKOhbjKi/qNvG/W5jhzxkbdm5sj9AbZ/5T5sWqn3hJgLfGx27sRKZWTvyzCP8dLRBTf5tBTSRVUNA==}
     engines: {node: '>=16.20.0'}
@@ -2809,19 +2803,19 @@ snapshots:
 
   '@minecraft/common@1.3.0': {}
 
-  '@minecraft/server-ui@2.0.0(@minecraft/vanilla-data@1.26.52)':
+  '@minecraft/server-ui@2.0.0(@minecraft/vanilla-data@1.26.60)':
     dependencies:
       '@minecraft/common': 1.3.0
-      '@minecraft/server': 2.10.0(@minecraft/common@1.3.0)(@minecraft/vanilla-data@1.26.52)
+      '@minecraft/server': 2.10.0(@minecraft/common@1.3.0)(@minecraft/vanilla-data@1.26.60)
     transitivePeerDependencies:
       - '@minecraft/vanilla-data'
 
-  '@minecraft/server@2.10.0(@minecraft/common@1.3.0)(@minecraft/vanilla-data@1.26.52)':
+  '@minecraft/server@2.10.0(@minecraft/common@1.3.0)(@minecraft/vanilla-data@1.26.60)':
     dependencies:
       '@minecraft/common': 1.3.0
-      '@minecraft/vanilla-data': 1.26.52
+      '@minecraft/vanilla-data': 1.26.60
 
-  '@minecraft/vanilla-data@1.26.52': {}
+  '@minecraft/vanilla-data@1.26.60': {}
 
   '@napi-rs/wasm-runtime@1.2.5(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)':
     dependencies:
@@ -3036,7 +3030,6 @@ snapshots:
       tslib: 2.8.1
       typed-inject: 5.0.0
       typed-rest-client: 2.3.1
-      typescript: 6.0.3
     transitivePeerDependencies:
       - '@types/node'
 
@@ -3057,13 +3050,13 @@ snapshots:
       tslib: 2.8.1
       weapon-regex: 2.0.6
 
-  '@stryker-mutator/typescript-checker@10.0.0(@stryker-mutator/core@10.0.0(@types/node@24.19.2))':
+  '@stryker-mutator/typescript-checker@10.0.0(@stryker-mutator/core@10.0.0(@types/node@24.19.2))(typescript@7.0.2)':
     dependencies:
       '@stryker-mutator/api': 10.0.0
       '@stryker-mutator/core': 10.0.0(@types/node@24.19.2)
       '@stryker-mutator/util': 10.0.0
       semver: 7.8.5
-      typescript: 6.0.3
+      typescript: 7.0.2
 
   '@stryker-mutator/util@10.0.0': {}
 
@@ -3937,8 +3930,6 @@ snapshots:
       qs: 6.15.1
       tunnel: 0.0.6
       underscore: 1.13.8
-
-  typescript@6.0.3: {}
 
   typescript@7.0.2:
     optionalDependencies:
