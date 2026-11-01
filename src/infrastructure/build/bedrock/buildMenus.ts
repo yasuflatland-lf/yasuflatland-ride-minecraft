@@ -28,7 +28,7 @@ function menuLabel(
   >,
   _session: BuildSession,
 ): string {
-  return BUILD_FORM[entry.id === "endPaste" ? "stopPaste" : entry.id];
+  return BUILD_FORM[entry.id];
 }
 
 export interface BuildMenus {
