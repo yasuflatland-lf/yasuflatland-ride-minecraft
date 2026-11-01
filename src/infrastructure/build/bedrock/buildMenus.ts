@@ -28,7 +28,9 @@ function menuLabel(
   >,
   _session: BuildSession,
 ): string {
-  return BUILD_FORM[entry.id === "endPaste" ? "stopPaste" : entry.id];
+  if (entry.id === "skipAir")
+    return entry.on ? BUILD_FORM.skipAirOn : BUILD_FORM.skipAirOff;
+  return BUILD_FORM[entry.id];
 }
 
 export interface BuildMenus {
@@ -98,22 +100,7 @@ export class BedrockBuildMenus implements BuildMenus {
         session,
       );
       if (!player.isValid) return;
-      if (id === "paste") {
-        const answer = await new ModalFormData()
-          .title({ translate: BUILD_FORM.paste })
-          .toggle({ translate: BUILD_FORM.skipAir }, { defaultValue: false })
-          .submitButton({ translate: BUILD_FORM.submit })
-          .show(player);
-        if (
-          !player.isValid ||
-          answer.canceled ||
-          answer.cancelationReason !== undefined
-        )
-          return;
-        const skipAir = answer.formValues?.[0];
-        if (typeof skipAir === "boolean")
-          this.choices.choose(playerId, "utility", id, { skipAir });
-      } else this.choices.choose(playerId, "utility", id);
+      this.choices.choose(playerId, "utility", id);
     });
   }
 
@@ -125,7 +112,10 @@ export class BedrockBuildMenus implements BuildMenus {
       const id = await this.choose(
         player,
         BUILD_FORM.utilityTitle,
-        pasteMenu(session),
+        pasteMenu({
+          hasHistory: session.hasHistory,
+          skipAir: session.flow.kind === "pasteAim" && session.flow.skipAir,
+        }),
         "paste",
         session,
       );

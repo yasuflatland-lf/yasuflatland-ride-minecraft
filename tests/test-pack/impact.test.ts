@@ -19,6 +19,8 @@ import {
   scenarioFileTags,
   selectionOf,
 } from "../../src/test-pack/impact";
+import { planOf } from "../../src/test-pack/plan";
+import { WHOLE_RUN } from "../../src/test-pack/protocol";
 
 const root = new URL("../../", import.meta.url);
 const tracked = execFileSync("git", ["ls-files", "-z"], {
@@ -296,12 +298,17 @@ describe("selectionOf", () => {
     ).toBe(true);
   });
 
-  it("runs all scenarios for build identifiers imported by the input probe", () => {
+  it("selects the road paver no-block scenario for build identifiers", () => {
+    const selection = selectionOf(["src/infrastructure/build/identifiers.ts"]);
+    expect(selection.all).toBe(false);
+    if (selection.all) return;
     expect(
-      selectionOf(["src/infrastructure/build/identifiers.ts"]),
-    ).toMatchObject({
-      all: true,
-    });
+      planOf(CATALOG, {
+        shard: WHOLE_RUN,
+        playerConnected: false,
+        features: selection.features,
+      }).runs.map((s) => s.name),
+    ).toContain("bulldozer_pave_no_block");
   });
 
   it.each(["src/test-pack/scenarios/newScenario.ts", "src/new-feature/x.ts"])(
