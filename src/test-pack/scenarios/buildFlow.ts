@@ -384,7 +384,7 @@ export function buildAimedPaste(a: Arena): Promise<Outcome> {
           unchanged(f, target, before),
           "paste undo did not restore destination",
         );
-        await f.menu("utility", "stopPaste");
+        await f.menu("paste", "endPaste");
       }
     }
     await f.edit("undo");
@@ -463,7 +463,7 @@ export function buildCopyShapes(a: Arena): Promise<Outcome> {
         unchanged(f, target.cells, target.before),
         "shape copy undo lost destination states",
       );
-      await f.menu("utility", "stopPaste");
+      await f.menu("paste", "endPaste");
     }
   });
 }
@@ -506,13 +506,13 @@ export function buildContinuousPaste(a: Arena): Promise<Outcome> {
         "continuous Paste undo lost destination states",
       );
     }
-    const stopped = await f.menu("utility", "stopPaste");
+    const stopped = await f.menu("paste", "endPaste");
     check(
       stopped.offered === true && stopped.flow.kind === "idle",
       "Stop pasting failed",
     );
     check(
-      (await f.menu("utility", "stopPaste")).offered === false,
+      (await f.menu("paste", "endPaste")).offered === false,
       "Stop pasting offered while idle",
     );
     check(
@@ -573,7 +573,7 @@ export function buildPasteBlocked(a: Arena): Promise<Outcome> {
       unchanged(f, clean.cells, clean.before),
       "clean Paste undo lost destination states",
     );
-    await f.menu("utility", "stopPaste");
+    await f.menu("paste", "endPaste");
   });
 }
 

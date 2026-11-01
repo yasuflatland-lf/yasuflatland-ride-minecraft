@@ -1,5 +1,6 @@
 import { ScriptEventSource, system, world } from "@minecraft/server";
 import type { ConfirmCopyHeight } from "../../../../application/build/confirmCopyHeight";
+import type { DescribeBuild } from "../../../../application/build/describeBuild";
 import type { PasteAt } from "../../../../application/build/pasteAt";
 import type {
   BuildFeedback,
@@ -8,7 +9,6 @@ import type {
 import type { SetHeightTo } from "../../../../application/build/setHeightTo";
 import type { UndoEdit } from "../../../../application/build/undoEdit";
 import type { Face } from "../../../../domain/build/clipboard/clipboard";
-import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
 import {
   asDimensionId,
   asPlayerId,
@@ -62,7 +62,7 @@ export function registerTestEdit(
   confirmCopyHeight: ConfirmCopyHeight,
   paste: PasteAt,
   undo: UndoEdit,
-  repo: BuildSessionRepository,
+  describe: DescribeBuild,
   messages: Pick<ReturnType<typeof recordMessages>, "last" | "forget">,
 ): void {
   system.afterEvents.scriptEventReceive.subscribe(
@@ -79,11 +79,22 @@ export function registerTestEdit(
       let offered: boolean | undefined;
       messages.forget(playerId);
       try {
+        if (command === "state" && args.length === 0) {
+          system.sendScriptEvent(
+            TEST_RESULT_EVENT,
+            JSON.stringify({
+              player: player.name,
+              ...describe.execute(playerId),
+            }),
+          );
+          return;
+        }
         if (
           command === "menu" &&
           (args[0] === "shape" ||
             args[0] === "contents" ||
-            args[0] === "utility") &&
+            args[0] === "utility" ||
+            args[0] === "paste") &&
           (args.length === 2 ||
             (args.length === 3 && (args[2] === "0" || args[2] === "1")))
         ) {
@@ -128,7 +139,7 @@ export function registerTestEdit(
       const reply = () => {
         if (!player.isValid) return;
         if (
-          repo.get(playerId)?.isEditing &&
+          describe.editStatus(playerId).isEditing &&
           system.currentTick - started < 200
         ) {
           system.runTimeout(reply, 1);
@@ -140,8 +151,8 @@ export function registerTestEdit(
           JSON.stringify({
             player: player.name,
             offered,
-            flow: repo.get(playerId)?.flow ?? { kind: "idle" },
-            timedOut: repo.get(playerId)?.isEditing ?? false,
+            flow: describe.editStatus(playerId).flow,
+            timedOut: describe.editStatus(playerId).isEditing,
             message: last?.message,
             count: last?.count,
             ticks: system.currentTick - started,

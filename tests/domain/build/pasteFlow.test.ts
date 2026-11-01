@@ -12,7 +12,7 @@ import {
   tapAir,
   tapBlock,
 } from "../../../src/domain/build/flow/flow";
-import { utilityMenu } from "../../../src/domain/build/flow/menu";
+import { pasteMenu, utilityMenu } from "../../../src/domain/build/flow/menu";
 import { BuildSession } from "../../../src/domain/build/session";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 
@@ -62,7 +62,7 @@ it("records an immutable paste and suppresses only the same anchor within the wi
   );
 });
 
-it("offers only undo and stop while pasting, and never stop in other flows", () => {
+it("offers ordered paste entries by history and never endPaste in the utility menu", () => {
   fc.assert(
     fc.property(
       cell,
@@ -95,13 +95,12 @@ it("offers only undo and stop while pasting, and never stop in other flows", () 
         ]) {
           session.setFlow(flow);
           const entries = utilityMenu(session).map(({ id }) => id);
-          if (flow.kind === "pasteAim")
-            expect(entries).toEqual([
-              ...(history ? ["undo"] : []),
-              "stopPaste",
-            ]);
-          else {
-            expect(entries).not.toContain("stopPaste");
+          expect(entries).not.toContain("endPaste");
+          expect(pasteMenu(session).map(({ id }) => id)).toEqual([
+            ...(history ? ["undo"] : []),
+            "endPaste",
+          ]);
+          if (flow.kind !== "pasteAim") {
             expect(recordPaste(flow, at, 0)).toBe(flow);
             expect(isRepeat(flow, at, 0, 10)).toBe(false);
           }
