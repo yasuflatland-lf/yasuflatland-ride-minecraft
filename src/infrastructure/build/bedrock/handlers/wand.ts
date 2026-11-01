@@ -1,12 +1,11 @@
-import { Direction, system, world } from "@minecraft/server";
+import { system, world } from "@minecraft/server";
 import type { AimHeight } from "../../../../application/build/aimHeight";
 import type { ConfirmCopyHeight } from "../../../../application/build/confirmCopyHeight";
-import type { PasteAt } from "../../../../application/build/pasteAt";
 import type { AimReader } from "../../../../application/build/ports/aim";
+import type { PressPasteAim } from "../../../../application/build/pressPasteAim";
 import type { SetPoint } from "../../../../application/build/setPoint";
 import type { TapAir } from "../../../../application/build/tapAir";
 import { virtualEndPoint } from "../../../../domain/build/aim/aim";
-import type { Face } from "../../../../domain/build/clipboard/clipboard";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
 import type { Cell } from "../../../../domain/shared/cells";
 import {
@@ -19,19 +18,10 @@ import { heldTypeId } from "../../../shared/heldItem";
 import { SELECTION_WAND_TYPE } from "../../identifiers";
 import type { BuildMenus } from "../buildMenus";
 
-const FACES: Record<Direction, Face> = {
-  [Direction.Up]: "up",
-  [Direction.Down]: "down",
-  [Direction.North]: "north",
-  [Direction.South]: "south",
-  [Direction.East]: "east",
-  [Direction.West]: "west",
-};
-
 export function registerWand({
   setPoint,
   tapAir,
-  pasteAt,
+  pressPasteAim,
   aimHeight,
   confirmCopyHeight,
   repo,
@@ -42,7 +32,7 @@ export function registerWand({
 }: {
   setPoint: SetPoint;
   tapAir: TapAir;
-  pasteAt: PasteAt;
+  pressPasteAim: PressPasteAim;
   aimHeight: AimHeight;
   confirmCopyHeight: Pick<ConfirmCopyHeight, "execute">;
   repo: BuildSessionRepository;
@@ -57,6 +47,8 @@ export function registerWand({
   world.beforeEvents.playerInteractWithBlock.subscribe((ev) => {
     if (heldTypeId(ev.player) !== SELECTION_WAND_TYPE) return;
     ev.cancel = true;
+    // ADR 0203: interact only cancels during paste aiming; itemUse owns paste.
+    if (repo.get(asPlayerId(ev.player.id))?.flow.kind === "pasteAim") return;
     if (!ev.isFirstEvent) return;
     const player = ev.player;
     const command = {
@@ -64,10 +56,10 @@ export function registerWand({
       dimensionId: asDimensionId(ev.block.dimension.id),
       cell: ev.block.location,
     };
-    const face = ev.blockFace;
     system.run(() => {
       if (!player.isValid) return;
       const flow = repo.get(command.playerId)?.flow;
+      if (flow?.kind === "pasteAim") return;
       if (flow?.kind === "heightStep") {
         const target = aim.aim(command.playerId);
         if (!target) return;
@@ -75,13 +67,6 @@ export function registerWand({
         if (flow.heightedKind === "copy")
           confirmCopyHeight.execute({ playerId: command.playerId });
         else void menus.showContentsMenu(player);
-      } else if (repo.get(command.playerId)?.flow.kind === "pasteAim") {
-        pasteAt.execute({
-          ...command,
-          block: command.cell,
-          face: FACES[face],
-          tick: system.currentTick,
-        });
       } else {
         const before = repo.get(command.playerId)?.flow.kind;
         setPoint.execute(command);
@@ -98,9 +83,20 @@ export function registerWand({
     const playerId = asPlayerId(source.id);
     if (!debounce.press(playerId, system.currentTick)) return;
     const target = aim.aim(playerId);
-    // A block tap can also emit itemUse; only the interact handler owns that tap.
-    if (!target || target.block) return;
     const flow = repo.get(playerId)?.flow;
+    if (!target) return;
+    if (flow?.kind === "pasteAim") {
+      const result = pressPasteAim.execute({
+        playerId,
+        dimensionId: asDimensionId(source.dimension.id),
+        aim: target,
+        tick: system.currentTick,
+      });
+      if (result === "menu") void menus.showPasteMenu(source);
+      return;
+    }
+    // A block tap can also emit itemUse; only the interact handler owns that tap.
+    if (target.block) return;
     if (flow?.kind === "heightStep") {
       aimHeight.execute({ playerId, ray: target.ray });
       if (flow.heightedKind === "copy") confirmCopyHeight.execute({ playerId });
@@ -108,9 +104,7 @@ export function registerWand({
       return;
     }
     if (source.isSneaking) {
-      void (flow?.kind === "pasteAim"
-        ? menus.showPasteMenu(source)
-        : menus.showUtilityMenu(source));
+      void menus.showUtilityMenu(source);
       return;
     }
     const before = repo.get(playerId)?.flow.kind;

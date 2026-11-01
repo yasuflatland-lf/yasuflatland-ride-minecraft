@@ -60,9 +60,20 @@ export class BuildSession {
     this.confirmBox(dimensionId, box);
   }
 
-  /** Pre-redesign retention rule; ADR 0203 and issue H (#1138) intentionally change it. */
+  clearClipboard(): void {
+    this.currentClipboard = undefined;
+  }
+
+  /** Ending paste also discards the copied selection (ADR 0203). */
+  endPasting(): void {
+    this.clearSelection();
+    this.clearClipboard();
+  }
+
+  /** A held clipboard is discarded even when the flow is idle (ADR 0203). */
   leaveBuildMode(): void {
-    this.currentFlow = cancel(this.currentFlow);
+    if (this.currentClipboard || this.currentFlow.kind !== "idle")
+      this.endPasting();
   }
 
   get clipboard(): Clipboard | undefined {

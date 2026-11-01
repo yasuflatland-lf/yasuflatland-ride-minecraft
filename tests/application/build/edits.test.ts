@@ -9,6 +9,10 @@ import { StartPaste } from "../../../src/application/build/startPaste";
 import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
+import {
+  clipboardOf,
+  pasteTarget,
+} from "../../../src/domain/build/clipboard/clipboard";
 import { tapBlock } from "../../../src/domain/build/flow/flow";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
@@ -189,8 +193,15 @@ describe("edit use cases", () => {
       tick: 0,
       playerId: alex,
       dimensionId: overworld,
-      block: { x: 0, y: 63, z: 0 },
-      face: "up",
+      target: pasteTarget(
+        env.repo.get(alex)?.clipboard ??
+          clipboardOf(
+            boxOf({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }),
+            () => stone,
+          ),
+        { x: 0, y: 63, z: 0 },
+        "up",
+      ),
     });
     env.undo.execute({ playerId: alex });
     expect(env.feedback.messages.map((m) => m.message)).toEqual([
@@ -246,8 +257,15 @@ describe("edit use cases", () => {
       tick: 0,
       playerId: alex,
       dimensionId: overworld,
-      block: { x: 0, y: 63, z: 0 },
-      face: "up",
+      target: pasteTarget(
+        env.repo.get(alex)?.clipboard ??
+          clipboardOf(
+            boxOf({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }),
+            () => stone,
+          ),
+        { x: 0, y: 63, z: 0 },
+        "up",
+      ),
     });
     expect(env.feedback.messages.at(-1)?.message).toBe("pasteBlocked");
     expect(env.repo.get(alex)?.isEditing).toBe(false);
@@ -266,8 +284,15 @@ describe("edit use cases", () => {
       tick: 0,
       playerId: alex,
       dimensionId: overworld,
-      block: { x: 10, y: 63, z: 10 },
-      face: "up",
+      target: pasteTarget(
+        env.repo.get(alex)?.clipboard ??
+          clipboardOf(
+            boxOf({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }),
+            () => stone,
+          ),
+        { x: 10, y: 63, z: 10 },
+        "up",
+      ),
     });
     runAll(env);
     expect(env.world.stateAt(overworld, { x: 10, y: 64, z: 10 })).toEqual(dirt);

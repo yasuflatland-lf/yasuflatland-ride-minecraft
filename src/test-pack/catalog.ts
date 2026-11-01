@@ -1060,6 +1060,16 @@ export const CATALOG: readonly ScenarioSpec[] = [
     vehicles: 0,
   },
   {
+    name: "build_paste_skip_air",
+    file: "buildFlow",
+    ticks: 220,
+    features: ["build"],
+    isolation: "exclusive",
+    needsPlayer: true,
+    vehicles: 0,
+  },
+
+  {
     name: "build_aimed_paste",
     file: "buildFlow",
     ticks: 220,
