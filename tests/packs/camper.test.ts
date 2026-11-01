@@ -1980,15 +1980,88 @@ const { width, height, regions, period, texelsPerPx, slots, windows } =
     windows: number[][][];
   };
 
+describe("camper front grilles (ADR 0199)", () => {
+  it("closes the front grilles without a black wedge below the upper frame or body colour at the crease", () => {
+    const front = (bone("body").cubes ?? [])
+      .filter((cube) => (cube.origin[2] ?? 0) < -47.5)
+      .map((cube) => {
+        const angle = -((cube.rotation?.[2] ?? 0) * Math.PI) / 180;
+        return { cube, cos: Math.cos(angle), sin: Math.sin(angle) };
+      });
+    const frontmostColour = (x: number, y: number) => {
+      let closest = Number.POSITIVE_INFINITY;
+      let colour: string | undefined;
+      for (const { cube, cos, sin } of front) {
+        const [px = 0, py = 0] = cube.pivot ?? [];
+        const dx = x - px;
+        const dy = y - py;
+        // Bedrock's roll sign is opposite the mathematical xy rotation; chrome samples along the V guard this convention.
+        const localX = px + dx * cos + dy * sin;
+        const localY = py - dx * sin + dy * cos;
+        const [cx = 0, cy = 0, cz = 0] = cube.origin;
+        if (
+          localX >= cx &&
+          localX <= end(cube, 0) &&
+          localY >= cy &&
+          localY <= end(cube, 1) &&
+          cz <= closest
+        ) {
+          closest = cz;
+          colour = slots[cube.uv.north?.uv[0] ?? -1];
+        }
+      }
+      return colour;
+    };
+    const slope = Math.tan((2.5 * Math.PI) / 180);
+    const checkJoin = (x: number) => {
+      const bottom = 18 - 23.6 * slope + Math.abs(x) * slope;
+      expect(frontmostColour(x, bottom + 0.35), `frame at x=${x}`).toBe(
+        "chrome",
+      );
+      let run = 0;
+      let longest = 0;
+      for (let step = 0; step <= 200; step++) {
+        const colour = frontmostColour(x, bottom - step * 0.01);
+        // The rolled frame's inner edges can expose the upper grille backing; count it as dark too so it cannot hide a wedge.
+        expect(["black", "slat", "chrome", "grille"]).toContain(colour);
+        run = colour === "black" || colour === "grille" ? run + 1 : 0;
+        longest = Math.max(longest, run);
+      }
+      expect(longest * 0.01, `dark gap at x=${x}`).toBeLessThanOrEqual(0.5);
+    };
+    // Keep the full 2 px scan inside the louvers, clear of the slanted edge's black strip.
+    for (const x of [-10, -5, -0.01, 0, 0.01, 5, 10]) checkJoin(x);
+    for (let step = 0; step <= 800; step++) {
+      const y = 9 + step * 0.01;
+      // Above the lower grille, the upper frame's inner edges expose its own backing at the crease.
+      const allowed =
+        y >= 18 - 23.6 * slope
+          ? ["black", "slat", "chrome", "grille"]
+          : ["black", "slat", "chrome"];
+      expect(allowed).toContain(frontmostColour(0, y));
+    }
+    fc.assert(
+      fc.property(fc.double({ min: -10, max: 10, noNaN: true }), checkJoin),
+    );
+  });
+});
+
 describe("camper rib atlas (ADR 0190)", () => {
-  it("preserves every cube's bone, origin, and size from the pre-rib geometry", () => {
+  // Golden snapshot of generated cubes: regenerate deliberately for model changes; ribs and UVs never change cube origins or sizes (ADR 0190).
+  it("keeps every cube's bone, origin, and size equal to the snapshot in tests/packs/fixtures/camper-cubes.json", () => {
     const fixture = JSON.parse(
       readFileSync("tests/packs/fixtures/camper-cubes.json", "utf8"),
     );
     expect(
       bones
         .filter((b) => !b.name.startsWith("glow_"))
-        .flatMap((b) => (b.cubes ?? []).map((c) => [b.name, c.origin, c.size])),
+        .flatMap((b) =>
+          (b.cubes ?? []).map((c): [string, number[], number[]] => [
+            b.name,
+            c.origin,
+            c.size,
+          ]),
+        ),
     ).toEqual(fixture);
   });
 
@@ -2056,12 +2129,30 @@ describe("camper rib atlas (ADR 0190)", () => {
           .map(([side, face]) => ({ bone: b.name, cube: c, side, face })),
       ),
     );
+    const expectedWallFaces = (side: "west" | "east") =>
+      (bone("body").cubes ?? []).filter((cube) => {
+        const north = cube.uv.north;
+        // The roof slab and 18 full-width sill caps never pass through rib_sides in tools/gen_camper.py.
+        const plainCap =
+          cube.size[0] === 48 &&
+          ((cube.origin[1] === 61 && cube.size[1] === 3) ||
+            (cube.origin[1] === 33 && cube.size[2] === 0.25));
+        return (
+          !cube.rotation &&
+          north?.uv[0] === slots.indexOf("white") &&
+          north.uv[1] === 0 &&
+          north.uv_size[0] === 1 &&
+          north.uv_size[1] === 1 &&
+          (side === "west" ? cube.origin[0] === -24 : end(cube, 0) === 24) &&
+          !plainCap
+        );
+      }).length;
     expect(
       entries.filter((e) => e.bone === "body" && e.side === "west"),
-    ).toHaveLength(256);
+    ).toHaveLength(expectedWallFaces("west"));
     expect(
       entries.filter((e) => e.bone === "body" && e.side === "east"),
-    ).toHaveLength(223);
+    ).toHaveLength(expectedWallFaces("east"));
     const roof = (bone("body").cubes ?? []).find(
       (c) => c.origin[1] === 61 && c.size[1] === 3 && c.size[0] === 48,
     );

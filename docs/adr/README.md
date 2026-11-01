@@ -70,7 +70,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0064](0064-dock-step.md) | Group the hold, floor, and deck seats into an optional dock | Accepted |
 | [0065](0065-check-import-rules-with-dependency-cruiser.md) | Check the import rules with dependency-cruiser | Extended by 0072 |
 | [0066](0066-limit-vehicles-per-player-and-kind.md) | Limit vehicles per player and per kind | Extended by 0124, 0125, and 0136 (Proposed) |
-| [0067](0067-camper.md) | Camper | Superseded in part by 0068 and 0069; extended by 0091, 0093, and 0145 (Proposed) |
+| [0067](0067-camper.md) | Camper | Superseded in part by 0068 and 0069; extended by 0091, 0093, and 0145 (Proposed); amended in part by 0199 (Proposed) |
 | [0068](0068-park-the-camper-with-room-blocks.md) | Park the camper with room blocks | Superseded in part by 0070, 0084, and 0116 (Proposed); extended by 0086, 0092, 0093, 0094, 0095, 0096, 0097, 0098, 0101, 0105, 0109, 0114, 0115, 0118, and 0119 (Proposed) |
 | [0069](0069-camper-right-hand-drive.md) | Seat the camper's driver on the right like the SUV | Superseded in part by 0070 |
 | [0070](0070-raise-the-camper-front-seats.md) | Raise the camper's front seats | Accepted |
@@ -94,7 +94,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0088](0088-keep-the-in-game-test-fixtures-out-of-mutation.md) | Keep the in-game test fixtures out of mutation testing | Accepted |
 | [0089](0089-per-kind-control-mapping.md) | Each kind maps the stick to handbrake and creep | Extended by 0136 (Proposed) |
 | [0090](0090-group-the-vehicle-core-by-subcontext.md) | Group the vehicle core by subcontext | Extended by 0129 and 0139 (Proposed) |
-| [0091](0091-alpha-blend-only-the-camper-glass.md) | Alpha-blend only the camper glass | Accepted |
+| [0091](0091-alpha-blend-only-the-camper-glass.md) | Alpha-blend only the camper glass | Accepted; amended in part by 0199 (Proposed) |
 | [0092](0092-a-bed-in-the-parked-camper.md) | A bed in the parked camper | Superseded in part by 0182 (spawn point and cargo cells; Proposed); extended by 0093, 0129, [0133](0133-sleep-on-the-tent-mattresses.md), and 0182 (Proposed) |
 | [0093](0093-decorate-the-parked-camper.md) | Decorate the parked camper | Superseded in part by 0097, 0098, 0099, 0100, 0102, 0103, 0106, 0108, and 0123 (Proposed); extended by 0094, 0095, 0096, 0101, 0113, 0122 (Proposed), 0139 (Proposed), and 0144 (Proposed) |
 | [0094](0094-the-camper-shower-toilet-door-and-shower.md) | The camper's shower-toilet door and shower | Superseded in part by 0098; extended by 0105, 0114, and 0118 |
@@ -199,6 +199,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0196](0196-raise-the-suv-seats-for-first-person-visibility.md) | Raise the SUV seats for first-person visibility | Proposed |
 | [0197](0197-emit-camper-hover-particles-below-the-discs.md) | Emit camper hover particles below the discs | Proposed; extends 0147 and 0184 with a PBR glow overlay |
 | [0198](0198-one-build-wand-without-a-bulldozer.md) | One Build Wand without a bulldozer | Proposed |
+| [0199](0199-square-the-camper-front-and-fold-the-grille.md) | Square the camper front and fold the grille | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 
