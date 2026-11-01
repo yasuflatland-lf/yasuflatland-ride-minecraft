@@ -194,7 +194,7 @@ const flowArb: fc.Arbitrary<BuildFlow> = fc.oneof(
   }),
 );
 
-it("completeCopy replaces the clipboard and box and idles any flow without changing history", () => {
+it("completeCopy replaces the clipboard and box and enters paste aiming from any flow without changing history", () => {
   fc.assert(
     fc.property(
       flowArb,
@@ -212,7 +212,7 @@ it("completeCopy replaces the clipboard and box and idles any flow without chang
         session.setFlow(flow);
         for (const record of records) session.finishEdit(record, false);
         session.completeCopy(dimensionId, box, clipboard);
-        expect(session.flow).toEqual({ kind: "idle" });
+        expect(session.flow).toEqual({ kind: "pasteAim", skipAir: false });
         expect(session.clipboard).toBe(clipboard);
         expect(session.confirmedBox).toEqual({ dimensionId, box });
         for (const record of [...records].reverse())
@@ -223,7 +223,7 @@ it("completeCopy replaces the clipboard and box and idles any flow without chang
   );
 });
 
-it("leaveBuildMode idles any flow and retains the clipboard and confirmed box", () => {
+it("leaveBuildMode discards the clipboard in every flow and is idempotent", () => {
   fc.assert(
     fc.property(
       flowArb,
@@ -238,8 +238,68 @@ it("leaveBuildMode idles any flow and retains the clipboard and confirmed box", 
         session.setFlow(flow);
         session.leaveBuildMode();
         expect(session.flow).toEqual({ kind: "idle" });
+        expect(session.clipboard).toBeUndefined();
+        expect(session.confirmedBox).toBe(
+          clipboard || flow.kind !== "idle" ? undefined : confirmed,
+        );
+        const idle = session.flow;
+        session.leaveBuildMode();
+        expect(session.flow).toBe(idle);
+      },
+    ),
+  );
+});
+
+it("endPasting clears every flow, clipboard and confirmed box without changing history", () => {
+  fc.assert(
+    fc.property(
+      flowArb,
+      dimensionArb,
+      fc.option(boxArb, { nil: undefined }),
+      fc.option(clipboardArb, { nil: undefined }),
+      recordArb,
+      (flow, dimensionId, box, clipboard, record) => {
+        const session = new BuildSession(asPlayerId("p1"));
+        if (box) session.confirmBox(dimensionId, box);
+        if (clipboard) session.setClipboard(clipboard);
+        session.setFlow(flow);
+        session.finishEdit(record, false);
+        session.endPasting();
+        expect(session.flow).toEqual({ kind: "idle" });
+        expect(session.clipboard).toBeUndefined();
+        expect(session.confirmedBox).toBeUndefined();
+        expect(session.takeUndo()).toBe(record);
+      },
+    ),
+  );
+});
+
+it("startNewCopy idles any paste aiming, clears the box and repeat window, and keeps the clipboard and history", () => {
+  fc.assert(
+    fc.property(
+      clipboardArb,
+      boxArb,
+      fc.boolean(),
+      cellArb,
+      fc.nat(),
+      recordArb,
+      (clipboard, box, skipAir, anchor, tick, record) => {
+        const session = new BuildSession(asPlayerId("p1"));
+        session.completeCopy(dim, box, clipboard);
+        session.finishEdit(record, false);
+        session.setFlow({
+          kind: "pasteAim",
+          skipAir,
+          lastPaste: { anchor, tick },
+        });
+        session.startNewCopy();
+        expect(session.flow).toEqual({ kind: "idle" });
+        expect(session.confirmedBox).toBeUndefined();
         expect(session.clipboard).toBe(clipboard);
-        expect(session.confirmedBox).toBe(confirmed);
+        expect(session.takeUndo()).toBe(record);
+        session.leaveBuildMode();
+        expect(session.flow).toEqual({ kind: "idle" });
+        expect(session.clipboard).toBeUndefined();
       },
     ),
   );

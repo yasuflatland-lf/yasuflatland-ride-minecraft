@@ -16,9 +16,9 @@ export type ShapeEntryId =
   | "copy"
   | "cancel";
 export type ContentsEntryId = FillStyle | "cancel";
-export type UtilityEntryId = "copy" | "paste" | "undo" | "clear";
+export type UtilityEntryId = "copy" | "undo" | "clear";
 
-export type PasteEntryId = "undo" | "endPaste";
+export type PasteEntryId = "undo" | "skipAir" | "newCopy" | "endPaste";
 
 export interface MenuEntry<Id extends string = string> {
   id: Id;
@@ -49,7 +49,6 @@ export function utilityMenu(
 ): MenuEntry<UtilityEntryId>[] {
   const entries: MenuEntry<UtilityEntryId>[] = [];
   if (session.confirmedBox) entries.push({ id: "copy" });
-  if (session.clipboard) entries.push({ id: "paste" });
   if (session.hasHistory) entries.push({ id: "undo" });
   if (session.flow.kind !== "idle" || session.confirmedBox)
     entries.push({ id: "clear" });
@@ -67,9 +66,12 @@ export function contentsMenu(flow: BuildFlow): MenuEntry<ContentsEntryId>[] {
 
 export function pasteMenu(input: {
   hasHistory: boolean;
+  skipAir: boolean;
 }): MenuEntry<PasteEntryId>[] {
   return [
     ...(input.hasHistory ? [{ id: "undo" as const }] : []),
+    { id: "skipAir", on: input.skipAir },
+    { id: "newCopy" },
     { id: "endPaste" },
   ];
 }

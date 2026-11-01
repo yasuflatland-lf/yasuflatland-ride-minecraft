@@ -5,8 +5,10 @@ import { CancelFlow } from "../../../src/application/build/cancelFlow";
 import { ChooseCopy } from "../../../src/application/build/chooseCopy";
 import { ChooseHeighted } from "../../../src/application/build/chooseHeighted";
 import { CopyBox } from "../../../src/application/build/copyBox";
+import { EndPasting } from "../../../src/application/build/endPasting";
+import { NewCopy } from "../../../src/application/build/newCopy";
 import { SetHeightTo } from "../../../src/application/build/setHeightTo";
-import { StopPaste } from "../../../src/application/build/stopPaste";
+import { ToggleSkipAir } from "../../../src/application/build/toggleSkipAir";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
@@ -126,8 +128,11 @@ function setup(fallback?: boolean) {
       backToAiming: vi.fn((cmd) => new CancelFlow(repo).backToAiming(cmd)),
     },
     copy: { execute: vi.fn() },
-    paste: { execute: vi.fn() },
-    stopPaste: { execute: vi.fn((cmd) => new StopPaste(repo).execute(cmd)) },
+    toggleSkipAir: {
+      execute: vi.fn((cmd) => new ToggleSkipAir(repo).execute(cmd)),
+    },
+    newCopy: { execute: vi.fn((id) => new NewCopy(repo).execute(id)) },
+    endPasting: { execute: vi.fn((cmd) => new EndPasting(repo).execute(cmd)) },
     undo: { execute: vi.fn() },
     clear: { execute: vi.fn() },
     setHeight: {
@@ -306,36 +311,13 @@ it.each(["copy", "undo", "clear"] as const)("routes utility %s", async (id) => {
   expect(cases[id].execute).toHaveBeenCalledExactlyOnceWith({ playerId });
 });
 
-it.each([false, true])(
-  "passes skip air=%s after a toggle defaulting off",
-  async (skipAir) => {
-    const { session, menus, player, cases } = setup();
-    session.setClipboard(clipboardOf(boxOf(from, from), () => stone));
-    ui.answers.push({ selection: 0 }, { formValues: [skipAir] });
-    await menus.showUtilityMenu(player);
-    expect(ui.forms[1]?.toggles).toEqual([
-      {
-        label: { translate: BUILD_FORM.skipAir },
-        options: { defaultValue: false },
-      },
-    ]);
-    expect(cases.paste.execute).toHaveBeenCalledExactlyOnceWith({
-      playerId,
-      skipAir,
-    });
-  },
-);
-
-it("does nothing on utility or paste dismissal", async () => {
-  for (const paste of [false, true]) {
-    const { session, menus, player, cases } = setup();
-    session.setClipboard(clipboardOf(boxOf(from, from), () => stone));
-    if (paste) ui.answers.push({ selection: 0 });
-    ui.answers.push({ canceled: true });
-    await menus.showUtilityMenu(player);
-    expect(cases.paste.execute).not.toHaveBeenCalled();
-    expect(cases.cancel.backToAiming).not.toHaveBeenCalled();
-  }
+it("does nothing on utility dismissal", async () => {
+  const { session, menus, player, cases } = setup();
+  session.confirmBox(overworld, boxOf(from, to));
+  ui.answers.push({ canceled: true });
+  await menus.showUtilityMenu(player);
+  expect(cases.copy.execute).not.toHaveBeenCalled();
+  expect(cases.cancel.backToAiming).not.toHaveBeenCalled();
 });
 
 it("bounds the fallback slider, uses the previous height and applies it before the roof menu", async () => {
@@ -416,16 +398,16 @@ it.each(["gable", "hip", "cylinder", "cube"] as const)(
 );
 
 it("holds one lock across nested forms, allows other players, and releases on dismissal", async () => {
-  const { repo, session, menus, player } = setup();
-  session.setClipboard(clipboardOf(boxOf(from, from), () => stone));
+  const { repo, session, menus, player } = setup(true);
+  session.setFlow(endpoint);
   let close!: (answer: Answer) => void;
   ui.answers.push(
-    { selection: 0 },
+    { selection: shapeMenu(endpoint).findIndex((entry) => entry.id === "hip") },
     new Promise((resolve) => {
       close = resolve;
     }),
   );
-  const pending = menus.showUtilityMenu(player);
+  const pending = menus.showShapeMenu(player);
   await vi.waitFor(() => expect(ui.forms).toHaveLength(2));
   await menus.showShapeMenu(player);
   await menus.showHeightSlider(player);
@@ -437,6 +419,7 @@ it("holds one lock across nested forms, allows other players, and releases on di
   expect(ui.forms).toHaveLength(3);
   close({ canceled: true });
   await pending;
+  session.setFlow(endpoint);
   await menus.showShapeMenu(player);
   expect(ui.forms).toHaveLength(4);
 });
@@ -450,7 +433,7 @@ it.each(["shape", "roof", "paste", "slider"] as const)(
       session.setFlow(chooseHeighted(endpoint, "hip"));
     if (stage === "paste") {
       session.setClipboard(clipboardOf(boxOf(from, from), () => stone));
-      ui.answers.push({ selection: 0 });
+      session.setFlow({ kind: "pasteAim", skipAir: false });
     }
     ui.answers.push(
       new Promise((resolve) => {
@@ -463,13 +446,11 @@ it.each(["shape", "roof", "paste", "slider"] as const)(
         : stage === "roof"
           ? menus.showContentsMenu(player)
           : stage === "paste"
-            ? menus.showUtilityMenu(player)
+            ? menus.showPasteMenu(player)
             : menus.showHeightSlider(player);
-    await vi.waitFor(() =>
-      expect(ui.forms).toHaveLength(stage === "paste" ? 2 : 1),
-    );
+    await vi.waitFor(() => expect(ui.forms).toHaveLength(1));
     Object.assign(player, { isValid: false });
-    close({ selection: 0, formValues: [stage === "paste" ? true : 3] });
+    close({ selection: 0, formValues: [3] });
     await pending;
     for (const action of Object.values(cases))
       expect(Object.values(action)[0]).not.toHaveBeenCalled();
@@ -554,14 +535,13 @@ it("dispatches only entries offered by the current flow, including stale choices
   );
 });
 
-it("validates utility availability before dispatching and preserves the paste toggle", () => {
+it("validates utility availability before dispatching", () => {
   fc.assert(
     fc.property(
       fc.boolean(),
       fc.boolean(),
       fc.boolean(),
-      fc.boolean(),
-      (confirmed, clipboard, history, skipAir) => {
+      (confirmed, clipboard, history) => {
         const { session, cases, choices } = setup();
         session.setFlow({ kind: "idle" });
         const box = boxOf(from, to);
@@ -577,17 +557,14 @@ it("validates utility availability before dispatching and preserves the paste to
           );
         for (const [id, offered] of [
           ["copy", confirmed],
-          ["paste", clipboard],
           ["undo", history],
           ["clear", confirmed],
         ] as const) {
-          expect(choices.choose(playerId, "utility", id, { skipAir })).toBe(
-            offered,
-          );
+          expect(choices.choose(playerId, "utility", id)).toBe(offered);
           if (offered)
-            expect(cases[id].execute).toHaveBeenCalledExactlyOnceWith(
-              id === "paste" ? { playerId, skipAir } : { playerId },
-            );
+            expect(cases[id].execute).toHaveBeenCalledExactlyOnceWith({
+              playerId,
+            });
           else expect(cases[id].execute).not.toHaveBeenCalled();
         }
         expect(choices.choose(asPlayerId("absent"), "utility", "paste")).toBe(
@@ -645,7 +622,7 @@ it.each([false, true])(
   },
 );
 
-it("accepts StopPaste only in paste aiming and exposes its own label", async () => {
+it("accepts EndPasting only in paste aiming and exposes its own label", async () => {
   const { session, choices, cases, menus, player } = setup();
   for (const flow of [
     { kind: "idle" } as const,
@@ -661,19 +638,30 @@ it("accepts StopPaste only in paste aiming and exposes its own label", async () 
     session.setFlow(flow);
     expect(choices.choose(playerId, "paste", "endPaste")).toBe(false);
   }
-  expect(cases.stopPaste.execute).not.toHaveBeenCalled();
+  expect(cases.endPasting.execute).not.toHaveBeenCalled();
+  session.completeCopy(
+    overworld,
+    boxOf(from, to),
+    clipboardOf(boxOf(from, to), () => stone),
+  );
   session.setFlow({ kind: "pasteAim", skipAir: false });
   expect(choices.choose(playerId, "paste", "endPaste")).toBe(true);
-  expect(cases.stopPaste.execute).toHaveBeenCalledExactlyOnceWith({ playerId });
+  expect(cases.endPasting.execute).toHaveBeenCalledExactlyOnceWith(playerId);
   expect(session.flow.kind).toBe("idle");
+  expect(session.clipboard).toBeUndefined();
+  expect(session.confirmedBox).toBeUndefined();
+  expect(choices.choose(playerId, "utility", "paste")).toBe(false);
   expect(choices.choose(playerId, "paste", "endPaste")).toBe(false);
   session.setFlow({ kind: "pasteAim", skipAir: true });
   ui.answers.push({
-    selection: pasteMenu(session).findIndex((entry) => entry.id === "endPaste"),
+    selection: pasteMenu({
+      hasHistory: session.hasHistory,
+      skipAir: session.flow.kind === "pasteAim" && session.flow.skipAir,
+    }).findIndex((entry) => entry.id === "endPaste"),
   });
   await menus.showPasteMenu(player);
   expect(ui.forms[0]?.buttons).toContainEqual({
-    translate: BUILD_FORM.stopPaste,
+    translate: BUILD_FORM.endPaste,
   });
   expect(session.flow.kind).toBe("idle");
 });
@@ -735,10 +723,12 @@ it("dispatches each offered paste entry exactly once and ignores all unoffered i
         fc.constantFrom(
           "undo",
           "endPaste",
+          "skipAir",
           "copy",
           "paste",
           "cancel",
-          "stopPaste",
+          "endPasting",
+          "newCopy",
         ),
         fc.string(),
       ),
@@ -756,19 +746,85 @@ it("dispatches each offered paste entry exactly once and ignores all unoffered i
             false,
           );
         const offered =
-          aiming && pasteMenu(session).some((entry) => entry.id === entryId);
+          aiming &&
+          pasteMenu({
+            hasHistory: session.hasHistory,
+            skipAir: session.flow.kind === "pasteAim" && session.flow.skipAir,
+          }).some((entry) => entry.id === entryId);
         expect(choices.choose(playerId, "paste", entryId)).toBe(offered);
         for (const [name, useCase] of Object.entries(cases)) {
           const call =
             "execute" in useCase ? useCase.execute : useCase.backToAiming;
-          const expected = entryId === "endPaste" ? "stopPaste" : entryId;
+          const expected =
+            entryId === "endPaste"
+              ? "endPasting"
+              : entryId === "skipAir"
+                ? "toggleSkipAir"
+                : entryId;
           expect(call).toHaveBeenCalledTimes(
             offered && name === expected ? 1 : 0,
           );
           if (offered && name === expected)
-            expect(call).toHaveBeenCalledWith({ playerId });
+            expect(call).toHaveBeenCalledWith(
+              entryId === "endPaste" || entryId === "newCopy"
+                ? playerId
+                : { playerId },
+            );
         }
       },
     ),
+  );
+});
+
+it("shows the current skip-air label and toggles through the paste menu", async () => {
+  await fc.assert(
+    fc.asyncProperty(fc.boolean(), async (skipAir) => {
+      ui.forms.length = 0;
+      const { session, menus, player, cases } = setup();
+      session.setFlow({ kind: "pasteAim", skipAir });
+      ui.answers.push({ selection: 0 });
+      await menus.showPasteMenu(player);
+      expect(ui.forms[0]?.buttons[0]).toEqual({
+        translate: skipAir ? BUILD_FORM.skipAirOn : BUILD_FORM.skipAirOff,
+      });
+      expect(cases.toggleSkipAir.execute).toHaveBeenCalledExactlyOnceWith({
+        playerId,
+      });
+      expect(session.flow).toEqual({ kind: "pasteAim", skipAir: !skipAir });
+    }),
+  );
+});
+
+it("labels New copy and dispatches it through the paste menu with or without history", async () => {
+  await fc.assert(
+    fc.asyncProperty(fc.boolean(), fc.boolean(), async (history, skipAir) => {
+      ui.forms.length = 0;
+      const { session, menus, player, cases } = setup();
+      session.completeCopy(
+        overworld,
+        boxOf(from, from),
+        clipboardOf(boxOf(from, from), () => stone),
+      );
+      const clipboard = session.clipboard;
+      session.setFlow({ kind: "pasteAim", skipAir });
+      if (history)
+        session.finishEdit(
+          {
+            dimensionId: overworld,
+            changes: [{ cell: from, before: stone, after: stone }],
+          },
+          false,
+        );
+      const index = history ? 2 : 1;
+      ui.answers.push({ selection: index });
+      await menus.showPasteMenu(player);
+      expect(ui.forms[0]?.buttons[index]).toEqual({
+        translate: BUILD_FORM.newCopy,
+      });
+      expect(cases.newCopy.execute).toHaveBeenCalledExactlyOnceWith(playerId);
+      expect(session.flow).toEqual({ kind: "idle" });
+      expect(session.clipboard).toBe(clipboard);
+      expect(session.confirmedBox).toBeUndefined();
+    }),
   );
 });
