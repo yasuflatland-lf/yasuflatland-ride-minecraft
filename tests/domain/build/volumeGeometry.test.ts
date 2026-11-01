@@ -86,10 +86,6 @@ describe("heighted geometry", () => {
     },
   );
 
-  it("rejects unregistered cube geometry", () => {
-    expect(() => geometryOf("cube")).toThrow(Error);
-  });
-
   it.each(registeredKinds)("rejects tube fill for %s", (kind) => {
     const spec = {
       base: boxOf({ x: 0, y: 0, z: 0 }, { x: 4, y: 0, z: 4 }),
