@@ -4,6 +4,7 @@ import { EditJobs } from "../../../src/application/build/editJobs";
 import { EndPasting } from "../../../src/application/build/endPasting";
 import { LeaveBuild } from "../../../src/application/build/leaveBuild";
 import { PasteAt } from "../../../src/application/build/pasteAt";
+import { ToggleSkipAir } from "../../../src/application/build/toggleSkipAir";
 import { UpdateBuildModes } from "../../../src/application/build/updateBuildModes";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
@@ -305,6 +306,77 @@ it("EndPasting lets a running paste finish with its undo record and keeps older 
       });
       expect(start).not.toHaveBeenCalled();
       expect(e.world.writes).toBe(1);
+    }),
+  );
+});
+
+it("toggles Skip air only in paste aiming without creating a session", () => {
+  fc.assert(
+    fc.property(cell, fc.boolean(), (at, skipAir) => {
+      const first = tapBlock({ kind: "idle" }, overworld, at, stone);
+      const endpoint = tapAir(first, { ...at, x: at.x + 2, z: at.z + 2 });
+      for (const flow of [
+        { kind: "idle" } as const,
+        first,
+        endpoint,
+        chooseHeighted(endpoint, "gable"),
+        startPaste({ kind: "idle" }, skipAir),
+      ]) {
+        const e = setup();
+        const toggle = new ToggleSkipAir(e.repo);
+        toggle.execute({ playerId: asPlayerId("absent") });
+        expect(e.repo.get(asPlayerId("absent"))).toBeUndefined();
+        e.session.setFlow(flow);
+        toggle.execute({ playerId });
+        if (flow.kind === "pasteAim")
+          expect(e.session.flow).toEqual({ ...flow, skipAir: !skipAir });
+        else expect(e.session.flow).toBe(flow);
+      }
+    }),
+  );
+});
+
+it("uses the toggled setting for subsequent pastes while a running job keeps its plan", () => {
+  fc.assert(
+    fc.property(cell, fc.boolean(), (block, skipAir) => {
+      const e = setup();
+      const source = { x: 0, y: 0, z: 0 };
+      e.session.setClipboard(
+        clipboardOf(boxOf(source, { ...source, x: 1 }), (c) =>
+          c.x === 0 ? AIR : stone,
+        ),
+      );
+      e.session.setFlow(beginPasteAim(skipAir));
+      const toggle = new ToggleSkipAir(e.repo);
+      for (let i = 0; i < 2; i++) {
+        const target = e.target({ ...block, x: block.x + i * 3 });
+        e.world.put(target.anchor, stone);
+        expect(
+          e.paste.execute({
+            playerId,
+            dimensionId: overworld,
+            target,
+            tick: i * BUILD_SPEC.pasteRepeatTicks,
+          }),
+        ).toBe("pasted");
+        expect(e.session.isEditing).toBe(true);
+        const before = e.session.flow;
+        toggle.execute({ playerId });
+        expect(e.session.flow).toMatchObject({
+          lastPaste: before.kind === "pasteAim" ? before.lastPaste : undefined,
+        });
+        e.jobs.step();
+        const plannedSkipAir = i === 0 ? skipAir : !skipAir;
+        expect(e.world.stateAt(overworld, target.anchor)).toEqual(
+          plannedSkipAir ? stone : AIR,
+        );
+        expect(
+          e.world.stateAt(overworld, {
+            ...target.anchor,
+            x: target.anchor.x + 1,
+          }),
+        ).toEqual(stone);
+      }
     }),
   );
 });

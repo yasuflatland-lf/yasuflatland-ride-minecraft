@@ -748,3 +748,35 @@ export function buildSolidCancelUndo(a: Arena): Promise<Outcome> {
     check(f.count(cells) === 0, "undo did not remove the cylinder");
   });
 }
+
+export function buildPasteSkipAir(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    await f.select(f.cell(1));
+    f.block(f.cell(1)).setType("minecraft:air");
+    await f.menu("shape", "copy");
+    await f.menu("utility", "paste");
+    for (const skipAir of [true, false]) {
+      const toggled = await f.menu("paste", "skipAir");
+      check(
+        toggled.offered === true && toggled.flow.skipAir === skipAir,
+        "skip-air toggle failed",
+      );
+      const anchor = f.cell(skipAir ? 10 : 14, 0, 10);
+      const target = f.region(2, 1, 1, { ...anchor, y: anchor.y + 1 });
+      for (const cell of target) f.block(cell).setType("minecraft:gold_block");
+      const pasted = await f.edit(
+        `pasteat ${anchor.x} ${anchor.y} ${anchor.z} up`,
+      );
+      check(pasted.message === "editDone", "paste after toggle failed");
+      check(
+        snapshot(f, target)[0]?.typeId === "minecraft:stone",
+        "solid cell was not pasted",
+      );
+      check(
+        snapshot(f, target)[1]?.typeId ===
+          (skipAir ? "minecraft:gold_block" : "minecraft:air"),
+        "paste ignored skip-air setting",
+      );
+    }
+  });
+}
