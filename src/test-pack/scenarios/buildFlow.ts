@@ -273,11 +273,12 @@ export function buildFlowCancel(a: Arena): Promise<Outcome> {
     f.hold(false);
     await wait(BUILD_SPEC.modeLeaveTicks + 2);
     check(
-      (await f.mode()).flow.kind === "endpoint",
-      "item switch cancelled endpoint",
+      (await f.mode()).flow.kind === "idle",
+      "item switch did not cancel endpoint",
     );
     f.hold(true);
     await wait(BUILD_SPEC.modeEnterTicks + 2);
+    await f.select(f.cell(4, 0, 4));
     check(
       (await f.menu("shape", "cancel")).flow.kind === "point1",
       "shape Cancel did not resume aiming",
@@ -337,10 +338,6 @@ export function buildAimedPaste(a: Arena): Promise<Outcome> {
     f.block(f.cell(2)).setType("minecraft:oak_log");
     const log = f.block(f.cell(2));
     log.setPermutation(log.permutation.withState("pillar_axis", "z"));
-    check(
-      (await f.menu("utility", "copy")).message === "copied",
-      "copy failed",
-    );
     for (const [face, dx, dy, dz] of [
       ["up", 0, 1, 0],
       ["down", 0, -1, 0],
@@ -350,6 +347,11 @@ export function buildAimedPaste(a: Arena): Promise<Outcome> {
       ["south", 0, 0, 1],
     ] as const) {
       for (const skipAir of [false, true]) {
+        await f.select(f.cell(2));
+        check(
+          (await f.menu("shape", "copy")).message === "copied",
+          "copy failed",
+        );
         const anchor = f.cell(10, 2, 10);
         f.block(anchor).setType("minecraft:gold_block");
         const target = f.region(3, 1, 1, {
@@ -385,6 +387,10 @@ export function buildAimedPaste(a: Arena): Promise<Outcome> {
           "paste undo did not restore destination",
         );
         await f.menu("paste", "endPaste");
+        check(
+          (await f.menu("utility", "paste")).offered === false,
+          "Paste offered after End pasting",
+        );
       }
     }
     await f.edit("undo");
@@ -464,6 +470,10 @@ export function buildCopyShapes(a: Arena): Promise<Outcome> {
         "shape copy undo lost destination states",
       );
       await f.menu("paste", "endPaste");
+      check(
+        (await f.menu("utility", "paste")).offered === false,
+        "Paste offered after End pasting",
+      );
     }
   });
 }
@@ -506,18 +516,31 @@ export function buildContinuousPaste(a: Arena): Promise<Outcome> {
         "continuous Paste undo lost destination states",
       );
     }
-    const stopped = await f.menu("paste", "endPaste");
+    const ended = await f.menu("paste", "endPaste");
     check(
-      stopped.offered === true && stopped.flow.kind === "idle",
-      "Stop pasting failed",
+      ended.offered === true && ended.flow.kind === "idle",
+      "End pasting failed",
     );
     check(
       (await f.menu("paste", "endPaste")).offered === false,
-      "Stop pasting offered while idle",
+      "End pasting offered while idle",
+    );
+    check(
+      (await f.menu("utility", "paste")).offered === false,
+      "Paste offered after End pasting",
+    );
+    check(
+      (await pasteUp(f, f.cell(12, 0, 12))).flow.kind === "idle",
+      "Paste resumed after End pasting",
+    );
+    await f.select(f.cell(1, 1, 1));
+    check(
+      (await f.menu("shape", "copy")).message === "copied",
+      "Copy did not restart pasting",
     );
     check(
       (await f.menu("utility", "paste")).flow.kind === "pasteAim",
-      "Paste did not restart",
+      "Paste did not restart after Copy",
     );
     f.hold(false);
     await wait(BUILD_SPEC.modeLeaveTicks + 2);
@@ -574,6 +597,14 @@ export function buildPasteBlocked(a: Arena): Promise<Outcome> {
       "clean Paste undo lost destination states",
     );
     await f.menu("paste", "endPaste");
+    check(
+      (await f.menu("utility", "paste")).offered === false,
+      "Paste offered after End pasting",
+    );
+    check(
+      (await pasteUp(f, clean.anchor)).flow.kind === "idle",
+      "Paste resumed after End pasting",
+    );
   });
 }
 

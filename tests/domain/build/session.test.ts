@@ -1,7 +1,10 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
+import { boxOf } from "../../../src/domain/build/box";
+import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
 import type { EditRecord } from "../../../src/domain/build/edit/change";
+import type { BuildFlow } from "../../../src/domain/build/flow/flow";
 import {
   EMPTY_HISTORY,
   takeLast,
@@ -144,4 +147,129 @@ describe("BuildSession", () => {
     expect(flips.filter(Boolean)).toHaveLength(1);
     expect(s.isInBuildMode).toBe(true);
   });
+});
+
+const coordinate = fc.integer({ min: -10, max: 10 });
+const cellArb = fc.record({ x: coordinate, y: coordinate, z: coordinate });
+const boxArb = fc.tuple(cellArb, cellArb).map(([a, b]) => boxOf(a, b));
+const dimensionArb = fc.string().map(asDimensionId);
+const clipboardArb = boxArb.map((box) => clipboardOf(box, () => stone));
+const flowArb: fc.Arbitrary<BuildFlow> = fc.oneof(
+  fc.constant({ kind: "idle" } as const),
+  fc.record({
+    kind: fc.constant("point1" as const),
+    dimensionId: dimensionArb,
+    cell: cellArb,
+    material: fc.constant(stone),
+  }),
+  fc.record({
+    kind: fc.constant("endpoint" as const),
+    dimensionId: dimensionArb,
+    from: cellArb,
+    to: cellArb,
+    material: fc.constant(stone),
+  }),
+  fc.record({
+    kind: fc.constant("heightStep" as const),
+    dimensionId: dimensionArb,
+    base: boxArb,
+    from: cellArb,
+    heightedKind: fc.constantFrom(
+      "copy" as const,
+      "cube" as const,
+      "cylinder" as const,
+      "gable" as const,
+      "hip" as const,
+    ),
+    previous: fc.integer({ min: 1, max: 100 }),
+    heightLocked: fc.boolean(),
+    material: fc.constant(stone),
+  }),
+  fc.record({
+    kind: fc.constant("pasteAim" as const),
+    skipAir: fc.boolean(),
+    lastPaste: fc.option(fc.record({ anchor: cellArb, tick: fc.nat() }), {
+      nil: undefined,
+    }),
+  }),
+);
+
+it("completeCopy replaces the clipboard and box and idles any flow without changing history", () => {
+  fc.assert(
+    fc.property(
+      flowArb,
+      dimensionArb,
+      boxArb,
+      clipboardArb,
+      fc.array(recordArb, { maxLength: BUILD_SPEC.undoDepth }),
+      (flow, dimensionId, box, clipboard, records) => {
+        const session = new BuildSession(asPlayerId("p1"));
+        session.confirmBox(
+          dim,
+          boxOf({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }),
+        );
+        session.setClipboard(clipboardOf(box, () => AIR));
+        session.setFlow(flow);
+        for (const record of records) session.finishEdit(record, false);
+        session.completeCopy(dimensionId, box, clipboard);
+        expect(session.flow).toEqual({ kind: "idle" });
+        expect(session.clipboard).toBe(clipboard);
+        expect(session.confirmedBox).toEqual({ dimensionId, box });
+        for (const record of [...records].reverse())
+          expect(session.takeUndo()).toBe(record);
+        expect(session.takeUndo()).toBe("nothingToUndo");
+      },
+    ),
+  );
+});
+
+it("leaveBuildMode discards the clipboard in every flow and is idempotent", () => {
+  fc.assert(
+    fc.property(
+      flowArb,
+      dimensionArb,
+      fc.option(boxArb, { nil: undefined }),
+      fc.option(clipboardArb, { nil: undefined }),
+      (flow, dimensionId, box, clipboard) => {
+        const session = new BuildSession(asPlayerId("p1"));
+        if (box) session.confirmBox(dimensionId, box);
+        if (clipboard) session.setClipboard(clipboard);
+        const confirmed = session.confirmedBox;
+        session.setFlow(flow);
+        session.leaveBuildMode();
+        expect(session.flow).toEqual({ kind: "idle" });
+        expect(session.clipboard).toBeUndefined();
+        expect(session.confirmedBox).toBe(
+          clipboard || flow.kind !== "idle" ? undefined : confirmed,
+        );
+        const idle = session.flow;
+        session.leaveBuildMode();
+        expect(session.flow).toBe(idle);
+      },
+    ),
+  );
+});
+
+it("endPasting clears every flow, clipboard and confirmed box without changing history", () => {
+  fc.assert(
+    fc.property(
+      flowArb,
+      dimensionArb,
+      fc.option(boxArb, { nil: undefined }),
+      fc.option(clipboardArb, { nil: undefined }),
+      recordArb,
+      (flow, dimensionId, box, clipboard, record) => {
+        const session = new BuildSession(asPlayerId("p1"));
+        if (box) session.confirmBox(dimensionId, box);
+        if (clipboard) session.setClipboard(clipboard);
+        session.setFlow(flow);
+        session.finishEdit(record, false);
+        session.endPasting();
+        expect(session.flow).toEqual({ kind: "idle" });
+        expect(session.clipboard).toBeUndefined();
+        expect(session.confirmedBox).toBeUndefined();
+        expect(session.takeUndo()).toBe(record);
+      },
+    ),
+  );
 });
