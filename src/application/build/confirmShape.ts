@@ -38,6 +38,12 @@ export class ConfirmShape {
       return;
     }
     session.confirmBox(flow.dimensionId, boxOf(flow.from, flow.to));
+    this.feedback.showMessage(
+      cmd.playerId,
+      "building",
+      undefined,
+      flow.material,
+    );
     this.jobs.start(
       cmd.playerId,
       flow.dimensionId,

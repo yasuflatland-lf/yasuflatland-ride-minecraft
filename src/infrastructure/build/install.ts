@@ -49,7 +49,7 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
     copy: new CopySelection(repo, blocks, feedback),
     paste: new StartPaste(repo),
     pasteAt: new PasteAt(repo, blocks, feedback, jobs),
-    chooseHeighted: new ChooseHeighted(repo),
+    chooseHeighted: new ChooseHeighted(repo, feedback),
     aimHeight: new AimHeight(repo),
     confirmHeighted: new ConfirmHeighted(repo, feedback, jobs),
     undo: new UndoEdit(repo, feedback, jobs),

@@ -22,7 +22,11 @@ import { asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockBuildMenus } from "../../../src/infrastructure/build/bedrock/buildMenus";
 import { MenuChoices } from "../../../src/infrastructure/build/bedrock/menuChoices";
 import { BUILD_FORM } from "../../../src/infrastructure/build/identifiers";
-import { FakeSessions, overworld } from "../../application/build/fakes";
+import {
+  FakeFeedback,
+  FakeSessions,
+  overworld,
+} from "../../application/build/fakes";
 
 type Answer = {
   canceled?: boolean;
@@ -98,7 +102,9 @@ function setup(fallback?: boolean) {
   const cases = {
     confirmShape: { execute: vi.fn() },
     chooseHeighted: {
-      execute: vi.fn((cmd) => new ChooseHeighted(repo).execute(cmd)),
+      execute: vi.fn((cmd) =>
+        new ChooseHeighted(repo, new FakeFeedback()).execute(cmd),
+      ),
     },
     confirmHeighted: { execute: vi.fn() },
     cancel: {

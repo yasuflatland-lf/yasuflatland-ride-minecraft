@@ -133,6 +133,7 @@ yasu_build.form.submit=実行
 
 yasu_build.message.point_set=始点を設定しました。
 yasu_build.message.end_set=終点を設定しました（%s ブロック）。
+yasu_build.message.building=Building with %s.
 yasu_build.message.material_refused=データを保持しない固体ブロックを選んでください。
 yasu_build.form.shape_title=形を選択
 yasu_build.form.roof_title=屋根を作成

@@ -3,6 +3,7 @@ import type {
   BuildFeedback,
   BuildMessage,
 } from "../../../application/build/ports/feedback";
+import type { BlockState } from "../../../domain/build/blockState";
 import type { PreviewSet } from "../../../domain/build/preview/preview";
 import { BUILD_SPEC } from "../../../domain/build/spec";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
@@ -35,12 +36,26 @@ function viewerIn(
 }
 
 export class BedrockFeedback implements BuildFeedback {
-  showMessage(playerId: PlayerId, message: BuildMessage, count?: number): void {
+  showMessage(
+    playerId: PlayerId,
+    message: BuildMessage,
+    count?: number,
+    material?: BlockState,
+  ): void {
     const player = playerById(playerId);
     if (!player?.isValid) return;
     player.onScreenDisplay.setActionBar({
       translate: BUILD_MESSAGE[message],
-      with: messageArgs(message, count),
+      with:
+        message === "building" && material
+          ? {
+              rawtext: [
+                {
+                  translate: `tile.${material.typeId.replace(/^.*:/, "")}.name`,
+                },
+              ],
+            }
+          : messageArgs(message, count),
     });
   }
 
