@@ -19,6 +19,7 @@ export class ConfirmHeighted {
     const flow = session.flow;
     if (
       flow.kind !== "heightStep" ||
+      flow.heightedKind === "copy" ||
       !fillStylesFor(flow.heightedKind).includes(cmd.fill)
     ) {
       this.feedback.showMessage(cmd.playerId, "noSelection");

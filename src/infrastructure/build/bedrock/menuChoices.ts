@@ -67,6 +67,8 @@ export class MenuChoices {
         case "cube":
           this.cases.chooseHeighted.execute({ playerId, kind: entryId });
           break;
+        case "copy":
+          return false;
         case "cancel":
           this.cases.cancel.backToAiming({ playerId });
           break;

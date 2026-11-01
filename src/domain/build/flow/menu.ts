@@ -13,6 +13,7 @@ export type ShapeEntryId =
   | "hip"
   | "cylinder"
   | "cube"
+  | "copy"
   | "cancel";
 export type ContentsEntryId = FillStyle | "cancel";
 export type UtilityEntryId = "copy" | "paste" | "undo" | "clear";
@@ -35,6 +36,7 @@ export function shapeMenu(flow: BuildFlow): MenuEntry<ShapeEntryId>[] {
       id: shape.kind === "line" ? "place" : style,
     })),
     ...extraEntries,
+    { id: "copy" },
     { id: "cancel" },
   ];
 }
@@ -52,7 +54,7 @@ export function utilityMenu(
 }
 
 export function contentsMenu(flow: BuildFlow): MenuEntry<ContentsEntryId>[] {
-  return flow.kind === "heightStep"
+  return flow.kind === "heightStep" && flow.heightedKind !== "copy"
     ? [
         ...fillStylesFor(flow.heightedKind).map((id) => ({ id })),
         { id: "cancel" },

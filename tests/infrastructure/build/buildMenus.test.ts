@@ -245,7 +245,12 @@ it.each(["shape", "contents"] as const)(
     for (const answer of [
       { canceled: true },
       { cancelationReason: "UserClosed" },
-      { selection: menu === "shape" ? 6 : 2 },
+      {
+        selection:
+          menu === "shape"
+            ? shapeMenu(endpoint).findIndex((entry) => entry.id === "cancel")
+            : 2,
+      },
     ]) {
       const { session, menus, player, cases } = setup();
       if (menu === "contents")
