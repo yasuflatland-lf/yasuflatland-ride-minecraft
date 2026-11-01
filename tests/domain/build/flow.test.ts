@@ -11,7 +11,6 @@ import {
   chooseHeighted,
   finishHeightStep,
   setHeight,
-  startPaste,
   tapAir,
   tapBlock,
 } from "../../../src/domain/build/flow/flow";
@@ -20,6 +19,7 @@ import {
   shapeMenu,
   utilityMenu,
 } from "../../../src/domain/build/flow/menu";
+import { beginPasteAim } from "../../../src/domain/build/flow/paste";
 import { BuildSession } from "../../../src/domain/build/session";
 import { shapeOf, stylesFor } from "../../../src/domain/build/shape/shape";
 import {
@@ -169,7 +169,6 @@ it("offers utility entries exactly when their prerequisites exist", () => {
         if (aiming) session.setFlow(tapBlock(idle, dim, at, stone));
         expect(utilityMenu(session).map((e) => e.id)).toEqual([
           ...(confirmed ? ["copy"] : []),
-          ...(clipboard ? ["paste"] : []),
           ...(history ? ["undo"] : []),
           ...(confirmed || aiming ? ["clear"] : []),
         ]);
@@ -316,7 +315,7 @@ it("roof and paste stages accept only their own transitions and ignore selection
           }),
           kind,
         );
-        const paste = startPaste(idle, hollow);
+        const paste = beginPasteAim(hollow);
         for (const flow of [
           idle,
           tapBlock(idle, dim, a, stone),
@@ -329,9 +328,6 @@ it("roof and paste stages accept only their own transitions and ignore selection
           );
           expect(setHeight(flow, height)).toEqual(
             flow.kind === "heightStep" ? { ...flow, previous: height } : flow,
-          );
-          expect(startPaste(flow, hollow)).toEqual(
-            flow.kind === "idle" ? { kind: "pasteAim", skipAir: hollow } : flow,
           );
           if (flow.kind !== "endpoint")
             expect(chooseHeighted(flow, kind)).toBe(flow);

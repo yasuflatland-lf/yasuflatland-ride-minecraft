@@ -1,3 +1,4 @@
+import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import { AimHeight } from "../../../src/application/build/aimHeight";
 import { ClearSelection } from "../../../src/application/build/clearSelection";
@@ -400,13 +401,71 @@ it("flow.kind === 'pasteAim' draws no paste layers with a clipboard but no aimed
   expect(feedback.pasteHints).toHaveLength(2);
 });
 
-it("flow.kind === 'pasteAim' excludes idle with a held clipboard from paste layers and hints", () => {
-  const { repo, session, feedback } = setup();
-  session.setFlow({ kind: "idle" });
-  session.setClipboard(clipboardOf(boxOf(cell, end), () => material));
-  const aim = new FakeAimReader();
-  aim.target = { ray, block: { cell, face: "up" } };
-  new ShowPreview(repo, feedback, aim).execute(0);
-  expect(feedback.previews).toEqual([]);
-  expect(feedback.pasteHints).toEqual([]);
+it("idle after New copy draws no paste layers or hints with a held clipboard", () => {
+  fc.assert(
+    fc.property(
+      fc.boolean(),
+      fc.boolean(),
+      fc.nat({ max: 100 }),
+      (skipAir, hit, redraw) => {
+        const { session, feedback, aim, preview } = setup();
+        session.completeCopy(
+          overworld,
+          boxOf(cell, end),
+          clipboardOf(boxOf(cell, end), () => material),
+        );
+        session.setFlow({ kind: "pasteAim", skipAir });
+        session.startNewCopy();
+        aim.mockReturnValue(
+          hit ? { ray, block: { cell, face: "up" } } : { ray },
+        );
+        preview.execute(redraw * interval);
+        expect(feedback.previews).toEqual([]);
+        expect(feedback.pasteHints).toEqual([]);
+      },
+    ),
+  );
+});
+
+it("shows the hint and only paste layers after copying a confirmed box", () => {
+  fc.assert(
+    fc.property(
+      fc.integer({ min: 1, max: 5 }),
+      fc.integer({ min: 1, max: 5 }),
+      fc.integer({ min: 1, max: 5 }),
+      fc.boolean(),
+      (x, y, z, hit) => {
+        const { session, preview, feedback, aim } = setup();
+        const box = boxOf(cell, {
+          x: cell.x + x - 1,
+          y: cell.y + y - 1,
+          z: cell.z + z - 1,
+        });
+        const clipboard = clipboardOf(box, () => material);
+        session.completeCopy(overworld, box, clipboard);
+        aim.mockReturnValue(
+          hit ? { ray, block: { cell: end, face: "up" } } : { ray },
+        );
+        preview.execute(0);
+        expect(feedback.pasteHints).toEqual([
+          { playerId: alex, size: { x, y, z }, count: x * y * z },
+        ]);
+        expect(session.confirmedBox).toEqual({ dimensionId: overworld, box });
+        if (hit) {
+          expect(feedback.previews).toHaveLength(1);
+          const set = feedback.previews[0]?.set;
+          expect(set?.paste.length).toBeGreaterThan(0);
+          for (const layer of [
+            "marker",
+            "shape",
+            "endCube",
+            "roof",
+            "copy",
+            "copyOver",
+          ] as const)
+            expect(set?.[layer]).toEqual([]);
+        } else expect(feedback.previews).toEqual([]);
+      },
+    ),
+  );
 });
