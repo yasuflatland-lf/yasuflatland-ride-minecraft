@@ -497,7 +497,7 @@ it("routes each engine face to aimed paste in the hit dimension after the before
         expect(session.isEditing).toBe(false);
         for (const callback of engine.scheduled.splice(0)) callback();
         expect(pointCall).not.toHaveBeenCalled();
-        expect(session.flow.kind).toBe("idle");
+        expect(session.flow.kind).toBe("pasteAim");
         jobs.step();
         const offset = {
           Up: [0, 1, 0],

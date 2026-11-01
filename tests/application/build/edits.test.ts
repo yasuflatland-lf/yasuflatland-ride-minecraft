@@ -185,6 +185,7 @@ describe("edit use cases", () => {
     env.copy.execute({ playerId: alex });
     env.startPaste.execute({ playerId: alex, skipAir: false });
     env.paste.execute({
+      tick: 0,
       playerId: alex,
       dimensionId: overworld,
       block: { x: 0, y: 63, z: 0 },
@@ -240,6 +241,7 @@ describe("edit use cases", () => {
     env.world.protectedCells.add(cellKey({ x: 1, y: 64, z: 1 }));
     env.startPaste.execute({ playerId: alex, skipAir: false });
     env.paste.execute({
+      tick: 0,
       playerId: alex,
       dimensionId: overworld,
       block: { x: 0, y: 63, z: 0 },
@@ -259,6 +261,7 @@ describe("edit use cases", () => {
     env.world.put({ x: 11, y: 64, z: 10 }, stone);
     env.startPaste.execute({ playerId: alex, skipAir: true });
     env.paste.execute({
+      tick: 0,
       playerId: alex,
       dimensionId: overworld,
       block: { x: 10, y: 63, z: 10 },

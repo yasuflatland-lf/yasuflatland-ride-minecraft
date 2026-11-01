@@ -222,6 +222,7 @@ it("pastes clipboard-relative cells at the hit face with either air policy", () 
         for (const at of cellsOf(pasteBox(clip, anchor))) e.world.put(at, dirt);
         const read = vi.spyOn(e.world, "mayEdit");
         new PasteAt(e.repo, e.world, e.feedback, e.jobs).execute({
+          tick: 0,
           playerId,
           dimensionId: nether,
           block,
@@ -230,7 +231,11 @@ it("pastes clipboard-relative cells at the hit face with either air policy", () 
         expect(read.mock.calls).toEqual(
           [...cellsOf(pasteBox(clip, anchor))].map((at) => [nether, at]),
         );
-        expect(e.session.flow).toEqual({ kind: "idle" });
+        expect(e.session.flow).toEqual({
+          kind: "pasteAim",
+          skipAir,
+          lastPaste: { anchor, tick: 0 },
+        });
         e.jobs.step();
         for (const { at, state } of clip.cells)
           expect(
@@ -254,6 +259,7 @@ it("preserves paste aiming on missing clipboard, busy jobs and protected holes",
     dimensionId: overworld,
     block: { x: 0, y: 0, z: 0 },
     face: "up" as const,
+    tick: 0,
   };
   paste.execute(cmd);
   expect(e.feedback.messages).toEqual([]);

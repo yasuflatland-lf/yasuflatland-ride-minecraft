@@ -109,6 +109,7 @@ export function registerTestEdit(
               z: Number(args[2]),
             },
             face: args[3] as Face,
+            tick: system.currentTick,
           });
         } else if (command === "undo" && args.length === 0)
           undo.execute({ playerId });
