@@ -198,8 +198,9 @@ This directory records design decisions and the reasons behind them. The format 
 | [0195](0195-cut-the-body-height-ahead-of-a-grounded-blade.md) | Cut the body height ahead of a grounded blade | Proposed |
 | [0196](0196-raise-the-suv-seats-for-first-person-visibility.md) | Raise the SUV seats for first-person visibility | Proposed |
 | [0197](0197-emit-camper-hover-particles-below-the-discs.md) | Emit camper hover particles below the discs | Proposed; extends 0147 and 0184 with a PBR glow overlay |
-| [0198](0198-one-build-wand-without-a-bulldozer.md) | One Build Wand without a bulldozer | Proposed |
+| [0198](0198-one-build-wand-without-a-bulldozer.md) | One Build Wand without a bulldozer | Proposed; extended by 0201 (Proposed) |
 | [0199](0199-square-the-camper-front-and-fold-the-grille.md) | Square the camper front and fold the grille | Proposed |
+| [0201](0201-build-wand-cylinder-and-cube.md) | Build Wand cylinder and cube | Proposed |
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
 

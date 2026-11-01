@@ -1,5 +1,5 @@
 import { virtualEndPoint } from "../../domain/build/aim/aim";
-import { aimedRoofHeight } from "../../domain/build/aim/roofHeight";
+import { aimedHeight } from "../../domain/build/aim/height";
 import {
   anchorCell,
   type Face,
@@ -36,8 +36,8 @@ export class ShowPreview {
       const preview: PreviewAim = { blink };
       if (flow.kind === "point1" && aim)
         preview.end = aim.block?.cell ?? virtualEndPoint(flow.cell, aim.ray);
-      if (flow.kind === "roofHeight" && aim)
-        preview.roofHeight = aimedRoofHeight(flow, aim.ray);
+      if (flow.kind === "heightStep" && aim)
+        preview.height = aimedHeight(flow, aim.ray);
       if (flow.kind === "pasteAim" && aim?.block && session.clipboard) {
         const face = aim.block.face.toLowerCase();
         if (isFace(face))

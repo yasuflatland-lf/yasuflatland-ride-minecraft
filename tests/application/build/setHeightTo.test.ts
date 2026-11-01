@@ -1,10 +1,10 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
-import { SetRoofHeightTo } from "../../../src/application/build/setRoofHeightTo";
+import { SetHeightTo } from "../../../src/application/build/setHeightTo";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import {
   type BuildFlow,
-  chooseRoof,
+  chooseHeighted,
 } from "../../../src/domain/build/flow/flow";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { FakeSessions, overworld } from "./fakes";
@@ -19,7 +19,7 @@ it("sets only a roof flow's height and leaves other players and missing sessions
         const playerId = asPlayerId("p");
         const other = repo.getOrCreate(asPlayerId("other"));
         const otherFlow = other.flow;
-        const set = new SetRoofHeightTo(repo);
+        const set = new SetHeightTo(repo);
         set.execute({ playerId, height });
         expect(repo.get(playerId)).toBeUndefined();
         const session = repo.getOrCreate(playerId);
@@ -33,13 +33,13 @@ it("sets only a roof flow's height and leaves other players and missing sessions
         for (const flow of [
           { kind: "idle" } as const,
           endpoint,
-          chooseRoof(endpoint, kind),
+          chooseHeighted(endpoint, kind),
           { kind: "pasteAim", skipAir: false } as const,
         ]) {
           session.setFlow(flow);
           set.execute({ playerId, height });
           expect(session.flow).toEqual(
-            flow.kind === "roofHeight" ? { ...flow, previous: height } : flow,
+            flow.kind === "heightStep" ? { ...flow, previous: height } : flow,
           );
         }
         expect(other.flow).toBe(otherFlow);

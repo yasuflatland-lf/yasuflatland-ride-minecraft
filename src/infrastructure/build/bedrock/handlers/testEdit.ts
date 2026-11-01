@@ -4,7 +4,7 @@ import type {
   BuildFeedback,
   BuildMessage,
 } from "../../../../application/build/ports/feedback";
-import type { SetRoofHeightTo } from "../../../../application/build/setRoofHeightTo";
+import type { SetHeightTo } from "../../../../application/build/setHeightTo";
 import type { UndoEdit } from "../../../../application/build/undoEdit";
 import type { Face } from "../../../../domain/build/clipboard/clipboard";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
@@ -54,7 +54,7 @@ export function recordMessages(feedback: BuildFeedback): {
 
 export function registerTestEdit(
   choices: MenuChoices,
-  height: SetRoofHeightTo,
+  height: SetHeightTo,
   paste: PasteAt,
   undo: UndoEdit,
   repo: BuildSessionRepository,
@@ -77,7 +77,7 @@ export function registerTestEdit(
         if (
           command === "menu" &&
           (args[0] === "shape" ||
-            args[0] === "roof" ||
+            args[0] === "contents" ||
             args[0] === "utility") &&
           (args.length === 2 ||
             (args.length === 3 && (args[2] === "0" || args[2] === "1")))

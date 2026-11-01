@@ -30,8 +30,8 @@ export function utilityMenu(session: BuildSession): MenuEntry[] {
   return entries;
 }
 
-export function roofMenu(flow: BuildFlow): MenuEntry[] {
-  return flow.kind === "roofHeight"
+export function contentsMenu(flow: BuildFlow): MenuEntry[] {
+  return flow.kind === "heightStep"
     ? [{ id: "fill" }, { id: "hollow" }, { id: "cancel" }]
     : [];
 }

@@ -3,6 +3,10 @@ import type { Box } from "../box";
 
 export type RoofKind = "gable" | "hip";
 
+export function isRoofKind(kind: string): kind is RoofKind {
+  return kind === "gable" || kind === "hip";
+}
+
 export interface RoofSpec {
   readonly base: Box;
   readonly kind: RoofKind;

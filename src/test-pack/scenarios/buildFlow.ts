@@ -220,11 +220,11 @@ export function buildRoofs(a: Arena): Promise<Outcome> {
       await f.select(f.cell(4, 0, 4));
       for (const id of ["fill", "hollow", "cancel"])
         check(
-          (await f.menu("roof", id)).offered === false,
+          (await f.menu("contents", id)).offered === false,
           "roof entry offered before roof choice",
         );
       check(
-        (await f.menu("shape", kind)).flow.kind === "roofHeight",
+        (await f.menu("shape", kind)).flow.kind === "heightStep",
         "roof height step missing",
       );
       check(
@@ -232,7 +232,7 @@ export function buildRoofs(a: Arena): Promise<Outcome> {
         "height not applied",
       );
       const before = snapshot(f, cells);
-      const result = await f.menu("roof", style);
+      const result = await f.menu("contents", style);
       check(
         result.offered === true && result.message === "editDone",
         "roof did not finish",
@@ -243,7 +243,7 @@ export function buildRoofs(a: Arena): Promise<Outcome> {
       );
       for (const id of ["fill", "hollow", "cancel"])
         check(
-          (await f.menu("roof", id)).offered === false,
+          (await f.menu("contents", id)).offered === false,
           "roof entry offered after confirmation",
         );
       await f.edit("undo");
@@ -285,7 +285,7 @@ export function buildFlowCancel(a: Arena): Promise<Outcome> {
     await f.tap("air", f.cell(4, 0, 4));
     await f.menu("shape", "gable");
     check(
-      (await f.menu("roof", "cancel")).flow.kind === "point1",
+      (await f.menu("contents", "cancel")).flow.kind === "point1",
       "roof Cancel did not resume aiming",
     );
   });

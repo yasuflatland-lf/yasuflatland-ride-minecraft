@@ -1,5 +1,5 @@
 import { expect, it, vi } from "vitest";
-import { AimRoofHeight } from "../../../src/application/build/aimRoofHeight";
+import { AimHeight } from "../../../src/application/build/aimHeight";
 import { ClearSelection } from "../../../src/application/build/clearSelection";
 import type { AimReader } from "../../../src/application/build/ports/aim";
 import { ShowPreview } from "../../../src/application/build/showPreview";
@@ -110,11 +110,12 @@ it("draws only in build mode and on the interval, and clears the preview with th
 it("uses the confirmation height calculation for roofs without mutating the session", () => {
   const { session, preview, feedback, repo, aim } = setup();
   session.setFlow({
-    kind: "roofHeight",
+    kind: "heightStep",
+    heightLocked: false,
     dimensionId: nether,
     from: cell,
     base: boxOf(cell, { x: 8, y: 64, z: 4 }),
-    roofKind: "hip",
+    heightedKind: "hip",
     previous: 3,
     material,
   });
@@ -122,7 +123,7 @@ it("uses the confirmation height calculation for roofs without mutating the sess
   aim.mockReturnValue({ ray });
   preview.execute(0);
   expect(session.flow).toBe(flow);
-  new AimRoofHeight(repo).execute({ playerId: alex, ray });
+  new AimHeight(repo).execute({ playerId: alex, ray });
   expect(feedback.previews[0]?.set).toEqual(
     previewPoints(session.flow, { blink: true }),
   );
