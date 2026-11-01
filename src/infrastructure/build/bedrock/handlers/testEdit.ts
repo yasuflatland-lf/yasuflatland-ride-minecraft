@@ -1,4 +1,5 @@
 import { ScriptEventSource, system, world } from "@minecraft/server";
+import type { ConfirmCopyHeight } from "../../../../application/build/confirmCopyHeight";
 import type { PasteAt } from "../../../../application/build/pasteAt";
 import type {
   BuildFeedback,
@@ -58,6 +59,7 @@ export function recordMessages(feedback: BuildFeedback): {
 export function registerTestEdit(
   choices: MenuChoices,
   height: SetHeightTo,
+  confirmCopyHeight: ConfirmCopyHeight,
   paste: PasteAt,
   undo: UndoEdit,
   repo: BuildSessionRepository,
@@ -94,6 +96,8 @@ export function registerTestEdit(
           Number.isInteger(Number(args[0]))
         ) {
           height.execute({ playerId, height: Number(args[0]) });
+        } else if (command === "confirmcopy" && args.length === 0) {
+          confirmCopyHeight.execute({ playerId });
         } else if (
           command === "pasteat" &&
           args.length === 4 &&

@@ -92,6 +92,7 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
   registerTestEdit(
     new MenuChoices(repo, menuCases),
     menuCases.setHeight,
+    menuCases.confirmCopyHeight,
     cases.pasteAt,
     cases.undo,
     repo,
