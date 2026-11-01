@@ -12,10 +12,10 @@ The suite took 2546 ticks (127 s at 20 TPS). The six slowest tests made up 43% o
 Spike run 38212196180 (#163) ran the whole suite and the 2-way and 3-way splits side by side, each job on its own runner and BDS. All 28 tests passed in every configuration:
 
 | Jobs | Slowest job | Slowest `test:game` | Wall clock | Runner time (sum of jobs) |
-|---|---|---|---|---|
-| 1 | 153 s | 133 s | - | 153 s |
-| 2 | 106 s | 73 s | -31% | 195 s |
-| 3 | 81 s | 51 s | -47% | 228 s |
+| ---- | ----------- | ------------------- | ---------- | ------------------------- |
+| 1    | 153 s       | 133 s               | -          | 153 s                     |
+| 2    | 106 s       | 73 s                | -31%       | 195 s                     |
+| 3    | 81 s        | 51 s                | -47%       | 228 s                     |
 
 Each job pays about 20 s for checkout, install, build, and BDS start, and about 7 s for the arena setup and log polling, however few tests it runs.
 

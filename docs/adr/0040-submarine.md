@@ -12,17 +12,17 @@ The SUV should become a sealed submarine when its roof goes under water, with bl
 
 - Add `submarine` to `Form` and the client-synced `mycar:form` enum. Keep property and gravity changes on the same tick (0021): only `car` has gravity. Apply the following transitions in priority order; otherwise keep the current form. Controlled means a driver or test input is present, submerged means `waterDepth >= SPEC.carHeight`, and dry means no water above the feet.
 
-| Current form | Condition | Next form |
-|---|---|---|
-| car / takeoff / hover / landing | Submerged | submarine |
-| car | Controlled double tap of Jump | takeoff |
-| takeoff | 20 ticks elapsed | hover |
-| hover | On ground | car |
-| hover | Double tap of Jump, or uncontrolled | landing |
-| landing | On ground | car |
-| submarine | Dry, controlled, and Jump held | hover |
-| submarine | On ground and not submerged | car |
-| submarine | Dry | car |
+| Current form                    | Condition                           | Next form |
+| ------------------------------- | ----------------------------------- | --------- |
+| car / takeoff / hover / landing | Submerged                           | submarine |
+| car                             | Controlled double tap of Jump       | takeoff   |
+| takeoff                         | 20 ticks elapsed                    | hover     |
+| hover                           | On ground                           | car       |
+| hover                           | Double tap of Jump, or uncontrolled | landing   |
+| landing                         | On ground                           | car       |
+| submarine                       | Dry, controlled, and Jump held      | hover     |
+| submarine                       | On ground and not submerged         | car       |
+| submarine                       | Dry                                 | car       |
 
 - Ignore double taps in submarine. Entering submarine requires the roof under water, while breaching to hover requires the body fully out: this gives a car-height band of hysteresis. Shallow water stays `car`. In water deep enough to enter submarine, an unattended vehicle floats at `SPEC.floatDraft` (1.2 blocks, below `SPEC.carHeight` of 1.6). Entering submarine needs a water column of at least `SPEC.carHeight`, so a floating submarine keeps at least `carHeight - floatDraft` (0.4 blocks) of water below it and cannot ground and ping-pong back to car. A controlled submarine resting on the bed stays submarine while submerged.
 - Sense water at the vehicle's floored x/z, from `Math.floor(feetY)` upward for at most `Math.ceil(SPEC.carHeight) + 1` cells. When that cell is dry and the feet are above its floor, the vehicle rests on a partial block that cannot be waterlogged (mud or soul sand at 0.875, dirt path or farmland at 0.9375), so start one cell higher. Stop at the first dry cell. Depth is the top of the contiguous water column minus feet height, clamped to `[0, SPEC.carHeight + 1]`; no water in the starting cell gives zero. Count `minecraft:water`, `minecraft:flowing_water`, and waterlogged blocks, including kelp and seagrass. Ignore flowing levels and count each surface cell as full. Undefined or unloaded blocks and lava are not water.

@@ -11,10 +11,10 @@ The spike was throwaway code on a local `spike/sportsboat` branch, built to deci
 
 Both hulls shared one box model (6 blocks long, no logo or model name) and a 2.2 × 1.2 collision box:
 
-| Entity | Approach |
-|---|---|
-| `yasu_ride:sportsboat` | A: afloat, gravity off and the script pulls the feet to a 0.45-block draft (`clamp((depth - draft) * 0.3, ±0.08)`); horizontal motion is `stepFlightMotion` with a water medium (drag 0.83) |
-| `yasu_ride:sportsboat_buoyant` | B: `minecraft:buoyant` (base 1.0, gravity on, no waves); the same horizontal motion, no vertical impulse |
+| Entity                         | Approach                                                                                                                                                                                    |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `yasu_ride:sportsboat`         | A: afloat, gravity off and the script pulls the feet to a 0.45-block draft (`clamp((depth - draft) * 0.3, ±0.08)`); horizontal motion is `stepFlightMotion` with a water medium (drag 0.83) |
+| `yasu_ride:sportsboat_buoyant` | B: `minecraft:buoyant` (base 1.0, gravity on, no waves); the same horizontal motion, no vertical impulse                                                                                    |
 
 Both coast to a stop with gravity on when no water is under them.
 
@@ -22,33 +22,33 @@ Both coast to a stop with gravity on when no water is under them.
 
 `bob` is the range of the feet height over the window; `draft` is the water surface minus the mean feet height.
 
-| Test | A: script float | B: buoyant |
-|---|---|---|
-| Settling, first 40 ticks after `summon` at the surface | draft 0.46, bob 0.51 | draft 0.44, bob 0.63 |
-| Unattended, next 60 ticks | draft 0.506, bob 0.000 | draft 0.454, bob 0.167 |
-| Unattended, 200 ticks after that | draft 0.506, bob 0.000 | draft 0.456, bob 0.169 (never settles) |
-| Full throttle, target 0.7 blocks/tick | 0.703, 31.0 blocks in 60 ticks | 0.774 (overshoots), 23.4 blocks |
-| Full throttle, target 1.4 | 1.408, 62.0 blocks in 60 ticks | 1.022 |
-| Full throttle, target 1.12 | not measured | 1.022 (unchanged: the engine, not the target, caps B) |
-| Full right turn at speed, 30 ticks | 6.00°/tick (`SPEC.turnRate`), speed kept | 4.90°/tick, speed fell to 0.355 |
-| Throttle released | stops within 40 ticks | stops within 40 ticks, bob 0.17 |
-| Into a beach level with the water, and into a one-block bank | stops at the shore, stays afloat | same |
-| Into a cow, ram reach 3.0 blocks | cow 10 → 0 hit with the bow 3.34 blocks from the center; boat 20 → 20 | cow 10 → 0 at 1.10, and at 0.31 at target 1.4; boat 20 → 20 |
-| SUV in-game suite (24 tests) with the spike changes | 24/24 pass | |
+| Test                                                         | A: script float                                                       | B: buoyant                                                  |
+| ------------------------------------------------------------ | --------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Settling, first 40 ticks after `summon` at the surface       | draft 0.46, bob 0.51                                                  | draft 0.44, bob 0.63                                        |
+| Unattended, next 60 ticks                                    | draft 0.506, bob 0.000                                                | draft 0.454, bob 0.167                                      |
+| Unattended, 200 ticks after that                             | draft 0.506, bob 0.000                                                | draft 0.456, bob 0.169 (never settles)                      |
+| Full throttle, target 0.7 blocks/tick                        | 0.703, 31.0 blocks in 60 ticks                                        | 0.774 (overshoots), 23.4 blocks                             |
+| Full throttle, target 1.4                                    | 1.408, 62.0 blocks in 60 ticks                                        | 1.022                                                       |
+| Full throttle, target 1.12                                   | not measured                                                          | 1.022 (unchanged: the engine, not the target, caps B)       |
+| Full right turn at speed, 30 ticks                           | 6.00°/tick (`SPEC.turnRate`), speed kept                              | 4.90°/tick, speed fell to 0.355                             |
+| Throttle released                                            | stops within 40 ticks                                                 | stops within 40 ticks, bob 0.17                             |
+| Into a beach level with the water, and into a one-block bank | stops at the shore, stays afloat                                      | same                                                        |
+| Into a cow, ram reach 3.0 blocks                             | cow 10 → 0 hit with the bow 3.34 blocks from the center; boat 20 → 20 | cow 10 → 0 at 1.10, and at 0.31 at target 1.4; boat 20 → 20 |
+| SUV in-game suite (24 tests) with the spike changes          | 24/24 pass                                                            |                                                             |
 
 ## Manual test results (PC, 2026-10-12)
 
-| Item | Result |
-|---|---|
-| Placing from the item | Works on water once the script climbs from the clicked block (often the bed) to the top water cell. The interaction ray skips liquids, and `getBlockFromViewDirection` returned nothing when the bed was clicked |
-| Riding A and B | Both drive well; B's bob was not noticed. The driver chose B |
-| Handling | Wanted faster turning, camera, and top speed. Top speed was set to 1.12 blocks/tick (0.7 doubled, then 0.8 of that); acceleration stays at the SUV's 0.0225 but is its own setting |
-| Seat height | The first seats (0.75 above the feet) put the eye too high to see out. Lowered to 0.52 with the captain chairs 1 pixel lower; still to be confirmed |
-| Paint and headlights | Dyes repaint the boat; the switch lights it |
-| Breaking | Hitting the bow or stern did nothing: hits only land inside the 2.2-block square collision box. Three `minecraft:custom_hit_test` boxes along the hull were added; whether they fix breaking is still to be confirmed |
-| Item icon | The SUV icon was confusing; a boat icon replaced it |
-| Headlights | The driver asked for their own setting: 60 blocks ahead, two beams 3 blocks either side of the center line, cells 4 blocks apart |
-| Ram | Wanted: mobs take damage, the boat and riders do not. Measured above |
+| Item                  | Result                                                                                                                                                                                                                |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Placing from the item | Works on water once the script climbs from the clicked block (often the bed) to the top water cell. The interaction ray skips liquids, and `getBlockFromViewDirection` returned nothing when the bed was clicked      |
+| Riding A and B        | Both drive well; B's bob was not noticed. The driver chose B                                                                                                                                                          |
+| Handling              | Wanted faster turning, camera, and top speed. Top speed was set to 1.12 blocks/tick (0.7 doubled, then 0.8 of that); acceleration stays at the SUV's 0.0225 but is its own setting                                    |
+| Seat height           | The first seats (0.75 above the feet) put the eye too high to see out. Lowered to 0.52 with the captain chairs 1 pixel lower; still to be confirmed                                                                   |
+| Paint and headlights  | Dyes repaint the boat; the switch lights it                                                                                                                                                                           |
+| Breaking              | Hitting the bow or stern did nothing: hits only land inside the 2.2-block square collision box. Three `minecraft:custom_hit_test` boxes along the hull were added; whether they fix breaking is still to be confirmed |
+| Item icon             | The SUV icon was confusing; a boat icon replaced it                                                                                                                                                                   |
+| Headlights            | The driver asked for their own setting: 60 blocks ahead, two beams 3 blocks either side of the center line, cells 4 blocks apart                                                                                      |
+| Ram                   | Wanted: mobs take damage, the boat and riders do not. Measured above                                                                                                                                                  |
 
 ## Findings
 

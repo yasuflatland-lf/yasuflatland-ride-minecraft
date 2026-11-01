@@ -14,17 +14,17 @@ The client reads ground speed, form, and the synced blade float. The blade moves
 
 The D5 specification below is background. It set the first engine speeds and still sets the track link rates, but the engine that plays now follows the owner's ear and recording instead of the rpm table derived from it.
 
-| Item | Value | Source |
-|---|---|---|
-| Engine | Cat C7.1, inline six, four-stroke, turbocharged and aftercooled, direct injection. The current D5 does not use the C9.3B; that engine is in the D6 and D7 | D5 Technical Specifications (Cat, via dealer CGT): https://www.cgt.it/sites/default/files/d5_technical_specifications_en.pdf ; C7.1 engine page: https://www.cat.com/en_US/products/new/power-systems/industrial/industrial-diesel-power-units/18595859.html |
-| Bore, stroke, displacement | 105 mm, 135 mm, 7.1 L | D5 Technical Specifications |
-| Net power | 127 kW (170 hp) at 1,770 rpm (rated speed) | D5 Technical Specifications |
-| Maximum power | 151 kW (202 hp, SAE J1995) at 1,600 rpm | D5 Technical Specifications |
-| Low idle, high idle | Not in the spec sheet. 800 ± 50 rpm low idle and 1,880 ± 50 rpm no-load high idle are typical Cat machine values from a Cat engine-speed test procedure that does not name its model. **Assumptions, not D5 measurements** | (unverified) |
-| Travel speed | 3-speed automatic, top forward 9.8 km/h (2.72 m/s), top reverse 12.2 km/h | D5 Technical Specifications |
-| Undercarriage | 40 sections per side, 7 bottom rollers, 2,562 mm of track on the ground, 1,890 mm gauge | D5 Technical Specifications |
-| Track pitch | Not in the spec sheet. About 0.19 m, derived: the loop is about 2 x 2.6 m plus the wrap around the idler and sprocket (pi x about 0.72 m), about 7.5 m, over 40 sections. **Derived estimate** | derived from the D5 Technical Specifications |
-| Implement pump | 127 L/min, 25,000 kPa maximum implement pressure | D5 Technical Specifications |
+| Item                       | Value                                                                                                                                                                                                                      | Source                                                                                                                                                                                                                                                       |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Engine                     | Cat C7.1, inline six, four-stroke, turbocharged and aftercooled, direct injection. The current D5 does not use the C9.3B; that engine is in the D6 and D7                                                                  | D5 Technical Specifications (Cat, via dealer CGT): https://www.cgt.it/sites/default/files/d5_technical_specifications_en.pdf ; C7.1 engine page: https://www.cat.com/en_US/products/new/power-systems/industrial/industrial-diesel-power-units/18595859.html |
+| Bore, stroke, displacement | 105 mm, 135 mm, 7.1 L                                                                                                                                                                                                      | D5 Technical Specifications                                                                                                                                                                                                                                  |
+| Net power                  | 127 kW (170 hp) at 1,770 rpm (rated speed)                                                                                                                                                                                 | D5 Technical Specifications                                                                                                                                                                                                                                  |
+| Maximum power              | 151 kW (202 hp, SAE J1995) at 1,600 rpm                                                                                                                                                                                    | D5 Technical Specifications                                                                                                                                                                                                                                  |
+| Low idle, high idle        | Not in the spec sheet. 800 ± 50 rpm low idle and 1,880 ± 50 rpm no-load high idle are typical Cat machine values from a Cat engine-speed test procedure that does not name its model. **Assumptions, not D5 measurements** | (unverified)                                                                                                                                                                                                                                                 |
+| Travel speed               | 3-speed automatic, top forward 9.8 km/h (2.72 m/s), top reverse 12.2 km/h                                                                                                                                                  | D5 Technical Specifications                                                                                                                                                                                                                                  |
+| Undercarriage              | 40 sections per side, 7 bottom rollers, 2,562 mm of track on the ground, 1,890 mm gauge                                                                                                                                    | D5 Technical Specifications                                                                                                                                                                                                                                  |
+| Track pitch                | Not in the spec sheet. About 0.19 m, derived: the loop is about 2 x 2.6 m plus the wrap around the idler and sprocket (pi x about 0.72 m), about 7.5 m, over 40 sections. **Derived estimate**                             | derived from the D5 Technical Specifications                                                                                                                                                                                                                 |
+| Implement pump             | 127 L/min, 25,000 kPa maximum implement pressure                                                                                                                                                                           | D5 Technical Specifications                                                                                                                                                                                                                                  |
 
 ## Decision
 
@@ -42,32 +42,32 @@ Hydraulics runs through an unconditional controller entry: initial `rest` enters
 
 A four-stroke engine completes one cycle (all six firings) every two turns, so `rpm = 120 x cycles/s`, firings/s = `6 x cycles/s`, and a 4 s loop holds `rpm / 30` cycles. Every count below is even, so a 2 s loop would also hold whole cycles at the half-cycle-per-second steps used here (8.5, 9.5, 10.5, 11.5), and the 2 Hz push swell fits 2 s too. The loops stay 4 s because that is the length the owner tuned and approved (it carried over from retuning step 4); it also makes the jitter pattern repeat less often, at twice the file size of 2 s loops. Each level puts its thump rate inside the recording's 8-12 a second; travel level 3 matches the recording's 8-12 s section at 10.5 thumps/s with its tone at 126 Hz and the harmonic at 252 Hz:
 
-| Level | Cycles per 4 s loop | Thumps/s (cycles/s) | rpm | Firings/s | Exhaust tone (2 x firings) |
-|---|---|---|---|---|---|
-| Idle | 32 | 8 | 960 | 48 | 96 Hz |
-| Travel 1-5 | 36, 40, 42, 44, 48 | 9, 10, 10.5, 11, 12 | 1,080-1,440 | 54-72 | 108-144 Hz |
-| Push 1-5 | 34, 38, 40, 42, 46 | 8.5, 9.5, 10, 10.5, 11.5 | 1,020-1,380 | 51-69 | 102-138 Hz |
+| Level      | Cycles per 4 s loop | Thumps/s (cycles/s)      | rpm         | Firings/s | Exhaust tone (2 x firings) |
+| ---------- | ------------------- | ------------------------ | ----------- | --------- | -------------------------- |
+| Idle       | 32                  | 8                        | 960         | 48        | 96 Hz                      |
+| Travel 1-5 | 36, 40, 42, 44, 48  | 9, 10, 10.5, 11, 12      | 1,080-1,440 | 54-72     | 108-144 Hz                 |
+| Push 1-5   | 34, 38, 40, 42, 46  | 8.5, 9.5, 10, 10.5, 11.5 | 1,020-1,380 | 51-69     | 102-138 Hz                 |
 
 Idle sits 20 % above the assumed 800 rpm and full travel well below the assumed 1,880 rpm high idle. The owner's ear and recording override the spec here; intermediate levels are character choices, not measured engine operating points.
 
 **Track link rate.** The bulldozer drives 3.3 times faster than the real D5 (9 blocks/s against 2.72 m/s, the owner's choice in 0136). A link rate at the in-game speed with a 0.19 m pitch would reach 47 clanks/s per track at top speed, a buzz rather than a clank. The tracks instead sound as the D5's do at the same fraction of top speed: at top forward speed the D5 passes `2.72 / 0.19 = 14.3` links/s per track, so a level at representative speed `v` blocks/s plays `14.3 x v / 9` links/s, rounded to a whole number so the 1 s loop holds whole links.
 
-| Level | Band (blocks/s) | Representative v | 14.3 x v / 9 | Links/s per track |
-|---|---|---|---|---|
-| 1 | 0.5-2.25 | 1.375 (midpoint) | 2.18 | 2 |
-| 2 | 2.25-4 | 3.125 | 4.97 | 5 |
-| 3 | 4-5.75 | 4.875 | 7.75 | 8 |
-| 4 | 5.75-7.5 | 6.625 | 10.5 | 11 |
-| 5 | >= 7.5 | 8.25 (midpoint of 7.5-9) | 13.1 | 13 |
+| Level | Band (blocks/s) | Representative v         | 14.3 x v / 9 | Links/s per track |
+| ----- | --------------- | ------------------------ | ------------ | ----------------- |
+| 1     | 0.5-2.25        | 1.375 (midpoint)         | 2.18         | 2                 |
+| 2     | 2.25-4          | 3.125                    | 4.97         | 5                 |
+| 3     | 4-5.75          | 4.875                    | 7.75         | 8                 |
+| 4     | 5.75-7.5        | 6.625                    | 10.5         | 11                |
+| 5     | >= 7.5          | 8.25 (midpoint of 7.5-9) | 13.1         | 13                |
 
-| Short animation name (ce) | Animation id | Effect name | Sound id | WAV | Condition | Volume |
-|---|---|---|---|---|---|---|
-| `engine_sound_0` | `animation.yasu_ride.bulldozer.engine_sound_0` | `engine_0` | `yasu_ride.bulldozer_engine_0` | `bulldozer_engine_0.wav` | `G && query.ground_speed < 0.5` (unchanged) | 0.5 |
-| `engine_sound_1`..`_5` | `...engine_sound_1`..`_5` | `engine_1`..`_5` | `yasu_ride.bulldozer_engine_1`..`_5` | `bulldozer_engine_1`..`_5.wav` | `G && query.property('yasu_ride:blade') >= 0.05 && <band>` | 0.54, 0.58, 0.62, 0.66, 0.7 |
-| `push_sound_1`..`_5` | `animation.yasu_ride.bulldozer.push_sound_1`..`_5` | `push_1`..`_5` | `yasu_ride.bulldozer_push_1`..`_5` | `bulldozer_push_1`..`_5.wav` | `G && query.property('yasu_ride:blade') < 0.05 && <band>` | 0.6, 0.65, 0.7, 0.75, 0.8 |
-| `track_sound_1`..`_5` | `animation.yasu_ride.bulldozer.track_sound_1`..`_5` | `track_1`..`_5` | `yasu_ride.bulldozer_track_1`..`_5` | `bulldozer_track_1`..`_5.wav` | `G && <band>` | 0.25, 0.3, 0.35, 0.4, 0.45 |
-| `hydraulics` | `controller.animation.yasu_ride.bulldozer.hydraulics` | - | - | - | always (an unconditional `animate` entry) | - |
-| `hydraulics_sound` | `animation.yasu_ride.bulldozer.hydraulics_sound` | `hydraulics` | `yasu_ride.bulldozer_hydraulics` | `bulldozer_hydraulics.wav` | played by the controller | 0.35 |
+| Short animation name (ce) | Animation id                                          | Effect name      | Sound id                             | WAV                            | Condition                                                  | Volume                      |
+| ------------------------- | ----------------------------------------------------- | ---------------- | ------------------------------------ | ------------------------------ | ---------------------------------------------------------- | --------------------------- |
+| `engine_sound_0`          | `animation.yasu_ride.bulldozer.engine_sound_0`        | `engine_0`       | `yasu_ride.bulldozer_engine_0`       | `bulldozer_engine_0.wav`       | `G && query.ground_speed < 0.5` (unchanged)                | 0.5                         |
+| `engine_sound_1`..`_5`    | `...engine_sound_1`..`_5`                             | `engine_1`..`_5` | `yasu_ride.bulldozer_engine_1`..`_5` | `bulldozer_engine_1`..`_5.wav` | `G && query.property('yasu_ride:blade') >= 0.05 && <band>` | 0.54, 0.58, 0.62, 0.66, 0.7 |
+| `push_sound_1`..`_5`      | `animation.yasu_ride.bulldozer.push_sound_1`..`_5`    | `push_1`..`_5`   | `yasu_ride.bulldozer_push_1`..`_5`   | `bulldozer_push_1`..`_5.wav`   | `G && query.property('yasu_ride:blade') < 0.05 && <band>`  | 0.6, 0.65, 0.7, 0.75, 0.8   |
+| `track_sound_1`..`_5`     | `animation.yasu_ride.bulldozer.track_sound_1`..`_5`   | `track_1`..`_5`  | `yasu_ride.bulldozer_track_1`..`_5`  | `bulldozer_track_1`..`_5.wav`  | `G && <band>`                                              | 0.25, 0.3, 0.35, 0.4, 0.45  |
+| `hydraulics`              | `controller.animation.yasu_ride.bulldozer.hydraulics` | -                | -                                    | -                              | always (an unconditional `animate` entry)                  | -                           |
+| `hydraulics_sound`        | `animation.yasu_ride.bulldozer.hydraulics_sound`      | `hydraulics`     | `yasu_ride.bulldozer_hydraulics`     | `bulldozer_hydraulics.wav`     | played by the controller                                   | 0.35                        |
 
 `<band>` for level 1 to 5, written exactly as the existing entries do: `query.ground_speed >= 0.5 && query.ground_speed < 2.25`, `>= 2.25 && < 4`, `>= 4 && < 5.75`, `>= 5.75 && < 7.5`, `>= 7.5` (no upper bound). The condition string puts `G` first, then the blade clause, then the speed clause, so `tests/support/soundLevels.ts` `speedRanges` keeps parsing it.
 

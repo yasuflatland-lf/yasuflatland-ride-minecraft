@@ -11,21 +11,21 @@ The spike was throwaway code built to choose how to drive vehicles. It was never
 
 Two vehicles were built for comparison:
 
-| Entity | Approach | Look |
-|---|---|---|
+| Entity             | Approach                                                                      | Look      |
+| ------------------ | ----------------------------------------------------------------------------- | --------- |
 | `spike:car_script` | 1: the script computes velocity every tick and applies it with `applyImpulse` | Khaki SUV |
-| `spike:car_horse` | 2: `minecraft:input_ground_controlled`, the same as a horse | Blue SUV |
+| `spike:car_horse`  | 2: `minecraft:input_ground_controlled`, the same as a horse                   | Blue SUV  |
 
 ## Automated measurements (BDS 1.26.52 in Docker)
 
-| Test | What it does | Result |
-|---|---|---|
-| T1 | Accelerate straight, climb a one-block step, then coast | 95% of max speed after 39 ticks. Climbed the step. Coasted 22.76 blocks |
-| T2 | Turn at full throttle (normal / handbrake) | Slip angle 13.8° / 52.4° |
-| T3 | Drive into a cow ahead | Cow died from 12 damage and was pushed about 4 blocks (cause `entityAttack`) |
-| T4 | Drive into a 4-block-high wall at 20° | Stopped in front of the wall. Speed along the wall peaked at 0.32 |
-| T5 | Approach a two-block step head-on | Jumped 2.5 blocks before the step and landed on top |
-| T6 | Approach a two-block step at 30° | The look-ahead at the vehicle's edge triggered the jump. Landed with 0.00 sideways drift |
+| Test | What it does                                            | Result                                                                                   |
+| ---- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| T1   | Accelerate straight, climb a one-block step, then coast | 95% of max speed after 39 ticks. Climbed the step. Coasted 22.76 blocks                  |
+| T2   | Turn at full throttle (normal / handbrake)              | Slip angle 13.8° / 52.4°                                                                 |
+| T3   | Drive into a cow ahead                                  | Cow died from 12 damage and was pushed about 4 blocks (cause `entityAttack`)             |
+| T4   | Drive into a 4-block-high wall at 20°                   | Stopped in front of the wall. Speed along the wall peaked at 0.32                        |
+| T5   | Approach a two-block step head-on                       | Jumped 2.5 blocks before the step and landed on top                                      |
+| T6   | Approach a two-block step at 30°                        | The look-ahead at the vehicle's edge triggered the jump. Landed with 0.00 sideways drift |
 
 ## Findings
 
@@ -40,15 +40,15 @@ Two vehicles were built for comparison:
 
 ## Manual test results (mobile)
 
-| Item | Result |
-|---|---|
-| Input while riding | Available. Left/right is analog (`x=0.09`, `0.81`, and so on) |
-| Single joystick | Steering hard lowers the throttle (`y=0.48` at `x=0.90`). The compensation is decided in the design (0005) |
-| Camera | Follows the vehicle when it turns |
-| Two-block steps | Climbed naturally, both head-on and at an angle |
-| Ram damage | Pigs and cows take damage and are pushed aside |
-| Self-damage | No hearts lost from crashing into a wall or from a fall |
-| Turning with approach 2 (horse) | Left/right input slides the vehicle straight sideways (crab walking). It cannot turn like a car |
+| Item                            | Result                                                                                                     |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Input while riding              | Available. Left/right is analog (`x=0.09`, `0.81`, and so on)                                              |
+| Single joystick                 | Steering hard lowers the throttle (`y=0.48` at `x=0.90`). The compensation is decided in the design (0005) |
+| Camera                          | Follows the vehicle when it turns                                                                          |
+| Two-block steps                 | Climbed naturally, both head-on and at an angle                                                            |
+| Ram damage                      | Pigs and cows take damage and are pushed aside                                                             |
+| Self-damage                     | No hearts lost from crashing into a wall or from a fall                                                    |
+| Turning with approach 2 (horse) | Left/right input slides the vehicle straight sideways (crab walking). It cannot turn like a car            |
 
 ## Requirements carried into the design
 
