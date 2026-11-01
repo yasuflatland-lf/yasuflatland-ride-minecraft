@@ -1,9 +1,9 @@
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
-import { CancelFlow } from "../../../src/application/build/cancelFlow";
 import { EditJobs } from "../../../src/application/build/editJobs";
+import { EndPasting } from "../../../src/application/build/endPasting";
+import { LeaveBuild } from "../../../src/application/build/leaveBuild";
 import { PasteAt } from "../../../src/application/build/pasteAt";
-import { StopPaste } from "../../../src/application/build/stopPaste";
 import { ToggleSkipAir } from "../../../src/application/build/toggleSkipAir";
 import { UpdateBuildModes } from "../../../src/application/build/updateBuildModes";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
@@ -172,19 +172,96 @@ it("allows the same anchor again once the repeat window ends", () => {
   });
 });
 
-it("stops only paste aiming and cancels all in-progress flows on leaving build mode", () => {
+it("leaves any flow after the exact grace delay and does not re-trigger", () => {
+  fc.assert(
+    fc.property(
+      cell,
+      fc.boolean(),
+      fc.nat({ max: 30 }),
+      (at, skipAir, extraTicks) => {
+        const first = tapBlock({ kind: "idle" }, overworld, at, stone);
+        const endpoint = tapAir(first, { ...at, x: at.x + 2, z: at.z + 2 });
+        const height = chooseHeighted(endpoint, "gable");
+        for (const flow of [
+          { kind: "idle" } as const,
+          first,
+          endpoint,
+          height,
+          startPaste({ kind: "idle" }, skipAir),
+        ]) {
+          const e = setup();
+          const leave = new LeaveBuild(e.repo);
+          const execute = vi.spyOn(leave, "execute");
+          const modes = new UpdateBuildModes(e.repo, leave);
+          for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
+            modes.execute([{ playerId, holding: true }]);
+          e.session.confirmBox(overworld, boxOf(at, at));
+          e.session.setFlow(flow);
+          const clipboard = e.session.clipboard;
+          const box = e.session.confirmedBox;
+          // A one-tick item flicker must keep the copy (ADR 0203, Decision 5).
+          modes.execute([{ playerId, holding: false }]);
+          modes.execute([{ playerId, holding: true }]);
+          expect(e.session.clipboard).toBe(clipboard);
+          expect(e.session.confirmedBox).toBe(box);
+          expect(e.session.flow).toBe(flow);
+          for (let i = 0; i < BUILD_SPEC.modeLeaveTicks - 1; i++)
+            modes.execute([{ playerId, holding: false }]);
+          expect(e.session.flow).toBe(flow);
+          expect(e.session.clipboard).toBe(clipboard);
+          expect(e.session.confirmedBox).toBe(box);
+          expect(execute).not.toHaveBeenCalled();
+          modes.execute([{ playerId, holding: false }]);
+          expect(e.session.flow).toEqual({ kind: "idle" });
+          expect(e.session.clipboard).toBeUndefined();
+          expect(e.session.confirmedBox).toBeUndefined();
+          expect(e.session.mode).toEqual({ active: false, streak: 0 });
+          const idle = e.session.flow;
+          for (let i = 0; i < extraTicks + BUILD_SPEC.modeLeaveTicks; i++)
+            modes.execute([{ playerId, holding: false }]);
+          expect(execute).toHaveBeenCalledExactlyOnceWith(playerId);
+          expect(e.session.flow).toBe(idle);
+          expect(e.session.mode).toEqual({ active: false, streak: 0 });
+        }
+      },
+    ),
+  );
+});
+
+it("LeaveBuild twice has the same effect as once in every flow", () => {
   fc.assert(
     fc.property(cell, fc.boolean(), (at, skipAir) => {
       const first = tapBlock({ kind: "idle" }, overworld, at, stone);
       const endpoint = tapAir(first, { ...at, x: at.x + 2, z: at.z + 2 });
-      const height = chooseHeighted(endpoint, "gable");
       for (const flow of [
         { kind: "idle" } as const,
         first,
         endpoint,
-        height,
+        chooseHeighted(endpoint, "copy"),
         startPaste({ kind: "idle" }, skipAir),
       ]) {
+        const e = setup();
+        e.session.confirmBox(overworld, boxOf(at, at));
+        e.session.setFlow(flow);
+        const leave = new LeaveBuild(e.repo);
+        const end = vi.spyOn(e.session, "endPasting");
+        leave.execute(playerId);
+        const idle = e.session.flow;
+        leave.execute(playerId);
+        expect(e.session.flow).toBe(idle);
+        expect(e.session.clipboard).toBeUndefined();
+        expect(e.session.confirmedBox).toBeUndefined();
+        expect(end).toHaveBeenCalledTimes(1);
+      }
+    }),
+  );
+});
+
+it("ToggleSkipAir flips only a paste aim and ignores unknown players", () => {
+  fc.assert(
+    fc.property(cell, fc.boolean(), (at, skipAir) => {
+      const first = tapBlock({ kind: "idle" }, overworld, at, stone);
+      for (const flow of [first, startPaste({ kind: "idle" }, skipAir)]) {
         const e = setup();
         const toggle = new ToggleSkipAir(e.repo);
         toggle.execute({ playerId: asPlayerId("absent") });
@@ -194,24 +271,60 @@ it("stops only paste aiming and cancels all in-progress flows on leaving build m
         if (flow.kind === "pasteAim")
           expect(e.session.flow).toEqual({ ...flow, skipAir: !skipAir });
         else expect(e.session.flow).toBe(flow);
-        const stop = new StopPaste(e.repo);
-        stop.execute({ playerId: asPlayerId("absent") });
-        expect(e.repo.get(asPlayerId("absent"))).toBeUndefined();
-        e.session.setFlow(flow);
-        stop.execute({ playerId });
-        if (flow.kind === "pasteAim")
-          expect(e.session.flow).toEqual({ kind: "idle" });
-        else expect(e.session.flow).toBe(flow);
-        const modes = new UpdateBuildModes(e.repo, new CancelFlow(e.repo));
-        for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
-          modes.execute([{ playerId, holding: true }]);
-        e.session.setFlow(flow);
-        for (let i = 0; i < BUILD_SPEC.modeLeaveTicks - 1; i++)
-          modes.execute([{ playerId, holding: false }]);
-        expect(e.session.flow).toBe(flow);
-        modes.execute([{ playerId, holding: false }]);
-        expect(e.session.flow).toEqual({ kind: "idle" });
       }
+    }),
+  );
+});
+
+it("EndPasting without a session does not create one", () => {
+  fc.assert(
+    fc.property(fc.string(), (id) => {
+      const repo = new FakeSessions();
+      const create = vi.spyOn(repo, "getOrCreate");
+      const remove = vi.spyOn(repo, "remove");
+      new EndPasting(repo).execute(asPlayerId(id));
+      expect(repo.get(asPlayerId(id))).toBeUndefined();
+      expect(create).not.toHaveBeenCalled();
+      expect(remove).not.toHaveBeenCalled();
+    }),
+  );
+});
+
+it("EndPasting lets a running paste finish with its undo record and keeps older history", () => {
+  fc.assert(
+    fc.property(cell, (block) => {
+      const e = setup();
+      const older = {
+        dimensionId: overworld,
+        changes: [{ cell: block, before: stone, after: AIR }],
+      };
+      e.session.finishEdit(older, false);
+      const target = e.target(block);
+      e.paste.execute({ playerId, dimensionId: overworld, target, tick: 0 });
+      expect(e.session.isEditing).toBe(true);
+      new EndPasting(e.repo).execute(playerId);
+      expect(e.session.flow.kind).toBe("idle");
+      expect(e.session.clipboard).toBeUndefined();
+      expect(e.session.isEditing).toBe(true);
+      expect(e.session.takeUndo()).toBe("busy");
+      e.jobs.step();
+      expect(e.session.isEditing).toBe(false);
+      expect(e.world.writes).toBe(1);
+      expect(e.session.takeUndo()).toEqual({
+        dimensionId: overworld,
+        changes: [{ cell: target.anchor, before: AIR, after: stone }],
+      });
+      expect(e.session.takeUndo()).toBe(older);
+      expect(e.session.takeUndo()).toBe("nothingToUndo");
+      const start = vi.spyOn(e.jobs, "start");
+      e.paste.execute({
+        playerId,
+        dimensionId: overworld,
+        target,
+        tick: BUILD_SPEC.pasteRepeatTicks,
+      });
+      expect(start).not.toHaveBeenCalled();
+      expect(e.world.writes).toBe(1);
     }),
   );
 });

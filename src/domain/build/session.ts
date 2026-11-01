@@ -55,6 +55,27 @@ export class BuildSession {
     this.currentFlow = cancel(this.currentFlow);
   }
 
+  completeCopy(dimensionId: DimensionId, box: Box, clipboard: Clipboard): void {
+    this.currentClipboard = clipboard;
+    this.confirmBox(dimensionId, box);
+  }
+
+  clearClipboard(): void {
+    this.currentClipboard = undefined;
+  }
+
+  /** Ending paste also discards the copied selection (ADR 0203). */
+  endPasting(): void {
+    this.clearSelection();
+    this.clearClipboard();
+  }
+
+  /** A held clipboard is discarded even when the flow is idle (ADR 0203). */
+  leaveBuildMode(): void {
+    if (this.currentClipboard || this.currentFlow.kind !== "idle")
+      this.endPasting();
+  }
+
   get clipboard(): Clipboard | undefined {
     return this.currentClipboard;
   }
