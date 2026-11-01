@@ -23,8 +23,7 @@ export class CopyBox {
       this.world.stateAt(dimensionId, cell),
     );
     const session = this.repo.getOrCreate(playerId);
-    session.setClipboard(clipboard);
-    session.confirmBox(dimensionId, box);
+    session.completeCopy(dimensionId, box, clipboard);
     this.feedback.showMessage(playerId, "copied", clipboard.cells.length);
     return true;
   }

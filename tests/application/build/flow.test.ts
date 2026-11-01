@@ -3,6 +3,7 @@ import { expect, it, vi } from "vitest";
 import { CancelFlow } from "../../../src/application/build/cancelFlow";
 import { ClearSelection } from "../../../src/application/build/clearSelection";
 import { ConfirmShape } from "../../../src/application/build/confirmShape";
+import { CopyBox } from "../../../src/application/build/copyBox";
 import { CopySelection } from "../../../src/application/build/copySelection";
 import { EditJobs } from "../../../src/application/build/editJobs";
 import { SetPoint } from "../../../src/application/build/setPoint";
@@ -36,7 +37,11 @@ function setup() {
   const point = new SetPoint(repo, world, feedback);
   const air = new TapAir(repo, feedback);
   const confirm = new ConfirmShape(repo, feedback, jobs);
-  const copy = new CopySelection(repo, world, feedback);
+  const copy = new CopySelection(
+    repo,
+    new CopyBox(repo, world, feedback),
+    feedback,
+  );
   const endpoint = () =>
     session.setFlow(
       tapAir(tapBlock({ kind: "idle" }, overworld, from, stone), to),

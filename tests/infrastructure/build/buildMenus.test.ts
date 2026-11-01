@@ -4,6 +4,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { CancelFlow } from "../../../src/application/build/cancelFlow";
 import { ChooseCopy } from "../../../src/application/build/chooseCopy";
 import { ChooseHeighted } from "../../../src/application/build/chooseHeighted";
+import { CopyBox } from "../../../src/application/build/copyBox";
 import { SetHeightTo } from "../../../src/application/build/setHeightTo";
 import { StopPaste } from "../../../src/application/build/stopPaste";
 import { blockStateOf } from "../../../src/domain/build/blockState";
@@ -15,6 +16,7 @@ import {
 } from "../../../src/domain/build/flow/flow";
 import {
   contentsMenu,
+  pasteMenu,
   shapeMenu,
   utilityMenu,
 } from "../../../src/domain/build/flow/menu";
@@ -105,7 +107,11 @@ function setup(fallback?: boolean) {
   const cases = {
     chooseCopy: {
       execute: vi.fn((cmd) =>
-        new ChooseCopy(repo, new FakeWorld(), new FakeFeedback()).execute(cmd),
+        new ChooseCopy(
+          repo,
+          new CopyBox(repo, new FakeWorld(), new FakeFeedback()),
+          new FakeFeedback(),
+        ).execute(cmd),
       ),
     },
     confirmCopyHeight: { execute: vi.fn() },
@@ -653,21 +659,19 @@ it("accepts StopPaste only in paste aiming and exposes its own label", async () 
     chooseHeighted(endpoint, "hip"),
   ]) {
     session.setFlow(flow);
-    expect(choices.choose(playerId, "utility", "stopPaste")).toBe(false);
+    expect(choices.choose(playerId, "paste", "endPaste")).toBe(false);
   }
   expect(cases.stopPaste.execute).not.toHaveBeenCalled();
   session.setFlow({ kind: "pasteAim", skipAir: false });
-  expect(choices.choose(playerId, "utility", "stopPaste")).toBe(true);
+  expect(choices.choose(playerId, "paste", "endPaste")).toBe(true);
   expect(cases.stopPaste.execute).toHaveBeenCalledExactlyOnceWith({ playerId });
   expect(session.flow.kind).toBe("idle");
-  expect(choices.choose(playerId, "utility", "stopPaste")).toBe(false);
+  expect(choices.choose(playerId, "paste", "endPaste")).toBe(false);
   session.setFlow({ kind: "pasteAim", skipAir: true });
   ui.answers.push({
-    selection: utilityMenu(session).findIndex(
-      (entry) => entry.id === "stopPaste",
-    ),
+    selection: pasteMenu(session).findIndex((entry) => entry.id === "endPaste"),
   });
-  await menus.showUtilityMenu(player);
+  await menus.showPasteMenu(player);
   expect(ui.forms[0]?.buttons).toContainEqual({
     translate: BUILD_FORM.stopPaste,
   });
@@ -720,4 +724,51 @@ it("does not open contents or a slider for locked Copy", async () => {
   await menus.showHeightSlider(player);
   await menus.showContentsMenu(player);
   expect(ui.forms).toHaveLength(0);
+});
+
+it("dispatches each offered paste entry exactly once and ignores all unoffered ids", () => {
+  fc.assert(
+    fc.property(
+      fc.boolean(),
+      fc.boolean(),
+      fc.oneof(
+        fc.constantFrom(
+          "undo",
+          "endPaste",
+          "copy",
+          "paste",
+          "cancel",
+          "stopPaste",
+        ),
+        fc.string(),
+      ),
+      (history, aiming, entryId) => {
+        const { session, choices, cases } = setup();
+        session.setFlow(
+          aiming ? { kind: "pasteAim", skipAir: false } : { kind: "idle" },
+        );
+        if (history)
+          session.finishEdit(
+            {
+              dimensionId: overworld,
+              changes: [{ cell: from, before: stone, after: stone }],
+            },
+            false,
+          );
+        const offered =
+          aiming && pasteMenu(session).some((entry) => entry.id === entryId);
+        expect(choices.choose(playerId, "paste", entryId)).toBe(offered);
+        for (const [name, useCase] of Object.entries(cases)) {
+          const call =
+            "execute" in useCase ? useCase.execute : useCase.backToAiming;
+          const expected = entryId === "endPaste" ? "stopPaste" : entryId;
+          expect(call).toHaveBeenCalledTimes(
+            offered && name === expected ? 1 : 0,
+          );
+          if (offered && name === expected)
+            expect(call).toHaveBeenCalledWith({ playerId });
+        }
+      },
+    ),
+  );
 });
