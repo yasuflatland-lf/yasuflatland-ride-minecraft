@@ -152,6 +152,14 @@ export function registerTestEdit(
             ),
             tick: system.currentTick,
           });
+        } else if (
+          command === "slot" &&
+          args.length === 1 &&
+          Number.isInteger(Number(args[0])) &&
+          Number(args[0]) >= 0 &&
+          Number(args[0]) < 9
+        ) {
+          player.selectedSlotIndex = Number(args[0]);
         } else if (command === "undo" && args.length === 0)
           undo.execute({ playerId });
         else return;
