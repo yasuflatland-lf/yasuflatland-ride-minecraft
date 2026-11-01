@@ -70,7 +70,7 @@ function roof(
   e.session.setFlow(
     tapAir(tapBlock({ kind: "idle" }, overworld, base.min, stone), base.max),
   );
-  new ChooseHeighted(e.repo).execute({ playerId, kind });
+  new ChooseHeighted(e.repo, e.feedback).execute({ playerId, kind });
 }
 
 it("aims through cell centers and clamps roof layers to the side and world caps", () => {
@@ -294,6 +294,7 @@ it.each(["gable", "hip"] as const)(
     const e = setup();
     roof(e, boxOf({ x: 0, y: 0, z: 0 }, { x: 4, y: 0, z: 4 }), kind);
     const flow = e.session.flow;
+    e.feedback.messages = [];
     new ConfirmHeighted(e.repo, e.feedback, e.jobs).execute({
       playerId,
       fill: "tube",

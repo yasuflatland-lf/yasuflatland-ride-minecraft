@@ -143,6 +143,14 @@ it("sends translated counts and bounded player-only particles at block centers",
           translate: BUILD_MESSAGE.endSet,
           with: [String(count)],
         });
+        feedback.showMessage(playerId, "building", undefined, {
+          typeId: "minecraft:stone",
+          states: {},
+        });
+        expect(setActionBar).toHaveBeenLastCalledWith({
+          translate: BUILD_MESSAGE.building,
+          with: { rawtext: [{ translate: "tile.stone.name" }] },
+        });
         feedback.showMessage(playerId, "tooLarge", count);
         expect(setActionBar).toHaveBeenLastCalledWith({
           translate: BUILD_MESSAGE.tooLarge,

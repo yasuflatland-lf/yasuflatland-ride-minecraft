@@ -206,6 +206,7 @@ describe("edit use cases", () => {
     env.fill.execute({ playerId: alex, style: "fill" });
     env.undo.execute({ playerId: alex });
     expect(env.feedback.messages.map((m) => m.message)).toEqual([
+      "building",
       "busy",
       "busy",
     ]);

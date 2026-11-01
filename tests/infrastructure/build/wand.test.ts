@@ -267,6 +267,7 @@ function setupAir() {
     confirmCopyHeight,
     roofExecute,
     pointExecute,
+    feedback,
   };
 }
 
@@ -346,7 +347,7 @@ function setupRoof(kind: "gable" | "hip") {
     to: { x: 4, y: 0, z: 4 },
     material: blockStateOf("minecraft:stone"),
   });
-  new ChooseHeighted(e.repo).execute({ playerId: e.id, kind });
+  new ChooseHeighted(e.repo, e.feedback).execute({ playerId: e.id, kind });
   const flow = e.session.flow;
   const ray = {
     origin: { x: -10, y: 5, z: 2.5 },
