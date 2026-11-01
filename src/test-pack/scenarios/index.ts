@@ -3,10 +3,14 @@ import type { Outcome, StepSink } from "../outcome";
 import { bladeCutColumn, bladeCutDrops, bladeCutKeptIds } from "./bladeCut";
 import {
   buildAimedPaste,
+  buildCubeRect,
+  buildCylinderBox,
+  buildCylinderRect,
   buildFlowCancel,
   buildRefusals,
   buildRoofs,
   buildShapes,
+  buildSolidCancelUndo,
 } from "./buildFlow";
 import { buildBlockStates } from "./buildTools";
 import {
@@ -240,4 +244,8 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   build_flow_cancel: buildFlowCancel,
   build_refusals: buildRefusals,
   build_aimed_paste: buildAimedPaste,
+  build_cylinder_rect: buildCylinderRect,
+  build_cylinder_box: buildCylinderBox,
+  build_cube_rect: buildCubeRect,
+  build_solid_cancel_undo: buildSolidCancelUndo,
 };
