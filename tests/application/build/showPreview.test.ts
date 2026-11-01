@@ -196,3 +196,127 @@ it("keeps concurrent players and their aim targets separate", () => {
     },
   ]);
 });
+
+it.each(["gable", "hip", "cylinder", "cube"] as const)(
+  "reports %s size only when it changes and resets after leaving the height step",
+  (heightedKind) => {
+    const { session, preview, feedback, aim } = setup();
+    const flow = {
+      kind: "heightStep" as const,
+      heightLocked: false,
+      dimensionId: overworld,
+      from: cell,
+      base: boxOf(cell, { x: 8, y: 64, z: 4 }),
+      heightedKind,
+      previous: 3,
+      material,
+    };
+    session.setFlow(flow);
+    aim.mockReturnValue({ ray });
+    preview.execute(0);
+    preview.execute(interval);
+    expect(feedback.sizes).toEqual([
+      { playerId: alex, size: { x: 9, y: 3, z: 5 } },
+    ]);
+    aim.mockReturnValue({
+      ray: { ...ray, origin: { ...ray.origin, y: 69.5 } },
+    });
+    preview.execute(2 * interval);
+    preview.execute(3 * interval);
+    expect(feedback.sizes).toEqual([
+      { playerId: alex, size: { x: 9, y: 3, z: 5 } },
+      { playerId: alex, size: { x: 9, y: 6, z: 5 } },
+    ]);
+    session.setFlow({ kind: "idle" });
+    preview.execute(3 * interval + 1);
+    session.setFlow(flow);
+    preview.execute(4 * interval);
+    expect(feedback.sizes).toHaveLength(3);
+    expect(feedback.messages).toEqual([]);
+  },
+);
+
+it("reports a locked cylinder once and ignores changes in aim", () => {
+  const { session, preview, feedback, aim } = setup();
+  session.setFlow({
+    kind: "heightStep",
+    heightLocked: true,
+    dimensionId: overworld,
+    from: cell,
+    base: boxOf(cell, { x: 8, y: 64, z: 4 }),
+    heightedKind: "cylinder",
+    previous: 12,
+    material,
+  });
+  preview.execute(0);
+  aim.mockReturnValue({ ray });
+  preview.execute(interval);
+  aim.mockReturnValue({ ray: { ...ray, origin: { ...ray.origin, y: 80 } } });
+  preview.execute(2 * interval);
+  expect(feedback.sizes).toEqual([
+    { playerId: alex, size: { x: 9, y: 12, z: 5 } },
+  ]);
+});
+
+it("does not report sizes outside the height step", () => {
+  const { session, preview, feedback, aim } = setup();
+  aim.mockReturnValue({ ray });
+  preview.execute(0);
+  session.setFlow({ kind: "point1", dimensionId: overworld, cell, material });
+  preview.execute(interval);
+  session.setFlow({
+    kind: "endpoint",
+    dimensionId: overworld,
+    from: cell,
+    to: end,
+    material,
+  });
+  preview.execute(2 * interval);
+  session.setFlow({ kind: "pasteAim", skipAir: false });
+  preview.execute(3 * interval);
+  expect(feedback.sizes).toEqual([]);
+});
+
+it("memoizes sizes independently for each player and forgets removed sessions", () => {
+  const { session, repo, preview, feedback } = setup();
+  const bob = asPlayerId("bob");
+  const other = repo.getOrCreate(bob);
+  const modes = new UpdateBuildModes(repo);
+  for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
+    modes.execute([
+      { playerId: alex, holding: true },
+      { playerId: bob, holding: true },
+    ]);
+  const flow = {
+    kind: "heightStep" as const,
+    heightLocked: false,
+    dimensionId: overworld,
+    from: cell,
+    base: boxOf(cell, { x: 8, y: 64, z: 4 }),
+    heightedKind: "cube" as const,
+    previous: 3,
+    material,
+  };
+  session.setFlow(flow);
+  other.setFlow(flow);
+  preview.execute(0);
+  session.setFlow({ ...flow, base: boxOf(cell, { x: 5, y: 64, z: 7 }) });
+  preview.execute(interval);
+  expect(feedback.sizes).toEqual([
+    { playerId: alex, size: { x: 9, y: 3, z: 5 } },
+    { playerId: bob, size: { x: 9, y: 3, z: 5 } },
+    { playerId: alex, size: { x: 6, y: 3, z: 8 } },
+  ]);
+  repo.remove(bob);
+  preview.execute(2 * interval);
+  const returning = repo.getOrCreate(bob);
+  for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
+    modes.execute([
+      { playerId: alex, holding: true },
+      { playerId: bob, holding: true },
+    ]);
+  returning.setFlow(flow);
+  preview.execute(3 * interval);
+  expect(feedback.sizes).toHaveLength(4);
+  expect(feedback.sizes[3]?.playerId).toBe(bob);
+});

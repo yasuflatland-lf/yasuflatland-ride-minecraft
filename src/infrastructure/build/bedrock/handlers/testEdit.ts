@@ -42,6 +42,7 @@ export function recordMessages(feedback: BuildFeedback): {
         latest.set(id, { message, count });
         feedback.showMessage(id, message, count);
       },
+      showSize: (id, size) => feedback.showSize(id, size),
       drawPreview: (id, dimension, set) =>
         feedback.drawPreview(id, dimension, set),
     },
