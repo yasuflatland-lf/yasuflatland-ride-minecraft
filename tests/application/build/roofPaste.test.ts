@@ -1,8 +1,8 @@
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
-import { AimRoofHeight } from "../../../src/application/build/aimRoofHeight";
+import { AimHeight } from "../../../src/application/build/aimHeight";
 import { CancelFlow } from "../../../src/application/build/cancelFlow";
-import { ChooseRoof } from "../../../src/application/build/chooseRoof";
+import { ChooseHeighted } from "../../../src/application/build/chooseHeighted";
 import { ConfirmRoof } from "../../../src/application/build/confirmRoof";
 import { EditJobs } from "../../../src/application/build/editJobs";
 import { PasteAt } from "../../../src/application/build/pasteAt";
@@ -18,7 +18,7 @@ import {
   pasteBox,
 } from "../../../src/domain/build/clipboard/clipboard";
 import {
-  setRoofHeight,
+  setHeight,
   tapAir,
   tapBlock,
 } from "../../../src/domain/build/flow/flow";
@@ -51,7 +51,7 @@ const face = fc.constantFrom<Face>(
   "east",
   "west",
 );
-const roofKind = fc.constantFrom("gable" as const, "hip" as const);
+const heightedKind = fc.constantFrom("gable" as const, "hip" as const);
 function setup() {
   const repo = new FakeSessions();
   const session = repo.getOrCreate(playerId);
@@ -68,7 +68,7 @@ function roof(
   e.session.setFlow(
     tapAir(tapBlock({ kind: "idle" }, overworld, base.min, stone), base.max),
   );
-  new ChooseRoof(e.repo).execute({ playerId, kind });
+  new ChooseHeighted(e.repo).execute({ playerId, kind });
 }
 
 it("aims through cell centers and clamps roof layers to the side and world caps", () => {
@@ -77,7 +77,7 @@ it("aims through cell centers and clamps roof layers to the side and world caps"
       cell,
       fc.integer({ min: 2, max: 20 }),
       fc.integer({ min: 2, max: 20 }),
-      roofKind,
+      heightedKind,
       fc.integer({ min: -1000, max: 1000 }),
       (min, sx, sz, kind, aimY) => {
         const e = setup();
@@ -87,7 +87,7 @@ it("aims through cell centers and clamps roof layers to the side and world caps"
           z: min.z + sz - 1,
         });
         roof(e, base, kind);
-        const aim = new AimRoofHeight(e.repo);
+        const aim = new AimHeight(e.repo);
         aim.execute({
           playerId,
           ray: {
@@ -101,7 +101,8 @@ it("aims through cell centers and clamps roof layers to the side and world caps"
           Math.min(cap, Math.round(aimY + ((10 + sx / 2) * 0.6) / 0.8 - min.y)),
         );
         expect(e.session.flow).toMatchObject({
-          kind: "roofHeight",
+          kind: "heightStep",
+          heightLocked: false,
           previous: expected,
         });
         aim.execute({
@@ -122,7 +123,7 @@ it("aims through cell centers and clamps roof layers to the side and world caps"
   );
   const e = setup();
   roof(e, boxOf({ x: 0, y: 318, z: 0 }, { x: 3, y: 318, z: 3 }), "hip");
-  new AimRoofHeight(e.repo).execute({
+  new AimHeight(e.repo).execute({
     playerId,
     ray: { origin: { x: 0, y: 999, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
   });
@@ -132,14 +133,14 @@ it("aims through cell centers and clamps roof layers to the side and world caps"
 it("confirms roof cells and retains their bounding box for copying", () => {
   fc.assert(
     fc.property(
-      roofKind,
+      heightedKind,
       fc.boolean(),
       fc.integer({ min: 1, max: 8 }),
       (kind, hollow, height) => {
         const e = setup();
         const base = boxOf({ x: 2, y: 64, z: 3 }, { x: 8, y: 64, z: 9 });
         roof(e, base, kind);
-        e.session.setFlow(setRoofHeight(e.session.flow, height));
+        e.session.setFlow(setHeight(e.session.flow, height));
         const spec = { base, kind, height };
         new ConfirmRoof(e.repo, e.feedback, e.jobs).execute({
           playerId,

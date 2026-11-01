@@ -2,17 +2,17 @@ import type { Player, RawMessage } from "@minecraft/server";
 import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
 import { CancelFlow } from "../../../src/application/build/cancelFlow";
-import { ChooseRoof } from "../../../src/application/build/chooseRoof";
-import { SetRoofHeightTo } from "../../../src/application/build/setRoofHeightTo";
+import { ChooseHeighted } from "../../../src/application/build/chooseHeighted";
+import { SetHeightTo } from "../../../src/application/build/setHeightTo";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
 import {
   type BuildFlow,
-  chooseRoof,
+  chooseHeighted,
 } from "../../../src/domain/build/flow/flow";
 import {
-  roofMenu,
+  contentsMenu,
   shapeMenu,
   utilityMenu,
 } from "../../../src/domain/build/flow/menu";
@@ -97,7 +97,9 @@ function setup(fallback?: boolean) {
   session.setFlow(endpoint);
   const cases = {
     confirmShape: { execute: vi.fn() },
-    chooseRoof: { execute: vi.fn((cmd) => new ChooseRoof(repo).execute(cmd)) },
+    chooseHeighted: {
+      execute: vi.fn((cmd) => new ChooseHeighted(repo).execute(cmd)),
+    },
     confirmRoof: { execute: vi.fn() },
     cancel: {
       backToAiming: vi.fn((cmd) => new CancelFlow(repo).backToAiming(cmd)),
@@ -106,8 +108,8 @@ function setup(fallback?: boolean) {
     paste: { execute: vi.fn() },
     undo: { execute: vi.fn() },
     clear: { execute: vi.fn() },
-    setRoofHeight: {
-      execute: vi.fn((cmd) => new SetRoofHeightTo(repo).execute(cmd)),
+    setHeight: {
+      execute: vi.fn((cmd) => new SetHeightTo(repo).execute(cmd)),
     },
   };
   const player = { id: playerId, isValid: true } as unknown as Player;
@@ -140,13 +142,13 @@ it("rebuilds shape and roof entries from the live flow, including empty models",
           material: stone,
         } as const,
         end,
-        chooseRoof(end, "hip"),
+        chooseHeighted(end, "hip"),
         { kind: "pasteAim", skipAir: false } as const,
       ]) {
         session.setFlow(flow);
         for (const [model, show] of [
           [shapeMenu(flow), () => menus.showShapeMenu(player)],
-          [roofMenu(flow), () => menus.showRoofMenu(player)],
+          [contentsMenu(flow), () => menus.showContentsMenu(player)],
         ] as const) {
           ui.forms.length = 0;
           await show();
@@ -218,7 +220,7 @@ it.each(["gable", "hip"] as const)(
       selection: shapeMenu(endpoint).findIndex((e) => e.id === kind),
     });
     await menus.showShapeMenu(player);
-    expect(cases.chooseRoof.execute).toHaveBeenCalledExactlyOnceWith({
+    expect(cases.chooseHeighted.execute).toHaveBeenCalledExactlyOnceWith({
       playerId,
       kind,
     });
@@ -228,16 +230,16 @@ it.each(["gable", "hip"] as const)(
 
 it.each([false, true])("confirms roof hollow=%s", async (hollow) => {
   const { session, menus, player, cases } = setup();
-  session.setFlow(chooseRoof(endpoint, "gable"));
+  session.setFlow(chooseHeighted(endpoint, "gable"));
   ui.answers.push({ selection: hollow ? 1 : 0 });
-  await menus.showRoofMenu(player);
+  await menus.showContentsMenu(player);
   expect(cases.confirmRoof.execute).toHaveBeenCalledExactlyOnceWith({
     playerId,
     hollow,
   });
 });
 
-it.each(["shape", "roof"] as const)(
+it.each(["shape", "contents"] as const)(
   "returns to aiming for Cancel and dismissal in the %s menu",
   async (menu) => {
     for (const answer of [
@@ -246,11 +248,12 @@ it.each(["shape", "roof"] as const)(
       { selection: menu === "shape" ? 4 : 2 },
     ]) {
       const { session, menus, player, cases } = setup();
-      if (menu === "roof") session.setFlow(chooseRoof(endpoint, "gable"));
+      if (menu === "contents")
+        session.setFlow(chooseHeighted(endpoint, "gable"));
       ui.answers.push(answer);
       await (menu === "shape"
         ? menus.showShapeMenu(player)
-        : menus.showRoofMenu(player));
+        : menus.showContentsMenu(player));
       expect(cases.cancel.backToAiming).toHaveBeenCalledExactlyOnceWith({
         playerId,
       });
@@ -315,11 +318,11 @@ it("bounds the fallback slider, uses the previous height and applies it before t
       fc.integer({ min: 1, max: 21 }),
       async (y, requested) => {
         const { session, menus, player, cases } = setup(true);
-        const flow = chooseRoof(
+        const flow = chooseHeighted(
           { ...endpoint, from: { ...from, y }, to: { ...to, y } },
           "hip",
         );
-        if (flow.kind !== "roofHeight") throw new Error("Expected roof");
+        if (flow.kind !== "heightStep") throw new Error("Expected roof");
         const max = maxRoofHeight(flow.base, BUILD_SPEC.worldTopY);
         const previous = Math.min(max, requested);
         session.setFlow({ ...flow, previous });
@@ -334,12 +337,14 @@ it("bounds the fallback slider, uses the previous height and applies it before t
             options: { defaultValue: previous, valueStep: 1 },
           },
         ]);
-        expect(cases.setRoofHeight.execute).toHaveBeenCalledExactlyOnceWith({
+        expect(cases.setHeight.execute).toHaveBeenCalledExactlyOnceWith({
           playerId,
           height: max,
         });
         expect(session.flow).toEqual({ ...flow, previous: max });
-        expect(ui.forms[1]?.buttons).toEqual(labels(roofMenu(session.flow)));
+        expect(ui.forms[1]?.buttons).toEqual(
+          labels(contentsMenu(session.flow)),
+        );
         expect(cases.confirmRoof.execute).toHaveBeenCalledExactlyOnceWith({
           playerId,
           hollow: true,
@@ -360,7 +365,7 @@ it.each(["gable", "hip"] as const)(
     );
     await menus.showShapeMenu(player);
     expect(ui.forms).toHaveLength(3);
-    expect(cases.setRoofHeight.execute).toHaveBeenCalledWith({
+    expect(cases.setHeight.execute).toHaveBeenCalledWith({
       playerId,
       height: 3,
     });
@@ -385,7 +390,7 @@ it("holds one lock across nested forms, allows other players, and releases on di
   await vi.waitFor(() => expect(ui.forms).toHaveLength(2));
   await menus.showShapeMenu(player);
   await menus.showHeightSlider(player);
-  await menus.showRoofMenu(player);
+  await menus.showContentsMenu(player);
   expect(ui.forms).toHaveLength(2);
   const other = { id: "other", isValid: true } as Player;
   repo.getOrCreate(asPlayerId(other.id)).setFlow(endpoint);
@@ -403,7 +408,7 @@ it.each(["shape", "roof", "paste", "slider"] as const)(
     const { session, menus, player, cases } = setup();
     let close!: (answer: Answer) => void;
     if (stage === "roof" || stage === "slider")
-      session.setFlow(chooseRoof(endpoint, "hip"));
+      session.setFlow(chooseHeighted(endpoint, "hip"));
     if (stage === "paste") {
       session.setClipboard(clipboardOf(boxOf(from, from), () => stone));
       ui.answers.push({ selection: 0 });
@@ -417,7 +422,7 @@ it.each(["shape", "roof", "paste", "slider"] as const)(
       stage === "shape"
         ? menus.showShapeMenu(player)
         : stage === "roof"
-          ? menus.showRoofMenu(player)
+          ? menus.showContentsMenu(player)
           : stage === "paste"
             ? menus.showUtilityMenu(player)
             : menus.showHeightSlider(player);
@@ -485,7 +490,7 @@ it("dispatches only entries offered by the current flow, including stale choices
             playerId,
           });
         } else if (id === "gable" || id === "hip") {
-          expect(cases.chooseRoof.execute).toHaveBeenCalledExactlyOnceWith({
+          expect(cases.chooseHeighted.execute).toHaveBeenCalledExactlyOnceWith({
             playerId,
             kind: id,
           });
@@ -497,7 +502,7 @@ it("dispatches only entries offered by the current flow, including stale choices
         }
         session.setFlow({ kind: "idle" });
         expect(choices.choose(playerId, "shape", id)).toBe(false);
-        expect(choices.choose(playerId, "roof", "fill")).toBe(false);
+        expect(choices.choose(playerId, "contents", "fill")).toBe(false);
       },
     ),
   );
@@ -551,9 +556,9 @@ it.each(["fill", "hollow", "cancel"] as const)(
   "dispatches roof %s only during height selection",
   (id) => {
     const { session, choices, cases } = setup();
-    expect(choices.choose(playerId, "roof", id)).toBe(false);
-    session.setFlow(chooseRoof(endpoint, "hip"));
-    expect(choices.choose(playerId, "roof", id)).toBe(true);
+    expect(choices.choose(playerId, "contents", id)).toBe(false);
+    session.setFlow(chooseHeighted(endpoint, "hip"));
+    expect(choices.choose(playerId, "contents", id)).toBe(true);
     if (id === "cancel")
       expect(cases.cancel.backToAiming).toHaveBeenCalledExactlyOnceWith({
         playerId,

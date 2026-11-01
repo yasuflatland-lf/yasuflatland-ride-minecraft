@@ -8,15 +8,15 @@ import {
   type BuildFlow,
   backToAiming,
   cancel,
-  chooseRoof,
-  chooseRoofFill,
-  setRoofHeight,
+  chooseHeighted,
+  finishHeightStep,
+  setHeight,
   startPaste,
   tapAir,
   tapBlock,
 } from "../../../src/domain/build/flow/flow";
 import {
-  roofMenu,
+  contentsMenu,
   shapeMenu,
   utilityMenu,
 } from "../../../src/domain/build/flow/menu";
@@ -193,6 +193,16 @@ it("refuses unreadable, open and data-holding material regardless of block state
   ).toBe(true);
 });
 
+it("chooseHeighted ignores the solid kinds until they are wired", () => {
+  const endpoint = tapAir(tapBlock(idle, dim, { x: 0, y: 5, z: 0 }, stone), {
+    x: 3,
+    y: 5,
+    z: 4,
+  });
+  for (const kind of ["cylinder", "cube"] as const)
+    expect(chooseHeighted(endpoint, kind)).toBe(endpoint);
+});
+
 it("roof and paste stages accept only their own transitions and ignore selection taps", () => {
   fc.assert(
     fc.property(
@@ -204,19 +214,20 @@ it("roof and paste stages accept only their own transitions and ignore selection
       (a, b, kind, height, hollow) => {
         const endpoint = tapAir(tapBlock(idle, dim, a, stone), b);
         const shape = shapeOf(a, b);
-        const roof = chooseRoof(endpoint, kind);
+        const roof = chooseHeighted(endpoint, kind);
         if (shape.kind === "rect" && shape.flat === "y") {
           expect(roof).toEqual({
-            kind: "roofHeight",
+            kind: "heightStep",
+            heightLocked: false,
             dimensionId: dim,
             base: boxOf(a, b),
             from: a,
-            roofKind: kind,
+            heightedKind: kind,
             previous: 1,
             material: stone,
           });
         } else expect(roof).toBe(endpoint);
-        const horizontal = chooseRoof(
+        const horizontal = chooseHeighted(
           tapAir(tapBlock(idle, dim, a, stone), {
             x: a.x + 2,
             y: a.y,
@@ -232,19 +243,19 @@ it("roof and paste stages accept only their own transitions and ignore selection
           horizontal,
           paste,
         ]) {
-          expect(chooseRoofFill(flow, hollow)).toEqual(
-            flow.kind === "roofHeight" ? idle : flow,
+          expect(finishHeightStep(flow, hollow)).toEqual(
+            flow.kind === "heightStep" ? idle : flow,
           );
-          expect(setRoofHeight(flow, height)).toEqual(
-            flow.kind === "roofHeight" ? { ...flow, previous: height } : flow,
+          expect(setHeight(flow, height)).toEqual(
+            flow.kind === "heightStep" ? { ...flow, previous: height } : flow,
           );
           expect(startPaste(flow, hollow)).toEqual(
             flow.kind === "idle" ? { kind: "pasteAim", skipAir: hollow } : flow,
           );
           if (flow.kind !== "endpoint")
-            expect(chooseRoof(flow, kind)).toBe(flow);
-          expect(roofMenu(flow)).toEqual(
-            flow.kind === "roofHeight"
+            expect(chooseHeighted(flow, kind)).toBe(flow);
+          expect(contentsMenu(flow)).toEqual(
+            flow.kind === "heightStep"
               ? [{ id: "fill" }, { id: "hollow" }, { id: "cancel" }]
               : [],
           );
@@ -254,7 +265,7 @@ it("roof and paste stages accept only their own transitions and ignore selection
           expect(tapBlock(flow, other, b, dirt)).toBe(flow);
           expect(tapAir(flow, b)).toBe(flow);
           expect(backToAiming(flow)).toEqual(
-            flow.kind === "roofHeight"
+            flow.kind === "heightStep"
               ? {
                   kind: "point1",
                   dimensionId: flow.dimensionId,
@@ -282,7 +293,7 @@ it("roof Cancel preserves the original first point for either selection directio
         const to = reverse ? a : b;
         const endpoint = tapAir(tapBlock(idle, dim, from, stone), to);
         for (const kind of ["gable", "hip"] as const) {
-          expect(backToAiming(chooseRoof(endpoint, kind))).toEqual({
+          expect(backToAiming(chooseHeighted(endpoint, kind))).toEqual({
             kind: "point1",
             dimensionId: dim,
             cell: from,

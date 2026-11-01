@@ -1,5 +1,5 @@
 import { Direction, system, world } from "@minecraft/server";
-import type { AimRoofHeight } from "../../../../application/build/aimRoofHeight";
+import type { AimHeight } from "../../../../application/build/aimHeight";
 import type { PasteAt } from "../../../../application/build/pasteAt";
 import type { AimReader } from "../../../../application/build/ports/aim";
 import type { SetPoint } from "../../../../application/build/setPoint";
@@ -31,7 +31,7 @@ export function registerWand({
   setPoint,
   tapAir,
   pasteAt,
-  aimRoofHeight,
+  aimHeight,
   repo,
   menus,
   aim,
@@ -41,7 +41,7 @@ export function registerWand({
   setPoint: SetPoint;
   tapAir: TapAir;
   pasteAt: PasteAt;
-  aimRoofHeight: AimRoofHeight;
+  aimHeight: AimHeight;
   repo: BuildSessionRepository;
   menus: BuildMenus;
   aim: AimReader;
@@ -64,11 +64,11 @@ export function registerWand({
     const face = ev.blockFace;
     system.run(() => {
       if (!player.isValid) return;
-      if (repo.get(command.playerId)?.flow.kind === "roofHeight") {
+      if (repo.get(command.playerId)?.flow.kind === "heightStep") {
         const target = aim.aim(command.playerId);
         if (!target) return;
-        aimRoofHeight.execute({ playerId: command.playerId, ray: target.ray });
-        void menus.showRoofMenu(player);
+        aimHeight.execute({ playerId: command.playerId, ray: target.ray });
+        void menus.showContentsMenu(player);
       } else if (repo.get(command.playerId)?.flow.kind === "pasteAim") {
         pasteAt.execute({ ...command, block: command.cell, face: FACES[face] });
       } else {
@@ -89,9 +89,9 @@ export function registerWand({
     const target = aim.aim(playerId);
     // A block tap can also emit itemUse; only the interact handler owns that tap.
     if (!target || target.block) return;
-    if (repo.get(playerId)?.flow.kind === "roofHeight") {
-      aimRoofHeight.execute({ playerId, ray: target.ray });
-      void menus.showRoofMenu(source);
+    if (repo.get(playerId)?.flow.kind === "heightStep") {
+      aimHeight.execute({ playerId, ray: target.ray });
+      void menus.showContentsMenu(source);
       return;
     }
     if (source.isSneaking) {

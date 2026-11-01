@@ -1,8 +1,8 @@
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
-import { AimRoofHeight } from "../../../src/application/build/aimRoofHeight";
+import { AimHeight } from "../../../src/application/build/aimHeight";
 import { CancelFlow } from "../../../src/application/build/cancelFlow";
-import { ChooseRoof } from "../../../src/application/build/chooseRoof";
+import { ChooseHeighted } from "../../../src/application/build/chooseHeighted";
 import { EditJobs } from "../../../src/application/build/editJobs";
 import { PasteAt } from "../../../src/application/build/pasteAt";
 import type { AimReader } from "../../../src/application/build/ports/aim";
@@ -28,7 +28,7 @@ import { FakeFeedback, FakeWorld, nether } from "../../application/build/fakes";
 
 const menus = {
   showShapeMenu: vi.fn(),
-  showRoofMenu: vi.fn(),
+  showContentsMenu: vi.fn(),
   showUtilityMenu: vi.fn(),
   showHeightSlider: vi.fn(),
 };
@@ -90,7 +90,7 @@ it("preserves blocks and defers point taps out of before events", () => {
         const blocks = new FakeWorld();
         blocks.put({ x, y, z }, blockStateOf("minecraft:stone"));
         registerWand({
-          aimRoofHeight: new AimRoofHeight(repo),
+          aimHeight: new AimHeight(repo),
           repo,
           pasteAt: new PasteAt(
             repo,
@@ -189,13 +189,13 @@ function setupAir() {
   const blocks = new FakeWorld();
   const setPoint = new SetPoint(repo, blocks, feedback);
   const tapAir = new TapAir(repo, feedback);
-  const aimRoofHeight = new AimRoofHeight(repo);
-  const roofExecute = vi.spyOn(aimRoofHeight, "execute");
+  const aimHeight = new AimHeight(repo);
+  const roofExecute = vi.spyOn(aimHeight, "execute");
   const pointExecute = vi.spyOn(setPoint, "execute");
   const execute = vi.spyOn(tapAir, "execute");
   const menus = {
     showShapeMenu: vi.fn(),
-    showRoofMenu: vi.fn(),
+    showContentsMenu: vi.fn(),
     showUtilityMenu: vi.fn(),
     showHeightSlider: vi.fn(),
   };
@@ -226,7 +226,7 @@ function setupAir() {
     material: blockStateOf("minecraft:stone"),
   });
   registerWand({
-    aimRoofHeight,
+    aimHeight,
     repo,
     pasteAt: new PasteAt(
       repo,
@@ -303,7 +303,7 @@ it.each(["gable", "hip"] as const)(
     e.use();
     expect(event.cancel).toBe(true);
     expect(e.roofExecute).not.toHaveBeenCalled();
-    expect(e.menus.showRoofMenu).not.toHaveBeenCalled();
+    expect(e.menus.showContentsMenu).not.toHaveBeenCalled();
     for (const callback of engine.scheduled.splice(0)) callback();
     e.use();
     expect(e.aim.aim).toHaveBeenCalledWith(e.id);
@@ -338,14 +338,14 @@ function setupRoof(kind: "gable" | "hip") {
     to: { x: 4, y: 0, z: 4 },
     material: blockStateOf("minecraft:stone"),
   });
-  new ChooseRoof(e.repo).execute({ playerId: e.id, kind });
+  new ChooseHeighted(e.repo).execute({ playerId: e.id, kind });
   const flow = e.session.flow;
   const ray = {
     origin: { x: -10, y: 5, z: 2.5 },
     direction: { x: 1, y: 0, z: 0 },
   };
   e.aim.aim = () => ({ ray });
-  e.menus.showRoofMenu.mockImplementation(() => {
+  e.menus.showContentsMenu.mockImplementation(() => {
     expect(e.session.flow).toEqual({ ...flow, previous: 5 });
   });
   return { ...e, flow, ray };
@@ -356,9 +356,9 @@ function expectRoofTap(e: ReturnType<typeof setupRoof>) {
     playerId: e.id,
     ray: e.ray,
   });
-  expect(e.menus.showRoofMenu).toHaveBeenCalledExactlyOnceWith(e.player);
+  expect(e.menus.showContentsMenu).toHaveBeenCalledExactlyOnceWith(e.player);
   expect(e.roofExecute.mock.invocationCallOrder[0]).toBeLessThan(
-    e.menus.showRoofMenu.mock.invocationCallOrder[0] as number,
+    e.menus.showContentsMenu.mock.invocationCallOrder[0] as number,
   );
   expect(e.session.flow).toEqual({ ...e.flow, previous: 5 });
   expect(e.pointExecute).not.toHaveBeenCalled();
@@ -463,7 +463,7 @@ it("routes each engine face to aimed paste in the hit dimension after the before
         const point = new SetPoint(repo, blocks, feedback);
         const pointCall = vi.spyOn(point, "execute");
         registerWand({
-          aimRoofHeight: new AimRoofHeight(repo),
+          aimHeight: new AimHeight(repo),
           setPoint: point,
           tapAir: new TapAir(repo, feedback),
           menus,
@@ -541,7 +541,7 @@ it("opens only on entering endpoint and defers an air-triggered menu safely", ()
     execute({ ...cmd, end: to }),
   );
   registerWand({
-    aimRoofHeight: new AimRoofHeight(repo),
+    aimHeight: new AimHeight(repo),
     setPoint: new SetPoint(repo, blocks, feedback),
     tapAir: air,
     repo,

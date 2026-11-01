@@ -3,8 +3,8 @@ import { maxRoofHeight } from "../roof/roof";
 import { BUILD_SPEC } from "../spec";
 import { apexHeight, type Ray } from "./aim";
 
-export function aimedRoofHeight(
-  flow: Extract<BuildFlow, { kind: "roofHeight" }>,
+export function aimedHeight(
+  flow: Extract<BuildFlow, { kind: "heightStep" }>,
   ray: Ray,
 ): number {
   const { base } = flow;

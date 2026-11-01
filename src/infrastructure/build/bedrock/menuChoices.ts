@@ -1,14 +1,14 @@
 import type { CancelFlow } from "../../../application/build/cancelFlow";
-import type { ChooseRoof } from "../../../application/build/chooseRoof";
+import type { ChooseHeighted } from "../../../application/build/chooseHeighted";
 import type { ClearSelection } from "../../../application/build/clearSelection";
 import type { ConfirmRoof } from "../../../application/build/confirmRoof";
 import type { ConfirmShape } from "../../../application/build/confirmShape";
 import type { CopySelection } from "../../../application/build/copySelection";
-import type { SetRoofHeightTo } from "../../../application/build/setRoofHeightTo";
+import type { SetHeightTo } from "../../../application/build/setHeightTo";
 import type { StartPaste } from "../../../application/build/startPaste";
 import type { UndoEdit } from "../../../application/build/undoEdit";
 import {
-  roofMenu,
+  contentsMenu,
   shapeMenu,
   utilityMenu,
 } from "../../../domain/build/flow/menu";
@@ -16,14 +16,14 @@ import type { BuildSessionRepository } from "../../../domain/build/sessionReposi
 import type { PlayerId } from "../../../domain/shared/ids";
 export interface MenuCases {
   confirmShape: Pick<ConfirmShape, "execute">;
-  chooseRoof: Pick<ChooseRoof, "execute">;
+  chooseHeighted: Pick<ChooseHeighted, "execute">;
   confirmRoof: Pick<ConfirmRoof, "execute">;
   cancel: Pick<CancelFlow, "backToAiming">;
   copy: Pick<CopySelection, "execute">;
   paste: Pick<StartPaste, "execute">;
   undo: Pick<UndoEdit, "execute">;
   clear: Pick<ClearSelection, "execute">;
-  setRoofHeight: Pick<SetRoofHeightTo, "execute">;
+  setHeight: Pick<SetHeightTo, "execute">;
 }
 
 export class MenuChoices {
@@ -33,7 +33,7 @@ export class MenuChoices {
   ) {}
   choose(
     playerId: PlayerId,
-    menu: "shape" | "roof" | "utility",
+    menu: "shape" | "contents" | "utility",
     entryId: string | undefined,
     options: { skipAir?: boolean } = {},
   ): boolean {
@@ -42,8 +42,8 @@ export class MenuChoices {
     const entries =
       menu === "shape"
         ? shapeMenu(session.flow)
-        : menu === "roof"
-          ? roofMenu(session.flow)
+        : menu === "contents"
+          ? contentsMenu(session.flow)
           : utilityMenu(session);
     if (!entries.some((entry) => entry.id === entryId)) return false;
     if (menu === "shape") {
@@ -60,13 +60,13 @@ export class MenuChoices {
           break;
         case "gable":
         case "hip":
-          this.cases.chooseRoof.execute({ playerId, kind: entryId });
+          this.cases.chooseHeighted.execute({ playerId, kind: entryId });
           break;
         case "cancel":
           this.cases.cancel.backToAiming({ playerId });
           break;
       }
-    } else if (menu === "roof") {
+    } else if (menu === "contents") {
       if (entryId === "cancel") this.cases.cancel.backToAiming({ playerId });
       else
         this.cases.confirmRoof.execute({
