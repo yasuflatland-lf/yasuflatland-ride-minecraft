@@ -60,6 +60,7 @@ export const HARNESS_IMPORTS: readonly string[] = [
   "src/domain/build/box.ts",
   "src/domain/build/cornerMarker.ts",
   "src/domain/build/flow/flow.ts",
+  "src/domain/build/flow/paste.ts",
   "src/domain/build/preview/preview.ts",
   "src/domain/build/roof/geometry.ts",
   "src/domain/build/roof/roof.ts",

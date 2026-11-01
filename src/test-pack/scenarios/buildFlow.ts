@@ -338,10 +338,6 @@ export function buildAimedPaste(a: Arena): Promise<Outcome> {
     f.block(f.cell(2)).setType("minecraft:oak_log");
     const log = f.block(f.cell(2));
     log.setPermutation(log.permutation.withState("pillar_axis", "z"));
-    check(
-      (await f.menu("utility", "copy")).message === "copied",
-      "copy failed",
-    );
     for (const [face, dx, dy, dz] of [
       ["up", 0, 1, 0],
       ["down", 0, -1, 0],
@@ -351,6 +347,11 @@ export function buildAimedPaste(a: Arena): Promise<Outcome> {
       ["south", 0, 0, 1],
     ] as const) {
       for (const skipAir of [false, true]) {
+        await f.select(f.cell(2));
+        check(
+          (await f.menu("shape", "copy")).message === "copied",
+          "copy failed",
+        );
         const anchor = f.cell(10, 2, 10);
         f.block(anchor).setType("minecraft:gold_block");
         const target = f.region(3, 1, 1, {
@@ -386,6 +387,10 @@ export function buildAimedPaste(a: Arena): Promise<Outcome> {
           "paste undo did not restore destination",
         );
         await f.menu("paste", "endPaste");
+        check(
+          (await f.menu("utility", "paste")).offered === false,
+          "Paste offered after End pasting",
+        );
       }
     }
     await f.edit("undo");
@@ -465,6 +470,10 @@ export function buildCopyShapes(a: Arena): Promise<Outcome> {
         "shape copy undo lost destination states",
       );
       await f.menu("paste", "endPaste");
+      check(
+        (await f.menu("utility", "paste")).offered === false,
+        "Paste offered after End pasting",
+      );
     }
   });
 }
@@ -507,18 +516,31 @@ export function buildContinuousPaste(a: Arena): Promise<Outcome> {
         "continuous Paste undo lost destination states",
       );
     }
-    const stopped = await f.menu("paste", "endPaste");
+    const ended = await f.menu("paste", "endPaste");
     check(
-      stopped.offered === true && stopped.flow.kind === "idle",
-      "Stop pasting failed",
+      ended.offered === true && ended.flow.kind === "idle",
+      "End pasting failed",
     );
     check(
       (await f.menu("paste", "endPaste")).offered === false,
-      "Stop pasting offered while idle",
+      "End pasting offered while idle",
+    );
+    check(
+      (await f.menu("utility", "paste")).offered === false,
+      "Paste offered after End pasting",
+    );
+    check(
+      (await pasteUp(f, f.cell(12, 0, 12))).flow.kind === "idle",
+      "Paste resumed after End pasting",
+    );
+    await f.select(f.cell(1, 1, 1));
+    check(
+      (await f.menu("shape", "copy")).message === "copied",
+      "Copy did not restart pasting",
     );
     check(
       (await f.menu("utility", "paste")).flow.kind === "pasteAim",
-      "Paste did not restart",
+      "Paste did not restart after Copy",
     );
     f.hold(false);
     await wait(BUILD_SPEC.modeLeaveTicks + 2);
@@ -575,6 +597,14 @@ export function buildPasteBlocked(a: Arena): Promise<Outcome> {
       "clean Paste undo lost destination states",
     );
     await f.menu("paste", "endPaste");
+    check(
+      (await f.menu("utility", "paste")).offered === false,
+      "Paste offered after End pasting",
+    );
+    check(
+      (await pasteUp(f, clean.anchor)).flow.kind === "idle",
+      "Paste resumed after End pasting",
+    );
   });
 }
 
@@ -716,5 +746,37 @@ export function buildSolidCancelUndo(a: Arena): Promise<Outcome> {
     check(f.count(cells) > 0, "cylinder was not built");
     check((await f.menu("utility", "undo")).offered === true, "undo absent");
     check(f.count(cells) === 0, "undo did not remove the cylinder");
+  });
+}
+
+export function buildPasteSkipAir(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    await f.select(f.cell(1));
+    f.block(f.cell(1)).setType("minecraft:air");
+    await f.menu("shape", "copy");
+    await f.menu("utility", "paste");
+    for (const skipAir of [true, false]) {
+      const toggled = await f.menu("paste", "skipAir");
+      check(
+        toggled.offered === true && toggled.flow.skipAir === skipAir,
+        "skip-air toggle failed",
+      );
+      const anchor = f.cell(skipAir ? 10 : 14, 0, 10);
+      const target = f.region(2, 1, 1, { ...anchor, y: anchor.y + 1 });
+      for (const cell of target) f.block(cell).setType("minecraft:gold_block");
+      const pasted = await f.edit(
+        `pasteat ${anchor.x} ${anchor.y} ${anchor.z} up`,
+      );
+      check(pasted.message === "editDone", "paste after toggle failed");
+      check(
+        snapshot(f, target)[0]?.typeId === "minecraft:stone",
+        "solid cell was not pasted",
+      );
+      check(
+        snapshot(f, target)[1]?.typeId ===
+          (skipAir ? "minecraft:gold_block" : "minecraft:air"),
+        "paste ignored skip-air setting",
+      );
+    }
   });
 }

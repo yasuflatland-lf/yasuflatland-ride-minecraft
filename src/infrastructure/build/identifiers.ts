@@ -54,9 +54,11 @@ export const BUILD_FORM = {
   fill: "yasu_build.form.fill",
   copy: "yasu_build.form.copy",
   paste: "yasu_build.form.paste",
-  stopPaste: "yasu_build.form.stop_paste",
+  endPaste: "yasu_build.form.end_paste",
   undo: "yasu_build.form.undo",
   clear: "yasu_build.form.clear_selection",
   skipAir: "yasu_build.form.skip_air",
+  skipAirOn: "yasu_build.form.skip_air_on",
+  skipAirOff: "yasu_build.form.skip_air_off",
   submit: "yasu_build.form.submit",
 } as const;
