@@ -4,7 +4,7 @@
 import type { Cell } from "../../shared/cells";
 import { type Clipboard, pasteBox } from "../clipboard/clipboard";
 import { cellsOfShape, type Shape, type ShapeStyle } from "../shape/shape";
-import { geometryOf, type HeightedSpec } from "../volume/geometry";
+import { type HeightedSpec, placementOf } from "../volume/geometry";
 import type { FillStyle } from "../volume/kind";
 import type { PlannedChange } from "./change";
 import type { Pattern } from "./pattern";
@@ -38,6 +38,6 @@ export function* planHeighted(
   fill: FillStyle,
   pattern: Pattern,
 ): Iterable<PlannedChange> {
-  for (const cell of geometryOf(spec.kind).cells(spec, fill))
+  for (const cell of placementOf(spec.kind).cells(spec, fill))
     yield { cell, after: pattern.state };
 }

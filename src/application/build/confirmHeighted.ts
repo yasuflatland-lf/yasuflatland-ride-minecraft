@@ -2,7 +2,7 @@ import { planHeighted } from "../../domain/build/edit/plan";
 import { finishHeightStep } from "../../domain/build/flow/flow";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
-import { geometryOf } from "../../domain/build/volume/geometry";
+import { placementOf } from "../../domain/build/volume/geometry";
 import { type FillStyle, fillStylesFor } from "../../domain/build/volume/kind";
 import type { PlayerId } from "../../domain/shared/ids";
 import type { EditJobs } from "./editJobs";
@@ -30,7 +30,7 @@ export class ConfirmHeighted {
       kind: flow.heightedKind,
       height: flow.previous,
     };
-    const count = geometryOf(spec.kind).count(spec, cmd.fill);
+    const count = placementOf(spec.kind).count(spec, cmd.fill);
     if (count > BUILD_SPEC.maxVolume) {
       this.feedback.showMessage(cmd.playerId, "tooLarge", count);
       return;

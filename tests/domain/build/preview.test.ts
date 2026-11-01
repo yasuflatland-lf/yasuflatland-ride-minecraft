@@ -10,7 +10,7 @@ import {
 import { previewPoints } from "../../../src/domain/build/preview/preview";
 import { roofCells } from "../../../src/domain/build/roof/roof";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
-import { geometryOf } from "../../../src/domain/build/volume/geometry";
+import { volumeOf } from "../../../src/domain/build/volume/geometry";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import type { Vec3 } from "../../../src/domain/shared/vec";
 
@@ -237,7 +237,7 @@ it("draws a locked cylinder at the box height even when another height is aimed"
           "cylinder",
         );
         if (flow.kind !== "heightStep") throw new Error("Expected height step");
-        const expected = geometryOf("cylinder").wireframe(
+        const expected = volumeOf("cylinder").wireframe(
           { base: flow.base, kind: "cylinder", height },
           BUILD_SPEC.outlineMaxPoints,
         );

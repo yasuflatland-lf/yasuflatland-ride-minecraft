@@ -1,10 +1,14 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { boxOf, contains } from "../../../src/domain/build/box";
-import { cylinderGeometry } from "../../../src/domain/build/volume/cylinder";
 import {
-  geometryOf,
+  cylinderPlacement,
+  cylinderVolume,
+} from "../../../src/domain/build/volume/cylinder";
+import {
   type HeightedSpec,
+  placementOf,
+  volumeOf,
 } from "../../../src/domain/build/volume/geometry";
 import { fillStylesFor } from "../../../src/domain/build/volume/kind";
 import { type Cell, cellKey } from "../../../src/domain/shared/cells";
@@ -33,7 +37,8 @@ const neighbours = ({ x, y, z }: Cell): Cell[] => [
 
 describe("cylinder geometry", () => {
   it("is registered as cylinder geometry", () => {
-    expect(geometryOf("cylinder")).toBe(cylinderGeometry);
+    expect(volumeOf("cylinder")).toBe(cylinderVolume);
+    expect(placementOf("cylinder")).toBe(cylinderPlacement);
   });
 
   it("mirrors every fill across both footprint axes, including even sizes", () => {
@@ -41,7 +46,7 @@ describe("cylinder geometry", () => {
       fc.property(spec, (spec) => {
         const { min, max } = spec.base;
         for (const fill of fillStylesFor("cylinder")) {
-          const cells = [...cylinderGeometry.cells(spec, fill)];
+          const cells = [...cylinderPlacement.cells(spec, fill)];
           const keys = new Set(cells.map(cellKey));
           for (const cell of cells) {
             expect(
@@ -64,8 +69,8 @@ describe("cylinder geometry", () => {
           max: { ...spec.base.max, y: spec.base.min.y + spec.height - 1 },
         };
         for (const fill of fillStylesFor("cylinder")) {
-          const cells = [...cylinderGeometry.cells(spec, fill)];
-          expect(cylinderGeometry.count(spec, fill)).toBe(cells.length);
+          const cells = [...cylinderPlacement.cells(spec, fill)];
+          expect(cylinderPlacement.count(spec, fill)).toBe(cells.length);
           expect(new Set(cells.map(cellKey)).size).toBe(cells.length);
           expect(cells.every((cell) => contains(bounds, cell))).toBe(true);
         }
@@ -76,9 +81,9 @@ describe("cylinder geometry", () => {
   it("nests tube inside hollow inside a full prism with solid caps", () => {
     fc.assert(
       fc.property(spec, (spec) => {
-        const filled = [...cylinderGeometry.cells(spec, "fill")];
-        const hollow = [...cylinderGeometry.cells(spec, "hollow")];
-        const tube = [...cylinderGeometry.cells(spec, "tube")];
+        const filled = [...cylinderPlacement.cells(spec, "fill")];
+        const hollow = [...cylinderPlacement.cells(spec, "hollow")];
+        const tube = [...cylinderPlacement.cells(spec, "tube")];
         const filledKeys = new Set(filled.map(cellKey));
         const hollowKeys = new Set(hollow.map(cellKey));
         expect(hollow.every((cell) => filledKeys.has(cellKey(cell)))).toBe(
@@ -104,10 +109,10 @@ describe("cylinder geometry", () => {
     fc.assert(
       fc.property(spec, (spec) => {
         const flat = { ...spec, height: 1 };
-        const filled = [...cylinderGeometry.cells(flat, "fill")];
+        const filled = [...cylinderPlacement.cells(flat, "fill")];
         const inside = new Set(filled.map(columnKey));
         const walls = new Set(
-          [...cylinderGeometry.cells(flat, "tube")].map(columnKey),
+          [...cylinderPlacement.cells(flat, "tube")].map(columnKey),
         );
         for (const cell of filled) {
           expect(walls.has(columnKey(cell))).toBe(
@@ -155,8 +160,8 @@ describe("cylinder geometry", () => {
           y: min.y + layer,
         }));
         for (const fill of fillStylesFor("cylinder")) {
-          expect([...cylinderGeometry.cells(spec, fill)]).toEqual(expected);
-          expect(cylinderGeometry.count(spec, fill)).toBe(height);
+          expect([...cylinderPlacement.cells(spec, fill)]).toEqual(expected);
+          expect(cylinderPlacement.count(spec, fill)).toBe(height);
         }
       }),
     );
@@ -175,8 +180,10 @@ describe("cylinder geometry", () => {
           height: 1,
         });
         expect(
-          cylinderGeometry.count(square(width + 1), "fill"),
-        ).toBeGreaterThanOrEqual(cylinderGeometry.count(square(width), "fill"));
+          cylinderPlacement.count(square(width + 1), "fill"),
+        ).toBeGreaterThanOrEqual(
+          cylinderPlacement.count(square(width), "fill"),
+        );
       }),
     );
   });
@@ -187,9 +194,9 @@ describe("cylinder geometry", () => {
       kind: "cylinder",
       height: 1_000_000_000,
     };
-    expect(cylinderGeometry.count(spec, "fill")).toBe(21 * spec.height);
-    expect(cylinderGeometry.count(spec, "tube")).toBe(12 * spec.height);
-    expect(cylinderGeometry.count(spec, "hollow")).toBe(
+    expect(cylinderPlacement.count(spec, "fill")).toBe(21 * spec.height);
+    expect(cylinderPlacement.count(spec, "tube")).toBe(12 * spec.height);
+    expect(cylinderPlacement.count(spec, "hollow")).toBe(
       42 + 12 * (spec.height - 2),
     );
   });
@@ -197,7 +204,7 @@ describe("cylinder geometry", () => {
   it("caps height at the inclusive world top with a minimum of one", () => {
     fc.assert(
       fc.property(spec, coordinate, ({ base }, worldTopY) => {
-        expect(cylinderGeometry.maxHeight(base, worldTopY)).toBe(
+        expect(cylinderVolume.maxHeight(base, worldTopY)).toBe(
           Math.max(1, worldTopY - base.min.y + 1),
         );
       }),
@@ -223,7 +230,7 @@ describe("cylinder geometry", () => {
     };
     for (const style of fillStylesFor("cylinder")) {
       const columns = new Set(
-        [...cylinderGeometry.cells(spec, style)].map(columnKey),
+        [...cylinderPlacement.cells(spec, style)].map(columnKey),
       );
       const rows = Array.from({ length: width }, (_, z) =>
         Array.from({ length: width }, (_, x) =>
@@ -237,7 +244,7 @@ describe("cylinder geometry", () => {
   it("bounds preview samples to the budget and places them on ellipses or extreme lines", () => {
     fc.assert(
       fc.property(spec, fc.integer({ min: -5, max: 150 }), (spec, budget) => {
-        const points = cylinderGeometry.wireframe(spec, budget);
+        const points = cylinderVolume.wireframe(spec, budget);
         expect(points.length).toBeLessThanOrEqual(Math.max(0, budget));
         const { min, max } = spec.base;
         const cx = (min.x + max.x + 1) / 2;
@@ -266,7 +273,7 @@ describe("cylinder geometry", () => {
       kind: "cylinder",
       height: 5,
     };
-    const points = cylinderGeometry.wireframe(spec, 96);
+    const points = cylinderVolume.wireframe(spec, 96);
     for (const y of [7.5, 11.5]) {
       expect(
         points.filter((point) => point.y === y).length,

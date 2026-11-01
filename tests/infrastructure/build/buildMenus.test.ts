@@ -17,7 +17,7 @@ import {
   utilityMenu,
 } from "../../../src/domain/build/flow/menu";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
-import { geometryOf } from "../../../src/domain/build/volume/geometry";
+import { volumeOf } from "../../../src/domain/build/volume/geometry";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockBuildMenus } from "../../../src/infrastructure/build/bedrock/buildMenus";
 import { MenuChoices } from "../../../src/infrastructure/build/bedrock/menuChoices";
@@ -329,7 +329,7 @@ it("bounds the fallback slider, uses the previous height and applies it before t
           kind,
         );
         if (flow.kind !== "heightStep") throw new Error("Expected roof");
-        const max = geometryOf(kind).maxHeight(flow.base, BUILD_SPEC.worldTopY);
+        const max = volumeOf(kind).maxHeight(flow.base, BUILD_SPEC.worldTopY);
         const previous = Math.min(max, requested);
         session.setFlow({ ...flow, previous });
         ui.forms.length = 0;

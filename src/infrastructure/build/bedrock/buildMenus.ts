@@ -9,7 +9,7 @@ import {
 import { isRoofKind } from "../../../domain/build/roof/roof";
 import type { BuildSessionRepository } from "../../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../../domain/build/spec";
-import { geometryOf } from "../../../domain/build/volume/geometry";
+import { volumeOf } from "../../../domain/build/volume/geometry";
 import { asPlayerId, type PlayerId } from "../../../domain/shared/ids";
 import { BUILD_FORM } from "../identifiers";
 
@@ -126,10 +126,7 @@ export class BedrockBuildMenus implements BuildMenus {
       .slider(
         { translate: BUILD_FORM.height },
         1,
-        geometryOf(flow.heightedKind).maxHeight(
-          flow.base,
-          BUILD_SPEC.worldTopY,
-        ),
+        volumeOf(flow.heightedKind).maxHeight(flow.base, BUILD_SPEC.worldTopY),
         { defaultValue: flow.previous, valueStep: 1 },
       )
       .submitButton({ translate: BUILD_FORM.submit })
