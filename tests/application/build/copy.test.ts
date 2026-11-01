@@ -3,6 +3,7 @@ import { expect, it, vi } from "vitest";
 import { ChooseCopy } from "../../../src/application/build/chooseCopy";
 import { ConfirmCopyHeight } from "../../../src/application/build/confirmCopyHeight";
 import { ConfirmHeighted } from "../../../src/application/build/confirmHeighted";
+import { CopyBox } from "../../../src/application/build/copyBox";
 import { CopySelection } from "../../../src/application/build/copySelection";
 import { EditJobs } from "../../../src/application/build/editJobs";
 import { blockStateOf } from "../../../src/domain/build/blockState";
@@ -47,8 +48,12 @@ function setup() {
     world,
     feedback,
     session,
-    choose: new ChooseCopy(repo, world, feedback),
-    confirm: new ConfirmCopyHeight(repo, world, feedback),
+    choose: new ChooseCopy(repo, new CopyBox(repo, world, feedback), feedback),
+    confirm: new ConfirmCopyHeight(
+      repo,
+      new CopyBox(repo, world, feedback),
+      feedback,
+    ),
   };
 }
 function endpoint(
@@ -179,7 +184,11 @@ it("preserves the clipboard, confirmed box, and flow on every over-limit copy pa
         if (path === "height") e.confirm.execute({ playerId });
         else if (path === "direct") e.choose.execute({ playerId });
         else
-          new CopySelection(e.repo, e.world, e.feedback).execute({ playerId });
+          new CopySelection(
+            e.repo,
+            new CopyBox(e.repo, e.world, e.feedback),
+            e.feedback,
+          ).execute({ playerId });
         expect(e.session.clipboard).toBe(clip);
         expect(e.session.confirmedBox).toBe(confirmed);
         expect(e.session.flow).toBe(flow);

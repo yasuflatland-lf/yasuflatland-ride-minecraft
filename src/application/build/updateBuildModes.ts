@@ -1,7 +1,7 @@
 // Use case: step every listed player's build mode once per tick (ADR 0178, Decision 3).
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { PlayerId } from "../../domain/shared/ids";
-import type { CancelFlow } from "./cancelFlow";
+import type { LeaveBuild } from "./leaveBuild";
 
 export interface BuildModeInput {
   playerId: PlayerId;
@@ -11,7 +11,7 @@ export interface BuildModeInput {
 export class UpdateBuildModes {
   constructor(
     private readonly repo: BuildSessionRepository,
-    private readonly cancel?: CancelFlow,
+    private readonly leave: LeaveBuild,
   ) {}
 
   execute(inputs: readonly BuildModeInput[]): void {
@@ -26,7 +26,7 @@ export class UpdateBuildModes {
         !session.isInBuildMode &&
         session.flow.kind !== "idle"
       ) {
-        this.cancel?.execute({ playerId });
+        this.leave.execute(playerId);
       }
     }
   }
