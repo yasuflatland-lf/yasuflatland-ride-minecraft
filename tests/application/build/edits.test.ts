@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { ConfirmShape } from "../../../src/application/build/confirmShape";
+import { CopyBox } from "../../../src/application/build/copyBox";
 import { CopySelection } from "../../../src/application/build/copySelection";
 import { EditJobs } from "../../../src/application/build/editJobs";
 import { PasteAt } from "../../../src/application/build/pasteAt";
@@ -36,7 +37,7 @@ function setup() {
     world,
     jobs,
     fill: new ConfirmShape(repo, feedback, jobs),
-    copy: new CopySelection(repo, world, feedback),
+    copy: new CopySelection(repo, new CopyBox(repo, world, feedback), feedback),
     startPaste: new StartPaste(repo),
     paste: new PasteAt(repo, world, feedback, jobs),
     undo: new UndoEdit(repo, feedback, jobs),
