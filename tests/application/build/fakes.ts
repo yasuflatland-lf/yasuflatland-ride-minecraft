@@ -1,3 +1,4 @@
+import type { AimReader } from "../../../src/application/build/ports/aim";
 import type { BuildBlockWorld } from "../../../src/application/build/ports/blocks";
 import type {
   BuildFeedback,
@@ -112,4 +113,11 @@ export class FakeWorld implements BuildBlockWorld {
 
 export function cellKey(c: Cell): string {
   return `${c.x},${c.y},${c.z}`;
+}
+
+export class FakeAimReader implements AimReader {
+  target: ReturnType<AimReader["aim"]>;
+  aim(_playerId: PlayerId) {
+    return this.target;
+  }
 }
