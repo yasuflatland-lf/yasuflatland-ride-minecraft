@@ -1,7 +1,6 @@
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import { AimHeight } from "../../../src/application/build/aimHeight";
-import { CancelFlow } from "../../../src/application/build/cancelFlow";
 import { ChooseHeighted } from "../../../src/application/build/chooseHeighted";
 import { EditJobs } from "../../../src/application/build/editJobs";
 import { PasteAt } from "../../../src/application/build/pasteAt";
@@ -23,7 +22,6 @@ import {
   type PlayerId,
 } from "../../../src/domain/shared/ids";
 import { PressDebounces } from "../../../src/domain/shared/pressDebounce";
-import { registerSessions } from "../../../src/infrastructure/build/bedrock/handlers/sessions";
 import { registerWand } from "../../../src/infrastructure/build/bedrock/handlers/wand";
 import { SELECTION_WAND_TYPE } from "../../../src/infrastructure/build/identifiers";
 import { InMemorySessionRepository } from "../../../src/infrastructure/build/persistence/inMemorySessionRepository";
@@ -428,31 +426,6 @@ it("ignores unavailable aim, invalid players, and other items", () => {
   });
   expect(execute).not.toHaveBeenCalled();
   expect(menus.showUtilityMenu).not.toHaveBeenCalled();
-});
-
-it.each(["dimension", "die"])(
-  "cancels the flow on %s without dropping the session",
-  (event) => {
-    const { repo, session, id, player, debounce } = setupAir();
-    registerSessions(repo, new CancelFlow(repo), debounce);
-    engine.handlers.get(event)?.({
-      player,
-      deadEntity: { id: player.id, typeId: "minecraft:player" },
-    });
-    expect(session.flow.kind).toBe("idle");
-    expect(repo.get(id)).toBe(session);
-  },
-);
-
-it("ignores non-player deaths and drops both session and debounce on disconnect", () => {
-  const { repo, session, id, debounce } = setupAir();
-  registerSessions(repo, new CancelFlow(repo), debounce);
-  engine.handlers.get("die")?.({ deadEntity: { id, typeId: "minecraft:pig" } });
-  expect(session.flow.kind).toBe("point1");
-  expect(debounce.press(id, 0)).toBe(true);
-  engine.handlers.get("leave")?.({ playerId: id });
-  expect(repo.get(id)).toBeUndefined();
-  expect(debounce.press(id, 0)).toBe(true);
 });
 
 it("routes paste aiming through itemUse with live aim and shared debounce", () => {

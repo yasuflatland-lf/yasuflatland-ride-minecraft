@@ -5,6 +5,7 @@ import type { Box } from "./box";
 import type { Clipboard } from "./clipboard/clipboard";
 import type { EditRecord } from "./edit/change";
 import { type BuildFlow, cancel } from "./flow/flow";
+import { beginPasteAim } from "./flow/paste";
 import {
   EMPTY_HISTORY,
   takeLast,
@@ -58,11 +59,27 @@ export class BuildSession {
   completeCopy(dimensionId: DimensionId, box: Box, clipboard: Clipboard): void {
     this.currentClipboard = clipboard;
     this.confirmBox(dimensionId, box);
+    this.currentFlow = beginPasteAim(false);
   }
 
-  /** Pre-redesign retention rule; ADR 0203 and issue H (#1138) intentionally change it. */
+  startNewCopy(): void {
+    this.clearSelection();
+  }
+
+  clearClipboard(): void {
+    this.currentClipboard = undefined;
+  }
+
+  /** Ending paste also discards the copied selection (ADR 0203). */
+  endPasting(): void {
+    this.clearSelection();
+    this.clearClipboard();
+  }
+
+  /** A held clipboard is discarded even when the flow is idle (ADR 0203). */
   leaveBuildMode(): void {
-    this.currentFlow = cancel(this.currentFlow);
+    if (this.currentClipboard || this.currentFlow.kind !== "idle")
+      this.endPasting();
   }
 
   get clipboard(): Clipboard | undefined {

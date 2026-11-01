@@ -24,7 +24,7 @@ export class UpdateBuildModes {
       if (
         session?.tickMode({ holding }) &&
         !session.isInBuildMode &&
-        session.flow.kind !== "idle"
+        (session.flow.kind !== "idle" || session.clipboard !== undefined)
       ) {
         this.leave.execute(playerId);
       }
