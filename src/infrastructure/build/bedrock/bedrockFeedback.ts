@@ -69,6 +69,8 @@ export class BedrockFeedback implements BuildFeedback {
       endCube: "minecraft:endrod",
       roof: "minecraft:villager_happy",
       paste: "minecraft:blue_flame_particle",
+      copy: "minecraft:balloon_gas_particle",
+      copyOver: "minecraft:redstone_wire_dust_particle",
     };
     for (const key of Object.keys(styles) as (keyof PreviewSet)[]) {
       if (!this.spawnAll(player, styles[key], set[key])) return;

@@ -74,7 +74,10 @@ export class BedrockBuildMenus implements BuildMenus {
       const offered = this.choices.choose(playerId, "shape", id);
       const flow = this.repo.get(playerId)?.flow;
       if (offered && flow?.kind === "heightStep") {
-        if (flow.heightLocked) await this.contents(player);
+        if (flow.heightedKind === "copy") {
+          if (!flow.heightLocked && this.heightSliderFallback)
+            await this.heightSlider(player);
+        } else if (flow.heightLocked) await this.contents(player);
         else if (this.heightSliderFallback) await this.heightSlider(player);
       }
     });
@@ -121,7 +124,11 @@ export class BedrockBuildMenus implements BuildMenus {
   private async contents(player: Player): Promise<void> {
     const playerId = asPlayerId(player.id);
     const session = this.repo.get(playerId);
-    if (session?.flow.kind !== "heightStep") return;
+    if (
+      session?.flow.kind !== "heightStep" ||
+      session.flow.heightedKind === "copy"
+    )
+      return;
     const id = await this.choose(
       player,
       isRoofKind(session.flow.heightedKind)
@@ -138,15 +145,18 @@ export class BedrockBuildMenus implements BuildMenus {
     const flow = this.repo.get(playerId)?.flow;
     if (flow?.kind !== "heightStep") return;
     if (flow.heightLocked) {
-      await this.contents(player);
+      if (flow.heightedKind !== "copy") await this.contents(player);
       return;
     }
     // A modal cannot update the preview while the player adjusts its slider.
     const answer = await new ModalFormData()
       .title({
-        translate: isRoofKind(flow.heightedKind)
-          ? BUILD_FORM.roofTitle
-          : BUILD_FORM.solidTitle,
+        translate:
+          flow.heightedKind === "copy"
+            ? BUILD_FORM.copyTitle
+            : isRoofKind(flow.heightedKind)
+              ? BUILD_FORM.roofTitle
+              : BUILD_FORM.solidTitle,
       })
       .slider(
         { translate: BUILD_FORM.height },
@@ -165,7 +175,9 @@ export class BedrockBuildMenus implements BuildMenus {
     const height = answer.formValues?.[0];
     if (typeof height !== "number") return;
     this.cases.setHeight.execute({ playerId, height });
-    await this.contents(player);
+    if (flow.heightedKind === "copy")
+      this.cases.confirmCopyHeight.execute({ playerId });
+    else await this.contents(player);
   }
 
   private async choose(

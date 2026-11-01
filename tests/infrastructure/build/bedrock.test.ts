@@ -35,7 +35,16 @@ const cell = fc.record({
 });
 
 function preview(part: Partial<PreviewSet>): PreviewSet {
-  return { marker: [], shape: [], endCube: [], roof: [], paste: [], ...part };
+  return {
+    marker: [],
+    shape: [],
+    endCube: [],
+    roof: [],
+    paste: [],
+    copy: [],
+    copyOver: [],
+    ...part,
+  };
 }
 
 it("preserves permutation states and refuses protected or laid cells", () => {
