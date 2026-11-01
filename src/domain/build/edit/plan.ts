@@ -2,7 +2,7 @@
 // Planning does not filter protected or kept cells; the edit job does, when it
 // reads each `before`.
 import type { Cell } from "../../shared/cells";
-import { type Clipboard, pasteBox } from "../clipboard/clipboard";
+import type { Clipboard } from "../clipboard/clipboard";
 import { cellsOfShape, type Shape, type ShapeStyle } from "../shape/shape";
 import { type HeightedSpec, placementOf } from "../volume/geometry";
 import type { FillStyle } from "../volume/kind";
@@ -23,11 +23,10 @@ export function* planPaste(
   anchor: Cell,
   skipAir: boolean,
 ): Iterable<PlannedChange> {
-  const { min } = pasteBox(clipboard, anchor);
   for (const { at, state } of clipboard.cells) {
     if (skipAir && state.typeId === "minecraft:air") continue;
     yield {
-      cell: { x: min.x + at.x, y: min.y + at.y, z: min.z + at.z },
+      cell: { x: anchor.x + at.x, y: anchor.y + at.y, z: anchor.z + at.z },
       after: state,
     };
   }

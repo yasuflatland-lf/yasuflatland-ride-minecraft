@@ -1,10 +1,6 @@
 import { virtualEndPoint } from "../../domain/build/aim/aim";
 import { aimedHeight } from "../../domain/build/aim/height";
-import {
-  anchorCell,
-  type Face,
-  pasteBox,
-} from "../../domain/build/clipboard/clipboard";
+import { aimedPasteTarget } from "../../domain/build/clipboard/clipboard";
 import {
   type PreviewAim,
   previewPoints,
@@ -15,10 +11,6 @@ import { volumeSize } from "../../domain/build/volume/size";
 import type { PlayerId } from "../../domain/shared/ids";
 import type { AimReader } from "./ports/aim";
 import type { BuildFeedback } from "./ports/feedback";
-
-function isFace(face: string): face is Face {
-  return ["up", "down", "north", "south", "east", "west"].includes(face);
-}
 
 export class ShowPreview {
   private readonly sizes = new Map<PlayerId, ReturnType<typeof volumeSize>>();
@@ -66,14 +58,8 @@ export class ShowPreview {
           session.clipboard.size,
           session.clipboard.cells.length,
         );
-      if (flow.kind === "pasteAim" && aim?.block && session.clipboard) {
-        const face = aim.block.face.toLowerCase();
-        if (isFace(face))
-          preview.pasteBox = pasteBox(
-            session.clipboard,
-            anchorCell(aim.block.cell, face),
-          );
-      }
+      if (flow.kind === "pasteAim" && aim && session.clipboard)
+        preview.pasteBox = aimedPasteTarget(session.clipboard, aim)?.box;
       const set = previewPoints(flow, preview);
       if (Object.values(set).some((points) => points.length > 0))
         this.feedback.drawPreview(

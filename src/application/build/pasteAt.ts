@@ -1,9 +1,5 @@
 import { cellsOf } from "../../domain/build/box";
-import {
-  anchorCell,
-  type Face,
-  pasteBox,
-} from "../../domain/build/clipboard/clipboard";
+import { type Face, pasteTarget } from "../../domain/build/clipboard/clipboard";
 import { planPaste } from "../../domain/build/edit/plan";
 import { isRepeat, recordPaste } from "../../domain/build/flow/flow";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
@@ -33,14 +29,13 @@ export class PasteAt {
     const session = this.repo.getOrCreate(playerId);
     const flow = session.flow;
     if (flow.kind !== "pasteAim") return;
-    const anchor = anchorCell(cmd.block, cmd.face);
     const clipboard = session.clipboard;
     if (!clipboard) {
       this.feedback.showMessage(playerId, "noClipboard");
       return;
     }
+    const { anchor, box } = pasteTarget(clipboard, cmd.block, cmd.face);
     if (isRepeat(flow, anchor, cmd.tick, BUILD_SPEC.pasteRepeatTicks)) return;
-    const box = pasteBox(clipboard, anchor);
     for (const cell of cellsOf(box)) {
       if (!this.world.mayEdit(cmd.dimensionId, cell)) {
         this.feedback.showMessage(playerId, "pasteBlocked");
