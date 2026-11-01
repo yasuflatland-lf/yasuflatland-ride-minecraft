@@ -7,6 +7,7 @@ import { ConfirmCopyHeight } from "../../application/build/confirmCopyHeight";
 import { ConfirmHeighted } from "../../application/build/confirmHeighted";
 import { ConfirmShape } from "../../application/build/confirmShape";
 import { CopySelection } from "../../application/build/copySelection";
+import { DescribeBuild } from "../../application/build/describeBuild";
 import { EditJobs } from "../../application/build/editJobs";
 import { PasteAt } from "../../application/build/pasteAt";
 import { SetHeightTo } from "../../application/build/setHeightTo";
@@ -95,7 +96,7 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
     menuCases.confirmCopyHeight,
     cases.pasteAt,
     cases.undo,
-    repo,
+    new DescribeBuild(repo),
     recorded,
   );
 }

@@ -108,7 +108,9 @@ export function registerWand({
       return;
     }
     if (source.isSneaking) {
-      void menus.showUtilityMenu(source);
+      void (flow?.kind === "pasteAim"
+        ? menus.showPasteMenu(source)
+        : menus.showUtilityMenu(source));
       return;
     }
     const before = repo.get(playerId)?.flow.kind;

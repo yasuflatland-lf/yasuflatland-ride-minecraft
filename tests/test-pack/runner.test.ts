@@ -23,6 +23,7 @@ vi.mock("@minecraft/server", () => ({
     getDimension: () => ({}),
   },
 }));
+vi.mock("../../src/test-pack/inputProbe", () => ({}));
 vi.mock("../../src/test-pack/arena", () => ({
   prepareRun: harness.setup,
   removeVehicles: harness.remove,
