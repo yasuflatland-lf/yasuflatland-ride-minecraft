@@ -8,6 +8,7 @@ import {
   GIFT_RECEIVED_PROPERTY,
   giftOfItem,
 } from "../../src/infrastructure/vehicle/bedrock/identifiers";
+import { readTableRows } from "../support/markdown";
 import { readRgbaPng } from "../support/png";
 
 const BP = "packs/yasu_ride_bp";
@@ -171,7 +172,7 @@ describe("Sports Boat Equipment (ADR 0171)", () => {
   });
 
   it("counts the group on the item groups page", () => {
-    expect(readFileSync("docs/items/README.md", "utf8")).toContain(
+    expect(readTableRows("docs/items/README.md")).toContain(
       "| **Sports Boat Equipment** | 1 | [Icebreaker Switch](sportsboat-equipment.md) |",
     );
     expect(existsSync("docs/items/sportsboat-equipment.md")).toBe(true);
