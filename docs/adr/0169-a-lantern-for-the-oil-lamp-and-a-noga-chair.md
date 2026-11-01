@@ -29,14 +29,14 @@ This ADR fixes one contract that the later pull requests of the series (see Seri
 
 ### 2. Oil Lamp becomes a Lantern
 
-| What | Value |
-|---|---|
-| Id | `lantern`, replacing `oil_lamp` at the same catalog index (position 10) |
-| Item | `yasu_ride:lantern` |
-| Decor block | `yasu_ride:lantern_decor` |
-| Texts | English `Lantern`, plus a Japanese translation in the locale file |
-| Kind | Standing item with `glass: true` |
-| Size target | 5 px wide, 8 px high |
+| What        | Value                                                                   |
+| ----------- | ----------------------------------------------------------------------- |
+| Id          | `lantern`, replacing `oil_lamp` at the same catalog index (position 10) |
+| Item        | `yasu_ride:lantern`                                                     |
+| Decor block | `yasu_ride:lantern_decor`                                               |
+| Texts       | English `Lantern`, plus a Japanese translation in the locale file       |
+| Kind        | Standing item with `glass: true`                                        |
+| Size target | 5 px wide, 8 px high                                                    |
 
 - The 8 px height is safe because the removed Lava Lamp was 8 px tall and fit every shelf, table, cabinet, and fridge slot; the generator's `validate()` holds the real limits.
 - Build from panels (Y-rotated, one axis per cube, 0009): the squat base, the neck collar, the silver ring plate, the cylindrical frosted shade and the glass globe as 12 to 16 vertical panels, the cap, the thin cage wires, and the small side loop. Swatches come from the shared gear atlas by name. Add new swatches (frosted white, glass, silver, black cast iron) only when no existing name fits.
@@ -45,14 +45,14 @@ This ADR fixes one contract that the later pull requests of the series (see Seri
 
 ### 3. Noga Chair
 
-| What | Id |
-|---|---|
-| Entity | `yasu_ride:noga_chair` |
-| Item | `yasu_ride:noga_chair_item` |
-| Family | `yasu_ride_noga_chair` (plus `inanimate`) |
-| Hits hint | `yasu_ride.hint.noga_chair_hits` |
-| Test event | `yasu_ride_test:test_noga_chair_hit` |
-| Names | English `Noga Chair`; the Japanese name is the owner's katakana transliteration, in the locale file |
+| What       | Id                                                                                                  |
+| ---------- | --------------------------------------------------------------------------------------------------- |
+| Entity     | `yasu_ride:noga_chair`                                                                              |
+| Item       | `yasu_ride:noga_chair_item`                                                                         |
+| Family     | `yasu_ride_noga_chair` (plus `inanimate`)                                                           |
+| Hits hint  | `yasu_ride.hint.noga_chair_hits`                                                                    |
+| Test event | `yasu_ride_test:test_noga_chair_hit`                                                                |
+| Names      | English `Noga Chair`; the Japanese name is the owner's katakana transliteration, in the locale file |
 
 - **Behavior** is the Low Chair's (0122), through a per-kind profile (the refactor in 3/6). It is placed on the top of a block outside vehicle space with two free blocks above, turned to face the player in 45 degree steps, and refuses on the add-on's own blocks. It has one seat with the Sit interaction. Three quick hits fold it while nobody sits; hits while seated are not counted. It never appears in the camping gear box and is never decor.
 - **Seat.** One seat at about `[0, 0.04, 0.21]`, to be tuned on a device: the reclined sling sits lower and further back than the Low Chair's `[0, 0.14, 0.1]`. Collision box about 0.8 x 0.9.

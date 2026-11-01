@@ -17,26 +17,26 @@ Ship one Behavior Pack and one Resource Pack as **Yasuflatland Ride**, in the re
 
 Use `yasu_ride` as the namespace, following `<author>_<product>`: `yasu` is short for the author's name and `ride` identifies this add-on. It is kept short because the [Bedrock Wiki style guide](https://wiki.bedrock.dev/meta/style-guide) caps a path at 80 characters for consoles, and the namespace appears twice in a pack path (the pack folder and the namespace folder). Spelling out the author's full name made the longest path 91 characters. The namespace never changes after the first release under this name. This is a one-time break: the released `mycar` namespace (MyCar 0.5.0 and earlier) is dropped without migration (see Consequences), and the first release under the new name freezes `yasu_ride`.
 
-| Old | New |
-|---|---|
-| `mycar:` IDs, properties, component groups, events, script events, dynamic properties, and lang keys | `yasu_ride:`; IDs use snake case |
-| `mycar_test:` test entity IDs | `yasu_ride_test:` |
-| `geometry.mycar.<name>` | `geometry.yasu_ride.<name>` |
-| `animation.mycar.<entity>.<name>` | `animation.yasu_ride.<entity>.<name>` |
-| `controller.<kind>.mycar.<entity>[.<name>]` | `controller.<kind>.yasu_ride.<entity>[.<name>]` |
-| `mycar.<name>` sound events | `yasu_ride.<name>` |
-| `mycar_suv_item`, `mycar_headlight_switch` item texture shortnames | `yasu_ride_suv_item`, `yasu_ride_headlight_switch`; future shortnames use `yasu_ride_<name>` |
-| `resource_pack_name: mycar` | `resource_pack_name: yasu_ride` |
-| `mycar_vehicle` type family | `yasu_ride_vehicle` |
-| `mycar_bp`, `mycar_rp`, `mycar_test_bp` | `yasu_ride_bp`, `yasu_ride_rp`, `yasu_ride_test_bp` |
-| `NAMESPACE = "mycar"` | `NAMESPACE = "yasu_ride"`; build infrastructure IDs with `id()` |
-| `[mycar]` script log prefix | `[yasu_ride]` |
-| `[MYCAR-TEST]` test pack log tag | `[YASU-RIDE-TEST]` |
-| `mycar_arena` test ticking area | `yasu_ride_arena` |
-| `mycar-bds` container, `mycar-dev` Compose project and world | `yasuflatland-ride-bds`, `yasuflatland-ride-dev` |
-| `dist/mycar-<version>.mcaddon` | `dist/yasuflatland-ride-<version>.mcaddon` |
-| `mycar-mod-minecraft` repository and package name | `yasuflatland-ride-minecraft` |
-| `MyCar`, `MyCar Resources`, `MyCar Tests` | `Yasuflatland Ride`, `Yasuflatland Ride Resources`, `Yasuflatland Ride Tests` |
+| Old                                                                                                  | New                                                                                          |
+| ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `mycar:` IDs, properties, component groups, events, script events, dynamic properties, and lang keys | `yasu_ride:`; IDs use snake case                                                             |
+| `mycar_test:` test entity IDs                                                                        | `yasu_ride_test:`                                                                            |
+| `geometry.mycar.<name>`                                                                              | `geometry.yasu_ride.<name>`                                                                  |
+| `animation.mycar.<entity>.<name>`                                                                    | `animation.yasu_ride.<entity>.<name>`                                                        |
+| `controller.<kind>.mycar.<entity>[.<name>]`                                                          | `controller.<kind>.yasu_ride.<entity>[.<name>]`                                              |
+| `mycar.<name>` sound events                                                                          | `yasu_ride.<name>`                                                                           |
+| `mycar_suv_item`, `mycar_headlight_switch` item texture shortnames                                   | `yasu_ride_suv_item`, `yasu_ride_headlight_switch`; future shortnames use `yasu_ride_<name>` |
+| `resource_pack_name: mycar`                                                                          | `resource_pack_name: yasu_ride`                                                              |
+| `mycar_vehicle` type family                                                                          | `yasu_ride_vehicle`                                                                          |
+| `mycar_bp`, `mycar_rp`, `mycar_test_bp`                                                              | `yasu_ride_bp`, `yasu_ride_rp`, `yasu_ride_test_bp`                                          |
+| `NAMESPACE = "mycar"`                                                                                | `NAMESPACE = "yasu_ride"`; build infrastructure IDs with `id()`                              |
+| `[mycar]` script log prefix                                                                          | `[yasu_ride]`                                                                                |
+| `[MYCAR-TEST]` test pack log tag                                                                     | `[YASU-RIDE-TEST]`                                                                           |
+| `mycar_arena` test ticking area                                                                      | `yasu_ride_arena`                                                                            |
+| `mycar-bds` container, `mycar-dev` Compose project and world                                         | `yasuflatland-ride-bds`, `yasuflatland-ride-dev`                                             |
+| `dist/mycar-<version>.mcaddon`                                                                       | `dist/yasuflatland-ride-<version>.mcaddon`                                                   |
+| `mycar-mod-minecraft` repository and package name                                                    | `yasuflatland-ride-minecraft`                                                                |
+| `MyCar`, `MyCar Resources`, `MyCar Tests`                                                            | `Yasuflatland Ride`, `Yasuflatland Ride Resources`, `Yasuflatland Ride Tests`                |
 
 Keep content files flat under `<type>/yasu_ride/<file>` in both packs: entities, items, recipes, client entities, animations, animation controllers, render controllers, particles, models/entity, textures/entity, textures/items, and sounds. Test entities use `entities/yasu_ride_test/`. Name content files with the style guide's short type suffixes: `.se.json` for entities, `.item.json`, `.recipe.json`, `.ce.json` for client entities, `.anim.json`, `.ac.json` for animation controllers, `.rc.json` for render controllers, `.particle.json`, and `.geo.json`. Engine-fixed files stay at `manifest.json`, `texts/*.lang`, `texts/languages.json`, `textures/item_texture.json`, and `sounds/sound_definitions.json`. Update generators and every asset reference to these paths.
 

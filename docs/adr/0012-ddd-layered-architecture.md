@@ -13,11 +13,11 @@ DDD's layered architecture also has a four-layer variant with a separate present
 
 Split `src/` into the following three layers. Dependencies point one way only: infrastructure → application → domain.
 
-| Layer | Location | Contents | May depend on |
-|---|---|---|---|
-| Domain | `src/domain/` | The `Vehicle` aggregate, value objects (`Vec2`, `DriveInput`, and so on), domain services (driving computation, step detection, collision detection, placement-space detection), domain events, repository interfaces, tuning values | Only the domain itself |
-| Application | `src/application/` | Use cases (`DriveVehicles`, `PlaceVehicle`, `HitVehicle`) and the interfaces of the ports it requires from the game | Domain |
-| Infrastructure | `src/infrastructure/` | Implementations of ports and repositories, event subscriptions, wiring (`bootstrap`) | Application, domain, `@minecraft/server` |
+| Layer          | Location              | Contents                                                                                                                                                                                                                             | May depend on                            |
+| -------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------- |
+| Domain         | `src/domain/`         | The `Vehicle` aggregate, value objects (`Vec2`, `DriveInput`, and so on), domain services (driving computation, step detection, collision detection, placement-space detection), domain events, repository interfaces, tuning values | Only the domain itself                   |
+| Application    | `src/application/`    | Use cases (`DriveVehicles`, `PlaceVehicle`, `HitVehicle`) and the interfaces of the ports it requires from the game                                                                                                                  | Domain                                   |
+| Infrastructure | `src/infrastructure/` | Implementations of ports and repositories, event subscriptions, wiring (`bootstrap`)                                                                                                                                                 | Application, domain, `@minecraft/server` |
 
 - Only the infrastructure layer may import `@minecraft/server`
 - The entry point `src/main.ts` only calls `bootstrap()`

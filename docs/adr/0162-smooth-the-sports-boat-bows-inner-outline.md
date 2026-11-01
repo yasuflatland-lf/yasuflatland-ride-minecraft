@@ -14,14 +14,14 @@ The generated base model has 1202 cubes: body 1184, headlights 10, windshield 7,
 
 - Build the six side rows on every `PLAN_STATIONS` segment within z 18..40 using `plank()` and the mirrored `pair()`. Every panel turns about y only. Each inboard line follows `beam_plan` at a constant horizontal inset; a horizontal width w becomes local depth `w * cos(yaw)` so the inner face at a given z has the specified inset. Keep the existing swatches and heights, sampling sheer-dependent heights at segment midpoints.
 
-  | Row | Swatch | Inner..outer horizontal insets | Height |
-  | --- | --- | --- | --- |
-  | gunwale_wall | hull | 1.6..0.5 | DECK_BOW..sheer |
-  | lounge_base | seat_dark | 7.5..1.6 | DECK_BOW..LOUNGE_BASE |
-  | lounge_cushion | seat | 6.9..1.6 | LOUNGE_BASE..LOUNGE_CUSHION |
-  | lounge_piping | seat_dark | 7.5..6.9 | LOUNGE_BASE..LOUNGE_CUSHION + 0.1 |
-  | lounge_back | seat | 2.8..1.6 | LOUNGE_CUSHION..sheer - 0.9 |
-  | lounge_back_cap | seat_dark | 3.0..1.6 | sheer - 0.9..sheer - 0.3 |
+  | Row             | Swatch    | Inner..outer horizontal insets | Height                            |
+  | --------------- | --------- | ------------------------------ | --------------------------------- |
+  | gunwale_wall    | hull      | 1.6..0.5                       | DECK_BOW..sheer                   |
+  | lounge_base     | seat_dark | 7.5..1.6                       | DECK_BOW..LOUNGE_BASE             |
+  | lounge_cushion  | seat      | 6.9..1.6                       | LOUNGE_BASE..LOUNGE_CUSHION       |
+  | lounge_piping   | seat_dark | 7.5..6.9                       | LOUNGE_BASE..LOUNGE_CUSHION + 0.1 |
+  | lounge_back     | seat      | 2.8..1.6                       | LOUNGE_CUSHION..sheer - 0.9       |
+  | lounge_back_cap | seat_dark | 3.0..1.6                       | sheer - 0.9..sheer - 0.3          |
 
 - End the base, cushion, and piping chains where `beam_plan(z) = 7.5`, at z 39.8280, cutting the final segment there. The other side rows end at z 40.
 - Use 0161's joint allowance `max(0.25, depth * tan(abs(yaw_change)) / 2 + 0.05)`, taking the larger adjacent local depth so both sides of a joint get the same allowance. Retain its inward-joint nominal-end setback and 0.03 px projection limit. Coplanar overlaps share swatches.

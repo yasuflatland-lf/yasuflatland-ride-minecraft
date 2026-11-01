@@ -89,14 +89,14 @@ Two crossing `button` bars, footprints 1.8 x 1.0 and 1.0 x 1.8, approximate the 
 
 Final helm counts (console-through-throttle block, including passenger console and cupholders):
 
-| Parts | Before the series | After 6/7 | After 7/7 |
-|---|---:|---:|---:|
-| Other helm parts, including the current display and tilted wheel | 157 | 157 | 157 |
-| Switch plate and raised buttons | 7 | 1 | 1 |
-| Controller pad | 0 | 0 | 1 |
-| Controller knob | 0 | 0 | 3 |
-| Total helm cubes | 164 | 158 | 162 |
-| New helm parts from 6/7 and 7/7 (cap: 5) | 0 | 1 | 5 |
+| Parts                                                            | Before the series | After 6/7 | After 7/7 |
+| ---------------------------------------------------------------- | ----------------: | --------: | --------: |
+| Other helm parts, including the current display and tilted wheel |               157 |       157 |       157 |
+| Switch plate and raised buttons                                  |                 7 |         1 |         1 |
+| Controller pad                                                   |                 0 |         0 |         1 |
+| Controller knob                                                  |                 0 |         0 |         3 |
+| Total helm cubes                                                 |               164 |       158 |       162 |
+| New helm parts from 6/7 and 7/7 (cap: 5)                         |                 0 |         1 |         5 |
 
 Counting the generated geometry confirms 1219 -> 1223 whole-model cubes for this step. The historical pre-series model count was 1109; unrelated changes already present in the stack account for the difference. Generated geometry, color atlases and previews change; regeneration leaves MER images unchanged. Resource Pack header/module and Behavior Pack dependency versions advance from 0.1.159 to **0.1.160** because generated assets change.
 
