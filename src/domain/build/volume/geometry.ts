@@ -2,10 +2,9 @@ import type { Cell } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
 import type { Box } from "../box";
 import { roofGeometry } from "../roof/geometry";
-import type { RoofKind } from "../roof/roof";
 import { cubeGeometry } from "./cube";
 import { cylinderGeometry } from "./cylinder";
-import type { FillStyle, HeightedKind, SolidKind } from "./kind";
+import type { FillStyle, HeightedKind } from "./kind";
 
 export interface HeightedSpec {
   readonly base: Box;
@@ -20,8 +19,7 @@ export interface HeightedGeometry {
   wireframe(spec: HeightedSpec, maxPoints: number): Vec3[];
 }
 
-const GEOMETRIES: Record<RoofKind, HeightedGeometry> &
-  Partial<Record<SolidKind, HeightedGeometry>> = {
+const GEOMETRIES: Record<HeightedKind, HeightedGeometry> = {
   gable: roofGeometry,
   hip: roofGeometry,
   cube: cubeGeometry,
@@ -29,7 +27,5 @@ const GEOMETRIES: Record<RoofKind, HeightedGeometry> &
 };
 
 export function geometryOf(kind: HeightedKind): HeightedGeometry {
-  const geometry = GEOMETRIES[kind];
-  if (!geometry) throw new Error(`No geometry registered for ${kind}`);
-  return geometry;
+  return GEOMETRIES[kind];
 }

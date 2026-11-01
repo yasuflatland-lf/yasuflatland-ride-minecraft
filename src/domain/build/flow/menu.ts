@@ -15,8 +15,10 @@ export function shapeMenu(flow: BuildFlow): MenuEntry[] {
       id: shape.kind === "line" ? "place" : style,
     })),
     ...(shape.kind === "rect" && shape.flat === "y"
-      ? [{ id: "gable" }, { id: "hip" }]
-      : []),
+      ? [{ id: "gable" }, { id: "hip" }, { id: "cylinder" }, { id: "cube" }]
+      : shape.kind === "box"
+        ? [{ id: "cylinder" }]
+        : []),
     { id: "cancel" },
   ];
 }

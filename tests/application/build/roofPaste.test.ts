@@ -18,6 +18,7 @@ import {
   pasteBox,
 } from "../../../src/domain/build/clipboard/clipboard";
 import {
+  chooseHeighted,
   setHeight,
   tapAir,
   tapBlock,
@@ -28,6 +29,7 @@ import {
   roofCount,
 } from "../../../src/domain/build/roof/roof";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
+import { geometryOf } from "../../../src/domain/build/volume/geometry";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
   cellKey,
@@ -298,3 +300,74 @@ it.each(["gable", "hip"] as const)(
     expect(e.world.writes).toBe(0);
   },
 );
+
+it("confirms solid tubes and rejects oversized solids without consuming the flow", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom("cylinder" as const, "cube" as const),
+      fc.integer({ min: 1, max: 8 }),
+      (kind, height) => {
+        const e = setup();
+        const base = boxOf({ x: 0, y: 60, z: 0 }, { x: 4, y: 60, z: 5 });
+        e.session.setFlow(
+          setHeight(
+            chooseHeighted(
+              tapAir(
+                tapBlock({ kind: "idle" }, overworld, base.min, stone),
+                base.max,
+              ),
+              kind,
+            ),
+            height,
+          ),
+        );
+        const spec = { base, kind, height };
+        new ConfirmHeighted(e.repo, e.feedback, e.jobs).execute({
+          playerId,
+          fill: "tube",
+        });
+        expect(e.session.flow).toEqual({ kind: "idle" });
+        expect(e.session.confirmedBox).toEqual({
+          dimensionId: overworld,
+          box: {
+            min: base.min,
+            max: { ...base.max, y: base.min.y + height - 1 },
+          },
+        });
+        e.jobs.step();
+        expect(e.world.writes).toBe(geometryOf(kind).count(spec, "tube"));
+        for (const at of geometryOf(kind).cells(spec, "tube"))
+          expect(e.world.stateAt(overworld, at)).toEqual(stone);
+        for (const fill of ["fill", "hollow", "tube"] as const) {
+          const large = { ...base, max: { x: 100, y: 60, z: 100 } };
+          const flow = setHeight(
+            chooseHeighted(
+              tapAir(
+                tapBlock({ kind: "idle" }, overworld, large.min, stone),
+                large.max,
+              ),
+              kind,
+            ),
+            1000,
+          );
+          e.session.setFlow(flow);
+          const count = geometryOf(kind).count(
+            { base: large, kind, height: 1000 },
+            fill,
+          );
+          expect(count).toBeGreaterThan(BUILD_SPEC.maxVolume);
+          new ConfirmHeighted(e.repo, e.feedback, e.jobs).execute({
+            playerId,
+            fill,
+          });
+          expect(e.feedback.messages.at(-1)).toEqual({
+            message: "tooLarge",
+            count,
+          });
+          expect(e.session.flow).toBe(flow);
+          expect(e.session.isEditing).toBe(false);
+        }
+      },
+    ),
+  );
+});

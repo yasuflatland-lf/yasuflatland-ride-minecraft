@@ -3,10 +3,14 @@ import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { type Box, boxOf } from "../../../src/domain/build/box";
 import { cornerMarkerPoints } from "../../../src/domain/build/cornerMarker";
-import type { BuildFlow } from "../../../src/domain/build/flow/flow";
+import {
+  type BuildFlow,
+  chooseHeighted,
+} from "../../../src/domain/build/flow/flow";
 import { previewPoints } from "../../../src/domain/build/preview/preview";
 import { roofCells } from "../../../src/domain/build/roof/roof";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
+import { geometryOf } from "../../../src/domain/build/volume/geometry";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import type { Vec3 } from "../../../src/domain/shared/vec";
 
@@ -211,6 +215,37 @@ it("keeps roof wireframes within the built footprint and centers the ridge on it
             Math.max(...ridge.map((p) => p.z))) /
             2,
         ).toBeCloseTo((minZ + maxZ) / 2);
+      },
+    ),
+  );
+});
+
+it("draws a locked cylinder at the box height even when another height is aimed", () => {
+  fc.assert(
+    fc.property(
+      fc.integer({ min: 2, max: 30 }),
+      fc.integer({ min: 1, max: 100 }),
+      (height, aimed) => {
+        const flow = chooseHeighted(
+          {
+            kind: "endpoint",
+            dimensionId,
+            material,
+            from: { x: 0, y: 10, z: 0 },
+            to: { x: 4, y: 10 + height - 1, z: 5 },
+          },
+          "cylinder",
+        );
+        if (flow.kind !== "heightStep") throw new Error("Expected height step");
+        const expected = geometryOf("cylinder").wireframe(
+          { base: flow.base, kind: "cylinder", height },
+          BUILD_SPEC.outlineMaxPoints,
+        );
+        expect(expected.length).toBeGreaterThan(0);
+        expect(previewPoints(flow, { blink: false }).roof).toEqual(expected);
+        expect(
+          previewPoints(flow, { blink: false, height: aimed }).roof,
+        ).toEqual(expected);
       },
     ),
   );

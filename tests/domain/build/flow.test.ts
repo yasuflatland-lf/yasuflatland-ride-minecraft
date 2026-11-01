@@ -118,16 +118,21 @@ it("offers only supported shape styles followed by Cancel", () => {
           shape.kind === "line" ? "place" : style,
         ),
         ...(shape.kind === "rect" && shape.flat === "y"
-          ? ["gable", "hip"]
-          : []),
+          ? ["gable", "hip", "cylinder", "cube"]
+          : shape.kind === "box"
+            ? ["cylinder"]
+            : []),
         "cancel",
       ]);
     }),
   );
   for (const [to, ids] of [
     [{ x: 3, y: 0, z: 0 }, ["place", "cancel"]],
-    [{ x: 3, y: 0, z: 3 }, ["fill", "frame", "gable", "hip", "cancel"]],
-    [{ x: 3, y: 3, z: 3 }, ["fill", "faces", "walls", "cancel"]],
+    [
+      { x: 3, y: 0, z: 3 },
+      ["fill", "frame", "gable", "hip", "cylinder", "cube", "cancel"],
+    ],
+    [{ x: 3, y: 3, z: 3 }, ["fill", "faces", "walls", "cylinder", "cancel"]],
   ] as const)
     expect(
       shapeMenu(
@@ -197,14 +202,73 @@ it("refuses unreadable, open and data-holding material regardless of block state
   ).toBe(true);
 });
 
-it("chooseHeighted ignores the solid kinds until they are wired", () => {
-  const endpoint = tapAir(tapBlock(idle, dim, { x: 0, y: 5, z: 0 }, stone), {
-    x: 3,
-    y: 5,
-    z: 4,
-  });
-  for (const kind of ["cylinder", "cube"] as const)
-    expect(chooseHeighted(endpoint, kind)).toBe(endpoint);
+it("accepts every heighted kind only on its supported shapes", () => {
+  fc.assert(
+    fc.property(
+      cell,
+      fc.integer({ min: 1, max: 20 }),
+      fc.integer({ min: 1, max: 20 }),
+      fc.integer({ min: 1, max: 20 }),
+      fc.boolean(),
+      (origin, dx, dy, dz, reverse) => {
+        for (const [offset, ids] of [
+          [
+            { x: dx, y: 0, z: dz },
+            ["fill", "frame", "gable", "hip", "cylinder", "cube", "cancel"],
+          ],
+          [
+            { x: dx, y: dy, z: dz },
+            ["fill", "faces", "walls", "cylinder", "cancel"],
+          ],
+          [{ x: dx, y: dy, z: 0 }, ["fill", "frame", "cancel"]],
+          [{ x: 0, y: dy, z: dz }, ["fill", "frame", "cancel"]],
+          [{ x: dx, y: 0, z: 0 }, ["place", "cancel"]],
+          [{ x: 0, y: dy, z: 0 }, ["place", "cancel"]],
+          [{ x: 0, y: 0, z: dz }, ["place", "cancel"]],
+        ] as const) {
+          const end = {
+            x: origin.x + offset.x,
+            y: origin.y + offset.y,
+            z: origin.z + offset.z,
+          };
+          const from = reverse ? end : origin;
+          const to = reverse ? origin : end;
+          const flow = tapAir(tapBlock(idle, dim, from, stone), to);
+          expect(shapeMenu(flow).map((e) => e.id)).toEqual(ids);
+          for (const kind of ["gable", "hip", "cylinder", "cube"] as const) {
+            const chosen = chooseHeighted(flow, kind);
+            if (!(ids as readonly string[]).includes(kind)) {
+              expect(chosen).toBe(flow);
+              continue;
+            }
+            const locked = offset.y !== 0;
+            expect(chosen).toEqual({
+              kind: "heightStep",
+              dimensionId: dim,
+              from,
+              material: stone,
+              heightedKind: kind,
+              base: { min: origin, max: { ...end, y: origin.y } },
+              previous: locked ? dy + 1 : 1,
+              heightLocked: locked,
+            });
+            expect(contentsMenu(chosen).map((e) => e.id)).toEqual(
+              kind === "cylinder" || kind === "cube"
+                ? ["fill", "hollow", "tube", "cancel"]
+                : ["fill", "hollow", "cancel"],
+            );
+            if (locked) expect(setHeight(chosen, 999)).toBe(chosen);
+            expect(backToAiming(chosen)).toEqual({
+              kind: "point1",
+              dimensionId: dim,
+              cell: from,
+              material: stone,
+            });
+          }
+        }
+      },
+    ),
+  );
 });
 
 it("roof and paste stages accept only their own transitions and ignore selection taps", () => {
