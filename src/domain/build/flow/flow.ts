@@ -122,10 +122,6 @@ export function startPaste(flow: BuildFlow, skipAir: boolean): BuildFlow {
     : flow;
 }
 
-export function copyBoxOf(flow: BuildFlow): Box | undefined {
-  return flow.kind === "endpoint" ? boxOf(flow.from, flow.to) : undefined;
-}
-
 export function recordPaste(
   flow: BuildFlow,
   anchor: Cell,
@@ -156,4 +152,8 @@ export function isRepeat(
     last.anchor.z === anchor.z &&
     tick - last.tick < window
   );
+}
+
+export function copyBoxOf(flow: BuildFlow): Box | undefined {
+  return flow.kind === "endpoint" ? boxOf(flow.from, flow.to) : undefined;
 }
