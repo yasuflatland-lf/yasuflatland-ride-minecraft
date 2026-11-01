@@ -41,17 +41,18 @@ it("bounds every list and keeps shape and paste samples on box edges", () => {
       fc.boolean(),
       fc.integer({ min: 1, max: 300 }),
       fc.constantFrom("gable" as const, "hip" as const),
-      (a, b, blink, height, roofKind) => {
+      (a, b, blink, height, heightedKind) => {
         const box = boxOf(a, b);
         const flows: BuildFlow[] = [
           { kind: "idle" },
           { kind: "point1", cell: a, dimensionId, material },
           { kind: "endpoint", from: a, to: b, dimensionId, material },
           {
-            kind: "roofHeight",
+            kind: "heightStep",
+            heightLocked: false,
             from: a,
             base: boxOf(a, { ...b, y: a.y }),
-            roofKind,
+            heightedKind,
             previous: height,
             dimensionId,
             material,
@@ -63,7 +64,7 @@ it("bounds every list and keeps shape and paste samples on box edges", () => {
             blink,
             end: b,
             pasteBox: box,
-            roofHeight: height,
+            height: height,
           });
           for (const points of Object.values(set))
             expect(points.length).toBeLessThanOrEqual(
@@ -112,7 +113,8 @@ it("leaves idle and unaimed paste empty", () => {
 it("draws gable ridges on the long axis and hip ridges inset at both ends", () => {
   const base = boxOf({ x: 0, y: 10, z: 0 }, { x: 8, y: 10, z: 4 });
   const flow = {
-    kind: "roofHeight" as const,
+    kind: "heightStep" as const,
+    heightLocked: false,
     from: base.min,
     base,
     previous: 5,
@@ -120,14 +122,14 @@ it("draws gable ridges on the long axis and hip ridges inset at both ends", () =
     material,
   };
   const gable = previewPoints(
-    { ...flow, roofKind: "gable" },
+    { ...flow, heightedKind: "gable" },
     { blink: false },
   ).roof;
   expect(gable).toContainEqual({ x: 0.5, y: 14.5, z: 2.5 });
   expect(gable).toContainEqual({ x: 8.5, y: 14.5, z: 2.5 });
   const hip = previewPoints(
-    { ...flow, roofKind: "hip" },
-    { blink: false, roofHeight: 7 },
+    { ...flow, heightedKind: "hip" },
+    { blink: false, height: 7 },
   ).roof;
   expect(hip).toContainEqual({ x: 2.5, y: 16.5, z: 2.5 });
   expect(hip).toContainEqual({ x: 6.5, y: 16.5, z: 2.5 });
@@ -137,7 +139,11 @@ it("draws gable ridges on the long axis and hip ridges inset at both ends", () =
   ])
     expect(hip).toContainEqual(point);
   const square = previewPoints(
-    { ...flow, base: boxOf(base.min, { x: 4, y: 10, z: 4 }), roofKind: "hip" },
+    {
+      ...flow,
+      base: boxOf(base.min, { x: 4, y: 10, z: 4 }),
+      heightedKind: "hip",
+    },
     { blink: false },
   ).roof;
   expect(
@@ -153,7 +159,7 @@ it("keeps roof wireframes within the built footprint and centers the ridge on it
       fc.integer({ min: 2, max: 12 }),
       fc.integer({ min: 2, max: 12 }),
       fc.constantFrom("gable" as const, "hip" as const),
-      (origin, width, depth, height, roofKind) => {
+      (origin, width, depth, height, heightedKind) => {
         const base = boxOf(origin, {
           x: origin.x + width - 1,
           y: origin.y,
@@ -161,10 +167,11 @@ it("keeps roof wireframes within the built footprint and centers the ridge on it
         });
         const points = previewPoints(
           {
-            kind: "roofHeight",
+            kind: "heightStep",
+            heightLocked: false,
             from: origin,
             base,
-            roofKind,
+            heightedKind,
             previous: height,
             dimensionId,
             material,
@@ -181,7 +188,7 @@ it("keeps roof wireframes within the built footprint and centers the ridge on it
           expect(p.y).toBeLessThanOrEqual(origin.y + height - 0.5);
         }
         const top = [
-          ...roofCells({ base, kind: roofKind, height }, false),
+          ...roofCells({ base, kind: heightedKind, height }, false),
         ].filter((c) => c.y === origin.y + height - 1);
         const ridge = points.filter((p) => p.y === origin.y + height - 0.5);
         const minX = Math.min(...top.map((c) => c.x)) + 0.5;

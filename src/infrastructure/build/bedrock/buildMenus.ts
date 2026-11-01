@@ -1,8 +1,8 @@
 import type { Player } from "@minecraft/server";
 import { ActionFormData, ModalFormData } from "@minecraft/server-ui";
 import {
+  contentsMenu,
   type MenuEntry,
-  roofMenu,
   shapeMenu,
   utilityMenu,
 } from "../../../domain/build/flow/menu";
@@ -16,7 +16,7 @@ import { type MenuCases, MenuChoices } from "./menuChoices";
 
 export interface BuildMenus {
   showShapeMenu(player: Player): Promise<void>;
-  showRoofMenu(player: Player): Promise<void>;
+  showContentsMenu(player: Player): Promise<void>;
   showUtilityMenu(player: Player): Promise<void>;
   showHeightSlider(player: Player): Promise<void>;
 }
@@ -55,7 +55,7 @@ export class BedrockBuildMenus implements BuildMenus {
     });
   }
 
-  showRoofMenu(player: Player): Promise<void> {
+  showContentsMenu(player: Player): Promise<void> {
     return this.exclusive(player, () => this.roof(player));
   }
 
@@ -100,16 +100,16 @@ export class BedrockBuildMenus implements BuildMenus {
     const id = await this.choose(
       player,
       BUILD_FORM.roofTitle,
-      roofMenu(session.flow),
+      contentsMenu(session.flow),
     );
     if (!player.isValid) return;
-    this.choices.choose(playerId, "roof", id);
+    this.choices.choose(playerId, "contents", id);
   }
 
   private async heightSlider(player: Player): Promise<void> {
     const playerId = asPlayerId(player.id);
     const flow = this.repo.get(playerId)?.flow;
-    if (flow?.kind !== "roofHeight") return;
+    if (flow?.kind !== "heightStep") return;
     // A modal cannot update the preview while the player adjusts its slider.
     const answer = await new ModalFormData()
       .title({ translate: BUILD_FORM.roofTitle })
@@ -129,7 +129,7 @@ export class BedrockBuildMenus implements BuildMenus {
       return;
     const height = answer.formValues?.[0];
     if (typeof height !== "number") return;
-    this.cases.setRoofHeight.execute({ playerId, height });
+    this.cases.setHeight.execute({ playerId, height });
     await this.roof(player);
   }
 

@@ -1,14 +1,14 @@
-import { AimRoofHeight } from "../../application/build/aimRoofHeight";
+import { AimHeight } from "../../application/build/aimHeight";
 import { CancelFlow } from "../../application/build/cancelFlow";
-import { ChooseRoof } from "../../application/build/chooseRoof";
+import { ChooseHeighted } from "../../application/build/chooseHeighted";
 import { ClearSelection } from "../../application/build/clearSelection";
 import { ConfirmRoof } from "../../application/build/confirmRoof";
 import { ConfirmShape } from "../../application/build/confirmShape";
 import { CopySelection } from "../../application/build/copySelection";
 import { EditJobs } from "../../application/build/editJobs";
 import { PasteAt } from "../../application/build/pasteAt";
+import { SetHeightTo } from "../../application/build/setHeightTo";
 import { SetPoint } from "../../application/build/setPoint";
-import { SetRoofHeightTo } from "../../application/build/setRoofHeightTo";
 import { ShowPreview } from "../../application/build/showPreview";
 import { StartPaste } from "../../application/build/startPaste";
 import { TapAir } from "../../application/build/tapAir";
@@ -49,8 +49,8 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
     copy: new CopySelection(repo, blocks, feedback),
     paste: new StartPaste(repo),
     pasteAt: new PasteAt(repo, blocks, feedback, jobs),
-    chooseRoof: new ChooseRoof(repo),
-    aimRoofHeight: new AimRoofHeight(repo),
+    chooseHeighted: new ChooseHeighted(repo),
+    aimHeight: new AimHeight(repo),
     confirmRoof: new ConfirmRoof(repo, feedback, jobs),
     undo: new UndoEdit(repo, feedback, jobs),
     clear,
@@ -59,14 +59,14 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
     ...cases,
     confirmShape: cases.fill,
     cancel,
-    setRoofHeight: new SetRoofHeightTo(repo),
+    setHeight: new SetHeightTo(repo),
   };
   const menus = new BedrockBuildMenus(repo, menuCases);
   registerWand({
     setPoint: new SetPoint(repo, blocks, feedback),
     tapAir: new TapAir(repo, feedback),
     pasteAt: cases.pasteAt,
-    aimRoofHeight: cases.aimRoofHeight,
+    aimHeight: cases.aimHeight,
     repo,
     menus,
     aim,
@@ -84,7 +84,7 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
   registerEditTick(jobs);
   registerTestEdit(
     new MenuChoices(repo, menuCases),
-    menuCases.setRoofHeight,
+    menuCases.setHeight,
     cases.pasteAt,
     cases.undo,
     repo,

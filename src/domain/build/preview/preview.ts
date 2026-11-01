@@ -16,7 +16,7 @@ export interface PreviewSet {
 export interface PreviewAim {
   blink: boolean;
   end?: Cell;
-  roofHeight?: number;
+  height?: number;
   pasteBox?: Box;
 }
 
@@ -29,7 +29,7 @@ function center(p: Vec3): Vec3 {
 }
 
 function roofWireframe(
-  flow: Extract<BuildFlow, { kind: "roofHeight" }>,
+  flow: Extract<BuildFlow, { kind: "heightStep" }>,
   height: number,
 ): Vec3[] {
   const { min, max } = flow.base;
@@ -43,7 +43,7 @@ function roofWireframe(
   const shortSpan = Math.min(max.x - min.x, max.z - min.z);
   // Even squares use the center of the top 2x2 layer as their single visual apex.
   const inset =
-    flow.roofKind === "hip"
+    flow.heightedKind === "hip"
       ? max.x - min.x === max.z - min.z
         ? shortSpan / 2
         : Math.floor(shortSpan / 2)
@@ -108,8 +108,8 @@ export function previewPoints(flow: BuildFlow, aim: PreviewAim): PreviewSet {
       set.shape = outline(boxOf(flow.from, flow.to));
       set.endCube = cornerMarkerPoints(flow.to);
       break;
-    case "roofHeight":
-      set.roof = roofWireframe(flow, aim.roofHeight ?? flow.previous);
+    case "heightStep":
+      set.roof = roofWireframe(flow, aim.height ?? flow.previous);
       break;
     case "pasteAim":
       if (aim.pasteBox) set.paste = outline(aim.pasteBox);

@@ -1,6 +1,6 @@
 import { planRoof } from "../../domain/build/edit/plan";
-import { chooseRoofFill } from "../../domain/build/flow/flow";
-import { roofCount } from "../../domain/build/roof/roof";
+import { finishHeightStep } from "../../domain/build/flow/flow";
+import { isRoofKind, roofCount } from "../../domain/build/roof/roof";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import type { PlayerId } from "../../domain/shared/ids";
@@ -16,13 +16,13 @@ export class ConfirmRoof {
   execute(cmd: { playerId: PlayerId; hollow: boolean }): void {
     const session = this.repo.getOrCreate(cmd.playerId);
     const flow = session.flow;
-    if (flow.kind !== "roofHeight") {
+    if (flow.kind !== "heightStep" || !isRoofKind(flow.heightedKind)) {
       this.feedback.showMessage(cmd.playerId, "noSelection");
       return;
     }
     const spec = {
       base: flow.base,
-      kind: flow.roofKind,
+      kind: flow.heightedKind,
       height: flow.previous,
     };
     const count = roofCount(spec, cmd.hollow);
@@ -35,7 +35,7 @@ export class ConfirmRoof {
       this.feedback.showMessage(cmd.playerId, busy);
       return;
     }
-    session.setFlow(chooseRoofFill(flow, cmd.hollow));
+    session.setFlow(finishHeightStep(flow, cmd.hollow));
     session.confirmBox(flow.dimensionId, {
       min: flow.base.min,
       max: { ...flow.base.max, y: flow.base.min.y + flow.previous - 1 },
