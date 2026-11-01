@@ -24,7 +24,7 @@
     "test:game": "node scripts/game-test.mjs"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.15",
+    "@biomejs/biome": "2.6.4",
     "@minecraft/server": "2.10.0",
     "@minecraft/server-ui": "2.0.0",
     "@minecraft/vanilla-data": "1.26.52",
