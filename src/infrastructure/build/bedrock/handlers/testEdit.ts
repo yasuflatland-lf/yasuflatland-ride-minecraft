@@ -8,7 +8,7 @@ import type {
 } from "../../../../application/build/ports/feedback";
 import type { SetHeightTo } from "../../../../application/build/setHeightTo";
 import type { UndoEdit } from "../../../../application/build/undoEdit";
-import type { Face } from "../../../../domain/build/clipboard/clipboard";
+import { parseFace } from "../../../../domain/build/clipboard/clipboard";
 import {
   asDimensionId,
   asPlayerId,
@@ -112,11 +112,19 @@ export function registerTestEdit(
         } else if (
           command === "pasteat" &&
           args.length === 4 &&
-          args.slice(0, 3).every((value) => Number.isInteger(Number(value))) &&
-          ["up", "down", "north", "south", "east", "west"].includes(
-            args[3] ?? "",
-          )
+          args.slice(0, 3).every((value) => Number.isInteger(Number(value)))
         ) {
+          const face = parseFace(args[3] ?? "");
+          if (!face) {
+            system.sendScriptEvent(
+              TEST_RESULT_EVENT,
+              JSON.stringify({
+                player: player.name,
+                error: "Invalid paste face",
+              }),
+            );
+            return;
+          }
           paste.execute({
             playerId,
             dimensionId: asDimensionId(player.dimension.id),
@@ -125,7 +133,7 @@ export function registerTestEdit(
               y: Number(args[1]),
               z: Number(args[2]),
             },
-            face: args[3] as Face,
+            face,
             tick: system.currentTick,
           });
         } else if (command === "undo" && args.length === 0)
