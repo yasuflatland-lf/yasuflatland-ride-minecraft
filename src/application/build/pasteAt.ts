@@ -1,7 +1,7 @@
 import { cellsOf } from "../../domain/build/box";
 import { type Face, pasteTarget } from "../../domain/build/clipboard/clipboard";
 import { planPaste } from "../../domain/build/edit/plan";
-import { isRepeat, recordPaste } from "../../domain/build/flow/flow";
+import { isRepeat, recordPaste } from "../../domain/build/flow/paste";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import type { Cell } from "../../domain/shared/cells";
