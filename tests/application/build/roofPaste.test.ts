@@ -29,7 +29,7 @@ import {
   roofCount,
 } from "../../../src/domain/build/roof/roof";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
-import { geometryOf } from "../../../src/domain/build/volume/geometry";
+import { placementOf } from "../../../src/domain/build/volume/geometry";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
   cellKey,
@@ -341,8 +341,8 @@ it("confirms solid tubes and rejects oversized solids without consuming the flow
           },
         });
         e.jobs.step();
-        expect(e.world.writes).toBe(geometryOf(kind).count(spec, "tube"));
-        for (const at of geometryOf(kind).cells(spec, "tube"))
+        expect(e.world.writes).toBe(placementOf(kind).count(spec, "tube"));
+        for (const at of placementOf(kind).cells(spec, "tube"))
           expect(e.world.stateAt(overworld, at)).toEqual(stone);
         for (const fill of ["fill", "hollow", "tube"] as const) {
           const large = { ...base, max: { x: 100, y: 60, z: 100 } };
@@ -357,7 +357,7 @@ it("confirms solid tubes and rejects oversized solids without consuming the flow
             1000,
           );
           e.session.setFlow(flow);
-          const count = geometryOf(kind).count(
+          const count = placementOf(kind).count(
             { base: large, kind, height: 1000 },
             fill,
           );

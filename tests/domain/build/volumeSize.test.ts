@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { boxOf } from "../../../src/domain/build/box";
-import { cubeGeometry } from "../../../src/domain/build/volume/cube";
+import { cubePlacement } from "../../../src/domain/build/volume/cube";
 import { volumeSize } from "../../../src/domain/build/volume/size";
 
 it("reports positive dimensions whose product counts every filled cuboid cell", () => {
@@ -19,7 +19,7 @@ it("reports positive dimensions whose product counts every filled cuboid cell", 
         expect(size.y).toBeGreaterThanOrEqual(1);
         expect(size.z).toBeGreaterThanOrEqual(1);
         expect(size.x * size.y * size.z).toBe(
-          [...cubeGeometry.cells({ base, height, kind: "cube" }, "fill")]
+          [...cubePlacement.cells({ base, height, kind: "cube" }, "fill")]
             .length,
         );
       },
