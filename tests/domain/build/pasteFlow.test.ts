@@ -6,13 +6,16 @@ import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
 import {
   type BuildFlow,
   chooseHeighted,
-  isRepeat,
-  recordPaste,
   startPaste,
   tapAir,
   tapBlock,
 } from "../../../src/domain/build/flow/flow";
 import { pasteMenu, utilityMenu } from "../../../src/domain/build/flow/menu";
+import {
+  beginPasteAim,
+  isRepeat,
+  recordPaste,
+} from "../../../src/domain/build/flow/paste";
 import { BuildSession } from "../../../src/domain/build/session";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 
@@ -29,7 +32,8 @@ it("records an immutable paste and suppresses only the same anchor within the wi
       fc.integer({ min: 1, max: 100 }),
       fc.boolean(),
       (anchor, tick, window, skipAir) => {
-        const initial = startPaste({ kind: "idle" }, skipAir);
+        const initial = beginPasteAim(skipAir);
+        expect(Object.isFrozen(initial)).toBe(true);
         expect(isRepeat(initial, anchor, tick, window)).toBe(false);
         const flow = recordPaste(initial, anchor, tick);
         expect(flow).toEqual({
@@ -39,7 +43,6 @@ it("records an immutable paste and suppresses only the same anchor within the wi
         });
         expect(initial).toEqual({ kind: "pasteAim", skipAir });
         expect(Object.isFrozen(flow)).toBe(true);
-        if (flow.kind !== "pasteAim") throw new Error("Expected paste aiming");
         expect(Object.isFrozen(flow.lastPaste)).toBe(true);
         expect(Object.isFrozen(flow.lastPaste?.anchor)).toBe(true);
         expect(flow.lastPaste?.anchor).not.toBe(anchor);
