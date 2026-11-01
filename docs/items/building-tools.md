@@ -20,12 +20,14 @@ Holding the wand enters build mode after a short grace delay; putting it away le
 Tap or right-click a block to set point 1 and choose that block's material. A blinking marker surrounds it and the action bar names the material. Aim at a block or at air to preview the end point; in air it follows a vertical plane through point 1. Tap again to fix the end point and open the shape menu:
 
 - A line offers Place.
-- A rectangle offers Fill and Frame only; a horizontal rectangle also offers Gable roof and Hip roof.
-- A box offers Fill, Faces only, and Walls only.
+- A rectangle offers Fill and Frame only; a horizontal rectangle also offers Gable roof, Hip roof, Cylinder, and Cube.
+- A box offers Fill, Faces only, Walls only, and Cylinder.
 
 On the iPad a short tap on air sends nothing to the add-on, so every air action (an end point in the air, confirming a roof height while looking at the sky, the utility menu) needs a long press of about one second. A tap on a block works as usual.
 
-Cancel returns to end-point selection. For a roof, aim to choose its height, tap to confirm, then choose Fill or Hollow. Roofs use full blocks of the selected material. Switching items after the grace delay cancels unfinished selection or paste aiming. A confirmed selection remains available for Copy until a new point 1 or Clear selection.
+Cancel returns to end-point selection. For a roof, aim to choose its height, tap to confirm, then choose Fill or Hollow. Roofs use full blocks of the selected material.
+
+Cylinder and Cube grow upward from a horizontal rectangle: aim to choose the height and tap to confirm, as for a roof. On a box, Cylinder uses the box's own height and skips the height step. The cylinder fits exactly inside the rectangle (a non-square rectangle gives an ellipse) and the cube fills it. A contents menu then offers Fill (every block), Hollow (a one-block shell with the top and bottom closed), and Tube (the side wall only, top and bottom open); Cancel returns to end-point selection. Roofs offer Fill and Hollow only. See [ADR 0201](../adr/0201-build-wand-cylinder-and-cube.md). Switching items after the grace delay cancels unfinished selection or paste aiming. A confirmed selection remains available for Copy until a new point 1 or Clear selection.
 
 ## Utility menu and paste
 
@@ -42,7 +44,7 @@ Vehicles and their space, tents and their space, blocks laid by the add-on, cont
 - An edit covers at most 100,000 blocks.
 - A copy covers at most 32,768 blocks.
 - Each player keeps the last 10 edits for Undo.
-- Roof height is capped at 300 percent of the long side, world height, and the edit limit.
+- Roof height is capped at 300 percent of the long side, world height, and the edit limit. Cylinder and Cube heights are capped by the world height and the edit limit only.
 
 ## Survival and reload
 
