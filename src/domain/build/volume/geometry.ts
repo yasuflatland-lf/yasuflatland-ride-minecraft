@@ -3,6 +3,7 @@ import type { Vec3 } from "../../shared/vec";
 import type { Box } from "../box";
 import { roofGeometry } from "../roof/geometry";
 import type { RoofKind } from "../roof/roof";
+import { cubeGeometry } from "./cube";
 import type { FillStyle, HeightedKind, SolidKind } from "./kind";
 
 export interface HeightedSpec {
@@ -22,6 +23,7 @@ const GEOMETRIES: Record<RoofKind, HeightedGeometry> &
   Partial<Record<SolidKind, HeightedGeometry>> = {
   gable: roofGeometry,
   hip: roofGeometry,
+  cube: cubeGeometry,
 };
 
 export function geometryOf(kind: HeightedKind): HeightedGeometry {

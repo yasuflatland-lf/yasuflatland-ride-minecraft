@@ -72,10 +72,13 @@ describe("heighted geometry", () => {
     },
   );
 
+  it("rejects unregistered cylinder geometry", () => {
+    expect(() => geometryOf("cylinder")).toThrow(Error);
+  });
+
   it.each(["cylinder", "cube"] as const)(
-    "rejects unregistered %s geometry and non-roof specs",
+    "rejects %s specs for roof geometry",
     (kind) => {
-      expect(() => geometryOf(kind)).toThrow(Error);
       const spec = {
         base: boxOf({ x: 0, y: 0, z: 0 }, { x: 4, y: 0, z: 4 }),
         kind,
