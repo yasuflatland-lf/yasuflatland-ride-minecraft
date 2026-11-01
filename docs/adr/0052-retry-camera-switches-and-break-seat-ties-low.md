@@ -16,12 +16,12 @@ The nearest-seat rule of 0007 and 0019 does not specify how to break equal-dista
 - Log a camera failure once per player until a switch for that player succeeds. Only a successful switch removes the player from `cameraFailed`, allowing a later failure to be logged again; the entry stays when the failed switch stops being needed before it is retried. A failure must not stop other vehicles or riders
 - Use the lower seat index when two or more seats are exactly as close. Keep the existing seat coordinates, where positive x is left and positive z is forward:
 
-  | Index | Position | x | z |
-  |---|---|---|---|
-  | 0 | Driver, front right | -0.38 | 0.35 |
-  | 1 | Front passenger | 0.38 | 0.35 |
-  | 2 | Behind the driver | -0.38 | -0.8 |
-  | 3 | Behind the front passenger | 0.38 | -0.8 |
+  | Index | Position                   | x     | z    |
+  | ----- | -------------------------- | ----- | ---- |
+  | 0     | Driver, front right        | -0.38 | 0.35 |
+  | 1     | Front passenger            | 0.38  | 0.35 |
+  | 2     | Behind the driver          | -0.38 | -0.8 |
+  | 3     | Behind the front passenger | 0.38  | -0.8 |
 
   A rider on the center line (`x = 0`) is assigned seat 0 in the front row or seat 2 in the back row; for example, `(0, 0.35)` selects 0 and `(0, -0.8)` selects 2
 

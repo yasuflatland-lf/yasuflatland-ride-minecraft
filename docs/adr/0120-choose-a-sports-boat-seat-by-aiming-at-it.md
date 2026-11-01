@@ -62,7 +62,7 @@ Because the seat is the list index, a player reaches seat k only if k riders are
   - With `SeatFillers` laying driver, filler, rear, the rear cow sits in seat 2.
   - After the driver is ejected and the list is laid again every tick, as the boat does, the rear cow waits a tick and gets back into seat 2, with two fillers holding seats 0 and 1 and no third one.
   - Laying an empty list leaves no fillers.
-  
+
   A unit test keeps the probe's `minecraft:rideable` equal to the boat's apart from `family_types`.
 
 ## Consequences
@@ -78,5 +78,5 @@ Because the seat is the list index, a player reaches seat k only if k riders are
   - `getRiders()` returns the riders in list order.
   - A player ejected in one tick is taken back on the next. CI showed that a cow is not taken back in the same tick. The in-game test reports how many ticks the cow waited (`waited`, `backAt`), and up to 5 are allowed.
   - The engine fires `playerInteractWithEntity` for a press on the boat from the water or the shore.
-  
+
   If the press on the boat does not reach the server from the deck (0063), a player there still uses a deck seat. If players are not seated by list index as the cows were, revisit this decision.

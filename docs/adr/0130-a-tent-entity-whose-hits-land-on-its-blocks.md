@@ -33,20 +33,20 @@ The model frame follows ADR 0009 (front at -z) and the game frame (+x is the ent
 
 Footprint: 7 wide x 12 deep, `x -3..3`, `z 0..11`.
 
-| Part | Cells |
-|---|---|
-| Rear wall | x -2..2, z 0, layers 0..2. The entity stands in (0, 0, 0) |
-| Side walls | x -3 and x 3, z 1..7, layers 0..2, including the side flap cells |
-| Bedroom | x -2..2, z 1..2, layers 0..2 |
-| Mattresses | `mattress_0` x 1, z 1..2; `mattress_1` x -1, z 1..2; layer 0, 9 px high (as `camper_bed`, ADR 0092) |
-| Inner tent front panel | x -2..2, z 3, layers 0..2; the bedroom flap (D-door) at x 0, layers 0..1 |
-| Front room | x -2..2, z 4..7, layers 0..2 (3 blocks of headroom) |
-| Side flaps | left x 3, z 5, layers 0..1; right x -3, z 5, layers 0..1 |
-| Front wall | x -2..2, z 8, layers 0..2; the front flap at x 0, layers 0..1 |
-| Corners | x -3 and x 3 at z 0 and at z 8 are not laid; the fly model covers them |
-| Lantern cell | x 0, z 4, layer 3: the ceiling cell above the lantern. 12/13 lays a `tent_lantern` block there in place of `tent_ceiling` |
-| Ceiling | x -2..2, z 1..7, layer 3 (bedroom and front room); x -2..2, z 9..11, layer 2 (tarp) |
-| Tarp area | x -2..2, z 9..11, layers 0..1 open; two poles at the front corners, model only, no cell |
+| Part                   | Cells                                                                                                                     |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Rear wall              | x -2..2, z 0, layers 0..2. The entity stands in (0, 0, 0)                                                                 |
+| Side walls             | x -3 and x 3, z 1..7, layers 0..2, including the side flap cells                                                          |
+| Bedroom                | x -2..2, z 1..2, layers 0..2                                                                                              |
+| Mattresses             | `mattress_0` x 1, z 1..2; `mattress_1` x -1, z 1..2; layer 0, 9 px high (as `camper_bed`, ADR 0092)                       |
+| Inner tent front panel | x -2..2, z 3, layers 0..2; the bedroom flap (D-door) at x 0, layers 0..1                                                  |
+| Front room             | x -2..2, z 4..7, layers 0..2 (3 blocks of headroom)                                                                       |
+| Side flaps             | left x 3, z 5, layers 0..1; right x -3, z 5, layers 0..1                                                                  |
+| Front wall             | x -2..2, z 8, layers 0..2; the front flap at x 0, layers 0..1                                                             |
+| Corners                | x -3 and x 3 at z 0 and at z 8 are not laid; the fly model covers them                                                    |
+| Lantern cell           | x 0, z 4, layer 3: the ceiling cell above the lantern. 12/13 lays a `tent_lantern` block there in place of `tent_ceiling` |
+| Ceiling                | x -2..2, z 1..7, layer 3 (bedroom and front room); x -2..2, z 9..11, layer 2 (tarp)                                       |
+| Tarp area              | x -2..2, z 9..11, layers 0..1 open; two poles at the front corners, model only, no cell                                   |
 
 Counts that 9/13 must match:
 
@@ -100,21 +100,21 @@ RGBA texture of 4 x 4 swatches. The model has no brand logo or product name (000
 Visible bounds are width 13, height 5, offset `[0, 2.5, -5.5]`. All bones except
 root have parents; `lantern_glass` is last for rendering.
 
-| Bone | Parent | Pivot | Content and limits (px) |
-|---|---|---|---|
-| `root` | - | [0, 0, 0] | no cubes |
-| `fly` | root | [0, 0, 0] | The outer fly. Its cross-section's inner surface is vertical at \|x\| = 52 for y 0..32, then a half ellipse centered (0, 32) with half-width 52 and height 39 (peak inner 71, outer 72); thickness 1 px outward. The tunnel runs z -135..+8 with end panels at z +7..+8 (rear) and z -135..-134 (front). Openings are cut for the front flap (x -8..8, y 0..32) and the side flaps (z -88..-72, y 0..32). The tarp is a 1 px sheet over x -41..41 from y 60 at z -135 down to y 40 at z -184. Built from z-rotated segments, as the camper wheel rim is. |
-| `inner` | root | [0, 0, 0] | The white inner tent: side walls at x 40..41 and -41..-40, rear wall z -8..-7, roof y 48..50 over x -41..41, z -55..-7, front panel z -55..-54 over x -41..41, y 0..48, with the D-door opening x -8..8, y 0..32. |
-| `poles` | root | [0, 0, 0] | Three 1.5 px arch poles along the fly's inner surface at z -134..-132.5, -58..-56.5, and +4..+5.5. Two tarp poles from y 0 to 40 at x 40..41.5 and -41.5..-40, z -184..-182.5. |
-| `strap` | root | [0, 0, 0] | Black strap x -1..1, y 69..70, z -134..+4, with silver 2 px rings every 24 px along it. |
-| `lantern` | root | [0, 69, -64] | White hook x -0.5..0.5 from y 69 down to 44 at z -64, plus a cap at y 44..45. |
-| `lantern_glass` | lantern | [0, 40, -64] | Round milky shade inside x -4..4, y 36..44, z -68..-60. |
-| `flap_front` | fly | [0, 32, -135.5] | Panel inside x -8..8, y 0..32, z -136..-135. |
-| `flap_left` | fly | [53.5, 32, -80] | Panel inside x 53..54, y 0..32, z -88..-72. |
-| `flap_right` | fly | [-53.5, 32, -80] | Panel inside x -54..-53, y 0..32, z -88..-72. |
-| `flap_bedroom` | inner | [0, 32, -55.5] | D-door panel inside x -8..8, y 0..32, z -56..-55. |
-| `mattress_0` | root | [16, 0, -24] | Mattress inside x 9..23, y 0..9, z -39..-9; top at 9. |
-| `mattress_1` | root | [-16, 0, -24] | Mattress inside x -23..-9, y 0..9, z -39..-9; top at 9. |
+| Bone            | Parent  | Pivot            | Content and limits (px)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| --------------- | ------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `root`          | -       | [0, 0, 0]        | no cubes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `fly`           | root    | [0, 0, 0]        | The outer fly. Its cross-section's inner surface is vertical at \|x\| = 52 for y 0..32, then a half ellipse centered (0, 32) with half-width 52 and height 39 (peak inner 71, outer 72); thickness 1 px outward. The tunnel runs z -135..+8 with end panels at z +7..+8 (rear) and z -135..-134 (front). Openings are cut for the front flap (x -8..8, y 0..32) and the side flaps (z -88..-72, y 0..32). The tarp is a 1 px sheet over x -41..41 from y 60 at z -135 down to y 40 at z -184. Built from z-rotated segments, as the camper wheel rim is. |
+| `inner`         | root    | [0, 0, 0]        | The white inner tent: side walls at x 40..41 and -41..-40, rear wall z -8..-7, roof y 48..50 over x -41..41, z -55..-7, front panel z -55..-54 over x -41..41, y 0..48, with the D-door opening x -8..8, y 0..32.                                                                                                                                                                                                                                                                                                                                        |
+| `poles`         | root    | [0, 0, 0]        | Three 1.5 px arch poles along the fly's inner surface at z -134..-132.5, -58..-56.5, and +4..+5.5. Two tarp poles from y 0 to 40 at x 40..41.5 and -41.5..-40, z -184..-182.5.                                                                                                                                                                                                                                                                                                                                                                           |
+| `strap`         | root    | [0, 0, 0]        | Black strap x -1..1, y 69..70, z -134..+4, with silver 2 px rings every 24 px along it.                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `lantern`       | root    | [0, 69, -64]     | White hook x -0.5..0.5 from y 69 down to 44 at z -64, plus a cap at y 44..45.                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `lantern_glass` | lantern | [0, 40, -64]     | Round milky shade inside x -4..4, y 36..44, z -68..-60.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `flap_front`    | fly     | [0, 32, -135.5]  | Panel inside x -8..8, y 0..32, z -136..-135.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `flap_left`     | fly     | [53.5, 32, -80]  | Panel inside x 53..54, y 0..32, z -88..-72.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `flap_right`    | fly     | [-53.5, 32, -80] | Panel inside x -54..-53, y 0..32, z -88..-72.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `flap_bedroom`  | inner   | [0, 32, -55.5]   | D-door panel inside x -8..8, y 0..32, z -56..-55.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `mattress_0`    | root    | [16, 0, -24]     | Mattress inside x 9..23, y 0..9, z -39..-9; top at 9.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `mattress_1`    | root    | [-16, 0, -24]    | Mattress inside x -23..-9, y 0..9, z -39..-9; top at 9.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 
 Each flap pivot is the middle of its opening's top edge on the panel's plane, so scaling y rolls the flap up. The side flap opening z -88..-72 is cell z 5 (center -80, +-8 px).
 
@@ -128,20 +128,20 @@ portion, below the layer-3 lantern cell. Flaps stay in their specified openings.
 The generator also validates texture-slot ownership. Its isolated CLI imports no
 other tool and `--check` compares parsed JSON and decoded PNG pixels.
 
-| Slot | Name | RGBA |
-|---|---|---|
-| 0 | `fly` | (176, 140, 98, 255), the tan-brown default |
-| 1 | `fly_dark` | (136, 104, 68, 255), seams and bindings |
-| 2 | `inner` | (236, 234, 226, 255) |
-| 3 | `inner_shade` | (204, 202, 194, 255) |
-| 4 | `pole` | (170, 174, 180, 255) |
-| 5 | `pole_dark` | (120, 124, 130, 255) |
-| 6 | `strap` | (24, 24, 24, 255) |
-| 7 | `ring` | (196, 198, 202, 255) |
-| 8 | `hook` | (240, 240, 236, 255) |
-| 9 | `glass` | (226, 222, 206, 0). Alpha 0: the emissive material lights it fully, and `entity` ignores alpha, as the camper's ceiling light lenses (ADR 0115). |
-| 10 | `mattress` | (64, 86, 120, 255) |
-| 11 | `mattress_edge` | (44, 60, 86, 255) |
+| Slot | Name            | RGBA                                                                                                                                             |
+| ---- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 0    | `fly`           | (176, 140, 98, 255), the tan-brown default                                                                                                       |
+| 1    | `fly_dark`      | (136, 104, 68, 255), seams and bindings                                                                                                          |
+| 2    | `inner`         | (236, 234, 226, 255)                                                                                                                             |
+| 3    | `inner_shade`   | (204, 202, 194, 255)                                                                                                                             |
+| 4    | `pole`          | (170, 174, 180, 255)                                                                                                                             |
+| 5    | `pole_dark`     | (120, 124, 130, 255)                                                                                                                             |
+| 6    | `strap`         | (24, 24, 24, 255)                                                                                                                                |
+| 7    | `ring`          | (196, 198, 202, 255)                                                                                                                             |
+| 8    | `hook`          | (240, 240, 236, 255)                                                                                                                             |
+| 9    | `glass`         | (226, 222, 206, 0). Alpha 0: the emissive material lights it fully, and `entity` ignores alpha, as the camper's ceiling light lenses (ADR 0115). |
+| 10   | `mattress`      | (64, 86, 120, 255)                                                                                                                               |
+| 11   | `mattress_edge` | (44, 60, 86, 255)                                                                                                                                |
 
 Slot ownership (part of the contract): slots 0 and 1 (`fly`, `fly_dark`) are used only by cubes of `fly`, `flap_front`, `flap_left`, and `flap_right` (the fly group). `flap_bedroom` uses slots 2 and 3. No other bone uses slots 0 and 1. So 13/13's recolor of slots 0 and 1 repaints exactly the fly and its three flaps.
 
