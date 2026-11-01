@@ -2,6 +2,7 @@ import type { AimReader } from "../../../application/build/ports/aim";
 import { BUILD_SPEC } from "../../../domain/build/spec";
 import type { PlayerId } from "../../../domain/shared/ids";
 import { playerById } from "../../shared/players";
+import { FACES } from "./faces";
 
 export class BedrockAimReader implements AimReader {
   aim(playerId: PlayerId) {
@@ -16,7 +17,9 @@ export class BedrockAimReader implements AimReader {
           origin: player.getHeadLocation(),
           direction: player.getViewDirection(),
         },
-        block: hit ? { cell: hit.block.location, face: hit.face } : undefined,
+        block: hit
+          ? { cell: hit.block.location, face: FACES[hit.face] }
+          : undefined,
       };
     } catch {
       return undefined;
