@@ -1,9 +1,12 @@
 import type { Player } from "@minecraft/server";
 import { ActionFormData, ModalFormData } from "@minecraft/server-ui";
 import {
+  type ContentsEntryId,
   contentsMenu,
   type MenuEntry,
+  type ShapeEntryId,
   shapeMenu,
+  type UtilityEntryId,
   utilityMenu,
 } from "../../../domain/build/flow/menu";
 import { isRoofKind } from "../../../domain/build/roof/roof";
@@ -14,6 +17,28 @@ import { asPlayerId, type PlayerId } from "../../../domain/shared/ids";
 import { BUILD_FORM } from "../identifiers";
 
 import { type MenuCases, MenuChoices } from "./menuChoices";
+
+const MENU_LABELS: Record<
+  ShapeEntryId | ContentsEntryId | UtilityEntryId,
+  keyof typeof BUILD_FORM
+> = {
+  place: "place",
+  fill: "fill",
+  frame: "frame",
+  faces: "faces",
+  walls: "walls",
+  gable: "gable",
+  hip: "hip",
+  cylinder: "cylinder",
+  cube: "cube",
+  cancel: "cancel",
+  hollow: "hollow",
+  tube: "tube",
+  copy: "copy",
+  paste: "paste",
+  undo: "undo",
+  clear: "clear",
+};
 
 export interface BuildMenus {
   showShapeMenu(player: Player): Promise<void>;
@@ -149,12 +174,12 @@ export class BedrockBuildMenus implements BuildMenus {
   private async choose(
     player: Player,
     title: string,
-    entries: MenuEntry[],
+    entries: MenuEntry<ShapeEntryId | ContentsEntryId | UtilityEntryId>[],
   ): Promise<string | undefined> {
     if (entries.length === 0) return undefined;
     const form = new ActionFormData().title({ translate: title });
     for (const { id } of entries)
-      form.button({ translate: BUILD_FORM[id as keyof typeof BUILD_FORM] });
+      form.button({ translate: BUILD_FORM[MENU_LABELS[id]] });
     const answer = await form.show(player);
     if (!player.isValid) return undefined;
     if (answer.canceled || answer.cancelationReason !== undefined)
