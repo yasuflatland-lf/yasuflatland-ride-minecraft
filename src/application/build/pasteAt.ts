@@ -5,8 +5,9 @@ import {
   pasteBox,
 } from "../../domain/build/clipboard/clipboard";
 import { planPaste } from "../../domain/build/edit/plan";
-import { cancel } from "../../domain/build/flow/flow";
+import { isRepeat, recordPaste } from "../../domain/build/flow/flow";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
+import { BUILD_SPEC } from "../../domain/build/spec";
 import type { Cell } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { EditJobs } from "./editJobs";
@@ -26,6 +27,7 @@ export class PasteAt {
     dimensionId: DimensionId;
     block: Cell;
     face: Face;
+    tick: number;
   }): void {
     const { playerId } = cmd;
     const session = this.repo.getOrCreate(playerId);
@@ -37,6 +39,7 @@ export class PasteAt {
       this.feedback.showMessage(playerId, "noClipboard");
       return;
     }
+    if (isRepeat(flow, anchor, cmd.tick, BUILD_SPEC.pasteRepeatTicks)) return;
     const box = pasteBox(clipboard, anchor);
     for (const cell of cellsOf(box)) {
       if (!this.world.mayEdit(cmd.dimensionId, cell)) {
@@ -55,6 +58,6 @@ export class PasteAt {
       planPaste(clipboard, anchor, flow.skipAir),
       false,
     );
-    session.setFlow(cancel(flow));
+    session.setFlow(recordPaste(flow, anchor, cmd.tick));
   }
 }

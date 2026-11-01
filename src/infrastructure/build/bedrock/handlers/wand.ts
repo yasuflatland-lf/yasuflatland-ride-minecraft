@@ -76,7 +76,12 @@ export function registerWand({
           confirmCopyHeight.execute({ playerId: command.playerId });
         else void menus.showContentsMenu(player);
       } else if (repo.get(command.playerId)?.flow.kind === "pasteAim") {
-        pasteAt.execute({ ...command, block: command.cell, face: FACES[face] });
+        pasteAt.execute({
+          ...command,
+          block: command.cell,
+          face: FACES[face],
+          tick: system.currentTick,
+        });
       } else {
         const before = repo.get(command.playerId)?.flow.kind;
         setPoint.execute(command);

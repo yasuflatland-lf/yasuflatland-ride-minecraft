@@ -106,6 +106,8 @@ export class MenuChoices {
         case "clear":
           this.cases[entryId].execute({ playerId });
           break;
+        case "stopPaste":
+          return false;
         case "paste":
           this.cases.paste.execute({
             playerId,

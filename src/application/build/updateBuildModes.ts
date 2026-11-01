@@ -24,7 +24,7 @@ export class UpdateBuildModes {
       if (
         session?.tickMode({ holding }) &&
         !session.isInBuildMode &&
-        session.flow.kind === "point1"
+        session.flow.kind !== "idle"
       ) {
         this.cancel?.execute({ playerId });
       }

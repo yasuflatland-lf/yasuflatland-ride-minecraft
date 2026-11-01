@@ -45,7 +45,7 @@ describe("UpdateBuildModes", () => {
     expect(modes.isInBuildMode(asPlayerId("nobody"))).toBe(false);
   });
 });
-it("cancels only point1 when build mode leaves after its grace delay", () => {
+it("cancels in-progress selections when build mode leaves after its grace delay", () => {
   fc.assert(
     fc.property(cell, cell, fc.boolean(), (a, b, endpoint) => {
       const { repo } = setup();
@@ -63,7 +63,7 @@ it("cancels only point1 when build mode leaves after its grace delay", () => {
         modes.execute([{ playerId: alex, holding: false }]);
       expect(session.flow).toBe(flow);
       modes.execute([{ playerId: alex, holding: false }]);
-      expect(session.flow.kind).toBe(endpoint ? "endpoint" : "idle");
+      expect(session.flow.kind).toBe("idle");
       expect(session.confirmedBox).toBe(confirmed);
     }),
   );
