@@ -69,6 +69,8 @@ export function registerTestTap(
           feedback.showMessage(id, name, volume);
         },
         showSize: (id, size) => feedback.showSize(id, size),
+        showPasteHint: (id, size, count) =>
+          feedback.showPasteHint(id, size, count),
         drawPreview: (id, dimension, set) =>
           feedback.drawPreview(id, dimension, set),
       };

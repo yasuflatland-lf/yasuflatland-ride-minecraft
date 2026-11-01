@@ -86,6 +86,7 @@ it("preserves blocks and defers point taps out of before events", () => {
         const feedback: BuildFeedback = {
           showMessage: vi.fn(),
           showSize: vi.fn(),
+          showPasteHint: vi.fn(),
           drawPreview: vi.fn(),
         };
         const blocks = new FakeWorld();
@@ -187,6 +188,7 @@ function setupAir() {
   const feedback: BuildFeedback = {
     showMessage: vi.fn(),
     showSize: vi.fn(),
+    showPasteHint: vi.fn(),
     drawPreview: vi.fn(),
   };
   const blocks = new FakeWorld();
@@ -502,7 +504,7 @@ it("routes each engine face to aimed paste in the hit dimension after the before
         expect(session.isEditing).toBe(false);
         for (const callback of engine.scheduled.splice(0)) callback();
         expect(pointCall).not.toHaveBeenCalled();
-        expect(session.flow.kind).toBe("idle");
+        expect(session.flow.kind).toBe("pasteAim");
         jobs.step();
         const offset = {
           Up: [0, 1, 0],
