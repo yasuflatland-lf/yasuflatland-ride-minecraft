@@ -7,13 +7,20 @@ import { StopPaste } from "../../../src/application/build/stopPaste";
 import { UpdateBuildModes } from "../../../src/application/build/updateBuildModes";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
+import {
+  clipboardOf,
+  pasteTarget,
+} from "../../../src/domain/build/clipboard/clipboard";
 import {
   chooseHeighted,
   startPaste,
   tapAir,
   tapBlock,
 } from "../../../src/domain/build/flow/flow";
+import {
+  beginPasteAim,
+  recordPaste,
+} from "../../../src/domain/build/flow/paste";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
@@ -38,7 +45,11 @@ function setup() {
   session.setClipboard(clipboardOf(boxOf(at, at), () => stone));
   session.setFlow(startPaste(session.flow, false));
   const paste = new PasteAt(repo, world, feedback, jobs);
-  return { repo, session, world, feedback, jobs, paste };
+  const target = (block: { x: number; y: number; z: number }) => {
+    if (!session.clipboard) throw new Error("Expected clipboard");
+    return pasteTarget(session.clipboard, block, "up");
+  };
+  return { repo, session, world, feedback, jobs, paste, target };
 }
 
 it("keeps aiming through successive pastes with one job and bounded undo record per paste", () => {
@@ -54,18 +65,16 @@ it("keeps aiming through successive pastes with one job and bounded undo record 
           e.paste.execute({
             playerId,
             dimensionId: overworld,
-            block,
-            face: "up",
+            target: e.target(block),
             tick: i * BUILD_SPEC.pasteRepeatTicks,
           });
-          expect(e.session.flow).toEqual({
-            kind: "pasteAim",
-            skipAir: false,
-            lastPaste: {
-              anchor: { ...block, y: block.y + 1 },
-              tick: i * BUILD_SPEC.pasteRepeatTicks,
-            },
-          });
+          expect(e.session.flow).toEqual(
+            recordPaste(
+              beginPasteAim(false),
+              { ...block, y: block.y + 1 },
+              i * BUILD_SPEC.pasteRepeatTicks,
+            ),
+          );
           expect(e.session.isEditing).toBe(true);
           e.jobs.step();
           expect(e.session.isEditing).toBe(false);
@@ -110,8 +119,7 @@ it("silently ignores repeats, refuses busy and blocked taps, and records only su
         const cmd = {
           playerId,
           dimensionId: overworld,
-          block,
-          face: "up" as const,
+          target: e.target(block),
           tick: 100,
         };
         e.paste.execute(cmd);
@@ -121,19 +129,19 @@ it("silently ignores repeats, refuses busy and blocked taps, and records only su
         expect(e.feedback.messages).toEqual([]);
         expect(mayEdit).not.toHaveBeenCalled();
         const other = { ...block, x: block.x + 1 };
-        e.paste.execute({ ...cmd, block: other });
+        e.paste.execute({ ...cmd, target: e.target(other) });
         expect(e.feedback.messages.at(-1)?.message).toBe("busy");
         expect(e.session.flow).toBe(flow);
         e.jobs.step();
         const anchor = { ...other, y: other.y + 1 };
         e.world.protectedCells.add(cellKey(anchor));
-        e.paste.execute({ ...cmd, block: other, tick: 200 });
+        e.paste.execute({ ...cmd, target: e.target(other), tick: 200 });
         expect(e.feedback.messages.at(-1)?.message).toBe("pasteBlocked");
         expect(e.session.flow).toBe(flow);
         expect(e.session.isEditing).toBe(false);
         expect(start).toHaveBeenCalledTimes(1);
         e.world.protectedCells.clear();
-        e.paste.execute({ ...cmd, block: other, tick: 200 });
+        e.paste.execute({ ...cmd, target: e.target(other), tick: 200 });
         expect(start).toHaveBeenCalledTimes(2);
         expect(e.session.flow).toMatchObject({
           kind: "pasteAim",
@@ -149,8 +157,7 @@ it("allows the same anchor again once the repeat window ends", () => {
   const cmd = {
     playerId,
     dimensionId: overworld,
-    block: { x: 0, y: 0, z: 0 },
-    face: "up" as const,
+    target: e.target({ x: 0, y: 0, z: 0 }),
     tick: 0,
   };
   const start = vi.spyOn(e.jobs, "start");

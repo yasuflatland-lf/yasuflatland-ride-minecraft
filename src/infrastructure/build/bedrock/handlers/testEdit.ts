@@ -1,5 +1,6 @@
 import { ScriptEventSource, system, world } from "@minecraft/server";
 import type { ConfirmCopyHeight } from "../../../../application/build/confirmCopyHeight";
+import type { DescribeBuild } from "../../../../application/build/describeBuild";
 import type { PasteAt } from "../../../../application/build/pasteAt";
 import type {
   BuildFeedback,
@@ -7,7 +8,10 @@ import type {
 } from "../../../../application/build/ports/feedback";
 import type { SetHeightTo } from "../../../../application/build/setHeightTo";
 import type { UndoEdit } from "../../../../application/build/undoEdit";
-import { parseFace } from "../../../../domain/build/clipboard/clipboard";
+import {
+  parseFace,
+  pasteTarget,
+} from "../../../../domain/build/clipboard/clipboard";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
 import {
   asDimensionId,
@@ -62,8 +66,9 @@ export function registerTestEdit(
   confirmCopyHeight: ConfirmCopyHeight,
   paste: PasteAt,
   undo: UndoEdit,
-  repo: BuildSessionRepository,
+  describe: DescribeBuild,
   messages: Pick<ReturnType<typeof recordMessages>, "last" | "forget">,
+  repo: BuildSessionRepository,
 ): void {
   system.afterEvents.scriptEventReceive.subscribe(
     (ev) => {
@@ -79,11 +84,22 @@ export function registerTestEdit(
       let offered: boolean | undefined;
       messages.forget(playerId);
       try {
+        if (command === "state" && args.length === 0) {
+          system.sendScriptEvent(
+            TEST_RESULT_EVENT,
+            JSON.stringify({
+              player: player.name,
+              ...describe.execute(playerId),
+            }),
+          );
+          return;
+        }
         if (
           command === "menu" &&
           (args[0] === "shape" ||
             args[0] === "contents" ||
-            args[0] === "utility") &&
+            args[0] === "utility" ||
+            args[0] === "paste") &&
           (args.length === 2 ||
             (args.length === 3 && (args[2] === "0" || args[2] === "1")))
         ) {
@@ -114,15 +130,29 @@ export function registerTestEdit(
             );
             return;
           }
+          const clipboard = repo.get(playerId)?.clipboard;
+          if (!clipboard) {
+            system.sendScriptEvent(
+              TEST_RESULT_EVENT,
+              JSON.stringify({
+                player: player.name,
+                error: "No clipboard for paste",
+              }),
+            );
+            return;
+          }
           paste.execute({
             playerId,
             dimensionId: asDimensionId(player.dimension.id),
-            block: {
-              x: Number(args[0]),
-              y: Number(args[1]),
-              z: Number(args[2]),
-            },
-            face,
+            target: pasteTarget(
+              clipboard,
+              {
+                x: Number(args[0]),
+                y: Number(args[1]),
+                z: Number(args[2]),
+              },
+              face,
+            ),
             tick: system.currentTick,
           });
         } else if (command === "undo" && args.length === 0)
@@ -136,7 +166,7 @@ export function registerTestEdit(
       const reply = () => {
         if (!player.isValid) return;
         if (
-          repo.get(playerId)?.isEditing &&
+          describe.editStatus(playerId).isEditing &&
           system.currentTick - started < 200
         ) {
           system.runTimeout(reply, 1);
@@ -148,8 +178,8 @@ export function registerTestEdit(
           JSON.stringify({
             player: player.name,
             offered,
-            flow: repo.get(playerId)?.flow ?? { kind: "idle" },
-            timedOut: repo.get(playerId)?.isEditing ?? false,
+            flow: describe.editStatus(playerId).flow,
+            timedOut: describe.editStatus(playerId).isEditing,
             message: last?.message,
             count: last?.count,
             ticks: system.currentTick - started,

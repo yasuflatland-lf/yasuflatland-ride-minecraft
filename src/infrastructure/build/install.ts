@@ -8,9 +8,11 @@ import { ConfirmHeighted } from "../../application/build/confirmHeighted";
 import { ConfirmShape } from "../../application/build/confirmShape";
 import { CopyBox } from "../../application/build/copyBox";
 import { CopySelection } from "../../application/build/copySelection";
+import { DescribeBuild } from "../../application/build/describeBuild";
 import { EditJobs } from "../../application/build/editJobs";
 import { LeaveBuild } from "../../application/build/leaveBuild";
 import { PasteAt } from "../../application/build/pasteAt";
+import { PressPasteAim } from "../../application/build/pressPasteAim";
 import { SetHeightTo } from "../../application/build/setHeightTo";
 import { SetPoint } from "../../application/build/setPoint";
 import { ShowPreview } from "../../application/build/showPreview";
@@ -74,7 +76,7 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
   registerWand({
     setPoint: new SetPoint(repo, blocks, feedback),
     tapAir: new TapAir(repo, feedback),
-    pasteAt: cases.pasteAt,
+    pressPasteAim: new PressPasteAim(repo, cases.pasteAt, feedback),
     aimHeight: cases.aimHeight,
     confirmCopyHeight: cases.confirmCopyHeight,
     repo,
@@ -98,7 +100,8 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
     menuCases.confirmCopyHeight,
     cases.pasteAt,
     cases.undo,
-    repo,
+    new DescribeBuild(repo),
     recorded,
+    repo,
   );
 }
