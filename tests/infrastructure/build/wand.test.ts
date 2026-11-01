@@ -7,12 +7,15 @@ import { EditJobs } from "../../../src/application/build/editJobs";
 import { PasteAt } from "../../../src/application/build/pasteAt";
 import type { AimReader } from "../../../src/application/build/ports/aim";
 import type { BuildFeedback } from "../../../src/application/build/ports/feedback";
+import { PressPasteAim } from "../../../src/application/build/pressPasteAim";
 import { SetPoint } from "../../../src/application/build/setPoint";
-import { StartPaste } from "../../../src/application/build/startPaste";
 import { TapAir } from "../../../src/application/build/tapAir";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
+import {
+  aimedPasteTarget,
+  clipboardOf,
+} from "../../../src/domain/build/clipboard/clipboard";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import {
   asDimensionId,
@@ -30,6 +33,7 @@ const menus = {
   showShapeMenu: vi.fn(),
   showContentsMenu: vi.fn(),
   showUtilityMenu: vi.fn(),
+  showPasteMenu: vi.fn(),
   showHeightSlider: vi.fn(),
 };
 
@@ -95,11 +99,15 @@ it("preserves blocks and defers point taps out of before events", () => {
           confirmCopyHeight: { execute: vi.fn() },
           aimHeight: new AimHeight(repo),
           repo,
-          pasteAt: new PasteAt(
+          pressPasteAim: new PressPasteAim(
             repo,
-            blocks,
+            new PasteAt(
+              repo,
+              blocks,
+              feedback,
+              new EditJobs(repo, blocks, feedback),
+            ),
             feedback,
-            new EditJobs(repo, blocks, feedback),
           ),
           setPoint: new SetPoint(repo, blocks, feedback),
           tapAir: new TapAir(repo, feedback),
@@ -110,7 +118,7 @@ it("preserves blocks and defers point taps out of before events", () => {
                 origin: { x: 0, y: 0, z: 0 },
                 direction: { x: 1, y: 0, z: 0 },
               },
-              block: { cell: { x, y, z }, face: "Up" },
+              block: { cell: { x, y, z }, face: "up" as const },
             }),
           },
           debounce: new PressDebounces<PlayerId>(BUILD_SPEC.pressDebounceTicks),
@@ -203,6 +211,7 @@ function setupAir() {
     showShapeMenu: vi.fn(),
     showContentsMenu: vi.fn(),
     showUtilityMenu: vi.fn(),
+    showPasteMenu: vi.fn(),
     showHeightSlider: vi.fn(),
   };
   const aim: AimReader = {
@@ -216,6 +225,7 @@ function setupAir() {
   const debounce = new PressDebounces<PlayerId>(BUILD_SPEC.pressDebounceTicks);
   const player = {
     id: "p",
+    dimension: { id: "minecraft:nether" },
     isValid: true,
     isSneaking: false,
     selectedSlotIndex: 0,
@@ -231,16 +241,17 @@ function setupAir() {
     cell: { x: 10, y: 0, z: 0 },
     material: blockStateOf("minecraft:stone"),
   });
+  const paste = new PasteAt(
+    repo,
+    blocks,
+    feedback,
+    new EditJobs(repo, blocks, feedback),
+  );
   registerWand({
     confirmCopyHeight,
     aimHeight,
     repo,
-    pasteAt: new PasteAt(
-      repo,
-      blocks,
-      feedback,
-      new EditJobs(repo, blocks, feedback),
-    ),
+    pressPasteAim: new PressPasteAim(repo, paste, feedback),
     setPoint,
     tapAir,
     menus,
@@ -267,6 +278,7 @@ function setupAir() {
     confirmCopyHeight,
     roofExecute,
     pointExecute,
+    paste,
     feedback,
   };
 }
@@ -295,7 +307,7 @@ it.each(["gable", "hip"] as const)(
     const e = setupRoof(kind);
     const target = {
       ray: e.ray,
-      block: { cell: { x: 90, y: 80, z: 70 }, face: "Up" },
+      block: { cell: { x: 90, y: 80, z: 70 }, face: "up" as const },
     };
     e.aim.aim = vi.fn(() => target);
     const event = {
@@ -392,7 +404,7 @@ it("ignores itemUse for an aimed block, even before the deferred interact callba
   const { aim, use, execute, menus, player } = setupAir();
   aim.aim = () => ({
     ray: { origin: { x: 0, y: 0, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
-    block: { cell: { x: 1, y: 0, z: 0 }, face: "Up" },
+    block: { cell: { x: 1, y: 0, z: 0 }, face: "up" as const },
   });
   use();
   engine.tick = 10;
@@ -443,85 +455,69 @@ it("ignores non-player deaths and drops both session and debounce on disconnect"
   expect(debounce.press(id, 0)).toBe(true);
 });
 
-it("routes each engine face to aimed paste in the hit dimension after the before event", () => {
+it("routes paste aiming through itemUse with live aim and shared debounce", () => {
   fc.assert(
     fc.property(
-      fc.constantFrom("Up", "Down", "North", "South", "East", "West"),
+      fc.constantFrom("up", "down", "north", "south", "east", "west"),
       fc.record({
         x: fc.integer({ min: -100, max: 100 }),
         y: fc.integer({ min: 0, max: 200 }),
         z: fc.integer({ min: -100, max: 100 }),
       }),
       fc.boolean(),
-      (face, block, skipAir) => {
-        engine.scheduled.length = 0;
-        vi.clearAllMocks();
-        const repo = new InMemorySessionRepository();
-        const id = asPlayerId("p");
-        const session = repo.getOrCreate(id);
-        const feedback = new FakeFeedback();
-        const blocks = new FakeWorld();
-        session.setClipboard(
-          clipboardOf(boxOf(block, block), () =>
-            blockStateOf("minecraft:stone"),
-          ),
+      fc.boolean(),
+      (face, block, hasBlock, sneaking) => {
+        const e = setupAir();
+        e.player.isSneaking = sneaking;
+        const clipboard = clipboardOf(boxOf(block, block), () =>
+          blockStateOf("minecraft:stone"),
         );
-        new StartPaste(repo).execute({ playerId: id, skipAir });
-        const flow = session.flow;
-        const jobs = new EditJobs(repo, blocks, feedback);
-        const point = new SetPoint(repo, blocks, feedback);
-        const pointCall = vi.spyOn(point, "execute");
-        registerWand({
-          confirmCopyHeight: { execute: vi.fn() },
-          aimHeight: new AimHeight(repo),
-          setPoint: point,
-          tapAir: new TapAir(repo, feedback),
-          menus,
-          aim: { aim: () => undefined },
-          debounce: new PressDebounces<PlayerId>(BUILD_SPEC.pressDebounceTicks),
-          pointOf: () => undefined,
-          repo,
-          pasteAt: new PasteAt(repo, blocks, feedback, jobs),
-        });
-        const player = {
-          id: "p",
-          typeId: "minecraft:player",
-          isValid: true,
-          selectedSlotIndex: 0,
-          getComponent: () => ({
-            container: { getItem: () => ({ typeId: SELECTION_WAND_TYPE }) },
-          }),
+        e.session.setClipboard(clipboard);
+        e.session.setFlow({ kind: "pasteAim", skipAir: false });
+        const flow = e.session.flow;
+        const target = {
+          ray: { origin: block, direction: { x: 1, y: 0, z: 0 } },
+          block: hasBlock ? { cell: block, face } : undefined,
         };
-        const event = {
-          player,
-          block: { dimension: { id: "minecraft:nether" }, location: block },
-          blockFace: face,
-          isFirstEvent: true,
-          cancel: false,
-        };
-        engine.handlers.get("interact")?.(event);
-        expect(event.cancel).toBe(true);
-        expect(session.flow).toBe(flow);
-        expect(session.isEditing).toBe(false);
-        for (const callback of engine.scheduled.splice(0)) callback();
-        expect(pointCall).not.toHaveBeenCalled();
-        expect(session.flow.kind).toBe("pasteAim");
-        jobs.step();
-        const offset = {
-          Up: [0, 1, 0],
-          Down: [0, -1, 0],
-          North: [0, 0, -1],
-          South: [0, 0, 1],
-          East: [1, 0, 0],
-          West: [-1, 0, 0],
-        }[face];
-        expect(
-          blocks.stateAt(nether, {
-            x: block.x + (offset[0] as number),
-            y: block.y + (offset[1] as number),
-            z: block.z + (offset[2] as number),
-          }),
-        ).toEqual(blockStateOf("minecraft:stone"));
+        e.aim.aim = vi.fn(() => target);
+        const pasteCall = vi.spyOn(e.paste, "execute");
+        for (const isFirstEvent of [true, false]) {
+          const event = {
+            player: e.player,
+            block: { dimension: { id: "minecraft:nether" }, location: block },
+            isFirstEvent,
+            cancel: false,
+          };
+          engine.handlers.get("interact")?.(event);
+          expect(event.cancel).toBe(true);
+        }
+        expect(engine.scheduled).toHaveLength(0);
+        expect(pasteCall).not.toHaveBeenCalled();
+        expect(e.session.flow).toBe(flow);
+        for (const tick of [0, 4, 10, 15]) {
+          engine.tick = tick;
+          e.use();
+        }
+        expect(e.aim.aim).toHaveBeenCalledExactlyOnceWith(e.id);
+        if (hasBlock) {
+          expect(pasteCall).toHaveBeenCalledExactlyOnceWith({
+            playerId: e.id,
+            dimensionId: nether,
+            target: aimedPasteTarget(clipboard, target),
+            tick: 0,
+          });
+          expect(e.session.isEditing).toBe(true);
+          expect(e.menus.showPasteMenu).not.toHaveBeenCalled();
+        } else {
+          expect(pasteCall).not.toHaveBeenCalled();
+          expect(e.session.isEditing).toBe(false);
+          expect(e.menus.showPasteMenu).toHaveBeenCalledExactlyOnceWith(
+            e.player,
+          );
+        }
+        expect(e.pointExecute).not.toHaveBeenCalled();
+        expect(e.execute).not.toHaveBeenCalled();
+        expect(e.menus.showUtilityMenu).not.toHaveBeenCalled();
       },
     ),
   );
@@ -556,11 +552,10 @@ it("opens only on entering endpoint and defers an air-triggered menu safely", ()
     setPoint: new SetPoint(repo, blocks, feedback),
     tapAir: air,
     repo,
-    pasteAt: new PasteAt(
+    pressPasteAim: new PressPasteAim(
       repo,
-      blocks,
+      new PasteAt(repo, blocks, feedback, new EditJobs(repo, blocks, feedback)),
       feedback,
-      new EditJobs(repo, blocks, feedback),
     ),
     menus,
     aim: {

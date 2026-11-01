@@ -45,7 +45,7 @@ export function clipboardOf(
 
 export type Face = "up" | "down" | "north" | "south" | "east" | "west";
 
-export function anchorCell(block: Cell, face: Face): Cell {
+function anchorCell(block: Cell, face: Face): Cell {
   const offsets: Record<Face, Cell> = {
     up: { x: 0, y: 1, z: 0 },
     down: { x: 0, y: -1, z: 0 },
@@ -61,10 +61,45 @@ export function anchorCell(block: Cell, face: Face): Cell {
     z: block.z + offset.z,
   };
 }
-export function pasteBox(clipboard: Clipboard, anchor: Cell): Box {
+function pasteBox(clipboard: Clipboard, anchor: Cell): Box {
   return boxOf(anchor, {
     x: anchor.x + clipboard.size.x - 1,
     y: anchor.y + clipboard.size.y - 1,
     z: anchor.z + clipboard.size.z - 1,
   });
+}
+
+export type PasteTarget = { anchor: Cell; box: Box };
+
+export function pasteTarget(
+  clipboard: Clipboard,
+  block: Cell,
+  face: Face,
+): PasteTarget {
+  const anchor = anchorCell(block, face);
+  return { anchor, box: pasteBox(clipboard, anchor) };
+}
+
+export function aimedPasteTarget(
+  clipboard: Clipboard,
+  aim: { block?: { cell: Cell; face: Face } },
+): PasteTarget | undefined {
+  return aim.block
+    ? pasteTarget(clipboard, aim.block.cell, aim.block.face)
+    : undefined;
+}
+
+export function parseFace(value: string): Face | undefined {
+  const face = value.toLowerCase();
+  switch (face) {
+    case "up":
+    case "down":
+    case "north":
+    case "south":
+    case "east":
+    case "west":
+      return face;
+    default:
+      return undefined;
+  }
 }
