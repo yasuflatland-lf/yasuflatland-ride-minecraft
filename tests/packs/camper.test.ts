@@ -1986,28 +1986,50 @@ describe("camper front grilles (ADR 0199)", () => {
       .filter((cube) => (cube.origin[2] ?? 0) < -47.5)
       .map((cube) => {
         const angle = -((cube.rotation?.[2] ?? 0) * Math.PI) / 180;
-        return { cube, cos: Math.cos(angle), sin: Math.sin(angle) };
+        const [px = 0, py = 0] = cube.pivot ?? [];
+        const [cx = 0, cy = 0, cz = 0] = cube.origin;
+        return {
+          px,
+          py,
+          cx,
+          cy,
+          cz,
+          maxX: end(cube, 0),
+          maxY: end(cube, 1),
+          colour: slots[cube.uv.north?.uv[0] ?? -1],
+          cos: Math.cos(angle),
+          sin: Math.sin(angle),
+        };
       });
     const frontmostColour = (x: number, y: number) => {
       let closest = Number.POSITIVE_INFINITY;
       let colour: string | undefined;
-      for (const { cube, cos, sin } of front) {
-        const [px = 0, py = 0] = cube.pivot ?? [];
+      for (const {
+        px,
+        py,
+        cx,
+        cy,
+        cz,
+        maxX,
+        maxY,
+        colour: faceColour,
+        cos,
+        sin,
+      } of front) {
         const dx = x - px;
         const dy = y - py;
         // Bedrock's roll sign is opposite the mathematical xy rotation; chrome samples along the V guard this convention.
         const localX = px + dx * cos + dy * sin;
         const localY = py - dx * sin + dy * cos;
-        const [cx = 0, cy = 0, cz = 0] = cube.origin;
         if (
           localX >= cx &&
-          localX <= end(cube, 0) &&
+          localX <= maxX &&
           localY >= cy &&
-          localY <= end(cube, 1) &&
+          localY <= maxY &&
           cz <= closest
         ) {
           closest = cz;
-          colour = slots[cube.uv.north?.uv[0] ?? -1];
+          colour = faceColour;
         }
       }
       return colour;
@@ -2020,13 +2042,18 @@ describe("camper front grilles (ADR 0199)", () => {
       );
       let run = 0;
       let longest = 0;
+      const colours = new Set<string | undefined>();
       for (let step = 0; step <= 200; step++) {
         const colour = frontmostColour(x, bottom - step * 0.01);
         // The rolled frame's inner edges can expose the upper grille backing; count it as dark too so it cannot hide a wedge.
-        expect(["black", "slat", "chrome", "grille"]).toContain(colour);
+        colours.add(colour);
         run = colour === "black" || colour === "grille" ? run + 1 : 0;
         longest = Math.max(longest, run);
       }
+      expect(
+        ["black", "slat", "chrome", "grille"],
+        `colours at x=${x}`,
+      ).toEqual(expect.arrayContaining([...colours]));
       expect(longest * 0.01, `dark gap at x=${x}`).toBeLessThanOrEqual(0.5);
     };
     // Keep the full 2 px scan inside the louvers, clear of the slanted edge's black strip.
