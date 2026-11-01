@@ -1,7 +1,7 @@
 import type { CancelFlow } from "../../../application/build/cancelFlow";
 import type { ChooseHeighted } from "../../../application/build/chooseHeighted";
 import type { ClearSelection } from "../../../application/build/clearSelection";
-import type { ConfirmRoof } from "../../../application/build/confirmRoof";
+import type { ConfirmHeighted } from "../../../application/build/confirmHeighted";
 import type { ConfirmShape } from "../../../application/build/confirmShape";
 import type { CopySelection } from "../../../application/build/copySelection";
 import type { SetHeightTo } from "../../../application/build/setHeightTo";
@@ -13,11 +13,12 @@ import {
   utilityMenu,
 } from "../../../domain/build/flow/menu";
 import type { BuildSessionRepository } from "../../../domain/build/sessionRepository";
+import type { FillStyle } from "../../../domain/build/volume/kind";
 import type { PlayerId } from "../../../domain/shared/ids";
 export interface MenuCases {
   confirmShape: Pick<ConfirmShape, "execute">;
   chooseHeighted: Pick<ChooseHeighted, "execute">;
-  confirmRoof: Pick<ConfirmRoof, "execute">;
+  confirmHeighted: Pick<ConfirmHeighted, "execute">;
   cancel: Pick<CancelFlow, "backToAiming">;
   copy: Pick<CopySelection, "execute">;
   paste: Pick<StartPaste, "execute">;
@@ -69,9 +70,9 @@ export class MenuChoices {
     } else if (menu === "contents") {
       if (entryId === "cancel") this.cases.cancel.backToAiming({ playerId });
       else
-        this.cases.confirmRoof.execute({
+        this.cases.confirmHeighted.execute({
           playerId,
-          hollow: entryId === "hollow",
+          fill: entryId as FillStyle,
         });
     } else {
       switch (entryId) {

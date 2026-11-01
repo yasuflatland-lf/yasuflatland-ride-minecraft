@@ -1,5 +1,6 @@
 import type { BuildSession } from "../session";
 import { shapeOf, stylesFor } from "../shape/shape";
+import { fillStylesFor } from "../volume/kind";
 import type { BuildFlow } from "./flow";
 
 export interface MenuEntry {
@@ -32,6 +33,9 @@ export function utilityMenu(session: BuildSession): MenuEntry[] {
 
 export function contentsMenu(flow: BuildFlow): MenuEntry[] {
   return flow.kind === "heightStep"
-    ? [{ id: "fill" }, { id: "hollow" }, { id: "cancel" }]
+    ? [
+        ...fillStylesFor(flow.heightedKind).map((id) => ({ id })),
+        { id: "cancel" },
+      ]
     : [];
 }

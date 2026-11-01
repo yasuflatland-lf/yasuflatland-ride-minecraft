@@ -100,7 +100,7 @@ function setup(fallback?: boolean) {
     chooseHeighted: {
       execute: vi.fn((cmd) => new ChooseHeighted(repo).execute(cmd)),
     },
-    confirmRoof: { execute: vi.fn() },
+    confirmHeighted: { execute: vi.fn() },
     cancel: {
       backToAiming: vi.fn((cmd) => new CancelFlow(repo).backToAiming(cmd)),
     },
@@ -233,9 +233,9 @@ it.each([false, true])("confirms roof hollow=%s", async (hollow) => {
   session.setFlow(chooseHeighted(endpoint, "gable"));
   ui.answers.push({ selection: hollow ? 1 : 0 });
   await menus.showContentsMenu(player);
-  expect(cases.confirmRoof.execute).toHaveBeenCalledExactlyOnceWith({
+  expect(cases.confirmHeighted.execute).toHaveBeenCalledExactlyOnceWith({
     playerId,
-    hollow,
+    fill: hollow ? "hollow" : "fill",
   });
 });
 
@@ -345,9 +345,9 @@ it("bounds the fallback slider, uses the previous height and applies it before t
         expect(ui.forms[1]?.buttons).toEqual(
           labels(contentsMenu(session.flow)),
         );
-        expect(cases.confirmRoof.execute).toHaveBeenCalledExactlyOnceWith({
+        expect(cases.confirmHeighted.execute).toHaveBeenCalledExactlyOnceWith({
           playerId,
-          hollow: true,
+          fill: "hollow",
         });
       },
     ),
@@ -369,9 +369,9 @@ it.each(["gable", "hip"] as const)(
       playerId,
       height: 3,
     });
-    expect(cases.confirmRoof.execute).toHaveBeenCalledWith({
+    expect(cases.confirmHeighted.execute).toHaveBeenCalledWith({
       playerId,
-      hollow: false,
+      fill: "fill",
     });
   },
 );
@@ -564,9 +564,9 @@ it.each(["fill", "hollow", "cancel"] as const)(
         playerId,
       });
     else
-      expect(cases.confirmRoof.execute).toHaveBeenCalledExactlyOnceWith({
+      expect(cases.confirmHeighted.execute).toHaveBeenCalledExactlyOnceWith({
         playerId,
-        hollow: id === "hollow",
+        fill: id,
       });
   },
 );
