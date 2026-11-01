@@ -20,10 +20,12 @@ Holding the wand enters build mode after a short grace delay; putting it away le
 Tap or right-click a block to set point 1 and choose that block's material. A blinking marker surrounds it and the action bar names the material. Aim at a block or at air to preview the end point; in air it follows a vertical plane through point 1. Tap again to fix the end point and open the shape menu:
 
 - A line offers Place.
-- A rectangle offers Fill and Frame only; a horizontal rectangle also offers Gable roof, Hip roof, Cylinder, and Cube.
+- A rectangle offers Fill and Frame; a horizontal rectangle also offers Gable roof, Hip roof, Cylinder, and Cube.
 - A box offers Fill, Faces only, Walls only, and Cylinder.
 
 On the iPad a short tap on air sends nothing to the add-on, so every air action (an end point in the air, confirming a roof height while looking at the sky, the utility menu) needs a long press of about one second. A tap on a block works as usual.
+
+Every shape also offers Copy. On a horizontal rectangle, aim to choose the copy height and tap to copy the box; other shapes copy immediately. The action bar reports the copied block count and how to paste.
 
 Cancel returns to end-point selection. For a roof, aim to choose its height, tap to confirm, then choose Fill or Hollow. Roofs use full blocks of the selected material.
 
@@ -31,7 +33,7 @@ Cylinder and Cube grow upward from a horizontal rectangle: aim to choose the hei
 
 ## Utility menu and paste
 
-Sneak and tap or right-click on air to open the utility menu. It offers applicable Copy, Paste, Undo, and Clear selection actions. Copy needs a confirmed selection; Paste needs a clipboard. Choose Paste and set Skip air before aiming. The clipboard outline follows the aimed block; tap a block to place the clipboard minimum corner adjacent to the tapped face, with no rotation. A paste overlapping a protected place is refused as a whole.
+Sneak and tap or right-click on air to open the utility menu. Outside paste aiming, it offers applicable Copy, Paste, Undo, and Clear selection actions. Copy needs a confirmed selection; Paste needs a clipboard. Choose Paste and set Skip air before aiming. The clipboard outline follows the aimed block; tap a block to place the clipboard minimum corner adjacent to the tapped face, with no rotation. Paste aiming continues after each placement, so further block taps paste again with the same Skip air setting. A paste overlapping a protected place is refused as a whole and aiming continues. While pasting, the utility menu offers only Undo (with history) and Stop pasting. The action-bar hint shows the clipboard size, block count, and exits: Stop pasting or switching items. Each paste is one Undo entry.
 
 Air in a copied selection replaces destination blocks unless Skip air is on. Kept blocks, such as chests and signs, are not copied; their destination cells remain untouched.
 

@@ -1,6 +1,6 @@
 # 0202. Build Wand Copy and continuous Paste
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-01
 - Extends: [0198](0198-one-build-wand-without-a-bulldozer.md) (Decision 10: one paste, then done), [0201](0201-build-wand-cylinder-and-cube.md) (the height step gains a Copy kind)
 
@@ -35,4 +35,7 @@ Structure:
 - Copy reuses the height step, so a new height-step kind that places no cells needs no placement entry.
 - Continuous Paste changes the one-paste-then-done behavior of 0198 Decision 10 without rewriting its text.
 - Touch behavior (the aim for the Copy height, repeated block taps, the utility menu with sneak) is unverified until checked on the iPad.
+- `build_copy_shapes`, `build_continuous_paste`, and `build_paste_blocked` cover real block permutations, exact undo restoration, laid-block protection, and item-switch timing through the engine hooks, following [0188](0188-fuse-in-game-scenarios-and-keep-only-engine-facts-in-game.md) and [0010](0010-testing-strategy.md). Client taps, forms, outlines, and action-bar readability still require manual checks.
+- During normal play, the paste hint points to Stop pasting and item switching as the only ways to leave paste aiming; successful or refused pastes keep it active. Death, disconnect, and dimension changes still cancel it.
+- The undo stack is unchanged: each paste adds one entry, with the same ten-entry limit per player.
 - Revisit this decision if players ask for rotation, flip, or cut.

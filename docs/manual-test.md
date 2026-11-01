@@ -548,12 +548,16 @@ Precondition: hold the wand in first person on the iPad. A block tap selects the
 
 | ID | Action | Expected | PC | iPad |
 |---|---|---|---|---|
-| BWM1 | Confirm an end point for a line, vertical rectangle, horizontal rectangle, and box | The shape menu shows only applicable entries: Place; Fill and Frame; Fill, Frame, Gable roof and Hip roof; or Fill, Faces only and Walls only, respectively, plus Cancel | unverified | unverified |
-| BWM2 | Choose each shape action; reopen and use Cancel, Escape or Back | Each action builds the selected style; cancellation returns to end-point selection | unverified | unverified |
+| BWM1 | Confirm an end point for a line, vertical rectangle, horizontal rectangle, and box | The shape menu shows only applicable entries: Place; Fill and Frame; Fill, Frame, Gable roof, Hip roof, Cylinder and Cube; or Fill, Faces only, Walls only and Cylinder, respectively, plus Copy and Cancel | unverified | unverified |
+| BWM2 | Choose each shape action; reopen and use Cancel, Escape or Back | Each build action builds the selected style; cancellation returns to end-point selection | unverified | unverified |
 | BWM3 | Choose either roof kind, confirm its height, then choose Fill or Hollow; repeat with Cancel, Escape and Back | Fill builds a solid roof, Hollow builds its shell, and cancellation returns to end-point selection | unverified | unverified |
 | BWM4 | Enable the height slider fallback and choose either roof kind | Slider ranges from 1 to the allowed roof height, starts at the previous height and applies it before opening Fill/Hollow; with the flag disabled no slider opens | unverified | unverified |
-| BWM5 | Open the wand utility menu with and without a selection, clipboard and history; choose each available action | Only applicable Copy, Paste, Undo and Clear selection entries appear; Paste asks for Skip air, initially off, before starting paste aiming; dismissal does nothing | unverified | unverified |
+| BWM5 | Open the wand utility menu with and without a selection, clipboard and history; choose each available action | Outside paste aiming, only applicable Copy, Paste, Undo and Clear selection entries appear; while pasting, only Undo (with history) and Stop pasting appear; Paste asks for Skip air, initially off, before starting paste aiming; dismissal does nothing | unverified | unverified |
 | BWM6 | Repeatedly request menus, including while the paste toggle or height slider is open | Only one form opens per player; another player can open independently; the form does not hide the preview more than the engine forces | unverified | unverified |
+| BWM7 | Choose Copy from the shape menu on a line, vertical rectangle, horizontal rectangle, and box | Copy is offered on every shape; only a horizontal rectangle starts the height step | unverified | unverified |
+| BWM8 | Choose Copy on a box containing several block types | The box copies immediately without a height or contents menu; the action bar reports the block count and how to paste | unverified | unverified |
+| BWM9 | While pasting, sneak and tap on air to open the utility menu | Only Undo (when history exists) and Stop pasting appear; on iPad use a long press of about one second for the air action | unverified | unverified |
+| BWM10 | Choose Stop pasting, then reopen the utility menu | Paste aiming ends without placing blocks; Stop pasting is no longer offered | unverified | unverified |
 
 ### Build Wand in-game scenarios
 
@@ -566,11 +570,18 @@ These scenarios require one connected player, run exclusively without vehicles, 
 | `build_flow_cancel` | Wand mode on foot, item-switch cancellation of point 1, preserved endpoint, shape/roof Cancel returning to aiming |
 | `build_refusals` | Over-limit air endpoint, refused chest material and laid-block protection |
 | `build_aimed_paste` | Copy, all six aimed faces, Skip air on/off, block states and exact destination undo |
+| `build_copy_shapes` | Shape-menu Copy of a box, vertical rectangle and height-confirmed horizontal rectangle; pasted source permutations and exact undo |
+| `build_continuous_paste` | Three anchors in one paste step, three exact undos, Stop pasting availability and item-switch cancellation |
+| `build_paste_blocked` | Laid-block overlap refuses the whole paste without ending aiming; a following clean paste succeeds and undoes exactly |
 | `build_block_states` | Engine block-permutation round trip |
 
-Remaining manual checks are BW1-BW4 (real taps, debounce and break prevention), BWM1-BWM6 (forms and dismissal), BT5/BT9 (camera and hotbar feel), and the live preview rows above. Also check:
+Remaining manual checks are BW1-BW4 (real taps, debounce and break prevention), BWM1-BWM10 (forms and dismissal), BT5/BT9 (camera and hotbar feel), and the live preview rows above. Also check:
 
 | ID | Action | Expected | PC | iPad |
 |---|---|---|---|---|
 | BW5 | Choose Gable roof or Hip roof, aim up/down and nearly parallel to its apex line, then tap a block; repeat with an air tap and a sneaking air tap | Height preview follows aim, retains height for a parallel ray, respects the cap, and each tap opens Fill/Hollow once with the aimed height; the shape and utility menus stay closed | unverified | unverified |
-| BW6 | Choose Paste, aim at each face, switch items, then retry and tap | Preview minimum corner is adjacent to the face; switching items cancels it; the pasted blocks match the preview | unverified | unverified |
+| BW6 | Choose Paste, aim at each face, switch items, then retry and tap | Preview minimum corner is adjacent to the face; switching items cancels it; the pasted blocks match the preview and paste aiming continues | unverified | unverified |
+| BW7 | Choose Copy on a horizontal rectangle, aim up and down, then confirm; repeat with a footprint and aimed height exceeding 32,768 cells | The Copy outline has its own layer, the size readout follows the height, and an over-limit outline is visible; over-limit confirmation reports too large and stays in the step | unverified | unverified |
+| BW8 | Choose Paste and tap three separated blocks in succession | Each tap pastes at that anchor; the outline remains ready for the next tap with the same Skip air setting | unverified | unverified |
+| BW9 | Remain in paste aiming before and after placing blocks | The action bar continuously shows clipboard size, block count, and how to stop via Stop pasting or switching items | unverified | unverified |
+| BW10 | While aiming a paste, switch to another hotbar item and wait for the grace delay | Paste aiming and its hint end without another paste; holding the wand again does not resume paste aiming | unverified | unverified |
