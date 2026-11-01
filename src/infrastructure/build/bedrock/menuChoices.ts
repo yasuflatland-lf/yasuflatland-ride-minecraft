@@ -9,12 +9,20 @@ import type { StartPaste } from "../../../application/build/startPaste";
 import type { UndoEdit } from "../../../application/build/undoEdit";
 import {
   contentsMenu,
+  type MenuEntry,
   shapeMenu,
   utilityMenu,
 } from "../../../domain/build/flow/menu";
 import type { BuildSessionRepository } from "../../../domain/build/sessionRepository";
-import type { FillStyle } from "../../../domain/build/volume/kind";
 import type { PlayerId } from "../../../domain/shared/ids";
+
+function isOffered<Id extends string>(
+  entries: MenuEntry<Id>[],
+  entryId: string | undefined,
+): entryId is Id {
+  return entries.some((entry) => entry.id === entryId);
+}
+
 export interface MenuCases {
   confirmShape: Pick<ConfirmShape, "execute">;
   chooseHeighted: Pick<ChooseHeighted, "execute">;
@@ -40,14 +48,8 @@ export class MenuChoices {
   ): boolean {
     const session = this.repo.get(playerId);
     if (!session) return false;
-    const entries =
-      menu === "shape"
-        ? shapeMenu(session.flow)
-        : menu === "contents"
-          ? contentsMenu(session.flow)
-          : utilityMenu(session);
-    if (!entries.some((entry) => entry.id === entryId)) return false;
     if (menu === "shape") {
+      if (!isOffered(shapeMenu(session.flow), entryId)) return false;
       switch (entryId) {
         case "place":
         case "fill":
@@ -68,15 +70,29 @@ export class MenuChoices {
         case "cancel":
           this.cases.cancel.backToAiming({ playerId });
           break;
+        default: {
+          const exhaustive: never = entryId;
+          return exhaustive;
+        }
       }
     } else if (menu === "contents") {
-      if (entryId === "cancel") this.cases.cancel.backToAiming({ playerId });
-      else
-        this.cases.confirmHeighted.execute({
-          playerId,
-          fill: entryId as FillStyle,
-        });
+      if (!isOffered(contentsMenu(session.flow), entryId)) return false;
+      switch (entryId) {
+        case "cancel":
+          this.cases.cancel.backToAiming({ playerId });
+          break;
+        case "fill":
+        case "hollow":
+        case "tube":
+          this.cases.confirmHeighted.execute({ playerId, fill: entryId });
+          break;
+        default: {
+          const exhaustive: never = entryId;
+          return exhaustive;
+        }
+      }
     } else {
+      if (!isOffered(utilityMenu(session), entryId)) return false;
       switch (entryId) {
         case "copy":
         case "undo":
@@ -89,6 +105,10 @@ export class MenuChoices {
             skipAir: options.skipAir ?? false,
           });
           break;
+        default: {
+          const exhaustive: never = entryId;
+          return exhaustive;
+        }
       }
     }
     return true;
