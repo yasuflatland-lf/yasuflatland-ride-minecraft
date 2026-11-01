@@ -6,9 +6,13 @@ import { ClearSelection } from "../../application/build/clearSelection";
 import { ConfirmCopyHeight } from "../../application/build/confirmCopyHeight";
 import { ConfirmHeighted } from "../../application/build/confirmHeighted";
 import { ConfirmShape } from "../../application/build/confirmShape";
+import { CopyBox } from "../../application/build/copyBox";
 import { CopySelection } from "../../application/build/copySelection";
+import { DescribeBuild } from "../../application/build/describeBuild";
 import { EditJobs } from "../../application/build/editJobs";
+import { LeaveBuild } from "../../application/build/leaveBuild";
 import { PasteAt } from "../../application/build/pasteAt";
+import { PressPasteAim } from "../../application/build/pressPasteAim";
 import { SetHeightTo } from "../../application/build/setHeightTo";
 import { SetPoint } from "../../application/build/setPoint";
 import { ShowPreview } from "../../application/build/showPreview";
@@ -44,14 +48,15 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
   const aim = new BedrockAimReader();
   const cancel = new CancelFlow(repo);
   const debounce = new PressDebounces<PlayerId>(BUILD_SPEC.pressDebounceTicks);
-  const modes = new UpdateBuildModes(repo, cancel);
+  const modes = new UpdateBuildModes(repo, new LeaveBuild(repo));
   const jobs = new EditJobs(repo, blocks, feedback);
   const clear = new ClearSelection(repo, feedback);
+  const copyBox = new CopyBox(repo, blocks, feedback);
   const cases = {
-    chooseCopy: new ChooseCopy(repo, blocks, feedback),
-    confirmCopyHeight: new ConfirmCopyHeight(repo, blocks, feedback),
+    chooseCopy: new ChooseCopy(repo, copyBox, feedback),
+    confirmCopyHeight: new ConfirmCopyHeight(repo, copyBox, feedback),
     fill: new ConfirmShape(repo, feedback, jobs),
-    copy: new CopySelection(repo, blocks, feedback),
+    copy: new CopySelection(repo, copyBox, feedback),
     paste: new StartPaste(repo),
     stopPaste: new StopPaste(repo),
     pasteAt: new PasteAt(repo, blocks, feedback, jobs),
@@ -71,7 +76,7 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
   registerWand({
     setPoint: new SetPoint(repo, blocks, feedback),
     tapAir: new TapAir(repo, feedback),
-    pasteAt: cases.pasteAt,
+    pressPasteAim: new PressPasteAim(repo, cases.pasteAt, feedback),
     aimHeight: cases.aimHeight,
     confirmCopyHeight: cases.confirmCopyHeight,
     repo,
@@ -95,7 +100,8 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
     menuCases.confirmCopyHeight,
     cases.pasteAt,
     cases.undo,
-    repo,
+    new DescribeBuild(repo),
     recorded,
+    repo,
   );
 }

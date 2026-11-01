@@ -9,7 +9,7 @@ import {
 import { boxOf, cellsOf, contains } from "../../../src/domain/build/box";
 import {
   clipboardOf,
-  pasteBox,
+  pasteTarget,
 } from "../../../src/domain/build/clipboard/clipboard";
 import {
   type AppliedChange,
@@ -108,7 +108,11 @@ describe("clipboard", () => {
         const clip = clipboardOf(box, read);
         const all = [...planPaste(clip, target, false)];
         expect(all).toHaveLength(clip.cells.length);
-        const into = pasteBox(clip, target);
+        const into = pasteTarget(
+          clip,
+          { ...target, y: target.y - 1 },
+          "up",
+        ).box;
         expect(all.every((c) => contains(into, c.cell))).toBe(true);
         const noAir = [...planPaste(clip, target, true)];
         expect(noAir.some((c) => c.after.typeId === AIR.typeId)).toBe(false);
