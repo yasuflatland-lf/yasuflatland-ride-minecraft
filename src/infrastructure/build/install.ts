@@ -2,7 +2,7 @@ import { AimHeight } from "../../application/build/aimHeight";
 import { CancelFlow } from "../../application/build/cancelFlow";
 import { ChooseHeighted } from "../../application/build/chooseHeighted";
 import { ClearSelection } from "../../application/build/clearSelection";
-import { ConfirmRoof } from "../../application/build/confirmRoof";
+import { ConfirmHeighted } from "../../application/build/confirmHeighted";
 import { ConfirmShape } from "../../application/build/confirmShape";
 import { CopySelection } from "../../application/build/copySelection";
 import { EditJobs } from "../../application/build/editJobs";
@@ -51,7 +51,7 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
     pasteAt: new PasteAt(repo, blocks, feedback, jobs),
     chooseHeighted: new ChooseHeighted(repo),
     aimHeight: new AimHeight(repo),
-    confirmRoof: new ConfirmRoof(repo, feedback, jobs),
+    confirmHeighted: new ConfirmHeighted(repo, feedback, jobs),
     undo: new UndoEdit(repo, feedback, jobs),
     clear,
   };
