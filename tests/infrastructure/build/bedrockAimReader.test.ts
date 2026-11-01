@@ -6,6 +6,14 @@ import { BedrockAimReader } from "../../../src/infrastructure/build/bedrock/bedr
 const engine = vi.hoisted(() => ({ getEntity: vi.fn() }));
 vi.mock("@minecraft/server", () => ({
   GameMode: {},
+  Direction: {
+    Up: "Up",
+    Down: "Down",
+    North: "North",
+    South: "South",
+    East: "East",
+    West: "West",
+  },
   world: { getEntity: engine.getEntity },
 }));
 
@@ -35,7 +43,7 @@ it("reads the head ray and optional block hit within build reach", () => {
     block: { location: cell },
     face: "North",
   });
-  expect(reader.aim(id)).toEqual({ ray, block: { cell, face: "North" } });
+  expect(reader.aim(id)).toEqual({ ray, block: { cell, face: "north" } });
   expect(engine.getEntity).toHaveBeenCalledWith(id);
   expect(p.getBlockFromViewDirection).toHaveBeenCalledWith({
     maxDistance: BUILD_SPEC.reach,
