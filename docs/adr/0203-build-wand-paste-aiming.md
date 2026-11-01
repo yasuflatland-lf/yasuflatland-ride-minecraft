@@ -33,7 +33,14 @@ Paste is a wand state (`pasteAim`) entered automatically, without a menu step or
 
 ## Input spike event table
 
-Pending the input spike; issue K will fill in the event table for iPad and PC. On PC, a short right click immediately sends `itemUse` and therefore pastes when a block is viewed.
+Expected behaviour only; no device measurements exist yet. Owner verification on iPad and PC is pending.
+
+| Device and action                     | Expected event and result                                              |
+| ------------------------------------- | ---------------------------------------------------------------------- |
+| iPad: short tap on air                | No event; no paste or menu                                             |
+| iPad: long press for about one second | `itemUse`; paste at a viewed block or open the menu on air             |
+| PC: right click                       | `itemUse` immediately; paste at a viewed block or open the menu on air |
+| Block tap                             | `playerInteractWithBlock`; never pastes                                |
 
 ## Consequences
 
