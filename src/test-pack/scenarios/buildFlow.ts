@@ -272,11 +272,12 @@ export function buildFlowCancel(a: Arena): Promise<Outcome> {
     f.hold(false);
     await wait(BUILD_SPEC.modeLeaveTicks + 2);
     check(
-      (await f.mode()).flow.kind === "endpoint",
-      "item switch cancelled endpoint",
+      (await f.mode()).flow.kind === "idle",
+      "item switch did not cancel endpoint",
     );
     f.hold(true);
     await wait(BUILD_SPEC.modeEnterTicks + 2);
+    await f.select(f.cell(4, 0, 4));
     check(
       (await f.menu("shape", "cancel")).flow.kind === "point1",
       "shape Cancel did not resume aiming",
