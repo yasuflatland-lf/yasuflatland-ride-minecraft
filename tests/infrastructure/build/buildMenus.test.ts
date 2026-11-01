@@ -4,6 +4,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { CancelFlow } from "../../../src/application/build/cancelFlow";
 import { ChooseCopy } from "../../../src/application/build/chooseCopy";
 import { ChooseHeighted } from "../../../src/application/build/chooseHeighted";
+import { CopyBox } from "../../../src/application/build/copyBox";
 import { SetHeightTo } from "../../../src/application/build/setHeightTo";
 import { StopPaste } from "../../../src/application/build/stopPaste";
 import { blockStateOf } from "../../../src/domain/build/blockState";
@@ -105,7 +106,11 @@ function setup(fallback?: boolean) {
   const cases = {
     chooseCopy: {
       execute: vi.fn((cmd) =>
-        new ChooseCopy(repo, new FakeWorld(), new FakeFeedback()).execute(cmd),
+        new ChooseCopy(
+          repo,
+          new CopyBox(repo, new FakeWorld(), new FakeFeedback()),
+          new FakeFeedback(),
+        ).execute(cmd),
       ),
     },
     confirmCopyHeight: { execute: vi.fn() },
