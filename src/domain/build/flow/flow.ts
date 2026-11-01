@@ -30,7 +30,11 @@ export type BuildFlow =
       readonly heightLocked: boolean;
       readonly material: BlockState;
     }
-  | { readonly kind: "pasteAim"; readonly skipAir: boolean };
+  | {
+      readonly kind: "pasteAim";
+      readonly skipAir: boolean;
+      readonly lastPaste?: { readonly anchor: Cell; readonly tick: number };
+    };
 
 export function tapBlock(
   flow: BuildFlow,
@@ -113,4 +117,36 @@ export function startPaste(flow: BuildFlow, skipAir: boolean): BuildFlow {
   return flow.kind === "idle"
     ? Object.freeze({ kind: "pasteAim", skipAir })
     : flow;
+}
+
+export function recordPaste(
+  flow: BuildFlow,
+  anchor: Cell,
+  tick: number,
+): BuildFlow {
+  return flow.kind === "pasteAim"
+    ? Object.freeze({
+        ...flow,
+        lastPaste: Object.freeze({
+          anchor: Object.freeze({ ...anchor }),
+          tick,
+        }),
+      })
+    : flow;
+}
+
+export function isRepeat(
+  flow: BuildFlow,
+  anchor: Cell,
+  tick: number,
+  window: number,
+): boolean {
+  if (flow.kind !== "pasteAim" || !flow.lastPaste) return false;
+  const last = flow.lastPaste;
+  return (
+    last.anchor.x === anchor.x &&
+    last.anchor.y === anchor.y &&
+    last.anchor.z === anchor.z &&
+    tick - last.tick < window
+  );
 }
