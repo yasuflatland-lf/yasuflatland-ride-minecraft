@@ -21,8 +21,8 @@ import {
   isKeptState,
 } from "../../../src/domain/build/edit/guard";
 import {
+  planHeighted,
   planPaste,
-  planRoof,
   planShape,
 } from "../../../src/domain/build/edit/plan";
 import { roofCount } from "../../../src/domain/build/roof/roof";
@@ -186,7 +186,9 @@ it("roof plans have exactly the roof count and selected material", () => {
           height,
           kind,
         };
-        const plan = [...planRoof(spec, hollow, { state })];
+        const plan = [
+          ...planHeighted(spec, hollow ? "hollow" : "fill", { state }),
+        ];
         expect(plan).toHaveLength(roofCount(spec, hollow));
         expect(plan.every((change) => change.after === state)).toBe(true);
       },

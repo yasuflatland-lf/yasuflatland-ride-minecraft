@@ -1,8 +1,8 @@
-import { planRoof } from "../../domain/build/edit/plan";
+import { planHeighted } from "../../domain/build/edit/plan";
 import { finishHeightStep } from "../../domain/build/flow/flow";
-import { isRoofKind, roofCount } from "../../domain/build/roof/roof";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
+import { geometryOf } from "../../domain/build/volume/geometry";
 import { type FillStyle, fillStylesFor } from "../../domain/build/volume/kind";
 import type { PlayerId } from "../../domain/shared/ids";
 import type { EditJobs } from "./editJobs";
@@ -19,8 +19,7 @@ export class ConfirmHeighted {
     const flow = session.flow;
     if (
       flow.kind !== "heightStep" ||
-      !fillStylesFor(flow.heightedKind).includes(cmd.fill) ||
-      !isRoofKind(flow.heightedKind)
+      !fillStylesFor(flow.heightedKind).includes(cmd.fill)
     ) {
       this.feedback.showMessage(cmd.playerId, "noSelection");
       return;
@@ -31,7 +30,7 @@ export class ConfirmHeighted {
       kind: flow.heightedKind,
       height: flow.previous,
     };
-    const count = roofCount(spec, hollow);
+    const count = geometryOf(spec.kind).count(spec, cmd.fill);
     if (count > BUILD_SPEC.maxVolume) {
       this.feedback.showMessage(cmd.playerId, "tooLarge", count);
       return;
@@ -49,7 +48,7 @@ export class ConfirmHeighted {
     this.jobs.start(
       cmd.playerId,
       flow.dimensionId,
-      planRoof(spec, hollow, { state: flow.material }),
+      planHeighted(spec, cmd.fill, { state: flow.material }),
       false,
     );
   }
