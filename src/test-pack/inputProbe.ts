@@ -1,8 +1,8 @@
 import { type Player, system, world } from "@minecraft/server";
-import { buildId } from "../infrastructure/build/identifiers";
 
 const PROBE_EVENT = "yasu_ride_test:probe";
-const WAND = buildId("selection_wand");
+// Literal id: importing the build identifiers would make every build change run all scenarios (impact.ts).
+const WAND = "yasu_build:selection_wand";
 const REACH = 64;
 
 const watching = new Set<string>();
