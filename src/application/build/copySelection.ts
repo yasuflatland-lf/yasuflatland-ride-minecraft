@@ -2,14 +2,13 @@
 
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { PlayerId } from "../../domain/shared/ids";
-import { CopyBox } from "./copyBox";
-import type { BuildBlockWorld } from "./ports/blocks";
+import type { CopyBox } from "./copyBox";
 import type { BuildFeedback } from "./ports/feedback";
 
 export class CopySelection {
   constructor(
     private readonly repo: BuildSessionRepository,
-    private readonly world: BuildBlockWorld,
+    private readonly copy: CopyBox,
     private readonly feedback: BuildFeedback,
   ) {}
 
@@ -22,10 +21,6 @@ export class CopySelection {
       return;
     }
     const { box, dimensionId } = confirmed;
-    new CopyBox(this.repo, this.world, this.feedback).execute(
-      playerId,
-      dimensionId,
-      box,
-    );
+    this.copy.execute(playerId, dimensionId, box);
   }
 }

@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
-import { CancelFlow } from "../../../src/application/build/cancelFlow";
 import { EditJobs } from "../../../src/application/build/editJobs";
+import { LeaveBuild } from "../../../src/application/build/leaveBuild";
 import { PasteAt } from "../../../src/application/build/pasteAt";
 import { StopPaste } from "../../../src/application/build/stopPaste";
 import { UpdateBuildModes } from "../../../src/application/build/updateBuildModes";
@@ -190,7 +190,7 @@ it("stops only paste aiming and cancels all in-progress flows on leaving build m
         if (flow.kind === "pasteAim")
           expect(e.session.flow).toEqual({ kind: "idle" });
         else expect(e.session.flow).toBe(flow);
-        const modes = new UpdateBuildModes(e.repo, new CancelFlow(e.repo));
+        const modes = new UpdateBuildModes(e.repo, new LeaveBuild(e.repo));
         for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
           modes.execute([{ playerId, holding: true }]);
         e.session.setFlow(flow);
