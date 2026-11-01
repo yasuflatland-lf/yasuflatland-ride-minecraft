@@ -1,6 +1,7 @@
 // In-game tests (ADR 0010). They run in a script environment separate from the
 // main Behavior Pack, so they drive the vehicle through script events.
 import { system, world } from "@minecraft/server";
+import "./inputProbe";
 import { type Arena, prepareRun, removeVehicles } from "./arena";
 import { CATALOG, type ScenarioSpec } from "./catalog";
 import { isFeatureTag } from "./features";
