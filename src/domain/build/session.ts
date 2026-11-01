@@ -62,6 +62,10 @@ export class BuildSession {
     this.currentFlow = beginPasteAim(false);
   }
 
+  startNewCopy(): void {
+    this.clearSelection();
+  }
+
   clearClipboard(): void {
     this.currentClipboard = undefined;
   }

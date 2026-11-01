@@ -7,6 +7,7 @@ import type { ConfirmHeighted } from "../../../application/build/confirmHeighted
 import type { ConfirmShape } from "../../../application/build/confirmShape";
 import type { CopySelection } from "../../../application/build/copySelection";
 import type { EndPasting } from "../../../application/build/endPasting";
+import type { NewCopy } from "../../../application/build/newCopy";
 import type { SetHeightTo } from "../../../application/build/setHeightTo";
 import type { ToggleSkipAir } from "../../../application/build/toggleSkipAir";
 import type { UndoEdit } from "../../../application/build/undoEdit";
@@ -37,6 +38,7 @@ export interface MenuCases {
   copy: Pick<CopySelection, "execute">;
   toggleSkipAir: Pick<ToggleSkipAir, "execute">;
   endPasting: Pick<EndPasting, "execute">;
+  newCopy: Pick<NewCopy, "execute">;
   undo: Pick<UndoEdit, "execute">;
   clear: Pick<ClearSelection, "execute">;
   setHeight: Pick<SetHeightTo, "execute">;
@@ -113,6 +115,7 @@ export class MenuChoices {
       )
         return false;
       if (entryId === "endPaste") this.cases.endPasting.execute(playerId);
+      else if (entryId === "newCopy") this.cases.newCopy.execute(playerId);
       else if (entryId === "skipAir")
         this.cases.toggleSkipAir.execute({ playerId });
       else this.cases.undo.execute({ playerId });
