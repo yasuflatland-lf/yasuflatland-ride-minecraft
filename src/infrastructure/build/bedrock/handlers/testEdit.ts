@@ -43,6 +43,8 @@ export function recordMessages(feedback: BuildFeedback): {
         feedback.showMessage(id, message, count);
       },
       showSize: (id, size) => feedback.showSize(id, size),
+      showPasteHint: (id, size, count) =>
+        feedback.showPasteHint(id, size, count),
       drawPreview: (id, dimension, set) =>
         feedback.drawPreview(id, dimension, set),
     },

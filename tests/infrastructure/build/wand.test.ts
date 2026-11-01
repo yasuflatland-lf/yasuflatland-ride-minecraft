@@ -86,6 +86,7 @@ it("preserves blocks and defers point taps out of before events", () => {
         const feedback: BuildFeedback = {
           showMessage: vi.fn(),
           showSize: vi.fn(),
+          showPasteHint: vi.fn(),
           drawPreview: vi.fn(),
         };
         const blocks = new FakeWorld();
@@ -186,6 +187,7 @@ function setupAir() {
   const feedback: BuildFeedback = {
     showMessage: vi.fn(),
     showSize: vi.fn(),
+    showPasteHint: vi.fn(),
     drawPreview: vi.fn(),
   };
   const blocks = new FakeWorld();

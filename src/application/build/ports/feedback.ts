@@ -20,6 +20,11 @@ export interface BuildFeedback {
   /** Action bar message; `count` is shown where the message has one (volume, blocks changed). */
   showMessage(playerId: PlayerId, message: BuildMessage, count?: number): void;
   showSize(playerId: PlayerId, size: { x: number; y: number; z: number }): void;
+  showPasteHint(
+    playerId: PlayerId,
+    size: { x: number; y: number; z: number },
+    count: number,
+  ): void;
   drawPreview(
     playerId: PlayerId,
     dimensionId: DimensionId | undefined,

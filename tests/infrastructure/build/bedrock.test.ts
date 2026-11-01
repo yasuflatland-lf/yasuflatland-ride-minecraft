@@ -148,6 +148,11 @@ it("sends translated counts and bounded player-only particles at block centers",
           translate: BUILD_MESSAGE.heightSize,
           with: ["9", "12", "5"],
         });
+        feedback.showPasteHint(playerId, { x: 9, y: 12, z: 5 }, count);
+        expect(setActionBar).toHaveBeenLastCalledWith({
+          translate: BUILD_MESSAGE.pasteHint,
+          with: ["9", "12", "5", String(count)],
+        });
         const box = boxOf(a, b);
         const centered = edgePoints(box, BUILD_SPEC.outlineMaxPoints).map(
           (p) => ({ x: p.x + 0.5, y: p.y + 0.5, z: p.z + 0.5 }),
@@ -171,6 +176,7 @@ it("sends translated counts and bounded player-only particles at block centers",
         player.isValid = false;
         setActionBar.mockClear();
         feedback.showMessage(playerId, "selectionCleared");
+        feedback.showPasteHint(playerId, { x: 9, y: 12, z: 5 }, count);
         feedback.showSize(playerId, { x: 9, y: 12, z: 5 });
         feedback.drawPreview(playerId, dimension, set);
         expect(setActionBar).not.toHaveBeenCalled();

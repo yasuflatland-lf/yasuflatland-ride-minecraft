@@ -60,6 +60,12 @@ export class ShowPreview {
           this.sizes.set(id, size);
         }
       }
+      if (flow.kind === "pasteAim" && session.clipboard)
+        this.feedback.showPasteHint(
+          id,
+          session.clipboard.size,
+          session.clipboard.cells.length,
+        );
       if (flow.kind === "pasteAim" && aim?.block && session.clipboard) {
         const face = aim.block.face.toLowerCase();
         if (isFace(face))

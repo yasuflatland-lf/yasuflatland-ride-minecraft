@@ -38,7 +38,7 @@ const MENU_LABELS: Record<
   paste: "paste",
   undo: "undo",
   clear: "clear",
-  stopPaste: "cancel",
+  stopPaste: "stopPaste",
 };
 
 export interface BuildMenus {

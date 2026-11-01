@@ -4,6 +4,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { CancelFlow } from "../../../src/application/build/cancelFlow";
 import { ChooseHeighted } from "../../../src/application/build/chooseHeighted";
 import { SetHeightTo } from "../../../src/application/build/setHeightTo";
+import { StopPaste } from "../../../src/application/build/stopPaste";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
@@ -106,6 +107,7 @@ function setup(fallback?: boolean) {
     },
     copy: { execute: vi.fn() },
     paste: { execute: vi.fn() },
+    stopPaste: { execute: vi.fn((cmd) => new StopPaste(repo).execute(cmd)) },
     undo: { execute: vi.fn() },
     clear: { execute: vi.fn() },
     setHeight: {
@@ -617,3 +619,38 @@ it.each([false, true])(
     expect(cases.setHeight.execute).not.toHaveBeenCalled();
   },
 );
+
+it("accepts StopPaste only in paste aiming and exposes its own label", async () => {
+  const { session, choices, cases, menus, player } = setup();
+  for (const flow of [
+    { kind: "idle" } as const,
+    {
+      kind: "point1",
+      dimensionId: overworld,
+      cell: from,
+      material: stone,
+    } as const,
+    endpoint,
+    chooseHeighted(endpoint, "hip"),
+  ]) {
+    session.setFlow(flow);
+    expect(choices.choose(playerId, "utility", "stopPaste")).toBe(false);
+  }
+  expect(cases.stopPaste.execute).not.toHaveBeenCalled();
+  session.setFlow({ kind: "pasteAim", skipAir: false });
+  expect(choices.choose(playerId, "utility", "stopPaste")).toBe(true);
+  expect(cases.stopPaste.execute).toHaveBeenCalledExactlyOnceWith({ playerId });
+  expect(session.flow.kind).toBe("idle");
+  expect(choices.choose(playerId, "utility", "stopPaste")).toBe(false);
+  session.setFlow({ kind: "pasteAim", skipAir: true });
+  ui.answers.push({
+    selection: utilityMenu(session).findIndex(
+      (entry) => entry.id === "stopPaste",
+    ),
+  });
+  await menus.showUtilityMenu(player);
+  expect(ui.forms[0]?.buttons).toContainEqual({
+    translate: BUILD_FORM.stopPaste,
+  });
+  expect(session.flow.kind).toBe("idle");
+});
