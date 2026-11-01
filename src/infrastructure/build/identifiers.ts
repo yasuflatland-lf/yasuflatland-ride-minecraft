@@ -38,6 +38,10 @@ export const BUILD_FORM = {
   walls: "yasu_build.form.walls",
   gable: "yasu_build.form.gable",
   hip: "yasu_build.form.hip",
+  cylinder: "yasu_build.form.cylinder",
+  cube: "yasu_build.form.cube",
+  tube: "yasu_build.form.tube",
+  solidTitle: "yasu_build.form.solid_title",
   hollow: "yasu_build.form.hollow",
   cancel: "yasu_build.form.cancel",
 
