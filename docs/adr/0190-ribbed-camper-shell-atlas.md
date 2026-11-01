@@ -1,6 +1,7 @@
 # 0190. A ribbed camper shell atlas and trim
 
 - Status: Proposed
+- Amended in part by [0199](0199-square-the-camper-front-and-fold-the-grille.md) (Proposed)
 - Amended in part by [0197](0197-emit-camper-hover-particles-below-the-discs.md) (Proposed)
 - Date: 2026-10-30
 - Related: [0067](0067-camper.md), [0091](0091-alpha-blend-only-the-camper-glass.md), [0157](0157-an-aluminium-rimmed-louvred-camper-vent-lid.md), [0076](0076-per-kind-default-paint.md)

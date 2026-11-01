@@ -359,7 +359,7 @@ def w_fill(x0, x1, span, y0, y1):
 
 
 CAB_WIN = (-50, -38, 35, 50)
-SIDE0 = FRONT + 3  # side walls start behind the chamfered front corners
+SIDE0 = FRONT + 3
 # Wheel arches: wide at the bottom with the top corners cut, as on the photos.
 arch_holes = []
 for a0, a1 in ARCHES:  # straight up to ARCH_SLOPE_Y, then sloping in by ARCH_INSET in fine steps
@@ -484,90 +484,114 @@ for z in (DZ0 + 1, DZ1 - 2):
     body.append(box(HW, 3.5, z, HW + 6, 8, z + 1, "black"))
 
 # --- Front ------------------------------------------------------------------
-SILL_LOW = 33  # the front face and corners stop here; the sloping sill caps them
+SILL_LOW = 33  # The front face stops here so the sloping sill can cap it.
 FRONT_START = len(body)
-FW = HW - 3  # half width of the flat front face; the corners are cut at 45 degrees
-WS_Z = FRONT + 2.5  # the windshield sits behind a ledge over the grille
-UPPER = (18, 29.5)  # upper grille, across the face and around the corners
-LOWER_Y = (8, 18)  # lower grille between the lamps, narrower at the bottom
-CORNER = 3 * math.sqrt(2)
-SLAT_Y = [UPPER[0] + 0.6 + i * 1.5 for i in range(int((UPPER[1] - UPPER[0]) / 1.5))]
+WS_Z = FRONT + 2.5  # The windshield sits behind a ledge over the grille.
+UPPER = (18, 29.5)  # Upper grille across the face.
+LOWER_Y = (8, 18)  # Lower grille between the lamps, narrower at the bottom.
+# Leave room for the outer trim without widening the square body.
+EDGE_INSET = 0.4
+GRILLE_HALF = HW - EDGE_INSET
+# Two rolled halves give the 175-degree centre crease required by ADR 0199.
+GRILLE_ROLL = 2.5
+ROLL_COS = math.cos(math.radians(GRILLE_ROLL))
+ROLL_SLOPE = math.tan(math.radians(GRILLE_ROLL))
+GRILLE_DROP = GRILLE_HALF * ROLL_SLOPE
+FRAME = 0.45
+SLAT_THICK = 0.45
+SLAT_PITCH = 0.9
+SLAT_MARGIN = 0.05
+# Quarter-pixel columns keep each step along the rolled edge smaller than a texel.
+SEAM_STEP = 0.25
+GDIV = GRILLE_HALF * 7.5 / 19.5
+LOWER_HALF_BOTTOM, LOWER_HALF_TOP = 8, 12
 
 
-def corner(sx, z, y0, y1, color, inset=0.0):
-    cx, cz = sx * (FW + 1.5), z + 1.5
-    return box(cx - CORNER / 2, y0, cz - 0.5 - inset, cx + CORNER / 2, y1, cz + 0.5 - inset, color, [0, -sx * 45, 0], [cx, 0, cz])
+def grille_y(y, x):
+    return y - GRILLE_DROP + abs(x) * ROLL_SLOPE
 
 
-for sx in (1, -1):
-    body.append(corner(sx, FRONT, BOTTOM, UPPER[0], "white"))
-    body.append(corner(sx, FRONT, UPPER[1], SILL_LOW, "white"))
-    body.append(corner(sx, FRONT, UPPER[0], UPPER[1], "grille"))
-    for y in SLAT_Y:
-        body.append(corner(sx, FRONT, y, y + 0.8, "slat", inset=0.3))
-    body.append(corner(sx, FRONT, BOTTOM, 15, "tan", inset=0.12))
-    # Wraparound corner glass beside the windshield, in black rubber
-    body.append(corner(sx, WS_Z, 36, 49.5, "glass"))
-    body.append(corner(sx, WS_Z, 35.4, 36, "black", inset=0.2))
-body += panel("z", FRONT, FRONT + 1, -FW, FW, LOWER_Y[1], SILL_LOW, [(-19.5, 19.5, *UPPER)], "white")
-# The windshield's chrome center post continues as a raised rib over the sill and down the
-# face between the two upper panels to the grille, as on the photo.
-body.append(box(-0.45, UPPER[1], FRONT - 0.45, 0.45, SILL_LOW, FRONT, "chrome"))
-# Upper grille in three sections, as on the lower-front photo; the middle section's slats
-# dip in a shallow V whose point reaches down into the lower grille.
-GDIV, V_DIP, STEP = 7.5, 1.2, 0.5
-body.append(box(-19.5, UPPER[0], FRONT + 0.7, 19.5, UPPER[1], FRONT + 1, "grille"))
+def rolled_bar(sx, a, b, y0, y1, z0, z1, color):
+    mid = (y0 + y1) / 2 - GRILLE_DROP
+    x0, x1 = sorted((sx * a / ROLL_COS, sx * b / ROLL_COS))
+    return box(x0, mid - (y1 - y0) / 2, z0, x1, mid + (y1 - y0) / 2, z1,
+               color, [0, 0, sx * GRILLE_ROLL], [0, mid, FRONT])
 
 
-def dip(x):
-    return V_DIP * (1 - abs(x) / GDIV)
-
-
-for x0, x1 in ((-19.5, -GDIV), (-GDIV, GDIV), (GDIV, 19.5)):
-    middle = x0 == -GDIV
-    for y in SLAT_Y:
-        if not middle:
-            body.append(box(x0 + 0.5, y, FRONT + 0.3, x1 - 0.5, y + 0.8, FRONT + 0.7, "slat"))
-            continue
-        xa = x0 + 0.5
-        while xa < x1 - 0.5 - 1e-6:
-            d = dip(xa + STEP / 2)
-            body.append(box(xa, y - d, FRONT + 0.3, xa + STEP, y - d + 0.8, FRONT + 0.7, "slat"))
-            xa += STEP
-    body.append(box(x0, UPPER[1] - 0.5, FRONT + 0.1, x1, UPPER[1], FRONT + 0.7, "chrome"))
-    if middle:  # the bottom bar and the backing follow the V down
-        xa = x0
-        while xa < x1 - 1e-6:
-            d = dip(xa + STEP / 2)
-            body.append(box(xa, UPPER[0] - d, FRONT + 0.1, xa + STEP, UPPER[0] - d + 0.5, FRONT + 0.7, "chrome"))
-            body.append(box(xa, UPPER[0] - d, FRONT + 0.7, xa + STEP, UPPER[0], FRONT + 1, "grille"))
-            xa += STEP
-    else:
-        body.append(box(x0, UPPER[0], FRONT + 0.1, x1, UPPER[0] + 0.5, FRONT + 0.7, "chrome"))
-    for fx in (x0, x1 - 0.5):
-        body.append(box(fx, UPPER[0], FRONT + 0.1, fx + 0.5, UPPER[1], FRONT + 0.7, "chrome"))
-# Below it, black lamp pods at both sides and a lower grille between them that narrows
-# toward the bumper; the pods' inner edges follow the grille's slanted sides.
+for sx in (-1, 1):
+    for i in range(math.ceil(GRILLE_HALF / SEAM_STEP)):
+        a, b = i * SEAM_STEP, min((i + 1) * SEAM_STEP, GRILLE_HALF)
+        x0, x1 = sorted((sx * a, sx * b))
+        yc = (a + b) / 2
+        low, high = grille_y(UPPER[0], yc), grille_y(UPPER[1], yc)
+        body.append(box(x0, high, FRONT, x1, SILL_LOW, FRONT + 1, "white"))
+        body.append(box(x0, low, FRONT + 0.7, x1, high, FRONT + 1, "grille"))
+    x0, x1 = sorted((sx * GRILLE_HALF, sx * HW))
+    body.append(box(x0, BOTTOM, FRONT - 0.12, x1, SILL_LOW, FRONT + 0.7, "chrome"))
+    body.append(rolled_bar(sx, 0, GRILLE_HALF, UPPER[1] - FRAME, UPPER[1], FRONT - 0.1, FRONT + 0.7, "chrome"))
+    body.append(rolled_bar(sx, 0, GRILLE_HALF, UPPER[0], UPPER[0] + FRAME, FRONT - 0.1, FRONT + 0.7, "chrome"))
+    for a, b in ((0, GDIV), (GDIV, GRILLE_HALF)):
+        y = UPPER[0] + FRAME + SLAT_MARGIN
+        while y + SLAT_THICK < UPPER[1] - FRAME:
+            body.append(rolled_bar(sx, a + (FRAME / 2 if a else 0), b - FRAME / 2,
+                                   y, y + SLAT_THICK, FRONT + 0.2, FRONT + 0.7, "slat"))
+            y += SLAT_PITCH
+    for x in (GDIV, GRILLE_HALF - FRAME / 2):
+        body.append(rolled_bar(sx, x - FRAME / 2, x + FRAME / 2,
+                               UPPER[0] + FRAME, UPPER[1] - FRAME, FRONT - 0.1, FRONT + 0.7, "chrome"))
+# The windshield's chrome centre post continues over the sill and down the face
+# between the two upper panels to the grille, as on the reference.
+body.append(box(-0.45, UPPER[1] - GRILLE_DROP, FRONT - 0.45, 0.45, SILL_LOW, FRONT, "chrome"))
 
 
 def lower_half(y):
-    return 8 + 4 * (y - LOWER_Y[0]) / (LOWER_Y[1] - LOWER_Y[0])
+    return LOWER_HALF_BOTTOM + (LOWER_HALF_TOP - LOWER_HALF_BOTTOM) * (y - LOWER_Y[0]) / (LOWER_Y[1] - LOWER_Y[0])
 
 
+LOWER_START = len(body)
+
+
+def lower_bar(sx, a, b, y0, y1, z0, z1, color):
+    # Overlap the inner ends so the rolled thickness cannot expose a hairline at the crease.
+    return rolled_bar(sx, -0.02 if a == 0 else a, b, y0, y1, z0, z1, color)
+
+
+# Black lamp pods flank the grille that narrows toward the bumper; their inner
+# edges follow its slanted sides, as on the reference.
+# Below y=8, rolled cubes must stay inside the bumper; cap their width and backing
+# depth so the taper shift cannot expose them beyond its sides or rear z limit.
+# Sample only the trapezoid's side edges; every louver remains one straight rolled cube.
+pod_corner_inner = GRILLE_HALF
 y = LOWER_Y[0]
 while y < LOWER_Y[1] - 1e-6:
-    g = lower_half(y + STEP / 2)
-    body.append(box(-g, y, FRONT - 0.2, g, y + STEP, FRONT + 1, "black"))  # grille backing
-    for sx in (1, -1):
-        x0, x1 = sorted((sx * (g + 0.5), sx * FW))
-        body.append(box(x0, y, FRONT - 0.3, x1, y + STEP, FRONT + 1, "black"))  # lamp pod
-        e0, e1 = sorted((sx * g, sx * (g + 0.5)))
-        body.append(box(e0, y, FRONT - 0.6, e1, y + STEP, FRONT + 1, "chrome"))  # grille edge
-    y += STEP
-for i in range(6):
-    y = LOWER_Y[1] - 1.6 - i * 1.5
-    g = lower_half(y + 0.4)
-    body.append(box(-g, y, FRONT - 0.5, g, y + 0.8, FRONT - 0.2, "slat"))
+    g = lower_half(y + SEAM_STEP / 2)
+    outer = GRILLE_HALF
+    if y < BOTTOM + GRILLE_DROP + FRAME:
+        # Leave rounding clearance because box() quantizes origins and sizes to 0.001 px.
+        outer = min(outer, HW - 0.5 - 0.002 + (y - UPPER[0] - FRAME / 2) * math.sin(math.radians(GRILLE_ROLL)))
+        pod_corner_inner = min(pod_corner_inner, outer)
+    for sx in (-1, 1):
+        backing_top = min(y + SEAM_STEP, LOWER_Y[1] - SLAT_MARGIN)
+        body.append(lower_bar(sx, 0, g, y, backing_top, FRONT + 0.2, FRONT + 0.4, "black"))
+        if backing_top < y + SEAM_STEP:
+            # Bring only the exposed top margin flush; backing behind a louver must not share its face.
+            body.append(lower_bar(sx, 0, g, backing_top, y + SEAM_STEP, FRONT - 0.1, FRONT + 0.4, "black"))
+        body.append(lower_bar(sx, g, g + FRAME, y, y + SEAM_STEP, FRONT - 0.1, FRONT + 0.2, "chrome"))
+        body.append(lower_bar(sx, g + FRAME, outer, y, y + SEAM_STEP, FRONT - 0.1, FRONT + 0.2, "black"))
+    y += SEAM_STEP
+# The bumper-safe clamp exposes the body above it; overlap the rolled ends slightly
+# and recess the filler behind their faces so the join cannot leave a gap or z-fight.
+for sx in (-1, 1):
+    x0, x1 = sorted((sx * (pod_corner_inner - SEAM_STEP * ROLL_SLOPE), sx * GRILLE_HALF))
+    body.append(box(x0, BOTTOM, FRONT + 0.05, x1,
+                    BOTTOM + GRILLE_DROP + FRAME + SEAM_STEP, FRONT + 0.4, "black"))
+y = LOWER_Y[1] - SLAT_MARGIN - SLAT_THICK
+while y >= LOWER_Y[0] + FRAME:
+    g = lower_half(y) - FRAME
+    for sx in (-1, 1):
+        body.append(lower_bar(sx, 0, g, y, y + SLAT_THICK, FRONT - 0.1, FRONT + 0.2, "slat"))
+    y -= SLAT_PITCH
+lower_cubes = {id(c) for c in body[LOWER_START:]}
 for sx in (1, -1):
     # Headlight at the outer corner of the pod, the turn signal beside it inboard.
     body += disc("z", sx * 17.8, 13.0, FRONT - 0.6, 2.6, 0.5, "chrome")
@@ -585,10 +609,15 @@ body.append(box(-4.5, 4, FRONT - 3.2, 4.5, 6.4, FRONT - 3, "white"))  # plate
 # Split windshield leaning back in a black rubber frame.
 WS_LEAN = [-8, 0, 0]
 pivot = [0, 36, WS_Z]
-for x0, x1 in ((-FW, -0.6), (0.6, FW)):
+for x0, x1 in ((-HW + EDGE_INSET + 0.6, -0.7), (0.7, HW - EDGE_INSET - 0.6)):
     body.append(box(x0, 36, WS_Z + 0.2, x1, 49.5, WS_Z + 0.4, "glass", WS_LEAN, pivot))
-for x0, x1, color in ((-0.7, 0.7, "chrome"), (-FW, -FW + 0.6, "black"), (FW - 0.6, FW, "black")):
+for x0, x1, color in ((-0.7, 0.7, "chrome"), (-HW + EDGE_INSET, -HW + EDGE_INSET + 0.6, "black"), (HW - EDGE_INSET - 0.6, HW - EDGE_INSET, "black")):
     body.append(box(x0, 36, WS_Z - 0.2, x1, 49.5, WS_Z + 0.6, color, WS_LEAN, pivot))
+for y0, y1 in ((35.4, 36), (49.5, 50.1)):
+    body.append(box(-HW + EDGE_INSET, y0, WS_Z - 0.2, HW - EDGE_INSET, y1, WS_Z + 0.6, "black", WS_LEAN, pivot))
+for sx in (-1, 1):
+    x0, x1 = sorted((sx * (HW - EDGE_INSET), sx * HW))
+    body.append(box(x0, 35.4, WS_Z - 0.2, x1, 50.1, WS_Z + 0.6, "aluminium", WS_LEAN, pivot))
 for x in (-14, 5):
     body.append(box(x, 36.6, WS_Z - 0.6, x + 8, 37.2, WS_Z, "black", [0, 0, 25], [x, 37, WS_Z]))
 
@@ -607,6 +636,12 @@ def taper_dz(y):
     return -TAPER + (TAPER + 0.5) * (UPPER[0] - y) / (UPPER[0] - BOTTOM)
 
 
+def lower_taper_dz(y):
+    # Hold the top row at the upper frame's depth; independent midpoint shifts open a wedge.
+    seam_y = UPPER[0] - GRILLE_DROP - SLAT_MARGIN - SLAT_THICK
+    return taper_dz(UPPER[0] - GRILLE_DROP + FRAME / 2) + (TAPER + 0.5) * max(0, seam_y - y) / (UPPER[0] - BOTTOM)
+
+
 front, body = body[FRONT_START:], body[:FRONT_START]
 for c in front:
     y0, sy = c["origin"][1], c["size"][1]
@@ -616,26 +651,39 @@ for c in front:
         continue
     cuts = [y0]
     if sy > SLICE * 1.5 and not (rot and rot[2]):
-        while cuts[-1] + SLICE < y0 + sy - 1e-6:
+        while cuts[-1] + SLICE < min(y0 + sy, UPPER[0]) - 1e-6:
             cuts.append(cuts[-1] + SLICE)
+        if cuts[-1] < UPPER[0] < y0 + sy:
+            cuts.append(UPPER[0])
     cuts.append(y0 + sy)
-    body += shift_in_slices(c, cuts, taper_dz)
-# The side walls reach forward to the overhang with a straight upright edge in chrome trim.
-EDGE_Z = FRONT - TAPER + 1.5
+    body += shift_in_slices(c, cuts, lower_taper_dz if id(c) in lower_cubes else taper_dz)
+# Each row ends behind the tapered face, including its most recessed lower edge.
 for sx in (1, -1):
     x0, x1 = sorted((sx * (HW - 1), sx * HW))
-    body.append(box(x0, BOTTOM, EDGE_Z, x1, 15, SIDE0, "tan"))
-    body += rib_sides([box(x0, 15, EDGE_Z, x1, SILL_LOW, SIDE0, "white")])
-    t0, t1 = sorted((sx * (HW - 0.4), sx * (HW + 0.2)))
-    body.append(box(t0, BOTTOM, EDGE_Z - 0.2, t1, SILL_LOW, EDGE_Z + 0.5, "chrome"))
-# The sill: from the windshield foot it slopes down toward the front, as on the photo,
-# in quarter-pixel columns whose width follows the chamfered front corners.
+    t0, t1 = sorted((sx * (HW - EDGE_INSET), sx * (HW + 0.2)))
+    y = BOTTOM
+    while y < SILL_LOW - 1e-6:
+        EDGE_Z = FRONT + max(taper_dz(y), taper_dz(y + SLICE)) + 0.7
+        color = "tan" if y < 15 else "white"
+        body += rib_sides([box(x0, y, EDGE_Z, x1, y + SLICE, SIDE0, color)])
+        body.append(box(t0, y, EDGE_Z - 0.2, t1, y + SLICE, EDGE_Z, "chrome"))
+        y += SLICE
+# The A-pillars close the former side opening up to the leaning windshield edge.
+PILLAR_STEP = 0.25
+WS_SLOPE = math.tan(math.radians(8))
+for sx in (-1, 1):
+    x0, x1 = sorted((sx * (HW - 1), sx * HW))
+    y = 35.4
+    while y < 49.5 - 1e-6:
+        edge = WS_Z + max(0, y - 36) * WS_SLOPE + 0.6
+        body += rib_sides([box(x0, y, edge, x1, y + PILLAR_STEP, SIDE0 + 2.5, "white")])
+        y += PILLAR_STEP
 SILL_FRONT = FRONT - TAPER
 z = SILL_FRONT
 while z < WS_Z - 1e-6:
     zc = z + 0.125
     top = SILL - 1.5 * (WS_Z - zc) / (WS_Z - SILL_FRONT)
-    half = min(HW, FW + (zc - SILL_FRONT))
+    half = HW
     body.append(box(-half, SILL_LOW, z, half, top, z + 0.25, "white"))
     for sx in (1, -1):  # chrome trim along the sloping edge on both sides
         t0, t1 = sorted((sx * (half - 0.4), sx * (half + 0.2)))
@@ -647,17 +695,15 @@ body.append(box(-0.45, SILL_LOW, SILL_FRONT - 0.45, 0.45, SILL - 1.5 + 0.35, SIL
 # The cab-over, after the owner's reference photos: each side wall ends in a forward-pointing
 # chevron edged in chrome. Its nose (the crease) sits 45 % of the way up the cap, level with
 # the bumper front. The lower face runs from the crease back to the windshield header, with a
-# slanted end facet over each corner glass; the upper face is one flat panel up to the roof
+# square end over each A-pillar; the upper face is one flat panel up to the roof
 # edge, where the five lamps stand.
 CAP_Y0 = 49.5  # the windshield top
 CREASE = 56
 NOSE = WS_Z - 5.5
 TOP_FRONT = WS_Z + 0.5
 BOLT_REGION = ATLAS.allocate("bolt", math.ceil(max(2 * HW + 0.4, REAR_OUT - TOP_FRONT)), 1)
-BOT_C, BOT_S = WS_Z - 0.5, WS_Z + 3  # lower face foot over the windshield and at the side pillar
+BOT_C = WS_Z - 0.5
 CAP_BACK = WS_Z + 6
-body.append(box(-FW, CAP_Y0, BOT_C, FW, ROOF, CAP_BACK, "white"))
-body += rib_sides([box(-HW, CAP_Y0, BOT_S, HW, ROOF, CAP_BACK, "white")])
 
 
 def lerp(a, b, t):
@@ -675,20 +721,12 @@ def chevron_molding(y0, y1, z):
 
 
 LAYERS = round((CREASE - CAP_Y0) / 0.25)  # quarter-pixel steps keep both faces smooth
-FACET_COL = 0.5
 for i in range(LAYERS):
     y0 = CAP_Y0 + 0.25 * i
     t = (i + 0.5) / LAYERS
-    zc, ze = lerp(BOT_C, NOSE, t), lerp(BOT_S, NOSE, t)
-    body.append(box(-FW, y0, zc, FW, y0 + 0.25, CAP_BACK, "white"))
-    x = FW
-    while x < HW - 1e-6:  # the end facet's front edge runs from (FW, zc) to (HW, ze)
-        z = lerp(zc, ze, (x + FACET_COL / 2 - FW) / (HW - FW))
-        for sx in (1, -1):
-            x0, x1 = sorted((sx * x, sx * (x + FACET_COL)))
-            body += rib_sides([box(x0, y0, z, x1, y0 + 0.25, BOT_S + 0.5, "white")])
-        x += FACET_COL
-    chevron_molding(y0, y0 + 0.25, ze)
+    zc = lerp(BOT_C, NOSE, t)
+    body += rib_sides([box(-HW, y0, zc, HW, y0 + 0.25, CAP_BACK, "white")])
+    chevron_molding(y0, y0 + 0.25, zc)
 UPPER_LAYERS = round((ROOF - CREASE) / 0.25)
 for i in range(UPPER_LAYERS):
     y0 = CREASE + 0.25 * i
@@ -697,10 +735,7 @@ for i in range(UPPER_LAYERS):
     chevron_molding(y0, y0 + 0.25, zf)
     if 60 <= y0 < 62.5:  # the dark window set into the upper face, right of centre on the photo
         body.append(box(-3.5, y0, zf - 0.1, 9.5, y0 + 0.25, zf + 0.3, "grille"))
-for sx in (1, -1):  # the molding carries on down the pillar to the corner glass foot
-    molding(sx, 35.4, CAP_Y0, BOT_S)
-    body.append(corner(sx, WS_Z, 49.2, 49.7, "chrome"))  # header strip over the corner glass
-body.append(box(-FW, 49.2, BOT_C - 0.3, FW, 49.7, BOT_C + 2.2, "chrome"))  # windshield header strip
+body.append(box(-HW, 49.2, BOT_C - 0.3, HW, 49.7, BOT_C + 2.2, "chrome"))
 roof_lip = box(-HW - 0.2, ROOF - 0.6, TOP_FRONT - 0.3, HW + 0.2, ROOF + 0.1, TOP_FRONT + 0.7, "aluminium")
 roof_lip["uv"]["north"] = ATLAS.face(BOLT_REGION, uv_size=(roof_lip["size"][0], 1))
 body.append(roof_lip)
