@@ -4,6 +4,7 @@ import type { BlockState } from "../blockState";
 import { type Box, boxOf } from "../box";
 import { shapeOf } from "../shape/shape";
 import type { HeightStepKind } from "../volume/kind";
+import type { PasteAim } from "./paste";
 
 export type BuildFlow =
   | { readonly kind: "idle" }
@@ -30,11 +31,7 @@ export type BuildFlow =
       readonly heightLocked: boolean;
       readonly material: BlockState;
     }
-  | {
-      readonly kind: "pasteAim";
-      readonly skipAir: boolean;
-      readonly lastPaste?: { readonly anchor: Cell; readonly tick: number };
-    };
+  | PasteAim;
 
 export function tapBlock(
   flow: BuildFlow,
@@ -116,44 +113,13 @@ export function setHeight(flow: BuildFlow, height: number): BuildFlow {
 export function finishHeightStep(flow: BuildFlow, _hollow: boolean): BuildFlow {
   return flow.kind === "heightStep" ? cancel(flow) : flow;
 }
-export function startPaste(flow: BuildFlow, skipAir: boolean): BuildFlow {
-  return flow.kind === "idle"
-    ? Object.freeze({ kind: "pasteAim", skipAir })
-    : flow;
-}
-
-export function recordPaste(
-  flow: BuildFlow,
-  anchor: Cell,
-  tick: number,
-): BuildFlow {
-  return flow.kind === "pasteAim"
-    ? Object.freeze({
-        ...flow,
-        lastPaste: Object.freeze({
-          anchor: Object.freeze({ ...anchor }),
-          tick,
-        }),
-      })
-    : flow;
-}
-
-export function isRepeat(
-  flow: BuildFlow,
-  anchor: Cell,
-  tick: number,
-  window: number,
-): boolean {
-  if (flow.kind !== "pasteAim" || !flow.lastPaste) return false;
-  const last = flow.lastPaste;
-  return (
-    last.anchor.x === anchor.x &&
-    last.anchor.y === anchor.y &&
-    last.anchor.z === anchor.z &&
-    tick - last.tick < window
-  );
-}
 
 export function copyBoxOf(flow: BuildFlow): Box | undefined {
   return flow.kind === "endpoint" ? boxOf(flow.from, flow.to) : undefined;
+}
+
+export function clearLastPaste(flow: BuildFlow): BuildFlow {
+  return flow.kind === "pasteAim"
+    ? Object.freeze({ kind: "pasteAim", skipAir: flow.skipAir })
+    : flow;
 }

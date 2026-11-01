@@ -6,9 +6,10 @@ import type { ConfirmCopyHeight } from "../../../application/build/confirmCopyHe
 import type { ConfirmHeighted } from "../../../application/build/confirmHeighted";
 import type { ConfirmShape } from "../../../application/build/confirmShape";
 import type { CopySelection } from "../../../application/build/copySelection";
+import type { EndPasting } from "../../../application/build/endPasting";
+import type { NewCopy } from "../../../application/build/newCopy";
 import type { SetHeightTo } from "../../../application/build/setHeightTo";
-import type { StartPaste } from "../../../application/build/startPaste";
-import type { StopPaste } from "../../../application/build/stopPaste";
+import type { ToggleSkipAir } from "../../../application/build/toggleSkipAir";
 import type { UndoEdit } from "../../../application/build/undoEdit";
 import {
   contentsMenu,
@@ -35,8 +36,9 @@ export interface MenuCases {
   confirmHeighted: Pick<ConfirmHeighted, "execute">;
   cancel: Pick<CancelFlow, "backToAiming">;
   copy: Pick<CopySelection, "execute">;
-  paste: Pick<StartPaste, "execute">;
-  stopPaste: Pick<StopPaste, "execute">;
+  toggleSkipAir: Pick<ToggleSkipAir, "execute">;
+  endPasting: Pick<EndPasting, "execute">;
+  newCopy: Pick<NewCopy, "execute">;
   undo: Pick<UndoEdit, "execute">;
   clear: Pick<ClearSelection, "execute">;
   setHeight: Pick<SetHeightTo, "execute">;
@@ -51,7 +53,6 @@ export class MenuChoices {
     playerId: PlayerId,
     menu: "shape" | "contents" | "utility" | "paste",
     entryId: string | undefined,
-    options: { skipAir?: boolean } = {},
   ): boolean {
     const session = this.repo.get(playerId);
     if (!session) return false;
@@ -104,10 +105,19 @@ export class MenuChoices {
     } else if (menu === "paste") {
       if (
         session.flow.kind !== "pasteAim" ||
-        !isOffered(pasteMenu(session), entryId)
+        !isOffered(
+          pasteMenu({
+            hasHistory: session.hasHistory,
+            skipAir: session.flow.kind === "pasteAim" && session.flow.skipAir,
+          }),
+          entryId,
+        )
       )
         return false;
-      if (entryId === "endPaste") this.cases.stopPaste.execute({ playerId });
+      if (entryId === "endPaste") this.cases.endPasting.execute(playerId);
+      else if (entryId === "newCopy") this.cases.newCopy.execute(playerId);
+      else if (entryId === "skipAir")
+        this.cases.toggleSkipAir.execute({ playerId });
       else this.cases.undo.execute({ playerId });
     } else {
       if (!isOffered(utilityMenu(session), entryId)) return false;
@@ -116,12 +126,6 @@ export class MenuChoices {
         case "undo":
         case "clear":
           this.cases[entryId].execute({ playerId });
-          break;
-        case "paste":
-          this.cases.paste.execute({
-            playerId,
-            skipAir: options.skipAir ?? false,
-          });
           break;
         default: {
           const exhaustive: never = entryId;

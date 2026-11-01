@@ -8,7 +8,11 @@ import type {
 } from "../../../../application/build/ports/feedback";
 import type { SetHeightTo } from "../../../../application/build/setHeightTo";
 import type { UndoEdit } from "../../../../application/build/undoEdit";
-import { parseFace } from "../../../../domain/build/clipboard/clipboard";
+import {
+  parseFace,
+  pasteTarget,
+} from "../../../../domain/build/clipboard/clipboard";
+import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
 import {
   asDimensionId,
   asPlayerId,
@@ -64,6 +68,7 @@ export function registerTestEdit(
   undo: UndoEdit,
   describe: DescribeBuild,
   messages: Pick<ReturnType<typeof recordMessages>, "last" | "forget">,
+  repo: BuildSessionRepository,
 ): void {
   system.afterEvents.scriptEventReceive.subscribe(
     (ev) => {
@@ -95,12 +100,9 @@ export function registerTestEdit(
             args[0] === "contents" ||
             args[0] === "utility" ||
             args[0] === "paste") &&
-          (args.length === 2 ||
-            (args.length === 3 && (args[2] === "0" || args[2] === "1")))
+          args.length === 2
         ) {
-          offered = choices.choose(playerId, args[0], args[1], {
-            skipAir: args[2] === "1",
-          });
+          offered = choices.choose(playerId, args[0], args[1]);
         } else if (
           command === "height" &&
           args.length === 1 &&
@@ -125,17 +127,39 @@ export function registerTestEdit(
             );
             return;
           }
+          const clipboard = repo.get(playerId)?.clipboard;
+          if (!clipboard) {
+            system.sendScriptEvent(
+              TEST_RESULT_EVENT,
+              JSON.stringify({
+                player: player.name,
+                error: "No clipboard for paste",
+              }),
+            );
+            return;
+          }
           paste.execute({
             playerId,
             dimensionId: asDimensionId(player.dimension.id),
-            block: {
-              x: Number(args[0]),
-              y: Number(args[1]),
-              z: Number(args[2]),
-            },
-            face,
+            target: pasteTarget(
+              clipboard,
+              {
+                x: Number(args[0]),
+                y: Number(args[1]),
+                z: Number(args[2]),
+              },
+              face,
+            ),
             tick: system.currentTick,
           });
+        } else if (
+          command === "slot" &&
+          args.length === 1 &&
+          Number.isInteger(Number(args[0])) &&
+          Number(args[0]) >= 0 &&
+          Number(args[0]) < 9
+        ) {
+          player.selectedSlotIndex = Number(args[0]);
         } else if (command === "undo" && args.length === 0)
           undo.execute({ playerId });
         else return;

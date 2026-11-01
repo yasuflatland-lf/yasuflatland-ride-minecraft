@@ -7,7 +7,6 @@ import { ConfirmHeighted } from "../../../src/application/build/confirmHeighted"
 import { EditJobs } from "../../../src/application/build/editJobs";
 import { PasteAt } from "../../../src/application/build/pasteAt";
 import { SetPoint } from "../../../src/application/build/setPoint";
-import { StartPaste } from "../../../src/application/build/startPaste";
 import { TapAir } from "../../../src/application/build/tapAir";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, cellsOf } from "../../../src/domain/build/box";
@@ -22,6 +21,7 @@ import {
   tapAir,
   tapBlock,
 } from "../../../src/domain/build/flow/flow";
+import { beginPasteAim } from "../../../src/domain/build/flow/paste";
 import {
   maxRoofHeight,
   roofCells,
@@ -202,7 +202,7 @@ it("pastes clipboard-relative cells at the hit face with either air policy", () 
         let i = 0;
         const clip = clipboardOf(sourceBox, () => (solids[i++] ? stone : AIR));
         e.session.setClipboard(clip);
-        new StartPaste(e.repo).execute({ playerId, skipAir });
+        e.session.setFlow(beginPasteAim(skipAir));
         const { anchor, box } = pasteTarget(clip, block, face);
         const delta = {
           up: [0, 1, 0],
@@ -224,8 +224,7 @@ it("pastes clipboard-relative cells at the hit face with either air policy", () 
           tick: 0,
           playerId,
           dimensionId: nether,
-          block,
-          face,
+          target: pasteTarget(clip, block, face),
         });
         expect(read.mock.calls).toEqual(
           [...cellsOf(box)].map((at) => [nether, at]),
@@ -251,18 +250,23 @@ it("pastes clipboard-relative cells at the hit face with either air policy", () 
 
 it("preserves paste aiming on missing clipboard, busy jobs and protected holes", () => {
   const e = setup();
-  const start = new StartPaste(e.repo);
   const paste = new PasteAt(e.repo, e.world, e.feedback, e.jobs);
   const cmd = {
     playerId,
     dimensionId: overworld,
-    block: { x: 0, y: 0, z: 0 },
-    face: "up" as const,
+    target: pasteTarget(
+      clipboardOf(
+        boxOf({ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }),
+        () => undefined,
+      ),
+      { x: 0, y: 0, z: 0 },
+      "up",
+    ),
     tick: 0,
   };
   paste.execute(cmd);
   expect(e.feedback.messages).toEqual([]);
-  start.execute({ playerId, skipAir: true });
+  e.session.setFlow(beginPasteAim(true));
   const flow = e.session.flow;
   paste.execute(cmd);
   expect(e.feedback.messages.at(-1)?.message).toBe("noClipboard");
