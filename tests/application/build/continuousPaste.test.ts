@@ -14,7 +14,6 @@ import {
 } from "../../../src/domain/build/clipboard/clipboard";
 import {
   chooseHeighted,
-  startPaste,
   tapAir,
   tapBlock,
 } from "../../../src/domain/build/flow/flow";
@@ -44,7 +43,7 @@ function setup() {
   const jobs = new EditJobs(repo, world, feedback);
   const at = { x: 0, y: 0, z: 0 };
   session.setClipboard(clipboardOf(boxOf(at, at), () => stone));
-  session.setFlow(startPaste(session.flow, false));
+  session.setFlow(beginPasteAim(false));
   const paste = new PasteAt(repo, world, feedback, jobs);
   const target = (block: { x: number; y: number; z: number }) => {
     if (!session.clipboard) throw new Error("Expected clipboard");
@@ -187,7 +186,7 @@ it("leaves any flow after the exact grace delay and does not re-trigger", () => 
           first,
           endpoint,
           height,
-          startPaste({ kind: "idle" }, skipAir),
+          beginPasteAim(skipAir),
         ]) {
           const e = setup();
           const leave = new LeaveBuild(e.repo);
@@ -238,7 +237,7 @@ it("LeaveBuild twice has the same effect as once in every flow", () => {
         first,
         endpoint,
         chooseHeighted(endpoint, "copy"),
-        startPaste({ kind: "idle" }, skipAir),
+        beginPasteAim(skipAir),
       ]) {
         const e = setup();
         e.session.confirmBox(overworld, boxOf(at, at));
@@ -261,7 +260,7 @@ it("ToggleSkipAir flips only a paste aim and ignores unknown players", () => {
   fc.assert(
     fc.property(cell, fc.boolean(), (at, skipAir) => {
       const first = tapBlock({ kind: "idle" }, overworld, at, stone);
-      for (const flow of [first, startPaste({ kind: "idle" }, skipAir)]) {
+      for (const flow of [first, beginPasteAim(skipAir)]) {
         const e = setup();
         const toggle = new ToggleSkipAir(e.repo);
         toggle.execute({ playerId: asPlayerId("absent") });

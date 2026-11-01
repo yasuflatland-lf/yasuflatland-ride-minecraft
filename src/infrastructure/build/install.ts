@@ -17,7 +17,6 @@ import { PressPasteAim } from "../../application/build/pressPasteAim";
 import { SetHeightTo } from "../../application/build/setHeightTo";
 import { SetPoint } from "../../application/build/setPoint";
 import { ShowPreview } from "../../application/build/showPreview";
-import { StartPaste } from "../../application/build/startPaste";
 import { TapAir } from "../../application/build/tapAir";
 import { ToggleSkipAir } from "../../application/build/toggleSkipAir";
 import { UndoEdit } from "../../application/build/undoEdit";
@@ -58,7 +57,6 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
     confirmCopyHeight: new ConfirmCopyHeight(repo, copyBox, feedback),
     fill: new ConfirmShape(repo, feedback, jobs),
     copy: new CopySelection(repo, copyBox, feedback),
-    paste: new StartPaste(repo),
     toggleSkipAir: new ToggleSkipAir(repo),
     endPasting: new EndPasting(repo),
     pasteAt: new PasteAt(repo, blocks, feedback, jobs),

@@ -194,7 +194,7 @@ const flowArb: fc.Arbitrary<BuildFlow> = fc.oneof(
   }),
 );
 
-it("completeCopy replaces the clipboard and box and idles any flow without changing history", () => {
+it("completeCopy replaces the clipboard and box and enters paste aiming from any flow without changing history", () => {
   fc.assert(
     fc.property(
       flowArb,
@@ -212,7 +212,7 @@ it("completeCopy replaces the clipboard and box and idles any flow without chang
         session.setFlow(flow);
         for (const record of records) session.finishEdit(record, false);
         session.completeCopy(dimensionId, box, clipboard);
-        expect(session.flow).toEqual({ kind: "idle" });
+        expect(session.flow).toEqual({ kind: "pasteAim", skipAir: false });
         expect(session.clipboard).toBe(clipboard);
         expect(session.confirmedBox).toEqual({ dimensionId, box });
         for (const record of [...records].reverse())

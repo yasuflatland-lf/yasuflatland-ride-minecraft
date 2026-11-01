@@ -8,7 +8,6 @@ import type { ConfirmShape } from "../../../application/build/confirmShape";
 import type { CopySelection } from "../../../application/build/copySelection";
 import type { EndPasting } from "../../../application/build/endPasting";
 import type { SetHeightTo } from "../../../application/build/setHeightTo";
-import type { StartPaste } from "../../../application/build/startPaste";
 import type { ToggleSkipAir } from "../../../application/build/toggleSkipAir";
 import type { UndoEdit } from "../../../application/build/undoEdit";
 import {
@@ -36,7 +35,6 @@ export interface MenuCases {
   confirmHeighted: Pick<ConfirmHeighted, "execute">;
   cancel: Pick<CancelFlow, "backToAiming">;
   copy: Pick<CopySelection, "execute">;
-  paste: Pick<StartPaste, "execute">;
   toggleSkipAir: Pick<ToggleSkipAir, "execute">;
   endPasting: Pick<EndPasting, "execute">;
   undo: Pick<UndoEdit, "execute">;
@@ -53,7 +51,6 @@ export class MenuChoices {
     playerId: PlayerId,
     menu: "shape" | "contents" | "utility" | "paste",
     entryId: string | undefined,
-    options: { skipAir?: boolean } = {},
   ): boolean {
     const session = this.repo.get(playerId);
     if (!session) return false;
@@ -126,12 +123,6 @@ export class MenuChoices {
         case "undo":
         case "clear":
           this.cases[entryId].execute({ playerId });
-          break;
-        case "paste":
-          this.cases.paste.execute({
-            playerId,
-            skipAir: options.skipAir ?? false,
-          });
           break;
         default: {
           const exhaustive: never = entryId;

@@ -16,7 +16,7 @@ export type ShapeEntryId =
   | "copy"
   | "cancel";
 export type ContentsEntryId = FillStyle | "cancel";
-export type UtilityEntryId = "copy" | "paste" | "undo" | "clear";
+export type UtilityEntryId = "copy" | "undo" | "clear";
 
 export type PasteEntryId = "undo" | "skipAir" | "endPaste";
 
@@ -49,7 +49,6 @@ export function utilityMenu(
 ): MenuEntry<UtilityEntryId>[] {
   const entries: MenuEntry<UtilityEntryId>[] = [];
   if (session.confirmedBox) entries.push({ id: "copy" });
-  if (session.clipboard) entries.push({ id: "paste" });
   if (session.hasHistory) entries.push({ id: "undo" });
   if (session.flow.kind !== "idle" || session.confirmedBox)
     entries.push({ id: "clear" });

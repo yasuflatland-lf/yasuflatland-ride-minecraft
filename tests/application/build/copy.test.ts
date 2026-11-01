@@ -99,7 +99,7 @@ it("copies a base grown through any allowed height without beginning an edit", (
           max: { ...base.max, y: base.min.y + height - 1 },
         };
         expect(e.session.confirmedBox).toEqual({ dimensionId: nether, box });
-        expect(e.session.flow.kind).toBe("idle");
+        expect(e.session.flow).toEqual({ kind: "pasteAim", skipAir: false });
         expect(e.session.clipboard?.size).toEqual({
           x: dx + 1,
           y: height,
@@ -137,7 +137,7 @@ it("copies other endpoint shapes directly and confirms their bounding box", () =
       const begin = vi.spyOn(e.session, "beginEdit");
       e.choose.execute({ playerId });
       const box = boxOf(from, to);
-      expect(e.session.flow.kind).toBe("idle");
+      expect(e.session.flow).toEqual({ kind: "pasteAim", skipAir: false });
       expect(e.session.confirmedBox).toEqual({ dimensionId: overworld, box });
       expect(e.session.clipboard?.cells).toHaveLength(volume(box));
       expect(e.feedback.messages.at(-1)).toEqual({
@@ -248,6 +248,53 @@ it("refuses the wrong copy stage and refuses Copy in the placement confirm", () 
       expect(e.session.flow).toBe(copy);
       expect(start).not.toHaveBeenCalled();
       expect(begin).not.toHaveBeenCalled();
+    }),
+  );
+});
+
+it("utility Copy resets paste settings in every prior flow and an oversized copy preserves them", () => {
+  fc.assert(
+    fc.property(cell, fc.boolean(), fc.nat(), (from, skipAir, tick) => {
+      const e = setup();
+      const box = boxOf(from, { ...from, x: from.x + 1, z: from.z + 1 });
+      const selected = endpoint(box.min, box.max);
+      const flows: BuildFlow[] = [
+        { kind: "idle" },
+        tapBlock({ kind: "idle" }, overworld, from, stone),
+        selected,
+        chooseHeighted(selected, "copy"),
+        chooseHeighted(selected, "hip"),
+        { kind: "pasteAim", skipAir, lastPaste: { anchor: from, tick } },
+      ];
+      const copy = new CopySelection(
+        e.repo,
+        new CopyBox(e.repo, e.world, e.feedback),
+        e.feedback,
+      );
+      const old = clipboardOf(boxOf(from, from), () => stone);
+      for (const flow of flows) {
+        e.session.confirmBox(overworld, box);
+        e.session.setClipboard(old);
+        e.session.setFlow(flow);
+        copy.execute({ playerId });
+        expect(e.session.flow).toEqual({ kind: "pasteAim", skipAir: false });
+        expect(e.session.clipboard).not.toBe(old);
+        expect(e.session.clipboard).toEqual(
+          clipboardOf(box, (at) => e.world.stateAt(overworld, at)),
+        );
+        const oversized = boxOf(from, {
+          ...from,
+          x: from.x + BUILD_SPEC.maxCopyVolume,
+        });
+        e.session.confirmBox(overworld, oversized);
+        e.session.setFlow(flow);
+        const clipboard = e.session.clipboard;
+        const confirmed = e.session.confirmedBox;
+        copy.execute({ playerId });
+        expect(e.session.flow).toBe(flow);
+        expect(e.session.clipboard).toBe(clipboard);
+        expect(e.session.confirmedBox).toBe(confirmed);
+      }
     }),
   );
 });
