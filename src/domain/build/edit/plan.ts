@@ -3,8 +3,9 @@
 // reads each `before`.
 import type { Cell } from "../../shared/cells";
 import { type Clipboard, pasteBox } from "../clipboard/clipboard";
-import { type RoofSpec, roofCells } from "../roof/roof";
 import { cellsOfShape, type Shape, type ShapeStyle } from "../shape/shape";
+import { geometryOf, type HeightedSpec } from "../volume/geometry";
+import type { FillStyle } from "../volume/kind";
 import type { PlannedChange } from "./change";
 import type { Pattern } from "./pattern";
 
@@ -32,11 +33,11 @@ export function* planPaste(
   }
 }
 
-export function* planRoof(
-  spec: RoofSpec,
-  hollow: boolean,
+export function* planHeighted(
+  spec: HeightedSpec,
+  fill: FillStyle,
   pattern: Pattern,
 ): Iterable<PlannedChange> {
-  for (const cell of roofCells(spec, hollow))
+  for (const cell of geometryOf(spec.kind).cells(spec, fill))
     yield { cell, after: pattern.state };
 }
