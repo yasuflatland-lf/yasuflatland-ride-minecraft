@@ -6,6 +6,7 @@ import {
   shapeMenu,
   utilityMenu,
 } from "../../../domain/build/flow/menu";
+import { isRoofKind } from "../../../domain/build/roof/roof";
 import type { BuildSessionRepository } from "../../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../../domain/build/spec";
 import { geometryOf } from "../../../domain/build/volume/geometry";
@@ -46,17 +47,16 @@ export class BedrockBuildMenus implements BuildMenus {
       );
       if (!player.isValid) return;
       const offered = this.choices.choose(playerId, "shape", id);
-      if (
-        offered &&
-        (id === "gable" || id === "hip") &&
-        this.heightSliderFallback
-      )
-        await this.heightSlider(player);
+      const flow = this.repo.get(playerId)?.flow;
+      if (offered && flow?.kind === "heightStep") {
+        if (flow.heightLocked) await this.contents(player);
+        else if (this.heightSliderFallback) await this.heightSlider(player);
+      }
     });
   }
 
   showContentsMenu(player: Player): Promise<void> {
-    return this.exclusive(player, () => this.roof(player));
+    return this.exclusive(player, () => this.contents(player));
   }
 
   showHeightSlider(player: Player): Promise<void> {
@@ -93,13 +93,15 @@ export class BedrockBuildMenus implements BuildMenus {
     });
   }
 
-  private async roof(player: Player): Promise<void> {
+  private async contents(player: Player): Promise<void> {
     const playerId = asPlayerId(player.id);
     const session = this.repo.get(playerId);
-    if (!session) return;
+    if (session?.flow.kind !== "heightStep") return;
     const id = await this.choose(
       player,
-      BUILD_FORM.roofTitle,
+      isRoofKind(session.flow.heightedKind)
+        ? BUILD_FORM.roofTitle
+        : BUILD_FORM.solidTitle,
       contentsMenu(session.flow),
     );
     if (!player.isValid) return;
@@ -110,9 +112,17 @@ export class BedrockBuildMenus implements BuildMenus {
     const playerId = asPlayerId(player.id);
     const flow = this.repo.get(playerId)?.flow;
     if (flow?.kind !== "heightStep") return;
+    if (flow.heightLocked) {
+      await this.contents(player);
+      return;
+    }
     // A modal cannot update the preview while the player adjusts its slider.
     const answer = await new ModalFormData()
-      .title({ translate: BUILD_FORM.roofTitle })
+      .title({
+        translate: isRoofKind(flow.heightedKind)
+          ? BUILD_FORM.roofTitle
+          : BUILD_FORM.solidTitle,
+      })
       .slider(
         { translate: BUILD_FORM.height },
         1,
@@ -133,7 +143,7 @@ export class BedrockBuildMenus implements BuildMenus {
     const height = answer.formValues?.[0];
     if (typeof height !== "number") return;
     this.cases.setHeight.execute({ playerId, height });
-    await this.roof(player);
+    await this.contents(player);
   }
 
   private async choose(

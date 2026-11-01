@@ -52,7 +52,9 @@ export function previewPoints(flow: BuildFlow, aim: PreviewAim): PreviewSet {
         {
           base: flow.base,
           kind: flow.heightedKind,
-          height: aim.height ?? flow.previous,
+          height: flow.heightLocked
+            ? flow.previous
+            : (aim.height ?? flow.previous),
         },
         BUILD_SPEC.outlineMaxPoints,
       );

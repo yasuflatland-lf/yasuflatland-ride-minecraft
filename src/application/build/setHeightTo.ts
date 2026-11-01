@@ -6,6 +6,8 @@ export class SetHeightTo {
   constructor(private readonly repo: BuildSessionRepository) {}
   execute(cmd: { playerId: PlayerId; height: number }): void {
     const session = this.repo.get(cmd.playerId);
-    if (session) session.setFlow(setHeight(session.flow, cmd.height));
+    if (session?.flow.kind !== "heightStep" || session.flow.heightLocked)
+      return;
+    session.setFlow(setHeight(session.flow, cmd.height));
   }
 }

@@ -16,8 +16,8 @@ import {
   shapeMenu,
   utilityMenu,
 } from "../../../src/domain/build/flow/menu";
-import { maxRoofHeight } from "../../../src/domain/build/roof/roof";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
+import { geometryOf } from "../../../src/domain/build/volume/geometry";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockBuildMenus } from "../../../src/infrastructure/build/bedrock/buildMenus";
 import { MenuChoices } from "../../../src/infrastructure/build/bedrock/menuChoices";
@@ -212,7 +212,7 @@ it.each([
   });
 });
 
-it.each(["gable", "hip"] as const)(
+it.each(["gable", "hip", "cylinder", "cube"] as const)(
   "chooses %s without a slider by default",
   async (kind) => {
     const { menus, player, cases } = setup();
@@ -245,7 +245,7 @@ it.each(["shape", "contents"] as const)(
     for (const answer of [
       { canceled: true },
       { cancelationReason: "UserClosed" },
-      { selection: menu === "shape" ? 4 : 2 },
+      { selection: menu === "shape" ? 6 : 2 },
     ]) {
       const { session, menus, player, cases } = setup();
       if (menu === "contents")
@@ -316,19 +316,31 @@ it("bounds the fallback slider, uses the previous height and applies it before t
     fc.asyncProperty(
       fc.integer({ min: 0, max: 319 }),
       fc.integer({ min: 1, max: 21 }),
-      async (y, requested) => {
+      fc.constantFrom(
+        "gable" as const,
+        "hip" as const,
+        "cylinder" as const,
+        "cube" as const,
+      ),
+      async (y, requested, kind) => {
         const { session, menus, player, cases } = setup(true);
         const flow = chooseHeighted(
           { ...endpoint, from: { ...from, y }, to: { ...to, y } },
-          "hip",
+          kind,
         );
         if (flow.kind !== "heightStep") throw new Error("Expected roof");
-        const max = maxRoofHeight(flow.base, BUILD_SPEC.worldTopY);
+        const max = geometryOf(kind).maxHeight(flow.base, BUILD_SPEC.worldTopY);
         const previous = Math.min(max, requested);
         session.setFlow({ ...flow, previous });
         ui.forms.length = 0;
         ui.answers.push({ formValues: [max] }, { selection: 1 });
         await menus.showHeightSlider(player);
+        const title =
+          kind === "cylinder" || kind === "cube"
+            ? BUILD_FORM.solidTitle
+            : BUILD_FORM.roofTitle;
+        expect(ui.forms[0]?.heading).toEqual({ translate: title });
+        expect(ui.forms[1]?.heading).toEqual({ translate: title });
         expect(ui.forms[0]?.sliders).toEqual([
           {
             label: { translate: BUILD_FORM.height },
@@ -354,7 +366,7 @@ it("bounds the fallback slider, uses the previous height and applies it before t
   );
 });
 
-it.each(["gable", "hip"] as const)(
+it.each(["gable", "hip", "cylinder", "cube"] as const)(
   "chains %s through the enabled slider to the roof menu",
   async (kind) => {
     const { menus, player, cases } = setup(true);
@@ -473,6 +485,8 @@ it("dispatches only entries offered by the current flow, including stale choices
         "walls",
         "gable",
         "hip",
+        "cylinder",
+        "cube",
         "cancel",
         "invalid",
       ),
@@ -489,7 +503,12 @@ it("dispatches only entries offered by the current flow, including stale choices
           expect(cases.cancel.backToAiming).toHaveBeenCalledExactlyOnceWith({
             playerId,
           });
-        } else if (id === "gable" || id === "hip") {
+        } else if (
+          id === "gable" ||
+          id === "hip" ||
+          id === "cylinder" ||
+          id === "cube"
+        ) {
           expect(cases.chooseHeighted.execute).toHaveBeenCalledExactlyOnceWith({
             playerId,
             kind: id,
@@ -568,5 +587,33 @@ it.each(["fill", "hollow", "cancel"] as const)(
         playerId,
         fill: id,
       });
+  },
+);
+
+it.each([false, true])(
+  "opens locked cylinder contents directly with fallback=%s",
+  async (fallback) => {
+    const { session, menus, player, cases } = setup(fallback);
+    session.setFlow({ ...endpoint, to: { ...to, y: 71 } });
+    ui.answers.push({ selection: 3 }, { selection: 2 });
+    await menus.showShapeMenu(player);
+    expect(cases.chooseHeighted.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId,
+      kind: "cylinder",
+    });
+    expect(ui.forms).toHaveLength(2);
+    expect(ui.forms[1]?.heading).toEqual({ translate: BUILD_FORM.solidTitle });
+    expect(ui.forms[1]?.buttons).toEqual(labels(contentsMenu(session.flow)));
+    expect(cases.setHeight.execute).not.toHaveBeenCalled();
+    expect(cases.confirmHeighted.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId,
+      fill: "tube",
+    });
+    expect(session.flow).toMatchObject({ heightLocked: true, previous: 12 });
+    ui.answers.push({ selection: 0 });
+    await menus.showHeightSlider(player);
+    expect(ui.forms).toHaveLength(3);
+    expect(ui.forms[2]?.sliders).toEqual([]);
+    expect(cases.setHeight.execute).not.toHaveBeenCalled();
   },
 );

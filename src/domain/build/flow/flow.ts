@@ -2,7 +2,6 @@ import type { Cell } from "../../shared/cells";
 import type { DimensionId } from "../../shared/ids";
 import type { BlockState } from "../blockState";
 import type { Box } from "../box";
-import { isRoofKind } from "../roof/roof";
 import { shapeOf } from "../shape/shape";
 import type { HeightedKind } from "../volume/kind";
 
@@ -86,22 +85,24 @@ export function backToAiming(flow: BuildFlow): BuildFlow {
 
 export function chooseHeighted(flow: BuildFlow, kind: HeightedKind): BuildFlow {
   if (flow.kind !== "endpoint") return flow;
-  if (!isRoofKind(kind)) return flow;
   const shape = shapeOf(flow.from, flow.to);
-  if (shape.kind !== "rect" || shape.flat !== "y") return flow;
+  const locked = shape.kind === "box" && kind === "cylinder";
+  if (!locked && (shape.kind !== "rect" || shape.flat !== "y")) return flow;
   return Object.freeze({
     kind: "heightStep",
     dimensionId: flow.dimensionId,
-    base: shape.box,
+    base: locked
+      ? { min: shape.box.min, max: { ...shape.box.max, y: shape.box.min.y } }
+      : shape.box,
     from: flow.from,
     heightedKind: kind,
-    previous: 1,
-    heightLocked: false,
+    previous: locked ? shape.box.max.y - shape.box.min.y + 1 : 1,
+    heightLocked: locked,
     material: flow.material,
   });
 }
 export function setHeight(flow: BuildFlow, height: number): BuildFlow {
-  return flow.kind === "heightStep"
+  return flow.kind === "heightStep" && !flow.heightLocked
     ? Object.freeze({ ...flow, previous: height })
     : flow;
 }
