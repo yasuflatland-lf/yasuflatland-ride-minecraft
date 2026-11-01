@@ -4,12 +4,15 @@ import {
   type ContentsEntryId,
   contentsMenu,
   type MenuEntry,
+  type PasteEntryId,
+  pasteMenu,
   type ShapeEntryId,
   shapeMenu,
   type UtilityEntryId,
   utilityMenu,
 } from "../../../domain/build/flow/menu";
 import { isRoofKind } from "../../../domain/build/roof/roof";
+import type { BuildSession } from "../../../domain/build/session";
 import type { BuildSessionRepository } from "../../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../../domain/build/spec";
 import { volumeOf } from "../../../domain/build/volume/geometry";
@@ -18,33 +21,21 @@ import { BUILD_FORM } from "../identifiers";
 
 import { type MenuCases, MenuChoices } from "./menuChoices";
 
-const MENU_LABELS: Record<
-  ShapeEntryId | ContentsEntryId | UtilityEntryId,
-  keyof typeof BUILD_FORM
-> = {
-  place: "place",
-  fill: "fill",
-  frame: "frame",
-  faces: "faces",
-  walls: "walls",
-  gable: "gable",
-  hip: "hip",
-  cylinder: "cylinder",
-  cube: "cube",
-  cancel: "cancel",
-  hollow: "hollow",
-  tube: "tube",
-  copy: "copy",
-  paste: "paste",
-  undo: "undo",
-  clear: "clear",
-  stopPaste: "stopPaste",
-};
+function menuLabel(
+  _menu: "shape" | "contents" | "utility" | "paste",
+  entry: MenuEntry<
+    ShapeEntryId | ContentsEntryId | UtilityEntryId | PasteEntryId
+  >,
+  _session: BuildSession,
+): string {
+  return BUILD_FORM[entry.id === "endPaste" ? "stopPaste" : entry.id];
+}
 
 export interface BuildMenus {
   showShapeMenu(player: Player): Promise<void>;
   showContentsMenu(player: Player): Promise<void>;
   showUtilityMenu(player: Player): Promise<void>;
+  showPasteMenu(player: Player): Promise<void>;
   showHeightSlider(player: Player): Promise<void>;
 }
 
@@ -70,6 +61,8 @@ export class BedrockBuildMenus implements BuildMenus {
         player,
         BUILD_FORM.shapeTitle,
         shapeMenu(session.flow),
+        "shape",
+        session,
       );
       if (!player.isValid) return;
       const offered = this.choices.choose(playerId, "shape", id);
@@ -101,6 +94,8 @@ export class BedrockBuildMenus implements BuildMenus {
         player,
         BUILD_FORM.utilityTitle,
         utilityMenu(session),
+        "utility",
+        session,
       );
       if (!player.isValid) return;
       if (id === "paste") {
@@ -122,6 +117,22 @@ export class BedrockBuildMenus implements BuildMenus {
     });
   }
 
+  showPasteMenu(player: Player): Promise<void> {
+    return this.exclusive(player, async () => {
+      const playerId = asPlayerId(player.id);
+      const session = this.repo.get(playerId);
+      if (session?.flow.kind !== "pasteAim") return;
+      const id = await this.choose(
+        player,
+        BUILD_FORM.utilityTitle,
+        pasteMenu(session),
+        "paste",
+        session,
+      );
+      if (player.isValid) this.choices.choose(playerId, "paste", id);
+    });
+  }
+
   private async contents(player: Player): Promise<void> {
     const playerId = asPlayerId(player.id);
     const session = this.repo.get(playerId);
@@ -136,6 +147,8 @@ export class BedrockBuildMenus implements BuildMenus {
         ? BUILD_FORM.roofTitle
         : BUILD_FORM.solidTitle,
       contentsMenu(session.flow),
+      "contents",
+      session,
     );
     if (!player.isValid) return;
     this.choices.choose(playerId, "contents", id);
@@ -184,12 +197,16 @@ export class BedrockBuildMenus implements BuildMenus {
   private async choose(
     player: Player,
     title: string,
-    entries: MenuEntry<ShapeEntryId | ContentsEntryId | UtilityEntryId>[],
+    entries: MenuEntry<
+      ShapeEntryId | ContentsEntryId | UtilityEntryId | PasteEntryId
+    >[],
+    menu: "shape" | "contents" | "utility" | "paste",
+    session: BuildSession,
   ): Promise<string | undefined> {
     if (entries.length === 0) return undefined;
     const form = new ActionFormData().title({ translate: title });
-    for (const { id } of entries)
-      form.button({ translate: BUILD_FORM[MENU_LABELS[id]] });
+    for (const entry of entries)
+      form.button({ translate: menuLabel(menu, entry, session) });
     const answer = await form.show(player);
     if (!player.isValid) return undefined;
     if (answer.canceled || answer.cancelationReason !== undefined)

@@ -1,5 +1,6 @@
 // Use case: undo the player's last edit (ADR 0178).
 import { undoPlan } from "../../domain/build/edit/change";
+import { clearLastPaste } from "../../domain/build/flow/flow";
 import { isEditRefusal } from "../../domain/build/session";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { PlayerId } from "../../domain/shared/ids";
@@ -27,5 +28,7 @@ export class UndoEdit {
       return;
     }
     this.jobs.start(playerId, record.dimensionId, undoPlan(record), true);
+    // ADR 0203: undo must allow an immediate paste at the same anchor.
+    session.setFlow(clearLastPaste(session.flow));
   }
 }

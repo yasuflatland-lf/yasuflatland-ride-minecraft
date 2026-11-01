@@ -1,14 +1,9 @@
 import { cellsOf } from "../../domain/build/box";
-import {
-  anchorCell,
-  type Face,
-  pasteBox,
-} from "../../domain/build/clipboard/clipboard";
+import type { PasteTarget } from "../../domain/build/clipboard/clipboard";
 import { planPaste } from "../../domain/build/edit/plan";
-import { isRepeat, recordPaste } from "../../domain/build/flow/flow";
+import { isRepeat, recordPaste } from "../../domain/build/flow/paste";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
-import type { Cell } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { EditJobs } from "./editJobs";
 import type { BuildBlockWorld } from "./ports/blocks";
@@ -25,32 +20,31 @@ export class PasteAt {
   execute(cmd: {
     playerId: PlayerId;
     dimensionId: DimensionId;
-    block: Cell;
-    face: Face;
+    target: PasteTarget;
     tick: number;
-  }): void {
+  }): "pasted" | "refused" | "ignored" {
     const { playerId } = cmd;
     const session = this.repo.getOrCreate(playerId);
     const flow = session.flow;
-    if (flow.kind !== "pasteAim") return;
-    const anchor = anchorCell(cmd.block, cmd.face);
+    if (flow.kind !== "pasteAim") return "ignored";
     const clipboard = session.clipboard;
     if (!clipboard) {
       this.feedback.showMessage(playerId, "noClipboard");
-      return;
+      return "refused";
     }
-    if (isRepeat(flow, anchor, cmd.tick, BUILD_SPEC.pasteRepeatTicks)) return;
-    const box = pasteBox(clipboard, anchor);
+    const { anchor, box } = cmd.target;
+    if (isRepeat(flow, anchor, cmd.tick, BUILD_SPEC.pasteRepeatTicks))
+      return "ignored";
     for (const cell of cellsOf(box)) {
       if (!this.world.mayEdit(cmd.dimensionId, cell)) {
         this.feedback.showMessage(playerId, "pasteBlocked");
-        return;
+        return "refused";
       }
     }
     const busy = session.beginEdit();
     if (busy) {
       this.feedback.showMessage(playerId, busy);
-      return;
+      return "refused";
     }
     this.jobs.start(
       playerId,
@@ -59,5 +53,6 @@ export class PasteAt {
       false,
     );
     session.setFlow(recordPaste(flow, anchor, cmd.tick));
+    return "pasted";
   }
 }

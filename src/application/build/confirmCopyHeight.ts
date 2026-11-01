@@ -1,14 +1,12 @@
-import { cancel } from "../../domain/build/flow/flow";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { PlayerId } from "../../domain/shared/ids";
-import { CopyBox } from "./copyBox";
-import type { BuildBlockWorld } from "./ports/blocks";
+import type { CopyBox } from "./copyBox";
 import type { BuildFeedback } from "./ports/feedback";
 
 export class ConfirmCopyHeight {
   constructor(
     private readonly repo: BuildSessionRepository,
-    private readonly world: BuildBlockWorld,
+    private readonly copy: CopyBox,
     private readonly feedback: BuildFeedback,
   ) {}
 
@@ -23,13 +21,6 @@ export class ConfirmCopyHeight {
       min: flow.base.min,
       max: { ...flow.base.max, y: flow.base.min.y + flow.previous - 1 },
     };
-    if (
-      new CopyBox(this.repo, this.world, this.feedback).execute(
-        playerId,
-        flow.dimensionId,
-        box,
-      )
-    )
-      session.setFlow(cancel(flow));
+    this.copy.execute(playerId, flow.dimensionId, box);
   }
 }
