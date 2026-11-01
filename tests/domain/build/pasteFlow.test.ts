@@ -105,7 +105,12 @@ it("offers ordered paste entries by history and never paste or endPaste in the u
               hasHistory: session.hasHistory,
               skipAir: session.flow.kind === "pasteAim" && session.flow.skipAir,
             }).map(({ id }) => id),
-          ).toEqual([...(history ? ["undo"] : []), "skipAir", "endPaste"]);
+          ).toEqual([
+            ...(history ? ["undo"] : []),
+            "skipAir",
+            "newCopy",
+            "endPaste",
+          ]);
         }
       },
     ),
@@ -133,6 +138,7 @@ it("toggles immutably, preserves the repeat record, and toggles twice to identit
         ).toEqual([
           ...(history ? [{ id: "undo" }] : []),
           { id: "skipAir", on: !skipAir },
+          { id: "newCopy" },
           { id: "endPaste" },
         ]);
       },

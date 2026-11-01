@@ -18,7 +18,7 @@ export type ShapeEntryId =
 export type ContentsEntryId = FillStyle | "cancel";
 export type UtilityEntryId = "copy" | "undo" | "clear";
 
-export type PasteEntryId = "undo" | "skipAir" | "endPaste";
+export type PasteEntryId = "undo" | "skipAir" | "newCopy" | "endPaste";
 
 export interface MenuEntry<Id extends string = string> {
   id: Id;
@@ -71,6 +71,7 @@ export function pasteMenu(input: {
   return [
     ...(input.hasHistory ? [{ id: "undo" as const }] : []),
     { id: "skipAir", on: input.skipAir },
+    { id: "newCopy" },
     { id: "endPaste" },
   ];
 }

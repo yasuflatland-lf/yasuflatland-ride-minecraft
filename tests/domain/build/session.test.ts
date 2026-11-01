@@ -273,3 +273,34 @@ it("endPasting clears every flow, clipboard and confirmed box without changing h
     ),
   );
 });
+
+it("startNewCopy idles any paste aiming, clears the box and repeat window, and keeps the clipboard and history", () => {
+  fc.assert(
+    fc.property(
+      clipboardArb,
+      boxArb,
+      fc.boolean(),
+      cellArb,
+      fc.nat(),
+      recordArb,
+      (clipboard, box, skipAir, anchor, tick, record) => {
+        const session = new BuildSession(asPlayerId("p1"));
+        session.completeCopy(dim, box, clipboard);
+        session.finishEdit(record, false);
+        session.setFlow({
+          kind: "pasteAim",
+          skipAir,
+          lastPaste: { anchor, tick },
+        });
+        session.startNewCopy();
+        expect(session.flow).toEqual({ kind: "idle" });
+        expect(session.confirmedBox).toBeUndefined();
+        expect(session.clipboard).toBe(clipboard);
+        expect(session.takeUndo()).toBe(record);
+        session.leaveBuildMode();
+        expect(session.flow).toEqual({ kind: "idle" });
+        expect(session.clipboard).toBeUndefined();
+      },
+    ),
+  );
+});
