@@ -85,6 +85,7 @@ it("preserves blocks and defers point taps out of before events", () => {
         const repo = new InMemorySessionRepository();
         const feedback: BuildFeedback = {
           showMessage: vi.fn(),
+          showSize: vi.fn(),
           drawPreview: vi.fn(),
         };
         const blocks = new FakeWorld();
@@ -184,6 +185,7 @@ function setupAir() {
   const repo = new InMemorySessionRepository();
   const feedback: BuildFeedback = {
     showMessage: vi.fn(),
+    showSize: vi.fn(),
     drawPreview: vi.fn(),
   };
   const blocks = new FakeWorld();

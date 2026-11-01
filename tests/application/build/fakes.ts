@@ -38,6 +38,11 @@ export class FakeSessions implements BuildSessionRepository {
 
 export class FakeFeedback implements BuildFeedback {
   messages: { message: BuildMessage; count?: number }[] = [];
+  sizes: { playerId: PlayerId; size: { x: number; y: number; z: number } }[] =
+    [];
+  showSize(playerId: PlayerId, size: { x: number; y: number; z: number }) {
+    this.sizes.push({ playerId, size });
+  }
   previews: {
     playerId: PlayerId;
     dimensionId: DimensionId | undefined;

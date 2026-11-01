@@ -31,6 +31,12 @@ it("defines every feedback message in both locales", () => {
         return [line.slice(0, split), line.slice(split + 1)];
       }),
     );
+    expect(
+      [...entries.keys()]
+        .filter((key) => key.startsWith("yasu_build.message."))
+        .sort(),
+    ).toEqual(Object.values(BUILD_MESSAGE).sort());
+    expect(entries.get(BUILD_MESSAGE.heightSize)?.match(/%s/g)).toHaveLength(3);
     for (const key of Object.values(BUILD_MESSAGE))
       expect(entries.get(key)).toBeTruthy();
     for (const key of Object.values(BUILD_FORM))

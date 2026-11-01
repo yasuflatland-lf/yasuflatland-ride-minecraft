@@ -44,6 +44,18 @@ export class BedrockFeedback implements BuildFeedback {
     });
   }
 
+  showSize(
+    playerId: PlayerId,
+    size: { x: number; y: number; z: number },
+  ): void {
+    const player = playerById(playerId);
+    if (!player?.isValid) return;
+    player.onScreenDisplay.setActionBar({
+      translate: BUILD_MESSAGE.heightSize,
+      with: [String(size.x), String(size.y), String(size.z)],
+    });
+  }
+
   drawPreview(
     playerId: PlayerId,
     dimensionId: DimensionId | undefined,

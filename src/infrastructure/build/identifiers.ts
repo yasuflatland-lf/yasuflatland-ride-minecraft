@@ -6,7 +6,10 @@ export const SELECTION_WAND_TYPE = buildId("selection_wand");
 // Copy of the vehicle protection tag; build cannot import that feature (ADR 0046, 0178).
 export const LAID_BLOCK_TAG = "yasu_ride:laid";
 
-export const BUILD_MESSAGE: Readonly<Record<BuildMessage, string>> = {
+export const BUILD_MESSAGE: Readonly<
+  Record<BuildMessage | "heightSize", string>
+> = {
+  heightSize: "yasu_build.message.height_size",
   pointSet: "yasu_build.message.point_set",
   endSet: "yasu_build.message.end_set",
   materialRefused: "yasu_build.message.material_refused",

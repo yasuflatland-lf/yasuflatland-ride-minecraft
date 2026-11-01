@@ -68,6 +68,7 @@ export function registerTestTap(
           count = volume;
           feedback.showMessage(id, name, volume);
         },
+        showSize: (id, size) => feedback.showSize(id, size),
         drawPreview: (id, dimension, set) =>
           feedback.drawPreview(id, dimension, set),
       };
