@@ -10,15 +10,16 @@ import { CopyBox } from "../../application/build/copyBox";
 import { CopySelection } from "../../application/build/copySelection";
 import { DescribeBuild } from "../../application/build/describeBuild";
 import { EditJobs } from "../../application/build/editJobs";
+import { EndPasting } from "../../application/build/endPasting";
 import { LeaveBuild } from "../../application/build/leaveBuild";
+import { NewCopy } from "../../application/build/newCopy";
 import { PasteAt } from "../../application/build/pasteAt";
 import { PressPasteAim } from "../../application/build/pressPasteAim";
 import { SetHeightTo } from "../../application/build/setHeightTo";
 import { SetPoint } from "../../application/build/setPoint";
 import { ShowPreview } from "../../application/build/showPreview";
-import { StartPaste } from "../../application/build/startPaste";
-import { StopPaste } from "../../application/build/stopPaste";
 import { TapAir } from "../../application/build/tapAir";
+import { ToggleSkipAir } from "../../application/build/toggleSkipAir";
 import { UndoEdit } from "../../application/build/undoEdit";
 import { UpdateBuildModes } from "../../application/build/updateBuildModes";
 import type { SpaceCheck } from "../../application/shared/ports/space";
@@ -57,8 +58,9 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
     confirmCopyHeight: new ConfirmCopyHeight(repo, copyBox, feedback),
     fill: new ConfirmShape(repo, feedback, jobs),
     copy: new CopySelection(repo, copyBox, feedback),
-    paste: new StartPaste(repo),
-    stopPaste: new StopPaste(repo),
+    toggleSkipAir: new ToggleSkipAir(repo),
+    endPasting: new EndPasting(repo),
+    newCopy: new NewCopy(repo),
     pasteAt: new PasteAt(repo, blocks, feedback, jobs),
     chooseHeighted: new ChooseHeighted(repo, feedback),
     aimHeight: new AimHeight(repo),
@@ -90,7 +92,7 @@ export function installBuild(deps: { isProtected: SpaceCheck }): void {
   });
   registerModeTick(modes);
   registerOutlineTick(new ShowPreview(repo, feedback, aim));
-  registerSessions(repo, cancel, debounce);
+  registerSessions(repo, cases.endPasting, debounce);
   registerTestTap(repo, feedback, blocks);
   registerTestMode(modes, repo);
   registerEditTick(jobs);
