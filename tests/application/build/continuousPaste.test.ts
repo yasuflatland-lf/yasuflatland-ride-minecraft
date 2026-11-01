@@ -14,6 +14,10 @@ import {
   tapAir,
   tapBlock,
 } from "../../../src/domain/build/flow/flow";
+import {
+  beginPasteAim,
+  recordPaste,
+} from "../../../src/domain/build/flow/paste";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
@@ -58,14 +62,13 @@ it("keeps aiming through successive pastes with one job and bounded undo record 
             face: "up",
             tick: i * BUILD_SPEC.pasteRepeatTicks,
           });
-          expect(e.session.flow).toEqual({
-            kind: "pasteAim",
-            skipAir: false,
-            lastPaste: {
-              anchor: { ...block, y: block.y + 1 },
-              tick: i * BUILD_SPEC.pasteRepeatTicks,
-            },
-          });
+          expect(e.session.flow).toEqual(
+            recordPaste(
+              beginPasteAim(false),
+              { ...block, y: block.y + 1 },
+              i * BUILD_SPEC.pasteRepeatTicks,
+            ),
+          );
           expect(e.session.isEditing).toBe(true);
           e.jobs.step();
           expect(e.session.isEditing).toBe(false);
