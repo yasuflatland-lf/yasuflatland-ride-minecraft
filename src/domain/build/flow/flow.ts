@@ -120,3 +120,9 @@ export function startPaste(flow: BuildFlow, skipAir: boolean): BuildFlow {
 export function copyBoxOf(flow: BuildFlow): Box | undefined {
   return flow.kind === "endpoint" ? boxOf(flow.from, flow.to) : undefined;
 }
+
+export function clearLastPaste(flow: BuildFlow): BuildFlow {
+  return flow.kind === "pasteAim"
+    ? Object.freeze({ kind: "pasteAim", skipAir: flow.skipAir })
+    : flow;
+}
