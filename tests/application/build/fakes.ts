@@ -37,7 +37,8 @@ export class FakeSessions implements BuildSessionRepository {
 }
 
 export class FakeFeedback implements BuildFeedback {
-  messages: { message: BuildMessage; count?: number }[] = [];
+  messages: { message: BuildMessage; count?: number; material?: BlockState }[] =
+    [];
   sizes: { playerId: PlayerId; size: { x: number; y: number; z: number } }[] =
     [];
   showSize(playerId: PlayerId, size: { x: number; y: number; z: number }) {
@@ -60,8 +61,17 @@ export class FakeFeedback implements BuildFeedback {
     dimensionId: DimensionId | undefined;
     set: PreviewSet;
   }[] = [];
-  showMessage(_player: PlayerId, message: BuildMessage, count?: number) {
-    this.messages.push({ message, count });
+  showMessage(
+    _player: PlayerId,
+    message: BuildMessage,
+    count?: number,
+    material?: BlockState,
+  ) {
+    this.messages.push(
+      material === undefined
+        ? { message, count }
+        : { message, count, material },
+    );
   }
   drawPreview(
     playerId: PlayerId,

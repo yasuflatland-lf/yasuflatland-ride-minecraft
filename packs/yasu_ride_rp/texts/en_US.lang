@@ -135,6 +135,7 @@ yasu_build.form.submit=Apply
 
 yasu_build.message.point_set=Point 1 set.
 yasu_build.message.end_set=End point set (%s blocks).
+yasu_build.message.building=Building with %s.
 yasu_build.message.material_refused=Tap a solid block without stored data to choose a material.
 yasu_build.form.shape_title=Build shape
 yasu_build.form.roof_title=Build roof

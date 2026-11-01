@@ -111,7 +111,9 @@ function setup(fallback?: boolean) {
     confirmCopyHeight: { execute: vi.fn() },
     confirmShape: { execute: vi.fn() },
     chooseHeighted: {
-      execute: vi.fn((cmd) => new ChooseHeighted(repo).execute(cmd)),
+      execute: vi.fn((cmd) =>
+        new ChooseHeighted(repo, new FakeFeedback()).execute(cmd),
+      ),
     },
     confirmHeighted: { execute: vi.fn() },
     cancel: {

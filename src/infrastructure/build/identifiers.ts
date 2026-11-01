@@ -10,6 +10,7 @@ export const BUILD_MESSAGE: Readonly<
   Record<BuildMessage | "heightSize" | "pasteHint", string>
 > = {
   pasteHint: "yasu_build.message.paste_hint",
+  building: "yasu_build.message.building",
   heightSize: "yasu_build.message.height_size",
   pointSet: "yasu_build.message.point_set",
   endSet: "yasu_build.message.end_set",
