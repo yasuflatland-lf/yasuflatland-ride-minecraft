@@ -32,16 +32,16 @@ The Behavior Pack pins `@minecraft/server` at 2.2.0, while `package.json` pins i
 10. **Test hook.** Add the server-only script event `yasu_ride:test_held_tool`, with message `<vehicleId>,<bareItem>` or `<vehicleId>,clear`. It supplies the held tool only when there is no driver, as `testInput` does (0010).
 11. **Adding a tool.** For a kind that already has a monitor, adding a tool requires only data and table entries, with no new branching. Implement the checks below with the feature so each missed step is caught.
 
-| Step | Caught by |
-|---|---|
-| 1. Add the item to the kind's creative group in `tools/gen_item_catalog.py` | The group test in `tests/domain/vehicle/kinds/<kind>/monitor.test.ts` |
-| 2. Add a `MonitorTool` entry to the kind's `MonitorRule` | The group test |
-| 3. Add an entry to the drive's `toolStates` table | The kind-generic `toolState` test |
-| 4. Add one row per state to `tools/monitor_screens.json`, with a label of at most 4 characters | The kind-generic pack test |
-| 5. Map the item to its icon grid in the generator | A generator error |
-| 6. Widen the `yasu_ride:monitor` range in `<kind>.se.json` to the new screen count | The kind-generic pack test |
-| 7. Run `pnpm model` | `pnpm model:check` |
-| 8. Bump the RP manifest version and the BP dependency on it (0015) | `scripts/check-rp-version.mjs` at release (the RP header version), and `tests/packs/resourcePack.test.ts` (the RP module version and the BP dependency match it) |
+| Step                                                                                           | Caught by                                                                                                                                                        |
+| ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Add the item to the kind's creative group in `tools/gen_item_catalog.py`                    | The group test in `tests/domain/vehicle/kinds/<kind>/monitor.test.ts`                                                                                            |
+| 2. Add a `MonitorTool` entry to the kind's `MonitorRule`                                       | The group test                                                                                                                                                   |
+| 3. Add an entry to the drive's `toolStates` table                                              | The kind-generic `toolState` test                                                                                                                                |
+| 4. Add one row per state to `tools/monitor_screens.json`, with a label of at most 4 characters | The kind-generic pack test                                                                                                                                       |
+| 5. Map the item to its icon grid in the generator                                              | A generator error                                                                                                                                                |
+| 6. Widen the `yasu_ride:monitor` range in `<kind>.se.json` to the new screen count             | The kind-generic pack test                                                                                                                                       |
+| 7. Run `pnpm model`                                                                            | `pnpm model:check`                                                                                                                                               |
+| 8. Bump the RP manifest version and the BP dependency on it (0015)                             | `scripts/check-rp-version.mjs` at release (the RP header version), and `tests/packs/resourcePack.test.ts` (the RP module version and the BP dependency match it) |
 
 ## Consequences
 

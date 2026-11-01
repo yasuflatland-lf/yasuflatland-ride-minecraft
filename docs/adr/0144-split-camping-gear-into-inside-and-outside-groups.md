@@ -17,10 +17,10 @@ The catalog generator introduced by 0138 owns the group order.
 Split the Items tab's camping gear into these two groups, followed by the existing
 `yasu_ride:bulldozer_switches` group:
 
-| Group id | English name | Icon | Items in order |
-|---|---|---|---|
-| `yasu_ride:camping_gear_inside` | Camping Gear (Inside) | `yasu_ride:camping_gear_box` | The box, then the 19 gear ids in `tools/camping_gear.json` order, each prefixed with `yasu_ride:` |
-| `yasu_ride:camping_gear_outside` | Camping Gear (Outside) | `yasu_ride:low_chair_item` | `yasu_ride:low_chair_item`, then `yasu_ride:tent_item` |
+| Group id                         | English name           | Icon                         | Items in order                                                                                    |
+| -------------------------------- | ---------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------- |
+| `yasu_ride:camping_gear_inside`  | Camping Gear (Inside)  | `yasu_ride:camping_gear_box` | The box, then the 19 gear ids in `tools/camping_gear.json` order, each prefixed with `yasu_ride:` |
+| `yasu_ride:camping_gear_outside` | Camping Gear (Outside) | `yasu_ride:low_chair_item`   | `yasu_ride:low_chair_item`, then `yasu_ride:tent_item`                                            |
 
 The Japanese names are encoded here as Unicode escapes to keep documentation in
 English; `ja_JP.lang` contains the actual translated characters:

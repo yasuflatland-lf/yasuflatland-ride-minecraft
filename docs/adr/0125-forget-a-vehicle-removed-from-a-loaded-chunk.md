@@ -16,11 +16,11 @@ The `fleet_remove_spike` in-game scenario (0010) measures three cases: targeted 
 
 Results of the first run (CI in-game shard 1/4, 75 ticks), which had only the deferred read:
 
-| Case | Death event | Before remove | Deferred read | Block at deferred read |
-| --- | --- | --- | --- | --- |
-| `/kill` | tick 810 | tick 831 | tick 831 | loaded |
-| `entity.remove()` | none | tick 850 | tick 851 | loaded |
-| ticking area removed | none | tick 879 | tick 879 | unloaded |
+| Case                 | Death event | Before remove | Deferred read | Block at deferred read |
+| -------------------- | ----------- | ------------- | ------------- | ---------------------- |
+| `/kill`              | tick 810    | tick 831      | tick 831      | loaded                 |
+| `entity.remove()`    | none        | tick 850      | tick 851      | loaded                 |
+| ticking area removed | none        | tick 879      | tick 879      | unloaded               |
 
 - `system.run` from a before event that the engine raises (kill and unload) runs later in the same tick, not one tick later. Only a remove started from script defers to the next tick. The deferred read is therefore a same-tick read for the cases that matter
 - The deferred block read separates `/kill` (loaded) from unload (unloaded)
@@ -29,11 +29,11 @@ Results of the first run (CI in-game shard 1/4, 75 ticks), which had only the de
 
 A second run on the local dev BDS (75 ticks) added the next-tick read:
 
-| Case | Death event | Before remove | Deferred read | Next-tick read | Block at both reads |
-| --- | --- | --- | --- | --- | --- |
-| `/kill` | tick 3277 | tick 3298 | tick 3298 | tick 3299 | loaded |
-| `entity.remove()` | none | tick 3317 | tick 3318 | tick 3318 | loaded |
-| ticking area removed | none | tick 3346 | tick 3346 | tick 3347 | unloaded |
+| Case                 | Death event | Before remove | Deferred read | Next-tick read | Block at both reads |
+| -------------------- | ----------- | ------------- | ------------- | -------------- | ------------------- |
+| `/kill`              | tick 3277   | tick 3298     | tick 3298     | tick 3299      | loaded              |
+| `entity.remove()`    | none        | tick 3317     | tick 3318     | tick 3318      | loaded              |
+| ticking area removed | none        | tick 3346     | tick 3346     | tick 3347      | unloaded            |
 
 - The next-tick read agrees with the deferred read in every case, so either read separates `/kill` from unload
 - `/kill` again raised `entityDie` 21 ticks before the remove events

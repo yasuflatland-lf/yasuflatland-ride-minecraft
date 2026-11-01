@@ -16,23 +16,23 @@ Use `SIZE_SCALE = 1.45` in `tools/suv_dims.py`, an increase of 1.45/1.30, approx
 
 Re-derive the rideable positions, profile and test seat probe together:
 
-| Seats | x (blocks) | y (blocks) | z (blocks, forward positive) |
-| --- | ---: | ---: | ---: |
-| Front driver / passenger | -0.551 / +0.551 | 0.58 | -0.04984375 |
-| Rear driver side / passenger side | -0.551 / +0.551 | 0.58 | -1.16 |
+| Seats                             |      x (blocks) | y (blocks) | z (blocks, forward positive) |
+| --------------------------------- | --------------: | ---------: | ---------------------------: |
+| Front driver / passenger          | -0.551 / +0.551 |       0.58 |                  -0.04984375 |
+| Rear driver side / passenger side | -0.551 / +0.551 |       0.58 |                        -1.16 |
 
 Here x is +/-0.38 times scale, y is 0.4 times scale, and z is `(seat back z + 5.2) * scale / 16`. Retain `FRONT_SEAT_Z = -5.75` and rear seat back z=-18 in construction coordinates. Rechecking the front riders against the actual exported raked glass gives 2.366421 model pixels of separation along its normal after growing the head box by 0.5 px. The retained front offset therefore needs no further movement. The roof underside is 25.9*1.45=37.555 px; using 0170's unchanged outer head estimate gives head top 0.58*16+24.06875=33.34875 px, leaving 4.20625 px before the roof. Keep the strict all-four-seat test of the grown head against the roof, glass and leaning frame parts. These estimates do not establish client clearance for animated players, armor or arbitrary skins.
 
 Measure the generated, unanimated model as 0170 does: apply `cube_tilt.cube_matrix` about each cube pivot to all eight exported corners, without rounding the transformed coordinates. Use `body` plus closed `door_*` bones for shell bounds, `headlights` for lamp reach, road wheel bones for wheel width, and every bone for the horizontal footprint. Measure road height from the lowest rotated road tire corner and roof height including ribs with `suv_proportions.measure`.
 
-| Measured extent | Model px | Blocks |
-| --- | ---: | ---: |
-| Shell forward reach | 42.8475 | 2.67796875 |
-| Shell half width | 23.925 | 1.4953125 |
-| Lamp forward reach | 42.949 | 2.6843125 |
-| Wheel hub half width | 26.1 | 1.63125 |
+| Measured extent                             |     Model px |      Blocks |
+| ------------------------------------------- | -----------: | ----------: |
+| Shell forward reach                         |      42.8475 |  2.67796875 |
+| Shell half width                            |       23.925 |   1.4953125 |
+| Lamp forward reach                          |       42.949 |   2.6843125 |
+| Wheel hub half width                        |         26.1 |     1.63125 |
 | Farthest horizontal corner, rear hover glow | 54.341156134 | 3.396322258 |
-| Roof to road | 38.317560666 | 2.394847542 |
+| Roof to road                                | 38.317560666 | 2.394847542 |
 
 Round enclosing probes upward to `bodyFront=2.69`, `bodyHalfWidth=1.64` and `footprint=3.40`. The square engine collision box remains proportional to the original 1.8-wide, 1.6-high envelope: width=1.8*1.45=2.61 and height=1.6*1.45=2.32. Set `carHeight=2.32`, `hitboxFront=2.61/2=1.305`, `floatDraft=2.32*0.75=1.74` and `gearProbeOffset=1.305*(1-0.1/0.9)=1.16`. The visible roof remains within the unchanged maximum 0.30-block allowance above `carHeight`.
 
