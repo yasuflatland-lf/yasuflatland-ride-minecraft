@@ -384,9 +384,196 @@ export function buildAimedPaste(a: Arena): Promise<Outcome> {
           unchanged(f, target, before),
           "paste undo did not restore destination",
         );
+        await f.menu("utility", "stopPaste");
       }
     }
     await f.edit("undo");
+  });
+}
+
+function mixedSource(f: Fixture, cells: Cell[]): void {
+  cells.forEach((cell, i) => {
+    const block = f.block(cell);
+    block.setType(
+      ["minecraft:stone", "minecraft:oak_log", "minecraft:air"][i % 3] ??
+        "minecraft:stone",
+    );
+    if (block.typeId === "minecraft:oak_log")
+      block.setPermutation(block.permutation.withState("pillar_axis", "x"));
+  });
+}
+
+function pasteTarget(
+  f: Fixture,
+  anchor: Cell,
+  sx: number,
+  sy: number,
+  sz: number,
+) {
+  f.block(anchor).setType("minecraft:gold_block");
+  const cells = f.region(sx, sy, sz, { ...anchor, y: anchor.y + 1 });
+  for (const cell of cells) f.block(cell).setType("minecraft:gold_block");
+  return { anchor, cells, before: snapshot(f, cells) };
+}
+
+function pasteUp(f: Fixture, anchor: Cell): Promise<Reply> {
+  return f.edit(`pasteat ${anchor.x} ${anchor.y} ${anchor.z} up`);
+}
+
+export function buildCopyShapes(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    for (const [sy, sz, heightStep] of [
+      [3, 3, false],
+      [3, 1, false],
+      [3, 3, true],
+    ] as const) {
+      const source = f.region(3, sy, sz);
+      mixedSource(f, source);
+      await f.select(f.cell(2, heightStep ? 0 : sy - 1, sz - 1));
+      const expected = snapshot(f, source);
+      let copied = await f.menu("shape", "copy");
+      check(copied.offered === true, "shape Copy absent");
+      if (heightStep) {
+        check(copied.flow.kind === "heightStep", "Copy height step missing");
+        check(
+          (await f.edit("height 3")).flow.previous === 3,
+          "Copy height not applied",
+        );
+        copied = await f.edit("confirmcopy");
+      }
+      check(
+        copied.message === "copied" && copied.count === source.length,
+        "Copy count wrong",
+      );
+      const target = pasteTarget(f, f.cell(12, 0, 12), 3, sy, sz);
+      check(
+        (await f.menu("utility", "paste")).offered === true,
+        "Paste absent",
+      );
+      check(
+        (await pasteUp(f, target.anchor)).message === "editDone",
+        "shape copy paste failed",
+      );
+      check(
+        unchanged(f, target.cells, expected),
+        "shape Copy lost source block states",
+      );
+      await f.menu("utility", "undo");
+      check(
+        unchanged(f, target.cells, target.before),
+        "shape copy undo lost destination states",
+      );
+      await f.menu("utility", "stopPaste");
+    }
+  });
+}
+
+export function buildContinuousPaste(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const source = f.region(2, 2, 2);
+    mixedSource(f, source);
+    await f.select(f.cell(1, 1, 1));
+    const expected = snapshot(f, source);
+    check((await f.menu("shape", "copy")).message === "copied", "Copy failed");
+    const targets = [20, 24, 28].map((x) =>
+      pasteTarget(f, f.cell(x, 0, 12), 2, 2, 2),
+    );
+    check(
+      (await f.menu("utility", "paste")).flow.kind === "pasteAim",
+      "Paste did not start",
+    );
+    for (const target of targets) {
+      const pasted = await pasteUp(f, target.anchor);
+      check(
+        pasted.message === "editDone" && pasted.flow.kind === "pasteAim",
+        "Paste did not continue",
+      );
+      check(
+        unchanged(f, target.cells, expected),
+        "continuous Paste lost source states",
+      );
+    }
+    for (const target of [...targets].reverse()) {
+      const undone = await f.menu("utility", "undo");
+      check(
+        undone.offered === true &&
+          undone.message === "undoDone" &&
+          undone.flow.kind === "pasteAim",
+        "Undo unavailable while pasting",
+      );
+      check(
+        unchanged(f, target.cells, target.before),
+        "continuous Paste undo lost destination states",
+      );
+    }
+    const stopped = await f.menu("utility", "stopPaste");
+    check(
+      stopped.offered === true && stopped.flow.kind === "idle",
+      "Stop pasting failed",
+    );
+    check(
+      (await f.menu("utility", "stopPaste")).offered === false,
+      "Stop pasting offered while idle",
+    );
+    check(
+      (await f.menu("utility", "paste")).flow.kind === "pasteAim",
+      "Paste did not restart",
+    );
+    f.hold(false);
+    await wait(BUILD_SPEC.modeLeaveTicks + 2);
+    check(
+      (await f.mode()).flow.kind !== "pasteAim",
+      "item switch did not end Paste",
+    );
+    f.hold(true);
+    await wait(BUILD_SPEC.modeEnterTicks + 2);
+  });
+}
+
+export function buildPasteBlocked(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const source = f.region(2, 2, 2);
+    mixedSource(f, source);
+    await f.select(f.cell(1, 1, 1));
+    const expected = snapshot(f, source);
+    check((await f.menu("shape", "copy")).message === "copied", "Copy failed");
+    const blocked = pasteTarget(f, f.cell(12, 0, 24), 2, 2, 2);
+    const protectedCell = f.cell(13, 2, 25);
+    f.block(protectedCell).setType("yasu_ride:camper_bed");
+    check(
+      f.block(protectedCell).hasTag(LAID_BLOCK_TAG),
+      "fixture lacks laid tag",
+    );
+    const before = snapshot(f, blocked.cells);
+    const clean = pasteTarget(f, f.cell(18, 0, 24), 2, 2, 2);
+    check(
+      (await f.menu("utility", "paste")).flow.kind === "pasteAim",
+      "Paste did not start",
+    );
+    const refused = await pasteUp(f, blocked.anchor);
+    check(
+      refused.message === "pasteBlocked" && refused.flow.kind === "pasteAim",
+      "blocked Paste did not retain aiming",
+    );
+    check(
+      unchanged(f, blocked.cells, before),
+      "blocked Paste changed destination",
+    );
+    const pasted = await pasteUp(f, clean.anchor);
+    check(
+      pasted.message === "editDone" && pasted.flow.kind === "pasteAim",
+      "clean Paste after refusal failed",
+    );
+    check(
+      unchanged(f, clean.cells, expected),
+      "clean Paste lost source states",
+    );
+    await f.menu("utility", "undo");
+    check(
+      unchanged(f, clean.cells, clean.before),
+      "clean Paste undo lost destination states",
+    );
+    await f.menu("utility", "stopPaste");
   });
 }
 
