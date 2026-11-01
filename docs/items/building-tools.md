@@ -25,7 +25,7 @@ Tap or right-click a block to set point 1 and choose that block's material. A bl
 
 On the iPad a short tap on air sends nothing to the add-on, so every air action (an end point in the air, confirming a roof height while looking at the sky, the utility menu) needs a long press of about one second. A tap on a block works as usual.
 
-Every shape also offers Copy. On a horizontal rectangle, aim to choose the copy height and tap to copy the box; other shapes copy immediately. The action bar reports the copied block count and how to paste.
+Every shape also offers Copy. On a horizontal rectangle, aim to choose the copy height and tap to copy; other shapes copy immediately. Copy enters paste aiming automatically ([ADR 0203](../adr/0203-build-wand-paste-aiming.md), Proposed).
 
 Cancel returns to end-point selection. For a roof, aim to choose its height, tap to confirm, then choose Fill or Hollow. Roofs use full blocks of the selected material.
 
@@ -33,7 +33,9 @@ Cylinder and Cube grow upward from a horizontal rectangle: aim to choose the hei
 
 ## Utility menu and paste
 
-Sneak and tap or right-click on air to open the utility menu. Outside paste aiming, it offers applicable Copy, Paste, Undo, and Clear selection actions. Copy needs a confirmed selection; Paste needs a clipboard. Choose Paste and set Skip air before aiming. The clipboard outline follows the aimed block; tap a block to place the clipboard minimum corner adjacent to the tapped face, with no rotation. Paste aiming continues after each placement, so further block taps paste again with the same Skip air setting. A paste overlapping a protected place is refused as a whole and aiming continues. While pasting, the utility menu offers only Undo (with history) and Stop pasting. The action-bar hint shows the clipboard size, block count, and exits: Stop pasting or switching items. Each paste is one Undo entry.
+In selection, sneak and use the wand on air for applicable Copy, Undo, and Clear selection actions. After Copy, aim at a solid block and use the wand to paste at its viewed face; repeat as needed. On iPad, use a long press of about one second; on PC, right click. A block tap never pastes. The outline follows the aim, and the action bar shows the clipboard size and count.
+
+While pasting, use the wand on air without sneaking for Undo (when available), Skip air, New copy, and End pasting. Skip air starts off and persists until paste aiming is entered again. End pasting, switching items, death, or a dimension change discards the clipboard. Protected overlaps are refused, and each paste has one Undo entry. See [ADR 0203](../adr/0203-build-wand-paste-aiming.md) for the proposed interaction.
 
 Air in a copied selection replaces destination blocks unless Skip air is on. Kept blocks, such as chests and signs, are not copied; their destination cells remain untouched.
 
