@@ -22,6 +22,10 @@ import {
 } from "../../../src/domain/build/flow/menu";
 import { BuildSession } from "../../../src/domain/build/session";
 import { shapeOf, stylesFor } from "../../../src/domain/build/shape/shape";
+import {
+  fillStylesFor,
+  type HeightedKind,
+} from "../../../src/domain/build/volume/kind";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { PLACE_KEPT_BLOCKS } from "../../../src/domain/shared/keptBlocks";
 
@@ -300,6 +304,32 @@ it("roof Cancel preserves the original first point for either selection directio
             material: stone,
           });
         }
+      },
+    ),
+  );
+});
+
+it("offers each heighted kind's fill styles followed by Cancel", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom<HeightedKind>("gable", "hip", "cylinder", "cube"),
+      cell,
+      cell,
+      (kind, from, to) => {
+        const flow: BuildFlow = {
+          kind: "heightStep",
+          dimensionId: dim,
+          base: boxOf(from, to),
+          from,
+          heightedKind: kind,
+          previous: 1,
+          heightLocked: false,
+          material: stone,
+        };
+        expect(contentsMenu(flow).map((entry) => entry.id)).toEqual([
+          ...fillStylesFor(kind),
+          "cancel",
+        ]);
       },
     ),
   );

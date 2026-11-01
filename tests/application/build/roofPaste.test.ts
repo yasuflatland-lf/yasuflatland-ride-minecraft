@@ -3,7 +3,7 @@ import { expect, it, vi } from "vitest";
 import { AimHeight } from "../../../src/application/build/aimHeight";
 import { CancelFlow } from "../../../src/application/build/cancelFlow";
 import { ChooseHeighted } from "../../../src/application/build/chooseHeighted";
-import { ConfirmRoof } from "../../../src/application/build/confirmRoof";
+import { ConfirmHeighted } from "../../../src/application/build/confirmHeighted";
 import { EditJobs } from "../../../src/application/build/editJobs";
 import { PasteAt } from "../../../src/application/build/pasteAt";
 import { SetPoint } from "../../../src/application/build/setPoint";
@@ -142,9 +142,9 @@ it("confirms roof cells and retains their bounding box for copying", () => {
         roof(e, base, kind);
         e.session.setFlow(setHeight(e.session.flow, height));
         const spec = { base, kind, height };
-        new ConfirmRoof(e.repo, e.feedback, e.jobs).execute({
+        new ConfirmHeighted(e.repo, e.feedback, e.jobs).execute({
           playerId,
-          hollow,
+          fill: hollow ? "hollow" : "fill",
         });
         expect(e.session.flow).toEqual({ kind: "idle" });
         expect(e.session.confirmedBox).toEqual({
@@ -165,8 +165,8 @@ it("refuses oversized and busy roofs without consuming the height stage", () => 
   const base = boxOf({ x: 0, y: 0, z: 0 }, { x: 1000, y: 0, z: 1000 });
   roof(e, base, "gable");
   const flow = e.session.flow;
-  const confirm = new ConfirmRoof(e.repo, e.feedback, e.jobs);
-  confirm.execute({ playerId, hollow: false });
+  const confirm = new ConfirmHeighted(e.repo, e.feedback, e.jobs);
+  confirm.execute({ playerId, fill: "fill" });
   expect(e.feedback.messages.at(-1)).toEqual({
     message: "tooLarge",
     count: 1001 ** 2,
@@ -176,7 +176,7 @@ it("refuses oversized and busy roofs without consuming the height stage", () => 
   roof(e, boxOf({ x: 0, y: 0, z: 0 }, { x: 4, y: 0, z: 4 }), "hip");
   const small = e.session.flow;
   e.session.beginEdit();
-  confirm.execute({ playerId, hollow: true });
+  confirm.execute({ playerId, fill: "hollow" });
   expect(e.feedback.messages.at(-1)?.message).toBe("busy");
   expect(e.session.flow).toBe(small);
   expect(e.world.writes).toBe(0);
@@ -279,3 +279,22 @@ it("preserves paste aiming on missing clipboard, busy jobs and protected holes",
   new CancelFlow(e.repo).execute({ playerId });
   expect(e.session.flow).toEqual({ kind: "idle" });
 });
+
+it.each(["gable", "hip"] as const)(
+  "rejects tube contents on a %s roof without changing the flow",
+  (kind) => {
+    const e = setup();
+    roof(e, boxOf({ x: 0, y: 0, z: 0 }, { x: 4, y: 0, z: 4 }), kind);
+    const flow = e.session.flow;
+    new ConfirmHeighted(e.repo, e.feedback, e.jobs).execute({
+      playerId,
+      fill: "tube",
+    });
+    expect(e.feedback.messages).toEqual([{ message: "noSelection" }]);
+    expect(e.session.flow).toBe(flow);
+    expect(e.session.isEditing).toBe(false);
+    expect(e.session.confirmedBox).toBeUndefined();
+    e.jobs.step();
+    expect(e.world.writes).toBe(0);
+  },
+);
