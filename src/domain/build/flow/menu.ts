@@ -1,30 +1,48 @@
 import type { BuildSession } from "../session";
 import { shapeOf, stylesFor } from "../shape/shape";
-import { fillStylesFor } from "../volume/kind";
+import { type FillStyle, fillStylesFor } from "../volume/kind";
 import type { BuildFlow } from "./flow";
 
-export interface MenuEntry {
-  id: string;
+export type ShapeEntryId =
+  | "place"
+  | "fill"
+  | "frame"
+  | "faces"
+  | "walls"
+  | "gable"
+  | "hip"
+  | "cylinder"
+  | "cube"
+  | "cancel";
+export type ContentsEntryId = FillStyle | "cancel";
+export type UtilityEntryId = "copy" | "paste" | "undo" | "clear";
+
+export interface MenuEntry<Id extends string = string> {
+  id: Id;
 }
 
-export function shapeMenu(flow: BuildFlow): MenuEntry[] {
+export function shapeMenu(flow: BuildFlow): MenuEntry<ShapeEntryId>[] {
   if (flow.kind !== "endpoint") return [];
   const shape = shapeOf(flow.from, flow.to);
-  return [
-    ...stylesFor(shape).map((style) => ({
-      id: shape.kind === "line" ? "place" : style,
-    })),
-    ...(shape.kind === "rect" && shape.flat === "y"
+  const extraEntries: MenuEntry<ShapeEntryId>[] =
+    shape.kind === "rect" && shape.flat === "y"
       ? [{ id: "gable" }, { id: "hip" }, { id: "cylinder" }, { id: "cube" }]
       : shape.kind === "box"
         ? [{ id: "cylinder" }]
-        : []),
+        : [];
+  return [
+    ...stylesFor(shape).map<MenuEntry<ShapeEntryId>>((style) => ({
+      id: shape.kind === "line" ? "place" : style,
+    })),
+    ...extraEntries,
     { id: "cancel" },
   ];
 }
 
-export function utilityMenu(session: BuildSession): MenuEntry[] {
-  const entries: MenuEntry[] = [];
+export function utilityMenu(
+  session: BuildSession,
+): MenuEntry<UtilityEntryId>[] {
+  const entries: MenuEntry<UtilityEntryId>[] = [];
   if (session.confirmedBox) entries.push({ id: "copy" });
   if (session.clipboard) entries.push({ id: "paste" });
   if (session.hasHistory) entries.push({ id: "undo" });
@@ -33,7 +51,7 @@ export function utilityMenu(session: BuildSession): MenuEntry[] {
   return entries;
 }
 
-export function contentsMenu(flow: BuildFlow): MenuEntry[] {
+export function contentsMenu(flow: BuildFlow): MenuEntry<ContentsEntryId>[] {
   return flow.kind === "heightStep"
     ? [
         ...fillStylesFor(flow.heightedKind).map((id) => ({ id })),
