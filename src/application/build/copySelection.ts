@@ -1,10 +1,8 @@
 // Use case: copy the selection into the clipboard in one tick (ADR 0178).
 
-import { volume } from "../../domain/build/box";
-import { clipboardOf } from "../../domain/build/clipboard/clipboard";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
-import { BUILD_SPEC } from "../../domain/build/spec";
 import type { PlayerId } from "../../domain/shared/ids";
+import { CopyBox } from "./copyBox";
 import type { BuildBlockWorld } from "./ports/blocks";
 import type { BuildFeedback } from "./ports/feedback";
 
@@ -24,14 +22,10 @@ export class CopySelection {
       return;
     }
     const { box, dimensionId } = confirmed;
-    if (volume(box) > BUILD_SPEC.maxCopyVolume) {
-      this.feedback.showMessage(playerId, "tooLarge", volume(box));
-      return;
-    }
-    const clipboard = clipboardOf(box, (cell) =>
-      this.world.stateAt(dimensionId, cell),
+    new CopyBox(this.repo, this.world, this.feedback).execute(
+      playerId,
+      dimensionId,
+      box,
     );
-    session.setClipboard(clipboard);
-    this.feedback.showMessage(playerId, "copied", clipboard.cells.length);
   }
 }

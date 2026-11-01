@@ -91,6 +91,7 @@ it("preserves blocks and defers point taps out of before events", () => {
         const blocks = new FakeWorld();
         blocks.put({ x, y, z }, blockStateOf("minecraft:stone"));
         registerWand({
+          confirmCopyHeight: { execute: vi.fn() },
           aimHeight: new AimHeight(repo),
           repo,
           pasteAt: new PasteAt(
@@ -192,6 +193,7 @@ function setupAir() {
   const setPoint = new SetPoint(repo, blocks, feedback);
   const tapAir = new TapAir(repo, feedback);
   const aimHeight = new AimHeight(repo);
+  const confirmCopyHeight = { execute: vi.fn() };
   const roofExecute = vi.spyOn(aimHeight, "execute");
   const pointExecute = vi.spyOn(setPoint, "execute");
   const execute = vi.spyOn(tapAir, "execute");
@@ -228,6 +230,7 @@ function setupAir() {
     material: blockStateOf("minecraft:stone"),
   });
   registerWand({
+    confirmCopyHeight,
     aimHeight,
     repo,
     pasteAt: new PasteAt(
@@ -259,6 +262,7 @@ function setupAir() {
     menus,
     aim,
     debounce,
+    confirmCopyHeight,
     roofExecute,
     pointExecute,
   };
@@ -465,6 +469,7 @@ it("routes each engine face to aimed paste in the hit dimension after the before
         const point = new SetPoint(repo, blocks, feedback);
         const pointCall = vi.spyOn(point, "execute");
         registerWand({
+          confirmCopyHeight: { execute: vi.fn() },
           aimHeight: new AimHeight(repo),
           setPoint: point,
           tapAir: new TapAir(repo, feedback),
@@ -543,6 +548,7 @@ it("opens only on entering endpoint and defers an air-triggered menu safely", ()
     execute({ ...cmd, end: to }),
   );
   registerWand({
+    confirmCopyHeight: { execute: vi.fn() },
     aimHeight: new AimHeight(repo),
     setPoint: new SetPoint(repo, blocks, feedback),
     tapAir: air,
@@ -578,3 +584,38 @@ it("opens only on entering endpoint and defers an air-triggered menu safely", ()
   for (const callback of engine.scheduled.splice(0)) callback();
   expect(menus.showShapeMenu).toHaveBeenCalledTimes(1);
 });
+
+it.each(["block", "air"])(
+  "confirms Copy after aiming from a %s tap without contents",
+  (tap) => {
+    const e = setupRoof("gable");
+    if (e.flow.kind !== "heightStep") throw new Error("Expected height step");
+    e.session.setFlow({ ...e.flow, heightedKind: "copy" });
+    e.confirmCopyHeight.execute.mockImplementation(() => {
+      expect(e.session.flow).toMatchObject({
+        heightedKind: "copy",
+        previous: 5,
+      });
+    });
+    if (tap === "air") e.use();
+    else {
+      engine.handlers.get("interact")?.({
+        player: e.player,
+        block: {
+          dimension: { id: "minecraft:nether" },
+          location: { x: 0, y: 0, z: 0 },
+        },
+        isFirstEvent: true,
+        cancel: false,
+      });
+      for (const callback of engine.scheduled.splice(0)) callback();
+    }
+    expect(e.confirmCopyHeight.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId: e.id,
+    });
+    expect(e.roofExecute.mock.invocationCallOrder[0]).toBeLessThan(
+      e.confirmCopyHeight.execute.mock.invocationCallOrder[0] as number,
+    );
+    expect(e.menus.showContentsMenu).not.toHaveBeenCalled();
+  },
+);

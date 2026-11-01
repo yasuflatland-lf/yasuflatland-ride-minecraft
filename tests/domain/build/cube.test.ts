@@ -2,8 +2,14 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { boxOf, contains } from "../../../src/domain/build/box";
 import { cellsOfShape } from "../../../src/domain/build/shape/shape";
-import { cubeGeometry } from "../../../src/domain/build/volume/cube";
-import { geometryOf } from "../../../src/domain/build/volume/geometry";
+import {
+  cubePlacement,
+  cubeVolume,
+} from "../../../src/domain/build/volume/cube";
+import {
+  placementOf,
+  volumeOf,
+} from "../../../src/domain/build/volume/geometry";
 import { fillStylesFor } from "../../../src/domain/build/volume/kind";
 import type { Cell } from "../../../src/domain/shared/cells";
 
@@ -27,18 +33,19 @@ const cellSet = (cells: Iterable<Cell>) =>
 
 describe("cube geometry", () => {
   it("is registered", () => {
-    expect(geometryOf("cube")).toBe(cubeGeometry);
+    expect(volumeOf("cube")).toBe(cubeVolume);
+    expect(placementOf("cube")).toBe(cubePlacement);
   });
 
   it("fills the footprint through the height with nested shells", () => {
     fc.assert(
       fc.property(spec, (spec) => {
         const { min, max } = spec.base;
-        const fill = cellSet(cubeGeometry.cells(spec, "fill"));
-        const hollow = cellSet(cubeGeometry.cells(spec, "hollow"));
-        const tube = cellSet(cubeGeometry.cells(spec, "tube"));
+        const fill = cellSet(cubePlacement.cells(spec, "fill"));
+        const hollow = cellSet(cubePlacement.cells(spec, "hollow"));
+        const tube = cellSet(cubePlacement.cells(spec, "tube"));
         const volume = (max.x - min.x + 1) * (max.z - min.z + 1) * spec.height;
-        expect(cubeGeometry.count(spec, "fill")).toBe(volume);
+        expect(cubePlacement.count(spec, "fill")).toBe(volume);
         expect(fill.size).toBe(volume);
         expect([...tube].every((cell) => hollow.has(cell))).toBe(true);
         expect([...hollow].every((cell) => fill.has(cell))).toBe(true);
@@ -50,8 +57,8 @@ describe("cube geometry", () => {
     fc.assert(
       fc.property(spec, (spec) => {
         for (const fill of fillStylesFor("cube")) {
-          const cells = [...cubeGeometry.cells(spec, fill)];
-          expect(cubeGeometry.count(spec, fill)).toBe(cells.length);
+          const cells = [...cubePlacement.cells(spec, fill)];
+          expect(cubePlacement.count(spec, fill)).toBe(cells.length);
           expect(cellSet(cells).size).toBe(cells.length);
         }
       }),
@@ -75,9 +82,9 @@ describe("cube geometry", () => {
               },
             },
           };
-          const fill = cellSet(cubeGeometry.cells(thin, "fill"));
-          expect(cellSet(cubeGeometry.cells(thin, "hollow"))).toEqual(fill);
-          expect(cellSet(cubeGeometry.cells(thin, "tube"))).toEqual(fill);
+          const fill = cellSet(cubePlacement.cells(thin, "fill"));
+          expect(cellSet(cubePlacement.cells(thin, "hollow"))).toEqual(fill);
+          expect(cellSet(cubePlacement.cells(thin, "tube"))).toEqual(fill);
         },
       ),
     );
@@ -87,8 +94,8 @@ describe("cube geometry", () => {
     fc.assert(
       fc.property(spec, fc.integer({ min: 1, max: 2 }), (spec, height) => {
         const thin = { ...spec, height };
-        expect(cellSet(cubeGeometry.cells(thin, "hollow"))).toEqual(
-          cellSet(cubeGeometry.cells(thin, "fill")),
+        expect(cellSet(cubePlacement.cells(thin, "hollow"))).toEqual(
+          cellSet(cubePlacement.cells(thin, "fill")),
         );
       }),
     );
@@ -105,7 +112,7 @@ describe("cube geometry", () => {
           ["hollow", "faces"],
           ["tube", "walls"],
         ] as const) {
-          expect(cellSet(cubeGeometry.cells(spec, fill))).toEqual(
+          expect(cellSet(cubePlacement.cells(spec, fill))).toEqual(
             cellSet(cellsOfShape({ kind: "box", box }, style)),
           );
         }
@@ -116,7 +123,7 @@ describe("cube geometry", () => {
   it("caps height at the world top with at least one layer", () => {
     fc.assert(
       fc.property(spec, coordinate, ({ base }, worldTopY) => {
-        const height = cubeGeometry.maxHeight(base, worldTopY);
+        const height = cubeVolume.maxHeight(base, worldTopY);
         expect(height).toBeGreaterThanOrEqual(1);
         expect(height).toBe(Math.max(1, worldTopY - base.min.y + 1));
       }),
@@ -126,7 +133,7 @@ describe("cube geometry", () => {
   it("bounds the wireframe budget and places points at block centres on edges", () => {
     fc.assert(
       fc.property(spec, fc.integer({ min: 0, max: 200 }), (spec, maxPoints) => {
-        const points = cubeGeometry.wireframe(spec, maxPoints);
+        const points = cubeVolume.wireframe(spec, maxPoints);
         const box = {
           min: spec.base.min,
           max: { ...spec.base.max, y: spec.base.min.y + spec.height - 1 },
