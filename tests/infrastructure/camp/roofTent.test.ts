@@ -6,6 +6,7 @@ import { PaintRoofTent } from "../../../src/application/camp/paintRoofTent";
 import { PlaceRoofTent } from "../../../src/application/camp/placeRoofTent";
 import { RoofTentHostGuard } from "../../../src/application/camp/roofTentHostGuard";
 import type { VehicleHostState } from "../../../src/application/shared/ports/vehicleHost";
+import { seatPosition } from "../../../src/domain/camp/roofTent/seat";
 import { ROOF_TENT_SPEC } from "../../../src/domain/camp/spec";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { PAINTS } from "../../../src/domain/shared/paint";
@@ -649,4 +650,64 @@ it("maps roof placement refusals and fold counts to existing localized tent mess
     translate: ids.TENT_HITS_LEFT_HINT,
     with: ["2"],
   });
+});
+
+it("moves entrants to the lifted seat without changing rotation", () => {
+  const tent = spawn();
+  const p = player();
+  occupants.moveInside(PLAYER, "tent");
+  expect(p.teleport).toHaveBeenCalledExactlyOnceWith(
+    seatPosition(tent.location),
+    { dimension: game.dimension },
+  );
+  expect(p.setRotation).not.toHaveBeenCalled();
+});
+
+it("holds a displaced occupant at the seat without preserving velocity or rotation", () => {
+  const tent = spawn();
+  const p = player();
+  occupants.setOccupant("tent", PLAYER);
+  p.location.y -= 1;
+  occupants.holdInside(PLAYER, "tent");
+  expect(p.teleport).toHaveBeenCalledExactlyOnceWith(
+    seatPosition(tent.location),
+    { dimension: game.dimension },
+  );
+  expect(p.setRotation).not.toHaveBeenCalled();
+});
+
+it("does not teleport an occupant already seated or within tolerance", () => {
+  const tent = spawn();
+  const p = player();
+  occupants.setOccupant("tent", PLAYER);
+  p.location = seatPosition(tent.location);
+  occupants.holdInside(PLAYER, "tent");
+  p.location.y -= ROOF_TENT_SPEC.seatTolerance / 2;
+  occupants.holdInside(PLAYER, "tent");
+  expect(p.teleport).not.toHaveBeenCalled();
+});
+
+it.each([
+  "non-occupant",
+  "cleared",
+  "invalid tent",
+  "unloaded tent",
+  "invalid player",
+  "missing player",
+  "different dimension",
+])("does not hold a displaced player with %s", (reason) => {
+  const tent = spawn();
+  const p = player();
+  occupants.setOccupant("tent", PLAYER);
+  if (reason === "non-occupant")
+    occupants.setOccupant("tent", asPlayerId("other"));
+  if (reason === "cleared") occupants.setOccupant("tent", undefined);
+  if (reason === "invalid tent") tent.isValid = false;
+  if (reason === "unloaded tent") game.entities.delete("tent");
+  if (reason === "invalid player") p.isValid = false;
+  if (reason === "missing player") game.entities.delete("player");
+  if (reason === "different dimension")
+    p.dimension = { ...game.dimension, id: "minecraft:nether" };
+  occupants.holdInside(PLAYER, "tent");
+  expect(p.teleport).not.toHaveBeenCalled();
 });

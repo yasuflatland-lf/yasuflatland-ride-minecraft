@@ -12,6 +12,7 @@ export class FakeRoofTentOccupantWorld implements RoofTentOccupantWorld {
     if (player === undefined) this.occupants.delete(id);
     else this.occupants.set(id, player);
   });
+  holdInside = vi.fn<RoofTentOccupantWorld["holdInside"]>();
   moveInside = vi.fn<RoofTentOccupantWorld["moveInside"]>();
   placeOutside = vi.fn<RoofTentOccupantWorld["placeOutside"]>((player, id) => {
     this.calls.push(["placeOutside", player, id]);

@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import {
   canReachEntrance,
+  canSeeEntryHint,
   canStandAtFoot,
   entranceWorld,
 } from "../../../src/domain/camp/roofTent/access";
@@ -335,5 +336,42 @@ it.each([
         }),
       ).toBe(false);
     }),
+  );
+});
+
+it("shows the ladder hint beyond foot activation only within ground entrance reach", () => {
+  const mount = SUV_PROFILE.roofTent as RoofTentMount;
+  fc.assert(
+    fc.property(
+      host,
+      fc.double({ min: 0.8, max: 1.4, noNaN: true }),
+      (pose, radius) => {
+        const entrance = entranceWorld(mount, pose);
+        const player = {
+          x: entrance.x + radius,
+          y: pose.location.y,
+          z: entrance.z,
+        };
+        expect(canSeeEntryHint(mount, pose, player)).toBe(true);
+        expect(canStandAtFoot(mount, pose, player)).toBe(false);
+        expect(canSeeEntryHint({ ...mount, ladder: false }, pose, player)).toBe(
+          false,
+        );
+        expect(
+          canSeeEntryHint(mount, pose, {
+            ...player,
+            x: entrance.x + ROOF_TENT_SPEC.entranceReach + 0.001,
+          }),
+        ).toBe(false);
+        for (const sign of [-1, 1]) {
+          expect(
+            canSeeEntryHint(mount, pose, {
+              ...player,
+              y: pose.location.y + sign * (ROOF_TENT_SPEC.entranceBand + 0.001),
+            }),
+          ).toBe(false);
+        }
+      },
+    ),
   );
 });

@@ -8,7 +8,10 @@ import { entranceWorld } from "../../../src/domain/camp/roofTent/access";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import type { RoofTentMount } from "../../../src/domain/shared/roofTent";
 import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
-import { createEntranceReach } from "../../../src/infrastructure/camp/bedrock/roofTentAccess";
+import {
+  createEntranceReach,
+  createHostedTents,
+} from "../../../src/infrastructure/camp/bedrock/roofTentAccess";
 import { ROOF_TENT_HOST_PROPERTY } from "../../../src/infrastructure/camp/identifiers";
 
 vi.mock("@minecraft/server", () => ({
@@ -66,4 +69,37 @@ it.each([
 ])("refuses when the host is %s", (_, state) => {
   const reach = createEntranceReach(() => state);
   expect(reach(tentWith("vehicle:car-1"), atEntrance())).toBe(false);
+});
+
+it("widens the ground ladder hint without widening entry and rejects invalid access", () => {
+  const access = createHostedTents(() => present());
+  const dimension = { id: "minecraft:overworld" };
+  const tent = {
+    ...tentWith("vehicle:car-1"),
+    getDynamicProperty: () => "vehicle:car-1",
+    isValid: true,
+    dimension,
+  } as unknown as Entity;
+  const entrance = entranceWorld(mount, hostPose);
+  const player = {
+    location: { x: entrance.x + 1.2, y: hostPose.location.y, z: entrance.z },
+    dimension,
+  } as unknown as Player;
+  expect(access.canSeeEntryHint(tent, player)).toBe(true);
+  expect(access.atFoot(tent, player)).toBe(false);
+  expect(
+    access.canSeeEntryHint({ ...tent, isValid: false } as Entity, player),
+  ).toBe(false);
+  expect(
+    access.canSeeEntryHint(tent, {
+      ...player,
+      dimension: { id: "minecraft:nether" },
+    } as Player),
+  ).toBe(false);
+  expect(
+    createHostedTents(() => ({ status: "unknown" })).canSeeEntryHint(
+      tent,
+      player,
+    ),
+  ).toBe(false);
 });

@@ -5,12 +5,19 @@ import { LeaveRoofTent } from "../../../src/application/camp/leaveRoofTent";
 import type { RoofTentOccupantWorld } from "../../../src/application/camp/ports/roofTentOccupant";
 import { RoofTentMenu } from "../../../src/application/camp/roofTentMenu";
 import type { SleepInRoofTent } from "../../../src/application/camp/sleepInRoofTent";
+import {
+  canSeeEntryHint,
+  canStandAtFoot,
+  entranceWorld,
+} from "../../../src/domain/camp/roofTent/access";
 import { ROOF_TENT_SPEC } from "../../../src/domain/camp/spec";
 import {
   asDimensionId,
   asPlayerId,
   type PlayerId,
 } from "../../../src/domain/shared/ids";
+import type { RoofTentMount } from "../../../src/domain/shared/roofTent";
+import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
 import { registerRoofTentEnter } from "../../../src/infrastructure/camp/bedrock/handlers/roofTentEnter";
 import { createRoofTentMenu } from "../../../src/infrastructure/camp/bedrock/handlers/roofTentMenu";
 import { registerRoofTentOccupantCleanup } from "../../../src/infrastructure/camp/bedrock/handlers/roofTentOccupantCleanup";
@@ -103,6 +110,7 @@ const foot = {
   tentOfHost: vi.fn(),
   loadedTents: vi.fn(),
   atFoot: vi.fn(),
+  canSeeEntryHint: vi.fn(),
 };
 function pollFoot() {
   game.interval.mock.calls[1]?.[0]();
@@ -126,6 +134,7 @@ beforeEach(() => {
   foot.tentOfHost.mockReturnValue(undefined);
   foot.loadedTents.mockReturnValue([]);
   foot.atFoot.mockReturnValue(false);
+  foot.canSeeEntryHint.mockImplementation(() => foot.atFoot());
   game.getAllPlayers.mockReturnValue([player]);
   game.dye.mockReturnValue(undefined);
   game.show.mockResolvedValue({ canceled: false, selection: 0 });
@@ -146,6 +155,7 @@ beforeEach(() => {
       else occupied.delete(id);
     }),
     moveInside: vi.fn(),
+    holdInside: vi.fn(),
     placeOutside: vi.fn(),
     showMessage: vi.fn(),
     spawnCellOf: () => ({ x: 0, y: 0, z: 0 }),
@@ -484,4 +494,80 @@ it("does not enter a loaded tent when the player is away from its foot", () => {
   expect(foot.atFoot).toHaveBeenCalledExactlyOnceWith(target, player);
   expect(occupants.moveInside).not.toHaveBeenCalled();
   expect(player.onScreenDisplay.setActionBar).not.toHaveBeenCalled();
+});
+
+it("holds a tracked occupant every tick and stops after occupancy clears", () => {
+  interact();
+  flush();
+  poll();
+  poll();
+  expect(occupants.holdInside).toHaveBeenCalledTimes(2);
+  expect(occupants.holdInside).toHaveBeenLastCalledWith(pid, "tent");
+  occupied.delete("tent");
+  poll();
+  poll();
+  expect(occupants.holdInside).toHaveBeenCalledTimes(2);
+});
+
+it("stops holding immediately on menu leave", async () => {
+  interact();
+  flush();
+  poll();
+  game.show.mockResolvedValue({ selection: 1 });
+  await showMenu(player as unknown as Player, "tent");
+  poll();
+  expect(occupants.holdInside).toHaveBeenCalledExactlyOnceWith(pid, "tent");
+});
+
+it("holds through sneak release but never on the sneak-leave tick", () => {
+  interact();
+  flush();
+  poll();
+  player.isSneaking = false;
+  poll();
+  expect(occupants.holdInside).toHaveBeenCalledTimes(2);
+  player.isSneaking = true;
+  poll();
+  poll();
+  expect(leave.execute).toHaveBeenCalledOnce();
+  expect(occupants.holdInside).toHaveBeenCalledTimes(2);
+});
+
+it("does not hold an unavailable tracked player", () => {
+  interact();
+  flush();
+  player.isValid = false;
+  poll();
+  game.getEntity.mockReturnValue(undefined);
+  poll();
+  expect(occupants.holdInside).not.toHaveBeenCalled();
+});
+
+it("hints at 1.2 blocks from the ladder without triggering proximity entry", () => {
+  const mount = SUV_PROFILE.roofTent as RoofTentMount;
+  const host = { location: { x: 0, y: 0, z: 0 }, yaw: 0 };
+  const entrance = entranceWorld(mount, host);
+  player.location = { x: entrance.x + 1.2, y: 0, z: entrance.z };
+  player.isSneaking = false;
+  foot.loadedTents.mockReturnValue([target]);
+  foot.atFoot.mockImplementation(() =>
+    canStandAtFoot(mount, host, player.location),
+  );
+  foot.canSeeEntryHint.mockImplementation(() =>
+    canSeeEntryHint(mount, host, player.location),
+  );
+  pollFoot();
+  expect(player.onScreenDisplay.setActionBar).toHaveBeenCalledExactlyOnceWith({
+    translate: ROOF_TENT_SNEAK_HINT,
+  });
+  game.tick += 4;
+  player.isSneaking = true;
+  pollFoot();
+  expect(occupants.moveInside).not.toHaveBeenCalled();
+  expect(player.onScreenDisplay.setActionBar).toHaveBeenCalledOnce();
+  player.isSneaking = false;
+  game.getAllPlayers.mockReturnValue([{ ...player, getComponent: () => ({}) }]);
+  game.tick += 20;
+  pollFoot();
+  expect(player.onScreenDisplay.setActionBar).toHaveBeenCalledOnce();
 });

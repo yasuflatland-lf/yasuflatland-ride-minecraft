@@ -59,7 +59,11 @@ export function registerRoofTentOccupantCleanup(
       entry.offlineTicks = 0;
       // Require release before another sneak so the entry gesture cannot eject.
       if (!player.isSneaking) entry.released = true;
-      else if (entry.released) cleanup(playerId);
+      else if (entry.released) {
+        cleanup(playerId);
+        continue;
+      }
+      occupants.holdInside(playerId, entry.tentId);
     }
   }, 1);
   return (playerId, tentId) => {

@@ -11,6 +11,7 @@ export interface RoofTentFootAccess {
   hostOf(tent: Entity): string | undefined;
   tentOfHost(hostId: string): Entity | undefined;
   loadedTents(): Entity[];
+  canSeeEntryHint(tent: Entity, player: Player): boolean;
   atFoot(tent: Entity, player: Player): boolean;
 }
 
@@ -92,7 +93,7 @@ export function registerRoofTentEnter(
       if (!player.isSneaking) {
         const lastHint = hintedAt.get(playerId);
         if (
-          nearby.length > 0 &&
+          tents.some((tent) => foot.canSeeEntryHint(tent, player)) &&
           (lastHint === undefined || system.currentTick - lastHint >= 20)
         ) {
           player.onScreenDisplay.setActionBar({

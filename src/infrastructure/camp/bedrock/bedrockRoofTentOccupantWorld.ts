@@ -11,6 +11,7 @@ import type { VehicleHostLookup } from "../../../application/shared/ports/vehicl
 import { decodeHost } from "../../../domain/camp/hosted";
 import { exitCell } from "../../../domain/camp/roofTent/exitCell";
 import { snapYaw4 } from "../../../domain/camp/roofTent/facing";
+import { needsHold, seatPosition } from "../../../domain/camp/roofTent/seat";
 import { CLEARABLE_DECORATIONS } from "../../../domain/shared/decorations";
 import {
   asDimensionId,
@@ -114,7 +115,23 @@ export class BedrockRoofTentOccupantWorld
     if (tent)
       world
         .getEntity(playerId)
-        ?.teleport(tent.location, { dimension: tent.dimension });
+        ?.teleport(seatPosition(tent.location), { dimension: tent.dimension });
+  }
+  holdInside(playerId: PlayerId, id: string): void {
+    // Removal snapshots support exits, but an unloaded tent must never hold a player.
+    if (!roofTentEntity(id)) return;
+    const tent = this.snapshot(id);
+    const player = world.getEntity(playerId);
+    if (
+      !tent ||
+      !player?.isValid ||
+      player.dimension.id !== tent.dimension.id ||
+      tent.occupant !== playerId
+    )
+      return;
+    const seat = seatPosition(tent.location);
+    if (needsHold(player.location, seat))
+      player.teleport(seat, { dimension: tent.dimension });
   }
   placeOutside(playerId: PlayerId, id: string): void {
     const tent = this.snapshot(id);
