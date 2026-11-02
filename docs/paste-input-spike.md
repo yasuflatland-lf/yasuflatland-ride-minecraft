@@ -13,16 +13,16 @@ It prints `[probe] <event> tick=<n> [isFirstEvent=<b>] block=<yes|no> sneak=<b>`
 
 ## Event table
 
-| Device | Action | itemUse | startItemUse | playerInteractWithBlock (isFirstEvent) | playerBreakBlock | Block broke |
-|--------|--------|---------|--------------|-----------------------------------------|------------------|-------------|
-| iPad | short tap on a block | pending device measurement | pending device measurement | pending device measurement | pending device measurement | pending device measurement |
-| iPad | long press on a block (about 1 s) | pending device measurement | pending device measurement | pending device measurement | pending device measurement | pending device measurement |
-| iPad | short tap on air | pending device measurement | pending device measurement | pending device measurement | pending device measurement | pending device measurement |
-| iPad | long press on air (about 1 s) | pending device measurement | pending device measurement | pending device measurement | pending device measurement | pending device measurement |
-| PC | right click on a block | pending device measurement | pending device measurement | pending device measurement | pending device measurement | pending device measurement |
-| PC | hold right click on a block (about 1 s) | pending device measurement | pending device measurement | pending device measurement | pending device measurement | pending device measurement |
-| PC | right click on air | pending device measurement | pending device measurement | pending device measurement | pending device measurement | pending device measurement |
-| PC | hold right click on air (about 1 s) | pending device measurement | pending device measurement | pending device measurement | pending device measurement | pending device measurement |
+| Device | Action                                  | itemUse                    | startItemUse               | playerInteractWithBlock (isFirstEvent) | playerBreakBlock           | Block broke                |
+| ------ | --------------------------------------- | -------------------------- | -------------------------- | -------------------------------------- | -------------------------- | -------------------------- |
+| iPad   | short tap on a block                    | pending device measurement | pending device measurement | pending device measurement             | pending device measurement | pending device measurement |
+| iPad   | long press on a block (about 1 s)       | pending device measurement | pending device measurement | pending device measurement             | pending device measurement | pending device measurement |
+| iPad   | short tap on air                        | pending device measurement | pending device measurement | pending device measurement             | pending device measurement | pending device measurement |
+| iPad   | long press on air (about 1 s)           | pending device measurement | pending device measurement | pending device measurement             | pending device measurement | pending device measurement |
+| PC     | right click on a block                  | pending device measurement | pending device measurement | pending device measurement             | pending device measurement | pending device measurement |
+| PC     | hold right click on a block (about 1 s) | pending device measurement | pending device measurement | pending device measurement             | pending device measurement | pending device measurement |
+| PC     | right click on air                      | pending device measurement | pending device measurement | pending device measurement             | pending device measurement | pending device measurement |
+| PC     | hold right click on air (about 1 s)     | pending device measurement | pending device measurement | pending device measurement             | pending device measurement | pending device measurement |
 
 ## Routing decision
 

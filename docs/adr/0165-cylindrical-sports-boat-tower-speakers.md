@@ -18,25 +18,25 @@ The two wake-tower speakers under the bimini read as octagonal stars: `disc()` b
 - Drop the hidden bezel rear cap: the bezel panels' own rear faces cover radii 1.4..1.9 and the solid back of radius 1.6 covers the middle. Also make `pod_3` solid, a deliberate deviation from changing only the back and hub: its hollow body and tip cap cost 14 cubes, while the solid eight-sided section costs four. Its cap is unnecessary. Remove the `caps` argument entirely; no caller needs it.
 - The spokes' radial outer ends are `1.05 + 0.55 = 1.6`, inside the bezel's inscribed circle `1.9 * cos(pi / SPEAKER_SIDES)`, approximately 1.835. Their split offsets and thickness also keep all corners inside this circle; no spoke changes are needed.
 
-| Section | Radius | Sides | Construction | Cubes per speaker |
-|---|---:|---:|---|---:|
-| Back | 1.6 | 12 | Solid diametral panels | 6 |
-| Hub | 0.45 | 8 | Solid diametral panels | 4 |
-| Bezel | 1.9 | 12 | Hollow tangent panels | 12 |
-| Blue LED ring | 1.95 | 12 | Hollow tangent panels | 12 |
-| `pod_0` | 1.9 | 12 | Hollow tangent panels | 12 |
-| `pod_1` | 1.6 | 12 | Hollow tangent panels | 12 |
-| `pod_2` | 1.15 | 12 | Hollow tangent panels | 12 |
-| `pod_3` | 0.6 | 8 | Solid diametral panels | 4 |
-| Split spokes | | | Unchanged | 12 |
-| Mount | | | Unchanged | 1 |
-| Total | | | | 87 |
+| Section       | Radius | Sides | Construction           | Cubes per speaker |
+| ------------- | -----: | ----: | ---------------------- | ----------------: |
+| Back          |    1.6 |    12 | Solid diametral panels |                 6 |
+| Hub           |   0.45 |     8 | Solid diametral panels |                 4 |
+| Bezel         |    1.9 |    12 | Hollow tangent panels  |                12 |
+| Blue LED ring |   1.95 |    12 | Hollow tangent panels  |                12 |
+| `pod_0`       |    1.9 |    12 | Hollow tangent panels  |                12 |
+| `pod_1`       |    1.6 |    12 | Hollow tangent panels  |                12 |
+| `pod_2`       |   1.15 |    12 | Hollow tangent panels  |                12 |
+| `pod_3`       |    0.6 |     8 | Solid diametral panels |                 4 |
+| Split spokes  |        |       | Unchanged              |                12 |
+| Mount         |        |       | Unchanged              |                 1 |
+| Total         |        |       |                        |                87 |
 
-| Stage | Both speakers | Complete model |
-|---|---:|---:|
-| 1/3, before cylinders | 58 | 1,109 |
-| 2/3, hollow sections with caps | 186 | 1,237 |
-| 3/3, final | 174 | 1,225 |
+| Stage                          | Both speakers | Complete model |
+| ------------------------------ | ------------: | -------------: |
+| 1/3, before cylinders          |            58 |          1,109 |
+| 2/3, hollow sections with caps |           186 |          1,237 |
+| 3/3, final                     |           174 |          1,225 |
 
 - Enforce the final count of 174 speaker cubes, below the 186 budget. Tests check all sections' panel counts, z-only rotation spacing, tangent outer faces, shared vertices, silhouette bounds, spoke clearance, and swatch counts. Every speaker cube must be a section panel, spoke or mount; no two-square discs or separate caps remain.
 - Bump both Resource Pack manifest versions and the Behavior Pack's resource dependency to 0.1.156. Regenerate the model and previews; manual test B27 checks the result on PC and mobile.

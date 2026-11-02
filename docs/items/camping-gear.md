@@ -4,25 +4,25 @@ Small 1970s motorhome gear made to decorate a parked camper. Back to the [item g
 
 Each item stands in the middle of one slot on the camper's furniture, or at one end of the table or of a compartment behind a door, which hold two items each, except the Macrame Hanging Planter, which hangs from the ceiling hook. On the stove, the slot is the one burner in the middle of its top. A standing item goes on any spot except the ceiling hook: the dashboard, the table, the dinette seats, the stove, the counter, or inside the wall cabinet or the fridge, two behind each door while that door is open (ADR 0114, 0123). The ceiling hook takes only the hanging planter (ADR 0097). Sizes are width × height in pixels, at 16 pixels per block. `pnpm model` draws the previews from the block models it generates from `tools/camping_gear.json`.
 
-| Preview | Name | Size (px) | Stands or hangs | Reference |
-|---|---|---|---|---|
-| ![Potted Plant](../images/items/camping-gear/potted_plant.png) | Potted Plant | 5 × 8 | Stands | None |
-| ![Macrame Hanging Planter](../images/items/camping-gear/macrame_planter.png) | Macrame Hanging Planter | 5 × 10 | Hangs from the ceiling hook | None |
-| ![Cactus Pot](../images/items/camping-gear/cactus_pot.png) | Cactus Pot | 4 × 7 | Stands | None |
-| ![Percolator](../images/items/camping-gear/percolator.png) | Percolator | 4 × 7 | Stands | None |
-| ![Enamel Kettle](../images/items/camping-gear/enamel_kettle.png) | Enamel Kettle | 5 × 5 | Stands | None |
-| ![Saucepan](../images/items/camping-gear/saucepan.png) | Saucepan | 6 × 3 | Stands | None |
-| ![Pair of Mugs](../images/items/camping-gear/mug_pair.png) | Pair of Mugs | 4 × 3 | Stands | None |
-| ![Glass Sugar Pot](../images/items/camping-gear/sugar_pot.png) | Glass Sugar Pot | 3 × 4 | Stands | None |
-| ![Fruit Bowl](../images/items/camping-gear/fruit_bowl.png) | Fruit Bowl | 6 × 3 | Stands | None |
-| ![Chrome Toaster](../images/items/camping-gear/toaster.png) | Chrome Toaster | 6 × 5 | Stands | None |
-| ![Transistor Radio](../images/items/camping-gear/transistor_radio.png) | Transistor Radio | 6 × 4 | Stands | None |
-| ![Stack of Books](../images/items/camping-gear/book_stack.png) | Stack of Books | 6 × 3 | Stands | None |
-| ![Folded Road Map](../images/items/camping-gear/road_map.png) | Folded Road Map | 6 × 1 | Stands | None |
-| ![Photo Frame](../images/items/camping-gear/photo_frame.png) | Photo Frame | 4 × 5 | Stands | None |
-| ![Cushion](../images/items/camping-gear/cushion.png) | Cushion | 7 × 3 | Stands | None |
-| ![Tissue Box](../images/items/camping-gear/tissue_box.png) | Tissue Box | 5 × 3 | Stands | None |
-| ![Desk Fan](../images/items/camping-gear/desk_fan.png) | Desk Fan | 4 × 6 | Stands | None |
+| Preview                                                                      | Name                    | Size (px) | Stands or hangs             | Reference |
+| ---------------------------------------------------------------------------- | ----------------------- | --------- | --------------------------- | --------- |
+| ![Potted Plant](../images/items/camping-gear/potted_plant.png)               | Potted Plant            | 5 × 8     | Stands                      | None      |
+| ![Macrame Hanging Planter](../images/items/camping-gear/macrame_planter.png) | Macrame Hanging Planter | 5 × 10    | Hangs from the ceiling hook | None      |
+| ![Cactus Pot](../images/items/camping-gear/cactus_pot.png)                   | Cactus Pot              | 4 × 7     | Stands                      | None      |
+| ![Percolator](../images/items/camping-gear/percolator.png)                   | Percolator              | 4 × 7     | Stands                      | None      |
+| ![Enamel Kettle](../images/items/camping-gear/enamel_kettle.png)             | Enamel Kettle           | 5 × 5     | Stands                      | None      |
+| ![Saucepan](../images/items/camping-gear/saucepan.png)                       | Saucepan                | 6 × 3     | Stands                      | None      |
+| ![Pair of Mugs](../images/items/camping-gear/mug_pair.png)                   | Pair of Mugs            | 4 × 3     | Stands                      | None      |
+| ![Glass Sugar Pot](../images/items/camping-gear/sugar_pot.png)               | Glass Sugar Pot         | 3 × 4     | Stands                      | None      |
+| ![Fruit Bowl](../images/items/camping-gear/fruit_bowl.png)                   | Fruit Bowl              | 6 × 3     | Stands                      | None      |
+| ![Chrome Toaster](../images/items/camping-gear/toaster.png)                  | Chrome Toaster          | 6 × 5     | Stands                      | None      |
+| ![Transistor Radio](../images/items/camping-gear/transistor_radio.png)       | Transistor Radio        | 6 × 4     | Stands                      | None      |
+| ![Stack of Books](../images/items/camping-gear/book_stack.png)               | Stack of Books          | 6 × 3     | Stands                      | None      |
+| ![Folded Road Map](../images/items/camping-gear/road_map.png)                | Folded Road Map         | 6 × 1     | Stands                      | None      |
+| ![Photo Frame](../images/items/camping-gear/photo_frame.png)                 | Photo Frame             | 4 × 5     | Stands                      | None      |
+| ![Cushion](../images/items/camping-gear/cushion.png)                         | Cushion                 | 7 × 3     | Stands                      | None      |
+| ![Tissue Box](../images/items/camping-gear/tissue_box.png)                   | Tissue Box              | 5 × 3     | Stands                      | None      |
+| ![Desk Fan](../images/items/camping-gear/desk_fan.png)                       | Desk Fan                | 4 × 6     | Stands                      | None      |
 
 A camper saved with a Lantern or an Oil Lamp loads without it (ADR 0173).
 

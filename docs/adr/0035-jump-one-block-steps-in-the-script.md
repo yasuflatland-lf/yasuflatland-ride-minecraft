@@ -10,9 +10,9 @@ In 0004 one-block steps are left to the engine's `minecraft:variable_max_auto_st
 
 A trace of the vehicle each tick showed it hit a one-block step at 0.6 blocks/tick and stop dead, with no rise at all. Tried with a player riding, one server restart each:
 
-| Change to the entity | One-block step |
-|---|---|
-| Seats back at y 0.1 (before 0029) | stops |
+| Change to the entity                        | One-block step            |
+| ------------------------------------------- | ------------------------- |
+| Seats back at y 0.1 (before 0029)           | stops                     |
 | Without `minecraft:input_ground_controlled` | climbs (y +1 in one tick) |
 
 So a controlling rider, which `input_ground_controlled` makes the driver (0025), turns off the engine's auto step. The component cannot go: without it, Jump dismounts a touch rider (0025). The script's two-block jump still worked with a rider.

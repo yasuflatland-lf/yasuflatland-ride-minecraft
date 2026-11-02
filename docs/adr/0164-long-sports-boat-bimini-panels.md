@@ -19,16 +19,16 @@ Before this step the Bimini block contains 75 cubes, excluding the tower and spe
 - Replace the five hatch boxes with one canvas_panel cube, x -9..9, 0.25 px thick above the main surface. Use the main panel's pivot and x rotation, with local distances that project its bottom edge to build z -2..5. The hatch stays inside the main footprint.
 - Delete all 20 underside ribs and all 40 original rolled-edge cubes, without replacement ribs. The final roof uses only the panels below and the hatch.
 
-| Panel | Build z range | Cubes | Construction |
-|---|---|---:|---|
-| `ROOF_REAR` | -10..-3 | 1 | 2 px canvas top, nearly level (height change below 0.01 px) |
-| `ROOF_MAIN` | -3..6 | 1 | 2 px canvas top carrying the hatch |
-| `ROOF_LIP` | 6..9 | 1 | 2 px canvas top, front endpoint lowered by 2.4 px |
-| Hatch | -2..5 | 1 | 0.25 px canvas_panel sheet on the main top |
-| Continuous side roll | -10..9 | 6 | Three 0.8 px canvas chords per side at 15, 30 and 45 degrees, x 16..19, total drop 2.6 px |
-| Rear/main bridges | -10..6.25 | 2 | Thin level side plates buried in the top panels and roll |
-| Lip bridges | 6..9, with rear overlap | 2 | Thin side plates parallel to the lip, x rotation only |
-| Roll backing | -10..9 | 4 | Two concealed overlapping plates per side close both end triangles |
+| Panel                | Build z range           | Cubes | Construction                                                                              |
+| -------------------- | ----------------------- | ----: | ----------------------------------------------------------------------------------------- |
+| `ROOF_REAR`          | -10..-3                 |     1 | 2 px canvas top, nearly level (height change below 0.01 px)                               |
+| `ROOF_MAIN`          | -3..6                   |     1 | 2 px canvas top carrying the hatch                                                        |
+| `ROOF_LIP`           | 6..9                    |     1 | 2 px canvas top, front endpoint lowered by 2.4 px                                         |
+| Hatch                | -2..5                   |     1 | 0.25 px canvas_panel sheet on the main top                                                |
+| Continuous side roll | -10..9                  |     6 | Three 0.8 px canvas chords per side at 15, 30 and 45 degrees, x 16..19, total drop 2.6 px |
+| Rear/main bridges    | -10..6.25               |     2 | Thin level side plates buried in the top panels and roll                                  |
+| Lip bridges          | 6..9, with rear overlap |     2 | Thin side plates parallel to the lip, x rotation only                                     |
+| Roll backing         | -10..9                  |     4 | Two concealed overlapping plates per side close both end triangles                        |
 
 - Use one uninterrupted cube per roll sheet per side over the entire build z -10..9. The three horizontal runs are 0.300, approximately 0.427 and 2.273 px; each drop is its run times the tangent of its angle. This preserves the 3 px reach and 2.6 px total drop. Start at `(16, roof_top(9), -0.5)` on the right and chain the nominal endpoints. The shoulder is level at y 32.1 and the nominal outer edge at y 29.5. At the front the shoulder meets the lip's top edge; farther aft it lies inside or below the thicker top panels. Retain negative right build-frame z turns and mirrored left turns. No cube needs more than one rotation axis.
 - Extend both neighbours at each roll joint by `max(0.25, 0.8 * tan(angle change) / 2 + 0.05)` along their local widths, giving 0.25 px per neighbour. Thickness extends inward; the outer endpoint stays at x 19. The physical outer hem, including the 0.8 px sheet thickness, is y `29.5 - 0.8 cos(45 degrees)`, approximately 28.934.

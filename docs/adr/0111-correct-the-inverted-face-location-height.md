@@ -8,13 +8,13 @@
 
 After 0110, a saucepan still landed on the same stove burner whichever burner the player pressed (#434). Debug logs on the dev BDS, played from a touch client with the camper parked facing 180, showed that `PlayerInteractWithBlockBeforeEvent.faceLocation.y` is 1 minus the real height of the press within the block. The x and z values are right:
 
-| Press | Box top (real y) | Reported `faceLocation.y` |
-|---|---|---|
-| Up face of `yasu_ride:camper_furniture` at the stove (height 15) | 0.9375 | 0.0625 |
-| Up face of `yasu_ride:camper_furniture` at the table (height 12) | 0.75 | 0.25 |
-| Up face of `yasu_ride:camper_floor` | 1 | 0 |
-| Up face of a transformed `saucepan_decor` | its untransformed box top | 1 minus that top |
-| West face of the stove's furniture block, tapped just under its top edge | about 0.8 | 0.203 |
+| Press                                                                    | Box top (real y)          | Reported `faceLocation.y` |
+| ------------------------------------------------------------------------ | ------------------------- | ------------------------- |
+| Up face of `yasu_ride:camper_furniture` at the stove (height 15)         | 0.9375                    | 0.0625                    |
+| Up face of `yasu_ride:camper_furniture` at the table (height 12)         | 0.75                      | 0.25                      |
+| Up face of `yasu_ride:camper_floor`                                      | 1                         | 0                         |
+| Up face of a transformed `saucepan_decor`                                | its untransformed box top | 1 minus that top          |
+| West face of the stove's furniture block, tapped just under its top edge | about 0.8                 | 0.203                     |
 
 The raw lines:
 
