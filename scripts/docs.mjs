@@ -18,7 +18,353 @@ const KINDS = FIELDS.slice(4, 8);
 const START = "<!-- adr-index:start -->";
 const END = "<!-- adr-index:end -->";
 const INDEX = "docs/adr/README.md";
+const SPEC_INDEX = "docs/specs/README.md";
+const SPEC_HEADER = ["Scope", "Verified at", "Source", "Excluded"];
+const SPEC_FIELDS = [
+  "Applies to",
+  "Rule",
+  "Agreement",
+  "Basis",
+  "Implementation",
+  "Verification",
+];
 const problem = (path, line, message) => ({ path, line, message });
+
+export function parseSpec(path, text) {
+  const lines = text.split(/\r?\n/);
+  const header = [];
+  const rules = [];
+  const sections = [];
+  const openIssues = [];
+  let section;
+  let rule;
+  let current;
+  for (let i = 1; i < lines.length; i++) {
+    const heading = /^## (.+)$/.exec(lines[i]);
+    const subheading = /^### (.+)$/.exec(lines[i]);
+    const field = /^- ([^:]+):\s*(.*)$/.exec(lines[i]);
+    if (heading) {
+      section = heading[1];
+      sections.push({ name: section, line: i + 1 });
+      rule = undefined;
+      current = undefined;
+    } else if (subheading) {
+      rule = undefined;
+      current = undefined;
+      if (section === "Rules") {
+        rule = { name: subheading[1], line: i + 1, fields: [] };
+        rules.push(rule);
+      }
+    } else if (section === "Open issues") {
+      if (/^- \S/.test(lines[i]))
+        openIssues.push({ value: lines[i].slice(2), line: i + 1 });
+    } else if (field && (!section || rule)) {
+      current = { name: field[1], value: field[2], line: i + 1 };
+      (rule ? rule.fields : header).push(current);
+    } else if (/^\s+\S/.test(lines[i]) && current) {
+      current.value = `${current.value} ${lines[i].trim()}`.trim();
+    } else if (lines[i].trim()) {
+      current = undefined;
+    }
+  }
+  return {
+    path,
+    title: /^# (.+)$/.exec(lines[0])?.[1],
+    header,
+    rules,
+    sections,
+    openIssues,
+  };
+}
+
+export function parseSpecs(files) {
+  return Object.entries(files)
+    .filter(
+      ([path]) => /^docs\/specs\/[^/]+\.md$/.test(path) && path !== SPEC_INDEX,
+    )
+    .map(([path, text]) => parseSpec(path, text));
+}
+
+export function checkSpecFormat(specs) {
+  const errors = [];
+  for (const spec of specs) {
+    const fail = (line, message) =>
+      errors.push(problem(spec.path, line, message));
+    const checkFields = (fields, names, repeated, required, line) => {
+      let previous = -1;
+      const seen = new Set();
+      for (const field of fields) {
+        const rank = names.indexOf(field.name);
+        if (rank < 0) fail(field.line, `Unknown spec field: ${field.name}`);
+        else {
+          if (rank < previous) fail(field.line, "Spec fields are out of order");
+          previous = rank;
+          if (seen.has(field.name) && !repeated.includes(field.name))
+            fail(field.line, `Duplicate ${field.name}`);
+          seen.add(field.name);
+        }
+        if (!field.value.trim()) fail(field.line, `Empty ${field.name}`);
+      }
+      for (const name of required)
+        if (!seen.has(name)) fail(line, `Missing ${name}`);
+    };
+    if (!spec.title) fail(1, "Missing spec title");
+    checkFields(
+      spec.header,
+      SPEC_HEADER,
+      ["Source", "Excluded"],
+      SPEC_HEADER.slice(0, 3),
+      1,
+    );
+    for (const field of spec.header)
+      if (
+        field.name === "Verified at" &&
+        !/^[a-f0-9]{7,12}$/i.test(field.value)
+      )
+        fail(
+          field.line,
+          "Verified at must be a 7-12 character hexadecimal SHA",
+        );
+    if (
+      spec.sections.map((section) => section.name).join("\n") !==
+      "Rules\nOpen issues"
+    )
+      fail(1, "Expected exactly Rules then Open issues sections");
+    if (!spec.rules.length) fail(1, "Expected at least one rule under Rules");
+    for (const rule of spec.rules) {
+      checkFields(rule.fields, SPEC_FIELDS, ["Basis"], SPEC_FIELDS, rule.line);
+      for (const field of rule.fields)
+        if (
+          field.name === "Agreement" &&
+          !/^(Accepted|Proposed)$/.test(field.value)
+        )
+          fail(field.line, "Agreement must be Accepted or Proposed");
+    }
+    if (!spec.openIssues.length) fail(1, "Open issues must contain a bullet");
+  }
+  return errors;
+}
+
+function specLinks(fields) {
+  return fields.flatMap((field) =>
+    [...field.value.matchAll(/\[(\d{4})\]\(([^)]+)\)/g)].map((match) => ({
+      number: match[1],
+      link: match[2],
+      line: field.line,
+    })),
+  );
+}
+
+// A root-level file such as `package.json` has no slash, so a known file
+// extension also marks a token as a path.
+function isPathToken(token) {
+  return (
+    token !== undefined &&
+    (token.includes("/") ||
+      /^[\w.-]+\.(?:json|md|mjs|cjs|ts|js|py|ya?ml|toml)$/.test(token))
+  );
+}
+
+function implementationPaths(value) {
+  const paths = [];
+  let depth = 0;
+  let found = false;
+  // Commas inside symbol lists or backticks do not start another path item.
+  for (const token of value.matchAll(/`([^`]+)`|[(),]/g)) {
+    if (token[0] === "(") depth++;
+    else if (token[0] === ")") depth = Math.max(0, depth - 1);
+    else if (!depth && token[0] === ",") found = false;
+    else if (!depth && !found && isPathToken(token[1])) {
+      paths.push(token[1]);
+      found = true;
+    }
+  }
+  return paths;
+}
+
+export function checkSpecLinks(specs, adrs, files) {
+  const errors = [];
+  const targets = new Map(adrs.map((adr) => [adr.number, adr]));
+  const paths = Object.keys(files);
+  for (const spec of specs) {
+    const fields = [
+      ...spec.header.filter((field) =>
+        ["Source", "Excluded"].includes(field.name),
+      ),
+      ...spec.rules.flatMap((rule) =>
+        rule.fields.filter((field) => field.name === "Basis"),
+      ),
+    ];
+    for (const field of fields) {
+      const links = specLinks([field]);
+      if (!links.length)
+        errors.push(
+          problem(spec.path, field.line, `Missing ADR link in ${field.name}`),
+        );
+      for (const link of links) {
+        const target = targets.get(link.number);
+        if (!target || link.link !== `../adr/${basename(target.path)}`)
+          errors.push(
+            problem(
+              spec.path,
+              link.line,
+              `Invalid spec ADR link: ${link.number}`,
+            ),
+          );
+      }
+    }
+    for (const rule of spec.rules)
+      for (const field of rule.fields.filter(
+        (field) => field.name === "Implementation",
+      ))
+        for (const target of implementationPaths(field.value))
+          if (
+            !Object.hasOwn(files, target) &&
+            !paths.some((path) =>
+              path.startsWith(`${target.replace(/\/$/, "")}/`),
+            )
+          )
+            errors.push(
+              problem(
+                spec.path,
+                field.line,
+                `Missing implementation path: ${target}`,
+              ),
+            );
+  }
+  return errors;
+}
+
+export function checkSpecAgreement(specs, adrs) {
+  const errors = [];
+  const statuses = new Map(
+    adrs.map((adr) => [
+      adr.number,
+      adr.fields.find((field) => field.name === "Status")?.value,
+    ]),
+  );
+  for (const spec of specs)
+    for (const rule of spec.rules) {
+      const basis = specLinks(
+        rule.fields.filter((field) => field.name === "Basis"),
+      );
+      const agreement = rule.fields.find((field) => field.name === "Agreement");
+      const expected = basis.every(
+        (link) => statuses.get(link.number) === "Accepted",
+      )
+        ? "Accepted"
+        : "Proposed";
+      if (agreement?.value !== expected)
+        errors.push(
+          problem(
+            spec.path,
+            agreement?.line ?? rule.line,
+            `Agreement must be ${expected}`,
+          ),
+        );
+      for (const link of basis)
+        if (statuses.get(link.number) === "Rejected")
+          errors.push(
+            problem(spec.path, link.line, `Rejected Basis ADR: ${link.number}`),
+          );
+    }
+  return errors;
+}
+
+export function checkSpecBasisSources(specs) {
+  const errors = [];
+  for (const spec of specs) {
+    const sources = new Set(
+      specLinks(spec.header.filter((field) => field.name === "Source")).map(
+        (link) => link.number,
+      ),
+    );
+    for (const rule of spec.rules)
+      for (const link of specLinks(
+        rule.fields.filter((field) => field.name === "Basis"),
+      ))
+        if (!sources.has(link.number))
+          errors.push(
+            problem(
+              spec.path,
+              link.line,
+              `Basis ADR must be a Source: ${link.number}`,
+            ),
+          );
+  }
+  return errors;
+}
+
+export function checkSpecClosure(specs, adrs) {
+  const errors = [];
+  for (const spec of specs) {
+    const sources = specLinks(
+      spec.header.filter((field) => field.name === "Source"),
+    );
+    // Only the first link of an Excluded line names the excluded ADR; later
+    // links sit inside its reason.
+    const included = new Set([
+      ...sources.map((link) => link.number),
+      ...spec.header
+        .filter((field) => field.name === "Excluded")
+        .flatMap((field) => specLinks([field]).slice(0, 1))
+        .map((link) => link.number),
+    ]);
+    for (const source of sources)
+      for (const adr of adrs)
+        if (
+          !included.has(adr.number) &&
+          adr.relations.some(
+            (relation) =>
+              ["Supersedes", "Supersedes in part"].includes(relation.name) &&
+              relation.target === source.number,
+          )
+        )
+          errors.push(
+            problem(
+              spec.path,
+              source.line,
+              `Source or Excluded must include superseding ADR: ${adr.number}`,
+            ),
+          );
+  }
+  return errors;
+}
+
+export function checkSpecIndex(files, specs) {
+  const text = files[SPEC_INDEX];
+  if (text === undefined)
+    return specs.length ? [problem(SPEC_INDEX, 1, "Missing spec index")] : [];
+  const errors = [];
+  const seen = new Set();
+  const targets = new Map(specs.map((spec) => [basename(spec.path), spec]));
+  for (const [index, line] of text.split(/\r?\n/).entries()) {
+    const entry = /^- \[([^\]]+)\]\(([^)]+\.md)\)(?:: (.*))?$/.exec(line);
+    if (!entry) continue;
+    const [, title, file, scope] = entry;
+    const spec = targets.get(file);
+    if (seen.has(file))
+      errors.push(
+        problem(SPEC_INDEX, index + 1, `Duplicate spec entry: ${file}`),
+      );
+    seen.add(file);
+    if (!spec)
+      errors.push(
+        problem(SPEC_INDEX, index + 1, `Unknown spec entry: ${file}`),
+      );
+    else if (
+      title !== spec.title ||
+      scope !== spec.header.find((field) => field.name === "Scope")?.value
+    )
+      errors.push(
+        problem(SPEC_INDEX, index + 1, `Stale spec title or Scope: ${file}`),
+      );
+  }
+  for (const file of targets.keys())
+    if (!seen.has(file))
+      errors.push(problem(SPEC_INDEX, 1, `Missing spec entry: ${file}`));
+  return errors;
+}
 
 export function parseAdr(path, text) {
   const lines = text.split(/\r?\n/);
@@ -396,6 +742,7 @@ function main(mode) {
   const root = join(dirname(fileURLToPath(import.meta.url)), "..");
   const files = loadFiles(root);
   const adrs = parseAdrs(files);
+  const specs = parseSpecs(files);
   if (mode === "--write") {
     writeFileSync(join(root, INDEX), writeIndex(files[INDEX], adrs));
     return;
@@ -407,6 +754,12 @@ function main(mode) {
     ...checkRelationConflicts(adrs),
     ...checkIndex(files, adrs),
     ...checkLinks(files),
+    ...checkSpecFormat(specs),
+    ...checkSpecLinks(specs, adrs, files),
+    ...checkSpecAgreement(specs, adrs),
+    ...checkSpecBasisSources(specs),
+    ...checkSpecClosure(specs, adrs),
+    ...checkSpecIndex(files, specs),
   ];
   for (const error of errors)
     console.error(`${error.path}:${error.line}: ${error.message}`);

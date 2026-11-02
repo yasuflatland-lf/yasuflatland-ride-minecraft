@@ -9,7 +9,7 @@ import { expect, it } from "vitest";
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const HISTORICAL_DOCS = /^docs\/(adr|releases|designs|spikes)\//;
 
-it("keeps the former namespace only in historical documents", () => {
+it("limits the former namespace to historical documents and citations", () => {
   const oldName = ["my", "car"].join("");
   const oldNamespace = ["yasu", "flatland"].join("");
   const staleNamespace = new RegExp(`${oldNamespace}(?!-ride|-lf)`);
@@ -31,6 +31,7 @@ it("keeps the former namespace only in historical documents", () => {
     if (!existsSync(path)) continue;
     if (HISTORICAL_DOCS.test(file) && !currentAdrs.test(file)) continue;
     const historicalName = currentAdrs.test(file);
+    const spec = /^docs\/specs\/[^/]+\.md$/.test(file);
     if (
       (!historicalName && file.includes(oldName)) ||
       staleNamespace.test(file)
@@ -39,9 +40,16 @@ it("keeps the former namespace only in historical documents", () => {
     const content = readFileSync(path);
     if (content.includes(0)) continue;
     const lines = content.toString("utf8").split("\n");
+    let section: string | undefined;
     for (const [index, line] of lines.entries()) {
+      if (line.startsWith("## ")) section = line.slice(3);
+      // Specs preserve ADR quotations and record obsolete IDs as discrepancies.
+      const citation =
+        spec &&
+        (line.startsWith("- Basis: ") ||
+          (section === "Open issues" && line.startsWith("- ")));
       if (
-        (!historicalName && line.includes(oldName)) ||
+        (!historicalName && !citation && line.includes(oldName)) ||
         staleNamespace.test(line) ||
         line.includes(staleDisplayName)
       ) {

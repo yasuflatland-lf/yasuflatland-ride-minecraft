@@ -7,9 +7,17 @@ import {
   checkMetadata,
   checkRelationConflicts,
   checkRelationTargets,
+  checkSpecAgreement,
+  checkSpecBasisSources,
+  checkSpecClosure,
+  checkSpecFormat,
+  checkSpecIndex,
+  checkSpecLinks,
   generateIndex,
   parseAdr,
   parseAdrs,
+  parseSpec,
+  parseSpecs,
   writeIndex,
 } from "../../scripts/docs.mjs";
 
@@ -92,6 +100,324 @@ const graph = fc.integer({ min: 2, max: 15 }).chain((size) =>
       return { files, relations, size, statuses };
     }),
 );
+
+const specPath = "docs/specs/vehicle.md";
+const specIndexPath = "docs/specs/README.md";
+const specLink = (value: number) =>
+  `[${number(value)}](../adr/${number(value)}-decision.md)`;
+const specEntry = "- [Vehicles](vehicle.md): Vehicle rules.";
+
+function specDocument({
+  sources = [1],
+  excluded = [] as number[],
+  basis = [1],
+  agreement = "Accepted",
+  implementation = "`src/vehicle.ts` (`drive`)",
+} = {}) {
+  return [
+    "# Vehicles",
+    "",
+    "- Scope: Vehicle rules.",
+    "- Verified at: 1c67689e",
+    ...sources.map((value) => `- Source: ${specLink(value)}`),
+    ...excluded.map((value) => `- Excluded: ${specLink(value)}: Other rules.`),
+    "",
+    "## Rules",
+    "",
+    "### Driving",
+    "",
+    "- Applies to: Vehicles.",
+    "- Rule: Drive every tick.",
+    `- Agreement: ${agreement}`,
+    ...basis.map(
+      (value) => `- Basis: ${specLink(value)} Decision, "Drive every tick."`,
+    ),
+    `- Implementation: ${implementation}`,
+    "- Verification: Unit tests.",
+    "",
+    "## Open issues",
+    "",
+    "- None.",
+    "",
+  ].join("\n");
+}
+
+describe("spec documentation checks", () => {
+  const files = {
+    [path(1)]: document(1),
+    [specPath]: specDocument(),
+    [specIndexPath]: `# Specs\n\n${specEntry}\n`,
+    "src/vehicle.ts": "",
+  };
+
+  it("accepts a valid fixture in all six checks and allows absent specs", () => {
+    const specs = parseSpecs(files);
+    const adrs = parseAdrs(files);
+    expect(checkSpecFormat(specs)).toEqual([]);
+    expect(checkSpecLinks(specs, adrs, files)).toEqual([]);
+    expect(checkSpecAgreement(specs, adrs)).toEqual([]);
+    expect(checkSpecBasisSources(specs)).toEqual([]);
+    expect(checkSpecClosure(specs, adrs)).toEqual([]);
+    expect(checkSpecIndex(files, specs)).toEqual([]);
+    expect(parseSpecs({ "docs/specs/nested/ignored.md": "" })).toEqual([]);
+    expect(parseSpecs({})).toEqual([]);
+    expect(checkSpecFormat([])).toEqual([]);
+    expect(checkSpecLinks([], [], {})).toEqual([]);
+    expect(checkSpecAgreement([], [])).toEqual([]);
+    expect(checkSpecBasisSources([])).toEqual([]);
+    expect(checkSpecClosure([], [])).toEqual([]);
+    expect(checkSpecIndex({}, [])).toEqual([]);
+  });
+
+  it("preserves field lines and joins indented continuations without parsing them as fields", () => {
+    fc.assert(
+      fc.property(word, (continuation) => {
+        const text = specDocument({ sources: [1, 2], basis: [1, 2] })
+          .replace(
+            "- Rule: Drive every tick.",
+            `- Rule:\n  ${continuation}\n  - Detail: More.`,
+          )
+          .replace(
+            "- Verification: Unit tests.",
+            "- Verification:\n  Unit tests.",
+          );
+        const spec = parseSpec(specPath, text);
+        expect(spec.header.map((field) => field.name)).toEqual([
+          "Scope",
+          "Verified at",
+          "Source",
+          "Source",
+        ]);
+        expect(spec.rules[0]?.fields.map((field) => field.name)).toEqual([
+          "Applies to",
+          "Rule",
+          "Agreement",
+          "Basis",
+          "Basis",
+          "Implementation",
+          "Verification",
+        ]);
+        const rule = spec.rules[0]?.fields.find(
+          (field) => field.name === "Rule",
+        );
+        expect(rule?.value).toBe(`${continuation.trim()} - Detail: More.`);
+        expect(rule?.line).toBe(text.split("\n").indexOf("- Rule:") + 1);
+        expect(checkSpecFormat([spec])).toEqual([]);
+      }),
+    );
+  });
+
+  it.each([
+    [
+      "wrong header order",
+      "- Scope: Vehicle rules.\n- Verified at: 1c67689e",
+      "- Verified at: 1c67689e\n- Scope: Vehicle rules.",
+    ],
+    [
+      "wrong rule order",
+      "- Applies to: Vehicles.\n- Rule: Drive every tick.",
+      "- Rule: Drive every tick.\n- Applies to: Vehicles.",
+    ],
+    ["missing Open issues", "## Open issues", "## Other"],
+    ["empty Open issues", "- None.", ""],
+    ["invalid SHA", "1c67689e", "not-a-sha"],
+    ["missing Source", `- Source: ${specLink(1)}`, ""],
+    [
+      "Source after Excluded",
+      `- Source: ${specLink(1)}`,
+      `- Excluded: ${specLink(2)}: Other rules.\n- Source: ${specLink(1)}`,
+    ],
+    [
+      "duplicate Scope",
+      "- Scope: Vehicle rules.",
+      "- Scope: Vehicle rules.\n- Scope: More.",
+    ],
+    ["missing rule", "### Driving", "Driving"],
+    ["missing field", "- Verification: Unit tests.", ""],
+    [
+      "duplicate field",
+      "- Rule: Drive every tick.",
+      "- Rule: Drive every tick.\n- Rule: Again.",
+    ],
+    ["invalid Agreement", "- Agreement: Accepted", "- Agreement: Rejected"],
+    ["unknown field", "- Verification: Unit tests.", "- Test: Unit tests."],
+    ["extra section", "## Open issues", "## Extra\n\n## Open issues"],
+  ])("rejects planted format violation: %s", (_name, before, after) => {
+    expect(
+      checkSpecFormat([
+        parseSpec(specPath, specDocument().replace(before, after)),
+      ]),
+    ).not.toEqual([]);
+  });
+
+  it("checks every ADR link and only the first implementation path per item", () => {
+    const adrs = parseAdrs({ ...files, [path(2)]: document(2) });
+    const valid = specDocument({
+      sources: [1, 2],
+      basis: [1, 2],
+      implementation:
+        "`src/` (`missing/symbol`, `another/symbol`), `src/vehicle.ts` `ignored/path`",
+    });
+    expect(checkSpecLinks([parseSpec(specPath, valid)], adrs, files)).toEqual(
+      [],
+    );
+    const combined = parseSpec(
+      specPath,
+      specDocument({ sources: [1, 2] }).replace(
+        `- Basis: ${specLink(1)}`,
+        `- Basis: ${specLink(1)} Decision,\n  ${specLink(2)}`,
+      ),
+    );
+    expect(checkSpecFormat([combined])).toEqual([]);
+    expect(checkSpecLinks([combined], adrs, files)).toEqual([]);
+    expect(checkSpecAgreement([combined], adrs)).toEqual([]);
+    expect(checkSpecBasisSources([combined])).toEqual([]);
+    expect(
+      checkSpecLinks([combined], parseAdrs({ [path(1)]: document(1) }), files),
+    ).not.toEqual([]);
+    expect(
+      checkSpecLinks(
+        [
+          parseSpec(
+            specPath,
+            specDocument({ implementation: "Not implemented" }),
+          ),
+        ],
+        adrs,
+        files,
+      ),
+    ).toEqual([]);
+    for (const [before, after] of [
+      [specLink(1), "[0001](../adr/wrong.md)"],
+      [specLink(1), specLink(9999)],
+      [`- Basis: ${specLink(1)}`, `- Basis: ${specLink(9999)}`],
+      ["`src/vehicle.ts`", "`missing/vehicle.ts`"],
+      ["`src/vehicle.ts`", "`src/vehicle.tsx`"],
+      ["`src/vehicle.ts`", "`src/vehicle.ts`, `missing.json`"],
+    ] as [string, string][]) {
+      expect(
+        checkSpecLinks(
+          [parseSpec(specPath, specDocument().replace(before, after))],
+          adrs,
+          files,
+        ),
+      ).not.toEqual([]);
+    }
+    expect(
+      checkSpecLinks(
+        [parseSpec(specPath, specDocument({ excluded: [9999] }))],
+        adrs,
+        files,
+      ),
+    ).not.toEqual([]);
+  });
+
+  it("derives Agreement from random Basis status sets and rejects Rejected bases", () => {
+    fc.assert(
+      fc.property(
+        fc.array(fc.constantFrom("Accepted", "Proposed", "Rejected"), {
+          minLength: 1,
+          maxLength: 12,
+        }),
+        (statuses) => {
+          const basis = statuses.map((_, index) => index + 1);
+          const adrs = parseAdrs(
+            Object.fromEntries(
+              statuses.map((status, index) => [
+                path(index + 1),
+                document(index + 1, "", "Decision", status),
+              ]),
+            ),
+          );
+          const agreement = statuses.every((status) => status === "Accepted")
+            ? "Accepted"
+            : "Proposed";
+          const specs = [
+            parseSpec(specPath, specDocument({ basis, agreement })),
+          ];
+          expect(checkSpecAgreement(specs, adrs).length === 0).toBe(
+            !statuses.includes("Rejected"),
+          );
+          expect(
+            checkSpecAgreement(
+              [
+                parseSpec(
+                  specPath,
+                  specDocument({
+                    basis,
+                    agreement:
+                      agreement === "Accepted" ? "Proposed" : "Accepted",
+                  }),
+                ),
+              ],
+              adrs,
+            ),
+          ).not.toEqual([]);
+        },
+      ),
+    );
+    expect(
+      checkSpecAgreement(
+        [parseSpec(specPath, specDocument({ agreement: "Proposed" }))],
+        parseAdrs({ [path(1)]: document(1, "", "Decision", "Rejected") }),
+      ),
+    ).not.toEqual([]);
+  });
+
+  it("rejects a Basis missing from Source even when it is Excluded", () => {
+    const specs = [
+      parseSpec(specPath, specDocument({ basis: [1, 2], excluded: [2] })),
+    ];
+    expect(checkSpecBasisSources(specs)).not.toEqual([]);
+    expect(
+      checkSpecBasisSources([
+        parseSpec(specPath, specDocument({ sources: [1, 2], basis: [1, 2] })),
+      ]),
+    ).toEqual([]);
+  });
+
+  it.each(kinds)("checks closure for %s", (kind) => {
+    const adrs = parseAdrs({
+      [path(1)]: document(1),
+      [path(2)]: document(
+        2,
+        `- ${kind}: ${link(1)}${kind === "Supersedes in part" ? ": replaced rule" : ""}\n`,
+      ),
+    });
+    const unclosed = checkSpecClosure(parseSpecs(files), adrs);
+    expect(unclosed.length).toBe(kind.startsWith("Supersedes") ? 1 : 0);
+    for (const options of [{ sources: [1, 2] }, { excluded: [2] }])
+      expect(
+        checkSpecClosure([parseSpec(specPath, specDocument(options))], adrs),
+      ).toEqual([]);
+  });
+
+  it("does not count a link inside an Excluded reason as included", () => {
+    const adrs = parseAdrs({
+      [path(1)]: document(1),
+      [path(2)]: document(2, `- Supersedes: ${link(1)}\n`),
+    });
+    const text = specDocument({ excluded: [3] }).replace(
+      "Other rules.",
+      `Superseded by ${specLink(2)}.`,
+    );
+    expect(checkSpecClosure([parseSpec(specPath, text)], adrs)).not.toEqual([]);
+  });
+
+  it("rejects missing, duplicate, unknown, and stale README entries", () => {
+    const specs = parseSpecs(files);
+    expect(checkSpecIndex({}, specs)).not.toEqual([]);
+    for (const text of [
+      "# Specs\n",
+      `${specEntry}\n${specEntry}\n`,
+      `${specEntry}\n- [Unknown](unknown.md): Unknown rules.\n`,
+      specEntry.replace("Vehicles", "Stale"),
+      specEntry.replace("Vehicle rules.", "Stale scope."),
+      "- [Vehicles](vehicle.md)",
+    ])
+      expect(checkSpecIndex({ [specIndexPath]: text }, specs)).not.toEqual([]);
+  });
+});
 
 describe("ADR documentation properties", () => {
   it("round-trips generated metadata blocks without losing fields or scopes", () => {

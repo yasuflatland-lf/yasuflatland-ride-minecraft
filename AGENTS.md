@@ -64,7 +64,7 @@ velocity = velocity.scale(friction);
 
 ## Architecture rules
 
-Design decisions live in [docs/adr](docs/adr/README.md). Read the ADRs that relate to the area you are changing before you change it. The rules that are easiest to break:
+Design decisions live in [docs/adr](docs/adr/README.md). Read the spec for the area in [docs/specs](docs/specs/README.md) first, then the ADRs it lists; the implementation takes precedence over specs and ADRs, and differences go in the spec's Open issues. A pull request that changes behavior updates that spec in the same pull request. The rules that are easiest to break:
 
 - **Stable APIs only (0001).** Do not use beta Script APIs, experimental toggles, or `@minecraft/server-gametest`.
 - **Three layers with one-way dependencies (0012):** `src/infrastructure` → `src/application` → `src/domain`. Only `src/infrastructure` may import `@minecraft/server`. `src/main.ts` only calls `bootstrap()`. `pnpm lint:deps` (`.dependency-cruiser.cjs`) checks the import graph (0065). `src/test-pack/` sits outside the layers.
