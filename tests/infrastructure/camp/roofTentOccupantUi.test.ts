@@ -1,4 +1,4 @@
-import { ButtonState, InputButton, type Player } from "@minecraft/server";
+import { Player } from "@minecraft/server";
 import { beforeEach, expect, it, vi } from "vitest";
 import { EnterRoofTent } from "../../../src/application/camp/enterRoofTent";
 import { LeaveRoofTent } from "../../../src/application/camp/leaveRoofTent";
@@ -31,7 +31,7 @@ import {
 
 const game = vi.hoisted(() => ({
   interact: vi.fn(),
-  input: vi.fn(),
+  itemUse: vi.fn(),
   timeout: vi.fn(),
   left: vi.fn(),
   died: vi.fn(),
@@ -48,8 +48,7 @@ const game = vi.hoisted(() => ({
 }));
 vi.mock("@minecraft/server", () => ({
   GameMode: {},
-  InputButton: { Jump: "Jump", Sneak: "Sneak" },
-  ButtonState: { Pressed: "Pressed", Released: "Released" },
+  Player: class {},
   system: {
     get currentTick() {
       return game.tick;
@@ -63,7 +62,7 @@ vi.mock("@minecraft/server", () => ({
     getAllPlayers: game.getAllPlayers,
     beforeEvents: { playerInteractWithEntity: { subscribe: game.interact } },
     afterEvents: {
-      playerButtonInput: { subscribe: game.input },
+      itemUse: { subscribe: game.itemUse },
       playerLeave: { subscribe: game.left },
       entityDie: { subscribe: game.died },
       playerDimensionChange: { subscribe: game.dimensionChanged },
@@ -98,6 +97,7 @@ const player = {
   location: { x: 0, y: 0, z: 0 },
   onScreenDisplay: { setActionBar: vi.fn() },
 };
+Object.setPrototypeOf(player, Player.prototype);
 const target = {
   id: "tent",
   typeId: ROOF_TENT_TYPE,
@@ -642,11 +642,8 @@ it("resumes concealment refresh for a restored seated occupant", () => {
   expect(occupants.conceal).toHaveBeenCalledTimes(2);
 });
 
-function press(
-  button = InputButton.Jump,
-  newButtonState = ButtonState.Pressed,
-) {
-  game.input.mock.calls[0]?.[0]({ player, button, newButtonState });
+function useItem(source: unknown = player) {
+  game.itemUse.mock.calls[0]?.[0]({ source });
 }
 async function pollMenu() {
   const callback = game.timeout.mock.calls.shift()?.[0];
@@ -658,10 +655,10 @@ function expectSeatedHint() {
     translate: ROOF_TENT_SEATED_HINT,
   });
 }
-it("opens the menu on Jump for a seated occupant of a loaded tent", async () => {
+it("opens the menu on item use for a seated occupant of a loaded tent", async () => {
   occupied.set("tent", pid);
   foot.loadedTents.mockReturnValue([target]);
-  press();
+  useItem();
   await vi.waitFor(() => expect(sleep.execute).toHaveBeenCalledOnce());
   expect(game.show).toHaveBeenCalledExactlyOnceWith(player);
 });
@@ -669,11 +666,10 @@ it.each([
   "non-occupant",
   "unseated",
   "unknown seating",
-  "sneak",
-  "released",
+  "non-player",
   "unloaded",
   "invalid",
-])("ignores Jump or other input when %s", (condition) => {
+])("ignores item use when %s", (condition) => {
   occupied.set(
     "tent",
     condition === "non-occupant" ? asPlayerId("other") : pid,
@@ -684,20 +680,14 @@ it.each([
   if (condition === "unknown seating")
     vi.mocked(occupants.isSeated).mockReturnValue(undefined);
   if (condition === "invalid") player.isValid = false;
-  press(
-    condition === "sneak" ? InputButton.Sneak : InputButton.Jump,
-    condition === "released" ? ButtonState.Released : ButtonState.Pressed,
-  );
+  useItem(condition === "non-player" ? { ...player } : player);
   expect(game.show).not.toHaveBeenCalled();
   expect(leave.execute).not.toHaveBeenCalled();
 });
-it("waits for seating and sneak release before auto-opening, then retries only busy forms", async () => {
+it("auto-opens after seating while sneak stays held, then retries only busy forms", async () => {
   interact();
   flush();
   expect(game.timeout).toHaveBeenLastCalledWith(expect.any(Function), 5);
-  await pollMenu();
-  expect(game.show).not.toHaveBeenCalled();
-  player.isSneaking = false;
   vi.mocked(occupants.isSeated).mockReturnValue(false);
   await pollMenu();
   expect(game.show).not.toHaveBeenCalled();
@@ -711,6 +701,7 @@ it("waits for seating and sneak release before auto-opening, then retries only b
   await pollMenu();
   expect(game.show).toHaveBeenCalledTimes(2);
   expectSeatedHint();
+  expect(player.isSneaking).toBe(true);
   expect(game.timeout.mock.calls).toHaveLength(0);
   expect(occupied.get("tent")).toBe(pid);
   expect(leave.execute).not.toHaveBeenCalled();
@@ -729,21 +720,15 @@ it("gives up after five busy forms with one seated hint", async () => {
   expectSeatedHint();
   expect(occupied.get("tent")).toBe(pid);
 });
-it.each(["sneaking", "mounting"])(
-  "bounds waiting for %s to twenty polls",
-  async (condition) => {
-    interact();
-    flush();
-    if (condition === "mounting") {
-      player.isSneaking = false;
-      vi.mocked(occupants.isSeated).mockReturnValue(false);
-    }
-    for (let i = 0; i < 20; i++) await pollMenu();
-    expect(game.show).not.toHaveBeenCalled();
-    expect(game.timeout.mock.calls).toHaveLength(0);
-    expectSeatedHint();
-  },
-);
+it("bounds waiting for seating to twenty polls", async () => {
+  interact();
+  flush();
+  vi.mocked(occupants.isSeated).mockReturnValue(false);
+  for (let i = 0; i < 20; i++) await pollMenu();
+  expect(game.show).not.toHaveBeenCalled();
+  expect(game.timeout.mock.calls).toHaveLength(0);
+  expectSeatedHint();
+});
 it.each(["invalid", "left", "replaced"])(
   "stops auto-opening when the occupant is %s",
   async (condition) => {
@@ -803,7 +788,7 @@ it.each([
   },
 );
 
-it("does not stack forms from repeated Jump presses", async () => {
+it("does not stack forms from repeated item use", async () => {
   occupied.set("tent", pid);
   foot.loadedTents.mockReturnValue([target]);
   let close: (answer: unknown) => void = () => {};
@@ -812,8 +797,8 @@ it("does not stack forms from repeated Jump presses", async () => {
       close = resolve;
     }),
   );
-  press();
-  press();
+  useItem();
+  useItem();
   expect(game.show).toHaveBeenCalledOnce();
   close({ canceled: true });
   await vi.waitFor(() => expect(occupied.get("tent")).toBe(pid));

@@ -978,7 +978,7 @@ it("ships the seated occupant hint in both supported locales", () => {
     expect(hint?.slice(ROOF_TENT_SEATED_HINT.length + 1).trim()).toBeTruthy();
     if (locale === "en_US")
       expect(hint).toBe(
-        `${ROOF_TENT_SEATED_HINT}=Jump to open the menu. Release sneak, then sneak again to get out.`,
+        `${ROOF_TENT_SEATED_HINT}=Use any item to open the menu. The dismount button gets you out.`,
       );
   }
 });

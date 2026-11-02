@@ -1,11 +1,4 @@
-import {
-  ButtonState,
-  type Entity,
-  InputButton,
-  type Player,
-  system,
-  world,
-} from "@minecraft/server";
+import { type Entity, Player, system, world } from "@minecraft/server";
 import type { EnterRoofTent } from "../../../../application/camp/enterRoofTent";
 import type { RoofTentOccupantWorld } from "../../../../application/camp/ports/roofTentOccupant";
 import { ROOF_TENT_SPEC } from "../../../../domain/camp/spec";
@@ -72,7 +65,7 @@ export function registerRoofTentEnter(
         finish(false);
         return;
       }
-      if (seated === true && !player.isSneaking) {
+      if (seated === true) {
         attempts++;
         const result = await showMenu(player, tentId);
         if (!current()) {
@@ -138,24 +131,17 @@ export function registerRoofTentEnter(
       enterAndTrack(player, tentId);
     });
   };
-  world.afterEvents.playerButtonInput.subscribe(
-    ({ player, button, newButtonState }) => {
-      if (
-        !player.isValid ||
-        button !== InputButton.Jump ||
-        newButtonState !== ButtonState.Pressed
-      )
-        return;
-      const playerId = asPlayerId(player.id);
-      const tent = foot
-        .loadedTents()
-        .find(
-          (tent) => tent.isValid && occupants.occupantOf(tent.id) === playerId,
-        );
-      if (tent && occupants.isSeated(playerId, tent.id) === true)
-        void showMenu(player, tent.id);
-    },
-  );
+  world.afterEvents.itemUse.subscribe(({ source }) => {
+    if (!(source instanceof Player) || !source.isValid) return;
+    const playerId = asPlayerId(source.id);
+    const tent = foot
+      .loadedTents()
+      .find(
+        (tent) => tent.isValid && occupants.occupantOf(tent.id) === playerId,
+      );
+    if (tent && occupants.isSeated(playerId, tent.id) === true)
+      void showMenu(source, tent.id);
+  });
   world.beforeEvents.playerInteractWithEntity.subscribe((ev) => {
     const { player, target } = ev;
     if (heldDye(player)) return;
