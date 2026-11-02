@@ -14,6 +14,7 @@ const ids = fc.oneof(
 const coordinate = fc.integer().map((value) => value / 100);
 const hosts: fc.Arbitrary<Host> = fc.oneof(
   fc.constant({ kind: "ground" } as const),
+  fc.record({ kind: fc.constant("vehicle" as const), id: ids }),
   fc.record({
     kind: fc.constant("fire_pit" as const),
     id: ids,
@@ -83,11 +84,16 @@ it("accepts only complete valid markers and never throws for arbitrary strings",
             (prefix === "camp_table" &&
               (validPoint ||
                 (validSpot && TABLE_SPOTS[Number(suffix)] !== undefined))));
-        expect(host.kind !== "ground").toBe(Boolean(valid));
+        const validVehicle = text.startsWith("vehicle:") && text.length > 8;
+        expect(host.kind !== "ground").toBe(Boolean(valid || validVehicle));
       },
     ),
   );
   for (const text of [
+    "vehicle:",
+    "vehicle",
+    "vehicles:a",
+    " vehicle:a",
     "camp_table:a:@NaN,1",
     "camp_table:a:@Infinity,0",
     "camp_table::@1,2",
@@ -124,4 +130,17 @@ it("writes finite doubles as decimal coordinates rounded to at most two places",
       expect(encodeHost(decodeHost(encoded))).toBe(encoded);
     }),
   );
+});
+
+it("preserves all characters after the vehicle prefix", () => {
+  fc.assert(
+    fc.property(ids, (id) => {
+      expect(encodeHost({ kind: "vehicle", id })).toBe(`vehicle:${id}`);
+      expect(decodeHost(`vehicle:${id}`)).toEqual({ kind: "vehicle", id });
+    }),
+  );
+  expect(decodeHost("vehicle:a:b\nc")).toEqual({
+    kind: "vehicle",
+    id: "a:b\nc",
+  });
 });
