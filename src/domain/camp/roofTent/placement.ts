@@ -2,7 +2,11 @@ import type { RoofTentMount } from "../../shared/roofTent";
 import type { Host } from "../hosted";
 import { type Facing4, snapYaw4 } from "./facing";
 
-export type RoofTentRefusal = "unsupported_vehicle" | "roof_taken" | "blocked";
+export type RoofTentRefusal =
+  | "unsupported_vehicle"
+  | "roof_taken"
+  | "host_in_use"
+  | "blocked";
 
 export type RoofTentPlan = {
   readonly host: Host;
@@ -16,6 +20,7 @@ export type RoofTentTarget =
       readonly id: string;
       readonly mount: RoofTentMount | undefined;
       readonly roofTaken: boolean;
+      readonly hostInUse?: boolean;
     }
   | { readonly type: "ground"; readonly clear: boolean };
 
@@ -31,6 +36,7 @@ export function planRoofTent(input: {
       : "blocked";
   }
   if (!target.mount) return "unsupported_vehicle";
+  if (target.hostInUse) return "host_in_use";
   if (target.roofTaken) return "roof_taken";
   return {
     host: { kind: "vehicle", id: target.id },
