@@ -69,6 +69,18 @@ requirement prevents the entry gesture from immediately ejecting the player.
 Player leave, death and dimension-change events also invoke the exit use case.
 Outside placement uses only the occupant adapter's loaded-terrain search.
 
+### Ladder mechanism
+
+No climbable blocks are placed. The SUV ladder is the roof tent entity's
+`ladder` property; the camper adds no ladder and uses its existing rear ladder's
+roof end. Alongside direct entity interaction reach, a player within
+`entranceReach` (1.5 blocks horizontally) of the rotated mount entrance may enter
+by the usual sneak interaction. Their feet must be within `entranceBand`
+(1.5 blocks vertically) of host ground height when the mount has a ladder, or
+host roof height for either kind. Entry teleports the player into the tent;
+exit uses `exitCell` and the loaded-terrain search. Nothing is left in the world
+when the tent is removed because no blocks exist for this mechanism.
+
 ## Consequences
 
 Camp owns the roof tent lifecycle while vehicles supply only mount data and a

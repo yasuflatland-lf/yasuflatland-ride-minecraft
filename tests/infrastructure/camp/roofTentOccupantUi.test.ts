@@ -95,6 +95,7 @@ let sleep: { execute: ReturnType<typeof vi.fn> };
 let track: (playerId: PlayerId, tentId: string) => void;
 let showMenu: ReturnType<typeof createRoofTentMenu>;
 const pid = asPlayerId("p");
+const entranceReach = vi.fn(() => false);
 function interact() {
   const event = { player, target, cancel: false };
   game.interact.mock.calls[0]?.[0](event);
@@ -110,6 +111,7 @@ function poll() {
 beforeEach(() => {
   vi.clearAllMocks();
   game.tick = 1;
+  entranceReach.mockReturnValue(false);
   game.dye.mockReturnValue(undefined);
   game.show.mockResolvedValue({ canceled: false, selection: 0 });
   Object.assign(player, {
@@ -148,6 +150,7 @@ beforeEach(() => {
     occupants,
     showMenu,
     track,
+    entranceReach,
   );
 });
 it("cancels and defers one entry per player per tick, routing the occupant to the menu", async () => {
@@ -293,4 +296,14 @@ it("forgets host-ejected occupants without another exit and ignores unavailable 
   poll();
   game.left.mock.calls[0]?.[0]({ playerId: pid });
   expect(leave.execute).not.toHaveBeenCalled();
+});
+
+it("enters from a reachable entrance beyond the entity interaction reach", () => {
+  player.location.x = ROOF_TENT_SPEC.interactReach + 1;
+  entranceReach.mockReturnValue(true);
+  interact();
+  expect(entranceReach).not.toHaveBeenCalled();
+  flush();
+  expect(entranceReach).toHaveBeenCalledExactlyOnceWith(target, player);
+  expect(occupants.moveInside).toHaveBeenCalledExactlyOnceWith(pid, "tent");
 });

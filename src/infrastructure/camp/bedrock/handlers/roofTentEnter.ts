@@ -1,4 +1,4 @@
-import { type Player, system, world } from "@minecraft/server";
+import { type Entity, type Player, system, world } from "@minecraft/server";
 import type { EnterRoofTent } from "../../../../application/camp/enterRoofTent";
 import type { RoofTentOccupantWorld } from "../../../../application/camp/ports/roofTentOccupant";
 import { ROOF_TENT_SPEC } from "../../../../domain/camp/spec";
@@ -12,6 +12,7 @@ export function registerRoofTentEnter(
   occupants: RoofTentOccupantWorld,
   showMenu: (player: Player, tentId: string) => Promise<void>,
   track: (playerId: PlayerId, tentId: string) => void,
+  entranceReach: (tent: Entity, player: Player) => boolean,
 ): void {
   const pressed = new TickScopedSet<PlayerId>();
   world.beforeEvents.playerInteractWithEntity.subscribe((ev) => {
@@ -33,7 +34,8 @@ export function registerRoofTentEnter(
       const b = target.location;
       if (
         Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z) >
-        ROOF_TENT_SPEC.interactReach
+          ROOF_TENT_SPEC.interactReach &&
+        !entranceReach(target, player)
       )
         return;
       if (!player.isSneaking) {

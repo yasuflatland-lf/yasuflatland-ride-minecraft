@@ -133,6 +133,10 @@ export const ROOF_TENT_SPEC = Object.freeze({
   hitResetTicks: 100,
   /** Checks faster than tabletop gear so a departing host promptly ejects its sleeper. */
   hostCheckTicks: 4,
-  /** Three blocks lets a player at the ladder foot reach a roof-mounted tent. */
+  /** Preserves direct interaction reach for ground and roof tents. */
   interactReach: 3,
+  /** Horizontal allowance around either end of the entrance ladder (ADR 0200). */
+  entranceReach: 1.5,
+  /** Vertical allowance at ground or roof height for uneven footing (ADR 0200). */
+  entranceBand: 1.5,
 });
