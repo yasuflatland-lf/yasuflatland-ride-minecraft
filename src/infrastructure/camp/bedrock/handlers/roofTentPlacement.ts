@@ -18,6 +18,8 @@ export function registerRoofTentPlacement(
     if (ev.itemStack?.typeId !== ROOF_TENT_ITEM) return;
     const state = vehicleHost(ev.target.id);
     if (state.status !== "present" || !state.mount) return;
+    const refusal = place.refusalFor(ev.target.id);
+    if (refusal === "roof_taken" || refusal === "host_in_use") return;
     ev.cancel = true;
     const playerId = asPlayerId(ev.player.id);
     if (!requested.add(system.currentTick, playerId)) return;
