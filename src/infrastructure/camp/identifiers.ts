@@ -170,3 +170,10 @@ export const GAS_LANTERN_HOSTED_EVENT = id("gas_lantern_hosted");
 /** Server test hook: the message is the table entity id and a local point `<x> <z>` in model pixels. */
 export const TEST_GAS_LANTERN_ON_TABLE_EVENT =
   "yasu_ride_test:test_gas_lantern_on_table";
+
+export const ROOF_TENT_TYPE = id("roof_tent");
+export const ROOF_TENT_ITEM = id("roof_tent_item");
+export const ROOF_TENT_FAMILY = id("roof_tent");
+export const ROOF_TENT_LADDER_PROPERTY = id("ladder");
+export const ROOF_TENT_FLAP_OPEN_PROPERTY = id("flap_open");
+export const ROOF_TENT_OCCUPIED_PROPERTY = id("occupied");
