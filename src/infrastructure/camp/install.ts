@@ -3,6 +3,7 @@ import {
   dutchOvenHostedKind,
 } from "../../application/camp/dutchOven";
 import { FirePitActions } from "../../application/camp/firePit";
+import { FoldRoofTent } from "../../application/camp/foldRoofTent";
 import {
   GasLanternActions,
   gasLanternHostedKind,
@@ -10,10 +11,13 @@ import {
 import { HitChair } from "../../application/camp/hitChair";
 import { HitTable } from "../../application/camp/hitTable";
 import { HostedItemsGuard } from "../../application/camp/hostedItemsGuard";
+import { PaintRoofTent } from "../../application/camp/paintRoofTent";
 import { PaintTent } from "../../application/camp/paintTent";
 import { PitchTent } from "../../application/camp/pitchTent";
 import { PlaceChair } from "../../application/camp/placeChair";
+import { PlaceRoofTent } from "../../application/camp/placeRoofTent";
 import { PlaceTable } from "../../application/camp/placeTable";
+import { RoofTentHostGuard } from "../../application/camp/roofTentHostGuard";
 import { SwitchLantern } from "../../application/camp/switchLantern";
 import { TakeDownTent } from "../../application/camp/takeDownTent";
 import { UseTentFlap } from "../../application/camp/useTentFlap";
@@ -30,6 +34,8 @@ import { BedrockDutchOvenWorld } from "./bedrock/bedrockDutchOvenWorld";
 import { BedrockFirePitWorld } from "./bedrock/bedrockFirePitWorld";
 import { BedrockGasLanternWorld } from "./bedrock/bedrockGasLanternWorld";
 import { BedrockLanternWorld } from "./bedrock/bedrockLanternWorld";
+import { BedrockRoofTentOccupantWorld } from "./bedrock/bedrockRoofTentOccupantWorld";
+import { BedrockRoofTentWorld } from "./bedrock/bedrockRoofTentWorld";
 import { BedrockTableWorld } from "./bedrock/bedrockTableWorld";
 import { BedrockTentPaintWorld } from "./bedrock/bedrockTentPaintWorld";
 import { BedrockTentWorld } from "./bedrock/bedrockTentWorld";
@@ -40,6 +46,9 @@ import { registerFirePit } from "./bedrock/handlers/firePit";
 import { registerGasLantern } from "./bedrock/handlers/gasLantern";
 import { registerChairHits } from "./bedrock/handlers/hits";
 import { registerChairPlacement } from "./bedrock/handlers/placement";
+import { registerRoofTentHits } from "./bedrock/handlers/roofTentHits";
+import { registerRoofTentLifecycle } from "./bedrock/handlers/roofTentLifecycle";
+import { registerRoofTentPlacement } from "./bedrock/handlers/roofTentPlacement";
 import { registerTable } from "./bedrock/handlers/table";
 import { registerTentFlap } from "./bedrock/handlers/tentFlap";
 import { registerTentHits } from "./bedrock/handlers/tentHits";
@@ -47,10 +56,12 @@ import { registerTentLifecycle } from "./bedrock/handlers/tentLifecycle";
 import { registerTentLoop } from "./bedrock/handlers/tentLoop";
 import { registerTentPlacement } from "./bedrock/handlers/tentPlacement";
 import { registerTestChairHit } from "./bedrock/handlers/testHit";
+import { registerTestRoofTent } from "./bedrock/handlers/testRoofTent";
 import { registerTestTent } from "./bedrock/handlers/testTent";
 import { registerTestTentFlap } from "./bedrock/handlers/testTentFlap";
 import { registerTestTentLantern } from "./bedrock/handlers/testTentLantern";
 import { lanternSwitchTarget } from "./bedrock/lanternSwitch";
+import { RoofTentHosts } from "./bedrock/roofTentHosts";
 import { createTentBlocks } from "./bedrock/tentBlocks";
 import { TentFlapStore } from "./bedrock/tentFlapStore";
 import { TENT_MATTRESS_COMPONENT } from "./identifiers";
@@ -107,6 +118,40 @@ export function installCamp(deps: {
     blocks,
     flaps,
   });
+  const roofHosts = new RoofTentHosts(deps.vehicleHost);
+  const roofOccupants = new BedrockRoofTentOccupantWorld(
+    roofHosts.lookup,
+    new BedrockBedWorld({ player: playerById }),
+    deps.isVehicleSpace,
+  );
+  const roofTents = new BedrockRoofTentWorld({
+    isVehicleSpace: deps.isVehicleSpace,
+    isCampSpace: (d, c) => tents.isCampSpace(d, c),
+    spawned: (entity, yaw) => roofOccupants.remember(entity, true, yaw),
+    beforeRemove: (id) => {
+      roofOccupants.eject(id);
+      roofOccupants.removed(id, undefined);
+    },
+  });
+  const placeRoofTent = new PlaceRoofTent(roofTents, roofHosts.lookup);
+  const foldRoofTent = new FoldRoofTent(roofTents);
+  const roofGuard = new RoofTentHostGuard(
+    roofTents,
+    roofHosts.lookup,
+    roofOccupants,
+    roofOccupants,
+  );
+  registerRoofTentPlacement(placeRoofTent, roofHosts.lookup);
+  registerRoofTentHits(foldRoofTent, new PaintRoofTent(roofTents));
+  registerRoofTentLifecycle(roofOccupants, roofGuard, roofHosts);
+  registerTestRoofTent(
+    placeRoofTent,
+    foldRoofTent,
+    roofGuard,
+    roofOccupants,
+    roofHosts,
+  );
+
   const pitchTent = new PitchTent(tents);
   const takeDownTent = new TakeDownTent(tents);
   const paintTent = new PaintTent(new BedrockTentPaintWorld());

@@ -1,12 +1,13 @@
 # Paint
 
-- Scope: Paint order, dyes, repaint cost and hit routing, variant textures, and plain returned items for the SUV, camper, sports boat, bulldozer, and tent.
+- Scope: Paint order, dyes, repaint cost and hit routing, variant textures, and plain returned items for the SUV, camper, sports boat, bulldozer, ground tent, and roof tent.
 - Verified at: 5ed1f579
 - Source: [0031](../adr/0031-repaint-with-all-sixteen-dyes.md)
 - Source: [0036](../adr/0036-paint-by-hitting-with-a-dye.md)
 - Source: [0037](../adr/0037-one-dye-per-repaint-within-a-tick.md)
 - Source: [0076](../adr/0076-per-kind-default-paint.md)
 - Source: [0135](../adr/0135-repaint-the-tent-with-dyes.md)
+- Source: [0200](../adr/0200-roof-tent-as-a-host-bound-camp-entity.md)
 - Excluded: [0192](../adr/0192-suv-detailed-body.md): supersedes in part 0031's texture size and paint-dependent regions for SUV body detail, covered by the SUV body topic
 - Excluded: [0136](../adr/0136-bulldozer.md): extends 0031 and 0076 for the bulldozer, covered by the bulldozer topic
 
@@ -92,6 +93,15 @@
 - Basis: [0135](../adr/0135-repaint-the-tent-with-dyes.md) Decision, "A dye hit is routed at the top of the tent handler's `hitTent`"; [0135](../adr/0135-repaint-the-tent-with-dyes.md) Decision, "after the shared per-tick swing check and before `TakeDownTent`"; [0135](../adr/0135-repaint-the-tent-with-dyes.md) Decision, "a dye hit never counts toward taking the tent down"; [0135](../adr/0135-repaint-the-tent-with-dyes.md) Decision, "a painted tent taken down returns the plain `yasu_ride:tent_item`"
 - Implementation: `src/infrastructure/camp/bedrock/handlers/tentHits.ts`; `src/domain/shared/tickScoped.ts`; `src/application/camp/paintTent.ts`; `src/infrastructure/camp/install.ts`; `src/application/camp/takeDownTent.ts`; `src/infrastructure/camp/bedrock/bedrockTentWorld.ts` (`returnTentItem`); `src/infrastructure/camp/identifiers.ts` (`TENT_ITEM`).
 - Verification: `tests/infrastructure/camp/handlers.test.ts` "repaints on a dye hit on a tent block, never taking it down (ADR 0036)", "repaints on a dye hit on the tent entity", "repaints on a Creative dye break only inside the deferred callback", "paints the dye swung at a Creative break, not the one held a tick later", and "paints once for a Creative dye break and a block hit in the same tick". `tests/application/camp/paintTent.test.ts` "keeps the dye when it is the color the tent already shows"; `tests/packs/tent.test.ts` "keeps the item single-color: no variant and one item file". Scenario `tent_paint_events` also checks one plain returned item, but was not run here. Not verified: repainting with someone inside has no dedicated test identified; manual-test rows T28-T33, including occupied repaint T30 and plain return T31, have no owner result recorded.
+
+### Roof tent paint event contract and routing
+
+- Applies to: Roof tent entity hits and returned roof tent items.
+- Rule: `roof_tent.se.json` exposes the sixteen `yasu_ride:paint_<paint>` events in `PAINTS` order through `minecraft:variant`; `roof_tent.rc.json` selects the corresponding fabric texture. Variant 0 is `ROOF_TENT_SPEC.defaultPaint` (khaki), restored by brown dye. The roof tent entity hit handler filters its own type and deduplicates each player's swing per tick, then routes a held dye to `PaintRoofTent` before `FoldRoofTent`. Painting never counts as a fold hit. One session-long `Repaint` preserves same-color and same-tick behavior, with no dye consumed in Creative. The Bedrock adapter triggers the shared paint event and plays `dye.use`. Folding and host removal return a fresh plain `yasu_ride:roof_tent_item`, losing the paint.
+- Agreement: Proposed
+- Basis: [0200](../adr/0200-roof-tent-as-a-host-bound-camp-entity.md) Decision, "Roof tent paint follows the shared palette and dye behavior of 0135"
+- Implementation: `src/application/camp/paintRoofTent.ts`; `src/infrastructure/camp/bedrock/bedrockRoofTentWorld.ts`; `src/infrastructure/camp/bedrock/handlers/roofTentHits.ts`; `packs/yasu_ride_bp/entities/yasu_ride/roof_tent.se.json`; `packs/yasu_ride_rp/render_controllers/yasu_ride/roof_tent.rc.json`.
+- Verification: `tests/infrastructure/camp/roofTent.test.ts` checks paint mapping and dye-first hit routing; `tests/packs/roofTent.test.ts` checks entity/render contracts. Client recoloring remains unverified.
 
 ## Open issues
 
