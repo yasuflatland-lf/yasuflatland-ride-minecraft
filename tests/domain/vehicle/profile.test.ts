@@ -135,7 +135,10 @@ describe("vehicle profiles (ADR 0050)", () => {
         roofHeight: (26.1 * 1.45) / 16,
         anchor: { x: 0, z: -0.605 },
         ladder: true,
-        entrance: { x: 0, z: -2.7 },
+        entrance: {
+          x: SUV_SPEC.roofTentEntranceX,
+          z: SUV_SPEC.roofTentEntranceZ,
+        },
       },
       footprint: 3.4,
       seats: {
@@ -523,6 +526,11 @@ describe("vehicle hints (ADR 0086)", () => {
 });
 
 describe("roof tent mounts", () => {
+  it("places the SUV entrance on the left and the camper entrance on the right", () => {
+    expect(SUV_PROFILE.roofTent?.entrance.x).toBeGreaterThan(0);
+    expect(CAMPER_PROFILE.roofTent?.entrance.x).toBeLessThan(0);
+  });
+
   it("declares mounts only for the SUV and camper", () => {
     expect(SUV_PROFILE.roofTent).toBeDefined();
     expect(CAMPER_PROFILE.roofTent).toBeDefined();
