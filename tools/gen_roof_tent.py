@@ -9,6 +9,7 @@ the platform. The SUV variant has sloping lower sides and a ground-reaching ladd
 import argparse
 import math
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -24,94 +25,174 @@ GEOMETRY = "models/entity/yasu_ride/roof_tent.geo.json"
 TEXTURE = "textures/entity/yasu_ride/roof_tent.png"
 
 
+@dataclass(frozen=True)
+class Dims:
+    half_width: int = 16
+    half_depth: int = 20
+    platform_height: int = 2
+    wall_height: int = 12
+    ridge_height: int = 19
+    half_roof: int = 16
+    pole_x: tuple = (-15, 14)
+    window_bottom: int = 5
+    window_top: int = 10
+    window_half_depth: int = 12
+    doorway_half_width: int = 8
+    ladder_pivot: tuple = (-16, 2, 0)
+    ladder_tilt: int = 15
+    ladder_bottom: float = -32
+    ladder_first_rung: int = -29
+    ladder_rails_z: tuple = (-6, 5)
+    ladder_lower: tuple = (-27, -33, -31)
+    visible_bounds_width: int = 4
+    visible_bounds_height: int = 4
+    visible_bounds_offset: tuple = (0, -0.4, -0.3)
+
+
+GROUND_DIMS = Dims()
+SUV_DIMS = Dims(
+    half_roof=12, pole_x=(-11, 10), window_bottom=3, window_top=8,
+    ladder_pivot=(-16.5, 2, 10),
+    ladder_tilt=10, ladder_bottom=-38.5, ladder_first_rung=-36,
+    ladder_rails_z=(4, 15), ladder_lower=(-28, -39, -31),
+    visible_bounds_width=6, visible_bounds_height=5,
+)
+
+
+@dataclass(frozen=True)
+class Shell:
+    body: list
+    fabric: list
+    flap: list
+    sleeping_bag: list
+    ladder: list
+    ladder_pivot: tuple
+
+
+def common_shell(d: Dims) -> Shell:
+    body = [box(-d.half_width, 0, -d.half_depth,
+                d.half_width, d.platform_height, d.half_depth, "pole_dark")]
+    for x in d.pole_x:
+        for z in (-d.half_depth+1, d.half_depth-2):
+            body.append(box(x, d.platform_height, z, x+1, d.wall_height, z+1, "pole"))
+    # A pitched roof uses only z rotations; the eaves meet the side walls.
+    rise = d.ridge_height - d.wall_height
+    length = math.hypot(d.half_roof, rise)
+    angle = math.degrees(math.atan2(rise, d.half_roof))
+    fabric = [box(-length, d.ridge_height, -d.half_depth,
+                  0, d.ridge_height+0.5, d.half_depth, "fly",
+                  pivot=(0, d.ridge_height, 0), rotation=(0, 0, -angle)),
+              box(0, d.ridge_height, -d.half_depth,
+                  length, d.ridge_height+0.5, d.half_depth, "fly",
+                  pivot=(0, d.ridge_height, 0), rotation=(0, 0, angle))]
+    x, y, _ = d.ladder_pivot
+    near, far = d.ladder_rails_z
+    ladder = [box(x-1, d.ladder_bottom, z, x, y, z+1, "strap",
+                  pivot=d.ladder_pivot, rotation=(0, 0, d.ladder_tilt))
+              for z in d.ladder_rails_z]
+    for rung_y in range(d.ladder_first_rung, y, 5):
+        ladder.append(box(x-1, rung_y, near+1, x, rung_y+0.8, far, "ring",
+                          pivot=d.ladder_pivot, rotation=(0, 0, d.ladder_tilt)))
+    return Shell(
+        body, fabric,
+        [box(-d.doorway_half_width, d.platform_height, -d.half_depth-0.1,
+             d.doorway_half_width, d.wall_height, -d.half_depth+0.4, "fly")],
+        [box(-10, 2, -14, 10, 3.5, 16, "mattress_edge"),
+         box(-10, 3.5, -14, 10, 4, 10, "mattress"),
+         box(-8, 3.5, 11, 8, 5, 15, "inner")],
+        ladder, d.ladder_pivot,
+    )
+
+
+def ground_shell() -> Shell:
+    d = GROUND_DIMS
+    shell = common_shell(d)
+    fabric = shell.fabric
+    # Real openings surround the dark mesh, rather than placing it over opaque walls.
+    for x in (-d.half_width, d.half_width-0.5):
+        fabric += [box(x, d.platform_height, -d.half_depth, x+0.5, d.window_bottom, d.half_depth, "fly"),
+                   box(x, d.window_top, -d.half_depth, x+0.5, d.wall_height, d.half_depth, "fly"),
+                   box(x, d.window_bottom, -d.half_depth, x+0.5, d.window_top, -d.window_half_depth, "fly"),
+                   box(x, d.window_bottom, d.window_half_depth, x+0.5, d.window_top, d.half_depth, "fly"),
+                   box(x+0.15, d.window_bottom, -d.window_half_depth,
+                       x+0.35, d.window_top, d.window_half_depth, "glass")]
+    for z in (-d.half_depth, d.half_depth-0.5):
+        # Thin vertical strips fill the triangular gables under the sloped roof.
+        for x in range(-d.half_width, d.half_width):
+            top = d.ridge_height - min(abs(x), abs(x+1)) * (d.ridge_height-d.wall_height) / d.half_roof
+            fabric.append(box(x, d.wall_height, z, x+1, top, z+0.5, "fly"))
+    fabric += [box(-d.half_width, d.platform_height, -d.half_depth,
+                   -d.doorway_half_width, d.wall_height, -d.half_depth+0.5, "fly"),
+               box(d.doorway_half_width, d.platform_height, -d.half_depth,
+                   d.half_width, d.wall_height, -d.half_depth+0.5, "fly"),
+               box(-d.doorway_half_width, d.wall_height, -d.half_depth-0.1,
+                   d.doorway_half_width, d.wall_height+1, -d.half_depth+0.5, "fly_dark"),
+               box(-d.half_width, d.platform_height, d.half_depth-0.5,
+                   d.half_width, d.wall_height, d.half_depth, "fly")]
+    return shell
+
+
+def suv_shell() -> Shell:
+    d = SUV_DIMS
+    shell = common_shell(d)
+    fabric = shell.fabric
+    # Local wall height follows the slope so the mesh remains a real opening.
+    inset = d.half_width - d.half_roof
+    rise = d.wall_height - d.platform_height
+    wall_length = math.hypot(inset, rise)
+    wall_angle = math.degrees(math.atan2(inset, rise))
+    for side in (-1, 1):
+        x = side * d.half_width
+        pivot = (x, d.platform_height, 0)
+        rotation = (0, 0, -side * wall_angle)
+        def panel(lo, hi, z0, z1, swatch="fly", thickness=0.5):
+            return box(x-thickness/2, d.platform_height+lo, z0,
+                       x+thickness/2, d.platform_height+hi, z1,
+                       swatch, pivot=pivot, rotation=rotation)
+        fabric += [panel(0, d.window_bottom, -d.half_depth, d.half_depth),
+                   panel(d.window_top, wall_length, -d.half_depth, d.half_depth),
+                   panel(d.window_bottom, d.window_top, -d.half_depth, -d.window_half_depth),
+                   panel(d.window_bottom, d.window_top, d.window_half_depth, d.half_depth),
+                   panel(d.window_bottom, d.window_top, -d.window_half_depth, d.window_half_depth, "glass", 0.2)]
+    for z in (-d.half_depth, d.half_depth-0.5):
+        # Strips follow both lower slopes and the roof, leaving the front doorway open.
+        for x in range(-d.half_width, d.half_width):
+            edge = min(abs(x), abs(x+1))
+            top = (d.ridge_height - edge * (d.ridge_height-d.wall_height) / d.half_roof
+                   if edge < d.half_roof else d.platform_height + (d.half_width-edge) * rise / inset)
+            bottom = (d.wall_height
+                      if z < 0 and -d.doorway_half_width <= x < d.doorway_half_width
+                      else d.platform_height)
+            fabric.append(box(x, bottom, z, x+1, top, z+0.5, "fly"))
+    fabric.append(box(-d.doorway_half_width, d.wall_height, -d.half_depth-0.1,
+                      d.doorway_half_width, d.wall_height+1, -d.half_depth+0.5, "fly_dark"))
+    return shell
+
+
 def parts(suv=False):
-    body = [box(-16, 0, -20, 16, 2, 20, "pole_dark")]
-    for x in ((-11, 10) if suv else (-15, 14)):
-        for z in (-19, 18):
-            body.append(box(x, 2, z, x+1, 12, z+1, "pole"))
-    fabric = []
-    # A pitched roof uses only z rotations; the eaves meet the side walls at y=12.
-    half_roof = 12 if suv else 16
-    length = math.hypot(half_roof, 7)
-    angle = math.degrees(math.atan2(7, half_roof))
-    fabric += [box(-length, 19, -20, 0, 19.5, 20, "fly",
-                   pivot=(0, 19, 0), rotation=(0, 0, -angle)),
-               box(0, 19, -20, length, 19.5, 20, "fly",
-                   pivot=(0, 19, 0), rotation=(0, 0, angle))]
-    if suv:
-        # Local wall height follows the slope so the mesh remains a real opening.
-        wall_length = math.hypot(4, 10)
-        wall_angle = math.degrees(math.atan2(4, 10))
-        for side in (-1, 1):
-            x = side * 16
-            pivot = (x, 2, 0)
-            rotation = (0, 0, -side * wall_angle)
-            def panel(lo, hi, z0, z1, swatch="fly", thickness=0.5):
-                return box(x-thickness/2, 2+lo, z0, x+thickness/2, 2+hi, z1,
-                           swatch, pivot=pivot, rotation=rotation)
-            fabric += [panel(0, 3, -20, 20),
-                       panel(8, wall_length, -20, 20),
-                       panel(3, 8, -20, -12), panel(3, 8, 12, 20),
-                       panel(3, 8, -12, 12, "glass", 0.2)]
-        for z in (-20, 19.5):
-            # Strips follow both lower slopes and the roof, leaving the front doorway open.
-            for x in range(-16, 16):
-                edge = min(abs(x), abs(x+1))
-                top = 19 - edge * 7 / 12 if edge < 12 else 2 + (16-edge) * 10 / 4
-                bottom = 12 if z < 0 and -8 <= x < 8 else 2
-                fabric.append(box(x, bottom, z, x+1, top, z+0.5, "fly"))
-        fabric.append(box(-8, 12, -20.1, 8, 13, -19.5, "fly_dark"))
-        ladder_pivot = (-16.5, 2, 10)
-        ladder = [box(-17.5, -38.5, z, -16.5, 2, z+1, "strap",
-                      pivot=ladder_pivot, rotation=(0, 0, 10)) for z in (4, 15)]
-        for y in range(-36, 2, 5):
-            ladder.append(box(-17.5, y, 5, -16.5, y+0.8, 15, "ring",
-                              pivot=ladder_pivot, rotation=(0, 0, 10)))
-    else:
-        # Real openings surround the dark mesh, rather than placing it over opaque walls.
-        for x in (-16, 15.5):
-            fabric += [box(x, 2, -20, x+0.5, 5, 20, "fly"),
-                       box(x, 10, -20, x+0.5, 12, 20, "fly"),
-                       box(x, 5, -20, x+0.5, 10, -12, "fly"),
-                       box(x, 5, 12, x+0.5, 10, 20, "fly"),
-                       box(x+0.15, 5, -12, x+0.35, 10, 12, "glass")]
-        for z in (-20, 19.5):
-            # Thin vertical strips fill the triangular gables under the sloped roof.
-            for x in range(-16, 16):
-                top = 19 - min(abs(x), abs(x+1)) * 7 / 16
-                fabric.append(box(x, 12, z, x+1, top, z+0.5, "fly"))
-        fabric += [box(-16, 2, -20, -8, 12, -19.5, "fly"),
-                   box(8, 2, -20, 16, 12, -19.5, "fly"),
-                   box(-8, 12, -20.1, 8, 13, -19.5, "fly_dark"),
-                   box(-16, 2, 19.5, 16, 12, 20, "fly")]
-        ladder = [box(-17, -32, z, -16, 2, z+1, "strap",
-                      pivot=(-16, 2, 0), rotation=(0, 0, 15)) for z in (-6, 5)]
-        for y in range(-29, 2, 5):
-            ladder.append(box(-17, y, -5, -16, y+0.8, 5, "ring",
-                              pivot=(-16, 2, 0), rotation=(0, 0, 15)))
-        ladder_pivot = (-16, 2, 0)
+    d = SUV_DIMS if suv else GROUND_DIMS
+    shell = suv_shell() if suv else ground_shell()
     def bone(name, cubes, pivot=(0, 0, 0), parent="body"):
         return {"name": name, "parent": parent, "pivot": list(pivot), "cubes": cubes}
     return [{"name": "root", "pivot": [0, 0, 0]},
-            bone("body", body, parent="root"),
-            bone("fabric", fabric),
-            bone("flap", [box(-8, 2, -20.1, 8, 12, -19.6, "fly")], (0, 12, -20)),
-            bone("sleeping_bag", [box(-10, 2, -14, 10, 3.5, 16, "mattress_edge"),
-                                  box(-10, 3.5, -14, 10, 4, 10, "mattress"),
-                                  box(-8, 3.5, 11, 8, 5, 15, "inner")]),
-            bone("ladder", ladder, ladder_pivot)]
+            bone("body", shell.body, parent="root"),
+            bone("fabric", shell.fabric),
+            bone("flap", shell.flap, (0, d.wall_height, -d.half_depth)),
+            bone("sleeping_bag", shell.sleeping_bag),
+            bone("ladder", shell.ladder, shell.ladder_pivot)]
 
 
 def geometry():
     geometries = []
     for suv in (False, True):
+        d = SUV_DIMS if suv else GROUND_DIMS
         bones = tent.rounded(parts(suv=suv))
         cubes = [c for bone in bones for c in bone.get("cubes", [])]
         cube_tilt.assert_axes(cubes, {})
         for bone in bones:
             for cube in bone.get("cubes", []):
                 for point in tent.corners(cube):
-                    lower = (-28 if suv else -27, -39 if suv else -33, -31) if bone["name"] == "ladder" else (-17, 0, -31)
+                    lower = d.ladder_lower if bone["name"] == "ladder" else (-17, 0, -31)
                     assert all(lo <= v <= hi for v, lo, hi in zip(point, lower, (17, 20, 21))), bone["name"]
                 for face in cube["uv"].values():
                     u, v = face["uv"]
@@ -120,9 +201,9 @@ def geometry():
         geometries.append({
             "description": {"identifier": "geometry.yasu_ride.roof_tent" + ("_suv" if suv else ""),
                             "texture_width": 16, "texture_height": 16,
-                            "visible_bounds_width": 6 if suv else 4,
-                            "visible_bounds_height": 5 if suv else 4,
-                            "visible_bounds_offset": [0, -0.4, -0.3]},
+                            "visible_bounds_width": d.visible_bounds_width,
+                            "visible_bounds_height": d.visible_bounds_height,
+                            "visible_bounds_offset": list(d.visible_bounds_offset)},
             "bones": bones,
         })
     return {"format_version": "1.12.0", "minecraft:geometry": geometries}
