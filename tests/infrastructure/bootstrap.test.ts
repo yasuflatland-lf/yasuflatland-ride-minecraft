@@ -9,6 +9,8 @@ import { installCamp } from "../../src/infrastructure/camp/install";
 import type { SwitchTarget } from "../../src/infrastructure/shared/switchRouter";
 import { installVehicles } from "../../src/infrastructure/vehicle/install";
 
+const vehicleHost = () => ({ status: "unknown" as const });
+
 const game = vi.hoisted(() => {
   // Every event a feature subscribes to records its handlers under its name.
   const handlers = new Map<string, ((ev: unknown) => void)[]>();
@@ -64,12 +66,15 @@ it("wires space both ways through a late-bound camp reference (ADR 0129)", () =>
   const isCampSpace = vi.fn<SpaceCheck>();
   vi.mocked(installVehicles).mockImplementation((deps) => {
     expect(deps.isCampSpace(dim, at)).toBe(false);
-    return { isVehicleSpace };
+    return { isVehicleSpace, vehicleHost };
   });
   vi.mocked(installCamp).mockReturnValue({ isCampSpace, switchTargets: [] });
   bootstrap();
   expect(installVehicles).toHaveBeenCalledTimes(1);
-  expect(installCamp).toHaveBeenCalledExactlyOnceWith({ isVehicleSpace });
+  expect(installCamp).toHaveBeenCalledExactlyOnceWith({
+    isVehicleSpace,
+    vehicleHost,
+  });
   expect(vi.mocked(installVehicles).mock.invocationCallOrder[0]).toBeLessThan(
     vi.mocked(installCamp).mock.invocationCallOrder[0] ?? 0,
   );
@@ -87,7 +92,10 @@ it("lets the vehicles see a registered tent, and the chair stand on its floor bu
     typeof import("../../src/infrastructure/camp/install")
   >("../../src/infrastructure/camp/install");
   vi.mocked(installCamp).mockImplementation(actual.installCamp);
-  vi.mocked(installVehicles).mockReturnValue({ isVehicleSpace: () => false });
+  vi.mocked(installVehicles).mockReturnValue({
+    isVehicleSpace: () => false,
+    vehicleHost,
+  });
   game.getDynamicProperty.mockReturnValue(
     JSON.stringify([
       {
@@ -132,7 +140,7 @@ it("hands the vehicles the camp's switch targets once camp is installed", () => 
   let before: readonly SwitchTarget[] | undefined;
   vi.mocked(installVehicles).mockImplementation((deps) => {
     before = deps.laterSwitchTargets();
-    return { isVehicleSpace: () => false };
+    return { isVehicleSpace: () => false, vehicleHost };
   });
   vi.mocked(installCamp).mockReturnValue({
     isCampSpace: () => false,
@@ -152,7 +160,7 @@ it("installs build last and passes both space checks without requesting a camera
   const playerId = asPlayerId("builder");
   vi.mocked(installVehicles).mockImplementation((deps) => {
     expect(deps.wantsChaseCamera(playerId)).toBe(false);
-    return { isVehicleSpace };
+    return { isVehicleSpace, vehicleHost };
   });
   vi.mocked(installCamp).mockReturnValue({ isCampSpace, switchTargets: [] });
   bootstrap();

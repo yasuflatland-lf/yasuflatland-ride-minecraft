@@ -93,6 +93,7 @@ function seatIdlePlayer(
 
 function fixture() {
   const dimension = {
+    id: "minecraft:overworld",
     getBlock: vi.fn(),
     getPlayers: vi.fn(),
     getEntities: vi.fn(),
@@ -1561,4 +1562,34 @@ describe("standRiderAt", () => {
       expect(standing(missing).player.teleport).not.toHaveBeenCalled();
     },
   );
+});
+
+it("reads a loaded host without running the drive scan or changing entities", () => {
+  const { world, car, index } = fixture();
+  seatIdlePlayer(car, () => undefined);
+  index.track(car as unknown as Entity);
+  game.getEntity.mockClear();
+  expect(world.hostState(car.id)).toEqual({
+    status: "present",
+    dimensionId: "minecraft:overworld",
+    location: car.location,
+    yaw: 0,
+    mount: profileOf("suv").roofTent,
+    driverPresent: true,
+    moving: false,
+  });
+  expect(game.getEntity).not.toHaveBeenCalled();
+  expect(car.teleport).not.toHaveBeenCalled();
+  expect(car.setProperty).not.toHaveBeenCalled();
+  expect(car.setDynamicProperty).not.toHaveBeenCalled();
+  expect(car.applyImpulse).not.toHaveBeenCalled();
+});
+
+it("reports unknown for missing, invalid and non-vehicle hosts", () => {
+  const { world, car } = fixture();
+  expect(world.hostState("missing")).toEqual({ status: "unknown" });
+  car.isValid = false;
+  expect(world.hostState(car.id)).toEqual({ status: "unknown" });
+  game.getEntity.mockReturnValue({ isValid: true, typeId: "minecraft:pig" });
+  expect(world.hostState("pig")).toEqual({ status: "unknown" });
 });

@@ -18,6 +18,7 @@ import { SwitchLantern } from "../../application/camp/switchLantern";
 import { TakeDownTent } from "../../application/camp/takeDownTent";
 import { UseTentFlap } from "../../application/camp/useTentFlap";
 import type { SpaceCheck } from "../../application/shared/ports/space";
+import type { VehicleHostLookup } from "../../application/shared/ports/vehicleHost";
 import { SleepInBed } from "../../application/shared/sleepInBed";
 import { registerBedBlock } from "../shared/bedBlock";
 import { BedrockBedWorld } from "../shared/bedrockBedWorld";
@@ -60,7 +61,10 @@ import { DynamicPropertyTentRegistry } from "./persistence/tentRegistry";
  * cannot import it, and `switchTargets` goes back through it to the vehicles'
  * switch router (ADR 0046).
  */
-export function installCamp(deps: { isVehicleSpace: SpaceCheck }): {
+export function installCamp(deps: {
+  isVehicleSpace: SpaceCheck;
+  vehicleHost: VehicleHostLookup;
+}): {
   isCampSpace: SpaceCheck;
   switchTargets: readonly SwitchTarget[];
 } {

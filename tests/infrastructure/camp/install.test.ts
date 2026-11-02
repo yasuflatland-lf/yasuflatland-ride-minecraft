@@ -134,7 +134,7 @@ vi.mock("../../../src/infrastructure/camp/bedrock/handlers/dutchOven", () => ({
 
 it("wires one hit use case into both hit handlers and asks the vehicles for their space (ADR 0122)", () => {
   const isVehicleSpace = vi.fn(() => true);
-  installCamp({ isVehicleSpace });
+  installCamp({ vehicleHost: () => ({ status: "unknown" }), isVehicleSpace });
   const hitChair = vi.mocked(registerChairHits).mock.calls[0]?.[0];
   expect(hitChair).toBeInstanceOf(HitChair);
   expect(vi.mocked(registerTestChairHit).mock.calls[0]?.[0]).toBe(hitChair);
@@ -159,7 +159,10 @@ it("wires one hit use case into both hit handlers and asks the vehicles for thei
 });
 
 it("registers the tent mattress as a bed with its own SleepInBed (ADR 0092, 0133)", () => {
-  installCamp({ isVehicleSpace: () => false });
+  installCamp({
+    vehicleHost: () => ({ status: "unknown" }),
+    isVehicleSpace: () => false,
+  });
   expect(registerBedBlock).toHaveBeenCalledTimes(1);
   const [componentId, bed] = vi.mocked(registerBedBlock).mock.calls[0] ?? [];
   expect(componentId).toBe(TENT_MATTRESS_COMPONENT);
@@ -167,7 +170,10 @@ it("registers the tent mattress as a bed with its own SleepInBed (ADR 0092, 0133
 });
 
 it("claims no camp space for any dimension and integer cell without a tent (ADR 0129)", () => {
-  const { isCampSpace } = installCamp({ isVehicleSpace: () => false });
+  const { isCampSpace } = installCamp({
+    vehicleHost: () => ({ status: "unknown" }),
+    isVehicleSpace: () => false,
+  });
   fc.assert(
     fc.property(
       fc.string(),
@@ -188,7 +194,10 @@ beforeEach(() => vi.clearAllMocks());
 
 it("claims each registered tent's footprint as camp space (ADR 0131)", () => {
   game.getDynamicProperty.mockReturnValue(SAVED);
-  const { isCampSpace } = installCamp({ isVehicleSpace: () => false });
+  const { isCampSpace } = installCamp({
+    vehicleHost: () => ({ status: "unknown" }),
+    isVehicleSpace: () => false,
+  });
   const here = asDimensionId("minecraft:overworld");
   expect(isCampSpace(here, { x: 110, y: -60, z: 50 })).toBe(true);
   expect(isCampSpace(here, { x: 110, y: -60, z: 58 })).toBe(false);
@@ -201,7 +210,10 @@ it("claims each registered tent's footprint as camp space (ADR 0131)", () => {
 
 it("wires the tent handlers with the same use cases, registry, and owner lookup (ADR 0131)", () => {
   game.getDynamicProperty.mockReturnValue(SAVED);
-  installCamp({ isVehicleSpace: () => false });
+  installCamp({
+    vehicleHost: () => ({ status: "unknown" }),
+    isVehicleSpace: () => false,
+  });
   const pitchTent = vi.mocked(registerTentPlacement).mock.calls[0]?.[0];
   expect(pitchTent).toBeInstanceOf(PitchTent);
   const [takeDown, paintTent, owner] =
@@ -231,7 +243,10 @@ it("wires the tent handlers with the same use cases, registry, and owner lookup 
 
 it("shares one flap store between the tent world and the loop, and one flap use case between both flap handlers (ADR 0132)", () => {
   game.getDynamicProperty.mockReturnValue(SAVED);
-  installCamp({ isVehicleSpace: () => false });
+  installCamp({
+    vehicleHost: () => ({ status: "unknown" }),
+    isVehicleSpace: () => false,
+  });
   const store = vi.mocked(registerTentLoop).mock.calls[0]?.[2];
   expect(store).toBeInstanceOf(TentFlapStore);
   const [useFlap, flapAt] = vi.mocked(registerTentFlap).mock.calls[0] ?? [];
@@ -268,7 +283,10 @@ it("returns tent and Gas Lantern targets built on the registered actions", () =>
   game.getEntity.mockImplementation((id: string) =>
     id === "t" ? { isValid: true, typeId: TENT_TYPE } : undefined,
   );
-  const { switchTargets } = installCamp({ isVehicleSpace: () => false });
+  const { switchTargets } = installCamp({
+    vehicleHost: () => ({ status: "unknown" }),
+    isVehicleSpace: () => false,
+  });
   expect(switchTargets).toEqual([lanternTarget, gasLanternTarget]);
   expect(gasLanternSwitchTarget).toHaveBeenCalledExactlyOnceWith(
     vi.mocked(registerGasLantern).mock.calls[0]?.[0],
@@ -286,7 +304,10 @@ it("returns tent and Gas Lantern targets built on the registered actions", () =>
 });
 
 it("registers oven interactions before fire pit interactions", () => {
-  installCamp({ isVehicleSpace: () => false });
+  installCamp({
+    vehicleHost: () => ({ status: "unknown" }),
+    isVehicleSpace: () => false,
+  });
   expect(vi.mocked(registerDutchOven).mock.invocationCallOrder[0]).toBeLessThan(
     vi.mocked(registerFirePit).mock.invocationCallOrder[0] ?? 0,
   );
@@ -296,7 +317,10 @@ vi.mock("../../../src/infrastructure/camp/bedrock/handlers/gasLantern", () => ({
   registerGasLantern: vi.fn(),
 }));
 it("registers one Gas Lantern use case after the Fire Pit", () => {
-  installCamp({ isVehicleSpace: () => false });
+  installCamp({
+    vehicleHost: () => ({ status: "unknown" }),
+    isVehicleSpace: () => false,
+  });
   expect(registerGasLantern).toHaveBeenCalledExactlyOnceWith(
     expect.any(GasLanternActions),
     expect.any(BedrockGasLanternWorld),

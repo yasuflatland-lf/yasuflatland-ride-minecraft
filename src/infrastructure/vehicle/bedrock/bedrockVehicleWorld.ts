@@ -8,11 +8,14 @@ import {
   world,
 } from "@minecraft/server";
 import type { SpaceCheck } from "../../../application/shared/ports/space";
+import type { VehicleHostState } from "../../../application/shared/ports/vehicleHost";
+import { hostStateOf } from "../../../application/vehicle/hostStateOf";
 import type {
   DriveWorld,
   VehicleSnapshot,
 } from "../../../application/vehicle/ports/drive";
 import {
+  asDimensionId,
   asPlayerId,
   asVehicleId,
   type DimensionId,
@@ -204,6 +207,24 @@ export class BedrockVehicleWorld implements DriveWorld {
         groundGap(cell, vehicle.location) < footprint
       );
     });
+  }
+
+  hostState(vehicleId: string): VehicleHostState {
+    const vehicle = this.index.entity(asVehicleId(vehicleId));
+    // The index cannot distinguish an unloaded entity from a removed one.
+    if (!vehicle) return { status: "unknown" };
+    const kind = kindOfEntity(vehicle.typeId);
+    if (kind === undefined) return { status: "unknown" };
+    return hostStateOf(
+      {
+        location: vehicle.location,
+        yaw: vehicle.getRotation().y,
+        velocity: vehicle.getVelocity(),
+        riders: this.riders(vehicle, false),
+      },
+      profileOf(kind),
+      asDimensionId(vehicle.dimension.id),
+    );
   }
 
   loadedVehicles(): VehicleSnapshot[] {
