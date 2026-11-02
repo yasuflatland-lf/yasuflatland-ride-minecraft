@@ -155,3 +155,6 @@ yasu_build.form.copy_title=Copy
 yasu_build.form.hollow=Hollow
 yasu_build.form.cancel=Cancel
 yasu_build.message.height_size=Size: x %s, y %s, z %s
+
+item.yasu_ride:roof_tent_item.name=Roof Tent
+entity.yasu_ride:roof_tent.name=Roof Tent

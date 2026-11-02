@@ -52,6 +52,9 @@
     "yasu_build_selection_wand": {
       "textures": "textures/items/yasu_build/selection_wand"
     },
+    "yasu_ride_roof_tent_item": {
+      "textures": "textures/items/yasu_ride/roof_tent_item"
+    },
     "yasu_ride_camping_gear_box": {
       "textures": "textures/items/yasu_ride/camping_gear_box"
     },

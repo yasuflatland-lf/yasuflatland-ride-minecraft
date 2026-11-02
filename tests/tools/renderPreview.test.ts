@@ -108,6 +108,7 @@ describe("camping gear, low chair, and tent previews (ADR 0093, 0122, 0130)", ()
       "noga_chair",
       "low_chair",
       "tent",
+      "roof_tent",
       "camp_table",
       "fire_pit",
       "dutch_oven",
