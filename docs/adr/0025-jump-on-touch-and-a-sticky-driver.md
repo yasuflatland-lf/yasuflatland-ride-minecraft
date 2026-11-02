@@ -10,11 +10,11 @@ Jump pulls the handbrake (0005) and a double tap of Jump toggles flight (0021). 
 
 Tried on the phone, one server restart each:
 
-| Components added to the entity | Jump dismounts | Double tap takes off |
-|---|---|---|
-| `minecraft:can_power_jump`, `minecraft:horse.jump_strength` 0 | yes | no |
-| `minecraft:input_ground_controlled` only | yes | no |
-| all three | no | yes |
+| Components added to the entity                                | Jump dismounts | Double tap takes off |
+| ------------------------------------------------------------- | -------------- | -------------------- |
+| `minecraft:can_power_jump`, `minecraft:horse.jump_strength` 0 | yes            | no                   |
+| `minecraft:input_ground_controlled` only                      | yes            | no                   |
+| all three                                                     | no             | yes                  |
 
 With all three, Jump reaches the script as `InputButton.Jump` and the rider stays seated. `minecraft:movement` stays 0, so the engine does not move the vehicle on its own, and driving felt unchanged.
 

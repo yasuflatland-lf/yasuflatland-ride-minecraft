@@ -1,7 +1,7 @@
 # Camper
 
-| Front left | Side |
-|:---:|:---:|
+|                                   Front left                                   |                            Side                             |
+| :----------------------------------------------------------------------------: | :---------------------------------------------------------: |
 | ![The camper seen from its front-left corner](../images/camper-front-left.png) | ![The camper seen from the side](../images/camper-side.png) |
 
 A four-seat camper with a facing dinette that drives, flies, and dives. Back to the [README](../../README.md).

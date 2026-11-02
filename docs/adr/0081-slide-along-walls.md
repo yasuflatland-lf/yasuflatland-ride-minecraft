@@ -10,12 +10,12 @@
 
 Measured in the engine model (the engine keeps k of the given velocity and a wall zeroes one axis), before this decision. 0077 does not change these numbers, because the forward speed stays positive in every case:
 
-| Case | Along-wall speed | Blocked flips | Estimate |
-|---|---|---|---|
-| SUV on the ground, k = 0.69, 45 degrees | 0.636 to about 0.04 within 10 ticks | 57 in 74 ticks | friction 0.69 to 0.583 |
-| SUV on the ground, 20 degrees from the wall plane | 0.846 to 0.095 after 30 ticks | | |
-| Hover, drag 0.91, 45 degrees | 0.636 to about 0.03-0.06 | 73 | |
-| Sports boat afloat, 45 degrees | 0.79 to about 0.04-0.07 | 68 | water drag 0.85 to 0.72 (0053) |
+| Case                                              | Along-wall speed                    | Blocked flips  | Estimate                       |
+| ------------------------------------------------- | ----------------------------------- | -------------- | ------------------------------ |
+| SUV on the ground, k = 0.69, 45 degrees           | 0.636 to about 0.04 within 10 ticks | 57 in 74 ticks | friction 0.69 to 0.583         |
+| SUV on the ground, 20 degrees from the wall plane | 0.846 to 0.095 after 30 ticks       |                |                                |
+| Hover, drag 0.91, 45 degrees                      | 0.636 to about 0.03-0.06            | 73             |                                |
+| Sports boat afloat, 45 degrees                    | 0.79 to about 0.04-0.07             | 68             | water drag 0.85 to 0.72 (0053) |
 
 ## Decision
 
