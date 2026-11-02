@@ -12,6 +12,7 @@ MIN_FLAKE_FACE_PX = body_paint.MIN_FLAKE_FACE_PX
 HANDLE_BOTTOM_Y, HANDLE_TOP_Y = 14.4, 15.1
 HANDLE_REAR_OFFSET, HANDLE_FRONT_OFFSET = 1.5, 4.5
 HANDLE_OUTER_X = 13.35
+REARVIEW_STAY_LENGTH = 2.5 / 3
 
 
 def face_size(cube, face):
@@ -259,8 +260,8 @@ def a_pillar_cubes():
 def rearview_mirror_cubes():
     return [
         # Rearview mirror (center of the windshield's top edge, behind the leaning glass)
-        box(-0.5, ROOF_Y - 2.5, ROOF_FRONT - 0.8, 0.5, ROOF_Y, ROOF_FRONT - 0.3, "trim"),
-        box(-2.5, ROOF_Y - 4, ROOF_FRONT - 1.3, 2.5, ROOF_Y - 2.5, ROOF_FRONT - 0.8, "rim"),
+        box(-0.5, ROOF_Y - REARVIEW_STAY_LENGTH, ROOF_FRONT - 0.8, 0.5, ROOF_Y, ROOF_FRONT - 0.3, "trim"),
+        box(-2.5, ROOF_Y - REARVIEW_STAY_LENGTH - 1.5, ROOF_FRONT - 1.3, 2.5, ROOF_Y - REARVIEW_STAY_LENGTH, ROOF_FRONT - 0.8, "rim"),
     ]
 
 
