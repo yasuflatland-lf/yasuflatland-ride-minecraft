@@ -1,6 +1,10 @@
 import type { Medium } from "../../motion/motion";
 import type { TransformingSpec } from "../../motion/transforming";
 
+const ROOF_TENT_SHELL_HALF_WIDTH = 1.2 * 1.64;
+const ROOF_TENT_ANCHOR_X = ROOF_TENT_SHELL_HALF_WIDTH - 1.64;
+const ROOF_TENT_ANCHOR_Z = -0.605;
+
 // The SUV's own tuning values (ADR 0055). See docs/adr/0002-0008 for the rationale.
 export const SUV_SPEC = Object.freeze({
   // Driving (ADR 0002)
@@ -24,14 +28,14 @@ export const SUV_SPEC = Object.freeze({
   footprint: 3.4, // the rear hover glow reaches 3.396322 blocks at its farthest corner (ADR 0122, 0194)
   // ROOF_TOP scaled by SIZE_SCALE in tools/suv_dims.py, above the collision box.
   roofTentRoofHeight: (26.1 * 1.45) / 16,
-  // The widened platform overhangs the left side; rack clearance is inside the model.
-  roofTentAnchorX: 1.18,
-  roofTentAnchorZ: -0.605, // Midway between the front (-0.0498) and rear (-1.16) seats.
-  roofTentLadder: true, // Enable ladder access because the model includes a ladder.
-  // Profile x points left: the ladder foot is on the vehicle's left (viewer's right from the front).
-  // The lengthened ladder preserves its 7.3 px outward run after the shell lift.
-  roofTentEntranceX: 1.18 + (1.2 * 1.64 * 16 + 0.5 + 7.3) / 16,
-  roofTentEntranceZ: -0.98, // Ladder top and foot are 0.375 block behind the tent center.
+  // Keep the right platform edge flush with the body; the rest overhangs left.
+  roofTentAnchorX: ROOF_TENT_ANCHOR_X,
+  roofTentAnchorZ: ROOF_TENT_ANCHOR_Z, // Between the front and rear seats.
+  roofTentLadder: true,
+  // Profile x points left; match the model foot's pivot offset and outward run.
+  roofTentEntranceX:
+    ROOF_TENT_ANCHOR_X + ROOF_TENT_SHELL_HALF_WIDTH + (0.5 + 7.3) / 16,
+  roofTentEntranceZ: ROOF_TENT_ANCHOR_Z - 6 / 16,
   // Headlights (ADR 0020)
   headlightReach: Object.freeze([4, 9, 15, 21, 27] as const), // blocks ahead of the vehicle's center, one light block each; 6 apart, the road surface between them stays at level 9 or brighter (ADR 0024)
   // Flight (ADR 0021)

@@ -12,7 +12,7 @@ import {
 import { PAINTS, type Paint } from "../../../domain/shared/paint";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { dyeOf, paintEvent } from "../../shared/dyes";
-import { messageKey } from "../../shared/identifiers";
+import { id, messageKey } from "../../shared/identifiers";
 import {
   consumeHeld,
   giveOrDrop,
@@ -64,6 +64,7 @@ export class BedrockRoofTentWorld implements RoofTentWorld {
         .spawnEntity(ROOF_TENT_TYPE, at.location);
       entity.setRotation({ x: 0, y: at.yaw });
       entity.setProperty(ROOF_TENT_LADDER_PROPERTY, plan.ladder);
+      if (plan.ladder) entity.triggerEvent(id("suv_bounds"));
       entity.setDynamicProperty(ROOF_TENT_OWNER_PROPERTY, ownerId);
       entity.setDynamicProperty(ROOF_TENT_HOST_PROPERTY, encodeHost(plan.host));
       entity.triggerEvent(paintEvent(paint));

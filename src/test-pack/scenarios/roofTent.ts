@@ -3,6 +3,7 @@ import { entranceWorld } from "../../domain/camp/roofTent/access";
 import { PAINTS } from "../../domain/shared/paint";
 import { CAMPER_PROFILE } from "../../domain/vehicle/kinds/camper/profile";
 import { SUV_PROFILE } from "../../domain/vehicle/kinds/suv/profile";
+import { SUV_SPEC } from "../../domain/vehicle/kinds/suv/spec";
 import {
   ROOF_TENT_FAMILY,
   ROOF_TENT_ITEM,
@@ -20,6 +21,10 @@ import { ENTITY_TYPE } from "../../infrastructure/vehicle/bedrock/identifiers";
 import { type Arena, spawnCar, wait } from "../arena";
 import { type Outcome, runCourse, type StepSink } from "../outcome";
 import { summonCow } from "./shared";
+
+// Mirror roof_tent.se.json suv_bounds for the ladder variant.
+const SUV_BOUNDS_HALF_WIDTH = 2;
+const SUV_BOUNDS_HALF_HEIGHT = 0.85;
 
 // Clear of the camp fixtures and the parked camper; all queries stay in this lane.
 const SPOT = { x: 80.5, z: 40.5 };
@@ -54,9 +59,9 @@ function contract(tent: Entity, ladder: boolean): boolean {
     tent.getComponent("minecraft:variant") !== undefined &&
     tent.getComponent("minecraft:rideable") === undefined &&
     tent.getProperty(ROOF_TENT_LADDER_PROPERTY) === ladder &&
-    Math.abs(extent.x - 1) < 0.01 &&
-    Math.abs(extent.z - 1) < 0.01 &&
-    Math.abs(extent.y - 0.6) < 0.01
+    Math.abs(extent.x - (ladder ? SUV_BOUNDS_HALF_WIDTH : 1)) < 0.01 &&
+    Math.abs(extent.z - (ladder ? SUV_BOUNDS_HALF_WIDTH : 1)) < 0.01 &&
+    Math.abs(extent.y - (ladder ? SUV_BOUNDS_HALF_HEIGHT : 0.6)) < 0.01
   );
 }
 function clean(a: Arena): void {
@@ -83,10 +88,19 @@ async function hosted(a: Arena, camper: boolean): Promise<Outcome> {
       Math.abs(tent.location.y - host.location.y - mount.roofHeight) < 0.05 &&
       Math.abs(tent.location.x - host.location.x - mount.anchor.x) < 0.05 &&
       Math.abs(tent.location.z - host.location.z - mount.anchor.z) < 0.05;
+    let leftOverhang = true;
+    let rightFlush = true;
     let footOutside = true;
     if (!camper) {
+      leftOverhang = false;
+      rightFlush = false;
       footOutside = false;
       if (mount) {
+        const shellHalf = 1.2 * SUV_SPEC.bodyHalfWidth;
+        leftOverhang =
+          mount.anchor.x + shellHalf > SUV_SPEC.bodyHalfWidth + 0.05;
+        rightFlush =
+          Math.abs(mount.anchor.x - shellHalf + SUV_SPEC.bodyHalfWidth) < 0.05;
         const foot = entranceWorld(mount, {
           location: host.location,
           yaw: host.getRotation().y,
@@ -133,6 +147,8 @@ async function hosted(a: Arena, camper: boolean): Promise<Outcome> {
     return {
       pass:
         onRoof &&
+        leftOverhang &&
+        rightFlush &&
         footOutside &&
         valid &&
         refused &&
@@ -140,7 +156,7 @@ async function hosted(a: Arena, camper: boolean): Promise<Outcome> {
         outside &&
         gone &&
         items === 1,
-      detail: `roof=${onRoof}${camper ? "" : ` footOutside=${footOutside}`} contract=${valid} duplicateRefused=${refused} seated=${seated} outside=${outside} gone=${gone} items=${items}`,
+      detail: `roof=${onRoof}${camper ? "" : ` leftOverhang=${leftOverhang} rightFlush=${rightFlush} footOutside=${footOutside}`} contract=${valid} duplicateRefused=${refused} seated=${seated} outside=${outside} gone=${gone} items=${items}`,
     };
   } finally {
     if (cow?.isValid) cow.remove();

@@ -183,14 +183,14 @@ beforeEach(() => {
   });
 });
 
-it("spawns with the host marker, owner, ladder and paint, without resizing collision bounds", () => {
+it("spawns with the host marker, owner, paint and collision bounds selected by ladder", () => {
   fc.assert(
-    fc.property(fc.constantFrom(...PAINTS), (paint) => {
+    fc.property(fc.constantFrom(...PAINTS), fc.boolean(), (paint, ladder) => {
       const tent = entity();
       game.dimension.spawnEntity.mockReturnValue(tent);
       expect(
         tents.spawn(
-          { host: { kind: "vehicle", id: "host" }, facing: 90, ladder: true },
+          { host: { kind: "vehicle", id: "host" }, facing: 90, ladder },
           { dimensionId: DIM, location: tent.location, yaw: 37 },
           "owner",
           paint,
@@ -200,9 +200,13 @@ it("spawns with the host marker, owner, ladder and paint, without resizing colli
         "vehicle:host",
       );
       expect(tents.ownerOf("tent")).toBe("owner");
-      expect(tent.getProperty(ids.ROOF_TENT_LADDER_PROPERTY)).toBe(true);
+      expect(tent.getProperty(ids.ROOF_TENT_LADDER_PROPERTY)).toBe(ladder);
       expect(tent.setRotation).toHaveBeenCalledWith({ x: 0, y: 37 });
-      expect(tent.triggerEvent).toHaveBeenCalledWith(paintEvent(paint));
+      expect(tent.triggerEvent.mock.calls.map(([event]) => event)).toEqual(
+        ladder
+          ? ["yasu_ride:suv_bounds", paintEvent(paint)]
+          : [paintEvent(paint)],
+      );
     }),
   );
 });
