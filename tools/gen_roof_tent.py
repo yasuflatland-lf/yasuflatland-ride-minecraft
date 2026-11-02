@@ -19,8 +19,7 @@ tent = load_tool("gen_tent")
 cube_tilt = load_tool("cube_tilt")
 # Share the ground tent's swatches and paint order, including fixed bedding colors.
 box = tent.box
-FLY_PAINTS = tent.FLY_PAINTS
-DEFAULT_FLY = (92, 102, 60)
+FLY_PAINTS = {**tent.FLY_PAINTS, "khaki": (86, 94, 64)}
 GEOMETRY = "models/entity/yasu_ride/roof_tent.geo.json"
 TEXTURE = "textures/entity/yasu_ride/roof_tent.png"
 
@@ -551,7 +550,7 @@ def texture_pixel(paint):
     palette = tent.paint_palette(paint)
     if paint == "khaki":
         for slot, shade in tent.FLY_SHADES.items():
-            palette[slot] = tent.scale(DEFAULT_FLY, shade) + (255,)
+            palette[slot] = tent.scale(FLY_PAINTS[paint], shade) + (255,)
     # The tent's glass swatch becomes a dark translucent woven window mesh.
     def pixel(x, y):
         slot = (y // 4) * 4 + x // 4

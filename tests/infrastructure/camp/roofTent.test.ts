@@ -293,6 +293,35 @@ it("defers and deduplicates placement, leaving unsupported vehicle interactions 
   fire("before:playerInteractWithEntity", unsupported);
   expect(unsupported.cancel).toBe(false);
 });
+it.each(["roof_taken", "driver", "moving"] as const)(
+  "leaves boarding uncancelled and silent when the roof is unavailable: %s",
+  (reason) => {
+    if (reason === "roof_taken") spawn();
+    else {
+      if (state.status !== "present") throw new Error("Expected present host");
+      state = {
+        ...state,
+        driverPresent: reason === "driver",
+        moving: reason === "moving",
+      };
+    }
+    const place = new PlaceRoofTent(tents, host);
+    const execute = vi.spyOn(place, "execute");
+    registerRoofTentPlacement(place, host);
+    const p = player();
+    const ev = {
+      player: p,
+      target: { id: "host" },
+      itemStack: { typeId: ids.ROOF_TENT_ITEM },
+      cancel: false,
+    };
+    fire("before:playerInteractWithEntity", ev);
+    expect(ev.cancel).toBe(false);
+    expect(game.run).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
+    expect(p.onScreenDisplay.setActionBar).not.toHaveBeenCalled();
+  },
+);
 it("uses only the first top-face ground interaction and shares the per-player tick dedupe", () => {
   registerRoofTentPlacement(new PlaceRoofTent(tents, host), host);
   const p = player();
