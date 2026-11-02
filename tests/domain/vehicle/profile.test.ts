@@ -135,7 +135,10 @@ describe("vehicle profiles (ADR 0050)", () => {
         roofHeight: (26.1 * 1.45) / 16,
         anchor: { x: 1.18, z: -0.605 },
         ladder: true,
-        entrance: { x: 2.65, z: -1.23 },
+        entrance: {
+          x: SUV_SPEC.roofTentEntranceX,
+          z: SUV_SPEC.roofTentEntranceZ,
+        },
       },
       footprint: 3.4,
       seats: {
