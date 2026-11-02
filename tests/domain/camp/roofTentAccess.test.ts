@@ -11,17 +11,13 @@ import { forward, leftOf } from "../../../src/domain/shared/vec";
 import { CAMPER_PROFILE } from "../../../src/domain/vehicle/kinds/camper/profile";
 import { CAMPER_SPEC } from "../../../src/domain/vehicle/kinds/camper/spec";
 import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
-import { SUV_SPEC } from "../../../src/domain/vehicle/kinds/suv/spec";
 
 const coordinate = fc.double({ min: -1000, max: 1000, noNaN: true });
 const host = fc.record({
   location: fc.record({ x: coordinate, y: coordinate, z: coordinate }),
   yaw: fc.double({ min: -10000, max: 10000, noNaN: true }),
 });
-const vehicles = [
-  { profile: SUV_PROFILE, spec: SUV_SPEC, rear: SUV_SPEC.bodyFront },
-  { profile: CAMPER_PROFILE, spec: CAMPER_SPEC, rear: CAMPER_SPEC.bodyRear },
-];
+const vehicles = [{ profile: SUV_PROFILE }, { profile: CAMPER_PROFILE }];
 
 it.each(vehicles)(
   "reaches the $profile.kind entrance only at supported heights",
@@ -109,8 +105,8 @@ it("keeps the camper entrance outside roof fixtures and its anchor in their gap"
 });
 
 it.each(vehicles)(
-  "exits the $profile.kind onto a distinct ground cell outside its body at any yaw",
-  ({ profile, spec, rear }) => {
+  "starts the $profile.kind exit search in a distinct ground cell farther from the host at any yaw",
+  ({ profile }) => {
     const mount = profile.roofTent as RoofTentMount;
     fc.assert(
       fc.property(host, (host) => {
@@ -118,15 +114,6 @@ it.each(vehicles)(
         const outside = exitCell(mount, host, 0);
         const dx = outside.x - host.location.x;
         const dz = outside.z - host.location.z;
-        const f = forward(host.yaw);
-        const l = leftOf(f);
-        const localX = dx * l.x + dz * l.z;
-        const localZ = dx * f.x + dz * f.z;
-        expect(
-          Math.abs(localX) > spec.bodyHalfWidth ||
-            localZ > spec.bodyFront ||
-            localZ < -rear,
-        ).toBe(true);
         expect(Math.hypot(dx, dz)).toBeGreaterThan(
           Math.hypot(
             entrance.x - host.location.x,
@@ -144,5 +131,31 @@ it.each(vehicles)(
       }),
       { numRuns: 1000 },
     );
+  },
+);
+
+it.each([-1327.975687162958, 112])(
+  "uses a radial search origin even when flooring puts it inside the camper body at yaw %s",
+  (yaw) => {
+    const host = {
+      location: { x: 0, y: 0, z: 0 },
+      yaw,
+    };
+    const mount = CAMPER_PROFILE.roofTent as RoofTentMount;
+    const entrance = entranceWorld(mount, host);
+    const origin = exitCell(mount, host, 0);
+    expect(origin).toEqual({ x: 4, y: 0, z: 0 });
+    expect(Math.hypot(origin.x, origin.z)).toBeGreaterThan(
+      Math.hypot(entrance.x, entrance.z),
+    );
+    const f = forward(host.yaw);
+    const l = leftOf(f);
+    const localX = origin.x * l.x + origin.z * l.z;
+    const localZ = origin.x * f.x + origin.z * f.z;
+    // Radial distance does not imply rectangular body clearance. The occupant
+    // adapter rejects vehicle-space candidates before choosing a teleport cell.
+    expect(Math.abs(localX)).toBeLessThan(CAMPER_SPEC.bodyHalfWidth);
+    expect(localZ).toBeGreaterThan(-CAMPER_SPEC.bodyRear);
+    expect(localZ).toBeLessThan(CAMPER_SPEC.bodyFront);
   },
 );
