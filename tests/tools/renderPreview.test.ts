@@ -92,7 +92,7 @@ describe("camping gear, low chair, and tent previews (ADR 0093, 0122, 0130)", ()
       "import render_preview",
       "images = render_preview.render_camping_gear(Path('packs/yasu_ride_rp'))",
       "names = list(images)",
-      "print(json.dumps({'names': names, 'lengths': sorted({len(v) for v in images.values()}),",
+      "print(json.dumps({'names': names, 'lengths': sorted({len(render_preview.rasterize_job(v)) for v in images.values()}),",
       "  'sizes': [render_preview.image_size(n) for n in names + ['camper-side.png']]}))",
     ].join("\n");
     const out = JSON.parse(
@@ -139,6 +139,21 @@ const previewPython = (body: string) =>
       { encoding: "utf8" },
     ),
   );
+
+it("ScreenFit maps quads the same after pickling", () => {
+  expect(
+    previewPython(`
+import pickle
+quad = [(-2, 1, -3), (4, 1, -3), (4, 5, 2), (-2, 5, 2)]
+camera = r.Camera(quad)
+scale, off_x, off_y = 317.5, 123.25, -47.75
+fit = r.ScreenFit(camera, scale, off_x, off_y)
+assert pickle.loads(pickle.dumps(fit))(quad) == fit(quad)
+assert fit(quad) == [(off_x + scale * x, off_y + scale * y, q) for x, y, q in map(camera.project, quad)]
+print(json.dumps(True))
+`),
+  ).toBe(true);
+});
 
 // An opaque face as [rgb, bloom group or null].
 type LitFace = [number[], string | null];
