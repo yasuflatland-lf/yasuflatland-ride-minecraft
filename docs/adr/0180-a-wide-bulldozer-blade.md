@@ -1,7 +1,7 @@
 # 0180. A wide bulldozer blade switched from the cab
 
 - Status: Proposed
-- Acceptance condition: owner decision pending (see #PRNUMBER)
+- Acceptance condition: owner decision pending (see #1188)
 - Date: 2026-10-29
 - Extends: [0006](0006-ram-damage-and-occupant-protection.md): ram box
 - Extends: [0050](0050-vehicle-kinds-and-per-kind-profiles.md): per-kind parameters

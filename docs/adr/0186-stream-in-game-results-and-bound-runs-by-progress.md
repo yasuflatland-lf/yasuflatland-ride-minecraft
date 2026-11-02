@@ -1,7 +1,7 @@
 # 0186. Stream in-game results and bound runs by progress
 
 - Status: Proposed
-- Acceptance condition: owner decision pending (see #PRNUMBER)
+- Acceptance condition: owner decision pending (see #1188)
 - Date: 2026-10-30
 - Extends: [0010](0010-testing-strategy.md)
 - Extends: [0054](0054-shard-in-game-tests-in-ci.md)

@@ -1,7 +1,7 @@
 # 0143. Place the camper in the SUV's space
 
 - Status: Proposed
-- Acceptance condition: owner decision pending (see #PRNUMBER)
+- Acceptance condition: owner decision pending (see #1188)
 - Date: 2026-10-24
 - Extends: [0067](0067-camper.md)
 - Extends: [0142](0142-place-the-bulldozer-in-the-suvs-space.md)

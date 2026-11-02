@@ -1,7 +1,7 @@
 # 0139. Show the driver's held tool on the cab monitor
 
 - Status: Proposed
-- Acceptance condition: owner decision pending (see #PRNUMBER)
+- Acceptance condition: owner decision pending (see #1188)
 - Date: 2026-10-24
 - Extends: [0009](0009-vehicle-model-conventions.md)
 - Extends: [0010](0010-testing-strategy.md)

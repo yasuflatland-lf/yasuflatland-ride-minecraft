@@ -1,7 +1,7 @@
 # 0190. A ribbed camper shell atlas and trim
 
 - Status: Proposed
-- Acceptance condition: owner decision pending (see #PRNUMBER)
+- Acceptance condition: owner decision pending (see #1188)
 - Date: 2026-10-30
 - Related: [0067](0067-camper.md)
 - Related: [0076](0076-per-kind-default-paint.md)

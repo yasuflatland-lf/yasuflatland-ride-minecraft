@@ -1,7 +1,7 @@
 # 0156. Resend the docked property after a failed send
 
 - Status: Proposed
-- Acceptance condition: owner decision pending (see #PRNUMBER)
+- Acceptance condition: owner decision pending (see #1188)
 - Date: 2026-10-26
 - Extends: [0127](0127-resend-every-synced-entity-value-after-a-failed-send.md): resend after a failed send
 

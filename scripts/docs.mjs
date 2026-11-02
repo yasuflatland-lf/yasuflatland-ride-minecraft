@@ -112,8 +112,9 @@ export function checkMetadata(adrs) {
           /^\d{4}-\d{2}-\d{2}$/.test(field.value) &&
           !Number.isNaN(Date.parse(field.value)) &&
           new Date(field.value).toISOString().slice(0, 10) === field.value;
-      if (field.name === "Acceptance condition" && status !== "Proposed")
-        valid = false;
+      if (field.name === "Acceptance condition")
+        valid =
+          valid && status === "Proposed" && !field.value.includes("PRNUMBER");
       if (field.name === "Decided in" || field.name === "Pull requests")
         valid =
           /^#[1-9]\d*(?:, #[1-9]\d*)*$/.test(field.value) &&

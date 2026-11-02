@@ -232,8 +232,13 @@ describe("ADR validation edge cases", () => {
     },
     {
       block:
-        "- Status: Proposed\n- Acceptance condition: owner decision pending (see #PRNUMBER)",
+        "- Status: Proposed\n- Acceptance condition: owner decision pending (see #1188)",
       errors: [],
+    },
+    {
+      block:
+        "- Status: Proposed\n- Acceptance condition: device checks pass (tracked in PRNUMBER)",
+      errors: [{ line: 4, message: "Invalid Acceptance condition value" }],
     },
   ])("checks status-specific metadata: $block", ({ block, errors }) => {
     expect(
