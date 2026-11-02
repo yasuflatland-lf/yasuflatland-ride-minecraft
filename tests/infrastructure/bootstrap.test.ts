@@ -9,6 +9,8 @@ import { installCamp } from "../../src/infrastructure/camp/install";
 import type { SwitchTarget } from "../../src/infrastructure/shared/switchRouter";
 import { installVehicles } from "../../src/infrastructure/vehicle/install";
 
+vi.mock("@minecraft/server-ui", () => ({ ActionFormData: vi.fn() }));
+
 const vehicleHost = () => ({ status: "unknown" as const });
 
 const game = vi.hoisted(() => {

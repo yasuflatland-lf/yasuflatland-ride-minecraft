@@ -158,3 +158,9 @@ yasu_build.message.height_size=大きさ: x %s、y %s、z %s
 
 item.yasu_ride:roof_tent_item.name=ルーフテント
 entity.yasu_ride:roof_tent.name=ルーフテント
+
+yasu_ride.message.roof_tent_menu=Roof tent
+yasu_ride.message.roof_tent_sleep=Sleep
+yasu_ride.message.roof_tent_exit=Get out
+yasu_ride.hint.roof_tent_sneak=Sneak to enter the low tent entrance
+yasu_ride.message.tent_occupied=Someone is inside the tent

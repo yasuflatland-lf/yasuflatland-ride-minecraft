@@ -197,3 +197,10 @@ export const TEST_ROOF_TENT_OCCUPANT_SEAT_EVENT = id(
 export const TEST_ROOF_TENT_DRIVER_SEAT_EVENT = id(
   "test_roof_tent_driver_seat",
 );
+
+export const ROOF_TENT_MENU_TITLE = "yasu_ride.message.roof_tent_menu";
+export const ROOF_TENT_MENU_BUTTONS = {
+  sleep: "yasu_ride.message.roof_tent_sleep",
+  exit: "yasu_ride.message.roof_tent_exit",
+} as const;
+export const ROOF_TENT_SNEAK_HINT = "yasu_ride.hint.roof_tent_sneak";

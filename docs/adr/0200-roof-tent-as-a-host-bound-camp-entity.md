@@ -57,6 +57,18 @@ cannot assume either vehicle's dimensions.
 - Roof tent paint follows the shared palette and dye behavior of 0135, with its
   own entity and assets.
 
+### Crawl mechanism
+
+Entry uses a sneak-through low entrance: a player within the roof tent interaction
+reach must sneak while interacting with the tent. The stable Script API cannot
+force a crawl pose; the entry use case opens the flap and moves the sneaking
+player into the interior. Interacting again as the occupant opens the sleeping
+bag menu with Sleep and Get out. Cancelling leaves the player inside. To leave
+by sneaking, first release the entry sneak and then sneak again; this release
+requirement prevents the entry gesture from immediately ejecting the player.
+Player leave, death and dimension-change events also invoke the exit use case.
+Outside placement uses only the occupant adapter's loaded-terrain search.
+
 ## Consequences
 
 Camp owns the roof tent lifecycle while vehicles supply only mount data and a
