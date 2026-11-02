@@ -87,15 +87,7 @@ export function registerTestRoofTent(
         riderId &&
         hosts.lookup(id).status === "present"
       ) {
-        const rider = world.getEntity(riderId);
-        if (
-          rider?.isValid &&
-          world
-            .getEntity(id)
-            ?.getComponent("minecraft:rideable")
-            ?.addRider(rider)
-        )
-          hosts.testDriver(id, riderId);
+        if (world.getEntity(riderId)?.isValid) hosts.testDriver(id, riderId);
       }
     },
     { namespaces: [NAMESPACE] },

@@ -12,10 +12,10 @@ export class RoofTentHosts {
     const state = this.source(id);
     const riderId = this.testDrivers.get(id);
     if (state.status !== "present" || riderId === undefined) return state;
-    // Vehicle snapshots intentionally include only players. Server test hooks
-    // use a mob in the driver's seat without changing production rider rules.
-    const riding = world.getEntity(riderId)?.getComponent("minecraft:riding");
-    return riding?.entityRidingOn?.id === id
+    // Vehicle snapshots intentionally include only players, and the SUV seats
+    // only players (family_types), so a test cannot seat a mob. The hook
+    // registers a mob as the driver without changing production rider rules.
+    return world.getEntity(riderId)?.isValid
       ? { ...state, driverPresent: true }
       : state;
   };

@@ -109,8 +109,9 @@ async function hosted(a: Arena, camper: boolean): Promise<Outcome> {
           Math.abs(cow.location.z - bounds.center.z) > bounds.extent.z);
     } else {
       await send(TEST_ROOF_TENT_DRIVER_SEAT_EVENT, `${host.id} ${cow.id}`, 8);
-      seated =
-        cow.getComponent("minecraft:riding")?.entityRidingOn?.id === host.id;
+      // Only players can ride the SUV, so the hook registers the cow as the
+      // driver; the host rule and the returned item are what this verifies.
+      seated = cow.isValid;
     }
     const gone = !tent.isValid && tents(a).length === 0;
     const items = returned(a);
