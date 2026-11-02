@@ -22,7 +22,7 @@
 ### Raknet fallback
 
 - Applies to: the dev BDS, while BDS still ships raknet.
-- Rule: `BDS_TRANSPORT=raknet pnpm server:up` starts the server on raknet and sets no `server-udp-ports` value. The raknet fallback and its UDP mapping are dropped once a stable BDS release removes raknet.
+- Rule: `BDS_TRANSPORT=raknet pnpm server:up` starts the server on raknet; `scripts/server-up.mjs` then passes an empty `BDS_UDP_PORTS`, so `SERVER_UDP_PORTS` is empty in `server/compose.yaml`.
 - Agreement: Accepted
 - Basis: [0015](../adr/0015-dev-server-docker-nethernet.md) Decision, "Keep raknet as a fallback while BDS still ships it: `BDS_TRANSPORT=raknet pnpm server:up`"
 - Implementation: `scripts/server-up.mjs`, `server/compose.yaml` (`ports`)
@@ -49,10 +49,10 @@
 ### Pack mounts and reload
 
 - Applies to: the dev BDS, when a pack changes.
-- Rule: The repository's `packs/yasu_ride_bp` and `packs/yasu_ride_rp` directories are mounted into the container, together with `packs/yasu_ride_test_bp`. A script-only change is applied with `/reload`; a change to an entity definition or to the Resource Pack needs a server restart.
+- Rule: `server/compose.yaml` mounts `packs/yasu_ride_bp`, `packs/yasu_ride_test_bp` and `packs/yasu_ride_rp` read-only into the container (plus `./data` as `/data`). Nothing in the scripts distinguishes script-only from entity or Resource Pack changes; the `/reload` versus restart guidance is only documentation in `AGENTS.md` (Bedrock gotchas).
 - Agreement: Accepted
 - Basis: [0015](../adr/0015-dev-server-docker-nethernet.md) Decision, "Carried over from 0011: mount the repository's Behavior Pack and Resource Pack directories into the container; apply script-only changes with `/reload` and restart the server for entity definition or Resource Pack changes"
-- Implementation: `server/compose.yaml` (`volumes`)
+- Implementation: `server/compose.yaml` (`volumes`), `AGENTS.md` (Bedrock gotchas)
 - Verification: Not verified: no test; no owner check is recorded.
 
 ### World data stays out of git
@@ -67,7 +67,7 @@
 ### Resource Pack version bump on change
 
 - Applies to: the committed Resource Pack manifest, at release time.
-- Rule: When the Resource Pack changes, its manifest version is bumped, because a device keeps a cached copy of a pack whose UUID and version it already holds. The release workflow fails when `packs/yasu_ride_rp` differs from the previous release tag but keeps the same version. `scripts/package.mjs` fails when the Behavior Pack's dependency version on the Resource Pack differs from the Resource Pack version.
+- Rule: `scripts/check-rp-version.mjs` (`checkResourcePackVersion`) fails when `packs/yasu_ride_rp` differs from the previous release tag but has the same version; `.github/workflows/release.yml` runs it on a `v*` tag push or a manual run, not on pull requests. `scripts/package.mjs` fails when the Behavior Pack's dependency version on the Resource Pack differs from the Resource Pack version, and also when the Resource Pack's dependency on the Behavior Pack differs from the Behavior Pack version.
 - Agreement: Accepted
 - Basis: [0015](../adr/0015-dev-server-docker-nethernet.md) Decision, "bump the Resource Pack manifest version when it changes, or devices keep their cached copy"
 - Implementation: `scripts/check-rp-version.mjs` (`checkResourcePackVersion`), `.github/workflows/release.yml`, `scripts/package.mjs`
@@ -96,7 +96,7 @@
 ### Restart through the script
 
 - Applies to: restarting the dev BDS after any pack change.
-- Rule: `pnpm server:restart` runs `docker compose -f server/compose.yaml down` and then the `pnpm server:up` flow. A restart done with `docker restart` or `docker compose restart` keeps the previous dev version and must not be used when the Resource Pack changed. The dev BDS is started with `pnpm server:up`, never with `docker compose up` alone.
+- Rule: `pnpm server:restart` runs `docker compose -f server/compose.yaml down` and then the `pnpm server:up` flow. A restart done with `docker restart` or `docker compose restart` keeps the previous dev version. `AGENTS.md` (Bedrock gotchas) documents restarting through `pnpm server:restart` and starting through `pnpm server:up` rather than `docker compose up` alone; the scripts do not enforce this guidance.
 - Agreement: Accepted
 - Basis: [0062](../adr/0062-fresh-dev-pack-version-on-every-start.md) Decision, "`pnpm server:restart` runs `docker compose -f server/compose.yaml down` and then the `pnpm server:up` flow."
 - Basis: [0062](../adr/0062-fresh-dev-pack-version-on-every-start.md) Decision, "Restarts go through it, not `docker restart`, so the version goes up"
@@ -116,17 +116,19 @@
 ### Realm compatibility
 
 - Applies to: any change to the Behavior Pack's script dependencies or to the commands the scripts run.
-- Rule: A Realm is treated as a supported play environment beside the home LAN BDS, with every rule of 0001 kept (stable APIs only, no experiments). The scripts do not depend on a module or command that a Realm lacks; a change that needs one adds an ADR that says how Realms are affected.
+- Rule: `packs/yasu_ride_bp/manifest.json` depends on the script modules `@minecraft/server` and `@minecraft/server-ui`; no file under `src`, `tests` or `scripts` imports `@minecraft/server-admin` or `@minecraft/server-net`; no automated check enforces this and no ADR-on-change step is enforced. `README.md` names a Realm as a target setup.
 - Agreement: Proposed
 - Basis: [0179](../adr/0179-support-realms-as-a-second-play-environment.md) Decision, "Do not add a dependency on a module or a command that a Realm lacks."
 - Basis: [0179](../adr/0179-support-realms-as-a-second-play-environment.md) Decision, "Treat a Realm as a supported play environment beside the home LAN BDS."
-- Implementation: Not implemented as a check; `packs/yasu_ride_bp/manifest.json` (`dependencies`) lists the script modules.
+- Implementation: `packs/yasu_ride_bp/manifest.json` (`dependencies`), `src/`, `tests/`, `scripts/`, `README.md`; no automated check or ADR-on-change step.
 - Verification: Not verified: no automated check rejects an import of `@minecraft/server-admin` or `@minecraft/server-net`, and no Realm run is recorded.
 
 ## Open issues
 
-- 0179 Context says "The Behavior Pack's only script dependency is the stable `@minecraft/server`", but `packs/yasu_ride_bp/manifest.json` also depends on `@minecraft/server-ui`: 0179 vs `packs/yasu_ride_bp/manifest.json`.
-- 0179 is Proposed and its acceptance condition (a manual Realm pass recorded in the ADR) is open, while the README names a Realm as a target setup beside the home LAN BDS: 0179 vs `README.md`.
-- 0015 says `pnpm server:up` sets `server-udp-ports`, but the CI in-game job runs `docker compose up` directly after `scripts/setup-dev-world.mjs`, so `BDS_UDP_PORTS` is unset and the server runs NetherNet with no advertised address (0015 also says the in-game tests do not depend on the transport): 0015 Decision vs `.github/workflows/integration-test.yml`.
-- 0015 and AGENTS.md require a Resource Pack version bump whenever the pack changes, but the only automated check compares against the previous release tag at release time and does not run on pull requests: 0015 Decision vs `.github/workflows/release.yml`.
-- 0015 says to mount the Behavior Pack and Resource Pack directories, and `server/compose.yaml` also mounts `packs/yasu_ride_test_bp` (0062 mentions the test pack only as served as committed): 0015 Decision vs `server/compose.yaml`.
+- ADR 0179 says "The Behavior Pack's only script dependency is the stable `@minecraft/server`"; the implementation also depends on `@minecraft/server-ui` (`packs/yasu_ride_bp/manifest.json`); the ADR needs an edit or a superseding ADR.
+- ADR 0179 says it is Proposed with acceptance pending a manual Realm pass recorded in the ADR; the implementation names a Realm as a target setup beside the home LAN BDS (`README.md`); the ADR needs an edit or a superseding ADR.
+- ADR 0015 says `pnpm server:up` sets `server-udp-ports`; the implementation runs `docker compose up` after `scripts/setup-dev-world.mjs` in CI, which `AGENTS.md` (Bedrock gotchas) says not to do alone, leaving `BDS_UDP_PORTS` unset and NetherNet with no advertised address (`.github/workflows/integration-test.yml`); the ADR needs an edit or a superseding ADR. ADR 0015 also says the in-game tests do not depend on the transport.
+- ADR 0015 says to bump the Resource Pack manifest version whenever the pack changes, as does `AGENTS.md`; the implementation checks against the previous release tag on a `v*` tag push or a manual release run, not on pull requests (`scripts/check-rp-version.mjs`, `.github/workflows/release.yml`); the ADR needs an edit or a superseding ADR.
+- ADR 0015 says to mount the Behavior Pack and Resource Pack directories; the implementation also mounts `packs/yasu_ride_test_bp` (`server/compose.yaml`); the ADR needs an edit or a superseding ADR. ADR 0062 mentions the test pack only as served as committed.
+- ADR 0015 says the raknet fallback and its UDP mapping are dropped once a stable BDS release removes raknet; the implementation has no removal step or check (`scripts/server-up.mjs`, `server/compose.yaml` publishes UDP 19132 always); the ADR needs an edit or a superseding ADR.
+- ADR 0179 says a change that needs a module or command a Realm lacks adds an ADR and that no such dependency is added; the implementation enforces neither (no check; `packs/yasu_ride_bp/manifest.json`); the ADR needs an edit or a superseding ADR, or a check.
