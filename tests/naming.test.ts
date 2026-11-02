@@ -40,7 +40,7 @@ it("limits the former namespace to historical documents and citations", () => {
     const content = readFileSync(path);
     if (content.includes(0)) continue;
     const lines = content.toString("utf8").split("\n");
-    let section;
+    let section: string | undefined;
     for (const [index, line] of lines.entries()) {
       if (line.startsWith("## ")) section = line.slice(3);
       // Specs preserve ADR quotations and record obsolete IDs as discrepancies.
