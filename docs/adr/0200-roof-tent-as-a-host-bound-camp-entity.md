@@ -45,8 +45,8 @@ cannot assume either vehicle's dimensions.
 - Removal first ejects an occupant to safe ground beside the vehicle, never onto
   the roof or into the vehicle. Removing the roof tent clears its sleeper's spawn
   point through `BedWorld.clearSpawnPoint`, so a later respawn cannot target a
-  vanished roof shelter. That port operation and engine integration arrive with
-  the roof tent sleep lifecycle.
+  vanished roof shelter. The roof tent sleep lifecycle uses that port operation and clears only a
+  matching spawn point, preserving a later spawn elsewhere.
 - One immutable occupancy value tracks a single player. Entry fails while occupied;
   leaving by another player has no effect. Three hits within 100 ticks fold the
   tent. Host checks run every 4 ticks, faster than ordinary hosted gear checks.
@@ -96,7 +96,8 @@ than a kind-specific camp branch. Unknown host state preserves saved shelters
 across unloaded chunks, but removal waits until presence is known.
 
 The domain rules can be tested without Bedrock. Entity assets, application actions,
-occupant ejection, spawn clearing, paint, and PC/mobile acceptance require later
-integration work. The ADR remains Proposed until the roof tent manual checks pass
+occupant ejection, spawn clearing, and paint have automated coverage. The fused
+`roof_tent_course` checks engine behavior; its BDS run and PC/mobile acceptance
+remain unverified. The ADR remains Proposed until the roof tent manual checks pass
 on both input types. Revisit the host port if another feature needs state beyond
 this snapshot; do not pass live vehicle objects across the boundary.

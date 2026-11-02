@@ -19,6 +19,15 @@ export interface ScenarioSpec {
 
 export const CATALOG: readonly ScenarioSpec[] = [
   {
+    name: "roof_tent_course",
+    file: "roofTent",
+    ticks: 80, // Estimate until the first BDS run.
+    features: ["camp", "vehicle:suv", "vehicle:camper"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 1,
+  },
+  {
     name: "build_block_states",
     file: "buildTools",
     ticks: 0,
