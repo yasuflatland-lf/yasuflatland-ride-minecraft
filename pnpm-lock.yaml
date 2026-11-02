@@ -176,13 +176,13 @@ importers:
         version: 2.6.4
       '@minecraft/server':
         specifier: 2.11.0
-        version: 2.11.0(@minecraft/common@1.3.0)(@minecraft/vanilla-data@1.26.52)
+        version: 2.11.0(@minecraft/common@1.3.0)(@minecraft/vanilla-data@1.26.60)
       '@minecraft/server-ui':
         specifier: 2.3.0
-        version: 2.3.0(@minecraft/common@1.3.0)(@minecraft/server@2.11.0(@minecraft/common@1.3.0)(@minecraft/vanilla-data@1.26.52))
+        version: 2.3.0(@minecraft/common@1.3.0)(@minecraft/server@2.11.0(@minecraft/common@1.3.0)(@minecraft/vanilla-data@1.26.60))
       '@minecraft/vanilla-data':
-        specifier: 1.26.52
-        version: 1.26.52
+        specifier: 1.26.60
+        version: 1.26.60
       '@stryker-mutator/core':
         specifier: 10.0.0
         version: 10.0.0(@types/node@24.19.2)
@@ -824,8 +824,8 @@ packages:
       '@minecraft/common': ^1.2.0
       '@minecraft/vanilla-data': '>=1.20.70'
 
-  '@minecraft/vanilla-data@1.26.52':
-    resolution: {integrity: sha512-zXrOu1w0sngWMLUCHaj7BQ0gA5uUxMPy5UZcxZCk9ND4tXprQYm48MXoFwqj4O7oXJXi2OzxldLkKIt9wrlh9g==}
+  '@minecraft/vanilla-data@1.26.60':
+    resolution: {integrity: sha512-6ARh4/fbNRA4XRRrMO3ys0ldO208ipcpyLAf4tpc3KXw/E6EUeaFKuFqJ2ESMQ6sSUUIfK1dNXm9MtFdWj9BPg==}
 
   '@napi-rs/wasm-runtime@1.2.5':
     resolution: {integrity: sha512-HshSvXzmBxNzqejd3k/KemgQ3hdREUYFRRrgxOZ+gPljDIsO2SDZrVZMd4Z/HsxudQbE62OVyVFE8z9BCurfjA==}
@@ -2840,17 +2840,17 @@ snapshots:
 
   '@minecraft/common@1.3.0': {}
 
-  '@minecraft/server-ui@2.3.0(@minecraft/common@1.3.0)(@minecraft/server@2.11.0(@minecraft/common@1.3.0)(@minecraft/vanilla-data@1.26.52))':
+  '@minecraft/server-ui@2.3.0(@minecraft/common@1.3.0)(@minecraft/server@2.11.0(@minecraft/common@1.3.0)(@minecraft/vanilla-data@1.26.60))':
     dependencies:
       '@minecraft/common': 1.3.0
-      '@minecraft/server': 2.11.0(@minecraft/common@1.3.0)(@minecraft/vanilla-data@1.26.52)
+      '@minecraft/server': 2.11.0(@minecraft/common@1.3.0)(@minecraft/vanilla-data@1.26.60)
 
-  '@minecraft/server@2.11.0(@minecraft/common@1.3.0)(@minecraft/vanilla-data@1.26.52)':
+  '@minecraft/server@2.11.0(@minecraft/common@1.3.0)(@minecraft/vanilla-data@1.26.60)':
     dependencies:
       '@minecraft/common': 1.3.0
-      '@minecraft/vanilla-data': 1.26.52
+      '@minecraft/vanilla-data': 1.26.60
 
-  '@minecraft/vanilla-data@1.26.52': {}
+  '@minecraft/vanilla-data@1.26.60': {}
 
   '@napi-rs/wasm-runtime@1.2.5(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)':
     dependencies:
