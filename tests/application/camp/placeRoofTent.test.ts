@@ -78,6 +78,25 @@ describe("PlaceRoofTent", () => {
     }
   });
 
+  it("refuses a driven or moving host and keeps the item", () => {
+    fc.assert(
+      fc.property(fc.boolean(), fc.boolean(), (driverPresent, moving) => {
+        const world = new FakeRoofTentWorld();
+        const placed = new PlaceRoofTent(world, () => ({
+          ...PRESENT,
+          driverPresent,
+          moving,
+        })).execute(cmd);
+        expect(placed).toBe(!driverPresent && !moving);
+        if (driverPresent || moving) {
+          expect(world.showMessage).toHaveBeenCalledWith(PLAYER, "host_in_use");
+          expect(world.consumeItem).not.toHaveBeenCalled();
+          expect(world.spawn).not.toHaveBeenCalled();
+        }
+      }),
+    );
+  });
+
   it("surveys ground and places at its cell top with snapped facing", () => {
     fc.assert(
       fc.property(

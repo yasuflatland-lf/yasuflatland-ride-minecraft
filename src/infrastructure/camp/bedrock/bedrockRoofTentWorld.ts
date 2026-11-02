@@ -158,6 +158,7 @@ export class BedrockRoofTentWorld implements RoofTentWorld {
     const refusals: Readonly<Record<string, string>> = {
       blocked: PITCH_REFUSAL_MESSAGE.blocked,
       roof_taken: PITCH_REFUSAL_MESSAGE.blocked,
+      host_in_use: PITCH_REFUSAL_MESSAGE.blocked,
       unsupported_vehicle: PITCH_REFUSAL_MESSAGE.vehicle,
     };
     playerById(id)?.onScreenDisplay.setActionBar(
