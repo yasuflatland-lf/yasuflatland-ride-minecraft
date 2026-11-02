@@ -9,25 +9,24 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import fc from "fast-check";
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 
-const run = <T>(setup: string, result: string): T =>
+import { startPythonWorker } from "../support/pythonWorker";
+
+const python = startPythonWorker();
+afterAll(() => python.close());
+
+const run = async <T>(setup: string, result: string): Promise<T> =>
   JSON.parse(
-    execFileSync(
-      "python3",
+    await python.run(
       [
-        "-I",
-        "-c",
-        [
-          "import json, sys",
-          "sys.path.insert(0, 'tools')",
-          "from tool_loader import load_tool",
-          "module = load_tool('camper_atlas')",
-          setup,
-          `print(json.dumps(${result}))`,
-        ].join("\n"),
-      ],
-      { encoding: "utf8" },
+        "import json, sys",
+        "sys.path.insert(0, 'tools')",
+        "from tool_loader import load_tool",
+        "module = load_tool('camper_atlas')",
+        setup,
+        `print(json.dumps(${result}))`,
+      ].join("\n"),
     ),
   );
 
@@ -108,9 +107,9 @@ describe("camper atlas", () => {
     }
   }, 120_000);
 
-  it("preserves the one-row swatches without any regions", () => {
+  it("preserves the one-row swatches without any regions", async () => {
     expect(
-      run(
+      await run(
         "atlas = module.Atlas(['white', 'glass'])",
         "[atlas.width, atlas.height, atlas.face('glass'), [atlas.pixel({'white': [1, 2, 3, 255], 'glass': [4, 5, 6, 110]}, x, 0) for x in range(atlas.width)]]",
       ),
@@ -125,9 +124,9 @@ describe("camper atlas", () => {
     ]);
   });
 
-  it("allocates bounded regions without overlaps or moving earlier UVs", () => {
-    fc.assert(
-      fc.property(
+  it("allocates bounded regions without overlaps or moving earlier UVs", async () => {
+    await fc.assert(
+      fc.asyncProperty(
         fc.integer({ min: 1, max: 40 }),
         fc.array(
           fc.tuple(
@@ -136,8 +135,8 @@ describe("camper atlas", () => {
           ),
           { minLength: 1, maxLength: 15 },
         ),
-        (swatches, sizes) => {
-          const [width, height, regions, history, swatchFaces] = run<
+        async (swatches, sizes) => {
+          const [width, height, regions, history, swatchFaces] = await run<
             [number, number, Region[], Region[][], Face[]]
           >(
             [
@@ -176,9 +175,9 @@ describe("camper atlas", () => {
     );
   }, 60_000);
 
-  it("maps region subrectangles to texels relative to the region origin", () => {
-    fc.assert(
-      fc.property(
+  it("maps region subrectangles to texels relative to the region origin", async () => {
+    await fc.assert(
+      fc.asyncProperty(
         fc.tuple(
           fc.integer({ min: 0, max: 30 }),
           fc.integer({ min: 0, max: 30 }),
@@ -186,9 +185,9 @@ describe("camper atlas", () => {
           fc.integer({ min: 1, max: 30 }),
           fc.integer({ min: 1, max: 30 }),
         ),
-        ([dx, dy, w, h, previousHeight]) => {
+        async ([dx, dy, w, h, previousHeight]) => {
           expect(
-            run(
+            await run(
               `atlas = module.Atlas(['white'])\natlas.allocate('first', 2, ${previousHeight})\nregion = atlas.allocate('panel', ${dx + w}, ${dy + h})`,
               `[atlas.face(region, (${dx}, ${dy}), (${w}, ${h})), atlas.face(region, (${dx}, ${dy}))]`,
             ),
@@ -202,9 +201,9 @@ describe("camper atlas", () => {
     );
   }, 60_000);
 
-  it("samples regions in local coordinates and leaves unused space transparent", () => {
+  it("samples regions in local coordinates and leaves unused space transparent", async () => {
     expect(
-      run(
+      await run(
         [
           "atlas = module.Atlas(['white', 'glass'])",
           "atlas.allocate('panel', 3, 2)",
@@ -238,9 +237,9 @@ describe("camper atlas", () => {
     ]);
   });
 
-  it("rejects invalid allocations and faces without changing the atlas", () => {
+  it("rejects invalid allocations and faces without changing the atlas", async () => {
     expect(
-      run(
+      await run(
         [
           "atlas = module.Atlas(['white'])",
           "region = atlas.allocate('panel', 4, 3)",
@@ -254,9 +253,9 @@ describe("camper atlas", () => {
     ).toEqual([7, 4, 4, [["panel", 0, 1, 4, 3]]]);
   });
 
-  it("passes region faces through boxes and excludes them from swatch extraction", () => {
+  it("passes region faces through boxes and excludes them from swatch extraction", async () => {
     expect(
-      run(
+      await run(
         [
           "import contextlib, io, runpy",
           "sys.argv = ['tools/gen_camper.py', 'packs/yasu_ride_rp', '--check']",

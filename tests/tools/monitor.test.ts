@@ -3,7 +3,11 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import fc from "fast-check";
-import { expect, it } from "vitest";
+import { afterAll, expect, it } from "vitest";
+import { startPythonWorker } from "../support/pythonWorker";
+
+const python = startPythonWorker();
+afterAll(() => python.close());
 
 const setup = [
   "import json, sys, tempfile",
@@ -13,31 +17,28 @@ const setup = [
   "import monitor as m",
   "layout = m.MonitorLayout(cell_size=(48, 32), label_width=25, face='down', plate_origin=(-2, 0, -1), plate_pivot=(0, 0, 0), plate_rotation=(0, 0, 0), plate_size=(4, 0.02, 2), viewer_point=(0, -10, 0), uv_flip=(True, True), background=(52, 92, 112, 255), foreground=(200, 236, 248, 0), icon_at=(2, 8), label_at=(21, 12), visible_bounds_width=7, visible_bounds_height=5, visible_bounds_offset=(0, 1.5, 0))",
 ];
-const python = (code: string[], input?: unknown) =>
+const run = async (code: string[], input?: unknown) =>
   JSON.parse(
-    execFileSync("python3", ["-I", "-c", [...setup, ...code].join("\n")], {
-      input: JSON.stringify(input),
-      encoding: "utf8",
-    }),
+    await python.run([...setup, ...code].join("\n"), JSON.stringify(input)),
   );
 
-it("keeps cell UVs disjoint and inside the atlas for either UV direction", () => {
-  fc.assert(
-    fc.property(
+it("keeps cell UVs disjoint and inside the atlas for either UV direction", async () => {
+  await fc.assert(
+    fc.asyncProperty(
       fc.integer({ min: 1, max: 128 }),
       fc.integer({ min: 1, max: 128 }),
       fc.integer({ min: 1, max: 20 }),
       fc.boolean(),
       fc.boolean(),
-      (width, height, count, flipU, flipV) => {
-        const cells = python(
+      async (width, height, count, flipU, flipV) => {
+        const cells = (await run(
           [
             "w, h, count, u, v = json.load(sys.stdin)",
             "layout = replace(layout, cell_size=(w, h), uv_flip=(u, v))",
             "print(json.dumps([m.monitor_uv(k, layout)['down'] for k in range(count)]))",
           ],
           [width, height, count, flipU, flipV],
-        ) as { uv: [number, number]; uv_size: [number, number] }[];
+        )) as { uv: [number, number]; uv_size: [number, number] }[];
         const rectangles = cells.map(({ uv, uv_size }) => ({
           left: Math.min(uv[0], uv[0] + uv_size[0]),
           right: Math.max(uv[0], uv[0] + uv_size[0]),
@@ -67,8 +68,8 @@ it("keeps cell UVs disjoint and inside the atlas for either UV direction", () =>
   );
 });
 
-it("writes one bone per screen row through the shared entry point", () => {
-  const result = python([
+it("writes one bone per screen row through the shared entry point", async () => {
+  const result = (await run([
     "rows = json.loads(Path('tools/monitor_screens.json').read_text())",
     "result = []",
     "with tempfile.TemporaryDirectory() as output:",
@@ -78,7 +79,7 @@ it("writes one bone per screen row through the shared entry point", () => {
     "        geo = json.loads((Path(output) / f'models/entity/yasu_ride/{kind}_monitor.geo.json').read_text())",
     "        result.append(dict(kind=kind, expected=[f\"screen_{s['item']}_{s['state']}\" for s in screens], actual=[b['name'] for b in geo['minecraft:geometry'][0]['bones']]))",
     "print(json.dumps(result))",
-  ]) as { kind: string; expected: string[]; actual: string[] }[];
+  ])) as { kind: string; expected: string[]; actual: string[] }[];
   for (const { expected, actual } of result) expect(actual).toEqual(expected);
   const bulldozer = result.find(({ kind }) => kind === "bulldozer");
   expect(bulldozer?.actual).toHaveLength(6);
@@ -88,9 +89,9 @@ it("writes one bone per screen row through the shared entry point", () => {
   ]);
 });
 
-it("checks the supplied viewer point without requiring a seat bone", () => {
+it("checks the supplied viewer point without requiring a seat bone", async () => {
   expect(
-    python([
+    await run([
       "m.check_monitor_faces_viewer(layout)",
       "try:",
       "    m.check_monitor_faces_viewer(replace(layout, viewer_point=(0, 10, 0)))",

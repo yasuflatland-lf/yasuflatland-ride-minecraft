@@ -1,30 +1,27 @@
-import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import fc from "fast-check";
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 import { DOOR_BY_SEAT } from "../../src/domain/vehicle/kinds/suv/entity";
 import { SUV_PROFILE } from "../../src/domain/vehicle/kinds/suv/profile";
 import { SUV_SPEC } from "../../src/domain/vehicle/kinds/suv/spec";
 import { turnedCorners } from "../support/geometry";
+import { startPythonWorker } from "../support/pythonWorker";
 import { assertOneAxis, multipleAxes } from "./oneAxis";
+
+const python = startPythonWorker();
+afterAll(() => python.close());
 
 type Vec3 = [number, number, number];
 
 const dimensions = JSON.parse(
-  execFileSync(
-    "python3",
+  await python.run(
     [
-      "-I",
-      "-c",
-      [
-        "import json, sys",
-        "sys.path.insert(0, 'tools')",
-        "from tool_loader import load_tool",
-        "d = load_tool('suv_dims')",
-        "print(json.dumps({k: v for k, v in vars(d).items() if k.isupper() and isinstance(v, (int, float))}))",
-      ].join("\n"),
-    ],
-    { encoding: "utf8" },
+      "import json, sys",
+      "sys.path.insert(0, 'tools')",
+      "from tool_loader import load_tool",
+      "d = load_tool('suv_dims')",
+      "print(json.dumps({k: v for k, v in vars(d).items() if k.isupper() and isinstance(v, (int, float))}))",
+    ].join("\n"),
   ),
 ) as {
   SIZE_SCALE: number;
