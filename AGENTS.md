@@ -16,6 +16,8 @@ Node and pnpm are pinned in `mise.toml`; run `mise install` first.
 pnpm install --frozen-lockfile
 pnpm lint          # Biome format + lint check (CI runs `biome ci`)
 pnpm lint:fix      # apply Biome fixes
+pnpm docs          # regenerate the ADR index
+pnpm lint:docs     # check ADR metadata, the generated index, and doc links
 pnpm lint:lang     # fail on Japanese/CJK text in tracked and unignored files
 pnpm lint:unused   # knip: fail on unused files, exports, and dependencies
 pnpm lint:deps     # dependency-cruiser: fail on imports that break the layer, feature, or kind rules
@@ -40,7 +42,7 @@ pnpm test:game     # run impacted scenarios on the running dev BDS in 4 lanes lo
 # GAME_TEST_AT=<0..7> runs inside one lane, for converting scenarios (defaults to serial).
 ```
 
-Before you say a change is done, run `pnpm lint`, `pnpm lint:lang`, `pnpm lint:unused`, `pnpm lint:deps`, `pnpm typecheck`, and `pnpm test`. When you change `src/infrastructure`, `src/test-pack`, or the packs, also run `pnpm build`, restart the dev BDS, and run `pnpm test:game` if Docker is available. CI runs the lint, unused code, test, build, and package checks on every pull request ([unit-test.yml](.github/workflows/unit-test.yml), which also uploads coverage to Codecov) and runs the in-game tests against a BDS container ([integration-test.yml](.github/workflows/integration-test.yml)).
+Before you say a change is done, run `pnpm lint`, `pnpm lint:lang`, `pnpm lint:docs`, `pnpm lint:unused`, `pnpm lint:deps`, `pnpm typecheck`, and `pnpm test`. When you change `src/infrastructure`, `src/test-pack`, or the packs, also run `pnpm build`, restart the dev BDS, and run `pnpm test:game` if Docker is available. CI runs the lint, unused code, test, build, and package checks on every pull request ([unit-test.yml](.github/workflows/unit-test.yml), which also uploads coverage to Codecov) and runs the in-game tests against a BDS container ([integration-test.yml](.github/workflows/integration-test.yml)).
 
 Adding an in-game scenario requires a `CATALOG` entry in `src/test-pack/catalog.ts` (name, file, declared ticks, tags, isolation, vehicles) and an entry in `src/test-pack/scenarios/index.ts`.
 
@@ -75,7 +77,7 @@ Design decisions live in [docs/adr](docs/adr/README.md). Read the ADRs that rela
 
 ## Changing a decision
 
-- When a change goes against an Accepted ADR, or makes a design choice that is not recorded yet, add a new ADR. Follow "Writing a new ADR" in [docs/adr/README.md](docs/adr/README.md).
+- When a change goes against an Accepted ADR, or makes a design choice that is not recorded yet, add a new ADR. Follow "Writing a new ADR" in [docs/adr/README.md](docs/adr/README.md) and run `pnpm docs` to regenerate the index.
 - Do not rewrite the Decision of an Accepted ADR. Supersede it with a new ADR instead. Fixing typos and adding links is fine.
 
 ## Bedrock gotchas

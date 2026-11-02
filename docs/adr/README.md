@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-This directory records design decisions and the reasons behind them. The format follows Michael Nygard's ADRs (Context, Decision, Consequences). To reverse a decision, do not rewrite the original ADR: add a new ADR and set the original's status to "Superseded by NNNN". When a new ADR adds to an earlier decision without reversing it, set the earlier ADR's status to "Extended by NNNN".
+This directory records design decisions and the reasons behind them, using Michael Nygard's Context, Decision, and Consequences sections. Structured metadata records agreement and outgoing relations; the index derives inverse relations. Status states agreement only. To replace or extend a decision, add an outgoing relation on the newer ADR and keep the original Decision unchanged. Never edit the index by hand; run `pnpm docs`.
 
 <!-- biome-ignore format: Generated ADR index uses unpadded columns. -->
 <!-- adr-index:start -->
@@ -15,7 +15,7 @@ This directory records design decisions and the reasons behind them. The format 
 | [0007](0007-seats-and-driver.md) | Seats and choosing the driver | Accepted; superseded by [0019](0019-passengers-move-up-to-the-driver-seat.md) |
 | [0008](0008-vehicle-item-and-breaking.md) | Placing and picking up vehicles | Accepted; superseded in part by [0036](0036-paint-by-hitting-with-a-dye.md); extended by [0122](0122-a-low-chair-to-sit-on-outside-the-vehicles.md) |
 | [0009](0009-vehicle-model-conventions.md) | Vehicle model conventions, and accepting a square collision box | Accepted; superseded in part by [0167](0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md), [0170](0170-measure-suv-side-view-proportions.md); extended by [0040](0040-submarine.md), [0043](0043-wheel-arms.md), [0091](0091-alpha-blend-only-the-camper-glass.md), [0093](0093-decorate-the-parked-camper.md), [0130](0130-a-tent-entity-whose-hits-land-on-its-blocks.md), [0136](0136-bulldozer.md), [0139](0139-show-the-held-tool-on-the-cab-monitor.md), [0166](0166-tilted-two-axis-sports-boat-helm-assemblies.md), [0170](0170-measure-suv-side-view-proportions.md), [0192](0192-suv-detailed-body.md) |
-| [0010](0010-testing-strategy.md) | Testing strategy | Accepted; extended by [0139](0139-show-the-held-tool-on-the-cab-monitor.md), [0186](0186-stream-in-game-results-and-bound-runs-by-progress.md), [0188](0188-fuse-in-game-scenarios-and-keep-only-engine-facts-in-game.md) |
+| [0010](0010-testing-strategy.md) | Testing strategy | Accepted; extended by [0139](0139-show-the-held-tool-on-the-cab-monitor.md), [0186](0186-stream-in-game-results-and-bound-runs-by-progress.md), [0188](0188-fuse-in-game-scenarios-and-keep-only-engine-facts-in-game.md), [0205](0205-structured-adr-metadata-and-current-specs.md) |
 | [0011](0011-dev-server-docker-raknet.md) | Run the development server as BDS in Docker with raknet | Accepted; superseded by [0015](0015-dev-server-docker-nethernet.md) |
 | [0012](0012-ddd-layered-architecture.md) | Split the code into domain, application, and infrastructure layers | Accepted; extended by [0065](0065-check-import-rules-with-dependency-cruiser.md) |
 | [0013](0013-dependency-updates-with-renovate.md) | Keep dependencies up to date with Renovate | Accepted |
@@ -208,16 +208,31 @@ This directory records design decisions and the reasons behind them. The format 
 | [0202](0202-build-wand-copy-and-continuous-paste.md) | Build Wand Copy and continuous Paste | Accepted; superseded in part by [0203](0203-build-wand-paste-aiming.md) |
 | [0203](0203-build-wand-paste-aiming.md) | Build Wand paste aiming | Proposed |
 | [0204](0204-shard-unit-tests-across-ci-jobs.md) | Shard unit tests across CI jobs | Accepted |
+| [0205](0205-structured-adr-metadata-and-current-specs.md) | Structured ADR metadata and current specs | Proposed |
 <!-- adr-index:end -->
 
-The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spike-driving-core.md).
+The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spikes/driving-core.md).
 
 ## Writing a new ADR
 
-1. Copy the structure of an existing ADR into `NNNN-short-kebab-title.md`, using the next free number
-2. Fill in `Status` (`Proposed` or `Accepted`) and `Date` (YYYY-MM-DD), then the three sections:
+1. Copy the structure of an existing ADR into `NNNN-short-kebab-title.md`, using the next free number and a title of `# NNNN. Title`.
+2. Fill in the metadata in the order below, omitting optional fields with no entries, then write the three sections:
    - **Context**: the forces at play and what was tried, including measured numbers
    - **Decision**: what we will do, as concrete rules with their values
    - **Consequences**: what follows, including the downsides we accept and the conditions under which to revisit the decision
-3. Add a row to the table above
-4. Write in English. Refer to other ADRs by their four-digit number, for example "(0006)"
+3. Run `pnpm docs`. Never edit the generated index by hand. Run `pnpm lint:docs` to check the metadata, index, and relative document links.
+4. Write in English. Refer to other ADRs by their four-digit number, for example "(0006)".
+
+Metadata fields and rules, in field order:
+
+1. `Status: Proposed`, `Status: Accepted`, or `Status: Rejected`: exactly one agreement state. Never put relations, "Superseded", "Extended", or parentheses here.
+2. `Acceptance condition: <text>`: optional, only with `Proposed`; records the condition for acceptance.
+3. `Decided in: #<number>[, #<number>]`: optional, only with `Accepted` or `Rejected`. Part 2/4 of the documentation work fills this field; for now, add it only where the ADR already names the PR or issue that decided it.
+4. `Date: YYYY-MM-DD`: required; keep an existing ADR's date unchanged.
+5. `Supersedes: [NNNN](file.md)`: the whole older ADR no longer applies. Use one line per target.
+6. `Supersedes in part: [NNNN](file.md): <scope>`: use one line per target, with a required short scope naming the replaced rule or section.
+7. `Extends: [NNNN](file.md)[: <scope>]`: adds to an older ADR without replacing its rules. Use one line per target.
+8. `Related: [NNNN](file.md)[: <scope>]`: a non-normative link, one line per target. Put any scope after `: `, rather than in parentheses.
+9. `Pull requests: #N, #N`: optional; retain existing lists.
+10. Write only outgoing relations, always on the newer ADR. Never store `Superseded by`, `Superseded in part by`, `Extended by`, `Amended by`, or `Amended in part by`; the index derives inverse relations. Do not repeat a target with the same relation kind or combine `Supersedes` with another kind for that target.
+11. Targets of `Supersedes`, `Supersedes in part`, and `Extends` must have lower numbers than the ADR that names them. `Related` may point either way. Every target link must use the target's actual filename.
