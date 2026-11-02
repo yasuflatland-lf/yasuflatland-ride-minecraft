@@ -710,7 +710,7 @@ describe("roof tent asset contract", () => {
             if (index === 0) {
               const shade = slot === 0 ? 1 : 136 / 176;
               expect([...pixel]).toEqual([
-                ...[92, 102, 60].map((channel) => Math.round(channel * shade)),
+                ...[86, 94, 64].map((channel) => Math.round(channel * shade)),
                 255,
               ]);
             } else {

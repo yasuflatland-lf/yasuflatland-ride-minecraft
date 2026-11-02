@@ -1,6 +1,7 @@
 import { hostVerdict } from "../../domain/camp/roofTent/hostRule";
 import {
   planRoofTent,
+  type RoofTentRefusal,
   type RoofTentTarget,
 } from "../../domain/camp/roofTent/placement";
 import { ROOF_TENT_SPEC } from "../../domain/camp/spec";
@@ -33,23 +34,40 @@ export class PlaceRoofTent {
     private readonly vehicleHost: VehicleHostLookup,
   ) {}
 
+  refusalFor(entityId: string): RoofTentRefusal | undefined {
+    const vehicle = this.vehicleTarget(entityId);
+    if (!vehicle) return undefined;
+    const plan = planRoofTent({
+      target: vehicle.target,
+      yaw: vehicle.host.yaw,
+    });
+    return typeof plan === "string" ? plan : undefined;
+  }
+
+  private vehicleTarget(id: string) {
+    const host = this.vehicleHost(id);
+    if (host.status !== "present") return undefined;
+    const target: RoofTentTarget = {
+      type: "vehicle",
+      id,
+      mount: host.mount,
+      hostInUse: hostVerdict({ ...host, presence: host.status }) === "remove",
+      roofTaken: this.world.loaded().some((tentId) => {
+        const other = this.world.hostOf(tentId);
+        return other.kind === "vehicle" && other.id === id;
+      }),
+    };
+    return { host, target };
+  }
+
   execute(cmd: PlaceRoofTentCommand): boolean {
     let target: RoofTentTarget;
     let at: { dimensionId: DimensionId; location: Vec3; yaw: number };
     if ("entityId" in cmd.target) {
-      const id = cmd.target.entityId;
-      const host = this.vehicleHost(id);
-      if (host.status !== "present") return false;
-      target = {
-        type: "vehicle",
-        id,
-        mount: host.mount,
-        hostInUse: hostVerdict({ ...host, presence: host.status }) === "remove",
-        roofTaken: this.world.loaded().some((tentId) => {
-          const other = this.world.hostOf(tentId);
-          return other.kind === "vehicle" && other.id === id;
-        }),
-      };
+      const vehicle = this.vehicleTarget(cmd.target.entityId);
+      if (!vehicle) return false;
+      const { host } = vehicle;
+      target = vehicle.target;
       at = {
         dimensionId: host.dimensionId,
         location: host.mount
