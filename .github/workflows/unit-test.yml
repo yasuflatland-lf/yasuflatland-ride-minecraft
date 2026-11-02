@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  unit:
+  quick:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -45,14 +45,57 @@ jobs:
         run: pnpm run lint:deps
 
       - if: steps.src.outputs.present == 'true'
-        run: pnpm run test:coverage
-
-      - if: steps.src.outputs.present == 'true'
         run: pnpm run build
 
       # Catch a yasu_ride_bp -> yasu_ride_rp dependency version mismatch before a release tag does
       - if: steps.src.outputs.present == 'true'
         run: pnpm run package
+
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm exec vitest run --shard=${{ matrix.shard }}/3 --reporter=blob --outputFile.blob=.vitest-reports/blob-${{ matrix.shard }}.json --coverage '--coverage.include=src/**'
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: blob-${{ matrix.shard }}
+          path: .vitest-reports
+          include-hidden-files: true
+          retention-days: 1
+
+  coverage:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+
+      - run: pnpm install --frozen-lockfile
+
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: blob-*
+          merge-multiple: true
+          path: .vitest-reports
+
+      - id: src
+        run: echo "present=$([ -f tsconfig.json ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+      - if: steps.src.outputs.present == 'true'
+        run: pnpm exec vitest run --merge-reports=.vitest-reports --coverage '--coverage.include=src/**' --coverage.reporter=text --coverage.reporter=lcov
 
       - name: Upload coverage to Codecov
         if: always() && steps.src.outputs.present == 'true'
@@ -100,10 +143,10 @@ jobs:
   # id. It fails unless every job above succeeded.
   check:
     if: always()
-    needs: [unit, model]
+    needs: [quick, test, coverage, model]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - run: echo "unit=${{ needs.unit.result }} model=${{ needs.model.result }}"
-      - if: needs.unit.result != 'success' || needs.model.result != 'success'
+      - run: echo "quick=${{ needs.quick.result }} test=${{ needs.test.result }} coverage=${{ needs.coverage.result }} model=${{ needs.model.result }}"
+      - if: needs.quick.result != 'success' || needs.test.result != 'success' || needs.coverage.result != 'success' || needs.model.result != 'success'
         run: exit 1
