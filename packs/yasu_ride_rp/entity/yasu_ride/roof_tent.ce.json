@@ -1,0 +1,40 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "yasu_ride:roof_tent",
+      "materials": {
+        "default": "entity_alphablend"
+      },
+      "textures": {
+        "default": "textures/entity/yasu_ride/roof_tent",
+        "green": "textures/entity/yasu_ride/roof_tent_green",
+        "red": "textures/entity/yasu_ride/roof_tent_red",
+        "white": "textures/entity/yasu_ride/roof_tent_white",
+        "light_gray": "textures/entity/yasu_ride/roof_tent_light_gray",
+        "gray": "textures/entity/yasu_ride/roof_tent_gray",
+        "black": "textures/entity/yasu_ride/roof_tent_black",
+        "orange": "textures/entity/yasu_ride/roof_tent_orange",
+        "yellow": "textures/entity/yasu_ride/roof_tent_yellow",
+        "lime": "textures/entity/yasu_ride/roof_tent_lime",
+        "cyan": "textures/entity/yasu_ride/roof_tent_cyan",
+        "light_blue": "textures/entity/yasu_ride/roof_tent_light_blue",
+        "blue": "textures/entity/yasu_ride/roof_tent_blue",
+        "purple": "textures/entity/yasu_ride/roof_tent_purple",
+        "magenta": "textures/entity/yasu_ride/roof_tent_magenta",
+        "pink": "textures/entity/yasu_ride/roof_tent_pink"
+      },
+      "geometry": {
+        "default": "geometry.yasu_ride.roof_tent",
+        "suv": "geometry.yasu_ride.roof_tent_suv"
+      },
+      "render_controllers": ["controller.render.yasu_ride.roof_tent"],
+      "animations": {
+        "flap": "animation.yasu_ride.roof_tent.flap"
+      },
+      "scripts": {
+        "animate": ["flap"]
+      }
+    }
+  }
+}
