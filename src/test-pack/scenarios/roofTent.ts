@@ -1,4 +1,5 @@
 import { type Entity, system } from "@minecraft/server";
+import { entranceWorld } from "../../domain/camp/roofTent/access";
 import { PAINTS } from "../../domain/shared/paint";
 import { CAMPER_PROFILE } from "../../domain/vehicle/kinds/camper/profile";
 import { SUV_PROFILE } from "../../domain/vehicle/kinds/suv/profile";
@@ -82,6 +83,20 @@ async function hosted(a: Arena, camper: boolean): Promise<Outcome> {
       Math.abs(tent.location.y - host.location.y - mount.roofHeight) < 0.05 &&
       Math.abs(tent.location.x - host.location.x - mount.anchor.x) < 0.05 &&
       Math.abs(tent.location.z - host.location.z - mount.anchor.z) < 0.05;
+    let footOutside = true;
+    if (!camper) {
+      footOutside = false;
+      if (mount) {
+        const foot = entranceWorld(mount, {
+          location: host.location,
+          yaw: host.getRotation().y,
+        });
+        const { center, extent } = host.getAABB();
+        const dx = Math.max(0, Math.abs(foot.x - center.x) - extent.x);
+        const dz = Math.max(0, Math.abs(foot.z - center.z) - extent.z);
+        footOutside = Math.hypot(dx, dz) >= 0.9;
+      }
+    }
     const valid = contract(tent, !camper);
     await send(TEST_ROOF_TENT_PLACE_EVENT, host.id);
     const refused = tents(a).length === 1 && tents(a)[0]?.id === tent.id;
@@ -117,8 +132,15 @@ async function hosted(a: Arena, camper: boolean): Promise<Outcome> {
     const items = returned(a);
     return {
       pass:
-        onRoof && valid && refused && seated && outside && gone && items === 1,
-      detail: `roof=${onRoof} contract=${valid} duplicateRefused=${refused} seated=${seated} outside=${outside} gone=${gone} items=${items}`,
+        onRoof &&
+        footOutside &&
+        valid &&
+        refused &&
+        seated &&
+        outside &&
+        gone &&
+        items === 1,
+      detail: `roof=${onRoof}${camper ? "" : ` footOutside=${footOutside}`} contract=${valid} duplicateRefused=${refused} seated=${seated} outside=${outside} gone=${gone} items=${items}`,
     };
   } finally {
     if (cow?.isValid) cow.remove();

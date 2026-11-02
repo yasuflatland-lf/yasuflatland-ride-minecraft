@@ -322,6 +322,8 @@ it("enters from a reachable entrance beyond the entity interaction reach", () =>
   flush();
   expect(entranceReach).toHaveBeenCalledExactlyOnceWith(target, player);
   expect(occupants.moveInside).toHaveBeenCalledExactlyOnceWith(pid, "tent");
+  expect(foot.tentOfHost).not.toHaveBeenCalled();
+  expect(foot.atFoot).not.toHaveBeenCalled();
 });
 it("restores tracking of a persisted occupant after a reload and frees the tent", () => {
   game.interval.mockClear();
@@ -368,6 +370,9 @@ it.each(["standing", "away", "dye"])(
     if (condition === "dye") game.dye.mockReturnValue("red");
     expect(interact().cancel).toBe(false);
     expect(game.run).not.toHaveBeenCalled();
+    flush();
+    expect(occupants.moveInside).not.toHaveBeenCalled();
+    expect(player.onScreenDisplay.setActionBar).not.toHaveBeenCalled();
   },
 );
 it.each(["sneak", "foot", "validity"])(
@@ -443,4 +448,40 @@ it("skips occupied tents and riding players in the proximity poll", () => {
   game.tick += 4;
   pollFoot();
   expect(occupants.moveInside).not.toHaveBeenCalled();
+});
+
+it("keeps the tent-targeted entrance fallback and sneak hint without foot access", () => {
+  player.location.x = ROOF_TENT_SPEC.interactReach + 1;
+  player.isSneaking = false;
+  entranceReach.mockReturnValue(true);
+  expect(interact().cancel).toBe(true);
+  flush();
+  expect(entranceReach).toHaveBeenCalledExactlyOnceWith(target, player);
+  expect(player.onScreenDisplay.setActionBar).toHaveBeenCalledExactlyOnceWith({
+    translate: ROOF_TENT_SNEAK_HINT,
+  });
+  expect(occupants.moveInside).not.toHaveBeenCalled();
+  expect(foot.tentOfHost).not.toHaveBeenCalled();
+  expect(foot.atFoot).not.toHaveBeenCalled();
+});
+
+it("leaves a vehicle without a foot-access tent to its native interaction", () => {
+  target.typeId = "yasu_ride:camper";
+  foot.tentOfHost.mockReturnValue(undefined);
+  foot.atFoot.mockReturnValue(true);
+  expect(interact().cancel).toBe(false);
+  expect(foot.tentOfHost).toHaveBeenCalledExactlyOnceWith(target.id);
+  expect(foot.atFoot).not.toHaveBeenCalled();
+  expect(game.run).not.toHaveBeenCalled();
+  flush();
+  expect(occupants.moveInside).not.toHaveBeenCalled();
+});
+
+it("does not enter a loaded tent when the player is away from its foot", () => {
+  foot.loadedTents.mockReturnValue([target]);
+  foot.atFoot.mockReturnValue(false);
+  pollFoot();
+  expect(foot.atFoot).toHaveBeenCalledExactlyOnceWith(target, player);
+  expect(occupants.moveInside).not.toHaveBeenCalled();
+  expect(player.onScreenDisplay.setActionBar).not.toHaveBeenCalled();
 });
