@@ -155,3 +155,6 @@ yasu_build.form.copy_title=コピー
 yasu_build.form.hollow=中空
 yasu_build.form.cancel=キャンセル
 yasu_build.message.height_size=大きさ: x %s、y %s、z %s
+
+item.yasu_ride:roof_tent_item.name=ルーフテント
+entity.yasu_ride:roof_tent.name=ルーフテント

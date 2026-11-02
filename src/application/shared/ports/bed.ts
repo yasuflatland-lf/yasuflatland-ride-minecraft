@@ -6,6 +6,12 @@ export interface BedWorld {
   /** The time of day, 0 to 23999. */
   timeOfDay(): number;
   setSpawnPoint(playerId: PlayerId, dimensionId: DimensionId, cell: Vec3): void;
+  /** Clears the player's spawn point only if it matches the cell and dimension; does nothing if the player or spawn point is missing. */
+  clearSpawnPoint(
+    playerId: PlayerId,
+    dimensionId: DimensionId,
+    cell: Vec3,
+  ): void;
   /** Fades the player's screen and sets the time of day to SLEEP.wakeTime once it is black. */
   sleep(playerId: PlayerId): void;
   /** Shows the lang key yasu_ride.message.<name> on a player's action bar; does nothing for a missing player. */
