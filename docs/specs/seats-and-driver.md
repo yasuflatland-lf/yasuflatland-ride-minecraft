@@ -146,7 +146,7 @@
 ### Bulldozer seat
 
 - Applies to: bulldozer, all modes.
-- Rule: The bulldozer has one seat, the driver seat, defined by `BULLDOZER_PROFILE.seats` and the `seats` entry of `bulldozer.se.json`. It boards in engine order and seats players only.
+- Rule: The bulldozer has one seat, the driver seat, defined by `BULLDOZER_PROFILE.seats` and the `seats` entry of `bulldozer.se.json`. It boards in engine order and seats players only. Whoever occupies its only seat (seat 0) is the driver, with no choosing and no handover; the generic seat 0 rule and sticky-driver rule apply unchanged.
 - Agreement: Proposed
 - Basis: [0136](../adr/0136-bulldozer.md) Decision, "One driver sits at `[0, 1.4, -1.35]`."
 - Implementation: `src/domain/vehicle/kinds/bulldozer/profile.ts` (`BULLDOZER_PROFILE.seats`, `boarding`); `packs/yasu_ride_bp/entities/yasu_ride/bulldozer.se.json`
@@ -179,4 +179,4 @@
 - 0128 says no pack or infrastructure change is needed and that the infrastructure already provides every player's rider-list index, but no test or scenario checks that index for the SUV or the camper with a real player: 0128, `tests/infrastructure/vehicle/bedrock/bedrockVehicleWorld.test.ts`.
 - 0025 Decision gives the three Jump components for "the entity" (the SUV), while the camper, sports boat, and bulldozer also carry them; only the SUV and the bulldozer have a pack test: `tests/packs/behaviorPack.test.ts`, `tests/packs/bulldozer.test.ts`.
 - 0154 Consequences accept a known regression (a dinette-only held layout refuses the next boarding player) until manual row C173 passes; the code has no workaround and no test pins the refusal: 0154, `src/domain/vehicle/crew.ts`.
-- Agreement of the chosen-seat, bulldozer, and deck-departure rules is Proposed because 0120, 0136, 0141, and 0154 are Proposed (owner decisions pending on #1193), while 0126 and 0128 (Accepted) already build on 0120 (for 0128: `Extends: 0120`): `docs/adr/README.md`.
+- Agreement of the chosen-seat, bulldozer, and deck-departure rules is Proposed because 0120, 0136, 0141, and 0154 are Proposed (owner decisions pending on #1193), while 0126 and 0128 (Accepted) already build on 0120 (for 0128: `Extends: 0120`): `docs/adr/README.md`. The firmness of "Driver when a chosen-seat vehicle's driver leaves" and the 0126/0128 rules is therefore limited by Proposed 0120, despite Agreement: Accepted on the 0128 rules.

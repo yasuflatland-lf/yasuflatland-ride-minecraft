@@ -62,6 +62,7 @@
 
 ## Open issues
 
+- No part of the camper hover display is verified by the owner in game; only asset-data tests pass. The 0147 lamp glow check covers lamps, not discs or particles.
 - 0190 addendum and 0197 disagree on how the discs are drawn: 0190 says only `glow_*` uses `entity_emissive_alpha` and the main render controller shows the discs when `yasu_ride:gear_down` is false; 0197 hides them in the base pass and draws them in a `.glow` overlay with `entity_emissive` and lit alpha 0. The code follows 0197 (`camper.rc.json`, `camper.ce.json` define no `entity_emissive_alpha` material). 0197 is recorded as "Supersedes in part: 0190: hover glow addendum" but its text amends only the locator instruction and adds the overlay, so which sentences of the addendum still apply is not stated: `docs/adr/0197-emit-camper-hover-particles-below-the-discs.md`, `docs/adr/0190-ribbed-camper-shell-atlas.md`.
 - Both ADRs holding the hover display decisions are Proposed. 0190's acceptance condition is "owner decision pending (see #1193)" and covers the whole ribbed shell, not the addendum; 0197 waits for a client check (#1035). No rule in this spec can be Accepted until an owner decision is recorded: `docs/adr/0190-ribbed-camper-shell-atlas.md`, `docs/adr/0197-emit-camper-hover-particles-below-the-discs.md`.
 - No manual-test row checks the camper hover discs or their particles, although 0190 and 0197 both require an owner check in game (chase camera, banking, from below, lamps off and on, gear down): `docs/manual-test.md`.
