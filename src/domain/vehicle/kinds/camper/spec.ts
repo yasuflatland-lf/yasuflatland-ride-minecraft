@@ -25,6 +25,13 @@ export const CAMPER_SPEC = Object.freeze({
   // The farthest corner: the body reaches 4.14 in camper.geo.json, and the outer bumper
   // stand-in boxes reach hypot(1.5, 3.7 + 0.5) = 4.46 (ADR 0116, 0122)
   footprint: 4.5,
+  // Roof fixture bounds from tools/gen_camper.py: profile z = -model z / 16.
+  roofRackFrontZ: -22 / 16,
+  roofRackRearZ: -55 / 16,
+  roofRackHalfWidth: 20 / 16,
+  roofVentFrontZ: 2 / 16,
+  roofVentRearZ: -6 / 16,
+  roofVentHalfWidth: 4 / 16,
   roofTentRoofHeight: 4.0, // Equals CAMPER_SPEC.carHeight: tools/gen_camper.py puts ROOF at 64 px.
   roofTentAnchorX: 0, // Centered between the roof edge rails.
   roofTentAnchorZ: -0.875, // Between the vent (-2..6 px) and rear rack (22..55 px) in tools/gen_camper.py.

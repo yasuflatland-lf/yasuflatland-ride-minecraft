@@ -57,6 +57,13 @@ cannot assume either vehicle's dimensions.
 - Roof tent paint follows the shared palette and dye behavior of 0135, with its
   own entity and assets.
 
+- Give each Survival player one roof tent item on their first eligible join,
+  including existing players without the receipt flag. Creative players receive
+  nothing and are not marked, so a later Survival join remains eligible. Unlike
+  the vehicle starter ([0023](0023-starter-vehicle-on-first-join.md)),
+  which also gives to Creative players, this grant supplies the recipe-free roof
+  tent to Survival players; Creative players already have it in their catalog.
+
 ### Crawl mechanism
 
 Entry uses a sneak-through low entrance: a player within the roof tent interaction
@@ -69,12 +76,20 @@ requirement prevents the entry gesture from immediately ejecting the player.
 Player leave, death and dimension-change events also invoke the exit use case.
 Outside placement uses only the occupant adapter's loaded-terrain search.
 
-- Give each Survival player one roof tent item on their first eligible join,
-  including existing players without the receipt flag. Creative players receive
-  nothing and are not marked, so a later Survival join remains eligible. Unlike
-  the vehicle starter ([0023](0023-starter-vehicle-on-first-join.md)),
-  which also gives to Creative players, this grant supplies the recipe-free roof
-  tent to Survival players; Creative players already have it in their catalog.
+### Ladder mechanism
+
+No climbable blocks are placed. The SUV ladder is the roof tent entity's
+`ladder` property and hangs from the tent's side on the vehicle's left, which is
+the viewer's right when looking at the vehicle from the front. The mount
+entrance is the foot of that ladder, so "the rotated mount entrance" below means
+that left-side foot; the camper adds no ladder and uses its existing rear ladder's
+roof end. Alongside direct entity interaction reach, a player within
+`entranceReach` (1.5 blocks horizontally) of the rotated mount entrance may enter
+by the usual sneak interaction. Their feet must be within `entranceBand`
+(1.5 blocks vertically) of host ground height when the mount has a ladder, or
+host roof height for either kind. Entry teleports the player into the tent;
+exit uses `exitCell` and the loaded-terrain search. Nothing is left in the world
+when the tent is removed because no blocks exist for this mechanism.
 
 ## Consequences
 

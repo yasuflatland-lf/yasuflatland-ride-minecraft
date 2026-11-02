@@ -1,5 +1,6 @@
 import type { RoofTentMount } from "../../shared/roofTent";
 import { forward, leftOf, type Vec3 } from "../../shared/vec";
+import { entranceWorld } from "./access";
 import type { Facing4 } from "./facing";
 
 const EXIT_STEP = 1;
@@ -12,10 +13,7 @@ export function exitCell(
 ): Vec3 {
   const f = forward(host.yaw);
   const l = leftOf(f);
-  const entrance = {
-    x: host.location.x + l.x * mount.entrance.x + f.x * mount.entrance.z,
-    z: host.location.z + l.z * mount.entrance.x + f.z * mount.entrance.z,
-  };
+  const entrance = entranceWorld(mount, host);
   const dx = mount.entrance.x - mount.anchor.x;
   const dz = mount.entrance.z - mount.anchor.z;
   const length = Math.hypot(dx, dz);
