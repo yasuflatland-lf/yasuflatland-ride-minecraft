@@ -1,0 +1,231 @@
+# Camper body and parking
+
+- Scope: The camper kind, body model, collision and placement, paint, parking checks, parked room, departure, and bumper lift.
+- Verified at: 9d4b0bbc
+- Source: [0067](../adr/0067-camper.md)
+- Source: [0068](../adr/0068-park-the-camper-with-room-blocks.md)
+- Source: [0069](../adr/0069-camper-right-hand-drive.md)
+- Source: [0070](../adr/0070-raise-the-camper-front-seats.md)
+- Source: [0091](../adr/0091-alpha-blend-only-the-camper-glass.md)
+- Source: [0119](../adr/0119-park-the-camper-over-natural-ground.md)
+- Source: [0143](../adr/0143-place-the-camper-in-the-suvs-space.md)
+- Source: [0145](../adr/0145-move-camper-side-lamp-and-door-handle.md)
+- Source: [0146](../adr/0146-wire-mesh-bulldozer-steps-and-a-camper-vent-cover.md)
+- Source: [0157](../adr/0157-an-aluminium-rimmed-louvred-camper-vent-lid.md)
+- Source: [0190](../adr/0190-ribbed-camper-shell-atlas.md)
+- Source: [0199](../adr/0199-square-the-camper-front-and-fold-the-grille.md)
+- Excluded: [0084](../adr/0084-camper-hitbox-spans-the-bumper.md): bumper hitbox coverage is a separate topic
+- Excluded: [0116](../adr/0116-a-bumper-stand-in-takes-the-camper-hits.md): stand-in entities and their lifecycle are a separate topic; only the lift from 0119 is specified here
+- Excluded: [0197](../adr/0197-emit-camper-hover-particles-below-the-discs.md): hover discs, particles, and emissive overlay are covered by Camper hover display
+
+## Rules
+
+### Kind, item, and fleet limit
+
+- Applies to: Camper registration, crafting, and per-player ownership.
+- Rule: The kind is `camper`, the entity is `yasu_ride:camper`, and its item is `yasu_ride:camper_item`. A shapeless crafting-table recipe makes one camper item from an SUV item, a bed, a chest, and an oak door (`minecraft:wooden_door`). `CAMPER_PROFILE.fleetLimit` limits each player’s campers.
+- Agreement: Accepted
+- Basis: [0067](../adr/0067-camper.md) Decision, "Add the kind `camper`, entity `yasu_ride:camper`, item `yasu_ride:camper_item`"; [0067](../adr/0067-camper.md) Decision, "One camper per player (0066)."
+- Implementation: `src/domain/vehicle/kinds/camper/profile.ts`; `packs/yasu_ride_bp/entities/yasu_ride/camper.se.json`; `packs/yasu_ride_bp/items/yasu_ride/camper_item.item.json`; `packs/yasu_ride_bp/recipes/yasu_ride/camper_item.recipe.json`
+- Verification: `tests/domain/vehicle/profile.test.ts` "limits each player to one camper". Recipe ingredients and identifiers read directly from the pack. Not verified: crafting or fleet limits in game; no recipe-ingredient test cited.
+
+### Camper tuning
+
+- Applies to: Camper ground, air, water, bank, and landing-gear motion.
+- Rule: Camper tuning comes from `CAMPER_SPEC`, never `SUV_SPEC`. Ground limits are assembled as `CAMPER_MOTION` and `CAMPER_TYRES` in `profile.ts`; flight and submarine media are `CAMPER_AIR` and `CAMPER_WATER`, and transformation, bank, and gear parameters are assembled as `CAMPER_TRANSFORMING` in `spec.ts`. Ground speed uses `CAMPER_SPEC.maxSpeed`, acceleration uses `CAMPER_SPEC.accel`, water speed uses `CAMPER_SPEC.maxWaterSpeed`, draft uses `CAMPER_SPEC.floatDraft`, bank uses `CAMPER_SPEC.maxBank`, `bankRate`, and `bankSink`, and gear uses `CAMPER_SPEC.gearDownHeight` and `gearProbeOffset`.
+- Agreement: Accepted
+- Basis: [0067](../adr/0067-camper.md) Decision, "with its own `CAMPER_SPEC` (never `SUV_SPEC`)"
+- Implementation: `src/domain/vehicle/kinds/camper/spec.ts`; `src/domain/vehicle/kinds/camper/profile.ts`; `src/domain/vehicle/kinds/camper/drive.ts`
+- Verification: `tests/domain/vehicle/kinds/camper/drive.test.ts` "reaches 95 percent speed in 60 to 90 ticks and stays within its cap for 300 ticks"; `tests/domain/vehicle/profile.test.ts` "reads the camper's tyre values from its spec (ADR 0089)". Not verified: all flight, submarine, bank, and gear values on a client.
+
+### Body envelope and collision
+
+- Applies to: Camper body probes and entity collision, all forms unless docked.
+- Rule: The body envelope uses `CAMPER_SPEC.bodyFront`, `bodyRear`, `bodyHalfWidth`, and `carHeight`; the engine box covers only its middle. The base components keep a 3-wide, 4-high square collision box. The docked override is 0.4 wide and high; undocking restores 3 by 4. The camper’s own custom hit test is one feet-level cube of `CAMPER_SPEC.hiddenHitboxSize`, centered at `[0, hiddenHitboxSize / 2, 0]`, hidden inside the parked center floor block.
+- Agreement: Accepted
+- Basis: [0067](../adr/0067-camper.md) Decision, "Body: 3 wide, 7 long, 4 high."; [0068](../adr/0068-park-the-camper-with-room-blocks.md) Decision, "The camper keeps its 3 x 4 collision box in its base components"
+- Implementation: `src/domain/vehicle/kinds/camper/spec.ts`; `packs/yasu_ride_bp/entities/yasu_ride/camper.se.json`
+- Verification: `tests/packs/camper.test.ts` "keeps the 3 x 4 collision box in the base components"; `tests/packs/camperRoom.test.ts` "hides the camper's own hitbox in the parked floor block under its center and preserves the undocked camper's body collision". Not verified: collision and tap behavior on clients in this revision.
+
+### Body end guard
+
+- Applies to: Moving camper, front for positive speed and rear for negative speed.
+- Rule: `guardEnds` uses the horizontal magnitude of `ctx.velocity + impulse` to check the end toward travel. It checks layers from `CAR_LOWEST_LAYER` in car form, and from the feet in hover or submarine, up to `ceil(height)`. `endLanes` insets the outer lanes by `SIDE_INSET`, spaces them no farther apart than `MAX_LANE_SPACING`, and visits center-most lanes first; the camper has four lanes. Travel samples advance by `MAX_TRAVEL_STEP` and include the final end position, nearest first. A solid hit zeroes speed, step ticks, and jump velocity, cancels horizontal velocity, and marks the step blocked. At zero speed it makes no queries.
+- Agreement: Accepted
+- Basis: [0067](../adr/0067-camper.md) Decision, "It looks ahead by the velocity the engine applies this tick, not the post-friction speed"; [0067](../adr/0067-camper.md) Decision, "In car form it checks from two blocks above the feet"
+- Implementation: `src/domain/vehicle/kinds/camper/bodyGuard.ts`; `src/domain/vehicle/kinds/camper/drive.ts`
+- Verification: `tests/domain/vehicle/kinds/camper/bodyGuard.test.ts` "gives the camper four lanes", "lets layers zero and one through in car form only", "samples every block from the front to this tick's applied move, not the internal speed", "makes no queries at rest and preserves the step"; `tests/domain/vehicle/kinds/camper/drive.test.ts` "cancels the step jump when a curb lies ahead and a wall stands at the front end". Not verified: body overlap against walls on clients.
+
+### Placement clearance
+
+- Applies to: Placing a camper item on a block.
+- Rule: `CAMPER_PROFILE.placement` accepts only the top face. Its clearance uses the profile’s `halfX` and `halfZ`, with `clearanceHeight(body)` for height: the collision box fits in 3 by 3 by 4 clear cells. The visible ends can extend outside that volume.
+- Agreement: Proposed
+- Basis: [0143](../adr/0143-place-the-camper-in-the-suvs-space.md) Decision, "Set the camper's placement clearance to `halfX` 1, `halfZ` 1, and height 4, the SUV's footprint with the camper's own height."; [0143](../adr/0143-place-the-camper-in-the-suvs-space.md) Decision, "The surface stays the top face of a block."
+- Implementation: `src/domain/vehicle/kinds/camper/profile.ts`; `src/domain/vehicle/placement/placement.ts`
+- Verification: `tests/packs/placementClearance.test.ts` "fits every %s collision box inside its placement clearance" (camper row). Not verified: placement beside obstacles on a client; 0143 still awaits an owner decision.
+
+### Accent paints
+
+- Applies to: All sixteen camper paint textures and default variant.
+- Rule: The camper has 16 paints, with `CAMPER_PROFILE.defaultPaint` set to khaki. Repaints change only the `khaki` window band, `stripe` including the W, and `tan` lower skirt swatches. The white shell, trim, rib regions, and hardware regions stay fixed. All paints share the geometry’s atlas dimensions.
+- Agreement: Proposed
+- Basis: [0067](../adr/0067-camper.md) Decision, "Khaki is the default (0031)"; [0190](../adr/0190-ribbed-camper-shell-atlas.md) Decision, "Repaints continue to change only `khaki`, `stripe`, and `tan` (0067, 0076)."
+- Implementation: `src/domain/vehicle/kinds/camper/profile.ts`; `tools/gen_camper.py`; `packs/yasu_ride_rp/textures/entity/yasu_ride`
+- Verification: `tests/packs/camper.test.ts` "generates all 16 equally sized paints, changing only the three accent swatches and no region texel"; `tests/domain/vehicle/profile.test.ts` "gives the camper a khaki default paint (ADR 0067, 0076)". Not verified: every paint on a client.
+
+### Model bone contract
+
+- Applies to: Generated `geometry.yasu_ride.camper`.
+- Rule: The front is -z. `body` is a child of `root`. The model has `headlights`, `ceiling_lights`, `bunk`, `wheel_fl`, `wheel_fr`, `wheel_rl`, `wheel_rr`, `seat_0` through `seat_3`, `door_entry`, `steering`, `shower_door`, `cabinet_sink_door`, `cabinet_stove_door`, `fridge_top_door`, `fridge_bottom_door`, and `glass` as children of `body`; `door_glass` is a child of `door_entry`. The additional glow bones belong to [Camper hover display](camper-hover-display.md). Seat positions, heights, and driver selection belong to [Seats and driver selection](seats-and-driver.md), “Camper seat layout”. The furniture bones are listed here as an asset contract, without specifying their behavior.
+- Agreement: Accepted
+- Basis: [0067](../adr/0067-camper.md) Decision, "with bones `root`, `body`, `headlights`, `wheel_fl`, `wheel_fr`, `wheel_rl`, `wheel_rr`, `seat_0`-`seat_3`, `door_entry`, and `steering` (0009)"; [0091](../adr/0091-alpha-blend-only-the-camper-glass.md) Decision, "This extends the bone contract of 0009 for the camper with `glass` and `door_glass`."
+- Implementation: `packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`; `tools/gen_camper.py`
+- Verification: `tests/packs/camper.test.ts` "uses the production geometry identifier with no test namespace", "connects every standard bone to root without cycles". Not verified: every bone’s animation on a client.
+
+### Glass material and draw order
+
+- Applies to: Camper base render pass, body and entry-door glass.
+- Rule: The client defaults to `entity`, uses `entity` for unlit lamps and `entity_emissive` for lit lamps, and assigns `entity_alphablend` only to `Material.glass`. The base render controller maps `glass` and `door_glass` to that material. Both glass bones follow all other bones; no opaque bone holds a glass-swatch cube. `glass` holds the windshield, side windows, mirror glass, and rear window; corner glass has been removed. `door_glass` follows the door hinge. Hover rendering is specified in Camper hover display.
+- Agreement: Proposed
+- Basis: [0091](../adr/0091-alpha-blend-only-the-camper-glass.md) Decision, "The render controller maps both bones to `Material.glass`"; [0091](../adr/0091-alpha-blend-only-the-camper-glass.md) Decision, "No opaque camper bone may hold a `glass` swatch cube"; [0199](../adr/0199-square-the-camper-front-and-fold-the-grille.md) Decision, "Remove the corner glass from 0091's `glass` bone."
+- Implementation: `packs/yasu_ride_rp/entity/yasu_ride/camper.ce.json`; `packs/yasu_ride_rp/render_controllers/yasu_ride/camper.rc.json`; `tools/gen_camper.py`
+- Verification: `tests/packs/camper.test.ts` "draws the model opaque and blends only the glass material", "puts every glass cube in a glass bone listed after every opaque bone". Not verified: cabin visibility through near and far panes on clients after front squaring.
+
+### Right-hand-drive cab
+
+- Applies to: Camper cab model, independent of rider selection.
+- Rule: The steering wheel and column, instrument panel, pedals, and driver bucket seat are on the right after the generator mirrors build coordinates into Bedrock coordinates. The radio and glovebox are on the left. Both front bucket seats use `FRONT_SEAT_RISE` on taller pedestals. The steering bone uses `STEERING_PIVOT` and `STEERING_LEAN`; the wheel has a level spoke bar and its column ends within the raised dashboard below the console. Rider layout is specified by Seats and driver selection, “Camper seat layout”.
+- Agreement: Accepted
+- Basis: [0069](../adr/0069-camper-right-hand-drive.md) Decision, "The model moves every driver-side part to the right"; [0069](../adr/0069-camper-right-hand-drive.md) Decision, "The radio and the glovebox move to the passenger side on the left"; [0070](../adr/0070-raise-the-camper-front-seats.md) Decision, "The model raises both front bucket seats by the same 6.4 px on a taller pedestal"
+- Implementation: `tools/gen_camper.py`; `packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`
+- Verification: `tests/packs/camper.test.ts` "puts the steering wheel and column on the right in front of the driver", "keeps the wheel's spokes level (owner decision in #410)", "ends the steering column inside the raised dash body, below the console (#422)". Gauges, pedals, radio, glovebox, and pedestals checked in the generator. Not verified: first-person windshield visibility by hand in this revision, or dedicated tests of each cab part’s side.
+
+### W mark exception
+
+- Applies to: Camper side stripe and model markings.
+- Rule: The large mirrored W remains in the stripe as the owner’s exception to the model marking convention.
+- Agreement: Accepted
+- Basis: [0067](../adr/0067-camper.md) Decision, "Keep the stripe's large W from the photos, at the owner's request, as an exception to the rule against makers' marks in 0009."
+- Implementation: `tools/gen_camper.py`; `packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`
+- Verification: `tests/packs/camper.test.ts` "draws the side stripe's W as mirrored single-cube strokes on a flat bottom (#459)". Not verified: absence of every maker or model name anywhere in the model; no test asserts that complete visual claim.
+
+### Rear signals, handles, and stripe ends
+
+- Applies to: Camper exterior and entry-door model.
+- Rule: The mid-body porch-light box is removed. Symmetric static amber signals with chrome bezels sit on the rear profile outside the red tail lights, clear of the ladder, in `body`; they do not blink or switch with the lamps. Both entry handles use `DOOR_HANDLE_Y`, just below `STRIPE_Y`, and swing with `door_entry`. Quarter-pixel stripe rows meet the inner edge lines of the W’s outer arms without a step.
+- Agreement: Proposed
+- Basis: [0145](../adr/0145-move-camper-side-lamp-and-door-handle.md) Decision, "Remove the porch-light box."; [0145](../adr/0145-move-camper-side-lamp-and-door-handle.md) Decision, "End the side stripe on the W's outer arms' inner edge lines, extended up through the stripe, on both sides of the vehicle"
+- Implementation: `tools/gen_camper.py`; `packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`
+- Verification: `tests/packs/camper.test.ts` "replaces the mid-body amber box with symmetric static rear signals (#596)", "aligns both entry handles half a pixel below the stripe (#596)", "ends the stripe on the W's outer arm inner edges, with no step at their tops (ADR 0145)". Not verified: PC/mobile appearance and door movement; manual rows C161–C163 have empty results.
+
+### Rear-right vent lid
+
+- Applies to: Camper outer rear-right wall, all forms.
+- Rule: The former rear-right window is closed with outer shell, inner lining, and band; its glass, frame, and curtains are absent. The opaque lid is built in `body` using `VENT_COVER`, `VENT_RIM`, and `VENT_CORNER`. Two columns of `VENT_SLITS` recessed black-backed slits use `VENT_SLIT`, `VENT_SLIT_PITCH`, `VENT_SLIT_MARGIN`, and `VENT_SLIT_GAP`; the lower panel is plain with a latch. The panel is `trim_beige`, the upper rail is aluminium with the `vent_screws` region, and the other rim pieces are chrome. Build-frame +x is mirrored to Bedrock -x.
+- Agreement: Proposed
+- Basis: [0146](../adr/0146-wire-mesh-bulldozer-steps-and-a-camper-vent-cover.md) Decision, "Remove the camper's right-side window at z 38 to 50, y 36 to 49 from `right_windows`."; [0157](../adr/0157-an-aluminium-rimmed-louvred-camper-vent-lid.md) Decision, "Keep 0146's wall closure, its position on the right outer wall, and the bulldozer steps. Replace only the cover's look."; [0190](../adr/0190-ribbed-camper-shell-atlas.md) Decision, "The vent lid of 0157 now has a `trim_beige` panel and an aluminium top rail whose west face carries `vent_screws`."
+- Implementation: `tools/gen_camper.py`; `packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`
+- Verification: `tests/packs/camper.test.ts`, describe "camper rear-right vent lid (ADR 0146, 0157)": "removes the rear-right pane and closes the outer wall, lining, and band", "frames a grey-beige panel in a raised aluminium rim with cut corners", "cuts two columns of twelve recessed slits above a plain lower part", "adds a latch below the slits"; "puts a screw row on the aluminium vent upper rail". Not verified: PC/mobile appearance; manual row C164 has empty results.
+
+### Ribbed shell atlas and trim
+
+- Applies to: Camper paint atlases and outward side-wall faces, including the door.
+- Rule: Row 0 retains existing swatch indices; aluminium and `trim_beige` are appended. `camper_atlas.Atlas` allocates `rib`, `door_head`, `door_hinge`, `door_latch`, `vent_screws`, and `bolt` regions below it. The rib phase follows model height from `ROOF`, using `RIB_PERIOD_TEXELS` and `RIB_TEXELS_PER_PX`. Each period has groove, highlight, then flat shell texels. Only outward white faces on both side walls and the door receive ribs; front, rear, and roof remain plain. Door frames and roof edges use aluminium with roof-edge bolts; side-window trim is beige, cab frames black, and mullions aluminium. Hardware uses the named atlas regions and `HARDWARE_DARK_FACTOR`. Camper-specific dimensions stay in the generator.
+- Agreement: Proposed
+- Basis: [0190](../adr/0190-ribbed-camper-shell-atlas.md) Decision, "Keep row 0 as the swatch row with every existing index unchanged."; [0190](../adr/0190-ribbed-camper-shell-atlas.md) Decision, "Apply ribs only to both side walls."; [0190](../adr/0190-ribbed-camper-shell-atlas.md) Decision, "Use aluminium for the door frame and roof edge, with bolt heads along the roof edge."
+- Implementation: `tools/gen_camper.py`; `tools/camper_atlas.py`; `tools/swatch_atlas.py`
+- Verification: `tests/packs/camper.test.ts` "allocates the rib region below the swatches with groove, highlight, and flat bands", "maps only the outward white shell faces on both walls and the door to height-aligned ribs", "uses beige side window frames, black cab frames, and aluminium mullions", "maps bolts only to the three outer edge faces and preserves lamp swatches and bezels". Not verified: side and three-quarter views at chase-camera distance on PC/mobile; 0190’s owner decision remains pending.
+
+### Squared front and folded grille
+
+- Applies to: Camper front model and geometry regression fixture.
+- Rule: The generated front has no 45-degree corner chamfers or corner glass. The windshield and grille span the front, with a black light surround extending to its edge. Upper and lower grilles use paired thin crease panels rolled by `GRILLE_ROLL`; the outer trim uses `EDGE_INSET`. Lower louvres start below the upper frame’s bottom edge. The front property test caps a dark run below that frame at 0.5 px. Every non-glow cube’s bone, origin, and size is compared with the golden fixture, including the squared front.
+- Agreement: Proposed
+- Basis: [0199](../adr/0199-square-the-camper-front-and-fold-the-grille.md) Decision, "Generate the front with `tools/gen_camper.py` without 45-degree corners."
+- Implementation: `tools/gen_camper.py`; `tests/packs/fixtures/camper-cubes.json`; `packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`
+- Verification: `tests/packs/camper.test.ts` "closes the front grilles without a black wedge below the upper frame or body colour at the crease", "keeps every cube's bone, origin, and size equal to the snapshot in tests/packs/fixtures/camper-cubes.json". The snapshot checks bone, origin, and size, not UVs or rotations. Not verified: client shimmer or z-fighting; 0199’s owner check is pending.
+
+### Automatic parking and pose snap
+
+- Applies to: Undocked camper stopped in car form.
+- Rule: Parking requires car form, `onGround`, absolute speed below `DOCK.maxSpeed` for `DOCK.ticks` consecutive steps, and both stick axes within `DOCK.stick`. A seated driver is allowed. A failed check is attempted only once until movement or stick input resets the stop. `snapYaw` rounds to a quarter turn; `parkPose` centers x and z in their cells. If the feet fraction is at least `LOW_GROUND_THRESHOLD`, y becomes `ceil(location.y)`; otherwise it becomes `floor(location.y + FEET_EPSILON)`. Refusal returns `cannot_park`, shown as "Can't park here".
+- Agreement: Accepted
+- Basis: [0068](../adr/0068-park-the-camper-with-room-blocks.md) Decision, "A seated driver does not stop it from parking. It tries once per stop"; [0068](../adr/0068-park-the-camper-with-room-blocks.md) Decision, "Parking snaps the yaw to the nearest 90 degrees and the location to the center of the feet's cell"
+- Implementation: `src/domain/vehicle/kinds/camper/drive.ts`; `src/domain/vehicle/kinds/camper/room.ts`; `src/domain/vehicle/motion/dock.ts`; `packs/yasu_ride_rp/texts/en_US.lang`
+- Verification: `tests/domain/vehicle/kinds/camper/parking.test.ts` "refuses any blocking cell once per stop, then retries after the stick resets the stop", "never parks off ground or with the stick pushed"; `tests/domain/vehicle/kinds/camper/room.test.ts` "snaps the body and floor together above low ground and down through lower snow layers". Not verified: low-ground and snow behavior on clients in this revision.
+
+### Parked room shell
+
+- Applies to: `roomCells` for a snapped camper pose.
+- Rule: The room has a full floor over local x -1..1 and z -3..3 at layer 0, a ceiling at layer 3, side and end walls at layers 1–3, three door cells at the middle of the right wall, and a door step using `DOOR_STEP_HEIGHT`. With storage shut it returns 107 distinct cells: 21 floor, 19 ceiling, 57 wall, three door, one step, and six built-in furniture cells. Ceiling compartments and open plates are handled separately. Shell block identifiers are `yasu_ride:camper_floor`, `camper_ceiling`, `camper_wall`, `camper_door`, and `deck_floor` in the same namespace; furniture contributes bed, bunk, and shower-toilet blocks. Furniture behavior belongs to the interior topic.
+- Agreement: Accepted
+- Basis: [0068](../adr/0068-park-the-camper-with-room-blocks.md) Decision, "a full floor at layer 0 over x -1..1, z -3..3"; [0068](../adr/0068-park-the-camper-with-room-blocks.md) Decision, "walls at layers 1-3 around it; a 3-high door in the middle of the right side with a half-high step under it."
+- Implementation: `src/domain/vehicle/kinds/camper/room.ts`; `src/domain/vehicle/kinds/camper/furniture.ts`; `src/infrastructure/vehicle/bedrock/dockBlocks.ts`; `packs/yasu_ride_bp/blocks/yasu_ride`
+- Verification: `tests/domain/vehicle/kinds/camper/room.test.ts` "lays 107 distinct integer cells with the specified counts at any snapped pose, an open cabinet door's plate in place of a ceiling cell and the open shower door's wall in place of a wall, and no fridge plate, which stands below the ceiling (ADR 0068, 0114, 0118, 0123)", "faces every plate inward and stacks the three door cells above the half step". Not verified: walking through the room on clients in this revision.
+
+### Parking scan and decoration removal
+
+- Applies to: First parking attempt at a stop and clearing on successful parking.
+- Rule: `parkCheckCells` returns 168 unique cells: room, cargo, slot, inside storage-plate, and two exit cells, including all roof cells at layer 4. Each must hold normalized air, a member of `CLEARABLE_DECORATIONS`, or permitted natural ground under the next rule. Light blocks normalize to air. Other blocks, liquids, and unknown/unloaded cells refuse parking. `wallFootCells` adds wall-root reads for plant clearing, not refusal. Matching lower halves below cleared upper halves are removed too. Clearing runs top first, replaces only the recorded matching block type with air without drops, and never restores plants.
+- Agreement: Proposed
+- Basis: [0068](../adr/0068-park-the-camper-with-room-blocks.md) Decision, "On success the decorations are removed, top layer first, without drops, and are not put back."; [0119](../adr/0119-park-the-camper-over-natural-ground.md) Decision, "Natural ground anywhere else (a wall, the interior, the roof, the exit's head) still refuses"
+- Implementation: `src/domain/vehicle/kinds/camper/room.ts`; `src/domain/vehicle/kinds/camper/drive.ts`; `src/domain/shared/decorations.ts`; `src/infrastructure/vehicle/bedrock/bedrockVehicleWorld.ts`
+- Verification: `tests/domain/vehicle/kinds/camper/room.test.ts` "checks 168 unique cells including the room and keeps all 45 cargo cells outside its blocks, slots, and the fridge's plate cells (ADR 0097, 0098, 0123)", "plans only decorations, top first, and rejects any blocking or unknown cell", "checks every roof cell and clears decorations there"; `tests/domain/vehicle/kinds/camper/parking.test.ts` "clears only decorations once on the tick after parking, top first". Not verified: drops and plant removal on a client in this revision.
+
+### Natural ground and plant policy
+
+- Applies to: Parking ground cells and wall feet around the camper.
+- Rule: `NATURAL_GROUND` contains `grass_block`, `dirt`, `coarse_dirt`, `podzol`, `mycelium`, `dirt_with_roots`, `moss_block`, and `pale_moss_block` in the Minecraft namespace. `parkGround` permits them only in the floor, door step, and exit’s feet. They stay in place rather than being covered or cleared; they are not generally passable. Clearable plants include the grasses, ferns, flowers, leaf litter, snow layers, mushrooms, berry/firefly bushes, eyeblossoms, and moss carpets explicitly listed in `CLEARABLE_DECORATIONS`. Saplings, torchflowers, and pitcher plants refuse. In the three front wall feet (the bumper row), listed plants clear even without a matching upper half; other wall feet require that match.
+- Agreement: Proposed
+- Basis: [0119](../adr/0119-park-the-camper-over-natural-ground.md) Decision, "Parking accepts one in a ground cell: the 21 floor cells, the door step, and the exit's feet (`parkGround`)."; [0119](../adr/0119-park-the-camper-over-natural-ground.md) Decision, "Saplings, torchflowers, and pitcher plants stay off it"
+- Implementation: `src/domain/vehicle/kinds/camper/room.ts`; `src/domain/shared/decorations.ts`
+- Verification: `tests/domain/vehicle/kinds/camper/parkGround.test.ts` "parks over natural ground in any ground cell, leaving it in place, and refuses it anywhere else", "clears a plant in the bumper's row even without an upper half, and leaves other wall feet alone", "still refuses the player-planted %s". Not verified: the iPad natural-grassland and bumper-boarding check required by 0119.
+
+### Docked state and reload recovery
+
+- Applies to: Camper parking tick, held ticks, and restoration.
+- Rule: The dock event removes weighted and undocked groups and adds `yasu_ride:docked`, disabling collision and gravity and shrinking the box; the undock event restores `yasu_ride:weighted` and `yasu_ride:undocked`. The parking tick holds the snapped pose but lays no room cells. `roomLaid` enables clearing and laying from the following tick. A restored laid room resumes without a fresh scan. A restored unlaid room scans but plans decoration removal even if blocking cells now exist, then lays immediately because the entity is already docked; recovery does not abandon the parked state on a failed clearance check. The restored entry-door target uses the saved room door’s open state when available, falling back to the restored swing midpoint.
+- Agreement: Accepted
+- Basis: [0068](../adr/0068-park-the-camper-with-room-blocks.md) Decision, "The parking tick only holds the pose and docks the entity"; [0068](../adr/0068-park-the-camper-with-room-blocks.md) Decision, "The room is laid from the next tick"; [0068](../adr/0068-park-the-camper-with-room-blocks.md) Decision, "After a reload, a parked camper restored before its room was laid redoes the park check and clear"
+- Implementation: `src/domain/vehicle/kinds/camper/drive.ts`; `packs/yasu_ride_bp/entities/yasu_ride/camper.se.json`; `src/domain/vehicle/motion/dockEntity.ts`
+- Verification: `tests/packs/camper.test.ts` "switches collision and gravity groups when parking and departing"; `tests/domain/vehicle/kinds/camper/parking.test.ts` "holds only the pose on tick 20, lays the room next tick, and scans once", "restores a laid open room immediately without a scan or dock event", "recovers an unlaid parked room once, clearing matching plants before laying even after a blocked check", "restores the saved door target through either direction of a partial swing". Not verified: restoration through an actual client reload in this revision.
+
+### Departure and exit clearance
+
+- Applies to: Parked camper, driver stick press from seat 0; standing occupants on departure.
+- Rule: A new stick press requests departure; the driver’s deck-seat input first requests boarding. The drive reads cargo, slot cells, inside storage plates, then exit feet/head in one batch. Cargo requires air; a slot accepts air, its furniture block, or its own decor block; a plate accepts air or its own door plate. Otherwise it remains parked and returns `clear_cargo`, "Clear the blocks inside first". Exit blockage alone does not refuse departure: it omits the overflow exit. A clear exit is centered in the ground cell beside the right door, facing away from the body. Departure undocks, requests deck-rider boarding, supplies interior/roof standing boxes, and stops laying the room. Seat choice and passenger retention are specified in Seats and driver selection.
+- Agreement: Accepted
+- Basis: [0068](../adr/0068-park-the-camper-with-room-blocks.md) Decision, "The driver departs by pushing the stick from seat 0"; [0068](../adr/0068-park-the-camper-with-room-blocks.md) Decision, "players without a seat are left standing instead of being moved into it."
+- Implementation: `src/domain/vehicle/kinds/camper/drive.ts`; `src/domain/vehicle/kinds/camper/room.ts`; `src/domain/vehicle/motion/dock.ts`; `packs/yasu_ride_rp/texts/en_US.lang`
+- Verification: `tests/domain/vehicle/kinds/camper/parking.test.ts` "departs on the stick press, undocks before properties, and boards deck riders", "checks both exit cells before parking and leaves overflow standing when the exit later blocks"; `tests/domain/vehicle/kinds/camper/dooredStorageDeparture.test.ts` "reads the inside plate cells between the slot and exit cells on departure, and leaves only with air or the door's own plate there (ADR 0121)". Not verified: overflow movement and departure with real players on clients in this revision.
+
+### Bumper stand-in lift
+
+- Applies to: Camper stand-in pose each tick, driving and parked.
+- Rule: `CAMPER_PROFILE.standIn.maxLift` uses `CAMPER_SPEC.bumperMaxLift`, and its parked cap uses `CAMPER_SPEC.bumperParkedMaxLift`. `Vehicle.standIn` builds the pose from the hold pose while parked or the current location while driving. `liftStandIn` counts consecutive solid layers from the middle box’s feet, stopping at the first open layer or the cap. Held poses use the smaller of the normal and parked caps so dock wall cells do not lift it into the wall. Plants without collision do not lift it. Stand-in entity construction and lifecycle are outside this topic.
+- Agreement: Proposed
+- Basis: [0119](../adr/0119-park-the-camper-over-natural-ground.md) Decision, "Each tick, `liftStandIn` raises the stand-in by the number of solid layers, counted from its feet up, in its middle box's cell, at most `maxLift`."
+- Implementation: `src/domain/vehicle/standIn.ts`; `src/domain/vehicle/vehicle.ts`; `src/domain/vehicle/kinds/camper/profile.ts`; `src/domain/vehicle/kinds/camper/spec.ts`
+- Verification: `tests/domain/vehicle/standIn.test.ts` "rises by the solid layers counted from the feet up, never past maxLift, and reads no layer past the first open one"; `tests/domain/vehicle/vehicleStandIn.test.ts` "rises out of solid ground in the bumper's middle cell while driving, at most maxLift blocks, but not over plants (ADR 0119)", "rises out of ground in the wall foot while parked, but not into the front end wall above it (ADR 0119)". Not verified: 0119’s required iPad check of bumper boarding on a rise and flat grass.
+
+## Open issues
+
+- ADR 0067 says the model has about 3,400 cubes; the implementation has 4,205 cubes (`packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`); the ADR needs an edit or a superseding ADR.
+- ADR 0067 says placement requires 9 x 9 x 4 clear cells; the implementation uses `CAMPER_PROFILE.placement` for 3 x 3 x 4 (`src/domain/vehicle/kinds/camper/profile.ts`), following Proposed ADR 0143. ADR 0143 says it supersedes this clearance but records only an Extends relation; the ADR needs an edit or a superseding ADR.
+- ADR 0067 says there are three body-long hitboxes, and ADR 0068 says the only hitbox is one bumper cube; the implementation has a hidden feet-level box and separate bumper stand-ins (`packs/yasu_ride_bp/entities/yasu_ride/camper.se.json`, `src/domain/vehicle/kinds/camper/profile.ts`). Accepted ADR 0084 partly supersedes 0068, but Proposed ADR 0116 replaces those bumper boxes; the ADRs need an edit or a superseding ADR.
+- ADR 0067 says the driver is on the left; the implementation is right-hand drive (`tools/gen_camper.py`, `src/domain/vehicle/kinds/camper/profile.ts`), following Accepted ADR 0069; the ADR needs an edit or a superseding ADR. Current rider layout and later height changes are covered by Seats and driver selection.
+- ADR 0119 says `camper_park_grass` expects 104 laid room cells; the implementation expects `ROOM_CELL_COUNT - 1`, currently 106 (`src/test-pack/scenarios/camper.ts`); the ADR needs an edit or a superseding ADR.
+- ADR 0068 says the room is 103 cells; the implementation returns 107, while its docstring still says 105 (`src/domain/vehicle/kinds/camper/room.ts`, `tests/domain/vehicle/kinds/camper/room.test.ts`); the ADR needs an edit or a superseding ADR.
+- ADR 0068 says parking checks 103 room, 42 interior, 21 roof, and two exit cells (168 in total); the implementation still checks 168 unique cells, but they are 107 room cells, 45 cargo cells, two exit cells, and 14 slot and inside storage-plate cells (`src/domain/vehicle/kinds/camper/room.ts`, `tests/domain/vehicle/kinds/camper/room.test.ts`); the ADR needs an edit or a superseding ADR.
+- ADR 0068 says departure reads 63 interior and roof cells plus two exit cells (65 in total); the implementation reads the 45 cargo cells, the slot cells, the inside storage-plate cells, and the two exit cells, and accepts a camper's own furniture, decor, and plate blocks in the slot and plate cells (`src/domain/vehicle/kinds/camper/drive.ts`, `src/domain/vehicle/kinds/camper/room.ts`); the ADR needs an edit or a superseding ADR.
+- ADR 0068 says parking requires air or listed decorations and refuses a slab or anything built in the room; the implementation also preserves `NATURAL_GROUND` in designated ground cells (`src/domain/vehicle/kinds/camper/room.ts`), following Proposed ADR 0119; the ADR needs an edit or a superseding ADR.
+- ADR 0068 says pose y uses `ceil(y - 0.01)` near a cell top and describes snow keeping `floor(y + 0.01)` unless near that top; the implementation uses `ceil(y)` when the feet fraction reaches `LOW_GROUND_THRESHOLD`, with no epsilon subtraction on that branch (`src/domain/vehicle/kinds/camper/room.ts`); the ADR needs an edit or a superseding ADR.
+- ADR 0068 says an unlaid restored room redoes the park check and clear; the implementation deliberately clears decorations even if new blockers would fail the check, keeps the camper parked, and lays immediately (`src/domain/vehicle/kinds/camper/drive.ts`, `src/domain/vehicle/kinds/camper/room.ts`); the ADR needs an edit or a superseding ADR.
+- ADR 0069 says the model moves two gauges to the right; the implementation has a strip speedometer and four small gauges in the driver instrument panel (`tools/gen_camper.py`); the ADR needs an edit or a superseding ADR.
+- ADR 0091 says body glass includes corner glass; the implementation has removed it (`tools/gen_camper.py`, `packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`), following Proposed ADR 0199; the ADR needs an edit or a superseding ADR.
+- ADR 0146 says the vent is crossed mesh in an 8 x 8 opening using existing swatches; the implementation uses the larger louvred lid from Proposed ADR 0157 and atlas hardware from Proposed ADR 0190 (`tools/gen_camper.py`); the ADR needs an edit or a superseding ADR.
+- ADR 0157 says the panel is white, six steel screw heads are cubes, and the existing one-row palette and textures remain unchanged; the implementation uses a beige panel, an aluminium upper rail with atlas screws, and taller atlases (`tools/gen_camper.py`, `tools/camper_atlas.py`), as its Consequences notes for 0190 but without a superseding metadata relation; the ADR needs an edit or a superseding ADR.
+- ADR 0145 says Resource Pack 0.1.126, ADR 0146 says 0.1.127, ADR 0157 says 0.1.139, and ADR 0199 says 0.1.225; the implementation manifest is 0.1.234 (`packs/yasu_ride_rp/manifest.json`); the ADRs need an edit or a superseding ADR to distinguish historical bumps from current requirements.
+- Accepted ADRs 0067 and 0091 remain Accepted despite front geometry and corner glass being replaced only by Proposed ADR 0199. Accepted ADRs 0068 and 0084 likewise remain Accepted while their entity hitboxes are replaced by Proposed ADR 0116. They are not marked as fully superseded; only partial outgoing relations exist (`docs/adr/README.md`). The implementation follows the newer geometry and stand-in code (`tools/gen_camper.py`, `src/domain/vehicle/kinds/camper/profile.ts`); the ADRs need an edit or a superseding ADR that records agreement for those replacements.
+- ADRs 0119, 0143, 0145, 0146, 0157, 0190, and 0199 remain Proposed. Their code and assets exist (`src/domain/vehicle/kinds/camper`, `tools/gen_camper.py`), but the required iPad check, owner decisions, PC/mobile appearance checks, and client shimmer check are not recorded as passed; manual rows C161–C164 have empty results (`docs/manual-test.md`). Acceptance remains unresolved.
