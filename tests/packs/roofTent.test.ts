@@ -310,7 +310,15 @@ describe("roof tent asset contract", () => {
           const pixel = texture.pixels.subarray(start, start + 4);
           const slot = Math.floor(y / 4) * 4 + Math.floor(x / 4);
           if (slot < 2) {
-            expect(pixel).toEqual(ground.pixels.subarray(start, start + 4));
+            if (index === 0) {
+              const shade = slot === 0 ? 1 : 136 / 176;
+              expect([...pixel]).toEqual([
+                ...[86, 94, 64].map((channel) => Math.round(channel * shade)),
+                255,
+              ]);
+            } else {
+              expect(pixel).toEqual(ground.pixels.subarray(start, start + 4));
+            }
             if (index > 0)
               expect(pixel).not.toEqual(base.pixels.subarray(start, start + 4));
           } else expect(pixel).toEqual(base.pixels.subarray(start, start + 4));
