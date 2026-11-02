@@ -69,6 +69,13 @@ requirement prevents the entry gesture from immediately ejecting the player.
 Player leave, death and dimension-change events also invoke the exit use case.
 Outside placement uses only the occupant adapter's loaded-terrain search.
 
+- Give each Survival player one roof tent item on their first eligible join,
+  including existing players without the receipt flag. Creative players receive
+  nothing and are not marked, so a later Survival join remains eligible. Unlike
+  the vehicle starter ([0023](0023-starter-vehicle-on-first-join.md)),
+  which also gives to Creative players, this grant supplies the recipe-free roof
+  tent to Survival players; Creative players already have it in their catalog.
+
 ## Consequences
 
 Camp owns the roof tent lifecycle while vehicles supply only mount data and a

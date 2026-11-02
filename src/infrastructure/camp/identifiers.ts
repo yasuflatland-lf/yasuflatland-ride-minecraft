@@ -173,6 +173,9 @@ export const TEST_GAS_LANTERN_ON_TABLE_EVENT =
 
 export const ROOF_TENT_TYPE = id("roof_tent");
 export const ROOF_TENT_ITEM = id("roof_tent_item");
+export const ROOF_TENT_STARTER_RECEIVED_PROPERTY = id(
+  "roof_tent_starter_received",
+);
 export const ROOF_TENT_FAMILY = id("roof_tent");
 export const ROOF_TENT_LADDER_PROPERTY = id("ladder");
 export const ROOF_TENT_FLAP_OPEN_PROPERTY = id("flap_open");
