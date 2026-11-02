@@ -10,6 +10,7 @@ import {
   checkSpecAgreement,
   checkSpecBasisSources,
   checkSpecClosure,
+  checkSpecCoverage,
   checkSpecFormat,
   checkSpecIndex,
   checkSpecLinks,
@@ -150,7 +151,7 @@ describe("spec documentation checks", () => {
     "src/vehicle.ts": "",
   };
 
-  it("accepts a valid fixture in all six checks and allows absent specs", () => {
+  it("accepts a valid fixture in all seven checks and empty specs", () => {
     const specs = parseSpecs(files);
     const adrs = parseAdrs(files);
     expect(checkSpecFormat(specs)).toEqual([]);
@@ -158,6 +159,7 @@ describe("spec documentation checks", () => {
     expect(checkSpecAgreement(specs, adrs)).toEqual([]);
     expect(checkSpecBasisSources(specs)).toEqual([]);
     expect(checkSpecClosure(specs, adrs)).toEqual([]);
+    expect(checkSpecCoverage(specs, adrs)).toEqual([]);
     expect(checkSpecIndex(files, specs)).toEqual([]);
     expect(parseSpecs({ "docs/specs/nested/ignored.md": "" })).toEqual([]);
     expect(parseSpecs({})).toEqual([]);
@@ -390,6 +392,44 @@ describe("spec documentation checks", () => {
       expect(
         checkSpecClosure([parseSpec(specPath, specDocument(options))], adrs),
       ).toEqual([]);
+  });
+
+  it.each(["Accepted", "Proposed"])(
+    "reports uncovered live ADRs with %s status",
+    (status) => {
+      const adrs = parseAdrs({
+        [path(1)]: document(1),
+        [path(2)]: document(2, "", "Decision", "Rejected"),
+        [path(3)]: document(3),
+        [path(4)]: document(4, "", "Decision", status),
+        [path(5)]: document(5, "", "Decision", status),
+        [path(6)]: document(
+          6,
+          [
+            `- Supersedes: ${link(3)}`,
+            `- Supersedes in part: ${link(5)}: replaced rule`,
+            "",
+          ].join("\n"),
+        ),
+      });
+      const specs = [
+        parseSpec(
+          specPath,
+          specDocument({ sources: [1, 6], basis: [4], excluded: [5] }),
+        ),
+      ];
+      expect(checkSpecCoverage(specs, adrs)).toEqual(
+        [4, 5].map((value) => ({
+          path: path(value),
+          line: 1,
+          message: "Live ADR is not a Source of any spec",
+        })),
+      );
+    },
+  );
+
+  it("accepts empty inputs for live ADR coverage", () => {
+    expect(checkSpecCoverage([], [])).toEqual([]);
   });
 
   it("does not count a link inside an Excluded reason as included", () => {

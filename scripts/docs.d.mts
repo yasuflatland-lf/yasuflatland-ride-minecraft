@@ -59,6 +59,10 @@ export function checkSpecClosure(
   specs: readonly Spec[],
   adrs: readonly Adr[],
 ): Problem[];
+export function checkSpecCoverage(
+  specs: readonly Spec[],
+  adrs: readonly Adr[],
+): Problem[];
 export function checkSpecIndex(
   files: FileMap,
   specs: readonly Spec[],
