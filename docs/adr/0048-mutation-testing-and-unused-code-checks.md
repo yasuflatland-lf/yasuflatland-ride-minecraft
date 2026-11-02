@@ -24,6 +24,8 @@ The vitest runner 10.0.0 was built against Vitest 4. Under Vitest 5 its per-test
 
 ## Consequences
 
+- Stryker 10.1.1 includes the Vitest 5 test-name separator fix, so the local vitest runner patch was removed when upgrading to that release. The TypeScript 6 hook remains necessary
+
 - The checker type-checks mutants with TypeScript 6, so it can disagree with `pnpm typecheck` on TypeScript 7 behavior. Renovate does not update the 6.0.3 pin in `.pnpmfile.cjs`; bump it by hand
 - Drop the hook once #6110 is resolved and Stryker can use TypeScript 7
 - A Renovate update of the vitest runner fails `pnpm install` until the patch is moved to the new version or dropped. Drop it once a fix for #6210 is released. A score below the break threshold with "0.00 tests per mutant" means the patch no longer matches Vitest's naming
