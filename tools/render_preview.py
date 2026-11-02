@@ -31,6 +31,8 @@ builds do not all compress identically.
 import argparse
 import json
 import math
+import multiprocessing
+import os
 import struct
 import sys
 import zlib
@@ -1077,6 +1079,13 @@ def raster_jobs(rp: Path, icon_packs: list[Path]) -> list[RasterJob]:
     return jobs
 
 
+def rasterize_all(jobs: list[RasterJob], workers: int | None) -> list[bytearray]:
+    if workers == 1:
+        return [rasterize_job(j) for j in jobs]
+    with multiprocessing.get_context("spawn").Pool(workers or os.cpu_count()) as pool:
+        return pool.map(rasterize_job, jobs, chunksize=1)
+
+
 def grayscale(rgba):
     gray_rgba = bytearray(rgba)
     for i in range(0, len(gray_rgba), 4):
@@ -1092,6 +1101,7 @@ def main():
     parser.add_argument("output_dir", type=Path)
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--icons", nargs="+", type=Path, default=[])
+    parser.add_argument("--jobs", type=int, default=None, help="number of workers (default: CPU count)")
     args = parser.parse_args()
     # A mistyped pack dir would otherwise get a fresh pack_icon.png that no manifest uses
     for pack in args.icons:
@@ -1101,7 +1111,7 @@ def main():
     if args.icons and not any(pack.name == ICON_GRAYSCALE_PACK for pack in args.icons):
         parser.error(f"--icons must include {ICON_GRAYSCALE_PACK}, which gets the grayscale icon")
     jobs = raster_jobs(args.resource_pack, args.icons)
-    rendered = [rasterize_job(j) for j in jobs]
+    rendered = rasterize_all(jobs, args.jobs)
     preview_count = next(
         (i for i, job in enumerate(jobs) if args.icons and job.name == str(args.icons[0] / "pack_icon.png")),
         len(jobs),
