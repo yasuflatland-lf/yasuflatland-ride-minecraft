@@ -652,62 +652,83 @@ it("maps roof placement refusals and fold counts to existing localized tent mess
   });
 });
 
-it("moves entrants to the lifted seat without changing rotation", () => {
+it("teleports entrants near the seat before adding the rider", () => {
   const tent = spawn();
   const p = player();
+  const addRider = vi.fn(() => true);
+  tent.getComponent.mockReturnValue({ addRider });
   occupants.moveInside(PLAYER, "tent");
   expect(p.teleport).toHaveBeenCalledExactlyOnceWith(
     seatPosition(tent.location),
     { dimension: game.dimension },
   );
-  expect(p.setRotation).not.toHaveBeenCalled();
-});
-
-it("holds a displaced occupant at the seat without preserving velocity or rotation", () => {
-  const tent = spawn();
-  const p = player();
-  occupants.setOccupant("tent", PLAYER);
-  p.location.y -= 1;
-  occupants.holdInside(PLAYER, "tent");
-  expect(p.teleport).toHaveBeenCalledExactlyOnceWith(
-    seatPosition(tent.location),
-    { dimension: game.dimension },
+  expect(addRider).toHaveBeenCalledExactlyOnceWith(p);
+  expect(p.teleport.mock.invocationCallOrder[0]).toBeLessThan(
+    addRider.mock.invocationCallOrder[0] ?? 0,
   );
   expect(p.setRotation).not.toHaveBeenCalled();
 });
 
-it("does not teleport an occupant already seated or within tolerance", () => {
+it.each(["unavailable", "false", "throws"])(
+  "falls back to teleporting to the seat when addRider is %s",
+  (failure) => {
+    const tent = spawn();
+    const p = player();
+    const addRider = vi.fn(() => {
+      if (failure === "throws") throw new Error("Cannot seat rider");
+      return false;
+    });
+    if (failure !== "unavailable")
+      tent.getComponent.mockReturnValue({ addRider });
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      expect(() => occupants.moveInside(PLAYER, "tent")).not.toThrow();
+      expect(p.teleport).toHaveBeenLastCalledWith(seatPosition(tent.location), {
+        dimension: game.dimension,
+      });
+      expect(p.teleport).toHaveBeenCalledTimes(
+        failure === "unavailable" ? 1 : 2,
+      );
+    } finally {
+      warning.mockRestore();
+    }
+  },
+);
+
+it("recognizes only the tent's rider and leaves an already seated player in place", () => {
   const tent = spawn();
   const p = player();
-  occupants.setOccupant("tent", PLAYER);
-  p.location = seatPosition(tent.location);
-  occupants.holdInside(PLAYER, "tent");
-  p.location.y -= ROOF_TENT_SPEC.seatTolerance / 2;
-  occupants.holdInside(PLAYER, "tent");
+  expect(occupants.isSeated(PLAYER, "tent")).toBe(false);
+  p.getComponent.mockReturnValue({ entityRidingOn: { id: "other" } });
+  expect(occupants.isSeated(PLAYER, "tent")).toBe(false);
+  p.getComponent.mockReturnValue({ entityRidingOn: tent });
+  expect(occupants.isSeated(PLAYER, "tent")).toBe(true);
+  occupants.moveInside(PLAYER, "tent");
   expect(p.teleport).not.toHaveBeenCalled();
+  expect(tent.getComponent).not.toHaveBeenCalled();
+  game.entities.delete("tent");
+  expect(occupants.isSeated(PLAYER, "tent")).toBeUndefined();
 });
 
-it.each([
-  "non-occupant",
-  "cleared",
-  "invalid tent",
-  "unloaded tent",
-  "invalid player",
-  "missing player",
-  "different dimension",
-])("does not hold a displaced player with %s", (reason) => {
-  const tent = spawn();
-  const p = player();
-  occupants.setOccupant("tent", PLAYER);
-  if (reason === "non-occupant")
-    occupants.setOccupant("tent", asPlayerId("other"));
-  if (reason === "cleared") occupants.setOccupant("tent", undefined);
-  if (reason === "invalid tent") tent.isValid = false;
-  if (reason === "unloaded tent") game.entities.delete("tent");
-  if (reason === "invalid player") p.isValid = false;
-  if (reason === "missing player") game.entities.delete("player");
-  if (reason === "different dimension")
-    p.dimension = { ...game.dimension, id: "minecraft:nether" };
-  occupants.holdInside(PLAYER, "tent");
-  expect(p.teleport).not.toHaveBeenCalled();
-});
+it.each([true, false])(
+  "places an occupant outside when still seated is %s",
+  (seated) => {
+    const tent = spawn();
+    const p = player();
+    const ejectRider = vi.fn();
+    tent.getComponent.mockReturnValue({ ejectRider });
+    if (seated) p.getComponent.mockReturnValue({ entityRidingOn: tent });
+    occupants.placeOutside(PLAYER, "tent");
+    expect(ejectRider).toHaveBeenCalledTimes(seated ? 1 : 0);
+    if (seated) {
+      expect(ejectRider).toHaveBeenCalledWith(p);
+      expect(ejectRider.mock.invocationCallOrder[0]).toBeLessThan(
+        p.teleport.mock.invocationCallOrder[0] ?? 0,
+      );
+    }
+    expect(p.teleport).toHaveBeenCalledExactlyOnceWith(
+      { x: 3.5, y: 0, z: 0.5 },
+      { dimension: game.dimension },
+    );
+  },
+);

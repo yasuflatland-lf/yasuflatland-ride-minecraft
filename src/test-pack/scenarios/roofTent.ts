@@ -57,7 +57,7 @@ function contract(tent: Entity, ladder: boolean): boolean {
     tent.matches({ families: [ROOF_TENT_FAMILY, "inanimate"] }) &&
     tent.getComponent("minecraft:health")?.currentValue === 20 &&
     tent.getComponent("minecraft:variant") !== undefined &&
-    tent.getComponent("minecraft:rideable") === undefined &&
+    tent.getComponent("minecraft:rideable")?.seatCount === 1 &&
     tent.getProperty(ROOF_TENT_LADDER_PROPERTY) === ladder &&
     Math.abs(extent.x - (ladder ? SUV_BOUNDS_HALF_WIDTH : 1)) < 0.01 &&
     Math.abs(extent.z - (ladder ? SUV_BOUNDS_HALF_WIDTH : 1)) < 0.01 &&

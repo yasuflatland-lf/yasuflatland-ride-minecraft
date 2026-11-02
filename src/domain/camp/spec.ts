@@ -127,8 +127,9 @@ export const GAS_LANTERN_SPEC = Object.freeze({
 export const ROOF_TENT_SPEC = Object.freeze({
   /** SUV shell lift (5 px) plus sleeping-bag rise above its platform (2.4 px), from tools/gen_roof_tent.py. */
   seatLift: (5 + 2.4) / 16,
-  /** Allows small position drift before resetting gravity-driven motion. */
-  seatTolerance: 0.15,
+  /** A riding player's feet sit about 0.35 blocks below the seat point (Java ridingOffset convention).
+   * The Bedrock value is unmeasured; the owner tunes it live. */
+  seatRiderOffset: 0.35,
   // Variant 0 must resolve to the visible fly color for dye comparisons (ADR 0076).
   defaultPaint: TENT_SPEC.defaultPaint,
   /** Matches ground gear recovery so the same three deliberate hits fold it (ADR 0200). */

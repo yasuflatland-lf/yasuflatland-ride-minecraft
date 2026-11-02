@@ -138,6 +138,9 @@ SUV_DIMS = Dims(
     half_depth=1.2 * 32 / 2,
     shell_lift=5, host_roof_height=26.1 * 1.45,
     mount_bar_width=2, mount_bar_drop=3.5, mount_foot_drop=5,
+    # The left shift moved the +18 px bar past the hardtop edge. Both bars now stay on the
+    # hardtop (host x within +-1.64 blocks) and under the platform (tent x within +-31.5 px).
+    mount_bar_x=(-26, 4),
     platform_height=1.2, wall_height=1.2 * 12, ridge_height=1.2 * 12 + 6.6,
     end_window_half_depth=12.5, end_window_top=12,
     ridge_cap_half_depth=5, ridge_cap_thickness=0.12,

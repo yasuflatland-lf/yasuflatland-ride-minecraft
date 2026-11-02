@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { rideSeatY } from "../../src/domain/camp/roofTent/seat";
 import { PAINTS } from "../../src/domain/shared/paint";
 import { SUV_SPEC } from "../../src/domain/vehicle/kinds/suv/spec";
 import {
@@ -129,6 +130,26 @@ describe("roof tent asset contract", () => {
       tent.components["minecraft:pushable"],
     );
     expect(entity.components["minecraft:persistent"]).toEqual({});
+    expect(entity.components["minecraft:rideable"]).toEqual({
+      seat_count: 1,
+      family_types: ["player"],
+      crouching_skip_interact: true,
+      seats: [{ position: [0, rideSeatY(), 0] }],
+    });
+  });
+
+  it("keeps every SUV rack bar on the hardtop and under the platform", () => {
+    for (const x of suvDims.mount_bar_x as number[]) {
+      for (const edge of [
+        x - suvDims.mount_bar_width / 2,
+        x + suvDims.mount_bar_width / 2,
+      ]) {
+        expect(Math.abs(edge)).toBeLessThanOrEqual(suvDims.half_width);
+        expect(
+          Math.abs(SUV_SPEC.roofTentAnchorX + edge / 16),
+        ).toBeLessThanOrEqual(SUV_SPEC.bodyHalfWidth);
+      }
+    }
   });
 
   it("maps the model +x ladder foot to the vehicle-left gameplay entrance", () => {

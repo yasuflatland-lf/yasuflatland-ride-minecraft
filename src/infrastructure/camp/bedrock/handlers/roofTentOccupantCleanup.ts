@@ -5,6 +5,8 @@ import { asPlayerId, type PlayerId } from "../../../../domain/shared/ids";
 import { playerById } from "../../../shared/players";
 
 const RESTORE_SCAN_TICKS = 20;
+const ENTRY_GRACE_TICKS = 10;
+const MAX_RESEAT_ATTEMPTS = 40;
 const OFFLINE_GRACE_TICKS = 20 * 30;
 
 export function registerRoofTentOccupantCleanup(
@@ -16,14 +18,26 @@ export function registerRoofTentOccupantCleanup(
   // a server restart loses it. The scan below rebuilds it from the loaded tents.
   const tracked = new Map<
     PlayerId,
-    { tentId: string; released: boolean; offlineTicks: number }
+    {
+      tentId: string;
+      released: boolean;
+      offlineTicks: number;
+      trackedTicks: number;
+      reseatAttempts: number;
+    }
   >();
   let ticks = 0;
   const restore = () => {
     for (const tentId of loadedTents()) {
       const occupant = occupants.occupantOf(tentId);
       if (occupant !== undefined && !tracked.has(occupant))
-        tracked.set(occupant, { tentId, released: false, offlineTicks: 0 });
+        tracked.set(occupant, {
+          tentId,
+          released: false,
+          offlineTicks: 0,
+          trackedTicks: 0,
+          reseatAttempts: 0,
+        });
     }
   };
   const cleanup = (playerId: PlayerId) => {
@@ -63,11 +77,27 @@ export function registerRoofTentOccupantCleanup(
         cleanup(playerId);
         continue;
       }
-      occupants.holdInside(playerId, entry.tentId);
+      const seated = occupants.isSeated(playerId, entry.tentId);
+      if (seated === undefined) continue;
+      const inEntryGrace =
+        !entry.released || entry.trackedTicks < ENTRY_GRACE_TICKS;
+      entry.trackedTicks++;
+      if (!seated) {
+        if (inEntryGrace && entry.reseatAttempts < MAX_RESEAT_ATTEMPTS) {
+          entry.reseatAttempts++;
+          occupants.moveInside(playerId, entry.tentId);
+        } else cleanup(playerId);
+      }
     }
   }, 1);
   return (playerId, tentId) => {
     if (tracked.get(playerId)?.tentId !== tentId)
-      tracked.set(playerId, { tentId, released: false, offlineTicks: 0 });
+      tracked.set(playerId, {
+        tentId,
+        released: false,
+        offlineTicks: 0,
+        trackedTicks: 0,
+        reseatAttempts: 0,
+      });
   };
 }

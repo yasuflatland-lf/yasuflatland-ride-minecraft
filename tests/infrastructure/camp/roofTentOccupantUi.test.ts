@@ -155,7 +155,7 @@ beforeEach(() => {
       else occupied.delete(id);
     }),
     moveInside: vi.fn(),
-    holdInside: vi.fn(),
+    isSeated: vi.fn(() => true),
     placeOutside: vi.fn(),
     showMessage: vi.fn(),
     spawnCellOf: () => ({ x: 0, y: 0, z: 0 }),
@@ -311,6 +311,8 @@ it("waits for the entry sneak to be released before sneak-dismounting", () => {
   poll();
   poll();
   expect(leave.execute).toHaveBeenCalledOnce();
+  expect(occupants.placeOutside).toHaveBeenCalledExactlyOnceWith(pid, "tent");
+  expect(occupied.has("tent")).toBe(false);
 });
 it("forgets host-ejected occupants without another exit and ignores unavailable player handles", () => {
   interact();
@@ -496,51 +498,82 @@ it("does not enter a loaded tent when the player is away from its foot", () => {
   expect(player.onScreenDisplay.setActionBar).not.toHaveBeenCalled();
 });
 
-it("holds a tracked occupant every tick and stops after occupancy clears", () => {
+it("leaves a seated occupant in place on every tick", () => {
   interact();
   flush();
-  poll();
-  poll();
-  expect(occupants.holdInside).toHaveBeenCalledTimes(2);
-  expect(occupants.holdInside).toHaveBeenLastCalledWith(pid, "tent");
-  occupied.delete("tent");
-  poll();
-  poll();
-  expect(occupants.holdInside).toHaveBeenCalledTimes(2);
-});
-
-it("stops holding immediately on menu leave", async () => {
-  interact();
-  flush();
-  poll();
-  game.show.mockResolvedValue({ selection: 1 });
-  await showMenu(player as unknown as Player, "tent");
-  poll();
-  expect(occupants.holdInside).toHaveBeenCalledExactlyOnceWith(pid, "tent");
-});
-
-it("holds through sneak release but never on the sneak-leave tick", () => {
-  interact();
-  flush();
-  poll();
   player.isSneaking = false;
+  for (let i = 0; i < 60; i++) poll();
+  expect(occupants.moveInside).toHaveBeenCalledExactlyOnceWith(pid, "tent");
+  expect(occupants.placeOutside).not.toHaveBeenCalled();
+  expect(leave.execute).not.toHaveBeenCalled();
+});
+
+it("clears occupancy and places a dismounted occupant outside after entry grace", () => {
+  interact();
+  flush();
+  player.isSneaking = false;
+  for (let i = 0; i < 10; i++) poll();
+  vi.mocked(occupants.isSeated).mockReturnValue(false);
   poll();
-  expect(occupants.holdInside).toHaveBeenCalledTimes(2);
-  player.isSneaking = true;
+  poll();
+  expect(leave.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId: pid,
+    tentId: "tent",
+  });
+  expect(occupants.placeOutside).toHaveBeenCalledExactlyOnceWith(pid, "tent");
+  expect(occupied.has("tent")).toBe(false);
+});
+
+it("re-seats a dismounted occupant while the entry sneak is held", () => {
+  interact();
+  flush();
+  vi.mocked(occupants.moveInside).mockClear();
+  vi.mocked(occupants.isSeated).mockReturnValue(false);
+  for (let i = 0; i < 12; i++) poll();
+  expect(occupants.moveInside).toHaveBeenCalledTimes(12);
+  expect(occupants.moveInside).toHaveBeenLastCalledWith(pid, "tent");
+  expect(leave.execute).not.toHaveBeenCalled();
+  expect(occupied.get("tent")).toBe(pid);
+});
+
+it("allows a brief seating delay after the entry sneak is released", () => {
+  interact();
+  flush();
+  player.isSneaking = false;
+  vi.mocked(occupants.isSeated).mockReturnValue(false);
+  vi.mocked(occupants.moveInside).mockClear();
+  for (let i = 0; i < 10; i++) poll();
+  expect(occupants.moveInside).toHaveBeenCalledTimes(10);
+  expect(leave.execute).not.toHaveBeenCalled();
+  poll();
+  expect(leave.execute).toHaveBeenCalledOnce();
+});
+
+it("gives up after forty re-seat attempts even with entry sneak held", () => {
+  interact();
+  flush();
+  vi.mocked(occupants.isSeated).mockReturnValue(false);
+  vi.mocked(occupants.moveInside).mockClear();
+  for (let i = 0; i < 40; i++) poll();
+  expect(occupants.moveInside).toHaveBeenCalledTimes(40);
+  expect(leave.execute).not.toHaveBeenCalled();
   poll();
   poll();
   expect(leave.execute).toHaveBeenCalledOnce();
-  expect(occupants.holdInside).toHaveBeenCalledTimes(2);
+  expect(occupants.placeOutside).toHaveBeenCalledExactlyOnceWith(pid, "tent");
+  expect(occupied.has("tent")).toBe(false);
 });
 
-it("does not hold an unavailable tracked player", () => {
+it("keeps an unloaded tent's occupant without re-seating or leaving", () => {
   interact();
   flush();
-  player.isValid = false;
-  poll();
-  game.getEntity.mockReturnValue(undefined);
-  poll();
-  expect(occupants.holdInside).not.toHaveBeenCalled();
+  player.isSneaking = false;
+  vi.mocked(occupants.isSeated).mockReturnValue(undefined);
+  vi.mocked(occupants.moveInside).mockClear();
+  for (let i = 0; i < 60; i++) poll();
+  expect(occupants.moveInside).not.toHaveBeenCalled();
+  expect(leave.execute).not.toHaveBeenCalled();
+  expect(occupied.get("tent")).toBe(pid);
 });
 
 it("hints at 1.2 blocks from the ladder without triggering proximity entry", () => {

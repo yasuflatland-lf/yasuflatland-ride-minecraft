@@ -11,7 +11,7 @@ import type { VehicleHostLookup } from "../../../application/shared/ports/vehicl
 import { decodeHost } from "../../../domain/camp/hosted";
 import { exitCell } from "../../../domain/camp/roofTent/exitCell";
 import { snapYaw4 } from "../../../domain/camp/roofTent/facing";
-import { needsHold, seatPosition } from "../../../domain/camp/roofTent/seat";
+import { seatPosition } from "../../../domain/camp/roofTent/seat";
 import { CLEARABLE_DECORATIONS } from "../../../domain/shared/decorations";
 import {
   asDimensionId,
@@ -19,7 +19,7 @@ import {
   type PlayerId,
 } from "../../../domain/shared/ids";
 import { forward, type Vec3 } from "../../../domain/shared/vec";
-import { messageKey } from "../../shared/identifiers";
+import { messageKey, NAMESPACE } from "../../shared/identifiers";
 import { playerById } from "../../shared/players";
 import {
   ROOF_TENT_EXIT_PROPERTY,
@@ -112,26 +112,30 @@ export class BedrockRoofTentOccupantWorld
   }
   moveInside(playerId: PlayerId, id: string): void {
     const tent = this.snapshot(id);
-    if (tent)
-      world
-        .getEntity(playerId)
-        ?.teleport(seatPosition(tent.location), { dimension: tent.dimension });
-  }
-  holdInside(playerId: PlayerId, id: string): void {
-    // Removal snapshots support exits, but an unloaded tent must never hold a player.
-    if (!roofTentEntity(id)) return;
-    const tent = this.snapshot(id);
+    const entity = roofTentEntity(id);
     const player = world.getEntity(playerId);
-    if (
-      !tent ||
-      !player?.isValid ||
-      player.dimension.id !== tent.dimension.id ||
-      tent.occupant !== playerId
-    )
-      return;
-    const seat = seatPosition(tent.location);
-    if (needsHold(player.location, seat))
-      player.teleport(seat, { dimension: tent.dimension });
+    if (!tent || !player?.isValid) return;
+    if (this.isSeated(playerId, id) === true) return;
+    const teleport = () =>
+      player.teleport(seatPosition(tent.location), {
+        dimension: tent.dimension,
+      });
+    // addRider needs a nearby rider in the tent's dimension.
+    teleport();
+    try {
+      const rideable = entity?.getComponent("minecraft:rideable");
+      if (rideable && !rideable.addRider(player)) teleport();
+    } catch (error) {
+      console.warn(`[${NAMESPACE}] roof tent seating failed: ${error}`);
+      teleport();
+    }
+  }
+  isSeated(playerId: PlayerId, id: string): boolean | undefined {
+    if (!roofTentEntity(id)) return undefined;
+    return (
+      world.getEntity(playerId)?.getComponent("minecraft:riding")
+        ?.entityRidingOn?.id === id
+    );
   }
   placeOutside(playerId: PlayerId, id: string): void {
     const tent = this.snapshot(id);
