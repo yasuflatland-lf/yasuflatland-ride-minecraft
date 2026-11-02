@@ -18,6 +18,60 @@ const cmd = {
 };
 
 describe("PlaceRoofTent", () => {
+  it("reads placement refusals without changing the world or showing messages", () => {
+    fc.assert(
+      fc.property(
+        fc.boolean(),
+        fc.boolean(),
+        fc.boolean(),
+        (roofTaken, driverPresent, moving) => {
+          const world = new FakeRoofTentWorld();
+          world.hosts.set("ground", { kind: "ground" });
+          world.hosts.set("other", { kind: "vehicle", id: "another" });
+          if (roofTaken)
+            world.hosts.set("existing", { kind: "vehicle", id: "host" });
+          const hosts = [...world.hosts];
+          const place = new PlaceRoofTent(world, () => ({
+            ...PRESENT,
+            driverPresent,
+            moving,
+          }));
+          expect(place.refusalFor("host")).toBe(
+            driverPresent || moving
+              ? "host_in_use"
+              : roofTaken
+                ? "roof_taken"
+                : undefined,
+          );
+          expect(world.consumeItem).not.toHaveBeenCalled();
+          expect(world.giveItem).not.toHaveBeenCalled();
+          expect(world.spawn).not.toHaveBeenCalled();
+          expect(world.remove).not.toHaveBeenCalled();
+          expect(world.showMessage).not.toHaveBeenCalled();
+          expect([...world.hosts]).toEqual(hosts);
+        },
+      ),
+    );
+  });
+
+  it("reports unsupported hosts and leaves absent hosts without a refusal", () => {
+    const world = new FakeRoofTentWorld();
+    expect(
+      new PlaceRoofTent(world, () => ({
+        ...PRESENT,
+        mount: undefined,
+      })).refusalFor("host"),
+    ).toBe("unsupported_vehicle");
+    for (const status of ["unknown", "removed"] as const) {
+      expect(
+        new PlaceRoofTent(world, () => ({ status })).refusalFor("host"),
+      ).toBeUndefined();
+    }
+    expect(world.showMessage).not.toHaveBeenCalled();
+    expect(world.consumeItem).not.toHaveBeenCalled();
+    expect(world.spawn).not.toHaveBeenCalled();
+  });
+
   it("uses the host's rotated left/forward anchor and consumes only in Survival", () => {
     fc.assert(
       fc.property(
