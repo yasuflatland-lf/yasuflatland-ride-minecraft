@@ -6,7 +6,7 @@
 
 ## Context
 
-The unit job takes about 90 s. Its 339 test files contain about 3950 tests and consume about 110 s of CPU time. The test suite is CPU bound on the 4-vCPU runner, so running more workers within that job does not provide enough capacity to shorten the wait.
+The unit job takes about 90 s. Its 340 test files contain about 3950 tests and consume about 110 s of CPU time. The test suite is CPU bound on the 4-vCPU runner, so running more workers within that job does not provide enough capacity to shorten the wait.
 
 ADR 0054 separates the model check from the unit job and shards the in-game tests. This decision extends it by sharding the unit side.
 
@@ -21,7 +21,7 @@ ADR 0054 separates the model check from the unit job and shards the in-game test
 
 ## Consequences
 
-In a local comparison, the single run and merged reports had identical covered-line sets per file. LCOV `DA` hit counts differed because fast-check is random; in one earlier run, `menuChoices.ts:121` also flipped between covered and uncovered. The merged totals were 4313/6026 branches and 6241/9914 lines, equal to the single run.
+In a local comparison, the single run and merged reports had identical covered-line sets per file. LCOV `DA` hit counts differed because fast-check is random; in one earlier run, `menuChoices.ts:121` also flipped between covered and uncovered. The merged totals were 4313/6026 branches and 6241/9914 lines, equal to the single run. This fast-check nondeterminism is a known cause of tiny Codecov line deltas unrelated to sharding.
 
 The local shards took 8.7 s, 8.4 s, and 4.8 s of wall time under load. These measurements do not establish the CI speedup. Fill in median CI timings after the pull request runs, and revisit the shard count if setup and artifact-transfer overhead outweigh the time saved or the shards become substantially unbalanced.
 
