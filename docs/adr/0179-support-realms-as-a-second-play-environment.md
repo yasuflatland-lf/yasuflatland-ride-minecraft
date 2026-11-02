@@ -2,7 +2,7 @@
 
 - Status: Proposed
 - Date: 2026-10-23
-- Extends: 0001
+- Extends: [0001](0001-bedrock-addon-with-stable-script-api.md)
 
 ## Context
 

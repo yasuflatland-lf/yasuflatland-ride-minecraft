@@ -21,7 +21,9 @@
     "server:up": "node scripts/server-up.mjs",
     "server:down": "docker compose -f server/compose.yaml down",
     "server:restart": "docker compose -f server/compose.yaml down && node scripts/server-up.mjs",
-    "test:game": "node scripts/game-test.mjs"
+    "test:game": "node scripts/game-test.mjs",
+    "docs": "node scripts/docs.mjs --write",
+    "lint:docs": "node scripts/docs.mjs --check"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.4",

@@ -1,11 +1,12 @@
 # 0050. Vehicle kinds and per-kind profiles
 
-- Status: Superseded in part by 0055; extended by 0120, [0136](0136-bulldozer.md) (Proposed), and [0139](0139-show-the-held-tool-on-the-cab-monitor.md) (Proposed)
+- Status: Accepted
 - Date: 2026-10-12
+- Extends: [0046](0046-organize-each-layer-by-feature.md)
 
 ## Context
 
-All driven entities belong to the vehicle feature, but 0046 left its internal layout open until a second vehicle arrived. The [sports boat spike](../spike-sportsboat.md) found SUV assumptions in motion limits, body sizes, seats, lights, placement, entity filters, and item drops. A family query found both kinds and passed all 24 SUV in-game tests, but branching inside the aggregate and reusing SUV forms for afloat and beached states would couple the boat to the SUV.
+All driven entities belong to the vehicle feature, but 0046 left its internal layout open until a second vehicle arrived. The [sports boat spike](../spikes/sportsboat.md) found SUV assumptions in motion limits, body sizes, seats, lights, placement, entity filters, and item drops. A family query found both kinds and passed all 24 SUV in-game tests, but branching inside the aggregate and reusing SUV forms for afloat and beached states would couple the boat to the SUV.
 
 ## Decision
 

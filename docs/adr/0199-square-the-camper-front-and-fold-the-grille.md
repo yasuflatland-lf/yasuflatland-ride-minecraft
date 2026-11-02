@@ -2,7 +2,9 @@
 
 - Status: Proposed
 - Date: 2026-11-01
-- Amends in part: [0067](0067-camper.md), [0091](0091-alpha-blend-only-the-camper-glass.md) (corner glass, now removed), [0190](0190-ribbed-camper-shell-atlas.md) (front geometry)
+- Supersedes in part: [0067](0067-camper.md): the camper front geometry
+- Supersedes in part: [0091](0091-alpha-blend-only-the-camper-glass.md): corner glass, now removed
+- Supersedes in part: [0190](0190-ribbed-camper-shell-atlas.md): front geometry
 
 ## Context
 

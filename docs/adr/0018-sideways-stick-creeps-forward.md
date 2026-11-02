@@ -1,7 +1,8 @@
 # 0018. Treat a sideways stick as a slow forward turn
 
-- Status: Extended by 0074 and 0089
+- Status: Accepted
 - Date: 2026-10-11
+- Supersedes: [0005](0005-touch-throttle-compensation.md)
 
 ## Context
 

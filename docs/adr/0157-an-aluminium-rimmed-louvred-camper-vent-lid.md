@@ -2,7 +2,7 @@
 
 - Status: Proposed
 - Date: 2026-10-26
-- Supersedes in part: [0146](0146-wire-mesh-bulldozer-steps-and-a-camper-vent-cover.md) (the camper vent cover's look)
+- Supersedes in part: [0146](0146-wire-mesh-bulldozer-steps-and-a-camper-vent-cover.md): the camper vent cover's look
 
 ## Context
 

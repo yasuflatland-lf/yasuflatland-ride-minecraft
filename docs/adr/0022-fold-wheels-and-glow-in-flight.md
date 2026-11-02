@@ -1,6 +1,6 @@
 # 0022. Fold the wheels and light their undersides in flight
 
-- Status: Superseded in part by 0033 (when the wheels unfold) and 0043 (where the folded wheels hang)
+- Status: Accepted
 - Date: 2026-10-11
 
 ## Context

@@ -1,6 +1,6 @@
 # 0023. Give each player a vehicle item on their first join
 
-- Status: Accepted; extended by [0136](0136-bulldozer.md) (Proposed)
+- Status: Accepted
 - Date: 2026-10-11
 
 ## Context

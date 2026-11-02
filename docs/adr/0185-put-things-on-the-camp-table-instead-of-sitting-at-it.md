@@ -2,12 +2,15 @@
 
 - Status: Proposed
 - Date: 2026-10-29
-- Extends: 0152 (the camp table), 0168 (the Dutch oven and its hosts), 0173 (the Gas Lantern, which now may stand on a table)
-- Supersedes in part: 0152 (the two seats, the Sit interaction, and "does not accept placed items") and 0168 (rule 5: a missing host no longer drops the oven to the ground; rule 1: new ovens on a table no longer use two fixed spots; rule 8: an overlap and limit check replaces the occupied-spot refusal on a table; Out of scope: the table may now hold Gas Lanterns)
+- Supersedes in part: [0152](0152-a-two-seat-folding-camp-table.md): the two seats, the Sit interaction, and "does not accept placed items"
+- Supersedes in part: [0168](0168-a-dutch-oven-and-a-grill-for-the-fire-pit.md): rule 5: a missing host no longer drops the oven to the ground; rule 1: new ovens on a table no longer use two fixed spots; rule 8: an overlap and limit check replaces the occupied-spot refusal on a table; Out of scope: the table may now hold Gas Lanterns
+- Extends: [0152](0152-a-two-seat-folding-camp-table.md): the camp table
+- Extends: [0168](0168-a-dutch-oven-and-a-grill-for-the-fire-pit.md): the Dutch oven and its hosts
+- Extends: [0173](0173-remove-the-inside-lantern-and-add-the-gas-lantern.md): the Gas Lantern, which now may stand on a table
 
 ## Context
 
-The owner wants the outside Camp Table to hold camp gear where the player aims, without seats. Today it seats two players (0152), holds Dutch ovens in two fixed spots (0168), and cannot hold the ground Gas Lantern (0173). The [design](../superpowers/specs/2026-10-29-camp-table-top-placement-design.md) replaces those spots with placement on the top and removes hosted gear when its host disappears.
+The owner wants the outside Camp Table to hold camp gear where the player aims, without seats. Today it seats two players (0152), holds Dutch ovens in two fixed spots (0168), and cannot hold the ground Gas Lantern (0173). The [design](../designs/2026-10-29-camp-table-top-placement-design.md) replaces those spots with placement on the top and removes hosted gear when its host disappears.
 
 `TABLE_SPEC`, `TABLE_TOP_PX`, `DUTCH_OVEN_SPEC`, and `GAS_LANTERN_SPEC` in `src/domain/camp/spec.ts` hold the existing tuning. Saved ovens must keep working through the change.
 

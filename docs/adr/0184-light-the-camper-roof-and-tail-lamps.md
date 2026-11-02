@@ -2,7 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-10-29
-- Extends: 0147, 0020
+- Extends: [0020](0020-headlights.md)
+- Extends: [0147](0147-light-the-lamps-with-a-pbr-emissive-layer.md)
 
 ## Context
 

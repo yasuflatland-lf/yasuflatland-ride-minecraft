@@ -1,9 +1,13 @@
 # 0114. Open the camper wall cabinet
 
-- Status: Accepted (extended by [0121](0121-doored-storage-in-the-camper.md): the wall cabinet is the first definition of doored storage)
+- Status: Accepted
 - Date: 2026-10-22
-- Supersedes in part: 0103 (the wall cabinet's 7 px height and "it has no decor slot")
-- Extends: 0068 (the ceiling cells), 0094 (a door swung by an entity property), 0105 (one toggle per swing), 0108 (a pair block per furniture cell), 0113 (the window under the cabinet)
+- Supersedes in part: [0103](0103-raise-the-camper-wall-cabinet-to-the-ceiling.md): the wall cabinet's 7 px height and "it has no decor slot"
+- Extends: [0068](0068-park-the-camper-with-room-blocks.md): the ceiling cells
+- Extends: [0094](0094-the-camper-shower-toilet-door-and-shower.md): a door swung by an entity property
+- Extends: [0105](0105-toggle-a-camper-door-once-per-swing.md): one toggle per swing
+- Extends: [0108](0108-two-items-on-each-shelf-board-and-the-table.md): a pair block per furniture cell
+- Extends: [0113](0113-a-window-over-the-camper-counter.md): the window under the cabinet
 
 ## Context
 

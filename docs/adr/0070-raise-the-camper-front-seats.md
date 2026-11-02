@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-10-20
+- Supersedes in part: [0068](0068-park-the-camper-with-room-blocks.md): the front deck seat rise
+- Supersedes in part: [0069](0069-camper-right-hand-drive.md): the front seat heights
 
 ## Context
 

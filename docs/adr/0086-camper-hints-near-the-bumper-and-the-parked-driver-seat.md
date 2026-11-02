@@ -1,8 +1,9 @@
 # 0086. Show camper hints near the bumper and the parked driver's seat
 
-- Status: Accepted; extended by [0116](0116-a-bumper-stand-in-takes-the-camper-hits.md)
+- Status: Accepted
 - Date: 2026-10-20
-- Extends: 0068, 0084
+- Extends: [0068](0068-park-the-camper-with-room-blocks.md)
+- Extends: [0084](0084-camper-hitbox-spans-the-bumper.md)
 
 ## Context
 

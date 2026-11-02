@@ -1,10 +1,11 @@
 # 0116. A bumper stand-in takes the camper's hits
 
-- Status: Proposed (to be Accepted once the phone check under Consequences passes)
+- Status: Proposed
+- Acceptance condition: the phone check under Consequences passes
 - Date: 2026-10-22
-- Supersedes in part: 0084 (the three boxes fixed at z 3.7 on the camper), 0068 (the bumper hitbox on the camper entity)
-- Extends: 0086 (the bumper hints)
-- Extended by: [0154](0154-keep-camper-passengers-in-their-seats-on-departure.md) (Proposed; the stand-in boards through the chosen-seat mechanism), [0119](0119-park-the-camper-over-natural-ground.md) (Proposed; the stand-in rises out of the ground)
+- Supersedes in part: [0068](0068-park-the-camper-with-room-blocks.md): the bumper hitbox on the camper entity
+- Supersedes in part: [0084](0084-camper-hitbox-spans-the-bumper.md): the three boxes fixed at z 3.7 on the camper
+- Extends: [0086](0086-camper-hints-near-the-bumper-and-the-parked-driver-seat.md): the bumper hints
 
 ## Context
 
@@ -13,7 +14,7 @@
 1. The boxes do not turn with the entity's yaw. With a camper parked facing north (yRot -180), taps on its front bumper landed on the front `camper_floor` room block, and three hits on its rear bumper broke it into its item. A hitbox pivot stays in world axes, so the boxes cover the front bumper only at yaw 0, the rear bumper at yaw 180, and the air beside the body at yaw 90 and -90.
 2. Swapping the boxes by heading does not work. A first fix kept four component groups, `yasu_ride:bumper_0`, `bumper_90`, `bumper_180`, and `bumper_270`, each holding the boxes turned to its quarter, and had the drive send the group's event when the heading changed. The server applied `yasu_ride:bumper_180`, also when forced with `/event entity`, but the client kept the base yaw-0 boxes: taps on the front bumper still did nothing and the rear bumper still broke the camper. This confirms 0068's limit that a hit test changed after spawn never reaches the client, for moved boxes as well as shrunk ones. That fix is removed.
 
-The other limits stay as 0068 and the [camper spike](../spike-camper.md) found them: hitboxes take taps only while the entity's base components hold a `minecraft:collision_box`; a separate stand-in entity whose hit box was set from spawn let every tap inside the parked camper reach the blocks; and an entity with only `minecraft:interact` never showed an interact button on a phone, while the deck seats' `minecraft:rideable` does (0063).
+The other limits stay as 0068 and the [camper spike](../spikes/camper.md) found them: hitboxes take taps only while the entity's base components hold a `minecraft:collision_box`; a separate stand-in entity whose hit box was set from spawn let every tap inside the parked camper reach the blocks; and an entity with only `minecraft:interact` never showed an interact button on a phone, while the deck seats' `minecraft:rideable` does (0063).
 
 ## Decision
 

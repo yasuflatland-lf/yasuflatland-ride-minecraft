@@ -2,7 +2,8 @@
 
 - Status: Proposed
 - Date: 2026-10-26
-- Extends: [0051](0051-sports-boat.md) (open-bow interior) and [0161](0161-smooth-sports-boat-hull-planking.md) (plan chains and seams)
+- Extends: [0051](0051-sports-boat.md): open-bow interior
+- Extends: [0161](0161-smooth-sports-boat-hull-planking.md): plan chains and seams
 
 ## Context
 

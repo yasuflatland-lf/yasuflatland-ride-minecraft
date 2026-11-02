@@ -1,9 +1,9 @@
 # 0091. Alpha-blend only the camper glass
 
 - Status: Accepted
-- Amended in part by [0199](0199-square-the-camper-front-and-fold-the-grille.md) (Proposed)
 - Date: 2026-10-21
-- Extends: 0009, 0067
+- Extends: [0009](0009-vehicle-model-conventions.md)
+- Extends: [0067](0067-camper.md)
 
 ## Context
 

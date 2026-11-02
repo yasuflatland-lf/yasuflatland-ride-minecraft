@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-11
-- Supersedes in part: 0021 (how flight ends)
+- Supersedes in part: [0021](0021-flight-mode.md): how flight ends
 
 ## Context
 

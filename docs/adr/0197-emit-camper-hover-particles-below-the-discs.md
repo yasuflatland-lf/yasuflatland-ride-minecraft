@@ -2,8 +2,9 @@
 
 - Status: Proposed
 - Date: 2026-10-31
-- Amends in part: [0190](0190-ribbed-camper-shell-atlas.md) (hover glow addendum)
-- Extends: [0147](0147-light-the-lamps-with-a-pbr-emissive-layer.md), [0184](0184-light-the-camper-roof-and-tail-lamps.md)
+- Supersedes in part: [0190](0190-ribbed-camper-shell-atlas.md): hover glow addendum
+- Extends: [0147](0147-light-the-lamps-with-a-pbr-emissive-layer.md)
+- Extends: [0184](0184-light-the-camper-roof-and-tail-lamps.md)
 - Related: [0022](0022-fold-wheels-and-glow-in-flight.md)
 
 ## Context

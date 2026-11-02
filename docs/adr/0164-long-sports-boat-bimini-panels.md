@@ -2,7 +2,7 @@
 
 - Status: Proposed
 - Date: 2026-10-26
-- Extends: [0051](0051-sports-boat.md) (bimini construction)
+- Extends: [0051](0051-sports-boat.md): bimini construction
 
 ## Context
 

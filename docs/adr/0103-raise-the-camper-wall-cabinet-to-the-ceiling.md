@@ -1,8 +1,9 @@
 # 0103. Raise the camper wall cabinet to the ceiling
 
-- Status: Accepted (the cabinet's 7 px height and its having no decor slot are superseded by [0114](0114-open-the-camper-wall-cabinet.md): it reaches down to model y 50 and holds two items behind each of its two doors; extended by [0113](0113-a-window-over-the-camper-counter.md))
+- Status: Accepted
 - Date: 2026-10-21
-- Supersedes in part: 0093 (the wall cabinet slots, and dropping a saved entry with an unknown slot on load), 0097 (the wall cabinet halves among the standing slots)
+- Supersedes in part: [0093](0093-decorate-the-parked-camper.md): the wall cabinet slots, and dropping a saved entry with an unknown slot on load
+- Supersedes in part: [0097](0097-press-the-camper-furniture-to-place-decor.md): the wall cabinet halves among the standing slots
 
 ## Context
 

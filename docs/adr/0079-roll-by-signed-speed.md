@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-20
-- Supersedes in part: 0059 (the sign of the roll target)
+- Supersedes in part: [0059](0059-sports-boat-wake-trim-and-roll.md): the sign of the roll target
 
 ## Context
 

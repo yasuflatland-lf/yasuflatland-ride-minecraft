@@ -1,8 +1,8 @@
 # 0099. Hang the camper planter inside its cell
 
-- Status: Accepted (where a hanging item's model starts and ends, its decor block's selection box, and the ceiling hook's height of 0 are superseded by [0102](0102-lift-the-hanging-planter-from-its-cell-bottom.md))
+- Status: Accepted
 - Date: 2026-10-21
-- Supersedes in part: 0093 (where a hanging item's model ends)
+- Supersedes in part: [0093](0093-decorate-the-parked-camper.md): where a hanging item's model ends
 
 ## Context
 

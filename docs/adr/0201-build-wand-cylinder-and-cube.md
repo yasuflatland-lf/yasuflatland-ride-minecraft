@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-11-01
-- Extends: [0198](0198-one-build-wand-without-a-bulldozer.md) (the shape menu and the roof height step)
+- Extends: [0198](0198-one-build-wand-without-a-bulldozer.md): the shape menu and the roof height step
 
 ## Context
 

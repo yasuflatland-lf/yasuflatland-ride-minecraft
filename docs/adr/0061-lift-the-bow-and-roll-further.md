@@ -1,7 +1,8 @@
 # 0061. Lift the sports boat bow the right way and roll it further
 
-- Status: Accepted (the 7-degree bow rise is superseded by [0085](0085-halve-the-sports-boat-bow-rise.md))
+- Status: Accepted
 - Date: 2026-10-12
+- Supersedes in part: [0059](0059-sports-boat-wake-trim-and-roll.md): the signs of the bow rise and the roll
 
 ## Context
 

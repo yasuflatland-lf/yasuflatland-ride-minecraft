@@ -2,7 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-10-20
-- Extends: 0055, 0065
+- Extends: [0055](0055-kind-neutral-vehicle-core.md)
+- Extends: [0065](0065-check-import-rules-with-dependency-cruiser.md)
 
 ## Context
 

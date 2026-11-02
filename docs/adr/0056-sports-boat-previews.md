@@ -5,7 +5,7 @@
 
 ## Context
 
-The README shows four previews of the SUV, rendered from the model files (0016, 0027, 0045). The sports boat (0051) has no picture, so a reader cannot see that the add-on holds a second vehicle or what it looks like. Its model differs from the SUV's in ways the SUV renderer does not handle: the windshield swatch is see-through (alpha 80) and drawn with `entity_alphablend`, the hull floats with its feet about 0.45 blocks under the water surface (docs/spike-sportsboat.md), and cube x rotations turn the other way in game from the renderer's `rotate()` (0051).
+The README shows four previews of the SUV, rendered from the model files (0016, 0027, 0045). The sports boat (0051) has no picture, so a reader cannot see that the add-on holds a second vehicle or what it looks like. Its model differs from the SUV's in ways the SUV renderer does not handle: the windshield swatch is see-through (alpha 80) and drawn with `entity_alphablend`, the hull floats with its feet about 0.45 blocks under the water surface (docs/spikes/sportsboat.md), and cube x rotations turn the other way in game from the renderer's `rotate()` (0051).
 
 ## Decision
 

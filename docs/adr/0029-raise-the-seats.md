@@ -1,6 +1,6 @@
 # 0029. Raise the seats so riders' legs stay inside the body
 
-- Status: Superseded in part by 0170
+- Status: Accepted
 - Date: 2026-10-11
 
 ## Context

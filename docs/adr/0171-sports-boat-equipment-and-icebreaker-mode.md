@@ -1,9 +1,13 @@
 # 0171. Sports Boat Equipment and icebreaker mode
 
-- Status: Proposed; superseded in part by [0174](0174-show-only-the-icebreaker-switch-in-the-equipment-group.md) (Proposed) and [0175](0175-keep-the-icebreaker-cut-above-the-hull-floor.md) (Proposed)
+- Status: Proposed
 - Date: 2026-10-28
-- Extends: 0093 (placement gifts), 0138 (tool switching), 0139 (cab monitors), 0150 (water and lava buoyancy), 0166 (helm display)
-- Supersedes in part: 0139 (Decision 9, catalog consistency: a group may hold items that are not monitor tools)
+- Supersedes in part: [0139](0139-show-the-held-tool-on-the-cab-monitor.md): Decision 9, catalog consistency: a group may hold items that are not monitor tools
+- Extends: [0093](0093-decorate-the-parked-camper.md): placement gifts
+- Extends: [0138](0138-raise-and-lower-the-bulldozer-blade.md): tool switching
+- Extends: [0139](0139-show-the-held-tool-on-the-cab-monitor.md): cab monitors
+- Extends: [0150](0150-run-the-sports-boat-on-lava.md): water and lava buoyancy
+- Extends: [0166](0166-tilted-two-axis-sports-boat-helm-assemblies.md): helm display
 
 ## Context
 

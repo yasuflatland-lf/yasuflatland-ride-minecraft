@@ -1,6 +1,6 @@
 # 0026. Bank into turns in flight
 
-- Status: Superseded in part by 0044 (banking under water)
+- Status: Accepted
 - Date: 2026-10-11
 
 ## Context

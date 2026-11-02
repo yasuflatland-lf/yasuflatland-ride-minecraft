@@ -1,8 +1,10 @@
 # 0119. Park the camper over natural ground, and lift its bumper stand-in out of it
 
-- Status: Proposed (to be Accepted once the iPad check under Consequences passes)
+- Status: Proposed
+- Acceptance condition: the iPad check under Consequences passes
 - Date: 2026-10-22
-- Extends: 0068 (the parking check and the plants it clears), 0116 (the bumper stand-in)
+- Extends: [0068](0068-park-the-camper-with-room-blocks.md): the parking check and the plants it clears
+- Extends: [0116](0116-a-bumper-stand-in-takes-the-camper-hits.md): the bumper stand-in
 
 ## Context
 

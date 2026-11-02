@@ -2,7 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-10-20
-- Extends: 0002, 0018
+- Extends: [0002](0002-script-driven-vehicle-movement.md)
+- Extends: [0018](0018-sideways-stick-creeps-forward.md)
 
 ## Context
 

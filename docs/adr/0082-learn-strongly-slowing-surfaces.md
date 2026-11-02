@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-20
-- Supersedes in part: 0003 (which axes count as a wall on the ground, and the lower clamp of the friction estimate)
+- Supersedes in part: [0003](0003-friction-compensation-and-axis-wall-detection.md): which axes count as a wall on the ground, and the lower clamp of the friction estimate
 
 ## Context
 

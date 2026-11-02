@@ -1,8 +1,13 @@
 # 0132. Open and close each tent flap alone
 
-- Status: Proposed (to be Accepted once the flap checks under Tent in [manual-test.md](../manual-test.md) pass)
+- Status: Proposed
+- Acceptance condition: the flap checks under Tent in [manual-test.md](../manual-test.md) pass
 - Date: 2026-10-23
-- Extends: [0131](0131-pitch-a-tent-in-the-camp.md) (the tent's cells and loop), [0105](0105-toggle-a-camper-door-once-per-swing.md) (one toggle per tap window), 0121 (restoring a door from its float property), 0127 (resending after a failed property write), 0101 (invisible blocks)
+- Extends: [0101](0101-give-invisible-blocks-a-hidden-cube.md): invisible blocks
+- Extends: [0105](0105-toggle-a-camper-door-once-per-swing.md): one toggle per tap window
+- Extends: [0121](0121-doored-storage-in-the-camper.md): restoring a door from its float property
+- Extends: [0127](0127-resend-every-synced-entity-value-after-a-failed-send.md): resending after a failed property write
+- Extends: [0131](0131-pitch-a-tent-in-the-camp.md): the tent's cells and loop
 
 ## Context
 

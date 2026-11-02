@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-22
-- Supersedes in part: 0093 (the dashboard cells and the rows of `dashboard_center` and `dashboard_left` in its slot table)
+- Supersedes in part: [0093](0093-decorate-the-parked-camper.md): the dashboard cells and the rows of `dashboard_center` and `dashboard_left` in its slot table
 
 ## Context
 

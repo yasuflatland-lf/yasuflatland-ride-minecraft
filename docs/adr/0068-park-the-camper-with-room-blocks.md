@@ -1,11 +1,12 @@
 # 0068. Park the camper with room blocks
 
-- Status: Accepted (the front deck seat rise is superseded by [0070](0070-raise-the-camper-front-seats.md), the single bumper hitbox by [0084](0084-camper-hitbox-spans-the-bumper.md), and the bumper hitbox on the camper entity by [0116](0116-a-bumper-stand-in-takes-the-camper-hits.md), which is Proposed until its phone check passes; extended by [0086](0086-camper-hints-near-the-bumper-and-the-parked-driver-seat.md), [0092](0092-a-bed-in-the-parked-camper.md), [0093](0093-decorate-the-parked-camper.md), [0094](0094-the-camper-shower-toilet-door-and-shower.md), [0095](0095-sit-on-the-camper-toilet-while-parked.md), [0096](0096-keep-the-dock-blocks-whole.md), [0097](0097-press-the-camper-furniture-to-place-decor.md), [0098](0098-a-block-for-the-camper-shower-toilet.md), [0101](0101-give-invisible-blocks-a-hidden-cube.md), [0105](0105-toggle-a-camper-door-once-per-swing.md), [0109](0109-stand-up-inside-the-parked-camper.md), [0114](0114-open-the-camper-wall-cabinet.md), [0115](0115-camper-ceiling-lights.md), and [0119](0119-park-the-camper-over-natural-ground.md), which is Proposed)
+- Status: Accepted
 - Date: 2026-10-19
+- Supersedes in part: [0067](0067-camper.md): the hitboxes
 
 ## Context
 
-The owner wants to walk inside a stopped camper, open and close its door, and place blocks inside it and on its roof, then drive away. An entity's body cannot be walked into, so the parked camper has to be replaced, cell by cell, with invisible blocks the players can stand on and tap, the way the boat lays its deck (0063). The [camper spike](../spike-camper.md) tried this on a phone and found three engine limits, and a later phone test a fourth:
+The owner wants to walk inside a stopped camper, open and close its door, and place blocks inside it and on its roof, then drive away. An entity's body cannot be walked into, so the parked camper has to be replaced, cell by cell, with invisible blocks the players can stand on and tap, the way the boat lays its deck (0063). The [camper spike](../spikes/camper.md) tried this on a phone and found three engine limits, and a later phone test a fourth:
 
 - A `minecraft:custom_hit_test` changed while the game runs never reaches the client, so a hitbox cannot shrink when the camper parks. A hitbox that is small from spawn works, and with only a 1 x 1 x 1 box outside the front bumper every tap inside the body reached a block, even with `minecraft:rideable` and `minecraft:inventory` kept.
 - A block cannot be placed where an entity's collision box is, so the parked body's 3 x 4 collision box has to shrink.

@@ -2,7 +2,8 @@
 
 - Status: Proposed
 - Date: 2026-10-26
-- Extends: [0051](0051-sports-boat.md), [0147](0147-light-the-lamps-with-a-pbr-emissive-layer.md)
+- Extends: [0051](0051-sports-boat.md)
+- Extends: [0147](0147-light-the-lamps-with-a-pbr-emissive-layer.md)
 
 ## Context
 

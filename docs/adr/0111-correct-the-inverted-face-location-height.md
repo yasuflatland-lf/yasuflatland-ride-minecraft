@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-22
-- Extends: 0110 (picking decor slots along the line of sight)
+- Extends: [0110](0110-pick-decor-slots-along-the-line-of-sight.md): picking decor slots along the line of sight
 
 ## Context
 

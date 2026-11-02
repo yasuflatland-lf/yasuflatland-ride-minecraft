@@ -2,7 +2,8 @@
 
 - Status: Proposed
 - Date: 2026-10-26
-- Extends: [0051](0051-sports-boat.md) (hull construction) and [0158](0158-a-slanted-pane-sports-boat-windshield.md) (one-axis flat panels)
+- Extends: [0051](0051-sports-boat.md): hull construction
+- Extends: [0158](0158-a-slanted-pane-sports-boat-windshield.md): one-axis flat panels
 
 ## Context
 

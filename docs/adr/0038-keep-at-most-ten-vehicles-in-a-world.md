@@ -1,6 +1,6 @@
 # 0038. Keep at most ten vehicles in a world
 
-- Status: Superseded by [0066](0066-limit-vehicles-per-player-and-kind.md)
+- Status: Accepted
 - Date: 2026-10-11
 
 ## Context

@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-26
-- Supersedes in part: [0115](0115-camper-ceiling-lights.md) (the wheel deck seat's switch target)
+- Supersedes in part: [0115](0115-camper-ceiling-lights.md): the wheel deck seat's switch target
 
 ## Context
 

@@ -1,8 +1,13 @@
 # 0129. Share room primitives between features
 
-- Status: Accepted (extended by [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md): the tent lantern is a second target of the switch router)
+- Status: Accepted
 - Date: 2026-10-23
-- Extends: [0046](0046-organize-each-layer-by-feature.md), [0122](0122-a-low-chair-to-sit-on-outside-the-vehicles.md)
+- Extends: [0024](0024-item-use-on-mobile-and-longer-headlights.md): the switch cooldown is shared
+- Extends: [0046](0046-organize-each-layer-by-feature.md)
+- Extends: [0090](0090-group-the-vehicle-core-by-subcontext.md): syncedValue.ts left the vehicle core for shared
+- Extends: [0092](0092-a-bed-in-the-parked-camper.md): the bed rule is shared
+- Extends: [0105](0105-toggle-a-camper-door-once-per-swing.md): TapToggle takes its window from the caller
+- Extends: [0122](0122-a-low-chair-to-sit-on-outside-the-vehicles.md): camp space checked by the vehicles
 
 ## Context
 

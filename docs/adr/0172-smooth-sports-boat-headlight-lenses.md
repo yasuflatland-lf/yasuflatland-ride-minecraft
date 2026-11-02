@@ -2,7 +2,7 @@
 
 - Status: Proposed
 - Date: 2026-10-28
-- Supersedes in part: [0161](0161-smooth-sports-boat-hull-planking.md) (the lens construction in the lens bullet; the outline and everything else stay)
+- Supersedes in part: [0161](0161-smooth-sports-boat-hull-planking.md): the lens construction in the lens bullet; the outline and everything else stay
 
 ## Context
 

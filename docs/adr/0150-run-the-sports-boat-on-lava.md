@@ -2,8 +2,9 @@
 
 - Status: Proposed
 - Date: 2026-10-26
-- Supersedes in part: 0051 (water-only buoyancy and placement), 0080 (water-only afloat sensing)
-- Extends: 0063 (docking on a liquid surface)
+- Supersedes in part: [0051](0051-sports-boat.md): water-only buoyancy and placement
+- Supersedes in part: [0080](0080-beached-sports-boat-can-reverse.md): water-only afloat sensing
+- Extends: [0063](0063-walk-on-a-stopped-sports-boat.md): docking on a liquid surface
 
 ## Context
 

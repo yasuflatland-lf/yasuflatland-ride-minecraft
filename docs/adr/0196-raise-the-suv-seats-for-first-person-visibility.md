@@ -2,7 +2,7 @@
 
 - Status: Proposed
 - Date: 2026-10-31
-- Supersedes in part: [0194](0194-enlarge-the-suv-for-seated-head-clearance.md) (rideable seat height and clearance estimates)
+- Supersedes in part: [0194](0194-enlarge-the-suv-for-seated-head-clearance.md): rideable seat height and clearance estimates
 
 ## Context
 

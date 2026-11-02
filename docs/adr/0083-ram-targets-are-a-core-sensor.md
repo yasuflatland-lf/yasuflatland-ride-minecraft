@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-20
-- Supersedes in part: 0055 (targets() in TickContext)
+- Supersedes in part: [0055](0055-kind-neutral-vehicle-core.md): targets() in TickContext
 
 ## Context
 

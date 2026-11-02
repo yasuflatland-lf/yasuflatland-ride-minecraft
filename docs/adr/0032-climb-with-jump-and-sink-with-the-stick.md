@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-11
-- Supersedes in part: 0021 (the vertical speed while flying)
+- Supersedes in part: [0021](0021-flight-mode.md): the vertical speed while flying
 
 ## Context
 

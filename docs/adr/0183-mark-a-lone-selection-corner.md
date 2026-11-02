@@ -2,7 +2,7 @@
 
 - Status: Proposed
 - Date: 2026-10-29
-- Extends: [0178](0178-bulldozer-build-tools-in-a-separate-namespace.md) (the bulldozer build tools and their selection)
+- Extends: [0178](0178-bulldozer-build-tools-in-a-separate-namespace.md): the bulldozer build tools and their selection
 
 ## Context
 

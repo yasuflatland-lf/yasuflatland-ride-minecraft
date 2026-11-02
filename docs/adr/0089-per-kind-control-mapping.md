@@ -1,9 +1,11 @@
 # 0089. Each kind maps the stick to handbrake and creep
 
-- Status: Accepted; extended by [0136](0136-bulldozer.md) (Proposed)
+- Status: Accepted
 - Date: 2026-10-21
-- Extends: 0018, 0051, 0055
-- Supersedes in part: 0087 (the boat's handbrakeGrip)
+- Supersedes in part: [0087](0087-sports-boat-spec-table.md): the boat's handbrakeGrip
+- Extends: [0018](0018-sideways-stick-creeps-forward.md)
+- Extends: [0051](0051-sports-boat.md)
+- Extends: [0055](0055-kind-neutral-vehicle-core.md)
 
 ## Context
 

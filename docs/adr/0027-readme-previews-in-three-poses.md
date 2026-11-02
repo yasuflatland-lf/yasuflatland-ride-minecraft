@@ -1,7 +1,8 @@
 # 0027. Render the README previews in three poses
 
-- Status: Superseded in part by 0045 (a fourth, submarine pose); extended by [0136](0136-bulldozer.md) (Proposed)
+- Status: Accepted
 - Date: 2026-10-11
+- Supersedes: [0016](0016-readme-preview-rendered-from-model.md)
 
 ## Context
 

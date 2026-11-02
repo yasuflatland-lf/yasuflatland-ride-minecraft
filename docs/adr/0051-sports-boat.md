@@ -1,11 +1,11 @@
 # 0051. Sports boat
 
-- Status: Superseded in part by 0066 (counting boats under the world limit of 10), 0080 (a beached boat coasting to a stop, and the boat never leaving the water by itself), and 0150 (water-only buoyancy and placement), and 0175 (the script lifts a hull that sits too deep, so "no vertical impulse" no longer holds); extended by 0058, 0063, 0089, and 0120
+- Status: Accepted
 - Date: 2026-10-12
 
 ## Context
 
-The [sports boat spike](../spike-sportsboat.md) tried a separate driven entity modelled on a 25-foot wake boat (0046, 0050). Approach A held the draft in script; approach B used `minecraft:buoyant`. A settled without bobbing and followed its target speed. B kept bobbing by about 0.17 blocks, capped near 1.02 blocks/tick even at targets of 1.12 and 1.4, and lost two thirds of its speed in a full turn. The driver chose B after trying both; its bob was not noticed.
+The [sports boat spike](../spikes/sportsboat.md) tried a separate driven entity modelled on a 25-foot wake boat (0046, 0050). Approach A held the draft in script; approach B used `minecraft:buoyant`. A settled without bobbing and followed its target speed. B kept bobbing by about 0.17 blocks, capped near 1.02 blocks/tick even at targets of 1.12 and 1.4, and lost two thirds of its speed in a full turn. The driver chose B after trying both; its bob was not noticed.
 
 ## Decision
 

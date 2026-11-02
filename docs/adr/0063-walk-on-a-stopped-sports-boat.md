@@ -1,12 +1,12 @@
 # 0063. Walk on a stopped sports boat
 
-- Status: Accepted (superseded in part by [0120](0120-choose-a-sports-boat-seat-by-aiming-at-it.md), Proposed, which seats each deck-seat rider in the seat of their deck seat on departure; extended by [0154](0154-keep-camper-passengers-in-their-seats-on-departure.md), [0064](0064-dock-step.md), [0093](0093-decorate-the-parked-camper.md), [0095](0095-sit-on-the-camper-toilet-while-parked.md), [0096](0096-keep-the-dock-blocks-whole.md), [0101](0101-give-invisible-blocks-a-hidden-cube.md), [0109](0109-stand-up-inside-the-parked-camper.md), and [0150](0150-run-the-sports-boat-on-lava.md))
+- Status: Accepted
 - Date: 2026-10-13
-- Extends: 0051
+- Extends: [0051](0051-sports-boat.md)
 
 ## Context
 
-The [boat deck spike](../spike-boat-deck.md) ran on the dev BDS 1.26.52 on 2026-10-12. A custom block whose collision box is h/16 high (one permutation per h from 1 to 16), laid under the hull, held armor stands at boat y + 9.3/16 in the cockpit and y + 11.3/16 in the bow, which matches the model's 9.0 and 11.0 px decks plus 0.3 px of teak. At rest the boat floats at a draft of about 0.45 and bobs by about 0.07 blocks (0051 measured 0.17 while moving), so the deck sits 0.13 to 0.26 blocks above the water and every floor cell is air; no water block is replaced.
+The [boat deck spike](../spikes/boat-deck.md) ran on the dev BDS 1.26.52 on 2026-10-12. A custom block whose collision box is h/16 high (one permutation per h from 1 to 16), laid under the hull, held armor stands at boat y + 9.3/16 in the cockpit and y + 11.3/16 in the bow, which matches the model's 9.0 and 11.0 px decks plus 0.3 px of teak. At rest the boat floats at a draft of about 0.45 and bobs by about 0.07 blocks (0051 measured 0.17 while moving), so the deck sits 0.13 to 0.26 blocks above the water and every floor cell is air; no water block is replaced.
 
 The floor moves the boat unless the boat is held. Laid under a floating boat, it made the boat climb onto it (y -60.39 to -59.69). A component group that turns off block collision and gravity, plus a teleport to a fixed pose every tick, kept the boat in place for 150 ticks. Removing that group removed `minecraft:physics` altogether, and the boat sat on the surface with zero velocity; a second group that sets `minecraft:physics: {}` made it float again (y -60.38 to -60.52). With the cell-center rule, a hull turned 30 degrees covered 10 cells without a margin and 13 to 16 cells with a 0.3-block margin; the jagged edge was acceptable for walking.
 

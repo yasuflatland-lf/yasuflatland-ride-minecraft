@@ -1,6 +1,6 @@
 """Generate the model, textures, and item icon for the Yasuflatland Ride sports boat (ADR 0051).
 
-Ported from the spike's generator (docs/spike-sportsboat.md, appendix). Coordinates are in pixels
+Ported from the spike's generator (docs/spikes/sportsboat.md, appendix). Coordinates are in pixels
 (16 px = 1 block), forward +z and right +x, and the model is rotated 180 degrees around the Y axis
 just before writing, because in Bedrock the front of an entity is on the -z side of the model.
 Bones: root / body / headlights / windshield / mirror (ADR 0009, 0159). No logo or model name.

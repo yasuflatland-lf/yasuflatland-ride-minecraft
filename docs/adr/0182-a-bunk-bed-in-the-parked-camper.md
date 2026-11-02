@@ -2,8 +2,8 @@
 
 - Status: Proposed
 - Date: 2026-10-29
-- Extends: 0092 (the parked camper's bed)
-- Supersedes in part: 0092 (the spawn point is no longer the pressed bed cell, and the cells above the lower bed are no longer interior cargo cells)
+- Supersedes in part: [0092](0092-a-bed-in-the-parked-camper.md): the spawn point is no longer the pressed bed cell, and the cells above the lower bed are no longer interior cargo cells
+- Extends: [0092](0092-a-bed-in-the-parked-camper.md): the parked camper's bed
 
 ## Context
 

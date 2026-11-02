@@ -1,8 +1,14 @@
 # 0131. Pitch a tent in the camp
 
-- Status: Proposed (to be Accepted once the manual checks under Tent in [manual-test.md](../manual-test.md) pass); extended by [0132](0132-open-and-close-each-tent-flap-alone.md): the flap cells open and close one at a time; extended by [0133](0133-sleep-on-the-tent-mattresses.md): the mattresses are laid cells; extended by [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md): one ceiling cell is the lantern, switched with the headlight switch; extended by [0135](0135-repaint-the-tent-with-dyes.md): the fly takes a paint from a dye hit
+- Status: Proposed
+- Acceptance condition: the manual checks under Tent in [manual-test.md](../manual-test.md) pass
 - Date: 2026-10-23
-- Extends: [0130](0130-a-tent-entity-whose-hits-land-on-its-blocks.md) (the tent's cells, entity, and hit surfaces), [0129](0129-share-room-primitives-between-features.md) (camp space checked by the vehicles), [0122](0122-a-low-chair-to-sit-on-outside-the-vehicles.md) (the camp feature and three hits), 0068 (clearing passable decorations and the hidden hit box), 0101 (invisible blocks), 0116 (hit boxes fixed from spawn)
+- Extends: [0068](0068-park-the-camper-with-room-blocks.md): clearing passable decorations and the hidden hit box
+- Extends: [0101](0101-give-invisible-blocks-a-hidden-cube.md): invisible blocks
+- Extends: [0116](0116-a-bumper-stand-in-takes-the-camper-hits.md): hit boxes fixed from spawn
+- Extends: [0122](0122-a-low-chair-to-sit-on-outside-the-vehicles.md): the camp feature and three hits
+- Extends: [0129](0129-share-room-primitives-between-features.md): camp space checked by the vehicles
+- Extends: [0130](0130-a-tent-entity-whose-hits-land-on-its-blocks.md): the tent's cells, entity, and hit surfaces
 
 ## Context
 

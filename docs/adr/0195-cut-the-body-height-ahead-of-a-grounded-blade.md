@@ -2,7 +2,8 @@
 
 - Status: Proposed
 - Date: 2026-10-31
-- Amends: [0136](0136-bulldozer.md) (a ground cut stops at the first air gap), [0137](0137-clear-block-columns-with-the-blade.md) (the ground run scan)
+- Supersedes in part: [0136](0136-bulldozer.md): a ground cut stops at the first air gap
+- Supersedes in part: [0137](0137-clear-block-columns-with-the-blade.md): the ground run scan
 
 ## Context
 

@@ -2,8 +2,11 @@
 
 - Status: Accepted
 - Date: 2026-10-23
-- Supersedes in part: [0019](0019-passengers-move-up-to-the-driver-seat.md) (seat readings and door events), [0025](0025-jump-on-touch-and-a-sticky-driver.md) (sticky drivers with an index), [0126](0126-choose-a-new-driver-with-one-tick-of-motion.md) (occupancy and restore readings)
-- Extends: [0120](0120-choose-a-sports-boat-seat-by-aiming-at-it.md) (index readings for every kind), [0055](0055-kind-neutral-vehicle-core.md) (crew ownership)
+- Supersedes in part: [0019](0019-passengers-move-up-to-the-driver-seat.md): seat readings and door events
+- Supersedes in part: [0025](0025-jump-on-touch-and-a-sticky-driver.md): sticky drivers with an index
+- Supersedes in part: [0126](0126-choose-a-new-driver-with-one-tick-of-motion.md): occupancy and restore readings
+- Extends: [0055](0055-kind-neutral-vehicle-core.md): crew ownership
+- Extends: [0120](0120-choose-a-sports-boat-seat-by-aiming-at-it.md): index readings for every kind
 
 ## Context
 

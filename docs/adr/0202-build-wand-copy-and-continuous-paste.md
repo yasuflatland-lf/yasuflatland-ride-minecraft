@@ -2,8 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-11-01
-- Superseded in part by [0203](0203-build-wand-paste-aiming.md) (Proposed): Decisions 6, 8, and 9 and the Consequences bullet on Stop pasting
-- Extends: [0198](0198-one-build-wand-without-a-bulldozer.md) (Decision 10: one paste, then done), [0201](0201-build-wand-cylinder-and-cube.md) (the height step gains a Copy kind)
+- Extends: [0198](0198-one-build-wand-without-a-bulldozer.md): Decision 10: one paste, then done
+- Extends: [0201](0201-build-wand-cylinder-and-cube.md): the height step gains a Copy kind
 
 ## Context
 

@@ -2,14 +2,15 @@
 
 - Status: Proposed
 - Date: 2026-10-31
-- Supersedes in part: [0178](0178-bulldozer-build-tools-in-a-separate-namespace.md) (the bulldozer requirement in Decisions 3 and 4, the two items in Decisions 3, 8, and 13, the third-person build camera in Decision 5, the bulldozer-relative paste offset and moving preview in Decision 7, the hit and use mapping in Decision 8, and the Build Tool form in Decision 11)
-- Extends: [0183](0183-mark-a-lone-selection-corner.md) (the first-point marker) and [0137](0137-clear-block-columns-with-the-blade.md) (the kept block list)
+- Supersedes in part: [0178](0178-bulldozer-build-tools-in-a-separate-namespace.md): the bulldozer requirement in Decisions 3 and 4, the two items in Decisions 3, 8, and 13, the third-person build camera in Decision 5, the bulldozer-relative paste offset and moving preview in Decision 7, the hit and use mapping in Decision 8, and the Build Tool form in Decision 11
+- Extends: [0137](0137-clear-block-columns-with-the-blade.md): the kept block list
+- Extends: [0183](0183-mark-a-lone-selection-corner.md): the first-point marker
 
 ## Context
 
 The build tools of 0178 require a bulldozer and two items, leaving the player to switch among them and the building material. An iPad test in Creative while riding the bulldozer showed that a block tap fires `playerInteractWithBlock`, while a long press repeats `itemUse` and does not fire a block hit. The selected block follows the head view ray rather than the finger, and the third-person build camera obscures that target. The existing hit-to-pos1 mapping therefore cannot work on touch.
 
-The owner wants one item for the whole build, usable on foot or on a bulldozer, on touch and PC, in Creative and Survival. The design is recorded in [the Build Wand spec](../superpowers/specs/2026-10-31-build-wand-design.md).
+The owner wants one item for the whole build, usable on foot or on a bulldozer, on touch and PC, in Creative and Survival. The design is recorded in [the Build Wand spec](../designs/2026-10-31-build-wand-design.md).
 
 ## Decision
 

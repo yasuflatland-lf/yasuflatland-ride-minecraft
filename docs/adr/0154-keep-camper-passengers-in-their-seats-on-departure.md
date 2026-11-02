@@ -2,8 +2,14 @@
 
 - Status: Proposed
 - Date: 2026-10-26
-- Supersedes in part: 0120 (the statements that the SUV and the camper keep the engine's order and read positions; the camper now chooses seats), 0116 (the bumper stand-in boards the camper with `addRider` directly)
-- Extends: 0120, 0116, 0063, 0068, 0095, 0050
+- Supersedes in part: [0116](0116-a-bumper-stand-in-takes-the-camper-hits.md): the bumper stand-in boards the camper with `addRider` directly
+- Supersedes in part: [0120](0120-choose-a-sports-boat-seat-by-aiming-at-it.md): the statements that the SUV and the camper keep the engine's order and read positions; the camper now chooses seats
+- Extends: [0050](0050-vehicle-kinds-and-per-kind-profiles.md)
+- Extends: [0063](0063-walk-on-a-stopped-sports-boat.md)
+- Extends: [0068](0068-park-the-camper-with-room-blocks.md)
+- Extends: [0095](0095-sit-on-the-camper-toilet-while-parked.md)
+- Extends: [0116](0116-a-bumper-stand-in-takes-the-camper-hits.md): the stand-in boards through the chosen-seat mechanism
+- Extends: [0120](0120-choose-a-sports-boat-seat-by-aiming-at-it.md): which applies the same mechanism to the camper
 
 ## Context
 

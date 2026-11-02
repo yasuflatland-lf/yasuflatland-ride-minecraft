@@ -1,8 +1,9 @@
 # 0105. Toggle a camper door once per swing
 
-- Status: Accepted (extended by [0114](0114-open-the-camper-wall-cabinet.md): the wall cabinet doors keep a window each; and by [0129](0129-share-room-primitives-between-features.md): TapToggle takes its window from the caller; and by [0132](0132-open-and-close-each-tent-flap-alone.md): each tent flap keeps a window of its own)
+- Status: Accepted
 - Date: 2026-10-22
-- Extends: 0068, 0094
+- Extends: [0068](0068-park-the-camper-with-room-blocks.md)
+- Extends: [0094](0094-the-camper-shower-toilet-door-and-shower.md)
 
 ## Context
 

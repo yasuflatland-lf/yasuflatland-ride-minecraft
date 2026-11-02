@@ -1,8 +1,8 @@
 # 0087. Keep the sports boat tuning in one spec table
 
-- Status: Superseded in part by 0089 (the boat's handbrakeGrip)
+- Status: Accepted
 - Date: 2026-10-20
-- Supersedes in part: 0055 (the boat keeping its tuning in its profile and drive)
+- Supersedes in part: [0055](0055-kind-neutral-vehicle-core.md): the boat keeping its tuning in its profile and drive
 
 ## Context
 

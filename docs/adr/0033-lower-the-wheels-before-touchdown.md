@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-11
-- Supersedes in part: 0022 (when the wheels unfold)
+- Supersedes in part: [0022](0022-fold-wheels-and-glow-in-flight.md): when the wheels unfold
 
 ## Context
 

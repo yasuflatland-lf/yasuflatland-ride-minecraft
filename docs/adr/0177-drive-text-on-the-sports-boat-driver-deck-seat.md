@@ -2,7 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-10-29
-- Extends: [0063](0063-walk-on-a-stopped-sports-boat.md), [0095](0095-sit-on-the-camper-toilet-while-parked.md)
+- Extends: [0063](0063-walk-on-a-stopped-sports-boat.md)
+- Extends: [0095](0095-sit-on-the-camper-toilet-while-parked.md)
 
 ## Context
 
