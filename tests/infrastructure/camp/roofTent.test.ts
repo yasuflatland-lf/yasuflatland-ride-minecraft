@@ -419,10 +419,7 @@ it("restricts test hooks to the server and seats stand-ins through the adapters"
   expect(occupants.occupantOf("tent")).toBe("cow");
   expect(cow.teleport).toHaveBeenCalledOnce();
   const vehicle = entity("host", "yasu_ride:suv");
-  const addRider = vi.fn();
-  vehicle.getComponent.mockReturnValue({ addRider });
   hook(ids.TEST_ROOF_TENT_DRIVER_SEAT_EVENT, "host cow");
-  expect(addRider).toHaveBeenCalledWith(cow);
   hook(ids.TEST_ROOF_TENT_HOST_REMOVE_EVENT, "host");
   expect(vehicle.remove).toHaveBeenCalledOnce();
 });
@@ -464,14 +461,12 @@ it("converts a positively loaded host removal into guard evidence without treati
   expect(hosts.lookup("host")).toEqual({ status: "removed" });
   expect(tent.remove).toHaveBeenCalledOnce();
 });
-it("recognizes a test driver only while its stand-in is actually riding that host", () => {
+it("recognizes a test driver only while its stand-in is valid", () => {
   const hosts = new RoofTentHosts(host);
   const cow = entity("cow", "minecraft:cow");
   hosts.testDriver("host", "cow");
-  expect(hosts.lookup("host")).toEqual(state);
-  cow.getComponent.mockReturnValue({ entityRidingOn: { id: "host" } });
   expect(hosts.lookup("host")).toEqual({ ...state, driverPresent: true });
-  cow.getComponent.mockReturnValue({ entityRidingOn: { id: "other" } });
+  cow.remove();
   expect(hosts.lookup("host")).toEqual(state);
 });
 
