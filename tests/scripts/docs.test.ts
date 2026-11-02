@@ -132,7 +132,7 @@ describe("ADR documentation properties", () => {
         const rows = generateIndex(adrs).split("\n").slice(2);
         expect(rows).toHaveLength(size);
         for (let value = 1; value <= size; value++) {
-          const status = [statuses[value - 1]];
+          const status: string[] = [statuses[value - 1] ?? ""];
           for (const [kind, inverse] of [
             ["Supersedes", "superseded by"],
             ["Supersedes in part", "superseded in part by"],
