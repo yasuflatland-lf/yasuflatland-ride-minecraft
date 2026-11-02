@@ -29,3 +29,17 @@ export function canReachEntrance(
         ROOF_TENT_SPEC.entranceBand)
   );
 }
+
+export function canStandAtFoot(
+  mount: RoofTentMount,
+  host: { location: Vec3; yaw: number },
+  player: Vec3,
+): boolean {
+  const entrance = entranceWorld(mount, host);
+  return (
+    mount.ladder &&
+    Math.hypot(player.x - entrance.x, player.z - entrance.z) <=
+      ROOF_TENT_SPEC.footActivation &&
+    Math.abs(player.y - host.location.y) <= ROOF_TENT_SPEC.entranceBand
+  );
+}

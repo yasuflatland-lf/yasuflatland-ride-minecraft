@@ -11,6 +11,10 @@ import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
 import { createEntranceReach } from "../../../src/infrastructure/camp/bedrock/roofTentAccess";
 import { ROOF_TENT_HOST_PROPERTY } from "../../../src/infrastructure/camp/identifiers";
 
+vi.mock("@minecraft/server", () => ({
+  world: { getDimension: vi.fn(), getEntity: vi.fn() },
+}));
+
 const mount = SUV_PROFILE.roofTent as RoofTentMount;
 const hostPose = { location: { x: 10, y: 64, z: -5 }, yaw: 30 };
 const present = (
