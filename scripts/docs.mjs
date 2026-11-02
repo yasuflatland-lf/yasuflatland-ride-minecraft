@@ -131,6 +131,8 @@ export function checkMetadata(adrs) {
     }
     for (const name of ["Status", "Date"])
       if (!seen.has(name)) fail(1, `Missing ${name}`);
+    if (status === "Proposed" && !seen.has("Acceptance condition"))
+      fail(1, "Missing Acceptance condition");
   }
   return errors;
 }

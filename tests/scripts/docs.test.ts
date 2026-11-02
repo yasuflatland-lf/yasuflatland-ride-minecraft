@@ -33,8 +33,15 @@ const metadata = fc.record({
   optional: fc.boolean(),
 });
 
-function document(value: number, fields = "", title = "Decision") {
-  return `# ${number(value)}. ${title}\n\n- Status: Accepted\n- Date: 2026-10-22\n${fields}\n## Context\n\nContext.\n`;
+function document(
+  value: number,
+  fields = "",
+  title = "Decision",
+  status = "Accepted",
+) {
+  const condition =
+    status === "Proposed" ? "- Acceptance condition: test passes\n" : "";
+  return `# ${number(value)}. ${title}\n\n- Status: ${status}\n${condition}- Date: 2026-10-22\n${fields}\n## Context\n\nContext.\n`;
 }
 
 const graph = fc.integer({ min: 2, max: 15 }).chain((size) =>
@@ -51,7 +58,15 @@ const graph = fc.integer({ min: 2, max: 15 }).chain((size) =>
         maxLength: size * 2,
       },
     )
-    .map((edges) => {
+    .chain((edges) =>
+      fc
+        .array(fc.constantFrom("Proposed", "Accepted", "Rejected"), {
+          minLength: size,
+          maxLength: size,
+        })
+        .map((statuses) => ({ edges, statuses })),
+    )
+    .map(({ edges, statuses }) => {
       const relations = edges.map((edge) => ({
         source: edge.source,
         target: 1 + (edge.targetSeed % (edge.source - 1)),
@@ -67,9 +82,14 @@ const graph = fc.integer({ min: 2, max: 15 }).chain((size) =>
               `- ${edge.kind}: ${link(edge.target)}${edge.kind === "Supersedes in part" ? ": replaced rule" : ""}\n`,
           )
           .join("");
-        files[path(value)] = document(value, fields);
+        files[path(value)] = document(
+          value,
+          fields,
+          "Decision",
+          statuses[value - 1],
+        );
       }
-      return { files, relations, size };
+      return { files, relations, size, statuses };
     }),
 );
 
@@ -79,13 +99,11 @@ describe("ADR documentation properties", () => {
       fc.property(metadata, ({ status, title, scope, day, kind, optional }) => {
         const fields = [
           `- Status: ${status}`,
-          ...(optional
-            ? [
-                status === "Proposed"
-                  ? `- Acceptance condition: ${scope}`
-                  : "- Decided in: #1187, #1200",
-              ]
-            : []),
+          ...(status === "Proposed"
+            ? [`- Acceptance condition: ${scope}`]
+            : optional
+              ? ["- Decided in: #1187, #1200"]
+              : []),
           `- Date: 2026-10-${String(day).padStart(2, "0")}`,
           `- ${kind}: ${link(1)}${kind === "Supersedes" ? "" : `: ${scope}`}`,
           ...(optional ? ["- Pull requests: #1187"] : []),
@@ -109,12 +127,12 @@ describe("ADR documentation properties", () => {
 
   it("sorts random graphs and derives each inverse relation in the required order", () => {
     fc.assert(
-      fc.property(graph, ({ files, relations, size }) => {
+      fc.property(graph, ({ files, relations, size, statuses }) => {
         const adrs = parseAdrs(files);
         const rows = generateIndex(adrs).split("\n").slice(2);
         expect(rows).toHaveLength(size);
         for (let value = 1; value <= size; value++) {
-          const statuses = ["Accepted"];
+          const status = [statuses[value - 1]];
           for (const [kind, inverse] of [
             ["Supersedes", "superseded by"],
             ["Supersedes in part", "superseded in part by"],
@@ -125,10 +143,10 @@ describe("ADR documentation properties", () => {
               .map((edge) => edge.source)
               .sort((a, b) => a - b);
             if (sources.length)
-              statuses.push(`${inverse} ${sources.map(link).join(", ")}`);
+              status.push(`${inverse} ${sources.map(link).join(", ")}`);
           }
           expect(rows[value - 1]).toBe(
-            `| ${link(value)} | Decision | ${statuses.join("; ")} |`,
+            `| ${link(value)} | Decision | ${status.join("; ")} |`,
           );
         }
         expect(generateIndex([...adrs].reverse())).toBe(generateIndex(adrs));
@@ -198,6 +216,36 @@ describe("ADR documentation properties", () => {
 });
 
 describe("ADR validation edge cases", () => {
+  it.each([
+    {
+      block: "- Status: Proposed",
+      errors: [{ line: 1, message: "Missing Acceptance condition" }],
+    },
+    {
+      block:
+        "- Status: Proposed\n- Acceptance condition: test passes\n- Decided in: #1",
+      errors: [{ line: 5, message: "Invalid Decided in value" }],
+    },
+    {
+      block: "- Status: Accepted\n- Acceptance condition: test passes",
+      errors: [{ line: 4, message: "Invalid Acceptance condition value" }],
+    },
+    {
+      block:
+        "- Status: Proposed\n- Acceptance condition: owner decision pending (see #PRNUMBER)",
+      errors: [],
+    },
+  ])("checks status-specific metadata: $block", ({ block, errors }) => {
+    expect(
+      checkMetadata([
+        parseAdr(
+          path(2),
+          `# 0002. Decision\n\n${block}\n- Date: 2026-10-22\n\n## Context`,
+        ),
+      ]),
+    ).toEqual(errors.map((error) => ({ path: path(2), ...error })));
+  });
+
   it.each([
     "- Status: Superseded",
     "- Status: Accepted\n- Status: Accepted",
