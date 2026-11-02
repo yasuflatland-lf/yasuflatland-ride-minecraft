@@ -1,4 +1,5 @@
-import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, posix } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -259,7 +260,7 @@ export function checkIndex(files, adrs) {
     problem(
       INDEX,
       text.slice(0, text.indexOf(START)).split("\n").length,
-      "ADR index is stale; run pnpm docs",
+      "ADR index is stale; run pnpm run docs",
     ),
   ];
 }
@@ -309,6 +310,7 @@ function withoutCode(text) {
 
 export function checkLinks(files) {
   const errors = [];
+  const paths = Object.keys(files);
   for (const [path, text] of Object.entries(files)) {
     if (
       !(
@@ -348,10 +350,15 @@ export function checkLinks(files) {
       } catch {
         decoded = target;
       }
-      const resolved = posix.normalize(
-        posix.join(posix.dirname(path), decoded),
-      );
-      if (!Object.hasOwn(files, resolved))
+      const resolved = posix
+        .normalize(posix.join(posix.dirname(path), decoded))
+        .replace(/\/$/, "");
+      if (
+        !Object.hasOwn(files, resolved) &&
+        !paths.some((file) =>
+          file.startsWith(resolved === "." ? "" : `${resolved}/`),
+        )
+      )
         errors.push(
           problem(
             path,
@@ -364,21 +371,18 @@ export function checkLinks(files) {
   return errors;
 }
 
-function loadFiles(root, directory = "", files = {}) {
-  for (const entry of readdirSync(join(root, directory), {
-    withFileTypes: true,
-  })) {
-    if (
-      [".git", "node_modules", "dist"].includes(entry.name) ||
-      posix.join(directory, entry.name) === "server/data"
-    )
-      continue;
-    const path = posix.join(directory, entry.name);
-    if (entry.isDirectory()) loadFiles(root, path, files);
-    else
-      files[path] = path.endsWith(".md")
-        ? readFileSync(join(root, path), "utf8")
-        : "";
+function loadFiles(root) {
+  const files = {};
+  const paths = execFileSync(
+    "git",
+    ["ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+    { cwd: root, encoding: "utf8" },
+  ).split("\0");
+  for (const path of paths) {
+    if (!path || !existsSync(join(root, path))) continue;
+    files[path] = path.endsWith(".md")
+      ? readFileSync(join(root, path), "utf8")
+      : "";
   }
   return files;
 }

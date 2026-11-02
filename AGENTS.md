@@ -16,7 +16,7 @@ Node and pnpm are pinned in `mise.toml`; run `mise install` first.
 pnpm install --frozen-lockfile
 pnpm lint          # Biome format + lint check (CI runs `biome ci`)
 pnpm lint:fix      # apply Biome fixes
-pnpm docs          # regenerate the ADR index
+pnpm run docs      # regenerate the ADR index
 pnpm lint:docs     # check ADR metadata, the generated index, and doc links
 pnpm lint:lang     # fail on Japanese/CJK text in tracked and unignored files
 pnpm lint:unused   # knip: fail on unused files, exports, and dependencies
@@ -77,7 +77,7 @@ Design decisions live in [docs/adr](docs/adr/README.md). Read the ADRs that rela
 
 ## Changing a decision
 
-- When a change goes against an Accepted ADR, or makes a design choice that is not recorded yet, add a new ADR. Follow "Writing a new ADR" in [docs/adr/README.md](docs/adr/README.md) and run `pnpm docs` to regenerate the index.
+- When a change goes against an Accepted ADR, or makes a design choice that is not recorded yet, add a new ADR. Follow "Writing a new ADR" in [docs/adr/README.md](docs/adr/README.md) and run `pnpm run docs` to regenerate the index.
 - Do not rewrite the Decision of an Accepted ADR. Supersede it with a new ADR instead. Fixing typos and adding links is fine.
 
 ## Bedrock gotchas

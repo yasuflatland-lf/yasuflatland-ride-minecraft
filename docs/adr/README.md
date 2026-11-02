@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-This directory records design decisions and the reasons behind them, using Michael Nygard's Context, Decision, and Consequences sections. Structured metadata records agreement and outgoing relations; the index derives inverse relations. Status states agreement only. To replace or extend a decision, add an outgoing relation on the newer ADR and keep the original Decision unchanged. Never edit the index by hand; run `pnpm docs`.
+This directory records design decisions and the reasons behind them, using Michael Nygard's Context, Decision, and Consequences sections. Structured metadata records agreement and outgoing relations; the index derives inverse relations. Status states agreement only. To replace or extend a decision, add an outgoing relation on the newer ADR and keep the original Decision unchanged. Never edit the index by hand; run `pnpm run docs`.
 
 <!-- biome-ignore format: Generated ADR index uses unpadded columns. -->
 <!-- adr-index:start -->
@@ -220,7 +220,7 @@ The measurements and in-game tests behind these decisions are in [the driving-co
    - **Context**: the forces at play and what was tried, including measured numbers
    - **Decision**: what we will do, as concrete rules with their values
    - **Consequences**: what follows, including the downsides we accept and the conditions under which to revisit the decision
-3. Run `pnpm docs`. Never edit the generated index by hand. Run `pnpm lint:docs` to check the metadata, index, and relative document links.
+3. Run `pnpm run docs`. Never edit the generated index by hand. Run `pnpm lint:docs` to check the metadata, index, and relative document links.
 4. Write in English. Refer to other ADRs by their four-digit number, for example "(0006)".
 
 Metadata fields and rules, in field order:

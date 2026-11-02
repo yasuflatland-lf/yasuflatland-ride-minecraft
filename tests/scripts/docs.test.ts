@@ -288,6 +288,28 @@ describe("ADR validation edge cases", () => {
     expect(checkLinks({ "src/ignored.md": "[x](missing.md)" })).toEqual([]);
   });
 
+  it("accepts directory links only when they contain a known file", () => {
+    expect(
+      checkLinks({
+        "README.md": "[ADRs](docs/adr/) [root](./)",
+        "docs/adr/README.md": "[designs](../designs)",
+        "docs/designs/nested/plan.md": "",
+      }),
+    ).toEqual([]);
+    expect(
+      checkLinks({
+        "README.md": "[missing](docs/design/)",
+        "docs/designs/plan.md": "",
+      }),
+    ).toEqual([
+      {
+        path: "README.md",
+        line: 1,
+        message: "Broken relative link: docs/design/",
+      },
+    ]);
+  });
+
   it("ignores inline code and backtick or tilde fenced examples while preserving line numbers", () => {
     const text = [
       "`[x](missing.md)` and ``[x](missing.md) `example` ``",
