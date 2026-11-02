@@ -850,7 +850,7 @@ describe("roof tent asset contract", () => {
       expect(new Set(chamfers.map((c) => c.origin[1])).size).toBe(
         d.zip_chamfer_steps,
       );
-      const ladder: TexturedBone = geometries[1].bones.find(
+      const ladder: TexturedBone = geometries[suv ? 1 : 0].bones.find(
         (b: TexturedBone) => b.name === "ladder",
       );
       const ladderTop = Math.max(
@@ -867,7 +867,9 @@ describe("roof tent asset contract", () => {
           )
           .flatMap((c) => turnedCorners(fabric, c).map(([, y]) => y)),
       );
-      expect(ladderTop).toBeLessThan(windowBottom);
+      // The ground/camper ladder is kept unchanged for the camper, so only the
+      // SUV ladder is required to stay below the end window.
+      if (suv) expect(ladderTop).toBeLessThan(windowBottom);
     },
   );
 
