@@ -123,3 +123,14 @@ export const GAS_LANTERN_SPEC = Object.freeze({
   hitsToTakeBack: 3,
   hitResetTicks: 100,
 });
+
+export const ROOF_TENT_SPEC = Object.freeze({
+  /** Matches ground gear recovery so the same three deliberate hits fold it (ADR 0200). */
+  hitsToFoldUp: 3,
+  /** Matches the ground tent's five-second window for consecutive recovery hits. */
+  hitResetTicks: 100,
+  /** Checks faster than tabletop gear so a departing host promptly ejects its sleeper. */
+  hostCheckTicks: 4,
+  /** Three blocks lets a player at the ladder foot reach a roof-mounted tent. */
+  interactReach: 3,
+});

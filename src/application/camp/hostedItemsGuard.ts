@@ -8,7 +8,8 @@ export class HostedItemsGuard {
     for (const kind of this.kinds) {
       for (const id of kind.loaded()) {
         const host = kind.host(id);
-        if (host.kind === "ground") continue;
+        // Vehicle hosts use their own presence and driving rules (ADR 0200).
+        if (host.kind === "ground" || host.kind === "vehicle") continue;
         // An unloaded host reads as missing, so only a loaded host area can prove it gone.
         if (kind.isHostAreaLoaded(id) && !kind.hostExists(host.id))
           kind.remove(id);

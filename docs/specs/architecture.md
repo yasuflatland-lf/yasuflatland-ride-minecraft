@@ -19,6 +19,7 @@
 - Source: [0156](../adr/0156-resend-the-docked-property-after-a-failed-send.md)
 - Source: [0178](../adr/0178-bulldozer-build-tools-in-a-separate-namespace.md)
 - Source: [0198](../adr/0198-one-build-wand-without-a-bulldozer.md)
+- Source: [0200](../adr/0200-roof-tent-as-a-host-bound-camp-entity.md)
 - Excluded: [0179](../adr/0179-support-realms-as-a-second-play-environment.md): Realms support belongs to the dev-environment topic.
 - Excluded: [0204](../adr/0204-shard-unit-tests-across-ci-jobs.md): CI sharding belongs to the testing topic, not runtime layering.
 
@@ -194,6 +195,15 @@
 - Basis: [0047](../adr/0047-rename-to-yasuflatland-ride.md) Decision, "Keep content files flat under `<type>/yasu_ride/<file>` in both packs"; [0047](../adr/0047-rename-to-yasuflatland-ride.md) Decision, "Test entities use `entities/yasu_ride_test/`."; [0178](../adr/0178-bulldozer-build-tools-in-a-separate-namespace.md) Decision, "Pack files go under `<type>/yasu_build/` inside `yasu_ride_bp` and `yasu_ride_rp`."
 - Implementation: `packs/yasu_ride_bp`; `packs/yasu_ride_rp`; `packs/yasu_ride_test_bp`; `tests/packs/layout.test.ts`
 - Verification: `tests/packs/layout.test.ts` "keeps content files flat under the namespace folder" and "keeps every path within the console limit". Not verified: suffixes are conventions observed in paths, not assertions in that test; console loading and cross-add-on resource collisions were not tested.
+
+### Host-state port
+
+- Applies to: Features that need a vehicle's state to manage a host-bound camp entity.
+- Rule: Features exchange host state through `VehicleHostLookup` next to `SpaceCheck`. Bootstrap passes the shared read-only port to camp; vehicle infrastructure supplies presence, pose, mount, driver presence, and motion without exposing vehicle domain objects. Unknown includes unloaded hosts; removed requires positive evidence.
+- Agreement: Proposed
+- Basis: [0200](../adr/0200-roof-tent-as-a-host-bound-camp-entity.md) Decision, "Features exchange host state through `VehicleHostLookup` next to `SpaceCheck`."
+- Implementation: `src/application/shared/ports/vehicleHost.ts`; `src/infrastructure/vehicle/bedrock/bedrockVehicleWorld.ts`; `src/infrastructure/bootstrap.ts`
+- Verification: `tests/infrastructure/vehicle/install.test.ts` "returns the vehicles' space check for other features (ADR 0122)". Not verified: this space-check test does not exercise the complete host-state lifecycle or roof tent integration.
 
 ## Open issues
 

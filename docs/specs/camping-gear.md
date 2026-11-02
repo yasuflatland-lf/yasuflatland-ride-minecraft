@@ -15,6 +15,7 @@
 - Source: [0173](../adr/0173-remove-the-inside-lantern-and-add-the-gas-lantern.md)
 - Source: [0185](../adr/0185-put-things-on-the-camp-table-instead-of-sitting-at-it.md)
 - Source: [0191](../adr/0191-press-camp-gear-without-the-light-tool.md)
+- Source: [0200](../adr/0200-roof-tent-as-a-host-bound-camp-entity.md)
 - Excluded: [0134](../adr/0134-switch-the-tent-lantern-with-the-headlight-switch.md): tent lantern switching is specified in the lights spec; the shelter's ceiling contract is included here
 - Excluded: [0135](../adr/0135-repaint-the-tent-with-dyes.md): tent paint is specified in the paint spec; differences from the earlier entity contract are recorded below
 - Excluded: [0178](../adr/0178-bulldozer-build-tools-in-a-separate-namespace.md): replaces 0144's separate Bulldozer Switches group; build tools and their behavior belong to another spec
@@ -321,3 +322,4 @@
 - ADR 0185 says each tabletop kind definition includes its item and entity type; the implementation's `HostedItemKind` contains only ID, footprint, and clearance, with item and entity handling in each world adapter and the scanning definition in `tableItems.ts` (`src/application/camp/ports/tableTop.ts`, `src/infrastructure/camp/bedrock/tableItems.ts`); the ADR needs an edit or a superseding ADR.
 - ADR 0185 describes a placement where the view ray meets the top plane; the implementation defaults to the center when the ray misses or points away (`src/infrastructure/camp/bedrock/tableTopAim.ts`, `src/application/camp/placeOnTableTop.ts`); the ADR needs an edit or a superseding ADR to record this fallback.
 - ADR 0173 accepts light loss before the first post-reload scan and temporary darkening when another owner clears a shared cell; the implementation retains those limits because its layer learns saved cells only from a loaded holder and does not coordinate light ownership across layers (`src/infrastructure/camp/bedrock/bedrockGasLanternWorld.ts`, `src/infrastructure/shared/laidCells.ts`). Not verified: these accepted limitations on a live server.
+- ADR 0200 says a roof tent is a camp entity bound to a vehicle host (marker `vehicle:<id>`) that is removed when the host is removed, driven or moving, and that a sleeper's respawn point is cleared on removal; the implementation has only the domain functions (`src/domain/camp/roofTent/`, `src/domain/camp/hosted.ts`); these become Rules when the adapters land.

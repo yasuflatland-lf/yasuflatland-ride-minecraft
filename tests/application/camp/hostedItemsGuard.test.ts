@@ -39,6 +39,7 @@ class FakeKind implements HostedKindPort {
 const hostId = fc.constantFrom("table", "pit", "gone");
 const host: fc.Arbitrary<Host> = fc.oneof(
   fc.constant({ kind: "ground" } as const),
+  fc.record({ kind: fc.constant("vehicle" as const), id: hostId }),
   fc.record({
     kind: fc.constant("fire_pit" as const),
     id: hostId,
@@ -64,7 +65,10 @@ const kindOf = (list: readonly FakeItem[], hosts: ReadonlySet<string>) =>
   new FakeKind(new Map(list.map((item, i) => [`item${i}`, item])), hosts);
 
 const missingHost = (item: FakeItem, hosts: ReadonlySet<string>) =>
-  item.host.kind !== "ground" && item.areaLoaded && !hosts.has(item.host.id);
+  item.host.kind !== "ground" &&
+  item.host.kind !== "vehicle" &&
+  item.areaLoaded &&
+  !hosts.has(item.host.id);
 
 it("removes exactly the hosted items whose host is gone from a loaded area", () => {
   fc.assert(
@@ -126,4 +130,19 @@ it("keeps an item in an unloaded area, on the ground, or on an existing host", (
   );
   new HostedItemsGuard([kind]).check();
   expect(kind.removed).toEqual(["item3"]);
+});
+
+it("skips vehicle hosts without querying ordinary hosted-item presence", () => {
+  const kind = kindOf(
+    [{ host: { kind: "vehicle", id: "gone" }, areaLoaded: true }],
+    new Set(),
+  );
+  kind.isHostAreaLoaded = () => {
+    throw new Error("Vehicle hosts need their own guard");
+  };
+  kind.hostExists = () => {
+    throw new Error("Vehicle hosts need their own lookup");
+  };
+  new HostedItemsGuard([kind]).check();
+  expect(kind.removed).toEqual([]);
 });

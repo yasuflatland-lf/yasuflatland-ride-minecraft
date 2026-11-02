@@ -3,6 +3,7 @@ import type { LocalPoint } from "./tabletop";
 
 export type Host =
   | { readonly kind: "ground" }
+  | { readonly kind: "vehicle"; readonly id: string }
   | { readonly kind: "fire_pit"; readonly id: string; readonly spot: number }
   | {
       readonly kind: "camp_table";
@@ -34,6 +35,8 @@ export function encodeHost(host: Host): string {
   switch (host.kind) {
     case "ground":
       return "";
+    case "vehicle":
+      return `vehicle:${host.id}`;
     case "fire_pit":
       return `fire_pit:${host.id}:${host.spot}`;
     case "camp_table":
@@ -42,6 +45,9 @@ export function encodeHost(host: Host): string {
 }
 
 export function decodeHost(text: string): Host {
+  if (text.startsWith("vehicle:") && text.length > "vehicle:".length)
+    return { kind: "vehicle", id: text.slice("vehicle:".length) };
+
   const point = TABLE_POINT_MARKER.exec(text);
   if (point) {
     const [, id, rawX, rawZ] = point;
