@@ -301,12 +301,14 @@ it("places the SUV foot at least 0.9 blocks beyond its body half width in host-l
         (entrance.x - host.location.x) * left.x +
         (entrance.z - host.location.z) * left.z;
       expect(localX).toBeCloseTo(mount.entrance.x, 10);
+      expect(localX).toBeCloseTo(3.6585, 10);
       expect(localX - SUV_SPEC.bodyHalfWidth).toBeGreaterThanOrEqual(0.9);
       const front = forward(host.yaw);
       const localZ =
         (entrance.x - host.location.x) * front.x +
         (entrance.z - host.location.z) * front.z;
       expect(localZ).toBeCloseTo(mount.entrance.z, 10);
+      expect(localZ).toBeCloseTo(-0.98, 10);
       expect(localZ).toBeLessThan(mount.anchor.z);
       expect(mount.entrance.z).toBe(SUV_SPEC.roofTentEntranceZ);
     }),

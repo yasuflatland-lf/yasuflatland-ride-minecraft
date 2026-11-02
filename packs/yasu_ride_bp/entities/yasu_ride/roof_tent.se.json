@@ -25,7 +25,7 @@
     },
     "component_groups": {
       "yasu_ride:suv_bounds": {
-        "minecraft:collision_box": { "width": 4, "height": 1.7 }
+        "minecraft:collision_box": { "width": 5.2, "height": 1.7 }
       },
       "yasu_ride:paint_khaki": {
         "minecraft:variant": {

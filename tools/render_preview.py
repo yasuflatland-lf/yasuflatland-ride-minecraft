@@ -189,8 +189,8 @@ ROOF_TENT_GEOMETRY = "models/entity/yasu_ride/roof_tent.geo.json"
 ROOF_TENT_TEXTURE = "textures/entity/yasu_ride/roof_tent.png"
 ROOF_TENT_PREVIEW = "roof_tent"
 ROOF_TENT_ICON = "roof_tent_item"
-# Preview coordinates mirror model x: +x here exposes the model's -x ladder/window.
-ROOF_TENT_VIEW = (1.0, 0.65, -1.0)
+# Preview coordinates mirror model x: -x here exposes the model's +x ladder/window.
+ROOF_TENT_VIEW = (-1.0, 0.65, -1.0)
 TABLE_GEOMETRY = "models/entity/yasu_ride/camp_table.geo.json"
 TABLE_TEXTURE = "textures/entity/yasu_ride/camp_table.png"
 TABLE_PREVIEW = "camp_table"

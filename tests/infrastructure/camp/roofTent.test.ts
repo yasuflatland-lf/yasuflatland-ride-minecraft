@@ -9,6 +9,7 @@ import type { VehicleHostState } from "../../../src/application/shared/ports/veh
 import { ROOF_TENT_SPEC } from "../../../src/domain/camp/spec";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { PAINTS } from "../../../src/domain/shared/paint";
+import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
 import { BedrockRoofTentOccupantWorld } from "../../../src/infrastructure/camp/bedrock/bedrockRoofTentOccupantWorld";
 import { BedrockRoofTentWorld } from "../../../src/infrastructure/camp/bedrock/bedrockRoofTentWorld";
 import { registerRoofTentHits } from "../../../src/infrastructure/camp/bedrock/handlers/roofTentHits";
@@ -209,6 +210,26 @@ it("spawns with the host marker, owner, paint and collision bounds selected by l
       );
     }),
   );
+});
+it("places the SUV tent at its shifted left anchor with the model front at -z", () => {
+  state = { ...state, mount: SUV_PROFILE.roofTent } as VehicleHostState;
+  const tent = entity();
+  game.dimension.spawnEntity.mockReturnValue(tent);
+  const place = new PlaceRoofTent(tents, host);
+  expect(
+    place.execute({
+      dimensionId: DIM,
+      target: { entityId: "host" },
+      yaw: 0,
+      slot: 0,
+    }),
+  ).toBe(true);
+  expect(game.dimension.spawnEntity.mock.calls[0]?.[0]).toBe(ids.ROOF_TENT_TYPE);
+  const location = game.dimension.spawnEntity.mock.calls[0]?.[1];
+  expect(location?.x).toBeCloseTo(1.203, 10);
+  expect(location?.y).toBeCloseTo((26.1 * 1.45) / 16, 10);
+  expect(location?.z).toBeCloseTo(-0.605, 10);
+  expect(tent.triggerEvent).toHaveBeenCalledWith("yasu_ride:suv_bounds");
 });
 it("rolls back a failed spawn so placement can refund the item", () => {
   const tent = entity();

@@ -91,7 +91,7 @@ describe("roof tent asset contract", () => {
       entity.component_groups["yasu_ride:suv_bounds"][
         "minecraft:collision_box"
       ];
-    expect(suvBounds).toEqual({ width: 4, height: 1.7 });
+    expect(suvBounds).toEqual({ width: 5.2, height: 1.7 });
     expect(entity.events["yasu_ride:suv_bounds"]).toEqual({
       add: { component_groups: ["yasu_ride:suv_bounds"] },
     });
@@ -108,7 +108,7 @@ describe("roof tent asset contract", () => {
         16,
     );
     expect(SUV_SPEC.roofTentAnchorX - suvDims.half_width / 16).toBeCloseTo(
-      -SUV_SPEC.bodyHalfWidth,
+      -SUV_SPEC.bodyHalfWidth + 0.875,
     );
     expect(
       SUV_SPEC.roofTentAnchorX +
@@ -129,6 +129,38 @@ describe("roof tent asset contract", () => {
       tent.components["minecraft:pushable"],
     );
     expect(entity.components["minecraft:persistent"]).toEqual({});
+  });
+
+  it("maps the model +x ladder foot to the vehicle-left gameplay entrance", () => {
+    const ladder: TexturedBone = geometries[1].bones.find(
+      (bone: TexturedBone) => bone.name === "ladder",
+    );
+    expect(ladder.pivot?.[0]).toBeGreaterThan(0);
+    const corners = (ladder.cubes ?? []).flatMap((cube) => {
+      expect(cube.origin[0]).toBeGreaterThan(0);
+      expect(cube.rotation?.[2]).toBeLessThan(0);
+      return turnedCorners(ladder, cube);
+    });
+    const foot = corners.reduce((lowest, point) =>
+      point[1] < lowest[1] ? point : lowest,
+    );
+    expect(foot[0]).toBeGreaterThan(ladder.pivot?.[0] ?? 0);
+    expect(SUV_SPEC.roofTentEntranceX).toBeCloseTo(
+      SUV_SPEC.roofTentAnchorX + foot[0] / 16,
+      4,
+    );
+    expect(SUV_SPEC.roofTentEntranceZ).toBeCloseTo(
+      SUV_SPEC.roofTentAnchorZ - (ladder.pivot?.[2] ?? 0) / 16,
+      4,
+    );
+    expect(SUV_SPEC.roofTentRoofHeight + foot[1] / 16).toBeCloseTo(0, 4);
+    const bounds = entity.component_groups["yasu_ride:suv_bounds"][
+      "minecraft:collision_box"
+    ];
+    for (const [x, , z] of corners) {
+      expect(Math.abs(x / 16)).toBeLessThan(bounds.width / 2);
+      expect(Math.abs(z / 16)).toBeLessThan(bounds.width / 2);
+    }
   });
 
   it("switches every paint variant in shared PAINTS order", () => {
@@ -245,10 +277,10 @@ describe("roof tent asset contract", () => {
               suvDims.ladder_pivot[1] + suvDims.shell_lift,
               suvDims.ladder_pivot[2],
             ]
-          : [-16, 2, 0],
+          : [16, 2, 0],
       );
       for (const cube of ladder?.cubes ?? []) {
-        expect(cube.origin[0]).toBeLessThan(-16);
+        expect(cube.origin[0]).toBeGreaterThanOrEqual(16);
       }
       assertOneAxis(
         bones.flatMap((b) => b.cubes ?? []),
@@ -261,12 +293,20 @@ describe("roof tent asset contract", () => {
               bone.name === "ladder"
                 ? suv
                   ? suvDims.ladder_lower[0]
-                  : -27
+                  : 16
                 : suv
                   ? -suvDims.half_width - 1
                   : -17,
             );
-            expect(x).toBeLessThanOrEqual(suv ? suvDims.half_width + 1 : 17);
+            expect(x).toBeLessThanOrEqual(
+              bone.name === "ladder"
+                ? suv
+                  ? suvDims.ladder_upper_x
+                  : 27
+                : suv
+                  ? suvDims.half_width + 1
+                  : 17,
+            );
             expect(y).toBeGreaterThanOrEqual(
               bone.name === "ladder"
                 ? suv
@@ -433,6 +473,7 @@ describe("roof tent asset contract", () => {
           d.end_window_top - d.end_window_bottom,
         );
         expect(window.size[2]).toBe(2 * d.end_window_half_depth);
+        expect(window.pivot?.[0]).toBeGreaterThan(0);
       }
       const [wx, wy, wz] = window.origin;
       const [ww, wh, wd] = window.size;
@@ -515,19 +556,19 @@ describe("roof tent asset contract", () => {
         ),
     );
     for (const patch of tape) {
-      expect(patch.origin[0] + patch.size[0]).toBeCloseTo(
-        d.ladder_pivot[0] - d.ladder_rail_width,
+      expect(patch.origin[0]).toBeCloseTo(
+        d.ladder_pivot[0] + d.ladder_rail_width,
       );
       expect(patch.size[0]).toBe(d.ladder_tape_thickness);
       expect(patch.size[2]).toBe(d.ladder_tape_length);
     }
     expect(rails.map((c) => c.origin[2])).toEqual(d.ladder_rails_z);
     const corners = rails.flatMap((c) => turnedCorners(ladder, c));
-    expect(Math.max(...corners.map(([x]) => x))).toBeCloseTo(
+    expect(Math.min(...corners.map(([x]) => x))).toBeCloseTo(
       d.ladder_pivot[0],
       3,
     );
-    expect(d.ladder_pivot[0]).toBeLessThan(-d.half_width);
+    expect(d.ladder_pivot[0]).toBeGreaterThan(d.half_width);
     expect(Math.min(...corners.map(([, y]) => y))).toBeCloseTo(
       d.ladder_foot[1],
       3,
@@ -535,7 +576,7 @@ describe("roof tent asset contract", () => {
     expect(d.ladder_foot[1] + d.host_roof_height).toBeCloseTo(0, 3);
     expect(SUV_SPEC.roofTentRoofHeight * 16).toBeCloseTo(d.host_roof_height);
     expect(SUV_SPEC.roofTentEntranceX).toBeCloseTo(
-      SUV_SPEC.roofTentAnchorX - d.ladder_foot[0] / 16,
+      SUV_SPEC.roofTentAnchorX + d.ladder_foot[0] / 16,
     );
     expect(SUV_SPEC.roofTentEntranceZ).toBeCloseTo(
       SUV_SPEC.roofTentAnchorZ - d.ladder_pivot[2] / 16,
@@ -659,10 +700,10 @@ describe("roof tent asset contract", () => {
       (b: TexturedBone) => b.name === "fabric",
     );
     const sheet = fabric.cubes?.find(
-      (c) => c.pivot?.[0] === d.half_width && c.size[2] === 2 * d.half_depth,
+      (c) => c.pivot?.[0] === -d.half_width && c.size[2] === 2 * d.half_depth,
     );
     expect(sheet).toBeDefined();
-    const face = d.half_width + d.panel_thickness / 2 + d.seam_proud;
+    const face = -d.half_width - d.panel_thickness / 2 - d.seam_proud;
     const outline =
       fabric.cubes?.filter(
         (c) => Math.abs(c.origin[0] - (face - d.seam_width / 2)) < 0.001,

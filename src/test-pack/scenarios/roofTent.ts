@@ -23,7 +23,7 @@ import { type Outcome, runCourse, type StepSink } from "../outcome";
 import { summonCow } from "./shared";
 
 // Mirror roof_tent.se.json suv_bounds for the ladder variant.
-const SUV_BOUNDS_HALF_WIDTH = 2;
+const SUV_BOUNDS_HALF_WIDTH = 2.6;
 const SUV_BOUNDS_HALF_HEIGHT = 0.85;
 
 // Clear of the camp fixtures and the parked camper; all queries stay in this lane.
@@ -89,18 +89,20 @@ async function hosted(a: Arena, camper: boolean): Promise<Outcome> {
       Math.abs(tent.location.x - host.location.x - mount.anchor.x) < 0.05 &&
       Math.abs(tent.location.z - host.location.z - mount.anchor.z) < 0.05;
     let leftOverhang = true;
-    let rightFlush = true;
+    let rightInset = true;
     let footOutside = true;
     if (!camper) {
       leftOverhang = false;
-      rightFlush = false;
+      rightInset = false;
       footOutside = false;
       if (mount) {
         const shellHalf = 1.2 * SUV_SPEC.bodyHalfWidth;
         leftOverhang =
           mount.anchor.x + shellHalf > SUV_SPEC.bodyHalfWidth + 0.05;
-        rightFlush =
-          Math.abs(mount.anchor.x - shellHalf + SUV_SPEC.bodyHalfWidth) < 0.05;
+        rightInset =
+          Math.abs(
+            mount.anchor.x - shellHalf + SUV_SPEC.bodyHalfWidth - 0.875,
+          ) < 0.05;
         const foot = entranceWorld(mount, {
           location: host.location,
           yaw: host.getRotation().y,
@@ -148,7 +150,7 @@ async function hosted(a: Arena, camper: boolean): Promise<Outcome> {
       pass:
         onRoof &&
         leftOverhang &&
-        rightFlush &&
+        rightInset &&
         footOutside &&
         valid &&
         refused &&
@@ -156,7 +158,7 @@ async function hosted(a: Arena, camper: boolean): Promise<Outcome> {
         outside &&
         gone &&
         items === 1,
-      detail: `roof=${onRoof}${camper ? "" : ` leftOverhang=${leftOverhang} rightFlush=${rightFlush} footOutside=${footOutside}`} contract=${valid} duplicateRefused=${refused} seated=${seated} outside=${outside} gone=${gone} items=${items}`,
+      detail: `roof=${onRoof}${camper ? "" : ` leftOverhang=${leftOverhang} rightInset=${rightInset} footOutside=${footOutside}`} contract=${valid} duplicateRefused=${refused} seated=${seated} outside=${outside} gone=${gone} items=${items}`,
     };
   } finally {
     if (cow?.isValid) cow.remove();

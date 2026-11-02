@@ -3,7 +3,8 @@
     python3 -I tools/gen_roof_tent.py packs/yasu_ride_rp [--check]
 
 Front is -z. The ground/camper shell stays 32 x 40 pixels. The wider SUV shell
-has its ridge along x and a ground-reaching ladder on its rear -x end.
+has its ridge along x and a ground-reaching ladder on its +x end (vehicle left),
+toward the rear.
 """
 import argparse
 import math
@@ -56,7 +57,7 @@ class Dims:
     # Keep the end mesh clear of the corner seams and ladder rails.
     end_window_half_depth: float = 7
     # Only the ladder end needs an additional opening.
-    end_window_sides: tuple = (-1,)
+    end_window_sides: tuple = (1,)
     # A narrow cap protects the centre roof joint without flattening the roof.
     ridge_cap_half_depth: float = 1.6
     # The cap has a shallower pitch than the main roof.
@@ -102,12 +103,13 @@ class Dims:
     window_top: int = 10
     window_half_depth: int = 12
     doorway_half_width: int = 8
-    ladder_pivot: tuple = (-16, 2, 0)
-    ladder_tilt: float = 15
+    ladder_pivot: tuple = (16, 2, 0)
+    ladder_tilt: float = -15
     ladder_bottom: float = -32
     ladder_first_rung: int = -29
     ladder_rails_z: tuple = (-6, 5)
-    ladder_lower: tuple = (-27, -33, -31)
+    ladder_lower: tuple = (16, -33, -31)
+    ladder_upper_x: float = 27
     ladder_foot: tuple = None
 
     visible_bounds_width: int = 4
@@ -119,7 +121,7 @@ class Dims:
             drop = self.host_roof_height + self.shell_lift + self.ladder_pivot[1]
             length = math.hypot(drop, self.ladder_horizontal_reach)
             object.__setattr__(self, "ladder_bottom", self.ladder_pivot[1]-length)
-            object.__setattr__(self, "ladder_tilt", math.degrees(math.atan2(self.ladder_horizontal_reach, drop)))
+            object.__setattr__(self, "ladder_tilt", -math.degrees(math.atan2(self.ladder_horizontal_reach, drop)))
         # Export the ground-contact corner for mount consumers without duplicating the rotation.
         if self.ladder_foot is None:
             x, _, z = self.ladder_pivot
@@ -149,11 +151,11 @@ SUV_DIMS = Dims(
     frame_thickness=0.4, ridge_cap_rise=0.15,
     toggle_length=1.2, toggle_height=0.8,
     ladder_tape_length=2.2, ladder_tape_thickness=0.3,
-    # The ladder attaches just outside the -x end, on the +z rear half.
-    ladder_pivot=(-1.2 * 1.64 * 16 - 0.5, 2, 6),
+    # Model +x is vehicle left; +z is the rear half.
+    ladder_pivot=(1.2 * 1.64 * 16 + 0.5, 2, 6),
     # Rail length and tilt retain the outward reach while compensating for the shell lift.
     ladder_first_rung=-39,
-    ladder_rails_z=(1, 12), ladder_lower=(-42, -38, 1),
+    ladder_rails_z=(1, 12), ladder_lower=(31, -38, 1), ladder_upper_x=42,
     # Eight blocks enclose the widened shell and outward ladder; five enclose its height.
     visible_bounds_width=8, visible_bounds_height=5,
     visible_bounds_offset=(0, -0.45, 0),
@@ -189,11 +191,11 @@ def common_shell(d: Dims) -> Shell:
                   pivot=(0, d.ridge_height, 0), rotation=(0, 0, angle))]
     x, y, _ = d.ladder_pivot
     near, far = d.ladder_rails_z
-    ladder = [box(x-1, d.ladder_bottom, z, x, y, z+1, "strap",
+    ladder = [box(x, d.ladder_bottom, z, x+1, y, z+1, "strap",
                   pivot=d.ladder_pivot, rotation=(0, 0, d.ladder_tilt))
               for z in d.ladder_rails_z]
     for rung_y in range(d.ladder_first_rung, y, 5):
-        ladder.append(box(x-1, rung_y, near+1, x, rung_y+0.8, far, "ring",
+        ladder.append(box(x, rung_y, near+1, x+1, rung_y+0.8, far, "ring",
                           pivot=d.ladder_pivot, rotation=(0, 0, d.ladder_tilt)))
     return Shell(
         body, fabric,
@@ -456,15 +458,15 @@ def suv_shell() -> Shell:
 
     x, y, _ = d.ladder_pivot
     near, far = d.ladder_rails_z
-    ladder = [box(x-d.ladder_rail_width, d.ladder_bottom, z, x, y, z+d.ladder_rail_width, "strap",
+    ladder = [box(x, d.ladder_bottom, z, x+d.ladder_rail_width, y, z+d.ladder_rail_width, "strap",
                   pivot=d.ladder_pivot, rotation=(0, 0, d.ladder_tilt))
               for z in d.ladder_rails_z]
     for rung_y in range(d.ladder_first_rung, y, d.ladder_rung_spacing):
-        ladder.append(box(x-d.ladder_rail_width, rung_y, near+d.ladder_rail_width,
-                          x, rung_y+d.ladder_rung_height, far, "strap",
+        ladder.append(box(x, rung_y, near+d.ladder_rail_width,
+                          x+d.ladder_rail_width, rung_y+d.ladder_rung_height, far, "strap",
                           pivot=d.ladder_pivot, rotation=(0, 0, d.ladder_tilt)))
         for z in (near+d.ladder_rail_width, far-d.ladder_tape_length):
-            ladder.append(box(x-d.ladder_rail_width-d.ladder_tape_thickness, rung_y, z, x-d.ladder_rail_width,
+            ladder.append(box(x+d.ladder_rail_width, rung_y, z, x+d.ladder_rail_width+d.ladder_tape_thickness,
                               rung_y+d.ladder_rung_height, z+d.ladder_tape_length, "hook",
                               pivot=d.ladder_pivot, rotation=(0, 0, d.ladder_tilt)))
     flap_pivot = (0, d.platform_height+t, -d.half_depth)
@@ -529,7 +531,7 @@ def geometry():
                 for point in tent.corners(cube):
                     lower = d.ladder_lower if bone["name"] == "ladder" else (
                         (-d.half_width-1, -d.mount_foot_drop, -d.half_depth-1.5) if suv else (-17, 0, -31))
-                    upper = (d.half_width+1, d.ridge_height+d.shell_lift+1, d.half_depth+1.5) if suv else (17, 20, 21)
+                    upper = (d.ladder_upper_x if bone["name"] == "ladder" else d.half_width+1, d.ridge_height+d.shell_lift+1, d.half_depth+1.5) if suv else (d.ladder_upper_x if bone["name"] == "ladder" else 17, 20, 21)
                     assert all(lo <= v <= hi for v, lo, hi in zip(point, lower, upper)), bone["name"]
                 for face in cube["uv"].values():
                     u, v = face["uv"]
