@@ -1,6 +1,10 @@
-import { execFileSync } from "node:child_process";
 import fc from "fast-check";
-import { expect, it } from "vitest";
+import { afterAll, expect, it } from "vitest";
+
+import { startPythonWorker } from "../support/pythonWorker";
+
+const python = startPythonWorker();
+afterAll(() => python.close());
 
 type Rgba = [number, number, number, number];
 const required = <T>(value: T | undefined): T => {
@@ -38,12 +42,8 @@ const data: {
   density: number;
   atlasDensity: number;
 } = JSON.parse(
-  execFileSync(
-    "python3",
-    [
-      "-I",
-      "-c",
-      `import sys, json, importlib.util
+  await python.run(
+    `import sys, json, importlib.util
 sys.path.insert(0, 'tools')
 from tool_loader import load_tool
 p = load_tool('suv_paint_body')
@@ -77,8 +77,6 @@ constants = {k: v for module in (p, m) for k, v in vars(module).items() if k.isu
 print(json.dumps(dict(regions=regions, paints=[paint.body for paint in p.palette.BODY_PAINTS],
     constants=constants, deterministic=deterministic, density=p.REGION_DENSITY, atlasDensity=a.TEXELS_PER_PIXEL)))
 `,
-    ],
-    { encoding: "utf8", maxBuffer: 16 * 1024 * 1024 },
   ),
 );
 

@@ -31,9 +31,12 @@ builds do not all compress identically.
 import argparse
 import json
 import math
+import multiprocessing
+import os
 import struct
 import sys
 import zlib
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 GEOMETRY = "models/entity/yasu_ride/suv.geo.json"
@@ -638,6 +641,36 @@ class Camera:
         return (dot(v, self.right) / depth, -dot(v, self.up) / depth, 1.0 / depth)
 
 
+@dataclass(frozen=True)
+class ScreenFit:
+    camera: Camera
+    scale: float
+    off_x: float
+    off_y: float
+
+    def __call__(self, quad):
+        return [(self.off_x + self.scale * x, self.off_y + self.scale * y, q)
+                for x, y, q in map(self.camera.project, quad)]
+
+
+@dataclass(frozen=True)
+class RasterJob:
+    name: str
+    polygons: list
+    layers: list
+    to_screen: ScreenFit
+    width: int
+    height: int
+    background: list | None
+    bloom: dict
+    see_through: tuple | list
+
+
+def rasterize_job(job: RasterJob) -> bytearray:
+    return rasterize(job.polygons, job.layers, job.to_screen, job.width, job.height,
+                     job.background, job.bloom, job.see_through)
+
+
 def fill(polygon, w, h, plot):
     """Scanline-fill a convex polygon, calling plot(x, y, inv_depth) at each covered pixel center."""
     (x0, y0, q0), (x1, y1, q1), (x2, y2, q2) = polygon[0], polygon[1], polygon[2]
@@ -797,7 +830,7 @@ def rasterize(polygons, layers, to_screen, width=WIDTH, height=HEIGHT, backgroun
     return out
 
 
-def render(rp, icons=False):
+def render(rp, icon_path=None):
     geo = json.loads((rp / GEOMETRY).read_text())["minecraft:geometry"][0]
     texture = read_png(rp / TEXTURE)
     lit_texture = read_png(rp / LIT_TEXTURE)
@@ -813,17 +846,20 @@ def render(rp, icons=False):
     camera = Camera([p for polygons in scenes.values() for quad, _, _ in polygons for p in quad])
     to_screen = fit(camera, [q for name in POSES for q, _, _ in scenes[name] + layers[name]])
 
-    images = {name: rasterize(scenes[name], layers[name], to_screen) for name in POSES}
+    images = {
+        name: RasterJob(name, scenes[name], layers[name], to_screen, WIDTH, HEIGHT, None, BLOOM, ())
+        for name in POSES
+    }
     images.update(render_boat(rp))
     images.update(render_camper(rp))
     images.update(render_bulldozer(rp))
     images.update(render_camping_gear(rp))
     icon = None
-    if icons:
+    if icon_path is not None:
         # Lamps lit without the dusk tint, so the body keeps its daylight colors
         pose = {**POSES["suv-flying.png"], "lamps": True, "brightness": 1.0}
         polygons = collect(geo, texture, folds, turns, pose, lit_texture)
-        icon = render_icon(geo, polygons, camera)
+        icon = render_icon(geo, polygons, camera, str(icon_path))
     return images, icon
 
 
@@ -849,14 +885,8 @@ def fit_views(views):
         for sx_lo, sx_hi, sy_lo, sy_hi in bounds
     )
 
-    def screen(camera, off_x, off_y):
-        def to_screen(quad):
-            return [(off_x + scale * x, off_y + scale * y, q) for x, y, q in map(camera.project, quad)]
-
-        return to_screen
-
     return [
-        screen(camera, w / 2 - scale * (sx_lo + sx_hi) / 2, h / 2 - scale * (sy_lo + sy_hi) / 2)
+        ScreenFit(camera, scale, w / 2 - scale * (sx_lo + sx_hi) / 2, h / 2 - scale * (sy_lo + sy_hi) / 2)
         for (camera, _), (sx_lo, sx_hi, sy_lo, sy_hi) in zip(views, bounds)
     ]
 
@@ -880,7 +910,7 @@ def render_boat(rp):
     for names, to_screen in zip(frames.values(), fit_views(views)):
         for name in names:
             polygons, glass = scenes[name]
-            images[name] = rasterize(polygons, [], to_screen, see_through=glass + layers[name])
+            images[name] = RasterJob(name, polygons, [], to_screen, WIDTH, HEIGHT, None, BLOOM, glass + layers[name])
     return {name: images[name] for name in BOAT_POSES}
 
 
@@ -926,17 +956,17 @@ def render_poses(geo, texture, poses, lit=HEADLIGHTS_LIT, texture_mapping=False)
     for names, to_screen in zip(frames.values(), fit_views(views)):
         for name in names:
             polygons, glass = scenes[name]
-            images[name] = rasterize(polygons, [], to_screen, see_through=glass)
+            images[name] = RasterJob(name, polygons, [], to_screen, WIDTH, HEIGHT, None, BLOOM, glass)
     return {name: images[name] for name in poses}
 
 
-def render_gear(geo_path, texture, size):
+def render_gear(geo_path, texture, size, name):
     """Draw one small model in a size-pixel square on transparency, seen like the vehicles."""
     geo = json.loads(geo_path.read_text())["minecraft:geometry"][0]
     polygons, glass = collect_boat(geo, texture, {"lamps": False, "dusk": False})
     quads = [quad for quad, _, _ in polygons + glass]
     camera = Camera([p for quad in quads for p in quad])
-    return rasterize(polygons, [], fit_square(camera, quads, size), size, size, bloom={}, see_through=glass)
+    return RasterJob(name, polygons, [], fit_square(camera, quads, size), size, size, None, {}, glass)
 
 
 def small_models(rp):
@@ -956,7 +986,10 @@ def small_models(rp):
 
 
 def render_camping_gear(rp):
-    return {f"{GEAR_DIR}/{name}.png": render_gear(geo, texture, GEAR_SIZE) for name, geo, texture in small_models(rp)}
+    return {
+        f"{GEAR_DIR}/{name}.png": render_gear(geo, texture, GEAR_SIZE, f"{GEAR_DIR}/{name}.png")
+        for name, geo, texture in small_models(rp)
+    }
 
 
 def fit_square(camera, quads, size):
@@ -970,17 +1003,14 @@ def fit_square(camera, quads, size):
     off_x = w / 2 - scale * (xlo + xhi) / 2
     off_y = w / 2 - scale * (ylo + yhi) / 2
 
-    def to_screen(quad):
-        return [(off_x + scale * x, off_y + scale * y, q) for x, y, q in map(camera.project, quad)]
-
-    return to_screen
+    return ScreenFit(camera, scale, off_x, off_y)
 
 
 def image_size(name):
     return (GEAR_SIZE, GEAR_SIZE) if name.startswith(f"{GEAR_DIR}/") else (WIDTH, HEIGHT)
 
 
-def render_icon(geo, polygons, camera):
+def render_icon(geo, polygons, camera, target_name):
     """Fit the vehicle to ICON_FILL of the width over the background and the wheel discs."""
     size = ICON_SIZE
     w = h = size * SUPERSAMPLE
@@ -991,8 +1021,7 @@ def render_icon(geo, polygons, camera):
     off_x = w / 2 - scale * (xlo + xhi) / 2
     off_y = h / 2 - scale * (ylo + yhi) / 2
 
-    def to_screen(quad):
-        return [(off_x + scale * x, off_y + scale * y, q) for x, y, q in map(camera.project, quad)]
+    to_screen = ScreenFit(camera, scale, off_x, off_y)
 
     half_band = h * ICON_BAND_HEIGHT / 2
 
@@ -1033,7 +1062,29 @@ def render_icon(geo, polygons, camera):
                     i = py * w + px
                     background[i] = (*(background[i][c] * (1 - alpha) + GLOW_DISC_COLOR[c] * alpha for c in range(3)), 1.0)
     # Bloom would wash the lamp and disc halos over the orange band and blur the small icon.
-    return rasterize(polygons, [], to_screen, size, size, background, bloom={})
+    return RasterJob(target_name, polygons, [], to_screen, size, size, background, {}, ())
+
+
+def raster_jobs(rp: Path, output_dir: Path, icon_packs: list[Path]) -> list[RasterJob]:
+    """Every job named by its target path; the one pack icon job stands for all icon packs."""
+    images, icon = render(rp, icon_packs[0] / "pack_icon.png" if icon_packs else None)
+    jobs = [replace(job, name=str(output_dir / job.name)) for job in images.values()]
+    if icon is not None:
+        jobs.append(icon)
+    for pack in icon_packs:
+        if pack.name == GEAR_ICON_PACK:
+            for name, geo, texture in small_models(rp):
+                icon_name = ICON_NAMES.get(name, name)
+                target = pack / GEAR_ICON_DIR / f"{icon_name}.png"
+                jobs.append(render_gear(geo, texture, GEAR_ICON_SIZE, str(target)))
+    return jobs
+
+
+def rasterize_all(jobs: list[RasterJob], workers: int | None) -> list[bytearray]:
+    if workers == 1:
+        return [rasterize_job(j) for j in jobs]
+    with multiprocessing.get_context("spawn").Pool(workers or os.cpu_count()) as pool:
+        return pool.map(rasterize_job, jobs, chunksize=1)
 
 
 def grayscale(rgba):
@@ -1051,6 +1102,7 @@ def main():
     parser.add_argument("output_dir", type=Path)
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--icons", nargs="+", type=Path, default=[])
+    parser.add_argument("--jobs", type=int, default=None, help="number of workers (default: CPU count)")
     args = parser.parse_args()
     # A mistyped pack dir would otherwise get a fresh pack_icon.png that no manifest uses
     for pack in args.icons:
@@ -1059,17 +1111,16 @@ def main():
     # Renaming the test pack must not silently turn its icon into a color copy
     if args.icons and not any(pack.name == ICON_GRAYSCALE_PACK for pack in args.icons):
         parser.error(f"--icons must include {ICON_GRAYSCALE_PACK}, which gets the grayscale icon")
-    images, icon = render(args.resource_pack, bool(args.icons))
-    targets = [(args.output_dir / name, *image_size(name), pixels, False) for name, pixels in images.items()]
-    for pack in args.icons:
-        pixels = grayscale(icon) if pack.name == ICON_GRAYSCALE_PACK else icon
-        targets.append((pack / "pack_icon.png", ICON_SIZE, ICON_SIZE, pixels, True))
-    for pack in args.icons:
-        if pack.name == GEAR_ICON_PACK:
-            for name, geo, texture in small_models(args.resource_pack):
-                icon_name = ICON_NAMES.get(name, name)
-                pixels = render_gear(geo, texture, GEAR_ICON_SIZE)
-                targets.append((pack / GEAR_ICON_DIR / f"{icon_name}.png", GEAR_ICON_SIZE, GEAR_ICON_SIZE, pixels, False))
+    pack_icon = str(args.icons[0] / "pack_icon.png") if args.icons else None
+    targets = []
+    jobs = raster_jobs(args.resource_pack, args.output_dir, args.icons)
+    for job, rgba in zip(jobs, rasterize_all(jobs, args.jobs)):
+        if job.name == pack_icon:
+            for pack in args.icons:
+                pixels = grayscale(rgba) if pack.name == ICON_GRAYSCALE_PACK else rgba
+                targets.append((pack / "pack_icon.png", ICON_SIZE, ICON_SIZE, pixels, True))
+        else:
+            targets.append((Path(job.name), job.width, job.height, rgba, False))
     stale = []
     for target, width, height, pixels, rgb in targets:
         if args.check:
