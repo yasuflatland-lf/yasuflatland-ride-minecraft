@@ -3,7 +3,8 @@
     python3 -I tools/gen_roof_tent.py packs/yasu_ride_rp [--check]
 
 Front is -z. The shell is 32 x 40 pixels and about 19 pixels tall above its
-platform. The ladder extends below the platform; host-specific sizing is deferred.
+platform. The ladder hangs on the -x side, the vehicle's left, and extends below
+the platform; host-specific sizing is deferred.
 """
 import argparse
 import math
@@ -52,11 +53,11 @@ def parts():
                box(8, 2, -20, 16, 12, -19.5, "fly"),
                box(-8, 12, -20.1, 8, 13, -19.5, "fly_dark"),
                box(-16, 2, 19.5, 16, 12, 20, "fly")]
-    ladder = [box(x, -32, -21, x+1, 2, -20, "strap",
-                  pivot=(0, 2, -20), rotation=(-15, 0, 0)) for x in (-6, 5)]
+    ladder = [box(-17, -32, z, -16, 2, z+1, "strap",
+                  pivot=(-16, 2, 0), rotation=(0, 0, 15)) for z in (-6, 5)]
     for y in range(-29, 2, 5):
-        ladder.append(box(-5, y, -21, 5, y+0.8, -20, "ring",
-                          pivot=(0, 2, -20), rotation=(-15, 0, 0)))
+        ladder.append(box(-17, y, -5, -16, y+0.8, 5, "ring",
+                          pivot=(-16, 2, 0), rotation=(0, 0, 15)))
     def bone(name, cubes, pivot=(0, 0, 0), parent="body"):
         return {"name": name, "parent": parent, "pivot": list(pivot), "cubes": cubes}
     return [{"name": "root", "pivot": [0, 0, 0]},
@@ -66,7 +67,7 @@ def parts():
             bone("sleeping_bag", [box(-10, 2, -14, 10, 3.5, 16, "mattress_edge"),
                                   box(-10, 3.5, -14, 10, 4, 10, "mattress"),
                                   box(-8, 3.5, 11, 8, 5, 15, "inner")]),
-            bone("ladder", ladder, (0, 2, -20))]
+            bone("ladder", ladder, (-16, 2, 0))]
 
 
 def geometry():
@@ -76,7 +77,7 @@ def geometry():
     for bone in bones:
         for cube in bone.get("cubes", []):
             for point in tent.corners(cube):
-                assert all(lo <= v <= hi for v, lo, hi in zip(point, (-17, -33, -31), (17, 20, 21))), bone["name"]
+                assert all(lo <= v <= hi for v, lo, hi in zip(point, (-27 if bone["name"] == "ladder" else -17, -33, -31), (17, 20, 21))), bone["name"]
             for face in cube["uv"].values():
                 u, v = face["uv"]
                 slot = int(u // 4 + 4 * (v // 4))
