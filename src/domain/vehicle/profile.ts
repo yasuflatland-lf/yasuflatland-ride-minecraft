@@ -1,4 +1,5 @@
 import type { Paint } from "../shared/paint";
+import type { RoofTentMount } from "../shared/roofTent";
 import type { Vec2 } from "../shared/vec";
 import type { HintZones } from "./hints";
 import type { VehicleKind } from "./kind";
@@ -99,6 +100,8 @@ export interface VehicleProfile {
   readonly placementGift?: PlacementGift;
   /** The tools the cab monitor shows for the driver (ADR 0139). Absent = the kind has no cab monitor. */
   readonly monitor?: MonitorRule;
+  /** Roof tent mount (see the roof tent ADR, issue #1079). Absent = no mount: sportsboat and bulldozer have none. */
+  readonly roofTent?: RoofTentMount;
 }
 
 /** The ram half width the core never exceeds for this profile (ADR 0180). */

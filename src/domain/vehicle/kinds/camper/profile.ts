@@ -22,6 +22,18 @@ export const CAMPER_PROFILE: VehicleProfile = Object.freeze({
   kind: "camper",
   fleetLimit: 1, // Per player (ADR 0066, 0067).
   body,
+  roofTent: Object.freeze({
+    roofHeight: CAMPER_SPEC.roofTentRoofHeight,
+    anchor: Object.freeze({
+      x: CAMPER_SPEC.roofTentAnchorX,
+      z: CAMPER_SPEC.roofTentAnchorZ,
+    }),
+    ladder: CAMPER_SPEC.roofTentLadder,
+    entrance: Object.freeze({
+      x: CAMPER_SPEC.roofTentEntranceX,
+      z: CAMPER_SPEC.roofTentEntranceZ,
+    }),
+  }),
   footprint: CAMPER_SPEC.footprint,
   /**
    * x = left, z = forward. 0 = driver (front right, right-hand drive like the SUV),

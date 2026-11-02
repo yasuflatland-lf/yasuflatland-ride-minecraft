@@ -22,6 +22,13 @@ export const SUV_SPEC = Object.freeze({
   bodyFront: 2.69, // encloses the measured 2.6843125-block fog lamp lenses (ADR 0194)
   bodyHalfWidth: 1.64, // encloses the measured 1.63125-block wheel hub caps (ADR 0194)
   footprint: 3.4, // the rear hover glow reaches 3.396322 blocks at its farthest corner (ADR 0122, 0194)
+  // ROOF_TOP scaled by SIZE_SCALE in tools/suv_dims.py, above the collision box.
+  roofTentRoofHeight: (26.1 * 1.45) / 16,
+  roofTentAnchorX: 0, // Centered between the left and right seats.
+  roofTentAnchorZ: -0.605, // Midway between the front (-0.0498) and rear (-1.16) seats.
+  roofTentLadder: true, // Reserved for the later asset PR; the model has no ladder today.
+  roofTentEntranceX: 0, // Aligned with the future rear ladder.
+  roofTentEntranceZ: -2.7, // Inside the tailgate face at 31 * 1.45 / 16 blocks back.
   // Headlights (ADR 0020)
   headlightReach: Object.freeze([4, 9, 15, 21, 27] as const), // blocks ahead of the vehicle's center, one light block each; 6 apart, the road surface between them stays at level 9 or brighter (ADR 0024)
   // Flight (ADR 0021)
