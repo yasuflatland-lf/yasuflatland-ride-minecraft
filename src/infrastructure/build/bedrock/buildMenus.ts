@@ -1,5 +1,5 @@
 import type { Player } from "@minecraft/server";
-import { ActionFormData, ModalFormData } from "@minecraft/server-ui";
+import { ModalFormData } from "@minecraft/server-ui";
 import {
   type ContentsEntryId,
   contentsMenu,
@@ -12,21 +12,20 @@ import {
   utilityMenu,
 } from "../../../domain/build/flow/menu";
 import { isRoofKind } from "../../../domain/build/roof/roof";
-import type { BuildSession } from "../../../domain/build/session";
 import type { BuildSessionRepository } from "../../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../../domain/build/spec";
 import { volumeOf } from "../../../domain/build/volume/geometry";
-import { asPlayerId, type PlayerId } from "../../../domain/shared/ids";
+import { asPlayerId } from "../../../domain/shared/ids";
+import { chooseFromForm } from "../../shared/choiceForm";
+import { createExclusiveGuard } from "../../shared/exclusiveForm";
 import { BUILD_FORM } from "../identifiers";
 
 import { type MenuCases, MenuChoices } from "./menuChoices";
 
 function menuLabel(
-  _menu: "shape" | "contents" | "utility" | "paste",
   entry: MenuEntry<
     ShapeEntryId | ContentsEntryId | UtilityEntryId | PasteEntryId
   >,
-  _session: BuildSession,
 ): string {
   if (entry.id === "skipAir")
     return entry.on ? BUILD_FORM.skipAirOn : BUILD_FORM.skipAirOff;
@@ -42,7 +41,7 @@ export interface BuildMenus {
 }
 
 export class BedrockBuildMenus implements BuildMenus {
-  private readonly open = new Set<PlayerId>();
+  private readonly exclusive = createExclusiveGuard("Build menu");
 
   private readonly choices: MenuChoices;
 
@@ -59,12 +58,13 @@ export class BedrockBuildMenus implements BuildMenus {
       const playerId = asPlayerId(player.id);
       const session = this.repo.get(playerId);
       if (!session) return;
-      const id = await this.choose(
+      const id = await chooseFromForm(
         player,
         BUILD_FORM.shapeTitle,
-        shapeMenu(session.flow),
-        "shape",
-        session,
+        shapeMenu(session.flow).map((entry) => ({
+          id: entry.id,
+          textKey: menuLabel(entry),
+        })),
       );
       if (!player.isValid) return;
       const offered = this.choices.choose(playerId, "shape", id);
@@ -92,12 +92,13 @@ export class BedrockBuildMenus implements BuildMenus {
       const playerId = asPlayerId(player.id);
       const session = this.repo.get(playerId);
       if (!session) return;
-      const id = await this.choose(
+      const id = await chooseFromForm(
         player,
         BUILD_FORM.utilityTitle,
-        utilityMenu(session),
-        "utility",
-        session,
+        utilityMenu(session).map((entry) => ({
+          id: entry.id,
+          textKey: menuLabel(entry),
+        })),
       );
       if (!player.isValid) return;
       this.choices.choose(playerId, "utility", id);
@@ -109,15 +110,13 @@ export class BedrockBuildMenus implements BuildMenus {
       const playerId = asPlayerId(player.id);
       const session = this.repo.get(playerId);
       if (session?.flow.kind !== "pasteAim") return;
-      const id = await this.choose(
+      const id = await chooseFromForm(
         player,
         BUILD_FORM.utilityTitle,
         pasteMenu({
           hasHistory: session.hasHistory,
           skipAir: session.flow.kind === "pasteAim" && session.flow.skipAir,
-        }),
-        "paste",
-        session,
+        }).map((entry) => ({ id: entry.id, textKey: menuLabel(entry) })),
       );
       if (player.isValid) this.choices.choose(playerId, "paste", id);
     });
@@ -131,14 +130,15 @@ export class BedrockBuildMenus implements BuildMenus {
       session.flow.heightedKind === "copy"
     )
       return;
-    const id = await this.choose(
+    const id = await chooseFromForm(
       player,
       isRoofKind(session.flow.heightedKind)
         ? BUILD_FORM.roofTitle
         : BUILD_FORM.solidTitle,
-      contentsMenu(session.flow),
-      "contents",
-      session,
+      contentsMenu(session.flow).map((entry) => ({
+        id: entry.id,
+        textKey: menuLabel(entry),
+      })),
     );
     if (!player.isValid) return;
     this.choices.choose(playerId, "contents", id);
@@ -182,43 +182,5 @@ export class BedrockBuildMenus implements BuildMenus {
     if (flow.heightedKind === "copy")
       this.cases.confirmCopyHeight.execute({ playerId });
     else await this.contents(player);
-  }
-
-  private async choose(
-    player: Player,
-    title: string,
-    entries: MenuEntry<
-      ShapeEntryId | ContentsEntryId | UtilityEntryId | PasteEntryId
-    >[],
-    menu: "shape" | "contents" | "utility" | "paste",
-    session: BuildSession,
-  ): Promise<string | undefined> {
-    if (entries.length === 0) return undefined;
-    const form = new ActionFormData().title({ translate: title });
-    for (const entry of entries)
-      form.button({ translate: menuLabel(menu, entry, session) });
-    const answer = await form.show(player);
-    if (!player.isValid) return undefined;
-    if (answer.canceled || answer.cancelationReason !== undefined)
-      return "cancel";
-    return answer.selection === undefined
-      ? undefined
-      : entries[answer.selection]?.id;
-  }
-
-  private async exclusive(
-    player: Player,
-    show: () => Promise<void>,
-  ): Promise<void> {
-    const id = asPlayerId(player.id);
-    if (!player.isValid || this.open.has(id)) return;
-    this.open.add(id);
-    try {
-      await show();
-    } catch (error: unknown) {
-      if (player.isValid) console.warn(`Build menu failed: ${String(error)}`);
-    } finally {
-      this.open.delete(id);
-    }
   }
 }

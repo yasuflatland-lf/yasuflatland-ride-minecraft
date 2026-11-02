@@ -21,6 +21,9 @@ class FakeBedWorld implements BedWorld {
   setSpawnPoint(playerId: PlayerId, dimensionId: DimensionId, cell: Vec3) {
     this.calls.push(["setSpawnPoint", playerId, dimensionId, cell]);
   }
+  clearSpawnPoint(playerId: PlayerId, dimensionId: DimensionId, cell: Vec3) {
+    this.calls.push(["clearSpawnPoint", playerId, dimensionId, cell]);
+  }
   sleep(playerId: PlayerId): void {
     this.calls.push(["sleep", playerId]);
   }
