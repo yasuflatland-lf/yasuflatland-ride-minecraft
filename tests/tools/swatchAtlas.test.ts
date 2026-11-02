@@ -1,6 +1,5 @@
 import fc from "fast-check";
 import { afterAll, it } from "vitest";
-
 import { startPythonWorker } from "../support/pythonWorker";
 
 const python = startPythonWorker();

@@ -2,23 +2,22 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fc from "fast-check";
 import { afterAll, expect, it } from "vitest";
-
 import { startPythonWorker } from "../support/pythonWorker";
 
 const python = startPythonWorker();
 afterAll(() => python.close());
 
-const run = (script: string) =>
-  python.run(
-    [
-      "import sys, json, hashlib",
-      "sys.path.insert(0, 'tools')",
-      "from tool_loader import load_tool",
-      "d = load_tool('suv_paint_dash')",
-      "p = load_tool('suv_palette')",
-      script,
-    ].join("\n"),
-  );
+const withTools = (script: string) =>
+  [
+    "import sys, json, hashlib",
+    "sys.path.insert(0, 'tools')",
+    "from tool_loader import load_tool",
+    "d = load_tool('suv_paint_dash')",
+    "p = load_tool('suv_palette')",
+    script,
+  ].join("\n");
+
+const run = (script: string) => python.run(withTools(script));
 
 it("keeps every grain texel within resin jitter and identical across paints", async () => {
   const pixels = JSON.parse(
@@ -68,15 +67,9 @@ it("caps every dash texel and keeps its material matte, unlit and without relief
 });
 
 it("paints identical dash regions in separate Python processes", () => {
-  const script = [
-    "import sys, json, hashlib",
-    "sys.path.insert(0, 'tools')",
-    "from tool_loader import load_tool",
-    "d = load_tool('suv_paint_dash')",
-    "p = load_tool('suv_palette')",
-    `pixels = bytes(channel for spec in d.REGIONS for v in range(spec.h) for u in range(spec.w) for paint in p.BODY_PAINTS for channel in d.color(spec.name, u, v, paint))
-print(hashlib.sha256(pixels).hexdigest())`,
-  ].join("\n");
+  const script =
+    withTools(`pixels = bytes(channel for spec in d.REGIONS for v in range(spec.h) for u in range(spec.w) for paint in p.BODY_PAINTS for channel in d.color(spec.name, u, v, paint))
+print(hashlib.sha256(pixels).hexdigest())`);
   const runFresh = () =>
     execFileSync("python3", ["-I", "-c", script], {
       cwd: fileURLToPath(new URL("../../", import.meta.url)),
