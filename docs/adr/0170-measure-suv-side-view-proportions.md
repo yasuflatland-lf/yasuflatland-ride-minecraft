@@ -29,21 +29,21 @@ The image is a rendered side view, not a calibrated orthographic drawing. Antial
 
 `tools/suv_proportions.py` measures the exported, closed-door, unanimated model. The four road wheel bounds give D=12.051808 model px, rather than nominal 12: rotated tread corners reach y=-0.025904 and y=12.025904. The spare is not an anchor. The bumper tips are z=-29.5 and z=33.5, so current L=63 px (3.9375 blocks). The larger 65.12 px total visible span includes lamps and spare and is not L. Axles are z=-17 and z=21 after export's 180-degree turn.
 
-| Measure | Target image px | Target / D | Target / L | Current model px | Current / D | Current / L | Tolerance |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| Wheelbase | 489 | 3.5435 | 0.6878 | 38 | 3.1531 | 0.6032 | +/-0.05 D |
-| Front overhang | 96 | 0.6957 | 0.1350 | 12.5 | 1.0372 | 0.1984 | +/-0.05 D |
-| Rear overhang, spare excluded | 126 | 0.9130 | 0.1772 | 12.5 | 1.0372 | 0.1984 | +/-0.05 D |
-| Ground clearance at sill | 79 | 0.5725 | 0.1111 | 4.025904 | 0.3340 | 0.0639 | +/-0.05 D |
-| Overall height | 303 | 2.1957 | 0.4262 | 30.325904 | 2.5163 | 0.4814 | +/-0.05 D |
-| Belt line above ground | 211 | 1.5290 | 0.2968 | 17.025904 | 1.4127 | 0.2703 | +/-0.05 D |
-| Side window height | 74 | 0.5362 | 0.1041 | 11 | 0.9127 | 0.1746 | +/-0.05 D |
-| Hood top at windshield foot | 217 | 1.5725 | 0.3052 | 17.025904 | 1.4127 | 0.2703 | +/-0.05 D |
-| Hood length, foot to front bumper tip | 249 | 1.8043 | 0.3502 | 16.448311 | 1.3648 | 0.2611 | +/-0.05 D |
-| Windshield rake from vertical | 34.346 degrees | n/a | n/a | 25 degrees | n/a | n/a | +/-3 degrees |
-| Front bumper length | 45 | 0.3261 | 0.0633 | 6.783866 | 0.5629 | 0.1077 | +/-0.05 D |
-| Rear bumper length | 58 | 0.4203 | 0.0816 | 6.639528 | 0.5509 | 0.1054 | +/-0.05 D |
-| Bumper height, larger end | 51 | 0.3696 | 0.0717 | 5.5 | 0.4564 | 0.0873 | +/-0.05 D |
+| Measure                               | Target image px | Target / D | Target / L | Current model px | Current / D | Current / L | Tolerance    |
+| ------------------------------------- | --------------: | ---------: | ---------: | ---------------: | ----------: | ----------: | ------------ |
+| Wheelbase                             |             489 |     3.5435 |     0.6878 |               38 |      3.1531 |      0.6032 | +/-0.05 D    |
+| Front overhang                        |              96 |     0.6957 |     0.1350 |             12.5 |      1.0372 |      0.1984 | +/-0.05 D    |
+| Rear overhang, spare excluded         |             126 |     0.9130 |     0.1772 |             12.5 |      1.0372 |      0.1984 | +/-0.05 D    |
+| Ground clearance at sill              |              79 |     0.5725 |     0.1111 |         4.025904 |      0.3340 |      0.0639 | +/-0.05 D    |
+| Overall height                        |             303 |     2.1957 |     0.4262 |        30.325904 |      2.5163 |      0.4814 | +/-0.05 D    |
+| Belt line above ground                |             211 |     1.5290 |     0.2968 |        17.025904 |      1.4127 |      0.2703 | +/-0.05 D    |
+| Side window height                    |              74 |     0.5362 |     0.1041 |               11 |      0.9127 |      0.1746 | +/-0.05 D    |
+| Hood top at windshield foot           |             217 |     1.5725 |     0.3052 |        17.025904 |      1.4127 |      0.2703 | +/-0.05 D    |
+| Hood length, foot to front bumper tip |             249 |     1.8043 |     0.3502 |        16.448311 |      1.3648 |      0.2611 | +/-0.05 D    |
+| Windshield rake from vertical         |  34.346 degrees |        n/a |        n/a |       25 degrees |         n/a |         n/a | +/-3 degrees |
+| Front bumper length                   |              45 |     0.3261 |     0.0633 |         6.783866 |      0.5629 |      0.1077 | +/-0.05 D    |
+| Rear bumper length                    |              58 |     0.4203 |     0.0816 |         6.639528 |      0.5509 |      0.1054 | +/-0.05 D    |
+| Bumper height, larger end             |              51 |     0.3696 |     0.0717 |              5.5 |      0.4564 |      0.0873 | +/-0.05 D    |
 
 The module adapts the measurement and Python bridge from commits `4f7ecc54` and `78f31d86`, including `cube_tilt.cube_matrix` and its vector application. Its bounds transform all eight corners around each cube's pivot. It selects landmarks by bone and shape, without texture colors, list offsets or fixed coordinates: the widest leaning frame supplies the windshield pivot and rake, and its tilted front face, extrapolated to the pivot height, supplies the hood foot like the target's outer A-pillar edge; the large rear side pane in `windows_sealed` supplies the open window's edges; the long outer steps supply the sill. Broad low slabs beyond each axle select bumper bands, including their rotated corners. Tips exclude spare, exhaust, tow hooks and lamp lenses. Height includes roof ribs. These selectors describe the current construction and must be revised explicitly if it changes.
 

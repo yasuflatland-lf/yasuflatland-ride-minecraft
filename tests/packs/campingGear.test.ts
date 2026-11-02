@@ -25,6 +25,7 @@ import {
   ROOM_OPEN_STATE,
 } from "../../src/infrastructure/vehicle/bedrock/identifiers";
 import { defined } from "../support/defined";
+import { readTableRows } from "../support/markdown";
 
 // tools/camping_gear.json is the one list of camping gear; these tests tie
 // it to the generated block models, the atlas, the previews, and the docs
@@ -369,21 +370,21 @@ describe("camping gear docs (ADR 0093)", () => {
   });
 
   it("lists every item in spec order on the camping gear page", () => {
-    const rows = readFileSync("docs/items/camping-gear.md", "utf8")
-      .split("\n")
-      .filter((line) => line.startsWith("| !["));
+    const rows = readTableRows("docs/items/camping-gear.md").filter((line) =>
+      line.startsWith("| !["),
+    );
     expect(rows).toEqual(SPEC.map(docsRow));
   });
 
   it("counts the camping gear on the item groups page", () => {
-    const lines = readFileSync("docs/items/README.md", "utf8").split("\n");
+    const lines = readTableRows("docs/items/README.md");
     expect(lines).toContain(
       `| **Camping Gear (Inside)** | ${SPEC.length} | [Previews and placement](camping-gear.md) |`,
     );
   });
 
   it("counts the outside gear on the item groups page", () => {
-    expect(readFileSync("docs/items/README.md", "utf8")).toContain(
+    expect(readTableRows("docs/items/README.md")).toContain(
       "| **Camping Gear (Outside)** | 7 | [Low Chair, Noga Chair, Tent, Camp Table, Fire Pit, Dutch Oven, and Gas Lantern](camping-gear.md#low-chair-outside-the-vehicles) |",
     );
   });

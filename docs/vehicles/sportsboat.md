@@ -1,7 +1,7 @@
 # Sports boat
 
-| On the water | Headlights on | From the rear | From above |
-|:---:|:---:|:---:|:---:|
+|                                           On the water                                            |                                              Headlights on                                               |                                                         From the rear                                                          |                                         From above                                          |
+| :-----------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------: |
 | ![The black sports boat afloat, seen from its front-left corner](../images/sportsboat-afloat.png) | ![The sports boat with its headlights on, lighting the water ahead](../images/sportsboat-headlights.png) | ![The sports boat seen from its rear-left corner, showing the stern deck and the swim platform](../images/sportsboat-rear.png) | ![The sports boat seen from straight above, bow to the right](../images/sportsboat-top.png) |
 
 A four-seat wake boat that drives on water and lava, including the Nether's lava seas. Back to the [README](../../README.md).
@@ -16,14 +16,14 @@ A four-seat wake boat that drives on water and lava, including the Nether's lava
 
 ## Controls
 
-| Action | PC (keyboard) | Mobile (touch) |
-|---|---|---|
-| Get in | Right-click the boat | Press the ride button |
-| Get out | Shift (sneak) | Sneak button |
-| Accelerate / reverse | W / S | Push the stick forward / back |
-| Steer | A / D | Push the stick left / right |
-| Headlights on / off | Right-click with the switch in hand (driver only) | Tap with the switch in hand (driver only) |
-| Repaint | Left-click the boat with a dye | Tap the boat with a dye |
+| Action               | PC (keyboard)                                     | Mobile (touch)                            |
+| -------------------- | ------------------------------------------------- | ----------------------------------------- |
+| Get in               | Right-click the boat                              | Press the ride button                     |
+| Get out              | Shift (sneak)                                     | Sneak button                              |
+| Accelerate / reverse | W / S                                             | Push the stick forward / back             |
+| Steer                | A / D                                             | Push the stick left / right               |
+| Headlights on / off  | Right-click with the switch in hand (driver only) | Tap with the switch in hand (driver only) |
+| Repaint              | Left-click the boat with a dye                    | Tap the boat with a dye                   |
 
 The boat has no handbrake, flying, or diving controls.
 
