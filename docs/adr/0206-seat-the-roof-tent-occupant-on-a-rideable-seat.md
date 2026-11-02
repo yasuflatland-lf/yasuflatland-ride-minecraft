@@ -29,10 +29,22 @@ This ADR extends 0200 and replaces that roof tent spec rule.
   `addRider`. An already seated player stays in place. A missing rideable,
   rejection, or exception leaves a one-shot teleport fallback to `seatPosition`;
   entry does not fail because seating failed. There is no per-tick teleport hold.
-- The JSON seat y is `seatLift + seatRiderOffset`: `(5 + 2.4) / 16 + 0.35`, or
-  0.8125 blocks above the tent origin. The feet position used for the fallback
-  remains `seatLift`. The 0.35 rider offset follows the Java ridingOffset
-  convention; the Bedrock value is unmeasured and the owner tunes it live.
+- The target eye height is `shellRidge - eyeBelowRidge`: the SUV ridge from
+  `tools/gen_roof_tent.py` is `(5 + 1.2 * 12 + 6.6) / 16` = 1.625 blocks,
+  and the eye is 0.2 blocks below it at 1.425. The JSON seat y is
+  `occupantEyeHeight - standingEyeHeight + seatRiderOffset`, rounded to four
+  decimals: `1.425 - 1.62 + 0.35` = 0.155 blocks above the tent origin.
+  The rider's feet overlap the platform below the bed, so the body is hidden.
+  The one-shot teleport fallback remains at `seatLift` = `(5 + 2.4) / 16`
+  (0.4625 blocks), avoiding placement below ground in a ground tent.
+  The 0.35 rider offset follows the Java ridingOffset convention; the Bedrock
+  value is unmeasured and the owner tunes the spec constants live.
+- The occupant is invisible while inside: an invisibility effect without
+  particles lasts 30 ticks and refreshes every 10 ticks for a valid tracked,
+  seated occupant whose occupancy still matches. `LeaveRoofTent` removes it on
+  every exit, even if no safe outside position is found. Tracking mismatch and
+  forgetting an unloaded tent also reveal the former occupant. The restore scan
+  resumes refresh after reload or restart; lost tracking expires within 30 ticks.
 - The tent's sneak entry and occupant menu flow remain unchanged because
   `playerInteractWithEntity` is cancelled before the default rideable action.
 - The cleanup interval requires release of entry sneak before another sneak
@@ -48,9 +60,16 @@ This ADR extends 0200 and replaces that roof tent spec rule.
 
 ## Consequences
 
+The stable API cannot force a lying or sleeping pose: `Entity.playAnimation`
+requires an animation on the entity's client definition, and overriding the
+vanilla player client entity is fragile. The sleeping bag model represents the
+hidden occupant. Invisibility also hides armor and the held item; removing it
+also removes any potion invisibility the player already had because effects
+cannot be attributed to their source. This is an accepted trade-off.
+
 The engine seat holds the player instead of competing client gravity and server
-teleports. The rider offset, first-person fit, and camera stability are unverified
-in-game until the owner confirms. Holding sneak at entry may cause vanilla to
+teleports. The 0.35 rider offset, first-person eye height, and camera stability
+are unverified in game until the owner confirms. Holding sneak at entry may cause vanilla to
 dismount immediately; bounded re-seating tolerates that race but may still expire
 while sneak remains held. The owner must check this on PC and touch controls.
 A failed seat mount can leave a player at the teleport fallback until the next

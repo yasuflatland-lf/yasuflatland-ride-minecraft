@@ -154,6 +154,8 @@ beforeEach(() => {
       if (p) occupied.set(id, p);
       else occupied.delete(id);
     }),
+    conceal: vi.fn(),
+    reveal: vi.fn(),
     moveInside: vi.fn(),
     isSeated: vi.fn(() => true),
     placeOutside: vi.fn(),
@@ -296,6 +298,7 @@ it.each(["leave", "death", "dimension"])(
       tentId: "tent",
     });
     expect(occupied.has("tent")).toBe(false);
+    expect(occupants.reveal).toHaveBeenCalledExactlyOnceWith(pid);
   },
 );
 it("waits for the entry sneak to be released before sneak-dismounting", () => {
@@ -346,6 +349,7 @@ it("restores tracking of a persisted occupant after a reload and frees the tent"
   for (let i = 0; i < 20 * 30 + 1; i++) run();
   expect(occupied.has("tent")).toBe(false);
   expect(occupants.placeOutside).toHaveBeenCalledWith(pid, "tent");
+  expect(occupants.reveal).toHaveBeenCalledExactlyOnceWith(pid);
 });
 it("keeps a restored occupant who is back online within the grace period", () => {
   game.interval.mockClear();
@@ -603,4 +607,31 @@ it("hints at 1.2 blocks from the ladder without triggering proximity entry", () 
   game.tick += 20;
   pollFoot();
   expect(player.onScreenDisplay.setActionBar).toHaveBeenCalledOnce();
+});
+
+it("refreshes concealment at the configured interval only for matching seated occupants", () => {
+  interact();
+  flush();
+  vi.mocked(occupants.conceal).mockClear();
+  for (let i = 0; i < ROOF_TENT_SPEC.concealRefreshTicks * 3; i++) {
+    poll();
+    expect(occupants.conceal).toHaveBeenCalledTimes(
+      Math.floor(i / ROOF_TENT_SPEC.concealRefreshTicks) + 1,
+    );
+  }
+  vi.mocked(occupants.isSeated).mockReturnValue(false);
+  for (let i = 0; i < ROOF_TENT_SPEC.concealRefreshTicks; i++) poll();
+  expect(occupants.conceal).toHaveBeenCalledTimes(3);
+  occupied.set("tent", asPlayerId("other"));
+  poll();
+  expect(occupants.reveal).toHaveBeenCalledExactlyOnceWith(pid);
+  expect(occupants.conceal).toHaveBeenCalledTimes(3);
+});
+
+it("resumes concealment refresh for a restored seated occupant", () => {
+  game.interval.mockClear();
+  registerRoofTentOccupantCleanup(leave, occupants, () => ["tent"]);
+  occupied.set("tent", pid);
+  for (let i = 0; i < ROOF_TENT_SPEC.concealRefreshTicks + 1; i++) poll();
+  expect(occupants.conceal).toHaveBeenCalledTimes(2);
 });

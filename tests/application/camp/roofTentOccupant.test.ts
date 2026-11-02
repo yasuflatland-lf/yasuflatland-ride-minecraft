@@ -52,6 +52,10 @@ describe("roof tent occupant", () => {
       [playerId, cmd.tentId],
       [playerId, cmd.tentId],
     ]);
+    expect(world.conceal.mock.calls).toEqual([[playerId], [playerId]]);
+    expect(world.moveInside.mock.invocationCallOrder[0]).toBeLessThan(
+      world.conceal.mock.invocationCallOrder[0] ?? 0,
+    );
     expect(world.showMessage).toHaveBeenCalledExactlyOnceWith(
       other,
       "tent_occupied",
@@ -67,6 +71,7 @@ describe("roof tent occupant", () => {
     leave.eject(cmd.tentId);
     expect(world.calls).toEqual([
       ["placeOutside", playerId, cmd.tentId],
+      ["reveal", playerId],
       ["setOccupant", cmd.tentId, undefined],
     ]);
     expect(world.occupantOf(cmd.tentId)).toBeUndefined();
@@ -213,6 +218,7 @@ describe("roof tent occupant", () => {
     ).check();
     expect(world.calls).toEqual([
       ["placeOutside", playerId, cmd.tentId],
+      ["reveal", playerId],
       ["setOccupant", cmd.tentId, undefined],
     ]);
     expect(world.occupantOf(cmd.tentId)).toBeUndefined();

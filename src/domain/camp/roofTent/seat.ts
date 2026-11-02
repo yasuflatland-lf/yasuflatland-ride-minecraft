@@ -6,5 +6,11 @@ export function seatPosition(tentLocation: Vec3): Vec3 {
 }
 
 export function rideSeatY(): number {
-  return ROOF_TENT_SPEC.seatLift + ROOF_TENT_SPEC.seatRiderOffset;
+  return Number(
+    (
+      ROOF_TENT_SPEC.occupantEyeHeight -
+      ROOF_TENT_SPEC.standingEyeHeight +
+      ROOF_TENT_SPEC.seatRiderOffset
+    ).toFixed(4),
+  );
 }

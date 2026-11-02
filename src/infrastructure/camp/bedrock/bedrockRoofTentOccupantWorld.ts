@@ -1,4 +1,5 @@
 import { type Dimension, type Entity, world } from "@minecraft/server";
+import { LeaveRoofTent } from "../../../application/camp/leaveRoofTent";
 import type {
   OccupantEjector,
   RoofTentRemoved,
@@ -12,6 +13,7 @@ import { decodeHost } from "../../../domain/camp/hosted";
 import { exitCell } from "../../../domain/camp/roofTent/exitCell";
 import { snapYaw4 } from "../../../domain/camp/roofTent/facing";
 import { seatPosition } from "../../../domain/camp/roofTent/seat";
+import { ROOF_TENT_SPEC } from "../../../domain/camp/spec";
 import { CLEARABLE_DECORATIONS } from "../../../domain/shared/decorations";
 import {
   asDimensionId,
@@ -92,6 +94,8 @@ export class BedrockRoofTentOccupantWorld
     });
   }
   forget(id: string): void {
+    const occupant = this.snapshots.get(id)?.occupant;
+    if (occupant !== undefined) this.reveal(occupant);
     this.snapshots.delete(id);
   }
   private snapshot(id: string): Snapshot | undefined {
@@ -128,6 +132,27 @@ export class BedrockRoofTentOccupantWorld
     } catch (error) {
       console.warn(`[${NAMESPACE}] roof tent seating failed: ${error}`);
       teleport();
+    }
+  }
+  conceal(playerId: PlayerId): void {
+    try {
+      const player = playerById(playerId);
+      if (!player?.isValid) return;
+      player.addEffect("invisibility", ROOF_TENT_SPEC.concealTicks, {
+        amplifier: 0,
+        showParticles: false,
+      });
+    } catch (error) {
+      console.warn(`[${NAMESPACE}] roof tent conceal failed: ${error}`);
+    }
+  }
+  reveal(playerId: PlayerId): void {
+    try {
+      // Effects have no source attribution, so this also removes potion invisibility.
+      const player = playerById(playerId);
+      if (player?.isValid) player.removeEffect("invisibility");
+    } catch (error) {
+      console.warn(`[${NAMESPACE}] roof tent reveal failed: ${error}`);
     }
   }
   isSeated(playerId: PlayerId, id: string): boolean | undefined {
@@ -217,12 +242,10 @@ export class BedrockRoofTentOccupantWorld
     });
   }
   eject(id: string): void {
-    const occupant = this.occupantOf(id);
-    if (occupant === undefined) return;
-    this.placeOutside(occupant, id);
-    this.setOccupant(id, undefined);
+    new LeaveRoofTent(this).eject(id);
   }
   removed(id: string, ownerId: string | undefined): void {
+    this.eject(id);
     this.clearSpawn.removed(id, ownerId);
     this.forget(id);
   }

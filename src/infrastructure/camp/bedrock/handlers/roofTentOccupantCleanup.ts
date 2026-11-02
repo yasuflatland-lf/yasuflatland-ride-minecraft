@@ -1,6 +1,7 @@
 import { system, world } from "@minecraft/server";
 import type { LeaveRoofTent } from "../../../../application/camp/leaveRoofTent";
 import type { RoofTentOccupantWorld } from "../../../../application/camp/ports/roofTentOccupant";
+import { ROOF_TENT_SPEC } from "../../../../domain/camp/spec";
 import { asPlayerId, type PlayerId } from "../../../../domain/shared/ids";
 import { playerById } from "../../../shared/players";
 
@@ -46,6 +47,7 @@ export function registerRoofTentOccupantCleanup(
     tracked.delete(playerId);
     if (occupants.occupantOf(entry.tentId) === playerId)
       leave.execute({ playerId, tentId: entry.tentId });
+    else occupants.reveal(playerId);
   };
   world.afterEvents.playerLeave.subscribe((ev) =>
     cleanup(asPlayerId(ev.playerId)),
@@ -61,6 +63,7 @@ export function registerRoofTentOccupantCleanup(
     if (ticks++ % RESTORE_SCAN_TICKS === 0) restore();
     for (const [playerId, entry] of tracked) {
       if (occupants.occupantOf(entry.tentId) !== playerId) {
+        occupants.reveal(playerId);
         tracked.delete(playerId);
         continue;
       }
@@ -81,6 +84,11 @@ export function registerRoofTentOccupantCleanup(
       if (seated === undefined) continue;
       const inEntryGrace =
         !entry.released || entry.trackedTicks < ENTRY_GRACE_TICKS;
+      if (
+        seated &&
+        entry.trackedTicks % ROOF_TENT_SPEC.concealRefreshTicks === 0
+      )
+        occupants.conceal(playerId);
       entry.trackedTicks++;
       if (!seated) {
         if (inEntryGrace && entry.reseatAttempts < MAX_RESEAT_ATTEMPTS) {

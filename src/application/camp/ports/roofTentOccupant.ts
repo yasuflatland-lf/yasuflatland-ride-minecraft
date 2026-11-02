@@ -8,6 +8,10 @@ export interface RoofTentOccupantWorld {
   setOccupant(tentId: string, playerId: PlayerId | undefined): void;
   /** Moves the player to the tent's interior position. */
   moveInside(playerId: PlayerId, tentId: string): void;
+  /** Hides the occupant with an idempotent, expiring timer refresh. */
+  conceal(playerId: PlayerId): void;
+  /** Shows the occupant again, including when outside placement is unavailable. */
+  reveal(playerId: PlayerId): void;
   /** Undefined when the tent is unloaded, so missing engine state cannot imply leaving. */
   isSeated(playerId: PlayerId, tentId: string): boolean | undefined;
   /** Places the player on ground outside the tent entrance. */

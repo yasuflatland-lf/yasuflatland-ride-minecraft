@@ -111,6 +111,8 @@ function entity(id = "tent", typeId = ids.ROOF_TENT_TYPE) {
     getComponent: vi.fn(),
     triggerEvent: vi.fn(),
     teleport: vi.fn(),
+    addEffect: vi.fn(),
+    removeEffect: vi.fn(),
     remove: vi.fn(() => {
       value.isValid = false;
       game.entities.delete(id);
@@ -732,3 +734,58 @@ it.each([true, false])(
     );
   },
 );
+
+it("conceals with a short particle-free effect and reveals the occupant", () => {
+  const p = player();
+  occupants.conceal(PLAYER);
+  occupants.conceal(PLAYER);
+  expect(p.addEffect.mock.calls).toEqual(
+    Array.from({ length: 2 }, () => [
+      "invisibility",
+      ROOF_TENT_SPEC.concealTicks,
+      { amplifier: 0, showParticles: false },
+    ]),
+  );
+  occupants.reveal(PLAYER);
+  expect(p.removeEffect).toHaveBeenCalledExactlyOnceWith("invisibility");
+});
+
+it("ignores offline or invalid players and tolerates effect API failures", () => {
+  occupants.conceal(PLAYER);
+  occupants.reveal(PLAYER);
+  const p = player();
+  p.isValid = false;
+  occupants.conceal(PLAYER);
+  occupants.reveal(PLAYER);
+  expect(p.addEffect).not.toHaveBeenCalled();
+  expect(p.removeEffect).not.toHaveBeenCalled();
+  p.isValid = true;
+  p.addEffect.mockImplementation(() => {
+    throw new Error("Invalid player");
+  });
+  p.removeEffect.mockImplementation(() => {
+    throw new Error("Invalid player");
+  });
+  const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+  try {
+    expect(() => occupants.conceal(PLAYER)).not.toThrow();
+    expect(() => occupants.reveal(PLAYER)).not.toThrow();
+    expect(warning).toHaveBeenCalledTimes(2);
+  } finally {
+    warning.mockRestore();
+  }
+});
+
+it("reveals on ejection even when no safe exit exists, and on forgetting an unloaded tent", () => {
+  spawn();
+  const p = player();
+  occupants.setOccupant("tent", PLAYER);
+  game.dimension.getBlock.mockReturnValue(undefined);
+  occupants.eject("tent");
+  expect(p.teleport).not.toHaveBeenCalled();
+  expect(p.removeEffect).toHaveBeenCalledExactlyOnceWith("invisibility");
+  expect(occupants.occupantOf("tent")).toBeUndefined();
+  occupants.setOccupant("tent", PLAYER);
+  occupants.forget("tent");
+  expect(p.removeEffect).toHaveBeenCalledTimes(2);
+});
