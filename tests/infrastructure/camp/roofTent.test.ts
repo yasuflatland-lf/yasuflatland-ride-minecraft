@@ -224,7 +224,9 @@ it("places the SUV tent at its shifted left anchor with the model front at -z", 
       slot: 0,
     }),
   ).toBe(true);
-  expect(game.dimension.spawnEntity.mock.calls[0]?.[0]).toBe(ids.ROOF_TENT_TYPE);
+  expect(game.dimension.spawnEntity.mock.calls[0]?.[0]).toBe(
+    ids.ROOF_TENT_TYPE,
+  );
   const location = game.dimension.spawnEntity.mock.calls[0]?.[1];
   expect(location?.x).toBeCloseTo(1.203, 10);
   expect(location?.y).toBeCloseTo((26.1 * 1.45) / 16, 10);

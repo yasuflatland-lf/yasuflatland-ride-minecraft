@@ -154,9 +154,10 @@ describe("roof tent asset contract", () => {
       4,
     );
     expect(SUV_SPEC.roofTentRoofHeight + foot[1] / 16).toBeCloseTo(0, 4);
-    const bounds = entity.component_groups["yasu_ride:suv_bounds"][
-      "minecraft:collision_box"
-    ];
+    const bounds =
+      entity.component_groups["yasu_ride:suv_bounds"][
+        "minecraft:collision_box"
+      ];
     for (const [x, , z] of corners) {
       expect(Math.abs(x / 16)).toBeLessThan(bounds.width / 2);
       expect(Math.abs(z / 16)).toBeLessThan(bounds.width / 2);
