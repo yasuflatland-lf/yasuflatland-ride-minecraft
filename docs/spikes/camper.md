@@ -1,6 +1,6 @@
 # Camper spike: findings
 
-The spike was throwaway code on `spike/camper`, built to find out whether a parked camper can be walked through, slept in, and used for storage, and how its model should look. Its code was not merged. This page records the findings from the dev BDS on 2026-10-13 to 2026-10-18, tested by the owner on a phone (touch). The decisions for the camper kind are in [0067](adr/0067-camper.md); parking and living inside are decided in later ADRs.
+The spike was throwaway code on `spike/camper`, built to find out whether a parked camper can be walked through, slept in, and used for storage, and how its model should look. Its code was not merged. This page records the findings from the dev BDS on 2026-10-13 to 2026-10-18, tested by the owner on a phone (touch). The decisions for the camper kind are in [0067](../adr/0067-camper.md); parking and living inside are decided in later ADRs.
 
 ## Questions
 

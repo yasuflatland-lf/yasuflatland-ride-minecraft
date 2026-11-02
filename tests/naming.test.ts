@@ -7,7 +7,7 @@ import { expect, it } from "vitest";
 // Resolved from this file rather than cwd so a different vitest --root cannot
 // empty the file list and make the check pass vacuously.
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const HISTORICAL_DOCS = /^docs\/(adr|releases|superpowers)\//;
+const HISTORICAL_DOCS = /^docs\/(adr|releases|designs|spikes)\//;
 
 it("keeps the former namespace only in historical documents", () => {
   const oldName = ["my", "car"].join("");

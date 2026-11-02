@@ -9,7 +9,7 @@ The Building Tools group holds four items: Selection Wand with a crane icon, Bla
 | Wide Blade     | Shapeless, a lever and two iron ingots               | Hold it while driving the bulldozer and use it to switch between the normal and the wide blade. The monitor shows NORM or WIDE; it cuts and rams twice as wide ([ADR 0180](../adr/0180-a-wide-bulldozer-blade.md)).                                                                                                                                                                                                                |
 | Road Paver     | Shapeless, a lever, an iron ingot, and a cobblestone | Hold it while driving the bulldozer and use it to turn the paver on or off. The monitor shows OFF or ON; while on, the bulldozer lays the block in your selected slot behind it, and the block is not consumed ([ADR 0181](../adr/0181-a-road-paver-on-the-bulldozer.md)).                                                                                                                                                         |
 
-The wand flow is recorded in [ADR 0198](../adr/0198-one-build-wand-without-a-bulldozer.md) and the [Build Wand design](../superpowers/specs/2026-10-31-build-wand-design.md).
+The wand flow is recorded in [ADR 0198](../adr/0198-one-build-wand-without-a-bulldozer.md) and the [Build Wand design](../designs/2026-10-31-build-wand-design.md).
 
 ## Build mode
 

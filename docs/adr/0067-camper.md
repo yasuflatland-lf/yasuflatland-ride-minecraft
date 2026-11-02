@@ -5,7 +5,7 @@
 
 ## Context
 
-The owner wants a cab-over camper, modelled on their photos of a 1972 motorhome, that they can drive like the SUV and later live in. The [camper spike](../spike-camper.md) showed that a parked camper can be walked through, slept in, and used for storage, and settled its look with the owner. The SUV's forms, flight, submarine motion, landing gear, and bank now live in shared code under `src/domain/vehicle/motion/` with per-kind values, so a second transforming kind can use them (0050, 0055). The engine's collision box is a square, but the camper's body is 3 blocks wide and 7 long.
+The owner wants a cab-over camper, modelled on their photos of a 1972 motorhome, that they can drive like the SUV and later live in. The [camper spike](../spikes/camper.md) showed that a parked camper can be walked through, slept in, and used for storage, and settled its look with the owner. The SUV's forms, flight, submarine motion, landing gear, and bank now live in shared code under `src/domain/vehicle/motion/` with per-kind values, so a second transforming kind can use them (0050, 0055). The engine's collision box is a square, but the camper's body is 3 blocks wide and 7 long.
 
 ## Decision
 

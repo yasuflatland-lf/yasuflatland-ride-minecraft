@@ -61,7 +61,7 @@ export function registerPlacement(placeVehicle: PlaceVehicle): void {
   });
   // The interaction ray skips liquids and reports the bed under the liquid or
   // the shore beside it, so a liquid kind climbs to the top liquid cell of the
-  // clicked or the adjacent cell (docs/spike-sportsboat.md).
+  // clicked or the adjacent cell (docs/spikes/sportsboat.md).
   const cellFor = (kind: VehicleKind, block: Block, face: Direction) =>
     placeVehicle.cellFor(
       kind,

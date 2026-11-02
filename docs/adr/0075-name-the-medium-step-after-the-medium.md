@@ -22,6 +22,6 @@
 
 - The names say which vehicles share the step, so a new medium (a rail car in a tunnel, a lava boat) has an obvious place to plug in, and the boat's drag sample is no longer called "air"
 - 0053 and 0055 still use the old names in their text. Their decisions do not change, only the identifiers, so their status stays as it is and each gets a name note at its end. The same holds for 0050
-- The spike record `docs/spike-sportsboat.md` keeps the old names on purpose, because it records what the code was called when the spike ran
+- The spike record `docs/spikes/sportsboat.md` keeps the old names on purpose, because it records what the code was called when the spike ran
 - `MotionLimits` still carries `handbrakeGrip`, which only the ground step reads, and the sports boat still declares a `handbrakeGrip` that nothing reads. `creepSpeed` is not tyre-only: the boat reads it through the shared speed update when the stick creeps (0018). Splitting `handbrakeGrip` out is left to a later decision
 - Revisit the name if a medium appears whose drag the script cannot pre-divide

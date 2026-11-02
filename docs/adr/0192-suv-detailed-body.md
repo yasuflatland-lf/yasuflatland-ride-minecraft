@@ -20,7 +20,7 @@ The reference photos are owner-local files and are not committed:
 - `~/Downloads/suv_backlight.png`
 - `~/Downloads/suv_console_meters.png`
 
-The owner's local design document, `docs/superpowers/specs/2026-10-30-suv-detailed-body-design.md`, lists "no change to the bone contract" as a non-goal. The owner's later request for glowing tail lamps and the round headlight design require two new bones, so this ADR explicitly goes beyond that non-goal. Accepted Decisions must not be rewritten; this proposal records the redesign and its approval condition before feature PRs land.
+The owner's local design document, `2026-10-30-suv-detailed-body-design.md` (in the owner's local, uncommitted `docs/superpowers/` folder), lists "no change to the bone contract" as a non-goal. The owner's later request for glowing tail lamps and the round headlight design require two new bones, so this ADR explicitly goes beyond that non-goal. Accepted Decisions must not be rewritten; this proposal records the redesign and its approval condition before feature PRs land.
 
 ## Decision
 

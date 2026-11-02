@@ -1,7 +1,7 @@
 // Sleeping in a bed block laid by any feature: the camper bed, later the tent mattresses (ADR 0092).
 
 export const SLEEP = Object.freeze({
-  // The night window the camper spike slept through (docs/spike-camper.md).
+  // The night window the camper spike slept through (docs/spikes/camper.md).
   nightStart: 12542,
   nightEnd: 23459,
   wakeTime: 0, // 6:00 in the morning

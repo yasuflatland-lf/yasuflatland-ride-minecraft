@@ -6,7 +6,7 @@
 
 ## Context
 
-The owner wants to walk inside a stopped camper, open and close its door, and place blocks inside it and on its roof, then drive away. An entity's body cannot be walked into, so the parked camper has to be replaced, cell by cell, with invisible blocks the players can stand on and tap, the way the boat lays its deck (0063). The [camper spike](../spike-camper.md) tried this on a phone and found three engine limits, and a later phone test a fourth:
+The owner wants to walk inside a stopped camper, open and close its door, and place blocks inside it and on its roof, then drive away. An entity's body cannot be walked into, so the parked camper has to be replaced, cell by cell, with invisible blocks the players can stand on and tap, the way the boat lays its deck (0063). The [camper spike](../spikes/camper.md) tried this on a phone and found three engine limits, and a later phone test a fourth:
 
 - A `minecraft:custom_hit_test` changed while the game runs never reaches the client, so a hitbox cannot shrink when the camper parks. A hitbox that is small from spawn works, and with only a 1 x 1 x 1 box outside the front bumper every tap inside the body reached a block, even with `minecraft:rideable` and `minecraft:inventory` kept.
 - A block cannot be placed where an entity's collision box is, so the parked body's 3 x 4 collision box has to shrink.

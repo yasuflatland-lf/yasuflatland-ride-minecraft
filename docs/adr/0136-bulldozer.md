@@ -19,7 +19,7 @@
 
 ## Context
 
-The owner approved the [bulldozer spike](../spike-bulldozer.md). The eight preparatory changes supply per-kind controls and horizontal motion, safe zero bank, seat-taken hooks, per-beam levels, integer properties, per-kind starters, [column cuts](0137-clear-block-columns-with-the-blade.md), and the model pipeline. This fourth kind consumes them without changing the SUV, sports boat, or camper. Manual PC and mobile checks remain pending in the Bulldozer section of [the checklist](../manual-test.md); accept this ADR only after they pass.
+The owner approved the [bulldozer spike](../spikes/bulldozer.md). The eight preparatory changes supply per-kind controls and horizontal motion, safe zero bank, seat-taken hooks, per-beam levels, integer properties, per-kind starters, [column cuts](0137-clear-block-columns-with-the-blade.md), and the model pipeline. This fourth kind consumes them without changing the SUV, sports boat, or camper. Manual PC and mobile checks remain pending in the Bulldozer section of [the checklist](../manual-test.md); accept this ADR only after they pass.
 
 ## Decision
 

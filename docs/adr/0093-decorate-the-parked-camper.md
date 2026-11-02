@@ -46,7 +46,7 @@ The camper model (`tools/gen_camper.py`) gains four pieces of furniture in the r
 | Ceiling hook above the table                | (1, 0, 2)                |
 | Shower-toilet room in the rear right corner | (-1, -3, 1), (-1, -3, 2) |
 
-The spike's storage chest stood in the rear right corner (docs/spike-camper.md). That corner is now the shower-toilet room, so any future storage goes under the counter.
+The spike's storage chest stood in the rear right corner (docs/spikes/camper.md). That corner is now the shower-toilet room, so any future storage goes under the counter.
 
 ### Slots
 

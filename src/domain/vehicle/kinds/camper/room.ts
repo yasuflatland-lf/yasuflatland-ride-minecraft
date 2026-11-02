@@ -45,7 +45,7 @@ const LOW_GROUND_THRESHOLD = 0.85;
 const QUARTER_TURN = 90;
 const PX_PER_BLOCK = 16;
 // In cells from the center cell: x = left (-1..1), z = forward (-3..3), as in the
-// spike (docs/spike-camper.md).
+// spike (docs/spikes/camper.md).
 const HALF_X = 1;
 const HALF_Z = 3;
 const WALL_X = HALF_X + 1;

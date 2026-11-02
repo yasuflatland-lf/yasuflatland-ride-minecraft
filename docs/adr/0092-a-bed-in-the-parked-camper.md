@@ -8,7 +8,7 @@
 
 The owner long-pressed the bed in a parked camper at night and could not sleep. The bed is drawn only by the camper model (`tools/gen_camper.py`). The parked room of 0068 lays no block in its cells, so the tap reaches the floor block below, which does nothing. 0067 left the bed to a later ADR.
 
-The [camper spike](../spike-camper.md) found on a phone that a custom bed block 9 px high with an `onPlayerInteract` custom component could set the spawn point, fade the camera, and skip the night (time 12542 to 23459). An entity with `minecraft:interact` never showed a sleep button, and a vanilla bed set by a script was invalid.
+The [camper spike](../spikes/camper.md) found on a phone that a custom bed block 9 px high with an `onPlayerInteract` custom component could set the spawn point, fade the camera, and skip the night (time 12542 to 23459). An entity with `minecraft:interact` never showed a sleep button, and a vanilla bed set by a script was invalid.
 
 ## Decision
 

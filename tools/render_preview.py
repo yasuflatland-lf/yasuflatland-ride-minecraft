@@ -119,7 +119,7 @@ GLOW_DISC_ALPHA = 0.9  # at the center, falling linearly to 0 at the rim
 GLOW_DISC_REACH = 1.6  # rim radius in multiples of the wheel radius
 ICON_GRAYSCALE_PACK = "yasu_ride_test_bp"
 
-# The sports boat floats with its feet about 0.45 blocks under the surface (docs/spike-sportsboat.md)
+# The sports boat floats with its feet about 0.45 blocks under the surface (docs/spikes/sportsboat.md)
 BOAT_GEOMETRY = "models/entity/yasu_ride/sportsboat.geo.json"
 BOAT_TEXTURE = "textures/entity/yasu_ride/sportsboat.png"
 BOAT_WATERLINE = 7.2

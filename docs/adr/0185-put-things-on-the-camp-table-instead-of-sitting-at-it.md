@@ -10,7 +10,7 @@
 
 ## Context
 
-The owner wants the outside Camp Table to hold camp gear where the player aims, without seats. Today it seats two players (0152), holds Dutch ovens in two fixed spots (0168), and cannot hold the ground Gas Lantern (0173). The [design](../superpowers/specs/2026-10-29-camp-table-top-placement-design.md) replaces those spots with placement on the top and removes hosted gear when its host disappears.
+The owner wants the outside Camp Table to hold camp gear where the player aims, without seats. Today it seats two players (0152), holds Dutch ovens in two fixed spots (0168), and cannot hold the ground Gas Lantern (0173). The [design](../designs/2026-10-29-camp-table-top-placement-design.md) replaces those spots with placement on the top and removes hosted gear when its host disappears.
 
 `TABLE_SPEC`, `TABLE_TOP_PX`, `DUTCH_OVEN_SPEC`, and `GAS_LANTERN_SPEC` in `src/domain/camp/spec.ts` hold the existing tuning. Saved ovens must keep working through the change.
 
