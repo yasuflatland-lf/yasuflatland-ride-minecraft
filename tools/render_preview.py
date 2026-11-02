@@ -36,7 +36,7 @@ import os
 import struct
 import sys
 import zlib
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 GEOMETRY = "models/entity/yasu_ride/suv.geo.json"
@@ -1065,9 +1065,10 @@ def render_icon(geo, polygons, camera, target_name):
     return RasterJob(target_name, polygons, [], to_screen, size, size, background, {}, ())
 
 
-def raster_jobs(rp: Path, icon_packs: list[Path]) -> list[RasterJob]:
+def raster_jobs(rp: Path, output_dir: Path, icon_packs: list[Path]) -> list[RasterJob]:
+    """Every job named by its target path; the one pack icon job stands for all icon packs."""
     images, icon = render(rp, icon_packs[0] / "pack_icon.png" if icon_packs else None)
-    jobs = list(images.values())
+    jobs = [replace(job, name=str(output_dir / job.name)) for job in images.values()]
     if icon is not None:
         jobs.append(icon)
     for pack in icon_packs:
@@ -1110,24 +1111,16 @@ def main():
     # Renaming the test pack must not silently turn its icon into a color copy
     if args.icons and not any(pack.name == ICON_GRAYSCALE_PACK for pack in args.icons):
         parser.error(f"--icons must include {ICON_GRAYSCALE_PACK}, which gets the grayscale icon")
-    jobs = raster_jobs(args.resource_pack, args.icons)
-    rendered = rasterize_all(jobs, args.jobs)
-    preview_count = next(
-        (i for i, job in enumerate(jobs) if args.icons and job.name == str(args.icons[0] / "pack_icon.png")),
-        len(jobs),
-    )
-    targets = [
-        (args.output_dir / job.name, job.width, job.height, rgba, False)
-        for job, rgba in zip(jobs[:preview_count], rendered[:preview_count])
-    ]
-    for pack in args.icons:
-        icon = rendered[preview_count]
-        rgba = grayscale(icon) if pack.name == ICON_GRAYSCALE_PACK else icon
-        targets.append((pack / "pack_icon.png", ICON_SIZE, ICON_SIZE, rgba, True))
-    targets.extend(
-        (Path(job.name), job.width, job.height, rgba, False)
-        for job, rgba in zip(jobs[preview_count + 1:], rendered[preview_count + 1:])
-    )
+    pack_icon = str(args.icons[0] / "pack_icon.png") if args.icons else None
+    targets = []
+    jobs = raster_jobs(args.resource_pack, args.output_dir, args.icons)
+    for job, rgba in zip(jobs, rasterize_all(jobs, args.jobs)):
+        if job.name == pack_icon:
+            for pack in args.icons:
+                pixels = grayscale(rgba) if pack.name == ICON_GRAYSCALE_PACK else rgba
+                targets.append((pack / "pack_icon.png", ICON_SIZE, ICON_SIZE, pixels, True))
+        else:
+            targets.append((Path(job.name), job.width, job.height, rgba, False))
     stale = []
     for target, width, height, pixels, rgb in targets:
         if args.check:
