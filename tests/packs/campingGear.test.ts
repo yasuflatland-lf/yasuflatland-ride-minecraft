@@ -357,6 +357,7 @@ describe("camping gear docs (ADR 0093)", () => {
         "low_chair.png",
         "noga_chair.png",
         "tent.png",
+        "roof_tent.png",
         "camp_table.png",
         "fire_pit.png",
         "dutch_oven.png",
@@ -385,7 +386,7 @@ describe("camping gear docs (ADR 0093)", () => {
 
   it("counts the outside gear on the item groups page", () => {
     expect(readTableRows("docs/items/README.md")).toContain(
-      "| **Camping Gear (Outside)** | 7 | [Low Chair, Noga Chair, Tent, Camp Table, Fire Pit, Dutch Oven, and Gas Lantern](camping-gear.md#low-chair-outside-the-vehicles) |",
+      "| **Camping Gear (Outside)** | 8 | [Low Chair, Noga Chair, Tent, Roof Tent, Camp Table, Fire Pit, Dutch Oven, and Gas Lantern](camping-gear.md#low-chair-outside-the-vehicles) |",
     );
   });
 
@@ -1057,6 +1058,7 @@ describe("camping gear blocks and items (ADR 0093)", () => {
                   "yasu_ride:low_chair_item",
                   "yasu_ride:noga_chair_item",
                   "yasu_ride:tent_item",
+                  "yasu_ride:roof_tent_item",
                   "yasu_ride:camp_table_item",
                   "yasu_ride:fire_pit_item",
                   "yasu_ride:dutch_oven_item",

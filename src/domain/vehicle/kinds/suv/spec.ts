@@ -24,13 +24,17 @@ export const SUV_SPEC = Object.freeze({
   footprint: 3.4, // the rear hover glow reaches 3.396322 blocks at its farthest corner (ADR 0122, 0194)
   // ROOF_TOP scaled by SIZE_SCALE in tools/suv_dims.py, above the collision box.
   roofTentRoofHeight: (26.1 * 1.45) / 16,
-  roofTentAnchorX: 0, // Centered between the left and right seats.
+  // The 2-block platform spans x 0.18..2.18. The hardtop slab half width is
+  // 13px * 1.45 / 16 = 1.178125 blocks: about 1 block rests over the roof,
+  // with the rest overhanging the left side.
+  roofTentAnchorX: 1.18,
   roofTentAnchorZ: -0.605, // Midway between the front (-0.0498) and rear (-1.16) seats.
   roofTentLadder: true, // Enable ladder access because the model includes a ladder.
   // Profile x points left: the ladder foot is on the vehicle's left (viewer's right from the front).
-  // Reach is 1.0 block half tent width + rail + 32px * sin(15deg) tilt / 16.
-  roofTentEntranceX: 1.58,
-  roofTentEntranceZ: -0.605, // Matches roofTentAnchorZ because the ladder is centered on the tent side.
+  // The ladder tilts 10 degrees outward from vertical, placing its foot about
+  // 1 block outside the 1.64-block body half width.
+  roofTentEntranceX: 2.65,
+  roofTentEntranceZ: -1.23, // Ladder top and foot are 0.625 block behind the tent center.
   // Headlights (ADR 0020)
   headlightReach: Object.freeze([4, 9, 15, 21, 27] as const), // blocks ahead of the vehicle's center, one light block each; 6 apart, the road surface between them stays at level 9 or brighter (ADR 0024)
   // Flight (ADR 0021)

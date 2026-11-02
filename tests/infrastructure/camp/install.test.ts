@@ -3,6 +3,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { DutchOvenActions } from "../../../src/application/camp/dutchOven";
 import { FirePitActions } from "../../../src/application/camp/firePit";
 import { GasLanternActions } from "../../../src/application/camp/gasLantern";
+import { GiveStarterRoofTent } from "../../../src/application/camp/giveStarterRoofTent";
 import { HitChair } from "../../../src/application/camp/hitChair";
 import { HitTable } from "../../../src/application/camp/hitTable";
 import { HostedItemsGuard } from "../../../src/application/camp/hostedItemsGuard";
@@ -28,6 +29,7 @@ import { registerFirePit } from "../../../src/infrastructure/camp/bedrock/handle
 import { registerGasLantern } from "../../../src/infrastructure/camp/bedrock/handlers/gasLantern";
 import { registerChairHits } from "../../../src/infrastructure/camp/bedrock/handlers/hits";
 import { registerChairPlacement } from "../../../src/infrastructure/camp/bedrock/handlers/placement";
+import { registerRoofTentStarter } from "../../../src/infrastructure/camp/bedrock/handlers/starter";
 import { registerTable } from "../../../src/infrastructure/camp/bedrock/handlers/table";
 import { registerTentFlap } from "../../../src/infrastructure/camp/bedrock/handlers/tentFlap";
 import { registerTentHits } from "../../../src/infrastructure/camp/bedrock/handlers/tentHits";
@@ -327,5 +329,19 @@ it("registers one Gas Lantern use case after the Fire Pit", () => {
   );
   expect(vi.mocked(registerFirePit).mock.invocationCallOrder[0]).toBeLessThan(
     vi.mocked(registerGasLantern).mock.invocationCallOrder[0] ?? 0,
+  );
+});
+
+vi.mock("../../../src/infrastructure/camp/bedrock/handlers/starter", () => ({
+  registerRoofTentStarter: vi.fn(),
+}));
+
+it("registers the roof tent starter with its camp use case", () => {
+  installCamp({
+    vehicleHost: () => ({ status: "unknown" }),
+    isVehicleSpace: () => false,
+  });
+  expect(registerRoofTentStarter).toHaveBeenCalledExactlyOnceWith(
+    expect.any(GiveStarterRoofTent),
   );
 });
