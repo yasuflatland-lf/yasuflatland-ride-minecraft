@@ -253,14 +253,14 @@ describe("panel centers", { timeout: PYTHON_PROPERTY_TIMEOUT_MS }, () => {
 });
 
 describe("camping gear generator with turned cubes", () => {
-  const gear = async (code: string) => {
+  const gear = (code: string) => {
     const script = [
       "import json, sys",
       "sys.path.insert(0, 'tools')",
       "import gen_camping_gear as g",
       code,
     ].join("\n");
-    return await python.run(script);
+    return python.run(script);
   };
 
   it("bounds follows a Y turn about an off-center pivot", async () => {

@@ -6,8 +6,8 @@ import { startPythonWorker } from "../support/pythonWorker";
 const python = startPythonWorker();
 afterAll(() => python.close());
 
-const run = async (script: string) =>
-  await python.run(
+const run = (script: string) =>
+  python.run(
     [
       "import sys",
       "sys.path.insert(0, 'tools')",
