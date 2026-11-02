@@ -331,6 +331,35 @@ export function checkSpecClosure(specs, adrs) {
   return errors;
 }
 
+export function checkSpecCoverage(specs, adrs) {
+  const errors = [];
+  const sources = new Set(
+    specs.flatMap((spec) =>
+      specLinks(spec.header.filter((field) => field.name === "Source")).map(
+        (link) => link.number,
+      ),
+    ),
+  );
+  for (const adr of adrs) {
+    const status = adr.fields.find((field) => field.name === "Status")?.value;
+    const superseded = adrs.some(
+      (other) =>
+        other !== adr &&
+        other.relations.some(
+          (relation) =>
+            relation.name === "Supersedes" && relation.target === adr.number,
+        ),
+    );
+    if (
+      (status === "Accepted" || status === "Proposed") &&
+      !superseded &&
+      !sources.has(adr.number)
+    )
+      errors.push(problem(adr.path, 1, "Live ADR is not a Source of any spec"));
+  }
+  return errors;
+}
+
 export function checkSpecIndex(files, specs) {
   const text = files[SPEC_INDEX];
   if (text === undefined)
@@ -759,6 +788,7 @@ function main(mode) {
     ...checkSpecAgreement(specs, adrs),
     ...checkSpecBasisSources(specs),
     ...checkSpecClosure(specs, adrs),
+    ...checkSpecCoverage(specs, adrs),
     ...checkSpecIndex(files, specs),
   ];
   for (const error of errors)

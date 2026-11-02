@@ -4,7 +4,25 @@ The specs in this folder state the rules that apply now, one topic per file, so 
 
 ## Topics
 
-- [SUV body and seats](suv-body.md): The SUV's model contract, size, collision box, body proportions, and seat positions.
-- [Seats and driver selection](seats-and-driver.md): Which seat a rider takes, how a boarding player picks one, and who drives, for the SUV, camper, sports boat, and bulldozer.
+- [Architecture and layering](architecture.md): Stable Script APIs, layer and feature boundaries, shared primitives, vehicle core and kind contracts, command delivery, and pack identifiers and layout.
+- [Build tools](build-tools.md): Build Wand items, creative catalog, build mode, selection and previews, shape and height menus, roofs and solids, Copy, continuous Paste, edit protection, undo, and per-player session lifetime.
+- [Bulldozer](bulldozer.md): Bulldozer controls, blade lift and cutting, rising shafts, wide blade, road paver, cab monitor, model geometry, and track animation.
 - [Camper hover display](camper-hover-display.md): What the camper shows in hover form: the four glow discs under the folded wheels, the particles that leave them, and the emissive overlay that makes the discs bright.
+- [Camper interior](camper-interior.md): The parked camper's furniture, bed and bunk, decor slots and gear placement and take-back, shower-toilet, toilet seat and standing up, entry and shower door taps, wall cabinet, fridge, and interior dashboard, stove, counter window, and hook.
+- [Camper body and parking](camper.md): The camper kind, body model, collision and placement, paint, parking checks, parked room, departure, and bumper lift.
+- [Camping gear](camping-gear.md): Outdoor chairs, table, fire pit, oven, lantern, and tent: placement, interaction, recovery, saved state, shelter blocks, generated assets, and the separation of the inside and outside camping catalogs. Camper furniture and decor placement belong to the camper interior specs; tent lantern switching and tent paint belong to the lights and paint specs.
 - [Development server](dev-environment.md): How the dev Bedrock Dedicated Server runs in Docker, which transport and ports it uses, how the packs reach it, how devices avoid a stale Resource Pack, and which packs go to a Realm.
+- [Documentation](documentation.md): ADR identity, metadata, relations and generated index, documentation links and CI checks, note locations, and current topic spec validation.
+- [Driving on the ground](driving.md): How a driver's stick and Jump become vehicle movement: the script-driven speed, steering, and grip, the control mapping and creep, wall hits and sliding, slow surfaces, and one- and two-block step jumps.
+- [Flight and submarine forms](flight-and-submarine.md): SUV and camper flight and submarine forms, motion, gravity, landing gear, rider effects, and the SUV transformation model.
+- [Headlights and lamps](lights.md): Switching and saving vehicle headlights, parked camper ceiling lights, and the tent lantern; their world light blocks, lamp bones, render controllers, and lit textures. Outdoor Gas Lanterns and hover displays are separate topics.
+- [Model conventions and rendered previews](model-and-previews.md): The rules every vehicle model file follows (front direction, bone names, rotation assemblies), the block geometry rule for invisible blocks, the shared texture tooling the generators use, and how the SUV and sports boat README previews and the pack icons are rendered from the model files and kept fresh.
+- [Paint](paint.md): Paint order, dyes, repaint cost and hit routing, variant textures, and plain returned items for the SUV, camper, sports boat, bulldozer, and tent.
+- [Ramming and hit boxes](ramming.md): Ram target selection, damage, cooldowns and occupant protection; the camper's bumper stand-ins, hit and interaction forwarding, and player hints.
+- [Seats and driver selection](seats-and-driver.md): Which seat a rider takes, how a boarding player picks one, and who drives, for the SUV, camper, sports boat, and bulldozer.
+- [Sounds](sounds.md): Synthesized vehicle engine, hover, sonar, track, and blade hydraulic sounds, their pack definitions, and the client conditions that play them.
+- [Sports boat equipment](sportsboat-equipment.md): The sports boat's creative equipment group, hidden placement gift, Icebreaker Switch, dash monitor, persistent mode, icebreaker cut and surfacing lift. Creative-menu placement follows 0178; group membership and the hidden box follow 0174; the cut's lower boundary follows 0175. Superseded parts of 0171 are not current rules.
+- [Sports boat](sportsboat.md): The sports boat profile, liquid motion, attitude and wake, stopped deck and dock, front bucket placement, driver deck-seat prompt, and generated hull, interior, glass, mirror, roof, helm and headlight lenses.
+- [SUV body and seats](suv-body.md): The SUV's model contract, size, collision box, body proportions, and seat positions.
+- [Testing and CI](testing-and-ci.md): Unit properties, mutation and unused-code checks, dependency updates, CI jobs and coverage, and the in-game test pack, runner protocol, scheduling, and local scenario selection.
+- [Vehicle items, placement, and fleet limits](vehicle-items-and-fleet.md): How a vehicle is obtained as an item, placed, picked up, and limited in number (per player and kind), for all kinds.
