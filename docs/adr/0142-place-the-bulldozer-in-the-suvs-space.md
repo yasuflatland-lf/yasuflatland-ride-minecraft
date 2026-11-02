@@ -1,6 +1,7 @@
 # 0142. Place the bulldozer in the SUV's space
 
 - Status: Proposed
+- Acceptance condition: owner decision pending (see #PRNUMBER)
 - Date: 2026-10-24
 - Extends: [0136](0136-bulldozer.md)
 

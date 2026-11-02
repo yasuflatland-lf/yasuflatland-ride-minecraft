@@ -1,6 +1,7 @@
 # 0140. Give the bulldozer its own engine, track, and blade hydraulic sounds
 
 - Status: Proposed
+- Acceptance condition: ADR 0136 is accepted and the owner's listening check of the bulldozer sounds passes (#583, #533)
 - Date: 2026-10-24
 - Extends: [0030](0030-engine-and-hover-sounds.md)
 - Extends: [0060](0060-sports-boat-engine-sound.md)

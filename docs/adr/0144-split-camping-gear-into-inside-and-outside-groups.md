@@ -1,6 +1,7 @@
 # 0144. Split camping gear into inside and outside groups
 
 - Status: Proposed
+- Acceptance condition: owner decision pending (see #PRNUMBER)
 - Date: 2026-10-25
 - Extends: [0093](0093-decorate-the-parked-camper.md)
 - Extends: [0122](0122-a-low-chair-to-sit-on-outside-the-vehicles.md): its own creative group, Proposed

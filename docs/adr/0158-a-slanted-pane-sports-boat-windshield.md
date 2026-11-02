@@ -1,6 +1,7 @@
 # 0158. A slanted-pane sports boat windshield
 
 - Status: Proposed
+- Acceptance condition: owner decision pending (see #PRNUMBER)
 - Date: 2026-10-26
 - Extends: [0051](0051-sports-boat.md): the windshield's construction; its 55-degree rake stays
 

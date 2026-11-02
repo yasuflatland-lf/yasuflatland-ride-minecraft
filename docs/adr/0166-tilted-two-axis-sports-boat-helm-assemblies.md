@@ -1,6 +1,7 @@
 # 0166. Tilted two-axis assemblies on the sports boat helm
 
 - Status: Proposed
+- Acceptance condition: the device checks B32 (#701), B35 (#692) and B36 (#694) in manual-test.md pass
 - Date: 2026-10-26
 - Extends: [0009](0009-vehicle-model-conventions.md): one rotation axis per cube
 - Extends: [0051](0051-sports-boat.md): x rotation sign

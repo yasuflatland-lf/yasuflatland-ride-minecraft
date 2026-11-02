@@ -1,6 +1,7 @@
 # 0178. Bulldozer build tools in a separate namespace
 
 - Status: Proposed
+- Acceptance condition: owner decision pending (see #PRNUMBER)
 - Date: 2026-10-29
 - Supersedes in part: [0138](0138-raise-and-lower-the-bulldozer-blade.md): the separate Bulldozer Switches creative group
 - Supersedes in part: [0139](0139-show-the-held-tool-on-the-cab-monitor.md): the monitor tools equal the whole creative group

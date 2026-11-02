@@ -1,7 +1,7 @@
 # 0119. Park the camper over natural ground, and lift its bumper stand-in out of it
 
 - Status: Proposed
-- Acceptance condition: the iPad check under Consequences passes
+- Acceptance condition: the iPad check under Consequences passes: the camper parks on natural grassland with a rise and a non-parked camper boards via its bumper (#456, #463)
 - Date: 2026-10-22
 - Extends: [0068](0068-park-the-camper-with-room-blocks.md): the parking check and the plants it clears
 - Extends: [0116](0116-a-bumper-stand-in-takes-the-camper-hits.md): the bumper stand-in

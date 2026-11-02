@@ -1,6 +1,7 @@
 # 0191. Press camp gear without the light tool
 
 - Status: Proposed
+- Acceptance condition: owner decision pending (see #PRNUMBER)
 - Date: 2026-10-30
 - Supersedes in part: [0168](0168-a-dutch-oven-and-a-grill-for-the-fire-pit.md): rule 2 and the `isSimmering` note (simmering depends only on the host kind).
 - Supersedes in part: [0173](0173-remove-the-inside-lantern-and-add-the-gas-lantern.md): rule 12 (a press with another item or an empty hand does not switch)

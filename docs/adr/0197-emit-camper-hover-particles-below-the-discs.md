@@ -1,6 +1,7 @@
 # 0197. Emit camper hover particles below the discs
 
 - Status: Proposed
+- Acceptance condition: a client check confirms the camper hover particles are visible from the chase camera, while banking, and from below (#1035)
 - Date: 2026-10-31
 - Supersedes in part: [0190](0190-ribbed-camper-shell-atlas.md): hover glow addendum
 - Extends: [0147](0147-light-the-lamps-with-a-pbr-emissive-layer.md)

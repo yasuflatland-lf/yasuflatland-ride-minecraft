@@ -1,6 +1,7 @@
 # 0159. A PBR rear-view mirror on the sports boat
 
 - Status: Proposed
+- Acceptance condition: the owner's manual device checks M1 to M3 (Vibrant Visuals on and off) pass (#637)
 - Date: 2026-10-26
 - Extends: [0051](0051-sports-boat.md)
 - Extends: [0147](0147-light-the-lamps-with-a-pbr-emissive-layer.md)

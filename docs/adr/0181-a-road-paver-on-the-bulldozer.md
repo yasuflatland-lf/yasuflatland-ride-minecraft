@@ -1,6 +1,7 @@
 # 0181. Lay a road behind the bulldozer from the driver's held block
 
 - Status: Proposed
+- Acceptance condition: owner decision pending (see #PRNUMBER)
 - Date: 2026-10-29
 - Extends: [0033](0033-lower-the-wheels-before-touchdown.md): gear probe
 - Extends: [0055](0055-kind-neutral-vehicle-core.md): `TickContext`, `DriveStep`, `TickOutcome`, world call order

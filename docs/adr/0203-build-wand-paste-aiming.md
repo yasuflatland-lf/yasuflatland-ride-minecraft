@@ -1,6 +1,7 @@
 # 0203. Build Wand paste aiming
 
 - Status: Proposed
+- Acceptance condition: the input spike for the paste aiming event mapping is done and the owner reviews the open assumptions (#1114)
 - Date: 2026-11-01
 - Supersedes in part: [0202](0202-build-wand-copy-and-continuous-paste.md): Decisions 6, 8, and 9, and the Consequences bullet on Stop pasting
 

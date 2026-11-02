@@ -1,6 +1,7 @@
 # 0157. An aluminium-rimmed louvred camper vent lid
 
 - Status: Proposed
+- Acceptance condition: the manual row C164 (vent lid look on PC and mobile) passes (#632)
 - Date: 2026-10-26
 - Supersedes in part: [0146](0146-wire-mesh-bulldozer-steps-and-a-camper-vent-cover.md): the camper vent cover's look
 

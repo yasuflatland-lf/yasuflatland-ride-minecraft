@@ -1,7 +1,7 @@
 # 0135. Repaint the tent with dyes
 
 - Status: Proposed
-- Acceptance condition: the checks under Tent paint in [manual-test.md](../manual-test.md) pass
+- Acceptance condition: the Tent paint checks T28 to T33 in manual-test.md pass (#523)
 - Date: 2026-10-23
 - Extends: [0031](0031-repaint-with-all-sixteen-dyes.md): sixteen paints in a fixed variant order
 - Extends: [0036](0036-paint-by-hitting-with-a-dye.md): a dye hit paints instead of counting

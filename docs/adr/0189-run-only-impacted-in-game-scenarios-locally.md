@@ -1,6 +1,7 @@
 # 0189. Run only impacted in-game scenarios locally
 
 - Status: Proposed
+- Acceptance condition: owner decision pending (see #PRNUMBER)
 - Date: 2026-10-30
 - Extends: [0054](0054-shard-in-game-tests-in-ci.md)
 

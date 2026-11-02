@@ -1,6 +1,7 @@
 # 0141. Put a bulldozer driver out beside the left door
 
 - Status: Proposed
+- Acceptance condition: owner decision pending (see #PRNUMBER)
 - Date: 2026-10-24
 - Extends: [0109](0109-stand-up-inside-the-parked-camper.md)
 - Extends: [0136](0136-bulldozer.md)

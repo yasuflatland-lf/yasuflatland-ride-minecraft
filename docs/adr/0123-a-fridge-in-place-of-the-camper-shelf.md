@@ -1,6 +1,7 @@
 # 0123. A fridge in place of the camper shelf
 
 - Status: Proposed
+- Acceptance condition: owner decision pending (see #PRNUMBER)
 - Date: 2026-10-22
 - Supersedes in part: [0093](0093-decorate-the-parked-camper.md): the tall open shelf behind the driver
 - Supersedes in part: [0108](0108-two-items-on-each-shelf-board-and-the-table.md): the two shelf boards, their four slots, and the shelf's pair block as a laid block

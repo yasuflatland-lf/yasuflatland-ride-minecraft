@@ -1,6 +1,7 @@
 # 0185. Put things on the camp table instead of sitting at it
 
 - Status: Proposed
+- Acceptance condition: owner decision pending (see #PRNUMBER)
 - Date: 2026-10-29
 - Supersedes in part: [0152](0152-a-two-seat-folding-camp-table.md): the two seats, the Sit interaction, and "does not accept placed items"
 - Supersedes in part: [0168](0168-a-dutch-oven-and-a-grill-for-the-fire-pit.md): rule 5: a missing host no longer drops the oven to the ground; rule 1: new ovens on a table no longer use two fixed spots; rule 8: an overlap and limit check replaces the occupied-spot refusal on a table; Out of scope: the table may now hold Gas Lanterns

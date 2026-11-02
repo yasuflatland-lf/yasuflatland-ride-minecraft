@@ -1,7 +1,7 @@
 # 0116. A bumper stand-in takes the camper's hits
 
 - Status: Proposed
-- Acceptance condition: the phone check under Consequences passes
+- Acceptance condition: the phone check under Consequences passes on all four headings (#446, #448)
 - Date: 2026-10-22
 - Supersedes in part: [0068](0068-park-the-camper-with-room-blocks.md): the bumper hitbox on the camper entity
 - Supersedes in part: [0084](0084-camper-hitbox-spans-the-bumper.md): the three boxes fixed at z 3.7 on the camper

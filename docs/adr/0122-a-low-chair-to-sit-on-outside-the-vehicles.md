@@ -1,7 +1,7 @@
 # 0122. A low chair to sit on outside the vehicles
 
 - Status: Proposed
-- Acceptance condition: the in-game checks under Consequences pass
+- Acceptance condition: the in-game checks under Consequences pass: place, sit, and three-hit fold-up of the low chair (#464, #467)
 - Date: 2026-10-22
 - Extends: [0008](0008-vehicle-item-and-breaking.md): placing from an item and taking back with three hits
 - Extends: [0046](0046-organize-each-layer-by-feature.md): feature folders

@@ -1,6 +1,7 @@
 # 0154. Keep camper passengers in their seats on departure
 
 - Status: Proposed
+- Acceptance condition: the owner's device check of manual row C173 (full dinette rider list refuses a toilet rider) passes (#614)
 - Date: 2026-10-26
 - Supersedes in part: [0116](0116-a-bumper-stand-in-takes-the-camper-hits.md): the bumper stand-in boards the camper with `addRider` directly
 - Supersedes in part: [0120](0120-choose-a-sports-boat-seat-by-aiming-at-it.md): the statements that the SUV and the camper keep the engine's order and read positions; the camper now chooses seats

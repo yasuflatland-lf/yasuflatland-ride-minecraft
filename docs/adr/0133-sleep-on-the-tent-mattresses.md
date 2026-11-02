@@ -1,7 +1,7 @@
 # 0133. Sleep on the tent mattresses
 
 - Status: Proposed
-- Acceptance condition: the mattress checks under Tent in [manual-test.md](../manual-test.md) pass
+- Acceptance condition: the Tent mattress checks T15 to T21 in manual-test.md pass (#521)
 - Date: 2026-10-23
 - Extends: [0092](0092-a-bed-in-the-parked-camper.md): the 9 px bed block and the shared sleep rule
 - Extends: [0131](0131-pitch-a-tent-in-the-camp.md): the tent's laid cells, its hit rule, and the hitbox that keeps taps inside off the entity

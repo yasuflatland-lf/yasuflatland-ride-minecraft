@@ -1,6 +1,7 @@
 # 0146. Wire mesh bulldozer steps and a camper vent cover
 
 - Status: Proposed
+- Acceptance condition: the manual checks B24 and C164 (appearance on PC and mobile) in manual-test.md pass (#597, #601)
 - Date: 2026-10-25
 - Extends: [0091](0091-alpha-blend-only-the-camper-glass.md)
 - Extends: [0113](0113-a-window-over-the-camper-counter.md)

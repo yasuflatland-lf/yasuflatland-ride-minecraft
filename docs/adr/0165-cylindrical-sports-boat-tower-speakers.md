@@ -1,6 +1,7 @@
 # 0165. Cylindrical sports boat tower speakers
 
 - Status: Proposed
+- Acceptance condition: owner decision pending (see #PRNUMBER)
 - Date: 2026-10-26
 - Extends: [0051](0051-sports-boat.md): tower speakers
 - Extends: [0164](0164-long-sports-boat-bimini-panels.md): `roof_top()` for the speaker mount height

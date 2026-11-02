@@ -1,6 +1,7 @@
 # 0172. Smooth sports boat headlight lenses
 
 - Status: Proposed
+- Acceptance condition: the four previews and the device checks in Decision 9 confirm the smooth lens edges on the owner's device (#778)
 - Date: 2026-10-28
 - Supersedes in part: [0161](0161-smooth-sports-boat-hull-planking.md): the lens construction in the lens bullet; the outline and everything else stay
 

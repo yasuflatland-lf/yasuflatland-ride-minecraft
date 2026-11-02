@@ -1,6 +1,7 @@
 # 0179. Support Realms as a second play environment
 
 - Status: Proposed
+- Acceptance condition: one manual pass on a Realm with the checks in docs/installing-on-a-realm.md, with the date and client versions recorded in the ADR (PR #494)
 - Date: 2026-10-23
 - Extends: [0001](0001-bedrock-addon-with-stable-script-api.md)
 

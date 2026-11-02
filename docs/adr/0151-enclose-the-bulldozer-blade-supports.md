@@ -1,6 +1,7 @@
 # 0151. Enclose the bulldozer blade supports
 
 - Status: Proposed
+- Acceptance condition: the owner checks the new shape in game (#608)
 - Date: 2026-10-26
 - Extends: [0136](0136-bulldozer.md)
 - Extends: [0138](0138-raise-and-lower-the-bulldozer-blade.md)

@@ -1,6 +1,7 @@
 # 0150. Run the sports boat on lava
 
 - Status: Proposed
+- Acceptance condition: the owner confirms rider protection, docking, and speed by playing (#607)
 - Date: 2026-10-26
 - Supersedes in part: [0051](0051-sports-boat.md): water-only buoyancy and placement
 - Supersedes in part: [0080](0080-beached-sports-boat-can-reverse.md): water-only afloat sensing

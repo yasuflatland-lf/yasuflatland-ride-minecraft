@@ -1,6 +1,7 @@
 # 0195. Cut the body height ahead of a grounded blade
 
 - Status: Proposed
+- Acceptance condition: the manual PC and mobile checks pending with ADR 0136 pass (bulldozer overhang cut, #1015)
 - Date: 2026-10-31
 - Supersedes in part: [0136](0136-bulldozer.md): a ground cut stops at the first air gap
 - Supersedes in part: [0137](0137-clear-block-columns-with-the-blade.md): the ground run scan

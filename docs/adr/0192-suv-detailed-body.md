@@ -1,6 +1,7 @@
 # 0192. Detail the SUV body, dashboard and lamps
 
 - Status: Proposed
+- Acceptance condition: the owner approves or declines the ADR 0009 bone contract extension (tail_lights, headlight_bezels) requested in PR #993 under issue #976; the SUV detail series #987 and #992 follow
 - Date: 2026-10-30
 - Supersedes in part: [0020](0020-headlights.md): lamp geometry, the sole SUV lamp bone, and extraction by colour
 - Supersedes in part: [0031](0031-repaint-with-all-sixteen-dyes.md): texture dimensions and paint-dependent regions
