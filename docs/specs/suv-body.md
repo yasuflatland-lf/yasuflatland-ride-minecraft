@@ -26,9 +26,9 @@
 ### Lamp bones beyond the 0009 list
 
 - Applies to: SUV model, lit lamp parts.
-- Rule: The model also has the bones `headlights`, `tail_lights`, and `headlight_bezels`. Lamp cubes belong to a bone by the part that builds them, not by colour: `headlights` holds the headlight lenses, fog lamp lenses, and the front lamp strip; `tail_lights` holds the lit tail lamp parts and the third brake light; `headlight_bezels` holds the cutout bezel panels and stays in the base pass.
+- Rule: The model also has the bones `headlights`, `tail_lights`, and `headlight_bezels`. Lamp cubes belong to a bone by the part that builds them, not by colour: `headlights` holds the headlight lenses, fog lamp lenses, and the front lamp strip; `tail_lights` holds the lit tail lamp parts and the third brake light; `headlight_bezels` holds the cutout bezel panels and stays in the base pass, so it is not an overlay bone.
 - Agreement: Proposed
-- Basis: [0192](../adr/0192-suv-detailed-body.md) Decision, "Extend 0009 with `tail_lights` for the lit tail lamp parts and the third brake light, and `headlight_bezels` for the cutout panels."; [0192](../adr/0192-suv-detailed-body.md) Decision, "Assign lamp cubes to bones by the part that builds them, not by colour."
+- Basis: [0192](../adr/0192-suv-detailed-body.md) Decision, "Extend 0009 with `tail_lights` for the lit tail lamp parts and the third brake light, and `headlight_bezels` for the cutout panels."; [0192](../adr/0192-suv-detailed-body.md) Decision, "Assign lamp cubes to bones by the part that builds them, not by colour."; [0192](../adr/0192-suv-detailed-body.md) Decision, "`headlights` keeps the headlight lenses, fog lamp lenses and front lamp strip on the fender flares"; [0192](../adr/0192-suv-detailed-body.md) Decision, "`headlight_bezels` stays in the base pass and is not an overlay bone."
 - Implementation: `packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json`; `tools/suv_lamps.py`
 - Verification: `tests/packs/headlights.test.ts` "places both detailed tail faces and the third brake light on the tail bone", "places every light swatch cube on the headlights bone", "keeps two cutout bezels on an origin-pivoted body child in the base pass". Not verified: lamp appearance in game (0192 Decision point 7 and the headlight material result of part 13 are recorded as pending the owner's in-game comparison).
 
@@ -80,7 +80,7 @@
 ### Placement clearance
 
 - Applies to: SUV placement on the top face of a block.
-- Rule: SUV placement clearance is `halfX` 1 and `halfZ` 1 cells, with a height of `ceil(carHeight)` cells, so the 3 by 3 by 3 cells hold the collision box. The visible body, wheels, and folded assemblies may extend outside those cells; the promise covers the collision box only. The camper and the bulldozer derive their horizontal clearance from the SUV's.
+- Rule: SUV placement clearance is `halfX` 1 and `halfZ` 1 cells, with a height of `ceil(carHeight)` cells, so the 3 by 3 by 3 cells hold the collision box. The visible body, wheels, and folded assemblies may extend outside those cells; the promise covers the collision box only.
 - Agreement: Proposed
 - Basis: [0194](../adr/0194-enlarge-the-suv-for-seated-head-clearance.md) Decision, "Keep SUV placement `halfX=halfZ=1`: collision half width 1.305 remains below the 1.5-block cell boundary and the placement guard passes."; [0194](../adr/0194-enlarge-the-suv-for-seated-head-clearance.md) Decision, "Vertical clearance stays `ceil(carHeight)=3`."
 - Implementation: `src/domain/vehicle/kinds/suv/profile.ts` (`SUV_PROFILE.placement.clearance`); `src/domain/vehicle/placement/placement.ts` (`clearanceHeight`)

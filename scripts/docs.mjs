@@ -150,6 +150,16 @@ function specLinks(fields) {
   );
 }
 
+// A root-level file such as `package.json` has no slash, so a known file
+// extension also marks a token as a path.
+function isPathToken(token) {
+  return (
+    token !== undefined &&
+    (token.includes("/") ||
+      /^[\w.-]+\.(?:json|md|mjs|cjs|ts|js|py|ya?ml|toml)$/.test(token))
+  );
+}
+
 function implementationPaths(value) {
   const paths = [];
   let depth = 0;
@@ -159,7 +169,7 @@ function implementationPaths(value) {
     if (token[0] === "(") depth++;
     else if (token[0] === ")") depth = Math.max(0, depth - 1);
     else if (!depth && token[0] === ",") found = false;
-    else if (!depth && !found && token[1]?.includes("/")) {
+    else if (!depth && !found && isPathToken(token[1])) {
       paths.push(token[1]);
       found = true;
     }
@@ -282,13 +292,15 @@ export function checkSpecClosure(specs, adrs) {
     const sources = specLinks(
       spec.header.filter((field) => field.name === "Source"),
     );
-    const included = new Set(
-      specLinks(
-        spec.header.filter((field) =>
-          ["Source", "Excluded"].includes(field.name),
-        ),
-      ).map((link) => link.number),
-    );
+    // Only the first link of an Excluded line names the excluded ADR; later
+    // links sit inside its reason.
+    const included = new Set([
+      ...sources.map((link) => link.number),
+      ...spec.header
+        .filter((field) => field.name === "Excluded")
+        .flatMap((field) => specLinks([field]).slice(0, 1))
+        .map((link) => link.number),
+    ]);
     for (const source of sources)
       for (const adr of adrs)
         if (

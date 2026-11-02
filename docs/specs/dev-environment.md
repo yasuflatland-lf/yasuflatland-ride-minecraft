@@ -31,9 +31,9 @@
 ### NetherNet address advertising
 
 - Applies to: the dev BDS with `BDS_TRANSPORT=nethernet`, which is the default.
-- Rule: `scripts/server-up.mjs` passes `<LAN IP>:<UDP_RANGE>:<UDP_RANGE>` to the container as `BDS_UDP_PORTS`, which `server/compose.yaml` hands to BDS as `SERVER_UDP_PORTS`. The LAN IP is `BDS_LAN_IP` when set, otherwise the host's only non-internal IPv4 address; with zero or several such addresses the script exits and asks for `BDS_LAN_IP`. BDS accepts only an IP literal there, never a hostname.
+- Rule: `scripts/server-up.mjs` passes `<LAN IP>:<UDP_RANGE>:<UDP_RANGE>` to the container as `BDS_UDP_PORTS`, which `server/compose.yaml` hands to BDS as `SERVER_UDP_PORTS`. The LAN IP is `BDS_LAN_IP` when set, otherwise the host's only non-internal IPv4 address; with zero or several such addresses the script exits and asks for `BDS_LAN_IP`. BDS accepts only an IP literal there, never a hostname. When the host's LAN IP changes, restart the server so that clients are told the new address.
 - Agreement: Accepted
-- Basis: [0015](../adr/0015-dev-server-docker-nethernet.md) Decision, "The LAN IP comes from `BDS_LAN_IP`, or from the Mac's only non-internal IPv4 address; with zero or several addresses it stops and asks for `BDS_LAN_IP`."
+- Basis: [0015](../adr/0015-dev-server-docker-nethernet.md) Consequences, "When the Mac's LAN IP changes, restart the server so that clients are told the new address"; [0015](../adr/0015-dev-server-docker-nethernet.md) Decision, "The LAN IP comes from `BDS_LAN_IP`, or from the Mac's only non-internal IPv4 address; with zero or several addresses it stops and asks for `BDS_LAN_IP`."
 - Implementation: `scripts/server-up.mjs` (`UDP_RANGE`, `lanAddresses`), `server/compose.yaml` (`SERVER_UDP_PORTS`)
 - Verification: Owner check recorded in 0015 Context (a LAN client joined over NetherNet, `GET /v1/join` on the LAN IP answered 200). Not verified: no test; the several-addresses and zero-addresses exits; a changed LAN IP after restart.
 
@@ -49,7 +49,7 @@
 ### Pack mounts and reload
 
 - Applies to: the dev BDS, when a pack changes.
-- Rule: The repository's `packs/yasu_ride_bp` and `packs/yasu_ride_rp` directories are mounted read-only into the container, together with `packs/yasu_ride_test_bp`. A script-only change is applied with `/reload`; a change to an entity definition or to the Resource Pack needs a server restart.
+- Rule: The repository's `packs/yasu_ride_bp` and `packs/yasu_ride_rp` directories are mounted into the container, together with `packs/yasu_ride_test_bp`. A script-only change is applied with `/reload`; a change to an entity definition or to the Resource Pack needs a server restart.
 - Agreement: Accepted
 - Basis: [0015](../adr/0015-dev-server-docker-nethernet.md) Decision, "Carried over from 0011: mount the repository's Behavior Pack and Resource Pack directories into the container; apply script-only changes with `/reload` and restart the server for entity definition or Resource Pack changes"
 - Implementation: `server/compose.yaml` (`volumes`)

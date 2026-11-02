@@ -286,7 +286,8 @@ describe("spec documentation checks", () => {
       [`- Basis: ${specLink(1)}`, `- Basis: ${specLink(9999)}`],
       ["`src/vehicle.ts`", "`missing/vehicle.ts`"],
       ["`src/vehicle.ts`", "`src/vehicle.tsx`"],
-    ]) {
+      ["`src/vehicle.ts`", "`src/vehicle.ts`, `missing.json`"],
+    ] as [string, string][]) {
       expect(
         checkSpecLinks(
           [parseSpec(specPath, specDocument().replace(before, after))],
@@ -382,6 +383,20 @@ describe("spec documentation checks", () => {
       expect(
         checkSpecClosure([parseSpec(specPath, specDocument(options))], adrs),
       ).toEqual([]);
+  });
+
+  it("does not count a link inside an Excluded reason as included", () => {
+    const adrs = parseAdrs({
+      [path(1)]: document(1),
+      [path(2)]: document(2, `- Supersedes: ${link(1)}\n`),
+    });
+    const text = specDocument({ excluded: [3] }).replace(
+      "Other rules.",
+      `Superseded by ${specLink(2)}.`,
+    );
+    expect(
+      checkSpecClosure([parseSpec(specPath, text)], adrs),
+    ).not.toEqual([]);
   });
 
   it("rejects missing, duplicate, unknown, and stale README entries", () => {
