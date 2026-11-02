@@ -1,6 +1,7 @@
 # 0155. Cut under water and dig a wide shaft when rising
 
 - Status: Proposed
+- Acceptance condition: the manual checks B25 and B26 pass on PC and mobile, and ADR 0136 is accepted (#617, #623)
 - Date: 2026-10-26
 - Supersedes in part: [0136](0136-bulldozer.md): its rule that the submarine form does not cut
 - Extends: [0137](0137-clear-block-columns-with-the-blade.md): the column cut and its keep list

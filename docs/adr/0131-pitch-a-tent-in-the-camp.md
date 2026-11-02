@@ -1,7 +1,7 @@
 # 0131. Pitch a tent in the camp
 
 - Status: Proposed
-- Acceptance condition: the manual checks under Tent in [manual-test.md](../manual-test.md) pass
+- Acceptance condition: the Tent checks T1 to T10 in manual-test.md pass (#505, #519)
 - Date: 2026-10-23
 - Extends: [0068](0068-park-the-camper-with-room-blocks.md): clearing passable decorations and the hidden hit box
 - Extends: [0101](0101-give-invisible-blocks-a-hidden-cube.md): invisible blocks

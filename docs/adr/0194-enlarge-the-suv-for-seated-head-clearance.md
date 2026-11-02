@@ -1,6 +1,7 @@
 # 0194. Enlarge the SUV for seated head clearance
 
 - Status: Proposed
+- Acceptance condition: the owner confirms head clearance, first-person visibility and wall and door clearance of the 1.45 SUV scale on PC and touch clients (#1011)
 - Date: 2026-10-31
 - Supersedes in part: [0170](0170-measure-suv-side-view-proportions.md): size-anchor numbers
 - Extends: [0015](0015-dev-server-docker-nethernet.md)

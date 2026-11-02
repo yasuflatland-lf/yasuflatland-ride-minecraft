@@ -1,6 +1,7 @@
 # 0163. A glossy clear-coat sports boat hull
 
 - Status: Proposed
+- Acceptance condition: the owner's device checks H7 to H10 pass on black, white and red, the dielectric versus metal comparison is recorded, and the two open questions are answered (#642)
 - Date: 2026-10-26
 - Extends: [0051](0051-sports-boat.md)
 - Extends: [0147](0147-light-the-lamps-with-a-pbr-emissive-layer.md)

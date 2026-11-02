@@ -1,6 +1,7 @@
 # 0199. Square the camper front and fold the grille
 
 - Status: Proposed
+- Acceptance condition: the owner checks the squared camper front and the folded grille on a client and sees no shimmer or z-fighting (#1077)
 - Date: 2026-11-01
 - Supersedes in part: [0067](0067-camper.md): the camper front geometry
 - Supersedes in part: [0091](0091-alpha-blend-only-the-camper-glass.md): corner glass, now removed

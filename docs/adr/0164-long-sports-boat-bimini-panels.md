@@ -1,6 +1,7 @@
 # 0164. Long sports boat bimini panels
 
 - Status: Proposed
+- Acceptance condition: the owner's device checks B25 and B26 in manual-test.md (bimini roof continuous roll, mirrored sides, PC and mobile) pass (#647, #662)
 - Date: 2026-10-26
 - Extends: [0051](0051-sports-boat.md): bimini construction
 

@@ -1,6 +1,7 @@
 # 0138. Raise and lower the bulldozer blade with a switch item
 
 - Status: Proposed
+- Acceptance condition: ADR 0136 is accepted: the manual Bulldozer checks added by 6/6 pass on PC and mobile (#548, #550, #533)
 - Date: 2026-10-24
 - Supersedes in part: [0136](0136-bulldozer.md): its `stepUp: false` rule: a raised blade climbs steps
 - Extends: [0024](0024-item-use-on-mobile-and-longer-headlights.md): switch items on mobile and their cooldown

@@ -1,6 +1,7 @@
 # 0136. Add the bulldozer kind
 
 - Status: Proposed
+- Acceptance condition: the manual Bulldozer checks in manual-test.md pass on PC and mobile (#533, #542)
 - Date: 2026-10-24
 - Extends: [0009](0009-vehicle-model-conventions.md)
 - Extends: [0020](0020-headlights.md)

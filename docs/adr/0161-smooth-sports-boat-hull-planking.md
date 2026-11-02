@@ -1,6 +1,7 @@
 # 0161. Smooth sports boat hull planking
 
 - Status: Proposed
+- Acceptance condition: the owner's device checks H1 to H4 on PC and mobile, Vibrant Visuals on and off, pass (#640)
 - Date: 2026-10-26
 - Extends: [0051](0051-sports-boat.md): hull construction
 - Extends: [0158](0158-a-slanted-pane-sports-boat-windshield.md): one-axis flat panels

@@ -1,7 +1,7 @@
 # 0132. Open and close each tent flap alone
 
 - Status: Proposed
-- Acceptance condition: the flap checks under Tent in [manual-test.md](../manual-test.md) pass
+- Acceptance condition: the Tent flap checks T11 to T14 in manual-test.md pass (#520)
 - Date: 2026-10-23
 - Extends: [0101](0101-give-invisible-blocks-a-hidden-cube.md): invisible blocks
 - Extends: [0105](0105-toggle-a-camper-door-once-per-swing.md): one toggle per tap window

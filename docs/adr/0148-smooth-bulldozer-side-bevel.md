@@ -1,6 +1,7 @@
 # 0148. Smooth the bulldozer side bevel
 
 - Status: Proposed
+- Acceptance condition: the owner checks the panel and door clearance in game (#605)
 - Date: 2026-10-25
 - Extends: [0136](0136-bulldozer.md)
 - Extends: [0138](0138-raise-and-lower-the-bulldozer-blade.md)

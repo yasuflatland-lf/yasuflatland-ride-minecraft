@@ -1,6 +1,7 @@
 # 0174. Show only the Icebreaker Switch in the equipment group
 
 - Status: Proposed
+- Acceptance condition: owner decision pending (see #1193)
 - Date: 2026-10-29
 - Supersedes in part: [0171](0171-sports-boat-equipment-and-icebreaker-mode.md): Decision 1: the group's items and icon; Decision 2: the box is no longer a creative item
 - Extends: [0093](0093-decorate-the-parked-camper.md): placement gifts

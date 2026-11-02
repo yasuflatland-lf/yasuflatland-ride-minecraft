@@ -1,6 +1,7 @@
 # 0196. Raise the SUV seats for first-person visibility
 
 - Status: Proposed
+- Acceptance condition: the seat probe and SUV boarding scenarios are verified and the broader PC and touch checks from ADR 0194 pass (#1029, #1011)
 - Date: 2026-10-31
 - Supersedes in part: [0194](0194-enlarge-the-suv-for-seated-head-clearance.md): rideable seat height and clearance estimates
 

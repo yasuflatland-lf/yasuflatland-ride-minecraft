@@ -1,6 +1,7 @@
 # 0162. Smooth the sports boat bow's inner outline
 
 - Status: Proposed
+- Acceptance condition: the owner's device checks H5 and H6 on PC and mobile, Vibrant Visuals on and off, pass (#641)
 - Date: 2026-10-26
 - Extends: [0051](0051-sports-boat.md): open-bow interior
 - Extends: [0161](0161-smooth-sports-boat-hull-planking.md): plan chains and seams

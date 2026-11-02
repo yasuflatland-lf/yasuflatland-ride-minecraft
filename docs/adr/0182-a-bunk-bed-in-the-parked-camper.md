@@ -1,6 +1,7 @@
 # 0182. A bunk bed in the parked camper
 
 - Status: Proposed
+- Acceptance condition: owner decision pending (see #1193)
 - Date: 2026-10-29
 - Supersedes in part: [0092](0092-a-bed-in-the-parked-camper.md): the spawn point is no longer the pressed bed cell, and the cells above the lower bed are no longer interior cargo cells
 - Extends: [0092](0092-a-bed-in-the-parked-camper.md): the parked camper's bed

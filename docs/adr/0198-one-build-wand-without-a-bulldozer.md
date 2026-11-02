@@ -1,6 +1,7 @@
 # 0198. One Build Wand without a bulldozer
 
 - Status: Proposed
+- Acceptance condition: the Build Wand series is finished and its touch verification passes (#1038)
 - Date: 2026-10-31
 - Supersedes in part: [0178](0178-bulldozer-build-tools-in-a-separate-namespace.md): the bulldozer requirement in Decisions 3 and 4, the two items in Decisions 3, 8, and 13, the third-person build camera in Decision 5, the bulldozer-relative paste offset and moving preview in Decision 7, the hit and use mapping in Decision 8, and the Build Tool form in Decision 11
 - Extends: [0137](0137-clear-block-columns-with-the-blade.md): the kept block list

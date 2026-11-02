@@ -1,6 +1,7 @@
 # 0153. A polished folding fire pit
 
 - Status: Proposed
+- Acceptance condition: owner decision pending (see #1193)
 - Date: 2026-10-26
 - Extends: [0122](0122-a-low-chair-to-sit-on-outside-the-vehicles.md)
 - Extends: [0144](0144-split-camping-gear-into-inside-and-outside-groups.md)

@@ -1,6 +1,7 @@
 # 0170. Measure SUV side-view proportions against a fixed wheel diameter
 
 - Status: Proposed
+- Acceptance condition: owner decision pending (see #1193)
 - Date: 2026-10-27
 - Supersedes in part: [0009](0009-vehicle-model-conventions.md): SUV collision dimensions
 - Supersedes in part: [0029](0029-raise-the-seats.md): the seat height
