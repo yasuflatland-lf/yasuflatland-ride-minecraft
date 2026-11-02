@@ -1,10 +1,13 @@
-import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import fc from "fast-check";
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 
 import { SUV_SPEC } from "../../src/domain/vehicle/kinds/suv/spec";
 import { type Bone, turnedCorners } from "../support/geometry";
+import { startPythonWorker } from "../support/pythonWorker";
+
+const python = startPythonWorker();
+afterAll(() => python.close());
 
 type Measurement = { pixels: number; ratio: number } | { degrees: number };
 type Vec = [number, number, number];
@@ -22,7 +25,7 @@ type Result = {
   bounds: [Vec, Vec];
 };
 
-const run = (cubes: Cubes): Result => {
+const run = async (cubes: Cubes): Promise<Result> => {
   const script = [
     "import copy, json, sys",
     "sys.path.insert(0, 'tools')",
@@ -33,12 +36,7 @@ const run = (cubes: Cubes): Result => {
     "first = m.measure(cubes)",
     "print(json.dumps(dict(measures=first, targets=m.TARGETS, repeated=m.measure(cubes), unchanged=cubes == before, pending=sorted(m.PENDING), bounds=m._bounds(cubes['body']))))",
   ].join("\n");
-  return JSON.parse(
-    execFileSync("python3", ["-I", "-c", script], {
-      input: JSON.stringify(cubes),
-      encoding: "utf8",
-    }),
-  );
+  return JSON.parse(await python.run(script, JSON.stringify(cubes)));
 };
 
 const model = JSON.parse(
@@ -88,7 +86,7 @@ const scale = (cubes: Cubes, factors: Vec): Cubes =>
     ]),
   );
 
-const baseline = run(generated);
+const baseline = await run(generated);
 
 describe("SUV proportions", () => {
   it("preserves every completed 7/7 proportion within 0.005", () => {
@@ -127,53 +125,59 @@ describe("SUV proportions", () => {
     expect(baseline.unchanged).toBe(true);
   });
 
-  it("preserves ratios and rake under uniform scaling and reversed cube order", () => {
-    fc.assert(
-      fc.property(fc.double({ min: 0.25, max: 20, noNaN: true }), (factor) => {
-        const cubes = scale(generated, [factor, factor, factor]);
-        for (const members of Object.values(cubes)) members.reverse();
-        const result = run(cubes);
-        for (const key of keys) {
-          if (key === "windshield_rake") {
-            expect(result.measures[key]).toEqual(baseline.measures[key]);
-          } else {
-            expect(linear(result, key).ratio).toBeCloseTo(
-              linear(baseline, key).ratio,
-              10,
-            );
-            expect(linear(result, key).pixels).toBeCloseTo(
-              linear(baseline, key).pixels * factor,
-              10,
-            );
+  it("preserves ratios and rake under uniform scaling and reversed cube order", async () => {
+    await fc.assert(
+      fc.asyncProperty(
+        fc.double({ min: 0.25, max: 20, noNaN: true }),
+        async (factor) => {
+          const cubes = scale(generated, [factor, factor, factor]);
+          for (const members of Object.values(cubes)) members.reverse();
+          const result = await run(cubes);
+          for (const key of keys) {
+            if (key === "windshield_rake") {
+              expect(result.measures[key]).toEqual(baseline.measures[key]);
+            } else {
+              expect(linear(result, key).ratio).toBeCloseTo(
+                linear(baseline, key).ratio,
+                10,
+              );
+              expect(linear(result, key).pixels).toBeCloseTo(
+                linear(baseline, key).pixels * factor,
+                10,
+              );
+            }
           }
-        }
-        expect(result.repeated).toEqual(result.measures);
-        expect(result.unchanged).toBe(true);
-      }),
+          expect(result.repeated).toEqual(result.measures);
+          expect(result.unchanged).toBe(true);
+        },
+      ),
       { numRuns: 20 },
     );
   }, 60_000);
 
-  it("measures wheelbase from the wheel bones when the rear axle moves", () => {
-    fc.assert(
-      fc.property(fc.double({ min: 0.1, max: 2, noNaN: true }), (shift) => {
-        const cubes = structuredClone(generated);
-        for (const name of ["wheel_rl", "wheel_rr"]) {
-          for (const cube of cubes[name] ?? []) {
-            cube.origin[2] += shift;
-            if (cube.pivot) cube.pivot[2] += shift;
+  it("measures wheelbase from the wheel bones when the rear axle moves", async () => {
+    await fc.assert(
+      fc.asyncProperty(
+        fc.double({ min: 0.1, max: 2, noNaN: true }),
+        async (shift) => {
+          const cubes = structuredClone(generated);
+          for (const name of ["wheel_rl", "wheel_rr"]) {
+            for (const cube of cubes[name] ?? []) {
+              cube.origin[2] += shift;
+              if (cube.pivot) cube.pivot[2] += shift;
+            }
           }
-        }
-        expect(linear(run(cubes), "wheelbase").pixels).toBeCloseTo(
-          linear(baseline, "wheelbase").pixels + shift,
-          10,
-        );
-      }),
+          expect(linear(await run(cubes), "wheelbase").pixels).toBeCloseTo(
+            linear(baseline, "wheelbase").pixels + shift,
+            10,
+          );
+        },
+      ),
       { numRuns: 10 },
     );
   }, 60_000);
 
-  it("ignores an enlarged rear spare when measuring the bumper tip", () => {
+  it("ignores an enlarged rear spare when measuring the bumper tip", async () => {
     const cubes = structuredClone(generated);
     cubes.body?.push({
       origin: [-3, 12, 50],
@@ -181,14 +185,14 @@ describe("SUV proportions", () => {
       pivot: [0, 15, 51.5],
       rotation: [0, 0, 45],
     });
-    expect(linear(run(cubes), "rear_overhang")).toEqual(
+    expect(linear(await run(cubes), "rear_overhang")).toEqual(
       linear(baseline, "rear_overhang"),
     );
   });
 
-  it("turns corners around offset pivots in the game rotation convention", () => {
-    fc.assert(
-      fc.property(fc.integer({ min: 1, max: 80 }), (angle) => {
+  it("turns corners around offset pivots in the game rotation convention", async () => {
+    await fc.assert(
+      fc.asyncProperty(fc.integer({ min: 1, max: 80 }), async (angle) => {
         const cubes = structuredClone(generated);
         cubes.body?.push({
           origin: [90, 90, 90],
@@ -199,7 +203,7 @@ describe("SUV proportions", () => {
         const points = (cubes.body ?? []).flatMap((cube) =>
           turnedCorners({ name: "body" }, cube),
         );
-        const result = run(cubes);
+        const result = await run(cubes);
         for (const axis of [0, 1, 2] as const) {
           expect(result.bounds[0][axis]).toBeCloseTo(
             Math.min(...points.map((p) => p[axis])),
