@@ -1,25 +1,24 @@
-import { execFileSync } from "node:child_process";
 import fc from "fast-check";
-import { expect, it } from "vitest";
+import { afterAll, expect, it } from "vitest";
+import { startPythonWorker } from "../support/pythonWorker";
 
+const python = startPythonWorker();
+afterAll(() => python.close());
+
+// The loader caches modules per process; clear it so each script sees fresh modules, as it did in its own process.
 const run = (script: string) =>
-  execFileSync(
-    "python3",
+  python.run(
     [
-      "-I",
-      "-c",
-      [
-        "import sys, json",
-        "sys.path.insert(0, 'tools')",
-        "from tool_loader import load_tool",
-        script,
-      ].join("\n"),
-    ],
-    { encoding: "utf8" },
+      "import sys, json",
+      "sys.path.insert(0, 'tools')",
+      "from tool_loader import load_tool",
+      "load_tool.cache_clear()",
+      script,
+    ].join("\n"),
   );
 
-it("reserves fixed ordered blocks below unchanged swatches", () => {
-  run(`a = load_tool('suv_atlas')
+it("reserves fixed ordered blocks below unchanged swatches", async () => {
+  await run(`a = load_tool('suv_atlas')
 p = load_tool('suv_palette')
 assert (a.ATLAS.width, a.ATLAS.height) == (512, 256)
 assert a.ATLAS.width <= 512 and a.ATLAS.height <= 512
@@ -48,7 +47,7 @@ for x, y in [(191, 168), (0, 0), (0, 167)]:
     assert a.region_at(x, y) is None`);
 });
 
-it("allocates regions in declaration order regardless of module import order", () => {
+it("allocates regions in declaration order regardless of module import order", async () => {
   const painters = [
     "suv_paint_body",
     "suv_paint_headlight",
@@ -57,9 +56,9 @@ it("allocates regions in declaration order regardless of module import order", (
     "suv_paint_gauges",
   ];
   const modules = ["suv_texture", "suv_cubes", "suv_atlas"];
-  const table = (painterOrder: string[], moduleOrder: string[]) =>
+  const table = async (painterOrder: string[], moduleOrder: string[]) =>
     JSON.parse(
-      run(`stubs = {
+      await run(`stubs = {
     'suv_paint_body': [('panel', 300, 20, 'body'), ('trim', 180, 30, 'trim'), ('roof', 80, 12, 'hardtop')],
     'suv_paint_headlight': [('lens', 60, 12, 'light'), ('rim', 30, 20, 'chrome'), ('indicator', 20, 8, 'amber')],
     'suv_paint_tail': [('lens', 50, 10, 'tail'), ('rim', 40, 16, 'chrome'), ('indicator', 24, 12, 'amber')],
@@ -114,8 +113,8 @@ print(json.dumps([(block, list(b.regions)) for block, b in a.BLOCKS.items()]))`)
     ],
     ["spare", []],
   ];
-  fc.assert(
-    fc.property(
+  await fc.assert(
+    fc.asyncProperty(
       fc.shuffledSubarray(painters, {
         minLength: painters.length,
         maxLength: painters.length,
@@ -124,21 +123,21 @@ print(json.dumps([(block, list(b.regions)) for block, b in a.BLOCKS.items()]))`)
         minLength: modules.length,
         maxLength: modules.length,
       }),
-      (painterOrder, moduleOrder) => {
-        expect(table(painterOrder, moduleOrder)).toEqual(expected);
+      async (painterOrder, moduleOrder) => {
+        expect(await table(painterOrder, moduleOrder)).toEqual(expected);
       },
     ),
     { numRuns: 15 },
   );
 });
 
-it("dispatches local region pixels, material fallbacks and lit masks", () => {
-  fc.assert(
-    fc.property(
+it("dispatches local region pixels, material fallbacks and lit masks", async () => {
+  await fc.assert(
+    fc.asyncProperty(
       fc.integer({ min: 0, max: 31 }),
       fc.integer({ min: 0, max: 31 }),
-      (u, v) => {
-        run(`a = load_tool('suv_atlas')
+      async (u, v) => {
+        await run(`a = load_tool('suv_atlas')
 t = load_tool('suv_texture')
 p = load_tool('suv_palette')
 r = a.region('dash', 'grain')
