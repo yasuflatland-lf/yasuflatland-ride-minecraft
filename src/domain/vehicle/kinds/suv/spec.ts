@@ -26,9 +26,11 @@ export const SUV_SPEC = Object.freeze({
   roofTentRoofHeight: (26.1 * 1.45) / 16,
   roofTentAnchorX: 0, // Centered between the left and right seats.
   roofTentAnchorZ: -0.605, // Midway between the front (-0.0498) and rear (-1.16) seats.
-  roofTentLadder: true, // Reserved for the later asset PR; the model has no ladder today.
-  roofTentEntranceX: 0, // Aligned with the future rear ladder.
-  roofTentEntranceZ: -2.7, // Inside the tailgate face at 31 * 1.45 / 16 blocks back.
+  roofTentLadder: true, // Enable ladder access because the model includes a ladder.
+  // Profile x points left: the ladder foot is on the vehicle's left (viewer's right from the front).
+  // Reach is 1.0 block half tent width + rail + 32px * sin(15deg) tilt / 16.
+  roofTentEntranceX: 1.58,
+  roofTentEntranceZ: -0.605, // Matches roofTentAnchorZ because the ladder is centered on the tent side.
   // Headlights (ADR 0020)
   headlightReach: Object.freeze([4, 9, 15, 21, 27] as const), // blocks ahead of the vehicle's center, one light block each; 6 apart, the road surface between them stays at level 9 or brighter (ADR 0024)
   // Flight (ADR 0021)
