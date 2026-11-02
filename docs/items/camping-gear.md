@@ -61,7 +61,7 @@ A tan-brown two-room tunnel tent with a tarp on two poles, a white inner bedroom
 
 ![Roof Tent](../images/items/camping-gear/roof_tent.png)
 
-A sloped soft-shell tent with mesh windows, an entrance flap, a sleeping bag, and a black ladder with bright reflective rungs. The fabric has 16 paint textures; the frame, ladder, and bedding keep their colors. Find the item immediately after Tent in **Camping Gear (Outside)**. It stacks to one and has no crafting recipe; starter distribution and all placement, interaction, and sleeping behavior are planned separately. The entity can be summoned as `yasu_ride:roof_tent`.
+A sloped soft-shell tent with mesh windows, an entrance flap, a sleeping bag, and a black ladder with bright reflective rungs. The SUV variant has sloping lower sides and a longer ladder at the outer left edge, behind the tent center, tilted outward 10 degrees to reach the ground. The fabric has 16 paint textures; the frame, ladder, and bedding keep their colors. Find the item immediately after Tent in **Camping Gear (Outside)**. It stacks to one and has no crafting recipe; starter distribution and all placement, interaction, and sleeping behavior are planned separately. The entity can be summoned as `yasu_ride:roof_tent`.
 
 ## Camp Table (outside the vehicles)
 

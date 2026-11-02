@@ -133,12 +133,9 @@ describe("vehicle profiles (ADR 0050)", () => {
       },
       roofTent: {
         roofHeight: (26.1 * 1.45) / 16,
-        anchor: { x: 0, z: -0.605 },
+        anchor: { x: 1.18, z: -0.605 },
         ladder: true,
-        entrance: {
-          x: SUV_SPEC.roofTentEntranceX,
-          z: SUV_SPEC.roofTentEntranceZ,
-        },
+        entrance: { x: 2.65, z: -1.23 },
       },
       footprint: 3.4,
       seats: {
@@ -157,6 +154,27 @@ describe("vehicle profiles (ADR 0050)", () => {
       },
       chaseCamera: "mid",
       defaultPaint: "khaki",
+    });
+  });
+
+  it("keeps the SUV ladder foot at least 0.9 block outside its body and the anchor inside", () => {
+    expect(SUV_SPEC.roofTentEntranceX).toBeGreaterThanOrEqual(
+      SUV_SPEC.bodyHalfWidth + 0.9,
+    );
+    expect(SUV_SPEC.roofTentAnchorX).toBeLessThan(SUV_SPEC.bodyHalfWidth);
+  });
+
+  it("preserves the camper roof tent mount and existing ladder entrance", () => {
+    expect(CAMPER_SPEC.roofTentAnchorX).toBe(0);
+    expect(CAMPER_SPEC.roofTentAnchorZ).toBe(-0.875);
+    expect(CAMPER_SPEC.roofTentLadder).toBe(false);
+    expect(CAMPER_SPEC.roofTentEntranceX).toBe(-1.0625);
+    expect(CAMPER_SPEC.roofTentEntranceZ).toBe(-3.7);
+    expect(CAMPER_PROFILE.roofTent).toEqual({
+      roofHeight: CAMPER_SPEC.roofTentRoofHeight,
+      anchor: { x: 0, z: -0.875 },
+      ladder: false,
+      entrance: { x: -1.0625, z: -3.7 },
     });
   });
 
@@ -538,7 +556,7 @@ describe("roof tent mounts", () => {
     expect(BULLDOZER_PROFILE.roofTent).toBeUndefined();
   });
 
-  it("keeps finite, frozen mount points inside each vehicle body", () => {
+  it("keeps finite, frozen mount points with anchors inside and the SUV entrance outside the body", () => {
     fc.assert(
       fc.property(
         fc.constantFrom(
@@ -557,7 +575,13 @@ describe("roof tent mounts", () => {
           const point = mount[pointName];
           for (const value of [mount.roofHeight, point.x, point.z])
             expect(Number.isFinite(value)).toBe(true);
-          expect(Math.abs(point.x)).toBeLessThanOrEqual(profile.body.halfWidth);
+          if (profile.kind === "suv" && pointName === "entrance") {
+            expect(point.x).toBeGreaterThan(profile.body.halfWidth);
+          } else {
+            expect(Math.abs(point.x)).toBeLessThanOrEqual(
+              profile.body.halfWidth,
+            );
+          }
           expect(point.z).toBeGreaterThanOrEqual(-rear);
           expect(point.z).toBeLessThanOrEqual(profile.body.front);
           expect(mount.ladder).toBe(ladder);

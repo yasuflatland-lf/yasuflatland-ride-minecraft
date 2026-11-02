@@ -57,6 +57,13 @@ cannot assume either vehicle's dimensions.
 - Roof tent paint follows the shared palette and dye behavior of 0135, with its
   own entity and assets.
 
+- Give each Survival player one roof tent item on their first eligible join,
+  including existing players without the receipt flag. Creative players receive
+  nothing and are not marked, so a later Survival join remains eligible. Unlike
+  the vehicle starter ([0023](0023-starter-vehicle-on-first-join.md)),
+  which also gives to Creative players, this grant supplies the recipe-free roof
+  tent to Survival players; Creative players already have it in their catalog.
+
 ### Crawl mechanism
 
 Entry uses a sneak-through low entrance: a player within the roof tent interaction

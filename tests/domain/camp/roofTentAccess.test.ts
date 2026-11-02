@@ -62,7 +62,10 @@ it.each(vehicles)(
 );
 
 it("includes the horizontal and vertical entrance reach boundaries", () => {
-  const mount = SUV_PROFILE.roofTent as RoofTentMount;
+  const mount = {
+    ...SUV_PROFILE.roofTent,
+    entrance: { x: 0, z: 0 },
+  } as RoofTentMount;
   const origin = { location: { x: 0, y: 0, z: 0 }, yaw: 0 };
   const entrance = entranceWorld(mount, origin);
   for (const sign of [-1, 1]) {
