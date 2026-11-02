@@ -30,6 +30,28 @@ export class BedrockBedWorld implements BedWorld {
     });
   }
 
+  clearSpawnPoint(
+    playerId: PlayerId,
+    dimensionId: DimensionId,
+    cell: Vec3,
+  ): void {
+    const player = this.players.player(playerId);
+    if (!player) return;
+    try {
+      const spawn = player.getSpawnPoint();
+      if (
+        spawn?.dimension.id === dimensionId &&
+        spawn.x === cell.x &&
+        spawn.y === cell.y &&
+        spawn.z === cell.z
+      ) {
+        player.setSpawnPoint();
+      }
+    } catch {
+      // The player or spawn point may become unavailable between calls.
+    }
+  }
+
   sleep(playerId: PlayerId): void {
     const player = this.players.player(playerId);
     if (!player) return;
