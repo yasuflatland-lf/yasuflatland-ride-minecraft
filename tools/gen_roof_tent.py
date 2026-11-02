@@ -2,9 +2,11 @@
 
     python3 -I tools/gen_roof_tent.py packs/yasu_ride_rp [--check]
 
-Front is -z. The ground/camper shell stays 32 x 40 pixels. The wider SUV shell
-has its ridge along x and a ground-reaching ladder on its +x end (vehicle left),
-toward the rear.
+Front is -z. Both soft shells have their ridge along x and slope toward +/-z.
+The ground/camper shell spans 32 x 40 pixels, with a 2 px platform, 12 px eaves,
+and 19 px ridge, without lift or rack. Its original +x ladder is preserved.
+The wider SUV shell has a lifted rack and a ground-reaching +x ladder toward
+the rear (vehicle left).
 """
 import argparse
 import math
@@ -27,6 +29,20 @@ TEXTURE = "textures/entity/yasu_ride/roof_tent.png"
 
 @dataclass(frozen=True)
 class Dims:
+    platform_color: str = "strap"
+    ladder_style: str = "reflective"
+    bedding_half_width: float = 0.65
+    bedding_front: float = -0.7
+    bedding_back: float = 0.8
+    mattress_rise: float = 1.8
+    sleeping_bag_rise: float = 2.4
+    sleeping_bag_back: float = 0.5
+    pillow_half_width: float = 0.5
+    pillow_front: float = 0.55
+    pillow_back: float = 0.75
+    pillow_rise: float = 3.6
+    shell_lower: tuple = None
+    shell_upper: tuple = None
     half_width: float = 16
     half_depth: float = 20
     shell_lift: float = 0
@@ -117,6 +133,10 @@ class Dims:
     visible_bounds_offset: tuple = (0, -0.4, -0.3)
 
     def __post_init__(self):
+        if self.shell_lower is None:
+            object.__setattr__(self, "shell_lower", (-self.half_width-1, -self.mount_foot_drop if self.mount_bar_x else 0, -self.half_depth-1.5))
+        if self.shell_upper is None:
+            object.__setattr__(self, "shell_upper", (self.half_width+1, self.ridge_height+self.shell_lift+1, self.half_depth+1.5))
         if self.host_roof_height:
             drop = self.host_roof_height + self.shell_lift + self.ladder_pivot[1]
             length = math.hypot(drop, self.ladder_horizontal_reach)
@@ -130,7 +150,13 @@ class Dims:
 
 
 
-GROUND_DIMS = Dims()
+GROUND_DIMS = Dims(
+    half_roof=20, end_inset=5,
+    window_bottom=6, window_top=10, window_half_depth=9.5,
+    doorway_half_width=4.5,
+    end_window_bottom=6, end_window_top=10, end_window_half_depth=7,
+    pole_x=(), mount_bar_x=(), ladder_style="ground",
+)
 SUV_DIMS = Dims(
     # The span is 1.2 times the SUV's 1.64-block body half width, in pixels.
     half_width=1.2 * 1.64 * 16,
@@ -173,25 +199,10 @@ class Shell:
     sleeping_bag: list
     ladder: list
     ladder_pivot: tuple
-    flap_pivot: tuple = None
+    flap_pivot: tuple
 
 
-def common_shell(d: Dims) -> Shell:
-    body = [box(-d.half_width, 0, -d.half_depth,
-                d.half_width, d.platform_height, d.half_depth, "pole_dark")]
-    for x in d.pole_x:
-        for z in (-d.half_depth+1, d.half_depth-2):
-            body.append(box(x, d.platform_height, z, x+1, d.wall_height, z+1, "pole"))
-    # A pitched roof uses only z rotations; the eaves meet the side walls.
-    rise = d.ridge_height - d.wall_height
-    length = math.hypot(d.half_roof, rise)
-    angle = math.degrees(math.atan2(rise, d.half_roof))
-    fabric = [box(-length, d.ridge_height, -d.half_depth,
-                  0, d.ridge_height+0.5, d.half_depth, "fly",
-                  pivot=(0, d.ridge_height, 0), rotation=(0, 0, -angle)),
-              box(0, d.ridge_height, -d.half_depth,
-                  length, d.ridge_height+0.5, d.half_depth, "fly",
-                  pivot=(0, d.ridge_height, 0), rotation=(0, 0, angle))]
+def ground_ladder(d: Dims):
     x, y, _ = d.ladder_pivot
     near, far = d.ladder_rails_z
     ladder = [box(x, d.ladder_bottom, z, x+1, y, z+1, "strap",
@@ -200,53 +211,36 @@ def common_shell(d: Dims) -> Shell:
     for rung_y in range(d.ladder_first_rung, y, 5):
         ladder.append(box(x, rung_y, near+1, x+1, rung_y+0.8, far, "ring",
                           pivot=d.ladder_pivot, rotation=(0, 0, d.ladder_tilt)))
-    return Shell(
-        body, fabric,
-        [box(-d.doorway_half_width, d.platform_height, -d.half_depth-0.1,
-             d.doorway_half_width, d.wall_height, -d.half_depth+0.4, "fly")],
-        [box(-10, 2, -14, 10, 3.5, 16, "mattress_edge"),
-         box(-10, 3.5, -14, 10, 4, 10, "mattress"),
-         box(-8, 3.5, 11, 8, 5, 15, "inner")],
-        ladder, d.ladder_pivot,
-    )
+    return ladder
 
 
-def ground_shell() -> Shell:
-    d = GROUND_DIMS
-    shell = common_shell(d)
-    fabric = shell.fabric
-    # Real openings surround the dark mesh, rather than placing it over opaque walls.
-    for x in (-d.half_width, d.half_width-0.5):
-        fabric += [box(x, d.platform_height, -d.half_depth, x+0.5, d.window_bottom, d.half_depth, "fly"),
-                   box(x, d.window_top, -d.half_depth, x+0.5, d.wall_height, d.half_depth, "fly"),
-                   box(x, d.window_bottom, -d.half_depth, x+0.5, d.window_top, -d.window_half_depth, "fly"),
-                   box(x, d.window_bottom, d.window_half_depth, x+0.5, d.window_top, d.half_depth, "fly"),
-                   box(x+0.15, d.window_bottom, -d.window_half_depth,
-                       x+0.35, d.window_top, d.window_half_depth, "glass")]
-    for z in (-d.half_depth, d.half_depth-0.5):
-        # Thin vertical strips fill the triangular gables under the sloped roof.
-        for x in range(-d.half_width, d.half_width):
-            top = d.ridge_height - min(abs(x), abs(x+1)) * (d.ridge_height-d.wall_height) / d.half_roof
-            fabric.append(box(x, d.wall_height, z, x+1, top, z+0.5, "fly"))
-    fabric += [box(-d.half_width, d.platform_height, -d.half_depth,
-                   -d.doorway_half_width, d.wall_height, -d.half_depth+0.5, "fly"),
-               box(d.doorway_half_width, d.platform_height, -d.half_depth,
-                   d.half_width, d.wall_height, -d.half_depth+0.5, "fly"),
-               box(-d.doorway_half_width, d.wall_height, -d.half_depth-0.1,
-                   d.doorway_half_width, d.wall_height+1, -d.half_depth+0.5, "fly_dark"),
-               box(-d.half_width, d.platform_height, d.half_depth-0.5,
-                   d.half_width, d.wall_height, d.half_depth, "fly")]
-    return shell
+def reflective_ladder(d: Dims):
+    x, y, _ = d.ladder_pivot
+    near, far = d.ladder_rails_z
+    ladder = [box(x, d.ladder_bottom, z, x+d.ladder_rail_width, y, z+d.ladder_rail_width, "strap",
+                  pivot=d.ladder_pivot, rotation=(0, 0, d.ladder_tilt))
+              for z in d.ladder_rails_z]
+    for rung_y in range(d.ladder_first_rung, y, d.ladder_rung_spacing):
+        ladder.append(box(x, rung_y, near+d.ladder_rail_width,
+                          x+d.ladder_rail_width, rung_y+d.ladder_rung_height, far, "strap",
+                          pivot=d.ladder_pivot, rotation=(0, 0, d.ladder_tilt)))
+        for z in (near+d.ladder_rail_width, far-d.ladder_tape_length):
+            ladder.append(box(x+d.ladder_rail_width, rung_y, z, x+d.ladder_rail_width+d.ladder_tape_thickness,
+                              rung_y+d.ladder_rung_height, z+d.ladder_tape_length, "hook",
+                              pivot=d.ladder_pivot, rotation=(0, 0, d.ladder_tilt)))
+    return ladder
 
 
-def suv_shell() -> Shell:
-    d = SUV_DIMS
+LADDER_BUILDERS = {"ground": ground_ladder, "reflective": reflective_ladder}
+
+
+def soft_shell(d: Dims) -> Shell:
     t = d.panel_thickness
     frame = d.frame_thickness
     end = d.half_width - d.end_inset
     rise = d.wall_height - d.platform_height
     body = [box(-d.half_width, 0, -d.half_depth,
-                d.half_width, d.platform_height, d.half_depth, "strap")]
+                d.half_width, d.platform_height, d.half_depth, d.platform_color)]
     for x in d.pole_x:
         for z in (-d.half_depth+1, d.half_depth-2):
             body.append(box(x, d.platform_height, z, x+1, d.wall_height, z+1, "pole"))
@@ -459,19 +453,7 @@ def suv_shell() -> Shell:
                 fabric.append(box(face_x-d.seam_width/2, low, z-d.seam_width/2,
                                   face_x+d.seam_width/2, high, z+d.seam_width/2, "strap"))
 
-    x, y, _ = d.ladder_pivot
-    near, far = d.ladder_rails_z
-    ladder = [box(x, d.ladder_bottom, z, x+d.ladder_rail_width, y, z+d.ladder_rail_width, "strap",
-                  pivot=d.ladder_pivot, rotation=(0, 0, d.ladder_tilt))
-              for z in d.ladder_rails_z]
-    for rung_y in range(d.ladder_first_rung, y, d.ladder_rung_spacing):
-        ladder.append(box(x, rung_y, near+d.ladder_rail_width,
-                          x+d.ladder_rail_width, rung_y+d.ladder_rung_height, far, "strap",
-                          pivot=d.ladder_pivot, rotation=(0, 0, d.ladder_tilt)))
-        for z in (near+d.ladder_rail_width, far-d.ladder_tape_length):
-            ladder.append(box(x+d.ladder_rail_width, rung_y, z, x+d.ladder_rail_width+d.ladder_tape_thickness,
-                              rung_y+d.ladder_rung_height, z+d.ladder_tape_length, "hook",
-                              pivot=d.ladder_pivot, rotation=(0, 0, d.ladder_tilt)))
+    ladder = LADDER_BUILDERS[d.ladder_style](d)
     flap_pivot = (0, d.platform_height+t, -d.half_depth)
     flap = [box(-d.doorway_half_width, flap_pivot[1], -d.half_depth,
                 d.doorway_half_width, d.window_bottom, -d.half_depth+t, "fly")]
@@ -491,25 +473,24 @@ def suv_shell() -> Shell:
         mirrored["origin"] = [cube["origin"][0], cube["origin"][1], -cube["origin"][2]-cube["size"][2]]
         fabric.append(mirrored)
     return Shell(body, fabric, flap,
-                 [box(-d.half_width*0.65, d.platform_height, -d.half_depth*0.7,
-                      d.half_width*0.65, d.platform_height+1.8, d.half_depth*0.8, "mattress_edge"),
-                  box(-d.half_width*0.65, d.platform_height+1.8, -d.half_depth*0.7,
-                      d.half_width*0.65, d.platform_height+2.4, d.half_depth*0.5, "mattress"),
-                  box(-d.half_width*0.5, d.platform_height+1.8, d.half_depth*0.55,
-                      d.half_width*0.5, d.platform_height+3.6, d.half_depth*0.75, "inner")],
+                 [box(-d.half_width*d.bedding_half_width, d.platform_height, d.half_depth*d.bedding_front,
+                      d.half_width*d.bedding_half_width, d.platform_height+d.mattress_rise, d.half_depth*d.bedding_back, "mattress_edge"),
+                  box(-d.half_width*d.bedding_half_width, d.platform_height+d.mattress_rise, d.half_depth*d.bedding_front,
+                      d.half_width*d.bedding_half_width, d.platform_height+d.sleeping_bag_rise, d.half_depth*d.sleeping_bag_back, "mattress"),
+                  box(-d.half_width*d.pillow_half_width, d.platform_height+d.mattress_rise, d.half_depth*d.pillow_front,
+                      d.half_width*d.pillow_half_width, d.platform_height+d.pillow_rise, d.half_depth*d.pillow_back, "inner")],
                  ladder, d.ladder_pivot, flap_pivot)
 
 
 def parts(suv=False):
     d = SUV_DIMS if suv else GROUND_DIMS
-    shell = suv_shell() if suv else ground_shell()
-    if suv:
-        rack_start = 1+2*len(d.pole_x)
-        for cubes in (shell.body[:rack_start], shell.fabric, shell.flap, shell.sleeping_bag, shell.ladder):
-            for cube in cubes:
-                cube["origin"][1] += d.shell_lift
-                if "pivot" in cube:
-                    cube["pivot"][1] += d.shell_lift
+    shell = soft_shell(d)
+    rack_start = 1+2*len(d.pole_x)
+    for cubes in (shell.body[:rack_start], shell.fabric, shell.flap, shell.sleeping_bag, shell.ladder):
+        for cube in cubes:
+            cube["origin"][1] += d.shell_lift
+            if "pivot" in cube:
+                cube["pivot"][1] += d.shell_lift
     def lifted(pivot):
         return (pivot[0], pivot[1]+d.shell_lift, pivot[2])
     def bone(name, cubes, pivot=(0, 0, 0), parent="body"):
@@ -517,7 +498,7 @@ def parts(suv=False):
     return [{"name": "root", "pivot": [0, 0, 0]},
             bone("body", shell.body, parent="root"),
             bone("fabric", shell.fabric),
-            bone("flap", shell.flap, lifted(shell.flap_pivot or (0, d.wall_height, -d.half_depth))),
+            bone("flap", shell.flap, lifted(shell.flap_pivot)),
             bone("sleeping_bag", shell.sleeping_bag),
             bone("ladder", shell.ladder, lifted(shell.ladder_pivot))]
 
@@ -532,9 +513,8 @@ def geometry():
         for bone in bones:
             for cube in bone.get("cubes", []):
                 for point in tent.corners(cube):
-                    lower = d.ladder_lower if bone["name"] == "ladder" else (
-                        (-d.half_width-1, -d.mount_foot_drop, -d.half_depth-1.5) if suv else (-17, 0, -31))
-                    upper = (d.ladder_upper_x if bone["name"] == "ladder" else d.half_width+1, d.ridge_height+d.shell_lift+1, d.half_depth+1.5) if suv else (d.ladder_upper_x if bone["name"] == "ladder" else 17, 20, 21)
+                    lower = d.ladder_lower if bone["name"] == "ladder" else d.shell_lower
+                    upper = (d.ladder_upper_x, d.shell_upper[1], d.shell_upper[2]) if bone["name"] == "ladder" else d.shell_upper
                     assert all(lo <= v <= hi for v, lo, hi in zip(point, lower, upper)), bone["name"]
                 for face in cube["uv"].values():
                     u, v = face["uv"]
