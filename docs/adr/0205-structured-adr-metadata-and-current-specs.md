@@ -28,10 +28,10 @@ Design and spike notes are spread across three places: files directly under `doc
 - Generate the ADR README index between its markers with `pnpm run docs`; never edit it by hand. Sort rows by number and show the title, agreement state, and derived inverse relations, ordered as superseded, superseded in part, and extended, with linked numbers sorted within each kind.
 - Run `pnpm lint:docs` in CI, extending the testing strategy (0010). Check filenames and titles, metadata fields and values, relation targets and duplicates, the generated index, and relative Markdown links in `docs/`, `README.md`, and `AGENTS.md`.
 - Keep spike findings in `docs/spikes/` and committed design notes in `docs/designs/`. Owner-local drafts stay uncommitted.
-- Parts 3/4 and 4/4 add `docs/specs/<topic>.md` as the current rules per topic. When a spec and an ADR disagree, the ADR Decision is the source.
+- Parts 3/4 and 4/4 add `docs/specs/<topic>.md` as the current rules per topic; the implementation is the source of truth; the spec states what the implementation does and lists each difference from an ADR under Open issues for a person to fix by editing the ADR or adding a superseding ADR.
 
 ## Consequences
 
 Inverse relations exist only in the generated index, so an older ADR needs no metadata edit when a newer ADR replaces or extends it. A relation has one stored kind and scope. Metadata, index, and link errors fail CI rather than waiting for a reader to find them.
 
-A topic spec can go stale. The PR that changes behavior updates the affected spec as well as recording any new decision in an ADR. Specs provide the current rules, while ADRs preserve their reasons and history; disagreements are resolved against the ADR Decision.
+A topic spec can go stale. The PR that changes behavior updates the affected spec as well as recording any new decision in an ADR. Specs provide the current rules, while ADRs preserve their reasons and history; the implementation takes precedence, and each difference from an ADR is listed under Open issues for a person to fix by editing the ADR or adding a superseding ADR.
