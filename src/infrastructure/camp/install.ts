@@ -71,7 +71,10 @@ import { registerTestTent } from "./bedrock/handlers/testTent";
 import { registerTestTentFlap } from "./bedrock/handlers/testTentFlap";
 import { registerTestTentLantern } from "./bedrock/handlers/testTentLantern";
 import { lanternSwitchTarget } from "./bedrock/lanternSwitch";
-import { createEntranceReach } from "./bedrock/roofTentAccess";
+import {
+  createEntranceReach,
+  createHostedTents,
+} from "./bedrock/roofTentAccess";
 import { RoofTentHosts } from "./bedrock/roofTentHosts";
 import { createTentBlocks } from "./bedrock/tentBlocks";
 import { TentFlapStore } from "./bedrock/tentFlapStore";
@@ -171,6 +174,7 @@ export function installCamp(deps: {
     createRoofTentMenu(new RoofTentMenu(roofOccupants, sleep, leave)),
     trackOccupant,
     createEntranceReach(roofHosts.lookup),
+    createHostedTents(roofHosts.lookup),
   );
   registerRoofTentPlacement(placeRoofTent, roofHosts.lookup);
   registerRoofTentHits(foldRoofTent, new PaintRoofTent(roofTents));

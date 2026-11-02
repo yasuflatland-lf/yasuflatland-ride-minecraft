@@ -137,6 +137,8 @@ export const ROOF_TENT_SPEC = Object.freeze({
   interactReach: 3,
   /** Horizontal allowance around either end of the entrance ladder (ADR 0200). */
   entranceReach: 1.5,
+  /** A narrow horizontal radius lets the ladder foot activate entry without taking over nearby driving. */
+  footActivation: 0.7,
   /** Vertical allowance at ground or roof height for uneven footing (ADR 0200). */
   entranceBand: 1.5,
 });

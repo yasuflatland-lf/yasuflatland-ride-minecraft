@@ -29,6 +29,7 @@ const game = vi.hoisted(() => ({
   run: vi.fn(),
   interval: vi.fn(),
   getEntity: vi.fn(),
+  getAllPlayers: vi.fn(),
   tick: 1,
   dye: vi.fn(),
   show: vi.fn(),
@@ -46,6 +47,7 @@ vi.mock("@minecraft/server", () => ({
   },
   world: {
     getEntity: game.getEntity,
+    getAllPlayers: game.getAllPlayers,
     beforeEvents: { playerInteractWithEntity: { subscribe: game.interact } },
     afterEvents: {
       playerLeave: { subscribe: game.left },
@@ -96,6 +98,15 @@ let track: (playerId: PlayerId, tentId: string) => void;
 let showMenu: ReturnType<typeof createRoofTentMenu>;
 const pid = asPlayerId("p");
 const entranceReach = vi.fn(() => false);
+const foot = {
+  hostOf: vi.fn(),
+  tentOfHost: vi.fn(),
+  loadedTents: vi.fn(),
+  atFoot: vi.fn(),
+};
+function pollFoot() {
+  game.interval.mock.calls[1]?.[0]();
+}
 function interact() {
   const event = { player, target, cancel: false };
   game.interact.mock.calls[0]?.[0](event);
@@ -112,6 +123,10 @@ beforeEach(() => {
   vi.clearAllMocks();
   game.tick = 1;
   entranceReach.mockReturnValue(false);
+  foot.tentOfHost.mockReturnValue(undefined);
+  foot.loadedTents.mockReturnValue([]);
+  foot.atFoot.mockReturnValue(false);
+  game.getAllPlayers.mockReturnValue([player]);
   game.dye.mockReturnValue(undefined);
   game.show.mockResolvedValue({ canceled: false, selection: 0 });
   Object.assign(player, {
@@ -151,6 +166,7 @@ beforeEach(() => {
     showMenu,
     track,
     entranceReach,
+    foot,
   );
 });
 it("cancels and defers one entry per player per tick, routing the occupant to the menu", async () => {
@@ -328,4 +344,103 @@ it("keeps a restored occupant who is back online within the grace period", () =>
   player.isSneaking = false;
   for (let i = 0; i < 20 * 30 + 1; i++) run();
   expect(occupied.get("tent")).toBe(pid);
+});
+
+it("cancels vehicle-targeted sneak entry at the foot beyond entity reach", () => {
+  const tent = { ...target };
+  target.typeId = "yasu_ride:suv";
+  player.location.x = ROOF_TENT_SPEC.interactReach + 1;
+  foot.tentOfHost.mockReturnValue(tent);
+  foot.atFoot.mockReturnValue(true);
+  expect(interact().cancel).toBe(true);
+  interact();
+  flush();
+  expect(occupants.moveInside).toHaveBeenCalledExactlyOnceWith(pid, "tent");
+  expect(entranceReach).not.toHaveBeenCalled();
+});
+it.each(["standing", "away", "dye"])(
+  "leaves vehicle interaction untouched when %s",
+  (condition) => {
+    foot.tentOfHost.mockReturnValue({ ...target });
+    foot.atFoot.mockReturnValue(condition !== "away");
+    target.typeId = "yasu_ride:suv";
+    player.isSneaking = condition !== "standing";
+    if (condition === "dye") game.dye.mockReturnValue("red");
+    expect(interact().cancel).toBe(false);
+    expect(game.run).not.toHaveBeenCalled();
+  },
+);
+it.each(["sneak", "foot", "validity"])(
+  "rechecks %s before deferred vehicle entry",
+  (condition) => {
+    const tent = { ...target };
+    foot.tentOfHost.mockReturnValue(tent);
+    foot.atFoot.mockReturnValue(true);
+    target.typeId = "yasu_ride:suv";
+    expect(interact().cancel).toBe(true);
+    if (condition === "sneak") player.isSneaking = false;
+    if (condition === "foot") foot.atFoot.mockReturnValue(false);
+    if (condition === "validity") tent.isValid = false;
+    flush();
+    expect(occupants.moveInside).not.toHaveBeenCalled();
+  },
+);
+it("enters at the foot once until sneak is released", () => {
+  foot.loadedTents.mockReturnValue([target]);
+  foot.atFoot.mockReturnValue(true);
+  pollFoot();
+  expect(occupants.moveInside).toHaveBeenCalledExactlyOnceWith(pid, "tent");
+  occupied.clear();
+  game.tick += 4;
+  pollFoot();
+  expect(occupants.moveInside).toHaveBeenCalledOnce();
+  player.isSneaking = false;
+  pollFoot();
+  player.isSneaking = true;
+  game.tick += 4;
+  pollFoot();
+  expect(occupants.moveInside).toHaveBeenCalledTimes(2);
+});
+it("disarms proximity entry after interaction and rearms away from the foot", () => {
+  foot.loadedTents.mockReturnValue([target]);
+  foot.atFoot.mockReturnValue(true);
+  interact();
+  flush();
+  occupied.clear();
+  game.tick += 4;
+  pollFoot();
+  expect(occupants.moveInside).toHaveBeenCalledOnce();
+  foot.atFoot.mockReturnValue(false);
+  pollFoot();
+  foot.atFoot.mockReturnValue(true);
+  game.tick += 4;
+  pollFoot();
+  expect(occupants.moveInside).toHaveBeenCalledTimes(2);
+});
+it("hints at the foot no more than once per twenty ticks", () => {
+  player.isSneaking = false;
+  foot.loadedTents.mockReturnValue([target]);
+  foot.atFoot.mockReturnValue(true);
+  pollFoot();
+  expect(player.onScreenDisplay.setActionBar).toHaveBeenCalledExactlyOnceWith({
+    translate: ROOF_TENT_SNEAK_HINT,
+  });
+  game.tick += 19;
+  pollFoot();
+  expect(player.onScreenDisplay.setActionBar).toHaveBeenCalledOnce();
+  game.tick++;
+  pollFoot();
+  expect(player.onScreenDisplay.setActionBar).toHaveBeenCalledTimes(2);
+});
+it("skips occupied tents and riding players in the proximity poll", () => {
+  foot.loadedTents.mockReturnValue([target]);
+  foot.atFoot.mockReturnValue(true);
+  occupied.set("tent", asPlayerId("other"));
+  pollFoot();
+  expect(occupants.moveInside).not.toHaveBeenCalled();
+  occupied.clear();
+  game.getAllPlayers.mockReturnValue([{ ...player, getComponent: () => ({}) }]);
+  game.tick += 4;
+  pollFoot();
+  expect(occupants.moveInside).not.toHaveBeenCalled();
 });

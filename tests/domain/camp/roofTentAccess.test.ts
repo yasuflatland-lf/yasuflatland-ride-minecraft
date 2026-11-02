@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import {
   canReachEntrance,
+  canStandAtFoot,
   entranceWorld,
 } from "../../../src/domain/camp/roofTent/access";
 import { exitCell } from "../../../src/domain/camp/roofTent/exitCell";
@@ -159,3 +160,62 @@ it.each([-1327.975687162958, 112])(
     expect(localZ).toBeLessThan(CAMPER_SPEC.bodyFront);
   },
 );
+
+it("activates only ladder feet within the horizontal radius at arbitrary host poses", () => {
+  const mount = SUV_PROFILE.roofTent as RoofTentMount;
+  fc.assert(
+    fc.property(
+      host,
+      fc.double({ min: -Math.PI, max: Math.PI, noNaN: true }),
+      fc.double({
+        min: 0,
+        max: ROOF_TENT_SPEC.footActivation - 0.001,
+        noNaN: true,
+      }),
+      (host, angle, radius) => {
+        const entrance = entranceWorld(mount, host);
+        const player = {
+          x: entrance.x + Math.cos(angle) * radius,
+          z: entrance.z + Math.sin(angle) * radius,
+          y: host.location.y,
+        };
+        expect(canStandAtFoot(mount, host, player)).toBe(true);
+        expect(canStandAtFoot({ ...mount, ladder: false }, host, player)).toBe(
+          false,
+        );
+        expect(
+          canStandAtFoot(mount, host, {
+            ...player,
+            x:
+              entrance.x +
+              Math.cos(angle) * (ROOF_TENT_SPEC.footActivation + 0.001),
+            z:
+              entrance.z +
+              Math.sin(angle) * (ROOF_TENT_SPEC.footActivation + 0.001),
+          }),
+        ).toBe(false);
+      },
+    ),
+  );
+});
+it("includes the foot radius and height boundaries but rejects heights beyond the band", () => {
+  const mount = {
+    ...SUV_PROFILE.roofTent,
+    entrance: { x: 0, z: 0 },
+  } as RoofTentMount;
+  const host = { location: { x: 0, y: 0, z: 0 }, yaw: 0 };
+  for (const sign of [-1, 1]) {
+    const player = {
+      x: ROOF_TENT_SPEC.footActivation,
+      y: sign * ROOF_TENT_SPEC.entranceBand,
+      z: 0,
+    };
+    expect(canStandAtFoot(mount, host, player)).toBe(true);
+    expect(
+      canStandAtFoot(mount, host, { ...player, y: player.y + sign * 0.001 }),
+    ).toBe(false);
+    expect(
+      canStandAtFoot(mount, host, { ...player, x: player.x + 0.001 }),
+    ).toBe(false);
+  }
+});
