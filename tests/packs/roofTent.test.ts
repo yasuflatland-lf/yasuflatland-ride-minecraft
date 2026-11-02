@@ -162,6 +162,11 @@ describe("roof tent asset contract", () => {
     expect(bones.find((b) => b.name === "root")?.parent).toBeUndefined();
     expect(bones.find((b) => b.name === "body")?.parent).toBe("root");
     expect(bones.find((b) => b.name === "flap")?.pivot).toEqual([0, 12, -20]);
+    const ladder = bones.find((b) => b.name === "ladder");
+    expect(ladder?.pivot).toEqual([-16, 2, 0]);
+    for (const cube of ladder?.cubes ?? []) {
+      expect(cube.origin[0]).toBeLessThan(-16);
+    }
     assertOneAxis(
       bones.flatMap((b) => b.cubes ?? []),
       {},
@@ -169,7 +174,7 @@ describe("roof tent asset contract", () => {
     for (const bone of bones) {
       for (const cube of bone.cubes ?? []) {
         for (const [x, y, z] of turnedCorners(bone, cube)) {
-          expect(x).toBeGreaterThanOrEqual(-17);
+          expect(x).toBeGreaterThanOrEqual(bone.name === "ladder" ? -27 : -17);
           expect(x).toBeLessThanOrEqual(17);
           expect(y).toBeGreaterThanOrEqual(bone.name === "ladder" ? -33 : 0);
           expect(y).toBeLessThanOrEqual(20);
