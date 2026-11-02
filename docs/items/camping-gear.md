@@ -61,7 +61,7 @@ A tan-brown two-room tunnel tent with a tarp on two poles, a white inner bedroom
 
 ![Roof Tent](../images/items/camping-gear/roof_tent.png)
 
-A sloped soft-shell tent with mesh windows, an entrance flap, a sleeping bag, and a black ladder with bright reflective rungs. The fabric has 16 paint textures; the frame, ladder, and bedding keep their colors. Find the item immediately after Tent in **Camping Gear (Outside)**. It stacks to one and has no crafting recipe.
+A sloped soft-shell tent with mesh windows, an entrance flap, a sleeping bag, and a black ladder with bright reflective rungs. The SUV variant has sloping lower sides and a longer ladder at the outer left edge, behind the tent center, tilted outward 10 degrees to reach the ground. The fabric has 16 paint textures; the frame, ladder, and bedding keep their colors. Find the item immediately after Tent in **Camping Gear (Outside)**. It stacks to one and has no crafting recipe.
 
 - **Get one:** receive one on your first eligible join outside Creative, including an existing player without the receipt flag. Creative joins give nothing and leave you eligible for a later Survival join.
 - **Pitch it:** use the item on an SUV or camper, or on clear ground. Each roof holds one tent. Park and leave the driver seat first; a driver, moving host, or removed host causes the tent to be returned. The SUV shows a ladder; the camper uses its existing rear ladder, and ground placement shows none.

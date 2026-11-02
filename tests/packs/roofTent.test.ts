@@ -23,15 +23,15 @@ const entity = read(`${BP}/entities/yasu_ride/roof_tent.se.json`)[
 const client = read(`${RP}/entity/yasu_ride/roof_tent.ce.json`)[
   "minecraft:client_entity"
 ].description;
-const geometry = read(`${RP}/models/entity/yasu_ride/roof_tent.geo.json`)[
+const geometries = read(`${RP}/models/entity/yasu_ride/roof_tent.geo.json`)[
   "minecraft:geometry"
-][0];
+];
 type TexturedBone = Omit<Bone, "cubes"> & {
   cubes?: (NonNullable<Bone["cubes"]>[number] & {
     uv: Record<string, { uv: [number, number]; uv_size: [number, number] }>;
   })[];
 };
-const bones: TexturedBone[] = geometry.bones;
+const geometry = geometries[0];
 
 describe("roof tent asset contract", () => {
   it("declares stable identifiers, synced flags, fixed collision, and damage immunity", () => {
@@ -103,6 +103,7 @@ describe("roof tent asset contract", () => {
     expect(client.identifier).toBe(ROOF_TENT_TYPE);
     expect(client.geometry).toEqual({
       default: "geometry.yasu_ride.roof_tent",
+      suv: "geometry.yasu_ride.roof_tent_suv",
     });
     expect(client.materials).toEqual({ default: "entity_alphablend" });
     expect(client.textures).toEqual(
@@ -127,7 +128,8 @@ describe("roof tent asset contract", () => {
           ),
         },
       },
-      geometry: "Geometry.default",
+      geometry:
+        "query.property('yasu_ride:ladder') ? Geometry.suv : Geometry.default",
       materials: [{ "*": "Material.default" }],
       textures: ["Array.paints[query.variant]"],
       part_visibility: [{ ladder: "query.property('yasu_ride:ladder')" }],
@@ -150,57 +152,138 @@ describe("roof tent asset contract", () => {
     });
   });
 
-  it("keeps six named bones, a sloped shell, front flap, interior bedding, and single-axis turns", () => {
-    expect(bones.map((b) => b.name)).toEqual([
-      "root",
-      "body",
-      "fabric",
-      "flap",
-      "sleeping_bag",
-      "ladder",
-    ]);
-    expect(bones.find((b) => b.name === "root")?.parent).toBeUndefined();
-    expect(bones.find((b) => b.name === "body")?.parent).toBe("root");
-    expect(bones.find((b) => b.name === "flap")?.pivot).toEqual([0, 12, -20]);
-    const ladder = bones.find((b) => b.name === "ladder");
-    expect(ladder?.pivot).toEqual([-16, 2, 0]);
-    for (const cube of ladder?.cubes ?? []) {
-      expect(cube.origin[0]).toBeLessThan(-16);
-    }
-    assertOneAxis(
-      bones.flatMap((b) => b.cubes ?? []),
-      {},
-    );
-    for (const bone of bones) {
-      for (const cube of bone.cubes ?? []) {
-        for (const [x, y, z] of turnedCorners(bone, cube)) {
-          expect(x).toBeGreaterThanOrEqual(bone.name === "ladder" ? -27 : -17);
-          expect(x).toBeLessThanOrEqual(17);
-          expect(y).toBeGreaterThanOrEqual(bone.name === "ladder" ? -33 : 0);
-          expect(y).toBeLessThanOrEqual(20);
-          expect(z).toBeGreaterThanOrEqual(-31);
-          expect(z).toBeLessThanOrEqual(20);
-          if (bone.name === "sleeping_bag") {
-            expect(Math.abs(x)).toBeLessThan(15);
-            expect(y).toBeGreaterThanOrEqual(2);
-            expect(y).toBeLessThanOrEqual(5);
-            expect(Math.abs(z)).toBeLessThan(19);
+  it.each([false, true])(
+    "keeps the full bone, shell, bedding, UV, and bounds contract (SUV: %s)",
+    (suv) => {
+      expect(
+        geometries.map((g: typeof geometry) => g.description.identifier),
+      ).toEqual([
+        "geometry.yasu_ride.roof_tent",
+        "geometry.yasu_ride.roof_tent_suv",
+      ]);
+      const bones: TexturedBone[] = geometries[suv ? 1 : 0].bones;
+      expect(bones.map((b) => b.name)).toEqual([
+        "root",
+        "body",
+        "fabric",
+        "flap",
+        "sleeping_bag",
+        "ladder",
+      ]);
+      expect(bones.find((b) => b.name === "root")?.parent).toBeUndefined();
+      expect(bones.find((b) => b.name === "body")?.parent).toBe("root");
+      expect(bones.find((b) => b.name === "flap")?.pivot).toEqual([0, 12, -20]);
+      const ladder = bones.find((b) => b.name === "ladder");
+      expect(ladder?.pivot).toEqual(suv ? [-16.5, 2, 10] : [-16, 2, 0]);
+      for (const cube of ladder?.cubes ?? []) {
+        expect(cube.origin[0]).toBeLessThan(-16);
+      }
+      assertOneAxis(
+        bones.flatMap((b) => b.cubes ?? []),
+        {},
+      );
+      for (const bone of bones) {
+        for (const cube of bone.cubes ?? []) {
+          for (const [x, y, z] of turnedCorners(bone, cube)) {
+            expect(x).toBeGreaterThanOrEqual(
+              bone.name === "ladder" ? (suv ? -28 : -27) : -17,
+            );
+            expect(x).toBeLessThanOrEqual(17);
+            expect(y).toBeGreaterThanOrEqual(
+              bone.name === "ladder" ? (suv ? -39 : -33) : 0,
+            );
+            expect(y).toBeLessThanOrEqual(20);
+            expect(z).toBeGreaterThanOrEqual(-31);
+            expect(z).toBeLessThanOrEqual(20);
+            if (bone.name === "sleeping_bag") {
+              expect(Math.abs(x)).toBeLessThan(15);
+              expect(y).toBeGreaterThanOrEqual(2);
+              expect(y).toBeLessThanOrEqual(5);
+              expect(Math.abs(z)).toBeLessThan(19);
+            }
+          }
+          for (const face of Object.values(cube.uv)) {
+            expect(face.uv_size).toEqual([4, 4]);
+            const [u, v] = face.uv;
+            const slot = u / 4 + v;
+            if (slot < 2) expect(["fabric", "flap"]).toContain(bone.name);
           }
         }
-        for (const face of Object.values(cube.uv)) {
-          expect(face.uv_size).toEqual([4, 4]);
-          const [u, v] = face.uv;
-          const slot = u / 4 + v;
-          if (slot < 2) expect(["fabric", "flap"]).toContain(bone.name);
-        }
+      }
+      const shell = bones.find((b) => b.name === "fabric");
+      expect(shell?.cubes?.filter((c) => c.rotation?.[2]).length).toBe(
+        suv ? 12 : 2,
+      );
+      const mesh = shell?.cubes?.filter((c) =>
+        Object.values(c.uv).every((f) => f.uv[0] === 4 && f.uv[1] === 8),
+      );
+      expect(mesh).toHaveLength(2);
+    },
+  );
+
+  it("fits the SUV shell profile, interior posts, and outer rear ladder down to ground", () => {
+    const bones: TexturedBone[] = geometries[1].bones;
+    const shell = bones.find((b) => b.name === "fabric");
+    const panels = shell?.cubes?.filter((c) => c.rotation?.[2]) ?? [];
+    expect(panels).toHaveLength(12);
+    for (const panel of panels) {
+      expect(panel.rotation?.slice(0, 2)).toEqual([0, 0]);
+      const corners = turnedCorners(shell as Bone, panel);
+      const roof = panel.pivot?.[1] === 19;
+      for (const [x, y] of corners) {
+        const profile = roof
+          ? 19 - (Math.abs(x) * 7) / 12
+          : 42 - Math.abs(x) * 2.5;
+        expect(Math.abs(y - profile)).toBeLessThan(0.7);
       }
     }
-    const shell = bones.find((b) => b.name === "fabric");
-    expect(shell?.cubes?.filter((c) => c.rotation?.[2]).length).toBe(2);
-    const mesh = shell?.cubes?.filter((c) =>
-      Object.values(c.uv).every((f) => f.uv[0] === 4 && f.uv[1] === 8),
+    for (const z of [-20, 19.5]) {
+      const strips =
+        shell?.cubes?.filter(
+          (c) => !c.rotation && c.origin[2] === z && c.size[0] === 1,
+        ) ?? [];
+      expect(strips).toHaveLength(32);
+      for (const strip of strips) {
+        const edge = Math.min(
+          Math.abs(strip.origin[0]),
+          Math.abs(strip.origin[0] + 1),
+        );
+        const top =
+          edge < 12 ? 19 - (edge * 7) / 12 : 2 + ((16 - edge) * 10) / 4;
+        expect(strip.origin[1] + strip.size[1]).toBeCloseTo(top, 3);
+      }
+    }
+    const body = bones.find((b) => b.name === "body");
+    expect(body?.cubes).toHaveLength(5);
+    for (const post of body?.cubes?.slice(1) ?? []) {
+      for (const [x, y] of turnedCorners(body as Bone, post)) {
+        expect(y).toBeLessThanOrEqual(42 - Math.abs(x) * 2.5);
+      }
+    }
+    const ladder = bones.find((b) => b.name === "ladder");
+    expect(ladder?.pivot).toEqual([-16.5, 2, 10]);
+    expect(ladder?.cubes).toHaveLength(10);
+    for (const cube of ladder?.cubes ?? []) {
+      expect(cube.pivot).toEqual(ladder?.pivot);
+      expect(cube.rotation).toEqual([0, 0, 10]);
+    }
+    const rails = ladder?.cubes?.filter((c) => c.size[1] === 40.5) ?? [];
+    expect(rails).toHaveLength(2);
+    expect(rails.map((c) => c.origin[2])).toEqual([4, 15]);
+    const corners = rails.flatMap((c) => turnedCorners(ladder as Bone, c));
+    expect(Math.max(...corners.map(([x]) => x))).toBeCloseTo(-16.5, 6);
+    expect(Math.min(...corners.map(([, y]) => y)) / 16 + 2.365).toBeCloseTo(
+      0,
+      1,
     );
-    expect(mesh).toHaveLength(2);
+    expect(Math.min(...corners.map(([x]) => x))).toBeCloseTo(-24.52, 2);
+    expect(1.18 - Math.min(...corners.map(([x]) => x)) / 16).toBeCloseTo(
+      2.7,
+      1,
+    );
+    expect(Math.min(...corners.map(([, , z]) => z))).toBeGreaterThan(0);
+    expect(geometries[1].description.visible_bounds_width).toBe(6);
+    expect(geometries[1].description.visible_bounds_height).toBe(5);
   });
 
   it("ships all sixteen paints and recolors only fabric swatches", () => {
