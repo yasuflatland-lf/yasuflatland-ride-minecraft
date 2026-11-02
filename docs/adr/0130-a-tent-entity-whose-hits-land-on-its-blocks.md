@@ -1,7 +1,7 @@
 # 0130. A tent entity whose hits land on its blocks
 
 - Status: Proposed
-- Acceptance condition: owner decision pending (see #1188)
+- Acceptance condition: owner decision pending (see #1193)
 - Date: 2026-10-23
 - Extends: [0009](0009-vehicle-model-conventions.md): front at -z
 - Extends: [0122](0122-a-low-chair-to-sit-on-outside-the-vehicles.md): camp and the Camping Gear group

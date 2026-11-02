@@ -1,7 +1,7 @@
 # 0169. A Lantern for the Oil Lamp, no Lava Lamp, and a Noga Chair
 
 - Status: Proposed
-- Acceptance condition: owner decision pending (see #1188)
+- Acceptance condition: owner decision pending (see #1193)
 - Date: 2026-10-27
 - Extends: [0093](0093-decorate-the-parked-camper.md)
 - Extends: [0122](0122-a-low-chair-to-sit-on-outside-the-vehicles.md)

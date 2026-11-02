@@ -1,7 +1,7 @@
 # 0167. Compound-rotation assemblies as a vehicle-neutral rule
 
 - Status: Proposed
-- Acceptance condition: owner decision pending (see #1188)
+- Acceptance condition: owner decision pending (see #1193)
 - Date: 2026-10-27
 - Supersedes in part: [0009](0009-vehicle-model-conventions.md): the reading of the one-axis convention
 - Supersedes in part: [0166](0166-tilted-two-axis-sports-boat-helm-assemblies.md): the one-assembly limit

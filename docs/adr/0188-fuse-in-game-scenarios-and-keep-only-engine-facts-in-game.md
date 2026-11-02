@@ -1,7 +1,7 @@
 # 0188. Fuse in-game scenarios and keep only engine facts in game
 
 - Status: Proposed
-- Acceptance condition: owner decision pending (see #1188)
+- Acceptance condition: owner decision pending (see #1193)
 - Date: 2026-10-30
 - Extends: [0010](0010-testing-strategy.md)
 

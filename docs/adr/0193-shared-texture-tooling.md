@@ -1,7 +1,7 @@
 # 0193. Share texture tooling between generators
 
 - Status: Proposed
-- Acceptance condition: owner decision pending (see #1188)
+- Acceptance condition: owner decision pending (see #1193)
 - Date: 2026-10-30
 - Supersedes in part: [0057](0057-skip-model-check-when-inputs-unchanged.md): the model CI path filter that left out tools/gen_model.py and tools/gen_sportsboat.py
 - Supersedes in part: [0147](0147-light-the-lamps-with-a-pbr-emissive-layer.md): the rationale for copying texture tooling into each generator

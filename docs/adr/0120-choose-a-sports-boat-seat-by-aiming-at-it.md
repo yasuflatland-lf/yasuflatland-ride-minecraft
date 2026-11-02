@@ -1,7 +1,7 @@
 # 0120. Choose a sports boat seat by aiming at it
 
 - Status: Proposed
-- Acceptance condition: owner decision pending (see #1188)
+- Acceptance condition: owner decision pending (see #1193)
 - Date: 2026-10-22
 - Supersedes in part: [0019](0019-passengers-move-up-to-the-driver-seat.md): for the sports boat: the script now keeps riders in their seats
 - Supersedes in part: [0025](0025-jump-on-touch-and-a-sticky-driver.md): for the sports boat: the driver is the player at rider-list index 0, without the sticky driver

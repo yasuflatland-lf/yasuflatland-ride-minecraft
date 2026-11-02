@@ -1,7 +1,7 @@
 # 0205. Structured ADR metadata and current specs
 
 - Status: Proposed
-- Acceptance condition: owner decision pending (see #1188)
+- Acceptance condition: owner decision pending (see #1193)
 - Date: 2026-11-02
 - Extends: [0010](0010-testing-strategy.md): docs checks in CI
 

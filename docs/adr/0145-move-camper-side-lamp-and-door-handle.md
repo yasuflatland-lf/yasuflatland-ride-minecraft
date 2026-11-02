@@ -1,7 +1,7 @@
 # 0145. Move the camper's side lamp and door handle
 
 - Status: Proposed
-- Acceptance condition: owner decision pending (see #1188)
+- Acceptance condition: owner decision pending (see #1193)
 - Date: 2026-10-25
 - Extends: [0067](0067-camper.md)
 

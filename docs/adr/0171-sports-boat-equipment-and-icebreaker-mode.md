@@ -1,7 +1,7 @@
 # 0171. Sports Boat Equipment and icebreaker mode
 
 - Status: Proposed
-- Acceptance condition: owner decision pending (see #1188)
+- Acceptance condition: owner decision pending (see #1193)
 - Date: 2026-10-28
 - Supersedes in part: [0139](0139-show-the-held-tool-on-the-cab-monitor.md): Decision 9, catalog consistency: a group may hold items that are not monitor tools
 - Extends: [0093](0093-decorate-the-parked-camper.md): placement gifts

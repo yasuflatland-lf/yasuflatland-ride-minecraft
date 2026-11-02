@@ -1,7 +1,7 @@
 # 0168. A Dutch oven and a grill for the fire pit
 
 - Status: Proposed
-- Acceptance condition: owner decision pending (see #1188)
+- Acceptance condition: owner decision pending (see #1193)
 - Date: 2026-10-27
 - Supersedes in part: [0152](0152-a-two-seat-folding-camp-table.md): the top holds a Dutch oven
 - Extends: [0122](0122-a-low-chair-to-sit-on-outside-the-vehicles.md)

@@ -1,7 +1,7 @@
 # 0175. Keep the icebreaker cut above the hull floor
 
 - Status: Proposed
-- Acceptance condition: owner decision pending (see #1188)
+- Acceptance condition: owner decision pending (see #1193)
 - Date: 2026-10-29
 - Supersedes in part: [0051](0051-sports-boat.md): the rule that the script never pushes the hull vertically
 - Supersedes in part: [0171](0171-sports-boat-equipment-and-icebreaker-mode.md): Decision 7: the three-block downward margin
