@@ -24,7 +24,7 @@
           ]
         }
       },
-      "geometry": "Geometry.default",
+      "geometry": "query.property('yasu_ride:ladder') ? Geometry.suv : Geometry.default",
       "materials": [
         {
           "*": "Material.default"

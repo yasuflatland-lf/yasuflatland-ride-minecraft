@@ -4,6 +4,7 @@ import { DutchOvenActions } from "../../../src/application/camp/dutchOven";
 import { FirePitActions } from "../../../src/application/camp/firePit";
 import { FoldRoofTent } from "../../../src/application/camp/foldRoofTent";
 import { GasLanternActions } from "../../../src/application/camp/gasLantern";
+import { GiveStarterRoofTent } from "../../../src/application/camp/giveStarterRoofTent";
 import { HitChair } from "../../../src/application/camp/hitChair";
 import { HitTable } from "../../../src/application/camp/hitTable";
 import { HostedItemsGuard } from "../../../src/application/camp/hostedItemsGuard";
@@ -36,6 +37,7 @@ import { registerChairPlacement } from "../../../src/infrastructure/camp/bedrock
 import { registerRoofTentHits } from "../../../src/infrastructure/camp/bedrock/handlers/roofTentHits";
 import { registerRoofTentLifecycle } from "../../../src/infrastructure/camp/bedrock/handlers/roofTentLifecycle";
 import { registerRoofTentPlacement } from "../../../src/infrastructure/camp/bedrock/handlers/roofTentPlacement";
+import { registerRoofTentStarter } from "../../../src/infrastructure/camp/bedrock/handlers/starter";
 import { registerTable } from "../../../src/infrastructure/camp/bedrock/handlers/table";
 import { registerTentFlap } from "../../../src/infrastructure/camp/bedrock/handlers/tentFlap";
 import { registerTentHits } from "../../../src/infrastructure/camp/bedrock/handlers/tentHits";
@@ -377,5 +379,19 @@ it("shares roof tent actions, occupant adapters and the vehicle host lookup acro
     guard,
     occupants,
     hosts,
+  );
+});
+
+vi.mock("../../../src/infrastructure/camp/bedrock/handlers/starter", () => ({
+  registerRoofTentStarter: vi.fn(),
+}));
+
+it("registers the roof tent starter with its camp use case", () => {
+  installCamp({
+    vehicleHost: () => ({ status: "unknown" }),
+    isVehicleSpace: () => false,
+  });
+  expect(registerRoofTentStarter).toHaveBeenCalledExactlyOnceWith(
+    expect.any(GiveStarterRoofTent),
   );
 });
