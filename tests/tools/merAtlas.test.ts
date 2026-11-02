@@ -1,8 +1,11 @@
-import { execFileSync } from "node:child_process";
 import fc from "fast-check";
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
+import { startPythonWorker } from "../support/pythonWorker";
 
-const run = <T = number[]>(call: string, setup = ""): T => {
+const python = startPythonWorker();
+afterAll(() => python.close());
+
+const run = async <T = number[]>(call: string, setup = ""): Promise<T> => {
   const script = [
     "import json, sys, tempfile",
     "from pathlib import Path",
@@ -17,9 +20,7 @@ const run = <T = number[]>(call: string, setup = ""): T => {
       .map((line) => `    ${line}`),
     `    print(json.dumps(${call}))`,
   ].join("\n");
-  return JSON.parse(
-    execFileSync("python3", ["-I", "-c", script], { encoding: "utf8" }),
-  );
+  return JSON.parse(await python.run(script));
 };
 
 const byte = fc.integer({ min: 0, max: 255 });
@@ -44,10 +45,10 @@ const expectedPixels = (colors: number[][], streakRows: number): number[] =>
   }).flat();
 
 describe("MER atlas", () => {
-  it("keeps every RGB palette texel opaque with the default stainless streak", () => {
-    fc.assert(
-      fc.property(palette(rgb), (entries) => {
-        const actual = run(
+  it("keeps every RGB palette texel opaque with the default stainless streak", async () => {
+    await fc.assert(
+      fc.asyncProperty(palette(rgb), async (entries) => {
+        const actual = await run(
           `list(atlas.atlas_pixels(${JSON.stringify(entries)}))`,
         );
         expect(actual).toEqual(
@@ -61,13 +62,13 @@ describe("MER atlas", () => {
     );
   }, 60_000);
 
-  it("preserves RGBA alpha and changes only RGB in the requested streak rows", () => {
-    fc.assert(
-      fc.property(
+  it("preserves RGBA alpha and changes only RGB in the requested streak rows", async () => {
+    await fc.assert(
+      fc.asyncProperty(
         palette(rgba),
         fc.integer({ min: 0, max: 32 }),
-        (entries, rows) => {
-          const actual = run(
+        async (entries, rows) => {
+          const actual = await run(
             `list(atlas.atlas_pixels(${JSON.stringify(entries)}, streak_rows=${rows}))`,
           );
           expect(actual).toEqual(
@@ -82,10 +83,10 @@ describe("MER atlas", () => {
     );
   }, 60_000);
 
-  it("keeps each MER swatch exact and opaque regardless of colour alpha", () => {
-    fc.assert(
-      fc.property(palette(fc.oneof(rgb, rgba)), (entries) => {
-        const actual = run(
+  it("keeps each MER swatch exact and opaque regardless of colour alpha", async () => {
+    await fc.assert(
+      fc.asyncProperty(palette(fc.oneof(rgb, rgba)), async (entries) => {
+        const actual = await run(
           `list(atlas.mer_pixels(${JSON.stringify(entries)}))`,
         );
         expect(actual).toEqual(
@@ -99,12 +100,12 @@ describe("MER atlas", () => {
     );
   }, 60_000);
 
-  it("round-trips arbitrary RGBA bytes through an unfiltered PNG", () => {
-    fc.assert(
-      fc.property(
+  it("round-trips arbitrary RGBA bytes through an unfiltered PNG", async () => {
+    await fc.assert(
+      fc.asyncProperty(
         fc.uint8Array({ minLength: 4096, maxLength: 4096 }),
-        (data) => {
-          const actual = run(
+        async (data) => {
+          const actual = await run(
             "list(atlas.read_png(path, 32))",
             `atlas.write_png(path, 32, bytes(${JSON.stringify([...data])}))`,
           );
@@ -115,10 +116,10 @@ describe("MER atlas", () => {
     );
   }, 60_000);
 
-  it("tiles the atlas with sixteen non-overlapping swatch faces", () => {
-    const faces = run<{ uv: [number, number]; uv_size: [number, number] }[]>(
-      "[atlas.face(slot) for slot in range(16)]",
-    );
+  it("tiles the atlas with sixteen non-overlapping swatch faces", async () => {
+    const faces = await run<
+      { uv: [number, number]; uv_size: [number, number] }[]
+    >("[atlas.face(slot) for slot in range(16)]");
     const coverage = new Array<number>(32 * 32).fill(0);
     for (const {
       uv: [x, y],

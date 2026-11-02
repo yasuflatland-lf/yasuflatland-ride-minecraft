@@ -1,32 +1,29 @@
-import { execFileSync } from "node:child_process";
 import fc from "fast-check";
-import { expect, it } from "vitest";
+import { afterAll, expect, it } from "vitest";
+import { startPythonWorker } from "../support/pythonWorker";
 
-const run = (body: string) =>
-  execFileSync(
-    "python3",
-    [
-      "-I",
-      "-c",
-      `
+const python = startPythonWorker();
+afterAll(() => python.close());
+
+const run = async (body: string) =>
+  (
+    await python.run(`
 import sys
 sys.path.insert(0, 'tools')
 from tool_loader import load_tool
 m = load_tool('mer')
 ${body}
-`,
-    ],
-    { encoding: "utf8" },
+`)
   ).trim();
 
-it("validates channels and preserves them in RGBA", () => {
-  fc.assert(
-    fc.property(
+it("validates channels and preserves them in RGBA", async () => {
+  await fc.assert(
+    fc.asyncProperty(
       fc.tuple(...Array(3).fill(fc.integer({ min: 0, max: 255 }))),
-      (values) => {
+      async (values) => {
         expect(
           JSON.parse(
-            run(
+            await run(
               `import json\nprint(json.dumps(m.Mer(${values.join(",")}).rgba()))`,
             ),
           ),
@@ -35,12 +32,12 @@ it("validates channels and preserves them in RGBA", () => {
     ),
     { numRuns: 10 },
   );
-  fc.assert(
-    fc.property(
+  await fc.assert(
+    fc.asyncProperty(
       fc.oneof(fc.integer({ max: -1 }), fc.integer({ min: 256 })),
-      (value) => {
+      async (value) => {
         expect(
-          run(
+          await run(
             `try:\n m.Mer(${value}, 0, 0)\nexcept ValueError:\n print('rejected')`,
           ),
         ).toBe("rejected");
@@ -50,10 +47,10 @@ it("validates channels and preserves them in RGBA", () => {
   );
 });
 
-it("paints the lookup value or the supplied default", () => {
+it("paints the lookup value or the supplied default", async () => {
   expect(
     JSON.parse(
-      run(
+      await run(
         `import json\np = m.mer_painter(lambda x, y: m.MER_LIT if x else None, m.Mer(1, 2, 3))\nprint(json.dumps([p(0, 0), p(1, 0)]))`,
       ),
     ),
