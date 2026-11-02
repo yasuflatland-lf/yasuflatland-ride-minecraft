@@ -2,7 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-10-11
-- Supersedes in part: 0008 (hits made while holding a dye), 0031 (painting by interacting)
+- Supersedes in part: [0008](0008-vehicle-item-and-breaking.md): hits made while holding a dye
+- Supersedes in part: [0031](0031-repaint-with-all-sixteen-dyes.md): painting by interacting
 
 ## Context
 

@@ -2,8 +2,11 @@
 
 - Status: Proposed
 - Date: 2026-10-29
-- Extends: 0152 (the camp table), 0168 (the Dutch oven and its hosts), 0173 (the Gas Lantern, which now may stand on a table)
-- Supersedes in part: 0152 (the two seats, the Sit interaction, and "does not accept placed items") and 0168 (rule 5: a missing host no longer drops the oven to the ground; rule 1: new ovens on a table no longer use two fixed spots; rule 8: an overlap and limit check replaces the occupied-spot refusal on a table; Out of scope: the table may now hold Gas Lanterns)
+- Supersedes in part: [0152](0152-a-two-seat-folding-camp-table.md): the two seats, the Sit interaction, and "does not accept placed items"
+- Supersedes in part: [0168](0168-a-dutch-oven-and-a-grill-for-the-fire-pit.md): rule 5: a missing host no longer drops the oven to the ground; rule 1: new ovens on a table no longer use two fixed spots; rule 8: an overlap and limit check replaces the occupied-spot refusal on a table; Out of scope: the table may now hold Gas Lanterns
+- Extends: [0152](0152-a-two-seat-folding-camp-table.md): the camp table
+- Extends: [0168](0168-a-dutch-oven-and-a-grill-for-the-fire-pit.md): the Dutch oven and its hosts
+- Extends: [0173](0173-remove-the-inside-lantern-and-add-the-gas-lantern.md): the Gas Lantern, which now may stand on a table
 
 ## Context
 

@@ -2,7 +2,9 @@
 
 - Status: Proposed
 - Date: 2026-10-26
-- Extends: 0136, 0138, 0148
+- Extends: [0136](0136-bulldozer.md)
+- Extends: [0138](0138-raise-and-lower-the-bulldozer-blade.md)
+- Extends: [0148](0148-smooth-bulldozer-side-bevel.md)
 
 ## Context
 

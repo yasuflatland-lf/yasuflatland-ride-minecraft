@@ -1,8 +1,10 @@
 # 0095. Sit on the camper toilet while parked
 
-- Status: Accepted (extended by [0098](0098-a-block-for-the-camper-shower-toilet.md) and [0109](0109-stand-up-inside-the-parked-camper.md))
+- Status: Accepted
 - Date: 2026-10-21
-- Extends: 0063, 0068, 0093
+- Extends: [0063](0063-walk-on-a-stopped-sports-boat.md)
+- Extends: [0068](0068-park-the-camper-with-room-blocks.md)
+- Extends: [0093](0093-decorate-the-parked-camper.md)
 
 ## Context
 

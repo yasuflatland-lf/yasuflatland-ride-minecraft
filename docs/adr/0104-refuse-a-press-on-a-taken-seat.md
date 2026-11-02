@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-21
-- Extends: 0097
+- Extends: [0097](0097-press-the-camper-furniture-to-place-decor.md): a press on a taken dinette seat is refused
 
 ## Context
 

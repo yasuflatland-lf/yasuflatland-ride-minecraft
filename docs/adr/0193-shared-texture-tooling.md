@@ -2,7 +2,8 @@
 
 - Status: Proposed
 - Date: 2026-10-30
-- Amends in part: [0147](0147-light-the-lamps-with-a-pbr-emissive-layer.md), [0057](0057-skip-model-check-when-inputs-unchanged.md)
+- Supersedes in part: [0057](0057-skip-model-check-when-inputs-unchanged.md): the model CI path filter that left out tools/gen_model.py and tools/gen_sportsboat.py
+- Supersedes in part: [0147](0147-light-the-lamps-with-a-pbr-emissive-layer.md): the rationale for copying texture tooling into each generator
 
 ## Context
 

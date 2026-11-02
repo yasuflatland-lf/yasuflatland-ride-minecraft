@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-22
-- Supersedes in part: 0107 (the stove's four burners and their four slots)
+- Supersedes in part: [0107](0107-stand-stove-gear-on-a-burner.md): the stove's four burners and their four slots
 
 ## Context
 

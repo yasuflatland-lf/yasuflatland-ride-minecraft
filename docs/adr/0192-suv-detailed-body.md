@@ -2,8 +2,11 @@
 
 - Status: Proposed
 - Date: 2026-10-30
-- Extends: [0009](0009-vehicle-model-conventions.md) (bone contract)
-- Amends in part: [0020](0020-headlights.md), [0147](0147-light-the-lamps-with-a-pbr-emissive-layer.md) (lamp geometry, bones, extraction, the SUV table row and the tail/brake exclusion), [0031](0031-repaint-with-all-sixteen-dyes.md) (texture dimensions and paint-dependent regions), [0170](0170-measure-suv-side-view-proportions.md) (frozen palette and atlas)
+- Supersedes in part: [0020](0020-headlights.md): lamp geometry, the sole SUV lamp bone, and extraction by colour
+- Supersedes in part: [0031](0031-repaint-with-all-sixteen-dyes.md): texture dimensions and paint-dependent regions
+- Supersedes in part: [0147](0147-light-the-lamps-with-a-pbr-emissive-layer.md): lamp geometry, bones, extraction, the SUV table row and the tail/brake exclusion
+- Supersedes in part: [0170](0170-measure-suv-side-view-proportions.md): frozen palette and atlas
+- Extends: [0009](0009-vehicle-model-conventions.md): bone contract
 
 ## Context
 

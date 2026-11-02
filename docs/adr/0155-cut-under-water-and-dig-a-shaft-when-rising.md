@@ -2,8 +2,9 @@
 
 - Status: Proposed
 - Date: 2026-10-26
-- Extends: [0137](0137-clear-block-columns-with-the-blade.md) (the column cut and its keep list), [0138](0138-raise-and-lower-the-bulldozer-blade.md) (the blade cuts only while fully lowered)
-- Supersedes in part: [0136](0136-bulldozer.md) (its rule that the submarine form does not cut)
+- Supersedes in part: [0136](0136-bulldozer.md): its rule that the submarine form does not cut
+- Extends: [0137](0137-clear-block-columns-with-the-blade.md): the column cut and its keep list
+- Extends: [0138](0138-raise-and-lower-the-bulldozer-blade.md): the blade cuts only while fully lowered
 
 ## Context
 

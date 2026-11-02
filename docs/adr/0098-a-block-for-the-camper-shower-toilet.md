@@ -2,8 +2,10 @@
 
 - Status: Accepted
 - Date: 2026-10-21
-- Supersedes in part: 0093 (the floor-tap trigger of the shower-toilet), 0094 (the floor-tap trigger of the shower door and the shower)
-- Extends: 0068, 0095
+- Supersedes in part: [0093](0093-decorate-the-parked-camper.md): the floor-tap trigger of the shower-toilet
+- Supersedes in part: [0094](0094-the-camper-shower-toilet-door-and-shower.md): the floor-tap trigger of the shower door and the shower
+- Extends: [0068](0068-park-the-camper-with-room-blocks.md)
+- Extends: [0095](0095-sit-on-the-camper-toilet-while-parked.md)
 
 ## Context
 

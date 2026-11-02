@@ -2,7 +2,10 @@
 
 - Status: Proposed
 - Date: 2026-10-24
-- Extends: [0030](0030-engine-and-hover-sounds.md), [0060](0060-sports-boat-engine-sound.md), [0136](0136-bulldozer.md), [0138](0138-raise-and-lower-the-bulldozer-blade.md)
+- Extends: [0030](0030-engine-and-hover-sounds.md)
+- Extends: [0060](0060-sports-boat-engine-sound.md)
+- Extends: [0136](0136-bulldozer.md)
+- Extends: [0138](0138-raise-and-lower-the-bulldozer-blade.md)
 
 ## Context
 

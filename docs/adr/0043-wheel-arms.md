@@ -2,7 +2,9 @@
 
 - Status: Accepted
 - Date: 2026-10-11
-- Extends: 0009 (bones), 0022 (folded wheels), and 0040 (turned rear wheels)
+- Supersedes in part: [0022](0022-fold-wheels-and-glow-in-flight.md): where the folded wheels hang
+- Extends: [0009](0009-vehicle-model-conventions.md): bones
+- Extends: [0040](0040-submarine.md): turned rear wheels
 
 ## Context
 

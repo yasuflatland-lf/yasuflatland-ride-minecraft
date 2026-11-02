@@ -1,8 +1,10 @@
 # 0146. Wire mesh bulldozer steps and a camper vent cover
 
-- Status: Proposed; superseded in part (the camper vent cover's look) by [0157](0157-an-aluminium-rimmed-louvred-camper-vent-lid.md) (Proposed)
+- Status: Proposed
 - Date: 2026-10-25
-- Extends: 0091, 0113, 0136
+- Extends: [0091](0091-alpha-blend-only-the-camper-glass.md)
+- Extends: [0113](0113-a-window-over-the-camper-counter.md)
+- Extends: [0136](0136-bulldozer.md)
 
 ## Context
 

@@ -1,10 +1,11 @@
 # 0116. A bumper stand-in takes the camper's hits
 
-- Status: Proposed (to be Accepted once the phone check under Consequences passes)
+- Status: Proposed
+- Acceptance condition: the phone check under Consequences passes
 - Date: 2026-10-22
-- Supersedes in part: 0084 (the three boxes fixed at z 3.7 on the camper), 0068 (the bumper hitbox on the camper entity)
-- Extends: 0086 (the bumper hints)
-- Extended by: [0154](0154-keep-camper-passengers-in-their-seats-on-departure.md) (Proposed; the stand-in boards through the chosen-seat mechanism), [0119](0119-park-the-camper-over-natural-ground.md) (Proposed; the stand-in rises out of the ground)
+- Supersedes in part: [0068](0068-park-the-camper-with-room-blocks.md): the bumper hitbox on the camper entity
+- Supersedes in part: [0084](0084-camper-hitbox-spans-the-bumper.md): the three boxes fixed at z 3.7 on the camper
+- Extends: [0086](0086-camper-hints-near-the-bumper-and-the-parked-driver-seat.md): the bumper hints
 
 ## Context
 

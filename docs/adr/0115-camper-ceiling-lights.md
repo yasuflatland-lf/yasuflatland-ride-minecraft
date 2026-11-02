@@ -1,8 +1,11 @@
 # 0115. Ceiling lights in the parked camper
 
-- Status: Accepted (extended by [0123](0123-a-fridge-in-place-of-the-camper-shelf.md): the open fridge top door's plate takes the front light's cell and gives its light; and by [0134](0134-switch-the-tent-lantern-with-the-headlight-switch.md): the same switch turns a tent's lantern on and off from inside the tent); extended by [0147](0147-light-the-lamps-with-a-pbr-emissive-layer.md); superseded in part by [0149](0149-route-the-parked-camper-wheel-seat-to-headlights.md) (the wheel deck seat's switch target)
+- Status: Accepted
 - Date: 2026-10-22
-- Extends: 0020 (the headlight switch and light blocks), 0024 (the switch cooldown), 0068 (the parked room's cells), 0096 (lost cells are laid again)
+- Extends: [0020](0020-headlights.md): the headlight switch and light blocks
+- Extends: [0024](0024-item-use-on-mobile-and-longer-headlights.md): the switch cooldown
+- Extends: [0068](0068-park-the-camper-with-room-blocks.md): the parked room's cells
+- Extends: [0096](0096-keep-the-dock-blocks-whole.md): lost cells are laid again
 
 The wheel deck seat behavior below records the original decision. The current rule is in [0149](0149-route-the-parked-camper-wheel-seat-to-headlights.md): its rider switches the headlights.
 

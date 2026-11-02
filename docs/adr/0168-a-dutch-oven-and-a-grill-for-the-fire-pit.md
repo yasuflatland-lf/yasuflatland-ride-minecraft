@@ -1,8 +1,11 @@
 # 0168. A Dutch oven and a grill for the fire pit
 
-- Status: Proposed; superseded in part (rule 1: new table ovens go at the aimed point, not two fixed spots; rule 5: a missing host removes the oven with no drop; rule 8: an overlap and limit check replaces the occupied-spot refusal on a table; the table may now hold Gas Lanterns) by [0185](0185-put-things-on-the-camp-table-instead-of-sitting-at-it.md) (Proposed); superseded in part (rule 2 and the isSimmering note: the host sets the initial state only; presses toggle it on every host) by [0191](0191-press-camp-gear-without-the-light-tool.md) (Proposed)
+- Status: Proposed
 - Date: 2026-10-27
-- Extends: 0122, 0144, 0152, 0153
+- Supersedes in part: [0152](0152-a-two-seat-folding-camp-table.md): the top holds a Dutch oven
+- Extends: [0122](0122-a-low-chair-to-sit-on-outside-the-vehicles.md)
+- Extends: [0144](0144-split-camping-gear-into-inside-and-outside-groups.md)
+- Extends: [0153](0153-a-polished-folding-fire-pit.md)
 
 ## Context
 

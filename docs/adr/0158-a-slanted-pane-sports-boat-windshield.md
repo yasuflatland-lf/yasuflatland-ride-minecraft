@@ -2,7 +2,7 @@
 
 - Status: Proposed
 - Date: 2026-10-26
-- Extends: [0051](0051-sports-boat.md) (the windshield's construction; its 55-degree rake stays)
+- Extends: [0051](0051-sports-boat.md): the windshield's construction; its 55-degree rake stays
 
 ## Context
 

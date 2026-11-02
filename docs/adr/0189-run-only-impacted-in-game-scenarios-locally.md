@@ -2,7 +2,7 @@
 
 - Status: Proposed
 - Date: 2026-10-30
-- Extends: 0054
+- Extends: [0054](0054-shard-in-game-tests-in-ci.md)
 
 ## Context
 

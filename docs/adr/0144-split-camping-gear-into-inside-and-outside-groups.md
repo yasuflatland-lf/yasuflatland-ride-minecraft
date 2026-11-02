@@ -2,7 +2,8 @@
 
 - Status: Proposed
 - Date: 2026-10-25
-- Extends: [0093](0093-decorate-the-parked-camper.md), [0122](0122-a-low-chair-to-sit-on-outside-the-vehicles.md)
+- Extends: [0093](0093-decorate-the-parked-camper.md)
+- Extends: [0122](0122-a-low-chair-to-sit-on-outside-the-vehicles.md): its own creative group, Proposed
 
 ## Context
 

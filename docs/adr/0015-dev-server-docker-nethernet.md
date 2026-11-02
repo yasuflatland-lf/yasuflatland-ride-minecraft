@@ -1,8 +1,9 @@
 # 0015. Run the development server as BDS in Docker with NetherNet
 
-- Status: Extended by 0062
+- Status: Accepted
 - Date: 2026-10-11
-- Supersedes: 0011, 0014
+- Supersedes: [0011](0011-dev-server-docker-raknet.md)
+- Supersedes: [0014](0014-opt-in-nethernet-dev-server.md)
 
 ## Context
 

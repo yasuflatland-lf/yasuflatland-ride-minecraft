@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-20
-- Supersedes in part: 0028 (the one camera preset for every vehicle)
+- Supersedes in part: [0028](0028-third-person-camera-in-flight.md): the one camera preset for every vehicle
 
 ## Context
 

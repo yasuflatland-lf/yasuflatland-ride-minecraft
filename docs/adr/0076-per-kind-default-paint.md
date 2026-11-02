@@ -1,8 +1,8 @@
 # 0076. Each kind names its default paint; a dye matching it does nothing
 
-- Status: Accepted; extended by 0135 and [0136](0136-bulldozer.md) (Proposed)
+- Status: Accepted
 - Date: 2026-10-20
-- Extends: 0031
+- Extends: [0031](0031-repaint-with-all-sixteen-dyes.md)
 
 ## Context
 

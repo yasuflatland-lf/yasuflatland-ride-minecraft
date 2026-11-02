@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-20
-- Extends: 0048 (the files Stryker does not mutate)
+- Extends: [0048](0048-mutation-testing-and-unused-code-checks.md): the files Stryker does not mutate
 
 ## Context
 

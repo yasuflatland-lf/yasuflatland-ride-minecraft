@@ -2,9 +2,14 @@
 
 - Status: Proposed
 - Date: 2026-10-22
-- Supersedes in part: 0093 (the tall open shelf behind the driver), 0108 (the two shelf boards, their four slots, and the shelf's pair block as a laid block)
-- Extends: 0115 (the front ceiling light's cell), 0121 (the fridge is the second unit of doored storage)
-- Applies: 0009 (the bone contract), 0050 (per-unit parameters), 0067 (the entity contract), 0105 (one toggle per swing)
+- Supersedes in part: [0093](0093-decorate-the-parked-camper.md): the tall open shelf behind the driver
+- Supersedes in part: [0108](0108-two-items-on-each-shelf-board-and-the-table.md): the two shelf boards, their four slots, and the shelf's pair block as a laid block
+- Extends: [0115](0115-camper-ceiling-lights.md): the front ceiling light's cell
+- Extends: [0121](0121-doored-storage-in-the-camper.md): the fridge is the second unit of doored storage
+- Related: [0009](0009-vehicle-model-conventions.md): the bone contract
+- Related: [0050](0050-vehicle-kinds-and-per-kind-profiles.md): per-unit parameters
+- Related: [0067](0067-camper.md): the entity contract
+- Related: [0105](0105-toggle-a-camper-door-once-per-swing.md): one toggle per swing
 
 ## Context
 

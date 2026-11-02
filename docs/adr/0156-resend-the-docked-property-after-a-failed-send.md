@@ -2,7 +2,7 @@
 
 - Status: Proposed
 - Date: 2026-10-26
-- Extends: [0127](0127-resend-every-synced-entity-value-after-a-failed-send.md) (resend after a failed send)
+- Extends: [0127](0127-resend-every-synced-entity-value-after-a-failed-send.md): resend after a failed send
 
 ## Context
 

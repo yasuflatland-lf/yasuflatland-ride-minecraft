@@ -2,7 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-10-21
-- Supersedes in part: 0093 (the ceiling hook slot's height of 0), 0099 (where a hanging item's model starts and ends, and its decor block's selection box)
+- Supersedes in part: [0093](0093-decorate-the-parked-camper.md): the ceiling hook slot's height of 0
+- Supersedes in part: [0099](0099-hang-the-camper-planter-inside-its-cell.md): where a hanging item's model starts and ends, and its decor block's selection box
 
 ## Context
 

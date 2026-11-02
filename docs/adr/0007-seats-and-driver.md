@@ -1,6 +1,6 @@
 # 0007. Seats and choosing the driver
 
-- Status: Superseded by 0019
+- Status: Accepted
 - Date: 2026-10-10
 
 ## Context

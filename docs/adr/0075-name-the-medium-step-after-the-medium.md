@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-20
-- Supersedes in part: 0039 (keeping the name `stepFlightMotion`)
+- Supersedes in part: [0039](0039-vehicle-forms.md): keeping the name `stepFlightMotion`
 
 ## Context
 

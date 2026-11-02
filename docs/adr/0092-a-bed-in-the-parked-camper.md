@@ -1,8 +1,8 @@
 # 0092. A bed in the parked camper
 
-- Status: Accepted (extended by [0093](0093-decorate-the-parked-camper.md) and [0129](0129-share-room-primitives-between-features.md): the bed rule is shared; extended by [0133](0133-sleep-on-the-tent-mattresses.md): the tent mattresses)
+- Status: Accepted
 - Date: 2026-10-21
-- Extends: 0068
+- Extends: [0068](0068-park-the-camper-with-room-blocks.md)
 
 ## Context
 

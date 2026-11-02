@@ -2,7 +2,14 @@
 
 - Status: Proposed
 - Date: 2026-10-24
-- Extends: 0009, 0010, 0020, 0050, 0055, 0090, 0093, 0138
+- Extends: [0009](0009-vehicle-model-conventions.md)
+- Extends: [0010](0010-testing-strategy.md)
+- Extends: [0020](0020-headlights.md)
+- Extends: [0050](0050-vehicle-kinds-and-per-kind-profiles.md)
+- Extends: [0055](0055-kind-neutral-vehicle-core.md)
+- Extends: [0090](0090-group-the-vehicle-core-by-subcontext.md): the cab monitor gets a core subfolder
+- Extends: [0093](0093-decorate-the-parked-camper.md)
+- Extends: [0138](0138-raise-and-lower-the-bulldozer-blade.md)
 
 ## Context
 

@@ -2,7 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-10-20
-- Supersedes in part: 0003 (the speed kept along a wall hit at an angle), 0077 (lowering the speed toward the actual forward speed while sliding along a wall)
+- Supersedes in part: [0003](0003-friction-compensation-and-axis-wall-detection.md): the speed kept along a wall hit at an angle
+- Supersedes in part: [0077](0077-never-reverse-the-internal-speed-on-a-wall-hit.md): lowering the speed toward the actual forward speed while sliding along a wall
 
 ## Context
 

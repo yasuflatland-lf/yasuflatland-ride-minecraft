@@ -1,8 +1,8 @@
 # 0052. Retry camera switches in both directions, and break seat ties toward the lower index
 
-- Status: Superseded in part by 0117
+- Status: Accepted
 - Date: 2026-10-12
-- Supersedes in part: 0028 (the rule for retrying a failed camera clear)
+- Supersedes in part: [0028](0028-third-person-camera-in-flight.md): the rule for retrying a failed camera clear
 
 ## Context
 

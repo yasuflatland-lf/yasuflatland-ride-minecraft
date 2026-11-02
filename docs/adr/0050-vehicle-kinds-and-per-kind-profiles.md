@@ -1,7 +1,8 @@
 # 0050. Vehicle kinds and per-kind profiles
 
-- Status: Superseded in part by 0055; extended by 0120, [0136](0136-bulldozer.md) (Proposed), and [0139](0139-show-the-held-tool-on-the-cab-monitor.md) (Proposed)
+- Status: Accepted
 - Date: 2026-10-12
+- Extends: [0046](0046-organize-each-layer-by-feature.md)
 
 ## Context
 

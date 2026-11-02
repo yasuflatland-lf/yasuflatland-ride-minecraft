@@ -1,7 +1,8 @@
 # 0069. Seat the camper's driver on the right like the SUV
 
-- Status: Accepted (the front seat heights are superseded by [0070](0070-raise-the-camper-front-seats.md))
+- Status: Accepted
 - Date: 2026-10-20
+- Supersedes in part: [0067](0067-camper.md): the seat layout
 
 ## Context
 

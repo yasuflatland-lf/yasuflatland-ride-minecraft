@@ -2,7 +2,12 @@
 
 - Status: Proposed
 - Date: 2026-10-27
-- Extends: 0093, 0122, 0144, 0152, 0153, 0168
+- Extends: [0093](0093-decorate-the-parked-camper.md)
+- Extends: [0122](0122-a-low-chair-to-sit-on-outside-the-vehicles.md)
+- Extends: [0144](0144-split-camping-gear-into-inside-and-outside-groups.md)
+- Extends: [0152](0152-a-two-seat-folding-camp-table.md)
+- Extends: [0153](0153-a-polished-folding-fire-pit.md)
+- Extends: [0168](0168-a-dutch-oven-and-a-grill-for-the-fire-pit.md)
 
 ## Context
 

@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-12
-- Extends: 0015
+- Extends: [0015](0015-dev-server-docker-nethernet.md)
 
 ## Context
 

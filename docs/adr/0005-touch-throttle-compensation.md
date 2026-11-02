@@ -1,6 +1,6 @@
 # 0005. Compensate the throttle from the mobile joystick
 
-- Status: Superseded by 0018
+- Status: Accepted
 - Date: 2026-10-10
 
 ## Context

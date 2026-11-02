@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-11
+- Supersedes in part: [0040](0040-submarine.md): propeller shape and color
 
 ## Context
 

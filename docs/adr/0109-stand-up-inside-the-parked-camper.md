@@ -1,8 +1,10 @@
 # 0109. Stand up inside the parked camper
 
-- Status: Extended by [0141](0141-put-a-bulldozer-driver-out-beside-the-left-door.md) (Proposed)
+- Status: Accepted
 - Date: 2026-10-22
-- Extends: 0063, 0068, 0095
+- Extends: [0063](0063-walk-on-a-stopped-sports-boat.md)
+- Extends: [0068](0068-park-the-camper-with-room-blocks.md)
+- Extends: [0095](0095-sit-on-the-camper-toilet-while-parked.md)
 
 ## Context
 

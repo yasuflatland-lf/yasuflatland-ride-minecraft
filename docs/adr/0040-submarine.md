@@ -1,8 +1,13 @@
 # 0040. Submarine form
 
-- Status: Superseded in part by 0042 (propeller shape and color), 0044 (banking under water), 0045 (README previews), and 0078 (what counts as controlled)
+- Status: Accepted
 - Date: 2026-10-11
-- Extends: 0009 (bones), 0022 (transform animations), 0028 (camera), 0033 (gear), 0035 (steps), and 0039 (forms)
+- Extends: [0009](0009-vehicle-model-conventions.md): bones
+- Extends: [0022](0022-fold-wheels-and-glow-in-flight.md): transform animations
+- Extends: [0028](0028-third-person-camera-in-flight.md): camera
+- Extends: [0033](0033-lower-the-wheels-before-touchdown.md): gear
+- Extends: [0035](0035-jump-one-block-steps-in-the-script.md): steps
+- Extends: [0039](0039-vehicle-forms.md): forms
 
 ## Context
 

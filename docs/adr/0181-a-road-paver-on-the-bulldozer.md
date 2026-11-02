@@ -2,7 +2,13 @@
 
 - Status: Proposed
 - Date: 2026-10-29
-- Extends: 0033 (gear probe), 0055 (`TickContext`, `DriveStep`, `TickOutcome`, world call order), 0136 (row rounding, shared with `bladeColumns` through `feetRow`), 0137 (block replacement and drop sweeping), 0139 (the held tool becomes part of one held item value), 0178 (the shared placement-kept list), [0180](0180-a-wide-bulldozer-blade.md) (blade width)
+- Extends: [0033](0033-lower-the-wheels-before-touchdown.md): gear probe
+- Extends: [0055](0055-kind-neutral-vehicle-core.md): `TickContext`, `DriveStep`, `TickOutcome`, world call order
+- Extends: [0136](0136-bulldozer.md): row rounding, shared with `bladeColumns` through `feetRow`
+- Extends: [0137](0137-clear-block-columns-with-the-blade.md): block replacement and drop sweeping
+- Extends: [0139](0139-show-the-held-tool-on-the-cab-monitor.md): the held tool becomes part of one held item value
+- Extends: [0178](0178-bulldozer-build-tools-in-a-separate-namespace.md): the shared placement-kept list
+- Extends: [0180](0180-a-wide-bulldozer-blade.md): blade width
 
 ## Context
 

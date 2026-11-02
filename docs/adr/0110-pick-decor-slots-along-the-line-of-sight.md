@@ -1,8 +1,8 @@
 # 0110. Pick decor slots along the line of sight
 
-- Status: Extended by 0111
+- Status: Accepted
 - Date: 2026-10-22
-- Supersedes in part: 0107 (measuring a slot's nearness from the hit point)
+- Supersedes in part: [0107](0107-stand-stove-gear-on-a-burner.md): measuring a slot's nearness from the hit point
 
 ## Context
 

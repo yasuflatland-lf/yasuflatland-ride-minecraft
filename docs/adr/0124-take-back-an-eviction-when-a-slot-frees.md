@@ -1,8 +1,8 @@
 # 0124. Take back an eviction when a slot frees
 
-- Status: Extended by [0125](0125-forget-a-vehicle-removed-from-a-loaded-chunk.md)
+- Status: Accepted
 - Date: 2026-10-23
-- Extends: 0066 (the fleet limit per owner and kind)
+- Extends: [0066](0066-limit-vehicles-per-player-and-kind.md): the fleet limit per owner and kind
 
 ## Context
 

@@ -2,7 +2,7 @@
 
 - Status: Proposed
 - Date: 2026-11-01
-- Supersedes in part: [0202](0202-build-wand-copy-and-continuous-paste.md) Decisions 6, 8, and 9, and the Consequences bullet on Stop pasting
+- Supersedes in part: [0202](0202-build-wand-copy-and-continuous-paste.md): Decisions 6, 8, and 9, and the Consequences bullet on Stop pasting
 
 ## Context
 

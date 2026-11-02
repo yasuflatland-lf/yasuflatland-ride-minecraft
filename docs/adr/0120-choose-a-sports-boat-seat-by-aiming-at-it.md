@@ -1,9 +1,12 @@
 # 0120. Choose a sports boat seat by aiming at it
 
-- Status: Proposed (extended by [0154](0154-keep-camper-passengers-in-their-seats-on-departure.md), which applies the same mechanism to the camper)
+- Status: Proposed
 - Date: 2026-10-22
-- Supersedes in part: 0019 (for the sports boat: the script now keeps riders in their seats), 0025 (for the sports boat: the driver is the player at rider-list index 0, without the sticky driver), 0063 (a deck-seat rider can land in a lower seat on departure)
-- Extends: 0050, 0051
+- Supersedes in part: [0019](0019-passengers-move-up-to-the-driver-seat.md): for the sports boat: the script now keeps riders in their seats
+- Supersedes in part: [0025](0025-jump-on-touch-and-a-sticky-driver.md): for the sports boat: the driver is the player at rider-list index 0, without the sticky driver
+- Supersedes in part: [0063](0063-walk-on-a-stopped-sports-boat.md): a deck-seat rider can land in a lower seat on departure
+- Extends: [0050](0050-vehicle-kinds-and-per-kind-profiles.md)
+- Extends: [0051](0051-sports-boat.md)
 
 ## Context
 

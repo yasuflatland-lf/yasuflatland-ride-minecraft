@@ -1,8 +1,16 @@
 # 0180. A wide bulldozer blade switched from the cab
 
-- Status: Proposed; extended by [0181](0181-a-road-paver-on-the-bulldozer.md) (Proposed)
+- Status: Proposed
 - Date: 2026-10-29
-- Extends: 0006 (ram box), 0050 (per-kind parameters), 0055 (`DriveStep`), 0122 (`footprint`), 0136 (bulldozer), 0138 (blade lift), 0139 (cab monitor), 0142 (placement), 0178 (the Building Tools group)
+- Extends: [0006](0006-ram-damage-and-occupant-protection.md): ram box
+- Extends: [0050](0050-vehicle-kinds-and-per-kind-profiles.md): per-kind parameters
+- Extends: [0055](0055-kind-neutral-vehicle-core.md): `DriveStep`
+- Extends: [0122](0122-a-low-chair-to-sit-on-outside-the-vehicles.md): `footprint`
+- Extends: [0136](0136-bulldozer.md): bulldozer
+- Extends: [0138](0138-raise-and-lower-the-bulldozer-blade.md): blade lift
+- Extends: [0139](0139-show-the-held-tool-on-the-cab-monitor.md): cab monitor
+- Extends: [0142](0142-place-the-bulldozer-in-the-suvs-space.md): placement
+- Extends: [0178](0178-bulldozer-build-tools-in-a-separate-namespace.md): the Building Tools group
 
 ## Context
 

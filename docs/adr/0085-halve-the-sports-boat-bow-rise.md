@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-20
-- Supersedes in part: 0061 (the 7-degree `maxTrim` kept from 0059)
+- Supersedes in part: [0061](0061-lift-the-bow-and-roll-further.md): the 7-degree `maxTrim` kept from 0059
 
 ## Context
 

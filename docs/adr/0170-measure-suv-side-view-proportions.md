@@ -2,10 +2,12 @@
 
 - Status: Proposed
 - Date: 2026-10-27
-- Extends: 0009 (model conventions), 0006 (body probes), 0122 (footprint)
-- Supersedes in part: 0009 (SUV collision dimensions), 0117 (the front seats' and front riders' z), 0029 (the seat height)
-- Size-anchor numbers superseded in part by: [0194](0194-enlarge-the-suv-for-seated-head-clearance.md) (Proposed)
-- Amended in part by: [0192](0192-suv-detailed-body.md) (Proposed)
+- Supersedes in part: [0009](0009-vehicle-model-conventions.md): SUV collision dimensions
+- Supersedes in part: [0029](0029-raise-the-seats.md): the seat height
+- Supersedes in part: [0117](0117-move-the-suv-front-seats-back.md): the front seats' and front riders' z
+- Extends: [0006](0006-ram-damage-and-occupant-protection.md): body probes
+- Extends: [0009](0009-vehicle-model-conventions.md): model conventions
+- Extends: [0122](0122-a-low-chair-to-sit-on-outside-the-vehicles.md): footprint
 
 ## Context
 

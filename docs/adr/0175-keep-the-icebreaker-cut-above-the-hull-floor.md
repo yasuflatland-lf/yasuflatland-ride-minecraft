@@ -2,8 +2,10 @@
 
 - Status: Proposed
 - Date: 2026-10-29
-- Supersedes in part: [0171](0171-sports-boat-equipment-and-icebreaker-mode.md) (Decision 7: the three-block downward margin), [0051](0051-sports-boat.md) (the rule that the script never pushes the hull vertically)
-- Extends: [0080](0080-beached-boat-coasts-to-a-stop.md), [0155](0155-dock-the-sports-boat-on-the-water-surface.md)
+- Supersedes in part: [0051](0051-sports-boat.md): the rule that the script never pushes the hull vertically
+- Supersedes in part: [0171](0171-sports-boat-equipment-and-icebreaker-mode.md): Decision 7: the three-block downward margin
+- Extends: [0080](0080-beached-sports-boat-can-reverse.md)
+- Extends: [0155](0155-cut-under-water-and-dig-a-shaft-when-rising.md)
 
 ## Context
 

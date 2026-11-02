@@ -1,7 +1,9 @@
 # 0055. Kind-neutral vehicle core
 
-- Status: Superseded in part by 0083 (targets() in TickContext) and 0087 (the boat's tuning table); extended by 0064, 0065, 0072, 0089, 0090, 0127, [0136](0136-bulldozer.md) (Proposed), 0137 (Proposed), and [0139](0139-show-the-held-tool-on-the-cab-monitor.md) (Proposed)
+- Status: Accepted
 - Date: 2026-10-12
+- Supersedes in part: [0050](0050-vehicle-kinds-and-per-kind-profiles.md): the flat layout, SUV-only tuning in SPEC, motion limits in VehicleProfile, and aggregate-owned motion state
+- Extends: [0046](0046-organize-each-layer-by-feature.md)
 
 ## Context
 

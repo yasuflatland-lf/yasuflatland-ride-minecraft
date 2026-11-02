@@ -2,7 +2,8 @@
 
 - Status: Proposed
 - Date: 2026-10-24
-- Extends: [0067](0067-camper.md), [0142](0142-place-the-bulldozer-in-the-suvs-space.md)
+- Extends: [0067](0067-camper.md)
+- Extends: [0142](0142-place-the-bulldozer-in-the-suvs-space.md)
 
 ## Context
 

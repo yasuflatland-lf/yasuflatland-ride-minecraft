@@ -1,8 +1,8 @@
 # 0039. Vehicle forms
 
-- Status: Superseded in part by 0075 (the name of the shared medium step)
+- Status: Accepted
 - Date: 2026-10-11
-- Supersedes in part: 0021 (the vocabulary, the property, and the component group and event names)
+- Supersedes in part: [0021](0021-flight-mode.md): the vocabulary, the property, and the component group and event names
 
 ## Context
 

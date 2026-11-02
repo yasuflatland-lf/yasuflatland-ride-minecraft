@@ -2,8 +2,10 @@
 
 - Status: Accepted
 - Date: 2026-10-22
-- Supersedes in part: 0098 (choosing between the door and the shower from the player's position alone)
-- Extends: 0068, 0094, 0105
+- Supersedes in part: [0098](0098-a-block-for-the-camper-shower-toilet.md): choosing between the door and the shower from the player's position alone
+- Extends: [0068](0068-park-the-camper-with-room-blocks.md)
+- Extends: [0094](0094-the-camper-shower-toilet-door-and-shower.md)
+- Extends: [0105](0105-toggle-a-camper-door-once-per-swing.md)
 
 ## Context
 

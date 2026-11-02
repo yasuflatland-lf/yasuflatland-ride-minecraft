@@ -1,8 +1,10 @@
 # 0065. Check the import rules with dependency-cruiser
 
-- Status: Extended by 0072
+- Status: Accepted
 - Date: 2026-10-13
-- Extends: 0012, 0046, 0055
+- Extends: [0012](0012-ddd-layered-architecture.md)
+- Extends: [0046](0046-organize-each-layer-by-feature.md)
+- Extends: [0055](0055-kind-neutral-vehicle-core.md)
 
 ## Context
 

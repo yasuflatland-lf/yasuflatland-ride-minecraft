@@ -2,7 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-10-13
-- Extends: 0055, 0063
+- Extends: [0055](0055-kind-neutral-vehicle-core.md)
+- Extends: [0063](0063-walk-on-a-stopped-sports-boat.md)
 
 ## Context
 

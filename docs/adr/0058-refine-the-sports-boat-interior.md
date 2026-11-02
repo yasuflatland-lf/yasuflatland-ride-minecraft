@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-12
+- Extends: [0051](0051-sports-boat.md)
 
 ## Context
 

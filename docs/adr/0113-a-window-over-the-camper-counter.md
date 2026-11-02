@@ -1,8 +1,10 @@
 # 0113. A window over the camper counter
 
-- Status: Accepted (extended by [0114](0114-open-the-camper-wall-cabinet.md): the cabinet reaches down to model y 50, still clear of the window); extended by [0146](0146-wire-mesh-bulldozer-steps-and-a-camper-vent-cover.md) (Proposed)
+- Status: Accepted
 - Date: 2026-10-22
-- Extends: 0067 (the camper's look), 0093 (the right-hand furniture), 0103 (the wall cabinet at the ceiling)
+- Extends: [0067](0067-camper.md): the camper's look
+- Extends: [0093](0093-decorate-the-parked-camper.md): the right-hand furniture
+- Extends: [0103](0103-raise-the-camper-wall-cabinet-to-the-ceiling.md): the wall cabinet at the ceiling
 
 ## Context
 

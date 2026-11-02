@@ -1,9 +1,9 @@
 # 0066. Limit vehicles per player and per kind
 
-- Status: Extended by [0124](0124-take-back-an-eviction-when-a-slot-frees.md), [0125](0125-forget-a-vehicle-removed-from-a-loaded-chunk.md), and [0136](0136-bulldozer.md) (Proposed)
+- Status: Accepted
 - Date: 2026-10-13
-- Supersedes: 0038
-- Supersedes in part: 0051 (counting boats under the world limit of 10)
+- Supersedes: [0038](0038-keep-at-most-ten-vehicles-in-a-world.md)
+- Supersedes in part: [0051](0051-sports-boat.md): counting boats under the world limit of 10
 
 ## Context
 

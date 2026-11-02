@@ -2,7 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-10-20
-- Supersedes in part: 0021 (a flying vehicle without a driver lands at once, when riders remain), 0040 (what counts as controlled)
+- Supersedes in part: [0021](0021-flight-mode.md): a flying vehicle without a driver lands at once, when riders remain
+- Supersedes in part: [0040](0040-submarine.md): what counts as controlled
 
 ## Context
 

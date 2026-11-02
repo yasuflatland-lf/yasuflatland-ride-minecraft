@@ -1,8 +1,9 @@
 # 0148. Smooth the bulldozer side bevel
 
-- Status: Proposed; extended by [0151](0151-enclose-the-bulldozer-blade-supports.md) (Proposed)
+- Status: Proposed
 - Date: 2026-10-25
-- Extends: 0136, 0138
+- Extends: [0136](0136-bulldozer.md)
+- Extends: [0138](0138-raise-and-lower-the-bulldozer-blade.md)
 
 ## Context
 

@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-20
-- Extends: 0030
+- Extends: [0030](0030-engine-and-hover-sounds.md)
 
 ## Context
 

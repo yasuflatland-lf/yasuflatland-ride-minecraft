@@ -2,7 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-10-23
-- Extends: 0066 (the per-owner and per-kind fleet limits), 0124 (the take-back of an eviction)
+- Extends: [0066](0066-limit-vehicles-per-player-and-kind.md): the per-owner and per-kind fleet limits
+- Extends: [0124](0124-take-back-an-eviction-when-a-slot-frees.md): the take-back of an eviction
 
 ## Context
 

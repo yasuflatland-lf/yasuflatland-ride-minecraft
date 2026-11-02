@@ -1,8 +1,13 @@
 # 0135. Repaint the tent with dyes
 
-- Status: Proposed (to be Accepted once the checks under Tent paint in [manual-test.md](../manual-test.md) pass)
+- Status: Proposed
+- Acceptance condition: the checks under Tent paint in [manual-test.md](../manual-test.md) pass
 - Date: 2026-10-23
-- Extends: [0031](0031-repaint-with-all-sixteen-dyes.md) (sixteen paints in a fixed variant order), 0036 (a dye hit paints instead of counting), 0037 (one dye per repaint within a tick), [0076](0076-per-kind-default-paint.md) (variant 0 shows the default paint), [0131](0131-pitch-a-tent-in-the-camp.md) (the tent's hit paths)
+- Extends: [0031](0031-repaint-with-all-sixteen-dyes.md): sixteen paints in a fixed variant order
+- Extends: [0036](0036-paint-by-hitting-with-a-dye.md): a dye hit paints instead of counting
+- Extends: [0037](0037-one-dye-per-repaint-within-a-tick.md): one dye per repaint within a tick
+- Extends: [0076](0076-per-kind-default-paint.md): variant 0 shows the default paint
+- Extends: [0131](0131-pitch-a-tent-in-the-camp.md): the tent's hit paths
 
 ## Context
 

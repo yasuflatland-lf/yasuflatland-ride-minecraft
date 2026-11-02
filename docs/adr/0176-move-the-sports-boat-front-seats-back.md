@@ -2,8 +2,10 @@
 
 - Status: Accepted
 - Date: 2026-10-29
-- Extends: [0051](0051-sports-boat.md), [0058](0058-refine-the-sports-boat-interior.md), [0117](0117-move-the-suv-front-seats-back.md)
-- Supersedes in part: [0117](0117-move-the-suv-front-seats-back.md) (its last bullet: "The sports boat keeps its own seat positions at z = 0.35")
+- Supersedes in part: [0117](0117-move-the-suv-front-seats-back.md): its last bullet: "The sports boat keeps its own seat positions at z = 0.35"
+- Extends: [0051](0051-sports-boat.md)
+- Extends: [0058](0058-refine-the-sports-boat-interior.md)
+- Extends: [0117](0117-move-the-suv-front-seats-back.md)
 
 ## Context
 

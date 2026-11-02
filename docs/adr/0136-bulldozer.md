@@ -1,8 +1,21 @@
 # 0136. Add the bulldozer kind
 
-- Status: Proposed; superseded in part (`stepUp: false`) and extended by [0138](0138-raise-and-lower-the-bulldozer-blade.md) (Proposed), [0140](0140-bulldozer-sounds.md) (Proposed), and [0141](0141-put-a-bulldozer-driver-out-beside-the-left-door.md) (Proposed); extended by [0146](0146-wire-mesh-bulldozer-steps-and-a-camper-vent-cover.md) (Proposed), [0147](0147-light-the-lamps-with-a-pbr-emissive-layer.md), [0148](0148-smooth-bulldozer-side-bevel.md) (Proposed), and [0151](0151-enclose-the-bulldozer-blade-supports.md) (Proposed); its rule that the submarine form does not cut superseded by [0155](0155-cut-under-water-and-dig-a-shaft-when-rising.md) (Proposed); its ground-cut air-gap rule amended by [0195](0195-cut-the-body-height-ahead-of-a-grounded-blade.md) (Proposed)
+- Status: Proposed
 - Date: 2026-10-24
-- Extends: 0009, 0020, 0023, 0025, 0027, 0031, 0035, 0045, 0050, 0055, 0066, 0076, 0089, 0127
+- Extends: [0009](0009-vehicle-model-conventions.md)
+- Extends: [0020](0020-headlights.md)
+- Extends: [0023](0023-starter-vehicle-on-first-join.md)
+- Extends: [0025](0025-jump-on-touch-and-a-sticky-driver.md)
+- Extends: [0027](0027-readme-previews-in-three-poses.md)
+- Extends: [0031](0031-repaint-with-all-sixteen-dyes.md)
+- Extends: [0035](0035-jump-one-block-steps-in-the-script.md)
+- Extends: [0045](0045-submarine-preview.md)
+- Extends: [0050](0050-vehicle-kinds-and-per-kind-profiles.md)
+- Extends: [0055](0055-kind-neutral-vehicle-core.md)
+- Extends: [0066](0066-limit-vehicles-per-player-and-kind.md)
+- Extends: [0076](0076-per-kind-default-paint.md)
+- Extends: [0089](0089-per-kind-control-mapping.md)
+- Extends: [0127](0127-resend-every-synced-entity-value-after-a-failed-send.md)
 
 ## Context
 

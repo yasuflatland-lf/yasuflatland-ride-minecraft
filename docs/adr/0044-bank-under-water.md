@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-10-11
+- Supersedes in part: [0026](0026-bank-into-turns-in-flight.md): banking under water
+- Supersedes in part: [0040](0040-submarine.md): banking under water
 
 ## Context
 

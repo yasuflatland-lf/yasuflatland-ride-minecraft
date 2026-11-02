@@ -2,7 +2,9 @@
 
 - Status: Accepted
 - Date: 2026-10-21
-- Extends: 0063, 0068, 0093
+- Extends: [0063](0063-walk-on-a-stopped-sports-boat.md)
+- Extends: [0068](0068-park-the-camper-with-room-blocks.md)
+- Extends: [0093](0093-decorate-the-parked-camper.md)
 
 ## Context
 

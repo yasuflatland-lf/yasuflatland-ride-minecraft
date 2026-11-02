@@ -2,7 +2,9 @@
 
 - Status: Proposed
 - Date: 2026-10-26
-- Extends: 0122, 0144, 0147
+- Extends: [0122](0122-a-low-chair-to-sit-on-outside-the-vehicles.md)
+- Extends: [0144](0144-split-camping-gear-into-inside-and-outside-groups.md)
+- Extends: [0147](0147-light-the-lamps-with-a-pbr-emissive-layer.md)
 
 ## Context
 

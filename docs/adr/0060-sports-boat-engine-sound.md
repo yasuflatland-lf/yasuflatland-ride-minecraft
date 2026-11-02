@@ -1,6 +1,6 @@
 # 0060. Sports boat engine sound
 
-- Status: Accepted; extended by [0140](0140-bulldozer-sounds.md) (Proposed)
+- Status: Accepted
 - Date: 2026-10-12
 
 ## Context

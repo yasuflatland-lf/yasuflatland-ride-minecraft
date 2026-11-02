@@ -1,8 +1,8 @@
 # 0117. Move the SUV's front seats back
 
-- Status: Superseded in part by 0170
+- Status: Accepted
 - Date: 2026-10-22
-- Supersedes in part: 0052 (the front seats' z in its seat table)
+- Supersedes in part: [0052](0052-retry-camera-switches-and-break-seat-ties-low.md): the front seats' z in its seat table
 
 ## Context
 
