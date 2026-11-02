@@ -27,6 +27,40 @@ export interface Adr {
 
 export type FileMap = Readonly<Record<string, string>>;
 
+export interface SpecRule {
+  name: string;
+  line: number;
+  fields: MetadataField[];
+}
+
+export interface Spec {
+  path: string;
+  title: string | undefined;
+  header: MetadataField[];
+  rules: SpecRule[];
+  sections: { name: string; line: number }[];
+  openIssues: { value: string; line: number }[];
+}
+
+export function parseSpec(path: string, text: string): Spec;
+export function parseSpecs(files: FileMap): Spec[];
+export function checkSpecFormat(specs: readonly Spec[]): Problem[];
+export function checkSpecLinks(
+  specs: readonly Spec[],
+  adrs: readonly Adr[],
+  files: FileMap,
+): Problem[];
+export function checkSpecAgreement(
+  specs: readonly Spec[],
+  adrs: readonly Adr[],
+): Problem[];
+export function checkSpecBasisSources(specs: readonly Spec[]): Problem[];
+export function checkSpecClosure(
+  specs: readonly Spec[],
+  adrs: readonly Adr[],
+): Problem[];
+export function checkSpecIndex(files: FileMap, specs: readonly Spec[]): Problem[];
+
 export function parseAdr(path: string, text: string): Adr;
 export function parseAdrs(files: FileMap): Adr[];
 export function checkAdrIdentity(adrs: readonly Adr[]): Problem[];
