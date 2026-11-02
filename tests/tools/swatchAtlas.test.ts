@@ -1,26 +1,24 @@
-import { execFileSync } from "node:child_process";
 import fc from "fast-check";
-import { it } from "vitest";
+import { afterAll, it } from "vitest";
 
-const run = (script: string) =>
-  execFileSync(
-    "python3",
+import { startPythonWorker } from "../support/pythonWorker";
+
+const python = startPythonWorker();
+afterAll(() => python.close());
+
+const run = async (script: string) =>
+  await python.run(
     [
-      "-I",
-      "-c",
-      [
-        "import sys",
-        "sys.path.insert(0, 'tools')",
-        "from tool_loader import load_tool",
-        "m = load_tool('swatch_atlas')",
-        script,
-      ].join("\n"),
-    ],
-    { encoding: "utf8" },
+      "import sys",
+      "sys.path.insert(0, 'tools')",
+      "from tool_loader import load_tool",
+      "m = load_tool('swatch_atlas')",
+      script,
+    ].join("\n"),
   );
 
-it("preserves the original SUV swatch layout and pixels for every paint", () => {
-  run(`suv_atlas = load_tool('suv_atlas')
+it("preserves the original SUV swatch layout and pixels for every paint", async () => {
+  await run(`suv_atlas = load_tool('suv_atlas')
 suv_palette = load_tool('suv_palette')
 assert suv_atlas.ATLAS.width == 512 and suv_atlas.ATLAS.height == 256
 for i, name in enumerate(suv_palette.NAMES):
@@ -40,8 +38,8 @@ for paint in suv_palette.BODY_PAINTS:
             assert pixel(x, y) == expected`);
 }, 120_000);
 
-it("pins camper defaults and rejects invalid placements without mutation", () => {
-  run(`a = m.Atlas(['a', 'b'])
+it("pins camper defaults and rejects invalid placements without mutation", async () => {
+  await run(`a = m.Atlas(['a', 'b'])
 assert (a.width, a.height) == (2, 1)
 a.allocate('one', 3, 2)
 a.allocate('two', 2, 1)
@@ -79,8 +77,8 @@ except ValueError: pass
 else: raise AssertionError('expected overflow')`);
 });
 
-it("packs blocks on shelves, samples local pixels, and preserves names and state on failure", () => {
-  run(`def build():
+it("packs blocks on shelves, samples local pixels, and preserves names and state on failure", async () => {
+  await run(`def build():
     a = m.Atlas(['a'], width=20, height=15)
     b = a.block('block', 2, 3, 10, 6)
     b.allocate('one', 6, 2)
@@ -105,9 +103,9 @@ for target, args in [('block', ('too_big', 11, 1)), ('block', ('wrap_fail', 6, 1
     if args[0] in ('too_big', 'wrap_fail'): assert b.allocate(args[0], 1, 1).name == args[0]`);
 });
 
-it("keeps random placements and block allocations contained and disjoint", () => {
-  fc.assert(
-    fc.property(
+it("keeps random placements and block allocations contained and disjoint", async () => {
+  await fc.assert(
+    fc.asyncProperty(
       fc.array(
         fc.tuple(
           fc.integer({ min: -2, max: 15 }),
@@ -117,8 +115,8 @@ it("keeps random placements and block allocations contained and disjoint", () =>
         ),
         { maxLength: 20 },
       ),
-      (rects) => {
-        run(`a = m.Atlas(['a'], width=16, height=16)
+      async (rects) => {
+        await run(`a = m.Atlas(['a'], width=16, height=16)
 for i, (x, y, w, h) in enumerate(${JSON.stringify(rects)}):
     before = a.regions
     try: a.place(str(i), x, y, w, h)
