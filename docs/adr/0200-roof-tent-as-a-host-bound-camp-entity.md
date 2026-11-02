@@ -72,7 +72,10 @@ Outside placement uses only the occupant adapter's loaded-terrain search.
 ### Ladder mechanism
 
 No climbable blocks are placed. The SUV ladder is the roof tent entity's
-`ladder` property; the camper adds no ladder and uses its existing rear ladder's
+`ladder` property and hangs from the tent's side on the vehicle's left, which is
+the viewer's right when looking at the vehicle from the front. The mount
+entrance is the foot of that ladder, so "the rotated mount entrance" below means
+that left-side foot; the camper adds no ladder and uses its existing rear ladder's
 roof end. Alongside direct entity interaction reach, a player within
 `entranceReach` (1.5 blocks horizontally) of the rotated mount entrance may enter
 by the usual sneak interaction. Their feet must be within `entranceBand`
