@@ -45,6 +45,25 @@ it("refuses a taken roof", () => {
   );
 });
 
+it("refuses a host in use before a taken roof", () => {
+  fc.assert(
+    fc.property(fc.boolean(), mountArb, yawArb, (roofTaken, mount, yaw) => {
+      expect(
+        planRoofTent({
+          target: {
+            type: "vehicle",
+            id: "a",
+            mount,
+            roofTaken,
+            hostInUse: true,
+          },
+          yaw,
+        }),
+      ).toBe("host_in_use");
+    }),
+  );
+});
+
 it("refuses a vehicle without a mount, taken roof or not", () => {
   for (const roofTaken of [false, true]) {
     expect(

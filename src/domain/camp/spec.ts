@@ -125,6 +125,8 @@ export const GAS_LANTERN_SPEC = Object.freeze({
 });
 
 export const ROOF_TENT_SPEC = Object.freeze({
+  // Variant 0 must resolve to the visible fly color for dye comparisons (ADR 0076).
+  defaultPaint: TENT_SPEC.defaultPaint,
   /** Matches ground gear recovery so the same three deliberate hits fold it (ADR 0200). */
   hitsToFoldUp: 3,
   /** Matches the ground tent's five-second window for consecutive recovery hits. */
