@@ -18,6 +18,18 @@ export const SUV_PROFILE: VehicleProfile = Object.freeze({
   kind: "suv",
   fleetLimit: 10, // Per player (ADR 0066).
   body,
+  roofTent: Object.freeze({
+    roofHeight: SUV_SPEC.roofTentRoofHeight,
+    anchor: Object.freeze({
+      x: SUV_SPEC.roofTentAnchorX,
+      z: SUV_SPEC.roofTentAnchorZ,
+    }),
+    ladder: SUV_SPEC.roofTentLadder,
+    entrance: Object.freeze({
+      x: SUV_SPEC.roofTentEntranceX,
+      z: SUV_SPEC.roofTentEntranceZ,
+    }),
+  }),
   footprint: SUV_SPEC.footprint,
   /**
    * Coordinates aligned with the vehicle's facing (x = left, z = forward).

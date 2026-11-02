@@ -131,6 +131,12 @@ describe("vehicle profiles (ADR 0050)", () => {
         halfWidth: SUV_SPEC.bodyHalfWidth,
         height: SUV_SPEC.carHeight,
       },
+      roofTent: {
+        roofHeight: (26.1 * 1.45) / 16,
+        anchor: { x: 1.18, z: -0.605 },
+        ladder: true,
+        entrance: { x: 2.65, z: -1.23 },
+      },
       footprint: 3.4,
       seats: {
         positions: [
@@ -148,6 +154,27 @@ describe("vehicle profiles (ADR 0050)", () => {
       },
       chaseCamera: "mid",
       defaultPaint: "khaki",
+    });
+  });
+
+  it("keeps the SUV ladder foot at least 0.9 block outside its body and the anchor inside", () => {
+    expect(SUV_SPEC.roofTentEntranceX).toBeGreaterThanOrEqual(
+      SUV_SPEC.bodyHalfWidth + 0.9,
+    );
+    expect(SUV_SPEC.roofTentAnchorX).toBeLessThan(SUV_SPEC.bodyHalfWidth);
+  });
+
+  it("preserves the camper roof tent mount and existing ladder entrance", () => {
+    expect(CAMPER_SPEC.roofTentAnchorX).toBe(0);
+    expect(CAMPER_SPEC.roofTentAnchorZ).toBe(-0.875);
+    expect(CAMPER_SPEC.roofTentLadder).toBe(false);
+    expect(CAMPER_SPEC.roofTentEntranceX).toBe(-1.0625);
+    expect(CAMPER_SPEC.roofTentEntranceZ).toBe(-3.7);
+    expect(CAMPER_PROFILE.roofTent).toEqual({
+      roofHeight: CAMPER_SPEC.roofTentRoofHeight,
+      anchor: { x: 0, z: -0.875 },
+      ladder: false,
+      entrance: { x: -1.0625, z: -3.7 },
     });
   });
 
@@ -513,5 +540,90 @@ describe("vehicle hints (ADR 0086)", () => {
       false,
     );
     expect(createVehicle("camper", asVehicleId("v"), 0).showsHints).toBe(true);
+  });
+});
+
+describe("roof tent mounts", () => {
+  it("places the SUV entrance on the left and the camper entrance on the right", () => {
+    expect(SUV_PROFILE.roofTent?.entrance.x).toBeGreaterThan(0);
+    expect(CAMPER_PROFILE.roofTent?.entrance.x).toBeLessThan(0);
+  });
+
+  it("declares mounts only for the SUV and camper", () => {
+    expect(SUV_PROFILE.roofTent).toBeDefined();
+    expect(CAMPER_PROFILE.roofTent).toBeDefined();
+    expect(SPORTSBOAT_PROFILE.roofTent).toBeUndefined();
+    expect(BULLDOZER_PROFILE.roofTent).toBeUndefined();
+  });
+
+  it("keeps finite, frozen mount points with anchors inside and the SUV entrance outside the body", () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom(
+          { profile: SUV_PROFILE, rear: (31 * 1.45) / 16, ladder: true },
+          {
+            profile: CAMPER_PROFILE,
+            rear: CAMPER_SPEC.bodyRear,
+            ladder: false,
+          },
+        ),
+        fc.constantFrom("anchor" as const, "entrance" as const),
+        ({ profile, rear, ladder }, pointName) => {
+          const mount = profile.roofTent;
+          expect(mount).toBeDefined();
+          if (!mount) throw new Error("Missing roof tent mount");
+          const point = mount[pointName];
+          for (const value of [mount.roofHeight, point.x, point.z])
+            expect(Number.isFinite(value)).toBe(true);
+          if (profile.kind === "suv" && pointName === "entrance") {
+            expect(point.x).toBeGreaterThan(profile.body.halfWidth);
+          } else {
+            expect(Math.abs(point.x)).toBeLessThanOrEqual(
+              profile.body.halfWidth,
+            );
+          }
+          expect(point.z).toBeGreaterThanOrEqual(-rear);
+          expect(point.z).toBeLessThanOrEqual(profile.body.front);
+          expect(mount.ladder).toBe(ladder);
+          expect(Object.isFrozen(mount)).toBe(true);
+          expect(Object.isFrozen(point)).toBe(true);
+        },
+      ),
+    );
+  });
+
+  it("matches the model roofs and keeps the camper anchor between its roof fixtures", () => {
+    expect(SUV_PROFILE.roofTent?.roofHeight).toBeCloseTo(
+      (26.1 * 1.45) / 16,
+      10,
+    );
+    expect(
+      Math.abs(
+        (SUV_PROFILE.roofTent?.roofHeight ?? NaN) - SUV_PROFILE.body.height,
+      ),
+    ).toBeLessThanOrEqual(0.3);
+    expect(CAMPER_PROFILE.roofTent).toEqual({
+      roofHeight: CAMPER_SPEC.carHeight,
+      anchor: { x: 0, z: -0.875 },
+      ladder: false,
+      entrance: { x: -1.0625, z: -3.7 },
+    });
+    expect(CAMPER_PROFILE.roofTent?.roofHeight).toBe(4.0);
+
+    // Mirror tools/gen_camper.py's RACK and small vent box; model z points backward.
+    const rackPx = { halfWidth: 20, front: 22, rear: 55 };
+    const ventPx = { halfWidth: 4, front: -2, rear: 6 };
+    const anchor = CAMPER_PROFILE.roofTent?.anchor;
+    expect(anchor).toBeDefined();
+    if (!anchor) throw new Error("Missing camper roof tent anchor");
+    for (const fixture of [rackPx, ventPx]) {
+      const inside =
+        Math.abs(anchor.x) <= fixture.halfWidth / 16 &&
+        anchor.z >= -fixture.rear / 16 &&
+        anchor.z <= -fixture.front / 16;
+      expect(inside).toBe(false);
+    }
+    expect(anchor.z).toBeGreaterThan(-rackPx.front / 16);
+    expect(anchor.z).toBeLessThan(-ventPx.rear / 16);
   });
 });

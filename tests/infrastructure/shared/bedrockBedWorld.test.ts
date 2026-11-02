@@ -21,6 +21,7 @@ function fixture() {
   const player = {
     id: "player",
     typeId: "minecraft:player",
+    getSpawnPoint: vi.fn(),
     setSpawnPoint: vi.fn(),
     camera: { fade: vi.fn() },
     onScreenDisplay: { setActionBar: vi.fn() },
@@ -66,6 +67,60 @@ describe("BedrockBedWorld (ADR 0092)", () => {
     });
   });
 
+  it("clears a matching spawn point", () => {
+    const { player, bed } = fixture();
+    const cell = { x: 1, y: 65, z: 2 };
+    player.getSpawnPoint.mockReturnValue({
+      dimension: { id: "minecraft:overworld" },
+      ...cell,
+    });
+    bed.clearSpawnPoint(
+      asPlayerId("player"),
+      asDimensionId("minecraft:overworld"),
+      cell,
+    );
+    expect(player.setSpawnPoint).toHaveBeenCalledExactlyOnceWith();
+  });
+
+  it.each([
+    { dimension: { id: "minecraft:nether" }, x: 1, y: 65, z: 2 },
+    { dimension: { id: "minecraft:overworld" }, x: 2, y: 65, z: 2 },
+    { dimension: { id: "minecraft:overworld" }, x: 1, y: 66, z: 2 },
+    { dimension: { id: "minecraft:overworld" }, x: 1, y: 65, z: 3 },
+    undefined,
+  ])("does not clear a different or missing spawn point: %s", (spawn) => {
+    const { player, bed } = fixture();
+    player.getSpawnPoint.mockReturnValue(spawn);
+    bed.clearSpawnPoint(
+      asPlayerId("player"),
+      asDimensionId("minecraft:overworld"),
+      { x: 1, y: 65, z: 2 },
+    );
+    expect(player.setSpawnPoint).not.toHaveBeenCalled();
+  });
+
+  it.each(["getSpawnPoint", "setSpawnPoint"] as const)(
+    "handles %s throwing",
+    (method) => {
+      const { player, bed } = fixture();
+      const cell = { x: 1, y: 65, z: 2 };
+      player.getSpawnPoint.mockReturnValue({
+        dimension: { id: "minecraft:overworld" },
+        ...cell,
+      });
+      player[method].mockImplementation(() => {
+        throw new Error("unavailable");
+      });
+      expect(() =>
+        bed.clearSpawnPoint(
+          asPlayerId("player"),
+          asDimensionId("minecraft:overworld"),
+          cell,
+        ),
+      ).not.toThrow();
+    },
+  );
+
   it("fades the screen and wakes up in the morning once it is black", () => {
     const { player, bed } = fixture();
     bed.sleep(asPlayerId("player"));
@@ -84,6 +139,11 @@ describe("BedrockBedWorld (ADR 0092)", () => {
   it("does nothing for a missing player", () => {
     const { player, bed } = fixture();
     bed.sleep(asPlayerId("missing"));
+    bed.clearSpawnPoint(
+      asPlayerId("missing"),
+      asDimensionId("minecraft:overworld"),
+      { x: 1, y: 65, z: 2 },
+    );
     bed.setSpawnPoint(
       asPlayerId("missing"),
       asDimensionId("minecraft:overworld"),
@@ -95,6 +155,7 @@ describe("BedrockBedWorld (ADR 0092)", () => {
     expect(player.camera.fade).not.toHaveBeenCalled();
     expect(game.system.runTimeout).not.toHaveBeenCalled();
     expect(player.setSpawnPoint).not.toHaveBeenCalled();
+    expect(player.getSpawnPoint).not.toHaveBeenCalled();
     expect(player.onScreenDisplay.setActionBar).not.toHaveBeenCalled();
   });
 

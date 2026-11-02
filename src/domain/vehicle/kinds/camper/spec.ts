@@ -25,6 +25,12 @@ export const CAMPER_SPEC = Object.freeze({
   // The farthest corner: the body reaches 4.14 in camper.geo.json, and the outer bumper
   // stand-in boxes reach hypot(1.5, 3.7 + 0.5) = 4.46 (ADR 0116, 0122)
   footprint: 4.5,
+  roofTentRoofHeight: 4.0, // Equals CAMPER_SPEC.carHeight: tools/gen_camper.py puts ROOF at 64 px.
+  roofTentAnchorX: 0, // Centered between the roof edge rails.
+  roofTentAnchorZ: -0.875, // Between the vent (-2..6 px) and rear rack (22..55 px) in tools/gen_camper.py.
+  roofTentLadder: false, // tools/gen_camper.py already supplies the rear ladder.
+  roofTentEntranceX: -1.0625, // Midpoint of LADDER = (13, 21) px on the right; profile x points left.
+  roofTentEntranceZ: -3.7, // At the ladder foot, ahead of bodyRear 3.9 and clear of the rack.
   headlightReach: Object.freeze([4, 9, 15, 21, 27] as const), // as the SUV (ADR 0020)
   // Bumper hitboxes (ADR 0084, 0116): 1 x 1 x 1 boxes side by side across the heading at
   // bodyFront, on the bumper stand-in entity, x from the row's middle
