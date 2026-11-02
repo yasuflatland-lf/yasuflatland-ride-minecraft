@@ -1,3 +1,5 @@
+import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import fc from "fast-check";
 import { afterAll, expect, it } from "vitest";
 
@@ -65,8 +67,20 @@ it("caps every dash texel and keeps its material matte, unlit and without relief
             assert d.relief(spec.name, u, v) is None`);
 });
 
-it("paints identical dash regions in separate Python processes", async () => {
-  const script = `pixels = bytes(channel for spec in d.REGIONS for v in range(spec.h) for u in range(spec.w) for paint in p.BODY_PAINTS for channel in d.color(spec.name, u, v, paint))
-print(hashlib.sha256(pixels).hexdigest())`;
-  expect(await run(script)).toEqual(await run(script));
+it("paints identical dash regions in separate Python processes", () => {
+  const script = [
+    "import sys, json, hashlib",
+    "sys.path.insert(0, 'tools')",
+    "from tool_loader import load_tool",
+    "d = load_tool('suv_paint_dash')",
+    "p = load_tool('suv_palette')",
+    `pixels = bytes(channel for spec in d.REGIONS for v in range(spec.h) for u in range(spec.w) for paint in p.BODY_PAINTS for channel in d.color(spec.name, u, v, paint))
+print(hashlib.sha256(pixels).hexdigest())`,
+  ].join("\n");
+  const runFresh = () =>
+    execFileSync("python3", ["-I", "-c", script], {
+      cwd: fileURLToPath(new URL("../../", import.meta.url)),
+      encoding: "utf8",
+    });
+  expect(runFresh()).toEqual(runFresh());
 });
