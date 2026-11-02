@@ -185,6 +185,10 @@ TENT_GEOMETRY = "models/entity/yasu_ride/tent.geo.json"
 TENT_TEXTURE = "textures/entity/yasu_ride/tent.png"
 TENT_PREVIEW = "tent"
 TENT_ICON = "tent_item"
+ROOF_TENT_GEOMETRY = "models/entity/yasu_ride/roof_tent.geo.json"
+ROOF_TENT_TEXTURE = "textures/entity/yasu_ride/roof_tent.png"
+ROOF_TENT_PREVIEW = "roof_tent"
+ROOF_TENT_ICON = "roof_tent_item"
 TABLE_GEOMETRY = "models/entity/yasu_ride/camp_table.geo.json"
 TABLE_TEXTURE = "textures/entity/yasu_ride/camp_table.png"
 TABLE_PREVIEW = "camp_table"
@@ -201,7 +205,7 @@ GAS_LANTERN_GEOMETRY = "models/entity/yasu_ride/gas_lantern.geo.json"
 GAS_LANTERN_TEXTURE = "textures/entity/yasu_ride/gas_lantern.png"
 GAS_LANTERN_PREVIEW = "gas_lantern"
 GAS_LANTERN_ICON = "gas_lantern_item"
-ICON_NAMES = {NOGA_CHAIR_PREVIEW: NOGA_CHAIR_ICON, CHAIR_PREVIEW: CHAIR_ICON, TENT_PREVIEW: TENT_ICON, TABLE_PREVIEW: TABLE_ICON, FIRE_PIT_PREVIEW: FIRE_PIT_ICON, DUTCH_OVEN_PREVIEW: DUTCH_OVEN_ICON, GAS_LANTERN_PREVIEW: GAS_LANTERN_ICON}
+ICON_NAMES = {ROOF_TENT_PREVIEW: ROOF_TENT_ICON, NOGA_CHAIR_PREVIEW: NOGA_CHAIR_ICON, CHAIR_PREVIEW: CHAIR_ICON, TENT_PREVIEW: TENT_ICON, TABLE_PREVIEW: TABLE_ICON, FIRE_PIT_PREVIEW: FIRE_PIT_ICON, DUTCH_OVEN_PREVIEW: DUTCH_OVEN_ICON, GAS_LANTERN_PREVIEW: GAS_LANTERN_ICON}
 
 POSES = {
     "suv-front-left.png": {"lamps": False, "dusk": False, "hover": False, "submarine": False, "brightness": MAIN_BRIGHTNESS},
@@ -977,6 +981,7 @@ def small_models(rp):
         (NOGA_CHAIR_PREVIEW, rp / NOGA_CHAIR_GEOMETRY, read_png(rp / NOGA_CHAIR_TEXTURE)),
         (CHAIR_PREVIEW, rp / CHAIR_GEOMETRY, read_png(rp / CHAIR_TEXTURE)),
         (TENT_PREVIEW, rp / TENT_GEOMETRY, read_png(rp / TENT_TEXTURE)),
+        (ROOF_TENT_PREVIEW, rp / ROOF_TENT_GEOMETRY, read_png(rp / ROOF_TENT_TEXTURE)),
         (TABLE_PREVIEW, rp / TABLE_GEOMETRY, read_png(rp / TABLE_TEXTURE)),
         (FIRE_PIT_PREVIEW, rp / FIRE_PIT_GEOMETRY, read_png(rp / FIRE_PIT_TEXTURE)),
         (DUTCH_OVEN_PREVIEW, rp / DUTCH_OVEN_GEOMETRY, read_png(rp / DUTCH_OVEN_TEXTURE)),
