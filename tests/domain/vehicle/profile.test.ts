@@ -132,9 +132,9 @@ describe("vehicle profiles (ADR 0050)", () => {
         height: SUV_SPEC.carHeight,
       },
       roofTent: {
-        roofHeight: (26.1 * 1.45) / 16,
-        anchor: { x: 1.18, z: -0.605 },
-        ladder: true,
+        roofHeight: SUV_SPEC.roofTentRoofHeight,
+        anchor: { x: SUV_SPEC.roofTentAnchorX, z: SUV_SPEC.roofTentAnchorZ },
+        ladder: SUV_SPEC.roofTentLadder,
         entrance: {
           x: SUV_SPEC.roofTentEntranceX,
           z: SUV_SPEC.roofTentEntranceZ,
@@ -165,6 +165,22 @@ describe("vehicle profiles (ADR 0050)", () => {
       SUV_SPEC.bodyHalfWidth + 0.9,
     );
     expect(SUV_SPEC.roofTentAnchorX).toBeLessThan(SUV_SPEC.bodyHalfWidth);
+    const shellHalfWidth = 1.2 * SUV_SPEC.bodyHalfWidth;
+    expect(SUV_SPEC.roofTentAnchorX).toBeCloseTo(
+      shellHalfWidth - SUV_SPEC.bodyHalfWidth,
+    );
+    expect(SUV_SPEC.roofTentAnchorX - shellHalfWidth).toBeCloseTo(
+      -SUV_SPEC.bodyHalfWidth,
+    );
+    expect(
+      SUV_SPEC.roofTentAnchorX + shellHalfWidth - SUV_SPEC.bodyHalfWidth,
+    ).toBeGreaterThan(0);
+    expect(SUV_SPEC.roofTentEntranceX).toBeCloseTo(
+      SUV_SPEC.roofTentAnchorX + shellHalfWidth + (0.5 + 7.3) / 16,
+    );
+    expect(SUV_SPEC.roofTentEntranceZ).toBeCloseTo(
+      SUV_SPEC.roofTentAnchorZ - 6 / 16,
+    );
   });
 
   it("preserves the camper roof tent mount and existing ladder entrance", () => {

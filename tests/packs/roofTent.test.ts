@@ -87,6 +87,34 @@ describe("roof tent asset contract", () => {
       width: 2,
       height: 1.2,
     });
+    const suvBounds =
+      entity.component_groups["yasu_ride:suv_bounds"][
+        "minecraft:collision_box"
+      ];
+    expect(suvBounds).toEqual({ width: 4, height: 1.7 });
+    expect(entity.events["yasu_ride:suv_bounds"]).toEqual({
+      add: { component_groups: ["yasu_ride:suv_bounds"] },
+    });
+    expect(suvBounds.width).toBeGreaterThanOrEqual(
+      (2 * suvDims.half_width) / 16,
+    );
+    expect(suvBounds.height).toBeGreaterThanOrEqual(
+      (suvDims.shell_lift +
+        suvDims.ridge_height +
+        suvDims.ridge_cap_lift +
+        suvDims.ridge_cap_thickness +
+        suvDims.seam_proud +
+        suvDims.seam_width) /
+        16,
+    );
+    expect(SUV_SPEC.roofTentAnchorX - suvDims.half_width / 16).toBeCloseTo(
+      -SUV_SPEC.bodyHalfWidth,
+    );
+    expect(
+      SUV_SPEC.roofTentAnchorX +
+        suvDims.half_width / 16 -
+        SUV_SPEC.bodyHalfWidth,
+    ).toBeGreaterThan(0);
     expect(entity.components["minecraft:physics"]).toEqual({
       has_collision: false,
       has_gravity: false,
@@ -106,8 +134,14 @@ describe("roof tent asset contract", () => {
   it("switches every paint variant in shared PAINTS order", () => {
     expect(entity.components["minecraft:variant"]).toEqual({ value: 0 });
     const groups = PAINTS.map((paint) => `yasu_ride:paint_${paint}`);
-    expect(Object.keys(entity.component_groups)).toEqual(groups);
-    expect(Object.keys(entity.events)).toEqual(groups);
+    expect(Object.keys(entity.component_groups)).toEqual([
+      "yasu_ride:suv_bounds",
+      ...groups,
+    ]);
+    expect(Object.keys(entity.events)).toEqual([
+      "yasu_ride:suv_bounds",
+      ...groups,
+    ]);
     for (const [index, group] of groups.entries()) {
       expect(entity.component_groups[group]).toEqual({
         "minecraft:variant": { value: index },
