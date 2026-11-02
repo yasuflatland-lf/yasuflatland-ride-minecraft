@@ -9,6 +9,7 @@ import {
   GasLanternActions,
   gasLanternHostedKind,
 } from "../../application/camp/gasLantern";
+import { GiveStarterRoofTent } from "../../application/camp/giveStarterRoofTent";
 import { HitChair } from "../../application/camp/hitChair";
 import { HitTable } from "../../application/camp/hitTable";
 import { HostedItemsGuard } from "../../application/camp/hostedItemsGuard";
@@ -40,6 +41,7 @@ import { BedrockGasLanternWorld } from "./bedrock/bedrockGasLanternWorld";
 import { BedrockLanternWorld } from "./bedrock/bedrockLanternWorld";
 import { BedrockRoofTentOccupantWorld } from "./bedrock/bedrockRoofTentOccupantWorld";
 import { BedrockRoofTentWorld } from "./bedrock/bedrockRoofTentWorld";
+import { BedrockRoofTentStarterWorld } from "./bedrock/bedrockRoofTentStarterWorld";
 import { BedrockTableWorld } from "./bedrock/bedrockTableWorld";
 import { BedrockTentPaintWorld } from "./bedrock/bedrockTentPaintWorld";
 import { BedrockTentWorld } from "./bedrock/bedrockTentWorld";
@@ -56,6 +58,7 @@ import { registerRoofTentLifecycle } from "./bedrock/handlers/roofTentLifecycle"
 import { createRoofTentMenu } from "./bedrock/handlers/roofTentMenu";
 import { registerRoofTentOccupantCleanup } from "./bedrock/handlers/roofTentOccupantCleanup";
 import { registerRoofTentPlacement } from "./bedrock/handlers/roofTentPlacement";
+import { registerRoofTentStarter } from "./bedrock/handlers/starter";
 import { registerTable } from "./bedrock/handlers/table";
 import { registerTentFlap } from "./bedrock/handlers/tentFlap";
 import { registerTentHits } from "./bedrock/handlers/tentHits";
@@ -87,6 +90,9 @@ export function installCamp(deps: {
   isCampSpace: SpaceCheck;
   switchTargets: readonly SwitchTarget[];
 } {
+  registerRoofTentStarter(
+    new GiveStarterRoofTent(new BedrockRoofTentStarterWorld()),
+  );
   const chairs = new BedrockChairWorld(deps);
   const hitChair = new HitChair(chairs);
   registerChairPlacement(new PlaceChair(chairs));

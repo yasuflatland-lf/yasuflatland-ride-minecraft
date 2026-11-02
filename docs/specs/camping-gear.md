@@ -49,6 +49,15 @@
 - Implementation: `tools/gen_item_catalog.py`; `tools/camping_gear.json`; `packs/yasu_ride_bp/item_catalog/crafting_item_catalog.json`; `packs/yasu_ride_rp/texts/en_US.lang`; `packs/yasu_ride_rp/texts/ja_JP.lang`
 - Verification: `tests/packs/campingGear.test.ts` "lists the exact inside, outside, bulldozer, and sports boat groups in order" asserts the current complete catalog despite its older title; "keeps outside items separate from decor and each catalog item unique" checks separation and old-group removal. Not verified: generator rejection cases by those assertions, and the client inventory order (manual-test C159/C160 have no recorded result).
 
+### Roof tent starter item
+
+- Applies to: Players joining the world, including existing players without a roof tent receipt flag.
+- Rule: Grant one roof tent item on `world.afterEvents.playerSpawn` with `initialSpawn`, for Survival only. Creative players are neither given an item nor marked, so they remain eligible on a later Survival join. The player dynamic property `yasu_ride:roof_tent_starter_received` is set only after giving succeeds; later joins grant nothing, and a failed give retries on the next join. An unresolved player is skipped without marking. A full inventory drops the item at the player's feet. Respawn does not grant an item.
+- Agreement: Proposed
+- Basis: [0200](../adr/0200-roof-tent-as-a-host-bound-camp-entity.md) Decision, "Creative players receive nothing and are not marked"
+- Implementation: `src/application/camp/giveStarterRoofTent.ts`; `src/application/camp/ports/roofTentStarter.ts`; `src/infrastructure/camp/bedrock/bedrockRoofTentStarterWorld.ts`; `src/infrastructure/camp/bedrock/handlers/starter.ts`; `src/infrastructure/camp/identifiers.ts`; `src/infrastructure/camp/install.ts`; `src/infrastructure/shared/players.ts`
+- Verification: `tests/application/camp/giveStarterRoofTent.test.ts` checks arbitrary join sequences, Creative exclusion, first and later Survival joins, existing players, failed-give retry, and unresolved players. `tests/infrastructure/camp/roofTentStarter.test.ts` checks the player flag, overflow drops, Creative detection, and join versus respawn subscription. `tests/infrastructure/camp/install.test.ts` checks starter registration. Joining was not run in game.
+
 ### Gear box and removed decor
 
 - Applies to: Camper gift-box contents and saved decor IDs, not outdoor placement.
@@ -349,6 +358,7 @@
 ## Open issues
 
 - The existing vehicle host lookup reports an absent host as unknown. Camp records loaded-area host removals during this session; a host removed before camp observes it (including before a restart) remains unknown and does not trigger removal until positive evidence is available.
+- Roof tent assets and the starter grant are available; placement and interaction script behavior remain pending under ADR 0200: `tools/gen_roof_tent.py` generates a sloped soft shell with mesh windows, a front flap, sleeping bag, frame, and ladder. The six bones are `root`, `body`, `fabric`, `flap`, `sleeping_bag`, and `ladder`; only fabric recolors across the 16 shared paints. The pack entity declares paint variants, fixed collision bounds, damage immunity, and synced `ladder`, `flap_open`, and `occupied` flags. The render controller hides the ladder unless enabled and the animation rolls the flap when open. The starter-only item has no recipe. `pnpm model` generates the geometry, textures, catalog, 128 px preview, and item icon; `pnpm model:check` compares parsed JSON and decoded pixels. `tests/packs/roofTent.test.ts` checks these contracts. Placement, host rules, interaction, and sleeping remain for later work; appearance on a device is unverified.
 
 - The occupant adapter persists its occupant and spawn-set-by IDs and toggles synced occupancy/flap flags. Its outside placement searches loaded air feet/head cells over non-air, non-liquid support within four horizontal cells and from four blocks above to eight below the saved entrance, rejecting vehicle-space cells. It leaves the entity in place if no candidate exists; terrain safety beyond this search, offline spawn clearing, actual stand-in seating, and live respawn behavior remain unverified. A saved entrance permits ejection after host removal. Roof tent appearance on PC and mobile remains unverified. Deployment currently does not reject a moving or driver-occupied host before placement; the next host check removes the tent, unlike ADR 0200's deployment precondition.
 
