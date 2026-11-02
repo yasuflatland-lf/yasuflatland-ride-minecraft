@@ -89,6 +89,7 @@ import {
   bulldozerPaveWater,
   bulldozerPaveWide,
 } from "./roadPaver";
+import { roofTentCourse } from "./roofTent";
 import {
   boatCruise,
   boatDock,
@@ -241,6 +242,7 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   dutch_oven_simmer_take_back: dutchOvenSimmerAndTakeBack,
   fire_pit_covered_take_back: firePitCoveredTakeBack,
   low_chair_settles_through_grass: lowChairSettlesThroughGrass,
+  roof_tent_course: roofTentCourse,
   tent_entity_contract: tentEntityContract,
   tent_pitch_and_take_down: tentPitchAndTakeDown,
   tent_pitch_on_snow: tentPitchOnSnow,

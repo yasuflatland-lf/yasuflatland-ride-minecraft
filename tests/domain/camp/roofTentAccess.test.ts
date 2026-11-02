@@ -13,6 +13,8 @@ import { CAMPER_PROFILE } from "../../../src/domain/vehicle/kinds/camper/profile
 import { CAMPER_SPEC } from "../../../src/domain/vehicle/kinds/camper/spec";
 import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
 
+import { SUV_SPEC } from "../../../src/domain/vehicle/kinds/suv/spec";
+
 const coordinate = fc.double({ min: -1000, max: 1000, noNaN: true });
 const host = fc.record({
   location: fc.record({ x: coordinate, y: coordinate, z: coordinate }),
@@ -221,4 +223,108 @@ it("includes the foot radius and height boundaries but rejects heights beyond th
       canStandAtFoot(mount, host, { ...player, x: player.x + 0.001 }),
     ).toBe(false);
   }
+});
+
+it("includes foot boundaries at every heading and host pose, allowing only floating-point rounding", () => {
+  const mount = SUV_PROFILE.roofTent as RoofTentMount;
+  fc.assert(
+    fc.property(
+      host,
+      fc.double({ min: -Math.PI, max: Math.PI, noNaN: true }),
+      (host, heading) => {
+        const entrance = entranceWorld(mount, host);
+        const radius = ROOF_TENT_SPEC.footActivation;
+        const band = ROOF_TENT_SPEC.entranceBand;
+        // Translation and trig can round a boundary point a few ulps outward.
+        const rounding = 1e-10;
+        for (const sign of [-1, 1]) {
+          const point = (r: number, height: number) => ({
+            x: entrance.x + Math.cos(heading) * r,
+            z: entrance.z + Math.sin(heading) * r,
+            y: host.location.y + sign * height,
+          });
+          const boundary = point(radius, band);
+          const distance = Math.hypot(
+            boundary.x - entrance.x,
+            boundary.z - entrance.z,
+          );
+          const height = Math.abs(boundary.y - host.location.y);
+          expect(distance).toBeCloseTo(radius, 10);
+          expect(height).toBeCloseTo(band, 10);
+          if (!canStandAtFoot(mount, host, boundary)) {
+            expect(distance > radius || height > band).toBe(true);
+            expect(distance).toBeLessThanOrEqual(radius + rounding);
+            expect(height).toBeLessThanOrEqual(band + rounding);
+          }
+          expect(
+            canStandAtFoot(
+              mount,
+              host,
+              point(radius - rounding, band - rounding),
+            ),
+          ).toBe(true);
+          expect(canStandAtFoot(mount, host, point(radius + 0.001, 0))).toBe(
+            false,
+          );
+          expect(canStandAtFoot(mount, host, point(0, band + 0.001))).toBe(
+            false,
+          );
+        }
+      },
+    ),
+    { numRuns: 1000 },
+  );
+});
+
+it("keeps ladder-foot activation at ground height rather than roof height", () => {
+  const mount = SUV_PROFILE.roofTent as RoofTentMount;
+  fc.assert(
+    fc.property(host, (host) => {
+      const entrance = entranceWorld(mount, host);
+      expect(
+        canStandAtFoot(mount, host, {
+          ...entrance,
+          y: host.location.y + mount.roofHeight,
+        }),
+      ).toBe(false);
+    }),
+  );
+});
+
+it("places the SUV foot at least 0.9 blocks beyond its body half width in host-local x", () => {
+  const mount = SUV_PROFILE.roofTent as RoofTentMount;
+  fc.assert(
+    fc.property(host, (host) => {
+      const entrance = entranceWorld(mount, host);
+      const left = leftOf(forward(host.yaw));
+      const localX =
+        (entrance.x - host.location.x) * left.x +
+        (entrance.z - host.location.z) * left.z;
+      expect(localX).toBeCloseTo(mount.entrance.x, 10);
+      expect(localX - SUV_SPEC.bodyHalfWidth).toBeGreaterThanOrEqual(0.9);
+    }),
+  );
+});
+
+it.each([
+  { name: "camper", mount: CAMPER_PROFILE.roofTent as RoofTentMount },
+  {
+    name: "ground",
+    mount: {
+      ...SUV_PROFILE.roofTent,
+      ladder: false,
+      roofHeight: 0,
+    } as RoofTentMount,
+  },
+])("never activates a $name foot even at its entrance", ({ mount }) => {
+  fc.assert(
+    fc.property(host, coordinate, (host, height) => {
+      expect(
+        canStandAtFoot(mount, host, {
+          ...entranceWorld(mount, host),
+          y: host.location.y + height,
+        }),
+      ).toBe(false);
+    }),
+  );
 });

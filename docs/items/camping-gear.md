@@ -57,11 +57,17 @@ A tan-brown two-room tunnel tent with a tarp on two poles, a white inner bedroom
 - **Get one:** find it in the Camping Gear (Outside) group after the Noga Chair, or craft it from three wool, one stick, and two string (wool in the top middle, wool on either side of a stick in the middle row, string in the bottom corners). Any wool color works.
 - **Pitch it:** use the Tent item on suitable ground outside vehicle space. The pitched tent provides shelter, opening flaps, two mattresses, and a switchable lantern.
 
-## Roof Tent (assets only)
+## Roof Tent (outside the vehicles)
 
 ![Roof Tent](../images/items/camping-gear/roof_tent.png)
 
-A sloped soft-shell tent with mesh windows, an entrance flap, a sleeping bag, and a black ladder with bright reflective rungs. The SUV variant has sloping lower sides and a longer ladder at the outer left edge, behind the tent center, tilted outward 10 degrees to reach the ground. The fabric has 16 paint textures; the frame, ladder, and bedding keep their colors. Find the item immediately after Tent in **Camping Gear (Outside)**. It stacks to one and has no crafting recipe; starter distribution and all placement, interaction, and sleeping behavior are planned separately. The entity can be summoned as `yasu_ride:roof_tent`.
+A sloped soft-shell tent with mesh windows, an entrance flap, a sleeping bag, and a black ladder with bright reflective rungs. The SUV variant has sloping lower sides and a longer ladder at the outer left edge, behind the tent center, tilted outward 10 degrees to reach the ground. The fabric has 16 paint textures; the frame, ladder, and bedding keep their colors. Find the item immediately after Tent in **Camping Gear (Outside)**. It stacks to one and has no crafting recipe.
+
+- **Get one:** receive one on your first eligible join outside Creative, including an existing player without the receipt flag. Creative joins give nothing and leave you eligible for a later Survival join.
+- **Pitch it:** use the item on an SUV or camper, or on clear ground. Each roof holds one tent. Park and leave the driver seat first; a driver, moving host, or removed host causes the tent to be returned. The SUV shows a ladder; the camper uses its existing rear ladder, and ground placement shows none.
+- **Enter and leave:** sneak-interact at the entrance. The SUV entrance also works from its ladder foot; reach the camper roof using its rear ladder. Interact again inside to open **Sleep** and **Get out**. Alternatively, release sneak and sneak again to exit. Another player cannot enter an occupied tent.
+- **Sleep:** choose **Sleep** at night in the overworld. The request sets your respawn point even during daytime; removing the tent clears that point if it still refers to this tent. A later spawn set elsewhere is preserved.
+- **Recover and paint:** three quick hits fold the tent into a plain item. Host removal moves its occupant outside before removing the tent. Use dyes to recolor the fabric.
 
 ## Camp Table (outside the vehicles)
 
