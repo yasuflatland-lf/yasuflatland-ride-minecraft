@@ -3,6 +3,7 @@
 
 import type { ChaseCameraWish } from "../../application/shared/ports/chaseCamera";
 import type { SpaceCheck } from "../../application/shared/ports/space";
+import type { VehicleHostLookup } from "../../application/shared/ports/vehicleHost";
 import { SleepInBed } from "../../application/shared/sleepInBed";
 import { BoardVehicle } from "../../application/vehicle/boardVehicle";
 import { DriveVehicles } from "../../application/vehicle/driveVehicles";
@@ -57,6 +58,7 @@ export function installVehicles(deps: {
   laterSwitchTargets: () => readonly SwitchTarget[];
 }): {
   isVehicleSpace: SpaceCheck;
+  vehicleHost: VehicleHostLookup;
 } {
   const repo = new InMemoryVehicleRepository();
   const testInputs = new VehicleTestStore<RawInput>();
@@ -120,6 +122,7 @@ export function installVehicles(deps: {
   );
   registerCutDrops((entity) => bedrock.sweepCutDrop(entity));
   return {
+    vehicleHost: (vehicleId) => bedrock.hostState(vehicleId),
     isVehicleSpace: (dimensionId, cell) =>
       bedrock.isVehicleSpace(dimensionId, cell),
   };

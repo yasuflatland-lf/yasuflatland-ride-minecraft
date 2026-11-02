@@ -9,6 +9,8 @@ export const SPEC = Object.freeze({
   // Collisions (ADR 0006)
   targetHalfWidth: 0.45,
   ramMinSpeed: 0.15,
+  // Blocks/tick: twice the 0.005 dock stopped tolerance to exclude idle and handbrake jitter.
+  hostMovingSpeed: 0.01,
   ramCooldown: 10,
   ramDamagePerSpeed: 20,
   ramPushBase: 0.5,

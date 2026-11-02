@@ -16,7 +16,10 @@ export function bootstrap(): void {
     // The router asks the vehicle target first, then the tent lantern, then the Gas Lantern.
     laterSwitchTargets: () => camp?.switchTargets ?? [],
   });
-  camp = installCamp({ isVehicleSpace: vehicles.isVehicleSpace });
+  camp = installCamp({
+    isVehicleSpace: vehicles.isVehicleSpace,
+    vehicleHost: vehicles.vehicleHost,
+  });
   installBuild({
     isProtected: (d, c) =>
       vehicles.isVehicleSpace(d, c) || camp.isCampSpace(d, c),

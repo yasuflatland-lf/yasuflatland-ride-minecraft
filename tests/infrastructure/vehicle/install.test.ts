@@ -9,7 +9,10 @@ import { registerSubscriptions } from "../../../src/infrastructure/vehicle/bedro
 import { installVehicles } from "../../../src/infrastructure/vehicle/install";
 
 vi.mock("@minecraft/server", () => ({
-  world: { afterEvents: { entitySpawn: { subscribe: vi.fn() } } },
+  world: {
+    getEntity: vi.fn(),
+    afterEvents: { entitySpawn: { subscribe: vi.fn() } },
+  },
   EntityInitializationCause: { Loaded: "Loaded" },
   BlockVolume: class {},
   system: {},
@@ -48,11 +51,12 @@ it("wires the decor use cases and the dock owner lookups into the subscriptions 
 });
 
 it("returns the vehicles' space check for other features (ADR 0122)", () => {
-  const { isVehicleSpace } = installVehicles({
+  const { isVehicleSpace, vehicleHost } = installVehicles({
     isCampSpace: () => false,
     wantsChaseCamera: () => false,
     laterSwitchTargets: () => [],
   });
+  expect(vehicleHost("missing")).toEqual({ status: "unknown" });
   // No vehicle is loaded and no room block is laid, so no cell is vehicle space.
   expect(
     isVehicleSpace(asDimensionId("overworld"), { x: 0, y: 64, z: 0 }),
