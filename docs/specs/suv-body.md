@@ -17,11 +17,20 @@
 ### Model orientation and bone contract
 
 - Applies to: SUV model (`geometry.yasu_ride.suv`), all modes.
-- Rule: The front of the SUV is the model's -z side. The model has the bones `root`, `body`, `wheel_fl`, `wheel_fr`, `wheel_rl`, `wheel_rr`, `door_fl`, `door_fr`, `door_rl`, `door_rr`, and `seat_0` to `seat_3`. Each wheel bone pivots at the center of its axle and each door bone at its hinge (front edge). The locator `exhaust` marks the exhaust position on `body`. Each `seat_i` and `door_i` bone sits on the same side (sign of x) as the rider `i` in `SUV_PROFILE.seats.positions`.
+- Rule: The front of the SUV is the model's -z side. The model has the bones `root`, `body`, `wheel_fl`, `wheel_fr`, `wheel_rl`, `wheel_rr`, `door_fl`, `door_fr`, `door_rl`, `door_rr`, and `seat_0` to `seat_3`. Each wheel bone pivots at the center of its axle and each door bone at its hinge (front edge). The locator `exhaust` marks the exhaust position on `body`.
 - Agreement: Accepted
-- Basis: [0009](../adr/0009-vehicle-model-conventions.md) Decision, "The front of the entity is the model's -z side"; [0009](../adr/0009-vehicle-model-conventions.md) Decision, "Standardize the bone names as follows: `root`, `body`, `wheel_fl` / `wheel_fr` / `wheel_rl` / `wheel_rr`, `door_fl` / `door_fr` / `door_rl` / `door_rr`, `seat_0`–`seat_3`"; [0009](../adr/0009-vehicle-model-conventions.md) Decision, "Put each wheel bone's pivot at the center of its axle and each door bone's pivot at its hinge (front edge)"
+- Basis: [0009](../adr/0009-vehicle-model-conventions.md) Decision, "The front of the entity is the model's -z side"; [0009](../adr/0009-vehicle-model-conventions.md) Decision, "Standardize the bone names as follows: `root`, `body`, `wheel_fl` / `wheel_fr` / `wheel_rl` / `wheel_rr`, `door_fl` / `door_fr` / `door_rl` / `door_rr`, `seat_0`–`seat_3`"; [0009](../adr/0009-vehicle-model-conventions.md) Decision, "Put each wheel bone's pivot at the center of its axle and each door bone's pivot at its hinge (front edge)"; [0009](../adr/0009-vehicle-model-conventions.md) Decision, "Mark the exhaust position with the locator `exhaust`"
 - Implementation: `packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json`; `tools/gen_model.py`
-- Verification: `tests/packs/model.test.ts` "has all the conventional bones", "faces -z: front wheels, front doors and front seats sit at lower z than the rear ones", "puts each seat, its door and the same-side wheels on the side SUV_PROFILE.seats.positions names", "has the exhaust locator on body". Not verified: wheel and door pivot positions against the stated pivots (no test reads them), the model in game on any device.
+- Verification: `tests/packs/model.test.ts` "has all the conventional bones", "faces -z: front wheels, front doors and front seats sit at lower z than the rear ones", "has the exhaust locator on body". Not verified: wheel and door pivot positions against the stated pivots (no test reads them), the model in game on any device.
+
+### Seat and door side
+
+- Applies to: SUV model (`geometry.yasu_ride.suv`), all modes.
+- Rule: Each `seat_i` and `door_i` bone sits on the same side (sign of x) as the rider `i` in `SUV_PROFILE.seats.positions`. This comes from the implementation's model test, not from an ADR quote.
+- Agreement: Accepted
+- Basis: [0009](../adr/0009-vehicle-model-conventions.md) Decision, "Standardize the bone names as follows: `root`, `body`, `wheel_fl` / `wheel_fr` / `wheel_rl` / `wheel_rr`, `door_fl` / `door_fr` / `door_rl` / `door_rr`, `seat_0`–`seat_3`" (names only; the same-side pairing is not stated in 0009)
+- Implementation: `packs/yasu_ride_rp/models/entity/yasu_ride/suv.geo.json`; `tests/packs/model.test.ts`
+- Verification: `tests/packs/model.test.ts` "puts each seat, its door and the same-side wheels on the side SUV_PROFILE.seats.positions names". Not verified: the model in game on any device.
 
 ### Lamp bones beyond the 0009 list
 
