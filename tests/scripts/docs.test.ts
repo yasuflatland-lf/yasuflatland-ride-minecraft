@@ -258,7 +258,9 @@ describe("spec documentation checks", () => {
       implementation:
         "`src/` (`missing/symbol`, `another/symbol`), `src/vehicle.ts` `ignored/path`",
     });
-    expect(checkSpecLinks([parseSpec(specPath, valid)], adrs, files)).toEqual([]);
+    expect(checkSpecLinks([parseSpec(specPath, valid)], adrs, files)).toEqual(
+      [],
+    );
     const combined = parseSpec(
       specPath,
       specDocument({ sources: [1, 2] }).replace(
@@ -275,7 +277,12 @@ describe("spec documentation checks", () => {
     ).not.toEqual([]);
     expect(
       checkSpecLinks(
-        [parseSpec(specPath, specDocument({ implementation: "Not implemented" }))],
+        [
+          parseSpec(
+            specPath,
+            specDocument({ implementation: "Not implemented" }),
+          ),
+        ],
         adrs,
         files,
       ),
@@ -394,9 +401,7 @@ describe("spec documentation checks", () => {
       "Other rules.",
       `Superseded by ${specLink(2)}.`,
     );
-    expect(
-      checkSpecClosure([parseSpec(specPath, text)], adrs),
-    ).not.toEqual([]);
+    expect(checkSpecClosure([parseSpec(specPath, text)], adrs)).not.toEqual([]);
   });
 
   it("rejects missing, duplicate, unknown, and stale README entries", () => {

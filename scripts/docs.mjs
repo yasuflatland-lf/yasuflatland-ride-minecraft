@@ -80,8 +80,7 @@ export function parseSpec(path, text) {
 export function parseSpecs(files) {
   return Object.entries(files)
     .filter(
-      ([path]) =>
-        /^docs\/specs\/[^/]+\.md$/.test(path) && path !== SPEC_INDEX,
+      ([path]) => /^docs\/specs\/[^/]+\.md$/.test(path) && path !== SPEC_INDEX,
     )
     .map(([path, text]) => parseSpec(path, text));
 }
@@ -118,8 +117,14 @@ export function checkSpecFormat(specs) {
       1,
     );
     for (const field of spec.header)
-      if (field.name === "Verified at" && !/^[a-f0-9]{7,12}$/i.test(field.value))
-        fail(field.line, "Verified at must be a 7-12 character hexadecimal SHA");
+      if (
+        field.name === "Verified at" &&
+        !/^[a-f0-9]{7,12}$/i.test(field.value)
+      )
+        fail(
+          field.line,
+          "Verified at must be a 7-12 character hexadecimal SHA",
+        );
     if (
       spec.sections.map((section) => section.name).join("\n") !==
       "Rules\nOpen issues"
@@ -200,7 +205,11 @@ export function checkSpecLinks(specs, adrs, files) {
         const target = targets.get(link.number);
         if (!target || link.link !== `../adr/${basename(target.path)}`)
           errors.push(
-            problem(spec.path, link.line, `Invalid spec ADR link: ${link.number}`),
+            problem(
+              spec.path,
+              link.line,
+              `Invalid spec ADR link: ${link.number}`,
+            ),
           );
       }
     }
@@ -340,7 +349,9 @@ export function checkSpecIndex(files, specs) {
       );
     seen.add(file);
     if (!spec)
-      errors.push(problem(SPEC_INDEX, index + 1, `Unknown spec entry: ${file}`));
+      errors.push(
+        problem(SPEC_INDEX, index + 1, `Unknown spec entry: ${file}`),
+      );
     else if (
       title !== spec.title ||
       scope !== spec.header.find((field) => field.name === "Scope")?.value

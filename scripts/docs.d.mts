@@ -59,7 +59,10 @@ export function checkSpecClosure(
   specs: readonly Spec[],
   adrs: readonly Adr[],
 ): Problem[];
-export function checkSpecIndex(files: FileMap, specs: readonly Spec[]): Problem[];
+export function checkSpecIndex(
+  files: FileMap,
+  specs: readonly Spec[],
+): Problem[];
 
 export function parseAdr(path: string, text: string): Adr;
 export function parseAdrs(files: FileMap): Adr[];
