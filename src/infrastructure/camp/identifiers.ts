@@ -180,3 +180,23 @@ export const ROOF_TENT_FAMILY = id("roof_tent");
 export const ROOF_TENT_LADDER_PROPERTY = id("ladder");
 export const ROOF_TENT_FLAP_OPEN_PROPERTY = id("flap_open");
 export const ROOF_TENT_OCCUPIED_PROPERTY = id("occupied");
+
+export const ROOF_TENT_OWNER_PROPERTY = id("roof_tent_owner");
+export const ROOF_TENT_HOST_PROPERTY = id("host");
+export const ROOF_TENT_OCCUPANT_PROPERTY = id("roof_tent_occupant");
+export const ROOF_TENT_SPAWN_SET_BY_PROPERTY = id("roof_tent_spawn_set_by");
+export const ROOF_TENT_EXIT_PROPERTY = id("roof_tent_exit");
+/** Server hooks: place takes `<x> <y> <z> <yaw>` or `<host id>`; hit takes a tent id. */
+export const TEST_ROOF_TENT_PLACE_EVENT = id("test_roof_tent_place");
+export const TEST_ROOF_TENT_HIT_EVENT = id("test_roof_tent_hit");
+/** Removes the host entity whose id is the message. */
+export const TEST_ROOF_TENT_HOST_REMOVE_EVENT = id(
+  "test_roof_tent_host_remove",
+);
+/** Seat hooks take `<tent or host id> <stand-in entity id>`. */
+export const TEST_ROOF_TENT_OCCUPANT_SEAT_EVENT = id(
+  "test_roof_tent_occupant_seat",
+);
+export const TEST_ROOF_TENT_DRIVER_SEAT_EVENT = id(
+  "test_roof_tent_driver_seat",
+);

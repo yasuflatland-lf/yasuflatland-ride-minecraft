@@ -2,15 +2,19 @@ import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
 import { DutchOvenActions } from "../../../src/application/camp/dutchOven";
 import { FirePitActions } from "../../../src/application/camp/firePit";
+import { FoldRoofTent } from "../../../src/application/camp/foldRoofTent";
 import { GasLanternActions } from "../../../src/application/camp/gasLantern";
 import { GiveStarterRoofTent } from "../../../src/application/camp/giveStarterRoofTent";
 import { HitChair } from "../../../src/application/camp/hitChair";
 import { HitTable } from "../../../src/application/camp/hitTable";
 import { HostedItemsGuard } from "../../../src/application/camp/hostedItemsGuard";
+import { PaintRoofTent } from "../../../src/application/camp/paintRoofTent";
 import { PaintTent } from "../../../src/application/camp/paintTent";
 import { PitchTent } from "../../../src/application/camp/pitchTent";
 import { PlaceChair } from "../../../src/application/camp/placeChair";
+import { PlaceRoofTent } from "../../../src/application/camp/placeRoofTent";
 import { PlaceTable } from "../../../src/application/camp/placeTable";
+import { RoofTentHostGuard } from "../../../src/application/camp/roofTentHostGuard";
 import { SwitchLantern } from "../../../src/application/camp/switchLantern";
 import { TakeDownTent } from "../../../src/application/camp/takeDownTent";
 import { UseTentFlap } from "../../../src/application/camp/useTentFlap";
@@ -23,12 +27,16 @@ import {
 } from "../../../src/domain/camp/tent";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import { BedrockGasLanternWorld } from "../../../src/infrastructure/camp/bedrock/bedrockGasLanternWorld";
+import { BedrockRoofTentOccupantWorld } from "../../../src/infrastructure/camp/bedrock/bedrockRoofTentOccupantWorld";
 import { gasLanternSwitchTarget } from "../../../src/infrastructure/camp/bedrock/gasLanternSwitch";
 import { registerDutchOven } from "../../../src/infrastructure/camp/bedrock/handlers/dutchOven";
 import { registerFirePit } from "../../../src/infrastructure/camp/bedrock/handlers/firePit";
 import { registerGasLantern } from "../../../src/infrastructure/camp/bedrock/handlers/gasLantern";
 import { registerChairHits } from "../../../src/infrastructure/camp/bedrock/handlers/hits";
 import { registerChairPlacement } from "../../../src/infrastructure/camp/bedrock/handlers/placement";
+import { registerRoofTentHits } from "../../../src/infrastructure/camp/bedrock/handlers/roofTentHits";
+import { registerRoofTentLifecycle } from "../../../src/infrastructure/camp/bedrock/handlers/roofTentLifecycle";
+import { registerRoofTentPlacement } from "../../../src/infrastructure/camp/bedrock/handlers/roofTentPlacement";
 import { registerRoofTentStarter } from "../../../src/infrastructure/camp/bedrock/handlers/starter";
 import { registerTable } from "../../../src/infrastructure/camp/bedrock/handlers/table";
 import { registerTentFlap } from "../../../src/infrastructure/camp/bedrock/handlers/tentFlap";
@@ -37,6 +45,7 @@ import { registerTentLifecycle } from "../../../src/infrastructure/camp/bedrock/
 import { registerTentLoop } from "../../../src/infrastructure/camp/bedrock/handlers/tentLoop";
 import { registerTentPlacement } from "../../../src/infrastructure/camp/bedrock/handlers/tentPlacement";
 import { registerTestChairHit } from "../../../src/infrastructure/camp/bedrock/handlers/testHit";
+import { registerTestRoofTent } from "../../../src/infrastructure/camp/bedrock/handlers/testRoofTent";
 import { registerTestTent } from "../../../src/infrastructure/camp/bedrock/handlers/testTent";
 import { registerTestTentFlap } from "../../../src/infrastructure/camp/bedrock/handlers/testTentFlap";
 import { registerTestTentLantern } from "../../../src/infrastructure/camp/bedrock/handlers/testTentLantern";
@@ -329,6 +338,47 @@ it("registers one Gas Lantern use case after the Fire Pit", () => {
   );
   expect(vi.mocked(registerFirePit).mock.invocationCallOrder[0]).toBeLessThan(
     vi.mocked(registerGasLantern).mock.invocationCallOrder[0] ?? 0,
+  );
+});
+
+vi.mock(
+  "../../../src/infrastructure/camp/bedrock/handlers/roofTentPlacement",
+  () => ({ registerRoofTentPlacement: vi.fn() }),
+);
+vi.mock(
+  "../../../src/infrastructure/camp/bedrock/handlers/roofTentHits",
+  () => ({ registerRoofTentHits: vi.fn() }),
+);
+vi.mock(
+  "../../../src/infrastructure/camp/bedrock/handlers/roofTentLifecycle",
+  () => ({ registerRoofTentLifecycle: vi.fn() }),
+);
+vi.mock(
+  "../../../src/infrastructure/camp/bedrock/handlers/testRoofTent",
+  () => ({ registerTestRoofTent: vi.fn() }),
+);
+
+it("shares roof tent actions, occupant adapters and the vehicle host lookup across handlers", () => {
+  const vehicleHost = vi.fn(() => ({ status: "unknown" as const }));
+  installCamp({ isVehicleSpace: () => false, vehicleHost });
+  const [place, lookup] =
+    vi.mocked(registerRoofTentPlacement).mock.calls[0] ?? [];
+  const [fold, paint] = vi.mocked(registerRoofTentHits).mock.calls[0] ?? [];
+  const [occupants, guard, hosts] =
+    vi.mocked(registerRoofTentLifecycle).mock.calls[0] ?? [];
+  expect(place).toBeInstanceOf(PlaceRoofTent);
+  expect(fold).toBeInstanceOf(FoldRoofTent);
+  expect(paint).toBeInstanceOf(PaintRoofTent);
+  expect(lookup?.("host")).toEqual({ status: "unknown" });
+  expect(vehicleHost).toHaveBeenCalledWith("host");
+  expect(occupants).toBeInstanceOf(BedrockRoofTentOccupantWorld);
+  expect(guard).toBeInstanceOf(RoofTentHostGuard);
+  expect(registerTestRoofTent).toHaveBeenCalledExactlyOnceWith(
+    place,
+    fold,
+    guard,
+    occupants,
+    hosts,
   );
 });
 

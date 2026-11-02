@@ -39,7 +39,9 @@ cannot assume either vehicle's dimensions.
 - A host check removes the roof tent when the host is positively removed, a driver
   is seated, or the host is moving. Unknown presence, including an unloaded host,
   keeps the tent until the host can be checked. Ordinary tabletop item guards skip
-  vehicle hosts; roof tent removal uses this host rule.
+  vehicle hosts; roof tent removal uses this host rule. Camp supplements a lookup
+  that reports absent hosts as unknown with session-local evidence from deferred
+  block probes on host removal (0125); load and spawn events clear that evidence.
 - Removal first ejects an occupant to safe ground beside the vehicle, never onto
   the roof or into the vehicle. Removing the roof tent clears its sleeper's spawn
   point through `BedWorld.clearSpawnPoint`, so a later respawn cannot target a
@@ -48,6 +50,10 @@ cannot assume either vehicle's dimensions.
 - One immutable occupancy value tracks a single player. Entry fails while occupied;
   leaving by another player has no effect. Three hits within 100 ticks fold the
   tent. Host checks run every 4 ticks, faster than ordinary hosted gear checks.
+- Roof tents lay no room blocks and claim no camp-space cells. A hosted tent
+  therefore overlaps its host without the ground tent's vehicle-space refusal;
+  it does not prevent the host from departing. Ground placement checks vehicle
+  and ground-tent space before spawning the entity.
 - Roof tent paint follows the shared palette and dye behavior of 0135, with its
   own entity and assets.
 
