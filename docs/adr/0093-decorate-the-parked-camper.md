@@ -33,33 +33,33 @@ The camper entity already has 6 properties.
 
 The camper model (`tools/gen_camper.py`) gains four pieces of furniture in the right column, x = -1. The left column is full (the passenger seat, the dinette, and the bed), the middle column is the aisle, and the right column holds the driver's seat at z 2. None of them reaches into the door cell (z 0) or the aisle (x 0). The table also gets a ceiling hook above it, in the second layer of the table's cell. The hook is not over the aisle, so a hanging item never hangs in front of a walking player's face. At first no new row has a block, so players walk through the furniture. Collision comes later by giving a row a block and adding that block's JSON, with no change to the room, parking, or departure code.
 
-| Furniture | Cells (x, z, layer) |
-|---|---|
-| Tall shelf, behind the driver's seat | (-1, 1, 1), (-1, 1, 2) |
-| Stove, part of the counter | (-1, -1, 1) |
-| Counter with a sink | (-1, -2, 1) |
-| Wall cabinet above the stove and counter | (-1, -1, 2), (-1, -2, 2) |
-| Ceiling hook above the table | (1, 0, 2) |
+| Furniture                                   | Cells (x, z, layer)      |
+| ------------------------------------------- | ------------------------ |
+| Tall shelf, behind the driver's seat        | (-1, 1, 1), (-1, 1, 2)   |
+| Stove, part of the counter                  | (-1, -1, 1)              |
+| Counter with a sink                         | (-1, -2, 1)              |
+| Wall cabinet above the stove and counter    | (-1, -1, 2), (-1, -2, 2) |
+| Ceiling hook above the table                | (1, 0, 2)                |
 | Shower-toilet room in the rear right corner | (-1, -3, 1), (-1, -3, 2) |
 
 The spike's storage chest stood in the rear right corner (docs/spike-camper.md). That corner is now the shower-toilet room, so any future storage goes under the counter.
 
 ### Slots
 
-| Slot id | Furniture | Cell (x, z, layer) | Height (px) |
-|---|---|---|---|
-| `dashboard_center` | dashboard | (0, 3, 1) | 13 |
-| `dashboard_left` | dashboard | (1, 3, 1) | 13 |
-| `table` | table | (1, 0, 1) | 12 |
-| `dinette_front` | dinette_seat | (1, 1, 1) | 7 |
-| `dinette_rear` | dinette_seat | (1, -1, 1) | 7 |
-| `shelf_low` | shelf | (-1, 1, 1) | 10 |
-| `shelf_high` | shelf | (-1, 1, 2) | 4 |
-| `stove` | stove | (-1, -1, 1) | 14 |
-| `counter` | counter | (-1, -2, 1) | 14 |
-| `wall_cabinet_front` | wall_cabinet | (-1, -1, 2) | 13 |
-| `wall_cabinet_rear` | wall_cabinet | (-1, -2, 2) | 13 |
-| `ceiling_hook` | ceiling_hook | (1, 0, 2) | 0 |
+| Slot id              | Furniture    | Cell (x, z, layer) | Height (px) |
+| -------------------- | ------------ | ------------------ | ----------- |
+| `dashboard_center`   | dashboard    | (0, 3, 1)          | 13          |
+| `dashboard_left`     | dashboard    | (1, 3, 1)          | 13          |
+| `table`              | table        | (1, 0, 1)          | 12          |
+| `dinette_front`      | dinette_seat | (1, 1, 1)          | 7           |
+| `dinette_rear`       | dinette_seat | (1, -1, 1)         | 7           |
+| `shelf_low`          | shelf        | (-1, 1, 1)         | 10          |
+| `shelf_high`         | shelf        | (-1, 1, 2)         | 4           |
+| `stove`              | stove        | (-1, -1, 1)        | 14          |
+| `counter`            | counter      | (-1, -2, 1)        | 14          |
+| `wall_cabinet_front` | wall_cabinet | (-1, -1, 2)        | 13          |
+| `wall_cabinet_rear`  | wall_cabinet | (-1, -2, 2)        | 13          |
+| `ceiling_hook`       | ceiling_hook | (1, 0, 2)          | 0           |
 
 The model builds every new piece of furniture so that its top is at its slots' heights.
 
@@ -69,27 +69,27 @@ The `ceiling_hook` slot is for hanging items. Its height is 0, and a hanging ite
 
 - Nineteen items, after the interior of a 1970s motorhome (#347). They use the colors of that era: avocado green, harvest gold, burnt orange, brown, cream, and chrome. Each item lists the furniture it may stand on or hang from:
 
-| Id | Name | Width × height (px) | Places |
-|---|---|---|---|
-| `potted_plant` | Potted Plant | 5 × 8 | table, shelf |
-| `macrame_planter` | Macrame Hanging Planter | 5 × 10 | ceiling_hook (hanging) |
-| `cactus_pot` | Cactus Pot | 4 × 7 | shelf, table |
-| `percolator` | Percolator | 4 × 7 | stove |
-| `enamel_kettle` | Enamel Kettle | 5 × 5 | stove |
-| `saucepan` | Saucepan | 6 × 3 | stove |
-| `mug_pair` | Pair of Mugs | 4 × 3 | table, counter |
-| `sugar_pot` | Glass Sugar Pot | 3 × 4 | counter |
-| `fruit_bowl` | Fruit Bowl | 6 × 3 | table |
-| `toaster` | Chrome Toaster | 6 × 5 | counter |
-| `oil_lamp` | Oil Lamp | 4 × 7 | table, shelf |
-| `lava_lamp` | Lava Lamp | 3 × 8 | shelf |
-| `transistor_radio` | Transistor Radio | 6 × 4 | shelf, dashboard |
-| `book_stack` | Stack of Books | 6 × 3 | shelf, table |
-| `road_map` | Folded Road Map | 6 × 1 | table, dashboard |
-| `photo_frame` | Photo Frame | 4 × 5 | shelf |
-| `cushion` | Cushion | 7 × 3 | dinette_seat |
-| `tissue_box` | Tissue Box | 5 × 3 | dashboard, shelf |
-| `desk_fan` | Desk Fan | 4 × 6 | counter, dashboard |
+| Id                 | Name                    | Width × height (px) | Places                 |
+| ------------------ | ----------------------- | ------------------- | ---------------------- |
+| `potted_plant`     | Potted Plant            | 5 × 8               | table, shelf           |
+| `macrame_planter`  | Macrame Hanging Planter | 5 × 10              | ceiling_hook (hanging) |
+| `cactus_pot`       | Cactus Pot              | 4 × 7               | shelf, table           |
+| `percolator`       | Percolator              | 4 × 7               | stove                  |
+| `enamel_kettle`    | Enamel Kettle           | 5 × 5               | stove                  |
+| `saucepan`         | Saucepan                | 6 × 3               | stove                  |
+| `mug_pair`         | Pair of Mugs            | 4 × 3               | table, counter         |
+| `sugar_pot`        | Glass Sugar Pot         | 3 × 4               | counter                |
+| `fruit_bowl`       | Fruit Bowl              | 6 × 3               | table                  |
+| `toaster`          | Chrome Toaster          | 6 × 5               | counter                |
+| `oil_lamp`         | Oil Lamp                | 4 × 7               | table, shelf           |
+| `lava_lamp`        | Lava Lamp               | 3 × 8               | shelf                  |
+| `transistor_radio` | Transistor Radio        | 6 × 4               | shelf, dashboard       |
+| `book_stack`       | Stack of Books          | 6 × 3               | shelf, table           |
+| `road_map`         | Folded Road Map         | 6 × 1               | table, dashboard       |
+| `photo_frame`      | Photo Frame             | 4 × 5               | shelf                  |
+| `cushion`          | Cushion                 | 7 × 3               | dinette_seat           |
+| `tissue_box`       | Tissue Box              | 5 × 3               | dashboard, shelf       |
+| `desk_fan`         | Desk Fan                | 4 × 6               | counter, dashboard     |
 
 - Of the 20 candidates in #347, the colored glass ashtray is dropped because children play this add-on. The macrame planter stays, hanging from the ceiling hook. The potted plant and the cactus pot move from the window sill to the shelf and the table
 - An item hangs exactly when its only place is `ceiling_hook`. A standing item is at most 8 px high and stands on its slot. A hanging item is at most 10 px high and ends at 29 px above its cell bottom

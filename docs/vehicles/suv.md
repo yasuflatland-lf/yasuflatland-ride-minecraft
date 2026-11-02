@@ -1,7 +1,7 @@
 # SUV
 
-| On the ground | Headlights on | Flying | Under water |
-|:---:|:---:|:---:|:---:|
+|                                      On the ground                                      |                                       Headlights on                                        |                                                        Flying                                                        |                                                              Under water                                                              |
+| :-------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------------------------------------------------: |
 | ![The SUV on the ground, seen from its front-left corner](../images/suv-front-left.png) | ![The SUV with its headlights on, lighting the ground ahead](../images/suv-headlights.png) | ![The SUV flying with its wheels folded flat on gunmetal arms and glowing blue underneath](../images/suv-flying.png) | ![The SUV as a submarine, with sealed blue windows and its rear wheels turned backward on gunmetal arms](../images/suv-submarine.png) |
 
 A four-seat SUV that drives on land, flies, and dives under water. Back to the [README](../../README.md).
@@ -16,21 +16,21 @@ A four-seat SUV that drives on land, flies, and dives under water. Back to the [
 
 ## Controls
 
-| Action | PC (keyboard) | Mobile (touch) |
-|---|---|---|
-| Get in | Right-click the vehicle | Press the ride button |
-| Get out | Shift (sneak) | Sneak button |
-| Accelerate / brake and reverse | W / S | Push the stick forward / back |
-| Steer | A / D | Push the stick left / right |
-| Handbrake (slide) | Space (jump) | Jump button |
-| Take off / land | Double-tap Space | Double-tap the jump button |
-| Climb / descend while flying | Hold Space / hold S | Hold the jump button / pull the stick back |
-| Dive | Drive into water at least as deep as the vehicle is tall | Drive into water at least as deep as the vehicle is tall |
-| Rise / sink under water | Hold Space / hold S | Hold the jump button / pull the stick back |
-| Surface and fly | Hold Space until the body is out of the water | Hold the jump button until the body is out of the water |
-| Leave the water | Drive onto the shore | Drive onto the shore |
-| Headlights on / off | Right-click with the switch in hand (driver only) | Tap with the switch in hand (driver only) |
-| Repaint | Left-click the vehicle with a dye | Tap the vehicle with a dye |
+| Action                         | PC (keyboard)                                            | Mobile (touch)                                           |
+| ------------------------------ | -------------------------------------------------------- | -------------------------------------------------------- |
+| Get in                         | Right-click the vehicle                                  | Press the ride button                                    |
+| Get out                        | Shift (sneak)                                            | Sneak button                                             |
+| Accelerate / brake and reverse | W / S                                                    | Push the stick forward / back                            |
+| Steer                          | A / D                                                    | Push the stick left / right                              |
+| Handbrake (slide)              | Space (jump)                                             | Jump button                                              |
+| Take off / land                | Double-tap Space                                         | Double-tap the jump button                               |
+| Climb / descend while flying   | Hold Space / hold S                                      | Hold the jump button / pull the stick back               |
+| Dive                           | Drive into water at least as deep as the vehicle is tall | Drive into water at least as deep as the vehicle is tall |
+| Rise / sink under water        | Hold Space / hold S                                      | Hold the jump button / pull the stick back               |
+| Surface and fly                | Hold Space until the body is out of the water            | Hold the jump button until the body is out of the water  |
+| Leave the water                | Drive onto the shore                                     | Drive onto the shore                                     |
+| Headlights on / off            | Right-click with the switch in hand (driver only)        | Tap with the switch in hand (driver only)                |
+| Repaint                        | Left-click the vehicle with a dye                        | Tap the vehicle with a dye                               |
 
 The SUV seats 4. The first player to get in drives and the others ride as passengers. When the driver gets out, a passenger moves up to the driver's seat.
 

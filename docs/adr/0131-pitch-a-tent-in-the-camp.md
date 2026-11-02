@@ -33,14 +33,14 @@ The entity stands at the bottom middle of local `(0, 11, 0)`, the rear wall's mi
 
 `tentCells(pose)` lays 137 cells:
 
-| Part | Cells | Count |
-|---|---|---|
-| Front wall | depth 3, x -2..2, layers 0..2, plate toward the front room | 15 |
-| Side walls | x 3 and x -3, depth 4..10, layers 0..2, plates toward x 0 | 42 |
-| Inner wall | depth 8, x -2..2, layers 0..2, plate toward the front room | 15 |
-| Rear wall | depth 11, x -2..2, layers 0..2, plate toward the bedroom | 15 |
-| Room ceiling | layer 3, x -2..2, depth 4..10 | 35 |
-| Tarp ceiling | layer 2, x -2..2, depth 0..2 | 15 |
+| Part         | Cells                                                      | Count |
+| ------------ | ---------------------------------------------------------- | ----- |
+| Front wall   | depth 3, x -2..2, layers 0..2, plate toward the front room | 15    |
+| Side walls   | x 3 and x -3, depth 4..10, layers 0..2, plates toward x 0  | 42    |
+| Inner wall   | depth 8, x -2..2, layers 0..2, plate toward the front room | 15    |
+| Rear wall    | depth 11, x -2..2, layers 0..2, plate toward the bedroom   | 15    |
+| Room ceiling | layer 3, x -2..2, depth 4..10                              | 35    |
+| Tarp ceiling | layer 2, x -2..2, depth 0..2                               | 15    |
 
 That is 87 `yasu_ride:tent_wall` cells and 50 `yasu_ride:tent_ceiling` cells. The
 flap cells of 0130 are laid as closed walls until 10/13; the mattress cells stay air

@@ -9,13 +9,13 @@
 
 The in-game test `boat_drag` measures it on the dev BDS: a pool 3 blocks deep, the boat heading +z, full throttle for 80 ticks, then 12 ticks of coasting. The test pack cannot read the impulse the main pack gives, so it runs the same `BoatDrive` on the observed velocity, one tick behind the input it sends, because the main pack acts on a script event one tick after it is sent. The ratio is the observed horizontal velocity projected on the velocity given the tick before. Ticks below count the test's loop index t: the throttle is on for t = 1–80, and the log labels each row t + 1, the tick on which its velocity is observed.
 
-| Phase | Ratio |
-|---|---|
-| First two ticks of throttle (given under 0.06) | 1.000, 0.955 |
-| Accelerating, given 0.1–1.1 | 0.87 falling to 0.837 |
-| Full speed, 10 of every 14 ticks | 0.833–0.834 |
-| Full speed, 3 ticks at the top of each bob (feet about 0.39 below the surface) | 0.916–0.927 |
-| Full speed, the tick after those | 0.815–0.819 |
+| Phase                                                                          | Ratio                 |
+| ------------------------------------------------------------------------------ | --------------------- |
+| First two ticks of throttle (given under 0.06)                                 | 1.000, 0.955          |
+| Accelerating, given 0.1–1.1                                                    | 0.87 falling to 0.837 |
+| Full speed, 10 of every 14 ticks                                               | 0.833–0.834           |
+| Full speed, 3 ticks at the top of each bob (feet about 0.39 below the surface) | 0.916–0.927           |
+| Full speed, the tick after those                                               | 0.815–0.819           |
 
 Across throttle ticks 5–80 (76 samples) the ratio has a mean of 0.854 and a spread (maximum minus minimum) of 0.114. The feet cell held water on every tick, 0.36–0.53 blocks below the surface, so there are no out-of-water samples: the bumps come from the bob, not from leaving the water.
 
