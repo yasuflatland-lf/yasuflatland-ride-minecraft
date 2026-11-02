@@ -38,3 +38,16 @@ it("keeps the seated eye at its target between the bed and ridge at any positive
     }),
   );
 });
+
+it("keeps ground and camper feet at or above the platform at any tent height", () => {
+  fc.assert(
+    fc.property(coordinate, (height) => {
+      const feet =
+        height + rideSeatY("ground") - ROOF_TENT_SPEC.seatRiderOffset;
+      expect(feet + 1e-10).toBeGreaterThanOrEqual(
+        height + ROOF_TENT_SPEC.groundPlatformTop,
+      );
+      expect(rideSeatY("ground")).not.toBe(rideSeatY("suv"));
+    }),
+  );
+});

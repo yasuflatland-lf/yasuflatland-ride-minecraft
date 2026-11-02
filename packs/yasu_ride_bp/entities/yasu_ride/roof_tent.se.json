@@ -25,7 +25,13 @@
     },
     "component_groups": {
       "yasu_ride:suv_bounds": {
-        "minecraft:collision_box": { "width": 5.2, "height": 1.7 }
+        "minecraft:collision_box": { "width": 5.2, "height": 1.7 },
+        "minecraft:rideable": {
+          "seat_count": 1,
+          "family_types": ["player"],
+          "crouching_skip_interact": true,
+          "seats": [{ "position": [0, 0.155, 0] }]
+        }
       },
       "yasu_ride:paint_khaki": {
         "minecraft:variant": {
@@ -535,7 +541,7 @@
         "seat_count": 1,
         "family_types": ["player"],
         "crouching_skip_interact": true,
-        "seats": [{ "position": [0, 0.155, 0] }]
+        "seats": [{ "position": [0, 0.475, 0] }]
       },
       "minecraft:persistent": {}
     }

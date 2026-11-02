@@ -163,4 +163,5 @@ yasu_ride.message.roof_tent_menu=Roof tent
 yasu_ride.message.roof_tent_sleep=Sleep
 yasu_ride.message.roof_tent_exit=Get out
 yasu_ride.hint.roof_tent_sneak=スニークするとテントに入れます
+yasu_ride.hint.roof_tent_seated=ジャンプでメニューを開きます。スニークを解除してから、もう一度スニークすると外に出られます。
 yasu_ride.message.tent_occupied=Someone is inside the tent

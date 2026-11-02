@@ -206,4 +206,5 @@ export const ROOF_TENT_MENU_BUTTONS = {
   sleep: "yasu_ride.message.roof_tent_sleep",
   exit: "yasu_ride.message.roof_tent_exit",
 } as const;
+export const ROOF_TENT_SEATED_HINT = "yasu_ride.hint.roof_tent_seated";
 export const ROOF_TENT_SNEAK_HINT = "yasu_ride.hint.roof_tent_sneak";

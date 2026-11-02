@@ -82,8 +82,9 @@ export function registerRoofTentOccupantCleanup(
       }
       const seated = occupants.isSeated(playerId, entry.tentId);
       if (seated === undefined) continue;
-      const inEntryGrace =
-        !entry.released || entry.trackedTicks < ENTRY_GRACE_TICKS;
+      // A toggled mobile sneak button stays latched after the dismount press, so the
+      // grace must not wait for a release: an unseated rider leaves after it.
+      const inEntryGrace = entry.trackedTicks < ENTRY_GRACE_TICKS;
       if (
         seated &&
         entry.trackedTicks % ROOF_TENT_SPEC.concealRefreshTicks === 0

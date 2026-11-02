@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { rideSeatY } from "../../src/domain/camp/roofTent/seat";
+import { ROOF_TENT_SPEC } from "../../src/domain/camp/spec";
 import { PAINTS } from "../../src/domain/shared/paint";
 import { SUV_SPEC } from "../../src/domain/vehicle/kinds/suv/spec";
 import {
@@ -10,6 +11,7 @@ import {
   ROOF_TENT_ITEM,
   ROOF_TENT_LADDER_PROPERTY,
   ROOF_TENT_OCCUPIED_PROPERTY,
+  ROOF_TENT_SEATED_HINT,
   ROOF_TENT_TYPE,
 } from "../../src/infrastructure/camp/identifiers";
 import { PACK_STEM_TAGS } from "../../src/test-pack/impact";
@@ -134,8 +136,19 @@ describe("roof tent asset contract", () => {
       seat_count: 1,
       family_types: ["player"],
       crouching_skip_interact: true,
-      seats: [{ position: [0, rideSeatY(), 0] }],
+      seats: [{ position: [0, rideSeatY("ground"), 0] }],
     });
+    expect(
+      entity.component_groups["yasu_ride:suv_bounds"]["minecraft:rideable"],
+    ).toEqual({
+      seat_count: 1,
+      family_types: ["player"],
+      crouching_skip_interact: true,
+      seats: [{ position: [0, rideSeatY("suv"), 0] }],
+    });
+    expect(rideSeatY("ground")).toBeGreaterThan(
+      ROOF_TENT_SPEC.groundPlatformTop,
+    );
   });
 
   it("keeps every SUV rack bar on the hardtop and under the platform", () => {
@@ -952,4 +965,20 @@ describe("roof tent asset contract", () => {
       ]);
     }
   });
+});
+
+it("ships the seated occupant hint in both supported locales", () => {
+  for (const locale of ["en_US", "ja_JP"]) {
+    const lines = readFileSync(`${RP}/texts/${locale}.lang`, "utf8").split(
+      "\n",
+    );
+    const hint = lines.find((line) =>
+      line.startsWith(`${ROOF_TENT_SEATED_HINT}=`),
+    );
+    expect(hint?.slice(ROOF_TENT_SEATED_HINT.length + 1).trim()).toBeTruthy();
+    if (locale === "en_US")
+      expect(hint).toBe(
+        `${ROOF_TENT_SEATED_HINT}=Jump to open the menu. Release sneak, then sneak again to get out.`,
+      );
+  }
 });
