@@ -30,6 +30,9 @@ jobs:
       # Code, comments, and docs must be in English (AGENTS.md)
       - run: pnpm run lint:lang
 
+      # ADR metadata, the generated ADR index, and doc links (ADR 0205)
+      - run: pnpm run lint:docs
+
       # Unused files, exports, and dependencies (ADR 0048)
       - run: pnpm run lint:unused
 
