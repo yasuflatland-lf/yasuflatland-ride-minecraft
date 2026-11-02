@@ -1,6 +1,6 @@
 # 0204. Shard unit tests across CI jobs
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-02
 - Extends: [0054](0054-shard-in-game-tests-in-ci.md)
 
