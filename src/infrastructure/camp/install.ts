@@ -2,6 +2,7 @@ import {
   DutchOvenActions,
   dutchOvenHostedKind,
 } from "../../application/camp/dutchOven";
+import { EnterRoofTent } from "../../application/camp/enterRoofTent";
 import { FirePitActions } from "../../application/camp/firePit";
 import { FoldRoofTent } from "../../application/camp/foldRoofTent";
 import {
@@ -12,6 +13,7 @@ import { GiveStarterRoofTent } from "../../application/camp/giveStarterRoofTent"
 import { HitChair } from "../../application/camp/hitChair";
 import { HitTable } from "../../application/camp/hitTable";
 import { HostedItemsGuard } from "../../application/camp/hostedItemsGuard";
+import { LeaveRoofTent } from "../../application/camp/leaveRoofTent";
 import { PaintRoofTent } from "../../application/camp/paintRoofTent";
 import { PaintTent } from "../../application/camp/paintTent";
 import { PitchTent } from "../../application/camp/pitchTent";
@@ -19,6 +21,8 @@ import { PlaceChair } from "../../application/camp/placeChair";
 import { PlaceRoofTent } from "../../application/camp/placeRoofTent";
 import { PlaceTable } from "../../application/camp/placeTable";
 import { RoofTentHostGuard } from "../../application/camp/roofTentHostGuard";
+import { RoofTentMenu } from "../../application/camp/roofTentMenu";
+import { SleepInRoofTent } from "../../application/camp/sleepInRoofTent";
 import { SwitchLantern } from "../../application/camp/switchLantern";
 import { TakeDownTent } from "../../application/camp/takeDownTent";
 import { UseTentFlap } from "../../application/camp/useTentFlap";
@@ -48,8 +52,11 @@ import { registerFirePit } from "./bedrock/handlers/firePit";
 import { registerGasLantern } from "./bedrock/handlers/gasLantern";
 import { registerChairHits } from "./bedrock/handlers/hits";
 import { registerChairPlacement } from "./bedrock/handlers/placement";
+import { registerRoofTentEnter } from "./bedrock/handlers/roofTentEnter";
 import { registerRoofTentHits } from "./bedrock/handlers/roofTentHits";
 import { registerRoofTentLifecycle } from "./bedrock/handlers/roofTentLifecycle";
+import { createRoofTentMenu } from "./bedrock/handlers/roofTentMenu";
+import { registerRoofTentOccupantCleanup } from "./bedrock/handlers/roofTentOccupantCleanup";
 import { registerRoofTentPlacement } from "./bedrock/handlers/roofTentPlacement";
 import { registerRoofTentStarter } from "./bedrock/handlers/starter";
 import { registerTable } from "./bedrock/handlers/table";
@@ -146,6 +153,22 @@ export function installCamp(deps: {
     roofHosts.lookup,
     roofOccupants,
     roofOccupants,
+  );
+  const sleep = new SleepInRoofTent(
+    roofOccupants,
+    new SleepInBed(new BedrockBedWorld({ player: playerById })),
+  );
+  const leave = new LeaveRoofTent(roofOccupants);
+  const trackOccupant = registerRoofTentOccupantCleanup(
+    leave,
+    roofOccupants,
+    () => roofTents.loaded(),
+  );
+  registerRoofTentEnter(
+    new EnterRoofTent(roofOccupants),
+    roofOccupants,
+    createRoofTentMenu(new RoofTentMenu(roofOccupants, sleep, leave)),
+    trackOccupant,
   );
   registerRoofTentPlacement(placeRoofTent, roofHosts.lookup);
   registerRoofTentHits(foldRoofTent, new PaintRoofTent(roofTents));

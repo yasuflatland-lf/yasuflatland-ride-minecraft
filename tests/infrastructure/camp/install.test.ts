@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
 import { DutchOvenActions } from "../../../src/application/camp/dutchOven";
+import { EnterRoofTent } from "../../../src/application/camp/enterRoofTent";
 import { FirePitActions } from "../../../src/application/camp/firePit";
 import { FoldRoofTent } from "../../../src/application/camp/foldRoofTent";
 import { GasLanternActions } from "../../../src/application/camp/gasLantern";
@@ -8,6 +9,7 @@ import { GiveStarterRoofTent } from "../../../src/application/camp/giveStarterRo
 import { HitChair } from "../../../src/application/camp/hitChair";
 import { HitTable } from "../../../src/application/camp/hitTable";
 import { HostedItemsGuard } from "../../../src/application/camp/hostedItemsGuard";
+import { LeaveRoofTent } from "../../../src/application/camp/leaveRoofTent";
 import { PaintRoofTent } from "../../../src/application/camp/paintRoofTent";
 import { PaintTent } from "../../../src/application/camp/paintTent";
 import { PitchTent } from "../../../src/application/camp/pitchTent";
@@ -15,6 +17,7 @@ import { PlaceChair } from "../../../src/application/camp/placeChair";
 import { PlaceRoofTent } from "../../../src/application/camp/placeRoofTent";
 import { PlaceTable } from "../../../src/application/camp/placeTable";
 import { RoofTentHostGuard } from "../../../src/application/camp/roofTentHostGuard";
+import { RoofTentMenu } from "../../../src/application/camp/roofTentMenu";
 import { SwitchLantern } from "../../../src/application/camp/switchLantern";
 import { TakeDownTent } from "../../../src/application/camp/takeDownTent";
 import { UseTentFlap } from "../../../src/application/camp/useTentFlap";
@@ -34,8 +37,11 @@ import { registerFirePit } from "../../../src/infrastructure/camp/bedrock/handle
 import { registerGasLantern } from "../../../src/infrastructure/camp/bedrock/handlers/gasLantern";
 import { registerChairHits } from "../../../src/infrastructure/camp/bedrock/handlers/hits";
 import { registerChairPlacement } from "../../../src/infrastructure/camp/bedrock/handlers/placement";
+import { registerRoofTentEnter } from "../../../src/infrastructure/camp/bedrock/handlers/roofTentEnter";
 import { registerRoofTentHits } from "../../../src/infrastructure/camp/bedrock/handlers/roofTentHits";
 import { registerRoofTentLifecycle } from "../../../src/infrastructure/camp/bedrock/handlers/roofTentLifecycle";
+import { createRoofTentMenu } from "../../../src/infrastructure/camp/bedrock/handlers/roofTentMenu";
+import { registerRoofTentOccupantCleanup } from "../../../src/infrastructure/camp/bedrock/handlers/roofTentOccupantCleanup";
 import { registerRoofTentPlacement } from "../../../src/infrastructure/camp/bedrock/handlers/roofTentPlacement";
 import { registerRoofTentStarter } from "../../../src/infrastructure/camp/bedrock/handlers/starter";
 import { registerTable } from "../../../src/infrastructure/camp/bedrock/handlers/table";
@@ -379,6 +385,47 @@ it("shares roof tent actions, occupant adapters and the vehicle host lookup acro
     guard,
     occupants,
     hosts,
+  );
+});
+
+vi.mock(
+  "../../../src/infrastructure/camp/bedrock/handlers/roofTentEnter",
+  () => ({ registerRoofTentEnter: vi.fn(() => vi.fn()) }),
+);
+
+vi.mock(
+  "../../../src/infrastructure/camp/bedrock/handlers/roofTentMenu",
+  () => ({ createRoofTentMenu: vi.fn(() => vi.fn()) }),
+);
+
+vi.mock(
+  "../../../src/infrastructure/camp/bedrock/handlers/roofTentOccupantCleanup",
+  () => ({ registerRoofTentOccupantCleanup: vi.fn(() => vi.fn()) }),
+);
+
+it("wires roof tent entry, menu and cleanup to the same occupant adapter", () => {
+  installCamp({
+    isVehicleSpace: () => false,
+    vehicleHost: () => ({ status: "unknown" }),
+  });
+  const [enter, occupants, showMenu, track] =
+    vi.mocked(registerRoofTentEnter).mock.calls[0] ?? [];
+  expect(enter).toBeInstanceOf(EnterRoofTent);
+  expect(vi.mocked(createRoofTentMenu).mock.calls[0]?.[0]).toBeInstanceOf(
+    RoofTentMenu,
+  );
+  expect(
+    vi.mocked(registerRoofTentOccupantCleanup).mock.calls[0]?.[0],
+  ).toBeInstanceOf(LeaveRoofTent);
+  expect(occupants).toBe(
+    vi.mocked(registerRoofTentLifecycle).mock.calls[0]?.[0],
+  );
+  expect(showMenu).toBe(vi.mocked(createRoofTentMenu).mock.results[0]?.value);
+  expect(track).toBe(
+    vi.mocked(registerRoofTentOccupantCleanup).mock.results[0]?.value,
+  );
+  expect(vi.mocked(registerRoofTentOccupantCleanup).mock.calls[0]?.[1]).toBe(
+    occupants,
   );
 });
 
