@@ -307,3 +307,25 @@ it("enters from a reachable entrance beyond the entity interaction reach", () =>
   expect(entranceReach).toHaveBeenCalledExactlyOnceWith(target, player);
   expect(occupants.moveInside).toHaveBeenCalledExactlyOnceWith(pid, "tent");
 });
+it("restores tracking of a persisted occupant after a reload and frees the tent", () => {
+  game.interval.mockClear();
+  registerRoofTentOccupantCleanup(leave, occupants, () => ["tent"]);
+  occupied.set("tent", pid);
+  const run = game.interval.mock.calls[0]?.[0];
+  player.isValid = false;
+  for (let i = 0; i < 20 * 30 + 1; i++) run();
+  expect(occupied.has("tent")).toBe(false);
+  expect(occupants.placeOutside).toHaveBeenCalledWith(pid, "tent");
+});
+it("keeps a restored occupant who is back online within the grace period", () => {
+  game.interval.mockClear();
+  registerRoofTentOccupantCleanup(leave, occupants, () => ["tent"]);
+  occupied.set("tent", pid);
+  const run = game.interval.mock.calls[0]?.[0];
+  player.isValid = false;
+  for (let i = 0; i < 100; i++) run();
+  player.isValid = true;
+  player.isSneaking = false;
+  for (let i = 0; i < 20 * 30 + 1; i++) run();
+  expect(occupied.get("tent")).toBe(pid);
+});

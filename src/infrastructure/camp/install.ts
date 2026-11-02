@@ -154,7 +154,11 @@ export function installCamp(deps: {
     new SleepInBed(new BedrockBedWorld({ player: playerById })),
   );
   const leave = new LeaveRoofTent(roofOccupants);
-  const trackOccupant = registerRoofTentOccupantCleanup(leave, roofOccupants);
+  const trackOccupant = registerRoofTentOccupantCleanup(
+    leave,
+    roofOccupants,
+    () => roofTents.loaded(),
+  );
   registerRoofTentEnter(
     new EnterRoofTent(roofOccupants),
     roofOccupants,
