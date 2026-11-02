@@ -1,25 +1,23 @@
-import { execFileSync } from "node:child_process";
 import fc from "fast-check";
-import { it } from "vitest";
+import { afterAll, it } from "vitest";
 
-const run = (script: string) =>
-  execFileSync(
-    "python3",
+import { startPythonWorker } from "../support/pythonWorker";
+
+const python = startPythonWorker();
+afterAll(() => python.close());
+
+const run = async (script: string) =>
+  await python.run(
     [
-      "-I",
-      "-c",
-      [
-        "import sys, json",
-        "sys.path.insert(0, 'tools')",
-        "from tool_loader import load_tool",
-        script,
-      ].join("\n"),
-    ],
-    { encoding: "utf8" },
+      "import sys, json",
+      "sys.path.insert(0, 'tools')",
+      "from tool_loader import load_tool",
+      script,
+    ].join("\n"),
   );
 
-it("maps subrectangles, rejects unknown faces, and isolates face dictionaries", () => {
-  run(`from copy import deepcopy
+it("maps subrectangles, rejects unknown faces, and isolates face dictionaries", async () => {
+  await run(`from copy import deepcopy
 c = load_tool('suv_cubes')
 a = load_tool('suv_atlas')
 faces = c.region_faces('dash', 'grain', {'east': (2, 3, 8, 12)})
@@ -50,13 +48,13 @@ cube['uv']['east']['uv'][0] += 1
 assert faces['east']['uv'][0] == 194`);
 });
 
-it("keeps asymmetric markers at the reflected world positions on every face", () => {
-  fc.assert(
-    fc.property(
+it("keeps asymmetric markers at the reflected world positions on every face", async () => {
+  await fc.assert(
+    fc.asyncProperty(
       fc.integer({ min: 1, max: 10 }),
       fc.integer({ min: 1, max: 10 }),
-      (w, d) => {
-        run(`from copy import deepcopy
+      async (w, d) => {
+        await run(`from copy import deepcopy
 c = load_tool('suv_cubes')
 e = load_tool('suv_export')
 r = load_tool('render_preview')
@@ -101,8 +99,8 @@ assert markers(turn(cube), 'west')[(255, 0, 0, 255)][2] > 20 - ${d} / 2`);
   );
 }, 60_000);
 
-it("preserves every swatch face key and value through all transforms", () => {
-  run(`from copy import deepcopy
+it("preserves every swatch face key and value through all transforms", async () => {
+  await run(`from copy import deepcopy
 c = load_tool('suv_cubes')
 e = load_tool('suv_export')
 p = load_tool('suv_palette')
@@ -117,9 +115,9 @@ e.turn_around([{'cubes': [cube]}])
 assert cube['uv'] == original`);
 });
 
-it("builds discs on each axis with invariant corner radius and axial span", () => {
-  fc.assert(
-    fc.property(
+it("builds discs on each axis with invariant corner radius and axial span", async () => {
+  await fc.assert(
+    fc.asyncProperty(
       fc.tuple(
         fc.integer({ min: -50, max: 50 }),
         fc.integer({ min: -50, max: 50 }),
@@ -127,8 +125,8 @@ it("builds discs on each axis with invariant corner radius and axial span", () =
       ),
       fc.integer({ min: 1, max: 20 }),
       fc.integer({ min: 0, max: 359 }),
-      (center, half, angle) => {
-        run(`import math
+      async (center, half, angle) => {
+        await run(`import math
 from itertools import product
 c = load_tool('suv_cubes')
 t = load_tool('cube_tilt')

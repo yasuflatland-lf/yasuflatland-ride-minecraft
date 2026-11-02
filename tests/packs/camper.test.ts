@@ -1,7 +1,7 @@
-import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import fc from "fast-check";
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
+
 import { PAINTS } from "../../src/domain/shared/paint";
 import { SLEEP_MESSAGES } from "../../src/domain/shared/sleep";
 import { DECOR_MESSAGES } from "../../src/domain/vehicle/dock/decorMessages";
@@ -19,7 +19,11 @@ import {
 } from "../../src/infrastructure/vehicle/bedrock/identifiers";
 import { defined } from "../support/defined";
 import { readRgbaPng } from "../support/png";
+import { startPythonWorker } from "../support/pythonWorker";
 import { assertOneAxis, multipleAxes } from "./oneAxis";
+
+const python = startPythonWorker();
+afterAll(() => python.close());
 
 const RP = "packs/yasu_ride_rp";
 const geometryText = readFileSync(
@@ -1954,21 +1958,15 @@ describe("camper rear-right vent lid (ADR 0146, 0157)", () => {
 
 const { width, height, regions, period, texelsPerPx, slots, windows } =
   JSON.parse(
-    execFileSync(
-      "python3",
+    await python.run(
       [
-        "-I",
-        "-c",
-        [
-          "import contextlib, io, json, runpy, sys",
-          "sys.argv = ['tools/gen_camper.py', 'packs/yasu_ride_rp', '--check']",
-          "with contextlib.redirect_stdout(io.StringIO()):",
-          "    camper = runpy.run_path('tools/gen_camper.py')",
-          "atlas = camper['ATLAS']",
-          "print(json.dumps(dict(width=atlas.width, height=atlas.height, regions=atlas.regions, period=camper['RIB_PERIOD_TEXELS'], texelsPerPx=camper['RIB_TEXELS_PER_PX'], slots=camper['SLOTS'], windows=[camper['right_windows'], camper['left_windows']])))",
-        ].join("\n"),
-      ],
-      { encoding: "utf8" },
+        "import contextlib, io, json, runpy, sys",
+        "sys.argv = ['tools/gen_camper.py', 'packs/yasu_ride_rp', '--check']",
+        "with contextlib.redirect_stdout(io.StringIO()):",
+        "    camper = runpy.run_path('tools/gen_camper.py')",
+        "atlas = camper['ATLAS']",
+        "print(json.dumps(dict(width=atlas.width, height=atlas.height, regions=atlas.regions, period=camper['RIB_PERIOD_TEXELS'], texelsPerPx=camper['RIB_TEXELS_PER_PX'], slots=camper['SLOTS'], windows=[camper['right_windows'], camper['left_windows']])))",
+      ].join("\n"),
     ),
   ) as {
     width: number;
