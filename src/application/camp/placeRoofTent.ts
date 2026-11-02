@@ -1,3 +1,4 @@
+import { hostVerdict } from "../../domain/camp/roofTent/hostRule";
 import {
   planRoofTent,
   type RoofTentTarget,
@@ -43,6 +44,7 @@ export class PlaceRoofTent {
         type: "vehicle",
         id,
         mount: host.mount,
+        hostInUse: hostVerdict({ ...host, presence: host.status }) === "remove",
         roofTaken: this.world.loaded().some((tentId) => {
           const other = this.world.hostOf(tentId);
           return other.kind === "vehicle" && other.id === id;
