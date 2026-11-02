@@ -1,7 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import fc from "fast-check";
 import { afterAll, describe, expect, it } from "vitest";
-
 import { PAINTS } from "../../src/domain/shared/paint";
 import { SLEEP_MESSAGES } from "../../src/domain/shared/sleep";
 import { DECOR_MESSAGES } from "../../src/domain/vehicle/dock/decorMessages";
