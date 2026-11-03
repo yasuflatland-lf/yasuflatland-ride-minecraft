@@ -61,6 +61,7 @@ export const HARNESS_IMPORTS: readonly string[] = [
   "src/domain/camp/spec.ts",
   "src/domain/camp/tabletop.ts",
   "src/domain/camp/tent.ts",
+  "src/domain/camp/tentLayout.ts",
   "src/domain/shared/cells.ts",
   "src/domain/shared/decorations.ts",
   "src/domain/shared/hitCounter.ts",
